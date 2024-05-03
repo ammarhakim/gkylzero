@@ -800,6 +800,17 @@ int main(int argc, char **argv)
   int NZ = APP_ARGS_CHOOSE(app_args.xcells[0], ctx.num_cell_z);
   int NVPAR = APP_ARGS_CHOOSE(app_args.vcells[0], ctx.num_cell_vpar);
   int NMU = APP_ARGS_CHOOSE(app_args.vcells[1], ctx.num_cell_mu);
+
+  struct gkyl_gyrokinetic_projection elc_ic = {
+    .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM, 
+    .ctx_density = &ctx,
+    .density = eval_density_elc,
+    .ctx_upar = &ctx,
+    .upar= eval_upar_elc,
+    .ctx_temp = &ctx,
+    .temp = eval_temp_elc,      
+  };
+
   struct gkyl_gyrokinetic_species elc = {
     .name = "elc",
     .charge = ctx.qe,
@@ -807,16 +818,11 @@ int main(int argc, char **argv)
     .lower = {-ctx.vpar_max_elc, 0.0},
     .upper = {ctx.vpar_max_elc, ctx.mu_max_elc},
     .cells = {ctx.num_cell_vpar, ctx.num_cell_mu},
+
     .polarization_density = ctx.n0,
-    .projection = {
-      .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM, 
-      .ctx_density = &ctx,
-      .density = eval_density_elc,
-      .ctx_upar = &ctx,
-      .upar= eval_upar_elc,
-      .ctx_temp = &ctx,
-      .temp = eval_temp_elc,      
-    },
+
+    .projection = elc_ic,
+
     .collisions =  {
       .collision_id = GKYL_LBO_COLLISIONS,
       .ctx = &ctx,
@@ -824,6 +830,7 @@ int main(int argc, char **argv)
       .num_cross_collisions = 1,
       .collide_with = { "ion" },
     },
+
     .source = {
       .source_id = GKYL_PROJ_SOURCE,
       .write_source = true,
@@ -838,9 +845,16 @@ int main(int argc, char **argv)
         .temp = eval_temp_elc_source,      
       }, 
     },
+
     .bcx = {
-      .lower={.type = GKYL_SPECIES_FIXED_FUNC,},
-      .upper={.type = GKYL_SPECIES_FIXED_FUNC,},
+      .lower = {
+        .type = GKYL_SPECIES_FIXED_FUNC,
+        .projection = elc_ic,
+      },
+      .upper = {
+        .type = GKYL_SPECIES_FIXED_FUNC,
+        .projection = elc_ic,
+      },
     },
     .bcz = {
       .lower={.type = GKYL_SPECIES_GK_SHEATH,},
@@ -850,6 +864,17 @@ int main(int argc, char **argv)
     .num_diag_moments = 7, // Copied from GKsoloviev, but
     .diag_moments = {"M0", "M1", "M2", "M2par", "M2perp", "M3par", "M3perp"},
   };
+
+  struct gkyl_gyrokinetic_projection ion_ic = {
+    .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM, 
+    .ctx_density = &ctx,
+    .density = eval_density_ion,
+    .ctx_upar = &ctx,
+    .upar= eval_upar_ion,
+    .ctx_temp = &ctx,
+    .temp = eval_temp_ion,      
+  };
+
   struct gkyl_gyrokinetic_species ion = {
     .name = "ion",
     .charge = ctx.qi,
@@ -857,16 +882,11 @@ int main(int argc, char **argv)
     .lower = {-ctx.vpar_max_ion, 0.0},
     .upper = {ctx.vpar_max_ion, ctx.mu_max_ion},
     .cells = {NVPAR, NMU},
+
     .polarization_density = ctx.n0,
-    .projection = {
-      .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM, 
-      .ctx_density = &ctx,
-      .density = eval_density_ion,
-      .ctx_upar = &ctx,
-      .upar= eval_upar_ion,
-      .ctx_temp = &ctx,
-      .temp = eval_temp_ion,      
-    },
+
+    .projection = ion_ic,
+
     .collisions =  {
       .collision_id = GKYL_LBO_COLLISIONS,
       .ctx = &ctx,
@@ -874,6 +894,7 @@ int main(int argc, char **argv)
       .num_cross_collisions = 1,
       .collide_with = { "elc" },
     },
+
     .source = {
       .source_id = GKYL_PROJ_SOURCE,
       .write_source = true,
@@ -888,14 +909,22 @@ int main(int argc, char **argv)
         .temp = eval_temp_ion_source,      
       }, 
     },
+
     .bcx = {
-      .lower={.type = GKYL_SPECIES_FIXED_FUNC,},
-      .upper={.type = GKYL_SPECIES_FIXED_FUNC,},
+      .lower = {
+        .type = GKYL_SPECIES_FIXED_FUNC,
+        .projection = ion_ic,
+      },
+      .upper = {
+        .type = GKYL_SPECIES_FIXED_FUNC,
+        .projection = ion_ic,
+      },
     },
     .bcz = {
       .lower={.type = GKYL_SPECIES_GK_SHEATH,},
       .upper={.type = GKYL_SPECIES_GK_SHEATH,},
     },
+
     .num_diag_moments = 7,
     .diag_moments = {"M0", "M1", "M2", "M2par", "M2perp", "M3par", "M3perp"},
   };

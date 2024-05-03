@@ -68,17 +68,18 @@ gk_neut_species_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app, struc
   if (app->use_gpu)
     s->f_host = mkarr(false, app->neut_basis.num_basis, s->local_ext.volume);
 
+  if (app->use_gpu)
+    s->omega_cfl = gkyl_cu_malloc(sizeof(double));
+  else 
+    s->omega_cfl = gkyl_malloc(sizeof(double));
+
   if (!s->info.is_static) {
     // allocate additional distribution function arrays for time stepping
     s->f1 = mkarr(app->use_gpu, app->neut_basis.num_basis, s->local_ext.volume);
     s->fnew = mkarr(app->use_gpu, app->neut_basis.num_basis, s->local_ext.volume);
-    // allocate cflrate (scalar array)
-    s->cflrate = mkarr(app->use_gpu, 1, s->local_ext.volume);
 
-    if (app->use_gpu)
-      s->omega_cfl_ptr = gkyl_cu_malloc(sizeof(double));
-    else 
-      s->omega_cfl_ptr = gkyl_malloc(sizeof(double));
+    // Allocate cflrate (scalar array).
+    s->cflrate = mkarr(app->use_gpu, 1, s->local_ext.volume);
 
     // Need to figure out size of alpha_surf and sgn_alpha_surf by finding size of surface basis set 
     struct gkyl_basis surf_basis, surf_quad_basis;
@@ -108,29 +109,39 @@ gk_neut_species_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app, struc
   }
 
   // by default, we do not have zero-flux boundary conditions in any direction
-  bool is_zero_flux[GKYL_MAX_DIM] = {false};
+  bool is_zero_flux[2*GKYL_MAX_DIM] = {false};
 
-  // determine which directions are not periodic, if any directions are zero-flux, need to set is_zero_flux
-  int num_periodic_dir = app->num_periodic_dir, is_np[3] = {1, 1, 1};
-  for (int d=0; d<num_periodic_dir; ++d)
-    is_np[app->periodic_dirs[d]] = 0;
+  // Determine which directions are not periodic. If any BCs are zero-flux,
+  // need to set it in is_zero_flux.
+  // Keep a copy of num_periodic_dir and periodic_dirs in species so we can
+  // modify it in GK_IWL BCs without modifying the app's.
+  s->num_periodic_dir = app->num_periodic_dir;
+  for (int d=0; d<s->num_periodic_dir; ++d)
+    s->periodic_dirs[d] = app->periodic_dirs[d];
+
+  for (int d=0; d<app->cdim; ++d) s->bc_is_np[d] = true;
+  for (int d=0; d<s->num_periodic_dir; ++d)
+    s->bc_is_np[s->periodic_dirs[d]] = false;
 
   for (int dir=0; dir<app->cdim; ++dir) {
-    s->lower_bc[dir] = s->upper_bc[dir] = GKYL_SPECIES_COPY;
-    if (is_np[dir]) {
-      const enum gkyl_species_bc_type *bc;
+    s->lower_bc[dir].type = s->upper_bc[dir].type = GKYL_SPECIES_COPY;
+    if (s->bc_is_np[dir]) {
+      const struct gkyl_gyrokinetic_bcs *bc;
       if (dir == 0)
-        bc = s->info.bcx;
+        bc = &s->info.bcx;
       else if (dir == 1)
-        bc = s->info.bcy;
+        bc = &s->info.bcy;
       else
-        bc = s->info.bcz;
+        bc = &s->info.bcz;
 
-      s->lower_bc[dir] = bc[0];
-      s->upper_bc[dir] = bc[1];
-      // Zero flux BCs can only be applied jointly on lower and upper boundary
-      if (s->lower_bc[dir] == GKYL_SPECIES_ZERO_FLUX || s->upper_bc[dir] == GKYL_SPECIES_ZERO_FLUX)
+      s->lower_bc[dir] = bc->lower;
+      s->upper_bc[dir] = bc->upper;
+      if (s->lower_bc[dir].type == GKYL_SPECIES_ZERO_FLUX) {
         is_zero_flux[dir] = true;
+      }
+      if (s->upper_bc[dir].type == GKYL_SPECIES_ZERO_FLUX) {
+        is_zero_flux[dir+pdim] = true;
+      }
     }
   }
 
@@ -164,8 +175,13 @@ gk_neut_species_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app, struc
   for (int m=0; m<ndm; ++m)
     gk_neut_species_moment_init(app, s, &s->moms[m], s->info.diag_moments[m]);
 
-  if (app->use_gpu) 
+  if (app->use_gpu) {
     s->red_integ_diag = gkyl_cu_malloc(sizeof(double[vdim+2]));
+    s->red_integ_diag_global = gkyl_cu_malloc(sizeof(double[vdim+2]));
+  } else {
+    s->red_integ_diag = gkyl_malloc(sizeof(double[vdim+2]));
+    s->red_integ_diag_global = gkyl_malloc(sizeof(double[vdim+2]));
+  }
   // allocate dynamic-vector to store all-reduced integrated moments 
   s->integ_diag = gkyl_dynvec_new(GKYL_DOUBLE, vdim+2);
   s->is_first_integ_write_call = true;
@@ -196,39 +212,59 @@ gk_neut_species_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app, struc
   for (int d=0; d<cdim; ++d) {
     // Copy BCs by default.
     enum gkyl_bc_basic_type bctype = GKYL_BC_COPY;
-    if (s->lower_bc[d] == GKYL_SPECIES_RECYCLE) {
+    if (s->lower_bc[d].type == GKYL_SPECIES_RECYCLE) {
       ;
     }
     else { 
-      if (s->lower_bc[d] == GKYL_SPECIES_COPY) 
+      if (s->lower_bc[d].type == GKYL_SPECIES_COPY) 
         bctype = GKYL_BC_COPY;
-      else if (s->lower_bc[d] == GKYL_SPECIES_ABSORB) 
+      else if (s->lower_bc[d].type == GKYL_SPECIES_ABSORB) 
         bctype = GKYL_BC_ABSORB;
-      else if (s->lower_bc[d] == GKYL_SPECIES_REFLECT) 
+      else if (s->lower_bc[d].type == GKYL_SPECIES_REFLECT) 
         bctype = GKYL_BC_REFLECT;
-      else if (s->lower_bc[d] == GKYL_SPECIES_FIXED_FUNC) 
+      else if (s->lower_bc[d].type == GKYL_SPECIES_FIXED_FUNC) 
         bctype = GKYL_BC_FIXED_FUNC;
 
       s->bc_lo[d] = gkyl_bc_basic_new(d, GKYL_LOWER_EDGE, bctype, app->basis_on_dev.neut_basis,
         &s->lower_skin[d], &s->lower_ghost[d], s->f->ncomp, app->cdim, app->use_gpu);
+
+      if (s->lower_bc[d].type == GKYL_SPECIES_FIXED_FUNC) {
+        // Fill the buffer used for BCs.
+        struct gk_proj gk_proj_bc_lo;
+        gk_neut_species_projection_init(app, s, s->lower_bc[d].projection, &gk_proj_bc_lo);
+        gk_neut_species_projection_calc(app, s, &gk_proj_bc_lo, s->f1, 0.0); // Temporarily use f1.
+        gkyl_bc_basic_buffer_fixed_func(s->bc_lo[d], s->bc_buffer_lo_fixed, s->f1);
+        gkyl_array_clear(s->f1, 0.0);
+        gk_neut_species_projection_release(app, &gk_proj_bc_lo);
+      }
     }
 
-    if (s->upper_bc[d] == GKYL_SPECIES_RECYCLE) {
+    if (s->upper_bc[d].type == GKYL_SPECIES_RECYCLE) {
       ;
     }
     else {
       // Upper BC updater. Copy BCs by default.
-      if (s->upper_bc[d] == GKYL_SPECIES_COPY) 
+      if (s->upper_bc[d].type == GKYL_SPECIES_COPY) 
         bctype = GKYL_BC_COPY;
-      else if (s->upper_bc[d] == GKYL_SPECIES_ABSORB) 
+      else if (s->upper_bc[d].type == GKYL_SPECIES_ABSORB) 
         bctype = GKYL_BC_ABSORB;
-      else if (s->upper_bc[d] == GKYL_SPECIES_REFLECT) 
+      else if (s->upper_bc[d].type == GKYL_SPECIES_REFLECT) 
         bctype = GKYL_BC_REFLECT;
-      else if (s->upper_bc[d] == GKYL_SPECIES_FIXED_FUNC) 
+      else if (s->upper_bc[d].type == GKYL_SPECIES_FIXED_FUNC) 
         bctype = GKYL_BC_FIXED_FUNC;
 
       s->bc_up[d] = gkyl_bc_basic_new(d, GKYL_UPPER_EDGE, bctype, app->basis_on_dev.neut_basis,
         &s->upper_skin[d], &s->upper_ghost[d], s->f->ncomp, app->cdim, app->use_gpu);
+
+      if (s->upper_bc[d].type == GKYL_SPECIES_FIXED_FUNC) {
+        // Fill the buffer used for BCs.
+        struct gk_proj gk_proj_bc_up;
+        gk_neut_species_projection_init(app, s, s->upper_bc[d].projection, &gk_proj_bc_up);
+        gk_neut_species_projection_calc(app, s, &gk_proj_bc_up, s->f1, 0.0); // Temporarily use f1.
+        gkyl_bc_basic_buffer_fixed_func(s->bc_up[d], s->bc_buffer_up_fixed, s->f1);
+        gkyl_array_clear(s->f1, 0.0);
+        gk_neut_species_projection_release(app, &gk_proj_bc_up);
+      }
     }
   }
 }
@@ -241,13 +277,6 @@ gk_neut_species_apply_ic(gkyl_gyrokinetic_app *app, struct gk_neut_species *spec
   // we are pre-computing source for now as it is time-independent
   if (species->source_id)
     gk_neut_species_source_calc(app, species, &species->src, t0);
-
-  // copy contents of initial conditions into buffer if specific BCs require them
-  // *only works in x dimension for now for cdim > 1*
-  if (app->cdim>1) {
-    gkyl_bc_basic_buffer_fixed_func(species->bc_lo[0], species->bc_buffer_lo_fixed, species->f);
-    gkyl_bc_basic_buffer_fixed_func(species->bc_up[0], species->bc_buffer_up_fixed, species->f);
-  }
 }
 
 // Compute the RHS for species update, returning maximum stable
@@ -270,13 +299,13 @@ gk_neut_species_rhs(gkyl_gyrokinetic_app *app, struct gk_neut_species *species,
 
     app->stat.nspecies_omega_cfl +=1;
     struct timespec tm = gkyl_wall_clock();
-    gkyl_array_reduce_range(species->omega_cfl_ptr, species->cflrate, GKYL_MAX, &species->local);
+    gkyl_array_reduce_range(species->omega_cfl, species->cflrate, GKYL_MAX, &species->local);
 
     double omega_cfl_ho[1];
     if (app->use_gpu)
-      gkyl_cu_memcpy(omega_cfl_ho, species->omega_cfl_ptr, sizeof(double), GKYL_CU_MEMCPY_D2H);
+      gkyl_cu_memcpy(omega_cfl_ho, species->omega_cfl, sizeof(double), GKYL_CU_MEMCPY_D2H);
     else
-      omega_cfl_ho[0] = species->omega_cfl_ptr[0];
+      omega_cfl_ho[0] = species->omega_cfl[0];
     omega_cfl = omega_cfl_ho[0];
 
     app->stat.species_omega_cfl_tm += gkyl_time_diff_now_sec(tm);
@@ -296,14 +325,10 @@ gk_neut_species_apply_bc(gkyl_gyrokinetic_app *app, const struct gk_neut_species
   gkyl_comm_array_per_sync(species->comm, &species->local, &species->local_ext,
     num_periodic_dir, app->periodic_dirs, f); 
   
-  int is_np_bc[3] = {1, 1, 1}; // flags to indicate if direction is periodic
-  for (int d=0; d<num_periodic_dir; ++d)
-    is_np_bc[app->periodic_dirs[d]] = 0;
-
   for (int d=0; d<cdim; ++d) {
-    if (is_np_bc[d]) {
+    if (species->bc_is_np[d]) {
 
-      switch (species->lower_bc[d]) {
+      switch (species->lower_bc[d].type) {
         case GKYL_SPECIES_RECYCLE:
           ;
           break;
@@ -312,12 +337,8 @@ gk_neut_species_apply_bc(gkyl_gyrokinetic_app *app, const struct gk_neut_species
         case GKYL_SPECIES_ABSORB:
           gkyl_bc_basic_advance(species->bc_lo[d], species->bc_buffer, f);
           break;
-        case GKYL_SPECIES_FIXED_FUNC:
+	case GKYL_SPECIES_FIXED_FUNC:
           gkyl_bc_basic_advance(species->bc_lo[d], species->bc_buffer_lo_fixed, f);
-          break;
-        case GKYL_SPECIES_NO_SLIP:
-        case GKYL_SPECIES_WEDGE:
-          assert(false);
           break;
         case GKYL_SPECIES_ZERO_FLUX:
           break; // do nothing, BCs already applied in hyper_dg loop by not updating flux
@@ -325,7 +346,7 @@ gk_neut_species_apply_bc(gkyl_gyrokinetic_app *app, const struct gk_neut_species
           break;
       }
 
-      switch (species->upper_bc[d]) {
+      switch (species->upper_bc[d].type) {
         case GKYL_SPECIES_RECYCLE:
           ;
           break;
@@ -336,10 +357,6 @@ gk_neut_species_apply_bc(gkyl_gyrokinetic_app *app, const struct gk_neut_species
           break;
         case GKYL_SPECIES_FIXED_FUNC:
           gkyl_bc_basic_advance(species->bc_up[d], species->bc_buffer_up_fixed, f);
-          break;
-        case GKYL_SPECIES_NO_SLIP:
-        case GKYL_SPECIES_WEDGE:
-          assert(false);
           break;
         case GKYL_SPECIES_ZERO_FLUX:
           break; // do nothing, BCs already applied in hyper_dg loop by not updating flux
@@ -372,10 +389,9 @@ gk_neut_species_release(const gkyl_gyrokinetic_app* app, const struct gk_neut_sp
   // release various arrays
   gkyl_array_release(s->f);
   gkyl_array_release(s->bc_buffer);
-  if (app->cdim > 1) {
-    gkyl_array_release(s->bc_buffer_lo_fixed);
-    gkyl_array_release(s->bc_buffer_up_fixed);
-  }
+  gkyl_array_release(s->bc_buffer_lo_fixed);
+  gkyl_array_release(s->bc_buffer_up_fixed);
+
   gk_neut_species_projection_release(app, &s->proj_init);
   
   gkyl_comm_release(s->comm);
@@ -387,12 +403,6 @@ gk_neut_species_release(const gkyl_gyrokinetic_app* app, const struct gk_neut_sp
     gkyl_array_release(s->f1);
     gkyl_array_release(s->fnew);
     gkyl_array_release(s->cflrate);
-    if (app->use_gpu) {
-      gkyl_cu_free(s->omega_cfl_ptr);
-    }
-    else {
-      gkyl_free(s->omega_cfl_ptr);
-    }
 
     gkyl_array_release(s->alpha_surf);
     gkyl_array_release(s->sgn_alpha_surf);
@@ -420,18 +430,25 @@ gk_neut_species_release(const gkyl_gyrokinetic_app* app, const struct gk_neut_sp
 
   // Copy BCs are allocated by default. Need to free.
   for (int d=0; d<app->cdim; ++d) {
-    if (s->lower_bc[d] == GKYL_SPECIES_RECYCLE) 
+    if (s->lower_bc[d].type == GKYL_SPECIES_RECYCLE) 
       ;
     else 
       gkyl_bc_basic_release(s->bc_lo[d]);
     
-    if (s->upper_bc[d] == GKYL_SPECIES_RECYCLE) 
+    if (s->upper_bc[d].type == GKYL_SPECIES_RECYCLE) 
       ;
     else 
       gkyl_bc_basic_release(s->bc_up[d]);
   }
   
   if (app->use_gpu) {
+    gkyl_cu_free(s->omega_cfl);
     gkyl_cu_free(s->red_integ_diag);
+    gkyl_cu_free(s->red_integ_diag_global);
+  }
+  else {
+    gkyl_free(s->omega_cfl);
+    gkyl_free(s->red_integ_diag);
+    gkyl_free(s->red_integ_diag_global);
   }
 }
