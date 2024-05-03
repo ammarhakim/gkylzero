@@ -112,7 +112,7 @@ gkyl_eval_cart_bmag(const gkyl_calc_cart_bmag *up, double xcart[3], double bcart
   double bcart[3];
   bcart[0] = br*cos(phi);
   bcart[1] = br*sin(phi);
-  bcart[2] = z = bz;
+  bcart[2] = bz;
 }
 
 void
