@@ -207,6 +207,10 @@ $(BUILD_DIR)/kernels/bin_op/%.c.o : kernels/bin_op/%.c
 	$(MKDIR_P) $(dir $@)
 	$(CC) $(CFLAGS) $(NVCC_FLAGS) $(INCLUDES) -c $< -o $@
 
+$(BUILD_DIR)/kernels/canonical_pb/%.c.o : kernels/canonical_pb/%.c
+	$(MKDIR_P) $(dir $@)
+	$(CC) $(CFLAGS) $(NVCC_FLAGS) $(INCLUDES) -c $< -o $@
+
 $(BUILD_DIR)/kernels/dg_diffusion_fluid/%.c.o : kernels/dg_diffusion_fluid/%.c
 	$(MKDIR_P) $(dir $@)
 	$(CC) $(CFLAGS) $(NVCC_FLAGS) $(INCLUDES) -c $< -o $@
