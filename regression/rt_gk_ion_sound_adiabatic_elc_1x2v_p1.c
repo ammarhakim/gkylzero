@@ -365,7 +365,6 @@ main(int argc, char **argv)
     .electron_charge = ctx.charge_elc,
     .electron_density = ctx.n0,
     .electron_temp = ctx.Te,
-    .bmag_fac = ctx.B0, 
     .fem_parbc = GKYL_FEM_PARPROJ_PERIODIC,
     .kperpSq = ctx.k_perp * ctx.k_perp,
   };
