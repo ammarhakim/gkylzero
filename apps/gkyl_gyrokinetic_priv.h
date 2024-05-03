@@ -271,11 +271,16 @@ struct gk_bgk_collisions {
 
   bool normNu; // Boolean to determine if using Spitzer value
   struct gkyl_array *norm_nu; // Array for normalization factor computed from Spitzer updater n/sqrt(2 vt^2)^3
+  double self_nu_fac; // Self collision frequency without factor of n_r/(v_ts^2+v_tr^2)^(3/2)
+  double cross_nu_fac[GKYL_MAX_SPECIES]; // Cross collision freqs without factor of n_r/(v_ts^2+v_tr^2)^(3/2)
+  double vtsq_min; // minimum vtsq
   struct gkyl_array *nu_init; // Array for initial collisionality when using Spitzer updater
   struct gkyl_spitzer_coll_freq* spitzer_calc; // Updater for Spitzer collisionality if computing Spitzer value
 
   struct gk_species_moment moms; // moments needed in BGK (single array includes Zeroth, First, and Second moment)
-
+  struct gkyl_array *m0;
+  struct gkyl_array *vtsq;
+  
   struct gkyl_array *fmax;
   struct gkyl_array *nu_fmax;
 
