@@ -186,8 +186,8 @@ gk_species_bgk_cross_moms(gkyl_gyrokinetic_app *app, const struct gk_species *sp
     // Calculate cross_nu if using spitzer nu
     if (bgk->normNu) {
       gkyl_spitzer_coll_freq_advance_normnu(bgk->spitzer_calc, &app->local, 
-        bgk->vtsq, bgk->vtsq_min, bgk->collide_with[i]->lbo.m0, 
-        bgk->collide_with[i]->lbo.vtsq, bgk->collide_with[i]->lbo.vtsq_min, 
+        bgk->vtsq, bgk->vtsq_min, bgk->collide_with[i]->bgk.m0, 
+        bgk->collide_with[i]->bgk.vtsq, bgk->collide_with[i]->bgk.vtsq_min, 
         bgk->cross_nu_fac[i], bgk->cross_nu[i]);
       gkyl_array_accumulate(bgk->nu_sum, 1.0, bgk->cross_nu[i]);
     }
