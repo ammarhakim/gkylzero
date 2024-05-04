@@ -86,7 +86,8 @@ dg_euler_pkpm_set_cu_dev_ptrs(struct dg_euler_pkpm* euler_pkpm, enum gkyl_basis_
 }
 
 struct gkyl_dg_eqn*
-gkyl_dg_euler_pkpm_cu_dev_new(const struct gkyl_basis* cbasis, const struct gkyl_range* conf_range)
+gkyl_dg_euler_pkpm_cu_dev_new(const struct gkyl_basis* cbasis, const struct gkyl_range* conf_range, 
+  const struct gkyl_wv_eqn *wv_eqn, const struct gkyl_wave_geom *wg)
 {
   struct dg_euler_pkpm *euler_pkpm = (struct dg_euler_pkpm*) gkyl_malloc(sizeof(struct dg_euler_pkpm));
 
