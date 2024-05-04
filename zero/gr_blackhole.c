@@ -4,6 +4,7 @@
 #include <gkyl_alloc.h>
 #include <gkyl_alloc_flags_priv.h>
 #include <gkyl_gr_blackhole.h>
+#include <gkyl_gr_spacetime_diff.h>
 
 double
 blackhole_kerrschildscalar(const struct gkyl_gr_spacetime* spacetime, const double x, const double y, const double z)
@@ -335,123 +336,14 @@ static void
 blackhole_spatial_metric_tensor_der(const struct gkyl_gr_spacetime* spacetime, const double t, const double x, const double y, const double z,
    const double dx, const double dy, const double dz, double**** spatial_metric_tensor_der)
 {
-  double **spatial_metric_x_forward = gkyl_malloc(sizeof(double*[3]));
-  double **spatial_metric_y_forward = gkyl_malloc(sizeof(double*[3]));
-  double **spatial_metric_z_forward = gkyl_malloc(sizeof(double*[3]));
-
-  double **spatial_metric_x_backward = gkyl_malloc(sizeof(double*[3]));
-  double **spatial_metric_y_backward = gkyl_malloc(sizeof(double*[3]));
-  double **spatial_metric_z_backward = gkyl_malloc(sizeof(double*[3]));
-
-  for (int i = 0; i < 3; i++) {
-    spatial_metric_x_forward[i] = gkyl_malloc(sizeof(double[3]));
-    spatial_metric_y_forward[i] = gkyl_malloc(sizeof(double[3]));
-    spatial_metric_z_forward[i] = gkyl_malloc(sizeof(double[3]));
-
-    spatial_metric_x_backward[i] = gkyl_malloc(sizeof(double[3]));
-    spatial_metric_y_backward[i] = gkyl_malloc(sizeof(double[3]));
-    spatial_metric_z_backward[i] = gkyl_malloc(sizeof(double[3]));
-  }
-
-  blackhole_spatial_metric_tensor(spacetime, t, x + (0.5 * dx), y, z, &spatial_metric_x_forward);
-  blackhole_spatial_metric_tensor(spacetime, t, x, y + (0.5 * dy), z, &spatial_metric_y_forward);
-  blackhole_spatial_metric_tensor(spacetime, t, x, y, z + (0.5 * dz), &spatial_metric_z_forward);
-
-  blackhole_spatial_metric_tensor(spacetime, t, x - (0.5 * dx), y, z, &spatial_metric_x_backward);
-  blackhole_spatial_metric_tensor(spacetime, t, x, y - (0.5 * dy), z, &spatial_metric_y_backward);
-  blackhole_spatial_metric_tensor(spacetime, t, x, y, z - (0.5 * dz), &spatial_metric_z_backward);
-
-  for (int i = 0; i < 3; i++) {
-    for (int j = 0; j < 3; j++) {
-      (*spatial_metric_tensor_der)[0][i][j] = (1.0 / dx) * (spatial_metric_x_forward[i][j] - spatial_metric_x_backward[i][j]);
-      (*spatial_metric_tensor_der)[1][i][j] = (1.0 / dy) * (spatial_metric_y_forward[i][j] - spatial_metric_y_backward[i][j]);
-      (*spatial_metric_tensor_der)[2][i][j] = (1.0 / dz) * (spatial_metric_z_forward[i][j] - spatial_metric_z_backward[i][j]);
-    }
-  }
-
-  for (int i = 0; i < 3; i++) {
-    gkyl_free(spatial_metric_x_forward[i]);
-    gkyl_free(spatial_metric_y_forward[i]);
-    gkyl_free(spatial_metric_z_forward[i]);
-
-    gkyl_free(spatial_metric_x_backward[i]);
-    gkyl_free(spatial_metric_y_backward[i]);
-    gkyl_free(spatial_metric_z_backward[i]);
-  }
-  gkyl_free(spatial_metric_x_forward);
-  gkyl_free(spatial_metric_y_forward);
-  gkyl_free(spatial_metric_z_forward);
-
-  gkyl_free(spatial_metric_x_backward);
-  gkyl_free(spatial_metric_y_backward);
-  gkyl_free(spatial_metric_z_backward);
+  gkyl_gr_spatial_metric_tensor_diff(spacetime, t, x, y, z, dx, dy, dz, spatial_metric_tensor_der);
 }
 
 static void
 blackhole_spacetime_metric_tensor_der(const struct gkyl_gr_spacetime* spacetime, const double t, const double x, const double y, const double z,
   const double dt, const double dx, const double dy, const double dz, double**** spacetime_metric_tensor_der)
 {
-  double **spacetime_metric_t_forward = gkyl_malloc(sizeof(double*[4]));
-  double **spacetime_metric_x_forward = gkyl_malloc(sizeof(double*[4]));
-  double **spacetime_metric_y_forward = gkyl_malloc(sizeof(double*[4]));
-  double **spacetime_metric_z_forward = gkyl_malloc(sizeof(double*[4]));
-
-  double **spacetime_metric_t_backward = gkyl_malloc(sizeof(double*[4]));
-  double **spacetime_metric_x_backward = gkyl_malloc(sizeof(double*[4]));
-  double **spacetime_metric_y_backward = gkyl_malloc(sizeof(double*[4]));
-  double **spacetime_metric_z_backward = gkyl_malloc(sizeof(double*[4]));
-
-  for (int i = 0; i < 4; i++) {
-    spacetime_metric_t_forward[i] = gkyl_malloc(sizeof(double[4]));
-    spacetime_metric_x_forward[i] = gkyl_malloc(sizeof(double[4]));
-    spacetime_metric_y_forward[i] = gkyl_malloc(sizeof(double[4]));
-    spacetime_metric_z_forward[i] = gkyl_malloc(sizeof(double[4]));
-    
-    spacetime_metric_t_backward[i] = gkyl_malloc(sizeof(double[4]));
-    spacetime_metric_x_backward[i] = gkyl_malloc(sizeof(double[4]));
-    spacetime_metric_y_backward[i] = gkyl_malloc(sizeof(double[4]));
-    spacetime_metric_z_backward[i] = gkyl_malloc(sizeof(double[4]));
-  }
-
-  blackhole_spacetime_metric_tensor(spacetime, t + (0.5 * dt), x, y, z, &spacetime_metric_t_forward);
-  blackhole_spacetime_metric_tensor(spacetime, t, x + (0.5 * dx), y, z, &spacetime_metric_x_forward);
-  blackhole_spacetime_metric_tensor(spacetime, t, x, y + (0.5 * dy), z, &spacetime_metric_y_forward);
-  blackhole_spacetime_metric_tensor(spacetime, t, x, y, z + (0.5 * dz), &spacetime_metric_z_forward);
-
-  blackhole_spacetime_metric_tensor(spacetime, t - (0.5 * dt), x, y, z, &spacetime_metric_t_backward);
-  blackhole_spacetime_metric_tensor(spacetime, t, x - (0.5 * dx), y, z, &spacetime_metric_x_backward);
-  blackhole_spacetime_metric_tensor(spacetime, t, x, y - (0.5 * dy), z, &spacetime_metric_y_backward);
-  blackhole_spacetime_metric_tensor(spacetime, t, x, y, z - (0.5 * dz), &spacetime_metric_z_backward);
-
-  for (int i = 0; i < 4; i++) {
-    for (int j = 0; j < 4; j++) {
-      (*spacetime_metric_tensor_der)[0][i][j] = (1.0 / dt) * (spacetime_metric_t_forward[i][j] - spacetime_metric_t_backward[i][j]);
-      (*spacetime_metric_tensor_der)[1][i][j] = (1.0 / dx) * (spacetime_metric_x_forward[i][j] - spacetime_metric_x_backward[i][j]);
-      (*spacetime_metric_tensor_der)[2][i][j] = (1.0 / dy) * (spacetime_metric_y_forward[i][j] - spacetime_metric_y_backward[i][j]);
-      (*spacetime_metric_tensor_der)[3][i][j] = (1.0 / dz) * (spacetime_metric_z_forward[i][j] - spacetime_metric_z_backward[i][j]);
-    }
-  }
-
-  for (int i = 0; i < 4; i++) {
-    gkyl_free(spacetime_metric_t_forward[i]);
-    gkyl_free(spacetime_metric_x_forward[i]);
-    gkyl_free(spacetime_metric_y_forward[i]);
-    gkyl_free(spacetime_metric_z_forward[i]);
-
-    gkyl_free(spacetime_metric_t_backward[i]);
-    gkyl_free(spacetime_metric_x_backward[i]);
-    gkyl_free(spacetime_metric_y_backward[i]);
-    gkyl_free(spacetime_metric_z_backward[i]);
-  }
-  gkyl_free(spacetime_metric_t_forward);
-  gkyl_free(spacetime_metric_x_forward);
-  gkyl_free(spacetime_metric_y_forward);
-  gkyl_free(spacetime_metric_z_forward);
-
-  gkyl_free(spacetime_metric_t_backward);
-  gkyl_free(spacetime_metric_x_backward);
-  gkyl_free(spacetime_metric_y_backward);
-  gkyl_free(spacetime_metric_z_backward);
+  gkyl_gr_spacetime_metric_tensor_diff(spacetime, t, x, y, z, dt, dx, dy, dz, spacetime_metric_tensor_der);
 }
 
 static void
@@ -479,567 +371,70 @@ static void
 blackhole_lapse_function_der(const struct gkyl_gr_spacetime* spacetime, const double t, const double x, const double y, const double z,
   const double dx, const double dy, const double dz, double** lapse_function_der)
 {
-  double lapse_function_x_forward;
-  double lapse_function_y_forward;
-  double lapse_function_z_forward;
-
-  double lapse_function_x_backward;
-  double lapse_function_y_backward;
-  double lapse_function_z_backward;
-
-  blackhole_lapse_function(spacetime, t, x + (0.5 * dx), y, z, &lapse_function_x_forward);
-  blackhole_lapse_function(spacetime, t, x, y + (0.5 * dy), z, &lapse_function_y_forward);
-  blackhole_lapse_function(spacetime, t, x, y, z + (0.5 * dz), &lapse_function_z_forward);
-
-  blackhole_lapse_function(spacetime, t, x - (0.5 * dx), y, z, &lapse_function_x_backward);
-  blackhole_lapse_function(spacetime, t, x, y - (0.5 * dy), z, &lapse_function_y_backward);
-  blackhole_lapse_function(spacetime, t, x, y, z - (0.5 * dz), &lapse_function_z_backward);
-
-  (*lapse_function_der)[0] = (1.0 / dx) * (lapse_function_x_forward - lapse_function_x_backward);
-  (*lapse_function_der)[1] = (1.0 / dy) * (lapse_function_y_forward - lapse_function_y_backward);
-  (*lapse_function_der)[2] = (1.0 / dz) * (lapse_function_z_forward - lapse_function_z_backward);
+  gkyl_gr_lapse_function_diff(spacetime, t, x, y, z, dx, dy, dz, lapse_function_der);
 }
 
 static void
 blackhole_shift_vector_der(const struct gkyl_gr_spacetime* spacetime, const double t, const double x, const double y, const double z,
   const double dx, const double dy, const double dz, double*** shift_vector_der)
 {
-  double* shift_vector_x_forward = gkyl_malloc(sizeof(double[3]));
-  double* shift_vector_y_forward = gkyl_malloc(sizeof(double[3]));
-  double* shift_vector_z_forward = gkyl_malloc(sizeof(double[3]));
-  
-  double* shift_vector_x_backward = gkyl_malloc(sizeof(double[3]));
-  double* shift_vector_y_backward = gkyl_malloc(sizeof(double[3]));
-  double* shift_vector_z_backward = gkyl_malloc(sizeof(double[3]));
-
-  blackhole_shift_vector(spacetime, t, x + (0.5 * dx), y, z, &shift_vector_x_forward);
-  blackhole_shift_vector(spacetime, t, x, y + (0.5 * dy), z, &shift_vector_y_forward);
-  blackhole_shift_vector(spacetime, t, x, y, z + (0.5 * dz), &shift_vector_z_forward);
-
-  blackhole_shift_vector(spacetime, t, x - (0.5 * dx), y, z, &shift_vector_x_backward);
-  blackhole_shift_vector(spacetime, t, x, y - (0.5 * dy), z, &shift_vector_y_backward);
-  blackhole_shift_vector(spacetime, t, x, y, z - (0.5 * dz), &shift_vector_z_backward);
-  
-  for (int i = 0; i < 3; i++) {
-    (*shift_vector_der)[0][i] = (1.0 / dx) * (shift_vector_x_forward[i] - shift_vector_x_backward[i]);
-    (*shift_vector_der)[1][i] = (1.0 / dy) * (shift_vector_y_forward[i] - shift_vector_y_backward[i]);
-    (*shift_vector_der)[2][i] = (1.0 / dz) * (shift_vector_z_forward[i] - shift_vector_z_backward[i]);
-  }
-
-  gkyl_free(shift_vector_x_forward);
-  gkyl_free(shift_vector_y_forward);
-  gkyl_free(shift_vector_z_forward);
-
-  gkyl_free(shift_vector_x_backward);
-  gkyl_free(shift_vector_y_backward);
-  gkyl_free(shift_vector_z_backward);
+  gkyl_gr_shift_vector_diff(spacetime, t, x, y, z, dx, dy, dz, shift_vector_der);
 }
 
 static void
 blackhole_spatial_christoffel(const struct gkyl_gr_spacetime* spacetime, const double t, const double x, const double y, const double z,
   const double dx, const double dy, const double dz, double**** spatial_christoffel)
 {
-  double **inv_spatial_metric = gkyl_malloc(sizeof(double*[3]));
-  for (int i = 0; i < 3; i++) {
-    inv_spatial_metric[i] = gkyl_malloc(sizeof(double[3]));
-  }
-
-  double ***spatial_metric_der = gkyl_malloc(sizeof(double**[3]));
-  for (int i = 0; i < 3; i++) {
-    spatial_metric_der[i] = gkyl_malloc(sizeof(double*[3]));
-
-    for (int j = 0; j < 3; j++) {
-      spatial_metric_der[i][j] = gkyl_malloc(sizeof(double[3]));
-    }
-  }
-
-  blackhole_spatial_inv_metric_tensor(spacetime, t, x, y, z, &inv_spatial_metric);
-  blackhole_spatial_metric_tensor_der(spacetime, t, x, y, z, dx, dy, dz, &spatial_metric_der);
-
-  for (int i = 0; i < 3; i++) {
-    for (int j = 0 ; j < 3; j++) {
-      for (int k = 0; k < 3; k++) {
-        (*spatial_christoffel)[i][j][k] = 0.0;
-      }
-    }
-  }
-
-  for (int i = 0; i < 3; i++) {
-    for (int j = 0; j < 3; j++) {
-      for (int k = 0; k < 3; k++) {
-        for (int l = 0; l < 3; l++) {
-          (*spatial_christoffel)[i][j][k] += (0.5 * inv_spatial_metric[i][l]) * (spatial_metric_der[k][l][j] + spatial_metric_der[j][l][k]
-            - spatial_metric_der[l][j][k]);
-        }
-      }
-    }
-  }
-
-  for (int i = 0; i < 3; i++) {
-    for (int j = 0; j < 3; j++) {
-      gkyl_free(spatial_metric_der[i][j]);
-    }
-
-    gkyl_free(inv_spatial_metric[i]);
-    gkyl_free(spatial_metric_der[i]);
-  }
-  gkyl_free(inv_spatial_metric);
-  gkyl_free(spatial_metric_der);
+  gkyl_gr_spatial_christoffel_fd(spacetime, t, x, y, z, dx, dy, dz, spatial_christoffel);
 }
 
 static void
 blackhole_spacetime_christoffel(const struct gkyl_gr_spacetime* spacetime, const double t, const double x, const double y, const double z,
   const double dt, const double dx, const double dy, const double dz, double**** spacetime_christoffel)
 {
-  double **inv_spacetime_metric = gkyl_malloc(sizeof(double*[4]));
-  for (int i = 0; i < 4; i++) {
-    inv_spacetime_metric[i] = gkyl_malloc(sizeof(double[4]));
-  }
-
-  double ***spacetime_metric_der = gkyl_malloc(sizeof(double**[4]));
-  for (int i = 0; i < 4; i++) {
-    spacetime_metric_der[i] = gkyl_malloc(sizeof(double*[4]));
-
-    for (int j = 0; j < 4; j++) {
-      spacetime_metric_der[i][j] = gkyl_malloc(sizeof(double[4]));
-    }
-  }
-
-  blackhole_spacetime_inv_metric_tensor(spacetime, t, x, y, z, &inv_spacetime_metric);
-  blackhole_spacetime_metric_tensor_der(spacetime, t, x, y, z, dt, dx, dy, dz, &spacetime_metric_der);
-
-  for (int i = 0; i < 4; i++) {
-    for (int j = 0; j < 4; j++) {
-      for (int k = 0; k < 4; k++) {
-        (*spacetime_christoffel)[i][j][k] = 0.0;
-      }
-    }
-  }
-
-  for (int i = 0; i < 4; i++) {
-    for (int j = 0; j < 4; j++) {
-      for (int k = 0; k < 4; k++) {
-        for (int l = 0; l < 4; l++) {
-          (*spacetime_christoffel)[i][j][k] += (0.5 * inv_spacetime_metric[i][l]) * (spacetime_metric_der[k][l][j] + spacetime_metric_der[j][l][k]
-            - spacetime_metric_der[l][j][k]);
-        }
-      }
-    }
-  }
-
-  for (int i = 0; i < 4; i++) {
-    for (int j = 0; j < 4; j++) {
-      gkyl_free(spacetime_metric_der[i][j]);
-    }
-
-    gkyl_free(inv_spacetime_metric[i]);
-    gkyl_free(spacetime_metric_der[i]);
-  }
-  gkyl_free(inv_spacetime_metric);
-  gkyl_free(spacetime_metric_der);
+  gkyl_gr_spacetime_christoffel_fd(spacetime, t, x, y, z, dt, dx, dy, dz, spacetime_christoffel);
 }
 
 static void
 blackhole_spatial_riemann_tensor(const struct gkyl_gr_spacetime* spacetime, const double t, const double x, const double y, const double z,
   const double dx, const double dy, const double dz, double***** spatial_riemann_tensor)
 {
-  double ***spatial_christoffel = gkyl_malloc(sizeof(double**[3]));
-  double ***spatial_christoffel_x_forward = gkyl_malloc(sizeof(double**[3]));
-  double ***spatial_christoffel_y_forward = gkyl_malloc(sizeof(double**[3]));
-  double ***spatial_christoffel_z_forward = gkyl_malloc(sizeof(double**[3]));
-
-  double ***spatial_christoffel_x_backward = gkyl_malloc(sizeof(double**[3]));
-  double ***spatial_christoffel_y_backward = gkyl_malloc(sizeof(double**[3]));
-  double ***spatial_christoffel_z_backward = gkyl_malloc(sizeof(double**[3]));
-
-  for (int i = 0; i < 3; i++) {
-    spatial_christoffel[i] = gkyl_malloc(sizeof(double*[3]));
-    spatial_christoffel_x_forward[i] = gkyl_malloc(sizeof(double*[3]));
-    spatial_christoffel_y_forward[i] = gkyl_malloc(sizeof(double*[3]));
-    spatial_christoffel_z_forward[i] = gkyl_malloc(sizeof(double*[3]));
-
-    spatial_christoffel_x_backward[i] = gkyl_malloc(sizeof(double*[3]));
-    spatial_christoffel_y_backward[i] = gkyl_malloc(sizeof(double*[3]));
-    spatial_christoffel_z_backward[i] = gkyl_malloc(sizeof(double*[3]));
-
-    for (int j = 0; j < 3; j++) {
-      spatial_christoffel[i][j] = gkyl_malloc(sizeof(double[3]));
-      spatial_christoffel_x_forward[i][j] = gkyl_malloc(sizeof(double[3]));
-      spatial_christoffel_y_forward[i][j] = gkyl_malloc(sizeof(double[3]));
-      spatial_christoffel_z_forward[i][j] = gkyl_malloc(sizeof(double[3]));
-
-      spatial_christoffel_x_backward[i][j] = gkyl_malloc(sizeof(double[3]));
-      spatial_christoffel_y_backward[i][j] = gkyl_malloc(sizeof(double[3]));
-      spatial_christoffel_z_backward[i][j] = gkyl_malloc(sizeof(double[3]));
-    }
-  }
-  
-  blackhole_spatial_christoffel(spacetime, t, x, y, z, dx, dy, dz, &spatial_christoffel);
-  blackhole_spatial_christoffel(spacetime, t, x + (0.5 * dx), y, z, dx, dy, dz, &spatial_christoffel_x_forward);
-  blackhole_spatial_christoffel(spacetime, t, x, y + (0.5 * dy), z, dx, dy, dz, &spatial_christoffel_y_forward);
-  blackhole_spatial_christoffel(spacetime, t, x, y, z + (0.5 * dz), dx, dy, dz, &spatial_christoffel_z_forward);
-
-  blackhole_spatial_christoffel(spacetime, t, x - (0.5 * dx), y, z, dx, dy, dz, &spatial_christoffel_x_backward);
-  blackhole_spatial_christoffel(spacetime, t, x, y - (0.5 * dy), z, dx, dy, dz, &spatial_christoffel_y_backward);
-  blackhole_spatial_christoffel(spacetime, t, x, y, z - (0.5 * dz), dx, dy, dz, &spatial_christoffel_z_backward);
-
-  double ****spatial_christoffel_der = gkyl_malloc(sizeof(double***[3]));
-  for (int i = 0; i < 3; i++) {
-    spatial_christoffel_der[i] = gkyl_malloc(sizeof(double**[3]));
-
-    for (int j = 0; j < 3; j++) {
-      spatial_christoffel_der[i][j] = gkyl_malloc(sizeof(double*[3]));
-
-      for (int k = 0; k < 3; k++) {
-        spatial_christoffel_der[i][j][k] = gkyl_malloc(sizeof(double[3]));
-      }
-    }
-  }
-
-  for (int i = 0; i < 3; i++) {
-    for (int j = 0; j < 3; j++) {
-      for (int k = 0; k < 3; k++) {
-        spatial_christoffel_der[0][i][j][k] = (1.0 / dx) * (spatial_christoffel_x_forward[i][j][k] - spatial_christoffel_x_backward[i][j][k]);
-        spatial_christoffel_der[1][i][j][k] = (1.0 / dy) * (spatial_christoffel_y_forward[i][j][k] - spatial_christoffel_y_backward[i][j][k]);
-        spatial_christoffel_der[2][i][j][k] = (1.0 / dz) * (spatial_christoffel_z_forward[i][j][k] - spatial_christoffel_z_backward[i][j][k]);
-      }
-    }
-  }
-
-  for (int i = 0; i < 3; i++) {
-    for (int j = 0; j < 3; j++) {
-      for (int k = 0; k < 3; k++) {
-        for (int l = 0; l < 3; l++) {
-          (*spatial_riemann_tensor)[i][j][k][l] = spatial_christoffel_der[k][i][l][j] - spatial_christoffel_der[l][i][k][j];
-
-          for (int m = 0; m < 3; m++) {
-            (*spatial_riemann_tensor)[i][j][k][l] += (spatial_christoffel[i][k][m] * spatial_christoffel[m][l][j]);
-            (*spatial_riemann_tensor)[i][j][k][l] -= (spatial_christoffel[i][l][m] * spatial_christoffel[m][k][j]);
-          }
-        }
-      }
-    }
-  }
-
-  for (int i = 0; i < 3; i++) {
-    for (int j = 0; j < 3; j++) {
-      for (int k = 0; k < 3; k++) {
-        gkyl_free(spatial_christoffel_der[i][j][k]);
-      }
-
-      gkyl_free(spatial_christoffel_der[i][j]);
-      gkyl_free(spatial_christoffel[i][j]);
-      gkyl_free(spatial_christoffel_x_forward[i][j]);
-      gkyl_free(spatial_christoffel_y_forward[i][j]);
-      gkyl_free(spatial_christoffel_z_forward[i][j]);
-      gkyl_free(spatial_christoffel_x_backward[i][j]);
-      gkyl_free(spatial_christoffel_y_backward[i][j]);
-      gkyl_free(spatial_christoffel_z_backward[i][j]);
-    }
-
-    gkyl_free(spatial_christoffel_der[i]);
-    gkyl_free(spatial_christoffel[i]);
-    gkyl_free(spatial_christoffel_x_forward[i]);
-    gkyl_free(spatial_christoffel_y_forward[i]);
-    gkyl_free(spatial_christoffel_z_forward[i]);
-    gkyl_free(spatial_christoffel_x_backward[i]);
-    gkyl_free(spatial_christoffel_y_backward[i]);
-    gkyl_free(spatial_christoffel_z_backward[i]);
-  }
-
-  gkyl_free(spatial_christoffel_der);
-  gkyl_free(spatial_christoffel);
-  gkyl_free(spatial_christoffel_x_forward);
-  gkyl_free(spatial_christoffel_y_forward);
-  gkyl_free(spatial_christoffel_z_forward);
-  gkyl_free(spatial_christoffel_x_backward);
-  gkyl_free(spatial_christoffel_y_backward);
-  gkyl_free(spatial_christoffel_z_backward);
+  gkyl_gr_spatial_riemann_tensor_fd(spacetime, t, x, y, z, dx, dy, dz, spatial_riemann_tensor);
 }
 
 static void
 blackhole_spacetime_riemann_tensor(const struct gkyl_gr_spacetime* spacetime, const double t, const double x, const double y, const double z,
   const double dt, const double dx, const double dy, const double dz, double***** spacetime_riemann_tensor)
 {
-  double ***spacetime_christoffel = gkyl_malloc(sizeof(double**[4]));
-  double ***spacetime_christoffel_t_forward = gkyl_malloc(sizeof(double**[4]));
-  double ***spacetime_christoffel_x_forward = gkyl_malloc(sizeof(double**[4]));
-  double ***spacetime_christoffel_y_forward = gkyl_malloc(sizeof(double**[4]));
-  double ***spacetime_christoffel_z_forward = gkyl_malloc(sizeof(double**[4]));
-
-  double ***spacetime_christoffel_t_backward = gkyl_malloc(sizeof(double**[4]));
-  double ***spacetime_christoffel_x_backward = gkyl_malloc(sizeof(double**[4]));
-  double ***spacetime_christoffel_y_backward = gkyl_malloc(sizeof(double**[4]));
-  double ***spacetime_christoffel_z_backward = gkyl_malloc(sizeof(double**[4]));
-
-  for (int i = 0; i < 4; i++) {
-    spacetime_christoffel[i] = gkyl_malloc(sizeof(double*[4]));
-    spacetime_christoffel_t_forward[i] = gkyl_malloc(sizeof(double*[4]));
-    spacetime_christoffel_x_forward[i] = gkyl_malloc(sizeof(double*[4]));
-    spacetime_christoffel_y_forward[i] = gkyl_malloc(sizeof(double*[4]));
-    spacetime_christoffel_z_forward[i] = gkyl_malloc(sizeof(double*[4]));
-
-    spacetime_christoffel_t_backward[i] = gkyl_malloc(sizeof(double*[4]));
-    spacetime_christoffel_x_backward[i] = gkyl_malloc(sizeof(double*[4]));
-    spacetime_christoffel_y_backward[i] = gkyl_malloc(sizeof(double*[4]));
-    spacetime_christoffel_z_backward[i] = gkyl_malloc(sizeof(double*[4]));
-
-    for (int j = 0; j < 4; j++) {
-      spacetime_christoffel[i][j] = gkyl_malloc(sizeof(double[4]));
-      spacetime_christoffel_t_forward[i][j] = gkyl_malloc(sizeof(double[4]));
-      spacetime_christoffel_x_forward[i][j] = gkyl_malloc(sizeof(double[4]));
-      spacetime_christoffel_y_forward[i][j] = gkyl_malloc(sizeof(double[4]));
-      spacetime_christoffel_z_forward[i][j] = gkyl_malloc(sizeof(double[4]));
-
-      spacetime_christoffel_t_backward[i][j] = gkyl_malloc(sizeof(double[4]));
-      spacetime_christoffel_x_backward[i][j] = gkyl_malloc(sizeof(double[4]));
-      spacetime_christoffel_y_backward[i][j] = gkyl_malloc(sizeof(double[4]));
-      spacetime_christoffel_z_backward[i][j] = gkyl_malloc(sizeof(double[4]));
-    }
-  }
-
-  blackhole_spacetime_christoffel(spacetime, t, x, y, z, dt, dx, dy, dz, &spacetime_christoffel);
-  blackhole_spacetime_christoffel(spacetime, t + (0.5 * dt), x, y, z, dt, dx, dy, dz, &spacetime_christoffel_t_forward);
-  blackhole_spacetime_christoffel(spacetime, t, x + (0.5 * dx), y, z, dt, dx, dy, dz, &spacetime_christoffel_x_forward);
-  blackhole_spacetime_christoffel(spacetime, t, x, y + (0.5 * dy), z, dt, dx, dy, dz, &spacetime_christoffel_y_forward);
-  blackhole_spacetime_christoffel(spacetime, t, x, y, z + (0.5 * dz), dt, dx, dy, dz, &spacetime_christoffel_z_forward);
-
-  blackhole_spacetime_christoffel(spacetime, t - (0.5 * dt), x, y, z, dt, dx, dy, dz, &spacetime_christoffel_t_backward);
-  blackhole_spacetime_christoffel(spacetime, t, x - (0.5 * dx), y, z, dt, dx, dy, dz, &spacetime_christoffel_x_backward);
-  blackhole_spacetime_christoffel(spacetime, t, x, y - (0.5 * dy), z, dt, dx, dy, dz, &spacetime_christoffel_y_backward);
-  blackhole_spacetime_christoffel(spacetime, t, x, y, z - (0.5 * dz), dt, dx, dy, dz, &spacetime_christoffel_z_backward);
-
-  double ****spacetime_christoffel_der = gkyl_malloc(sizeof(double***[4]));
-  for (int i = 0; i < 4; i++) {
-    spacetime_christoffel_der[i] = gkyl_malloc(sizeof(double**[4]));
-
-    for (int j = 0; j < 4; j++) {
-      spacetime_christoffel_der[i][j] = gkyl_malloc(sizeof(double*[4]));
-
-      for (int k = 0; k < 4; k++) {
-        spacetime_christoffel_der[i][j][k] = gkyl_malloc(sizeof(double[4]));
-      }
-    }
-  }
-
-  for (int i = 0; i < 4; i++) {
-    for (int j = 0; j < 4; j++) {
-      for (int k = 0; k < 4; k++) {
-        spacetime_christoffel_der[0][i][j][k] = (1.0 / dt) * (spacetime_christoffel_t_forward[i][j][k] - spacetime_christoffel_t_backward[i][j][k]);
-        spacetime_christoffel_der[1][i][j][k] = (1.0 / dx) * (spacetime_christoffel_x_forward[i][j][k] - spacetime_christoffel_x_backward[i][j][k]);
-        spacetime_christoffel_der[2][i][j][k] = (1.0 / dy) * (spacetime_christoffel_y_forward[i][j][k] - spacetime_christoffel_y_backward[i][j][k]);
-        spacetime_christoffel_der[3][i][j][k] = (1.0 / dz) * (spacetime_christoffel_z_forward[i][j][k] - spacetime_christoffel_z_backward[i][j][k]);
-      }
-    }
-  }
-
-  for (int i = 0; i < 4; i++) {
-    for (int j = 0; j < 4; j++) {
-      for (int k = 0; k < 4; k++) {
-        for (int l = 0; l < 4; l++) {
-          (*spacetime_riemann_tensor)[i][j][k][l] = spacetime_christoffel_der[k][i][l][j] - spacetime_christoffel_der[l][i][k][j];
-
-          for (int m = 0; m < 4; m++) {
-            (*spacetime_riemann_tensor)[i][j][k][l] += (spacetime_christoffel[i][k][m] * spacetime_christoffel[m][l][j]);
-            (*spacetime_riemann_tensor)[i][j][k][l] -= (spacetime_christoffel[i][l][m] * spacetime_christoffel[m][k][j]);
-          }
-        }
-      }
-    }
-  }
-
-  for (int i = 0; i < 4; i++) {
-    for (int j = 0; j < 4; j++) {
-      for (int k = 0; k < 4; k++) {
-        gkyl_free(spacetime_christoffel_der[i][j][k]);
-      }
-
-      gkyl_free(spacetime_christoffel_der[i][j]);
-      gkyl_free(spacetime_christoffel[i][j]);
-      gkyl_free(spacetime_christoffel_t_forward[i][j]);
-      gkyl_free(spacetime_christoffel_x_forward[i][j]);
-      gkyl_free(spacetime_christoffel_y_forward[i][j]);
-      gkyl_free(spacetime_christoffel_z_forward[i][j]);
-      gkyl_free(spacetime_christoffel_t_backward[i][j]);
-      gkyl_free(spacetime_christoffel_x_backward[i][j]);
-      gkyl_free(spacetime_christoffel_y_backward[i][j]);
-      gkyl_free(spacetime_christoffel_z_backward[i][j]);
-    }
-
-    gkyl_free(spacetime_christoffel_der[i]);
-    gkyl_free(spacetime_christoffel[i]);
-    gkyl_free(spacetime_christoffel_t_forward[i]);
-    gkyl_free(spacetime_christoffel_x_forward[i]);
-    gkyl_free(spacetime_christoffel_y_forward[i]);
-    gkyl_free(spacetime_christoffel_z_forward[i]);
-    gkyl_free(spacetime_christoffel_t_backward[i]);
-    gkyl_free(spacetime_christoffel_x_backward[i]);
-    gkyl_free(spacetime_christoffel_y_backward[i]);
-    gkyl_free(spacetime_christoffel_z_backward[i]);
-  }
-
-  gkyl_free(spacetime_christoffel_der);
-  gkyl_free(spacetime_christoffel);
-  gkyl_free(spacetime_christoffel_t_forward);
-  gkyl_free(spacetime_christoffel_x_forward);
-  gkyl_free(spacetime_christoffel_y_forward);
-  gkyl_free(spacetime_christoffel_z_forward);
-  gkyl_free(spacetime_christoffel_t_backward);
-  gkyl_free(spacetime_christoffel_x_backward);
-  gkyl_free(spacetime_christoffel_y_backward);
-  gkyl_free(spacetime_christoffel_z_backward);
+  gkyl_gr_spacetime_riemann_tensor_fd(spacetime, t, x, y, z, dt, dx, dy, dz, spacetime_riemann_tensor);
 }
 
 static void
 blackhole_spatial_ricci_tensor(const struct gkyl_gr_spacetime* spacetime, const double t, const double x, const double y, const double z,
   const double dx, const double dy, const double dz, double*** spatial_ricci_tensor)
 {
-  double ****spatial_riemann_tensor = gkyl_malloc(sizeof(double***[3]));
-  for (int i = 0; i < 3; i++) {
-    spatial_riemann_tensor[i] = gkyl_malloc(sizeof(double**[3]));
-
-    for (int j = 0; j < 3; j++) {
-      spatial_riemann_tensor[i][j] = gkyl_malloc(sizeof(double*[3]));
-
-      for (int k = 0; k < 3; k++) {
-        spatial_riemann_tensor[i][j][k] = gkyl_malloc(sizeof(double[3]));
-      }
-    }
-  }
-
-  blackhole_spatial_riemann_tensor(spacetime, t, x, y, z, dx, dy, dz, &spatial_riemann_tensor);
-
-  for (int i = 0; i < 3; i++) {
-    for (int j = 0; j < 3; j++) {
-      (*spatial_ricci_tensor)[i][j] = 0.0;
-
-      for (int k = 0; k < 3; k++) {
-        (*spatial_ricci_tensor)[i][j] += spatial_riemann_tensor[k][i][k][j];
-      }
-    }
-  }
-
-  for (int i = 0; i < 3; i++) {
-    for (int j = 0; j < 3; j++) {
-      for (int k = 0; k < 3; k++) {
-        gkyl_free(spatial_riemann_tensor[i][j][k]);
-      }
-      
-      gkyl_free(spatial_riemann_tensor[i][j]);
-    }
-
-    gkyl_free(spatial_riemann_tensor[i]);
-  }
-
-  gkyl_free(spatial_riemann_tensor);
+  gkyl_gr_spatial_ricci_tensor_fd(spacetime, t, x, y, z, dx, dy, dz, spatial_ricci_tensor);
 }
 
 static void
 blackhole_spacetime_ricci_tensor(const struct gkyl_gr_spacetime* spacetime, const double t, const double x, const double y, const double z,
   const double dt, const double dx, const double dy, const double dz, double*** spacetime_ricci_tensor)
 {
-  double ****spacetime_riemann_tensor = gkyl_malloc(sizeof(double***[4]));
-  for (int i = 0; i < 4; i++) {
-    spacetime_riemann_tensor[i] = gkyl_malloc(sizeof(double**[4]));
-
-    for (int j = 0; j < 4; j++) {
-      spacetime_riemann_tensor[i][j] = gkyl_malloc(sizeof(double*[4]));
-
-      for (int k = 0; k < 4; k++) {
-        spacetime_riemann_tensor[i][j][k] = gkyl_malloc(sizeof(double[4]));
-      }
-    }
-  }
-
-  blackhole_spacetime_riemann_tensor(spacetime, t, x, y, z, dt, dx, dy, dz, &spacetime_riemann_tensor);
-
-  for (int i = 0; i < 4; i++) {
-    for (int j = 0; j < 4; j++) {
-      (*spacetime_ricci_tensor)[i][j] = 0.0;
-
-      for (int k = 0; k < 4; k++) {
-        (*spacetime_ricci_tensor)[i][j] += spacetime_riemann_tensor[k][i][k][j];
-      }
-    }
-  }
-
-  for (int i = 0; i < 4; i++) {
-    for (int j = 0; j < 4; j++) {
-      for (int k = 0; k < 4; k++) {
-        gkyl_free(spacetime_riemann_tensor[i][j][k]);
-      }
-      
-      gkyl_free(spacetime_riemann_tensor[i][j]);
-    }
-
-    gkyl_free(spacetime_riemann_tensor[i]);
-  }
-
-  gkyl_free(spacetime_riemann_tensor);
+  gkyl_gr_spacetime_ricci_tensor_fd(spacetime, t, x, y, z, dt, dx, dy, dz, spacetime_ricci_tensor);
 }
 
 static void
 blackhole_spatial_ricci_scalar(const struct gkyl_gr_spacetime* spacetime, const double t, const double x, const double y, const double z,
   const double dx, const double dy, const double dz, double* spatial_ricci_scalar)
 {
-  double **spatial_inv_metric_tensor = gkyl_malloc(sizeof(double*[3]));
-  double **spatial_ricci_tensor = gkyl_malloc(sizeof(double*[3]));
-  
-  for (int i = 0; i < 3; i++) {
-    spatial_inv_metric_tensor[i] = gkyl_malloc(sizeof(double[3]));
-    spatial_ricci_tensor[i] = gkyl_malloc(sizeof(double[3]));
-  }
-
-  blackhole_spatial_inv_metric_tensor(spacetime, t, x, y, z, &spatial_inv_metric_tensor);
-  blackhole_spatial_ricci_tensor(spacetime, t, x, y, z, dx, dy, dz, &spatial_ricci_tensor);
-
-  *spatial_ricci_scalar = 0.0;
-
-  for (int i = 0; i < 3; i++) {
-    for (int j = 0; j < 3; j++) {
-      *spatial_ricci_scalar += spatial_inv_metric_tensor[i][j] * spatial_ricci_tensor[i][j];
-    }
-  }
-
-  for (int i = 0; i < 3; i++) {
-    gkyl_free(spatial_inv_metric_tensor[i]);
-    gkyl_free(spatial_ricci_tensor[i]);
-  }
-
-  gkyl_free(spatial_inv_metric_tensor);
-  gkyl_free(spatial_ricci_tensor);
+  gkyl_gr_spatial_ricci_scalar_fd(spacetime, t, x, y, z, dx, dy, dz, spatial_ricci_scalar);
 }
 
 static void
 blackhole_spacetime_ricci_scalar(const struct gkyl_gr_spacetime* spacetime, const double t, const double x, const double y, const double z,
   const double dt, const double dx, const double dy, const double dz, double* spacetime_ricci_scalar)
 {
-  double **spacetime_inv_metric_tensor = gkyl_malloc(sizeof(double*[4]));
-  double **spacetime_ricci_tensor = gkyl_malloc(sizeof(double*[4]));
-  
-  for (int i = 0; i < 4; i++) {
-    spacetime_inv_metric_tensor[i] = gkyl_malloc(sizeof(double[4]));
-    spacetime_ricci_tensor[i] = gkyl_malloc(sizeof(double[4]));
-  }
-
-  blackhole_spacetime_inv_metric_tensor(spacetime, t, x, y, z, &spacetime_inv_metric_tensor);
-  blackhole_spacetime_ricci_tensor(spacetime, t, x, y, z, dt, dx, dy, dz, &spacetime_ricci_tensor);
-
-  *spacetime_ricci_scalar = 0.0;
-
-  for (int i = 0; i < 4; i++) {
-    for (int j = 0; j < 4; j++) {
-      *spacetime_ricci_scalar += spacetime_inv_metric_tensor[i][j] * spacetime_ricci_tensor[i][j];
-    }
-  }
-
-  for (int i = 0; i < 4; i++) {
-    gkyl_free(spacetime_inv_metric_tensor[i]);
-    gkyl_free(spacetime_ricci_tensor[i]);
-  }
-
-  gkyl_free(spacetime_inv_metric_tensor);
-  gkyl_free(spacetime_ricci_tensor);
+  gkyl_gr_spacetime_ricci_scalar_fd(spacetime, t, x, y, z, dt, dx, dy, dz, spacetime_ricci_scalar);
 }
 
 static void
