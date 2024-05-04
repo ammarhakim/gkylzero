@@ -7,7 +7,7 @@
 
 GKYL_CU_DH
 static inline void*
-flat_fetch(void *data, size_t loc)
+gkyl_flat_fetch(void *data, size_t loc)
 {
   return ((char*) data) + loc;
 }

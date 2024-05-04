@@ -581,7 +581,7 @@ gkyl_array_copy_to_buffer_fn(void *data, const struct gkyl_array *arr,
     long loc = gkyl_range_idx(range, iter.idx);
 
     const double *inp = gkyl_array_cfetch(arr, loc);
-    double *out = flat_fetch(data, arr->esznc*count);
+    double *out = gkyl_flat_fetch(data, arr->esznc*count);
     cf->func(NCOM(arr), out, inp, cf->ctx);
     count += 1;
   }
@@ -615,7 +615,7 @@ gkyl_array_flip_copy_to_buffer_fn(void *data, const struct gkyl_array *arr,
     long count = gkyl_range_idx(&buff_range, fidx);
 
     const double *inp = gkyl_array_cfetch(arr, loc);
-    double *out = flat_fetch(data, arr->esznc*count);
+    double *out = gkyl_flat_fetch(data, arr->esznc*count);
     cf->func(NCOM(arr), out, inp, cf->ctx);
   }  
 }
