@@ -338,7 +338,7 @@ array_sync(struct gkyl_comm *comm,
   struct mpi_comm *mpi = container_of(comm, struct mpi_comm, base);  
   sync(comm, local, local_ext, array, false);
   if (mpi->sync_corners)
-    sync(comm, local, local_ext,array, true);
+    sync(comm, local, local_ext, array, true);
   
   return 0;
 }
