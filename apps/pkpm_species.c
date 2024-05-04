@@ -109,6 +109,10 @@ pkpm_species_init(struct gkyl_pkpm *pkpm, struct gkyl_pkpm_app *app, struct pkpm
   s->cflrate_f = mkarr(app->use_gpu, 1, s->local_ext.volume);
   s->cflrate_fluid = mkarr(app->use_gpu, 1, app->local_ext.volume);
 
+  // Wave equation object for upwinding fluid equations
+  // We use the 10 moment system since PKPM model generates a full pressure tensor
+  s->equation = gkyl_wv_ten_moment_new(0.0); // k0 = 0.0 because we do not need a closure
+
   if (app->use_gpu) {
     s->omegaCfl_ptr_dist = gkyl_cu_malloc(sizeof(double));
     s->omegaCfl_ptr_fluid = gkyl_cu_malloc(sizeof(double));
@@ -149,11 +153,6 @@ pkpm_species_init(struct gkyl_pkpm *pkpm, struct gkyl_pkpm_app *app, struct pkpm
   //  ux_yl, ux_yr, uy_yl, uy_yr, uz_yl, uz_yr, 3.0*Tyy_yl/m, 3.0*Tyy_yr/m, 
   //  ux_zl, ux_zr, uy_zl, uy_zr, uz_zl, uz_zr, 3.0*Tzz_zl/m, 3.0*Tzz_zr/m] 
   s->pkpm_prim_surf = mkarr(app->use_gpu, 2*cdim*4*Nbasis_surf, app->local_ext.volume);
-  // Surface pressure tensor (2*cdim*3 components). Ordered as:
-  // [Pxx_xl, Pxx_xr, Pxy_xl, Pxy_xr, Pxz_xl, Pxz_xr,
-  //  Pxy_yl, Pxy_yr, Pyy_yl, Pyy_yr, Pyz_yl, Pyz_yr,
-  //  Pxz_zl, Pxz_zr, Pyz_zl, Pyz_zr, Pzz_zl, Pzz_zr]
-  s->pkpm_p_ij_surf = mkarr(app->use_gpu, 2*cdim*3*Nbasis_surf, app->local_ext.volume);
   // Surface expansion of Lax penalization lambda_i = |u_i| + sqrt(3*P_ii/rho)
   s->pkpm_lax = mkarr(app->use_gpu, 2*cdim*Nbasis_surf, app->local_ext.volume);
 
@@ -200,13 +199,13 @@ pkpm_species_init(struct gkyl_pkpm *pkpm, struct gkyl_pkpm_app *app, struct pkpm
     .g_dist_source = s->g_dist_source};
   struct gkyl_dg_euler_pkpm_auxfields euler_pkpm_inp = {.vlasov_pkpm_moms = s->pkpm_moms.marr, 
     .pkpm_prim = s->pkpm_prim, .pkpm_prim_surf = s->pkpm_prim_surf, 
-    .pkpm_p_ij = s->pkpm_p_ij, .pkpm_p_ij_surf = s->pkpm_p_ij_surf, 
-    .pkpm_lax = s->pkpm_lax};
+    .pkpm_p_ij = s->pkpm_p_ij, .pkpm_lax = s->pkpm_lax};
   // create solver
   s->slvr = gkyl_dg_updater_pkpm_new(&app->grid, &s->grid, 
     &app->confBasis, &app->basis, 
     &app->local, &s->local_vel, &s->local, 
-    is_zero_flux, &vlasov_pkpm_inp, &euler_pkpm_inp, app->use_gpu);
+    is_zero_flux, s->equation, app->geom, 
+    &vlasov_pkpm_inp, &euler_pkpm_inp, app->use_gpu);
 
   // array for storing F_0^2 (0th Laguerre coefficient) in each cell
   s->L2_f = mkarr(app->use_gpu, 1, s->local_ext.volume);
@@ -445,10 +444,9 @@ pkpm_species_calc_pkpm_vars(gkyl_pkpm_app *app, struct pkpm_species *species,
     app->field->bvar_surf, app->field->bvar, fin, 
     app->field->max_b, species->pkpm_div_ppar);
   gkyl_array_scale(species->pkpm_div_ppar, species->info.mass);
-  // Compute p_ij = (p_par - p_perp) b_i b_j + p_perp g_ij in the volume and at needed surfaces
+  // Compute p_ij = (p_par - p_perp) b_i b_j + p_perp g_ij in the volume
   gkyl_dg_calc_pkpm_vars_pressure(species->calc_pkpm_vars, &app->local_ext, 
-    app->field->bvar, app->field->bvar_surf, species->pkpm_moms.marr, 
-    species->pkpm_p_ij, species->pkpm_p_ij_surf);
+    app->field->bvar, species->pkpm_moms.marr, species->pkpm_p_ij);
   // Compute primitive variables in both the volume and on surfaces
   if (species->bc_is_absorb) 
     gkyl_dg_calc_pkpm_vars_advance(species->calc_pkpm_vars,
@@ -678,6 +676,8 @@ pkpm_species_release(const gkyl_pkpm_app* app, const struct pkpm_species *s)
   gkyl_array_release(s->cflrate_f);
   gkyl_array_release(s->cflrate_fluid);
 
+  gkyl_wv_eqn_release(s->equation);
+
   gkyl_array_release(s->bc_buffer_dist);
   gkyl_array_release(s->bc_buffer_lo_fixed_dist);
   gkyl_array_release(s->bc_buffer_up_fixed_dist);
@@ -708,7 +708,6 @@ pkpm_species_release(const gkyl_pkpm_app* app, const struct pkpm_species *s)
   gkyl_array_release(s->pkpm_p_ij);
   gkyl_array_release(s->cell_avg_prim);
   gkyl_array_release(s->pkpm_prim_surf);
-  gkyl_array_release(s->pkpm_p_ij_surf);
   gkyl_array_release(s->pkpm_lax);
   gkyl_array_release(s->pkpm_accel);
   gkyl_array_release(s->integ_pkpm_mom);

@@ -103,8 +103,7 @@ void gkyl_dg_calc_pkpm_vars_advance_cu(struct gkyl_dg_calc_pkpm_vars *up,
 
 __global__ void
 gkyl_calc_pkpm_vars_pressure_cu_kernel(struct gkyl_dg_calc_pkpm_vars *up, struct gkyl_range conf_range, 
-  const struct gkyl_array* bvar, const struct gkyl_array* bvar_surf, const struct gkyl_array* vlasov_pkpm_moms, 
-  struct gkyl_array* p_ij, struct gkyl_array* p_ij_surf)
+  const struct gkyl_array* bvar, const struct gkyl_array* vlasov_pkpm_moms, struct gkyl_array* p_ij)
 { 
   int idx[GKYL_MAX_DIM];
 
@@ -122,25 +121,21 @@ gkyl_calc_pkpm_vars_pressure_cu_kernel(struct gkyl_dg_calc_pkpm_vars *up, struct
     long loc = gkyl_range_idx(&conf_range, idx);
 
     const double *bvar_d = (const double*) gkyl_array_cfetch(bvar, loc);
-    const double *bvar_surf_d = (const double*) gkyl_array_cfetch(bvar_surf, loc);
     const double *vlasov_pkpm_moms_d = (const double*) gkyl_array_cfetch(vlasov_pkpm_moms, loc);
 
     double *p_ij_d = (double*) gkyl_array_fetch(p_ij, loc);
-    double *p_ij_surf_d = (double*) gkyl_array_fetch(p_ij_surf, loc);
-    up->pkpm_pressure(bvar_d, bvar_surf_d, vlasov_pkpm_moms_d, p_ij_d, p_ij_surf_d);
+    up->pkpm_pressure(bvar_d, vlasov_pkpm_moms_d, p_ij_d);
   }
 }
 
 // Host-side wrapper for pkpm pressure calculation
 void gkyl_dg_calc_pkpm_vars_pressure_cu(struct gkyl_dg_calc_pkpm_vars *up, const struct gkyl_range *conf_range, 
-  const struct gkyl_array* bvar, const struct gkyl_array* bvar_surf, const struct gkyl_array* vlasov_pkpm_moms, 
-  struct gkyl_array* p_ij, struct gkyl_array* p_ij_surf)
+  const struct gkyl_array* bvar, const struct gkyl_array* vlasov_pkpm_moms, struct gkyl_array* p_ij)
 {
   int nblocks = conf_range->nblocks;
   int nthreads = conf_range->nthreads;
   gkyl_calc_pkpm_vars_pressure_cu_kernel<<<nblocks, nthreads>>>(up->on_dev, *conf_range, 
-    bvar->on_dev, bvar_surf->on_dev, vlasov_pkpm_moms->on_dev, 
-    p_ij->on_dev, p_ij_surf->on_dev);
+    bvar->on_dev, vlasov_pkpm_moms->on_dev, p_ij->on_dev);
 }
 
 __global__ void

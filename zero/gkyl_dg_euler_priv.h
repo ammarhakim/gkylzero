@@ -28,7 +28,7 @@ struct dg_euler {
   euler_surf_t surf[3]; // pointers to surface kernels
   enum gkyl_eqn_type eqn_type; // Equation type
   const struct gkyl_wv_eqn *wv_eqn; // wave equation object for Roe solve
-  const struct gkyl_wave_geom *geom; // geometry
+  const struct gkyl_wave_geom *geom; // wave geometry
   double gas_gamma; // adiabatic index
   struct gkyl_range conf_range; // configuration space range
   struct gkyl_dg_euler_auxfields auxfields; // Auxiliary fields.

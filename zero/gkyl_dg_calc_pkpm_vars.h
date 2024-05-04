@@ -69,21 +69,16 @@ void gkyl_dg_calc_pkpm_vars_advance(struct gkyl_dg_calc_pkpm_vars *up,
   struct gkyl_array* cell_avg_prim, struct gkyl_array* prim, struct gkyl_array* prim_surf);
 
 /**
- * Compute pkpm pressure p_ij = (p_par - p_perp) b_i b_j + p_perp g_ij in the volume and at needed surfaces
+ * Compute pkpm pressure p_ij = (p_par - p_perp) b_i b_j + p_perp g_ij in the volume 
  *
  * @param up Updater for computing pkpm variables 
  * @param conf_range Configuration space range
  * @param bvar Input array of volume expansion of magnetic field unit vector and unit tensor
- * @param bvar_surf Input array of surface expansion of magnetic field unit vector and unit tensor
  * @param vlasov_pkpm_moms Input array of pkpm kinetic moments [rho, p_parallel, p_perp]
  * @param p_ij Output array of volume expansion of pressure tensor p_ij = (p_par - p_perp) b_i b_j + p_perp g_ij
- * @param p_ij Output array of surface expansion of pressure tensor [Pxx_xl, Pxx_xr, Pxy_xl, Pxy_xr, Pxz_xl, Pxz_xr,
- *                                                                   Pyy_yl, Pyy_yr, Pxy_yl, Pxy_yr, Pyz_yl, Pyz_yr, 
- *                                                                   Pzz_zl, Pzz_zr, Pxz_zl, Pxz_zr, Pyz_zl, Pyz_zr] 
  */
 void gkyl_dg_calc_pkpm_vars_pressure(struct gkyl_dg_calc_pkpm_vars *up, const struct gkyl_range *conf_range, 
-  const struct gkyl_array* bvar, const struct gkyl_array* bvar_surf, const struct gkyl_array* vlasov_pkpm_moms, 
-  struct gkyl_array* p_ij, struct gkyl_array* p_ij_surf);
+  const struct gkyl_array* bvar, const struct gkyl_array* vlasov_pkpm_moms, struct gkyl_array* p_ij);
 
 /**
  * Compute pkpm acceleration variables
@@ -180,8 +175,7 @@ void gkyl_dg_calc_pkpm_vars_advance_cu(struct gkyl_dg_calc_pkpm_vars *up,
   struct gkyl_array* cell_avg_prim, struct gkyl_array* prim, struct gkyl_array* prim_surf);
 
 void gkyl_dg_calc_pkpm_vars_pressure_cu(struct gkyl_dg_calc_pkpm_vars *up, const struct gkyl_range *conf_range, 
-  const struct gkyl_array* bvar, const struct gkyl_array* bvar_surf, const struct gkyl_array* vlasov_pkpm_moms, 
-  struct gkyl_array* p_ij, struct gkyl_array* p_ij_surf);
+  const struct gkyl_array* bvar, const struct gkyl_array* vlasov_pkpm_moms, struct gkyl_array* p_ij);
 
 void gkyl_dg_calc_pkpm_vars_accel_cu(struct gkyl_dg_calc_pkpm_vars *up, const struct gkyl_range *conf_range, 
   const struct gkyl_array* prim_surf, const struct gkyl_array* prim, 

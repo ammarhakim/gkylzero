@@ -6,6 +6,8 @@
 #include <gkyl_eqn_type.h>
 #include <gkyl_dg_eqn.h>
 #include <gkyl_range.h>
+#include <gkyl_wave_geom.h>
+#include <gkyl_wv_eqn.h>
 
 // Struct containing the pointers to auxiliary fields.
 struct gkyl_dg_euler_pkpm_auxfields { 
@@ -13,7 +15,6 @@ struct gkyl_dg_euler_pkpm_auxfields {
   const struct gkyl_array *pkpm_prim;
   const struct gkyl_array *pkpm_prim_surf;
   const struct gkyl_array *pkpm_p_ij;
-  const struct gkyl_array *pkpm_p_ij_surf;
   const struct gkyl_array *pkpm_lax;
 };
 
@@ -21,19 +22,20 @@ struct gkyl_dg_euler_pkpm_auxfields {
  * Create a new Euler equation object for parallel-kinetic-perpendicular-moment (pkpm) model.
  *
  * @param cbasis Configuration space basis functions
- * @param conf_range Configuration space range for use in indexing velocity
+ * @param conf_range Configuration space range for use in indexing auxiliary variables
+ * @param wv_eqn Wave equation object which contains information and functions for the specific fluid equation
+ * @param geom Wave geometry object for computing fluctuations local to surfaces
  * @return Pointer to Euler equation object for parallel-kinetic-perpendicular-moment (pkpm) model
  */
-struct gkyl_dg_eqn* gkyl_dg_euler_pkpm_new(const struct gkyl_basis* cbasis, const struct gkyl_range* conf_range, bool use_gpu);
+struct gkyl_dg_eqn* gkyl_dg_euler_pkpm_new(const struct gkyl_basis* cbasis, const struct gkyl_range* conf_range, 
+  const struct gkyl_wv_eqn *wv_eqn, const struct gkyl_wave_geom *geom, bool use_gpu);
 
 /**
- * Create a new Euler equation object for parallel-kinetic-perpendicular-moment (pkpm) model that lives on NV-GPU
- *
- * @param cbasis Configuration space basis functions
- * @param conf_range Configuration space range for use in indexing velocity
- * @return Pointer to Euler equation object for parallel-kinetic-perpendicular-moment (pkpm) model
+ * Create new Euler equation object arallel-kinetic-perpendicular-moment (pkpm) model the lives on NV-GPU: 
+ * see new() method above for documentation.
  */
-struct gkyl_dg_eqn* gkyl_dg_euler_pkpm_cu_dev_new(const struct gkyl_basis* cbasis, const struct gkyl_range* conf_range);
+struct gkyl_dg_eqn* gkyl_dg_euler_pkpm_cu_dev_new(const struct gkyl_basis* cbasis, const struct gkyl_range* conf_range, 
+  const struct gkyl_wv_eqn *wv_eqn, const struct gkyl_wave_geom *geom);
 
 /**
  * Set the auxiliary fields (e.g. velocity u = rho*u/rho) needed in updating Euler equation for parallel-kinetic-perpendicular-moment (pkpm) model.

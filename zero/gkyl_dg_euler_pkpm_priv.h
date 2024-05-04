@@ -1,19 +1,22 @@
 #pragma once
 
-#include <gkyl_euler_pkpm_kernels.h>
-#include <gkyl_ref_count.h>
 #include <gkyl_dg_eqn.h>
+#include <gkyl_euler_pkpm_kernels.h>
+#include <gkyl_range.h>
+#include <gkyl_ref_count.h>
+#include <gkyl_util.h>
 
 // private header for use in Euler DG equation object (for parallel-kinetic-perpendicular-moment (pkpm) model) creation
 // functions
 
 // Types for various kernels
 typedef double (*euler_pkpm_surf_t)(const double *w, const double *dx, 
-  const double *vlasov_pkpm_moms_l, const double *vlasov_pkpm_moms_c, const double *vlasov_pkpm_moms_r, 
-  const double *pkpm_prim_surf_l, const double *pkpm_prim_surf_c, const double *pkpm_prim_surf_r,
-  const double *pkpm_p_ij_surf_l, const double *pkpm_p_ij_surf_c, const double *pkpm_p_ij_surf_r, 
+  const struct gkyl_wv_eqn *wv_eqn, const struct gkyl_wave_cell_geom *geom_l, const struct gkyl_wave_cell_geom *geom_r, 
+  const double *vlasov_pkpm_moms_l, const double *vlasov_pkpm_moms_c, const double *vlasov_pkpm_moms_r,
+  const double *prim_surf_l, const double *prim_surf_c, const double *prim_surf_r,
+  const double *p_ij_l, const double *p_ij_c, const double *p_ij_r,
   const double *euler_pkpm_l, const double *euler_pkpm_c, const double *euler_pkpm_r, 
-  const double *pkpm_lax, double* GKYL_RESTRICT out);
+  const double *pkpm_lax, double* GKYL_RESTRICT out); 
 
 // for use in kernel tables
 typedef struct { vol_termf_t kernels[3]; } gkyl_dg_euler_pkpm_vol_kern_list;
@@ -21,6 +24,8 @@ typedef struct { euler_pkpm_surf_t kernels[3]; } gkyl_dg_euler_pkpm_surf_kern_li
 
 struct dg_euler_pkpm {
   struct gkyl_dg_eqn eqn; // Base object  
+  const struct gkyl_wv_eqn *wv_eqn; // wave equation object for Roe solve
+  const struct gkyl_wave_geom *geom; // wave geometry
   euler_pkpm_surf_t surf[3]; // pointers to surface kernels
   struct gkyl_range conf_range; // configuration space range
   struct gkyl_dg_euler_pkpm_auxfields auxfields; // Auxiliary fields.
@@ -187,16 +192,20 @@ surf(const struct gkyl_dg_eqn *eqn,
   long cidx_c = gkyl_range_idx(&euler_pkpm->conf_range, idxC);
   long cidx_r = gkyl_range_idx(&euler_pkpm->conf_range, idxR);
 
+  const struct gkyl_wave_cell_geom *geom_l = gkyl_wave_geom_get(euler_pkpm->geom, idxC);
+  const struct gkyl_wave_cell_geom *geom_r = gkyl_wave_geom_get(euler_pkpm->geom, idxR);
+
   return euler_pkpm->surf[dir](xcC, dxC, 
+    euler_pkpm->wv_eqn, geom_l, geom_r, 
     (const double*) gkyl_array_cfetch(euler_pkpm->auxfields.vlasov_pkpm_moms, cidx_l),
     (const double*) gkyl_array_cfetch(euler_pkpm->auxfields.vlasov_pkpm_moms, cidx_c),
     (const double*) gkyl_array_cfetch(euler_pkpm->auxfields.vlasov_pkpm_moms, cidx_r),
     (const double*) gkyl_array_cfetch(euler_pkpm->auxfields.pkpm_prim_surf, cidx_l),
     (const double*) gkyl_array_cfetch(euler_pkpm->auxfields.pkpm_prim_surf, cidx_c),
     (const double*) gkyl_array_cfetch(euler_pkpm->auxfields.pkpm_prim_surf, cidx_r),
-    (const double*) gkyl_array_cfetch(euler_pkpm->auxfields.pkpm_p_ij_surf, cidx_l),
-    (const double*) gkyl_array_cfetch(euler_pkpm->auxfields.pkpm_p_ij_surf, cidx_c),
-    (const double*) gkyl_array_cfetch(euler_pkpm->auxfields.pkpm_p_ij_surf, cidx_r),
+    (const double*) gkyl_array_cfetch(euler_pkpm->auxfields.pkpm_p_ij, cidx_l),
+    (const double*) gkyl_array_cfetch(euler_pkpm->auxfields.pkpm_p_ij, cidx_c),
+    (const double*) gkyl_array_cfetch(euler_pkpm->auxfields.pkpm_p_ij, cidx_r),
     qInL, qInC, qInR, 
     (const double*) gkyl_array_cfetch(euler_pkpm->auxfields.pkpm_lax, cidx_c), qRhsOut);
 }

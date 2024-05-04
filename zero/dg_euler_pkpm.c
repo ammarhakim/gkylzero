@@ -6,6 +6,8 @@
 #include <gkyl_alloc_flags_priv.h>
 #include <gkyl_dg_euler_pkpm.h>
 #include <gkyl_dg_euler_pkpm_priv.h>
+#include <gkyl_wave_geom.h>
+#include <gkyl_wv_eqn.h>
 #include <gkyl_util.h>
 
 // "Choose Kernel" based on cdim and polyorder
@@ -15,14 +17,15 @@ void
 gkyl_euler_pkpm_free(const struct gkyl_ref_count *ref)
 {
   struct gkyl_dg_eqn *base = container_of(ref, struct gkyl_dg_eqn, ref_count);
+  struct dg_euler_pkpm *euler_pkpm = container_of(base, struct dg_euler_pkpm, eqn);
+  gkyl_wv_eqn_release(euler_pkpm->wv_eqn);
+  gkyl_wave_geom_release(euler_pkpm->geom);
 
   if (gkyl_dg_eqn_is_cu_dev(base)) {
     // free inner on_dev object
     struct dg_euler_pkpm *euler_pkpm = container_of(base->on_dev, struct dg_euler_pkpm, eqn);
     gkyl_cu_free(euler_pkpm);
   }  
-  
-  struct dg_euler_pkpm *euler_pkpm = container_of(base, struct dg_euler_pkpm, eqn);
   gkyl_free(euler_pkpm);
 }
 
@@ -41,16 +44,16 @@ gkyl_euler_pkpm_set_auxfields(const struct gkyl_dg_eqn *eqn, struct gkyl_dg_eule
   euler_pkpm->auxfields.pkpm_prim = auxin.pkpm_prim;
   euler_pkpm->auxfields.pkpm_prim_surf = auxin.pkpm_prim_surf;
   euler_pkpm->auxfields.pkpm_p_ij = auxin.pkpm_p_ij;
-  euler_pkpm->auxfields.pkpm_p_ij_surf = auxin.pkpm_p_ij_surf;
   euler_pkpm->auxfields.pkpm_lax = auxin.pkpm_lax;
 }
 
 struct gkyl_dg_eqn*
-gkyl_dg_euler_pkpm_new(const struct gkyl_basis* cbasis, const struct gkyl_range* conf_range, bool use_gpu)
+gkyl_dg_euler_pkpm_new(const struct gkyl_basis* cbasis, const struct gkyl_range* conf_range, 
+  const struct gkyl_wv_eqn *wv_eqn, const struct gkyl_wave_geom *geom, bool use_gpu)
 {
 #ifdef GKYL_HAVE_CUDA
   if(use_gpu) {
-    return gkyl_dg_euler_pkpm_cu_dev_new(cbasis, conf_range);
+    return gkyl_dg_euler_pkpm_cu_dev_new(cbasis, conf_range, wv_eqn, geom);
   } 
 #endif
   struct dg_euler_pkpm *euler_pkpm = gkyl_malloc(sizeof(struct dg_euler_pkpm));
@@ -84,6 +87,8 @@ gkyl_dg_euler_pkpm_new(const struct gkyl_basis* cbasis, const struct gkyl_range*
   }  
     
   euler_pkpm->eqn.num_equations = 3;
+  euler_pkpm->wv_eqn = gkyl_wv_eqn_acquire(wv_eqn);
+  euler_pkpm->geom = gkyl_wave_geom_acquire(geom);
   euler_pkpm->eqn.surf_term = surf;
   euler_pkpm->eqn.boundary_surf_term = boundary_surf;
 
@@ -102,7 +107,6 @@ gkyl_dg_euler_pkpm_new(const struct gkyl_basis* cbasis, const struct gkyl_range*
   euler_pkpm->auxfields.pkpm_prim = 0;
   euler_pkpm->auxfields.pkpm_prim_surf = 0;    
   euler_pkpm->auxfields.pkpm_p_ij = 0;
-  euler_pkpm->auxfields.pkpm_p_ij_surf = 0;
   euler_pkpm->auxfields.pkpm_lax = 0;  
   euler_pkpm->conf_range = *conf_range;
   
@@ -117,7 +121,8 @@ gkyl_dg_euler_pkpm_new(const struct gkyl_basis* cbasis, const struct gkyl_range*
 #ifndef GKYL_HAVE_CUDA
 
 struct gkyl_dg_eqn*
-gkyl_dg_euler_pkpm_cu_dev_new(const struct gkyl_basis* cbasis, const struct gkyl_range* conf_range)
+gkyl_dg_euler_pkpm_cu_dev_new(const struct gkyl_basis* cbasis, const struct gkyl_range* conf_range, 
+  const struct gkyl_wv_eqn *wv_eqn, const struct gkyl_wave_geom *geom)
 {
   assert(false);
   return 0;

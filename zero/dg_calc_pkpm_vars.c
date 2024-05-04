@@ -109,14 +109,12 @@ void gkyl_dg_calc_pkpm_vars_advance(struct gkyl_dg_calc_pkpm_vars *up,
 }
 
 void gkyl_dg_calc_pkpm_vars_pressure(struct gkyl_dg_calc_pkpm_vars *up, const struct gkyl_range *conf_range, 
-  const struct gkyl_array* bvar, const struct gkyl_array* bvar_surf, const struct gkyl_array* vlasov_pkpm_moms, 
-  struct gkyl_array* p_ij, struct gkyl_array* p_ij_surf)
+  const struct gkyl_array* bvar, const struct gkyl_array* vlasov_pkpm_moms, struct gkyl_array* p_ij)
 {
 #ifdef GKYL_HAVE_CUDA
   if (gkyl_array_is_cu_dev(p_ij)) {
     return gkyl_dg_calc_pkpm_vars_pressure_cu(up, conf_range, 
-      bvar, bvar_surf, vlasov_pkpm_moms, 
-      p_ij, p_ij_surf);
+      bvar, vlasov_pkpm_moms, p_ij);
   }
 #endif
   struct gkyl_range_iter iter;
@@ -126,13 +124,11 @@ void gkyl_dg_calc_pkpm_vars_pressure(struct gkyl_dg_calc_pkpm_vars *up, const st
     long loc = gkyl_range_idx(conf_range, iter.idx);
 
     const double *bvar_d = gkyl_array_cfetch(bvar, loc);
-    const double *bvar_surf_d = gkyl_array_cfetch(bvar_surf, loc);
     const double *vlasov_pkpm_moms_d = gkyl_array_cfetch(vlasov_pkpm_moms, loc);
 
     double* p_ij_d = gkyl_array_fetch(p_ij, loc);
-    double* p_ij_surf_d = gkyl_array_fetch(p_ij_surf, loc);
 
-    up->pkpm_pressure(bvar_d, bvar_surf_d, vlasov_pkpm_moms_d, p_ij_d, p_ij_surf_d);
+    up->pkpm_pressure(bvar_d, vlasov_pkpm_moms_d, p_ij_d);
   }
 }
 

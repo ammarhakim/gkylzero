@@ -6,6 +6,8 @@
 #include <gkyl_dg_vlasov_pkpm.h>
 #include <gkyl_range.h>
 #include <gkyl_rect_grid.h>
+#include <gkyl_wave_geom.h>
+#include <gkyl_wv_eqn.h>
 
 // Object type
 typedef struct gkyl_dg_updater_pkpm gkyl_dg_updater_pkpm;
@@ -28,6 +30,8 @@ struct gkyl_dg_updater_pkpm_tm {
  * @param vel_range Velocity space range
  * @param phase_range Phase space range
  * @param is_zero_flux_dir True in directions with (lower and upper) zero flux BCs.
+ * @param wv_eqn Wave equation object which contains functions for upwinding the fluid equations
+ * @param geom Wave geometry object for computing fluctuations local to surfaces
  * @param vlasov_pkpm_inp Input struct to pkpm vlasov operator (see gkyl_dg_vlasov_pkpm.h)
  * @param euler_pkpm_inp Input struct to pkpm fluid operator (see gkyl_dg_euler_pkpm.h)
  * @param use_gpu Boolean to determine whether struct objects are on host or device
@@ -37,7 +41,7 @@ struct gkyl_dg_updater_pkpm_tm {
 gkyl_dg_updater_pkpm* gkyl_dg_updater_pkpm_new(const struct gkyl_rect_grid *conf_grid, const struct gkyl_rect_grid *phase_grid, 
   const struct gkyl_basis *conf_basis, const struct gkyl_basis *phase_basis, 
   const struct gkyl_range *conf_range, const struct gkyl_range *vel_range, const struct gkyl_range *phase_range,
-  const bool *is_zero_flux_dir, 
+  const bool *is_zero_flux_dir, const struct gkyl_wv_eqn *wv_eqn, const struct gkyl_wave_geom *geom, 
   struct gkyl_dg_vlasov_pkpm_auxfields *vlasov_pkpm_inp, struct gkyl_dg_euler_pkpm_auxfields *euler_pkpm_inp, 
   bool use_gpu);
 

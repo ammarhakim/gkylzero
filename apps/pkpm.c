@@ -135,6 +135,38 @@ gkyl_pkpm_app_new(struct gkyl_pkpm *pkpm)
     gkyl_skin_ghost_ranges(&app->upper_skin[dir], &app->upper_ghost[dir], dir, GKYL_UPPER_EDGE, &app->local_ext, ghost);
   }
 
+  // Configuration space geometry initialization
+  // Note: *only* uses a p=1 DG representation of the geometry (JJ: 05/03/24)
+  app->c2p_ctx = app->mapc2p = 0;  
+  app->has_mapc2p = pkpm->mapc2p ? true : false;
+
+  if (app->has_mapc2p) {
+    // initialize computational to physical space mapping
+    app->c2p_ctx = pkpm->c2p_ctx;
+    app->mapc2p = pkpm->mapc2p;
+
+    // we project mapc2p on p=1 basis functions
+    struct gkyl_basis basis;
+    gkyl_cart_modal_tensor(&basis, cdim, 1);
+
+    // initialize DG field representing mapping
+    struct gkyl_array *c2p = mkarr(false, cdim*basis.num_basis, app->local_ext.volume);
+    gkyl_eval_on_nodes *ev_c2p = gkyl_eval_on_nodes_new(&app->grid, &basis, cdim, pkpm->mapc2p, pkpm->c2p_ctx);
+    gkyl_eval_on_nodes_advance(ev_c2p, 0.0, &app->local_ext, c2p);
+
+    // write DG projection of mapc2p to file
+    cstr fileNm = cstr_from_fmt("%s-mapc2p.gkyl", app->name);
+    gkyl_comm_array_write(app->comm, &app->grid, &app->local, c2p, fileNm.str);
+    cstr_drop(&fileNm);
+
+    gkyl_array_release(c2p);
+    gkyl_eval_on_nodes_release(ev_c2p);
+  }
+
+  // create geometry object
+  app->geom = gkyl_wave_geom_new(&app->grid, &app->local_ext,
+    app->mapc2p, app->c2p_ctx, app->use_gpu);
+
   app->has_field = !pkpm->skip_field; // note inversion of truth value
   if (app->has_field)
     app->field = pkpm_field_new(pkpm, app);
@@ -966,6 +998,8 @@ gkyl_pkpm_app_release(gkyl_pkpm_app* app)
     pkpm_field_release(app, app->field);
 
   gkyl_comm_release(app->comm);
+
+  gkyl_wave_geom_release(app->geom);
 
   if (app->use_gpu) {
     gkyl_cu_free(app->basis_on_dev.basis);

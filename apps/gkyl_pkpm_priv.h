@@ -5,7 +5,10 @@
 #include <assert.h>
 #include <float.h>
 #include <math.h>
+#include <stdbool.h>
 #include <string.h>
+
+#include <stc/cstr.h>
 
 #include <gkyl_alloc.h>
 #include <gkyl_app_priv.h>
@@ -27,6 +30,7 @@
 #include <gkyl_dg_vlasov_pkpm.h>
 #include <gkyl_dynvec.h>
 #include <gkyl_eqn_type.h>
+#include <gkyl_eval_on_nodes.h>
 #include <gkyl_ghost_surf_calc.h>
 #include <gkyl_hyper_dg.h>
 #include <gkyl_mom_bcorr_lbo_pkpm.h>
@@ -47,6 +51,7 @@
 #include <gkyl_wave_geom.h>
 #include <gkyl_wv_eqn.h>
 #include <gkyl_wv_maxwell.h>
+#include <gkyl_wv_ten_moment.h>
 #include <gkyl_pkpm.h>
 
 // Definitions of private structs and APIs attached to these objects
@@ -131,6 +136,8 @@ struct pkpm_species {
   struct gkyl_array *f_host; // host copy of distribution function for use IO and initialization
   struct gkyl_array *fluid_host; // host copy of momentum for use IO and initialization
 
+  struct gkyl_wv_eqn *equation; // For storing 10 moment equation object for upwinding fluid equations with Roe solve
+
   enum gkyl_field_id field_id; // type of field equation 
   struct gkyl_array *qmem; // array for q/m*(E,B) or q/m(phi,A)
   enum gkyl_model_id model_id; // type of Vlasov equation (e.g., Vlasov vs. SR)
@@ -154,10 +161,6 @@ struct pkpm_species {
                                      //  ux_yl, ux_yr, uy_yl, uy_yr, uz_yl, uz_yr, 3.0*Tyy_yl/m, 3.0*Tyy_yr/m, 
                                      //  ux_zl, ux_zr, uy_zl, uy_zr, uz_zl, uz_zr, 3.0*Tzz_zl/m, 3.0*Tzz_zr/m] 
   struct gkyl_array *pkpm_p_ij; // (p_par - p_perp) b_i b_j + p_perp g_ij
-  struct gkyl_array *pkpm_p_ij_surf; // (p_par - p_perp) b_i b_j + p_perp g_ij at needed surfaces
-                                     // [Pxx_xl, Pxx_xr, Pxy_xl, Pxy_xr, Pxz_xl, Pxz_xr,
-                                     //  Pxy_yl, Pxy_yr, Pyy_yl, Pyy_yr, Pyz_yl, Pyz_yr,
-                                     //  Pxz_zl, Pxz_zr, Pyz_zl, Pyz_zr, Pzz_zl, Pzz_zr]
   struct gkyl_array *pkpm_lax; // Surface expansion of Lax penalization lambda_i = |u_i| + sqrt(3.0*T_ii/m)
   struct gkyl_array *cell_avg_prim; // Integer array for whether rho, p_par, or p_perp < 0.0 at control points
                                     // *only* currently used for diagnostic purposes
@@ -311,6 +314,13 @@ struct gkyl_pkpm_app {
   struct gkyl_basis basis, confBasis, velBasis; // phase-space, conf-space basis, vel-space basis
 
   struct gkyl_comm *comm;   // communicator object for conf-space arrays
+
+  bool has_mapc2p; // flag to indicate if we have mapc2p
+  void *c2p_ctx;   // context for mapc2p function
+  // pointer to mapc2p function
+  void (*mapc2p)(double t, const double *xc, double *xp, void *ctx);
+
+  struct gkyl_wave_geom *geom; // geometry needed for species and field solvers (*only* p=1 right now JJ: 05/03/24)
   
   // pointers to basis on device (these point to host structs if not
   // on GPU)

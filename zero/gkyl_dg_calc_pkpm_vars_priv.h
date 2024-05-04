@@ -16,8 +16,8 @@ typedef int (*pkpm_set_t)(int count, struct gkyl_nmat *A, struct gkyl_nmat *rhs,
 
 typedef void (*pkpm_copy_t)(int count, struct gkyl_nmat *x, double* GKYL_RESTRICT prim, double* GKYL_RESTRICT prim_surf);
 
-typedef void (*pkpm_pressure_t)(const double *bvar, const double *bvar_surf, const double *vlasov_pkpm_moms, 
-  double* GKYL_RESTRICT p_ij, double* GKYL_RESTRICT p_ij_surf);
+typedef void (*pkpm_pressure_t)(const double *bvar, const double *vlasov_pkpm_moms, 
+  double* GKYL_RESTRICT p_ij);
 
 typedef void (*pkpm_p_force_t)(const double *prim_c, const double *div_b, 
   double* GKYL_RESTRICT pkpm_accel);

@@ -118,6 +118,12 @@ struct gkyl_pkpm {
   int poly_order; // polynomial order
   enum gkyl_basis_type basis_type; // type of basis functions to use
 
+  void *c2p_ctx; // context for mapc2p function
+  // pointer to mapc2p function: xc are the computational space
+  // coordinates and on output xp are the corresponding physical space
+  // coordinates.
+  void (*mapc2p)(double t, const double *xc, double *xp, void *ctx);
+
   double cfl_frac; // CFL fraction to use (default 1.0)
 
   bool use_gpu; // Flag to indicate if solver should use GPUs
