@@ -724,6 +724,7 @@ mpi_per_sync_corner_3d(int nrank, int cuts[])
   gkyl_create_ranges(&decomp->ranges[rank], nghost, &local_ext, &local);
 
   struct gkyl_array *arr = gkyl_array_new(GKYL_DOUBLE, 1, local_ext.volume);
+  gkyl_array_clear_range(arr, 10.5, &local_ext);
   gkyl_array_clear_range(arr, 1.5, &local);
 
   gkyl_comm_array_sync(comm, &local, &local_ext, arr);
@@ -733,7 +734,11 @@ mpi_per_sync_corner_3d(int nrank, int cuts[])
   gkyl_range_iter_init(&iter, &local_ext);
   while (gkyl_range_iter_next(&iter)) {
     const double *d = gkyl_array_cfetch(arr, gkyl_range_idx(&local_ext, iter.idx));
-    TEST_CHECK( d[0] == 1.5 );
+    if (!TEST_CHECK( d[0] == 1.5 )) {
+      TEST_MSG("3D periodic sync failed on rank %d (%d,%d,%d). Expected %g. Got %g\n",
+        rank, iter.idx[0], iter.idx[1], iter.idx[2],
+        1.5, d[0]);
+    }
   }
 
   gkyl_rect_decomp_release(decomp);
@@ -760,6 +765,11 @@ static void
 mpi_n8_per_sync_corner_3d(void)
 {
   mpi_per_sync_corner_3d(8, (int[]) { 2, 2, 2 });
+}
+static void
+mpi_n27_per_sync_corner_3d(void)
+{
+  mpi_per_sync_corner_3d(27, (int[]) { 3, 3, 3 });
 }
 
 static void
@@ -1154,6 +1164,7 @@ TEST_LIST = {
   {"mpi_n2_per_sync_corner_3d", mpi_n2_per_sync_corner_3d },
   {"mpi_n4_per_sync_corner_3d", mpi_n4_per_sync_corner_3d },
   {"mpi_n8_per_sync_corner_3d", mpi_n8_per_sync_corner_3d },
+  {"mpi_n27_per_sync_corner_3d", mpi_n27_per_sync_corner_3d },
 
   
   {"mpi_n2_array_send_irecv_1d", mpi_n2_array_send_irecv_1d},
