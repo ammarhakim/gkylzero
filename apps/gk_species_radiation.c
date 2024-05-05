@@ -111,37 +111,13 @@ gk_species_radiation_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s
   // allocate moments needed for temperature update
   gk_species_moment_init(app, s, &rad->lab_moms, "ThreeMoments");
 
-  // Record the velocity at the boundaries.
-  double v_bounds[2*GKYL_MAX_VDIM];
-  struct gkyl_array *vmap_ho = mkarr(false, s->vmap->ncomp, s->vmap->size);
-  gkyl_array_copy(vmap_ho, s->vmap);
-  struct gkyl_basis vmap_basis_ho;
-  int vmap_poly_order = 1;
-  gkyl_cart_modal_serendip(&vmap_basis_ho, 1, vmap_poly_order);
-  for (int d=0; d<vdim; ++d) {
-    long vlinidx;
-    double vlog[1], *vmap_d;
-    int off = d*vmap_basis_ho.num_basis;
-
-    vlog[0] = -1.0;
-    vlinidx = gkyl_range_idx(&s->local_vel, s->local_vel.lower);
-    vmap_d = gkyl_array_fetch(vmap_ho, vlinidx);
-    v_bounds[d] = vmap_basis_ho.eval_expand(vlog, off+vmap_d);
-
-    vlog[0] = 1.0;
-    vlinidx = gkyl_range_idx(&s->local_vel, s->local_vel.upper);
-    vmap_d = gkyl_array_fetch(vmap_ho, vlinidx);
-    v_bounds[d + vdim] = vmap_basis_ho.eval_expand(vlog, off+vmap_d);
-  }
-  gkyl_array_release(vmap_ho);
   // Edge of velocity space corrections to momentum and energy.
   rad->bcorr_calc = gkyl_mom_calc_bcorr_lbo_gyrokinetic_new(&s->grid,
-    &app->confBasis, &app->basis, v_bounds, s->info.mass, &s->local_vel, s->vmap_prime, app->use_gpu);
+    &app->confBasis, &app->basis, s->info.mass, s->vel_map, app->use_gpu);
   
   // Primitive moment calculator.
   rad->coll_pcalc = gkyl_prim_lbo_gyrokinetic_calc_new(&s->grid, 
     &app->confBasis, &app->basis, &app->local, app->use_gpu);
-
 
   rad->nvnu_surf_host = rad->nvnu_surf;
   rad->nvnu_host = rad->nvnu;
@@ -169,7 +145,6 @@ gk_species_radiation_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s
   rad->is_first_integ_write_call = true;
   // Allocate rhs arry to be used for calculation of integrated moments
   rad->integrated_moms_rhs = mkarr(app->use_gpu, app->basis.num_basis, s->local_ext.volume);
-
 
   // Arrays for emissivity
   rad->emissivity_rhs = mkarr(app->use_gpu, app->basis.num_basis, s->local_ext.volume);
@@ -271,10 +246,10 @@ void
 gk_species_radiation_integrated_moms(gkyl_gyrokinetic_app *app, struct gk_species *species,
 				struct gk_rad_drag *rad, const struct gkyl_array *fin[], const struct gkyl_array *fin_neut[])
 {
-    gkyl_array_clear(rad->integrated_moms_rhs, 0.0);
-    gkyl_dg_updater_rad_gyrokinetic_advance(rad->drag_slvr, &species->local,
-      species->f, species->cflrate, rad->integrated_moms_rhs);
-    gk_species_moment_calc(&rad->integ_moms, species->local, app->local, rad->integrated_moms_rhs);
+  gkyl_array_clear(rad->integrated_moms_rhs, 0.0);
+  gkyl_dg_updater_rad_gyrokinetic_advance(rad->drag_slvr, &species->local,
+    species->f, species->cflrate, rad->integrated_moms_rhs);
+  gk_species_moment_calc(&rad->integ_moms, species->local, app->local, rad->integrated_moms_rhs);
 }
 
 

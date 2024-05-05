@@ -459,7 +459,7 @@ main(int argc, char **argv)
     .polarization_density = ctx.n0,
 
     .mapc2p = {
-      .is_mapped = true,
+      .user_map = true,
       .mapping = mapc2p_vel_elc,
       .ctx = &ctx,
     },
@@ -526,7 +526,6 @@ main(int argc, char **argv)
     .electron_mass = ctx.mass_elc,
     .electron_charge = ctx.charge_elc,
     .electron_temp = ctx.Te,
-    .bmag_fac = ctx.B0, 
     .fem_parbc = GKYL_FEM_PARPROJ_NONE, 
   };
 

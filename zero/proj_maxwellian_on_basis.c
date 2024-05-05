@@ -123,16 +123,15 @@ init_quad_values(int cdim, const struct gkyl_basis *basis, int num_quad, struct 
 gkyl_proj_maxwellian_on_basis*
 gkyl_proj_maxwellian_on_basis_new(const struct gkyl_rect_grid *grid,
   const struct gkyl_basis *conf_basis, const struct gkyl_basis *phase_basis,
-  int num_quad, bool use_gpu)
+  int num_quad, const struct gkyl_velocity_map *vel_map, bool use_gpu)
 {
   return gkyl_proj_maxwellian_on_basis_inew( &(struct gkyl_proj_maxwellian_on_basis_inp) {
         .grid = grid,
         .conf_basis = conf_basis,
         .phase_basis = phase_basis,
         .num_quad = num_quad,
+        .vel_map = vel_map,
         .use_gpu = use_gpu,
-        .vmap = 0,
-        .vmap_basis = NULL,
       }
     ); 
 }
@@ -153,11 +152,7 @@ gkyl_proj_maxwellian_on_basis_inew(const struct gkyl_proj_maxwellian_on_basis_in
   up->num_conf_basis = conf_basis->num_basis;
   up->num_phase_basis = phase_basis->num_basis;
   up->use_gpu = inp->use_gpu;
-  up->vmap = inp->vmap;
-  if (inp->vmap != 0) {
-    up->vel_range = inp->vel_range;
-    up->vmap_basis = inp->vmap_basis;
-  }
+  up->vel_map = gkyl_velocity_map_acquire(inp->vel_map);
 
   // MF 2022/08/09: device kernel has arrays hard-coded to 3x, vdim=3, p=2 for now.
   if (up->use_gpu) assert((up->cdim<3 && conf_basis->poly_order<4) || (up->cdim==3 && conf_basis->poly_order<3));
@@ -525,17 +520,14 @@ gkyl_proj_gkmaxwellian_on_basis_lab_mom(const gkyl_proj_maxwellian_on_basis *up,
 
         const double *xcomp_d = gkyl_array_cfetch(up->ordinates, pqidx);
 
-        if (up->vmap == 0) {
-          comp_to_phys(pdim, xcomp_d, up->grid.dx, xc, xmu);
-        } else {
-          // convert comp velocity coordinate to phys velocity coord.
-          long vlinidx = gkyl_range_idx(up->vel_range, vel_iter.idx);
-          const double *vmap_d = gkyl_array_cfetch(up->vmap, vlinidx);
-          double xcomp[1];
-          for (int vd=0; vd<vdim; vd++) {
-            xcomp[0] = xcomp_d[cdim+vd];
-            xmu[cdim+vd] = up->vmap_basis->eval_expand(xcomp, vmap_d+vd*up->vmap_basis->num_basis);
-          }
+        // Convert comp velocity coordinate to phys velocity coord.
+        const struct gkyl_velocity_map *gvm = up->vel_map;
+        long vlinidx = gkyl_range_idx(&gvm->local_ext_vel, vel_iter.idx);
+        const double *vmap_d = gkyl_array_cfetch(gvm->vmap, vlinidx);
+        double xcomp[1];
+        for (int vd=0; vd<vdim; vd++) {
+          xcomp[0] = xcomp_d[cdim+vd];
+          xmu[cdim+vd] = gvm->vmap_basis->eval_expand(xcomp, vmap_d+vd*gvm->vmap_basis->num_basis);
         }
 
         double efact = 0.0;        
@@ -643,17 +635,14 @@ gkyl_proj_gkmaxwellian_on_basis_prim_mom(const gkyl_proj_maxwellian_on_basis *up
 
         const double *xcomp_d = gkyl_array_cfetch(up->ordinates, pqidx);
 
-        if (up->vmap == 0) {
-          comp_to_phys(pdim, xcomp_d, up->grid.dx, xc, xmu);
-        } else {
-          // convert comp velocity coordinate to phys velocity coord.
-          long vlinidx = gkyl_range_idx(up->vel_range, vel_iter.idx);
-          const double *vmap_d = gkyl_array_cfetch(up->vmap, vlinidx);
-          double xcomp[1];
-          for (int vd=0; vd<vdim; vd++) {
-            xcomp[0] = xcomp_d[cdim+vd];
-            xmu[cdim+vd] = up->vmap_basis->eval_expand(xcomp, vmap_d+vd*up->vmap_basis->num_basis);
-          }
+        // Convert comp velocity coordinate to phys velocity coord.
+        const struct gkyl_velocity_map *gvm = up->vel_map;
+        long vlinidx = gkyl_range_idx(&gvm->local_ext_vel, vel_iter.idx);
+        const double *vmap_d = gkyl_array_cfetch(gvm->vmap, vlinidx);
+        double xcomp[1];
+        for (int vd=0; vd<vdim; vd++) {
+          xcomp[0] = xcomp_d[cdim+vd];
+          xmu[cdim+vd] = gvm->vmap_basis->eval_expand(xcomp, vmap_d+vd*gvm->vmap_basis->num_basis);
         }
 
         double efact = 0.0;        
@@ -688,5 +677,6 @@ gkyl_proj_maxwellian_on_basis_release(gkyl_proj_maxwellian_on_basis* up)
   gkyl_array_release(up->conf_weights);
   gkyl_array_release(up->conf_basis_at_ords);
   gkyl_array_release(up->fun_at_ords);
+  gkyl_velocity_map_release(up->vel_map);
   gkyl_free(up);
 }

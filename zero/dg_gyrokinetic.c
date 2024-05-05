@@ -15,9 +15,7 @@ gkyl_gyrokinetic_free(const struct gkyl_ref_count *ref)
   struct gkyl_dg_eqn *base = container_of(ref, struct gkyl_dg_eqn, ref_count);
   struct dg_gyrokinetic *gyrokinetic = container_of(base, struct dg_gyrokinetic, eqn);
   gkyl_gk_geometry_release(gyrokinetic->gk_geom);
-  gkyl_array_release(gyrokinetic->vmap);
-  gkyl_array_release(gyrokinetic->vmapSq);
-  gkyl_array_release(gyrokinetic->vmap_prime);
+  gkyl_velocity_map_release(gyrokinetic->vel_map);
 
   if (gkyl_dg_eqn_is_cu_dev(base)) {
     // free inner on_dev object
@@ -49,14 +47,14 @@ gkyl_gyrokinetic_set_auxfields(const struct gkyl_dg_eqn *eqn, struct gkyl_dg_gyr
 
 struct gkyl_dg_eqn*
 gkyl_dg_gyrokinetic_new(const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis,
-  const struct gkyl_range *conf_range, const struct gkyl_range *vel_range, const struct gkyl_range *phase_range, 
+  const struct gkyl_range *conf_range, const struct gkyl_range *phase_range, 
   const double charge, const double mass, enum gkyl_gkmodel_id gkmodel_id, const struct gk_geometry *gk_geom,
-  const struct gkyl_array *vmap, const struct gkyl_array *vmapSq, const struct gkyl_array *vmap_prime, bool use_gpu)
+  const struct gkyl_velocity_map *vel_map, bool use_gpu)
 {
 #ifdef GKYL_HAVE_CUDA
   if (use_gpu)
-    return gkyl_dg_gyrokinetic_cu_dev_new(cbasis, pbasis, conf_range, vel_range, phase_range,
-      charge, mass, gkmodel_id, gk_geom, vmap, vmapSq, vmap_prime);
+    return gkyl_dg_gyrokinetic_cu_dev_new(cbasis, pbasis, conf_range, phase_range,
+      charge, mass, gkmodel_id, gk_geom, vel_map);
 #endif
 
   struct dg_gyrokinetic *gyrokinetic = gkyl_malloc(sizeof(struct dg_gyrokinetic));
@@ -155,12 +153,9 @@ gkyl_dg_gyrokinetic_new(const struct gkyl_basis *cbasis, const struct gkyl_basis
   assert(gyrokinetic->boundary_surf[cdim]);
 
   gyrokinetic->conf_range = *conf_range;
-  gyrokinetic->vel_range = *vel_range;
   gyrokinetic->phase_range = *phase_range;
   gyrokinetic->gk_geom = gkyl_gk_geometry_acquire(gk_geom);
-  gyrokinetic->vmap = gkyl_array_acquire(vmap);
-  gyrokinetic->vmapSq = gkyl_array_acquire(vmapSq);
-  gyrokinetic->vmap_prime = gkyl_array_acquire(vmap_prime);
+  gyrokinetic->vel_map = gkyl_velocity_map_acquire(vel_map);
   gyrokinetic->auxfields.alpha_surf = 0;
   gyrokinetic->auxfields.sgn_alpha_surf = 0;
   gyrokinetic->auxfields.const_sgn_alpha = 0;

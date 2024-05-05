@@ -6,6 +6,7 @@
 #include <gkyl_mom_type.h>
 #include <gkyl_range.h>
 #include <gkyl_rect_grid.h>
+#include <gkyl_velocity_map.h>
 
 // Object type
 typedef struct gkyl_mom_calc_bcorr gkyl_mom_calc_bcorr;
@@ -68,5 +69,5 @@ gkyl_mom_calc_bcorr_lbo_pkpm_new(const struct gkyl_rect_grid *grid,
 struct gkyl_mom_calc_bcorr*
 gkyl_mom_calc_bcorr_lbo_gyrokinetic_new(const struct gkyl_rect_grid *grid, 
   const struct gkyl_basis* cbasis, const struct gkyl_basis* pbasis, 
-  const double* vBoundary, double mass, const struct gkyl_range *vel_range,
-  const struct gkyl_array *vmap_prime, bool use_gpu);
+  double mass, const struct gkyl_velocity_map *vel_map,
+  bool use_gpu);

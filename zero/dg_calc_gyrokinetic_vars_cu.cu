@@ -26,7 +26,7 @@ gkyl_parallelize_components_kernel_launch_dims(dim3* dimGrid, dim3* dimBlock, gk
 
 __global__ void
 gkyl_dg_calc_gyrokinetic_vars_alpha_surf_cu_kernel(struct gkyl_dg_calc_gyrokinetic_vars *up, 
-  struct gkyl_range conf_range, struct gkyl_range vel_range, struct gkyl_range phase_range,
+  struct gkyl_range conf_range, struct gkyl_range phase_range,
   struct gkyl_range phase_ext_range, const struct gkyl_array *phi, 
   struct gkyl_array* alpha_surf, struct gkyl_array* sgn_alpha_surf, struct gkyl_array* const_sgn_alpha)
 { 
@@ -53,7 +53,7 @@ gkyl_dg_calc_gyrokinetic_vars_alpha_surf_cu_kernel(struct gkyl_dg_calc_gyrokinet
     // convert back to a linear index on the super-range (with ghost cells)
     // linc will have jumps in it to jump over ghost cells
     long loc_conf = gkyl_range_idx(&conf_range, idx);
-    long loc_vel = gkyl_range_idx(&vel_range, idx_vel);
+    long loc_vel = gkyl_range_idx(&up->vel_map->local_vel, idx_vel);
     long loc_phase = gkyl_range_idx(&phase_range, idx);
 
     const double *bmag_d = (const double*) gkyl_array_cfetch(up->gk_geom->bmag, loc_conf);
@@ -61,8 +61,8 @@ gkyl_dg_calc_gyrokinetic_vars_alpha_surf_cu_kernel(struct gkyl_dg_calc_gyrokinet
     const double *cmag_d = (const double*) gkyl_array_cfetch(up->gk_geom->cmag, loc_conf);
     const double *b_i_d = (const double*) gkyl_array_cfetch(up->gk_geom->b_i, loc_conf);
     const double *phi_d = (const double*) gkyl_array_cfetch(phi, loc_conf);
-    const double *vmap_d = (const double*) gkyl_array_cfetch(up->vmap, loc_vel);
-    const double *vmapSq_d = (const double*) gkyl_array_cfetch(up->vmapSq, loc_vel);
+    const double *vmap_d = (const double*) gkyl_array_cfetch(up->vel_map->vmap, loc_vel);
+    const double *vmapSq_d = (const double*) gkyl_array_cfetch(up->vel_map->vmap_sq, loc_vel);
 
     double* alpha_surf_d = (double*) gkyl_array_fetch(alpha_surf, loc_phase);
     double* sgn_alpha_surf_d = (double*) gkyl_array_fetch(sgn_alpha_surf, loc_phase);
@@ -99,15 +99,14 @@ gkyl_dg_calc_gyrokinetic_vars_alpha_surf_cu_kernel(struct gkyl_dg_calc_gyrokinet
 
 // Host-side wrapper for gyrokinetic surface alpha calculation
 void gkyl_dg_calc_gyrokinetic_vars_alpha_surf_cu(struct gkyl_dg_calc_gyrokinetic_vars *up, 
-  const struct gkyl_range *conf_range, const struct gkyl_range *vel_range,
-  const struct gkyl_range *phase_range, const struct gkyl_range *phase_ext_range, 
-  const struct gkyl_array *phi, 
+  const struct gkyl_range *conf_range, const struct gkyl_range *phase_range,
+  const struct gkyl_range *phase_ext_range, const struct gkyl_array *phi, 
   struct gkyl_array* alpha_surf, struct gkyl_array* sgn_alpha_surf, struct gkyl_array* const_sgn_alpha)
 {
   dim3 dimGrid, dimBlock;
   gkyl_parallelize_components_kernel_launch_dims(&dimGrid, &dimBlock, *phase_range, up->cdim+1);
   gkyl_dg_calc_gyrokinetic_vars_alpha_surf_cu_kernel<<<dimGrid, dimBlock>>>(up->on_dev, 
-    *conf_range, *vel_range, *phase_range, *phase_ext_range, phi->on_dev,
+    *conf_range, *phase_range, *phase_ext_range, phi->on_dev,
     alpha_surf->on_dev, sgn_alpha_surf->on_dev, const_sgn_alpha->on_dev);
 }
 
@@ -137,7 +136,7 @@ gkyl_dg_calc_gyrokinetic_vars*
 gkyl_dg_calc_gyrokinetic_vars_cu_dev_new(const struct gkyl_rect_grid *phase_grid, 
   const struct gkyl_basis *conf_basis, const struct gkyl_basis *phase_basis, 
   const double charge, const double mass, enum gkyl_gkmodel_id gkmodel_id, 
-  const struct gk_geometry *gk_geom, const struct gkyl_array *vmap, const struct gkyl_array *vmapSq)
+  const struct gk_geometry *gk_geom, const struct gkyl_velocity_map *vel_map)
 {
   struct gkyl_dg_calc_gyrokinetic_vars *up = (struct gkyl_dg_calc_gyrokinetic_vars*) gkyl_malloc(sizeof(*up));
 
@@ -153,12 +152,10 @@ gkyl_dg_calc_gyrokinetic_vars_cu_dev_new(const struct gkyl_rect_grid *phase_grid
   up->mass = mass;
 
   // Acquire pointers to on_dev objects so memcpy below copies those too.
-  struct gk_geometry *geom = gkyl_gk_geometry_acquire(gk_geom);
-  struct gkyl_array *vmap_ho = gkyl_array_acquire(vmap);
-  struct gkyl_array *vmapSq_ho = gkyl_array_acquire(vmapSq);
-  up->gk_geom = geom->on_dev;
-  up->vmap = vmap_ho->on_dev;
-  up->vmapSq = vmapSq_ho->on_dev;
+  struct gk_geometry *geom_ho = gkyl_gk_geometry_acquire(gk_geom);
+  struct gkyl_velocity_map *vel_map_ho = gkyl_velocity_map_acquire(vel_map);
+  up->gk_geom = geom_ho->on_dev;
+  up->vel_map = vel_map_ho->on_dev;
 
   up->flags = 0;
   GKYL_SET_CU_ALLOC(up->flags);
@@ -172,9 +169,8 @@ gkyl_dg_calc_gyrokinetic_vars_cu_dev_new(const struct gkyl_rect_grid *phase_grid
   up->on_dev = up_cu;
 
   // Updater should store host pointers.
-  up->gk_geom = geom; 
-  up->vmap = vmap_ho; 
-  up->vmapSq = vmapSq_ho; 
+  up->gk_geom = geom_ho; 
+  up->vel_map = vmap_ho; 
   
   return up;
 }

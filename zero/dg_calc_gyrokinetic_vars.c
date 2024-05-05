@@ -13,13 +13,13 @@ gkyl_dg_calc_gyrokinetic_vars*
 gkyl_dg_calc_gyrokinetic_vars_new(const struct gkyl_rect_grid *phase_grid, 
   const struct gkyl_basis *conf_basis, const struct gkyl_basis *phase_basis, 
   const double charge, const double mass, enum gkyl_gkmodel_id gkmodel_id, 
-  const struct gk_geometry *gk_geom, const struct gkyl_array *vmap,
-  const struct gkyl_array *vmapSq, bool use_gpu)
+  const struct gk_geometry *gk_geom, const struct gkyl_velocity_map *vel_map,
+  bool use_gpu)
 {
 #ifdef GKYL_HAVE_CUDA
   if (use_gpu)
     return gkyl_dg_calc_gyrokinetic_vars_cu_dev_new(phase_grid, conf_basis, phase_basis, 
-      charge, mass, gkmodel_id, gk_geom, vmap, vmapSq);
+      charge, mass, gkmodel_id, gk_geom, vel_map);
 #endif     
 
   gkyl_dg_calc_gyrokinetic_vars *up = gkyl_malloc(sizeof(gkyl_dg_calc_gyrokinetic_vars));
@@ -35,8 +35,7 @@ gkyl_dg_calc_gyrokinetic_vars_new(const struct gkyl_rect_grid *phase_grid,
   up->charge = charge;
   up->mass = mass;
   up->gk_geom = gkyl_gk_geometry_acquire(gk_geom);
-  up->vmap = vmap;
-  up->vmapSq = vmapSq;
+  up->vel_map = gkyl_velocity_map_acquire(vel_map);
 
   if (gkmodel_id == GKYL_GK_MODEL_NO_BY) {
     for (int d=0; d<cdim; ++d) {
@@ -60,14 +59,14 @@ gkyl_dg_calc_gyrokinetic_vars_new(const struct gkyl_rect_grid *phase_grid,
 }
 
 void gkyl_dg_calc_gyrokinetic_vars_alpha_surf(struct gkyl_dg_calc_gyrokinetic_vars *up, 
-  const struct gkyl_range *conf_range, const struct gkyl_range *vel_range, const struct gkyl_range *phase_range,
+  const struct gkyl_range *conf_range, const struct gkyl_range *phase_range,
   const struct gkyl_range *phase_ext_range, const struct gkyl_array *phi, 
   struct gkyl_array* alpha_surf, struct gkyl_array* sgn_alpha_surf, struct gkyl_array* const_sgn_alpha)
 {
 #ifdef GKYL_HAVE_CUDA
   if (gkyl_array_is_cu_dev(alpha_surf)) {
-    return gkyl_dg_calc_gyrokinetic_vars_alpha_surf_cu(up, conf_range, vel_range,
-      phase_range, phase_ext_range, phi, alpha_surf, sgn_alpha_surf, const_sgn_alpha);
+    return gkyl_dg_calc_gyrokinetic_vars_alpha_surf_cu(up, conf_range, phase_range,
+      phase_ext_range, phi, alpha_surf, sgn_alpha_surf, const_sgn_alpha);
   }
 #endif
   int pdim = up->pdim;
@@ -83,7 +82,7 @@ void gkyl_dg_calc_gyrokinetic_vars_alpha_surf(struct gkyl_dg_calc_gyrokinetic_va
     for (int d=cdim; d<pdim; d++) idx_vel[d-cdim] = iter.idx[d];
 
     long loc_conf = gkyl_range_idx(conf_range, idx);
-    long loc_vel = gkyl_range_idx(vel_range, idx_vel);
+    long loc_vel = gkyl_range_idx(&up->vel_map->local_vel, idx_vel);
     long loc_phase = gkyl_range_idx(phase_range, idx);
 
     gkyl_rect_grid_cell_center(&up->phase_grid, idx, xc);
@@ -93,8 +92,8 @@ void gkyl_dg_calc_gyrokinetic_vars_alpha_surf(struct gkyl_dg_calc_gyrokinetic_va
     const double *cmag_d = gkyl_array_cfetch(up->gk_geom->cmag, loc_conf);
     const double *b_i_d = gkyl_array_cfetch(up->gk_geom->b_i, loc_conf);
     const double *phi_d = gkyl_array_cfetch(phi, loc_conf);
-    const double *vmap_d = gkyl_array_cfetch(up->vmap, loc_vel);
-    const double *vmapSq_d = gkyl_array_cfetch(up->vmapSq, loc_vel);
+    const double *vmap_d = gkyl_array_cfetch(up->vel_map->vmap, loc_vel);
+    const double *vmapSq_d = gkyl_array_cfetch(up->vel_map->vmap_sq, loc_vel);
 
     double *alpha_surf_d = gkyl_array_fetch(alpha_surf, loc_phase);
     double *sgn_alpha_surf_d = gkyl_array_fetch(sgn_alpha_surf, loc_phase);
@@ -129,6 +128,7 @@ void gkyl_dg_calc_gyrokinetic_vars_alpha_surf(struct gkyl_dg_calc_gyrokinetic_va
 void gkyl_dg_calc_gyrokinetic_vars_release(gkyl_dg_calc_gyrokinetic_vars *up)
 {
   gkyl_gk_geometry_release(up->gk_geom);
+  gkyl_velocity_map_release(up->vel_map);
   
   if (GKYL_IS_CU_ALLOC(up->flags))
     gkyl_cu_free(up->on_dev);

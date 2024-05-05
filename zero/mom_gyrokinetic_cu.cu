@@ -169,8 +169,8 @@ set_cu_ptrs(struct mom_type_gyrokinetic *mom_gk,
 
 struct gkyl_mom_type*
 gkyl_mom_gyrokinetic_cu_dev_new(const struct gkyl_basis* cbasis, const struct gkyl_basis* pbasis, 
-  const struct gkyl_range* conf_range, const struct gkyl_range* vel_range, double mass,
-  const struct gkyl_array* vmap, const struct gk_geometry *gk_geom, const char *mom)
+  const struct gkyl_range* conf_range, double mass, const struct gkyl_velocity_map* vel_map,
+  const struct gk_geometry *gk_geom, const char *mom)
 {
   assert(cbasis->poly_order == pbasis->poly_order);
 
@@ -196,13 +196,12 @@ gkyl_mom_gyrokinetic_cu_dev_new(const struct gkyl_basis* cbasis, const struct gk
   mom_gk->mass = mass;
 
   // Acquire pointers to on_dev objects so memcpy below copies those too.
-  struct gk_geometry *geom = gkyl_gk_geometry_acquire(gk_geom);
-  struct gkyl_array *vmap_on_ho = gkyl_array_acquire(vmap);
-  mom_gk->gk_geom = geom->on_dev;
-  mom_gk->vmap = vmap_on_ho->on_dev;
+  struct gk_geometry *geom_ho = gkyl_gk_geometry_acquire(gk_geom);
+  struct gkyl_velocity_map *vel_map_ho = gkyl_velocity_map_acquire(vel_map);
+  mom_gk->gk_geom = geom_ho->on_dev;
+  mom_gk->vel_map = vel_map_ho->on_dev;
 
   mom_gk->conf_range = *conf_range;
-  mom_gk->vel_range = *vel_range;
 
   mom_gk->momt.flags = 0;
   GKYL_SET_CU_ALLOC(mom_gk->momt.flags);
@@ -221,8 +220,8 @@ gkyl_mom_gyrokinetic_cu_dev_new(const struct gkyl_basis* cbasis, const struct gk
   mom_gk->momt.on_dev = &mom_gk_cu->momt;
 
   // Updater should store host pointers.
-  mom_gk->gk_geom = geom; 
-  mom_gk->vmap = vmap_on_ho; 
+  mom_gk->gk_geom = geom_ho; 
+  mom_gk->vel_map = vel_map_ho; 
   
   return &mom_gk->momt;
 }
@@ -246,8 +245,8 @@ set_int_cu_ptrs(struct mom_type_gyrokinetic* momt, enum gkyl_basis_type b_type, 
 
 struct gkyl_mom_type*
 gkyl_int_mom_gyrokinetic_cu_dev_new(const struct gkyl_basis* cbasis, const struct gkyl_basis* pbasis, 
-  const struct gkyl_range* conf_range, const struct gkyl_range* vel_range, double mass,
-  const struct gkyl_array* vmap, const struct gk_geometry *gk_geom)
+  const struct gkyl_range* conf_range, double mass, const struct gkyl_velocity_map* vel_map,
+  const struct gk_geometry *gk_geom)
 {
   assert(cbasis->poly_order == pbasis->poly_order);
 
@@ -267,13 +266,12 @@ gkyl_int_mom_gyrokinetic_cu_dev_new(const struct gkyl_basis* cbasis, const struc
 
   momt->mass = mass;
   // Acquire pointers to on_dev objects so memcpy below copies those too.
-  struct gk_geometry *geom = gkyl_gk_geometry_acquire(gk_geom);
-  struct gkyl_array *vmap_on_ho = gkyl_array_acquire(vmap);
-  momt->gk_geom = geom->on_dev;
-  momt->vmap = vmap_on_ho->on_dev;
+  struct gk_geometry *geom_ho = gkyl_gk_geometry_acquire(gk_geom);
+  struct gkyl_velocity_map *vel_map_ho = gkyl_velocity_map_acquire(vel_map);
+  momt->gk_geom = geom_ho->on_dev;
+  momt->vel_map = vel_map_ho->on_dev;
 
   momt->conf_range = *conf_range;
-  momt->vel_range = *vel_range;
 
   momt->momt.flags = 0;
   GKYL_SET_CU_ALLOC(momt->momt.flags);
@@ -290,8 +288,8 @@ gkyl_int_mom_gyrokinetic_cu_dev_new(const struct gkyl_basis* cbasis, const struc
   momt->momt.on_dev = &momt_cu->momt;
 
   // Updater should store host pointers.
-  momt->gk_geom = geom; 
-  momt->vmap = vmap_on_ho; 
+  momt->gk_geom = geom_ho; 
+  momt->vel_map = vel_map_ho; 
   
   return &momt->momt;
 }

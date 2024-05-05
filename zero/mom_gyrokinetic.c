@@ -13,7 +13,7 @@ gkyl_gk_mom_free(const struct gkyl_ref_count *ref)
 {
   struct gkyl_mom_type *base = container_of(ref, struct gkyl_mom_type, ref_count);
   struct mom_type_gyrokinetic *mom_gk = container_of(base, struct mom_type_gyrokinetic, momt);
-  gkyl_array_release(mom_gk->vmap);
+  gkyl_velocity_map_release(mom_gk->vel_map);
   gkyl_gk_geometry_release(mom_gk->gk_geom);
 
   if (gkyl_mom_type_is_cu_dev(base)) {
@@ -27,14 +27,14 @@ gkyl_gk_mom_free(const struct gkyl_ref_count *ref)
 
 struct gkyl_mom_type*
 gkyl_mom_gyrokinetic_new(const struct gkyl_basis* cbasis, const struct gkyl_basis* pbasis,
-  const struct gkyl_range* conf_range, const struct gkyl_range* vel_range, double mass,
-  const struct gkyl_array* vmap, const struct gk_geometry *gk_geom, const char *mom, bool use_gpu)
+  const struct gkyl_range* conf_range, double mass, const struct gkyl_velocity_map* vel_map,
+  const struct gk_geometry *gk_geom, const char *mom, bool use_gpu)
 {
   assert(cbasis->poly_order == pbasis->poly_order);
 
 #ifdef GKYL_HAVE_CUDA
   if (use_gpu)
-    return gkyl_mom_gyrokinetic_cu_dev_new(cbasis, pbasis, conf_range, vel_range, mass, vmap, gk_geom, mom);
+    return gkyl_mom_gyrokinetic_cu_dev_new(cbasis, pbasis, conf_range, mass, vel_map, gk_geom, mom);
 #endif    
 
   struct mom_type_gyrokinetic *mom_gk = gkyl_malloc(sizeof(struct mom_type_gyrokinetic));
@@ -131,9 +131,8 @@ gkyl_mom_gyrokinetic_new(const struct gkyl_basis* cbasis, const struct gkyl_basi
   }
 
   mom_gk->conf_range = *conf_range;
-  mom_gk->vel_range = *vel_range;
   mom_gk->mass = mass;
-  mom_gk->vmap = gkyl_array_acquire(vmap);
+  mom_gk->vel_map = gkyl_velocity_map_acquire(vel_map);
   mom_gk->gk_geom = gkyl_gk_geometry_acquire(gk_geom);
   
   mom_gk->momt.flags = 0;
@@ -147,14 +146,14 @@ gkyl_mom_gyrokinetic_new(const struct gkyl_basis* cbasis, const struct gkyl_basi
 
 struct gkyl_mom_type*
 gkyl_int_mom_gyrokinetic_new(const struct gkyl_basis* cbasis, const struct gkyl_basis* pbasis, 
-  const struct gkyl_range* conf_range, const struct gkyl_range* vel_range, double mass,
-  const struct gkyl_array* vmap, const struct gk_geometry *gk_geom, bool use_gpu)
+  const struct gkyl_range* conf_range, double mass, const struct gkyl_velocity_map* vel_map,
+  const struct gk_geometry *gk_geom, bool use_gpu)
 {
   assert(cbasis->poly_order == pbasis->poly_order);
 
 #ifdef GKYL_HAVE_CUDA
   if(use_gpu)
-    return gkyl_int_mom_gyrokinetic_cu_dev_new(cbasis, pbasis, conf_range, vel_range, mass, vmap, gk_geom);
+    return gkyl_int_mom_gyrokinetic_cu_dev_new(cbasis, pbasis, conf_range, mass, vel_map, gk_geom);
 #endif
 
   struct mom_type_gyrokinetic *mom_gk = gkyl_malloc(sizeof(struct mom_type_gyrokinetic));
@@ -184,9 +183,8 @@ gkyl_int_mom_gyrokinetic_new(const struct gkyl_basis* cbasis, const struct gkyl_
   }  
 
   mom_gk->conf_range = *conf_range;
-  mom_gk->vel_range = *vel_range;
   mom_gk->mass = mass;
-  mom_gk->vmap = gkyl_array_acquire(vmap);
+  mom_gk->vel_map = gkyl_velocity_map_acquire(vel_map);
   mom_gk->gk_geom = gkyl_gk_geometry_acquire(gk_geom);
 
   mom_gk->momt.flags = 0;
@@ -202,8 +200,8 @@ gkyl_int_mom_gyrokinetic_new(const struct gkyl_basis* cbasis, const struct gkyl_
 
 struct gkyl_mom_type*
 gkyl_mom_gyrokinetic_cu_dev_new(const struct gkyl_basis* cbasis, const struct gkyl_basis* pbasis,
-  const struct gkyl_range* conf_range, const struct gkyl_range* vel_range, double mass,
-  const struct gkyl_array* vmap, const struct gk_geometry *gk_geom, const char *mom, bool use_gpu)
+  const struct gkyl_range* conf_range, double mass, const struct gkyl_velocity_map* vel_map, 
+  const struct gk_geometry *gk_geom, const char *mom, bool use_gpu)
 {
   assert(false);
   return 0;
@@ -211,8 +209,8 @@ gkyl_mom_gyrokinetic_cu_dev_new(const struct gkyl_basis* cbasis, const struct gk
 
 struct gkyl_mom_type*
 gkyl_int_mom_gyrokinetic_cu_dev_new(const struct gkyl_basis* cbasis, const struct gkyl_basis* pbasis, 
-  const struct gkyl_range* conf_range, const struct gkyl_range* vel_range, double mass,
-  const struct gkyl_array* vmap, const struct gk_geometry *gk_geom, bool use_gpu)
+  const struct gkyl_range* conf_range, double mass, const struct gkyl_velocity_map* vel_map,
+  const struct gk_geometry *gk_geom, bool use_gpu)
 {
   assert(false);
   return 0;

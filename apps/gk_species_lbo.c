@@ -7,31 +7,7 @@ gk_species_lbo_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s, stru
 {
   int cdim = app->cdim, vdim = app->vdim;
 
-  // Record the velocity at the boundaries.
-  double v_bounds[2*GKYL_MAX_VDIM];
-  struct gkyl_array *vmap_ho = mkarr(false, s->vmap->ncomp, s->vmap->size);
-  gkyl_array_copy(vmap_ho, s->vmap);
-  struct gkyl_basis vmap_basis_ho;
-  int vmap_poly_order = 1;
-  gkyl_cart_modal_serendip(&vmap_basis_ho, 1, vmap_poly_order);
-  for (int d=0; d<vdim; ++d) {
-    long vlinidx;
-    double vlog[1], *vmap_d;
-    int off = d*vmap_basis_ho.num_basis;
-
-    vlog[0] = -1.0;
-    vlinidx = gkyl_range_idx(&s->local_vel, s->local_vel.lower);
-    vmap_d = gkyl_array_fetch(vmap_ho, vlinidx);
-    v_bounds[d] = vmap_basis_ho.eval_expand(vlog, off+vmap_d);
-
-    vlog[0] = 1.0;
-    vlinidx = gkyl_range_idx(&s->local_vel, s->local_vel.upper);
-    vmap_d = gkyl_array_fetch(vmap_ho, vlinidx);
-    v_bounds[d + vdim] = vmap_basis_ho.eval_expand(vlog, off+vmap_d);
-  }
-  gkyl_array_release(vmap_ho);
-
-  // allocate nu and initialize it
+  // Allocate nu and initialize it.
   lbo->nu_sum = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
   lbo->self_nu = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
   struct gkyl_array *self_nu = mkarr(false, app->confBasis.num_basis, app->local_ext.volume);
@@ -99,7 +75,7 @@ gk_species_lbo_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s, stru
 
   // edge of velocity space corrections to momentum and energy 
   lbo->bcorr_calc = gkyl_mom_calc_bcorr_lbo_gyrokinetic_new(&s->grid, 
-    &app->confBasis, &app->basis, v_bounds, s->info.mass, &s->local_vel, s->vmap_prime, app->use_gpu);
+    &app->confBasis, &app->basis, s->info.mass, s->vel_map, app->use_gpu);
   
   // primitive moment calculator
   lbo->coll_pcalc = gkyl_prim_lbo_gyrokinetic_calc_new(&s->grid, 
@@ -111,8 +87,8 @@ gk_species_lbo_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s, stru
   struct gkyl_dg_lbo_gyrokinetic_diff_auxfields diff_inp = { .nuSum = lbo->nu_sum, 
     .nuPrimMomsSum = lbo->nu_prim_moms, .m2self = lbo->m2self };
   lbo->coll_slvr = gkyl_dg_updater_lbo_gyrokinetic_new(&s->grid, 
-    &app->confBasis, &app->basis, &app->local, &s->local_vel, &s->local, &drag_inp, &diff_inp, s->info.mass,
-    app->gk_geom, s->vmap, s->vmap_prime, s->jacobvel, v_bounds, s->info.mapc2p.is_mapped, app->use_gpu);
+    &app->confBasis, &app->basis, &app->local, &drag_inp, &diff_inp, s->info.mass,
+    app->gk_geom, s->vel_map,  app->use_gpu);
 }
 
 void 

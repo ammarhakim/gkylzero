@@ -26,11 +26,9 @@ struct gkyl_proj_maxwellian_on_basis {
   int num_conf_basis; // number of conf-space basis functions
   int num_phase_basis; // number of phase-space basis functions
 
-  bool use_gpu;
+  const struct gkyl_velocity_map *vel_map; // Velocity space mapping object.
 
-  struct gkyl_basis *vmap_basis; // Basis for velocity mappings.
-  struct gkyl_range *vel_range; // Local velocity-space range.
-  struct gkyl_array *vmap; // Velocity space mappings.
+  bool use_gpu;
 
   struct gkyl_range conf_qrange; // Range of conf-space ordinates.
   struct gkyl_range phase_qrange; // Range of phase-space ordinates.

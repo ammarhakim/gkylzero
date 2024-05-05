@@ -94,7 +94,7 @@ gkyl_bc_sheath_gyrokinetic_advance_cu(const struct gkyl_bc_sheath_gyrokinetic *u
     int nblocks = up->skin_r->nblocks, nthreads = up->skin_r->nthreads;
 
     gkyl_bc_sheath_gyrokinetic_advance_cu_ker<<<nblocks, nthreads>>>(up->cdim, up->dir, *up->skin_r, *up->ghost_r,
-      *conf_r, *up->vel_r, up->basis, up->vmap->on_dev, up->q2Dm, phi->on_dev, phi_wall->on_dev,
+      *conf_r, up->vel_map->local_vel, up->basis, up->vel_map->vmap->on_dev, up->q2Dm, phi->on_dev, phi_wall->on_dev,
       up->kernels_cu, distf->on_dev);
   }
 }

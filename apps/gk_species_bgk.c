@@ -53,9 +53,7 @@ gk_species_bgk_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s, stru
     .conf_basis = &app->confBasis,
     .phase_basis = &app->basis,
     .num_quad = app->poly_order+1,
-    .vel_range = &s->local_vel,
-    .vmap_basis = s->vmap_basis,
-    .vmap = s->vmap,
+    .vel_map = s->vel_map,
     .use_gpu = app->use_gpu,
   };
   bgk->proj_max = gkyl_proj_maxwellian_on_basis_inew(&proj_max_inp);
@@ -72,10 +70,7 @@ gk_species_bgk_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s, stru
     .gk_geom = app->gk_geom,
     .max_iter = 30,    // changed from 50 by D.L. 2024/03/02.
     .eps_err = 1.0e-7,   // changed from 1.0e-14 by D.L. 2024/02/29. 
-    .vel_local = &s->local_vel,
-    .vmap_basis = s->vmap_basis,
-    .vmap = s->vmap,
-    .jacobvel = s->jacobvel,
+    .vel_map = s->vel_map,
     .use_gpu = app->use_gpu,
   };
   bgk->corr_max = gkyl_correct_maxwellian_gyrokinetic_new(&corr_max_inp);  
@@ -158,7 +153,7 @@ gk_species_bgk_rhs(gkyl_gyrokinetic_app *app, const struct gk_species *species,
   // Compute the self-collisions Maxwellian.
   gkyl_proj_gkmaxwellian_on_basis_lab_mom(bgk->proj_max, &species->local_ext, &app->local_ext, bgk->moms.marr,
     app->gk_geom->bmag, app->gk_geom->bmag, species->info.mass, bgk->fmax);
-  gkyl_array_scale_by_cell(bgk->fmax, species->jacobvel); // Multiply by the velocity space jacobian.
+  gkyl_array_scale_by_cell(bgk->fmax, species->vel_map->jacobvel); // Multiply by the velocity space jacobian.
   gkyl_correct_maxwellian_gyrokinetic_advance(bgk->corr_max, bgk->fmax, bgk->moms.marr, &app->local, &species->local);
   gkyl_dg_mul_conf_phase_op_range(&app->confBasis, &app->basis, bgk->fmax, 
     app->gk_geom->jacobgeo, bgk->fmax, &app->local, &species->local);
@@ -173,7 +168,7 @@ gk_species_bgk_rhs(gkyl_gyrokinetic_app *app, const struct gk_species *species,
     // Compute the Maxwellian.
     gkyl_proj_gkmaxwellian_on_basis_lab_mom(bgk->proj_max, &species->local_ext, &app->local_ext, bgk->cross_moms[i],
       app->gk_geom->bmag, app->gk_geom->bmag, species->info.mass, bgk->fmax);
-    gkyl_array_scale_by_cell(bgk->fmax, species->jacobvel); // Multiply by the velocity space jacobian.
+    gkyl_array_scale_by_cell(bgk->fmax, species->vel_map->jacobvel); // Multiply by the velocity space jacobian.
     gkyl_correct_maxwellian_gyrokinetic_advance(bgk->corr_max, bgk->fmax, bgk->cross_moms[i], &app->local, &species->local);
     gkyl_dg_mul_conf_phase_op_range(&app->confBasis, &app->basis, bgk->fmax, 
       app->gk_geom->jacobgeo, bgk->fmax, &app->local, &species->local);

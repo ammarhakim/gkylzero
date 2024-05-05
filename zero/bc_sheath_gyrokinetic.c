@@ -5,8 +5,8 @@
 
 struct gkyl_bc_sheath_gyrokinetic*
 gkyl_bc_sheath_gyrokinetic_new(int dir, enum gkyl_edge_loc edge, const struct gkyl_basis *basis,
-  const struct gkyl_range *skin_r, const struct gkyl_range *ghost_r, const struct gkyl_range *vel_r,
-  const struct gkyl_array *vmap, int cdim, double q2Dm, bool use_gpu)
+  const struct gkyl_range *skin_r, const struct gkyl_range *ghost_r, const struct gkyl_velocity_map *vel_map,
+  int cdim, double q2Dm, bool use_gpu)
 {
 
   // Allocate space for new updater.
@@ -20,8 +20,7 @@ gkyl_bc_sheath_gyrokinetic_new(int dir, enum gkyl_edge_loc edge, const struct gk
   up->basis = basis;
   up->skin_r = skin_r;
   up->ghost_r = ghost_r;
-  up->vel_r = vel_r;
-  up->vmap = gkyl_array_acquire(vmap);
+  up->vel_map = gkyl_velocity_map_acquire(vel_map);
 
   // Choose the kernel that does the reflection/no reflection/partial
   // reflection.
@@ -80,11 +79,11 @@ gkyl_bc_sheath_gyrokinetic_advance(const struct gkyl_bc_sheath_gyrokinetic *up, 
 
     for (int d=up->cdim; d<pdim; d++) vidx[d-up->cdim] = iter.idx[d]; 
     long conf_loc = gkyl_range_idx(conf_r, iter.idx);
-    long vel_loc = gkyl_range_idx(up->vel_r, vidx);
+    long vel_loc = gkyl_range_idx(&up->vel_map->local_vel, vidx);
 
     const double *phi_p = (const double*) gkyl_array_cfetch(phi, conf_loc);
     const double *phi_wall_p = (const double*) gkyl_array_cfetch(phi_wall, conf_loc);
-    const double *vmap_p = (const double*) gkyl_array_cfetch(up->vmap, vel_loc);
+    const double *vmap_p = (const double*) gkyl_array_cfetch(up->vel_map->vmap, vel_loc);
 
     // Calculate reflected distribution function fhat.
     // note: reflected distribution can be
@@ -107,7 +106,7 @@ void gkyl_bc_sheath_gyrokinetic_release(struct gkyl_bc_sheath_gyrokinetic *up)
     gkyl_cu_free(up->kernels_cu);
   }
 #endif
-  gkyl_array_release(up->vmap);
+  gkyl_velocity_map_release(up->vel_map);
   gkyl_free(up->kernels);
   gkyl_free(up);
 }

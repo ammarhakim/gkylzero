@@ -41,12 +41,9 @@ struct dg_lbo_gyrokinetic_drag {
   lbo_gyrokinetic_drag_surf_t surf[2]; // Surface terms for acceleration.
   lbo_gyrokinetic_drag_boundary_surf_t boundary_surf[2]; // Surface terms for acceleration.
   struct gkyl_range conf_range; // Configuration space range.
-  struct gkyl_range vel_range; // Velocity space range.
   double mass; // Species mass.
   const struct gk_geometry *gk_geom; // Pointer to geometry struct
-  const struct gkyl_array *vmap; // Velocity space mapping.
-  const struct gkyl_array *vmap_prime; // Derivative of the velocity space mapping.
-  const struct gkyl_array *jacobvel; // Velocity space mapping Jacobian.
+  const struct gkyl_velocity_map *vel_map; // Velocity space mapping object.
   struct gkyl_dg_lbo_gyrokinetic_drag_auxfields auxfields; // Auxiliary fields.
   double vparMax, vparMaxSq;
   int num_cbasis;
@@ -68,7 +65,7 @@ kernel_lbo_gyrokinetic_drag_vol_1x1v_ser_p1(const struct gkyl_dg_eqn *eqn, const
   for (int d=lbo->cdim; d<lbo->pdim; d++) vel_idx[d-lbo->cdim] = idx[d];
 
   long cidx = gkyl_range_idx(&lbo->conf_range, idx);
-  long vidx = gkyl_range_idx(&lbo->vel_range, vel_idx);
+  long vidx = gkyl_range_idx(&lbo->vel_map->local_vel, vel_idx);
 
   const double* nuSum_p     = (const double*) gkyl_array_cfetch(lbo->auxfields.nuSum, cidx);
   const double* nuPrimMomsSum_p = (const double*) gkyl_array_cfetch(lbo->auxfields.nuPrimMomsSum, cidx);
@@ -79,8 +76,8 @@ kernel_lbo_gyrokinetic_drag_vol_1x1v_ser_p1(const struct gkyl_dg_eqn *eqn, const
       (nuVtSqSum_p[0]>0.) && (nuVtSqSum_p[0]/nuSum_p[0] < lbo->vparMaxSq) &&
       (m2self_p[0]>0.)) {
     return lbo_gyrokinetic_drag_vol_1x1v_ser_p1(dx,
-      (const double*) gkyl_array_cfetch(lbo->vmap, vidx),
-      (const double*) gkyl_array_cfetch(lbo->vmap_prime, vidx), lbo->mass, 
+      (const double*) gkyl_array_cfetch(lbo->vel_map->vmap, vidx),
+      (const double*) gkyl_array_cfetch(lbo->vel_map->vmap_prime, vidx), lbo->mass, 
       (const double*) gkyl_array_cfetch(lbo->gk_geom->bmag_inv, cidx), 
       nuSum_p, nuPrimMomsSum_p, qIn, qRhsOut);
   } else {
@@ -99,7 +96,7 @@ kernel_lbo_gyrokinetic_drag_vol_1x2v_ser_p1(const struct gkyl_dg_eqn *eqn, const
   for (int d=lbo->cdim; d<lbo->pdim; d++) vel_idx[d-lbo->cdim] = idx[d];
 
   long cidx = gkyl_range_idx(&lbo->conf_range, idx);
-  long vidx = gkyl_range_idx(&lbo->vel_range, vel_idx);
+  long vidx = gkyl_range_idx(&lbo->vel_map->local_vel, vel_idx);
 
   const double* nuSum_p     = (const double*) gkyl_array_cfetch(lbo->auxfields.nuSum, cidx);
   const double* nuPrimMomsSum_p = (const double*) gkyl_array_cfetch(lbo->auxfields.nuPrimMomsSum, cidx);
@@ -110,8 +107,8 @@ kernel_lbo_gyrokinetic_drag_vol_1x2v_ser_p1(const struct gkyl_dg_eqn *eqn, const
       (nuVtSqSum_p[0]>0.) && (nuVtSqSum_p[0]/nuSum_p[0] < lbo->vparMaxSq) &&
       (m2self_p[0]>0.)) {
   return lbo_gyrokinetic_drag_vol_1x2v_ser_p1(dx,
-      (const double*) gkyl_array_cfetch(lbo->vmap, vidx),
-      (const double*) gkyl_array_cfetch(lbo->vmap_prime, vidx), lbo->mass, 
+      (const double*) gkyl_array_cfetch(lbo->vel_map->vmap, vidx),
+      (const double*) gkyl_array_cfetch(lbo->vel_map->vmap_prime, vidx), lbo->mass, 
       (const double*) gkyl_array_cfetch(lbo->gk_geom->bmag_inv, cidx), 
       nuSum_p, nuPrimMomsSum_p, qIn, qRhsOut);
   } else {
@@ -130,7 +127,7 @@ kernel_lbo_gyrokinetic_drag_vol_2x2v_ser_p1(const struct gkyl_dg_eqn *eqn, const
   for (int d=lbo->cdim; d<lbo->pdim; d++) vel_idx[d-lbo->cdim] = idx[d];
 
   long cidx = gkyl_range_idx(&lbo->conf_range, idx);
-  long vidx = gkyl_range_idx(&lbo->vel_range, vel_idx);
+  long vidx = gkyl_range_idx(&lbo->vel_map->local_vel, vel_idx);
 
   const double* nuSum_p     = (const double*) gkyl_array_cfetch(lbo->auxfields.nuSum, cidx);
   const double* nuPrimMomsSum_p = (const double*) gkyl_array_cfetch(lbo->auxfields.nuPrimMomsSum, cidx);
@@ -141,8 +138,8 @@ kernel_lbo_gyrokinetic_drag_vol_2x2v_ser_p1(const struct gkyl_dg_eqn *eqn, const
       (nuVtSqSum_p[0]>0.) && (nuVtSqSum_p[0]/nuSum_p[0] < lbo->vparMaxSq) &&
       (m2self_p[0]>0.)) {
   return lbo_gyrokinetic_drag_vol_2x2v_ser_p1(dx, 
-      (const double*) gkyl_array_cfetch(lbo->vmap, vidx),
-      (const double*) gkyl_array_cfetch(lbo->vmap_prime, vidx), lbo->mass, 
+      (const double*) gkyl_array_cfetch(lbo->vel_map->vmap, vidx),
+      (const double*) gkyl_array_cfetch(lbo->vel_map->vmap_prime, vidx), lbo->mass, 
       (const double*) gkyl_array_cfetch(lbo->gk_geom->bmag_inv, cidx), 
       nuSum_p, nuPrimMomsSum_p, qIn, qRhsOut);
   } else {
@@ -161,7 +158,7 @@ kernel_lbo_gyrokinetic_drag_vol_3x2v_ser_p1(const struct gkyl_dg_eqn *eqn, const
   for (int d=lbo->cdim; d<lbo->pdim; d++) vel_idx[d-lbo->cdim] = idx[d];
 
   long cidx = gkyl_range_idx(&lbo->conf_range, idx);
-  long vidx = gkyl_range_idx(&lbo->vel_range, vel_idx);
+  long vidx = gkyl_range_idx(&lbo->vel_map->local_vel, vel_idx);
 
   const double* nuSum_p     = (const double*) gkyl_array_cfetch(lbo->auxfields.nuSum, cidx);
   const double* nuPrimMomsSum_p = (const double*) gkyl_array_cfetch(lbo->auxfields.nuPrimMomsSum, cidx);
@@ -172,8 +169,8 @@ kernel_lbo_gyrokinetic_drag_vol_3x2v_ser_p1(const struct gkyl_dg_eqn *eqn, const
       (nuVtSqSum_p[0]>0.) && (nuVtSqSum_p[0]/nuSum_p[0] < lbo->vparMaxSq) &&
       (m2self_p[0]>0.)) {
   return lbo_gyrokinetic_drag_vol_3x2v_ser_p1(dx,
-      (const double*) gkyl_array_cfetch(lbo->vmap, vidx),
-      (const double*) gkyl_array_cfetch(lbo->vmap_prime, vidx), lbo->mass, 
+      (const double*) gkyl_array_cfetch(lbo->vel_map->vmap, vidx),
+      (const double*) gkyl_array_cfetch(lbo->vel_map->vmap_prime, vidx), lbo->mass, 
       (const double*) gkyl_array_cfetch(lbo->gk_geom->bmag_inv, cidx), 
       nuSum_p, nuPrimMomsSum_p, qIn, qRhsOut);
   } else {
@@ -270,15 +267,15 @@ surf(const struct gkyl_dg_eqn *eqn,
       vel_idxC[d-lbo->cdim] = idxC[d];
       vel_idxR[d-lbo->cdim] = idxR[d];
     }
-    long vidxL = gkyl_range_idx(&lbo->vel_range, vel_idxL);
-    long vidxC = gkyl_range_idx(&lbo->vel_range, vel_idxC);
-    long vidxR = gkyl_range_idx(&lbo->vel_range, vel_idxR);
+    long vidxL = gkyl_range_idx(&lbo->vel_map->local_vel, vel_idxL);
+    long vidxC = gkyl_range_idx(&lbo->vel_map->local_vel, vel_idxC);
+    long vidxR = gkyl_range_idx(&lbo->vel_map->local_vel, vel_idxR);
 
     return lbo->surf[dir-lbo->cdim](dxC,
-      (const double*) gkyl_array_cfetch(lbo->vmap, vidxC),
-      (const double*) gkyl_array_cfetch(lbo->vmap_prime, vidxL),
-      (const double*) gkyl_array_cfetch(lbo->vmap_prime, vidxC),
-      (const double*) gkyl_array_cfetch(lbo->vmap_prime, vidxR), lbo->mass,
+      (const double*) gkyl_array_cfetch(lbo->vel_map->vmap, vidxC),
+      (const double*) gkyl_array_cfetch(lbo->vel_map->vmap_prime, vidxL),
+      (const double*) gkyl_array_cfetch(lbo->vel_map->vmap_prime, vidxC),
+      (const double*) gkyl_array_cfetch(lbo->vel_map->vmap_prime, vidxR), lbo->mass,
       (const double*) gkyl_array_cfetch(lbo->gk_geom->bmag_inv, cidx), 
       nuSum_p, nuPrimMomsSum_p, qInL, qInC, qInR, qRhsOut);
   }
@@ -311,13 +308,13 @@ boundary_surf(const struct gkyl_dg_eqn *eqn,
       vel_idxEdge[d-lbo->cdim] = idxEdge[d];
       vel_idxSkin[d-lbo->cdim] = idxSkin[d];
     }
-    long vidxEdge = gkyl_range_idx(&lbo->vel_range, vel_idxEdge);
-    long vidxSkin = gkyl_range_idx(&lbo->vel_range, vel_idxSkin);
+    long vidxEdge = gkyl_range_idx(&lbo->vel_map->local_vel, vel_idxEdge);
+    long vidxSkin = gkyl_range_idx(&lbo->vel_map->local_vel, vel_idxSkin);
 
     return lbo->boundary_surf[dir-lbo->cdim](dxSkin, 
-      (const double*) gkyl_array_cfetch(lbo->vmap, vidxSkin),
-      (const double*) gkyl_array_cfetch(lbo->vmap_prime, vidxEdge),
-      (const double*) gkyl_array_cfetch(lbo->vmap_prime, vidxSkin), lbo->mass,
+      (const double*) gkyl_array_cfetch(lbo->vel_map->vmap, vidxSkin),
+      (const double*) gkyl_array_cfetch(lbo->vel_map->vmap_prime, vidxEdge),
+      (const double*) gkyl_array_cfetch(lbo->vel_map->vmap_prime, vidxSkin), lbo->mass,
       (const double*) gkyl_array_cfetch(lbo->gk_geom->bmag_inv, cidx), 
       nuSum_p, nuPrimMomsSum_p, edge, qInEdge, qInSkin, qRhsOut);
   }
@@ -330,9 +327,8 @@ boundary_surf(const struct gkyl_dg_eqn *eqn,
  * Create a new LBO equation object that lives on NV-GPU
  */
 struct gkyl_dg_eqn* gkyl_dg_lbo_gyrokinetic_drag_cu_dev_new(const struct gkyl_basis* cbasis, const struct gkyl_basis* pbasis, 
-  const struct gkyl_range* conf_range, const struct gkyl_range* vel_range, const struct gkyl_rect_grid *pgrid,
-  double mass, const struct gk_geometry *gk_geom, const struct gkyl_array *vmap, 
-  const struct gkyl_array *vmap_prime, const struct gkyl_array *jacobvel, double *bounds_vel);
+  const struct gkyl_range* conf_range, const struct gkyl_rect_grid *pgrid,
+  double mass, const struct gk_geometry *gk_geom, const struct gkyl_velocity_map *vel_map);
 
 /**
  * CUDA device function to set auxiliary fields needed in updating the drag flux term.

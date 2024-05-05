@@ -5,6 +5,7 @@
 #include <gkyl_array_rio.h>
 #include <gkyl_proj_maxwellian_on_basis.h>
 #include <gkyl_proj_on_basis.h>
+#include <gkyl_velocity_map.h>
 #include <gkyl_range.h>
 #include <gkyl_rect_decomp.h>
 #include <gkyl_rect_grid.h>
@@ -78,17 +79,36 @@ test_1x1v(int poly_order, bool use_gpu)
 {
   double lower[] = {0.1, -6.0}, upper[] = {1.0, 6.0};
   int cells[] = {2, 32};
-  int vdim = 1, cdim = 1;
-  int ndim = cdim+vdim;
+  const int vdim = 1;
+  const int ndim = sizeof(cells)/sizeof(cells[0]);
+  const int cdim = ndim-vdim;
 
-  double confLower[] = {lower[0]}, confUpper[] = {upper[0]};
-  int confCells[] = {cells[0]};
+  double confLower[cdim], confUpper[cdim];
+  int confCells[cdim];
+  for (int d=0; d<cdim; d++) {
+    confLower[d] = lower[d];
+    confUpper[d] = upper[d];
+    confCells[d] = cells[d];
+  }
+  double vLower[vdim], vUpper[vdim];
+  int vCells[vdim];
+  for (int d=0; d<vdim; d++) {
+    vLower[d] = lower[cdim+d];
+    vUpper[d] = upper[cdim+d];
+    vCells[d] = cells[cdim+d];
+  }
 
   // grids
   struct gkyl_rect_grid grid;
   gkyl_rect_grid_init(&grid, ndim, lower, upper, cells);
   struct gkyl_rect_grid confGrid;
   gkyl_rect_grid_init(&confGrid, cdim, confLower, confUpper, confCells);
+  struct gkyl_rect_grid vGrid;
+  gkyl_rect_grid_init(&vGrid, vdim, vLower, vUpper, vCells);
+
+  int vGhost[vdim] = {0};
+  struct gkyl_range vLocal, vLocal_ext;
+  gkyl_create_grid_ranges(&vGrid, vGhost, &vLocal_ext, &vLocal);
 
   // basis functions
   struct gkyl_basis basis, confBasis;
@@ -109,6 +129,10 @@ test_1x1v(int poly_order, bool use_gpu)
   gkyl_create_grid_ranges(&grid, ghost, &local_ext, &local);
   struct skin_ghost_ranges skin_ghost; // phase-space skin/ghost
   skin_ghost_ranges_init(&skin_ghost, &local_ext, ghost);
+
+  int vGhost[vdim] = {0};
+  struct gkyl_range vLocal, vLocal_ext;
+  gkyl_create_grid_ranges(&vGrid, vGhost, &vLocal_ext, &vLocal);
 
   // create moment arrays
   struct gkyl_array *m0, *m1i, *m2;
@@ -147,9 +171,14 @@ test_1x1v(int poly_order, bool use_gpu)
   if (use_gpu)  // create device copy.
     distf_cu  = gkyl_array_cu_dev_new(GKYL_DOUBLE, basis.num_basis, local_ext.volume);
 
+  // Velocity space mapping.
+  struct gkyl_mapc2p_inp c2p_in = { .user_map = false, };
+  struct gkyl_velocity_map *gvm = gkyl_velocity_map_new(c2p_in, grid, vGrid,
+    local, local_ext, vLocal, vLocal_ext, use_gpu);
+
   // projection updater to compute Maxwellian
   gkyl_proj_maxwellian_on_basis *proj_max = gkyl_proj_maxwellian_on_basis_new(&grid,
-    &confBasis, &basis, poly_order+1, use_gpu);
+    &confBasis, &basis, poly_order+1, gvm, use_gpu);
 
   if (use_gpu) {
     gkyl_proj_maxwellian_on_basis_lab_mom(proj_max, &local, &confLocal, moms, distf_cu);
@@ -264,6 +293,7 @@ test_1x1v(int poly_order, bool use_gpu)
   if (use_gpu)
     gkyl_array_release(distf_cu);
   gkyl_proj_maxwellian_on_basis_release(proj_max);
+  gkyl_velocity_map_release(gvm);
 }
 
 void eval_M1i_2v(double t, const double *xn, double* restrict fout, void *ctx)
@@ -290,17 +320,32 @@ test_1x2v(int poly_order, bool use_gpu)
 {
   double lower[] = {0.1, -6.0, -6.0}, upper[] = {1.0, 6.0, 6.0};
   int cells[] = {2, 16, 16};
-  int vdim = 2, cdim = 1;
-  int ndim = cdim+vdim;
+  const int vdim = 2;
+  const int ndim = sizeof(cells)/sizeof(cells[0]);
+  const int cdim = ndim-vdim;
 
-  double confLower[] = {lower[0]}, confUpper[] = {upper[0]};
-  int confCells[] = {cells[0]};
+  double confLower[cdim], confUpper[cdim];
+  int confCells[cdim];
+  for (int d=0; d<cdim; d++) {
+    confLower[d] = lower[d];
+    confUpper[d] = upper[d];
+    confCells[d] = cells[d];
+  }
+  double vLower[vdim], vUpper[vdim];
+  int vCells[vdim];
+  for (int d=0; d<vdim; d++) {
+    vLower[d] = lower[cdim+d];
+    vUpper[d] = upper[cdim+d];
+    vCells[d] = cells[cdim+d];
+  }
 
   // grids
   struct gkyl_rect_grid grid;
   gkyl_rect_grid_init(&grid, ndim, lower, upper, cells);
   struct gkyl_rect_grid confGrid;
   gkyl_rect_grid_init(&confGrid, cdim, confLower, confUpper, confCells);
+  struct gkyl_rect_grid vGrid;
+  gkyl_rect_grid_init(&vGrid, vdim, vLower, vUpper, vCells);
 
   // basis functions
   struct gkyl_basis basis, confBasis;
@@ -321,6 +366,10 @@ test_1x2v(int poly_order, bool use_gpu)
   gkyl_create_grid_ranges(&grid, ghost, &local_ext, &local);
   struct skin_ghost_ranges skin_ghost; // phase-space skin/ghost
   skin_ghost_ranges_init(&skin_ghost, &local_ext, ghost);
+
+  int vGhost[vdim] = {0};
+  struct gkyl_range vLocal, vLocal_ext;
+  gkyl_create_grid_ranges(&vGrid, vGhost, &vLocal_ext, &vLocal);
 
   // create moment arrays
   struct gkyl_array *m0, *m1i, *m2;
@@ -358,6 +407,11 @@ test_1x2v(int poly_order, bool use_gpu)
   struct gkyl_array *distf_cu;
   if (use_gpu)  // create device copy.
     distf_cu  = gkyl_array_cu_dev_new(GKYL_DOUBLE, basis.num_basis, local_ext.volume);
+
+  // Velocity space mapping.
+  struct gkyl_mapc2p_inp c2p_in = { .user_map = false, };
+  struct gkyl_velocity_map *gvm = gkyl_velocity_map_new(c2p_in, grid, vGrid,
+    local, local_ext, vLocal, vLocal_ext, use_gpu);
 
   // projection updater to compute Maxwellian
   gkyl_proj_maxwellian_on_basis *proj_max = gkyl_proj_maxwellian_on_basis_new(&grid,
@@ -489,6 +543,7 @@ test_1x2v(int poly_order, bool use_gpu)
   if (use_gpu)
     gkyl_array_release(distf_cu);
   gkyl_proj_maxwellian_on_basis_release(proj_max);
+  gkyl_velocity_map_release(gvm);
 
 }
 
@@ -532,17 +587,32 @@ test_1x2v_gk(int poly_order, bool use_gpu)
   double mass = 1.0;
   double lower[] = {0.1, -6.0, 0.0}, upper[] = {1.0, 6.0, 6.0};
   int cells[] = {2, 16, 16};
-  int vdim = 2, cdim = 1;
-  int ndim = cdim+vdim;
+  const int vdim = 2;
+  const int ndim = sizeof(cells)/sizeof(cells[0]);
+  const int cdim = ndim-vdim;
 
-  double confLower[] = {lower[0]}, confUpper[] = {upper[0]};
-  int confCells[] = {cells[0]};
+  double confLower[cdim], confUpper[cdim];
+  int confCells[cdim];
+  for (int d=0; d<cdim; d++) {
+    confLower[d] = lower[d];
+    confUpper[d] = upper[d];
+    confCells[d] = cells[d];
+  }
+  double vLower[vdim], vUpper[vdim];
+  int vCells[vdim];
+  for (int d=0; d<vdim; d++) {
+    vLower[d] = lower[cdim+d];
+    vUpper[d] = upper[cdim+d];
+    vCells[d] = cells[cdim+d];
+  }
 
   // grids
   struct gkyl_rect_grid grid;
   gkyl_rect_grid_init(&grid, ndim, lower, upper, cells);
   struct gkyl_rect_grid confGrid;
   gkyl_rect_grid_init(&confGrid, cdim, confLower, confUpper, confCells);
+  struct gkyl_rect_grid vGrid;
+  gkyl_rect_grid_init(&vGrid, vdim, vLower, vUpper, vCells);
 
   // basis functions
   struct gkyl_basis basis, confBasis;
@@ -563,6 +633,10 @@ test_1x2v_gk(int poly_order, bool use_gpu)
   gkyl_create_grid_ranges(&grid, ghost, &local_ext, &local);
   struct skin_ghost_ranges skin_ghost; // phase-space skin/ghost
   skin_ghost_ranges_init(&skin_ghost, &local_ext, ghost);
+
+  int vGhost[vdim] = {0};
+  struct gkyl_range vLocal, vLocal_ext;
+  gkyl_create_grid_ranges(&vGrid, vGhost, &vLocal_ext, &vLocal);
 
   // create moment arrays
   struct gkyl_array *m0, *m1, *m2;
@@ -620,6 +694,11 @@ test_1x2v_gk(int poly_order, bool use_gpu)
   struct gkyl_array *distf_cu;
   if (use_gpu)  // create device copy.
     distf_cu  = gkyl_array_cu_dev_new(GKYL_DOUBLE, basis.num_basis, local_ext.volume);
+
+  // Velocity space mapping.
+  struct gkyl_mapc2p_inp c2p_in = { .user_map = false, };
+  struct gkyl_velocity_map *gvm = gkyl_velocity_map_new(c2p_in, grid, vGrid,
+    local, local_ext, vLocal, vLocal_ext, use_gpu);
 
   // projection updater to compute Maxwellian
   gkyl_proj_maxwellian_on_basis *proj_max = gkyl_proj_maxwellian_on_basis_new(&grid,
@@ -734,6 +813,7 @@ test_1x2v_gk(int poly_order, bool use_gpu)
   if (use_gpu)
     gkyl_array_release(distf_cu);
   gkyl_proj_maxwellian_on_basis_release(proj_max);
+  gkyl_velocity_map_release(gvm);
 
 }
 

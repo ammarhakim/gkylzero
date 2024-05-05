@@ -14,9 +14,7 @@ gkyl_lbo_gyrokinetic_diff_free(const struct gkyl_ref_count* ref)
   struct gkyl_dg_eqn* base = container_of(ref, struct gkyl_dg_eqn, ref_count);
   struct dg_lbo_gyrokinetic_diff *lbo  = container_of(base, struct dg_lbo_gyrokinetic_diff, eqn);
   gkyl_gk_geometry_release(lbo->gk_geom);
-  gkyl_array_release(lbo->vmap);
-  gkyl_array_release(lbo->vmap_prime);
-  gkyl_array_release(lbo->jacobvel);
+  gkyl_velocity_map_release(lbo->vel_map);
 
   if (GKYL_IS_CU_ALLOC(lbo->eqn.flags))
     gkyl_cu_free(lbo->eqn.on_dev);
@@ -44,14 +42,14 @@ gkyl_lbo_gyrokinetic_diff_set_auxfields(const struct gkyl_dg_eqn *eqn, struct gk
 
 struct gkyl_dg_eqn*
 gkyl_dg_lbo_gyrokinetic_diff_new(const struct gkyl_basis* cbasis, const struct gkyl_basis* pbasis, 
-  const struct gkyl_range* conf_range, const struct gkyl_range* vel_range, const struct gkyl_range* phase_range,
-  const struct gkyl_rect_grid *pgrid, double mass, const struct gk_geometry *gk_geom, const struct gkyl_array *vmap, 
-  const struct gkyl_array *vmap_prime, const struct gkyl_array *jacobvel, double *bounds_vel, bool is_mapped, bool use_gpu)
+  const struct gkyl_range* conf_range, const struct gkyl_rect_grid *pgrid,
+  double mass, const struct gk_geometry *gk_geom, const struct gkyl_velocity_map *vel_map, 
+  bool use_gpu)
 {
 #ifdef GKYL_HAVE_CUDA
   if (use_gpu)
-    return gkyl_dg_lbo_gyrokinetic_diff_cu_dev_new(cbasis, pbasis, conf_range, vel_range, phase_range,
-      pgrid, mass, gk_geom, vmap, vmap_prime, jacobvel, bounds_vel, is_mapped);
+    return gkyl_dg_lbo_gyrokinetic_diff_cu_dev_new(cbasis, pbasis, conf_range,
+      pgrid, mass, gk_geom, vel_map);
 #endif
   struct dg_lbo_gyrokinetic_diff* lbo = gkyl_malloc(sizeof(struct dg_lbo_gyrokinetic_diff));
 
@@ -65,7 +63,7 @@ gkyl_dg_lbo_gyrokinetic_diff_new(const struct gkyl_basis* cbasis, const struct g
   lbo->eqn.surf_term = surf;
   lbo->eqn.boundary_surf_term = boundary_surf;
 
-  lbo->vparMax = GKYL_MAX2(fabs(bounds_vel[0]),bounds_vel[vdim]);
+  lbo->vparMax = GKYL_MAX2(fabs(vel_map->vbounds[0]),vel_map->vbounds[vdim]);
   lbo->vparMaxSq = pow(lbo->vparMax,2);
   lbo->num_cbasis = cbasis->num_basis;
 
@@ -76,17 +74,17 @@ gkyl_dg_lbo_gyrokinetic_diff_new(const struct gkyl_basis* cbasis, const struct g
   switch (cbasis->b_type) {
     case GKYL_BASIS_MODAL_SERENDIPITY:
       vol_kernels = ser_vol_kernels;
-      if (is_mapped) {
-        surf_vpar_kernels = ser_surf_vpar_mapped_kernels;
-        surf_mu_kernels = ser_surf_mu_mapped_kernels;
-        boundary_surf_vpar_kernels = ser_boundary_surf_vpar_mapped_kernels;
-        boundary_surf_mu_kernels = ser_boundary_surf_mu_mapped_kernels;
-      }
-      else {
+      if (vel_map->is_identity) {
         surf_vpar_kernels = ser_surf_vpar_notmapped_kernels;
         surf_mu_kernels = ser_surf_mu_notmapped_kernels;
         boundary_surf_vpar_kernels = ser_boundary_surf_vpar_notmapped_kernels;
         boundary_surf_mu_kernels = ser_boundary_surf_mu_notmapped_kernels;
+      }
+      else {
+        surf_vpar_kernels = ser_surf_vpar_mapped_kernels;
+        surf_mu_kernels = ser_surf_mu_mapped_kernels;
+        boundary_surf_vpar_kernels = ser_boundary_surf_vpar_mapped_kernels;
+        boundary_surf_mu_kernels = ser_boundary_surf_mu_mapped_kernels;
       }
       break;
 
@@ -111,12 +109,8 @@ gkyl_dg_lbo_gyrokinetic_diff_new(const struct gkyl_basis* cbasis, const struct g
 
   lbo->mass = mass;
   lbo->conf_range = *conf_range;
-  lbo->vel_range = *vel_range;
-  lbo->phase_range = *phase_range;
   lbo->gk_geom = gkyl_gk_geometry_acquire(gk_geom);
-  lbo->vmap = gkyl_array_acquire(vmap);
-  lbo->vmap_prime = gkyl_array_acquire(vmap_prime);
-  lbo->jacobvel = gkyl_array_acquire(jacobvel);
+  lbo->vel_map = gkyl_velocity_map_acquire(vel_map);
   lbo->auxfields.nuSum = 0;
   lbo->auxfields.nuPrimMomsSum = 0;
   lbo->auxfields.m2self = 0;

@@ -75,9 +75,8 @@ dg_lbo_gyrokinetic_drag_set_cu_dev_ptrs(struct dg_lbo_gyrokinetic_drag *lbo, enu
 
 struct gkyl_dg_eqn*
 gkyl_dg_lbo_gyrokinetic_drag_cu_dev_new(const struct gkyl_basis* cbasis, const struct gkyl_basis* pbasis,
-  const struct gkyl_range* conf_range, const struct gkyl_range* vel_range, const struct gkyl_rect_grid *pgrid,
-  double mass, const struct gk_geometry *gk_geom, const struct gkyl_array *vmap,
-  const struct gkyl_array *vmap_prime, const struct gkyl_array *jacobvel, double *bounds_vel)
+  const struct gkyl_range* conf_range, const struct gkyl_rect_grid *pgrid,
+  double mass, const struct gk_geometry *gk_geom, const struct gkyl_velocity_map *vel_map)
 {
   struct dg_lbo_gyrokinetic_drag *lbo =
     (struct dg_lbo_gyrokinetic_drag*) gkyl_malloc(sizeof(*lbo));
@@ -95,14 +94,10 @@ gkyl_dg_lbo_gyrokinetic_drag_cu_dev_new(const struct gkyl_basis* cbasis, const s
   lbo->vel_range = *vel_range;
 
   // Acquire pointers to on_dev objects so memcpy below copies those too.
-  struct gk_geometry *geom = gkyl_gk_geometry_acquire(gk_geom);
-  struct gkyl_array *vmap_ho = gkyl_array_acquire(vmap);
-  struct gkyl_array *vmap_prime_ho = gkyl_array_acquire(vmap_prime);
-  struct gkyl_array *jacobvel_ho = gkyl_array_acquire(jacobvel);
-  lbo->gk_geom = geom->on_dev;
-  lbo->vmap = vmap_ho->on_dev;
-  lbo->vmap_prime = vmap_prime_ho->on_dev;
-  lbo->jacobvel = jacobvel_ho->on_dev;
+  struct gk_geometry *geom_ho = gkyl_gk_geometry_acquire(gk_geom);
+  struct gkyl_velocity_map *vel_map_ho = gkyl_velocity_map_acquire(vel_map);
+  lbo->gk_geom = geom_ho->on_dev;
+  lbo->vel_map = vel_map_ho->on_dev;
 
   lbo->vparMax = GKYL_MAX2(fabs(bounds_vel[0]),bounds_vel[vdim]);
   lbo->vparMaxSq = pow(lbo->vparMax,2);
@@ -125,10 +120,8 @@ gkyl_dg_lbo_gyrokinetic_drag_cu_dev_new(const struct gkyl_basis* cbasis, const s
   lbo->eqn.on_dev = &lbo_cu->eqn;  
 
   // Updater should store host pointers.
-  lbo->gk_geom = geom;
-  lbo->vmap = vmap_ho;
-  lbo->vmap_prime = vmap_prime_ho;
-  lbo->jacobvel = jacobvel_ho;
+  lbo->gk_geom = geom_ho;
+  lbo->vel_map = vel_map_ho;
   
   return &lbo->eqn;
 }

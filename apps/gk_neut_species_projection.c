@@ -46,7 +46,7 @@ gk_neut_species_projection_init(struct gkyl_gyrokinetic_app *app, struct gk_neut
       app->neut_basis.poly_order+1, 1, inp.temp, inp.ctx_temp);
 
     proj->proj_max_prim = gkyl_proj_maxwellian_on_basis_new(&s->grid,
-      &app->confBasis, &app->neut_basis, app->neut_basis.poly_order+1, app->use_gpu);
+      &app->confBasis, &app->neut_basis, app->neut_basis.poly_order+1, s->vel_map, app->use_gpu);
   }
 }
 

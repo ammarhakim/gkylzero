@@ -25,11 +25,7 @@ struct gkyl_correct_maxwellian_gyrokinetic_inp
   double eps_err; // desired error tolerance
   bool use_gpu; // Boolean for if updater is on GPU
 
-  // for nonuniform velocity mappings:
-  struct gkyl_basis *vmap_basis; // Basis for velocity mappings.
-  struct gkyl_range *vel_local; // Local velocity-space range.
-  struct gkyl_array *vmap; // Velocity space mappings.
-  struct gkyl_array *jacobvel; // Velocity space jacobian.
+  struct gkyl_velocity_map *vel_map; // Velocity space mapping object.
 };
 
 

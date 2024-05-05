@@ -12,6 +12,7 @@
 #include <gkyl_gk_geometry_mapc2p.h>
 #include <gkyl_proj_on_basis.h>
 #include <gkyl_proj_maxwellian_on_basis.h>
+#include <gkyl_velocity_map.h>
 #include <gkyl_range.h>
 #include <gkyl_eval_on_nodes.h>
 #include <gkyl_radiation_read.h>
@@ -78,31 +79,27 @@ test_2x_option(bool use_gpu)
   double vtIon = sqrt(Ti/mi);
   double vpar_max_ion = 6.0*vtIon;
   double mu_max_ion = 12.*mi*vtIon*vtIon/(2.0*B0);
-  int vdim = 2;
-  int cdim = 2;
-  int ndim = cdim + vdim;
-  double confLower[cdim], confUpper[cdim], vLower[vdim], vUpper[vdim];
-  int confCells[cdim], vCells[vdim];
 
   // Phase space and Configuration space extents and resolution
   double lower[] = {0.0, 0.0, -vpar_max_ion, 0.0};
   double upper[] = {1.0, 1.0, vpar_max_ion, mu_max_ion};
   int cells[] = {10, 16, 16, 20};
+  const int vdim = 2;
+  const int ndim = sizeof(cells)/sizeof(cells[0]);
+  const int cdim = ndim - vdim;
 
+  double confLower[cdim], confUpper[cdim], vLower[vdim], vUpper[vdim];
+  int confCells[cdim], vCells[vdim];
   for (int i = 0; i < cdim; i++){
     confLower[i] = lower[i]; 
     confUpper[i] = upper[i];
     confCells[i] = cells[i];
   }
-
-  vLower[0] = lower[2];
-  vLower[1] = lower[3];
-  vUpper[0] = upper[2];
-  vUpper[1] = upper[3];
-  vCells[0] = cells[2];
-  vCells[1] = cells[3];
-
-
+  for (int i = 0; i < vdim; i++){
+    vLower[i] = lower[cdim+i]; 
+    vUpper[i] = upper[cdim+i];
+    vCells[i] = cells[cdim+i];
+  }
 
   // grids
   struct gkyl_rect_grid grid;
@@ -137,7 +134,6 @@ test_2x_option(bool use_gpu)
   int vGhost[] = {0, 0, 0};
   struct gkyl_range vLocal, vLocal_ext;
   gkyl_create_grid_ranges(&vGrid, vGhost, &vLocal_ext, &vLocal);
-
 
   // Initialize geometry
   struct gkyl_gk_geometry_inp geometry_input = {
@@ -196,9 +192,14 @@ test_2x_option(bool use_gpu)
   gkyl_array_set_offset(prim_moms, 1.0, udrift, 0*confBasis.num_basis);
   gkyl_array_set_offset(prim_moms, 1.0, vtsq, 1*confBasis.num_basis);
 
+  // Velocity space mapping.
+  struct gkyl_mapc2p_inp c2p_in = { .user_map = false, };
+  struct gkyl_velocity_map *gvm = gkyl_velocity_map_new(c2p_in, grid, vGrid,
+    local, local_ext, vLocal, vLocal_ext, use_gpu);
+
   // Initialize Maxwellian projection object
   gkyl_proj_maxwellian_on_basis *proj_max = gkyl_proj_maxwellian_on_basis_new(&grid,
-    &confBasis, &basis, poly_order+1, use_gpu);
+    &confBasis, &basis, poly_order+1, gvm, use_gpu);
 
   // Initialize distribution function with proj_gkmaxwellian_on_basis
   struct gkyl_array *f = mkarr(use_gpu, basis.num_basis, local_ext.volume);
@@ -219,7 +220,8 @@ test_2x_option(bool use_gpu)
   }
 
   // Initialize integrated moment calculator
-  struct gkyl_dg_updater_moment *mcalc = gkyl_dg_updater_moment_gyrokinetic_new(&grid, &confBasis, &basis, &confLocal, &vLocal, mi, gk_geom, "Integrated", true, use_gpu);    
+  struct gkyl_dg_updater_moment *mcalc = gkyl_dg_updater_moment_gyrokinetic_new(&grid, &confBasis, &basis,
+    &confLocal, mi, gvm, gk_geom, "Integrated", true, use_gpu);    
 
   int num_mom = 4;
 
@@ -266,6 +268,7 @@ test_2x_option(bool use_gpu)
   gkyl_proj_on_basis_release(proj_udrift);
   gkyl_proj_on_basis_release(proj_vtsq);
   gkyl_proj_maxwellian_on_basis_release(proj_max);  
+  gkyl_velocity_map_release(gvm);
 
   gkyl_array_release(f);
 

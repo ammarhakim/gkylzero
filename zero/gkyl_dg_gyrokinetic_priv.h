@@ -52,13 +52,10 @@ struct dg_gyrokinetic {
   gyrokinetic_surf_t surf[4]; // Surface terms.
   gyrokinetic_boundary_surf_t boundary_surf[4]; // Surface terms for velocity boundary.
   struct gkyl_range conf_range; // Configuration space range.
-  struct gkyl_range vel_range; // Velocity space range.
   struct gkyl_range phase_range; // Phase space range.
   double charge, mass;
   const struct gk_geometry *gk_geom; // Pointer to geometry struct
-  const struct gkyl_array *vmap; // Velocity space mapping.
-  const struct gkyl_array *vmapSq; // Velocity space mapping squared.
-  const struct gkyl_array *vmap_prime; // Derivative of the velocity space mapping.
+  const struct gkyl_velocity_map *vel_map; // Velocity space mapping object.
   struct gkyl_dg_gyrokinetic_auxfields auxfields; // Auxiliary fields.
 };
 
@@ -78,11 +75,11 @@ kernel_gyrokinetic_vol_1x1v_ser_p1(const struct gkyl_dg_eqn *eqn, const double* 
   for (int d=gyrokinetic->cdim; d<gyrokinetic->pdim; d++) vel_idx[d-gyrokinetic->cdim] = idx[d];
 
   long cidx = gkyl_range_idx(&gyrokinetic->conf_range, idx);
-  long vidx = gkyl_range_idx(&gyrokinetic->vel_range, vel_idx);
+  long vidx = gkyl_range_idx(&gyrokinetic->vel_map->local_vel, vel_idx);
   long pidx = gkyl_range_idx(&gyrokinetic->phase_range, idx);
   return gyrokinetic_vol_1x1v_ser_p1(xc, dx,
-    (const double*) gkyl_array_cfetch(gyrokinetic->vmap, vidx),
-    (const double*) gkyl_array_cfetch(gyrokinetic->vmapSq, vidx),
+    (const double*) gkyl_array_cfetch(gyrokinetic->vel_map->vmap, vidx),
+    (const double*) gkyl_array_cfetch(gyrokinetic->vel_map->vmap_sq, vidx),
     gyrokinetic->charge, gyrokinetic->mass,
     (const double*) gkyl_array_cfetch(gyrokinetic->gk_geom->bmag, cidx),
     (const double*) gkyl_array_cfetch(gyrokinetic->gk_geom->jacobtot_inv, cidx),
@@ -105,11 +102,11 @@ kernel_gyrokinetic_vol_1x2v_ser_p1(const struct gkyl_dg_eqn *eqn, const double* 
   for (int d=gyrokinetic->cdim; d<gyrokinetic->pdim; d++) vel_idx[d-gyrokinetic->cdim] = idx[d];
 
   long cidx = gkyl_range_idx(&gyrokinetic->conf_range, idx);
-  long vidx = gkyl_range_idx(&gyrokinetic->vel_range, vel_idx);
+  long vidx = gkyl_range_idx(&gyrokinetic->vel_map->local_vel, vel_idx);
   long pidx = gkyl_range_idx(&gyrokinetic->phase_range, idx);
   return gyrokinetic_vol_1x2v_ser_p1(xc, dx,
-    (const double*) gkyl_array_cfetch(gyrokinetic->vmap, vidx),
-    (const double*) gkyl_array_cfetch(gyrokinetic->vmapSq, vidx),
+    (const double*) gkyl_array_cfetch(gyrokinetic->vel_map->vmap, vidx),
+    (const double*) gkyl_array_cfetch(gyrokinetic->vel_map->vmap_sq, vidx),
     gyrokinetic->charge, gyrokinetic->mass,
     (const double*) gkyl_array_cfetch(gyrokinetic->gk_geom->bmag, cidx),
     (const double*) gkyl_array_cfetch(gyrokinetic->gk_geom->jacobtot_inv, cidx),
@@ -132,11 +129,11 @@ kernel_gyrokinetic_vol_2x2v_ser_p1(const struct gkyl_dg_eqn *eqn, const double* 
   for (int d=gyrokinetic->cdim; d<gyrokinetic->pdim; d++) vel_idx[d-gyrokinetic->cdim] = idx[d];
 
   long cidx = gkyl_range_idx(&gyrokinetic->conf_range, idx);
-  long vidx = gkyl_range_idx(&gyrokinetic->vel_range, vel_idx);
+  long vidx = gkyl_range_idx(&gyrokinetic->vel_map->local_vel, vel_idx);
   long pidx = gkyl_range_idx(&gyrokinetic->phase_range, idx);
   return gyrokinetic_vol_2x2v_ser_p1(xc, dx,
-    (const double*) gkyl_array_cfetch(gyrokinetic->vmap, vidx),
-    (const double*) gkyl_array_cfetch(gyrokinetic->vmapSq, vidx),
+    (const double*) gkyl_array_cfetch(gyrokinetic->vel_map->vmap, vidx),
+    (const double*) gkyl_array_cfetch(gyrokinetic->vel_map->vmap_sq, vidx),
     gyrokinetic->charge, gyrokinetic->mass,
     (const double*) gkyl_array_cfetch(gyrokinetic->gk_geom->bmag, cidx),
     (const double*) gkyl_array_cfetch(gyrokinetic->gk_geom->jacobtot_inv, cidx),
@@ -159,11 +156,11 @@ kernel_gyrokinetic_vol_3x2v_ser_p1(const struct gkyl_dg_eqn *eqn, const double* 
   for (int d=gyrokinetic->cdim; d<gyrokinetic->pdim; d++) vel_idx[d-gyrokinetic->cdim] = idx[d];
 
   long cidx = gkyl_range_idx(&gyrokinetic->conf_range, idx);
-  long vidx = gkyl_range_idx(&gyrokinetic->vel_range, vel_idx);
+  long vidx = gkyl_range_idx(&gyrokinetic->vel_map->local_vel, vel_idx);
   long pidx = gkyl_range_idx(&gyrokinetic->phase_range, idx);
   return gyrokinetic_vol_3x2v_ser_p1(xc, dx,
-    (const double*) gkyl_array_cfetch(gyrokinetic->vmap, vidx),
-    (const double*) gkyl_array_cfetch(gyrokinetic->vmapSq, vidx),
+    (const double*) gkyl_array_cfetch(gyrokinetic->vel_map->vmap, vidx),
+    (const double*) gkyl_array_cfetch(gyrokinetic->vel_map->vmap_sq, vidx),
     gyrokinetic->charge, gyrokinetic->mass,
     (const double*) gkyl_array_cfetch(gyrokinetic->gk_geom->bmag, cidx),
     (const double*) gkyl_array_cfetch(gyrokinetic->gk_geom->jacobtot_inv, cidx),
@@ -215,11 +212,11 @@ kernel_gyrokinetic_no_by_vol_2x2v_ser_p1(const struct gkyl_dg_eqn *eqn, const do
   for (int d=gyrokinetic->cdim; d<gyrokinetic->pdim; d++) vel_idx[d-gyrokinetic->cdim] = idx[d];
 
   long cidx = gkyl_range_idx(&gyrokinetic->conf_range, idx);
-  long vidx = gkyl_range_idx(&gyrokinetic->vel_range, vel_idx);
+  long vidx = gkyl_range_idx(&gyrokinetic->vel_map->local_vel, vel_idx);
   long pidx = gkyl_range_idx(&gyrokinetic->phase_range, idx);
   return gyrokinetic_no_by_vol_2x2v_ser_p1(xc, dx,
-    (const double*) gkyl_array_cfetch(gyrokinetic->vmap, vidx),
-    (const double*) gkyl_array_cfetch(gyrokinetic->vmapSq, vidx),
+    (const double*) gkyl_array_cfetch(gyrokinetic->vel_map->vmap, vidx),
+    (const double*) gkyl_array_cfetch(gyrokinetic->vel_map->vmap_sq, vidx),
     gyrokinetic->charge, gyrokinetic->mass,
     (const double*) gkyl_array_cfetch(gyrokinetic->gk_geom->bmag, cidx),
     (const double*) gkyl_array_cfetch(gyrokinetic->gk_geom->jacobtot_inv, cidx),
@@ -242,11 +239,11 @@ kernel_gyrokinetic_no_by_vol_3x2v_ser_p1(const struct gkyl_dg_eqn *eqn, const do
   for (int d=gyrokinetic->cdim; d<gyrokinetic->pdim; d++) vel_idx[d-gyrokinetic->cdim] = idx[d];
 
   long cidx = gkyl_range_idx(&gyrokinetic->conf_range, idx);
-  long vidx = gkyl_range_idx(&gyrokinetic->vel_range, vel_idx);
+  long vidx = gkyl_range_idx(&gyrokinetic->vel_map->local_vel, vel_idx);
   long pidx = gkyl_range_idx(&gyrokinetic->phase_range, idx);
   return gyrokinetic_no_by_vol_3x2v_ser_p1(xc, dx,
-    (const double*) gkyl_array_cfetch(gyrokinetic->vmap, vidx),
-    (const double*) gkyl_array_cfetch(gyrokinetic->vmapSq, vidx),
+    (const double*) gkyl_array_cfetch(gyrokinetic->vel_map->vmap, vidx),
+    (const double*) gkyl_array_cfetch(gyrokinetic->vel_map->vmap_sq, vidx),
     gyrokinetic->charge, gyrokinetic->mass,
     (const double*) gkyl_array_cfetch(gyrokinetic->gk_geom->bmag, cidx),
     (const double*) gkyl_array_cfetch(gyrokinetic->gk_geom->jacobtot_inv, cidx),
@@ -512,9 +509,9 @@ surf(const struct gkyl_dg_eqn *eqn,
       vel_idxC[d-gyrokinetic->cdim] = idxC[d];
       vel_idxR[d-gyrokinetic->cdim] = idxR[d];
     }
-    long vidxL = gkyl_range_idx(&gyrokinetic->vel_range, vel_idxL);
-    long vidxC = gkyl_range_idx(&gyrokinetic->vel_range, vel_idxC);
-    long vidxR = gkyl_range_idx(&gyrokinetic->vel_range, vel_idxR);
+    long vidxL = gkyl_range_idx(&gyrokinetic->vel_map->local_vel, vel_idxL);
+    long vidxC = gkyl_range_idx(&gyrokinetic->vel_map->local_vel, vel_idxC);
+    long vidxR = gkyl_range_idx(&gyrokinetic->vel_map->local_vel, vel_idxR);
 
     // Each cell owns the *lower* edge surface alpha
     // Since alpha is continuous, fetch alpha_surf in center cell for lower edge
@@ -522,9 +519,9 @@ surf(const struct gkyl_dg_eqn *eqn,
     long pidxC = gkyl_range_idx(&gyrokinetic->phase_range, idxC);
     long pidxR = gkyl_range_idx(&gyrokinetic->phase_range, idxR);
     return gyrokinetic->surf[dir](xcC, dxC, 
-      (const double*) gkyl_array_cfetch(gyrokinetic->vmap_prime, vidxL),
-      (const double*) gkyl_array_cfetch(gyrokinetic->vmap_prime, vidxC),
-      (const double*) gkyl_array_cfetch(gyrokinetic->vmap_prime, vidxR),
+      (const double*) gkyl_array_cfetch(gyrokinetic->vel_map->vmap_prime, vidxL),
+      (const double*) gkyl_array_cfetch(gyrokinetic->vel_map->vmap_prime, vidxC),
+      (const double*) gkyl_array_cfetch(gyrokinetic->vel_map->vmap_prime, vidxR),
       (const double*) gkyl_array_cfetch(gyrokinetic->auxfields.alpha_surf, pidxC), 
       (const double*) gkyl_array_cfetch(gyrokinetic->auxfields.alpha_surf, pidxR), 
       (const double*) gkyl_array_cfetch(gyrokinetic->auxfields.sgn_alpha_surf, pidxC), 
@@ -554,15 +551,15 @@ boundary_surf(const struct gkyl_dg_eqn *eqn,
       vel_idxEdge[d-gyrokinetic->cdim] = idxEdge[d];
       vel_idxSkin[d-gyrokinetic->cdim] = idxSkin[d];
     }
-    long vidxEdge = gkyl_range_idx(&gyrokinetic->vel_range, vel_idxEdge);
-    long vidxSkin = gkyl_range_idx(&gyrokinetic->vel_range, vel_idxSkin);
+    long vidxEdge = gkyl_range_idx(&gyrokinetic->vel_map->local_vel, vel_idxEdge);
+    long vidxSkin = gkyl_range_idx(&gyrokinetic->vel_map->local_vel, vel_idxSkin);
 
     // Each cell owns the *lower* edge surface alpha
     long pidxEdge = gkyl_range_idx(&gyrokinetic->phase_range, idxEdge);
     long pidxSkin = gkyl_range_idx(&gyrokinetic->phase_range, idxSkin);
     return gyrokinetic->boundary_surf[dir](xcSkin, dxSkin, 
-      (const double*) gkyl_array_cfetch(gyrokinetic->vmap_prime, vidxEdge),
-      (const double*) gkyl_array_cfetch(gyrokinetic->vmap_prime, vidxSkin),
+      (const double*) gkyl_array_cfetch(gyrokinetic->vel_map->vmap_prime, vidxEdge),
+      (const double*) gkyl_array_cfetch(gyrokinetic->vel_map->vmap_prime, vidxSkin),
       (const double*) gkyl_array_cfetch(gyrokinetic->auxfields.alpha_surf, pidxEdge), 
       (const double*) gkyl_array_cfetch(gyrokinetic->auxfields.alpha_surf, pidxSkin), 
       (const double*) gkyl_array_cfetch(gyrokinetic->auxfields.sgn_alpha_surf, pidxEdge), 
@@ -580,9 +577,9 @@ boundary_surf(const struct gkyl_dg_eqn *eqn,
  * see new() method above for documentation.
  */
 struct gkyl_dg_eqn* gkyl_dg_gyrokinetic_cu_dev_new(const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis, 
-  const struct gkyl_range *conf_range, const struct gkyl_range *vel_range, const struct gkyl_range *phase_range, 
-  const double charge, const double mass, enum gkyl_gkmodel_id gkmodel_id, const struct gk_geometry *gk_geom,
-  const struct gkyl_array *vmap, const struct gkyl_array *vmapSq, const struct gkyl_array *vmap_prime);
+  const struct gkyl_range *conf_range, const struct gkyl_range *phase_range, 
+  const double charge, const double mass, enum gkyl_gkmodel_id gkmodel_id,
+  const struct gk_geometry *gk_geom, const struct gkyl_velocity_map *vel_map);
 
 /**
  * CUDA device function to set the auxiliary fields (e.g. geometry & EM fields)

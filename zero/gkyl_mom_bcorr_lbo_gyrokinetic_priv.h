@@ -58,9 +58,7 @@ struct mom_type_bcorr_lbo_gyrokinetic {
   struct gkyl_mom_type momt;
   lbo_gyrokinetic_momf_t kernel; // moment calculation kernel
   double _m; // mass of species
-  double vBoundary[2*GKYL_MAX_VDIM];
-  struct gkyl_range vel_range; // Velocity space range.
-  struct gkyl_array *vmap_prime; // Derivative of the velocity mappings.
+  struct gkyl_velocity_map *vel_map; // Velocity space mapping object.
 };
 
 void gk_mom_free(const struct gkyl_ref_count *ref);
@@ -76,10 +74,10 @@ kernel(const struct gkyl_mom_type *momt, const double *xc, const double *dx,
   int vidx[2];
   for (int d=momt->cdim; d<momt->pdim; d++) vidx[d-momt->cdim] = idx[d];
 
-  long vlinidx = gkyl_range_idx(&mom_bcorr->vel_range, vidx);
+  long vlinidx = gkyl_range_idx(&mom_bcorr->vel_map->local_vel, vidx);
   
-  return mom_bcorr->kernel(idx, edge, mom_bcorr->vBoundary, dx,
-      (const double *) gkyl_array_cfetch(mom_bcorr->vmap_prime, vlinidx), mom_bcorr->_m, f, out);
+  return mom_bcorr->kernel(idx, edge, mom_bcorr->vel_map->vbounds, dx,
+      (const double *) gkyl_array_cfetch(mom_bcorr->vel_map->vmap_prime, vlinidx), mom_bcorr->_m, f, out);
 }
 
 #ifdef GKYL_HAVE_CUDA
@@ -90,7 +88,6 @@ kernel(const struct gkyl_mom_type *momt, const double *xc, const double *dx,
  */
 struct gkyl_mom_type* 
 gkyl_mom_bcorr_lbo_gyrokinetic_cu_dev_new(const struct gkyl_basis* cbasis, 
-  const struct gkyl_basis* pbasis, const double* vBoundary, double mass,
-  const struct gkyl_range *vel_range, const struct gkyl_array *vmap_prime);
+  const struct gkyl_basis* pbasis, double mass, const struct gkyl_array *vel_map);
 
 #endif

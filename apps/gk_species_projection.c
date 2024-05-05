@@ -49,9 +49,7 @@ gk_species_projection_init(struct gkyl_gyrokinetic_app *app, struct gk_species *
       .conf_basis = &app->confBasis,
       .phase_basis = &app->basis,
       .num_quad = app->basis.poly_order+1,
-      .vel_range = &s->local_vel,
-      .vmap_basis = s->vmap_basis,
-      .vmap = s->vmap,
+      .vel_map = s->vel_map,
       .use_gpu = app->use_gpu,
     };
     proj->proj_max_prim = gkyl_proj_maxwellian_on_basis_inew( &proj_inp );
@@ -87,9 +85,7 @@ gk_species_projection_init(struct gkyl_gyrokinetic_app *app, struct gk_species *
       .conf_basis = &app->confBasis,
       .phase_basis = &app->basis,
       .num_quad = app->basis.poly_order+1,
-      .vel_range = &s->local_vel,
-      .vmap_basis = s->vmap_basis,
-      .vmap = s->vmap,
+      .vel_map = s->vel_map,
       .use_gpu = app->use_gpu,
     };
     proj->proj_max_lab = gkyl_proj_maxwellian_on_basis_inew( &proj_inp );
@@ -125,9 +121,7 @@ gk_species_projection_init(struct gkyl_gyrokinetic_app *app, struct gk_species *
       .conf_basis = &app->confBasis,
       .phase_basis = &app->basis,
       .num_quad = app->basis.poly_order+1,
-      .vel_range = &s->local_vel,
-      .vmap_basis = s->vmap_basis,
-      .vmap = s->vmap,
+      .vel_map = s->vel_map,
       .use_gpu = app->use_gpu,
     };
     proj->proj_bimax = gkyl_proj_bimaxwellian_on_basis_inew( &proj_inp );
@@ -184,7 +178,7 @@ gk_species_projection_calc(gkyl_gyrokinetic_app *app, const struct gk_species *s
 
     // Multiply by the velocity space jacobian. This has to happen before
     // trying to correct the moments otherwise moments will be wrong.
-    gkyl_array_scale_by_cell(f, s->jacobvel);
+    gkyl_array_scale_by_cell(f, s->vel_map->jacobvel);
 
     gkyl_correct_maxwellian_gyrokinetic_advance(proj->corr_max_lab, f, proj->lab_moms, &app->local, &s->local);
   }
@@ -217,7 +211,7 @@ gk_species_projection_calc(gkyl_gyrokinetic_app *app, const struct gk_species *s
   if (proj->proj_id == GKYL_PROJ_MAXWELLIAN_PRIM || proj->proj_id == GKYL_PROJ_BIMAXWELLIAN) {
     // Multiply by the velocity space jacobian. This has to happen before
     // trying to correct the moments otherwise moments will be wrong.
-    gkyl_array_scale_by_cell(f, s->jacobvel);
+    gkyl_array_scale_by_cell(f, s->vel_map->jacobvel);
 
     // Now compute and scale the density to the desired density function 
     // based on input density from Maxwellian projection.

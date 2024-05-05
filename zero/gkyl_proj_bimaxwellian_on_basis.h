@@ -4,6 +4,7 @@
 #include <gkyl_basis.h>
 #include <gkyl_range.h>
 #include <gkyl_rect_grid.h>
+#include <gkyl_velocity_map.h>
 
 // Object type
 typedef struct gkyl_proj_bimaxwellian_on_basis gkyl_proj_bimaxwellian_on_basis;
@@ -14,10 +15,7 @@ struct gkyl_proj_bimaxwellian_on_basis_inp {
   const struct gkyl_basis *conf_basis, *phase_basis; // basis functions
   int num_quad; // number of quadrature points
   bool use_gpu; // whether to use the GPU.
-  // for nonuniform velocity mappings:
-  struct gkyl_basis *vmap_basis; // Basis for velocity mappings.
-  struct gkyl_range *vel_range; // Local velocity-space range.
-  struct gkyl_array *vmap; // Velocity space mappings.
+  const struct gkyl_velocity_map *vel_map; // Velocity space mapping object.
 };
 
 /**
@@ -39,13 +37,14 @@ gkyl_proj_bimaxwellian_on_basis* gkyl_proj_bimaxwellian_on_basis_inew(
  * @param conf_basis Conf-space basis functions
  * @param phase_basis Phase-space basis functions
  * @param num_quad Number of quadrature nodes (in 1D).
+ * @param vel_map Velocity space mapping object.
  * @param use_gpu boolean indicating whether to use the GPU.
  * @return New updater pointer.
  */
 gkyl_proj_bimaxwellian_on_basis* gkyl_proj_bimaxwellian_on_basis_new(
   const struct gkyl_rect_grid *grid,
   const struct gkyl_basis *conf_basis, const struct gkyl_basis *phase_basis,
-  int num_quad, bool use_gpu);
+  int num_quad, const struct gkyl_velocity_map *vel_map, bool use_gpu);
 
 /**
  * Compute projection of a gyrokinetic Maxwellian on basis.

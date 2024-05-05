@@ -96,11 +96,6 @@ test_1x(int poly_order, bool use_gpu, double te)
 {
   double mass = GKYL_ELECTRON_MASS;
   double charge = -1.0*GKYL_ELEMENTARY_CHARGE;
-  int vdim = 2;
-  int cdim = 1;
-  int ndim = cdim + vdim;
-  double confLower[cdim], confUpper[cdim], vLower[vdim], vUpper[vdim];
-  int confCells[cdim], vCells[vdim];
 
   double vtsq_min = 0.0;
   double vth = sqrt(te*GKYL_ELEMENTARY_CHARGE/GKYL_ELECTRON_MASS);
@@ -108,15 +103,25 @@ test_1x(int poly_order, bool use_gpu, double te)
   double lower[] = {-1.0, -4*vth, 0.0};
   double upper[] = {1.0, 4*vth, 9*vth*vth*GKYL_ELECTRON_MASS};
   int cells[] = {2, 256, 128};
-  confLower[0] = lower[0]; 
-  confUpper[0] = upper[0];
-  confCells[0] = cells[0];
-  vLower[0] = lower[1];
-  vLower[1] = lower[2];
-  vUpper[0] = upper[1];
-  vUpper[1] = upper[2];
-  vCells[0] = cells[1];
-  vCells[1] = cells[2];
+  const int vdim = 2;
+
+  const int ndim = sizeof(cells)/sizeof(cells[0]);
+  const int cdim = ndim - vdim;
+
+  double confLower[cdim], confUpper[cdim];
+  int confCells[cdim];
+  for (int d=0; d<cdim; d++) {
+    confLower[d] = lower[d];
+    confUpper[d] = upper[d];
+    confCells[d] = cells[d];
+  }
+  double vLower[vdim], vUpper[vdim];
+  int vCells[vdim];
+  for (int d=0; d<vdim; d++) {
+    velLower[d] = lower[cdim+d];
+    velUpper[d] = upper[cdim+d];
+    velCells[d] = cells[cdim+d];
+  }
 
   // grids
   struct gkyl_rect_grid grid;
@@ -155,18 +160,18 @@ test_1x(int poly_order, bool use_gpu, double te)
 
   // Initialize geometry
   struct gkyl_gk_geometry_inp geometry_input = {
-      .geometry_id = GKYL_MAPC2P,
-      .world = {0.0, 0.0},
-      .mapc2p = mapc2p_3x, // mapping of computational to physical space
-      .c2p_ctx = 0,
-      .bmag_func = bmag_func_3x, // magnetic field magnitude
-      .bmag_ctx = 0 ,
-      .grid = confGrid,
-      .local = confLocal,
-      .local_ext = confLocal_ext,
-      .global = confLocal,
-      .global_ext = confLocal_ext,
-      .basis = confBasis,
+    .geometry_id = GKYL_MAPC2P,
+    .world = {0.0, 0.0},
+    .mapc2p = mapc2p_3x, // mapping of computational to physical space
+    .c2p_ctx = 0,
+    .bmag_func = bmag_func_3x, // magnetic field magnitude
+    .bmag_ctx = 0 ,
+    .grid = confGrid,
+    .local = confLocal,
+    .local_ext = confLocal_ext,
+    .global = confLocal,
+    .global_ext = confLocal_ext,
+    .basis = confBasis,
   };
 
   int geo_ghost[3] = {1};
@@ -176,12 +181,10 @@ test_1x(int poly_order, bool use_gpu, double te)
   memcpy(&geometry_input.geo_local, &geometry_input.geo_global, sizeof(struct gkyl_range));
   memcpy(&geometry_input.geo_local_ext, &geometry_input.geo_global_ext, sizeof(struct gkyl_range));
 
-
   struct gk_geometry* gk_geom_3d = gkyl_gk_geometry_mapc2p_new(&geometry_input);
   // deflate geometry
   struct gk_geometry *gk_geom = gkyl_gk_geometry_deflate(gk_geom_3d, &geometry_input);
   gkyl_gk_geometry_release(gk_geom_3d);
-
 
   // If we are on the gpu, copy from host
   if (use_gpu) {
@@ -191,6 +194,10 @@ test_1x(int poly_order, bool use_gpu, double te)
     gkyl_gk_geometry_release(gk_geom_dev);
   }
 
+  // Initialize velocity space mapping.
+  struct gkyl_mapc2p_inp c2p_in = { .user_map = false, };
+  struct gkyl_velocity_map *gvm = gkyl_velocity_map_new(c2p_in, grid, vGrid,
+    local, local_ext, vLocal, vLocal_ext, use_gpu);
 
   // allocate drag coefficients in vparallel and mu for each collision
   // vnu = v_par*nu(v)
@@ -255,7 +262,7 @@ test_1x(int poly_order, bool use_gpu, double te)
 
   // Initialize Maxwellian projection object
   gkyl_proj_maxwellian_on_basis *proj_max = gkyl_proj_maxwellian_on_basis_new(&grid,
-    &confBasis, &basis, poly_order+1, use_gpu);
+    &confBasis, &basis, poly_order+1, gvm, use_gpu);
 
   // If on GPUs, need to copy n, udrift, and vt^2 onto device
   struct gkyl_array *prim_moms_dev, *m0_dev;
@@ -307,7 +314,7 @@ test_1x(int poly_order, bool use_gpu, double te)
 
   // Take 2nd moment of rhs to find energy loss on host
   struct gkyl_dg_updater_moment *m2_calc = gkyl_dg_updater_moment_gyrokinetic_new(&grid, &confBasis, &basis,
-    &confLocal, &vLocal, GKYL_ELECTRON_MASS, gk_geom, "M2", false, use_gpu);
+    &confLocal, GKYL_ELECTRON_MASS, gvm, gk_geom, "M2", false, use_gpu);
   struct gkyl_array *m2_final = mkarr(use_gpu, confBasis.num_basis, confLocal_ext.volume);
   gkyl_dg_updater_moment_gyrokinetic_advance(m2_calc, &local, &confLocal, rhs, m2_final);
 
@@ -367,6 +374,7 @@ test_1x(int poly_order, bool use_gpu, double te)
     gkyl_array_release(m2_final_host);   
   }
 
+  gkyl_velocity_map_release(gvm);
   gkyl_gk_geometry_release(gk_geom);
 }
 
@@ -375,11 +383,6 @@ test_2x(int poly_order, bool use_gpu, double te)
 {
   double mass = GKYL_ELECTRON_MASS;
   double charge = -1.0*GKYL_ELEMENTARY_CHARGE;
-  int vdim = 2;
-  int cdim = 2;
-  int ndim = cdim + vdim;
-  double confLower[cdim], confUpper[cdim], vLower[vdim], vUpper[vdim];
-  int confCells[cdim], vCells[vdim];
 
   double vth = sqrt(te*GKYL_ELEMENTARY_CHARGE/GKYL_ELECTRON_MASS);
   double vtsq_min = 0.0;
@@ -387,18 +390,25 @@ test_2x(int poly_order, bool use_gpu, double te)
   double lower[] = {-2.0, -1.0, -4*vth, 0.0};
   double upper[] = {2.0, 1.0, 4*vth, 9*vth*vth*GKYL_ELECTRON_MASS};
   int cells[] = {2, 2, 256, 128};
-  confLower[0] = lower[0]; 
-  confUpper[0] = upper[0];
-  confCells[0] = cells[0];
-  confLower[1] = lower[1]; 
-  confUpper[1] = upper[1];
-  confCells[1] = cells[1];
-  vLower[0] = lower[2];
-  vLower[1] = lower[3];
-  vUpper[0] = upper[2];
-  vUpper[1] = upper[3];
-  vCells[0] = cells[2];
-  vCells[1] = cells[3];
+  const int vdim = 2;
+
+  const int ndim = sizeof(cells)/sizeof(cells[0]);
+  const int cdim = ndim - vdim;
+
+  double confLower[cdim], confUpper[cdim];
+  int confCells[cdim];
+  for (int d=0; d<cdim; d++) {
+    confLower[d] = lower[d];
+    confUpper[d] = upper[d];
+    confCells[d] = cells[d];
+  }
+  double vLower[vdim], vUpper[vdim];
+  int vCells[vdim];
+  for (int d=0; d<vdim; d++) {
+    velLower[d] = lower[cdim+d];
+    velUpper[d] = upper[cdim+d];
+    velCells[d] = cells[cdim+d];
+  }
 
   // grids
   struct gkyl_rect_grid grid;
@@ -458,12 +468,10 @@ test_2x(int poly_order, bool use_gpu, double te)
   memcpy(&geometry_input.geo_local, &geometry_input.geo_global, sizeof(struct gkyl_range));
   memcpy(&geometry_input.geo_local_ext, &geometry_input.geo_global_ext, sizeof(struct gkyl_range));
 
-
   struct gk_geometry* gk_geom_3d = gkyl_gk_geometry_mapc2p_new(&geometry_input);
   // deflate geometry
   struct gk_geometry *gk_geom = gkyl_gk_geometry_deflate(gk_geom_3d, &geometry_input);
   gkyl_gk_geometry_release(gk_geom_3d);
-
 
   // If we are on the gpu, copy from host
   if (use_gpu) {
@@ -472,6 +480,11 @@ test_2x(int poly_order, bool use_gpu, double te)
     gk_geom = gkyl_gk_geometry_acquire(gk_geom_dev);
     gkyl_gk_geometry_release(gk_geom_dev);
   }
+
+  // Initialize velocity space mapping.
+  struct gkyl_mapc2p_inp c2p_in = { .user_map = false, };
+  struct gkyl_velocity_map *gvm = gkyl_velocity_map_new(c2p_in, grid, vGrid,
+    local, local_ext, vLocal, vLocal_ext, use_gpu);
 
   // allocate drag coefficients in vparallel and mu for each collision
   // vnu = v_par*nu(v)
@@ -541,7 +554,7 @@ test_2x(int poly_order, bool use_gpu, double te)
 
   // Initialize Maxwellian projection object
   gkyl_proj_maxwellian_on_basis *proj_max = gkyl_proj_maxwellian_on_basis_new(&grid,
-    &confBasis, &basis, poly_order+1, use_gpu);
+    &confBasis, &basis, poly_order+1, gvm, use_gpu);
 
   // If on GPUs, need to copy n, udrift, and vt^2 onto device
   struct gkyl_array *prim_moms_dev, *m0_dev;
@@ -593,7 +606,7 @@ test_2x(int poly_order, bool use_gpu, double te)
 
   // Take 2nd moment of rhs to find energy loss on host
   struct gkyl_dg_updater_moment *m2_calc = gkyl_dg_updater_moment_gyrokinetic_new(&grid, &confBasis, &basis,
-    &confLocal, &vLocal, GKYL_ELECTRON_MASS, gk_geom, "M2", false, use_gpu);
+    &confLocal, GKYL_ELECTRON_MASS, gvm, gk_geom, "M2", false, use_gpu);
   struct gkyl_array *m2_final = mkarr(use_gpu, confBasis.num_basis, confLocal_ext.volume);
   gkyl_dg_updater_moment_gyrokinetic_advance(m2_calc, &local, &confLocal, rhs, m2_final);
 
@@ -654,6 +667,7 @@ test_2x(int poly_order, bool use_gpu, double te)
     gkyl_array_release(m2_final_host);   
   }
 
+  gkyl_velocity_map_release(gvm);
   gkyl_gk_geometry_release(gk_geom);
 }
 

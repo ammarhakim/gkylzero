@@ -61,6 +61,11 @@ gk_neut_species_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app, struc
   gkyl_range_ten_prod(&local, &app->local, &s->local_vel);
   gkyl_create_ranges(&local, ghost, &s->local_ext, &s->local);
 
+  // Velocity space mapping.
+  assert(s->info.mapc2p.user_map == false); // mapped v-space not implemented for neutrals yet.
+  s->vel_map = gkyl_velocity_map_new(s->info.mapc2p, s->grid, s->grid_vel,
+    s->local, s->local_ext, s->local_vel, s->local_ext_vel, app->use_gpu);
+
   // allocate distribution function array for initialization and I/O
   s->f = mkarr(app->use_gpu, app->neut_basis.num_basis, s->local_ext.volume);
 
@@ -398,6 +403,8 @@ gk_neut_species_release(const gkyl_gyrokinetic_app* app, const struct gk_neut_sp
 
   if (app->use_gpu)
     gkyl_array_release(s->f_host);
+
+  gkyl_velocity_map_release(s->vel_map);
 
   if (!s->info.is_static) {
     gkyl_array_release(s->f1);

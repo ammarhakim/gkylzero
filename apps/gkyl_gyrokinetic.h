@@ -7,17 +7,9 @@
 #include <gkyl_fem_poisson_bctype.h>
 #include <gkyl_range.h>
 #include <gkyl_util.h>
+#include <gkyl_velocity_map.h>
 
 #include <stdbool.h>
-
-typedef void (*mapc2p_t)(double t, const double *xc, double *xp, void *ctx);
-
-// Velocity space mappings.
-struct gkyl_gyrokinetic_mapc2p {
-  bool is_mapped;
-  mapc2p_t mapping;
-  void *ctx; 
-};
 
 // Parameters for projection
 struct gkyl_gyrokinetic_projection {
@@ -171,7 +163,7 @@ struct gkyl_gyrokinetic_species {
   double lower[3], upper[3]; // lower, upper bounds of velocity-space
   int cells[3]; // velocity-space cells
 
-  struct gkyl_gyrokinetic_mapc2p mapc2p;
+  struct gkyl_mapc2p_inp mapc2p;
 
   // initial conditions using projection routine
   struct gkyl_gyrokinetic_projection projection;
@@ -213,6 +205,8 @@ struct gkyl_gyrokinetic_neut_species {
   double mass; // mass
   double lower[3], upper[3]; // lower, upper bounds of velocity-space
   int cells[3]; // velocity-space cells
+
+  struct gkyl_mapc2p_inp mapc2p;
 
   bool is_static; // set to true if neutral species does not change in time
 

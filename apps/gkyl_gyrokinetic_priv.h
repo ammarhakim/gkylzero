@@ -51,6 +51,8 @@
 #include <gkyl_gk_geometry_mapc2p.h>
 #include <gkyl_gk_geometry_tok.h>
 #include <gkyl_gk_geometry_mirror.h>
+#include <gkyl_tok_geo.h>
+#include <gkyl_velocity_map.h>
 #include <gkyl_gyrokinetic.h>
 #include <gkyl_hyper_dg.h>
 #include <gkyl_mom_bcorr_lbo_gyrokinetic.h>
@@ -71,7 +73,6 @@
 #include <gkyl_rect_decomp.h>
 #include <gkyl_rect_grid.h>
 #include <gkyl_spitzer_coll_freq.h>
-#include <gkyl_tok_geo.h>
 #include <gkyl_util.h>
 
 // Definitions of private structs and APIs attached to these objects
@@ -416,6 +417,8 @@ struct gk_species {
   struct gkyl_rect_grid grid_vel; // velocity space grid
   struct gkyl_range local_vel, local_ext_vel; // local, local-ext velocity-space ranges
 
+  struct gkyl_velocity_map *vel_map; // Velocity mapping objects.
+
   struct gkyl_array *f, *f1, *fnew; // arrays for updates
   struct gkyl_array *cflrate; // CFL rate in each cell
   struct gkyl_array *bc_buffer; // buffer for BCs (used by bc_basic)
@@ -506,13 +509,6 @@ struct gk_species {
   struct gkyl_dg_updater_diffusion_gyrokinetic *diff_slvr; // gyrokinetic diffusion equation solver
 
   double *omega_cfl;
-
-  // Velocity mapping objects.
-  struct gkyl_array *jacobvel; // Velocity space Jacobian.
-  struct gkyl_basis *vmap_basis;  // Basis for velocity mapping.
-  struct gkyl_array *vmap; // Velocity mapping in each velocity direction.
-  struct gkyl_array *vmap_prime; // Derivative of the velocity mappings.
-  struct gkyl_array *vmapSq; // Velocity mapping in each velocity direction squared.
 };
 
 // neutral species data
@@ -530,6 +526,8 @@ struct gk_neut_species {
 
   struct gkyl_rect_grid grid_vel; // velocity space grid
   struct gkyl_range local_vel, local_ext_vel; // local, local-ext velocity-space ranges
+
+  struct gkyl_velocity_map *vel_map; // Velocity mapping objects.
 
   struct gkyl_array *f, *f1, *fnew; // arrays for updates
   struct gkyl_array *cflrate; // CFL rate in each cell
