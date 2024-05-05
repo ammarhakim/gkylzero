@@ -78,6 +78,7 @@ gkyl_vlasov_lte_correct_inew(const struct gkyl_vlasov_lte_correct_inp *inp)
     .p_over_gamma = inp->p_over_gamma,
     .gamma = inp->gamma,
     .gamma_inv = inp->gamma_inv,
+    .h_ij_inv = inp->h_ij_inv,  
     .model_id = inp->model_id,
     .mass = inp->mass,
     .use_gpu = inp->use_gpu,
@@ -197,6 +198,8 @@ gkyl_vlasov_lte_correct_all_moments(gkyl_vlasov_lte_correct *c_corr,
   if (corr_status == 1) {
     gkyl_vlasov_lte_proj_on_basis_advance(c_corr->proj_lte, 
       phase_local, conf_local, moms_target, f_lte);
+
+    printf("Correction Algorithm failed!\n");
 
     gkyl_vlasov_lte_moments_advance(c_corr->moments_up, phase_local, conf_local, f_lte, c_corr->moms_iter);
 

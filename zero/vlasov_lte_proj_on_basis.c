@@ -134,6 +134,7 @@ gkyl_vlasov_lte_proj_on_basis_inew(const struct gkyl_vlasov_lte_proj_on_basis_in
   up->phase_grid = *inp->phase_grid;
   up->conf_basis = *inp->conf_basis;
   up->phase_basis = *inp->phase_basis;
+  up->h_ij_inv = inp->h_ij_inv;
 
   up->cdim = up->conf_basis.ndim;
   up->pdim = up->phase_basis.ndim;
@@ -145,6 +146,10 @@ gkyl_vlasov_lte_proj_on_basis_inew(const struct gkyl_vlasov_lte_proj_on_basis_in
   up->is_relativistic = false;
   if (inp->model_id == GKYL_MODEL_SR) {
     up->is_relativistic = true;
+  }
+  up->is_canonical_pb = false;
+  if (inp->model_id == GKYL_MODEL_CANONICAL_PB) {
+    up->is_canonical_pb = true;
   }
 
   // JJ 2024/03/23: device kernel has arrays hard-coded to 3x, vdim=3, p=2 for now.
@@ -276,6 +281,7 @@ gkyl_vlasov_lte_proj_on_basis_advance(gkyl_vlasov_lte_proj_on_basis *up,
 
   double xc[GKYL_MAX_DIM], xmu[GKYL_MAX_DIM];
   double n_quad[tot_conf_quad], V_drift_quad[tot_conf_quad][vdim], T_over_m_quad[tot_conf_quad];
+  double h_ij_inv[tot_conf_quad][vdim*vdim];
   double V_drift_quad_cell_avg[tot_conf_quad][vdim];
   double expamp_quad[tot_conf_quad];
 
@@ -289,6 +295,10 @@ gkyl_vlasov_lte_proj_on_basis_advance(gkyl_vlasov_lte_proj_on_basis *up,
     const double *n_d = moms_lte_d;
     const double *V_drift_d = &moms_lte_d[num_conf_basis];
     const double *T_over_m_d = &moms_lte_d[num_conf_basis*(vdim+1)];
+    const double *h_ij_inv_d;
+    if (up->is_canonical_pb) {
+      h_ij_inv_d = gkyl_array_cfetch(up->h_ij_inv, midx);
+    }
 
     // Sum over basis for given LTE moments (n, V_drift, T/m) in the stationary frame
     for (int n=0; n<tot_conf_quad; ++n) {
@@ -300,6 +310,11 @@ gkyl_vlasov_lte_proj_on_basis_advance(gkyl_vlasov_lte_proj_on_basis *up,
         V_drift_quad[n][d] = 0.0;
         // Store the cell average of V_drift to use if V_drift^2 > c^2 at quadrature points
         V_drift_quad_cell_avg[n][d] = V_drift_d[num_conf_basis*d]*b_ord[0];
+        if (up->is_canonical_pb) {
+          for (int j=0; j<vdim; ++j) {
+            h_ij_inv[n][d*vdim + j] = 0.0;
+          }
+        }
       }
       T_over_m_quad[n] = 0.0;
 
@@ -308,6 +323,11 @@ gkyl_vlasov_lte_proj_on_basis_advance(gkyl_vlasov_lte_proj_on_basis *up,
         n_quad[n] += n_d[k]*b_ord[k];
         for (int d=0; d<vdim; ++d) {
           V_drift_quad[n][d] += V_drift_d[num_conf_basis*d+k]*b_ord[k];
+          if (up->is_canonical_pb) {
+            for (int j=0; j<vdim; ++j) {
+              h_ij_inv[n][d*cdim + j] += h_ij_inv_d[num_conf_basis*(d*cdim + j)+k]*b_ord[k];
+            }
+          }
         }
         T_over_m_quad[n] += T_over_m_d[k]*b_ord[k];
       }
@@ -316,6 +336,9 @@ gkyl_vlasov_lte_proj_on_basis_advance(gkyl_vlasov_lte_proj_on_basis *up,
       if ((n_quad[n] > 0.0) && (T_over_m_quad[n] > 0.0)) {
         if (up->is_relativistic) {
           expamp_quad[n] = n_quad[n]*(1.0/(4.0*GKYL_PI*T_over_m_quad[n]))*(sqrt(2*T_over_m_quad[n]/GKYL_PI));;
+        }
+        else if (up->is_canonical_pb) {
+          expamp_quad[n] = n_quad[n]/sqrt(pow(2.0*GKYL_PI*T_over_m_quad[n], vdim));
         }
         else {
           expamp_quad[n] = n_quad[n]/sqrt(pow(2.0*GKYL_PI*T_over_m_quad[n], vdim));
@@ -374,6 +397,22 @@ gkyl_vlasov_lte_proj_on_basis_advance(gkyl_vlasov_lte_proj_on_basis *up,
 
             fq[0] += expamp_quad[cqidx]*exp( (1.0/T_over_m_quad[cqidx]) 
               - (gamma_shifted/T_over_m_quad[cqidx])*(sqrt(1+uu) - vu) );
+          }
+          // Assumes a (particle) hamiltonian in canocial form: g = 1/2g^{ij}w_i_w_j
+          else if (up->is_canonical_pb) {
+            double efact = 0.0;
+            for (int d0=0; d0<vdim; ++d0) {
+              for (int d1=0; d1<vdim; ++d1) {
+                // Grab the spatial metric component, the ctx includes geometry that isn't 
+                // part of the canonical set of variables, like R on the surf of a sphere
+                // q_can includes the canonical variables list
+                double h_ij_inv_loc = h_ij_inv[cqidx][d0*vdim + d1]; 
+                efact += h_ij_inv_loc*(xmu[cdim+d0]-V_drift_quad[cqidx][d0])*(xmu[cdim+d1]-V_drift_quad[cqidx][d1]);
+              }
+            }
+            // Accuracy of the prefactor doesn't really matter since it will 
+            // be fixed by the correct routine
+            fq[0] += expamp_quad[cqidx]*exp(-efact/(2.0*T_over_m_quad[cqidx]));
           }
           else {
             double efact = 0.0;        

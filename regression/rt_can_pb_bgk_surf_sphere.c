@@ -18,6 +18,14 @@ struct can_pb_ctx {
   double R; // Radius of the sphere
 };
 
+void
+evalNu(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
+{
+  struct free_stream_ctx *app = ctx;
+  double x = xn[0], v = xn[1];
+  fout[0] = 100.0;
+}
+
 void 
 h_ij_inv(double t, const double* xn, double* fout, void* ctx)
 {
@@ -63,18 +71,10 @@ hamil(double t, const double* xn, double* fout, void* ctx)
 }
 
 void
-evalNu(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
-{
-  struct can_pb_ctx *app = ctx;
-  double x = xn[0], v = xn[1];
-  fout[0] = 100.0;
-}
-
-void
 evalDensityInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
 {
   struct can_pb_ctx *app = ctx;
-  fout[0] = 0.3  + sq(sq(sin(1.5*xn[1])))*2.0*sq(sq(sin(xn[0])));
+  fout[0] = 1; //0.3  + sq(sq(sin(1.5*xn[1])))*2.0*sq(sq(sin(xn[0])));
 }
 
 void
@@ -82,7 +82,8 @@ evalVDriftInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT f
 {
   struct can_pb_ctx *app = ctx;
   double x = xn[0];
-  fout[0] = 0.0;
+  fout[0] = 0.5;
+  fout[1] = 0.5;
 }
 
 void
@@ -151,13 +152,21 @@ main(int argc, char **argv)
       .correct_all_moms = true, 
     },
 
+    .collisions =  {
+      .collision_id = GKYL_BGK_COLLISIONS,
+
+      .ctx = &ctx,
+      .self_nu = evalNu,
+      .correct_all_moms = true, 
+    },
+
     .num_diag_moments = 3,
     .diag_moments = { "M0", "M1i", "LTEMoments" },
   };
 
   // VM app
   struct gkyl_vm vm = {
-    .name = "can_pb_surf_sphere_p2",
+    .name = "can_pb_bgk_surf_sphere_p2",
 
     .cdim = 2, .vdim = 2,
     .lower = { 3.141592653589793/4.0, 0.0 },
@@ -180,9 +189,9 @@ main(int argc, char **argv)
   gkyl_vlasov_app *app = gkyl_vlasov_app_new(&vm);
 
   // start, end and initial time-step
-  double tcurr = 0.0, tend = 2.0;
+  double tcurr = 0.0, tend = 0.1;
   double dt = tend-tcurr;
-  int nframe = 20;
+  int nframe = 2;
   struct gkyl_tm_trigger io_trig = { .dt = tend/nframe };
 
   // initialize simulation

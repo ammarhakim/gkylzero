@@ -289,6 +289,8 @@ struct vm_species {
     struct {
       struct gkyl_array *hamil; // Specified hamiltonian function for canonical poisson bracket
       struct gkyl_array *hamil_host; // Host side hamiltonian array for intial projection
+      struct gkyl_array *h_ij_inv; // Specified metric inverse for canonical poisson bracket
+      struct gkyl_array *h_ij_inv_host; // Host side metric inverse array for intial projection
 
       struct gkyl_array *alpha_surf; // Surface phase space velocity
       struct gkyl_array *sgn_alpha_surf; // sign(alpha_surf) at quadrature points

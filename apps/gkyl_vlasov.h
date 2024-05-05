@@ -140,6 +140,10 @@ struct gkyl_vlasov_species {
   // pointer to hamilonian function
   void (*hamil)(double t, const double *xn, double *aout, void *ctx);
 
+  void *h_ij_inv_ctx; // context for spatial metric function
+  // pointer to metric inverse function
+  void (*h_ij_inv)(double t, const double *xn, double *aout, void *ctx);
+
   // boundary conditions
   enum gkyl_species_bc_type bcx[2], bcy[2], bcz[2];
 };
