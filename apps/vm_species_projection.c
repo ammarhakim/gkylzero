@@ -51,6 +51,7 @@ vm_species_projection_init(struct gkyl_vlasov_app *app, struct vm_species *s,
       .model_id = s->model_id,
       .mass = s->info.mass,
       .use_gpu = app->use_gpu,
+      .quad_type = inp.quad_type
     };
     proj->proj_lte = gkyl_vlasov_lte_proj_on_basis_inew( &inp_proj );
 
@@ -72,6 +73,7 @@ vm_species_projection_init(struct gkyl_vlasov_app *app, struct vm_species *s,
         .mass = s->info.mass,
         .use_gpu = app->use_gpu,
         .max_iter = 100,
+        .quad_type = inp.quad_type,
         .eps = 1e-12,
       };
       proj->corr_lte = gkyl_vlasov_lte_correct_inew( &inp_corr );

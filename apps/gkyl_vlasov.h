@@ -12,7 +12,8 @@
 // Parameters for projection
 struct gkyl_vlasov_projection {
   enum gkyl_projection_id proj_id; // type of projection (see gkyl_eqn_type.h)
-
+  enum gkyl_quad_type quad_type; // quadrature scheme to use: defaults to Gaussian
+  
   union {
     struct {
       // pointer and context to initialization function 

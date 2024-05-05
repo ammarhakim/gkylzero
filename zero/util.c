@@ -3,11 +3,32 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include <unistd.h>
+#include <string.h>
 #include <sys/stat.h>
+#include <unistd.h>
 
 #include <gkyl_util.h>
 #include <gkyl_alloc.h>
+
+int
+gkyl_search_str_int_pair_by_str(const struct gkyl_str_int_pair pairs[], const char *str, int def)
+{
+  for (int i=0; pairs[i].str != 0; ++i) {
+    if (strcmp(pairs[i].str, str) == 0)
+      return pairs[i].val;
+  }
+  return def;  
+}
+
+const char *
+gkyl_search_str_int_pair_by_int(const struct gkyl_str_int_pair pairs[], int val, const char *def)
+{
+  for (int i=0; pairs[i].str != 0; ++i) {
+    if (pairs[i].val == val)
+      return pairs[i].str;
+  }
+  return def;  
+}
 
 int
 gkyl_tm_trigger_check_and_bump(struct gkyl_tm_trigger *tmt, double tcurr)

@@ -214,17 +214,27 @@ moment_species_init(const struct gkyl_moment *mom, const struct gkyl_moment_spec
 
   // allocate array for applied acceleration/forces for each species
   sp->app_accel = mkarr(false, 3, app->local_ext.volume);
+  sp->was_app_accel_computed = false;
+  sp->is_app_accel_static = mom_sp->is_app_accel_static;
   sp->proj_app_accel = 0;
-  if (mom_sp->app_accel_func)
-    sp->proj_app_accel = gkyl_fv_proj_new(&app->grid, 2, 3, mom_sp->app_accel_func, sp->ctx);
+  if (mom_sp->app_accel_func) {
+    void *ctx = sp->ctx;
+    if (mom_sp->app_accel_ctx)
+      ctx = mom_sp->app_accel_ctx;
+    sp->proj_app_accel = gkyl_fv_proj_new(&app->grid, 2, GKYL_MOM_APP_NUM_APPLIED_ACCELERATION,
+      mom_sp->app_accel_func, ctx);
+  }
 
   sp->nT_source = mkarr(false, 2, app->local_ext.volume);
   sp->nT_source_is_set = false;
   sp->proj_nT_source = 0;
-  if (mom_sp->nT_source_func)
-  {
-    sp->proj_nT_source = gkyl_fv_proj_new(
-        &app->grid, 2, 2, mom_sp->nT_source_func, sp->ctx);
+  if (mom_sp->nT_source_func) {
+    void *ctx = sp->ctx;
+    if (mom_sp->nT_source_ctx)
+      ctx = mom_sp->nT_source_ctx;
+    
+    sp->proj_nT_source = gkyl_fv_proj_new(&app->grid, 2, GKYL_MOM_APP_NUM_NT_SOURCE,
+        mom_sp->nT_source_func, ctx);
     sp->nT_source_set_only_once = mom_sp->nT_source_set_only_once;
   }
 

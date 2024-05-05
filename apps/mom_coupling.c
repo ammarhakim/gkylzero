@@ -12,7 +12,7 @@ moment_coupling_init(const struct gkyl_moment_app *app, struct moment_coupling *
     .epsilon0 = app->field.epsilon0 ? app->field.epsilon0 : 0.0, 
     .mu0 = app->field.mu0 ? app->field.mu0 : 0.0, 
     // linear ramping function for slowing turning on applied accelerations, E fields, or currents
-    .t_ramp_E = app->field.t_ramp_E ? app->field.t_ramp_E : 0.0,
+    .t_ramp_E = app->field.t_ramp_ext_em ? app->field.t_ramp_ext_em : 0.0,
     .t_ramp_curr = app->field.t_ramp_curr ? app->field.t_ramp_curr : 0.0,
   };
 
@@ -93,8 +93,16 @@ moment_coupling_update(gkyl_moment_app *app, struct moment_coupling *src,
   for (int i=0; i<app->num_species; ++i) {
     fluids[i] = app->species[i].f[sidx[nstrang]];
 
-    if (app->species[i].proj_app_accel)
-      gkyl_fv_proj_advance(app->species[i].proj_app_accel, tcurr, &app->local, app->species[i].app_accel);
+    if (app->species[i].proj_app_accel) {
+      
+      if (!app->species[i].was_app_accel_computed)
+        gkyl_fv_proj_advance(app->species[i].proj_app_accel, tcurr, &app->local, app->species[i].app_accel);
+      
+      if (app->species[i].is_app_accel_static)
+        app->species[i].was_app_accel_computed = true;
+      else
+        app->species[i].was_app_accel_computed = false;
+    }
     app_accels[i] = app->species[i].app_accel;
 
     if (app->species[i].eqn_type == GKYL_EQN_TEN_MOMENT && app->species[i].has_grad_closure) {
@@ -155,10 +163,12 @@ moment_coupling_update(gkyl_moment_app *app, struct moment_coupling *src,
       app->field.f[sidx[nstrang]], app->field.app_current, app->field.ext_em, 
       nT_sources);
 
-  for (int i=0; i<app->num_species; ++i)
+  for (int i=0; i<app->num_species; ++i) {
     moment_species_apply_bc(app, tcurr, &app->species[i], fluids[i]);
-
-  moment_field_apply_bc(app, tcurr, &app->field, app->field.f[sidx[nstrang]]);
+  }
+  if (app->has_field) {
+    moment_field_apply_bc(app, tcurr, &app->field, app->field.f[sidx[nstrang]]);
+  }
 }
 
 // free sources
