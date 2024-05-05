@@ -75,15 +75,29 @@ evalDensityInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT 
 {
   struct can_pb_ctx *app = ctx;
   fout[0] = 1; //0.3  + sq(sq(sin(1.5*xn[1])))*2.0*sq(sq(sin(xn[0])));
+   double theta = xn[0];
+  double phi = xn[1];
+  if (theta + 0.2*sin(phi) > 1.5708){
+    fout[0] = 1.0;
+  }
+  else {
+    fout[0] = 0.1;
+  }
 }
 
 void
 evalVDriftInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
 {
   struct can_pb_ctx *app = ctx;
-  double x = xn[0];
-  fout[0] = 0.5;
-  fout[1] = 0.5;
+  double theta = xn[0];
+  double phi = xn[1]; 
+  if (theta + 0.2*sin(phi) > 1.5708){
+    fout[1] = 1.0;
+  }
+  else {
+    fout[1] = -1.0;
+  }
+  fout[0] = 0.0;
 }
 
 void
@@ -175,23 +189,23 @@ main(int argc, char **argv)
     .poly_order = 2,
     .basis_type = app_args.basis_type,
 
-    .num_periodic_dir = 2,
-    .periodic_dirs = {0, 1},
+    .num_periodic_dir = 1,
+    .periodic_dirs = {1},
 
     .num_species = 1,
     .species = { neut },
     .skip_field = true,
 
-    .use_gpu = app_args.use_gpu,
+    .use_gpu = true, //app_args.use_gpu,
   };
 
   // create app object
   gkyl_vlasov_app *app = gkyl_vlasov_app_new(&vm);
 
   // start, end and initial time-step
-  double tcurr = 0.0, tend = 0.1;
+  double tcurr = 0.0, tend = 2.0;
   double dt = tend-tcurr;
-  int nframe = 2;
+  int nframe = 20;
   struct gkyl_tm_trigger io_trig = { .dt = tend/nframe };
 
   // initialize simulation
