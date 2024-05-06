@@ -1,9 +1,11 @@
 #pragma once
 
 #include <gkyl_array.h>
+#include <gkyl_basis.h>
 #include <gkyl_range.h>
 #include <gkyl_rect_grid.h>
-#include <gkyl_basis.h>
+#include <gkyl_wave_geom.h>
+#include <gkyl_wv_eqn.h>
 
 // Object type
 typedef struct gkyl_dg_calc_pkpm_vars gkyl_dg_calc_pkpm_vars;
@@ -22,21 +24,31 @@ typedef struct gkyl_dg_calc_pkpm_vars gkyl_dg_calc_pkpm_vars;
                      3 : p_perp_source (pressure source for higher Laguerre moments -> bb : grad(u) - div(u) - 2 nu)
  * pkpm_int_vars : integrated PKPM variables (rho, rhoux, rhouy, rhouz, rhoux^2, rhouy^2, rhouz^2, p_parallel, p_perp)
  * pkpm fluid source : Explicit source terms in momentum solve q/m rho (E_i + epsilon_ijk u_j B_k)
+ * pkpm limiter : Limit slopes of fluid variables in PKPM system
  * 
  * Updater also stores the kernels to compute pkpm source terms and pkpm integrated moments.
  * 
- * @param conf_grid Configuration space grid (for getting cell spacing and cell center)
- * @param cbasis Configuration space basis functions
- * @param mem_range Configuration space range that sets the size of the bin_op memory
- *                  for computing primitive moments. Note range is stored so 
- *                  updater loops over consistent range for primitive moments
+ * @param conf_grid   Configuration space grid (for getting cell spacing and cell center)
+ * @param cbasis      Configuration space basis functions
+ * @param mem_range   Configuration space range that sets the size of the bin_op memory
+ *                    for computing primitive moments. Note range is stored so 
+ *                    updater loops over consistent range for primitive moments
+ * @param wv_eqn      Wave equation (stores function pointers for computing waves and limiting solution)
+ * @param geom        Wave geometry object for computing waves in local coordinate system
+ * @param limiter_fac Optional parameter for changing diffusion in sloper limiter 
+ *                    by changing relationship between slopes and cell average differences.
+ *                    By default, this factor is 1/sqrt(3) because cell_avg(f) = f0/sqrt(2^cdim)
+ *                    and a cell slope estimate from two adjacent cells is (for the x variation): 
+ *                    integral(psi_1 [cell_avg(f_{i+1}) - cell_avg(f_{i})]*x) = sqrt(2^cdim)/sqrt(3)*[cell_avg(f_{i+1}) - cell_avg(f_{i})]
+ *                    where psi_1 is the x cell slope basis in our orthonormal expansion psi_1 = sqrt(3)/sqrt(2^cdim)*x
+ *                    This factor can be made smaller (larger) to increase (decrease) the diffusion from the slope limiter
  * @param use_gpu bool to determine if on GPU
  * @return New updater pointer.
  */
 struct gkyl_dg_calc_pkpm_vars* 
 gkyl_dg_calc_pkpm_vars_new(const struct gkyl_rect_grid *conf_grid, 
   const struct gkyl_basis* cbasis, const struct gkyl_range *mem_range, 
-  bool use_gpu);
+  const struct gkyl_wv_eqn *wv_eqn, const struct gkyl_wave_geom *geom, double limiter_fac, bool use_gpu);
 
 /**
  * Create new updater to compute pkpm variables on
@@ -44,7 +56,8 @@ gkyl_dg_calc_pkpm_vars_new(const struct gkyl_rect_grid *conf_grid,
  */
 struct gkyl_dg_calc_pkpm_vars* 
 gkyl_dg_calc_pkpm_vars_cu_dev_new(const struct gkyl_rect_grid *conf_grid, 
-  const struct gkyl_basis* cbasis, const struct gkyl_range *mem_range);
+  const struct gkyl_basis* cbasis, const struct gkyl_range *mem_range, 
+  const struct gkyl_wv_eqn *wv_eqn, const struct gkyl_wave_geom *geom, double limiter_fac);
 
 /**
  * Compute pkpm primitive moments.
@@ -159,6 +172,21 @@ void gkyl_dg_calc_pkpm_vars_io(struct gkyl_dg_calc_pkpm_vars *up,
   struct gkyl_array* fluid_io, struct gkyl_array* pkpm_vars_io);
 
 /**
+ * Limit slopes for fluid variables in the PKPM system
+ *
+ * @param up               Updater for computing pkpm variables 
+ * @param conf_range       Configuration space range
+ * @param prim             Input array of primitive moments [ux, uy, uz, 1/rho*div(p_par b), T_perp/m, m/T_perp]
+ * @param vlasov_pkpm_moms Input array of parallel-kinetic-perpendicular-moment kinetic moments [rho, p_parallel, p_perp]
+ * @param p_ij             Input pressure tensor p_ij = (p_par - p_perp) b_i b_j + p_perp g_ij
+ * @param fluid            Input (and Output after limiting) array of fluid variables [rho ux, rho uy, rho uz]
+ */
+void gkyl_dg_calc_pkpm_vars_limiter(struct gkyl_dg_calc_pkpm_vars *up, 
+  const struct gkyl_range *conf_range, const struct gkyl_array* prim, 
+  const struct gkyl_array* vlasov_pkpm_moms, const struct gkyl_array* p_ij, 
+  struct gkyl_array* fluid);
+
+/**
  * Delete pointer to updater to compute pkpm variables.
  *
  * @param up Updater to delete.
@@ -196,3 +224,7 @@ void gkyl_dg_calc_pkpm_vars_io_cu(struct gkyl_dg_calc_pkpm_vars *up,
   const struct gkyl_array* euler_pkpm, const struct gkyl_array* p_ij, 
   const struct gkyl_array* prim, const struct gkyl_array* pkpm_accel, 
   struct gkyl_array* fluid_io, struct gkyl_array* pkpm_vars_io);
+
+void gkyl_dg_calc_pkpm_vars_limiter_cu(struct gkyl_dg_calc_pkpm_vars *up, 
+  const struct gkyl_range *conf_range, struct gkyl_array* fluid);
+

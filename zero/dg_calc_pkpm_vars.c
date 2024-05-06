@@ -7,16 +7,18 @@
 #include <gkyl_dg_bin_ops_priv.h>
 #include <gkyl_dg_calc_pkpm_vars.h>
 #include <gkyl_dg_calc_pkpm_vars_priv.h>
+#include <gkyl_wave_geom.h>
+#include <gkyl_wv_eqn.h>
 #include <gkyl_util.h>
 
 gkyl_dg_calc_pkpm_vars*
 gkyl_dg_calc_pkpm_vars_new(const struct gkyl_rect_grid *conf_grid, 
-  const struct gkyl_basis* cbasis, const struct gkyl_range *mem_range, 
-  bool use_gpu)
+  const struct gkyl_basis *cbasis, const struct gkyl_range *mem_range, 
+  const struct gkyl_wv_eqn *wv_eqn, const struct gkyl_wave_geom *geom, double limiter_fac, bool use_gpu)
 {
 #ifdef GKYL_HAVE_CUDA
   if(use_gpu) {
-    return gkyl_dg_calc_pkpm_vars_cu_dev_new(conf_grid, cbasis, mem_range);
+    return gkyl_dg_calc_pkpm_vars_cu_dev_new(conf_grid, cbasis, mem_range, wv_eqn, limiter_fac, geom);
   } 
 #endif     
   gkyl_dg_calc_pkpm_vars *up = gkyl_malloc(sizeof(gkyl_dg_calc_pkpm_vars));
@@ -31,6 +33,21 @@ gkyl_dg_calc_pkpm_vars_new(const struct gkyl_rect_grid *conf_grid,
   up->Ncomp = 9;
   up->mem_range = *mem_range;
 
+  up->wv_eqn = gkyl_wv_eqn_acquire(wv_eqn);
+  up->geom = gkyl_wave_geom_acquire(geom);
+  // Limiter factor for relationship between slopes and cell average differences
+  // By default, this factor is 1/sqrt(3) because cell_avg(f) = f0/sqrt(2^cdim)
+  // and a cell slope estimate from two adjacent cells is (for the x variation): 
+  // integral(psi_1 [cell_avg(f_{i+1}) - cell_avg(f_{i})]*x) = sqrt(2^cdim)/sqrt(3)*[cell_avg(f_{i+1}) - cell_avg(f_{i})]
+  // where psi_1 is the x cell slope basis in our orthonormal expansion psi_1 = sqrt(3)/sqrt(2^cdim)*x
+  // This factor can be made smaller (larger) to increase (decrease) the diffusion from the slope limiter
+  if (limiter_fac == 0.0) {
+    up->limiter_fac = 0.5773502691896258;
+  }
+  else {
+    up->limiter_fac = limiter_fac;
+  }
+
   up->pkpm_set = choose_pkpm_set_kern(b_type, cdim, poly_order);
   up->pkpm_copy = choose_pkpm_copy_kern(b_type, cdim, poly_order);
   up->pkpm_pressure = choose_pkpm_pressure_kern(b_type, cdim, poly_order);
@@ -39,8 +56,10 @@ gkyl_dg_calc_pkpm_vars_new(const struct gkyl_rect_grid *conf_grid,
   up->pkpm_int = choose_pkpm_int_kern(b_type, cdim, poly_order);
   up->pkpm_io = choose_pkpm_io_kern(b_type, cdim, poly_order);
   // Fetch the kernels in each direction
-  for (int d=0; d<cdim; ++d) 
+  for (int d=0; d<cdim; ++d) {
     up->pkpm_accel[d] = choose_pkpm_accel_kern(d, b_type, cdim, poly_order);
+    up->pkpm_limiter[d] = choose_pkpm_limiter_kern(d, b_type, cdim, poly_order);
+  }
 
   // There are Ncomp*range->volume linear systems to be solved 
   // 6 components: ux, uy, uz, div(p_par b)/rho, p_perp/rho, rho/p_perp
@@ -274,8 +293,62 @@ void gkyl_dg_calc_pkpm_vars_io(struct gkyl_dg_calc_pkpm_vars *up,
   }
 }
 
+void gkyl_dg_calc_pkpm_vars_limiter(struct gkyl_dg_calc_pkpm_vars *up, 
+  const struct gkyl_range *conf_range, const struct gkyl_array* prim, 
+  const struct gkyl_array* vlasov_pkpm_moms, const struct gkyl_array* p_ij, 
+  struct gkyl_array* fluid)
+{
+#ifdef GKYL_HAVE_CUDA
+  if (gkyl_array_is_cu_dev(fluid)) {
+    return gkyl_dg_calc_pkpm_vars_limiter_cu(up, conf_range, 
+      prim, vlasov_pkpm_moms, p_ij, fluid);
+  }
+#endif
+  int cdim = up->cdim;
+  int idxl[GKYL_MAX_DIM], idxc[GKYL_MAX_DIM], idxr[GKYL_MAX_DIM];
+
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, conf_range);
+  while (gkyl_range_iter_next(&iter)) {
+    gkyl_copy_int_arr(cdim, iter.idx, idxc);
+    long linc = gkyl_range_idx(conf_range, idxc);
+    const struct gkyl_wave_cell_geom *geom = gkyl_wave_geom_get(up->geom, idxc);
+
+    const double *prim_c = gkyl_array_cfetch(prim, linc);
+    const double *vlasov_pkpm_moms_c = gkyl_array_cfetch(vlasov_pkpm_moms, linc);
+    const double *p_ij_c = gkyl_array_cfetch(p_ij, linc);
+
+    double *fluid_c = gkyl_array_fetch(fluid, linc);
+    for (int dir=0; dir<cdim; ++dir) {
+      gkyl_copy_int_arr(cdim, iter.idx, idxl);
+      gkyl_copy_int_arr(cdim, iter.idx, idxr);
+
+      idxl[dir] = idxl[dir]-1; idxr[dir] = idxr[dir]+1;
+
+      long linl = gkyl_range_idx(conf_range, idxl); 
+      long linr = gkyl_range_idx(conf_range, idxr);
+
+      const double *vlasov_pkpm_moms_l = gkyl_array_cfetch(vlasov_pkpm_moms, linl);
+      const double *vlasov_pkpm_moms_r = gkyl_array_cfetch(vlasov_pkpm_moms, linr);
+      const double *p_ij_l = gkyl_array_cfetch(p_ij, linl);
+      const double *p_ij_r = gkyl_array_cfetch(p_ij, linr);
+
+      double *fluid_l = gkyl_array_fetch(fluid, linl);
+      double *fluid_r = gkyl_array_fetch(fluid, linr);
+
+      up->pkpm_limiter[dir](up->limiter_fac, up->wv_eqn, geom, prim_c, 
+        vlasov_pkpm_moms_l, vlasov_pkpm_moms_c, vlasov_pkpm_moms_r, 
+        p_ij_l, p_ij_c, p_ij_r, 
+        fluid_l, fluid_c, fluid_r); 
+    }
+  }
+}
+
 void gkyl_dg_calc_pkpm_vars_release(gkyl_dg_calc_pkpm_vars *up)
 {
+  gkyl_wv_eqn_release(up->wv_eqn);
+  gkyl_wave_geom_release(up->geom);
+
   gkyl_nmat_release(up->As);
   gkyl_nmat_release(up->xs);
   gkyl_nmat_linsolve_lu_release(up->mem);

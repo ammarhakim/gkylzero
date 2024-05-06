@@ -69,10 +69,13 @@ struct gkyl_pkpm_species {
   // diffusion coupling to include for momentum
   struct gkyl_pkpm_fluid_diffusion diffusion;
 
-  void *accel_ctx; // context for applied acceleration function
+  void *app_accel_ctx; // context for applied acceleration function
   // pointer to applied acceleration function
-  void (*accel)(double t, const double *xn, double *aout, void *ctx);
+  void (*app_accel)(double t, const double *xn, double *aout, void *ctx);
   bool app_accel_evolve; // set to true if applied acceleration function is time dependent
+
+  double limiter_fac; // Optional input parameter for adjusting diffusion in slope limiter
+  bool limit_fluid; // Optional input parameter for applying limiters to fluid variables
 
   // boundary conditions
   enum gkyl_species_bc_type bcx[2], bcy[2], bcz[2];
@@ -157,6 +160,8 @@ struct gkyl_pkpm_stat {
   double stage_3_dt_diff[2]; // [min,max] rel-diff for stage-3 failure
     
   double total_tm; // time for simulation (not including ICs)
+  double rk3_tm; // time for SSP RK3 step
+  double pkpm_em_tm; // time for implicit fluid-EM coupling step
   double init_species_tm; // time to initialize all species
   double init_fluid_species_tm; // time to initialize all fluid species
   double init_field_tm; // time to initialize fields

@@ -10,6 +10,8 @@ extern "C" {
 #include <gkyl_array_ops_priv.h>
 #include <gkyl_dg_calc_pkpm_vars.h>
 #include <gkyl_dg_calc_pkpm_vars_priv.h>
+#include <gkyl_wave_geom.h>
+#include <gkyl_wv_eqn.h>
 #include <gkyl_util.h>
 }
 
@@ -341,6 +343,72 @@ gkyl_dg_calc_pkpm_vars_io_cu(struct gkyl_dg_calc_pkpm_vars *up,
     fluid_io->on_dev, pkpm_vars_io->on_dev);
 }
 
+__global__ void
+gkyl_dg_calc_pkpm_vars_limiter_cu_kernel(struct gkyl_dg_calc_pkpm_vars *up, 
+  struct gkyl_range conf_range, const struct gkyl_array* prim, 
+  const struct gkyl_array* vlasov_pkpm_moms, const struct gkyl_array* p_ij, 
+  struct gkyl_array* fluid)
+{
+  int cdim = up->cdim;
+  int idxl[GKYL_MAX_DIM], idxc[GKYL_MAX_DIM], idxr[GKYL_MAX_DIM];
+  for (unsigned long linc1 = threadIdx.x + blockIdx.x*blockDim.x;
+      linc1 < conf_range.volume;
+      linc1 += gridDim.x*blockDim.x)
+  {
+    // inverse index from linc1 to idx
+    // must use gkyl_sub_range_inv_idx so that linc1=0 maps to idx={1,1,...}
+    // since update_range is a subrange
+    gkyl_sub_range_inv_idx(&conf_range, linc1, idxc);
+    const struct gkyl_wave_cell_geom *geom = gkyl_wave_geom_get(up->geom, idxc);
+
+    // convert back to a linear index on the super-range (with ghost cells)
+    // linc will have jumps in it to jump over ghost cells
+    long linc = gkyl_range_idx(&conf_range, idxc);
+
+    const double *prim_c = (const double*) gkyl_array_cfetch(prim, linc);
+    const double *vlasov_pkpm_moms_c = (const double*) gkyl_array_cfetch(vlasov_pkpm_moms, linc);
+    const double *p_ij_c = (const double*) gkyl_array_cfetch(p_ij, linc);
+
+    double *fluid_c = (double*) gkyl_array_fetch(fluid, linc);
+    for (int dir=0; dir<cdim; ++dir) {
+      gkyl_copy_int_arr(cdim, idxc, idxl);
+      gkyl_copy_int_arr(cdim, idxc, idxr);
+
+      idxl[dir] = idxl[dir]-1; idxr[dir] = idxr[dir]+1;
+
+      long linl = gkyl_range_idx(&conf_range, idxl); 
+      long linr = gkyl_range_idx(&conf_range, idxr);
+
+      const double *vlasov_pkpm_moms_l = (const double*) gkyl_array_cfetch(vlasov_pkpm_moms, linl);
+      const double *vlasov_pkpm_moms_r = (const double*) gkyl_array_cfetch(vlasov_pkpm_moms, linr);
+      const double *p_ij_l = (const double*) gkyl_array_cfetch(p_ij, linl);
+      const double *p_ij_r = (const double*) gkyl_array_cfetch(p_ij, linr);
+
+      double *fluid_l = (double*) gkyl_array_fetch(fluid, linl);
+      double *fluid_r = (double*) gkyl_array_fetch(fluid, linr);
+
+      up->pkpm_limiter[dir](up->limiter_fac, up->wv_eqn, geom, prim_c, 
+        vlasov_pkpm_moms_l, vlasov_pkpm_moms_c, vlasov_pkpm_moms_r, 
+        p_ij_l, p_ij_c, p_ij_r, 
+        fluid_l, fluid_c, fluid_r); 
+    }
+  }
+}
+
+// Host-side wrapper for slope limiter of fluid variables
+void
+gkyl_dg_calc_pkpm_vars_limiter_cu(struct gkyl_dg_calc_pkpm_vars *up, 
+  const struct gkyl_range *conf_range, const struct gkyl_array* prim, 
+  const struct gkyl_array* vlasov_pkpm_moms, const struct gkyl_array* p_ij, 
+  struct gkyl_array* fluid)
+{
+  int nblocks = conf_range->nblocks;
+  int nthreads = conf_range->nthreads;
+  gkyl_dg_calc_pkpm_vars_limiter_cu_kernel<<<nblocks, nthreads>>>(up->on_dev, *conf_range, 
+    prim->on_dev, vlasov_pkpm_moms->on_dev, p_ij->on_dev, 
+    fluid->on_dev);
+}
+
 // CUDA kernel to set device pointers to pkpm vars kernel functions
 // Doing function pointer stuff in here avoids troublesome cudaMemcpyFromSymbol
 __global__ static void 
@@ -355,13 +423,16 @@ dg_calc_pkpm_vars_set_cu_dev_ptrs(struct gkyl_dg_calc_pkpm_vars *up, enum gkyl_b
   up->pkpm_int = choose_pkpm_int_kern(b_type, cdim, poly_order);
   up->pkpm_io = choose_pkpm_io_kern(b_type, cdim, poly_order);
   // Fetch the kernels in each direction
-  for (int d=0; d<cdim; ++d) 
+  for (int d=0; d<cdim; ++d) {
     up->pkpm_accel[d] = choose_pkpm_accel_kern(d, b_type, cdim, poly_order);
+    up->pkpm_limiter[d] = choose_pkpm_limiter_kern(d, b_type, cdim, poly_order);
+  }
 }
 
 gkyl_dg_calc_pkpm_vars*
 gkyl_dg_calc_pkpm_vars_cu_dev_new(const struct gkyl_rect_grid *conf_grid, 
-  const struct gkyl_basis* cbasis, const struct gkyl_range *mem_range)
+  const struct gkyl_basis* cbasis, const struct gkyl_range *mem_range, 
+  const struct gkyl_wv_eqn *wv_eqn, const struct gkyl_wave_geom *wg, double limiter_fac)
 {
   struct gkyl_dg_calc_pkpm_vars *up = (struct gkyl_dg_calc_pkpm_vars*) gkyl_malloc(sizeof(gkyl_dg_calc_pkpm_vars));
 
@@ -374,6 +445,27 @@ gkyl_dg_calc_pkpm_vars_cu_dev_new(const struct gkyl_rect_grid *conf_grid,
   up->poly_order = poly_order;
   up->Ncomp = 9;
   up->mem_range = *mem_range;
+
+  // acquire pointer to wave equation object
+  struct gkyl_wv_eqn *eqn = gkyl_wv_eqn_acquire(wv_eqn);
+  up->wv_eqn = eqn->on_dev; // this is so the memcpy below has eqn on_dev
+
+  // acquire pointer to wave equation object
+  struct gkyl_wave_geom *geom = gkyl_wave_geom_acquire(wg);
+  up->geom = geom->on_dev; // this is so the memcpy below has geom on_dev
+
+  // Limiter factor for relationship between slopes and cell average differences
+  // By default, this factor is 1/sqrt(3) because cell_avg(f) = f0/sqrt(2^cdim)
+  // and a cell slope estimate from two adjacent cells is (for the x variation): 
+  // integral(psi_1 [cell_avg(f_{i+1}) - cell_avg(f_{i})]*x) = sqrt(2^cdim)/sqrt(3)*[cell_avg(f_{i+1}) - cell_avg(f_{i})]
+  // where psi_1 is the x cell slope basis in our orthonormal expansion psi_1 = sqrt(3)/sqrt(2^cdim)*x
+  // This factor can be made smaller (larger) to increase (decrease) the diffusion from the slope limiter
+  if (limiter_fac == 0.0) {
+    up->limiter_fac = 0.5773502691896258;
+  }
+  else {
+    up->limiter_fac = limiter_fac;
+  }
 
   // There are Ncomp*range->volume linear systems to be solved 
   // 6 components: ux, uy, uz, div(p_par b)/rho, p_perp/rho, rho/p_perp
@@ -391,6 +483,9 @@ gkyl_dg_calc_pkpm_vars_cu_dev_new(const struct gkyl_rect_grid *conf_grid,
 
   // set parent on_dev pointer
   up->on_dev = up_cu;
+
+  up->wv_eqn = eqn; // updater should store host pointer 
+  up->geom = geom; 
   
   return up;
 }

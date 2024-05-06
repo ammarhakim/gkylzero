@@ -19,6 +19,7 @@
 #include <gkyl_bc_basic.h>
 #include <gkyl_dg_bin_ops.h>
 #include <gkyl_dg_calc_em_vars.h>
+#include <gkyl_dg_calc_pkpm_em_coupling.h>
 #include <gkyl_dg_calc_pkpm_vars.h>
 #include <gkyl_dg_calc_pkpm_dist_vars.h>
 #include <gkyl_dg_euler_pkpm.h>
@@ -103,9 +104,6 @@ struct pkpm_lbo_collisions {
   gkyl_dg_updater_collisions *coll_slvr; // collision solver
 };
 
-// context for use in computing applied acceleration
-struct pkpm_eval_accel_ctx { evalf_t accel_func; void *accel_ctx; };
-
 // species data
 struct pkpm_species {
   struct gkyl_pkpm_species info; // data for species
@@ -136,11 +134,18 @@ struct pkpm_species {
   struct gkyl_array *f_host; // host copy of distribution function for use IO and initialization
   struct gkyl_array *fluid_host; // host copy of momentum for use IO and initialization
 
+  // Duplicate copy of fluid data in case time step fails.
+  // Needed because of implicit source split which modifies solution and 
+  // is always successful, so if a time step fails due to the SSP RK3 
+  // we must restore the old solution before restarting the time step
+  struct gkyl_array *fluid_dup;  
+
   struct gkyl_wv_eqn *equation; // For storing 10 moment equation object for upwinding fluid equations with Roe solve
 
-  enum gkyl_field_id field_id; // type of field equation 
-  struct gkyl_array *qmem; // array for q/m*(E,B) or q/m(phi,A)
-  enum gkyl_model_id model_id; // type of Vlasov equation (e.g., Vlasov vs. SR)
+  struct gkyl_array *qmem; // array for q/m*(E,B) for use in *explicit* update
+                           // Note: this array is *only* used if the PKPM self-consistent EM fields are static
+                           // If PKPM self-consistent EM fields are dynamics we utilize an implicit source update
+                           // for the momentum equations and Ampere's Law
 
   struct pkpm_species_moment pkpm_moms; // for computing pkpm moments needed in update
   struct pkpm_species_moment pkpm_moms_diag; // for computing pkpm moments diagnostics
@@ -152,8 +157,6 @@ struct pkpm_species {
   struct gkyl_array *F_k_m_1; // k-1 distribution function (first NP components are F_1)
 
   // PKPM variables
-  struct gkyl_array *m1i_pkpm; // "M1i" in the PKPM model for use in current coupling
-                               // Used to copy over fluid variables from pkpm fluid_species, which solves for [rho ux, rho uy, rho uz]
   struct gkyl_array *pkpm_div_ppar; // div(p_parallel b_hat) used for computing self-consistent total pressure force 
   struct gkyl_array *pkpm_prim; // [ux, uy, uz, 1/rho*div(p_par b), T_perp/m, m/T_perp]
   struct gkyl_array *pkpm_prim_surf; // Surface primitive variables. Ordered as:
@@ -175,6 +178,8 @@ struct pkpm_species {
                                                      // over extended range (used when BCs are not absorbing to minimize apply BCs calls)
   struct gkyl_dg_calc_pkpm_dist_vars *calc_pkpm_dist_vars; // Updater to compute PKPM distribution function variables 
                                                            // div(p_parallel b_hat) and distribution function sources
+
+  bool limit_fluid; // boolean for whether or not we are limiting fluid variables
 
   // Pointers for io for PKPM fluid variables, handled by kinetic species because of fluid-kinetic coupling.
   // For PKPM we construct the 10 moment conserved variables for ease of analysis 
@@ -209,11 +214,11 @@ struct pkpm_species {
   bool bc_is_absorb; // boolean for absorbing BCs since 1/rho is undefined in absorbing BCs
                      // If BCs are *not* absorbing, primitive variables can be calculated on *extended* range 
 
-  bool has_accel; // flag to indicate there is applied acceleration
-  struct gkyl_array *accel; // applied acceleration
-  struct gkyl_array *accel_host; // host copy for use in IO and projecting
-  gkyl_proj_on_basis *accel_proj; // projector for acceleration
-  struct pkpm_eval_accel_ctx accel_ctx; // context for applied acceleration
+  bool has_app_accel; // flag to indicate there is applied acceleration
+  bool app_accel_evolve; // flag to indicate applied acceleration is time-dependent
+  struct gkyl_array *app_accel; // applied acceleration
+  struct gkyl_array *app_accel_host; // host copy for use in IO and projecting
+  gkyl_proj_on_basis *app_accel_proj; // projector for acceleration
 
   enum gkyl_collision_id collision_id; // type of collisions
   struct pkpm_lbo_collisions lbo; // collisions object
@@ -227,12 +232,6 @@ struct pkpm_species {
   double *omegaCfl_ptr_fluid;
 };
 
-// context for use in computing external electromagnetic fields
-struct pkpm_eval_ext_em_ctx { evalf_t ext_em_func; void *ext_em_ctx; };
-
-// context for use in computing applied current
-struct pkpm_eval_app_current_ctx { evalf_t app_current_func; void *app_current_ctx; };
-
 // field data
 struct pkpm_field {
   struct gkyl_pkpm_field info; // data for field
@@ -244,20 +243,24 @@ struct pkpm_field {
 
   struct gkyl_array *em_host;  // host copy for use IO and initialization
 
+  // Duplicate copy of EM data in case time step fails.
+  // Needed because of implicit source split which modifies solution and 
+  // is always successful, so if a time step fails due to the SSP RK3 
+  // we must restore the old solution before restarting the time step
+  struct gkyl_array *em_dup;  
+
   bool has_ext_em; // flag to indicate there is external electromagnetic field
   bool ext_em_evolve; // flag to indicate external electromagnetic field is time dependent
   struct gkyl_array *ext_em; // external electromagnetic field
   struct gkyl_array *ext_em_host; // host copy for use in IO and projecting
   struct gkyl_array *tot_em; // total electromagnetic field
   gkyl_proj_on_basis *ext_em_proj; // projector for external electromagnetic field 
-  struct pkpm_eval_ext_em_ctx ext_em_ctx; // context for external electromagnetic field 
 
   bool has_app_current; // flag to indicate there is an applied current 
   bool app_current_evolve; // flag to indicate applied current is time dependent
   struct gkyl_array *app_current; // applied current
   struct gkyl_array *app_current_host; // host copy for use in IO and projecting
   gkyl_proj_on_basis *app_current_proj; // projector for applied current 
-  struct pkpm_eval_app_current_ctx app_current_ctx; // context for applied current
 
   struct gkyl_array *cell_avg_magB2; // Integer array for whether |B|^2 *only* uses cell averages for weak division
                                      // Determined when constructing the matrix if |B|^2 < 0.0 at control points
@@ -285,6 +288,12 @@ struct pkpm_field {
   struct gkyl_bc_basic *bc_up[3];
 
   double* omegaCfl_ptr;
+};
+
+// fluid-EM coupling data in PKPM system
+struct pkpm_fluid_em_coupling {
+  double qbym[GKYL_MAX_SPECIES]; // charge/mass ratio for each species
+  struct gkyl_dg_calc_pkpm_em_coupling* slvr; // fluid-EM coupling solver
 };
 
 // PKPM object: used as opaque pointer in user code
@@ -334,9 +343,24 @@ struct gkyl_pkpm_app {
   // species data
   int num_species;
   struct pkpm_species *species; // data for each species
+
+  struct pkpm_fluid_em_coupling *pkpm_em; // fluid-EM coupling data
+
+  // pointer to function that takes a single-step of simulation
+  struct gkyl_update_status (*update_func)(gkyl_pkpm_app *app, double dt0);
   
   struct gkyl_pkpm_stat stat; // statistics
 };
+
+// Take a single forward Euler step of the PKPM system with the suggested time-step dt. 
+void pkpm_forward_euler(gkyl_pkpm_app* app, double tcurr, double dt,
+  const struct gkyl_array *fin[], const struct gkyl_array *fluidin[], const struct gkyl_array *emin,
+  struct gkyl_array *fout[], struct gkyl_array *fluidout[], struct gkyl_array *emout, 
+  struct gkyl_update_status *st);
+
+// Take a single time-step using a Strang split implicit fluid-EM coupling + SSP RK3
+struct gkyl_update_status pkpm_update_strang_split(gkyl_pkpm_app *app,
+  double dt0);
 
 /** gkyl_pkpm_app private API */
 
@@ -493,7 +517,7 @@ void pkpm_species_apply_ic(gkyl_pkpm_app *app, struct pkpm_species *species, dou
  * @param species Species object
  * @param tm Time for use in acceleration
  */
-void pkpm_species_calc_accel(gkyl_pkpm_app *app, struct pkpm_species *species, double tm);
+void pkpm_species_calc_app_accel(gkyl_pkpm_app *app, struct pkpm_species *species, double tm);
 
 /**
  * Compute parallel-kinetic-perpendicular-moment (pkpm) model variables
@@ -520,6 +544,17 @@ void pkpm_species_calc_pkpm_vars(gkyl_pkpm_app *app, struct pkpm_species *specie
 void pkpm_species_calc_pkpm_update_vars(gkyl_pkpm_app *app, struct pkpm_species *species, const struct gkyl_array *fin);
 
 /**
+ * Limit slopes of solution of fluid variables
+ *
+ * @param app PKPM app object
+ * @param species Species object
+ * @param fin Input distribution function 
+ * @param fluid Input (and Output after limiting) array fluid species
+ */
+void pkpm_fluid_species_limiter(gkyl_pkpm_app *app, struct pkpm_species *species,
+  struct gkyl_array *fin, struct gkyl_array *fluid);
+
+/**
  * Compute RHS from species distribution function
  *
  * @param app PKPM app object
@@ -535,15 +570,24 @@ double pkpm_species_rhs(gkyl_pkpm_app *app, struct pkpm_species *species,
   struct gkyl_array *rhs_f, struct gkyl_array *rhs_fluid);
 
 /**
- * Apply BCs to species distribution functions and momentum
+ * Apply BCs to species distribution functions 
  *
  * @param app PKPM app object
  * @param species Pointer to species
  * @param f Distribution function to apply BCs to
- * @param fluid momentum to apply BCs to
  */
 void pkpm_species_apply_bc(gkyl_pkpm_app *app, const struct pkpm_species *species, 
-  struct gkyl_array *f, struct gkyl_array *fluid);
+  struct gkyl_array *f);
+
+/**
+ * Apply BCs to species momentum
+ *
+ * @param app PKPM app object
+ * @param species Pointer to species
+ * @param fluid momentum to apply BCs to
+ */
+void pkpm_fluid_species_apply_bc(gkyl_pkpm_app *app, const struct pkpm_species *species, 
+  struct gkyl_array *fluid);
 
 /**
  * Compute L2 norm (f^2) of the distribution function diagnostic
@@ -688,3 +732,31 @@ void pkpm_field_calc_energy(gkyl_pkpm_app *app, double tm, const struct pkpm_fie
  * @param f Field object to release
  */
 void pkpm_field_release(const gkyl_pkpm_app* app, struct pkpm_field *f);
+
+/**
+ * Create new fluid-EM coupling updater for the PKPM system
+ *
+ * @param app PKPM app object
+ * @return Newly created fluid-EM coupling updater
+ */
+struct pkpm_fluid_em_coupling* pkpm_fluid_em_coupling_init(struct gkyl_pkpm_app *app);
+
+/**
+ * Compute implicit update of fluid-EM coupling for the PKPM system
+ *
+ * @param app PKPM app object
+ * @param pkpm_em fluid-EM coupling updater
+ * @param tcurr Current time
+ * @param dt Time step size
+ */
+void pkpm_fluid_em_coupling_update(struct gkyl_pkpm_app *app, 
+  struct pkpm_fluid_em_coupling *pkpm_em, double tcurr, double dt);
+
+/**
+ * Release resources allocated by fluid-EM coupling object for the PKPM system
+ *
+ * @param app PKPM app object
+ * @param pkpm_em fluid-EM coupling updater to release
+ */
+void pkpm_fluid_em_coupling_release(struct gkyl_pkpm_app *app, 
+  struct pkpm_fluid_em_coupling *pkpm_em);

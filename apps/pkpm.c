@@ -192,6 +192,11 @@ gkyl_pkpm_app_new(struct gkyl_pkpm *pkpm)
       pkpm_species_lbo_cross_init(app, &app->species[i], &app->species[i].lbo);
     }
   }
+
+  // Set the appropriate update function for taking a single time step
+  // We perform a Strang split to implicitly treat the momentum-EM field coupling. 
+  app->pkpm_em = pkpm_fluid_em_coupling_init(app);
+  app->update_func = pkpm_update_strang_split;
   
   // initialize stat object
   app->stat = (struct gkyl_pkpm_stat) {
@@ -258,7 +263,8 @@ gkyl_pkpm_app_apply_ic_species(gkyl_pkpm_app* app, int sidx, double t0)
   pkpm_species_apply_ic(app, &app->species[sidx], t0);
   app->stat.init_species_tm += gkyl_time_diff_now_sec(wtm);
 
-  pkpm_species_apply_bc(app, &app->species[sidx], app->species[sidx].f, app->species[sidx].fluid);
+  pkpm_species_apply_bc(app, &app->species[sidx], app->species[sidx].f);
+  pkpm_fluid_species_apply_bc(app, &app->species[sidx], app->species[sidx].fluid);
 }
 
 void
@@ -493,261 +499,17 @@ gkyl_pkpm_app_write_field_energy(gkyl_pkpm_app* app)
   gkyl_dynvec_clear(app->field->integ_energy);
 }
 
-// Take a forward Euler step with the suggested time-step dt. This may
-// not be the actual time-step taken. However, the function will never
-// take a time-step larger than dt even if it is allowed by
-// stability. The actual time-step and dt_suggested are returned in
-// the status object.
-static void
-forward_euler(gkyl_pkpm_app* app, double tcurr, double dt,
-  const struct gkyl_array *fin[], const struct gkyl_array *fluidin[], const struct gkyl_array *emin,
-  struct gkyl_array *fout[], struct gkyl_array *fluidout[], struct gkyl_array *emout, struct gkyl_update_status *st)
-{
-  app->stat.nfeuler += 1;
-
-  double dtmin = DBL_MAX;
-
-  // Compute external EM field or applied currents if present.
-  // Note: external EM field and  applied currents use proj_on_basis 
-  // so does copy to GPU every call if app->use_gpu = true.
-  if (app->has_field) {
-    if (app->field->ext_em_evolve)
-      pkpm_field_calc_ext_em(app, app->field, tcurr);
-    if (app->field->app_current_evolve)
-      pkpm_field_calc_app_current(app, app->field, tcurr); 
-    // Also compute magnetic field unit vector and tensor,
-    // div(b) and div(b) at quadrature points for update
-    pkpm_field_calc_bvar(app, app->field, emin);  
-  }
-
-  // Two separate loops over number of species to compute needed auxiliary quantities.
-  for (int i=0; i<app->num_species; ++i) {
-    // Compute parallel-kinetic-perpendicular moment (pkpm) variables.
-    // These are the coupling moments [rho, p_par, p_perp], the self-consistent
-    // pressure force (div(p_par b_hat)), and the primitive variables
-    pkpm_species_calc_pkpm_vars(app, &app->species[i], fin[i], fluidin[i]);
-    // compute necessary moments and boundary corrections for collisions
-    if (app->species[i].collision_id == GKYL_LBO_COLLISIONS) {
-      pkpm_species_lbo_moms(app, &app->species[i], &app->species[i].lbo, fin[i]);
-    }
-  }
-  for (int i=0; i<app->num_species; ++i) {
-    // compute necessary moments for cross-species collisions
-    // needs to be done after self-collisions moments, so separate loop over species
-    if (app->species[i].collision_id == GKYL_LBO_COLLISIONS
-      && app->species[i].lbo.num_cross_collisions) {
-      pkpm_species_lbo_cross_moms(app, &app->species[i], &app->species[i].lbo, fin[i]);
-    }
-    // Finish computing parallel-kinetic-perpendicular moment (pkpm) variables.
-    // These are the update variables including the acceleration variables in the kinetic
-    // equation and the source distribution functions for Laguerre couplings.
-    // Needs to be done after all collisional moment computations for collisional sources
-    // in Laguerre couplings.
-    pkpm_species_calc_pkpm_update_vars(app, &app->species[i], fin[i]); 
-  }
-
-  // compute RHS of pkpm equations
-  for (int i=0; i<app->num_species; ++i) {
-    double dt1 = pkpm_species_rhs(app, &app->species[i], fin[i], fluidin[i], emin, fout[i], fluidout[i]);
-    dtmin = fmin(dtmin, dt1);
-  }
-
-  // compute RHS of Maxwell equations
-  if (app->has_field) {
-    double dt1 = pkpm_field_rhs(app, app->field, emin, emout);
-    dtmin = fmin(dtmin, dt1);
-  }
-
-  double dt_max_rel_diff = 0.01;
-  // check if dtmin is slightly smaller than dt. Use dt if it is
-  // (avoids retaking steps if dt changes are very small).
-  double dt_rel_diff = (dt-dtmin)/dt;
-  if (dt_rel_diff > 0 && dt_rel_diff < dt_max_rel_diff)
-    dtmin = dt;
-
-  // compute minimum time-step across all processors
-  double dtmin_local = dtmin, dtmin_global;
-  gkyl_comm_all_reduce(app->comm, GKYL_DOUBLE, GKYL_MIN, 1, &dtmin_local, &dtmin_global);
-  dtmin = dtmin_global;
-  
-  // don't take a time-step larger that input dt
-  double dta = st->dt_actual = dt < dtmin ? dt : dtmin;
-  st->dt_suggested = dtmin;
-
-  // complete update of distribution function
-  for (int i=0; i<app->num_species; ++i) {
-    gkyl_array_accumulate(gkyl_array_scale(fout[i], dta), 1.0, fin[i]);
-    gkyl_array_accumulate(gkyl_array_scale(fluidout[i], dta), 1.0, fluidin[i]);
-    pkpm_species_apply_bc(app, &app->species[i], fout[i], fluidout[i]);
-  }
-
-  if (app->has_field) {
-    struct timespec wst = gkyl_wall_clock();
-
-    // (can't accumulate current when field is static)
-    if (!app->field->info.is_static) {
-      // accumulate current contribution from kinetic species to electric field terms
-      pkpm_field_accumulate_current(app, fluidin, emout);
-      app->stat.current_tm += gkyl_time_diff_now_sec(wst);
-    }
-
-    // complete update of field (even when field is static, it is
-    // safest to do this accumulate as it ensure emout = emin)
-    gkyl_array_accumulate(gkyl_array_scale(emout, dta), 1.0, emin);
-
-    pkpm_field_apply_bc(app, app->field, emout);
-  }
-}
-
-// Take time-step using the RK3 method. Also sets the status object
-// which has the actual and suggested dts used. These can be different
-// from the actual time-step.
-static struct gkyl_update_status
-rk3(gkyl_pkpm_app* app, double dt0)
-{
-  const struct gkyl_array *fin[app->num_species];
-  struct gkyl_array *fout[app->num_species];
-  const struct gkyl_array *fluidin[app->num_species];
-  struct gkyl_array *fluidout[app->num_species];
-  struct gkyl_update_status st = { .success = true };
-
-  // time-stepper state
-  enum { RK_STAGE_1, RK_STAGE_2, RK_STAGE_3, RK_COMPLETE } state = RK_STAGE_1;
-
-  double tcurr = app->tcurr, dt = dt0;
-  while (state != RK_COMPLETE) {
-    switch (state) {
-      case RK_STAGE_1:
-        for (int i=0; i<app->num_species; ++i) {
-          fin[i] = app->species[i].f;
-          fluidin[i] = app->species[i].fluid;
-          fout[i] = app->species[i].f1;
-          fluidout[i] = app->species[i].fluid1;
-        }
-        if (app->has_field) {
-          // Limit EM field solution
-          pkpm_field_limiter(app, app->field, app->field->em);
-        }
-        forward_euler(app, tcurr, dt, fin, fluidin, app->has_field ? app->field->em : 0,
-          fout, fluidout, app->has_field ? app->field->em1 : 0,
-          &st
-        );
-        dt = st.dt_actual;
-        state = RK_STAGE_2;
-        break;
-
-      case RK_STAGE_2:
-        for (int i=0; i<app->num_species; ++i) {
-          fin[i] = app->species[i].f1;
-          fluidin[i] = app->species[i].fluid1;
-          fout[i] = app->species[i].fnew;
-          fluidout[i] = app->species[i].fluidnew;
-        }
-        if (app->has_field) {
-          // Limit EM field solution
-          pkpm_field_limiter(app, app->field, app->field->em1);
-        }
-        forward_euler(app, tcurr+dt, dt, fin, fluidin, app->has_field ? app->field->em1 : 0,
-          fout, fluidout, app->has_field ? app->field->emnew : 0,
-          &st
-        );
-        if (st.dt_actual < dt) {
-
-          // collect stats
-          double dt_rel_diff = (dt-st.dt_actual)/st.dt_actual;
-          app->stat.stage_2_dt_diff[0] = fmin(app->stat.stage_2_dt_diff[0],
-            dt_rel_diff);
-          app->stat.stage_2_dt_diff[1] = fmax(app->stat.stage_2_dt_diff[1],
-            dt_rel_diff);
-          app->stat.nstage_2_fail += 1;
-
-          dt = st.dt_actual;
-          state = RK_STAGE_1; // restart from stage 1
-
-        } 
-        else {
-          for (int i=0; i<app->num_species; ++i)
-            array_combine(app->species[i].f1,
-              3.0/4.0, app->species[i].f, 1.0/4.0, app->species[i].fnew, &app->species[i].local_ext);
-          for (int i=0; i<app->num_species; ++i)
-            array_combine(app->species[i].fluid1,
-              3.0/4.0, app->species[i].fluid, 1.0/4.0, app->species[i].fluidnew, &app->local_ext);
-          if (app->has_field)
-            array_combine(app->field->em1,
-              3.0/4.0, app->field->em, 1.0/4.0, app->field->emnew, &app->local_ext);
-
-          state = RK_STAGE_3;
-        }
-        break;
-
-      case RK_STAGE_3:
-        for (int i=0; i<app->num_species; ++i) {
-          fin[i] = app->species[i].f1;
-          fluidin[i] = app->species[i].fluid1;
-          fout[i] = app->species[i].fnew;
-          fluidout[i] = app->species[i].fluidnew;
-        }
-        if (app->has_field) {
-          // Limit EM field solution
-          pkpm_field_limiter(app, app->field, app->field->em1);
-        }
-        forward_euler(app, tcurr+dt/2, dt, fin, fluidin, app->has_field ? app->field->em1 : 0,
-          fout, fluidout, app->has_field ? app->field->emnew : 0,
-          &st
-        );
-        if (st.dt_actual < dt) {
-          // collect stats
-          double dt_rel_diff = (dt-st.dt_actual)/st.dt_actual;
-          app->stat.stage_3_dt_diff[0] = fmin(app->stat.stage_3_dt_diff[0],
-            dt_rel_diff);
-          app->stat.stage_3_dt_diff[1] = fmax(app->stat.stage_3_dt_diff[1],
-            dt_rel_diff);
-          app->stat.nstage_3_fail += 1;
-
-          dt = st.dt_actual;
-          state = RK_STAGE_1; // restart from stage 1
-
-          app->stat.nstage_2_fail += 1;
-        }
-        else {
-          for (int i=0; i<app->num_species; ++i) {
-            array_combine(app->species[i].f1,
-              1.0/3.0, app->species[i].f, 2.0/3.0, app->species[i].fnew, &app->species[i].local_ext);
-            gkyl_array_copy_range(app->species[i].f, app->species[i].f1, &app->species[i].local_ext);
-          }
-          for (int i=0; i<app->num_species; ++i) {
-            array_combine(app->species[i].fluid1,
-              1.0/3.0, app->species[i].fluid, 2.0/3.0, app->species[i].fluidnew, &app->local_ext);
-            gkyl_array_copy_range(app->species[i].fluid, app->species[i].fluid1, &app->local_ext);
-          }
-          if (app->has_field) {
-            array_combine(app->field->em1,
-              1.0/3.0, app->field->em, 2.0/3.0, app->field->emnew, &app->local_ext);
-            gkyl_array_copy_range(app->field->em, app->field->em1, &app->local_ext);
-          }
-
-          state = RK_COMPLETE;
-        }
-        break;
-
-      case RK_COMPLETE: // can't happen: suppresses warning
-        break;
-    }
-  }
-
-  return st;
-}
-
 struct gkyl_update_status
 gkyl_pkpm_update(gkyl_pkpm_app* app, double dt)
 {
   app->stat.nup += 1;
-  struct timespec wst = gkyl_wall_clock();
 
-  struct gkyl_update_status status = rk3(app, dt);
+  struct timespec wst = gkyl_wall_clock();
+  struct gkyl_update_status status = app->update_func(app, dt);
   app->tcurr += status.dt_actual;
 
   app->stat.total_tm += gkyl_time_diff_now_sec(wst);
+
   // Check for any CUDA errors during time step
   if (app->use_gpu)
     checkCuda(cudaGetLastError());
@@ -802,7 +564,7 @@ comm_reduce_app_stat(const gkyl_pkpm_app* app,
   global->nstage_3_fail = l_red_global[NSTAGE_3_FAIL];  
 
   enum {
-    TOTAL_TM, INIT_SPECIES_TM, INIT_FLUID_SPECIES_TM, INIT_FIELD_TM,
+    TOTAL_TM, RK3_TM, PKPM_EM_TM, INIT_SPECIES_TM, INIT_FLUID_SPECIES_TM, INIT_FIELD_TM,
     SPECIES_RHS_TM, FLUID_SPECIES_RHS_TM, SPECIES_COLL_MOM_TM,
     SPECIES_COL_TM, SPECIES_PKPM_VARS_TM, FIELD_RHS_TM, FIELD_EM_VARS_TM, CURRENT_TM,
     SPECIES_OMEGA_CFL_TM, FIELD_OMEGA_CFL_TM, DIAG_TM, IO_TM,
@@ -812,6 +574,8 @@ comm_reduce_app_stat(const gkyl_pkpm_app* app,
 
   double d_red[D_END] = {
     [TOTAL_TM] = local->total_tm,
+    [RK3_TM] = local->rk3_tm,
+    [PKPM_EM_TM] = local->pkpm_em_tm,
     [INIT_SPECIES_TM] = local->init_species_tm,
     [INIT_FLUID_SPECIES_TM] = local->init_fluid_species_tm,
     [INIT_FIELD_TM] = local->field_rhs_tm,
@@ -836,6 +600,8 @@ comm_reduce_app_stat(const gkyl_pkpm_app* app,
   gkyl_comm_all_reduce(app->comm, GKYL_DOUBLE, GKYL_MAX, D_END, d_red, d_red_global);
   
   global->total_tm = d_red_global[TOTAL_TM];
+  global->rk3_tm = d_red_global[RK3_TM];
+  global->pkpm_em_tm = d_red_global[PKPM_EM_TM];
   global->init_species_tm = d_red_global[INIT_SPECIES_TM];
   global->init_fluid_species_tm = d_red_global[INIT_FLUID_SPECIES_TM];
   global->field_rhs_tm = d_red_global[INIT_FIELD_TM];
@@ -917,9 +683,12 @@ gkyl_pkpm_app_stat_write(gkyl_pkpm_app* app)
     stat.stage_3_dt_diff[0], stat.stage_3_dt_diff[1]);
 
   gkyl_pkpm_app_cout(app, fp, " total_tm : %lg,\n", stat.total_tm);
+  gkyl_pkpm_app_cout(app, fp, " rk3_tm : %lg,\n", stat.rk3_tm);
   gkyl_pkpm_app_cout(app, fp, " init_species_tm : %lg,\n", stat.init_species_tm);
-  if (app->has_field)
+  if (app->has_field) {
+    gkyl_pkpm_app_cout(app, fp, " fluid_em_coupling_tm : %lg,\n", stat.pkpm_em_tm);
     gkyl_pkpm_app_cout(app, fp, " init_field_tm : %lg,\n", stat.init_field_tm);
+  }
   
   gkyl_pkpm_app_cout(app, fp, " species_rhs_tm : %lg,\n", stat.species_rhs_tm);
 
@@ -990,12 +759,16 @@ gkyl_pkpm_app_cout(const gkyl_pkpm_app* app, FILE *fp, const char *fmt, ...)
 void
 gkyl_pkpm_app_release(gkyl_pkpm_app* app)
 {
-  for (int i=0; i<app->num_species; ++i)
+  for (int i=0; i<app->num_species; ++i) {
     pkpm_species_release(app, &app->species[i]);
-  if (app->num_species > 0)
+  }
+  if (app->num_species > 0) {
     gkyl_free(app->species);
-  if (app->has_field)
+  }
+  if (app->has_field) {
     pkpm_field_release(app, app->field);
+  }
+  pkpm_fluid_em_coupling_release(app, app->pkpm_em);
 
   gkyl_comm_release(app->comm);
 
