@@ -122,11 +122,11 @@ create_ctx(void)
   double floor_src = 0.01; // Minimum source intensity.
 
   // Simulation parameters.
-  int Nx = 18; // Cell count (configuration space: x-direction).
-  int Ny = 18; // Cell count (configuration space: y-direction).
-  int Nz = 10; // Cell count (configuration space: z-direction).
-  int Nvpar = 10; // Cell count (velocity space: parallel velocity direction).
-  int Nmu = 5; // Cell count (velocity space: magnetic moment direction).
+  int Nx = 10; // Cell count (configuration space: x-direction).
+  int Ny = 10; // Cell count (configuration space: y-direction).
+  int Nz = 8; // Cell count (configuration space: z-direction).
+  int Nvpar = 8; // Cell count (velocity space: parallel velocity direction).
+  int Nmu = 4; // Cell count (velocity space: magnetic moment direction).
   double Lx = 100.0 * rho_s; // Domain size (configuration space: x-direction).
   double Ly = 100.0 * rho_s; // Domain size (configuration space: y-direction).
   double Lz = 36.0 * 40.0 * rho_s; // Domain size (configuration space: z-direction).
@@ -136,7 +136,7 @@ create_ctx(void)
   double vpar_max_ion = 4.0 * vti; // Domain boundary (ion velocity space: parallel velocity direction).
   double mu_max_ion = (3.0 / 2.0) * 0.5 * mass_ion * pow(4.0 * vti,2) / (2.0 * B0); // Domain boundary (ion velocity space: magnetic moment direction).
 
-  double t_end = 5.0e-7; // Final simulation time.
+  double t_end = 1.0e-6; // Final simulation time.
   int num_frames = 1; // Number of output frames.
   int int_diag_calc_num = num_frames*100;
   double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.
@@ -667,7 +667,6 @@ main(int argc, char **argv)
       .comm = comm
     }
   };
-
 
   // Create app object.
   gkyl_gyrokinetic_app *app = gkyl_gyrokinetic_app_new(&app_inp);
