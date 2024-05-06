@@ -79,7 +79,7 @@ create_ctx(void)
   double vtb = 1.0; // Bump Maxwellian thermal velocity.
 
   // Derived physical quantities (using normalized code units).
-  double ub = 4.0 * sqrt(((3.0 * vt / 2.0) * (3.0 * vt / 2.0)) / 3.0); // Bump location (in velocity space).
+  double ub = 4.0 * sqrt((pow(3.0 * vt / 2.0, 2.0)) / 3.0); // Bump location (in velocity space).
 
   // Simulation parameters.
   int Nz = 2; // Cell count (configuration space: z-direction).
@@ -87,9 +87,9 @@ create_ctx(void)
   int Nmu = 16; // Cell count (velocity space: magnetic moment direction).
   double Lz = 1.0; // Domain size (configuration space: z-direction).
   double vpar_max = 8.0 * vt; // Domain boundary (velocity space: parallel velocity direction).
-  double mu_max = 12.0 * (vt * vt) / 2.0 / B0; // Domain boundary (velocity space: magnetic moment direction).
+  double mu_max = 0.5 * pow(3.5*vt,2.0) / B0; // Domain boundary (velocity space: magnetic moment direction).
 
-  double t_end = 100.0; // Final simulation time.
+  double t_end = 0.5/nu; // Final simulation time.
   int num_frames = 1; // Number of output frames.
   int int_diag_calc_num = num_frames*100;
   double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.
@@ -438,8 +438,6 @@ main(int argc, char **argv)
       .comm = comm
     }
   };
-
-
 
   // Create app object.
   gkyl_gyrokinetic_app *app = gkyl_gyrokinetic_app_new(&app_inp);

@@ -135,7 +135,7 @@ create_ctx(void)
   double Lmu_ion = mass_ion * pow(4.*vti,2)/(2.*B0); // Domain size (ion velocity space: magnetic moment direction).
 
   double t_end = 1.0/nu_elc; // Final simulation time.
-  int num_frames = 20; // Number of output frames.
+  int num_frames = 1; // Number of output frames.
   
   struct sheath_ctx ctx = {
     .pi = pi,
@@ -479,7 +479,6 @@ main(int argc, char **argv)
     .electron_mass = ctx.mass_elc,
     .electron_charge = ctx.charge_elc,
     .electron_temp = ctx.Te,
-    .bmag_fac = ctx.B0, 
     .fem_parbc = GKYL_FEM_PARPROJ_NONE, 
   };
 
