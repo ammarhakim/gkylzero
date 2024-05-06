@@ -446,6 +446,43 @@ blackhole_spacetime_ricci_scalar(const struct gkyl_gr_spacetime* spacetime, cons
   const double dt, const double dx, const double dy, const double dz, double* spacetime_ricci_scalar);
 
 /**
+* Compute the rank-4 (spatial) Weyl curvature tensor at a given point in a black hole spacetime.
+*
+* @param spacetime Base spacetime object.
+* @param t Time coordinate.
+* @param x Spatial coordinate (x-direction).
+* @param y Spatial coordinate (y-direction).
+* @param z Spatial coordinate (z-direction).
+* @param dx Spatial coordinate spacing (x-direction).
+* @param dy Spatial coordinate spacing (y-direction).
+* @param dz Spatial coordinate spacing (z-direction).
+* @param spatial_weyl_tensor Rank-4 spatial Weyl curvature tensor (output).
+*/
+GKYL_CU_D
+static void
+blackhole_spatial_weyl_tensor(const struct gkyl_gr_spacetime* spacetime, const double t, const double x, const double y, const double z,
+  const double dx, const double dy, const double dz, double***** spatial_weyl_tensor);
+
+/**
+* Compute the rank-4 (spacetime) Weyl curvature tensor at a given point in a black hole spacetime.
+*
+* @param spacetime Base spacetime object.
+* @param t Time coordinate.
+* @param x Spatial coordinate (x-direction).
+* @param y Spatial coordinate (y-direction).
+* @param z Spatial coordinate (z-direction).
+* @param dt Time coordinate spacing.
+* @param dx Spatial coordinate spacing (x-direction).
+* @param dy Spatial coordinate spacing (y-direction).
+* @param dz Spatial coordinate spacing (z-direction).
+* @param spacetime_weyl_tensor Rank-4 spacetime Weyl curvature tensor (output).
+*/
+GKYL_CU_D
+static void
+blackhole_spacetime_weyl_tensor(const struct gkyl_gr_spacetime* spacetime, const double t, const double x, const double y, const double z,
+  const double dt, const double dx, const double dy, const double dz, double***** spacetime_weyl_tensor);
+
+/**
 * Compute the rank-2 extrinsic curvature tensor at a given point in a black hole spacetime.
 *
 * @param spacetime Base spacetime object.

@@ -87,6 +87,14 @@ typedef void (*gr_spatial_ricci_scalar_t)(const struct gkyl_gr_spacetime* spacet
 typedef void (*gr_spacetime_ricci_scalar_t)(const struct gkyl_gr_spacetime* spacetime, const double t, const double x, const double y,
   const double z, const double dt, const double dx, const double dy, const double dz, double* spacetime_ricci_scalar);
 
+// Function pointer to compute the rank-4 (spatial) Weyl curvature tensor at a given point in spacetime.
+typedef void (*gr_spatial_weyl_tensor_t)(const struct gkyl_gr_spacetime* spacetime, const double t, const double x, const double y,
+  const double z, const double dx, const double dy, const double dz, double***** spatial_weyl_tensor);
+
+// Function pointer to compute the rank-4 (spacetime) Weyl curvature tensor at a given point in spacetime.
+typedef void (*gr_spacetime_weyl_tensor_t)(const struct gkyl_gr_spacetime* spacetime, const double t, const double x, const double y,
+  const double z, const double dt, const double dx, const double dy, const double dz, double***** spacetime_weyl_tensor);
+
 // Function pointer to compute the rank-2 extrinsic curvature tensor at a given point in spacetime.
 typedef void (*gr_extrinsic_curvature_tensor_t)(const struct gkyl_gr_spacetime* spacetime, const double t, const double x, const double y,
   const double z, const double dx, const double dy, const double dz, double*** extrinsic_curvature_tensor);
@@ -125,6 +133,9 @@ struct gkyl_gr_spacetime {
 
   gr_spatial_ricci_scalar_t spatial_ricci_scalar_func; // Function to compute spatial Ricci scalar curvature.
   gr_spacetime_ricci_scalar_t spacetime_ricci_scalar_func; // Function to compute spacetime Ricci scalar curvature.
+
+  gr_spatial_weyl_tensor_t spatial_weyl_tensor_func; // Function to compute spatial Weyl curvature tensor.
+  gr_spacetime_weyl_tensor_t spacetime_weyl_tensor_func; // Function to compute spacetime Weyl curvature tensor.
 
   gr_extrinsic_curvature_tensor_t extrinsic_curvature_tensor_func; // Function to compute extrinsic curvature tensor.
 
@@ -475,6 +486,43 @@ GKYL_CU_DH
 static inline void
 gkyl_gr_spacetime_ricci_scalar(const struct gkyl_gr_spacetime* spacetime, const double t, const double x, const double y, const double z,
   const double dt, const double dx, const double dy, const double dz, double* spacetime_ricci_scalar);
+
+/**
+* Compute the rank-4 (spatial) Weyl curvature tensor at a given point in spacetime.
+*
+* @param spacetime Base spacetime object.
+* @param t Time coordinate.
+* @param x Spatial coordinate (x-direction).
+* @param y Spatial coordinate (y-direction).
+* @param z Spatial coordinate (z-direction).
+* @param dx Spatial coordinate spacing (x-direction).
+* @param dy Spatial coordinate spacing (y-direction).
+* @param dz Spatial coordinate spacing (z-direction).
+* @param spatial_weyl_tensor Rank-4 spatial Weyl curvature tensor (output).
+*/
+GKYL_CU_DH
+static inline void
+gkyl_gr_spatial_weyl_tensor(const struct gkyl_gr_spacetime* spacetime, const double t, const double x, const double y, const double z,
+  const double dx, const double dy, const double dz, double***** spatial_weyl_tensor);
+
+/**
+* Compute the rank-4 (spacetime) Weyl curvature tensor at a given point in spacetime.
+*
+* @param spacetime Base spacetime object.
+* @param t Time coordinate.
+* @param x Spatial coordinate (x-direction).
+* @param y Spatial coordinate (y-direction).
+* @param z Spatial coordinate (z-direction).
+* @param dt Time coordinate spacing.
+* @param dx Spatial coordinate spacing (x-direction).
+* @param dy Spatial coordinate spacing (y-direction).
+* @param dz Spatial coordinate spacing (z-direction).
+* @param spacetime_weyl_tensor Rank-4 spacetime Weyl curvature tensor (output).
+*/
+GKYL_CU_DH
+static inline void
+gkyl_gr_spacetime_weyl_tensor(const struct gkyl_gr_spacetime* spacetime, const double t, const double x, const double y, const double z,
+  const double dt, const double dx, const double dy, const double dz, double***** spacetime_weyl_tensor);
 
 /**
 * Compute the rank-2 extrinsic curvature tensor at a given point in spacetime.

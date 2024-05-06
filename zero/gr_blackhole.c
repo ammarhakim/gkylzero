@@ -438,6 +438,20 @@ blackhole_spacetime_ricci_scalar(const struct gkyl_gr_spacetime* spacetime, cons
 }
 
 static void
+blackhole_spatial_weyl_tensor(const struct gkyl_gr_spacetime* spacetime, const double t, const double x, const double y, const double z,
+  const double dx, const double dy, const double dz, double***** spatial_weyl_tensor)
+{
+  gkyl_gr_spatial_weyl_tensor_fd(spacetime, t, x, y, z, dx, dy, dx, spatial_weyl_tensor);
+}
+
+static void
+blackhole_spacetime_weyl_tensor(const struct gkyl_gr_spacetime* spacetime, const double t, const double x, const double y, const double z,
+  const double dt, const double dx, const double dy, const double dz, double***** spacetime_weyl_tensor)
+{
+  gkyl_gr_spacetime_weyl_tensor_fd(spacetime, t, x, y, z, dt, dx, dy, dz, spacetime_weyl_tensor);
+}
+
+static void
 blackhole_extrinsic_curvature_tensor(const struct gkyl_gr_spacetime* spacetime, const double t, const double x, const double y, const double z,
   const double dx, const double dy, const double dz, double*** extrinsic_curvature_tensor)
 {
@@ -560,6 +574,9 @@ gkyl_gr_blackhole_inew(const struct gkyl_gr_blackhole_inp* inp)
 
   gr_blackhole->spacetime.spatial_ricci_scalar_func = blackhole_spatial_ricci_scalar;
   gr_blackhole->spacetime.spacetime_ricci_scalar_func = blackhole_spacetime_ricci_scalar;
+
+  gr_blackhole->spacetime.spatial_weyl_tensor_func = blackhole_spatial_weyl_tensor;
+  gr_blackhole->spacetime.spacetime_weyl_tensor_func = blackhole_spacetime_weyl_tensor;
 
   gr_blackhole->spacetime.extrinsic_curvature_tensor_func = blackhole_extrinsic_curvature_tensor;
 

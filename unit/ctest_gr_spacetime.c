@@ -163,23 +163,28 @@ test_gr_minkowski()
       }
 
       double ****spatial_riemann_tensor = gkyl_malloc(sizeof(double***[3]));
+      double ****spatial_weyl_tensor = gkyl_malloc(sizeof(double***[3]));
       double **spatial_ricci_tensor = gkyl_malloc(sizeof(double*[3]));
       double spatial_ricci_scalar;
 
       for (int i = 0; i < 3; i++) {
         spatial_riemann_tensor[i] = gkyl_malloc(sizeof(double**[3]));
+        spatial_weyl_tensor[i] = gkyl_malloc(sizeof(double**[3]));
         spatial_ricci_tensor[i] = gkyl_malloc(sizeof(double[3]));
 
         for (int j = 0; j < 3; j++) {
           spatial_riemann_tensor[i][j] = gkyl_malloc(sizeof(double*[3]));
+          spatial_weyl_tensor[i][j] = gkyl_malloc(sizeof(double*[3]));
 
           for (int k = 0; k < 3; k++) {
-            spatial_riemann_tensor[i][j][k] = malloc(sizeof(double[3]));
+            spatial_riemann_tensor[i][j][k] = gkyl_malloc(sizeof(double[3]));
+            spatial_weyl_tensor[i][j][k] = gkyl_malloc(sizeof(double[3]));
           }
         }
       }
 
       spacetime->spatial_riemann_tensor_func(spacetime, 0.0, x, y, 0.0, pow(10.0, -6.0), pow(10.0, -6.0), pow(10.0, -6.0), &spatial_riemann_tensor);
+      spacetime->spatial_weyl_tensor_func(spacetime, 0.0, x, y, 0.0, pow(10.0, -6.0), pow(10.0, -6.0), pow(10.0, -6.0), &spatial_weyl_tensor);
       spacetime->spatial_ricci_tensor_func(spacetime, 0.0, x, y, 0.0, pow(10.0, -6.0), pow(10.0, -6.0), pow(10.0, -6.0), &spatial_ricci_tensor);
       spacetime->spatial_ricci_scalar_func(spacetime, 0.0, x, y, 0.0, pow(10.0, -6.0), pow(10.0, -6.0), pow(10.0, -6.0), &spatial_ricci_scalar);
 
@@ -190,6 +195,7 @@ test_gr_minkowski()
           for (int k = 0; k < 3; k++) {
             for (int l = 0; l < 3; l++) {
               TEST_CHECK( gkyl_compare(spatial_riemann_tensor[i][j][k][l], 0.0, 1e-10) );
+              TEST_CHECK( gkyl_compare(spatial_weyl_tensor[i][j][k][l], 0.0, 1e-10) );
             }
           }
         }
@@ -198,23 +204,28 @@ test_gr_minkowski()
       TEST_CHECK( gkyl_compare(spatial_ricci_scalar, 0.0, 1e-10) );
 
       double ****spacetime_riemann_tensor = gkyl_malloc(sizeof(double***[4]));
+      double ****spacetime_weyl_tensor = gkyl_malloc(sizeof(double***[4]));
       double **spacetime_ricci_tensor = gkyl_malloc(sizeof(double*[4]));
       double spacetime_ricci_scalar;
 
       for (int i = 0; i < 4; i++) {
         spacetime_riemann_tensor[i] = gkyl_malloc(sizeof(double**[4]));
+        spacetime_weyl_tensor[i] = gkyl_malloc(sizeof(double**[4]));
         spacetime_ricci_tensor[i] = gkyl_malloc(sizeof(double[4]));
 
         for (int j = 0; j < 4; j++) {
           spacetime_riemann_tensor[i][j] = gkyl_malloc(sizeof(double*[4]));
+          spacetime_weyl_tensor[i][j] = gkyl_malloc(sizeof(double*[4]));
 
           for (int k = 0; k < 4; k++) {
-            spacetime_riemann_tensor[i][j][k] = malloc(sizeof(double[4]));
+            spacetime_riemann_tensor[i][j][k] = gkyl_malloc(sizeof(double[4]));
+            spacetime_weyl_tensor[i][j][k] = gkyl_malloc(sizeof(double[4]));
           }
         }
       }
 
       spacetime->spacetime_riemann_tensor_func(spacetime, 0.0, x, y, 0.0, pow(10.0, -6.0), pow(10.0, -6.0), pow(10.0, -6.0), pow(10.0, -6.0), &spacetime_riemann_tensor);
+      spacetime->spacetime_weyl_tensor_func(spacetime, 0.0, x, y, 0.0, pow(10.0, -6.0), pow(10.0, -6.0), pow(10.0, -6.0), pow(10.0, -6.0), &spacetime_weyl_tensor);
       spacetime->spacetime_ricci_tensor_func(spacetime, 0.0, x, y, 0.0, pow(10.0, -6.0), pow(10.0, -6.0), pow(10.0, -6.0), pow(10.0, -6.0), &spacetime_ricci_tensor);
       spacetime->spacetime_ricci_scalar_func(spacetime, 0.0, x, y, 0.0, pow(10.0, -6.0), pow(10.0, -6.0), pow(10.0, -6.0), pow(10.0, -6.0), &spacetime_ricci_scalar);
 
@@ -225,6 +236,7 @@ test_gr_minkowski()
           for (int k = 0; k < 4; k++) {
             for (int l = 0; l < 4; l++) {
               TEST_CHECK( gkyl_compare(spacetime_riemann_tensor[i][j][k][l], 0.0, 1e-10) );
+              TEST_CHECK( gkyl_compare(spacetime_weyl_tensor[i][j][k][l], 0.0, 1e-10) );
             }
           }
         }
@@ -250,12 +262,15 @@ test_gr_minkowski()
 
           for (int k = 0; k < 3; k++) {
             gkyl_free(spatial_riemann_tensor[i][j][k]);
+            gkyl_free(spatial_weyl_tensor[i][j][k]);
           }
           gkyl_free(spatial_riemann_tensor[i][j]);
+          gkyl_free(spatial_weyl_tensor[i][j]);
         }
         gkyl_free(spatial_metric_der[i]);
         gkyl_free(spatial_christoffel[i]);
         gkyl_free(spatial_riemann_tensor[i]);
+        gkyl_free(spatial_weyl_tensor[i]);
       }
       gkyl_free(spatial_metric);
       gkyl_free(inv_spatial_metric);
@@ -265,6 +280,7 @@ test_gr_minkowski()
       gkyl_free(shift_vector_der);
       gkyl_free(lapse_function_der);
       gkyl_free(spatial_riemann_tensor);
+      gkyl_free(spatial_weyl_tensor);
       gkyl_free(spatial_ricci_tensor);
 
       for (int i = 0; i < 4; i++) {
@@ -278,18 +294,22 @@ test_gr_minkowski()
           
           for (int k = 0; k < 4; k++) {
             gkyl_free(spacetime_riemann_tensor[i][j][k]);
+            gkyl_free(spacetime_weyl_tensor[i][j][k]);
           }
           gkyl_free(spacetime_riemann_tensor[i][j]);
+          gkyl_free(spacetime_weyl_tensor[i][j]);
         }
         gkyl_free(spacetime_metric_der[i]);
         gkyl_free(spacetime_christoffel[i]);
         gkyl_free(spacetime_riemann_tensor[i]);
+        gkyl_free(spacetime_weyl_tensor[i]);
       }
       gkyl_free(spacetime_metric);
       gkyl_free(inv_spacetime_metric);
       gkyl_free(spacetime_metric_der);
       gkyl_free(spacetime_christoffel);
       gkyl_free(spacetime_riemann_tensor);
+      gkyl_free(spacetime_weyl_tensor);
       gkyl_free(spacetime_ricci_tensor);
     }
   }
@@ -513,6 +533,57 @@ test_gr_schwarzschild()
 
         TEST_CHECK( gkyl_compare(spacetime_ricci_scalar, 0.0, 1e-2) );
 
+        double ****spacetime_riemann_tensor = gkyl_malloc(sizeof(double***[4]));
+        double ****covariant_spacetime_riemann_tensor = gkyl_malloc(sizeof(double***[4]));
+        double ****spacetime_weyl_tensor = gkyl_malloc(sizeof(double***[4]));
+
+        for (int i = 0; i < 4; i++) {
+          spacetime_riemann_tensor[i] = gkyl_malloc(sizeof(double**[4]));
+          covariant_spacetime_riemann_tensor[i] = gkyl_malloc(sizeof(double**[4]));
+          spacetime_weyl_tensor[i] = gkyl_malloc(sizeof(double**[4]));
+
+          for (int j = 0; j < 4; j++) {
+            spacetime_riemann_tensor[i][j] = gkyl_malloc(sizeof(double*[4]));
+            covariant_spacetime_riemann_tensor[i][j] = gkyl_malloc(sizeof(double*[4]));
+            spacetime_weyl_tensor[i][j] = gkyl_malloc(sizeof(double*[4]));
+
+            for (int k = 0; k < 4; k++) {
+              spacetime_riemann_tensor[i][j][k] = gkyl_malloc(sizeof(double[4]));
+              covariant_spacetime_riemann_tensor[i][j][k] = gkyl_malloc(sizeof(double[4]));
+              spacetime_weyl_tensor[i][j][k] = gkyl_malloc(sizeof(double[4]));
+
+              for (int l = 0; l < 4; l++) {
+                covariant_spacetime_riemann_tensor[i][j][k][l] = 0.0;
+              }
+            }
+          }
+        }
+
+        spacetime->spacetime_riemann_tensor_func(spacetime, 0.0, x, y, 0.0, pow(10.0, -6.0), pow(10.0, -6.0), pow(10.0, -6.0), pow(10.0, -6.0), &spacetime_riemann_tensor);
+        spacetime->spacetime_weyl_tensor_func(spacetime, 0.0, x, y, 0.0, pow(10.0, -6.0), pow(10.0, -6.0), pow(10.0, -6.0), pow(10.0, -6.0), &spacetime_weyl_tensor);
+
+        for (int i = 0; i < 4; i++) {
+          for (int j = 0; j < 4; j++) {
+            for (int k = 0; k < 4; k++) {
+              for (int l = 0; l < 4; l++) {
+                for (int m = 0; m < 4; m++) {
+                  covariant_spacetime_riemann_tensor[i][j][k][l] += spacetime_metric[i][m] * spacetime_riemann_tensor[m][j][k][l];
+                }
+              }
+            }
+          }
+        }
+
+        for (int i = 0; i < 4; i++) {
+          for (int j = 0; j < 4; j++) {
+            for (int k = 0; k < 4; k++) {
+              for (int l = 0; l < 4; l++) {
+                TEST_CHECK( gkyl_compare(covariant_spacetime_riemann_tensor[i][j][k][l], spacetime_weyl_tensor[i][j][k][l], 1e-2) );
+              }
+            }
+          }
+        }
+
         bool in_excision_region;
         spacetime->excision_region_func(spacetime, 0.0, x, y, 0.0, &in_excision_region);
 
@@ -557,11 +628,23 @@ test_gr_schwarzschild()
             gkyl_free(spacetime_metric_der[i][j]);
             gkyl_free(spacetime_christoffel[i][j]);
             gkyl_free(spacetime_metric_cov_der[i][j]);
+
+            for (int k = 0; k < 4; k++) {
+              gkyl_free(spacetime_riemann_tensor[i][j][k]);
+              gkyl_free(covariant_spacetime_riemann_tensor[i][j][k]);
+              gkyl_free(spacetime_weyl_tensor[i][j][k]);
+            }
+            gkyl_free(spacetime_riemann_tensor[i][j]);
+            gkyl_free(covariant_spacetime_riemann_tensor[i][j]);
+            gkyl_free(spacetime_weyl_tensor[i][j]);
           }
           gkyl_free(spacetime_metric_der[i]);
           gkyl_free(spacetime_christoffel[i]);
           gkyl_free(spacetime_metric_cov_der[i]);
           gkyl_free(spacetime_ricci_tensor[i]);
+          gkyl_free(spacetime_riemann_tensor[i]);
+          gkyl_free(covariant_spacetime_riemann_tensor[i]);
+          gkyl_free(spacetime_weyl_tensor[i]);
         }
         gkyl_free(spacetime_metric);
         gkyl_free(inv_spacetime_metric);
@@ -570,6 +653,9 @@ test_gr_schwarzschild()
         gkyl_free(spacetime_christoffel);
         gkyl_free(spacetime_metric_cov_der);
         gkyl_free(spacetime_ricci_tensor);
+        gkyl_free(spacetime_riemann_tensor);
+        gkyl_free(covariant_spacetime_riemann_tensor);
+        gkyl_free(spacetime_weyl_tensor);
       }
       else {
         bool in_excision_region;
@@ -799,6 +885,57 @@ test_gr_kerr()
 
         TEST_CHECK( gkyl_compare(spacetime_ricci_scalar, 0.0, 1e-2) );
 
+        double ****spacetime_riemann_tensor = gkyl_malloc(sizeof(double***[4]));
+        double ****covariant_spacetime_riemann_tensor = gkyl_malloc(sizeof(double***[4]));
+        double ****spacetime_weyl_tensor = gkyl_malloc(sizeof(double***[4]));
+
+        for (int i = 0; i < 4; i++) {
+          spacetime_riemann_tensor[i] = gkyl_malloc(sizeof(double**[4]));
+          covariant_spacetime_riemann_tensor[i] = gkyl_malloc(sizeof(double**[4]));
+          spacetime_weyl_tensor[i] = gkyl_malloc(sizeof(double**[4]));
+
+          for (int j = 0; j < 4; j++) {
+            spacetime_riemann_tensor[i][j] = gkyl_malloc(sizeof(double*[4]));
+            covariant_spacetime_riemann_tensor[i][j] = gkyl_malloc(sizeof(double*[4]));
+            spacetime_weyl_tensor[i][j] = gkyl_malloc(sizeof(double*[4]));
+
+            for (int k = 0; k < 4; k++) {
+              spacetime_riemann_tensor[i][j][k] = gkyl_malloc(sizeof(double[4]));
+              covariant_spacetime_riemann_tensor[i][j][k] = gkyl_malloc(sizeof(double[4]));
+              spacetime_weyl_tensor[i][j][k] = gkyl_malloc(sizeof(double[4]));
+
+              for (int l = 0; l < 4; l++) {
+                covariant_spacetime_riemann_tensor[i][j][k][l] = 0.0;
+              }
+            }
+          }
+        }
+
+        spacetime->spacetime_riemann_tensor_func(spacetime, 0.0, x, y, 0.0, pow(10.0, -6.0), pow(10.0, -6.0), pow(10.0, -6.0), pow(10.0, -6.0), &spacetime_riemann_tensor);
+        spacetime->spacetime_weyl_tensor_func(spacetime, 0.0, x, y, 0.0, pow(10.0, -6.0), pow(10.0, -6.0), pow(10.0, -6.0), pow(10.0, -6.0), &spacetime_weyl_tensor);
+
+        for (int i = 0; i < 4; i++) {
+          for (int j = 0; j < 4; j++) {
+            for (int k = 0; k < 4; k++) {
+              for (int l = 0; l < 4; l++) {
+                for (int m = 0; m < 4; m++) {
+                  covariant_spacetime_riemann_tensor[i][j][k][l] += spacetime_metric[i][m] * spacetime_riemann_tensor[m][j][k][l];
+                }
+              }
+            }
+          }
+        }
+
+        for (int i = 0; i < 4; i++) {
+          for (int j = 0; j < 4; j++) {
+            for (int k = 0; k < 4; k++) {
+              for (int l = 0; l < 4; l++) {
+                TEST_CHECK( gkyl_compare(covariant_spacetime_riemann_tensor[i][j][k][l], spacetime_weyl_tensor[i][j][k][l], 1e-2) );
+              }
+            }
+          }
+        }
+
         bool in_excision_region;
         spacetime->excision_region_func(spacetime, 0.0, x, y, 0.0, &in_excision_region);
 
@@ -843,11 +980,23 @@ test_gr_kerr()
             gkyl_free(spacetime_metric_der[i][j]);
             gkyl_free(spacetime_christoffel[i][j]);
             gkyl_free(spacetime_metric_cov_der[i][j]);
+
+            for (int k = 0; k < 4; k++) {
+              gkyl_free(spacetime_riemann_tensor[i][j][k]);
+              gkyl_free(covariant_spacetime_riemann_tensor[i][j][k]);
+              gkyl_free(spacetime_weyl_tensor[i][j][k]);
+            }
+            gkyl_free(spacetime_riemann_tensor[i][j]);
+            gkyl_free(covariant_spacetime_riemann_tensor[i][j]);
+            gkyl_free(spacetime_weyl_tensor[i][j]);
           }
           gkyl_free(spacetime_metric_der[i]);
           gkyl_free(spacetime_christoffel[i]);
           gkyl_free(spacetime_metric_cov_der[i]);
           gkyl_free(spacetime_ricci_tensor[i]);
+          gkyl_free(spacetime_riemann_tensor[i]);
+          gkyl_free(covariant_spacetime_riemann_tensor[i]);
+          gkyl_free(spacetime_weyl_tensor[i]);
         }
         gkyl_free(spacetime_metric);
         gkyl_free(inv_spacetime_metric);
@@ -856,6 +1005,9 @@ test_gr_kerr()
         gkyl_free(spacetime_christoffel);
         gkyl_free(spacetime_metric_cov_der);
         gkyl_free(spacetime_ricci_tensor);
+        gkyl_free(spacetime_riemann_tensor);
+        gkyl_free(covariant_spacetime_riemann_tensor);
+        gkyl_free(spacetime_weyl_tensor);
       }
       else {
         bool in_excision_region;
