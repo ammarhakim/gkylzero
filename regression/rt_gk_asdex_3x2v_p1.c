@@ -486,7 +486,7 @@ main(int argc, char **argv)
 
   // GK app
   struct gkyl_gk gk = {
-    .name = "gk_asdex_out_3x2v_p1",
+    .name = "gk_asdex_3x2v_p1",
 
     .cdim = 3, .vdim = 2,
     .lower = { 0.16, -ctx.Ly/2.0, -ctx.Lz/2.0 },

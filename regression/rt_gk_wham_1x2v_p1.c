@@ -965,7 +965,7 @@ int main(int argc, char **argv)
   };
 
   struct gkyl_gk app_inp = {
-    .name = "gk_wham_kinetic_1x2v_p1",
+    .name = "gk_wham_1x2v_p1",
     .cdim = 1,
     .vdim = 2,
     .lower = {ctx.z_min},

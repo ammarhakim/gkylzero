@@ -834,7 +834,7 @@ main(int argc, char **argv)
 
   // GK app
   struct gkyl_gk app_inp = {
-    .name = "gk_sheath_3x2v_p1",
+    .name = "gk_li_react_3x2v_p1",
 
     .cdim = 3, .vdim = 2,
     .lower = { ctx.R-ctx.Lx/2.0, -ctx.Ly/2.0, -ctx.Lz/2.0 },

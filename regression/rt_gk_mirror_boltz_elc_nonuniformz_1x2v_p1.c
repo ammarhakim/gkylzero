@@ -970,7 +970,7 @@ int main(int argc, char **argv)
   };
 
   struct gkyl_gk app_inp = {  // GK app
-    .name = "gk_mirror_boltz_elc_1x2v_p1_nonuniform",
+    .name = "gk_mirror_boltz_elc_nonuniformz_1x2v_p1",
     .cdim = 1,  .vdim = 2,
     .lower = {ctx.z_min},
     .upper = {ctx.z_max},
