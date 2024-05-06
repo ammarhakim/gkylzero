@@ -46,8 +46,9 @@ static int idx_to_inloup_ker(int dim, const int *idx, const int *dirs, const int
 }
 
 // Kernel function pointers
-typedef void (*fpo_drag_coeff_t)(const double *dxv, const double *gamma,
-  const double* fpo_h_stencil[3], const double* fpo_dhdv_surf, double *drag_coeff);
+typedef int (*fpo_drag_coeff_t)(const double *dxv, const double *gamma,
+  const double* fpo_h_stencil[3], const double* fpo_dhdv_surf, double *drag_coeff,
+  double *drag_coeff_surf, double *sgn_drag_coeff_surf);
 
 // For use in kernel tables
 typedef struct { fpo_drag_coeff_t kernels[3]; } gkyl_dg_fpo_drag_coeff_kern_list;

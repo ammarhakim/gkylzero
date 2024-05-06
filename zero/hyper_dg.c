@@ -129,22 +129,17 @@ gkyl_hyper_dg_gen_stencil_advance(gkyl_hyper_dg *hdg, const struct gkyl_range *u
         long offsets[9] = {0};
         int keri = 0;
 
-        // Create offsets for 2D stencil
-        if (dir1 != dir2) {
-          int num_up_dirs = 2;
-          create_offsets(hdg, num_up_dirs, update_dirs, update_range, idxc, offsets);
+        // If dir1=dir2, only need in/lo/up domain stencil,
+        // otherwise, need a 9-region domain stencil for cross terms
+        int num_up_dirs = (dir1 == dir2) ? 1 : 2;
 
-          // Index into kernel list
-          keri = idx_to_inloup_ker(num_up_dirs, idxc, update_dirs, update_range->upper);
-        } 
-        else {
-          int num_up_dirs = 1;
-          create_offsets(hdg, num_up_dirs, update_dirs, update_range, idxc, offsets);
-
-          // Index into kernel list
-          keri = idx_to_inloup_ker(num_up_dirs, idxc, update_dirs, update_range->upper);
-        }
-
+        // Index into kernel list
+        keri = idx_to_inloup_ker(num_up_dirs, idxc, update_dirs, update_range->upper);
+        
+        // Create offset array for stencil surrounding idxc
+        create_offsets(hdg, num_up_dirs, update_dirs, update_range, idxc, offsets);
+        // create_offsets(hdg, num_up_dirs, update_dirs, update_range, idxc, offsets);
+       
         // Get pointers to all neighbor values
         for (int i=0; i<9; ++i) {
           gkyl_range_inv_idx(update_range, linc+offsets[i], idx[i]);

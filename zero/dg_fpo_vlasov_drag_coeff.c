@@ -11,7 +11,9 @@
 void gkyl_calc_fpo_drag_coeff_recovery(const struct gkyl_rect_grid *grid, 
   struct gkyl_basis pbasis, const struct gkyl_range *range, const struct gkyl_range *conf_range,
   const struct gkyl_array* gamma, const struct gkyl_array* fpo_h, 
-  const struct gkyl_array* fpo_dhdv_surf, struct gkyl_array* fpo_drag_coeff)
+  const struct gkyl_array* fpo_dhdv_surf, struct gkyl_array* fpo_drag_coeff,
+  struct gkyl_array* fpo_drag_coeff_surf, struct gkyl_array* sgn_drag_coeff_surf,
+  struct gkyl_array* const_sgn_drag_coeff_surf)
 {
   int pdim = pbasis.ndim;
   int vdim = 3;
@@ -46,6 +48,9 @@ void gkyl_calc_fpo_drag_coeff_recovery(const struct gkyl_rect_grid *grid,
  
     const double *fpo_dhdv_surf_c = gkyl_array_cfetch(fpo_dhdv_surf, linc);
     double *fpo_drag_coeff_c = gkyl_array_fetch(fpo_drag_coeff, linc);
+    double *fpo_drag_coeff_surf_c = gkyl_array_fetch(fpo_drag_coeff_surf, linc);
+    double *sgn_drag_coeff_surf_c = gkyl_array_fetch(sgn_drag_coeff_surf, linc);
+    int *const_sgn_drag_coeff_surf_c = gkyl_array_fetch(const_sgn_drag_coeff_surf, linc);
 
     const double *gamma_c = gkyl_array_cfetch(gamma, conf_linc);
 
@@ -75,8 +80,10 @@ void gkyl_calc_fpo_drag_coeff_recovery(const struct gkyl_rect_grid *grid,
         }
       }
 
-      drag_coeff_recovery_stencil[d][keri](grid->dx, gamma_c, fpo_h_stencil, 
-        fpo_dhdv_surf_c, fpo_drag_coeff_c);
+      const_sgn_drag_coeff_surf_c[d] = drag_coeff_recovery_stencil[d][keri](
+        grid->dx, gamma_c, fpo_h_stencil, 
+        fpo_dhdv_surf_c, fpo_drag_coeff_c, fpo_drag_coeff_surf_c,
+        sgn_drag_coeff_surf_c);
     }
   }
 }

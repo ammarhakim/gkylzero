@@ -199,6 +199,8 @@ struct vm_fpo_collisions {
   struct vm_species_moment moms; // moments needed in LBO (single array includes Zeroth, First, and Second moment)
 
   struct gkyl_array *drag_coeff, *diff_coeff; // Drag and diffusion coefficients
+  struct gkyl_array *drag_coeff_surf, *diff_coeff_surf; // Drag and diffusion coefficient surface expansions at lower cell boundary
+  struct gkyl_array *sgn_drag_coeff_surf, *const_sgn_drag_coeff_surf; // Sign of drag coefficient at lower boundary of cell, and boolean for checking if sign(drag_coeff) is constant along boundary
   gkyl_dg_updater_collisions *coll_slvr; // collision solver
 
   gkyl_prim_lbo_calc *coll_pcalc; // primitive moment calculator

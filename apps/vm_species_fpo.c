@@ -28,11 +28,11 @@ vm_species_fpo_init(struct gkyl_vlasov_app *app, struct vm_species *s, struct vm
   fpo->h = mkarr(app->use_gpu, app->basis.num_basis, s->local_ext.volume);
   fpo->g = mkarr(app->use_gpu, app->basis.num_basis, s->local_ext.volume);
  
-  fpo->h_surf = mkarr(app->use_gpu, 3*surf_basis.num_basis, s->local_ext.volume);
-  fpo->g_surf = mkarr(app->use_gpu, 3*surf_basis.num_basis, s->local_ext.volume); 
-  fpo->dhdv_surf = mkarr(app->use_gpu, 3*surf_basis.num_basis, s->local_ext.volume);
-  fpo->dgdv_surf = mkarr(app->use_gpu, 9*surf_basis.num_basis, s->local_ext.volume); 
-  fpo->d2gdv2_surf = mkarr(app->use_gpu, 9*surf_basis.num_basis, s->local_ext.volume); 
+  fpo->h_surf = mkarr(app->use_gpu, vdim*surf_basis.num_basis, s->local_ext.volume);
+  fpo->g_surf = mkarr(app->use_gpu, vdim*surf_basis.num_basis, s->local_ext.volume); 
+  fpo->dhdv_surf = mkarr(app->use_gpu, vdim*surf_basis.num_basis, s->local_ext.volume);
+  fpo->dgdv_surf = mkarr(app->use_gpu, vdim*vdim*surf_basis.num_basis, s->local_ext.volume); 
+  fpo->d2gdv2_surf = mkarr(app->use_gpu, vdim*vdim*surf_basis.num_basis, s->local_ext.volume); 
 
   fpo->pot_slvr = gkyl_proj_maxwellian_pots_on_basis_new(&s->grid, &app->confBasis, &app->basis, app->poly_order+1);
 
@@ -45,9 +45,15 @@ vm_species_fpo_init(struct gkyl_vlasov_app *app, struct vm_species *s, struct vm
     v_bounds[d + vdim] = s->info.upper[d];
   }
 
-  // initialize drag and diffusion coefficients
-  fpo->drag_coeff = mkarr(app->use_gpu, 3*app->basis.num_basis, s->local_ext.volume);
-  fpo->diff_coeff = mkarr(app->use_gpu, 9*app->basis.num_basis, s->local_ext.volume);
+  // initialize drag and diffusion coefficient arrays
+  int num_surf_quad_nodes = (int)(pow(app->poly_order+1, pdim-1));
+  fpo->drag_coeff = mkarr(app->use_gpu, vdim*app->basis.num_basis, s->local_ext.volume);
+  fpo->drag_coeff_surf = mkarr(app->use_gpu, vdim*surf_basis.num_basis, s->local_ext.volume);
+  fpo->sgn_drag_coeff_surf = mkarr(app->use_gpu, vdim*num_surf_quad_nodes, s->local_ext.volume); 
+  fpo->const_sgn_drag_coeff_surf = mkarr(app->use_gpu, vdim, s->local_ext.volume);
+
+  fpo->diff_coeff = mkarr(app->use_gpu, vdim*vdim*app->basis.num_basis, s->local_ext.volume);
+  fpo->diff_coeff_surf = mkarr(app->use_gpu, vdim*vdim*surf_basis.num_basis, s->local_ext.volume);
 
   // initialize FPO updater
   fpo->coll_slvr = gkyl_dg_updater_fpo_vlasov_new(&s->grid, &app->basis, &s->local, app->use_gpu);
@@ -69,7 +75,8 @@ vm_species_fpo_drag_diff_coeffs(gkyl_vlasov_app *app, const struct vm_species *s
 
   // Calculate drag and diffusion coefficients
   gkyl_calc_fpo_drag_coeff_recovery(&s->grid, app->basis, &s->local, &app->local, fpo->gamma,
-    fpo->h, fpo->dhdv_surf, fpo->drag_coeff); 
+    fpo->h, fpo->dhdv_surf, fpo->drag_coeff, fpo->drag_coeff_surf,
+    fpo->sgn_drag_coeff_surf, fpo->const_sgn_drag_coeff_surf); 
   gkyl_calc_fpo_diff_coeff_recovery(&s->grid, app->basis, &s->local, &app->local, fpo->gamma,
     fpo->g, fpo->g_surf, fpo->dgdv_surf, fpo->d2gdv2_surf, fpo->diff_coeff); 
 
@@ -87,7 +94,9 @@ vm_species_fpo_rhs(gkyl_vlasov_app *app, const struct vm_species *s,
   
   // accumulate update due to collisions onto rhs
   gkyl_dg_updater_fpo_vlasov_advance(fpo->coll_slvr, &s->local,
-    fpo->drag_coeff, fpo->diff_coeff, fin, s->cflrate, rhs);
+    fpo->drag_coeff, fpo->drag_coeff_surf, 
+    fpo->sgn_drag_coeff_surf, fpo->const_sgn_drag_coeff_surf,
+    fpo->diff_coeff, fin, s->cflrate, rhs);
 
   app->stat.species_coll_tm += gkyl_time_diff_now_sec(wst);
 }

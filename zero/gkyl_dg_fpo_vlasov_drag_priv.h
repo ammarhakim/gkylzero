@@ -5,13 +5,18 @@
 #include <string.h>
 
 // Types for various kernels
-typedef double (*fpo_vlasov_drag_surf_t)(const double *dxv,
-  const double *dragCoeffL, const double *dragCoeffC, const double *dragCoeffR,
-  const double *fL, const double *fC, const double *fR, double* GKYL_RESTRICT out);
+typedef double (*fpo_vlasov_drag_surf_t)(const double* dxv, 
+  const double *alpha_surf_L, const double *alpha_surf_R,
+  const double *sgn_alpha_surf_L, const double *sgn_alpha_surf_R,
+  const int *const_sgn_alpha_L, const int *const_sgn_alpha_R,
+  const double *fL, const double *fC, const double *fR, double* GKYL_RESTRICT out); 
 
-typedef double (*fpo_vlasov_drag_boundary_surf_t)(const double *dxv,
-  const double* dragCoeffEdge, const double* dragCoeffSkin,
-  const int edge, const double *fEdge, const double *fSkin, double* GKYL_RESTRICT out);
+typedef double (*fpo_vlasov_drag_boundary_surf_t)(const double* dxv,
+  const double *alpha_surf_Edge, const double *alpha_surf_Skin,
+  const double *sgn_alpha_surf_Edge, const double *sgn_alpha_surf_Skin,
+  const int *const_sgn_alpha_Edge, const int *const_sgn_alpha_Skin,
+  const int Edge, const double *fEdge, const double *fSkin,
+  double* GKYL_RESTRICT out); 
 
 // for use in kernel tables
 typedef struct { vol_termf_t kernels[3]; } gkyl_dg_fpo_vlasov_drag_vol_kern_list;
@@ -157,10 +162,13 @@ surf(const struct gkyl_dg_eqn *eqn,
   long linr = gkyl_range_idx(&fpo_vlasov_drag->phase_range, idxR);
 
   if (dir >= fpo_vlasov_drag->cdim) {
-    fpo_vlasov_drag->surf[dir-fpo_vlasov_drag->cdim](dxC, 
-      (const double*) gkyl_array_cfetch(fpo_vlasov_drag->auxfields.drag_coeff, linl),
-      (const double*) gkyl_array_cfetch(fpo_vlasov_drag->auxfields.drag_coeff, linc),
-      (const double*) gkyl_array_cfetch(fpo_vlasov_drag->auxfields.drag_coeff, linr),
+    return fpo_vlasov_drag->surf[dir-fpo_vlasov_drag->cdim](dxC,
+      (const double*) gkyl_array_cfetch(fpo_vlasov_drag->auxfields.drag_coeff_surf, linc),
+      (const double*) gkyl_array_cfetch(fpo_vlasov_drag->auxfields.drag_coeff_surf, linr),
+      (const double*) gkyl_array_cfetch(fpo_vlasov_drag->auxfields.sgn_drag_coeff_surf, linc),
+      (const double*) gkyl_array_cfetch(fpo_vlasov_drag->auxfields.sgn_drag_coeff_surf, linr),
+      (const int*) gkyl_array_cfetch(fpo_vlasov_drag->auxfields.const_sgn_drag_coeff_surf, linc),
+      (const int*) gkyl_array_cfetch(fpo_vlasov_drag->auxfields.const_sgn_drag_coeff_surf, linr),
       qInL, qInC, qInR, qRhsOut);
   }
   return 0.0;
@@ -181,9 +189,13 @@ boundary_surf(const struct gkyl_dg_eqn *eqn,
   long lin_skin = gkyl_range_idx(&fpo_vlasov_drag->phase_range, idxSkin);
 
   if (dir >= fpo_vlasov_drag->cdim) {
-    fpo_vlasov_drag->boundary_surf[dir-fpo_vlasov_drag->cdim](dxEdge,
-      (const double*) gkyl_array_cfetch(fpo_vlasov_drag->auxfields.drag_coeff, lin_edge),
-      (const double*) gkyl_array_cfetch(fpo_vlasov_drag->auxfields.drag_coeff, lin_skin),
+    return fpo_vlasov_drag->boundary_surf[dir-fpo_vlasov_drag->cdim](dxEdge,
+      (const double*) gkyl_array_cfetch(fpo_vlasov_drag->auxfields.drag_coeff_surf, lin_edge),
+      (const double*) gkyl_array_cfetch(fpo_vlasov_drag->auxfields.drag_coeff_surf, lin_skin),
+      (const double*) gkyl_array_cfetch(fpo_vlasov_drag->auxfields.sgn_drag_coeff_surf, lin_edge),
+      (const double*) gkyl_array_cfetch(fpo_vlasov_drag->auxfields.sgn_drag_coeff_surf, lin_skin),
+      (const int*) gkyl_array_cfetch(fpo_vlasov_drag->auxfields.const_sgn_drag_coeff_surf, lin_edge),
+      (const int*) gkyl_array_cfetch(fpo_vlasov_drag->auxfields.const_sgn_drag_coeff_surf, lin_skin),
       edge, qInEdge, qInSkin, qRhsOut);
   }
 

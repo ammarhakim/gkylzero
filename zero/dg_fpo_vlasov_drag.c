@@ -36,6 +36,9 @@ gkyl_fpo_vlasov_drag_set_auxfields(const struct gkyl_dg_eqn *eqn, const struct g
 
   struct dg_fpo_vlasov_drag *fpo_vlasov_drag = container_of(eqn, struct dg_fpo_vlasov_drag, eqn);
   fpo_vlasov_drag->auxfields.drag_coeff = auxin.drag_coeff;
+  fpo_vlasov_drag->auxfields.drag_coeff_surf = auxin.drag_coeff_surf;
+  fpo_vlasov_drag->auxfields.sgn_drag_coeff_surf = auxin.sgn_drag_coeff_surf;
+  fpo_vlasov_drag->auxfields.const_sgn_drag_coeff_surf = auxin.const_sgn_drag_coeff_surf;
 }
 
 struct gkyl_dg_eqn*
@@ -98,6 +101,9 @@ gkyl_dg_fpo_vlasov_drag_new(const struct gkyl_basis* pbasis, const struct gkyl_r
   for (int i=0; i<vdim; ++i) assert(fpo_vlasov_drag->boundary_surf[i]);
 
   fpo_vlasov_drag->auxfields.drag_coeff = 0;
+  fpo_vlasov_drag->auxfields.drag_coeff_surf = 0;
+  fpo_vlasov_drag->auxfields.sgn_drag_coeff_surf = 0;
+  fpo_vlasov_drag->auxfields.const_sgn_drag_coeff_surf = 0;
   fpo_vlasov_drag->phase_range = *phase_range;
 
   fpo_vlasov_drag->eqn.flags = 0;

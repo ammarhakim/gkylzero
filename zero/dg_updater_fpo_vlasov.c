@@ -43,13 +43,23 @@ gkyl_dg_updater_fpo_vlasov_new(const struct gkyl_rect_grid *grid, const struct g
 void
 gkyl_dg_updater_fpo_vlasov_advance(struct gkyl_dg_updater_collisions *fpo,
   const struct gkyl_range *update_rng,
-  const struct gkyl_array *drag_coeff, const struct gkyl_array *diff_coeff, 
+  const struct gkyl_array *drag_coeff, 
+  const struct gkyl_array *drag_coeff_surf,
+  const struct gkyl_array *sgn_drag_coeff_surf,
+  const struct gkyl_array *const_sgn_drag_coeff_surf,
+  const struct gkyl_array *diff_coeff, 
   const struct gkyl_array* GKYL_RESTRICT fIn,
   struct gkyl_array* GKYL_RESTRICT cflrate, struct gkyl_array* GKYL_RESTRICT rhs)
 {
   // Set arrays needed
   gkyl_fpo_vlasov_drag_set_auxfields(fpo->coll_drag,
-    (struct gkyl_dg_fpo_vlasov_drag_auxfields) { .drag_coeff = drag_coeff });
+    (struct gkyl_dg_fpo_vlasov_drag_auxfields) { 
+      .drag_coeff = drag_coeff, 
+      .drag_coeff_surf = drag_coeff_surf,
+      .sgn_drag_coeff_surf = sgn_drag_coeff_surf,
+      .const_sgn_drag_coeff_surf = const_sgn_drag_coeff_surf
+  });
+
   gkyl_fpo_vlasov_diff_set_auxfields(fpo->coll_diff,
     (struct gkyl_dg_fpo_vlasov_diff_auxfields) { .diff_coeff = diff_coeff });
 

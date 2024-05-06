@@ -132,18 +132,72 @@ GKYL_CU_DH void fpo_vlasov_diff_surfvzvz_1x3v_ser_p2(const double* dxv, const do
 GKYL_CU_DH double fpo_vlasov_diff_vol_1x3v_ser_p1(const double* dxv, const double* diff_coeff, const double* f, double* GKYL_RESTRICT out); 
 GKYL_CU_DH double fpo_vlasov_diff_vol_1x3v_ser_p2(const double* dxv, const double* diff_coeff, const double* f, double* GKYL_RESTRICT out); 
 
-GKYL_CU_DH double fpo_vlasov_drag_boundary_surfvx_1x3v_ser_p1(const double *dxv, const double *dragCoeffEdge, const double *dragCoeffSkin, int edge, const double *fEdge, const double *fSkin, double* GKYL_RESTRICT out); 
-GKYL_CU_DH double fpo_vlasov_drag_boundary_surfvx_1x3v_ser_p2(const double *dxv, const double *dragCoeffEdge, const double *dragCoeffSkin, int edge, const double *fEdge, const double *fSkin, double* GKYL_RESTRICT out); 
-GKYL_CU_DH double fpo_vlasov_drag_boundary_surfvy_1x3v_ser_p1(const double *dxv, const double *dragCoeffEdge, const double *dragCoeffSkin, int edge, const double *fEdge, const double *fSkin, double* GKYL_RESTRICT out); 
-GKYL_CU_DH double fpo_vlasov_drag_boundary_surfvy_1x3v_ser_p2(const double *dxv, const double *dragCoeffEdge, const double *dragCoeffSkin, int edge, const double *fEdge, const double *fSkin, double* GKYL_RESTRICT out); 
-GKYL_CU_DH double fpo_vlasov_drag_boundary_surfvz_1x3v_ser_p1(const double *dxv, const double *dragCoeffEdge, const double *dragCoeffSkin, int edge, const double *fEdge, const double *fSkin, double* GKYL_RESTRICT out); 
-GKYL_CU_DH double fpo_vlasov_drag_boundary_surfvz_1x3v_ser_p2(const double *dxv, const double *dragCoeffEdge, const double *dragCoeffSkin, int edge, const double *fEdge, const double *fSkin, double* GKYL_RESTRICT out); 
-GKYL_CU_DH double fpo_vlasov_drag_surfvx_1x3v_ser_p1(const double* dxv, const double *dragCoeffL, const double *dragCoeffC, const double *dragCoeffR, const double *fL, const double *fC, const double *fR, double* GKYL_RESTRICT out); 
-GKYL_CU_DH double fpo_vlasov_drag_surfvx_1x3v_ser_p2(const double* dxv, const double *dragCoeffL, const double *dragCoeffC, const double *dragCoeffR, const double *fL, const double *fC, const double *fR, double* GKYL_RESTRICT out); 
-GKYL_CU_DH double fpo_vlasov_drag_surfvy_1x3v_ser_p1(const double* dxv, const double *dragCoeffL, const double *dragCoeffC, const double *dragCoeffR, const double *fL, const double *fC, const double *fR, double* GKYL_RESTRICT out); 
-GKYL_CU_DH double fpo_vlasov_drag_surfvy_1x3v_ser_p2(const double* dxv, const double *dragCoeffL, const double *dragCoeffC, const double *dragCoeffR, const double *fL, const double *fC, const double *fR, double* GKYL_RESTRICT out); 
-GKYL_CU_DH double fpo_vlasov_drag_surfvz_1x3v_ser_p1(const double* dxv, const double *dragCoeffL, const double *dragCoeffC, const double *dragCoeffR, const double *fL, const double *fC, const double *fR, double* GKYL_RESTRICT out); 
-GKYL_CU_DH double fpo_vlasov_drag_surfvz_1x3v_ser_p2(const double* dxv, const double *dragCoeffL, const double *dragCoeffC, const double *dragCoeffR, const double *fL, const double *fC, const double *fR, double* GKYL_RESTRICT out); 
+GKYL_CU_DH double fpo_vlasov_drag_boundary_surfvx_1x3v_ser_p1(const double* dxv,
+  const double *alpha_surf_Edge, const double *alpha_surf_Skin,
+  const double *sgn_alpha_surf_Edge, const double *sgn_alpha_surf_Skin,
+  const int *const_sgn_alpha_Edge, const int *const_sgn_alpha_Skin,
+  const int Edge, const double *fEdge, const double *fSkin,
+  double* GKYL_RESTRICT out); 
+GKYL_CU_DH double fpo_vlasov_drag_boundary_surfvx_1x3v_ser_p2(const double* dxv,
+  const double *alpha_surf_Edge, const double *alpha_surf_Skin,
+  const double *sgn_alpha_surf_Edge, const double *sgn_alpha_surf_Skin,
+  const int *const_sgn_alpha_Edge, const int *const_sgn_alpha_Skin,
+  const int Edge, const double *fEdge, const double *fSkin,
+  double* GKYL_RESTRICT out); 
+GKYL_CU_DH double fpo_vlasov_drag_boundary_surfvy_1x3v_ser_p1(const double* dxv,
+  const double *alpha_surf_Edge, const double *alpha_surf_Skin,
+  const double *sgn_alpha_surf_Edge, const double *sgn_alpha_surf_Skin,
+  const int *const_sgn_alpha_Edge, const int *const_sgn_alpha_Skin,
+  const int Edge, const double *fEdge, const double *fSkin,
+  double* GKYL_RESTRICT out); 
+GKYL_CU_DH double fpo_vlasov_drag_boundary_surfvy_1x3v_ser_p2(const double* dxv,
+  const double *alpha_surf_Edge, const double *alpha_surf_Skin,
+  const double *sgn_alpha_surf_Edge, const double *sgn_alpha_surf_Skin,
+  const int *const_sgn_alpha_Edge, const int *const_sgn_alpha_Skin,
+  const int Edge, const double *fEdge, const double *fSkin,
+  double* GKYL_RESTRICT out); 
+GKYL_CU_DH double fpo_vlasov_drag_boundary_surfvz_1x3v_ser_p1(const double* dxv,
+  const double *alpha_surf_Edge, const double *alpha_surf_Skin,
+  const double *sgn_alpha_surf_Edge, const double *sgn_alpha_surf_Skin,
+  const int *const_sgn_alpha_Edge, const int *const_sgn_alpha_Skin,
+  const int Edge, const double *fEdge, const double *fSkin,
+  double* GKYL_RESTRICT out); 
+GKYL_CU_DH double fpo_vlasov_drag_boundary_surfvz_1x3v_ser_p2(const double* dxv,
+  const double *alpha_surf_Edge, const double *alpha_surf_Skin,
+  const double *sgn_alpha_surf_Edge, const double *sgn_alpha_surf_Skin,
+  const int *const_sgn_alpha_Edge, const int *const_sgn_alpha_Skin,
+  const int Edge, const double *fEdge, const double *fSkin,
+  double* GKYL_RESTRICT out); 
+GKYL_CU_DH double fpo_vlasov_drag_surfvx_1x3v_ser_p1(const double* dxv, 
+  const double *alpha_surf_L, const double *alpha_surf_R,
+  const double *sgn_alpha_surf_L, const double *sgn_alpha_surf_R,
+  const int *const_sgn_alpha_L, const int *const_sgn_alpha_R,
+  const double *fL, const double *fC, const double *fR, double* GKYL_RESTRICT out); 
+GKYL_CU_DH double fpo_vlasov_drag_surfvx_1x3v_ser_p2(const double* dxv, 
+  const double *alpha_surf_L, const double *alpha_surf_R,
+  const double *sgn_alpha_surf_L, const double *sgn_alpha_surf_R,
+  const int *const_sgn_alpha_L, const int *const_sgn_alpha_R,
+  const double *fL, const double *fC, const double *fR, double* GKYL_RESTRICT out); 
+GKYL_CU_DH double fpo_vlasov_drag_surfvy_1x3v_ser_p1(const double* dxv, 
+  const double *alpha_surf_L, const double *alpha_surf_R,
+  const double *sgn_alpha_surf_L, const double *sgn_alpha_surf_R,
+  const int *const_sgn_alpha_L, const int *const_sgn_alpha_R,
+  const double *fL, const double *fC, const double *fR, double* GKYL_RESTRICT out); 
+GKYL_CU_DH double fpo_vlasov_drag_surfvy_1x3v_ser_p2(const double* dxv, 
+  const double *alpha_surf_L, const double *alpha_surf_R,
+  const double *sgn_alpha_surf_L, const double *sgn_alpha_surf_R,
+  const int *const_sgn_alpha_L, const int *const_sgn_alpha_R,
+  const double *fL, const double *fC, const double *fR, double* GKYL_RESTRICT out); 
+GKYL_CU_DH double fpo_vlasov_drag_surfvz_1x3v_ser_p1(const double* dxv, 
+  const double *alpha_surf_L, const double *alpha_surf_R,
+  const double *sgn_alpha_surf_L, const double *sgn_alpha_surf_R,
+  const int *const_sgn_alpha_L, const int *const_sgn_alpha_R,
+  const double *fL, const double *fC, const double *fR, double* GKYL_RESTRICT out); 
+GKYL_CU_DH double fpo_vlasov_drag_surfvz_1x3v_ser_p2(const double* dxv, 
+  const double *alpha_surf_L, const double *alpha_surf_R,
+  const double *sgn_alpha_surf_L, const double *sgn_alpha_surf_R,
+  const int *const_sgn_alpha_L, const int *const_sgn_alpha_R,
+  const double *fL, const double *fC, const double *fR, double* GKYL_RESTRICT out); 
 GKYL_CU_DH double fpo_vlasov_drag_vol_1x3v_ser_p1(const double* dxv, const double* drag_coeff, const double* f, double* GKYL_RESTRICT out); 
 GKYL_CU_DH double fpo_vlasov_drag_vol_1x3v_ser_p2(const double* dxv, const double* drag_coeff, const double* f, double* GKYL_RESTRICT out); GKYL_CU_DH double fpo_vlasov_drag_vol_1x3v_ser_p2(const double* dxv, const double* drag_coeff, const double* f, double* GKYL_RESTRICT out); 
 GKYL_CU_DH double fpo_vlasov_drag_vol_1x3v_ser_p1(const double* dxv, const double* drag_coeff, const double* f, double* GKYL_RESTRICT out); 
@@ -276,23 +330,93 @@ GKYL_CU_DH void fpo_diff_coeff_diag_1x3v_vz_ser_p2_invz(const double *dxv, const
 GKYL_CU_DH void fpo_diff_coeff_diag_1x3v_vz_ser_p2_lovz(const double *dxv, const double *gamma, const double* fpo_g_stencil[3], const double* fpo_d2gdv2_surf, double *diff_coeff);
 GKYL_CU_DH void fpo_diff_coeff_diag_1x3v_vz_ser_p2_upvz(const double *dxv, const double *gamma, const double* fpo_g_stencil[3], const double* fpo_d2gdv2_surf, double *diff_coeff);
 
-GKYL_CU_DH void fpo_drag_coeff_1x3v_vx_ser_p1_invx(const double *dxv, const double *gamma, const double* fpo_h_stencil[3], const double* fpo_dhdv_surf, double *drag_coeff);
-GKYL_CU_DH void fpo_drag_coeff_1x3v_vx_ser_p1_lovx(const double *dxv, const double *gamma, const double* fpo_h_stencil[3], const double* fpo_dhdv_surf, double *drag_coeff);
-GKYL_CU_DH void fpo_drag_coeff_1x3v_vx_ser_p1_upvx(const double *dxv, const double *gamma, const double* fpo_h_stencil[3], const double* fpo_dhdv_surf, double *drag_coeff);
-GKYL_CU_DH void fpo_drag_coeff_1x3v_vy_ser_p1_invy(const double *dxv, const double *gamma, const double* fpo_h_stencil[3], const double* fpo_dhdv_surf, double *drag_coeff);
-GKYL_CU_DH void fpo_drag_coeff_1x3v_vy_ser_p1_lovy(const double *dxv, const double *gamma, const double* fpo_h_stencil[3], const double* fpo_dhdv_surf, double *drag_coeff);
-GKYL_CU_DH void fpo_drag_coeff_1x3v_vy_ser_p1_upvy(const double *dxv, const double *gamma, const double* fpo_h_stencil[3], const double* fpo_dhdv_surf, double *drag_coeff);
-GKYL_CU_DH void fpo_drag_coeff_1x3v_vz_ser_p1_invz(const double *dxv, const double *gamma, const double* fpo_h_stencil[3], const double* fpo_dhdv_surf, double *drag_coeff);
-GKYL_CU_DH void fpo_drag_coeff_1x3v_vz_ser_p1_lovz(const double *dxv, const double *gamma, const double* fpo_h_stencil[3], const double* fpo_dhdv_surf, double *drag_coeff);
-GKYL_CU_DH void fpo_drag_coeff_1x3v_vz_ser_p1_upvz(const double *dxv, const double *gamma, const double* fpo_h_stencil[3], const double* fpo_dhdv_surf, double *drag_coeff);
-GKYL_CU_DH void fpo_drag_coeff_1x3v_vx_ser_p2_invx(const double *dxv, const double *gamma, const double* fpo_h_stencil[3], const double* fpo_dhdv_surf, double *drag_coeff);
-GKYL_CU_DH void fpo_drag_coeff_1x3v_vx_ser_p2_lovx(const double *dxv, const double *gamma, const double* fpo_h_stencil[3], const double* fpo_dhdv_surf, double *drag_coeff);
-GKYL_CU_DH void fpo_drag_coeff_1x3v_vx_ser_p2_upvx(const double *dxv, const double *gamma, const double* fpo_h_stencil[3], const double* fpo_dhdv_surf, double *drag_coeff);
-GKYL_CU_DH void fpo_drag_coeff_1x3v_vy_ser_p2_invy(const double *dxv, const double *gamma, const double* fpo_h_stencil[3], const double* fpo_dhdv_surf, double *drag_coeff);
-GKYL_CU_DH void fpo_drag_coeff_1x3v_vy_ser_p2_lovy(const double *dxv, const double *gamma, const double* fpo_h_stencil[3], const double* fpo_dhdv_surf, double *drag_coeff);
-GKYL_CU_DH void fpo_drag_coeff_1x3v_vy_ser_p2_upvy(const double *dxv, const double *gamma, const double* fpo_h_stencil[3], const double* fpo_dhdv_surf, double *drag_coeff);
-GKYL_CU_DH void fpo_drag_coeff_1x3v_vz_ser_p2_invz(const double *dxv, const double *gamma, const double* fpo_h_stencil[3], const double* fpo_dhdv_surf, double *drag_coeff);
-GKYL_CU_DH void fpo_drag_coeff_1x3v_vz_ser_p2_lovz(const double *dxv, const double *gamma, const double* fpo_h_stencil[3], const double* fpo_dhdv_surf, double *drag_coeff);
-GKYL_CU_DH void fpo_drag_coeff_1x3v_vz_ser_p2_upvz(const double *dxv, const double *gamma, const double* fpo_h_stencil[3], const double* fpo_dhdv_surf, double *drag_coeff);
+GKYL_CU_DH int fpo_drag_coeff_1x3v_vx_ser_p1_invx(const double *dxv, const double *gamma, 
+    const double* fpo_h_stencil[3], const double* fpo_dhdv_surf, double *drag_coeff, 
+    double *drag_coeff_surf, double *sgn_drag_coeff_surf
+    );
+
+GKYL_CU_DH int fpo_drag_coeff_1x3v_vx_ser_p1_lovx(const double *dxv, const double *gamma, 
+    const double* fpo_h_stencil[3], const double* fpo_dhdv_surf, double *drag_coeff, 
+    double *drag_coeff_surf, double *sgn_drag_coeff_surf);
+
+GKYL_CU_DH int fpo_drag_coeff_1x3v_vx_ser_p1_upvx(const double *dxv, const double *gamma, 
+    const double* fpo_h_stencil[3], const double* fpo_dhdv_surf, double *drag_coeff, 
+    double *drag_coeff_surf, double *sgn_drag_coeff_surf
+    );
+
+GKYL_CU_DH int fpo_drag_coeff_1x3v_vy_ser_p1_invy(const double *dxv, const double *gamma, 
+    const double* fpo_h_stencil[3], const double* fpo_dhdv_surf, double *drag_coeff, 
+    double *drag_coeff_surf, double *sgn_drag_coeff_surf
+    );
+
+GKYL_CU_DH int fpo_drag_coeff_1x3v_vy_ser_p1_lovy(const double *dxv, const double *gamma, 
+    const double* fpo_h_stencil[3], const double* fpo_dhdv_surf, double *drag_coeff, 
+    double *drag_coeff_surf, double *sgn_drag_coeff_surf
+    );
+
+GKYL_CU_DH int fpo_drag_coeff_1x3v_vy_ser_p1_upvy(const double *dxv, const double *gamma, 
+    const double* fpo_h_stencil[3], const double* fpo_dhdv_surf, double *drag_coeff, 
+    double *drag_coeff_surf, double *sgn_drag_coeff_surf
+    );
+
+GKYL_CU_DH int fpo_drag_coeff_1x3v_vz_ser_p1_invz(const double *dxv, const double *gamma, 
+    const double* fpo_h_stencil[3], const double* fpo_dhdv_surf, double *drag_coeff, 
+    double *drag_coeff_surf, double *sgn_drag_coeff_surf
+    );
+
+GKYL_CU_DH int fpo_drag_coeff_1x3v_vz_ser_p1_lovz(const double *dxv, const double *gamma, 
+    const double* fpo_h_stencil[3], const double* fpo_dhdv_surf, double *drag_coeff, 
+    double *drag_coeff_surf, double *sgn_drag_coeff_surf
+    );
+
+GKYL_CU_DH int fpo_drag_coeff_1x3v_vz_ser_p1_upvz(const double *dxv, const double *gamma, 
+    const double* fpo_h_stencil[3], const double* fpo_dhdv_surf, double *drag_coeff, 
+    double *drag_coeff_surf, double *sgn_drag_coeff_surf
+    );
+
+GKYL_CU_DH int fpo_drag_coeff_1x3v_vx_ser_p2_invx(const double *dxv, const double *gamma, 
+    const double* fpo_h_stencil[3], const double* fpo_dhdv_surf, double *drag_coeff, 
+    double *drag_coeff_surf, double *sgn_drag_coeff_surf
+    );
+
+GKYL_CU_DH int fpo_drag_coeff_1x3v_vx_ser_p2_lovx(const double *dxv, const double *gamma, 
+    const double* fpo_h_stencil[3], const double* fpo_dhdv_surf, double *drag_coeff, 
+    double *drag_coeff_surf, double *sgn_drag_coeff_surf
+    );
+
+GKYL_CU_DH int fpo_drag_coeff_1x3v_vx_ser_p2_upvx(const double *dxv, const double *gamma, 
+    const double* fpo_h_stencil[3], const double* fpo_dhdv_surf, double *drag_coeff, 
+    double *drag_coeff_surf, double *sgn_drag_coeff_surf
+    );
+
+GKYL_CU_DH int fpo_drag_coeff_1x3v_vy_ser_p2_invy(const double *dxv, const double *gamma, 
+    const double* fpo_h_stencil[3], const double* fpo_dhdv_surf, double *drag_coeff, 
+    double *drag_coeff_surf, double *sgn_drag_coeff_surf
+    );
+
+GKYL_CU_DH int fpo_drag_coeff_1x3v_vy_ser_p2_lovy(const double *dxv, const double *gamma, 
+    const double* fpo_h_stencil[3], const double* fpo_dhdv_surf, double *drag_coeff, 
+    double *drag_coeff_surf, double *sgn_drag_coeff_surf
+    );
+
+GKYL_CU_DH int fpo_drag_coeff_1x3v_vy_ser_p2_upvy(const double *dxv, const double *gamma, 
+    const double* fpo_h_stencil[3], const double* fpo_dhdv_surf, double *drag_coeff, 
+    double *drag_coeff_surf, double *sgn_drag_coeff_surf
+    );
+
+GKYL_CU_DH int fpo_drag_coeff_1x3v_vz_ser_p2_invz(const double *dxv, const double *gamma, 
+    const double* fpo_h_stencil[3], const double* fpo_dhdv_surf, double *drag_coeff, 
+    double *drag_coeff_surf, double *sgn_drag_coeff_surf
+    );
+
+GKYL_CU_DH int fpo_drag_coeff_1x3v_vz_ser_p2_lovz(const double *dxv, const double *gamma, 
+    const double* fpo_h_stencil[3], const double* fpo_dhdv_surf, double *drag_coeff, 
+    double *drag_coeff_surf, double *sgn_drag_coeff_surf
+    );
+
+GKYL_CU_DH int fpo_drag_coeff_1x3v_vz_ser_p2_upvz(const double *dxv, const double *gamma, 
+    const double* fpo_h_stencil[3], const double* fpo_dhdv_surf, double *drag_coeff, 
+    double *drag_coeff_surf, double *sgn_drag_coeff_surf
+    );
 
 EXTERN_C_END
