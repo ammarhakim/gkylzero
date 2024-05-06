@@ -254,7 +254,7 @@ pkpm_field_calc_bvar(gkyl_pkpm_app *app, struct pkpm_field *field,
   gkyl_array_clear(field->tot_em, 0.0);
   gkyl_array_set(field->tot_em, 1.0, em);
   if (field->has_ext_em) {
-    gkyl_array_accumulate(field->tot_em, 1.0, field->ext_em);
+    gkyl_array_accumulate_range(field->tot_em, 1.0, field->ext_em, &app->local_ext);
   }
   // Assumes magnetic field boundary conditions applied so magnetic field 
   // unit vector and unit tensor are defined everywhere in the domain
