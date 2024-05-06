@@ -28,8 +28,7 @@ gkyl_calc_cart_bmag_new(const struct gkyl_basis *basis, const struct gkyl_rect_g
  * @param psidg, psibyrdg, psibyr2dg: DG Psi(R,Z), Psi(R,Z)/R, Psi(R,Z)/R^2 on the RZ grid
  */
 void
-gkyl_calc_cart_bmag_advance(const gkyl_calc_cart_bmag *up, const struct gkyl_range *local, const struct gkyl_range *local_ext, 
-  const struct gkyl_array *psidg, const struct gkyl_array *psibyrdg, const struct gkyl_array *psibyr2dg);
+gkyl_calc_cart_bmag_advance(const gkyl_calc_cart_bmag *up, const struct gkyl_array *psidg, const struct gkyl_array *psibyrdg, const struct gkyl_array *psibyr2dg);
 
 
 /**
