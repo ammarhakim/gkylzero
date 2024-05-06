@@ -445,7 +445,7 @@ main(int argc, char **argv)
 
   // GK app
   struct gkyl_gk app_inp = {
-    .name = "gk_ion_sound_1x2v_p1_nonuniformv",
+    .name = "gk_ion_sound_nonuniformv_1x2v_p1",
 
     .cdim = 1, .vdim = 2,
     .lower = { -ctx.Lz/2.0 },

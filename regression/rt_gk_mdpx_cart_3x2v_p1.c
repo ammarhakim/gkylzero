@@ -276,8 +276,9 @@ calc_integrated_diagnostics(struct gkyl_tm_trigger* iot, gkyl_gyrokinetic_app* a
 void
 write_data(struct gkyl_tm_trigger* iot, gkyl_gyrokinetic_app* app, double t_curr, bool force_write)
 {
-  if (gkyl_tm_trigger_check_and_bump(iot, t_curr) || force_write) {
-    int frame = force_write? iot->curr : iot->curr -1;
+  bool trig_now = gkyl_tm_trigger_check_and_bump(iot, t_curr);
+  if (trig_now || force_write) {
+    int frame = (!trig_now) && force_write? iot->curr : iot->curr-1;
 
     gkyl_gyrokinetic_app_write(app, t_curr, frame);
 
@@ -586,7 +587,6 @@ main(int argc, char **argv)
     .num_diag_moments = 3,
     .diag_moments = { "M0", "M1i", "M2"},
   };
-
 
   // field
   struct gkyl_gyrokinetic_field field = {
