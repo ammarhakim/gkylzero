@@ -94,7 +94,7 @@ create_ctx(void)
     .charge = -1.0,
     .vt = 1.0,
     .B0 = 1.0, 
-    .omega = 0.5, 
+    .omega = 1.0, 
     .Lx = Lx,
     .Nx = Nx, 
     .t_end = t_end, 
@@ -162,7 +162,7 @@ main(int argc, char **argv)
 
   // pkpm app
   struct gkyl_pkpm pkpm = {
-    .name = "pkpm_em_advect_p1",
+    .name = "pkpm_em_advect_resonant_p1",
 
     .cdim = 1, .vdim = 1,
     .lower = { -ctx.Lx },
