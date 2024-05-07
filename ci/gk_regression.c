@@ -612,8 +612,8 @@ main(int argc, char **argv)
     //
     "gk_lapd_cyl_3x2v_p1",
     "gk_lbo_relax_1x2v_p1",
-    "gk_lbo_relax_bimaxwellian_1x2v_p1",
-    "gk_lbo_relax_bimaxwellian_3x2v_p1",
+    "gk_lbo_relax_bimaxwellian_nonuniformv_1x2v_p1",
+    "gk_lbo_relax_bimaxwellian_nonuniformv_3x2v_p1",
     "gk_lbo_relax_varnu_1x2v_p1",
     //
     "gk_li_react_3x2v_p1",
@@ -646,8 +646,8 @@ main(int argc, char **argv)
     //
     "3x2v_p1 LAPD test in cylindrical coordinates",
     "1x2v_p1 LBO relaxation test",
-    "1x2v_p1 LBO relaxation test w/ bimaxwellians",
-    "3x2v_p1 LBO relaxation test w/ bimaxwellians",
+    "1x2v_p1 LBO relaxation test w/ bimaxwellians and nonuniform v",
+    "3x2v_p1 LBO relaxation test w/ bimaxwellians and nonuniform v",
     "1x2v_p1 LBO relaxation test w/ nu(x,t)",
     //
     "3x2v_p1 Li reactions test",
