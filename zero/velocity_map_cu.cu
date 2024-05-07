@@ -9,7 +9,7 @@ extern "C" {
 
 struct gkyl_velocity_map* gkyl_velocity_map_new_cu_dev(struct gkyl_velocity_map *gvm_ho)
 {
-  struct gkyl_velocity_map *gvm = gkyl_malloc(sizeof(*gvm));
+  struct gkyl_velocity_map *gvm = (struct gkyl_velocity_map *) gkyl_malloc(sizeof(*gvm));
 
   gvm->is_identity   = gvm_ho->is_identity;
   gvm->grid          = gvm_ho->grid;

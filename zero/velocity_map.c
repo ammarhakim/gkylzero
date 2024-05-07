@@ -25,7 +25,7 @@ gkyl_velocity_map_free(const struct gkyl_ref_count *ref)
   struct gkyl_velocity_map *gvm = container_of(ref, struct gkyl_velocity_map, ref_count);
 
 #ifdef GKYL_HAVE_CUDA
-  if (use_gpu)
+  if (gkyl_velocity_map_is_cu_dev(gvm))
     gkyl_cart_modal_basis_release_cu(gvm->vmap_basis);
   else
     gkyl_cart_modal_basis_release(gvm->vmap_basis);
