@@ -58,7 +58,7 @@ struct mom_type_bcorr_lbo_gyrokinetic {
   struct gkyl_mom_type momt;
   lbo_gyrokinetic_momf_t kernel; // moment calculation kernel
   double _m; // mass of species
-  struct gkyl_velocity_map *vel_map; // Velocity space mapping object.
+  const struct gkyl_velocity_map *vel_map; // Velocity space mapping object.
 };
 
 void gk_mom_free(const struct gkyl_ref_count *ref);
@@ -88,6 +88,6 @@ kernel(const struct gkyl_mom_type *momt, const double *xc, const double *dx,
  */
 struct gkyl_mom_type* 
 gkyl_mom_bcorr_lbo_gyrokinetic_cu_dev_new(const struct gkyl_basis* cbasis, 
-  const struct gkyl_basis* pbasis, double mass, const struct gkyl_array *vel_map);
+  const struct gkyl_basis* pbasis, double mass, const struct gkyl_velocity_map *vel_map);
 
 #endif
