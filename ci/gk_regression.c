@@ -595,46 +595,238 @@ regenerateTest(const char* test_name, const int test_output_count, const char te
 int
 main(int argc, char **argv)
 {
-  int test_count = 11;
-  char test_names[11][64] = {
+  const int test_count = 34;
+  char test_names[test_count][64] = {
+    // Please list in alphabetic order.
+    "gk_asdex_3x2v_p1",
+    "gk_bgk_3x2v_p1",
+    "gk_bgk_relax_1x2v_p1",
+    "gk_bgk_relax_bimaxwellian_1x2v_p1",
+    "gk_bgk_relax_bimaxwellian_nonuniformv_1x2v_p1",
+    //
+    "gk_d3d_iwl_2x2v_p1",
+    "gk_ion_sound_1x2v_p1",
+    "gk_ion_sound_nonuniformv_1x2v_p1",
+    "gk_ion_sound_adiabatic_elc_1x2v_p1",
+    "gk_lapd_cart_3x2v_p1",
+    //
+    "gk_lapd_cyl_3x2v_p1",
+    "gk_lbo_relax_1x2v_p1",
+    "gk_lbo_relax_bimaxwellian_1x2v_p1",
+    "gk_lbo_relax_bimaxwellian_3x2v_p1",
+    "gk_lbo_relax_varnu_1x2v_p1",
+    //
+    "gk_li_react_3x2v_p1",
+    "gk_ltx_1x2v_p1",
+    "gk_ltx_boltz_elc_1x2v_p1",
+    "gk_mdpx_cart_3x2v_p1",
+    "gk_mirror_boltz_elc_1x2v_p1",
+    //
+    "gk_mirror_boltz_elc_nonuniformz_1x2v_p1",
+    "gk_mirror_kinetic_elc_1x2v_p1",
+    "gk_rad_1x2v_p1",
+    //
     "gk_sheath_1x2v_p1",
     "gk_sheath_2x2v_p1",
     "gk_sheath_3x2v_p1",
-    "gk_lapd_cart_3x2v_p1",
-    "gk_lapd_cyl_3x2v_p1",
-    "gk_lbo_relax_1x2v_p1",
-    "gk_lbo_relax_varnu_1x2v_p1",
-    "gk_rad_1x2v_p1",
-    "gk_bgk_3x2v_p1",
-    "gk_bgk_relax_1x2v_p1",
-    "gk_ion_sound_adiabatic_elc_1x2v_p1",
+    "gk_step_out_2x2v_p1",
   };
-  char test_names_human[11][128] = {
-    "1x2v Sheath Boundary Test with p = 1",
-    "2x2v Sheath Boundary Test with p = 1",
-    "3x2v Sheath Boundary Test with p = 1",
-    "3x2v LAPD Test (in Cartesian coordinates) with p = 1",
-    "3x2v LAPD Test (in cylindrical coordinates) with p = 1",
-    "1x2v LBO Collision Relaxation Test with p = 1",
-    "1x2v LBO Collision Relaxation Test (with variable collision frequency) with p = 1",
-    "1x2v Radiation Operator Test with p = 1",
-    "3x2v BGK Collision Test with p = 1",
-    "1x2v BGK Collision Relaxation Test with p = 1",
-    "1x2v Ion Sound Test (with adiabatic electrons) with p = 1",
+  char test_names_human[test_count][128] = {
+    "3x2v_p1 ASDEX test",
+    "3x2v_p1 BGK collision test",
+    "1x2v_p1 BGK collision relaxation test",
+    "1x2v_p1 BGK relaxation test w/ bimaxwellians",
+    "1x2v_p1 BGK relaxation test w/ bimaxwellians and nonuniform v",
+    //
+    "2x2v_p1 DIII-D IWL test",
+    "1x2v_p1 Ion sound test",
+    "1x2v_p1 Ion sound test w/ nonuniform v",
+    "1x2v_p1 Ion sound test w/ adiabatic electrons",
+    "3x2v_p1 LAPD test in Cartesian coordinates",
+    //
+    "3x2v_p1 LAPD test in cylindrical coordinates",
+    "1x2v_p1 LBO relaxation test",
+    "1x2v_p1 LBO relaxation test w/ bimaxwellians",
+    "3x2v_p1 LBO relaxation test w/ bimaxwellians",
+    "1x2v_p1 LBO relaxation test w/ nu(x,t)",
+    //
+    "3x2v_p1 Li reactions test",
+    "1x2v_p1 LTX SOL test",
+    "1x2v_p1 LTX SOL test w/ Boltzmann electrons",
+    "3x2v_p1 MDPX test",
+    "1x2v_p1 mirror test w/ Boltzmann electrons",
+    //
+    "1x2v_p1 mirror test w/ Boltzmann electrons and nonuniform z",
+    "1x2v_p1 mirror test w/ kinetic electrons",
+    "1x2v_p1 Radiation operator test",
+    "1x2v_p1 Sheath test",
+    "2x2v_p1 Sheath test",
+    //
+    "3x2v_p1 Sheath test",
+    "1x2v_p1 Sheath test w/ BGK operator",
+    "1x2v_p1 Sheath test w/ nonuniform v",
+    "2x2v_p1 Sheath test w/ nonuniform v",
+    "3x2v_p1 Sheath test w/ nonuniform v",
+    //
+    "3x2v_p1 Solovev (outboard SOL) test",
+    "2x2v_p1 STEP (outboard SOL)test",
+    "1x2v_p1 WHAM test",
+    "2x2v_p1 WHAM test",
   };
-  int test_output_count[11] = { 6, 6, 6, 6, 6, 4, 4, 6, 6, 4, 2 };
-  char test_outputs[11][64][64] = {
-    { "elc_1", "elc_source_1", "ion_1", "ion_source_1", "elc_integrated_moms", "ion_integrated_moms" },
-    { "elc_1", "elc_source_1", "ion_1", "ion_source_1", "elc_integrated_moms", "ion_integrated_moms" },
-    { "elc_1", "elc_source_1", "ion_1", "ion_source_1", "elc_integrated_moms", "ion_integrated_moms" },
-    { "elc_1", "elc_source_1", "ion_1", "ion_source_1", "elc_integrated_moms", "ion_integrated_moms" },
-    { "elc_1", "elc_source_1", "ion_1", "ion_source_1", "elc_integrated_moms", "ion_integrated_moms" },
-    { "bump_1", "square_1", "bump_integrated_moms", "square_integrated_moms" },
-    { "bump_1", "square_1", "bump_integrated_moms", "square_integrated_moms" },
-    { "elc_1", "elc_nvnu_1", "elc_nvsqnu_1", "ion_1", "elc_integrated_moms", "ion_integrated_moms" },
-    { "elc_1", "elc_source_1", "ion_1", "ion_source_1", "elc_integrated_moms", "ion_integrated_moms" },
-    { "bump_1", "square_1", "bump_integrated_moms", "square_integrated_moms" },
-    { "ion_1", "ion_integrated_moms" },
+  int test_output_count[test_count] = { 
+    14, 14, 8, 10, 14,
+    14, 12, 16, 4, 14,
+    14, 8, 10, 10, 8,
+    32, 14, 4, 23, 8,
+    8, 14, 16, 14, 14,
+    14, 14, 18, 18, 18,
+    14, 25, 14, 14,
+  };
+  char test_outputs[test_count][64][64] = {
+    {
+      "elc_1", "elc_source_1", "elc_M0_1", "elc_M1_1", "elc_M2_1", "elc_integrated_moms",
+      "ion_1", "ion_source_1", "ion_M0_1", "ion_M1_1", "ion_M2_1", "ion_integrated_moms", "field_1", "field_energy"
+    },
+    {
+      "elc_1", "elc_source_1", "elc_M0_1", "elc_M1_1", "elc_M2_1", "elc_integrated_moms",
+      "ion_1", "ion_source_1", "ion_M0_1", "ion_M1_1", "ion_M2_1", "ion_integrated_moms", "field_1", "field_energy"
+    },
+    { 
+      "square_1", "square_M0_1", "square_M1_1", "square_integrated_moms",
+      "bump_1", "bump_M0_1", "bump_M1_1", "bump_integrated_moms",
+    },
+    {
+      "elc_1", "elc_M0_1", "elc_M1_1", "elc_M2par_1", "elc_M2perp_1",
+      "ion_1", "ion_M0_1", "ion_M1_1", "ion_M2par_1", "ion_M2perp_1",
+    },
+    {
+      "elc_1", "elc_M0_1", "elc_M1_1", "elc_M2par_1", "elc_M2perp_1", "elc_mapc2p_vel", "elc_jacobvel",
+      "ion_1", "ion_M0_1", "ion_M1_1", "ion_M2par_1", "ion_M2perp_1", "ion_mapc2p_vel", "ion_jacobvel",
+    },
+//
+    {
+      "elc_1", "elc_source_1", "elc_M0_1", "elc_M1_1", "elc_M2_1", "elc_integrated_moms",
+      "ion_1", "ion_source_1", "ion_M0_1", "ion_M1_1", "ion_M2_1", "ion_integrated_moms", "field_1", "field_energy"
+    },
+    {
+      "elc_1", "elc_M0_1", "elc_M1_1", "elc_M2_1", "elc_integrated_moms",
+      "ion_1", "ion_M0_1", "ion_M1_1", "ion_M2_1", "ion_integrated_moms", "field_1", "field_energy"
+    },
+    {
+      "elc_1", "elc_M0_1", "elc_M1_1", "elc_M2_1", "elc_integrated_moms", "elc_mapc2p_vel", "elc_jacobvel",
+      "ion_1", "ion_M0_1", "ion_M1_1", "ion_M2_1", "ion_integrated_moms", "ion_mapc2p_vel", "ion_jacobvel", "field_1", "field_energy"
+    },
+    { 
+      "ion_1", "ion_integrated_moms", "field_1", "field_energy"
+    },
+    {
+      "elc_1", "elc_source_1", "elc_M0_1", "elc_M1_1", "elc_M2_1", "elc_integrated_moms",
+      "ion_1", "ion_source_1", "ion_M0_1", "ion_M1_1", "ion_M2_1", "ion_integrated_moms", "field_1", "field_energy",
+    },
+//
+    {
+      "elc_1", "elc_source_1", "elc_M0_1", "elc_M1_1", "elc_M2_1", "elc_integrated_moms",
+      "ion_1", "ion_source_1", "ion_M0_1", "ion_M1_1", "ion_M2_1", "ion_integrated_moms", "field_1", "field_energy",
+    },
+    { 
+      "square_1", "square_M0_1", "square_M1_1", "square_integrated_moms",
+      "bump_1", "bump_M0_1", "bump_M1_1", "bump_integrated_moms",
+    },
+    {
+      "elc_1", "elc_M0_1", "elc_M1_1", "elc_M2par_1", "elc_M2perp_1",
+      "ion_1", "ion_M0_1", "ion_M1_1", "ion_M2par_1", "ion_M2perp_1",
+    },
+    {
+      "elc_1", "elc_M0_1", "elc_M1_1", "elc_M2par_1", "elc_M2perp_1",
+      "ion_1", "ion_M0_1", "ion_M1_1", "ion_M2par_1", "ion_M2perp_1",
+    },
+    { 
+      "square_1", "square_M0_1", "square_M1_1", "square_integrated_moms",
+      "bump_1", "bump_M0_1", "bump_M1_1", "bump_integrated_moms",
+    },
+//
+    {
+      "elc_1", "elc_source_1", "elc_M0_1", "elc_M1_1", "elc_M2par_1", "elc_M2perp_1", "elc_Li2_Li1_iz_react_1", "elc_Li2_Li1_recomb_react_1", "elc_integrated_moms",
+      "ion_1", "ion_source_1", "ion_M0_1", "ion_M1_1", "ion_M2par_1", "ion_M2perp_1", "ion_integrated_moms", "field_1", "field_energy",
+      "Li1_1", "Li1_source_1", "Li1_M0_1", "Li1_M1_1", "Li1_M2par_1", "Li1_M2perp_1", "Li1_integrated_moms",
+      "Li2_1", "Li2_source_1", "Li2_M0_1", "Li2_M1_1", "Li2_M2par_1", "Li2_M2perp_1", "Li2_integrated_moms",
+    },
+    {
+      "elc_1", "elc_source_1", "elc_M0_1", "elc_M1_1", "elc_M2_1", "elc_integrated_moms",
+      "ion_1", "ion_source_1", "ion_M0_1", "ion_M1_1", "ion_M2_1", "ion_integrated_moms", "field_1", "field_energy",
+    },
+    { 
+      "ion_1", "ion_integrated_moms", "field_1", "field_energy"
+    },
+    {
+      "elc_1", "elc_M0_1", "elc_M1_1", "elc_M2_1", "elc_integrated_moms", "elc_Ar1_Ar0_iz_react_neut_1", "elc_Ar1_Ar0_recomb_react_neut_1",
+      "ion_1", "ion_M0_1", "ion_M1_1", "ion_M2_1", "ion_integrated_moms", "field_1", "field_energy",
+      "Ar0_0", "Ar0_M0_0", "Ar0_M1i_0", "Ar0_M2_0",
+      "Ar1_1", "Ar1_M0_1", "Ar1_M1_1", "Ar1_M2_1", "Ar1_integrated_moms",
+    },
+    {
+      "ion_1", "ion_source_1", "ion_M0_1", "ion_M1_1", "ion_M2_1", "ion_integrated_moms", "field_1", "field_energy",
+    },
+//
+    {
+      "ion_1", "ion_source_1", "ion_M0_1", "ion_M1_1", "ion_M2_1", "ion_integrated_moms", "field_1", "field_energy",
+    },
+    {
+      "elc_1", "elc_source_1", "elc_M0_1", "elc_M1_1", "elc_M2_1", "elc_integrated_moms",
+      "ion_1", "ion_source_1", "ion_M0_1", "ion_M1_1", "ion_M2_1", "ion_integrated_moms", "field_1", "field_energy",
+    },
+    {
+      "elc_1", "elc_source_1", "elc_M0_1", "elc_M1_1", "elc_M2_1", "elc_integrated_moms", "elc_adiation_integrated_moms",
+      "ion_1", "ion_source_1", "ion_M0_1", "ion_M1_1", "ion_M2_1", "ion_integrated_moms", "ion_emissivity_1", "field_1", "field_energy",
+    },
+    {
+      "elc_1", "elc_source_1", "elc_M0_1", "elc_M1_1", "elc_M2_1", "elc_integrated_moms",
+      "ion_1", "ion_source_1", "ion_M0_1", "ion_M1_1", "ion_M2_1", "ion_integrated_moms", "field_1", "field_energy",
+    },
+    {
+      "elc_1", "elc_source_1", "elc_M0_1", "elc_M1_1", "elc_M2_1", "elc_integrated_moms",
+      "ion_1", "ion_source_1", "ion_M0_1", "ion_M1_1", "ion_M2_1", "ion_integrated_moms", "field_1", "field_energy",
+    },
+//
+    {
+      "elc_1", "elc_source_1", "elc_M0_1", "elc_M1_1", "elc_M2_1", "elc_integrated_moms",
+      "ion_1", "ion_source_1", "ion_M0_1", "ion_M1_1", "ion_M2_1", "ion_integrated_moms", "field_1", "field_energy",
+    },
+    {
+      "elc_1", "elc_source_1", "elc_M0_1", "elc_M1_1", "elc_M2_1", "elc_integrated_moms",
+      "ion_1", "ion_source_1", "ion_M0_1", "ion_M1_1", "ion_M2_1", "ion_integrated_moms", "field_1", "field_energy",
+    },
+    {
+      "elc_1", "elc_source_1", "elc_M0_1", "elc_M1_1", "elc_M2_1", "elc_integrated_moms", "elc_mapc2p_vel", "elc_jacobvel",
+      "ion_1", "ion_source_1", "ion_M0_1", "ion_M1_1", "ion_M2_1", "ion_integrated_moms", "ion_mapc2p_vel", "ion_jacobvel", "field_1", "field_energy",
+    },
+    {
+      "elc_1", "elc_source_1", "elc_M0_1", "elc_M1_1", "elc_M2_1", "elc_integrated_moms", "elc_mapc2p_vel", "elc_jacobvel",
+      "ion_1", "ion_source_1", "ion_M0_1", "ion_M1_1", "ion_M2_1", "ion_integrated_moms", "ion_mapc2p_vel", "ion_jacobvel", "field_1", "field_energy",
+    },
+    {
+      "elc_1", "elc_source_1", "elc_M0_1", "elc_M1_1", "elc_M2_1", "elc_integrated_moms", "elc_mapc2p_vel", "elc_jacobvel",
+      "ion_1", "ion_source_1", "ion_M0_1", "ion_M1_1", "ion_M2_1", "ion_integrated_moms", "ion_mapc2p_vel", "ion_jacobvel", "field_1", "field_energy",
+    },
+//
+    {
+      "elc_1", "elc_source_1", "elc_M0_1", "elc_M1_1", "elc_M2_1", "elc_integrated_moms",
+      "ion_1", "ion_source_1", "ion_M0_1", "ion_M1_1", "ion_M2_1", "ion_integrated_moms", "field_1", "field_energy",
+    },
+    {
+      "elc_1", "elc_M0_1", "elc_M1_1", "elc_M2_1", "elc_integrated_moms", "elc_Ar1_Ar0_iz_react_neut_1", "elc_Ar1_Ar0_recomb_react_neut_1", "elc_emissivity_Ar1_1", "elc_radiation_integrated_moms",
+      "ion_1", "ion_M0_1", "ion_M1_1", "ion_M2_1", "ion_integrated_moms", "field_1", "field_energy",
+      "Ar0_0", "Ar0_M0_0", "Ar0_M1i_0", "Ar0_M2_0",
+      "Ar1_1", "Ar1_M0_1", "Ar1_M1_1", "Ar1_M2_1", "Ar1_integrated_moms",
+    },
+    {
+      "elc_1", "elc_source_1", "elc_M0_1", "elc_M1_1", "elc_M2_1", "elc_integrated_moms",
+      "ion_1", "ion_source_1", "ion_M0_1", "ion_M1_1", "ion_M2_1", "ion_integrated_moms", "field_1", "field_energy",
+    },
+    {
+      "elc_1", "elc_source_1", "elc_M0_1", "elc_M1_1", "elc_M2_1", "elc_integrated_moms",
+      "ion_1", "ion_source_1", "ion_M0_1", "ion_M1_1", "ion_M2_1", "ion_integrated_moms", "field_1", "field_energy",
+    },
   };
 
   system("clear");

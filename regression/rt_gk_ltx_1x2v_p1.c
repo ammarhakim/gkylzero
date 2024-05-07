@@ -51,9 +51,9 @@ struct gk_app_ctx {
   double n_src;  double Te_src;  double Ti_src;
 
   // Grid parameters.
-  int num_cell_z;
-  int num_cell_vpar;
-  int num_cell_mu;
+  int Nz;
+  int Nvpar;
+  int Nmu;
   int poly_order;
   double vpar_max_elc;  double mu_max_elc;
   double vpar_max_ion;  double mu_max_ion;
@@ -379,9 +379,9 @@ create_ctx(void)
   double Ti_src = 40*eV;
 
   // Grid parameters
-  int num_cell_z = 64;
-  int num_cell_vpar = 16;
-  int num_cell_mu = 45;
+  int Nz = 64;
+  int Nvpar = 16;
+  int Nmu = 45;
   int poly_order = 1;
 
   double vpar_max_elc = 4.*vte;
@@ -389,7 +389,7 @@ create_ctx(void)
   double vpar_max_ion = 4.*vti;
   double mu_max_ion = mi*pow(1.5*4*vti,2)/(2*B0);
 
-  double t_end = 1e-7;
+  double t_end = 6.0e-8;
   int num_frames = 1;
   int int_diag_calc_num = num_frames*100;
   double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.
@@ -419,9 +419,9 @@ create_ctx(void)
   
     .n_src = n_src,  .Te_src = Te_src,  .Ti_src = Ti_src,
   
-    .num_cell_z = num_cell_z,
-    .num_cell_vpar = num_cell_vpar,
-    .num_cell_mu = num_cell_mu,
+    .Nz = Nz,
+    .Nvpar = Nvpar,
+    .Nmu = Nmu,
     .poly_order = poly_order,
     .vpar_max_elc = vpar_max_elc,  .mu_max_elc = mu_max_elc,
     .vpar_max_ion = vpar_max_ion,  .mu_max_ion = mu_max_ion,
@@ -481,7 +481,9 @@ int main(int argc, char **argv)
 
   struct gk_app_ctx ctx = create_ctx(); // context for init functions
 
-  int NZ = APP_ARGS_CHOOSE(app_args.xcells[0], ctx.num_cell_z);
+  int NZ = APP_ARGS_CHOOSE(app_args.xcells[0], ctx.Nz);
+  int NVPAR = APP_ARGS_CHOOSE(app_args.vcells[0], ctx.Nvpar);
+  int NMU = APP_ARGS_CHOOSE(app_args.vcells[1], ctx.Nmu);
 
   // Create global range.
   int ccells[] = { NZ };
@@ -562,7 +564,7 @@ int main(int argc, char **argv)
     .charge = ctx.qe, .mass = ctx.me,
     .lower = { -ctx.vpar_max_elc, 0.0},
     .upper = {  ctx.vpar_max_elc, ctx.mu_max_elc}, 
-    .cells = {  ctx.num_cell_vpar, ctx.num_cell_mu },
+    .cells = {  NVPAR, NMU },
     .polarization_density = ctx.n0,
 
     .projection = {
@@ -611,7 +613,7 @@ int main(int argc, char **argv)
     .charge = ctx.qi, .mass = ctx.mi,
     .lower = { -ctx.vpar_max_ion, 0.0},
     .upper = {  ctx.vpar_max_ion, ctx.mu_max_ion}, 
-    .cells = {  ctx.num_cell_vpar, ctx.num_cell_mu },
+    .cells = {  NVPAR, NMU },
     .polarization_density = ctx.n0,
 
     .projection = {
@@ -667,7 +669,7 @@ int main(int argc, char **argv)
     .cdim = 1, .vdim = 2,
     .lower = { ctx.z_min },
     .upper = { ctx.z_max },
-    .cells = { ctx.num_cell_z },
+    .cells = { ctx.Nz },
     .poly_order = ctx.poly_order,
     .basis_type = app_args.basis_type,
 
@@ -694,7 +696,6 @@ int main(int argc, char **argv)
       .comm = comm
     }
   };
-
 
   // Create app object.
   gkyl_gyrokinetic_app *app = gkyl_gyrokinetic_app_new(&gk);

@@ -89,9 +89,9 @@ struct gk_mirror_ctx
   // Grid parameters
   double vpar_max_ion;
   double mu_max_ion;
-  int num_cell_vpar;
-  int num_cell_mu;
-  int num_cell_z;
+  int Nz;
+  int Nvpar;
+  int Nmu;
   int poly_order;
   double t_end;
   int num_frames;
@@ -188,7 +188,7 @@ Z_psiz(double psiIn, double zIn, void *ctx)
 {
   struct gk_mirror_ctx *app = ctx;
   double maxL = app->Z_max - app->Z_min;
-  double eps = maxL / app->num_cell_z;   // Interestingly using a smaller eps yields larger errors in some geo quantities.
+  double eps = maxL / app->Nz;   // Interestingly using a smaller eps yields larger errors in some geo quantities.
   app->psi_in = psiIn;
   app->z_in = zIn;
   struct gkyl_qr_res Zout;
@@ -665,11 +665,12 @@ create_ctx(void)
   // Grid parameters
   double vpar_max_ion = 20 * vti;
   double mu_max_ion = mi * pow(3. * vti, 2.) / (2. * B_p);
-  int num_cell_vpar = 64; // Number of cells in the paralell velocity direction 96
-  int num_cell_mu = 192;  // Number of cells in the mu direction 192
-  int num_cell_z = 128;
+  int Nz = 32;
+  int Nvpar = 32; // Number of cells in the paralell velocity direction 96
+  int Nmu = 48;  // Number of cells in the mu direction 192
   int poly_order = 1;
-  double t_end = 1e-9;
+
+  double t_end = 1.0e-7;
   int num_frames = 1;
   int int_diag_calc_num = num_frames*100;
   double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.
@@ -745,9 +746,9 @@ create_ctx(void)
     .TSrcFloorIon = TSrcFloorIon,
     .vpar_max_ion = vpar_max_ion,
     .mu_max_ion = mu_max_ion,
-    .num_cell_z = num_cell_z,
-    .num_cell_vpar = num_cell_vpar,
-    .num_cell_mu = num_cell_mu,
+    .Nz = Nz,
+    .Nvpar = Nvpar,
+    .Nmu = Nmu,
     .poly_order = poly_order,
     .t_end = t_end,
     .num_frames = num_frames,
@@ -758,7 +759,7 @@ create_ctx(void)
   };
   calculate_mirror_throat_location(&ctx);
   // Printing
-  double dxi = (ctx.z_max - ctx.z_min) / ctx.num_cell_z;
+  double dxi = (ctx.z_max - ctx.z_min) / ctx.Nz;
   if (ctx.mapping_frac == 0.0)
   {
     printf("Uniform cell spacing in z: %g m\n", dxi);
@@ -772,7 +773,7 @@ create_ctx(void)
     double diff_z_p50 = z_xi(ctx.z_m * .5  + dxi/2, ctx.psi_eval, &ctx) - z_xi(ctx.z_m * .5  - dxi/2, ctx.psi_eval, &ctx);
     double diff_z_p25 = z_xi(ctx.z_m * .25 + dxi/2, ctx.psi_eval, &ctx) - z_xi(ctx.z_m * .25 - dxi/2, ctx.psi_eval, &ctx);
     double diff_z_min = z_xi(dxi/2, ctx.psi_eval, &ctx) - z_xi(-dxi/2, ctx.psi_eval, &ctx);
-    printf("Total number of cells in z   : %d\n", ctx.num_cell_z);
+    printf("Total number of cells in z   : %d\n", ctx.Nz);
     printf("Uniform computational spacing: %g m\n", dxi);
     printf("Maximum cell spacing at z_m  : %g m\n", diff_z_max);
     printf("Cell spacing at z_m * 0.75   : %g m\n", diff_z_p75);
@@ -828,10 +829,12 @@ int main(int argc, char **argv)
     gkyl_cu_dev_mem_debug_set(true);
     gkyl_mem_debug_set(true);
   }
-  struct gk_mirror_ctx ctx = create_ctx(); // context for init functions
-  int NZ = APP_ARGS_CHOOSE(app_args.xcells[0], ctx.num_cell_z);
-  int NVPAR = APP_ARGS_CHOOSE(app_args.vcells[0], ctx.num_cell_vpar);
-  int NMU = APP_ARGS_CHOOSE(app_args.vcells[1], ctx.num_cell_mu);
+
+  struct gk_mirror_ctx ctx = create_ctx();
+
+  int NZ = APP_ARGS_CHOOSE(app_args.xcells[0], ctx.Nz);
+  int NVPAR = APP_ARGS_CHOOSE(app_args.vcells[0], ctx.Nvpar);
+  int NMU = APP_ARGS_CHOOSE(app_args.vcells[1], ctx.Nmu);
 
   // Create global range.
   int ccells[] = { NZ };
@@ -914,6 +917,7 @@ int main(int argc, char **argv)
     .upper = {ctx.vpar_max_ion, ctx.mu_max_ion},
     .cells = {NVPAR, NMU},
     .polarization_density = ctx.n0,
+
     .projection = {
       .proj_id = GKYL_PROJ_BIMAXWELLIAN, 
       .ctx_density = &ctx,
@@ -925,11 +929,13 @@ int main(int argc, char **argv)
       .ctx_tempperp = &ctx,
       .tempperp = eval_temp_perp_ion,   
     },
+
     .collisions =  {
       .collision_id = GKYL_LBO_COLLISIONS,
       .ctx = &ctx,
       .self_nu = evalNuIon,
     },
+
     .source = {
       .source_id = GKYL_PROJ_SOURCE,
       .write_source = true,
@@ -944,13 +950,16 @@ int main(int argc, char **argv)
         .temp = eval_temp_ion_source,      
       }, 
     },
+
     .bcx = {
       .lower={.type = GKYL_SPECIES_GK_SHEATH,},
       .upper={.type = GKYL_SPECIES_GK_SHEATH,},
     },
+
     .num_diag_moments = 7,
     .diag_moments = {"M0", "M1", "M2", "M2par", "M2perp", "M3par", "M3perp"},
   };
+
   struct gkyl_gyrokinetic_field field = {
     .gkfield_id = GKYL_GK_FIELD_BOLTZMANN,
     .electron_mass = ctx.me,
@@ -959,29 +968,36 @@ int main(int argc, char **argv)
     .polarization_bmag = ctx.B_p, // Issue here. B0 from soloviev, so not sure what to do. Ours is not constant
     .fem_parbc = GKYL_FEM_PARPROJ_NONE,
   };
-  struct gkyl_gk gk = {  // GK app
-    .name = "gk_mirror_boltz_elc_1x2v_p1_nonuniform",
-    .cdim = 1,
-    .vdim = 2,
+
+  struct gkyl_gk app_inp = {  // GK app
+    .name = "gk_mirror_boltz_elc_nonuniformz_1x2v_p1",
+    .cdim = 1,  .vdim = 2,
     .lower = {ctx.z_min},
     .upper = {ctx.z_max},
     .cells = {NZ},
     .poly_order = ctx.poly_order,
     .basis_type = app_args.basis_type,
+
     .geometry = {
       .geometry_id = GKYL_MAPC2P,
       .world = {ctx.psi_eval, 0.0},
       .mapc2p = mapc2p, // mapping of computational to physical space
       .c2p_ctx = &ctx,
       .bmag_func = bmag_func, // magnetic field magnitude
-      .bmag_ctx = &ctx},
+      .bmag_ctx = &ctx
+    },
+
     .num_periodic_dir = 0,
     .periodic_dirs = {},
+
     .num_species = 1,
     .species = {ion},
+
     .field = field,
     .skip_field = true,
+
     .use_gpu = app_args.use_gpu,
+
     .has_low_inp = true,
     .low_inp = {
       .local_range = decomp->ranges[my_rank],
@@ -990,7 +1006,7 @@ int main(int argc, char **argv)
   };
 
   // Create app object.
-  gkyl_gyrokinetic_app *app = gkyl_gyrokinetic_app_new(&gk);
+  gkyl_gyrokinetic_app *app = gkyl_gyrokinetic_app_new(&app_inp);
 
   // Initial and final simulation times.
   int frame_curr = 0;

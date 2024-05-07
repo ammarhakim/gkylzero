@@ -617,7 +617,7 @@ main(int argc, char **argv)
       .comm = comm
     }
   };
-  //
+
   // Create app object.
   gkyl_gyrokinetic_app *app = gkyl_gyrokinetic_app_new(&app_inp);
 
