@@ -15,6 +15,7 @@ gk_species_projection_init(struct gkyl_gyrokinetic_app *app, struct gk_species *
         .num_ret_vals = 1,
         .eval = inp.func,
         .ctx = inp.ctx_func,
+        .vel_map = s->vel_map,
       }
     );
     if (app->use_gpu) {
@@ -144,6 +145,9 @@ gk_species_projection_calc(gkyl_gyrokinetic_app *app, const struct gk_species *s
     // Multiply by the gyrocenter coord jacobian (bmag).
     gkyl_dg_mul_conf_phase_op_range(&app->confBasis, &app->basis, f, 
         app->gk_geom->bmag, f, &app->local, &s->local);      
+
+    // Multiply by the velocity space jacobian.
+    gkyl_array_scale_by_cell(f, s->vel_map->jacobvel);
   }
   else if (proj->proj_id == GKYL_PROJ_MAXWELLIAN_PRIM) { 
     gkyl_proj_on_basis_advance(proj->proj_dens, tm, &app->local_ext, proj->dens); 

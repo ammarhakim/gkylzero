@@ -89,7 +89,7 @@ create_ctx(void)
   double vpar_max = 8.0 * vt; // Domain boundary (velocity space: parallel velocity direction).
   double mu_max = 0.5 * pow(3.5*vt,2.0) / B0; // Domain boundary (velocity space: magnetic moment direction).
 
-  double t_end = 0.5/nu; // Final simulation time.
+  double t_end = 0.01/nu; // Final simulation time.
   int num_frames = 1; // Number of output frames.
   int int_diag_calc_num = num_frames*100;
   double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.
@@ -191,6 +191,21 @@ mapc2p(double t, const double* GKYL_RESTRICT zc, double* GKYL_RESTRICT xp, void*
 {
   // Set physical coordinates (X, Y, Z) from computational coordinates (x, y, z).
   xp[0] = zc[0]; xp[1] = zc[1]; xp[2] = zc[2];
+}
+
+void mapc2p_vel(double t, const double *zc, double* GKYL_RESTRICT vp, void *ctx)
+{
+  struct lbo_relax_ctx *app = ctx;
+  double vpar_max = app->vpar_max;
+  double mu_max = app->mu_max;
+
+  double cvpar = zc[0], cmu = zc[1];
+  // Quadratic map.
+  if (cvpar < 0.)
+    vp[0] = -vpar_max*pow(cvpar,2);
+  else
+    vp[0] =  vpar_max*pow(cvpar,2);
+  vp[1] = mu_max*pow(cmu,2);
 }
 
 void
@@ -347,10 +362,18 @@ main(int argc, char **argv)
   struct gkyl_gyrokinetic_species square = {
     .name = "square",
     .charge = ctx.charge, .mass = ctx.mass,
-    .lower = { -ctx.vpar_max, 0.0 },
-    .upper = { ctx.vpar_max, ctx.mu_max }, 
+//    .lower = { -ctx.vpar_max, 0.0 },
+//    .upper = {  ctx.vpar_max, ctx.mu_max }, 
+    .lower = { -1.0, 0.0 },
+    .upper = {  1.0, 1.0 }, 
     .cells = { NVPAR, NMU },
     .polarization_density = ctx.n0,
+
+    .mapc2p = {
+      .user_map = true,
+      .mapping = mapc2p_vel,
+      .ctx = &ctx,
+    },
 
     .projection = {
       .proj_id = GKYL_PROJ_FUNC,
@@ -373,10 +396,18 @@ main(int argc, char **argv)
   struct gkyl_gyrokinetic_species bump = {
     .name = "bump",
     .charge = ctx.charge, .mass = ctx.mass,
-    .lower = { -ctx.vpar_max, 0.0 },
-    .upper = {  ctx.vpar_max, ctx.mu_max }, 
+//    .lower = { -ctx.vpar_max, 0.0 },
+//    .upper = {  ctx.vpar_max, ctx.mu_max }, 
+    .lower = { -1.0, 0.0 },
+    .upper = {  1.0, 1.0 }, 
     .cells = { NVPAR, NMU },
     .polarization_density = ctx.n0,
+
+    .mapc2p = {
+      .user_map = true,
+      .mapping = mapc2p_vel,
+      .ctx = &ctx,
+    },
 
     .projection = {
       .proj_id = GKYL_PROJ_FUNC,
@@ -406,7 +437,7 @@ main(int argc, char **argv)
 
   // GK app.
   struct gkyl_gk app_inp = {
-    .name = "gk_lbo_relax_1x2v_p1",
+    .name = "gk_lbo_relax_nonuniformv_1x2v_p1",
 
     .cdim = 1, .vdim = 2,
     .lower = { 0.0 },

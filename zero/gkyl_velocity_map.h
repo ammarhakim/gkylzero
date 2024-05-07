@@ -31,6 +31,9 @@ struct gkyl_velocity_map {
   struct gkyl_array *vmap_sq; // Velocity mapping in each velocity direction squared.
   struct gkyl_velocity_map *on_dev; // Device copy of itself.
   double vbounds[2*GKYL_MAX_VDIM]; // Velocity at the boundaries.
+  // For internal/private use only:
+  struct gkyl_array *vmap_ho; // Host copy of vmap.
+  struct gkyl_basis vmap_basis_ho;  // Host basis for velocity mapping.
   uint32_t flags;
   struct gkyl_ref_count ref_count;
 };
@@ -76,6 +79,17 @@ gkyl_velocity_map_write(const struct gkyl_velocity_map* gvm, struct gkyl_comm* s
  */
 void
 gkyl_velocity_map_get_boundary_values(const struct gkyl_velocity_map* gvm, double *vbounds);
+
+/**
+ * Evaluate the velocity mapping at a specific computational (velocity) coordinate.
+ * NOTE: done on the host.
+ *
+ * @param gvm Velocity map object.
+ * @param zc Computational velocity coordinates.
+ * @param vp Resulting physical velocity coordinates.
+ */
+void
+gkyl_velocity_map_eval_c2p(const struct gkyl_velocity_map* gvm, const double *zc, double *vp);
 
 /**
  * Indicate if this velocity map object is allocated on the GPU.

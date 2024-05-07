@@ -6,6 +6,7 @@
 #include <gkyl_evalf_def.h>
 #include <gkyl_range.h>
 #include <gkyl_rect_grid.h>
+#include <gkyl_velocity_map.h>
 
 // Object type
 typedef struct gkyl_proj_on_basis gkyl_proj_on_basis;
@@ -21,6 +22,8 @@ struct gkyl_proj_on_basis_inp {
   int num_ret_vals; // number of return values in eval function
   evalf_t eval; // function to project
   void *ctx; // function context
+
+  const struct gkyl_velocity_map *vel_map; // Optional velocity space mapping object.
 };
 
 /**

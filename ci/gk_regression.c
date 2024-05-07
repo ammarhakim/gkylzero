@@ -595,7 +595,15 @@ regenerateTest(const char* test_name, const int test_output_count, const char te
 int
 main(int argc, char **argv)
 {
-  const int test_count = 34;
+  // To add a new test:
+  // 1. Increase test_count by 1.
+  // 2. Place the name of the test in test_names (in alphabetical order),
+  // bumping down other tests in groups of 5 (for ease of reading).
+  // 3. Insert the human-readable form of the name in test_names_human.
+  // 4. Insert the number of outputs to check in test_output_count.
+  // 5. Insert the output file suffixes in test_outputs.
+
+  const int test_count = 35;
   char test_names[test_count][64] = {
     // Please list in alphabetic order.
     "gk_asdex_3x2v_p1",
@@ -614,22 +622,31 @@ main(int argc, char **argv)
     "gk_lbo_relax_1x2v_p1",
     "gk_lbo_relax_bimaxwellian_nonuniformv_1x2v_p1",
     "gk_lbo_relax_bimaxwellian_nonuniformv_3x2v_p1",
-    "gk_lbo_relax_varnu_1x2v_p1",
+    "gk_lbo_relax_nonuniformv_1x2v_p1",
     //
+    "gk_lbo_relax_varnu_1x2v_p1",
     "gk_li_react_3x2v_p1",
     "gk_ltx_1x2v_p1",
     "gk_ltx_boltz_elc_1x2v_p1",
     "gk_mdpx_cart_3x2v_p1",
-    "gk_mirror_boltz_elc_1x2v_p1",
     //
+    "gk_mirror_boltz_elc_1x2v_p1",
     "gk_mirror_boltz_elc_nonuniformz_1x2v_p1",
     "gk_mirror_kinetic_elc_1x2v_p1",
     "gk_rad_1x2v_p1",
-    //
     "gk_sheath_1x2v_p1",
+    //
     "gk_sheath_2x2v_p1",
     "gk_sheath_3x2v_p1",
+    "gk_sheath_bgk_1x2v_p1",
+    "gk_sheath_nonuniformv_1x2v_p1",
+    "gk_sheath_nonuniformv_2x2v_p1",
+    //
+    "gk_sheath_nonuniformv_3x2v_p1",
+    "gk_solovev_out_3x2v_p1",
     "gk_step_out_2x2v_p1",
+    "gk_wham_1x2v_p1",
+    "gk_wham_2x2v_p1",
   };
   char test_names_human[test_count][128] = {
     "3x2v_p1 ASDEX test",
@@ -648,26 +665,27 @@ main(int argc, char **argv)
     "1x2v_p1 LBO relaxation test",
     "1x2v_p1 LBO relaxation test w/ bimaxwellians and nonuniform v",
     "3x2v_p1 LBO relaxation test w/ bimaxwellians and nonuniform v",
-    "1x2v_p1 LBO relaxation test w/ nu(x,t)",
+    "1x2v_p1 LBO relaxation test w/ nonuniform v",
     //
+    "1x2v_p1 LBO relaxation test w/ nu(x,t)",
     "3x2v_p1 Li reactions test",
     "1x2v_p1 LTX SOL test",
     "1x2v_p1 LTX SOL test w/ Boltzmann electrons",
     "3x2v_p1 MDPX test",
-    "1x2v_p1 mirror test w/ Boltzmann electrons",
     //
+    "1x2v_p1 mirror test w/ Boltzmann electrons",
     "1x2v_p1 mirror test w/ Boltzmann electrons and nonuniform z",
     "1x2v_p1 mirror test w/ kinetic electrons",
     "1x2v_p1 Radiation operator test",
     "1x2v_p1 Sheath test",
-    "2x2v_p1 Sheath test",
     //
+    "2x2v_p1 Sheath test",
     "3x2v_p1 Sheath test",
     "1x2v_p1 Sheath test w/ BGK operator",
     "1x2v_p1 Sheath test w/ nonuniform v",
     "2x2v_p1 Sheath test w/ nonuniform v",
-    "3x2v_p1 Sheath test w/ nonuniform v",
     //
+    "3x2v_p1 Sheath test w/ nonuniform v",
     "3x2v_p1 Solovev (outboard SOL) test",
     "2x2v_p1 STEP (outboard SOL)test",
     "1x2v_p1 WHAM test",
@@ -676,11 +694,11 @@ main(int argc, char **argv)
   int test_output_count[test_count] = { 
     14, 14, 8, 10, 14,
     14, 12, 16, 4, 14,
-    14, 8, 10, 10, 8,
-    32, 14, 4, 23, 8,
-    8, 14, 16, 14, 14,
-    14, 14, 18, 18, 18,
-    14, 25, 14, 14,
+    14, 8, 10, 10, 12,
+    8, 32, 14, 4, 23,
+    8, 8, 14, 16, 14,
+    14, 14, 14, 18, 18,
+    18, 14, 25, 14, 14,
   };
   char test_outputs[test_count][64][64] = {
     {
@@ -741,10 +759,14 @@ main(int argc, char **argv)
       "ion_1", "ion_M0_1", "ion_M1_1", "ion_M2par_1", "ion_M2perp_1",
     },
     { 
+      "square_1", "square_M0_1", "square_M1_1", "square_integrated_moms", "square_mapc2p_vel", "square_jacobvel",
+      "bump_1", "bump_M0_1", "bump_M1_1", "bump_integrated_moms", "bump_mapc2p_vel", "bump_jacobvel",
+    },
+//
+    { 
       "square_1", "square_M0_1", "square_M1_1", "square_integrated_moms",
       "bump_1", "bump_M0_1", "bump_M1_1", "bump_integrated_moms",
     },
-//
     {
       "elc_1", "elc_source_1", "elc_M0_1", "elc_M1_1", "elc_M2par_1", "elc_M2perp_1", "elc_Li2_Li1_iz_react_1", "elc_Li2_Li1_recomb_react_1", "elc_integrated_moms",
       "ion_1", "ion_source_1", "ion_M0_1", "ion_M1_1", "ion_M2par_1", "ion_M2perp_1", "ion_integrated_moms", "field_1", "field_energy",
@@ -764,10 +786,10 @@ main(int argc, char **argv)
       "Ar0_0", "Ar0_M0_0", "Ar0_M1i_0", "Ar0_M2_0",
       "Ar1_1", "Ar1_M0_1", "Ar1_M1_1", "Ar1_M2_1", "Ar1_integrated_moms",
     },
+//
     {
       "ion_1", "ion_source_1", "ion_M0_1", "ion_M1_1", "ion_M2_1", "ion_integrated_moms", "field_1", "field_energy",
     },
-//
     {
       "ion_1", "ion_source_1", "ion_M0_1", "ion_M1_1", "ion_M2_1", "ion_integrated_moms", "field_1", "field_energy",
     },
@@ -783,10 +805,6 @@ main(int argc, char **argv)
       "elc_1", "elc_source_1", "elc_M0_1", "elc_M1_1", "elc_M2_1", "elc_integrated_moms",
       "ion_1", "ion_source_1", "ion_M0_1", "ion_M1_1", "ion_M2_1", "ion_integrated_moms", "field_1", "field_energy",
     },
-    {
-      "elc_1", "elc_source_1", "elc_M0_1", "elc_M1_1", "elc_M2_1", "elc_integrated_moms",
-      "ion_1", "ion_source_1", "ion_M0_1", "ion_M1_1", "ion_M2_1", "ion_integrated_moms", "field_1", "field_energy",
-    },
 //
     {
       "elc_1", "elc_source_1", "elc_M0_1", "elc_M1_1", "elc_M2_1", "elc_integrated_moms",
@@ -797,8 +815,8 @@ main(int argc, char **argv)
       "ion_1", "ion_source_1", "ion_M0_1", "ion_M1_1", "ion_M2_1", "ion_integrated_moms", "field_1", "field_energy",
     },
     {
-      "elc_1", "elc_source_1", "elc_M0_1", "elc_M1_1", "elc_M2_1", "elc_integrated_moms", "elc_mapc2p_vel", "elc_jacobvel",
-      "ion_1", "ion_source_1", "ion_M0_1", "ion_M1_1", "ion_M2_1", "ion_integrated_moms", "ion_mapc2p_vel", "ion_jacobvel", "field_1", "field_energy",
+      "elc_1", "elc_source_1", "elc_M0_1", "elc_M1_1", "elc_M2_1", "elc_integrated_moms",
+      "ion_1", "ion_source_1", "ion_M0_1", "ion_M1_1", "ion_M2_1", "ion_integrated_moms", "field_1", "field_energy",
     },
     {
       "elc_1", "elc_source_1", "elc_M0_1", "elc_M1_1", "elc_M2_1", "elc_integrated_moms", "elc_mapc2p_vel", "elc_jacobvel",
@@ -809,6 +827,10 @@ main(int argc, char **argv)
       "ion_1", "ion_source_1", "ion_M0_1", "ion_M1_1", "ion_M2_1", "ion_integrated_moms", "ion_mapc2p_vel", "ion_jacobvel", "field_1", "field_energy",
     },
 //
+    {
+      "elc_1", "elc_source_1", "elc_M0_1", "elc_M1_1", "elc_M2_1", "elc_integrated_moms", "elc_mapc2p_vel", "elc_jacobvel",
+      "ion_1", "ion_source_1", "ion_M0_1", "ion_M1_1", "ion_M2_1", "ion_integrated_moms", "ion_mapc2p_vel", "ion_jacobvel", "field_1", "field_energy",
+    },
     {
       "elc_1", "elc_source_1", "elc_M0_1", "elc_M1_1", "elc_M2_1", "elc_integrated_moms",
       "ion_1", "ion_source_1", "ion_M0_1", "ion_M1_1", "ion_M2_1", "ion_integrated_moms", "field_1", "field_energy",
