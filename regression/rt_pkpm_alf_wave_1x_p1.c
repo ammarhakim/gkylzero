@@ -24,8 +24,10 @@ struct pkpm_alf_ctx {
   double nuIon;
   double delta_u0;
   double delta_B0;
-  double L;
-  double tend;
+  double Lx; // Domain size (x-direction).
+  int Nx; // Cell count (x-direction).
+  double t_end; // Final simulation time.
+  double init_dt; // Initial time step guess so first step does not generate NaN
   double min_dt;
   double th;
   double k;
@@ -85,7 +87,7 @@ evalFluidElc(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fo
   double qi = app->chargeIon;
   double me = app->massElc;
   double mi = app->massIon;
-  double L = app->L;
+  double L = app->Lx;
   double k = app->k;
   double u0perp = app->delta_u0;
   double B0perp = app->delta_B0;
@@ -112,7 +114,7 @@ evalFluidIon(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fo
   double qi = app->chargeIon;
   double me = app->massElc;
   double mi = app->massIon;
-  double L = app->L;
+  double L = app->Lx;
   double k = app->k;
   double u0perp = app->delta_u0;
   double B0perp = app->delta_B0;
@@ -135,7 +137,7 @@ evalFieldFunc(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fo
 
   double qe = app->chargeElc;
   double qi = app->chargeIon;
-  double L = app->L;
+  double L = app->Lx;
   double k = app->k;
   double th = app->th;
   double B0 = app->B0;
@@ -235,9 +237,12 @@ create_ctx(void)
   double k = sqrt(kpar*kpar + kperp*kperp);
   double th = -atan(kpar/kperp); //Angle to rotate k to be along x
   // domain size and simulation time
-  double L = 2.*M_PI/k;
-
-  double tend = 100.0/omegaCi;
+  double Lx = 2.0*M_PI/k;
+  int Nx = 16; 
+  double dx = Lx/Nx;
+  double t_end = 100.0/omegaCi;
+  // initial dt guess so first step does not generate NaN
+  double init_dt = (Lx/Nx)/(3.0);
   
   struct pkpm_alf_ctx ctx = {
     .epsilon0 = epsilon0,
@@ -257,10 +262,12 @@ create_ctx(void)
     .nuIon = nuIon,
     .delta_u0 = delta_u0,
     .delta_B0 = delta_B0,
-    .L = L,
     .k = k,
     .th = th,
-    .tend = tend,
+    .Lx = Lx,
+    .Nx = Nx, 
+    .t_end = t_end, 
+    .init_dt = init_dt, 
     .min_dt = 1.0e-2, 
   };
   return ctx;
@@ -277,16 +284,16 @@ int
 main(int argc, char **argv)
 {
   struct gkyl_app_args app_args = parse_app_args(argc, argv);
+     
+  struct pkpm_alf_ctx ctx = create_ctx(); // context for init functions
 
-  int NX = APP_ARGS_CHOOSE(app_args.xcells[0], 16);
+  int NX = APP_ARGS_CHOOSE(app_args.xcells[0], ctx.Nx);
   int VX = APP_ARGS_CHOOSE(app_args.vcells[0], 32);
 
   if (app_args.trace_mem) {
     gkyl_cu_dev_mem_debug_set(true);
     gkyl_mem_debug_set(true);
   }
-     
-  struct pkpm_alf_ctx ctx = create_ctx(); // context for init functions
   
   // electrons
   struct gkyl_pkpm_species elc = {
@@ -350,7 +357,7 @@ main(int argc, char **argv)
 
     .cdim = 1, .vdim = 1,
     .lower = { 0.0},
-    .upper = { ctx.L },
+    .upper = { ctx.Lx },
     .cells = { NX},
     .poly_order = 1,
     .basis_type = app_args.basis_type,
@@ -369,8 +376,8 @@ main(int argc, char **argv)
   gkyl_pkpm_app *app = gkyl_pkpm_app_new(&pkpm);
 
   // start, end and initial time-step
-  double tcurr = 0.0, tend = ctx.tend;
-  double dt = tend-tcurr;
+  double tcurr = 0.0, tend = ctx.t_end;
+  double dt = ctx.init_dt;
   int nframe = 10;
   // create trigger for IO
   struct gkyl_tm_trigger io_trig = { .dt = tend/nframe };

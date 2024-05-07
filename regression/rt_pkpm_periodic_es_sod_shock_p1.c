@@ -6,12 +6,18 @@
 #include <gkyl_pkpm.h>
 #include <rt_arg_parse.h>
 
-struct langmuir_ctx {
-  double charge; // charge
-  double mass; // mass
-  double vt; // thermal velocity
-  double perturb; // perturbation amplitude
-  double k0; // wave number
+struct pkpm_es_sod_shock_ctx {
+  double chargeElc; // electron charge
+  double massElc; // electron mass
+  double chargeIon; // ion charge
+  double massIon; // ion mass
+  double Te_Ti; // electron to ion temperature ratio
+  double vte; // electron thermal velocity
+  double vti; // ion thermal velocity
+  double n0; // initial number density
+  double B0; // reference magnetic field 
+  double nuElc; // electron collision frequency
+  double nuIon; // ion collision frequency
   double Lx; // Domain size (x-direction).
   int Nx; // Cell count (x-direction).
   double t_end; // Final simulation time.
@@ -21,28 +27,67 @@ struct langmuir_ctx {
 static inline double sq(double x) { return x*x; }
 
 static inline double
-maxwellian(double n, double v, double vth)
+maxwellian(double n, double v, double u, double vth)
 {
-  double v2 = v*v;
+  double v2 = (v - u)*(v - u);
   return n/sqrt(2*M_PI*vth*vth)*exp(-v2/(2*vth*vth));
 }
 
 void
 evalDistFuncElc(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
 {
-  struct langmuir_ctx *app = ctx;
+  struct pkpm_es_sod_shock_ctx *app = ctx;
   double x = xn[0], v = xn[1];
-  double k = app->k0, alpha = app->perturb;
-  fout[0] = (1 + alpha*cos(k*x))*maxwellian(1.0, v, 1.0);
-  // T_perp/m = 1.0
-  fout[1] = (1 + alpha*cos(k*x))*maxwellian(1.0, v, 1.0);
+  double n_l = app->n0;
+  double n_r = 0.125*n_l;
+  double vt_l = app->vte;
+  double vt_r = sqrt(0.1/0.125)*vt_l;
+  if (fabs(x)<0.5*app->Lx) {
+    fout[0] = maxwellian(n_l, v, 0.0, vt_l);
+    fout[1] = vt_l*vt_l*maxwellian(n_l, v, 0.0, vt_l);
+  }
+  else {
+    fout[0] = maxwellian(n_r, v, 0.0, vt_r);
+    fout[1] = vt_r*vt_r*maxwellian(n_r, v, 0.0, vt_r);
+  }
+}
+
+void 
+evalFluidElc(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
+{
+  struct pkpm_es_sod_shock_ctx *app = ctx;
+  double x = xn[0];
+  // No initial flow (u = 0)
+  fout[0] = 0.0;
+  fout[1] = 0.0;
+  fout[2] = 0.0;
 }
 
 void
-evalFluidElc(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
+evalDistFuncIon(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
 {
+  struct pkpm_es_sod_shock_ctx *app = ctx;
+  double x = xn[0], v = xn[1];
+  double n_l = app->n0;
+  double n_r = 0.125*n_l;
+  double vt_l = app->vti;
+  double vt_r = sqrt(0.1/0.125)*vt_l;
+  if (fabs(x)<0.5*app->Lx) {
+    fout[0] = maxwellian(n_l, v, 0.0, vt_l);
+    fout[1] = vt_l*vt_l*maxwellian(n_l, v, 0.0, vt_l);
+  }
+  else {
+    fout[0] = maxwellian(n_r, v, 0.0, vt_r);
+    fout[1] = vt_r*vt_r*maxwellian(n_r, v, 0.0, vt_r);
+  }
+}
+
+void 
+evalFluidIon(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
+{
+  struct pkpm_es_sod_shock_ctx *app = ctx;
   double x = xn[0];
-  // no initial flow
+  // No initial flow (u = 0)
   fout[0] = 0.0;
   fout[1] = 0.0;
   fout[2] = 0.0;
@@ -51,13 +96,10 @@ evalFluidElc(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fo
 void
 evalFieldFunc(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
 {
-  struct langmuir_ctx *app = ctx;
-
-  double k = app->k0, alpha = app->perturb;
+  struct pkpm_es_sod_shock_ctx *app = ctx;
   double x = xn[0];
-  double E_x = -alpha*sin(k*x)/k;
   
-  fout[0] = E_x; fout[1] = 0.0, fout[2] = 0.0;
+  fout[0] = 0.0; fout[1] = 0.0, fout[2] = 0.0;
   fout[3] = 0.0; fout[4] = 0.0; fout[5] = 0.0;
   fout[6] = 0.0; fout[7] = 0.0;
 }
@@ -65,39 +107,51 @@ evalFieldFunc(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fo
 void
 evalExtEmFunc(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
 {
-  struct pkpm_sheath_ctx *app = ctx;
+  struct pkpm_es_sod_shock_ctx *app = ctx;
   double x = xn[0];
-  double B_x = 1.0;
+  double B_x = app->B0;
   
   fout[0] = 0.0; fout[1] = 0.0, fout[2] = 0.0;
   fout[3] = B_x; fout[4] = 0.0; fout[5] = 0.0;
 }
 
+
 void
-evalNu(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
+evalNuElc(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
 {
-  struct langmuir_ctx *app = ctx;
-  double x = xn[0], v = xn[1];
-  fout[0] = 1.0e-4;
+  struct pkpm_es_sod_shock_ctx *app = ctx;
+  fout[0] = app->nuElc;
 }
 
-struct langmuir_ctx
+void
+evalNuIon(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
+{
+  struct pkpm_es_sod_shock_ctx *app = ctx;
+  fout[0] = app->nuIon;
+}
+
+struct pkpm_es_sod_shock_ctx
 create_ctx(void)
 {
-  double k0 = 0.5;
-  double Lx = M_PI/k0; 
-  int Nx = 32; 
+  double Lx = 128.0; 
+  int Nx = 256; 
   double dx = Lx/Nx;
-  double t_end = 20.0;
+  double t_end = 100.0;
   // initial dt guess so first step does not generate NaN
-  double init_dt = (Lx/Nx)/(5.0);
+  double init_dt = ((Lx/Nx)/6.0)/(3.0);
 
-  struct langmuir_ctx ctx = {
-    .mass = 1.0,
-    .charge = -1.0,
-    .vt = 1.0,
-    .perturb = 1.e-1, 
-    .k0 = k0,
+  struct pkpm_es_sod_shock_ctx ctx = {
+    .chargeElc = -1.0,
+    .massElc = 1.0,
+    .chargeIon = 1.0,
+    .massIon = 1836.153,
+    .Te_Ti = 4.0,
+    .vte = 1.0,
+    .vti = ctx.vte/sqrt(ctx.Te_Ti*ctx.massIon),
+    .n0 = 1.0, 
+    .B0 = 1.0, 
+    .nuElc = 1.0e-4, 
+    .nuIon = 1.0e-4/sqrt(ctx.massIon)*(ctx.Te_Ti*sqrt(ctx.Te_Ti)), 
     .Lx = Lx,
     .Nx = Nx, 
     .t_end = t_end, 
@@ -106,22 +160,15 @@ create_ctx(void)
   return ctx;
 }
 
-void
-write_data(struct gkyl_tm_trigger *iot, gkyl_pkpm_app *app, double tcurr)
-{
-  if (gkyl_tm_trigger_check_and_bump(iot, tcurr)) 
-    gkyl_pkpm_app_write(app, tcurr, iot->curr-1);
-}
-
 int
 main(int argc, char **argv)
 {
   struct gkyl_app_args app_args = parse_app_args(argc, argv);
 
-  struct langmuir_ctx ctx = create_ctx(); // context for init functions
+  struct pkpm_es_sod_shock_ctx ctx = create_ctx(); // context for init functions
 
   int NX = APP_ARGS_CHOOSE(app_args.xcells[0], ctx.Nx);
-  int NV = APP_ARGS_CHOOSE(app_args.vcells[0], 32);
+  int VX = APP_ARGS_CHOOSE(app_args.vcells[0], 48);
 
   if (app_args.trace_mem) {
     gkyl_cu_dev_mem_debug_set(true);
@@ -131,10 +178,10 @@ main(int argc, char **argv)
   // electrons
   struct gkyl_pkpm_species elc = {
     .name = "elc",
-    .charge = ctx.charge, .mass = ctx.mass,
-    .lower = { -6.0*ctx.vt},
-    .upper = { 6.0*ctx.vt}, 
-    .cells = { NV },
+    .charge = ctx.chargeElc, .mass = ctx.massElc,
+    .lower = { -6.0 * ctx.vte},
+    .upper = { 6.0 * ctx.vte}, 
+    .cells = { VX },
 
     .ctx_dist = &ctx,
     .ctx_fluid = &ctx,
@@ -145,8 +192,29 @@ main(int argc, char **argv)
       .collision_id = GKYL_LBO_COLLISIONS,
 
       .ctx = &ctx,
-      .self_nu = evalNu,
-    },
+      .self_nu = evalNuElc,
+    },    
+  };
+  
+  // ions
+  struct gkyl_pkpm_species ion = {
+    .name = "ion",
+    .charge = ctx.chargeIon, .mass = ctx.massIon,
+    .lower = { -24.0 * ctx.vti},
+    .upper = { 24.0 * ctx.vti}, 
+    .cells = { VX },
+
+    .ctx_dist = &ctx,
+    .ctx_fluid = &ctx,
+    .init_dist = evalDistFuncIon,
+    .init_fluid = evalFluidIon,
+
+    .collisions = {
+      .collision_id = GKYL_LBO_COLLISIONS,
+
+      .ctx = &ctx,
+      .self_nu = evalNuIon,
+    },    
   };
 
   // field
@@ -164,20 +232,20 @@ main(int argc, char **argv)
 
   // pkpm app
   struct gkyl_pkpm pkpm = {
-    .name = "pkpm_landau_damping_p2",
+    .name = "pkpm_periodic_es_sod_shock_p1",
 
     .cdim = 1, .vdim = 1,
     .lower = { -ctx.Lx },
     .upper = { ctx.Lx },
     .cells = { NX },
-    .poly_order = 2,
+    .poly_order = 1,
     .basis_type = app_args.basis_type,
 
     .num_periodic_dir = 1,
     .periodic_dirs = { 0 },
 
-    .num_species = 1,
-    .species = { elc },
+    .num_species = 2,
+    .species = { elc, ion },
     .field = field,
 
     .use_gpu = app_args.use_gpu,
@@ -189,13 +257,11 @@ main(int argc, char **argv)
   // start, end and initial time-step
   double tcurr = 0.0, tend = ctx.t_end;
   double dt = ctx.init_dt;
-  int nframe = 1;
-  // create trigger for IO
-  struct gkyl_tm_trigger io_trig = { .dt = tend/nframe };
 
   // initialize simulation
   gkyl_pkpm_app_apply_ic(app, tcurr);
-  write_data(&io_trig, app, tcurr);
+  
+  gkyl_pkpm_app_write(app, tcurr, 0);
   gkyl_pkpm_app_calc_field_energy(app, tcurr);
   gkyl_pkpm_app_calc_integrated_L2_f(app, tcurr);
   gkyl_pkpm_app_calc_integrated_mom(app, tcurr);
@@ -205,22 +271,21 @@ main(int argc, char **argv)
     printf("Taking time-step at t = %g ...", tcurr);
     struct gkyl_update_status status = gkyl_pkpm_update(app, dt);
     printf(" dt = %g\n", status.dt_actual);
-    
+
     gkyl_pkpm_app_calc_field_energy(app, tcurr);
     gkyl_pkpm_app_calc_integrated_L2_f(app, tcurr);
     gkyl_pkpm_app_calc_integrated_mom(app, tcurr);
-
+    
     if (!status.success) {
       printf("** Update method failed! Aborting simulation ....\n");
       break;
     }
     tcurr += status.dt_actual;
     dt = status.dt_suggested;
-    write_data(&io_trig, app, tcurr);
-
     step += 1;
   }
 
+  gkyl_pkpm_app_write(app, tcurr, 1);
   gkyl_pkpm_app_write_field_energy(app);
   gkyl_pkpm_app_write_integrated_L2_f(app);
   gkyl_pkpm_app_write_integrated_mom(app);

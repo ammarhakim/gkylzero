@@ -16,11 +16,14 @@ struct esshock_ctx {
   double vti; // ion thermal velocity
   double cs; // sound speed
   double uShock; // in-flow velocity
-  double Lx; // size of the box
   double n0; // initial number density
   double B0; // reference magnetic field 
   double nuElc; // electron collision frequency
   double nuIon; // ion collision frequency
+  double Lx; // Domain size (x-direction).
+  int Nx; // Cell count (x-direction).
+  double t_end; // Final simulation time.
+  double init_dt; // Initial time step guess so first step does not generate NaN
 };
 
 static inline double sq(double x) { return x*x; }
@@ -111,6 +114,13 @@ evalNuIon(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout,
 struct esshock_ctx
 create_ctx(void)
 {
+  double Lx = 128.0; 
+  int Nx = 256; 
+  double dx = Lx/Nx;
+  double t_end = 80.0;
+  // initial dt guess so first step does not generate NaN
+  double init_dt = ((Lx/Nx)/6.0)/(3.0);
+
   struct esshock_ctx ctx = {
     .chargeElc = -1.0,
     .massElc = 1.0,
@@ -121,11 +131,14 @@ create_ctx(void)
     .vti = ctx.vte/sqrt(ctx.Te_Ti*ctx.massIon),
     .cs = ctx.vte/sqrt(ctx.massIon),
     .uShock = 2.0*ctx.cs,
-    .Lx = 128.0,
     .n0 = 1.0, 
     .B0 = 1.0, 
     .nuElc = 1.0e-4, 
     .nuIon = 1.0e-4/sqrt(ctx.massIon)*(ctx.Te_Ti*sqrt(ctx.Te_Ti)), 
+    .Lx = Lx,
+    .Nx = Nx, 
+    .t_end = t_end, 
+    .init_dt = init_dt, 
   };
   return ctx;
 }
@@ -157,6 +170,8 @@ main(int argc, char **argv)
     .init_dist = evalDistFuncElc,
     .init_fluid = evalFluidElc,
 
+    .limit_fluid = true, 
+
     .collisions = {
       .collision_id = GKYL_LBO_COLLISIONS,
 
@@ -180,6 +195,8 @@ main(int argc, char **argv)
     .ctx_fluid = &ctx,
     .init_dist = evalDistFuncIon,
     .init_fluid = evalFluidIon,
+
+    .limit_fluid = true, 
 
     .collisions = {
       .collision_id = GKYL_LBO_COLLISIONS,
@@ -230,8 +247,8 @@ main(int argc, char **argv)
   gkyl_pkpm_app *app = gkyl_pkpm_app_new(&pkpm);
 
   // start, end and initial time-step
-  double tcurr = 0.0, tend = 100.0;
-  double dt = tend-tcurr;
+  double tcurr = 0.0, tend = ctx.t_end;
+  double dt = ctx.init_dt;
 
   // initialize simulation
   gkyl_pkpm_app_apply_ic(app, tcurr);

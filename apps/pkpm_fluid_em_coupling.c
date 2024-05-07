@@ -13,15 +13,15 @@ pkpm_fluid_em_coupling_init(struct gkyl_pkpm_app *app)
 {
   struct pkpm_fluid_em_coupling *pkpm_em = gkyl_malloc(sizeof(struct pkpm_fluid_em_coupling));
 
-  int num_fluid_species = app->num_species;
+  int num_species = app->num_species;
   double qbym[GKYL_MAX_SPECIES] = {0.0};
-  for (int i=0; i<num_fluid_species; ++i) {
+  for (int i=0; i<num_species; ++i) {
     struct pkpm_species *s = &app->species[i];
     qbym[i] = s->info.charge/s->info.mass;
   }
   // Initialize solver
   pkpm_em->slvr = gkyl_dg_calc_pkpm_em_coupling_new(&app->confBasis, &app->local, 
-    num_fluid_species, qbym, app->field->info.epsilon0, app->use_gpu);
+    num_species, qbym, app->field->info.epsilon0, app->use_gpu);
 
   return pkpm_em;  
 }

@@ -96,20 +96,38 @@ GKYL_CU_DH void euler_pkpm_em_coupling_set_1x_ser_p2(int count,
   tot_By[2] = By[2] + ext_By[2]; 
   tot_Bz[2] = Bz[2] + ext_Bz[2]; 
 
-  // Set RHS for momentum equations, including solution at known time-step and external forces. 
+  double ext_force_x[GKYL_MAX_SPECIES][3]; 
+  double ext_force_y[GKYL_MAX_SPECIES][3]; 
+  double ext_force_z[GKYL_MAX_SPECIES][3]; 
   for (int i = 0; i < num_species; ++i) { 
+    ext_force_x[i][0] = 0.5*dt*qbym[i]*(qbym[i]*ext_Ex[0] + app_accel_x[i][0]); 
+    ext_force_y[i][0] = 0.5*dt*qbym[i]*(qbym[i]*ext_Ey[0] + app_accel_y[i][0]); 
+    ext_force_z[i][0] = 0.5*dt*qbym[i]*(qbym[i]*ext_Ez[0] + app_accel_z[i][0]); 
 
-    gkyl_mat_set(&rhs, 0 + i*(9), 0, qbym[i]*rhoux[i][0] + 0.5*dt*qbym[i]*rho[i][0]*(qbym[i]*ext_Ex[0] + app_accel_x[i][0])); 
-    gkyl_mat_set(&rhs, 3 + i*(9), 0, qbym[i]*rhouy[i][0] + 0.5*dt*qbym[i]*rho[i][0]*(qbym[i]*ext_Ey[0] + app_accel_y[i][0])); 
-    gkyl_mat_set(&rhs, 6 + i*(9), 0, qbym[i]*rhouz[i][0] + 0.5*dt*qbym[i]*rho[i][0]*(qbym[i]*ext_Ez[0] + app_accel_z[i][0])); 
+    ext_force_x[i][1] = 0.5*dt*qbym[i]*(qbym[i]*ext_Ex[1] + app_accel_x[i][1]); 
+    ext_force_y[i][1] = 0.5*dt*qbym[i]*(qbym[i]*ext_Ey[1] + app_accel_y[i][1]); 
+    ext_force_z[i][1] = 0.5*dt*qbym[i]*(qbym[i]*ext_Ez[1] + app_accel_z[i][1]); 
 
-    gkyl_mat_set(&rhs, 1 + i*(9), 0, qbym[i]*rhoux[i][1] + 0.5*dt*qbym[i]*rho[i][1]*(qbym[i]*ext_Ex[1] + app_accel_x[i][1])); 
-    gkyl_mat_set(&rhs, 4 + i*(9), 0, qbym[i]*rhouy[i][1] + 0.5*dt*qbym[i]*rho[i][1]*(qbym[i]*ext_Ey[1] + app_accel_y[i][1])); 
-    gkyl_mat_set(&rhs, 7 + i*(9), 0, qbym[i]*rhouz[i][1] + 0.5*dt*qbym[i]*rho[i][1]*(qbym[i]*ext_Ez[1] + app_accel_z[i][1])); 
+    ext_force_x[i][2] = 0.5*dt*qbym[i]*(qbym[i]*ext_Ex[2] + app_accel_x[i][2]); 
+    ext_force_y[i][2] = 0.5*dt*qbym[i]*(qbym[i]*ext_Ey[2] + app_accel_y[i][2]); 
+    ext_force_z[i][2] = 0.5*dt*qbym[i]*(qbym[i]*ext_Ez[2] + app_accel_z[i][2]); 
 
-    gkyl_mat_set(&rhs, 2 + i*(9), 0, qbym[i]*rhoux[i][2] + 0.5*dt*qbym[i]*rho[i][2]*(qbym[i]*ext_Ex[2] + app_accel_x[i][2])); 
-    gkyl_mat_set(&rhs, 5 + i*(9), 0, qbym[i]*rhouy[i][2] + 0.5*dt*qbym[i]*rho[i][2]*(qbym[i]*ext_Ey[2] + app_accel_y[i][2])); 
-    gkyl_mat_set(&rhs, 8 + i*(9), 0, qbym[i]*rhouz[i][2] + 0.5*dt*qbym[i]*rho[i][2]*(qbym[i]*ext_Ez[2] + app_accel_z[i][2])); 
+  } 
+
+  // Set RHS for momentum equations, including solution at known time-step and external forces. 
+  for (int s = 0; s < num_species; ++s) { 
+
+    gkyl_mat_set(&rhs, 0 + s*(9), 0, qbym[s]*rhoux[s][0] + 0.7071067811865475*ext_force_x[s][2]*rho[s][2]+0.7071067811865475*ext_force_x[s][1]*rho[s][1]+0.7071067811865475*ext_force_x[s][0]*rho[s][0]); 
+    gkyl_mat_set(&rhs, 3 + s*(9), 0, qbym[s]*rhouy[s][0] + 0.7071067811865475*ext_force_y[s][2]*rho[s][2]+0.7071067811865475*ext_force_y[s][1]*rho[s][1]+0.7071067811865475*ext_force_y[s][0]*rho[s][0]); 
+    gkyl_mat_set(&rhs, 6 + s*(9), 0, qbym[s]*rhouz[s][0] + 0.7071067811865475*ext_force_z[s][2]*rho[s][2]+0.7071067811865475*ext_force_z[s][1]*rho[s][1]+0.7071067811865475*ext_force_z[s][0]*rho[s][0]); 
+
+    gkyl_mat_set(&rhs, 1 + s*(9), 0, qbym[s]*rhoux[s][1] + 0.6324555320336759*ext_force_x[s][1]*rho[s][2]+0.6324555320336759*rho[s][1]*ext_force_x[s][2]+0.7071067811865475*ext_force_x[s][0]*rho[s][1]+0.7071067811865475*rho[s][0]*ext_force_x[s][1]); 
+    gkyl_mat_set(&rhs, 4 + s*(9), 0, qbym[s]*rhouy[s][1] + 0.6324555320336759*ext_force_y[s][1]*rho[s][2]+0.6324555320336759*rho[s][1]*ext_force_y[s][2]+0.7071067811865475*ext_force_y[s][0]*rho[s][1]+0.7071067811865475*rho[s][0]*ext_force_y[s][1]); 
+    gkyl_mat_set(&rhs, 7 + s*(9), 0, qbym[s]*rhouz[s][1] + 0.6324555320336759*ext_force_z[s][1]*rho[s][2]+0.6324555320336759*rho[s][1]*ext_force_z[s][2]+0.7071067811865475*ext_force_z[s][0]*rho[s][1]+0.7071067811865475*rho[s][0]*ext_force_z[s][1]); 
+
+    gkyl_mat_set(&rhs, 2 + s*(9), 0, qbym[s]*rhoux[s][2] + 0.4517539514526256*ext_force_x[s][2]*rho[s][2]+0.7071067811865475*ext_force_x[s][0]*rho[s][2]+0.7071067811865475*rho[s][0]*ext_force_x[s][2]+0.6324555320336759*ext_force_x[s][1]*rho[s][1]); 
+    gkyl_mat_set(&rhs, 5 + s*(9), 0, qbym[s]*rhouy[s][2] + 0.4517539514526256*ext_force_y[s][2]*rho[s][2]+0.7071067811865475*ext_force_y[s][0]*rho[s][2]+0.7071067811865475*rho[s][0]*ext_force_y[s][2]+0.6324555320336759*ext_force_y[s][1]*rho[s][1]); 
+    gkyl_mat_set(&rhs, 8 + s*(9), 0, qbym[s]*rhouz[s][2] + 0.4517539514526256*ext_force_z[s][2]*rho[s][2]+0.7071067811865475*ext_force_z[s][0]*rho[s][2]+0.7071067811865475*rho[s][0]*ext_force_z[s][2]+0.6324555320336759*ext_force_z[s][1]*rho[s][1]); 
 
   } 
 

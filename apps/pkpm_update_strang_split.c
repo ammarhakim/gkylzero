@@ -206,7 +206,7 @@ pkpm_update_strang_split(gkyl_pkpm_app* app, double dt0)
           struct timespec pkpm_em2_tm = gkyl_wall_clock();
           // Can't update momentum and EM fields if EM fields are static
           if (!app->field->info.is_static) {
-            pkpm_fluid_em_coupling_update(app, app->pkpm_em, tcurr, dt/2.0);
+            pkpm_fluid_em_coupling_update(app, app->pkpm_em, tcurr+dt/2.0, dt/2.0);
             app->stat.pkpm_em_tm += gkyl_time_diff_now_sec(pkpm_em2_tm);
           }
         } while(0);
