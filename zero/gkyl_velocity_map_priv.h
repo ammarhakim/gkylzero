@@ -12,6 +12,15 @@ mkarr(bool on_gpu, long nc, long size)
   return a;
 }
 
+/**
+ * Function that actually frees memory associated with this
+ * object when the number of references has decreased to zero.
+ *
+ * @param ref Reference counter for this object.
+ */
+void
+gkyl_velocity_map_free(const struct gkyl_ref_count *ref);
+
 #ifdef GKYL_HAVE_CUDA
 
 /**

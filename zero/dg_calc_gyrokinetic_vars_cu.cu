@@ -170,7 +170,7 @@ gkyl_dg_calc_gyrokinetic_vars_cu_dev_new(const struct gkyl_rect_grid *phase_grid
 
   // Updater should store host pointers.
   up->gk_geom = geom_ho; 
-  up->vel_map = vmap_ho; 
+  up->vel_map = vel_map_ho; 
   
   return up;
 }
