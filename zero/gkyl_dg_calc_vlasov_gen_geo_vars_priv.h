@@ -100,11 +100,11 @@ static vlasov_gen_geo_alpha_surf_t
 choose_vlasov_gen_geo_alpha_surf_kern(int dir, int cdim, int poly_order)
 {
   if (dir == 0)
-    return ser_vlasov_gen_geo_alpha_surfx_kernels[cdim].kernels[poly_order];
+    return ser_vlasov_gen_geo_alpha_surfx_kernels[cdim-1].kernels[poly_order];
   else if (dir == 1)
-    return ser_vlasov_gen_geo_alpha_surfy_kernels[cdim].kernels[poly_order];
+    return ser_vlasov_gen_geo_alpha_surfy_kernels[cdim-1].kernels[poly_order];
   else if (dir == 2)
-    return ser_vlasov_gen_geo_alpha_surfz_kernels[cdim].kernels[poly_order];
+    return ser_vlasov_gen_geo_alpha_surfz_kernels[cdim-1].kernels[poly_order];
   else
     return NULL;
 }
@@ -114,11 +114,11 @@ static vlasov_gen_geo_alpha_surf_t
 choose_vlasov_gen_geo_alpha_edge_surf_kern(int dir, int cdim, int poly_order)
 {
   if (dir == 0)
-    return ser_vlasov_gen_geo_alpha_edge_surfx_kernels[cdim].kernels[poly_order];
+    return ser_vlasov_gen_geo_alpha_edge_surfx_kernels[cdim-1].kernels[poly_order];
   else if (dir == 1)
-    return ser_vlasov_gen_geo_alpha_edge_surfy_kernels[cdim].kernels[poly_order];
+    return ser_vlasov_gen_geo_alpha_edge_surfy_kernels[cdim-1].kernels[poly_order];
   else if (dir == 2)
-    return ser_vlasov_gen_geo_alpha_edge_surfz_kernels[cdim].kernels[poly_order];
+    return ser_vlasov_gen_geo_alpha_edge_surfz_kernels[cdim-1].kernels[poly_order];
   else
     return NULL;
 }
@@ -127,5 +127,5 @@ GKYL_CU_D
 static vlasov_gen_geo_cot_vec_t
 choose_vlasov_gen_geo_cot_vec_kern(int cdim, int poly_order)
 {
-  return ser_vlasov_gen_geo_cot_vec_kernels[cdim].kernels[poly_order];
+  return ser_vlasov_gen_geo_cot_vec_kernels[cdim-1].kernels[poly_order];
 }
