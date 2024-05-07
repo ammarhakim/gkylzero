@@ -102,6 +102,200 @@ gkyl_gr_spacetime_tensor_reindex_rank1(const struct gkyl_gr_spacetime* spacetime
 }
 
 double**
+gkyl_gr_spatial_tensor_reindex_rank2(const struct gkyl_gr_spacetime* spacetime, const double t, const double x, const double y, const double z,
+  bool* old_indices, bool* new_indices, double** tensor)
+{
+  double **spatial_metric = gkyl_malloc(sizeof(double*[3]));
+  double **inv_spatial_metric = gkyl_malloc(sizeof(double*[3]));
+
+  for (int i = 0; i < 3; i++) {
+    spatial_metric[i] = gkyl_malloc(sizeof(double[3]));
+    inv_spatial_metric[i] = gkyl_malloc(sizeof(double[3]));
+  }
+
+  spacetime->spatial_metric_tensor_func(spacetime, t, x, y, z, &spatial_metric);
+  spacetime->spatial_inv_metric_tensor_func(spacetime, t, x, y, z, &inv_spatial_metric);
+
+  double **covariant_tensor = gkyl_malloc(sizeof(double*[3]));
+  double **new_tensor = gkyl_malloc(sizeof(double*[3]));
+
+  for (int i = 0; i < 3; i++) {
+    covariant_tensor[i] = gkyl_malloc(sizeof(double[3]));
+    new_tensor[i] = gkyl_malloc(sizeof(double[3]));
+
+    for (int j = 0; j < 3; j++) {
+      covariant_tensor[i][j] = 0.0;
+      new_tensor[i][j] = 0.0;
+    }
+  }
+
+  if (old_indices[0] == true && old_indices[1] == true) {
+    covariant_tensor = tensor;
+  }
+  else if (old_indices[0] == true && old_indices[1] == false) {
+    for (int i = 0; i < 3; i++) {
+      for (int j = 0; j < 3; j++) {
+        for (int k = 0; k < 3; k++) {
+          covariant_tensor[i][j] += spatial_metric[k][j] * tensor[i][k];
+        }
+      }
+    }
+  }
+  else if (old_indices[0] == false && old_indices[1] == true) {
+    for (int i = 0; i < 3; i++) {
+      for (int j = 0; j < 3; j++) {
+        for (int k = 0; k < 3; k++) {
+          covariant_tensor[i][j] += spatial_metric[i][k] * tensor[k][j];
+        }
+      }
+    }
+  }
+  else if (old_indices[0] == false && old_indices[1] == false) {
+    for (int i = 0; i < 3; i++) {
+      for (int j = 0; j < 3; j++) {
+        for (int k = 0; k < 3; k++) {
+          for (int l = 0; l < 3; l++) {
+            covariant_tensor[i][j] += spatial_metric[i][k] * spatial_metric[l][j] * tensor[k][l];
+          }
+        }
+      }
+    }
+  }
+
+  if (new_indices[0] == true && new_indices[1] == true) {
+    new_tensor = covariant_tensor;
+  }
+  else if (new_indices[0] == true && new_indices[1] == false) {
+    for (int i = 0; i < 3; i++) {
+      for (int j = 0; j < 3; j++) {
+        for (int k = 0; k < 3; k++) {
+          new_tensor[i][j] += inv_spatial_metric[k][j] * covariant_tensor[i][k];
+        }
+      }
+    }
+  }
+  else if (new_indices[0] == false && new_indices[1] == true) {
+    for (int i = 0; i < 3; i++) {
+      for (int j = 0; j < 3; j++) {
+        for (int k = 0; k < 3; k++) {
+          new_tensor[i][j] += inv_spatial_metric[i][k] * covariant_tensor[k][j];
+        }
+      }
+    }
+  }
+  else if (new_indices[0] == false && new_indices[1] == false) {
+    for (int i = 0; i < 3; i++) {
+      for (int j = 0; j < 3; j++) {
+        for (int k = 0; k < 3; k++) {
+          for (int l = 0; l < 3; l++) {
+            new_tensor[i][j] += inv_spatial_metric[i][k] * inv_spatial_metric[l][j] * covariant_tensor[k][l];
+          }
+        }
+      }
+    }
+  }
+
+  return new_tensor;
+}
+
+double**
+gkyl_gr_spacetime_tensor_reindex_rank2(const struct gkyl_gr_spacetime* spacetime, const double t, const double x, const double y, const double z,
+  bool* old_indices, bool* new_indices, double** tensor)
+{
+  double **spacetime_metric = gkyl_malloc(sizeof(double*[4]));
+  double **inv_spacetime_metric = gkyl_malloc(sizeof(double*[4]));
+
+  for (int i = 0; i < 4; i++) {
+    spacetime_metric[i] = gkyl_malloc(sizeof(double[4]));
+    inv_spacetime_metric[i] = gkyl_malloc(sizeof(double[4]));
+  }
+
+  spacetime->spacetime_metric_tensor_func(spacetime, t, x, y, z, &spacetime_metric);
+  spacetime->spacetime_inv_metric_tensor_func(spacetime, t, x, y, z, &inv_spacetime_metric);
+
+  double **covariant_tensor = gkyl_malloc(sizeof(double*[4]));
+  double **new_tensor = gkyl_malloc(sizeof(double*[4]));
+
+  for (int i = 0; i < 4; i++) {
+    covariant_tensor[i] = gkyl_malloc(sizeof(double[4]));
+    new_tensor[i] = gkyl_malloc(sizeof(double[4]));
+
+    for (int j = 0; j < 4; j++) {
+      covariant_tensor[i][j] = 0.0;
+      new_tensor[i][j] = 0.0;
+    }
+  }
+
+  if (old_indices[0] == true && old_indices[1] == true) {
+    covariant_tensor = tensor;
+  }
+  else if (old_indices[0] == true && old_indices[1] == false) {
+    for (int i = 0; i < 4; i++) {
+      for (int j = 0; j < 4; j++) {
+        for (int k = 0; k < 4; k++) {
+          covariant_tensor[i][j] += spacetime_metric[k][j] * tensor[i][k];
+        }
+      }
+    }
+  }
+  else if (old_indices[0] == false && old_indices[1] == true) {
+    for (int i = 0; i < 4; i++) {
+      for (int j = 0; j < 4; j++) {
+        for (int k = 0; k < 4; k++) {
+          covariant_tensor[i][j] += spacetime_metric[i][k] * tensor[k][j];
+        }
+      }
+    }
+  }
+  else if (old_indices[0] == false && old_indices[1] == false) {
+    for (int i = 0; i < 4; i++) {
+      for (int j = 0; j < 4; j++) {
+        for (int k = 0; k < 4; k++) {
+          for (int l = 0; l < 4; l++) {
+            covariant_tensor[i][j] += spacetime_metric[i][k] * spacetime_metric[l][j] * tensor[k][l];
+          }
+        }
+      }
+    }
+  }
+
+  if (new_indices[0] == true && new_indices[1] == true) {
+    new_tensor = covariant_tensor;
+  }
+  else if (new_indices[0] == true && new_indices[1] == false) {
+    for (int i = 0; i < 4; i++) {
+      for (int j = 0; j < 4; j++) {
+        for (int k = 0; k < 4; k++) {
+          new_tensor[i][j] += inv_spacetime_metric[k][j] * covariant_tensor[i][k];
+        }
+      }
+    }
+  }
+  else if (new_indices[0] == false && new_indices[1] == true) {
+    for (int i = 0; i < 4; i++) {
+      for (int j = 0; j < 4; j++) {
+        for (int k = 0; k < 4; k++) {
+          new_tensor[i][j] += inv_spacetime_metric[i][k] * covariant_tensor[k][j];
+        }
+      }
+    }
+  }
+  else if (new_indices[0] == false && new_indices[1] == false) {
+    for (int i = 0; i < 4; i++) {
+      for (int j = 0; j < 4; j++) {
+        for (int k = 0; k < 4; k++) {
+          for (int l = 0; l < 4; l++) {
+            new_tensor[i][j] += inv_spacetime_metric[i][k] * inv_spacetime_metric[l][j] * covariant_tensor[k][l];
+          }
+        }
+      }
+    }
+  }
+
+  return new_tensor;
+}
+
+double**
 gkyl_gr_spatial_covariant_der_rank1(const struct gkyl_gr_spacetime* spacetime, const double t, const double x, const double y, const double z,
   const double dx, const double dy, const double dz, bool* indices, double* tensor, double** tensor_der)
 {
