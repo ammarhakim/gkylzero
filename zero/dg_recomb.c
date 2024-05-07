@@ -230,12 +230,10 @@ void gkyl_dg_recomb_coll(const struct gkyl_dg_recomb *up,
       const double *moms_ion_d = gkyl_array_cfetch(moms_ion, loc);
       double *prim_vars_ion_d = gkyl_array_fetch(prim_vars_ion, loc);
       
-      // condense the following 2 kernels...
       up->calc_prim_vars_ion->kernel(up->calc_prim_vars_ion, conf_iter.idx,
 					    moms_ion_d, prim_vars_ion_d);
     }
   }
-
   //gkyl_grid_sub_array_write(&s->grid, &s->local, react->coef_react[i], "coef_recomb.gkyl");
 
   // cfl calculation
@@ -259,12 +257,6 @@ gkyl_dg_recomb_release(struct gkyl_dg_recomb* up)
   gkyl_array_release(up->recomb_data);
   gkyl_array_release(up->vtSq_elc);
   gkyl_dg_prim_vars_type_release(up->calc_prim_vars_elc_vtSq);
-
-  // only used for Vlasov neut coll.
-  //gkyl_array_release(up->udrift_ion);
-  //gkyl_array_release(up->vtSq_ion);
-  //gkyl_proj_maxwellian_on_basis_release(up->proj_max);
-  //gkyl_dg_prim_vars_type_release(up->calc_prim_vars_ion_udrift);
   gkyl_dg_prim_vars_type_release(up->calc_prim_vars_ion);
   free(up);
 }

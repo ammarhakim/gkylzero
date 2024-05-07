@@ -1852,7 +1852,7 @@ forward_euler(gkyl_gyrokinetic_app* app, double tcurr, double dt,
     // Compute reaction cross moments (e.g., ionization, recombination, or charge exchange).
     if (app->neut_species[i].has_neutral_reactions) {
       gk_neut_species_react_cross_moms(app, &app->neut_species[i], 
-        &app->neut_species[i].react_neut, fin[i], fin, fin_neut);
+        &app->neut_species[i].react_neut, fin, fin_neut);
     }
   }
 

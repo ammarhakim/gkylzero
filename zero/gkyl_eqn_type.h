@@ -108,6 +108,7 @@ enum gkyl_react_self_type
   GKYL_SELF_ION = 1, // Ion species in reaction 
   GKYL_SELF_DONOR = 2, // Donating species in reaction (giving up electron)
   GKYL_SELF_RECVR = 3, // Receiving species in reaction (receiving electron)
+  GKYL_SELF_PARTNER = 4, // Neutral species in CX
 };
 
 // Identifiers for specific geometry types

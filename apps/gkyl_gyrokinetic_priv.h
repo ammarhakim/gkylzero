@@ -1297,14 +1297,13 @@ void gk_neut_species_react_cross_init(struct gkyl_gyrokinetic_app *app, struct g
  * @param app gyrokinetic app object
  * @param species Pointer to neutral species
  * @param react Pointer to react
- * @param f_self Input self distribution function
  * @param fin Input distribution functions (size: num_species)
  * @param fin_neut Input neutral distribution functions (size: num_neut_species)
  */
 void gk_neut_species_react_cross_moms(gkyl_gyrokinetic_app *app,
   const struct gk_neut_species *species,
   struct gk_react *react,
-  const struct gkyl_array *f_self, const struct gkyl_array *fin[], const struct gkyl_array *fin_neut[]);
+  const struct gkyl_array *fin[], const struct gkyl_array *fin_neut[]);
 
 /**
  * Compute RHS from reactions for neutrals

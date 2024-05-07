@@ -21,6 +21,7 @@ gk_neut_species_react_cross_init(struct gkyl_gyrokinetic_app *app, struct gk_neu
   react->proj_max = gkyl_proj_maxwellian_on_basis_new(&s->grid,
     &app->confBasis, &app->neut_basis, app->neut_basis.poly_order+1, app->use_gpu);  
 
+  int vdim = app->vdim+1; // neutral species are 3v otherwise
   for (int i=0; i<react->num_react; ++i) {
     react->react_id[i] = react->react_type[i].react_id;
     react->type_self[i] = react->react_type[i].type_self;
@@ -41,8 +42,8 @@ gk_neut_species_react_cross_init(struct gkyl_gyrokinetic_app *app, struct gk_neu
     react->vt_sq_iz1[i] = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
     react->vt_sq_iz2[i] = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
     react->m0_elc[i] = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
-    react->prim_vars[i] = mkarr(app->use_gpu, 4*app->confBasis.num_basis, app->local_ext.volume);
-    react->prim_vars_donor[i] = mkarr(app->use_gpu, 4*app->confBasis.num_basis, app->local_ext.volume);
+    react->prim_vars[i] = mkarr(app->use_gpu, (vdim+2)*app->confBasis.num_basis, app->local_ext.volume);
+    react->prim_vars_donor[i] = mkarr(app->use_gpu, (vdim+2)*app->confBasis.num_basis, app->local_ext.volume);
     if (react->react_id[i] == GKYL_REACT_IZ) {
       struct gkyl_dg_iz_inp iz_inp = {
         .grid = &s->grid, 
@@ -96,21 +97,21 @@ gk_neut_species_react_cross_init(struct gkyl_gyrokinetic_app *app, struct gk_neu
 // computes reaction coefficients
 void
 gk_neut_species_react_cross_moms(gkyl_gyrokinetic_app *app, const struct gk_neut_species *species,
-  struct gk_react *react, const struct gkyl_array *f_self, const struct gkyl_array *fin[], const struct gkyl_array *fin_neut[])
+  struct gk_react *react, const struct gkyl_array *fin[], const struct gkyl_array *fin_neut[])
 {
   for (int i=0; i<react->num_react; ++i) {
     if (react->react_id[i] == GKYL_REACT_IZ) {
       // compute needed moments
-      gk_species_moment_calc(&react->moms_elc[i], app->species[react->elc_idx[i]].local, 
+      gk_species_moment_calc(&react->moms_elc[i], app->species[react->elc_idx[i]].local,
         app->local, fin[react->elc_idx[i]]);
       for (int j=0; j<react->moms_elc[i].num_mom; ++j) {
         gkyl_dg_div_op_range(react->moms_elc[i].mem_geo, app->confBasis, j, react->moms_elc[i].marr, j,
-          react->moms_elc[i].marr, 0, app->gk_geom->jacobgeo, &app->local);   
+          react->moms_elc[i].marr, 0, app->gk_geom->jacobgeo, &app->local);
       }
       gkyl_array_set_range(react->m0_elc[i], 1.0, react->moms_elc[i].marr, &app->local);
       
-      gk_neut_species_moment_calc(&react->moms_donor[i], app->neut_species[react->donor_idx[i]].local, 
-        app->local, fin_neut[react->donor_idx[i]]); 
+      gk_neut_species_moment_calc(&react->moms_donor[i], app->neut_species[react->donor_idx[i]].local,
+        app->local, fin_neut[react->donor_idx[i]]);
       for (int j=0; j<react->moms_donor[i].num_mom; ++j) {
         gkyl_dg_div_op_range(react->moms_donor[i].mem_geo, app->confBasis, j, react->moms_donor[i].marr, j,
           react->moms_donor[i].marr, 0, app->gk_geom->jacobgeo, &app->local);
@@ -123,37 +124,40 @@ gk_neut_species_react_cross_moms(gkyl_gyrokinetic_app *app, const struct gk_neut
     }
     else if (react->react_id[i] == GKYL_REACT_RECOMB) {
       // compute needed moments
-      gk_species_moment_calc(&react->moms_elc[i], app->species[react->elc_idx[i]].local, 
+      gk_species_moment_calc(&react->moms_elc[i], app->species[react->elc_idx[i]].local,
         app->local, fin[react->elc_idx[i]]);
-      gk_species_moment_calc(&react->moms_ion[i], app->species[react->ion_idx[i]].local, 
+      gk_species_moment_calc(&react->moms_ion[i], app->species[react->ion_idx[i]].local,
         app->local, fin[react->ion_idx[i]]);
 
-      for (int j=0; j<5; ++j) {
+      for (int j=0; j<react->moms_elc[i].num_mom; ++j) {
         gkyl_dg_div_op_range(react->moms_elc[i].mem_geo, app->confBasis, j, react->moms_elc[i].marr, j,
           react->moms_elc[i].marr, 0, app->gk_geom->jacobgeo, &app->local);
         gkyl_dg_div_op_range(react->moms_ion[i].mem_geo, app->confBasis, j, react->moms_ion[i].marr, j,
           react->moms_ion[i].marr, 0, app->gk_geom->jacobgeo, &app->local);
       }
-      
-      gkyl_array_set_range(react->m0_elc[i], 1.0, react->moms_elc[i].marr, &app->local);
 
+      gkyl_array_set_range(react->m0_elc[i], 1.0, react->moms_elc[i].marr, &app->local);
+      
       // compute recombination reaction rate
-      gkyl_dg_recomb_coll(react->recomb[i], react->moms_elc[i].marr, react->moms_ion[i].marr, 
+      gkyl_dg_recomb_coll(react->recomb[i], react->moms_elc[i].marr, react->moms_ion[i].marr,
         app->gk_geom->b_i, react->prim_vars[i], react->coeff_react[i], 0);
+      gkyl_grid_sub_array_write(&app->grid, &app->local, 0, react->prim_vars[i], "prim_vars.gkyl");
     }
     else if (react->react_id[i] == GKYL_REACT_CX) {
       // calc moms_ion, moms_neut
       gk_species_moment_calc(&react->moms_ion[i], app->species[react->ion_idx[i]].local,
         app->local, fin[react->ion_idx[i]]);
+
       for (int j=0; j<react->moms_ion[i].num_mom; ++j) {
         gkyl_dg_div_op_range(react->moms_ion[i].mem_geo, app->confBasis, j, react->moms_ion[i].marr, j,
-          react->moms_ion[i].marr, 0, app->gk_geom->jacobgeo, &app->local);   
+          react->moms_ion[i].marr, 0, app->gk_geom->jacobgeo, &app->local);
       }
+
       gkyl_array_set_range(react->m0_ion[i], 1.0, react->moms_ion[i].marr, &app->local);
 
       gk_neut_species_moment_calc(&react->moms_partner[i], app->neut_species[react->partner_idx[i]].local,
         app->local, fin_neut[react->partner_idx[i]]);
-      
+
       for (int j=0; j<react->moms_partner[i].num_mom; ++j) {
         gkyl_dg_div_op_range(react->moms_partner[i].mem_geo, app->confBasis, j, react->moms_partner[i].marr, j,
           react->moms_partner[i].marr, 0, app->gk_geom->jacobgeo, &app->local);
@@ -188,24 +192,24 @@ gk_neut_species_react_rhs(gkyl_gyrokinetic_app *app, const struct gk_neut_specie
 
     }
     else if (react->react_id[i] == GKYL_REACT_RECOMB) {
-      gkyl_proj_maxwellian_on_basis_prim_mom(react->proj_max, &s->local, &app->local, 
+      gkyl_proj_maxwellian_on_basis_prim_mom(react->proj_max, &s->local, &app->local,
         react->moms_ion[i].marr, react->prim_vars[i], react->f_react);
-      gk_neut_species_moment_calc(&s->m0, s->local_ext, app->local_ext, react->f_react); 
+      gk_neut_species_moment_calc(&s->m0, s->local_ext, app->local_ext, react->f_react);
       gkyl_dg_div_op_range(s->m0.mem_geo, app->confBasis, 0, react->m0_mod[i], 0,
         react->m0_ion[i], 0, s->m0.marr, &app->local);
       gkyl_dg_mul_op_range(app->confBasis, 0, react->m0_mod[i], 0, react->m0_mod[i], 0, app->gk_geom->jacobgeo, &app->local);
-      gkyl_dg_mul_conf_phase_op_range(&app->confBasis, &app->basis, react->f_react, 
+      gkyl_dg_mul_conf_phase_op_range(&app->confBasis, &app->basis, react->f_react,
         react->m0_mod[i], react->f_react, &app->local_ext, &s->local_ext);
 
       // receiver update is n_elc*coeff_react*fmax(n_ion, upar_ion, vt_ion^2)
-      gkyl_dg_mul_conf_phase_op_range(&app->confBasis, &app->neut_basis, react->f_react, 
+      gkyl_dg_mul_conf_phase_op_range(&app->confBasis, &app->neut_basis, react->f_react,
           react->coeff_react[i], react->f_react, &app->local, &s->local);
-      gkyl_dg_mul_conf_phase_op_range(&app->confBasis, &app->neut_basis, react->f_react, 
-          react->m0_elc[i], react->f_react, &app->local, &s->local);  
+      gkyl_dg_mul_conf_phase_op_range(&app->confBasis, &app->neut_basis, react->f_react,
+          react->m0_elc[i], react->f_react, &app->local, &s->local);
       // multiply by configuration space Jacobian before final accumulation
-      gkyl_dg_mul_conf_phase_op_range(&app->confBasis, &app->neut_basis, react->f_react, 
-          app->gk_geom->jacobgeo, react->f_react, &app->local_ext, &s->local_ext);  
-      gkyl_array_accumulate(rhs, 1.0, react->f_react);  
+      gkyl_dg_mul_conf_phase_op_range(&app->confBasis, &app->neut_basis, react->f_react,
+          app->gk_geom->jacobgeo, react->f_react, &app->local_ext, &s->local_ext);
+      gkyl_array_accumulate(rhs, 1.0, react->f_react);
     }
     else if (react->react_id[i] == GKYL_REACT_CX) {
       // here prim_vars[i] is prim_vars_neut_gk
