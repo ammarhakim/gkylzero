@@ -59,12 +59,14 @@ CFLAGS += -DGKYL_SHARE_DIR=$(GKYL_SHARE_DIR)
 
 # Read MPI paths and flags if needed 
 USING_MPI =
+MPI_RPATH = 
 MPI_INC_DIR = zero # dummy
 MPI_LIB_DIR = .
 ifeq (${USE_MPI}, 1)
 	USING_MPI = yes
 	MPI_INC_DIR = ${CONF_MPI_INC_DIR}
 	MPI_LIB_DIR = ${CONF_MPI_LIB_DIR}
+	MPI_RPATH = -Wl,-rpath,${CONF_MPI_LIB_DIR}
 	MPI_LIBS = -lmpi
 	CFLAGS += -DGKYL_HAVE_MPI
 endif
@@ -168,7 +170,7 @@ endif
 
 # List of link directories and libraries for unit and regression tests
 EXEC_LIB_DIRS = -L${SUPERLU_LIB_DIR} -L${LAPACK_LIB_DIR} -L${BUILD_DIR} -L${MPI_LIB_DIR} -L${NCCL_LIB_DIR} -L${LUA_LIB_DIR}
-EXEC_EXT_LIBS = -lsuperlu ${LAPACK_LIB} ${CUDA_LIBS} ${MPI_LIBS} ${NCCL_LIBS} ${LUA_RPATH} ${LUA_LIBS} -lm -lpthread -ldl
+EXEC_EXT_LIBS = -lsuperlu ${LAPACK_LIB} ${CUDA_LIBS} ${MPI_RPATH} ${MPI_LIBS} ${NCCL_LIBS} ${LUA_RPATH} ${LUA_LIBS} -lm -lpthread -ldl
 EXEC_LIBS = ${BUILD_DIR}/libgkylzero.so ${EXEC_EXT_LIBS}
 EXEC_RPATH = 
 
@@ -376,8 +378,6 @@ install: all $(ZERO_SH_INSTALL_LIB) ## Install library and headers
 	sed ${SED_REPS_STR} Makefile.sample > ${INSTALL_PREFIX}/gkylzero/share/Makefile
 	cp -f regression/rt_arg_parse.h ${INSTALL_PREFIX}/gkylzero/include/rt_arg_parse.h
 	cp -f regression/rt_twostream.c ${INSTALL_PREFIX}/gkylzero/share/rt_twostream.c
-# Lua wrappers
-	cp -f inf/Moments.lua ${INSTALL_PREFIX}/gkylzero/lib/
 
 .PHONY: clean
 clean: ## Clean build output

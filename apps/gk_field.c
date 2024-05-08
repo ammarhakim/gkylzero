@@ -55,10 +55,16 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
       f->sheath_vals[2*j+1] = mkarr(app->use_gpu, 2*app->confBasis.num_basis, app->local_ext.volume);
     }
   } else {
+
+    struct gkyl_array* bmag_mid_host = app->use_gpu? mkarr(false, 1, 1) : gkyl_array_acquire(app->gk_geom->bmag_mid);
+    gkyl_array_copy(bmag_mid_host, app->gk_geom->bmag_mid);
+    double *bmag_mid_ptr = gkyl_array_fetch(bmag_mid_host, 0);
+    double polarization_bmag = f->info.polarization_bmag ? f->info.polarization_bmag : bmag_mid_ptr[0];
+    gkyl_array_release(bmag_mid_host);
     // Linearized polarization density
     for (int i=0; i<app->num_species; ++i) {
       struct gk_species *s = &app->species[i];
-      polarization_weight += s->info.polarization_density*s->info.mass/(f->info.bmag_fac*f->info.bmag_fac);
+      polarization_weight += s->info.polarization_density*s->info.mass/(polarization_bmag*polarization_bmag);
     }
     if (app->cdim == 1) {
       // Need to set weight to kperpsq*polarizationWeight for use in potential smoothing.
@@ -254,13 +260,10 @@ gk_field_accumulate_rho_c(gkyl_gyrokinetic_app *app, struct gk_field *field,
 }
 
 void
-gk_field_calc_ambi_pot_sheath_vals(gkyl_gyrokinetic_app *app, struct gk_field *field, 
-  const struct gkyl_array *fin[], struct gkyl_array *rhs[])
+gk_field_calc_ambi_pot_sheath_vals(gkyl_gyrokinetic_app *app, struct gk_field *field)
 {
   for (int i=0; i<app->num_species; ++i) {
     struct gk_species *s = &app->species[i];
-
-    gk_species_bflux_rhs(app, s, &s->bflux, fin[i], rhs[i]);
 
     // Assumes symmetric sheath BCs for now only in 1D
     gkyl_ambi_bolt_potential_sheath_calc(field->ambi_pot, GKYL_LOWER_EDGE, 

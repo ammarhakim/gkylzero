@@ -10,7 +10,6 @@
 #include <gkyl_dg_updater_moment_gyrokinetic.h>
 #include <gkyl_gk_geometry.h>
 #include <gkyl_gk_geometry_mapc2p.h>
-#include <gkyl_gk_geometry_fromfile.h>
 #include <gkyl_proj_on_basis.h>
 #include <gkyl_proj_maxwellian_on_basis.h>
 #include <gkyl_range.h>
@@ -172,7 +171,7 @@ test_2x_option(bool use_gpu)
 
   // If we are on the gpu, copy from host
   if (use_gpu) {
-    struct gk_geometry* gk_geom_dev = gkyl_gk_geometry_fromfile_new(gk_geom, &geometry_input, use_gpu);
+    struct gk_geometry* gk_geom_dev = gkyl_gk_geometry_new(gk_geom, &geometry_input, use_gpu);
     gkyl_gk_geometry_release(gk_geom);
     gk_geom = gkyl_gk_geometry_acquire(gk_geom_dev);
     gkyl_gk_geometry_release(gk_geom_dev);
@@ -224,7 +223,7 @@ test_2x_option(bool use_gpu)
 
   int num_mom = 4;
 
-  struct gkyl_array *marr = mkarr(use_gpu, num_mom, local_ext.volume);
+  struct gkyl_array *marr = mkarr(use_gpu, num_mom, confLocal_ext.volume);
   struct gkyl_array *marr_host = marr;
   if (use_gpu)
     marr_host = mkarr(false, num_mom, local_ext.volume);  
@@ -275,6 +274,7 @@ test_2x_option(bool use_gpu)
     gkyl_array_release(prim_moms_dev);   
   }
 
+  gkyl_dg_updater_moment_gyrokinetic_release(mcalc);
   gkyl_gk_geometry_release(gk_geom);
 }
 

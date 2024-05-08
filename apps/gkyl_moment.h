@@ -10,6 +10,14 @@
 
 #include <time.h>
 
+// number of components that various applied functions should return
+enum {
+  GKYL_MOM_APP_NUM_APPLIED_CURRENT = 3,
+  GKYL_MOM_APP_NUM_EXT_EM = 6,
+  GKYL_MOM_APP_NUM_APPLIED_ACCELERATION = 3,
+  GKYL_MOM_APP_NUM_NT_SOURCE = 2
+};
+
 // Parameters for moment species
 struct gkyl_moment_species {
   char name[128]; // species name
@@ -25,8 +33,13 @@ struct gkyl_moment_species {
   void *ctx; // context for initial condition init function (and potentially other functions)
   // pointer to initialization function
   void (*init)(double t, const double *xn, double *fout, void *ctx);
+
+  bool is_app_accel_static; // flag to indicate if applied acceleration is static
+  void *app_accel_ctx; // context for applied acceleration
   // pointer to applied acceleration/forces function
   void (*app_accel_func)(double t, const double *xn, double *fout, void *ctx);
+
+  void *nT_source_ctx; // context for nT source
   // pointer to user-defined number density and temperature sources
   void (*nT_source_func)(double t, const double *xn, double *fout, void *ctx);
   bool nT_source_set_only_once;
@@ -50,14 +63,18 @@ struct gkyl_moment_field {
   void *ctx; // context for initial condition init function (and potentially other functions)
   // pointer to initialization function
   void (*init)(double t, const double *xn, double *fout, void *ctx);
+
+  void *app_current_ctx; // context for applied current
   // pointer to applied current function
   void (*app_current_func)(double t, const double *xn, double *fout, void *ctx);
   double t_ramp_curr; // linear ramp for turning on applied currents
-  
+
   bool is_ext_em_static; // flag to indicate if external field is time-independent
+  void *ext_em_ctx; // context for applied current
   // pointer to external fields
   void (*ext_em_func)(double t, const double *xn, double *fout, void *ctx);
-  double t_ramp_E; // linear ramp for turning on external E field
+  double t_ramp_ext_em; // linear ramp for turning on external E field
+
   bool use_explicit_em_coupling; // flag to indicate if using explicit em-coupling
 
   // boundary conditions

@@ -191,8 +191,14 @@ gkyl_moment_app_new(struct gkyl_moment *mom)
   // allocate space to store species objects
   app->species = ns>0 ? gkyl_malloc(sizeof(struct moment_species[ns])) : 0;
   // create species grid & ranges
-  for (int i=0; i<ns; ++i)
+  app->has_app_accel = 0;
+  for (int i=0; i<ns; ++i) {
     moment_species_init(mom, &mom->species[i], app, &app->species[i]);
+    // Check if any species have an applied acceleration
+    if (app->species[i].proj_app_accel) {
+      app->has_app_accel = 1;
+    }
+  }
 
   // specify collision parameters in the exposed app
   app->has_collision = mom->has_collision;
@@ -203,10 +209,11 @@ gkyl_moment_app_new(struct gkyl_moment *mom)
 
   // check if we should update sources
   app->update_sources = 0;
-  if (app->has_field && ns>0) {
-    app->update_sources = 1; // only update if field and species are present
+  if ((app->has_field || app->has_app_accel) && ns>0) {
+    // only update if field and species are present or species has applied acceleration
+    app->update_sources = 1; 
     moment_coupling_init(app, &app->sources);
-  }
+  } 
 
   app->update_mhd_source = false;
   if (ns==1 && mom->species[0].equation->type==GKYL_EQN_MHD) {

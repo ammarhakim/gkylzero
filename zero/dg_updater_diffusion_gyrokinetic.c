@@ -20,7 +20,7 @@ struct gkyl_dg_updater_diffusion_gyrokinetic*
 gkyl_dg_updater_diffusion_gyrokinetic_new(const struct gkyl_rect_grid *grid,
   const struct gkyl_basis *basis, const struct gkyl_basis *cbasis, bool is_diff_const, 
   const bool *diff_in_dir, int diff_order, const struct gkyl_range *diff_range,
-  const bool *is_zero_flux_dir, bool use_gpu)
+  const bool *is_zero_flux_bc, bool use_gpu)
 {
   struct gkyl_dg_updater_diffusion_gyrokinetic *up = gkyl_malloc(sizeof(struct gkyl_dg_updater_diffusion_gyrokinetic));
 
@@ -41,7 +41,8 @@ gkyl_dg_updater_diffusion_gyrokinetic_new(const struct gkyl_rect_grid *grid,
     if (is_dir_diffusive[d]) up_dirs[linc] = d;
     linc += 1;
 
-    zero_flux_flags[d] = zero_flux_flags[d+pdim] = is_zero_flux_dir[d]? 1 : 0;
+    zero_flux_flags[d] = is_zero_flux_bc[d]? 1 : 0;
+    zero_flux_flags[d+pdim] = is_zero_flux_bc[d+pdim]? 1 : 0;
   }
 
   up->hyperdg = gkyl_hyper_dg_new(grid, basis, up->dgeqn, num_up_dirs, up_dirs, zero_flux_flags, 1, up->use_gpu);

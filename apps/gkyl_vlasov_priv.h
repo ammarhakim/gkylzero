@@ -189,7 +189,12 @@ struct vm_bgk_collisions {
 };
 
 struct vm_boundary_fluxes {
-  struct vm_species_moment integ_moms[2*GKYL_MAX_CDIM]; // integrated moments
+  struct gkyl_rect_grid boundary_grid[2*GKYL_MAX_CDIM];
+  struct gkyl_array *flux_arr[2*GKYL_MAX_CDIM];
+  struct gkyl_array *mom_arr[2*GKYL_MAX_CDIM];
+  struct gkyl_range flux_r[2*GKYL_MAX_CDIM];
+  struct gkyl_range conf_r[2*GKYL_MAX_CDIM];
+  struct gkyl_dg_updater_moment *integ_moms[2*GKYL_MAX_CDIM]; // integrated moments
   gkyl_ghost_surf_calc *flux_slvr; // boundary flux solver
 };
 
@@ -251,9 +256,6 @@ struct vm_proj {
 
 struct vm_source {
   struct vm_species_moment moms; // source moments
-
-  bool calc_bflux; // flag for calculating boundary fluxes
-  struct vm_boundary_fluxes bflux; // boundary flux object
 
   struct gkyl_array *source; // applied source
   struct gkyl_array *source_host; // host copy for use in IO and projecting
@@ -354,6 +356,8 @@ struct vm_species {
   struct vm_eval_accel_ctx accel_ctx; // context for applied acceleration
 
   struct vm_proj proj_init; // projector for initial conditions
+
+  struct vm_boundary_fluxes bflux; // boundary flux object
 
   enum gkyl_source_id source_id; // type of source
   struct vm_source src; // applied source

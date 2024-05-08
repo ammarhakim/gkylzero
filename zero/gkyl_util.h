@@ -202,8 +202,8 @@ const char* gkyl_search_str_int_pair_by_int(const struct gkyl_str_int_pair pairs
  * struct gkyl_tm_trigger tmt = { .dt = tend/nframe };
  */
 struct gkyl_tm_trigger {
-  int curr; // current counter
-  double dt, tcurr; // Time-interval, current time
+  int curr; // Current counter.
+  double dt, tcurr; // Time-interval, current time.
 };
 
 /**
