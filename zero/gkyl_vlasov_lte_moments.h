@@ -19,6 +19,7 @@ struct gkyl_vlasov_lte_moments_inp {
   const struct gkyl_array *p_over_gamma; // SR quantitiy: velocity
   const struct gkyl_array *gamma; // SR quantitiy: gamma = sqrt(1 + p^2)
   const struct gkyl_array *gamma_inv; // SR quantitiy: 1/gamma = 1/sqrt(1 + p^2)
+  const struct gkyl_array *h_ij_inv; // Can-pb quantity: Inverse metric tensor
   enum gkyl_model_id model_id; // Enum identifier for model type (e.g., SR, see gkyl_eqn_type.h)
   double mass; // Mass factor 
   bool use_gpu; // bool for gpu useage

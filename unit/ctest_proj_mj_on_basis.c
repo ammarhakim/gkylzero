@@ -342,6 +342,7 @@ test_1x1v(int poly_order)
     .p_over_gamma = p_over_gamma,
     .gamma = gamma,
     .gamma_inv = gamma_inv,
+    .h_ij_inv = 0,
     .model_id = GKYL_MODEL_SR,
     .mass = 1.0,
     .use_gpu = false,

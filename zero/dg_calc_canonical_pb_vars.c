@@ -29,6 +29,7 @@ gkyl_dg_calc_canonical_pb_vars_new(const struct gkyl_rect_grid *phase_grid,
   up->pdim = pdim;
 
   for (int d=0; d<cdim; ++d) {
+    up->canonical_pb_pressure[d] = choose_canonical_pb_pressure_kern(d, cdim, poly_order);
     up->alpha_surf[d] = choose_canonical_pb_alpha_surf_kern(d, cdim, poly_order);
     up->alpha_surf[d+cdim] = choose_canonical_pb_alpha_surf_v_kern(d, cdim, poly_order);
     up->alpha_edge_surf[d] = choose_canonical_pb_alpha_edge_surf_kern(d, cdim, poly_order);
@@ -97,6 +98,33 @@ void gkyl_dg_calc_canonical_pb_vars_alpha_surf(struct gkyl_dg_calc_canonical_pb_
           alpha_surf_ext_d, sgn_alpha_surf_ext_d);
       }  
     }
+  }
+}
+
+void gkyl_canonical_pb_pressure(struct gkyl_dg_calc_canonical_pb_vars *up, const struct gkyl_range *conf_range,
+ const struct gkyl_array *h_ij_inv, 
+ const struct gkyl_array *M2ij, const struct gkyl_array *V_drift, const struct gkyl_array *M1i,
+ struct gkyl_array *pressure)
+{
+#ifdef GKYL_HAVE_CUDA
+  if (gkyl_array_is_cu_dev(pressure)) {
+    return gkyl_canonical_pb_pressure_cu(up, h_ij_inv, M2ij, v_j, nv_i, pressure);
+  }
+#endif
+  int cdim = up->cdim;
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, conf_range);
+  while (gkyl_range_iter_next(&iter)) {
+    long loc = gkyl_range_idx(conf_range, iter.idx);
+
+    const double *h_ij_inv_d = gkyl_array_cfetch(h_ij_inv, loc);
+    const double *M2ij_d = gkyl_array_cfetch(M2ij, loc);
+    const double *v_j_d = gkyl_array_cfetch(V_drift, loc);
+    const double *nv_i_d = gkyl_array_cfetch(M1i, loc);
+
+    double* d_Jv_P_d = gkyl_array_fetch(pressure, loc);
+
+    up->canonical_pb_pressure[cdim-1](h_ij_inv_d, M2ij_d, v_j_d, nv_i_d, d_Jv_P_d);
   }
 }
 

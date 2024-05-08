@@ -210,6 +210,7 @@ gkyl_vlasov_lte_proj_on_basis_inew(const struct gkyl_vlasov_lte_proj_on_basis_in
     .p_over_gamma = inp->p_over_gamma,
     .gamma = inp->gamma,
     .gamma_inv = inp->gamma_inv,
+    .h_ij_inv = inp->h_ij_inv,
     .model_id = inp->model_id,
     .mass = inp->mass,
     .use_gpu = inp->use_gpu,
@@ -310,26 +311,32 @@ gkyl_vlasov_lte_proj_on_basis_advance(gkyl_vlasov_lte_proj_on_basis *up,
         V_drift_quad[n][d] = 0.0;
         // Store the cell average of V_drift to use if V_drift^2 > c^2 at quadrature points
         V_drift_quad_cell_avg[n][d] = V_drift_d[num_conf_basis*d]*b_ord[0];
-        if (up->is_canonical_pb) {
-          for (int j=0; j<vdim; ++j) {
-            h_ij_inv[n][d*vdim + j] = 0.0;
+      }
+      T_over_m_quad[n] = 0.0;
+
+      if (up->is_canonical_pb) {
+        for (int k=0; k<num_conf_basis; ++k) {
+          for (int j=0; j<vdim*(vdim+1)/2; ++j) {
+            h_ij_inv[n][j] = 0;
           }
         }
       }
-      T_over_m_quad[n] = 0.0;
 
       // Compute the configuration-space quadrature
       for (int k=0; k<num_conf_basis; ++k) {
         n_quad[n] += n_d[k]*b_ord[k];
         for (int d=0; d<vdim; ++d) {
           V_drift_quad[n][d] += V_drift_d[num_conf_basis*d+k]*b_ord[k];
-          if (up->is_canonical_pb) {
-            for (int j=0; j<vdim; ++j) {
-              h_ij_inv[n][d*cdim + j] += h_ij_inv_d[num_conf_basis*(d*cdim + j)+k]*b_ord[k];
-            }
-          }
         }
         T_over_m_quad[n] += T_over_m_d[k]*b_ord[k];
+      }
+
+      if (up->is_canonical_pb) {
+        for (int k=0; k<num_conf_basis; ++k) {
+          for (int j=0; j<vdim*(vdim+1)/2; ++j) {
+            h_ij_inv[n][j] += h_ij_inv_d[num_conf_basis*j+k]*b_ord[k];
+          }
+        }
       }
 
       // Amplitude of the exponential.
@@ -402,12 +409,18 @@ gkyl_vlasov_lte_proj_on_basis_advance(gkyl_vlasov_lte_proj_on_basis *up,
           else if (up->is_canonical_pb) {
             double efact = 0.0;
             for (int d0=0; d0<vdim; ++d0) {
-              for (int d1=0; d1<vdim; ++d1) {
+              for (int d1=d0; d1<vdim; ++d1) {
+                int sym_tensor_index = (d0*(2*vdim - d0 + 1))/2 + (d1-d0);
                 // Grab the spatial metric component, the ctx includes geometry that isn't 
                 // part of the canonical set of variables, like R on the surf of a sphere
                 // q_can includes the canonical variables list
-                double h_ij_inv_loc = h_ij_inv[cqidx][d0*vdim + d1]; 
-                efact += h_ij_inv_loc*(xmu[cdim+d0]-V_drift_quad[cqidx][d0])*(xmu[cdim+d1]-V_drift_quad[cqidx][d1]);
+                double h_ij_inv_loc = h_ij_inv[cqidx][sym_tensor_index]; 
+                // For off-diagnol components, we need to count these twice, due to symmetry
+                int sym_fact = 2;
+                if (d0 == d1){
+                  sym_fact = 1;
+                }
+                efact += sym_fact*h_ij_inv_loc*(xmu[cdim+d0]-V_drift_quad[cqidx][d0])*(xmu[cdim+d1]-V_drift_quad[cqidx][d1]);
               }
             }
             // Accuracy of the prefactor doesn't really matter since it will 

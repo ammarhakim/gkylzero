@@ -85,6 +85,51 @@ gkyl_dg_calc_canonical_pb_vars_alpha_surf_cu(struct gkyl_dg_calc_canonical_pb_va
 }
 
 
+/* Compute the pressure for can-pb*/
+__global__ void
+gkyl_canonical_pb_pressure_cu_kernel(struct gkyl_dg_calc_canonical_pb_vars *up, const struct gkyl_range *conf_range,
+ const struct gkyl_array *h_ij_inv, 
+ const struct gkyl_array *M2ij, const struct gkyl_array *V_drift, const struct gkyl_array *M1i,
+ struct gkyl_array *pressure)
+{
+  int cdim = up->cdim;
+  for (unsigned long linc1 = threadIdx.x + blockIdx.x*blockDim.x;
+      linc1 < conf_range.volume;
+      linc1 += gridDim.x*blockDim.x)
+  {
+    // inverse index from linc1 to idx
+    // must use gkyl_sub_range_inv_idx so that linc1=0 maps to idx={1,1,...}
+    // since update_range is a subrange
+    gkyl_sub_range_inv_idx(&conf_range, linc1, idx);
+
+    // convert back to a linear index on the super-range (with ghost cells)
+    // linc will have jumps in it to jump over ghost cells
+    long loc = gkyl_range_idx(&conf_range, idx);
+
+    const double *h_ij_inv_d = (const double*) gkyl_array_cfetch(h_ij_inv, loc);
+    const double *M2ij_d = (const double*) gkyl_array_cfetch(M2ij, loc);
+    const double *v_j_d = (const double*) gkyl_array_cfetch(V_drift, loc);
+    const double *nv_i_d = (const double*) gkyl_array_cfetch(M1i, loc);
+
+    double* d_Jv_P_d = (double*) gkyl_array_fetch(pressure, loc);
+
+    up->canonical_pb_pressure[cdim](h_ij_inv_d, M2ij_d, v_j_d, nv_i_d, d_Jv_P_d);
+  }
+}
+// Host-side wrapper
+void 
+gkyl_canonical_pb_pressure_cu(struct gkyl_dg_calc_canonical_pb_vars *up, const struct gkyl_range *conf_range,
+ const struct gkyl_array *h_ij_inv, 
+ const struct gkyl_array *M2ij, const struct gkyl_array *V_drift, const struct gkyl_array *M1i,
+ struct gkyl_array *pressure)
+{
+  int nblocks = conf_range->nblocks;
+  int nthreads = conf_range->nthreads;
+  gkyl_canonical_pb_pressure_cu_kernel<<<nblocks, nthreads>>>(up->on_dev, 
+    *conf_range, *h_ij_inv->on_dev, M2ij->on_dev, V_drift->on_dev, M1i->on_dev, pressure->on_dev);
+}
+
+
 // CUDA kernel to set device pointers to canonical pb vars kernel functions
 // Doing function pointer stuff in here avoids troublesome cudaMemcpyFromSymbol
 __global__ static void 
@@ -93,6 +138,7 @@ __global__ static void
 {
 
   for (int d=0; d<cdim; ++d) {
+    up->canonical_pb_pressure[d] = choose_canonical_pb_pressure_kern(d, cdim, poly_order);
     up->alpha_surf[d] = choose_canonical_pb_alpha_surf_kern(d, cdim, poly_order);
     up->alpha_surf[d+cdim] = choose_canonical_pb_alpha_surf_v_kern(d, cdim, poly_order);
     up->alpha_edge_surf[d] = choose_canonical_pb_alpha_edge_surf_kern(d, cdim, poly_order);

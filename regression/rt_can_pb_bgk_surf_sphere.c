@@ -29,23 +29,17 @@ evalNu(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, vo
 void 
 h_ij_inv(double t, const double* xn, double* fout, void* ctx)
 {
+  // Inverse metric tensor, must be symmetric!
+  // [h^{xx},h^{xy},h^{yy}]
   struct can_pb_ctx *app = (struct can_pb_ctx *)ctx;
   double R = app->R;
   double q_theta = xn[0], q_phi = xn[1];
   const double q[2] = {q_theta, q_phi};
-  for (int i = 0; i < 2; ++i) {
-    for (int j = 0; j < 2; ++j) {
-      int index = i * 2 + j;  // Compute the index in the 1D array
-      if (i == j) {
-        if (i == 0)
-          fout[index] = 1 / pow(R, 2);
-        else if (i == 1)
-          fout[index] = 1 / pow(R * sin(q[0]), 2);
-      } else {
-        fout[index] = 0;
-      }
-    }
-  }
+
+  // [h^{thetatheta},h^{thetaphi},h^{phiphi}]
+  fout[0] = 1.0 / pow(R, 2);
+  fout[1] = 0.0;
+  fout[2] = 1.0 / pow(R * sin(q[0]), 2);
 }
 
 void 
@@ -57,16 +51,11 @@ hamil(double t, const double* xn, double* fout, void* ctx)
   const double w[2] = {p_theta_dot, p_phi_dot};
   struct can_pb_ctx *app = (struct can_pb_ctx *)ctx;
   double R = app->R;
-  double *h_inv = malloc(4 * sizeof(double));
+  double *h_inv = malloc(3 * sizeof(double));
   h_ij_inv(t, xn, h_inv, ctx); 
-  fout[0] = 0;
-
-  for (int i = 0; i < 2; ++i) {
-    for (int j = 0; j < 2; ++j) {
-      fout[0] += 0.5 * h_inv[i * 2 + j] * w[i] * w[j];
-    }
-  }
-
+  fout[0] = 0.5 * h_inv[0] * w[0] * w[0] + 
+            0.5 * (2.0* h_inv[1] * w[1] * w[0]) + 
+            0.5 * h_inv[2] * w[1] * w[1];
   free(h_inv);
 }
 
@@ -75,7 +64,7 @@ evalDensityInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT 
 {
   struct can_pb_ctx *app = ctx;
   fout[0] = 1; //0.3  + sq(sq(sin(1.5*xn[1])))*2.0*sq(sq(sin(xn[0])));
-   double theta = xn[0];
+  double theta = xn[0];
   double phi = xn[1];
   if (theta + 0.2*sin(phi) > 1.5708){
     fout[0] = 1.0;
@@ -196,7 +185,7 @@ main(int argc, char **argv)
     .species = { neut },
     .skip_field = true,
 
-    .use_gpu = true, //app_args.use_gpu,
+    .use_gpu = app_args.use_gpu,
   };
 
   // create app object
