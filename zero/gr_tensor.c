@@ -810,3 +810,115 @@ gkyl_gr_spacetime_covariant_der_rank1(const struct gkyl_gr_spacetime* spacetime,
 
   return covariant_der;
 }
+
+double***
+gkyl_gr_spatial_covariant_der_rank2(const struct gkyl_gr_spacetime* spacetime, const double t, const double x, const double y, const double z,
+  const double dx, const double dy, const double dz, bool* indices, double** tensor, double*** tensor_der)
+{
+  double ***spatial_christoffel = gkyl_malloc(sizeof(double**[3]));
+  for (int i = 0; i < 3; i++) {
+    spatial_christoffel[i] = gkyl_malloc(sizeof(double*[3]));
+    
+    for (int j = 0; j < 3; j++) {
+      spatial_christoffel[i][j] = gkyl_malloc(sizeof(double[3]));
+    }
+  }
+
+  spacetime->spatial_christoffel_func(spacetime, t, x, y, z, dx, dy, dz, &spatial_christoffel);
+
+  double ***covariant_der = gkyl_malloc(sizeof(double**[3]));
+  for (int i = 0; i < 3; i++) {
+    covariant_der[i] = gkyl_malloc(sizeof(double*[3]));
+
+    for (int j = 0; j < 3; j++) {
+      covariant_der[i][j] = gkyl_malloc(sizeof(double[3]));
+
+      for (int k = 0; k < 3; k++) {
+        covariant_der[i][j][k] = tensor_der[i][j][k];
+      }
+    }
+  }
+
+  for (int i = 0; i < 3; i++) {
+    for (int j = 0; j < 3; j++) {
+      for (int k = 0; k < 3; k++) {
+        for (int l = 0; l < 3; l++) {
+          if (indices[0] == true && indices[1] == true) {
+            covariant_der[i][j][k] -= spatial_christoffel[l][i][j] * tensor[l][k];
+            covariant_der[i][j][k] -= spatial_christoffel[l][i][k] * tensor[j][l];
+          }
+          else if (indices[0] == true && indices[1] == false) {
+            covariant_der[i][j][k] += spatial_christoffel[k][i][l] * tensor[j][l];
+            covariant_der[i][j][k] -= spatial_christoffel[l][i][j] * tensor[l][k];
+          }
+          else if (indices[0] == false && indices[1] == true) {
+            covariant_der[i][j][k] += spatial_christoffel[j][i][l] * tensor[l][k];
+            covariant_der[i][j][k] -= spatial_christoffel[l][i][k] * tensor[j][l];
+          }
+          else if (indices[0] == false && indices[1] == false) {
+            covariant_der[i][j][k] += spatial_christoffel[j][i][l] * tensor[l][k];
+            covariant_der[i][j][k] += spatial_christoffel[k][i][l] * tensor[j][l];
+          }
+        }
+      }
+    }
+  }
+
+  return covariant_der;
+}
+
+double***
+gkyl_gr_spacetime_covariant_der_rank2(const struct gkyl_gr_spacetime* spacetime, const double t, const double x, const double y, const double z,
+  const double dt, const double dx, const double dy, const double dz, bool* indices, double** tensor, double*** tensor_der)
+{
+  double ***spacetime_christoffel = gkyl_malloc(sizeof(double**[4]));
+  for (int i = 0; i < 4; i++) {
+    spacetime_christoffel[i] = gkyl_malloc(sizeof(double*[4]));
+    
+    for (int j = 0; j < 4; j++) {
+      spacetime_christoffel[i][j] = gkyl_malloc(sizeof(double[4]));
+    }
+  }
+
+  spacetime->spacetime_christoffel_func(spacetime, t, x, y, z, dt, dx, dy, dz, &spacetime_christoffel);
+
+  double ***covariant_der = gkyl_malloc(sizeof(double**[4]));
+  for (int i = 0; i < 4; i++) {
+    covariant_der[i] = gkyl_malloc(sizeof(double*[4]));
+
+    for (int j = 0; j < 4; j++) {
+      covariant_der[i][j] = gkyl_malloc(sizeof(double[4]));
+
+      for (int k = 0; k < 4; k++) {
+        covariant_der[i][j][k] = tensor_der[i][j][k];
+      }
+    }
+  }
+
+  for (int i = 0; i < 4; i++) {
+    for (int j = 0; j < 4; j++) {
+      for (int k = 0; k < 4; k++) {
+        for (int l = 0; l < 4; l++) {
+          if (indices[0] == true && indices[1] == true) {
+            covariant_der[i][j][k] -= spacetime_christoffel[l][i][j] * tensor[l][k];
+            covariant_der[i][j][k] -= spacetime_christoffel[l][i][k] * tensor[j][l];
+          }
+          else if (indices[0] == true && indices[1] == false) {
+            covariant_der[i][j][k] += spacetime_christoffel[k][i][l] * tensor[j][l];
+            covariant_der[i][j][k] -= spacetime_christoffel[l][i][j] * tensor[l][k];
+          }
+          else if (indices[0] == false && indices[1] == true) {
+            covariant_der[i][j][k] += spacetime_christoffel[j][i][l] * tensor[l][k];
+            covariant_der[i][j][k] -= spacetime_christoffel[l][i][k] * tensor[j][l];
+          }
+          else if (indices[0] == false && indices[1] == false) {
+            covariant_der[i][j][k] += spacetime_christoffel[j][i][l] * tensor[l][k];
+            covariant_der[i][j][k] += spacetime_christoffel[k][i][l] * tensor[j][l];
+          }
+        }
+      }
+    }
+  }
+
+  return covariant_der;
+}

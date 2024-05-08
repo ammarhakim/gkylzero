@@ -289,7 +289,7 @@ test_gr_tensor_rank2()
       double x = 0.1 * x_ind;
       double y = 0.1 * y_ind;
 
-      if (sqrt((x * x) + (y * y)) > 0.2) {
+      if (sqrt((x * x) + (y * y)) > 0.1 * (1.0 + sqrt(0.19))) {
         double **spatial_tensor = gkyl_malloc(sizeof(double*[3]));
         double **spacetime_tensor = gkyl_malloc(sizeof(double*[4]));
 
@@ -835,7 +835,7 @@ test_gr_tensor_rank3()
       double x = 0.1 * x_ind;
       double y = 0.1 * y_ind;
 
-      if (sqrt((x * x) + (y * y)) > 0.2) {
+      if (sqrt((x * x) + (y * y)) > 0.1 * (1.0 + sqrt(0.19))) {
         double ***spatial_tensor = gkyl_malloc(sizeof(double**[3]));
         double ***spacetime_tensor = gkyl_malloc(sizeof(double**[4]));
 
@@ -1217,7 +1217,7 @@ test_gr_tensor_rank3()
 }
 
 void
-test_gr_covariant_der_rank1()
+test_gr_bianchi_cov_der_rank2()
 {
   struct gkyl_gr_spacetime *schwarzschild_spacetime = gkyl_gr_blackhole_new(false, 0.1, 0.0, 0.0, 0.0, 0.0);
 
@@ -1227,166 +1227,148 @@ test_gr_covariant_der_rank1()
       double y = 0.1 * y_ind;
 
       if (sqrt((x * x) + (y * y)) > 0.2) {
-        double *spatial_tensor = gkyl_malloc(sizeof(double[3]));
-        double **spatial_tensor_der = gkyl_malloc(sizeof(double*[3]));
-        for (int i = 0; i < 3; i++) {
-          spatial_tensor_der[i] = gkyl_malloc(sizeof(double[3]));
-        }
+        double **spatial_ricci_tensor = gkyl_malloc(sizeof(double*[3]));
+        double **spatial_ricci_tensor_x_forward = gkyl_malloc(sizeof(double*[3]));
+        double **spatial_ricci_tensor_y_forward = gkyl_malloc(sizeof(double*[3]));
+        double **spatial_ricci_tensor_z_forward = gkyl_malloc(sizeof(double*[3]));
 
-        double *spacetime_tensor = gkyl_malloc(sizeof(double[4]));
-        double **spacetime_tensor_der = gkyl_malloc(sizeof(double*[4]));
-        for (int i = 0; i < 4; i++) {
-          spacetime_tensor_der[i] = gkyl_malloc(sizeof(double[4]));
-        }
+        double **spatial_ricci_tensor_x_backward = gkyl_malloc(sizeof(double*[3]));
+        double **spatial_ricci_tensor_y_backward = gkyl_malloc(sizeof(double*[3]));
+        double **spatial_ricci_tensor_z_backward = gkyl_malloc(sizeof(double*[3]));
 
         for (int i = 0; i < 3; i++) {
-          for (int j = 0; j < 3; j++) {
-            spatial_tensor_der[i][j] = (pow(10.0, -6.0) * i) + (pow(10.0, -6.0) * j);
-          }
+          spatial_ricci_tensor[i] = gkyl_malloc(sizeof(double[3]));
+          spatial_ricci_tensor_x_forward[i] = gkyl_malloc(sizeof(double[3]));
+          spatial_ricci_tensor_y_forward[i] = gkyl_malloc(sizeof(double[3]));
+          spatial_ricci_tensor_z_forward[i] = gkyl_malloc(sizeof(double[3]));
 
-          spatial_tensor[i] = 0.1 * i;
+          spatial_ricci_tensor_x_backward[i] = gkyl_malloc(sizeof(double[3]));
+          spatial_ricci_tensor_y_backward[i] = gkyl_malloc(sizeof(double[3]));
+          spatial_ricci_tensor_z_backward[i] = gkyl_malloc(sizeof(double[3]));
         }
 
-        for (int i = 0; i < 4; i++) {
-          for (int j = 0; j < 4; j++) {
-            spacetime_tensor_der[i][j] = (pow(10.0, -6.0) * i) + (pow(10.0, -6.0) * j);
-          }
-
-          spacetime_tensor[i] = 0.1 * i;
-        }
-
-        bool *covariant_indices = gkyl_malloc(sizeof(bool[1]));
-        bool *contravariant_indices = gkyl_malloc(sizeof(bool[1]));
-        covariant_indices[0] = true;
-        contravariant_indices[0] = false;
-
-        double **covariant_spatial_der = gkyl_malloc(sizeof(double*[3]));
-        double **covariant_spatial_der_comp = gkyl_malloc(sizeof(double*[3]));
-        double **contravariant_spatial_der = gkyl_malloc(sizeof(double*[3]));
-        double **contravariant_spatial_der_comp = gkyl_malloc(sizeof(double*[3]));
-        for (int i = 0; i < 3; i++) {
-          covariant_spatial_der[i] = gkyl_malloc(sizeof(double[3]));
-          covariant_spatial_der_comp[i] = gkyl_malloc(sizeof(double[3]));
-          contravariant_spatial_der[i] = gkyl_malloc(sizeof(double[3]));
-          contravariant_spatial_der_comp[i] = gkyl_malloc(sizeof(double[3]));
-
-          for (int j = 0; j < 3; j++) {
-            covariant_spatial_der_comp[i][j] = 0.0;
-            contravariant_spatial_der_comp[i][j] = 0.0;
-          }
-        }
-
-        double **covariant_spacetime_der = gkyl_malloc(sizeof(double*[4]));
-        double **covariant_spacetime_der_comp = gkyl_malloc(sizeof(double*[4]));
-        double **contravariant_spacetime_der = gkyl_malloc(sizeof(double*[4]));
-        double **contravariant_spacetime_der_comp = gkyl_malloc(sizeof(double*[4]));
-        for (int i = 0; i < 4; i++) {
-          covariant_spacetime_der[i] = gkyl_malloc(sizeof(double[4]));
-          covariant_spacetime_der_comp[i] = gkyl_malloc(sizeof(double[4]));
-          contravariant_spacetime_der[i] = gkyl_malloc(sizeof(double[4]));
-          contravariant_spacetime_der_comp[i] = gkyl_malloc(sizeof(double[4]));
-
-          for (int j = 0; j < 4; j++) {
-            covariant_spacetime_der_comp[i][j] = 0.0;
-            contravariant_spacetime_der_comp[i][j] = 0.0;
-          }
-        }
-
-        double **spatial_metric = gkyl_malloc(sizeof(double*[3]));
-        double **inv_spatial_metric = gkyl_malloc(sizeof(double*[3]));
-        for (int i = 0; i < 3; i++) {
-          spatial_metric[i] = gkyl_malloc(sizeof(double[3]));
-          inv_spatial_metric[i] = gkyl_malloc(sizeof(double[3]));
-        }
-
-        double **spacetime_metric = gkyl_malloc(sizeof(double*[4]));
-        double **inv_spacetime_metric = gkyl_malloc(sizeof(double*[4]));
-        for (int i = 0; i < 4; i++) {
-          spacetime_metric[i] = gkyl_malloc(sizeof(double[4]));
-          inv_spacetime_metric[i] = gkyl_malloc(sizeof(double[4]));
-        }
-
-        schwarzschild_spacetime->spatial_metric_tensor_func(schwarzschild_spacetime, 0.0, x, y, 0.0, &spatial_metric);
-        schwarzschild_spacetime->spatial_inv_metric_tensor_func(schwarzschild_spacetime, 0.0, x, y, 0.0, &inv_spatial_metric);
+        schwarzschild_spacetime->spatial_ricci_tensor_func(schwarzschild_spacetime, 0.0, x, y, 0.0,
+          pow(10.0, -6.0), pow(10.0, -6.0), pow(10.0, -6.0), &spatial_ricci_tensor);
+        schwarzschild_spacetime->spatial_ricci_tensor_func(schwarzschild_spacetime, 0.0, x + pow(10.0, -6.0), y, 0.0,
+          pow(10.0, -6.0), pow(10.0, -6.0), pow(10.0, -6.0), &spatial_ricci_tensor_x_forward);
+        schwarzschild_spacetime->spatial_ricci_tensor_func(schwarzschild_spacetime, 0.0, x, y + pow(10.0, -6.0), 0.0,
+          pow(10.0, -6.0), pow(10.0, -6.0), pow(10.0, -6.0), &spatial_ricci_tensor_y_forward);
+        schwarzschild_spacetime->spatial_ricci_tensor_func(schwarzschild_spacetime, 0.0, x, y, pow(10.0, -6.0),
+          pow(10.0, -6.0), pow(10.0, -6.0), pow(10.0, -6.0), &spatial_ricci_tensor_z_forward);
         
-        schwarzschild_spacetime->spacetime_metric_tensor_func(schwarzschild_spacetime, 0.0, x, y, 0.0, &spacetime_metric);
-        schwarzschild_spacetime->spacetime_inv_metric_tensor_func(schwarzschild_spacetime, 0.0, x, y, 0.0, &inv_spacetime_metric);
+        schwarzschild_spacetime->spatial_ricci_tensor_func(schwarzschild_spacetime, 0.0, x - pow(10.0, -6.0), y, 0.0,
+          pow(10.0, -6.0), pow(10.0, -6.0), pow(10.0, -6.0), &spatial_ricci_tensor_x_backward);
+        schwarzschild_spacetime->spatial_ricci_tensor_func(schwarzschild_spacetime, 0.0, x, y - pow(10.0, -6.0), 0.0,
+          pow(10.0, -6.0), pow(10.0, -6.0), pow(10.0, -6.0), &spatial_ricci_tensor_y_backward);
+        schwarzschild_spacetime->spatial_ricci_tensor_func(schwarzschild_spacetime, 0.0, x, y, -pow(10.0, -6.0),
+          pow(10.0, -6.0), pow(10.0, -6.0), pow(10.0, -6.0), &spatial_ricci_tensor_z_backward);
 
-        double *spatial_tensor_contr = gkyl_malloc(sizeof(double[3]));
-        double **spatial_tensor_der_contr = gkyl_malloc(sizeof(double*[3]));
-        for (int i = 0; i < 3; i++) {
-          spatial_tensor_der_contr[i] = gkyl_malloc(sizeof(double[3]));
+        double **spatial_ricci_tensor_mixed_x_forward = gkyl_malloc(sizeof(double*[3]));
+        double **spatial_ricci_tensor_mixed_y_forward = gkyl_malloc(sizeof(double*[3]));
+        double **spatial_ricci_tensor_mixed_z_forward = gkyl_malloc(sizeof(double*[3]));
 
-          for (int j = 0; j < 3; j++) {
-            spatial_tensor_der_contr[i][j] = 0.0;
-          }
-          spatial_tensor_contr[i] = 0.0;
-        }
-
-        double *spacetime_tensor_contr = gkyl_malloc(sizeof(double[4]));
-        double **spacetime_tensor_der_contr = gkyl_malloc(sizeof(double*[4]));
-        for (int i = 0; i < 4; i++) {
-          spacetime_tensor_der_contr[i] = gkyl_malloc(sizeof(double[4]));
-
-          for (int j = 0; j < 4; j++) {
-            spacetime_tensor_der_contr[i][j] = 0.0;
-          }
-          spacetime_tensor_contr[i] = 0.0;
-        }
+        double **spatial_ricci_tensor_mixed_x_backward = gkyl_malloc(sizeof(double*[3]));
+        double **spatial_ricci_tensor_mixed_y_backward = gkyl_malloc(sizeof(double*[3]));
+        double **spatial_ricci_tensor_mixed_z_backward = gkyl_malloc(sizeof(double*[3]));
 
         for (int i = 0; i < 3; i++) {
+          spatial_ricci_tensor_mixed_x_forward[i] = gkyl_malloc(sizeof(double[3]));
+          spatial_ricci_tensor_mixed_y_forward[i] = gkyl_malloc(sizeof(double[3]));
+          spatial_ricci_tensor_mixed_z_forward[i] = gkyl_malloc(sizeof(double[3]));
+
+          spatial_ricci_tensor_mixed_x_backward[i] = gkyl_malloc(sizeof(double[3]));
+          spatial_ricci_tensor_mixed_y_backward[i] = gkyl_malloc(sizeof(double[3]));
+          spatial_ricci_tensor_mixed_z_backward[i] = gkyl_malloc(sizeof(double[3]));
+        }
+
+        bool *covariant_indices = gkyl_malloc(sizeof(bool[2]));
+        bool *mixed_indices = gkyl_malloc(sizeof(bool[2]));
+        covariant_indices[0] = true; covariant_indices[1] = true;
+        mixed_indices[0] = false; mixed_indices[1] = true;
+
+        spatial_ricci_tensor_mixed_x_forward = gkyl_gr_spatial_tensor_reindex_rank2(schwarzschild_spacetime, 0.0, x, y, 0.0,
+          covariant_indices, mixed_indices, spatial_ricci_tensor_x_forward);
+        spatial_ricci_tensor_mixed_y_forward = gkyl_gr_spatial_tensor_reindex_rank2(schwarzschild_spacetime, 0.0, x, y, 0.0,
+          covariant_indices, mixed_indices, spatial_ricci_tensor_y_forward);
+        spatial_ricci_tensor_mixed_z_forward = gkyl_gr_spatial_tensor_reindex_rank2(schwarzschild_spacetime, 0.0, x, y, 0.0,
+          covariant_indices, mixed_indices, spatial_ricci_tensor_z_forward);
+        
+        spatial_ricci_tensor_mixed_x_backward = gkyl_gr_spatial_tensor_reindex_rank2(schwarzschild_spacetime, 0.0, x, y, 0.0,
+          covariant_indices, mixed_indices, spatial_ricci_tensor_x_backward);
+        spatial_ricci_tensor_mixed_y_backward = gkyl_gr_spatial_tensor_reindex_rank2(schwarzschild_spacetime, 0.0, x, y, 0.0,
+          covariant_indices, mixed_indices, spatial_ricci_tensor_y_backward);
+        spatial_ricci_tensor_mixed_z_backward = gkyl_gr_spatial_tensor_reindex_rank2(schwarzschild_spacetime, 0.0, x, y, 0.0,
+          covariant_indices, mixed_indices, spatial_ricci_tensor_z_backward);
+        
+        double ***spatial_ricci_tensor_der = gkyl_malloc(sizeof(double**[3]));
+        double ***spatial_ricci_tensor_cov_der = gkyl_malloc(sizeof(double**[3]));
+
+        for (int i = 0; i < 3; i++) {
+          spatial_ricci_tensor_der[i] = gkyl_malloc(sizeof(double*[3]));
+          spatial_ricci_tensor_cov_der[i] = gkyl_malloc(sizeof(double*[3]));
+
           for (int j = 0; j < 3; j++) {
-            spatial_tensor_contr[i] += inv_spatial_metric[i][j] * spatial_tensor[j];
-
-            for (int k = 0; k < 3; k++) {
-              spatial_tensor_der_contr[i][j] += inv_spatial_metric[k][j] * spatial_tensor_der[i][k];
-            }
+            spatial_ricci_tensor_der[i][j] = gkyl_malloc(sizeof(double[3]));
+            spatial_ricci_tensor_cov_der[i][j] = gkyl_malloc(sizeof(double[3]));
           }
         }
-
-        for (int i = 0; i < 4; i++) {
-          for (int j = 0; j < 4; j++) {
-            spacetime_tensor_contr[i] += inv_spacetime_metric[i][j] * spacetime_tensor[j];
-
-            for (int k = 0; k < 4; k++) {
-              spacetime_tensor_der_contr[i][j] += inv_spacetime_metric[k][j] * spacetime_tensor_der[i][k];
-            }
-          }
-        }
-
-        covariant_spatial_der = gkyl_gr_spatial_covariant_der_rank1(schwarzschild_spacetime, 0.0, x, y, 0.0,
-          pow(10.0, -6.0), pow(10.0, -6.0), pow(10.0, -6.0), covariant_indices, spatial_tensor, spatial_tensor_der);
-        contravariant_spatial_der = gkyl_gr_spatial_covariant_der_rank1(schwarzschild_spacetime, 0.0, x, y, 0.0,
-          pow(10.0, -6.0), pow(10.0, -6.0), pow(10.0, -6.0), contravariant_indices, spatial_tensor_contr, spatial_tensor_der_contr);
-
-        covariant_spacetime_der = gkyl_gr_spacetime_covariant_der_rank1(schwarzschild_spacetime, 0.0, x, y, 0.0,
-          pow(10.0, -6.0), pow(10.0, -6.0), pow(10.0, -6.0), pow(10.0, -6.0), covariant_indices, spacetime_tensor, spacetime_tensor_der);
-        contravariant_spacetime_der = gkyl_gr_spacetime_covariant_der_rank1(schwarzschild_spacetime, 0.0, x, y, 0.0,
-          pow(10.0, -6.0), pow(10.0, -6.0), pow(10.0, -6.0), pow(10.0, -6.0), contravariant_indices, spacetime_tensor_contr, spacetime_tensor_der_contr);
 
         for (int i = 0; i < 3; i++) {
           for (int j = 0; j < 3; j++) {
-            for (int k = 0; k < 3; k++) {
-              covariant_spatial_der_comp[i][j] += spatial_metric[k][j] * contravariant_spatial_der[i][k];
-              contravariant_spatial_der_comp[i][j] += inv_spatial_metric[k][j] * covariant_spatial_der[i][k];
-            }
+            spatial_ricci_tensor_der[0][i][j] = (1.0 / pow(10.0, -6.0)) * (spatial_ricci_tensor_mixed_x_forward[i][j] - spatial_ricci_tensor_mixed_x_backward[i][j]);
+            spatial_ricci_tensor_der[1][i][j] = (1.0 / pow(10.0, -6.0)) * (spatial_ricci_tensor_mixed_y_forward[i][j] - spatial_ricci_tensor_mixed_y_backward[i][j]);
+            spatial_ricci_tensor_der[2][i][j] = (1.0 / pow(10.0, -6.0)) * (spatial_ricci_tensor_mixed_z_forward[i][j] - spatial_ricci_tensor_mixed_z_backward[i][j]);
           }
         }
 
-        for (int i = 0; i < 4; i++) {
-          for (int j = 0; j < 4; j++) {
-            for (int k = 0; k < 4; k++) {
-              covariant_spacetime_der_comp[i][j] += spacetime_metric[k][j] * contravariant_spacetime_der[i][k];
-              contravariant_spacetime_der_comp[i][j] += inv_spacetime_metric[k][j] * contravariant_spacetime_der[i][k];
-            }
+        spatial_ricci_tensor_cov_der = gkyl_gr_spatial_covariant_der_rank2(schwarzschild_spacetime, 0.0, x, y, 0.0,
+          pow(10.0, -6.0), pow(10.0, -6.0), pow(10.0, -6.0), mixed_indices, spatial_ricci_tensor, spatial_ricci_tensor_der);
+
+        double spatial_ricci_scalar;
+        double spatial_ricci_scalar_x_forward;
+        double spatial_ricci_scalar_y_forward;
+        double spatial_ricci_scalar_z_forward;
+
+        double spatial_ricci_scalar_x_backward;
+        double spatial_ricci_scalar_y_backward;
+        double spatial_ricci_scalar_z_backward;
+
+        schwarzschild_spacetime->spatial_ricci_scalar_func(schwarzschild_spacetime, 0.0, x, y, 0.0,
+          pow(10.0, -6.0), pow(10.0, -6.0), pow(10.0, -6.0), &spatial_ricci_scalar);
+        schwarzschild_spacetime->spatial_ricci_scalar_func(schwarzschild_spacetime, 0.0, x + pow(10.0, -6.0), y, 0.0,
+          pow(10.0, -6.0), pow(10.0, -6.0), pow(10.0, -6.0), &spatial_ricci_scalar_x_forward);
+        schwarzschild_spacetime->spatial_ricci_scalar_func(schwarzschild_spacetime, 0.0, x, y + pow(10.0, -6.0), 0.0,
+          pow(10.0, -6.0), pow(10.0, -6.0), pow(10.0, -6.0), &spatial_ricci_scalar_y_forward);
+        schwarzschild_spacetime->spatial_ricci_scalar_func(schwarzschild_spacetime, 0.0, x, y, pow(10.0, -6.0),
+          pow(10.0, -6.0), pow(10.0, -6.0), pow(10.0, -6.0), &spatial_ricci_scalar_z_forward);
+        
+        schwarzschild_spacetime->spatial_ricci_scalar_func(schwarzschild_spacetime, 0.0, x - pow(10.0, -6.0), y, 0.0,
+          pow(10.0, -6.0), pow(10.0, -6.0), pow(10.0, -6.0), &spatial_ricci_scalar_x_backward);
+        schwarzschild_spacetime->spatial_ricci_scalar_func(schwarzschild_spacetime, 0.0, x, y - pow(10.0, -6.0), 0.0,
+          pow(10.0, -6.0), pow(10.0, -6.0), pow(10.0, -6.0), &spatial_ricci_scalar_y_backward);
+        schwarzschild_spacetime->spatial_ricci_scalar_func(schwarzschild_spacetime, 0.0, x, y, -pow(10.0, -6.0),
+          pow(10.0, -6.0), pow(10.0, -6.0), pow(10.0, -6.0), &spatial_ricci_scalar_z_backward);
+        
+        double *spatial_ricci_scalar_der = gkyl_malloc(sizeof(double[3]));
+        double *spatial_ricci_tensor_cov_der_contr = gkyl_malloc(sizeof(double[3]));
+
+        spatial_ricci_scalar_der[0] = (1.0 / pow(10.0, -6.0)) * (spatial_ricci_scalar_x_forward - spatial_ricci_scalar_x_backward);
+        spatial_ricci_scalar_der[1] = (1.0 / pow(10.0, -6.0)) * (spatial_ricci_scalar_y_forward - spatial_ricci_scalar_y_backward);
+        spatial_ricci_scalar_der[2] = (1.0 / pow(10.0, -6.0)) * (spatial_ricci_scalar_z_forward - spatial_ricci_scalar_z_backward);
+
+        for (int i = 0; i < 3; i++) {
+          spatial_ricci_tensor_cov_der_contr[i] = 0.0;
+        }
+
+        for (int i = 0; i < 3; i++) {
+          for (int j = 0; j < 3; j++) {
+            spatial_ricci_tensor_cov_der_contr[i] += spatial_ricci_tensor_cov_der[j][j][i];
           }
         }
 
-        for (int i = 0; i < 4; i++) {
-          for (int j = 0; j < 4; j++) {
-            //TEST_CHECK( gkyl_compare(covariant_spatial_der[i][j], covariant_spatial_der_comp[i][j], 1e-2) );
-            //TEST_CHECK( gkyl_compare(contravariant_spatial_der[i][j], contravariant_spatial_der_comp[i][j], 1e-2) );
-          }
+        for (int i = 0; i < 3; i++) {
+          printf("%f = %f\n", spatial_ricci_tensor_cov_der_contr[i], 0.5 * spatial_ricci_scalar_der[i]);
+          TEST_CHECK( gkyl_compare(spatial_ricci_tensor_cov_der_contr[i], 0.5 * spatial_ricci_scalar_der[i], 1e-10) );
         }
       }
     }
@@ -1397,6 +1379,6 @@ TEST_LIST = {
   { "gr_tensor_rank1", test_gr_tensor_rank1 },
   { "gr_tensor_rank2", test_gr_tensor_rank2 },
   { "gr_tensor_rank3", test_gr_tensor_rank3 },
-  { "gr_covariant_der_rank1", test_gr_covariant_der_rank1 },
+  { "gr_bianchi_cov_der_rank2", test_gr_bianchi_cov_der_rank2},
   { NULL, NULL },
 };
