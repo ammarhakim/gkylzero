@@ -216,7 +216,7 @@ gk_neut_species_react_rhs(gkyl_gyrokinetic_app *app, const struct gk_neut_specie
     }
     else if (react->react_id[i] == GKYL_REACT_CX) {
       // here prim_vars[i] is prim_vars_neut_gk
-    /*   gkyl_proj_maxwellian_on_basis_prim_mom(react->proj_max, &s->local, &app->local, */
+      gkyl_proj_maxwellian_on_basis_prim_mom(react->proj_max, &s->local, &app->local,
         react->moms_ion[i].marr, react->prim_vars_cxi[i], react->f_react);
 
       // scale to correct m0 and multiply f
