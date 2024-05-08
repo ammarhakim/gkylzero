@@ -282,7 +282,7 @@ gkyl_vlasov_lte_proj_on_basis_advance(gkyl_vlasov_lte_proj_on_basis *up,
 
   double xc[GKYL_MAX_DIM], xmu[GKYL_MAX_DIM];
   double n_quad[tot_conf_quad], V_drift_quad[tot_conf_quad][vdim], T_over_m_quad[tot_conf_quad];
-  double h_ij_inv[tot_conf_quad][vdim*vdim];
+  double h_ij_inv_quad[tot_conf_quad][vdim*(vdim + 1)/2];
   double V_drift_quad_cell_avg[tot_conf_quad][vdim];
   double expamp_quad[tot_conf_quad];
 
@@ -326,12 +326,12 @@ gkyl_vlasov_lte_proj_on_basis_advance(gkyl_vlasov_lte_proj_on_basis *up,
       if (up->is_canonical_pb) {
         for (int k=0; k<num_conf_basis; ++k) {
           for (int j=0; j<vdim*(vdim+1)/2; ++j) {
-            h_ij_inv[n][j] = 0;
+            h_ij_inv_quad[n][j] = 0;
           }
         }
         for (int k=0; k<num_conf_basis; ++k) {
           for (int j=0; j<vdim*(vdim+1)/2; ++j) {
-            h_ij_inv[n][j] += h_ij_inv_d[num_conf_basis*j+k]*b_ord[k];
+            h_ij_inv_quad[n][j] += h_ij_inv_d[num_conf_basis*j+k]*b_ord[k];
           }
         }
       }
@@ -408,7 +408,7 @@ gkyl_vlasov_lte_proj_on_basis_advance(gkyl_vlasov_lte_proj_on_basis *up,
                 // Grab the spatial metric component, the ctx includes geometry that isn't 
                 // part of the canonical set of variables, like R on the surf of a sphere
                 // q_can includes the canonical variables list
-                double h_ij_inv_loc = h_ij_inv[cqidx][sym_tensor_index]; 
+                double h_ij_inv_loc = h_ij_inv_quad[cqidx][sym_tensor_index]; 
                 // For off-diagnol components, we need to count these twice, due to symmetry
                 int sym_fact = 2;
                 if (d0 == d1){
