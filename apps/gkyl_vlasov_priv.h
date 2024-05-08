@@ -235,9 +235,6 @@ struct vm_proj {
 struct vm_source {
   struct vm_species_moment moms; // source moments
 
-  bool calc_bflux; // flag for calculating boundary fluxes
-  struct vm_boundary_fluxes bflux; // boundary flux object
-
   struct gkyl_array *source; // applied source
   struct gkyl_array *source_host; // host copy for use in IO and projecting
   struct vm_proj proj_source; // projector for source
@@ -333,6 +330,8 @@ struct vm_species {
   struct vm_eval_accel_ctx accel_ctx; // context for applied acceleration
 
   struct vm_proj proj_init; // projector for initial conditions
+
+  struct vm_boundary_fluxes bflux; // boundary flux object
 
   enum gkyl_source_id source_id; // type of source
   struct vm_source src; // applied source

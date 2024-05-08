@@ -244,6 +244,8 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
     gkyl_skin_ghost_ranges(&s->upper_skin[dir], &s->upper_ghost[dir], dir, GKYL_UPPER_EDGE, &s->local_ext, ghost);
   }
 
+  vm_species_bflux_init(app, s, &s->bflux); // boundary flux updater, needs to be done after skin and ghost ranges are initialized
+
   // allocate buffer for applying periodic BCs
   long buff_sz = 0;
   // compute buffer size needed
@@ -343,6 +345,8 @@ vm_species_rhs(gkyl_vlasov_app *app, struct vm_species *species,
   else if (species->collision_id == GKYL_BGK_COLLISIONS) {
     vm_species_bgk_rhs(app, species, &species->bgk, fin, rhs);
   }
+
+  vm_species_bflux_rhs(app, species, &species->bflux, fin, rhs);
   
   app->stat.nspecies_omega_cfl +=1;
   struct timespec tm = gkyl_wall_clock();
@@ -477,6 +481,8 @@ vm_species_release(const gkyl_vlasov_app* app, const struct vm_species *s)
   gkyl_array_release(s->bc_buffer_up_fixed);
 
   vm_species_projection_release(app, &s->proj_init);
+
+  vm_species_bflux_release(app, &s->bflux);
 
   gkyl_comm_release(s->comm);
 
