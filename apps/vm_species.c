@@ -244,7 +244,8 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
     gkyl_skin_ghost_ranges(&s->upper_skin[dir], &s->upper_ghost[dir], dir, GKYL_UPPER_EDGE, &s->local_ext, ghost);
   }
 
-  vm_species_bflux_init(app, s, &s->bflux); // boundary flux updater, needs to be done after skin and ghost ranges are initialized
+  // intitalize boundary flux updater, needs to be done after skin and ghost ranges
+  vm_species_bflux_init(app, s, &s->bflux);
 
   // allocate buffer for applying periodic BCs
   long buff_sz = 0;
