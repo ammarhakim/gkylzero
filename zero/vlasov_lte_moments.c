@@ -7,6 +7,7 @@
 #include <gkyl_dg_bin_ops.h>
 #include <gkyl_dg_calc_sr_vars.h>
 #include <gkyl_dg_calc_canonical_pb_vars.h>
+#include <gkyl_dg_calc_canonical_pb_vars_priv.h>
 #include <gkyl_dg_updater_moment.h>
 #include <gkyl_vlasov_lte_moments.h>
 #include <gkyl_vlasov_lte_moments_priv.h>
@@ -74,12 +75,12 @@ gkyl_vlasov_lte_moments_inew(const struct gkyl_vlasov_lte_moments_inp *inp)
     up->h_ij_inv = gkyl_array_acquire(inp->h_ij_inv);
     if (inp->use_gpu) {
       up->pressure_tensor = gkyl_array_cu_dev_new(GKYL_DOUBLE, up->num_conf_basis*num_pij_comps, conf_local_ext_ncells);
-      up->can_pb_vars = gkyl_dg_calc_canonical_pb_vars_cu_dev_new(inp->phase_grid, inp->conf_basis, inp->phase_basis);
     }
     else {
-      up->can_pb_vars = gkyl_dg_calc_canonical_pb_vars_new(inp->phase_grid, inp->conf_basis, inp->phase_basis, inp->use_gpu);
       up->pressure_tensor = gkyl_array_new(GKYL_DOUBLE, up->num_conf_basis*num_pij_comps, conf_local_ext_ncells);
     }
+    up->can_pb_vars = gkyl_dg_calc_canonical_pb_vars_new(inp->phase_grid, inp->conf_basis, inp->phase_basis, inp->use_gpu);
+
     // Moment calculator for needed moments (M0, M1i, and M2 for non-relativistic)
     // Temperature moment is modified by can-pb, requires computing g^{ij}w_iw_j kernel
     // Note: auxiliary field input is NULL (not used by non-relativistic simulations)
