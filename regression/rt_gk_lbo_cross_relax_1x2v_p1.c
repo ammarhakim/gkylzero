@@ -113,7 +113,7 @@ create_ctx(void)
   double vteIC = sqrt(TeIC / mass_elc); // IC electron thermal velocity.
   double vtiIC = sqrt(TiIC / mass_ion); // IC ion thermal velocity.
   double uPare = 0.5*sqrt(mass_elc/mass_ion)*vteIC; // Electron drift velocity.
-  double uPari = 500.0*(mass_elc/mass_ion)*vtiIC; // Ion drift velocity.
+  double uPari = 50.0*(mass_elc/mass_ion)*vtiIC; // Ion drift velocity.
 
   // Simulation parameters.
   int Nx = 1; // Cell count (configuration space: x-direction).
@@ -124,7 +124,7 @@ create_ctx(void)
   double vpar_max_ion = 5.0 * vti; // Domain boundary (ion velocity space: parallel velocity direction).
   double mu_max_ion = mass_ion * pow(5.0*vti,2) / (2.0*B0); // Domain boundary (ion velocity space: magnetic moment direction).
 
-  double t_end = 1.0/nu_ion; // Final simulation time.
+  double t_end = 0.01/nu_ion; // Final simulation time.
   int num_frames = 10; // Number of output frames.
   int int_diag_calc_num = num_frames*100;
   double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.
@@ -422,8 +422,8 @@ main(int argc, char **argv)
       .collide_with = { "ion" },
     },
     
-    .num_diag_moments = 7,
-    .diag_moments = { "M0", "M1", "M2", "M2par", "M2perp", "M3par", "M3perp" },
+    .num_diag_moments = 5,
+    .diag_moments = { "M0", "M1", "M2", "M2par", "M2perp" },
   };
 
   // Ion species.
@@ -438,7 +438,7 @@ main(int argc, char **argv)
 
     .projection = {
       .proj_id = GKYL_PROJ_FUNC, 
-      .func = evalDistElcInit,
+      .func = evalDistIonInit,
       .ctx_func = &ctx,
     },
     .collisions =  {
@@ -452,8 +452,8 @@ main(int argc, char **argv)
       .collide_with = { "elc" },
     },
 
-    .num_diag_moments = 7,
-    .diag_moments = { "M0", "M1", "M2", "M2par", "M2perp", "M3par", "M3perp" },
+    .num_diag_moments = 5,
+    .diag_moments = { "M0", "M1", "M2", "M2par", "M2perp" },
   };
 
   // Field.
