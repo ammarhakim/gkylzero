@@ -247,17 +247,20 @@ gkyl_vlasov_lte_moments_release(gkyl_vlasov_lte_moments *lte_moms)
   if (lte_moms->model_id == GKYL_MODEL_SR) {
     gkyl_array_release(lte_moms->M0_minus_V_drift_dot_M1i);
     gkyl_array_release(lte_moms->GammaV_inv);
-    gkyl_array_release(lte_moms->GammaV2);    
+    gkyl_array_release(lte_moms->GammaV2);  
+    gkyl_dg_updater_moment_release(lte_moms->Pcalc);  
   }
   else if (lte_moms->model_id == GKYL_MODEL_CANONICAL_PB) {
     gkyl_array_release(lte_moms->h_ij_inv);
     gkyl_array_release(lte_moms->pressure_tensor);
     gkyl_dg_updater_moment_release(lte_moms->M2ijcalc);
     gkyl_dg_calc_canonical_pb_vars_release(lte_moms->can_pb_vars);
+  } 
+  else {
+    gkyl_dg_updater_moment_release(lte_moms->Pcalc);
   }
   gkyl_dg_updater_moment_release(lte_moms->M0_calc);
   gkyl_dg_updater_moment_release(lte_moms->M1i_calc);
-  gkyl_dg_updater_moment_release(lte_moms->Pcalc);
 
   gkyl_free(lte_moms);
 }
