@@ -545,8 +545,8 @@ pkpm_app_new(lua_State *L)
     // get context for species' applied acceleration if they exist
     if (pkpm_s_lw[s]->has_app_accel) {
       app_lw->app_accel_func_ctx[s] = pkpm_s_lw[s]->app_accel_ref;
-      pkpm.species[s].accel = eval_ic;
-      pkpm.species[s].accel_ctx = &app_lw->app_accel_func_ctx[s];
+      pkpm.species[s].app_accel = eval_ic;
+      pkpm.species[s].app_accel_ctx = &app_lw->app_accel_func_ctx[s];
     }
 
     // assign the App's species object collision struct to user input collision struct 
