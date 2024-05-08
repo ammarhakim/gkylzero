@@ -20,22 +20,36 @@ vm_species_bflux_init(struct gkyl_vlasov_app *app, struct vm_species *s, struct 
   // initialize moment solver
   for (int i=0; i<app->cdim; ++i) {
     cells[i] = 1;
+
     bflux->flux_arr[2*i] = mkarr(app->use_gpu, app->basis.num_basis, s->lower_ghost[i].volume);
     bflux->flux_arr[2*i+1] = mkarr(app->use_gpu, app->basis.num_basis, s->upper_ghost[i].volume);
+
     gkyl_range_init(&bflux->flux_r[2*i], ndim, s->lower_ghost[i].lower, s->lower_ghost[i].upper);
     gkyl_range_init(&bflux->flux_r[2*i+1], ndim, s->upper_ghost[i].lower, s->upper_ghost[i].upper);
-    gkyl_range_init(&bflux->conf_r[2*i], app->cdim, s->lower_ghost[i].lower, s->lower_ghost[i].upper);
-    gkyl_range_init(&bflux->conf_r[2*i+1], app->cdim, s->upper_ghost[i].lower, s->upper_ghost[i].upper);
+
+    gkyl_range_init(&bflux->conf_r[2*i], app->cdim, s->lower_ghost[i].lower,
+      s->lower_ghost[i].upper);
+    gkyl_range_init(&bflux->conf_r[2*i+1], app->cdim, s->upper_ghost[i].lower,
+      s->upper_ghost[i].upper);
+
     upper[i] = s->grid.lower[i] + s->grid.dx[i];
+
     gkyl_rect_grid_init(&bflux->boundary_grid[2*i], ndim, lower, upper, cells);
+
     upper[i] = s->grid.upper[i];
     lower[i] = s->grid.upper[i] - s->grid.dx[i];
+
     gkyl_rect_grid_init(&bflux->boundary_grid[2*i+1], ndim, lower, upper, cells);
-    bflux->integ_moms[2*i] = gkyl_dg_updater_moment_new(&bflux->boundary_grid[2*i], &app->confBasis, &app->basis, NULL, NULL, s->model_id, 0, "Integrated", 1, s->info.mass, app->use_gpu);
-    bflux->integ_moms[2*i+1] = gkyl_dg_updater_moment_new(&bflux->boundary_grid[2*i+1], &app->confBasis, &app->basis, NULL, NULL, s->model_id, 0, "Integrated", 1, s->info.mass, app->use_gpu);
-    // vm_species_moment_init(app, s, &bflux->integ_moms[2*i], "Integrated");
-    // vm_species_moment_init(app, s, &bflux->integ_moms[2*i+1], "Integrated");
+
+    bflux->integ_moms[2*i] = gkyl_dg_updater_moment_new(&bflux->boundary_grid[2*i],
+      &app->confBasis, &app->basis, NULL, NULL, s->model_id, 0, "Integrated", 1,
+      s->info.mass, app->use_gpu);
+    bflux->integ_moms[2*i+1] = gkyl_dg_updater_moment_new(&bflux->boundary_grid[2*i+1],
+      &app->confBasis, &app->basis, NULL, NULL, s->model_id, 0, "Integrated", 1,
+      s->info.mass, app->use_gpu);
+
     cells[i] = s->grid.cells[i];
+
     bflux->mom_arr[2*i] = mkarr(app->use_gpu, app->confBasis.num_basis, bflux->conf_r[i].volume);
     bflux->mom_arr[2*i+1] = mkarr(app->use_gpu, app->confBasis.num_basis, bflux->conf_r[i].volume);
   }
@@ -64,12 +78,15 @@ vm_species_bflux_rhs(gkyl_vlasov_app *app, const struct vm_species *species,
   // only calculating integrated moments for use in the bflux source for now,
   // others can be added if applications require
   for (int j=0; j<app->cdim; ++j) {
-    gkyl_array_copy_range_to_range(bflux->flux_arr[2*j], rhs, &bflux->flux_r[2*j], &species->lower_ghost[j]);
-    gkyl_array_copy_range_to_range(bflux->flux_arr[2*j+1], rhs, &bflux->flux_r[2*j+1], &species->upper_ghost[j]);
-    gkyl_dg_updater_moment_advance(bflux->integ_moms[2*j], &bflux->flux_r[2*j], &bflux->conf_r[2*j], bflux->flux_arr[2*j], bflux->mom_arr[2*j]);
-    gkyl_dg_updater_moment_advance(bflux->integ_moms[2*j+1], &bflux->flux_r[2*j+1], &bflux->conf_r[2*j+1], bflux->flux_arr[2*j+1], bflux->mom_arr[2*j+1]);
-    // vm_species_moment_calc(&bflux->integ_moms[2*j], species->lower_ghost[j], app->lower_ghost[j], rhs);
-    // vm_species_moment_calc(&bflux->integ_moms[2*j+1], species->upper_ghost[j], app->upper_ghost[j], rhs);
+    gkyl_array_copy_range_to_range(bflux->flux_arr[2*j], rhs, &bflux->flux_r[2*j],
+      &species->lower_ghost[j]);
+    gkyl_array_copy_range_to_range(bflux->flux_arr[2*j+1], rhs, &bflux->flux_r[2*j+1],
+      &species->upper_ghost[j]);
+    
+    gkyl_dg_updater_moment_advance(bflux->integ_moms[2*j], &bflux->flux_r[2*j],
+      &bflux->conf_r[2*j], bflux->flux_arr[2*j], bflux->mom_arr[2*j]);
+    gkyl_dg_updater_moment_advance(bflux->integ_moms[2*j+1], &bflux->flux_r[2*j+1],
+      &bflux->conf_r[2*j+1], bflux->flux_arr[2*j+1], bflux->mom_arr[2*j+1]);
   }
 }
 
