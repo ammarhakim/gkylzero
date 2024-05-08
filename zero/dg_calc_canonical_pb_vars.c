@@ -108,7 +108,7 @@ void gkyl_canonical_pb_pressure(struct gkyl_dg_calc_canonical_pb_vars *up, const
 {
 #ifdef GKYL_HAVE_CUDA
   if (gkyl_array_is_cu_dev(pressure)) {
-    return gkyl_canonical_pb_pressure_cu(up, h_ij_inv, M2ij, v_j, nv_i, pressure);
+    return gkyl_canonical_pb_pressure_cu(up, conf_range, h_ij_inv, M2ij, V_drift, M1i, pressure);
   }
 #endif
   int cdim = up->cdim;

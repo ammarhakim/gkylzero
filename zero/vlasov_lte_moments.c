@@ -74,7 +74,7 @@ gkyl_vlasov_lte_moments_inew(const struct gkyl_vlasov_lte_moments_inp *inp)
     up->h_ij_inv = gkyl_array_acquire(inp->h_ij_inv);
     if (inp->use_gpu) {
       up->pressure_tensor = gkyl_array_cu_dev_new(GKYL_DOUBLE, up->num_conf_basis*num_pij_comps, conf_local_ext_ncells);
-      // up->can_pb_vars = gkyl_dg_calc_canonical_pb_vars_cu_dev_new(inp->phase_grid, inp->conf_basis, inp->phase_basis);
+      up->can_pb_vars = gkyl_dg_calc_canonical_pb_vars_cu_dev_new(inp->phase_grid, inp->conf_basis, inp->phase_basis);
     }
     else {
       up->can_pb_vars = gkyl_dg_calc_canonical_pb_vars_new(inp->phase_grid, inp->conf_basis, inp->phase_basis, inp->use_gpu);
