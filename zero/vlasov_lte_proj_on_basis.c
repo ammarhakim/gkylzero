@@ -314,14 +314,6 @@ gkyl_vlasov_lte_proj_on_basis_advance(gkyl_vlasov_lte_proj_on_basis *up,
       }
       T_over_m_quad[n] = 0.0;
 
-      if (up->is_canonical_pb) {
-        for (int k=0; k<num_conf_basis; ++k) {
-          for (int j=0; j<vdim*(vdim+1)/2; ++j) {
-            h_ij_inv[n][j] = 0;
-          }
-        }
-      }
-
       // Compute the configuration-space quadrature
       for (int k=0; k<num_conf_basis; ++k) {
         n_quad[n] += n_d[k]*b_ord[k];
@@ -334,6 +326,11 @@ gkyl_vlasov_lte_proj_on_basis_advance(gkyl_vlasov_lte_proj_on_basis *up,
       if (up->is_canonical_pb) {
         for (int k=0; k<num_conf_basis; ++k) {
           for (int j=0; j<vdim*(vdim+1)/2; ++j) {
+            h_ij_inv[n][j] = 0;
+          }
+        }
+        for (int k=0; k<num_conf_basis; ++k) {
+          for (int j=0; j<vdim*(vdim+1)/2; ++j) {
             h_ij_inv[n][j] += h_ij_inv_d[num_conf_basis*j+k]*b_ord[k];
           }
         }
@@ -343,9 +340,6 @@ gkyl_vlasov_lte_proj_on_basis_advance(gkyl_vlasov_lte_proj_on_basis *up,
       if ((n_quad[n] > 0.0) && (T_over_m_quad[n] > 0.0)) {
         if (up->is_relativistic) {
           expamp_quad[n] = n_quad[n]*(1.0/(4.0*GKYL_PI*T_over_m_quad[n]))*(sqrt(2*T_over_m_quad[n]/GKYL_PI));;
-        }
-        else if (up->is_canonical_pb) {
-          expamp_quad[n] = n_quad[n]/sqrt(pow(2.0*GKYL_PI*T_over_m_quad[n], vdim));
         }
         else {
           expamp_quad[n] = n_quad[n]/sqrt(pow(2.0*GKYL_PI*T_over_m_quad[n], vdim));

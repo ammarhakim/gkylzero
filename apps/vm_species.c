@@ -151,10 +151,10 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
     }
 
     // Allocate arrays for specified metric inverse
-    s->h_ij_inv = mkarr(app->use_gpu, app->confBasis.num_basis*cdim*cdim, app->local_ext.volume);
+    s->h_ij_inv = mkarr(app->use_gpu, app->confBasis.num_basis*cdim*(cdim+1)/2, app->local_ext.volume);
     s->h_ij_inv_host = s->h_ij_inv;
     if (app->use_gpu){
-      s->h_ij_inv_host = mkarr(false, app->confBasis.num_basis*cdim*cdim, app->local_ext.volume);
+      s->h_ij_inv_host = mkarr(false, app->confBasis.num_basis*cdim*(cdim+1)/2, app->local_ext.volume);
     }
 
     // Evaluate specified hamiltonian function at nodes to insure continuity of hamiltoniam
@@ -166,7 +166,7 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
     gkyl_eval_on_nodes_release(hamil_proj);
 
     // Evaluate specified inverse metric function at nodes to insure continuity of the inverse 
-    struct gkyl_eval_on_nodes* h_ij_inv_proj = gkyl_eval_on_nodes_new(&app->grid, &app->confBasis, cdim*cdim, s->info.h_ij_inv, s->info.h_ij_inv_ctx);
+    struct gkyl_eval_on_nodes* h_ij_inv_proj = gkyl_eval_on_nodes_new(&app->grid, &app->confBasis, cdim*(cdim+1)/2, s->info.h_ij_inv, s->info.h_ij_inv_ctx);
     gkyl_eval_on_nodes_advance(h_ij_inv_proj, 0.0, &app->local, s->h_ij_inv_host);
     if (app->use_gpu){
       gkyl_array_copy(s->h_ij_inv, s->h_ij_inv_host);
