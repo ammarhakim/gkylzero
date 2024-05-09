@@ -60,6 +60,16 @@ void gkyl_calc_metric_advance(gkyl_calc_metric *up, struct gkyl_range *nrange, s
 void gkyl_calc_metric_advance_rz(gkyl_calc_metric *up, struct gkyl_range *nrange, struct gkyl_array *mc2p_nodal_fd, struct gkyl_array *dphidtheta_nodal, struct gkyl_array *bmag_nodal, double *dzc, struct gkyl_array *gFld, struct gkyl_array *jFld, const struct gkyl_range *update_range);
 
 /**
+ * Calculate cartesian components of bhat
+ * @param up calc_metric updater object.
+ * @param nrange nodal range.
+ * @param biFld input field containing b_i DG expansion
+ * @param dualFld input field containing dual vectors DG expansion
+ * @param bcartFld output field containing DG expansion of cartesian components of bhat
+ */
+void gkyl_calc_metric_advance_bcart(gkyl_calc_metric *up, struct gkyl_range *nrange, struct gkyl_array *biFld, struct gkyl_array *dualFld, struct gkyl_array *bcartFld, const struct gkyl_range *update_range);
+
+/**
  * Delete updater.
  *
  * @param up Updater to delete.
