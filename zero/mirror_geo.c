@@ -203,47 +203,10 @@ void gkyl_mirror_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, dou
   struct bmag_ctx *bmag_ctx_inp = gkyl_malloc(sizeof(struct bmag_ctx));
   if (nonuniform)
   {
-    // load in bmag from the file
-    struct gkyl_array* bmag = gkyl_array_new(GKYL_DOUBLE, up->basis.num_basis, up->global_ext.volume);
-    const char *fmt = "%s-%s.gkyl";
-    int sz = gkyl_calc_strlen(fmt, app_name, "jacobtot_inv");
-    char fileNm[sz+1]; 
-    sprintf(fileNm, fmt, app_name, "bmag");
-    printf("Reading bmag from file %s\n", fileNm);
-    struct gkyl_rect_grid *temp_grid;
-    // I think I need a deflated grid, range, and basis because bmag has been deflated
-    gkyl_grid_sub_array_read(temp_grid, &up->deflated_global, bmag, fileNm);
-    printf("temp_grid->ndim = %d\n", temp_grid->ndim);
-    printf("temp_grid->lower[0] = %f\n", temp_grid->lower[0]);
-    printf("temp_grid->upper[0] = %f\n", temp_grid->upper[0]);
-    printf("temp_grid->cells[0] = %d\n", temp_grid->cells[0]);
-    printf("bmag->size = %ld\n", bmag->size);
-    printf("bmag->esznc = %ld\n", bmag->esznc);
-
-
-    // create a context object for the bmag evaluator
-    bmag_ctx_inp->crange_global = &up->deflated_global;
-    bmag_ctx_inp->cbasis = &up->deflated_basis;
-    bmag_ctx_inp->cgrid = &up->deflated_grid;
-    bmag_ctx_inp->bmag = gkyl_array_acquire(bmag);
-
-    // Sample read
-    // double XYZ[bmag_ctx_inp->cgrid->ndim];
-    struct gkyl_range_iter citer;
-    citer.idx[0] = 15;
-    long lidx = gkyl_range_idx(bmag_ctx_inp->crange_global, citer.idx);
-    const double *mcoeffs = gkyl_array_cfetch(bmag_ctx_inp->bmag, lidx);
-    // print a few coeeficients
-    for (int i = 0; i < 20; i++)
-      printf("mcoeffs[%d] = %g\n", i, mcoeffs[i]);
-    // double cxc[bmag_ctx_inp->cgrid->ndim];
-    // double xyz[bmag_ctx_inp->cgrid->ndim];
-    // gkyl_rect_grid_cell_center(bmag_ctx_inp->cgrid, citer.idx, cxc);
-    // for(int i = 0; i < bmag_ctx_inp->cgrid->ndim; i++)
-    //   xyz[i] = (xn[i]-cxc[i])/(bmag_ctx_inp->cgrid->dx[i]*0.5);
-    // fout[0] = bmag_ctx_inp->cbasis->eval_expand(xyz, mcoeffs);
-    
-    gkyl_array_release(bmag);
+    bmag_ctx_inp->crange_global = &up->global;
+    bmag_ctx_inp->cbasis = &up->basis;
+    bmag_ctx_inp->cgrid = &up->grid;
+    bmag_ctx_inp->bmag = gkyl_array_acquire(up->bmag_global);
   }
 
   int cidx[3] = { 0 };
@@ -291,14 +254,14 @@ void gkyl_mirror_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, dou
           double arcL = arc_ctx.arcL_tot;
           darcL = arcL/(up->basis.poly_order*inp->cgrid.cells[TH_IDX]) * (inp->cgrid.upper[TH_IDX] - inp->cgrid.lower[TH_IDX])/2/M_PI;
 
-          // if (nonuniform)
-          // {
-          //   arc_ctx.mapping_frac = inp->nonuniform_mapping_fraction;
-          //   arc_ctx.psi = psi_curr; // I'm not sure if this messes up something
-          //   arc_ctx.alpha = alpha_curr;
-          //   calculate_mirror_throat_location(&arc_ctx, bmag_ctx_inp);
-          //   calculate_optimal_mapping(&arc_ctx, bmag_ctx_inp);
-          // }
+          if (nonuniform)
+          {
+            arc_ctx.mapping_frac = inp->nonuniform_mapping_fraction;
+            arc_ctx.psi = psi_curr; // I'm not sure if this messes up something
+            arc_ctx.alpha = alpha_curr;
+            calculate_mirror_throat_location(&arc_ctx, bmag_ctx_inp);
+            calculate_optimal_mapping(&arc_ctx, bmag_ctx_inp);
+          }
           // at the beginning of each theta loop we need to reset things
           cidx[PSI_IDX] = ip;
           arcL_curr = 0.0;
@@ -324,11 +287,11 @@ void gkyl_mirror_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, dou
               }
               arcL_curr = arcL_lo + it*darcL + modifiers[it_delta]*delta_theta*(arcL/2/M_PI);
               double theta_curr = arcL_curr*(2*M_PI/arcL) - M_PI ; 
-              // if (nonuniform)
-              // {
-              //   theta_curr = map_theta_to_z(theta_curr, &arc_ctx); // Need theta_mirror
-              //   arcL_curr = (theta_curr + M_PI)/2/M_PI*arcL;
-              // }
+              if (nonuniform)
+              {
+                theta_curr = map_theta_to_z(theta_curr, &arc_ctx); // Need theta_mirror
+                arcL_curr = (theta_curr + M_PI)/2/M_PI*arcL;
+              }
 
               mirror_set_ridders(inp, &arc_ctx, psi_curr, arcL, arcL_curr, zmin, zmax, &rclose, &ridders_min, &ridders_max);
 

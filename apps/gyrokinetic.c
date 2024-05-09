@@ -274,7 +274,6 @@ gkyl_gyrokinetic_app_new(struct gkyl_gk *gk)
     geometry_inp.geo_basis = app->confBasis;
   }
   struct gk_geometry* gk_geom_3d;
-  nonuniform_repeat:
   switch (geometry_inp.geometry_id) {
     case GKYL_GEOMETRY_FROMFILE:
       gk_geom_3d = gkyl_gk_geometry_fromfile_new(app->gk_geom, &geometry_inp, false);
@@ -284,6 +283,19 @@ gkyl_gyrokinetic_app_new(struct gkyl_gk *gk)
       break;
     case GKYL_MIRROR:
       gk_geom_3d = gkyl_gk_geometry_mirror_new(&geometry_inp);
+      double nonuniform_frac = gk->geometry.nonuniform_mapping_fraction;
+      printf("nonuniform_frac = %f\n", nonuniform_frac);
+      if (nonuniform_frac > 0.0 & nonuniform_frac <= 1.0) {
+        geometry_inp.nonuniform_geom = true;
+        struct gkyl_array *bmag_global = gkyl_array_new(GKYL_DOUBLE, gk_geom_3d->basis.num_basis, gk_geom_3d->global_ext.volume);
+        gkyl_comm_array_allgather(app->comm, &gk_geom_3d->local, &gk_geom_3d->global, gk_geom_3d->bmag, bmag_global);
+        geometry_inp.bmag_global = bmag_global;
+        gk_geom_3d = gkyl_gk_geometry_mirror_new(&geometry_inp);
+        gkyl_array_release(bmag_global);
+      }
+      else if (nonuniform_frac != 0.0) {
+        printf("Invalid non-uniform mapping fraction %f. Must be between 0 and 1", nonuniform_frac);
+      }
       break;
     case GKYL_MAPC2P:
       gk_geom_3d = gkyl_gk_geometry_mapc2p_new(&geometry_inp);
@@ -313,31 +325,6 @@ gkyl_gyrokinetic_app_new(struct gkyl_gk *gk)
   }
 
   gkyl_gyrokinetic_app_write_geometry(app);
-
-  // struct gkyl_mirror_geo_grid_inp *ginp = geometry_inp.mirror_grid_info;
-  // double nonuniform_frac = ginp->nonuniform_frac;
-
-  double nonuniform_frac = gk->geometry.nonuniform_mapping_fraction;
-  if (nonuniform_frac > 0.0 & nonuniform_frac <= 1.0 & !geometry_inp.nonuniform_geom)
-  {
-    geometry_inp.nonuniform_geom = true;
-    geometry_inp.deflated_grid = app->gk_geom->grid;
-    geometry_inp.deflated_local = app->gk_geom->local;
-    geometry_inp.deflated_local_ext = app->gk_geom->local_ext;
-    geometry_inp.deflated_global = app->gk_geom->global;
-    geometry_inp.deflated_global_ext = app->gk_geom->global_ext;
-    geometry_inp.deflated_basis = app->gk_geom->basis;
-
-    printf("ndim = %d\n", app->gk_geom->grid.ndim);
-    
-    printf("repeating non-uniform geometry\n");
-
-    goto nonuniform_repeat;  
-  }
-  else if (nonuniform_frac != 0.0)
-  {
-    printf("Invalid non-uniform mapping fraction. Must be between 0 and 1");
-  }
 
   // allocate space to store species and neutral species objects
   app->species = ns>0 ? gkyl_malloc(sizeof(struct gk_species[ns])) : 0;

@@ -44,13 +44,8 @@ gkyl_gk_geometry_mirror_new(struct gkyl_gk_geometry_inp *geometry_inp)
   up->global = geometry_inp->geo_global;
   up->global_ext = geometry_inp->geo_global_ext;
   up->grid = geometry_inp->geo_grid;
-  up->deflated_basis = geometry_inp->deflated_basis;
-  up->deflated_local = geometry_inp->deflated_local;
-  up->deflated_local_ext = geometry_inp->deflated_local_ext;
-  up->deflated_global = geometry_inp->deflated_global;
-  up->deflated_global_ext = geometry_inp->deflated_global_ext;
-  up->deflated_grid = geometry_inp->deflated_grid;
-
+  up->bmag_global = geometry_inp->bmag_global;
+  
   struct gkyl_range nrange;
   double dzc[3] = {0.0};
 

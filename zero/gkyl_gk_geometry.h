@@ -20,16 +20,9 @@ struct gk_geometry {
   struct gkyl_basis basis;
   struct gkyl_rect_grid grid;
 
-  // deflated geometry
-  struct gkyl_range deflated_local;
-  struct gkyl_range deflated_local_ext;
-  struct gkyl_range deflated_global;
-  struct gkyl_range deflated_global_ext;
-  struct gkyl_basis deflated_basis;
-  struct gkyl_rect_grid deflated_grid;
-
   struct gkyl_array* mc2p;
   struct gkyl_array* bmag;
+  struct gkyl_array* bmag_global;
   struct gkyl_array* g_ij;
   struct gkyl_array* dxdz;
   struct gkyl_array* dzdx;
@@ -68,6 +61,7 @@ struct gkyl_gk_geometry_inp {
   void (*mapc2p)(double t, const double *xc, double *xp, void *ctx);
 
   void *bmag_ctx; // context for bmag function
+  struct gkyl_array* bmag_global; // global bmag array
   // pointer to bmag function
   void (*bmag_func)(double t, const double *xc, double *xp, void *ctx);
 
@@ -98,14 +92,6 @@ struct gkyl_gk_geometry_inp {
   struct gkyl_range global;
   struct gkyl_range global_ext;
   struct gkyl_basis basis;
-
-  // Deflated computational ranges, grid, and basis
-  struct gkyl_rect_grid deflated_grid;
-  struct gkyl_range deflated_local;
-  struct gkyl_range deflated_local_ext;
-  struct gkyl_range deflated_global;
-  struct gkyl_range deflated_global_ext;
-  struct gkyl_basis deflated_basis;  
 };
 
 
