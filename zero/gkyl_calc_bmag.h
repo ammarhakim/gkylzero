@@ -19,6 +19,7 @@ struct bmag_ctx{
    const struct gkyl_basis* basis;
    const struct gkyl_basis* cbasis;
    struct gkyl_array* bmagdg;
+   struct gkyl_array* bmag;
    const struct gkyl_array* mapc2p;
 };
 
@@ -50,6 +51,16 @@ gkyl_calc_bmag_new(const struct gkyl_basis *cbasis, const struct gkyl_basis *pba
 void gkyl_calc_bmag_comp(double t, const double *xn, double *fout, void *ctx);
 
 /**
+ * Computes the magnitude of the magnetic field using a global field aligned representation.
+ * 
+ * @param t Time at which to compute the magnetic field.
+ * @param xn Coordinates at which to compute the magnetic field.
+ * @param fout Output array.
+ * @param ctx Context object. Of type bmag_ctx
+*/
+void gkyl_calc_bmag_global(double t, const double *xn, double *fout, void *ctx);
+
+/**
  * Advance calc_bmag (compute bmag given dg fields Psi Psi/R and Psi/R^2 on the RZ grid 
  * as well as Fpol = RB_phi on the poloidal flux grid).
  *
@@ -69,7 +80,7 @@ void gkyl_calc_bmag_comp(double t, const double *xn, double *fout, void *ctx);
 void gkyl_calc_bmag_advance(const gkyl_calc_bmag *up, const struct gkyl_range *crange, const struct gkyl_range *crange_ext, const struct gkyl_range *crange_global,
   const struct gkyl_range *prange, const struct gkyl_range *prange_ext, const struct gkyl_range *frange, const struct gkyl_range* frange_ext,
   const struct gkyl_array *psidg, const struct gkyl_array *psibyrdg, const struct gkyl_array *psibyr2dg, struct gkyl_array* bmag_compdg, 
-  void *bmag_comp_ctx, const struct gkyl_array* fpoldg, struct gkyl_array* mapc2p, bool calc_bphi);
+  const struct gkyl_array* fpoldg, struct gkyl_array* mapc2p, bool calc_bphi);
 
 /**
  * Delete updater.

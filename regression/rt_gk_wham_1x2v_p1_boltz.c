@@ -129,7 +129,6 @@ struct gkyl_mirror_geo_grid_inp ginp = {
   .zmax =  2.48,
   .write_node_coord_array = true,
   .node_file_nm = "wham_nodes.gkyl",
-  .nonuniform_mapping_fraction = 0.7,
 };
 
 void calc_arcL_advance(double t, const double *xn, double *fout, void *ctx)
@@ -800,7 +799,8 @@ int main(int argc, char **argv)
       .world = {ctx.psi_eval, 0.0}, // Could be generalized by using ctx.theta_eval
       .mirror_efit_info = &inp,
       .mirror_grid_info = &ginp,
-      .arcL_map_ctx = ctx.arcL_evaluator_ctx
+      .arcL_map_ctx = ctx.arcL_evaluator_ctx,
+      .nonuniform_mapping_fraction = 0.7,
     },
     .num_periodic_dir = 0,
     .periodic_dirs = {},

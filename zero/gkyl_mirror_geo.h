@@ -102,7 +102,6 @@ struct gkyl_mirror_geo_grid_inp {
   const char *node_file_nm; // name of nodal coordinate file
 
   double nonuniform_mapping_fraction; // Zero is uniform mapping, one is fully nonuniform mapping. In between values 
-  // preserve some fraction of the nonuniform mapping to maintain cell density in center.
 };
 
 // An evaluator object for the non-uniform mapping
@@ -183,8 +182,8 @@ void gkyl_mirror_geo_mapc2p(const gkyl_mirror_geo *geo, const struct gkyl_mirror
  */
 void gkyl_mirror_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, double dzc[3], 
   evalf_t mapc2p_func, void* mapc2p_ctx, evalf_t bmag_func, void *bmag_ctx, 
-  struct gkyl_array *mc2p_nodal_fd, struct gkyl_array *mc2p_nodal, struct gkyl_array *mc2p, bool nonuniform, void *bmag_ctx_inp,
-  struct gkyl_array* map_arcL_nodal_fd, struct gkyl_array* map_arcL_nodal, struct gkyl_array* map_arcL);
+  struct gkyl_array *mc2p_nodal_fd, struct gkyl_array *mc2p_nodal, struct gkyl_array *mc2p, bool nonuniform,
+  struct gkyl_array* map_arcL_nodal_fd, struct gkyl_array* map_arcL_nodal, struct gkyl_array* map_arcL, char app_name[128]);
 
 /**
  * Return cumulative statistics from geometry computations

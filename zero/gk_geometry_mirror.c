@@ -44,6 +44,12 @@ gkyl_gk_geometry_mirror_new(struct gkyl_gk_geometry_inp *geometry_inp)
   up->global = geometry_inp->geo_global;
   up->global_ext = geometry_inp->geo_global_ext;
   up->grid = geometry_inp->geo_grid;
+  up->deflated_basis = geometry_inp->deflated_basis;
+  up->deflated_local = geometry_inp->deflated_local;
+  up->deflated_local_ext = geometry_inp->deflated_local_ext;
+  up->deflated_global = geometry_inp->deflated_global;
+  up->deflated_global_ext = geometry_inp->deflated_global_ext;
+  up->deflated_grid = geometry_inp->deflated_grid;
 
   struct gkyl_range nrange;
   double dzc[3] = {0.0};
@@ -92,40 +98,27 @@ gkyl_gk_geometry_mirror_new(struct gkyl_gk_geometry_inp *geometry_inp)
 
   const struct gkyl_mirror_geo_efit_inp *inp = geometry_inp->mirror_efit_info;
   struct gkyl_mirror_geo_grid_inp *ginp = geometry_inp->mirror_grid_info;
+  bool nonuniform_geom = geometry_inp->nonuniform_geom;
+  ginp->nonuniform_mapping_fraction = geometry_inp->nonuniform_map_fraction;
+
   ginp->cgrid = up->grid;
   ginp->cbasis = up->basis;
   struct gkyl_mirror_geo *geo = gkyl_mirror_geo_new(inp);
    // calculate mapc2p on a uniform grid
-  gkyl_mirror_geo_calc(up, &nrange, dzc, NULL, geo, NULL, ginp, mc2p_nodal_fd, mc2p_nodal, up->mc2p, false, NULL, map_arcL_nodal_fd, map_arcL_nodal, arcL_app->map_arcL);
+  printf("Calling gkyl_mirror_geo_calc\n");
+  gkyl_mirror_geo_calc(up, &nrange, dzc, NULL, geo, NULL, ginp, mc2p_nodal_fd, mc2p_nodal, up->mc2p,
+    nonuniform_geom, map_arcL_nodal_fd, map_arcL_nodal, arcL_app->map_arcL, geometry_inp->name);
   // calculate bmag on a uniform grid
   struct bmag_ctx *bmag_ctx_inp = gkyl_malloc(sizeof(*bmag_ctx_inp));
-  if (ginp->nonuniform_mapping_fraction == 0.0)
-  {
-    gkyl_calc_bmag *bcalculator = gkyl_calc_bmag_new(&up->basis, &geo->rzbasis, &geo->fbasis, &up->grid, &geo->rzgrid, &geo->fgrid, geo->psisep, false);
-    gkyl_calc_bmag_advance(bcalculator, &up->local, &up->local_ext, &up->global, &geo->rzlocal, &geo->rzlocal_ext, &geo->frange,
-    &geo->frange_ext, geo->psiRZ, geo->psibyrRZ, geo->psibyr2RZ, up->bmag, bmag_ctx_inp, geo->fpoldg, up->mc2p, false);
-    gkyl_calc_bmag_release(bcalculator);
-  } 
-  else if (ginp->nonuniform_mapping_fraction <= 1.0 & ginp->nonuniform_mapping_fraction > 0.0){
-    gkyl_calc_bmag *bcalculator_uniform = gkyl_calc_bmag_new(&up->basis, &geo->rzbasis, &geo->fbasis, &up->grid, &geo->rzgrid, &geo->fgrid, geo->psisep, false);
-    gkyl_calc_bmag_advance(bcalculator_uniform, &up->local, &up->local_ext, &up->global, &geo->rzlocal, &geo->rzlocal_ext, &geo->frange,
-    &geo->frange_ext, geo->psiRZ, geo->psibyrRZ, geo->psibyr2RZ, up->bmag, bmag_ctx_inp, geo->fpoldg, up->mc2p, false);
-    // calculate mapc2p and the nonuniform geometry
-    gkyl_mirror_geo_calc(up, &nrange, dzc, NULL, geo, NULL, ginp, mc2p_nodal_fd, mc2p_nodal, up->mc2p, true, bmag_ctx_inp, map_arcL_nodal_fd, map_arcL_nodal, arcL_app->map_arcL);
-    // calculate bmag
-    gkyl_calc_bmag *bcalculator = gkyl_calc_bmag_new(&up->basis, &geo->rzbasis, &geo->fbasis, &up->grid, &geo->rzgrid, &geo->fgrid, geo->psisep, false);
-    gkyl_calc_bmag_advance(bcalculator, &up->local, &up->local_ext, &up->global, &geo->rzlocal, &geo->rzlocal_ext, &geo->frange, 
-    &geo->frange_ext, geo->psiRZ, geo->psibyrRZ, geo->psibyr2RZ, up->bmag, NULL, geo->fpoldg, up->mc2p, false);
-    gkyl_calc_bmag_release(bcalculator_uniform);
-    gkyl_calc_bmag_release(bcalculator);
-  } 
-  else {
-    printf("Invalid nonuniform mapping fraction. Must be between 0 and 1");
-    gkyl_calc_bmag *bcalculator = gkyl_calc_bmag_new(&up->basis, &geo->rzbasis, &geo->fbasis, &up->grid, &geo->rzgrid, &geo->fgrid, geo->psisep, false);
-    gkyl_calc_bmag_advance(bcalculator, &up->local, &up->local_ext, &up->global, &geo->rzlocal, &geo->rzlocal_ext, &geo->frange,
-    &geo->frange_ext, geo->psiRZ, geo->psibyrRZ, geo->psibyr2RZ, up->bmag, bmag_ctx_inp, geo->fpoldg, up->mc2p, false);
-    gkyl_calc_bmag_release(bcalculator);
-  }
+  printf("Calling gkyl_calc_bmag_new\n");
+  gkyl_calc_bmag *bcalculator = gkyl_calc_bmag_new(&up->basis, &geo->rzbasis, &geo->fbasis, &up->grid, 
+    &geo->rzgrid, &geo->fgrid, geo->psisep, false);
+  printf("Calling gkyl_calc_bmag_advance\n");
+  gkyl_calc_bmag_advance(bcalculator, &up->local, &up->local_ext, &up->global, &geo->rzlocal, &geo->rzlocal_ext, &geo->frange,
+  &geo->frange_ext, geo->psiRZ, geo->psibyrRZ, geo->psibyr2RZ, up->bmag, geo->fpoldg, up->mc2p, false);
+  printf("Calling gkyl_calc_bmag_release\n");
+  gkyl_calc_bmag_release(bcalculator);
+
   arcL_app->grid = geo->rzgrid;
   arcL_app->cgrid = up->grid;
   arcL_app->range = geo->rzlocal;
@@ -136,8 +129,12 @@ gkyl_gk_geometry_mirror_new(struct gkyl_gk_geometry_inp *geometry_inp)
 
   gkyl_mirror_geo_release(geo);
   // now calculate the metrics
-  struct gkyl_calc_metric* mcalc = gkyl_calc_metric_new(&up->basis, &up->grid, &up->global, &up->global_ext, &up->local, &up->local_ext, false);
+  printf("Callling gkyl_calc_metric_new\n");
+  struct gkyl_calc_metric* mcalc = gkyl_calc_metric_new(&up->basis, &up->grid, &up->global, &up->global_ext, 
+    &up->local, &up->local_ext, false);
+  printf("Calling gkyl_calc_metric_advance\n");
   gkyl_calc_metric_advance(mcalc, &nrange, mc2p_nodal_fd, dzc, up->g_ij, up->dxdz, up->dzdx, &up->local);
+  printf("Calling gkyl_calc_metric_release\n");
   gkyl_calc_metric_release(mcalc);
 
   // calculate the derived geometric quantities

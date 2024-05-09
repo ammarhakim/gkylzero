@@ -111,6 +111,7 @@ struct gkyl_gyrokinetic_geometry {
   struct gkyl_mirror_geo_grid_inp *mirror_grid_info; // context for mirror geometry with computational domain info
 
   double world[3]; // extra computational coordinates for cases with reduced dimensionality
+  double nonuniform_mapping_fraction; // Zero is uniform mapping, one is fully nonuniform mapping. In between values. Used for the mirror geometry
 };
 
 // Parameters for species radiation

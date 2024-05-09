@@ -41,7 +41,7 @@ void gkyl_calc_bmag_comp(double t, const double *xn, double *fout, void *ctx)
   }
   long lidx = gkyl_range_idx(gc->crange, citer.idx);
   const double *mcoeffs = gkyl_array_cfetch(gc->mapc2p, lidx);
-  
+  // printf("mcoeffs[0] = %f, mcoeffs[1] = %f, mcoeffs[2] = %f\n", mcoeffs[0], mcoeffs[1], mcoeffs[2]);
   double cxc[gc->cgrid->ndim];
   double xyz[gc->cgrid->ndim];
   gkyl_rect_grid_cell_center(gc->cgrid, citer.idx, cxc);
@@ -68,6 +68,34 @@ void gkyl_calc_bmag_comp(double t, const double *xn, double *fout, void *ctx)
   xy[0] = (R-xc[0])/(gc->grid->dx[0]*0.5);
   xy[1] = (Z-xc[1])/(gc->grid->dx[1]*0.5);
   fout[0] = gc->basis->eval_expand(xy, coeffs);
+}
+
+void gkyl_calc_bmag_global(double t, const double *xn, double *fout, void *ctx)
+{
+  // printf("In gkyl_calc_bmag_global\n");
+  // printf("xn[0] = %f, xn[1] = %f, xn[2] = %f\n", xn[0], xn[1], xn[2]);
+  struct bmag_ctx *gc = (struct bmag_ctx*) ctx;
+  double XYZ[gc->cgrid->ndim];
+  struct gkyl_range_iter citer;
+  gkyl_range_iter_init(&citer, gc->crange_global);
+  // printf("ndim = %d\n", gc->cgrid->ndim);
+  for(int i = 0; i < gc->cgrid->ndim; i++){
+    int idxtemp = gc->crange_global->lower[i] + (int) floor((xn[i] - (gc->cgrid->lower[i]) )/gc->cgrid->dx[i]);
+    idxtemp = GKYL_MIN2(idxtemp, gc->crange_global->upper[i]);
+    idxtemp = GKYL_MAX2(idxtemp, gc->crange_global->lower[i]);
+    citer.idx[i] = idxtemp;
+  }
+  // printf("citer.idx[0] = %d, citer.idx[1] = %d, citer.idx[2] = %f\n", citer.idx[0], citer.idx[1], citer.idx[2]);
+  long lidx = gkyl_range_idx(gc->crange_global, citer.idx);
+  const double *mcoeffs = gkyl_array_cfetch(gc->bmag, lidx);
+  // printf("mcoeffs[0] = %f, mcoeffs[1] = %f, mcoeffs[2] = %f\n", mcoeffs[0], mcoeffs[1], mcoeffs[2]);
+  double cxc[gc->cgrid->ndim];
+  double xyz[gc->cgrid->ndim];
+  gkyl_rect_grid_cell_center(gc->cgrid, citer.idx, cxc);
+  for(int i = 0; i < gc->cgrid->ndim; i++)
+    xyz[i] = (xn[i]-cxc[i])/(gc->cgrid->dx[i]*0.5);
+  fout[0] = gc->cbasis->eval_expand(xyz, mcoeffs);
+  // printf("fout[0] = %f\n", fout[0]);
 }
 
 static inline void bphi_RZ(double t, const double *xn, double *fout, void *ctx){
@@ -120,7 +148,7 @@ const struct gkyl_range *crange, const struct gkyl_range *crange_ext,  const str
 const struct gkyl_range *prange, const struct gkyl_range *prange_ext, 
 const struct gkyl_range *frange, const struct gkyl_range* frange_ext, 
 const struct gkyl_array *psidg, const struct gkyl_array *psibyrdg, const struct gkyl_array *psibyr2dg, 
-struct gkyl_array* bmag_compdg, void *bmag_comp_ctx, const struct gkyl_array* fpoldg, 
+struct gkyl_array* bmag_compdg, const struct gkyl_array* fpoldg, 
 struct gkyl_array* mapc2p, bool calc_bphi)
 {
   // 0th stage is to calculate bphi from fpol on the RZ grid from its representation on the flux grid
@@ -177,19 +205,6 @@ struct gkyl_array* mapc2p, bool calc_bphi)
     double scale_factorZ = 2.0/(up->pgrid->dx[1]);
     up->kernel(psibyrall, psibyr2_i, bphi_i, bmag_i, scale_factorR, scale_factorZ);
   }
-  if (!(bmag_comp_ctx == NULL))
-  {
-    struct bmag_ctx *b_ctx = bmag_comp_ctx;
-    b_ctx->grid = up->pgrid;
-    b_ctx->cgrid = up->cgrid;
-    b_ctx->range = prange;
-    b_ctx->crange = crange;
-    b_ctx->crange_global = crange_global;
-    b_ctx->bmagdg = gkyl_array_acquire(bmagrz);
-    b_ctx->basis = up->pbasis;
-    b_ctx->cbasis = up->cbasis;
-    b_ctx->mapc2p = mapc2p;
-  }
   struct bmag_ctx *ctx = gkyl_malloc(sizeof(*ctx));
   ctx->grid = up->pgrid;
   ctx->cgrid = up->cgrid;
@@ -200,8 +215,11 @@ struct gkyl_array* mapc2p, bool calc_bphi)
   ctx->basis = up->pbasis;
   ctx->cbasis = up->cbasis;
   ctx->mapc2p = mapc2p;
+  printf("evaluating bmag on nodes\n");
   gkyl_eval_on_nodes *eval_bmag_comp = gkyl_eval_on_nodes_new(up->cgrid, up->cbasis, 1, gkyl_calc_bmag_comp, ctx);
+  printf("evaluating bmag on nodes advance\n");
   gkyl_eval_on_nodes_advance(eval_bmag_comp, 0.0, crange, bmag_compdg); //on ghosts with ext_range
+  printf("evaluating bmag on nodes release\n");
   gkyl_eval_on_nodes_release(eval_bmag_comp);
 
   // Free allocated memory

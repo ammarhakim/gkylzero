@@ -130,7 +130,7 @@ calculate_mirror_throat_location(void *arc_ctx, void *bmag_ctx_inp)
     {
       double z = interval_left + i * dz;
       xp[Z_IDX] = z;
-      gkyl_calc_bmag_comp(0.0, xp, fout, bmag_ctx_inp);
+      gkyl_calc_bmag_global(0.0, xp, fout, bmag_ctx_inp);
       double Bmag = fout[0];
       if (Bmag > maximum_Bmag)
       {
@@ -182,10 +182,10 @@ calculate_optimal_mapping(void *arc_ctx, void *bmag_ctx_inp)
       double left_theta = map_theta_to_z(left_xi, arc_ctx);
       double right_theta = map_theta_to_z(right_xi, arc_ctx);
       xp[Z_IDX] = left_theta;
-      gkyl_calc_bmag_comp(0.0, xp, fout, bmag_ctx_inp);
+      gkyl_calc_bmag_global(0.0, xp, fout, bmag_ctx_inp);
       double Bmag_left = fout[0];
       xp[Z_IDX] = right_theta;
-      gkyl_calc_bmag_comp(0.0, xp, fout, bmag_ctx_inp);
+      gkyl_calc_bmag_global(0.0, xp, fout, bmag_ctx_inp);
       double Bmag_right = fout[0];
       double dB_dCell = (Bmag_right - Bmag_left);
       if (fabs(dB_dCell) > max_dB_dCell)
@@ -228,10 +228,10 @@ calculate_optimal_mapping(void *arc_ctx, void *bmag_ctx_inp)
       double left_theta = map_theta_to_z(left_xi, arc_ctx);
       double right_theta = map_theta_to_z(right_xi, arc_ctx);
       xp[Z_IDX] = left_theta;
-      gkyl_calc_bmag_comp(0.0, xp, fout, bmag_ctx_inp);
+      gkyl_calc_bmag_global(0.0, xp, fout, bmag_ctx_inp);
       double Bmag_left = fout[0];
       xp[Z_IDX] = right_theta;
-      gkyl_calc_bmag_comp(0.0, xp, fout, bmag_ctx_inp);
+      gkyl_calc_bmag_global(0.0, xp, fout, bmag_ctx_inp);
       double Bmag_right = fout[0];
 
       double dB_dCell = (Bmag_right - Bmag_left);

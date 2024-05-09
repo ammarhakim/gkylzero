@@ -20,6 +20,14 @@ struct gk_geometry {
   struct gkyl_basis basis;
   struct gkyl_rect_grid grid;
 
+  // deflated geometry
+  struct gkyl_range deflated_local;
+  struct gkyl_range deflated_local_ext;
+  struct gkyl_range deflated_global;
+  struct gkyl_range deflated_global_ext;
+  struct gkyl_basis deflated_basis;
+  struct gkyl_rect_grid deflated_grid;
+
   struct gkyl_array* mc2p;
   struct gkyl_array* bmag;
   struct gkyl_array* g_ij;
@@ -63,6 +71,10 @@ struct gkyl_gk_geometry_inp {
   // pointer to bmag function
   void (*bmag_func)(double t, const double *xc, double *xp, void *ctx);
 
+  bool nonuniform_geom; // flag to indicate if the geometry is non-uniform
+  double nonuniform_map_fraction; // fraction of non-uniformity in the geometry
+  char name[128]; // name of the simulation
+
   struct gkyl_tok_geo_efit_inp *tok_efit_info; // context with RZ data such as efit file for a tokamak
   struct gkyl_tok_geo_grid_inp *tok_grid_info; // context for tokamak geometry with computational domain info
 
@@ -87,6 +99,13 @@ struct gkyl_gk_geometry_inp {
   struct gkyl_range global_ext;
   struct gkyl_basis basis;
 
+  // Deflated computational ranges, grid, and basis
+  struct gkyl_rect_grid deflated_grid;
+  struct gkyl_range deflated_local;
+  struct gkyl_range deflated_local_ext;
+  struct gkyl_range deflated_global;
+  struct gkyl_range deflated_global_ext;
+  struct gkyl_basis deflated_basis;  
 };
 
 
