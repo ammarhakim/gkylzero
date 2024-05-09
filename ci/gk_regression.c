@@ -603,7 +603,7 @@ main(int argc, char **argv)
   // 4. Insert the number of outputs to check in test_output_count.
   // 5. Insert the output file suffixes in test_outputs.
 
-  const int test_count = 35;
+  const int test_count = 36;
   char test_names[test_count][64] = {
     // Please list in alphabetic order.
     "gk_asdex_3x2v_p1",
@@ -634,18 +634,20 @@ main(int argc, char **argv)
     "gk_mirror_boltz_elc_nonuniformz_1x2v_p1",
     "gk_mirror_kinetic_elc_1x2v_p1",
     "gk_rad_1x2v_p1",
-    "gk_sheath_1x2v_p1",
+    "gk_rad_nonuniform_1x2v_p1",
     //
+    "gk_sheath_1x2v_p1",
     "gk_sheath_2x2v_p1",
     "gk_sheath_3x2v_p1",
     "gk_sheath_bgk_1x2v_p1",
     "gk_sheath_nonuniformv_1x2v_p1",
-    "gk_sheath_nonuniformv_2x2v_p1",
     //
+    "gk_sheath_nonuniformv_2x2v_p1",
     "gk_sheath_nonuniformv_3x2v_p1",
     "gk_solovev_out_3x2v_p1",
     "gk_step_out_2x2v_p1",
     "gk_wham_1x2v_p1",
+    //
     "gk_wham_2x2v_p1",
   };
   char test_names_human[test_count][128] = {
@@ -677,18 +679,20 @@ main(int argc, char **argv)
     "1x2v_p1 mirror test w/ Boltzmann electrons and nonuniform z",
     "1x2v_p1 mirror test w/ kinetic electrons",
     "1x2v_p1 Radiation operator test",
-    "1x2v_p1 Sheath test",
+    "1x2v_p1 Radiation operator test w/ nonuniform v",
     //
+    "1x2v_p1 Sheath test",
     "2x2v_p1 Sheath test",
     "3x2v_p1 Sheath test",
     "1x2v_p1 Sheath test w/ BGK operator",
     "1x2v_p1 Sheath test w/ nonuniform v",
-    "2x2v_p1 Sheath test w/ nonuniform v",
     //
+    "2x2v_p1 Sheath test w/ nonuniform v",
     "3x2v_p1 Sheath test w/ nonuniform v",
     "3x2v_p1 Solovev (outboard SOL) test",
     "2x2v_p1 STEP (outboard SOL)test",
     "1x2v_p1 WHAM test",
+    //
     "2x2v_p1 WHAM test",
   };
   int test_output_count[test_count] = { 
@@ -696,9 +700,10 @@ main(int argc, char **argv)
     14, 12, 16, 4, 14,
     14, 8, 10, 10, 12,
     8, 32, 14, 4, 23,
-    8, 8, 14, 16, 14,
-    14, 14, 14, 18, 18,
-    18, 14, 25, 14, 14,
+    8, 8, 14, 16, 20,
+    14, 14, 14, 14, 18,
+    18, 18, 14, 25, 14,
+    14,
   };
   char test_outputs[test_count][64][64] = {
     {
@@ -802,10 +807,14 @@ main(int argc, char **argv)
       "ion_1", "ion_source_1", "ion_M0_1", "ion_M1_1", "ion_M2_1", "ion_integrated_moms", "ion_emissivity_1", "field_1", "field_energy",
     },
     {
+      "elc_1", "elc_source_1", "elc_M0_1", "elc_M1_1", "elc_M2_1", "elc_integrated_moms", "elc_mapc2p_vel", "elc_jacobvel", "elc_adiation_integrated_moms",
+      "ion_1", "ion_source_1", "ion_M0_1", "ion_M1_1", "ion_M2_1", "ion_integrated_moms", "ion_mapc2p_vel", "ion_jacobvel", "ion_emissivity_1", "field_1", "field_energy",
+    },
+//
+    {
       "elc_1", "elc_source_1", "elc_M0_1", "elc_M1_1", "elc_M2_1", "elc_integrated_moms",
       "ion_1", "ion_source_1", "ion_M0_1", "ion_M1_1", "ion_M2_1", "ion_integrated_moms", "field_1", "field_energy",
     },
-//
     {
       "elc_1", "elc_source_1", "elc_M0_1", "elc_M1_1", "elc_M2_1", "elc_integrated_moms",
       "ion_1", "ion_source_1", "ion_M0_1", "ion_M1_1", "ion_M2_1", "ion_integrated_moms", "field_1", "field_energy",
@@ -822,11 +831,11 @@ main(int argc, char **argv)
       "elc_1", "elc_source_1", "elc_M0_1", "elc_M1_1", "elc_M2_1", "elc_integrated_moms", "elc_mapc2p_vel", "elc_jacobvel",
       "ion_1", "ion_source_1", "ion_M0_1", "ion_M1_1", "ion_M2_1", "ion_integrated_moms", "ion_mapc2p_vel", "ion_jacobvel", "field_1", "field_energy",
     },
+//
     {
       "elc_1", "elc_source_1", "elc_M0_1", "elc_M1_1", "elc_M2_1", "elc_integrated_moms", "elc_mapc2p_vel", "elc_jacobvel",
       "ion_1", "ion_source_1", "ion_M0_1", "ion_M1_1", "ion_M2_1", "ion_integrated_moms", "ion_mapc2p_vel", "ion_jacobvel", "field_1", "field_energy",
     },
-//
     {
       "elc_1", "elc_source_1", "elc_M0_1", "elc_M1_1", "elc_M2_1", "elc_integrated_moms", "elc_mapc2p_vel", "elc_jacobvel",
       "ion_1", "ion_source_1", "ion_M0_1", "ion_M1_1", "ion_M2_1", "ion_integrated_moms", "ion_mapc2p_vel", "ion_jacobvel", "field_1", "field_energy",
@@ -845,6 +854,7 @@ main(int argc, char **argv)
       "elc_1", "elc_source_1", "elc_M0_1", "elc_M1_1", "elc_M2_1", "elc_integrated_moms",
       "ion_1", "ion_source_1", "ion_M0_1", "ion_M1_1", "ion_M2_1", "ion_integrated_moms", "field_1", "field_energy",
     },
+//
     {
       "elc_1", "elc_source_1", "elc_M0_1", "elc_M1_1", "elc_M2_1", "elc_integrated_moms",
       "ion_1", "ion_source_1", "ion_M0_1", "ion_M1_1", "ion_M2_1", "ion_integrated_moms", "field_1", "field_energy",

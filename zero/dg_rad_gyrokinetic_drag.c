@@ -13,7 +13,9 @@ void
 gkyl_rad_gyrokinetic_free(const struct gkyl_ref_count* ref)
 {
   struct gkyl_dg_eqn* base = container_of(ref, struct gkyl_dg_eqn, ref_count);
-  struct dg_rad_gyrokinetic_drag *rad_gyrokinetic_drag  = container_of(base, struct dg_rad_gyrokinetic_drag, eqn);
+  struct dg_rad_gyrokinetic_drag *rad_gyrokinetic_drag = container_of(base, struct dg_rad_gyrokinetic_drag, eqn);
+
+  gkyl_velocity_map_release(rad_gyrokinetic_drag->vel_map);
 
   if (GKYL_IS_CU_ALLOC(rad_gyrokinetic_drag->eqn.flags))
     gkyl_cu_free(rad_gyrokinetic_drag->eqn.on_dev);
@@ -25,10 +27,10 @@ void
 gkyl_rad_gyrokinetic_drag_set_auxfields(const struct gkyl_dg_eqn *eqn, struct gkyl_dg_rad_gyrokinetic_auxfields auxin)
 {
 #ifdef GKYL_HAVE_CUDA
- if (gkyl_dg_eqn_is_cu_dev(eqn)) {
-   gkyl_rad_gyrokinetic_drag_set_auxfields_cu(eqn->on_dev, auxin);
-   return;
-}
+  if (gkyl_dg_eqn_is_cu_dev(eqn)) {
+    gkyl_rad_gyrokinetic_drag_set_auxfields_cu(eqn->on_dev, auxin);
+    return;
+  }
 #endif
 
   struct dg_rad_gyrokinetic_drag *rad_gyrokinetic_drag = container_of(eqn, struct dg_rad_gyrokinetic_drag, eqn);
@@ -43,11 +45,11 @@ gkyl_rad_gyrokinetic_drag_set_auxfields(const struct gkyl_dg_eqn *eqn, struct gk
 struct gkyl_dg_eqn*
 gkyl_dg_rad_gyrokinetic_drag_new(const struct gkyl_basis *conf_basis, 
   const struct gkyl_basis *phase_basis, const struct gkyl_range *phase_range,
-  const struct gkyl_range *conf_range, bool use_gpu)
+  const struct gkyl_range *conf_range, const struct gkyl_velocity_map *vel_map, bool use_gpu)
 {
 #ifdef GKYL_HAVE_CUDA
- if (use_gpu)    
-   return gkyl_dg_rad_gyrokinetic_drag_cu_dev_new(conf_basis, phase_basis, phase_range, conf_range);
+  if (use_gpu)    
+    return gkyl_dg_rad_gyrokinetic_drag_cu_dev_new(conf_basis, phase_basis, phase_range, vel_map, conf_range);
 #endif
     
   struct dg_rad_gyrokinetic_drag* rad_gyrokinetic_drag = gkyl_malloc(sizeof(struct dg_rad_gyrokinetic_drag));
@@ -101,6 +103,7 @@ gkyl_dg_rad_gyrokinetic_drag_new(const struct gkyl_basis *conf_basis,
   rad_gyrokinetic_drag->auxfields.vtsq = 0;
   rad_gyrokinetic_drag->phase_range = *phase_range;
   rad_gyrokinetic_drag->conf_range = *conf_range;
+  rad_gyrokinetic_drag->vel_map = gkyl_velocity_map_acquire(vel_map);
 
   rad_gyrokinetic_drag->eqn.flags = 0;
   GKYL_CLEAR_CU_ALLOC(rad_gyrokinetic_drag->eqn.flags);
@@ -110,15 +113,3 @@ gkyl_dg_rad_gyrokinetic_drag_new(const struct gkyl_basis *conf_basis,
   return &rad_gyrokinetic_drag->eqn;
 }
 
-
-#ifndef GKYL_HAVE_CUDA
-struct gkyl_dg_eqn*
-gkyl_dg_rad_gyrokinetic_drag_cu_dev_new(const struct gkyl_basis* conf_basis, 
-  const struct gkyl_basis* phase_basis, const struct gkyl_range *phase_range,
-  const struct gkyl_range *conf_range)
-{
-  assert(false);
-  return 0;
-}
-
-#endif

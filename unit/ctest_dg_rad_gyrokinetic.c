@@ -118,9 +118,9 @@ test_1x(int poly_order, bool use_gpu, double te)
   double vLower[vdim], vUpper[vdim];
   int vCells[vdim];
   for (int d=0; d<vdim; d++) {
-    velLower[d] = lower[cdim+d];
-    velUpper[d] = upper[cdim+d];
-    velCells[d] = cells[cdim+d];
+    vLower[d] = lower[cdim+d];
+    vUpper[d] = upper[cdim+d];
+    vCells[d] = cells[cdim+d];
   }
 
   // grids
@@ -226,7 +226,7 @@ test_1x(int poly_order, bool use_gpu, double te)
   gkyl_release_fit_params(rad_data);
   
   struct gkyl_dg_calc_gk_rad_vars *calc_gk_rad_vars = gkyl_dg_calc_gk_rad_vars_new(&grid, &confBasis, &basis, 
-		  charge, mass, gk_geom, a[0], alpha[0], beta[0], gamma[0], v0[0], use_gpu);
+		  charge, mass, gk_geom, gvm, a[0], alpha[0], beta[0], gamma[0], v0[0], use_gpu);
   
   gkyl_dg_calc_gk_rad_vars_nu_advance(calc_gk_rad_vars, &confLocal, &local, vnu_surf, vnu, vsqnu_surf, vsqnu);
 
@@ -284,7 +284,7 @@ test_1x(int poly_order, bool use_gpu, double te)
   struct gkyl_dg_updater_collisions *slvr;
   struct gkyl_dg_rad_gyrokinetic_auxfields drag_inp = { .nvnu_surf = nvnu_surf, .nvnu = nvnu, 
     .nvsqnu_surf = nvsqnu_surf, .nvsqnu = nvsqnu, .vtsq = vtsq_imp, .vtsq_min = vtsq_min};
-  slvr = gkyl_dg_updater_rad_gyrokinetic_new(&grid, &confBasis, &basis, &local, &confLocal, &drag_inp, use_gpu);
+  slvr = gkyl_dg_updater_rad_gyrokinetic_new(&grid, &confBasis, &basis, &local, &confLocal, gvm, &drag_inp, use_gpu);
 
   struct gkyl_array *cflrate, *rhs, *fmax;
   cflrate = mkarr(use_gpu, 1, local_ext.volume);
@@ -405,9 +405,9 @@ test_2x(int poly_order, bool use_gpu, double te)
   double vLower[vdim], vUpper[vdim];
   int vCells[vdim];
   for (int d=0; d<vdim; d++) {
-    velLower[d] = lower[cdim+d];
-    velUpper[d] = upper[cdim+d];
-    velCells[d] = cells[cdim+d];
+    vLower[d] = lower[cdim+d];
+    vUpper[d] = upper[cdim+d];
+    vCells[d] = cells[cdim+d];
   }
 
   // grids
@@ -513,7 +513,7 @@ test_2x(int poly_order, bool use_gpu, double te)
   gkyl_release_fit_params(rad_data);
   
   struct gkyl_dg_calc_gk_rad_vars *calc_gk_rad_vars = gkyl_dg_calc_gk_rad_vars_new(&grid, &confBasis, &basis, 
-		  charge, mass, gk_geom, a[0], alpha[0], beta[0], gamma[0], v0[0], use_gpu);
+		  charge, mass, gk_geom, gvm, a[0], alpha[0], beta[0], gamma[0], v0[0], use_gpu);
 
   gkyl_dg_calc_gk_rad_vars_nu_advance(calc_gk_rad_vars, &confLocal, &local, vnu_surf, vnu, vsqnu_surf, vsqnu);
 
@@ -576,7 +576,7 @@ test_2x(int poly_order, bool use_gpu, double te)
   struct gkyl_dg_updater_collisions *slvr;
   struct gkyl_dg_rad_gyrokinetic_auxfields drag_inp = { .nvnu_surf = nvnu_surf, .nvnu = nvnu, 
     .nvsqnu_surf = nvsqnu_surf, .nvsqnu = nvsqnu, .vtsq = vtsq_imp, .vtsq_min = vtsq_min};
-  slvr = gkyl_dg_updater_rad_gyrokinetic_new(&grid, &confBasis, &basis, &local, &confLocal, &drag_inp, use_gpu);
+  slvr = gkyl_dg_updater_rad_gyrokinetic_new(&grid, &confBasis, &basis, &local, &confLocal, gvm, &drag_inp, use_gpu);
 
   struct gkyl_array *cflrate, *rhs, *fmax;
   cflrate = mkarr(use_gpu, 1, local_ext.volume);

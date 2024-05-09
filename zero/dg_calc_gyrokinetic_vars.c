@@ -73,9 +73,9 @@ void gkyl_dg_calc_gyrokinetic_vars_alpha_surf(struct gkyl_dg_calc_gyrokinetic_va
   int cdim = up->cdim;
   int idx[GKYL_MAX_DIM], idx_edge[GKYL_MAX_DIM], idx_vel[2];
   double xc[GKYL_MAX_DIM];
+
   struct gkyl_range_iter iter;
   gkyl_range_iter_init(&iter, phase_range);
-
   while (gkyl_range_iter_next(&iter)) {
     gkyl_copy_int_arr(pdim, iter.idx, idx);
 

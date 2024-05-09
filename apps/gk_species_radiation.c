@@ -80,9 +80,8 @@ gk_species_radiation_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s
       printf("No radiation fits exist for z=%d, charge state=%d\n",s->info.radiation.z[i], s->info.radiation.charge_state[i]);
     }
     rad->calc_gk_rad_vars[i] = gkyl_dg_calc_gk_rad_vars_new(&s->grid, &app->confBasis, &app->basis, 
-      s->info.charge, s->info.mass, app->gk_geom, 
-      a[0], alpha[0], beta[0], gamma[0], v0[0], 
-      app->use_gpu);
+      s->info.charge, s->info.mass, app->gk_geom, s->vel_map,
+      a[0], alpha[0], beta[0], gamma[0], v0[0], app->use_gpu);
 
     gkyl_dg_calc_gk_rad_vars_nu_advance(rad->calc_gk_rad_vars[i], 
       &app->local, &s->local, 
@@ -156,7 +155,7 @@ gk_species_radiation_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s
   struct gkyl_dg_rad_gyrokinetic_auxfields drag_inp = { .nvnu_surf = rad->nvnu_surf, .nvnu = rad->nvnu,
     .nvsqnu_surf = rad->nvsqnu_surf, .nvsqnu = rad->nvsqnu, .vtsq = rad->vtsq, .vtsq_min = rad->vtsq_min };
   rad->drag_slvr = gkyl_dg_updater_rad_gyrokinetic_new(&s->grid, 
-    &app->confBasis, &app->basis, &s->local, &app->local, &drag_inp, app->use_gpu);
+    &app->confBasis, &app->basis, &s->local, &app->local, s->vel_map, &drag_inp, app->use_gpu);
 }
 
 // computes density for computation of total radiation drag and primitive moments

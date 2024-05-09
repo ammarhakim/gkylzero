@@ -82,7 +82,8 @@ dg_rad_gyrokinetic_drag_set_cu_dev_ptrs(struct dg_rad_gyrokinetic_drag *rad_gyro
 struct gkyl_dg_eqn*
 gkyl_dg_rad_gyrokinetic_drag_cu_dev_new(const struct gkyl_basis* conf_basis, 
   const struct gkyl_basis* phase_basis, const struct gkyl_range *phase_range,
-  const struct gkyl_range *conf_range){
+  const struct gkyl_range *conf_range, const struct gkyl_velocity_map *vel_map)
+{
   struct dg_rad_gyrokinetic_drag *rad_gyrokinetic_drag = (struct dg_rad_gyrokinetic_drag*) gkyl_malloc(sizeof(struct dg_rad_gyrokinetic_drag));
 
   int cdim = conf_basis->ndim, pdim = phase_basis->ndim, vdim = pdim-cdim;
@@ -92,6 +93,10 @@ gkyl_dg_rad_gyrokinetic_drag_cu_dev_new(const struct gkyl_basis* conf_basis,
   rad_gyrokinetic_drag->pdim = pdim;
   rad_gyrokinetic_drag->phase_range = *phase_range;
   rad_gyrokinetic_drag->conf_range = *conf_range;
+
+  // Acquire pointers to on_dev objects so memcpy below copies those too.
+  struct gkyl_velocity_map *vel_map_ho = gkyl_velocity_map_acquire(vel_map);
+  gyrokinetic->vel_map = vel_map_ho->on_dev;
 
   rad_gyrokinetic_drag->eqn.flags = 0;
   GKYL_SET_CU_ALLOC(rad_gyrokinetic_drag->eqn.flags);
@@ -106,6 +111,9 @@ gkyl_dg_rad_gyrokinetic_drag_cu_dev_new(const struct gkyl_basis* conf_basis,
 
   // set parent on_dev pointer
   rad_gyrokinetic_drag->eqn.on_dev = &rad_gyrokinetic_drag_cu->eqn;
+
+  // Updater should store host pointers.
+  gyrokinetic->vel_map = vel_map_ho; 
 
   return &rad_gyrokinetic_drag->eqn;
 }
