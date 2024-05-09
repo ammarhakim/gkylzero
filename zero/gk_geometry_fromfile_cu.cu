@@ -34,6 +34,7 @@ gkyl_gk_geometry_fromfile_cu_dev_new(struct gk_geometry* geo_host, struct gkyl_g
   struct gkyl_array *jacobgeo_inv_dev = gkyl_array_cu_dev_new(GKYL_DOUBLE, up->basis.num_basis, up->local_ext.volume);
   struct gkyl_array *gij_dev = gkyl_array_cu_dev_new(GKYL_DOUBLE, 6*up->basis.num_basis, up->local_ext.volume);
   struct gkyl_array *b_i_dev = gkyl_array_cu_dev_new(GKYL_DOUBLE, 3*up->basis.num_basis, up->local_ext.volume);
+  struct gkyl_array *bcart_dev = gkyl_array_cu_dev_new(GKYL_DOUBLE, 3*up->basis.num_basis, up->local_ext.volume);
   struct gkyl_array *cmag_dev = gkyl_array_cu_dev_new(GKYL_DOUBLE, up->basis.num_basis, up->local_ext.volume);
   struct gkyl_array *jacobtot_dev = gkyl_array_cu_dev_new(GKYL_DOUBLE, up->basis.num_basis, up->local_ext.volume);
   struct gkyl_array *jacobtot_inv_dev = gkyl_array_cu_dev_new(GKYL_DOUBLE, up->basis.num_basis, up->local_ext.volume);
@@ -54,6 +55,7 @@ gkyl_gk_geometry_fromfile_cu_dev_new(struct gk_geometry* geo_host, struct gkyl_g
   gkyl_array_copy(jacobgeo_inv_dev, geo_host->jacobgeo_inv);
   gkyl_array_copy(gij_dev, geo_host->gij);
   gkyl_array_copy(b_i_dev, geo_host->b_i);
+  gkyl_array_copy(bcart_dev, geo_host->bcart);
   gkyl_array_copy(cmag_dev, geo_host->cmag);
   gkyl_array_copy(jacobtot_dev, geo_host->jacobtot);
   gkyl_array_copy(jacobtot_inv_dev, geo_host->jacobtot_inv);
@@ -75,6 +77,7 @@ gkyl_gk_geometry_fromfile_cu_dev_new(struct gk_geometry* geo_host, struct gkyl_g
   up->jacobgeo_inv = jacobgeo_inv_dev->on_dev;
   up->gij  = gij_dev->on_dev;
   up->b_i  = b_i_dev->on_dev;
+  up->bcart  = bcart_dev->on_dev;
   up->cmag  =  cmag_dev->on_dev;
   up->jacobtot  = jacobtot_dev->on_dev;
   up->jacobtot_inv = jacobtot_inv_dev->on_dev;
@@ -105,6 +108,7 @@ gkyl_gk_geometry_fromfile_cu_dev_new(struct gk_geometry* geo_host, struct gkyl_g
   up->jacobgeo_inv = jacobgeo_inv_dev;
   up->gij  = gij_dev;
   up->b_i  = b_i_dev;
+  up->bcart  = bcart_dev;
   up->cmag  =  cmag_dev;
   up->jacobtot  = jacobtot_dev;
   up->jacobtot_inv = jacobtot_inv_dev;

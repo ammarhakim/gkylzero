@@ -266,6 +266,56 @@ void gkyl_calc_metric_advance(gkyl_calc_metric *up, struct gkyl_range *nrange,
   gkyl_array_release(dualFld_nodal);
 }
 
+void gkyl_calc_metric_advance_bcart(gkyl_calc_metric *up, struct gkyl_range *nrange,
+  struct gkyl_array *biFld, struct gkyl_array *dualFld, struct gkyl_array *bcartFld,
+  const struct gkyl_range *update_range)
+{
+
+
+  struct gkyl_array* bcartFld_nodal = gkyl_array_new(GKYL_DOUBLE, 3, nrange->volume);
+  struct gkyl_array* biFld_nodal = gkyl_array_new(GKYL_DOUBLE, 3, nrange->volume);
+  struct gkyl_array* dualFld_nodal = gkyl_array_new(GKYL_DOUBLE, 9, nrange->volume);
+  enum { PSI_IDX, AL_IDX, TH_IDX }; // arrangement of computational coordinates
+  enum { X_IDX, Y_IDX, Z_IDX }; // arrangement of cartesian coordinates
+  int cidx[3];
+
+
+  // Fill the inputs
+  gkyl_nodal_ops_m2n(up->n2m, up->cbasis, up->grid, nrange, update_range, 9, dualFld, dualFld_nodal);
+  gkyl_nodal_ops_m2n(up->n2m, up->cbasis, up->grid, nrange, update_range, 3, biFld, biFld_nodal);
+  
+  for(int ia=nrange->lower[AL_IDX]; ia<=nrange->upper[AL_IDX]; ++ia) {
+      for (int ip=nrange->lower[PSI_IDX]; ip<=nrange->upper[PSI_IDX]; ++ip) {
+          for (int it=nrange->lower[TH_IDX]; it<=nrange->upper[TH_IDX]; ++it) {
+              cidx[PSI_IDX] = ip;
+              cidx[AL_IDX] = ia;
+              cidx[TH_IDX] = it;
+
+              double *biFld_n= gkyl_array_fetch(biFld_nodal, gkyl_range_idx(nrange, cidx));
+              double *dualFld_n= gkyl_array_fetch(dualFld_nodal, gkyl_range_idx(nrange, cidx));
+              double dzdx[3][3]; // duals at node
+              dzdx[0][0] = dualFld_n[0];
+              dzdx[1][0] = dualFld_n[1];
+              dzdx[2][0] = dualFld_n[2];
+              dzdx[0][1] = dualFld_n[3];
+              dzdx[1][1] = dualFld_n[4];
+              dzdx[2][1] = dualFld_n[5];
+              dzdx[0][2] = dualFld_n[6];
+              dzdx[1][2] = dualFld_n[7];
+              dzdx[2][2] = dualFld_n[8];
+              double *bcartFld_n= gkyl_array_fetch(bcartFld_nodal, gkyl_range_idx(nrange, cidx));
+              bcartFld_n[0] = dzdx[0][0]*biFld_n[0] + dzdx[1][0]*biFld_n[1] + dzdx[2][0]*biFld_n[2];
+              bcartFld_n[1] = dzdx[0][1]*biFld_n[0] + dzdx[1][1]*biFld_n[1] + dzdx[2][1]*biFld_n[2];
+              bcartFld_n[2] = dzdx[0][2]*biFld_n[0] + dzdx[1][2]*biFld_n[1] + dzdx[2][2]*biFld_n[2];
+          }
+      }
+  }
+  gkyl_nodal_ops_n2m(up->n2m, up->cbasis, up->grid, nrange, update_range, 3, bcartFld_nodal, bcartFld);
+  gkyl_array_release(bcartFld_nodal);
+  gkyl_array_release(biFld_nodal);
+  gkyl_array_release(dualFld_nodal);
+}
+
 void
 gkyl_calc_metric_release(gkyl_calc_metric* up)
 {
