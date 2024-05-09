@@ -595,14 +595,16 @@ regenerateTest(const char* test_name, const int test_output_count, const char te
 int
 main(int argc, char **argv)
 {
-  int test_count = 19;
-  char test_names[19][64] = {
+  int test_count = 21;
+  char test_names[21][64] = {
     "accel_1x1v",
     "dg_euler_sodshock_p1",
     "dg_euler_sodshock_p2",
     "dg_euler_p_perturbation_p1",
     "dg_euler_p_perturbation_p2",
     "dg_euler_kh_2d",
+    "lbo_vlasov_cross_1x1v_p2",
+    "lbo_vlasov_cross_1x2v_p2",
     "lbo_vlasov_relax_1x1v_p1",
     "lbo_vlasov_relax_1x1v_p2",
     "lbo_vlasov_relax_1x2v_p1",
@@ -617,13 +619,15 @@ main(int argc, char **argv)
     "vlasov_bgk_relax_1x3v_p2",
     "vlasov_bgk_sr_relax_1x1v_p2",
   };
-  char test_names_human[19][128] = {
+  char test_names_human[21][128] = {
     "1x1v Acceleration Test with p = 1",
     "Euler Sod-Type Shock Tube Test p = 1",
     "Euler Sod-Type Shock Tube Test p = 2",
     "Euler Pressure Perturbation Test with p = 1",
     "Euler Pressure Perturbation Test with p = 2",
     "Euler 2D Kelvin-Helmholtz Instability Test with p = 1",
+    "1x1v LBO Cross Collision Neutrals Test with p = 2",
+    "1x2v LBO Cross Collision Neutrals Test with p = 2",
     "1x1v LBO Collision Relaxation Test with p = 1",
     "1x1v LBO Collision Relaxation Test with p = 2",
     "1x2v LBO Collision Relaxation Test with p = 1",
@@ -638,14 +642,16 @@ main(int argc, char **argv)
     "1x3v BGK Collision Relaxation Test with p = 2",
     "1x1v BGK Relativistic Collision Relaxation Test with p = 1",
   };
-  int test_output_count[19] = { 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2 };
-  char test_outputs[19][64][64] = {
+  int test_output_count[21] = { 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2 };
+  char test_outputs[21][64][64] = {
     { "elc_1" },
     { "euler_1" },
     { "euler_1" },
     { "euler_1" },
     { "euler_1" },
     { "euler_1" },
+    { "neut1_1", "neut2_1" },
+    { "neut1_1", "neut2_1" },
     { "bump_1", "square_1" },
     { "bump_1", "square_1" },
     { "bump_1", "square_1" },
