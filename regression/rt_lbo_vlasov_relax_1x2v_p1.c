@@ -42,11 +42,11 @@ struct lbo_relax_ctx
 
   // Simulation parameters.
   int Nx; // Cell count (configuration space: x-direction).
-  int Nvx; // Cell count (velocity space: x-direction).
-  int Nvy; // Cell count (velocity space: y-direction).
+  int Nvx; // Cell count (velocity space: vx-direction).
+  int Nvy; // Cell count (velocity space: vy-direction).
   double Lx; // Domain size (configuration space: x-direction).
-  double vx_max; // Domain boundary (velocity space: x-direction).
-  double vy_max; // Domain boundary (velocity space: y-direction).
+  double vx_max; // Domain boundary (velocity space: vx-direction).
+  double vy_max; // Domain boundary (velocity space: vy-direction).
   int poly_order; // Polynomial order.
   double cfl_frac; // CFL coefficient.
 
@@ -80,11 +80,11 @@ create_ctx(void)
 
   // Simulation parameters.
   int Nx = 2; // Cell count (configuration space: x-direction).
-  int Nvx = 16; // Cell count (velocity space: x-direction).
-  int Nvy = 16; // Cell count (velocity space: y-direction).
+  int Nvx = 16; // Cell count (velocity space: vx-direction).
+  int Nvy = 16; // Cell count (velocity space: vy-direction).
   double Lx = 1.0; // Domain size (configuration space: x-direction).
-  double vx_max = 8.0 * vt; // Domain boundary (velocity space: x-direction).
-  double vy_max = 8.0 * vt; // Domain boundary (velocity space: y-direction).
+  double vx_max = 8.0 * vt; // Domain boundary (velocity space: vx-direction).
+  double vy_max = 8.0 * vt; // Domain boundary (velocity space: vy-direction).
   int poly_order = 1; // Polynomial order.
   double cfl_frac = 1.0; // CFL coefficient.
 
@@ -461,7 +461,7 @@ main(int argc, char **argv)
   gkyl_vlasov_app_cout(app, stdout, "Species collisional moments took %g secs\n", stat.species_coll_mom_tm);
   gkyl_vlasov_app_cout(app, stdout, "Total updates took %g secs\n", stat.total_tm);
 
-  gkyl_vlasov_app_cout(app, stdout, "Number of write calls %ld,\n", stat.nio);
+  gkyl_vlasov_app_cout(app, stdout, "Number of write calls %ld\n", stat.nio);
   gkyl_vlasov_app_cout(app, stdout, "IO time took %g secs \n", stat.io_tm);
 
   // Free resources after simulation completion.
