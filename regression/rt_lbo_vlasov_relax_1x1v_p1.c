@@ -42,7 +42,7 @@ struct lbo_relax_ctx
   int Nx; // Cell count (configuration space: x-direction).
   int Nvx; // Cell count (velocity space: x-direction).
   double Lx; // Domain size (configuration space: x-direction).
-  double v_max; // Domain boundary (velocity space: x-direction).
+  double vx_max; // Domain boundary (velocity space: x-direction).
   int poly_order; // Polynomial order.
   double cfl_frac; // CFL coefficient.
 
@@ -76,7 +76,7 @@ create_ctx(void)
   int Nx = 2; // Cell count (configuration space: x-direction).
   int Nvx = 48; // Cell count (velocity space: x-direction).
   double Lx = 1.0; // Domain size (configuration space: x-direction).
-  double v_max = 8.0 * vt; // Domain boundary (velocity space: x-direction).
+  double vx_max = 8.0 * vt; // Domain boundary (velocity space: x-direction).
   int poly_order = 1; // Polynomial order.
   double cfl_frac = 0.6; // CFL coefficient.
 
@@ -100,7 +100,7 @@ create_ctx(void)
     .Nx = Nx,
     .Nvx = Nvx,
     .Lx = Lx,
-    .v_max = v_max,
+    .vx_max = vx_max,
     .poly_order = poly_order,
     .cfl_frac = cfl_frac,
     .t_end = t_end,
@@ -295,8 +295,8 @@ main(int argc, char **argv)
   struct gkyl_vlasov_species square = {
     .name = "square",
     .charge = ctx.charge, .mass = ctx.mass,
-    .lower = { -ctx.v_max},
-    .upper = { ctx.v_max}, 
+    .lower = { -ctx.vx_max },
+    .upper = { ctx.vx_max }, 
     .cells = { NVX },
 
     .projection = {
@@ -318,8 +318,8 @@ main(int argc, char **argv)
   struct gkyl_vlasov_species bump = {
     .name = "bump",
     .charge = ctx.charge, .mass = ctx.mass,
-    .lower = { -ctx.v_max},
-    .upper = { ctx.v_max}, 
+    .lower = { -ctx.vx_max },
+    .upper = { ctx.vx_max }, 
     .cells = { NVX },
 
     .projection = {
