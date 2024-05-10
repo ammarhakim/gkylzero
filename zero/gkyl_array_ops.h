@@ -7,7 +7,7 @@
 
 GKYL_CU_DH
 static inline void*
-flat_fetch(void *data, size_t loc)
+gkyl_flat_fetch(void *data, size_t loc)
 {
   return ((char*) data) + loc;
 }
@@ -22,6 +22,17 @@ struct gkyl_array_copy_func {
   void *ctx_on_dev; // pointer to on-device context (or itself)
   struct gkyl_array_copy_func *on_dev; // pointer to itself or device data
 };
+
+// To return diff of two arrays
+struct gkyl_array_diff {
+  bool is_compatible; // are arrays compatible
+
+  // the following make sense only if is_compatible = true
+  double max_abs_diff; // maximum absolute difference
+  double min_abs_diff; // minmum absolute difference
+  double max_rel_diff; // maximum relative difference
+  double min_rel_diff; // minmum relative difference
+};  
 
 /**
  * Check if array_copy_func is on device.
@@ -299,6 +310,17 @@ void gkyl_array_copy_to_buffer_fn(void *data, const struct gkyl_array *arr,
  */
 void gkyl_array_flip_copy_to_buffer_fn(void *data, const struct gkyl_array *arr,
   int dir, const struct gkyl_range *range, struct gkyl_array_copy_func *cf);
+
+/**
+ * Return difference between two arrays. Mostly useful for testing.
+ *
+ * @param arr1 First array to compare
+ * @param arr2 Second array to compare
+ * @param range Range to compare over
+ * @return diff between arrays
+ */
+struct gkyl_array_diff gkyl_array_diff(const struct gkyl_array *arr1,
+  const struct gkyl_array *arr2, const struct gkyl_range *range);
 
 /**
  * Host-side wrappers for array operations

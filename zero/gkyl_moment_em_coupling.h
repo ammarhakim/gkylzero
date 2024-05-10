@@ -23,7 +23,7 @@ struct gkyl_moment_em_coupling_inp {
   double epsilon0;
   double mu0;
 
-  double t_ramp_E; // linear ramp for turning on external E field
+  double t_ramp_E; // linear ramp for turning on external EM field
   double t_ramp_curr; // linear ramp for turning on applied currents
 
   bool has_collision; // has collisions

@@ -337,8 +337,10 @@ array_sync(struct gkyl_comm *comm,
 {
   struct mpi_comm *mpi = container_of(comm, struct mpi_comm, base);  
   sync(comm, local, local_ext, array, false);
-  if (mpi->sync_corners)
-    sync(comm, local, local_ext,array, true);
+  if (mpi->sync_corners) {
+    for (int i=1; i<mpi->decomp->ndim; ++i)
+      sync(comm, local, local_ext, array, true);
+  }
   
   return 0;
 }
@@ -427,7 +429,7 @@ per_sync(struct gkyl_comm *comm, const struct gkyl_range *local,
               local_ext, nghost);
           else
             gkyl_skin_ghost_ranges(&mpi->send[nsidx].range, &ghost, dir, edge_type[e],
-              local_ext, nghost);          
+              local_ext, nghost);
 
           size_t send_vol = array->esznc*mpi->send[nsidx].range.volume;
 
@@ -481,8 +483,10 @@ array_per_sync(struct gkyl_comm *comm, const struct gkyl_range *local,
 {
   struct mpi_comm *mpi = container_of(comm, struct mpi_comm, base);  
   per_sync(comm, local, local_ext, nper_dirs, per_dirs, array, false);
-  if (mpi->sync_corners)
-    per_sync(comm, local, local_ext, nper_dirs, per_dirs, array, true);
+  if (mpi->sync_corners) {
+    for (int i=1; i<mpi->decomp->ndim; ++i)
+      per_sync(comm, local, local_ext, nper_dirs, per_dirs, array, true);
+  }
   
   return 0;
 }
@@ -761,6 +765,7 @@ gkyl_mpi_comm_new(const struct gkyl_mpi_comm_inp *inp)
   mpi->base.gkyl_array_recv = array_recv;
   mpi->base.gkyl_array_irecv = array_irecv;
   mpi->base.gkyl_array_bcast = array_bcast;
+  mpi->base.gkyl_array_bcast_host = array_bcast;
   mpi->base.allreduce = allreduce;
   mpi->base.allreduce_host = allreduce;
   mpi->base.extend_comm = extend_comm;

@@ -72,7 +72,7 @@ main(int argc, char **argv)
 
     .bcx = { GKYL_SPECIES_COPY, GKYL_SPECIES_COPY },
   };
-
+  
   // VM app
   struct gkyl_moment app_inp = {
     .name = "mhd_brio_wu",

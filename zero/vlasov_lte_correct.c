@@ -72,13 +72,16 @@ gkyl_vlasov_lte_correct_inew(const struct gkyl_vlasov_lte_correct_inp *inp)
     .phase_grid = inp->phase_grid,
     .conf_basis = inp->conf_basis,
     .phase_basis = inp->phase_basis,
-    .conf_range =  inp->conf_range,
+    .conf_range = inp->conf_range,
     .conf_range_ext = inp->conf_range_ext,
     .vel_range = inp->vel_range,
     .p_over_gamma = inp->p_over_gamma,
     .gamma = inp->gamma,
     .gamma_inv = inp->gamma_inv,
+
+    .quad_type = inp->quad_type,
     .model_id = inp->model_id,
+
     .mass = inp->mass,
     .use_gpu = inp->use_gpu,
   };

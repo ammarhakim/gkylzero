@@ -855,9 +855,9 @@ gkyl_moment_em_coupling_implicit_advance(const gkyl_moment_em_coupling *mes, dou
     }
 
     fluid_source_update(mes, tcurr, dt, fluids, app_accels, pr_rhs_s, 
-      gkyl_array_fetch(em, lidx),
-      gkyl_array_cfetch(app_current, lidx),
-      gkyl_array_cfetch(ext_em, lidx),
+      em ? gkyl_array_fetch(em, lidx) : 0,
+      app_current ? gkyl_array_cfetch(app_current, lidx) : 0,
+      ext_em ? gkyl_array_cfetch(ext_em, lidx) : 0, 
       nT_source_s
     );
   }

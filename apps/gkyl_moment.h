@@ -10,6 +10,14 @@
 
 #include <time.h>
 
+// number of components that various applied functions should return
+enum {
+  GKYL_MOM_APP_NUM_APPLIED_CURRENT = 3,
+  GKYL_MOM_APP_NUM_EXT_EM = 6,
+  GKYL_MOM_APP_NUM_APPLIED_ACCELERATION = 3,
+  GKYL_MOM_APP_NUM_NT_SOURCE = 2
+};
+
 // Parameters for moment species
 struct gkyl_moment_species {
   char name[128]; // species name
@@ -25,8 +33,13 @@ struct gkyl_moment_species {
   void *ctx; // context for initial condition init function (and potentially other functions)
   // pointer to initialization function
   void (*init)(double t, const double *xn, double *fout, void *ctx);
+
+  bool is_app_accel_static; // flag to indicate if applied acceleration is static
+  void *app_accel_ctx; // context for applied acceleration
   // pointer to applied acceleration/forces function
   void (*app_accel_func)(double t, const double *xn, double *fout, void *ctx);
+
+  void *nT_source_ctx; // context for nT source
   // pointer to user-defined number density and temperature sources
   void (*nT_source_func)(double t, const double *xn, double *fout, void *ctx);
   bool nT_source_set_only_once;
@@ -50,14 +63,18 @@ struct gkyl_moment_field {
   void *ctx; // context for initial condition init function (and potentially other functions)
   // pointer to initialization function
   void (*init)(double t, const double *xn, double *fout, void *ctx);
+
+  void *app_current_ctx; // context for applied current
   // pointer to applied current function
   void (*app_current_func)(double t, const double *xn, double *fout, void *ctx);
   double t_ramp_curr; // linear ramp for turning on applied currents
-  
+
   bool is_ext_em_static; // flag to indicate if external field is time-independent
+  void *ext_em_ctx; // context for applied current
   // pointer to external fields
   void (*ext_em_func)(double t, const double *xn, double *fout, void *ctx);
-  double t_ramp_E; // linear ramp for turning on external E field
+  double t_ramp_ext_em; // linear ramp for turning on external E field
+
   bool use_explicit_em_coupling; // flag to indicate if using explicit em-coupling
 
   // boundary conditions
@@ -316,20 +333,71 @@ void gkyl_moment_app_stat_write(const gkyl_moment_app *app);
 struct gkyl_update_status gkyl_moment_update(gkyl_moment_app *app, double dt);
 
 /**
- * Calculate integrated field energy
+ * Get number of values stored for field energy diagnostics
+ *
+ * @param app App object.
+ */
+int gkyl_moment_app_field_energy_ndiag(gkyl_moment_app *app);
+
+/**
+ * Calculate integrated field energy. The "calc" method computes the
+ * integrated moments and stores it. The "get" method returns the
+ * values in the vals array, without storing it.
  *
  * @param tm Time at which integrated diagnostic are to be computed
  * @param app App object.
  */
 void gkyl_moment_app_calc_field_energy(gkyl_moment_app *app, double tm);
+void gkyl_moment_app_get_field_energy(gkyl_moment_app *app, double *vals);
 
 /**
- * Calculate integrated moments
+ * Calculate integrated moments.
  *
  * @param app App object.
  * @param tm Time at which integrated diagnostic are to be computed
  */
 void gkyl_moment_app_calc_integrated_mom(gkyl_moment_app *app, double tm);
+
+/**
+ * Get the integrated moments for species @a sidx.
+ *
+ * @param app App object.
+ * @param sidx Species index
+ * @param vals On output, value of the integrate moments for species
+ */
+void gkyl_moment_app_get_integrated_mom(gkyl_moment_app *app, double *vals);
+
+/**
+ * Return ghost cell layout for grid.
+ *
+ * @param app App object.
+ * @param nghost On output, ghost-cells used for grid.
+ *
+ */
+void gkyl_moment_app_nghost(gkyl_moment_app *app, int nghost[3]);
+
+/**
+ * Get a pointer to the species array that needs to be written out. If
+ * you want to store the pointer, you must gkyl_array_acquire a
+ * pointer to it. In general, this is not a method most users should
+ * every mess around with!
+ *
+ * @param app App object.
+ * @param sidx Species index
+ * @return pointer to the species array for output
+ */
+struct gkyl_array* gkyl_moment_app_get_write_array_species(const gkyl_moment_app* app, int sidx);
+
+/**
+ * Get a pointer to the field array that needs to be written out. If
+ * you want to store the pointer, you must gkyl_array_acquire a
+ * pointer to it. In general, this is not a method most users should
+ * every mess around with!
+ *
+ * @param app App object.
+ * @return pointer to the field array for output
+ */
+struct gkyl_array* gkyl_moment_app_get_write_array_field(const gkyl_moment_app* app);
 
 /**
  * Return simulation statistics.

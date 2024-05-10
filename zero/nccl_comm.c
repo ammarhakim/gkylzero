@@ -354,6 +354,14 @@ array_bcast(struct gkyl_comm *comm, const struct gkyl_array *asend,
   return 0;
 }
 
+static int
+array_bcast_host(struct gkyl_comm *comm, const struct gkyl_array *asend,
+  struct gkyl_array *arecv, int root)
+{
+  struct nccl_comm *nccl = container_of(comm, struct nccl_comm, base);
+  return gkyl_comm_array_bcast_host(nccl->mpi_comm, asend, arecv, root);
+}
+
 static void
 group_call_start()
 {
@@ -710,6 +718,7 @@ gkyl_nccl_comm_new(const struct gkyl_nccl_comm_inp *inp)
   nccl->base.gkyl_array_recv = array_recv;
   nccl->base.gkyl_array_irecv = array_irecv;
   nccl->base.gkyl_array_bcast = array_bcast;
+  nccl->base.gkyl_array_bcast_host = array_bcast_host;
   nccl->base.comm_state_new = comm_state_new;
   nccl->base.comm_state_release = comm_state_release;
   nccl->base.comm_state_wait = comm_state_wait;

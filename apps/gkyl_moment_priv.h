@@ -53,9 +53,11 @@ struct moment_species {
   // pointer to initialization function
   void (*init)(double t, const double *xn, double *fout, void *ctx);
 
+  bool is_app_accel_static; // flag to indicate if applied acceleration is static  
   struct gkyl_array *app_accel; // array for applied acceleration/forces
   // pointer to projection operator for applied acceleration/forces function
   gkyl_fv_proj *proj_app_accel;
+  bool was_app_accel_computed; // flag to indicate if we already computed acceleration
 
   struct gkyl_array *nT_source; // array for num density and temperature sources
   // projection func for num density and temperature sources
@@ -119,9 +121,10 @@ struct moment_field {
 
   bool is_ext_em_static; // flag to indicate if external field is time-independent
   struct gkyl_array *ext_em; // array external fields
-  double t_ramp_E; // linear ramp for turning on external E field
+  double t_ramp_ext_em; // linear ramp for turning on external E field
   gkyl_fv_proj *proj_ext_em; // pointer to projection operator for external fields
   bool was_ext_em_computed; // flag to indicate if we already computed external EM field
+
   bool use_explicit_em_coupling; // flag to indicate if em coupling should be explicit, defaults implicit
   struct gkyl_array *app_current1; // arrays for applied currents (for use_explicit_em_coupling stages)
   struct gkyl_array *app_current2; // arrays for applied currents (for use_explicit_em_coupling stages)
@@ -218,6 +221,8 @@ struct gkyl_moment_app {
 
   // species data
   int num_species;
+  int has_app_accel; // flag to indicate if we have an applied acceleration
+                     // needed if we are doing neutral fluids with an applied acceleration
   struct moment_species *species; // species data
 
   // work arrays for use in the KEP and MP scheme: these are stored

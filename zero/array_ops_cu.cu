@@ -532,7 +532,7 @@ gkyl_array_copy_to_buffer_fn_cu_kernel(void *data, const struct gkyl_array *arr,
     long linc = gkyl_range_idx(&range, idx);
 
     const double *inp = (const double*) gkyl_array_cfetch(arr, linc);
-    double *out = (double*) flat_fetch(data, arr->esznc*linc1);
+    double *out = (double*) gkyl_flat_fetch(data, arr->esznc*linc1);
     cf->func(arr->ncomp, out, inp, cf->ctx);
   }
 }
@@ -563,7 +563,7 @@ gkyl_array_flip_copy_to_buffer_fn_cu_kernel(void *data, const struct gkyl_array 
     long flinc = gkyl_range_idx(&buff_range, fidx);
     
     const double *inp = (const double*) gkyl_array_cfetch(arr, linc);
-    double *out = (double*) flat_fetch(data, arr->esznc*flinc);
+    double *out = (double*) gkyl_flat_fetch(data, arr->esznc*flinc);
     cf->func(arr->ncomp, out, inp, cf->ctx);
   }
 }

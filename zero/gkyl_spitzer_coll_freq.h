@@ -7,6 +7,20 @@
 // Object type
 typedef struct gkyl_spitzer_coll_freq gkyl_spitzer_coll_freq;
 
+
+/**
+ * Calculate normNu based on reference parameters for species s and r
+ * @param ns density of species s
+ * @param nr density of species r
+ * @param ms mass of species s
+ * @param mr mass of species r
+ * @param qs charge of species s
+ * @param qr charge of species r
+ * @param Ts Temperature of species s
+ * @param Tr Temperature of species r
+ */
+double gkyl_calc_norm_nu(double ns, double nr, double ms, double mr, double qs, double qr, double Ts, double Tr, double bmag_mid, double eps0, double hbar, double eV);
+
 /**
  * Create new updater to either compute the Spitzer collision frequency from
  * scratch based on local parameters, or scale a normalized collision frequency
