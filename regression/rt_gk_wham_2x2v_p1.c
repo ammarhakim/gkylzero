@@ -110,8 +110,8 @@ struct gkyl_mirror_geo_efit_inp inp = {
 
 struct gkyl_mirror_geo_grid_inp ginp = {
   .rclose = 0.2,
-  .zmin = -2.48,
-  .zmax =  2.48,
+  .zmin = -2.0,
+  .zmax =  2.0,
 };
 
 // -- Source functions.
@@ -809,6 +809,7 @@ int main(int argc, char **argv)
       .comm = comm
     }
   };
+  printf("Basis type: %d\n", app_args.basis_type);
 
   // Create app object.
   gkyl_gyrokinetic_app *app = gkyl_gyrokinetic_app_new(&app_inp);
