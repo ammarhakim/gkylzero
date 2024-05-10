@@ -100,8 +100,21 @@ struct gkyl_mirror_geo_grid_inp {
 
   bool write_node_coord_array; // set to true if nodal coordinates should be written
   const char *node_file_nm; // name of nodal coordinate file
+
+  double nonuniform_mapping_fraction; // Zero is uniform mapping, one is fully nonuniform mapping. In between values 
 };
 
+// An evaluator object for the non-uniform mapping to be read by initial conditions
+struct arcL_evaluator {
+   struct gkyl_rect_grid grid;
+   struct gkyl_rect_grid cgrid;
+   struct gkyl_range range;
+   struct gkyl_range crange;
+   struct gkyl_range crange_global;
+   struct gkyl_basis basis;
+   struct gkyl_basis cbasis;
+   struct gkyl_array* map_arcL; // nonuniform map
+};
 
 /**
  * Create new updater to compute the geometry (mapc2p) needed in GK
@@ -166,7 +179,8 @@ void gkyl_mirror_geo_mapc2p(const gkyl_mirror_geo *geo, const struct gkyl_mirror
  */
 void gkyl_mirror_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, double dzc[3], 
   evalf_t mapc2p_func, void* mapc2p_ctx, evalf_t bmag_func, void *bmag_ctx, 
-  struct gkyl_array *mc2p_nodal_fd, struct gkyl_array *mc2p_nodal, struct gkyl_array *mc2p);
+  struct gkyl_array *mc2p_nodal_fd, struct gkyl_array *mc2p_nodal, struct gkyl_array *mc2p, bool nonuniform,
+  struct gkyl_array* map_arcL_nodal_fd, struct gkyl_array* map_arcL_nodal, struct gkyl_array* map_arcL);
 
 /**
  * Return cumulative statistics from geometry computations

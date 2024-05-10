@@ -76,6 +76,26 @@ static inline void bmag_comp(double t, const double *xn, double *fout, void *ctx
   fout[0] = gc->basis->eval_expand(xy, coeffs);
 }
 
+void gkyl_calc_bmag_global(double t, const double *xn, double *fout, void *ctx)
+{
+  struct bmag_ctx *gc = (struct bmag_ctx*) ctx;
+  int cidx[GKYL_MAX_CDIM];
+  for(int i = 0; i < gc->cgrid->ndim; i++){
+    int idxtemp = gc->crange_global->lower[i] + (int) floor((xn[i] - (gc->cgrid->lower[i]) )/gc->cgrid->dx[i]);
+    idxtemp = GKYL_MIN2(idxtemp, gc->crange_global->upper[i]);
+    idxtemp = GKYL_MAX2(idxtemp, gc->crange_global->lower[i]);
+    cidx[i] = idxtemp;
+  }
+  long lidx = gkyl_range_idx(gc->crange_global, cidx);
+  const double *mcoeffs = gkyl_array_cfetch(gc->bmag, lidx);
+  double cxc[gc->cgrid->ndim];
+  double xyz[gc->cgrid->ndim];
+  gkyl_rect_grid_cell_center(gc->cgrid, cidx, cxc);
+  for(int i = 0; i < gc->cgrid->ndim; i++)
+    xyz[i] = (xn[i]-cxc[i])/(gc->cgrid->dx[i]*0.5);
+  fout[0] = gc->cbasis->eval_expand(xyz, mcoeffs);
+}
+
 static inline void bphi_RZ(double t, const double *xn, double *fout, void *ctx){
 
   struct fpol_ctx *gc = (struct fpol_ctx*) ctx;

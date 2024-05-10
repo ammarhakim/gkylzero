@@ -226,6 +226,8 @@ gkyl_gyrokinetic_app_new(struct gkyl_gk *gk)
     .tok_grid_info = gk->geometry.tok_grid_info,
     .mirror_efit_info = gk->geometry.mirror_efit_info,
     .mirror_grid_info = gk->geometry.mirror_grid_info,
+    .nonuniform_geom = false,
+    .nonuniform_map_fraction = gk->geometry.nonuniform_mapping_fraction,
     .grid = app->grid,
     .local = app->local,
     .local_ext = app->local_ext,
@@ -279,6 +281,19 @@ gkyl_gyrokinetic_app_new(struct gkyl_gk *gk)
       break;
     case GKYL_MIRROR:
       gk_geom_3d = gkyl_gk_geometry_mirror_new(&geometry_inp);
+      double nonuniform_frac = gk->geometry.nonuniform_mapping_fraction;
+      printf("nonuniform_frac = %f\n", nonuniform_frac);
+      if (nonuniform_frac > 0.0 & nonuniform_frac <= 1.0) {
+        geometry_inp.nonuniform_geom = true;
+        struct gkyl_array *bmag_global = gkyl_array_new(GKYL_DOUBLE, gk_geom_3d->basis.num_basis, gk_geom_3d->global_ext.volume);
+        gkyl_comm_array_allgather(app->comm, &gk_geom_3d->local, &gk_geom_3d->global, gk_geom_3d->bmag, bmag_global);
+        geometry_inp.bmag_global = bmag_global;
+        gk_geom_3d = gkyl_gk_geometry_mirror_new(&geometry_inp);
+        gkyl_array_release(bmag_global);
+      }
+      else if (nonuniform_frac != 0.0) {
+        printf("Invalid non-uniform mapping fraction %f. Must be between 0 and 1", nonuniform_frac);
+      }
       break;
     case GKYL_MAPC2P:
       gk_geom_3d = gkyl_gk_geometry_mapc2p_new(&geometry_inp);

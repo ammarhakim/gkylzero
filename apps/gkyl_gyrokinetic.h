@@ -96,6 +96,8 @@ struct gkyl_gyrokinetic_geometry {
   // pointer to mapc2p function: xc are the computational space
   // coordinates and on output xp are the corresponding physical space
   // coordinates.
+  void *arcL_map_ctx; // context for arcL mapping used in the non-uniform grids
+
   void (*mapc2p)(double t, const double *xc, double *xp, void *ctx);
 
   void *bmag_ctx; // context for bmag function
@@ -109,6 +111,7 @@ struct gkyl_gyrokinetic_geometry {
   struct gkyl_mirror_geo_grid_inp *mirror_grid_info; // context for mirror geometry with computational domain info
 
   double world[3]; // extra computational coordinates for cases with reduced dimensionality
+  double nonuniform_mapping_fraction; // Zero is uniform mapping, one is fully nonuniform mapping. In between values. Used for the mirror geometry
 };
 
 // Parameters for species radiation
