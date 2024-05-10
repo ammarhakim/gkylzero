@@ -110,11 +110,8 @@ struct gkyl_mirror_geo_efit_inp inp = {
 
 struct gkyl_mirror_geo_grid_inp ginp = {
   .rclose = 0.2,
-  .zmin = -2.48,
-  .zmax =  2.48,
-  .write_node_coord_array = true,
-  .node_file_nm = "wham_nodes.gkyl",
-  // .nonuniform_mapping_fraction = 0.7,
+  .zmin = -2.0,
+  .zmax =  2.0,
 };
 
 // -- Source functions.
