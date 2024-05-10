@@ -102,7 +102,7 @@ gkyl_gk_geometry_mirror_new(struct gkyl_gk_geometry_inp *geometry_inp)
    // calculate mapc2p on a uniform grid
   printf("Calling gkyl_mirror_geo_calc\n");
   gkyl_mirror_geo_calc(up, &nrange, dzc, NULL, geo, NULL, ginp, mc2p_nodal_fd, mc2p_nodal, up->mc2p,
-    nonuniform_geom, map_arcL_nodal_fd, map_arcL_nodal, arcL_app->map_arcL, geometry_inp->name);
+    nonuniform_geom, map_arcL_nodal_fd, map_arcL_nodal, arcL_app->map_arcL);
   // calculate bmag on a uniform grid
   struct bmag_ctx *bmag_ctx_inp = gkyl_malloc(sizeof(*bmag_ctx_inp));
   printf("Calling gkyl_calc_bmag_new\n");

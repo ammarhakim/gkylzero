@@ -67,7 +67,6 @@ struct gkyl_gk_geometry_inp {
 
   bool nonuniform_geom; // flag to indicate if the geometry is non-uniform
   double nonuniform_map_fraction; // fraction of non-uniformity in the geometry
-  char name[128]; // name of the simulation
 
   struct gkyl_tok_geo_efit_inp *tok_efit_info; // context with RZ data such as efit file for a tokamak
   struct gkyl_tok_geo_grid_inp *tok_grid_info; // context for tokamak geometry with computational domain info

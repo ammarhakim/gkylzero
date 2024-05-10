@@ -236,7 +236,6 @@ gkyl_gyrokinetic_app_new(struct gkyl_gk *gk)
     .global_ext = app->global_ext,
     .basis = app->confBasis,
   };
-  strcpy(geometry_inp.name, gk->name);
 
   for(int i = 0; i<3; i++)
     geometry_inp.world[i] = gk->geometry.world[i];
