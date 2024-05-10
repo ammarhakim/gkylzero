@@ -229,21 +229,26 @@ void gkyl_calc_metric_advance(gkyl_calc_metric *up, struct gkyl_range *nrange,
               gFld_n[4] = calc_metric(dxdz, 2, 3); 
               gFld_n[5] = calc_metric(dxdz, 3, 3); 
 
-              double J = gFld_n[0]*(gFld_n[3]*gFld_n[5] - gFld_n[4]*gFld_n[4] ) - gFld_n[1]*(gFld_n[1]*gFld_n[5] - gFld_n[4]*gFld_n[2] ) + gFld_n[2]*(gFld_n[1]*gFld_n[4] - gFld_n[3]*gFld_n[2] );
-              calc_dual(J, dxdz[1], dxdz[2], dzdx[0]);
-              calc_dual(J, dxdz[2], dxdz[0], dzdx[1]);
-              calc_dual(J, dxdz[0], dxdz[1], dzdx[2]);
+              double Jsq = gFld_n[0]*(gFld_n[3]*gFld_n[5] - gFld_n[4]*gFld_n[4] ) - gFld_n[1]*(gFld_n[1]*gFld_n[5] - gFld_n[4]*gFld_n[2] ) + gFld_n[2]*(gFld_n[1]*gFld_n[4] - gFld_n[3]*gFld_n[2] );
+              double J = sqrt(Jsq);
+              double e1[3], e2[3], e3[3];
+              e1[0] = dxdz[0][0]; e1[1] = dxdz[1][0]; e1[2] = dxdz[2][0];
+              e2[0] = dxdz[0][1]; e2[1] = dxdz[1][1]; e2[2] = dxdz[2][1];
+              e3[0] = dxdz[0][2]; e3[1] = dxdz[1][2]; e3[2] = dxdz[2][2];
+              calc_dual(J, e2, e3, dzdx[0]);
+              calc_dual(J, e3, e1, dzdx[1]);
+              calc_dual(J, e1, e2, dzdx[2]);
 
               double *dualFld_n= gkyl_array_fetch(dualFld_nodal, gkyl_range_idx(nrange, cidx));
-              dualFld_n[0] = dzdx[0][0]; 
-              dualFld_n[1] = dzdx[1][0]; 
-              dualFld_n[2] = dzdx[2][0]; 
-              dualFld_n[3] = dzdx[0][1]; 
-              dualFld_n[4] = dzdx[1][1]; 
-              dualFld_n[5] = dzdx[2][1]; 
-              dualFld_n[6] = dzdx[0][2]; 
-              dualFld_n[7] = dzdx[1][2]; 
-              dualFld_n[8] = dzdx[2][2]; 
+              dualFld_n[0] = dzdx[0][0];
+              dualFld_n[1] = dzdx[0][1];
+              dualFld_n[2] = dzdx[0][2];
+              dualFld_n[3] = dzdx[1][0];
+              dualFld_n[4] = dzdx[1][1];
+              dualFld_n[5] = dzdx[1][2];
+              dualFld_n[6] = dzdx[2][0];
+              dualFld_n[7] = dzdx[2][1];
+              dualFld_n[8] = dzdx[2][2];
 
               double *tanvecFld_n= gkyl_array_fetch(tanvecFld_nodal, gkyl_range_idx(nrange, cidx));
               tanvecFld_n[0] = dxdz[0][0]; 
@@ -295,13 +300,13 @@ void gkyl_calc_metric_advance_bcart(gkyl_calc_metric *up, struct gkyl_range *nra
               double *dualFld_n= gkyl_array_fetch(dualFld_nodal, gkyl_range_idx(nrange, cidx));
               double dzdx[3][3]; // duals at node
               dzdx[0][0] = dualFld_n[0];
-              dzdx[1][0] = dualFld_n[1];
-              dzdx[2][0] = dualFld_n[2];
-              dzdx[0][1] = dualFld_n[3];
+              dzdx[0][1] = dualFld_n[1];
+              dzdx[0][2] = dualFld_n[2];
+              dzdx[1][0] = dualFld_n[3];
               dzdx[1][1] = dualFld_n[4];
-              dzdx[2][1] = dualFld_n[5];
-              dzdx[0][2] = dualFld_n[6];
-              dzdx[1][2] = dualFld_n[7];
+              dzdx[1][2] = dualFld_n[5];
+              dzdx[2][0] = dualFld_n[6];
+              dzdx[2][1] = dualFld_n[7];
               dzdx[2][2] = dualFld_n[8];
               double *bcartFld_n= gkyl_array_fetch(bcartFld_nodal, gkyl_range_idx(nrange, cidx));
               bcartFld_n[0] = dzdx[0][0]*biFld_n[0] + dzdx[1][0]*biFld_n[1] + dzdx[2][0]*biFld_n[2];

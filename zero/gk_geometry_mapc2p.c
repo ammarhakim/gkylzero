@@ -171,7 +171,7 @@ void gkyl_gk_geometry_mapc2p_advance(struct gk_geometry* up, struct gkyl_range *
     up->jacobgeo, up->jacobgeo_inv, up->gij, up->b_i, up->cmag, up->jacobtot, up->jacobtot_inv, 
     up->bmag_inv, up->bmag_inv_sq, up->gxxj, up->gxyj, up->gyyj, up->gxzj, up->eps2);
   gkyl_calc_derived_geo_release(jcalculator);
-  gkyl_calc_metric_advance_bcart(mcalc, &nrange, up->b_i, up->dzdx, up->bcart, &up->local);
+  gkyl_calc_metric_advance_bcart(mcalc, nrange, up->b_i, up->dzdx, up->bcart, &up->local);
   gkyl_calc_metric_release(mcalc);
 }
 
