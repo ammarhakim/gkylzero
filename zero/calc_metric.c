@@ -41,9 +41,9 @@ static inline double calc_metric(double dxdz[3][3], int i, int j)
 static inline void
 calc_dual(double J, const double e_2[3], const double e_3[3], double e1[3])
 {
-  e1[0] = (e_2[1]*e_3[2] - e_2[2]*e_3[1] )/J;
-  e1[1] = -(e_2[0]*e_3[2] - e_2[2]*e_3[0] )/J;
-  e1[2] = (e_2[0]*e_3[1] - e_2[1]*e_3[0] )/J;
+  e1[0] = -(e_2[1]*e_3[2] - e_2[2]*e_3[1] )/J;
+  e1[1] = (e_2[0]*e_3[2] - e_2[2]*e_3[0] )/J;
+  e1[2] = -(e_2[0]*e_3[1] - e_2[1]*e_3[0] )/J;
 }
 
 void gkyl_calc_metric_advance_rz(
@@ -231,13 +231,13 @@ void gkyl_calc_metric_advance(gkyl_calc_metric *up, struct gkyl_range *nrange,
 
               double Jsq = gFld_n[0]*(gFld_n[3]*gFld_n[5] - gFld_n[4]*gFld_n[4] ) - gFld_n[1]*(gFld_n[1]*gFld_n[5] - gFld_n[4]*gFld_n[2] ) + gFld_n[2]*(gFld_n[1]*gFld_n[4] - gFld_n[3]*gFld_n[2] );
               double J = sqrt(Jsq);
-              double e1[3], e2[3], e3[3];
-              e1[0] = dxdz[0][0]; e1[1] = dxdz[1][0]; e1[2] = dxdz[2][0];
-              e2[0] = dxdz[0][1]; e2[1] = dxdz[1][1]; e2[2] = dxdz[2][1];
-              e3[0] = dxdz[0][2]; e3[1] = dxdz[1][2]; e3[2] = dxdz[2][2];
-              calc_dual(J, e2, e3, dzdx[0]);
-              calc_dual(J, e3, e1, dzdx[1]);
-              calc_dual(J, e1, e2, dzdx[2]);
+              double e_1[3], e_2[3], e_3[3];
+              e_1[0] = dxdz[0][0]; e_1[1] = dxdz[1][0]; e_1[2] = dxdz[2][0];
+              e_2[0] = dxdz[0][1]; e_2[1] = dxdz[1][1]; e_2[2] = dxdz[2][1];
+              e_3[0] = dxdz[0][2]; e_3[1] = dxdz[1][2]; e_3[2] = dxdz[2][2];
+              calc_dual(J, e_2, e_3, dzdx[0]);
+              calc_dual(J, e_3, e_1, dzdx[1]);
+              calc_dual(J, e_1, e_2, dzdx[2]);
 
               double *dualFld_n= gkyl_array_fetch(dualFld_nodal, gkyl_range_idx(nrange, cidx));
               dualFld_n[0] = dzdx[0][0];
