@@ -595,8 +595,8 @@ regenerateTest(const char* test_name, const int test_output_count, const char te
 int
 main(int argc, char **argv)
 {
-  int test_count = 21;
-  char test_names[21][64] = {
+  int test_count = 23;
+  char test_names[23][64] = {
     "accel_1x1v",
     "dg_euler_sodshock_p1",
     "dg_euler_sodshock_p2",
@@ -618,8 +618,10 @@ main(int argc, char **argv)
     "vlasov_bgk_relax_1x3v_p1",
     "vlasov_bgk_relax_1x3v_p2",
     "vlasov_bgk_sr_relax_1x1v_p2",
+    "neut_bgk_sod_shock_1x1v_p1",
+    "neut_bgk_sod_shock_1x1v_p2",
   };
-  char test_names_human[21][128] = {
+  char test_names_human[23][128] = {
     "1x1v Acceleration Test with p = 1",
     "Euler Sod-Type Shock Tube Test p = 1",
     "Euler Sod-Type Shock Tube Test p = 2",
@@ -641,9 +643,11 @@ main(int argc, char **argv)
     "1x3v BGK Collision Relaxation Test with p = 1",
     "1x3v BGK Collision Relaxation Test with p = 2",
     "1x1v BGK Relativistic Collision Relaxation Test with p = 1",
+    "1x1v BGK Collision Neutrals Shock Tube Test with p = 1",
+    "1x1v BGK Collision Neutrals Shock Tube Test with p = 2",
   };
-  int test_output_count[21] = { 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2 };
-  char test_outputs[21][64][64] = {
+  int test_output_count[23] = { 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1, 1 };
+  char test_outputs[23][64][64] = {
     { "elc_1" },
     { "euler_1" },
     { "euler_1" },
@@ -665,6 +669,8 @@ main(int argc, char **argv)
     { "bump_1", "square_1" },
     { "bump_1", "square_1" },
     { "bump_1", "square_1" },
+    { "neut_1" },
+    { "neut_1" },
   };
 
   system("clear");
