@@ -50,6 +50,8 @@ gkyl_dg_calc_pkpm_vars_new(const struct gkyl_rect_grid *conf_grid,
 
   up->pkpm_set = choose_pkpm_set_kern(b_type, cdim, poly_order);
   up->pkpm_copy = choose_pkpm_copy_kern(b_type, cdim, poly_order);
+  up->pkpm_u_set = choose_pkpm_u_set_kern(b_type, cdim, poly_order);
+  up->pkpm_u_copy = choose_pkpm_u_copy_kern(b_type, cdim, poly_order);  
   up->pkpm_pressure = choose_pkpm_pressure_kern(b_type, cdim, poly_order);
   up->pkpm_p_force = choose_pkpm_p_force_kern(b_type, cdim, poly_order);
   up->pkpm_source = choose_pkpm_source_kern(b_type, cdim, poly_order);
@@ -66,6 +68,11 @@ gkyl_dg_calc_pkpm_vars_new(const struct gkyl_rect_grid *conf_grid,
   up->As = gkyl_nmat_new(up->Ncomp*mem_range->volume, nc, nc);
   up->xs = gkyl_nmat_new(up->Ncomp*mem_range->volume, nc, 1);
   up->mem = gkyl_nmat_linsolve_lu_new(up->As->num, up->As->nr);
+
+  // Linear system for just solving for ux, uy, uz
+  up->As_u = gkyl_nmat_new(3*mem_range->volume, nc, nc);
+  up->xs_u = gkyl_nmat_new(3*mem_range->volume, nc, 1);
+  up->mem_u = gkyl_nmat_linsolve_lu_new(up->As_u->num, up->As_u->nr);
 
   up->flags = 0;
   GKYL_CLEAR_CU_ALLOC(up->flags);
@@ -124,6 +131,54 @@ void gkyl_dg_calc_pkpm_vars_advance(struct gkyl_dg_calc_pkpm_vars *up,
     up->pkpm_copy(count, up->xs, prim_d, prim_surf_d);
 
     count += up->Ncomp;
+  }
+}
+
+void gkyl_dg_calc_pkpm_vars_u(struct gkyl_dg_calc_pkpm_vars *up, 
+  const struct gkyl_array* vlasov_pkpm_moms, const struct gkyl_array* euler_pkpm, 
+  struct gkyl_array* cell_avg_prim, struct gkyl_array* pkpm_u)
+{
+#ifdef GKYL_HAVE_CUDA
+  if (gkyl_array_is_cu_dev(pkpm_u)) {
+    return gkyl_dg_calc_pkpm_vars_u_cu(up, 
+      vlasov_pkpm_moms, euler_pkpm, 
+      cell_avg_prim, pkpm_u);
+  }
+#endif
+
+  // First loop over mem_range for solving linear systems to compute primitive moments
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, &up->mem_range);
+  long count = 0;
+  while (gkyl_range_iter_next(&iter)) {
+    long loc = gkyl_range_idx(&up->mem_range, iter.idx);
+
+    const double *vlasov_pkpm_moms_d = gkyl_array_cfetch(vlasov_pkpm_moms, loc);
+    const double *euler_pkpm_d = gkyl_array_cfetch(euler_pkpm, loc);
+
+    int* cell_avg_prim_d = gkyl_array_fetch(cell_avg_prim, loc);
+
+    cell_avg_prim_d[0] = up->pkpm_u_set(count, up->As_u, up->xs_u, 
+      vlasov_pkpm_moms_d, euler_pkpm_d);
+
+    count += 3;
+  }
+
+  if (up->poly_order > 1) {
+    bool status = gkyl_nmat_linsolve_lu_pa(up->mem_u, up->As_u, up->xs_u);
+    assert(status);
+  }
+
+  gkyl_range_iter_init(&iter, &up->mem_range);
+  count = 0;
+  while (gkyl_range_iter_next(&iter)) {
+    long loc = gkyl_range_idx(&up->mem_range, iter.idx);
+
+    double* pkpm_u_d = gkyl_array_fetch(pkpm_u, loc);
+
+    up->pkpm_u_copy(count, up->xs_u, pkpm_u_d);
+
+    count += 3;
   }
 }
 

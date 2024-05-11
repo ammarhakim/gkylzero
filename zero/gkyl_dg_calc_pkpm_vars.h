@@ -60,7 +60,7 @@ gkyl_dg_calc_pkpm_vars_cu_dev_new(const struct gkyl_rect_grid *conf_grid,
   const struct gkyl_wv_eqn *wv_eqn, const struct gkyl_wave_geom *geom, double limiter_fac);
 
 /**
- * Compute pkpm primitive moments.
+ * Compute all of the pkpm primitive moments.
  *
  * @param up Updater for computing pkpm variables 
  * @param vlasov_pkpm_moms Input array of pkpm kinetic moments [rho, p_parallel, p_perp]
@@ -80,6 +80,20 @@ void gkyl_dg_calc_pkpm_vars_advance(struct gkyl_dg_calc_pkpm_vars *up,
   const struct gkyl_array* vlasov_pkpm_moms, const struct gkyl_array* euler_pkpm, 
   const struct gkyl_array* p_ij, const struct gkyl_array* pkpm_div_ppar, 
   struct gkyl_array* cell_avg_prim, struct gkyl_array* prim, struct gkyl_array* prim_surf);
+
+/**
+ * Compute volume expansion of flow velocity u in the PKPM system.
+ *
+ * @param up Updater for computing pkpm variables 
+ * @param vlasov_pkpm_moms Input array of pkpm kinetic moments [rho, p_parallel, p_perp]
+ * @param euler_pkpm Input array of pkpm fluid variables [rho ux, rho uy, rho uz]
+ * @param cell_avg_prim Array for storing boolean value of whether rho, p_parallel, p_perp are negative at corners 
+ *                      Note: Only used for diagnostic purposes (not for adjusting solution)
+ * @param pkpm_u        Output array of volume expansion of flow velocity [ux, uy, uz]
+ */
+void gkyl_dg_calc_pkpm_vars_u(struct gkyl_dg_calc_pkpm_vars *up, 
+  const struct gkyl_array* vlasov_pkpm_moms, const struct gkyl_array* euler_pkpm, 
+  struct gkyl_array* cell_avg_prim, struct gkyl_array* pkpm_u);
 
 /**
  * Compute pkpm pressure p_ij = (p_par - p_perp) b_i b_j + p_perp g_ij in the volume 
@@ -201,6 +215,10 @@ void gkyl_dg_calc_pkpm_vars_advance_cu(struct gkyl_dg_calc_pkpm_vars *up,
   const struct gkyl_array* vlasov_pkpm_moms, const struct gkyl_array* euler_pkpm, 
   const struct gkyl_array* p_ij, const struct gkyl_array* pkpm_div_ppar, 
   struct gkyl_array* cell_avg_prim, struct gkyl_array* prim, struct gkyl_array* prim_surf);
+
+void gkyl_dg_calc_pkpm_vars_u_cu(struct gkyl_dg_calc_pkpm_vars *up, 
+  const struct gkyl_array* vlasov_pkpm_moms, const struct gkyl_array* euler_pkpm, 
+  struct gkyl_array* cell_avg_prim, struct gkyl_array* pkpm_u);
 
 void gkyl_dg_calc_pkpm_vars_pressure_cu(struct gkyl_dg_calc_pkpm_vars *up, const struct gkyl_range *conf_range, 
   const struct gkyl_array* bvar, const struct gkyl_array* vlasov_pkpm_moms, struct gkyl_array* p_ij);

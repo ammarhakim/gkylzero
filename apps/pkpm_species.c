@@ -131,6 +131,7 @@ pkpm_species_init(struct gkyl_pkpm *pkpm, struct gkyl_pkpm_app *app, struct pkpm
   // [ux, uy, uz, 1/rho*div(p_par b), T_perp/m, m/T_perp, 3*T_xx/m, 3*T_yy/m, 3*T_zz/m]
   // pressure p_ij : (p_par - p_perp) b_i b_j + p_perp g_ij
   s->pkpm_prim = mkarr(app->use_gpu, 9*app->confBasis.num_basis, app->local_ext.volume);
+  s->pkpm_u = mkarr(app->use_gpu, 3*app->confBasis.num_basis, app->local_ext.volume);
   s->pkpm_p_ij = mkarr(app->use_gpu, 6*app->confBasis.num_basis, app->local_ext.volume);
   // boolean array for primitive variables [rho, p_par, p_perp] is negative at control points
   // *only used for diagnostic purposes*

@@ -35,6 +35,7 @@ pkpm_fluid_em_coupling_update(struct gkyl_pkpm_app *app, struct pkpm_fluid_em_co
   struct gkyl_array *fluids[GKYL_MAX_SPECIES];
   const struct gkyl_array *app_accels[GKYL_MAX_SPECIES];
   const struct gkyl_array *vlasov_pkpm_moms[GKYL_MAX_SPECIES];
+  const struct gkyl_array *pkpm_u[GKYL_MAX_SPECIES];
 
   for (int i=0; i<num_species; ++i) {
     struct pkpm_species *s = &app->species[i];
@@ -46,9 +47,14 @@ pkpm_fluid_em_coupling_update(struct gkyl_pkpm_app *app, struct pkpm_fluid_em_co
     if (s->app_accel_evolve) {
       pkpm_species_calc_app_accel(app, s, tcurr);
     }
-    // Compute the PKPM moments from the kinetic equation 
+    // Compute the PKPM moments from the kinetic equation at the current time 
     pkpm_species_moment_calc(&s->pkpm_moms, s->local, app->local, s->f);
     vlasov_pkpm_moms[i] = s->pkpm_moms.marr;
+    // Compute the flow velocity at the current time
+    gkyl_dg_calc_pkpm_vars_u(s->calc_pkpm_vars,
+      vlasov_pkpm_moms[i], fluids[i], 
+      s->cell_avg_prim, s->pkpm_u);
+    pkpm_u[i] = s->pkpm_u;
   }
   // Compute external EM field or applied currents if present and time-dependent.
   // Note: external EM field and applied currents use proj_on_basis 
@@ -64,7 +70,7 @@ pkpm_fluid_em_coupling_update(struct gkyl_pkpm_app *app, struct pkpm_fluid_em_co
 
   gkyl_dg_calc_pkpm_em_coupling_advance(pkpm_em->slvr, dt, 
     app_accels, app->field->ext_em, app->field->app_current, 
-    vlasov_pkpm_moms, fluids, app->field->em);
+    vlasov_pkpm_moms, pkpm_u, fluids, app->field->em);
 
   for (int i=0; i<num_species; ++i) {
     struct pkpm_species *s = &app->species[i];

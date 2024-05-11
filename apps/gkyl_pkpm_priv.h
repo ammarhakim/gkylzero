@@ -163,6 +163,7 @@ struct pkpm_species {
                                      // [ux_xl, ux_xr, uy_xl, uy_xr, uz_xl, uz_xr, 3.0*Txx_xl/m, 3.0*Txx_xr/m, 
                                      //  ux_yl, ux_yr, uy_yl, uy_yr, uz_yl, uz_yr, 3.0*Tyy_yl/m, 3.0*Tyy_yr/m, 
                                      //  ux_zl, ux_zr, uy_zl, uy_zr, uz_zl, uz_zr, 3.0*Tzz_zl/m, 3.0*Tzz_zr/m] 
+  struct gkyl_array *pkpm_u; // [ux, uy, uz]
   struct gkyl_array *pkpm_p_ij; // (p_par - p_perp) b_i b_j + p_perp g_ij
   struct gkyl_array *pkpm_lax; // Surface expansion of Lax penalization lambda_i = |u_i| + sqrt(3.0*T_ii/m)
   struct gkyl_array *cell_avg_prim; // Integer array for whether rho, p_par, or p_perp < 0.0 at control points
