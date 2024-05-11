@@ -50,10 +50,11 @@ void gkyl_calc_metric_advance_rz(
   gkyl_calc_metric *up, struct gkyl_range *nrange,
   struct gkyl_array *mc2p_nodal_fd, struct gkyl_array *dphidtheta_nodal,
   struct gkyl_array *bmag_nodal, double *dzc, struct gkyl_array *gFld,
-  struct gkyl_array *jFld, const struct gkyl_range *update_range)
+  struct gkyl_array *jFld, struct gkyl_array* bcartFld, const struct gkyl_range *update_range)
 {
   struct gkyl_array* gFld_nodal = gkyl_array_new(GKYL_DOUBLE, 6, nrange->volume);
   struct gkyl_array* jFld_nodal = gkyl_array_new(GKYL_DOUBLE, 1, nrange->volume);
+  struct gkyl_array* bcartFld_nodal = gkyl_array_new(GKYL_DOUBLE, 3, nrange->volume);
   enum { PSI_IDX, AL_IDX, TH_IDX }; // arrangement of computational coordinates
   enum { R_IDX, Z_IDX, PHI_IDX }; // arrangement of cartesian coordinates
   int cidx[3];
@@ -139,13 +140,24 @@ void gkyl_calc_metric_advance_rz(
               //gFld_n[5] = dxdz[0][2]*dxdz[0][2] + R*R*dxdz[2][2]*dxdz[2][2] + dxdz[1][2]*dxdz[1][2];  // uses dphidtheta from FD
               //gFld_n[5] = dxdz[0][2]*dxdz[0][2] + R*R*dphidtheta_n[0]*dphidtheta_n[0] + dxdz[1][2]*dxdz[1][2];  // uses exact 1/gradpsi
               gFld_n[5] = dxdz[0][2]*dxdz[0][2] + R*R*dphidtheta*dphidtheta + dxdz[1][2]*dxdz[1][2];  // uses corrected 
+
+
+              // Now do bcart
+              double *bcartFld_n= gkyl_array_fetch(bcartFld_nodal, gkyl_range_idx(nrange, cidx));
+              double phi = mc2p_n[PHI_IDX];
+              double b3 = 1/sqrt(gFld_n[5]);
+              bcartFld_n[0] = b3*(dxdz[0][2]*cos(phi) - R*sin(phi)*dphidtheta);
+              bcartFld_n[1] = b3*(dxdz[0][2]*sin(phi) + R*cos(phi)*dphidtheta);
+              bcartFld_n[2] = b3*(dxdz[1][2]);
       }
     }
   }
   gkyl_nodal_ops_n2m(up->n2m, up->cbasis, up->grid, nrange, update_range, 6, gFld_nodal, gFld);
   gkyl_nodal_ops_n2m(up->n2m, up->cbasis, up->grid, nrange, update_range, 1, jFld_nodal, jFld);
+  gkyl_nodal_ops_n2m(up->n2m, up->cbasis, up->grid, nrange, update_range, 3, bcartFld_nodal, bcartFld);
   gkyl_array_release(gFld_nodal);
   gkyl_array_release(jFld_nodal);
+  gkyl_array_release(bcartFld_nodal);
 }
 
 void gkyl_calc_metric_advance(gkyl_calc_metric *up, struct gkyl_range *nrange,
