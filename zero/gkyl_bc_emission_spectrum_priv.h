@@ -9,11 +9,13 @@
 #include <assert.h>
 
 typedef void (*emission_spectrum_func_t)(const double *inp, int cdim, int dir, enum gkyl_edge_loc edge, double xc[GKYL_MAX_DIM], const double *gain, double *weight);
+typedef void (*emission_spectrum_spec_func_t)(double t, const double *xn, double *fout, void *ctx);
 typedef void (*emission_spectrum_norm_func_t)(double *out, const double *flux, void *norm_param, double effective_delta);
 typedef void (*emission_spectrum_yield_func_t)(double *out, int cdim, int vdim, double xc[GKYL_MAX_DIM], void *yield_param);
 
 struct gkyl_bc_emission_spectrum_funcs {
   emission_spectrum_func_t func;
+  emission_spectrum_spec_func_t spec;
   emission_spectrum_norm_func_t norm;
   emission_spectrum_yield_func_t yield;
 };
@@ -28,20 +30,80 @@ struct gkyl_bc_emission_spectrum {
   void *norm_param_cu;
   void *yield_param;
   void *yield_param_cu;
+  struct gkyl_rect_grid *grid;
   struct gkyl_bc_emission_spectrum_funcs *funcs;
   struct gkyl_bc_emission_spectrum_funcs *funcs_cu;
-  struct gkyl_array *delta;
-  struct gkyl_array *weight;
-  struct gkyl_array *k;
   struct gkyl_array *flux;
   struct gkyl_range *pos_r;
   struct gkyl_range *neg_r;
-  struct gkyl_range *impact_skin_r;
-  struct gkyl_range *impact_ghost_r;
-  struct gkyl_range *buff_r;
-  struct gkyl_range *conf_r;
   bool use_gpu;
 };
+
+GKYL_CU_D
+static void
+chung_everhart_spec(double t, const double *xn, double *fout, void *ctx)
+{
+  printf("Spec\n");
+  struct gkyl_bc_emission_spectrum *bc_ctx = ctx;
+  struct gkyl_bc_emission_spectrum_norm_chung_everhart *param = bc_ctx->norm_param;
+  printf("Unpack\n");
+  int cdim = bc_ctx->cdim;
+  int vdim = bc_ctx->vdim;
+  double mass = param->mass;
+  double charge = param->charge;
+  double phi = param->phi;
+  printf("Specs = [%d, %d, %f, %f, %f]\n", cdim, vdim, mass, charge, phi);
+
+  double E = 0.0;
+  double mu = 1.0; // currently hardcoded to normal, will add angular dependence later
+  for (int d=0; d<vdim; d++) {
+    E += 0.5*mass*xn[cdim+d]*xn[cdim+d]/fabs(charge);
+  }
+
+  fout[0] = E/pow(E + phi, 4);
+}
+
+GKYL_CU_D
+static void
+gaussian_spec(double t, const double *xn, double *fout, void *ctx)
+{
+  struct gkyl_bc_emission_spectrum *bc_ctx = ctx;
+  struct gkyl_bc_emission_spectrum_norm_gaussian *param = bc_ctx->norm_param;
+  int cdim = bc_ctx->cdim;
+  int vdim = bc_ctx->vdim;
+  double mass = param->mass;
+  double charge = param->charge;
+  double E_0 = param->E_0;
+  double tau = param->tau;
+
+  double E = 0.0;
+  double mu = 1.0; // currently hardcoded to normal, will add angular dependence later
+  for (int d=0; d<vdim; d++) {
+    E += 0.5*mass*xn[cdim+d]*xn[cdim+d]/fabs(charge);
+  }
+
+  fout[0] = exp(-pow(log(E/E_0), 2)/(2.0*pow(tau, 2)));
+}
+
+GKYL_CU_D
+static void
+maxwellian_spec(double t, const double *xn, double *fout, void *ctx)
+{
+  struct gkyl_bc_emission_spectrum *bc_ctx = ctx;
+  struct gkyl_bc_emission_spectrum_norm_maxwellian *param = bc_ctx->norm_param;
+  int cdim = bc_ctx->cdim;
+  int vdim = bc_ctx->vdim;
+  double mass = param->mass;
+  double charge = param->charge;
+  double vt = param->vt;
+
+  double v_sq = 0.0;
+  for (int d=0; d<vdim; d++) {
+    v_sq += xn[cdim+d]*xn[cdim+d];
+  }
+
+  fout[0] = exp(-v_sq/(2.0*pow(vt, 2)));
+}
 
 // Function to calculate the weighted mean of the SE yield
 GKYL_CU_D
@@ -65,6 +127,7 @@ chung_everhart_norm(double *out, const double *flux, void *norm_param, double ef
   double phi = param->phi;
   
   out[0] = 6.0*effective_delta*flux[0]*phi*phi*mass/fabs(charge);
+  printf("params = [%f, %f, %f, %f, %f, %f]\n", mass, charge, phi, effective_delta, flux[0], out[0]);
 }
 
 // Gaussian normalization factor
@@ -99,6 +162,7 @@ furman_pivi_yield(double *out, int cdim, int vdim, double xc[GKYL_MAX_DIM],
   void *yield_param)
 // Electron impact model adapted from https://link.aps.org/doi/10.1103/PhysRevSTAB.5.124404
 {
+  printf("Furman!\n");
   struct gkyl_bc_emission_spectrum_yield_furman_pivi *param = yield_param;
   double mass = param->mass;
   double charge = param->charge;
@@ -109,17 +173,22 @@ furman_pivi_yield(double *out, int cdim, int vdim, double xc[GKYL_MAX_DIM],
   double t3 = param->t3;
   double t4 = param->t4;
   double s = param->s;
+  printf("furman_params = [%f, %f, %f, %f, %f, %f, %f, %f, %f]\n", mass, charge, deltahat_ts, Ehat_ts, t1, t2, t3, t4, s);
 
   double E = 0.0;
   double mu = 1.0; // currently hardcoded to normal, will add angular dependence later
+  printf("30\n");
   for (int d=0; d<vdim; d++) {
     E += 0.5*mass*xc[cdim+d]*xc[cdim+d]/fabs(charge);
   }
+  printf("31\n");
   double deltahat = deltahat_ts*(1 + t1*(1 - pow(mu, t2)));
   double Ehat = Ehat_ts*(1 + t3*(1 - pow(mu, t4)));
   double x = E/Ehat;
+  printf("32\n");
 
   out[0] = deltahat*s*x/(s - 1 + pow(x, s));
+  printf("33\n");
 }
 
 // Schou SEY calculation
@@ -169,6 +238,23 @@ constant_yield(double *out, int cdim, int vdim, double xc[GKYL_MAX_DIM], void *y
 void
 gkyl_bc_emission_spectrum_choose_func_cu(enum gkyl_bc_emission_spectrum_norm_type norm_type,
   enum gkyl_bc_emission_spectrum_yield_type yield_type, struct gkyl_bc_emission_spectrum_funcs *funcs);
+
+GKYL_CU_D
+static emission_spectrum_spec_func_t
+bc_emission_spectrum_choose_spec_func(enum gkyl_bc_emission_spectrum_norm_type norm_type)
+{
+  switch (norm_type) {
+    case GKYL_BC_CHUNG_EVERHART:
+      return chung_everhart_spec;
+    case GKYL_BC_GAUSSIAN:
+      return gaussian_spec;
+    case GKYL_BC_MAXWELLIAN:
+      return maxwellian_spec;
+    default:
+      assert(false);
+      break;
+  }
+}
 
 GKYL_CU_D
 static emission_spectrum_norm_func_t

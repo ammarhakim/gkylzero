@@ -17,6 +17,8 @@ enum gkyl_bc_emission_spectrum_yield_type {
   GKYL_BC_CONSTANT = 2};
 
 struct gkyl_bc_emission_spectrum_norm_gaussian {
+  int cdim;
+  int vdim;
   double mass;
   double charge;
   double E_0;
@@ -24,12 +26,16 @@ struct gkyl_bc_emission_spectrum_norm_gaussian {
 };
 
 struct gkyl_bc_emission_spectrum_norm_chung_everhart {
+  int cdim;
+  int vdim;
   double mass;
   double charge;
   double phi;
 };
 
 struct gkyl_bc_emission_spectrum_norm_maxwellian {
+  int cdim;
+  int vdim;
   double mass;
   double charge;
   double vt;
@@ -80,10 +86,10 @@ typedef struct gkyl_bc_emission_spectrum gkyl_bc_emission_spectrum;
  * @return New updater pointer.
  */
 struct gkyl_bc_emission_spectrum* gkyl_bc_emission_spectrum_new(enum gkyl_bc_emission_spectrum_norm_type norm_type,
-  enum gkyl_bc_emission_spectrum_yield_type yield_type, void *norm_params, void *yield_params,
+  enum gkyl_bc_emission_spectrum_yield_type yield_type, void *norm_param, void *yield_param,
   struct gkyl_array *yield, struct gkyl_array *spectrum, int dir, enum gkyl_edge_loc edge,
-  int cdim, int vdim, struct gkyl_range *impact_skin_r, struct gkyl_range *impact_ghost_r,
-  struct gkyl_rect_grid *grid, bool use_gpu);
+  int cdim, int vdim, struct gkyl_range *impact_buff_r,  struct gkyl_range *impact_ghost_r,
+  struct gkyl_rect_grid *grid, int poly_order, struct gkyl_basis *basis, bool use_gpu);
 
 /**
  * @param up BC updater
@@ -101,8 +107,10 @@ struct gkyl_bc_emission_spectrum* gkyl_bc_emission_spectrum_new(enum gkyl_bc_emi
  * @param buff_r Buffer array range
  */
 void gkyl_bc_emission_spectrum_advance(const struct gkyl_bc_emission_spectrum *up,
-  const struct gkyl_array *f_skin, const struct gkyl_array *f_proj,
-  struct gkyl_array *f_buff, struct gkyl_rect_grid *grid);
+  struct gkyl_range *impact_skin_r, struct gkyl_range *impact_ghost_r,
+  struct gkyl_range *impact_conf_r, struct gkyl_range *emit_ghost_r,
+  struct gkyl_array *f_skin, struct gkyl_array *yield, struct gkyl_array *spectrum,
+  struct gkyl_array *weight, struct gkyl_array *flux, struct gkyl_array *k);
 
 /**
  * @param up BC updater
@@ -110,11 +118,10 @@ void gkyl_bc_emission_spectrum_advance(const struct gkyl_bc_emission_spectrum *u
  * @param gamma SE yield values on incoming ghost space
  * @param ghost_r Incoming ghost space range
  */
-void gkyl_bc_emission_spectrum_sey_calc(const struct gkyl_bc_emission_spectrum *up,
-  struct gkyl_array *gamma, struct gkyl_rect_grid *grid, const struct gkyl_range *ghost_r);
+void gkyl_bc_emission_spectrum_sey_calc(const struct gkyl_bc_emission_spectrum *up, struct gkyl_array *yield, struct gkyl_rect_grid *grid, const struct gkyl_range *ghost_r, const struct gkyl_range *gamma_r);
 
-void gkyl_bc_emission_pos_neg_ranges(struct gkyl_range *pos, struct gkyl_range *neg,
-  int dir, const struct gkyl_range *parent, const int *nghost);
+void gkyl_bc_emission_flux_ranges(struct gkyl_range *flux_r, int dir,
+  const struct gkyl_range *parent, const int *nghost, enum gkyl_edge_loc edge);
 
 /**
  * Free memory associated with bc_emission_spectrum updater.
