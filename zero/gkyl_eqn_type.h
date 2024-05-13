@@ -12,6 +12,7 @@ enum gkyl_eqn_type {
   GKYL_EQN_MHD,  // Ideal MHD equations
   GKYL_EQN_BURGERS, // Burgers equations
   GKYL_EQN_ADVECTION, // Scalar advection equation
+  GKYL_EQN_GR_EULER, // General relativistic Euler equations.
 };
 
 // Identifiers for specific field object types
@@ -28,6 +29,7 @@ enum gkyl_model_id {
   GKYL_MODEL_DEFAULT = 0, // No subsidiary model specified
   GKYL_MODEL_SR = 1,
   GKYL_MODEL_GEN_GEO = 2,
+  GKYL_MODEL_CANONICAL_PB = 3,
 };
 
 // Identifiers for specific collision object types
@@ -41,8 +43,19 @@ enum gkyl_collision_id {
 // Identifiers for specific source object types
 enum gkyl_source_id {
   GKYL_NO_SOURCE = 0, // No source. This is default
-  GKYL_FUNC_SOURCE, // Source given by function
+  GKYL_FUNC_SOURCE, // Function source
+  GKYL_PROJ_SOURCE, // Source given by projection object determined by gkyl_projection_id
   GKYL_BFLUX_SOURCE // Source which scales to boundary fluxes
+};
+
+// Identifiers for specific projection object types
+enum gkyl_projection_id {
+  GKYL_PROJ_FUNC = 0, // Function projection. This is default
+  GKYL_PROJ_MAXWELLIAN_PRIM, // Maxwellian projection from primitive moments (n, u, T)
+  GKYL_PROJ_MAXWELLIAN_LAB, // Maxwellian projection from lab moments (M0, M1, M2)
+  GKYL_PROJ_BIMAXWELLIAN, // Bi-Maxwellian projection
+  GKYL_PROJ_VLASOV_LTE, // LTE (Local thermodynamic equilibrium) projection for Vlasov
+                        // (Maxwellian for non-relativistic, Maxwell-Juttner for relativistic)
 };
 
 // type of quadrature to use

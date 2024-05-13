@@ -104,14 +104,20 @@ main(int argc, char **argv)
     .upper = { 768.0 }, 
     .cells = { VX },
 
-    .ctx = &ctx,
-    .init = evalDistFunc,
+    .projection = {
+      .proj_id = GKYL_PROJ_FUNC,
+      .func = evalDistFunc,
+      .ctx_func = &ctx,
+    },
 
     // source is the same as initial condition
     .source = {
-      .source_id = GKYL_FUNC_SOURCE,
-      .profile = evalDistFunc,
-      .ctx = &ctx,
+      .source_id = GKYL_PROJ_SOURCE,
+      .projection = {
+        .proj_id = GKYL_PROJ_FUNC,
+        .func = evalDistFunc,
+        .ctx_func = &ctx,
+      },
     },
 
     .num_diag_moments = 2,
@@ -128,14 +134,20 @@ main(int argc, char **argv)
     .upper = { 768.0 }, 
     .cells = { VX },
 
-    .ctx = &ctx,
-    .init = evalDistFunc,
+    .projection = {
+      .proj_id = GKYL_PROJ_FUNC,
+      .func = evalDistFunc,
+      .ctx_func = &ctx,
+    },
 
     // source is the same as initial condition
     .source = {
-      .source_id = GKYL_FUNC_SOURCE,
-      .profile = evalDistFunc,
-      .ctx = &ctx,
+      .source_id = GKYL_PROJ_SOURCE,
+      .projection = {
+        .proj_id = GKYL_PROJ_FUNC,
+        .func = evalDistFunc,
+        .ctx_func = &ctx,
+      },
     },
 
     .num_diag_moments = 2,

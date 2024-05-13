@@ -9,6 +9,7 @@ GKYL_CU_DH void flip_odd_sign_1x1v_hyb_p1(int dir, const double *f, double *fout
 GKYL_CU_DH void flip_even_sign_1x1v_hyb_p1(int dir, const double *f, double *fout );
 GKYL_CU_DH void node_coords_1x1v_hyb_p1(double *node_coords);
 GKYL_CU_DH void nodal_to_modal_1x1v_hyb_p1(const double *fnodal, double *fmodal);
+GKYL_CU_DH void quad_to_modal_1x1v_hyb_p1(const double *fquad, double *fmodal);
 GKYL_CU_DH void eval_1x2v_hyb_p1(const double *z, double *b);
 GKYL_CU_DH double eval_expand_1x2v_hyb_p1(const double *z, const double *f);
 GKYL_CU_DH double eval_grad_expand_1x2v_hyb_p1(int dir, const double *z, const double *f);
@@ -16,6 +17,7 @@ GKYL_CU_DH void flip_odd_sign_1x2v_hyb_p1(int dir, const double *f, double *fout
 GKYL_CU_DH void flip_even_sign_1x2v_hyb_p1(int dir, const double *f, double *fout );
 GKYL_CU_DH void node_coords_1x2v_hyb_p1(double *node_coords);
 GKYL_CU_DH void nodal_to_modal_1x2v_hyb_p1(const double *fnodal, double *fmodal);
+GKYL_CU_DH void quad_to_modal_1x2v_hyb_p1(const double *fquad, double *fmodal);
 GKYL_CU_DH void eval_1x3v_hyb_p1(const double *z, double *b);
 GKYL_CU_DH double eval_expand_1x3v_hyb_p1(const double *z, const double *f);
 GKYL_CU_DH double eval_grad_expand_1x3v_hyb_p1(int dir, const double *z, const double *f);
@@ -23,6 +25,7 @@ GKYL_CU_DH void flip_odd_sign_1x3v_hyb_p1(int dir, const double *f, double *fout
 GKYL_CU_DH void flip_even_sign_1x3v_hyb_p1(int dir, const double *f, double *fout );
 GKYL_CU_DH void node_coords_1x3v_hyb_p1(double *node_coords);
 GKYL_CU_DH void nodal_to_modal_1x3v_hyb_p1(const double *fnodal, double *fmodal);
+GKYL_CU_DH void quad_to_modal_1x3v_hyb_p1(const double *fquad, double *fmodal);
 GKYL_CU_DH void eval_2x1v_hyb_p1(const double *z, double *b);
 GKYL_CU_DH double eval_expand_2x1v_hyb_p1(const double *z, const double *f);
 GKYL_CU_DH double eval_grad_expand_2x1v_hyb_p1(int dir, const double *z, const double *f);
@@ -30,6 +33,7 @@ GKYL_CU_DH void flip_odd_sign_2x1v_hyb_p1(int dir, const double *f, double *fout
 GKYL_CU_DH void flip_even_sign_2x1v_hyb_p1(int dir, const double *f, double *fout );
 GKYL_CU_DH void node_coords_2x1v_hyb_p1(double *node_coords);
 GKYL_CU_DH void nodal_to_modal_2x1v_hyb_p1(const double *fnodal, double *fmodal);
+GKYL_CU_DH void quad_to_modal_2x1v_hyb_p1(const double *fquad, double *fmodal);
 GKYL_CU_DH void eval_2x2v_hyb_p1(const double *z, double *b);
 GKYL_CU_DH double eval_expand_2x2v_hyb_p1(const double *z, const double *f);
 GKYL_CU_DH double eval_grad_expand_2x2v_hyb_p1(int dir, const double *z, const double *f);
@@ -37,6 +41,7 @@ GKYL_CU_DH void flip_odd_sign_2x2v_hyb_p1(int dir, const double *f, double *fout
 GKYL_CU_DH void flip_even_sign_2x2v_hyb_p1(int dir, const double *f, double *fout );
 GKYL_CU_DH void node_coords_2x2v_hyb_p1(double *node_coords);
 GKYL_CU_DH void nodal_to_modal_2x2v_hyb_p1(const double *fnodal, double *fmodal);
+GKYL_CU_DH void quad_to_modal_2x2v_hyb_p1(const double *fquad, double *fmodal);
 GKYL_CU_DH void eval_2x3v_hyb_p1(const double *z, double *b);
 GKYL_CU_DH double eval_expand_2x3v_hyb_p1(const double *z, const double *f);
 GKYL_CU_DH double eval_grad_expand_2x3v_hyb_p1(int dir, const double *z, const double *f);
@@ -44,6 +49,7 @@ GKYL_CU_DH void flip_odd_sign_2x3v_hyb_p1(int dir, const double *f, double *fout
 GKYL_CU_DH void flip_even_sign_2x3v_hyb_p1(int dir, const double *f, double *fout );
 GKYL_CU_DH void node_coords_2x3v_hyb_p1(double *node_coords);
 GKYL_CU_DH void nodal_to_modal_2x3v_hyb_p1(const double *fnodal, double *fmodal);
+GKYL_CU_DH void quad_to_modal_2x3v_hyb_p1(const double *fquad, double *fmodal);
 GKYL_CU_DH void eval_3x1v_hyb_p1(const double *z, double *b);
 GKYL_CU_DH double eval_expand_3x1v_hyb_p1(const double *z, const double *f);
 GKYL_CU_DH double eval_grad_expand_3x1v_hyb_p1(int dir, const double *z, const double *f);
@@ -51,6 +57,7 @@ GKYL_CU_DH void flip_odd_sign_3x1v_hyb_p1(int dir, const double *f, double *fout
 GKYL_CU_DH void flip_even_sign_3x1v_hyb_p1(int dir, const double *f, double *fout );
 GKYL_CU_DH void node_coords_3x1v_hyb_p1(double *node_coords);
 GKYL_CU_DH void nodal_to_modal_3x1v_hyb_p1(const double *fnodal, double *fmodal);
+GKYL_CU_DH void quad_to_modal_3x1v_hyb_p1(const double *fquad, double *fmodal);
 GKYL_CU_DH void eval_3x2v_hyb_p1(const double *z, double *b);
 GKYL_CU_DH double eval_expand_3x2v_hyb_p1(const double *z, const double *f);
 GKYL_CU_DH double eval_grad_expand_3x2v_hyb_p1(int dir, const double *z, const double *f);
@@ -58,6 +65,7 @@ GKYL_CU_DH void flip_odd_sign_3x2v_hyb_p1(int dir, const double *f, double *fout
 GKYL_CU_DH void flip_even_sign_3x2v_hyb_p1(int dir, const double *f, double *fout );
 GKYL_CU_DH void node_coords_3x2v_hyb_p1(double *node_coords);
 GKYL_CU_DH void nodal_to_modal_3x2v_hyb_p1(const double *fnodal, double *fmodal);
+GKYL_CU_DH void quad_to_modal_3x2v_hyb_p1(const double *fquad, double *fmodal);
 GKYL_CU_DH void eval_3x3v_hyb_p1(const double *z, double *b);
 GKYL_CU_DH double eval_expand_3x3v_hyb_p1(const double *z, const double *f);
 GKYL_CU_DH double eval_grad_expand_3x3v_hyb_p1(int dir, const double *z, const double *f);
@@ -65,4 +73,5 @@ GKYL_CU_DH void flip_odd_sign_3x3v_hyb_p1(int dir, const double *f, double *fout
 GKYL_CU_DH void flip_even_sign_3x3v_hyb_p1(int dir, const double *f, double *fout );
 GKYL_CU_DH void node_coords_3x3v_hyb_p1(double *node_coords);
 GKYL_CU_DH void nodal_to_modal_3x3v_hyb_p1(const double *fnodal, double *fmodal);
+GKYL_CU_DH void quad_to_modal_3x3v_hyb_p1(const double *fquad, double *fmodal);
 EXTERN_C_END

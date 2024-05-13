@@ -331,8 +331,8 @@ vm_app_new(lua_State *L)
     vm.vdim = species[s]->vdim;
     
     app_lw->species_func_ctx[s] = species[s]->init_ref;
-    vm.species[s].init = eval_ic;
-    vm.species[s].ctx = &app_lw->species_func_ctx[s];
+    vm.species[s].projection.func = eval_ic;
+    vm.species[s].projection.ctx_func = &app_lw->species_func_ctx[s];
   }
 
   // set field input

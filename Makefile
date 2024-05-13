@@ -135,6 +135,7 @@ REGS := $(patsubst %.c,${BUILD_DIR}/%,$(wildcard regression/rt_*.c))
 UNITS := $(patsubst %.c,${BUILD_DIR}/%,$(wildcard unit/ctest_*.c))
 MPI_UNITS := $(patsubst %.c,${BUILD_DIR}/%,$(wildcard unit/mctest_*.c))
 LUA_UNITS := $(patsubst %.c,${BUILD_DIR}/%,$(wildcard unit/lctest_*.c))
+CI := $(patsubst %.c,${BUILD_DIR}/%,$(wildcard ci/*.c))
 
 # list of includes from kernels
 KERN_INC_DIRS = $(shell find $(SRC_DIRS) -type d)
@@ -176,6 +177,11 @@ ${BUILD_DIR}/regression/%: regression/%.c ${BUILD_DIR}/libgkylzero.so
 	$(MKDIR_P) ${BUILD_DIR}/regression
 	${CC} ${CFLAGS} ${LDFLAGS} -o $@ $< -I. $(INCLUDES) ${EXEC_LIB_DIRS} ${EXEC_RPATH} ${EXEC_LIBS}
 
+# Automated regression system
+${BUILD_DIR}/ci/%: ci/%.c ${BUILD_DIR}/libgkylzero.so
+	$(MKDIR_P) ${BUILD_DIR}/ci
+	${CC} ${CFLAGS} ${LDFLAGS} -o $@ $< -I. $(INCLUDES) ${EXEC_LIB_DIRS} ${EXEC_RPATH} ${EXEC_LIBS}
+
 # Lua interpreter for testing Lua regression tests
 ${BUILD_DIR}/xglua: regression/xglua.c ${BUILD_DIR}/libgkylzero.so
 	$(MKDIR_P) ${BUILD_DIR}
@@ -198,6 +204,10 @@ $(BUILD_DIR)/kernels/advection/%.c.o : kernels/advection/%.c
 	$(CC) $(CFLAGS) $(NVCC_FLAGS) $(INCLUDES) -c $< -o $@
 
 $(BUILD_DIR)/kernels/bin_op/%.c.o : kernels/bin_op/%.c
+	$(MKDIR_P) $(dir $@)
+	$(CC) $(CFLAGS) $(NVCC_FLAGS) $(INCLUDES) -c $< -o $@
+
+$(BUILD_DIR)/kernels/canonical_pb/%.c.o : kernels/canonical_pb/%.c
 	$(MKDIR_P) $(dir $@)
 	$(CC) $(CFLAGS) $(NVCC_FLAGS) $(INCLUDES) -c $< -o $@
 
@@ -319,6 +329,7 @@ all: ${BUILD_DIR}/gkylzero.h ${ZERO_SH_LIB} ## Build libraries and amalgamated h
 # Explicit targets to build unit and regression tests
 unit: ${ZERO_SH_LIB} ${UNITS} ${MPI_UNITS} ${LUA_UNITS} ## Build unit tests
 regression: ${ZERO_SH_LIB} ${REGS} regression/rt_arg_parse.h ${BUILD_DIR}/xglua ## Build regression tests
+ci: ${ZERO_SH_LIB} ${CI} ## Build automated regression system
 xglua: ${BUILD_DIR}/xglua ## Build Lua interpreter
 
 .PHONY: check mpicheck
@@ -360,7 +371,11 @@ clean: ## Clean build output
 
 .PHONY: cleanur
 cleanur: ## Delete the unit and regression test executables
-	rm -rf ${BUILD_DIR}/unit ${BUILD_DIR}/regression ${BUILD_DIR}/xglua
+	rm -rf ${BUILD_DIR}/unit ${BUILD_DIR}/regression ${BUILD_DIR}/ci ${BUILD_DIR}/xglua
+
+.PHONY: cleanc
+cleanc: ## Delete the automated regression test executables
+	rm -rf ${BUILD_DIR}/ci
 
 # include dependencies
 -include $(DEPS)

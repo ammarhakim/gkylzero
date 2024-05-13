@@ -142,6 +142,56 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
     s->slvr = gkyl_dg_updater_vlasov_new(&s->grid, &app->confBasis, &app->basis, 
       &app->local, &s->local_vel, &s->local, is_zero_flux, s->model_id, s->field_id, &aux_inp, app->use_gpu);
   }
+  else if (s->model_id == GKYL_MODEL_CANONICAL_PB) {
+    // Allocate arrays for specified hamiltonian
+    s->hamil = mkarr(app->use_gpu, app->basis.num_basis, s->local_ext.volume);
+    s->hamil_host = s->hamil;
+    if (app->use_gpu){
+      s->hamil_host = mkarr(false, app->basis.num_basis, s->local_ext.volume);
+    }
+
+    // Evaluate specified hamiltonian function at nodes to insure continuity of hamiltoniam
+    struct gkyl_eval_on_nodes* hamil_proj = gkyl_eval_on_nodes_new(&s->grid, &app->basis, 1, s->info.hamil, s->info.hamil_ctx);
+    gkyl_eval_on_nodes_advance(hamil_proj, 0.0, &s->local_ext, s->hamil_host);
+    if (app->use_gpu){
+      gkyl_array_copy(s->hamil, s->hamil_host);
+    }
+    gkyl_eval_on_nodes_release(hamil_proj);
+
+    // Need to figure out size of alpha_surf and sgn_alpha_surf by finding size of surface basis set 
+    struct gkyl_basis surf_basis, surf_quad_basis;
+    gkyl_cart_modal_serendip(&surf_basis, pdim-1, app->poly_order);
+    gkyl_cart_modal_tensor(&surf_quad_basis, pdim-1, app->poly_order);
+
+    // always 2*cdim
+    int alpha_surf_sz = (2*cdim)*surf_basis.num_basis; 
+    int sgn_alpha_surf_sz = (2*cdim)*surf_quad_basis.num_basis; // sign(alpha) is store at quadrature points
+
+    // allocate arrays to store fields: 
+    // 1. alpha_surf (surface phase space velocity)
+    // 2. sgn_alpha_surf (sign(alpha_surf) at quadrature points)
+    // 3. const_sgn_alpha (boolean for if sign(alpha_surf) is a constant, either +1 or -1)
+    s->alpha_surf = mkarr(app->use_gpu, alpha_surf_sz, s->local_ext.volume);
+    s->sgn_alpha_surf = mkarr(app->use_gpu, sgn_alpha_surf_sz, s->local_ext.volume);
+    s->const_sgn_alpha = mk_int_arr(app->use_gpu, (2*cdim), s->local_ext.volume);
+
+    // Pre-compute alpha_surf, sgn_alpha_surf, const_sgn_alpha, and cot_vec since they are time-independent
+    struct gkyl_dg_calc_canonical_pb_vars *calc_vars = gkyl_dg_calc_canonical_pb_vars_new(&s->grid, 
+      &app->confBasis, &app->basis, app->use_gpu);
+    gkyl_dg_calc_canonical_pb_vars_alpha_surf(calc_vars, &app->local, &s->local, &s->local_ext, s->hamil,
+      s->alpha_surf, s->sgn_alpha_surf, s->const_sgn_alpha);
+    gkyl_dg_calc_canonical_pb_vars_release(calc_vars);
+
+    // By default we do not have zero-flux boundary cond in any dir
+    bool is_zero_flux[GKYL_MAX_DIM] = {false};
+    struct gkyl_dg_canonical_pb_auxfields aux_inp = {.hamil = s->hamil, .alpha_surf = s->alpha_surf, 
+      .sgn_alpha_surf = s->sgn_alpha_surf, .const_sgn_alpha = s->const_sgn_alpha};
+
+    //create solver
+    s->slvr = gkyl_dg_updater_vlasov_new(&s->grid, &app->confBasis, &app->basis, 
+      &app->local, &s->local_vel, &s->local, is_zero_flux, s->model_id, s->field_id, &aux_inp, app->use_gpu);
+
+  }
   else {
     // by default, we do not have zero-flux boundary conditions in any direction
     bool is_zero_flux[GKYL_MAX_DIM] = {false};
@@ -200,6 +250,9 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
     s->accel_proj = gkyl_proj_on_basis_new(&app->grid, &app->confBasis, app->confBasis.poly_order+1,
       8, eval_accel, &s->accel_ctx);
   }
+
+  // initialize projection routine for initial conditions
+  vm_species_projection_init(app, s, s->info.projection, &s->proj_init);
 
   // set species source id
   s->source_id = s->info.source.source_id;
@@ -285,26 +338,13 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
 void
 vm_species_apply_ic(gkyl_vlasov_app *app, struct vm_species *species, double t0)
 {
-  int poly_order = app->poly_order;
-  gkyl_proj_on_basis *proj;
-  proj = gkyl_proj_on_basis_new(&species->grid, &app->basis,
-    poly_order+1, 1, species->info.init, species->info.ctx);
-
-  // run updater; need to project onto extended range for ease of handling
-  // subsequent operations over extended range such as primitive variable computations
-  // This is needed to fill the corner cells as the corner cells may not be filled by
-  // boundary conditions and we cannot divide by 0 anywhere or the weak divisions will fail
-  gkyl_proj_on_basis_advance(proj, t0, &species->local_ext, species->f_host);
-  gkyl_proj_on_basis_release(proj);    
-
-  if (app->use_gpu) // note: f_host is same as f when not on GPUs
-    gkyl_array_copy(species->f, species->f_host);
+  vm_species_projection_calc(app, species, &species->proj_init, species->f, t0);
 
   // Pre-compute applied acceleration in case it's time-independent
   vm_species_calc_accel(app, species, t0);
 
   // we are pre-computing source for now as it is time-independent
-  vm_species_source_calc(app, species, t0);
+  vm_species_source_calc(app, species, &species->src, t0);
 
   // copy contents of initial conditions into buffer if specific BCs require them
   // *only works in x dimension for now*
@@ -485,6 +525,8 @@ vm_species_release(const gkyl_vlasov_app* app, const struct vm_species *s)
   gkyl_array_release(s->bc_buffer_lo_fixed);
   gkyl_array_release(s->bc_buffer_up_fixed);
 
+  vm_species_projection_release(app, &s->proj_init);
+
   gkyl_comm_release(s->comm);
 
   if (app->use_gpu)
@@ -507,6 +549,15 @@ vm_species_release(const gkyl_vlasov_app* app, const struct vm_species *s)
       gkyl_array_release(s->gamma_inv_host);
     }
     gkyl_dg_bin_op_mem_release(s->V_drift_mem);
+  }
+  else if (s->model_id == GKYL_MODEL_CANONICAL_PB) {
+    gkyl_array_release(s->hamil);
+    gkyl_array_release(s->alpha_surf);
+    gkyl_array_release(s->sgn_alpha_surf);
+    gkyl_array_release(s->const_sgn_alpha);
+    if (app->use_gpu){
+      gkyl_array_release(s->hamil_host);
+    }
   }
 
   // release equation object and solver
@@ -540,7 +591,7 @@ vm_species_release(const gkyl_vlasov_app* app, const struct vm_species *s)
   if (s->collision_id == GKYL_LBO_COLLISIONS) {
     vm_species_lbo_release(app, &s->lbo);
   }
-  else if (s->collision_id == GKYL_LBO_COLLISIONS) {
+  else if (s->collision_id == GKYL_BGK_COLLISIONS) {
     vm_species_bgk_release(app, &s->bgk);
   }
 

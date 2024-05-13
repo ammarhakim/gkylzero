@@ -76,8 +76,11 @@ main(int argc, char **argv)
     .upper = { 6.0*ctx.vt}, 
     .cells = { NV },
 
-    .ctx = &ctx,
-    .init = evalDistFunc,
+    .projection = {
+      .proj_id = GKYL_PROJ_FUNC,
+      .func = evalDistFunc,
+      .ctx_func = &ctx,
+    },
 
     .bcx = { GKYL_SPECIES_REFLECT, GKYL_SPECIES_REFLECT },
 

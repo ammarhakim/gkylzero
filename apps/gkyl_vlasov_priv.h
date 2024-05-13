@@ -20,10 +20,12 @@
 #include <gkyl_bgk_collisions.h>
 #include <gkyl_dg_advection.h>
 #include <gkyl_dg_bin_ops.h>
+#include <gkyl_dg_calc_canonical_pb_vars.h>
 #include <gkyl_dg_calc_em_vars.h>
 #include <gkyl_dg_calc_prim_vars.h>
 #include <gkyl_dg_calc_fluid_vars.h>
 #include <gkyl_dg_calc_sr_vars.h>
+#include <gkyl_dg_canonical_pb.h>
 #include <gkyl_dg_euler.h>
 #include <gkyl_dg_maxwell.h>
 #include <gkyl_dg_updater_fluid.h>
@@ -50,7 +52,6 @@
 #include <gkyl_prim_lbo_cross_calc.h>
 #include <gkyl_prim_lbo_type.h>
 #include <gkyl_prim_lbo_vlasov.h>
-#include <gkyl_proj_maxwellian_on_basis.h>
 #include <gkyl_proj_on_basis.h>
 #include <gkyl_range.h>
 #include <gkyl_rect_decomp.h>
@@ -58,6 +59,9 @@
 #include <gkyl_spitzer_coll_freq.h>
 #include <gkyl_util.h>
 #include <gkyl_vlasov.h>
+#include <gkyl_vlasov_lte_correct.h>
+#include <gkyl_vlasov_lte_moments.h>
+#include <gkyl_vlasov_lte_proj_on_basis.h>
 #include <gkyl_wave_geom.h>
 #include <gkyl_wv_eqn.h>
 
@@ -73,6 +77,8 @@ static const char *const valid_moment_names[] = {
   "M3i",
   "M3ijk",
   "FiveMoments",
+  "LTEMoments", // this is an internal flag for computing moments (n, V_drift, T/m)
+                // of the LTE (local thermodynamic equilibrium) distribution
   "Integrated", // this is an internal flag, not for passing to moment type
 };
 
@@ -89,10 +95,22 @@ is_moment_name_valid(const char *nm)
 
 // data for moments
 struct vm_species_moment {
-  struct gkyl_dg_updater_moment *mcalc; // moment update
-
   struct gkyl_array *marr; // array to moment data
   struct gkyl_array *marr_host; // host copy (same as marr if not on GPUs)
+  // Options for moment calculation: 
+  // 1. Compute the moment directly with dg_updater_moment
+  // 2. Compute the moments of the equivalent LTE (local thermodynamic equilibrium)
+  //    distribution (n, V_drift, T/m) with specialized updater
+  union {
+    struct {
+      struct gkyl_vlasov_lte_moments *vlasov_lte_moms; // updater for computing LTE moments
+    };
+    struct {
+      struct gkyl_dg_updater_moment *mcalc; // moment update
+    };
+  };
+
+  bool is_vlasov_lte_moms;
 };
 
 // forward declare species struct
@@ -143,18 +161,63 @@ struct vm_bgk_collisions {
   struct gkyl_array *nu_init; // Array for initial collisionality when using Spitzer updater
   struct gkyl_spitzer_coll_freq* spitzer_calc; // Updater for Spitzer collisionality if computing Spitzer value
 
-  struct vm_species_moment moms; // moments needed in BGK (single array includes Zeroth, First, and Second moment)
+  struct gkyl_array *f_lte;
+  struct gkyl_array *nu_f_lte;
 
-  struct gkyl_array *fmax;
-  struct gkyl_array *nu_fmax;
+  enum gkyl_model_id model_id;
+  struct vm_species_moment moms; // moments needed in BGK (n, V_drift, T/m) for LTE distribution
 
-  struct gkyl_proj_maxwellian_on_basis *proj_max; // Maxwellian projection object
+  // LTE distribution function projection object
+  // also corrects the density of projected distribution function
+  struct gkyl_vlasov_lte_proj_on_basis *proj_lte; 
+
+  // Correction updater for insuring LTE distribution has desired LTE (n, V_drift, T/m) moments
+  bool correct_all_moms; // boolean if we are correcting all the moments
+  struct gkyl_vlasov_lte_correct *corr_lte; 
+  gkyl_dynvec corr_stat;
+  bool is_first_corr_status_write_call;
+
   struct gkyl_bgk_collisions *up_bgk; // BGK updater (also computes stable timestep)
 };
 
 struct vm_boundary_fluxes {
   struct vm_species_moment integ_moms[2*GKYL_MAX_CDIM]; // integrated moments
   gkyl_ghost_surf_calc *flux_slvr; // boundary flux solver
+};
+
+struct vm_proj {
+  enum gkyl_projection_id proj_id; // type of projection
+  enum gkyl_model_id model_id;
+  // organization of the different projection objects and the required data and solvers
+  union {
+    // function projection
+    struct {
+      struct gkyl_proj_on_basis *proj_func; // projection operator for specified function
+      struct gkyl_array *proj_host; // array for projection on host-side if running on GPUs
+    };
+    // LTE (Local thermodynamic equilibrium) distribution function project with moment correction
+    // (Maxwellian for non-relativistic, Maxwell-Juttner for relativistic)
+    struct {
+      struct gkyl_array *dens; // host-side density
+      struct gkyl_array *V_drift; // host-side V_drift
+      struct gkyl_array *T_over_m; // host-side T/m (temperature/mass)
+
+      struct gkyl_array *vlasov_lte_moms_host; // host-side LTE moms (n, V_drift, T/m)
+      struct gkyl_array *vlasov_lte_moms; // LTE moms (n, V_drift, T/m) for passing to updaters
+
+      struct gkyl_proj_on_basis *proj_dens; // projection operator for density
+      struct gkyl_proj_on_basis *proj_V_drift; // projection operator for V_drift
+      struct gkyl_proj_on_basis *proj_temp; // projection operator for temperature
+      
+      // LTE distribution function projection object
+      // also corrects the density of projected distribution function
+      struct gkyl_vlasov_lte_proj_on_basis *proj_lte; 
+
+      // Correction updater for insuring LTE distribution has desired LTE (n, V_drift, T/m) moments
+      bool correct_all_moms; // boolean if we are correcting all the moments
+      struct gkyl_vlasov_lte_correct *corr_lte;    
+    };
+  };
 };
 
 struct vm_source {
@@ -165,7 +228,7 @@ struct vm_source {
 
   struct gkyl_array *source; // applied source
   struct gkyl_array *source_host; // host copy for use in IO and projecting
-  gkyl_proj_on_basis *source_proj; // projector for source
+  struct vm_proj proj_source; // projector for source
 
   struct vm_species *source_species; // species to use for the source
   int source_species_idx; // index of source species
@@ -222,6 +285,15 @@ struct vm_species {
 
       struct gkyl_dg_bin_op_mem *V_drift_mem; // memory used in the div-op for V_drift from M1i and M0
     };
+    // Canonical Poisson Bracket using specified hamiltonian
+    struct {
+      struct gkyl_array *hamil; // Specified hamiltonian function for canonical poisson bracket
+      struct gkyl_array *hamil_host; // Host side hamiltonian array for intial projection
+
+      struct gkyl_array *alpha_surf; // Surface phase space velocity
+      struct gkyl_array *sgn_alpha_surf; // sign(alpha_surf) at quadrature points
+      struct gkyl_array *const_sgn_alpha; // boolean for if sign(alpha_surf) is a constant, either +1 or -1
+    };
   };
 
   struct vm_species_moment m1i; // for computing currents
@@ -256,6 +328,8 @@ struct vm_species {
   struct gkyl_array *accel_host; // host copy for use in IO and projecting
   gkyl_proj_on_basis *accel_proj; // projector for acceleration
   struct vm_eval_accel_ctx accel_ctx; // context for applied acceleration
+
+  struct vm_proj proj_init; // projector for initial conditions
 
   enum gkyl_source_id source_id; // type of source
   struct vm_source src; // applied source
@@ -506,6 +580,7 @@ void vm_species_moment_init(struct gkyl_vlasov_app *app, struct vm_species *s,
 /**
  * Calculate moment, given distribution function @a fin.
  *
+ * @param sm vm species moment
  * @param phase_rng Phase-space range
  * @param conf_rng Config-space range
  * @param fin Input distribution function array
@@ -677,6 +752,39 @@ void vm_species_bflux_rhs(gkyl_vlasov_app *app, const struct vm_species *species
  */
 void vm_species_bflux_release(const struct gkyl_vlasov_app *app, const struct vm_boundary_fluxes *bflux);
 
+/** vm_species_projection API */
+
+/**
+ * Initialize species projection object.
+ *
+ * @param app vlasov app object
+ * @param s Species object 
+ * @param inp Input struct for projection (contains functions pointers for type of projection)
+ * @param proj Species projection object
+ */
+void vm_species_projection_init(struct gkyl_vlasov_app *app, struct vm_species *s, 
+  struct gkyl_vlasov_projection inp, struct vm_proj *proj);
+
+/**
+ * Compute species projection
+ *
+ * @param app vlasov app object
+ * @param species Species object
+ * @param proj Species projection object
+ * @param f Output distribution function from projection
+ * @param tm Time for use in projection
+ */
+void vm_species_projection_calc(gkyl_vlasov_app *app, const struct vm_species *species, 
+  struct vm_proj *proj, struct gkyl_array *f, double tm);
+
+/**
+ * Release species projection object.
+ *
+ * @param app vlasov app object
+ * @param proj Species projection object to release
+ */
+void vm_species_projection_release(const struct gkyl_vlasov_app *app, const struct vm_proj *proj);
+
 /** vm_species_source API */
 
 /**
@@ -693,9 +801,11 @@ void vm_species_source_init(struct gkyl_vlasov_app *app, struct vm_species *s, s
  *
  * @param app Vlasov app object
  * @param species Species object
+ * @param src Pointer to source
  * @param tm Time for use in source
  */
-void vm_species_source_calc(gkyl_vlasov_app *app, struct vm_species *species, double tm);
+void vm_species_source_calc(gkyl_vlasov_app *app, struct vm_species *species, 
+  struct vm_source *src, double tm);
 
 /**
  * Compute RHS contribution from source
