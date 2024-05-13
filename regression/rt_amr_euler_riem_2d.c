@@ -121,29 +121,29 @@ evalEulerInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fo
   struct amr_euler_riem_2d_ctx new_ctx = create_ctx(); // Context for initialization functions.
   struct amr_euler_riem_2d_ctx *app = &new_ctx;
 
-  double gas_gamma = app -> gas_gamma;
+  double gas_gamma = app->gas_gamma;
 
-  double rho_ul = app -> rho_ul;
-  double u_ul = app -> u_ul;
-  double v_ul = app -> v_ul;
-  double p_ul = app -> p_ul;
+  double rho_ul = app->rho_ul;
+  double u_ul = app->u_ul;
+  double v_ul = app->v_ul;
+  double p_ul = app->p_ul;
 
-  double rho_ur = app -> rho_ur;
-  double u_ur = app -> u_ur;
-  double v_ur = app -> v_ur;
-  double p_ur = app -> p_ur;
+  double rho_ur = app->rho_ur;
+  double u_ur = app->u_ur;
+  double v_ur = app->v_ur;
+  double p_ur = app->p_ur;
 
-  double rho_ll = app -> rho_ll;
-  double u_ll = app -> u_ll;
-  double v_ll = app -> v_ll;
-  double p_ll = app -> p_ll;
+  double rho_ll = app->rho_ll;
+  double u_ll = app->u_ll;
+  double v_ll = app->v_ll;
+  double p_ll = app->p_ll;
 
-  double rho_lr = app -> rho_lr;
-  double u_lr = app -> u_lr;
-  double v_lr = app -> v_lr;
-  double p_lr = app -> p_lr;
+  double rho_lr = app->rho_lr;
+  double u_lr = app->u_lr;
+  double v_lr = app->v_lr;
+  double p_lr = app->p_lr;
 
-  double loc = app -> loc;
+  double loc = app->loc;
 
   double rho = 0.0;
   double u = 0.0;

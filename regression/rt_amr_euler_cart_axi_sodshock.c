@@ -49,8 +49,8 @@ create_ctx(void)
   double pr = 1.0; // Right/outer fluid pressure.
 
   // Simulation parameters.
-  int Nx = 16; // Coarse cell count (x-direction).
-  int Ny = 16; // Coarse cell count (y-direction).
+  int Nx = 32; // Coarse cell count (x-direction).
+  int Ny = 32; // Coarse cell count (y-direction).
   int ref_factor = 4; // Refinement factor.
   double Lx = 2.5; // Coarse domain size (x-direction).
   double Ly = 2.5; // Coarse domain size (y-direction).
@@ -94,17 +94,17 @@ evalEulerInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fo
   struct amr_euler_cart_axi_sodshock_ctx new_ctx = create_ctx(); // Context for initialization functions.
   struct amr_euler_cart_axi_sodshock_ctx *app = &new_ctx;
 
-  double gas_gamma = app -> gas_gamma;
+  double gas_gamma = app->gas_gamma;
 
-  double rhol = app -> rhol;
-  double ul = app -> ul;
-  double pl = app -> pl;
+  double rhol = app->rhol;
+  double ul = app->ul;
+  double pl = app->pl;
 
-  double rhor = app -> rhor;
-  double ur = app -> ur;
-  double pr = app -> pr;
+  double rhor = app->rhor;
+  double ur = app->ur;
+  double pr = app->pr;
 
-  double rloc = app -> rloc;
+  double rloc = app->rloc;
 
   double rho = 0.0;
   double u = 0.0;

@@ -11,26 +11,26 @@ euler2d_run_single(int argc, char **argv, struct euler2d_single_init* init)
     gkyl_mem_debug_set(true);
   }
 
-  int base_Nx = init -> base_Nx;
-  int base_Ny = init -> base_Ny;
-  int ref_factor = init -> ref_factor;
+  int base_Nx = init->base_Nx;
+  int base_Ny = init->base_Ny;
+  int ref_factor = init->ref_factor;
 
-  double coarse_x1 = init -> coarse_x1;
-  double coarse_y1 = init -> coarse_y1;
-  double coarse_x2 = init -> coarse_x2;
-  double coarse_y2 = init -> coarse_y2;
+  double coarse_x1 = init->coarse_x1;
+  double coarse_y1 = init->coarse_y1;
+  double coarse_x2 = init->coarse_x2;
+  double coarse_y2 = init->coarse_y2;
 
-  double refined_x1 = init -> refined_x1;
-  double refined_y1 = init -> refined_y1;
-  double refined_x2 = init -> refined_x2;
-  double refined_y2 = init -> refined_y2;
+  double refined_x1 = init->refined_x1;
+  double refined_y1 = init->refined_y1;
+  double refined_x2 = init->refined_x2;
+  double refined_y2 = init->refined_y2;
 
-  evalf_t eval = init -> eval;
-  double gas_gamma = init -> gas_gamma;
+  evalf_t eval = init->eval;
+  double gas_gamma = init->gas_gamma;
   
-  int num_frames = init -> num_frames;
-  double cfl_frac = init -> cfl_frac;
-  double t_end = init -> t_end;
+  int num_frames = init->num_frames;
+  double cfl_frac = init->cfl_frac;
+  double t_end = init->t_end;
 
   int ndim = 2;
   int num_blocks = 9;
@@ -150,10 +150,10 @@ euler2d_run_single(int argc, char **argv, struct euler2d_single_init* init)
   struct gkyl_block_topo *btopo = create_block_topo();
 
   for (int i = 0; i < num_blocks; i++) {
-    euler_block_bc_updaters_init(&coarse_bdata[i], &btopo -> conn[i]);
+    euler_block_bc_updaters_init(&coarse_bdata[i], &btopo->conn[i]);
 
 #ifdef AMR_DEBUG
-    euler_block_bc_updaters_init(&fine_bdata[i], &btopo -> conn[i]);
+    euler_block_bc_updaters_init(&fine_bdata[i], &btopo->conn[i]);
 #endif
   }
 
@@ -416,47 +416,47 @@ five_moment_2d_run_single(int argc, char **argv, struct five_moment_2d_single_in
     gkyl_mem_debug_set(true);
   }
 
-  int base_Nx = init -> base_Nx;
-  int base_Ny = init -> base_Ny;
-  int ref_factor = init -> ref_factor;
+  int base_Nx = init->base_Nx;
+  int base_Ny = init->base_Ny;
+  int ref_factor = init->ref_factor;
 
-  double coarse_x1 = init -> coarse_x1;
-  double coarse_y1 = init -> coarse_y1;
-  double coarse_x2 = init -> coarse_x2;
-  double coarse_y2 = init -> coarse_y2;
+  double coarse_x1 = init->coarse_x1;
+  double coarse_y1 = init->coarse_y1;
+  double coarse_x2 = init->coarse_x2;
+  double coarse_y2 = init->coarse_y2;
 
-  double refined_x1 = init -> refined_x1;
-  double refined_y1 = init -> refined_y1;
-  double refined_x2 = init -> refined_x2;
-  double refined_y2 = init -> refined_y2;
+  double refined_x1 = init->refined_x1;
+  double refined_y1 = init->refined_y1;
+  double refined_x2 = init->refined_x2;
+  double refined_y2 = init->refined_y2;
 
-  evalf_t eval_elc = init -> eval_elc;
-  evalf_t eval_ion = init -> eval_ion;
-  evalf_t eval_field = init -> eval_field;
+  evalf_t eval_elc = init->eval_elc;
+  evalf_t eval_ion = init->eval_ion;
+  evalf_t eval_field = init->eval_field;
 
-  double gas_gamma = init -> gas_gamma;
-  double k0_elc = init -> k0_elc;
-  double k0_ion = init -> k0_ion;
+  double gas_gamma = init->gas_gamma;
+  double k0_elc = init->k0_elc;
+  double k0_ion = init->k0_ion;
 
-  double light_speed = init -> light_speed;
-  double e_fact = init -> e_fact;
-  double b_fact = init -> b_fact;
+  double light_speed = init->light_speed;
+  double e_fact = init->e_fact;
+  double b_fact = init->b_fact;
 
-  double epsilon0 = init -> epsilon0;
-  double mass_elc = init -> mass_elc;
-  double charge_elc = init -> charge_elc;
-  double mass_ion = init -> mass_ion;
-  double charge_ion = init -> charge_ion;
+  double epsilon0 = init->epsilon0;
+  double mass_elc = init->mass_elc;
+  double charge_elc = init->charge_elc;
+  double mass_ion = init->mass_ion;
+  double charge_ion = init->charge_ion;
 
-  bool periodic_x = init -> periodic_x;
-  bool periodic_y = init -> periodic_y;
+  bool periodic_x = init->periodic_x;
+  bool periodic_y = init->periodic_y;
 
-  bool wall_x = init -> wall_x;
-  bool wall_y = init -> wall_y;
+  bool wall_x = init->wall_x;
+  bool wall_y = init->wall_y;
 
-  double cfl_frac = init -> cfl_frac;
-  double t_end = init -> t_end;
-  int num_frames = init -> num_frames;
+  double cfl_frac = init->cfl_frac;
+  double t_end = init->t_end;
+  int num_frames = init->num_frames;
 
   int ndim = 2;
   int num_blocks = 9;
@@ -594,13 +594,13 @@ five_moment_2d_run_single(int argc, char **argv, struct five_moment_2d_single_in
     };
 
     coarse_src_inp.param[0] = (struct gkyl_moment_em_coupling_data) {
-      .type = coarse_bdata[i].euler_elc -> type,
+      .type = coarse_bdata[i].euler_elc->type,
       .charge = charge_elc,
       .mass = mass_elc,
       .k0 = k0_elc,
     };
     coarse_src_inp.param[1] = (struct gkyl_moment_em_coupling_data) {
-      .type = coarse_bdata[i].euler_ion -> type,
+      .type = coarse_bdata[i].euler_ion->type,
       .charge = charge_ion,
       .mass = mass_ion,
       .k0 = k0_ion,
@@ -653,13 +653,13 @@ five_moment_2d_run_single(int argc, char **argv, struct five_moment_2d_single_in
     };
 
     fine_src_inp.param[0] = (struct gkyl_moment_em_coupling_data) {
-      .type = fine_bdata[i].euler_elc -> type,
+      .type = fine_bdata[i].euler_elc->type,
       .charge = charge_elc,
       .mass = mass_elc,
       .k0 = k0_elc,
     };
     fine_src_inp.param[1] = (struct gkyl_moment_em_coupling_data) {
-      .type = fine_bdata[i].euler_ion -> type,
+      .type = fine_bdata[i].euler_ion->type,
       .charge = charge_ion,
       .mass = mass_ion,
       .k0 = k0_ion,
@@ -672,10 +672,10 @@ five_moment_2d_run_single(int argc, char **argv, struct five_moment_2d_single_in
   struct gkyl_block_topo *btopo = create_block_topo();
 
   for (int i = 0; i < num_blocks; i++) {
-    five_moment_block_bc_updaters_init(&coarse_bdata[i], &btopo -> conn[i]);
+    five_moment_block_bc_updaters_init(&coarse_bdata[i], &btopo->conn[i]);
 
 #ifdef AMR_DEBUG
-    five_moment_block_bc_updaters_init(&fine_bdata[i], &btopo -> conn[i]);
+    five_moment_block_bc_updaters_init(&fine_bdata[i], &btopo->conn[i]);
 #endif
   }
 

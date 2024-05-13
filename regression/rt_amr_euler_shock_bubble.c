@@ -53,14 +53,14 @@ create_ctx(void)
   double p_bub = 1.0; // Bubble fluid pressure.
 
   // Simulation parameters.
-  int Nx = 32; // Coarse cell count (x-direction).
-  int Ny = 32; // Coarse cell count (y-direction).
-  int ref_factor = 1; // Refinement factor.
+  int Nx = 64; // Coarse cell count (x-direction).
+  int Ny = 64; // Coarse cell count (y-direction).
+  int ref_factor = 2; // Refinement factor.
   double Lx = 1.0; // Coarse domain size (x-direction).
   double Ly = 1.0; // Coarse domain size (y-direction).
-  double fine_Lx = 0.33; // Fine domain size (x-direction).
-  double fine_Ly = 0.33; // Fine domain size (y-direction).
-  double cfl_frac = 0.95; // CFL coefficient.
+  double fine_Lx = 0.9; // Fine domain size (x-direction).
+  double fine_Ly = 0.4; // Fine domain size (y-direction).
+  double cfl_frac = 0.85; // CFL coefficient.
   double t_end = 0.075; // Final simulation time.
   int num_frames = 1; // Number of output frames.
 
@@ -104,23 +104,23 @@ evalEulerInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fo
   struct amr_euler_shock_bubble_ctx new_ctx = create_ctx(); // Context for initialization functions.
   struct amr_euler_shock_bubble_ctx *app = &new_ctx;
 
-  double gas_gamma = app -> gas_gamma;
+  double gas_gamma = app->gas_gamma;
 
-  double rho_pre = app -> rho_pre;
-  double u_pre = app -> u_pre;
-  double p_pre = app -> p_pre;
+  double rho_pre = app->rho_pre;
+  double u_pre = app->u_pre;
+  double p_pre = app->p_pre;
 
-  double rho_post = app -> rho_post;
-  double u_post = app -> u_post;
-  double p_post = app -> p_post;
+  double rho_post = app->rho_post;
+  double u_post = app->u_post;
+  double p_post = app->p_post;
 
-  double rho_bub = app -> rho_bub;
-  double u_bub = app -> u_bub;
-  double p_bub = app -> p_bub;
+  double rho_bub = app->rho_bub;
+  double u_bub = app->u_bub;
+  double p_bub = app->p_bub;
 
-  double x_loc = app -> x_loc;
-  double bub_loc = app -> bub_loc;
-  double bub_rad = app -> bub_rad;
+  double x_loc = app->x_loc;
+  double bub_loc = app->bub_loc;
+  double bub_rad = app->bub_rad;
 
   double rho = 0.0;
   double u = 0.0;
