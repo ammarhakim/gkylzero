@@ -322,7 +322,6 @@ struct gk_react {
   struct gkyl_array *prim_vars_donor[GKYL_MAX_REACT]; // primitive variables of donor (gk) or ion (vlasov), used for fmax
   struct gkyl_array *prim_vars_cxi[GKYL_MAX_REACT]; // primitive variables of ion cx, used for fmax
   struct gkyl_array *prim_vars_cxn[GKYL_MAX_REACT]; // primitive variables of neut cx, used for fmax
-  struct gkyl_array *b_cart_i[GKYL_MAX_REACT];
   
   union {
     // ionization
@@ -560,7 +559,6 @@ struct gk_neut_species {
                                       // F = alpha_surf*f^- (if sign_alpha_surf = 1), 
                                       // F = alpha_surf*f^+ (if sign_alpha_surf = -1)
   struct gkyl_array *cot_vec; // array for cotangent vectors
-  struct gkyl_array *b_cart_i; // array for bmag unit vector with Cartesian components
 
   struct gk_species_moment m0; // for computing density
   struct gk_species_moment integ_moms; // integrated moments
