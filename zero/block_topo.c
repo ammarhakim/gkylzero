@@ -4,11 +4,11 @@
 // for use in consistency checking
 static const enum gkyl_oriented_edge complimentary_edges[] = {
   [0] = 0, // can't happen for fully-specified edges
-  [GKYL_LOWER_POSITIVE] = GKYL_UPPER_POSITIVE,
-  [GKYL_LOWER_NEGATIVE] = GKYL_UPPER_NEGATIVE,
-  [GKYL_UPPER_POSITIVE] = GKYL_LOWER_POSITIVE,
-  [GKYL_UPPER_NEGATIVE] = GKYL_LOWER_NEGATIVE,
-  [GKYL_PHYSICAL] = GKYL_PHYSICAL, 
+  [GKYL_BLOCK_EDGE_LOWER_POSITIVE] = GKYL_BLOCK_EDGE_UPPER_POSITIVE,
+  [GKYL_BLOCK_EDGE_LOWER_NEGATIVE] = GKYL_BLOCK_EDGE_UPPER_NEGATIVE,
+  [GKYL_BLOCK_EDGE_UPPER_POSITIVE] = GKYL_BLOCK_EDGE_LOWER_POSITIVE,
+  [GKYL_BLOCK_EDGE_UPPER_NEGATIVE] = GKYL_BLOCK_EDGE_LOWER_NEGATIVE,
+  [GKYL_BLOCK_EDGE_PHYSICAL] = GKYL_BLOCK_EDGE_PHYSICAL, 
 };
 
 struct gkyl_block_topo*
@@ -35,7 +35,7 @@ gkyl_block_topo_check_consistency(const struct gkyl_block_topo *btopo)
           return 0;
 
         // check consistency
-        if (te[e].edge != GKYL_PHYSICAL) {
+        if (te[e].edge != GKYL_BLOCK_EDGE_PHYSICAL) {
           if (te[e].bid < 0 || te[e].bid >= btopo->num_blocks) // improperly numbered block
             return 0;
 

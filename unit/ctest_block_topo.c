@@ -26,12 +26,12 @@ test_L_domain()
   // block 0
   btopo->conn[0] = (struct gkyl_block_connections) {
     .connections[0] = { // x-direction connections
-      { .bid = 0, .dir = 0, .edge = GKYL_PHYSICAL }, // physical boundary
-      { .bid = 0, .dir = 0, .edge = GKYL_PHYSICAL }  // physical boundary
+      { .bid = 0, .dir = 0, .edge = GKYL_BLOCK_EDGE_PHYSICAL }, // physical boundary
+      { .bid = 0, .dir = 0, .edge = GKYL_BLOCK_EDGE_PHYSICAL }  // physical boundary
     },
     .connections[1] = { // y-direction connections
-      { .bid = 1, .dir = 1, .edge = GKYL_UPPER_POSITIVE },
-      { .bid = 0, .dir = 1, .edge = GKYL_PHYSICAL } // physical boundary
+      { .bid = 1, .dir = 1, .edge = GKYL_BLOCK_EDGE_UPPER_POSITIVE },
+      { .bid = 0, .dir = 1, .edge = GKYL_BLOCK_EDGE_PHYSICAL } // physical boundary
     }
   };
   // topology is inconsistent at this point!
@@ -40,12 +40,12 @@ test_L_domain()
   // block 1
   btopo->conn[1] = (struct gkyl_block_connections) {
     .connections[0] = { // x-direction connections
-      { .bid = 0, .dir = 0, .edge = GKYL_PHYSICAL }, // physical boundary
-      { .bid = 2, .dir = 0, .edge = GKYL_LOWER_POSITIVE }
+      { .bid = 0, .dir = 0, .edge = GKYL_BLOCK_EDGE_PHYSICAL }, // physical boundary
+      { .bid = 2, .dir = 0, .edge = GKYL_BLOCK_EDGE_LOWER_POSITIVE }
     },
     .connections[1] = { // y-direction connections
-      { .bid = 0, .dir = 1, .edge = GKYL_PHYSICAL }, // physical boundary
-      { .bid = 0, .dir = 1, .edge = GKYL_LOWER_POSITIVE }
+      { .bid = 0, .dir = 1, .edge = GKYL_BLOCK_EDGE_PHYSICAL }, // physical boundary
+      { .bid = 0, .dir = 1, .edge = GKYL_BLOCK_EDGE_LOWER_POSITIVE }
     }
   };
   // topology is inconsistent at this point!
@@ -54,12 +54,12 @@ test_L_domain()
   // block 2
   btopo->conn[2] = (struct gkyl_block_connections) {
     .connections[0] = { // x-direction connections
-      { .bid = 1, .dir = 0, .edge = GKYL_UPPER_POSITIVE },
-      { .bid = 0, .dir = 0, .edge = GKYL_PHYSICAL } // physical boundary
+      { .bid = 1, .dir = 0, .edge = GKYL_BLOCK_EDGE_UPPER_POSITIVE },
+      { .bid = 0, .dir = 0, .edge = GKYL_BLOCK_EDGE_PHYSICAL } // physical boundary
     },
     .connections[1] = { // y-direction connections
-      { .bid = 0, .dir = 1, .edge = GKYL_PHYSICAL }, // physical boundary
-      { .bid = 0, .dir = 1, .edge = GKYL_PHYSICAL } // physical boundary
+      { .bid = 0, .dir = 1, .edge = GKYL_BLOCK_EDGE_PHYSICAL }, // physical boundary
+      { .bid = 0, .dir = 1, .edge = GKYL_BLOCK_EDGE_PHYSICAL } // physical boundary
     }
   };
 
@@ -92,12 +92,12 @@ test_mobius_domain()
   // block 0
   btopo->conn[0] = (struct gkyl_block_connections) {
     .connections[0] = { // x-direction connections
-      { .bid = 0, .dir = 0, .edge = GKYL_UPPER_NEGATIVE }, // note twist
-      { .bid = 0, .dir = 0, .edge = GKYL_LOWER_NEGATIVE }
+      { .bid = 0, .dir = 0, .edge = GKYL_BLOCK_EDGE_UPPER_NEGATIVE }, // note twist
+      { .bid = 0, .dir = 0, .edge = GKYL_BLOCK_EDGE_LOWER_NEGATIVE }
     },
     .connections[1] = { // y-direction connections
-      { .bid = 0, .dir = 1, .edge = GKYL_UPPER_POSITIVE },
-      { .bid = 0, .dir = 1, .edge = GKYL_LOWER_POSITIVE }
+      { .bid = 0, .dir = 1, .edge = GKYL_BLOCK_EDGE_UPPER_POSITIVE },
+      { .bid = 0, .dir = 1, .edge = GKYL_BLOCK_EDGE_LOWER_POSITIVE }
     }
   };
 
