@@ -290,8 +290,20 @@ gkyl_gyrokinetic_app_new(struct gkyl_gk *gk)
           app->gk_geom = gkyl_gk_geometry_deflate(gk_geom_3d, &geometry_inp);
         else
           app->gk_geom = gkyl_gk_geometry_acquire(gk_geom_3d);
+        // Need to do the host-device copies
         struct gkyl_array *bmag_global = gkyl_array_new(GKYL_DOUBLE, app->confBasis.num_basis, app->global_ext.volume);
-        gkyl_comm_array_allgather(app->comm, &app->local, &app->global, app->gk_geom->bmag, bmag_global);
+        if (app->use_gpu) { // Allgather is only a GPU operation, so we must copy these arrays to GPU, then back to CPU
+          struct gkyl_array *bmag_global_dev = mkarr(app->use_gpu, app->confBasis.num_basis, app->global_ext.volume);
+          struct gkyl_array *bmag_dev = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
+          gkyl_array_copy(bmag_dev, app->gk_geom->bmag);
+          gkyl_comm_array_allgather(app->comm, &app->local, &app->global, bmag_dev, bmag_global_dev);
+          gkyl_array_copy(bmag_global, bmag_global_dev);
+          gkyl_array_release(bmag_global_dev);
+          gkyl_array_release(bmag_dev);
+        }
+        else {
+          gkyl_comm_array_allgather(app->comm, &app->local, &app->global, app->gk_geom->bmag, bmag_global);
+        }
         geometry_inp.nonuniform_geom = true;
         geometry_inp.bmag_global = bmag_global;
         geometry_inp.decomp_basis = app->confBasis;
