@@ -20,7 +20,6 @@ typedef void (*vlasov_gen_geo_cot_vec_t)(const double *tvComp, const double *gij
 // for use in kernel tables
 typedef struct { vlasov_gen_geo_alpha_surf_t kernels[3]; } gkyl_dg_vlasov_gen_geo_alpha_surf_kern_list;
 typedef struct { vlasov_gen_geo_cot_vec_t kernels[3]; } gkyl_dg_vlasov_gen_geo_cot_vec_kern_list;
-typedef struct { vlasov_bmag_cart_t kernels[3]; } gkyl_dg_vlasov_bmag_cart_kern_list;
 
 struct gkyl_dg_calc_vlasov_gen_geo_vars {
   struct gkyl_rect_grid phase_grid; // Phase space grid for cell spacing and cell center
