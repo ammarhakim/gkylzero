@@ -79,9 +79,22 @@ static inline void bmag_comp(double t, const double *xn, double *fout, void *ctx
 void gkyl_calc_bmag_global(double t, const double *xn, double *fout, void *ctx)
 {
   struct bmag_ctx *gc = (struct bmag_ctx*) ctx;
+  // Need a crude an manual deflated coordinate because this works on deflated geometry due to the allgather
+  double xpt[GKYL_MAX_CDIM];
+  if (gc->cgrid->ndim == 1)
+    xpt[0] = xn[2];
+  else if (gc->cgrid->ndim == 2){
+    xpt[0] = xn[0];
+    xpt[1] = xn[2];
+  }
+  else{
+    xpt[0] = xn[0];
+    xpt[1] = xn[1];
+    xpt[2] = xn[2];
+  }
   int cidx[GKYL_MAX_CDIM];
   for(int i = 0; i < gc->cgrid->ndim; i++){
-    int idxtemp = gc->crange_global->lower[i] + (int) floor((xn[i] - (gc->cgrid->lower[i]) )/gc->cgrid->dx[i]);
+    int idxtemp = gc->crange_global->lower[i] + (int) floor((xpt[i] - (gc->cgrid->lower[i]) )/gc->cgrid->dx[i]);
     idxtemp = GKYL_MIN2(idxtemp, gc->crange_global->upper[i]);
     idxtemp = GKYL_MAX2(idxtemp, gc->crange_global->lower[i]);
     cidx[i] = idxtemp;
@@ -92,7 +105,7 @@ void gkyl_calc_bmag_global(double t, const double *xn, double *fout, void *ctx)
   double xyz[gc->cgrid->ndim];
   gkyl_rect_grid_cell_center(gc->cgrid, cidx, cxc);
   for(int i = 0; i < gc->cgrid->ndim; i++)
-    xyz[i] = (xn[i]-cxc[i])/(gc->cgrid->dx[i]*0.5);
+    xyz[i] = (xpt[i]-cxc[i])/(gc->cgrid->dx[i]*0.5);
   fout[0] = gc->cbasis->eval_expand(xyz, mcoeffs);
 }
 

@@ -193,7 +193,7 @@ void gkyl_mirror_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, dou
     .geo = geo,
     .arc_memo = arc_memo,
     .zmaxis = geo->zmaxis,
-    .theta_min = theta_lo,
+    .theta_min = up->grid.lower[TH_IDX],
     .theta_max = theta_hi,
   };
   struct plate_ctx pctx = {
@@ -203,9 +203,9 @@ void gkyl_mirror_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, dou
   struct bmag_ctx *bmag_ctx_inp = gkyl_malloc(sizeof(struct bmag_ctx));
   if (nonuniform)
   {
-    bmag_ctx_inp->crange_global = &up->global;
-    bmag_ctx_inp->cbasis = &up->basis;
-    bmag_ctx_inp->cgrid = &up->grid;
+    bmag_ctx_inp->crange_global = &up->decomp_global;
+    bmag_ctx_inp->cbasis = &up->decomp_basis;
+    bmag_ctx_inp->cgrid = &up->decomp_grid;
     bmag_ctx_inp->bmag = gkyl_array_acquire(up->bmag_global);
   }
   int cidx[3] = { 0 };
@@ -256,7 +256,7 @@ void gkyl_mirror_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, dou
           if (nonuniform)
           {
             arc_ctx.mapping_frac = inp->nonuniform_mapping_fraction;
-            arc_ctx.psi = psi_curr; // I'm not sure if this messes up something
+            arc_ctx.psi = psi_curr;
             arc_ctx.alpha = alpha_curr;
             calculate_mirror_throat_location(&arc_ctx, bmag_ctx_inp);
             calculate_optimal_mapping(&arc_ctx, bmag_ctx_inp);

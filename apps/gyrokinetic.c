@@ -285,12 +285,24 @@ gkyl_gyrokinetic_app_new(struct gkyl_gk *gk)
       double nonuniform_frac = gk->geometry.nonuniform_mapping_fraction;
       printf("nonuniform_frac = %f\n", nonuniform_frac);
       if (nonuniform_frac > 0.0 & nonuniform_frac <= 1.0) {
+        // Copy deflate geometry if necessary
+        if(app->cdim < 3)
+          app->gk_geom = gkyl_gk_geometry_deflate(gk_geom_3d, &geometry_inp);
+        else
+          app->gk_geom = gkyl_gk_geometry_acquire(gk_geom_3d);
+        struct gkyl_array *bmag_global = gkyl_array_new(GKYL_DOUBLE, app->confBasis.num_basis, app->global_ext.volume);
+        gkyl_comm_array_allgather(app->comm, &app->local, &app->global, app->gk_geom->bmag, bmag_global);
         geometry_inp.nonuniform_geom = true;
-        struct gkyl_array *bmag_global = gkyl_array_new(GKYL_DOUBLE, gk_geom_3d->basis.num_basis, gk_geom_3d->global_ext.volume);
-        gkyl_comm_array_allgather(app->comm, &gk_geom_3d->local, &gk_geom_3d->global, gk_geom_3d->bmag, bmag_global);
         geometry_inp.bmag_global = bmag_global;
+        geometry_inp.decomp_basis = app->confBasis;
+        geometry_inp.decomp_grid = app->grid;
+        geometry_inp.decomp_local = app->local;
+        geometry_inp.decomp_local_ext = app->local_ext;
+        geometry_inp.decomp_global = app->global;
+        geometry_inp.decomp_global_ext = app->global_ext;
         gk_geom_3d = gkyl_gk_geometry_mirror_new(&geometry_inp);
         gkyl_array_release(bmag_global);
+        // I don't think I'm releasing the uniform deflated geometry correctly
       }
       else if (nonuniform_frac != 0.0) {
         printf("Invalid non-uniform mapping fraction %f. Must be between 0 and 1", nonuniform_frac);

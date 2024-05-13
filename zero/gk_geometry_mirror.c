@@ -45,7 +45,12 @@ gkyl_gk_geometry_mirror_new(struct gkyl_gk_geometry_inp *geometry_inp)
   up->global_ext = geometry_inp->geo_global_ext;
   up->grid = geometry_inp->geo_grid;
   up->bmag_global = geometry_inp->bmag_global;
-
+  up->decomp_basis = geometry_inp->decomp_basis;
+  up->decomp_local = geometry_inp->decomp_local;
+  up->decomp_local_ext = geometry_inp->decomp_local_ext;
+  up->decomp_global = geometry_inp->decomp_global;
+  up->decomp_global_ext = geometry_inp->decomp_global_ext;
+  up->decomp_grid = geometry_inp->decomp_grid;
 
   struct gkyl_range nrange;
   double dzc[3] = {0.0};
@@ -97,9 +102,9 @@ gkyl_gk_geometry_mirror_new(struct gkyl_gk_geometry_inp *geometry_inp)
   struct gkyl_mirror_geo_grid_inp *ginp = geometry_inp->mirror_grid_info;
   bool nonuniform_geom = geometry_inp->nonuniform_geom;
   ginp->nonuniform_mapping_fraction = geometry_inp->nonuniform_map_fraction;
-
   ginp->cgrid = up->grid;
   ginp->cbasis = up->basis;
+  
   struct gkyl_mirror_geo *geo = gkyl_mirror_geo_new(inp);
   // calculate mapc2p
   gkyl_mirror_geo_calc(up, &nrange, dzc, NULL, geo, NULL, ginp, mc2p_nodal_fd, mc2p_nodal, up->mc2p,

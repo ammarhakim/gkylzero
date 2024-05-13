@@ -20,6 +20,13 @@ struct gk_geometry {
   struct gkyl_basis basis;
   struct gkyl_rect_grid grid;
 
+  struct gkyl_range decomp_local;
+  struct gkyl_range decomp_local_ext;
+  struct gkyl_range decomp_global;
+  struct gkyl_range decomp_global_ext;
+  struct gkyl_basis decomp_basis;
+  struct gkyl_rect_grid decomp_grid;
+
   // These 20 DG fields contain the geometric quantities needed to solve the
   // GK Equation and Poisson Equation and to apply certain BC's
   // The first 19 are defined on the configuration space domain. The last is a single element.
@@ -99,6 +106,13 @@ struct gkyl_gk_geometry_inp {
   struct gkyl_range global_ext;
   struct gkyl_basis basis;
 
+  // Decomposed ranges
+  struct gkyl_rect_grid decomp_grid;
+  struct gkyl_range decomp_local;
+  struct gkyl_range decomp_local_ext;
+  struct gkyl_range decomp_global;
+  struct gkyl_range decomp_global_ext;
+  struct gkyl_basis decomp_basis;
 };
 
 /**
