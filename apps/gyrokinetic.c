@@ -283,7 +283,6 @@ gkyl_gyrokinetic_app_new(struct gkyl_gk *gk)
     case GKYL_MIRROR:
       gk_geom_3d = gkyl_gk_geometry_mirror_new(&geometry_inp);
       double nonuniform_frac = gk->geometry.nonuniform_mapping_fraction;
-      printf("nonuniform_frac = %f\n", nonuniform_frac);
       if (nonuniform_frac > 0.0 & nonuniform_frac <= 1.0) {
         // Copy deflate geometry if necessary
         if(app->cdim < 3)

@@ -332,7 +332,7 @@ void gkyl_mirror_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, dou
               double *map_arcL_n = gkyl_array_fetch(map_arcL_nodal, gkyl_range_idx(nrange, cidx));
               map_arcL_fd_n[lidx+X_IDX] = psi_curr;
               map_arcL_fd_n[lidx+Y_IDX] = alpha_curr;
-              map_arcL_fd_n[lidx+Z_IDX] = arcL_curr;
+              map_arcL_fd_n[lidx+Z_IDX] = theta_curr;
               if(ip_delta==0 && ia_delta==0 && it_delta==0) {
                 map_arcL_n[X_IDX] = psi_curr;
                 map_arcL_n[Y_IDX] = alpha_curr;
