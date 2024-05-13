@@ -119,29 +119,6 @@ void gkyl_dg_calc_vlasov_gen_geo_vars_cot_vec(struct gkyl_dg_calc_vlasov_gen_geo
   }
 }
 
-void gkyl_dg_calc_vlasov_bmag_cart_vec(struct gkyl_dg_calc_vlasov_gen_geo_vars *up, 
-  const struct gkyl_range *conf_range, const struct gkyl_array* cot_vec, struct gkyl_array* b_cart_i)
-{
-#ifdef GKYL_HAVE_CUDA
-  if (gkyl_array_is_cu_dev(cot_vec)) {
-    return gkyl_dg_calc_vlasov_bmag_cart_cu(up, conf_range, cot_vec, b_cart_i);
-  }
-#endif
-  struct gkyl_range_iter iter;
-  gkyl_range_iter_init(&iter, conf_range);
-
-  while (gkyl_range_iter_next(&iter)) {
-    long loc_conf = gkyl_range_idx(conf_range, iter.idx);
-    
-    const double *cot_vec_d = gkyl_array_cfetch(cot_vec, loc_conf);
-    const double *b_i_d = gkyl_array_cfetch(up->gk_geom->b_i, loc_conf);
-
-    double *b_cart_i_d = gkyl_array_fetch(b_cart_i, loc_conf);
-
-    up->calc_bmag_cart(cot_vec_d, b_i_d, b_cart_i_d);
-  }
-}
-
 void gkyl_dg_calc_vlasov_gen_geo_vars_release(gkyl_dg_calc_vlasov_gen_geo_vars *up)
 {
   gkyl_gk_geometry_release(up->gk_geom);

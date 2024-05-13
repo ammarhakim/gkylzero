@@ -17,9 +17,6 @@ typedef int (*vlasov_gen_geo_alpha_surf_t)(const double *w, const double *dxv,
 typedef void (*vlasov_gen_geo_cot_vec_t)(const double *tvComp, const double *gij, 
   double* GKYL_RESTRICT cot_vec);
 
-typedef void (*vlasov_bmag_cart_t)(const double *cot_vec, const double *b_i, 
-  double* GKYL_RESTRICT b_cart_i); 
-
 // for use in kernel tables
 typedef struct { vlasov_gen_geo_alpha_surf_t kernels[3]; } gkyl_dg_vlasov_gen_geo_alpha_surf_kern_list;
 typedef struct { vlasov_gen_geo_cot_vec_t kernels[3]; } gkyl_dg_vlasov_gen_geo_cot_vec_kern_list;
@@ -33,8 +30,6 @@ struct gkyl_dg_calc_vlasov_gen_geo_vars {
   vlasov_gen_geo_alpha_surf_t alpha_edge_surf[3]; // kernel for computing surface expansion of phase space flux alpha
                                                // at upper configuration space edge
   vlasov_gen_geo_cot_vec_t calc_cot_vec; // kernel for computing volume expansion of cotangent vectors e^i
-
-  vlasov_bmag_cart_t calc_bmag_cart;
   
   const struct gk_geometry *gk_geom; // Pointer to geometry struct
 
@@ -101,14 +96,6 @@ static const gkyl_dg_vlasov_gen_geo_cot_vec_kern_list ser_vlasov_gen_geo_cot_vec
   { NULL, vlasov_gen_geo_cot_vec_3x_ser_p1, NULL }, // 2
 };
 
-// Vlasov calc bmag in Cartesian coords (Serendipity kernels)
-GKYL_CU_D
-static const gkyl_dg_vlasov_bmag_cart_kern_list ser_vlasov_bmag_cart_kernels[] = {
-  { NULL, NULL, NULL }, // 0
-  { NULL, NULL, NULL }, // 1
-  { NULL, vlasov_bmag_cart_3x_ser_p1, NULL }, // 2
-};
-
 GKYL_CU_D
 static vlasov_gen_geo_alpha_surf_t
 choose_vlasov_gen_geo_alpha_surf_kern(int dir, int cdim, int poly_order)
@@ -142,11 +129,4 @@ static vlasov_gen_geo_cot_vec_t
 choose_vlasov_gen_geo_cot_vec_kern(int cdim, int poly_order)
 {
   return ser_vlasov_gen_geo_cot_vec_kernels[cdim-1].kernels[poly_order];
-}
-
-GKYL_CU_D
-static vlasov_bmag_cart_t
-choose_vlasov_bmag_cart_kern(int cdim, int poly_order)
-{
-  return ser_vlasov_bmag_cart_kernels[cdim-1].kernels[poly_order];
 }

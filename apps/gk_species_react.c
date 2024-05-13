@@ -73,7 +73,6 @@ gk_species_react_cross_init(struct gkyl_gyrokinetic_app *app, struct gk_species 
     react->m0_mod[i] = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
     react->prim_vars[i] = mkarr(app->use_gpu, 2*app->confBasis.num_basis, app->local_ext.volume);
     react->prim_vars_donor[i] = mkarr(app->use_gpu, 2*app->confBasis.num_basis, app->local_ext.volume);
-    react->b_cart_i[i] = mkarr(app->use_gpu, 3*app->confBasis.num_basis, app->local_ext.volume);
     if (react->react_id[i] == GKYL_REACT_IZ) {
       struct gkyl_dg_iz_inp iz_inp = {
         .grid = &s->grid,
@@ -147,7 +146,6 @@ gk_species_react_cross_moms(gkyl_gyrokinetic_app *app, const struct gk_species *
       else {
         gk_neut_species_moment_calc(&react->moms_donor[i], app->neut_species[react->donor_idx[i]].local,
           app->local, fin_neut[react->donor_idx[i]]);
-	gkyl_array_set_range(react->b_cart_i[i], 1.0, app->neut_species[react->donor_idx[i]].b_cart_i, &app->local);
       }
       for (int j=0; j<react->moms_donor[i].num_mom; ++j) {
         gkyl_dg_div_op_range(react->moms_donor[i].mem_geo, app->confBasis, j, react->moms_donor[i].marr, j,
@@ -157,7 +155,7 @@ gk_species_react_cross_moms(gkyl_gyrokinetic_app *app, const struct gk_species *
 
       // compute ionization reaction rate
       gkyl_dg_iz_coll(react->iz[i], react->moms_elc[i].marr, react->moms_donor[i].marr,
-        react->b_cart_i[i], react->prim_vars[i], react->prim_vars_donor[i],
+    	app->gk_geom->b_i, react->prim_vars[i], react->prim_vars_donor[i],
         react->vt_sq_iz1[i], react->vt_sq_iz2[i], react->coeff_react[i], 0);
     }
     else if (react->react_id[i] == GKYL_REACT_RECOMB) {
@@ -180,7 +178,7 @@ gk_species_react_cross_moms(gkyl_gyrokinetic_app *app, const struct gk_species *
       
       // compute recombination reaction rate
       gkyl_dg_recomb_coll(react->recomb[i], react->moms_elc[i].marr, react->moms_ion[i].marr,
-        react->b_cart_i[i], react->prim_vars[i], react->coeff_react[i], 0);
+        app->gk_geom->b_i, react->prim_vars[i], react->coeff_react[i], 0);
     }
     else if (react->react_id[i] == GKYL_REACT_CX) {
       // calc moms_ion, moms_neut
@@ -201,11 +199,9 @@ gk_species_react_cross_moms(gkyl_gyrokinetic_app *app, const struct gk_species *
       }
       gkyl_array_set_range(react->m0_partner[i], 1.0, react->moms_partner[i].marr, &app->local);
 
-      gkyl_array_set_range(react->b_cart_i[i], 1.0, app->neut_species[react->partner_idx[i]].b_cart_i, &app->local);
-
       // prim_vars_neut_gk is returned to prim_vars[i] here.
       gkyl_dg_cx_coll(react->cx[i], app->species[react->ion_idx[i]].vtsq_min, app->neut_species[react->partner_idx[i]].vtsq_min,
-        react->moms_ion[i].marr, react->moms_partner[i].marr, react->b_cart_i[i], react->prim_vars_cxi[i],
+        react->moms_ion[i].marr, react->moms_partner[i].marr, app->gk_geom->b_i, react->prim_vars_cxi[i],
         react->prim_vars_cxn[i], react->prim_vars[i], react->coeff_react[i], 0);
     }
   }

@@ -67,17 +67,6 @@ void gkyl_dg_calc_vlasov_gen_geo_vars_cot_vec(struct gkyl_dg_calc_vlasov_gen_geo
   const struct gkyl_range *conf_range, struct gkyl_array* cot_vec);
 
 /**
- * Compute Cartesian coordinates of unit bmag vector.
- * 
- * @param up Updater for computing general geometry Vlasov variables 
- * @param conf_range Configuration space range (should only be local range because geometry only defined on local range)
- * @param cot_vec Input volume expansion of cotangent vectors. 
- * @param b_cart_i Cartesian components of unit bmag vector.
- */
-void gkyl_dg_calc_vlasov_bmag_cart_vec(struct gkyl_dg_calc_vlasov_gen_geo_vars *up, 
-  const struct gkyl_range *conf_range, const struct gkyl_array* cot_vec, struct gkyl_array* b_cart_i);
-
-/**
  * Delete pointer to updater to compute Vlasov general geometry variables.
  *
  * @param up Updater to delete.
