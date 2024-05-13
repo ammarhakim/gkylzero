@@ -5,6 +5,7 @@
 #include <gkyl_alloc.h>
 #include <gkyl_dg_eqn.h>
 #include <gkyl_dg_vlasov.h>
+#include <gkyl_dg_vlasov_poisson.h>
 #include <gkyl_dg_vlasov_sr.h>
 #include <gkyl_dg_updater_vlasov.h>
 #include <gkyl_dg_updater_vlasov_priv.h>

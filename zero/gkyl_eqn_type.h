@@ -20,6 +20,11 @@ enum gkyl_gkmodel_id {
   GKYL_GK_MODEL_NO_BY = 1, // General geometry GK, but no toroidal field (by = 0)
 };
 
+// Identifiers for specific Vlasov-Poisson model types.
+enum gkyl_vpmodel_id {
+  GKYL_VP_MODEL_DEFAULT = 0, // Regular VP model.
+};
+
 // Identifiers for specific gyrokinetic field object types
 enum gkyl_gkfield_id {
   GKYL_GK_FIELD_ES = 0, // Electrostatic GK. This is default
@@ -27,6 +32,13 @@ enum gkyl_gkfield_id {
   GKYL_GK_FIELD_ADIABATIC = 2, // GK field with an adiabatic species.
   GKYL_GK_FIELD_ES_IWL = 3, // Inner-wall limited ES.
   GKYL_GK_FIELD_EM = 4, // Electromagnetic GK
+};
+
+// Identifiers for specific Vlasov-Poisson field object types.
+enum gkyl_vpfield_id {
+  GKYL_VP_FIELD_PHI = 0, // Only the plasma-generated electrostatic potential is present.
+  GKYL_VP_FIELD_PHI_EXT = 1, // Include an external magnetic magnetic vector potential A.
+  GKYL_VP_FIELD_PHI_EXT_CONST = 2, // Include a constant external magnetic magnetic vector potential A.
 };
 
 // Identifiers for specific field object types
