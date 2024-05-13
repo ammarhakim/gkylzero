@@ -34,16 +34,13 @@ struct sodshock_ctx
 
   double vt; // Thermal velocity.
   double Vx_drift; // Drift velocity (x-direction).
-  double Vy_drift; // Drift velocity (y-direction).
   double nu; // Collision frequency.
 
   // Simulation parameters.
   int Nx; // Cell count (configuration space: x-direction).
   int Nvx; // Cell count (velocity space: vx-direction).
-  int Nvy; // Cell count (velocity space: vy-direction).
   double Lx; // Domain size (configuration space: x-direction).
   double vx_max; // Domain boundary (velocity space: vx-direction).
-  double vy_max; // Domain boundary (velocity space: vy-direction).
   int poly_order; // Polynomial order.
   double cfl_frac; // CFL coefficient.
 
@@ -68,16 +65,13 @@ create_ctx(void)
 
   double vt = 1.0; // Thermal velocity.
   double Vx_drift = 0.0; // Drift velocity (x-direction).
-  double Vy_drift = 0.0; // Drift velocity (y-direction).
   double nu = 100.0; // Collision frequency.
 
   // Simulation parameters.
-  int Nx = 32; // Cell count (configuration space: x-direction).
-  int Nvx = 16; // Cell count (velocity space: vx-direction).
-  int Nvy = 16; // Cell count (velocity space: vy-direction).
+  int Nx = 128; // Cell count (configuration space: x-direction).
+  int Nvx = 32; // Cell count (velocity space: vx-direction).
   double Lx = 1.0; // Domain size (configuration space: x-direction).
   double vx_max = 8.0 * vt; // Domain boundary (velocity space: vx-direction).
-  double vy_max = 8.0 * vt; // Domain boundary (velocity space: vy-direction).
   int poly_order = 2; // Polynomial order.
   double cfl_frac = 1.0; // CFL coefficient.
 
@@ -95,14 +89,11 @@ create_ctx(void)
     .Tr = Tr,
     .vt = vt,
     .Vx_drift = Vx_drift,
-    .Vy_drift = Vy_drift,
     .nu = nu,
     .Nx = Nx,
     .Nvx = Nvx,
-    .Nvy = Nvy,
     .Lx = Lx,
     .vx_max = vx_max,
-    .vy_max = vy_max,
     .poly_order = poly_order,
     .cfl_frac = cfl_frac,
     .t_end = t_end,
@@ -164,10 +155,9 @@ evalVDriftInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT f
   struct sodshock_ctx *app = ctx;
 
   double Vx_drift = app->Vx_drift;
-  double Vy_drift = app->Vy_drift;
 
   // Set drift velocity.
-  fout[0] = Vx_drift; fout[1] = Vy_drift;
+  fout[0] = Vx_drift;
 }
 
 void
@@ -217,7 +207,6 @@ main(int argc, char **argv)
 
   int NX = APP_ARGS_CHOOSE(app_args.xcells[0], ctx.Nx);
   int NVX = APP_ARGS_CHOOSE(app_args.vcells[0], ctx.Nvx);
-  int NVY = APP_ARGS_CHOOSE(app_args.vcells[1], ctx.Nvy);
 
   int nrank = 1; // Number of processors in simulation.
 #ifdef GKYL_HAVE_MPI
@@ -310,9 +299,9 @@ main(int argc, char **argv)
     .name = "neut",
     .model_id = GKYL_MODEL_DEFAULT,
     .charge = ctx.charge, .mass = ctx.mass,
-    .lower = { -ctx.vx_max, -ctx.vy_max },
-    .upper = { ctx.vx_max, ctx.vy_max },
-    .cells = { NVX, NVY },
+    .lower = { -ctx.vx_max },
+    .upper = { ctx.vx_max }, 
+    .cells = { NVX },
 
     .projection = {
       .proj_id = GKYL_PROJ_VLASOV_LTE,
@@ -336,9 +325,9 @@ main(int argc, char **argv)
 
   // Vlasov-Maxwell app.
   struct gkyl_vm app_inp = {
-   .name = "neut_lbo_sod_shock_1x2v_p2",
+   .name = "vlasov_neut_lbo_sodshock_1x1v_p2",
 
-   .cdim = 1, .vdim = 2, 
+   .cdim = 1, .vdim = 1, 
    .lower = { 0.0 },
    .upper = { ctx.Lx },
    .cells = { NX },

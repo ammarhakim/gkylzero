@@ -19,30 +19,22 @@
 
 #include <rt_arg_parse.h>
 
-struct lbo_relax_ctx
+struct accel_ctx
 {
   // Mathematical constants (dimensionless).
   double pi;
 
   // Physical constants (using normalized code units).
-  double mass; // Top hat/bump mass.
-  double charge; // Top hat/bump charge. 
-
-  double n0; // Reference number density.
-  double u0; // Reference velocity.
-  double vt; // Top hat Maxwellian thermal velocity.
-  double nu; // Collision frequency.
-
-  double ab; // Bump Maxwellian amplitude.
-  double sb; // Bump Maxwellian softening factor, to avoid divergence.
-  double ub; // Bump location (in velocity space).
-  double vtb; // Bump Maxwellian thermal velocity.
+  double epsilon0; // Permittivity of free space.
+  double mu0; // Permeability of free space.
+  double mass_elc; // Electron mass.
+  double charge_elc; // Electron charge.
 
   // Simulation parameters.
   int Nx; // Cell count (configuration space: x-direction).
   int Nvx; // Cell count (velocity space: vx-direction).
   double Lx; // Domain size (configuration space: x-direction).
-  double vx_max; // Domain boundary (velocity space: vx-direction).
+  double Lvx; // Domain size (velocity space: vx-direction).
   int poly_order; // Polynomial order.
   double cfl_frac; // CFL coefficient.
 
@@ -52,55 +44,41 @@ struct lbo_relax_ctx
   int num_failures_max; // Maximum allowable number of consecutive small time-steps.
 };
 
-struct lbo_relax_ctx
+struct accel_ctx
 create_ctx(void)
 {
   // Mathematical constants (dimensionless).
   double pi = M_PI;
 
   // Physical constants (using normalized code units).
-  double mass = 1.0; // Top hat/bump mass.
-  double charge = 0.0; // Top hat/bump charge.
-
-  double n0 = 1.0; // Reference number density.
-  double u0 = 0.0; // Reference velocity.
-  double vt = 1.0 / 3.0; // Top hat Maxwellian thermal velocity.
-  double nu = 0.01; // Collision frequency.
-
-  double ab = sqrt(0.1); // Bump Maxwellian amplitude.
-  double sb = 0.12; // Bump Maxwellian softening factor, to avoid divergence.
-  double ub = 4.0 * sqrt(0.25 / 3.0); // Bump location (in velocity space).
-  double vtb = 1.0; // Bump Maxwellian thermal velocity.
+  double epsilon0 = 1.0; // Permittivity of free spcae.
+  double mu0 = 1.0; // Permeability of free space.
+  double mass_elc = 1.0; // Electron mass.
+  double charge_elc = -1.0; // Electron charge.
 
   // Simulation parameters.
-  int Nx = 2; // Cell count (configuration space: x-direction).
-  int Nvx = 48; // Cell count (velocity space: vx-direction).
-  double Lx = 1.0; // Domain size (configuration space: x-direction).
-  double vx_max = 8.0 * vt; // Domain boundary (velocity space: vx-direction).
+  int Nx = 32; // Cell count (configuration space: x-direction).
+  int Nvx = 24; // Cell count (velocity space: vx-direction).
+  double Lx = 2.0 * pi; // Domain size (configuration space: x-direction).
+  double Lvx = 12.0; // Domain size (velocity space: vx-direction).
   int poly_order = 2; // Polynomial order.
   double cfl_frac = 1.0; // CFL coefficient.
-
-  double t_end = 100.0; // Final simulation time.
+  
+  double t_end = 3.0; // Final simulation time.
   int num_frames = 1; // Number of output frames.
   double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.
   int num_failures_max = 20; // Maximum allowable number of consecutive small time-steps.
   
-  struct lbo_relax_ctx ctx = {
+  struct accel_ctx ctx = {
     .pi = pi,
-    .mass = mass,
-    .charge = charge,
-    .n0 = n0,
-    .u0 = u0,
-    .vt = vt,
-    .nu = nu,
-    .ab = ab,
-    .sb = sb,
-    .ub = ub,
-    .vtb = vtb,
+    .epsilon0 = epsilon0,
+    .mu0 = mu0,
+    .mass_elc = mass_elc,
+    .charge_elc = charge_elc,
     .Nx = Nx,
     .Nvx = Nvx,
     .Lx = Lx,
-    .vx_max = vx_max,
+    .Lvx = Lvx,
     .poly_order = poly_order,
     .cfl_frac = cfl_frac,
     .t_end = t_end,
@@ -113,59 +91,35 @@ create_ctx(void)
 }
 
 void
-evalTopHatInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
+evalElcInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
 {
-  struct lbo_relax_ctx *app = ctx;
-  double v = xn[1];
-  
-  double n0 = app->n0;
-
-  double dist = 0.0;
-
-  if(fabs(v) < 1.0) {
-    dist = 0.5 * n0;
-  }
-  else {
-    dist = 0.0;
-  }
-
-  // Set distribution function.
-  fout[0] = dist;
-}
-
-void
-evalBumpInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
-{
-  struct lbo_relax_ctx *app = ctx;
-  double v = xn[1];
+  double vx = xn[1];
+  struct accel_ctx *app = ctx;
 
   double pi = app->pi;
-
-  double n0 = app->n0;
-  double u0 = app->u0;
-  double vt = app->vt;
-
-  double ab = app->ab;
-  double sb = app->sb;  
-  double ub = app->ub;
-  double vtb = app->vtb;
-
-  double v_sq = (v - u0) * (v - u0);
-  double vb_sq = (v - ub) * (v - ub);
-
-  // Set distribution function.
-  fout[0] = (n0 / sqrt(2.0 * pi * vt * vt)) * exp(-v_sq / (2.0 * vt * vt)) + (n0 / sqrt(2.0 * pi * vtb * vtb)) * exp(-vb_sq / (2.0 * vtb * vtb)) * (ab * ab) / (vb_sq + (sb * sb));
+  
+  // Set electron distribution function.
+  fout[0] = 1 / sqrt(2.0 * pi) * exp(-0.5 * (vx * vx));
 }
 
 void
-evalNu(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
+evalFieldInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
 {
-  struct lbo_relax_ctx *app = ctx;
+  // Set electric field.
+  fout[0] = 0.0; fout[1] = 0.0, fout[2] = 0.0;
+  // Set magnetic field.
+  fout[3] = 0.0; fout[4] = 0.0; fout[5] = 0.0;
+  // Set correction potentials.
+  fout[6] = 0.0; fout[7] = 0.0;
+}
 
-  double nu = app->nu;
+void
+evalAppAccel(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
+{
+  double x = xn[0];
 
-  // Set collision frequency.
-  fout[0] = nu;
+  // Set applied acceleration.
+  fout[0] = sin(x); fout[1] = 0.0, fout[2] = 0.0;
 }
 
 void
@@ -200,10 +154,43 @@ main(int argc, char **argv)
     gkyl_mem_debug_set(true);
   }
 
-  struct lbo_relax_ctx ctx = create_ctx(); // Context for initialization functions.
+  struct accel_ctx ctx = create_ctx(); // Context for initialization functions.
 
   int NX = APP_ARGS_CHOOSE(app_args.xcells[0], ctx.Nx);
-  int NVX = APP_ARGS_CHOOSE(app_args.vcells[0], ctx.Nvx);
+  int NVX = APP_ARGS_CHOOSE(app_args.xcells[1], ctx.Nvx);
+
+  // Electron species.
+  struct gkyl_vlasov_species elc = {
+    .name = "elc",
+    .charge = ctx.charge_elc, .mass = ctx.mass_elc,
+    .lower = { -0.5 * ctx.Lvx },
+    .upper = { 0.5 * ctx.Lvx }, 
+    .cells = { NVX },
+
+    .projection = {
+      .proj_id = GKYL_PROJ_FUNC,
+      .func = evalElcInit,
+      .ctx_func = &ctx,
+    },
+
+    .accel = evalAppAccel,
+    .accel_ctx = &ctx,
+
+    .num_diag_moments = 3,
+    .diag_moments = { "M0", "M1i", "M2" },
+  };
+
+  // Field.
+  struct gkyl_vlasov_field field = {
+    .epsilon0 = ctx.epsilon0, .mu0 = ctx.mu0,
+    .elcErrorSpeedFactor = 0.0,
+    .mgnErrorSpeedFactor = 0.0,
+
+    .is_static = true,
+
+    .init = evalFieldInit,
+    .ctx = &ctx,
+  };
 
   int nrank = 1; // Number of processors in simulation.
 #ifdef GKYL_HAVE_MPI
@@ -291,56 +278,10 @@ main(int argc, char **argv)
     goto mpifinalize;
   }
 
-  // Top hat species.
-  struct gkyl_vlasov_species square = {
-    .name = "square",
-    .charge = ctx.charge, .mass = ctx.mass,
-    .lower = { -ctx.vx_max },
-    .upper = { ctx.vx_max }, 
-    .cells = { NVX },
-
-    .projection = {
-      .proj_id = GKYL_PROJ_FUNC,
-      .func = evalTopHatInit,
-      .ctx_func = &ctx,
-    },
-    .collisions =  {
-      .collision_id = GKYL_LBO_COLLISIONS,
-      .self_nu = evalNu,
-      .ctx = &ctx,
-    },
-    
-    .num_diag_moments = 3,
-    .diag_moments = { "M0", "M1i", "M2" },
-  };
-
-  // Bump species.
-  struct gkyl_vlasov_species bump = {
-    .name = "bump",
-    .charge = ctx.charge, .mass = ctx.mass,
-    .lower = { -ctx.vx_max },
-    .upper = { ctx.vx_max }, 
-    .cells = { NVX },
-
-    .projection = {
-      .proj_id = GKYL_PROJ_FUNC,
-      .func = evalBumpInit,
-      .ctx_func = &ctx,
-    },
-    .collisions =  {
-      .collision_id = GKYL_LBO_COLLISIONS,
-      .self_nu = evalNu,
-      .ctx = &ctx,
-    },
-    
-    .num_diag_moments = 3,
-    .diag_moments = { "M0", "M1i", "M2" },
-  };
-
-    // Vlasov-Maxwell app.
+  // Vlasov-Maxwell app.
   struct gkyl_vm app_inp = {
-    .name = "lbo_vlasov_relax_1x1v_p2",
-
+    .name = "dg_accel_1x1v",
+    
     .cdim = 1, .vdim = 1,
     .lower = { 0.0 },
     .upper = { ctx.Lx },
@@ -353,10 +294,10 @@ main(int argc, char **argv)
     .num_periodic_dir = 1,
     .periodic_dirs = { 0 },
 
-    .num_species = 2,
-    .species = { square, bump },
+    .num_species = 1,
+    .species = { elc },
 
-    .skip_field = true,
+    .field = field,
 
     .use_gpu = app_args.use_gpu,
 
@@ -460,6 +401,6 @@ mpifinalize:
     MPI_Finalize();
   }
 #endif
-
+  
   return 0;
 }

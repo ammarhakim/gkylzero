@@ -337,7 +337,7 @@ main(int argc, char **argv)
 
   // Vlasov-Maxwell app.
   struct gkyl_vm app_inp = {
-   .name = "neut_bgk_sod_shock_1x2v_p1",
+   .name = "vlasov_neut_bgk_sodshock_1x2v_p1",
 
    .cdim = 1, .vdim = 2, 
    .lower = { 0.0 },

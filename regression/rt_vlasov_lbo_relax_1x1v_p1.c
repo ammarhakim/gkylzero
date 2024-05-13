@@ -6,7 +6,6 @@
 #include <gkyl_alloc.h>
 #include <gkyl_vlasov.h>
 #include <gkyl_util.h>
-#include <gkyl_wv_euler.h>
 
 #include <gkyl_null_comm.h>
 
@@ -20,21 +19,24 @@
 
 #include <rt_arg_parse.h>
 
-struct sodshock_ctx
+struct lbo_relax_ctx
 {
+  // Mathematical constants (dimensionless).
+  double pi;
+
   // Physical constants (using normalized code units).
-  double mass; // Neutral mass.
-  double charge; // Neutral charge.
+  double mass; // Top hat/bump mass.
+  double charge; // Top hat/bump charge. 
 
-  double nl; // Left number density.
-  double Tl; // Left temperature.
-
-  double nr; // Right number density.
-  double Tr; // Right temperature.
-
-  double vt; // Thermal velocity.
-  double Vx_drift; // Drift velocity (x-direction).
+  double n0; // Reference number density.
+  double u0; // Reference velocity.
+  double vt; // Top hat Maxwellian thermal velocity.
   double nu; // Collision frequency.
+
+  double ab; // Bump Maxwellian amplitude.
+  double sb; // Bump Maxwellian softening factor, to avoid divergence.
+  double ub; // Bump location (in velocity space).
+  double vtb; // Bump Maxwellian thermal velocity.
 
   // Simulation parameters.
   int Nx; // Cell count (configuration space: x-direction).
@@ -50,46 +52,51 @@ struct sodshock_ctx
   int num_failures_max; // Maximum allowable number of consecutive small time-steps.
 };
 
-struct sodshock_ctx
+struct lbo_relax_ctx
 create_ctx(void)
 {
+  // Mathematical constants (dimensionless).
+  double pi = M_PI;
+
   // Physical constants (using normalized code units).
-  double mass = 1.0; // Neutral mass.
-  double charge = 0.0; // Neutral charge.
+  double mass = 1.0; // Top hat/bump mass.
+  double charge = 0.0; // Top hat/bump charge.
 
-  double nl = 1.0; // Left number density.
-  double Tl = 1.0; // Left temperature.
+  double n0 = 1.0; // Reference number density.
+  double u0 = 0.0; // Reference velocity.
+  double vt = 1.0 / 3.0; // Top hat Maxwellian thermal velocity.
+  double nu = 0.01; // Collision frequency.
 
-  double nr = 0.125; // Right number density.
-  double Tr = sqrt(0.1 / 0.125); // Right temperature.
-
-  double vt = 1.0; // Thermal velocity.
-  double Vx_drift = 0.0; // Drift velocity (x-direction).
-  double nu = 100.0; // Collision frequency.
+  double ab = sqrt(0.1); // Bump Maxwellian amplitude.
+  double sb = 0.12; // Bump Maxwellian softening factor, to avoid divergence.
+  double ub = 4.0 * sqrt(0.25 / 3.0); // Bump location (in velocity space).
+  double vtb = 1.0; // Bump Maxwellian thermal velocity.
 
   // Simulation parameters.
-  int Nx = 128; // Cell count (configuration space: x-direction).
-  int Nvx = 32; // Cell count (velocity space: vx-direction).
+  int Nx = 2; // Cell count (configuration space: x-direction).
+  int Nvx = 48; // Cell count (velocity space: vx-direction).
   double Lx = 1.0; // Domain size (configuration space: x-direction).
   double vx_max = 8.0 * vt; // Domain boundary (velocity space: vx-direction).
   int poly_order = 1; // Polynomial order.
-  double cfl_frac = 1.0; // CFL coefficient.
+  double cfl_frac = 0.6; // CFL coefficient.
 
-  double t_end = 0.1; // Final simulation time.
+  double t_end = 100.0; // Final simulation time.
   int num_frames = 1; // Number of output frames.
   double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.
   int num_failures_max = 20; // Maximum allowable number of consecutive small time-steps.
-
-  struct sodshock_ctx ctx = {
+  
+  struct lbo_relax_ctx ctx = {
+    .pi = pi,
     .mass = mass,
     .charge = charge,
-    .nl = nl,
-    .Tl = Tl,
-    .nr = nr,
-    .Tr = Tr,
+    .n0 = n0,
+    .u0 = u0,
     .vt = vt,
-    .Vx_drift = Vx_drift,
     .nu = nu,
+    .ab = ab,
+    .sb = sb,
+    .ub = ub,
+    .vtb = vtb,
     .Nx = Nx,
     .Nvx = Nvx,
     .Lx = Lx,
@@ -106,64 +113,54 @@ create_ctx(void)
 }
 
 void
-evalDensityInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
+evalTopHatInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
 {
-  struct sodshock_ctx *app = ctx;
-  double x = xn[0];
+  struct lbo_relax_ctx *app = ctx;
+  double v = xn[1];
+  
+  double n0 = app->n0;
 
-  double nl = app->nl;
-  double nr = app->nr;
+  double dist = 0.0;
 
-  double n = 0.0;
-
-  if (x < 0.5) {
-    n = nl;
+  if(fabs(v) < 1.0) {
+    dist = 0.5 * n0;
   }
   else {
-    n = nr;
+    dist = 0.0;
   }
 
   // Set distribution function.
-  fout[0] = n;
+  fout[0] = dist;
 }
 
 void
-evalTempInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
+evalBumpInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
 {
-  struct sodshock_ctx *app = ctx;
-  double x = xn[0];
+  struct lbo_relax_ctx *app = ctx;
+  double v = xn[1];
 
-  double Tl = app->Tl;
-  double Tr = app->Tr;
+  double pi = app->pi;
 
-  double T = 0.0;
+  double n0 = app->n0;
+  double u0 = app->u0;
+  double vt = app->vt;
 
-  if (x < 0.5) {
-    T = Tl;
-  }
-  else {
-    T = Tr;
-  }
+  double ab = app->ab;
+  double sb = app->sb;  
+  double ub = app->ub;
+  double vtb = app->vtb;
 
-  // Set temperature.
-  fout[0] = T;
-}
+  double v_sq = (v - u0) * (v - u0);
+  double vb_sq = (v - ub) * (v - ub);
 
-void
-evalVDriftInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
-{
-  struct sodshock_ctx *app = ctx;
-
-  double Vx_drift = app->Vx_drift;
-
-  // Set drift velocity.
-  fout[0] = Vx_drift;
+  // Set distribution function.
+  fout[0] = (n0 / sqrt(2.0 * pi * vt * vt)) * exp(-v_sq / (2.0 * vt * vt)) + (n0 / sqrt(2.0 * pi * vtb * vtb)) * exp(-vb_sq / (2.0 * vtb * vtb)) * (ab * ab) / (vb_sq + (sb * sb));
 }
 
 void
 evalNu(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
 {
-  struct sodshock_ctx *app = ctx;
+  struct lbo_relax_ctx *app = ctx;
 
   double nu = app->nu;
 
@@ -203,7 +200,7 @@ main(int argc, char **argv)
     gkyl_mem_debug_set(true);
   }
 
-  struct sodshock_ctx ctx = create_ctx(); // Context for initialization functions.
+  struct lbo_relax_ctx ctx = create_ctx(); // Context for initialization functions.
 
   int NX = APP_ARGS_CHOOSE(app_args.xcells[0], ctx.Nx);
   int NVX = APP_ARGS_CHOOSE(app_args.vcells[0], ctx.Nvx);
@@ -294,64 +291,80 @@ main(int argc, char **argv)
     goto mpifinalize;
   }
 
-  // Neutral species.
-  struct gkyl_vlasov_species neut = {
-    .name = "neut",
-    .model_id = GKYL_MODEL_DEFAULT,
+  // Top hat species.
+  struct gkyl_vlasov_species square = {
+    .name = "square",
     .charge = ctx.charge, .mass = ctx.mass,
     .lower = { -ctx.vx_max },
     .upper = { ctx.vx_max }, 
     .cells = { NVX },
 
     .projection = {
-      .proj_id = GKYL_PROJ_VLASOV_LTE,
-      .density = evalDensityInit,
-      .ctx_density = &ctx,
-      .temp = evalTempInit,
-      .ctx_temp = &ctx,
-      .V_drift = evalVDriftInit,
-      .ctx_V_drift = &ctx,
-      .correct_all_moms = true,
+      .proj_id = GKYL_PROJ_FUNC,
+      .func = evalTopHatInit,
+      .ctx_func = &ctx,
     },
     .collisions =  {
-      .collision_id = GKYL_BGK_COLLISIONS,
+      .collision_id = GKYL_LBO_COLLISIONS,
       .self_nu = evalNu,
       .ctx = &ctx,
-      .correct_all_moms = true,
     },
     
     .num_diag_moments = 3,
-    .diag_moments = { "M0", "M1i", "LTEMoments" },
+    .diag_moments = { "M0", "M1i", "M2" },
   };
 
-  // Vlasov-Maxwell app.
+  // Bump species.
+  struct gkyl_vlasov_species bump = {
+    .name = "bump",
+    .charge = ctx.charge, .mass = ctx.mass,
+    .lower = { -ctx.vx_max },
+    .upper = { ctx.vx_max }, 
+    .cells = { NVX },
+
+    .projection = {
+      .proj_id = GKYL_PROJ_FUNC,
+      .func = evalBumpInit,
+      .ctx_func = &ctx,
+    },
+    .collisions =  {
+      .collision_id = GKYL_LBO_COLLISIONS,
+      .self_nu = evalNu,
+      .ctx = &ctx,
+    },
+    
+    .num_diag_moments = 3,
+    .diag_moments = { "M0", "M1i", "M2" },
+  };
+
+    // Vlasov-Maxwell app.
   struct gkyl_vm app_inp = {
-   .name = "neut_bgk_sod_shock_1x1v_p1",
+    .name = "vlasov_lbo_relax_1x1v_p1",
 
-   .cdim = 1, .vdim = 1, 
-   .lower = { 0.0 },
-   .upper = { ctx.Lx },
-   .cells = { NX },
+    .cdim = 1, .vdim = 1,
+    .lower = { 0.0 },
+    .upper = { ctx.Lx },
+    .cells = { NX },
 
-   .poly_order = ctx.poly_order,
-   .basis_type = app_args.basis_type,
-   .cfl_frac = ctx.cfl_frac,
+    .poly_order = ctx.poly_order,
+    .basis_type = app_args.basis_type,
+    .cfl_frac = ctx.cfl_frac,
 
-   .num_periodic_dir = 0,
-   .periodic_dirs = { },
+    .num_periodic_dir = 1,
+    .periodic_dirs = { 0 },
 
-   .num_species = 1,
-   .species = { neut },
+    .num_species = 2,
+    .species = { square, bump },
 
-   .skip_field = true,
+    .skip_field = true,
 
-   .use_gpu = app_args.use_gpu,
+    .use_gpu = app_args.use_gpu,
 
-   .has_low_inp = true,
-   .low_inp = {
-     .local_range = decomp->ranges[my_rank],
-     .comm = comm
-   }
+    .has_low_inp = true,
+    .low_inp = {
+      .local_range = decomp->ranges[my_rank],
+      .comm = comm
+    }
   };
 
   // Create app object.

@@ -29,20 +29,28 @@ struct lbo_relax_ctx
   double charge; // Top hat/bump charge. 
 
   double n0; // Reference number density.
-  double u0; // Reference velocity.
+  double ux0; // Reference velocity (x-direction).
+  double uy0; // Reference velocity (y-direction).
+  double uz0; // Reference velocity (z-direction).
   double vt; // Top hat Maxwellian thermal velocity.
   double nu; // Collision frequency.
 
   double ab; // Bump Maxwellian amplitude.
   double sb; // Bump Maxwellian softening factor, to avoid divergence.
-  double ub; // Bump location (in velocity space).
+  double ubx; // Bump location (x-direction, in velocity space).
+  double uby; // Bump location (y-direction, in velocity space).
+  double ubz; // Bump location (z-direction, in velocity space).
   double vtb; // Bump Maxwellian thermal velocity.
 
   // Simulation parameters.
   int Nx; // Cell count (configuration space: x-direction).
   int Nvx; // Cell count (velocity space: vx-direction).
+  int Nvy; // Cell count (velocity space: vy-direction).
+  int Nvz; // Cell count (velocity space: vz-direction).
   double Lx; // Domain size (configuration space: x-direction).
   double vx_max; // Domain boundary (velocity space: vx-direction).
+  double vy_max; // Domain boundary (velocity space: vy-direction).
+  double vz_max; // Domain boundary (velocity space: vz-direction).
   int poly_order; // Polynomial order.
   double cfl_frac; // CFL coefficient.
 
@@ -63,24 +71,32 @@ create_ctx(void)
   double charge = 0.0; // Top hat/bump charge.
 
   double n0 = 1.0; // Reference number density.
-  double u0 = 0.0; // Reference velocity.
+  double ux0 = 0.0; // Reference velocity (x-direction).
+  double uy0 = 0.0; // Reference velocity (y-direction).
+  double uz0 = 0.0; // Reference velocity (z-direction).
   double vt = 1.0 / 3.0; // Top hat Maxwellian thermal velocity.
   double nu = 0.01; // Collision frequency.
 
   double ab = sqrt(0.1); // Bump Maxwellian amplitude.
   double sb = 0.12; // Bump Maxwellian softening factor, to avoid divergence.
-  double ub = 4.0 * sqrt(0.25 / 3.0); // Bump location (in velocity space).
+  double ubx = 4.0 * sqrt(0.25 / 3.0); // Bump location (x-direction, in velocity space).
+  double uby = 0.0; // Bump location (y-direction, in velocity space).
+  double ubz = 0.0; // Bump location (z-direction, in velocity space).
   double vtb = 1.0; // Bump Maxwellian thermal velocity.
 
   // Simulation parameters.
   int Nx = 2; // Cell count (configuration space: x-direction).
-  int Nvx = 48; // Cell count (velocity space: vx-direction).
+  int Nvx = 16; // Cell count (velocity space: vx-direction).
+  int Nvy = 16; // Cell count (velocity space: vy-direction).
+  int Nvz = 16; // Cell count (velocity space: vz-direction).
   double Lx = 1.0; // Domain size (configuration space: x-direction).
   double vx_max = 8.0 * vt; // Domain boundary (velocity space: vx-direction).
-  int poly_order = 1; // Polynomial order.
-  double cfl_frac = 0.6; // CFL coefficient.
+  double vy_max = 8.0 * vt; // Domain boundary (velocity space: vy-direction).
+  double vz_max = 8.0 * vt; // Domain boundary (velocity space: vz-direction).
+  int poly_order = 2; // Polynomial order.
+  double cfl_frac = 1.0; // CFL coefficient.
 
-  double t_end = 100.0; // Final simulation time.
+  double t_end = 4.0; // Final simulation time.
   int num_frames = 1; // Number of output frames.
   double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.
   int num_failures_max = 20; // Maximum allowable number of consecutive small time-steps.
@@ -90,17 +106,25 @@ create_ctx(void)
     .mass = mass,
     .charge = charge,
     .n0 = n0,
-    .u0 = u0,
+    .ux0 = ux0,
+    .uy0 = uy0,
+    .uz0 = uz0,
     .vt = vt,
     .nu = nu,
     .ab = ab,
     .sb = sb,
-    .ub = ub,
+    .ubx = ubx,
+    .uby = uby,
+    .ubz = ubz,
     .vtb = vtb,
     .Nx = Nx,
     .Nvx = Nvx,
+    .Nvy = Nvy,
+    .Nvz = Nvz,
     .Lx = Lx,
     .vx_max = vx_max,
+    .vy_max = vy_max,
+    .vz_max = vz_max,
     .poly_order = poly_order,
     .cfl_frac = cfl_frac,
     .t_end = t_end,
@@ -116,13 +140,13 @@ void
 evalTopHatInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
 {
   struct lbo_relax_ctx *app = ctx;
-  double v = xn[1];
+  double vx = xn[1], vy = xn[2], vz = xn[3];
   
   double n0 = app->n0;
 
   double dist = 0.0;
 
-  if(fabs(v) < 1.0) {
+  if(fabs(vx) < 1.0 && fabs(vy) < 1.0 && fabs(vz) < 1.0) {
     dist = 0.5 * n0;
   }
   else {
@@ -137,21 +161,25 @@ void
 evalBumpInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
 {
   struct lbo_relax_ctx *app = ctx;
-  double v = xn[1];
+  double vx = xn[1], vy = xn[2], vz = xn[3];
 
   double pi = app->pi;
 
   double n0 = app->n0;
-  double u0 = app->u0;
+  double ux0 = app->ux0;
+  double uy0 = app->uy0;
+  double uz0 = app->uz0;
   double vt = app->vt;
 
   double ab = app->ab;
   double sb = app->sb;  
-  double ub = app->ub;
+  double ubx = app->ubx;
+  double uby = app->uby;
+  double ubz = app->ubz;
   double vtb = app->vtb;
 
-  double v_sq = (v - u0) * (v - u0);
-  double vb_sq = (v - ub) * (v - ub);
+  double v_sq = ((vx - ux0) * (vx - ux0)) + ((vy - uy0) * (vy - uy0)) + ((vz - uz0) * (vz - uz0));
+  double vb_sq = ((vx - ubx) * (vx - ubx)) + ((vy - uby) * (vy - uby)) + ((vz - ubz) * (vz - ubz));
 
   // Set distribution function.
   fout[0] = (n0 / sqrt(2.0 * pi * vt * vt)) * exp(-v_sq / (2.0 * vt * vt)) + (n0 / sqrt(2.0 * pi * vtb * vtb)) * exp(-vb_sq / (2.0 * vtb * vtb)) * (ab * ab) / (vb_sq + (sb * sb));
@@ -204,6 +232,8 @@ main(int argc, char **argv)
 
   int NX = APP_ARGS_CHOOSE(app_args.xcells[0], ctx.Nx);
   int NVX = APP_ARGS_CHOOSE(app_args.vcells[0], ctx.Nvx);
+  int NVY = APP_ARGS_CHOOSE(app_args.vcells[1], ctx.Nvy);
+  int NVZ = APP_ARGS_CHOOSE(app_args.vcells[2], ctx.Nvz);
 
   int nrank = 1; // Number of processors in simulation.
 #ifdef GKYL_HAVE_MPI
@@ -295,9 +325,9 @@ main(int argc, char **argv)
   struct gkyl_vlasov_species square = {
     .name = "square",
     .charge = ctx.charge, .mass = ctx.mass,
-    .lower = { -ctx.vx_max },
-    .upper = { ctx.vx_max }, 
-    .cells = { NVX },
+    .lower = { -ctx.vx_max, -ctx.vy_max, -ctx.vz_max },
+    .upper = { ctx.vx_max, ctx.vy_max, ctx.vz_max }, 
+    .cells = { NVX, NVY, NVZ },
 
     .projection = {
       .proj_id = GKYL_PROJ_FUNC,
@@ -318,9 +348,9 @@ main(int argc, char **argv)
   struct gkyl_vlasov_species bump = {
     .name = "bump",
     .charge = ctx.charge, .mass = ctx.mass,
-    .lower = { -ctx.vx_max },
-    .upper = { ctx.vx_max }, 
-    .cells = { NVX },
+    .lower = { -ctx.vx_max, -ctx.vy_max, -ctx.vz_max },
+    .upper = { ctx.vx_max, ctx.vy_max, ctx.vz_max }, 
+    .cells = { NVX, NVY, NVZ },
 
     .projection = {
       .proj_id = GKYL_PROJ_FUNC,
@@ -339,9 +369,9 @@ main(int argc, char **argv)
 
     // Vlasov-Maxwell app.
   struct gkyl_vm app_inp = {
-    .name = "lbo_vlasov_relax_1x1v_p1",
+    .name = "vlasov_lbo_relax_1x3v_p2",
 
-    .cdim = 1, .vdim = 1,
+    .cdim = 1, .vdim = 3,
     .lower = { 0.0 },
     .upper = { ctx.Lx },
     .cells = { NX },
