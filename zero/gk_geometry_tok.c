@@ -81,6 +81,7 @@ gkyl_gk_geometry_tok_new(struct gkyl_gk_geometry_inp *geometry_inp)
   up->jacobgeo_inv = gkyl_array_new(GKYL_DOUBLE, up->basis.num_basis, up->local_ext.volume);
   up->gij = gkyl_array_new(GKYL_DOUBLE, 6*up->basis.num_basis, up->local_ext.volume);
   up->b_i = gkyl_array_new(GKYL_DOUBLE, 3*up->basis.num_basis, up->local_ext.volume);
+  up->bcart = gkyl_array_new(GKYL_DOUBLE, 3*up->basis.num_basis, up->local_ext.volume);
   up->cmag = gkyl_array_new(GKYL_DOUBLE, up->basis.num_basis, up->local_ext.volume);
   up->jacobtot = gkyl_array_new(GKYL_DOUBLE, up->basis.num_basis, up->local_ext.volume);
   up->jacobtot_inv = gkyl_array_new(GKYL_DOUBLE, up->basis.num_basis, up->local_ext.volume);
@@ -116,14 +117,15 @@ gkyl_gk_geometry_tok_new(struct gkyl_gk_geometry_inp *geometry_inp)
   struct gkyl_calc_metric* mcalc = gkyl_calc_metric_new(&up->basis, &up->grid, &up->global, &up->global_ext, &up->local, &up->local_ext, false);
   gkyl_calc_metric_advance(mcalc, &nrange, mc2p_nodal_fd, dzc, up->g_ij, up->dxdz, up->dzdx, &up->local);
   // Recalculate the metrics and jacobian using cylindrical coordinates
-  gkyl_calc_metric_advance_rz(mcalc, &nrange, mc2prz_nodal_fd, dphidtheta_nodal, bmag_nodal, dzc, up->g_ij, up->jacobgeo, &up->local);
-  gkyl_calc_metric_release(mcalc);
+  gkyl_calc_metric_advance_rz(mcalc, &nrange, mc2prz_nodal_fd, dphidtheta_nodal, bmag_nodal, dzc, up->g_ij, up->jacobgeo, up->bcart, &up->local);
   //// calculate the derived geometric quantities
   gkyl_tok_calc_derived_geo *jcalculator = gkyl_tok_calc_derived_geo_new(&up->basis, &up->grid, false);
   gkyl_tok_calc_derived_geo_advance(jcalculator, &up->local, up->g_ij, up->bmag, 
     up->jacobgeo, up->jacobgeo_inv, up->gij, up->b_i, up->cmag, up->jacobtot, up->jacobtot_inv, 
     up->bmag_inv, up->bmag_inv_sq, up->gxxj, up->gxyj, up->gyyj, up->gxzj, up->eps2);
   gkyl_tok_calc_derived_geo_release(jcalculator);
+  gkyl_calc_metric_release(mcalc);
+
   
   up->flags = 0;
   GKYL_CLEAR_CU_ALLOC(up->flags);

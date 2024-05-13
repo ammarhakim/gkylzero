@@ -29,6 +29,7 @@ struct gk_geometry {
   struct gkyl_array* jacobgeo_inv;
   struct gkyl_array* gij;
   struct gkyl_array* b_i;
+  struct gkyl_array* bcart;
   struct gkyl_array* cmag;
   struct gkyl_array* jacobtot;
   struct gkyl_array* jacobtot_inv;

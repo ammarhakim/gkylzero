@@ -201,7 +201,7 @@ gk_species_react_cross_moms(gkyl_gyrokinetic_app *app, const struct gk_species *
 
       // prim_vars_neut_gk is returned to prim_vars[i] here.
       gkyl_dg_cx_coll(react->cx[i], app->species[react->ion_idx[i]].vtsq_min, app->neut_species[react->partner_idx[i]].vtsq_min,
-        react->moms_ion[i].marr, react->moms_partner[i].marr, app->gk_geom->b_i, react->prim_vars_cxi[i],
+        react->moms_ion[i].marr, react->moms_partner[i].marr, app->gk_geom->bcart, react->prim_vars_cxi[i],
         react->prim_vars_cxn[i], react->prim_vars[i], react->coeff_react[i], 0);
     }
   }
