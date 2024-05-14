@@ -12,7 +12,7 @@
 #include <assert.h>
 
 typedef void (*pkpm_em_coupling_set_t)(int count, 
-  int num_species, double qbym[GKYL_MAX_SPECIES], double epsilon0, double dt, 
+  int num_species, double qbym[GKYL_MAX_SPECIES], double epsilon0, bool pkpm_field_static, double dt, 
   struct gkyl_nmat *A, struct gkyl_nmat *rhs, 
   const double *app_accel[GKYL_MAX_SPECIES], const double *ext_em, const double *app_current, 
   const double *vlasov_pkpm_moms[GKYL_MAX_SPECIES], const double *pkpm_u[GKYL_MAX_SPECIES],
@@ -29,8 +29,6 @@ typedef struct { pkpm_em_coupling_set_t kernels[4]; } gkyl_dg_pkpm_em_coupling_s
 typedef struct { pkpm_em_coupling_copy_t kernels[4]; } gkyl_dg_pkpm_em_coupling_copy_kern_list;
 
 struct gkyl_dg_calc_pkpm_em_coupling {
-  int cdim; // Configuration space dimensionality
-  int poly_order; // polynomial order (determines whether we solve linear system or use basis_inv method)
   struct gkyl_range mem_range; // Configuration space range for linear solve
 
   struct gkyl_nmat *As, *xs; // matrices for LHS and RHS
@@ -38,6 +36,8 @@ struct gkyl_dg_calc_pkpm_em_coupling {
 
   pkpm_em_coupling_set_t pkpm_em_coupling_set;  // kernel for setting matrices for linear solve
   pkpm_em_coupling_copy_t pkpm_em_coupling_copy; // kernel for copying solution to output
+
+  bool pkpm_field_static; // bool to determine if we are updating the self-consistent EM fields (dE/dt)
 
   int num_species; // number of species being implicitly solved for
   double qbym[GKYL_MAX_SPECIES]; // charge/mass ratio for each species

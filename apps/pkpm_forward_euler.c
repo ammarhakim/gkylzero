@@ -14,20 +14,24 @@ pkpm_forward_euler(gkyl_pkpm_app* app, double tcurr, double dt,
 
   double dtmin = DBL_MAX;
 
-  // Compute external EM field or applied currents if present.
-  // Note: external EM field and  applied currents use proj_on_basis 
-  // so does copy to GPU every call if app->use_gpu = true.
-  if (app->has_field) {
-    if (app->field->ext_em_evolve) {
-      pkpm_field_calc_ext_em(app, app->field, tcurr);
-    }
-    if (app->field->app_current_evolve) {
-      pkpm_field_calc_app_current(app, app->field, tcurr); 
-    }
-    // Also compute magnetic field unit vector and tensor,
-    // div(b) and div(b) at quadrature points for update
-    pkpm_field_calc_bvar(app, app->field, emin);  
+  // Compute applied acceleration, external EM fields, and applied currents if present.
+  // Note these are only computed here *if* momentum-EM coupling is explicit
+  // Otherwise, applies acceleration, external EM fields, and applied currents are computed in implicit update.
+  // Also, these quantities use proj_on_basis so we copy to GPU every call if app->use_gpu = true.
+  if (app->field->ext_em_evolve && app->use_explicit_source) {
+    pkpm_field_calc_ext_em(app, app->field, tcurr);
   }
+  if (app->field->app_current_evolve && app->use_explicit_source) {
+    pkpm_field_calc_app_current(app, app->field, tcurr); 
+  }
+  for (int i=0; i<app->num_species; ++i) {
+    if (app->species[i].app_accel_evolve && app->use_explicit_source) {
+      pkpm_species_calc_app_accel(app, &app->species[i], tcurr);
+    }
+  }
+
+  // Compute magnetic field unit vector and tensor, and div(b)
+  pkpm_field_calc_bvar(app, app->field, emin);  
 
   // Two separate loops over number of species to compute needed auxiliary quantities.
   for (int i=0; i<app->num_species; ++i) {
@@ -62,10 +66,8 @@ pkpm_forward_euler(gkyl_pkpm_app* app, double tcurr, double dt,
   }
 
   // compute RHS of Maxwell equations
-  if (app->has_field) {
-    double dt1 = pkpm_field_rhs(app, app->field, emin, emout);
-    dtmin = fmin(dtmin, dt1);
-  }
+  double dt1 = pkpm_field_rhs(app, app->field, emin, emout);
+  dtmin = fmin(dtmin, dt1);
 
   double dt_max_rel_diff = 0.01;
   // check if dtmin is slightly smaller than dt. Use dt if it is
@@ -91,10 +93,12 @@ pkpm_forward_euler(gkyl_pkpm_app* app, double tcurr, double dt,
     pkpm_fluid_species_apply_bc(app, &app->species[i], fluidout[i]);
   }
 
-  if (app->has_field) {
-    // complete update of field (even when field is static, it is
-    // safest to do this accumulate as it ensure emout = emin)
-    gkyl_array_accumulate(gkyl_array_scale(emout, dta), 1.0, emin);
-    pkpm_field_apply_bc(app, app->field, emout);
-  }  
+  // Explicit accumulation current contribution from momentum to electric field terms
+  if (app->use_explicit_source) {
+    pkpm_field_explicit_accumulate_current(app, app->field, fluidin, emout);
+  }
+  // complete update of field (even when field is static, it is
+  // safest to do this accumulate as it ensure emout = emin)
+  gkyl_array_accumulate(gkyl_array_scale(emout, dta), 1.0, emin);
+  pkpm_field_apply_bc(app, app->field, emout);
 }

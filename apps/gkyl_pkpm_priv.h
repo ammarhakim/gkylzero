@@ -338,15 +338,14 @@ struct gkyl_pkpm_app {
     struct gkyl_basis *basis, *confBasis;
   } basis_on_dev;
 
-  bool has_field; // has field
-  struct pkpm_field *field; // pointer to field object
 
+  struct pkpm_field *field; // pointer to field object
   // species data
   int num_species;
   struct pkpm_species *species; // data for each species
 
+  bool use_explicit_source; // Boolean to turn on explicit fluid-EM coupling
   struct pkpm_fluid_em_coupling *pkpm_em; // fluid-EM coupling data
-
   // pointer to function that takes a single-step of simulation
   struct gkyl_update_status (*update_func)(gkyl_pkpm_app *app, double dt0);
   
@@ -361,6 +360,10 @@ void pkpm_forward_euler(gkyl_pkpm_app* app, double tcurr, double dt,
 
 // Take a single time-step using a Strang split implicit fluid-EM coupling + SSP RK3
 struct gkyl_update_status pkpm_update_strang_split(gkyl_pkpm_app *app,
+  double dt0);
+
+// Take a fully explicit single time-step using a SSP RK3 (including explicit fluid-EM coupling)
+struct gkyl_update_status pkpm_update_explicit_ssp_rk3(gkyl_pkpm_app *app,
   double dt0);
 
 /** gkyl_pkpm_app private API */
@@ -695,6 +698,17 @@ void pkpm_field_accumulate_current(gkyl_pkpm_app *app,
  * @param em Input (and Output after limiting) EM fields
  */
 void pkpm_field_limiter(gkyl_pkpm_app *app, struct pkpm_field *field, struct gkyl_array *em);
+
+/**
+ * Accumulate current density onto RHS from field equations in fully explicit update
+ *
+ * @param app PKPM app object
+ * @param field Pointer to field 
+ * @param fluidin[] Input fluid array (num_species size)
+ * @param emout On output, the RHS from the field solver *with* accumulated current density
+ */
+void pkpm_field_explicit_accumulate_current(gkyl_pkpm_app *app, struct pkpm_field *field, 
+  const struct gkyl_array *fluidin[], struct gkyl_array *emout);
 
 /**
  * Compute RHS from field equations

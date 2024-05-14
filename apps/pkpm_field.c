@@ -286,6 +286,26 @@ pkpm_field_limiter(gkyl_pkpm_app *app, struct pkpm_field *field, struct gkyl_arr
   }
 }
 
+void
+pkpm_field_explicit_accumulate_current(gkyl_pkpm_app *app, struct pkpm_field *field, 
+  const struct gkyl_array *fluidin[], struct gkyl_array *emout)
+{
+  struct timespec wst = gkyl_wall_clock();  
+  if (!field->info.is_static) {  
+    for (int i=0; i<app->num_species; ++i) {
+      struct pkpm_species *s = &app->species[i];
+      // Need to divide out the mass in pkpm model since we evolve momentum
+      double qbymeps = s->info.charge/(s->info.mass*field->info.epsilon0); 
+      gkyl_array_accumulate_range(emout, -qbymeps, fluidin[i], &app->local);   
+    } 
+    // Accumulate applied current to electric field terms
+    if (field->has_app_current) {
+      gkyl_array_accumulate_range(emout, -1.0/field->info.epsilon0, field->app_current, &app->local);
+    }
+  }
+  app->stat.current_tm += gkyl_time_diff_now_sec(wst);  
+}
+
 // Compute the RHS for field update, returning maximum stable
 // time-step.
 double

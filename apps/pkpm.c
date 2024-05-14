@@ -167,9 +167,8 @@ gkyl_pkpm_app_new(struct gkyl_pkpm *pkpm)
   app->geom = gkyl_wave_geom_new(&app->grid, &app->local_ext,
     app->mapc2p, app->c2p_ctx, app->use_gpu);
 
-  app->has_field = !pkpm->skip_field; // note inversion of truth value
-  if (app->has_field)
-    app->field = pkpm_field_new(pkpm, app);
+  // PKPM system *always* has a field to define the local magnetic field direction
+  app->field = pkpm_field_new(pkpm, app);
 
   // allocate space to store species objects
   app->species = ns>0 ? gkyl_malloc(sizeof(struct pkpm_species[ns])) : 0;
@@ -194,9 +193,16 @@ gkyl_pkpm_app_new(struct gkyl_pkpm *pkpm)
   }
 
   // Set the appropriate update function for taking a single time step
-  // We perform a Strang split to implicitly treat the momentum-EM field coupling. 
-  app->pkpm_em = pkpm_fluid_em_coupling_init(app);
-  app->update_func = pkpm_update_strang_split;
+  app->use_explicit_source = pkpm->use_explicit_source;
+  if (app->use_explicit_source) {
+    // If momentum-EM field coupling is explicit, we use a pure explicit SSP RK3 method
+    app->update_func = pkpm_update_explicit_ssp_rk3;
+  }
+  else {
+    // By default: we perform a Strang split to implicitly treat the momentum-EM field coupling. 
+    app->pkpm_em = pkpm_fluid_em_coupling_init(app);
+    app->update_func = pkpm_update_strang_split;
+  }
   
   // initialize stat object
   app->stat = (struct gkyl_pkpm_stat) {
@@ -230,10 +236,10 @@ void
 gkyl_pkpm_app_apply_ic(gkyl_pkpm_app* app, double t0)
 {
   app->tcurr = t0;
-  if (app->has_field) 
-    gkyl_pkpm_app_apply_ic_field(app, t0);
-  for (int i=0; i<app->num_species; ++i)
+  gkyl_pkpm_app_apply_ic_field(app, t0);
+  for (int i=0; i<app->num_species; ++i) {
     gkyl_pkpm_app_apply_ic_species(app, i, t0);
+  }
 }
 
 void
@@ -326,8 +332,7 @@ gkyl_pkpm_app_write(gkyl_pkpm_app* app, double tm, int frame)
   app->stat.nio += 1;
   struct timespec wtm = gkyl_wall_clock();
   
-  if (app->has_field)
-    gkyl_pkpm_app_write_field(app, tm, frame);
+  gkyl_pkpm_app_write_field(app, tm, frame);
   for (int i=0; i<app->num_species; ++i) {
     gkyl_pkpm_app_write_species(app, i, tm, frame);
     gkyl_pkpm_app_write_mom(app, i, tm, frame);
@@ -684,37 +689,32 @@ gkyl_pkpm_app_stat_write(gkyl_pkpm_app* app)
 
   gkyl_pkpm_app_cout(app, fp, " total_tm : %lg,\n", stat.total_tm);
   gkyl_pkpm_app_cout(app, fp, " rk3_tm : %lg,\n", stat.rk3_tm);
-  gkyl_pkpm_app_cout(app, fp, " init_species_tm : %lg,\n", stat.init_species_tm);
-  if (app->has_field) {
+  if (!app->use_explicit_source) {
     gkyl_pkpm_app_cout(app, fp, " fluid_em_coupling_tm : %lg,\n", stat.pkpm_em_tm);
-    gkyl_pkpm_app_cout(app, fp, " init_field_tm : %lg,\n", stat.init_field_tm);
   }
+  gkyl_pkpm_app_cout(app, fp, " init_species_tm : %lg,\n", stat.init_species_tm);
+  gkyl_pkpm_app_cout(app, fp, " init_field_tm : %lg,\n", stat.init_field_tm);
   
   gkyl_pkpm_app_cout(app, fp, " species_rhs_tm : %lg,\n", stat.species_rhs_tm);
+  gkyl_pkpm_app_cout(app, fp, " species_bc_tm : %lg,\n", stat.species_bc_tm);
+  gkyl_pkpm_app_cout(app, fp, " species_pkpm_vars_tm : %lg,\n", stat.species_pkpm_vars_tm);
 
+  gkyl_pkpm_app_cout(app, fp, " species_coll_mom_tm : %lg,\n", stat.species_coll_mom_tm);
+  gkyl_pkpm_app_cout(app, fp, " species_coll_tm : %lg,\n", stat.species_coll_tm);
   for (int s=0; s<app->num_species; ++s) {
     gkyl_pkpm_app_cout(app, fp, " species_coll_drag_tm[%d] : %lg,\n", s,
       stat.species_lbo_coll_drag_tm[s]);
     gkyl_pkpm_app_cout(app, fp, " species_coll_diff_tm[%d] : %lg,\n", s,
       stat.species_lbo_coll_diff_tm[s]);
   }
-
-  gkyl_pkpm_app_cout(app, fp, " species_coll_mom_tm : %lg,\n", stat.species_coll_mom_tm);
-  gkyl_pkpm_app_cout(app, fp, " species_coll_tm : %lg,\n", stat.species_coll_tm);
-
-  gkyl_pkpm_app_cout(app, fp, " species_pkpm_vars_tm : %lg,\n", stat.species_pkpm_vars_tm);
-
-  gkyl_pkpm_app_cout(app, fp, " species_bc_tm : %lg,\n", stat.species_bc_tm);
   
   gkyl_pkpm_app_cout(app, fp, " fluid_species_rhs_tm : %lg,\n", stat.fluid_species_rhs_tm);
-
   gkyl_pkpm_app_cout(app, fp, " fluid_species_bc_tm : %lg,\n", stat.fluid_species_bc_tm);
 
-  if (app->has_field) {
-    gkyl_pkpm_app_cout(app, fp, " field_rhs_tm : %lg,\n", stat.field_rhs_tm);
-    gkyl_pkpm_app_cout(app, fp, " field_bc_tm : %lg,\n", stat.field_bc_tm);
-    
-    gkyl_pkpm_app_cout(app, fp, " field_em_vars_tm : %lg,\n", stat.field_em_vars_tm);
+  gkyl_pkpm_app_cout(app, fp, " field_rhs_tm : %lg,\n", stat.field_rhs_tm);
+  gkyl_pkpm_app_cout(app, fp, " field_bc_tm : %lg,\n", stat.field_bc_tm);
+  gkyl_pkpm_app_cout(app, fp, " field_em_vars_tm : %lg,\n", stat.field_em_vars_tm);
+  if (app->use_explicit_source) {
     gkyl_pkpm_app_cout(app, fp, " current_tm : %lg,\n", stat.current_tm);
   }
 
@@ -765,10 +765,11 @@ gkyl_pkpm_app_release(gkyl_pkpm_app* app)
   if (app->num_species > 0) {
     gkyl_free(app->species);
   }
-  if (app->has_field) {
-    pkpm_field_release(app, app->field);
+
+  pkpm_field_release(app, app->field);
+  if (!app->use_explicit_source) {
+    pkpm_fluid_em_coupling_release(app, app->pkpm_em);
   }
-  pkpm_fluid_em_coupling_release(app, app->pkpm_em);
 
   gkyl_comm_release(app->comm);
 

@@ -1,10 +1,10 @@
 #include <gkyl_pkpm_priv.h>
 
-// internal function that takes a single time-step using 
-// a Strang-split scheme which performs the fluid-EM coupling implicitly
-// and an SSP RK3 method for the explicit component
+// Take time-step using the RK3 method. Also sets the status object
+// which has the actual and suggested dts used. These can be different
+// from the actual time-step.
 struct gkyl_update_status
-pkpm_update_strang_split(gkyl_pkpm_app* app, double dt0)
+pkpm_update_explicit_ssp_rk3(gkyl_pkpm_app* app, double dt0)
 {
   int ns = app->num_species;  
 
@@ -13,48 +13,13 @@ pkpm_update_strang_split(gkyl_pkpm_app* app, double dt0)
   const struct gkyl_array *fluidin[ns];
   struct gkyl_array *fluidout[ns];
   struct gkyl_update_status st = { .success = true };
-  
-  // time-stepper states
-  enum {
-    UPDATE_DONE = 0,
-    PRE_UPDATE,
-    FIRST_COUPLING_UPDATE,
-    RK_STAGE_1, 
-    RK_STAGE_2, 
-    RK_STAGE_3,
-    SECOND_COUPLING_UPDATE,
-    UPDATE_REDO,
-  } state = PRE_UPDATE;
+
+  // time-stepper state
+  enum { RK_STAGE_1, RK_STAGE_2, RK_STAGE_3, RK_COMPLETE } state = RK_STAGE_1;
 
   double tcurr = app->tcurr, dt = dt0;
-  while (state != UPDATE_DONE) {
+  while (state != RK_COMPLETE) {
     switch (state) {
-      case PRE_UPDATE:
-        do {
-          state = FIRST_COUPLING_UPDATE; // next state
-            
-          // copy old solution in case we need to redo this step
-          // Note: only need to copy fluid and EM solution since
-          // kinetic species is done completely explicitly 
-          // (old solution is still in app->species->f unless update successful).
-          for (int i=0; i<ns; ++i) {
-            gkyl_array_copy(app->species[i].fluid_dup, app->species[i].fluid);
-          }
-          gkyl_array_copy(app->field->em_dup, app->field->em);
-        } while(0);
-        break;
-          
-      case FIRST_COUPLING_UPDATE:
-        do {
-          state = RK_STAGE_1; // next state
-
-          struct timespec pkpm_em1_tm = gkyl_wall_clock();
-          pkpm_fluid_em_coupling_update(app, app->pkpm_em, tcurr, dt/2.0);
-          app->stat.pkpm_em_tm += gkyl_time_diff_now_sec(pkpm_em1_tm);
-
-        } while(0);
-        break;
-
       case RK_STAGE_1:
         do {
           struct timespec rk3_s1_tm = gkyl_wall_clock();
@@ -73,7 +38,7 @@ pkpm_update_strang_split(gkyl_pkpm_app* app, double dt0)
           for (int i=0; i<ns; ++i) {
             pkpm_fluid_species_limiter(app, &app->species[i], fout[i], fluidout[i]);
           }
-          pkpm_field_limiter(app, app->field, app->field->em1);
+          pkpm_field_limiter(app, app->field, app->field->emnew);
 
           dt = st.dt_actual;
           state = RK_STAGE_2;
@@ -112,7 +77,7 @@ pkpm_update_strang_split(gkyl_pkpm_app* app, double dt0)
             app->stat.nstage_2_fail += 1;
 
             dt = st.dt_actual;
-            state = UPDATE_REDO; // Need to re-do update, fetch copy of old time step
+            state = RK_STAGE_1; // restart from stage 1
           } 
           else {
             for (int i=0; i<ns; ++i) {
@@ -163,7 +128,7 @@ pkpm_update_strang_split(gkyl_pkpm_app* app, double dt0)
             app->stat.nstage_3_fail += 1;
 
             dt = st.dt_actual;
-            state = UPDATE_REDO; // Need to re-do update, fetch copy of old time step
+            state = RK_STAGE_1; // restart from stage 1
 
             app->stat.nstage_2_fail += 1;
           }
@@ -182,41 +147,14 @@ pkpm_update_strang_split(gkyl_pkpm_app* app, double dt0)
               1.0/3.0, app->field->em, 2.0/3.0, app->field->emnew, &app->local_ext);
             gkyl_array_copy_range(app->field->em, app->field->em1, &app->local_ext);
 
-            state = SECOND_COUPLING_UPDATE;
+            state = RK_COMPLETE;
           }
-
+        
           app->stat.rk3_tm += gkyl_time_diff_now_sec(rk3_s3_tm);
         } while(0);
         break;
 
-      case SECOND_COUPLING_UPDATE:
-        do {
-          state = UPDATE_DONE; // next state
-
-          struct timespec pkpm_em2_tm = gkyl_wall_clock();
-          pkpm_fluid_em_coupling_update(app, app->pkpm_em, tcurr+dt/2.0, dt/2.0);
-          app->stat.pkpm_em_tm += gkyl_time_diff_now_sec(pkpm_em2_tm);
-
-        } while(0);
-        break;
-
-      case UPDATE_REDO:
-        do {
-          state = PRE_UPDATE; // start all-over again
-            
-          // restore solution and retake step
-          // Note: only need to restore fluid and EM solution since
-          // kinetic species is done completely explicitly 
-          // (old solution is still in app->species->f unless update successful).
-          for (int i=0; i<ns; ++i) {
-            gkyl_array_copy(app->species[i].fluid, app->species[i].fluid_dup);
-          }
-          gkyl_array_copy(app->field->em, app->field->em_dup);
-
-        } while(0);          
-        break;
-
-      case UPDATE_DONE: // unreachable code! (suppresses warning)
+      case RK_COMPLETE: // can't happen: suppresses warning
         break;
     }
   }

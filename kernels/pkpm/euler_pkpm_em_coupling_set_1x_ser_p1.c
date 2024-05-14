@@ -1,21 +1,26 @@
 #include <gkyl_mat.h> 
 #include <gkyl_euler_pkpm_kernels.h> 
 GKYL_CU_DH void euler_pkpm_em_coupling_set_1x_ser_p1(int count, 
-  int num_species, double qbym[GKYL_MAX_SPECIES], double epsilon0, double dt, 
+  int num_species, double qbym[GKYL_MAX_SPECIES], double epsilon0, bool pkpm_field_static, double dt, 
   struct gkyl_nmat *A_n, struct gkyl_nmat *rhs_n, 
   const double *app_accel[GKYL_MAX_SPECIES], const double *ext_em, const double *app_current, 
   const double *vlasov_pkpm_moms[GKYL_MAX_SPECIES], const double* pkpm_u[GKYL_MAX_SPECIES], 
   double* GKYL_RESTRICT em) 
 { 
-  // count:            integer to indicate which matrix being fetched. 
-  // A:                preallocated LHS matrix. 
-  // rhs:              preallocated RHS vector. 
-  // app_accel:        Applied accelerations (external forces).
-  // ext_em:           Externally applied EM fields.
-  // app_current:      Applied external currents.
-  // vlasov_pkpm_moms: [rho, p_parallel, p_perp], Moments computed from kinetic equation in pkpm model.
-  // pkpm_u:           [ux, uy, uz], Input flow velocity.
-  // em:               [Ex, Ey, Ez, Bx, By, Bz], EM input state vector.
+  // count:             integer to indicate which matrix being fetched. 
+  // num_species:       number of species being evolved (number of momentum equations). 
+  // qbym:              charge/mass ratio for each species. 
+  // epsilon0:          permittivity of free space. 
+  // pkpm_field_static: boolean for whether or not the self-consistent field is static. 
+  // dt:                size of the time step. 
+  // A:                 preallocated LHS matrix. 
+  // rhs:               preallocated RHS vector. 
+  // app_accel:         Applied accelerations (external forces).
+  // ext_em:            Externally applied EM fields.
+  // app_current:       Applied external currents.
+  // vlasov_pkpm_moms:  [rho, p_parallel, p_perp], Moments computed from kinetic equation in pkpm model.
+  // pkpm_u:            [ux, uy, uz], Input flow velocity.
+  // em:                [Ex, Ey, Ez, Bx, By, Bz], EM input state vector.
 
   struct gkyl_mat lhs = gkyl_nmat_get(A_n, count); 
   struct gkyl_mat rhs = gkyl_nmat_get(rhs_n, count); 
@@ -106,7 +111,6 @@ GKYL_CU_DH void euler_pkpm_em_coupling_set_1x_ser_p1(int count,
   gkyl_mat_set(&rhs, 3 + num_species*(6), 0, epsilon0*Ey[1] - 0.5*dt*app_curr_y[1]); 
   gkyl_mat_set(&rhs, 5 + num_species*(6), 0, epsilon0*Ez[1] - 0.5*dt*app_curr_z[1]); 
 
-
   // Construct LHS. 
   // For flow velocity equation: u_s^{n+1} - 0.5*dt*(q_s/m_s*E^{n+1} + q_s/m_s*u_s^{n+1} x B^n). 
   // For Ampere's Law: epsilon0*E^{n+1} + 0.5*dt*sum_s q_s/m_s*rho_s^n u_s^{n+1}. 
@@ -131,9 +135,11 @@ GKYL_CU_DH void euler_pkpm_em_coupling_set_1x_ser_p1(int count,
     gkyl_mat_set(&lhs, 0 + s*(6), 2 + s*(6), B_field_fac*(0.7071067811865475*tot_Bz[0])); 
     gkyl_mat_set(&lhs, 2 + s*(6), 0 + s*(6), -B_field_fac*(0.7071067811865475*tot_Bz[0])); 
  
-    gkyl_mat_set(&lhs, 0 + num_species*(6), 0 + s*(6), 0.5*dt*qbym[s]*(0.7071067811865475*rho[s][0])); 
-    gkyl_mat_set(&lhs, 2 + num_species*(6), 2 + s*(6), 0.5*dt*qbym[s]*(0.7071067811865475*rho[s][0])); 
-    gkyl_mat_set(&lhs, 4 + num_species*(6), 4 + s*(6), 0.5*dt*qbym[s]*(0.7071067811865475*rho[s][0])); 
+    if (!pkpm_field_static) { 
+      gkyl_mat_set(&lhs, 0 + num_species*(6), 0 + s*(6), 0.5*dt*qbym[s]*(0.7071067811865475*rho[s][0])); 
+      gkyl_mat_set(&lhs, 2 + num_species*(6), 2 + s*(6), 0.5*dt*qbym[s]*(0.7071067811865475*rho[s][0])); 
+      gkyl_mat_set(&lhs, 4 + num_species*(6), 4 + s*(6), 0.5*dt*qbym[s]*(0.7071067811865475*rho[s][0])); 
+    } 
  
     gkyl_mat_set(&lhs, 0 + s*(6), 1 + s*(6), 0.0); 
     gkyl_mat_set(&lhs, 2 + s*(6), 3 + s*(6), 0.0); 
@@ -152,9 +158,11 @@ GKYL_CU_DH void euler_pkpm_em_coupling_set_1x_ser_p1(int count,
     gkyl_mat_set(&lhs, 0 + s*(6), 3 + s*(6), B_field_fac*(0.7071067811865475*tot_Bz[1])); 
     gkyl_mat_set(&lhs, 2 + s*(6), 1 + s*(6), -B_field_fac*(0.7071067811865475*tot_Bz[1])); 
  
-    gkyl_mat_set(&lhs, 0 + num_species*(6), 1 + s*(6), 0.5*dt*qbym[s]*(0.7071067811865475*rho[s][1])); 
-    gkyl_mat_set(&lhs, 2 + num_species*(6), 3 + s*(6), 0.5*dt*qbym[s]*(0.7071067811865475*rho[s][1])); 
-    gkyl_mat_set(&lhs, 4 + num_species*(6), 5 + s*(6), 0.5*dt*qbym[s]*(0.7071067811865475*rho[s][1])); 
+    if (!pkpm_field_static) { 
+      gkyl_mat_set(&lhs, 0 + num_species*(6), 1 + s*(6), 0.5*dt*qbym[s]*(0.7071067811865475*rho[s][1])); 
+      gkyl_mat_set(&lhs, 2 + num_species*(6), 3 + s*(6), 0.5*dt*qbym[s]*(0.7071067811865475*rho[s][1])); 
+      gkyl_mat_set(&lhs, 4 + num_species*(6), 5 + s*(6), 0.5*dt*qbym[s]*(0.7071067811865475*rho[s][1])); 
+    } 
  
     gkyl_mat_set(&lhs, 1 + s*(6), 0 + s*(6), 0.0); 
     gkyl_mat_set(&lhs, 3 + s*(6), 2 + s*(6), 0.0); 
@@ -173,9 +181,11 @@ GKYL_CU_DH void euler_pkpm_em_coupling_set_1x_ser_p1(int count,
     gkyl_mat_set(&lhs, 1 + s*(6), 2 + s*(6), B_field_fac*(0.7071067811865475*tot_Bz[1])); 
     gkyl_mat_set(&lhs, 3 + s*(6), 0 + s*(6), -B_field_fac*(0.7071067811865475*tot_Bz[1])); 
  
-    gkyl_mat_set(&lhs, 1 + num_species*(6), 0 + s*(6), 0.5*dt*qbym[s]*(0.7071067811865475*rho[s][1])); 
-    gkyl_mat_set(&lhs, 3 + num_species*(6), 2 + s*(6), 0.5*dt*qbym[s]*(0.7071067811865475*rho[s][1])); 
-    gkyl_mat_set(&lhs, 5 + num_species*(6), 4 + s*(6), 0.5*dt*qbym[s]*(0.7071067811865475*rho[s][1])); 
+    if (!pkpm_field_static) { 
+      gkyl_mat_set(&lhs, 1 + num_species*(6), 0 + s*(6), 0.5*dt*qbym[s]*(0.7071067811865475*rho[s][1])); 
+      gkyl_mat_set(&lhs, 3 + num_species*(6), 2 + s*(6), 0.5*dt*qbym[s]*(0.7071067811865475*rho[s][1])); 
+      gkyl_mat_set(&lhs, 5 + num_species*(6), 4 + s*(6), 0.5*dt*qbym[s]*(0.7071067811865475*rho[s][1])); 
+    } 
  
     gkyl_mat_set(&lhs, 1 + s*(6), 1 + s*(6), 1.0); 
     gkyl_mat_set(&lhs, 3 + s*(6), 3 + s*(6), 1.0); 
@@ -194,9 +204,11 @@ GKYL_CU_DH void euler_pkpm_em_coupling_set_1x_ser_p1(int count,
     gkyl_mat_set(&lhs, 1 + s*(6), 3 + s*(6), B_field_fac*(0.7071067811865475*tot_Bz[0])); 
     gkyl_mat_set(&lhs, 3 + s*(6), 1 + s*(6), -B_field_fac*(0.7071067811865475*tot_Bz[0])); 
  
-    gkyl_mat_set(&lhs, 1 + num_species*(6), 1 + s*(6), 0.5*dt*qbym[s]*(0.7071067811865475*rho[s][0])); 
-    gkyl_mat_set(&lhs, 3 + num_species*(6), 3 + s*(6), 0.5*dt*qbym[s]*(0.7071067811865475*rho[s][0])); 
-    gkyl_mat_set(&lhs, 5 + num_species*(6), 5 + s*(6), 0.5*dt*qbym[s]*(0.7071067811865475*rho[s][0])); 
+    if (!pkpm_field_static) { 
+      gkyl_mat_set(&lhs, 1 + num_species*(6), 1 + s*(6), 0.5*dt*qbym[s]*(0.7071067811865475*rho[s][0])); 
+      gkyl_mat_set(&lhs, 3 + num_species*(6), 3 + s*(6), 0.5*dt*qbym[s]*(0.7071067811865475*rho[s][0])); 
+      gkyl_mat_set(&lhs, 5 + num_species*(6), 5 + s*(6), 0.5*dt*qbym[s]*(0.7071067811865475*rho[s][0])); 
+    } 
  
   } 
   gkyl_mat_set(&lhs, 0 + num_species*(6), 0 + num_species*(6), 1.0); 

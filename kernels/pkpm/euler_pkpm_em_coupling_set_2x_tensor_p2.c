@@ -1,21 +1,26 @@
 #include <gkyl_mat.h> 
 #include <gkyl_euler_pkpm_kernels.h> 
 GKYL_CU_DH void euler_pkpm_em_coupling_set_2x_tensor_p2(int count, 
-  int num_species, double qbym[GKYL_MAX_SPECIES], double epsilon0, double dt, 
+  int num_species, double qbym[GKYL_MAX_SPECIES], double epsilon0, bool pkpm_field_static, double dt, 
   struct gkyl_nmat *A_n, struct gkyl_nmat *rhs_n, 
   const double *app_accel[GKYL_MAX_SPECIES], const double *ext_em, const double *app_current, 
   const double *vlasov_pkpm_moms[GKYL_MAX_SPECIES], const double* pkpm_u[GKYL_MAX_SPECIES], 
   double* GKYL_RESTRICT em) 
 { 
-  // count:            integer to indicate which matrix being fetched. 
-  // A:                preallocated LHS matrix. 
-  // rhs:              preallocated RHS vector. 
-  // app_accel:        Applied accelerations (external forces).
-  // ext_em:           Externally applied EM fields.
-  // app_current:      Applied external currents.
-  // vlasov_pkpm_moms: [rho, p_parallel, p_perp], Moments computed from kinetic equation in pkpm model.
-  // pkpm_u:           [ux, uy, uz], Input flow velocity.
-  // em:               [Ex, Ey, Ez, Bx, By, Bz], EM input state vector.
+  // count:             integer to indicate which matrix being fetched. 
+  // num_species:       number of species being evolved (number of momentum equations). 
+  // qbym:              charge/mass ratio for each species. 
+  // epsilon0:          permittivity of free space. 
+  // pkpm_field_static: boolean for whether or not the self-consistent field is static. 
+  // dt:                size of the time step. 
+  // A:                 preallocated LHS matrix. 
+  // rhs:               preallocated RHS vector. 
+  // app_accel:         Applied accelerations (external forces).
+  // ext_em:            Externally applied EM fields.
+  // app_current:       Applied external currents.
+  // vlasov_pkpm_moms:  [rho, p_parallel, p_perp], Moments computed from kinetic equation in pkpm model.
+  // pkpm_u:            [ux, uy, uz], Input flow velocity.
+  // em:                [Ex, Ey, Ez, Bx, By, Bz], EM input state vector.
 
   struct gkyl_mat lhs = gkyl_nmat_get(A_n, count); 
   struct gkyl_mat rhs = gkyl_nmat_get(rhs_n, count); 
@@ -246,7 +251,6 @@ GKYL_CU_DH void euler_pkpm_em_coupling_set_2x_tensor_p2(int count,
   gkyl_mat_set(&rhs, 17 + num_species*(27), 0, epsilon0*Ey[8] - 0.5*dt*app_curr_y[8]); 
   gkyl_mat_set(&rhs, 26 + num_species*(27), 0, epsilon0*Ez[8] - 0.5*dt*app_curr_z[8]); 
 
-
   // Construct LHS. 
   // For flow velocity equation: u_s^{n+1} - 0.5*dt*(q_s/m_s*E^{n+1} + q_s/m_s*u_s^{n+1} x B^n). 
   // For Ampere's Law: epsilon0*E^{n+1} + 0.5*dt*sum_s q_s/m_s*rho_s^n u_s^{n+1}. 
@@ -271,9 +275,11 @@ GKYL_CU_DH void euler_pkpm_em_coupling_set_2x_tensor_p2(int count,
     gkyl_mat_set(&lhs, 0 + s*(27), 9 + s*(27), B_field_fac*(0.5*tot_Bz[0])); 
     gkyl_mat_set(&lhs, 9 + s*(27), 0 + s*(27), -B_field_fac*(0.5*tot_Bz[0])); 
  
-    gkyl_mat_set(&lhs, 0 + num_species*(27), 0 + s*(27), 0.5*dt*qbym[s]*(0.5*rho[s][0])); 
-    gkyl_mat_set(&lhs, 9 + num_species*(27), 9 + s*(27), 0.5*dt*qbym[s]*(0.5*rho[s][0])); 
-    gkyl_mat_set(&lhs, 18 + num_species*(27), 18 + s*(27), 0.5*dt*qbym[s]*(0.5*rho[s][0])); 
+    if (!pkpm_field_static) { 
+      gkyl_mat_set(&lhs, 0 + num_species*(27), 0 + s*(27), 0.5*dt*qbym[s]*(0.5*rho[s][0])); 
+      gkyl_mat_set(&lhs, 9 + num_species*(27), 9 + s*(27), 0.5*dt*qbym[s]*(0.5*rho[s][0])); 
+      gkyl_mat_set(&lhs, 18 + num_species*(27), 18 + s*(27), 0.5*dt*qbym[s]*(0.5*rho[s][0])); 
+    } 
  
     gkyl_mat_set(&lhs, 0 + s*(27), 1 + s*(27), 0.0); 
     gkyl_mat_set(&lhs, 9 + s*(27), 10 + s*(27), 0.0); 
@@ -292,9 +298,11 @@ GKYL_CU_DH void euler_pkpm_em_coupling_set_2x_tensor_p2(int count,
     gkyl_mat_set(&lhs, 0 + s*(27), 10 + s*(27), B_field_fac*(0.5*tot_Bz[1])); 
     gkyl_mat_set(&lhs, 9 + s*(27), 1 + s*(27), -B_field_fac*(0.5*tot_Bz[1])); 
  
-    gkyl_mat_set(&lhs, 0 + num_species*(27), 1 + s*(27), 0.5*dt*qbym[s]*(0.5*rho[s][1])); 
-    gkyl_mat_set(&lhs, 9 + num_species*(27), 10 + s*(27), 0.5*dt*qbym[s]*(0.5*rho[s][1])); 
-    gkyl_mat_set(&lhs, 18 + num_species*(27), 19 + s*(27), 0.5*dt*qbym[s]*(0.5*rho[s][1])); 
+    if (!pkpm_field_static) { 
+      gkyl_mat_set(&lhs, 0 + num_species*(27), 1 + s*(27), 0.5*dt*qbym[s]*(0.5*rho[s][1])); 
+      gkyl_mat_set(&lhs, 9 + num_species*(27), 10 + s*(27), 0.5*dt*qbym[s]*(0.5*rho[s][1])); 
+      gkyl_mat_set(&lhs, 18 + num_species*(27), 19 + s*(27), 0.5*dt*qbym[s]*(0.5*rho[s][1])); 
+    } 
  
     gkyl_mat_set(&lhs, 0 + s*(27), 2 + s*(27), 0.0); 
     gkyl_mat_set(&lhs, 9 + s*(27), 11 + s*(27), 0.0); 
@@ -313,9 +321,11 @@ GKYL_CU_DH void euler_pkpm_em_coupling_set_2x_tensor_p2(int count,
     gkyl_mat_set(&lhs, 0 + s*(27), 11 + s*(27), B_field_fac*(0.5*tot_Bz[2])); 
     gkyl_mat_set(&lhs, 9 + s*(27), 2 + s*(27), -B_field_fac*(0.5*tot_Bz[2])); 
  
-    gkyl_mat_set(&lhs, 0 + num_species*(27), 2 + s*(27), 0.5*dt*qbym[s]*(0.5*rho[s][2])); 
-    gkyl_mat_set(&lhs, 9 + num_species*(27), 11 + s*(27), 0.5*dt*qbym[s]*(0.5*rho[s][2])); 
-    gkyl_mat_set(&lhs, 18 + num_species*(27), 20 + s*(27), 0.5*dt*qbym[s]*(0.5*rho[s][2])); 
+    if (!pkpm_field_static) { 
+      gkyl_mat_set(&lhs, 0 + num_species*(27), 2 + s*(27), 0.5*dt*qbym[s]*(0.5*rho[s][2])); 
+      gkyl_mat_set(&lhs, 9 + num_species*(27), 11 + s*(27), 0.5*dt*qbym[s]*(0.5*rho[s][2])); 
+      gkyl_mat_set(&lhs, 18 + num_species*(27), 20 + s*(27), 0.5*dt*qbym[s]*(0.5*rho[s][2])); 
+    } 
  
     gkyl_mat_set(&lhs, 0 + s*(27), 3 + s*(27), 0.0); 
     gkyl_mat_set(&lhs, 9 + s*(27), 12 + s*(27), 0.0); 
@@ -334,9 +344,11 @@ GKYL_CU_DH void euler_pkpm_em_coupling_set_2x_tensor_p2(int count,
     gkyl_mat_set(&lhs, 0 + s*(27), 12 + s*(27), B_field_fac*(0.5*tot_Bz[3])); 
     gkyl_mat_set(&lhs, 9 + s*(27), 3 + s*(27), -B_field_fac*(0.5*tot_Bz[3])); 
  
-    gkyl_mat_set(&lhs, 0 + num_species*(27), 3 + s*(27), 0.5*dt*qbym[s]*(0.5*rho[s][3])); 
-    gkyl_mat_set(&lhs, 9 + num_species*(27), 12 + s*(27), 0.5*dt*qbym[s]*(0.5*rho[s][3])); 
-    gkyl_mat_set(&lhs, 18 + num_species*(27), 21 + s*(27), 0.5*dt*qbym[s]*(0.5*rho[s][3])); 
+    if (!pkpm_field_static) { 
+      gkyl_mat_set(&lhs, 0 + num_species*(27), 3 + s*(27), 0.5*dt*qbym[s]*(0.5*rho[s][3])); 
+      gkyl_mat_set(&lhs, 9 + num_species*(27), 12 + s*(27), 0.5*dt*qbym[s]*(0.5*rho[s][3])); 
+      gkyl_mat_set(&lhs, 18 + num_species*(27), 21 + s*(27), 0.5*dt*qbym[s]*(0.5*rho[s][3])); 
+    } 
  
     gkyl_mat_set(&lhs, 0 + s*(27), 4 + s*(27), 0.0); 
     gkyl_mat_set(&lhs, 9 + s*(27), 13 + s*(27), 0.0); 
@@ -355,9 +367,11 @@ GKYL_CU_DH void euler_pkpm_em_coupling_set_2x_tensor_p2(int count,
     gkyl_mat_set(&lhs, 0 + s*(27), 13 + s*(27), B_field_fac*(0.5*tot_Bz[4])); 
     gkyl_mat_set(&lhs, 9 + s*(27), 4 + s*(27), -B_field_fac*(0.5*tot_Bz[4])); 
  
-    gkyl_mat_set(&lhs, 0 + num_species*(27), 4 + s*(27), 0.5*dt*qbym[s]*(0.5*rho[s][4])); 
-    gkyl_mat_set(&lhs, 9 + num_species*(27), 13 + s*(27), 0.5*dt*qbym[s]*(0.5*rho[s][4])); 
-    gkyl_mat_set(&lhs, 18 + num_species*(27), 22 + s*(27), 0.5*dt*qbym[s]*(0.5*rho[s][4])); 
+    if (!pkpm_field_static) { 
+      gkyl_mat_set(&lhs, 0 + num_species*(27), 4 + s*(27), 0.5*dt*qbym[s]*(0.5*rho[s][4])); 
+      gkyl_mat_set(&lhs, 9 + num_species*(27), 13 + s*(27), 0.5*dt*qbym[s]*(0.5*rho[s][4])); 
+      gkyl_mat_set(&lhs, 18 + num_species*(27), 22 + s*(27), 0.5*dt*qbym[s]*(0.5*rho[s][4])); 
+    } 
  
     gkyl_mat_set(&lhs, 0 + s*(27), 5 + s*(27), 0.0); 
     gkyl_mat_set(&lhs, 9 + s*(27), 14 + s*(27), 0.0); 
@@ -376,9 +390,11 @@ GKYL_CU_DH void euler_pkpm_em_coupling_set_2x_tensor_p2(int count,
     gkyl_mat_set(&lhs, 0 + s*(27), 14 + s*(27), B_field_fac*(0.5*tot_Bz[5])); 
     gkyl_mat_set(&lhs, 9 + s*(27), 5 + s*(27), -B_field_fac*(0.5*tot_Bz[5])); 
  
-    gkyl_mat_set(&lhs, 0 + num_species*(27), 5 + s*(27), 0.5*dt*qbym[s]*(0.5*rho[s][5])); 
-    gkyl_mat_set(&lhs, 9 + num_species*(27), 14 + s*(27), 0.5*dt*qbym[s]*(0.5*rho[s][5])); 
-    gkyl_mat_set(&lhs, 18 + num_species*(27), 23 + s*(27), 0.5*dt*qbym[s]*(0.5*rho[s][5])); 
+    if (!pkpm_field_static) { 
+      gkyl_mat_set(&lhs, 0 + num_species*(27), 5 + s*(27), 0.5*dt*qbym[s]*(0.5*rho[s][5])); 
+      gkyl_mat_set(&lhs, 9 + num_species*(27), 14 + s*(27), 0.5*dt*qbym[s]*(0.5*rho[s][5])); 
+      gkyl_mat_set(&lhs, 18 + num_species*(27), 23 + s*(27), 0.5*dt*qbym[s]*(0.5*rho[s][5])); 
+    } 
  
     gkyl_mat_set(&lhs, 0 + s*(27), 6 + s*(27), 0.0); 
     gkyl_mat_set(&lhs, 9 + s*(27), 15 + s*(27), 0.0); 
@@ -397,9 +413,11 @@ GKYL_CU_DH void euler_pkpm_em_coupling_set_2x_tensor_p2(int count,
     gkyl_mat_set(&lhs, 0 + s*(27), 15 + s*(27), B_field_fac*(0.5*tot_Bz[6])); 
     gkyl_mat_set(&lhs, 9 + s*(27), 6 + s*(27), -B_field_fac*(0.5*tot_Bz[6])); 
  
-    gkyl_mat_set(&lhs, 0 + num_species*(27), 6 + s*(27), 0.5*dt*qbym[s]*(0.5*rho[s][6])); 
-    gkyl_mat_set(&lhs, 9 + num_species*(27), 15 + s*(27), 0.5*dt*qbym[s]*(0.5*rho[s][6])); 
-    gkyl_mat_set(&lhs, 18 + num_species*(27), 24 + s*(27), 0.5*dt*qbym[s]*(0.5*rho[s][6])); 
+    if (!pkpm_field_static) { 
+      gkyl_mat_set(&lhs, 0 + num_species*(27), 6 + s*(27), 0.5*dt*qbym[s]*(0.5*rho[s][6])); 
+      gkyl_mat_set(&lhs, 9 + num_species*(27), 15 + s*(27), 0.5*dt*qbym[s]*(0.5*rho[s][6])); 
+      gkyl_mat_set(&lhs, 18 + num_species*(27), 24 + s*(27), 0.5*dt*qbym[s]*(0.5*rho[s][6])); 
+    } 
  
     gkyl_mat_set(&lhs, 0 + s*(27), 7 + s*(27), 0.0); 
     gkyl_mat_set(&lhs, 9 + s*(27), 16 + s*(27), 0.0); 
@@ -418,9 +436,11 @@ GKYL_CU_DH void euler_pkpm_em_coupling_set_2x_tensor_p2(int count,
     gkyl_mat_set(&lhs, 0 + s*(27), 16 + s*(27), B_field_fac*(0.5*tot_Bz[7])); 
     gkyl_mat_set(&lhs, 9 + s*(27), 7 + s*(27), -B_field_fac*(0.5*tot_Bz[7])); 
  
-    gkyl_mat_set(&lhs, 0 + num_species*(27), 7 + s*(27), 0.5*dt*qbym[s]*(0.5*rho[s][7])); 
-    gkyl_mat_set(&lhs, 9 + num_species*(27), 16 + s*(27), 0.5*dt*qbym[s]*(0.5*rho[s][7])); 
-    gkyl_mat_set(&lhs, 18 + num_species*(27), 25 + s*(27), 0.5*dt*qbym[s]*(0.5*rho[s][7])); 
+    if (!pkpm_field_static) { 
+      gkyl_mat_set(&lhs, 0 + num_species*(27), 7 + s*(27), 0.5*dt*qbym[s]*(0.5*rho[s][7])); 
+      gkyl_mat_set(&lhs, 9 + num_species*(27), 16 + s*(27), 0.5*dt*qbym[s]*(0.5*rho[s][7])); 
+      gkyl_mat_set(&lhs, 18 + num_species*(27), 25 + s*(27), 0.5*dt*qbym[s]*(0.5*rho[s][7])); 
+    } 
  
     gkyl_mat_set(&lhs, 0 + s*(27), 8 + s*(27), 0.0); 
     gkyl_mat_set(&lhs, 9 + s*(27), 17 + s*(27), 0.0); 
@@ -439,9 +459,11 @@ GKYL_CU_DH void euler_pkpm_em_coupling_set_2x_tensor_p2(int count,
     gkyl_mat_set(&lhs, 0 + s*(27), 17 + s*(27), B_field_fac*(0.5*tot_Bz[8])); 
     gkyl_mat_set(&lhs, 9 + s*(27), 8 + s*(27), -B_field_fac*(0.5*tot_Bz[8])); 
  
-    gkyl_mat_set(&lhs, 0 + num_species*(27), 8 + s*(27), 0.5*dt*qbym[s]*(0.5*rho[s][8])); 
-    gkyl_mat_set(&lhs, 9 + num_species*(27), 17 + s*(27), 0.5*dt*qbym[s]*(0.5*rho[s][8])); 
-    gkyl_mat_set(&lhs, 18 + num_species*(27), 26 + s*(27), 0.5*dt*qbym[s]*(0.5*rho[s][8])); 
+    if (!pkpm_field_static) { 
+      gkyl_mat_set(&lhs, 0 + num_species*(27), 8 + s*(27), 0.5*dt*qbym[s]*(0.5*rho[s][8])); 
+      gkyl_mat_set(&lhs, 9 + num_species*(27), 17 + s*(27), 0.5*dt*qbym[s]*(0.5*rho[s][8])); 
+      gkyl_mat_set(&lhs, 18 + num_species*(27), 26 + s*(27), 0.5*dt*qbym[s]*(0.5*rho[s][8])); 
+    } 
  
     gkyl_mat_set(&lhs, 1 + s*(27), 0 + s*(27), 0.0); 
     gkyl_mat_set(&lhs, 10 + s*(27), 9 + s*(27), 0.0); 
@@ -460,9 +482,11 @@ GKYL_CU_DH void euler_pkpm_em_coupling_set_2x_tensor_p2(int count,
     gkyl_mat_set(&lhs, 1 + s*(27), 9 + s*(27), B_field_fac*(0.5*tot_Bz[1])); 
     gkyl_mat_set(&lhs, 10 + s*(27), 0 + s*(27), -B_field_fac*(0.5*tot_Bz[1])); 
  
-    gkyl_mat_set(&lhs, 1 + num_species*(27), 0 + s*(27), 0.5*dt*qbym[s]*(0.5*rho[s][1])); 
-    gkyl_mat_set(&lhs, 10 + num_species*(27), 9 + s*(27), 0.5*dt*qbym[s]*(0.5*rho[s][1])); 
-    gkyl_mat_set(&lhs, 19 + num_species*(27), 18 + s*(27), 0.5*dt*qbym[s]*(0.5*rho[s][1])); 
+    if (!pkpm_field_static) { 
+      gkyl_mat_set(&lhs, 1 + num_species*(27), 0 + s*(27), 0.5*dt*qbym[s]*(0.5*rho[s][1])); 
+      gkyl_mat_set(&lhs, 10 + num_species*(27), 9 + s*(27), 0.5*dt*qbym[s]*(0.5*rho[s][1])); 
+      gkyl_mat_set(&lhs, 19 + num_species*(27), 18 + s*(27), 0.5*dt*qbym[s]*(0.5*rho[s][1])); 
+    } 
  
     gkyl_mat_set(&lhs, 1 + s*(27), 1 + s*(27), 1.0); 
     gkyl_mat_set(&lhs, 10 + s*(27), 10 + s*(27), 1.0); 
@@ -481,9 +505,11 @@ GKYL_CU_DH void euler_pkpm_em_coupling_set_2x_tensor_p2(int count,
     gkyl_mat_set(&lhs, 1 + s*(27), 10 + s*(27), B_field_fac*(0.4472135954999579*tot_Bz[4]+0.5*tot_Bz[0])); 
     gkyl_mat_set(&lhs, 10 + s*(27), 1 + s*(27), -B_field_fac*(0.4472135954999579*tot_Bz[4]+0.5*tot_Bz[0])); 
  
-    gkyl_mat_set(&lhs, 1 + num_species*(27), 1 + s*(27), 0.5*dt*qbym[s]*(0.4472135954999579*rho[s][4]+0.5*rho[s][0])); 
-    gkyl_mat_set(&lhs, 10 + num_species*(27), 10 + s*(27), 0.5*dt*qbym[s]*(0.4472135954999579*rho[s][4]+0.5*rho[s][0])); 
-    gkyl_mat_set(&lhs, 19 + num_species*(27), 19 + s*(27), 0.5*dt*qbym[s]*(0.4472135954999579*rho[s][4]+0.5*rho[s][0])); 
+    if (!pkpm_field_static) { 
+      gkyl_mat_set(&lhs, 1 + num_species*(27), 1 + s*(27), 0.5*dt*qbym[s]*(0.4472135954999579*rho[s][4]+0.5*rho[s][0])); 
+      gkyl_mat_set(&lhs, 10 + num_species*(27), 10 + s*(27), 0.5*dt*qbym[s]*(0.4472135954999579*rho[s][4]+0.5*rho[s][0])); 
+      gkyl_mat_set(&lhs, 19 + num_species*(27), 19 + s*(27), 0.5*dt*qbym[s]*(0.4472135954999579*rho[s][4]+0.5*rho[s][0])); 
+    } 
  
     gkyl_mat_set(&lhs, 1 + s*(27), 2 + s*(27), 0.0); 
     gkyl_mat_set(&lhs, 10 + s*(27), 11 + s*(27), 0.0); 
@@ -502,9 +528,11 @@ GKYL_CU_DH void euler_pkpm_em_coupling_set_2x_tensor_p2(int count,
     gkyl_mat_set(&lhs, 1 + s*(27), 11 + s*(27), B_field_fac*(0.5*tot_Bz[3])); 
     gkyl_mat_set(&lhs, 10 + s*(27), 2 + s*(27), -B_field_fac*(0.5*tot_Bz[3])); 
  
-    gkyl_mat_set(&lhs, 1 + num_species*(27), 2 + s*(27), 0.5*dt*qbym[s]*(0.5*rho[s][3])); 
-    gkyl_mat_set(&lhs, 10 + num_species*(27), 11 + s*(27), 0.5*dt*qbym[s]*(0.5*rho[s][3])); 
-    gkyl_mat_set(&lhs, 19 + num_species*(27), 20 + s*(27), 0.5*dt*qbym[s]*(0.5*rho[s][3])); 
+    if (!pkpm_field_static) { 
+      gkyl_mat_set(&lhs, 1 + num_species*(27), 2 + s*(27), 0.5*dt*qbym[s]*(0.5*rho[s][3])); 
+      gkyl_mat_set(&lhs, 10 + num_species*(27), 11 + s*(27), 0.5*dt*qbym[s]*(0.5*rho[s][3])); 
+      gkyl_mat_set(&lhs, 19 + num_species*(27), 20 + s*(27), 0.5*dt*qbym[s]*(0.5*rho[s][3])); 
+    } 
  
     gkyl_mat_set(&lhs, 1 + s*(27), 3 + s*(27), 0.0); 
     gkyl_mat_set(&lhs, 10 + s*(27), 12 + s*(27), 0.0); 
@@ -523,9 +551,11 @@ GKYL_CU_DH void euler_pkpm_em_coupling_set_2x_tensor_p2(int count,
     gkyl_mat_set(&lhs, 1 + s*(27), 12 + s*(27), B_field_fac*(0.447213595499958*tot_Bz[6]+0.5*tot_Bz[2])); 
     gkyl_mat_set(&lhs, 10 + s*(27), 3 + s*(27), -B_field_fac*(0.447213595499958*tot_Bz[6]+0.5*tot_Bz[2])); 
  
-    gkyl_mat_set(&lhs, 1 + num_species*(27), 3 + s*(27), 0.5*dt*qbym[s]*(0.447213595499958*rho[s][6]+0.5*rho[s][2])); 
-    gkyl_mat_set(&lhs, 10 + num_species*(27), 12 + s*(27), 0.5*dt*qbym[s]*(0.447213595499958*rho[s][6]+0.5*rho[s][2])); 
-    gkyl_mat_set(&lhs, 19 + num_species*(27), 21 + s*(27), 0.5*dt*qbym[s]*(0.447213595499958*rho[s][6]+0.5*rho[s][2])); 
+    if (!pkpm_field_static) { 
+      gkyl_mat_set(&lhs, 1 + num_species*(27), 3 + s*(27), 0.5*dt*qbym[s]*(0.447213595499958*rho[s][6]+0.5*rho[s][2])); 
+      gkyl_mat_set(&lhs, 10 + num_species*(27), 12 + s*(27), 0.5*dt*qbym[s]*(0.447213595499958*rho[s][6]+0.5*rho[s][2])); 
+      gkyl_mat_set(&lhs, 19 + num_species*(27), 21 + s*(27), 0.5*dt*qbym[s]*(0.447213595499958*rho[s][6]+0.5*rho[s][2])); 
+    } 
  
     gkyl_mat_set(&lhs, 1 + s*(27), 4 + s*(27), 0.0); 
     gkyl_mat_set(&lhs, 10 + s*(27), 13 + s*(27), 0.0); 
@@ -544,9 +574,11 @@ GKYL_CU_DH void euler_pkpm_em_coupling_set_2x_tensor_p2(int count,
     gkyl_mat_set(&lhs, 1 + s*(27), 13 + s*(27), B_field_fac*(0.4472135954999579*tot_Bz[1])); 
     gkyl_mat_set(&lhs, 10 + s*(27), 4 + s*(27), -B_field_fac*(0.4472135954999579*tot_Bz[1])); 
  
-    gkyl_mat_set(&lhs, 1 + num_species*(27), 4 + s*(27), 0.5*dt*qbym[s]*(0.4472135954999579*rho[s][1])); 
-    gkyl_mat_set(&lhs, 10 + num_species*(27), 13 + s*(27), 0.5*dt*qbym[s]*(0.4472135954999579*rho[s][1])); 
-    gkyl_mat_set(&lhs, 19 + num_species*(27), 22 + s*(27), 0.5*dt*qbym[s]*(0.4472135954999579*rho[s][1])); 
+    if (!pkpm_field_static) { 
+      gkyl_mat_set(&lhs, 1 + num_species*(27), 4 + s*(27), 0.5*dt*qbym[s]*(0.4472135954999579*rho[s][1])); 
+      gkyl_mat_set(&lhs, 10 + num_species*(27), 13 + s*(27), 0.5*dt*qbym[s]*(0.4472135954999579*rho[s][1])); 
+      gkyl_mat_set(&lhs, 19 + num_species*(27), 22 + s*(27), 0.5*dt*qbym[s]*(0.4472135954999579*rho[s][1])); 
+    } 
  
     gkyl_mat_set(&lhs, 1 + s*(27), 5 + s*(27), 0.0); 
     gkyl_mat_set(&lhs, 10 + s*(27), 14 + s*(27), 0.0); 
@@ -565,9 +597,11 @@ GKYL_CU_DH void euler_pkpm_em_coupling_set_2x_tensor_p2(int count,
     gkyl_mat_set(&lhs, 1 + s*(27), 14 + s*(27), B_field_fac*(0.5000000000000001*tot_Bz[7])); 
     gkyl_mat_set(&lhs, 10 + s*(27), 5 + s*(27), -B_field_fac*(0.5000000000000001*tot_Bz[7])); 
  
-    gkyl_mat_set(&lhs, 1 + num_species*(27), 5 + s*(27), 0.5*dt*qbym[s]*(0.5000000000000001*rho[s][7])); 
-    gkyl_mat_set(&lhs, 10 + num_species*(27), 14 + s*(27), 0.5*dt*qbym[s]*(0.5000000000000001*rho[s][7])); 
-    gkyl_mat_set(&lhs, 19 + num_species*(27), 23 + s*(27), 0.5*dt*qbym[s]*(0.5000000000000001*rho[s][7])); 
+    if (!pkpm_field_static) { 
+      gkyl_mat_set(&lhs, 1 + num_species*(27), 5 + s*(27), 0.5*dt*qbym[s]*(0.5000000000000001*rho[s][7])); 
+      gkyl_mat_set(&lhs, 10 + num_species*(27), 14 + s*(27), 0.5*dt*qbym[s]*(0.5000000000000001*rho[s][7])); 
+      gkyl_mat_set(&lhs, 19 + num_species*(27), 23 + s*(27), 0.5*dt*qbym[s]*(0.5000000000000001*rho[s][7])); 
+    } 
  
     gkyl_mat_set(&lhs, 1 + s*(27), 6 + s*(27), 0.0); 
     gkyl_mat_set(&lhs, 10 + s*(27), 15 + s*(27), 0.0); 
@@ -586,9 +620,11 @@ GKYL_CU_DH void euler_pkpm_em_coupling_set_2x_tensor_p2(int count,
     gkyl_mat_set(&lhs, 1 + s*(27), 15 + s*(27), B_field_fac*(0.447213595499958*tot_Bz[3])); 
     gkyl_mat_set(&lhs, 10 + s*(27), 6 + s*(27), -B_field_fac*(0.447213595499958*tot_Bz[3])); 
  
-    gkyl_mat_set(&lhs, 1 + num_species*(27), 6 + s*(27), 0.5*dt*qbym[s]*(0.447213595499958*rho[s][3])); 
-    gkyl_mat_set(&lhs, 10 + num_species*(27), 15 + s*(27), 0.5*dt*qbym[s]*(0.447213595499958*rho[s][3])); 
-    gkyl_mat_set(&lhs, 19 + num_species*(27), 24 + s*(27), 0.5*dt*qbym[s]*(0.447213595499958*rho[s][3])); 
+    if (!pkpm_field_static) { 
+      gkyl_mat_set(&lhs, 1 + num_species*(27), 6 + s*(27), 0.5*dt*qbym[s]*(0.447213595499958*rho[s][3])); 
+      gkyl_mat_set(&lhs, 10 + num_species*(27), 15 + s*(27), 0.5*dt*qbym[s]*(0.447213595499958*rho[s][3])); 
+      gkyl_mat_set(&lhs, 19 + num_species*(27), 24 + s*(27), 0.5*dt*qbym[s]*(0.447213595499958*rho[s][3])); 
+    } 
  
     gkyl_mat_set(&lhs, 1 + s*(27), 7 + s*(27), 0.0); 
     gkyl_mat_set(&lhs, 10 + s*(27), 16 + s*(27), 0.0); 
@@ -607,9 +643,11 @@ GKYL_CU_DH void euler_pkpm_em_coupling_set_2x_tensor_p2(int count,
     gkyl_mat_set(&lhs, 1 + s*(27), 16 + s*(27), B_field_fac*(0.447213595499958*tot_Bz[8]+0.5000000000000001*tot_Bz[5])); 
     gkyl_mat_set(&lhs, 10 + s*(27), 7 + s*(27), -B_field_fac*(0.447213595499958*tot_Bz[8]+0.5000000000000001*tot_Bz[5])); 
  
-    gkyl_mat_set(&lhs, 1 + num_species*(27), 7 + s*(27), 0.5*dt*qbym[s]*(0.447213595499958*rho[s][8]+0.5000000000000001*rho[s][5])); 
-    gkyl_mat_set(&lhs, 10 + num_species*(27), 16 + s*(27), 0.5*dt*qbym[s]*(0.447213595499958*rho[s][8]+0.5000000000000001*rho[s][5])); 
-    gkyl_mat_set(&lhs, 19 + num_species*(27), 25 + s*(27), 0.5*dt*qbym[s]*(0.447213595499958*rho[s][8]+0.5000000000000001*rho[s][5])); 
+    if (!pkpm_field_static) { 
+      gkyl_mat_set(&lhs, 1 + num_species*(27), 7 + s*(27), 0.5*dt*qbym[s]*(0.447213595499958*rho[s][8]+0.5000000000000001*rho[s][5])); 
+      gkyl_mat_set(&lhs, 10 + num_species*(27), 16 + s*(27), 0.5*dt*qbym[s]*(0.447213595499958*rho[s][8]+0.5000000000000001*rho[s][5])); 
+      gkyl_mat_set(&lhs, 19 + num_species*(27), 25 + s*(27), 0.5*dt*qbym[s]*(0.447213595499958*rho[s][8]+0.5000000000000001*rho[s][5])); 
+    } 
  
     gkyl_mat_set(&lhs, 1 + s*(27), 8 + s*(27), 0.0); 
     gkyl_mat_set(&lhs, 10 + s*(27), 17 + s*(27), 0.0); 
@@ -628,9 +666,11 @@ GKYL_CU_DH void euler_pkpm_em_coupling_set_2x_tensor_p2(int count,
     gkyl_mat_set(&lhs, 1 + s*(27), 17 + s*(27), B_field_fac*(0.447213595499958*tot_Bz[7])); 
     gkyl_mat_set(&lhs, 10 + s*(27), 8 + s*(27), -B_field_fac*(0.447213595499958*tot_Bz[7])); 
  
-    gkyl_mat_set(&lhs, 1 + num_species*(27), 8 + s*(27), 0.5*dt*qbym[s]*(0.447213595499958*rho[s][7])); 
-    gkyl_mat_set(&lhs, 10 + num_species*(27), 17 + s*(27), 0.5*dt*qbym[s]*(0.447213595499958*rho[s][7])); 
-    gkyl_mat_set(&lhs, 19 + num_species*(27), 26 + s*(27), 0.5*dt*qbym[s]*(0.447213595499958*rho[s][7])); 
+    if (!pkpm_field_static) { 
+      gkyl_mat_set(&lhs, 1 + num_species*(27), 8 + s*(27), 0.5*dt*qbym[s]*(0.447213595499958*rho[s][7])); 
+      gkyl_mat_set(&lhs, 10 + num_species*(27), 17 + s*(27), 0.5*dt*qbym[s]*(0.447213595499958*rho[s][7])); 
+      gkyl_mat_set(&lhs, 19 + num_species*(27), 26 + s*(27), 0.5*dt*qbym[s]*(0.447213595499958*rho[s][7])); 
+    } 
  
     gkyl_mat_set(&lhs, 2 + s*(27), 0 + s*(27), 0.0); 
     gkyl_mat_set(&lhs, 11 + s*(27), 9 + s*(27), 0.0); 
@@ -649,9 +689,11 @@ GKYL_CU_DH void euler_pkpm_em_coupling_set_2x_tensor_p2(int count,
     gkyl_mat_set(&lhs, 2 + s*(27), 9 + s*(27), B_field_fac*(0.5*tot_Bz[2])); 
     gkyl_mat_set(&lhs, 11 + s*(27), 0 + s*(27), -B_field_fac*(0.5*tot_Bz[2])); 
  
-    gkyl_mat_set(&lhs, 2 + num_species*(27), 0 + s*(27), 0.5*dt*qbym[s]*(0.5*rho[s][2])); 
-    gkyl_mat_set(&lhs, 11 + num_species*(27), 9 + s*(27), 0.5*dt*qbym[s]*(0.5*rho[s][2])); 
-    gkyl_mat_set(&lhs, 20 + num_species*(27), 18 + s*(27), 0.5*dt*qbym[s]*(0.5*rho[s][2])); 
+    if (!pkpm_field_static) { 
+      gkyl_mat_set(&lhs, 2 + num_species*(27), 0 + s*(27), 0.5*dt*qbym[s]*(0.5*rho[s][2])); 
+      gkyl_mat_set(&lhs, 11 + num_species*(27), 9 + s*(27), 0.5*dt*qbym[s]*(0.5*rho[s][2])); 
+      gkyl_mat_set(&lhs, 20 + num_species*(27), 18 + s*(27), 0.5*dt*qbym[s]*(0.5*rho[s][2])); 
+    } 
  
     gkyl_mat_set(&lhs, 2 + s*(27), 1 + s*(27), 0.0); 
     gkyl_mat_set(&lhs, 11 + s*(27), 10 + s*(27), 0.0); 
@@ -670,9 +712,11 @@ GKYL_CU_DH void euler_pkpm_em_coupling_set_2x_tensor_p2(int count,
     gkyl_mat_set(&lhs, 2 + s*(27), 10 + s*(27), B_field_fac*(0.5*tot_Bz[3])); 
     gkyl_mat_set(&lhs, 11 + s*(27), 1 + s*(27), -B_field_fac*(0.5*tot_Bz[3])); 
  
-    gkyl_mat_set(&lhs, 2 + num_species*(27), 1 + s*(27), 0.5*dt*qbym[s]*(0.5*rho[s][3])); 
-    gkyl_mat_set(&lhs, 11 + num_species*(27), 10 + s*(27), 0.5*dt*qbym[s]*(0.5*rho[s][3])); 
-    gkyl_mat_set(&lhs, 20 + num_species*(27), 19 + s*(27), 0.5*dt*qbym[s]*(0.5*rho[s][3])); 
+    if (!pkpm_field_static) { 
+      gkyl_mat_set(&lhs, 2 + num_species*(27), 1 + s*(27), 0.5*dt*qbym[s]*(0.5*rho[s][3])); 
+      gkyl_mat_set(&lhs, 11 + num_species*(27), 10 + s*(27), 0.5*dt*qbym[s]*(0.5*rho[s][3])); 
+      gkyl_mat_set(&lhs, 20 + num_species*(27), 19 + s*(27), 0.5*dt*qbym[s]*(0.5*rho[s][3])); 
+    } 
  
     gkyl_mat_set(&lhs, 2 + s*(27), 2 + s*(27), 1.0); 
     gkyl_mat_set(&lhs, 11 + s*(27), 11 + s*(27), 1.0); 
@@ -691,9 +735,11 @@ GKYL_CU_DH void euler_pkpm_em_coupling_set_2x_tensor_p2(int count,
     gkyl_mat_set(&lhs, 2 + s*(27), 11 + s*(27), B_field_fac*(0.4472135954999579*tot_Bz[5]+0.5*tot_Bz[0])); 
     gkyl_mat_set(&lhs, 11 + s*(27), 2 + s*(27), -B_field_fac*(0.4472135954999579*tot_Bz[5]+0.5*tot_Bz[0])); 
  
-    gkyl_mat_set(&lhs, 2 + num_species*(27), 2 + s*(27), 0.5*dt*qbym[s]*(0.4472135954999579*rho[s][5]+0.5*rho[s][0])); 
-    gkyl_mat_set(&lhs, 11 + num_species*(27), 11 + s*(27), 0.5*dt*qbym[s]*(0.4472135954999579*rho[s][5]+0.5*rho[s][0])); 
-    gkyl_mat_set(&lhs, 20 + num_species*(27), 20 + s*(27), 0.5*dt*qbym[s]*(0.4472135954999579*rho[s][5]+0.5*rho[s][0])); 
+    if (!pkpm_field_static) { 
+      gkyl_mat_set(&lhs, 2 + num_species*(27), 2 + s*(27), 0.5*dt*qbym[s]*(0.4472135954999579*rho[s][5]+0.5*rho[s][0])); 
+      gkyl_mat_set(&lhs, 11 + num_species*(27), 11 + s*(27), 0.5*dt*qbym[s]*(0.4472135954999579*rho[s][5]+0.5*rho[s][0])); 
+      gkyl_mat_set(&lhs, 20 + num_species*(27), 20 + s*(27), 0.5*dt*qbym[s]*(0.4472135954999579*rho[s][5]+0.5*rho[s][0])); 
+    } 
  
     gkyl_mat_set(&lhs, 2 + s*(27), 3 + s*(27), 0.0); 
     gkyl_mat_set(&lhs, 11 + s*(27), 12 + s*(27), 0.0); 
@@ -712,9 +758,11 @@ GKYL_CU_DH void euler_pkpm_em_coupling_set_2x_tensor_p2(int count,
     gkyl_mat_set(&lhs, 2 + s*(27), 12 + s*(27), B_field_fac*(0.447213595499958*tot_Bz[7]+0.5*tot_Bz[1])); 
     gkyl_mat_set(&lhs, 11 + s*(27), 3 + s*(27), -B_field_fac*(0.447213595499958*tot_Bz[7]+0.5*tot_Bz[1])); 
  
-    gkyl_mat_set(&lhs, 2 + num_species*(27), 3 + s*(27), 0.5*dt*qbym[s]*(0.447213595499958*rho[s][7]+0.5*rho[s][1])); 
-    gkyl_mat_set(&lhs, 11 + num_species*(27), 12 + s*(27), 0.5*dt*qbym[s]*(0.447213595499958*rho[s][7]+0.5*rho[s][1])); 
-    gkyl_mat_set(&lhs, 20 + num_species*(27), 21 + s*(27), 0.5*dt*qbym[s]*(0.447213595499958*rho[s][7]+0.5*rho[s][1])); 
+    if (!pkpm_field_static) { 
+      gkyl_mat_set(&lhs, 2 + num_species*(27), 3 + s*(27), 0.5*dt*qbym[s]*(0.447213595499958*rho[s][7]+0.5*rho[s][1])); 
+      gkyl_mat_set(&lhs, 11 + num_species*(27), 12 + s*(27), 0.5*dt*qbym[s]*(0.447213595499958*rho[s][7]+0.5*rho[s][1])); 
+      gkyl_mat_set(&lhs, 20 + num_species*(27), 21 + s*(27), 0.5*dt*qbym[s]*(0.447213595499958*rho[s][7]+0.5*rho[s][1])); 
+    } 
  
     gkyl_mat_set(&lhs, 2 + s*(27), 4 + s*(27), 0.0); 
     gkyl_mat_set(&lhs, 11 + s*(27), 13 + s*(27), 0.0); 
@@ -733,9 +781,11 @@ GKYL_CU_DH void euler_pkpm_em_coupling_set_2x_tensor_p2(int count,
     gkyl_mat_set(&lhs, 2 + s*(27), 13 + s*(27), B_field_fac*(0.5000000000000001*tot_Bz[6])); 
     gkyl_mat_set(&lhs, 11 + s*(27), 4 + s*(27), -B_field_fac*(0.5000000000000001*tot_Bz[6])); 
  
-    gkyl_mat_set(&lhs, 2 + num_species*(27), 4 + s*(27), 0.5*dt*qbym[s]*(0.5000000000000001*rho[s][6])); 
-    gkyl_mat_set(&lhs, 11 + num_species*(27), 13 + s*(27), 0.5*dt*qbym[s]*(0.5000000000000001*rho[s][6])); 
-    gkyl_mat_set(&lhs, 20 + num_species*(27), 22 + s*(27), 0.5*dt*qbym[s]*(0.5000000000000001*rho[s][6])); 
+    if (!pkpm_field_static) { 
+      gkyl_mat_set(&lhs, 2 + num_species*(27), 4 + s*(27), 0.5*dt*qbym[s]*(0.5000000000000001*rho[s][6])); 
+      gkyl_mat_set(&lhs, 11 + num_species*(27), 13 + s*(27), 0.5*dt*qbym[s]*(0.5000000000000001*rho[s][6])); 
+      gkyl_mat_set(&lhs, 20 + num_species*(27), 22 + s*(27), 0.5*dt*qbym[s]*(0.5000000000000001*rho[s][6])); 
+    } 
  
     gkyl_mat_set(&lhs, 2 + s*(27), 5 + s*(27), 0.0); 
     gkyl_mat_set(&lhs, 11 + s*(27), 14 + s*(27), 0.0); 
@@ -754,9 +804,11 @@ GKYL_CU_DH void euler_pkpm_em_coupling_set_2x_tensor_p2(int count,
     gkyl_mat_set(&lhs, 2 + s*(27), 14 + s*(27), B_field_fac*(0.4472135954999579*tot_Bz[2])); 
     gkyl_mat_set(&lhs, 11 + s*(27), 5 + s*(27), -B_field_fac*(0.4472135954999579*tot_Bz[2])); 
  
-    gkyl_mat_set(&lhs, 2 + num_species*(27), 5 + s*(27), 0.5*dt*qbym[s]*(0.4472135954999579*rho[s][2])); 
-    gkyl_mat_set(&lhs, 11 + num_species*(27), 14 + s*(27), 0.5*dt*qbym[s]*(0.4472135954999579*rho[s][2])); 
-    gkyl_mat_set(&lhs, 20 + num_species*(27), 23 + s*(27), 0.5*dt*qbym[s]*(0.4472135954999579*rho[s][2])); 
+    if (!pkpm_field_static) { 
+      gkyl_mat_set(&lhs, 2 + num_species*(27), 5 + s*(27), 0.5*dt*qbym[s]*(0.4472135954999579*rho[s][2])); 
+      gkyl_mat_set(&lhs, 11 + num_species*(27), 14 + s*(27), 0.5*dt*qbym[s]*(0.4472135954999579*rho[s][2])); 
+      gkyl_mat_set(&lhs, 20 + num_species*(27), 23 + s*(27), 0.5*dt*qbym[s]*(0.4472135954999579*rho[s][2])); 
+    } 
  
     gkyl_mat_set(&lhs, 2 + s*(27), 6 + s*(27), 0.0); 
     gkyl_mat_set(&lhs, 11 + s*(27), 15 + s*(27), 0.0); 
@@ -775,9 +827,11 @@ GKYL_CU_DH void euler_pkpm_em_coupling_set_2x_tensor_p2(int count,
     gkyl_mat_set(&lhs, 2 + s*(27), 15 + s*(27), B_field_fac*(0.447213595499958*tot_Bz[8]+0.5000000000000001*tot_Bz[4])); 
     gkyl_mat_set(&lhs, 11 + s*(27), 6 + s*(27), -B_field_fac*(0.447213595499958*tot_Bz[8]+0.5000000000000001*tot_Bz[4])); 
  
-    gkyl_mat_set(&lhs, 2 + num_species*(27), 6 + s*(27), 0.5*dt*qbym[s]*(0.447213595499958*rho[s][8]+0.5000000000000001*rho[s][4])); 
-    gkyl_mat_set(&lhs, 11 + num_species*(27), 15 + s*(27), 0.5*dt*qbym[s]*(0.447213595499958*rho[s][8]+0.5000000000000001*rho[s][4])); 
-    gkyl_mat_set(&lhs, 20 + num_species*(27), 24 + s*(27), 0.5*dt*qbym[s]*(0.447213595499958*rho[s][8]+0.5000000000000001*rho[s][4])); 
+    if (!pkpm_field_static) { 
+      gkyl_mat_set(&lhs, 2 + num_species*(27), 6 + s*(27), 0.5*dt*qbym[s]*(0.447213595499958*rho[s][8]+0.5000000000000001*rho[s][4])); 
+      gkyl_mat_set(&lhs, 11 + num_species*(27), 15 + s*(27), 0.5*dt*qbym[s]*(0.447213595499958*rho[s][8]+0.5000000000000001*rho[s][4])); 
+      gkyl_mat_set(&lhs, 20 + num_species*(27), 24 + s*(27), 0.5*dt*qbym[s]*(0.447213595499958*rho[s][8]+0.5000000000000001*rho[s][4])); 
+    } 
  
     gkyl_mat_set(&lhs, 2 + s*(27), 7 + s*(27), 0.0); 
     gkyl_mat_set(&lhs, 11 + s*(27), 16 + s*(27), 0.0); 
@@ -796,9 +850,11 @@ GKYL_CU_DH void euler_pkpm_em_coupling_set_2x_tensor_p2(int count,
     gkyl_mat_set(&lhs, 2 + s*(27), 16 + s*(27), B_field_fac*(0.447213595499958*tot_Bz[3])); 
     gkyl_mat_set(&lhs, 11 + s*(27), 7 + s*(27), -B_field_fac*(0.447213595499958*tot_Bz[3])); 
  
-    gkyl_mat_set(&lhs, 2 + num_species*(27), 7 + s*(27), 0.5*dt*qbym[s]*(0.447213595499958*rho[s][3])); 
-    gkyl_mat_set(&lhs, 11 + num_species*(27), 16 + s*(27), 0.5*dt*qbym[s]*(0.447213595499958*rho[s][3])); 
-    gkyl_mat_set(&lhs, 20 + num_species*(27), 25 + s*(27), 0.5*dt*qbym[s]*(0.447213595499958*rho[s][3])); 
+    if (!pkpm_field_static) { 
+      gkyl_mat_set(&lhs, 2 + num_species*(27), 7 + s*(27), 0.5*dt*qbym[s]*(0.447213595499958*rho[s][3])); 
+      gkyl_mat_set(&lhs, 11 + num_species*(27), 16 + s*(27), 0.5*dt*qbym[s]*(0.447213595499958*rho[s][3])); 
+      gkyl_mat_set(&lhs, 20 + num_species*(27), 25 + s*(27), 0.5*dt*qbym[s]*(0.447213595499958*rho[s][3])); 
+    } 
  
     gkyl_mat_set(&lhs, 2 + s*(27), 8 + s*(27), 0.0); 
     gkyl_mat_set(&lhs, 11 + s*(27), 17 + s*(27), 0.0); 
@@ -817,9 +873,11 @@ GKYL_CU_DH void euler_pkpm_em_coupling_set_2x_tensor_p2(int count,
     gkyl_mat_set(&lhs, 2 + s*(27), 17 + s*(27), B_field_fac*(0.447213595499958*tot_Bz[6])); 
     gkyl_mat_set(&lhs, 11 + s*(27), 8 + s*(27), -B_field_fac*(0.447213595499958*tot_Bz[6])); 
  
-    gkyl_mat_set(&lhs, 2 + num_species*(27), 8 + s*(27), 0.5*dt*qbym[s]*(0.447213595499958*rho[s][6])); 
-    gkyl_mat_set(&lhs, 11 + num_species*(27), 17 + s*(27), 0.5*dt*qbym[s]*(0.447213595499958*rho[s][6])); 
-    gkyl_mat_set(&lhs, 20 + num_species*(27), 26 + s*(27), 0.5*dt*qbym[s]*(0.447213595499958*rho[s][6])); 
+    if (!pkpm_field_static) { 
+      gkyl_mat_set(&lhs, 2 + num_species*(27), 8 + s*(27), 0.5*dt*qbym[s]*(0.447213595499958*rho[s][6])); 
+      gkyl_mat_set(&lhs, 11 + num_species*(27), 17 + s*(27), 0.5*dt*qbym[s]*(0.447213595499958*rho[s][6])); 
+      gkyl_mat_set(&lhs, 20 + num_species*(27), 26 + s*(27), 0.5*dt*qbym[s]*(0.447213595499958*rho[s][6])); 
+    } 
  
     gkyl_mat_set(&lhs, 3 + s*(27), 0 + s*(27), 0.0); 
     gkyl_mat_set(&lhs, 12 + s*(27), 9 + s*(27), 0.0); 
@@ -838,9 +896,11 @@ GKYL_CU_DH void euler_pkpm_em_coupling_set_2x_tensor_p2(int count,
     gkyl_mat_set(&lhs, 3 + s*(27), 9 + s*(27), B_field_fac*(0.5*tot_Bz[3])); 
     gkyl_mat_set(&lhs, 12 + s*(27), 0 + s*(27), -B_field_fac*(0.5*tot_Bz[3])); 
  
-    gkyl_mat_set(&lhs, 3 + num_species*(27), 0 + s*(27), 0.5*dt*qbym[s]*(0.5*rho[s][3])); 
-    gkyl_mat_set(&lhs, 12 + num_species*(27), 9 + s*(27), 0.5*dt*qbym[s]*(0.5*rho[s][3])); 
-    gkyl_mat_set(&lhs, 21 + num_species*(27), 18 + s*(27), 0.5*dt*qbym[s]*(0.5*rho[s][3])); 
+    if (!pkpm_field_static) { 
+      gkyl_mat_set(&lhs, 3 + num_species*(27), 0 + s*(27), 0.5*dt*qbym[s]*(0.5*rho[s][3])); 
+      gkyl_mat_set(&lhs, 12 + num_species*(27), 9 + s*(27), 0.5*dt*qbym[s]*(0.5*rho[s][3])); 
+      gkyl_mat_set(&lhs, 21 + num_species*(27), 18 + s*(27), 0.5*dt*qbym[s]*(0.5*rho[s][3])); 
+    } 
  
     gkyl_mat_set(&lhs, 3 + s*(27), 1 + s*(27), 0.0); 
     gkyl_mat_set(&lhs, 12 + s*(27), 10 + s*(27), 0.0); 
@@ -859,9 +919,11 @@ GKYL_CU_DH void euler_pkpm_em_coupling_set_2x_tensor_p2(int count,
     gkyl_mat_set(&lhs, 3 + s*(27), 10 + s*(27), B_field_fac*(0.447213595499958*tot_Bz[6]+0.5*tot_Bz[2])); 
     gkyl_mat_set(&lhs, 12 + s*(27), 1 + s*(27), -B_field_fac*(0.447213595499958*tot_Bz[6]+0.5*tot_Bz[2])); 
  
-    gkyl_mat_set(&lhs, 3 + num_species*(27), 1 + s*(27), 0.5*dt*qbym[s]*(0.447213595499958*rho[s][6]+0.5*rho[s][2])); 
-    gkyl_mat_set(&lhs, 12 + num_species*(27), 10 + s*(27), 0.5*dt*qbym[s]*(0.447213595499958*rho[s][6]+0.5*rho[s][2])); 
-    gkyl_mat_set(&lhs, 21 + num_species*(27), 19 + s*(27), 0.5*dt*qbym[s]*(0.447213595499958*rho[s][6]+0.5*rho[s][2])); 
+    if (!pkpm_field_static) { 
+      gkyl_mat_set(&lhs, 3 + num_species*(27), 1 + s*(27), 0.5*dt*qbym[s]*(0.447213595499958*rho[s][6]+0.5*rho[s][2])); 
+      gkyl_mat_set(&lhs, 12 + num_species*(27), 10 + s*(27), 0.5*dt*qbym[s]*(0.447213595499958*rho[s][6]+0.5*rho[s][2])); 
+      gkyl_mat_set(&lhs, 21 + num_species*(27), 19 + s*(27), 0.5*dt*qbym[s]*(0.447213595499958*rho[s][6]+0.5*rho[s][2])); 
+    } 
  
     gkyl_mat_set(&lhs, 3 + s*(27), 2 + s*(27), 0.0); 
     gkyl_mat_set(&lhs, 12 + s*(27), 11 + s*(27), 0.0); 
@@ -880,9 +942,11 @@ GKYL_CU_DH void euler_pkpm_em_coupling_set_2x_tensor_p2(int count,
     gkyl_mat_set(&lhs, 3 + s*(27), 11 + s*(27), B_field_fac*(0.447213595499958*tot_Bz[7]+0.5*tot_Bz[1])); 
     gkyl_mat_set(&lhs, 12 + s*(27), 2 + s*(27), -B_field_fac*(0.447213595499958*tot_Bz[7]+0.5*tot_Bz[1])); 
  
-    gkyl_mat_set(&lhs, 3 + num_species*(27), 2 + s*(27), 0.5*dt*qbym[s]*(0.447213595499958*rho[s][7]+0.5*rho[s][1])); 
-    gkyl_mat_set(&lhs, 12 + num_species*(27), 11 + s*(27), 0.5*dt*qbym[s]*(0.447213595499958*rho[s][7]+0.5*rho[s][1])); 
-    gkyl_mat_set(&lhs, 21 + num_species*(27), 20 + s*(27), 0.5*dt*qbym[s]*(0.447213595499958*rho[s][7]+0.5*rho[s][1])); 
+    if (!pkpm_field_static) { 
+      gkyl_mat_set(&lhs, 3 + num_species*(27), 2 + s*(27), 0.5*dt*qbym[s]*(0.447213595499958*rho[s][7]+0.5*rho[s][1])); 
+      gkyl_mat_set(&lhs, 12 + num_species*(27), 11 + s*(27), 0.5*dt*qbym[s]*(0.447213595499958*rho[s][7]+0.5*rho[s][1])); 
+      gkyl_mat_set(&lhs, 21 + num_species*(27), 20 + s*(27), 0.5*dt*qbym[s]*(0.447213595499958*rho[s][7]+0.5*rho[s][1])); 
+    } 
  
     gkyl_mat_set(&lhs, 3 + s*(27), 3 + s*(27), 1.0); 
     gkyl_mat_set(&lhs, 12 + s*(27), 12 + s*(27), 1.0); 
@@ -901,9 +965,11 @@ GKYL_CU_DH void euler_pkpm_em_coupling_set_2x_tensor_p2(int count,
     gkyl_mat_set(&lhs, 3 + s*(27), 12 + s*(27), B_field_fac*(0.4*tot_Bz[8]+0.4472135954999579*tot_Bz[5]+0.4472135954999579*tot_Bz[4]+0.5*tot_Bz[0])); 
     gkyl_mat_set(&lhs, 12 + s*(27), 3 + s*(27), -B_field_fac*(0.4*tot_Bz[8]+0.4472135954999579*tot_Bz[5]+0.4472135954999579*tot_Bz[4]+0.5*tot_Bz[0])); 
  
-    gkyl_mat_set(&lhs, 3 + num_species*(27), 3 + s*(27), 0.5*dt*qbym[s]*(0.4*rho[s][8]+0.4472135954999579*rho[s][5]+0.4472135954999579*rho[s][4]+0.5*rho[s][0])); 
-    gkyl_mat_set(&lhs, 12 + num_species*(27), 12 + s*(27), 0.5*dt*qbym[s]*(0.4*rho[s][8]+0.4472135954999579*rho[s][5]+0.4472135954999579*rho[s][4]+0.5*rho[s][0])); 
-    gkyl_mat_set(&lhs, 21 + num_species*(27), 21 + s*(27), 0.5*dt*qbym[s]*(0.4*rho[s][8]+0.4472135954999579*rho[s][5]+0.4472135954999579*rho[s][4]+0.5*rho[s][0])); 
+    if (!pkpm_field_static) { 
+      gkyl_mat_set(&lhs, 3 + num_species*(27), 3 + s*(27), 0.5*dt*qbym[s]*(0.4*rho[s][8]+0.4472135954999579*rho[s][5]+0.4472135954999579*rho[s][4]+0.5*rho[s][0])); 
+      gkyl_mat_set(&lhs, 12 + num_species*(27), 12 + s*(27), 0.5*dt*qbym[s]*(0.4*rho[s][8]+0.4472135954999579*rho[s][5]+0.4472135954999579*rho[s][4]+0.5*rho[s][0])); 
+      gkyl_mat_set(&lhs, 21 + num_species*(27), 21 + s*(27), 0.5*dt*qbym[s]*(0.4*rho[s][8]+0.4472135954999579*rho[s][5]+0.4472135954999579*rho[s][4]+0.5*rho[s][0])); 
+    } 
  
     gkyl_mat_set(&lhs, 3 + s*(27), 4 + s*(27), 0.0); 
     gkyl_mat_set(&lhs, 12 + s*(27), 13 + s*(27), 0.0); 
@@ -922,9 +988,11 @@ GKYL_CU_DH void euler_pkpm_em_coupling_set_2x_tensor_p2(int count,
     gkyl_mat_set(&lhs, 3 + s*(27), 13 + s*(27), B_field_fac*(0.4472135954999579*tot_Bz[3])); 
     gkyl_mat_set(&lhs, 12 + s*(27), 4 + s*(27), -B_field_fac*(0.4472135954999579*tot_Bz[3])); 
  
-    gkyl_mat_set(&lhs, 3 + num_species*(27), 4 + s*(27), 0.5*dt*qbym[s]*(0.4472135954999579*rho[s][3])); 
-    gkyl_mat_set(&lhs, 12 + num_species*(27), 13 + s*(27), 0.5*dt*qbym[s]*(0.4472135954999579*rho[s][3])); 
-    gkyl_mat_set(&lhs, 21 + num_species*(27), 22 + s*(27), 0.5*dt*qbym[s]*(0.4472135954999579*rho[s][3])); 
+    if (!pkpm_field_static) { 
+      gkyl_mat_set(&lhs, 3 + num_species*(27), 4 + s*(27), 0.5*dt*qbym[s]*(0.4472135954999579*rho[s][3])); 
+      gkyl_mat_set(&lhs, 12 + num_species*(27), 13 + s*(27), 0.5*dt*qbym[s]*(0.4472135954999579*rho[s][3])); 
+      gkyl_mat_set(&lhs, 21 + num_species*(27), 22 + s*(27), 0.5*dt*qbym[s]*(0.4472135954999579*rho[s][3])); 
+    } 
  
     gkyl_mat_set(&lhs, 3 + s*(27), 5 + s*(27), 0.0); 
     gkyl_mat_set(&lhs, 12 + s*(27), 14 + s*(27), 0.0); 
@@ -943,9 +1011,11 @@ GKYL_CU_DH void euler_pkpm_em_coupling_set_2x_tensor_p2(int count,
     gkyl_mat_set(&lhs, 3 + s*(27), 14 + s*(27), B_field_fac*(0.4472135954999579*tot_Bz[3])); 
     gkyl_mat_set(&lhs, 12 + s*(27), 5 + s*(27), -B_field_fac*(0.4472135954999579*tot_Bz[3])); 
  
-    gkyl_mat_set(&lhs, 3 + num_species*(27), 5 + s*(27), 0.5*dt*qbym[s]*(0.4472135954999579*rho[s][3])); 
-    gkyl_mat_set(&lhs, 12 + num_species*(27), 14 + s*(27), 0.5*dt*qbym[s]*(0.4472135954999579*rho[s][3])); 
-    gkyl_mat_set(&lhs, 21 + num_species*(27), 23 + s*(27), 0.5*dt*qbym[s]*(0.4472135954999579*rho[s][3])); 
+    if (!pkpm_field_static) { 
+      gkyl_mat_set(&lhs, 3 + num_species*(27), 5 + s*(27), 0.5*dt*qbym[s]*(0.4472135954999579*rho[s][3])); 
+      gkyl_mat_set(&lhs, 12 + num_species*(27), 14 + s*(27), 0.5*dt*qbym[s]*(0.4472135954999579*rho[s][3])); 
+      gkyl_mat_set(&lhs, 21 + num_species*(27), 23 + s*(27), 0.5*dt*qbym[s]*(0.4472135954999579*rho[s][3])); 
+    } 
  
     gkyl_mat_set(&lhs, 3 + s*(27), 6 + s*(27), 0.0); 
     gkyl_mat_set(&lhs, 12 + s*(27), 15 + s*(27), 0.0); 
@@ -964,9 +1034,11 @@ GKYL_CU_DH void euler_pkpm_em_coupling_set_2x_tensor_p2(int count,
     gkyl_mat_set(&lhs, 3 + s*(27), 15 + s*(27), B_field_fac*(0.4*tot_Bz[7]+0.447213595499958*tot_Bz[1])); 
     gkyl_mat_set(&lhs, 12 + s*(27), 6 + s*(27), -B_field_fac*(0.4*tot_Bz[7]+0.447213595499958*tot_Bz[1])); 
  
-    gkyl_mat_set(&lhs, 3 + num_species*(27), 6 + s*(27), 0.5*dt*qbym[s]*(0.4*rho[s][7]+0.447213595499958*rho[s][1])); 
-    gkyl_mat_set(&lhs, 12 + num_species*(27), 15 + s*(27), 0.5*dt*qbym[s]*(0.4*rho[s][7]+0.447213595499958*rho[s][1])); 
-    gkyl_mat_set(&lhs, 21 + num_species*(27), 24 + s*(27), 0.5*dt*qbym[s]*(0.4*rho[s][7]+0.447213595499958*rho[s][1])); 
+    if (!pkpm_field_static) { 
+      gkyl_mat_set(&lhs, 3 + num_species*(27), 6 + s*(27), 0.5*dt*qbym[s]*(0.4*rho[s][7]+0.447213595499958*rho[s][1])); 
+      gkyl_mat_set(&lhs, 12 + num_species*(27), 15 + s*(27), 0.5*dt*qbym[s]*(0.4*rho[s][7]+0.447213595499958*rho[s][1])); 
+      gkyl_mat_set(&lhs, 21 + num_species*(27), 24 + s*(27), 0.5*dt*qbym[s]*(0.4*rho[s][7]+0.447213595499958*rho[s][1])); 
+    } 
  
     gkyl_mat_set(&lhs, 3 + s*(27), 7 + s*(27), 0.0); 
     gkyl_mat_set(&lhs, 12 + s*(27), 16 + s*(27), 0.0); 
@@ -985,9 +1057,11 @@ GKYL_CU_DH void euler_pkpm_em_coupling_set_2x_tensor_p2(int count,
     gkyl_mat_set(&lhs, 3 + s*(27), 16 + s*(27), B_field_fac*(0.4*tot_Bz[6]+0.447213595499958*tot_Bz[2])); 
     gkyl_mat_set(&lhs, 12 + s*(27), 7 + s*(27), -B_field_fac*(0.4*tot_Bz[6]+0.447213595499958*tot_Bz[2])); 
  
-    gkyl_mat_set(&lhs, 3 + num_species*(27), 7 + s*(27), 0.5*dt*qbym[s]*(0.4*rho[s][6]+0.447213595499958*rho[s][2])); 
-    gkyl_mat_set(&lhs, 12 + num_species*(27), 16 + s*(27), 0.5*dt*qbym[s]*(0.4*rho[s][6]+0.447213595499958*rho[s][2])); 
-    gkyl_mat_set(&lhs, 21 + num_species*(27), 25 + s*(27), 0.5*dt*qbym[s]*(0.4*rho[s][6]+0.447213595499958*rho[s][2])); 
+    if (!pkpm_field_static) { 
+      gkyl_mat_set(&lhs, 3 + num_species*(27), 7 + s*(27), 0.5*dt*qbym[s]*(0.4*rho[s][6]+0.447213595499958*rho[s][2])); 
+      gkyl_mat_set(&lhs, 12 + num_species*(27), 16 + s*(27), 0.5*dt*qbym[s]*(0.4*rho[s][6]+0.447213595499958*rho[s][2])); 
+      gkyl_mat_set(&lhs, 21 + num_species*(27), 25 + s*(27), 0.5*dt*qbym[s]*(0.4*rho[s][6]+0.447213595499958*rho[s][2])); 
+    } 
  
     gkyl_mat_set(&lhs, 3 + s*(27), 8 + s*(27), 0.0); 
     gkyl_mat_set(&lhs, 12 + s*(27), 17 + s*(27), 0.0); 
@@ -1006,9 +1080,11 @@ GKYL_CU_DH void euler_pkpm_em_coupling_set_2x_tensor_p2(int count,
     gkyl_mat_set(&lhs, 3 + s*(27), 17 + s*(27), B_field_fac*(0.4*tot_Bz[3])); 
     gkyl_mat_set(&lhs, 12 + s*(27), 8 + s*(27), -B_field_fac*(0.4*tot_Bz[3])); 
  
-    gkyl_mat_set(&lhs, 3 + num_species*(27), 8 + s*(27), 0.5*dt*qbym[s]*(0.4*rho[s][3])); 
-    gkyl_mat_set(&lhs, 12 + num_species*(27), 17 + s*(27), 0.5*dt*qbym[s]*(0.4*rho[s][3])); 
-    gkyl_mat_set(&lhs, 21 + num_species*(27), 26 + s*(27), 0.5*dt*qbym[s]*(0.4*rho[s][3])); 
+    if (!pkpm_field_static) { 
+      gkyl_mat_set(&lhs, 3 + num_species*(27), 8 + s*(27), 0.5*dt*qbym[s]*(0.4*rho[s][3])); 
+      gkyl_mat_set(&lhs, 12 + num_species*(27), 17 + s*(27), 0.5*dt*qbym[s]*(0.4*rho[s][3])); 
+      gkyl_mat_set(&lhs, 21 + num_species*(27), 26 + s*(27), 0.5*dt*qbym[s]*(0.4*rho[s][3])); 
+    } 
  
     gkyl_mat_set(&lhs, 4 + s*(27), 0 + s*(27), 0.0); 
     gkyl_mat_set(&lhs, 13 + s*(27), 9 + s*(27), 0.0); 
@@ -1027,9 +1103,11 @@ GKYL_CU_DH void euler_pkpm_em_coupling_set_2x_tensor_p2(int count,
     gkyl_mat_set(&lhs, 4 + s*(27), 9 + s*(27), B_field_fac*(0.5*tot_Bz[4])); 
     gkyl_mat_set(&lhs, 13 + s*(27), 0 + s*(27), -B_field_fac*(0.5*tot_Bz[4])); 
  
-    gkyl_mat_set(&lhs, 4 + num_species*(27), 0 + s*(27), 0.5*dt*qbym[s]*(0.5*rho[s][4])); 
-    gkyl_mat_set(&lhs, 13 + num_species*(27), 9 + s*(27), 0.5*dt*qbym[s]*(0.5*rho[s][4])); 
-    gkyl_mat_set(&lhs, 22 + num_species*(27), 18 + s*(27), 0.5*dt*qbym[s]*(0.5*rho[s][4])); 
+    if (!pkpm_field_static) { 
+      gkyl_mat_set(&lhs, 4 + num_species*(27), 0 + s*(27), 0.5*dt*qbym[s]*(0.5*rho[s][4])); 
+      gkyl_mat_set(&lhs, 13 + num_species*(27), 9 + s*(27), 0.5*dt*qbym[s]*(0.5*rho[s][4])); 
+      gkyl_mat_set(&lhs, 22 + num_species*(27), 18 + s*(27), 0.5*dt*qbym[s]*(0.5*rho[s][4])); 
+    } 
  
     gkyl_mat_set(&lhs, 4 + s*(27), 1 + s*(27), 0.0); 
     gkyl_mat_set(&lhs, 13 + s*(27), 10 + s*(27), 0.0); 
@@ -1048,9 +1126,11 @@ GKYL_CU_DH void euler_pkpm_em_coupling_set_2x_tensor_p2(int count,
     gkyl_mat_set(&lhs, 4 + s*(27), 10 + s*(27), B_field_fac*(0.4472135954999579*tot_Bz[1])); 
     gkyl_mat_set(&lhs, 13 + s*(27), 1 + s*(27), -B_field_fac*(0.4472135954999579*tot_Bz[1])); 
  
-    gkyl_mat_set(&lhs, 4 + num_species*(27), 1 + s*(27), 0.5*dt*qbym[s]*(0.4472135954999579*rho[s][1])); 
-    gkyl_mat_set(&lhs, 13 + num_species*(27), 10 + s*(27), 0.5*dt*qbym[s]*(0.4472135954999579*rho[s][1])); 
-    gkyl_mat_set(&lhs, 22 + num_species*(27), 19 + s*(27), 0.5*dt*qbym[s]*(0.4472135954999579*rho[s][1])); 
+    if (!pkpm_field_static) { 
+      gkyl_mat_set(&lhs, 4 + num_species*(27), 1 + s*(27), 0.5*dt*qbym[s]*(0.4472135954999579*rho[s][1])); 
+      gkyl_mat_set(&lhs, 13 + num_species*(27), 10 + s*(27), 0.5*dt*qbym[s]*(0.4472135954999579*rho[s][1])); 
+      gkyl_mat_set(&lhs, 22 + num_species*(27), 19 + s*(27), 0.5*dt*qbym[s]*(0.4472135954999579*rho[s][1])); 
+    } 
  
     gkyl_mat_set(&lhs, 4 + s*(27), 2 + s*(27), 0.0); 
     gkyl_mat_set(&lhs, 13 + s*(27), 11 + s*(27), 0.0); 
@@ -1069,9 +1149,11 @@ GKYL_CU_DH void euler_pkpm_em_coupling_set_2x_tensor_p2(int count,
     gkyl_mat_set(&lhs, 4 + s*(27), 11 + s*(27), B_field_fac*(0.5000000000000001*tot_Bz[6])); 
     gkyl_mat_set(&lhs, 13 + s*(27), 2 + s*(27), -B_field_fac*(0.5000000000000001*tot_Bz[6])); 
  
-    gkyl_mat_set(&lhs, 4 + num_species*(27), 2 + s*(27), 0.5*dt*qbym[s]*(0.5000000000000001*rho[s][6])); 
-    gkyl_mat_set(&lhs, 13 + num_species*(27), 11 + s*(27), 0.5*dt*qbym[s]*(0.5000000000000001*rho[s][6])); 
-    gkyl_mat_set(&lhs, 22 + num_species*(27), 20 + s*(27), 0.5*dt*qbym[s]*(0.5000000000000001*rho[s][6])); 
+    if (!pkpm_field_static) { 
+      gkyl_mat_set(&lhs, 4 + num_species*(27), 2 + s*(27), 0.5*dt*qbym[s]*(0.5000000000000001*rho[s][6])); 
+      gkyl_mat_set(&lhs, 13 + num_species*(27), 11 + s*(27), 0.5*dt*qbym[s]*(0.5000000000000001*rho[s][6])); 
+      gkyl_mat_set(&lhs, 22 + num_species*(27), 20 + s*(27), 0.5*dt*qbym[s]*(0.5000000000000001*rho[s][6])); 
+    } 
  
     gkyl_mat_set(&lhs, 4 + s*(27), 3 + s*(27), 0.0); 
     gkyl_mat_set(&lhs, 13 + s*(27), 12 + s*(27), 0.0); 
@@ -1090,9 +1172,11 @@ GKYL_CU_DH void euler_pkpm_em_coupling_set_2x_tensor_p2(int count,
     gkyl_mat_set(&lhs, 4 + s*(27), 12 + s*(27), B_field_fac*(0.4472135954999579*tot_Bz[3])); 
     gkyl_mat_set(&lhs, 13 + s*(27), 3 + s*(27), -B_field_fac*(0.4472135954999579*tot_Bz[3])); 
  
-    gkyl_mat_set(&lhs, 4 + num_species*(27), 3 + s*(27), 0.5*dt*qbym[s]*(0.4472135954999579*rho[s][3])); 
-    gkyl_mat_set(&lhs, 13 + num_species*(27), 12 + s*(27), 0.5*dt*qbym[s]*(0.4472135954999579*rho[s][3])); 
-    gkyl_mat_set(&lhs, 22 + num_species*(27), 21 + s*(27), 0.5*dt*qbym[s]*(0.4472135954999579*rho[s][3])); 
+    if (!pkpm_field_static) { 
+      gkyl_mat_set(&lhs, 4 + num_species*(27), 3 + s*(27), 0.5*dt*qbym[s]*(0.4472135954999579*rho[s][3])); 
+      gkyl_mat_set(&lhs, 13 + num_species*(27), 12 + s*(27), 0.5*dt*qbym[s]*(0.4472135954999579*rho[s][3])); 
+      gkyl_mat_set(&lhs, 22 + num_species*(27), 21 + s*(27), 0.5*dt*qbym[s]*(0.4472135954999579*rho[s][3])); 
+    } 
  
     gkyl_mat_set(&lhs, 4 + s*(27), 4 + s*(27), 1.0); 
     gkyl_mat_set(&lhs, 13 + s*(27), 13 + s*(27), 1.0); 
@@ -1111,9 +1195,11 @@ GKYL_CU_DH void euler_pkpm_em_coupling_set_2x_tensor_p2(int count,
     gkyl_mat_set(&lhs, 4 + s*(27), 13 + s*(27), B_field_fac*(0.31943828249997*tot_Bz[4]+0.5*tot_Bz[0])); 
     gkyl_mat_set(&lhs, 13 + s*(27), 4 + s*(27), -B_field_fac*(0.31943828249997*tot_Bz[4]+0.5*tot_Bz[0])); 
  
-    gkyl_mat_set(&lhs, 4 + num_species*(27), 4 + s*(27), 0.5*dt*qbym[s]*(0.31943828249997*rho[s][4]+0.5*rho[s][0])); 
-    gkyl_mat_set(&lhs, 13 + num_species*(27), 13 + s*(27), 0.5*dt*qbym[s]*(0.31943828249997*rho[s][4]+0.5*rho[s][0])); 
-    gkyl_mat_set(&lhs, 22 + num_species*(27), 22 + s*(27), 0.5*dt*qbym[s]*(0.31943828249997*rho[s][4]+0.5*rho[s][0])); 
+    if (!pkpm_field_static) { 
+      gkyl_mat_set(&lhs, 4 + num_species*(27), 4 + s*(27), 0.5*dt*qbym[s]*(0.31943828249997*rho[s][4]+0.5*rho[s][0])); 
+      gkyl_mat_set(&lhs, 13 + num_species*(27), 13 + s*(27), 0.5*dt*qbym[s]*(0.31943828249997*rho[s][4]+0.5*rho[s][0])); 
+      gkyl_mat_set(&lhs, 22 + num_species*(27), 22 + s*(27), 0.5*dt*qbym[s]*(0.31943828249997*rho[s][4]+0.5*rho[s][0])); 
+    } 
  
     gkyl_mat_set(&lhs, 4 + s*(27), 5 + s*(27), 0.0); 
     gkyl_mat_set(&lhs, 13 + s*(27), 14 + s*(27), 0.0); 
@@ -1132,9 +1218,11 @@ GKYL_CU_DH void euler_pkpm_em_coupling_set_2x_tensor_p2(int count,
     gkyl_mat_set(&lhs, 4 + s*(27), 14 + s*(27), B_field_fac*(0.5*tot_Bz[8])); 
     gkyl_mat_set(&lhs, 13 + s*(27), 5 + s*(27), -B_field_fac*(0.5*tot_Bz[8])); 
  
-    gkyl_mat_set(&lhs, 4 + num_species*(27), 5 + s*(27), 0.5*dt*qbym[s]*(0.5*rho[s][8])); 
-    gkyl_mat_set(&lhs, 13 + num_species*(27), 14 + s*(27), 0.5*dt*qbym[s]*(0.5*rho[s][8])); 
-    gkyl_mat_set(&lhs, 22 + num_species*(27), 23 + s*(27), 0.5*dt*qbym[s]*(0.5*rho[s][8])); 
+    if (!pkpm_field_static) { 
+      gkyl_mat_set(&lhs, 4 + num_species*(27), 5 + s*(27), 0.5*dt*qbym[s]*(0.5*rho[s][8])); 
+      gkyl_mat_set(&lhs, 13 + num_species*(27), 14 + s*(27), 0.5*dt*qbym[s]*(0.5*rho[s][8])); 
+      gkyl_mat_set(&lhs, 22 + num_species*(27), 23 + s*(27), 0.5*dt*qbym[s]*(0.5*rho[s][8])); 
+    } 
  
     gkyl_mat_set(&lhs, 4 + s*(27), 6 + s*(27), 0.0); 
     gkyl_mat_set(&lhs, 13 + s*(27), 15 + s*(27), 0.0); 
@@ -1153,9 +1241,11 @@ GKYL_CU_DH void euler_pkpm_em_coupling_set_2x_tensor_p2(int count,
     gkyl_mat_set(&lhs, 4 + s*(27), 15 + s*(27), B_field_fac*(0.31943828249997*tot_Bz[6]+0.5000000000000001*tot_Bz[2])); 
     gkyl_mat_set(&lhs, 13 + s*(27), 6 + s*(27), -B_field_fac*(0.31943828249997*tot_Bz[6]+0.5000000000000001*tot_Bz[2])); 
  
-    gkyl_mat_set(&lhs, 4 + num_species*(27), 6 + s*(27), 0.5*dt*qbym[s]*(0.31943828249997*rho[s][6]+0.5000000000000001*rho[s][2])); 
-    gkyl_mat_set(&lhs, 13 + num_species*(27), 15 + s*(27), 0.5*dt*qbym[s]*(0.31943828249997*rho[s][6]+0.5000000000000001*rho[s][2])); 
-    gkyl_mat_set(&lhs, 22 + num_species*(27), 24 + s*(27), 0.5*dt*qbym[s]*(0.31943828249997*rho[s][6]+0.5000000000000001*rho[s][2])); 
+    if (!pkpm_field_static) { 
+      gkyl_mat_set(&lhs, 4 + num_species*(27), 6 + s*(27), 0.5*dt*qbym[s]*(0.31943828249997*rho[s][6]+0.5000000000000001*rho[s][2])); 
+      gkyl_mat_set(&lhs, 13 + num_species*(27), 15 + s*(27), 0.5*dt*qbym[s]*(0.31943828249997*rho[s][6]+0.5000000000000001*rho[s][2])); 
+      gkyl_mat_set(&lhs, 22 + num_species*(27), 24 + s*(27), 0.5*dt*qbym[s]*(0.31943828249997*rho[s][6]+0.5000000000000001*rho[s][2])); 
+    } 
  
     gkyl_mat_set(&lhs, 4 + s*(27), 7 + s*(27), 0.0); 
     gkyl_mat_set(&lhs, 13 + s*(27), 16 + s*(27), 0.0); 
@@ -1174,9 +1264,11 @@ GKYL_CU_DH void euler_pkpm_em_coupling_set_2x_tensor_p2(int count,
     gkyl_mat_set(&lhs, 4 + s*(27), 16 + s*(27), B_field_fac*(0.4472135954999579*tot_Bz[7])); 
     gkyl_mat_set(&lhs, 13 + s*(27), 7 + s*(27), -B_field_fac*(0.4472135954999579*tot_Bz[7])); 
  
-    gkyl_mat_set(&lhs, 4 + num_species*(27), 7 + s*(27), 0.5*dt*qbym[s]*(0.4472135954999579*rho[s][7])); 
-    gkyl_mat_set(&lhs, 13 + num_species*(27), 16 + s*(27), 0.5*dt*qbym[s]*(0.4472135954999579*rho[s][7])); 
-    gkyl_mat_set(&lhs, 22 + num_species*(27), 25 + s*(27), 0.5*dt*qbym[s]*(0.4472135954999579*rho[s][7])); 
+    if (!pkpm_field_static) { 
+      gkyl_mat_set(&lhs, 4 + num_species*(27), 7 + s*(27), 0.5*dt*qbym[s]*(0.4472135954999579*rho[s][7])); 
+      gkyl_mat_set(&lhs, 13 + num_species*(27), 16 + s*(27), 0.5*dt*qbym[s]*(0.4472135954999579*rho[s][7])); 
+      gkyl_mat_set(&lhs, 22 + num_species*(27), 25 + s*(27), 0.5*dt*qbym[s]*(0.4472135954999579*rho[s][7])); 
+    } 
  
     gkyl_mat_set(&lhs, 4 + s*(27), 8 + s*(27), 0.0); 
     gkyl_mat_set(&lhs, 13 + s*(27), 17 + s*(27), 0.0); 
@@ -1195,9 +1287,11 @@ GKYL_CU_DH void euler_pkpm_em_coupling_set_2x_tensor_p2(int count,
     gkyl_mat_set(&lhs, 4 + s*(27), 17 + s*(27), B_field_fac*(0.31943828249997*tot_Bz[8]+0.5*tot_Bz[5])); 
     gkyl_mat_set(&lhs, 13 + s*(27), 8 + s*(27), -B_field_fac*(0.31943828249997*tot_Bz[8]+0.5*tot_Bz[5])); 
  
-    gkyl_mat_set(&lhs, 4 + num_species*(27), 8 + s*(27), 0.5*dt*qbym[s]*(0.31943828249997*rho[s][8]+0.5*rho[s][5])); 
-    gkyl_mat_set(&lhs, 13 + num_species*(27), 17 + s*(27), 0.5*dt*qbym[s]*(0.31943828249997*rho[s][8]+0.5*rho[s][5])); 
-    gkyl_mat_set(&lhs, 22 + num_species*(27), 26 + s*(27), 0.5*dt*qbym[s]*(0.31943828249997*rho[s][8]+0.5*rho[s][5])); 
+    if (!pkpm_field_static) { 
+      gkyl_mat_set(&lhs, 4 + num_species*(27), 8 + s*(27), 0.5*dt*qbym[s]*(0.31943828249997*rho[s][8]+0.5*rho[s][5])); 
+      gkyl_mat_set(&lhs, 13 + num_species*(27), 17 + s*(27), 0.5*dt*qbym[s]*(0.31943828249997*rho[s][8]+0.5*rho[s][5])); 
+      gkyl_mat_set(&lhs, 22 + num_species*(27), 26 + s*(27), 0.5*dt*qbym[s]*(0.31943828249997*rho[s][8]+0.5*rho[s][5])); 
+    } 
  
     gkyl_mat_set(&lhs, 5 + s*(27), 0 + s*(27), 0.0); 
     gkyl_mat_set(&lhs, 14 + s*(27), 9 + s*(27), 0.0); 
@@ -1216,9 +1310,11 @@ GKYL_CU_DH void euler_pkpm_em_coupling_set_2x_tensor_p2(int count,
     gkyl_mat_set(&lhs, 5 + s*(27), 9 + s*(27), B_field_fac*(0.5*tot_Bz[5])); 
     gkyl_mat_set(&lhs, 14 + s*(27), 0 + s*(27), -B_field_fac*(0.5*tot_Bz[5])); 
  
-    gkyl_mat_set(&lhs, 5 + num_species*(27), 0 + s*(27), 0.5*dt*qbym[s]*(0.5*rho[s][5])); 
-    gkyl_mat_set(&lhs, 14 + num_species*(27), 9 + s*(27), 0.5*dt*qbym[s]*(0.5*rho[s][5])); 
-    gkyl_mat_set(&lhs, 23 + num_species*(27), 18 + s*(27), 0.5*dt*qbym[s]*(0.5*rho[s][5])); 
+    if (!pkpm_field_static) { 
+      gkyl_mat_set(&lhs, 5 + num_species*(27), 0 + s*(27), 0.5*dt*qbym[s]*(0.5*rho[s][5])); 
+      gkyl_mat_set(&lhs, 14 + num_species*(27), 9 + s*(27), 0.5*dt*qbym[s]*(0.5*rho[s][5])); 
+      gkyl_mat_set(&lhs, 23 + num_species*(27), 18 + s*(27), 0.5*dt*qbym[s]*(0.5*rho[s][5])); 
+    } 
  
     gkyl_mat_set(&lhs, 5 + s*(27), 1 + s*(27), 0.0); 
     gkyl_mat_set(&lhs, 14 + s*(27), 10 + s*(27), 0.0); 
@@ -1237,9 +1333,11 @@ GKYL_CU_DH void euler_pkpm_em_coupling_set_2x_tensor_p2(int count,
     gkyl_mat_set(&lhs, 5 + s*(27), 10 + s*(27), B_field_fac*(0.5000000000000001*tot_Bz[7])); 
     gkyl_mat_set(&lhs, 14 + s*(27), 1 + s*(27), -B_field_fac*(0.5000000000000001*tot_Bz[7])); 
  
-    gkyl_mat_set(&lhs, 5 + num_species*(27), 1 + s*(27), 0.5*dt*qbym[s]*(0.5000000000000001*rho[s][7])); 
-    gkyl_mat_set(&lhs, 14 + num_species*(27), 10 + s*(27), 0.5*dt*qbym[s]*(0.5000000000000001*rho[s][7])); 
-    gkyl_mat_set(&lhs, 23 + num_species*(27), 19 + s*(27), 0.5*dt*qbym[s]*(0.5000000000000001*rho[s][7])); 
+    if (!pkpm_field_static) { 
+      gkyl_mat_set(&lhs, 5 + num_species*(27), 1 + s*(27), 0.5*dt*qbym[s]*(0.5000000000000001*rho[s][7])); 
+      gkyl_mat_set(&lhs, 14 + num_species*(27), 10 + s*(27), 0.5*dt*qbym[s]*(0.5000000000000001*rho[s][7])); 
+      gkyl_mat_set(&lhs, 23 + num_species*(27), 19 + s*(27), 0.5*dt*qbym[s]*(0.5000000000000001*rho[s][7])); 
+    } 
  
     gkyl_mat_set(&lhs, 5 + s*(27), 2 + s*(27), 0.0); 
     gkyl_mat_set(&lhs, 14 + s*(27), 11 + s*(27), 0.0); 
@@ -1258,9 +1356,11 @@ GKYL_CU_DH void euler_pkpm_em_coupling_set_2x_tensor_p2(int count,
     gkyl_mat_set(&lhs, 5 + s*(27), 11 + s*(27), B_field_fac*(0.4472135954999579*tot_Bz[2])); 
     gkyl_mat_set(&lhs, 14 + s*(27), 2 + s*(27), -B_field_fac*(0.4472135954999579*tot_Bz[2])); 
  
-    gkyl_mat_set(&lhs, 5 + num_species*(27), 2 + s*(27), 0.5*dt*qbym[s]*(0.4472135954999579*rho[s][2])); 
-    gkyl_mat_set(&lhs, 14 + num_species*(27), 11 + s*(27), 0.5*dt*qbym[s]*(0.4472135954999579*rho[s][2])); 
-    gkyl_mat_set(&lhs, 23 + num_species*(27), 20 + s*(27), 0.5*dt*qbym[s]*(0.4472135954999579*rho[s][2])); 
+    if (!pkpm_field_static) { 
+      gkyl_mat_set(&lhs, 5 + num_species*(27), 2 + s*(27), 0.5*dt*qbym[s]*(0.4472135954999579*rho[s][2])); 
+      gkyl_mat_set(&lhs, 14 + num_species*(27), 11 + s*(27), 0.5*dt*qbym[s]*(0.4472135954999579*rho[s][2])); 
+      gkyl_mat_set(&lhs, 23 + num_species*(27), 20 + s*(27), 0.5*dt*qbym[s]*(0.4472135954999579*rho[s][2])); 
+    } 
  
     gkyl_mat_set(&lhs, 5 + s*(27), 3 + s*(27), 0.0); 
     gkyl_mat_set(&lhs, 14 + s*(27), 12 + s*(27), 0.0); 
@@ -1279,9 +1379,11 @@ GKYL_CU_DH void euler_pkpm_em_coupling_set_2x_tensor_p2(int count,
     gkyl_mat_set(&lhs, 5 + s*(27), 12 + s*(27), B_field_fac*(0.4472135954999579*tot_Bz[3])); 
     gkyl_mat_set(&lhs, 14 + s*(27), 3 + s*(27), -B_field_fac*(0.4472135954999579*tot_Bz[3])); 
  
-    gkyl_mat_set(&lhs, 5 + num_species*(27), 3 + s*(27), 0.5*dt*qbym[s]*(0.4472135954999579*rho[s][3])); 
-    gkyl_mat_set(&lhs, 14 + num_species*(27), 12 + s*(27), 0.5*dt*qbym[s]*(0.4472135954999579*rho[s][3])); 
-    gkyl_mat_set(&lhs, 23 + num_species*(27), 21 + s*(27), 0.5*dt*qbym[s]*(0.4472135954999579*rho[s][3])); 
+    if (!pkpm_field_static) { 
+      gkyl_mat_set(&lhs, 5 + num_species*(27), 3 + s*(27), 0.5*dt*qbym[s]*(0.4472135954999579*rho[s][3])); 
+      gkyl_mat_set(&lhs, 14 + num_species*(27), 12 + s*(27), 0.5*dt*qbym[s]*(0.4472135954999579*rho[s][3])); 
+      gkyl_mat_set(&lhs, 23 + num_species*(27), 21 + s*(27), 0.5*dt*qbym[s]*(0.4472135954999579*rho[s][3])); 
+    } 
  
     gkyl_mat_set(&lhs, 5 + s*(27), 4 + s*(27), 0.0); 
     gkyl_mat_set(&lhs, 14 + s*(27), 13 + s*(27), 0.0); 
@@ -1300,9 +1402,11 @@ GKYL_CU_DH void euler_pkpm_em_coupling_set_2x_tensor_p2(int count,
     gkyl_mat_set(&lhs, 5 + s*(27), 13 + s*(27), B_field_fac*(0.5*tot_Bz[8])); 
     gkyl_mat_set(&lhs, 14 + s*(27), 4 + s*(27), -B_field_fac*(0.5*tot_Bz[8])); 
  
-    gkyl_mat_set(&lhs, 5 + num_species*(27), 4 + s*(27), 0.5*dt*qbym[s]*(0.5*rho[s][8])); 
-    gkyl_mat_set(&lhs, 14 + num_species*(27), 13 + s*(27), 0.5*dt*qbym[s]*(0.5*rho[s][8])); 
-    gkyl_mat_set(&lhs, 23 + num_species*(27), 22 + s*(27), 0.5*dt*qbym[s]*(0.5*rho[s][8])); 
+    if (!pkpm_field_static) { 
+      gkyl_mat_set(&lhs, 5 + num_species*(27), 4 + s*(27), 0.5*dt*qbym[s]*(0.5*rho[s][8])); 
+      gkyl_mat_set(&lhs, 14 + num_species*(27), 13 + s*(27), 0.5*dt*qbym[s]*(0.5*rho[s][8])); 
+      gkyl_mat_set(&lhs, 23 + num_species*(27), 22 + s*(27), 0.5*dt*qbym[s]*(0.5*rho[s][8])); 
+    } 
  
     gkyl_mat_set(&lhs, 5 + s*(27), 5 + s*(27), 1.0); 
     gkyl_mat_set(&lhs, 14 + s*(27), 14 + s*(27), 1.0); 
@@ -1321,9 +1425,11 @@ GKYL_CU_DH void euler_pkpm_em_coupling_set_2x_tensor_p2(int count,
     gkyl_mat_set(&lhs, 5 + s*(27), 14 + s*(27), B_field_fac*(0.31943828249997*tot_Bz[5]+0.5*tot_Bz[0])); 
     gkyl_mat_set(&lhs, 14 + s*(27), 5 + s*(27), -B_field_fac*(0.31943828249997*tot_Bz[5]+0.5*tot_Bz[0])); 
  
-    gkyl_mat_set(&lhs, 5 + num_species*(27), 5 + s*(27), 0.5*dt*qbym[s]*(0.31943828249997*rho[s][5]+0.5*rho[s][0])); 
-    gkyl_mat_set(&lhs, 14 + num_species*(27), 14 + s*(27), 0.5*dt*qbym[s]*(0.31943828249997*rho[s][5]+0.5*rho[s][0])); 
-    gkyl_mat_set(&lhs, 23 + num_species*(27), 23 + s*(27), 0.5*dt*qbym[s]*(0.31943828249997*rho[s][5]+0.5*rho[s][0])); 
+    if (!pkpm_field_static) { 
+      gkyl_mat_set(&lhs, 5 + num_species*(27), 5 + s*(27), 0.5*dt*qbym[s]*(0.31943828249997*rho[s][5]+0.5*rho[s][0])); 
+      gkyl_mat_set(&lhs, 14 + num_species*(27), 14 + s*(27), 0.5*dt*qbym[s]*(0.31943828249997*rho[s][5]+0.5*rho[s][0])); 
+      gkyl_mat_set(&lhs, 23 + num_species*(27), 23 + s*(27), 0.5*dt*qbym[s]*(0.31943828249997*rho[s][5]+0.5*rho[s][0])); 
+    } 
  
     gkyl_mat_set(&lhs, 5 + s*(27), 6 + s*(27), 0.0); 
     gkyl_mat_set(&lhs, 14 + s*(27), 15 + s*(27), 0.0); 
@@ -1342,9 +1448,11 @@ GKYL_CU_DH void euler_pkpm_em_coupling_set_2x_tensor_p2(int count,
     gkyl_mat_set(&lhs, 5 + s*(27), 15 + s*(27), B_field_fac*(0.4472135954999579*tot_Bz[6])); 
     gkyl_mat_set(&lhs, 14 + s*(27), 6 + s*(27), -B_field_fac*(0.4472135954999579*tot_Bz[6])); 
  
-    gkyl_mat_set(&lhs, 5 + num_species*(27), 6 + s*(27), 0.5*dt*qbym[s]*(0.4472135954999579*rho[s][6])); 
-    gkyl_mat_set(&lhs, 14 + num_species*(27), 15 + s*(27), 0.5*dt*qbym[s]*(0.4472135954999579*rho[s][6])); 
-    gkyl_mat_set(&lhs, 23 + num_species*(27), 24 + s*(27), 0.5*dt*qbym[s]*(0.4472135954999579*rho[s][6])); 
+    if (!pkpm_field_static) { 
+      gkyl_mat_set(&lhs, 5 + num_species*(27), 6 + s*(27), 0.5*dt*qbym[s]*(0.4472135954999579*rho[s][6])); 
+      gkyl_mat_set(&lhs, 14 + num_species*(27), 15 + s*(27), 0.5*dt*qbym[s]*(0.4472135954999579*rho[s][6])); 
+      gkyl_mat_set(&lhs, 23 + num_species*(27), 24 + s*(27), 0.5*dt*qbym[s]*(0.4472135954999579*rho[s][6])); 
+    } 
  
     gkyl_mat_set(&lhs, 5 + s*(27), 7 + s*(27), 0.0); 
     gkyl_mat_set(&lhs, 14 + s*(27), 16 + s*(27), 0.0); 
@@ -1363,9 +1471,11 @@ GKYL_CU_DH void euler_pkpm_em_coupling_set_2x_tensor_p2(int count,
     gkyl_mat_set(&lhs, 5 + s*(27), 16 + s*(27), B_field_fac*(0.31943828249997*tot_Bz[7]+0.5000000000000001*tot_Bz[1])); 
     gkyl_mat_set(&lhs, 14 + s*(27), 7 + s*(27), -B_field_fac*(0.31943828249997*tot_Bz[7]+0.5000000000000001*tot_Bz[1])); 
  
-    gkyl_mat_set(&lhs, 5 + num_species*(27), 7 + s*(27), 0.5*dt*qbym[s]*(0.31943828249997*rho[s][7]+0.5000000000000001*rho[s][1])); 
-    gkyl_mat_set(&lhs, 14 + num_species*(27), 16 + s*(27), 0.5*dt*qbym[s]*(0.31943828249997*rho[s][7]+0.5000000000000001*rho[s][1])); 
-    gkyl_mat_set(&lhs, 23 + num_species*(27), 25 + s*(27), 0.5*dt*qbym[s]*(0.31943828249997*rho[s][7]+0.5000000000000001*rho[s][1])); 
+    if (!pkpm_field_static) { 
+      gkyl_mat_set(&lhs, 5 + num_species*(27), 7 + s*(27), 0.5*dt*qbym[s]*(0.31943828249997*rho[s][7]+0.5000000000000001*rho[s][1])); 
+      gkyl_mat_set(&lhs, 14 + num_species*(27), 16 + s*(27), 0.5*dt*qbym[s]*(0.31943828249997*rho[s][7]+0.5000000000000001*rho[s][1])); 
+      gkyl_mat_set(&lhs, 23 + num_species*(27), 25 + s*(27), 0.5*dt*qbym[s]*(0.31943828249997*rho[s][7]+0.5000000000000001*rho[s][1])); 
+    } 
  
     gkyl_mat_set(&lhs, 5 + s*(27), 8 + s*(27), 0.0); 
     gkyl_mat_set(&lhs, 14 + s*(27), 17 + s*(27), 0.0); 
@@ -1384,9 +1494,11 @@ GKYL_CU_DH void euler_pkpm_em_coupling_set_2x_tensor_p2(int count,
     gkyl_mat_set(&lhs, 5 + s*(27), 17 + s*(27), B_field_fac*(0.31943828249997*tot_Bz[8]+0.5*tot_Bz[4])); 
     gkyl_mat_set(&lhs, 14 + s*(27), 8 + s*(27), -B_field_fac*(0.31943828249997*tot_Bz[8]+0.5*tot_Bz[4])); 
  
-    gkyl_mat_set(&lhs, 5 + num_species*(27), 8 + s*(27), 0.5*dt*qbym[s]*(0.31943828249997*rho[s][8]+0.5*rho[s][4])); 
-    gkyl_mat_set(&lhs, 14 + num_species*(27), 17 + s*(27), 0.5*dt*qbym[s]*(0.31943828249997*rho[s][8]+0.5*rho[s][4])); 
-    gkyl_mat_set(&lhs, 23 + num_species*(27), 26 + s*(27), 0.5*dt*qbym[s]*(0.31943828249997*rho[s][8]+0.5*rho[s][4])); 
+    if (!pkpm_field_static) { 
+      gkyl_mat_set(&lhs, 5 + num_species*(27), 8 + s*(27), 0.5*dt*qbym[s]*(0.31943828249997*rho[s][8]+0.5*rho[s][4])); 
+      gkyl_mat_set(&lhs, 14 + num_species*(27), 17 + s*(27), 0.5*dt*qbym[s]*(0.31943828249997*rho[s][8]+0.5*rho[s][4])); 
+      gkyl_mat_set(&lhs, 23 + num_species*(27), 26 + s*(27), 0.5*dt*qbym[s]*(0.31943828249997*rho[s][8]+0.5*rho[s][4])); 
+    } 
  
     gkyl_mat_set(&lhs, 6 + s*(27), 0 + s*(27), 0.0); 
     gkyl_mat_set(&lhs, 15 + s*(27), 9 + s*(27), 0.0); 
@@ -1405,9 +1517,11 @@ GKYL_CU_DH void euler_pkpm_em_coupling_set_2x_tensor_p2(int count,
     gkyl_mat_set(&lhs, 6 + s*(27), 9 + s*(27), B_field_fac*(0.5*tot_Bz[6])); 
     gkyl_mat_set(&lhs, 15 + s*(27), 0 + s*(27), -B_field_fac*(0.5*tot_Bz[6])); 
  
-    gkyl_mat_set(&lhs, 6 + num_species*(27), 0 + s*(27), 0.5*dt*qbym[s]*(0.5*rho[s][6])); 
-    gkyl_mat_set(&lhs, 15 + num_species*(27), 9 + s*(27), 0.5*dt*qbym[s]*(0.5*rho[s][6])); 
-    gkyl_mat_set(&lhs, 24 + num_species*(27), 18 + s*(27), 0.5*dt*qbym[s]*(0.5*rho[s][6])); 
+    if (!pkpm_field_static) { 
+      gkyl_mat_set(&lhs, 6 + num_species*(27), 0 + s*(27), 0.5*dt*qbym[s]*(0.5*rho[s][6])); 
+      gkyl_mat_set(&lhs, 15 + num_species*(27), 9 + s*(27), 0.5*dt*qbym[s]*(0.5*rho[s][6])); 
+      gkyl_mat_set(&lhs, 24 + num_species*(27), 18 + s*(27), 0.5*dt*qbym[s]*(0.5*rho[s][6])); 
+    } 
  
     gkyl_mat_set(&lhs, 6 + s*(27), 1 + s*(27), 0.0); 
     gkyl_mat_set(&lhs, 15 + s*(27), 10 + s*(27), 0.0); 
@@ -1426,9 +1540,11 @@ GKYL_CU_DH void euler_pkpm_em_coupling_set_2x_tensor_p2(int count,
     gkyl_mat_set(&lhs, 6 + s*(27), 10 + s*(27), B_field_fac*(0.447213595499958*tot_Bz[3])); 
     gkyl_mat_set(&lhs, 15 + s*(27), 1 + s*(27), -B_field_fac*(0.447213595499958*tot_Bz[3])); 
  
-    gkyl_mat_set(&lhs, 6 + num_species*(27), 1 + s*(27), 0.5*dt*qbym[s]*(0.447213595499958*rho[s][3])); 
-    gkyl_mat_set(&lhs, 15 + num_species*(27), 10 + s*(27), 0.5*dt*qbym[s]*(0.447213595499958*rho[s][3])); 
-    gkyl_mat_set(&lhs, 24 + num_species*(27), 19 + s*(27), 0.5*dt*qbym[s]*(0.447213595499958*rho[s][3])); 
+    if (!pkpm_field_static) { 
+      gkyl_mat_set(&lhs, 6 + num_species*(27), 1 + s*(27), 0.5*dt*qbym[s]*(0.447213595499958*rho[s][3])); 
+      gkyl_mat_set(&lhs, 15 + num_species*(27), 10 + s*(27), 0.5*dt*qbym[s]*(0.447213595499958*rho[s][3])); 
+      gkyl_mat_set(&lhs, 24 + num_species*(27), 19 + s*(27), 0.5*dt*qbym[s]*(0.447213595499958*rho[s][3])); 
+    } 
  
     gkyl_mat_set(&lhs, 6 + s*(27), 2 + s*(27), 0.0); 
     gkyl_mat_set(&lhs, 15 + s*(27), 11 + s*(27), 0.0); 
@@ -1447,9 +1563,11 @@ GKYL_CU_DH void euler_pkpm_em_coupling_set_2x_tensor_p2(int count,
     gkyl_mat_set(&lhs, 6 + s*(27), 11 + s*(27), B_field_fac*(0.447213595499958*tot_Bz[8]+0.5000000000000001*tot_Bz[4])); 
     gkyl_mat_set(&lhs, 15 + s*(27), 2 + s*(27), -B_field_fac*(0.447213595499958*tot_Bz[8]+0.5000000000000001*tot_Bz[4])); 
  
-    gkyl_mat_set(&lhs, 6 + num_species*(27), 2 + s*(27), 0.5*dt*qbym[s]*(0.447213595499958*rho[s][8]+0.5000000000000001*rho[s][4])); 
-    gkyl_mat_set(&lhs, 15 + num_species*(27), 11 + s*(27), 0.5*dt*qbym[s]*(0.447213595499958*rho[s][8]+0.5000000000000001*rho[s][4])); 
-    gkyl_mat_set(&lhs, 24 + num_species*(27), 20 + s*(27), 0.5*dt*qbym[s]*(0.447213595499958*rho[s][8]+0.5000000000000001*rho[s][4])); 
+    if (!pkpm_field_static) { 
+      gkyl_mat_set(&lhs, 6 + num_species*(27), 2 + s*(27), 0.5*dt*qbym[s]*(0.447213595499958*rho[s][8]+0.5000000000000001*rho[s][4])); 
+      gkyl_mat_set(&lhs, 15 + num_species*(27), 11 + s*(27), 0.5*dt*qbym[s]*(0.447213595499958*rho[s][8]+0.5000000000000001*rho[s][4])); 
+      gkyl_mat_set(&lhs, 24 + num_species*(27), 20 + s*(27), 0.5*dt*qbym[s]*(0.447213595499958*rho[s][8]+0.5000000000000001*rho[s][4])); 
+    } 
  
     gkyl_mat_set(&lhs, 6 + s*(27), 3 + s*(27), 0.0); 
     gkyl_mat_set(&lhs, 15 + s*(27), 12 + s*(27), 0.0); 
@@ -1468,9 +1586,11 @@ GKYL_CU_DH void euler_pkpm_em_coupling_set_2x_tensor_p2(int count,
     gkyl_mat_set(&lhs, 6 + s*(27), 12 + s*(27), B_field_fac*(0.4*tot_Bz[7]+0.447213595499958*tot_Bz[1])); 
     gkyl_mat_set(&lhs, 15 + s*(27), 3 + s*(27), -B_field_fac*(0.4*tot_Bz[7]+0.447213595499958*tot_Bz[1])); 
  
-    gkyl_mat_set(&lhs, 6 + num_species*(27), 3 + s*(27), 0.5*dt*qbym[s]*(0.4*rho[s][7]+0.447213595499958*rho[s][1])); 
-    gkyl_mat_set(&lhs, 15 + num_species*(27), 12 + s*(27), 0.5*dt*qbym[s]*(0.4*rho[s][7]+0.447213595499958*rho[s][1])); 
-    gkyl_mat_set(&lhs, 24 + num_species*(27), 21 + s*(27), 0.5*dt*qbym[s]*(0.4*rho[s][7]+0.447213595499958*rho[s][1])); 
+    if (!pkpm_field_static) { 
+      gkyl_mat_set(&lhs, 6 + num_species*(27), 3 + s*(27), 0.5*dt*qbym[s]*(0.4*rho[s][7]+0.447213595499958*rho[s][1])); 
+      gkyl_mat_set(&lhs, 15 + num_species*(27), 12 + s*(27), 0.5*dt*qbym[s]*(0.4*rho[s][7]+0.447213595499958*rho[s][1])); 
+      gkyl_mat_set(&lhs, 24 + num_species*(27), 21 + s*(27), 0.5*dt*qbym[s]*(0.4*rho[s][7]+0.447213595499958*rho[s][1])); 
+    } 
  
     gkyl_mat_set(&lhs, 6 + s*(27), 4 + s*(27), 0.0); 
     gkyl_mat_set(&lhs, 15 + s*(27), 13 + s*(27), 0.0); 
@@ -1489,9 +1609,11 @@ GKYL_CU_DH void euler_pkpm_em_coupling_set_2x_tensor_p2(int count,
     gkyl_mat_set(&lhs, 6 + s*(27), 13 + s*(27), B_field_fac*(0.31943828249997*tot_Bz[6]+0.5000000000000001*tot_Bz[2])); 
     gkyl_mat_set(&lhs, 15 + s*(27), 4 + s*(27), -B_field_fac*(0.31943828249997*tot_Bz[6]+0.5000000000000001*tot_Bz[2])); 
  
-    gkyl_mat_set(&lhs, 6 + num_species*(27), 4 + s*(27), 0.5*dt*qbym[s]*(0.31943828249997*rho[s][6]+0.5000000000000001*rho[s][2])); 
-    gkyl_mat_set(&lhs, 15 + num_species*(27), 13 + s*(27), 0.5*dt*qbym[s]*(0.31943828249997*rho[s][6]+0.5000000000000001*rho[s][2])); 
-    gkyl_mat_set(&lhs, 24 + num_species*(27), 22 + s*(27), 0.5*dt*qbym[s]*(0.31943828249997*rho[s][6]+0.5000000000000001*rho[s][2])); 
+    if (!pkpm_field_static) { 
+      gkyl_mat_set(&lhs, 6 + num_species*(27), 4 + s*(27), 0.5*dt*qbym[s]*(0.31943828249997*rho[s][6]+0.5000000000000001*rho[s][2])); 
+      gkyl_mat_set(&lhs, 15 + num_species*(27), 13 + s*(27), 0.5*dt*qbym[s]*(0.31943828249997*rho[s][6]+0.5000000000000001*rho[s][2])); 
+      gkyl_mat_set(&lhs, 24 + num_species*(27), 22 + s*(27), 0.5*dt*qbym[s]*(0.31943828249997*rho[s][6]+0.5000000000000001*rho[s][2])); 
+    } 
  
     gkyl_mat_set(&lhs, 6 + s*(27), 5 + s*(27), 0.0); 
     gkyl_mat_set(&lhs, 15 + s*(27), 14 + s*(27), 0.0); 
@@ -1510,9 +1632,11 @@ GKYL_CU_DH void euler_pkpm_em_coupling_set_2x_tensor_p2(int count,
     gkyl_mat_set(&lhs, 6 + s*(27), 14 + s*(27), B_field_fac*(0.4472135954999579*tot_Bz[6])); 
     gkyl_mat_set(&lhs, 15 + s*(27), 5 + s*(27), -B_field_fac*(0.4472135954999579*tot_Bz[6])); 
  
-    gkyl_mat_set(&lhs, 6 + num_species*(27), 5 + s*(27), 0.5*dt*qbym[s]*(0.4472135954999579*rho[s][6])); 
-    gkyl_mat_set(&lhs, 15 + num_species*(27), 14 + s*(27), 0.5*dt*qbym[s]*(0.4472135954999579*rho[s][6])); 
-    gkyl_mat_set(&lhs, 24 + num_species*(27), 23 + s*(27), 0.5*dt*qbym[s]*(0.4472135954999579*rho[s][6])); 
+    if (!pkpm_field_static) { 
+      gkyl_mat_set(&lhs, 6 + num_species*(27), 5 + s*(27), 0.5*dt*qbym[s]*(0.4472135954999579*rho[s][6])); 
+      gkyl_mat_set(&lhs, 15 + num_species*(27), 14 + s*(27), 0.5*dt*qbym[s]*(0.4472135954999579*rho[s][6])); 
+      gkyl_mat_set(&lhs, 24 + num_species*(27), 23 + s*(27), 0.5*dt*qbym[s]*(0.4472135954999579*rho[s][6])); 
+    } 
  
     gkyl_mat_set(&lhs, 6 + s*(27), 6 + s*(27), 1.0); 
     gkyl_mat_set(&lhs, 15 + s*(27), 15 + s*(27), 1.0); 
@@ -1531,9 +1655,11 @@ GKYL_CU_DH void euler_pkpm_em_coupling_set_2x_tensor_p2(int count,
     gkyl_mat_set(&lhs, 6 + s*(27), 15 + s*(27), B_field_fac*(0.2857142857142857*tot_Bz[8]+0.4472135954999579*tot_Bz[5]+0.31943828249997*tot_Bz[4]+0.5*tot_Bz[0])); 
     gkyl_mat_set(&lhs, 15 + s*(27), 6 + s*(27), -B_field_fac*(0.2857142857142857*tot_Bz[8]+0.4472135954999579*tot_Bz[5]+0.31943828249997*tot_Bz[4]+0.5*tot_Bz[0])); 
  
-    gkyl_mat_set(&lhs, 6 + num_species*(27), 6 + s*(27), 0.5*dt*qbym[s]*(0.2857142857142857*rho[s][8]+0.4472135954999579*rho[s][5]+0.31943828249997*rho[s][4]+0.5*rho[s][0])); 
-    gkyl_mat_set(&lhs, 15 + num_species*(27), 15 + s*(27), 0.5*dt*qbym[s]*(0.2857142857142857*rho[s][8]+0.4472135954999579*rho[s][5]+0.31943828249997*rho[s][4]+0.5*rho[s][0])); 
-    gkyl_mat_set(&lhs, 24 + num_species*(27), 24 + s*(27), 0.5*dt*qbym[s]*(0.2857142857142857*rho[s][8]+0.4472135954999579*rho[s][5]+0.31943828249997*rho[s][4]+0.5*rho[s][0])); 
+    if (!pkpm_field_static) { 
+      gkyl_mat_set(&lhs, 6 + num_species*(27), 6 + s*(27), 0.5*dt*qbym[s]*(0.2857142857142857*rho[s][8]+0.4472135954999579*rho[s][5]+0.31943828249997*rho[s][4]+0.5*rho[s][0])); 
+      gkyl_mat_set(&lhs, 15 + num_species*(27), 15 + s*(27), 0.5*dt*qbym[s]*(0.2857142857142857*rho[s][8]+0.4472135954999579*rho[s][5]+0.31943828249997*rho[s][4]+0.5*rho[s][0])); 
+      gkyl_mat_set(&lhs, 24 + num_species*(27), 24 + s*(27), 0.5*dt*qbym[s]*(0.2857142857142857*rho[s][8]+0.4472135954999579*rho[s][5]+0.31943828249997*rho[s][4]+0.5*rho[s][0])); 
+    } 
  
     gkyl_mat_set(&lhs, 6 + s*(27), 7 + s*(27), 0.0); 
     gkyl_mat_set(&lhs, 15 + s*(27), 16 + s*(27), 0.0); 
@@ -1552,9 +1678,11 @@ GKYL_CU_DH void euler_pkpm_em_coupling_set_2x_tensor_p2(int count,
     gkyl_mat_set(&lhs, 6 + s*(27), 16 + s*(27), B_field_fac*(0.4*tot_Bz[3])); 
     gkyl_mat_set(&lhs, 15 + s*(27), 7 + s*(27), -B_field_fac*(0.4*tot_Bz[3])); 
  
-    gkyl_mat_set(&lhs, 6 + num_species*(27), 7 + s*(27), 0.5*dt*qbym[s]*(0.4*rho[s][3])); 
-    gkyl_mat_set(&lhs, 15 + num_species*(27), 16 + s*(27), 0.5*dt*qbym[s]*(0.4*rho[s][3])); 
-    gkyl_mat_set(&lhs, 24 + num_species*(27), 25 + s*(27), 0.5*dt*qbym[s]*(0.4*rho[s][3])); 
+    if (!pkpm_field_static) { 
+      gkyl_mat_set(&lhs, 6 + num_species*(27), 7 + s*(27), 0.5*dt*qbym[s]*(0.4*rho[s][3])); 
+      gkyl_mat_set(&lhs, 15 + num_species*(27), 16 + s*(27), 0.5*dt*qbym[s]*(0.4*rho[s][3])); 
+      gkyl_mat_set(&lhs, 24 + num_species*(27), 25 + s*(27), 0.5*dt*qbym[s]*(0.4*rho[s][3])); 
+    } 
  
     gkyl_mat_set(&lhs, 6 + s*(27), 8 + s*(27), 0.0); 
     gkyl_mat_set(&lhs, 15 + s*(27), 17 + s*(27), 0.0); 
@@ -1573,9 +1701,11 @@ GKYL_CU_DH void euler_pkpm_em_coupling_set_2x_tensor_p2(int count,
     gkyl_mat_set(&lhs, 6 + s*(27), 17 + s*(27), B_field_fac*(0.2857142857142857*tot_Bz[6]+0.447213595499958*tot_Bz[2])); 
     gkyl_mat_set(&lhs, 15 + s*(27), 8 + s*(27), -B_field_fac*(0.2857142857142857*tot_Bz[6]+0.447213595499958*tot_Bz[2])); 
  
-    gkyl_mat_set(&lhs, 6 + num_species*(27), 8 + s*(27), 0.5*dt*qbym[s]*(0.2857142857142857*rho[s][6]+0.447213595499958*rho[s][2])); 
-    gkyl_mat_set(&lhs, 15 + num_species*(27), 17 + s*(27), 0.5*dt*qbym[s]*(0.2857142857142857*rho[s][6]+0.447213595499958*rho[s][2])); 
-    gkyl_mat_set(&lhs, 24 + num_species*(27), 26 + s*(27), 0.5*dt*qbym[s]*(0.2857142857142857*rho[s][6]+0.447213595499958*rho[s][2])); 
+    if (!pkpm_field_static) { 
+      gkyl_mat_set(&lhs, 6 + num_species*(27), 8 + s*(27), 0.5*dt*qbym[s]*(0.2857142857142857*rho[s][6]+0.447213595499958*rho[s][2])); 
+      gkyl_mat_set(&lhs, 15 + num_species*(27), 17 + s*(27), 0.5*dt*qbym[s]*(0.2857142857142857*rho[s][6]+0.447213595499958*rho[s][2])); 
+      gkyl_mat_set(&lhs, 24 + num_species*(27), 26 + s*(27), 0.5*dt*qbym[s]*(0.2857142857142857*rho[s][6]+0.447213595499958*rho[s][2])); 
+    } 
  
     gkyl_mat_set(&lhs, 7 + s*(27), 0 + s*(27), 0.0); 
     gkyl_mat_set(&lhs, 16 + s*(27), 9 + s*(27), 0.0); 
@@ -1594,9 +1724,11 @@ GKYL_CU_DH void euler_pkpm_em_coupling_set_2x_tensor_p2(int count,
     gkyl_mat_set(&lhs, 7 + s*(27), 9 + s*(27), B_field_fac*(0.5*tot_Bz[7])); 
     gkyl_mat_set(&lhs, 16 + s*(27), 0 + s*(27), -B_field_fac*(0.5*tot_Bz[7])); 
  
-    gkyl_mat_set(&lhs, 7 + num_species*(27), 0 + s*(27), 0.5*dt*qbym[s]*(0.5*rho[s][7])); 
-    gkyl_mat_set(&lhs, 16 + num_species*(27), 9 + s*(27), 0.5*dt*qbym[s]*(0.5*rho[s][7])); 
-    gkyl_mat_set(&lhs, 25 + num_species*(27), 18 + s*(27), 0.5*dt*qbym[s]*(0.5*rho[s][7])); 
+    if (!pkpm_field_static) { 
+      gkyl_mat_set(&lhs, 7 + num_species*(27), 0 + s*(27), 0.5*dt*qbym[s]*(0.5*rho[s][7])); 
+      gkyl_mat_set(&lhs, 16 + num_species*(27), 9 + s*(27), 0.5*dt*qbym[s]*(0.5*rho[s][7])); 
+      gkyl_mat_set(&lhs, 25 + num_species*(27), 18 + s*(27), 0.5*dt*qbym[s]*(0.5*rho[s][7])); 
+    } 
  
     gkyl_mat_set(&lhs, 7 + s*(27), 1 + s*(27), 0.0); 
     gkyl_mat_set(&lhs, 16 + s*(27), 10 + s*(27), 0.0); 
@@ -1615,9 +1747,11 @@ GKYL_CU_DH void euler_pkpm_em_coupling_set_2x_tensor_p2(int count,
     gkyl_mat_set(&lhs, 7 + s*(27), 10 + s*(27), B_field_fac*(0.447213595499958*tot_Bz[8]+0.5000000000000001*tot_Bz[5])); 
     gkyl_mat_set(&lhs, 16 + s*(27), 1 + s*(27), -B_field_fac*(0.447213595499958*tot_Bz[8]+0.5000000000000001*tot_Bz[5])); 
  
-    gkyl_mat_set(&lhs, 7 + num_species*(27), 1 + s*(27), 0.5*dt*qbym[s]*(0.447213595499958*rho[s][8]+0.5000000000000001*rho[s][5])); 
-    gkyl_mat_set(&lhs, 16 + num_species*(27), 10 + s*(27), 0.5*dt*qbym[s]*(0.447213595499958*rho[s][8]+0.5000000000000001*rho[s][5])); 
-    gkyl_mat_set(&lhs, 25 + num_species*(27), 19 + s*(27), 0.5*dt*qbym[s]*(0.447213595499958*rho[s][8]+0.5000000000000001*rho[s][5])); 
+    if (!pkpm_field_static) { 
+      gkyl_mat_set(&lhs, 7 + num_species*(27), 1 + s*(27), 0.5*dt*qbym[s]*(0.447213595499958*rho[s][8]+0.5000000000000001*rho[s][5])); 
+      gkyl_mat_set(&lhs, 16 + num_species*(27), 10 + s*(27), 0.5*dt*qbym[s]*(0.447213595499958*rho[s][8]+0.5000000000000001*rho[s][5])); 
+      gkyl_mat_set(&lhs, 25 + num_species*(27), 19 + s*(27), 0.5*dt*qbym[s]*(0.447213595499958*rho[s][8]+0.5000000000000001*rho[s][5])); 
+    } 
  
     gkyl_mat_set(&lhs, 7 + s*(27), 2 + s*(27), 0.0); 
     gkyl_mat_set(&lhs, 16 + s*(27), 11 + s*(27), 0.0); 
@@ -1636,9 +1770,11 @@ GKYL_CU_DH void euler_pkpm_em_coupling_set_2x_tensor_p2(int count,
     gkyl_mat_set(&lhs, 7 + s*(27), 11 + s*(27), B_field_fac*(0.447213595499958*tot_Bz[3])); 
     gkyl_mat_set(&lhs, 16 + s*(27), 2 + s*(27), -B_field_fac*(0.447213595499958*tot_Bz[3])); 
  
-    gkyl_mat_set(&lhs, 7 + num_species*(27), 2 + s*(27), 0.5*dt*qbym[s]*(0.447213595499958*rho[s][3])); 
-    gkyl_mat_set(&lhs, 16 + num_species*(27), 11 + s*(27), 0.5*dt*qbym[s]*(0.447213595499958*rho[s][3])); 
-    gkyl_mat_set(&lhs, 25 + num_species*(27), 20 + s*(27), 0.5*dt*qbym[s]*(0.447213595499958*rho[s][3])); 
+    if (!pkpm_field_static) { 
+      gkyl_mat_set(&lhs, 7 + num_species*(27), 2 + s*(27), 0.5*dt*qbym[s]*(0.447213595499958*rho[s][3])); 
+      gkyl_mat_set(&lhs, 16 + num_species*(27), 11 + s*(27), 0.5*dt*qbym[s]*(0.447213595499958*rho[s][3])); 
+      gkyl_mat_set(&lhs, 25 + num_species*(27), 20 + s*(27), 0.5*dt*qbym[s]*(0.447213595499958*rho[s][3])); 
+    } 
  
     gkyl_mat_set(&lhs, 7 + s*(27), 3 + s*(27), 0.0); 
     gkyl_mat_set(&lhs, 16 + s*(27), 12 + s*(27), 0.0); 
@@ -1657,9 +1793,11 @@ GKYL_CU_DH void euler_pkpm_em_coupling_set_2x_tensor_p2(int count,
     gkyl_mat_set(&lhs, 7 + s*(27), 12 + s*(27), B_field_fac*(0.4*tot_Bz[6]+0.447213595499958*tot_Bz[2])); 
     gkyl_mat_set(&lhs, 16 + s*(27), 3 + s*(27), -B_field_fac*(0.4*tot_Bz[6]+0.447213595499958*tot_Bz[2])); 
  
-    gkyl_mat_set(&lhs, 7 + num_species*(27), 3 + s*(27), 0.5*dt*qbym[s]*(0.4*rho[s][6]+0.447213595499958*rho[s][2])); 
-    gkyl_mat_set(&lhs, 16 + num_species*(27), 12 + s*(27), 0.5*dt*qbym[s]*(0.4*rho[s][6]+0.447213595499958*rho[s][2])); 
-    gkyl_mat_set(&lhs, 25 + num_species*(27), 21 + s*(27), 0.5*dt*qbym[s]*(0.4*rho[s][6]+0.447213595499958*rho[s][2])); 
+    if (!pkpm_field_static) { 
+      gkyl_mat_set(&lhs, 7 + num_species*(27), 3 + s*(27), 0.5*dt*qbym[s]*(0.4*rho[s][6]+0.447213595499958*rho[s][2])); 
+      gkyl_mat_set(&lhs, 16 + num_species*(27), 12 + s*(27), 0.5*dt*qbym[s]*(0.4*rho[s][6]+0.447213595499958*rho[s][2])); 
+      gkyl_mat_set(&lhs, 25 + num_species*(27), 21 + s*(27), 0.5*dt*qbym[s]*(0.4*rho[s][6]+0.447213595499958*rho[s][2])); 
+    } 
  
     gkyl_mat_set(&lhs, 7 + s*(27), 4 + s*(27), 0.0); 
     gkyl_mat_set(&lhs, 16 + s*(27), 13 + s*(27), 0.0); 
@@ -1678,9 +1816,11 @@ GKYL_CU_DH void euler_pkpm_em_coupling_set_2x_tensor_p2(int count,
     gkyl_mat_set(&lhs, 7 + s*(27), 13 + s*(27), B_field_fac*(0.4472135954999579*tot_Bz[7])); 
     gkyl_mat_set(&lhs, 16 + s*(27), 4 + s*(27), -B_field_fac*(0.4472135954999579*tot_Bz[7])); 
  
-    gkyl_mat_set(&lhs, 7 + num_species*(27), 4 + s*(27), 0.5*dt*qbym[s]*(0.4472135954999579*rho[s][7])); 
-    gkyl_mat_set(&lhs, 16 + num_species*(27), 13 + s*(27), 0.5*dt*qbym[s]*(0.4472135954999579*rho[s][7])); 
-    gkyl_mat_set(&lhs, 25 + num_species*(27), 22 + s*(27), 0.5*dt*qbym[s]*(0.4472135954999579*rho[s][7])); 
+    if (!pkpm_field_static) { 
+      gkyl_mat_set(&lhs, 7 + num_species*(27), 4 + s*(27), 0.5*dt*qbym[s]*(0.4472135954999579*rho[s][7])); 
+      gkyl_mat_set(&lhs, 16 + num_species*(27), 13 + s*(27), 0.5*dt*qbym[s]*(0.4472135954999579*rho[s][7])); 
+      gkyl_mat_set(&lhs, 25 + num_species*(27), 22 + s*(27), 0.5*dt*qbym[s]*(0.4472135954999579*rho[s][7])); 
+    } 
  
     gkyl_mat_set(&lhs, 7 + s*(27), 5 + s*(27), 0.0); 
     gkyl_mat_set(&lhs, 16 + s*(27), 14 + s*(27), 0.0); 
@@ -1699,9 +1839,11 @@ GKYL_CU_DH void euler_pkpm_em_coupling_set_2x_tensor_p2(int count,
     gkyl_mat_set(&lhs, 7 + s*(27), 14 + s*(27), B_field_fac*(0.31943828249997*tot_Bz[7]+0.5000000000000001*tot_Bz[1])); 
     gkyl_mat_set(&lhs, 16 + s*(27), 5 + s*(27), -B_field_fac*(0.31943828249997*tot_Bz[7]+0.5000000000000001*tot_Bz[1])); 
  
-    gkyl_mat_set(&lhs, 7 + num_species*(27), 5 + s*(27), 0.5*dt*qbym[s]*(0.31943828249997*rho[s][7]+0.5000000000000001*rho[s][1])); 
-    gkyl_mat_set(&lhs, 16 + num_species*(27), 14 + s*(27), 0.5*dt*qbym[s]*(0.31943828249997*rho[s][7]+0.5000000000000001*rho[s][1])); 
-    gkyl_mat_set(&lhs, 25 + num_species*(27), 23 + s*(27), 0.5*dt*qbym[s]*(0.31943828249997*rho[s][7]+0.5000000000000001*rho[s][1])); 
+    if (!pkpm_field_static) { 
+      gkyl_mat_set(&lhs, 7 + num_species*(27), 5 + s*(27), 0.5*dt*qbym[s]*(0.31943828249997*rho[s][7]+0.5000000000000001*rho[s][1])); 
+      gkyl_mat_set(&lhs, 16 + num_species*(27), 14 + s*(27), 0.5*dt*qbym[s]*(0.31943828249997*rho[s][7]+0.5000000000000001*rho[s][1])); 
+      gkyl_mat_set(&lhs, 25 + num_species*(27), 23 + s*(27), 0.5*dt*qbym[s]*(0.31943828249997*rho[s][7]+0.5000000000000001*rho[s][1])); 
+    } 
  
     gkyl_mat_set(&lhs, 7 + s*(27), 6 + s*(27), 0.0); 
     gkyl_mat_set(&lhs, 16 + s*(27), 15 + s*(27), 0.0); 
@@ -1720,9 +1862,11 @@ GKYL_CU_DH void euler_pkpm_em_coupling_set_2x_tensor_p2(int count,
     gkyl_mat_set(&lhs, 7 + s*(27), 15 + s*(27), B_field_fac*(0.4*tot_Bz[3])); 
     gkyl_mat_set(&lhs, 16 + s*(27), 6 + s*(27), -B_field_fac*(0.4*tot_Bz[3])); 
  
-    gkyl_mat_set(&lhs, 7 + num_species*(27), 6 + s*(27), 0.5*dt*qbym[s]*(0.4*rho[s][3])); 
-    gkyl_mat_set(&lhs, 16 + num_species*(27), 15 + s*(27), 0.5*dt*qbym[s]*(0.4*rho[s][3])); 
-    gkyl_mat_set(&lhs, 25 + num_species*(27), 24 + s*(27), 0.5*dt*qbym[s]*(0.4*rho[s][3])); 
+    if (!pkpm_field_static) { 
+      gkyl_mat_set(&lhs, 7 + num_species*(27), 6 + s*(27), 0.5*dt*qbym[s]*(0.4*rho[s][3])); 
+      gkyl_mat_set(&lhs, 16 + num_species*(27), 15 + s*(27), 0.5*dt*qbym[s]*(0.4*rho[s][3])); 
+      gkyl_mat_set(&lhs, 25 + num_species*(27), 24 + s*(27), 0.5*dt*qbym[s]*(0.4*rho[s][3])); 
+    } 
  
     gkyl_mat_set(&lhs, 7 + s*(27), 7 + s*(27), 1.0); 
     gkyl_mat_set(&lhs, 16 + s*(27), 16 + s*(27), 1.0); 
@@ -1741,9 +1885,11 @@ GKYL_CU_DH void euler_pkpm_em_coupling_set_2x_tensor_p2(int count,
     gkyl_mat_set(&lhs, 7 + s*(27), 16 + s*(27), B_field_fac*(0.2857142857142857*tot_Bz[8]+0.31943828249997*tot_Bz[5]+0.4472135954999579*tot_Bz[4]+0.5*tot_Bz[0])); 
     gkyl_mat_set(&lhs, 16 + s*(27), 7 + s*(27), -B_field_fac*(0.2857142857142857*tot_Bz[8]+0.31943828249997*tot_Bz[5]+0.4472135954999579*tot_Bz[4]+0.5*tot_Bz[0])); 
  
-    gkyl_mat_set(&lhs, 7 + num_species*(27), 7 + s*(27), 0.5*dt*qbym[s]*(0.2857142857142857*rho[s][8]+0.31943828249997*rho[s][5]+0.4472135954999579*rho[s][4]+0.5*rho[s][0])); 
-    gkyl_mat_set(&lhs, 16 + num_species*(27), 16 + s*(27), 0.5*dt*qbym[s]*(0.2857142857142857*rho[s][8]+0.31943828249997*rho[s][5]+0.4472135954999579*rho[s][4]+0.5*rho[s][0])); 
-    gkyl_mat_set(&lhs, 25 + num_species*(27), 25 + s*(27), 0.5*dt*qbym[s]*(0.2857142857142857*rho[s][8]+0.31943828249997*rho[s][5]+0.4472135954999579*rho[s][4]+0.5*rho[s][0])); 
+    if (!pkpm_field_static) { 
+      gkyl_mat_set(&lhs, 7 + num_species*(27), 7 + s*(27), 0.5*dt*qbym[s]*(0.2857142857142857*rho[s][8]+0.31943828249997*rho[s][5]+0.4472135954999579*rho[s][4]+0.5*rho[s][0])); 
+      gkyl_mat_set(&lhs, 16 + num_species*(27), 16 + s*(27), 0.5*dt*qbym[s]*(0.2857142857142857*rho[s][8]+0.31943828249997*rho[s][5]+0.4472135954999579*rho[s][4]+0.5*rho[s][0])); 
+      gkyl_mat_set(&lhs, 25 + num_species*(27), 25 + s*(27), 0.5*dt*qbym[s]*(0.2857142857142857*rho[s][8]+0.31943828249997*rho[s][5]+0.4472135954999579*rho[s][4]+0.5*rho[s][0])); 
+    } 
  
     gkyl_mat_set(&lhs, 7 + s*(27), 8 + s*(27), 0.0); 
     gkyl_mat_set(&lhs, 16 + s*(27), 17 + s*(27), 0.0); 
@@ -1762,9 +1908,11 @@ GKYL_CU_DH void euler_pkpm_em_coupling_set_2x_tensor_p2(int count,
     gkyl_mat_set(&lhs, 7 + s*(27), 17 + s*(27), B_field_fac*(0.2857142857142857*tot_Bz[7]+0.447213595499958*tot_Bz[1])); 
     gkyl_mat_set(&lhs, 16 + s*(27), 8 + s*(27), -B_field_fac*(0.2857142857142857*tot_Bz[7]+0.447213595499958*tot_Bz[1])); 
  
-    gkyl_mat_set(&lhs, 7 + num_species*(27), 8 + s*(27), 0.5*dt*qbym[s]*(0.2857142857142857*rho[s][7]+0.447213595499958*rho[s][1])); 
-    gkyl_mat_set(&lhs, 16 + num_species*(27), 17 + s*(27), 0.5*dt*qbym[s]*(0.2857142857142857*rho[s][7]+0.447213595499958*rho[s][1])); 
-    gkyl_mat_set(&lhs, 25 + num_species*(27), 26 + s*(27), 0.5*dt*qbym[s]*(0.2857142857142857*rho[s][7]+0.447213595499958*rho[s][1])); 
+    if (!pkpm_field_static) { 
+      gkyl_mat_set(&lhs, 7 + num_species*(27), 8 + s*(27), 0.5*dt*qbym[s]*(0.2857142857142857*rho[s][7]+0.447213595499958*rho[s][1])); 
+      gkyl_mat_set(&lhs, 16 + num_species*(27), 17 + s*(27), 0.5*dt*qbym[s]*(0.2857142857142857*rho[s][7]+0.447213595499958*rho[s][1])); 
+      gkyl_mat_set(&lhs, 25 + num_species*(27), 26 + s*(27), 0.5*dt*qbym[s]*(0.2857142857142857*rho[s][7]+0.447213595499958*rho[s][1])); 
+    } 
  
     gkyl_mat_set(&lhs, 8 + s*(27), 0 + s*(27), 0.0); 
     gkyl_mat_set(&lhs, 17 + s*(27), 9 + s*(27), 0.0); 
@@ -1783,9 +1931,11 @@ GKYL_CU_DH void euler_pkpm_em_coupling_set_2x_tensor_p2(int count,
     gkyl_mat_set(&lhs, 8 + s*(27), 9 + s*(27), B_field_fac*(0.5*tot_Bz[8])); 
     gkyl_mat_set(&lhs, 17 + s*(27), 0 + s*(27), -B_field_fac*(0.5*tot_Bz[8])); 
  
-    gkyl_mat_set(&lhs, 8 + num_species*(27), 0 + s*(27), 0.5*dt*qbym[s]*(0.5*rho[s][8])); 
-    gkyl_mat_set(&lhs, 17 + num_species*(27), 9 + s*(27), 0.5*dt*qbym[s]*(0.5*rho[s][8])); 
-    gkyl_mat_set(&lhs, 26 + num_species*(27), 18 + s*(27), 0.5*dt*qbym[s]*(0.5*rho[s][8])); 
+    if (!pkpm_field_static) { 
+      gkyl_mat_set(&lhs, 8 + num_species*(27), 0 + s*(27), 0.5*dt*qbym[s]*(0.5*rho[s][8])); 
+      gkyl_mat_set(&lhs, 17 + num_species*(27), 9 + s*(27), 0.5*dt*qbym[s]*(0.5*rho[s][8])); 
+      gkyl_mat_set(&lhs, 26 + num_species*(27), 18 + s*(27), 0.5*dt*qbym[s]*(0.5*rho[s][8])); 
+    } 
  
     gkyl_mat_set(&lhs, 8 + s*(27), 1 + s*(27), 0.0); 
     gkyl_mat_set(&lhs, 17 + s*(27), 10 + s*(27), 0.0); 
@@ -1804,9 +1954,11 @@ GKYL_CU_DH void euler_pkpm_em_coupling_set_2x_tensor_p2(int count,
     gkyl_mat_set(&lhs, 8 + s*(27), 10 + s*(27), B_field_fac*(0.447213595499958*tot_Bz[7])); 
     gkyl_mat_set(&lhs, 17 + s*(27), 1 + s*(27), -B_field_fac*(0.447213595499958*tot_Bz[7])); 
  
-    gkyl_mat_set(&lhs, 8 + num_species*(27), 1 + s*(27), 0.5*dt*qbym[s]*(0.447213595499958*rho[s][7])); 
-    gkyl_mat_set(&lhs, 17 + num_species*(27), 10 + s*(27), 0.5*dt*qbym[s]*(0.447213595499958*rho[s][7])); 
-    gkyl_mat_set(&lhs, 26 + num_species*(27), 19 + s*(27), 0.5*dt*qbym[s]*(0.447213595499958*rho[s][7])); 
+    if (!pkpm_field_static) { 
+      gkyl_mat_set(&lhs, 8 + num_species*(27), 1 + s*(27), 0.5*dt*qbym[s]*(0.447213595499958*rho[s][7])); 
+      gkyl_mat_set(&lhs, 17 + num_species*(27), 10 + s*(27), 0.5*dt*qbym[s]*(0.447213595499958*rho[s][7])); 
+      gkyl_mat_set(&lhs, 26 + num_species*(27), 19 + s*(27), 0.5*dt*qbym[s]*(0.447213595499958*rho[s][7])); 
+    } 
  
     gkyl_mat_set(&lhs, 8 + s*(27), 2 + s*(27), 0.0); 
     gkyl_mat_set(&lhs, 17 + s*(27), 11 + s*(27), 0.0); 
@@ -1825,9 +1977,11 @@ GKYL_CU_DH void euler_pkpm_em_coupling_set_2x_tensor_p2(int count,
     gkyl_mat_set(&lhs, 8 + s*(27), 11 + s*(27), B_field_fac*(0.447213595499958*tot_Bz[6])); 
     gkyl_mat_set(&lhs, 17 + s*(27), 2 + s*(27), -B_field_fac*(0.447213595499958*tot_Bz[6])); 
  
-    gkyl_mat_set(&lhs, 8 + num_species*(27), 2 + s*(27), 0.5*dt*qbym[s]*(0.447213595499958*rho[s][6])); 
-    gkyl_mat_set(&lhs, 17 + num_species*(27), 11 + s*(27), 0.5*dt*qbym[s]*(0.447213595499958*rho[s][6])); 
-    gkyl_mat_set(&lhs, 26 + num_species*(27), 20 + s*(27), 0.5*dt*qbym[s]*(0.447213595499958*rho[s][6])); 
+    if (!pkpm_field_static) { 
+      gkyl_mat_set(&lhs, 8 + num_species*(27), 2 + s*(27), 0.5*dt*qbym[s]*(0.447213595499958*rho[s][6])); 
+      gkyl_mat_set(&lhs, 17 + num_species*(27), 11 + s*(27), 0.5*dt*qbym[s]*(0.447213595499958*rho[s][6])); 
+      gkyl_mat_set(&lhs, 26 + num_species*(27), 20 + s*(27), 0.5*dt*qbym[s]*(0.447213595499958*rho[s][6])); 
+    } 
  
     gkyl_mat_set(&lhs, 8 + s*(27), 3 + s*(27), 0.0); 
     gkyl_mat_set(&lhs, 17 + s*(27), 12 + s*(27), 0.0); 
@@ -1846,9 +2000,11 @@ GKYL_CU_DH void euler_pkpm_em_coupling_set_2x_tensor_p2(int count,
     gkyl_mat_set(&lhs, 8 + s*(27), 12 + s*(27), B_field_fac*(0.4*tot_Bz[3])); 
     gkyl_mat_set(&lhs, 17 + s*(27), 3 + s*(27), -B_field_fac*(0.4*tot_Bz[3])); 
  
-    gkyl_mat_set(&lhs, 8 + num_species*(27), 3 + s*(27), 0.5*dt*qbym[s]*(0.4*rho[s][3])); 
-    gkyl_mat_set(&lhs, 17 + num_species*(27), 12 + s*(27), 0.5*dt*qbym[s]*(0.4*rho[s][3])); 
-    gkyl_mat_set(&lhs, 26 + num_species*(27), 21 + s*(27), 0.5*dt*qbym[s]*(0.4*rho[s][3])); 
+    if (!pkpm_field_static) { 
+      gkyl_mat_set(&lhs, 8 + num_species*(27), 3 + s*(27), 0.5*dt*qbym[s]*(0.4*rho[s][3])); 
+      gkyl_mat_set(&lhs, 17 + num_species*(27), 12 + s*(27), 0.5*dt*qbym[s]*(0.4*rho[s][3])); 
+      gkyl_mat_set(&lhs, 26 + num_species*(27), 21 + s*(27), 0.5*dt*qbym[s]*(0.4*rho[s][3])); 
+    } 
  
     gkyl_mat_set(&lhs, 8 + s*(27), 4 + s*(27), 0.0); 
     gkyl_mat_set(&lhs, 17 + s*(27), 13 + s*(27), 0.0); 
@@ -1867,9 +2023,11 @@ GKYL_CU_DH void euler_pkpm_em_coupling_set_2x_tensor_p2(int count,
     gkyl_mat_set(&lhs, 8 + s*(27), 13 + s*(27), B_field_fac*(0.31943828249997*tot_Bz[8]+0.5*tot_Bz[5])); 
     gkyl_mat_set(&lhs, 17 + s*(27), 4 + s*(27), -B_field_fac*(0.31943828249997*tot_Bz[8]+0.5*tot_Bz[5])); 
  
-    gkyl_mat_set(&lhs, 8 + num_species*(27), 4 + s*(27), 0.5*dt*qbym[s]*(0.31943828249997*rho[s][8]+0.5*rho[s][5])); 
-    gkyl_mat_set(&lhs, 17 + num_species*(27), 13 + s*(27), 0.5*dt*qbym[s]*(0.31943828249997*rho[s][8]+0.5*rho[s][5])); 
-    gkyl_mat_set(&lhs, 26 + num_species*(27), 22 + s*(27), 0.5*dt*qbym[s]*(0.31943828249997*rho[s][8]+0.5*rho[s][5])); 
+    if (!pkpm_field_static) { 
+      gkyl_mat_set(&lhs, 8 + num_species*(27), 4 + s*(27), 0.5*dt*qbym[s]*(0.31943828249997*rho[s][8]+0.5*rho[s][5])); 
+      gkyl_mat_set(&lhs, 17 + num_species*(27), 13 + s*(27), 0.5*dt*qbym[s]*(0.31943828249997*rho[s][8]+0.5*rho[s][5])); 
+      gkyl_mat_set(&lhs, 26 + num_species*(27), 22 + s*(27), 0.5*dt*qbym[s]*(0.31943828249997*rho[s][8]+0.5*rho[s][5])); 
+    } 
  
     gkyl_mat_set(&lhs, 8 + s*(27), 5 + s*(27), 0.0); 
     gkyl_mat_set(&lhs, 17 + s*(27), 14 + s*(27), 0.0); 
@@ -1888,9 +2046,11 @@ GKYL_CU_DH void euler_pkpm_em_coupling_set_2x_tensor_p2(int count,
     gkyl_mat_set(&lhs, 8 + s*(27), 14 + s*(27), B_field_fac*(0.31943828249997*tot_Bz[8]+0.5*tot_Bz[4])); 
     gkyl_mat_set(&lhs, 17 + s*(27), 5 + s*(27), -B_field_fac*(0.31943828249997*tot_Bz[8]+0.5*tot_Bz[4])); 
  
-    gkyl_mat_set(&lhs, 8 + num_species*(27), 5 + s*(27), 0.5*dt*qbym[s]*(0.31943828249997*rho[s][8]+0.5*rho[s][4])); 
-    gkyl_mat_set(&lhs, 17 + num_species*(27), 14 + s*(27), 0.5*dt*qbym[s]*(0.31943828249997*rho[s][8]+0.5*rho[s][4])); 
-    gkyl_mat_set(&lhs, 26 + num_species*(27), 23 + s*(27), 0.5*dt*qbym[s]*(0.31943828249997*rho[s][8]+0.5*rho[s][4])); 
+    if (!pkpm_field_static) { 
+      gkyl_mat_set(&lhs, 8 + num_species*(27), 5 + s*(27), 0.5*dt*qbym[s]*(0.31943828249997*rho[s][8]+0.5*rho[s][4])); 
+      gkyl_mat_set(&lhs, 17 + num_species*(27), 14 + s*(27), 0.5*dt*qbym[s]*(0.31943828249997*rho[s][8]+0.5*rho[s][4])); 
+      gkyl_mat_set(&lhs, 26 + num_species*(27), 23 + s*(27), 0.5*dt*qbym[s]*(0.31943828249997*rho[s][8]+0.5*rho[s][4])); 
+    } 
  
     gkyl_mat_set(&lhs, 8 + s*(27), 6 + s*(27), 0.0); 
     gkyl_mat_set(&lhs, 17 + s*(27), 15 + s*(27), 0.0); 
@@ -1909,9 +2069,11 @@ GKYL_CU_DH void euler_pkpm_em_coupling_set_2x_tensor_p2(int count,
     gkyl_mat_set(&lhs, 8 + s*(27), 15 + s*(27), B_field_fac*(0.2857142857142857*tot_Bz[6]+0.447213595499958*tot_Bz[2])); 
     gkyl_mat_set(&lhs, 17 + s*(27), 6 + s*(27), -B_field_fac*(0.2857142857142857*tot_Bz[6]+0.447213595499958*tot_Bz[2])); 
  
-    gkyl_mat_set(&lhs, 8 + num_species*(27), 6 + s*(27), 0.5*dt*qbym[s]*(0.2857142857142857*rho[s][6]+0.447213595499958*rho[s][2])); 
-    gkyl_mat_set(&lhs, 17 + num_species*(27), 15 + s*(27), 0.5*dt*qbym[s]*(0.2857142857142857*rho[s][6]+0.447213595499958*rho[s][2])); 
-    gkyl_mat_set(&lhs, 26 + num_species*(27), 24 + s*(27), 0.5*dt*qbym[s]*(0.2857142857142857*rho[s][6]+0.447213595499958*rho[s][2])); 
+    if (!pkpm_field_static) { 
+      gkyl_mat_set(&lhs, 8 + num_species*(27), 6 + s*(27), 0.5*dt*qbym[s]*(0.2857142857142857*rho[s][6]+0.447213595499958*rho[s][2])); 
+      gkyl_mat_set(&lhs, 17 + num_species*(27), 15 + s*(27), 0.5*dt*qbym[s]*(0.2857142857142857*rho[s][6]+0.447213595499958*rho[s][2])); 
+      gkyl_mat_set(&lhs, 26 + num_species*(27), 24 + s*(27), 0.5*dt*qbym[s]*(0.2857142857142857*rho[s][6]+0.447213595499958*rho[s][2])); 
+    } 
  
     gkyl_mat_set(&lhs, 8 + s*(27), 7 + s*(27), 0.0); 
     gkyl_mat_set(&lhs, 17 + s*(27), 16 + s*(27), 0.0); 
@@ -1930,9 +2092,11 @@ GKYL_CU_DH void euler_pkpm_em_coupling_set_2x_tensor_p2(int count,
     gkyl_mat_set(&lhs, 8 + s*(27), 16 + s*(27), B_field_fac*(0.2857142857142857*tot_Bz[7]+0.447213595499958*tot_Bz[1])); 
     gkyl_mat_set(&lhs, 17 + s*(27), 7 + s*(27), -B_field_fac*(0.2857142857142857*tot_Bz[7]+0.447213595499958*tot_Bz[1])); 
  
-    gkyl_mat_set(&lhs, 8 + num_species*(27), 7 + s*(27), 0.5*dt*qbym[s]*(0.2857142857142857*rho[s][7]+0.447213595499958*rho[s][1])); 
-    gkyl_mat_set(&lhs, 17 + num_species*(27), 16 + s*(27), 0.5*dt*qbym[s]*(0.2857142857142857*rho[s][7]+0.447213595499958*rho[s][1])); 
-    gkyl_mat_set(&lhs, 26 + num_species*(27), 25 + s*(27), 0.5*dt*qbym[s]*(0.2857142857142857*rho[s][7]+0.447213595499958*rho[s][1])); 
+    if (!pkpm_field_static) { 
+      gkyl_mat_set(&lhs, 8 + num_species*(27), 7 + s*(27), 0.5*dt*qbym[s]*(0.2857142857142857*rho[s][7]+0.447213595499958*rho[s][1])); 
+      gkyl_mat_set(&lhs, 17 + num_species*(27), 16 + s*(27), 0.5*dt*qbym[s]*(0.2857142857142857*rho[s][7]+0.447213595499958*rho[s][1])); 
+      gkyl_mat_set(&lhs, 26 + num_species*(27), 25 + s*(27), 0.5*dt*qbym[s]*(0.2857142857142857*rho[s][7]+0.447213595499958*rho[s][1])); 
+    } 
  
     gkyl_mat_set(&lhs, 8 + s*(27), 8 + s*(27), 1.0); 
     gkyl_mat_set(&lhs, 17 + s*(27), 17 + s*(27), 1.0); 
@@ -1951,9 +2115,11 @@ GKYL_CU_DH void euler_pkpm_em_coupling_set_2x_tensor_p2(int count,
     gkyl_mat_set(&lhs, 8 + s*(27), 17 + s*(27), B_field_fac*(0.2040816326530612*tot_Bz[8]+0.31943828249997*tot_Bz[5]+0.31943828249997*tot_Bz[4]+0.5*tot_Bz[0])); 
     gkyl_mat_set(&lhs, 17 + s*(27), 8 + s*(27), -B_field_fac*(0.2040816326530612*tot_Bz[8]+0.31943828249997*tot_Bz[5]+0.31943828249997*tot_Bz[4]+0.5*tot_Bz[0])); 
  
-    gkyl_mat_set(&lhs, 8 + num_species*(27), 8 + s*(27), 0.5*dt*qbym[s]*(0.2040816326530612*rho[s][8]+0.31943828249997*rho[s][5]+0.31943828249997*rho[s][4]+0.5*rho[s][0])); 
-    gkyl_mat_set(&lhs, 17 + num_species*(27), 17 + s*(27), 0.5*dt*qbym[s]*(0.2040816326530612*rho[s][8]+0.31943828249997*rho[s][5]+0.31943828249997*rho[s][4]+0.5*rho[s][0])); 
-    gkyl_mat_set(&lhs, 26 + num_species*(27), 26 + s*(27), 0.5*dt*qbym[s]*(0.2040816326530612*rho[s][8]+0.31943828249997*rho[s][5]+0.31943828249997*rho[s][4]+0.5*rho[s][0])); 
+    if (!pkpm_field_static) { 
+      gkyl_mat_set(&lhs, 8 + num_species*(27), 8 + s*(27), 0.5*dt*qbym[s]*(0.2040816326530612*rho[s][8]+0.31943828249997*rho[s][5]+0.31943828249997*rho[s][4]+0.5*rho[s][0])); 
+      gkyl_mat_set(&lhs, 17 + num_species*(27), 17 + s*(27), 0.5*dt*qbym[s]*(0.2040816326530612*rho[s][8]+0.31943828249997*rho[s][5]+0.31943828249997*rho[s][4]+0.5*rho[s][0])); 
+      gkyl_mat_set(&lhs, 26 + num_species*(27), 26 + s*(27), 0.5*dt*qbym[s]*(0.2040816326530612*rho[s][8]+0.31943828249997*rho[s][5]+0.31943828249997*rho[s][4]+0.5*rho[s][0])); 
+    } 
  
   } 
   gkyl_mat_set(&lhs, 0 + num_species*(27), 0 + num_species*(27), 1.0); 

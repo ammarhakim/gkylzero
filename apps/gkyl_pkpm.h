@@ -137,8 +137,10 @@ struct gkyl_pkpm {
   int num_species; // number of species
   struct gkyl_pkpm_species species[GKYL_MAX_SPECIES]; // species objects
   
-  bool skip_field; // Skip field update or no field specified
   struct gkyl_pkpm_field field; // field object
+
+  bool use_explicit_source; // Use fully explicit SSP RK3 scheme 
+                            // Default is Strang split with implicit fluid-EM coupling
 
   // this should not be set by typical user-facing code but only by
   // higher-level drivers

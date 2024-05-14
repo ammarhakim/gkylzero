@@ -12,12 +12,12 @@ struct gkyl_dg_calc_pkpm_em_coupling*
 gkyl_dg_calc_pkpm_em_coupling_new(const struct gkyl_basis* cbasis, 
   const struct gkyl_range *mem_range, 
   int num_species, double qbym[GKYL_MAX_SPECIES], double epsilon0,
-  bool use_gpu)
+  bool pkpm_field_static, bool use_gpu)
 {
 #ifdef GKYL_HAVE_CUDA
   if(use_gpu) {
     return gkyl_dg_calc_pkpm_em_coupling_cu_dev_new(cbasis, mem_range, 
-      num_species, qbym, epsilon0);
+      num_species, qbym, epsilon0, pkpm_field_static);
   } 
 #endif     
   gkyl_dg_calc_pkpm_em_coupling *up = gkyl_malloc(sizeof(gkyl_dg_calc_pkpm_em_coupling));
@@ -26,8 +26,6 @@ gkyl_dg_calc_pkpm_em_coupling_new(const struct gkyl_basis* cbasis,
   int cdim = cbasis->ndim;
   int poly_order = cbasis->poly_order;
   enum gkyl_basis_type b_type = cbasis->b_type;
-  up->cdim = cdim;
-  up->poly_order = poly_order;
   up->mem_range = *mem_range;
 
   up->pkpm_em_coupling_set = choose_pkpm_em_coupling_set_kern(b_type, cdim, poly_order);
@@ -39,6 +37,9 @@ gkyl_dg_calc_pkpm_em_coupling_new(const struct gkyl_basis* cbasis,
   up->xs = gkyl_nmat_new(mem_range->volume, nc*(3*up->num_species + 3), 1);
   up->mem = gkyl_nmat_linsolve_lu_new(up->As->num, up->As->nr);
 
+  // Boolean for whether or not self-consistent EM fields are static
+  up->pkpm_field_static = pkpm_field_static;
+  
   // Needed constants for the source solve
   up->epsilon0 = epsilon0;
   for (int n = 0; n < num_species; ++n) {
@@ -88,7 +89,8 @@ gkyl_dg_calc_pkpm_em_coupling_advance(struct gkyl_dg_calc_pkpm_em_coupling *up, 
     const double *app_current_d = gkyl_array_cfetch(app_current, loc);
     double *em_d = gkyl_array_fetch(em, loc);
 
-    up->pkpm_em_coupling_set(count, up->num_species, up->qbym, up->epsilon0, dt, 
+    up->pkpm_em_coupling_set(count, 
+      up->num_species, up->qbym, up->epsilon0, up->pkpm_field_static, dt, 
       up->As, up->xs, 
       app_accels, ext_em_d, app_current_d, pkpm_moms, pkpm_flows, em_d);
 

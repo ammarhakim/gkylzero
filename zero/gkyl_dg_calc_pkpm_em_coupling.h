@@ -27,6 +27,7 @@ typedef struct gkyl_dg_calc_pkpm_em_coupling gkyl_dg_calc_pkpm_em_coupling;
  * @param num_species       Number of fluid species in the update
  * @param qbym[num_species] Array of charge/mass for each fluid species
  * @param epsilon0          Permitivvity of free space
+ * @param pkpm_field_static bool to determine if we are updating the self-consistent EM fields (dE/dt)
  * @param use_gpu           bool to determine if on GPU
  * @return New updater pointer.
  */
@@ -34,7 +35,7 @@ struct gkyl_dg_calc_pkpm_em_coupling*
 gkyl_dg_calc_pkpm_em_coupling_new(const struct gkyl_basis* cbasis, 
   const struct gkyl_range *mem_range, 
   int num_species, double qbym[GKYL_MAX_SPECIES], double epsilon0,
-  bool use_gpu);
+  bool pkpm_field_static, bool use_gpu);
 
 /**
  * Create new updater to compute fluid variables on
@@ -43,7 +44,8 @@ gkyl_dg_calc_pkpm_em_coupling_new(const struct gkyl_basis* cbasis,
 struct gkyl_dg_calc_pkpm_em_coupling* 
 gkyl_dg_calc_pkpm_em_coupling_cu_dev_new(const struct gkyl_basis* cbasis, 
   const struct gkyl_range *mem_range, 
-  int num_species, double qbym[GKYL_MAX_SPECIES], double epsilon0);
+  int num_species, double qbym[GKYL_MAX_SPECIES], double epsilon0, 
+  bool pkpm_field_static);
 
 /**
  * Compute the updated fluid momentum and electric field implicitly from time-centered source solve.

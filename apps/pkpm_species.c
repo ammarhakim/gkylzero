@@ -111,11 +111,8 @@ pkpm_species_init(struct gkyl_pkpm *pkpm, struct gkyl_pkpm_app *app, struct pkpm
     s->omegaCfl_ptr_fluid = gkyl_malloc(sizeof(double));
   }
 
-  // allocate array to store q/m*(E,B) for use in *explicit* update
-  // Note: this array is *only* used if the PKPM self-consistent EM fields are static
-  // If PKPM self-consistent EM fields are dynamics we utilize an implicit source update
-  // for the momentum equations and Ampere's Law
-  if (app->field->info.is_static) { 
+  // allocate array to store q/m*(E,B) if using a fully explicit update
+  if (app->use_explicit_source) { 
     s->qmem = mkarr(app->use_gpu, 8*app->confBasis.num_basis, app->local_ext.volume);
   }
 
@@ -497,11 +494,15 @@ pkpm_fluid_species_limiter(gkyl_pkpm_app *app, struct pkpm_species *species,
   if (species->limit_fluid) {  
     struct timespec tm = gkyl_wall_clock();
 
-    // Compute the moments and pressure variables from the kinetic system 
-    pkpm_species_calc_pkpm_vars(app, species, fin, fluid);
+    // Compute the PKPM moments from the kinetic equation 
+    pkpm_species_moment_calc(&species->pkpm_moms, species->local, app->local, fin);
+    // Compute the flow velocity 
+    gkyl_dg_calc_pkpm_vars_u(species->calc_pkpm_vars,
+      species->pkpm_moms.marr, fluid, 
+      species->cell_avg_prim, species->pkpm_u);
 
     // Limit the slopes of the solution of the fluid system
-    gkyl_dg_calc_pkpm_vars_limiter(species->calc_pkpm_vars, &app->local, species->pkpm_prim, 
+    gkyl_dg_calc_pkpm_vars_limiter(species->calc_pkpm_vars, &app->local, species->pkpm_u, 
       species->pkpm_moms.marr, species->pkpm_p_ij, fluid);
 
     app->stat.species_pkpm_vars_tm += gkyl_time_diff_now_sec(tm);
@@ -538,10 +539,8 @@ pkpm_species_rhs(gkyl_pkpm_app *app, struct pkpm_species *species,
       &app->local, species->diffD, fluidin, species->cflrate_fluid, rhs_fluid);
   }
 
-  // If PKPM self-consistent EM fields are static, we treat forces in PKPM system explicitly
-  // Note: the acceleration or external EM fields may be time-dependent even if 
-  // PKPM self-consistend EM fields are static. 
-  if (app->field->info.is_static) { 
+  // If PKPM update is fully explicit, include the fluid-EM coupling in fluid update
+  if (app->use_explicit_source) { 
     double qbym = species->info.charge/species->info.mass;
     gkyl_array_set(species->qmem, qbym, em);
 
@@ -553,7 +552,7 @@ pkpm_species_rhs(gkyl_pkpm_app *app, struct pkpm_species *species,
     if (app->field->has_ext_em) {
       gkyl_array_accumulate_range(species->qmem, qbym, app->field->ext_em, &app->local);  
     }
-      
+
     gkyl_dg_calc_pkpm_vars_source(species->calc_pkpm_vars, &app->local, 
       species->qmem, species->pkpm_moms.marr, fluidin, rhs_fluid);        
   }
@@ -778,7 +777,7 @@ pkpm_species_release(const gkyl_pkpm_app* app, const struct pkpm_species *s)
     gkyl_array_release(s->fluid_host);
   }
 
-  if (app->field->info.is_static) { 
+  if (app->use_explicit_source) { 
     gkyl_array_release(s->qmem); 
   }
 
@@ -792,6 +791,7 @@ pkpm_species_release(const gkyl_pkpm_app* app, const struct pkpm_species *s)
   gkyl_array_release(s->F_k_p_1);
   gkyl_array_release(s->pkpm_div_ppar);
   gkyl_array_release(s->pkpm_prim);
+  gkyl_array_release(s->pkpm_u);
   gkyl_array_release(s->pkpm_p_ij);
   gkyl_array_release(s->cell_avg_prim);
   gkyl_array_release(s->pkpm_prim_surf);
