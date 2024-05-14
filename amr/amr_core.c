@@ -463,7 +463,7 @@ gr_euler1d_run_single(int argc, char **argv, struct gr_euler1d_single_init* init
     );
 
 #ifdef AMR_DEBUG
-    fine_pdata[i].euler = gkyl_wv_gr_euler_new(gas_gamma, spacetime, app_args.use_gpu)
+    fine_pdata[i].euler = gkyl_wv_gr_euler_new(gas_gamma, spacetime, app_args.use_gpu);
 
     fine_pdata[i].slvr[0] = gkyl_wave_prop_new(& (struct gkyl_wave_prop_inp) {
         .grid = &fine_pdata[i].grid,
@@ -726,6 +726,7 @@ gr_euler1d_run_single(int argc, char **argv, struct gr_euler1d_single_init* init
   }
 
   gkyl_block_topo_release(ptopo);
+  gkyl_gr_spacetime_release(spacetime);
   gkyl_job_pool_release(coarse_job_pool);
 #ifdef AMR_DEBUG
   gkyl_job_pool_release(fine_job_pool);
