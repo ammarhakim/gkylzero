@@ -147,16 +147,9 @@ void
 eval_density_elc_source(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   struct gk_mirror_ctx *app = ctx;
-  double psi = app->psi_eval; // Magnetic flux function psi of field line.
-  // double *arcL_output = malloc(3*sizeof(double));
-  // double *xn_3x = malloc(3*sizeof(double));
-  // xn_3x[0] = psi;
-  // xn_3x[1] = 0.0;
-  // xn_3x[2] = xn[0];
-  // calc_arcL_advance(t, xn_3x, arcL_output, app->arcL_evaluator_ctx);
-  // double z = arcL_output[2]; //Alocate seperate space for this with a descriptive name
-  // free(arcL_output);
-  double z = xn[0];
+  double arcL_output[1];
+  gkyl_mirror_geo_comp2fieldalligned_advance(t, xn, arcL_output, app->mirror_geo_c2fa_ctx);// CHANGE TO calc_nonuniform_map_advance
+  double z = arcL_output[0];
   double NSrc = app->NSrcElc;
   double zSrc = app->lineLengthSrcElc;
   double sigSrc = app->sigSrcElc;
@@ -182,16 +175,9 @@ void
 eval_temp_elc_source(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   struct gk_mirror_ctx *app = ctx;
-  double psi = app->psi_eval; // Magnetic flux function psi of field line.
-  // double *arcL_output = malloc(3*sizeof(double));
-  // double *xn_3x = malloc(3*sizeof(double));
-  // xn_3x[0] = psi;
-  // xn_3x[1] = 0.0;
-  // xn_3x[2] = xn[0];
-  // calc_arcL_advance(t, xn_3x, arcL_output, app->arcL_evaluator_ctx);
-  // double z = arcL_output[2]; //Alocate seperate space for this with a descriptive name
-  // free(arcL_output);
-  double z = xn[0];
+  double arcL_output[1];
+  gkyl_mirror_geo_comp2fieldalligned_advance(t, xn, arcL_output, app->mirror_geo_c2fa_ctx);// CHANGE TO calc_nonuniform_map_advance
+  double z = arcL_output[0];
   double sigSrc = app->sigSrcElc;
   double TSrc0 = app->TSrc0Elc;
   double Tfloor = app->TSrcFloorElc;
@@ -209,16 +195,9 @@ void
 eval_density_ion_source(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   struct gk_mirror_ctx *app = ctx;
-  // double psi = app->psi_eval; // Magnetic flux function psi of field line.
-  // double *arcL_output = malloc(3*sizeof(double));
-  // double *xn_3x = malloc(3*sizeof(double));
-  // xn_3x[0] = psi;
-  // xn_3x[1] = 0.0;
-  // xn_3x[2] = xn[0];
-  // calc_arcL_advance(t, xn_3x, arcL_output, app->arcL_evaluator_ctx);
-  // double z = arcL_output[2]; //Alocate seperate space for this with a descriptive name
-  // free(arcL_output);
-  double z = xn[0];
+  double arcL_output[1];
+  gkyl_mirror_geo_comp2fieldalligned_advance(t, xn, arcL_output, app->mirror_geo_c2fa_ctx);// CHANGE TO calc_nonuniform_map_advance
+  double z = arcL_output[0];
   double NSrc = app->NSrcIon;
   double zSrc = app->lineLengthSrcIon;
   double sigSrc = app->sigSrcIon;
@@ -244,16 +223,9 @@ void
 eval_temp_ion_source(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   struct gk_mirror_ctx *app = ctx;
-  // double psi = app->psi_eval; // Magnetic flux function psi of field line.
-  // double *arcL_output = malloc(3*sizeof(double));
-  // double *xn_3x = malloc(3*sizeof(double));
-  // xn_3x[0] = psi;
-  // xn_3x[1] = 0.0;
-  // xn_3x[2] = xn[0];
-  // calc_arcL_advance(t, xn_3x, arcL_output, app->arcL_evaluator_ctx);
-  // double z = arcL_output[2]; //Alocate seperate space for this with a descriptive name
-  // free(arcL_output);
-  double z = xn[0];
+  double arcL_output[1];
+  gkyl_mirror_geo_comp2fieldalligned_advance(t, xn, arcL_output, app->mirror_geo_c2fa_ctx);// CHANGE TO calc_nonuniform_map_advance
+  double z = arcL_output[0];
   double sigSrc = app->sigSrcIon;
   double TSrc0 = app->TSrc0Ion;
   double Tfloor = app->TSrcFloorIon;
@@ -272,16 +244,9 @@ void
 eval_density_elc(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   struct gk_mirror_ctx *app = ctx;
-  // double psi = app->psi_eval; // Magnetic flux function psi of field line.
-  // double *arcL_output = malloc(3*sizeof(double));
-  // double *xn_3x = malloc(3*sizeof(double));
-  // xn_3x[0] = psi;
-  // xn_3x[1] = 0.0;
-  // xn_3x[2] = xn[0];
-  // calc_arcL_advance(t, xn_3x, arcL_output, app->arcL_evaluator_ctx);
-  // double z = arcL_output[2]; //Alocate seperate space for this with a descriptive name
-  // free(arcL_output);
-  double z = xn[0];
+  double arcL_output[1];
+  gkyl_mirror_geo_comp2fieldalligned_advance(t, xn, arcL_output, app->mirror_geo_c2fa_ctx);// CHANGE TO calc_nonuniform_map_advance
+  double z = arcL_output[0];
   double z_m = app->z_m;
   double sigma = 0.9*z_m;
   if (fabs(z) <= sigma)
@@ -298,16 +263,9 @@ void
 eval_upar_elc(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   struct gk_mirror_ctx *app = ctx;
-  // double psi = app->psi_eval; // Magnetic flux function psi of field line.
-  // double *arcL_output = malloc(3*sizeof(double));
-  // double *xn_3x = malloc(3*sizeof(double));
-  // xn_3x[0] = psi;
-  // xn_3x[1] = 0.0;
-  // xn_3x[2] = xn[0];
-  // calc_arcL_advance(t, xn_3x, arcL_output, app->arcL_evaluator_ctx);
-  // double z = arcL_output[2]; //Alocate seperate space for this with a descriptive name
-  // free(arcL_output);
-  double z = xn[0];
+  double arcL_output[1];
+  gkyl_mirror_geo_comp2fieldalligned_advance(t, xn, arcL_output, app->mirror_geo_c2fa_ctx);// CHANGE TO calc_nonuniform_map_advance
+  double z = arcL_output[0];
   double cs_m = app->cs_m;
   double z_m = app->z_m;
   double z_max = app->z_max;
@@ -325,16 +283,9 @@ void
 eval_temp_par_elc(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   struct gk_mirror_ctx *app = ctx;
-  // double psi = app->psi_eval; // Magnetic flux function psi of field line.
-  // double *arcL_output = malloc(3*sizeof(double));
-  // double *xn_3x = malloc(3*sizeof(double));
-  // xn_3x[0] = psi;
-  // xn_3x[1] = 0.0;
-  // xn_3x[2] = xn[0];
-  // calc_arcL_advance(t, xn_3x, arcL_output, app->arcL_evaluator_ctx);
-  // double z = arcL_output[2]; //Alocate seperate space for this with a descriptive name
-  // free(arcL_output);
-  double z = xn[0];
+  double arcL_output[1];
+  gkyl_mirror_geo_comp2fieldalligned_advance(t, xn, arcL_output, app->mirror_geo_c2fa_ctx);// CHANGE TO calc_nonuniform_map_advance
+  double z = arcL_output[0];
   double z_m = app->z_m;
   double Te_par0 = app->Te_par0;
   double Te_par_m = app->Te_par_m;
@@ -352,16 +303,9 @@ void
 eval_temp_perp_elc(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   struct gk_mirror_ctx *app = ctx;
-  // double psi = app->psi_eval; // Magnetic flux function psi of field line.
-  // double *arcL_output = malloc(3*sizeof(double));
-  // double *xn_3x = malloc(3*sizeof(double));
-  // xn_3x[0] = psi;
-  // xn_3x[1] = 0.0;
-  // xn_3x[2] = xn[0];
-  // calc_arcL_advance(t, xn_3x, arcL_output, app->arcL_evaluator_ctx);
-  // double z = arcL_output[2]; //Alocate seperate space for this with a descriptive name
-  // free(arcL_output);
-  double z = xn[0];
+  double arcL_output[1];
+  gkyl_mirror_geo_comp2fieldalligned_advance(t, xn, arcL_output, app->mirror_geo_c2fa_ctx);// CHANGE TO calc_nonuniform_map_advance
+  double z = arcL_output[0];
   double z_m = app->z_m;
   double Te_perp0 = app->Te_perp0;
   double Te_perp_m = app->Te_perp_m;
@@ -394,7 +338,6 @@ eval_density_ion(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT
   double arcL_output[1];
   gkyl_mirror_geo_comp2fieldalligned_advance(t, xn, arcL_output, app->mirror_geo_c2fa_ctx);// CHANGE TO calc_nonuniform_map_advance
   double z = arcL_output[0];
-  printf("Mapped xn[0] = %f to z = %f\n", xn[0], z);
   double z_m = app->z_m;
   double sigma = 0.9*z_m;
   if (fabs(z) <= sigma)
@@ -411,7 +354,9 @@ void
 eval_upar_ion(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   struct gk_mirror_ctx *app = ctx;
-  double z = xn[0];
+  double arcL_output[1];
+  gkyl_mirror_geo_comp2fieldalligned_advance(t, xn, arcL_output, app->mirror_geo_c2fa_ctx);// CHANGE TO calc_nonuniform_map_advance
+  double z = arcL_output[0];
   double cs_m = app->cs_m;
   double z_m = app->z_m;
   double z_max = app->z_max;
@@ -429,7 +374,9 @@ void
 eval_temp_par_ion(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   struct gk_mirror_ctx *app = ctx;
-  double z = xn[0];
+  double arcL_output[1];
+  gkyl_mirror_geo_comp2fieldalligned_advance(t, xn, arcL_output, app->mirror_geo_c2fa_ctx);// CHANGE TO calc_nonuniform_map_advance
+  double z = arcL_output[0];
   double z_m = app->z_m;
   double Ti_par0 = app->Ti_par0;
   double Ti_par_m = app->Ti_par_m;
@@ -447,7 +394,9 @@ void
 eval_temp_perp_ion(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   struct gk_mirror_ctx *app = ctx;
-  double z = xn[0];
+  double arcL_output[1];
+  gkyl_mirror_geo_comp2fieldalligned_advance(t, xn, arcL_output, app->mirror_geo_c2fa_ctx);// CHANGE TO calc_nonuniform_map_advance
+  double z = arcL_output[0];
   double z_m = app->z_m;
   double Ti_perp0 = app->Ti_perp0;
   double Ti_perp_m = app->Ti_perp_m;
