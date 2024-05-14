@@ -173,6 +173,8 @@ main(int argc, char **argv)
     .poly_order = 2,
     .basis_type = app_args.basis_type,
 
+    .use_explicit_source = true, 
+
     .num_periodic_dir = 1,
     .periodic_dirs = { 0 },
 
