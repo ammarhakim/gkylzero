@@ -4,6 +4,7 @@
 #include <gkyl_array_ops.h>
 #include <gkyl_array_rio.h>
 #include <gkyl_basis.h>
+#include <gkyl_deflate_geo.h>
 #include <gkyl_eval_on_nodes.h>
 #include <gkyl_gk_geometry.h>
 #include <gkyl_gk_geometry_mirror.h>
@@ -36,7 +37,6 @@ write_nodal_coordinates(const char *nm, struct gkyl_range *nrange,
 struct gk_geometry*
 gkyl_gk_geometry_mirror_new(struct gkyl_gk_geometry_inp *geometry_inp)
 {
-
   struct gk_geometry *up = gkyl_malloc(sizeof(struct gk_geometry));
   up->basis = geometry_inp->geo_basis;
   up->local = geometry_inp->geo_local;
@@ -72,10 +72,10 @@ gkyl_gk_geometry_mirror_new(struct gkyl_gk_geometry_inp *geometry_inp)
   struct gkyl_array* mc2p_nodal = gkyl_array_new(GKYL_DOUBLE, up->grid.ndim, nrange.volume);
   up->mc2p = gkyl_array_new(GKYL_DOUBLE, up->grid.ndim*up->basis.num_basis, up->local_ext.volume);
 
-  struct arcL_evaluator *arcL_app = geometry_inp->arcL_map_ctx;
-  struct gkyl_array* map_arcL_nodal_fd = gkyl_array_new(GKYL_DOUBLE, up->grid.ndim*num_fd_nodes, nrange.volume);
-  struct gkyl_array* map_arcL_nodal = gkyl_array_new(GKYL_DOUBLE, up->grid.ndim, nrange.volume);
-  arcL_app->map_arcL = gkyl_array_new(GKYL_DOUBLE, up->grid.ndim*up->basis.num_basis, up->local_ext.volume);
+  struct gkyl_mirror_geo_c2fa_ctx *c2fa_app = geometry_inp->gkyl_mirror_geo_c2fa_ctx;
+  struct gkyl_array* map_c2fa_nodal_fd = gkyl_array_new(GKYL_DOUBLE, up->grid.ndim*num_fd_nodes, nrange.volume);
+  struct gkyl_array* map_c2fa_nodal = gkyl_array_new(GKYL_DOUBLE, up->grid.ndim, nrange.volume);
+  c2fa_app->c2fa = gkyl_array_new(GKYL_DOUBLE, up->grid.ndim*up->basis.num_basis, up->local_ext.volume);
 
   // bmag, metrics and derived geo quantities
   up->bmag = gkyl_array_new(GKYL_DOUBLE, up->basis.num_basis, up->local_ext.volume);
@@ -108,7 +108,7 @@ gkyl_gk_geometry_mirror_new(struct gkyl_gk_geometry_inp *geometry_inp)
   struct gkyl_mirror_geo *geo = gkyl_mirror_geo_new(inp);
   // calculate mapc2p
   gkyl_mirror_geo_calc(up, &nrange, dzc, NULL, geo, NULL, ginp, mc2p_nodal_fd, mc2p_nodal, up->mc2p,
-    nonuniform_geom, map_arcL_nodal_fd, map_arcL_nodal, arcL_app->map_arcL);
+    nonuniform_geom, map_c2fa_nodal_fd, map_c2fa_nodal, c2fa_app->c2fa);
   // calculate bmag
   gkyl_calc_bmag *bcalculator = gkyl_calc_bmag_new(&up->basis, &geo->rzbasis, &geo->fbasis, &up->grid, &geo->rzgrid, &geo->fgrid, geo->psisep, false);
   gkyl_calc_bmag_advance(bcalculator, &up->local, &up->local_ext, &up->global, &geo->rzlocal, &geo->rzlocal_ext, &geo->frange, &geo->frange_ext,
@@ -126,13 +126,13 @@ gkyl_gk_geometry_mirror_new(struct gkyl_gk_geometry_inp *geometry_inp)
     up->bmag_inv, up->bmag_inv_sq, up->gxxj, up->gxyj, up->gyyj, up->gxzj, up->eps2);
   gkyl_calc_derived_geo_release(jcalculator);
 
-  arcL_app->grid = geo->rzgrid;
-  arcL_app->cgrid = up->grid;
-  arcL_app->range = geo->rzlocal;
-  arcL_app->crange = up->local;
-  arcL_app->crange_global = up->global;
-  arcL_app->basis = geo->rzbasis;
-  arcL_app->cbasis = up->basis;
+  c2fa_app->grid = geo->rzgrid;
+  c2fa_app->cgrid = up->grid;
+  c2fa_app->range = geo->rzlocal;
+  c2fa_app->crange = up->local;
+  c2fa_app->crange_global = up->global;
+  c2fa_app->basis = geo->rzbasis;
+  c2fa_app->cbasis = up->basis;
 
   up->flags = 0;
   GKYL_CLEAR_CU_ALLOC(up->flags);
@@ -143,9 +143,39 @@ gkyl_gk_geometry_mirror_new(struct gkyl_gk_geometry_inp *geometry_inp)
   gkyl_array_release(mc2p_nodal_fd);
   gkyl_array_release(mc2p_nodal);
 
-  gkyl_array_release(map_arcL_nodal_fd);
-  gkyl_array_release(map_arcL_nodal);
+  gkyl_array_release(map_c2fa_nodal_fd);
+  gkyl_array_release(map_c2fa_nodal);
 
   return up;
 }
 
+void
+gkyl_gk_geometry_arcL_deflate(const struct gk_geometry* up_3d, struct gkyl_gk_geometry_inp *geometry_inp)
+{
+  struct gk_geometry *up = gkyl_malloc(sizeof(struct gk_geometry));
+  struct gkyl_mirror_geo_c2fa_ctx *arcL_app = geometry_inp->gkyl_mirror_geo_c2fa_ctx;
+  up->basis = geometry_inp->basis;
+  up->local = geometry_inp->local;
+  up->local_ext = geometry_inp->local_ext;
+  up->grid = geometry_inp->grid;
+  arcL_app->c2fa_deflate = gkyl_array_new(GKYL_DOUBLE, 3*up->basis.num_basis, up->local_ext.volume);
+  // Now fill the arrays by deflation
+  int rem_dirs[3] = {0};
+  if (up->grid.ndim==1) {
+    rem_dirs[0] = 1;
+    rem_dirs[1] = 1;
+  }
+  else if (up->grid.ndim==2) {
+    rem_dirs[1] = 1;
+  }
+  struct gkyl_deflate_geo* deflator = gkyl_deflate_geo_new(&up_3d->basis, &up->basis, &up_3d->grid, &up->grid, rem_dirs, false);
+  arcL_app->grid_deflate = up->grid;
+  arcL_app->basis_deflate = up->basis;
+  arcL_app->range_deflate = up->local;
+  arcL_app->range_global_deflate = up->global;
+
+  gkyl_deflate_geo_advance(deflator, &up_3d->local, &up->local, arcL_app->c2fa, arcL_app->c2fa_deflate, 3);
+  // Done deflating
+  gkyl_deflate_geo_release(deflator);
+  free(up);
+}

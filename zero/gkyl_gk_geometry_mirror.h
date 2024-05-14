@@ -8,4 +8,7 @@
  */
 struct gk_geometry* gkyl_gk_geometry_mirror_new(struct gkyl_gk_geometry_inp *geometry_inp);
 
-
+/**
+ * Deflating the arcL_map object
+*/
+void gkyl_gk_geometry_arcL_deflate(const struct gk_geometry* up_3d, struct gkyl_gk_geometry_inp *geometry_inp);

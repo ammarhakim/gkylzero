@@ -65,6 +65,44 @@ arc_length_func(double Z, void *ctx)
   return ival;
 }
 
+void gkyl_mirror_geo_comp2fieldalligned_advance(double t, const double *xn, double *fout, void *ctx)
+{
+  // IMPORTANT xn is a 3x coordinate vector (psi, theta, z)
+  struct gkyl_mirror_geo_c2fa_ctx *gc = ctx;
+  int cidx[GKYL_MAX_CDIM];
+  for(int i = 0; i < gc->grid_deflate.ndim; i++){
+    int idxtemp = gc->range_global_deflate.lower[i] + (int) floor((xn[i] - (gc->grid_deflate.lower[i]) )/gc->grid_deflate.dx[i]);
+    idxtemp = GKYL_MIN2(idxtemp, gc->range_deflate.upper[i]);
+    idxtemp = GKYL_MAX2(idxtemp, gc->range_deflate.lower[i]);
+    cidx[i] = idxtemp;
+  }
+  long lidx = gkyl_range_idx(&gc->range_deflate, cidx);
+  const double *mcoeffs = gkyl_array_cfetch(gc->c2fa_deflate, lidx);
+  double cxc[gc->grid_deflate.ndim];
+  double xyz[gc->grid_deflate.ndim];
+  gkyl_rect_grid_cell_center(&gc->grid_deflate, cidx, cxc);
+  for(int i = 0; i < gc->grid_deflate.ndim; i++){
+    xyz[i] = (xn[i]-cxc[i])/(gc->grid_deflate.dx[i]*0.5);
+  }
+  double XYZ[3];
+  for(int i = 0; i < 3; i++){
+    XYZ[i] = gc->basis_deflate.eval_expand(xyz, &mcoeffs[i*gc->basis_deflate.num_basis]);
+  }
+  if (gc->grid_deflate.ndim == 1) {
+    fout[0] = XYZ[2];
+  }
+  else if (gc->grid_deflate.ndim == 2) {
+    fout[0] = XYZ[0];
+    fout[1] = XYZ[2];
+  }
+  else {
+    fout[0] = XYZ[0];
+    fout[1] = XYZ[1];
+    fout[2] = XYZ[2];
+  }
+}
+
+
 gkyl_mirror_geo*
 gkyl_mirror_geo_new(const struct gkyl_mirror_geo_efit_inp *inp)
 {
@@ -151,7 +189,7 @@ write_nodal_coordinates(const char *nm, struct gkyl_range *nrange,
 void gkyl_mirror_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, double dzc[3], 
   evalf_t mapc2p_func, void* mapc2p_ctx, evalf_t bmag_func, void *bmag_ctx, 
   struct gkyl_array *mc2p_nodal_fd, struct gkyl_array *mc2p_nodal, struct gkyl_array *mc2p, bool nonuniform,
-  struct gkyl_array* map_arcL_nodal_fd, struct gkyl_array* map_arcL_nodal, struct gkyl_array* map_arcL)
+  struct gkyl_array* map_arcL_nodal_fd, struct gkyl_array* map_arcL_nodal, struct gkyl_array* c2fa)
 {
 
   struct gkyl_mirror_geo *geo = mapc2p_ctx;
@@ -347,7 +385,7 @@ void gkyl_mirror_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, dou
 
   struct gkyl_nodal_ops *n2m =  gkyl_nodal_ops_new(&inp->cbasis, &inp->cgrid, false);
   gkyl_nodal_ops_n2m(n2m, &inp->cbasis, &inp->cgrid, nrange, &up->local, 3, mc2p_nodal, mc2p);
-  gkyl_nodal_ops_n2m(n2m, &inp->cbasis, &inp->cgrid, nrange, &up->local, 3, map_arcL_nodal, map_arcL);
+  gkyl_nodal_ops_n2m(n2m, &inp->cbasis, &inp->cgrid, nrange, &up->local, 3, map_arcL_nodal, c2fa);
   gkyl_nodal_ops_release(n2m);
 
   char str1[50] = "xyz";

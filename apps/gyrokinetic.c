@@ -13,6 +13,8 @@
 
 #include <mpack.h>
 
+#include <gkyl_mirror_geo.h>
+
 // returned gkyl_array_meta must be freed using gyrokinetic_array_meta_release
 static struct gkyl_array_meta*
 gyrokinetic_array_meta_new(struct gyrokinetic_output_meta meta)
@@ -226,7 +228,7 @@ gkyl_gyrokinetic_app_new(struct gkyl_gk *gk)
     .tok_grid_info = gk->geometry.tok_grid_info,
     .mirror_efit_info = gk->geometry.mirror_efit_info,
     .mirror_grid_info = gk->geometry.mirror_grid_info,
-    .arcL_map_ctx = gk->geometry.arcL_map_ctx,
+    .gkyl_mirror_geo_c2fa_ctx = gk->geometry.mirror_geo_c2fa_ctx,
     .nonuniform_geom = false,
     .nonuniform_map_fraction = gk->geometry.nonuniform_mapping_fraction,
     .grid = app->grid,
@@ -311,7 +313,14 @@ gkyl_gyrokinetic_app_new(struct gkyl_gk *gk)
         geometry_inp.decomp_local_ext = app->local_ext;
         geometry_inp.decomp_global = app->global;
         geometry_inp.decomp_global_ext = app->global_ext;
+        gkyl_gk_geometry_release(gk_geom_3d); // release temporary 3d geometry
+        gkyl_gk_geometry_release(app->gk_geom); // release 3d geometry
         gk_geom_3d = gkyl_gk_geometry_mirror_new(&geometry_inp);
+        if(app->cdim < 3)
+          gkyl_gk_geometry_arcL_deflate(gk_geom_3d, &geometry_inp);
+          // struct gkyl_mirror_geo_c2fa_ctx *arcL_app = geometry_inp.arcL_map_ctx;
+          // gkyl_grid_sub_array_write(&geometry_inp.decomp_grid, &geometry_inp.decomp_local, 0, arcL_app->c2fa_deflate, "c2fa_deflate.gkyl");
+
         gkyl_array_release(bmag_global);
         // I don't think I'm releasing the uniform deflated geometry correctly
       }
