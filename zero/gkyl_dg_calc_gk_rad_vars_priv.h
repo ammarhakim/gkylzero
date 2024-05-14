@@ -106,7 +106,7 @@ choose_rad_gyrokinetic_nI_nu_kern(int cdim, int vdim, int poly_order)
 struct gkyl_dg_calc_gk_rad_vars* 
 gkyl_dg_calc_gk_rad_vars_cu_dev_new(const struct gkyl_rect_grid *phase_grid, 
   const struct gkyl_basis *conf_basis, const struct gkyl_basis *phase_basis, 
-  double charge, double mass, const struct gk_geometry *gk_geom, 
+  double charge, double mass, const struct gk_geometry *gk_geom, const struct gkyl_velocity_map *vel_map,
   double a, double alpha, double beta, double gamma, double v0);
 
 /**
