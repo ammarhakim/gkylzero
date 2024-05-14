@@ -53,7 +53,7 @@ struct gkyl_gyrokinetic_collisions {
   double T_ref; // Temperature used to calculate coulomb logarithm
   double bmag_mid; // bmag at the middle of the domain
   double nuFrac; // Parameter for rescaling collision frequency from SI values
-  double hbar, eps0, eV; // Planck's constant/2 pi, vacuum permativity, elementary charge
+  double hbar, eps0, eV; // Planck's constant/2 pi, vacuum permittivity, elementary charge
 
   int num_cross_collisions; // number of species to cross-collide with
   char collide_with[GKYL_MAX_SPECIES][128]; // names of species to cross collide with
