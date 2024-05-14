@@ -164,7 +164,6 @@ main(int argc, char **argv)
       .self_nu = evalNuElc,
     },    
 
-    //.diffusion = {.D = 1.0e-5, .order=4},
     .bcx = { GKYL_SPECIES_COPY, GKYL_SPECIES_COPY },
   };
   
@@ -172,8 +171,8 @@ main(int argc, char **argv)
   struct gkyl_pkpm_species ion = {
     .name = "ion",
     .charge = ctx.chargeIon, .mass = ctx.massIon,
-    .lower = { -24.0 * ctx.vti},
-    .upper = { 24.0 * ctx.vti}, 
+    .lower = { -16.0 * ctx.vti},
+    .upper = { 16.0 * ctx.vti}, 
     .cells = { VX },
 
     .ctx_dist = &ctx,
@@ -188,7 +187,6 @@ main(int argc, char **argv)
       .self_nu = evalNuIon,
     },    
 
-    //.diffusion = {.D = 1.0e-5, .order=4},
     .bcx = { GKYL_SPECIES_COPY, GKYL_SPECIES_COPY },
   };
 
