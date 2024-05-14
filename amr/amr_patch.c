@@ -40,6 +40,38 @@ euler_patch_bc_updaters_init(struct euler_patch_data* pdata, const struct gkyl_b
 }
 
 void
+gr_euler_patch_bc_updaters_init(struct euler_patch_data* pdata, const struct gkyl_block_connections* conn)
+{
+  int nghost[3];
+  for (int i = 0; i < 3; i++) {
+    nghost[i] = 2;
+  }
+
+  pdata->lower_bc[0] = pdata->upper_bc[0] = 0;
+
+  if (conn->connections[0][0].edge == GKYL_PHYSICAL) {
+    pdata->lower_bc[0] = gkyl_wv_apply_bc_new(&pdata->grid, pdata->euler, pdata->geom, 0, GKYL_LOWER_EDGE, nghost,
+      euler_transmissive_bc, 0);
+  }
+
+  if (conn->connections[0][1].edge == GKYL_PHYSICAL) {
+    pdata->upper_bc[0] = gkyl_wv_apply_bc_new(&pdata->grid, pdata->euler, pdata->geom, 0, GKYL_UPPER_EDGE, nghost,
+      euler_transmissive_bc, 0);
+  }
+
+  skin_ghost_ranges_init_patch(&pdata->skin_ghost, &pdata->ext_range, nghost);
+  long buff_sz = 0;
+
+  long vol = pdata->skin_ghost.lower_skin[0].volume;
+  
+  if (buff_sz <= vol) {
+    buff_sz = vol;
+  }
+
+  pdata->bc_buffer = gkyl_array_new(GKYL_DOUBLE, 29, buff_sz);
+}
+
+void
 euler_patch_bc_updaters_release(struct euler_patch_data* pdata)
 {
   if (pdata->lower_bc[0]) {

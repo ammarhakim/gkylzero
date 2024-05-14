@@ -20,6 +20,14 @@ euler_transmissive_bc(double t, int nc, const double* GKYL_RESTRICT skin, double
 }
 
 void
+gr_euler_transmissive_bc(double t, int nc, const double* GKYL_RESTRICT skin, double* GKYL_RESTRICT ghost, void* ctx)
+{
+  for (int i = 0; i < 29; i++) {
+    ghost[i] = skin[i];
+  }
+}
+
+void
 euler_block_bc_updaters_init(struct euler_block_data* bdata, const struct gkyl_block_connections* conn)
 {
   int nghost[9];

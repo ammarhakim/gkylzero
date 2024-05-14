@@ -25,6 +25,7 @@
 #include <gkyl_wave_prop.h>
 #include <gkyl_wv_apply_bc.h>
 #include <gkyl_wv_euler.h>
+#include <gkyl_wv_gr_euler.h>
 #include <gkyl_wv_maxwell.h>
 #include <rt_arg_parse.h>
 
@@ -107,6 +108,17 @@ void skin_ghost_ranges_init_block(struct skin_ghost_ranges_block* sgr, const str
 * @param ctx Context to pass to the function.
 */
 void euler_transmissive_bc(double t, int nc, const double* GKYL_RESTRICT skin, double* GKYL_RESTRICT ghost, void* ctx);
+
+/**
+* Boundary condition function for applying transmissive boundary conditions for the general relativistic Euler equations.
+*
+* @param t Current simulation time.
+* @param nc Number of boundary cells to which to apply transmissive boundary conditions.
+* @param skin Skin cells in boundary region (from which values are copied).
+* @param ghost Ghost cells in boundary region (to which values are copied).
+* @param ctx Context to pass to the function.
+*/
+void gr_euler_transmissive_bc(double t, int nc, const double* GKYL_RESTRICT skin, double* GKYL_RESTRICT ghost, void* ctx);
 
 /**
 * Initialize block AMR updaters for both physical (outer-block) and non-physical (inter-block) boundary conditions for the Euler equations.

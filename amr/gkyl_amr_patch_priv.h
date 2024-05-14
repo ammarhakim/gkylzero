@@ -64,6 +64,14 @@ void skin_ghost_ranges_init_patch(struct skin_ghost_ranges_patch* sgr, const str
 void euler_patch_bc_updaters_init(struct euler_patch_data* pdata, const struct gkyl_block_connections* conn);
 
 /**
+* Initialize patch AMR updaters for both physical (outer-patch) and non-physical (inter-patch) boundary conditions for the general relativistic Euler equations.
+*
+* @param pdata Patch-structured data for the general relativistic Euler equations.
+* @param conn Topology/connectivity data for the patch hierarchy.
+*/
+void gr_euler_patch_bc_updaters_init(struct euler_patch_data* pdata, const struct gkyl_block_connections* conn);
+
+/**
 * Release patch AMR updaters for both physical (outer-patch) and non-physical (inter-patch) boundary conditions for the Euler equations.
 *
 * @param pdata Patch-structured data for the Euler equations.
@@ -115,7 +123,7 @@ void euler_update_patch_job_func(void* ctx);
 /**
 * Update all patches in the patch AMR hierarchy by using the thread-based job pool for the Euler equations.
 *
-* @param job_oool Job pool for updating patch-structured data for the Euler equations using threads.
+* @param job_pool Job pool for updating patch-structured data for the Euler equations using threads.
 * @param ptopo Topology/connectivity information for the entire patch hierarchy.
 * @param pdata Patch-structured data for the Euler equations.
 * @param t_curr Current simulation time.
