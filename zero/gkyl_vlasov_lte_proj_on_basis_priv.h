@@ -44,6 +44,7 @@ struct gkyl_vlasov_lte_proj_on_basis {
   bool is_relativistic; // Boolean for if we are projecting the relativistic LTE
   bool is_canonical_pb; // Boolean for if we are projecting the canonical-pb LTE
   const struct gkyl_array *h_ij_inv; // inverse metric tensor 
+  const struct gkyl_array *det_h; // determinant of the metric tensor 
   bool use_gpu; // Boolean if we are performing projection on device.
 
   struct gkyl_range conf_qrange; // Range of Configuration-space ordinates.

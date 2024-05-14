@@ -134,7 +134,8 @@ gkyl_vlasov_lte_proj_on_basis_inew(const struct gkyl_vlasov_lte_proj_on_basis_in
   up->phase_grid = *inp->phase_grid;
   up->conf_basis = *inp->conf_basis;
   up->phase_basis = *inp->phase_basis;
-  up->h_ij_inv = inp->h_ij_inv;
+  up->h_ij_inv = gkyl_array_acquire(inp->h_ij_inv);
+  up->det_h = gkyl_array_acquire(inp->det_h);
 
   up->cdim = up->conf_basis.ndim;
   up->pdim = up->phase_basis.ndim;
@@ -211,6 +212,7 @@ gkyl_vlasov_lte_proj_on_basis_inew(const struct gkyl_vlasov_lte_proj_on_basis_in
     .gamma = inp->gamma,
     .gamma_inv = inp->gamma_inv,
     .h_ij_inv = inp->h_ij_inv,
+    .det_h = inp->det_h,
     .model_id = inp->model_id,
     .mass = inp->mass,
     .use_gpu = inp->use_gpu,
@@ -283,6 +285,7 @@ gkyl_vlasov_lte_proj_on_basis_advance(gkyl_vlasov_lte_proj_on_basis *up,
   double xc[GKYL_MAX_DIM], xmu[GKYL_MAX_DIM];
   double n_quad[tot_conf_quad], V_drift_quad[tot_conf_quad][vdim], T_over_m_quad[tot_conf_quad];
   double h_ij_inv_quad[tot_conf_quad][vdim*(vdim + 1)/2];
+  double det_h_quad[tot_conf_quad];
   double V_drift_quad_cell_avg[tot_conf_quad][vdim];
   double expamp_quad[tot_conf_quad];
 
@@ -297,8 +300,10 @@ gkyl_vlasov_lte_proj_on_basis_advance(gkyl_vlasov_lte_proj_on_basis *up,
     const double *V_drift_d = &moms_lte_d[num_conf_basis];
     const double *T_over_m_d = &moms_lte_d[num_conf_basis*(vdim+1)];
     const double *h_ij_inv_d;
+    const double *det_h_d;
     if (up->is_canonical_pb) {
       h_ij_inv_d = gkyl_array_cfetch(up->h_ij_inv, midx);
+      det_h_d = gkyl_array_cfetch(up->det_h, midx);
     }
 
     // Sum over basis for given LTE moments (n, V_drift, T/m) in the stationary frame
@@ -324,12 +329,14 @@ gkyl_vlasov_lte_proj_on_basis_advance(gkyl_vlasov_lte_proj_on_basis *up,
       }
 
       if (up->is_canonical_pb) {
+        det_h_quad[n] = 0.0;
         for (int k=0; k<num_conf_basis; ++k) {
           for (int j=0; j<vdim*(vdim+1)/2; ++j) {
             h_ij_inv_quad[n][j] = 0;
           }
         }
         for (int k=0; k<num_conf_basis; ++k) {
+          det_h_quad[n] += det_h_d[k]*b_ord[k];
           for (int j=0; j<vdim*(vdim+1)/2; ++j) {
             h_ij_inv_quad[n][j] += h_ij_inv_d[num_conf_basis*j+k]*b_ord[k];
           }
@@ -339,7 +346,10 @@ gkyl_vlasov_lte_proj_on_basis_advance(gkyl_vlasov_lte_proj_on_basis *up,
       // Amplitude of the exponential.
       if ((n_quad[n] > 0.0) && (T_over_m_quad[n] > 0.0)) {
         if (up->is_relativistic) {
-          expamp_quad[n] = n_quad[n]*(1.0/(4.0*GKYL_PI*T_over_m_quad[n]))*(sqrt(2*T_over_m_quad[n]/GKYL_PI));;
+          expamp_quad[n] = n_quad[n]*(1.0/(4.0*GKYL_PI*T_over_m_quad[n]))*(sqrt(2*T_over_m_quad[n]/GKYL_PI));
+        }
+        else if (up->is_canonical_pb) { 
+          expamp_quad[n] = (1/det_h_quad[n])*n_quad[n]/sqrt(pow(2.0*GKYL_PI*T_over_m_quad[n], vdim));
         }
         else {
           expamp_quad[n] = n_quad[n]/sqrt(pow(2.0*GKYL_PI*T_over_m_quad[n], vdim));
@@ -466,6 +476,9 @@ gkyl_vlasov_lte_proj_on_basis_release(gkyl_vlasov_lte_proj_on_basis* up)
   gkyl_array_release(up->conf_weights);
   gkyl_array_release(up->conf_basis_at_ords);
   gkyl_array_release(up->fun_at_ords);
+
+  gkyl_array_release(up->h_ij_inv);
+  gkyl_array_release(up->det_h);
 
   gkyl_vlasov_lte_moments_release(up->moments_up);
   gkyl_array_release(up->num_ratio);

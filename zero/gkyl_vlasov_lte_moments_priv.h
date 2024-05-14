@@ -38,6 +38,7 @@ struct gkyl_vlasov_lte_moments
       struct gkyl_array *pressure_tensor;
       struct gkyl_dg_updater_moment *M2ijcalc;
       struct gkyl_array *h_ij_inv;
+      struct gkyl_array *det_h;
       struct gkyl_dg_calc_canonical_pb_vars *can_pb_vars;
     };
   };

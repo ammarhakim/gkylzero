@@ -73,6 +73,7 @@ gkyl_vlasov_lte_moments_inew(const struct gkyl_vlasov_lte_moments_inp *inp)
   else if (up->model_id == GKYL_MODEL_CANONICAL_PB) {
     int num_pij_comps = up->vdim*(up->vdim+1)/2;
     up->h_ij_inv = gkyl_array_acquire(inp->h_ij_inv);
+    up->det_h = gkyl_array_acquire(inp->det_h);
     if (inp->use_gpu) {
       up->pressure_tensor = gkyl_array_cu_dev_new(GKYL_DOUBLE, up->num_conf_basis*num_pij_comps, conf_local_ext_ncells);
     }
@@ -170,6 +171,7 @@ gkyl_vlasov_lte_moments_advance(struct gkyl_vlasov_lte_moments *lte_moms,
       d, lte_moms->M1i, 0, lte_moms->M0, conf_local);
   }
   // Compute V_drift dot M1i (needed to compute stationary frame moments).
+  //(For Canonical-pb only: This actually computes ui = nv*Jv/(nJv) eliminating Jv)
   gkyl_array_clear(lte_moms->V_drift_dot_M1i, 0.0);
   gkyl_dg_dot_product_op_range(lte_moms->conf_basis, 
     lte_moms->V_drift_dot_M1i, lte_moms->V_drift, lte_moms->M1i, conf_local); 
@@ -210,7 +212,6 @@ gkyl_vlasov_lte_moments_advance(struct gkyl_vlasov_lte_moments *lte_moms,
       //                          = h^{ij}*M2_{ij} - h^{ij}*M1i*V_drift_j 
       gkyl_canonical_pb_pressure(lte_moms->can_pb_vars, conf_local, lte_moms->h_ij_inv, lte_moms->pressure_tensor,
         lte_moms->V_drift,lte_moms->M1i, lte_moms->pressure);
-
     }
     else {
       // Compute the lab frame M2 = vdim*P/m + V_drift dot M1i.
@@ -229,6 +230,14 @@ gkyl_vlasov_lte_moments_advance(struct gkyl_vlasov_lte_moments *lte_moms,
   gkyl_dg_div_op_range(lte_moms->mem, lte_moms->conf_basis, 
     0, lte_moms->temperature,
     0, lte_moms->pressure, 0, moms_out, conf_local);
+
+  // Remove Jacobian factor: J*n/J = n 
+  // The Jvn was needed before now to remove volume factors from d*n*J*T, n*u_i*T 
+  //if (lte_moms->model_id == GKYL_MODEL_CANONICAL_PB) {
+  //  gkyl_dg_div_op_range(lte_moms->mem,lte_moms->conf_basis, 0, moms_out, 
+  //    0, moms_out, 0, lte_moms->det_h, conf_local);
+  //}
+
   // Save the outputs to moms_out (n, V_drift, T/m):
   gkyl_array_set_offset_range(moms_out, 1.0, lte_moms->V_drift, 1*num_conf_basis, conf_local);
   gkyl_array_set_offset_range(moms_out, 1.0, lte_moms->temperature, (vdim+1)*num_conf_basis, conf_local);
@@ -252,6 +261,7 @@ gkyl_vlasov_lte_moments_release(gkyl_vlasov_lte_moments *lte_moms)
   }
   else if (lte_moms->model_id == GKYL_MODEL_CANONICAL_PB) {
     gkyl_array_release(lte_moms->h_ij_inv);
+    gkyl_array_release(lte_moms->det_h);
     gkyl_array_release(lte_moms->pressure_tensor);
     gkyl_dg_updater_moment_release(lte_moms->M2ijcalc);
     gkyl_dg_calc_canonical_pb_vars_release(lte_moms->can_pb_vars);

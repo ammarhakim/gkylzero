@@ -60,6 +60,7 @@ gkyl_vlasov_lte_correct_inew(const struct gkyl_vlasov_lte_correct_inp *inp)
     .gamma = inp->gamma,
     .gamma_inv = inp->gamma_inv,
     .h_ij_inv = inp->h_ij_inv,
+    .det_h = inp->det_h,
     .model_id = inp->model_id,
     .mass = inp->mass,
     .use_gpu = inp->use_gpu,
@@ -80,6 +81,7 @@ gkyl_vlasov_lte_correct_inew(const struct gkyl_vlasov_lte_correct_inp *inp)
     .gamma = inp->gamma,
     .gamma_inv = inp->gamma_inv,
     .h_ij_inv = inp->h_ij_inv,  
+    .det_h = inp->det_h,
     .model_id = inp->model_id,
     .mass = inp->mass,
     .use_gpu = inp->use_gpu,
@@ -157,7 +159,7 @@ gkyl_vlasov_lte_correct_all_moments(gkyl_vlasov_lte_correct *c_corr,
           c_corr->error[i] = 0.0;
         }
         // Iterate over the input configuration-space range to find the maximum error
-        printf("\n------------------ Per Cell Error -------------------\n");
+        printf("\n------------------ Per Cell Error (targ tol: %1.3e) -------------------\n",tol);
         gkyl_range_iter_init(&biter, conf_local);
         while (gkyl_range_iter_next(&biter)){
           long midx = gkyl_range_idx(conf_local, biter.idx);
@@ -167,14 +169,13 @@ gkyl_vlasov_lte_correct_all_moments(gkyl_vlasov_lte_correct *c_corr,
           for (int d=0; d<vdim+2; ++d) {
             c_corr->error[d] = fmax(fabs(moms_local[d*nc] - moms_target_local[d*nc]),fabs(c_corr->error[d]));
             if (midx == 35){
-              printf("niter[%d] at index %d = %ld, error: %1.13e",niter, d, midx,c_corr->error[d]);  // Printing error for each dimension
-              printf(" (M): %1.3e (M_targ.): %1.3e \n",moms_local[d*nc],moms_target_local[d*nc]);
+              printf("niter[%d] at index %d = %ld, error: %1.16e",niter, d, midx,c_corr->error[d]);  // Printing error for each dimension
+              printf(" (M): %1.16e (M_targ.): %1.16e \n",moms_local[d*nc],moms_target_local[d*nc]);
             }
             if (d == 0 || d == vdim+1) // Temp or density
               ispositive_flte = ((moms_local[d*nc]>0)) && ispositive_flte ;
           }
         }
-
       }
     }
 
@@ -227,7 +228,6 @@ gkyl_vlasov_lte_correct_all_moments(gkyl_vlasov_lte_correct *c_corr,
         c_corr->error[i] = 0.0;
       }
         // Iterate over the input configuration-space range to find the maximum error
-        printf("\n------------------ Per Cell Error -------------------\n");
         gkyl_range_iter_init(&biter, conf_local);
         while (gkyl_range_iter_next(&biter)){
           long midx = gkyl_range_idx(conf_local, biter.idx);
@@ -236,10 +236,6 @@ gkyl_vlasov_lte_correct_all_moments(gkyl_vlasov_lte_correct *c_corr,
           // Check the error in the absolute value of the cell average
           for (int d=0; d<vdim+2; ++d) {
             c_corr->error[d] = fmax(fabs(moms_local[d*nc] - moms_target_local[d*nc]),fabs(c_corr->error[d]));
-            if (midx == 35){
-              printf("(N0 Fix Only) at index %d = %ld, error: %1.13e", d, midx,c_corr->error[d]);  // Printing error for each dimension
-              printf(" (M): %1.3e (M_targ.): %1.3e \n",moms_local[d*nc],moms_target_local[d*nc]);
-            }
             if (d == 0 || d == vdim+1) // Temp or density
               ispositive_flte = ((moms_local[d*nc]>0)) && ispositive_flte ;
           }
