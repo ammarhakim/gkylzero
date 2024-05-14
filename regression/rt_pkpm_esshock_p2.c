@@ -139,7 +139,7 @@ main(int argc, char **argv)
     gkyl_cu_dev_mem_debug_set(true);
     gkyl_mem_debug_set(true);
   }
-  int NX = APP_ARGS_CHOOSE(app_args.xcells[0], 256);
+  int NX = APP_ARGS_CHOOSE(app_args.xcells[0], 128);
   int VX = APP_ARGS_CHOOSE(app_args.vcells[0], 48);  
 
   struct esshock_ctx ctx = create_ctx(); // context for init functions
@@ -215,6 +215,8 @@ main(int argc, char **argv)
     .cells = { NX },
     .poly_order = 2,
     .basis_type = app_args.basis_type, 
+
+    .use_explicit_source = true, 
 
     .num_periodic_dir = 0,
     .periodic_dirs = { },

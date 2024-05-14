@@ -112,9 +112,7 @@ pkpm_species_init(struct gkyl_pkpm *pkpm, struct gkyl_pkpm_app *app, struct pkpm
   }
 
   // allocate array to store q/m*(E,B) if using a fully explicit update
-  if (app->use_explicit_source) { 
-    s->qmem = mkarr(app->use_gpu, 8*app->confBasis.num_basis, app->local_ext.volume);
-  }
+  s->qmem = mkarr(app->use_gpu, 8*app->confBasis.num_basis, app->local_ext.volume);
 
   // pkpm moments for update (rho, p_par, p_perp, M1)
   pkpm_species_moment_init(app, s, &s->pkpm_moms, false);
@@ -777,9 +775,7 @@ pkpm_species_release(const gkyl_pkpm_app* app, const struct pkpm_species *s)
     gkyl_array_release(s->fluid_host);
   }
 
-  if (app->use_explicit_source) { 
-    gkyl_array_release(s->qmem); 
-  }
+  gkyl_array_release(s->qmem); 
 
   // release moment data
   pkpm_species_moment_release(app, &s->pkpm_moms);
