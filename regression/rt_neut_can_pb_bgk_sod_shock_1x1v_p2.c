@@ -23,6 +23,13 @@ h_ij_inv(double t, const double* xn, double* fout, void* ctx)
 }
 
 void
+det_h(double t, const double* xn, double* fout, void* ctx)
+{
+  fout[0] = 1;
+}
+
+
+void
 hamil(double t, const double* xn, double* fout, void* ctx)
 {
   double x = xn[0], v = xn[1];
@@ -114,9 +121,11 @@ main(int argc, char **argv)
     .upper = { 10.0*ctx.vt}, 
     .cells = { NV },
     .hamil = hamil,
-    .hamil_ctx = &ctx,
     .h_ij_inv = h_ij_inv,
+    .det_h = det_h,
+    .hamil_ctx = &ctx,
     .h_ij_inv_ctx = &ctx,
+    .det_h_ctx = &ctx,
 
     .projection = {
       .proj_id = GKYL_PROJ_VLASOV_LTE,

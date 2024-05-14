@@ -21,7 +21,6 @@ struct can_pb_ctx {
 void
 evalNu(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
 {
-  struct free_stream_ctx *app = ctx;
   double x = xn[0], v = xn[1];
   fout[0] = 100.0;
 }
@@ -40,6 +39,17 @@ h_ij_inv(double t, const double* xn, double* fout, void* ctx)
   fout[0] = 1.0 / pow(R, 2);
   fout[1] = 0.0;
   fout[2] = 1.0 / pow(R * sin(q[0]), 2);
+}
+
+void 
+det_h(double t, const double* xn, double* fout, void* ctx)
+{
+  // determinant of the metric tensor: J = det(h_{ij})
+  struct can_pb_ctx *app = (struct can_pb_ctx *)ctx;
+  double R = app->R;
+  double q_theta = xn[0], q_phi = xn[1];
+  const double q[2] = {q_theta, q_phi};
+  fout[0] = sq(R)*sin(q[0]);
 }
 
 void 
@@ -63,15 +73,10 @@ void
 evalDensityInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
 {
   struct can_pb_ctx *app = ctx;
-  fout[0] = 1; //0.3  + sq(sq(sin(1.5*xn[1])))*2.0*sq(sq(sin(xn[0])));
+  fout[0] = 1;
   double theta = xn[0];
   double phi = xn[1];
-  if (theta + 0.2*sin(phi) > 1.5708){
-    fout[0] = 1.0;
-  }
-  else {
-    fout[0] = 0.1;
-  }
+  fout[0] = 1.0*sin(theta);
 }
 
 void
@@ -80,13 +85,8 @@ evalVDriftInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT f
   struct can_pb_ctx *app = ctx;
   double theta = xn[0];
   double phi = xn[1]; 
-  if (theta + 0.2*sin(phi) > 1.5708){
-    fout[1] = 1.0;
-  }
-  else {
-    fout[1] = -1.0;
-  }
   fout[0] = 0.0;
+  fout[1] = 0.0;
 }
 
 void
@@ -141,8 +141,13 @@ main(int argc, char **argv)
     .cells = { 8, 8 },
     .hamil = hamil,
     .h_ij_inv = h_ij_inv,
+    .det_h = det_h,
     .hamil_ctx = &ctx,
     .h_ij_inv_ctx = &ctx,
+    .det_h_ctx = &ctx,
+    
+    // Reflective boundary condition
+    .bcx = {GKYL_SPECIES_REFLECT, GKYL_SPECIES_REFLECT},
 
     .projection = {
       .proj_id = GKYL_PROJ_VLASOV_LTE,
@@ -155,13 +160,13 @@ main(int argc, char **argv)
       .correct_all_moms = true, 
     },
 
-    .collisions =  {
-      .collision_id = GKYL_BGK_COLLISIONS,
+    // .collisions =  {
+    //   .collision_id = GKYL_BGK_COLLISIONS,
 
-      .ctx = &ctx,
-      .self_nu = evalNu,
-      .correct_all_moms = true, 
-    },
+    //   .ctx = &ctx,
+    //   .self_nu = evalNu,
+    //   .correct_all_moms = true, 
+    // },
 
     .num_diag_moments = 3,
     .diag_moments = { "M0", "M1i", "LTEMoments" },
@@ -200,6 +205,7 @@ main(int argc, char **argv)
   // initialize simulation
   gkyl_vlasov_app_apply_ic(app, tcurr);
   
+  write_data(&io_trig, app, tcurr);
 
   long step = 1, num_steps = app_args.num_steps;
   while ((tcurr < tend) && (step <= num_steps)) {
