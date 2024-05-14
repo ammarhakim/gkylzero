@@ -83,7 +83,7 @@ five_moment_block_bc_updaters_init(struct five_moment_block_data* bdata, const s
     }
   }
 
-  skin_ghost_ranges_init(&bdata->skin_ghost, &bdata->ext_range, nghost);
+  skin_ghost_ranges_init_block(&bdata->skin_ghost, &bdata->ext_range, nghost);
   long buff_sz = 0;
 
   for (int d = 0; d < 2; d++) {

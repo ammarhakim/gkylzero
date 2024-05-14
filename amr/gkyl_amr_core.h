@@ -22,6 +22,7 @@ struct euler2d_single_init {
   evalf_t eval;
   double gas_gamma;
 
+  bool low_order_flux;
   double cfl_frac;
   double t_end;
   int num_frames;

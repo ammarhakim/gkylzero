@@ -45,7 +45,7 @@ struct five_moment_block_data {
   gkyl_wave_prop *slvr_ion[2];
   gkyl_wave_prop *slvr_maxwell[2];
 
-  struct skin_ghost_ranges skin_ghost;
+  struct skin_ghost_ranges_block skin_ghost;
 
   struct gkyl_array *bc_buffer_elc;
   struct gkyl_array *bc_buffer_ion;
@@ -83,7 +83,7 @@ struct five_moment_update_block_ctx {
   int nstrang;
 };
 
-// Context for copying job pool information for the block-structured, coupled five-moment equations.
+// Context for copying job pool information for the coupled five-moment equations.
 struct five_moment_copy_job_ctx {
   int bidx;
 
@@ -233,7 +233,7 @@ void five_moment_update_all_blocks_source(const struct gkyl_job_pool* job_pool, 
 void five_moment_init_job_func(void* ctx);
 
 /**
-* Copy an existing job between two thread-based job pools for updating the block-structured simulation data for the coupled five-moment equations.
+* Copy an existing job between two thread-based job pools for updating the coupled five-moment equations.
 *
 * @param ctx Context to pass to the function.
 */

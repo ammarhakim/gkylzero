@@ -28,6 +28,7 @@ euler2d_run_single(int argc, char **argv, struct euler2d_single_init* init)
   evalf_t eval = init->eval;
   double gas_gamma = init->gas_gamma;
   
+  bool low_order_flux = init->low_order_flux;
   int num_frames = init->num_frames;
   double cfl_frac = init->cfl_frac;
   double t_end = init->t_end;
@@ -108,13 +109,17 @@ euler2d_run_single(int argc, char **argv, struct euler2d_single_init* init)
   }
 
   for (int i = 0; i < num_blocks; i++) {
-    //coarse_bdata[i].euler = gkyl_wv_euler_new(gas_gamma, app_args.use_gpu);
-    struct gkyl_wv_euler_inp inp = {
-      .gas_gamma = gas_gamma,
-      .rp_type = WV_EULER_RP_HLLC,
-      .use_gpu = app_args.use_gpu,
-    };
-    coarse_bdata[i].euler = gkyl_wv_euler_inew(&inp);
+    if (low_order_flux) {
+      struct gkyl_wv_euler_inp inp = {
+        .gas_gamma = gas_gamma,
+        .rp_type = WV_EULER_RP_HLL,
+        .use_gpu = app_args.use_gpu,
+      };
+      coarse_bdata[i].euler = gkyl_wv_euler_inew(&inp);
+    }
+    else {
+      coarse_bdata[i].euler = gkyl_wv_euler_new(gas_gamma, app_args.use_gpu);
+    }
 
     for (int d = 0; d < ndim; d++) {
       coarse_bdata[i].slvr[d] = gkyl_wave_prop_new(& (struct gkyl_wave_prop_inp) {
@@ -175,10 +180,10 @@ euler2d_run_single(int argc, char **argv, struct euler2d_single_init* init)
 
 #ifdef AMR_USETHREADS
   for (int i = 0; i < num_blocks; i++) {
-    gkyl_job_pool_add_work(coarse_job_pool, euler_init_job_func, &coarse_bdata[i]);
+    gkyl_job_pool_add_work(coarse_job_pool, euler_init_job_func_block, &coarse_bdata[i]);
 
 #ifdef AMR_DEBUG
-    gkyl_job_pool_add_work(fine_job_pool, euler_init_job_func, &fine_bdata[i]);
+    gkyl_job_pool_add_work(fine_job_pool, euler_init_job_func_block, &fine_bdata[i]);
 #endif
   }
   gkyl_job_pool_wait(coarse_job_pool);
@@ -188,17 +193,17 @@ euler2d_run_single(int argc, char **argv, struct euler2d_single_init* init)
 #endif
 #else
   for (int i = 0; i < num_blocks; i++) {
-    euler_init_job_func(&coarse_bdata[i]);
+    euler_init_job_func_block(&coarse_bdata[i]);
 
 #ifdef AMR_DEBUG
-    euler_init_job_func(&fine_bdata[i]);
+    euler_init_job_func_block(&fine_bdata[i]);
 #endif
   }
 #endif
 
 #ifdef AMR_DEBUG
-  euler_write_sol("euler_amr_coarse_0", num_blocks, coarse_bdata);
-  euler_write_sol("euler_amr_fine_0", num_blocks, fine_bdata);
+  euler_write_sol_block("euler_amr_coarse_0", num_blocks, coarse_bdata);
+  euler_write_sol_block("euler_amr_fine_0", num_blocks, fine_bdata);
 
   rename("euler_amr_fine_0_b0.gkyl", "euler_amr_0_b0.gkyl");
   remove("euler_amr_coarse_0_b0.gkyl");
@@ -216,15 +221,15 @@ euler2d_run_single(int argc, char **argv, struct euler2d_single_init* init)
     remove(buf_del);
   }
 #else
-  euler_write_sol("euler_amr_0", num_blocks, coarse_bdata);
+  euler_write_sol_block("euler_amr_0", num_blocks, coarse_bdata);
 #endif
 
   double coarse_t_curr = 0.0;
   double fine_t_curr = 0.0;
-  double coarse_dt = euler_max_dt(num_blocks, coarse_bdata);
+  double coarse_dt = euler_max_dt_block(num_blocks, coarse_bdata);
 
 #ifdef AMR_DEBUG
-  double fine_dt = euler_max_dt(num_blocks, fine_bdata);
+  double fine_dt = euler_max_dt_block(num_blocks, fine_bdata);
 #else
   double fine_dt = (1.0 / ref_factor) * coarse_dt;
 #endif
@@ -240,7 +245,7 @@ euler2d_run_single(int argc, char **argv, struct euler2d_single_init* init)
 
   while ((coarse_t_curr < t_end) && (coarse_step <= num_steps)) {
     printf("Taking coarse (level 0) time-step %ld at t = %g; ", coarse_step, coarse_t_curr);
-    struct gkyl_update_status coarse_status = euler_update(coarse_job_pool, btopo, coarse_bdata, coarse_t_curr, coarse_dt, &stats);
+    struct gkyl_update_status coarse_status = euler_update_block(coarse_job_pool, btopo, coarse_bdata, coarse_t_curr, coarse_dt, &stats);
     printf(" dt = %g\n", coarse_status.dt_actual);
 
     if (!coarse_status.success) {
@@ -251,7 +256,7 @@ euler2d_run_single(int argc, char **argv, struct euler2d_single_init* init)
     for (long fine_step = 1; fine_step < ref_factor + 1; fine_step++) {
 #ifdef AMR_DEBUG
       printf("   Taking fine (level 1) time-step %ld at t = %g; ", fine_step, fine_t_curr);
-      struct gkyl_update_status fine_status = euler_update(fine_job_pool, btopo, fine_bdata, fine_t_curr, fine_dt, &stats);
+      struct gkyl_update_status fine_status = euler_update_block(fine_job_pool, btopo, fine_bdata, fine_t_curr, fine_dt, &stats);
       printf(" dt = %g\n", fine_status.dt_actual);
 
       if (!fine_status.success) {
@@ -279,8 +284,8 @@ euler2d_run_single(int argc, char **argv, struct euler2d_single_init* init)
       snprintf(buf_coarse, 32, "euler_amr_coarse_%d", i);
       snprintf(buf_fine, 32, "euler_amr_fine_%d", i);
 
-      euler_write_sol(buf_coarse, num_blocks, coarse_bdata);
-      euler_write_sol(buf_fine, num_blocks, fine_bdata);
+      euler_write_sol_block(buf_coarse, num_blocks, coarse_bdata);
+      euler_write_sol_block(buf_fine, num_blocks, fine_bdata);
 
       char buf_fine_old[32];
       char buf_fine_new[32];
@@ -309,7 +314,7 @@ euler2d_run_single(int argc, char **argv, struct euler2d_single_init* init)
       char buf[32];
       snprintf(buf, 32, "euler_amr_%d", i);
 
-      euler_write_sol(buf, num_blocks, coarse_bdata);
+      euler_write_sol_block(buf, num_blocks, coarse_bdata);
 #endif
       }
     }
@@ -329,8 +334,8 @@ euler2d_run_single(int argc, char **argv, struct euler2d_single_init* init)
   snprintf(buf_coarse, 32, "euler_amr_coarse_%d", num_frames);
   snprintf(buf_fine, 32, "euler_amr_fine_%d", num_frames);
 
-  euler_write_sol(buf_coarse, num_blocks, coarse_bdata);
-  euler_write_sol(buf_fine, num_blocks, fine_bdata);
+  euler_write_sol_block(buf_coarse, num_blocks, coarse_bdata);
+  euler_write_sol_block(buf_fine, num_blocks, fine_bdata);
 
   char buf_fine_old[32];
   char buf_fine_new[32];
@@ -359,7 +364,7 @@ euler2d_run_single(int argc, char **argv, struct euler2d_single_init* init)
   char buf[32];
   snprintf(buf, 32, "euler_amr_%d", num_frames);
 
-  euler_write_sol(buf, num_blocks, coarse_bdata);
+  euler_write_sol_block(buf, num_blocks, coarse_bdata);
 #endif
 
   printf("Total run-time: %g. Failed steps: %d\n", tm_total_sec, stats.nfail);

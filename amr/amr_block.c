@@ -1,7 +1,7 @@
 #include <gkyl_amr_block_priv.h>
 
 void
-skin_ghost_ranges_init(struct skin_ghost_ranges* sgr, const struct gkyl_range* parent, const int* ghost)
+skin_ghost_ranges_init_block(struct skin_ghost_ranges_block* sgr, const struct gkyl_range* parent, const int* ghost)
 {
   int ndim = parent->ndim;
 
@@ -11,7 +11,7 @@ skin_ghost_ranges_init(struct skin_ghost_ranges* sgr, const struct gkyl_range* p
   }
 }
 
-static void
+void
 euler_transmissive_bc(double t, int nc, const double* GKYL_RESTRICT skin, double* GKYL_RESTRICT ghost, void* ctx)
 {
   for (int i = 0; i < 5; i++) {
@@ -41,7 +41,7 @@ euler_block_bc_updaters_init(struct euler_block_data* bdata, const struct gkyl_b
     }
   }
 
-  skin_ghost_ranges_init(&bdata->skin_ghost, &bdata->ext_range, nghost);
+  skin_ghost_ranges_init_block(&bdata->skin_ghost, &bdata->ext_range, nghost);
   long buff_sz = 0;
 
   for (int d = 0; d < 2; d++) {
@@ -430,7 +430,7 @@ euler_update_all_blocks(const struct gkyl_job_pool* job_pool, const struct gkyl_
 }
 
 void
-euler_init_job_func(void* ctx)
+euler_init_job_func_block(void* ctx)
 {
   struct euler_block_data *bdata = ctx;
 
@@ -438,15 +438,15 @@ euler_init_job_func(void* ctx)
 }
 
 void
-euler_copy_job_func(void* ctx)
+copy_job_func(void* ctx)
 {
-  struct euler_copy_job_ctx *j_ctx = ctx;
+  struct copy_job_ctx *j_ctx = ctx;
 
   gkyl_array_copy(j_ctx->out, j_ctx->inp);
 }
 
 struct gkyl_update_status
-euler_update(const struct gkyl_job_pool* job_pool, const struct gkyl_block_topo* btopo,
+euler_update_block(const struct gkyl_job_pool* job_pool, const struct gkyl_block_topo* btopo,
   const struct euler_block_data bdata[], double t_curr, double dt0, struct sim_stats* stats)
 {
   int num_blocks = btopo->num_blocks;
@@ -460,7 +460,7 @@ euler_update(const struct gkyl_job_pool* job_pool, const struct gkyl_block_topo*
     UPDATE_REDO,
   } state = PRE_UPDATE;
 
-  struct euler_copy_job_ctx euler_copy_ctx[num_blocks];
+  struct copy_job_ctx euler_copy_ctx[num_blocks];
   double dt = dt0;
 
   while (state != UPDATE_DONE) {
@@ -468,7 +468,7 @@ euler_update(const struct gkyl_job_pool* job_pool, const struct gkyl_block_topo*
       state = FLUID_UPDATE;
 
       for (int i = 0; i < num_blocks; i++) {
-        euler_copy_ctx[i] = (struct euler_copy_job_ctx) {
+        euler_copy_ctx[i] = (struct copy_job_ctx) {
           .bidx = i,
           .inp = bdata[i].f[0],
           .out = bdata[i].fdup,
@@ -477,12 +477,12 @@ euler_update(const struct gkyl_job_pool* job_pool, const struct gkyl_block_topo*
 
 #ifdef AMR_USETHREADS
       for (int i = 0; i < num_blocks; i++) {
-        gkyl_job_pool_add_work(job_pool, euler_copy_job_func, &euler_copy_ctx[i]);
+        gkyl_job_pool_add_work(job_pool, copy_job_func, &euler_copy_ctx[i]);
       }
       gkyl_job_pool_wait(job_pool);
 #else
       for (int i = 0; i < num_blocks; i++) {
-        euler_copy_job_func(&euler_copy_ctx[i]);
+        copy_job_func(&euler_copy_ctx[i]);
       }
 #endif
     }
@@ -504,7 +504,7 @@ euler_update(const struct gkyl_job_pool* job_pool, const struct gkyl_block_topo*
       state = UPDATE_DONE;
 
       for (int i = 0; i < num_blocks; i++) {
-        euler_copy_ctx[i] = (struct euler_copy_job_ctx) {
+        euler_copy_ctx[i] = (struct copy_job_ctx) {
           .bidx = i,
           .inp = bdata[i].f[2],
           .out = bdata[i].f[0],
@@ -513,12 +513,12 @@ euler_update(const struct gkyl_job_pool* job_pool, const struct gkyl_block_topo*
 
 #ifdef AMR_USETHREADS
       for (int i = 0; i < num_blocks; i++) {
-        gkyl_job_pool_add_work(job_pool, euler_copy_job_func, &euler_copy_ctx[i]);
+        gkyl_job_pool_add_work(job_pool, copy_job_func, &euler_copy_ctx[i]);
       }
       gkyl_job_pool_wait(job_pool);
 #else
       for (int i = 0; i < num_blocks; i++) {
-        euler_copy_job_func(&euler_copy_ctx[i]);
+        copy_job_func(&euler_copy_ctx[i]);
       }
 #endif
     }
@@ -526,7 +526,7 @@ euler_update(const struct gkyl_job_pool* job_pool, const struct gkyl_block_topo*
       state = PRE_UPDATE;
 
       for (int i = 0; i < num_blocks; i++) {
-        euler_copy_ctx[i] = (struct euler_copy_job_ctx) {
+        euler_copy_ctx[i] = (struct copy_job_ctx) {
           .bidx = i,
           .inp = bdata[i].fdup,
           .out = bdata[i].f[0],
@@ -535,12 +535,12 @@ euler_update(const struct gkyl_job_pool* job_pool, const struct gkyl_block_topo*
 
 #ifdef AMR_USETHREADS
       for (int i = 0; i < num_blocks; i++) {
-        gkyl_job_pool_add_work(job_pool, euler_copy_job_func, &euler_copy_ctx[i]);
+        gkyl_job_pool_add_work(job_pool, copy_job_func, &euler_copy_ctx[i]);
       }
       gkyl_job_pool_wait(job_pool);
 #else
       for (int i = 0; i < num_blocks; i++) {
-        euler_copy_job_func(&euler_copy_ctx[i]);
+        copy_job_func(&euler_copy_ctx[i]);
       }
 #endif
     }
@@ -554,7 +554,7 @@ euler_update(const struct gkyl_job_pool* job_pool, const struct gkyl_block_topo*
 }
 
 void
-euler_write_sol(const char* fbase, int num_blocks, const struct euler_block_data bdata[])
+euler_write_sol_block(const char* fbase, int num_blocks, const struct euler_block_data bdata[])
 {
   for (int i = 0; i < num_blocks; i++) {
     const char *fmt = "%s_b%d.gkyl";
@@ -567,7 +567,7 @@ euler_write_sol(const char* fbase, int num_blocks, const struct euler_block_data
 }
 
 double
-euler_max_dt(int num_blocks, const struct euler_block_data bdata[])
+euler_max_dt_block(int num_blocks, const struct euler_block_data bdata[])
 {
   double dt = DBL_MAX;
 

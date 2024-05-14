@@ -56,7 +56,7 @@ create_ctx(void)
   double Ly = 2.5; // Coarse domain size (y-direction).
   double fine_Lx = 1.0; // Fine domain size (x-direction).
   double fine_Ly = 1.0; // Fine domain size (y-direction).
-  double cfl_frac = 0.9; // CFL coefficient.
+  double cfl_frac = 0.95; // CFL coefficient.
   double t_end = 0.2; // Final simulation time.
   int num_frames = 1; // Number of output frames.
 
@@ -153,6 +153,7 @@ int main(int argc, char **argv)
     .eval = evalEulerInit,
     .gas_gamma = ctx.gas_gamma,
 
+    .low_order_flux = false,
     .cfl_frac = ctx.cfl_frac,
     .t_end = ctx.t_end,
     .num_frames = ctx.num_frames,
