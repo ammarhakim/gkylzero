@@ -72,7 +72,7 @@ gkyl_gk_geometry_mirror_new(struct gkyl_gk_geometry_inp *geometry_inp)
   struct gkyl_array* mc2p_nodal = gkyl_array_new(GKYL_DOUBLE, up->grid.ndim, nrange.volume);
   up->mc2p = gkyl_array_new(GKYL_DOUBLE, up->grid.ndim*up->basis.num_basis, up->local_ext.volume);
 
-  struct gkyl_mirror_geo_c2fa_ctx *c2fa_app = geometry_inp->gkyl_mirror_geo_c2fa_ctx;
+  struct gkyl_mirror_geo_c2fa_ctx *c2fa_app = geometry_inp->mirror_geo_c2fa_ctx;
   struct gkyl_array* map_c2fa_nodal_fd = gkyl_array_new(GKYL_DOUBLE, up->grid.ndim*num_fd_nodes, nrange.volume);
   struct gkyl_array* map_c2fa_nodal = gkyl_array_new(GKYL_DOUBLE, up->grid.ndim, nrange.volume);
   c2fa_app->c2fa = gkyl_array_new(GKYL_DOUBLE, up->grid.ndim*up->basis.num_basis, up->local_ext.volume);
@@ -150,10 +150,10 @@ gkyl_gk_geometry_mirror_new(struct gkyl_gk_geometry_inp *geometry_inp)
 }
 
 void
-gkyl_gk_geometry_arcL_deflate(const struct gk_geometry* up_3d, struct gkyl_gk_geometry_inp *geometry_inp)
+gkyl_gk_geometry_c2fa_deflate(const struct gk_geometry* up_3d, struct gkyl_gk_geometry_inp *geometry_inp)
 {
   struct gk_geometry *up = gkyl_malloc(sizeof(struct gk_geometry));
-  struct gkyl_mirror_geo_c2fa_ctx *arcL_app = geometry_inp->gkyl_mirror_geo_c2fa_ctx;
+  struct gkyl_mirror_geo_c2fa_ctx *arcL_app = geometry_inp->mirror_geo_c2fa_ctx;
   up->basis = geometry_inp->basis;
   up->local = geometry_inp->local;
   up->local_ext = geometry_inp->local_ext;
@@ -169,10 +169,10 @@ gkyl_gk_geometry_arcL_deflate(const struct gk_geometry* up_3d, struct gkyl_gk_ge
     rem_dirs[1] = 1;
   }
   struct gkyl_deflate_geo* deflator = gkyl_deflate_geo_new(&up_3d->basis, &up->basis, &up_3d->grid, &up->grid, rem_dirs, false);
-  arcL_app->grid_deflate = up->grid;
-  arcL_app->basis_deflate = up->basis;
-  arcL_app->range_deflate = up->local;
-  arcL_app->range_global_deflate = up->global;
+  arcL_app->grid_deflate = geometry_inp->grid;
+  arcL_app->basis_deflate = geometry_inp->basis;
+  arcL_app->range_deflate = geometry_inp->local;
+  arcL_app->range_global_deflate = geometry_inp->global;
 
   gkyl_deflate_geo_advance(deflator, &up_3d->local, &up->local, arcL_app->c2fa, arcL_app->c2fa_deflate, 3);
   // Done deflating

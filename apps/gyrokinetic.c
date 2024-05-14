@@ -228,7 +228,7 @@ gkyl_gyrokinetic_app_new(struct gkyl_gk *gk)
     .tok_grid_info = gk->geometry.tok_grid_info,
     .mirror_efit_info = gk->geometry.mirror_efit_info,
     .mirror_grid_info = gk->geometry.mirror_grid_info,
-    .gkyl_mirror_geo_c2fa_ctx = gk->geometry.mirror_geo_c2fa_ctx,
+    .mirror_geo_c2fa_ctx = gk->geometry.mirror_geo_c2fa_ctx,
     .nonuniform_geom = false,
     .nonuniform_map_fraction = gk->geometry.nonuniform_mapping_fraction,
     .grid = app->grid,
@@ -284,6 +284,9 @@ gkyl_gyrokinetic_app_new(struct gkyl_gk *gk)
       break;
     case GKYL_MIRROR:
       gk_geom_3d = gkyl_gk_geometry_mirror_new(&geometry_inp);
+      if(app->cdim < 3) {
+        gkyl_gk_geometry_c2fa_deflate(gk_geom_3d, &geometry_inp);
+      }
       double nonuniform_frac = gk->geometry.nonuniform_mapping_fraction;
       if (nonuniform_frac > 0.0 & nonuniform_frac <= 1.0) {
         // Copy deflate geometry if necessary
@@ -291,7 +294,6 @@ gkyl_gyrokinetic_app_new(struct gkyl_gk *gk)
           app->gk_geom = gkyl_gk_geometry_deflate(gk_geom_3d, &geometry_inp);
         else
           app->gk_geom = gkyl_gk_geometry_acquire(gk_geom_3d);
-        // Need to do the host-device copies
         struct gkyl_array *bmag_global = gkyl_array_new(GKYL_DOUBLE, app->confBasis.num_basis, app->global_ext.volume);
         if (app->use_gpu) { // Allgather is only a GPU operation, so we must copy these arrays to GPU, then back to CPU
           struct gkyl_array *bmag_global_dev = mkarr(app->use_gpu, app->confBasis.num_basis, app->global_ext.volume);
@@ -313,14 +315,15 @@ gkyl_gyrokinetic_app_new(struct gkyl_gk *gk)
         geometry_inp.decomp_local_ext = app->local_ext;
         geometry_inp.decomp_global = app->global;
         geometry_inp.decomp_global_ext = app->global_ext;
+        struct gkyl_mirror_geo_c2fa_ctx *c2fa_app = geometry_inp.mirror_geo_c2fa_ctx;
         gkyl_gk_geometry_release(gk_geom_3d); // release temporary 3d geometry
         gkyl_gk_geometry_release(app->gk_geom); // release 3d geometry
+        gkyl_array_release(c2fa_app->c2fa);
+        gkyl_array_release(c2fa_app->c2fa_deflate);
         gk_geom_3d = gkyl_gk_geometry_mirror_new(&geometry_inp);
-        if(app->cdim < 3)
-          gkyl_gk_geometry_arcL_deflate(gk_geom_3d, &geometry_inp);
-          // struct gkyl_mirror_geo_c2fa_ctx *arcL_app = geometry_inp.arcL_map_ctx;
-          // gkyl_grid_sub_array_write(&geometry_inp.decomp_grid, &geometry_inp.decomp_local, 0, arcL_app->c2fa_deflate, "c2fa_deflate.gkyl");
-
+        if(app->cdim < 3) {
+          gkyl_gk_geometry_c2fa_deflate(gk_geom_3d, &geometry_inp);
+        }
         gkyl_array_release(bmag_global);
         // I don't think I'm releasing the uniform deflated geometry correctly
       }

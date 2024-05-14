@@ -65,41 +65,32 @@ arc_length_func(double Z, void *ctx)
   return ival;
 }
 
-void gkyl_mirror_geo_comp2fieldalligned_advance(double t, const double *xn, double *fout, void *ctx)
+void gkyl_mirror_geo_comp2fieldalligned_advance(double t, const double *x_comp, double *x_fa, void *ctx)
 {
-  // IMPORTANT xn is a 3x coordinate vector (psi, theta, z)
   struct gkyl_mirror_geo_c2fa_ctx *gc = ctx;
   int cidx[GKYL_MAX_CDIM];
   for(int i = 0; i < gc->grid_deflate.ndim; i++){
-    int idxtemp = gc->range_global_deflate.lower[i] + (int) floor((xn[i] - (gc->grid_deflate.lower[i]) )/gc->grid_deflate.dx[i]);
+    int idxtemp = gc->range_global_deflate.lower[i] + (int) floor((x_comp[i] - (gc->grid_deflate.lower[i]) )/gc->grid_deflate.dx[i]);
     idxtemp = GKYL_MIN2(idxtemp, gc->range_deflate.upper[i]);
     idxtemp = GKYL_MAX2(idxtemp, gc->range_deflate.lower[i]);
     cidx[i] = idxtemp;
   }
   long lidx = gkyl_range_idx(&gc->range_deflate, cidx);
-  const double *mcoeffs = gkyl_array_cfetch(gc->c2fa_deflate, lidx);
+  const double *c2fa_coeffs = gkyl_array_cfetch(gc->c2fa_deflate, lidx);
   double cxc[gc->grid_deflate.ndim];
-  double xyz[gc->grid_deflate.ndim];
+  double x_log[gc->grid_deflate.ndim];
   gkyl_rect_grid_cell_center(&gc->grid_deflate, cidx, cxc);
   for(int i = 0; i < gc->grid_deflate.ndim; i++){
-    xyz[i] = (xn[i]-cxc[i])/(gc->grid_deflate.dx[i]*0.5);
+    x_log[i] = (x_comp[i]-cxc[i])/(gc->grid_deflate.dx[i]*0.5);
   }
-  double XYZ[3];
+  double xyz_fa[3];
   for(int i = 0; i < 3; i++){
-    XYZ[i] = gc->basis_deflate.eval_expand(xyz, &mcoeffs[i*gc->basis_deflate.num_basis]);
+    xyz_fa[i] = gc->basis_deflate.eval_expand(x_log, &c2fa_coeffs[i*gc->basis_deflate.num_basis]);
   }
-  if (gc->grid_deflate.ndim == 1) {
-    fout[0] = XYZ[2];
+  for (int i=0; i<gc->grid_deflate.ndim; i++) {
+    x_fa[i] = xyz_fa[i];
   }
-  else if (gc->grid_deflate.ndim == 2) {
-    fout[0] = XYZ[0];
-    fout[1] = XYZ[2];
-  }
-  else {
-    fout[0] = XYZ[0];
-    fout[1] = XYZ[1];
-    fout[2] = XYZ[2];
-  }
+  x_fa[gc->grid_deflate.ndim-1] = xyz_fa[2];
 }
 
 
@@ -189,7 +180,7 @@ write_nodal_coordinates(const char *nm, struct gkyl_range *nrange,
 void gkyl_mirror_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, double dzc[3], 
   evalf_t mapc2p_func, void* mapc2p_ctx, evalf_t bmag_func, void *bmag_ctx, 
   struct gkyl_array *mc2p_nodal_fd, struct gkyl_array *mc2p_nodal, struct gkyl_array *mc2p, bool nonuniform,
-  struct gkyl_array* map_arcL_nodal_fd, struct gkyl_array* map_arcL_nodal, struct gkyl_array* c2fa)
+  struct gkyl_array* c2fa_nodal_fd, struct gkyl_array* c2fa_nodal, struct gkyl_array* c2fa)
 {
 
   struct gkyl_mirror_geo *geo = mapc2p_ctx;
@@ -366,15 +357,15 @@ void gkyl_mirror_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, dou
                 mc2p_n[Z_IDX] = z_curr;
               }
 
-              double *map_arcL_fd_n = gkyl_array_fetch(map_arcL_nodal_fd, gkyl_range_idx(nrange, cidx));
-              double *map_arcL_n = gkyl_array_fetch(map_arcL_nodal, gkyl_range_idx(nrange, cidx));
-              map_arcL_fd_n[lidx+X_IDX] = psi_curr;
-              map_arcL_fd_n[lidx+Y_IDX] = alpha_curr;
-              map_arcL_fd_n[lidx+Z_IDX] = theta_curr;
+              double *c2fa_fd_n = gkyl_array_fetch(c2fa_nodal_fd, gkyl_range_idx(nrange, cidx));
+              double *c2fa_n = gkyl_array_fetch(c2fa_nodal, gkyl_range_idx(nrange, cidx));
+              c2fa_fd_n[lidx+X_IDX] = psi_curr;
+              c2fa_fd_n[lidx+Y_IDX] = alpha_curr;
+              c2fa_fd_n[lidx+Z_IDX] = theta_curr;
               if(ip_delta==0 && ia_delta==0 && it_delta==0) {
-                map_arcL_n[X_IDX] = psi_curr;
-                map_arcL_n[Y_IDX] = alpha_curr;
-                map_arcL_n[Z_IDX] = theta_curr;
+                c2fa_n[X_IDX] = psi_curr;
+                c2fa_n[Y_IDX] = alpha_curr;
+                c2fa_n[Z_IDX] = theta_curr;
               }
             }
           }
@@ -385,7 +376,7 @@ void gkyl_mirror_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, dou
 
   struct gkyl_nodal_ops *n2m =  gkyl_nodal_ops_new(&inp->cbasis, &inp->cgrid, false);
   gkyl_nodal_ops_n2m(n2m, &inp->cbasis, &inp->cgrid, nrange, &up->local, 3, mc2p_nodal, mc2p);
-  gkyl_nodal_ops_n2m(n2m, &inp->cbasis, &inp->cgrid, nrange, &up->local, 3, map_arcL_nodal, c2fa);
+  gkyl_nodal_ops_n2m(n2m, &inp->cbasis, &inp->cgrid, nrange, &up->local, 3, c2fa_nodal, c2fa);
   gkyl_nodal_ops_release(n2m);
 
   char str1[50] = "xyz";
