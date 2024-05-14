@@ -134,8 +134,6 @@ gkyl_vlasov_lte_proj_on_basis_inew(const struct gkyl_vlasov_lte_proj_on_basis_in
   up->phase_grid = *inp->phase_grid;
   up->conf_basis = *inp->conf_basis;
   up->phase_basis = *inp->phase_basis;
-  up->h_ij_inv = gkyl_array_acquire(inp->h_ij_inv);
-  up->det_h = gkyl_array_acquire(inp->det_h);
 
   up->cdim = up->conf_basis.ndim;
   up->pdim = up->phase_basis.ndim;
@@ -150,6 +148,8 @@ gkyl_vlasov_lte_proj_on_basis_inew(const struct gkyl_vlasov_lte_proj_on_basis_in
   }
   up->is_canonical_pb = false;
   if (inp->model_id == GKYL_MODEL_CANONICAL_PB) {
+    up->h_ij_inv = gkyl_array_acquire(inp->h_ij_inv);
+    up->det_h = gkyl_array_acquire(inp->det_h);
     up->is_canonical_pb = true;
   }
 
@@ -477,8 +477,10 @@ gkyl_vlasov_lte_proj_on_basis_release(gkyl_vlasov_lte_proj_on_basis* up)
   gkyl_array_release(up->conf_basis_at_ords);
   gkyl_array_release(up->fun_at_ords);
 
-  gkyl_array_release(up->h_ij_inv);
-  gkyl_array_release(up->det_h);
+  if(up->is_canonical_pb){
+    gkyl_array_release(up->h_ij_inv);
+    gkyl_array_release(up->det_h);
+  }
 
   gkyl_vlasov_lte_moments_release(up->moments_up);
   gkyl_array_release(up->num_ratio);
