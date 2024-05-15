@@ -349,7 +349,7 @@ main(int argc, char **argv)
 
   // pkpm app
   struct gkyl_pkpm pkpm = {
-    .name = "pkpm_alf_wave_1x_p2",
+    .name = "pkpm_alf_wave_explicit_1x_p2",
 
     .cdim = 1, .vdim = 1,
     .lower = { 0.0},
@@ -357,6 +357,8 @@ main(int argc, char **argv)
     .cells = { NX},
     .poly_order = 2,
     .basis_type = app_args.basis_type,
+
+    .use_explicit_source = true, 
     
     .num_periodic_dir = 1,
     .periodic_dirs = { 0 },

@@ -242,7 +242,7 @@ create_ctx(void)
   double dx = Lx/Nx;
   double t_end = 100.0/omegaCi;
   // initial dt guess so first step does not generate NaN
-  double init_dt = (Lx/Nx)/(5.0);
+  double init_dt = (Lx/Nx)/(3.0);
   
   struct pkpm_alf_ctx ctx = {
     .epsilon0 = epsilon0,
@@ -284,7 +284,7 @@ int
 main(int argc, char **argv)
 {
   struct gkyl_app_args app_args = parse_app_args(argc, argv);
-
+     
   struct pkpm_alf_ctx ctx = create_ctx(); // context for init functions
 
   int NX = APP_ARGS_CHOOSE(app_args.xcells[0], ctx.Nx);
@@ -349,14 +349,16 @@ main(int argc, char **argv)
 
   // pkpm app
   struct gkyl_pkpm pkpm = {
-    .name = "pkpm_alf_wave_1x_p2",
+    .name = "pkpm_alf_wave_explicit_1x_p1",
 
     .cdim = 1, .vdim = 1,
     .lower = { 0.0},
     .upper = { ctx.Lx },
     .cells = { NX},
-    .poly_order = 2,
+    .poly_order = 1,
     .basis_type = app_args.basis_type,
+
+    .use_explicit_source = true, 
     
     .num_periodic_dir = 1,
     .periodic_dirs = { 0 },

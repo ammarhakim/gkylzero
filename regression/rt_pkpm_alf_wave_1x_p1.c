@@ -314,8 +314,6 @@ main(int argc, char **argv)
       .ctx = &ctx,
       .self_nu = evalNuElc,
     },    
-
-    //.diffusion = {.D = 1.0e-5, .order=4},
   };
   
   // ions
@@ -337,8 +335,6 @@ main(int argc, char **argv)
       .ctx = &ctx,
       .self_nu = evalNuIon,
     },    
-
-    //.diffusion = {.D = 1.0e-5, .order=4},
   };
 
   // field
