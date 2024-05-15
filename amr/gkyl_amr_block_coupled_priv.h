@@ -61,8 +61,8 @@ struct five_moment_block_data {
 
   gkyl_moment_em_coupling *src_slvr;
 
-  bool periodic_x;
-  bool periodic_y;
+  bool transmissive_x;
+  bool transmissive_y;
 
   bool wall_x;
   bool wall_y;
@@ -119,19 +119,29 @@ static void five_moment_wall_bc(double t, int nc, const double* GKYL_RESTRICT sk
 static void maxwell_wall_bc(double t, int nc, const double* GKYL_RESTRICT skin, double* GKYL_RESTRICT ghost, void* ctx);
 
 /**
+* Boundary condition function for applying transmissive boundary conditions for the coupled five-moment equations.
 *
-* Apply block-structured periodic boundary conditions for the coupled five-moment equations.
-* @param bdata Block-structured data for the coupled five-moment equations.
-* @param dir Direction in which to apply periodic boundary conditions.
-* @param fld_elc Output array (electrons).
-* @param fld_ion Output array (ions).
-* @param fld_maxwell Output array (Maxwell field).
+* @param t Current simulation time.
+* @param nc Number of boundary cells to which to apply transmissive boundary conditions.
+* @param skin Skin cells in boundary region (from which values are copied).
+* @param ghost Ghost cells in boundary region (to which values are copied).
+* @param ctx Context to pass to the function.
 */
-static void five_moment_block_apply_periodic_bc(const struct five_moment_block_data* bdata, int dir,
-  struct gkyl_array* fld_elc, struct gkyl_array* fld_ion, struct gkyl_array* fld_maxwell);
+static void five_moment_transmissive_bc(double t, int nc, const double* GKYL_RESTRICT skin, double* GKYL_RESTRICT ghost, void* ctx);
 
 /**
-* Initialize updaters for both physical (outer-block) and non-physical (inter-block) boundary conditions for the coupled five-moment equations.
+* Boundary condition function for applying transmissive boundary conditions for the Maxwell equations.
+*
+* @param t Current simulation time.
+* @param nc Number of boundary cells to which to apply tranmissive boundary conditions.
+* @param skin Skin cells in boundary region (from which values are copied).
+* @param ghost Ghost cells in boundary region (to which values are copied).
+* @param ctx Context to pass to the function.
+*/
+static void maxwell_transmissive_bc(double t, int nc, const double* GKYL_RESTRICT skin, double* GKYL_RESTRICT ghost, void* ctx);
+
+/**
+* Initialize block AMR updaters for both physical (outer-block) and non-physical (inter-block) boundary conditions for the coupled five-moment equations.
 *
 * @param bdata Block-structured data for the coupled five-moment equations.
 * @param conn Topology/connectivity data for the block hierarchy.
@@ -139,14 +149,14 @@ static void five_moment_block_apply_periodic_bc(const struct five_moment_block_d
 void five_moment_block_bc_updaters_init(struct five_moment_block_data* bdata, const struct gkyl_block_connections* conn);
 
 /**
-* Release updaters for both physical (outer-block) and non-physical (inter-block) boundary conditions for the coupled five-moment equations.
+* Release block AMR updaters for both physical (outer-block) and non-physical (inter-block) boundary conditions for the coupled five-moment equations.
 *
 * @param bdata Block-structured data for the coupled five-moment equations.
 */
 void five_moment_block_bc_updaters_release(struct five_moment_block_data* bdata);
 
 /**
-* Apply both physical (outer-block) and non-physical (inter-block) boundary conditions for the coupled five-moment equations.
+* Apply both physical (outer-block) and non-physical (inter-block) block AMR boundary conditions for the coupled five-moment equations.
 *
 * @param bdata Block-structured data for the coupled five-moment equations.
 * @param tm Simulation time at which the boundary conditions are applied.
@@ -158,7 +168,8 @@ void five_moment_block_bc_updaters_apply(const struct five_moment_block_data* bd
   struct gkyl_array* fld_elc, struct gkyl_array *fld_ion, struct gkyl_array* fld_maxwell);
 
 /**
-* Synchronize all blocks in the block hierarchy by applying all appropriate physical (outer-block) and non-physical (inter-block) boundary conditions for the coupled five-moment equations.
+* Synchronize all blocks in the block AMR hierarchy by applying all appropriate physical (outer-block) and non-physical (inter-block)
+* boundary conditions for the coupled five-moment equations.
 *
 * @param btopo Topology/connectivity information for the block hierarchy.
 * @param bdata Block-structured data for the coupled five-moment equations.
@@ -170,7 +181,7 @@ void five_moment_sync_blocks(const struct gkyl_block_topo* btopo, const struct f
   struct gkyl_array* fld_elc[], struct gkyl_array* fld_ion[], struct gkyl_array* fld_maxwell[]);
 
 /**
-* Write block-structured simulation data for the coupled five-moment equations onto disk.
+* Write block-structured AMR simulation data for the coupled five-moment equations onto disk.
 *
 * @param file_nm_elc File name schema to use for the electron simulation output.
 * @param file_nm_ion File name schema to use for the ion simulation output.
@@ -183,37 +194,39 @@ void five_moment_block_data_write(const char* file_nm_elc, const char* file_nm_i
 * Calculate the maximum stable time-step for the block-structured, coupled five-moment equations.
 *
 * @param bdata Block-structured data for the coupled five-moment equations.
+* @return Maximum stable time-step.
 */
 double five_moment_block_data_max_dt(const struct five_moment_block_data* bdata);
 
 /**
-* Update the block-structured simulation data for the coupled five-moment equations using the thread-based job pool.
+* Update the block-structured AMR simulation data for the coupled five-moment equations using the thread-based job pool.
 *
 * @param ctx Context to pass to the function.
 */
 void five_moment_update_block_job_func(void* ctx);
 
 /**
-* Update the source terms of the block-structured simulation data for the coupled five-moment equations using the thread-based job pool.
+* Update the source terms of the block-structured AMR simulation data for the coupled five-moment equations using the thread-based job pool.
 *
 * @param ctx Context to pass to the function.
 */
 void five_moment_update_block_job_func_source(void* ctx);
 
 /**
-* Update all blocks in the block hierarchy by using the thread-based job pool for the coupled five-moment equations.
+* Update all blocks in the block AMR hierarchy by using the thread-based job pool for the coupled five-moment equations.
 *
 * @param job_pool Job pool for updating block-structured data for the coupled five-moment equations using threads.
 * @param btopo Topology/connectivity information for the entire block hierarchy.
 * @param bdata Block-structured data for the coupled five-moment equations.
 * @param t_curr Current simulation time.
 * @param dt Current stable time-step for the simulation.
+* @return Status of the update (success and suggested time-step).
 */
 struct gkyl_update_status five_moment_update_all_blocks(const struct gkyl_job_pool* job_pool, const struct gkyl_block_topo* btopo,
   const struct five_moment_block_data bdata[], double t_curr, double dt);
 
 /**
-* Update the source terms for all blocks in the block hierarchy by using the thread-based job pool for the coupled five-moment equations.
+* Update the source terms for all blocks in the block AMR hierarchy by using the thread-based job pool for the coupled five-moment equations.
 *
 * @param job_pool Job pool for updating block-structured data for the coupled five-moment equations using threads.
 * @param btopo Topology/connectivity information for the entire block hierarchy.
@@ -226,7 +239,7 @@ void five_moment_update_all_blocks_source(const struct gkyl_job_pool* job_pool, 
   const struct five_moment_block_data bdata[], double t_curr, double dt, int nstrang);
 
 /**
-* Initialize a new job in the thread-based job pool for updating the block-structured simulation data for the coupled five-moment equations.
+* Initialize a new job in the thread-based job pool for updating the block-structured AMR simulation data for the coupled five-moment equations.
 *
 * @param ctx Context to pass to the function.
 */
@@ -240,7 +253,7 @@ void five_moment_init_job_func(void* ctx);
 void five_moment_copy_job_func(void* ctx);
 
 /**
-* Take a single time-step across the entire block hierarchy for the coupled five-moment equations.
+* Take a single time-step across the entire block AMR hierarchy for the coupled five-moment equations.
 *
 * @param job_pool Job pool for updating block-structured data for the coupled five-moment equations using threads.
 * @param btopo Topology/connectivity information for the entire block hierarchy.
@@ -248,23 +261,25 @@ void five_moment_copy_job_func(void* ctx);
 * @param t_curr Current simulation time.
 * @param dt0 Initial guess for the maximum stable time-step.
 * @param stats Simulation statistics (allowing for tracking of the number of failed time-steps).
+* @return Status of the update (success, suggested time-step and actual time-step).
 */
 struct gkyl_update_status five_moment_update(const struct gkyl_job_pool* job_pool, const struct gkyl_block_topo* btopo,
   const struct five_moment_block_data bdata[], double t_curr, double dt0, struct sim_stats* stats);
 
 /**
-* Write the complete simulation output for the entire block hierarchy for the coupled five-moment equations onto disk.
+* Write the complete simulation output for the entire block AMR hierarchy for the coupled five-moment equations onto disk.
 *
 * @param fbase Base file name schema to use for the simulation output.
 * @param num_blocks Number of blocks in the block hierarchy.
 * @param bdata Array of block-structured data for the coupled five-moment equations.
 */
-void five_moment_write_sol(const char* fbase, int num_blocks, const struct five_moment_block_data bdata[]);
+void five_moment_write_sol_block(const char* fbase, int num_blocks, const struct five_moment_block_data bdata[]);
 
 /**
-* Calculate the maximum stable time-step across all blocks in the block hierarchy for the coupled five-moment equations.
+* Calculate the maximum stable time-step across all blocks in the block AMR hierarchy for the coupled five-moment equations.
 *
 * @param num_blocks Number of blocks in the block hierarchy.
 * @param bdata Array of block-structured data for the coupled five-moment equations.
+* @return Maximum stable time-step
 */
 double five_moment_max_dt(int num_blocks, const struct five_moment_block_data bdata[]);

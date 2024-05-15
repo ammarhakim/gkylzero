@@ -45,12 +45,16 @@ five_moment_2d_run_single(int argc, char **argv, struct five_moment_2d_single_in
   double mass_ion = init->mass_ion;
   double charge_ion = init->charge_ion;
 
-  bool periodic_x = init->periodic_x;
-  bool periodic_y = init->periodic_y;
+  bool transmissive_x = init->transmissive_x;
+  bool transmissive_y = init->transmissive_y;
 
   bool wall_x = init->wall_x;
   bool wall_y = init->wall_y;
 
+  char five_moment_output[32];
+  strcpy(five_moment_output, init->five_moment_output);
+
+  bool low_order_flux = init->low_order_flux;
   double cfl_frac = init->cfl_frac;
   double t_end = init->t_end;
   int num_frames = init->num_frames;
@@ -128,8 +132,8 @@ five_moment_2d_run_single(int argc, char **argv, struct five_moment_2d_single_in
     gkyl_create_grid_ranges(&coarse_bdata[i].grid, (int []) { 2, 2 }, &coarse_bdata[i].ext_range, &coarse_bdata[i].range);
     coarse_bdata[i].geom = gkyl_wave_geom_new(&coarse_bdata[i].grid, &coarse_bdata[i].ext_range, 0, 0, false);
     
-    coarse_bdata[i].periodic_x = periodic_x;
-    coarse_bdata[i].periodic_y = periodic_y;
+    coarse_bdata[i].transmissive_x = transmissive_x;
+    coarse_bdata[i].transmissive_y = transmissive_y;
 
     coarse_bdata[i].wall_x = wall_x;
     coarse_bdata[i].wall_y = wall_y;
@@ -138,8 +142,8 @@ five_moment_2d_run_single(int argc, char **argv, struct five_moment_2d_single_in
     gkyl_create_grid_ranges(&fine_bdata[i].grid, (int []) { 2, 2 }, &fine_bdata[i].ext_range, &fine_bdata[i].range);
     fine_bdata[i].geom = gkyl_wave_geom_new(&fine_bdata[i].grid, &fine_bdata[i].ext_range, 0, 0, false);
 
-    fine_bdata[i].periodic_x = periodic_x;
-    fine_bdata[i].periodic_y = periodic_y;
+    fine_bdata[i].transmissive_x = transmissive_x;
+    fine_bdata[i].transmissive_y = transmissive_y;
 
     fine_bdata[i].wall_x = wall_x;
     fine_bdata[i].wall_y = wall_y;
@@ -147,8 +151,18 @@ five_moment_2d_run_single(int argc, char **argv, struct five_moment_2d_single_in
   }
 
   for (int i = 0; i < num_blocks; i++) {
-    coarse_bdata[i].euler_elc = gkyl_wv_euler_new(gas_gamma, app_args.use_gpu);
-    coarse_bdata[i].euler_ion = gkyl_wv_euler_new(gas_gamma, app_args.use_gpu);
+    if (low_order_flux) {
+      struct gkyl_wv_euler_inp inp = {
+        .gas_gamma = gas_gamma,
+        .rp_type = WV_EULER_RP_HLL,
+        .use_gpu = app_args.use_gpu,
+      };
+      coarse_bdata[i].euler_elc = gkyl_wv_euler_inew(&inp);
+      coarse_bdata[i].euler_ion = gkyl_wv_euler_inew(&inp);
+    } else {
+      coarse_bdata[i].euler_elc = gkyl_wv_euler_new(gas_gamma, app_args.use_gpu);
+      coarse_bdata[i].euler_ion = gkyl_wv_euler_new(gas_gamma, app_args.use_gpu);
+    }
     coarse_bdata[i].maxwell = gkyl_wv_maxwell_new(light_speed, e_fact, b_fact);
 
     for (int d = 0; d < ndim; d++) {
@@ -206,8 +220,19 @@ five_moment_2d_run_single(int argc, char **argv, struct five_moment_2d_single_in
     coarse_bdata[i].src_slvr = gkyl_moment_em_coupling_new(coarse_src_inp);
 
 #ifdef AMR_DEBUG
-    fine_bdata[i].euler_elc = gkyl_wv_euler_new(gas_gamma, app_args.use_gpu);
-    fine_bdata[i].euler_ion = gkyl_wv_euler_new(gas_gamma, app_args.use_gpu);
+    if (low_order_flux) {
+      struct gkyl_wv_euler_inp inp = {
+        .gas_gamma = gas_gamma,
+        .rp_type = WV_EULER_RP_HLL,
+        .use_gpu = app_args.use_gpu,
+      };
+      fine_bdata[i].euler_elc = gkyl_wv_euler_inew(&inp);
+      fine_bdata[i].euler_ion = gkyl_wv_euler_inew(&inp);
+    }
+    else {
+      fine_bdata[i].euler_elc = gkyl_wv_euler_new(gas_gamma, app_args.use_gpu);
+      fine_bdata[i].euler_ion = gkyl_wv_euler_new(gas_gamma, app_args.use_gpu);
+    }
     fine_bdata[i].maxwell = gkyl_wv_maxwell_new(light_speed, e_fact, b_fact);
 
     for (int d = 0; d < ndim; d++) {
@@ -342,41 +367,62 @@ five_moment_2d_run_single(int argc, char **argv, struct five_moment_2d_single_in
 #endif
 
 #ifdef AMR_DEBUG
-  five_moment_write_sol("5m_amr_coarse_0", num_blocks, coarse_bdata);
-  five_moment_write_sol("5m_amr_fine_0", num_blocks, fine_bdata);
+  char coarse0[64];
+  snprintf(coarse0, 64, "%s_coarse_0", five_moment_output);
+  five_moment_write_sol_block(coarse0, num_blocks, coarse_bdata);
 
-  rename("5m_amr_fine_0_elc_b0.gkyl", "5m_amr_0_elc_b0.gkyl");
-  rename("5m_amr_fine_0_ion_b0.gkyl", "5m_amr_0_ion_b0.gkyl");
-  rename("5m_amr_fine_0_field_b0.gkyl", "5m_amr_0_field_b0.gkyl");
+  char fine0[64];
+  snprintf(fine0, 64, "%s_fine_0", five_moment_output);
+  five_moment_write_sol_block(fine0, num_blocks, fine_bdata);
 
-  remove("5m_amr_coarse_0_elc_b0.gkyl");
-  remove("5m_amr_coarse_0_ion_b0.gkyl");
-  remove("5m_amr_coarse_0_field_b0.gkyl");
+  char fine0_elc_b0[64], fine0_ion_b0[64], fine0_field_b0[64];
+  char coarse0_elc_b0[64], coarse0_ion_b0[64], coarse0_field_b0[64];
+  char b0_elc[64], b0_ion[64], b0_field[64];
+
+  snprintf(fine0_elc_b0, 64, "%s_fine_0_elc_b0.gkyl", five_moment_output);
+  snprintf(fine0_ion_b0, 64, "%s_fine_0_ion_b0.gkyl", five_moment_output);
+  snprintf(fine0_field_b0, 64, "%s_fine_0_field_b0.gkyl", five_moment_output);
+
+  snprintf(coarse0_elc_b0, 64, "%s_coarse_0_elc_b0.gkyl", five_moment_output);
+  snprintf(coarse0_ion_b0, 64, "%s_coarse_0_ion_b0.gkyl", five_moment_output);
+  snprintf(coarse0_field_b0, 64, "%s_coarse_0_field_b0.gkyl", five_moment_output);
+
+  snprintf(b0_elc, 64, "%s_0_elc_b0.gkyl", five_moment_output);
+  snprintf(b0_ion, 64, "%s_0_ion_b0.gkyl", five_moment_output);
+  snprintf(b0_field, 64, "%s_0_field_b0.gkyl", five_moment_output);
+
+  rename(fine0_elc_b0, b0_elc);
+  rename(fine0_ion_b0, b0_ion);
+  rename(fine0_field_b0, b0_field);
+
+  remove(coarse0_elc_b0);
+  remove(coarse0_ion_b0);
+  remove(coarse0_field_b0);
 
   for (int i = 1; i < 9; i++) {
-    char buf_old_elc[32];
-    char buf_old_ion[32];
-    char buf_old_field[32];
+    char buf_old_elc[64];
+    char buf_old_ion[64];
+    char buf_old_field[64];
 
-    char buf_new_elc[32];
-    char buf_new_ion[32];
-    char buf_new_field[32];
+    char buf_new_elc[64];
+    char buf_new_ion[64];
+    char buf_new_field[64];
 
-    char buf_del_elc[32];
-    char buf_del_ion[32];
-    char buf_del_field[32];
+    char buf_del_elc[64];
+    char buf_del_ion[64];
+    char buf_del_field[64];
 
-    snprintf(buf_old_elc, 32, "5m_amr_coarse_0_elc_b%d.gkyl", i);
-    snprintf(buf_old_ion, 32, "5m_amr_coarse_0_ion_b%d.gkyl", i);
-    snprintf(buf_old_field, 32, "5m_amr_coarse_0_field_b%d.gkyl", i);
+    snprintf(buf_old_elc, 64, "%s_coarse_0_elc_b%d.gkyl", five_moment_output, i);
+    snprintf(buf_old_ion, 64, "%s_coarse_0_ion_b%d.gkyl", five_moment_output, i);
+    snprintf(buf_old_field, 64, "%s_coarse_0_field_b%d.gkyl", five_moment_output, i);
 
-    snprintf(buf_new_elc, 32, "5m_amr_0_elc_b%d.gkyl", i);
-    snprintf(buf_new_ion, 32, "5m_amr_0_ion_b%d.gkyl", i);
-    snprintf(buf_new_field, 32, "5m_amr_0_field_b%d.gkyl", i);
+    snprintf(buf_new_elc, 64, "%s_0_elc_b%d.gkyl", five_moment_output, i);
+    snprintf(buf_new_ion, 64, "%s_0_ion_b%d.gkyl", five_moment_output, i);
+    snprintf(buf_new_field, 64, "%s_0_field_b%d.gkyl", five_moment_output, i);
     
-    snprintf(buf_del_elc, 32, "5m_amr_fine_0_elc_b%d.gkyl", i);
-    snprintf(buf_del_ion, 32, "5m_amr_fine_0_ion_b%d.gkyl", i);
-    snprintf(buf_del_field, 32, "5m_amr_fine_0_field_b%d.gkyl", i);
+    snprintf(buf_del_elc, 64, "%s_fine_0_elc_b%d.gkyl", five_moment_output, i);
+    snprintf(buf_del_ion, 64, "%s_fine_0_ion_b%d.gkyl", five_moment_output, i);
+    snprintf(buf_del_field, 64, "%s_fine_0_field_b%d.gkyl", five_moment_output, i);
 
     rename(buf_old_elc, buf_new_elc);
     rename(buf_old_ion, buf_new_ion);
@@ -387,7 +433,9 @@ five_moment_2d_run_single(int argc, char **argv, struct five_moment_2d_single_in
     remove(buf_del_field);
   }
 #else
-  five_moment_write_sol("5m_amr_0", num_blocks, coarse_bdata);
+  char amr0[64];
+  snprintf(amr0, 64, "%s_0", five_moment_output);
+  five_moment_write_sol_block(amr0, num_blocks, coarse_bdata);
 #endif
 
   double coarse_t_curr = 0.0;
@@ -444,38 +492,38 @@ five_moment_2d_run_single(int argc, char **argv, struct five_moment_2d_single_in
     for (int i = 1; i < num_frames; i++) {
       if (coarse_t_curr < (i * io_trigger) && (coarse_t_curr + coarse_status.dt_actual) > (i * io_trigger)) {
 #ifdef AMR_DEBUG
-      char buf_coarse[32];
-      char buf_fine[32];
+      char buf_coarse[64];
+      char buf_fine[64];
 
-      snprintf(buf_coarse, 32, "5m_amr_coarse_%d", i);
-      snprintf(buf_fine, 32, "5m_amr_fine_%d", i);
+      snprintf(buf_coarse, 64, "%s_coarse_%d", five_moment_output, i);
+      snprintf(buf_fine, 64, "%s_fine_%d", five_moment_output, i);
 
-      five_moment_write_sol(buf_coarse, num_blocks, coarse_bdata);
-      five_moment_write_sol(buf_fine, num_blocks, fine_bdata);
+      five_moment_write_sol_block(buf_coarse, num_blocks, coarse_bdata);
+      five_moment_write_sol_block(buf_fine, num_blocks, fine_bdata);
 
-      char buf_fine_old_elc[32];
-      char buf_fine_old_ion[32];
-      char buf_fine_old_field[32];
+      char buf_fine_old_elc[64];
+      char buf_fine_old_ion[64];
+      char buf_fine_old_field[64];
 
-      char buf_fine_new_elc[32];
-      char buf_fine_new_ion[32];
-      char buf_fine_new_field[32];
+      char buf_fine_new_elc[64];
+      char buf_fine_new_ion[64];
+      char buf_fine_new_field[64];
 
-      char buf_coarse_old_elc[32];
-      char buf_coarse_old_ion[32];
-      char buf_coarse_old_field[32];
+      char buf_coarse_old_elc[64];
+      char buf_coarse_old_ion[64];
+      char buf_coarse_old_field[64];
 
-      snprintf(buf_fine_old_elc, 32, "5m_amr_fine_%d_elc_b0.gkyl", i);
-      snprintf(buf_fine_old_ion, 32, "5m_amr_fine_%d_ion_b0.gkyl", i);
-      snprintf(buf_fine_old_field, 32, "5m_amr_fine_%d_field_b0.gkyl", i);
+      snprintf(buf_fine_old_elc, 64, "%s_fine_%d_elc_b0.gkyl", five_moment_output, i);
+      snprintf(buf_fine_old_ion, 64, "%s_fine_%d_ion_b0.gkyl", five_moment_output, i);
+      snprintf(buf_fine_old_field, 64, "%s_fine_%d_field_b0.gkyl", five_moment_output, i);
 
-      snprintf(buf_fine_new_elc, 32, "5m_amr_%d_elc_b0.gkyl", i);
-      snprintf(buf_fine_new_ion, 32, "5m_amr_%d_ion_b0.gkyl", i);
-      snprintf(buf_fine_new_field, 32, "5m_amr_%d_field_b0.gkyl", i);
+      snprintf(buf_fine_new_elc, 64, "%s_%d_elc_b0.gkyl", five_moment_output, i);
+      snprintf(buf_fine_new_ion, 64, "%s_%d_ion_b0.gkyl", five_moment_output, i);
+      snprintf(buf_fine_new_field, 64, "%s_%d_field_b0.gkyl", five_moment_output, i);
 
-      snprintf(buf_coarse_old_elc, 32, "5m_amr_coarse_%d_elc_b0.gkyl", i);
-      snprintf(buf_coarse_old_ion, 32, "5m_amr_coarse_%d_ion_b0.gkyl", i);
-      snprintf(buf_coarse_old_field, 32, "5m_amr_coarse_%d_field_b0.gkyl", i);
+      snprintf(buf_coarse_old_elc, 64, "%s_coarse_%d_elc_b0.gkyl", five_moment_output, i);
+      snprintf(buf_coarse_old_ion, 64, "%s_coarse_%d_ion_b0.gkyl", five_moment_output, i);
+      snprintf(buf_coarse_old_field, 64, "%s_coarse_%d_field_b0.gkyl", five_moment_output, i);
 
       rename(buf_fine_old_elc, buf_fine_new_elc);
       rename(buf_fine_old_ion, buf_fine_new_ion);
@@ -486,29 +534,29 @@ five_moment_2d_run_single(int argc, char **argv, struct five_moment_2d_single_in
       remove(buf_coarse_old_field);
 
       for (int j = 1; j < 9; j++) {
-        char buf_old_elc[32];
-        char buf_old_ion[32];
-        char buf_old_field[32];
+        char buf_old_elc[64];
+        char buf_old_ion[64];
+        char buf_old_field[64];
 
-        char buf_new_elc[32];
-        char buf_new_ion[32];
-        char buf_new_field[32];
+        char buf_new_elc[64];
+        char buf_new_ion[64];
+        char buf_new_field[64];
 
-        char buf_del_elc[32];
-        char buf_del_ion[32];
-        char buf_del_field[32];
+        char buf_del_elc[64];
+        char buf_del_ion[64];
+        char buf_del_field[64];
 
-        snprintf(buf_old_elc, 32, "5m_amr_coarse_%d_elc_b%d.gkyl", i, j);
-        snprintf(buf_old_ion, 32, "5m_amr_coarse_%d_ion_b%d.gkyl", i, j);
-        snprintf(buf_old_field, 32, "5m_amr_coarse_%d_field_b%d.gkyl", i, j);
+        snprintf(buf_old_elc, 64, "%s_coarse_%d_elc_b%d.gkyl", five_moment_output, i, j);
+        snprintf(buf_old_ion, 64, "%s_coarse_%d_ion_b%d.gkyl", five_moment_output, i, j);
+        snprintf(buf_old_field, 64, "%s_coarse_%d_field_b%d.gkyl", five_moment_output, i, j);
 
-        snprintf(buf_new_elc, 32, "5m_amr_%d_elc_b%d.gkyl", i, j);
-        snprintf(buf_new_ion, 32, "5m_amr_%d_ion_b%d.gkyl", i, j);
-        snprintf(buf_new_field, 32, "5m_amr_%d_field_b%d.gkyl", i, j);
+        snprintf(buf_new_elc, 64, "%s_%d_elc_b%d.gkyl", five_moment_output, i, j);
+        snprintf(buf_new_ion, 64, "%s_%d_ion_b%d.gkyl", five_moment_output, i, j);
+        snprintf(buf_new_field, 64, "%s_%d_field_b%d.gkyl", five_moment_output, i, j);
 
-        snprintf(buf_del_elc, 32, "5m_amr_fine_%d_elc_b%d.gkyl", i, j);
-        snprintf(buf_del_ion, 32, "5m_amr_fine_%d_ion_b%d.gkyl", i, j);
-        snprintf(buf_del_field, 32, "5m_amr_fine_%d_field_b%d.gkyl", i, j);
+        snprintf(buf_del_elc, 64, "%s_fine_%d_elc_b%d.gkyl", five_moment_output, i, j);
+        snprintf(buf_del_ion, 64, "%s_fine_%d_ion_b%d.gkyl", five_moment_output, i, j);
+        snprintf(buf_del_field, 64, "%s_fine_%d_field_b%d.gkyl", five_moment_output, i, j);
 
         rename(buf_old_elc, buf_new_elc);
         rename(buf_old_ion, buf_new_ion);
@@ -519,10 +567,10 @@ five_moment_2d_run_single(int argc, char **argv, struct five_moment_2d_single_in
         remove(buf_del_field);
       }
 #else
-      char buf[32];
-      snprintf(buf, 32, "5m_amr_%d", i);
+      char buf[64];
+      snprintf(buf, 64, "%s_%d", five_moment_output, i);
 
-      five_moment_write_sol(buf, num_blocks, coarse_bdata);
+      five_moment_write_sol_block(buf, num_blocks, coarse_bdata);
 #endif
       }
     }
@@ -536,38 +584,38 @@ five_moment_2d_run_single(int argc, char **argv, struct five_moment_2d_single_in
   double tm_total_sec = gkyl_time_diff_now_sec(tm_start);
 
 #ifdef AMR_DEBUG
-  char buf_coarse[32];
-  char buf_fine[32];
+  char buf_coarse[64];
+  char buf_fine[64];
 
-  snprintf(buf_coarse, 32, "5m_amr_coarse_%d", num_frames);
-  snprintf(buf_fine, 32, "5m_amr_fine_%d", num_frames);
+  snprintf(buf_coarse, 64, "%s_coarse_%d", five_moment_output, num_frames);
+  snprintf(buf_fine, 64, "%s_fine_%d", five_moment_output, num_frames);
 
-  five_moment_write_sol(buf_coarse, num_blocks, coarse_bdata);
-  five_moment_write_sol(buf_fine, num_blocks, fine_bdata);
+  five_moment_write_sol_block(buf_coarse, num_blocks, coarse_bdata);
+  five_moment_write_sol_block(buf_fine, num_blocks, fine_bdata);
 
-  char buf_fine_old_elc[32];
-  char buf_fine_old_ion[32];
-  char buf_fine_old_field[32];
+  char buf_fine_old_elc[64];
+  char buf_fine_old_ion[64];
+  char buf_fine_old_field[64];
 
-  char buf_fine_new_elc[32];
-  char buf_fine_new_ion[32];
-  char buf_fine_new_field[32];
+  char buf_fine_new_elc[64];
+  char buf_fine_new_ion[64];
+  char buf_fine_new_field[64];
 
-  char buf_coarse_old_elc[32];
-  char buf_coarse_old_ion[32];
-  char buf_coarse_old_field[32];
+  char buf_coarse_old_elc[64];
+  char buf_coarse_old_ion[64];
+  char buf_coarse_old_field[64];
 
-  snprintf(buf_fine_old_elc, 32, "5m_amr_fine_%d_elc_b0.gkyl", num_frames);
-  snprintf(buf_fine_old_ion, 32, "5m_amr_fine_%d_ion_b0.gkyl", num_frames);
-  snprintf(buf_fine_old_field, 32, "5m_amr_fine_%d_field_b0.gkyl", num_frames);
+  snprintf(buf_fine_old_elc, 64, "%s_fine_%d_elc_b0.gkyl", five_moment_output, num_frames);
+  snprintf(buf_fine_old_ion, 64, "%s_fine_%d_ion_b0.gkyl", five_moment_output, num_frames);
+  snprintf(buf_fine_old_field, 64, "%s_fine_%d_field_b0.gkyl", five_moment_output, num_frames);
 
-  snprintf(buf_fine_new_elc, 32, "5m_amr_%d_elc_b0.gkyl", num_frames);
-  snprintf(buf_fine_new_ion, 32, "5m_amr_%d_ion_b0.gkyl", num_frames);
-  snprintf(buf_fine_new_field, 32, "5m_amr_%d_field_b0.gkyl", num_frames);
+  snprintf(buf_fine_new_elc, 64, "%s_%d_elc_b0.gkyl", five_moment_output, num_frames);
+  snprintf(buf_fine_new_ion, 64, "%s_%d_ion_b0.gkyl", five_moment_output, num_frames);
+  snprintf(buf_fine_new_field, 64, "%s_%d_field_b0.gkyl", five_moment_output, num_frames);
 
-  snprintf(buf_coarse_old_elc, 32, "5m_amr_coarse_%d_elc_b0.gkyl", num_frames);
-  snprintf(buf_coarse_old_ion, 32, "5m_amr_coarse_%d_ion_b0.gkyl", num_frames);
-  snprintf(buf_coarse_old_field, 32, "5m_amr_coarse_%d_field_b0.gkyl", num_frames);
+  snprintf(buf_coarse_old_elc, 64, "%s_coarse_%d_elc_b0.gkyl", five_moment_output, num_frames);
+  snprintf(buf_coarse_old_ion, 64, "%s_coarse_%d_ion_b0.gkyl", five_moment_output, num_frames);
+  snprintf(buf_coarse_old_field, 64, "%s_coarse_%d_field_b0.gkyl", five_moment_output, num_frames);
 
   rename(buf_fine_old_elc, buf_fine_new_elc);
   rename(buf_fine_old_ion, buf_fine_new_ion);
@@ -578,29 +626,29 @@ five_moment_2d_run_single(int argc, char **argv, struct five_moment_2d_single_in
   remove(buf_coarse_old_field);
 
   for (int i = 1; i < 9; i++) {
-    char buf_old_elc[32];
-    char buf_old_ion[32];
-    char buf_old_field[32];
+    char buf_old_elc[64];
+    char buf_old_ion[64];
+    char buf_old_field[64];
 
-    char buf_new_elc[32];
-    char buf_new_ion[32];
-    char buf_new_field[32];
+    char buf_new_elc[64];
+    char buf_new_ion[64];
+    char buf_new_field[64];
 
-    char buf_del_elc[32];
-    char buf_del_ion[32];
-    char buf_del_field[32];
+    char buf_del_elc[64];
+    char buf_del_ion[64];
+    char buf_del_field[64];
 
-    snprintf(buf_old_elc, 32, "5m_amr_coarse_%d_elc_b%d.gkyl", num_frames, i);
-    snprintf(buf_old_ion, 32, "5m_amr_coarse_%d_ion_b%d.gkyl", num_frames, i);
-    snprintf(buf_old_field, 32, "5m_amr_coarse_%d_field_b%d.gkyl", num_frames, i);
+    snprintf(buf_old_elc, 64, "%s_coarse_%d_elc_b%d.gkyl", five_moment_output, num_frames, i);
+    snprintf(buf_old_ion, 64, "%s_coarse_%d_ion_b%d.gkyl", five_moment_output, num_frames, i);
+    snprintf(buf_old_field, 64, "%s_coarse_%d_field_b%d.gkyl", five_moment_output, num_frames, i);
 
-    snprintf(buf_new_elc, 32, "5m_amr_%d_elc_b%d.gkyl", num_frames, i);
-    snprintf(buf_new_ion, 32, "5m_amr_%d_ion_b%d.gkyl", num_frames, i);
-    snprintf(buf_new_field, 32, "5m_amr_%d_field_b%d.gkyl", num_frames, i);
+    snprintf(buf_new_elc, 64, "%s_%d_elc_b%d.gkyl", five_moment_output, num_frames, i);
+    snprintf(buf_new_ion, 64, "%s_%d_ion_b%d.gkyl", five_moment_output, num_frames, i);
+    snprintf(buf_new_field, 64, "%s_%d_field_b%d.gkyl", five_moment_output, num_frames, i);
 
-    snprintf(buf_del_elc, 32, "5m_amr_fine_%d_elc_b%d.gkyl", num_frames, i);
-    snprintf(buf_del_ion, 32, "5m_amr_fine_%d_ion_b%d.gkyl", num_frames, i);
-    snprintf(buf_del_field, 32, "5m_amr_fine_%d_field_b%d.gkyl", num_frames, i);
+    snprintf(buf_del_elc, 64, "%s_fine_%d_elc_b%d.gkyl", five_moment_output, num_frames, i);
+    snprintf(buf_del_ion, 64, "%s_fine_%d_ion_b%d.gkyl", five_moment_output, num_frames, i);
+    snprintf(buf_del_field, 64, "%s_fine_%d_field_b%d.gkyl", five_moment_output, num_frames, i);
 
     rename(buf_old_elc, buf_new_elc);
     rename(buf_old_ion, buf_new_ion);
@@ -611,10 +659,10 @@ five_moment_2d_run_single(int argc, char **argv, struct five_moment_2d_single_in
     remove(buf_del_field);
   }
 #else
-  char buf[32];
-  snprintf(buf, 32, "5m_amr_%d", num_frames);
+  char buf[64];
+  snprintf(buf, 64, "%s_%d", five_moment_output, num_frames);
 
-  five_moment_write_sol(buf, num_blocks, coarse_bdata);
+  five_moment_write_sol_block(buf, num_blocks, coarse_bdata);
 #endif
 
   printf("Total run-time: %g. Failed steps: %d\n", tm_total_sec, stats.nfail);

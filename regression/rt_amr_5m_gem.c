@@ -76,8 +76,8 @@ create_ctx(void)
   double Ly = 12.8; // Coarse domain size (y-direction).
   double fine_Lx = 9.6; // Fine domain size (x-direction).
   double fine_Ly = 4.8; // Fine domain size (y-direction).
-  double cfl_frac = 1.0; // CFL coefficient.
-  double t_end = 10.0; // Final simulation time.
+  double cfl_frac = 0.95; // CFL coefficient.
+  double t_end = 250.0; // Final simulation time.
   int num_frames = 1; // Number of output frames.
 
   struct amr_5m_gem_ctx ctx = {
@@ -253,12 +253,15 @@ int main(int argc, char **argv)
     .mass_ion = ctx.mass_ion,
     .charge_ion = ctx.charge_ion,
 
-    .periodic_x = true,
-    .periodic_y = false,
+    .transmissive_x = true,
+    .transmissive_y = false,
 
     .wall_x = false,
     .wall_y = true,
 
+    .five_moment_output = "amr_5m_gem",
+
+    .low_order_flux = false,
     .cfl_frac = ctx.cfl_frac,
     .t_end = ctx.t_end,
     .num_frames = ctx.num_frames,

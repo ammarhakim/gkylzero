@@ -615,23 +615,23 @@ euler2d_run_single(int argc, char **argv, struct euler2d_single_init* init)
   snprintf(fine0, 64, "%s_fine_0", euler_output);
   euler_write_sol_block(fine0, num_blocks, fine_bdata);
 
-  char fine0p0[64];
-  char coarse0p0[64];
-  char p0[64];
-  snprintf(fine0p0, 64, "%s_fine_0_p0.gkyl", euler_output);
-  snprintf(coarse0p0, 64, "%s_coarse_0_p0.gkyl", euler_output);
-  snprintf(p0, 64, "%s_0_p0.gkyl", euler_output);
-  rename(fine0p0, p0);
-  remove(coarse0p0);
+  char fine0b0[64];
+  char coarse0b0[64];
+  char b0[64];
+  snprintf(fine0b0, 64, "%s_fine_0_b0.gkyl", euler_output);
+  snprintf(coarse0b0, 64, "%s_coarse_0_b0.gkyl", euler_output);
+  snprintf(b0, 64, "%s_0_b0.gkyl", euler_output);
+  rename(fine0b0, b0);
+  remove(coarse0b0);
 
   for (int i = 1; i < 9; i++) {
     char buf_old[64];
     char buf_new[64];
     char buf_del[64];
 
-    snprintf(buf_old, 64, "%s_coarse_0_p%d.gkyl", euler_output, i);
-    snprintf(buf_new, 64, "%s_0_p%d.gkyl", euler_output, i);
-    snprintf(buf_del, 64, "%s_fine_0_p%d.gkyl", euler_output, i);
+    snprintf(buf_old, 64, "%s_coarse_0_b%d.gkyl", euler_output, i);
+    snprintf(buf_new, 64, "%s_0_b%d.gkyl", euler_output, i);
+    snprintf(buf_del, 64, "%s_fine_0_b%d.gkyl", euler_output, i);
 
     rename(buf_old, buf_new);
     remove(buf_del);
@@ -709,9 +709,9 @@ euler2d_run_single(int argc, char **argv, struct euler2d_single_init* init)
       char buf_fine_new[64];
       char buf_coarse_old[64];
 
-      snprintf(buf_fine_old, 64, "%s_fine_%d_p0.gkyl", euler_output, i);
-      snprintf(buf_fine_new, 64, "%s_%d_p0.gkyl", euler_output, i);
-      snprintf(buf_coarse_old, 64, "%s_coarse_%d_p0.gkyl", euler_output, i);
+      snprintf(buf_fine_old, 64, "%s_fine_%d_b0.gkyl", euler_output, i);
+      snprintf(buf_fine_new, 64, "%s_%d_b0.gkyl", euler_output, i);
+      snprintf(buf_coarse_old, 64, "%s_coarse_%d_b0.gkyl", euler_output, i);
 
       rename(buf_fine_old, buf_fine_new);
       remove(buf_coarse_old);
@@ -721,9 +721,9 @@ euler2d_run_single(int argc, char **argv, struct euler2d_single_init* init)
         char buf_new[64];
         char buf_del[64];
 
-        snprintf(buf_old, 64, "%s_coarse_%d_p%d.gkyl", euler_output, i, j);
-        snprintf(buf_new, 64, "%s_%d_p%d.gkyl", euler_output, i, j);
-        snprintf(buf_del, 64, "%s_fine_%d_p%d.gkyl", euler_output, i, j);
+        snprintf(buf_old, 64, "%s_coarse_%d_b%d.gkyl", euler_output, i, j);
+        snprintf(buf_new, 64, "%s_%d_b%d.gkyl", euler_output, i, j);
+        snprintf(buf_del, 64, "%s_fine_%d_b%d.gkyl", euler_output, i, j);
 
         rename(buf_old, buf_new);
         remove(buf_del);
@@ -759,9 +759,9 @@ euler2d_run_single(int argc, char **argv, struct euler2d_single_init* init)
   char buf_fine_new[64];
   char buf_coarse_old[64];
 
-  snprintf(buf_fine_old, 64, "%s_fine_%d_p0.gkyl", euler_output, num_frames);
-  snprintf(buf_fine_new, 64, "%s_%d_p0.gkyl", euler_output, num_frames);
-  snprintf(buf_coarse_old, 64, "%s_coarse_%d_p0.gkyl", euler_output,num_frames);
+  snprintf(buf_fine_old, 64, "%s_fine_%d_b0.gkyl", euler_output, num_frames);
+  snprintf(buf_fine_new, 64, "%s_%d_b0.gkyl", euler_output, num_frames);
+  snprintf(buf_coarse_old, 64, "%s_coarse_%d_b0.gkyl", euler_output,num_frames);
 
   rename(buf_fine_old, buf_fine_new);
   remove(buf_coarse_old);
@@ -771,9 +771,9 @@ euler2d_run_single(int argc, char **argv, struct euler2d_single_init* init)
     char buf_new[64];
     char buf_del[64];
 
-    snprintf(buf_old, 64, "%s_coarse_%d_p%d.gkyl", euler_output, num_frames, i);
-    snprintf(buf_new, 64, "%s_%d_p%d.gkyl", euler_output, num_frames, i);
-    snprintf(buf_del, 64, "%s_fine_%d_p%d.gkyl", euler_output, num_frames, i);
+    snprintf(buf_old, 64, "%s_coarse_%d_b%d.gkyl", euler_output, num_frames, i);
+    snprintf(buf_new, 64, "%s_%d_b%d.gkyl", euler_output, num_frames, i);
+    snprintf(buf_del, 64, "%s_fine_%d_b%d.gkyl", euler_output, num_frames, i);
 
     rename(buf_old, buf_new);
     remove(buf_del);

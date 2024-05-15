@@ -173,12 +173,15 @@ struct five_moment_2d_single_init {
   double mass_ion;
   double charge_ion;
 
-  bool periodic_x;
-  bool periodic_y;
+  bool transmissive_x;
+  bool transmissive_y;
 
   bool wall_x;
   bool wall_y;
 
+  char five_moment_output[32];
+
+  bool low_order_flux;
   double cfl_frac;
   double t_end;
   int num_frames;
