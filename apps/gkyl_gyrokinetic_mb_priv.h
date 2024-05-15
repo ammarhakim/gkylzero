@@ -1,4 +1,6 @@
 // Private header file for multi-block gyrokinetic solver.
+#pragma once
+
 #include <gkyl_gyrokinetic_priv.h>
 
 // Top-level multiblock gyrokinetic App object.
@@ -14,7 +16,7 @@ struct gkyl_gyrokinetic_mb_app {
 
   struct gkyl_block_topo *btopo; // Block topology.
 
-  int num_blocks, num_local_block; // Total and local number of blocks.
-  int *block_numb; // List of blocks handled on this rank.
-  struct gkyl_gyrokinetic_oneb *blocks; // Pointers to blocks on this rank.
+  int num_blocks, num_blocks_local; // Total and local number of blocks.
+  int *block_idxs; // List of blocks handled on this rank.
+  struct gkyl_gyrokinetic_app *blocks; // Pointers to blocks on this rank.
 };

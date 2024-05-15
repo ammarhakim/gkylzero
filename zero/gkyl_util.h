@@ -59,6 +59,11 @@
 # define GKYL_MAX_NGHOST 8
 #endif
 
+// Maximum number of blocks (in multiblock apps).
+#ifndef GKYL_MAX_BLOCKS
+# define GKYL_MAX_BLOCKS 20
+#endif
+
 // Default alignment boundary
 #ifndef GKYL_DEF_ALIGN
 # define GKYL_DEF_ALIGN 64
