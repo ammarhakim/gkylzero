@@ -60,8 +60,10 @@
 #endif
 
 // Maximum number of blocks (in multiblock apps).
+// MF 2024/05/14: For some reason the declaration of a array of struct gkyl_gk
+// in gkl_gk_mb seg faults if this is bigger than ~15.
 #ifndef GKYL_MAX_BLOCKS
-# define GKYL_MAX_BLOCKS 20
+# define GKYL_MAX_BLOCKS 12
 #endif
 
 // Default alignment boundary

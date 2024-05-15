@@ -5,6 +5,7 @@
 #include <gkyl_eqn_type.h>
 #include <gkyl_fem_parproj.h>
 #include <gkyl_fem_poisson_bctype.h>
+#include <gkyl_block_topo.h>
 #include <gkyl_range.h>
 #include <gkyl_util.h>
 

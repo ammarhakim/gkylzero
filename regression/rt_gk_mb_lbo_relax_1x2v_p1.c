@@ -244,7 +244,7 @@ main(int argc, char **argv)
     .name = "square",
     .charge = ctx.charge, .mass = ctx.mass,
     .lower = { -ctx.vpar_max, 0.0 },
-    .upper = { ctx.vpar_max, ctx.mu_max }, 
+    .upper = {  ctx.vpar_max, ctx.mu_max }, 
     .cells = { NVPAR, NMU },
     .polarization_density = ctx.n0,
 
@@ -270,7 +270,7 @@ main(int argc, char **argv)
     .name = "bump",
     .charge = ctx.charge, .mass = ctx.mass,
     .lower = { -ctx.vpar_max, 0.0 },
-    .upper = { ctx.vpar_max, ctx.mu_max }, 
+    .upper = {  ctx.vpar_max, ctx.mu_max }, 
     .cells = { NVPAR, NMU },
     .polarization_density = ctx.n0,
 
@@ -316,10 +316,10 @@ main(int argc, char **argv)
     .block_connections = {
       .connections[0] = {
         { .bid = 0, .dir = 0, .edge = GKYL_BLOCK_EDGE_PHYSICAL }, // physical boundary
-        { .bid = 1, .dir = 0, .edge = GKYL_BLOCK_EDGE_LOWER_POSITIVE }
+        { .bid = 1, .dir = 0, .edge = GKYL_BLOCK_EDGE_LOWER_POSITIVE },
       }
     }
-  },
+  };
 
   struct gkyl_gk bright = {
     .lower = { ctx.Lz/2 },
@@ -336,11 +336,11 @@ main(int argc, char **argv)
 
     .block_connections = {
       .connections[0] = {
-        { .bid = 0, .dir = 0, .edge = GKYL_BLOCK_EDGE_UPPER_POSITIVE }
+        { .bid = 0, .dir = 0, .edge = GKYL_BLOCK_EDGE_UPPER_POSITIVE },
         { .bid = 1, .dir = 0, .edge = GKYL_BLOCK_EDGE_PHYSICAL }, // physical boundary
       }
     }
-  },
+  };
 
 
   // GK app.
@@ -351,6 +351,7 @@ main(int argc, char **argv)
     .poly_order = 1,
     .basis_type = app_args.basis_type,
 
+    .num_blocks = 2,
     .blocks = { bleft, bright },
 
     .num_periodic_dir = 1,
@@ -363,7 +364,6 @@ main(int argc, char **argv)
     .field = field,
 
     .use_gpu = app_args.use_gpu,
-
   };
 
 
@@ -453,7 +453,7 @@ main(int argc, char **argv)
 
   gkyl_gyrokinetic_mb_app_stat_write(app);
   
-  struct gkyl_gyrokinetic_mb_stat stat = gkyl_gyrokinetic_mb_app_stat(app);
+  struct gkyl_gyrokinetic_stat stat = gkyl_gyrokinetic_mb_app_stat(app);
 
   gkyl_gyrokinetic_mb_app_cout(app, stdout, "\n");
   gkyl_gyrokinetic_mb_app_cout(app, stdout, "Number of update calls %ld\n", stat.nup);

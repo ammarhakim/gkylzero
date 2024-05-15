@@ -2,6 +2,7 @@
 #pragma once
 
 #include <gkyl_gyrokinetic_priv.h>
+#include <gkyl_gyrokinetic_mb.h>
 
 // Top-level multiblock gyrokinetic App object.
 struct gkyl_gyrokinetic_mb_app {
@@ -18,5 +19,5 @@ struct gkyl_gyrokinetic_mb_app {
 
   int num_blocks, num_blocks_local; // Total and local number of blocks.
   int *block_idxs; // List of blocks handled on this rank.
-  struct gkyl_gyrokinetic_app *blocks; // Pointers to blocks on this rank.
+  struct gkyl_gyrokinetic_app **blocks; // Pointers to blocks on this rank.
 };

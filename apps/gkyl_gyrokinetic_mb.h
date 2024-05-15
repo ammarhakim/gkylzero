@@ -1,6 +1,7 @@
 #pragma once
 
 #include <gkyl_gyrokinetic.h>
+#include <gkyl_gyrokinetic.h>
 
 // Input struct to create a multiblock gyrokinetic app.
 struct gkyl_gk_mb {
@@ -40,7 +41,16 @@ typedef struct gkyl_gyrokinetic_mb_app gkyl_gyrokinetic_mb_app;
  *     initialized
  * @return New gk app object.
  */
-gkyl_gyrokinetic_mb_app* gkyl_gyrokinetic_mb_app_new(struct gkyl_gk_mb *gk_mb);
+gkyl_gyrokinetic_mb_app* gkyl_gyrokinetic_mb_app_new(struct gkyl_gk_mb *inp);
+
+/**
+ * Initialize species and field by projecting initial conditions on
+ * basis functions.
+ *
+ * @param app App object.
+ * @param t0 Time for initial conditions.
+ */
+void gkyl_gyrokinetic_mb_app_apply_ic(gkyl_gyrokinetic_mb_app* app, double t0);
 
 /**
  * Calculate diagnostic moments.
@@ -98,6 +108,13 @@ gkyl_gyrokinetic_mb_app_read_from_frame(gkyl_gyrokinetic_mb_app *app, int frame)
  * @param app App object.
  */
 void gkyl_gyrokinetic_mb_app_stat_write(gkyl_gyrokinetic_mb_app* app);
+
+/**
+ * Return simulation statistics.
+ *
+ * @return Return statistics object.
+ */
+struct gkyl_gyrokinetic_stat gkyl_gyrokinetic_mb_app_stat(gkyl_gyrokinetic_mb_app* app);
 
 /**
  * Write output to console: this is mainly for diagnostic messages the
