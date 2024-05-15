@@ -514,9 +514,9 @@ create_ctx(void)
   double mu_max_elc = me * pow(3. * vte, 2.) / (2. * B_p);
   double vpar_max_ion = 20 * vti;
   double mu_max_ion = mi * pow(3. * vti, 2.) / (2. * B_p);
-  int num_cell_vpar = 128; // Number of cells in the paralell velocity direction 96
-  int num_cell_mu = 192;  // Number of cells in the mu direction 192
-  int num_cell_z = 128;
+  int num_cell_vpar = 10; // Number of cells in the paralell velocity direction 96
+  int num_cell_mu = 10;  // Number of cells in the mu direction 192
+  int num_cell_z = 30;
   int poly_order = 1;
   double final_time = 1e-9;
   int num_frames = 1;
@@ -764,13 +764,15 @@ int main(int argc, char **argv)
     .cells = {NVPAR, NMU},
     .polarization_density = ctx.n0,
     .projection = {
-      .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM, 
+      .proj_id = GKYL_PROJ_BIMAXWELLIAN, 
       .ctx_density = &ctx,
       .density = eval_density_elc,
       .ctx_upar = &ctx,
-      .upar= eval_upar_elc,
-      .ctx_temp = &ctx,
-      .temp = eval_temp_elc,      
+      .upar = eval_upar_elc,
+      .ctx_temppar = &ctx,
+      .temppar = eval_temp_par_elc,
+      .ctx_tempperp = &ctx,
+      .tempperp = eval_temp_perp_elc,     
     },
     .collisions =  {
       .collision_id = GKYL_LBO_COLLISIONS,
@@ -788,7 +790,7 @@ int main(int argc, char **argv)
         .ctx_density = &ctx,
         .density = eval_density_elc_source,
         .ctx_upar = &ctx,
-        .upar= eval_upar_elc_source,
+        .upar = eval_upar_elc_source,
         .ctx_temp = &ctx,
         .temp = eval_temp_elc_source,      
       }, 
@@ -809,13 +811,15 @@ int main(int argc, char **argv)
     .cells = {NVPAR, NMU},
     .polarization_density = ctx.n0,
     .projection = {
-      .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM, 
+      .proj_id = GKYL_PROJ_BIMAXWELLIAN, 
       .ctx_density = &ctx,
       .density = eval_density_ion,
       .ctx_upar = &ctx,
-      .upar= eval_upar_ion,
-      .ctx_temp = &ctx,
-      .temp = eval_temp_ion,      
+      .upar = eval_upar_ion,
+      .ctx_temppar = &ctx,    
+      .temppar = eval_temp_par_ion,
+      .ctx_tempperp = &ctx,
+      .tempperp = eval_temp_perp_ion,
     },
     .collisions =  {
       .collision_id = GKYL_LBO_COLLISIONS,

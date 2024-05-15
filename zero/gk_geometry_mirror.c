@@ -153,12 +153,12 @@ void
 gkyl_gk_geometry_c2fa_deflate(const struct gk_geometry* up_3d, struct gkyl_gk_geometry_inp *geometry_inp)
 {
   struct gk_geometry *up = gkyl_malloc(sizeof(struct gk_geometry));
-  struct gkyl_mirror_geo_c2fa_ctx *arcL_app = geometry_inp->mirror_geo_c2fa_ctx;
+  struct gkyl_mirror_geo_c2fa_ctx *c2fa_app = geometry_inp->mirror_geo_c2fa_ctx;
   up->basis = geometry_inp->basis;
   up->local = geometry_inp->local;
   up->local_ext = geometry_inp->local_ext;
   up->grid = geometry_inp->grid;
-  arcL_app->c2fa_deflate = gkyl_array_new(GKYL_DOUBLE, 3*up->basis.num_basis, up->local_ext.volume);
+  c2fa_app->c2fa_deflate = gkyl_array_new(GKYL_DOUBLE, 3*up->basis.num_basis, up->local_ext.volume);
   // Now fill the arrays by deflation
   int rem_dirs[3] = {0};
   if (up->grid.ndim==1) {
@@ -169,13 +169,25 @@ gkyl_gk_geometry_c2fa_deflate(const struct gk_geometry* up_3d, struct gkyl_gk_ge
     rem_dirs[1] = 1;
   }
   struct gkyl_deflate_geo* deflator = gkyl_deflate_geo_new(&up_3d->basis, &up->basis, &up_3d->grid, &up->grid, rem_dirs, false);
-  arcL_app->grid_deflate = geometry_inp->grid;
-  arcL_app->basis_deflate = geometry_inp->basis;
-  arcL_app->range_deflate = geometry_inp->local;
-  arcL_app->range_global_deflate = geometry_inp->global;
+  c2fa_app->grid_deflate = geometry_inp->grid;
+  c2fa_app->basis_deflate = geometry_inp->basis;
+  c2fa_app->range_deflate = geometry_inp->local;
+  c2fa_app->range_global_deflate = geometry_inp->global;
 
-  gkyl_deflate_geo_advance(deflator, &up_3d->local, &up->local, arcL_app->c2fa, arcL_app->c2fa_deflate, 3);
+  gkyl_deflate_geo_advance(deflator, &up_3d->local, &up->local, c2fa_app->c2fa, c2fa_app->c2fa_deflate, 3);
   // Done deflating
   gkyl_deflate_geo_release(deflator);
   free(up);
+}
+
+void
+gkyl_gk_geometry_c2fa_acquire(const struct gk_geometry* up_3d, struct gkyl_gk_geometry_inp *geometry_inp)
+{
+  struct gkyl_mirror_geo_c2fa_ctx *c2fa_app = geometry_inp->mirror_geo_c2fa_ctx;
+  c2fa_app->c2fa_deflate = gkyl_array_new(GKYL_DOUBLE, 3*geometry_inp->basis.num_basis, geometry_inp->local_ext.volume);
+  gkyl_array_copy(c2fa_app->c2fa_deflate, c2fa_app->c2fa);
+  c2fa_app->grid_deflate = geometry_inp->grid;
+  c2fa_app->basis_deflate = geometry_inp->basis;
+  c2fa_app->range_deflate = geometry_inp->local;
+  c2fa_app->range_global_deflate = geometry_inp->global;
 }

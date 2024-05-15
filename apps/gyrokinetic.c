@@ -286,6 +286,8 @@ gkyl_gyrokinetic_app_new(struct gkyl_gk *gk)
       gk_geom_3d = gkyl_gk_geometry_mirror_new(&geometry_inp);
       if(app->cdim < 3) {
         gkyl_gk_geometry_c2fa_deflate(gk_geom_3d, &geometry_inp);
+      } else {
+        gkyl_gk_geometry_c2fa_acquire(gk_geom_3d, &geometry_inp);
       }
       double nonuniform_frac = gk->geometry.nonuniform_mapping_fraction;
       if (nonuniform_frac > 0.0 & nonuniform_frac <= 1.0) {
@@ -323,6 +325,8 @@ gkyl_gyrokinetic_app_new(struct gkyl_gk *gk)
         gk_geom_3d = gkyl_gk_geometry_mirror_new(&geometry_inp);
         if(app->cdim < 3) {
           gkyl_gk_geometry_c2fa_deflate(gk_geom_3d, &geometry_inp);
+        } else {
+          gkyl_gk_geometry_c2fa_acquire(gk_geom_3d, &geometry_inp);
         }
         gkyl_array_release(bmag_global);
         // I don't think I'm releasing the uniform deflated geometry correctly

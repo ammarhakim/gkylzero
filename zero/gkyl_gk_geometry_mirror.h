@@ -9,6 +9,10 @@
 struct gk_geometry* gkyl_gk_geometry_mirror_new(struct gkyl_gk_geometry_inp *geometry_inp);
 
 /**
- * Deflating the arcL_map object
+ * Deflating the c2fa object
 */
 void gkyl_gk_geometry_c2fa_deflate(const struct gk_geometry* up_3d, struct gkyl_gk_geometry_inp *geometry_inp);
+/**
+ * Acquire the c2fa object
+*/
+void gkyl_gk_geometry_c2fa_acquire(const struct gk_geometry* up_3d, struct gkyl_gk_geometry_inp *geometry_inp);
