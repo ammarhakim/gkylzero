@@ -209,6 +209,8 @@ int main(int argc, char **argv)
     .eval = evalEulerInit,
     .gas_gamma = ctx.gas_gamma,
 
+    .euler_output = "amr_euler_riem_2d",
+
     .low_order_flux = false,
     .cfl_frac = ctx.cfl_frac,
     .t_end = ctx.t_end,

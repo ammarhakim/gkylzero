@@ -26,6 +26,9 @@ gr_euler1d_run_single(int argc, char **argv, struct gr_euler1d_single_init* init
   double gas_gamma = init->gas_gamma;
   struct gkyl_gr_spacetime *spacetime = init->spacetime;
 
+  char gr_euler_output[32];
+  strcpy(gr_euler_output, init->gr_euler_output);
+
   bool low_order_flux = init->low_order_flux;
   int num_frames = init->num_frames;
   double cfl_frac = init->cfl_frac;
@@ -153,26 +156,39 @@ gr_euler1d_run_single(int argc, char **argv, struct gr_euler1d_single_init* init
 #endif
 
 #ifdef AMR_DEBUG
-  euler_write_sol_patch("gr_euler_amr_coarse_0", num_patches, coarse_pdata);
-  euler_write_sol_patch("gr_euler_amr_fine_0", num_patches, fine_pdata);
+  char coarse0[64];
+  snprintf(coarse0, 64, "%s_coarse_0", gr_euler_output);
+  euler_write_sol_patch(coarse0, num_patches, coarse_pdata);
 
-  rename("gr_euler_amr_fine_0_p0.gkyl", "gr_euler_amr_0_p0.gkyl");
-  remove("gr_euler_amr_coarse_0_p0.gkyl");
+  char fine0[64];
+  snprintf(fine0, 64, "%s_fine_0", gr_euler_output);
+  euler_write_sol_patch(fine0, num_patches, fine_pdata);
+
+  char fine0p0[64];
+  char coarse0p0[64];
+  char p0[64];
+  snprintf(fine0p0, 64, "%s_fine_0_p0.gkyl", gr_euler_output);
+  snprintf(coarse0p0, 64, "%s_coarse_0_p0.gkyl", gr_euler_output);
+  snprintf(p0, 64, "%s_0_p0.gkyl", gr_euler_output);
+  rename(fine0p0, p0);
+  remove(coarse0p0);
 
   for (int i = 1; i < 3; i++) {
-    char buf_old[32];
-    char buf_new[32];
-    char buf_del[32];
+    char buf_old[64];
+    char buf_new[64];
+    char buf_del[64];
 
-    snprintf(buf_old, 32, "gr_euler_amr_coarse_0_p%d.gkyl", i);
-    snprintf(buf_new, 32, "gr_euler_amr_0_p%d.gkyl", i);
-    snprintf(buf_del, 32, "gr_euler_amr_fine_0_p%d.gkyl", i);
+    snprintf(buf_old, 64, "%s_coarse_0_p%d.gkyl", gr_euler_output, i);
+    snprintf(buf_new, 64, "%s_0_p%d.gkyl", gr_euler_output, i);
+    snprintf(buf_del, 64, "%s_fine_0_p%d.gkyl", gr_euler_output, i);
 
     rename(buf_old, buf_new);
     remove(buf_del);
   }
 #else
-  euler_write_sol_patch("gr_euler_amr_0", num_patches, coarse_pdata);
+  char amr0[64];
+  snprintf(amr0, 64, "%s_0", gr_euler_output);
+  euler_write_sol_patch(amr0, num_patches, coarse_pdata);
 #endif
 
   double coarse_t_curr = 0.0;
@@ -229,41 +245,41 @@ gr_euler1d_run_single(int argc, char **argv, struct gr_euler1d_single_init* init
     for (int i = 1; i < num_frames; i++) {
       if (coarse_t_curr < (i * io_trigger) && (coarse_t_curr + coarse_status.dt_actual) > (i * io_trigger)) {
 #ifdef AMR_DEBUG
-      char buf_coarse[32];
-      char buf_fine[32];
+      char buf_coarse[64];
+      char buf_fine[64];
 
-      snprintf(buf_coarse, 32, "gr_euler_amr_coarse_%d", i);
-      snprintf(buf_fine, 32, "gr_euler_amr_fine_%d", i);
+      snprintf(buf_coarse, 64, "%s_coarse_%d", gr_euler_output, i);
+      snprintf(buf_fine, 64, "%s_fine_%d", gr_euler_output, i);
 
       euler_write_sol_patch(buf_coarse, num_patches, coarse_pdata);
       euler_write_sol_patch(buf_fine, num_patches, fine_pdata);
 
-      char buf_fine_old[32];
-      char buf_fine_new[32];
-      char buf_coarse_old[32];
+      char buf_fine_old[64];
+      char buf_fine_new[64];
+      char buf_coarse_old[64];
 
-      snprintf(buf_fine_old, 32, "gr_euler_amr_fine_%d_p0.gkyl", i);
-      snprintf(buf_fine_new, 32, "gr_euler_amr_%d_p0.gkyl", i);
-      snprintf(buf_coarse_old, 32, "gr_euler_amr_coarse_%d_p0.gkyl", i);
+      snprintf(buf_fine_old, 64, "%s_fine_%d_p0.gkyl", gr_euler_output, i);
+      snprintf(buf_fine_new, 64, "%s_%d_p0.gkyl", gr_euler_output, i);
+      snprintf(buf_coarse_old, 64, "%s_coarse_%d_p0.gkyl", gr_euler_output, i);
 
       rename(buf_fine_old, buf_fine_new);
       remove(buf_coarse_old);
 
       for (int j = 1; j < 3; j++) {
-        char buf_old[32];
-        char buf_new[32];
-        char buf_del[32];
+        char buf_old[64];
+        char buf_new[64];
+        char buf_del[64];
 
-        snprintf(buf_old, 32, "gr_euler_amr_coarse_%d_p%d.gkyl", i, j);
-        snprintf(buf_new, 32, "gr_euler_amr_%d_p%d.gkyl", i, j);
-        snprintf(buf_del, 32, "gr_euler_amr_fine_%d_p%d.gkyl", i, j);
+        snprintf(buf_old, 64, "%s_coarse_%d_p%d.gkyl", gr_euler_output, i, j);
+        snprintf(buf_new, 64, "%s_%d_p%d.gkyl", gr_euler_output, i, j);
+        snprintf(buf_del, 64, "%s_fine_%d_p%d.gkyl", gr_euler_output, i, j);
 
         rename(buf_old, buf_new);
         remove(buf_del);
       }
 #else
-      char buf[32];
-      snprintf(buf, 32, "gr_euler_amr_%d", i);
+      char buf[64];
+      snprintf(buf, 64, "%s_%d", gr_euler_output, i);
 
       euler_write_sol_patch(buf, num_patches, coarse_pdata);
 #endif
@@ -279,41 +295,42 @@ gr_euler1d_run_single(int argc, char **argv, struct gr_euler1d_single_init* init
   double tm_total_sec = gkyl_time_diff_now_sec(tm_start);
 
 #ifdef AMR_DEBUG
-  char buf_coarse[32];
-  char buf_fine[32];
+  char buf_coarse[64];
+  char buf_fine[64];
 
-  snprintf(buf_coarse, 32, "gr_euler_amr_coarse_%d", num_frames);
-  snprintf(buf_fine, 32, "gr_euler_amr_fine_%d", num_frames);
+  snprintf(buf_coarse, 64, "%s_coarse_%d", gr_euler_output, num_frames);
+  snprintf(buf_fine, 64, "%s_fine_%d", gr_euler_output, num_frames);
 
   euler_write_sol_patch(buf_coarse, num_patches, coarse_pdata);
   euler_write_sol_patch(buf_fine, num_patches, fine_pdata);
 
-  char buf_fine_old[32];
-  char buf_fine_new[32];
-  char buf_coarse_old[32];
+  char buf_fine_old[64];
+  char buf_fine_new[64];
+  char buf_coarse_old[64];
 
-  snprintf(buf_fine_old, 32, "gr_euler_amr_fine_%d_p0.gkyl", num_frames);
-  snprintf(buf_fine_new, 32, "gr_euler_amr_%d_p0.gkyl", num_frames);
-  snprintf(buf_coarse_old, 32, "gr_euler_amr_coarse_%d_p0.gkyl", num_frames);
+  snprintf(buf_fine_old, 64, "%s_fine_%d_p0.gkyl", gr_euler_output, num_frames);
+  snprintf(buf_fine_new, 64, "%s_%d_p0.gkyl", gr_euler_output, num_frames);
+  snprintf(buf_coarse_old, 64, "%s_coarse_%d_p0.gkyl", gr_euler_output,num_frames);
 
   rename(buf_fine_old, buf_fine_new);
   remove(buf_coarse_old);
 
   for (int i = 1; i < 3; i++) {
-    char buf_old[32];
-    char buf_new[32];
-    char buf_del[32];
+    char buf_old[64];
+    char buf_new[64];
+    char buf_del[64];
 
-    snprintf(buf_old, 32, "gr_euler_amr_coarse_%d_p%d.gkyl", num_frames, i);
-    snprintf(buf_new, 32, "gr_euler_amr_%d_p%d.gkyl", num_frames, i);
-    snprintf(buf_del, 32, "gr_euler_amr_fine_%d_p%d.gkyl", num_frames, i);
+    snprintf(buf_old, 64, "%s_coarse_%d_p%d.gkyl", gr_euler_output, num_frames, i);
+    snprintf(buf_new, 64, "%s_%d_p%d.gkyl", gr_euler_output, num_frames, i);
+    snprintf(buf_del, 64, "%s_fine_%d_p%d.gkyl", gr_euler_output, num_frames, i);
+
 
     rename(buf_old, buf_new);
     remove(buf_del);
   }
 #else
-  char buf[32];
-  snprintf(buf, 32, "gr_euler_amr_%d", num_frames);
+  char buf[64];
+  snprintf(buf, 64, "%s_%d", gr_euler_output, num_frames);
 
   euler_write_sol_patch(buf, num_patches, coarse_pdata);
 #endif
@@ -386,6 +403,9 @@ gr_euler2d_run_single(int argc, char **argv, struct gr_euler2d_single_init* init
   evalf_t eval = init->eval;
   double gas_gamma = init->gas_gamma;
   struct gkyl_gr_spacetime *spacetime = init->spacetime;
+
+  char gr_euler_output[32];
+  strcpy(gr_euler_output, init->gr_euler_output);
   
   bool low_order_flux = init->low_order_flux;
   int num_frames = init->num_frames;
@@ -551,26 +571,39 @@ gr_euler2d_run_single(int argc, char **argv, struct gr_euler2d_single_init* init
 #endif
 
 #ifdef AMR_DEBUG
-  euler_write_sol_block("gr_euler_amr_coarse_0", num_blocks, coarse_bdata);
-  euler_write_sol_block("gr_euler_amr_fine_0", num_blocks, fine_bdata);
+  char coarse0[64];
+  snprintf(coarse0, 64, "%s_coarse_0", gr_euler_output);
+  euler_write_sol_block(coarse0, num_blocks, coarse_bdata);
 
-  rename("gr_euler_amr_fine_0_b0.gkyl", "gr_euler_amr_0_b0.gkyl");
-  remove("gr_euler_amr_coarse_0_b0.gkyl");
+  char fine0[64];
+  snprintf(fine0, 64, "%s_fine_0", gr_euler_output);
+  euler_write_sol_block(fine0, num_blocks, fine_bdata);
+
+  char fine0p0[64];
+  char coarse0p0[64];
+  char p0[64];
+  snprintf(fine0p0, 64, "%s_fine_0_p0.gkyl", gr_euler_output);
+  snprintf(coarse0p0, 64, "%s_coarse_0_p0.gkyl", gr_euler_output);
+  snprintf(p0, 64, "%s_0_p0.gkyl", gr_euler_output);
+  rename(fine0p0, p0);
+  remove(coarse0p0);
 
   for (int i = 1; i < 9; i++) {
-    char buf_old[32];
-    char buf_new[32];
-    char buf_del[32];
+    char buf_old[64];
+    char buf_new[64];
+    char buf_del[64];
 
-    snprintf(buf_old, 32, "gr_euler_amr_coarse_0_b%d.gkyl", i);
-    snprintf(buf_new, 32, "gr_euler_amr_0_b%d.gkyl", i);
-    snprintf(buf_del, 32, "gr_euler_amr_fine_0_b%d.gkyl", i);
+    snprintf(buf_old, 64, "%s_coarse_0_p%d.gkyl", gr_euler_output, i);
+    snprintf(buf_new, 64, "%s_0_p%d.gkyl", gr_euler_output, i);
+    snprintf(buf_del, 64, "%s_fine_0_p%d.gkyl", gr_euler_output, i);
 
     rename(buf_old, buf_new);
     remove(buf_del);
   }
 #else
-  euler_write_sol_block("gr_euler_amr_0", num_blocks, coarse_bdata);
+  char amr0[64];
+  snprintf(amr0, 64, "%s_0", gr_euler_output);
+  euler_write_sol_block(amr0, num_blocks, coarse_bdata);
 #endif
 
   double coarse_t_curr = 0.0;
@@ -627,41 +660,41 @@ gr_euler2d_run_single(int argc, char **argv, struct gr_euler2d_single_init* init
     for (int i = 1; i < num_frames; i++) {
       if (coarse_t_curr < (i * io_trigger) && (coarse_t_curr + coarse_status.dt_actual) > (i * io_trigger)) {
 #ifdef AMR_DEBUG
-      char buf_coarse[32];
-      char buf_fine[32];
+      char buf_coarse[64];
+      char buf_fine[64];
 
-      snprintf(buf_coarse, 32, "gr_euler_amr_coarse_%d", i);
-      snprintf(buf_fine, 32, "gr_euler_amr_fine_%d", i);
+      snprintf(buf_coarse, 64, "%s_coarse_%d", gr_euler_output, i);
+      snprintf(buf_fine, 64, "%s_fine_%d", gr_euler_output, i);
 
       euler_write_sol_block(buf_coarse, num_blocks, coarse_bdata);
       euler_write_sol_block(buf_fine, num_blocks, fine_bdata);
 
-      char buf_fine_old[32];
-      char buf_fine_new[32];
-      char buf_coarse_old[32];
+      char buf_fine_old[64];
+      char buf_fine_new[64];
+      char buf_coarse_old[64];
 
-      snprintf(buf_fine_old, 32, "gr_euler_amr_fine_%d_b0.gkyl", i);
-      snprintf(buf_fine_new, 32, "gr_euler_amr_%d_b0.gkyl", i);
-      snprintf(buf_coarse_old, 32, "gr_euler_amr_coarse_%d_b0.gkyl", i);
+      snprintf(buf_fine_old, 64, "%s_fine_%d_p0.gkyl", gr_euler_output, i);
+      snprintf(buf_fine_new, 64, "%s_%d_p0.gkyl", gr_euler_output, i);
+      snprintf(buf_coarse_old, 64, "%s_coarse_%d_p0.gkyl", gr_euler_output, i);
 
       rename(buf_fine_old, buf_fine_new);
       remove(buf_coarse_old);
 
       for (int j = 1; j < 9; j++) {
-        char buf_old[32];
-        char buf_new[32];
-        char buf_del[32];
+        char buf_old[64];
+        char buf_new[64];
+        char buf_del[64];
 
-        snprintf(buf_old, 32, "gr_euler_amr_coarse_%d_b%d.gkyl", i, j);
-        snprintf(buf_new, 32, "gr_euler_amr_%d_b%d.gkyl", i, j);
-        snprintf(buf_del, 32, "gr_euler_amr_fine_%d_b%d.gkyl", i, j);
+        snprintf(buf_old, 64, "%s_coarse_%d_p%d.gkyl", gr_euler_output, i, j);
+        snprintf(buf_new, 64, "%s_%d_p%d.gkyl", gr_euler_output, i, j);
+        snprintf(buf_del, 64, "%s_fine_%d_p%d.gkyl", gr_euler_output, i, j);
 
         rename(buf_old, buf_new);
         remove(buf_del);
       }
 #else
-      char buf[32];
-      snprintf(buf, 32, "gr_euler_amr_%d", i);
+      char buf[64];
+      snprintf(buf, 64, "%s_%d", gr_euler_output, i);
 
       euler_write_sol_block(buf, num_blocks, coarse_bdata);
 #endif
@@ -677,41 +710,41 @@ gr_euler2d_run_single(int argc, char **argv, struct gr_euler2d_single_init* init
   double tm_total_sec = gkyl_time_diff_now_sec(tm_start);
 
 #ifdef AMR_DEBUG
-  char buf_coarse[32];
-  char buf_fine[32];
+  char buf_coarse[64];
+  char buf_fine[64];
 
-  snprintf(buf_coarse, 32, "gr_euler_amr_coarse_%d", num_frames);
-  snprintf(buf_fine, 32, "gr_euler_amr_fine_%d", num_frames);
+  snprintf(buf_coarse, 64, "%s_coarse_%d", gr_euler_output, num_frames);
+  snprintf(buf_fine, 64, "%s_fine_%d", gr_euler_output, num_frames);
 
   euler_write_sol_block(buf_coarse, num_blocks, coarse_bdata);
   euler_write_sol_block(buf_fine, num_blocks, fine_bdata);
 
-  char buf_fine_old[32];
-  char buf_fine_new[32];
-  char buf_coarse_old[32];
+  char buf_fine_old[64];
+  char buf_fine_new[64];
+  char buf_coarse_old[64];
 
-  snprintf(buf_fine_old, 32, "gr_euler_amr_fine_%d_b0.gkyl", num_frames);
-  snprintf(buf_fine_new, 32, "gr_euler_amr_%d_b0.gkyl", num_frames);
-  snprintf(buf_coarse_old, 32, "gr_euler_amr_coarse_%d_b0.gkyl", num_frames);
+  snprintf(buf_fine_old, 64, "%s_fine_%d_p0.gkyl", gr_euler_output, num_frames);
+  snprintf(buf_fine_new, 64, "%s_%d_p0.gkyl", gr_euler_output, num_frames);
+  snprintf(buf_coarse_old, 64, "%s_coarse_%d_p0.gkyl", gr_euler_output,num_frames);
 
   rename(buf_fine_old, buf_fine_new);
   remove(buf_coarse_old);
 
   for (int i = 1; i < 9; i++) {
-    char buf_old[32];
-    char buf_new[32];
-    char buf_del[32];
+    char buf_old[64];
+    char buf_new[64];
+    char buf_del[64];
 
-    snprintf(buf_old, 32, "gr_euler_amr_coarse_%d_b%d.gkyl", num_frames, i);
-    snprintf(buf_new, 32, "gr_euler_amr_%d_b%d.gkyl", num_frames, i);
-    snprintf(buf_del, 32, "gr_euler_amr_fine_%d_b%d.gkyl", num_frames, i);
+    snprintf(buf_old, 64, "%s_coarse_%d_p%d.gkyl", gr_euler_output, num_frames, i);
+    snprintf(buf_new, 64, "%s_%d_p%d.gkyl", gr_euler_output, num_frames, i);
+    snprintf(buf_del, 64, "%s_fine_%d_p%d.gkyl", gr_euler_output, num_frames, i);
 
     rename(buf_old, buf_new);
     remove(buf_del);
   }
 #else
-  char buf[32];
-  snprintf(buf, 32, "gr_euler_amr_%d", num_frames);
+  char buf[64];
+  snprintf(buf, 64, "%s_%d", gr_euler_output, num_frames);
 
   euler_write_sol_block(buf, num_blocks, coarse_bdata);
 #endif

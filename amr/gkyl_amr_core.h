@@ -17,6 +17,8 @@ struct euler1d_single_init {
   evalf_t eval;
   double gas_gamma;
 
+  char euler_output[32];
+
   bool low_order_flux;
   double cfl_frac;
   double t_end;
@@ -46,6 +48,8 @@ struct gr_euler1d_single_init {
   evalf_t eval;
   double gas_gamma;
   struct gkyl_gr_spacetime *spacetime;
+
+  char gr_euler_output[32];
 
   bool low_order_flux;
   double cfl_frac;
@@ -81,6 +85,8 @@ struct euler2d_single_init {
   evalf_t eval;
   double gas_gamma;
 
+  char euler_output[32];
+
   bool low_order_flux;
   double cfl_frac;
   double t_end;
@@ -115,6 +121,8 @@ struct gr_euler2d_single_init {
   evalf_t eval;
   double gas_gamma;
   struct gkyl_gr_spacetime *spacetime;
+
+  char gr_euler_output[32];
 
   bool low_order_flux;
   double cfl_frac;

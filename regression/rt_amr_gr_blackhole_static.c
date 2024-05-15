@@ -295,6 +295,8 @@ int main(int argc, char **argv)
     .gas_gamma = ctx.gas_gamma,
     .spacetime = ctx.spacetime,
 
+    .gr_euler_output = "amr_gr_blackhole_static",
+
     .low_order_flux = true,
     .cfl_frac = ctx.cfl_frac,
     .t_end = ctx.t_end,

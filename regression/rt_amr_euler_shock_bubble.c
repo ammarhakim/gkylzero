@@ -175,6 +175,8 @@ int main(int argc, char **argv)
     .eval = evalEulerInit,
     .gas_gamma = ctx.gas_gamma,
 
+    .euler_output = "amr_euler_shock_bubble",
+
     .low_order_flux = true,
     .cfl_frac = ctx.cfl_frac,
     .t_end = ctx.t_end,
