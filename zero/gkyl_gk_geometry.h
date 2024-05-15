@@ -81,6 +81,9 @@ struct gkyl_gk_geometry_inp {
 
   bool nonuniform_geom; // flag to indicate if the geometry is non-uniform
   double nonuniform_map_fraction; // fraction of non-uniformity in the geometry
+  double cdim; // dimensionality of the simulation
+  bool use_gpu; // flag to indicate if the geometry is on the gpu
+  struct gkyl_comm *comm;   // communicator object for phase-space arrays
 
   struct gkyl_tok_geo_efit_inp *tok_efit_info; // context with RZ data such as efit file for a tokamak
   struct gkyl_tok_geo_grid_inp *tok_grid_info; // context for tokamak geometry with computational domain info
@@ -106,13 +109,6 @@ struct gkyl_gk_geometry_inp {
   struct gkyl_range global_ext;
   struct gkyl_basis basis;
 
-  // Decomposed ranges
-  struct gkyl_rect_grid decomp_grid;
-  struct gkyl_range decomp_local;
-  struct gkyl_range decomp_local_ext;
-  struct gkyl_range decomp_global;
-  struct gkyl_range decomp_global_ext;
-  struct gkyl_basis decomp_basis;
 };
 
 /**

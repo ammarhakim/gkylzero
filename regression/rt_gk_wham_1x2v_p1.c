@@ -338,6 +338,7 @@ eval_density_ion(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT
   double x_fa[1];
   gkyl_mirror_geo_comp2fieldalligned_advance(t, xn, x_fa, app->mirror_geo_c2fa_ctx);
   double z = x_fa[0];
+  printf("Mapping xn[0] = %f, x_fa[0] = %f\n", xn[0], x_fa[0]);
   double z_m = app->z_m;
   double sigma = 0.9*z_m;
   if (fabs(z) <= sigma)

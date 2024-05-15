@@ -13,8 +13,6 @@
 
 #include <mpack.h>
 
-#include <gkyl_mirror_geo.h>
-
 // returned gkyl_array_meta must be freed using gyrokinetic_array_meta_release
 static struct gkyl_array_meta*
 gyrokinetic_array_meta_new(struct gyrokinetic_output_meta meta)
@@ -237,6 +235,9 @@ gkyl_gyrokinetic_app_new(struct gkyl_gk *gk)
     .global = app->global,
     .global_ext = app->global_ext,
     .basis = app->confBasis,
+    .cdim = app->cdim,
+    .use_gpu = app->use_gpu,
+    .comm = app->comm,
   };
   for(int i = 0; i<3; i++)
     geometry_inp.world[i] = gk->geometry.world[i];
@@ -284,56 +285,6 @@ gkyl_gyrokinetic_app_new(struct gkyl_gk *gk)
       break;
     case GKYL_MIRROR:
       gk_geom_3d = gkyl_gk_geometry_mirror_new(&geometry_inp);
-      if(app->cdim < 3) {
-        gkyl_gk_geometry_c2fa_deflate(gk_geom_3d, &geometry_inp);
-      } else {
-        gkyl_gk_geometry_c2fa_acquire(gk_geom_3d, &geometry_inp);
-      }
-      double nonuniform_frac = gk->geometry.nonuniform_mapping_fraction;
-      if (nonuniform_frac > 0.0 & nonuniform_frac <= 1.0) {
-        // Copy deflate geometry if necessary
-        if(app->cdim < 3)
-          app->gk_geom = gkyl_gk_geometry_deflate(gk_geom_3d, &geometry_inp);
-        else
-          app->gk_geom = gkyl_gk_geometry_acquire(gk_geom_3d);
-        struct gkyl_array *bmag_global = gkyl_array_new(GKYL_DOUBLE, app->confBasis.num_basis, app->global_ext.volume);
-        if (app->use_gpu) { // Allgather is only a GPU operation, so we must copy these arrays to GPU, then back to CPU
-          struct gkyl_array *bmag_global_dev = mkarr(app->use_gpu, app->confBasis.num_basis, app->global_ext.volume);
-          struct gkyl_array *bmag_dev = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
-          gkyl_array_copy(bmag_dev, app->gk_geom->bmag);
-          gkyl_comm_array_allgather(app->comm, &app->local, &app->global, bmag_dev, bmag_global_dev);
-          gkyl_array_copy(bmag_global, bmag_global_dev);
-          gkyl_array_release(bmag_global_dev);
-          gkyl_array_release(bmag_dev);
-        }
-        else {
-          gkyl_comm_array_allgather(app->comm, &app->local, &app->global, app->gk_geom->bmag, bmag_global);
-        }
-        geometry_inp.nonuniform_geom = true;
-        geometry_inp.bmag_global = bmag_global;
-        geometry_inp.decomp_basis = app->confBasis;
-        geometry_inp.decomp_grid = app->grid;
-        geometry_inp.decomp_local = app->local;
-        geometry_inp.decomp_local_ext = app->local_ext;
-        geometry_inp.decomp_global = app->global;
-        geometry_inp.decomp_global_ext = app->global_ext;
-        struct gkyl_mirror_geo_c2fa_ctx *c2fa_app = geometry_inp.mirror_geo_c2fa_ctx;
-        gkyl_gk_geometry_release(gk_geom_3d); // release temporary 3d geometry
-        gkyl_gk_geometry_release(app->gk_geom); // release 3d geometry
-        gkyl_array_release(c2fa_app->c2fa);
-        gkyl_array_release(c2fa_app->c2fa_deflate);
-        gk_geom_3d = gkyl_gk_geometry_mirror_new(&geometry_inp);
-        if(app->cdim < 3) {
-          gkyl_gk_geometry_c2fa_deflate(gk_geom_3d, &geometry_inp);
-        } else {
-          gkyl_gk_geometry_c2fa_acquire(gk_geom_3d, &geometry_inp);
-        }
-        gkyl_array_release(bmag_global);
-        // I don't think I'm releasing the uniform deflated geometry correctly
-      }
-      else if (nonuniform_frac != 0.0) {
-        printf("Invalid non-uniform mapping fraction %f. Must be between 0 and 1", nonuniform_frac);
-      }
       break;
     case GKYL_MAPC2P:
       gk_geom_3d = gkyl_gk_geometry_mapc2p_new(&geometry_inp);
