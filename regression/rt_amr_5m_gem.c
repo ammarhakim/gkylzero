@@ -19,6 +19,9 @@ struct amr_5m_gem_ctx
   double nb_over_n0; // Background number density / reference number density.
   double B0; // Reference magnetic field strength.
   double beta; // Plasma beta.
+
+  double k0_elc; // Electron closure parameter.
+  double k0_ion; // Ion closure parameter.
   
   // Derived physical quantities (using normalized code units).
   double psi0; // Reference magnetic scalar potential.
@@ -60,6 +63,9 @@ create_ctx(void)
   double nb_over_n0 = 0.2; // Background number density / reference number density.
   double B0 = 0.1; // Reference magnetic field strength.
   double beta = 1.0; // Plasma beta.
+
+  double k0_elc = 0.0; // Electron closure parameter.
+  double k0_ion = 0.0; // Ion closure parameter.
   
   // Derived physical quantities (using normalized code units).
   double psi0 = 0.1 * B0; // Reference magnetic scalar potential.
@@ -69,13 +75,13 @@ create_ctx(void)
   double T_tot = beta * (B0 * B0) / 2.0 / n0; // Total temperature;
 
   // Simulation parameters.
-  int Nx = 32; // Coarse cell count (x-direction).
-  int Ny = 16; // Coarse cell count (y-direction).
+  int Nx = 64; // Coarse cell count (x-direction).
+  int Ny = 32; // Coarse cell count (y-direction).
   int ref_factor = 2; // Refinement factor.
   double Lx = 25.6; // Coarse domain size (x-direction).
   double Ly = 12.8; // Coarse domain size (y-direction).
-  double fine_Lx = 9.6; // Fine domain size (x-direction).
-  double fine_Ly = 4.8; // Fine domain size (y-direction).
+  double fine_Lx = 16.0; // Fine domain size (x-direction).
+  double fine_Ly = 4.0; // Fine domain size (y-direction).
   double cfl_frac = 0.95; // CFL coefficient.
   double t_end = 250.0; // Final simulation time.
   int num_frames = 1; // Number of output frames.
@@ -95,6 +101,8 @@ create_ctx(void)
     .nb_over_n0 = nb_over_n0,
     .B0 = B0,
     .beta = beta,
+    .k0_elc = k0_elc,
+    .k0_ion = k0_ion,
     .psi0 = psi0,
     .Ti_frac = Ti_frac,
     .Te_frac = Te_frac,
@@ -240,8 +248,8 @@ int main(int argc, char **argv)
     .eval_field = evalFieldInit,
 
     .gas_gamma = ctx.gas_gamma,
-    .k0_elc = 0.0,
-    .k0_ion = 0.0,
+    .k0_elc = ctx.k0_elc,
+    .k0_ion = ctx.k0_ion,
 
     .light_speed = 1.0,
     .e_fact = 0.0,
