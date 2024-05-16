@@ -26,6 +26,7 @@
 #include <gkyl_wv_apply_bc.h>
 #include <gkyl_wv_euler.h>
 #include <gkyl_wv_gr_euler.h>
+#include <gkyl_wv_ten_moment.h>
 #include <gkyl_wv_maxwell.h>
 #include <rt_arg_parse.h>
 

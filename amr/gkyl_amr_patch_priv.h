@@ -1,7 +1,6 @@
 #pragma once
 
 #include <gkyl_amr_block_priv.h>
-//#define AMR_DEBUG
 
 // Definitions of private structs and APIs attached to these objects, for use in the patch AMR subsystem.
 
