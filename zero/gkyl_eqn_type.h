@@ -12,6 +12,7 @@ enum gkyl_eqn_type {
   GKYL_EQN_MHD,  // Ideal MHD equations
   GKYL_EQN_BURGERS, // Burgers equations
   GKYL_EQN_ADVECTION, // Scalar advection equation
+  GKYL_EQN_GR_EULER, // General relativistic Euler equations.
 };
 
 // Identifiers for specific field object types
