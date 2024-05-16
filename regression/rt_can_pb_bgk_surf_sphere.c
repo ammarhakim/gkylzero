@@ -72,11 +72,13 @@ hamil(double t, const double* xn, double* fout, void* ctx)
 void
 evalDensityInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
 {
+  // Inputs Jv*n
   struct can_pb_ctx *app = ctx;
-  fout[0] = 1;
   double theta = xn[0];
   double phi = xn[1];
-  fout[0] = 1.0*sin(theta);
+  double det_h_val;
+  det_h(t, xn, &det_h_val, ctx); 
+  fout[0] = 1.0*det_h_val;
 }
 
 void
@@ -160,13 +162,13 @@ main(int argc, char **argv)
       .correct_all_moms = true, 
     },
 
-    // .collisions =  {
-    //   .collision_id = GKYL_BGK_COLLISIONS,
+    .collisions =  {
+      .collision_id = GKYL_BGK_COLLISIONS,
 
-    //   .ctx = &ctx,
-    //   .self_nu = evalNu,
-    //   .correct_all_moms = true, 
-    // },
+      .ctx = &ctx,
+      .self_nu = evalNu,
+      .correct_all_moms = true, 
+    },
 
     .num_diag_moments = 3,
     .diag_moments = { "M0", "M1i", "LTEMoments" },
@@ -197,9 +199,9 @@ main(int argc, char **argv)
   gkyl_vlasov_app *app = gkyl_vlasov_app_new(&vm);
 
   // start, end and initial time-step
-  double tcurr = 0.0, tend = 2.0;
+  double tcurr = 0.0, tend = 0.1;
   double dt = tend-tcurr;
-  int nframe = 20;
+  int nframe = 2;
   struct gkyl_tm_trigger io_trig = { .dt = tend/nframe };
 
   // initialize simulation

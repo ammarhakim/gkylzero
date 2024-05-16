@@ -17,7 +17,7 @@ gkyl_vlasov_lte_proj_on_basis_advance_cu_ker(const struct gkyl_rect_grid phase_g
   const struct gkyl_array* GKYL_RESTRICT phase_basis_at_ords, 
   const struct gkyl_array* GKYL_RESTRICT phase_ordinates, 
   const struct gkyl_array* GKYL_RESTRICT phase_weights, const int *p2c_qidx, bool is_relativistic, 
-  bool is_canonical_pb, const struct gkyl_array* GKYL_RESTRICT h_ij_inv,
+  bool is_canonical_pb, const struct gkyl_array* GKYL_RESTRICT h_ij_inv,  const struct gkyl_array* GKYL_RESTRICT det_h,
   const struct gkyl_array* GKYL_RESTRICT moms_lte, struct gkyl_array* GKYL_RESTRICT f_lte)
 {
   double f_floor = 1.e-40;
@@ -35,6 +35,7 @@ gkyl_vlasov_lte_proj_on_basis_advance_cu_ker(const struct gkyl_rect_grid phase_g
   double V_drift_quad_cell_avg[27][3];
   double expamp_quad[27];
   double h_ij_inv_quad[27][6];
+  double det_h_quad[27];
 
   double xc[GKYL_MAX_DIM], xmu[GKYL_MAX_DIM];
   int pidx[GKYL_MAX_DIM], cidx[GKYL_MAX_CDIM];
@@ -54,8 +55,10 @@ gkyl_vlasov_lte_proj_on_basis_advance_cu_ker(const struct gkyl_rect_grid phase_g
     const double *V_drift_d = &moms_lte_d[num_conf_basis];
     const double *T_over_m_d = &moms_lte_d[num_conf_basis*(vdim+1)];
     const double *h_ij_inv_d;
+    const double *det_h_d;
     if (is_canonical_pb) {
       h_ij_inv_d = (const double*) gkyl_array_cfetch(h_ij_inv, lincC);
+      det_h_d = (const double*) gkyl_array_cfetch(det_h, lincC);
     }
 
     // Sum over basis for given LTE moments (n, V_drift, T/m) in the stationary frame
@@ -81,12 +84,14 @@ gkyl_vlasov_lte_proj_on_basis_advance_cu_ker(const struct gkyl_rect_grid phase_g
       }
 
       if (is_canonical_pb) {
+        det_h_quad[n] = 0.0;
         for (int k=0; k<num_conf_basis; ++k) {
           for (int j=0; j<vdim*(vdim+1)/2; ++j) {
             h_ij_inv_quad[n][j] = 0;
           }
         }
         for (int k=0; k<num_conf_basis; ++k) {
+          det_h_quad[n] += det_h_d[k]*b_ord[k];
           for (int j=0; j<vdim*(vdim+1)/2; ++j) {
             h_ij_inv_quad[n][j] += h_ij_inv_d[num_conf_basis*j+k]*b_ord[k];
           }
@@ -97,6 +102,9 @@ gkyl_vlasov_lte_proj_on_basis_advance_cu_ker(const struct gkyl_rect_grid phase_g
       if ((n_quad[n] > 0.0) && (T_over_m_quad[n] > 0.0)) {
         if (is_relativistic) {
           expamp_quad[n] = n_quad[n]*(1.0/(4.0*GKYL_PI*T_over_m_quad[n]))*(sqrt(2*T_over_m_quad[n]/GKYL_PI));;
+        }
+        else if (is_canonical_pb) { 
+          expamp_quad[n] = (1/det_h_quad[n])*n_quad[n]/sqrt(pow(2.0*GKYL_PI*T_over_m_quad[n], vdim));
         }
         else {
           expamp_quad[n] = n_quad[n]/sqrt(pow(2.0*GKYL_PI*T_over_m_quad[n], vdim));
@@ -206,7 +214,8 @@ gkyl_vlasov_lte_proj_on_basis_advance_cu(gkyl_vlasov_lte_proj_on_basis *up,
   gkyl_vlasov_lte_proj_on_basis_advance_cu_ker<<<nblocks, nthreads>>>
     (up->phase_grid, *phase_range, *conf_range, up->conf_basis_at_ords->on_dev, up->basis_at_ords->on_dev,
      up->ordinates->on_dev, up->weights->on_dev, up->p2c_qidx,
-     up->is_relativistic, up->is_canonical_pb,up->h_ij_inv->on_dev,  moms_lte->on_dev, f_lte->on_dev);
+     up->is_relativistic, up->is_canonical_pb,up->h_ij_inv->on_dev,  
+     up->is_canonical_pb,up->det_h->on_dev, moms_lte->on_dev, f_lte->on_dev);
 
   // Correct the density of the projected LTE distribution function through rescaling.
   // This correction is needed especially for the relativistic LTE, whose pre-factor

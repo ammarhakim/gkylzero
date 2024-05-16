@@ -76,7 +76,12 @@ void
 evalDensityInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
 {
   struct can_pb_ctx *app = ctx;
-  fout[0] = 0.3  + sq(sq(sin(1.5*xn[1])))*2.0*sq(sq(sin(xn[0])));
+  double theta = xn[0];
+  double phi = xn[1];
+  double det_h_val;
+  det_h(t, xn, &det_h_val, ctx); 
+  double n = 0.3  + sq(sq(sin(1.5*phi)))*2.0*sq(sq(sin(theta)));
+  fout[0] = n*det_h_val;
 }
 
 void
@@ -173,8 +178,8 @@ main(int argc, char **argv)
     .poly_order = 2,
     .basis_type = app_args.basis_type,
 
-    .num_periodic_dir = 2,
-    .periodic_dirs = {0, 1},
+    .num_periodic_dir = 1,
+    .periodic_dirs = {1},
 
     .num_species = 1,
     .species = { neut },

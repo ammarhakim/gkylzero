@@ -231,13 +231,6 @@ gkyl_vlasov_lte_moments_advance(struct gkyl_vlasov_lte_moments *lte_moms,
     0, lte_moms->temperature,
     0, lte_moms->pressure, 0, moms_out, conf_local);
 
-  // Remove Jacobian factor: J*n/J = n 
-  // The Jvn was needed before now to remove volume factors from d*n*J*T, n*u_i*T 
-  //if (lte_moms->model_id == GKYL_MODEL_CANONICAL_PB) {
-  //  gkyl_dg_div_op_range(lte_moms->mem,lte_moms->conf_basis, 0, moms_out, 
-  //    0, moms_out, 0, lte_moms->det_h, conf_local);
-  //}
-
   // Save the outputs to moms_out (n, V_drift, T/m):
   gkyl_array_set_offset_range(moms_out, 1.0, lte_moms->V_drift, 1*num_conf_basis, conf_local);
   gkyl_array_set_offset_range(moms_out, 1.0, lte_moms->temperature, (vdim+1)*num_conf_basis, conf_local);
