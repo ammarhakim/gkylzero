@@ -811,7 +811,7 @@ five_moment_update_all_blocks_source(const struct gkyl_job_pool* job_pool, const
 }
 
 void
-five_moment_init_job_func(void* ctx)
+five_moment_init_job_func_block(void* ctx)
 {
   struct five_moment_block_data *bdata = ctx;
 
@@ -831,7 +831,7 @@ five_moment_copy_job_func(void* ctx)
 }
 
 struct gkyl_update_status
-five_moment_update(const struct gkyl_job_pool* job_pool, const struct gkyl_block_topo* btopo,
+five_moment_update_block(const struct gkyl_job_pool* job_pool, const struct gkyl_block_topo* btopo,
   const struct five_moment_block_data bdata[], double t_curr, double dt0, struct sim_stats* stats)
   {
     int num_blocks = btopo->num_blocks;
@@ -987,7 +987,7 @@ five_moment_update(const struct gkyl_job_pool* job_pool, const struct gkyl_block
   }
 
   double
-  five_moment_max_dt(int num_blocks, const struct five_moment_block_data bdata[])
+  five_moment_max_dt_block(int num_blocks, const struct five_moment_block_data bdata[])
   {
     double dt = DBL_MAX;
 

@@ -2,6 +2,7 @@
 #include <gkyl_amr_block_priv.h>
 #include <gkyl_amr_block_coupled_priv.h>
 #include <gkyl_amr_patch_priv.h>
+#include <gkyl_amr_patch_coupled_priv.h>
 
 void
 euler1d_run_single(int argc, char **argv, struct euler1d_single_init* init)

@@ -273,7 +273,7 @@ void five_moment_update_all_blocks_source(const struct gkyl_job_pool* job_pool, 
 *
 * @param ctx Context to pass to the function.
 */
-void five_moment_init_job_func(void* ctx);
+void five_moment_init_job_func_block(void* ctx);
 
 /**
 * Copy an existing job between two thread-based job pools for updating the coupled five-moment equations.
@@ -293,7 +293,7 @@ void five_moment_copy_job_func(void* ctx);
 * @param stats Simulation statistics (allowing for tracking of the number of failed time-steps).
 * @return Status of the update (success, suggested time-step and actual time-step).
 */
-struct gkyl_update_status five_moment_update(const struct gkyl_job_pool* job_pool, const struct gkyl_block_topo* btopo,
+struct gkyl_update_status five_moment_update_block(const struct gkyl_job_pool* job_pool, const struct gkyl_block_topo* btopo,
   const struct five_moment_block_data bdata[], double t_curr, double dt0, struct sim_stats* stats);
 
 /**
@@ -312,4 +312,4 @@ void five_moment_write_sol_block(const char* fbase, int num_blocks, const struct
 * @param bdata Array of block-structured data for the coupled five-moment equations.
 * @return Maximum stable time-step
 */
-double five_moment_max_dt(int num_blocks, const struct five_moment_block_data bdata[]);
+double five_moment_max_dt_block(int num_blocks, const struct five_moment_block_data bdata[]);

@@ -79,7 +79,7 @@ create_ctx(void)
   double Lx = 25.6; // Coarse domain size (x-direction).
   double Ly = 12.8; // Coarse domain size (y-direction).
   double fine_Lx = 16.0; // Fine domain size (x-direction).
-  double fine_Ly = 4.0; // Fine domain size (y-direction).
+  double fine_Ly = 6.0; // Fine domain size (y-direction).
   double cfl_frac = 0.95; // CFL coefficient.
   double t_end = 250.0; // Final simulation time.
   int num_frames = 1; // Number of output frames.

@@ -2,6 +2,7 @@
 #include <gkyl_amr_block_priv.h>
 #include <gkyl_amr_block_coupled_priv.h>
 #include <gkyl_amr_patch_priv.h>
+#include <gkyl_amr_patch_coupled_priv.h>
 
 void
 ten_moment_2d_run_single(int argc, char **argv, struct ten_moment_2d_single_init* init)
@@ -323,10 +324,10 @@ ten_moment_2d_run_single(int argc, char **argv, struct ten_moment_2d_single_init
 
 #ifdef AMR_USETHREADS
   for (int i = 0; i < num_blocks; i++) {
-    gkyl_job_pool_add_work(coarse_job_pool, five_moment_init_job_func, &coarse_bdata[i]);
+    gkyl_job_pool_add_work(coarse_job_pool, five_moment_init_job_func_block, &coarse_bdata[i]);
 
 #ifdef AMR_DEBUG
-    gkyl_job_pool_add_work(fine_job_pool, five_moment_init_job_func, &fine_bdata[i]);
+    gkyl_job_pool_add_work(fine_job_pool, five_moment_init_job_func_block, &fine_bdata[i]);
 #endif
   }
   gkyl_job_pool_wait(coarse_job_pool);
@@ -336,10 +337,10 @@ ten_moment_2d_run_single(int argc, char **argv, struct ten_moment_2d_single_init
 #endif
 #else
   for (int i = 0; i < num_blocks; i++) {
-    five_moment_init_job_func(&coarse_bdata[i]);
+    five_moment_init_job_func_block(&coarse_bdata[i]);
 
 #ifdef AMR_DEBUG
-    five_moment_init_job_func(&fine_bdata[i]);
+    five_moment_init_job_func_block(&fine_bdata[i]);
 #endif
   }
 #endif
@@ -418,10 +419,10 @@ ten_moment_2d_run_single(int argc, char **argv, struct ten_moment_2d_single_init
 
   double coarse_t_curr = 0.0;
   double fine_t_curr = 0.0;
-  double coarse_dt = five_moment_max_dt(num_blocks, coarse_bdata);
+  double coarse_dt = five_moment_max_dt_block(num_blocks, coarse_bdata);
 
 #ifdef AMR_DEBUG
-  double fine_dt = five_moment_max_dt(num_blocks, fine_bdata);
+  double fine_dt = five_moment_max_dt_block(num_blocks, fine_bdata);
 #else
   double fine_dt = (1.0 / ref_factor) * coarse_dt;
 #endif
@@ -437,7 +438,7 @@ ten_moment_2d_run_single(int argc, char **argv, struct ten_moment_2d_single_init
 
   while ((coarse_t_curr < t_end) && (coarse_step <= num_steps)) {
     printf("Taking coarse (level 0) time-step %ld at t = %g; ", coarse_step, coarse_t_curr);
-    struct gkyl_update_status coarse_status = five_moment_update(coarse_job_pool, btopo, coarse_bdata, coarse_t_curr, coarse_dt, &stats);
+    struct gkyl_update_status coarse_status = five_moment_update_block(coarse_job_pool, btopo, coarse_bdata, coarse_t_curr, coarse_dt, &stats);
     printf(" dt = %g\n", coarse_status.dt_actual);
 
     if (!coarse_status.success) {
@@ -448,7 +449,7 @@ ten_moment_2d_run_single(int argc, char **argv, struct ten_moment_2d_single_init
     for (long fine_step = 1; fine_step < ref_factor + 1; fine_step++) {
 #ifdef AMR_DEBUG
       printf("   Taking fine (level 1) time-step %ld at t = %g; ", fine_step, fine_t_curr);
-      struct gkyl_update_status fine_status = five_moment_update(fine_job_pool, btopo, fine_bdata, fine_t_curr, fine_dt, &stats);
+      struct gkyl_update_status fine_status = five_moment_update_block(fine_job_pool, btopo, fine_bdata, fine_t_curr, fine_dt, &stats);
       printf(" dt = %g\n", fine_status.dt_actual);
 
       if (!fine_status.success) {
