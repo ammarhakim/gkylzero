@@ -123,9 +123,10 @@ pkpm_species_init(struct gkyl_pkpm *pkpm, struct gkyl_pkpm_app *app, struct pkpm
   // div(p_par b_hat), for self-consistent total pressure force
   s->pkpm_div_ppar = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
   // allocate array to store primitive moments : 
-  // [ux, uy, uz, 1/rho*div(p_par b), T_perp/m, m/T_perp, 3*T_xx/m, 3*T_yy/m, 3*T_zz/m]
-  // pressure p_ij : (p_par - p_perp) b_i b_j + p_perp g_ij
-  s->pkpm_prim = mkarr(app->use_gpu, 9*app->confBasis.num_basis, app->local_ext.volume);
+  // pkpm_prim : [ux, uy, uz, 1/rho*div(p_par b), T_perp/m, m/T_perp]
+  // pkpm_u : [ux, uy, uz]
+  // pkpm_p_ij : (p_par - p_perp) b_i b_j + p_perp g_ij
+  s->pkpm_prim = mkarr(app->use_gpu, 6*app->confBasis.num_basis, app->local_ext.volume);
   s->pkpm_u = mkarr(app->use_gpu, 3*app->confBasis.num_basis, app->local_ext.volume);
   s->pkpm_p_ij = mkarr(app->use_gpu, 6*app->confBasis.num_basis, app->local_ext.volume);
   // boolean array for primitive variables [rho, p_par, p_perp] is negative at control points
@@ -449,14 +450,20 @@ pkpm_species_calc_pkpm_vars(gkyl_pkpm_app *app, struct pkpm_species *species,
   if (species->bc_is_absorb) {
     gkyl_dg_calc_pkpm_vars_advance(species->calc_pkpm_vars,
       species->pkpm_moms.marr, fluidin, 
-      species->pkpm_p_ij, species->pkpm_div_ppar, 
-      species->cell_avg_prim, species->pkpm_prim, species->pkpm_prim_surf); 
+      species->pkpm_div_ppar, species->cell_avg_prim, 
+      species->pkpm_prim); 
+    gkyl_dg_calc_pkpm_vars_surf_advance(species->calc_pkpm_vars, 
+      species->pkpm_moms.marr, fluidin, 
+      species->pkpm_p_ij, species->pkpm_prim_surf);
   }
   else {
     gkyl_dg_calc_pkpm_vars_advance(species->calc_pkpm_vars_ext,
       species->pkpm_moms.marr, fluidin, 
-      species->pkpm_p_ij, species->pkpm_div_ppar, 
-      species->cell_avg_prim, species->pkpm_prim, species->pkpm_prim_surf); 
+      species->pkpm_div_ppar, species->cell_avg_prim, 
+      species->pkpm_prim); 
+    gkyl_dg_calc_pkpm_vars_surf_advance(species->calc_pkpm_vars_ext, 
+      species->pkpm_moms.marr, fluidin, 
+      species->pkpm_p_ij, species->pkpm_prim_surf);
   }
 
   app->stat.species_pkpm_vars_tm += gkyl_time_diff_now_sec(tm);

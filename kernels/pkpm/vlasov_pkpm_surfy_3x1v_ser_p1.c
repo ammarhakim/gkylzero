@@ -145,10 +145,10 @@ GKYL_CU_DH double vlasov_pkpm_surfy_3x1v_ser_p1(const double *w, const double *d
   G_1_rl[10] = 0.7071067811865475*G_1r[19]-1.224744871391589*G_1r[22]; 
   G_1_rl[11] = 0.7071067811865475*G_1r[21]-1.224744871391589*G_1r[23]; 
 
-  const double *b_surf_lr = &bvar_surf_l[36]; 
-  const double *b_surf_cl = &bvar_surf_c[32]; 
-  const double *b_surf_cr = &bvar_surf_c[36]; 
-  const double *b_surf_rl = &bvar_surf_r[32]; 
+  const double *b_surf_lr = &bvar_surf_l[12]; 
+  const double *b_surf_cl = &bvar_surf_c[8]; 
+  const double *b_surf_cr = &bvar_surf_c[12]; 
+  const double *b_surf_rl = &bvar_surf_r[8]; 
 
   const double *u_surf_lr = &pkpm_prim_surf_l[44]; 
   const double *u_surf_cl = &pkpm_prim_surf_c[40]; 

@@ -66,11 +66,23 @@ gkyl_dg_calc_em_vars_cu_dev_new(const struct gkyl_rect_grid *conf_grid,
  * @param cell_avg_magB2 Array for storing boolean value of whether |B|^2 uses *only* cell averages 
  *                       to minimize positivity violations (default: false)
  * @param out            Output array of volume expansion of either magnetic field unit vector and unit tensor or E x B velocity
- * @param out_surf       Output array of surface expansion of EM variable
  */
 void gkyl_dg_calc_em_vars_advance(struct gkyl_dg_calc_em_vars *up, 
   const struct gkyl_array* em, struct gkyl_array* cell_avg_magB2, 
-  struct gkyl_array* out, struct gkyl_array* out_surf);
+  struct gkyl_array* out);
+
+/**
+ * Compute surface expansion of bvar
+ *
+ * @param up Updater for computing pkpm variables 
+ * @param em                  Input array which contain EM fields (Ex, Ey, Ez, Bx, By, Bz)
+ * @param cell_avg_magB2_surf Array for storing boolean value of whether |B|^2 on the surface 
+ *                            uses *only* cell averages (2*cdim components: xl, xr, yl, yr, zl, & zr)
+ *                            to minimize positivity violations (default: false)
+ * @param bvar_surf           Output array of surface expansions of bvar
+ */
+void gkyl_dg_calc_em_vars_surf_advance(struct gkyl_dg_calc_em_vars *up, 
+  const struct gkyl_array* em, struct gkyl_array* cell_avg_magB2_surf, struct gkyl_array* bvar_surf);
 
 /**
  * Compute div(b) and max(|b_i|) penalization
@@ -109,7 +121,10 @@ void gkyl_dg_calc_em_vars_release(struct gkyl_dg_calc_em_vars *up);
 
 void gkyl_dg_calc_em_vars_advance_cu(struct gkyl_dg_calc_em_vars *up, 
   const struct gkyl_array* em, struct gkyl_array* cell_avg_magB2, 
-  struct gkyl_array* out, struct gkyl_array* out_surf);
+  struct gkyl_array* out);
+
+void gkyl_dg_calc_em_vars_surf_advance_cu(struct gkyl_dg_calc_em_vars *up, 
+  const struct gkyl_array* bvar, struct gkyl_array* bvar_surf);
 
 void gkyl_dg_calc_em_vars_div_b_cu(struct gkyl_dg_calc_em_vars *up, const struct gkyl_range *conf_range, 
   const struct gkyl_array* bvar_surf, const struct gkyl_array* bvar, 

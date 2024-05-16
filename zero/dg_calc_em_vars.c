@@ -26,6 +26,7 @@ gkyl_dg_calc_em_vars_new(const struct gkyl_rect_grid *conf_grid,
   int nc = cbasis->num_basis;
   int cdim = cbasis->ndim;
   int poly_order = cbasis->poly_order;
+  int nc_surf = cbasis->num_basis/(poly_order+1); // *only valid for tensor bases for cdim > 1*
   enum gkyl_basis_type b_type = cbasis->b_type;
   up->cdim = cdim;
   up->poly_order = poly_order;
@@ -41,9 +42,13 @@ gkyl_dg_calc_em_vars_new(const struct gkyl_rect_grid *conf_grid,
   }
   else {
     up->Ncomp = 6;
+    up->Ncomp_surf = 2*cdim;
     up->em_calc_temp = choose_em_calc_BB_kern(b_type, cdim, poly_order);
+    up->em_calc_surf_temp = choose_em_calc_surf_BB_kern(b_type, cdim, poly_order);
     up->em_set = choose_em_set_bvar_kern(b_type, cdim, poly_order);
-    up->em_copy = choose_em_copy_bvar_kern(b_type, cdim, poly_order);      
+    up->em_surf_set = choose_em_surf_set_bvar_kern(b_type, cdim, poly_order);
+    up->em_copy = choose_em_copy_bvar_kern(b_type, cdim, poly_order);    
+    up->em_surf_copy = choose_em_surf_copy_bvar_kern(b_type, cdim, poly_order);       
     // Fetch the kernels in each direction
     for (int d=0; d<cdim; ++d) {
       up->em_div_b[d] = choose_em_div_b_kern(d, b_type, cdim, poly_order); 
@@ -73,6 +78,16 @@ gkyl_dg_calc_em_vars_new(const struct gkyl_rect_grid *conf_grid,
   // or (E x B)_i and B_i^2 (for computing E x B/|B|^2)
   up->temp_var = gkyl_array_new(GKYL_DOUBLE, 6*nc, mem_range->volume);
 
+  // There are Ncomp_surf*range->volume linear systems to be solved 
+  // Each linear system is nc_surf x nc_surf (only solved over the surface basis and only when poly_order and cdim > 1)
+  // 2*cdim: bx, (xl and xr), by, (yl and yr), bz, (zl and zr)  
+  up->As_surf = gkyl_nmat_new(up->Ncomp_surf*mem_range->volume, nc_surf, nc_surf);
+  up->xs_surf = gkyl_nmat_new(up->Ncomp_surf*mem_range->volume, nc_surf, 1);
+  up->mem_surf = gkyl_nmat_linsolve_lu_new(up->As_surf->num, up->As_surf->nr);
+  // 3*cdim component temporary variable for storing Bx^2, By^2, Bz^2 at the surface
+  // Temporary variables are computed at the left and right in each dimension (xl, xr, yl, yr, zl, & zr)
+  up->temp_var_surf = gkyl_array_new(GKYL_DOUBLE, 3*cdim*nc_surf, mem_range->volume); 
+
   up->flags = 0;
   GKYL_CLEAR_CU_ALLOC(up->flags);
   up->on_dev = up; // self-reference on host
@@ -82,11 +97,11 @@ gkyl_dg_calc_em_vars_new(const struct gkyl_rect_grid *conf_grid,
 
 void gkyl_dg_calc_em_vars_advance(struct gkyl_dg_calc_em_vars *up, 
   const struct gkyl_array* em, struct gkyl_array* cell_avg_magB2, 
-  struct gkyl_array* out, struct gkyl_array* out_surf)
+  struct gkyl_array* out)
 {
 #ifdef GKYL_HAVE_CUDA
   if (gkyl_array_is_cu_dev(out)) {
-    return gkyl_dg_calc_em_vars_advance_cu(up, em, cell_avg_magB2, out, out_surf);
+    return gkyl_dg_calc_em_vars_advance_cu(up, em, cell_avg_magB2, out);
   }
 #endif
   gkyl_array_clear(up->temp_var, 0.0);
@@ -119,11 +134,58 @@ void gkyl_dg_calc_em_vars_advance(struct gkyl_dg_calc_em_vars *up,
     const double *em_d = gkyl_array_cfetch(em, loc);
     int *cell_avg_magB2_d = gkyl_array_fetch(cell_avg_magB2, loc);
     double *out_d = gkyl_array_fetch(out, loc);
-    double *out_surf_d = gkyl_array_fetch(out_surf, loc);
 
-    up->em_copy(count, up->xs, em_d, cell_avg_magB2_d, out_d, out_surf_d);
+    up->em_copy(count, up->xs, em_d, cell_avg_magB2_d, out_d);
 
     count += up->Ncomp;
+  }  
+}
+
+void gkyl_dg_calc_em_vars_surf_advance(struct gkyl_dg_calc_em_vars *up, 
+  const struct gkyl_array* em, struct gkyl_array* cell_avg_magB2_surf, struct gkyl_array* bvar_surf)
+{
+#ifdef GKYL_HAVE_CUDA
+  if (gkyl_array_is_cu_dev(bvar_surf)) {
+    return gkyl_dg_calc_em_vars_surf_advance_cu(up, em, cell_avg_magB2_surf, bvar_surf);
+  }
+#endif
+  gkyl_array_clear(up->temp_var_surf, 0.0);
+
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, &up->mem_range);
+  long count = 0;
+  while (gkyl_range_iter_next(&iter)) {
+    long loc = gkyl_range_idx(&up->mem_range, iter.idx);
+
+    const double *em_d = gkyl_array_cfetch(em, loc);
+    int* cell_avg_magB2_surf_d = gkyl_array_fetch(cell_avg_magB2_surf, loc);
+
+    up->em_calc_surf_temp(em_d, gkyl_array_fetch(up->temp_var_surf, loc));
+
+    up->em_surf_set(count, up->As_surf, up->xs_surf, 
+      gkyl_array_cfetch(up->temp_var_surf, loc), cell_avg_magB2_surf_d);
+
+    count += up->Ncomp_surf;
+  }
+
+  // Only need to solve the linear system if both poly_order and cdim > 1
+  if (up->poly_order > 1 && up->cdim > 1) {
+    bool status = gkyl_nmat_linsolve_lu_pa(up->mem_surf, up->As_surf, up->xs_surf);
+    assert(status);
+  }
+
+  gkyl_range_iter_init(&iter, &up->mem_range);
+  count = 0;
+  while (gkyl_range_iter_next(&iter)) {
+    long loc = gkyl_range_idx(&up->mem_range, iter.idx);
+
+    const double *em_d = gkyl_array_cfetch(em, loc);
+    int* cell_avg_magB2_surf_d = gkyl_array_fetch(cell_avg_magB2_surf, loc);
+    double* bvar_surf_d = gkyl_array_fetch(bvar_surf, loc);
+
+    up->em_surf_copy(count, up->xs_surf, em_d, cell_avg_magB2_surf_d, bvar_surf_d);
+
+    count += up->Ncomp_surf;
   }  
 }
 
@@ -213,6 +275,11 @@ void gkyl_dg_calc_em_vars_release(gkyl_dg_calc_em_vars *up)
   gkyl_nmat_release(up->xs);
   gkyl_nmat_linsolve_lu_release(up->mem);
   gkyl_array_release(up->temp_var);
+
+  gkyl_nmat_release(up->As_surf);
+  gkyl_nmat_release(up->xs_surf);
+  gkyl_nmat_linsolve_lu_release(up->mem_surf);
+  gkyl_array_release(up->temp_var_surf);
   
   if (GKYL_IS_CU_ALLOC(up->flags))
     gkyl_cu_free(up->on_dev);

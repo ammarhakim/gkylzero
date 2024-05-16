@@ -8,12 +8,15 @@ EXTERN_C_BEG
 
 GKYL_CU_DH void pkpm_vars_pressure_1x_ser_p1(const double *bvar, const double *vlasov_pkpm_moms, double* GKYL_RESTRICT p_ij); 
 GKYL_CU_DH void pkpm_vars_p_force_1x_ser_p1(const double *prim_c, const double *div_b, double* GKYL_RESTRICT pkpm_accel); 
+GKYL_CU_DH int pkpm_vars_set_1x_ser_p1(int count, struct gkyl_nmat *A, struct gkyl_nmat *rhs, 
+  const double *vlasov_pkpm_moms, const double *euler_pkpm, const double *pkpm_div_ppar); 
+GKYL_CU_DH void pkpm_vars_surf_set_1x_ser_p1(int count, struct gkyl_nmat *A, struct gkyl_nmat *rhs, 
+  const double *vlasov_pkpm_moms, const double *euler_pkpm, const double *p_ij); 
 GKYL_CU_DH int pkpm_vars_u_set_1x_ser_p1(int count, struct gkyl_nmat *A, struct gkyl_nmat *rhs, 
   const double *vlasov_pkpm_moms, const double *euler_pkpm); 
+GKYL_CU_DH void pkpm_vars_copy_1x_ser_p1(int count, struct gkyl_nmat *x, double* GKYL_RESTRICT prim); 
+GKYL_CU_DH void pkpm_vars_surf_copy_1x_ser_p1(int count, struct gkyl_nmat *x, double* GKYL_RESTRICT prim_surf); 
 GKYL_CU_DH void pkpm_vars_u_copy_1x_ser_p1(int count, struct gkyl_nmat *x, double* GKYL_RESTRICT pkpm_u); 
-GKYL_CU_DH int pkpm_vars_set_1x_ser_p1(int count, struct gkyl_nmat *A, struct gkyl_nmat *rhs, 
-  const double *vlasov_pkpm_moms, const double *euler_pkpm, const double *p_ij, const double *pkpm_div_ppar); 
-GKYL_CU_DH void pkpm_vars_copy_1x_ser_p1(int count, struct gkyl_nmat *x, double* GKYL_RESTRICT prim, double* GKYL_RESTRICT prim_surf); 
 GKYL_CU_DH void pkpm_vars_integrated_1x_ser_p1(const double *vlasov_pkpm_moms, const double *euler_pkpm, 
   const double* prim, double* GKYL_RESTRICT pkpm_int_vars); 
 GKYL_CU_DH void pkpm_vars_io_1x_ser_p1(const double *vlasov_pkpm_moms, const double *euler_pkpm, 
@@ -48,12 +51,15 @@ GKYL_CU_DH double euler_pkpm_surfx_1x_ser_p1(const double *w, const double *dxv,
 
 GKYL_CU_DH void pkpm_vars_pressure_1x_ser_p2(const double *bvar, const double *vlasov_pkpm_moms, double* GKYL_RESTRICT p_ij); 
 GKYL_CU_DH void pkpm_vars_p_force_1x_ser_p2(const double *prim_c, const double *div_b, double* GKYL_RESTRICT pkpm_accel); 
+GKYL_CU_DH int pkpm_vars_set_1x_ser_p2(int count, struct gkyl_nmat *A, struct gkyl_nmat *rhs, 
+  const double *vlasov_pkpm_moms, const double *euler_pkpm, const double *pkpm_div_ppar); 
+GKYL_CU_DH void pkpm_vars_surf_set_1x_ser_p2(int count, struct gkyl_nmat *A, struct gkyl_nmat *rhs, 
+  const double *vlasov_pkpm_moms, const double *euler_pkpm, const double *p_ij); 
 GKYL_CU_DH int pkpm_vars_u_set_1x_ser_p2(int count, struct gkyl_nmat *A, struct gkyl_nmat *rhs, 
   const double *vlasov_pkpm_moms, const double *euler_pkpm); 
+GKYL_CU_DH void pkpm_vars_copy_1x_ser_p2(int count, struct gkyl_nmat *x, double* GKYL_RESTRICT prim); 
+GKYL_CU_DH void pkpm_vars_surf_copy_1x_ser_p2(int count, struct gkyl_nmat *x, double* GKYL_RESTRICT prim_surf); 
 GKYL_CU_DH void pkpm_vars_u_copy_1x_ser_p2(int count, struct gkyl_nmat *x, double* GKYL_RESTRICT pkpm_u); 
-GKYL_CU_DH int pkpm_vars_set_1x_ser_p2(int count, struct gkyl_nmat *A, struct gkyl_nmat *rhs, 
-  const double *vlasov_pkpm_moms, const double *euler_pkpm, const double *p_ij, const double *pkpm_div_ppar); 
-GKYL_CU_DH void pkpm_vars_copy_1x_ser_p2(int count, struct gkyl_nmat *x, double* GKYL_RESTRICT prim, double* GKYL_RESTRICT prim_surf); 
 GKYL_CU_DH void pkpm_vars_integrated_1x_ser_p2(const double *vlasov_pkpm_moms, const double *euler_pkpm, 
   const double* prim, double* GKYL_RESTRICT pkpm_int_vars); 
 GKYL_CU_DH void pkpm_vars_io_1x_ser_p2(const double *vlasov_pkpm_moms, const double *euler_pkpm, 
@@ -88,12 +94,15 @@ GKYL_CU_DH double euler_pkpm_surfx_1x_ser_p2(const double *w, const double *dxv,
 
 GKYL_CU_DH void pkpm_vars_pressure_1x_ser_p3(const double *bvar, const double *vlasov_pkpm_moms, double* GKYL_RESTRICT p_ij); 
 GKYL_CU_DH void pkpm_vars_p_force_1x_ser_p3(const double *prim_c, const double *div_b, double* GKYL_RESTRICT pkpm_accel); 
+GKYL_CU_DH int pkpm_vars_set_1x_ser_p3(int count, struct gkyl_nmat *A, struct gkyl_nmat *rhs, 
+  const double *vlasov_pkpm_moms, const double *euler_pkpm, const double *pkpm_div_ppar); 
+GKYL_CU_DH void pkpm_vars_surf_set_1x_ser_p3(int count, struct gkyl_nmat *A, struct gkyl_nmat *rhs, 
+  const double *vlasov_pkpm_moms, const double *euler_pkpm, const double *p_ij); 
 GKYL_CU_DH int pkpm_vars_u_set_1x_ser_p3(int count, struct gkyl_nmat *A, struct gkyl_nmat *rhs, 
   const double *vlasov_pkpm_moms, const double *euler_pkpm); 
+GKYL_CU_DH void pkpm_vars_copy_1x_ser_p3(int count, struct gkyl_nmat *x, double* GKYL_RESTRICT prim); 
+GKYL_CU_DH void pkpm_vars_surf_copy_1x_ser_p3(int count, struct gkyl_nmat *x, double* GKYL_RESTRICT prim_surf); 
 GKYL_CU_DH void pkpm_vars_u_copy_1x_ser_p3(int count, struct gkyl_nmat *x, double* GKYL_RESTRICT pkpm_u); 
-GKYL_CU_DH int pkpm_vars_set_1x_ser_p3(int count, struct gkyl_nmat *A, struct gkyl_nmat *rhs, 
-  const double *vlasov_pkpm_moms, const double *euler_pkpm, const double *p_ij, const double *pkpm_div_ppar); 
-GKYL_CU_DH void pkpm_vars_copy_1x_ser_p3(int count, struct gkyl_nmat *x, double* GKYL_RESTRICT prim, double* GKYL_RESTRICT prim_surf); 
 GKYL_CU_DH void pkpm_vars_integrated_1x_ser_p3(const double *vlasov_pkpm_moms, const double *euler_pkpm, 
   const double* prim, double* GKYL_RESTRICT pkpm_int_vars); 
 GKYL_CU_DH void pkpm_vars_io_1x_ser_p3(const double *vlasov_pkpm_moms, const double *euler_pkpm, 
@@ -128,12 +137,15 @@ GKYL_CU_DH double euler_pkpm_surfx_1x_ser_p3(const double *w, const double *dxv,
 
 GKYL_CU_DH void pkpm_vars_pressure_2x_ser_p1(const double *bvar, const double *vlasov_pkpm_moms, double* GKYL_RESTRICT p_ij); 
 GKYL_CU_DH void pkpm_vars_p_force_2x_ser_p1(const double *prim_c, const double *div_b, double* GKYL_RESTRICT pkpm_accel); 
+GKYL_CU_DH int pkpm_vars_set_2x_ser_p1(int count, struct gkyl_nmat *A, struct gkyl_nmat *rhs, 
+  const double *vlasov_pkpm_moms, const double *euler_pkpm, const double *pkpm_div_ppar); 
+GKYL_CU_DH void pkpm_vars_surf_set_2x_ser_p1(int count, struct gkyl_nmat *A, struct gkyl_nmat *rhs, 
+  const double *vlasov_pkpm_moms, const double *euler_pkpm, const double *p_ij); 
 GKYL_CU_DH int pkpm_vars_u_set_2x_ser_p1(int count, struct gkyl_nmat *A, struct gkyl_nmat *rhs, 
   const double *vlasov_pkpm_moms, const double *euler_pkpm); 
+GKYL_CU_DH void pkpm_vars_copy_2x_ser_p1(int count, struct gkyl_nmat *x, double* GKYL_RESTRICT prim); 
+GKYL_CU_DH void pkpm_vars_surf_copy_2x_ser_p1(int count, struct gkyl_nmat *x, double* GKYL_RESTRICT prim_surf); 
 GKYL_CU_DH void pkpm_vars_u_copy_2x_ser_p1(int count, struct gkyl_nmat *x, double* GKYL_RESTRICT pkpm_u); 
-GKYL_CU_DH int pkpm_vars_set_2x_ser_p1(int count, struct gkyl_nmat *A, struct gkyl_nmat *rhs, 
-  const double *vlasov_pkpm_moms, const double *euler_pkpm, const double *p_ij, const double *pkpm_div_ppar); 
-GKYL_CU_DH void pkpm_vars_copy_2x_ser_p1(int count, struct gkyl_nmat *x, double* GKYL_RESTRICT prim, double* GKYL_RESTRICT prim_surf); 
 GKYL_CU_DH void pkpm_vars_integrated_2x_ser_p1(const double *vlasov_pkpm_moms, const double *euler_pkpm, 
   const double* prim, double* GKYL_RESTRICT pkpm_int_vars); 
 GKYL_CU_DH void pkpm_vars_io_2x_ser_p1(const double *vlasov_pkpm_moms, const double *euler_pkpm, 
@@ -184,12 +196,15 @@ GKYL_CU_DH double euler_pkpm_surfy_2x_ser_p1(const double *w, const double *dxv,
 
 GKYL_CU_DH void pkpm_vars_pressure_2x_ser_p2(const double *bvar, const double *vlasov_pkpm_moms, double* GKYL_RESTRICT p_ij); 
 GKYL_CU_DH void pkpm_vars_p_force_2x_ser_p2(const double *prim_c, const double *div_b, double* GKYL_RESTRICT pkpm_accel); 
+GKYL_CU_DH int pkpm_vars_set_2x_ser_p2(int count, struct gkyl_nmat *A, struct gkyl_nmat *rhs, 
+  const double *vlasov_pkpm_moms, const double *euler_pkpm, const double *pkpm_div_ppar); 
+GKYL_CU_DH void pkpm_vars_surf_set_2x_ser_p2(int count, struct gkyl_nmat *A, struct gkyl_nmat *rhs, 
+  const double *vlasov_pkpm_moms, const double *euler_pkpm, const double *p_ij); 
 GKYL_CU_DH int pkpm_vars_u_set_2x_ser_p2(int count, struct gkyl_nmat *A, struct gkyl_nmat *rhs, 
   const double *vlasov_pkpm_moms, const double *euler_pkpm); 
+GKYL_CU_DH void pkpm_vars_copy_2x_ser_p2(int count, struct gkyl_nmat *x, double* GKYL_RESTRICT prim); 
+GKYL_CU_DH void pkpm_vars_surf_copy_2x_ser_p2(int count, struct gkyl_nmat *x, double* GKYL_RESTRICT prim_surf); 
 GKYL_CU_DH void pkpm_vars_u_copy_2x_ser_p2(int count, struct gkyl_nmat *x, double* GKYL_RESTRICT pkpm_u); 
-GKYL_CU_DH int pkpm_vars_set_2x_ser_p2(int count, struct gkyl_nmat *A, struct gkyl_nmat *rhs, 
-  const double *vlasov_pkpm_moms, const double *euler_pkpm, const double *p_ij, const double *pkpm_div_ppar); 
-GKYL_CU_DH void pkpm_vars_copy_2x_ser_p2(int count, struct gkyl_nmat *x, double* GKYL_RESTRICT prim, double* GKYL_RESTRICT prim_surf); 
 GKYL_CU_DH void pkpm_vars_integrated_2x_ser_p2(const double *vlasov_pkpm_moms, const double *euler_pkpm, 
   const double* prim, double* GKYL_RESTRICT pkpm_int_vars); 
 GKYL_CU_DH void pkpm_vars_io_2x_ser_p2(const double *vlasov_pkpm_moms, const double *euler_pkpm, 
@@ -240,12 +255,15 @@ GKYL_CU_DH double euler_pkpm_surfy_2x_ser_p2(const double *w, const double *dxv,
 
 GKYL_CU_DH void pkpm_vars_pressure_2x_ser_p3(const double *bvar, const double *vlasov_pkpm_moms, double* GKYL_RESTRICT p_ij); 
 GKYL_CU_DH void pkpm_vars_p_force_2x_ser_p3(const double *prim_c, const double *div_b, double* GKYL_RESTRICT pkpm_accel); 
+GKYL_CU_DH int pkpm_vars_set_2x_ser_p3(int count, struct gkyl_nmat *A, struct gkyl_nmat *rhs, 
+  const double *vlasov_pkpm_moms, const double *euler_pkpm, const double *pkpm_div_ppar); 
+GKYL_CU_DH void pkpm_vars_surf_set_2x_ser_p3(int count, struct gkyl_nmat *A, struct gkyl_nmat *rhs, 
+  const double *vlasov_pkpm_moms, const double *euler_pkpm, const double *p_ij); 
 GKYL_CU_DH int pkpm_vars_u_set_2x_ser_p3(int count, struct gkyl_nmat *A, struct gkyl_nmat *rhs, 
   const double *vlasov_pkpm_moms, const double *euler_pkpm); 
+GKYL_CU_DH void pkpm_vars_copy_2x_ser_p3(int count, struct gkyl_nmat *x, double* GKYL_RESTRICT prim); 
+GKYL_CU_DH void pkpm_vars_surf_copy_2x_ser_p3(int count, struct gkyl_nmat *x, double* GKYL_RESTRICT prim_surf); 
 GKYL_CU_DH void pkpm_vars_u_copy_2x_ser_p3(int count, struct gkyl_nmat *x, double* GKYL_RESTRICT pkpm_u); 
-GKYL_CU_DH int pkpm_vars_set_2x_ser_p3(int count, struct gkyl_nmat *A, struct gkyl_nmat *rhs, 
-  const double *vlasov_pkpm_moms, const double *euler_pkpm, const double *p_ij, const double *pkpm_div_ppar); 
-GKYL_CU_DH void pkpm_vars_copy_2x_ser_p3(int count, struct gkyl_nmat *x, double* GKYL_RESTRICT prim, double* GKYL_RESTRICT prim_surf); 
 GKYL_CU_DH void pkpm_vars_integrated_2x_ser_p3(const double *vlasov_pkpm_moms, const double *euler_pkpm, 
   const double* prim, double* GKYL_RESTRICT pkpm_int_vars); 
 GKYL_CU_DH void pkpm_vars_io_2x_ser_p3(const double *vlasov_pkpm_moms, const double *euler_pkpm, 
@@ -296,12 +314,15 @@ GKYL_CU_DH double euler_pkpm_surfy_2x_ser_p3(const double *w, const double *dxv,
 
 GKYL_CU_DH void pkpm_vars_pressure_3x_ser_p1(const double *bvar, const double *vlasov_pkpm_moms, double* GKYL_RESTRICT p_ij); 
 GKYL_CU_DH void pkpm_vars_p_force_3x_ser_p1(const double *prim_c, const double *div_b, double* GKYL_RESTRICT pkpm_accel); 
+GKYL_CU_DH int pkpm_vars_set_3x_ser_p1(int count, struct gkyl_nmat *A, struct gkyl_nmat *rhs, 
+  const double *vlasov_pkpm_moms, const double *euler_pkpm, const double *pkpm_div_ppar); 
+GKYL_CU_DH void pkpm_vars_surf_set_3x_ser_p1(int count, struct gkyl_nmat *A, struct gkyl_nmat *rhs, 
+  const double *vlasov_pkpm_moms, const double *euler_pkpm, const double *p_ij); 
 GKYL_CU_DH int pkpm_vars_u_set_3x_ser_p1(int count, struct gkyl_nmat *A, struct gkyl_nmat *rhs, 
   const double *vlasov_pkpm_moms, const double *euler_pkpm); 
+GKYL_CU_DH void pkpm_vars_copy_3x_ser_p1(int count, struct gkyl_nmat *x, double* GKYL_RESTRICT prim); 
+GKYL_CU_DH void pkpm_vars_surf_copy_3x_ser_p1(int count, struct gkyl_nmat *x, double* GKYL_RESTRICT prim_surf); 
 GKYL_CU_DH void pkpm_vars_u_copy_3x_ser_p1(int count, struct gkyl_nmat *x, double* GKYL_RESTRICT pkpm_u); 
-GKYL_CU_DH int pkpm_vars_set_3x_ser_p1(int count, struct gkyl_nmat *A, struct gkyl_nmat *rhs, 
-  const double *vlasov_pkpm_moms, const double *euler_pkpm, const double *p_ij, const double *pkpm_div_ppar); 
-GKYL_CU_DH void pkpm_vars_copy_3x_ser_p1(int count, struct gkyl_nmat *x, double* GKYL_RESTRICT prim, double* GKYL_RESTRICT prim_surf); 
 GKYL_CU_DH void pkpm_vars_integrated_3x_ser_p1(const double *vlasov_pkpm_moms, const double *euler_pkpm, 
   const double* prim, double* GKYL_RESTRICT pkpm_int_vars); 
 GKYL_CU_DH void pkpm_vars_io_3x_ser_p1(const double *vlasov_pkpm_moms, const double *euler_pkpm, 
@@ -368,12 +389,15 @@ GKYL_CU_DH double euler_pkpm_surfz_3x_ser_p1(const double *w, const double *dxv,
 
 GKYL_CU_DH void pkpm_vars_pressure_3x_ser_p2(const double *bvar, const double *vlasov_pkpm_moms, double* GKYL_RESTRICT p_ij); 
 GKYL_CU_DH void pkpm_vars_p_force_3x_ser_p2(const double *prim_c, const double *div_b, double* GKYL_RESTRICT pkpm_accel); 
+GKYL_CU_DH int pkpm_vars_set_3x_ser_p2(int count, struct gkyl_nmat *A, struct gkyl_nmat *rhs, 
+  const double *vlasov_pkpm_moms, const double *euler_pkpm, const double *pkpm_div_ppar); 
+GKYL_CU_DH void pkpm_vars_surf_set_3x_ser_p2(int count, struct gkyl_nmat *A, struct gkyl_nmat *rhs, 
+  const double *vlasov_pkpm_moms, const double *euler_pkpm, const double *p_ij); 
 GKYL_CU_DH int pkpm_vars_u_set_3x_ser_p2(int count, struct gkyl_nmat *A, struct gkyl_nmat *rhs, 
   const double *vlasov_pkpm_moms, const double *euler_pkpm); 
+GKYL_CU_DH void pkpm_vars_copy_3x_ser_p2(int count, struct gkyl_nmat *x, double* GKYL_RESTRICT prim); 
+GKYL_CU_DH void pkpm_vars_surf_copy_3x_ser_p2(int count, struct gkyl_nmat *x, double* GKYL_RESTRICT prim_surf); 
 GKYL_CU_DH void pkpm_vars_u_copy_3x_ser_p2(int count, struct gkyl_nmat *x, double* GKYL_RESTRICT pkpm_u); 
-GKYL_CU_DH int pkpm_vars_set_3x_ser_p2(int count, struct gkyl_nmat *A, struct gkyl_nmat *rhs, 
-  const double *vlasov_pkpm_moms, const double *euler_pkpm, const double *p_ij, const double *pkpm_div_ppar); 
-GKYL_CU_DH void pkpm_vars_copy_3x_ser_p2(int count, struct gkyl_nmat *x, double* GKYL_RESTRICT prim, double* GKYL_RESTRICT prim_surf); 
 GKYL_CU_DH void pkpm_vars_integrated_3x_ser_p2(const double *vlasov_pkpm_moms, const double *euler_pkpm, 
   const double* prim, double* GKYL_RESTRICT pkpm_int_vars); 
 GKYL_CU_DH void pkpm_vars_io_3x_ser_p2(const double *vlasov_pkpm_moms, const double *euler_pkpm, 
@@ -440,12 +464,15 @@ GKYL_CU_DH double euler_pkpm_surfz_3x_ser_p2(const double *w, const double *dxv,
 
 GKYL_CU_DH void pkpm_vars_pressure_3x_ser_p3(const double *bvar, const double *vlasov_pkpm_moms, double* GKYL_RESTRICT p_ij); 
 GKYL_CU_DH void pkpm_vars_p_force_3x_ser_p3(const double *prim_c, const double *div_b, double* GKYL_RESTRICT pkpm_accel); 
+GKYL_CU_DH int pkpm_vars_set_3x_ser_p3(int count, struct gkyl_nmat *A, struct gkyl_nmat *rhs, 
+  const double *vlasov_pkpm_moms, const double *euler_pkpm, const double *pkpm_div_ppar); 
+GKYL_CU_DH void pkpm_vars_surf_set_3x_ser_p3(int count, struct gkyl_nmat *A, struct gkyl_nmat *rhs, 
+  const double *vlasov_pkpm_moms, const double *euler_pkpm, const double *p_ij); 
 GKYL_CU_DH int pkpm_vars_u_set_3x_ser_p3(int count, struct gkyl_nmat *A, struct gkyl_nmat *rhs, 
   const double *vlasov_pkpm_moms, const double *euler_pkpm); 
+GKYL_CU_DH void pkpm_vars_copy_3x_ser_p3(int count, struct gkyl_nmat *x, double* GKYL_RESTRICT prim); 
+GKYL_CU_DH void pkpm_vars_surf_copy_3x_ser_p3(int count, struct gkyl_nmat *x, double* GKYL_RESTRICT prim_surf); 
 GKYL_CU_DH void pkpm_vars_u_copy_3x_ser_p3(int count, struct gkyl_nmat *x, double* GKYL_RESTRICT pkpm_u); 
-GKYL_CU_DH int pkpm_vars_set_3x_ser_p3(int count, struct gkyl_nmat *A, struct gkyl_nmat *rhs, 
-  const double *vlasov_pkpm_moms, const double *euler_pkpm, const double *p_ij, const double *pkpm_div_ppar); 
-GKYL_CU_DH void pkpm_vars_copy_3x_ser_p3(int count, struct gkyl_nmat *x, double* GKYL_RESTRICT prim, double* GKYL_RESTRICT prim_surf); 
 GKYL_CU_DH void pkpm_vars_integrated_3x_ser_p3(const double *vlasov_pkpm_moms, const double *euler_pkpm, 
   const double* prim, double* GKYL_RESTRICT pkpm_int_vars); 
 GKYL_CU_DH void pkpm_vars_io_3x_ser_p3(const double *vlasov_pkpm_moms, const double *euler_pkpm, 
@@ -512,12 +539,15 @@ GKYL_CU_DH double euler_pkpm_surfz_3x_ser_p3(const double *w, const double *dxv,
 
 GKYL_CU_DH void pkpm_vars_pressure_2x_tensor_p2(const double *bvar, const double *vlasov_pkpm_moms, double* GKYL_RESTRICT p_ij); 
 GKYL_CU_DH void pkpm_vars_p_force_2x_tensor_p2(const double *prim_c, const double *div_b, double* GKYL_RESTRICT pkpm_accel); 
+GKYL_CU_DH int pkpm_vars_set_2x_tensor_p2(int count, struct gkyl_nmat *A, struct gkyl_nmat *rhs, 
+  const double *vlasov_pkpm_moms, const double *euler_pkpm, const double *pkpm_div_ppar); 
+GKYL_CU_DH void pkpm_vars_surf_set_2x_tensor_p2(int count, struct gkyl_nmat *A, struct gkyl_nmat *rhs, 
+  const double *vlasov_pkpm_moms, const double *euler_pkpm, const double *p_ij); 
 GKYL_CU_DH int pkpm_vars_u_set_2x_tensor_p2(int count, struct gkyl_nmat *A, struct gkyl_nmat *rhs, 
   const double *vlasov_pkpm_moms, const double *euler_pkpm); 
+GKYL_CU_DH void pkpm_vars_copy_2x_tensor_p2(int count, struct gkyl_nmat *x, double* GKYL_RESTRICT prim); 
+GKYL_CU_DH void pkpm_vars_surf_copy_2x_tensor_p2(int count, struct gkyl_nmat *x, double* GKYL_RESTRICT prim_surf); 
 GKYL_CU_DH void pkpm_vars_u_copy_2x_tensor_p2(int count, struct gkyl_nmat *x, double* GKYL_RESTRICT pkpm_u); 
-GKYL_CU_DH int pkpm_vars_set_2x_tensor_p2(int count, struct gkyl_nmat *A, struct gkyl_nmat *rhs, 
-  const double *vlasov_pkpm_moms, const double *euler_pkpm, const double *p_ij, const double *pkpm_div_ppar); 
-GKYL_CU_DH void pkpm_vars_copy_2x_tensor_p2(int count, struct gkyl_nmat *x, double* GKYL_RESTRICT prim, double* GKYL_RESTRICT prim_surf); 
 GKYL_CU_DH void pkpm_vars_integrated_2x_tensor_p2(const double *vlasov_pkpm_moms, const double *euler_pkpm, 
   const double* prim, double* GKYL_RESTRICT pkpm_int_vars); 
 GKYL_CU_DH void pkpm_vars_io_2x_tensor_p2(const double *vlasov_pkpm_moms, const double *euler_pkpm, 

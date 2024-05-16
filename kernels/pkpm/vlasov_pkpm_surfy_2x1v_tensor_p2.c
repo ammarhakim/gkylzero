@@ -121,10 +121,10 @@ GKYL_CU_DH double vlasov_pkpm_surfy_2x1v_tensor_p2(const double *w, const double
   G_1_rl[7] = 1.58113883008419*G_1r[25]-1.224744871391589*G_1r[19]+0.7071067811865475*G_1r[15]; 
   G_1_rl[8] = 1.58113883008419*G_1r[26]-1.224744871391589*G_1r[24]+0.7071067811865475*G_1r[21]; 
 
-  const double *b_surf_lr = &bvar_surf_l[27]; 
-  const double *b_surf_cl = &bvar_surf_c[24]; 
-  const double *b_surf_cr = &bvar_surf_c[27]; 
-  const double *b_surf_rl = &bvar_surf_r[24]; 
+  const double *b_surf_lr = &bvar_surf_l[9]; 
+  const double *b_surf_cl = &bvar_surf_c[6]; 
+  const double *b_surf_cr = &bvar_surf_c[9]; 
+  const double *b_surf_rl = &bvar_surf_r[6]; 
 
   const double *u_surf_lr = &pkpm_prim_surf_l[33]; 
   const double *u_surf_cl = &pkpm_prim_surf_c[30]; 

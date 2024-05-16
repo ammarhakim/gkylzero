@@ -12,10 +12,10 @@ GKYL_CU_DH void em_div_b_z_3x_ser_p1(const double *dxv,
 
   const double dx1 = 2.0/dxv[2]; 
   const double *b_c = &bvar_c[16]; 
-  const double *b_surf_lr = &bvar_surf_l[68]; 
-  const double *b_surf_cl = &bvar_surf_c[64]; 
-  const double *b_surf_cr = &bvar_surf_c[68]; 
-  const double *b_surf_rl = &bvar_surf_r[64]; 
+  const double *b_surf_lr = &bvar_surf_l[20]; 
+  const double *b_surf_cl = &bvar_surf_c[16]; 
+  const double *b_surf_cr = &bvar_surf_c[20]; 
+  const double *b_surf_rl = &bvar_surf_r[16]; 
 
   double *max_b_l = &max_b[16]; 
   double *max_b_r = &max_b[20]; 

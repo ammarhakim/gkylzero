@@ -76,10 +76,10 @@ GKYL_CU_DH void pkpm_dist_div_ppar_z_3x1v_ser_p1(const double *w, const double *
   F_0_rl[10] = 0.7071067811865475*F_0r[18]-1.224744871391589*F_0r[22]; 
   F_0_rl[11] = 0.7071067811865475*F_0r[20]-1.224744871391589*F_0r[23]; 
 
-  const double *b_surf_lr = &bvar_surf_l[68]; 
-  const double *b_surf_cl = &bvar_surf_c[64]; 
-  const double *b_surf_cr = &bvar_surf_c[68]; 
-  const double *b_surf_rl = &bvar_surf_r[64]; 
+  const double *b_surf_lr = &bvar_surf_l[20]; 
+  const double *b_surf_cl = &bvar_surf_c[16]; 
+  const double *b_surf_cr = &bvar_surf_c[20]; 
+  const double *b_surf_rl = &bvar_surf_r[16]; 
 
   const double *pkpm_max_b_l = &pkpm_max_b[16]; 
   const double *pkpm_max_b_r = &pkpm_max_b[20]; 
