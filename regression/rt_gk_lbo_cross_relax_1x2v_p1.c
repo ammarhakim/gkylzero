@@ -124,7 +124,7 @@ create_ctx(void)
   double vpar_max_ion = 5.0 * vti; // Domain boundary (ion velocity space: parallel velocity direction).
   double mu_max_ion = mass_ion * pow(5.0*vti,2) / (2.0*B0); // Domain boundary (ion velocity space: magnetic moment direction).
 
-  double t_end = 0.01/nu_ion; // Final simulation time.
+  double t_end = 100.0/nu_ion; // Final simulation time.
   int num_frames = 10; // Number of output frames.
   int int_diag_calc_num = num_frames*100;
   double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.
@@ -182,7 +182,7 @@ evalDistElcInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT 
   double pi = app->pi;
   double n = app->n0;
   double uPar = app->uPare;
-  double T = app->TeIC;
+  double T = app->Te;
   double m = app->mass_elc;
   double B = app->B0;
   double alpha = app->alpha;
@@ -199,7 +199,7 @@ evalDistIonInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT 
   double pi = app->pi;
   double n = app->n0;
   double uPar = app->uPari;
-  double T = app->TiIC;
+  double T = app->Ti;
   double m = app->mass_ion;
   double B = app->B0;
   double alpha = app->alpha;
@@ -422,8 +422,8 @@ main(int argc, char **argv)
       .collide_with = { "ion" },
     },
     
-    .num_diag_moments = 5,
-    .diag_moments = { "M0", "M1", "M2", "M2par", "M2perp" },
+    .num_diag_moments = 6,
+    .diag_moments = { "M0", "M1", "M2", "M2par", "M2perp", "BiMaxwellianMoments" },
   };
 
   // Ion species.
@@ -452,8 +452,8 @@ main(int argc, char **argv)
       .collide_with = { "elc" },
     },
 
-    .num_diag_moments = 5,
-    .diag_moments = { "M0", "M1", "M2", "M2par", "M2perp" },
+    .num_diag_moments = 6,
+    .diag_moments = { "M0", "M1", "M2", "M2par", "M2perp", "BiMaxwellianMoments" },
   };
 
   // Field.
