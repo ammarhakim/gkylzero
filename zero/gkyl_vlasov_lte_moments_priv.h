@@ -4,6 +4,8 @@
 #include <gkyl_array.h>
 #include <gkyl_basis.h>
 #include <gkyl_dg_bin_ops.h>
+#include <gkyl_dg_calc_canonical_pb_vars.h>
+#include <gkyl_dg_calc_canonical_pb_vars_priv.h>
 #include <gkyl_eqn_type.h>
 #include <gkyl_range.h>
 
@@ -30,6 +32,14 @@ struct gkyl_vlasov_lte_moments
       struct gkyl_array *GammaV2;
       struct gkyl_array *GammaV_inv;
       struct gkyl_array *M0_minus_V_drift_dot_M1i;  
+    };
+    // canonical-pb model
+    struct {
+      struct gkyl_array *pressure_tensor;
+      struct gkyl_dg_updater_moment *M2ijcalc;
+      struct gkyl_array *h_ij_inv;
+      struct gkyl_array *det_h;
+      struct gkyl_dg_calc_canonical_pb_vars *can_pb_vars;
     };
   };
 
