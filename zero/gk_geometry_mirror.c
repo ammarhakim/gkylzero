@@ -40,7 +40,10 @@ gkyl_gk_geometry_mirror_new(struct gkyl_gk_geometry_inp *geometry_inp)
 {
   struct gk_geometry* gk_geom_3d;
   struct gk_geometry* gk_geom;
+  // First construct the uniform 3d geometry
   gk_geom_3d = gkyl_gk_geometry_mirror_advance(geometry_inp);
+  // The conversion array computational to field aligned is still computed
+  // in uniform geometry, so we need to deflate it
   if(geometry_inp->cdim < 3) {
     gkyl_gk_geometry_c2fa_deflate(gk_geom_3d, geometry_inp);
   } else {
@@ -48,13 +51,17 @@ gkyl_gk_geometry_mirror_new(struct gkyl_gk_geometry_inp *geometry_inp)
   }
   double nonuniform_frac = geometry_inp->nonuniform_map_fraction;
   if (nonuniform_frac > 0.0 & nonuniform_frac <= 1.0) {
-    // Copy deflate geometry if necessary
+    // Must deflate the 3Duniform geometry in order for the allgather to work
     if(geometry_inp->cdim < 3)
       gk_geom = gkyl_gk_geometry_deflate(gk_geom_3d, geometry_inp);
     else
       gk_geom = gkyl_gk_geometry_acquire(gk_geom_3d);
+    // We will allgather the bmag array onto bmag global so that each process has full access
+    // to evaluating global quantities of the magnetic field. This is neccisary to find the mirror throat
+    // and optimize for lowering dB/dCell
     struct gkyl_array *bmag_global = gkyl_array_new(GKYL_DOUBLE, geometry_inp->basis.num_basis, geometry_inp->global_ext.volume);
-    if (geometry_inp->use_gpu) { // Allgather is only a GPU operation, so we must copy these arrays to GPU, then back to CPU
+    if (geometry_inp->use_gpu) { 
+      // If on GPU, allgather is only a GPU operation, so we must copy these arrays to GPU, then back to CPU
       struct gkyl_array *bmag_global_dev = gkyl_array_cu_dev_new(GKYL_DOUBLE, geometry_inp->basis.num_basis, geometry_inp->global_ext.volume);
       struct gkyl_array *bmag_dev = gkyl_array_cu_dev_new(GKYL_DOUBLE, geometry_inp->basis.num_basis, geometry_inp->local_ext.volume);
       gkyl_array_copy(bmag_dev, gk_geom->bmag);
@@ -71,8 +78,9 @@ gkyl_gk_geometry_mirror_new(struct gkyl_gk_geometry_inp *geometry_inp)
     struct gkyl_mirror_geo_c2fa_ctx *c2fa_app = geometry_inp->mirror_geo_c2fa_ctx;
     gkyl_gk_geometry_release(gk_geom_3d); // release temporary 3d geometry
     gkyl_gk_geometry_release(gk_geom); // release 3d geometry
-    gkyl_array_release(c2fa_app->c2fa);
-    gkyl_array_release(c2fa_app->c2fa_deflate);
+    gkyl_array_release(c2fa_app->c2fa); // Release the 3d c2fa array from the uniform geometry
+    gkyl_array_release(c2fa_app->c2fa_deflate); // Release the 3d c2fa_deflate array from the uniform geometry
+    // Construct the non-uniform grid
     gk_geom_3d = gkyl_gk_geometry_mirror_advance(geometry_inp);
     if(geometry_inp->cdim < 3) {
       gkyl_gk_geometry_c2fa_deflate(gk_geom_3d, geometry_inp);
