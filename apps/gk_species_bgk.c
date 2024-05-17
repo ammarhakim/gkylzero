@@ -141,7 +141,7 @@ gk_species_bgk_cross_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s
     bgk->cross_moms[i] = mkarr(app->use_gpu, 3*app->confBasis.num_basis, app->local_ext.volume);
   }
     
-  bgk->betaGreenep1 = 1.0;
+  bgk->betaGreenep1 = 0.0;
 
   bgk->cross_bgk = gkyl_gyrokinetic_cross_prim_moms_bgk_new(&app->basis, &app->confBasis, app->use_gpu);
 }
@@ -241,12 +241,12 @@ gk_species_bgk_rhs(gkyl_gyrokinetic_app *app, const struct gk_species *species,
       app->gk_geom->bmag, app->gk_geom->bmag, species->info.mass, bgk->fmax);
     // First correct the density
     gkyl_gyrokinetic_maxwellian_correct_density_moment(bgk->corr_max, 
-      bgk->fmax, bgk->moms.marr, &species->local, &app->local);
+      bgk->fmax, bgk->cross_moms[i], &species->local, &app->local);
     // Correct all the moments of the projected gyrokinetic maxwellian distribution function.
     if (bgk->correct_all_moms) {
       struct gkyl_gyrokinetic_maxwellian_correct_status status_corr;
       status_corr = gkyl_gyrokinetic_maxwellian_correct_all_moments(bgk->corr_max, 
-        bgk->fmax, bgk->moms.marr, &species->local, &app->local);
+        bgk->fmax, bgk->cross_moms[i], &species->local, &app->local);
     } 
     // multiple the Maxwellian by the configuration-space Jacobian
     gkyl_dg_mul_conf_phase_op_range(&app->confBasis, &app->basis, bgk->fmax, 
