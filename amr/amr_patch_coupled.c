@@ -719,9 +719,9 @@ five_moment_update_patch(const struct gkyl_job_pool* job_pool, const struct gkyl
       for (int i = 0; i < num_patches; i++) {
         five_moment_copy_ctx[i] = (struct five_moment_copy_job_ctx) {
           .bidx = i,
-          .inp_elc = pdata[i].f_elc[2],
-          .inp_ion = pdata[i].f_ion[2],
-          .inp_maxwell = pdata[i].f_maxwell[2],
+          .inp_elc = pdata[i].f_elc[1],
+          .inp_ion = pdata[i].f_ion[1],
+          .inp_maxwell = pdata[i].f_maxwell[1],
           .out_elc = pdata[i].f_elc[0],
           .out_ion = pdata[i].f_ion[0],
           .out_maxwell = pdata[i].f_maxwell[0],
