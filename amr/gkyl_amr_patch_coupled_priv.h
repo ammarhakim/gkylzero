@@ -1,6 +1,7 @@
 #pragma once
 
 #include <gkyl_amr_block_priv.h>
+#include <gkyl_amr_patch_priv.h>
 
 // Definitions of private structs and APIs attached to these objects, for use in the coupled patch AMR subsystem.
 
@@ -65,7 +66,7 @@ struct five_moment_patch_data {
 // Job pool information context for updating patch-structured data for the coupled five-moment equations using threads.
 struct five_moment_update_patch_ctx {
   const struct five_moment_patch_data *pdata;
-  int bidx;
+  int pidx;
   int dir;
   double t_curr;
   double dt;

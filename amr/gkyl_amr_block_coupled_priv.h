@@ -105,7 +105,7 @@ struct five_moment_copy_job_ctx {
 * @param ghost Ghost cells in boundary region (to which values are copied).
 * @param ctx Context to pass to the function.
 */
-static void five_moment_wall_bc(double t, int nc, const double* GKYL_RESTRICT skin, double* GKYL_RESTRICT ghost, void* ctx);
+void five_moment_wall_bc(double t, int nc, const double* GKYL_RESTRICT skin, double* GKYL_RESTRICT ghost, void* ctx);
 
 /**
 * Boundary condition function for applying wall boundary conditions for the coupled ten-moment equations.
@@ -116,7 +116,7 @@ static void five_moment_wall_bc(double t, int nc, const double* GKYL_RESTRICT sk
 * @param ghost Ghost cells in boundary region (to which values are copied).
 * @param ctx Context to pass to the function.
 */
-static void ten_moment_wall_bc(double t, int nc, const double* GKYL_RESTRICT skin, double* GKYL_RESTRICT ghost, void* ctx);
+void ten_moment_wall_bc(double t, int nc, const double* GKYL_RESTRICT skin, double* GKYL_RESTRICT ghost, void* ctx);
 
 /**
 * Boundary condition function for applying wall boundary conditions for the Maxwell equations.
@@ -127,7 +127,7 @@ static void ten_moment_wall_bc(double t, int nc, const double* GKYL_RESTRICT ski
 * @param ghost Ghost cells in boundary region (to which values are copied).
 * @param ctx Context to pass to the function.
 */
-static void maxwell_wall_bc(double t, int nc, const double* GKYL_RESTRICT skin, double* GKYL_RESTRICT ghost, void* ctx);
+void maxwell_wall_bc(double t, int nc, const double* GKYL_RESTRICT skin, double* GKYL_RESTRICT ghost, void* ctx);
 
 /**
 * Boundary condition function for applying transmissive boundary conditions for the coupled five-moment equations.
@@ -138,7 +138,7 @@ static void maxwell_wall_bc(double t, int nc, const double* GKYL_RESTRICT skin, 
 * @param ghost Ghost cells in boundary region (to which values are copied).
 * @param ctx Context to pass to the function.
 */
-static void five_moment_transmissive_bc(double t, int nc, const double* GKYL_RESTRICT skin, double* GKYL_RESTRICT ghost, void* ctx);
+void five_moment_transmissive_bc(double t, int nc, const double* GKYL_RESTRICT skin, double* GKYL_RESTRICT ghost, void* ctx);
 
 /**
 * Boundary condition function for applying transmissive boundary conditions for the coupled ten-moment equations.
@@ -149,7 +149,7 @@ static void five_moment_transmissive_bc(double t, int nc, const double* GKYL_RES
 * @param ghost Ghost cells in boundary region (to which values are copied).
 * @param ctx Context to pass to the function.
 */
-static void ten_moment_transmissive_bc(double t, int nc, const double* GKYL_RESTRICT skin, double* GKYL_RESTRICT ghost, void* ctx);
+void ten_moment_transmissive_bc(double t, int nc, const double* GKYL_RESTRICT skin, double* GKYL_RESTRICT ghost, void* ctx);
 
 /**
 * Boundary condition function for applying transmissive boundary conditions for the Maxwell equations.
@@ -160,7 +160,7 @@ static void ten_moment_transmissive_bc(double t, int nc, const double* GKYL_REST
 * @param ghost Ghost cells in boundary region (to which values are copied).
 * @param ctx Context to pass to the function.
 */
-static void maxwell_transmissive_bc(double t, int nc, const double* GKYL_RESTRICT skin, double* GKYL_RESTRICT ghost, void* ctx);
+void maxwell_transmissive_bc(double t, int nc, const double* GKYL_RESTRICT skin, double* GKYL_RESTRICT ghost, void* ctx);
 
 /**
 * Initialize block AMR updaters for both physical (outer-block) and non-physical (inter-block) boundary conditions for the coupled five-moment equations.
