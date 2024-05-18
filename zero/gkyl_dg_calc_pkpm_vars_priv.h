@@ -12,15 +12,15 @@
 #include <assert.h>
 
 typedef int (*pkpm_set_t)(int count, struct gkyl_nmat *A, struct gkyl_nmat *rhs, 
-  const double *vlasov_pkpm_moms, const double *euler_pkpm, const double *pkpm_div_ppar);
+  const double *vlasov_pkpm_moms, const double *euler_pkpm, 
+  const double *p_ij, const double *pkpm_div_ppar);
 
-typedef void (*pkpm_surf_set_t)(int count, struct gkyl_nmat *A, struct gkyl_nmat *rhs, 
-  const double *vlasov_pkpm_moms, const double *euler_pkpm, const double *p_ij);
+typedef void (*pkpm_copy_t)(int count, struct gkyl_nmat *x, double* GKYL_RESTRICT prim, double* GKYL_RESTRICT prim_surf);
 
 typedef int (*pkpm_u_set_t)(int count, struct gkyl_nmat *A, struct gkyl_nmat *rhs, 
   const double *vlasov_pkpm_moms, const double *euler_pkpm);
 
-typedef void (*pkpm_copy_t)(int count, struct gkyl_nmat *x, double* GKYL_RESTRICT out);
+typedef void (*pkpm_u_copy_t)(int count, struct gkyl_nmat *x, double* GKYL_RESTRICT pkpm_u);
 
 typedef void (*pkpm_pressure_t)(const double *bvar, const double *vlasov_pkpm_moms, 
   double* GKYL_RESTRICT p_ij);
@@ -54,11 +54,9 @@ typedef void (*pkpm_limiter_t)(double limiter_fac, const struct gkyl_wv_eqn *wv_
 
 // for use in kernel tables
 typedef struct { pkpm_set_t kernels[3]; } gkyl_dg_pkpm_set_kern_list;
-typedef struct { pkpm_surf_set_t kernels[3]; } gkyl_dg_pkpm_surf_set_kern_list;
-typedef struct { pkpm_u_set_t kernels[3]; } gkyl_dg_pkpm_u_set_kern_list;
 typedef struct { pkpm_copy_t kernels[3]; } gkyl_dg_pkpm_copy_kern_list;
-typedef struct { pkpm_copy_t kernels[3]; } gkyl_dg_pkpm_surf_copy_kern_list;
-typedef struct { pkpm_copy_t kernels[3]; } gkyl_dg_pkpm_u_copy_kern_list;
+typedef struct { pkpm_u_set_t kernels[3]; } gkyl_dg_pkpm_u_set_kern_list;
+typedef struct { pkpm_u_copy_t kernels[3]; } gkyl_dg_pkpm_u_copy_kern_list;
 typedef struct { pkpm_pressure_t kernels[3]; } gkyl_dg_pkpm_pressure_kern_list;
 typedef struct { pkpm_p_force_t kernels[3]; } gkyl_dg_pkpm_p_force_kern_list;
 
@@ -83,21 +81,13 @@ struct gkyl_dg_calc_pkpm_vars {
   gkyl_nmat_mem *mem; // memory for use in batched linear solve
   int Ncomp; // number of components in the linear solve (6 variables being solved for)
 
-  struct gkyl_nmat *As_surf, *xs_surf; // matrices for LHS and RHS of surface variable solve
-  gkyl_nmat_mem *mem_surf; // memory for use in batched linear solve of surface variables
-  int Ncomp_surf; // number of components in the surface linear solve (2*cdim*3 + 2*cdim variables being solved for)
-
   struct gkyl_nmat *As_u, *xs_u; // matrices for LHS and RHS for flow velocity solve
   gkyl_nmat_mem *mem_u; // memory for use in batched linear solve for velocity
 
   pkpm_set_t pkpm_set;  // kernel for setting matrices for linear solve
-  pkpm_surf_set_t pkpm_surf_set;  // kernel for setting matrices for linear solve of surface variables
+  pkpm_copy_t pkpm_copy; // kernel for copying solution to output; also computed needed surface expansions
   pkpm_u_set_t pkpm_u_set;  // kernel for setting matrices for linear solve for flow velocity
-
-  pkpm_copy_t pkpm_copy; // kernel for copying solution to output volume variables
-  pkpm_copy_t pkpm_surf_copy; // kernel for copying solution to output surface variables
-  pkpm_copy_t pkpm_u_copy; // kernel for copying solution for volume flow velocity to output
-
+  pkpm_u_copy_t pkpm_u_copy; // kernel for copying solution for flow velocity to output
   pkpm_pressure_t pkpm_pressure; // kernel for computing pressure (Volume and surface expansion)
   pkpm_p_force_t pkpm_p_force; // kernel for computing pressure force p_force = 1/rho div(p_par b) - T_perp/m div(b)
 
@@ -112,7 +102,7 @@ struct gkyl_dg_calc_pkpm_vars {
   struct gkyl_dg_calc_pkpm_vars *on_dev; // pointer to itself or device data
 };
 
-// Set matrices for computing volume pkpm primitive vars, e.g., ux,uy,uz (Serendipity kernels)
+// Set matrices for computing pkpm primitive vars, e.g., ux,uy,uz (Serendipity kernels)
 GKYL_CU_D
 static const gkyl_dg_pkpm_set_kern_list ser_pkpm_set_kernels[] = {
   { NULL, pkpm_vars_set_1x_ser_p1, pkpm_vars_set_1x_ser_p2 }, // 0
@@ -120,7 +110,7 @@ static const gkyl_dg_pkpm_set_kern_list ser_pkpm_set_kernels[] = {
   { NULL, pkpm_vars_set_3x_ser_p1, NULL }, // 2
 };
 
-// Set matrices for computing volume pkpm primitive vars, e.g., ux,uy,uz (Tensor kernels)
+// Set matrices for computing pkpm primitive vars, e.g., ux,uy,uz (Tensor kernels)
 GKYL_CU_D
 static const gkyl_dg_pkpm_set_kern_list ten_pkpm_set_kernels[] = {
   { NULL, pkpm_vars_set_1x_ser_p1, pkpm_vars_set_1x_ser_p2 }, // 0
@@ -128,39 +118,7 @@ static const gkyl_dg_pkpm_set_kern_list ten_pkpm_set_kernels[] = {
   { NULL, pkpm_vars_set_3x_ser_p1, NULL }, // 2
 };
 
-// Set matrices for computing surface pkpm primitive vars, e.g., surface expansion of ux,uy,uz (Serendipity kernels)
-GKYL_CU_D
-static const gkyl_dg_pkpm_surf_set_kern_list ser_pkpm_surf_set_kernels[] = {
-  { NULL, pkpm_vars_surf_set_1x_ser_p1, pkpm_vars_surf_set_1x_ser_p2 }, // 0
-  { NULL, pkpm_vars_surf_set_2x_ser_p1, NULL }, // 1
-  { NULL, pkpm_vars_surf_set_3x_ser_p1, NULL }, // 2
-};
-
-// Set matrices for computing surface pkpm primitive vars, e.g., surface expansion of ux,uy,uz (Tensor kernels)
-GKYL_CU_D
-static const gkyl_dg_pkpm_surf_set_kern_list ten_pkpm_surf_set_kernels[] = {
-  { NULL, pkpm_vars_surf_set_1x_ser_p1, pkpm_vars_surf_set_1x_ser_p2 }, // 0
-  { NULL, pkpm_vars_surf_set_2x_ser_p1, pkpm_vars_surf_set_2x_tensor_p2 }, // 1
-  { NULL, pkpm_vars_surf_set_3x_ser_p1, NULL }, // 2
-};
-
-// Set matrices for computing volume flow velocity (Serendipity kernels)
-GKYL_CU_D
-static const gkyl_dg_pkpm_u_set_kern_list ser_pkpm_u_set_kernels[] = {
-  { NULL, pkpm_vars_u_set_1x_ser_p1, pkpm_vars_u_set_1x_ser_p2 }, // 0
-  { NULL, pkpm_vars_u_set_2x_ser_p1, NULL }, // 1
-  { NULL, pkpm_vars_u_set_3x_ser_p1, NULL }, // 2
-};
-
-// Set matrices for computing volume flow velocity (Tensor kernels)
-GKYL_CU_D
-static const gkyl_dg_pkpm_u_set_kern_list ten_pkpm_u_set_kernels[] = {
-  { NULL, pkpm_vars_u_set_1x_ser_p1, pkpm_vars_u_set_1x_ser_p2 }, // 0
-  { NULL, pkpm_vars_u_set_2x_ser_p1, pkpm_vars_u_set_2x_tensor_p2 }, // 1
-  { NULL, pkpm_vars_u_set_3x_ser_p1, NULL }, // 2
-};
-
-// Copy solution for volume pkpm primitive vars, e.g., ux,uy,uz (Serendipity kernels)
+// Copy solution for pkpm primitive vars, e.g., ux,uy,uz (Serendipity kernels)
 GKYL_CU_D
 static const gkyl_dg_pkpm_copy_kern_list ser_pkpm_copy_kernels[] = {
   { NULL, pkpm_vars_copy_1x_ser_p1, pkpm_vars_copy_1x_ser_p2 }, // 0
@@ -168,7 +126,7 @@ static const gkyl_dg_pkpm_copy_kern_list ser_pkpm_copy_kernels[] = {
   { NULL, pkpm_vars_copy_3x_ser_p1, NULL }, // 2
 };
 
-// Copy solution for volume pkpm primitive vars, e.g., ux,uy,uz (Tensor kernels)
+// Copy solution for pkpm primitive vars, e.g., ux,uy,uz (Tensor kernels)
 GKYL_CU_D
 static const gkyl_dg_pkpm_copy_kern_list ten_pkpm_copy_kernels[] = {
   { NULL, pkpm_vars_copy_1x_ser_p1, pkpm_vars_copy_1x_ser_p2 }, // 0
@@ -176,24 +134,23 @@ static const gkyl_dg_pkpm_copy_kern_list ten_pkpm_copy_kernels[] = {
   { NULL, pkpm_vars_copy_3x_ser_p1, NULL }, // 2
 };
 
-// Copy solution for surface pkpm primitive vars, e.g., surface expansion of ux,uy,uz (Serendipity kernels)
+// Set matrices for computing flow velocity (Serendipity kernels)
 GKYL_CU_D
-static const gkyl_dg_pkpm_surf_copy_kern_list ser_pkpm_surf_copy_kernels[] = {
-  { NULL, pkpm_vars_surf_copy_1x_ser_p1, pkpm_vars_surf_copy_1x_ser_p2 }, // 0
-  { NULL, pkpm_vars_surf_copy_2x_ser_p1, NULL }, // 1
-  { NULL, pkpm_vars_surf_copy_3x_ser_p1, NULL }, // 2
+static const gkyl_dg_pkpm_u_set_kern_list ser_pkpm_u_set_kernels[] = {
+  { NULL, pkpm_vars_u_set_1x_ser_p1, pkpm_vars_u_set_1x_ser_p2 }, // 0
+  { NULL, pkpm_vars_u_set_2x_ser_p1, NULL }, // 1
+  { NULL, pkpm_vars_u_set_3x_ser_p1, NULL }, // 2
 };
 
-// Copy solution for surface pkpm primitive vars, e.g., surface expansion of ux,uy,uz (Tensor kernels)
+// Set matrices for computing flow velocity (Tensor kernels)
 GKYL_CU_D
-static const gkyl_dg_pkpm_surf_copy_kern_list ten_pkpm_surf_copy_kernels[] = {
-  { NULL, pkpm_vars_surf_copy_1x_ser_p1, pkpm_vars_surf_copy_1x_ser_p2 }, // 0
-  { NULL, pkpm_vars_surf_copy_2x_ser_p1, pkpm_vars_surf_copy_2x_tensor_p2 }, // 1
-  { NULL, pkpm_vars_surf_copy_3x_ser_p1, NULL }, // 2
+static const gkyl_dg_pkpm_u_set_kern_list ten_pkpm_u_set_kernels[] = {
+  { NULL, pkpm_vars_u_set_1x_ser_p1, pkpm_vars_u_set_1x_ser_p2 }, // 0
+  { NULL, pkpm_vars_u_set_2x_ser_p1, pkpm_vars_u_set_2x_tensor_p2 }, // 1
+  { NULL, pkpm_vars_u_set_3x_ser_p1, NULL }, // 2
 };
 
-
-// Copy solution for volume flow velocity (Serendipity kernels)
+// Copy solution for flow velocity (Serendipity kernels)
 GKYL_CU_D
 static const gkyl_dg_pkpm_u_copy_kern_list ser_pkpm_u_copy_kernels[] = {
   { NULL, pkpm_vars_u_copy_1x_ser_p1, pkpm_vars_u_copy_1x_ser_p2 }, // 0
@@ -201,7 +158,7 @@ static const gkyl_dg_pkpm_u_copy_kern_list ser_pkpm_u_copy_kernels[] = {
   { NULL, pkpm_vars_u_copy_3x_ser_p1, NULL }, // 2
 };
 
-// Copy solution for volume flow velocity (Tensor kernels)
+// Copy solution for flow velocity (Tensor kernels)
 GKYL_CU_D
 static const gkyl_dg_pkpm_u_copy_kern_list ten_pkpm_u_copy_kernels[] = {
   { NULL, pkpm_vars_u_copy_1x_ser_p1, pkpm_vars_u_copy_1x_ser_p2 }, // 0
@@ -415,15 +372,15 @@ choose_pkpm_set_kern(enum gkyl_basis_type b_type, int cdim, int poly_order)
 }
 
 GKYL_CU_D
-static pkpm_surf_set_t
-choose_pkpm_surf_set_kern(enum gkyl_basis_type b_type, int cdim, int poly_order)
+static pkpm_copy_t
+choose_pkpm_copy_kern(enum gkyl_basis_type b_type, int cdim, int poly_order)
 {
   switch (b_type) {
     case GKYL_BASIS_MODAL_SERENDIPITY:
-      return ser_pkpm_surf_set_kernels[cdim-1].kernels[poly_order];
+      return ser_pkpm_copy_kernels[cdim-1].kernels[poly_order];
       break;
     case GKYL_BASIS_MODAL_TENSOR:
-      return ten_pkpm_surf_set_kernels[cdim-1].kernels[poly_order];
+      return ten_pkpm_copy_kernels[cdim-1].kernels[poly_order];
       break;
     default:
       assert(false);
@@ -449,41 +406,7 @@ choose_pkpm_u_set_kern(enum gkyl_basis_type b_type, int cdim, int poly_order)
 }
 
 GKYL_CU_D
-static pkpm_copy_t
-choose_pkpm_copy_kern(enum gkyl_basis_type b_type, int cdim, int poly_order)
-{
-  switch (b_type) {
-    case GKYL_BASIS_MODAL_SERENDIPITY:
-      return ser_pkpm_copy_kernels[cdim-1].kernels[poly_order];
-      break;
-    case GKYL_BASIS_MODAL_TENSOR:
-      return ten_pkpm_copy_kernels[cdim-1].kernels[poly_order];
-      break;
-    default:
-      assert(false);
-      break;  
-  }
-}
-
-GKYL_CU_D
-static pkpm_copy_t
-choose_pkpm_surf_copy_kern(enum gkyl_basis_type b_type, int cdim, int poly_order)
-{
-  switch (b_type) {
-    case GKYL_BASIS_MODAL_SERENDIPITY:
-      return ser_pkpm_surf_copy_kernels[cdim-1].kernels[poly_order];
-      break;
-    case GKYL_BASIS_MODAL_TENSOR:
-      return ten_pkpm_surf_copy_kernels[cdim-1].kernels[poly_order];
-      break;
-    default:
-      assert(false);
-      break;  
-  }
-}
-
-GKYL_CU_D
-static pkpm_copy_t
+static pkpm_u_copy_t
 choose_pkpm_u_copy_kern(enum gkyl_basis_type b_type, int cdim, int poly_order)
 {
   switch (b_type) {

@@ -12,10 +12,10 @@ GKYL_CU_DH void em_div_b_y_2x_tensor_p2(const double *dxv,
 
   const double dx1 = 2.0/dxv[1]; 
   const double *b_c = &bvar_c[9]; 
-  const double *b_surf_lr = &bvar_surf_l[9]; 
-  const double *b_surf_cl = &bvar_surf_c[6]; 
-  const double *b_surf_cr = &bvar_surf_c[9]; 
-  const double *b_surf_rl = &bvar_surf_r[6]; 
+  const double *b_surf_lr = &bvar_surf_l[27]; 
+  const double *b_surf_cl = &bvar_surf_c[24]; 
+  const double *b_surf_cr = &bvar_surf_c[27]; 
+  const double *b_surf_rl = &bvar_surf_r[24]; 
 
   double *max_b_l = &max_b[6]; 
   double *max_b_r = &max_b[9]; 

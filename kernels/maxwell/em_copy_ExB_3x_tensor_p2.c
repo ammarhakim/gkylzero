@@ -1,7 +1,7 @@
 #include <gkyl_mat.h> 
 #include <gkyl_maxwell_kernels.h> 
 GKYL_CU_DH void em_copy_ExB_3x_tensor_p2(int count, struct gkyl_nmat *x, const double *em, int* cell_avg_magB2, 
-  double* GKYL_RESTRICT ExB) 
+  double* GKYL_RESTRICT ExB, double* GKYL_RESTRICT ExB_surf) 
 { 
   // count:          Integer to indicate which matrix being fetched. 
   // x:              Input solution vector. 
