@@ -37,6 +37,15 @@ vm_species_bgk_init(struct gkyl_vlasov_app *app, struct vm_species *s, struct vm
     gkyl_array_copy(bgk->nu_init, bgk->self_nu);
   }
 
+  // Memory for the implicit coeff
+  if (app->use_gpu)
+    bgk->bgk_implicit_div_mem = gkyl_dg_bin_op_mem_cu_dev_new(app->local.volume, app->confBasis.num_basis);
+  else
+    bgk->bgk_implicit_div_mem = gkyl_dg_bin_op_mem_new(app->local.volume, app->confBasis.num_basis);
+  bgk->implicit_coeff = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
+  bgk->implicit_coeff_num = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
+  gkyl_array_clear(bgk->implicit_coeff_num, 1.0);
+
   // Host-side copy for I/O
   bgk->nu_sum_host = bgk->nu_sum;
   if (app->use_gpu) {
@@ -148,7 +157,16 @@ vm_species_bgk_rhs(gkyl_vlasov_app *app, const struct vm_species *species,
   gkyl_array_accumulate(bgk->nu_f_lte, 1.0, bgk->f_lte);
 
   gkyl_bgk_collisions_advance(bgk->up_bgk, &app->local, &species->local, 
-    bgk->nu_sum, bgk->nu_f_lte, fin, rhs, species->cflrate);
+    bgk->nu_sum, bgk->nu_f_lte, fin, bgk->implicit_step, rhs, species->cflrate);
+
+  // Add implicit contribution factor
+  if (bgk->implicit_step){
+    gkyl_array_clear(bgk->implicit_coeff, 1.0);
+    gkyl_array_accumulate(bgk->implicit_coeff,bgk->dt,bgk->nu_sum); 
+    gkyl_dg_div_op_range(bgk->bgk_implicit_div_mem, app->confBasis, 0, bgk->implicit_coeff, 0, bgk->implicit_coeff_num, 0, bgk->implicit_coeff, &app->local);
+    gkyl_dg_mul_conf_phase_op_range(&app->confBasis, &app->basis, rhs, 
+      bgk->implicit_coeff, rhs, &app->local, &species->local);
+  }
 
   app->stat.species_coll_tm += gkyl_time_diff_now_sec(wst);
 }
@@ -173,6 +191,10 @@ vm_species_bgk_release(const struct gkyl_vlasov_app *app, const struct vm_bgk_co
   }
 
   vm_species_moment_release(app, &bgk->moms);
+
+  gkyl_dg_bin_op_mem_release(bgk->bgk_implicit_div_mem);
+  gkyl_array_release(bgk->implicit_coeff);
+  gkyl_array_release(bgk->implicit_coeff_num);
 
   gkyl_vlasov_lte_proj_on_basis_release(bgk->proj_lte);
   if (bgk->correct_all_moms) {

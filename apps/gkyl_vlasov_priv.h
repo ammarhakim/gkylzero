@@ -180,6 +180,17 @@ struct vm_bgk_collisions {
   bool is_first_corr_status_write_call;
 
   struct gkyl_bgk_collisions *up_bgk; // BGK updater (also computes stable timestep)
+
+  bool implicit_step; // whether or not to take an implcit bgk step
+  union {
+    // function projection
+    struct {
+      struct gkyl_dg_bin_op_mem *bgk_implicit_div_mem; // memory used in the div-op for 1/implcit_coeff
+      struct gkyl_array *implicit_coeff; // Array of 1/(1 + nu*dt) used to update the implicit comp.
+      struct gkyl_array *implicit_coeff_num; // Array of the numerator of 1/(1 + nu*dt) used to update the implicit comp.
+      double dt;
+    };
+  };
 };
 
 struct vm_boundary_fluxes {
@@ -553,6 +564,8 @@ struct gkyl_vlasov_app {
   bool has_fluid_em_coupling; // Boolean for if there is implicit fluid-EM coupling
   struct vm_fluid_em_coupling *fl_em; // fluid-EM coupling data
 
+  bool has_imex_bgk_scheme; // Boolean for using imex bgk scheme (over explicit rk3)
+
   // pointer to function that takes a single-step of simulation
   struct gkyl_update_status (*update_func)(gkyl_vlasov_app *app, double dt0);
   
@@ -567,8 +580,18 @@ void vlasov_forward_euler(gkyl_vlasov_app* app, double tcurr, double dt,
   struct gkyl_array *fout[], struct gkyl_array *fluidout[], struct gkyl_array *emout, 
   struct gkyl_update_status *st);
 
+// The implicit contribution of the Vlasov-Maxwell system
+void vlasov_implicit_contribution(gkyl_vlasov_app* app, double tcurr, double dt,
+  const struct gkyl_array *fin[], const struct gkyl_array *fluidin[], const struct gkyl_array *emin,
+  struct gkyl_array *fout[], struct gkyl_array *fluidout[], struct gkyl_array *emout, 
+  struct gkyl_update_status *st);
+
 // Take a single time-step using a Strang split implicit fluid-EM coupling + SSP RK3
 struct gkyl_update_status vlasov_update_strang_split(gkyl_vlasov_app *app,
+  double dt0);
+
+// Take a single time-step using an IMEX SSP RK3 method (BGK is the stiff term)
+struct gkyl_update_status vlasov_update_imex_bgk(gkyl_vlasov_app *app,
   double dt0);
 
 // Take a single time-step using a SSP-RK3 stepper
@@ -914,12 +937,26 @@ void vm_species_calc_app_accel(gkyl_vlasov_app *app, struct vm_species *species,
  * @param fin Input distribution function
  * @param em EM field
  * @param rhs On output, the RHS from the species object
- * @param fluidin Input fluid array for potential fluid force (size: num_fluid_species)
  * @return Maximum stable time-step
  */
 double vm_species_rhs(gkyl_vlasov_app *app, struct vm_species *species,
   const struct gkyl_array *fin, const struct gkyl_array *em, 
   struct gkyl_array *rhs);
+
+/**
+ * Compute the *implicit* RHS from species distribution function
+ *
+ * @param app Vlasov app object
+ * @param species Pointer to species
+ * @param fin Input distribution function
+ * @param em EM field
+ * @param rhs On output, the RHS from the species object
+ * @param dt timestep size (used in the implcit coef.)
+ * @return Maximum stable time-step
+ */
+double vm_species_rhs_implicit(gkyl_vlasov_app *app, struct vm_species *species,
+  const struct gkyl_array *fin, const struct gkyl_array *em, 
+  struct gkyl_array *rhs, double dt);
 
 /**
  * Apply BCs to species distribution function

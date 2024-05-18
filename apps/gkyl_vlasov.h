@@ -65,6 +65,9 @@ struct gkyl_vlasov_collisions {
   double iter_eps; // error tolerance for moment fixes (density is always exact)
   int max_iter; // maximum number of iteration
 
+  // Boolean for using implicit BGK collisions (replaces rk3)   
+  bool has_imex_bgk_scheme; 
+
   int num_cross_collisions; // number of species to cross-collide with
   char collide_with[GKYL_MAX_SPECIES][128]; // names of species to cross collide with
 

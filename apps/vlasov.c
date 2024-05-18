@@ -238,12 +238,24 @@ gkyl_vlasov_app_new(struct gkyl_vm *vm)
     app->fl_em = vm_fluid_em_coupling_init(app);
   }
 
+  // Use implicit BGK collisions if specified
+  app->has_imex_bgk_scheme = false;
+  for (int i=0; i<ns; ++i){
+    if (vm->species[i].collisions.has_imex_bgk_scheme){
+      app->has_imex_bgk_scheme = true;
+    }
+  }
+
+
   // Set the appropriate update function for taking a single time step
   // If we have implicit fluid-EM coupling, we perform a Strang split on
   // the fluid-EM coupling and treat those terms implicitly. 
   // Otherwise, we default to an SSP-RK3 method. 
   if (app->has_fluid_em_coupling) {
     app->update_func = vlasov_update_strang_split;
+  }
+  else if (app->has_imex_bgk_scheme) {
+    app->update_func = vlasov_update_imex_bgk;
   }
   else {
     app->update_func = vlasov_update_ssp_rk3;

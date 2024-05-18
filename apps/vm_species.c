@@ -406,7 +406,8 @@ vm_species_rhs(gkyl_vlasov_app *app, struct vm_species *species,
   if (species->collision_id == GKYL_LBO_COLLISIONS) {
     vm_species_lbo_rhs(app, species, &species->lbo, fin, rhs);
   }
-  else if (species->collision_id == GKYL_BGK_COLLISIONS) {
+  else if (species->collision_id == GKYL_BGK_COLLISIONS && !app->has_imex_bgk_scheme) {
+    species->bgk.implicit_step = false;
     vm_species_bgk_rhs(app, species, &species->bgk, fin, rhs);
   }
   
@@ -425,6 +426,36 @@ vm_species_rhs(gkyl_vlasov_app *app, struct vm_species *species,
   
   return app->cfl/omegaCfl;
 }
+
+
+// Compute the implicit RHS for species update, returning maximum stable
+// time-step.
+double
+vm_species_rhs_implicit(gkyl_vlasov_app *app, struct vm_species *species,
+  const struct gkyl_array *fin, const struct gkyl_array *em, struct gkyl_array *rhs,
+  double dt)
+{
+
+  if (species->collision_id == GKYL_BGK_COLLISIONS && app->has_imex_bgk_scheme) {
+    vm_species_bgk_rhs(app, species, &species->bgk, fin, rhs);
+  }
+  
+  app->stat.nspecies_omega_cfl +=1;
+  struct timespec tm = gkyl_wall_clock();
+  gkyl_array_reduce_range(species->omegaCfl_ptr, species->cflrate, GKYL_MAX, &species->local);
+
+  double omegaCfl_ho[1];
+  if (app->use_gpu)
+    gkyl_cu_memcpy(omegaCfl_ho, species->omegaCfl_ptr, sizeof(double), GKYL_CU_MEMCPY_D2H);
+  else
+    omegaCfl_ho[0] = species->omegaCfl_ptr[0];
+  double omegaCfl = omegaCfl_ho[0];
+
+  app->stat.species_omega_cfl_tm += gkyl_time_diff_now_sec(tm);
+  
+  return app->cfl/omegaCfl;
+}
+
 
 // Determine which directions are periodic and which directions are not periodic,
 // and then apply boundary conditions for distribution function

@@ -32,13 +32,14 @@ gkyl_bgk_collisions* gkyl_bgk_collisions_new(const struct gkyl_basis *cbasis,
  * @param nu Sum of collision frequencies.
  * @param nufM Sum of collision frequencies times their respective Maxwellian.
  * @param fin Input distribution function.
+ * @param implicit_step  boolean of wheather or not to take an implicit step
  * @param out BGK contribution to df/dt.
  * @param cflfreq Output CFL frequency.
  */
 void gkyl_bgk_collisions_advance(const gkyl_bgk_collisions *up,
   const struct gkyl_range *crange, const struct gkyl_range *prange,
   const struct gkyl_array *nu, const struct gkyl_array *nufM, const struct gkyl_array *fin,
-  struct gkyl_array *out, struct gkyl_array *cflfreq);
+  bool implicit_step, struct gkyl_array *out, struct gkyl_array *cflfreq);
 
 /**
  * Delete updater.

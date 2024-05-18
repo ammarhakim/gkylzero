@@ -35,7 +35,7 @@ void
 gkyl_bgk_collisions_advance(const gkyl_bgk_collisions *up,
   const struct gkyl_range *crange, const struct gkyl_range *prange,
   const struct gkyl_array *nu, const struct gkyl_array *nufM, const struct gkyl_array *fin,
-  struct gkyl_array *out, struct gkyl_array *cflfreq)
+  bool implicit_step, struct gkyl_array *out, struct gkyl_array *cflfreq)
 {
   // Compute nu*f_M - nu*f, and its contribution to the CFL rate.
 #ifdef GKYL_HAVE_CUDA
@@ -62,8 +62,13 @@ gkyl_bgk_collisions_advance(const gkyl_bgk_collisions *up,
     array_acc1(up->pnum_basis, out_d, -1., incr);
 
     // Add contribution to CFL frequency.
-    double *cflfreq_d = gkyl_array_fetch(cflfreq, ploc);
-    cflfreq_d[0] += nu_d[0]*up->cellav_fac;
+    if(implicit_step){
+      // No CFL contribution in the implicit case
+    } 
+    else {
+      double *cflfreq_d = gkyl_array_fetch(cflfreq, ploc);
+      cflfreq_d[0] += nu_d[0]*up->cellav_fac;
+    }
   }
 }
 

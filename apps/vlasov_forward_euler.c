@@ -39,16 +39,9 @@ vlasov_forward_euler(gkyl_vlasov_app* app, double tcurr, double dt,
     if (app->species[i].collision_id == GKYL_LBO_COLLISIONS) {
       vm_species_lbo_moms(app, &app->species[i], &app->species[i].lbo, fin[i]);
     }
-    else if (app->species[i].collision_id == GKYL_BGK_COLLISIONS) {
+    else if (app->species[i].collision_id == GKYL_BGK_COLLISIONS && !app->has_imex_bgk_scheme) {
       vm_species_bgk_moms(app, &app->species[i], 
         &app->species[i].bgk, fin[i]);
-    }
-  }
-
-  // compute necessary moments and boundary corrections for collisions
-  for (int i=0; i<app->num_species; ++i) {
-    if (app->species[i].collision_id == GKYL_LBO_COLLISIONS) {
-      vm_species_lbo_moms(app, &app->species[i], &app->species[i].lbo, fin[i]);
     }
   }
 
