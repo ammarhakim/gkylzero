@@ -75,7 +75,6 @@ gk_species_projection_init(struct gkyl_gyrokinetic_app *app, struct gk_species *
       app->basis.poly_order+1, 1, inp.temppar, inp.ctx_temppar);
     proj->proj_tempperp = gkyl_proj_on_basis_new(&app->grid, &app->confBasis,
       app->basis.poly_order+1, 1, inp.tempperp, inp.ctx_tempperp);
-    printf("Here\n");
 
     proj->correct_all_moms = false;
     struct gkyl_gyrokinetic_maxwellian_correct_inp inp_corr = {
