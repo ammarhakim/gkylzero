@@ -377,34 +377,25 @@ struct gk_proj {
 
       struct gkyl_proj_on_basis *proj_dens; // projection operator for density
       struct gkyl_proj_on_basis *proj_upar; // projection operator for upar
-      
+      struct gkyl_array *vtsq; // host-side vth^2 = T/m (temperature/mass)
+      struct gkyl_proj_on_basis *proj_temp; // projection operator for temperature
       union {
-        // Maxwellian-specific arrays and functions
-        struct {
-          struct gkyl_array *vtsq; // host-side vth^2 = T/m (temperature/mass)
-          struct gkyl_proj_on_basis *proj_temp; // projection operator for temperature
-          union {
-            struct {         
-              struct gkyl_proj_maxwellian_on_basis *proj_max_prim; // Maxwellian projection object for GK
-              struct gkyl_gyrokinetic_maxwellian_correct *corr_max; // Maxwellian correction object for GK
-            };
-            struct { 
-              struct gkyl_array *udrift; // host-side udrift
-              struct gkyl_proj_on_basis *proj_udrift; // projection operator for udrift
-              struct gkyl_vlasov_lte_proj_on_basis *proj_lte; // Maxwellian projection object for Vlasov neutrals
-              struct gkyl_vlasov_lte_correct *corr_lte; // Maxwellian correction object for Vlasov neutrals
-            };     
-          };     
+        struct {         
+          struct gkyl_proj_maxwellian_on_basis *proj_max_prim; // Maxwellian projection object for GK
+          struct gkyl_gyrokinetic_maxwellian_correct *corr_max; // Maxwellian correction object for GK
         };
-        // Bi-Maxwellian-specific arrays and functions
-        struct {
-          struct gkyl_array *vtsqpar; // host-side vth_par^2 = Tpar/m (parallel temperature/mass)
-          struct gkyl_array *vtsqperp; // host-side vth_perp^2 = Tperp/m (perpendicular temperature/mass)
-          struct gkyl_proj_on_basis *proj_temppar; // projection operator for parallel temperature
-          struct gkyl_proj_on_basis *proj_tempperp; // projection operator for parallel temperature
-          struct gkyl_proj_bimaxwellian_on_basis *proj_bimax; // Bi-Maxwellian projection object
-        };
-      };
+        struct { 
+          struct gkyl_array *udrift; // host-side udrift
+          struct gkyl_proj_on_basis *proj_udrift; // projection operator for udrift
+          struct gkyl_vlasov_lte_proj_on_basis *proj_lte; // Maxwellian projection object for Vlasov neutrals
+          struct gkyl_vlasov_lte_correct *corr_lte; // Maxwellian correction object for Vlasov neutrals
+        };     
+      };  
+      struct gkyl_array *vtsqpar; // host-side vth_par^2 = Tpar/m (parallel temperature/mass)
+      struct gkyl_array *vtsqperp; // host-side vth_perp^2 = Tperp/m (perpendicular temperature/mass)
+      struct gkyl_proj_on_basis *proj_temppar; // projection operator for parallel temperature
+      struct gkyl_proj_on_basis *proj_tempperp; // projection operator for parallel temperature
+      struct gkyl_proj_bimaxwellian_on_basis *proj_bimax; // Bi-Maxwellian projection object
     };
   };
 };

@@ -75,6 +75,29 @@ gk_species_projection_init(struct gkyl_gyrokinetic_app *app, struct gk_species *
       app->basis.poly_order+1, 1, inp.temppar, inp.ctx_temppar);
     proj->proj_tempperp = gkyl_proj_on_basis_new(&app->grid, &app->confBasis,
       app->basis.poly_order+1, 1, inp.tempperp, inp.ctx_tempperp);
+    printf("Here\n");
+
+    proj->correct_all_moms = false;
+    struct gkyl_gyrokinetic_maxwellian_correct_inp inp_corr = {
+      .phase_grid = &s->grid,
+      .conf_basis = &app->confBasis,
+      .phase_basis = &app->basis,
+      .conf_range =  &app->local,
+      .conf_range_ext = &app->local_ext,
+      .vel_range = &s->local_vel,
+      .gk_geom = app->gk_geom,
+      .divide_jacobgeo = false, // final Jacobian multiplication will be handled in advance
+      .use_last_converged = false, // do not use the unconverged moments if the scheme fails to converge
+      .correct_bimaxwellian = true, // correct the Bimaxwellian moments
+      .mass = s->info.mass,
+      .use_gpu = app->use_gpu,
+      .max_iter = 50,
+      .eps = 1e-10,
+    };
+    proj->corr_max = gkyl_gyrokinetic_maxwellian_correct_inew( &inp_corr );
+    if (inp.correct_all_moms) {
+      proj->correct_all_moms = true;
+    }
 
     proj->proj_bimax = gkyl_proj_bimaxwellian_on_basis_new(&s->grid,
       &app->confBasis, &app->basis, app->basis.poly_order+1, app->use_gpu);
@@ -140,10 +163,16 @@ gk_species_projection_calc(gkyl_gyrokinetic_app *app, const struct gk_species *s
     // u_par and T/m as well using gyrokinetic_maxwellian_correct updater.
     gkyl_gyrokinetic_maxwellian_correct_density_moment(proj->corr_max, 
       f, proj->prim_moms, &s->local, &app->local);
-    if (proj->correct_all_moms && proj->proj_id == GKYL_PROJ_MAXWELLIAN_PRIM) {
+    if (proj->correct_all_moms) {
       struct gkyl_gyrokinetic_maxwellian_correct_status status_corr;
-      status_corr = gkyl_gyrokinetic_maxwellian_correct_all_moments(proj->corr_max, 
-        f, proj->prim_moms, &s->local, &app->local);      
+      if (proj->proj_id == GKYL_PROJ_MAXWELLIAN_PRIM) {
+        status_corr = gkyl_gyrokinetic_maxwellian_correct_all_moments(proj->corr_max, 
+          f, proj->prim_moms, &s->local, &app->local);    
+      }  
+      else if (proj->proj_id == GKYL_PROJ_BIMAXWELLIAN) {
+        status_corr = gkyl_gyrokinetic_bimaxwellian_correct_all_moments(proj->corr_max, 
+          f, proj->prim_moms, &s->local, &app->local);    
+      }  
     }
   }
   // Multiply by the configuration space jacobian.
