@@ -208,6 +208,7 @@ gk_species_projection_release(const struct gkyl_gyrokinetic_app *app, const stru
       gkyl_proj_on_basis_release(proj->proj_temppar);
       gkyl_proj_on_basis_release(proj->proj_tempperp);
       gkyl_proj_bimaxwellian_on_basis_release(proj->proj_bimax);
+      gkyl_gyrokinetic_maxwellian_correct_release(proj->corr_max);
     }
   }
 }
