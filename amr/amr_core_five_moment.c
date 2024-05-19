@@ -91,7 +91,7 @@ five_moment_1d_run_single(int argc, char **argv, struct five_moment_1d_single_in
     coarse_pdata[i].geom = gkyl_wave_geom_new(&coarse_pdata[i].grid, &coarse_pdata[i].ext_range, 0, 0, false);
 
 #ifdef AMR_DEBUG
-    gkyl_create_grid_ranges(&fine_pdata[i].grid, (int []) { 2  }, &fine_pdata[i].ext_range, &fine_pdata[i].range);
+    gkyl_create_grid_ranges(&fine_pdata[i].grid, (int []) { 2 }, &fine_pdata[i].ext_range, &fine_pdata[i].range);
     fine_pdata[i].geom = gkyl_wave_geom_new(&fine_pdata[i].grid, &fine_pdata[i].ext_range, 0, 0, false);
 #endif
   }
