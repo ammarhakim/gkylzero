@@ -261,8 +261,7 @@ gkyl_vlasov_app_new(struct gkyl_vm *vm)
     if (app->species[i].emit_up)
       vm_species_emission_cross_init(app, &app->species[i], &app->species[i].bc_emission_up);
   }
-  printf("Finished cross init\n");
-
+  
   // initialize each species cross-species terms: this has to be done here
   // as need pointers to colliding species' collision objects
   // allocated in the previous step
@@ -296,8 +295,6 @@ gkyl_vlasov_app_new(struct gkyl_vm *vm)
     .stage_2_dt_diff = { DBL_MAX, 0.0 },
     .stage_3_dt_diff = { DBL_MAX, 0.0 },
   };
-
-  printf("Finished init\n");
 
   return app;
 }
@@ -346,6 +343,18 @@ gkyl_vlasov_app_apply_ic(gkyl_vlasov_app* app, double t0)
     gkyl_vlasov_app_apply_ic_field(app, t0);
   for (int i=0; i<app->num_species; ++i)
     gkyl_vlasov_app_apply_ic_species(app, i, t0);
+  const struct gkyl_array *fin[app->num_species];
+  struct gkyl_array *fout[app->num_species];
+  for (int i=0; i<app->num_species; ++i) {
+          fin[i] = app->species[i].f;
+          fout[i] = app->species[i].f1;
+        }
+  for (int i=0; i<app->num_species; ++i) {
+    if (app->species[i].emit_lo)
+      vm_species_emission_rhs(app, &app->species[i].bc_emission_lo, fin);
+    if (app->species[i].emit_up)
+      vm_species_emission_rhs(app, &app->species[i].bc_emission_up, fin);
+  }
   for (int i=0; i<app->num_fluid_species; ++i)
     gkyl_vlasov_app_apply_ic_fluid_species(app, i, t0);
 }
@@ -365,18 +374,14 @@ gkyl_vlasov_app_apply_ic_field(gkyl_vlasov_app* app, double t0)
 void
 gkyl_vlasov_app_apply_ic_species(gkyl_vlasov_app* app, int sidx, double t0)
 {
-  printf("Here!\n");
   assert(sidx < app->num_species);
 
   app->tcurr = t0;
   struct timespec wtm = gkyl_wall_clock();
   vm_species_apply_ic(app, &app->species[sidx], t0);
-  printf("Apply IC done\n");
   app->stat.init_species_tm += gkyl_time_diff_now_sec(wtm);
 
-  printf("Apply BC\n");
   vm_species_apply_bc(app, &app->species[sidx], app->species[sidx].f);
-  printf("Done apply BC\n");
 }
 
 void
@@ -748,7 +753,6 @@ forward_euler(gkyl_vlasov_app* app, double tcurr, double dt,
   const struct gkyl_array *fin[], const struct gkyl_array *fluidin[], const struct gkyl_array *emin,
   struct gkyl_array *fout[], struct gkyl_array *fluidout[], struct gkyl_array *emout, struct gkyl_update_status *st)
 {
-  printf("Begin FE\n");
   app->stat.nfeuler += 1;
 
   double dtmin = DBL_MAX;
@@ -804,11 +808,10 @@ forward_euler(gkyl_vlasov_app* app, double tcurr, double dt,
   // initialize species wall emission terms: these rely
   // on other species which must be allocated in the previous step
   for (int i=0; i<app->num_species; ++i) {
-    printf("Begin loop\n");
     if (app->species[i].emit_lo)
-      vm_species_emission_rhs(app, &app->species[i].bc_emission_lo, fout);
+      vm_species_emission_rhs(app, &app->species[i].bc_emission_lo, fin);
     if (app->species[i].emit_up)
-      vm_species_emission_rhs(app, &app->species[i].bc_emission_up, fout);
+      vm_species_emission_rhs(app, &app->species[i].bc_emission_up, fin);
   }
   // compute source term
   // done here as the RHS update for all species should be complete before

@@ -18,7 +18,7 @@ vm_species_emission_cross_init(struct gkyl_vlasov_app *app, struct vm_species *s
 {
   int cdim = app->cdim;
   int vdim = app->vdim;
-  int bdir = (emit->edge = GKYL_LOWER_EDGE) ? 2*emit->dir : 2*emit->dir+1;
+  int bdir = (emit->edge == GKYL_LOWER_EDGE) ? 2*emit->dir : 2*emit->dir+1;
 
   int ghost[GKYL_MAX_DIM];
   for (int d=0; d<cdim; ++d) {
@@ -73,7 +73,7 @@ vm_species_emission_rhs(struct gkyl_vlasov_app *app, struct vm_emitting_wall *em
     gkyl_dg_updater_moment_advance(emit->flux_slvr[i], emit->impact_buff_r[i],
       emit->impact_cbuff_r[i], emit->bflux_arr[i], emit->flux[i]);
     
-    gkyl_bc_emission_spectrum_advance(emit->update[i], emit->impact_skin_r[i], emit->impact_ghost_r[i], emit->impact_cbuff_r[i], &emit->emit_ghost_r[i], rhs[species_idx], emit->yield[i], emit->spectrum[i], emit->weight[i], emit->flux[i], emit->k[i]);
+    gkyl_bc_emission_spectrum_advance(emit->update[i], emit->impact_skin_r[i], emit->impact_buff_r[i], emit->impact_cbuff_r[i], &emit->emit_ghost_r[i], rhs[species_idx], emit->yield[i], emit->spectrum[i], emit->weight[i], emit->flux[i], emit->k[i]);
   }
 }
 

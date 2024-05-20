@@ -307,32 +307,16 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
 void
 vm_species_apply_ic(gkyl_vlasov_app *app, struct vm_species *species, double t0)
 {
-  printf("0\n");
   vm_species_projection_calc(app, species, &species->proj_init, species->f, t0);
 
   // Pre-compute applied acceleration in case it's time-independent
   vm_species_calc_accel(app, species, t0);
 
-  printf("1\n");
   // we are pre-computing source for now as it is time-independent
   vm_species_source_calc(app, species, &species->src, t0);
 
-  printf("2\n");
   vm_species_bflux_rhs(app, species, &species->bflux, species->f, species->f1);
-  const struct gkyl_array *fin[app->num_species];
-  struct gkyl_array *fout[app->num_species];
-  for (int i=0; i<app->num_species; ++i) {
-          fin[i] = app->species[i].f;
-          fout[i] = app->species[i].f1;
-        }
-  for (int i=0; i<app->num_species; ++i) {
-    if (app->species[i].emit_lo)
-      vm_species_emission_rhs(app, &app->species[i].bc_emission_lo, fout);
-    if (app->species[i].emit_up)
-      vm_species_emission_rhs(app, &app->species[i].bc_emission_up, fout);
-  }
-  printf("3\n");
-
+  
   // copy contents of initial conditions into buffer if specific BCs require them
   // *only works in x dimension for now*
   /* gkyl_bc_basic_buffer_fixed_func(species->bc_lo[0], species->bc_buffer_lo_fixed, species->f); */

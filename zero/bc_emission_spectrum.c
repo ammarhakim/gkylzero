@@ -54,11 +54,10 @@ gkyl_bc_emission_spectrum_sey_calc(const struct gkyl_bc_emission_spectrum *up, s
   double xc[GKYL_MAX_DIM];
   
   struct gkyl_range_iter iter;
-  gkyl_range_iter_init(&iter, ghost_r);
+  gkyl_range_iter_init(&iter, gamma_r);
   while (gkyl_range_iter_next(&iter)) {
-    long loc = gkyl_range_idx(ghost_r, iter.idx);
-    long loc2 = gkyl_range_idx(gamma_r, iter.idx);
-    double *out = gkyl_array_fetch(yield, loc2);
+    long loc = gkyl_range_idx(gamma_r, iter.idx);
+    double *out = gkyl_array_fetch(yield, loc);
     gkyl_rect_grid_cell_center(grid, iter.idx, xc);
     up->funcs->yield(out, up->cdim, up->vdim, xc, up->yield_param);
   }

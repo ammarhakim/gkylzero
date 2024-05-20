@@ -492,7 +492,6 @@ struct gkyl_array*
 gkyl_array_copy_range_to_range(struct gkyl_array *out,
   const struct gkyl_array *inp, struct gkyl_range *out_range, struct gkyl_range *inp_range)
 {
-  printf("%ld, %ld, %ld, %ld\n", out->elemsz, inp->elemsz, out_range->volume, inp_range->volume);
   assert(out->elemsz == inp->elemsz);
   assert((inp_range->volume < 1) || (out_range->volume == inp_range->volume));
 

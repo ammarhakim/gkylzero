@@ -43,16 +43,13 @@ GKYL_CU_D
 static void
 chung_everhart_spec(double t, const double *xn, double *fout, void *ctx)
 {
-  printf("Spec\n");
   struct gkyl_bc_emission_spectrum *bc_ctx = ctx;
   struct gkyl_bc_emission_spectrum_norm_chung_everhart *param = bc_ctx->norm_param;
-  printf("Unpack\n");
   int cdim = bc_ctx->cdim;
   int vdim = bc_ctx->vdim;
   double mass = param->mass;
   double charge = param->charge;
   double phi = param->phi;
-  printf("Specs = [%d, %d, %f, %f, %f]\n", cdim, vdim, mass, charge, phi);
 
   double E = 0.0;
   double mu = 1.0; // currently hardcoded to normal, will add angular dependence later
@@ -127,7 +124,6 @@ chung_everhart_norm(double *out, const double *flux, void *norm_param, double ef
   double phi = param->phi;
   
   out[0] = 6.0*effective_delta*flux[0]*phi*phi*mass/fabs(charge);
-  printf("params = [%f, %f, %f, %f, %f, %f]\n", mass, charge, phi, effective_delta, flux[0], out[0]);
 }
 
 // Gaussian normalization factor
@@ -162,7 +158,6 @@ furman_pivi_yield(double *out, int cdim, int vdim, double xc[GKYL_MAX_DIM],
   void *yield_param)
 // Electron impact model adapted from https://link.aps.org/doi/10.1103/PhysRevSTAB.5.124404
 {
-  printf("Furman!\n");
   struct gkyl_bc_emission_spectrum_yield_furman_pivi *param = yield_param;
   double mass = param->mass;
   double charge = param->charge;
@@ -173,22 +168,16 @@ furman_pivi_yield(double *out, int cdim, int vdim, double xc[GKYL_MAX_DIM],
   double t3 = param->t3;
   double t4 = param->t4;
   double s = param->s;
-  printf("furman_params = [%f, %f, %f, %f, %f, %f, %f, %f, %f]\n", mass, charge, deltahat_ts, Ehat_ts, t1, t2, t3, t4, s);
 
   double E = 0.0;
   double mu = 1.0; // currently hardcoded to normal, will add angular dependence later
-  printf("30\n");
   for (int d=0; d<vdim; d++) {
     E += 0.5*mass*xc[cdim+d]*xc[cdim+d]/fabs(charge);
   }
-  printf("31\n");
   double deltahat = deltahat_ts*(1 + t1*(1 - pow(mu, t2)));
   double Ehat = Ehat_ts*(1 + t3*(1 - pow(mu, t4)));
   double x = E/Ehat;
-  printf("32\n");
-
   out[0] = deltahat*s*x/(s - 1 + pow(x, s));
-  printf("33\n");
 }
 
 // Schou SEY calculation
