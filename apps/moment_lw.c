@@ -893,6 +893,31 @@ mom_app_new(lua_State *L)
   return 1;
 }
 
+// Return number of species () -> int
+static int
+mom_app_num_species(lua_State *L)
+{
+  struct moment_app_lw **l_app_lw = GKYL_CHECK_UDATA(L, MOMENT_APP_METATABLE_NM);
+  struct moment_app_lw *app_lw = *l_app_lw;
+
+  lua_pushnumber(L, app_lw->app->num_species);
+
+  return 1;
+}
+
+// Return number of species (int) -> string
+static int
+mom_app_species_name(lua_State *L)
+{
+  struct moment_app_lw **l_app_lw = GKYL_CHECK_UDATA(L, MOMENT_APP_METATABLE_NM);
+  struct moment_app_lw *app_lw = *l_app_lw;
+
+  int idx = luaL_checkinteger(L, 2)-1;
+  lua_pushstring(L, app_lw->app->species[idx].name);
+
+  return 1;
+}
+
 // Compute maximum time-step () -> double
 static int
 mom_app_max_dt(lua_State *L)
@@ -1387,7 +1412,10 @@ static struct luaL_Reg mom_app_ctor[] = {
 
 // App methods
 static struct luaL_Reg mom_app_funcs[] = {
-  { "max_dt", mom_app_max_dt },
+  { "num_species", mom_app_num_species },
+  { "species_name", mom_app_species_name },
+
+  { "max_dt", mom_app_max_dt },  
 
   { "apply_ic", mom_app_apply_ic },
   { "apply_ic_field", mom_app_apply_ic_field },
