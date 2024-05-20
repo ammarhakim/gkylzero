@@ -244,5 +244,8 @@ void gkyl_dg_calc_pkpm_vars_io_cu(struct gkyl_dg_calc_pkpm_vars *up,
   struct gkyl_array* fluid_io, struct gkyl_array* pkpm_vars_io);
 
 void gkyl_dg_calc_pkpm_vars_limiter_cu(struct gkyl_dg_calc_pkpm_vars *up, 
-  const struct gkyl_range *conf_range, struct gkyl_array* fluid);
+  const struct gkyl_range *conf_range, const struct gkyl_array* prim, 
+  const struct gkyl_array* vlasov_pkpm_moms, const struct gkyl_array* p_ij, 
+  struct gkyl_array* fluid);
+
 
