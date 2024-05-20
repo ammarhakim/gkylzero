@@ -27,7 +27,7 @@ struct gkyl_dg_calc_canonical_pb_vars {
   canonical_pb_alpha_surf_t alpha_surf[6]; // kernel for computing surface expansion of phase space flux alpha
   canonical_pb_alpha_surf_t alpha_edge_surf[3]; // kernel for computing surface expansion of phase space flux alpha
                                                // at upper configuration space edge
-  canonical_pb_pressure_t canonical_pb_pressure[3]; // Canonical pb pressure
+  canonical_pb_pressure_t canonical_pb_pressure; // Canonical pb pressure
   uint32_t flags;
   struct gkyl_dg_calc_canonical_pb_vars *on_dev; // pointer to itself or device data
 };
@@ -167,8 +167,5 @@ GKYL_CU_D
 static canonical_pb_pressure_t
 choose_canonical_pb_pressure_kern(int cdim, int poly_order)
 {
-  if ((cdim == 1) || (cdim == 2) || (cdim == 3))
-    return ser_canonical_pb_pressure_kernels[cdim-1].kernels[poly_order];
-  else
-    return NULL;
+  return ser_canonical_pb_pressure_kernels[cdim-1].kernels[poly_order];
 }
