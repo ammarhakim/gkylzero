@@ -436,6 +436,9 @@ vm_species_rhs_implicit(gkyl_vlasov_app *app, struct vm_species *species,
   double dt)
 {
 
+  gkyl_array_clear(species->cflrate, 0.0);
+  gkyl_array_clear(rhs, 0.0);
+
   if (species->collision_id == GKYL_BGK_COLLISIONS && app->has_imex_bgk_scheme) {
     vm_species_bgk_rhs(app, species, &species->bgk, fin, rhs);
   }
