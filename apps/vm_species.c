@@ -150,6 +150,21 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
       s->hamil_host = mkarr(false, app->basis.num_basis, s->local_ext.volume);
     }
 
+    // Allocate arrays for specified metric inverse
+    s->h_ij_inv = mkarr(app->use_gpu, app->confBasis.num_basis*cdim*(cdim+1)/2, app->local_ext.volume);
+    s->h_ij_inv_host = s->h_ij_inv;
+    if (app->use_gpu){
+      s->h_ij_inv_host = mkarr(false, app->confBasis.num_basis*cdim*(cdim+1)/2, app->local_ext.volume);
+    }
+
+    // Allocate arrays for specified metric determinant
+    s->det_h = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
+    s->det_h_host = s->det_h;
+    if (app->use_gpu){
+      s->det_h_host = mkarr(false, app->confBasis.num_basis, app->local_ext.volume);
+    }
+
+
     // Evaluate specified hamiltonian function at nodes to insure continuity of hamiltoniam
     struct gkyl_eval_on_nodes* hamil_proj = gkyl_eval_on_nodes_new(&s->grid, &app->basis, 1, s->info.hamil, s->info.hamil_ctx);
     gkyl_eval_on_nodes_advance(hamil_proj, 0.0, &s->local_ext, s->hamil_host);
@@ -157,6 +172,22 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
       gkyl_array_copy(s->hamil, s->hamil_host);
     }
     gkyl_eval_on_nodes_release(hamil_proj);
+
+    // Evaluate specified inverse metric function at nodes to insure continuity of the inverse 
+    struct gkyl_eval_on_nodes* h_ij_inv_proj = gkyl_eval_on_nodes_new(&app->grid, &app->confBasis, cdim*(cdim+1)/2, s->info.h_ij_inv, s->info.h_ij_inv_ctx);
+    gkyl_eval_on_nodes_advance(h_ij_inv_proj, 0.0, &app->local, s->h_ij_inv_host);
+    if (app->use_gpu){
+      gkyl_array_copy(s->h_ij_inv, s->h_ij_inv_host);
+    }
+    gkyl_eval_on_nodes_release(h_ij_inv_proj);
+
+    // Evaluate specified determinant metric function at nodes to insure continuity of the determinant
+    struct gkyl_eval_on_nodes* det_h_proj = gkyl_eval_on_nodes_new(&app->grid, &app->confBasis, 1, s->info.det_h, s->info.det_h_ctx);
+    gkyl_eval_on_nodes_advance(det_h_proj, 0.0, &app->local, s->det_h_host);
+    if (app->use_gpu){
+      gkyl_array_copy(s->det_h, s->det_h_host);
+    }
+    gkyl_eval_on_nodes_release(det_h_proj);
 
     // Need to figure out size of alpha_surf and sgn_alpha_surf by finding size of surface basis set 
     struct gkyl_basis surf_basis, surf_quad_basis;
@@ -190,7 +221,6 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
     //create solver
     s->slvr = gkyl_dg_updater_vlasov_new(&s->grid, &app->confBasis, &app->basis, 
       &app->local, &s->local_vel, &s->local, is_zero_flux, s->model_id, s->field_id, &aux_inp, app->use_gpu);
-
   }
   else {
     // by default, we do not have zero-flux boundary conditions in any direction
@@ -552,11 +582,15 @@ vm_species_release(const gkyl_vlasov_app* app, const struct vm_species *s)
   }
   else if (s->model_id == GKYL_MODEL_CANONICAL_PB) {
     gkyl_array_release(s->hamil);
+    gkyl_array_release(s->h_ij_inv);
+    gkyl_array_release(s->det_h);
     gkyl_array_release(s->alpha_surf);
     gkyl_array_release(s->sgn_alpha_surf);
     gkyl_array_release(s->const_sgn_alpha);
     if (app->use_gpu){
       gkyl_array_release(s->hamil_host);
+      gkyl_array_release(s->h_ij_inv_host);
+      gkyl_array_release(s->det_h_host);
     }
   }
 

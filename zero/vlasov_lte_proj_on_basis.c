@@ -146,6 +146,12 @@ gkyl_vlasov_lte_proj_on_basis_inew(const struct gkyl_vlasov_lte_proj_on_basis_in
   if (inp->model_id == GKYL_MODEL_SR) {
     up->is_relativistic = true;
   }
+  up->is_canonical_pb = false;
+  if (inp->model_id == GKYL_MODEL_CANONICAL_PB) {
+    up->h_ij_inv = gkyl_array_acquire(inp->h_ij_inv);
+    up->det_h = gkyl_array_acquire(inp->det_h);
+    up->is_canonical_pb = true;
+  }
 
   // JJ 2024/03/23: device kernel has arrays hard-coded to 3x, vdim=3, p=2 for now.
   if (up->use_gpu) {
@@ -205,6 +211,8 @@ gkyl_vlasov_lte_proj_on_basis_inew(const struct gkyl_vlasov_lte_proj_on_basis_in
     .p_over_gamma = inp->p_over_gamma,
     .gamma = inp->gamma,
     .gamma_inv = inp->gamma_inv,
+    .h_ij_inv = inp->h_ij_inv,
+    .det_h = inp->det_h,
     .model_id = inp->model_id,
     .mass = inp->mass,
     .use_gpu = inp->use_gpu,
@@ -276,6 +284,8 @@ gkyl_vlasov_lte_proj_on_basis_advance(gkyl_vlasov_lte_proj_on_basis *up,
 
   double xc[GKYL_MAX_DIM], xmu[GKYL_MAX_DIM];
   double n_quad[tot_conf_quad], V_drift_quad[tot_conf_quad][vdim], T_over_m_quad[tot_conf_quad];
+  double h_ij_inv_quad[tot_conf_quad][vdim*(vdim + 1)/2];
+  double det_h_quad[tot_conf_quad];
   double V_drift_quad_cell_avg[tot_conf_quad][vdim];
   double expamp_quad[tot_conf_quad];
 
@@ -289,6 +299,12 @@ gkyl_vlasov_lte_proj_on_basis_advance(gkyl_vlasov_lte_proj_on_basis *up,
     const double *n_d = moms_lte_d;
     const double *V_drift_d = &moms_lte_d[num_conf_basis];
     const double *T_over_m_d = &moms_lte_d[num_conf_basis*(vdim+1)];
+    const double *h_ij_inv_d;
+    const double *det_h_d;
+    if (up->is_canonical_pb) {
+      h_ij_inv_d = gkyl_array_cfetch(up->h_ij_inv, midx);
+      det_h_d = gkyl_array_cfetch(up->det_h, midx);
+    }
 
     // Sum over basis for given LTE moments (n, V_drift, T/m) in the stationary frame
     for (int n=0; n<tot_conf_quad; ++n) {
@@ -312,10 +328,28 @@ gkyl_vlasov_lte_proj_on_basis_advance(gkyl_vlasov_lte_proj_on_basis *up,
         T_over_m_quad[n] += T_over_m_d[k]*b_ord[k];
       }
 
+      if (up->is_canonical_pb) {
+        det_h_quad[n] = 0.0;
+        for (int k=0; k<num_conf_basis; ++k) {
+          for (int j=0; j<vdim*(vdim+1)/2; ++j) {
+            h_ij_inv_quad[n][j] = 0;
+          }
+        }
+        for (int k=0; k<num_conf_basis; ++k) {
+          det_h_quad[n] += det_h_d[k]*b_ord[k];
+          for (int j=0; j<vdim*(vdim+1)/2; ++j) {
+            h_ij_inv_quad[n][j] += h_ij_inv_d[num_conf_basis*j+k]*b_ord[k];
+          }
+        }
+      }
+
       // Amplitude of the exponential.
       if ((n_quad[n] > 0.0) && (T_over_m_quad[n] > 0.0)) {
         if (up->is_relativistic) {
-          expamp_quad[n] = n_quad[n]*(1.0/(4.0*GKYL_PI*T_over_m_quad[n]))*(sqrt(2*T_over_m_quad[n]/GKYL_PI));;
+          expamp_quad[n] = n_quad[n]*(1.0/(4.0*GKYL_PI*T_over_m_quad[n]))*(sqrt(2*T_over_m_quad[n]/GKYL_PI));
+        }
+        else if (up->is_canonical_pb) { 
+          expamp_quad[n] = (1/det_h_quad[n])*n_quad[n]/sqrt(pow(2.0*GKYL_PI*T_over_m_quad[n], vdim));
         }
         else {
           expamp_quad[n] = n_quad[n]/sqrt(pow(2.0*GKYL_PI*T_over_m_quad[n], vdim));
@@ -375,6 +409,28 @@ gkyl_vlasov_lte_proj_on_basis_advance(gkyl_vlasov_lte_proj_on_basis *up,
             fq[0] += expamp_quad[cqidx]*exp( (1.0/T_over_m_quad[cqidx]) 
               - (gamma_shifted/T_over_m_quad[cqidx])*(sqrt(1+uu) - vu) );
           }
+          // Assumes a (particle) hamiltonian in canocial form: g = 1/2g^{ij}w_i_w_j
+          else if (up->is_canonical_pb) {
+            double efact = 0.0;
+            for (int d0=0; d0<vdim; ++d0) {
+              for (int d1=d0; d1<vdim; ++d1) {
+                int sym_tensor_index = (d0*(2*vdim - d0 + 1))/2 + (d1-d0);
+                // Grab the spatial metric component, the ctx includes geometry that isn't 
+                // part of the canonical set of variables, like R on the surf of a sphere
+                // q_can includes the canonical variables list
+                double h_ij_inv_loc = h_ij_inv_quad[cqidx][sym_tensor_index]; 
+                // For off-diagnol components, we need to count these twice, due to symmetry
+                int sym_fact = 2;
+                if (d0 == d1){
+                  sym_fact = 1;
+                }
+                efact += sym_fact*h_ij_inv_loc*(xmu[cdim+d0]-V_drift_quad[cqidx][d0])*(xmu[cdim+d1]-V_drift_quad[cqidx][d1]);
+              }
+            }
+            // Accuracy of the prefactor doesn't really matter since it will 
+            // be fixed by the correct routine
+            fq[0] += expamp_quad[cqidx]*exp(-efact/(2.0*T_over_m_quad[cqidx]));
+          }
           else {
             double efact = 0.0;        
             for (int d=0; d<vdim; ++d) {
@@ -420,6 +476,11 @@ gkyl_vlasov_lte_proj_on_basis_release(gkyl_vlasov_lte_proj_on_basis* up)
   gkyl_array_release(up->conf_weights);
   gkyl_array_release(up->conf_basis_at_ords);
   gkyl_array_release(up->fun_at_ords);
+
+  if(up->is_canonical_pb){
+    gkyl_array_release(up->h_ij_inv);
+    gkyl_array_release(up->det_h);
+  }
 
   gkyl_vlasov_lte_moments_release(up->moments_up);
   gkyl_array_release(up->num_ratio);

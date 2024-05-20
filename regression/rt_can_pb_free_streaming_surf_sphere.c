@@ -18,15 +18,50 @@ struct can_pb_ctx {
   double R; // Radius of the sphere
 };
 
-void
+void 
+h_ij_inv(double t, const double* xn, double* fout, void* ctx)
+{
+  // Inverse metric tensor, must be symmetric!
+  // [h^{xx},h^{xy},h^{yy}]
+  struct can_pb_ctx *app = (struct can_pb_ctx *)ctx;
+  double R = app->R;
+  double q_theta = xn[0], q_phi = xn[1];
+  const double q[2] = {q_theta, q_phi};
+
+  // [h^{thetatheta},h^{thetaphi},h^{phiphi}]
+  fout[0] = 1.0 / pow(R, 2);
+  fout[1] = 0.0;
+  fout[2] = 1.0 / pow(R * sin(q[0]), 2);
+}
+
+void 
+det_h(double t, const double* xn, double* fout, void* ctx)
+{
+  // determinant of the metric tensor: J = det(h_{ij})
+  struct can_pb_ctx *app = (struct can_pb_ctx *)ctx;
+  double R = app->R;
+  double q_theta = xn[0], q_phi = xn[1];
+  const double q[2] = {q_theta, q_phi};
+
+  // [h^{thetatheta},h^{thetaphi},h^{phiphi}]
+  fout[0] = sq(R)*sin(q[0]);
+}
+
+void 
 hamil(double t, const double* xn, double* fout, void* ctx)
 {
-  // canonical coordinates:
+  // Canonical coordinates:
   double q_theta = xn[0], q_phi = xn[1], p_theta_dot = xn[2], p_phi_dot = xn[3];
-  struct can_pb_ctx *app = ctx;
+  const double q[2] = {q_theta, q_phi};
+  const double w[2] = {p_theta_dot, p_phi_dot};
+  struct can_pb_ctx *app = (struct can_pb_ctx *)ctx;
   double R = app->R;
-  double mass = app->mass;
-  fout[0] = 0.5*(1/mass)*( sq(p_theta_dot)/sq(R) + sq(p_phi_dot)/(sq(R*sin(q_theta))) );
+  double *h_inv = malloc(3 * sizeof(double));
+  h_ij_inv(t, xn, h_inv, ctx); 
+  fout[0] = 0.5 * h_inv[0] * w[0] * w[0] + 
+            0.5 * (2.0* h_inv[1] * w[1] * w[0]) + 
+            0.5 * h_inv[2] * w[1] * w[1];
+  free(h_inv);
 }
 
 void
@@ -41,7 +76,12 @@ void
 evalDensityInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
 {
   struct can_pb_ctx *app = ctx;
-  fout[0] = 0.3  + sq(sq(sin(1.5*xn[1])))*2.0*sq(sq(sin(xn[0])));
+  double theta = xn[0];
+  double phi = xn[1];
+  double det_h_val;
+  det_h(t, xn, &det_h_val, ctx); 
+  double n = 0.3  + sq(sq(sin(1.5*phi)))*2.0*sq(sq(sin(theta)));
+  fout[0] = n*det_h_val;
 }
 
 void
@@ -103,7 +143,14 @@ main(int argc, char **argv)
     .upper = { 5.0*ctx.vt, 5.0*ctx.vt}, 
     .cells = { 8, 8 },
     .hamil = hamil,
+    .h_ij_inv = h_ij_inv,
+    .det_h = det_h,
     .hamil_ctx = &ctx,
+    .h_ij_inv_ctx = &ctx,
+    .det_h_ctx = &ctx,
+
+    // Reflective boundary condition
+    .bcx = {GKYL_SPECIES_REFLECT, GKYL_SPECIES_REFLECT},
 
     .projection = {
       .proj_id = GKYL_PROJ_VLASOV_LTE,
@@ -131,8 +178,8 @@ main(int argc, char **argv)
     .poly_order = 2,
     .basis_type = app_args.basis_type,
 
-    .num_periodic_dir = 2,
-    .periodic_dirs = {0, 1},
+    .num_periodic_dir = 1,
+    .periodic_dirs = {1},
 
     .num_species = 1,
     .species = { neut },
@@ -145,7 +192,7 @@ main(int argc, char **argv)
   gkyl_vlasov_app *app = gkyl_vlasov_app_new(&vm);
 
   // start, end and initial time-step
-  double tcurr = 0.0, tend = 0.1;
+  double tcurr = 0.0, tend = 0.2;
   double dt = tend-tcurr;
   int nframe = 2;
   struct gkyl_tm_trigger io_trig = { .dt = tend/nframe };

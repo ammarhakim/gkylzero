@@ -53,7 +53,7 @@ gkyl_dg_updater_vlasov_new(const struct gkyl_rect_grid *grid,
   }
   int num_up_dirs = cdim;
   // update velocity space only when field is present 
-  // Need to include Canonical_pb to upddate velocity space directions
+  // Need to include Canonical_pb to update velocity space directions
   if (field_id != GKYL_FIELD_NULL || up->model_id == GKYL_MODEL_CANONICAL_PB) {
     for (int d=cdim; d<pdim; ++d) {
       up_dirs[d] = d;
