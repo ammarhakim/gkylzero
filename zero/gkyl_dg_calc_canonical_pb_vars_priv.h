@@ -165,13 +165,9 @@ choose_canonical_pb_alpha_surf_v_kern(int dir, int cdim, int poly_order)
 
 GKYL_CU_D
 static canonical_pb_pressure_t
-choose_canonical_pb_pressure_kern(int dir, int cdim, int poly_order)
+choose_canonical_pb_pressure_kern(int cdim, int poly_order)
 {
-  if (cdim == 1)
-    return ser_canonical_pb_pressure_kernels[cdim-1].kernels[poly_order];
-  else if (cdim == 2)
-    return ser_canonical_pb_pressure_kernels[cdim-1].kernels[poly_order];
-  else if (cdim == 3)
+  if ((cdim == 1) || (cdim == 2) || (cdim == 3))
     return ser_canonical_pb_pressure_kernels[cdim-1].kernels[poly_order];
   else
     return NULL;
