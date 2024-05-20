@@ -39,10 +39,10 @@ vlasov_update_imex_bgk(gkyl_vlasov_app* app, double dt0)
           );
 
           // IMEX BGK contributions
-          // vlasov_implicit_contribution(app, tcurr, dt, fin, fluidin, app->has_field ? app->field->em : 0,
-          //   fout, fluidout, app->has_field ? app->field->em1 : 0,
-          //   &st
-          // );
+          vlasov_implicit_contribution(app, tcurr, dt, fin, fluidin, app->has_field ? app->field->em : 0,
+            fout, fluidout, app->has_field ? app->field->em1 : 0,
+            &st
+          );
 
           // Limit fluid and EM solutions if desired (done after update as post-hoc fix)
           for (int i=0; i<nfs; ++i) {
@@ -76,10 +76,10 @@ vlasov_update_imex_bgk(gkyl_vlasov_app* app, double dt0)
           );
 
           // IMEX BGK contributions
-          // vlasov_implicit_contribution(app, tcurr+dt, dt, fin, fluidin, app->has_field ? app->field->em1 : 0,
-          //   fout, fluidout, app->has_field ? app->field->emnew : 0,
-          //   &st
-          // );
+          vlasov_implicit_contribution(app, tcurr+dt, dt, fin, fluidin, app->has_field ? app->field->em1 : 0,
+            fout, fluidout, app->has_field ? app->field->emnew : 0,
+            &st
+          );
 
           // Limit fluid and EM solutions if desired (done after update as post-hoc fix)
           for (int i=0; i<nfs; ++i) {
@@ -134,11 +134,11 @@ vlasov_update_imex_bgk(gkyl_vlasov_app* app, double dt0)
             fout, fluidout, app->has_field ? app->field->emnew : 0,
             &st
           );
-          // // IMEX BGK contributions
-          // vlasov_implicit_contribution(app, tcurr+dt/2, dt, fin, fluidin, app->has_field ? app->field->em1 : 0,
-          //   fout, fluidout, app->has_field ? app->field->emnew : 0,
-          //   &st
-          // );
+          // IMEX BGK contributions
+          vlasov_implicit_contribution(app, tcurr+dt/2, dt, fin, fluidin, app->has_field ? app->field->em1 : 0,
+            fout, fluidout, app->has_field ? app->field->emnew : 0,
+            &st
+          );
           // Limit fluid and EM solutions if desired (done after update as post-hoc fix)
           for (int i=0; i<nfs; ++i) {
             vm_fluid_species_limiter(app, &app->fluid_species[i], fluidout[i]);
@@ -170,10 +170,10 @@ vlasov_update_imex_bgk(gkyl_vlasov_app* app, double dt0)
             }
 
               // IMEX BGK contributions
-            vlasov_implicit_contribution(app, tcurr, dt, fin, fluidin, app->has_field ? app->field->em1 : 0,
-              fout, fluidout, app->has_field ? app->field->emnew : 0,
-              &st
-            );
+            // vlasov_implicit_contribution(app, tcurr, dt, fin, fluidin, app->has_field ? app->field->em1 : 0,
+            //   fout, fluidout, app->has_field ? app->field->emnew : 0,
+            //   &st
+            // );
             
             for (int i=0; i<ns; ++i) {
               array_combine(app->species[i].f1,
