@@ -1,3 +1,11 @@
+// Parallel-propagating firehose instability test, using static, patch-structured mesh refinement with a single refinement patch (2x refinement), for the 10-moment equations.
+// Input parameters match the initial conditions in Section 4.4, from the article:
+// M. W. Kunz, J. M. Stone and X-N. Bai (2014), "Pegasus: A new hybrid-kinetic particle-in-cell code for astrophysical plasma dynamics",
+// Journal of Computational Physics, Volume 259: 154-174.
+// https://www.sciencedirect.com/science/article/pii/S0021999113007973
+
+// THIS TEST CURRENTLY FAILS (AS OF 05/20/2024) - JG TO TRACK DOWN WHY.
+
 #include <gkyl_amr_core.h>
 
 struct amr_10m_par_firehose_ctx

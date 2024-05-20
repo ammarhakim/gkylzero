@@ -1,3 +1,9 @@
+// 2D quadrants test, using static, block-structured mesh refinement with a single refinement block (4x refinement), for the general relativistic Euler equations.
+// Input parameters taken from the initial conditions in Section 4.2 (Riemann 2-D), from the article:
+// L. Del Zanna and N. Bucciantini (2002), "An efficient shock-capturing central-type scheme for multdimensional flows. I. Hydrodynamics",
+// Astronomy and Astrophysics, Volume 390 (3): 1177-1186.
+// https://arxiv.org/abs/astro-ph/0205290
+
 #include <gkyl_amr_core.h>
 #include <gkyl_gr_minkowski.h>
 #include <gkyl_alloc.h>

@@ -1,3 +1,9 @@
+// Sod-type shock tube test, using static, patch-structured mesh refinement with a single refinement patch (4x refinement), for the 5-moment (Euler) equations.
+// Input parameters match the initial conditions in Section 2.6.2, with the contact discontinuity placed at x = 0.75 rather than x = 0.5, from the thesis:
+// A. Hakim (2006), "High Resolution Wave Propagation Schemes for Two-Fluid Plasma Simulations",
+// PhD Thesis, University of Washington.
+// https://www.aa.washington.edu/sites/aa/files/research/cpdlab/docs/PhDthesis_hakim.pdf
+
 #include <gkyl_amr_core.h>
 
 struct amr_euler_sodshock_ctx

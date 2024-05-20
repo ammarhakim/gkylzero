@@ -1,3 +1,6 @@
+// 2D ring-accretion problem onto a non-static (Kerr) black hole, using static, block-structured mesh refinement with a single refinement block (4x refinement), for the general relativistic Euler equations.
+// Input parameters describe an asymmetrical ring of cold relativistic gas accreting onto a spinning black hole.
+
 #include <gkyl_amr_core.h>
 #include <gkyl_gr_blackhole.h>
 #include <gkyl_alloc.h>

@@ -1,3 +1,9 @@
+// Geospace Environmental Modeling (GEM) magnetic reconnection test, using static, block-structured mesh refinement with a single refinement block (2x refinement), for the 10-moment equations.
+// Input parameters match the equilibrium and initial conditions in Section 2, from the article:
+// J. Birn et al. (2001), "Geospace Environmental Modeling (GEM) Magnetic Reconnection Challenge",
+// Journal of Geophysical Research: Space Physics, Volume 106 (A3): 3715-3719.
+// https://agupubs.onlinelibrary.wiley.com/doi/10.1029/1999JA900449
+
 #include <gkyl_amr_core.h>
 
 struct amr_10m_gem_ctx

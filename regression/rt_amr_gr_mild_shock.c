@@ -1,3 +1,9 @@
+// Mildly relativistic blast wave test, using static, patch-structured mesh refinement with a single refinement patch (4x refinement), for the general relativistic Euler equations.
+// Input parameters taken from the initial conditions in Section 4.1 (blast wave 1), from the article:
+// L. Del Zanna and N. Bucciantini (2002), "An efficient shock-cpaturing central-type scheme for multidimensional relativistic flows. I. Hydrodynamics",
+// Astronomy and Astrophysics, Volume 390 (3): 1177-1186.
+// https://arxiv.org/abs/astro-ph/0205290
+
 #include <gkyl_amr_core.h>
 #include <gkyl_gr_minkowski.h>
 #include <gkyl_alloc.h>

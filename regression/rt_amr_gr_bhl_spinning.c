@@ -1,3 +1,10 @@
+// 2D Bondi-Hoyle-Lyttleton accretion problem onto a non-static (Kerr) black hole, using static, block-structured mesh refinement with a single refinement block (4x refinement), for the general relativistic Euler equations.
+// Input parameters describe wind accretion of a cold relativistic gas onto a spinning black hole.
+// Based on the analytical solution for stiff relativistic fluids presented in the article:
+// L. I. Petrich, S. L. Shapiro and S. A. Teukolsky (1988), "Accretion onto a moving black hole: An exact solution",
+// Physical Review Letters, Volume 60 (18): 1781-1784.
+// https://journals.aps.org/prl/abstract/10.1103/PhysRevLett.60.1781
+
 #include <gkyl_amr_core.h>
 #include <gkyl_gr_blackhole.h>
 #include <gkyl_alloc.h>
