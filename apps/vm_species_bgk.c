@@ -157,15 +157,14 @@ vm_species_bgk_rhs(gkyl_vlasov_app *app, const struct vm_species *species,
   gkyl_array_accumulate(bgk->nu_f_lte, 1.0, bgk->f_lte);
 
   gkyl_bgk_collisions_advance(bgk->up_bgk, &app->local, &species->local, 
-    bgk->nu_sum, bgk->nu_f_lte, fin, bgk->implicit_step, rhs, species->cflrate);
+    bgk->nu_sum, bgk->nu_f_lte, fin, bgk->implicit_step, bgk->dt, rhs, species->cflrate);
 
   // Add implicit contribution factor
   if (bgk->implicit_step){
-    gkyl_array_clear(bgk->implicit_coeff, 1.0);
-    gkyl_array_accumulate(bgk->implicit_coeff,bgk->dt,bgk->nu_sum); 
-    gkyl_dg_div_op_range(bgk->bgk_implicit_div_mem, app->confBasis, 0, bgk->implicit_coeff, 0, bgk->implicit_coeff_num, 0, bgk->implicit_coeff, &app->local);
-    gkyl_dg_mul_conf_phase_op_range(&app->confBasis, &app->basis, rhs, 
-      bgk->implicit_coeff, rhs, &app->local, &species->local);
+    // gkyl_array_clear(bgk->implicit_coeff, 1.0);
+    // gkyl_array_accumulate(bgk->implicit_coeff,bgk->dt,bgk->nu_sum); 
+    // gkyl_dg_div_op_range(bgk->bgk_implicit_div_mem, app->confBasis, 0, bgk->implicit_coeff, 0, bgk->implicit_coeff_num, 0, bgk->implicit_coeff, &app->local);
+    // gkyl_dg_mul_conf_phase_op_range(&app->confBasis, &app->basis, rhs, 
   }
 
   app->stat.species_coll_tm += gkyl_time_diff_now_sec(wst);
