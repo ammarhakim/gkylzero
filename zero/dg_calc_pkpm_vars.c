@@ -18,7 +18,7 @@ gkyl_dg_calc_pkpm_vars_new(const struct gkyl_rect_grid *conf_grid,
 {
 #ifdef GKYL_HAVE_CUDA
   if(use_gpu) {
-    return gkyl_dg_calc_pkpm_vars_cu_dev_new(conf_grid, cbasis, mem_range, wv_eqn, limiter_fac, geom);
+    return gkyl_dg_calc_pkpm_vars_cu_dev_new(conf_grid, cbasis, mem_range, wv_eqn, geom, limiter_fac);
   } 
 #endif     
   gkyl_dg_calc_pkpm_vars *up = gkyl_malloc(sizeof(gkyl_dg_calc_pkpm_vars));
