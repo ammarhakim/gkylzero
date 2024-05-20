@@ -21,8 +21,11 @@ struct euler1d_single_init {
 
   bool low_order_flux;
   double cfl_frac;
+
   double t_end;
   int num_frames;
+  double dt_failure_tol;
+  int num_failures_max;
 };
 
 /**
@@ -53,8 +56,11 @@ struct gr_euler1d_single_init {
 
   bool low_order_flux;
   double cfl_frac;
+
   double t_end;
   int num_frames;
+  double dt_failure_tol;
+  int num_failures_max;
 };
 
 /**
@@ -89,8 +95,11 @@ struct euler2d_single_init {
 
   bool low_order_flux;
   double cfl_frac;
+
   double t_end;
   int num_frames;
+  double dt_failure_tol;
+  int num_failures_max;
 };
 
 /**
@@ -126,8 +135,11 @@ struct gr_euler2d_single_init {
 
   bool low_order_flux;
   double cfl_frac;
+
   double t_end;
   int num_frames;
+  double dt_failure_tol;
+  int num_failures_max;
 };
 
 /**
@@ -172,8 +184,11 @@ struct five_moment_1d_single_init {
 
   bool low_order_flux;
   double cfl_frac;
+
   double t_end;
   int num_frames;
+  double dt_failure_tol;
+  int num_failures_max;
 };
 
 /**
@@ -184,6 +199,54 @@ struct five_moment_1d_single_init {
 * @param init Initialization data for the 1D coupled five-moment equations.
 */
 void five_moment_1d_run_single(int argc, char **argv, struct five_moment_1d_single_init* init);
+
+// Initialization data for a 1D simulation using the coupled ten-moment equations, run with static, patch-structured mesh refinement with a single refinement patch.
+struct ten_moment_1d_single_init {
+  int base_Nx;
+  int ref_factor;
+
+  double coarse_x1;
+  double coarse_x2;
+
+  double refined_x1;
+  double refined_x2;
+
+  evalf_t eval_elc;
+  evalf_t eval_ion;
+  evalf_t eval_field;
+
+  double k0_elc;
+  double k0_ion;
+
+  double light_speed;
+  double e_fact;
+  double b_fact;
+
+  double epsilon0;
+  double mass_elc;
+  double charge_elc;
+  double mass_ion;
+  double charge_ion;
+
+  char ten_moment_output[32];
+
+  bool low_order_flux;
+  double cfl_frac;
+
+  double t_end;
+  int num_frames;
+  double dt_failure_tol;
+  int num_failures_max;
+};
+
+/**
+* Run a 1D simulation using the coupled ten-moment equations, with static, patch-structured mesh refinement with a single refinement patch.
+*
+* @param argc Number of command line arguments passed to the function.
+* @param argv Array of command line arguments passed to the function.
+* @param init Initialization data for the 1D coupled ten-moment equations.
+*/
+void ten_moment_1d_run_single(int argc, char **argv, struct ten_moment_1d_single_init* init);
 
 // Initialization data for a 2D simulation using the coupled five-moment equations, run with static, block-structured mesh refinement with a single refinement patch.
 struct five_moment_2d_single_init {
@@ -229,8 +292,11 @@ struct five_moment_2d_single_init {
 
   bool low_order_flux;
   double cfl_frac;
+
   double t_end;
   int num_frames;
+  double dt_failure_tol;
+  int num_failures_max;
 };
 
 /**
@@ -241,51 +307,6 @@ struct five_moment_2d_single_init {
 * @param init Initialization data for the 2D coupled five-moment equations.
 */
 void five_moment_2d_run_single(int argc, char **argv, struct five_moment_2d_single_init* init);
-
-// Initialization data for a 1D simulation using the coupled ten-moment equations, run with static, patch-structured mesh refinement with a single refinement patch.
-struct ten_moment_1d_single_init {
-  int base_Nx;
-  int ref_factor;
-
-  double coarse_x1;
-  double coarse_x2;
-
-  double refined_x1;
-  double refined_x2;
-
-  evalf_t eval_elc;
-  evalf_t eval_ion;
-  evalf_t eval_field;
-
-  double k0_elc;
-  double k0_ion;
-
-  double light_speed;
-  double e_fact;
-  double b_fact;
-
-  double epsilon0;
-  double mass_elc;
-  double charge_elc;
-  double mass_ion;
-  double charge_ion;
-
-  char ten_moment_output[32];
-
-  bool low_order_flux;
-  double cfl_frac;
-  double t_end;
-  int num_frames;
-};
-
-/**
-* Run a 1D simulation using the coupled ten-moment equations, with static, patch-structured mesh refinement with a single refinement patch.
-*
-* @param argc Number of command line arguments passed to the function.
-* @param argv Array of command line arguments passed to the function.
-* @param init Initialization data for the 1D coupled ten-moment equations.
-*/
-void ten_moment_1d_run_single(int argc, char **argv, struct ten_moment_1d_single_init* init);
 
 // Initialization data for a 2D simulation using the coupled five-moment equations, run with static, block-structured mesh refinement with a single refinement patch.
 struct ten_moment_2d_single_init {
@@ -330,8 +351,11 @@ struct ten_moment_2d_single_init {
 
   bool low_order_flux;
   double cfl_frac;
+
   double t_end;
   int num_frames;
+  double dt_failure_tol;
+  int num_failures_max;
 };
 
 /**

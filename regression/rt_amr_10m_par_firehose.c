@@ -50,8 +50,11 @@ struct amr_10m_par_firehose_ctx
   double Lx; // Coarse domain size (x-direction).
   double fine_Lx; // Fine domain size (x-direction).
   double cfl_frac; // CFL coefficient.
+
   double t_end; // Final simulation time.
   int num_frames; // Number of output frames.
+  double dt_failure_tol; // Minimum allowable fraction of initial time-step.
+  int num_failures_max; // Maximum allowable number of consecutive small time-steps.
 };
 
 struct amr_10m_par_firehose_ctx
@@ -100,13 +103,16 @@ create_ctx(void)
   double k0_ion = 0.1 / di; // Ion closure parameter.
 
   // Simulation parameters.
-  int Nx = 32; // Coarse cell count (x-direction).
-  int ref_factor = 1; // Refinement factor.
+  int Nx = 64; // Coarse cell count (x-direction).
+  int ref_factor = 2; // Refinement factor.
   double Lx = 300.0 * di; // Coarse domain size (x-direction).
   double fine_Lx = 0.5 * (300.0 * di); // Fine domain size (x-direction).
   double cfl_frac = 0.95; // CFL coefficient.
-  double t_end = 0.001 / omega_ci; // Final simulation time.
+
+  double t_end = 10.0 / omega_ci; // Final simulation time.
   int num_frames = 1; // Number of output frames.
+  double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.
+  int num_failures_max = 20; // Maximum allowable number of consecutive small time-steps.
 
   struct amr_10m_par_firehose_ctx ctx = {
     .pi = pi,
@@ -146,6 +152,8 @@ create_ctx(void)
     .cfl_frac = cfl_frac,
     .t_end = t_end,
     .num_frames = num_frames,
+    .dt_failure_tol = dt_failure_tol,
+    .num_failures_max = num_failures_max,
   };
 
   return ctx;
@@ -293,8 +301,11 @@ int main(int argc, char **argv)
 
     .low_order_flux = false,
     .cfl_frac = ctx.cfl_frac,
+
     .t_end = ctx.t_end,
     .num_frames = ctx.num_frames,
+    .dt_failure_tol = ctx.dt_failure_tol,
+    .num_failures_max = ctx.num_failures_max,
   };
 
   ten_moment_1d_run_single(argc, argv, &init);

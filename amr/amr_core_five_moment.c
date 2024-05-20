@@ -45,9 +45,12 @@ five_moment_1d_run_single(int argc, char **argv, struct five_moment_1d_single_in
   strcpy(five_moment_output, init->five_moment_output);
 
   bool low_order_flux = init->low_order_flux;
+  int num_frames = init->num_frames;
+
   double cfl_frac = init->cfl_frac;
   double t_end = init->t_end;
-  int num_frames = init->num_frames;
+  double dt_failure_tol = init->dt_failure_tol;
+  int num_failures_max = init->num_failures_max;
 
   int ndim = 1;
   int num_patches = 3;
@@ -399,6 +402,9 @@ five_moment_1d_run_single(int argc, char **argv, struct five_moment_1d_single_in
 
   double io_trigger = t_end / num_frames;
 
+  double dt_init = -1.0;
+  int num_failures = 0;
+
   while ((coarse_t_curr < t_end) && (coarse_step <= num_steps)) {
     printf("Taking coarse (level 0) time-step %ld at t = %g; ", coarse_step, coarse_t_curr);
     struct gkyl_update_status coarse_status = five_moment_update_patch(coarse_job_pool, ptopo, coarse_pdata, coarse_t_curr, coarse_dt, &stats);
@@ -519,6 +525,25 @@ five_moment_1d_run_single(int argc, char **argv, struct five_moment_1d_single_in
 
     coarse_t_curr += coarse_status.dt_actual;
     coarse_dt = coarse_status.dt_suggested;
+
+    if (dt_init < 0.0) {
+      dt_init = coarse_status.dt_actual;
+    }
+    else if (coarse_status.dt_actual < dt_failure_tol * dt_init) {
+      num_failures += 1;
+
+      printf("WARNING: Time-step dt = %g", coarse_status.dt_actual);
+      printf(" is below %g*dt_init ...", dt_failure_tol);
+      printf(" num_failures = %d\n", num_failures);
+      if (num_failures >= num_failures_max) {
+        printf("ERROR: Time-step was below %g*dt_init ", dt_failure_tol);
+        printf("%d consecutive times. Aborting simulation ....\n", num_failures_max);
+        break;
+      }
+    }
+    else {
+      num_failures = 0;
+    }
 
     coarse_step += 1;
   }
@@ -743,9 +768,12 @@ five_moment_2d_run_single(int argc, char **argv, struct five_moment_2d_single_in
   strcpy(five_moment_output, init->five_moment_output);
 
   bool low_order_flux = init->low_order_flux;
+  int num_frames = init->num_frames;
+  
   double cfl_frac = init->cfl_frac;
   double t_end = init->t_end;
-  int num_frames = init->num_frames;
+  double dt_failure_tol = init->dt_failure_tol;
+  int num_failures_max = init->num_failures_max;
 
   int ndim = 2;
   int num_blocks = 9;
@@ -1145,6 +1173,9 @@ five_moment_2d_run_single(int argc, char **argv, struct five_moment_2d_single_in
 
   double io_trigger = t_end / num_frames;
 
+  double dt_init = -1.0;
+  int num_failures = 0;
+
   while ((coarse_t_curr < t_end) && (coarse_step <= num_steps)) {
     printf("Taking coarse (level 0) time-step %ld at t = %g; ", coarse_step, coarse_t_curr);
     struct gkyl_update_status coarse_status = five_moment_update_block(coarse_job_pool, btopo, coarse_bdata, coarse_t_curr, coarse_dt, &stats);
@@ -1265,6 +1296,25 @@ five_moment_2d_run_single(int argc, char **argv, struct five_moment_2d_single_in
 
     coarse_t_curr += coarse_status.dt_actual;
     coarse_dt = coarse_status.dt_suggested;
+
+    if (dt_init < 0.0) {
+      dt_init = coarse_status.dt_actual;
+    }
+    else if (coarse_status.dt_actual < dt_failure_tol * dt_init) {
+      num_failures += 1;
+
+      printf("WARNING: Time-step dt = %g", coarse_status.dt_actual);
+      printf(" is below %g*dt_init ...", dt_failure_tol);
+      printf(" num_failures = %d\n", num_failures);
+      if (num_failures >= num_failures_max) {
+        printf("ERROR: Time-step was below %g*dt_init ", dt_failure_tol);
+        printf("%d consecutive times. Aborting simulation ....\n", num_failures_max);
+        break;
+      }
+    }
+    else {
+      num_failures = 0;
+    }
 
     coarse_step += 1;
   }

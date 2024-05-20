@@ -38,8 +38,11 @@ struct amr_10m_gem_ctx
   double fine_Lx; // Fine domain size (x-direction).
   double fine_Ly; // Fine domain size (y-direction).
   double cfl_frac; // CFL coefficient.
+
   double t_end; // Final simulation time.
   int num_frames; // Number of output frames.
+  double dt_failure_tol; // Minimum allowable fraction of initial time-step.
+  int num_failures_max; // Maximum allowable number of consecutive small time-steps.
 };
 
 struct amr_10m_gem_ctx
@@ -81,8 +84,11 @@ create_ctx(void)
   double fine_Lx = 16.0; // Fine domain size (x-direction).
   double fine_Ly = 6.0; // Fine domain size (y-direction).
   double cfl_frac = 0.95; // CFL coefficient.
+
   double t_end = 250.0; // Final simulation time.
   int num_frames = 1; // Number of output frames.
+  double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.
+  int num_failures_max = 20; // Maximum allowable number of consecutive small time-steps.
 
   struct amr_10m_gem_ctx ctx = {
     .pi = pi,
@@ -114,6 +120,8 @@ create_ctx(void)
     .cfl_frac = cfl_frac,
     .t_end = t_end,
     .num_frames = num_frames,
+    .dt_failure_tol = dt_failure_tol,
+    .num_failures_max = num_failures_max,
   };
 
   return ctx;
@@ -267,8 +275,11 @@ int main(int argc, char **argv)
 
     .low_order_flux = false,
     .cfl_frac = ctx.cfl_frac,
+
     .t_end = ctx.t_end,
     .num_frames = ctx.num_frames,
+    .dt_failure_tol = ctx.dt_failure_tol,
+    .num_failures_max = ctx.num_failures_max,
   };
 
   ten_moment_2d_run_single(argc, argv, &init);
