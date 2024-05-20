@@ -89,7 +89,7 @@ gkyl_vlasov_lte_moments_inew(const struct gkyl_vlasov_lte_moments_inp *inp)
       inp->phase_basis, inp->conf_range, inp->vel_range, up->model_id, 0, "M0", 0, up->mass, inp->use_gpu);
     up->M1i_calc = gkyl_dg_updater_moment_new(inp->phase_grid, inp->conf_basis,
       inp->phase_basis, inp->conf_range, inp->vel_range, up->model_id, 0, "M1i", 0, up->mass, inp->use_gpu);
-    up->M2ijcalc = gkyl_dg_updater_moment_new(inp->phase_grid, inp->conf_basis,
+    up->Pcalc = gkyl_dg_updater_moment_new(inp->phase_grid, inp->conf_basis,
       inp->phase_basis, inp->conf_range, inp->vel_range, up->model_id, 0, "M2ij", 0, up->mass, inp->use_gpu);   
   }
   else {
@@ -206,7 +206,7 @@ gkyl_vlasov_lte_moments_advance(struct gkyl_vlasov_lte_moments *lte_moms,
   else {
     if (lte_moms->model_id == GKYL_MODEL_CANONICAL_PB) {
       // Compute the lab frame M2ij
-      gkyl_dg_updater_moment_advance(lte_moms->M2ijcalc, phase_local, conf_local, 
+      gkyl_dg_updater_moment_advance(lte_moms->Pcalc, phase_local, conf_local, 
         fin, lte_moms->pressure_tensor);
       // Solve for d*P*Jv: d*P*Jv = h^{ij}*M2_{ij} - n*h^{ij}*u_i*u_j 
       //                          = h^{ij}*M2_{ij} - h^{ij}*M1i*V_drift_j 
@@ -256,7 +256,6 @@ gkyl_vlasov_lte_moments_release(gkyl_vlasov_lte_moments *lte_moms)
     gkyl_array_release(lte_moms->h_ij_inv);
     gkyl_array_release(lte_moms->det_h);
     gkyl_array_release(lte_moms->pressure_tensor);
-    gkyl_dg_updater_moment_release(lte_moms->M2ijcalc);
     gkyl_dg_calc_canonical_pb_vars_release(lte_moms->can_pb_vars);
   } 
   else {
