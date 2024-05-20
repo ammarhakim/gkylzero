@@ -114,7 +114,7 @@ gkyl_canonical_pb_pressure_cu_kernel(struct gkyl_dg_calc_canonical_pb_vars *up, 
 
     double* d_Jv_P_d = (double*) gkyl_array_fetch(pressure, loc);
 
-    up->canonical_pb_pressure[cdim-1](h_ij_inv_d, M2ij_d, v_j_d, nv_i_d, d_Jv_P_d);
+    up->canonical_pb_pressure(h_ij_inv_d, M2ij_d, v_j_d, nv_i_d, d_Jv_P_d);
   }
 }
 // Host-side wrapper
@@ -137,9 +137,8 @@ __global__ static void
   dg_calc_canoncial_pb_vars_set_cu_dev_ptrs(struct gkyl_dg_calc_canonical_pb_vars *up,
   int cdim,int poly_order)
 {
-
-  for (int d=0; d<cdim; ++d) {
-    up->canonical_pb_pressure[d] = choose_canonical_pb_pressure_kern(cdim, poly_order);
+  up->canonical_pb_pressure = choose_canonical_pb_pressure_kern(cdim, poly_order);
+  for (int d=0; d<cdim; ++d) {  
     up->alpha_surf[d] = choose_canonical_pb_alpha_surf_kern(d, cdim, poly_order);
     up->alpha_surf[d+cdim] = choose_canonical_pb_alpha_surf_v_kern(d, cdim, poly_order);
     up->alpha_edge_surf[d] = choose_canonical_pb_alpha_edge_surf_kern(d, cdim, poly_order);
