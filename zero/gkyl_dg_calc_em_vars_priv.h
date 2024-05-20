@@ -14,8 +14,9 @@
 typedef void (*em_calc_temp_t)(const double *em, double* GKYL_RESTRICT out);
 
 typedef int (*em_set_t)(int count, struct gkyl_nmat *A, struct gkyl_nmat *rhs, const double *temp);
-typedef void (*em_surf_set_t)(int count, struct gkyl_nmat *A, struct gkyl_nmat *rhs, const double *BB_surf, int* cell_avg_magB2_surf);
-typedef void (*em_copy_t)(int count, struct gkyl_nmat *x, const double *em, int* cell_avg_magB2, double* GKYL_RESTRICT out);
+
+typedef void (*em_copy_t)(int count, struct gkyl_nmat *x, const double *em, int* cell_avg_magB2, 
+  double* GKYL_RESTRICT out, double* GKYL_RESTRICT out_surf);
 
 typedef void (*em_div_b_t)(const double *dxv, 
   const double *bvar_surf_l, const double *bvar_surf_c, const double *bvar_surf_r, 
@@ -26,13 +27,10 @@ typedef void (*em_limiter_t)(double limiter_fac, const struct gkyl_wv_eqn *wv_eq
 
 // for use in kernel tables
 typedef struct { em_calc_temp_t kernels[4]; } gkyl_dg_em_calc_BB_kern_list;
-typedef struct { em_calc_temp_t kernels[4]; } gkyl_dg_em_calc_surf_BB_kern_list;
 typedef struct { em_calc_temp_t kernels[4]; } gkyl_dg_em_calc_num_ExB_kern_list;
 typedef struct { em_set_t kernels[4]; } gkyl_dg_em_set_bvar_kern_list;
-typedef struct { em_surf_set_t kernels[4]; } gkyl_dg_em_surf_set_bvar_kern_list;
 typedef struct { em_set_t kernels[4]; } gkyl_dg_em_set_ExB_kern_list;
 typedef struct { em_copy_t kernels[4]; } gkyl_dg_em_copy_bvar_kern_list;
-typedef struct { em_copy_t kernels[4]; } gkyl_dg_em_surf_copy_bvar_kern_list;
 typedef struct { em_copy_t kernels[4]; } gkyl_dg_em_copy_ExB_kern_list;
 typedef struct { em_div_b_t kernels[4]; } gkyl_dg_em_div_b_kern_list;
 typedef struct { em_limiter_t kernels[4]; } gkyl_dg_em_limiter_kern_list;
@@ -51,17 +49,9 @@ struct gkyl_dg_calc_em_vars {
   struct gkyl_array *temp_var; // intermediate variable for storing weak multiplications
   int Ncomp; // number of components in the linear solve (3 for E x B, 6 for bb)
 
-  struct gkyl_nmat *As_surf, *xs_surf; // matrices for LHS and RHS for surface variable solve
-  gkyl_nmat_mem *mem_surf; // memory for use in batched linear solve for surface variables
-  struct gkyl_array *temp_var_surf; // intermediate variable for storing weak multiplications of surface expansions
-  int Ncomp_surf; // number of components in the surface linear solve (2*cdim)
-
   em_calc_temp_t em_calc_temp; // kernel for intermediate variable computation
-  em_calc_temp_t em_calc_surf_temp; // kernel for intermediate surface variable computation 
   em_set_t em_set;  // kernel for setting matrices for linear solve
-  em_surf_set_t em_surf_set;  // kernel for getting surface expansions of bvar
-  em_copy_t em_copy; // kernel for copying solution of volume expansion solve to output 
-  em_copy_t em_surf_copy; // kernel for copying solution of surface expansion solve to output 
+  em_copy_t em_copy; // kernel for copying solution to output, also computes needed surface expansions 
   em_div_b_t em_div_b[3]; // kernel for computing div(b) and max(|b_i|) penalization
   em_limiter_t em_limiter[3]; // kernel for limiting slopes of em variables
 
@@ -83,22 +73,6 @@ static const gkyl_dg_em_calc_BB_kern_list ten_em_calc_BB_kernels[] = {
   { NULL, em_calc_BB_1x_ser_p1, em_calc_BB_1x_ser_p2, em_calc_BB_1x_ser_p3 }, // 0
   { NULL, em_calc_BB_2x_ser_p1, em_calc_BB_2x_tensor_p2, NULL }, // 1
   { NULL, em_calc_BB_3x_ser_p1, em_calc_BB_3x_tensor_p2, NULL }, // 2
-};
-
-// Compute surface BB tensor for computing surface b (Serendipity basis)
-GKYL_CU_D
-static const gkyl_dg_em_calc_surf_BB_kern_list ser_em_calc_surf_BB_kernels[] = {
-  { NULL, em_calc_surf_BB_1x_ser_p1, em_calc_surf_BB_1x_ser_p2, em_calc_surf_BB_1x_ser_p3 }, // 0
-  { NULL, em_calc_surf_BB_2x_ser_p1, NULL, NULL }, // 1
-  { NULL, em_calc_surf_BB_3x_ser_p1, NULL, NULL }, // 2
-};
-
-// Compute surface BB tensor for computing surface b (Tensor basis)
-GKYL_CU_D
-static const gkyl_dg_em_calc_surf_BB_kern_list ten_em_calc_surf_BB_kernels[] = {
-  { NULL, em_calc_surf_BB_1x_ser_p1, em_calc_surf_BB_1x_ser_p2, em_calc_surf_BB_1x_ser_p3 }, // 0
-  { NULL, em_calc_surf_BB_2x_ser_p1, em_calc_surf_BB_2x_tensor_p2, NULL }, // 1
-  { NULL, em_calc_surf_BB_3x_ser_p1, em_calc_surf_BB_3x_tensor_p2, NULL }, // 2
 };
 
 // Compute (E x B)_i and B_i^2 (numerator and denominator of E x B velocity) (Serendipity basis)
@@ -133,22 +107,6 @@ static const gkyl_dg_em_set_bvar_kern_list ten_em_set_bvar_kernels[] = {
   { NULL, em_set_bvar_3x_ser_p1, em_set_bvar_3x_tensor_p2, NULL }, // 2
 };
 
-// Set matrices for computing surface b, p=1 analytically solved (Serendipity basis)
-GKYL_CU_D
-static const gkyl_dg_em_surf_set_bvar_kern_list ser_em_surf_set_bvar_kernels[] = {
-  { NULL, em_surf_set_bvar_1x_ser_p1, em_surf_set_bvar_1x_ser_p2, em_surf_set_bvar_1x_ser_p3 }, // 0
-  { NULL, em_surf_set_bvar_2x_ser_p1, NULL, NULL }, // 1
-  { NULL, em_surf_set_bvar_3x_ser_p1, NULL, NULL }, // 2
-};
-
-// Set matrices for computing surface b, p=1 analytically solved (Tensor basis)
-GKYL_CU_D
-static const gkyl_dg_em_surf_set_bvar_kern_list ten_em_surf_set_bvar_kernels[] = {
-  { NULL, em_surf_set_bvar_1x_ser_p1, em_surf_set_bvar_1x_ser_p2, em_surf_set_bvar_1x_ser_p3 }, // 0
-  { NULL, em_surf_set_bvar_2x_ser_p1, em_surf_set_bvar_2x_tensor_p2, NULL }, // 1
-  { NULL, em_surf_set_bvar_3x_ser_p1, em_surf_set_bvar_3x_tensor_p2, NULL }, // 2
-};
-
 // Set matrices for computing ExB, p=1 analytically solved (Serendipity basis)
 GKYL_CU_D
 static const gkyl_dg_em_set_ExB_kern_list ser_em_set_ExB_kernels[] = {
@@ -179,22 +137,6 @@ static const gkyl_dg_em_copy_bvar_kern_list ten_em_copy_bvar_kernels[] = {
   { NULL, em_copy_bvar_1x_ser_p1, em_copy_bvar_1x_ser_p2, em_copy_bvar_1x_ser_p3 }, // 0
   { NULL, em_copy_bvar_2x_ser_p1, em_copy_bvar_2x_tensor_p2, NULL }, // 1
   { NULL, em_copy_bvar_3x_ser_p1, em_copy_bvar_3x_tensor_p2, NULL }, // 2
-};
-
-// Surface magnetic field unit vector kernel list copy solution (Serendipity basis)
-GKYL_CU_D
-static const gkyl_dg_em_surf_copy_bvar_kern_list ser_em_surf_copy_bvar_kernels[] = {
-  { NULL, em_surf_copy_bvar_1x_ser_p1, em_surf_copy_bvar_1x_ser_p2, em_surf_copy_bvar_1x_ser_p3 }, // 0
-  { NULL, em_surf_copy_bvar_2x_ser_p1, NULL, NULL }, // 1
-  { NULL, em_surf_copy_bvar_3x_ser_p1, NULL, NULL }, // 2
-};
-
-// Surface magnetic field unit vector kernel list copy solution (Tensor basis)
-GKYL_CU_D
-static const gkyl_dg_em_surf_copy_bvar_kern_list ten_em_surf_copy_bvar_kernels[] = {
-  { NULL, em_surf_copy_bvar_1x_ser_p1, em_surf_copy_bvar_1x_ser_p2, em_surf_copy_bvar_1x_ser_p3 }, // 0
-  { NULL, em_surf_copy_bvar_2x_ser_p1, em_surf_copy_bvar_2x_tensor_p2, NULL }, // 1
-  { NULL, em_surf_copy_bvar_3x_ser_p1, em_surf_copy_bvar_3x_tensor_p2, NULL }, // 2
 };
 
 // E x B velocity kernel list copy solution (Serendipity basis)
@@ -327,23 +269,6 @@ choose_em_calc_BB_kern(enum gkyl_basis_type b_type, int cdim, int poly_order)
 
 GKYL_CU_D
 static em_calc_temp_t
-choose_em_calc_surf_BB_kern(enum gkyl_basis_type b_type, int cdim, int poly_order)
-{
-  switch (b_type) {
-    case GKYL_BASIS_MODAL_SERENDIPITY:
-      return ser_em_calc_surf_BB_kernels[cdim-1].kernels[poly_order];
-      break;
-    case GKYL_BASIS_MODAL_TENSOR:
-      return ten_em_calc_surf_BB_kernels[cdim-1].kernels[poly_order];
-      break;
-    default:
-      assert(false);
-      break;  
-  }
-}
-
-GKYL_CU_D
-static em_calc_temp_t
 choose_em_calc_num_ExB_kern(enum gkyl_basis_type b_type, int cdim, int poly_order)
 {
   switch (b_type) {
@@ -369,23 +294,6 @@ choose_em_set_bvar_kern(enum gkyl_basis_type b_type, int cdim, int poly_order)
       break;
     case GKYL_BASIS_MODAL_TENSOR:
       return ten_em_set_bvar_kernels[cdim-1].kernels[poly_order];
-      break;
-    default:
-      assert(false);
-      break;  
-  }
-}
-
-GKYL_CU_D
-static em_surf_set_t
-choose_em_surf_set_bvar_kern(enum gkyl_basis_type b_type, int cdim, int poly_order)
-{
-  switch (b_type) {
-    case GKYL_BASIS_MODAL_SERENDIPITY:
-      return ser_em_surf_set_bvar_kernels[cdim-1].kernels[poly_order];
-      break;
-    case GKYL_BASIS_MODAL_TENSOR:
-      return ten_em_surf_set_bvar_kernels[cdim-1].kernels[poly_order];
       break;
     default:
       assert(false);
@@ -426,24 +334,6 @@ choose_em_copy_bvar_kern(enum gkyl_basis_type b_type, int cdim, int poly_order)
       break;  
   }
 }
-
-GKYL_CU_D
-static em_copy_t
-choose_em_surf_copy_bvar_kern(enum gkyl_basis_type b_type, int cdim, int poly_order)
-{
-  switch (b_type) {
-    case GKYL_BASIS_MODAL_SERENDIPITY:
-      return ser_em_surf_copy_bvar_kernels[cdim-1].kernels[poly_order];
-      break;
-    case GKYL_BASIS_MODAL_TENSOR:
-      return ten_em_surf_copy_bvar_kernels[cdim-1].kernels[poly_order];
-      break;
-    default:
-      assert(false);
-      break;  
-  }
-}
-
 
 GKYL_CU_D
 static em_copy_t
