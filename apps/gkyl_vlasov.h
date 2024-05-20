@@ -328,6 +328,55 @@ void gkyl_vlasov_app_apply_ic_species(gkyl_vlasov_app* app, int sidx, double t0)
 void gkyl_vlasov_app_apply_ic_fluid_species(gkyl_vlasov_app* app, int sidx, double t0);
 
 /**
+ * Initialize field from file
+ *
+ * @param app App object
+ * @param fname file to read
+ */
+struct gkyl_app_restart_status
+gkyl_vlasov_app_from_file_field(gkyl_vlasov_app *app, const char *fname);
+
+/**
+ * Initialize vlasov species from file
+ *
+ * @param app App object
+ * @param sidx gk species index
+ * @param fname file to read
+ */
+struct gkyl_app_restart_status 
+gkyl_vlasov_app_from_file_species(gkyl_vlasov_app *app, int sidx,
+  const char *fname);
+
+/**
+ * Initialize field from frame
+ *
+ * @param app App object
+ * @param frame frame to read
+ */
+struct gkyl_app_restart_status
+gkyl_vlasov_app_from_frame_field(gkyl_vlasov_app *app, int frame);
+
+/**
+ * Initialize vlasov species from file
+ *
+ * @param app App object
+ * @param sidx gk species index
+ * @param frame frame to read
+ */
+struct gkyl_app_restart_status
+gkyl_vlasov_app_from_frame_species(gkyl_vlasov_app *app, int sidx, int frame);
+
+
+/**
+ * Initialize the vlasov app from a specific frame.
+ *
+ * @param app App object
+ * @param frame frame to read
+ */
+struct gkyl_app_restart_status
+gkyl_vlasov_app_read_from_frame(gkyl_vlasov_app *app, int frame);
+
+/**
  * Calculate diagnostic moments.
  *
  * @param app App object.
