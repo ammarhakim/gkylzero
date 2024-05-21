@@ -1,8 +1,8 @@
 #include <gkyl_gyrokinetic_cross_prim_moms_bgk_kernels.h> 
 #include <gkyl_binop_mul_ser.h> 
-#include <gkyl_basis_ser_3x_p1_inv.h> 
+#include <gkyl_basis_ser_2x_p2_inv.h> 
  
-GKYL_CU_DH void gyrokinetic_cross_prim_moms_bgk_3x2v_ser_p1(const double beta, const double m_self, const double *prim_moms_self, const double m_other, const double *prim_moms_other, const double *nu_sr, const double *nu_rs, double *prim_moms_cross) 
+GKYL_CU_DH void gyrokinetic_cross_prim_moms_bgk_2x2v_ser_p2(const double beta, const double m_self, const double *prim_moms_self, const double m_other, const double *prim_moms_other, const double *nu_sr, const double *nu_rs, double *prim_moms_cross) 
 { 
   // m_:              mass. 
   // prim_moms_:      primitive moments of the distribution function. 
@@ -38,8 +38,8 @@ GKYL_CU_DH void gyrokinetic_cross_prim_moms_bgk_3x2v_ser_p1(const double beta, c
   double T3[8] = {0.0}; 
   double cVtsq[8] = {0.0}; 
 
-  binop_mul_3d_ser_p1(n_s, nu_sr, msNsNusr); 
-  binop_mul_3d_ser_p1(n_r, nu_rs, mrNrNurs); 
+  binop_mul_2d_ser_p2(n_s, nu_sr, msNsNusr); 
+  binop_mul_2d_ser_p2(n_r, nu_rs, mrNrNurs); 
   msNsNusr[0] = m_s * msNsNusr[0]; 
   mrNrNurs[0] = m_r * mrNrNurs[0]; 
   m_n_nu[0] = msNsNusr[0] + mrNrNurs[0]; 
@@ -64,9 +64,9 @@ GKYL_CU_DH void gyrokinetic_cross_prim_moms_bgk_3x2v_ser_p1(const double beta, c
   msNsNusr[7] = m_s * msNsNusr[7]; 
   mrNrNurs[7] = m_r * mrNrNurs[7]; 
   m_n_nu[7] = msNsNusr[7] + mrNrNurs[7]; 
-  ser_3x_p1_inv(m_n_nu, m_n_nu_inv); 
-  binop_mul_3d_ser_p1(msNsNusr, mrNrNurs, alphaE); 
-  binop_mul_3d_ser_p1(alphaE, m_n_nu_inv, alphaE); 
+  ser_2x_p2_inv(m_n_nu, m_n_nu_inv); 
+  binop_mul_2d_ser_p2(msNsNusr, mrNrNurs, alphaE); 
+  binop_mul_2d_ser_p2(alphaE, m_n_nu_inv, alphaE); 
   alphaE[0] = alphaE[0] * 2 * (1+beta) / (m_s+m_r); 
   alphaE[1] = alphaE[1] * 2 * (1+beta) / (m_s+m_r); 
   alphaE[2] = alphaE[2] * 2 * (1+beta) / (m_s+m_r); 
@@ -85,8 +85,8 @@ GKYL_CU_DH void gyrokinetic_cross_prim_moms_bgk_3x2v_ser_p1(const double beta, c
   n_sr[6] = n_s[6]; 
   n_sr[7] = n_s[7]; 
  
-  ser_3x_p1_inv(msNsNusr, msNsNusr_inv); 
-  binop_mul_3d_ser_p1(alphaE, msNsNusr_inv, coeff); 
+  ser_2x_p2_inv(msNsNusr, msNsNusr_inv); 
+  binop_mul_2d_ser_p2(alphaE, msNsNusr_inv, coeff); 
   dUpar[0] = upar_r[0] - upar_s[0]; 
   dUpar[1] = upar_r[1] - upar_s[1]; 
   dUpar[2] = upar_r[2] - upar_s[2]; 
@@ -95,7 +95,7 @@ GKYL_CU_DH void gyrokinetic_cross_prim_moms_bgk_3x2v_ser_p1(const double beta, c
   dUpar[5] = upar_r[5] - upar_s[5]; 
   dUpar[6] = upar_r[6] - upar_s[6]; 
   dUpar[7] = upar_r[7] - upar_s[7]; 
-  binop_mul_3d_ser_p1(coeff, dUpar, cUpar); 
+  binop_mul_2d_ser_p2(coeff, dUpar, cUpar); 
   upar_sr[0] = upar_s[0] + cUpar[0]*(m_s+m_r)/2; 
   upar_sr[1] = upar_s[1] + cUpar[1]*(m_s+m_r)/2; 
   upar_sr[2] = upar_s[2] + cUpar[2]*(m_s+m_r)/2; 
@@ -114,8 +114,8 @@ GKYL_CU_DH void gyrokinetic_cross_prim_moms_bgk_3x2v_ser_p1(const double beta, c
   T1[5] = dv * (m_r*vtsq_r[5]-m_s*vtsq_s[5]); 
   T1[6] = dv * (m_r*vtsq_r[6]-m_s*vtsq_s[6]); 
   T1[7] = dv * (m_r*vtsq_r[7]-m_s*vtsq_s[7]); 
-  binop_mul_3d_ser_p1(dUpar, dUpar, T2); 
-  binop_mul_3d_ser_p1(coeff, T2, T3); 
+  binop_mul_2d_ser_p2(dUpar, dUpar, T2); 
+  binop_mul_2d_ser_p2(coeff, T2, T3); 
   cVtsq[0] = T1[0] + m_r*T2[0] - (m_s+m_r)*(m_s+m_r)/4*T3[0] ; 
   cVtsq[1] = T1[1] + m_r*T2[1] - (m_s+m_r)*(m_s+m_r)/4*T3[1] ; 
   cVtsq[2] = T1[2] + m_r*T2[2] - (m_s+m_r)*(m_s+m_r)/4*T3[2] ; 
@@ -124,7 +124,7 @@ GKYL_CU_DH void gyrokinetic_cross_prim_moms_bgk_3x2v_ser_p1(const double beta, c
   cVtsq[5] = T1[5] + m_r*T2[5] - (m_s+m_r)*(m_s+m_r)/4*T3[5] ; 
   cVtsq[6] = T1[6] + m_r*T2[6] - (m_s+m_r)*(m_s+m_r)/4*T3[6] ; 
   cVtsq[7] = T1[7] + m_r*T2[7] - (m_s+m_r)*(m_s+m_r)/4*T3[7] ; 
-  binop_mul_3d_ser_p1(coeff, cVtsq, cVtsq); 
+  binop_mul_2d_ser_p2(coeff, cVtsq, cVtsq); 
   vtsq_sr[0] = vtsq_s[0] + cVtsq[0]/dv; 
   vtsq_sr[1] = vtsq_s[1] + cVtsq[1]/dv; 
   vtsq_sr[2] = vtsq_s[2] + cVtsq[2]/dv; 

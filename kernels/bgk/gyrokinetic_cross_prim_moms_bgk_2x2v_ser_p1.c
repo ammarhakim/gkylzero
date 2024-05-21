@@ -32,7 +32,7 @@ GKYL_CU_DH void gyrokinetic_cross_prim_moms_bgk_2x2v_ser_p1(const double beta, c
   double dUpar[4] = {0.0}; 
   double cUpar[4] = {0.0}; 
 
-  int dv; 
+  double dv; 
   double T1[4] = {0.0}; 
   double T2[4] = {0.0}; 
   double T3[4] = {0.0}; 
@@ -77,7 +77,7 @@ GKYL_CU_DH void gyrokinetic_cross_prim_moms_bgk_2x2v_ser_p1(const double beta, c
   upar_sr[2] = upar_s[2] + cUpar[2]*(m_s+m_r)/2; 
   upar_sr[3] = upar_s[3] + cUpar[3]*(m_s+m_r)/2; 
  
-  dv = 2 + 1; 
+  dv = 3.0; 
   T1[0] = dv * (m_r*vtsq_r[0]-m_s*vtsq_s[0]); 
   T1[1] = dv * (m_r*vtsq_r[1]-m_s*vtsq_s[1]); 
   T1[2] = dv * (m_r*vtsq_r[2]-m_s*vtsq_s[2]); 
