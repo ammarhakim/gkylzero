@@ -40,7 +40,7 @@ gkyl_bgk_collisions_advance(const gkyl_bgk_collisions *up,
   // Compute nu*f_M - nu*f, and its contribution to the CFL rate.
 #ifdef GKYL_HAVE_CUDA
   if (up->use_gpu)
-    return gkyl_bgk_collisions_advance_cu(up, crange, prange, nu, nufM, fin, dt, out, cflfreq);
+    return gkyl_bgk_collisions_advance_cu(up, crange, prange, nu, nufM, fin, implicit_step, dt, out, cflfreq);
 #endif
 
   struct gkyl_range_iter piter;
