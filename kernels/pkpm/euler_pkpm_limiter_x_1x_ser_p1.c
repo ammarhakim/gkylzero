@@ -145,40 +145,14 @@ GKYL_CU_DH void euler_pkpm_limiter_x_1x_ser_p1(double limiter_fac, const struct 
 
   double mm[15] = {0.0}; 
   double slope[3] = {0.0}; 
-  mm[0] = minmod(waves_slope_c[1], waves_slope_l[1], waves_slope_r[1]); 
-  mm[1] = minmod(waves_slope_c[2], waves_slope_l[2], waves_slope_r[2]); 
-  mm[2] = minmod(waves_slope_c[3], waves_slope_l[3], waves_slope_r[3]); 
-  slope[0] += mm[0]; 
-  slope[1] += mm[1]; 
-  slope[2] += mm[2]; 
-
-  mm[3] = minmod(waves_slope_c[11], waves_slope_l[11], waves_slope_r[11]); 
-  mm[4] = minmod(waves_slope_c[12], waves_slope_l[12], waves_slope_r[12]); 
-  mm[5] = minmod(waves_slope_c[13], waves_slope_l[13], waves_slope_r[13]); 
-  slope[0] += mm[3]; 
-  slope[1] += mm[4]; 
-  slope[2] += mm[5]; 
-
-  mm[6] = minmod(waves_slope_c[21], waves_slope_l[21], waves_slope_r[21]); 
-  mm[7] = minmod(waves_slope_c[22], waves_slope_l[22], waves_slope_r[22]); 
-  mm[8] = minmod(waves_slope_c[23], waves_slope_l[23], waves_slope_r[23]); 
-  slope[0] += mm[6]; 
-  slope[1] += mm[7]; 
-  slope[2] += mm[8]; 
-
-  mm[9] = minmod(waves_slope_c[31], waves_slope_l[31], waves_slope_r[31]); 
-  mm[10] = minmod(waves_slope_c[32], waves_slope_l[32], waves_slope_r[32]); 
-  mm[11] = minmod(waves_slope_c[33], waves_slope_l[33], waves_slope_r[33]); 
-  slope[0] += mm[9]; 
-  slope[1] += mm[10]; 
-  slope[2] += mm[11]; 
-
-  mm[12] = minmod(waves_slope_c[41], waves_slope_l[41], waves_slope_r[41]); 
-  mm[13] = minmod(waves_slope_c[42], waves_slope_l[42], waves_slope_r[42]); 
-  mm[14] = minmod(waves_slope_c[43], waves_slope_l[43], waves_slope_r[43]); 
-  slope[0] += mm[12]; 
-  slope[1] += mm[13]; 
-  slope[2] += mm[14]; 
+  for (int i = 0; i < 5; ++i) { 
+    mm[3*i] = gkyl_minmod(waves_slope_c[10*i+1], waves_slope_l[10*i+1], waves_slope_r[10*i+1]); 
+    mm[3*i+1] = gkyl_minmod(waves_slope_c[10*i+2], waves_slope_l[10*i+2], waves_slope_r[10*i+2]); 
+    mm[3*i+2] = gkyl_minmod(waves_slope_c[10*i+3], waves_slope_l[10*i+3], waves_slope_r[10*i+3]); 
+    slope[0] += mm[3*i]; 
+    slope[1] += mm[3*i+1]; 
+    slope[2] += mm[3*i+2]; 
+  } 
 
   // Rotate limited slope back to global coordinates 
   rhoux_c[1] = slope[0]*norm[0] + slope[1]*tau1[0] + slope[2]*tau2[0]; 

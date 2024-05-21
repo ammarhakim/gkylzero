@@ -127,10 +127,10 @@ pkpm_field_new(struct gkyl_pkpm *pkpm, struct gkyl_pkpm_app *app)
   struct gkyl_wv_eqn *maxwell = gkyl_wv_maxwell_new(c, ef, mf, app->use_gpu);
   // Create updaters for bvar (needed by PKPM model)
   f->calc_bvar = gkyl_dg_calc_em_vars_new(&app->grid, &app->confBasis, &app->local_ext, 
-    maxwell, limiter_fac, 0, app->use_gpu);
+    maxwell, app->geom, limiter_fac, 0, app->use_gpu);
   // Create updaters for limiting EM fields
   f->calc_em_vars = gkyl_dg_calc_em_vars_new(&app->grid, &app->confBasis, &app->local_ext, 
-    maxwell, limiter_fac, 0, app->use_gpu);
+    maxwell, app->geom, limiter_fac, 0, app->use_gpu);
   gkyl_wv_eqn_release(maxwell);
 
   // determine which directions are not periodic

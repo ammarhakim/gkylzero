@@ -189,6 +189,7 @@ gkyl_dg_calc_fluid_vars_limiter_cu_kernel(struct gkyl_dg_calc_fluid_vars *up, st
     // must use gkyl_sub_range_inv_idx so that linc1=0 maps to idx={1,1,...}
     // since update_range is a subrange
     gkyl_sub_range_inv_idx(&conf_range, linc1, idxc);
+    const struct gkyl_wave_cell_geom *geom = gkyl_wave_geom_get(up->geom, idxc);    
 
     // convert back to a linear index on the super-range (with ghost cells)
     // linc will have jumps in it to jump over ghost cells
@@ -208,7 +209,7 @@ gkyl_dg_calc_fluid_vars_limiter_cu_kernel(struct gkyl_dg_calc_fluid_vars *up, st
       double *fluid_l = (double*) gkyl_array_fetch(fluid, linl);
       double *fluid_r = (double*) gkyl_array_fetch(fluid, linr);
       
-      up->fluid_limiter[dir](up->limiter_fac, up->wv_eqn, fluid_l, fluid_c, fluid_r);
+      up->fluid_limiter[dir](up->limiter_fac, up->wv_eqn, geom, fluid_l, fluid_c, fluid_r);
     }
   }
 }
@@ -326,7 +327,7 @@ dg_calc_fluid_vars_set_cu_dev_ptrs(struct gkyl_dg_calc_fluid_vars *up, const str
 }
 
 gkyl_dg_calc_fluid_vars*
-gkyl_dg_calc_fluid_vars_cu_dev_new(const struct gkyl_wv_eqn *wv_eqn, 
+gkyl_dg_calc_fluid_vars_cu_dev_new(const struct gkyl_wv_eqn *wv_eqn, const struct gkyl_wave_geom *wg, 
   const struct gkyl_basis* cbasis, const struct gkyl_range *mem_range, 
   double limiter_fac)
 {
@@ -339,6 +340,10 @@ gkyl_dg_calc_fluid_vars_cu_dev_new(const struct gkyl_wv_eqn *wv_eqn,
   // acquire pointer to wave equation object
   struct gkyl_wv_eqn *eqn = gkyl_wv_eqn_acquire(wv_eqn);
   up->wv_eqn = eqn->on_dev; // this is so the memcpy below has eqn on_dev
+
+  // acquire pointer to wave equation object
+  struct gkyl_wave_geom *geom = gkyl_wave_geom_acquire(wg);
+  up->geom = geom->on_dev; // this is so the memcpy below has geom on_dev
 
   int nc = cbasis->num_basis;
   int cdim = cbasis->ndim;
@@ -376,7 +381,8 @@ gkyl_dg_calc_fluid_vars_cu_dev_new(const struct gkyl_wv_eqn *wv_eqn,
   // set parent on_dev pointer
   up->on_dev = up_cu;
   
-  up->wv_eqn = eqn; // updater should store host pointer  
+  up->wv_eqn = eqn; // updater should store host pointer 
+  up->geom = geom; 
 
   return up;
 }

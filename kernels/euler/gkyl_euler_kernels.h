@@ -16,7 +16,7 @@ GKYL_CU_DH void fluid_em_coupling_set_1x_ser_p1(int count, int num_species, doub
 GKYL_CU_DH void fluid_em_coupling_copy_1x_ser_p1(int count, int num_species, double qbym[GKYL_MAX_SPECIES], double epsilon0, struct gkyl_nmat *x, double* GKYL_RESTRICT fluid[GKYL_MAX_SPECIES], double* GKYL_RESTRICT em) ; 
 GKYL_CU_DH void fluid_em_coupling_energy_1x_ser_p1(const double* ke_old, const double* ke_new, double* GKYL_RESTRICT fluid); 
 GKYL_CU_DH double euler_vol_1x_ser_p1(const double *w, const double *dxv, double gas_gamma, const double *u, const double *p, const double *fluid, double* GKYL_RESTRICT out); 
-GKYL_CU_DH void fluid_vars_limiterx_1x_ser_p1(double limiter_fac, const struct gkyl_wv_eqn *wv_eqn, double *fluid_l, double *fluid_c, double *fluid_r); 
+GKYL_CU_DH void fluid_vars_limiterx_1x_ser_p1(double limiter_fac, const struct gkyl_wv_eqn *wv_eqn, const struct gkyl_wave_cell_geom *geom, double *fluid_l, double *fluid_c, double *fluid_r); 
 GKYL_CU_DH double euler_surfx_1x_ser_p1(const double *w, const double *dxv, const struct gkyl_wv_eqn *wv_eqn, 
     const struct gkyl_wave_cell_geom *geom_l, const struct gkyl_wave_cell_geom *geom_r, 
     const double *u_surf_l, const double *u_surf_c, const double *u_surf_r, 
@@ -35,7 +35,7 @@ GKYL_CU_DH void fluid_em_coupling_set_1x_ser_p2(int count, int num_species, doub
 GKYL_CU_DH void fluid_em_coupling_copy_1x_ser_p2(int count, int num_species, double qbym[GKYL_MAX_SPECIES], double epsilon0, struct gkyl_nmat *x, double* GKYL_RESTRICT fluid[GKYL_MAX_SPECIES], double* GKYL_RESTRICT em) ; 
 GKYL_CU_DH void fluid_em_coupling_energy_1x_ser_p2(const double* ke_old, const double* ke_new, double* GKYL_RESTRICT fluid); 
 GKYL_CU_DH double euler_vol_1x_ser_p2(const double *w, const double *dxv, double gas_gamma, const double *u, const double *p, const double *fluid, double* GKYL_RESTRICT out); 
-GKYL_CU_DH void fluid_vars_limiterx_1x_ser_p2(double limiter_fac, const struct gkyl_wv_eqn *wv_eqn, double *fluid_l, double *fluid_c, double *fluid_r); 
+GKYL_CU_DH void fluid_vars_limiterx_1x_ser_p2(double limiter_fac, const struct gkyl_wv_eqn *wv_eqn, const struct gkyl_wave_cell_geom *geom, double *fluid_l, double *fluid_c, double *fluid_r); 
 GKYL_CU_DH double euler_surfx_1x_ser_p2(const double *w, const double *dxv, const struct gkyl_wv_eqn *wv_eqn, 
     const struct gkyl_wave_cell_geom *geom_l, const struct gkyl_wave_cell_geom *geom_r, 
     const double *u_surf_l, const double *u_surf_c, const double *u_surf_r, 
@@ -54,7 +54,7 @@ GKYL_CU_DH void fluid_em_coupling_set_1x_ser_p3(int count, int num_species, doub
 GKYL_CU_DH void fluid_em_coupling_copy_1x_ser_p3(int count, int num_species, double qbym[GKYL_MAX_SPECIES], double epsilon0, struct gkyl_nmat *x, double* GKYL_RESTRICT fluid[GKYL_MAX_SPECIES], double* GKYL_RESTRICT em) ; 
 GKYL_CU_DH void fluid_em_coupling_energy_1x_ser_p3(const double* ke_old, const double* ke_new, double* GKYL_RESTRICT fluid); 
 GKYL_CU_DH double euler_vol_1x_ser_p3(const double *w, const double *dxv, double gas_gamma, const double *u, const double *p, const double *fluid, double* GKYL_RESTRICT out); 
-GKYL_CU_DH void fluid_vars_limiterx_1x_ser_p3(double limiter_fac, const struct gkyl_wv_eqn *wv_eqn, double *fluid_l, double *fluid_c, double *fluid_r); 
+GKYL_CU_DH void fluid_vars_limiterx_1x_ser_p3(double limiter_fac, const struct gkyl_wv_eqn *wv_eqn, const struct gkyl_wave_cell_geom *geom, double *fluid_l, double *fluid_c, double *fluid_r); 
 GKYL_CU_DH double euler_surfx_1x_ser_p3(const double *w, const double *dxv, const struct gkyl_wv_eqn *wv_eqn, 
     const struct gkyl_wave_cell_geom *geom_l, const struct gkyl_wave_cell_geom *geom_r, 
     const double *u_surf_l, const double *u_surf_c, const double *u_surf_r, 
@@ -73,13 +73,13 @@ GKYL_CU_DH void fluid_em_coupling_set_2x_ser_p1(int count, int num_species, doub
 GKYL_CU_DH void fluid_em_coupling_copy_2x_ser_p1(int count, int num_species, double qbym[GKYL_MAX_SPECIES], double epsilon0, struct gkyl_nmat *x, double* GKYL_RESTRICT fluid[GKYL_MAX_SPECIES], double* GKYL_RESTRICT em) ; 
 GKYL_CU_DH void fluid_em_coupling_energy_2x_ser_p1(const double* ke_old, const double* ke_new, double* GKYL_RESTRICT fluid); 
 GKYL_CU_DH double euler_vol_2x_ser_p1(const double *w, const double *dxv, double gas_gamma, const double *u, const double *p, const double *fluid, double* GKYL_RESTRICT out); 
-GKYL_CU_DH void fluid_vars_limiterx_2x_ser_p1(double limiter_fac, const struct gkyl_wv_eqn *wv_eqn, double *fluid_l, double *fluid_c, double *fluid_r); 
+GKYL_CU_DH void fluid_vars_limiterx_2x_ser_p1(double limiter_fac, const struct gkyl_wv_eqn *wv_eqn, const struct gkyl_wave_cell_geom *geom, double *fluid_l, double *fluid_c, double *fluid_r); 
 GKYL_CU_DH double euler_surfx_2x_ser_p1(const double *w, const double *dxv, const struct gkyl_wv_eqn *wv_eqn, 
     const struct gkyl_wave_cell_geom *geom_l, const struct gkyl_wave_cell_geom *geom_r, 
     const double *u_surf_l, const double *u_surf_c, const double *u_surf_r, 
     const double *p_surf_l, const double *p_surf_c, const double *p_surf_r, 
     const double *fluid_l, const double *fluid_c, const double *fluid_r, double* GKYL_RESTRICT out); 
-GKYL_CU_DH void fluid_vars_limitery_2x_ser_p1(double limiter_fac, const struct gkyl_wv_eqn *wv_eqn, double *fluid_l, double *fluid_c, double *fluid_r); 
+GKYL_CU_DH void fluid_vars_limitery_2x_ser_p1(double limiter_fac, const struct gkyl_wv_eqn *wv_eqn, const struct gkyl_wave_cell_geom *geom, double *fluid_l, double *fluid_c, double *fluid_r); 
 GKYL_CU_DH double euler_surfy_2x_ser_p1(const double *w, const double *dxv, const struct gkyl_wv_eqn *wv_eqn, 
     const struct gkyl_wave_cell_geom *geom_l, const struct gkyl_wave_cell_geom *geom_r, 
     const double *u_surf_l, const double *u_surf_c, const double *u_surf_r, 
@@ -98,19 +98,19 @@ GKYL_CU_DH void fluid_em_coupling_set_3x_ser_p1(int count, int num_species, doub
 GKYL_CU_DH void fluid_em_coupling_copy_3x_ser_p1(int count, int num_species, double qbym[GKYL_MAX_SPECIES], double epsilon0, struct gkyl_nmat *x, double* GKYL_RESTRICT fluid[GKYL_MAX_SPECIES], double* GKYL_RESTRICT em) ; 
 GKYL_CU_DH void fluid_em_coupling_energy_3x_ser_p1(const double* ke_old, const double* ke_new, double* GKYL_RESTRICT fluid); 
 GKYL_CU_DH double euler_vol_3x_ser_p1(const double *w, const double *dxv, double gas_gamma, const double *u, const double *p, const double *fluid, double* GKYL_RESTRICT out); 
-GKYL_CU_DH void fluid_vars_limiterx_3x_ser_p1(double limiter_fac, const struct gkyl_wv_eqn *wv_eqn, double *fluid_l, double *fluid_c, double *fluid_r); 
+GKYL_CU_DH void fluid_vars_limiterx_3x_ser_p1(double limiter_fac, const struct gkyl_wv_eqn *wv_eqn, const struct gkyl_wave_cell_geom *geom, double *fluid_l, double *fluid_c, double *fluid_r); 
 GKYL_CU_DH double euler_surfx_3x_ser_p1(const double *w, const double *dxv, const struct gkyl_wv_eqn *wv_eqn, 
     const struct gkyl_wave_cell_geom *geom_l, const struct gkyl_wave_cell_geom *geom_r, 
     const double *u_surf_l, const double *u_surf_c, const double *u_surf_r, 
     const double *p_surf_l, const double *p_surf_c, const double *p_surf_r, 
     const double *fluid_l, const double *fluid_c, const double *fluid_r, double* GKYL_RESTRICT out); 
-GKYL_CU_DH void fluid_vars_limitery_3x_ser_p1(double limiter_fac, const struct gkyl_wv_eqn *wv_eqn, double *fluid_l, double *fluid_c, double *fluid_r); 
+GKYL_CU_DH void fluid_vars_limitery_3x_ser_p1(double limiter_fac, const struct gkyl_wv_eqn *wv_eqn, const struct gkyl_wave_cell_geom *geom, double *fluid_l, double *fluid_c, double *fluid_r); 
 GKYL_CU_DH double euler_surfy_3x_ser_p1(const double *w, const double *dxv, const struct gkyl_wv_eqn *wv_eqn, 
     const struct gkyl_wave_cell_geom *geom_l, const struct gkyl_wave_cell_geom *geom_r, 
     const double *u_surf_l, const double *u_surf_c, const double *u_surf_r, 
     const double *p_surf_l, const double *p_surf_c, const double *p_surf_r, 
     const double *fluid_l, const double *fluid_c, const double *fluid_r, double* GKYL_RESTRICT out); 
-GKYL_CU_DH void fluid_vars_limiterz_3x_ser_p1(double limiter_fac, const struct gkyl_wv_eqn *wv_eqn, double *fluid_l, double *fluid_c, double *fluid_r); 
+GKYL_CU_DH void fluid_vars_limiterz_3x_ser_p1(double limiter_fac, const struct gkyl_wv_eqn *wv_eqn, const struct gkyl_wave_cell_geom *geom, double *fluid_l, double *fluid_c, double *fluid_r); 
 GKYL_CU_DH double euler_surfz_3x_ser_p1(const double *w, const double *dxv, const struct gkyl_wv_eqn *wv_eqn, 
     const struct gkyl_wave_cell_geom *geom_l, const struct gkyl_wave_cell_geom *geom_r, 
     const double *u_surf_l, const double *u_surf_c, const double *u_surf_r, 
@@ -129,13 +129,13 @@ GKYL_CU_DH void fluid_em_coupling_set_2x_tensor_p2(int count, int num_species, d
 GKYL_CU_DH void fluid_em_coupling_copy_2x_tensor_p2(int count, int num_species, double qbym[GKYL_MAX_SPECIES], double epsilon0, struct gkyl_nmat *x, double* GKYL_RESTRICT fluid[GKYL_MAX_SPECIES], double* GKYL_RESTRICT em) ; 
 GKYL_CU_DH void fluid_em_coupling_energy_2x_tensor_p2(const double* ke_old, const double* ke_new, double* GKYL_RESTRICT fluid); 
 GKYL_CU_DH double euler_vol_2x_tensor_p2(const double *w, const double *dxv, double gas_gamma, const double *u, const double *p, const double *fluid, double* GKYL_RESTRICT out); 
-GKYL_CU_DH void fluid_vars_limiterx_2x_tensor_p2(double limiter_fac, const struct gkyl_wv_eqn *wv_eqn, double *fluid_l, double *fluid_c, double *fluid_r); 
+GKYL_CU_DH void fluid_vars_limiterx_2x_tensor_p2(double limiter_fac, const struct gkyl_wv_eqn *wv_eqn, const struct gkyl_wave_cell_geom *geom, double *fluid_l, double *fluid_c, double *fluid_r); 
 GKYL_CU_DH double euler_surfx_2x_tensor_p2(const double *w, const double *dxv, const struct gkyl_wv_eqn *wv_eqn, 
     const struct gkyl_wave_cell_geom *geom_l, const struct gkyl_wave_cell_geom *geom_r, 
     const double *u_surf_l, const double *u_surf_c, const double *u_surf_r, 
     const double *p_surf_l, const double *p_surf_c, const double *p_surf_r, 
     const double *fluid_l, const double *fluid_c, const double *fluid_r, double* GKYL_RESTRICT out); 
-GKYL_CU_DH void fluid_vars_limitery_2x_tensor_p2(double limiter_fac, const struct gkyl_wv_eqn *wv_eqn, double *fluid_l, double *fluid_c, double *fluid_r); 
+GKYL_CU_DH void fluid_vars_limitery_2x_tensor_p2(double limiter_fac, const struct gkyl_wv_eqn *wv_eqn, const struct gkyl_wave_cell_geom *geom, double *fluid_l, double *fluid_c, double *fluid_r); 
 GKYL_CU_DH double euler_surfy_2x_tensor_p2(const double *w, const double *dxv, const struct gkyl_wv_eqn *wv_eqn, 
     const struct gkyl_wave_cell_geom *geom_l, const struct gkyl_wave_cell_geom *geom_r, 
     const double *u_surf_l, const double *u_surf_c, const double *u_surf_r, 

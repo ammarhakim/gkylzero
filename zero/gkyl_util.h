@@ -253,7 +253,7 @@ gkyl_int_div_up(int a, int b)
  */
 GKYL_CU_DH
 static inline double 
-minmod(double a, double b, double c)
+gkyl_minmod(double a, double b, double c)
 {
   double sa = GKYL_SGN(a);
   double sb = GKYL_SGN(b);

@@ -4,6 +4,7 @@
 #include <gkyl_basis.h>
 #include <gkyl_range.h>
 #include <gkyl_rect_grid.h>
+#include <gkyl_wave_geom.h>
 #include <gkyl_wv_eqn.h>
 
 // Object type
@@ -21,7 +22,8 @@ typedef struct gkyl_dg_calc_fluid_vars gkyl_dg_calc_fluid_vars;
  * 
  * Updater also stores the kernels to compute fluid source terms and fluid integrated moments.
  * 
- * @param wv_eqn      Wave equation (stores function pointers for computing waves)
+ * @param wv_eqn      Wave equation (stores function pointers for computing waves and limiting solution)
+ * @param geom        Wave geometry object for computing waves in local coordinate system
  * @param cbasis      Configuration space basis functions
  * @param mem_range   Configuration space range that sets the size of the bin_op memory
  *                    for computing primitive moments. Note range is stored so 
@@ -37,7 +39,7 @@ typedef struct gkyl_dg_calc_fluid_vars gkyl_dg_calc_fluid_vars;
  * @return New updater pointer.
  */
 struct gkyl_dg_calc_fluid_vars* 
-gkyl_dg_calc_fluid_vars_new(const struct gkyl_wv_eqn *wv_eqn, 
+gkyl_dg_calc_fluid_vars_new(const struct gkyl_wv_eqn *wv_eqn, const struct gkyl_wave_geom *geom, 
   const struct gkyl_basis* cbasis, const struct gkyl_range *mem_range, 
   double limiter_fac, bool use_gpu);
 
@@ -46,7 +48,7 @@ gkyl_dg_calc_fluid_vars_new(const struct gkyl_wv_eqn *wv_eqn,
  * NV-GPU. See new() method for documentation.
  */
 struct gkyl_dg_calc_fluid_vars* 
-gkyl_dg_calc_fluid_vars_cu_dev_new(const struct gkyl_wv_eqn *wv_eqn, 
+gkyl_dg_calc_fluid_vars_cu_dev_new(const struct gkyl_wv_eqn *wv_eqn, const struct gkyl_wave_geom *geom, 
   const struct gkyl_basis* cbasis, const struct gkyl_range *mem_range, 
   double limiter_fac);
 

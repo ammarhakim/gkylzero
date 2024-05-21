@@ -105,8 +105,8 @@ vm_fluid_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm
     // updater for computing fluid variables: flow velocity and pressure
     // also stores kernels for computing source terms, integrated variables
     // Two instances, one over extended range and one over local range for ease of handling boundary conditions
-    f->calc_fluid_vars_ext = gkyl_dg_calc_fluid_vars_new(f->equation, &app->confBasis, &app->local_ext, limiter_fac, app->use_gpu);
-    f->calc_fluid_vars = gkyl_dg_calc_fluid_vars_new(f->equation, &app->confBasis, &app->local, limiter_fac, app->use_gpu); 
+    f->calc_fluid_vars_ext = gkyl_dg_calc_fluid_vars_new(f->equation, app->geom, &app->confBasis, &app->local_ext, limiter_fac, app->use_gpu);
+    f->calc_fluid_vars = gkyl_dg_calc_fluid_vars_new(f->equation, app->geom, &app->confBasis, &app->local, limiter_fac, app->use_gpu); 
 
     struct gkyl_dg_euler_auxfields aux_inp = {.u = f->u, .p = f->p, 
       .u_surf = f->u_surf, .p_surf = f->p_surf};
