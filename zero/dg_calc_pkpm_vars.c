@@ -407,6 +407,10 @@ void gkyl_dg_calc_pkpm_vars_release(gkyl_dg_calc_pkpm_vars *up)
   gkyl_nmat_release(up->As);
   gkyl_nmat_release(up->xs);
   gkyl_nmat_linsolve_lu_release(up->mem);
+
+  gkyl_nmat_release(up->As_u);
+  gkyl_nmat_release(up->xs_u);
+  gkyl_nmat_linsolve_lu_release(up->mem_u);
   
   if (GKYL_IS_CU_ALLOC(up->flags))
     gkyl_cu_free(up->on_dev);
