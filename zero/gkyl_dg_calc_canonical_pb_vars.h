@@ -60,6 +60,31 @@ void gkyl_dg_calc_canonical_pb_vars_alpha_surf_cu(struct gkyl_dg_calc_canonical_
   struct gkyl_array* alpha_surf, struct gkyl_array* sgn_alpha_surf, struct gkyl_array* const_sgn_alpha);
 
 /**
+ * Compute surface expansion of phase space flux alpha = {z, H}
+ * 
+ * Note: Each cell stores the surface expansion on the *lower* edge of the cell
+ * @param up Updater for computing general geometry canonical_pb variables 
+ * @param conf_range Configuration space range 
+ * @param h_ij_inv Inverse of the metric tensor expansion
+ * @param M2ij M2ij moment expansion: int(wiwjfd^3w)
+ * @param V_drift Drift velocity moment expansion
+ * @param M1i Drift velocity times density moment expansion
+ * @param pressure Output, scalar pressure expansion
+ */
+void gkyl_canonical_pb_pressure(struct gkyl_dg_calc_canonical_pb_vars *up, const struct gkyl_range *conf_range,
+ const struct gkyl_array *h_ij_inv, 
+ const struct gkyl_array *M2ij, const struct gkyl_array *V_drift, const struct gkyl_array *M1i,
+ struct gkyl_array *pressure);
+
+ /**
+ * Host-side wrappers for canonical_pb pressure operations on device
+ */
+void gkyl_canonical_pb_pressure_cu(struct gkyl_dg_calc_canonical_pb_vars *up, const struct gkyl_range *conf_range,
+ const struct gkyl_array *h_ij_inv, 
+ const struct gkyl_array *M2ij, const struct gkyl_array *V_drift, const struct gkyl_array *M1i,
+ struct gkyl_array *pressure);
+
+/**
  * Delete pointer to updater to compute canonical_pb general geometry variables.
  *
  * @param up Updater to delete.
