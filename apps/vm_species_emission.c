@@ -31,6 +31,7 @@ vm_species_emission_cross_init(struct gkyl_vlasov_app *app, struct vm_species *s
   emit->emit_grid = &s->bflux.boundary_grid[bdir];
   emit->emit_buff_r = &s->bflux.flux_r[bdir];
   emit->emit_ghost_r = (emit->edge == GKYL_LOWER_EDGE) ? &s->lower_ghost[emit->dir] : &s->upper_ghost[emit->dir];
+  emit->f_emit = mkarr(app->use_gpu, app->basis.num_basis, emit->emit_buff_r->volume);
 
   for (int i=0; i<emit->num_species; ++i) {
     emit->impact_species[i] = vm_find_species(app, emit->params->in_species[i]);
@@ -53,7 +54,7 @@ vm_species_emission_cross_init(struct gkyl_vlasov_app *app, struct vm_species *s
     emit->bflux_arr[i] = emit->impact_species[i]->bflux.flux_arr[bdir];
     emit->k[i] = mkarr(app->use_gpu, app->confBasis.num_basis, emit->impact_cbuff_r[i]->volume);
 
-    gkyl_bc_emission_flux_ranges(&emit->impact_normal_r[i], emit->dir, emit->impact_ghost_r[i],
+    gkyl_bc_emission_flux_ranges(&emit->impact_normal_r[i], emit->dir + cdim, emit->impact_buff_r[i],
       ghost, emit->edge);
     
     emit->update[i] = gkyl_bc_emission_spectrum_new(emit->params->norm_type[i],
@@ -70,20 +71,17 @@ vm_species_emission_rhs(struct gkyl_vlasov_app *app, struct vm_emitting_wall *em
   for (int i=0; i<emit->num_species; ++i) {
     int species_idx;
     species_idx = vm_find_species_idx(app, emit->impact_species[i]->info.name);
-    gkyl_dg_updater_moment_advance(emit->flux_slvr[i], emit->impact_buff_r[i],
+    gkyl_dg_updater_moment_advance(emit->flux_slvr[i], &emit->impact_normal_r[i],
       emit->impact_cbuff_r[i], emit->bflux_arr[i], emit->flux[i]);
     
-    gkyl_bc_emission_spectrum_advance(emit->update[i], emit->impact_skin_r[i], emit->impact_buff_r[i], emit->impact_cbuff_r[i], &emit->emit_ghost_r[i], rhs[species_idx], emit->yield[i], emit->spectrum[i], emit->weight[i], emit->flux[i], emit->k[i]);
+    gkyl_bc_emission_spectrum_advance(emit->update[i], emit->impact_skin_r[i], emit->impact_buff_r[i], emit->impact_cbuff_r[i], emit->emit_buff_r, rhs[species_idx], emit->f_emit, emit->yield[i], emit->spectrum[i], emit->weight[i], emit->flux[i], emit->k[i]);
   }
 }
 
 void
-vm_species_emission_apply_bc()
+vm_species_emission_apply_bc(struct vm_emitting_wall *emit, struct gkyl_array *fout)
 {
-  int i = 1;
-  /* for (int i=0; i<emit->num_species; ++i) { */
-  /*   gkyl_bc_emission_spectrum_advance(emit->update[i], ); */
-  /* } */
+  gkyl_array_copy_range_to_range(fout, emit->f_emit, emit->emit_ghost_r, emit->emit_buff_r);
 }
 
 /* void */

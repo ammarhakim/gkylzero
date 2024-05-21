@@ -355,6 +355,8 @@ gkyl_vlasov_app_apply_ic(gkyl_vlasov_app* app, double t0)
     if (app->species[i].emit_up)
       vm_species_emission_rhs(app, &app->species[i].bc_emission_up, fin);
   }
+  for (int i=0; i<app->num_species; ++i)
+    vm_species_apply_bc(app, &app->species[i], app->species[i].f);
   for (int i=0; i<app->num_fluid_species; ++i)
     gkyl_vlasov_app_apply_ic_fluid_species(app, i, t0);
 }
@@ -381,7 +383,7 @@ gkyl_vlasov_app_apply_ic_species(gkyl_vlasov_app* app, int sidx, double t0)
   vm_species_apply_ic(app, &app->species[sidx], t0);
   app->stat.init_species_tm += gkyl_time_diff_now_sec(wtm);
 
-  vm_species_apply_bc(app, &app->species[sidx], app->species[sidx].f);
+  // vm_species_apply_bc(app, &app->species[sidx], app->species[sidx].f);
 }
 
 void
@@ -547,7 +549,7 @@ gkyl_vlasov_app_write_species(gkyl_vlasov_app* app, int sidx, double tm, int fra
       mt, app->species[sidx].f_host, fileNm);
   }
   else {
-    gkyl_comm_array_write(app->species[sidx].comm, &app->species[sidx].grid, &app->species[sidx].local,
+    gkyl_comm_array_write(app->species[sidx].comm, &app->species[sidx].grid, &app->species[sidx].local_ext,
       mt, app->species[sidx].f, fileNm);
   }
 

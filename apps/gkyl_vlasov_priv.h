@@ -209,6 +209,7 @@ struct vm_emitting_wall {
   double *scale_ptr;
 
   struct gkyl_bc_emission_spectrum *update[GKYL_MAX_SPECIES];
+  struct gkyl_array *f_emit;
   struct gkyl_array *yield[GKYL_MAX_SPECIES]; // projected secondary electron yield
   struct gkyl_array *spectrum[GKYL_MAX_SPECIES]; // projected secondary electron spectrum
   struct gkyl_array *weight[GKYL_MAX_SPECIES];

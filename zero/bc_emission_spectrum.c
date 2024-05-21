@@ -29,14 +29,16 @@ gkyl_bc_emission_flux_ranges(struct gkyl_range *flux_r, int dir,
     incr_int_array(ndim, 0, nghost, parent->lower, lo);
     incr_int_array(ndim, 0, nghost, parent->upper, up);
 
-    double nneg = (up[dir] - lo[dir] + 1)/2;
+    int nneg = (up[dir] - lo[dir] + 1)/2;
   
     up[dir] = lo[dir] + nneg;
     gkyl_sub_range_init(flux_r, parent, lo, up);
   } else {
     incr_int_array(ndim, 0, nghost, parent->lower, lo);
     incr_int_array(ndim, 0, nghost, parent->upper, up);
-    double npos = (up[dir] - lo[dir] + 1)/2;
+
+    int npos = (up[dir] - lo[dir] + 1)/2;
+    
     lo[dir] = up[dir] - npos;
     gkyl_sub_range_init(flux_r, parent, lo, up);
   }
@@ -137,8 +139,8 @@ copy_idx_arrays(int cdim, int pdim, const int *cidx, const int *vidx, int *out)
 void
 gkyl_bc_emission_spectrum_advance(const struct gkyl_bc_emission_spectrum *up,
   struct gkyl_range *impact_skin_r, struct gkyl_range *impact_ghost_r,
-  struct gkyl_range *impact_conf_r, struct gkyl_range *emit_ghost_r,
-  struct gkyl_array *f_skin, struct gkyl_array *yield, struct gkyl_array *spectrum,
+  struct gkyl_range *impact_conf_r, struct gkyl_range *emit_buff_r,
+  struct gkyl_array *f_skin, struct gkyl_array *f_emit, struct gkyl_array *yield, struct gkyl_array *spectrum,
   struct gkyl_array *weight, struct gkyl_array *flux, struct gkyl_array *k)
 {
 #ifdef GKYL_HAVE_CUDA
@@ -164,7 +166,7 @@ gkyl_bc_emission_spectrum_advance(const struct gkyl_bc_emission_spectrum *up,
 
     gkyl_range_deflate(&vel_r, impact_skin_r, rem_dir, cidx);
     gkyl_range_deflate(&vel_ghost_r, impact_ghost_r, rem_dir, conf_iter.idx);
-    gkyl_range_deflate(&vel_buff_r, emit_ghost_r, rem_dir, conf_iter.idx);
+    gkyl_range_deflate(&vel_buff_r, emit_buff_r, rem_dir, conf_iter.idx);
     gkyl_range_iter_no_split_init(&vel_iter, &vel_r);
 
     double *w = gkyl_array_fetch(weight, midx);
@@ -180,6 +182,8 @@ gkyl_bc_emission_spectrum_advance(const struct gkyl_bc_emission_spectrum *up,
       long loc2 = gkyl_range_idx(impact_ghost_r, fidx);
 
       const double *inp = gkyl_array_cfetch(f_skin, loc);
+      const double *vals = gkyl_array_cfetch(f_emit, loc2);
+      const double *specs = gkyl_array_cfetch(spectrum, loc2);
       const double *gain = gkyl_array_cfetch(yield, loc2);
       
       up->funcs->func(inp, up->cdim, up->dir, up->edge, xc, gain, w);
@@ -189,7 +193,7 @@ gkyl_bc_emission_spectrum_advance(const struct gkyl_bc_emission_spectrum *up,
     double *out = gkyl_array_fetch(k, midx);
     
     up->funcs->norm(out, bflux, up->norm_param, effective_delta);
-    // gkyl_array_accumulate_range(f_buff, out[0], spectrum, &vel_buff_r);
+    gkyl_array_accumulate(f_emit, out[0], spectrum);
   }
 }
 

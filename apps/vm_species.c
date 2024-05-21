@@ -404,7 +404,7 @@ vm_species_apply_bc(gkyl_vlasov_app *app, const struct vm_species *species, stru
 
       switch (species->lower_bc[d].type) {
         case GKYL_SPECIES_EMISSION:
-          // vm_species_emission_apply_bc(species->bc_buffer, f);
+          vm_species_emission_apply_bc(&species->bc_emission_lo, f);
           break;
         case GKYL_SPECIES_COPY:
         case GKYL_SPECIES_REFLECT:
@@ -424,7 +424,7 @@ vm_species_apply_bc(gkyl_vlasov_app *app, const struct vm_species *species, stru
 
       switch (species->upper_bc[d].type) {
         case GKYL_SPECIES_EMISSION:
-          // vm_species_emission_apply_bc(species->bc_buffer, f);
+          vm_species_emission_apply_bc(&species->bc_emission_up, f);
           break;
         case GKYL_SPECIES_COPY:
         case GKYL_SPECIES_REFLECT:

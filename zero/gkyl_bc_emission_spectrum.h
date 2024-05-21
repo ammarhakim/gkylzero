@@ -108,8 +108,8 @@ struct gkyl_bc_emission_spectrum* gkyl_bc_emission_spectrum_new(enum gkyl_bc_emi
  */
 void gkyl_bc_emission_spectrum_advance(const struct gkyl_bc_emission_spectrum *up,
   struct gkyl_range *impact_skin_r, struct gkyl_range *impact_ghost_r,
-  struct gkyl_range *impact_conf_r, struct gkyl_range *emit_ghost_r,
-  struct gkyl_array *f_skin, struct gkyl_array *yield, struct gkyl_array *spectrum,
+  struct gkyl_range *impact_conf_r, struct gkyl_range *emit_buff_r,
+  struct gkyl_array *f_skin, struct gkyl_array *f_emit, struct gkyl_array *yield, struct gkyl_array *spectrum,
   struct gkyl_array *weight, struct gkyl_array *flux, struct gkyl_array *k);
 
 /**
