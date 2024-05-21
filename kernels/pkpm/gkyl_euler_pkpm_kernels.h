@@ -566,21 +566,4 @@ GKYL_CU_DH double euler_pkpm_surfy_2x_tensor_p2(const double *w, const double *d
     const double *euler_pkpm_l, const double *euler_pkpm_c, const double *euler_pkpm_r, 
     const double *pkpm_lax, double* GKYL_RESTRICT out); 
 
-GKYL_CU_DH
-inline static double minmod(double a, double b, double c)
-{
-  double sa = GKYL_SGN(a);
-  double sb = GKYL_SGN(b);
-  double sc = GKYL_SGN(c);
-  if( (sa==sb) && (sb==sc) ) {
-    if (sa<0)
-      return GKYL_MAX2(GKYL_MAX2(a,b),c);
-    else
-      return GKYL_MIN2(GKYL_MIN2(a,b),c);
-  }
-  else {
-     return 0;
-  }
-}
-
 EXTERN_C_END 

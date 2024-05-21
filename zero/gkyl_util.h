@@ -249,6 +249,27 @@ gkyl_int_div_up(int a, int b)
 }
 
 /**
+ *   Minmod limiter for choosing the minimal modification between 3 values (usually slopes)
+ */
+GKYL_CU_DH
+static inline double 
+minmod(double a, double b, double c)
+{
+  double sa = GKYL_SGN(a);
+  double sb = GKYL_SGN(b);
+  double sc = GKYL_SGN(c);
+  if( (sa==sb) && (sb==sc) ) {
+    if (sa<0)
+      return GKYL_MAX2(GKYL_MAX2(a,b),c);
+    else
+      return GKYL_MIN2(GKYL_MIN2(a,b),c);
+  }
+  else {
+     return 0;
+  }
+}
+
+/**
  * Gets wall-clock time in secs/nanoseconds.
  * 
  * @return Time object.
