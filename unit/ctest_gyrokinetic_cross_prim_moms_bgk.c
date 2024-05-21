@@ -119,7 +119,7 @@ void test_1x1v(int poly_order, bool use_gpu)
   double me = 9.11e-31;
   double mi = 1.67e-27;
   double Te = 30.0*eV;
-  double beta = 0.0;
+  double betaGreenep1 = 1.0;
   double vt = sqrt(Te/me);
 
   double lower[] = {-0.5, -5.0*vt}, upper[] = {0.5, 5.0*vt};
@@ -227,7 +227,7 @@ void test_1x1v(int poly_order, bool use_gpu)
   // Calculate the cross primitive moments
   gkyl_gyrokinetic_cross_prim_moms_bgk *crossPrimMomsCalc = gkyl_gyrokinetic_cross_prim_moms_bgk_new(&basis, &confBasis, use_gpu);
   struct gkyl_array *prim_moms_cross = mkarr(3*confBasis.num_basis, confLocal_ext.volume, use_gpu);
-  gkyl_gyrokinetic_cross_prim_moms_bgk_advance(crossPrimMomsCalc, &confLocal, beta, me, prim_moms_e, mi, prim_moms_i, nu_ei, nu_ie, prim_moms_cross);
+  gkyl_gyrokinetic_cross_prim_moms_bgk_advance(crossPrimMomsCalc, &confLocal, betaGreenep1, me, prim_moms_e, mi, prim_moms_i, nu_ei, nu_ie, prim_moms_cross);
   gkyl_gyrokinetic_cross_prim_moms_bgk_release(crossPrimMomsCalc);
 
   // Write out on host
@@ -282,7 +282,7 @@ void test_1x2v(int poly_order, bool use_gpu)
   double me = 9.11e-31;
   double mi = 1.67e-27;
   double Te = 30.0*eV;
-  double beta = 0.0;
+  double betaGreenep1 = 1.0;
   double vt = sqrt(Te/me);
 
   double lower[] = {-0.5, -5.0*vt, 0.0}, upper[] = {0.5, 5.0*vt, 5.0*vt};
@@ -390,7 +390,7 @@ void test_1x2v(int poly_order, bool use_gpu)
   // Calculate the cross primitive moments
   gkyl_gyrokinetic_cross_prim_moms_bgk *crossPrimMomsCalc = gkyl_gyrokinetic_cross_prim_moms_bgk_new(&basis, &confBasis, use_gpu);
   struct gkyl_array *prim_moms_cross = mkarr(3*confBasis.num_basis, confLocal_ext.volume, use_gpu);
-  gkyl_gyrokinetic_cross_prim_moms_bgk_advance(crossPrimMomsCalc, &confLocal, beta, me, prim_moms_e, mi, prim_moms_i, nu_ei, nu_ie, prim_moms_cross);
+  gkyl_gyrokinetic_cross_prim_moms_bgk_advance(crossPrimMomsCalc, &confLocal, betaGreenep1, me, prim_moms_e, mi, prim_moms_i, nu_ei, nu_ie, prim_moms_cross);
   gkyl_gyrokinetic_cross_prim_moms_bgk_release(crossPrimMomsCalc);
 
   // Write out on host
