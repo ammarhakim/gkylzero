@@ -67,14 +67,14 @@ GKYL_CU_DH void gyrokinetic_cross_prim_moms_bgk_3x2v_ser_p1(const double beta, c
   ser_3x_p1_inv(m_n_nu, m_n_nu_inv); 
   binop_mul_3d_ser_p1(msNsNusr, mrNrNurs, alphaE); 
   binop_mul_3d_ser_p1(alphaE, m_n_nu_inv, alphaE); 
-  alphaE[0] = alphaE[0] * 2 * (1+beta) / (m_s+m_r); 
-  alphaE[1] = alphaE[1] * 2 * (1+beta) / (m_s+m_r); 
-  alphaE[2] = alphaE[2] * 2 * (1+beta) / (m_s+m_r); 
-  alphaE[3] = alphaE[3] * 2 * (1+beta) / (m_s+m_r); 
-  alphaE[4] = alphaE[4] * 2 * (1+beta) / (m_s+m_r); 
-  alphaE[5] = alphaE[5] * 2 * (1+beta) / (m_s+m_r); 
-  alphaE[6] = alphaE[6] * 2 * (1+beta) / (m_s+m_r); 
-  alphaE[7] = alphaE[7] * 2 * (1+beta) / (m_s+m_r); 
+  alphaE[0] = alphaE[0] * 2.0 * (1+beta) / (m_s+m_r); 
+  alphaE[1] = alphaE[1] * 2.0 * (1+beta) / (m_s+m_r); 
+  alphaE[2] = alphaE[2] * 2.0 * (1+beta) / (m_s+m_r); 
+  alphaE[3] = alphaE[3] * 2.0 * (1+beta) / (m_s+m_r); 
+  alphaE[4] = alphaE[4] * 2.0 * (1+beta) / (m_s+m_r); 
+  alphaE[5] = alphaE[5] * 2.0 * (1+beta) / (m_s+m_r); 
+  alphaE[6] = alphaE[6] * 2.0 * (1+beta) / (m_s+m_r); 
+  alphaE[7] = alphaE[7] * 2.0 * (1+beta) / (m_s+m_r); 
 
   n_sr[0] = n_s[0]; 
   n_sr[1] = n_s[1]; 
@@ -96,14 +96,14 @@ GKYL_CU_DH void gyrokinetic_cross_prim_moms_bgk_3x2v_ser_p1(const double beta, c
   dUpar[6] = upar_r[6] - upar_s[6]; 
   dUpar[7] = upar_r[7] - upar_s[7]; 
   binop_mul_3d_ser_p1(coeff, dUpar, cUpar); 
-  upar_sr[0] = upar_s[0] + cUpar[0]*(m_s+m_r)/2; 
-  upar_sr[1] = upar_s[1] + cUpar[1]*(m_s+m_r)/2; 
-  upar_sr[2] = upar_s[2] + cUpar[2]*(m_s+m_r)/2; 
-  upar_sr[3] = upar_s[3] + cUpar[3]*(m_s+m_r)/2; 
-  upar_sr[4] = upar_s[4] + cUpar[4]*(m_s+m_r)/2; 
-  upar_sr[5] = upar_s[5] + cUpar[5]*(m_s+m_r)/2; 
-  upar_sr[6] = upar_s[6] + cUpar[6]*(m_s+m_r)/2; 
-  upar_sr[7] = upar_s[7] + cUpar[7]*(m_s+m_r)/2; 
+  upar_sr[0] = upar_s[0] + cUpar[0]*(m_s+m_r)/2.0; 
+  upar_sr[1] = upar_s[1] + cUpar[1]*(m_s+m_r)/2.0; 
+  upar_sr[2] = upar_s[2] + cUpar[2]*(m_s+m_r)/2.0; 
+  upar_sr[3] = upar_s[3] + cUpar[3]*(m_s+m_r)/2.0; 
+  upar_sr[4] = upar_s[4] + cUpar[4]*(m_s+m_r)/2.0; 
+  upar_sr[5] = upar_s[5] + cUpar[5]*(m_s+m_r)/2.0; 
+  upar_sr[6] = upar_s[6] + cUpar[6]*(m_s+m_r)/2.0; 
+  upar_sr[7] = upar_s[7] + cUpar[7]*(m_s+m_r)/2.0; 
  
   dv = 3.0; 
   T1[0] = dv * (m_r*vtsq_r[0]-m_s*vtsq_s[0]); 

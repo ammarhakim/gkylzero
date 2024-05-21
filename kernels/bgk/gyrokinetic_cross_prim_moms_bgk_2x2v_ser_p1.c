@@ -55,10 +55,10 @@ GKYL_CU_DH void gyrokinetic_cross_prim_moms_bgk_2x2v_ser_p1(const double beta, c
   ser_2x_p1_inv(m_n_nu, m_n_nu_inv); 
   binop_mul_2d_ser_p1(msNsNusr, mrNrNurs, alphaE); 
   binop_mul_2d_ser_p1(alphaE, m_n_nu_inv, alphaE); 
-  alphaE[0] = alphaE[0] * 2 * (1+beta) / (m_s+m_r); 
-  alphaE[1] = alphaE[1] * 2 * (1+beta) / (m_s+m_r); 
-  alphaE[2] = alphaE[2] * 2 * (1+beta) / (m_s+m_r); 
-  alphaE[3] = alphaE[3] * 2 * (1+beta) / (m_s+m_r); 
+  alphaE[0] = alphaE[0] * 2.0 * (1+beta) / (m_s+m_r); 
+  alphaE[1] = alphaE[1] * 2.0 * (1+beta) / (m_s+m_r); 
+  alphaE[2] = alphaE[2] * 2.0 * (1+beta) / (m_s+m_r); 
+  alphaE[3] = alphaE[3] * 2.0 * (1+beta) / (m_s+m_r); 
 
   n_sr[0] = n_s[0]; 
   n_sr[1] = n_s[1]; 
@@ -72,10 +72,10 @@ GKYL_CU_DH void gyrokinetic_cross_prim_moms_bgk_2x2v_ser_p1(const double beta, c
   dUpar[2] = upar_r[2] - upar_s[2]; 
   dUpar[3] = upar_r[3] - upar_s[3]; 
   binop_mul_2d_ser_p1(coeff, dUpar, cUpar); 
-  upar_sr[0] = upar_s[0] + cUpar[0]*(m_s+m_r)/2; 
-  upar_sr[1] = upar_s[1] + cUpar[1]*(m_s+m_r)/2; 
-  upar_sr[2] = upar_s[2] + cUpar[2]*(m_s+m_r)/2; 
-  upar_sr[3] = upar_s[3] + cUpar[3]*(m_s+m_r)/2; 
+  upar_sr[0] = upar_s[0] + cUpar[0]*(m_s+m_r)/2.0; 
+  upar_sr[1] = upar_s[1] + cUpar[1]*(m_s+m_r)/2.0; 
+  upar_sr[2] = upar_s[2] + cUpar[2]*(m_s+m_r)/2.0; 
+  upar_sr[3] = upar_s[3] + cUpar[3]*(m_s+m_r)/2.0; 
  
   dv = 3.0; 
   T1[0] = dv * (m_r*vtsq_r[0]-m_s*vtsq_s[0]); 
