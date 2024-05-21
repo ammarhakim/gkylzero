@@ -144,21 +144,4 @@ GKYL_CU_DH double euler_surfy_2x_tensor_p2(const double *w, const double *dxv, c
 GKYL_CU_DH void fluid_vars_integrated_2x_tensor_p2(const double *fluid, const double* u_i, const double* p_ij, double* GKYL_RESTRICT int_fluid_vars); 
 GKYL_CU_DH void fluid_vars_source_2x_tensor_p2(const double* app_accel, const double* fluid, double* GKYL_RESTRICT out); 
 
-GKYL_CU_DH
-inline static double minmod(double a, double b, double c)
-{
-  double sa = GKYL_SGN(a);
-  double sb = GKYL_SGN(b);
-  double sc = GKYL_SGN(c);
-  if( (sa==sb) && (sb==sc) ) {
-    if (sa<0)
-      return GKYL_MAX2(GKYL_MAX2(a,b),c);
-    else
-      return GKYL_MIN2(GKYL_MIN2(a,b),c);
-  }
-  else {
-     return 0;
-  }
-}
-
 EXTERN_C_END 
