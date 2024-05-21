@@ -160,7 +160,7 @@ gkyl_dg_calc_pkpm_vars_u_copy_cu_kernel(gkyl_dg_calc_pkpm_vars* up,
 
     double* pkpm_u_d = (double*) gkyl_array_fetch(pkpm_u, loc);
 
-    up->pkpm_copy(count, xs, pkpm_u_d);
+    up->pkpm_u_copy(count, xs, pkpm_u_d);
   }
 }
 
@@ -171,17 +171,17 @@ void gkyl_dg_calc_pkpm_vars_u_cu(struct gkyl_dg_calc_pkpm_vars *up,
 {
   struct gkyl_range conf_range = up->mem_range;
   
-  gkyl_dg_calc_pkpm_vars_set_cu_kernel<<<conf_range.nblocks, conf_range.nthreads>>>(up->on_dev,
+  gkyl_dg_calc_pkpm_vars_u_set_cu_kernel<<<conf_range.nblocks, conf_range.nthreads>>>(up->on_dev,
     up->As_u->on_dev, up->xs_u->on_dev, conf_range,
     vlasov_pkpm_moms->on_dev, euler_pkpm->on_dev, 
     cell_avg_prim->on_dev);
 
   if (up->poly_order > 1) {
-    bool status = gkyl_nmat_linsolve_lu_pa(up->mem, up->As, up->xs);
+    bool status = gkyl_nmat_linsolve_lu_pa(up->mem_u, up->As_u, up->xs_u);
     assert(status);
   }
 
-  gkyl_dg_calc_pkpm_vars_copy_cu_kernel<<<conf_range.nblocks, conf_range.nthreads>>>(up->on_dev,
+  gkyl_dg_calc_pkpm_vars_u_copy_cu_kernel<<<conf_range.nblocks, conf_range.nthreads>>>(up->on_dev,
     up->xs_u->on_dev, conf_range, pkpm_u->on_dev);
 }
 
