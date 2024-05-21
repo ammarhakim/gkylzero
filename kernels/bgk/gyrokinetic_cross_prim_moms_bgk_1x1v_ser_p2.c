@@ -2,7 +2,7 @@
 #include <gkyl_binop_mul_ser.h> 
 #include <gkyl_basis_ser_1x_p2_inv.h> 
  
-GKYL_CU_DH void gyrokinetic_cross_prim_moms_bgk_1x1v_ser_p2(const double beta, const double m_self, const double *prim_moms_self, const double m_other, const double *prim_moms_other, const double *nu_sr, const double *nu_rs, double *prim_moms_cross) 
+GKYL_CU_DH void gyrokinetic_cross_prim_moms_bgk_1x1v_ser_p2(const double betaGreenep1, const double m_self, const double *prim_moms_self, const double m_other, const double *prim_moms_other, const double *nu_sr, const double *nu_rs, double *prim_moms_cross) 
 { 
   // m_:              mass. 
   // prim_moms_:      primitive moments of the distribution function. 
@@ -52,9 +52,9 @@ GKYL_CU_DH void gyrokinetic_cross_prim_moms_bgk_1x1v_ser_p2(const double beta, c
   ser_1x_p2_inv(m_n_nu, m_n_nu_inv); 
   binop_mul_1d_ser_p2(msNsNusr, mrNrNurs, alphaE); 
   binop_mul_1d_ser_p2(alphaE, m_n_nu_inv, alphaE); 
-  alphaE[0] = alphaE[0] * 2.0 * (1+beta) / (m_s+m_r); 
-  alphaE[1] = alphaE[1] * 2.0 * (1+beta) / (m_s+m_r); 
-  alphaE[2] = alphaE[2] * 2.0 * (1+beta) / (m_s+m_r); 
+  alphaE[0] = alphaE[0] * 2.0 * betaGreenep1 / (m_s+m_r); 
+  alphaE[1] = alphaE[1] * 2.0 * betaGreenep1 / (m_s+m_r); 
+  alphaE[2] = alphaE[2] * 2.0 * betaGreenep1 / (m_s+m_r); 
 
   n_sr[0] = n_s[0]; 
   n_sr[1] = n_s[1]; 
@@ -76,9 +76,9 @@ GKYL_CU_DH void gyrokinetic_cross_prim_moms_bgk_1x1v_ser_p2(const double beta, c
   T1[2] = dv * (m_r*vtsq_r[2]-m_s*vtsq_s[2]); 
   binop_mul_1d_ser_p2(dUpar, dUpar, T2); 
   binop_mul_1d_ser_p2(coeff, T2, T3); 
-  cVtsq[0] = T1[0] + m_r*T2[0] - (m_s+m_r)*(m_s+m_r)/4*T3[0] ; 
-  cVtsq[1] = T1[1] + m_r*T2[1] - (m_s+m_r)*(m_s+m_r)/4*T3[1] ; 
-  cVtsq[2] = T1[2] + m_r*T2[2] - (m_s+m_r)*(m_s+m_r)/4*T3[2] ; 
+  cVtsq[0] = T1[0] + m_r*T2[0] - (m_s+m_r)*(m_s+m_r)/4.0*T3[0] ; 
+  cVtsq[1] = T1[1] + m_r*T2[1] - (m_s+m_r)*(m_s+m_r)/4.0*T3[1] ; 
+  cVtsq[2] = T1[2] + m_r*T2[2] - (m_s+m_r)*(m_s+m_r)/4.0*T3[2] ; 
   binop_mul_1d_ser_p2(coeff, cVtsq, cVtsq); 
   vtsq_sr[0] = vtsq_s[0] + cVtsq[0]/dv; 
   vtsq_sr[1] = vtsq_s[1] + cVtsq[1]/dv; 
