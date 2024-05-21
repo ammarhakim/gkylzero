@@ -17,7 +17,7 @@ gkyl_dg_calc_fluid_vars_new(const struct gkyl_wv_eqn *wv_eqn, const struct gkyl_
 {
 #ifdef GKYL_HAVE_CUDA
   if(use_gpu) {
-    return gkyl_dg_calc_fluid_vars_cu_dev_new(wv_eqn, cbasis, mem_range, limiter_fac);
+    return gkyl_dg_calc_fluid_vars_cu_dev_new(wv_eqn, geom, cbasis, mem_range, limiter_fac);
   } 
 #endif     
   gkyl_dg_calc_fluid_vars *up = gkyl_malloc(sizeof(gkyl_dg_calc_fluid_vars));
