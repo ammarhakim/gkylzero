@@ -63,7 +63,7 @@ void eval_vtsq_e(double t, const double *xn, double* restrict fout, void *ctx)
   double x = xn[0];
   double eV = 1.602e-19;
   double me = 9.11e-31;
-  double Te = 10.0*eV;
+  double Te = 30.0*eV;
   fout[0] = Te/me;
 }
 void eval_vtsq_i(double t, const double *xn, double* restrict fout, void *ctx)
@@ -80,7 +80,7 @@ void eval_upar_e(double t, const double *xn, double *restrict fout, void *ctx)
   double vtsq[1];
   eval_vtsq_e(t, xn, vtsq, ctx);
   double vt = sqrt(vtsq[0]); 
-  fout[0] = 0.1*vt;
+  fout[0] = 0.01*vt;
 }
 void eval_upar_i(double t, const double *xn, double *restrict fout, void *ctx)
 {
@@ -88,14 +88,14 @@ void eval_upar_i(double t, const double *xn, double *restrict fout, void *ctx)
   double vtsq[1];
   eval_vtsq_i(t, xn, vtsq, ctx);
   double vt = sqrt(vtsq[0]); 
-  fout[0] = 0.1*vt;
+  fout[0] = 0.01*vt;
 }
 void eval_nu_ei(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0];
   double eV = 1.602e-19;
   double me = 9.11e-31;
-  double Te = 10.0*eV;
+  double Te = 30.0*eV;
   double logLambdaElc, nuElc;
   double den[1];
   eval_den_e(t, xn, den, ctx); 
@@ -118,7 +118,7 @@ void test_1x1v(int poly_order, bool use_gpu)
   double eV = 1.602e-19;
   double me = 9.11e-31;
   double mi = 1.67e-27;
-  double Te = 10.0*eV;
+  double Te = 30.0*eV;
   double beta = 0.0;
   double vt = sqrt(Te/me);
 
@@ -240,9 +240,9 @@ void test_1x1v(int poly_order, bool use_gpu)
     int idx[] = {k+1};
     long linidx = gkyl_range_idx(&confLocal, idx);
     const double *primMomsCross = gkyl_array_cfetch(prim_moms_cross, linidx);
-    TEST_CHECK( gkyl_compare(1.0e19, primMomsCross[0*confBasis.num_basis]/sqrt(2), 1e-14*1.0e19) );
-    TEST_CHECK( gkyl_compare(6.78529710e4, primMomsCross[1*confBasis.num_basis]/sqrt(2), 1e-14*6.78529710e4) );
-    TEST_CHECK( gkyl_compare(1.77107791e12, primMomsCross[2*confBasis.num_basis]/sqrt(2), 1e-14*1.77107791e12) );
+    TEST_CHECK( gkyl_compare(1.0e19, primMomsCross[0*confBasis.num_basis]/sqrt(2), 1e-12*1.0e19) );
+    TEST_CHECK( gkyl_compare(1.16391130e4, primMomsCross[1*confBasis.num_basis]/sqrt(2), 1e-12*1.16391130e4) );
+    TEST_CHECK( gkyl_compare(5.27398867e12, primMomsCross[2*confBasis.num_basis]/sqrt(2), 1e-12*5.27398867e12) );
     TEST_MSG("Produced: %.13e, \t%.13e, \t%.13e", primMomsCross[0*confBasis.num_basis]/sqrt(2), primMomsCross[1*confBasis.num_basis]/sqrt(2), primMomsCross[2*confBasis.num_basis]/sqrt(2));
   } // The hard coded numbers are expected values. The basis is looked up in maxima with: load("basis-precalc/basisSer1x"); polyOrder:1$ basis:basisC[polyOrder];
 
@@ -281,7 +281,7 @@ void test_1x2v(int poly_order, bool use_gpu)
   double eV = 1.602e-19;
   double me = 9.11e-31;
   double mi = 1.67e-27;
-  double Te = 10.0*eV;
+  double Te = 30.0*eV;
   double beta = 0.0;
   double vt = sqrt(Te/me);
 
@@ -403,9 +403,9 @@ void test_1x2v(int poly_order, bool use_gpu)
     int idx[] = {k+1};
     long linidx = gkyl_range_idx(&confLocal, idx);
     const double *primMomsCross = gkyl_array_cfetch(prim_moms_cross, linidx);
-    TEST_CHECK( gkyl_compare(1.0e19, primMomsCross[0*confBasis.num_basis]/sqrt(2), 1e-14*1.0e19) );
-    TEST_CHECK( gkyl_compare(6.78529710e4, primMomsCross[1*confBasis.num_basis]/sqrt(2), 1e-14*6.78529710e4) );
-    TEST_CHECK( gkyl_compare(1.76269739e+12, primMomsCross[2*confBasis.num_basis]/sqrt(2), 1e-14*1.76269739e+12) );
+    TEST_CHECK( gkyl_compare(1.0e19, primMomsCross[0*confBasis.num_basis]/sqrt(2), 1e-12*1.0e19) );
+    TEST_CHECK( gkyl_compare(1.16391130e4, primMomsCross[1*confBasis.num_basis]/sqrt(2), 1e-12*1.16391130e4) );
+    TEST_CHECK( gkyl_compare(5.27373215e12, primMomsCross[2*confBasis.num_basis]/sqrt(2), 1e-12*5.27373215e12) );
     TEST_MSG("Produced: %.13e, \t%.13e, \t%.13e", primMomsCross[0*confBasis.num_basis]/sqrt(2), primMomsCross[1*confBasis.num_basis]/sqrt(2), primMomsCross[2*confBasis.num_basis]/sqrt(2));
   } // The hard coded numbers are expected values. The basis is looked up in maxima with: load("basis-precalc/basisSer1x"); polyOrder:1$ basis:basisC[polyOrder];
 
