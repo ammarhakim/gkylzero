@@ -24,7 +24,8 @@ typedef void (*fluid_pressure_t)(double gas_gamma, const double *fluid, const do
 typedef void (*fluid_ke_t)(const double *fluid, const double *u, 
   double* GKYL_RESTRICT ke);
 
-typedef void (*fluid_limiter_t)(double limiter_fac, const struct gkyl_wv_eqn *wv_eqn, 
+typedef void (*fluid_limiter_t)(double limiter_fac, 
+  const struct gkyl_wv_eqn *wv_eqn, const struct gkyl_wave_cell_geom *geom, 
   double *fluid_l, double *fluid_c, double *fluid_r);
 
 typedef void (*fluid_int_t)(const double *fluid, 
@@ -46,6 +47,7 @@ typedef struct { fluid_source_t kernels[4]; } gkyl_dg_fluid_source_kern_list;
 struct gkyl_dg_calc_fluid_vars {
   enum gkyl_eqn_type eqn_type; // Equation type
   const struct gkyl_wv_eqn *wv_eqn; // Wave equation for characteristic limiting of solution
+  const struct gkyl_wave_geom *geom; // Wave geometry for rotating solution
   double param; // parameter for computing primitive moments/limiting solution (vt for isothermal Euler, gas_gammas for Euler)
 
   int cdim; // Configuration space dimensionality

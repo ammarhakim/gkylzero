@@ -4,7 +4,9 @@
 #include <gkyl_range.h>
 #include <gkyl_rect_grid.h>
 #include <gkyl_basis.h>
+#include <gkyl_wave_geom.h>
 #include <gkyl_wv_eqn.h>
+
 
 // Object type
 typedef struct gkyl_dg_calc_em_vars gkyl_dg_calc_em_vars;
@@ -24,7 +26,8 @@ typedef struct gkyl_dg_calc_em_vars gkyl_dg_calc_em_vars;
  * @param mem_range Configuration space range to compute variables over
  * Note: This range sets the size of the bin_op memory and thus sets the
  * range over which the updater loops for the batched linear solves
- * @param wv_eqn      Wave equation (stores function pointers for computing waves and limiting slopes)
+ * @param wv_eqn      Wave equation (stores function pointers for computing waves and limiting solution)
+ * @param geom        Wave geometry object for computing waves in local coordinate system
  * @param limiter_fac Optional parameter for changing diffusion in sloper limiter 
  *                    by changing relationship between slopes and cell average differences.
  *                    By default, this factor is 1/sqrt(3) because cell_avg(f) = f0/sqrt(2^cdim)
@@ -39,7 +42,8 @@ typedef struct gkyl_dg_calc_em_vars gkyl_dg_calc_em_vars;
 struct gkyl_dg_calc_em_vars* 
 gkyl_dg_calc_em_vars_new(const struct gkyl_rect_grid *conf_grid, 
   const struct gkyl_basis* cbasis, const struct gkyl_range *mem_range, 
-  const struct gkyl_wv_eqn *wv_eqn, double limiter_fac, bool is_ExB, bool use_gpu);
+  const struct gkyl_wv_eqn *wv_eqn, const struct gkyl_wave_geom *geom, 
+  double limiter_fac, bool is_ExB, bool use_gpu);
 
 /**
  * Create new updater to compute EM variables on
@@ -48,7 +52,8 @@ gkyl_dg_calc_em_vars_new(const struct gkyl_rect_grid *conf_grid,
 struct gkyl_dg_calc_em_vars* 
 gkyl_dg_calc_em_vars_cu_dev_new(const struct gkyl_rect_grid *conf_grid, 
   const struct gkyl_basis* cbasis, const struct gkyl_range *conf_range, 
-  const struct gkyl_wv_eqn *wv_eqn, double limiter_fac, bool is_ExB);
+  const struct gkyl_wv_eqn *wv_eqn, const struct gkyl_wave_geom *geom, 
+  double limiter_fac, bool is_ExB);
 
 /**
  * Compute either

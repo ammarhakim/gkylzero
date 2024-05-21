@@ -11,7 +11,7 @@
 #include <gkyl_util.h>
 
 gkyl_dg_calc_fluid_vars*
-gkyl_dg_calc_fluid_vars_new(const struct gkyl_wv_eqn *wv_eqn, 
+gkyl_dg_calc_fluid_vars_new(const struct gkyl_wv_eqn *wv_eqn, const struct gkyl_wave_geom *geom, 
   const struct gkyl_basis* cbasis, const struct gkyl_range *mem_range, 
   double limiter_fac, bool use_gpu)
 {
@@ -24,6 +24,7 @@ gkyl_dg_calc_fluid_vars_new(const struct gkyl_wv_eqn *wv_eqn,
 
   up->eqn_type = wv_eqn->type;
   up->wv_eqn = gkyl_wv_eqn_acquire(wv_eqn);
+  up->geom = gkyl_wave_geom_acquire(geom);  
   if (up->eqn_type == GKYL_EQN_EULER)
     up->param = gkyl_wv_euler_gas_gamma(up->wv_eqn);
 
@@ -184,6 +185,7 @@ void gkyl_dg_calc_fluid_vars_limiter(struct gkyl_dg_calc_fluid_vars *up,
   while (gkyl_range_iter_next(&iter)) {
     gkyl_copy_int_arr(cdim, iter.idx, idxc);
     long linc = gkyl_range_idx(conf_range, idxc);
+    const struct gkyl_wave_cell_geom *geom = gkyl_wave_geom_get(up->geom, idxc);
 
     double *fluid_c = gkyl_array_fetch(fluid, linc);
     for (int dir=0; dir<cdim; ++dir) {
@@ -198,7 +200,7 @@ void gkyl_dg_calc_fluid_vars_limiter(struct gkyl_dg_calc_fluid_vars *up,
       double *fluid_l = gkyl_array_fetch(fluid, linl);
       double *fluid_r = gkyl_array_fetch(fluid, linr);
 
-      up->fluid_limiter[dir](up->limiter_fac, up->wv_eqn, fluid_l, fluid_c, fluid_r);    
+      up->fluid_limiter[dir](up->limiter_fac, up->wv_eqn, geom, fluid_l, fluid_c, fluid_r);    
     }
   }
 }
@@ -257,6 +259,7 @@ void gkyl_dg_calc_fluid_vars_source(struct gkyl_dg_calc_fluid_vars *up,
 void gkyl_dg_calc_fluid_vars_release(gkyl_dg_calc_fluid_vars *up)
 {
   gkyl_wv_eqn_release(up->wv_eqn);
+  gkyl_wave_geom_release(up->geom);  
 
   gkyl_nmat_release(up->As);
   gkyl_nmat_release(up->xs);

@@ -12,12 +12,13 @@
 gkyl_dg_calc_em_vars*
 gkyl_dg_calc_em_vars_new(const struct gkyl_rect_grid *conf_grid, 
   const struct gkyl_basis *cbasis, const struct gkyl_range *mem_range, 
-  const struct gkyl_wv_eqn *wv_eqn, double limiter_fac, bool is_ExB, bool use_gpu)
+  const struct gkyl_wv_eqn *wv_eqn, const struct gkyl_wave_geom *geom, 
+  double limiter_fac, bool is_ExB, bool use_gpu)
 {
 #ifdef GKYL_HAVE_CUDA
   if(use_gpu) {
     return gkyl_dg_calc_em_vars_cu_dev_new(conf_grid, cbasis, 
-      mem_range, wv_eqn, limiter_fac, is_ExB);
+      mem_range, wv_eqn, geom, limiter_fac, is_ExB);
   } 
 #endif     
   gkyl_dg_calc_em_vars *up = gkyl_malloc(sizeof(gkyl_dg_calc_em_vars));
@@ -32,6 +33,7 @@ gkyl_dg_calc_em_vars_new(const struct gkyl_rect_grid *conf_grid,
   up->mem_range = *mem_range;
 
   up->wv_eqn = gkyl_wv_eqn_acquire(wv_eqn);
+  up->geom = gkyl_wave_geom_acquire(geom);  
 
   if (is_ExB) {
     up->Ncomp = 3;
@@ -186,6 +188,7 @@ void gkyl_dg_calc_em_vars_limiter(struct gkyl_dg_calc_em_vars *up,
   while (gkyl_range_iter_next(&iter)) {
     gkyl_copy_int_arr(cdim, iter.idx, idxc);
     long linc = gkyl_range_idx(conf_range, idxc);
+    const struct gkyl_wave_cell_geom *geom = gkyl_wave_geom_get(up->geom, idxc);
 
     double *em_c = gkyl_array_fetch(em, linc);
     for (int dir=0; dir<cdim; ++dir) {
@@ -200,7 +203,7 @@ void gkyl_dg_calc_em_vars_limiter(struct gkyl_dg_calc_em_vars *up,
       double *em_l = gkyl_array_fetch(em, linl);
       double *em_r = gkyl_array_fetch(em, linr);
 
-      up->em_limiter[dir](up->limiter_fac, up->wv_eqn, em_l, em_c, em_r);    
+      up->em_limiter[dir](up->limiter_fac, up->wv_eqn, geom, em_l, em_c, em_r);    
     }
   }
 }

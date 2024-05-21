@@ -22,7 +22,8 @@ typedef void (*em_div_b_t)(const double *dxv,
   const double *bvar_surf_l, const double *bvar_surf_c, const double *bvar_surf_r, 
   const double *bvar_c, double* GKYL_RESTRICT max_b, double* GKYL_RESTRICT div_b); 
 
-typedef void (*em_limiter_t)(double limiter_fac, const struct gkyl_wv_eqn *wv_eqn, 
+typedef void (*em_limiter_t)(double limiter_fac, 
+  const struct gkyl_wv_eqn *wv_eqn, const struct gkyl_wave_cell_geom *geom, 
   double *ql, double *qc, double *qr);
 
 // for use in kernel tables
@@ -42,6 +43,7 @@ struct gkyl_dg_calc_em_vars {
   struct gkyl_range mem_range; // Configuration space range for linear solve
 
   const struct gkyl_wv_eqn *wv_eqn; // Wave equation for characteristic limiting of solution
+  const struct gkyl_wave_geom *geom; // Wave geometry for rotating solution
   double limiter_fac; // Factor for relationship between cell slopes and cell average differences (by default: 1/sqrt(3))
 
   struct gkyl_nmat *As, *xs; // matrices for LHS and RHS
