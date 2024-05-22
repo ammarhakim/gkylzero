@@ -11,7 +11,7 @@ gkyl_positivity_shift_gyrokinetic_new(int cdim, struct gkyl_basis pbasis, struct
   // Allocate space for new updater.
   struct gkyl_positivity_shift_gyrokinetic *up = gkyl_malloc(sizeof(*up));
 
-  up->ffloor_fac = 1.e-12; // ffloor will be set to max(f)*ffloor_fac.
+  up->ffloor_fac = 0.0; // ffloor will be set to max(f)*ffloor_fac.
   up->grid = grid;
   up->num_basis = pbasis.num_basis;
   up->mass = mass;
