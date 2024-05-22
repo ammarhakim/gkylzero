@@ -595,8 +595,8 @@ regenerateTest(const char* test_name, const int test_output_count, const char te
 int
 main(int argc, char **argv)
 {
-  int test_count = 39 - 2;
-  char test_names[39 - 2][64] = {
+  int test_count = 42 - 2;
+  char test_names[42 - 2][64] = {
     "dg_accel_1x1v",
     "dg_euler_sodshock_p1",
     "dg_euler_sodshock_p2",
@@ -636,8 +636,11 @@ main(int argc, char **argv)
     "vlasov_freestream_p1",
     "vlasov_freestream_p2",
     "vlasov_sr_freestream",
+    "vlasov_weibel_1x2v_p2",
+    "vlasov_weibel_2x2v_p1",
+    "vlasov_weibel_2x2v_p2",
   };
-  char test_names_human[39 - 2][128] = {
+  char test_names_human[42 - 2][128] = {
     "1x1v Acceleration Test with p = 1",
     "Euler Sod-Type Shock Tube Test p = 1",
     "Euler Sod-Type Shock Tube Test p = 2",
@@ -677,9 +680,12 @@ main(int argc, char **argv)
     "1x1v Free Streaming Instability Test with p = 1",
     "1x1v Free Streaming Instability Test with p = 2",
     "1x1v Relativistic Free Streaming Instability Test with p = 2",
+    "1x2v Weibel Instability Test with p = 2",
+    "2x2v Weibel Instability Test with p = 1",
+    "2x2v Weibel Instability Test with p = 2",
   };
-  int test_output_count[39 - 2] = { 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1, 1, 1, /*1,*/ 1, /*1,*/ 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 };
-  char test_outputs[39 - 2][64][64] = {
+  int test_output_count[42 - 2] = { 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1, 1, 1, /*1,*/ 1, /*1,*/ 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 };
+  char test_outputs[42 - 2][64][64] = {
     { "elc_1" },
     { "euler_1" },
     { "euler_1" },
@@ -719,6 +725,9 @@ main(int argc, char **argv)
     { "neut_1" },
     { "neut_1" },
     { "neut_1" },
+    { "elc_1" },
+    { "elc_1" },
+    { "elc_1" },
   };
 
   system("clear");
