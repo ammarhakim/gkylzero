@@ -432,8 +432,7 @@ vm_species_rhs(gkyl_vlasov_app *app, struct vm_species *species,
 // time-step.
 double
 vm_species_rhs_implicit(gkyl_vlasov_app *app, struct vm_species *species,
-  const struct gkyl_array *fin, const struct gkyl_array *em, struct gkyl_array *rhs,
-  double dt)
+  const struct gkyl_array *fin, struct gkyl_array *rhs, double dt)
 {
 
   gkyl_array_clear(species->cflrate, 0.0);

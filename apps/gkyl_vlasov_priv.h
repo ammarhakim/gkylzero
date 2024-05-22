@@ -582,9 +582,7 @@ void vlasov_forward_euler(gkyl_vlasov_app* app, double tcurr, double dt,
 
 // The implicit contribution of the Vlasov-Maxwell system
 void vlasov_implicit_contribution(gkyl_vlasov_app* app, double tcurr, double dt,
-  const struct gkyl_array *fin[], const struct gkyl_array *fluidin[], const struct gkyl_array *emin,
-  struct gkyl_array *fout[], struct gkyl_array *fluidout[], struct gkyl_array *emout, 
-  struct gkyl_update_status *st);
+  const struct gkyl_array *fin[], struct gkyl_array *fout[], struct gkyl_update_status *st);
 
 // Take a single time-step using a Strang split implicit fluid-EM coupling + SSP RK3
 struct gkyl_update_status vlasov_update_strang_split(gkyl_vlasov_app *app,
@@ -945,14 +943,12 @@ double vm_species_rhs(gkyl_vlasov_app *app, struct vm_species *species,
  * @param app Vlasov app object
  * @param species Pointer to species
  * @param fin Input distribution function
- * @param em EM field
  * @param rhs On output, the RHS from the species object
  * @param dt timestep size (used in the implcit coef.)
  * @return Maximum stable time-step
  */
 double vm_species_rhs_implicit(gkyl_vlasov_app *app, struct vm_species *species,
-  const struct gkyl_array *fin, const struct gkyl_array *em, 
-  struct gkyl_array *rhs, double dt);
+  const struct gkyl_array *fin, struct gkyl_array *rhs, double dt);
 
 /**
  * Apply BCs to species distribution function

@@ -145,17 +145,14 @@ vlasov_update_ssp_rk3(gkyl_vlasov_app* app, double dt0)
             for (int i=0; i<ns; ++i) {
               array_combine(app->species[i].f1,
                 1.0/3.0, app->species[i].f, 2.0/3.0, app->species[i].fnew, &app->species[i].local_ext);
-                
+
               fin[i] = app->species[i].f1;
               fout[i] = app->species[i].fnew;
             }
 
             // implicit BGK contributions
             if (app->has_implicit_bgk_scheme){
-              vlasov_implicit_contribution(app, tcurr, dt, fin, fluidin, app->has_field ? app->field->em1 : 0,
-                fout, fluidout, app->has_field ? app->field->emnew : 0,
-                &st
-              );
+              vlasov_implicit_contribution(app, tcurr, dt, fin, fout, &st);
             }
             
             for (int i=0; i<ns; ++i) {

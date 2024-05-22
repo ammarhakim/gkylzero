@@ -3,9 +3,7 @@
 // Implicit contributions
 void
 vlasov_implicit_contribution(gkyl_vlasov_app* app, double tcurr, double dt,
-  const struct gkyl_array *fin[], const struct gkyl_array *fluidin[], const struct gkyl_array *emin,
-  struct gkyl_array *fout[], struct gkyl_array *fluidout[], struct gkyl_array *emout, 
-  struct gkyl_update_status *st)
+  const struct gkyl_array *fin[], struct gkyl_array *fout[], struct gkyl_update_status *st)
 {
   double dtmin = DBL_MAX;
 
@@ -22,7 +20,7 @@ vlasov_implicit_contribution(gkyl_vlasov_app* app, double tcurr, double dt,
   for (int i=0; i<app->num_species; ++i) {
     app->species[i].bgk.implicit_step = true;
     app->species[i].bgk.dt = dt;
-    double dt1 = vm_species_rhs_implicit(app, &app->species[i], fin[i], emin, fout[i], dt);
+    double dt1 = vm_species_rhs_implicit(app, &app->species[i], fin[i], fout[i], dt);
     dtmin = fmin(dtmin, dt1);
   }
 
