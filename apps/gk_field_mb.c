@@ -48,15 +48,13 @@ gk_field_mb_new(struct gkyl_gk_mb *gk_mb, struct gkyl_gyrokinetic_mb_app *mb_app
 
   // Create global subrange we'll copy the field solver solution from (into local).
   int intersect = gkyl_sub_range_intersect(&f->global_sub_range, &mb_app->global, &mb_app->local);
-  if (mb_app->cdim == 1) {
-    // Need to set weight to kperpsq*polarizationWeight for use in potential smoothing.
-    f->weight = mkarr(false, mb_app->confBasis.num_basis, mb_app->global_ext.volume); // fem_parproj expects weight on host
-    // Here I need to gather all the weights from each block into one global weight
-    int rank;
-    gkyl_comm_get_rank(mb_app->comm, &rank);
-    struct gk_field* bfield = mb_app->blocks[rank]->field ;
-    gkyl_comm_array_allgather(mb_app->comm, &mb_app->local, &mb_app->global, bfield->weight, f->weight);
-  }
+  // Need to set weight to kperpsq*polarizationWeight for use in potential smoothing.
+  f->weight = mkarr(false, mb_app->confBasis.num_basis, mb_app->global_ext.volume); // fem_parproj expects weight on host
+  // Here I need to gather all the weights from each block into one global weight
+  int rank;
+  gkyl_comm_get_rank(mb_app->comm, &rank);
+  struct gk_field* bfield = mb_app->blocks[rank]->field ;
+  gkyl_comm_array_allgather(mb_app->comm, &mb_app->local, &mb_app->global, bfield->weight, f->weight);
   f->fem_parproj = gkyl_fem_parproj_new(&mb_app->global, &mb_app->global_ext, 
     &mb_app->confBasis, f->info.fem_parbc, f->weight, mb_app->use_gpu);
 
@@ -66,19 +64,30 @@ gk_field_mb_new(struct gkyl_gk_mb *gk_mb, struct gkyl_gyrokinetic_mb_app *mb_app
 
 // Compute the electrostatic potential
 void
-gk_field_mb_rhs(gkyl_gyrokinetic_mb_app *mb_app, struct gk_field_mb *field)
+gk_field_mb_rhs(gkyl_gyrokinetic_mb_app *mb_app, struct gk_field_mb *field_mb)
 {
-    // gather charge density into global array for smoothing in z
+    // Get rank and figure out which app is ours
     int rank;
     gkyl_comm_get_rank(mb_app->comm, &rank);
-    struct gk_field* bfield = mb_app->blocks[rank]->field ;
-    gkyl_comm_array_allgather(mb_app->comm, &mb_app->local, &mb_app->global, bfield->rho_c, field->rho_c_global_dg);
-    if (mb_app->cdim == 1) {
-      gkyl_fem_parproj_set_rhs(field->fem_parproj, field->rho_c_global_dg, field->rho_c_global_dg);
-      gkyl_fem_parproj_solve(field->fem_parproj, field->phi_fem);
-      // copy globally smoothed potential to local potential per process for update
-      gkyl_array_copy_range_to_range(bfield->phi_smooth, field->phi_fem, &mb_app->local, &field->global_sub_range);
+    struct gkyl_gyrokinetic_app* app = mb_app->blocks[rank];
+
+    // Get fin and the field for app we own
+    const struct gkyl_array *fin[app->num_species];
+    for (int i=0; i<app->num_species; ++i) {
+      fin[i] = app->species[i].f;
     }
+    struct gk_field* field = app->field ;
+
+    // Each block can gather its own charge density.
+    gk_field_accumulate_rho_c(mb_app->blocks[rank], field, fin);
+
+    // Now gather charge density into global cross-block array for smoothing in z
+    gkyl_comm_array_allgather(mb_app->comm, &mb_app->local, &mb_app->global, field->rho_c, field_mb->rho_c_global_dg);
+    // Do the smoothing
+    gkyl_fem_parproj_set_rhs(field_mb->fem_parproj, field_mb->rho_c_global_dg, field_mb->rho_c_global_dg);
+    gkyl_fem_parproj_solve(field_mb->fem_parproj, field_mb->phi_fem);
+    // Copy globally smoothed potential to local potential per process for update
+    gkyl_array_copy_range_to_range(field->phi_smooth, field_mb->phi_fem, &mb_app->local, &field_mb->global_sub_range);
 }
 
 // release resources for field
