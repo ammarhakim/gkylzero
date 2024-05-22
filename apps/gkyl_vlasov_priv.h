@@ -650,7 +650,9 @@ void vm_species_emission_init(struct gkyl_vlasov_app *app, struct vm_emitting_wa
 void vm_species_emission_cross_init(struct gkyl_vlasov_app *app, struct vm_species *s,
   struct vm_emitting_wall *emit);
 
-void vm_species_emission_rhs(struct gkyl_vlasov_app *app, struct vm_emitting_wall *emit, struct gkyl_array *rhs[]);
+void vm_species_emission_apply_bc(struct gkyl_vlasov_app *app, const struct vm_emitting_wall *emit, struct gkyl_array *fout);
+
+void vm_species_emission_release(const struct vm_emitting_wall *emit);
 
 /** vm_species_lbo API */
 

@@ -276,9 +276,6 @@ gkyl_vlasov_app_new(struct gkyl_vm *vm)
     if (app->species[i].source_id)
       vm_species_source_init(app, &app->species[i], &app->species[i].src);
 
-  for (int i=0; i<ns; ++i)
-    vm_species_source_init(app, &app->species[i], &app->species[i].src);
-
   // initialize each fluid species
   // Fluid species must be initialized after kinetic species, as some fluid species couple
   // to kinetic species and pointers are allocated by the kinetic species objects
@@ -343,18 +340,7 @@ gkyl_vlasov_app_apply_ic(gkyl_vlasov_app* app, double t0)
     gkyl_vlasov_app_apply_ic_field(app, t0);
   for (int i=0; i<app->num_species; ++i)
     gkyl_vlasov_app_apply_ic_species(app, i, t0);
-  const struct gkyl_array *fin[app->num_species];
-  struct gkyl_array *fout[app->num_species];
-  for (int i=0; i<app->num_species; ++i) {
-          fin[i] = app->species[i].f;
-          fout[i] = app->species[i].f1;
-        }
-  for (int i=0; i<app->num_species; ++i) {
-    if (app->species[i].emit_lo)
-      vm_species_emission_rhs(app, &app->species[i].bc_emission_lo, fin);
-    if (app->species[i].emit_up)
-      vm_species_emission_rhs(app, &app->species[i].bc_emission_up, fin);
-  }
+  // BCs must be done after all species initialize for emission BCs to work 
   for (int i=0; i<app->num_species; ++i)
     vm_species_apply_bc(app, &app->species[i], app->species[i].f);
   for (int i=0; i<app->num_fluid_species; ++i)
@@ -806,14 +792,6 @@ forward_euler(gkyl_vlasov_app* app, double tcurr, double dt,
   for (int i=0; i<app->num_fluid_species; ++i) {
     double dt1 = vm_fluid_species_rhs(app, &app->fluid_species[i], fluidin[i], emin, fluidout[i]);
     dtmin = fmin(dtmin, dt1);
-  }
-  // initialize species wall emission terms: these rely
-  // on other species which must be allocated in the previous step
-  for (int i=0; i<app->num_species; ++i) {
-    if (app->species[i].emit_lo)
-      vm_species_emission_rhs(app, &app->species[i].bc_emission_lo, fin);
-    if (app->species[i].emit_up)
-      vm_species_emission_rhs(app, &app->species[i].bc_emission_up, fin);
   }
   // compute source term
   // done here as the RHS update for all species should be complete before

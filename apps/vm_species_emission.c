@@ -66,7 +66,8 @@ vm_species_emission_cross_init(struct gkyl_vlasov_app *app, struct vm_species *s
 }
 
 void
-vm_species_emission_rhs(struct gkyl_vlasov_app *app, struct vm_emitting_wall *emit, struct gkyl_array *rhs[])
+vm_species_emission_apply_bc(struct gkyl_vlasov_app *app, const struct vm_emitting_wall *emit,
+  struct gkyl_array *fout)
 {
   gkyl_array_clear(emit->f_emit, 0.0); // Zero emitted distribution before beginning accumulate
   for (int i=0; i<emit->num_species; ++i) {
@@ -75,20 +76,24 @@ vm_species_emission_rhs(struct gkyl_vlasov_app *app, struct vm_emitting_wall *em
     gkyl_dg_updater_moment_advance(emit->flux_slvr[i], &emit->impact_normal_r[i],
       emit->impact_cbuff_r[i], emit->bflux_arr[i], emit->flux[i]);
     
-    gkyl_bc_emission_spectrum_advance(emit->update[i], emit->impact_skin_r[i],
-      emit->impact_buff_r[i], emit->impact_cbuff_r[i], emit->emit_buff_r, emit->bflux_arr[i],
+    gkyl_bc_emission_spectrum_advance(emit->update[i], emit->impact_buff_r[i],
+      emit->impact_cbuff_r[i], emit->emit_buff_r, emit->bflux_arr[i],
       emit->f_emit, emit->yield[i], emit->spectrum[i], emit->weight[i], emit->flux[i], emit->k[i]);
   }
-}
-
-void
-vm_species_emission_apply_bc(struct vm_emitting_wall *emit, struct gkyl_array *fout)
-{
   gkyl_array_copy_range_to_range(fout, emit->f_emit, emit->emit_ghost_r, emit->emit_buff_r);
 }
 
-/* void */
-/* vm_species_emission_release() */
-/* { */
-  
-/* } */
+void
+vm_species_emission_release(const struct vm_emitting_wall *emit)
+{
+  gkyl_array_release(emit->f_emit);
+  for (int i=0; i<emit->num_species; ++i) {
+    gkyl_array_release(emit->yield[i]);
+    gkyl_array_release(emit->spectrum[i]);
+    gkyl_array_release(emit->weight[i]);
+    gkyl_array_release(emit->flux[i]);
+    gkyl_array_release(emit->k[i]);
+    gkyl_dg_updater_moment_release(emit->flux_slvr[i]);
+    gkyl_bc_emission_spectrum_release(emit->update[i]);
+  }
+}

@@ -404,7 +404,7 @@ vm_species_apply_bc(gkyl_vlasov_app *app, const struct vm_species *species, stru
 
       switch (species->lower_bc[d].type) {
         case GKYL_SPECIES_EMISSION:
-          vm_species_emission_apply_bc(&species->bc_emission_lo, f);
+          vm_species_emission_apply_bc(app, &species->bc_emission_lo, f);
           break;
         case GKYL_SPECIES_COPY:
         case GKYL_SPECIES_REFLECT:
@@ -424,7 +424,7 @@ vm_species_apply_bc(gkyl_vlasov_app *app, const struct vm_species *species, stru
 
       switch (species->upper_bc[d].type) {
         case GKYL_SPECIES_EMISSION:
-          vm_species_emission_apply_bc(&species->bc_emission_up, f);
+          vm_species_emission_apply_bc(app, &species->bc_emission_up, f);
           break;
         case GKYL_SPECIES_COPY:
         case GKYL_SPECIES_REFLECT:
@@ -572,8 +572,15 @@ vm_species_release(const gkyl_vlasov_app* app, const struct vm_species *s)
 
   // Copy BCs are allocated by default. Need to free.
   for (int d=0; d<app->cdim; ++d) {
-    gkyl_bc_basic_release(s->bc_lo[d]);
-    gkyl_bc_basic_release(s->bc_up[d]);
+    if (s->lower_bc[d].type == GKYL_SPECIES_EMISSION)
+      vm_species_emission_release(&s->bc_emission_lo);
+    else 
+      gkyl_bc_basic_release(s->bc_lo[d]);
+    
+    if (s->upper_bc[d].type == GKYL_SPECIES_EMISSION)
+      vm_species_emission_release(&s->bc_emission_up);
+    else 
+      gkyl_bc_basic_release(s->bc_up[d]);
   }
   
   if (app->use_gpu) {
