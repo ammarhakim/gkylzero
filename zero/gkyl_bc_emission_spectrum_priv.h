@@ -147,8 +147,9 @@ maxwellian_norm(double *out, const double *flux, void *norm_param, double effect
 {
   struct gkyl_bc_emission_spectrum_norm_maxwellian *param = norm_param;
   double vt = param->vt;
+  int vdim = param->vdim;
   
-  out[0] = effective_delta*flux[0]/(vt*vt);
+  out[0] = effective_delta*flux[0]/(pow(2.0*M_PI, (vdim - 1)/2.0)*pow(vt, vdim + 1));
 }
 
 // Furman-Pivi SEY calculation
