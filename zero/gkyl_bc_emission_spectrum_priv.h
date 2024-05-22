@@ -108,8 +108,8 @@ static void
 bc_weighted_delta(const double *inp, int cdim, int dir, enum gkyl_edge_loc edge, double xc[GKYL_MAX_DIM], const double *gain, double *weight)
 {
   if ((edge == GKYL_LOWER_EDGE && xc[cdim+dir] < 0) || (edge == GKYL_UPPER_EDGE && xc[cdim+dir] > 0)) { 
-    weight[0] += fabs(xc[cdim+dir])*inp[0]*gain[0];
-    weight[1] += fabs(xc[cdim+dir])*inp[0];
+    weight[0] += inp[0]*gain[0];
+    weight[1] += inp[0];
   }
 }
 

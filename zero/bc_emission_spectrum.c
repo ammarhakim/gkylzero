@@ -181,7 +181,7 @@ gkyl_bc_emission_spectrum_advance(const struct gkyl_bc_emission_spectrum *up,
       fidx[up->dir] = impact_ghost_r->lower[up->dir];
       long loc2 = gkyl_range_idx(impact_ghost_r, fidx);
 
-      const double *inp = gkyl_array_cfetch(f_skin, loc);
+      const double *inp = gkyl_array_cfetch(f_skin, loc2);
       const double *vals = gkyl_array_cfetch(f_emit, loc2);
       const double *specs = gkyl_array_cfetch(spectrum, loc2);
       const double *gain = gkyl_array_cfetch(yield, loc2);
@@ -202,8 +202,8 @@ void gkyl_bc_emission_spectrum_release(struct gkyl_bc_emission_spectrum *up)
 #ifdef GKYL_HAVE_CUDA
   if (up->use_gpu) {
     gkyl_cu_free(up->funcs_cu);
-    gkyl_cu_free(up->bc_param_cu);
-    gkyl_cu_free(up->sey_param_cu);
+    gkyl_cu_free(up->norm_param_cu);
+    gkyl_cu_free(up->yield_param_cu);
   }
 #endif
   gkyl_free(up->funcs);
