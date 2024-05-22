@@ -39,7 +39,11 @@ gk_field_mb_new(struct gkyl_gk_mb *gk_mb, struct gkyl_gyrokinetic_mb_app *mb_app
   // allocate arrays for electrostatic potential
   // global phi (only used in 1x simulations)
   f->phi_fem = mkarr(mb_app->use_gpu, mb_app->confBasis.num_basis, mb_app->global_ext.volume);
-  f->phi_host = mkarr(false, mb_app->confBasis.num_basis, mb_app->global_ext.volume);
+
+  f->phi_host = f->phi_fem;
+  if (mb_app->use_gpu) {
+    f->phi_host = mkarr(false, mb_app->confBasis.num_basis, mb_app->global_ext.volume);
+  }
 
 
   // Create global subrange we'll copy the field solver solution from (into local).
