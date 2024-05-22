@@ -51,12 +51,12 @@ runTestParallel(const char* test_name, const char* test_name_human, const int te
       test_cuts, test_name, test_cuts, test_name, counter);
   }
   else if (test_dimensions == 2) {
-    snprintf(command_buffer3, 256, "mpirun -np %d ./cuda-build/regression/rt_%s -m -M -d %d > ./ci/output_parallel/rt_%s_%d.dat 2>&1",
-      test_cuts, test_name, test_cuts, test_name, counter);
+    snprintf(command_buffer3, 256, "mpirun -np %d ./cuda-build/regression/rt_%s -m -M -c %d -d %d > ./ci/output_parallel/rt_%s_%d.dat 2>&1",
+      test_cuts * test_cuts, test_name, test_cuts, test_cuts, test_name, counter);
   }
   else if (test_dimensions == 3) {
-    snprintf(command_buffer3, 256, "mpirun -np %d ./cuda-build/regression/rt_%s -m -M -e %d > ./ci/output_parallel/rt_%s_%d.dat 2>&1",
-      test_cuts, test_name, test_cuts, test_name, counter);
+    snprintf(command_buffer3, 256, "mpirun -np %d ./cuda-build/regression/rt_%s -m -M -c %d -d %d -e %d > ./ci/output_parallel/rt_%s_%d.dat 2>&1",
+      test_cuts * test_cuts * test_cuts, test_name, test_cuts, test_cuts, test_cuts, test_name, counter);
   }
   system(command_buffer3);
 
