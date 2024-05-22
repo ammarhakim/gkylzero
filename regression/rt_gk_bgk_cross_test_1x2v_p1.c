@@ -104,7 +104,7 @@ create_ctx(void)
   double vpar_max_ion = 5.0 * vti; // Domain boundary (ion velocity space: parallel velocity direction).
   double mu_max_ion = mass_ion * pow(5.0*vti,2) / (2.0*B0); // Domain boundary (ion velocity space: magnetic moment direction).
 
-  double t_end = 10.0/nu_ion; // Final simulation time.
+  double t_end = 0.1/nu_ion; // Final simulation time.
   int num_frames = 10; // Number of output frames.
   int int_diag_calc_num = num_frames*100;
   double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.
