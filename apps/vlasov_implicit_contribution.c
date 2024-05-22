@@ -12,7 +12,7 @@ vlasov_implicit_contribution(gkyl_vlasov_app* app, double tcurr, double dt,
 
   // compute necessary moments and boundary corrections for collisions
   for (int i=0; i<app->num_species; ++i) {
-    if (app->species[i].collision_id == GKYL_BGK_COLLISIONS && app->has_imex_bgk_scheme) {
+    if (app->species[i].collision_id == GKYL_BGK_COLLISIONS && app->has_implicit_bgk_scheme) {
       vm_species_bgk_moms(app, &app->species[i], 
         &app->species[i].bgk, fin[i]);
     }

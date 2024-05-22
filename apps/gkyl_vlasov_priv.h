@@ -564,7 +564,7 @@ struct gkyl_vlasov_app {
   bool has_fluid_em_coupling; // Boolean for if there is implicit fluid-EM coupling
   struct vm_fluid_em_coupling *fl_em; // fluid-EM coupling data
 
-  bool has_imex_bgk_scheme; // Boolean for using imex bgk scheme (over explicit rk3)
+  bool has_implicit_bgk_scheme; // Boolean for using implicit bgk scheme (over explicit rk3)
 
   // pointer to function that takes a single-step of simulation
   struct gkyl_update_status (*update_func)(gkyl_vlasov_app *app, double dt0);
@@ -588,10 +588,6 @@ void vlasov_implicit_contribution(gkyl_vlasov_app* app, double tcurr, double dt,
 
 // Take a single time-step using a Strang split implicit fluid-EM coupling + SSP RK3
 struct gkyl_update_status vlasov_update_strang_split(gkyl_vlasov_app *app,
-  double dt0);
-
-// Take a single time-step using an IMEX SSP RK3 method (BGK is the stiff term)
-struct gkyl_update_status vlasov_update_imex_bgk(gkyl_vlasov_app *app,
   double dt0);
 
 // Take a single time-step using a SSP-RK3 stepper

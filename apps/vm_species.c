@@ -406,7 +406,7 @@ vm_species_rhs(gkyl_vlasov_app *app, struct vm_species *species,
   if (species->collision_id == GKYL_LBO_COLLISIONS) {
     vm_species_lbo_rhs(app, species, &species->lbo, fin, rhs);
   }
-  else if (species->collision_id == GKYL_BGK_COLLISIONS && !app->has_imex_bgk_scheme) {
+  else if (species->collision_id == GKYL_BGK_COLLISIONS && !app->has_implicit_bgk_scheme) {
     species->bgk.implicit_step = false;
     vm_species_bgk_rhs(app, species, &species->bgk, fin, rhs);
   }
@@ -439,7 +439,7 @@ vm_species_rhs_implicit(gkyl_vlasov_app *app, struct vm_species *species,
   gkyl_array_clear(species->cflrate, 0.0);
   gkyl_array_clear(rhs, 0.0);
 
-  if (species->collision_id == GKYL_BGK_COLLISIONS && app->has_imex_bgk_scheme) {
+  if (species->collision_id == GKYL_BGK_COLLISIONS && app->has_implicit_bgk_scheme) {
     vm_species_bgk_rhs(app, species, &species->bgk, fin, rhs);
   }
   
