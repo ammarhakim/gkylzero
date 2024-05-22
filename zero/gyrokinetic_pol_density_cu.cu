@@ -16,7 +16,7 @@ gkyl_gk_pol_den_set_cu_ker_ptrs(struct gkyl_gyrokinetic_pol_density_kernels *ker
 
   switch (b_type) {
     case GKYL_BASIS_MODAL_SERENDIPITY:
-      kernels->pol_den = gk_pol_density_kern_list_ser[cdim-1].kernels[poly_order-1];
+      kernels->pol_den = gk_pol_density_kern_list_ser[pdim-1].kernels[poly_order-1];
       break;
     default:
       assert(false);
