@@ -179,18 +179,19 @@ gk_species_bgk_cross_moms(gkyl_gyrokinetic_app *app, const struct gk_species *sp
   
   wst = gkyl_wall_clock();  
   for (int i=0; i<bgk->num_cross_collisions; ++i) {
-    gkyl_gyrokinetic_cross_prim_moms_bgk_advance(bgk->cross_bgk, &app->local, bgk->betaGreenep1, 
-      species->info.mass, bgk->moms.marr, bgk->other_m[i], bgk->other_moms[i], 
-      bgk->self_nu, bgk->other_nu[i], bgk->cross_moms[i]);
-
     // Calculate cross_nu if using spitzer nu
     if (bgk->normNu) {
       gkyl_spitzer_coll_freq_advance_normnu(bgk->spitzer_calc, &app->local, 
         bgk->vtsq, bgk->vtsq_min, bgk->collide_with[i]->bgk.m0, 
         bgk->collide_with[i]->bgk.vtsq, bgk->collide_with[i]->bgk.vtsq_min, 
         bgk->cross_nu_fac[i], bgk->cross_nu[i]);
+      gkyl_array_set(bgk->other_nu[i], (species->info.mass)/(bgk->other_m[i]), bgk->cross_nu[i]);
       gkyl_array_accumulate(bgk->nu_sum, 1.0, bgk->cross_nu[i]);
     }
+
+    gkyl_gyrokinetic_cross_prim_moms_bgk_advance(bgk->cross_bgk, &app->local, bgk->betaGreenep1, 
+      species->info.mass, bgk->moms.marr, bgk->other_m[i], bgk->other_moms[i], 
+      bgk->cross_nu[i], bgk->other_nu[i], bgk->cross_moms[i]);
 
   }
   app->stat.species_coll_mom_tm += gkyl_time_diff_now_sec(wst);    
@@ -248,7 +249,7 @@ gk_species_bgk_rhs(gkyl_gyrokinetic_app *app, const struct gk_species *species,
       status_corr = gkyl_gyrokinetic_maxwellian_correct_all_moments(bgk->corr_max, 
         bgk->fmax, bgk->cross_moms[i], &species->local, &app->local);
     } 
-    // multiple the Maxwellian by the configuration-space Jacobian
+    // Multiple the Maxwellian by the configuration-space Jacobian
     gkyl_dg_mul_conf_phase_op_range(&app->confBasis, &app->basis, bgk->fmax, 
       app->gk_geom->jacobgeo, bgk->fmax, &app->local, &species->local);
 
