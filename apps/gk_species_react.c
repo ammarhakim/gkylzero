@@ -242,13 +242,13 @@ gk_species_react_rhs(gkyl_gyrokinetic_app *app, const struct gk_species *s,
           app->gk_geom->bmag, app->gk_geom->jacobtot, s->info.mass, react->f_react_other);
 
         // scale to correct m0
-        gk_species_moment_calc(&s->m0, s->local_ext, app->local_ext, react->f_react);
+        gk_species_moment_calc(&s->m0, s->local_ext, app->local_ext, react->f_react_other);
         gkyl_dg_div_op_range(s->m0.mem_geo, app->confBasis, 0, react->m0_mod[i], 0,
           react->m0_elc[i], 0, s->m0.marr, &app->local);
 
 	gkyl_dg_mul_op_range(app->confBasis, 0, react->m0_mod[i], 0, react->m0_mod[i], 0, app->gk_geom->jacobgeo, &app->local);
         gkyl_dg_mul_conf_phase_op_range(&app->confBasis, &app->basis, react->f_react_other,
-          react->m0_mod[i], react->f_react, &app->local_ext, &s->local_ext);	
+          react->m0_mod[i], react->f_react_other, &app->local_ext, &s->local_ext);	
 
         gkyl_array_accumulate(react->f_react, 1.0, react->f_react_other);
         gkyl_array_accumulate(react->f_react, -1.0, fin);
