@@ -253,11 +253,14 @@ gkyl_vlasov_app_new(struct gkyl_vm *vm)
   // Otherwise, we default to an SSP-RK3 method. 
   if (app->has_fluid_em_coupling) {
     app->update_func = vlasov_update_strang_split;
+  } 
+  else if (app->has_implicit_bgk_scheme) {
+    app->update_func = vlasov_gudanov_split_bgk;
   }
   else {
     app->update_func = vlasov_update_ssp_rk3;
   }
-  
+
   // initialize stat object
   app->stat = (struct gkyl_vlasov_stat) {
     .use_gpu = app->use_gpu,
