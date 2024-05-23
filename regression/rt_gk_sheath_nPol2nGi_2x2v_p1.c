@@ -69,6 +69,7 @@ struct sheath_ctx
   int Nz; // Cell count (configuration space: z-direction).
   int Nvpar; // Cell count (velocity space: parallel velocity direction).
   int Nmu; // Cell count (velocity space: magnetic moment direction).
+  double x_lower, x_upper; // Lower and upper x coordinates.
   double Lx; // Domain size (configuration space: x-direction).
   double Lz; // Domain size (configuration space: z-direction).
   double vpar_max_elc; // Domain boundary (electron velocity space: parallel velocity direction).
@@ -133,12 +134,14 @@ create_ctx(void)
   double floor_src = 0.1; // Minimum source intensity.
 
   // Simulation parameters.
-  int Nx = 4; // Cell count (configuration space: x-direction).
-  int Nz = 8; // Cell count (configuration space: z-direction).
+  int Nx = 16; // Cell count (configuration space: x-direction).
+  int Nz = 16; // Cell count (configuration space: z-direction).
   int Nvpar = 6; // Cell count (velocity space: parallel velocity direction).
   int Nmu = 4; // Cell count (velocity space: magnetic moment direction).
   double Lx = 50.0 * rho_s; // Domain size (configuration space: x-direction).
   double Lz = 4.0; // Domain size (configuration space: z-direction).
+  double x_lower = R - (0.5 * Lx);
+  double x_upper = R + (0.5 * Lx);
   double vpar_max_elc = 4.0 * vte; // Domain boundary (electron velocity space: parallel velocity direction).
   double mu_max_elc = (3.0 / 2.0) * 0.5 * mass_elc * pow(4.0 * vte,2) / (2.0 * B0); // Domain boundary (electron velocity space: magnetic moment direction).
   double vpar_max_ion = 4.0 * vti; // Domain boundary (ion velocity space: parallel velocity direction).
@@ -186,6 +189,8 @@ create_ctx(void)
     .Nmu = Nmu,
     .Lx = Lx,
     .Lz = Lz,
+    .x_lower = x_lower,
+    .x_upper = x_upper,
     .vpar_max_elc = vpar_max_elc,
     .mu_max_elc = mu_max_elc,
     .vpar_max_ion = vpar_max_ion,
@@ -203,6 +208,9 @@ create_ctx(void)
 void
 evalPolPhi(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
 {
+  // Potential used to compute the polarization densities, which then gets used
+  // to initialized the guiding center density of the species with nG_from_npol=true.
+  // It should be consistent with the BCs of the field solver.
   struct sheath_ctx *app = ctx;
 
   double x = xn[0], z = xn[1];
@@ -211,8 +219,9 @@ evalPolPhi(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout,
   double qi = app->charge_ion;
   double Lx = app->Lx;
   double Lz = app->Lz;
+  double x_lower = app->x_lower;
 
-  fout[0] = (Te/qi)*cos((2.0*M_PI/Lx)*x)*cos((2.0*M_PI/Lz)*z);
+  fout[0] = (Te/qi)*sin((2.0*M_PI/Lx)*(x-x_lower))*cos((2.0*M_PI/Lz)*z);
 }
 
 void
@@ -695,8 +704,8 @@ main(int argc, char **argv)
     .name = "gk_sheath_nPol2nGi_2x2v_p1",
 
     .cdim = 2, .vdim = 2,
-    .lower = { ctx.R - (0.5 * ctx.Lx), -0.5 * ctx.Lz },
-    .upper = { ctx.R + (0.5 * ctx.Lx),  0.5 * ctx.Lz },
+    .lower = { ctx.x_lower, -0.5 * ctx.Lz },
+    .upper = { ctx.x_upper,  0.5 * ctx.Lz },
     .cells = { NX, NZ },
     .poly_order = 1,
     .basis_type = app_args.basis_type,
