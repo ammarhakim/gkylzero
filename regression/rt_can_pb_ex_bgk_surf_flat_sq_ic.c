@@ -188,7 +188,7 @@ main(int argc, char **argv)
   // start, end and initial time-step
   double tcurr = 0.0, tend = 0.1;
   double dt = tend-tcurr;
-  int nframe = 3;
+  int nframe = 1;
   struct gkyl_tm_trigger io_trig = { .dt = tend/nframe };
 
   // initialize simulation
