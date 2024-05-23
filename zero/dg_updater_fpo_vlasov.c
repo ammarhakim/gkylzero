@@ -48,6 +48,7 @@ gkyl_dg_updater_fpo_vlasov_advance(struct gkyl_dg_updater_collisions *fpo,
   const struct gkyl_array *sgn_drag_coeff_surf,
   const struct gkyl_array *const_sgn_drag_coeff_surf,
   const struct gkyl_array *diff_coeff, 
+  const struct gkyl_array *diff_coeff_surf,
   const struct gkyl_array* GKYL_RESTRICT fIn,
   struct gkyl_array* GKYL_RESTRICT cflrate, struct gkyl_array* GKYL_RESTRICT rhs)
 {
@@ -61,7 +62,10 @@ gkyl_dg_updater_fpo_vlasov_advance(struct gkyl_dg_updater_collisions *fpo,
   });
 
   gkyl_fpo_vlasov_diff_set_auxfields(fpo->coll_diff,
-    (struct gkyl_dg_fpo_vlasov_diff_auxfields) { .diff_coeff = diff_coeff });
+    (struct gkyl_dg_fpo_vlasov_diff_auxfields) { 
+      .diff_coeff = diff_coeff,
+      .diff_coeff_surf = diff_coeff_surf
+  });
 
   struct timespec wst = gkyl_wall_clock();
   if (fpo->use_gpu) {

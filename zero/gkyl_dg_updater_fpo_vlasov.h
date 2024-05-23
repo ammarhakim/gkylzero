@@ -49,6 +49,7 @@ void gkyl_dg_updater_fpo_vlasov_advance(struct gkyl_dg_updater_collisions *fpo,
   const struct gkyl_array *sgn_drag_coeff_surf,
   const struct gkyl_array *const_sgn_drag_coeff_surf,
   const struct gkyl_array *diff_coeff,
+  const struct gkyl_array *diff_coeff_surf,
   const struct gkyl_array* GKYL_RESTRICT fIn,
   struct gkyl_array* GKYL_RESTRICT cflrate, struct gkyl_array* GKYL_RESTRICT rhs);
 

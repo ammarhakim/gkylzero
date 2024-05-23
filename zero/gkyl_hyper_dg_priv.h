@@ -21,9 +21,10 @@ struct gkyl_hyper_dg {
 
 GKYL_CU_DH
 static void
-create_offsets(gkyl_hyper_dg *hdg, const int num_up_dirs, const int update_dirs[2], 
+create_offsets(const int num_up_dirs, const int update_dirs[2], 
   const struct gkyl_range *range, const int idxc[GKYL_MAX_DIM], long offsets[9])
 {
+  
   // Check if we're at an upper or lower edge in each direction
   bool is_edge_upper[2], is_edge_lower[2];
   for (int i=0; i<num_up_dirs; ++i) {

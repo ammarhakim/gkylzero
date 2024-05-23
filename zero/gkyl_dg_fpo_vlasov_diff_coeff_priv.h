@@ -7,10 +7,18 @@
 #include <gkyl_util.h>
 #include <gkyl_fpo_vlasov_kernels.h>
 
-
+GKYL_CU_DH
 static void
-create_offsets(const int num_up_dirs, const bool is_edge_lower[], const bool is_edge_upper[], const int update_dirs[], const struct gkyl_range *range, long offsets[])
+create_offsets(const int num_up_dirs, const int update_dirs[2], 
+  const struct gkyl_range *range, const int idxc[GKYL_MAX_DIM], long offsets[9])
 {
+  // Check if we're at an upper or lower edge in each direction
+  bool is_edge_upper[2], is_edge_lower[2];
+  for (int i=0; i<num_up_dirs; ++i) {
+    is_edge_lower[i] = idxc[update_dirs[i]] == range->lower[update_dirs[i]];
+    is_edge_upper[i] = idxc[update_dirs[i]] == range->upper[update_dirs[i]];
+  }
+
   // Construct the offsets *only* in the directions being updated.
   // No need to load the neighbors that are not needed for the update.
   int lower_offset[GKYL_MAX_DIM] = {0};
@@ -54,11 +62,16 @@ typedef void (*fpo_diff_coeff_cross_t)(const double *dxv, const double *gamma,
     const double* fpo_g_stencil[9], const double* fpo_g_surf_stencil[9],
     const double* fpo_dgdv_surf, double *diff_coeff);
 
+typedef void (*fpo_diff_coeff_surf_t)(const double *diff_coeff_L, 
+    const double *diff_coeff_R, double *diff_coeff_surf_R);
+
+
 // For use in kernel tables
 typedef struct { fpo_diff_coeff_diag_t kernels[3]; } gkyl_dg_diff_coeff_diag_kern_list;
 typedef struct { gkyl_dg_diff_coeff_diag_kern_list list[3]; } gkyl_dg_fpo_diff_coeff_diag_stencil_list;
 typedef struct { fpo_diff_coeff_cross_t kernels[9]; } gkyl_dg_diff_coeff_cross_kern_list;
 typedef struct { gkyl_dg_diff_coeff_cross_kern_list list[3]; } gkyl_dg_fpo_diff_coeff_cross_stencil_list;
+typedef struct { fpo_diff_coeff_surf_t kernels[3]; } gkyl_dg_fpo_diff_coeff_surf_kern_list;
 
 // diffusion coefficient diagonal term kernel lists
 GKYL_CU_D
@@ -143,39 +156,74 @@ static const gkyl_dg_fpo_diff_coeff_cross_stencil_list ser_fpo_diff_coeff_cross_
   }
 };
 
+// diffusion coefficient surface projection kernel lists
+GKYL_CU_D
+static const gkyl_dg_fpo_diff_coeff_surf_kern_list ser_fpo_diff_coeff_surf_1x3v_vx_kernels = {
+  NULL, fpo_diff_coeff_diag_1x3v_vx_ser_p1, fpo_diff_coeff_diag_1x3v_vx_ser_p2
+};
+
+GKYL_CU_D
+static const gkyl_dg_fpo_diff_coeff_surf_kern_list ser_fpo_diff_coeff_surf_1x3v_vy_kernels = {
+  NULL, fpo_diff_coeff_diag_1x3v_vy_ser_p1, fpo_diff_coeff_diag_1x3v_vy_ser_p2
+};
+
+GKYL_CU_D
+static const gkyl_dg_fpo_diff_coeff_surf_kern_list ser_fpo_diff_coeff_surf_1x3v_vz_kernels = {
+  NULL, fpo_diff_coeff_diag_1x3v_vz_ser_p1, fpo_diff_coeff_diag_1x3v_vz_ser_p2
+};
+
+
 GKYL_CU_D
 static const fpo_diff_coeff_cross_t
 choose_ser_fpo_diff_coeff_cross_recovery_kern(int d1, int d2, int cdim, int poly_order, int stencil_idx)
 {
-  // if (d1 == d2) return NULL;
-
-  if (d1 == 0 && d2 == 1)
-    return ser_fpo_diff_coeff_cross_1x3v_vxvy_kernels.list[poly_order].kernels[stencil_idx];
-  else if (d1 == 0 && d2 == 2)
-    return ser_fpo_diff_coeff_cross_1x3v_vxvz_kernels.list[poly_order].kernels[stencil_idx];
-  else if (d1 == 1 && d2 == 0)
-    return ser_fpo_diff_coeff_cross_1x3v_vyvx_kernels.list[poly_order].kernels[stencil_idx];
-  else if (d1 == 1 && d2 == 2)
-    return ser_fpo_diff_coeff_cross_1x3v_vyvz_kernels.list[poly_order].kernels[stencil_idx];
-  else if (d1 == 2 && d2 == 0)
-    return ser_fpo_diff_coeff_cross_1x3v_vzvx_kernels.list[poly_order].kernels[stencil_idx];
-  else if (d1 == 2 && d2 == 1)
-    return ser_fpo_diff_coeff_cross_1x3v_vzvy_kernels.list[poly_order].kernels[stencil_idx];
-  else 
-    return NULL;
+  int lin_idx = d1*3 + d2;
+  switch (lin_idx) {
+    case 1: 
+      return ser_fpo_diff_coeff_cross_1x3v_vxvy_kernels.list[poly_order].kernels[stencil_idx];
+    case 2:
+      return ser_fpo_diff_coeff_cross_1x3v_vxvz_kernels.list[poly_order].kernels[stencil_idx];
+    case 3:
+      return ser_fpo_diff_coeff_cross_1x3v_vyvx_kernels.list[poly_order].kernels[stencil_idx];   
+    case 5:
+      return ser_fpo_diff_coeff_cross_1x3v_vyvz_kernels.list[poly_order].kernels[stencil_idx];   
+    case 6:
+      return ser_fpo_diff_coeff_cross_1x3v_vzvx_kernels.list[poly_order].kernels[stencil_idx];   
+    case 7:
+      return ser_fpo_diff_coeff_cross_1x3v_vzvy_kernels.list[poly_order].kernels[stencil_idx];   
+    default:
+      return NULL;
+  }
 };
 
 GKYL_CU_D
 static const fpo_diff_coeff_diag_t
 choose_ser_fpo_diff_coeff_diag_recovery_kern(int d, int cdim, int poly_order, int stencil_idx)
 {
-  if (d == 0) 
-    return ser_fpo_diff_coeff_diag_1x3v_vx_kernels.list[poly_order].kernels[stencil_idx];
-  else if (d == 1)
-    return ser_fpo_diff_coeff_diag_1x3v_vy_kernels.list[poly_order].kernels[stencil_idx];
-  else if (d == 2)
-    return ser_fpo_diff_coeff_diag_1x3v_vz_kernels.list[poly_order].kernels[stencil_idx];
-  else 
-    return NULL;
+  switch (d){
+    case 0:
+      return ser_fpo_diff_coeff_diag_1x3v_vx_kernels.list[poly_order].kernels[stencil_idx];
+    case 1:
+      return ser_fpo_diff_coeff_diag_1x3v_vy_kernels.list[poly_order].kernels[stencil_idx];
+    case 2:
+      return ser_fpo_diff_coeff_diag_1x3v_vz_kernels.list[poly_order].kernels[stencil_idx];
+    default:
+      return NULL;
+  }
 };
 
+GKYL_CU_D
+static const fpo_diff_coeff_surf_t
+choose_ser_fpo_diff_coeff_surf_recovery_kern(int d, int cdim, int poly_order)
+{
+  switch (d){
+    case 0:
+      return ser_fpo_diff_coeff_surf_1x3v_vx_kernels.kernels[poly_order];
+    case 1:
+      return ser_fpo_diff_coeff_surf_1x3v_vy_kernels.kernels[poly_order];
+    case 2:
+      return ser_fpo_diff_coeff_surf_1x3v_vz_kernels.kernels[poly_order];
+    default:
+      return NULL;
+  }
+}

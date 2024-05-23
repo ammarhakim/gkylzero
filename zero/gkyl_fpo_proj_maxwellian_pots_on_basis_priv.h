@@ -253,67 +253,68 @@ init_quad_values(int cdim, const struct gkyl_basis *basis, int num_quad, struct 
   return tot_quad;
 }
 
-
+// vth used in these equations is not the same vth used generally in Gkeyll,
+// it has the factor of sqrt(2)
 static inline double eval_fpo_h(double den,
   double rel_speed, double vtsq) 
 {
-  double sqrt2temp_over_m = sqrt(2.0*vtsq);
-  return den/rel_speed * erf(rel_speed/sqrt2temp_over_m);
+  double vth = sqrt(2.0*vtsq);
+  return den/rel_speed * erf(rel_speed/vth);
 }
 
 static inline double eval_fpo_g(double den, double rel_speed,
   double vtsq) 
 {
   double rel_speedsq = pow(rel_speed, 2);
-  double sqrt2temp_over_m = sqrt(2.0*vtsq);
-  return  den*sqrt2temp_over_m*
-    (1.0/(sqrt(GKYL_PI))*exp(-rel_speedsq/pow(sqrt2temp_over_m, 2)) + 
-    erf(rel_speed/sqrt2temp_over_m)*(sqrt2temp_over_m/(2.0*rel_speed) + 
-    rel_speed/sqrt2temp_over_m));
+  double vth = sqrt(2.0*vtsq);
+  return  den*vth*
+    (1.0/(sqrt(GKYL_PI))*exp(-rel_speedsq/pow(vth, 2)) + 
+    erf(rel_speed/vth)*(vth/(2.0*rel_speed) + 
+    rel_speed/vth));
 }
 
 static inline double eval_fpo_dhdv(double den,
   double rel_vel_in_dir, double vtsq, double rel_speed) 
 {
   double rel_speedsq = pow(rel_speed, 2);
-  double sqrt2temp_over_m = sqrt(2.0*vtsq);
+  double vth = sqrt(2.0*vtsq);
   return den*rel_vel_in_dir * (
-    2.0*exp(-rel_speedsq/pow(sqrt2temp_over_m,2))/(sqrt(GKYL_PI)*sqrt2temp_over_m*rel_speedsq) -
-    erf(rel_speed/sqrt2temp_over_m)/pow(rel_speedsq, 1.5)
+    2.0*exp(-rel_speedsq/pow(vth,2))/(sqrt(GKYL_PI)*vth*rel_speedsq) -
+    erf(rel_speed/vth)/pow(rel_speedsq, 1.5)
   );
 }
 
 static inline double eval_fpo_dgdv(double den, double rel_vel_in_dir,
   double vtsq, double rel_speed) {
   double rel_speedsq = pow(rel_speed,2);
-  double sqrt2temp_over_m = sqrt(2.0*vtsq);
+  double vth = sqrt(2.0*vtsq);
   return den*rel_vel_in_dir * (
-    exp(-rel_speedsq/pow(sqrt2temp_over_m,2))*sqrt2temp_over_m/(sqrt(GKYL_PI)*rel_speedsq) -
-    erf(rel_speed/sqrt2temp_over_m)*(pow(sqrt2temp_over_m,2)/(2.0*pow(rel_speed,3)) - 1.0/rel_speed)
+    exp(-rel_speedsq/pow(vth,2))*vth/(sqrt(GKYL_PI)*rel_speedsq) -
+    erf(rel_speed/vth)*(pow(vth,2)/(2.0*pow(rel_speed,3)) - 1.0/rel_speed)
   );
 }
 
 static inline double eval_fpo_d2gdv2(double den,
   double rel_vel_in_dir, double vtsq, double rel_speed) {
   double rel_speedsq = pow(rel_speed,2);
-  double sqrt2temp_over_m = sqrt(2.0*vtsq);
-  return den*(exp(-rel_speedsq/pow(sqrt2temp_over_m,2))/sqrt(GKYL_PI)*(sqrt2temp_over_m/rel_speedsq - 
-    pow(rel_vel_in_dir,2)*2.0*sqrt2temp_over_m*(1.0/pow(rel_speedsq, 2) +
-    1.0/(pow(sqrt2temp_over_m,2)*rel_speedsq) + (pow(sqrt2temp_over_m,2) - 
-    2.0*rel_speedsq)/(2.0*pow(sqrt2temp_over_m,2)*pow(rel_speedsq, 2)))) +
-    erf(rel_speed/sqrt2temp_over_m)*(pow(rel_vel_in_dir,2)*
-    (3.0*pow(sqrt2temp_over_m,2)-2.0*rel_speedsq)/(2.0*pow(rel_speed, 5)) - 
-    pow(sqrt2temp_over_m, 2)/(2.0*pow(rel_speed, 3)) + 1.0/rel_speed));
+  double vth = sqrt(2.0*vtsq);
+  return den*(exp(-rel_speedsq/pow(vth,2))/sqrt(GKYL_PI)*(vth/rel_speedsq - 
+    pow(rel_vel_in_dir,2)*2.0*vth*(1.0/pow(rel_speedsq, 2) +
+    1.0/(pow(vth,2)*rel_speedsq) + (pow(vth,2) - 
+    2.0*rel_speedsq)/(2.0*pow(vth,2)*pow(rel_speedsq, 2)))) +
+    erf(rel_speed/vth)*(pow(rel_vel_in_dir,2)*
+    (3.0*pow(vth,2)-2.0*rel_speedsq)/(2.0*pow(rel_speed, 5)) - 
+    pow(vth, 2)/(2.0*pow(rel_speed, 3)) + 1.0/rel_speed));
 }
 
 static inline double eval_fpo_d2gdv2_cross(double den,
   double rel_vel_in_dir1, double rel_vel_in_dir2, double rel_speed,
   double vtsq) {
   double rel_speedsq = pow(rel_speed,2);
-  double sqrt2temp_over_m = sqrt(2.0*vtsq);
-  return den*rel_vel_in_dir1*rel_vel_in_dir2/pow(rel_speedsq,2)*(
-    erf(rel_speed/sqrt2temp_over_m)*(3.0*pow(sqrt2temp_over_m,2)-2.0*rel_speedsq)/(2.0*rel_speed) -
-    3.0*exp(-rel_speedsq/pow(sqrt2temp_over_m,2))*sqrt2temp_over_m/sqrt(GKYL_PI)
+  double vth = sqrt(2.0*vtsq);
+  return den*rel_vel_in_dir1*rel_vel_in_dir2/pow(rel_speedsq,4)*(
+    erf(rel_speed/vth)*(3.0*pow(vth,2)-2.0*rel_speedsq)/(2.0*rel_speed) -
+    3.0*exp(-rel_speedsq/pow(vth,2))*vth/sqrt(GKYL_PI)
   );
 }
 

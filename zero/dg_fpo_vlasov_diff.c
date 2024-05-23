@@ -38,6 +38,7 @@ gkyl_fpo_vlasov_diff_set_auxfields(const struct gkyl_dg_eqn* eqn, struct gkyl_dg
   
   struct dg_fpo_vlasov_diff* fpo_vlasov_diff = container_of(eqn, struct dg_fpo_vlasov_diff, eqn);
   fpo_vlasov_diff->auxfields.diff_coeff = auxin.diff_coeff;
+  fpo_vlasov_diff->auxfields.diff_coeff_surf = auxin.diff_coeff_surf;
 }
 
 struct gkyl_dg_eqn*
@@ -83,7 +84,6 @@ gkyl_dg_fpo_vlasov_diff_new(const struct gkyl_basis* pbasis, const struct gkyl_r
       surf_vzvx_kernel_list = ser_surf_vzvx_kernels;
       surf_vzvy_kernel_list = ser_surf_vzvy_kernels;
       surf_vzvz_kernel_list = ser_surf_vzvz_kernels;
-
       break;
 
     default:
@@ -92,22 +92,23 @@ gkyl_dg_fpo_vlasov_diff_new(const struct gkyl_basis* pbasis, const struct gkyl_r
   } 
   fpo_vlasov_diff->eqn.vol_term = CK(vol_kernels, cdim, poly_order);
 
-  choose_fpo_vlasov_diff_surf_kern(fpo_vlasov_diff->surf[0][0], surf_vxvx_kernel_list, cdim, poly_order);
-  choose_fpo_vlasov_diff_surf_kern(fpo_vlasov_diff->surf[0][1], surf_vxvy_kernel_list, cdim, poly_order);
-  choose_fpo_vlasov_diff_surf_kern(fpo_vlasov_diff->surf[0][2], surf_vxvz_kernel_list, cdim, poly_order);
-  choose_fpo_vlasov_diff_surf_kern(fpo_vlasov_diff->surf[1][0], surf_vyvx_kernel_list, cdim, poly_order);
-  choose_fpo_vlasov_diff_surf_kern(fpo_vlasov_diff->surf[1][1], surf_vyvy_kernel_list, cdim, poly_order);
-  choose_fpo_vlasov_diff_surf_kern(fpo_vlasov_diff->surf[1][2], surf_vyvz_kernel_list, cdim, poly_order);
-  choose_fpo_vlasov_diff_surf_kern(fpo_vlasov_diff->surf[2][0], surf_vzvx_kernel_list, cdim, poly_order);
-  choose_fpo_vlasov_diff_surf_kern(fpo_vlasov_diff->surf[2][1], surf_vzvy_kernel_list, cdim, poly_order);
-  choose_fpo_vlasov_diff_surf_kern(fpo_vlasov_diff->surf[2][2], surf_vzvz_kernel_list, cdim, poly_order);
+  fpo_vlasov_diff->surf[0][0] = surf_vxvx_kernel_list[cdim-1][poly_order-1];
+  fpo_vlasov_diff->surf[0][1] = surf_vxvy_kernel_list[cdim-1][poly_order-1];
+  fpo_vlasov_diff->surf[0][2] = surf_vxvz_kernel_list[cdim-1][poly_order-1];
+  fpo_vlasov_diff->surf[1][0] = surf_vyvx_kernel_list[cdim-1][poly_order-1];
+  fpo_vlasov_diff->surf[1][1] = surf_vyvy_kernel_list[cdim-1][poly_order-1];
+  fpo_vlasov_diff->surf[1][2] = surf_vyvz_kernel_list[cdim-1][poly_order-1];
+  fpo_vlasov_diff->surf[2][0] = surf_vzvx_kernel_list[cdim-1][poly_order-1];
+  fpo_vlasov_diff->surf[2][1] = surf_vzvy_kernel_list[cdim-1][poly_order-1];
+  fpo_vlasov_diff->surf[2][2] = surf_vzvz_kernel_list[cdim-1][poly_order-1];
 
   // ensure non-NULL pointers
   for (int i=0; i<vdim; ++i) 
     for (int j=0; j<vdim; ++j) 
-        assert(fpo_vlasov_diff->surf[i][j]);
+        assert(&fpo_vlasov_diff->surf[i][j]);
 
   fpo_vlasov_diff->auxfields.diff_coeff = 0;
+  fpo_vlasov_diff->auxfields.diff_coeff_surf = 0;
   fpo_vlasov_diff->phase_range = *phase_range;
 
   fpo_vlasov_diff->eqn.flags = 0;

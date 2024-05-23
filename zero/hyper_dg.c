@@ -98,7 +98,7 @@ gkyl_hyper_dg_gen_stencil_advance(gkyl_hyper_dg *hdg, const struct gkyl_range *u
 
   // idx for generic surface update
   int idx[9][GKYL_MAX_DIM] = {0};
-  const double* fIn_d[9];
+  const double* fIn_d[9] = {0};
 
   // bool for checking if index is in the domain
   int in_grid = 1;
@@ -122,9 +122,11 @@ gkyl_hyper_dg_gen_stencil_advance(gkyl_hyper_dg *hdg, const struct gkyl_range *u
       for (int d2=0; d2<hdg->num_up_dirs; ++d2) {
         int dir1 = hdg->update_dirs[d1];
         int dir2 = hdg->update_dirs[d2];
-        int update_dirs[2];
-        update_dirs[0] = dir1;
-        update_dirs[1] = dir2;
+
+        // Sort update directions from least to greatest for indexing 
+        int update_dirs[2] = {0};
+        update_dirs[0] = dir1 < dir2 ? dir1 : dir2;
+        update_dirs[1] = dir1 < dir2 ? dir2 : dir1;
 
         long offsets[9] = {0};
         int keri = 0;
@@ -135,10 +137,9 @@ gkyl_hyper_dg_gen_stencil_advance(gkyl_hyper_dg *hdg, const struct gkyl_range *u
 
         // Index into kernel list
         keri = idx_to_inloup_ker(num_up_dirs, idxc, update_dirs, update_range->upper);
-        
-        // Create offset array for stencil surrounding idxc
-        create_offsets(hdg, num_up_dirs, update_dirs, update_range, idxc, offsets);
-        // create_offsets(hdg, num_up_dirs, update_dirs, update_range, idxc, offsets);
+
+        // Create offset array for stencil required for update
+        create_offsets(num_up_dirs, update_dirs, update_range, idxc, offsets);
        
         // Get pointers to all neighbor values
         for (int i=0; i<9; ++i) {
@@ -167,10 +168,12 @@ gkyl_hyper_dg_gen_stencil_advance(gkyl_hyper_dg *hdg, const struct gkyl_range *u
 
         // Domain stencil location is handled by the kernel selectors
         // gen_surf_term contains both surf and boundary surf kernels
-        hdg->equation->gen_surf_term(hdg->equation,
+        double cfls = hdg->equation->gen_surf_term(hdg->equation,
           dir1, dir2, xcc, hdg->grid.dx, idxc,
           keri, idx, fIn_d,
           gkyl_array_fetch(rhs, linc));
+
+        cflrate_d[0] += cfls;
       }
     }
   }

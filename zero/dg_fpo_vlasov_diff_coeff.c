@@ -6,10 +6,13 @@
 #include <gkyl_dg_fpo_vlasov_diff_coeff.h>
 #include <gkyl_dg_fpo_vlasov_diff_coeff_priv.h>
 
+#include <gkyl_array_rio.h>
+
 void gkyl_calc_fpo_diff_coeff_recovery(const struct gkyl_rect_grid *grid, 
   struct gkyl_basis pbasis, const struct gkyl_range *range, const struct gkyl_range *conf_range, 
   const struct gkyl_array *gamma, const struct gkyl_array *fpo_g, const struct gkyl_array *fpo_g_surf, 
-  const struct gkyl_array *fpo_dgdv_surf, const struct gkyl_array *fpo_d2gdv2_surf, struct gkyl_array *fpo_diff_coeff)
+  const struct gkyl_array *fpo_dgdv_surf, const struct gkyl_array *fpo_d2gdv2_surf, 
+  struct gkyl_array *fpo_diff_coeff, struct gkyl_array *fpo_diff_coeff_surf)
 {
   int pdim = pbasis.ndim;
   int vdim = 3;
@@ -19,10 +22,13 @@ void gkyl_calc_fpo_diff_coeff_recovery(const struct gkyl_rect_grid *grid,
 
   fpo_diff_coeff_diag_t diff_coeff_diag_recovery_stencil[3][3];
   fpo_diff_coeff_cross_t diff_coeff_cross_recovery_stencil[3][3][9];
+  fpo_diff_coeff_surf_t diff_coeff_surf_recovery[3];
 
   // Fetch kernels in each direction
   // off-diagonal terms have to be fetched later
   for (int d1=0; d1<vdim; ++d1) {
+    diff_coeff_surf_recovery[d1] = choose_ser_fpo_diff_coeff_surf_recovery_kern(d1, cdim, poly_order);
+
     for (int idx=0; idx<3; ++idx)  {
       diff_coeff_diag_recovery_stencil[d1][idx] = 
         choose_ser_fpo_diff_coeff_diag_recovery_kern(d1, cdim, poly_order, idx);
@@ -74,15 +80,17 @@ void gkyl_calc_fpo_diff_coeff_recovery(const struct gkyl_rect_grid *grid,
       // Diagonal terms of the diffusion tensor.
       // Always a 1D, 3-cell stencil.
       long offsets[3] = {0};
-      int update_dir[] = {dir1};
+      int update_dirs[2] = {0};
+      update_dirs[0] = dir1;
 
       bool is_edge_upper[1], is_edge_lower[1];
       is_edge_lower[0] = idxc[dir1] == range->lower[dir1]; 
       is_edge_upper[0] = idxc[dir1] == range->upper[dir1];
 
       // Create offsets from center cell to stencil and index into kernel list.
-      create_offsets(1, is_edge_lower, is_edge_upper, update_dir, range, offsets);
-      int keri = idx_to_inloup_ker(1, idxc, update_dir, range->upper);
+      create_offsets(1, update_dirs, range, idxc, offsets);
+
+      int keri = idx_to_inloup_ker(1, idxc, update_dirs, range->upper);
 
       const double* fpo_g_stencil[3];
       int idx[3][GKYL_MAX_DIM];
@@ -105,16 +113,11 @@ void gkyl_calc_fpo_diff_coeff_recovery(const struct gkyl_rect_grid *grid,
         // Offsets that would be outside the grid will point to center cell.
         // Always 2D and we need 9 cell stencil for 2D recovery.
         long offsets[9] = {0};
-        int update_dirs[] = {dir1, dir2};
+        int update_dirs[2] = {0};
+        update_dirs[0] = dir1;
+        update_dirs[1] = dir2;
 
-        bool is_edge_lower[2], is_edge_upper[2];
-        for (int i=0; i<2; ++i) {
-          is_edge_lower[i] = idxc[update_dirs[i]] == range->lower[update_dirs[i]]; 
-          is_edge_upper[i] = idxc[update_dirs[i]] == range->upper[update_dirs[i]]; 
-        }
-        bool is_corner = is_edge_in_dir[d1] & is_edge_in_dir[d2];
-
-        create_offsets(2, is_edge_lower, is_edge_upper, update_dirs, range, offsets);
+        create_offsets(2, update_dirs, range, idxc, offsets);
 
         // Index into kernel list
         int keri = idx_to_inloup_ker(2, idxc, update_dirs, range->upper);
@@ -143,5 +146,27 @@ void gkyl_calc_fpo_diff_coeff_recovery(const struct gkyl_rect_grid *grid,
           fpo_g_surf_stencil, fpo_dgdv_surf_c, fpo_diff_coeff_c);
       }
     }
+     double *fpo_diff_coeff_surf_c = gkyl_array_fetch(fpo_diff_coeff_surf, linc);
+    
+     // Iterate over primary direction for recovery, the kernel will handle
+     // populating the three directions for the derivative across/along that boundary
+    for (int d1=0; d1<vdim; ++d1) {
+      int dir1 = d1 + cdim;
+
+      // Do nothing if we're at a lower boundary; this surface expansion won't be used 
+      if (idxc [dir1] == 1) {
+        continue; 
+      }
+      
+      gkyl_copy_int_arr(pdim, idxc, idxl); 
+      idxl[dir1] = idxc[dir1]-1; 
+      long linl = gkyl_range_idx(range, idxl);
+      
+      const double *fpo_diff_coeff_l = gkyl_array_cfetch(fpo_diff_coeff, linl);
+
+      diff_coeff_surf_recovery[d1](fpo_diff_coeff_l, (const double*)fpo_diff_coeff_c,
+        fpo_diff_coeff_surf_c);
+     }
+
   }
 }

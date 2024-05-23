@@ -4,9 +4,9 @@
 #include <gkyl_fpo_vlasov_kernels.h>
 
 // Types for various kernels
-typedef void (*fpo_vlasov_diff_surf_t)(const double *dx,
-  const double* diff_coeff_stencil[9], const double *f_stencil[9],
-  double* GKYL_RESTRICT out);
+typedef double (*fpo_vlasov_diff_surf_t)(const double *dxv,
+  const double *diff_coeff_C, const double* diff_coeff_surf_stencil[9], 
+  const double* f_stencil[9], double* GKYL_RESTRICT out);
 
 // for use in kernel tables
 typedef struct { vol_termf_t kernels[3]; } gkyl_dg_fpo_vlasov_diff_vol_kern_list;
@@ -16,7 +16,8 @@ struct dg_fpo_vlasov_diff {
   struct gkyl_dg_eqn eqn; // Base object
   int cdim; // Config-space dimensions
   int pdim; // Phase-space dimensions
-  fpo_vlasov_diff_surf_t surf[3][3][9]; // Generic surface term domain stencil
+  int upper_cells[GKYL_MAX_DIM];
+  fpo_vlasov_diff_surf_kern_list surf[3][3]; // Generic surface term domain stencil
   struct gkyl_range phase_range; // Configuration space range.
   struct gkyl_dg_fpo_vlasov_diff_auxfields auxfields; // Auxiliary fields.
 };
@@ -30,10 +31,10 @@ static double
 kernel_fpo_vlasov_diff_vol_1x3v_ser_p1(const struct gkyl_dg_eqn *eqn, const double* xc, const double* dx, const int* idx, const double *qIn, double* GKYL_RESTRICT qRhsOut)
 {
   struct dg_fpo_vlasov_diff* fpo_vlasov_diff = container_of(eqn, struct dg_fpo_vlasov_diff, eqn);
-  
+
   long pidx = gkyl_range_idx(&fpo_vlasov_diff->phase_range, idx);
   
-  return fpo_vlasov_diff_vol_1x3v_ser_p1( dx,
+  return fpo_vlasov_diff_vol_1x3v_ser_p1(dx, 
     (const double*) gkyl_array_cfetch(fpo_vlasov_diff->auxfields.diff_coeff, pidx),
     qIn, qRhsOut);
 }
@@ -44,7 +45,7 @@ static double
 kernel_fpo_vlasov_diff_vol_1x3v_ser_p2(const struct gkyl_dg_eqn *eqn, const double* xc, const double* dx, const int *idx, const double *qIn, double* GKYL_RESTRICT qRhsOut)
 {
   struct dg_fpo_vlasov_diff* fpo_vlasov_diff = container_of(eqn, struct dg_fpo_vlasov_diff, eqn);
-  
+
   long pidx = gkyl_range_idx(&fpo_vlasov_diff->phase_range, idx);
   
   return fpo_vlasov_diff_vol_1x3v_ser_p2(dx, 
@@ -202,15 +203,6 @@ static const fpo_vlasov_diff_surf_kern_list *ser_surf_vzvz_kernels[3] = {
   NULL
 };
 
-GKYL_CU_D
-static void
-choose_fpo_vlasov_diff_surf_kern(fpo_vlasov_diff_surf_t surf[9], 
-  const fpo_vlasov_diff_surf_kern_list** surf_kernel_list, int cdim, int poly_order)
-{
-  memcpy(surf, &surf_kernel_list[cdim-1][poly_order-1], 9*sizeof(fpo_vlasov_diff_surf_t));
-}
-
-
 /**
  * Free fpo_vlasov_diff equation object
  *
@@ -220,36 +212,31 @@ void gkyl_fpo_vlasov_diff_free(const struct gkyl_ref_count* ref);
 
 // Gen surface term called by hyper_dg_gen_stencil_advance
 GKYL_CU_D
-static void
+static double
 fpo_diff_gen_surf_term(const struct gkyl_dg_eqn* eqn, int dir1, int dir2,
   const double* xc, const double* dxc, const int* idxc,
   int keri, const int idx[9][GKYL_MAX_DIM], const double* qIn[9],
   double* GKYL_RESTRICT qRhsOut)
 {
   struct dg_fpo_vlasov_diff* fpo_vlasov_diff = container_of(eqn, struct dg_fpo_vlasov_diff, eqn);
-  long sz_dim = 9;
 
-  // Adjust 9-region indexing to 3-region indexing
-  if (dir1 == dir2) {
-    if (keri == 3 || keri == 4)
-      keri = 0;
-    else if (keri == 5 || keri == 6)
-      keri = 1;
-    else if (keri == 7 || keri == 8)
-      keri = 2;
+  const double* diff_coeff_surf_stencil[9];
+  for (int i=0; i<9; ++i) {
+    long lin_offset = gkyl_range_idx(&fpo_vlasov_diff->phase_range, idx[i]);
+    diff_coeff_surf_stencil[i] = gkyl_array_cfetch(
+      fpo_vlasov_diff->auxfields.diff_coeff_surf,
+      lin_offset
+    );
   }
 
+  long linc = gkyl_range_idx(&fpo_vlasov_diff->phase_range, idxc);
   int cdim = fpo_vlasov_diff->cdim;
-  const double* diff_coeff_d[9];
-  for (int i=0; i<sz_dim; ++i) {
-    if (idx[i]) {
-      diff_coeff_d[i] = (const double*) gkyl_array_cfetch(fpo_vlasov_diff->auxfields.diff_coeff,
-        gkyl_range_idx(&fpo_vlasov_diff->phase_range, idx[i]));
-    }
-  }
-
   if (dir1 >= cdim && dir2 >= cdim) {
-    fpo_vlasov_diff->surf[dir1-cdim][dir2-cdim][keri](dxc, diff_coeff_d, qIn, qRhsOut);
+    fpo_vlasov_diff_surf_t *surf_kern_list = fpo_vlasov_diff->surf[dir1-cdim][dir2-cdim].kernels;
+    return surf_kern_list[keri](dxc, 
+      (const double*) gkyl_array_cfetch(fpo_vlasov_diff->auxfields.diff_coeff, linc),
+      diff_coeff_surf_stencil,
+      qIn, qRhsOut);
   }
+  return 0.0;
 }
-

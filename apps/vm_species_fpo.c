@@ -77,8 +77,10 @@ vm_species_fpo_drag_diff_coeffs(gkyl_vlasov_app *app, const struct vm_species *s
   gkyl_calc_fpo_drag_coeff_recovery(&s->grid, app->basis, &s->local, &app->local, fpo->gamma,
     fpo->h, fpo->dhdv_surf, fpo->drag_coeff, fpo->drag_coeff_surf,
     fpo->sgn_drag_coeff_surf, fpo->const_sgn_drag_coeff_surf); 
+
   gkyl_calc_fpo_diff_coeff_recovery(&s->grid, app->basis, &s->local, &app->local, fpo->gamma,
-    fpo->g, fpo->g_surf, fpo->dgdv_surf, fpo->d2gdv2_surf, fpo->diff_coeff); 
+    fpo->g, fpo->g_surf, fpo->dgdv_surf, fpo->d2gdv2_surf, 
+    fpo->diff_coeff, fpo->diff_coeff_surf); 
 
   app->stat.species_coll_mom_tm += gkyl_time_diff_now_sec(wst);
 }
@@ -96,7 +98,7 @@ vm_species_fpo_rhs(gkyl_vlasov_app *app, const struct vm_species *s,
   gkyl_dg_updater_fpo_vlasov_advance(fpo->coll_slvr, &s->local,
     fpo->drag_coeff, fpo->drag_coeff_surf, 
     fpo->sgn_drag_coeff_surf, fpo->const_sgn_drag_coeff_surf,
-    fpo->diff_coeff, fin, s->cflrate, rhs);
+    fpo->diff_coeff, fpo->diff_coeff_surf, fin, s->cflrate, rhs);
 
   app->stat.species_coll_tm += gkyl_time_diff_now_sec(wst);
 }
