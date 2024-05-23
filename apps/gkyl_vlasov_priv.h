@@ -180,6 +180,9 @@ struct vm_bgk_collisions {
   bool is_first_corr_status_write_call;
 
   struct gkyl_bgk_collisions *up_bgk; // BGK updater (also computes stable timestep)
+
+  bool implicit_step; // whether or not to take an implcit bgk step
+  double dt_implicit; // timestep used by the implicit collisions
 };
 
 struct vm_boundary_fluxes {
@@ -553,6 +556,8 @@ struct gkyl_vlasov_app {
   bool has_fluid_em_coupling; // Boolean for if there is implicit fluid-EM coupling
   struct vm_fluid_em_coupling *fl_em; // fluid-EM coupling data
 
+  bool has_implicit_coll_scheme; // Boolean for using implicit bgk scheme (over explicit rk3)
+
   // pointer to function that takes a single-step of simulation
   struct gkyl_update_status (*update_func)(gkyl_vlasov_app *app, double dt0);
   
@@ -567,9 +572,15 @@ void vlasov_forward_euler(gkyl_vlasov_app* app, double tcurr, double dt,
   struct gkyl_array *fout[], struct gkyl_array *fluidout[], struct gkyl_array *emout, 
   struct gkyl_update_status *st);
 
+// Calls the vlasov implicit contribution for all vm species
+void vlasov_update_implicit_coll(gkyl_vlasov_app *app,  double dt0);
+
 // Take a single time-step using a Strang split implicit fluid-EM coupling + SSP RK3
 struct gkyl_update_status vlasov_update_strang_split(gkyl_vlasov_app *app,
   double dt0);
+
+// Take a single time-step using an implicit godunov split bgk + SSP RK3 method
+struct gkyl_update_status vlasov_update_godunov_split_coll(gkyl_vlasov_app *app,  double dt0);
 
 // Take a single time-step using a SSP-RK3 stepper
 struct gkyl_update_status vlasov_update_ssp_rk3(gkyl_vlasov_app *app,
@@ -914,12 +925,24 @@ void vm_species_calc_app_accel(gkyl_vlasov_app *app, struct vm_species *species,
  * @param fin Input distribution function
  * @param em EM field
  * @param rhs On output, the RHS from the species object
- * @param fluidin Input fluid array for potential fluid force (size: num_fluid_species)
  * @return Maximum stable time-step
  */
 double vm_species_rhs(gkyl_vlasov_app *app, struct vm_species *species,
   const struct gkyl_array *fin, const struct gkyl_array *em, 
   struct gkyl_array *rhs);
+
+/**
+ * Compute the *implicit* RHS from species distribution function
+ *
+ * @param app Vlasov app object
+ * @param species Pointer to species
+ * @param fin Input distribution function
+ * @param rhs On output, the RHS from the species object
+ * @param dt timestep size (used in the implcit coef.)
+ * @return Maximum stable time-step
+ */
+double vm_species_rhs_implicit(gkyl_vlasov_app *app, struct vm_species *species,
+  const struct gkyl_array *fin, struct gkyl_array *rhs, double dt);
 
 /**
  * Apply BCs to species distribution function

@@ -248,4 +248,3 @@ void gkyl_dg_calc_pkpm_vars_limiter_cu(struct gkyl_dg_calc_pkpm_vars *up,
   const struct gkyl_array* vlasov_pkpm_moms, const struct gkyl_array* p_ij, 
   struct gkyl_array* fluid);
 
-

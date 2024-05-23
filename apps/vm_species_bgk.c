@@ -148,7 +148,7 @@ vm_species_bgk_rhs(gkyl_vlasov_app *app, const struct vm_species *species,
   gkyl_array_accumulate(bgk->nu_f_lte, 1.0, bgk->f_lte);
 
   gkyl_bgk_collisions_advance(bgk->up_bgk, &app->local, &species->local, 
-    bgk->nu_sum, bgk->nu_f_lte, fin, rhs, species->cflrate);
+    bgk->nu_sum, bgk->nu_f_lte, fin, bgk->implicit_step, bgk->dt_implicit, rhs, species->cflrate);
 
   app->stat.species_coll_tm += gkyl_time_diff_now_sec(wst);
 }
