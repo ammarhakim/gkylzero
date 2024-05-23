@@ -20,56 +20,82 @@
 
 #include <rt_arg_parse.h>
 
-struct p_perturbation_ctx
+struct twostream_ctx
 {
   // Mathematical constants (dimensionless).
   double pi;
 
   // Physical constants (using normalized code units).
-  double gas_gamma; // Adiabatic idex.
+  double epsilon0; // Permittivity of free space.
+  double mu0; // Permeability of free space.
+  double mass_elc; // Electron mass.
+  double charge_elc; // Electron charge.
 
-  double rho; // Fluid mass density.
+  double vt; // Thermal velocity.
+  double Vx_drift; // Drift velocity (x-direction).
+
+  double alpha; // Applied perturbation amplitude.
+  double kx; // Perturbed wave number (x-direction).
 
   // Simulation parameters.
   int Nx; // Cell count (configuration space: x-direction).
+  int Nvx; // Cell count (velocity space: vx-direction).
   double Lx; // Domain size (configuration space: x-direction).
+  double vx_max; // Domain boundary (velocity space: vx-direction).
   int poly_order; // Polynomial order.
   double cfl_frac; // CFL coefficient.
 
   double t_end; // Final simulation time.
-  int num_frames; // Number of output frames;
+  int num_frames; // Number of output frames.
   double dt_failure_tol; // Minimum allowable fraction of initial time-step.
   int num_failures_max; // Maximum allowable number of consecutive small time-steps.
 };
 
-struct p_perturbation_ctx
+struct twostream_ctx
 create_ctx(void)
 {
   // Mathematical constants (dimensionless).
   double pi = M_PI;
 
   // Physical constants (using normalized code units).
-  double gas_gamma = 1.4; // Adiabatic index.
+  double epsilon0 = 1.0; // Permittivity of free space.
+  double mu0 = 1.0; // Permeability of free space.
+  double mass_elc = 1.0; // Electron mass.
+  double charge_elc = -1.0; // Electron charge.
 
-  double rho = 1.0; // Fluid mass density.
+  double vt = 0.2; // Thermal velocity.
+  double Vx_drift = 1.0; // Drift velocity (x-direction).
+
+  double alpha = 1.0e-6; // Applied perturbation amplitude.
+  double kx = 0.5; // Perturbed wave number (x-direction).
 
   // Simulation parameters.
-  int Nx = 512; // Cell count (configuration spcae: x-direction).
-  double Lx = 2.0 * pi; // Domain size (configuration space: x-direction).
-  int poly_order = 1; // Polynomial order.
-  double cfl_frac = 0.9; // CFL coefficient.
+  int Nx = 64; // Cell count (configuration space: x-direction).
+  int Nvx = 32; // Cell count (velocity space: vx-direction).
+  double Lx = 2.0 * pi / kx; // Domain size (configuration space: x-direction).
+  double vx_max = 6.0; // Domain boundary (velocity space: vx-direction).
+  int poly_order = 2; // Polynomial order.
+  double cfl_frac = 1.0; // CFL coefficient.
 
-  double t_end = 2.0; // Final simulation time.
+  double t_end = 40.0; // Final simulation time.
   int num_frames = 1; // Number of output frames.
   double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.
   int num_failures_max = 20; // Maximum allowable number of consecutive small time-steps.
 
-  struct p_perturbation_ctx ctx = {
+  struct twostream_ctx ctx = {
     .pi = pi,
-    .gas_gamma = gas_gamma,
-    .rho = rho,
+    .epsilon0 = epsilon0,
+    .mu0 = mu0,
+    .mass_elc = mass_elc,
+    .charge_elc = charge_elc,
+    .vt = vt,
+    .Vx_drift = Vx_drift,
+    .alpha = alpha,
+    .kx = kx,
     .Nx = Nx,
+    .Nvx = Nvx,
     .Lx = Lx,
+    .vx_max = vx_max,
     .poly_order = poly_order,
     .cfl_frac = cfl_frac,
     .t_end = t_end,
@@ -82,22 +108,45 @@ create_ctx(void)
 }
 
 void
-evalEulerInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
+evalElcInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
 {
+  struct twostream_ctx *app = ctx;
+  double x = xn[0], v = xn[1];
+
+  double pi = app->pi;
+
+  double vt = app->vt;
+  double Vx_drift = app->Vx_drift;
+
+  double alpha = app->alpha;
+  double kx = app->kx;
+
+  double v_sq_m = (v - Vx_drift) * (v - Vx_drift);
+  double v_sq_p = (v + Vx_drift) * (v + Vx_drift);
+
+  double dist = (1.0 / sqrt(8.0 * pi * vt * vt)) * (exp(-v_sq_m / (2.0 * vt * vt)) + exp(-v_sq_p / (2.0 * vt * vt)));
+
+  // Set electron distribution function.
+  fout[0] = (1.0 + alpha * cos(kx * x)) * dist;
+}
+
+void
+evalFieldInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
+{
+  struct twostream_ctx *app = ctx;
   double x = xn[0];
-  struct p_perturbation_ctx *app = ctx;
 
-  double gas_gamma = app->gas_gamma;
-  double rho = app->rho;
+  double alpha = app->alpha;
+  double kx = app->kx;
 
-  double p = 1.0 + 0.01 * sin(x);
-
-  // Set fluid mass density.
-  fout[0] = rho;
-  // Set fluid momentum density.
-  fout[1] = 0.0; fout[2] = 0.0; fout[3] = 0.0;
-  // Set fluid total energy density.
-  fout[4] = p / (gas_gamma - 1.0);
+  double E_x = -alpha * sin(kx * x) / kx;
+  
+  // Set electric field.
+  fout[0] = E_x; fout[1] = 0.0, fout[2] = 0.0;
+  // Set magnetic field.
+  fout[3] = 0.0; fout[4] = 0.0; fout[5] = 0.0;
+  // Set correction potentials.
+  fout[6] = 0.0; fout[7] = 0.0;
 }
 
 void
@@ -132,19 +181,10 @@ main(int argc, char **argv)
     gkyl_mem_debug_set(true);
   }
 
-  struct p_perturbation_ctx ctx = create_ctx(); // Context for initialization functions.
+  struct twostream_ctx ctx = create_ctx(); // Context for initialization functions.
 
   int NX = APP_ARGS_CHOOSE(app_args.xcells[0], ctx.Nx);
-
-  // Fluid equations.
-  struct gkyl_wv_eqn *euler = gkyl_wv_euler_new(ctx.gas_gamma, app_args.use_gpu);
-
-  struct gkyl_vlasov_fluid_species fluid = {
-    .name = "euler",
-    .equation = euler,
-    .init = evalEulerInit,
-    .ctx = &ctx,
-  };
+  int NVX = APP_ARGS_CHOOSE(app_args.vcells[0], ctx.Nvx);
 
   int nrank = 1; // Number of processors in simulation.
 #ifdef GKYL_HAVE_MPI
@@ -232,39 +272,65 @@ main(int argc, char **argv)
     goto mpifinalize;
   }
 
+  // Electrons.
+  struct gkyl_vlasov_species elc = {
+    .name = "elc",
+    .charge = ctx.charge_elc, .mass = ctx.mass_elc,
+    .lower = { -ctx.vx_max },
+    .upper = { ctx.vx_max }, 
+    .cells = { NVX },
+
+    .projection = {
+      .proj_id = GKYL_PROJ_FUNC,
+      .func = evalElcInit,
+      .ctx_func = &ctx,
+    },
+
+    .num_diag_moments = 3,
+    .diag_moments = { "M0", "M1i", "M2" },
+  };
+
+  // Field.
+  struct gkyl_vlasov_field field = {
+    .epsilon0 = ctx.epsilon0, .mu0 = ctx.mu0,
+
+    .elcErrorSpeedFactor = 0.0,
+    .mgnErrorSpeedFactor = 0.0,
+
+    .init = evalFieldInit,
+    .ctx = &ctx,
+  };
+
   // Vlasov-Maxwell app.
   struct gkyl_vm app_inp = {
-   .name = "dg_euler_p_perturbation_p1",
+    .name = "vlasov_twostream_p2",
+    
+    .cdim = 1, .vdim = 1,
+    .lower = { -0.5 * ctx.Lx },
+    .upper = { 0.5 * ctx.Lx },
+    .cells = { NX },
 
-   .cdim = 1, .vdim = 0,
-   .lower = { 0.0 },
-   .upper = { ctx.Lx },
-   .cells = { NX },
+    .poly_order = ctx.poly_order,
+    .basis_type = app_args.basis_type,
+    .cfl_frac = ctx.cfl_frac,
 
-   .poly_order = ctx.poly_order,
-   .basis_type = app_args.basis_type,
-   .cfl_frac = ctx.cfl_frac,
+    .num_periodic_dir = 1,
+    .periodic_dirs = { 0 },
 
-   .num_periodic_dir = 1,
-   .periodic_dirs = { 0 },
+    .num_species = 1,
+    .species = { elc },
 
-   .num_species = 0,
-   .species = { },
+    .field = field,
 
-   .num_fluid_species = 1,
-   .fluid_species = { fluid },
+    .use_gpu = app_args.use_gpu,
 
-   .skip_field = true,
-
-   .use_gpu = app_args.use_gpu,
-
-   .has_low_inp = true,
+    .has_low_inp = true,
     .low_inp = {
       .local_range = decomp->ranges[my_rank],
       .comm = comm
     }
   };
-
+  
   // Create app object.
   gkyl_vlasov_app *app = gkyl_vlasov_app_new(&app_inp);
 
@@ -348,7 +414,6 @@ main(int argc, char **argv)
   gkyl_vlasov_app_cout(app, stdout, "IO time took %g secs \n", stat.io_tm);
 
   // Free resources after simulation completion.
-  gkyl_wv_eqn_release(euler);
   gkyl_rect_decomp_release(decomp);
   gkyl_comm_release(comm);
   gkyl_vlasov_app_release(app);
@@ -359,6 +424,6 @@ mpifinalize:
     MPI_Finalize();
   }
 #endif
-  
+
   return 0;
 }

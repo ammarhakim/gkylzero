@@ -20,56 +20,131 @@
 
 #include <rt_arg_parse.h>
 
-struct p_perturbation_ctx
+struct weibel_sr_ctx
 {
   // Mathematical constants (dimensionless).
   double pi;
+  double K_2; // Modified Bessel function of the second kind, evaluated for vt = 0.04 mc^2.
 
   // Physical constants (using normalized code units).
-  double gas_gamma; // Adiabatic idex.
+  double epsilon0; // Permittivity of free space.
+  double mu0; // Permeability of free space.
+  double mass_elc; // Electron mass.
+  double charge_elc; // Electron charge.
 
-  double rho; // Fluid mass density.
+  double n_elc1; // First electron number density.
+  double n_elc2; // Second electron number density.
+  double ux_elc1; // First electron velocity (x-direction).
+  double ux_elc2; // Second electron velocity (x-direction).
+  double uy_elc1; // First electron velocity (y-direction).
+  double uy_elc2; // Second electron velocity (y-direction).
+  double uz_elc1; // First electron velocity (z-direction).
+  double uz_elc2; // Second electron velocity (z-direction).
+  double vt_elc1; // First electron thermal velocity.
+  double vt_elc2; // Second electron thermal velocity.
+
+  double alpha; // Applied perturbation amplitude.
+  double kx; // Perturbed wave number (x-direction).
+
+  // Derived physical quantities (using normalized code units).
+  double gamma_elc1; // First electron gamma factor.
+  double gamma_elc2; // Second electron gamma factor.
 
   // Simulation parameters.
   int Nx; // Cell count (configuration space: x-direction).
+  int Nvx; // Cell count (velocity space: vx-direction).
+  int Nvy; // Cell count (velocity space: vy-direction).
+  int Nvz; // Cell count (velocity space: vz-direction).
   double Lx; // Domain size (configuration space: x-direction).
+  double vx_max; // Domain boundary (velocity space: vx-direction).
+  double vy_max; // Domain boundary (velocity space: vy-direction).
+  double vz_max; // Domain boundary (velocity space: vz-direction).
   int poly_order; // Polynomial order.
   double cfl_frac; // CFL coefficient.
 
   double t_end; // Final simulation time.
-  int num_frames; // Number of output frames;
+  int num_frames; // Number of output frames.
   double dt_failure_tol; // Minimum allowable fraction of initial time-step.
   int num_failures_max; // Maximum allowable number of consecutive small time-steps.
 };
 
-struct p_perturbation_ctx
+struct weibel_sr_ctx
 create_ctx(void)
 {
   // Mathematical constants (dimensionless).
   double pi = M_PI;
+  double K_2 = 3.7467838080691090570137658745889511812329380156362352887017e-12; // Modified Bessel function of the second kind, evaluated for vt = 0.04 mc^2.
 
   // Physical constants (using normalized code units).
-  double gas_gamma = 1.4; // Adiabatic index.
+  double epsilon0 = 1.0; // Permittivity of free space.
+  double mu0 = 1.0; // Permeability of free space.
+  double mass_elc = 1.0; // Electron mass.
+  double charge_elc = -1.0; // Electron charge.
 
-  double rho = 1.0; // Fluid mass density.
+  double n_elc1 = 0.5; // First electron number density.
+  double n_elc2 = 0.5; // Second electron number density.
+  double ux_elc1 = 0.0; // First electron velocity (x-direction).
+  double ux_elc2 = 0.0; // Second electron velocity (x-direction).
+  double uy_elc1 = 0.9; // First electron velocity (y-direction).
+  double uy_elc2 = -0.9; // Second electron velocity (y-direction).
+  double uz_elc1 = 0.0; // First electron velocity (z-direction).
+  double uz_elc2 = 0.0; // Second electron velocity (z-direction).
+  double vt_elc1 = 0.04; // First electron thermal velocity.
+  double vt_elc2 = 0.04; // Second electron thermal velocity.
+
+  double alpha = 1.0e-3; // Applied perturbation amplitude.
+  double kx = 0.4; // Perturbed wave number (x-direction).
+
+  // Derived physical quantities (using normalized code units).
+  double gamma_elc1 = 1.0 / sqrt(1.0 - (ux_elc1 * ux_elc1) - (uy_elc1 * uy_elc1) - (uz_elc1 * uz_elc1)); // First electron gamma factor.
+  double gamma_elc2 = 1.0 / sqrt(1.0 - (ux_elc2 * ux_elc2) - (uy_elc2 * uy_elc2) - (uz_elc2 * uz_elc2));
 
   // Simulation parameters.
-  int Nx = 512; // Cell count (configuration spcae: x-direction).
-  double Lx = 2.0 * pi; // Domain size (configuration space: x-direction).
-  int poly_order = 1; // Polynomial order.
-  double cfl_frac = 0.9; // CFL coefficient.
+  int Nx = 24; // Cell count (configuration space: x-direction).
+  int Nvx = 12; // Cell count (velocity space: vx-direction).
+  int Nvy = 12; // Cell count (velocity space: vy-direction).
+  int Nvz = 12; // Cell count (velocity space: vz-direction).
+  double Lx = 2.0 * pi / kx; // Domain size (configuration space: x-direction).
+  double vx_max = 8.0; // Domain boundary (velocity space: vx-direction).
+  double vy_max = 8.0; // Domain boundary (velocity space: vy-direction).
+  double vz_max = 8.0; // Domain boundary (velocity space: vz-direction).
+  int poly_order = 2; // Polynomial order.
+  double cfl_frac = 1.0; // CFL coefficient.
 
-  double t_end = 2.0; // Final simulation time.
+  double t_end = 10.0; // Final simulation time.
   int num_frames = 1; // Number of output frames.
   double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.
   int num_failures_max = 20; // Maximum allowable number of consecutive small time-steps.
 
-  struct p_perturbation_ctx ctx = {
+  struct weibel_sr_ctx ctx = {
     .pi = pi,
-    .gas_gamma = gas_gamma,
-    .rho = rho,
+    .K_2 = K_2,
+    .epsilon0 = epsilon0,
+    .mu0 = mu0,
+    .mass_elc = mass_elc,
+    .charge_elc = charge_elc,
+    .n_elc1 = n_elc1,
+    .n_elc2 = n_elc2,
+    .ux_elc1 = ux_elc1,
+    .ux_elc2 = ux_elc2,
+    .uy_elc1 = uy_elc1,
+    .uy_elc2 = uy_elc2,
+    .uz_elc1 = uz_elc1,
+    .uz_elc2 = uz_elc2,
+    .vt_elc1 = vt_elc1,
+    .vt_elc2 = vt_elc2,
+    .alpha = alpha,
+    .kx = kx,
+    .gamma_elc1 = gamma_elc1,
+    .gamma_elc2 = gamma_elc2,
     .Nx = Nx,
+    .Nvx = Nvx,
+    .Nvy = Nvy,
+    .Nvz = Nvz,
     .Lx = Lx,
+    .vx_max = vx_max,
+    .vy_max = vy_max,
+    .vz_max = vz_max,
     .poly_order = poly_order,
     .cfl_frac = cfl_frac,
     .t_end = t_end,
@@ -82,22 +157,53 @@ create_ctx(void)
 }
 
 void
-evalEulerInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
+evalElcInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
 {
+  struct weibel_sr_ctx *app = ctx;
+  double x = xn[0], vx = xn[1], vy = xn[2], vz = xn[3];
+
+  double pi = app->pi;
+  double K_2 = app->K_2;
+
+  double n_elc1 = app->n_elc1;
+  double n_elc2 = app->n_elc2;
+  double ux_elc1 = app->ux_elc1;
+  double ux_elc2 = app->ux_elc2;
+  double uy_elc1 = app->uy_elc1;
+  double uy_elc2 = app->uy_elc2;
+  double uz_elc1 = app->uz_elc1;
+  double uz_elc2 = app->uz_elc2;
+  double vt_elc1 = app->vt_elc1;
+  double vt_elc2 = app->vt_elc2;
+
+
+  double gamma_elc1 = app->gamma_elc1;
+  double gamma_elc2 = app->gamma_elc2;
+
+  double maxwell_juttner_dist1 = (n_elc1 / (4.0 * pi * vt_elc1 * K_2)) * exp(-(gamma_elc1 / vt_elc1) * (sqrt(1.0 + (vx * vx) + (vy * vy) + (vz * vz)) - (ux_elc1 * vx) - (uy_elc1 * vy) - (uz_elc1 * vz)));
+  double maxwell_juttner_dist2 = (n_elc2 / (4.0 * pi * vt_elc2 * K_2)) * exp(-(gamma_elc2 / vt_elc2) * (sqrt(1.0 + (vx * vx) + (vy * vy) + (vz * vz)) - (ux_elc2 * vx) - (uy_elc2 * vy) - (uz_elc2 * vz)));
+
+  // Set electron distribution function.
+  fout[0] = maxwell_juttner_dist1 + maxwell_juttner_dist2;
+}
+
+void
+evalFieldInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
+{
+  struct weibel_sr_ctx *app = ctx;
   double x = xn[0];
-  struct p_perturbation_ctx *app = ctx;
 
-  double gas_gamma = app->gas_gamma;
-  double rho = app->rho;
+  double alpha = app->alpha;
+  double kx = app->kx;
 
-  double p = 1.0 + 0.01 * sin(x);
-
-  // Set fluid mass density.
-  fout[0] = rho;
-  // Set fluid momentum density.
-  fout[1] = 0.0; fout[2] = 0.0; fout[3] = 0.0;
-  // Set fluid total energy density.
-  fout[4] = p / (gas_gamma - 1.0);
+  double B_z = alpha * sin(kx * x);
+  
+  // Set electric field.
+  fout[0] = 0.0; fout[1] = 0.0, fout[2] = 0.0;
+  // Set magnetic field.
+  fout[3] = 0.0; fout[4] = 0.0; fout[5] = B_z;
+  // Set correction potentials.
+  fout[6] = 0.0; fout[7] = 0.0;
 }
 
 void
@@ -132,19 +238,12 @@ main(int argc, char **argv)
     gkyl_mem_debug_set(true);
   }
 
-  struct p_perturbation_ctx ctx = create_ctx(); // Context for initialization functions.
+  struct weibel_sr_ctx ctx = create_ctx(); // Context for initialization functions.
 
   int NX = APP_ARGS_CHOOSE(app_args.xcells[0], ctx.Nx);
-
-  // Fluid equations.
-  struct gkyl_wv_eqn *euler = gkyl_wv_euler_new(ctx.gas_gamma, app_args.use_gpu);
-
-  struct gkyl_vlasov_fluid_species fluid = {
-    .name = "euler",
-    .equation = euler,
-    .init = evalEulerInit,
-    .ctx = &ctx,
-  };
+  int NVX = APP_ARGS_CHOOSE(app_args.vcells[0], ctx.Nvx);
+  int NVY = APP_ARGS_CHOOSE(app_args.vcells[1], ctx.Nvy);
+  int NVZ = APP_ARGS_CHOOSE(app_args.vcells[2], ctx.Nvz);
 
   int nrank = 1; // Number of processors in simulation.
 #ifdef GKYL_HAVE_MPI
@@ -232,39 +331,66 @@ main(int argc, char **argv)
     goto mpifinalize;
   }
 
+  // Electrons.
+  struct gkyl_vlasov_species elc = {
+    .name = "elc",
+    .model_id = GKYL_MODEL_SR,
+    .charge = ctx.charge_elc, .mass = ctx.mass_elc,
+    .lower = { -ctx.vx_max, -ctx.vy_max, -ctx.vz_max, },
+    .upper = { ctx.vx_max, ctx.vy_max, ctx.vz_max }, 
+    .cells = { NVX, NVY, NVZ },
+
+    .projection = {
+      .proj_id = GKYL_PROJ_FUNC,
+      .func = evalElcInit,
+      .ctx_func = &ctx,
+    },
+
+    .num_diag_moments = 2,
+    .diag_moments = { "M0", "M1i" },
+  };
+
+  // Field.
+  struct gkyl_vlasov_field field = {
+    .epsilon0 = ctx.epsilon0, .mu0 = ctx.mu0,
+
+    .elcErrorSpeedFactor = 0.0,
+    .mgnErrorSpeedFactor = 0.0,
+
+    .init = evalFieldInit,
+    .ctx = &ctx,
+  };
+
   // Vlasov-Maxwell app.
   struct gkyl_vm app_inp = {
-   .name = "dg_euler_p_perturbation_p1",
+    .name = "vlasov_sr_weibel_1x3v",
+    
+    .cdim = 1, .vdim = 3,
+    .lower = { -0.5 * ctx.Lx },
+    .upper = { 0.5 * ctx.Lx },
+    .cells = { NX },
 
-   .cdim = 1, .vdim = 0,
-   .lower = { 0.0 },
-   .upper = { ctx.Lx },
-   .cells = { NX },
+    .poly_order = ctx.poly_order,
+    .basis_type = app_args.basis_type,
+    .cfl_frac = ctx.cfl_frac,
 
-   .poly_order = ctx.poly_order,
-   .basis_type = app_args.basis_type,
-   .cfl_frac = ctx.cfl_frac,
+    .num_periodic_dir = 1,
+    .periodic_dirs = { 0 },
 
-   .num_periodic_dir = 1,
-   .periodic_dirs = { 0 },
+    .num_species = 1,
+    .species = { elc },
 
-   .num_species = 0,
-   .species = { },
+    .field = field,
 
-   .num_fluid_species = 1,
-   .fluid_species = { fluid },
+    .use_gpu = app_args.use_gpu,
 
-   .skip_field = true,
-
-   .use_gpu = app_args.use_gpu,
-
-   .has_low_inp = true,
+    .has_low_inp = true,
     .low_inp = {
       .local_range = decomp->ranges[my_rank],
       .comm = comm
     }
   };
-
+  
   // Create app object.
   gkyl_vlasov_app *app = gkyl_vlasov_app_new(&app_inp);
 
@@ -348,7 +474,6 @@ main(int argc, char **argv)
   gkyl_vlasov_app_cout(app, stdout, "IO time took %g secs \n", stat.io_tm);
 
   // Free resources after simulation completion.
-  gkyl_wv_eqn_release(euler);
   gkyl_rect_decomp_release(decomp);
   gkyl_comm_release(comm);
   gkyl_vlasov_app_release(app);
@@ -359,6 +484,6 @@ mpifinalize:
     MPI_Finalize();
   }
 #endif
-  
+
   return 0;
 }

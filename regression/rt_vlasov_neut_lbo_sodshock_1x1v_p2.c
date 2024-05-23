@@ -20,56 +20,80 @@
 
 #include <rt_arg_parse.h>
 
-struct p_perturbation_ctx
+struct sodshock_ctx
 {
-  // Mathematical constants (dimensionless).
-  double pi;
-
   // Physical constants (using normalized code units).
-  double gas_gamma; // Adiabatic idex.
+  double mass; // Neutral mass.
+  double charge; // Neutral charge.
 
-  double rho; // Fluid mass density.
+  double nl; // Left number density.
+  double Tl; // Left temperature.
+
+  double nr; // Right number density.
+  double Tr; // Right temperature.
+
+  double vt; // Thermal velocity.
+  double Vx_drift; // Drift velocity (x-direction).
+  double nu; // Collision frequency.
 
   // Simulation parameters.
   int Nx; // Cell count (configuration space: x-direction).
+  int Nvx; // Cell count (velocity space: vx-direction).
   double Lx; // Domain size (configuration space: x-direction).
+  double vx_max; // Domain boundary (velocity space: vx-direction).
   int poly_order; // Polynomial order.
   double cfl_frac; // CFL coefficient.
 
   double t_end; // Final simulation time.
-  int num_frames; // Number of output frames;
+  int num_frames; // Number of output frames.
   double dt_failure_tol; // Minimum allowable fraction of initial time-step.
   int num_failures_max; // Maximum allowable number of consecutive small time-steps.
 };
 
-struct p_perturbation_ctx
+struct sodshock_ctx
 create_ctx(void)
 {
-  // Mathematical constants (dimensionless).
-  double pi = M_PI;
-
   // Physical constants (using normalized code units).
-  double gas_gamma = 1.4; // Adiabatic index.
+  double mass = 1.0; // Neutral mass.
+  double charge = 0.0; // Neutral charge.
 
-  double rho = 1.0; // Fluid mass density.
+  double nl = 1.0; // Left number density.
+  double Tl = 1.0; // Left temperature.
+
+  double nr = 0.125; // Right number density.
+  double Tr = sqrt(0.1 / 0.125); // Right temperature.
+
+  double vt = 1.0; // Thermal velocity.
+  double Vx_drift = 0.0; // Drift velocity (x-direction).
+  double nu = 100.0; // Collision frequency.
 
   // Simulation parameters.
-  int Nx = 512; // Cell count (configuration spcae: x-direction).
-  double Lx = 2.0 * pi; // Domain size (configuration space: x-direction).
-  int poly_order = 1; // Polynomial order.
-  double cfl_frac = 0.9; // CFL coefficient.
+  int Nx = 128; // Cell count (configuration space: x-direction).
+  int Nvx = 32; // Cell count (velocity space: vx-direction).
+  double Lx = 1.0; // Domain size (configuration space: x-direction).
+  double vx_max = 8.0 * vt; // Domain boundary (velocity space: vx-direction).
+  int poly_order = 2; // Polynomial order.
+  double cfl_frac = 1.0; // CFL coefficient.
 
-  double t_end = 2.0; // Final simulation time.
+  double t_end = 0.1; // Final simulation time.
   int num_frames = 1; // Number of output frames.
   double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.
   int num_failures_max = 20; // Maximum allowable number of consecutive small time-steps.
 
-  struct p_perturbation_ctx ctx = {
-    .pi = pi,
-    .gas_gamma = gas_gamma,
-    .rho = rho,
+  struct sodshock_ctx ctx = {
+    .mass = mass,
+    .charge = charge,
+    .nl = nl,
+    .Tl = Tl,
+    .nr = nr,
+    .Tr = Tr,
+    .vt = vt,
+    .Vx_drift = Vx_drift,
+    .nu = nu,
     .Nx = Nx,
+    .Nvx = Nvx,
     .Lx = Lx,
+    .vx_max = vx_max,
     .poly_order = poly_order,
     .cfl_frac = cfl_frac,
     .t_end = t_end,
@@ -82,22 +106,69 @@ create_ctx(void)
 }
 
 void
-evalEulerInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
+evalDensityInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
 {
+  struct sodshock_ctx *app = ctx;
   double x = xn[0];
-  struct p_perturbation_ctx *app = ctx;
 
-  double gas_gamma = app->gas_gamma;
-  double rho = app->rho;
+  double nl = app->nl;
+  double nr = app->nr;
 
-  double p = 1.0 + 0.01 * sin(x);
+  double n = 0.0;
 
-  // Set fluid mass density.
-  fout[0] = rho;
-  // Set fluid momentum density.
-  fout[1] = 0.0; fout[2] = 0.0; fout[3] = 0.0;
-  // Set fluid total energy density.
-  fout[4] = p / (gas_gamma - 1.0);
+  if (x < 0.5) {
+    n = nl;
+  }
+  else {
+    n = nr;
+  }
+
+  // Set distribution function.
+  fout[0] = n;
+}
+
+void
+evalTempInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
+{
+  struct sodshock_ctx *app = ctx;
+  double x = xn[0];
+
+  double Tl = app->Tl;
+  double Tr = app->Tr;
+
+  double T = 0.0;
+
+  if (x < 0.5) {
+    T = Tl;
+  }
+  else {
+    T = Tr;
+  }
+
+  // Set temperature.
+  fout[0] = T;
+}
+
+void
+evalVDriftInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
+{
+  struct sodshock_ctx *app = ctx;
+
+  double Vx_drift = app->Vx_drift;
+
+  // Set drift velocity.
+  fout[0] = Vx_drift;
+}
+
+void
+evalNu(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
+{
+  struct sodshock_ctx *app = ctx;
+
+  double nu = app->nu;
+
+  // Set collision frequency.
+  fout[0] = nu;
 }
 
 void
@@ -132,19 +203,10 @@ main(int argc, char **argv)
     gkyl_mem_debug_set(true);
   }
 
-  struct p_perturbation_ctx ctx = create_ctx(); // Context for initialization functions.
+  struct sodshock_ctx ctx = create_ctx(); // Context for initialization functions.
 
   int NX = APP_ARGS_CHOOSE(app_args.xcells[0], ctx.Nx);
-
-  // Fluid equations.
-  struct gkyl_wv_eqn *euler = gkyl_wv_euler_new(ctx.gas_gamma, app_args.use_gpu);
-
-  struct gkyl_vlasov_fluid_species fluid = {
-    .name = "euler",
-    .equation = euler,
-    .init = evalEulerInit,
-    .ctx = &ctx,
-  };
+  int NVX = APP_ARGS_CHOOSE(app_args.vcells[0], ctx.Nvx);
 
   int nrank = 1; // Number of processors in simulation.
 #ifdef GKYL_HAVE_MPI
@@ -232,11 +294,40 @@ main(int argc, char **argv)
     goto mpifinalize;
   }
 
+  // Neutral species.
+  struct gkyl_vlasov_species neut = {
+    .name = "neut",
+    .model_id = GKYL_MODEL_DEFAULT,
+    .charge = ctx.charge, .mass = ctx.mass,
+    .lower = { -ctx.vx_max },
+    .upper = { ctx.vx_max }, 
+    .cells = { NVX },
+
+    .projection = {
+      .proj_id = GKYL_PROJ_VLASOV_LTE,
+      .density = evalDensityInit,
+      .ctx_density = &ctx,
+      .temp = evalTempInit,
+      .ctx_temp = &ctx,
+      .V_drift = evalVDriftInit,
+      .ctx_V_drift = &ctx,
+      .correct_all_moms = true,
+    },
+    .collisions =  {
+      .collision_id = GKYL_LBO_COLLISIONS,
+      .self_nu = evalNu,
+      .ctx = &ctx,
+    },
+    
+    .num_diag_moments = 3,
+    .diag_moments = { "M0", "M1i", "LTEMoments" },
+  };
+
   // Vlasov-Maxwell app.
   struct gkyl_vm app_inp = {
-   .name = "dg_euler_p_perturbation_p1",
+   .name = "vlasov_neut_lbo_sodshock_1x1v_p2",
 
-   .cdim = 1, .vdim = 0,
+   .cdim = 1, .vdim = 1, 
    .lower = { 0.0 },
    .upper = { ctx.Lx },
    .cells = { NX },
@@ -245,24 +336,21 @@ main(int argc, char **argv)
    .basis_type = app_args.basis_type,
    .cfl_frac = ctx.cfl_frac,
 
-   .num_periodic_dir = 1,
-   .periodic_dirs = { 0 },
+   .num_periodic_dir = 0,
+   .periodic_dirs = { },
 
-   .num_species = 0,
-   .species = { },
-
-   .num_fluid_species = 1,
-   .fluid_species = { fluid },
+   .num_species = 1,
+   .species = { neut },
 
    .skip_field = true,
 
    .use_gpu = app_args.use_gpu,
 
    .has_low_inp = true,
-    .low_inp = {
-      .local_range = decomp->ranges[my_rank],
-      .comm = comm
-    }
+   .low_inp = {
+     .local_range = decomp->ranges[my_rank],
+     .comm = comm
+   }
   };
 
   // Create app object.
@@ -348,7 +436,6 @@ main(int argc, char **argv)
   gkyl_vlasov_app_cout(app, stdout, "IO time took %g secs \n", stat.io_tm);
 
   // Free resources after simulation completion.
-  gkyl_wv_eqn_release(euler);
   gkyl_rect_decomp_release(decomp);
   gkyl_comm_release(comm);
   gkyl_vlasov_app_release(app);
@@ -359,6 +446,6 @@ mpifinalize:
     MPI_Finalize();
   }
 #endif
-  
+
   return 0;
 }
