@@ -176,37 +176,60 @@ create_ctx(void)
 }
 
 void
-evalDistElcInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
+eval_density_elc(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   struct cross_relax_ctx *app = ctx;
-  double pi = app->pi;
   double n = app->n0;
-  double uPar = app->uPare;
-  double T = app->Te;
-  double m = app->mass_elc;
-  double B = app->B0;
-  double alpha = app->alpha;
-  double x = xn[0], vPar=xn[1], mu=xn[2];  
-
-  // Bi-Maxwellian disctribution
-  fout[0] = n/(alpha*pow(2.0*pi*T/m,3.0/2.0)) * exp(-(0.5*m*(pow(vPar-uPar,2)+(2.*mu*B/m)/alpha)/T));
+  fout[0] = n;
 }
-
 void
-evalDistIonInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
+eval_upar_elc(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   struct cross_relax_ctx *app = ctx;
-  double pi = app->pi;
+  double uPar = app->uPare;
+  fout[0] = uPar;
+}
+void
+eval_temp_par_elc(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+{
+  struct cross_relax_ctx *app = ctx;
+  double Tpar = app->TePar;
+  fout[0] = Tpar;
+}
+void
+eval_temp_perp_elc(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+{
+  struct cross_relax_ctx *app = ctx;
+  double Tperp = app->TePerp;
+  fout[0] = Tperp;
+}
+void
+eval_density_ion(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+{
+  struct cross_relax_ctx *app = ctx;
   double n = app->n0;
+  fout[0] = n;
+}
+void
+eval_upar_ion(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+{
+  struct cross_relax_ctx *app = ctx;
   double uPar = app->uPari;
-  double T = app->Ti;
-  double m = app->mass_ion;
-  double B = app->B0;
-  double alpha = app->alpha;
-  double x = xn[0], vPar = xn[1], mu=xn[2];  
-
-  // Bi-Maxwellian disctribution
-  fout[0] = n/(alpha*pow(2.0*pi*T/m,3.0/2.0)) * exp(-(0.5*m*(pow(vPar-uPar,2)+(2.*mu*B/m)/alpha)/T));
+  fout[0] = uPar;
+}
+void
+eval_temp_par_ion(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+{
+  struct cross_relax_ctx *app = ctx;
+  double Tpar = app->TiPar;
+  fout[0] = Tpar;
+}
+void
+eval_temp_perp_ion(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+{
+  struct cross_relax_ctx *app = ctx;
+  double Tperp = app->TiPerp;
+  fout[0] = Tperp;
 }
 
 void
@@ -407,9 +430,15 @@ main(int argc, char **argv)
     .no_by = true, 
 
     .projection = {
-      .proj_id = GKYL_PROJ_FUNC,
-      .func = evalDistElcInit,
-      .ctx_func = &ctx,
+      .proj_id = GKYL_PROJ_BIMAXWELLIAN,
+      .ctx_density = &ctx,
+      .density = eval_density_elc,
+      .ctx_upar = &ctx,
+      .upar= eval_upar_elc,
+      .ctx_temppar = &ctx,
+      .temppar = eval_temp_par_elc,
+      .ctx_tempperp = &ctx,
+      .tempperp = eval_temp_perp_elc,
     },
     .collisions =  {
       .collision_id = GKYL_LBO_COLLISIONS,
@@ -437,9 +466,15 @@ main(int argc, char **argv)
     .no_by = true, 
 
     .projection = {
-      .proj_id = GKYL_PROJ_FUNC, 
-      .func = evalDistIonInit,
-      .ctx_func = &ctx,
+      .proj_id = GKYL_PROJ_BIMAXWELLIAN,
+      .ctx_density = &ctx,
+      .density = eval_density_ion,
+      .ctx_upar = &ctx,
+      .upar= eval_upar_ion,
+      .ctx_temppar = &ctx,
+      .temppar = eval_temp_par_ion,
+      .ctx_tempperp = &ctx,
+      .tempperp = eval_temp_perp_ion,
     },
     .collisions =  {
       .collision_id = GKYL_LBO_COLLISIONS,
