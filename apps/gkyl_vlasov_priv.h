@@ -182,15 +182,7 @@ struct vm_bgk_collisions {
   struct gkyl_bgk_collisions *up_bgk; // BGK updater (also computes stable timestep)
 
   bool implicit_step; // whether or not to take an implcit bgk step
-  union {
-    // function projection
-    struct {
-      struct gkyl_dg_bin_op_mem *bgk_implicit_div_mem; // memory used in the div-op for 1/implcit_coeff
-      struct gkyl_array *implicit_coeff; // Array of 1/(1 + nu*dt) used to update the implicit comp.
-      struct gkyl_array *implicit_coeff_num; // Array of the numerator of 1/(1 + nu*dt) used to update the implicit comp.
-      double dt;
-    };
-  };
+  double dt_implicit; // timestep used by the implicit collisions
 };
 
 struct vm_boundary_fluxes {

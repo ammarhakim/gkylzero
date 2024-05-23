@@ -16,7 +16,7 @@ vlasov_update_implicit_coll(gkyl_vlasov_app* app, double dt0)
 
   // compute necessary moments and boundary corrections for collisions
   for (int i=0; i<app->num_species; ++i) {
-    if (app->species[i].collision_id == GKYL_BGK_COLLISIONS && app->has_implicit_coll_scheme) {
+    if (app->species[i].collision_id == GKYL_BGK_COLLISIONS) {
       vm_species_bgk_moms(app, &app->species[i], 
         &app->species[i].bgk, fin[i]);
     }
@@ -25,7 +25,7 @@ vlasov_update_implicit_coll(gkyl_vlasov_app* app, double dt0)
   // implicit BGK contributions
   for (int i=0; i<app->num_species; ++i) {
     app->species[i].bgk.implicit_step = true;
-    app->species[i].bgk.dt = dt0;
+    app->species[i].bgk.dt_implicit = dt0;
     vm_species_rhs_implicit(app, &app->species[i], fin[i], fout[i], dt0);
   }
 
