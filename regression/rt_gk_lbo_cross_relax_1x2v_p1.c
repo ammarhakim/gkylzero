@@ -439,6 +439,7 @@ main(int argc, char **argv)
       .temppar = eval_temp_par_elc,
       .ctx_tempperp = &ctx,
       .tempperp = eval_temp_perp_elc,
+      .correct_all_moms = true,
     },
     .collisions =  {
       .collision_id = GKYL_LBO_COLLISIONS,
@@ -475,6 +476,7 @@ main(int argc, char **argv)
       .temppar = eval_temp_par_ion,
       .ctx_tempperp = &ctx,
       .tempperp = eval_temp_perp_ion,
+      .correct_all_moms = true,
     },
     .collisions =  {
       .collision_id = GKYL_LBO_COLLISIONS,
