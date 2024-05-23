@@ -143,7 +143,7 @@ main(int argc, char **argv)
 
       .ctx = &ctx,
       .self_nu = evalNu,
-      .has_implicit_bgk_scheme = true,
+      .has_implicit_coll_scheme = true,
       .correct_all_moms = true,
     },
 

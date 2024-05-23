@@ -239,10 +239,10 @@ gkyl_vlasov_app_new(struct gkyl_vm *vm)
   }
 
   // Use implicit BGK collisions if specified
-  app->has_implicit_bgk_scheme = false;
+  app->has_implicit_coll_scheme = false;
   for (int i=0; i<ns; ++i){
-    if (vm->species[i].collisions.has_implicit_bgk_scheme){
-      app->has_implicit_bgk_scheme = true;
+    if (vm->species[i].collisions.has_implicit_coll_scheme){
+      app->has_implicit_coll_scheme = true;
     }
   }
 
@@ -254,8 +254,8 @@ gkyl_vlasov_app_new(struct gkyl_vm *vm)
   if (app->has_fluid_em_coupling) {
     app->update_func = vlasov_update_strang_split;
   } 
-  else if (app->has_implicit_bgk_scheme) {
-    app->update_func = vlasov_gudanov_split_bgk;
+  else if (app->has_implicit_coll_scheme) {
+    app->update_func = vlasov_update_godunov_split_coll;
   }
   else {
     app->update_func = vlasov_update_ssp_rk3;

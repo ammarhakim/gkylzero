@@ -66,7 +66,7 @@ struct gkyl_vlasov_collisions {
   int max_iter; // maximum number of iteration
 
   // Boolean for using implicit BGK collisions (replaces rk3)   
-  bool has_implicit_bgk_scheme; 
+  bool has_implicit_coll_scheme; 
 
   int num_cross_collisions; // number of species to cross-collide with
   char collide_with[GKYL_MAX_SPECIES][128]; // names of species to cross collide with

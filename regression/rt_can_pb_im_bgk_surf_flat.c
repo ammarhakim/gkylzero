@@ -148,7 +148,7 @@ main(int argc, char **argv)
       .ctx = &ctx,
       .self_nu = evalNu,
       .correct_all_moms = true, 
-      .has_implicit_bgk_scheme = true,
+      .has_implicit_coll_scheme = true,
     },
 
     .num_diag_moments = 3,
