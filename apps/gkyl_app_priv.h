@@ -2,6 +2,7 @@
 // in any public facing header!
 #pragma once
 
+#include <gkyl_app.h>
 #include <gkyl_array.h>
 #include <gkyl_array_ops.h>
 #include <gkyl_comm.h>
@@ -65,4 +66,8 @@ skin_ghost_ranges_init(struct app_skin_ghost_ranges *sgr,
   }
 }
 
-
+// Number of state arrays needed for each time stepper.
+static const int gkyl_stepper_num_state_arrays[] = {
+  [GKYL_STEPPER_NULL] = 0,
+  [GKYL_STEPPER_SSP_RK3] = 3,
+};

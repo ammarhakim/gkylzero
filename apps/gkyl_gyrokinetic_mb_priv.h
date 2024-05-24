@@ -11,6 +11,7 @@ struct gkyl_gyrokinetic_mb_app {
 
   int cdim, vdim; // Conf, velocity space dimensions.
   int poly_order; // Polynomial order.
+  double tcurr; // Current time.
   double cfl; // CFL number.
 
   bool use_gpu; // Should we use GPU (if present).
@@ -20,4 +21,6 @@ struct gkyl_gyrokinetic_mb_app {
   int num_blocks, num_blocks_local; // Total and local number of blocks.
   int *block_idxs; // List of blocks handled on this rank.
   struct gkyl_gyrokinetic_app **blocks; // Pointers to blocks on this rank.
+
+  struct gkyl_gyrokinetic_stat stat; // statistics
 };

@@ -107,6 +107,15 @@ gk_neut_species_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app, struc
     gkyl_dg_calc_vlasov_gen_geo_vars_cot_vec(calc_vars, &app->local, s->cot_vec);
   }
 
+  // Create an array with pointers to distribution functions.
+  int num_fs = gkyl_stepper_num_state_arrays[gk->stepper_type];
+  s->distfs = gkyl_malloc(num_fs * sizeof(struct gkyl_array *));
+  if (gk->stepper_type == GKYL_STEPPER_SSP_RK3) {
+    s->distfs[0] = s->f;
+    s->distfs[1] = s->f1;
+    s->distfs[2] = s->fnew;
+  }
+
   // by default, we do not have zero-flux boundary conditions in any direction
   bool is_zero_flux[GKYL_MAX_DIM] = {false};
 
@@ -403,6 +412,8 @@ gk_neut_species_release(const gkyl_gyrokinetic_app* app, const struct gk_neut_sp
     gkyl_dg_eqn_release(s->eqn_vlasov);
     gkyl_dg_updater_vlasov_release(s->slvr);
   }
+
+  gkyl_free(s->distfs);
 
   // release moment data
   gk_neut_species_moment_release(app, &s->m0);

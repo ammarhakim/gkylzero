@@ -115,6 +115,10 @@ gkyl_gyrokinetic_app_new(struct gkyl_gk *gk)
   app->use_gpu = false; // can't use GPUs if we don't have them!
 #endif
 
+  // Set the time stepper if not set by user.
+  if (gk->stepper_type == 0)
+    gk->stepper_type = GKYL_STEPPER_SSP_RK3;
+
   app->num_periodic_dir = gk->num_periodic_dir;
   for (int d=0; d<cdim; ++d)
     app->periodic_dirs[d] = gk->periodic_dirs[d];
@@ -400,10 +404,11 @@ gkyl_gyrokinetic_app_new(struct gkyl_gk *gk)
   return app;
 }
 
-// Compute fields.
 static void
 calc_field(gkyl_gyrokinetic_app* app, double tcurr, const struct gkyl_array *fin[])
 {
+  // Compute fields.
+
   if (app->update_field) {
     // Compute electrostatic potential from gyrokinetic Poisson's equation.
     gk_field_accumulate_rho_c(app, app->field, fin);
@@ -426,14 +431,9 @@ calc_field(gkyl_gyrokinetic_app* app, double tcurr, const struct gkyl_array *fin
   }
 }
 
-// Compute fields and apply BCs.
-static void
-calc_field_and_apply_bc(gkyl_gyrokinetic_app* app, double tcurr, struct gkyl_array *distf[], struct gkyl_array *distf_neut[])
+void
+gkyl_gyrokinetic_apply_bc(gkyl_gyrokinetic_app* app, struct gkyl_array *distf[], struct gkyl_array *distf_neut[])
 {
-
-  // Compute the field.
-  calc_field(app, tcurr, (const struct gkyl_array **) distf);
-
   // Apply boundary conditions.
   for (int i=0; i<app->num_species; ++i) {
     gk_species_apply_bc(app, &app->species[i], distf[i]);
@@ -443,7 +443,16 @@ calc_field_and_apply_bc(gkyl_gyrokinetic_app* app, double tcurr, struct gkyl_arr
       gk_neut_species_apply_bc(app, &app->neut_species[i], distf_neut[i]);
     }
   }
+}
 
+static void
+calc_field_and_apply_bc(gkyl_gyrokinetic_app* app, double tcurr, struct gkyl_array *distf[], struct gkyl_array *distf_neut[])
+{
+  // Compute fields and apply BCs.
+
+  calc_field(app, tcurr, (const struct gkyl_array **) distf);
+
+  gkyl_gyrokinetic_apply_bc(app, distf, distf_neut);
 }
 
 struct gk_species *
@@ -1755,19 +1764,12 @@ gkyl_gyrokinetic_app_read_geometry(gkyl_gyrokinetic_app* app)
   gkyl_array_release(eps2);
 }
 
-// Take a forward Euler step with the suggested time-step dt. This may
-// not be the actual time-step taken. However, the function will never
-// take a time-step larger than dt even if it is allowed by
-// stability. The actual time-step and dt_suggested are returned in
-// the status object.
-static void
-forward_euler(gkyl_gyrokinetic_app* app, double tcurr, double dt,
+void
+gkyl_gyrokinetic_dfdt(gkyl_gyrokinetic_app* app, double tcurr, double dt,
   const struct gkyl_array *fin[], struct gkyl_array *fout[], 
   const struct gkyl_array *fin_neut[], struct gkyl_array *fout_neut[], 
   struct gkyl_update_status *st)
 {
-  app->stat.nfeuler += 1;
-
   double dtmin = DBL_MAX;
 
   // Compute necessary moments and boundary corrections for collisions.
@@ -1872,10 +1874,28 @@ forward_euler(gkyl_gyrokinetic_app* app, double tcurr, double dt,
   dtmin = dtmin_global;
   
   // Don't take a time-step larger that input dt.
-  double dta = st->dt_actual = dt < dtmin ? dt : dtmin;
+  st->dt_actual = dt < dtmin ? dt : dtmin;
   st->dt_suggested = dtmin;
+}
+
+static void
+forward_euler(gkyl_gyrokinetic_app* app, double tcurr, double dt,
+  const struct gkyl_array *fin[], struct gkyl_array *fout[], 
+  const struct gkyl_array *fin_neut[], struct gkyl_array *fout_neut[], 
+  struct gkyl_update_status *st)
+{
+  // Take a forward Euler step with the suggested time-step dt. This may
+  // not be the actual time-step taken. However, the function will never
+  // take a time-step larger than dt even if it is allowed by
+  // stability. The actual time-step and dt_suggested are returned in
+  // the status object.
+  app->stat.nfeuler += 1;
+
+  // Compute the time rate of change of the distributions, df/dt.
+  gkyl_gyrokinetic_dfdt(app, tcurr, dt, fin, fout, fin_neut, fout_neut, st);
 
   // Complete update of distribution functions.
+  double dta = st->dt_actual;
   for (int i=0; i<app->num_species; ++i) {
     gkyl_array_accumulate(gkyl_array_scale(fout[i], dta), 1.0, fin[i]);
   }
@@ -1885,6 +1905,27 @@ forward_euler(gkyl_gyrokinetic_app* app, double tcurr, double dt,
     }
   }
 
+}
+
+static void
+rk3_fill_fin_fout(const struct gkyl_gyrokinetic_app *app, int fidx_in, int fidx_out,
+  const struct gkyl_array *fin[], const struct gkyl_array *fin_neut[],
+  struct gkyl_array *fout[], struct gkyl_array *fout_neut[])
+{
+  // Fill arrays of distributions functions with the appropriate distributions
+  // specified by the fidx_in and fidx_out indices.
+
+  for (int i=0; i<app->num_species; ++i) {
+    fin[i] = app->species[i].distfs[fidx_in];
+    fout[i] = app->species[i].distfs[fidx_out];
+  }
+  for (int i=0; i<app->num_neut_species; ++i) {
+    fin_neut[i] = app->neut_species[i].distfs[0];
+    if (!app->neut_species[i].info.is_static) {
+      fin_neut[i] = app->neut_species[i].distfs[fidx_in];
+      fout_neut[i] = app->neut_species[i].distfs[fidx_out];
+    }
+  }
 }
 
 // Take time-step using the RK3 method. Also sets the status object
@@ -1906,16 +1947,10 @@ rk3(gkyl_gyrokinetic_app* app, double dt0)
   while (state != RK_COMPLETE) {
     switch (state) {
       case RK_STAGE_1:
-        for (int i=0; i<app->num_species; ++i) {
-          fin[i] = app->species[i].f;
-          fout[i] = app->species[i].f1;
-        }
-        for (int i=0; i<app->num_neut_species; ++i) {
-          fin_neut[i] = app->neut_species[i].f;
-          if (!app->neut_species[i].info.is_static) {
-            fout_neut[i] = app->neut_species[i].f1;
-          }
-        }
+      {
+        // Indices in gk_species' distfs of input and output distributions.
+        const int fidx_in = 0, fidx_out = 1;
+        rk3_fill_fin_fout(app, fidx_in, fidx_out, fin, fin_neut, fout, fout_neut);
 
         forward_euler(app, tcurr, dt, fin, fout, fin_neut, fout_neut, &st);
         // Compute the fields and apply BCs.
@@ -1924,21 +1959,13 @@ rk3(gkyl_gyrokinetic_app* app, double dt0)
         dt = st.dt_actual;
         state = RK_STAGE_2;
         break;
+      }
 
       case RK_STAGE_2:
-        for (int i=0; i<app->num_species; ++i) {
-          fin[i] = app->species[i].f1;
-          fout[i] = app->species[i].fnew;
-        }
-        for (int i=0; i<app->num_neut_species; ++i) {
-          if (!app->neut_species[i].info.is_static) {
-            fin_neut[i] = app->neut_species[i].f1;
-            fout_neut[i] = app->neut_species[i].fnew;
-          }
-          else {
-            fin_neut[i] = app->neut_species[i].f;
-          }
-        }
+      {
+        // Indices in gk_species' distfs of input and output distributions.
+        const int fidx_in = 1, fidx_out = 2;
+        rk3_fill_fin_fout(app, fidx_in, fidx_out, fin, fin_neut, fout, fout_neut);
 
         forward_euler(app, tcurr+dt, dt, fin, fout, fin_neut, fout_neut, &st);
 
@@ -1963,13 +1990,13 @@ rk3(gkyl_gyrokinetic_app* app, double dt0)
         } 
         else {
           for (int i=0; i<app->num_species; ++i) {
-            array_combine(app->species[i].f1,
-              3.0/4.0, app->species[i].f, 1.0/4.0, app->species[i].fnew, &app->species[i].local_ext);
+            array_combine(app->species[i].distfs[1],
+              3.0/4.0, app->species[i].distfs[0], 1.0/4.0, app->species[i].distfs[2], &app->species[i].local_ext);
           }
           for (int i=0; i<app->num_neut_species; ++i) {
             if (!app->neut_species[i].info.is_static) {
-              array_combine(app->neut_species[i].f1,
-                3.0/4.0, app->neut_species[i].f, 1.0/4.0, app->neut_species[i].fnew, &app->neut_species[i].local_ext);
+              array_combine(app->neut_species[i].distfs[1],
+                3.0/4.0, app->neut_species[i].distfs[0], 1.0/4.0, app->neut_species[i].distfs[2], &app->neut_species[i].local_ext);
             }
           }
 
@@ -1985,21 +2012,13 @@ rk3(gkyl_gyrokinetic_app* app, double dt0)
           state = RK_STAGE_3;
         }
         break;
+      }
 
       case RK_STAGE_3:
-        for (int i=0; i<app->num_species; ++i) {
-          fin[i] = app->species[i].f1;
-          fout[i] = app->species[i].fnew;
-        }
-        for (int i=0; i<app->num_neut_species; ++i) {
-          if (!app->neut_species[i].info.is_static) {
-            fin_neut[i] = app->neut_species[i].f1;
-            fout_neut[i] = app->neut_species[i].fnew;
-          }
-          else {
-            fin_neut[i] = app->neut_species[i].f;
-          }          
-        }
+      {
+        // Indices in gk_species' distfs of input and output distributions.
+        const int fidx_in = 1, fidx_out = 2;
+        rk3_fill_fin_fout(app, fidx_in, fidx_out, fin, fin_neut, fout, fout_neut);
 
         forward_euler(app, tcurr+dt/2, dt, fin, fout, fin_neut, fout_neut, &st);
 
@@ -2024,15 +2043,15 @@ rk3(gkyl_gyrokinetic_app* app, double dt0)
         }
         else {
           for (int i=0; i<app->num_species; ++i) {
-            array_combine(app->species[i].f1,
-              1.0/3.0, app->species[i].f, 2.0/3.0, app->species[i].fnew, &app->species[i].local_ext);
-            gkyl_array_copy_range(app->species[i].f, app->species[i].f1, &app->species[i].local_ext);
+            array_combine(app->species[i].distfs[1],
+              1.0/3.0, app->species[i].distfs[0], 2.0/3.0, app->species[i].distfs[2], &app->species[i].local_ext);
+            gkyl_array_copy_range(app->species[i].distfs[0], app->species[i].distfs[1], &app->species[i].local_ext);
           }
           for (int i=0; i<app->num_neut_species; ++i) {
             if (!app->neut_species[i].info.is_static) {
-              array_combine(app->neut_species[i].f1,
-                1.0/3.0, app->neut_species[i].f, 2.0/3.0, app->neut_species[i].fnew, &app->neut_species[i].local_ext);
-              gkyl_array_copy_range(app->neut_species[i].f, app->neut_species[i].f1, &app->neut_species[i].local_ext);
+              array_combine(app->neut_species[i].distfs[1],
+                1.0/3.0, app->neut_species[i].distfs[0], 2.0/3.0, app->neut_species[i].distfs[2], &app->neut_species[i].local_ext);
+              gkyl_array_copy_range(app->neut_species[i].distfs[0], app->neut_species[i].distfs[1], &app->neut_species[i].local_ext);
             }
           }
 
@@ -2048,6 +2067,7 @@ rk3(gkyl_gyrokinetic_app* app, double dt0)
           state = RK_COMPLETE;
         }
         break;
+      }
 
       case RK_COMPLETE: // can't happen: suppresses warning
         break;
