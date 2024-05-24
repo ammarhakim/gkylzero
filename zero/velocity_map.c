@@ -52,7 +52,7 @@ gkyl_velocity_map_new(struct gkyl_mapc2p_inp mapc2p_in,
 {
   struct gkyl_velocity_map *gvm = gkyl_malloc(sizeof(*gvm));
 
-  gvm->is_identity = !mapc2p_in.user_map;
+  gvm->is_identity = mapc2p_in.mapping == 0;
   gvm->grid = grid;
   gvm->grid_vel = grid_vel;
   gvm->local = local;

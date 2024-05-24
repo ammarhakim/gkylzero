@@ -106,10 +106,6 @@ test_1x1v(int poly_order, bool use_gpu)
   struct gkyl_rect_grid vGrid;
   gkyl_rect_grid_init(&vGrid, vdim, vLower, vUpper, vCells);
 
-  int vGhost[vdim] = {0};
-  struct gkyl_range vLocal, vLocal_ext;
-  gkyl_create_grid_ranges(&vGrid, vGhost, &vLocal_ext, &vLocal);
-
   // basis functions
   struct gkyl_basis basis, confBasis;
   if (poly_order == 1) 
@@ -130,7 +126,7 @@ test_1x1v(int poly_order, bool use_gpu)
   struct skin_ghost_ranges skin_ghost; // phase-space skin/ghost
   skin_ghost_ranges_init(&skin_ghost, &local_ext, ghost);
 
-  int vGhost[vdim] = {0};
+  int vGhost[vdim] = { 0 };
   struct gkyl_range vLocal, vLocal_ext;
   gkyl_create_grid_ranges(&vGrid, vGhost, &vLocal_ext, &vLocal);
 
@@ -172,7 +168,7 @@ test_1x1v(int poly_order, bool use_gpu)
     distf_cu  = gkyl_array_cu_dev_new(GKYL_DOUBLE, basis.num_basis, local_ext.volume);
 
   // Velocity space mapping.
-  struct gkyl_mapc2p_inp c2p_in = { .user_map = false, };
+  struct gkyl_mapc2p_inp c2p_in = { };
   struct gkyl_velocity_map *gvm = gkyl_velocity_map_new(c2p_in, grid, vGrid,
     local, local_ext, vLocal, vLocal_ext, use_gpu);
 
@@ -409,13 +405,13 @@ test_1x2v(int poly_order, bool use_gpu)
     distf_cu  = gkyl_array_cu_dev_new(GKYL_DOUBLE, basis.num_basis, local_ext.volume);
 
   // Velocity space mapping.
-  struct gkyl_mapc2p_inp c2p_in = { .user_map = false, };
+  struct gkyl_mapc2p_inp c2p_in = { };
   struct gkyl_velocity_map *gvm = gkyl_velocity_map_new(c2p_in, grid, vGrid,
     local, local_ext, vLocal, vLocal_ext, use_gpu);
 
   // projection updater to compute Maxwellian
   gkyl_proj_maxwellian_on_basis *proj_max = gkyl_proj_maxwellian_on_basis_new(&grid,
-    &confBasis, &basis, poly_order+1, use_gpu);
+    &confBasis, &basis, poly_order+1, gvm, use_gpu);
 
   if (use_gpu) {
     gkyl_proj_maxwellian_on_basis_lab_mom(proj_max, &local, &confLocal, moms, distf_cu);
@@ -696,13 +692,13 @@ test_1x2v_gk(int poly_order, bool use_gpu)
     distf_cu  = gkyl_array_cu_dev_new(GKYL_DOUBLE, basis.num_basis, local_ext.volume);
 
   // Velocity space mapping.
-  struct gkyl_mapc2p_inp c2p_in = { .user_map = false, };
+  struct gkyl_mapc2p_inp c2p_in = { };
   struct gkyl_velocity_map *gvm = gkyl_velocity_map_new(c2p_in, grid, vGrid,
     local, local_ext, vLocal, vLocal_ext, use_gpu);
 
   // projection updater to compute Maxwellian
   gkyl_proj_maxwellian_on_basis *proj_max = gkyl_proj_maxwellian_on_basis_new(&grid,
-    &confBasis, &basis, poly_order+1, use_gpu);
+    &confBasis, &basis, poly_order+1, gvm, use_gpu);
 
   if (use_gpu) {
     gkyl_proj_gkmaxwellian_on_basis_lab_mom(proj_max, &local, &confLocal, moms,

@@ -62,7 +62,7 @@ gk_neut_species_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app, struc
   gkyl_create_ranges(&local, ghost, &s->local_ext, &s->local);
 
   // Velocity space mapping.
-  assert(s->info.mapc2p.user_map == false); // mapped v-space not implemented for neutrals yet.
+  assert(s->info.mapc2p.mapping == 0); // mapped v-space not implemented for neutrals yet.
   s->vel_map = gkyl_velocity_map_new(s->info.mapc2p, s->grid, s->grid_vel,
     s->local, s->local_ext, s->local_vel, s->local_ext_vel, app->use_gpu);
 

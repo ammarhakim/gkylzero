@@ -195,7 +195,7 @@ test_1x(int poly_order, bool use_gpu, double te)
   }
 
   // Initialize velocity space mapping.
-  struct gkyl_mapc2p_inp c2p_in = { .user_map = false, };
+  struct gkyl_mapc2p_inp c2p_in = { };
   struct gkyl_velocity_map *gvm = gkyl_velocity_map_new(c2p_in, grid, vGrid,
     local, local_ext, vLocal, vLocal_ext, use_gpu);
 
@@ -482,7 +482,7 @@ test_2x(int poly_order, bool use_gpu, double te)
   }
 
   // Initialize velocity space mapping.
-  struct gkyl_mapc2p_inp c2p_in = { .user_map = false, };
+  struct gkyl_mapc2p_inp c2p_in = { };
   struct gkyl_velocity_map *gvm = gkyl_velocity_map_new(c2p_in, grid, vGrid,
     local, local_ext, vLocal, vLocal_ext, use_gpu);
 

@@ -10,7 +10,6 @@ typedef void (*mapc2p_t)(double t, const double *zc, double *vp, void *ctx);
 
 // Velocity space mappings.
 struct gkyl_mapc2p_inp {
-  bool user_map; // =false for using the built-in identity map.
   mapc2p_t mapping; // univariate mapping vp[0](zc[0]), vp[1](zc[1]), etc.
   void *ctx;  // Context for mapping.
 };

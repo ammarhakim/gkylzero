@@ -193,7 +193,7 @@ test_2x_option(bool use_gpu)
   gkyl_array_set_offset(prim_moms, 1.0, vtsq, 1*confBasis.num_basis);
 
   // Velocity space mapping.
-  struct gkyl_mapc2p_inp c2p_in = { .user_map = false, };
+  struct gkyl_mapc2p_inp c2p_in = { };
   struct gkyl_velocity_map *gvm = gkyl_velocity_map_new(c2p_in, grid, vGrid,
     local, local_ext, vLocal, vLocal_ext, use_gpu);
 

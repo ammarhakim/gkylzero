@@ -594,7 +594,6 @@ main(int argc, char **argv)
     .polarization_density = ctx.n0,
 
     .mapc2p = {
-      .user_map = true,
       .mapping = mapc2p_vel_elc,
       .ctx = &ctx,
     },
@@ -655,7 +654,6 @@ main(int argc, char **argv)
     .polarization_density = ctx.n0,
 
     .mapc2p = {
-      .user_map = true,
       .mapping = mapc2p_vel_ion,
       .ctx = &ctx,
     },

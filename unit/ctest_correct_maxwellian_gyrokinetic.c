@@ -165,7 +165,7 @@ void test_1x1v(int poly_order, bool use_gpu)
   }
   gkyl_cart_modal_serendip(&confBasis, cdim, poly_order);
 
-  int confGhost[cdim] = { 1 };
+  int confGhost[] = { 1, 1, 1 }; // 3 elements because it's used by geo.
   struct gkyl_range confLocal, confLocal_ext; // local, local-ext conf-space ranges
   gkyl_create_grid_ranges(&confGrid, confGhost, &confLocal_ext, &confLocal);
 
@@ -173,7 +173,8 @@ void test_1x1v(int poly_order, bool use_gpu)
   struct gkyl_range velLocal, velLocal_ext; // local, local-ext vel-space ranges
   gkyl_create_grid_ranges(&velGrid, velGhost, &velLocal_ext, &velLocal);
 
-  int ghost[] = { confGhost[0], 0 };
+  int ghost[ndim] = { 0 };
+  for (int d=0; d<cdim; d++) ghost[d] = confGhost[d];
   struct gkyl_range local, local_ext; // local, local-ext phase-space ranges
   gkyl_create_grid_ranges(&grid, ghost, &local_ext, &local);
 
@@ -202,7 +203,7 @@ void test_1x1v(int poly_order, bool use_gpu)
   gkyl_gk_geometry_release(gk_geom_3d);
 
   // Initialize velocity space mapping.
-  struct gkyl_mapc2p_inp c2p_in = { .user_map = false, };
+  struct gkyl_mapc2p_inp c2p_in = { };
   struct gkyl_velocity_map *gvm = gkyl_velocity_map_new(c2p_in, grid, velGrid,
     local, local_ext, velLocal, velLocal_ext, use_gpu);
 
@@ -390,7 +391,7 @@ void test_1x2v(int poly_order, bool use_gpu)
   }
   gkyl_cart_modal_serendip(&confBasis, cdim, poly_order);
 
-  int confGhost[] = { 1, 1, 1 };
+  int confGhost[] = { 1, 1, 1 }; // 3 elements because it's used by geo.
   struct gkyl_range confLocal, confLocal_ext; // local, local-ext conf-space ranges
   gkyl_create_grid_ranges(&confGrid, confGhost, &confLocal_ext, &confLocal);
 
@@ -398,7 +399,8 @@ void test_1x2v(int poly_order, bool use_gpu)
   struct gkyl_range velLocal, velLocal_ext; // local, local-ext vel-space ranges
   gkyl_create_grid_ranges(&velGrid, velGhost, &velLocal_ext, &velLocal);
 
-  int ghost[] = { confGhost[0], 0, 0 };
+  int ghost[ndim] = { 0 };
+  for (int d=0; d<cdim; d++) ghost[d] = confGhost[d];
   struct gkyl_range local, local_ext; // local, local-ext phase-space ranges
   gkyl_create_grid_ranges(&grid, ghost, &local_ext, &local);
 
@@ -427,7 +429,7 @@ void test_1x2v(int poly_order, bool use_gpu)
   gkyl_gk_geometry_release(gk_geom_3d);
 
   // Initialize velocity space mapping.
-  struct gkyl_mapc2p_inp c2p_in = { .user_map = false, };
+  struct gkyl_mapc2p_inp c2p_in = { };
   struct gkyl_velocity_map *gvm = gkyl_velocity_map_new(c2p_in, grid, velGrid,
     local, local_ext, velLocal, velLocal_ext, use_gpu);
 
@@ -616,7 +618,7 @@ void test_2x2v(int poly_order, bool use_gpu)
   }
   gkyl_cart_modal_serendip(&confBasis, cdim, poly_order);
 
-  int confGhost[] = { 1, 1, 1 };
+  int confGhost[] = { 1, 1, 1 }; // 3 elements because it's used by geo.
   struct gkyl_range confLocal, confLocal_ext; // local, local-ext conf-space ranges
   gkyl_create_grid_ranges(&confGrid, confGhost, &confLocal_ext, &confLocal);
 
@@ -624,7 +626,8 @@ void test_2x2v(int poly_order, bool use_gpu)
   struct gkyl_range velLocal, velLocal_ext; // local, local-ext vel-space ranges
   gkyl_create_grid_ranges(&velGrid, velGhost, &velLocal_ext, &velLocal);
 
-  int ghost[] = { confGhost[0], confGhost[1], 0, 0 };
+  int ghost[ndim] = { 0 };
+  for (int d=0; d<cdim; d++) ghost[d] = confGhost[d];
   struct gkyl_range local, local_ext; // local, local-ext phase-space ranges
   gkyl_create_grid_ranges(&grid, ghost, &local_ext, &local);
 
@@ -653,7 +656,7 @@ void test_2x2v(int poly_order, bool use_gpu)
   gkyl_gk_geometry_release(gk_geom_3d);
 
   // Initialize velocity space mapping.
-  struct gkyl_mapc2p_inp c2p_in = { .user_map = false, };
+  struct gkyl_mapc2p_inp c2p_in = { };
   struct gkyl_velocity_map *gvm = gkyl_velocity_map_new(c2p_in, grid, velGrid,
     local, local_ext, velLocal, velLocal_ext, use_gpu);
 

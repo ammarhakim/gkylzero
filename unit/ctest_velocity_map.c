@@ -100,7 +100,6 @@ test_vmap_1x2v_p1(bool use_gpu)
   gkyl_create_grid_ranges(&grid_vel, ghost_vel, &local_ext_vel, &local_vel);
 
   struct gkyl_mapc2p_inp c2p_in = {
-    .user_map = true,
     .mapping = test_vmap_1x2v_p1_mapc2p_vel,
     .ctx = NULL,
   };
