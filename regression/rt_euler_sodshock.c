@@ -1,4 +1,4 @@
-// Sod-type shock tube test, using higher-order (Roe) fluxes, for 5-moment (Euler) equations.
+// Sod-type shock tube test, using higher-order (Roe) fluxes, for the 5-moment (Euler) equations.
 // Input parameters match the initial conditions in Section 2.6.2, with the contact discontinuity placed at x = 0.75 rather than x = 0.5, from the thesis:
 // A. Hakim (2006), "High Resolution Wave Propagation Schemes for Two-Fluid Plasma Simulations",
 // PhD Thesis, University of Washington.
