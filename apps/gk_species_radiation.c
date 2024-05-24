@@ -96,8 +96,11 @@ gk_species_radiation_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s
     //allocate emissivity
     rad->emissivity[i] = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
     rad->emissivity_host[i] = rad->emissivity[i];
+    rad->emissivity_avg = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
+    rad->emissivity_avg_host = rad->emissivity_avg;
     if (app->use_gpu) {
       rad->emissivity_host[i] = mkarr(false, app->confBasis.num_basis, app->local_ext.volume);
+      rad->emissivity_avg_host = mkarr(false, app->confBasis.num_basis, app->local_ext.volume);
     }
   }
   gkyl_release_fit_params(rad_data);
@@ -164,6 +167,7 @@ gk_species_radiation_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s
   // Arrays for emissivity
   rad->emissivity_rhs = mkarr(app->use_gpu, app->basis.num_basis, s->local_ext.volume);
   rad->emissivity_denominator = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
+  rad->total_radiating_n = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
   // allocate M2 for emissivity
   gk_species_moment_init(app, s, &rad->m2, "M2");
   // allocate M1
@@ -197,8 +201,6 @@ gk_species_radiation_moms(gkyl_gyrokinetic_app *app, const struct gk_species *sp
     gkyl_dg_div_op_range(rad->moms[i].mem_geo, app->confBasis, 0, rad->moms[i].marr, 0,
       rad->moms[i].marr, 0, app->gk_geom->jacobgeo, &app->local);
 
-    // struct gkyl_dg_calc_gk_rad_vars **temp=(struct gkyl_dg_calc_gk_rad_vars **)rad->calc_gk_rad_vars[i];
-    //printf("pdim=%d",temp[0]->pdim);
     gkyl_dg_calc_gk_rad_vars_nI_nu_advance(
       (const struct gkyl_dg_calc_gk_rad_vars **)rad->calc_gk_rad_vars[i], 
       &app->local, &species->local, 
@@ -228,7 +230,8 @@ void
 gk_species_radiation_emissivity(gkyl_gyrokinetic_app *app, struct gk_species *species,
   struct gk_rad_drag *rad, const struct gkyl_array *fin[], const struct gkyl_array *fin_neut[])
 {
-
+  gkyl_array_clear(rad->total_radiating_n, 0.0);
+  
   gk_species_moment_calc(&species->m0, species->local, app->local, species->f);
   //Calculate m2
   for (int i=0; i<rad->num_cross_collisions; ++i) {
@@ -265,7 +268,18 @@ gk_species_radiation_emissivity(gkyl_gyrokinetic_app *app, struct gk_species *sp
     gkyl_dg_div_op_range(rad->m2.mem_geo ,app->confBasis, 0, rad->emissivity[i], 0, rad->m2.marr, 0, rad->emissivity_denominator, &app->local);
 
     rad->emissivity[i] = gkyl_array_scale(rad->emissivity[i], -species->info.mass/2.0);
-  }  
+
+    gkyl_array_accumulate(rad->total_radiating_n, 1.0, rad->moms[i].marr);
+  }
+
+  //Calculate average emissivity
+  gk_species_radiation_moms(app, species, rad, fin, fin_neut);
+  gkyl_dg_updater_rad_gyrokinetic_advance(rad->drag_slvr, &species->local, species->f, species->cflrate, rad->emissivity_rhs);
+  gk_species_moment_calc(&rad->m2, species->local, app->local, rad->emissivity_rhs);
+  gkyl_dg_mul_op(app->confBasis, 0, rad->emissivity_denominator, 0, species->m0.marr, 0, rad->total_radiating_n);
+  gkyl_dg_div_op_range(rad->m2.mem_geo ,app->confBasis, 0, rad->emissivity_avg, 0, rad->m2.marr, 0, rad->emissivity_denominator, &app->local);
+
+  rad->emissivity_avg = gkyl_array_scale(rad->emissivity_avg, -species->info.mass/2.0);
 }
 
 void gk_species_radiation_momentum_loss(gkyl_gyrokinetic_app *app, struct gk_species *species,

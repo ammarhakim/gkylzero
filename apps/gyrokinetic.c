@@ -906,6 +906,18 @@ gkyl_gyrokinetic_app_write_rad_emissivity(gkyl_gyrokinetic_app* app, int sidx, d
       gkyl_comm_array_write(app->comm, &app->grid, &app->local, mt, s->rad.emissivity_host[i], fileNm_emissivity);
     }  
   }
+  if (s->rad.num_cross_collisions>1) {
+    // copy data from device to host before writing it out
+    if (app->use_gpu) {
+      gkyl_array_copy(s->rad.emissivity_avg_host, s->rad.emissivity_avg);
+    }
+    // Construct the file handles for emissivity of ith species
+    const char *fmt_emissivity = "%s-%s_emissivity_avg_%d.gkyl";  
+    int sz_emissivity = gkyl_calc_strlen(fmt_emissivity, app->name, s->info.name, frame);
+    char fileNm_emissivity[sz_emissivity+1]; // ensures no buffer overflow
+    snprintf(fileNm_emissivity, sizeof fileNm_emissivity, fmt_emissivity, app->name, s->info.name, frame);
+    gkyl_comm_array_write(app->comm, &app->grid, &app->local, mt, s->rad.emissivity_avg_host, fileNm_emissivity);
+  }
 
   gyrokinetic_array_meta_release(mt);   
 }
