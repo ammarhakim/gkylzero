@@ -5,7 +5,13 @@ void
 gk_species_projection_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s, 
   struct gkyl_gyrokinetic_projection inp, struct gk_proj *proj)
 {
+  // Allocate memoryt for correcting the density.
+  proj->mem = app->use_gpu? gkyl_dg_bin_op_mem_cu_dev_new(app->local.volume, app->confBasis.num_basis)
+                          : gkyl_dg_bin_op_mem_new(app->local.volume, app->confBasis.num_basis);
+  proj->dens_mod = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
+
   proj->proj_id = inp.proj_id;
+
   if (proj->proj_id == GKYL_PROJ_FUNC) {
     proj->proj_func = gkyl_proj_on_basis_inew( &(struct gkyl_proj_on_basis_inp) {
         .grid = &s->grid,
@@ -26,15 +32,9 @@ gk_species_projection_init(struct gkyl_gyrokinetic_app *app, struct gk_species *
     proj->upar = mkarr(false, app->confBasis.num_basis, app->local_ext.volume);
     proj->vtsq = mkarr(false, app->confBasis.num_basis, app->local_ext.volume);
     proj->prim_moms = mkarr(false, 2*app->confBasis.num_basis, app->local_ext.volume);
-    // for correcting the density
-    proj->dens_mod = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
     if (app->use_gpu) {
       proj->prim_moms_dev = mkarr(app->use_gpu, 2*app->confBasis.num_basis, app->local_ext.volume);
       proj->dens_dev = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
-      proj->mem = gkyl_dg_bin_op_mem_cu_dev_new(app->local.volume, app->confBasis.num_basis);
-    }
-    else {
-      proj->mem = gkyl_dg_bin_op_mem_new(app->local.volume, app->confBasis.num_basis);
     }
 
     proj->proj_dens = gkyl_proj_on_basis_new(&app->grid, &app->confBasis,
@@ -81,15 +81,9 @@ gk_species_projection_init(struct gkyl_gyrokinetic_app *app, struct gk_species *
     proj->vtsqpar = mkarr(false, app->confBasis.num_basis, app->local_ext.volume);
     proj->vtsqperp = mkarr(false, app->confBasis.num_basis, app->local_ext.volume);
     proj->prim_moms = mkarr(false, 4*app->confBasis.num_basis, app->local_ext.volume);
-    // for correcting the density
-    proj->dens_mod = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
     if (app->use_gpu) {
       proj->prim_moms_dev = mkarr(app->use_gpu, 4*app->confBasis.num_basis, app->local_ext.volume);
       proj->dens_dev = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
-      proj->mem = gkyl_dg_bin_op_mem_cu_dev_new(app->local.volume, app->confBasis.num_basis);
-    }
-    else {
-      proj->mem = gkyl_dg_bin_op_mem_new(app->local.volume, app->confBasis.num_basis);
     }
 
     proj->proj_dens = gkyl_proj_on_basis_new(&app->grid, &app->confBasis,
@@ -206,6 +200,9 @@ gk_species_projection_calc(gkyl_gyrokinetic_app *app, const struct gk_species *s
 void
 gk_species_projection_release(const struct gkyl_gyrokinetic_app *app, const struct gk_proj *proj)
 {
+  gkyl_dg_bin_op_mem_release(proj->mem);
+  gkyl_array_release(proj->dens_mod); 
+
   if (proj->proj_id == GKYL_PROJ_FUNC) {
     gkyl_proj_on_basis_release(proj->proj_func);
     if (app->use_gpu) {
@@ -216,14 +213,12 @@ gk_species_projection_release(const struct gkyl_gyrokinetic_app *app, const stru
     gkyl_array_release(proj->dens);
     gkyl_array_release(proj->upar); 
     gkyl_array_release(proj->prim_moms);
-    gkyl_array_release(proj->dens_mod); 
     if (app->use_gpu) {
       gkyl_array_release(proj->dens_dev);
       gkyl_array_release(proj->prim_moms_dev);      
     }
     gkyl_proj_on_basis_release(proj->proj_dens);
     gkyl_proj_on_basis_release(proj->proj_upar);
-    gkyl_dg_bin_op_mem_release(proj->mem);
     if (proj->proj_id == GKYL_PROJ_MAXWELLIAN_PRIM) {
       gkyl_array_release(proj->vtsq);
       gkyl_proj_on_basis_release(proj->proj_temp);

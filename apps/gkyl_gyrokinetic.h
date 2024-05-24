@@ -168,6 +168,9 @@ struct gkyl_gyrokinetic_species {
   struct gkyl_gyrokinetic_projection projection;
 
   double polarization_density;
+  bool nG_from_npol; // Use this for a species whose guiding center density,
+                     // nG, should be computed from the polarization density
+                     // minus the density of other species.
 
   bool no_by; // Boolean for whether we are using specialized GK kernels with no b_y.
               // These more computationally efficient kernels are for slab or mirror 
@@ -223,18 +226,22 @@ struct gkyl_gyrokinetic_neut_species {
   enum gkyl_species_bc_type bcx[2], bcy[2], bcz[2];
 };
 
-// Parameter for gk field
+// Parameter for gk field.
 struct gkyl_gyrokinetic_field {
   enum gkyl_gkfield_id gkfield_id;
   double polarization_bmag; 
-  double kperpSq; // kperp^2 parameter for 1D field equations
-  double xLCFS; // radial location of the LCFS.
+  double kperpSq; // kperp^2 parameter for 1D field equations.
+  double xLCFS; // Radial location of the LCFS.
 
-  // parameters for adiabatic electrons simulations
+  // Parameters for adiabatic electron simulations.
   double electron_mass, electron_charge, electron_density, electron_temp;
 
   enum gkyl_fem_parproj_bc_type fem_parbc;
   struct gkyl_poisson_bc poisson_bcs;
+
+  // Initial potential used to compute the total polarization density.
+  void (*polarization_phi)(double t, const double *xn, double *out, void *ctx);
+  void *polarization_phi_ctx;
 
   void *phi_wall_lo_ctx; // context for biased wall potential on lower wall
   // pointer to biased wall potential on lower wall function
@@ -367,6 +374,16 @@ void gkyl_gyrokinetic_app_apply_ic_species(gkyl_gyrokinetic_app* app, int sidx, 
  * @param t0 Time for initial conditions
  */
 void gkyl_gyrokinetic_app_apply_ic_neut_species(gkyl_gyrokinetic_app* app, int sidx, double t0);
+
+/**
+ * Perform part of initialization that depends on the other species being
+ * (partially) initialized.
+ *
+ * @param app App object.
+ * @param sidx Index of species to initialize.
+ * @param t0 Time for initial conditions
+ */
+void gkyl_gyrokinetic_app_apply_ic_cross_species(gkyl_gyrokinetic_app* app, int sidx, double t0);
 
 
 /**
