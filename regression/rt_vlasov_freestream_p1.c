@@ -20,56 +20,65 @@
 
 #include <rt_arg_parse.h>
 
-struct p_perturbation_ctx
+struct freestream_ctx
 {
   // Mathematical constants (dimensionless).
   double pi;
 
   // Physical constants (using normalized code units).
-  double gas_gamma; // Adiabatic idex.
+  double mass; // Neutral mass.
+  double charge; // Neutral charge.
 
-  double rho; // Fluid mass density.
+  double vt; // Thermal velocity.
 
   // Simulation parameters.
   int Nx; // Cell count (configuration space: x-direction).
+  int Nvx; // Cell count (velocity space: vx-direction).
   double Lx; // Domain size (configuration space: x-direction).
+  double vx_max; // Domain boundary (velocity space: vx-direction).
   int poly_order; // Polynomial order.
   double cfl_frac; // CFL coefficient.
 
   double t_end; // Final simulation time.
-  int num_frames; // Number of output frames;
+  int num_frames; // Number of output frames.
   double dt_failure_tol; // Minimum allowable fraction of initial time-step.
   int num_failures_max; // Maximum allowable number of consecutive small time-steps.
 };
 
-struct p_perturbation_ctx
+struct freestream_ctx
 create_ctx(void)
 {
   // Mathematical constants (dimensionless).
   double pi = M_PI;
 
   // Physical constants (using normalized code units).
-  double gas_gamma = 1.4; // Adiabatic index.
+  double mass = 1.0; // Neutral mass.
+  double charge = 0.0; // Neutral charge.
 
-  double rho = 1.0; // Fluid mass density.
+  double vt = 1.0; // Thermal velocity.
 
   // Simulation parameters.
-  int Nx = 512; // Cell count (configuration spcae: x-direction).
+  int Nx = 64; // Cell count (configuration space: x-direction).
+  int Nvx = 32; // Cell count (velocity space: vx-direction).
   double Lx = 2.0 * pi; // Domain size (configuration space: x-direction).
+  double vx_max = 6.0 * vt; // Domain boundary (velocity space: vx-direction).
   int poly_order = 1; // Polynomial order.
-  double cfl_frac = 0.9; // CFL coefficient.
+  double cfl_frac = 1.0; // CFL coefficient.
 
-  double t_end = 2.0; // Final simulation time.
+  double t_end = 20.0; // Final simulation time.
   int num_frames = 1; // Number of output frames.
   double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.
   int num_failures_max = 20; // Maximum allowable number of consecutive small time-steps.
 
-  struct p_perturbation_ctx ctx = {
+  struct freestream_ctx ctx = {
     .pi = pi,
-    .gas_gamma = gas_gamma,
-    .rho = rho,
+    .mass = mass,
+    .charge = charge,
+    .vt = vt,
     .Nx = Nx,
+    .Nvx = Nvx,
     .Lx = Lx,
+    .vx_max = vx_max,
     .poly_order = poly_order,
     .cfl_frac = cfl_frac,
     .t_end = t_end,
@@ -82,22 +91,16 @@ create_ctx(void)
 }
 
 void
-evalEulerInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
+evalNeutInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
 {
-  double x = xn[0];
-  struct p_perturbation_ctx *app = ctx;
+  struct freestream_ctx *app = ctx;
+  double x = xn[0], v = xn[1];
 
-  double gas_gamma = app->gas_gamma;
-  double rho = app->rho;
+  double pi = app->pi;
+  double vt = app->vt;
 
-  double p = 1.0 + 0.01 * sin(x);
-
-  // Set fluid mass density.
-  fout[0] = rho;
-  // Set fluid momentum density.
-  fout[1] = 0.0; fout[2] = 0.0; fout[3] = 0.0;
-  // Set fluid total energy density.
-  fout[4] = p / (gas_gamma - 1.0);
+  // Set neutral distribution function.
+  fout[0] = (cos(x) / sqrt(2.0 * pi * vt * vt)) * exp(-(v * v) / (2.0 * vt * vt));
 }
 
 void
@@ -132,19 +135,10 @@ main(int argc, char **argv)
     gkyl_mem_debug_set(true);
   }
 
-  struct p_perturbation_ctx ctx = create_ctx(); // Context for initialization functions.
+  struct freestream_ctx ctx = create_ctx(); // Context for initialization functions.
 
   int NX = APP_ARGS_CHOOSE(app_args.xcells[0], ctx.Nx);
-
-  // Fluid equations.
-  struct gkyl_wv_eqn *euler = gkyl_wv_euler_new(ctx.gas_gamma, app_args.use_gpu);
-
-  struct gkyl_vlasov_fluid_species fluid = {
-    .name = "euler",
-    .equation = euler,
-    .init = evalEulerInit,
-    .ctx = &ctx,
-  };
+  int NVX = APP_ARGS_CHOOSE(app_args.vcells[0], ctx.Nvx);
 
   int nrank = 1; // Number of processors in simulation.
 #ifdef GKYL_HAVE_MPI
@@ -232,33 +226,47 @@ main(int argc, char **argv)
     goto mpifinalize;
   }
 
+  // Neutral species.
+  struct gkyl_vlasov_species neut = {
+    .name = "neut",
+    .charge = ctx.charge, .mass = ctx.mass,
+    .lower = { -ctx.vx_max },
+    .upper = { ctx.vx_max }, 
+    .cells = { NVX },
+
+    .projection = {
+      .proj_id = GKYL_PROJ_FUNC,
+      .func = evalNeutInit,
+      .ctx_func = &ctx,
+    },
+
+    .num_diag_moments = 3,
+    .diag_moments = { "M0", "M1i", "M2" },
+  };
+
   // Vlasov-Maxwell app.
   struct gkyl_vm app_inp = {
-   .name = "dg_euler_p_perturbation_p1",
+    .name = "vlasov_freestream_p1",
+    
+    .cdim = 1, .vdim = 1,
+    .lower = { 0.0 },
+    .upper = { ctx.Lx },
+    .cells = { NX },
 
-   .cdim = 1, .vdim = 0,
-   .lower = { 0.0 },
-   .upper = { ctx.Lx },
-   .cells = { NX },
+    .poly_order = ctx.poly_order,
+    .basis_type = app_args.basis_type,
+    .cfl_frac = ctx.cfl_frac,
 
-   .poly_order = ctx.poly_order,
-   .basis_type = app_args.basis_type,
-   .cfl_frac = ctx.cfl_frac,
+    .num_periodic_dir = 1,
+    .periodic_dirs = { 0 },
 
-   .num_periodic_dir = 1,
-   .periodic_dirs = { 0 },
+    .num_species = 1,
+    .species = { neut },
+    .skip_field = true,
 
-   .num_species = 0,
-   .species = { },
+    .use_gpu = app_args.use_gpu,
 
-   .num_fluid_species = 1,
-   .fluid_species = { fluid },
-
-   .skip_field = true,
-
-   .use_gpu = app_args.use_gpu,
-
-   .has_low_inp = true,
+    .has_low_inp = true,
     .low_inp = {
       .local_range = decomp->ranges[my_rank],
       .comm = comm
@@ -348,17 +356,15 @@ main(int argc, char **argv)
   gkyl_vlasov_app_cout(app, stdout, "IO time took %g secs \n", stat.io_tm);
 
   // Free resources after simulation completion.
-  gkyl_wv_eqn_release(euler);
   gkyl_rect_decomp_release(decomp);
   gkyl_comm_release(comm);
   gkyl_vlasov_app_release(app);
-
 mpifinalize:
 #ifdef GKYL_HAVE_MPI
   if (app_args.use_mpi) {
     MPI_Finalize();
   }
 #endif
-  
+
   return 0;
 }

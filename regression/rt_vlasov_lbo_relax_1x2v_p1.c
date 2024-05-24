@@ -6,7 +6,6 @@
 #include <gkyl_alloc.h>
 #include <gkyl_vlasov.h>
 #include <gkyl_util.h>
-#include <gkyl_wv_euler.h>
 
 #include <gkyl_null_comm.h>
 
@@ -20,56 +19,100 @@
 
 #include <rt_arg_parse.h>
 
-struct p_perturbation_ctx
+struct lbo_relax_ctx
 {
   // Mathematical constants (dimensionless).
   double pi;
 
   // Physical constants (using normalized code units).
-  double gas_gamma; // Adiabatic idex.
+  double mass; // Top hat/bump mass.
+  double charge; // Top hat/bump charge. 
 
-  double rho; // Fluid mass density.
+  double n0; // Reference number density.
+  double ux0; // Reference velocity (x-direction).
+  double uy0; // Reference velocity (y-direction).
+  double vt; // Top hat Maxwellian thermal velocity.
+  double nu; // Collision frequency.
+
+  double ab; // Bump Maxwellian amplitude.
+  double sb; // Bump Maxwellian softening factor, to avoid divergence.
+  double ubx; // Bump location (x-direction, in velocity space).
+  double uby; // Bump location (y-direction, in velocity space).
+  double vtb; // Bump Maxwellian thermal velocity.
 
   // Simulation parameters.
   int Nx; // Cell count (configuration space: x-direction).
+  int Nvx; // Cell count (velocity space: vx-direction).
+  int Nvy; // Cell count (velocity space: vy-direction).
   double Lx; // Domain size (configuration space: x-direction).
+  double vx_max; // Domain boundary (velocity space: vx-direction).
+  double vy_max; // Domain boundary (velocity space: vy-direction).
   int poly_order; // Polynomial order.
   double cfl_frac; // CFL coefficient.
 
   double t_end; // Final simulation time.
-  int num_frames; // Number of output frames;
+  int num_frames; // Number of output frames.
   double dt_failure_tol; // Minimum allowable fraction of initial time-step.
   int num_failures_max; // Maximum allowable number of consecutive small time-steps.
 };
 
-struct p_perturbation_ctx
+struct lbo_relax_ctx
 create_ctx(void)
 {
   // Mathematical constants (dimensionless).
   double pi = M_PI;
 
   // Physical constants (using normalized code units).
-  double gas_gamma = 1.4; // Adiabatic index.
+  double mass = 1.0; // Top hat/bump mass.
+  double charge = 0.0; // Top hat/bump charge.
 
-  double rho = 1.0; // Fluid mass density.
+  double n0 = 1.0; // Reference number density.
+  double ux0 = 0.0; // Reference velocity (x-direction).
+  double uy0 = 0.0; // Reference velocity (y-direction).
+  double vt = 1.0 / 3.0; // Top hat Maxwellian thermal velocity.
+  double nu = 0.01; // Collision frequency.
+
+  double ab = sqrt(0.1); // Bump Maxwellian amplitude.
+  double sb = 0.12; // Bump Maxwellian softening factor, to avoid divergence.
+  double ubx = 4.0 * sqrt(0.25 / 3.0); // Bump location (x-direction, in velocity space).
+  double uby = 0.0; // Bump location (y-direction, in velocity space).
+  double vtb = 1.0; // Bump Maxwellian thermal velocity.
 
   // Simulation parameters.
-  int Nx = 512; // Cell count (configuration spcae: x-direction).
-  double Lx = 2.0 * pi; // Domain size (configuration space: x-direction).
+  int Nx = 2; // Cell count (configuration space: x-direction).
+  int Nvx = 16; // Cell count (velocity space: vx-direction).
+  int Nvy = 16; // Cell count (velocity space: vy-direction).
+  double Lx = 1.0; // Domain size (configuration space: x-direction).
+  double vx_max = 8.0 * vt; // Domain boundary (velocity space: vx-direction).
+  double vy_max = 8.0 * vt; // Domain boundary (velocity space: vy-direction).
   int poly_order = 1; // Polynomial order.
-  double cfl_frac = 0.9; // CFL coefficient.
+  double cfl_frac = 1.0; // CFL coefficient.
 
-  double t_end = 2.0; // Final simulation time.
+  double t_end = 50.0; // Final simulation time.
   int num_frames = 1; // Number of output frames.
   double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.
   int num_failures_max = 20; // Maximum allowable number of consecutive small time-steps.
-
-  struct p_perturbation_ctx ctx = {
+  
+  struct lbo_relax_ctx ctx = {
     .pi = pi,
-    .gas_gamma = gas_gamma,
-    .rho = rho,
+    .mass = mass,
+    .charge = charge,
+    .n0 = n0,
+    .ux0 = ux0,
+    .uy0 = uy0,
+    .vt = vt,
+    .nu = nu,
+    .ab = ab,
+    .sb = sb,
+    .ubx = ubx,
+    .uby = uby,
+    .vtb = vtb,
     .Nx = Nx,
+    .Nvx = Nvx,
+    .Nvy = Nvy,
     .Lx = Lx,
+    .vx_max = vx_max,
+    .vy_max = vy_max,
     .poly_order = poly_order,
     .cfl_frac = cfl_frac,
     .t_end = t_end,
@@ -82,22 +125,61 @@ create_ctx(void)
 }
 
 void
-evalEulerInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
+evalTopHatInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
 {
-  double x = xn[0];
-  struct p_perturbation_ctx *app = ctx;
+  struct lbo_relax_ctx *app = ctx;
+  double vx = xn[1], vy = xn[2];
+  
+  double n0 = app->n0;
 
-  double gas_gamma = app->gas_gamma;
-  double rho = app->rho;
+  double dist = 0.0;
 
-  double p = 1.0 + 0.01 * sin(x);
+  if(fabs(vx) < 1.0 && fabs(vy) < 1.0) {
+    dist = 0.5 * n0;
+  }
+  else {
+    dist = 0.0;
+  }
 
-  // Set fluid mass density.
-  fout[0] = rho;
-  // Set fluid momentum density.
-  fout[1] = 0.0; fout[2] = 0.0; fout[3] = 0.0;
-  // Set fluid total energy density.
-  fout[4] = p / (gas_gamma - 1.0);
+  // Set distribution function.
+  fout[0] = dist;
+}
+
+void
+evalBumpInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
+{
+  struct lbo_relax_ctx *app = ctx;
+  double vx = xn[1], vy = xn[2];
+
+  double pi = app->pi;
+
+  double n0 = app->n0;
+  double ux0 = app->ux0;
+  double uy0 = app->uy0;
+  double vt = app->vt;
+
+  double ab = app->ab;
+  double sb = app->sb;  
+  double ubx = app->ubx;
+  double uby = app->uby;
+  double vtb = app->vtb;
+
+  double v_sq = ((vx - ux0) * (vx - ux0)) + ((vy - uy0) * (vy - uy0));
+  double vb_sq = ((vx - ubx) * (vx - ubx)) + ((vy - uby) * (vy - uby));
+
+  // Set distribution function.
+  fout[0] = (n0 / sqrt(2.0 * pi * vt * vt)) * exp(-v_sq / (2.0 * vt * vt)) + (n0 / sqrt(2.0 * pi * vtb * vtb)) * exp(-vb_sq / (2.0 * vtb * vtb)) * (ab * ab) / (vb_sq + (sb * sb));
+}
+
+void
+evalNu(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
+{
+  struct lbo_relax_ctx *app = ctx;
+
+  double nu = app->nu;
+
+  // Set collision frequency.
+  fout[0] = nu;
 }
 
 void
@@ -132,19 +214,11 @@ main(int argc, char **argv)
     gkyl_mem_debug_set(true);
   }
 
-  struct p_perturbation_ctx ctx = create_ctx(); // Context for initialization functions.
+  struct lbo_relax_ctx ctx = create_ctx(); // Context for initialization functions.
 
   int NX = APP_ARGS_CHOOSE(app_args.xcells[0], ctx.Nx);
-
-  // Fluid equations.
-  struct gkyl_wv_eqn *euler = gkyl_wv_euler_new(ctx.gas_gamma, app_args.use_gpu);
-
-  struct gkyl_vlasov_fluid_species fluid = {
-    .name = "euler",
-    .equation = euler,
-    .init = evalEulerInit,
-    .ctx = &ctx,
-  };
+  int NVX = APP_ARGS_CHOOSE(app_args.vcells[0], ctx.Nvx);
+  int NVY = APP_ARGS_CHOOSE(app_args.vcells[1], ctx.Nvy);
 
   int nrank = 1; // Number of processors in simulation.
 #ifdef GKYL_HAVE_MPI
@@ -232,33 +306,76 @@ main(int argc, char **argv)
     goto mpifinalize;
   }
 
-  // Vlasov-Maxwell app.
+  // Top hat species.
+  struct gkyl_vlasov_species square = {
+    .name = "square",
+    .charge = ctx.charge, .mass = ctx.mass,
+    .lower = { -ctx.vx_max, -ctx.vy_max },
+    .upper = { ctx.vx_max, ctx.vy_max }, 
+    .cells = { NVX, NVY },
+
+    .projection = {
+      .proj_id = GKYL_PROJ_FUNC,
+      .func = evalTopHatInit,
+      .ctx_func = &ctx,
+    },
+    .collisions =  {
+      .collision_id = GKYL_LBO_COLLISIONS,
+      .self_nu = evalNu,
+      .ctx = &ctx,
+    },
+    
+    .num_diag_moments = 3,
+    .diag_moments = { "M0", "M1i", "M2" },
+  };
+
+  // Bump species.
+  struct gkyl_vlasov_species bump = {
+    .name = "bump",
+    .charge = ctx.charge, .mass = ctx.mass,
+    .lower = { -ctx.vx_max, -ctx.vy_max },
+    .upper = { ctx.vx_max, ctx.vy_max }, 
+    .cells = { NVX, NVY },
+
+    .projection = {
+      .proj_id = GKYL_PROJ_FUNC,
+      .func = evalBumpInit,
+      .ctx_func = &ctx,
+    },
+    .collisions =  {
+      .collision_id = GKYL_LBO_COLLISIONS,
+      .self_nu = evalNu,
+      .ctx = &ctx,
+    },
+    
+    .num_diag_moments = 3,
+    .diag_moments = { "M0", "M1i", "M2" },
+  };
+
+    // Vlasov-Maxwell app.
   struct gkyl_vm app_inp = {
-   .name = "dg_euler_p_perturbation_p1",
+    .name = "vlasov_lbo_relax_1x2v_p1",
 
-   .cdim = 1, .vdim = 0,
-   .lower = { 0.0 },
-   .upper = { ctx.Lx },
-   .cells = { NX },
+    .cdim = 1, .vdim = 2,
+    .lower = { 0.0 },
+    .upper = { ctx.Lx },
+    .cells = { NX },
 
-   .poly_order = ctx.poly_order,
-   .basis_type = app_args.basis_type,
-   .cfl_frac = ctx.cfl_frac,
+    .poly_order = ctx.poly_order,
+    .basis_type = app_args.basis_type,
+    .cfl_frac = ctx.cfl_frac,
 
-   .num_periodic_dir = 1,
-   .periodic_dirs = { 0 },
+    .num_periodic_dir = 1,
+    .periodic_dirs = { 0 },
 
-   .num_species = 0,
-   .species = { },
+    .num_species = 2,
+    .species = { square, bump },
 
-   .num_fluid_species = 1,
-   .fluid_species = { fluid },
+    .skip_field = true,
 
-   .skip_field = true,
+    .use_gpu = app_args.use_gpu,
 
-   .use_gpu = app_args.use_gpu,
-
-   .has_low_inp = true,
+    .has_low_inp = true,
     .low_inp = {
       .local_range = decomp->ranges[my_rank],
       .comm = comm
@@ -348,7 +465,6 @@ main(int argc, char **argv)
   gkyl_vlasov_app_cout(app, stdout, "IO time took %g secs \n", stat.io_tm);
 
   // Free resources after simulation completion.
-  gkyl_wv_eqn_release(euler);
   gkyl_rect_decomp_release(decomp);
   gkyl_comm_release(comm);
   gkyl_vlasov_app_release(app);
@@ -359,6 +475,6 @@ mpifinalize:
     MPI_Finalize();
   }
 #endif
-  
+
   return 0;
 }
