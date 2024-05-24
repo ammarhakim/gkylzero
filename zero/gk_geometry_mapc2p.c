@@ -204,7 +204,8 @@ gkyl_gk_geometry_mapc2p_new(struct gkyl_gk_geometry_inp *geometry_inp)
 
 
   gkyl_range_init_from_shape(&nrange, up->grid.ndim, nodes);
-  struct gkyl_array* mc2p_nodal_fd = gkyl_array_new(GKYL_DOUBLE, up->grid.ndim*13, nrange.volume);
+  int num_fd_nodes = 13;
+  struct gkyl_array* mc2p_nodal_fd = gkyl_array_new(GKYL_DOUBLE, up->grid.ndim*num_fd_nodes, nrange.volume);
   struct gkyl_array* mc2p_nodal = gkyl_array_new(GKYL_DOUBLE, up->grid.ndim, nrange.volume);
   up->mc2p = gkyl_array_new(GKYL_DOUBLE, up->grid.ndim*up->basis.num_basis, up->local_ext.volume);
 
@@ -227,6 +228,7 @@ gkyl_gk_geometry_mapc2p_new(struct gkyl_gk_geometry_inp *geometry_inp)
   up->gyyj= gkyl_array_new(GKYL_DOUBLE, up->basis.num_basis, up->local_ext.volume);
   up->gxzj= gkyl_array_new(GKYL_DOUBLE, up->basis.num_basis, up->local_ext.volume);
   up->eps2= gkyl_array_new(GKYL_DOUBLE, up->basis.num_basis, up->local_ext.volume);
+  up->bmag_mid = gkyl_array_new(GKYL_DOUBLE, 1, 1);
 
   gkyl_gk_geometry_mapc2p_advance(up, &nrange, dzc, geometry_inp->mapc2p, geometry_inp->c2p_ctx, geometry_inp->bmag_func, geometry_inp->bmag_ctx, 
   mc2p_nodal_fd, mc2p_nodal, up->mc2p);

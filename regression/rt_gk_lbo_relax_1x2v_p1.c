@@ -89,7 +89,7 @@ create_ctx(void)
   double vpar_max = 8.0 * vt; // Domain boundary (velocity space: parallel velocity direction).
   double mu_max = 12.0 * (vt * vt) / 2.0 / B0; // Domain boundary (velocity space: magnetic moment direction).
 
-  double t_end = 100.0; // Final simulation time.
+  double t_end = 1.0; // Final simulation time.
   int num_frames = 1; // Number of output frames.
   int int_diag_calc_num = num_frames*100;
   double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.
@@ -368,8 +368,7 @@ main(int argc, char **argv)
       .normNu = false,
       .self_nu = evalNuInit,
       .ctx = &ctx,
-      .num_cross_collisions = 1,
-      .collide_with = { "bump" },
+      .num_cross_collisions = 0,
     },
     
     .num_diag_moments = 7,
@@ -395,8 +394,7 @@ main(int argc, char **argv)
       .normNu = false,
       .self_nu = evalNuInit,
       .ctx = &ctx,
-      .num_cross_collisions = 1,
-      .collide_with = { "square" },
+      .num_cross_collisions = 0,
     },
 
     .num_diag_moments = 7,
@@ -408,8 +406,7 @@ main(int argc, char **argv)
     .gkfield_id = GKYL_GK_FIELD_BOLTZMANN,
     .electron_mass = ctx.mass,
     .electron_charge = ctx.charge,
-    .electron_temp = ctx.vt,
-    .bmag_fac = ctx.B0, 
+    .electron_temp = ctx.vt*ctx.vt*ctx.mass,
     .fem_parbc = GKYL_FEM_PARPROJ_NONE, 
   };
 

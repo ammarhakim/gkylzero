@@ -335,9 +335,8 @@ main(int argc, char **argv)
   );
 #endif
 
-  int my_rank;
+  int my_rank, comm_size;
   gkyl_comm_get_rank(comm, &my_rank);
-  int comm_size;
   gkyl_comm_get_size(comm, &comm_size);
 
   int ncuts = 1;
@@ -378,13 +377,14 @@ main(int argc, char **argv)
     .collisions =  {
       .collision_id = GKYL_LBO_COLLISIONS,
       .normNu = true,
-      .bmag_mid = ctx.B0,
-      .self_nu_fac = ctx.self_nu_fac,
-      .cross_nu_fac = ctx.cross_nu_fac_tophat,
+      .n_ref = ctx.n0, // Density used to calculate couloumb logarithm
+      .T_ref = ctx.vt*ctx.vt*ctx.mass, // Temperature used to claculate coulomb logarithm
+      .hbar = 1.0, // Specify hbar to use normalized units instead of SI units
+      .eps0 = 1.0, // Specify epsilon_0 to use normalized units instead of SI units
+      .eV = 1.0, // Specify electron charge to use normalized units instead of SI units
       .self_nu = evalNuInit,
       .ctx = &ctx,
-      .num_cross_collisions = 1,
-      .collide_with = { "bump" },
+      .num_cross_collisions = 0,
     },
     
     .num_diag_moments = 7,
@@ -408,13 +408,14 @@ main(int argc, char **argv)
     .collisions =  {
       .collision_id = GKYL_LBO_COLLISIONS,
       .normNu = true,
-      .bmag_mid = ctx.B0,
-      .self_nu_fac = ctx.self_nu_fac,
-      .cross_nu_fac = ctx.cross_nu_fac_bump,
+      .n_ref = ctx.n0, // Density used to calculate couloumb logarithm
+      .T_ref = ctx.vt*ctx.vt*ctx.mass, // Temperature used to claculate coulomb logarithm
+      .hbar = 1.0, // Specify hbar to use normalized units instead of SI units
+      .eps0 = 1.0, // Specify epsilon_0 to use normalized units instead of SI units
+      .eV = 1.0, // Specify electron charge to use normalized units instead of SI units
       .self_nu = evalNuInit,
       .ctx = &ctx,
-      .num_cross_collisions = 1,
-      .collide_with = { "square" },
+      .num_cross_collisions = 0,
     },
 
     .num_diag_moments = 7,
@@ -426,8 +427,7 @@ main(int argc, char **argv)
     .gkfield_id = GKYL_GK_FIELD_BOLTZMANN,
     .electron_mass = ctx.mass,
     .electron_charge = ctx.charge,
-    .electron_temp = ctx.vt,
-    .bmag_fac = ctx.B0, 
+    .electron_temp = ctx.vt*ctx.vt*ctx.mass,
     .fem_parbc = GKYL_FEM_PARPROJ_NONE, 
   };
 

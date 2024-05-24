@@ -272,7 +272,7 @@ gkyl_gyrokinetic_app_new(struct gkyl_gk *gk)
   struct gk_geometry* gk_geom_3d;
   switch (geometry_inp.geometry_id) {
     case GKYL_GEOMETRY_FROMFILE:
-      gk_geom_3d = gkyl_gk_geometry_fromfile_new(app->gk_geom, &geometry_inp, false);
+      gk_geom_3d = gkyl_gk_geometry_new(app->gk_geom, &geometry_inp, false);
       break;
     case GKYL_TOKAMAK:
       gk_geom_3d = gkyl_gk_geometry_tok_new(&geometry_inp);
@@ -299,9 +299,15 @@ gkyl_gyrokinetic_app_new(struct gkyl_gk *gk)
 
   gkyl_gk_geometry_release(gk_geom_3d); // release temporary 3d geometry
 
+  gkyl_gk_geometry_bmag_mid(app->gk_geom); // set bmag mid
+  int comm_sz;
+  gkyl_comm_get_size(app->comm, &comm_sz);
+  int bcast_rank = comm_sz/2;
+  gkyl_comm_array_bcast_host(app->comm, app->gk_geom->bmag_mid, app->gk_geom->bmag_mid, bcast_rank);
+  
   // If we are on the gpu, copy from host
   if (app->use_gpu) {
-    struct gk_geometry* gk_geom_dev = gkyl_gk_geometry_fromfile_new(app->gk_geom, &geometry_inp, app->use_gpu);
+    struct gk_geometry* gk_geom_dev = gkyl_gk_geometry_new(app->gk_geom, &geometry_inp, app->use_gpu);
     gkyl_gk_geometry_release(app->gk_geom);
     app->gk_geom = gkyl_gk_geometry_acquire(gk_geom_dev);
     gkyl_gk_geometry_release(gk_geom_dev);
@@ -1286,10 +1292,12 @@ gkyl_gyrokinetic_app_write_mom(gkyl_gyrokinetic_app* app, double tm, int frame)
       snprintf(fileNm, sizeof fileNm, fmt, app->name, app->species[i].info.name,
         app->species[i].info.diag_moments[m], frame);
 
-      // Rescale moment by inverse of Jacobian
-      gkyl_dg_div_op_range(app->species[i].moms[m].mem_geo, app->confBasis, 
-        0, app->species[i].moms[m].marr, 0, app->species[i].moms[m].marr, 0, 
-        app->gk_geom->jacobgeo, &app->local);      
+      // Rescale moment by inverse of Jacobian if not already re-scaled 
+      if (!app->species[i].moms[m].is_bimaxwellian_moms && !app->species[i].moms[m].is_maxwellian_moms) {
+        gkyl_dg_div_op_range(app->species[i].moms[m].mem_geo, app->confBasis, 
+          0, app->species[i].moms[m].marr, 0, app->species[i].moms[m].marr, 0, 
+          app->gk_geom->jacobgeo, &app->local);  
+      }    
 
       if (app->use_gpu) {
         gkyl_array_copy(app->species[i].moms[m].marr_host, app->species[i].moms[m].marr);
@@ -1471,6 +1479,40 @@ gkyl_gyrokinetic_app_write_field_energy(gkyl_gyrokinetic_app* app)
     }
   }
   gkyl_dynvec_clear(app->field->integ_energy);
+}
+
+void
+gkyl_gyrokinetic_app_write_max_corr_status(gkyl_gyrokinetic_app* app)
+{
+  for (int i=0; i<app->num_species; ++i) {
+    struct gk_species *gks = &app->species[i];
+
+    if (gks->collision_id == GKYL_BGK_COLLISIONS) {
+       // write out diagnostic moments
+      const char *fmt = "%s-%s-%s.gkyl";
+      int sz = gkyl_calc_strlen(fmt, app->name, app->species[i].info.name,
+        "corr-max-stat");
+      char fileNm[sz+1]; // ensures no buffer overflow
+      snprintf(fileNm, sizeof fileNm, fmt, app->name, app->species[i].info.name,
+        "corr-max-stat");
+
+      int rank;
+      gkyl_comm_get_rank(app->comm, &rank);
+
+      if (rank == 0) {
+        if (gks->bgk.is_first_corr_status_write_call) {
+          // write to a new file (this ensure previous output is removed)
+          gkyl_dynvec_write(gks->bgk.corr_stat, fileNm);
+          gks->bgk.is_first_corr_status_write_call = false;
+        }
+        else {
+          // append to existing file
+          gkyl_dynvec_awrite(gks->bgk.corr_stat, fileNm);
+        }
+      }
+      gkyl_dynvec_clear(gks->bgk.corr_stat);
+    }
+  } 
 }
 
 void

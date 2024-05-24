@@ -203,17 +203,24 @@ gk_species_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app, struct gk_
   gk_species_projection_init(app, s, s->info.projection, &s->proj_init);
 
   // set species source id
+  s->src = (struct gk_source) { };
   s->source_id = s->info.source.source_id;
   
   // determine collision type to use in gyrokinetic update
   s->collision_id = s->info.collisions.collision_id;
-  if (s->collision_id == GKYL_LBO_COLLISIONS) 
+  s->lbo = (struct gk_lbo_collisions) { };
+  s->bgk = (struct gk_bgk_collisions) { };
+  if (s->collision_id == GKYL_LBO_COLLISIONS) {
     gk_species_lbo_init(app, s, &s->lbo);
-  else if (s->collision_id == GKYL_BGK_COLLISIONS)
+  }
+  else if (s->collision_id == GKYL_BGK_COLLISIONS) {
     gk_species_bgk_init(app, s, &s->bgk);
+  }
 
   s->has_reactions = false;
   s->has_neutral_reactions = false;
+  s->react = (struct gk_react) { };
+  s->react_neut = (struct gk_react) { };
   if (s->info.react.num_react) {
     s->has_reactions = true;
     gk_species_react_init(app, s, s->info.react, &s->react, true);
@@ -224,6 +231,7 @@ gk_species_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app, struct gk_
   }
 
   // determine radiation type to use in gyrokinetic update
+  s->rad = (struct gk_rad_drag) { };
   s->radiation_id = s->info.radiation.radiation_id;
 
   // initialize boundary fluxes for diagnostics and, if present,

@@ -505,7 +505,7 @@ gyrokinetic_field_lw_new(lua_State *L)
 
   gyrokinetic_field.gkfield_id = GKYL_GK_FIELD_ES;  
   
-  gyrokinetic_field.bmag_fac = glua_tbl_get_number(L, "bmag_fac", 1.0);
+  gyrokinetic_field.polarization_bmag = glua_tbl_get_number(L, "polarization_bmag", 1.0);
 
   int phi_wall_lo_ref = LUA_NOREF;
   bool has_phi_wall_lo = false;

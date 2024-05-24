@@ -530,8 +530,12 @@ main(int argc, char **argv)
       .collision_id = GKYL_BGK_COLLISIONS,
       .self_nu = evalNuElcInit,
       .ctx = &ctx,
-      .num_cross_collisions = 1,
-      .collide_with = { "ion" },
+      .correct_all_moms = true,   // 
+      .use_last_converged = true,   //
+      .iter_eps = 1e-12,   //
+      .max_iter = 50,   //
+      //.num_cross_collisions = 1,
+      //.collide_with = { "ion" },
     },
     .source = {
       .source_id = GKYL_PROJ_SOURCE,
@@ -587,8 +591,12 @@ main(int argc, char **argv)
       .collision_id = GKYL_BGK_COLLISIONS,
       .self_nu = evalNuIonInit,
       .ctx = &ctx,
-      .num_cross_collisions = 1,
-      .collide_with = { "elc" },
+      .correct_all_moms = true,   // 
+      .use_last_converged = true,   //
+      .iter_eps = 1e-12,   //
+      .max_iter = 50,   //
+      //.num_cross_collisions = 1,
+      //.collide_with = { "elc" },
     },
     .source = {
       .source_id = GKYL_PROJ_SOURCE,
@@ -624,7 +632,6 @@ main(int argc, char **argv)
 
   // Field.
   struct gkyl_gyrokinetic_field field = {
-    .bmag_fac = ctx.B0,
     .fem_parbc = GKYL_FEM_PARPROJ_NONE,
     .poisson_bcs = {.lo_type = { GKYL_POISSON_DIRICHLET, GKYL_POISSON_DIRICHLET },
                     .up_type = { GKYL_POISSON_DIRICHLET, GKYL_POISSON_DIRICHLET },
