@@ -5,7 +5,7 @@
 #include <gkyl_basis.h>
 
 // Type for storing preallocated memory 
-typedef struct gkyl_mom_cross_bgk_gyrokinetic gkyl_mom_cross_bgk_gyrokinetic;
+typedef struct gkyl_gyrokinetic_cross_prim_moms_bgk gkyl_gyrokinetic_cross_prim_moms_bgk;
 
 /**
  * Allocate memory for use in cross moments calculation.
@@ -14,14 +14,14 @@ typedef struct gkyl_mom_cross_bgk_gyrokinetic gkyl_mom_cross_bgk_gyrokinetic;
  * @param conf_basis Configuration space basis functions
  * @param use_gpu Boolian to determine if on GPU
  */
-gkyl_mom_cross_bgk_gyrokinetic* gkyl_mom_cross_bgk_gyrokinetic_new(
+gkyl_gyrokinetic_cross_prim_moms_bgk* gkyl_gyrokinetic_cross_prim_moms_bgk_new(
   const struct gkyl_basis *phase_basis, const struct gkyl_basis *conf_basis, bool use_gpu);
 
 /**
  * Create new updater to compute cross BGK moments on
  * NV-GPU. See new() method for documentation.
  */
-gkyl_mom_cross_bgk_gyrokinetic* gkyl_mom_cross_bgk_gyrokinetic_cu_dev_new(
+gkyl_gyrokinetic_cross_prim_moms_bgk* gkyl_gyrokinetic_cross_prim_moms_bgk_cu_dev_new(
   const struct gkyl_basis *phase_basis, const struct gkyl_basis *conf_basis);
 
 /**
@@ -38,28 +38,28 @@ gkyl_mom_cross_bgk_gyrokinetic* gkyl_mom_cross_bgk_gyrokinetic_cu_dev_new(
  * @param nu_rs Cross collisionality, other with self
  * @param moms_cross Six output moments
  */
-void gkyl_mom_cross_bgk_gyrokinetic_advance(
-  gkyl_mom_cross_bgk_gyrokinetic *up,
+void gkyl_gyrokinetic_cross_prim_moms_bgk_advance(
+  gkyl_gyrokinetic_cross_prim_moms_bgk *up,
   const struct gkyl_range *conf_rng, double beta,
-  double m_self, const struct gkyl_array *moms_self,
-  double m_other, const struct gkyl_array *moms_other,
+  double m_self, const struct gkyl_array *prim_moms_self,
+  double m_other, const struct gkyl_array *prim_moms_other,
   const struct gkyl_array *nu_sr, const struct gkyl_array *nu_rs, 
-  struct gkyl_array *moms_cross);
+  struct gkyl_array *prim_moms_cross);
 
 /**
  * Release memory needed in the cross moments calculation.
  *
  * @param up Memory to release.
  */
-void gkyl_mom_cross_bgk_gyrokinetic_release(gkyl_mom_cross_bgk_gyrokinetic *up);
+void gkyl_gyrokinetic_cross_prim_moms_bgk_release(gkyl_gyrokinetic_cross_prim_moms_bgk *up);
 
 /**
  * Host-side wrappers for cross BGK moments operations on device
  */
-void gkyl_mom_cross_bgk_gyrokinetic_advance_cu(
-  gkyl_mom_cross_bgk_gyrokinetic *up,
+void gkyl_gyrokinetic_cross_prim_moms_bgk_advance_cu(
+  gkyl_gyrokinetic_cross_prim_moms_bgk *up,
   const struct gkyl_range *conf_rng, double beta,
-  double m_self, const struct gkyl_array *moms_self,
-  double m_other, const struct gkyl_array *moms_other,
+  double m_self, const struct gkyl_array *prim_moms_self,
+  double m_other, const struct gkyl_array *prim_moms_other,
   const struct gkyl_array *nu_sr, const struct gkyl_array *nu_rs, 
-  struct gkyl_array *moms_cross);
+  struct gkyl_array *prim_moms_cross);

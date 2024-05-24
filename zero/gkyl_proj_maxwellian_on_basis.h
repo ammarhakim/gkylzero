@@ -82,8 +82,7 @@ void gkyl_proj_gkmaxwellian_on_basis_lab_mom(const gkyl_proj_maxwellian_on_basis
  * @param pob Project on basis updater to run
  * @param phase_rng Phase-space range
  * @param conf_rng Config-space range
- * @param moms velocity moments (m0, m1i, m2)
- * @param prim_moms (primitive moments upar, vtsq=T/m)
+ * @param prim_moms (primitive moments n, upar, vtsq=T/m)
  * @param bmag Magnetic field magnitude.
  * @param jacob_tot Total jacobian (conf * guiding center jacobian). 
  * @param mass Species mass.
@@ -91,7 +90,7 @@ void gkyl_proj_gkmaxwellian_on_basis_lab_mom(const gkyl_proj_maxwellian_on_basis
  */
 void gkyl_proj_gkmaxwellian_on_basis_prim_mom(const gkyl_proj_maxwellian_on_basis *up,
   const struct gkyl_range *phase_rng, const struct gkyl_range *conf_rng,
-  const struct gkyl_array *moms, const struct gkyl_array *prim_moms,
+  const struct gkyl_array *prim_moms,
   const struct gkyl_array *bmag, const struct gkyl_array *jacob_tot, double mass,
   struct gkyl_array *fmax);
 

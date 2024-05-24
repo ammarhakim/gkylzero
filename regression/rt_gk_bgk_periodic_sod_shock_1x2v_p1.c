@@ -21,27 +21,19 @@
 
 #include <rt_arg_parse.h>
 
-struct lbo_relax_ctx
+struct bgk_relax_ctx
 {
   // Mathematical constants (dimensionless).
   double pi;
 
   // Physical constants (using normalized code units).
-  double mass; // Top hat/bump mass.
-  double charge; // Top hat/bump charge.
+  double mass; // Species mass.
+  double charge; // Species charge.
 
   double B0; // Reference magnetic field strength.
   double n0; // Reference number density.
-  double u0; // Reference velocity.
-  double vt; // Top hat thermal velocity.
+  double vt; // Reference thermal velocity.
   double nu; // Collision frequency.
-
-  double ab; // Bump Maxwellian amplitude.
-  double sb; // Bump Maxwellian softening factor, to avoid divergence.
-  double vtb; // Bump Maxwellian thermal velocity.
-
-  // Derived physical quantities (using normalized code units).
-  double ub; // Bump location (in velocity space).
 
   // Simulation parameters.
   int Nz; // Cell count (configuration space: z-direction).
@@ -58,56 +50,43 @@ struct lbo_relax_ctx
   int num_failures_max; // Maximum allowable number of consecutive small time-steps.
 };
 
-struct lbo_relax_ctx
+struct bgk_relax_ctx
 create_ctx(void)
 {
   // Mathematical constants (dimensionless).
   double pi = M_PI;
 
   // Physical constants (using normalized code units).
-  double mass = 1.0; // Top hat/bump mass.
-  double charge = 1.0; // Top hat/bump charge.
+  double mass = 1.0; // Species mass.
+  double charge = 1.0; // Species charge.
 
   double B0 = 1.0; // Reference magnetic field strength.
   double n0 = 1.0; // Reference number density.
-  double u0 = 0.0; // Reference velocity.
-  double vt = 1.0 / 3.0; // Top hat Maxwellian thermal velocity.
-  double nu = 0.01; // Collision frequency.
-
-  double ab = sqrt(0.1); // Bump Maxwellian amplitude.
-  double sb = 0.12; // Bump Maxwellian softening factor, to avoid divergence.
-  double vtb = 1.0; // Bump Maxwellian thermal velocity.
-
-  // Derived physical quantities (using normalized code units).
-  double ub = 4.0 * sqrt(((3.0 * vt / 2.0) * (3.0 * vt / 2.0)) / 3.0); // Bump location (in velocity space).
+  double vt = 1.0; // Reference thermal velocity. 
+  double nu = 100.0; // Collision frequency.
 
   // Simulation parameters.
-  int Nz = 2; // Cell count (configuration space: z-direction).
-  int Nvpar = 32; // Cell count (velocity space: parallel velocity direction).
+  int Nz = 128; // Cell count (configuration space: z-direction).
+  int Nvpar = 16; // Cell count (velocity space: parallel velocity direction).
   int Nmu = 16; // Cell count (velocity space: magnetic moment direction).
   double Lz = 1.0; // Domain size (configuration space: z-direction).
-  double vpar_max = 8.0 * vt; // Domain boundary (velocity space: parallel velocity direction).
-  double mu_max = 12.0 * (vt * vt) / 2.0 / B0; // Domain boundary (velocity space: magnetic moment direction).
+  double vpar_max = 6.0 * vt; // Domain boundary (velocity space: parallel velocity direction).
+  double mu_max = 18.0 * (vt * vt) / 2.0 / B0; // Domain boundary (velocity space: magnetic moment direction).
 
-  double t_end = 1.0; // Final simulation time.
+  double t_end = 0.1; // Final simulation time.
   int num_frames = 1; // Number of output frames.
   int int_diag_calc_num = num_frames*100;
   double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.
   int num_failures_max = 20; // Maximum allowable number of consecutive small time-steps.
   
-  struct lbo_relax_ctx ctx = {
+  struct bgk_relax_ctx ctx = {
     .pi = pi,
     .mass = mass,
     .charge = charge,
     .B0 = B0,
     .n0 = n0,
-    .u0 = u0,
-    .vt = vt,
-    .nu = nu,
-    .ab = ab,
-    .sb = sb,
-    .vtb = vtb,
-    .ub = ub,
+    .vt = vt, 
+    .nu = nu, 
     .Nz = Nz,
     .Nvpar = Nvpar,
     .Nmu = Nmu,
@@ -125,59 +104,43 @@ create_ctx(void)
 }
 
 void
-evalTopHatInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
+evalDensityInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
 {
-  struct lbo_relax_ctx *app = ctx;
-  double v = xn[1];
-
-  double n0 = app->n0;
-  double vt = app->vt;
-
-  double v0 = sqrt(3.0) * vt;
-
-  double dist = 0.0;
-
-  if (fabs(v) < v0) {
-    dist = n0 / 2.0 / v0;
+  struct vlasov_sod_shock_ctx *app = ctx;
+  double x = xn[0];
+  if (fabs(x)<0.5) {
+    fout[0] = 1.0;
   }
   else {
-    dist = 0.0;
+    fout[0] = 0.125;
   }
-
-  // Set distribution function.
-  fout[0] = dist;
 }
 
 void
-evalBumpInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
+evalUparInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
 {
-  struct lbo_relax_ctx *app = ctx;
-  double v = xn[1], mu = xn[2];
+  struct vlasov_sod_shock_ctx *app = ctx;
+  double x = xn[0];
+  fout[0] = 0.0;
+}
 
-  double pi = app->pi;
-
-  double B0 = app->B0;
-  double n0 = app->n0;
-  double u0 = app->u0;
-  double vt = app->vt;
-
-  double ab = app->ab;
-  double sb = app->sb;
-  double vtb = app->vtb;
-
-  double ub = app->ub;
-
-  double v_sq = ((v - u0) / (sqrt(2.0) * vt)) * ((v - u0) / (sqrt(2.0) * vt)) + mu * B0;
-  double vb_sq = ((v - u0) / (sqrt(2.0) * vtb)) * ((v - u0) / (sqrt(2.0) * vtb)) + mu * B0;
-
-  // Set distribution function.
-  fout[0] = (n0 / sqrt(2.0 * pi * vt)) * exp(-v_sq) + (n0 / sqrt(2.0 * pi * vtb)) * exp(-vb_sq) * (ab * ab) / ((v - ub) * (v - ub) + sb * sb);
+void
+evalTempInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
+{
+  struct vlasov_sod_shock_ctx *app = ctx;
+  double x = xn[0];
+  if (fabs(x)<0.5) {
+    fout[0] = 1.0;
+  }
+  else {
+    fout[0] = sqrt(0.1/0.125);
+  }
 }
 
 void
 evalNuInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
 {
-  struct lbo_relax_ctx *app = ctx;
+  struct bgk_relax_ctx *app = ctx;
 
   double nu = app->nu;
 
@@ -195,7 +158,7 @@ mapc2p(double t, const double* GKYL_RESTRICT zc, double* GKYL_RESTRICT xp, void*
 void
 bmag_func(double t, const double* GKYL_RESTRICT zc, double* GKYL_RESTRICT fout, void* ctx)
 {
-  struct lbo_relax_ctx *app = ctx;
+  struct bgk_relax_ctx *app = ctx;
   
   double B0 = app->B0;
 
@@ -215,9 +178,8 @@ calc_integrated_diagnostics(struct gkyl_tm_trigger* iot, gkyl_gyrokinetic_app* a
 void
 write_data(struct gkyl_tm_trigger* iot, gkyl_gyrokinetic_app* app, double t_curr, bool force_write)
 {
-  bool trig_now = gkyl_tm_trigger_check_and_bump(iot, t_curr);
-  if (trig_now || force_write) {
-    int frame = (!trig_now) && force_write? iot->curr : iot->curr-1;
+  if (gkyl_tm_trigger_check_and_bump(iot, t_curr) || force_write) {
+    int frame = force_write? iot->curr : iot->curr -1;
 
     gkyl_gyrokinetic_app_write(app, t_curr, frame);
 
@@ -249,7 +211,7 @@ main(int argc, char **argv)
     gkyl_mem_debug_set(true);
   }
 
-  struct lbo_relax_ctx ctx = create_ctx(); // Context for initialization functions.
+  struct bgk_relax_ctx ctx = create_ctx(); // Context for initialization functions.
 
   int NZ = APP_ARGS_CHOOSE(app_args.xcells[0], ctx.Nz);
   int NVPAR = APP_ARGS_CHOOSE(app_args.vcells[0], ctx.Nvpar);
@@ -349,9 +311,9 @@ main(int argc, char **argv)
     }
   }
 
-  // Top hat species.
-  struct gkyl_gyrokinetic_species square = {
-    .name = "square",
+  // GK species (neutrals).
+  struct gkyl_gyrokinetic_species neut = {
+    .name = "neut",
     .charge = ctx.charge, .mass = ctx.mass,
     .lower = { -ctx.vpar_max, 0.0 },
     .upper = { ctx.vpar_max, ctx.mu_max }, 
@@ -359,46 +321,29 @@ main(int argc, char **argv)
     .polarization_density = ctx.n0,
 
     .projection = {
-      .proj_id = GKYL_PROJ_FUNC,
-      .func = evalTopHatInit,
-      .ctx_func = &ctx,
+      .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM,
+      .density = evalDensityInit,
+      .ctx_density = &ctx,
+      .upar = evalUparInit,
+      .ctx_upar = &ctx,
+      .temp = evalTempInit,
+      .ctx_temp = &ctx,
+      .correct_all_moms = true, 
     },
+
     .collisions =  {
-      .collision_id = GKYL_LBO_COLLISIONS,
+      .collision_id = GKYL_BGK_COLLISIONS,
       .normNu = false,
       .self_nu = evalNuInit,
-      .ctx = &ctx,
-      .num_cross_collisions = 0,
-    },
-    
-    .num_diag_moments = 7,
-    .diag_moments = { "M0", "M1", "M2", "M2par", "M2perp", "M3par", "M3perp" },
-  };
-
-  // Bump species.
-  struct gkyl_gyrokinetic_species bump = {
-    .name = "bump",
-    .charge = ctx.charge, .mass = ctx.mass,
-    .lower = { -ctx.vpar_max, 0.0 },
-    .upper = { ctx.vpar_max, ctx.mu_max }, 
-    .cells = { NVPAR, NMU },
-    .polarization_density = ctx.n0,
-
-    .projection = {
-      .proj_id = GKYL_PROJ_FUNC,
-      .func = evalBumpInit,
-      .ctx_func = &ctx,
-    },
-    .collisions =  {
-      .collision_id = GKYL_LBO_COLLISIONS,
-      .normNu = false,
-      .self_nu = evalNuInit,
-      .ctx = &ctx,
-      .num_cross_collisions = 0,
+      .ctx = &ctx, 
+      .correct_all_moms = true, 
+      .use_last_converged = true, 
+      .iter_eps = 1e-12,
+      .max_iter = 10,
     },
 
-    .num_diag_moments = 7,
-    .diag_moments = { "M0", "M1", "M2", "M2par", "M2perp", "M3par", "M3perp" },
+    .num_diag_moments = 6,
+    .diag_moments = { "M0", "M1", "M2", "M2par", "M2perp", "MaxwellianMoments" },
   };
 
   // Field.
@@ -406,16 +351,16 @@ main(int argc, char **argv)
     .gkfield_id = GKYL_GK_FIELD_BOLTZMANN,
     .electron_mass = ctx.mass,
     .electron_charge = ctx.charge,
-    .electron_temp = ctx.vt*ctx.vt*ctx.mass,
+    .electron_temp = ctx.vt,
     .fem_parbc = GKYL_FEM_PARPROJ_NONE, 
   };
 
   // GK app.
   struct gkyl_gk app_inp = {
-    .name = "gk_lbo_relax_1x2v_p1",
+    .name = "gk_bgk_periodic_sod_shock_1x2v_p1",
 
     .cdim = 1, .vdim = 2,
-    .lower = { 0.0 },
+    .lower = { -ctx.Lz },
     .upper = { ctx.Lz },
     .cells = { NZ },
     .poly_order = 1,
@@ -432,8 +377,8 @@ main(int argc, char **argv)
     .num_periodic_dir = 1,
     .periodic_dirs = { 0 },
 
-    .num_species = 2,
-    .species = { square, bump },
+    .num_species = 1,
+    .species = { neut },
     .skip_field = true,
     .field = field,
 
@@ -446,41 +391,19 @@ main(int argc, char **argv)
     }
   };
 
-
-
   // Create app object.
   gkyl_gyrokinetic_app *app = gkyl_gyrokinetic_app_new(&app_inp);
 
   // Initial and final simulation times.
-  int frame_curr = 0;
   double t_curr = 0.0, t_end = ctx.t_end;
-  // Initialize simulation.
-  if (app_args.is_restart) {
-    struct gkyl_app_restart_status status = gkyl_gyrokinetic_app_read_from_frame(app, app_args.restart_frame);
-
-    if (status.io_status != GKYL_ARRAY_RIO_SUCCESS) {
-      gkyl_gyrokinetic_app_cout(app, stderr, "*** Failed to read restart file! (%s)\n",
-        gkyl_array_rio_status_msg(status.io_status));
-      goto freeresources;
-    }
-
-    frame_curr = status.frame;
-    t_curr = status.stime;
-
-    gkyl_gyrokinetic_app_cout(app, stdout, "Restarting from frame %d", frame_curr);
-    gkyl_gyrokinetic_app_cout(app, stdout, " at time = %g\n", t_curr);
-  }
-  else {
-    gkyl_gyrokinetic_app_apply_ic(app, t_curr);
-  }  
 
   // Create triggers for IO.
   int num_frames = ctx.num_frames, num_int_diag_calc = ctx.int_diag_calc_num;
-  struct gkyl_tm_trigger trig_write = { .dt = t_end/num_frames, .tcurr = t_curr, .curr = frame_curr };
-  struct gkyl_tm_trigger trig_calc_intdiag = { .dt = t_end/GKYL_MAX2(num_frames, num_int_diag_calc),
-    .tcurr = t_curr, .curr = frame_curr };
+  struct gkyl_tm_trigger trig_calc_intdiag = { .dt = t_end/GKYL_MAX2(num_frames, num_int_diag_calc) };
+  struct gkyl_tm_trigger trig_write = { .dt = t_end/num_frames };
 
-  // Write out ICs (if restart, it overwrites the restart frame).
+  // Initialize simulation.
+  gkyl_gyrokinetic_app_apply_ic(app, t_curr);
   calc_integrated_diagnostics(&trig_calc_intdiag, app, t_curr, false);
   write_data(&trig_write, app, t_curr, false);
 
@@ -505,8 +428,8 @@ main(int argc, char **argv)
     t_curr += status.dt_actual;
     dt = status.dt_suggested;
 
-    calc_integrated_diagnostics(&trig_calc_intdiag, app, t_curr, t_curr > t_end);
-    write_data(&trig_write, app, t_curr, t_curr > t_end);
+    calc_integrated_diagnostics(&trig_calc_intdiag, app, t_curr, false);
+    write_data(&trig_write, app, t_curr, false);
 
     if (dt_init < 0.0) {
       dt_init = status.dt_actual;
@@ -532,6 +455,9 @@ main(int argc, char **argv)
     step += 1;
   }
 
+  calc_integrated_diagnostics(&trig_calc_intdiag, app, t_curr, false);
+  write_data(&trig_write, app, t_curr, false);
+  gkyl_gyrokinetic_app_write_max_corr_status(app); // write out statistics on BGK correction
   gkyl_gyrokinetic_app_stat_write(app);
   
   struct gkyl_gyrokinetic_stat stat = gkyl_gyrokinetic_app_stat(app);
@@ -554,7 +480,6 @@ main(int argc, char **argv)
   gkyl_gyrokinetic_app_cout(app, stdout, "Number of write calls %ld,\n", stat.nio);
   gkyl_gyrokinetic_app_cout(app, stdout, "IO time took %g secs \n", stat.io_tm);
 
-  freeresources:
   // Free resources after simulation completion.
   gkyl_gyrokinetic_app_release(app);
   gkyl_rect_decomp_release(decomp);

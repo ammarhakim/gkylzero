@@ -21,7 +21,7 @@
 
 #include <rt_arg_parse.h>
 
-struct lapd_cart_ctx
+struct cross_relax_ctx
 {
   // Mathematical constants (dimensionless).
   double pi;
@@ -33,40 +33,34 @@ struct lapd_cart_ctx
   double mass_ion; // Proton mass.
   double charge_ion; // Proton charge.
 
-  double Te; // Electron temperature.
-  double Ti; // Ion temperature.
   double B0; // Reference magnetic field strength (Tesla).
   double n0; // Reference number density (1 / m^3).
-
-  double nu_frac; // Collision frequency fraction.
+  double Te; // Electron temperature.
+  double Ti; // Ion temperature.
+  double alpha; //Ratio of perpendicular to parallel temperature.
+  double TePar;
+  double TePerp;
+  double TiPar;
+  double TiPerp;
+  double TeIC; // IC elctron temperature.
+  double TiIC; // IC ion temperature.
 
   double log_lambda_elc; // Electron Coulomb logarithm.
   double log_lambda_ion; // Ion Coulomb logarithm.
   double nu_elc; // Electron collision frequency.
   double nu_ion; // Ion collision frequency.
 
-  double c_s; // Sound speed.
   double vte; // Electron thermal velocity.
   double vti; // Ion thermal velocity.
-  double omega_ci; // Ion cyclotron frequency.
-  double rho_s; // Ion-sound gyroradius.
-
-  double Te_src; // Source electron temperature.
-  double r_src; // Source radial extent.
-  double L_src; // Source length.
-  double S0; // Source reference number density.
-  double floor_src; // Minimum source intensity;
+  double vteIC; // IC electron thermal velocity.
+  double vtiIC; // IC ion thermal velocity.
+  double uPare; // Electron drift velocity.
+  double uPari; // Ion drift velocity.
 
   // Simulation parameters.
   int Nx; // Cell count (configuration space: x-direction).
-  int Ny; // Cell count (configuration space: y-direction).
-  int Nz; // Cell count (configuration space: z-direction).
-  int Nv; // Cell count (velocity space: parallel velocity direction).
+  int Nvpar; // Cell count (velocity space: parallel velocity direction).
   int Nmu; // Cell count (velocity space: magnetic moment direction).
-  double Lx; // Domain size (configuration space: x-direction).
-  double Ly; // Domain size (configuration space: y-direction).
-  double Lz; // Domain size (configuration space: z-direction).
-  double L_perp; // Perpendicular length of domain.
   double vpar_max_elc; // Domain boundary (electron velocity space: parallel velocity direction).
   double mu_max_elc; // Domain boundary (electron velocity space: magnetic moment direction).
   double vpar_max_ion; // Domain boundary (ion velocity space: parallel velocity direction).
@@ -79,7 +73,7 @@ struct lapd_cart_ctx
   int num_failures_max; // Maximum allowable number of consecutive small time-steps.
 };
 
-struct lapd_cart_ctx
+struct cross_relax_ctx
 create_ctx(void)
 {
   // Mathematical constants (dimensionless).
@@ -87,96 +81,86 @@ create_ctx(void)
 
   // Physical constants (using non-normalized physical units).
   double epsilon0 = GKYL_EPSILON0; // Permittivity of free space.
-  double mass_elc = GKYL_PROTON_MASS * 3.973 / 400.0; // Electron mass.
+  double mass_elc = GKYL_ELECTRON_MASS; // Electron mass.
   double charge_elc = -GKYL_ELEMENTARY_CHARGE; // Electron charge.
-  double mass_ion = 3.973 * GKYL_PROTON_MASS; // Proton mass.
+  double mass_ion = 2.014 * GKYL_PROTON_MASS; // Deuterium ion mass.
   double charge_ion = GKYL_ELEMENTARY_CHARGE; // Proton charge.
 
-  double Te = 6.0 * GKYL_ELEMENTARY_CHARGE; // Electron temperature.
-  double Ti = 1.0 * GKYL_ELEMENTARY_CHARGE; // Ion temperature.
-  double B0 = 0.0398; // Reference magnetic field strength (Tesla).
-  double n0 = 2.0e18; //  Reference number density (1 / m^3).
-
-  double nu_frac = 0.1; // Collision frequency fraction.
+  double B0 = 1.0; // Reference magnetic field strength (Tesla).
+  double n0 = 7.0e19; //  Reference number density (1 / m^3).
+  double Te = 300.0 * GKYL_ELEMENTARY_CHARGE; // Electron temperature.
+  double Ti = 200.0 * GKYL_ELEMENTARY_CHARGE; // Ion temperature.
+  double alpha = 1.3; //Ratio of perpendicular to parallel temperature.
+  double TePar = Te;
+  double TePerp = alpha*Te;
+  double TiPar = Ti;
+  double TiPerp = alpha*Ti;
+  double TeIC = (2.0*TePerp+TePar)/3.0;
+  double TiIC = (2.0*TiPerp+TiPar)/3.0;
 
   // Coulomb logarithms.
   double log_lambda_elc = 6.6 - 0.5 * log(n0 / 1.0e20) + 1.5 * log(Te / charge_ion);
   double log_lambda_ion = 6.6 - 0.5 * log(n0 / 1.0e20) + 1.5 * log(Ti / charge_ion);
 
   // Collision frequencies.
-  double nu_elc = nu_frac * log_lambda_elc * pow(charge_ion,4) * n0 /
+  double nu_elc = log_lambda_elc * pow(charge_ion,4) * n0 /
     (6.0 * sqrt(2.0) * pow(pi,3.0/2.0) * pow(epsilon0,2) * sqrt(mass_elc) * pow(Te,3.0/2.0));
-  double nu_ion = nu_frac * log_lambda_ion * pow(charge_ion,4) * n0 /
+  double nu_ion = log_lambda_ion * pow(charge_ion,4) * n0 /
     (12.0 * pow(pi,3.0/2.0) * pow(epsilon0,2) * sqrt(mass_ion) * pow(Ti,3.0/2.0));
   
-  double c_s = sqrt(Te / mass_ion); // Sound speed.
   double vte = sqrt(Te / mass_elc); // Electron thermal velocity.
   double vti = sqrt(Ti / mass_ion); // Ion thermal velocity.
-  double omega_ci = fabs(charge_ion * B0 / mass_ion); // Ion cyclotron frequency.
-  double rho_s = c_s / omega_ci; // Ion-sound gyroradius.
-
-  double Te_src = 2.0 * Te; // Source electron temperature.
-  double r_src = 20.0 * rho_s; // Source radial extent.
-  double L_src = 0.5 * rho_s; // Source length.
-  double S0 = 1.08 * n0 * c_s * (36.0 * 40.0 * rho_s); // Source reference number density.
-  double floor_src = 0.01; // Minimum source intensity.
+  double vteIC = sqrt(TeIC / mass_elc); // IC electron thermal velocity.
+  double vtiIC = sqrt(TiIC / mass_ion); // IC ion thermal velocity.
+  double uPare = 0.5*sqrt(mass_elc/mass_ion)*vteIC; // Electron drift velocity.
+  double uPari = 50.0*(mass_elc/mass_ion)*vtiIC; // Ion drift velocity.
 
   // Simulation parameters.
-  int Nx = 18; // Cell count (configuration space: x-direction).
-  int Ny = 18; // Cell count (configuration space: y-direction).
-  int Nz = 10; // Cell count (configuration space: z-direction).
-  int Nv = 10; // Cell count (velocity space: parallel velocity direction).
-  int Nmu = 5; // Cell count (velocity space: magnetic moment direction).
-  double Lx = 100.0 * rho_s; // Domain size (configuration space: x-direction).
-  double Ly = 100.0 * rho_s; // Domain size (configuration space: y-direction).
-  double Lz = 36.0 *  40.0 * rho_s; // Domain size (configuration space: z-direction).
-  double L_perp = Lx; // Perpendicular length of domain.
-  double vpar_max_elc = 4.0 * vte; // Domain boundary (electron velocity space: parallel velocity direction).
-  double mu_max_elc = (3.0 / 2.0) * 0.5 * mass_elc * pow(4.0 * vte,2) / (2.0 * B0); // Domain boundary (electron velocity space: magnetic moment direction).
-  double vpar_max_ion = 4.0 * vti; // Domain boundary (ion velocity space: parallel velocity direction).
-  double mu_max_ion = (3.0 / 2.0) * 0.5 * mass_ion * pow(4.0 * vti,2) / (2.0 * B0); // Domain boundary (ion velocity space: magnetic moment direction).
+  int Nx = 1; // Cell count (configuration space: x-direction).
+  int Nvpar = 16; // Cell count (velocity space: parallel velocity direction).
+  int Nmu = 16; // Cell count (velocity space: magnetic moment direction).
+  double vpar_max_elc = 5.0 * vte; // Domain boundary (electron velocity space: parallel velocity direction).
+  double mu_max_elc = mass_elc * pow(5.0*vte,2) / (2.0*B0); // Domain boundary (electron velocity space: magnetic moment direction).
+  double vpar_max_ion = 5.0 * vti; // Domain boundary (ion velocity space: parallel velocity direction).
+  double mu_max_ion = mass_ion * pow(5.0*vti,2) / (2.0*B0); // Domain boundary (ion velocity space: magnetic moment direction).
 
-  double t_end = 5.0e-7; // Final simulation time.
-  int num_frames = 1; // Number of output frames.
+  double t_end = 0.1/nu_ion; // Final simulation time.
+  int num_frames = 10; // Number of output frames.
   int int_diag_calc_num = num_frames*100;
   double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.
   int num_failures_max = 20; // Maximum allowable number of consecutive small time-steps.
   
-  struct lapd_cart_ctx ctx = {
+  struct cross_relax_ctx ctx = {
     .pi = pi,
     .epsilon0 = epsilon0,
     .mass_elc = mass_elc,
     .charge_elc = charge_elc,
     .mass_ion = mass_ion,
     .charge_ion = charge_ion,
-    .Te = Te,
-    .Ti = Ti,
     .B0 = B0,
     .n0 = n0,
-    .nu_frac = nu_frac,
+    .Te = Te,
+    .Ti = Ti, 
+    .alpha = alpha, 
+    .TePar = TePar,
+    .TePerp = TePerp,
+    .TiPar = TiPar,
+    .TiPerp = TiPerp,
+    .TeIC = TeIC, 
+    .TiIC = TiIC, 
     .log_lambda_elc = log_lambda_elc,
     .nu_elc = nu_elc,
     .log_lambda_ion = log_lambda_ion,
     .nu_ion = nu_ion,
-    .c_s = c_s,
     .vte = vte,
     .vti = vti,
-    .omega_ci = omega_ci,
-    .rho_s = rho_s,
-    .Te_src = Te_src,
-    .r_src = r_src,
-    .L_src = L_src,
-    .S0 = S0,
-    .floor_src = floor_src,
+    .vteIC = vteIC,
+    .vtiIC = vtiIC,
+    .uPare = uPare,
+    .uPari = uPari,
     .Nx = Nx,
-    .Ny = Ny,
-    .Nz = Nz,
-    .Nv = Nv,
+    .Nvpar = Nvpar,
     .Nmu = Nmu,
-    .Lx = Lx,
-    .Ly = Ly,
-    .Lz = Lz,
-    .L_perp = L_perp,
     .vpar_max_elc = vpar_max_elc,
     .mu_max_elc = mu_max_elc,
     .vpar_max_ion = vpar_max_ion,
@@ -192,137 +176,66 @@ create_ctx(void)
 }
 
 void
-evalDensityInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
+eval_density_elc(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
-  struct lapd_cart_ctx *app = ctx;
-  double x = xn[0], y = xn[1];
-
-  double n0 = app->n0;
-  double L_perp = app->L_perp;
-
-  double r = sqrt(x * x + y * y);
-
-  pcg32_random_t rng = gkyl_pcg32_init(0);
-  double perturb = 2.0e-3 * (1.0 - 0.5 * gkyl_pcg32_rand_double(&rng));
-
-  double n = 0.0;
-
-  if (r < 0.5 * L_perp) {
-    n = ((1.0 - (1.0 / 20.0)) * pow(1.0 - (r / (0.5 * L_perp)) * (r / (0.5 * L_perp)), 3.0) + (1.0 / 20.0)) * n0 * (1.0 + perturb);
-  }
-  else {
-    n = (1.0 / 20.0) * n0 * (1.0 + perturb);
-  }
-
-  // Set number density.
+  struct cross_relax_ctx *app = ctx;
+  double n = app->n0;
   fout[0] = n;
 }
-
 void
-evalUparInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
+eval_upar_elc(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
-  // Set parallel velocity.
-  fout[0] = 0.0;
+  struct cross_relax_ctx *app = ctx;
+  double uPar = app->uPare;
+  fout[0] = uPar;
 }
-
 void
-evalTempElcInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
+eval_temp_par_elc(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
-  struct lapd_cart_ctx *app = ctx;
-  double x = xn[0], y = xn[1];
-
-  double Te = app->Te;
-  double L_perp = app->L_perp;
-
-  double r = sqrt(x * x + y * y);
-
-  double T = 0.0;
-
-  if (r < 0.5 * L_perp) {
-    T = ((1.0 - (1.0 / 5.0)) * pow(1.0 - (r / (0.5 * L_perp)) * (r / (0.5 * L_perp)), 3.0) + (1.0 / 5.0)) * Te;
-  }
-  else {
-    T = (1.0 / 5.0) * Te;
-  }
-
-  // Set electron temperature.
-  fout[0] = T;
+  struct cross_relax_ctx *app = ctx;
+  double Tpar = app->TePar;
+  fout[0] = Tpar;
 }
-
 void
-evalTempIonInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
+eval_temp_perp_elc(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
-  struct lapd_cart_ctx *app = ctx;
-
-  double Ti = app->Ti;
-
-  // Set ion temperature.
-  fout[0] = Ti;
+  struct cross_relax_ctx *app = ctx;
+  double Tperp = app->TePerp;
+  fout[0] = Tperp;
 }
-
 void
-evalSourceDensityInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
+eval_density_ion(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
-  struct lapd_cart_ctx *app = ctx;
-  double x = xn[0], y = xn[1];
-
-  double r_src = app->r_src;
-  double L_src = app->L_src;
-  double S0 = app->S0;
-  double floor_src = app->floor_src;
-
-  double r = sqrt(x * x + y * y);
-
-  // Set source number density.
-  fout[0] = S0 * (floor_src + (1.0 - floor_src) * 0.5 * (1.0 - tanh((r - r_src) / L_src)));
+  struct cross_relax_ctx *app = ctx;
+  double n = app->n0;
+  fout[0] = n;
 }
-
 void
-evalSourceUparInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
+eval_upar_ion(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
-  // Set source parallel velocity.
-  fout[0] = 0.0;
+  struct cross_relax_ctx *app = ctx;
+  double uPar = app->uPari;
+  fout[0] = uPar;
 }
-
 void
-evalSourceTempElcInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
+eval_temp_par_ion(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
-  struct lapd_cart_ctx *app = ctx;
-  double x = xn[0], y = xn[1];
-
-  double Te_src = app->Te_src;
-  double L_perp = app->L_perp;
-
-  double r = sqrt(x * x + y * y);
-
-  double T = 0.0;
-
-  if (r < 0.5 * L_perp) {
-    T = (1.0 - (1.0 / 2.5) * pow(1.0 - (r / (0.5 * L_perp)) * (r / (0.5 * L_perp)), 3.0) + (1.0 / 2.5)) * Te_src;
-  }
-  else {
-    T = (1.0 / 2.5) * Te_src;
-  }
-
-  // Set electron source temperature.
-  fout[0] = T;
+  struct cross_relax_ctx *app = ctx;
+  double Tpar = app->TiPar;
+  fout[0] = Tpar;
 }
-
 void
-evalSourceTempIonInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
+eval_temp_perp_ion(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
-  struct lapd_cart_ctx *app = ctx;
-
-  double Ti = app->Ti;
-
-  // Set ion source temperature.
-  fout[0] = Ti;
+  struct cross_relax_ctx *app = ctx;
+  double Tperp = app->TiPerp;
+  fout[0] = Tperp;
 }
 
 void
 evalNuElcInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
 {
-  struct lapd_cart_ctx *app = ctx;
+  struct cross_relax_ctx *app = ctx;
 
   double nu_elc = app->nu_elc;
 
@@ -333,7 +246,7 @@ evalNuElcInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fo
 void
 evalNuIonInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
 {
-  struct lapd_cart_ctx *app = ctx;
+  struct cross_relax_ctx *app = ctx;
 
   double nu_ion = app->nu_ion;
 
@@ -351,7 +264,7 @@ mapc2p(double t, const double* GKYL_RESTRICT zc, double* GKYL_RESTRICT xp, void*
 void
 bmag_func(double t, const double* GKYL_RESTRICT zc, double* GKYL_RESTRICT fout, void* ctx)
 {
-  struct lapd_cart_ctx *app = ctx;
+  struct cross_relax_ctx *app = ctx;
 
   double B0 = app->B0;
 
@@ -405,12 +318,10 @@ main(int argc, char **argv)
     gkyl_mem_debug_set(true);
   }
 
-  struct lapd_cart_ctx ctx = create_ctx(); // Context for initialization functions.
+  struct cross_relax_ctx ctx = create_ctx(); // Context for initialization functions.
 
   int NX = APP_ARGS_CHOOSE(app_args.xcells[0], ctx.Nx);
-  int NY = APP_ARGS_CHOOSE(app_args.xcells[1], ctx.Ny);
-  int NZ = APP_ARGS_CHOOSE(app_args.xcells[2], ctx.Nz);
-  int NVPAR = APP_ARGS_CHOOSE(app_args.vcells[0], ctx.Nv);
+  int NVPAR = APP_ARGS_CHOOSE(app_args.vcells[0], ctx.Nvpar);
   int NMU = APP_ARGS_CHOOSE(app_args.vcells[1], ctx.Nmu);
 
   int nrank = 1; // Number of processors in simulation.
@@ -421,7 +332,7 @@ main(int argc, char **argv)
 #endif  
 
   // Create global range.
-  int ccells[] = { NX, NY, NZ };
+  int ccells[] = { NX };
   int cdim = sizeof(ccells) / sizeof(ccells[0]);
   struct gkyl_range cglobal_r;
   gkyl_create_global_range(cdim, ccells, &cglobal_r);
@@ -516,57 +427,37 @@ main(int argc, char **argv)
     .upper = { ctx.vpar_max_elc, ctx.mu_max_elc },
     .cells = { NVPAR, NMU },
     .polarization_density = ctx.n0,
+    .no_by = true, 
 
     .projection = {
-      .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM,
-      .density = evalDensityInit,
+      .proj_id = GKYL_PROJ_BIMAXWELLIAN,
       .ctx_density = &ctx,
-      .upar = evalUparInit,
+      .density = eval_density_elc,
       .ctx_upar = &ctx,
-      .temp = evalTempElcInit,
-      .ctx_temp = &ctx,
+      .upar= eval_upar_elc,
+      .ctx_temppar = &ctx,
+      .temppar = eval_temp_par_elc,
+      .ctx_tempperp = &ctx,
+      .tempperp = eval_temp_perp_elc,
+      .correct_all_moms = true,
     },
     .collisions =  {
       .collision_id = GKYL_BGK_COLLISIONS,
+      .normNu = true,
+      .n_ref = ctx.n0, // Density used to calculate coulomb logarithm
+      .T_ref = ctx.TeIC, // Temperature used to calculate coulomb logarithm
       .self_nu = evalNuElcInit,
       .ctx = &ctx,
-      .correct_all_moms = true,   // 
-      .use_last_converged = true,   //
-      .iter_eps = 1e-12,   //
-      .max_iter = 50,   //
-      //.num_cross_collisions = 1,
-      //.collide_with = { "ion" },
-    },
-    .source = {
-      .source_id = GKYL_PROJ_SOURCE,
-      .write_source = true,
-      .num_sources = 1,
-      .projection[0] = {
-        .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM, 
-        .density = evalSourceDensityInit,
-        .ctx_density = &ctx,
-        .upar = evalSourceUparInit,
-        .ctx_upar = &ctx,
-        .temp = evalSourceTempElcInit,
-        .ctx_temp = &ctx,
-      }, 
+      .num_cross_collisions = 1,
+      .collide_with = { "ion" },
+      .correct_all_moms = true,
+      .use_last_converged = true,
+      .iter_eps = 1e-12,
+      .max_iter = 10,
     },
     
-    .bcx = {
-      .lower = { .type = GKYL_SPECIES_ZERO_FLUX, },
-      .upper = { .type = GKYL_SPECIES_ZERO_FLUX, },
-    },
-    .bcy = {
-      .lower = { .type = GKYL_SPECIES_ZERO_FLUX, },
-      .upper = { .type = GKYL_SPECIES_ZERO_FLUX, },
-    },
-    .bcz = {
-      .lower = { .type = GKYL_SPECIES_GK_SHEATH, },
-      .upper = { .type = GKYL_SPECIES_GK_SHEATH, },
-    },
-
-    .num_diag_moments = 7,
-    .diag_moments = { "M0", "M1", "M2", "M2par", "M2perp", "M3par", "M3perp" },
+    .num_diag_moments = 6,
+    .diag_moments = { "M0", "M1", "M2", "M2par", "M2perp", "BiMaxwellianMoments" },
   };
 
   // Ion species.
@@ -577,78 +468,54 @@ main(int argc, char **argv)
     .upper = { ctx.vpar_max_ion, ctx.mu_max_ion },
     .cells = { NVPAR, NMU },
     .polarization_density = ctx.n0,
+    .no_by = true, 
 
     .projection = {
-      .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM, 
-      .density = evalDensityInit,
+      .proj_id = GKYL_PROJ_BIMAXWELLIAN,
       .ctx_density = &ctx,
-      .upar = evalUparInit,
+      .density = eval_density_ion,
       .ctx_upar = &ctx,
-      .temp = evalTempIonInit,
-      .ctx_temp = &ctx,
+      .upar= eval_upar_ion,
+      .ctx_temppar = &ctx,
+      .temppar = eval_temp_par_ion,
+      .ctx_tempperp = &ctx,
+      .tempperp = eval_temp_perp_ion,
+      .correct_all_moms = true,
     },
     .collisions =  {
       .collision_id = GKYL_BGK_COLLISIONS,
+      .normNu = true,
+      .n_ref = ctx.n0, // Density used to calculate coulomb logarithm
+      .T_ref = ctx.TiIC, // Temperature used to calculate coulomb logarithm
       .self_nu = evalNuIonInit,
       .ctx = &ctx,
-      .correct_all_moms = true,   // 
-      .use_last_converged = true,   //
-      .iter_eps = 1e-12,   //
-      .max_iter = 50,   //
-      //.num_cross_collisions = 1,
-      //.collide_with = { "elc" },
-    },
-    .source = {
-      .source_id = GKYL_PROJ_SOURCE,
-      .write_source = true,
-      .num_sources = 1,
-      .projection[0] = {
-        .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM,
-        .density = evalSourceDensityInit,
-        .ctx_density = &ctx,
-        .upar = evalSourceUparInit,
-        .ctx_upar = &ctx,
-        .temp = evalSourceTempIonInit,
-        .ctx_temp = &ctx,
-      }, 
-    },
-    
-    .bcx = {
-      .lower = { .type = GKYL_SPECIES_ZERO_FLUX, },
-      .upper = { .type = GKYL_SPECIES_ZERO_FLUX, },
-    },
-    .bcy = {
-      .lower = { .type = GKYL_SPECIES_ZERO_FLUX, },
-      .upper = { .type = GKYL_SPECIES_ZERO_FLUX, },
-    },
-    .bcz = {
-      .lower = { .type = GKYL_SPECIES_GK_SHEATH, },
-      .upper = { .type = GKYL_SPECIES_GK_SHEATH, },
+      .num_cross_collisions = 1,
+      .collide_with = { "elc" },
+      .correct_all_moms = true,
+      .use_last_converged = true,
+      .iter_eps = 1e-12,
+      .max_iter = 10,
     },
 
-    .num_diag_moments = 7,
-    .diag_moments = { "M0", "M1", "M2", "M2par", "M2perp", "M3par", "M3perp" },
+    .num_diag_moments = 6,
+    .diag_moments = { "M0", "M1", "M2", "M2par", "M2perp", "BiMaxwellianMoments" },
   };
 
   // Field.
   struct gkyl_gyrokinetic_field field = {
     .fem_parbc = GKYL_FEM_PARPROJ_NONE,
-    .poisson_bcs = {.lo_type = { GKYL_POISSON_DIRICHLET, GKYL_POISSON_DIRICHLET },
-                    .up_type = { GKYL_POISSON_DIRICHLET, GKYL_POISSON_DIRICHLET },
-                    .lo_value = { 0.0, 0.0 }, .up_value = { 0.0, 0.0}},
   };
 
   // GK app.
   struct gkyl_gk app_inp = {
-    .name = "gk_bgk_3x2v_p1",
+    .name = "gk_bgk_cross_relax_1x2v_p1",
 
-    .cdim = 3, .vdim = 2,
-    .lower = { -0.5 * ctx.Lx, -0.5 * ctx.Ly, -0.5 * ctx.Lz },
-    .upper = { 0.5 * ctx.Lx, 0.5 * ctx.Ly, 0.5 * ctx.Lz },
-    .cells = { NX, NY, NZ },
+    .cdim = 1, .vdim = 2,
+    .lower = { -2.0 }, 
+    .upper = { 2.0 }, 
+    .cells = { NX },
     .poly_order = 1,
     .basis_type = app_args.basis_type,
-    .cfl_frac = 0.1, 
 
     .geometry = {
       .geometry_id = GKYL_MAPC2P,
@@ -658,11 +525,12 @@ main(int argc, char **argv)
       .bmag_ctx = &ctx
     },
 
-    .num_periodic_dir = 0,
-    .periodic_dirs = { },
+    .num_periodic_dir = 1,
+    .periodic_dirs = { 0 },
 
     .num_species = 2,
     .species = { elc, ion },
+    .skip_field = true, // Do not evolve the field.
     .field = field,
 
     .use_gpu = app_args.use_gpu,
@@ -747,6 +615,7 @@ main(int argc, char **argv)
       if (num_failures >= num_failures_max) {
         gkyl_gyrokinetic_app_cout(app, stdout, "ERROR: Time-step was below %g*dt_init ", dt_failure_tol);
         gkyl_gyrokinetic_app_cout(app, stdout, "%d consecutive times. Aborting simulation ....\n", num_failures_max);
+        calc_integrated_diagnostics(&trig_calc_intdiag, app, t_curr, true);
         write_data(&trig_write, app, t_curr, true);
         break;
       }
@@ -779,7 +648,7 @@ main(int argc, char **argv)
 
   gkyl_gyrokinetic_app_cout(app, stdout, "Number of write calls %ld,\n", stat.nio);
   gkyl_gyrokinetic_app_cout(app, stdout, "IO time took %g secs \n", stat.io_tm);
-  
+
   freeresources:
   // Free resources after simulation completion.
   gkyl_gyrokinetic_app_release(app);
