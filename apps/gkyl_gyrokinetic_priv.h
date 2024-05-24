@@ -73,6 +73,7 @@
 #include <gkyl_rect_grid.h>
 #include <gkyl_spitzer_coll_freq.h>
 #include <gkyl_tok_geo.h>
+#include <gkyl_positivity_shift_gyrokinetic.h>
 #include <gkyl_vlasov_lte_correct.h>
 #include <gkyl_vlasov_lte_moments.h>
 #include <gkyl_vlasov_lte_proj_on_basis.h>
@@ -519,10 +520,17 @@ struct gk_species {
   enum gkyl_radiation_id radiation_id; // type of radiation
   struct gk_rad_drag rad; // radiation object
 
-  // gyrokinetic diffusion
-  bool has_diffusion; // flag to indicate there is applied diffusion
-  struct gkyl_array *diffD; // array for diffusion tensor
-  struct gkyl_dg_updater_diffusion_gyrokinetic *diff_slvr; // gyrokinetic diffusion equation solver
+  // Gyrokinetic diffusion.
+  bool has_diffusion; // Flag to indicate there is applied diffusion.
+  struct gkyl_array *diffD; // Array for diffusion tensor.
+  struct gkyl_dg_updater_diffusion_gyrokinetic *diff_slvr; // Gyrokinetic diffusion equation solver.
+
+  // Updater that enforces positivity by shifting f.
+  bool enforce_positivity; // Flag indicating whether to apply positivity_shift.
+  struct gkyl_positivity_shift_gyrokinetic *pos_shift_op;
+  struct gkyl_array *ps_intmom_grid; // Grid contribution to the integrated moments of the positivity shift.
+  gkyl_dynvec ps_integ_diag; // Integrated moments of the positivity shift.
+  bool is_first_ps_integ_write_call; // Flag first time writing ps_integ_diag.
 
   double *omega_cfl;
 };
