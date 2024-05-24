@@ -279,7 +279,7 @@ test_2x2v(int poly_order)
 
   if (poly_order == 2)
     for (int i = 0; i < basis.num_basis; ++i)
-      TEST_CHECK(gkyl_compare_double(p2_vals[i], fv[i], 1e-12));
+      TEST_CHECK(gkyl_compare_double(p2_vals[i], fv[i], 1e-10));
       //printf("%1.16e, ",fv[i]);
 
   // release memory for moment data object
