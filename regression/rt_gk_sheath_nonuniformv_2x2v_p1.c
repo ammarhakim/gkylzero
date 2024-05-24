@@ -407,7 +407,8 @@ void bmag_func(double t, const double* GKYL_RESTRICT zc, double* GKYL_RESTRICT f
   fout[0] = B0 * R / x;
 }
 
-void mapc2p_vel_elc(double t, const double *vc, double* GKYL_RESTRICT vp, void *ctx)
+static void
+mapc2p_vel_elc(double t, const double *vc, double* GKYL_RESTRICT vp, void *ctx)
 {
   struct sheath_ctx *app = ctx;
   double Lvpar = app->Lvpar_elc;
@@ -424,7 +425,8 @@ void mapc2p_vel_elc(double t, const double *vc, double* GKYL_RESTRICT vp, void *
   vp[1] = Lmu*pow(cmu,2);
 }
 
-void mapc2p_vel_ion(double t, const double *vc, double* GKYL_RESTRICT vp, void *ctx)
+static void
+mapc2p_vel_ion(double t, const double *vc, double* GKYL_RESTRICT vp, void *ctx)
 {
   struct sheath_ctx *app = ctx;
   double Lvpar = app->Lvpar_ion;

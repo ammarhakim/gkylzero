@@ -193,7 +193,8 @@ mapc2p(double t, const double* GKYL_RESTRICT zc, double* GKYL_RESTRICT xp, void*
   xp[0] = zc[0]; xp[1] = zc[1]; xp[2] = zc[2];
 }
 
-void mapc2p_vel(double t, const double *zc, double* GKYL_RESTRICT vp, void *ctx)
+static void
+mapc2p_vel(double t, const double *zc, double* GKYL_RESTRICT vp, void *ctx)
 {
   struct lbo_relax_ctx *app = ctx;
   double vpar_max = app->vpar_max;

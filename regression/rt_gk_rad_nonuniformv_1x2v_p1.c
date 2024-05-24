@@ -238,7 +238,8 @@ mapc2p(double t, const double* GKYL_RESTRICT zc, double* GKYL_RESTRICT xp, void*
   xp[0] = zc[0]; xp[1] = zc[1]; xp[2] = zc[2];
 }
 
-void mapc2p_vel_elc(double t, const double *vc, double* GKYL_RESTRICT vp, void *ctx)
+static void
+mapc2p_vel_elc(double t, const double *vc, double* GKYL_RESTRICT vp, void *ctx)
 {
   struct rad_ctx *app = ctx;
 

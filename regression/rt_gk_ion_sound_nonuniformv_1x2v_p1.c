@@ -143,7 +143,8 @@ write_data(struct gkyl_tm_trigger* iot, gkyl_gyrokinetic_app* app, double t_curr
 }
 
 // Velocity space mappings.
-void mapc2p_vel_ion(double t, const double *vc, double* GKYL_RESTRICT vp, void *ctx)
+static void 
+mapc2p_vel_ion(double t, const double *vc, double* GKYL_RESTRICT vp, void *ctx)
 {
   struct gk_app_ctx *app = ctx;
   double vpar_max = app->vpar_max_ion;
@@ -160,7 +161,8 @@ void mapc2p_vel_ion(double t, const double *vc, double* GKYL_RESTRICT vp, void *
   vp[1] = mu_max*pow(cmu,2);
 }
 
-void mapc2p_vel_elc(double t, const double *vc, double* GKYL_RESTRICT vp, void *ctx)
+static void
+mapc2p_vel_elc(double t, const double *vc, double* GKYL_RESTRICT vp, void *ctx)
 {
   struct gk_app_ctx *app = ctx;
   double vpar_max = app->vpar_max_elc;

@@ -44,7 +44,8 @@ gkyl_velocity_map_free(const struct gkyl_ref_count *ref)
   gkyl_free(gvm);
 }
 
-struct gkyl_velocity_map* gkyl_velocity_map_new(struct gkyl_mapc2p_inp mapc2p_in,
+struct gkyl_velocity_map*
+gkyl_velocity_map_new(struct gkyl_mapc2p_inp mapc2p_in,
   struct gkyl_rect_grid grid, struct gkyl_rect_grid grid_vel,
   struct gkyl_range local, struct gkyl_range local_ext,
   struct gkyl_range local_vel, struct gkyl_range local_ext_vel, bool use_gpu)
@@ -91,7 +92,8 @@ struct gkyl_velocity_map* gkyl_velocity_map_new(struct gkyl_mapc2p_inp mapc2p_in
     struct mapc2p_vel_identity_ctx identity_ctx = { .vdim = vdim };
     evup = gkyl_eval_on_nodes_new(&gvm->grid_vel, &vmap_basis_vdim,
       vdim, mapc2p_vel_identity, &identity_ctx);
-  } else {
+  }
+  else {
     evup = gkyl_eval_on_nodes_new(&gvm->grid_vel, &vmap_basis_vdim,
       vdim, mapc2p_in.mapping, mapc2p_in.ctx);
   }
