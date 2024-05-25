@@ -11,7 +11,7 @@
 
 // Function pointer type for sheath reflection kernels.
 typedef bool (*shift_t)(double ffloor, double *distf, double *Deltaf);
-typedef void (*intmom_t)(const double *w, const double *dxv, const int *idx,
+typedef void (*intmom_t)(const double *dxv, const double *vmap,
   double m_, const double *bmag, const double *f, double* GKYL_RESTRICT out);
 
 typedef struct { shift_t kernels[3]; } pos_shift_gk_kern_list_shift;  // For use in kernel tables.
@@ -48,6 +48,7 @@ struct gkyl_positivity_shift_gyrokinetic {
   double ffloor_fac;  // ffloor = max(f)*ffloor_fac.
   double cellav_fac; // Factor multiplying 0th DG coefficient to give cellav.
   const struct gk_geometry *gk_geom; // Pointer to geometry object.
+  const struct gkyl_velocity_map *vel_map; // Pointer to velocity mapping object.
   bool use_gpu;
   struct gkyl_positivity_shift_gyrokinetic_kernels *kernels;
 };

@@ -3,6 +3,7 @@
 #include <gkyl_basis.h>
 #include <gkyl_rect_grid.h>
 #include <gkyl_gk_geometry.h>
+#include <gkyl_velocity_map.h>
 #include <gkyl_range.h>
 #include <gkyl_array.h>
 
@@ -20,12 +21,13 @@ typedef struct gkyl_positivity_shift_gyrokinetic gkyl_positivity_shift_gyrokinet
  * @param pgrid Phase-space grid.
  * @param mass Mass of species.
  * @param gk_geom Geometry object.
+ * @param vel_map Veloity mapping object.
  * @param use_gpu bool to determine if on GPU.
  * @return New positivity shift updater pointer.
  */
 struct gkyl_positivity_shift_gyrokinetic*
-gkyl_positivity_shift_gyrokinetic_new(int cdim, struct gkyl_basis pbasis, struct gkyl_rect_grid pgrid,
-  double mass, const struct gk_geometry *gk_geom, bool use_gpu);
+gkyl_positivity_shift_gyrokinetic_new(struct gkyl_basis pbasis, struct gkyl_rect_grid pgrid,
+  double mass, const struct gk_geometry *gk_geom, const struct gkyl_velocity_map *vel_map, bool use_gpu);
 
 /**
  * Run the positivity shift updater in the indicated range.

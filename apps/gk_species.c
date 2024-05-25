@@ -381,13 +381,14 @@ gk_species_init(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *app, st
   }
 
   // Positivity enforcing by shifting f.
-  s->enforce_positivity = false;
-  if (s->info.enforce_positivity) {
-    s->enforce_positivity = true;
-    s->pos_shift_op = gkyl_positivity_shift_gyrokinetic_new(cdim, app->basis, s->grid, s->info.mass, app->gk_geom, app->use_gpu);
-    s->ps_intmom_grid = mkarr(app->use_gpu, vdim+2, app->local_ext.volume);
-    s->ps_integ_diag = gkyl_dynvec_new(GKYL_DOUBLE, vdim+2);
-    s->is_first_ps_integ_write_call = true;
+  gks->enforce_positivity = false;
+  if (gks->info.enforce_positivity) {
+    gks->enforce_positivity = true;
+    gks->pos_shift_op = gkyl_positivity_shift_gyrokinetic_new(app->basis, gks->grid,
+      gks->info.mass, app->gk_geom, gks->vel_map, app->use_gpu);
+    gks->ps_intmom_grid = mkarr(app->use_gpu, vdim+2, app->local_ext.volume);
+    gks->ps_integ_diag = gkyl_dynvec_new(GKYL_DOUBLE, vdim+2);
+    gks->is_first_ps_integ_write_call = true;
   }
 }
 

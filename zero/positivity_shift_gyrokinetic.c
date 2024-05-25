@@ -5,8 +5,8 @@
 #include <float.h>
 
 struct gkyl_positivity_shift_gyrokinetic*
-gkyl_positivity_shift_gyrokinetic_new(int cdim, struct gkyl_basis pbasis, struct gkyl_rect_grid grid,
-  double mass, const struct gk_geometry *gk_geom, bool use_gpu)
+gkyl_positivity_shift_gyrokinetic_new(struct gkyl_basis pbasis, struct gkyl_rect_grid grid,
+  double mass, const struct gk_geometry *gk_geom, const struct gkyl_velocity_map *vel_map, bool use_gpu)
 {
   // Allocate space for new updater.
   struct gkyl_positivity_shift_gyrokinetic *up = gkyl_malloc(sizeof(*up));
@@ -16,6 +16,7 @@ gkyl_positivity_shift_gyrokinetic_new(int cdim, struct gkyl_basis pbasis, struct
   up->num_basis = pbasis.num_basis;
   up->mass = mass;
   up->gk_geom = gkyl_gk_geometry_acquire(gk_geom);
+  up->vel_map = gkyl_velocity_map_acquire(vel_map);
   up->use_gpu = use_gpu;
   up->cellav_fac = 1./pow(sqrt(2.),pbasis.ndim);
 
@@ -55,9 +56,10 @@ gkyl_positivity_shift_gyrokinetic_advance(gkyl_positivity_shift_gyrokinetic* up,
 
   gkyl_array_clear_range(mom, 0.0, conf_rng);
 
-  double xc[GKYL_MAX_DIM];
   int pidx[GKYL_MAX_DIM];
   double distf_max = -DBL_MAX;
+  int pdim = up->grid.ndim;
+  int cdim = up->gk_geom->grid.ndim;
 
   struct gkyl_range_iter phase_iter;
   gkyl_range_iter_init(&phase_iter, phase_rng);
@@ -72,10 +74,14 @@ gkyl_positivity_shift_gyrokinetic_advance(gkyl_positivity_shift_gyrokinetic* up,
     distf_max = fmax(distf_max, distf_d[0]); 
 
     if (shiftedf) {
-      long clinidx = gkyl_range_idx(conf_rng, phase_iter.idx);
-      gkyl_rect_grid_cell_center(&up->grid, phase_iter.idx, xc);
+      int idx_vel[2];
+      for (int d=cdim; d<pdim; d++) idx_vel[d-cdim] = phase_iter.idx[d];
 
-      up->kernels->int_mom(xc, up->grid.dx, phase_iter.idx, up->mass,
+      long clinidx = gkyl_range_idx(conf_rng, phase_iter.idx);
+      long vlinidx = gkyl_range_idx(&up->vel_map->local_vel, idx_vel);
+
+      up->kernels->int_mom(up->grid.dx,
+        gkyl_array_cfetch(up->vel_map->vmap, vlinidx), up->mass,
         gkyl_array_cfetch(up->gk_geom->bmag, clinidx),
         Deltaf, gkyl_array_fetch(mom, clinidx));
     }
@@ -89,6 +95,7 @@ gkyl_positivity_shift_gyrokinetic_release(gkyl_positivity_shift_gyrokinetic* up)
 {
   // Release memory associated with this updater.
   gkyl_gk_geometry_release(up->gk_geom);
+  gkyl_velocity_map_release(up->vel_map);
   if (!up->use_gpu) {
     gkyl_free(up->ffloor);
     gkyl_free(up->kernels);

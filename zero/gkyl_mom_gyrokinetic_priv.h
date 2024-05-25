@@ -5,6 +5,7 @@
 #include <gkyl_util.h>
 #include <gkyl_array.h>
 #include <gkyl_gk_geometry.h>
+#include <gkyl_velocity_map.h>
 #include <gkyl_mom_type.h>
 #include <gkyl_range.h>
 #include <gkyl_ref_count.h>

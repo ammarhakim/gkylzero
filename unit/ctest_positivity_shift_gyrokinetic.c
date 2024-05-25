@@ -1,7 +1,4 @@
 #include "gkyl_array.h"
-#include <gkyl_gk_geometry.h>
-#include <gkyl_gk_geometry_mapc2p.h>
-#include <gkyl_gk_geometry_fromfile.h>
 #include <gkyl_proj_maxwellian_on_basis.h>
 #include <gkyl_proj_on_basis.h>
 #include <gkyl_range.h>
@@ -9,6 +6,9 @@
 #include <gkyl_rect_grid.h>
 #include <gkyl_dg_updater_moment_gyrokinetic.h>
 #include <gkyl_array_ops.h>
+#include <gkyl_gk_geometry.h>
+#include <gkyl_gk_geometry_mapc2p.h>
+#include <gkyl_velocity_map.h>
 #include <gkyl_positivity_shift_gyrokinetic.h>
 #include <gkyl_util.h>
 #include <gkyl_array_rio.h>
@@ -171,7 +171,7 @@ test_1x2v(int poly_order, bool use_gpu)
     .local = confLocal,  .local_ext = confLocal_ext,
     .global = confLocal, .global_ext = confLocal_ext,
   };
-  int geo_ghost[3] = {1};
+  int geo_ghost[3] = {1, 1, 1};
   geometry_input.geo_grid = gkyl_gk_geometry_augment_grid(confGrid, geometry_input);
   gkyl_cart_modal_serendip(&geometry_input.geo_basis, 3, poly_order);
   gkyl_create_grid_ranges(&geometry_input.geo_grid, geo_ghost, &geometry_input.geo_global_ext, &geometry_input.geo_global);
@@ -183,15 +183,20 @@ test_1x2v(int poly_order, bool use_gpu)
   gkyl_gk_geometry_release(gk_geom_3d);
   // If we are on the gpu, copy from host.
   if (use_gpu) {
-    struct gk_geometry* gk_geom_dev = gkyl_gk_geometry_fromfile_new(gk_geom, &geometry_input, use_gpu);
+    struct gk_geometry* gk_geom_dev = gkyl_gk_geometry_new(gk_geom, &geometry_input, use_gpu);
     gkyl_gk_geometry_release(gk_geom);
     gk_geom = gkyl_gk_geometry_acquire(gk_geom_dev);
     gkyl_gk_geometry_release(gk_geom_dev);
   }
 
+  // Velocity space mapping.
+  struct gkyl_mapc2p_inp c2p_in = { };
+  struct gkyl_velocity_map *gvm = gkyl_velocity_map_new(c2p_in, grid, velGrid,
+    local, local_ext, velLocal, velLocal_ext, use_gpu);
+
   // Compute the integrated moments of the original f.
   struct gkyl_dg_updater_moment *int_mom_up = gkyl_dg_updater_moment_gyrokinetic_new(
-    &grid, &confBasis, &basis, &confLocal, &velLocal, proj_ctx.mass, gk_geom, "Integrated", true, use_gpu);
+    &grid, &confBasis, &basis, &confLocal, proj_ctx.mass, gvm, gk_geom, "Integrated", true, use_gpu);
 
   int num_mom = 2+vdim;
   struct gkyl_array *intmom_grid = mkarr(use_gpu, num_mom, confLocal_ext.volume);
@@ -218,8 +223,8 @@ test_1x2v(int poly_order, bool use_gpu)
 
   // Run the positivity shift. First time it sets ffloor in the pos_shift updater.
   struct gkyl_array *ps_intmom_grid = mkarr(use_gpu, num_mom, confLocal_ext.volume);
-  struct gkyl_positivity_shift_gyrokinetic* pos_shift = gkyl_positivity_shift_gyrokinetic_new(cdim,
-    basis, grid, proj_ctx.mass, gk_geom, use_gpu);
+  struct gkyl_positivity_shift_gyrokinetic* pos_shift = gkyl_positivity_shift_gyrokinetic_new(basis, 
+    grid, proj_ctx.mass, gk_geom, gvm, use_gpu);
   gkyl_positivity_shift_gyrokinetic_advance(pos_shift, &local, &confLocal, distf, ps_intmom_grid);
 
   // Project distf and apply the positivity shift again (using new ffloor).
@@ -252,10 +257,14 @@ test_1x2v(int poly_order, bool use_gpu)
 //  gkyl_grid_sub_array_write(&grid, &local, NULL, distf, fname1);
  
   // Check the integrated moments.
-  TEST_CHECK( gkyl_compare( intmom_shift[0], 9.13079144674060e+00, 1e-10));
-  TEST_CHECK( gkyl_compare( intmom_shift[1], 4.90765333000122e-16, 1e-10));
-  TEST_CHECK( gkyl_compare( intmom_shift[2], 1.79770593850869e+02, 1e-10));
-  TEST_CHECK( gkyl_compare( intmom_shift[3], 4.58450590248531e+02, 1e-10));
+  TEST_CHECK( gkyl_compare( intmom_shift[0], 9.13090909090910e+00, 1e-10));
+  TEST_CHECK( gkyl_compare( intmom_shift[1], 8.61055942680578e-16, 1e-10));
+  TEST_CHECK( gkyl_compare( intmom_shift[2], 1.79770909090909e+02, 1e-10));
+  TEST_CHECK( gkyl_compare( intmom_shift[3], 4.58457166783993e+02, 1e-10));
+  TEST_MSG("intmom_shift[0]: produced: %.14e | expected: %.14e", intmom_shift[0], 9.13090909090910e+00);
+  TEST_MSG("intmom_shift[1]: produced: %.14e | expected: %.14e", intmom_shift[1], 8.61055942680578e-16);
+  TEST_MSG("intmom_shift[2]: produced: %.14e | expected: %.14e", intmom_shift[2], 1.79770909090909e+02);
+  TEST_MSG("intmom_shift[3]: produced: %.14e | expected: %.14e", intmom_shift[3], 4.58457166783993e+02);
 
   gkyl_array_release(bmag);
   gkyl_array_release(distf);
@@ -272,6 +281,8 @@ test_1x2v(int poly_order, bool use_gpu)
   gkyl_proj_on_basis_release(proj_distf);
   gkyl_dg_updater_moment_gyrokinetic_release(int_mom_up);
   gkyl_positivity_shift_gyrokinetic_release(pos_shift);
+  gkyl_gk_geometry_release(gk_geom);
+  gkyl_velocity_map_release(gvm);
 }
 
 void test_1x2v_ho()
