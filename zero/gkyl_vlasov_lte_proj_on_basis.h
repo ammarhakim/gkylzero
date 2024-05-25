@@ -5,6 +5,7 @@
 #include <gkyl_eqn_type.h>
 #include <gkyl_range.h>
 #include <gkyl_rect_grid.h>
+#include <gkyl_velocity_map.h>
 
 // Object type
 typedef struct gkyl_vlasov_lte_proj_on_basis gkyl_vlasov_lte_proj_on_basis;
@@ -20,9 +21,12 @@ struct gkyl_vlasov_lte_proj_on_basis_inp {
   const struct gkyl_array *p_over_gamma; // SR quantitiy: velocity
   const struct gkyl_array *gamma; // SR quantitiy: gamma = sqrt(1 + p^2)
   const struct gkyl_array *gamma_inv; // SR quantitiy: 1/gamma = 1/sqrt(1 + p^2)
+  const struct gkyl_velocity_map *vel_map; // Velocity space mapping object.
   enum gkyl_model_id model_id; // Enum identifier for model type (e.g., SR, see gkyl_eqn_type.h)
-  double mass; // Mass factor 
+  double mass; // Mass factor
   bool use_gpu; // bool for gpu useage
+
+  enum gkyl_quad_type quad_type;
 };
 
 /**

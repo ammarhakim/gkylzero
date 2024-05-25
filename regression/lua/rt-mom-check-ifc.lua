@@ -162,3 +162,9 @@ success = update_status and 1 or 0
 io.write( string.format("update_status = { success = %d, dt_actual = %g, dt_suggested = %g }\n", 
   success, update_status.dt_actual, update_status.dt_suggested)
 )
+
+nghost = momentApp:nghost()
+io.write( string.format("nghost = { %d, %d, %d }\n", nghost[1], nghost[2], nghost[3]) )
+
+nfield_energy = momentApp:field_energy_ndiag()
+print("Number of field-energy diagonostics are", nfield_energy)

@@ -18,6 +18,11 @@ struct gkyl_vlasov_lte_correct*
 gkyl_vlasov_lte_correct_inew(const struct gkyl_vlasov_lte_correct_inp *inp)
 {
   gkyl_vlasov_lte_correct *up = gkyl_malloc(sizeof(*up));
+
+  up->vel_map = 0;
+  if (inp->vel_map != 0)
+    up->vel_map = gkyl_velocity_map_acquire(inp->vel_map);
+
   up->eps = inp->eps;
   up->max_iter = inp->max_iter;
   up->use_gpu = inp->use_gpu;
@@ -72,13 +77,16 @@ gkyl_vlasov_lte_correct_inew(const struct gkyl_vlasov_lte_correct_inp *inp)
     .phase_grid = inp->phase_grid,
     .conf_basis = inp->conf_basis,
     .phase_basis = inp->phase_basis,
-    .conf_range =  inp->conf_range,
+    .conf_range = inp->conf_range,
     .conf_range_ext = inp->conf_range_ext,
     .vel_range = inp->vel_range,
     .p_over_gamma = inp->p_over_gamma,
     .gamma = inp->gamma,
     .gamma_inv = inp->gamma_inv,
+
+    .quad_type = inp->quad_type,
     .model_id = inp->model_id,
+
     .mass = inp->mass,
     .use_gpu = inp->use_gpu,
   };
@@ -242,20 +250,23 @@ gkyl_vlasov_lte_correct_all_moments(gkyl_vlasov_lte_correct *c_corr,
 }
 
 void 
-gkyl_vlasov_lte_correct_release(gkyl_vlasov_lte_correct *c_corr)
+gkyl_vlasov_lte_correct_release(gkyl_vlasov_lte_correct *up)
 {
-  gkyl_array_release(c_corr->moms_iter);
-  gkyl_array_release(c_corr->d_moms);
-  gkyl_array_release(c_corr->dd_moms);
-  if (c_corr->use_gpu) {
-    gkyl_array_release(c_corr->abs_diff_moms);
-    gkyl_cu_free(c_corr->error_cu);
+  if (up->vel_map != 0)
+    gkyl_velocity_map_release(up->vel_map);
+
+  gkyl_array_release(up->moms_iter);
+  gkyl_array_release(up->d_moms);
+  gkyl_array_release(up->dd_moms);
+  if (up->use_gpu) {
+    gkyl_array_release(up->abs_diff_moms);
+    gkyl_cu_free(up->error_cu);
   }
 
-  gkyl_vlasov_lte_moments_release(c_corr->moments_up);
-  gkyl_vlasov_lte_proj_on_basis_release(c_corr->proj_lte);
+  gkyl_vlasov_lte_moments_release(up->moments_up);
+  gkyl_vlasov_lte_proj_on_basis_release(up->proj_lte);
 
-  gkyl_free(c_corr);
+  gkyl_free(up);
 }
 
 #ifndef GKYL_HAVE_CUDA

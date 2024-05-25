@@ -11,7 +11,9 @@
 #include <assert.h>
 
 // create range to loop over quadrature points.
-static inline struct gkyl_range get_qrange(int cdim, int dim, int num_quad, int num_quad_v, bool *is_vdim_p2) {
+static inline struct gkyl_range
+get_qrange(int cdim, int dim, int num_quad, int num_quad_v, bool *is_vdim_p2)
+{
   int qshape[GKYL_MAX_DIM];
   for (int i=0; i<cdim; ++i) qshape[i] = num_quad;
   for (int i=cdim; i<dim; ++i) qshape[i] = is_vdim_p2[i-cdim] ? num_quad_v : num_quad;
@@ -23,7 +25,9 @@ static inline struct gkyl_range get_qrange(int cdim, int dim, int num_quad, int 
 // Sets ordinates, weights and basis functions at ords.
 // Returns the total number of quadrature nodes
 static int
-init_quad_values(int cdim, const struct gkyl_basis *basis, int num_quad, struct gkyl_array **ordinates,
+init_quad_values(int cdim, const struct gkyl_basis *basis,
+  enum gkyl_quad_type quad_type, int num_quad,
+  struct gkyl_array **ordinates,
   struct gkyl_array **weights, struct gkyl_array **basis_at_ords, bool use_gpu)
 {
   int ndim = basis->ndim;
@@ -40,21 +44,47 @@ init_quad_values(int cdim, const struct gkyl_basis *basis, int num_quad, struct 
 
   double ordinates1[num_quad], weights1[num_quad];
   double ordinates1_v[num_quad_v], weights1_v[num_quad_v];
-  if (num_quad <= gkyl_gauss_max) {
-    // use pre-computed values if possible (these are more accurate
-    // than computing them on the fly)
-    memcpy(ordinates1, gkyl_gauss_ordinates[num_quad], sizeof(double[num_quad]));
-    memcpy(weights1, gkyl_gauss_weights[num_quad], sizeof(double[num_quad]));
-  } 
-  else {
-    gkyl_gauleg(-1, 1, ordinates1, weights1, num_quad);
+
+  if (quad_type == GKYL_POSITIVITY_QUAD) {
+    // Positivity nodes are -1/3, 1/3 and have weights 1.0. All other
+    // weights are set to zero.
+    for (int i=0; i<num_quad; ++i) {
+      ordinates1[i] = 0.0;
+      weights1[i] = 0.0;
+    }
+    for (int i=0; i<num_quad_v; ++i) {
+      ordinates1_v[i] = 0.0;
+      weights1_v[i] = 0.0;
+    }
+    ordinates1[0] = -1.0/3.0;
+    ordinates1[1] = 1.0/3.0;
+    weights1[0] = 1.0;
+    weights1[1] = 1.0;
+
+    ordinates1_v[0] = -1.0/3.0;
+    ordinates1_v[1] = 0.0;
+    ordinates1_v[2] = 1.0/3.0;
+    weights1_v[0] = 3.0;
+    weights1_v[1] = -4.0;
+    weights1_v[2] = 3.0;
   }
-  if (num_quad_v <= gkyl_gauss_max) {
-    memcpy(ordinates1_v, gkyl_gauss_ordinates[num_quad_v], sizeof(double[num_quad_v]));
-    memcpy(weights1_v, gkyl_gauss_weights[num_quad_v], sizeof(double[num_quad_v]));
-  } 
   else {
-    gkyl_gauleg(-1, 1, ordinates1_v, weights1_v, num_quad_v);
+    if (num_quad <= gkyl_gauss_max) {
+      // use pre-computed values if possible (these are more accurate
+    // than computing them on the fly)
+      memcpy(ordinates1, gkyl_gauss_ordinates[num_quad], sizeof(double[num_quad]));
+      memcpy(weights1, gkyl_gauss_weights[num_quad], sizeof(double[num_quad]));
+    } 
+    else {
+      gkyl_gauleg(-1, 1, ordinates1, weights1, num_quad);
+    }
+    if (num_quad_v <= gkyl_gauss_max) {
+      memcpy(ordinates1_v, gkyl_gauss_ordinates[num_quad_v], sizeof(double[num_quad_v]));
+      memcpy(weights1_v, gkyl_gauss_weights[num_quad_v], sizeof(double[num_quad_v]));
+    } 
+    else {
+      gkyl_gauleg(-1, 1, ordinates1_v, weights1_v, num_quad_v);
+    }
   }
 
   struct gkyl_range qrange = get_qrange(cdim, ndim, num_quad, num_quad_v, is_vdim_p2);
@@ -141,6 +171,9 @@ gkyl_vlasov_lte_proj_on_basis_inew(const struct gkyl_vlasov_lte_proj_on_basis_in
   up->num_conf_basis = up->conf_basis.num_basis;
   up->num_phase_basis = up->phase_basis.num_basis;
   up->use_gpu = inp->use_gpu;
+  up->vel_map = 0;
+  if (inp->vel_map != 0)
+    up->vel_map = gkyl_velocity_map_acquire(inp->vel_map);
 
   up->is_relativistic = false;
   if (inp->model_id == GKYL_MODEL_SR) {
@@ -154,11 +187,13 @@ gkyl_vlasov_lte_proj_on_basis_inew(const struct gkyl_vlasov_lte_proj_on_basis_in
 
   int num_quad = up->conf_basis.poly_order+1;
   // initialize data needed for conf-space quadrature 
-  up->tot_conf_quad = init_quad_values(up->cdim, &up->conf_basis, num_quad,
+  up->tot_conf_quad = init_quad_values(up->cdim, &up->conf_basis,
+    inp->quad_type, num_quad,
     &up->conf_ordinates, &up->conf_weights, &up->conf_basis_at_ords, up->use_gpu);
 
   // initialize data needed for phase-space quadrature 
-  up->tot_quad = init_quad_values(up->cdim, &up->phase_basis, num_quad,
+  up->tot_quad = init_quad_values(up->cdim, &up->phase_basis,
+    inp->quad_type, num_quad,
     &up->ordinates, &up->weights, &up->basis_at_ords, up->use_gpu);
 
   up->fun_at_ords = gkyl_array_new(GKYL_DOUBLE, 1, up->tot_quad); // Only used in CPU implementation.
@@ -342,8 +377,9 @@ gkyl_vlasov_lte_proj_on_basis_advance(gkyl_vlasov_lte_proj_on_basis *up,
         int cqidx = gkyl_range_idx(&up->conf_qrange, qiter.idx);
         int pqidx = gkyl_range_idx(&up->phase_qrange, qiter.idx);
 
-        comp_to_phys(pdim, gkyl_array_cfetch(up->ordinates, pqidx),
-          up->phase_grid.dx, xc, xmu);
+        const double *xcomp_d = gkyl_array_cfetch(up->ordinates, pqidx);
+
+        comp_to_phys(pdim, xcomp_d, up->phase_grid.dx, xc, xmu);
 
         double *fq = gkyl_array_fetch(up->fun_at_ords, pqidx);
         fq[0] = f_floor;
@@ -413,6 +449,9 @@ gkyl_vlasov_lte_proj_on_basis_release(gkyl_vlasov_lte_proj_on_basis* up)
   if (up->use_gpu)
     gkyl_cu_free(up->p2c_qidx);
 #endif
+  if (up->vel_map != 0)
+    gkyl_velocity_map_release(up->vel_map);
+
   gkyl_array_release(up->ordinates);
   gkyl_array_release(up->weights);
   gkyl_array_release(up->basis_at_ords);

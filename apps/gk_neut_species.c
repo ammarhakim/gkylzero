@@ -195,6 +195,7 @@ gk_neut_species_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app, struc
   gk_neut_species_projection_init(app, s, s->info.projection, &s->proj_init);
 
   // set species source id
+  s->src = (struct gk_source) { };  
   s->source_id = s->info.source.source_id;
 
   // create ranges and allocate buffers for applying periodic and non-periodic BCs

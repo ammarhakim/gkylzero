@@ -550,13 +550,13 @@ gkyl_proj_gkmaxwellian_on_basis_lab_mom(const gkyl_proj_maxwellian_on_basis *up,
 void
 gkyl_proj_gkmaxwellian_on_basis_prim_mom(const gkyl_proj_maxwellian_on_basis *up,
   const struct gkyl_range *phase_rng, const struct gkyl_range *conf_rng,
-  const struct gkyl_array *moms, const struct gkyl_array *prim_moms, const struct gkyl_array *bmag,
+  const struct gkyl_array *prim_moms, const struct gkyl_array *bmag,
   const struct gkyl_array *jacob_tot, double mass, struct gkyl_array *fmax)
 {
 
 #ifdef GKYL_HAVE_CUDA
   if (up->use_gpu)
-    return gkyl_proj_gkmaxwellian_on_basis_prim_mom_cu(up, phase_rng, conf_rng, moms, prim_moms,
+    return gkyl_proj_gkmaxwellian_on_basis_prim_mom_cu(up, phase_rng, conf_rng, prim_moms,
       bmag, jacob_tot, mass, fmax);
 #endif
 
@@ -586,10 +586,10 @@ gkyl_proj_gkmaxwellian_on_basis_prim_mom(const gkyl_proj_maxwellian_on_basis *up
   while (gkyl_range_iter_next(&conf_iter)) {
     long midx = gkyl_range_idx(conf_rng, conf_iter.idx);
 
-    const double *m0_d = gkyl_array_cfetch(moms, midx);
     const double *prim_moms_d = gkyl_array_cfetch(prim_moms, midx);
-    const double *upar_d = prim_moms_d;
-    const double *vtsq_d = &prim_moms_d[num_conf_basis];
+    const double *m0_d = prim_moms_d;
+    const double *upar_d = &prim_moms_d[num_conf_basis];
+    const double *vtsq_d = &prim_moms_d[2*num_conf_basis];
     const double *bmag_d = gkyl_array_cfetch(bmag, midx);
     const double *jactot_d = gkyl_array_cfetch(jacob_tot, midx);
     
@@ -614,7 +614,6 @@ gkyl_proj_gkmaxwellian_on_basis_prim_mom(const gkyl_proj_maxwellian_on_basis *up
         expamp_o[n] = jac_o*m0_o/sqrt(pow(2.0*GKYL_PI*vtsq_o[n], vdim_phys));
       else
         expamp_o[n] = 0.;
-
     }
 
     // inner loop over velocity space

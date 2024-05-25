@@ -24,11 +24,11 @@ then
     gunzip -f OpenBLAS-0.3.23.tar.gz
     tar xvf OpenBLAS-0.3.23.tar
     cd OpenBLAS-0.3.23
-    make USE_OPENMP=0 NUM_THREADS=1 FC=$FC -j 32
-    make USE_OPENMP=0 NUM_THREADS=1 install PREFIX=$PREFIX -j 32
+    make USE_OPENMP=0 NUM_THREADS=1 NO_FORTRAN=1 -j 32
+    make USE_OPENMP=0 NUM_THREADS=1 NO_FORTRAN=1 install PREFIX=$PREFIX -j 32
 
     # soft-link 
     ln -sfn $PREFIX $GKYLSOFT/OpenBLAS
+    # remove shared libraries
+    rm -rf $GKYLSOFT/OpenBLAS/lib/*.so*
 fi
-
-

@@ -171,6 +171,36 @@ struct gkyl_kern_op_count {
   size_t num_prod; // number of * and / operations
 };
 
+// String, integer pairs
+struct gkyl_str_int_pair {
+  const char *str;
+  int val;
+};
+
+/**
+ * Search @a pairs list for @a str and return the corresponding int
+ * value. Return @a def if not found. The pair table must be NULL
+ * terminated.
+ *
+ * @param pairs Pair list to search from. Final entry must be { 0, 0 }
+ * @param str String to search for
+ * @param def Default value to return
+ * @return value corresponding to @a str, or @a def.
+ */
+int gkyl_search_str_int_pair_by_str(const struct gkyl_str_int_pair pairs[], const char *str, int def);
+
+/**
+ * Search @a pairs list for @a val and return the corresponding string
+ * value. Return @a def if not found. The pair table must be NULL
+ * terminated.
+ *
+ * @param pairs Pair list to search from. Final entry must be { 0, 0 }
+ * @param val Value to search for
+ * @param def Default value to return
+ * @return value corresponding to @a val, or @a def.
+ */
+const char* gkyl_search_str_int_pair_by_int(const struct gkyl_str_int_pair pairs[], int val, const char *def);
+
 /**
  * Time-trigger. Typical initialization is:
  * 

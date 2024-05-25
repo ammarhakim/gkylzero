@@ -326,7 +326,7 @@ gkyl_proj_gkmaxwellian_on_basis_prim_mom_cu_ker(const struct gkyl_rect_grid grid
   const struct gkyl_array* GKYL_RESTRICT phase_basis_at_ords, 
   const struct gkyl_array* GKYL_RESTRICT phase_ordinates, 
   const struct gkyl_array* GKYL_RESTRICT phase_weights, const int *p2c_qidx,
-  const struct gkyl_array* GKYL_RESTRICT moms, const struct gkyl_array* GKYL_RESTRICT prim_moms,
+  const struct gkyl_array* GKYL_RESTRICT prim_moms,
   const struct gkyl_array* GKYL_RESTRICT bmag, const struct gkyl_array* GKYL_RESTRICT jacob_tot,
   struct gkyl_array* GKYL_RESTRICT vmap, struct gkyl_basis* GKYL_RESTRICT vmap_basis,
   double mass, struct gkyl_array* GKYL_RESTRICT fmax)
@@ -356,10 +356,10 @@ gkyl_proj_gkmaxwellian_on_basis_prim_mom_cu_ker(const struct gkyl_rect_grid grid
     for (unsigned int k = 0; k < cdim; k++) cidx[k] = pidx[k];
     long lincC = gkyl_range_idx(&conf_r, cidx);
 
-    const double *m0_d = (const double *) gkyl_array_cfetch(moms, lincC);
     const double *prim_moms_d = (const double *) gkyl_array_cfetch(prim_moms, lincC);
-    const double *upar_d = prim_moms_d;
-    const double *vtsq_d = &prim_moms_d[num_conf_basis];
+    const double *m0_d = prim_moms_d;
+    const double *upar_d = &prim_moms_d[num_conf_basis];
+    const double *vtsq_d = &prim_moms_d[2*num_conf_basis];
     const double *bmag_d = (const double *) gkyl_array_cfetch(bmag, lincC);
     const double *jactot_d = (const double *) gkyl_array_cfetch(jacob_tot, lincC);
 
@@ -474,7 +474,7 @@ gkyl_proj_gkmaxwellian_on_basis_lab_mom_cu(const gkyl_proj_maxwellian_on_basis *
 void
 gkyl_proj_gkmaxwellian_on_basis_prim_mom_cu(const gkyl_proj_maxwellian_on_basis *up,
   const struct gkyl_range *phase_r, const struct gkyl_range *conf_r,
-  const struct gkyl_array *moms, const struct gkyl_array *prim_moms,
+  const struct gkyl_array *prim_moms,
   const struct gkyl_array *bmag, const struct gkyl_array *jacob_tot, double mass,
   struct gkyl_array *fmax)
 {
