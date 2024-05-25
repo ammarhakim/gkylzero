@@ -380,6 +380,15 @@ gk_species_init(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *app, st
     }
   }
 
+  // Positivity enforcing by shifting f.
+  s->enforce_positivity = false;
+  if (s->info.enforce_positivity) {
+    s->enforce_positivity = true;
+    s->pos_shift_op = gkyl_positivity_shift_gyrokinetic_new(cdim, app->basis, s->grid, s->info.mass, app->gk_geom, app->use_gpu);
+    s->ps_intmom_grid = mkarr(app->use_gpu, vdim+2, app->local_ext.volume);
+    s->ps_integ_diag = gkyl_dynvec_new(GKYL_DOUBLE, vdim+2);
+    s->is_first_ps_integ_write_call = true;
+  }
 }
 
 void
@@ -618,5 +627,11 @@ gk_species_release(const gkyl_gyrokinetic_app* app, const struct gk_species *s)
     gkyl_free(s->omega_cfl);
     gkyl_free(s->red_integ_diag);
     gkyl_free(s->red_integ_diag_global);
+  }
+
+  if (s->enforce_positivity) {
+    gkyl_positivity_shift_gyrokinetic_release(s->pos_shift_op);
+    gkyl_array_release(s->ps_intmom_grid);
+    gkyl_dynvec_release(s->ps_integ_diag);
   }
 }

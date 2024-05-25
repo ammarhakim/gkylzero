@@ -10,7 +10,7 @@ gkyl_bc_sheath_gyrokinetic_new(int dir, enum gkyl_edge_loc edge, const struct gk
 {
 
   // Allocate space for new updater.
-  struct gkyl_bc_sheath_gyrokinetic *up = gkyl_malloc(sizeof(struct gkyl_bc_sheath_gyrokinetic));
+  struct gkyl_bc_sheath_gyrokinetic *up = gkyl_malloc(sizeof(*up));
 
   up->dir = dir;
   up->cdim = cdim;

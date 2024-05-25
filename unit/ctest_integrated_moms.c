@@ -137,18 +137,18 @@ test_2x_option(bool use_gpu)
 
   // Initialize geometry
   struct gkyl_gk_geometry_inp geometry_input = {
-      .geometry_id = GKYL_MAPC2P,
-      .world = {0.0},
-      .mapc2p = mapc2p, // mapping of computational to physical space
-      .c2p_ctx = 0,
-      .bmag_func = bmag_func, // magnetic field magnitude
-      .bmag_ctx = 0 ,
-      .grid = confGrid,
-      .local = confLocal,
-      .local_ext = confLocal_ext,
-      .global = confLocal,
-      .global_ext = confLocal_ext,
-      .basis = confBasis,
+    .geometry_id = GKYL_MAPC2P,
+    .world = {0.0},
+    .mapc2p = mapc2p, // mapping of computational to physical space
+    .c2p_ctx = 0,
+    .bmag_func = bmag_func, // magnetic field magnitude
+    .bmag_ctx = 0 ,
+    .grid = confGrid,
+    .local = confLocal,
+    .local_ext = confLocal_ext,
+    .global = confLocal,
+    .global_ext = confLocal_ext,
+    .basis = confBasis,
   };
 
   int geo_ghost[3] = {1};
