@@ -88,7 +88,8 @@ struct gkyl_gyrokinetic_bc {
   enum gkyl_species_bc_type type;
   void *aux_ctx;
   void (*aux_profile)(double t, const double *xn, double *fout, void *ctx);  
-  double aux_parameter;
+  double aux_double;
+  int aux_int;
 };
 
 struct gkyl_gyrokinetic_bcs {

@@ -155,8 +155,8 @@ gk_species_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app, struct gk_
         s->periodic_dirs[s->num_periodic_dir] = app->cdim-1; // The last direction is the parallel one.
         s->num_periodic_dir += 1;
         // Check that the LCFS is the same on both BCs and that it's on a cell boundary within our grid.
-        double xLCFS = s->lower_bc[dir].aux_parameter;
-        assert(fabs(xLCFS-s->upper_bc[dir].aux_parameter) < 1e-14);
+        double xLCFS = s->lower_bc[dir].aux_double;
+        assert(fabs(xLCFS-s->upper_bc[dir].aux_double) < 1e-14);
         // Assume the split happens at a cell boundary and within the domain.
         assert((app->grid.lower[0]<xLCFS) && (xLCFS<app->grid.upper[0]));
         double needint = (xLCFS-app->grid.lower[0])/app->grid.dx[0];
@@ -284,12 +284,16 @@ gk_species_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app, struct gk_
   for (int d=0; d<cdim; ++d) {
     // Copy BCs by default.
     enum gkyl_bc_basic_type bctype = GKYL_BC_COPY;
-    if (s->lower_bc[d].type == GKYL_SPECIES_GK_SHEATH) {
+    if (s->lower_bc[d].type == GKYL_SPECIES_EXCISION) {
+      s->bc_excision_lo = gkyl_bc_excision_new(s->lower_bc[d].aux_int, s->grid,
+        app->basis, s->lower_ghost[d], app->use_gpu); 
+    }
+    else if (s->lower_bc[d].type == GKYL_SPECIES_GK_SHEATH) {
       s->bc_sheath_lo = gkyl_bc_sheath_gyrokinetic_new(d, GKYL_LOWER_EDGE, app->basis_on_dev.basis, 
         &s->lower_skin[d], &s->lower_ghost[d], &s->grid, cdim, 2.0*(s->info.charge/s->info.mass), app->use_gpu);
     }
     else if (s->lower_bc[d].type == GKYL_SPECIES_GK_IWL) {
-      double xLCFS = s->lower_bc[d].aux_parameter;
+      double xLCFS = s->lower_bc[d].aux_double;
       // Index of the cell that abuts the xLCFS from below.
       int idxLCFS_m = (xLCFS-1e-8 - app->grid.lower[0])/app->grid.dx[0]+1;
       gkyl_range_shorten_from_below(&s->lower_skin_par_sol, &s->lower_skin[d], 0, app->grid.cells[0]-idxLCFS_m+1);
@@ -312,12 +316,16 @@ gk_species_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app, struct gk_
         &s->lower_skin[d], &s->lower_ghost[d], s->f->ncomp, app->cdim, app->use_gpu);
     }
 
-    if (s->upper_bc[d].type == GKYL_SPECIES_GK_SHEATH) {
+    if (s->upper_bc[d].type == GKYL_SPECIES_EXCISION) {
+      s->bc_excision_up = gkyl_bc_excision_new(s->upper_bc[d].aux_int, s->grid,
+        app->basis, s->upper_ghost[d], app->use_gpu); 
+    }
+    else if (s->upper_bc[d].type == GKYL_SPECIES_GK_SHEATH) {
       s->bc_sheath_up = gkyl_bc_sheath_gyrokinetic_new(d, GKYL_UPPER_EDGE, app->basis_on_dev.basis, 
         &s->upper_skin[d], &s->upper_ghost[d], &s->grid, cdim, 2.0*(s->info.charge/s->info.mass), app->use_gpu);
     }
     else if (s->lower_bc[d].type == GKYL_SPECIES_GK_IWL) {
-      double xLCFS = s->upper_bc[d].aux_parameter;
+      double xLCFS = s->upper_bc[d].aux_double;
       // Index of the cell that abuts the xLCFS from below.
       int idxLCFS_m = (xLCFS-1e-8 - app->grid.lower[0])/app->grid.dx[0]+1;
       gkyl_range_shorten_from_below(&s->upper_skin_par_sol, &s->upper_skin[d], 0, app->grid.cells[0]-idxLCFS_m+1);
@@ -365,8 +373,11 @@ gk_species_apply_ic(gkyl_gyrokinetic_app *app, struct gk_species *species, doubl
   // copy contents of initial conditions into buffer if specific BCs require them
   // *only works in x dimension for now for cdim > 1*
   if (app->cdim>1) {
-    gkyl_bc_basic_buffer_fixed_func(species->bc_lo[0], species->bc_buffer_lo_fixed, species->f);
-    gkyl_bc_basic_buffer_fixed_func(species->bc_up[0], species->bc_buffer_up_fixed, species->f);
+    if (species->lower_bc[0].type == GKYL_SPECIES_FIXED_FUNC)
+      gkyl_bc_basic_buffer_fixed_func(species->bc_lo[0], species->bc_buffer_lo_fixed, species->f);
+
+    if (species->upper_bc[0].type == GKYL_SPECIES_FIXED_FUNC)
+      gkyl_bc_basic_buffer_fixed_func(species->bc_up[0], species->bc_buffer_up_fixed, species->f);
   }
 }
 
@@ -440,6 +451,10 @@ gk_species_apply_bc(gkyl_gyrokinetic_app *app, const struct gk_species *species,
     if (species->bc_is_np[d]) {
 
       switch (species->lower_bc[d].type) {
+        case GKYL_SPECIES_EXCISION:
+          gkyl_array_copy_to_buffer(species->bc_buffer->data, f, &species->lower_ghost[d]);
+          gkyl_bc_excision_advance(species->bc_excision_lo, species->bc_buffer, f);
+          break;
         case GKYL_SPECIES_GK_SHEATH:
         case GKYL_SPECIES_GK_IWL:
           gkyl_bc_sheath_gyrokinetic_advance(species->bc_sheath_lo, app->field->phi_smooth, 
@@ -461,6 +476,10 @@ gk_species_apply_bc(gkyl_gyrokinetic_app *app, const struct gk_species *species,
       }
 
       switch (species->upper_bc[d].type) {
+        case GKYL_SPECIES_EXCISION:
+          gkyl_array_copy_to_buffer(species->bc_buffer->data, f, &species->upper_ghost[d]);
+          gkyl_bc_excision_advance(species->bc_excision_up, species->bc_buffer, f);
+          break;
         case GKYL_SPECIES_GK_SHEATH:
         case GKYL_SPECIES_GK_IWL:
           gkyl_bc_sheath_gyrokinetic_advance(species->bc_sheath_up, app->field->phi_smooth, 
@@ -573,13 +592,17 @@ gk_species_release(const gkyl_gyrokinetic_app* app, const struct gk_species *s)
 
   // Copy BCs are allocated by default. Need to free.
   for (int d=0; d<app->cdim; ++d) {
-    if ((s->lower_bc[d].type == GKYL_SPECIES_GK_SHEATH) ||
+    if (s->lower_bc[d].type == GKYL_SPECIES_EXCISION)
+      gkyl_bc_excision_release(s->bc_excision_lo);
+    else if ((s->lower_bc[d].type == GKYL_SPECIES_GK_SHEATH) ||
         (s->lower_bc[d].type == GKYL_SPECIES_GK_IWL))
       gkyl_bc_sheath_gyrokinetic_release(s->bc_sheath_lo);
     else 
       gkyl_bc_basic_release(s->bc_lo[d]);
     
-    if ((s->upper_bc[d].type == GKYL_SPECIES_GK_SHEATH) ||
+    if (s->upper_bc[d].type == GKYL_SPECIES_EXCISION)
+      gkyl_bc_excision_release(s->bc_excision_up);
+    else if ((s->upper_bc[d].type == GKYL_SPECIES_GK_SHEATH) ||
         (s->upper_bc[d].type == GKYL_SPECIES_GK_IWL))
       gkyl_bc_sheath_gyrokinetic_release(s->bc_sheath_up);
     else 

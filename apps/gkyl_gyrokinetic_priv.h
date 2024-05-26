@@ -19,6 +19,7 @@
 #include <gkyl_array_reduce.h>
 #include <gkyl_array_rio.h>
 #include <gkyl_bc_basic.h>
+#include <gkyl_bc_excision.h>
 #include <gkyl_bc_sheath_gyrokinetic.h>
 #include <gkyl_bgk_collisions.h>
 #include <gkyl_dg_advection.h>
@@ -480,6 +481,9 @@ struct gk_species {
 
   // boundary conditions on lower/upper edges in each direction  
   struct gkyl_gyrokinetic_bc lower_bc[3], upper_bc[3];
+  // Gyrokinetic excision boundary conditions.
+  struct gkyl_bc_excision *bc_excision_lo;
+  struct gkyl_bc_excision *bc_excision_up;
   // gyrokinetic sheath boundary conditions
   struct gkyl_bc_sheath_gyrokinetic *bc_sheath_lo;
   struct gkyl_bc_sheath_gyrokinetic *bc_sheath_up;

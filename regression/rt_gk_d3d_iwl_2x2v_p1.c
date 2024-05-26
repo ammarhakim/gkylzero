@@ -621,9 +621,9 @@ main(int argc, char **argv)
     },
     .bcy = {
       .lower={.type = GKYL_SPECIES_GK_IWL,
-              .aux_parameter = ctx.x_LCFS,},
+              .aux_double= ctx.x_LCFS,},
       .upper={.type = GKYL_SPECIES_GK_IWL,
-              .aux_parameter = ctx.x_LCFS,},
+              .aux_double = ctx.x_LCFS,},
     },
 
     .num_diag_moments = 5,
@@ -694,9 +694,9 @@ main(int argc, char **argv)
     },
     .bcy = {
       .lower={.type = GKYL_SPECIES_GK_IWL,
-              .aux_parameter = ctx.x_LCFS,},
+              .aux_double = ctx.x_LCFS,},
       .upper={.type = GKYL_SPECIES_GK_IWL,
-              .aux_parameter = ctx.x_LCFS,},
+              .aux_double = ctx.x_LCFS,},
     },
 
     .num_diag_moments = 5,
