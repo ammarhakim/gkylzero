@@ -56,6 +56,13 @@ void evalFunc_2x2v(double t, const double *xn, double *restrict fout,
   fout[0] = x * y * (vx - 1) * (vy - 2);
 }
 
+void evalFunc_3x2v(double t, const double *xn, double *restrict fout,
+  void *ctx) {
+  double x = xn[0], y = xn[1], z = xn[2];
+  double vx = xn[3], vy = xn[4];
+  fout[0] = (x - 1) * y * (z + 1) * (vx - 1) * (vy - 2);
+}
+
 void test_bc(int cdim, int vdim, int poly_order, bool use_gpu) {
   const int ndim = cdim + vdim;
   double lower[ndim], upper[ndim];
@@ -103,6 +110,9 @@ void test_bc(int cdim, int vdim, int poly_order, bool use_gpu) {
   } else if (cdim == 2 && vdim == 2) {
     projDistf = gkyl_proj_on_basis_new(&grid, &basis, poly_order + 1, 1,
       evalFunc_2x2v, NULL);
+  } else if (cdim == 3 && vdim == 2) {
+    projDistf = gkyl_proj_on_basis_new(&grid, &basis, poly_order + 1, 1,
+      evalFunc_3x2v, NULL);
   }
 
   // Create distribution function array
@@ -165,15 +175,27 @@ void test_bc(int cdim, int vdim, int poly_order, bool use_gpu) {
 }
 
 void test_bc_excision_1x1v_p1_ho() { test_bc(1, 1, 1, false); }
+void test_bc_excision_1x2v_p1_ho() { test_bc(1, 2, 1, false); }
+void test_bc_excision_2x2v_p1_ho() { test_bc(2, 2, 1, false); }
+void test_bc_excision_3x2v_p1_ho() { test_bc(3, 2, 1, false); }
 
 #ifdef GKYL_HAVE_CUDA
 void test_bc_excision_1x1v_p1_dev() { test_bc(1, 1, 1, true); }
+void test_bc_excision_1x2v_p1_dev() { test_bc(1, 2, 1, true); }
+void test_bc_excision_2x2v_p1_dev() { test_bc(2, 2, 1, true); }
+void test_bc_excision_3x2v_p1_dev() { test_bc(3, 2, 1, true); }
 #endif
 
 TEST_LIST = {
   {"test_bc_excision_1x1v_p1_ho", test_bc_excision_1x1v_p1_ho},
+  {"test_bc_excision_1x2v_p1_ho", test_bc_excision_1x2v_p1_ho},
+  {"test_bc_excision_2x2v_p1_ho", test_bc_excision_2x2v_p1_ho},
+  {"test_bc_excision_3x2v_p1_ho", test_bc_excision_3x2v_p1_ho},
 #ifdef GKYL_HAVE_CUDA
   {"test_bc_excision_1x1v_p1_dev", test_bc_excision_1x1v_p1_dev},
+  {"test_bc_excision_1x2v_p1_dev", test_bc_excision_1x2v_p1_dev},
+  {"test_bc_excision_2x2v_p1_dev", test_bc_excision_2x2v_p1_dev},
+  {"test_bc_excision_3x2v_p1_dev", test_bc_excision_3x2v_p1_dev},
 #endif
   {NULL, NULL},
 };
