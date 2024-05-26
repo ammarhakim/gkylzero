@@ -25,6 +25,18 @@ struct skin_ghost_ranges {
   struct gkyl_range upper_ghost[GKYL_MAX_DIM];
 };
 
+// Create ghost and skin sub-ranges given a parent range
+static void skin_ghost_ranges_init(struct skin_ghost_ranges *sgr,
+  const struct gkyl_range *parent, const int *ghost) {
+  int ndim = parent->ndim;
+  for (int d = 0; d < ndim; ++d) {
+    gkyl_skin_ghost_ranges(&sgr->lower_skin[d], &sgr->lower_ghost[d], d,
+      GKYL_LOWER_EDGE, parent, ghost);
+    gkyl_skin_ghost_ranges(&sgr->upper_skin[d], &sgr->upper_ghost[d], d,
+      GKYL_UPPER_EDGE, parent, ghost);
+  }
+}
+
 void evalFunc_1x1v(double t, const double *xn, double *restrict fout,
   void *ctx) {
   double x = xn[0], vx = xn[1];
@@ -42,19 +54,6 @@ void evalFunc_2x2v(double t, const double *xn, double *restrict fout,
   double x = xn[0], y = xn[1];
   double vx = xn[2], vy = xn[3];
   fout[0] = x * y * (vx - 1) * (vy - 2);
-}
-
-
-// Create ghost and skin sub-ranges given a parent range
-static void skin_ghost_ranges_init(struct skin_ghost_ranges *sgr,
-  const struct gkyl_range *parent, const int *ghost) {
-  int ndim = parent->ndim;
-  for (int d = 0; d < ndim; ++d) {
-    gkyl_skin_ghost_ranges(&sgr->lower_skin[d], &sgr->lower_ghost[d], d,
-      GKYL_LOWER_EDGE, parent, ghost);
-    gkyl_skin_ghost_ranges(&sgr->upper_skin[d], &sgr->upper_ghost[d], d,
-      GKYL_UPPER_EDGE, parent, ghost);
-  }
 }
 
 void test_bc(int cdim, int vdim, int poly_order, bool use_gpu) {
@@ -86,7 +85,8 @@ void test_bc(int cdim, int vdim, int poly_order, bool use_gpu) {
 
   // Ranges.
   int ghost[ndim];
-  for (int d = 0; d < ndim; d++) ghost[d] = 1;
+  for (int d = 0; d < ndim; d++) ghost[d] = 0;
+  for (int d = 0; d < cdim; d++) ghost[d] = 1;
   struct gkyl_range local, local_ext; // local, local-ext phase-space ranges
   gkyl_create_grid_ranges(&grid, ghost, &local_ext, &local);
   struct skin_ghost_ranges skin_ghost; // phase-space skin/ghost
@@ -109,7 +109,7 @@ void test_bc(int cdim, int vdim, int poly_order, bool use_gpu) {
   struct gkyl_array *distf, *distf_ho, *distf_init_ho;
   distf = mkarr(use_gpu, basis.num_basis, local_ext.volume);
   distf_ho = use_gpu? mkarr(false, distf->ncomp, distf->size) : gkyl_array_acquire(distf);
-  distf_init_ho = use_gpu? mkarr(false, distf->ncomp, distf->size) : gkyl_array_acquire(distf);
+  distf_init_ho = mkarr(false, distf->ncomp, distf->size);
 
   // Project distribution function on basis
   gkyl_proj_on_basis_advance(projDistf, 0.0, &local_ext, distf_ho);
@@ -139,14 +139,18 @@ void test_bc(int cdim, int vdim, int poly_order, bool use_gpu) {
   int idx_neigh[ndim];
   struct gkyl_range_iter iter;
   gkyl_range_iter_init(&iter, &skin_ghost.lower_ghost[bc_dir]);
+  printf("\n");
   while (gkyl_range_iter_next(&iter)) {
-    for (int d=0; d<ndim; d++) idx_neigh[d] =  iter.idx[d];
+    for (int d=0; d<ndim; d++) idx_neigh[d] = iter.idx[d];
     idx_neigh[tan_dir] = iter.idx[tan_dir] > cells[tan_dir]/2 ? iter.idx[tan_dir]-cells[tan_dir]/2
                                                               : iter.idx[tan_dir]+cells[tan_dir]/2;
+
     int linidx = gkyl_range_idx(&skin_ghost.lower_ghost[bc_dir], iter.idx);
     int linidx_neigh = gkyl_range_idx(&skin_ghost.lower_ghost[bc_dir], idx_neigh);
+
     const double *f = gkyl_array_cfetch(distf_ho, linidx);
     const double *f_neigh = gkyl_array_cfetch(distf_init_ho, linidx_neigh);
+
     for (int i = 0; i < basis.num_basis; i++) {
       TEST_CHECK(gkyl_compare(f[i], f_neigh[i], 1e-12));
     }
@@ -162,9 +166,14 @@ void test_bc(int cdim, int vdim, int poly_order, bool use_gpu) {
 
 void test_bc_excision_1x1v_p1_ho() { test_bc(1, 1, 1, false); }
 
+#ifdef GKYL_HAVE_CUDA
+void test_bc_excision_1x1v_p1_dev() { test_bc(1, 1, 1, true); }
+#endif
+
 TEST_LIST = {
   {"test_bc_excision_1x1v_p1_ho", test_bc_excision_1x1v_p1_ho},
 #ifdef GKYL_HAVE_CUDA
+  {"test_bc_excision_1x1v_p1_dev", test_bc_excision_1x1v_p1_dev},
 #endif
   {NULL, NULL},
 };
