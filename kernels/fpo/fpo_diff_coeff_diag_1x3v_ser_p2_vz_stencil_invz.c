@@ -8,24 +8,16 @@ GKYL_CU_DH void fpo_diff_coeff_diag_1x3v_vz_ser_p2_invz(const double *dxv, const
   // diff_coeff: Output array for diffusion tensor. 
 
   // Use cell-average value for gamma. 
- double gamma_avg = gamma[0]/sqrt(pow(2, 1)); 
+  double gamma_avg = gamma[0]/sqrt(pow(2, 1)); 
   double dv1_sq = 4.0/dxv[3]/dxv[3]; 
 
   const double* G_L = fpo_g_stencil[0]; 
   const double* G_C = fpo_g_stencil[1]; 
   const double* G_R = fpo_g_stencil[2]; 
   
-  const double *fpo_d2g_surf_C_vxvx = &fpo_d2gdv2_surf[0]; 
-  const double *fpo_d2g_surf_C_vyvy = &fpo_d2gdv2_surf[80]; 
-  const double *fpo_d2g_surf_C_vzvz = &fpo_d2gdv2_surf[160]; 
+  const double* d2G_surf_C = &fpo_d2gdv2_surf[160]; 
   
-  const double* d2G_surf_C = fpo_d2g_surf_C_vzvz; 
-  
-  double *diff_coeff_vxvx = &diff_coeff[0]; 
-  double *diff_coeff_vyvy = &diff_coeff[192]; 
-  double *diff_coeff_vzvz = &diff_coeff[384]; 
-  
-  double *out = diff_coeff_vzvz; 
+  double *out = &diff_coeff[384]; 
   
   out[0] = 0.6708203932499369*G_R[14]*dv1_sq*gamma_avg+0.6708203932499369*G_L[14]*dv1_sq*gamma_avg-1.3416407864998738*G_C[14]*dv1_sq*gamma_avg-1.190784930203603*G_R[4]*dv1_sq*gamma_avg+1.190784930203603*G_L[4]*dv1_sq*gamma_avg+0.9375*G_R[0]*dv1_sq*gamma_avg+0.9375*G_L[0]*dv1_sq*gamma_avg-1.875*G_C[0]*dv1_sq*gamma_avg; 
   out[1] = 0.6708203932499369*G_R[28]*dv1_sq*gamma_avg+0.6708203932499369*G_L[28]*dv1_sq*gamma_avg-1.3416407864998738*G_C[28]*dv1_sq*gamma_avg-1.190784930203603*G_R[8]*dv1_sq*gamma_avg+1.190784930203603*G_L[8]*dv1_sq*gamma_avg+0.9375*G_R[1]*dv1_sq*gamma_avg+0.9375*G_L[1]*dv1_sq*gamma_avg-1.875*G_C[1]*dv1_sq*gamma_avg; 

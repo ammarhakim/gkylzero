@@ -12,6 +12,7 @@ static void
 create_offsets(const int num_up_dirs, const int update_dirs[2], 
   const struct gkyl_range *range, const int idxc[GKYL_MAX_DIM], long offsets[9])
 {
+  
   // Check if we're at an upper or lower edge in each direction
   bool is_edge_upper[2], is_edge_lower[2];
   for (int i=0; i<num_up_dirs; ++i) {
@@ -38,9 +39,12 @@ create_offsets(const int num_up_dirs, const int update_dirs[2],
   int count = 0;
   while (gkyl_range_iter_next(&iter3))
     offsets[count++] = gkyl_range_offset(range, iter3.idx);
+
 }
 
-static int idx_to_inloup_ker(int dim, const int *idx, const int *dirs, const int *num_cells) {
+GKYL_CU_DH
+static int 
+idx_to_inloup_ker(int dim, const int *idx, const int *dirs, const int *num_cells) {
   int iout = 0;
 
   for (int d=0; d<dim; ++d) {
@@ -52,7 +56,6 @@ static int idx_to_inloup_ker(int dim, const int *idx, const int *dirs, const int
   }
   return iout;
 }
-
 // Kernel function pointers
 typedef void (*fpo_diff_coeff_diag_t)(const double *dxv, const double *gamma,
     const double* fpo_g_stencil[3], const double* fpo_d2gdv2_surf,

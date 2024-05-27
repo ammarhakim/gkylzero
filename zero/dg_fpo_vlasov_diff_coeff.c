@@ -83,10 +83,6 @@ void gkyl_calc_fpo_diff_coeff_recovery(const struct gkyl_rect_grid *grid,
       int update_dirs[2] = {0};
       update_dirs[0] = dir1;
 
-      bool is_edge_upper[1], is_edge_lower[1];
-      is_edge_lower[0] = idxc[dir1] == range->lower[dir1]; 
-      is_edge_upper[0] = idxc[dir1] == range->upper[dir1];
-
       // Create offsets from center cell to stencil and index into kernel list.
       create_offsets(1, update_dirs, range, idxc, offsets);
 
@@ -114,8 +110,8 @@ void gkyl_calc_fpo_diff_coeff_recovery(const struct gkyl_rect_grid *grid,
         // Always 2D and we need 9 cell stencil for 2D recovery.
         long offsets[9] = {0};
         int update_dirs[2] = {0};
-        update_dirs[0] = dir1;
-        update_dirs[1] = dir2;
+        update_dirs[0] = dir1 < dir2 ? dir1 : dir2;
+        update_dirs[1] = dir1 < dir2 ? dir2 : dir1;
 
         create_offsets(2, update_dirs, range, idxc, offsets);
 
