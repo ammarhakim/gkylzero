@@ -54,9 +54,9 @@ GKYL_CU_DH double euler_pkpm_vol_1x_tensor_p1(const double *w, const double *dxv
 
   outrhoux[1] += 1.224744871391589*rhoux_2p[1]*ux[1]*dx10+1.224744871391589*rhoux_2p[0]*ux[0]*dx10+1.732050807568877*Pxx[0]*dx10; 
 
-  outrhouy[1] += 1.224744871391589*rhouy_2p[1]*ux[1]*dx10+1.224744871391589*rhouy_2p[0]*ux[0]*dx10+1.732050807568877*Pxy[0]*dx10; 
+  outrhouy[1] += 1.224744871391589*rhoux_2p[1]*uy[1]*dx10+1.224744871391589*rhoux_2p[0]*uy[0]*dx10+1.732050807568877*Pxy[0]*dx10; 
 
-  outrhouz[1] += 1.224744871391589*rhouz_2p[1]*ux[1]*dx10+1.224744871391589*rhouz_2p[0]*ux[0]*dx10+1.732050807568877*Pxz[0]*dx10; 
+  outrhouz[1] += 1.224744871391589*rhoux_2p[1]*uz[1]*dx10+1.224744871391589*rhoux_2p[0]*uz[0]*dx10+1.732050807568877*Pxz[0]*dx10; 
 
   return cflFreq_mid; 
 } 
