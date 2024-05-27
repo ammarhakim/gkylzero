@@ -1,4 +1,5 @@
 #include <gkyl_euler_pkpm_kernels.h> 
+#include <gkyl_basis_tensor_2x_2p_exp_sq.h> 
 GKYL_CU_DH void pkpm_vars_integrated_2x_tensor_p2(const double *vlasov_pkpm_moms, 
   const double* pkpm_u, double* GKYL_RESTRICT int_pkpm_vars) 
 { 
@@ -14,30 +15,22 @@ GKYL_CU_DH void pkpm_vars_integrated_2x_tensor_p2(const double *vlasov_pkpm_moms
   const double *uy = &pkpm_u[4]; 
   const double *uz = &pkpm_u[8]; 
 
-  double rhoux[4] = {0.0}; 
-  double rhouy[4] = {0.0}; 
-  double rhouz[4] = {0.0}; 
-  rhoux[0] = 0.5*rho[3]*ux[3]+0.5*rho[2]*ux[2]+0.5*rho[1]*ux[1]+0.5*rho[0]*ux[0]; 
-  rhoux[1] = 0.447213595499958*ux[3]*rho[6]+0.4472135954999579*ux[1]*rho[4]+0.5*rho[2]*ux[3]+0.5*ux[2]*rho[3]+0.5*rho[0]*ux[1]+0.5*ux[0]*rho[1]; 
-  rhoux[2] = 0.447213595499958*ux[3]*rho[7]+0.4472135954999579*ux[2]*rho[5]+0.5*rho[1]*ux[3]+0.5*ux[1]*rho[3]+0.5*rho[0]*ux[2]+0.5*ux[0]*rho[2]; 
-  rhoux[3] = 0.4*ux[3]*rho[8]+0.447213595499958*ux[2]*rho[7]+0.447213595499958*ux[1]*rho[6]+0.4472135954999579*ux[3]*rho[5]+0.4472135954999579*ux[3]*rho[4]+0.5*rho[0]*ux[3]+0.5*ux[0]*rho[3]+0.5*rho[1]*ux[2]+0.5*ux[1]*rho[2]; 
-  rhouy[0] = 0.5*rho[3]*uy[3]+0.5*rho[2]*uy[2]+0.5*rho[1]*uy[1]+0.5*rho[0]*uy[0]; 
-  rhouy[1] = 0.447213595499958*uy[3]*rho[6]+0.4472135954999579*uy[1]*rho[4]+0.5*rho[2]*uy[3]+0.5*uy[2]*rho[3]+0.5*rho[0]*uy[1]+0.5*uy[0]*rho[1]; 
-  rhouy[2] = 0.447213595499958*uy[3]*rho[7]+0.4472135954999579*uy[2]*rho[5]+0.5*rho[1]*uy[3]+0.5*uy[1]*rho[3]+0.5*rho[0]*uy[2]+0.5*uy[0]*rho[2]; 
-  rhouy[3] = 0.4*uy[3]*rho[8]+0.447213595499958*uy[2]*rho[7]+0.447213595499958*uy[1]*rho[6]+0.4472135954999579*uy[3]*rho[5]+0.4472135954999579*uy[3]*rho[4]+0.5*rho[0]*uy[3]+0.5*uy[0]*rho[3]+0.5*rho[1]*uy[2]+0.5*uy[1]*rho[2]; 
-  rhouz[0] = 0.5*rho[3]*uz[3]+0.5*rho[2]*uz[2]+0.5*rho[1]*uz[1]+0.5*rho[0]*uz[0]; 
-  rhouz[1] = 0.447213595499958*uz[3]*rho[6]+0.4472135954999579*uz[1]*rho[4]+0.5*rho[2]*uz[3]+0.5*uz[2]*rho[3]+0.5*rho[0]*uz[1]+0.5*uz[0]*rho[1]; 
-  rhouz[2] = 0.447213595499958*uz[3]*rho[7]+0.4472135954999579*uz[2]*rho[5]+0.5*rho[1]*uz[3]+0.5*uz[1]*rho[3]+0.5*rho[0]*uz[2]+0.5*uz[0]*rho[2]; 
-  rhouz[3] = 0.4*uz[3]*rho[8]+0.447213595499958*uz[2]*rho[7]+0.447213595499958*uz[1]*rho[6]+0.4472135954999579*uz[3]*rho[5]+0.4472135954999579*uz[3]*rho[4]+0.5*rho[0]*uz[3]+0.5*uz[0]*rho[3]+0.5*rho[1]*uz[2]+0.5*uz[1]*rho[2]; 
-
+  // Calculate u^2. 
+  double ux_sq[9] = {0.0}; 
+  double uy_sq[9] = {0.0}; 
+  double uz_sq[9] = {0.0}; 
+  tensor_2x_2p_exp_sq(ux, ux_sq); 
+  tensor_2x_2p_exp_sq(uy, uy_sq); 
+  tensor_2x_2p_exp_sq(uz, uz_sq); 
+ 
   // Order of integrated variables is (rho, rhoux, rhouy, rhouz, rho ux^2, rho uy^2, rho uz^2, p_parallel, p_perp) 
   int_pkpm_vars[0] += 2.0*rho[0]; 
-  int_pkpm_vars[1] += 2.0*rhoux[0]; 
-  int_pkpm_vars[2] += 2.0*rhouy[0]; 
-  int_pkpm_vars[3] += 2.0*rhouz[0]; 
-  int_pkpm_vars[4] += rhoux[3]*ux[3]+rhoux[2]*ux[2]+rhoux[1]*ux[1]+rhoux[0]*ux[0]; 
-  int_pkpm_vars[5] += rhouy[3]*uy[3]+rhouy[2]*uy[2]+rhouy[1]*uy[1]+rhouy[0]*uy[0]; 
-  int_pkpm_vars[6] += rhouz[3]*uz[3]+rhouz[2]*uz[2]+rhouz[1]*uz[1]+rhouz[0]*uz[0]; 
+  int_pkpm_vars[1] += rho[3]*ux[3]+rho[2]*ux[2]+rho[1]*ux[1]+rho[0]*ux[0]; 
+  int_pkpm_vars[2] += rho[3]*uy[3]+rho[2]*uy[2]+rho[1]*uy[1]+rho[0]*uy[0]; 
+  int_pkpm_vars[3] += rho[3]*uz[3]+rho[2]*uz[2]+rho[1]*uz[1]+rho[0]*uz[0]; 
+  int_pkpm_vars[4] += rho[8]*ux_sq[8]+rho[7]*ux_sq[7]+rho[6]*ux_sq[6]+rho[5]*ux_sq[5]+rho[4]*ux_sq[4]+rho[3]*ux_sq[3]+rho[2]*ux_sq[2]+rho[1]*ux_sq[1]+rho[0]*ux_sq[0]; 
+  int_pkpm_vars[5] += rho[8]*uy_sq[8]+rho[7]*uy_sq[7]+rho[6]*uy_sq[6]+rho[5]*uy_sq[5]+rho[4]*uy_sq[4]+rho[3]*uy_sq[3]+rho[2]*uy_sq[2]+rho[1]*uy_sq[1]+rho[0]*uy_sq[0]; 
+  int_pkpm_vars[6] += rho[8]*uz_sq[8]+rho[7]*uz_sq[7]+rho[6]*uz_sq[6]+rho[5]*uz_sq[5]+rho[4]*uz_sq[4]+rho[3]*uz_sq[3]+rho[2]*uz_sq[2]+rho[1]*uz_sq[1]+rho[0]*uz_sq[0]; 
   int_pkpm_vars[7] += 2.0*p_parallel[0]; 
   int_pkpm_vars[8] += 2.0*p_perp[0]; 
 } 

@@ -1,4 +1,5 @@
 #include <gkyl_euler_pkpm_kernels.h> 
+#include <gkyl_basis_tensor_1x_2p_exp_sq.h> 
 GKYL_CU_DH void pkpm_vars_integrated_1x_tensor_p2(const double *vlasov_pkpm_moms, 
   const double* pkpm_u, double* GKYL_RESTRICT int_pkpm_vars) 
 { 
@@ -14,24 +15,22 @@ GKYL_CU_DH void pkpm_vars_integrated_1x_tensor_p2(const double *vlasov_pkpm_moms
   const double *uy = &pkpm_u[2]; 
   const double *uz = &pkpm_u[4]; 
 
-  double rhoux[2] = {0.0}; 
-  double rhouy[2] = {0.0}; 
-  double rhouz[2] = {0.0}; 
-  rhoux[0] = 0.7071067811865475*rho[1]*ux[1]+0.7071067811865475*rho[0]*ux[0]; 
-  rhoux[1] = 0.6324555320336759*ux[1]*rho[2]+0.7071067811865475*rho[0]*ux[1]+0.7071067811865475*ux[0]*rho[1]; 
-  rhouy[0] = 0.7071067811865475*rho[1]*uy[1]+0.7071067811865475*rho[0]*uy[0]; 
-  rhouy[1] = 0.6324555320336759*uy[1]*rho[2]+0.7071067811865475*rho[0]*uy[1]+0.7071067811865475*uy[0]*rho[1]; 
-  rhouz[0] = 0.7071067811865475*rho[1]*uz[1]+0.7071067811865475*rho[0]*uz[0]; 
-  rhouz[1] = 0.6324555320336759*uz[1]*rho[2]+0.7071067811865475*rho[0]*uz[1]+0.7071067811865475*uz[0]*rho[1]; 
-
+  // Calculate u^2. 
+  double ux_sq[3] = {0.0}; 
+  double uy_sq[3] = {0.0}; 
+  double uz_sq[3] = {0.0}; 
+  tensor_1x_2p_exp_sq(ux, ux_sq); 
+  tensor_1x_2p_exp_sq(uy, uy_sq); 
+  tensor_1x_2p_exp_sq(uz, uz_sq); 
+ 
   // Order of integrated variables is (rho, rhoux, rhouy, rhouz, rho ux^2, rho uy^2, rho uz^2, p_parallel, p_perp) 
   int_pkpm_vars[0] += 1.414213562373095*rho[0]; 
-  int_pkpm_vars[1] += 1.414213562373095*rhoux[0]; 
-  int_pkpm_vars[2] += 1.414213562373095*rhouy[0]; 
-  int_pkpm_vars[3] += 1.414213562373095*rhouz[0]; 
-  int_pkpm_vars[4] += rhoux[1]*ux[1]+rhoux[0]*ux[0]; 
-  int_pkpm_vars[5] += rhouy[1]*uy[1]+rhouy[0]*uy[0]; 
-  int_pkpm_vars[6] += rhouz[1]*uz[1]+rhouz[0]*uz[0]; 
+  int_pkpm_vars[1] += rho[1]*ux[1]+rho[0]*ux[0]; 
+  int_pkpm_vars[2] += rho[1]*uy[1]+rho[0]*uy[0]; 
+  int_pkpm_vars[3] += rho[1]*uz[1]+rho[0]*uz[0]; 
+  int_pkpm_vars[4] += rho[2]*ux_sq[2]+rho[1]*ux_sq[1]+rho[0]*ux_sq[0]; 
+  int_pkpm_vars[5] += rho[2]*uy_sq[2]+rho[1]*uy_sq[1]+rho[0]*uy_sq[0]; 
+  int_pkpm_vars[6] += rho[2]*uz_sq[2]+rho[1]*uz_sq[1]+rho[0]*uz_sq[0]; 
   int_pkpm_vars[7] += 1.414213562373095*p_parallel[0]; 
   int_pkpm_vars[8] += 1.414213562373095*p_perp[0]; 
 } 
