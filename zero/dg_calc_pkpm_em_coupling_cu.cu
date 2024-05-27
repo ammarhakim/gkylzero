@@ -220,10 +220,10 @@ void gkyl_dg_calc_pkpm_em_coupling_advance_cu(struct gkyl_dg_calc_pkpm_em_coupli
 // Doing function pointer stuff in here avoids troublesome cudaMemcpyFromSymbol
 __global__ static void 
 dg_calc_pkpm_em_coupling_set_cu_dev_ptrs(struct gkyl_dg_calc_pkpm_em_coupling *up, 
-  enum gkyl_basis_type b_type, int cdim, int poly_order)
+  int cdim, int poly_order)
 {
-  up->pkpm_em_coupling_set = choose_pkpm_em_coupling_set_kern(b_type, cdim, poly_order);
-  up->pkpm_em_coupling_copy = choose_pkpm_em_coupling_copy_kern(b_type, cdim, poly_order);
+  up->pkpm_em_coupling_set = choose_pkpm_em_coupling_set_kern(cdim, poly_order);
+  up->pkpm_em_coupling_copy = choose_pkpm_em_coupling_copy_kern(cdim, poly_order);
 }
 
 gkyl_dg_calc_pkpm_em_coupling*
@@ -237,7 +237,6 @@ gkyl_dg_calc_pkpm_em_coupling_cu_dev_new(const struct gkyl_basis* cbasis,
   int nc = cbasis->num_basis;
   int cdim = cbasis->ndim;
   int poly_order = cbasis->poly_order;
-  enum gkyl_basis_type b_type = cbasis->b_type;
   up->mem_range = *mem_range;
 
   // Linear system size is nc*(3*num_species + 3)
@@ -261,7 +260,7 @@ gkyl_dg_calc_pkpm_em_coupling_cu_dev_new(const struct gkyl_basis* cbasis,
   struct gkyl_dg_calc_pkpm_em_coupling *up_cu = (struct gkyl_dg_calc_pkpm_em_coupling*) gkyl_cu_malloc(sizeof(gkyl_dg_calc_pkpm_em_coupling));
   gkyl_cu_memcpy(up_cu, up, sizeof(gkyl_dg_calc_pkpm_em_coupling), GKYL_CU_MEMCPY_H2D);
 
-  dg_calc_pkpm_em_coupling_set_cu_dev_ptrs<<<1,1>>>(up_cu, b_type, cdim, poly_order);
+  dg_calc_pkpm_em_coupling_set_cu_dev_ptrs<<<1,1>>>(up_cu, cdim, poly_order);
 
   // set parent on_dev pointer
   up->on_dev = up_cu;

@@ -1,4 +1,4 @@
-#include <gkyl_mom_bcorr_lbo_pkpm_kernels.h> 
+#include <gkyl_mom_pkpm_kernels.h> 
 GKYL_CU_DH void mom_bcorr_lbo_pkpm_2x1v_tensor_p2(const int *idx, enum gkyl_vel_edge edge, const double *vBoundary, const double *dxv, double mass, const double *fIn, double* GKYL_RESTRICT out) 
 { 
   // edge:      indicator of which velocity grid edge is being considered (VX/VPAR). 

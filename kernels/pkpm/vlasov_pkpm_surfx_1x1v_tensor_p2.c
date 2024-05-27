@@ -1,14 +1,14 @@
 #include <gkyl_vlasov_pkpm_kernels.h> 
 GKYL_CU_DH double vlasov_pkpm_surfx_1x1v_tensor_p2(const double *w, const double *dxv, 
     const double *bvar_surf_l, const double *bvar_surf_c, const double *bvar_surf_r, 
-    const double *pkpm_prim_surf_l, const double *pkpm_prim_surf_c, const double *pkpm_prim_surf_r, 
+    const double *pkpm_u_surf_l, const double *pkpm_u_surf_c, const double *pkpm_u_surf_r, 
     const double *fl, const double *fc, const double *fr, 
     const double *pkpm_max_b, const double *pkpm_lax, double* GKYL_RESTRICT out) 
 { 
   // w[NDIM]:              Cell-center coordinates.
   // dxv[NDIM]:            Cell spacing.
   // bvar_surf_l/c/r:      Input surface magnetic field unit vector and tensor in left/center/right cells in each direction.
-  // pkpm_prim_surf_l/c/r: Input surface primitive variables [u_i, 3*T_ii/m] in left/center/right cells in each direction.
+  // pkpm_u_surf_l/c/r: Input surface primitive variables [u_i, 3*T_ii/m] in left/center/right cells in each direction.
   // fl/fc/fr:             Input distribution functions [F_0, T_perp/m G = T_perp/m (F_0 - F_1)] in left/center/right cells.
   // pkpm_max_b:           Surface expansion of max |b| for Lax penalization of streaming: lambda_i = |b_i|.
   // pkpm_lax:             Surface expansion of pkpm Lax penalization: lambda_i = |u_i| + sqrt(3.0*T_ii/m).
@@ -78,10 +78,10 @@ GKYL_CU_DH double vlasov_pkpm_surfx_1x1v_tensor_p2(const double *w, const double
   const double *b_surf_cr = &bvar_surf_c[1]; 
   const double *b_surf_rl = &bvar_surf_r[0]; 
 
-  const double *u_surf_lr = &pkpm_prim_surf_l[1]; 
-  const double *u_surf_cl = &pkpm_prim_surf_c[0]; 
-  const double *u_surf_cr = &pkpm_prim_surf_c[1]; 
-  const double *u_surf_rl = &pkpm_prim_surf_r[0]; 
+  const double *u_surf_lr = &pkpm_u_surf_l[1]; 
+  const double *u_surf_cl = &pkpm_u_surf_c[0]; 
+  const double *u_surf_cr = &pkpm_u_surf_c[1]; 
+  const double *u_surf_rl = &pkpm_u_surf_r[0]; 
 
   const double *pkpm_max_b_l = &pkpm_max_b[0]; 
   const double *pkpm_max_b_r = &pkpm_max_b[1]; 

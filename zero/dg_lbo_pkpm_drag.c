@@ -63,26 +63,9 @@ gkyl_dg_lbo_pkpm_drag_new(const struct gkyl_basis* cbasis, const struct gkyl_bas
   const gkyl_dg_lbo_pkpm_drag_vol_kern_list *vol_kernels;
   const gkyl_dg_lbo_pkpm_drag_surf_kern_list *surf_vpar_kernels;
   const gkyl_dg_lbo_pkpm_drag_boundary_surf_kern_list *boundary_surf_vpar_kernels;
-  
-  switch (cbasis->b_type) {
-    case GKYL_BASIS_MODAL_SERENDIPITY:
-      vol_kernels = ser_vol_kernels;
-      surf_vpar_kernels = ser_surf_vpar_kernels;
-      boundary_surf_vpar_kernels = ser_boundary_surf_vpar_kernels;
-      
-      break;
-
-    case GKYL_BASIS_MODAL_TENSOR:
-      vol_kernels = ten_vol_kernels;
-      surf_vpar_kernels = ten_surf_vpar_kernels;
-      boundary_surf_vpar_kernels = ten_boundary_surf_vpar_kernels;
-      
-      break;
-
-    default:
-      assert(false);
-      break;    
-  }  
+  vol_kernels = ten_vol_kernels;
+  surf_vpar_kernels = ten_surf_vpar_kernels;
+  boundary_surf_vpar_kernels = ten_boundary_surf_vpar_kernels;  
 
   lbo_pkpm_drag->eqn.vol_term = CK(vol_kernels, cdim, poly_order);
 

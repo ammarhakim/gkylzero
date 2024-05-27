@@ -25,8 +25,8 @@ typedef void (*pkpm_em_coupling_copy_t)(int count,
   double* GKYL_RESTRICT euler_pkpm[GKYL_MAX_SPECIES], double* GKYL_RESTRICT em);
 
 // for use in kernel tables
-typedef struct { pkpm_em_coupling_set_t kernels[4]; } gkyl_dg_pkpm_em_coupling_set_kern_list;
-typedef struct { pkpm_em_coupling_copy_t kernels[4]; } gkyl_dg_pkpm_em_coupling_copy_kern_list;
+typedef struct { pkpm_em_coupling_set_t kernels[3]; } gkyl_dg_pkpm_em_coupling_set_kern_list;
+typedef struct { pkpm_em_coupling_copy_t kernels[3]; } gkyl_dg_pkpm_em_coupling_copy_kern_list;
 
 struct gkyl_dg_calc_pkpm_em_coupling {
   struct gkyl_range mem_range; // Configuration space range for linear solve
@@ -47,68 +47,32 @@ struct gkyl_dg_calc_pkpm_em_coupling {
   struct gkyl_dg_calc_pkpm_em_coupling *on_dev; // pointer to itself or device data
 };
 
-// Set matrices for computing implicit source solve for fluid-em coupling in the PKPM system. (Serendipity kernels)
-GKYL_CU_D
-static const gkyl_dg_pkpm_em_coupling_set_kern_list ser_pkpm_em_coupling_set_kernels[] = {
-  { NULL, euler_pkpm_em_coupling_set_1x_ser_p1, euler_pkpm_em_coupling_set_1x_ser_p2, euler_pkpm_em_coupling_set_1x_ser_p3 }, // 0
-  { NULL, euler_pkpm_em_coupling_set_2x_ser_p1, NULL, NULL }, // 1
-  { NULL, euler_pkpm_em_coupling_set_3x_ser_p1, NULL, NULL }, // 2
-};
-
 // Set matrices for computing implicit source solve for fluid-em coupling in the PKPM system. (Tensor kernels)
 GKYL_CU_D
 static const gkyl_dg_pkpm_em_coupling_set_kern_list ten_pkpm_em_coupling_set_kernels[] = {
-  { NULL, euler_pkpm_em_coupling_set_1x_ser_p1, euler_pkpm_em_coupling_set_1x_ser_p2, euler_pkpm_em_coupling_set_1x_ser_p3 }, // 0
-  { NULL, euler_pkpm_em_coupling_set_2x_ser_p1, euler_pkpm_em_coupling_set_2x_tensor_p2, NULL }, // 1
-  { NULL, euler_pkpm_em_coupling_set_3x_ser_p1, NULL, NULL }, // 2
-};
-
-// Copy solution for implicit source solve for fluid-em coupling in the PKPM system. (Serendipity kernels)
-GKYL_CU_D
-static const gkyl_dg_pkpm_em_coupling_copy_kern_list ser_pkpm_em_coupling_copy_kernels[] = {
-  { NULL, euler_pkpm_em_coupling_copy_1x_ser_p1, euler_pkpm_em_coupling_copy_1x_ser_p2, euler_pkpm_em_coupling_copy_1x_ser_p3 }, // 0
-  { NULL, euler_pkpm_em_coupling_copy_2x_ser_p1, NULL, NULL }, // 1
-  { NULL, euler_pkpm_em_coupling_copy_3x_ser_p1, NULL, NULL }, // 2
+  { NULL, euler_pkpm_em_coupling_set_1x_tensor_p1, NULL }, // 0
+  { NULL, euler_pkpm_em_coupling_set_2x_tensor_p1, NULL }, // 1
+  { NULL, euler_pkpm_em_coupling_set_3x_tensor_p1, NULL }, // 2
 };
 
 // Copy solution for implicit source solve for fluid-em coupling in the PKPM system. (Tensor kernels)
 GKYL_CU_D
 static const gkyl_dg_pkpm_em_coupling_copy_kern_list ten_pkpm_em_coupling_copy_kernels[] = {
-  { NULL, euler_pkpm_em_coupling_copy_1x_ser_p1, euler_pkpm_em_coupling_copy_1x_ser_p2, euler_pkpm_em_coupling_copy_1x_ser_p3 }, // 0
-  { NULL, euler_pkpm_em_coupling_copy_2x_ser_p1, euler_pkpm_em_coupling_copy_2x_tensor_p2, NULL }, // 1
-  { NULL, euler_pkpm_em_coupling_copy_3x_ser_p1, NULL, NULL }, // 2
+  { NULL, euler_pkpm_em_coupling_copy_1x_tensor_p1, NULL }, // 0
+  { NULL, euler_pkpm_em_coupling_copy_2x_tensor_p1, NULL }, // 1
+  { NULL, euler_pkpm_em_coupling_copy_3x_tensor_p1, NULL }, // 2
 };
 
 GKYL_CU_D
 static pkpm_em_coupling_set_t
-choose_pkpm_em_coupling_set_kern(enum gkyl_basis_type b_type, int cdim, int poly_order)
+choose_pkpm_em_coupling_set_kern(int cdim, int poly_order)
 {
-  switch (b_type) {
-    case GKYL_BASIS_MODAL_SERENDIPITY:
-      return ser_pkpm_em_coupling_set_kernels[cdim-1].kernels[poly_order];
-      break;
-    case GKYL_BASIS_MODAL_TENSOR:
-      return ten_pkpm_em_coupling_set_kernels[cdim-1].kernels[poly_order];
-      break;
-    default:
-      assert(false);
-      break;  
-  }
+  return ten_pkpm_em_coupling_set_kernels[cdim-1].kernels[poly_order];
 }
 
 GKYL_CU_D
 static pkpm_em_coupling_copy_t
-choose_pkpm_em_coupling_copy_kern(enum gkyl_basis_type b_type, int cdim, int poly_order)
+choose_pkpm_em_coupling_copy_kern(int cdim, int poly_order)
 {
-  switch (b_type) {
-    case GKYL_BASIS_MODAL_SERENDIPITY:
-      return ser_pkpm_em_coupling_copy_kernels[cdim-1].kernels[poly_order];
-      break;
-    case GKYL_BASIS_MODAL_TENSOR:
-      return ten_pkpm_em_coupling_copy_kernels[cdim-1].kernels[poly_order];
-      break;
-    default:
-      assert(false);
-      break;  
-  }
+  return ten_pkpm_em_coupling_copy_kernels[cdim-1].kernels[poly_order];
 }

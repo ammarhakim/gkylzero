@@ -33,8 +33,7 @@ gkyl_lbo_pkpm_drag_set_auxfields_cu(const struct gkyl_dg_eqn *eqn, struct gkyl_d
 // CUDA kernel to set device pointers to range object and Vlasov PKPM LBO drag kernel function
 // Doing function pointer stuff in here avoids troublesome cudaMemcpyFromSymbol
 __global__ static void
-dg_lbo_pkpm_drag_set_cu_dev_ptrs(struct dg_lbo_pkpm_drag *lbo_pkpm_drag, enum gkyl_basis_type b_type,
-  int cdim, int poly_order)
+dg_lbo_pkpm_drag_set_cu_dev_ptrs(struct dg_lbo_pkpm_drag *lbo_pkpm_drag, int cdim, int poly_order)
 {
   lbo_pkpm_drag->auxfields.nuSum = 0; 
   lbo_pkpm_drag->auxfields.nuPrimMomsSum = 0; 
@@ -45,26 +44,9 @@ dg_lbo_pkpm_drag_set_cu_dev_ptrs(struct dg_lbo_pkpm_drag *lbo_pkpm_drag, enum gk
   const gkyl_dg_lbo_pkpm_drag_vol_kern_list *vol_kernels;
   const gkyl_dg_lbo_pkpm_drag_surf_kern_list *surf_vpar_kernels;
   const gkyl_dg_lbo_pkpm_drag_boundary_surf_kern_list *boundary_surf_vpar_kernels;
-  
-  switch (b_type) {
-    case GKYL_BASIS_MODAL_SERENDIPITY:
-      vol_kernels = ser_vol_kernels;
-      surf_vpar_kernels = ser_surf_vpar_kernels;
-      boundary_surf_vpar_kernels = ser_boundary_surf_vpar_kernels;
-      
-      break;
-
-    case GKYL_BASIS_MODAL_TENSOR:
-      vol_kernels = ten_vol_kernels;
-      surf_vpar_kernels = ten_surf_vpar_kernels;
-      boundary_surf_vpar_kernels = ten_boundary_surf_vpar_kernels;
-      
-      break;
-
-    default:
-      assert(false);
-      break;    
-  }  
+  vol_kernels = ten_vol_kernels;
+  surf_vpar_kernels = ten_surf_vpar_kernels;
+  boundary_surf_vpar_kernels = ten_boundary_surf_vpar_kernels;  
  
   lbo_pkpm_drag->eqn.vol_term = CK(vol_kernels, cdim, poly_order);
 
@@ -102,8 +84,7 @@ gkyl_dg_lbo_pkpm_drag_cu_dev_new(const struct gkyl_basis* cbasis, const struct g
   gkyl_cu_memcpy(lbo_pkpm_drag_cu, lbo_pkpm_drag,
     sizeof(struct dg_lbo_pkpm_drag), GKYL_CU_MEMCPY_H2D);
 
-  dg_lbo_pkpm_drag_set_cu_dev_ptrs<<<1,1>>>(lbo_pkpm_drag_cu,
-    cbasis->b_type, cdim, poly_order);
+  dg_lbo_pkpm_drag_set_cu_dev_ptrs<<<1,1>>>(lbo_pkpm_drag_cu, cdim, poly_order);
 
   lbo_pkpm_drag->eqn.on_dev = &lbo_pkpm_drag_cu->eqn;  
   

@@ -11,8 +11,8 @@
 struct gkyl_dg_vlasov_pkpm_auxfields { 
   const struct gkyl_array *bvar;
   const struct gkyl_array *bvar_surf;
-  const struct gkyl_array *pkpm_prim;
-  const struct gkyl_array *pkpm_prim_surf;
+  const struct gkyl_array *pkpm_u;
+  const struct gkyl_array *pkpm_u_surf;
   const struct gkyl_array *max_b;
   const struct gkyl_array *pkpm_lax;
   const struct gkyl_array *div_b;

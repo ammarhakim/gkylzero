@@ -234,7 +234,6 @@ main(int argc, char **argv)
     .epsilon0 = ctx.epsilon0, .mu0 = ctx.mu0,
     .elcErrorSpeedFactor = 0.0,
     .mgnErrorSpeedFactor = 0.0,
-    .limit_em = true, 
     
     .init = evalFieldInit,
     .ctx = &ctx,

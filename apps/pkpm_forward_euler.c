@@ -32,6 +32,7 @@ pkpm_forward_euler(gkyl_pkpm_app* app, double tcurr, double dt,
 
   // Compute magnetic field unit vector and tensor, and div(b)
   pkpm_field_calc_bvar(app, app->field, emin);  
+  pkpm_field_calc_div_b(app, app->field);
 
   // Two separate loops over number of species to compute needed auxiliary quantities.
   for (int i=0; i<app->num_species; ++i) {

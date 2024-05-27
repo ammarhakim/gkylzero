@@ -120,8 +120,8 @@ struct pkpm_species {
   struct gkyl_rect_grid grid_vel; // velocity space grid
   struct gkyl_range local_vel, local_ext_vel; // local, local-ext velocity-space ranges
 
-  struct gkyl_array *f, *f1, *fnew; // arrays for distribution function updates
-  struct gkyl_array *fluid, *fluid1, *fluidnew; // arrays for momentum updates
+  struct gkyl_array *f, *f1, *fnew; // arrays for distribution function updates, order 2*p
+  struct gkyl_array *fluid, *fluid1, *fluidnew; // arrays for momentum updates, order p
 
   struct gkyl_array *cflrate_f; // CFL rate in each cell for distribution function update
   struct gkyl_array *cflrate_fluid; // CFL rate in each cell for momentum update
@@ -143,37 +143,38 @@ struct pkpm_species {
   struct gkyl_wv_eqn *equation; // For storing 10 moment equation object for upwinding fluid equations with Roe solve
 
   struct gkyl_array *qmem; // array for q/m*(E,B) for use in *explicit* update
-                           // Note: this array is *only* used if the PKPM self-consistent EM fields are static
-                           // If PKPM self-consistent EM fields are dynamics we utilize an implicit source update
-                           // for the momentum equations and Ampere's Law
 
   struct pkpm_species_moment pkpm_moms; // for computing pkpm moments needed in update
   struct pkpm_species_moment pkpm_moms_diag; // for computing pkpm moments diagnostics
 
-  // PKPM distribution function variables
+  // PKPM distribution function variables, order 2*p
   struct gkyl_array *g_dist_source; // g_dist_source = [2.0*T_perp/m*(2.0*T_perp/m G + T_perp/m (F_2 - F_0)), 
                                     //                 (-vpar div(b) + bb:grad(u) - div(u) - 2 nu) T_perp/m G + 2 nu vth^2 F_0 ]
   struct gkyl_array *F_k_p_1; // k+1 distribution function (first NP components are F_2) 
   struct gkyl_array *F_k_m_1; // k-1 distribution function (first NP components are F_1)
 
   // PKPM variables
-  struct gkyl_array *pkpm_div_ppar; // div(p_parallel b_hat) used for computing self-consistent total pressure force 
-  struct gkyl_array *pkpm_prim; // [ux, uy, uz, 1/rho*div(p_par b), T_perp/m, m/T_perp]
-  struct gkyl_array *pkpm_prim_surf; // Surface primitive variables. Ordered as:
-                                     // [ux_xl, ux_xr, uy_xl, uy_xr, uz_xl, uz_xr, 3.0*Txx_xl/m, 3.0*Txx_xr/m, 
-                                     //  ux_yl, ux_yr, uy_yl, uy_yr, uz_yl, uz_yr, 3.0*Tyy_yl/m, 3.0*Tyy_yr/m, 
-                                     //  ux_zl, ux_zr, uy_zl, uy_zr, uz_zl, uz_zr, 3.0*Tzz_zl/m, 3.0*Tzz_zr/m] 
-  struct gkyl_array *pkpm_u; // [ux, uy, uz]
-  struct gkyl_array *pkpm_p_ij; // (p_par - p_perp) b_i b_j + p_perp g_ij
-  struct gkyl_array *pkpm_lax; // Surface expansion of Lax penalization lambda_i = |u_i| + sqrt(3.0*T_ii/m)
-  struct gkyl_array *cell_avg_prim; // Integer array for whether rho, p_par, or p_perp < 0.0 at control points
-                                    // *only* currently used for diagnostic purposes
-  struct gkyl_array *pkpm_accel; // Acceleration variables for PKPM, pkpm_accel:
+  struct gkyl_array *pkpm_u; // [ux, uy, uz], order p
+  struct gkyl_array *pkpm_u_host; // host-side [ux, uy, uz], order p, for I/O on GPUs
+  struct gkyl_array *pkpm_u_surf; // Surface flow velocity, order p. Ordered as:
+                                  // [ux_xl, ux_xr, uy_xl, uy_xr, uz_xl, uz_xr, 
+                                  //  ux_yl, ux_yr, uy_yl, uy_yr, uz_yl, uz_yr, 
+                                  //  ux_zl, ux_zr, uy_zl, uy_zr, uz_zl, uz_zr] 
+
+  struct gkyl_array *pkpm_div_ppar; // div(p_parallel b_hat), order 2*p, used for computing self-consistent total pressure force 
+  struct gkyl_array *pkpm_prim; // primitive variables, order 2*p, 
+                                // [1/rho*div(p_par b), T_perp/m, m/T_perp, 3*T_xx/m, 3*T_yy/m, 3*T_zz/m]
+  struct gkyl_array *pkpm_p_ij; // pressure tensor, order 2*p, (p_par - p_perp) b_i b_j + p_perp g_ij
+  struct gkyl_array *pkpm_lax; // Surface expansion of Lax penalization, order 2*p, lambda_i = |u_i| + sqrt(3.0*T_ii/m)
+
+  struct gkyl_array *pkpm_accel; // Acceleration variables for PKPM, order 2*p, pkpm_accel:
                                  // 0: p_perp_div_b (p_perp/rho*div(b) = T_perp/m*div(b))
                                  // 1: bb_grad_u (bb : grad(u))
                                  // 2: p_force (total pressure forces in kinetic equation 1/rho div(p_parallel b_hat) - T_perp/m*div(b)
                                  // 3: p_perp_source (pressure source for higher Laguerre moments -> bb : grad(u) - div(u) - 2*nu)
-  struct gkyl_array *integ_pkpm_mom; // integrated PKPM variables [rho, rho ux, rho uy, rho uz, rho ux^2, rho uy^2, rho uz^2, p_par, p_perp]
+  struct gkyl_array *integ_pkpm_mom; // integrated PKPM variables 
+                                     // [rho, rho ux, rho uy, rho uz, rho ux^2, rho uy^2, rho uz^2, p_par, p_perp]
+
   struct gkyl_dg_calc_pkpm_vars *calc_pkpm_vars; // Updater to compute PKPM variables (primitive and acceleration variables)
   struct gkyl_dg_calc_pkpm_vars *calc_pkpm_vars_ext; // Updater to compute PKPM variables (primitive and acceleration variables)
                                                      // over extended range (used when BCs are not absorbing to minimize apply BCs calls)
@@ -182,7 +183,11 @@ struct pkpm_species {
 
   bool limit_fluid; // boolean for whether or not we are limiting fluid variables
 
-  // Pointers for io for PKPM fluid variables, handled by kinetic species because of fluid-kinetic coupling.
+  struct gkyl_array *cell_avg_prim; // Integer array for whether [rho, p = p_par + 2 p_perp] < 0.0 at control points
+                                    // *only* currently used for diagnostic purposes
+  struct gkyl_array *cell_avg_prim_host; // host-side positivity check for rho and p = p_par + 2 p_perp, for I/O on GPUs
+
+  // Pointers for io for PKPM fluid variables, order 2*p, including host-side copies for I/O on GPUs
   // For PKPM we construct the 10 moment conserved variables for ease of analysis 
   // along with an array of the various update variables, primitive and acceleration
   struct gkyl_array *fluid_io;
@@ -263,16 +268,22 @@ struct pkpm_field {
   struct gkyl_array *app_current_host; // host copy for use in IO and projecting
   gkyl_proj_on_basis *app_current_proj; // projector for applied current 
 
-  struct gkyl_array *cell_avg_magB2; // Integer array for whether |B|^2 *only* uses cell averages for weak division
-                                     // Determined when constructing the matrix if |B|^2 < 0.0 at control points
-  struct gkyl_array *bvar; // magnetic field unit vector and tensor (diagnostic and for use in pkpm model)
-  struct gkyl_array *bvar_surf; // Surface expansion magnetic field unit vector and tensor (for use in pkpm model)
-  struct gkyl_array *div_b; // Volume expansion of div(b) (for use in pkpm model)
-  struct gkyl_array *max_b; // max(|b_i|) penalization (for use in pkpm model)
-  struct gkyl_dg_calc_em_vars *calc_bvar; // Updater to compute magnetic field unit vector and tensor
+  struct gkyl_array *bvar; // magnetic field unit vector and tensor (9 components)
+  struct gkyl_array *em_vars_diag; // EM variable diagnostics [bvar (9 components), ExB (3 components)]
+  struct gkyl_array *cell_avg_bb; // Integer array for whether [bxbx = Bx^2/|B|^2, byby = By^2/|B|^2, bzbz = Bz^2/|B|^2]
+                                  // are negative at control points. 
+
+  struct gkyl_array *em_vars_diag_host; // host-side EM variable diagnostics 
+  struct gkyl_array *cell_avg_bb_host; // host-side positivity check for bb
+
+  struct gkyl_array *bvar_surf; // Surface expansion magnetic field unit vector 
+                                // [bx_xl, bx_xr, by_yl, by_yr, bz_zl, bz_zr] 
+
+  struct gkyl_array *div_b; // Volume expansion of div(b) 
+  struct gkyl_array *max_b; // max(|b_i|) penalization
 
   bool limit_em; // boolean for whether or not we are limiting EM fields
-  struct gkyl_dg_calc_em_vars *calc_em_vars; // Updater to limit EM fields 
+  struct gkyl_dg_calc_em_vars *calc_em_vars; // Updater to compute EM variables
 
   gkyl_hyper_dg *slvr; // Maxwell solver
 
@@ -303,7 +314,6 @@ struct gkyl_pkpm_app {
   struct gkyl_job_pool *job_pool; // Job pool
   
   int cdim, vdim; // conf, velocity space dimensions
-  int poly_order; // polynomial order
   double tcurr; // current time
   double cfl; // CFL number
 
@@ -321,7 +331,7 @@ struct gkyl_pkpm_app {
   struct gkyl_range upper_skin[GKYL_MAX_DIM];
   struct gkyl_range upper_ghost[GKYL_MAX_DIM];
 
-  struct gkyl_basis basis, confBasis, velBasis; // phase-space, conf-space basis, vel-space basis
+  struct gkyl_basis basis, confBasis, confBasis_2p, velBasis; // phase-space, conf-space basis, vel-space basis
 
   struct gkyl_comm *comm;   // communicator object for conf-space arrays
 
@@ -335,7 +345,7 @@ struct gkyl_pkpm_app {
   // pointers to basis on device (these point to host structs if not
   // on GPU)
   struct {
-    struct gkyl_basis *basis, *confBasis;
+    struct gkyl_basis *basis, *confBasis, *confBasis_2p;
   } basis_on_dev;
 
 
@@ -672,23 +682,22 @@ void pkpm_field_calc_app_current(gkyl_pkpm_app *app, struct pkpm_field *field, d
 void pkpm_field_calc_bvar(gkyl_pkpm_app *app, struct pkpm_field *field, const struct gkyl_array *em);
 
 /**
- * Compute E x B velocity
+ * Compute diagnostic EM variables [bvar (9 components), ExB]
  *
  * @param app PKPM app object
- * @param field Field object (output ExB is stored in field object)
+ * @param field Field object (output em_vars_diag is stored in field object)
  * @param em Input electromagnetic fields
  */
-void pkpm_field_calc_ExB(gkyl_pkpm_app *app, struct pkpm_field *field, const struct gkyl_array *em);
+void pkpm_field_calc_em_vars_diag(gkyl_pkpm_app *app, struct pkpm_field *field, const struct gkyl_array *em);
 
 /**
- * Accumulate current density onto RHS from field equations
+ * Compute div(b) and magnetic field penalization max_b = max(|b_i_l|, |b_i_r|)
  *
  * @param app PKPM app object
- * @param fluidin[] Input fluid array (num_species size)
- * @param emout On output, the RHS from the field solver *with* accumulated current density
+ * @param field Field object (output div_b and max_b are stored in field object)
+ * @param em Input electromagnetic fields
  */
-void pkpm_field_accumulate_current(gkyl_pkpm_app *app, 
-  const struct gkyl_array *fluidin[], struct gkyl_array *emout);
+void pkpm_field_calc_div_b(gkyl_pkpm_app *app, struct pkpm_field *field);
 
 /**
  * Limit slopes of solution of EM variables

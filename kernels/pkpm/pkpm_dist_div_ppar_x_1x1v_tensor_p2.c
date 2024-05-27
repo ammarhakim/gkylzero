@@ -21,8 +21,8 @@ GKYL_CU_DH void pkpm_dist_div_ppar_x_1x1v_tensor_p2(const double *w, const doubl
   double F_0_cl[3] = {0.0}; 
   double F_0_cr[3] = {0.0}; 
   double F_0_rl[3] = {0.0}; 
-  double Ghat_F_0_vpar_l[2] = {0.0}; 
-  double Ghat_F_0_vpar_r[2] = {0.0}; 
+  double Ghat_F_0_vpar_l[3] = {0.0}; 
+  double Ghat_F_0_vpar_r[3] = {0.0}; 
 
   F_0_lr[0] = (-4.415885040048118e-16*F_0l[8])+1.58113883008419*F_0l[4]+1.224744871391589*F_0l[1]+0.7071067811865475*F_0l[0]; 
   F_0_lr[1] = 1.58113883008419*F_0l[6]+1.224744871391589*F_0l[3]+0.7071067811865475*F_0l[2]; 
@@ -71,17 +71,21 @@ GKYL_CU_DH void pkpm_dist_div_ppar_x_1x1v_tensor_p2(const double *w, const doubl
 
   Ghat_F_0_vpar_l[0] = ((0.5*F_0_lr[0]-0.5*F_0_cl[0])*max_b_l+0.5*(F_0_lr[0]+F_0_cl[0])*avg_b_l)*wvpar+dvpar*((0.1443375672974065*F_0_lr[1]-0.1443375672974065*F_0_cl[1])*max_b_l+0.1443375672974065*(F_0_lr[1]+F_0_cl[1])*avg_b_l); 
   Ghat_F_0_vpar_l[1] = ((0.5*F_0_lr[1]-0.5*F_0_cl[1])*max_b_l+0.5*(F_0_lr[1]+F_0_cl[1])*avg_b_l)*wvpar+dvpar*((0.1290994448735806*F_0_lr[2]-0.1290994448735806*F_0_cl[2]+0.1443375672974065*F_0_lr[0]-0.1443375672974065*F_0_cl[0])*max_b_l+(0.1290994448735806*(F_0_lr[2]+F_0_cl[2])+0.1443375672974065*(F_0_lr[0]+F_0_cl[0]))*avg_b_l); 
+  Ghat_F_0_vpar_l[2] = ((0.5*F_0_lr[2]-0.5*F_0_cl[2])*max_b_l+0.5*(F_0_lr[2]+F_0_cl[2])*avg_b_l)*wvpar+dvpar*((0.1290994448735806*F_0_lr[1]-0.1290994448735806*F_0_cl[1])*max_b_l+0.1290994448735806*(F_0_lr[1]+F_0_cl[1])*avg_b_l); 
 
   Ghat_F_0_vpar_r[0] = (0.5*(F_0_cr[0]*max_b_r+(F_0_rl[0]+F_0_cr[0])*avg_b_r)-0.5*F_0_rl[0]*max_b_r)*wvpar+dvpar*(0.1443375672974065*(F_0_cr[1]*max_b_r+(F_0_rl[1]+F_0_cr[1])*avg_b_r)-0.1443375672974065*F_0_rl[1]*max_b_r); 
   Ghat_F_0_vpar_r[1] = (0.5*(F_0_cr[1]*max_b_r+(F_0_rl[1]+F_0_cr[1])*avg_b_r)-0.5*F_0_rl[1]*max_b_r)*wvpar+dvpar*(((-0.1290994448735806*F_0_rl[2])+0.1290994448735806*F_0_cr[2]-0.1443375672974065*F_0_rl[0]+0.1443375672974065*F_0_cr[0])*max_b_r+(0.1290994448735806*(F_0_rl[2]+F_0_cr[2])+0.1443375672974065*(F_0_rl[0]+F_0_cr[0]))*avg_b_r); 
+  Ghat_F_0_vpar_r[2] = (0.5*(F_0_cr[2]*max_b_r+(F_0_rl[2]+F_0_cr[2])*avg_b_r)-0.5*F_0_rl[2]*max_b_r)*wvpar+dvpar*(0.1290994448735806*(F_0_cr[1]*max_b_r+(F_0_rl[1]+F_0_cr[1])*avg_b_r)-0.1290994448735806*F_0_rl[1]*max_b_r); 
 
   } else { 
 
   Ghat_F_0_vpar_l[0] = (0.5*(F_0_cl[0]*max_b_l+(F_0_lr[0]+F_0_cl[0])*avg_b_l)-0.5*F_0_lr[0]*max_b_l)*wvpar+dvpar*(0.1443375672974065*(F_0_cl[1]*max_b_l+(F_0_lr[1]+F_0_cl[1])*avg_b_l)-0.1443375672974065*F_0_lr[1]*max_b_l); 
   Ghat_F_0_vpar_l[1] = (0.5*(F_0_cl[1]*max_b_l+(F_0_lr[1]+F_0_cl[1])*avg_b_l)-0.5*F_0_lr[1]*max_b_l)*wvpar+dvpar*(((-0.1290994448735806*F_0_lr[2])+0.1290994448735806*F_0_cl[2]-0.1443375672974065*F_0_lr[0]+0.1443375672974065*F_0_cl[0])*max_b_l+(0.1290994448735806*(F_0_lr[2]+F_0_cl[2])+0.1443375672974065*(F_0_lr[0]+F_0_cl[0]))*avg_b_l); 
+  Ghat_F_0_vpar_l[2] = (0.5*(F_0_cl[2]*max_b_l+(F_0_lr[2]+F_0_cl[2])*avg_b_l)-0.5*F_0_lr[2]*max_b_l)*wvpar+dvpar*(0.1290994448735806*(F_0_cl[1]*max_b_l+(F_0_lr[1]+F_0_cl[1])*avg_b_l)-0.1290994448735806*F_0_lr[1]*max_b_l); 
 
   Ghat_F_0_vpar_r[0] = ((0.5*F_0_rl[0]-0.5*F_0_cr[0])*max_b_r+0.5*(F_0_rl[0]+F_0_cr[0])*avg_b_r)*wvpar+dvpar*((0.1443375672974065*F_0_rl[1]-0.1443375672974065*F_0_cr[1])*max_b_r+0.1443375672974065*(F_0_rl[1]+F_0_cr[1])*avg_b_r); 
   Ghat_F_0_vpar_r[1] = ((0.5*F_0_rl[1]-0.5*F_0_cr[1])*max_b_r+0.5*(F_0_rl[1]+F_0_cr[1])*avg_b_r)*wvpar+dvpar*((0.1290994448735806*F_0_rl[2]-0.1290994448735806*F_0_cr[2]+0.1443375672974065*F_0_rl[0]-0.1443375672974065*F_0_cr[0])*max_b_r+(0.1290994448735806*(F_0_rl[2]+F_0_cr[2])+0.1443375672974065*(F_0_rl[0]+F_0_cr[0]))*avg_b_r); 
+  Ghat_F_0_vpar_r[2] = ((0.5*F_0_rl[2]-0.5*F_0_cr[2])*max_b_r+0.5*(F_0_rl[2]+F_0_cr[2])*avg_b_r)*wvpar+dvpar*((0.1290994448735806*F_0_rl[1]-0.1290994448735806*F_0_cr[1])*max_b_r+0.1290994448735806*(F_0_rl[1]+F_0_cr[1])*avg_b_r); 
 
   } 
   pkpm_div_ppar[0] += dx1*volFact*((Ghat_F_0_vpar_r[0]-1.0*Ghat_F_0_vpar_l[0])*wvpar+(0.2886751345948129*Ghat_F_0_vpar_r[1]-0.2886751345948129*Ghat_F_0_vpar_l[1])*dvpar); 

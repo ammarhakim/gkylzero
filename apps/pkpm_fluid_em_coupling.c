@@ -20,7 +20,7 @@ pkpm_fluid_em_coupling_init(struct gkyl_pkpm_app *app)
     qbym[i] = s->info.charge/s->info.mass;
   }
 
-  // Initialize solver
+  // Initialize solver, implicit fluid-em coupling perform with an order p basis
   pkpm_em->slvr = gkyl_dg_calc_pkpm_em_coupling_new(&app->confBasis, &app->local, 
     num_species, qbym, app->field->info.epsilon0, app->field->info.is_static, app->use_gpu);
 

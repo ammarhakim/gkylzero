@@ -21,7 +21,6 @@ gkyl_pkpm_app_new(struct gkyl_pkpm *pkpm)
   int cdim = app->cdim = pkpm->cdim;
   int vdim = app->vdim = pkpm->vdim;
   int pdim = cdim+vdim;
-  int poly_order = app->poly_order = pkpm->poly_order;
   int ns = app->num_species = pkpm->num_species;
 
   double cfl_frac = pkpm->cfl_frac == 0 ? 1.0 : pkpm->cfl_frac;
@@ -44,48 +43,26 @@ gkyl_pkpm_app_new(struct gkyl_pkpm *pkpm)
     // allocate device basis if we are using GPUs
     app->basis_on_dev.basis = gkyl_cu_malloc(sizeof(struct gkyl_basis));
     app->basis_on_dev.confBasis = gkyl_cu_malloc(sizeof(struct gkyl_basis));
+    app->basis_on_dev.confBasis_2p = gkyl_cu_malloc(sizeof(struct gkyl_basis));
   }
   else {
     app->basis_on_dev.basis = &app->basis;
     app->basis_on_dev.confBasis = &app->confBasis;
+    app->basis_on_dev.confBasis_2p = &app->confBasis_2p;
   }
 
   // basis functions
-  switch (pkpm->basis_type) {
-    case GKYL_BASIS_MODAL_SERENDIPITY:
-      gkyl_cart_modal_serendip(&app->confBasis, cdim, poly_order);
-      if (poly_order > 1) {
-        gkyl_cart_modal_serendip(&app->basis, pdim, poly_order);
-        if (vdim > 0)
-          gkyl_cart_modal_serendip(&app->velBasis, vdim, poly_order);
-      } else if (poly_order == 1) {
-        /* Force hybrid basis (p=2 in velocity space). */
-        gkyl_cart_modal_hybrid(&app->basis, cdim, vdim);
-        if (vdim > 0)
-          gkyl_cart_modal_serendip(&app->velBasis, vdim, 2);
-      }
-
-      if (app->use_gpu) {
-        gkyl_cart_modal_serendip_cu_dev(app->basis_on_dev.confBasis, cdim, poly_order);
-        if (poly_order > 1) {
-          gkyl_cart_modal_serendip_cu_dev(app->basis_on_dev.basis, pdim, poly_order);
-        } else if (poly_order == 1) {
-          /* Force hybrid basis (p=2 in velocity space). */
-          gkyl_cart_modal_hybrid_cu_dev(app->basis_on_dev.basis, cdim, vdim);
-        }
-      }
-      break;
-
-    case GKYL_BASIS_MODAL_TENSOR:
-      gkyl_cart_modal_tensor(&app->basis, pdim, poly_order);
-      gkyl_cart_modal_tensor(&app->confBasis, cdim, poly_order);
-      if (vdim > 0)
-        gkyl_cart_modal_tensor(&app->velBasis, vdim, poly_order);
-      break;
-
-    default:
-      assert(false);
-      break;
+  // By default PKPM initializes tensor bases:
+  // 1. p=2 basis for the kinetic equation (with a corresponding p=2 configuration space basis)
+  // 2. p=1 basis for the momentum equation
+  gkyl_cart_modal_tensor(&app->basis, pdim, 2);
+  gkyl_cart_modal_tensor(&app->confBasis, cdim, 1);
+  gkyl_cart_modal_tensor(&app->confBasis_2p, cdim, 2);
+  gkyl_cart_modal_tensor(&app->velBasis, vdim, 2);
+  if (app->use_gpu) {
+    gkyl_cart_modal_tensor_cu_dev(app->basis_on_dev.basis, pdim, 2);
+    gkyl_cart_modal_tensor_cu_dev(app->basis_on_dev.confBasis, cdim, 1);
+    gkyl_cart_modal_tensor_cu_dev(app->basis_on_dev.confBasis_2p, cdim, 2);
   }
 
   gkyl_rect_grid_init(&app->grid, cdim, pkpm->lower, pkpm->upper, pkpm->cells);
@@ -286,15 +263,14 @@ gkyl_pkpm_app_calc_integrated_mom(gkyl_pkpm_app* app, double tm)
 
     pkpm_species_calc_pkpm_vars(app, s, s->f, s->fluid);
     gkyl_dg_calc_pkpm_integrated_vars(s->calc_pkpm_vars, &app->local, 
-      s->pkpm_moms.marr, s->fluid, 
-      s->pkpm_prim, s->integ_pkpm_mom);
-    gkyl_array_scale_range(s->integ_pkpm_mom, app->grid.cellVolume, &(app->local));
+      s->pkpm_moms.marr, s->pkpm_u, s->integ_pkpm_mom);
+    gkyl_array_scale_range(s->integ_pkpm_mom, app->grid.cellVolume, &app->local);
     if (app->use_gpu) {
-      gkyl_array_reduce_range(s->red_integ_diag, s->integ_pkpm_mom, GKYL_SUM, &(app->local));
+      gkyl_array_reduce_range(s->red_integ_diag, s->integ_pkpm_mom, GKYL_SUM, &app->local);
       gkyl_cu_memcpy(avals, s->red_integ_diag, sizeof(double[9]), GKYL_CU_MEMCPY_D2H);
     }
     else { 
-      gkyl_array_reduce_range(avals, s->integ_pkpm_mom, GKYL_SUM, &(app->local));
+      gkyl_array_reduce_range(avals, s->integ_pkpm_mom, GKYL_SUM, &app->local);
     }
 
     gkyl_comm_all_reduce(app->comm, GKYL_DOUBLE, GKYL_SUM, 9, avals, avals_global);
@@ -349,34 +325,46 @@ gkyl_pkpm_app_write_field(gkyl_pkpm_app* app, double tm, int frame)
   char fileNm[sz+1]; // ensures no buffer overflow
   snprintf(fileNm, sizeof fileNm, fmt, app->name, frame);
 
+  // Construct the file handle for the diagnostic EM variables
+  const char *fmt_em_vars = "%s-field_em_vars_%d.gkyl";
+  int sz_em_vars = gkyl_calc_strlen(fmt_em_vars, app->name, frame);
+  char fileNm_em_vars[sz_em_vars+1]; // ensures no buffer overflow
+  snprintf(fileNm_em_vars, sizeof fileNm_em_vars, fmt_em_vars, app->name, frame);
+
+  const char *fmt_cell_avg_bb = "%s-field_cell_avg_bb_%d.gkyl";
+  int sz_cell_avg_bb = gkyl_calc_strlen(fmt_cell_avg_bb, app->name, frame);
+  char fileNm_cell_avg_bb[sz_cell_avg_bb+1]; // ensures no buffer overflow
+  snprintf(fileNm_cell_avg_bb, sizeof fileNm_cell_avg_bb, fmt_cell_avg_bb, app->name, frame);
+
+  pkpm_field_calc_em_vars_diag(app, app->field, app->field->em);
+
   if (app->use_gpu) {
     // copy data from device to host before writing it out
     gkyl_array_copy(app->field->em_host, app->field->em);
-    gkyl_comm_array_write(app->comm, &app->grid, &app->local, app->field->em_host, fileNm);
+    gkyl_array_copy(app->field->em_vars_diag_host, app->field->em_vars_diag);
+    gkyl_array_copy(app->field->cell_avg_bb_host, app->field->cell_avg_bb);
   }
-  else {
-    gkyl_comm_array_write(app->comm, &app->grid, &app->local, app->field->em, fileNm);
-  }
+
+  gkyl_comm_array_write(app->comm, &app->grid, &app->local, app->field->em_host, fileNm);  
+  gkyl_comm_array_write(app->comm, &app->grid, &app->local, app->field->em_vars_diag_host, fileNm_em_vars);  
+  gkyl_comm_array_write(app->comm, &app->grid, &app->local, app->field->cell_avg_bb_host, fileNm_cell_avg_bb);  
 }
 
 void
 gkyl_pkpm_app_write_species(gkyl_pkpm_app* app, int sidx, double tm, int frame)
 {
+  struct pkpm_species *s = &app->species[sidx];
+
   const char *fmt = "%s-%s_%d.gkyl";
-  int sz = gkyl_calc_strlen(fmt, app->name, app->species[sidx].info.name, frame);
+  int sz = gkyl_calc_strlen(fmt, app->name, s->info.name, frame);
   char fileNm[sz+1]; // ensures no buffer overflow
-  snprintf(fileNm, sizeof fileNm, fmt, app->name, app->species[sidx].info.name, frame);
+  snprintf(fileNm, sizeof fileNm, fmt, app->name, s->info.name, frame);
 
   if (app->use_gpu) {
     // copy data from device to host before writing it out
-    gkyl_array_copy(app->species[sidx].f_host, app->species[sidx].f);
-    gkyl_comm_array_write(app->species[sidx].comm, &app->species[sidx].grid, &app->species[sidx].local,
-      app->species[sidx].f_host, fileNm);
+    gkyl_array_copy(s->f_host, s->f);
   }
-  else {
-    gkyl_comm_array_write(app->species[sidx].comm, &app->species[sidx].grid, &app->species[sidx].local,
-      app->species[sidx].f, fileNm);
-  }
+  gkyl_comm_array_write(s->comm, &s->grid, &s->local, s->f_host, fileNm);
 }
 
 void
@@ -384,7 +372,8 @@ gkyl_pkpm_app_write_mom(gkyl_pkpm_app* app, int sidx, double tm, int frame)
 {
   struct pkpm_species *s = &app->species[sidx];
 
-  // Construct the file handles for the three quantities (PKPM moments, PKPM fluid variables, PKPM update variables)
+  // Construct the file handles for the four quantities:
+  // PKPM moments, PKPM fluid variables, PKPM update variables, and PKPM positivity check
   const char *fmt = "%s-%s_pkpm_moms_%d.gkyl";
   int sz = gkyl_calc_strlen(fmt, app->name, s->info.name, frame);
   char fileNm[sz+1]; // ensures no buffer overflow
@@ -400,26 +389,40 @@ gkyl_pkpm_app_write_mom(gkyl_pkpm_app* app, int sidx, double tm, int frame)
   char fileNm_pkpm_vars[sz_pkpm_vars+1]; // ensures no buffer overflow
   snprintf(fileNm_pkpm_vars, sizeof fileNm_pkpm_vars, fmt_pkpm_vars, app->name, s->info.name, frame);
 
+  const char *fmt_u = "%s-%s_pkpm_u_%d.gkyl";
+  int sz_u = gkyl_calc_strlen(fmt_u, app->name, s->info.name, frame);
+  char fileNm_u[sz_u+1]; // ensures no buffer overflow
+  snprintf(fileNm_u, sizeof fileNm_u, fmt_u, app->name, s->info.name, frame);
+
+  const char *fmt_cell_avg_prim = "%s-%s_cell_avg_prim_%d.gkyl";
+  int sz_cell_avg_prim = gkyl_calc_strlen(fmt_cell_avg_prim, app->name, s->info.name, frame);
+  char fileNm_cell_avg_prim[sz_cell_avg_prim+1]; // ensures no buffer overflow
+  snprintf(fileNm_cell_avg_prim, sizeof fileNm_cell_avg_prim, fmt_cell_avg_prim, app->name, s->info.name, frame);
+
   // Compute the PKPM variables including moments and primitive variables 
   // and construct arrays for writing out fluid and other pkpm variables.
   pkpm_species_moment_calc(&s->pkpm_moms_diag, s->local, app->local, s->f);
   pkpm_species_calc_pkpm_vars(app, s, s->f, s->fluid);
   pkpm_species_calc_pkpm_update_vars(app, s, s->f); 
   gkyl_dg_calc_pkpm_vars_io(s->calc_pkpm_vars, &app->local, 
-    s->pkpm_moms.marr, s->fluid, 
-    s->pkpm_p_ij, s->pkpm_prim, 
-    s->pkpm_accel, s->fluid_io, s->pkpm_vars_io);
+    s->pkpm_moms.marr, s->pkpm_u, s->pkpm_p_ij, 
+    s->pkpm_prim, s->pkpm_accel, 
+    s->fluid_io, s->pkpm_vars_io);
 
   // copy data from device to host before writing it out
   if (app->use_gpu) {
     gkyl_array_copy(s->pkpm_moms_diag.marr_host, s->pkpm_moms_diag.marr);
     gkyl_array_copy(s->fluid_io_host, s->fluid_io);
     gkyl_array_copy(s->pkpm_vars_io_host, s->pkpm_vars_io);
+    gkyl_array_copy(s->pkpm_u_host, s->pkpm_u);
+    gkyl_array_copy(s->cell_avg_prim_host, s->cell_avg_prim);
   }
 
   gkyl_comm_array_write(app->comm, &app->grid, &app->local, s->pkpm_moms_diag.marr_host, fileNm);
   gkyl_comm_array_write(app->comm, &app->grid, &app->local, s->fluid_io_host, fileNm_fluid);
   gkyl_comm_array_write(app->comm, &app->grid, &app->local, s->pkpm_vars_io_host, fileNm_pkpm_vars);
+  gkyl_comm_array_write(app->comm, &app->grid, &app->local, s->pkpm_u_host, fileNm_u);
+  gkyl_comm_array_write(app->comm, &app->grid, &app->local, s->cell_avg_prim_host, fileNm_cell_avg_prim);
 }
 
 void
@@ -778,6 +781,7 @@ gkyl_pkpm_app_release(gkyl_pkpm_app* app)
   if (app->use_gpu) {
     gkyl_cu_free(app->basis_on_dev.basis);
     gkyl_cu_free(app->basis_on_dev.confBasis);
+    gkyl_cu_free(app->basis_on_dev.confBasis_2p);
   }
 
   gkyl_free(app);

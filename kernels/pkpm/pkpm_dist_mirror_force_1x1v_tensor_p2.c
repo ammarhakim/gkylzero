@@ -7,7 +7,7 @@ GKYL_CU_DH void pkpm_dist_mirror_force_1x1v_tensor_p2(const double *w, const dou
 { 
   // w[NDIM]:          Cell-center coordinates. 
   // dxv[NDIM]:        Cell spacing. 
-  // pkpm_prim:        Input primitive variables [ux, uy, uz, 1/rho div(p_par b), T_perp/m, m/T_perp]. 
+  // pkpm_prim:        Input primitive variables [1/rho div(p_par b), T_perp/m, m/T_perp, 3*Txx/m, 3*Tyy/m, 3*Tzz/m]. 
   // nu_prim_moms_sum: Input sum of bulk velocities and thermal speeds (squared) times their respective collisionalities. 
   // div_b:            Input volume expansion of div(b). 
   // pkpm_accel_vars:  Input pkpm acceleration variables [T_perp/m*div(b), bb:grad(u), p_force, p_perp_source]. 
@@ -19,8 +19,8 @@ GKYL_CU_DH void pkpm_dist_mirror_force_1x1v_tensor_p2(const double *w, const dou
   // F_k_m_1:          Output k-1 distribution function. F_1 expansion is the first NP coefficients. 
 
   const double dvpar = dxv[1], wvpar = w[1]; 
-  const double *T_perp_over_m = &pkpm_prim[12]; 
-  const double *T_perp_over_m_inv = &pkpm_prim[15]; 
+  const double *T_perp_over_m = &pkpm_prim[3]; 
+  const double *T_perp_over_m_inv = &pkpm_prim[6]; 
 
   const double *p_perp_source = &pkpm_accel_vars[9]; 
 

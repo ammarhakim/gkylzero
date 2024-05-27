@@ -3,12 +3,13 @@
 GKYL_CU_DH void pkpm_vars_p_force_2x_tensor_p2(const double *prim_c, const double *div_b, 
   double* GKYL_RESTRICT pkpm_accel) 
 { 
-  // prim_c:     Input volume expansion of primitive variables [ux, uy, uz, 1/rho div(p_par b), T_perp/m, m/T_perp] in center cell. 
+  // prim_c:     Input volume expansion of primitive variables in center cell. 
+  //             [1/rho div(p_par b), T_perp/m, m/T_perp, 3*Txx/m, 3*Tyy/m, 3*Tzz/m]. 
   // div_b:      Input volume expansion of div(b) in center cell. 
   // pkpm_accel: Output volume expansion of pkpm acceleration variables. 
 
-  const double *pkpm_div_ppar = &prim_c[27]; 
-  const double *T_perp_over_m = &prim_c[36]; 
+  const double *pkpm_div_ppar = &prim_c[0]; 
+  const double *T_perp_over_m = &prim_c[9]; 
 
   double *p_perp_div_b = &pkpm_accel[0]; 
   double *p_force = &pkpm_accel[18]; 

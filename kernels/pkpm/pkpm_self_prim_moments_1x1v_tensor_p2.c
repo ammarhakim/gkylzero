@@ -1,4 +1,4 @@
-#include <gkyl_prim_lbo_pkpm_kernels.h> 
+#include <gkyl_mom_pkpm_kernels.h> 
  
 GKYL_CU_DH void pkpm_self_prim_moments_1x1v_tensor_p2(struct gkyl_mat *A, struct gkyl_mat *rhs, const double *vlasov_pkpm_moms, const double *boundary_corrections) 
 { 

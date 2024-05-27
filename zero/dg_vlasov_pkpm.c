@@ -40,8 +40,8 @@ gkyl_vlasov_pkpm_set_auxfields(const struct gkyl_dg_eqn *eqn, struct gkyl_dg_vla
   struct dg_vlasov_pkpm *vlasov_pkpm = container_of(eqn, struct dg_vlasov_pkpm, eqn);
   vlasov_pkpm->auxfields.bvar = auxin.bvar;
   vlasov_pkpm->auxfields.bvar_surf = auxin.bvar_surf;
-  vlasov_pkpm->auxfields.pkpm_prim = auxin.pkpm_prim;
-  vlasov_pkpm->auxfields.pkpm_prim_surf = auxin.pkpm_prim_surf;
+  vlasov_pkpm->auxfields.pkpm_u = auxin.pkpm_u;
+  vlasov_pkpm->auxfields.pkpm_u_surf = auxin.pkpm_u_surf;
   vlasov_pkpm->auxfields.max_b = auxin.max_b;
   vlasov_pkpm->auxfields.pkpm_lax = auxin.pkpm_lax;
   vlasov_pkpm->auxfields.div_b = auxin.div_b;  
@@ -74,32 +74,12 @@ gkyl_dg_vlasov_pkpm_new(const struct gkyl_basis* cbasis, const struct gkyl_basis
   const gkyl_dg_vlasov_pkpm_stream_surf_kern_list *stream_surf_x_kernels, *stream_surf_y_kernels, *stream_surf_z_kernels;
   const gkyl_dg_vlasov_pkpm_accel_surf_kern_list *accel_surf_vpar_kernels;
   const gkyl_dg_vlasov_pkpm_accel_boundary_surf_kern_list *accel_boundary_surf_vpar_kernels;
-  
-  switch (cbasis->b_type) {
-    case GKYL_BASIS_MODAL_SERENDIPITY:
-      vol_kernels = ser_vol_kernels;
-      stream_surf_x_kernels = ser_stream_surf_x_kernels;
-      stream_surf_y_kernels = ser_stream_surf_y_kernels;
-      stream_surf_z_kernels = ser_stream_surf_z_kernels;
-      accel_surf_vpar_kernels = ser_accel_surf_vpar_kernels;
-      accel_boundary_surf_vpar_kernels = ser_accel_boundary_surf_vpar_kernels;
-      
-      break;
-
-    case GKYL_BASIS_MODAL_TENSOR:
-      vol_kernels = ten_vol_kernels;
-      stream_surf_x_kernels = ten_stream_surf_x_kernels;
-      stream_surf_y_kernels = ten_stream_surf_y_kernels;
-      stream_surf_z_kernels = ten_stream_surf_z_kernels;
-      accel_surf_vpar_kernels = ten_accel_surf_vpar_kernels;
-      accel_boundary_surf_vpar_kernels = ten_accel_boundary_surf_vpar_kernels;
-      
-      break;      
-      
-    default:
-      assert(false);
-      break;    
-  }  
+  vol_kernels = ten_vol_kernels;
+  stream_surf_x_kernels = ten_stream_surf_x_kernels;
+  stream_surf_y_kernels = ten_stream_surf_y_kernels;
+  stream_surf_z_kernels = ten_stream_surf_z_kernels;
+  accel_surf_vpar_kernels = ten_accel_surf_vpar_kernels;
+  accel_boundary_surf_vpar_kernels = ten_accel_boundary_surf_vpar_kernels;
 
   vlasov_pkpm->eqn.vol_term = CK(vol_kernels,cdim,poly_order);
 
@@ -120,8 +100,8 @@ gkyl_dg_vlasov_pkpm_new(const struct gkyl_basis* cbasis, const struct gkyl_basis
 
   vlasov_pkpm->auxfields.bvar = 0;  
   vlasov_pkpm->auxfields.bvar_surf = 0;  
-  vlasov_pkpm->auxfields.pkpm_prim = 0;
-  vlasov_pkpm->auxfields.pkpm_prim_surf = 0;
+  vlasov_pkpm->auxfields.pkpm_u = 0;
+  vlasov_pkpm->auxfields.pkpm_u_surf = 0;
   vlasov_pkpm->auxfields.max_b = 0;
   vlasov_pkpm->auxfields.pkpm_lax = 0;
   vlasov_pkpm->auxfields.div_b = 0;

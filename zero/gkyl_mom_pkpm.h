@@ -6,8 +6,8 @@
 
 /**
  * Create new Vlasov parallel-kinetic-perpendicular-moment (pkpm) moment type object.
- * Can either compute moments needed for update (rho, p_par, p_perp) or diagnostic moments
- * (rho, p_par, p_perp, q_par, q_perp, r_parpar, r_parperp)
+ * Can either compute moments needed for update (rho, p_par, p_perp, M1) or diagnostic moments
+ * (rho, M1, p_par, p_perp, q_par, q_perp, r_parpar, r_parperp)
  *
  * @param cbasis Configuration-space basis-functions
  * @param pbasis Phase-space basis-functions

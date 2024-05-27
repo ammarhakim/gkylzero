@@ -101,17 +101,6 @@ vm_field_new(struct gkyl_vm *vm, struct gkyl_vlasov_app *app)
   f->slvr = gkyl_hyper_dg_new(&app->grid, &app->confBasis, eqn,
     app->cdim, up_dirs, zero_flux_flags, 1, app->use_gpu);
 
-  // Check if limiter_fac is specified for adjusting how much diffusion is applied through slope limiter
-  // If not specified, set to 0.0 and updater sets default behavior (1/sqrt(3); see gkyl_dg_calc_em_vars.h)
-  double limiter_fac = f->info.limiter_fac == 0 ? 0.0 : f->info.limiter_fac;
-  f->limit_em = f->info.limit_em == 0 ? false : true;
-
-  struct gkyl_wv_eqn *maxwell = gkyl_wv_maxwell_new(c, ef, mf, app->use_gpu);
-  // Create updaters for limiting EM fields
-  f->calc_em_vars = gkyl_dg_calc_em_vars_new(&app->grid, &app->confBasis, &app->local_ext, 
-    maxwell, app->geom, limiter_fac, 0, app->use_gpu);
-  gkyl_wv_eqn_release(maxwell);
-
   // determine which directions are not periodic
   int num_periodic_dir = app->num_periodic_dir, is_np[3] = {1, 1, 1};
   for (int d=0; d<num_periodic_dir; ++d)
@@ -195,8 +184,6 @@ vm_field_apply_ic(gkyl_vlasov_app *app, struct vm_field *field, double t0)
   if (app->use_gpu) {
     gkyl_array_copy(field->em, field->em_host);
   }
-  // Apply limiter at t=0 to insure slopes are well-behaved at beginning of simulation
-  vm_field_limiter(app, field, field->em);
 
   // pre-compute external EM field and applied current if present
   // pre-computation necessary in case external EM field or applied current
@@ -247,18 +234,6 @@ vm_field_accumulate_current(gkyl_vlasov_app *app,
   // See vm_fluid_em_coupling.c
   if (app->field->has_app_current && !app->has_fluid_em_coupling) {
     gkyl_array_accumulate_range(emout, -1.0/app->field->info.epsilon0, app->field->app_current, &app->local);
-  }
-}
-
-void
-vm_field_limiter(gkyl_vlasov_app *app, struct vm_field *field, struct gkyl_array *em)
-{
-  if (field->limit_em) {
-    // Limit the slopes of the solution
-    gkyl_dg_calc_em_vars_limiter(field->calc_em_vars, &app->local, em);
-
-    // Apply boundary conditions after limiting solution
-    vm_field_apply_bc(app, field, em);
   }
 }
 
@@ -403,8 +378,6 @@ vm_field_release(const gkyl_vlasov_app* app, struct vm_field *f)
   }
 
   gkyl_hyper_dg_release(f->slvr);
-
-  gkyl_dg_calc_em_vars_release(f->calc_em_vars);
 
   if (app->use_gpu) {
     gkyl_array_release(f->em_host);

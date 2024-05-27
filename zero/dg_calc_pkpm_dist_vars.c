@@ -20,15 +20,15 @@ gkyl_dg_calc_pkpm_dist_vars_new(const struct gkyl_rect_grid *phase_grid,
   gkyl_dg_calc_pkpm_dist_vars *up = gkyl_malloc(sizeof(gkyl_dg_calc_pkpm_dist_vars));
 
   up->phase_grid = *phase_grid;
-  enum gkyl_basis_type b_type = cbasis->b_type;
   int cdim = cbasis->ndim;
   up->cdim = cdim;
   int poly_order = cbasis->poly_order;
 
-  up->pkpm_dist_mirror_force = choose_pkpm_dist_mirror_force_kern(b_type, cdim, poly_order);
+  up->pkpm_dist_mirror_force = choose_pkpm_dist_mirror_force_kern(cdim, poly_order);
   // Fetch the kernels in each direction
-  for (int d=0; d<cdim; ++d) 
-    up->pkpm_dist_div_ppar[d] = choose_pkpm_dist_div_ppar_kern(d, b_type, cdim, poly_order);
+  for (int d=0; d<cdim; ++d) {
+    up->pkpm_dist_div_ppar[d] = choose_pkpm_dist_div_ppar_kern(d, cdim, poly_order);
+  }
 
   up->flags = 0;
   GKYL_CLEAR_CU_ALLOC(up->flags);

@@ -1,22 +1,21 @@
 #include <gkyl_euler_pkpm_kernels.h> 
-#include <gkyl_binop_mul_ser.h> 
-GKYL_CU_DH void pkpm_vars_io_2x_tensor_p2(const double *vlasov_pkpm_moms, const double *euler_pkpm, 
-  const double* p_ij, const double* prim, const double* pkpm_accel, 
+GKYL_CU_DH void pkpm_vars_io_2x_tensor_p2(const double *vlasov_pkpm_moms, 
+  const double* pkpm_u, const double* p_ij, const double* pkpm_prim, const double* pkpm_accel, 
   double* GKYL_RESTRICT fluid_io, double* GKYL_RESTRICT pkpm_vars_io) 
 { 
   // vlasov_pkpm_moms: Input [rho, p_parallel, p_perp], Moments computed from kinetic equation in pkpm model. 
-  // euler_pkpm:       Input [rho ux, rho uy, rho uz], Fluid state vector. 
+  // pkpm_u:           Input [ux, uy, uz]. 
   // p_ij:             Input p_ij = (p_par - p_perp) b_i b_j + p_perp g_ij. 
-  // prim:             Input [ux, uy, uz, 1/rho div(p_par b), T_perp/m, m/T_perp]. 
+  // pkpm_prim:        Input [1/rho div(p_par b), T_perp/m, m/T_perp, 3*Txx/m, 3*Tyy/m, 3*Tzz/m]. 
   // pkpm_accel:       Input volume expansion of pkpm acceleration variables [T_perp/m*div(b), bb:grad(u), p_force, p_perp_source]. 
   // fluid_io:         Output fluid conserved variables. 
   // pkpm_vars_io:     Output pkpm variables (primitive and acceleration). 
 
   const double *rho = &vlasov_pkpm_moms[0]; 
 
-  const double *rhoux = &euler_pkpm[0]; 
-  const double *rhouy = &euler_pkpm[9]; 
-  const double *rhouz = &euler_pkpm[18]; 
+  const double *ux = &pkpm_u[0]; 
+  const double *uy = &pkpm_u[4]; 
+  const double *uz = &pkpm_u[8]; 
 
   const double *Pxx = &p_ij[0]; 
   const double *Pxy = &p_ij[9]; 
@@ -25,12 +24,9 @@ GKYL_CU_DH void pkpm_vars_io_2x_tensor_p2(const double *vlasov_pkpm_moms, const 
   const double *Pyz = &p_ij[36]; 
   const double *Pzz = &p_ij[45]; 
 
-  const double *ux = &prim[0]; 
-  const double *uy = &prim[9]; 
-  const double *uz = &prim[18]; 
-  const double *pkpm_div_ppar = &prim[27]; 
-  const double *T_perp_over_m = &prim[36]; 
-  const double *T_perp_over_m_inv = &prim[45]; 
+  const double *pkpm_div_ppar = &pkpm_prim[0]; 
+  const double *T_perp_over_m = &pkpm_prim[9]; 
+  const double *T_perp_over_m_inv = &pkpm_prim[18]; 
 
   const double *p_perp_div_b = &pkpm_accel[0]; 
   const double *bb_grad_u = &pkpm_accel[9]; 
@@ -46,32 +42,110 @@ GKYL_CU_DH void pkpm_vars_io_2x_tensor_p2(const double *vlasov_pkpm_moms, const 
   double *fluid_io_Syz = &fluid_io[72]; 
   double *fluid_io_Szz = &fluid_io[81]; 
 
-  double *pkpm_vars_io_ux = &pkpm_vars_io[0]; 
-  double *pkpm_vars_io_uy = &pkpm_vars_io[9]; 
-  double *pkpm_vars_io_uz = &pkpm_vars_io[18]; 
-  double *pkpm_vars_io_T_perp_over_m = &pkpm_vars_io[27]; 
-  double *pkpm_vars_io_T_perp_over_m_inv = &pkpm_vars_io[36]; 
-  double *pkpm_vars_io_pkpm_div_ppar = &pkpm_vars_io[45]; 
-  double *pkpm_vars_io_p_perp_div_b = &pkpm_vars_io[54]; 
-  double *pkpm_vars_io_bb_grad_u = &pkpm_vars_io[63]; 
+  double *pkpm_vars_io_T_perp_over_m = &pkpm_vars_io[0]; 
+  double *pkpm_vars_io_T_perp_over_m_inv = &pkpm_vars_io[9]; 
+  double *pkpm_vars_io_pkpm_div_ppar = &pkpm_vars_io[18]; 
+  double *pkpm_vars_io_p_perp_div_b = &pkpm_vars_io[27]; 
+  double *pkpm_vars_io_bb_grad_u = &pkpm_vars_io[36]; 
+
+  double rhoux[9] = {0.0}; 
+  rhoux[0] = 0.5*rho[3]*ux[3]+0.5*rho[2]*ux[2]+0.5*rho[1]*ux[1]+0.5*rho[0]*ux[0]; 
+  rhoux[1] = 0.447213595499958*ux[3]*rho[6]+0.4472135954999579*ux[1]*rho[4]+0.5*rho[2]*ux[3]+0.5*ux[2]*rho[3]+0.5*rho[0]*ux[1]+0.5*ux[0]*rho[1]; 
+  rhoux[2] = 0.447213595499958*ux[3]*rho[7]+0.4472135954999579*ux[2]*rho[5]+0.5*rho[1]*ux[3]+0.5*ux[1]*rho[3]+0.5*rho[0]*ux[2]+0.5*ux[0]*rho[2]; 
+  rhoux[3] = 0.4*ux[3]*rho[8]+0.447213595499958*ux[2]*rho[7]+0.447213595499958*ux[1]*rho[6]+0.4472135954999579*ux[3]*rho[5]+0.4472135954999579*ux[3]*rho[4]+0.5*rho[0]*ux[3]+0.5*ux[0]*rho[3]+0.5*rho[1]*ux[2]+0.5*ux[1]*rho[2]; 
+  rhoux[4] = 0.5000000000000001*ux[2]*rho[6]+0.5*ux[0]*rho[4]+0.4472135954999579*rho[3]*ux[3]+0.4472135954999579*rho[1]*ux[1]; 
+  rhoux[5] = 0.5000000000000001*ux[1]*rho[7]+0.5*ux[0]*rho[5]+0.4472135954999579*rho[3]*ux[3]+0.4472135954999579*rho[2]*ux[2]; 
+  rhoux[6] = 0.447213595499958*ux[2]*rho[8]+0.4*ux[3]*rho[7]+0.5*ux[0]*rho[6]+0.5000000000000001*ux[2]*rho[4]+0.447213595499958*rho[1]*ux[3]+0.447213595499958*ux[1]*rho[3]; 
+  rhoux[7] = 0.447213595499958*ux[1]*rho[8]+0.5*ux[0]*rho[7]+0.4*ux[3]*rho[6]+0.5000000000000001*ux[1]*rho[5]+0.447213595499958*rho[2]*ux[3]+0.447213595499958*ux[2]*rho[3]; 
+  rhoux[8] = 0.5*ux[0]*rho[8]+0.447213595499958*ux[1]*rho[7]+0.447213595499958*ux[2]*rho[6]+0.4*rho[3]*ux[3]; 
+ 
+  double rhouy[9] = {0.0}; 
+  rhouy[0] = 0.5*rho[3]*uy[3]+0.5*rho[2]*uy[2]+0.5*rho[1]*uy[1]+0.5*rho[0]*uy[0]; 
+  rhouy[1] = 0.447213595499958*uy[3]*rho[6]+0.4472135954999579*uy[1]*rho[4]+0.5*rho[2]*uy[3]+0.5*uy[2]*rho[3]+0.5*rho[0]*uy[1]+0.5*uy[0]*rho[1]; 
+  rhouy[2] = 0.447213595499958*uy[3]*rho[7]+0.4472135954999579*uy[2]*rho[5]+0.5*rho[1]*uy[3]+0.5*uy[1]*rho[3]+0.5*rho[0]*uy[2]+0.5*uy[0]*rho[2]; 
+  rhouy[3] = 0.4*uy[3]*rho[8]+0.447213595499958*uy[2]*rho[7]+0.447213595499958*uy[1]*rho[6]+0.4472135954999579*uy[3]*rho[5]+0.4472135954999579*uy[3]*rho[4]+0.5*rho[0]*uy[3]+0.5*uy[0]*rho[3]+0.5*rho[1]*uy[2]+0.5*uy[1]*rho[2]; 
+  rhouy[4] = 0.5000000000000001*uy[2]*rho[6]+0.5*uy[0]*rho[4]+0.4472135954999579*rho[3]*uy[3]+0.4472135954999579*rho[1]*uy[1]; 
+  rhouy[5] = 0.5000000000000001*uy[1]*rho[7]+0.5*uy[0]*rho[5]+0.4472135954999579*rho[3]*uy[3]+0.4472135954999579*rho[2]*uy[2]; 
+  rhouy[6] = 0.447213595499958*uy[2]*rho[8]+0.4*uy[3]*rho[7]+0.5*uy[0]*rho[6]+0.5000000000000001*uy[2]*rho[4]+0.447213595499958*rho[1]*uy[3]+0.447213595499958*uy[1]*rho[3]; 
+  rhouy[7] = 0.447213595499958*uy[1]*rho[8]+0.5*uy[0]*rho[7]+0.4*uy[3]*rho[6]+0.5000000000000001*uy[1]*rho[5]+0.447213595499958*rho[2]*uy[3]+0.447213595499958*uy[2]*rho[3]; 
+  rhouy[8] = 0.5*uy[0]*rho[8]+0.447213595499958*uy[1]*rho[7]+0.447213595499958*uy[2]*rho[6]+0.4*rho[3]*uy[3]; 
+ 
+  double rhouz[9] = {0.0}; 
+  rhouz[0] = 0.5*rho[3]*uz[3]+0.5*rho[2]*uz[2]+0.5*rho[1]*uz[1]+0.5*rho[0]*uz[0]; 
+  rhouz[1] = 0.447213595499958*uz[3]*rho[6]+0.4472135954999579*uz[1]*rho[4]+0.5*rho[2]*uz[3]+0.5*uz[2]*rho[3]+0.5*rho[0]*uz[1]+0.5*uz[0]*rho[1]; 
+  rhouz[2] = 0.447213595499958*uz[3]*rho[7]+0.4472135954999579*uz[2]*rho[5]+0.5*rho[1]*uz[3]+0.5*uz[1]*rho[3]+0.5*rho[0]*uz[2]+0.5*uz[0]*rho[2]; 
+  rhouz[3] = 0.4*uz[3]*rho[8]+0.447213595499958*uz[2]*rho[7]+0.447213595499958*uz[1]*rho[6]+0.4472135954999579*uz[3]*rho[5]+0.4472135954999579*uz[3]*rho[4]+0.5*rho[0]*uz[3]+0.5*uz[0]*rho[3]+0.5*rho[1]*uz[2]+0.5*uz[1]*rho[2]; 
+  rhouz[4] = 0.5000000000000001*uz[2]*rho[6]+0.5*uz[0]*rho[4]+0.4472135954999579*rho[3]*uz[3]+0.4472135954999579*rho[1]*uz[1]; 
+  rhouz[5] = 0.5000000000000001*uz[1]*rho[7]+0.5*uz[0]*rho[5]+0.4472135954999579*rho[3]*uz[3]+0.4472135954999579*rho[2]*uz[2]; 
+  rhouz[6] = 0.447213595499958*uz[2]*rho[8]+0.4*uz[3]*rho[7]+0.5*uz[0]*rho[6]+0.5000000000000001*uz[2]*rho[4]+0.447213595499958*rho[1]*uz[3]+0.447213595499958*uz[1]*rho[3]; 
+  rhouz[7] = 0.447213595499958*uz[1]*rho[8]+0.5*uz[0]*rho[7]+0.4*uz[3]*rho[6]+0.5000000000000001*uz[1]*rho[5]+0.447213595499958*rho[2]*uz[3]+0.447213595499958*uz[2]*rho[3]; 
+  rhouz[8] = 0.5*uz[0]*rho[8]+0.447213595499958*uz[1]*rho[7]+0.447213595499958*uz[2]*rho[6]+0.4*rho[3]*uz[3]; 
 
   double rhouxux[9] = {0.0}; 
-  binop_mul_2d_tensor_p2(rhoux, ux, rhouxux); 
+  rhouxux[0] = 0.5*rhoux[3]*ux[3]+0.5*rhoux[2]*ux[2]+0.5*rhoux[1]*ux[1]+0.5*rhoux[0]*ux[0]; 
+  rhouxux[1] = 0.447213595499958*ux[3]*rhoux[6]+0.4472135954999579*ux[1]*rhoux[4]+0.5*rhoux[2]*ux[3]+0.5*ux[2]*rhoux[3]+0.5*rhoux[0]*ux[1]+0.5*ux[0]*rhoux[1]; 
+  rhouxux[2] = 0.447213595499958*ux[3]*rhoux[7]+0.4472135954999579*ux[2]*rhoux[5]+0.5*rhoux[1]*ux[3]+0.5*ux[1]*rhoux[3]+0.5*rhoux[0]*ux[2]+0.5*ux[0]*rhoux[2]; 
+  rhouxux[3] = 0.4*ux[3]*rhoux[8]+0.447213595499958*ux[2]*rhoux[7]+0.447213595499958*ux[1]*rhoux[6]+0.4472135954999579*ux[3]*rhoux[5]+0.4472135954999579*ux[3]*rhoux[4]+0.5*rhoux[0]*ux[3]+0.5*ux[0]*rhoux[3]+0.5*rhoux[1]*ux[2]+0.5*ux[1]*rhoux[2]; 
+  rhouxux[4] = 0.5000000000000001*ux[2]*rhoux[6]+0.5*ux[0]*rhoux[4]+0.4472135954999579*rhoux[3]*ux[3]+0.4472135954999579*rhoux[1]*ux[1]; 
+  rhouxux[5] = 0.5000000000000001*ux[1]*rhoux[7]+0.5*ux[0]*rhoux[5]+0.4472135954999579*rhoux[3]*ux[3]+0.4472135954999579*rhoux[2]*ux[2]; 
+  rhouxux[6] = 0.447213595499958*ux[2]*rhoux[8]+0.4*ux[3]*rhoux[7]+0.5*ux[0]*rhoux[6]+0.5000000000000001*ux[2]*rhoux[4]+0.447213595499958*rhoux[1]*ux[3]+0.447213595499958*ux[1]*rhoux[3]; 
+  rhouxux[7] = 0.447213595499958*ux[1]*rhoux[8]+0.5*ux[0]*rhoux[7]+0.4*ux[3]*rhoux[6]+0.5000000000000001*ux[1]*rhoux[5]+0.447213595499958*rhoux[2]*ux[3]+0.447213595499958*ux[2]*rhoux[3]; 
+  rhouxux[8] = 0.5*ux[0]*rhoux[8]+0.447213595499958*ux[1]*rhoux[7]+0.447213595499958*ux[2]*rhoux[6]+0.4*rhoux[3]*ux[3]; 
  
   double rhouxuy[9] = {0.0}; 
-  binop_mul_2d_tensor_p2(rhoux, uy, rhouxuy); 
+  rhouxuy[0] = 0.5*rhoux[3]*uy[3]+0.5*rhoux[2]*uy[2]+0.5*rhoux[1]*uy[1]+0.5*rhoux[0]*uy[0]; 
+  rhouxuy[1] = 0.447213595499958*uy[3]*rhoux[6]+0.4472135954999579*uy[1]*rhoux[4]+0.5*rhoux[2]*uy[3]+0.5*uy[2]*rhoux[3]+0.5*rhoux[0]*uy[1]+0.5*uy[0]*rhoux[1]; 
+  rhouxuy[2] = 0.447213595499958*uy[3]*rhoux[7]+0.4472135954999579*uy[2]*rhoux[5]+0.5*rhoux[1]*uy[3]+0.5*uy[1]*rhoux[3]+0.5*rhoux[0]*uy[2]+0.5*uy[0]*rhoux[2]; 
+  rhouxuy[3] = 0.4*uy[3]*rhoux[8]+0.447213595499958*uy[2]*rhoux[7]+0.447213595499958*uy[1]*rhoux[6]+0.4472135954999579*uy[3]*rhoux[5]+0.4472135954999579*uy[3]*rhoux[4]+0.5*rhoux[0]*uy[3]+0.5*uy[0]*rhoux[3]+0.5*rhoux[1]*uy[2]+0.5*uy[1]*rhoux[2]; 
+  rhouxuy[4] = 0.5000000000000001*uy[2]*rhoux[6]+0.5*uy[0]*rhoux[4]+0.4472135954999579*rhoux[3]*uy[3]+0.4472135954999579*rhoux[1]*uy[1]; 
+  rhouxuy[5] = 0.5000000000000001*uy[1]*rhoux[7]+0.5*uy[0]*rhoux[5]+0.4472135954999579*rhoux[3]*uy[3]+0.4472135954999579*rhoux[2]*uy[2]; 
+  rhouxuy[6] = 0.447213595499958*uy[2]*rhoux[8]+0.4*uy[3]*rhoux[7]+0.5*uy[0]*rhoux[6]+0.5000000000000001*uy[2]*rhoux[4]+0.447213595499958*rhoux[1]*uy[3]+0.447213595499958*uy[1]*rhoux[3]; 
+  rhouxuy[7] = 0.447213595499958*uy[1]*rhoux[8]+0.5*uy[0]*rhoux[7]+0.4*uy[3]*rhoux[6]+0.5000000000000001*uy[1]*rhoux[5]+0.447213595499958*rhoux[2]*uy[3]+0.447213595499958*uy[2]*rhoux[3]; 
+  rhouxuy[8] = 0.5*uy[0]*rhoux[8]+0.447213595499958*uy[1]*rhoux[7]+0.447213595499958*uy[2]*rhoux[6]+0.4*rhoux[3]*uy[3]; 
  
   double rhouxuz[9] = {0.0}; 
-  binop_mul_2d_tensor_p2(rhoux, uz, rhouxuz); 
+  rhouxuz[0] = 0.5*rhoux[3]*uz[3]+0.5*rhoux[2]*uz[2]+0.5*rhoux[1]*uz[1]+0.5*rhoux[0]*uz[0]; 
+  rhouxuz[1] = 0.447213595499958*uz[3]*rhoux[6]+0.4472135954999579*uz[1]*rhoux[4]+0.5*rhoux[2]*uz[3]+0.5*uz[2]*rhoux[3]+0.5*rhoux[0]*uz[1]+0.5*uz[0]*rhoux[1]; 
+  rhouxuz[2] = 0.447213595499958*uz[3]*rhoux[7]+0.4472135954999579*uz[2]*rhoux[5]+0.5*rhoux[1]*uz[3]+0.5*uz[1]*rhoux[3]+0.5*rhoux[0]*uz[2]+0.5*uz[0]*rhoux[2]; 
+  rhouxuz[3] = 0.4*uz[3]*rhoux[8]+0.447213595499958*uz[2]*rhoux[7]+0.447213595499958*uz[1]*rhoux[6]+0.4472135954999579*uz[3]*rhoux[5]+0.4472135954999579*uz[3]*rhoux[4]+0.5*rhoux[0]*uz[3]+0.5*uz[0]*rhoux[3]+0.5*rhoux[1]*uz[2]+0.5*uz[1]*rhoux[2]; 
+  rhouxuz[4] = 0.5000000000000001*uz[2]*rhoux[6]+0.5*uz[0]*rhoux[4]+0.4472135954999579*rhoux[3]*uz[3]+0.4472135954999579*rhoux[1]*uz[1]; 
+  rhouxuz[5] = 0.5000000000000001*uz[1]*rhoux[7]+0.5*uz[0]*rhoux[5]+0.4472135954999579*rhoux[3]*uz[3]+0.4472135954999579*rhoux[2]*uz[2]; 
+  rhouxuz[6] = 0.447213595499958*uz[2]*rhoux[8]+0.4*uz[3]*rhoux[7]+0.5*uz[0]*rhoux[6]+0.5000000000000001*uz[2]*rhoux[4]+0.447213595499958*rhoux[1]*uz[3]+0.447213595499958*uz[1]*rhoux[3]; 
+  rhouxuz[7] = 0.447213595499958*uz[1]*rhoux[8]+0.5*uz[0]*rhoux[7]+0.4*uz[3]*rhoux[6]+0.5000000000000001*uz[1]*rhoux[5]+0.447213595499958*rhoux[2]*uz[3]+0.447213595499958*uz[2]*rhoux[3]; 
+  rhouxuz[8] = 0.5*uz[0]*rhoux[8]+0.447213595499958*uz[1]*rhoux[7]+0.447213595499958*uz[2]*rhoux[6]+0.4*rhoux[3]*uz[3]; 
  
   double rhouyuy[9] = {0.0}; 
-  binop_mul_2d_tensor_p2(rhouy, uy, rhouyuy); 
+  rhouyuy[0] = 0.5*rhouy[3]*uy[3]+0.5*rhouy[2]*uy[2]+0.5*rhouy[1]*uy[1]+0.5*rhouy[0]*uy[0]; 
+  rhouyuy[1] = 0.447213595499958*uy[3]*rhouy[6]+0.4472135954999579*uy[1]*rhouy[4]+0.5*rhouy[2]*uy[3]+0.5*uy[2]*rhouy[3]+0.5*rhouy[0]*uy[1]+0.5*uy[0]*rhouy[1]; 
+  rhouyuy[2] = 0.447213595499958*uy[3]*rhouy[7]+0.4472135954999579*uy[2]*rhouy[5]+0.5*rhouy[1]*uy[3]+0.5*uy[1]*rhouy[3]+0.5*rhouy[0]*uy[2]+0.5*uy[0]*rhouy[2]; 
+  rhouyuy[3] = 0.4*uy[3]*rhouy[8]+0.447213595499958*uy[2]*rhouy[7]+0.447213595499958*uy[1]*rhouy[6]+0.4472135954999579*uy[3]*rhouy[5]+0.4472135954999579*uy[3]*rhouy[4]+0.5*rhouy[0]*uy[3]+0.5*uy[0]*rhouy[3]+0.5*rhouy[1]*uy[2]+0.5*uy[1]*rhouy[2]; 
+  rhouyuy[4] = 0.5000000000000001*uy[2]*rhouy[6]+0.5*uy[0]*rhouy[4]+0.4472135954999579*rhouy[3]*uy[3]+0.4472135954999579*rhouy[1]*uy[1]; 
+  rhouyuy[5] = 0.5000000000000001*uy[1]*rhouy[7]+0.5*uy[0]*rhouy[5]+0.4472135954999579*rhouy[3]*uy[3]+0.4472135954999579*rhouy[2]*uy[2]; 
+  rhouyuy[6] = 0.447213595499958*uy[2]*rhouy[8]+0.4*uy[3]*rhouy[7]+0.5*uy[0]*rhouy[6]+0.5000000000000001*uy[2]*rhouy[4]+0.447213595499958*rhouy[1]*uy[3]+0.447213595499958*uy[1]*rhouy[3]; 
+  rhouyuy[7] = 0.447213595499958*uy[1]*rhouy[8]+0.5*uy[0]*rhouy[7]+0.4*uy[3]*rhouy[6]+0.5000000000000001*uy[1]*rhouy[5]+0.447213595499958*rhouy[2]*uy[3]+0.447213595499958*uy[2]*rhouy[3]; 
+  rhouyuy[8] = 0.5*uy[0]*rhouy[8]+0.447213595499958*uy[1]*rhouy[7]+0.447213595499958*uy[2]*rhouy[6]+0.4*rhouy[3]*uy[3]; 
  
   double rhouyuz[9] = {0.0}; 
-  binop_mul_2d_tensor_p2(rhouy, uz, rhouyuz); 
+  rhouyuz[0] = 0.5*rhouy[3]*uz[3]+0.5*rhouy[2]*uz[2]+0.5*rhouy[1]*uz[1]+0.5*rhouy[0]*uz[0]; 
+  rhouyuz[1] = 0.447213595499958*uz[3]*rhouy[6]+0.4472135954999579*uz[1]*rhouy[4]+0.5*rhouy[2]*uz[3]+0.5*uz[2]*rhouy[3]+0.5*rhouy[0]*uz[1]+0.5*uz[0]*rhouy[1]; 
+  rhouyuz[2] = 0.447213595499958*uz[3]*rhouy[7]+0.4472135954999579*uz[2]*rhouy[5]+0.5*rhouy[1]*uz[3]+0.5*uz[1]*rhouy[3]+0.5*rhouy[0]*uz[2]+0.5*uz[0]*rhouy[2]; 
+  rhouyuz[3] = 0.4*uz[3]*rhouy[8]+0.447213595499958*uz[2]*rhouy[7]+0.447213595499958*uz[1]*rhouy[6]+0.4472135954999579*uz[3]*rhouy[5]+0.4472135954999579*uz[3]*rhouy[4]+0.5*rhouy[0]*uz[3]+0.5*uz[0]*rhouy[3]+0.5*rhouy[1]*uz[2]+0.5*uz[1]*rhouy[2]; 
+  rhouyuz[4] = 0.5000000000000001*uz[2]*rhouy[6]+0.5*uz[0]*rhouy[4]+0.4472135954999579*rhouy[3]*uz[3]+0.4472135954999579*rhouy[1]*uz[1]; 
+  rhouyuz[5] = 0.5000000000000001*uz[1]*rhouy[7]+0.5*uz[0]*rhouy[5]+0.4472135954999579*rhouy[3]*uz[3]+0.4472135954999579*rhouy[2]*uz[2]; 
+  rhouyuz[6] = 0.447213595499958*uz[2]*rhouy[8]+0.4*uz[3]*rhouy[7]+0.5*uz[0]*rhouy[6]+0.5000000000000001*uz[2]*rhouy[4]+0.447213595499958*rhouy[1]*uz[3]+0.447213595499958*uz[1]*rhouy[3]; 
+  rhouyuz[7] = 0.447213595499958*uz[1]*rhouy[8]+0.5*uz[0]*rhouy[7]+0.4*uz[3]*rhouy[6]+0.5000000000000001*uz[1]*rhouy[5]+0.447213595499958*rhouy[2]*uz[3]+0.447213595499958*uz[2]*rhouy[3]; 
+  rhouyuz[8] = 0.5*uz[0]*rhouy[8]+0.447213595499958*uz[1]*rhouy[7]+0.447213595499958*uz[2]*rhouy[6]+0.4*rhouy[3]*uz[3]; 
  
   double rhouzuz[9] = {0.0}; 
-  binop_mul_2d_tensor_p2(rhouz, uz, rhouzuz); 
+  rhouzuz[0] = 0.5*rhouz[3]*uz[3]+0.5*rhouz[2]*uz[2]+0.5*rhouz[1]*uz[1]+0.5*rhouz[0]*uz[0]; 
+  rhouzuz[1] = 0.447213595499958*uz[3]*rhouz[6]+0.4472135954999579*uz[1]*rhouz[4]+0.5*rhouz[2]*uz[3]+0.5*uz[2]*rhouz[3]+0.5*rhouz[0]*uz[1]+0.5*uz[0]*rhouz[1]; 
+  rhouzuz[2] = 0.447213595499958*uz[3]*rhouz[7]+0.4472135954999579*uz[2]*rhouz[5]+0.5*rhouz[1]*uz[3]+0.5*uz[1]*rhouz[3]+0.5*rhouz[0]*uz[2]+0.5*uz[0]*rhouz[2]; 
+  rhouzuz[3] = 0.4*uz[3]*rhouz[8]+0.447213595499958*uz[2]*rhouz[7]+0.447213595499958*uz[1]*rhouz[6]+0.4472135954999579*uz[3]*rhouz[5]+0.4472135954999579*uz[3]*rhouz[4]+0.5*rhouz[0]*uz[3]+0.5*uz[0]*rhouz[3]+0.5*rhouz[1]*uz[2]+0.5*uz[1]*rhouz[2]; 
+  rhouzuz[4] = 0.5000000000000001*uz[2]*rhouz[6]+0.5*uz[0]*rhouz[4]+0.4472135954999579*rhouz[3]*uz[3]+0.4472135954999579*rhouz[1]*uz[1]; 
+  rhouzuz[5] = 0.5000000000000001*uz[1]*rhouz[7]+0.5*uz[0]*rhouz[5]+0.4472135954999579*rhouz[3]*uz[3]+0.4472135954999579*rhouz[2]*uz[2]; 
+  rhouzuz[6] = 0.447213595499958*uz[2]*rhouz[8]+0.4*uz[3]*rhouz[7]+0.5*uz[0]*rhouz[6]+0.5000000000000001*uz[2]*rhouz[4]+0.447213595499958*rhouz[1]*uz[3]+0.447213595499958*uz[1]*rhouz[3]; 
+  rhouzuz[7] = 0.447213595499958*uz[1]*rhouz[8]+0.5*uz[0]*rhouz[7]+0.4*uz[3]*rhouz[6]+0.5000000000000001*uz[1]*rhouz[5]+0.447213595499958*rhouz[2]*uz[3]+0.447213595499958*uz[2]*rhouz[3]; 
+  rhouzuz[8] = 0.5*uz[0]*rhouz[8]+0.447213595499958*uz[1]*rhouz[7]+0.447213595499958*uz[2]*rhouz[6]+0.4*rhouz[3]*uz[3]; 
  
   fluid_io_rho[0] = rho[0]; 
   fluid_io_rhoux[0] = rhoux[0]; 
@@ -84,9 +158,6 @@ GKYL_CU_DH void pkpm_vars_io_2x_tensor_p2(const double *vlasov_pkpm_moms, const 
   fluid_io_Syz[0] = Pyz[0] + rhouyuz[0]; 
   fluid_io_Szz[0] = Pzz[0] + rhouzuz[0]; 
  
-  pkpm_vars_io_ux[0] = ux[0]; 
-  pkpm_vars_io_uy[0] = uy[0]; 
-  pkpm_vars_io_uz[0] = uz[0]; 
   pkpm_vars_io_T_perp_over_m[0] = T_perp_over_m[0]; 
   pkpm_vars_io_T_perp_over_m_inv[0] = T_perp_over_m_inv[0]; 
   pkpm_vars_io_pkpm_div_ppar[0] = pkpm_div_ppar[0]; 
@@ -104,9 +175,6 @@ GKYL_CU_DH void pkpm_vars_io_2x_tensor_p2(const double *vlasov_pkpm_moms, const 
   fluid_io_Syz[1] = Pyz[1] + rhouyuz[1]; 
   fluid_io_Szz[1] = Pzz[1] + rhouzuz[1]; 
  
-  pkpm_vars_io_ux[1] = ux[1]; 
-  pkpm_vars_io_uy[1] = uy[1]; 
-  pkpm_vars_io_uz[1] = uz[1]; 
   pkpm_vars_io_T_perp_over_m[1] = T_perp_over_m[1]; 
   pkpm_vars_io_T_perp_over_m_inv[1] = T_perp_over_m_inv[1]; 
   pkpm_vars_io_pkpm_div_ppar[1] = pkpm_div_ppar[1]; 
@@ -124,9 +192,6 @@ GKYL_CU_DH void pkpm_vars_io_2x_tensor_p2(const double *vlasov_pkpm_moms, const 
   fluid_io_Syz[2] = Pyz[2] + rhouyuz[2]; 
   fluid_io_Szz[2] = Pzz[2] + rhouzuz[2]; 
  
-  pkpm_vars_io_ux[2] = ux[2]; 
-  pkpm_vars_io_uy[2] = uy[2]; 
-  pkpm_vars_io_uz[2] = uz[2]; 
   pkpm_vars_io_T_perp_over_m[2] = T_perp_over_m[2]; 
   pkpm_vars_io_T_perp_over_m_inv[2] = T_perp_over_m_inv[2]; 
   pkpm_vars_io_pkpm_div_ppar[2] = pkpm_div_ppar[2]; 
@@ -144,9 +209,6 @@ GKYL_CU_DH void pkpm_vars_io_2x_tensor_p2(const double *vlasov_pkpm_moms, const 
   fluid_io_Syz[3] = Pyz[3] + rhouyuz[3]; 
   fluid_io_Szz[3] = Pzz[3] + rhouzuz[3]; 
  
-  pkpm_vars_io_ux[3] = ux[3]; 
-  pkpm_vars_io_uy[3] = uy[3]; 
-  pkpm_vars_io_uz[3] = uz[3]; 
   pkpm_vars_io_T_perp_over_m[3] = T_perp_over_m[3]; 
   pkpm_vars_io_T_perp_over_m_inv[3] = T_perp_over_m_inv[3]; 
   pkpm_vars_io_pkpm_div_ppar[3] = pkpm_div_ppar[3]; 
@@ -164,9 +226,6 @@ GKYL_CU_DH void pkpm_vars_io_2x_tensor_p2(const double *vlasov_pkpm_moms, const 
   fluid_io_Syz[4] = Pyz[4] + rhouyuz[4]; 
   fluid_io_Szz[4] = Pzz[4] + rhouzuz[4]; 
  
-  pkpm_vars_io_ux[4] = ux[4]; 
-  pkpm_vars_io_uy[4] = uy[4]; 
-  pkpm_vars_io_uz[4] = uz[4]; 
   pkpm_vars_io_T_perp_over_m[4] = T_perp_over_m[4]; 
   pkpm_vars_io_T_perp_over_m_inv[4] = T_perp_over_m_inv[4]; 
   pkpm_vars_io_pkpm_div_ppar[4] = pkpm_div_ppar[4]; 
@@ -184,9 +243,6 @@ GKYL_CU_DH void pkpm_vars_io_2x_tensor_p2(const double *vlasov_pkpm_moms, const 
   fluid_io_Syz[5] = Pyz[5] + rhouyuz[5]; 
   fluid_io_Szz[5] = Pzz[5] + rhouzuz[5]; 
  
-  pkpm_vars_io_ux[5] = ux[5]; 
-  pkpm_vars_io_uy[5] = uy[5]; 
-  pkpm_vars_io_uz[5] = uz[5]; 
   pkpm_vars_io_T_perp_over_m[5] = T_perp_over_m[5]; 
   pkpm_vars_io_T_perp_over_m_inv[5] = T_perp_over_m_inv[5]; 
   pkpm_vars_io_pkpm_div_ppar[5] = pkpm_div_ppar[5]; 
@@ -204,9 +260,6 @@ GKYL_CU_DH void pkpm_vars_io_2x_tensor_p2(const double *vlasov_pkpm_moms, const 
   fluid_io_Syz[6] = Pyz[6] + rhouyuz[6]; 
   fluid_io_Szz[6] = Pzz[6] + rhouzuz[6]; 
  
-  pkpm_vars_io_ux[6] = ux[6]; 
-  pkpm_vars_io_uy[6] = uy[6]; 
-  pkpm_vars_io_uz[6] = uz[6]; 
   pkpm_vars_io_T_perp_over_m[6] = T_perp_over_m[6]; 
   pkpm_vars_io_T_perp_over_m_inv[6] = T_perp_over_m_inv[6]; 
   pkpm_vars_io_pkpm_div_ppar[6] = pkpm_div_ppar[6]; 
@@ -224,9 +277,6 @@ GKYL_CU_DH void pkpm_vars_io_2x_tensor_p2(const double *vlasov_pkpm_moms, const 
   fluid_io_Syz[7] = Pyz[7] + rhouyuz[7]; 
   fluid_io_Szz[7] = Pzz[7] + rhouzuz[7]; 
  
-  pkpm_vars_io_ux[7] = ux[7]; 
-  pkpm_vars_io_uy[7] = uy[7]; 
-  pkpm_vars_io_uz[7] = uz[7]; 
   pkpm_vars_io_T_perp_over_m[7] = T_perp_over_m[7]; 
   pkpm_vars_io_T_perp_over_m_inv[7] = T_perp_over_m_inv[7]; 
   pkpm_vars_io_pkpm_div_ppar[7] = pkpm_div_ppar[7]; 
@@ -244,9 +294,6 @@ GKYL_CU_DH void pkpm_vars_io_2x_tensor_p2(const double *vlasov_pkpm_moms, const 
   fluid_io_Syz[8] = Pyz[8] + rhouyuz[8]; 
   fluid_io_Szz[8] = Pzz[8] + rhouzuz[8]; 
  
-  pkpm_vars_io_ux[8] = ux[8]; 
-  pkpm_vars_io_uy[8] = uy[8]; 
-  pkpm_vars_io_uz[8] = uz[8]; 
   pkpm_vars_io_T_perp_over_m[8] = T_perp_over_m[8]; 
   pkpm_vars_io_T_perp_over_m_inv[8] = T_perp_over_m_inv[8]; 
   pkpm_vars_io_pkpm_div_ppar[8] = pkpm_div_ppar[8]; 

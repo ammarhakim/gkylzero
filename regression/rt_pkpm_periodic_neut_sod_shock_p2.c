@@ -127,14 +127,12 @@ main(int argc, char **argv)
 
   // pkpm app
   struct gkyl_pkpm pkpm = {
-    .name = "pkpm_periodic_neut_sod_shock_p2",
+    .name = "pkpm_periodic_neut_sod_shock",
 
     .cdim = 1, .vdim = 1,
     .lower = { -ctx.Lx },
     .upper = { ctx.Lx },
     .cells = { NX },
-    .poly_order = 2,
-    .basis_type = app_args.basis_type,
 
     .use_explicit_source = true, 
 

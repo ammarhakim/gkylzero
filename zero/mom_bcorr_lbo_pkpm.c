@@ -48,22 +48,7 @@ gkyl_mom_bcorr_lbo_pkpm_new(const struct gkyl_basis* cbasis, const struct gkyl_b
 
   // choose kernel tables based on basis-function type
   const gkyl_mom_bcorr_lbo_pkpm_kern_list *mom_bcorr_lbo_pkpm_kernels;
-
-  switch (cbasis->b_type) {
-    case GKYL_BASIS_MODAL_SERENDIPITY:
-      mom_bcorr_lbo_pkpm_kernels = ser_mom_bcorr_lbo_pkpm_kernels;
-
-      break;
-
-    case GKYL_BASIS_MODAL_TENSOR:
-      mom_bcorr_lbo_pkpm_kernels = ten_mom_bcorr_lbo_pkpm_kernels;
-      
-      break;
-
-    default:
-      assert(false);
-      break;    
-  }
+  mom_bcorr_lbo_pkpm_kernels = ten_mom_bcorr_lbo_pkpm_kernels;
 
   mom_bcorr->momt.kernel = CK(mom_bcorr_lbo_pkpm_kernels, cdim, poly_order);
   mom_bcorr->momt.num_mom = 2;

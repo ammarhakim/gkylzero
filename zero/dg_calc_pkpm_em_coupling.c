@@ -28,8 +28,8 @@ gkyl_dg_calc_pkpm_em_coupling_new(const struct gkyl_basis* cbasis,
   enum gkyl_basis_type b_type = cbasis->b_type;
   up->mem_range = *mem_range;
 
-  up->pkpm_em_coupling_set = choose_pkpm_em_coupling_set_kern(b_type, cdim, poly_order);
-  up->pkpm_em_coupling_copy = choose_pkpm_em_coupling_copy_kern(b_type, cdim, poly_order);
+  up->pkpm_em_coupling_set = choose_pkpm_em_coupling_set_kern(cdim, poly_order);
+  up->pkpm_em_coupling_copy = choose_pkpm_em_coupling_copy_kern(cdim, poly_order);
 
   // Linear system size is nc*(3*num_species + 3)
   up->num_species = num_species;

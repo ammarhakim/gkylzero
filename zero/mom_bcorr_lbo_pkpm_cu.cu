@@ -14,28 +14,14 @@ extern "C" {
 
 __global__
 static void
-gkyl_mom_bcorr_lbo_pkpm_set_cu_dev_ptrs(struct mom_type_bcorr_lbo_pkpm* mom_bcorr, 
-  enum gkyl_basis_type b_type, int cdim, int poly_order)
+gkyl_mom_bcorr_lbo_pkpm_set_cu_dev_ptrs(struct mom_type_bcorr_lbo_pkpm* mom_bcorr, int cdim, int poly_order)
 {
   // choose kernel tables based on basis-function type
   const gkyl_mom_bcorr_lbo_pkpm_kern_list *mom_bcorr_lbo_pkpm_kernels;
+  mom_bcorr_lbo_pkpm_kernels = ten_mom_bcorr_lbo_pkpm_kernels;
 
-  switch (b_type) {
-    case GKYL_BASIS_MODAL_SERENDIPITY:
-      mom_bcorr_lbo_pkpm_kernels = ser_mom_bcorr_lbo_pkpm_kernels;
-
-      break;
-
-    case GKYL_BASIS_MODAL_TENSOR:
-      mom_bcorr_lbo_pkpm_kernels = ten_mom_bcorr_lbo_pkpm_kernels;
-      
-      break;
-
-    default:
-      assert(false);
-      break;
-  }
   mom_bcorr->momt.kernel = CK(mom_bcorr_lbo_pkpm_kernels, cdim, poly_order);
+  mom_bcorr->momt.num_mom = 2; // number of moments
 }
 
 struct gkyl_mom_type*
@@ -58,7 +44,6 @@ gkyl_mom_bcorr_lbo_pkpm_cu_dev_new(const struct gkyl_basis* cbasis, const struct
   mom_bcorr->vBoundary[0] = vBoundary[0];
   mom_bcorr->vBoundary[1] = vBoundary[1];
   mom_bcorr->mass = mass;
-  mom_bcorr->momt.num_mom = 2; // number of moments
 
   mom_bcorr->momt.flags = 0;
   GKYL_SET_CU_ALLOC(mom_bcorr->momt.flags);
@@ -70,7 +55,7 @@ gkyl_mom_bcorr_lbo_pkpm_cu_dev_new(const struct gkyl_basis* cbasis, const struct
   gkyl_cu_memcpy(mom_bcorr_cu, mom_bcorr, sizeof(struct mom_type_bcorr_lbo_pkpm), GKYL_CU_MEMCPY_H2D);
 
 
-  gkyl_mom_bcorr_lbo_pkpm_set_cu_dev_ptrs<<<1,1>>>(mom_bcorr_cu, cbasis->b_type, cdim, poly_order);
+  gkyl_mom_bcorr_lbo_pkpm_set_cu_dev_ptrs<<<1,1>>>(mom_bcorr_cu, cdim, poly_order);
 
   mom_bcorr->momt.on_dev = &mom_bcorr_cu->momt;
 

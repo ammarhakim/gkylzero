@@ -6,14 +6,14 @@ void
 pkpm_species_moment_init(struct gkyl_pkpm_app *app, struct pkpm_species *s,
   struct pkpm_species_moment *sm, bool is_diag)
 {
-  sm->mcalc = gkyl_dg_updater_moment_pkpm_new(&s->grid, &app->confBasis, 
+  sm->mcalc = gkyl_dg_updater_moment_pkpm_new(&s->grid, &app->confBasis_2p, 
     &app->basis, &app->local, &s->local_vel, s->info.mass, is_diag, app->use_gpu);    
   int num_mom = gkyl_dg_updater_moment_pkpm_num_mom(sm->mcalc);
 
-  sm->marr = mkarr(app->use_gpu, num_mom*app->confBasis.num_basis, app->local_ext.volume);
+  sm->marr = mkarr(app->use_gpu, num_mom*app->confBasis_2p.num_basis, app->local_ext.volume);
   sm->marr_host = sm->marr;
   if (app->use_gpu)
-    sm->marr_host = mkarr(false, num_mom*app->confBasis.num_basis, app->local_ext.volume);
+    sm->marr_host = mkarr(false, num_mom*app->confBasis_2p.num_basis, app->local_ext.volume);
 }
 
 void

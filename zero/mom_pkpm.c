@@ -43,24 +43,8 @@ gkyl_mom_pkpm_new(const struct gkyl_basis* cbasis, const struct gkyl_basis* pbas
 
   // choose kernel tables based on basis-function type
   const gkyl_mom_pkpm_kern_list *mom_pkpm_kernels, *mom_pkpm_diag_kernels;
-
-  switch (cbasis->b_type) {
-    case GKYL_BASIS_MODAL_SERENDIPITY:
-      mom_pkpm_kernels = ser_mom_pkpm_kernels;
-      mom_pkpm_diag_kernels = ser_mom_pkpm_diag_kernels;
-
-      break;
-
-    case GKYL_BASIS_MODAL_TENSOR:
-      mom_pkpm_kernels = ten_mom_pkpm_kernels;
-      mom_pkpm_diag_kernels = ten_mom_pkpm_diag_kernels;
-      
-      break;
-
-    default:
-      assert(false);
-      break;    
-  }
+  mom_pkpm_kernels = ten_mom_pkpm_kernels;
+  mom_pkpm_diag_kernels = ten_mom_pkpm_diag_kernels;
 
   if (diag) {
     mom_pkpm->momt.kernel = CK(mom_pkpm_diag_kernels, cdim, poly_order);

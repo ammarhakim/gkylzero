@@ -19,13 +19,13 @@ extern "C" {
 // and so its members cannot be modified without a full __global__ kernel on device.
 __global__ static void
 gkyl_euler_pkpm_set_auxfields_cu_kernel(const struct gkyl_dg_eqn *eqn, const struct gkyl_array *vlasov_pkpm_moms, 
-  const struct gkyl_array *pkpm_prim, const struct gkyl_array *pkpm_prim_surf, 
+  const struct gkyl_array *pkpm_u, const struct gkyl_array *pkpm_u_surf, 
   const struct gkyl_array *pkpm_p_ij, const struct gkyl_array *pkpm_lax)
 {
   struct dg_euler_pkpm *euler_pkpm = container_of(eqn, struct dg_euler_pkpm, eqn);
   euler_pkpm->auxfields.vlasov_pkpm_moms = vlasov_pkpm_moms;
-  euler_pkpm->auxfields.pkpm_prim = pkpm_prim;
-  euler_pkpm->auxfields.pkpm_prim_surf = pkpm_prim_surf;
+  euler_pkpm->auxfields.pkpm_u = pkpm_u;
+  euler_pkpm->auxfields.pkpm_u_surf = pkpm_u_surf;
   euler_pkpm->auxfields.pkpm_p_ij = pkpm_p_ij;
   euler_pkpm->auxfields.pkpm_lax = pkpm_lax;
 }
@@ -35,7 +35,7 @@ void
 gkyl_euler_pkpm_set_auxfields_cu(const struct gkyl_dg_eqn *eqn, struct gkyl_dg_euler_pkpm_auxfields auxin)
 {
   gkyl_euler_pkpm_set_auxfields_cu_kernel<<<1,1>>>(eqn, auxin.vlasov_pkpm_moms->on_dev, 
-    auxin.pkpm_prim->on_dev, auxin.pkpm_prim_surf->on_dev, 
+    auxin.pkpm_u->on_dev, auxin.pkpm_u_surf->on_dev, 
     auxin.pkpm_p_ij->on_dev, auxin.pkpm_lax->on_dev);
 }
 
@@ -43,35 +43,17 @@ __global__ void static
 dg_euler_pkpm_set_cu_dev_ptrs(struct dg_euler_pkpm* euler_pkpm, enum gkyl_basis_type b_type, int cdim, int poly_order)
 {
   euler_pkpm->auxfields.vlasov_pkpm_moms = 0; 
-  euler_pkpm->auxfields.pkpm_prim = 0;
-  euler_pkpm->auxfields.pkpm_prim_surf = 0;  
+  euler_pkpm->auxfields.pkpm_u = 0;
+  euler_pkpm->auxfields.pkpm_u_surf = 0;  
   euler_pkpm->auxfields.pkpm_p_ij = 0;
   euler_pkpm->auxfields.pkpm_lax = 0; 
   
   const gkyl_dg_euler_pkpm_vol_kern_list *vol_kernels;
   const gkyl_dg_euler_pkpm_surf_kern_list *surf_x_kernels, *surf_y_kernels, *surf_z_kernels;  
-  
-  switch (b_type) {
-    case GKYL_BASIS_MODAL_SERENDIPITY:
-      vol_kernels = ser_vol_kernels;
-      surf_x_kernels = ser_surf_x_kernels;
-      surf_y_kernels = ser_surf_y_kernels;
-      surf_z_kernels = ser_surf_z_kernels;
-
-      break;
-
-    case GKYL_BASIS_MODAL_TENSOR:
-      vol_kernels = ten_vol_kernels;
-      surf_x_kernels = ten_surf_x_kernels;
-      surf_y_kernels = ten_surf_y_kernels;
-      surf_z_kernels = ten_surf_z_kernels;
-      
-      break;
-
-    default:
-      assert(false);
-      break;    
-  }  
+  vol_kernels = ten_vol_kernels;
+  surf_x_kernels = ten_surf_x_kernels;
+  surf_y_kernels = ten_surf_y_kernels;
+  surf_z_kernels = ten_surf_z_kernels;  
   
   euler_pkpm->eqn.surf_term = surf;
   euler_pkpm->eqn.boundary_surf_term = boundary_surf;

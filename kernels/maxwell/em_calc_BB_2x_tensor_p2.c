@@ -1,6 +1,5 @@
-#include <gkyl_mat.h> 
 #include <gkyl_maxwell_kernels.h> 
-#include <gkyl_binop_mul_ser.h> 
+#include <gkyl_basis_tensor_2x_2p_exp_sq.h> 
 GKYL_CU_DH void em_calc_BB_2x_tensor_p2(const double *em, double* GKYL_RESTRICT out) 
 { 
   // em:  Input electromagnetic fields. 
@@ -13,17 +12,43 @@ GKYL_CU_DH void em_calc_BB_2x_tensor_p2(const double *em, double* GKYL_RESTRICT 
   double *B_y_B_z = &out[36]; 
   double *B_z_sq  = &out[45]; 
  
-  const double *B_x = &em[27]; 
-  const double *B_y = &em[36]; 
-  const double *B_z = &em[45]; 
+  const double *B_x = &em[12]; 
+  const double *B_y = &em[16]; 
+  const double *B_z = &em[20]; 
+ 
+  // Calculate B_i B_i. 
+  tensor_2x_2p_exp_sq(B_x, B_x_sq); 
+  tensor_2x_2p_exp_sq(B_y, B_y_sq); 
+  tensor_2x_2p_exp_sq(B_z, B_z_sq); 
  
   // Calculate B_i B_j. 
-  binop_mul_2d_tensor_p2(B_x, B_x, B_x_sq); 
-  binop_mul_2d_tensor_p2(B_x, B_y, B_x_B_y); 
-  binop_mul_2d_tensor_p2(B_x, B_z, B_x_B_z); 
-  binop_mul_2d_tensor_p2(B_y, B_y, B_y_sq); 
-  binop_mul_2d_tensor_p2(B_y, B_z, B_y_B_z); 
-  binop_mul_2d_tensor_p2(B_z, B_z, B_z_sq); 
+  B_x_B_y[0] = 0.5*B_x[3]*B_y[3]+0.5*B_x[2]*B_y[2]+0.5*B_x[1]*B_y[1]+0.5*B_x[0]*B_y[0]; 
+  B_x_B_y[1] = 0.5*B_x[2]*B_y[3]+0.5*B_y[2]*B_x[3]+0.5*B_x[0]*B_y[1]+0.5*B_y[0]*B_x[1]; 
+  B_x_B_y[2] = 0.5*B_x[1]*B_y[3]+0.5*B_y[1]*B_x[3]+0.5*B_x[0]*B_y[2]+0.5*B_y[0]*B_x[2]; 
+  B_x_B_y[3] = 0.5*B_x[0]*B_y[3]+0.5*B_y[0]*B_x[3]+0.5*B_x[1]*B_y[2]+0.5*B_y[1]*B_x[2]; 
+  B_x_B_y[4] = 0.4472135954999579*B_x[3]*B_y[3]+0.4472135954999579*B_x[1]*B_y[1]; 
+  B_x_B_y[5] = 0.4472135954999579*B_x[3]*B_y[3]+0.4472135954999579*B_x[2]*B_y[2]; 
+  B_x_B_y[6] = 0.447213595499958*B_x[1]*B_y[3]+0.447213595499958*B_y[1]*B_x[3]; 
+  B_x_B_y[7] = 0.447213595499958*B_x[2]*B_y[3]+0.447213595499958*B_y[2]*B_x[3]; 
+  B_x_B_y[8] = 0.4*B_x[3]*B_y[3]; 
+  B_x_B_z[0] = 0.5*B_x[3]*B_z[3]+0.5*B_x[2]*B_z[2]+0.5*B_x[1]*B_z[1]+0.5*B_x[0]*B_z[0]; 
+  B_x_B_z[1] = 0.5*B_x[2]*B_z[3]+0.5*B_z[2]*B_x[3]+0.5*B_x[0]*B_z[1]+0.5*B_z[0]*B_x[1]; 
+  B_x_B_z[2] = 0.5*B_x[1]*B_z[3]+0.5*B_z[1]*B_x[3]+0.5*B_x[0]*B_z[2]+0.5*B_z[0]*B_x[2]; 
+  B_x_B_z[3] = 0.5*B_x[0]*B_z[3]+0.5*B_z[0]*B_x[3]+0.5*B_x[1]*B_z[2]+0.5*B_z[1]*B_x[2]; 
+  B_x_B_z[4] = 0.4472135954999579*B_x[3]*B_z[3]+0.4472135954999579*B_x[1]*B_z[1]; 
+  B_x_B_z[5] = 0.4472135954999579*B_x[3]*B_z[3]+0.4472135954999579*B_x[2]*B_z[2]; 
+  B_x_B_z[6] = 0.447213595499958*B_x[1]*B_z[3]+0.447213595499958*B_z[1]*B_x[3]; 
+  B_x_B_z[7] = 0.447213595499958*B_x[2]*B_z[3]+0.447213595499958*B_z[2]*B_x[3]; 
+  B_x_B_z[8] = 0.4*B_x[3]*B_z[3]; 
+  B_y_B_z[0] = 0.5*B_y[3]*B_z[3]+0.5*B_y[2]*B_z[2]+0.5*B_y[1]*B_z[1]+0.5*B_y[0]*B_z[0]; 
+  B_y_B_z[1] = 0.5*B_y[2]*B_z[3]+0.5*B_z[2]*B_y[3]+0.5*B_y[0]*B_z[1]+0.5*B_z[0]*B_y[1]; 
+  B_y_B_z[2] = 0.5*B_y[1]*B_z[3]+0.5*B_z[1]*B_y[3]+0.5*B_y[0]*B_z[2]+0.5*B_z[0]*B_y[2]; 
+  B_y_B_z[3] = 0.5*B_y[0]*B_z[3]+0.5*B_z[0]*B_y[3]+0.5*B_y[1]*B_z[2]+0.5*B_z[1]*B_y[2]; 
+  B_y_B_z[4] = 0.4472135954999579*B_y[3]*B_z[3]+0.4472135954999579*B_y[1]*B_z[1]; 
+  B_y_B_z[5] = 0.4472135954999579*B_y[3]*B_z[3]+0.4472135954999579*B_y[2]*B_z[2]; 
+  B_y_B_z[6] = 0.447213595499958*B_y[1]*B_z[3]+0.447213595499958*B_z[1]*B_y[3]; 
+  B_y_B_z[7] = 0.447213595499958*B_y[2]*B_z[3]+0.447213595499958*B_z[2]*B_y[3]; 
+  B_y_B_z[8] = 0.4*B_y[3]*B_z[3]; 
  
 } 
  

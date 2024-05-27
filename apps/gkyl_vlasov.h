@@ -178,9 +178,6 @@ struct gkyl_vlasov_field {
   void (*app_current)(double t, const double *xn, double *app_current_out, void *ctx);
   bool app_current_evolve; // set to true if applied current function is time dependent
   
-  double limiter_fac; // Optional input parameter for adjusting diffusion in slope limiter
-  bool limit_em; // Optional input parameter for applying limiters to EM fields
-  
   // boundary conditions
   enum gkyl_field_bc_type bcx[2], bcy[2], bcz[2];
 };

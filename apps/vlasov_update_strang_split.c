@@ -76,9 +76,6 @@ vlasov_update_strang_split(gkyl_vlasov_app* app, double dt0)
           for (int i=0; i<nfs; ++i) {
             vm_fluid_species_limiter(app, &app->fluid_species[i], fluidout[i]);
           }
-          if (app->has_field) {
-            vm_field_limiter(app, app->field, app->field->em1);
-          }
           dt = st.dt_actual;
           state = RK_STAGE_2;
 
@@ -105,9 +102,6 @@ vlasov_update_strang_split(gkyl_vlasov_app* app, double dt0)
           // Limit fluid and EM solutions if desired (done after update as post-hoc fix)
           for (int i=0; i<nfs; ++i) {
             vm_fluid_species_limiter(app, &app->fluid_species[i], fluidout[i]);
-          }
-          if (app->has_field) {
-            vm_field_limiter(app, app->field, app->field->emnew);
           }
           if (st.dt_actual < dt) {
             // collect stats
@@ -158,9 +152,6 @@ vlasov_update_strang_split(gkyl_vlasov_app* app, double dt0)
           // Limit fluid and EM solutions if desired (done after update as post-hoc fix)
           for (int i=0; i<nfs; ++i) {
             vm_fluid_species_limiter(app, &app->fluid_species[i], fluidout[i]);
-          }
-          if (app->has_field) {
-            vm_field_limiter(app, app->field, app->field->emnew);
           }
           if (st.dt_actual < dt) {
             // collect stats

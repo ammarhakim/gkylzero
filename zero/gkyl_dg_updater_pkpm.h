@@ -23,9 +23,10 @@ struct gkyl_dg_updater_pkpm_tm {
  * Computes both the kinetic equation updates and fluid equation (momentum) updates.
  *
  * @param conf_grid Configuration space grid object
- * @param phase_grid Phase space grid object
- * @param conf_basis Configuration space basis functions
- * @param phase_basis Phase space basis function
+ * @param phase_grid Phase space grid object 
+ * @param conf_basis Configuration space basis functions (order p for fluid equations)
+ * @param conf_basis_2p Configuration space basis functions (order 2*p for kinetic equations)
+ * @param phase_basis Phase space basis function (order 2*p for kinetic equations)
  * @param conf_range Configuration space range
  * @param vel_range Velocity space range
  * @param phase_range Phase space range
@@ -39,7 +40,7 @@ struct gkyl_dg_updater_pkpm_tm {
  * @return New PKPM updater object
  */
 gkyl_dg_updater_pkpm* gkyl_dg_updater_pkpm_new(const struct gkyl_rect_grid *conf_grid, const struct gkyl_rect_grid *phase_grid, 
-  const struct gkyl_basis *conf_basis, const struct gkyl_basis *phase_basis, 
+  const struct gkyl_basis *conf_basis, const struct gkyl_basis *conf_basis_2p, const struct gkyl_basis *phase_basis, 
   const struct gkyl_range *conf_range, const struct gkyl_range *vel_range, const struct gkyl_range *phase_range,
   const bool *is_zero_flux_dir, const struct gkyl_wv_eqn *wv_eqn, const struct gkyl_wave_geom *geom, 
   struct gkyl_dg_vlasov_pkpm_auxfields *vlasov_pkpm_inp, struct gkyl_dg_euler_pkpm_auxfields *euler_pkpm_inp, 

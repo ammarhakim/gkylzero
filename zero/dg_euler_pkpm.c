@@ -41,8 +41,8 @@ gkyl_euler_pkpm_set_auxfields(const struct gkyl_dg_eqn *eqn, struct gkyl_dg_eule
 
   struct dg_euler_pkpm *euler_pkpm = container_of(eqn, struct dg_euler_pkpm, eqn);
   euler_pkpm->auxfields.vlasov_pkpm_moms = auxin.vlasov_pkpm_moms;
-  euler_pkpm->auxfields.pkpm_prim = auxin.pkpm_prim;
-  euler_pkpm->auxfields.pkpm_prim_surf = auxin.pkpm_prim_surf;
+  euler_pkpm->auxfields.pkpm_u = auxin.pkpm_u;
+  euler_pkpm->auxfields.pkpm_u_surf = auxin.pkpm_u_surf;
   euler_pkpm->auxfields.pkpm_p_ij = auxin.pkpm_p_ij;
   euler_pkpm->auxfields.pkpm_lax = auxin.pkpm_lax;
 }
@@ -63,29 +63,11 @@ gkyl_dg_euler_pkpm_new(const struct gkyl_basis* cbasis, const struct gkyl_range*
 
   const gkyl_dg_euler_pkpm_vol_kern_list *vol_kernels;
   const gkyl_dg_euler_pkpm_surf_kern_list *surf_x_kernels, *surf_y_kernels, *surf_z_kernels;
+  vol_kernels = ten_vol_kernels;
+  surf_x_kernels = ten_surf_x_kernels;
+  surf_y_kernels = ten_surf_y_kernels;
+  surf_z_kernels = ten_surf_z_kernels;
 
-  switch (cbasis->b_type) {
-    case GKYL_BASIS_MODAL_SERENDIPITY:
-      vol_kernels = ser_vol_kernels;
-      surf_x_kernels = ser_surf_x_kernels;
-      surf_y_kernels = ser_surf_y_kernels;
-      surf_z_kernels = ser_surf_z_kernels;
-
-      break;
-
-    case GKYL_BASIS_MODAL_TENSOR:
-      vol_kernels = ten_vol_kernels;
-      surf_x_kernels = ten_surf_x_kernels;
-      surf_y_kernels = ten_surf_y_kernels;
-      surf_z_kernels = ten_surf_z_kernels;
-      
-      break;
-
-    default:
-      assert(false);
-      break;    
-  }  
-    
   euler_pkpm->eqn.num_equations = 3;
   euler_pkpm->wv_eqn = gkyl_wv_eqn_acquire(wv_eqn);
   euler_pkpm->geom = gkyl_wave_geom_acquire(geom);
@@ -104,8 +86,8 @@ gkyl_dg_euler_pkpm_new(const struct gkyl_basis* cbasis, const struct gkyl_range*
   for (int i=0; i<cdim; ++i) assert(euler_pkpm->surf[i]);
 
   euler_pkpm->auxfields.vlasov_pkpm_moms = 0;  
-  euler_pkpm->auxfields.pkpm_prim = 0;
-  euler_pkpm->auxfields.pkpm_prim_surf = 0;    
+  euler_pkpm->auxfields.pkpm_u = 0;
+  euler_pkpm->auxfields.pkpm_u_surf = 0;    
   euler_pkpm->auxfields.pkpm_p_ij = 0;
   euler_pkpm->auxfields.pkpm_lax = 0;  
   euler_pkpm->conf_range = *conf_range;

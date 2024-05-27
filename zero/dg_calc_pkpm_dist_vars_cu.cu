@@ -151,13 +151,13 @@ gkyl_dg_calc_pkpm_dist_vars_div_ppar_cu(struct gkyl_dg_calc_pkpm_dist_vars *up,
 // CUDA kernel to set device pointers to pkpm dist vars kernel functions
 // Doing function pointer stuff in here avoids troublesome cudaMemcpyFromSymbol
 __global__ static void 
-dg_calc_pkpm_dist_vars_set_cu_dev_ptrs(struct gkyl_dg_calc_pkpm_dist_vars *up, enum gkyl_basis_type b_type,
-  int cdim,int poly_order)
+dg_calc_pkpm_dist_vars_set_cu_dev_ptrs(struct gkyl_dg_calc_pkpm_dist_vars *up, int cdim, int poly_order)
 {
-  up->pkpm_dist_mirror_force = choose_pkpm_dist_mirror_force_kern(b_type, cdim, poly_order);
+  up->pkpm_dist_mirror_force = choose_pkpm_dist_mirror_force_kern(cdim, poly_order);
   // Fetch the kernels in each direction
-  for (int d=0; d<cdim; ++d) 
-    up->pkpm_dist_div_ppar[d] = choose_pkpm_dist_div_ppar_kern(d, b_type, cdim, poly_order);
+  for (int d=0; d<cdim; ++d) {
+    up->pkpm_dist_div_ppar[d] = choose_pkpm_dist_div_ppar_kern(d, cdim, poly_order);
+  }
 }
 
 gkyl_dg_calc_pkpm_dist_vars*
@@ -167,7 +167,6 @@ gkyl_dg_calc_pkpm_dist_vars_cu_dev_new(const struct gkyl_rect_grid *phase_grid,
   struct gkyl_dg_calc_pkpm_dist_vars *up = (struct gkyl_dg_calc_pkpm_dist_vars*) gkyl_malloc(sizeof(gkyl_dg_calc_pkpm_dist_vars));
 
   up->phase_grid = *phase_grid;
-  enum gkyl_basis_type b_type = cbasis->b_type;
   int cdim = cbasis->ndim;
   up->cdim = cdim;
   int poly_order = cbasis->poly_order;
@@ -178,7 +177,7 @@ gkyl_dg_calc_pkpm_dist_vars_cu_dev_new(const struct gkyl_rect_grid *phase_grid,
   struct gkyl_dg_calc_pkpm_dist_vars *up_cu = (struct gkyl_dg_calc_pkpm_dist_vars*) gkyl_cu_malloc(sizeof(gkyl_dg_calc_pkpm_dist_vars));
   gkyl_cu_memcpy(up_cu, up, sizeof(gkyl_dg_calc_pkpm_dist_vars), GKYL_CU_MEMCPY_H2D);
 
-  dg_calc_pkpm_dist_vars_set_cu_dev_ptrs<<<1,1>>>(up_cu, b_type, cdim, poly_order);
+  dg_calc_pkpm_dist_vars_set_cu_dev_ptrs<<<1,1>>>(up_cu, cdim, poly_order);
 
   // set parent on_dev pointer
   up->on_dev = up_cu;
