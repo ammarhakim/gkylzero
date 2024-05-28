@@ -6,10 +6,12 @@
 #include <gkyl_evalf_def.h>
 #include <gkyl_range.h>
 #include <gkyl_rect_grid.h>
-#include <gkyl_velocity_map.h>
 
 // Object type
 typedef struct gkyl_proj_on_basis gkyl_proj_on_basis;
+
+// Types for various kernels.
+typedef void (*proj_on_basis_c2p_t)(const double *xcomp, double *xphys, void *ctx);
 
 // input packaged as a struct
 struct gkyl_proj_on_basis_inp {
@@ -23,7 +25,9 @@ struct gkyl_proj_on_basis_inp {
   evalf_t eval; // function to project
   void *ctx; // function context
 
-  const struct gkyl_velocity_map *vel_map; // Optional velocity space mapping object.
+  proj_on_basis_c2p_t c2p_func; // Function that transforms a set of ndim
+                                // computational coordinates to physical ones.
+  void *c2p_func_ctx; // Context for c2p_func.
 };
 
 /**
