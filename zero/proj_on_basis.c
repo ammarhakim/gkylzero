@@ -20,9 +20,23 @@ struct gkyl_proj_on_basis {
   struct gkyl_array *weights; // weights for quadrature
   struct gkyl_array *basis_at_ords; // basis functions at ordinates
 
-  const struct gkyl_velocity_map *vel_map; // Velocity space mapping object.
-  bool mapped_vel;  // Flag indicating whether velocity space is mapped.
+  proj_on_basis_c2p_t c2p; // Function transformin comp to phys coords.
+  void *c2p_ctx; // Context for the c2p mapping.
 };
+
+// Context for the comp to phys coordinate identity mapping.
+struct c2p_identity_ctx {
+  int ndim;
+};
+
+// Identity comp to phys coord mapping, for when user doesn't provide a map.
+static inline void
+c2p_identity(const double *xcomp, double *xphys, void *ctx)
+{
+  struct c2p_identity_ctx *identity_ctx = ctx;
+  int ndim = identity_ctx->ndim;
+  for (int d=0; d<ndim; d++) xphys[d] = xcomp[d];
+}
 
 struct gkyl_proj_on_basis*
 gkyl_proj_on_basis_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis *basis,
@@ -36,7 +50,8 @@ gkyl_proj_on_basis_new(const struct gkyl_rect_grid *grid, const struct gkyl_basi
       .num_ret_vals = num_ret_vals,
       .eval = eval,
       .ctx = ctx,
-      .vel_map = 0,
+      .c2p_func = 0,
+      .c2p_func_ctx = 0,
     }
   );
 }
@@ -52,13 +67,17 @@ gkyl_proj_on_basis_inew(const struct gkyl_proj_on_basis_inp *inp)
   up->eval = inp->eval;
   up->ctx = inp->ctx;
   up->num_basis = inp->basis->num_basis;
-  up->mapped_vel = false;
-  if (inp->vel_map != 0) {
-    if (!inp->vel_map->is_identity) {
-      up->mapped_vel = true;
-      up->vel_map = gkyl_velocity_map_acquire(inp->vel_map);
-    }
+
+  if (inp->c2p_func == 0) {
+    struct c2p_identity_ctx identity_ctx = { .ndim = inp->grid->ndim };
+    up->c2p = c2p_identity;
+    up->c2p_ctx = &identity_ctx;
   }
+  else {
+    up->c2p = inp->c2p_func;
+    up->c2p_ctx = inp->c2p_func_ctx;
+  }
+
   double ordinates1[num_quad], weights1[num_quad];
 
   if (inp->qtype == GKYL_GAUSS_QUAD) {
@@ -184,11 +203,7 @@ gkyl_proj_on_basis_advance(const struct gkyl_proj_on_basis *up,
     for (int i=0; i<tot_quad; ++i) {
       log_to_comp(up->grid.ndim, gkyl_array_cfetch(up->ordinates, i),
         up->grid.dx, xc, xmu);
-      if (up->mapped_vel) {
-        int vdim = up->vel_map->local_vel.ndim;
-        int cdim = update_range->ndim - vdim; // Assumes update range is a phase range.
-        gkyl_velocity_map_eval_c2p(up->vel_map, &xmu[cdim], &xmu[cdim]);
-      }
+      up->c2p(xmu, xmu, up->c2p_ctx);
       up->eval(tm, xmu, gkyl_array_fetch(fun_at_ords, i), up->ctx);
     }
 
@@ -205,8 +220,5 @@ gkyl_proj_on_basis_release(struct gkyl_proj_on_basis* up)
   gkyl_array_release(up->ordinates);
   gkyl_array_release(up->weights);
   gkyl_array_release(up->basis_at_ords);
-  if (up->mapped_vel) {
-    gkyl_velocity_map_release(up->vel_map);
-  }
   gkyl_free(up);
 }

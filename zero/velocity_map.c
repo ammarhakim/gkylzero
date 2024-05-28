@@ -12,7 +12,8 @@ struct mapc2p_vel_identity_ctx {
 };
 
 // Comp. coords = phys. coords mapping (default).
-void mapc2p_vel_identity(double t, const double *zc, double* GKYL_RESTRICT vp, void *ctx)
+static inline void
+mapc2p_vel_identity(double t, const double *zc, double* GKYL_RESTRICT vp, void *ctx)
 {
   struct mapc2p_vel_identity_ctx *identity_ctx = ctx;
   int vdim = identity_ctx->vdim;

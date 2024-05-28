@@ -1,12 +1,27 @@
 #include <assert.h>
 #include <gkyl_gyrokinetic_priv.h>
 
+// c2p function assed to proj_on_basis.
+void
+proj_on_basis_c2p_func(const double *xcomp, double *xphys, void *ctx)
+{
+  struct gk_proj_on_basis_c2p_func_ctx *c2p_ctx = ctx;
+  int cdim = c2p_ctx->cdim; // Assumes update range is a phase range.
+  gkyl_velocity_map_eval_c2p(c2p_ctx->vel_map, &xcomp[cdim], &xphys[cdim]);
+}
+
 void 
 gk_species_projection_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s, 
   struct gkyl_gyrokinetic_projection inp, struct gk_proj *proj)
 {
   proj->proj_id = inp.proj_id;
   if (proj->proj_id == GKYL_PROJ_FUNC) {
+
+    // Assign members of context for c2p map used in project_on_basis.
+    proj->proj_on_basis_c2p_ctx.cdim = app->cdim;
+    proj->proj_on_basis_c2p_ctx.vdim = s->local_vel.ndim;
+    proj->proj_on_basis_c2p_ctx.vel_map = s->vel_map;
+
     proj->proj_func = gkyl_proj_on_basis_inew( &(struct gkyl_proj_on_basis_inp) {
         .grid = &s->grid,
         .basis = &app->basis,
@@ -15,7 +30,8 @@ gk_species_projection_init(struct gkyl_gyrokinetic_app *app, struct gk_species *
         .num_ret_vals = 1,
         .eval = inp.func,
         .ctx = inp.ctx_func,
-        .vel_map = s->vel_map,
+        .c2p_func = proj_on_basis_c2p_func,
+        .c2p_func_ctx = &proj->proj_on_basis_c2p_ctx,
       }
     );
     if (app->use_gpu) {
