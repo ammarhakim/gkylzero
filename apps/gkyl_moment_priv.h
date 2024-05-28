@@ -262,8 +262,8 @@ integ_sq(int nc, const double *qin, double *integ_out)
 
 // function for copy BC
 static inline void
-bc_copy(double t, int nc, const double *skin,
-  double *GKYL_RESTRICT ghost, void *ctx)
+bc_copy(double t, int nc, const double *skin, double *GKYL_RESTRICT ghost,
+  const double *skin_xc, const double *ghost_xc, void *ctx)
 {
   for (int c = 0; c < nc; ++c)
     ghost[c] = skin[c];

@@ -1,7 +1,7 @@
 #include <gkyl_amr_block_coupled_priv.h>
 
 void
-five_moment_wall_bc(double t, int nc, const double* GKYL_RESTRICT skin, double* GKYL_RESTRICT ghost, void* ctx)
+five_moment_wall_bc(double t, int nc, const double* GKYL_RESTRICT skin, double* GKYL_RESTRICT ghost, const double *skin_xc, const double *ghost_xc, void* ctx)
 {
   for (int i = 0; i < 5; i++) {
     ghost[i] = skin[i];
@@ -11,7 +11,7 @@ five_moment_wall_bc(double t, int nc, const double* GKYL_RESTRICT skin, double* 
 }
 
 void
-ten_moment_wall_bc(double t, int nc, const double* GKYL_RESTRICT skin, double* GKYL_RESTRICT ghost, void* ctx)
+ten_moment_wall_bc(double t, int nc, const double* GKYL_RESTRICT skin, double* GKYL_RESTRICT ghost, const double *skin_xc, const double *ghost_xc, void* ctx)
 {
   for (int i = 0; i < 10; i++) {
     if (i == 1 || i == 5 || i == 6) {
@@ -24,7 +24,7 @@ ten_moment_wall_bc(double t, int nc, const double* GKYL_RESTRICT skin, double* G
 }
 
 void
-maxwell_wall_bc(double t, int nc, const double* GKYL_RESTRICT skin, double* GKYL_RESTRICT ghost, void* ctx)
+maxwell_wall_bc(double t, int nc, const double* GKYL_RESTRICT skin, double* GKYL_RESTRICT ghost, const double *skin_xc, const double *ghost_xc, void* ctx)
 {
   for (int i = 0; i < 8; i++) {
     if (i == 1 || i == 2 || i == 3 || i == 6) {
@@ -37,7 +37,7 @@ maxwell_wall_bc(double t, int nc, const double* GKYL_RESTRICT skin, double* GKYL
 }
 
 void
-five_moment_transmissive_bc(double t, int nc, const double* GKYL_RESTRICT skin, double* GKYL_RESTRICT ghost, void* ctx)
+five_moment_transmissive_bc(double t, int nc, const double* GKYL_RESTRICT skin, double* GKYL_RESTRICT ghost, const double *skin_xc, const double *ghost_xc, void* ctx)
 {
   for (int i = 0; i < 5; i++) {
     ghost[i] = skin[i];
@@ -45,7 +45,7 @@ five_moment_transmissive_bc(double t, int nc, const double* GKYL_RESTRICT skin, 
 }
 
 void
-ten_moment_transmissive_bc(double t, int nc, const double* GKYL_RESTRICT skin, double* GKYL_RESTRICT ghost, void* ctx)
+ten_moment_transmissive_bc(double t, int nc, const double* GKYL_RESTRICT skin, double* GKYL_RESTRICT ghost, const double *skin_xc, const double *ghost_xc, void* ctx)
 {
   for (int i = 0; i < 10; i++) {
     ghost[i] = skin[i];
@@ -53,7 +53,7 @@ ten_moment_transmissive_bc(double t, int nc, const double* GKYL_RESTRICT skin, d
 }
 
 void
-maxwell_transmissive_bc(double t, int nc, const double* GKYL_RESTRICT skin, double* GKYL_RESTRICT ghost, void* ctx)
+maxwell_transmissive_bc(double t, int nc, const double* GKYL_RESTRICT skin, double* GKYL_RESTRICT ghost, const double *skin_xc, const double *ghost_xc, void* ctx)
 {
   for (int i = 0; i < 8; i++) {
     ghost[i] = skin[i];

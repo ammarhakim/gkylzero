@@ -34,14 +34,14 @@ struct gkyl_moment_species {
   // boundary conditions
   enum gkyl_species_bc_type bcx[2], bcy[2], bcz[2];
   // pointer to boundary condition functions along x
-  void (*bcx_lower_func)(double t, int nc, const double *skin, double * GKYL_RESTRICT ghost, void *ctx);
-  void (*bcx_upper_func)(double t, int nc, const double *skin, double * GKYL_RESTRICT ghost, void *ctx);
+  void (*bcx_lower_func)(double t, int nc, const double *skin, double * GKYL_RESTRICT ghost, const double *skin_xc, const double *ghost_xc, void *ctx);
+  void (*bcx_upper_func)(double t, int nc, const double *skin, double * GKYL_RESTRICT ghost, const double *skin_xc, const double *ghost_xc, void *ctx);
   // pointer to boundary condition functions along y
-  void (*bcy_lower_func)(double t, int nc, const double *skin, double * GKYL_RESTRICT ghost, void *ctx);
-  void (*bcy_upper_func)(double t, int nc, const double *skin, double * GKYL_RESTRICT ghost, void *ctx);
+  void (*bcy_lower_func)(double t, int nc, const double *skin, double * GKYL_RESTRICT ghost, const double *skin_xc, const double *ghost_xc, void *ctx);
+  void (*bcy_upper_func)(double t, int nc, const double *skin, double * GKYL_RESTRICT ghost, const double *skin_xc, const double *ghost_xc, void *ctx);
   // pointer to boundary condition functions along z
-  void (*bcz_lower_func)(double t, int nc, const double *skin, double * GKYL_RESTRICT ghost, void *ctx);
-  void (*bcz_upper_func)(double t, int nc, const double *skin, double * GKYL_RESTRICT ghost, void *ctx);
+  void (*bcz_lower_func)(double t, int nc, const double *skin, double * GKYL_RESTRICT ghost, const double *skin_xc, const double *ghost_xc, void *ctx);
+  void (*bcz_upper_func)(double t, int nc, const double *skin, double * GKYL_RESTRICT ghost, const double *skin_xc, const double *ghost_xc, void *ctx);
 };
 
 // Parameter for EM field
@@ -69,14 +69,14 @@ struct gkyl_moment_field {
   // boundary conditions
   enum gkyl_field_bc_type bcx[2], bcy[2], bcz[2];
   // pointer to boundary condition functions along x
-  void (*bcx_lower_func)(double t, int nc, const double *skin, double * GKYL_RESTRICT ghost, void *ctx);
-  void (*bcx_upper_func)(double t, int nc, const double *skin, double * GKYL_RESTRICT ghost, void *ctx);
+  void (*bcx_lower_func)(double t, int nc, const double *skin, double * GKYL_RESTRICT ghost, const double *skin_xc, const double *ghost_xc, void *ctx);
+  void (*bcx_upper_func)(double t, int nc, const double *skin, double * GKYL_RESTRICT ghost, const double *skin_xc, const double *ghost_xc, void *ctx);
   // pointer to boundary condition functions along y
-  void (*bcy_lower_func)(double t, int nc, const double *skin, double * GKYL_RESTRICT ghost, void *ctx);
-  void (*bcy_upper_func)(double t, int nc, const double *skin, double * GKYL_RESTRICT ghost, void *ctx);
+  void (*bcy_lower_func)(double t, int nc, const double *skin, double * GKYL_RESTRICT ghost, const double *skin_xc, const double *ghost_xc, void *ctx);
+  void (*bcy_upper_func)(double t, int nc, const double *skin, double * GKYL_RESTRICT ghost, const double *skin_xc, const double *ghost_xc, void *ctx);
   // pointer to boundary condition functions along z
-  void (*bcz_lower_func)(double t, int nc, const double *skin, double * GKYL_RESTRICT ghost, void *ctx);
-  void (*bcz_upper_func)(double t, int nc, const double *skin, double * GKYL_RESTRICT ghost, void *ctx);
+  void (*bcz_lower_func)(double t, int nc, const double *skin, double * GKYL_RESTRICT ghost, const double *skin_xc, const double *ghost_xc, void *ctx);
+  void (*bcz_upper_func)(double t, int nc, const double *skin, double * GKYL_RESTRICT ghost, const double *skin_xc, const double *ghost_xc, void *ctx);
 };
 
 // Choices of schemes to use in the fluid solver

@@ -84,7 +84,8 @@ riem_to_cons(const struct gkyl_wv_eqn* eqn, const double* qstate, const double* 
 */
 GKYL_CU_D
 static void
-gr_euler_wall(double t, int nc, const double* skin, double* GKYL_RESTRICT ghost, void* ctx);
+gr_euler_wall(double t, int nc, const double* skin, double* GKYL_RESTRICT ghost,
+    const double *skin_xc, const double *ghost_xc, void* ctx);
 
 /**
 * Boundary condition function for applying no-slip boundary conditions for the general relativistic Euler equations.
@@ -97,7 +98,8 @@ gr_euler_wall(double t, int nc, const double* skin, double* GKYL_RESTRICT ghost,
 */
 GKYL_CU_D
 static void
-gr_euler_no_slip(double t, int nc, const double* skin, double* GKYL_RESTRICT ghost, void* ctx);
+gr_euler_no_slip(double t, int nc, const double* skin, double* GKYL_RESTRICT ghost,
+    const double *skin_xc, const double *ghost_xc, void* ctx);
 
 /**
 * Rotate state vector from global to local coordinate frame.

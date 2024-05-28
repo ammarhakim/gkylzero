@@ -12,7 +12,7 @@ skin_ghost_ranges_init_block(struct skin_ghost_ranges_block* sgr, const struct g
 }
 
 void
-euler_transmissive_bc(double t, int nc, const double* GKYL_RESTRICT skin, double* GKYL_RESTRICT ghost, void* ctx)
+euler_transmissive_bc(double t, int nc, const double* GKYL_RESTRICT skin, double* GKYL_RESTRICT ghost, const double *skin_xc, const double *ghost_xc, void* ctx)
 {
   for (int i = 0; i < 5; i++) {
     ghost[i] = skin[i];
@@ -20,7 +20,7 @@ euler_transmissive_bc(double t, int nc, const double* GKYL_RESTRICT skin, double
 }
 
 void
-gr_euler_transmissive_bc(double t, int nc, const double* GKYL_RESTRICT skin, double* GKYL_RESTRICT ghost, void* ctx)
+gr_euler_transmissive_bc(double t, int nc, const double* GKYL_RESTRICT skin, double* GKYL_RESTRICT ghost, const double *skin_xc, const double *ghost_xc, void* ctx)
 {
   for (int i = 0; i < 29; i++) {
     ghost[i] = skin[i];

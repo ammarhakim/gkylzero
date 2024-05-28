@@ -27,7 +27,8 @@ rtheta_map(double t, const double *xc, double *xp, void *ctx)
 }
 
 static void
-bc_copy(double t, int nc, const double *skin, double *restrict ghost, void *ctx)
+bc_copy(double t, int nc, const double *skin, double *restrict ghost,
+    const double *skin_xc, const double *ghost_xc, void *ctx)
 {
   for (int c=0; c<nc; ++c) ghost[c] = skin[c];
 }
