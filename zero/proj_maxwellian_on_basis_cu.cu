@@ -484,6 +484,6 @@ gkyl_proj_gkmaxwellian_on_basis_prim_mom_cu(const gkyl_proj_maxwellian_on_basis 
   gkyl_proj_gkmaxwellian_on_basis_prim_mom_cu_ker<<<nblocks, nthreads>>>
     (up->grid, *phase_r, *conf_r, gvm->local_ext_vel, up->conf_basis_at_ords->on_dev,
      up->basis_at_ords->on_dev, up->ordinates->on_dev, up->weights->on_dev, up->p2c_qidx,
-     moms->on_dev, prim_moms->on_dev, bmag->on_dev, jacob_tot->on_dev,
+     prim_moms->on_dev, bmag->on_dev, jacob_tot->on_dev,
      gvm->vmap->on_dev, gvm->vmap_basis, mass, fmax->on_dev);
 }

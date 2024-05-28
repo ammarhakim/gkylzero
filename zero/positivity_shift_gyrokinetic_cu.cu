@@ -58,8 +58,8 @@ gkyl_positivity_shift_gyrokinetic_advance_cu_ker(
 {
   int pidx[GKYL_MAX_DIM];
   double distf_max = -DBL_MAX;
-  int cdim = conf_range.dim;
-  int pdim = phase_range.dim;
+  int cdim = conf_range.ndim;
+  int pdim = phase_range.ndim;
 
   for(unsigned long tid = threadIdx.x + blockIdx.x*blockDim.x;
       tid < phase_range.volume; tid += blockDim.x*gridDim.x) {
