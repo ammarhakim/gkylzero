@@ -1,4 +1,3 @@
-#include "gkyl_rect_grid.h"
 #include <gkyl_alloc.h>
 #include <gkyl_array_ops.h>
 #include <gkyl_bc_basic.h>

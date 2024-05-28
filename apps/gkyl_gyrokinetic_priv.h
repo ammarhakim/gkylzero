@@ -416,7 +416,9 @@ struct gk_species {
   struct gkyl_rect_grid grid_vel; // velocity space grid
   struct gkyl_range local_vel, local_ext_vel; // local, local-ext velocity-space ranges
 
-  struct gkyl_array *f, *f1, *fnew; // arrays for updates
+  struct gkyl_array *f, *f1, *fnew; // arrays for updates, 1 per RK stage.
+  struct gkyl_array **distfs; // Pointers to f arrays.
+
   struct gkyl_array *cflrate; // CFL rate in each cell
   struct gkyl_array *bc_buffer; // buffer for BCs (used by bc_basic)
   struct gkyl_array *bc_buffer_lo_fixed, *bc_buffer_up_fixed; // fixed buffers for time independent BCs 
@@ -524,7 +526,9 @@ struct gk_neut_species {
   struct gkyl_rect_grid grid_vel; // velocity space grid
   struct gkyl_range local_vel, local_ext_vel; // local, local-ext velocity-space ranges
 
-  struct gkyl_array *f, *f1, *fnew; // arrays for updates
+  struct gkyl_array *f, *f1, *fnew; // Arrays for updates, 1 per RK stage.
+  struct gkyl_array **distfs; // Pointers to f arrays.
+
   struct gkyl_array *cflrate; // CFL rate in each cell
   struct gkyl_array *bc_buffer; // buffer for BCs (used by bc_basic)
   struct gkyl_array *bc_buffer_lo_fixed, *bc_buffer_up_fixed; // fixed buffers for time independent BCs 
@@ -645,23 +649,23 @@ struct gk_field {
 
 // gyrokinetic object: used as opaque pointer in user code
 struct gkyl_gyrokinetic_app {
-  char name[128]; // name of app
-  struct gkyl_job_pool *job_pool; // Job pool
+  char name[128]; // Name of app.
+  struct gkyl_job_pool *job_pool; // Job pool.
   
-  int cdim, vdim; // conf, velocity space dimensions
-  int poly_order; // polynomial order
-  double tcurr; // current time
+  int cdim, vdim; // Conf, velocity space dimensions.
+  int poly_order; // Polynomial order.
+  double tcurr; // Current time.
   double cfl; // CFL number
 
-  bool use_gpu; // should we use GPU (if present)
+  bool use_gpu; // Should we use GPU (if present).
 
-  int num_periodic_dir; // number of periodic directions
-  int periodic_dirs[3]; // list of periodic directions
+  int num_periodic_dir; // Number of periodic directions.
+  int periodic_dirs[3]; // List of periodic directions.
     
-  struct gkyl_rect_grid grid; // config-space grid
-  struct gkyl_range local, local_ext; // local, local-ext conf-space ranges
-  struct gkyl_range global, global_ext; // global, global-ext conf-space ranges  
-  // To simplify BC application, store local skin and ghost ranges
+  struct gkyl_rect_grid grid; // Config-space grid.
+  struct gkyl_range local, local_ext; // Local, local-ext conf-space ranges.
+  struct gkyl_range global, global_ext; // Global, global-ext conf-space ranges  
+  // To simplify BC application, store local skin and ghost ranges.
   struct gkyl_range lower_skin[GKYL_MAX_DIM];
   struct gkyl_range lower_ghost[GKYL_MAX_DIM];
   struct gkyl_range upper_skin[GKYL_MAX_DIM];
@@ -815,7 +819,7 @@ void gk_species_radiation_emissivity(gkyl_gyrokinetic_app *app,
  */
 void
 gk_species_radiation_integrated_moms(gkyl_gyrokinetic_app *app, struct gk_species *species,
-				struct gk_rad_drag *rad, const struct gkyl_array *fin[], const struct gkyl_array *fin_neut[]);
+  struct gk_rad_drag *rad, const struct gkyl_array *fin[], const struct gkyl_array *fin_neut[]);
 
 /**
  * Compute RHS from radiation drag object.
@@ -830,6 +834,36 @@ void gk_species_radiation_rhs(gkyl_gyrokinetic_app *app,
   const struct gk_species *species,
   struct gk_rad_drag *rad,
   const struct gkyl_array *fin, struct gkyl_array *rhs);
+
+/**
+ * Compute the time rate of change, df/dt, of the kinetic equations.
+ * The actual time-step and dt_suggested are returned in
+ * the status object.
+ *
+ * @param app App object.
+ * @param tcurr Current simulation time.
+ * @param dt Suggested time step to use.
+ * @param fin Array of input charged-particle distributions.
+ * @param fout Array of output charged-particle distributions.
+ * @param fin_neut Array of input neutral distributions.
+ * @param fout_neut Array of output neutral distributions.
+ * @param st Time stepping status object.
+ */
+void
+gkyl_gyrokinetic_dfdt(gkyl_gyrokinetic_app* app, double tcurr, double dt,
+  const struct gkyl_array *fin[], struct gkyl_array *fout[], 
+  const struct gkyl_array *fin_neut[], struct gkyl_array *fout_neut[], 
+  struct gkyl_update_status *st);
+
+/**
+ * Apply boundary conditions to the distributions.
+ *
+ * @param app App object.
+ * @param distf Array of charged species distribution functions.
+ * @param distf_neut Array of neutral species distribution functions.
+ */
+void
+gkyl_gyrokinetic_apply_bc(gkyl_gyrokinetic_app* app, struct gkyl_array *distf[], struct gkyl_array *distf_neut[]);
 
 /**
  * Release species radiation drag object.

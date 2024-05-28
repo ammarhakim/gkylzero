@@ -47,3 +47,9 @@ enum gkyl_field_bc_type {
   GKYL_FIELD_WEDGE, // specialized "wedge" BCs for RZ-theta
   GKYL_FIELD_FUNC, // Function boundary conditions
 };
+
+// Type of time integrator to use.
+enum gkyl_time_stepper_type {
+  GKYL_STEPPER_NULL = 0,
+  GKYL_STEPPER_SSP_RK3, // Strong stability preserving 3rd order RK.
+};

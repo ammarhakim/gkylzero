@@ -1,7 +1,6 @@
 // Private header file for multi-block gyrokinetic solver.
 #pragma once
 
-#include "gkyl_util.h"
 #include <gkyl_gyrokinetic_priv.h>
 #include <gkyl_gyrokinetic_mb.h>
 
@@ -12,6 +11,7 @@ struct gkyl_gyrokinetic_mb_app {
 
   int cdim, vdim; // Conf, velocity space dimensions.
   int poly_order; // Polynomial order.
+  double tcurr; // Current time.
   double cfl; // CFL number.
 
   bool use_gpu; // Should we use GPU (if present).
@@ -26,6 +26,7 @@ struct gkyl_gyrokinetic_mb_app {
 
   struct gk_field_mb *field; // mb field object.
   struct gkyl_comm *comm;   // communicator object for conf-space arrays
+  struct gkyl_gyrokinetic_stat stat; // statistics
 };
 
 // field data
