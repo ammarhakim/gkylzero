@@ -15,11 +15,6 @@ struct gk_field_mb*
 gk_field_mb_new(struct gkyl_gk_mb *gk_mb, struct gkyl_gyrokinetic_mb_app *mb_app)
 {
 
-
-
-
-
-
   struct gk_field_mb *f = gkyl_malloc(sizeof(struct gk_field_mb));
 
   f->info = gk_mb->field;
@@ -41,6 +36,12 @@ gk_field_mb_new(struct gkyl_gk_mb *gk_mb, struct gkyl_gyrokinetic_mb_app *mb_app
   gkyl_range_init(&globalz, mb_app->cdim, lower, upper);
   int nghost[2] = {1,1};
   gkyl_create_ranges(&globalz, nghost, &f->globalz_ext, &f->globalz);
+
+  // Create the decomp and communicator from the mb app communicator
+  int cuts[2] = {0,3}; // Sticking to blocks 2,3,4 for now
+  struct gkyl_rect_decomp *zdecomp = gkyl_rect_decomp_new_from_cuts(mb_app->cdim, cuts, &f->globalz);
+  f->zcomm = gkyl_comm_split_comm(mb_app->comm, 0, zdecomp); // Would have different colors for other block groups like 11-12, 7-8-9
+                                                             // Just 0 for now
 
   // Now get the sub range intersects
   // Create global subrange we'll copy the field solver solution from (into local).
