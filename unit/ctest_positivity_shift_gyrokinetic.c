@@ -1,7 +1,6 @@
 #include "gkyl_array.h"
 #include <gkyl_gk_geometry.h>
 #include <gkyl_gk_geometry_mapc2p.h>
-#include <gkyl_gk_geometry_fromfile.h>
 #include <gkyl_proj_maxwellian_on_basis.h>
 #include <gkyl_proj_on_basis.h>
 #include <gkyl_range.h>
@@ -183,7 +182,7 @@ test_1x2v(int poly_order, bool use_gpu)
   gkyl_gk_geometry_release(gk_geom_3d);
   // If we are on the gpu, copy from host.
   if (use_gpu) {
-    struct gk_geometry* gk_geom_dev = gkyl_gk_geometry_fromfile_new(gk_geom, &geometry_input, use_gpu);
+    struct gk_geometry* gk_geom_dev = gkyl_gk_geometry_new(gk_geom, &geometry_input, use_gpu);
     gkyl_gk_geometry_release(gk_geom);
     gk_geom = gkyl_gk_geometry_acquire(gk_geom_dev);
     gkyl_gk_geometry_release(gk_geom_dev);
