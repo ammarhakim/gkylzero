@@ -1,7 +1,9 @@
 #include <gkyl_mat.h> 
 #include <gkyl_euler_pkpm_kernels.h> 
+#include <gkyl_binop_mul_ser.h> 
 GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct gkyl_nmat *rhs, 
-  const double *vlasov_pkpm_moms, const double *p_ij, const double *pkpm_div_ppar) 
+  const double *vlasov_pkpm_moms, const double *p_ij, 
+  const double *pkpm_div_ppar, const double *div_b) 
 { 
   // count:            integer to indicate which matrix being fetched. 
   // A:                preallocated LHS matrix. 
@@ -9,6 +11,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   // vlasov_pkpm_moms: [rho, p_parallel, p_perp], Moments computed from kinetic equation in pkpm model.
   // p_ij:             p_ij = (p_par - p_perp) b_i b_j + p_perp g_ij.
   // pkpm_div_ppar:    div(p_par b) computed from kinetic equation for consistency.
+  // div_b:      Input volume expansion of div(b) in center cell. 
 
   struct gkyl_mat A_pkpm_div_ppar = gkyl_nmat_get(A, count); 
   struct gkyl_mat A_T_perp_over_m = gkyl_nmat_get(A, count+1); 
@@ -16,12 +19,14 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   struct gkyl_mat A_Txx = gkyl_nmat_get(A, count+3); 
   struct gkyl_mat A_Tyy = gkyl_nmat_get(A, count+4); 
   struct gkyl_mat A_Tzz = gkyl_nmat_get(A, count+5); 
+  struct gkyl_mat A_p_perp_div_b = gkyl_nmat_get(A, count+6); 
   struct gkyl_mat rhs_pkpm_div_ppar = gkyl_nmat_get(rhs, count); 
   struct gkyl_mat rhs_T_perp_over_m = gkyl_nmat_get(rhs, count+1); 
   struct gkyl_mat rhs_T_perp_over_m_inv = gkyl_nmat_get(rhs, count+2); 
   struct gkyl_mat rhs_Txx = gkyl_nmat_get(rhs, count+3); 
   struct gkyl_mat rhs_Tyy = gkyl_nmat_get(rhs, count+4); 
   struct gkyl_mat rhs_Tzz = gkyl_nmat_get(rhs, count+5); 
+  struct gkyl_mat rhs_p_perp_div_b = gkyl_nmat_get(rhs, count+6); 
   // Clear matrix and rhs for each component of pressure force variables being solved for 
   gkyl_mat_clear(&A_pkpm_div_ppar, 0.0); gkyl_mat_clear(&rhs_pkpm_div_ppar, 0.0); 
   gkyl_mat_clear(&A_T_perp_over_m, 0.0); gkyl_mat_clear(&rhs_T_perp_over_m, 0.0); 
@@ -29,6 +34,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_clear(&A_Txx, 0.0); gkyl_mat_clear(&rhs_Txx, 0.0); 
   gkyl_mat_clear(&A_Tyy, 0.0); gkyl_mat_clear(&rhs_Tyy, 0.0); 
   gkyl_mat_clear(&A_Tzz, 0.0); gkyl_mat_clear(&rhs_Tzz, 0.0); 
+  gkyl_mat_clear(&A_p_perp_div_b, 0.0); gkyl_mat_clear(&rhs_p_perp_div_b, 0.0); 
   const double *rho = &vlasov_pkpm_moms[0]; 
   const double *p_par = &vlasov_pkpm_moms[27]; 
   const double *p_perp = &vlasov_pkpm_moms[54]; 
@@ -67,168 +73,198 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   if ((-3.952847075210473*p_perp[26])-1.976423537605237*p_par[26]-3.061862178478971*p_perp[24]-1.530931089239486*p_par[24]-3.061862178478971*p_perp[23]-1.530931089239486*p_par[23]+3.535533905932737*p_perp[22]+1.767766952966368*p_par[22]-1.767766952966368*p_perp[21]-0.883883476483184*p_par[21]-1.767766952966368*p_perp[20]-0.883883476483184*p_par[20]-2.371708245126284*p_perp[17]-1.185854122563142*p_par[17]+2.73861278752583*p_perp[16]+1.369306393762915*p_par[16]+2.73861278752583*p_perp[14]+1.369306393762915*p_par[14]-1.369306393762915*p_perp[13]-0.6846531968814574*p_par[13]-1.369306393762915*p_perp[11]-0.6846531968814574*p_par[11]+1.581138830084189*p_perp[9]+0.7905694150420947*p_par[9]+1.581138830084189*p_perp[8]+0.7905694150420947*p_par[8]-0.7905694150420945*p_perp[7]-0.3952847075210473*p_par[7]+2.121320343559642*p_perp[6]+1.060660171779821*p_par[6]+1.224744871391589*p_perp[3]+0.6123724356957944*p_par[3]+1.224744871391589*p_perp[2]+0.6123724356957944*p_par[2]+0.7071067811865474*p_perp[0]+0.3535533905932737*p_par[0] < 0.0) cell_avg = 1; 
   if (7.905694150420948*p_perp[26]+3.952847075210474*p_par[26]+6.123724356957943*p_perp[25]+3.061862178478972*p_par[25]+6.123724356957943*p_perp[24]+3.061862178478972*p_par[24]+6.123724356957943*p_perp[23]+3.061862178478972*p_par[23]+3.535533905932737*p_perp[22]+1.767766952966368*p_par[22]+3.535533905932737*p_perp[21]+1.767766952966368*p_par[21]+3.535533905932737*p_perp[20]+1.767766952966368*p_par[20]+4.743416490252568*p_perp[19]+2.371708245126284*p_par[19]+4.743416490252568*p_perp[18]+2.371708245126284*p_par[18]+4.743416490252568*p_perp[17]+2.371708245126284*p_par[17]+2.73861278752583*p_perp[16]+1.369306393762915*p_par[16]+2.73861278752583*p_perp[15]+1.369306393762915*p_par[15]+2.73861278752583*p_perp[14]+1.369306393762915*p_par[14]+2.73861278752583*p_perp[13]+1.369306393762915*p_par[13]+2.73861278752583*p_perp[12]+1.369306393762915*p_par[12]+2.73861278752583*p_perp[11]+1.369306393762915*p_par[11]+3.674234614174766*p_perp[10]+1.837117307087383*p_par[10]+1.581138830084189*p_perp[9]+0.7905694150420947*p_par[9]+1.581138830084189*p_perp[8]+0.7905694150420947*p_par[8]+1.581138830084189*p_perp[7]+0.7905694150420947*p_par[7]+2.121320343559642*p_perp[6]+1.060660171779821*p_par[6]+2.121320343559642*p_perp[5]+1.060660171779821*p_par[5]+2.121320343559642*p_perp[4]+1.060660171779821*p_par[4]+1.224744871391589*p_perp[3]+0.6123724356957944*p_par[3]+1.224744871391589*p_perp[2]+0.6123724356957944*p_par[2]+1.224744871391589*p_perp[1]+0.6123724356957944*p_par[1]+0.7071067811865474*p_perp[0]+0.3535533905932737*p_par[0] < 0.0) cell_avg = 1; 
  
+  double p_perp_div_b[27] = {0.0}; 
+  binop_mul_3d_tensor_p2(p_perp, div_b, p_perp_div_b); 
+
   gkyl_mat_set(&rhs_pkpm_div_ppar,0,0,pkpm_div_ppar[0]); 
   gkyl_mat_set(&rhs_T_perp_over_m,0,0,p_perp[0]); 
   gkyl_mat_set(&rhs_T_perp_over_m_inv,0,0,rho[0]); 
   gkyl_mat_set(&rhs_Txx,0,0,Pxx[0]); 
   gkyl_mat_set(&rhs_Tyy,0,0,Pyy[0]); 
   gkyl_mat_set(&rhs_Tzz,0,0,Pzz[0]); 
+  gkyl_mat_set(&rhs_p_perp_div_b,0,0,p_perp_div_b[0]); 
   gkyl_mat_set(&rhs_pkpm_div_ppar,1,0,pkpm_div_ppar[1]); 
   gkyl_mat_set(&rhs_T_perp_over_m,1,0,p_perp[1]); 
   gkyl_mat_set(&rhs_T_perp_over_m_inv,1,0,rho[1]); 
   gkyl_mat_set(&rhs_Txx,1,0,Pxx[1]); 
   gkyl_mat_set(&rhs_Tyy,1,0,Pyy[1]); 
   gkyl_mat_set(&rhs_Tzz,1,0,Pzz[1]); 
+  gkyl_mat_set(&rhs_p_perp_div_b,1,0,p_perp_div_b[1]); 
   gkyl_mat_set(&rhs_pkpm_div_ppar,2,0,pkpm_div_ppar[2]); 
   gkyl_mat_set(&rhs_T_perp_over_m,2,0,p_perp[2]); 
   gkyl_mat_set(&rhs_T_perp_over_m_inv,2,0,rho[2]); 
   gkyl_mat_set(&rhs_Txx,2,0,Pxx[2]); 
   gkyl_mat_set(&rhs_Tyy,2,0,Pyy[2]); 
   gkyl_mat_set(&rhs_Tzz,2,0,Pzz[2]); 
+  gkyl_mat_set(&rhs_p_perp_div_b,2,0,p_perp_div_b[2]); 
   gkyl_mat_set(&rhs_pkpm_div_ppar,3,0,pkpm_div_ppar[3]); 
   gkyl_mat_set(&rhs_T_perp_over_m,3,0,p_perp[3]); 
   gkyl_mat_set(&rhs_T_perp_over_m_inv,3,0,rho[3]); 
   gkyl_mat_set(&rhs_Txx,3,0,Pxx[3]); 
   gkyl_mat_set(&rhs_Tyy,3,0,Pyy[3]); 
   gkyl_mat_set(&rhs_Tzz,3,0,Pzz[3]); 
+  gkyl_mat_set(&rhs_p_perp_div_b,3,0,p_perp_div_b[3]); 
   gkyl_mat_set(&rhs_pkpm_div_ppar,4,0,pkpm_div_ppar[4]); 
   gkyl_mat_set(&rhs_T_perp_over_m,4,0,p_perp[4]); 
   gkyl_mat_set(&rhs_T_perp_over_m_inv,4,0,rho[4]); 
   gkyl_mat_set(&rhs_Txx,4,0,Pxx[4]); 
   gkyl_mat_set(&rhs_Tyy,4,0,Pyy[4]); 
   gkyl_mat_set(&rhs_Tzz,4,0,Pzz[4]); 
+  gkyl_mat_set(&rhs_p_perp_div_b,4,0,p_perp_div_b[4]); 
   gkyl_mat_set(&rhs_pkpm_div_ppar,5,0,pkpm_div_ppar[5]); 
   gkyl_mat_set(&rhs_T_perp_over_m,5,0,p_perp[5]); 
   gkyl_mat_set(&rhs_T_perp_over_m_inv,5,0,rho[5]); 
   gkyl_mat_set(&rhs_Txx,5,0,Pxx[5]); 
   gkyl_mat_set(&rhs_Tyy,5,0,Pyy[5]); 
   gkyl_mat_set(&rhs_Tzz,5,0,Pzz[5]); 
+  gkyl_mat_set(&rhs_p_perp_div_b,5,0,p_perp_div_b[5]); 
   gkyl_mat_set(&rhs_pkpm_div_ppar,6,0,pkpm_div_ppar[6]); 
   gkyl_mat_set(&rhs_T_perp_over_m,6,0,p_perp[6]); 
   gkyl_mat_set(&rhs_T_perp_over_m_inv,6,0,rho[6]); 
   gkyl_mat_set(&rhs_Txx,6,0,Pxx[6]); 
   gkyl_mat_set(&rhs_Tyy,6,0,Pyy[6]); 
   gkyl_mat_set(&rhs_Tzz,6,0,Pzz[6]); 
+  gkyl_mat_set(&rhs_p_perp_div_b,6,0,p_perp_div_b[6]); 
   gkyl_mat_set(&rhs_pkpm_div_ppar,7,0,pkpm_div_ppar[7]); 
   gkyl_mat_set(&rhs_T_perp_over_m,7,0,p_perp[7]); 
   gkyl_mat_set(&rhs_T_perp_over_m_inv,7,0,rho[7]); 
   gkyl_mat_set(&rhs_Txx,7,0,Pxx[7]); 
   gkyl_mat_set(&rhs_Tyy,7,0,Pyy[7]); 
   gkyl_mat_set(&rhs_Tzz,7,0,Pzz[7]); 
+  gkyl_mat_set(&rhs_p_perp_div_b,7,0,p_perp_div_b[7]); 
   gkyl_mat_set(&rhs_pkpm_div_ppar,8,0,pkpm_div_ppar[8]); 
   gkyl_mat_set(&rhs_T_perp_over_m,8,0,p_perp[8]); 
   gkyl_mat_set(&rhs_T_perp_over_m_inv,8,0,rho[8]); 
   gkyl_mat_set(&rhs_Txx,8,0,Pxx[8]); 
   gkyl_mat_set(&rhs_Tyy,8,0,Pyy[8]); 
   gkyl_mat_set(&rhs_Tzz,8,0,Pzz[8]); 
+  gkyl_mat_set(&rhs_p_perp_div_b,8,0,p_perp_div_b[8]); 
   gkyl_mat_set(&rhs_pkpm_div_ppar,9,0,pkpm_div_ppar[9]); 
   gkyl_mat_set(&rhs_T_perp_over_m,9,0,p_perp[9]); 
   gkyl_mat_set(&rhs_T_perp_over_m_inv,9,0,rho[9]); 
   gkyl_mat_set(&rhs_Txx,9,0,Pxx[9]); 
   gkyl_mat_set(&rhs_Tyy,9,0,Pyy[9]); 
   gkyl_mat_set(&rhs_Tzz,9,0,Pzz[9]); 
+  gkyl_mat_set(&rhs_p_perp_div_b,9,0,p_perp_div_b[9]); 
   gkyl_mat_set(&rhs_pkpm_div_ppar,10,0,pkpm_div_ppar[10]); 
   gkyl_mat_set(&rhs_T_perp_over_m,10,0,p_perp[10]); 
   gkyl_mat_set(&rhs_T_perp_over_m_inv,10,0,rho[10]); 
   gkyl_mat_set(&rhs_Txx,10,0,Pxx[10]); 
   gkyl_mat_set(&rhs_Tyy,10,0,Pyy[10]); 
   gkyl_mat_set(&rhs_Tzz,10,0,Pzz[10]); 
+  gkyl_mat_set(&rhs_p_perp_div_b,10,0,p_perp_div_b[10]); 
   gkyl_mat_set(&rhs_pkpm_div_ppar,11,0,pkpm_div_ppar[11]); 
   gkyl_mat_set(&rhs_T_perp_over_m,11,0,p_perp[11]); 
   gkyl_mat_set(&rhs_T_perp_over_m_inv,11,0,rho[11]); 
   gkyl_mat_set(&rhs_Txx,11,0,Pxx[11]); 
   gkyl_mat_set(&rhs_Tyy,11,0,Pyy[11]); 
   gkyl_mat_set(&rhs_Tzz,11,0,Pzz[11]); 
+  gkyl_mat_set(&rhs_p_perp_div_b,11,0,p_perp_div_b[11]); 
   gkyl_mat_set(&rhs_pkpm_div_ppar,12,0,pkpm_div_ppar[12]); 
   gkyl_mat_set(&rhs_T_perp_over_m,12,0,p_perp[12]); 
   gkyl_mat_set(&rhs_T_perp_over_m_inv,12,0,rho[12]); 
   gkyl_mat_set(&rhs_Txx,12,0,Pxx[12]); 
   gkyl_mat_set(&rhs_Tyy,12,0,Pyy[12]); 
   gkyl_mat_set(&rhs_Tzz,12,0,Pzz[12]); 
+  gkyl_mat_set(&rhs_p_perp_div_b,12,0,p_perp_div_b[12]); 
   gkyl_mat_set(&rhs_pkpm_div_ppar,13,0,pkpm_div_ppar[13]); 
   gkyl_mat_set(&rhs_T_perp_over_m,13,0,p_perp[13]); 
   gkyl_mat_set(&rhs_T_perp_over_m_inv,13,0,rho[13]); 
   gkyl_mat_set(&rhs_Txx,13,0,Pxx[13]); 
   gkyl_mat_set(&rhs_Tyy,13,0,Pyy[13]); 
   gkyl_mat_set(&rhs_Tzz,13,0,Pzz[13]); 
+  gkyl_mat_set(&rhs_p_perp_div_b,13,0,p_perp_div_b[13]); 
   gkyl_mat_set(&rhs_pkpm_div_ppar,14,0,pkpm_div_ppar[14]); 
   gkyl_mat_set(&rhs_T_perp_over_m,14,0,p_perp[14]); 
   gkyl_mat_set(&rhs_T_perp_over_m_inv,14,0,rho[14]); 
   gkyl_mat_set(&rhs_Txx,14,0,Pxx[14]); 
   gkyl_mat_set(&rhs_Tyy,14,0,Pyy[14]); 
   gkyl_mat_set(&rhs_Tzz,14,0,Pzz[14]); 
+  gkyl_mat_set(&rhs_p_perp_div_b,14,0,p_perp_div_b[14]); 
   gkyl_mat_set(&rhs_pkpm_div_ppar,15,0,pkpm_div_ppar[15]); 
   gkyl_mat_set(&rhs_T_perp_over_m,15,0,p_perp[15]); 
   gkyl_mat_set(&rhs_T_perp_over_m_inv,15,0,rho[15]); 
   gkyl_mat_set(&rhs_Txx,15,0,Pxx[15]); 
   gkyl_mat_set(&rhs_Tyy,15,0,Pyy[15]); 
   gkyl_mat_set(&rhs_Tzz,15,0,Pzz[15]); 
+  gkyl_mat_set(&rhs_p_perp_div_b,15,0,p_perp_div_b[15]); 
   gkyl_mat_set(&rhs_pkpm_div_ppar,16,0,pkpm_div_ppar[16]); 
   gkyl_mat_set(&rhs_T_perp_over_m,16,0,p_perp[16]); 
   gkyl_mat_set(&rhs_T_perp_over_m_inv,16,0,rho[16]); 
   gkyl_mat_set(&rhs_Txx,16,0,Pxx[16]); 
   gkyl_mat_set(&rhs_Tyy,16,0,Pyy[16]); 
   gkyl_mat_set(&rhs_Tzz,16,0,Pzz[16]); 
+  gkyl_mat_set(&rhs_p_perp_div_b,16,0,p_perp_div_b[16]); 
   gkyl_mat_set(&rhs_pkpm_div_ppar,17,0,pkpm_div_ppar[17]); 
   gkyl_mat_set(&rhs_T_perp_over_m,17,0,p_perp[17]); 
   gkyl_mat_set(&rhs_T_perp_over_m_inv,17,0,rho[17]); 
   gkyl_mat_set(&rhs_Txx,17,0,Pxx[17]); 
   gkyl_mat_set(&rhs_Tyy,17,0,Pyy[17]); 
   gkyl_mat_set(&rhs_Tzz,17,0,Pzz[17]); 
+  gkyl_mat_set(&rhs_p_perp_div_b,17,0,p_perp_div_b[17]); 
   gkyl_mat_set(&rhs_pkpm_div_ppar,18,0,pkpm_div_ppar[18]); 
   gkyl_mat_set(&rhs_T_perp_over_m,18,0,p_perp[18]); 
   gkyl_mat_set(&rhs_T_perp_over_m_inv,18,0,rho[18]); 
   gkyl_mat_set(&rhs_Txx,18,0,Pxx[18]); 
   gkyl_mat_set(&rhs_Tyy,18,0,Pyy[18]); 
   gkyl_mat_set(&rhs_Tzz,18,0,Pzz[18]); 
+  gkyl_mat_set(&rhs_p_perp_div_b,18,0,p_perp_div_b[18]); 
   gkyl_mat_set(&rhs_pkpm_div_ppar,19,0,pkpm_div_ppar[19]); 
   gkyl_mat_set(&rhs_T_perp_over_m,19,0,p_perp[19]); 
   gkyl_mat_set(&rhs_T_perp_over_m_inv,19,0,rho[19]); 
   gkyl_mat_set(&rhs_Txx,19,0,Pxx[19]); 
   gkyl_mat_set(&rhs_Tyy,19,0,Pyy[19]); 
   gkyl_mat_set(&rhs_Tzz,19,0,Pzz[19]); 
+  gkyl_mat_set(&rhs_p_perp_div_b,19,0,p_perp_div_b[19]); 
   gkyl_mat_set(&rhs_pkpm_div_ppar,20,0,pkpm_div_ppar[20]); 
   gkyl_mat_set(&rhs_T_perp_over_m,20,0,p_perp[20]); 
   gkyl_mat_set(&rhs_T_perp_over_m_inv,20,0,rho[20]); 
   gkyl_mat_set(&rhs_Txx,20,0,Pxx[20]); 
   gkyl_mat_set(&rhs_Tyy,20,0,Pyy[20]); 
   gkyl_mat_set(&rhs_Tzz,20,0,Pzz[20]); 
+  gkyl_mat_set(&rhs_p_perp_div_b,20,0,p_perp_div_b[20]); 
   gkyl_mat_set(&rhs_pkpm_div_ppar,21,0,pkpm_div_ppar[21]); 
   gkyl_mat_set(&rhs_T_perp_over_m,21,0,p_perp[21]); 
   gkyl_mat_set(&rhs_T_perp_over_m_inv,21,0,rho[21]); 
   gkyl_mat_set(&rhs_Txx,21,0,Pxx[21]); 
   gkyl_mat_set(&rhs_Tyy,21,0,Pyy[21]); 
   gkyl_mat_set(&rhs_Tzz,21,0,Pzz[21]); 
+  gkyl_mat_set(&rhs_p_perp_div_b,21,0,p_perp_div_b[21]); 
   gkyl_mat_set(&rhs_pkpm_div_ppar,22,0,pkpm_div_ppar[22]); 
   gkyl_mat_set(&rhs_T_perp_over_m,22,0,p_perp[22]); 
   gkyl_mat_set(&rhs_T_perp_over_m_inv,22,0,rho[22]); 
   gkyl_mat_set(&rhs_Txx,22,0,Pxx[22]); 
   gkyl_mat_set(&rhs_Tyy,22,0,Pyy[22]); 
   gkyl_mat_set(&rhs_Tzz,22,0,Pzz[22]); 
+  gkyl_mat_set(&rhs_p_perp_div_b,22,0,p_perp_div_b[22]); 
   gkyl_mat_set(&rhs_pkpm_div_ppar,23,0,pkpm_div_ppar[23]); 
   gkyl_mat_set(&rhs_T_perp_over_m,23,0,p_perp[23]); 
   gkyl_mat_set(&rhs_T_perp_over_m_inv,23,0,rho[23]); 
   gkyl_mat_set(&rhs_Txx,23,0,Pxx[23]); 
   gkyl_mat_set(&rhs_Tyy,23,0,Pyy[23]); 
   gkyl_mat_set(&rhs_Tzz,23,0,Pzz[23]); 
+  gkyl_mat_set(&rhs_p_perp_div_b,23,0,p_perp_div_b[23]); 
   gkyl_mat_set(&rhs_pkpm_div_ppar,24,0,pkpm_div_ppar[24]); 
   gkyl_mat_set(&rhs_T_perp_over_m,24,0,p_perp[24]); 
   gkyl_mat_set(&rhs_T_perp_over_m_inv,24,0,rho[24]); 
   gkyl_mat_set(&rhs_Txx,24,0,Pxx[24]); 
   gkyl_mat_set(&rhs_Tyy,24,0,Pyy[24]); 
   gkyl_mat_set(&rhs_Tzz,24,0,Pzz[24]); 
+  gkyl_mat_set(&rhs_p_perp_div_b,24,0,p_perp_div_b[24]); 
   gkyl_mat_set(&rhs_pkpm_div_ppar,25,0,pkpm_div_ppar[25]); 
   gkyl_mat_set(&rhs_T_perp_over_m,25,0,p_perp[25]); 
   gkyl_mat_set(&rhs_T_perp_over_m_inv,25,0,rho[25]); 
   gkyl_mat_set(&rhs_Txx,25,0,Pxx[25]); 
   gkyl_mat_set(&rhs_Tyy,25,0,Pyy[25]); 
   gkyl_mat_set(&rhs_Tzz,25,0,Pzz[25]); 
+  gkyl_mat_set(&rhs_p_perp_div_b,25,0,p_perp_div_b[25]); 
   gkyl_mat_set(&rhs_pkpm_div_ppar,26,0,pkpm_div_ppar[26]); 
   gkyl_mat_set(&rhs_T_perp_over_m,26,0,p_perp[26]); 
   gkyl_mat_set(&rhs_T_perp_over_m_inv,26,0,rho[26]); 
   gkyl_mat_set(&rhs_Txx,26,0,Pxx[26]); 
   gkyl_mat_set(&rhs_Tyy,26,0,Pyy[26]); 
   gkyl_mat_set(&rhs_Tzz,26,0,Pzz[26]); 
+  gkyl_mat_set(&rhs_p_perp_div_b,26,0,p_perp_div_b[26]); 
  
   double temp_rho = 0.0; 
   double temp_p_perp = 0.0; 
@@ -238,6 +274,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,0,0,temp_rho); 
   gkyl_mat_set(&A_Tyy,0,0,temp_rho); 
   gkyl_mat_set(&A_Tzz,0,0,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,0,0,temp_rho); 
  
   temp_p_perp = 0.3535533905932737*p_perp[0]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,0,0,temp_p_perp); 
@@ -248,6 +285,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,0,1,temp_rho); 
   gkyl_mat_set(&A_Tyy,0,1,temp_rho); 
   gkyl_mat_set(&A_Tzz,0,1,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,0,1,temp_rho); 
  
   temp_p_perp = 0.3535533905932737*p_perp[1]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,0,1,temp_p_perp); 
@@ -258,6 +296,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,0,2,temp_rho); 
   gkyl_mat_set(&A_Tyy,0,2,temp_rho); 
   gkyl_mat_set(&A_Tzz,0,2,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,0,2,temp_rho); 
  
   temp_p_perp = 0.3535533905932737*p_perp[2]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,0,2,temp_p_perp); 
@@ -268,6 +307,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,0,3,temp_rho); 
   gkyl_mat_set(&A_Tyy,0,3,temp_rho); 
   gkyl_mat_set(&A_Tzz,0,3,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,0,3,temp_rho); 
  
   temp_p_perp = 0.3535533905932737*p_perp[3]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,0,3,temp_p_perp); 
@@ -278,6 +318,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,0,4,temp_rho); 
   gkyl_mat_set(&A_Tyy,0,4,temp_rho); 
   gkyl_mat_set(&A_Tzz,0,4,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,0,4,temp_rho); 
  
   temp_p_perp = 0.3535533905932737*p_perp[4]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,0,4,temp_p_perp); 
@@ -288,6 +329,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,0,5,temp_rho); 
   gkyl_mat_set(&A_Tyy,0,5,temp_rho); 
   gkyl_mat_set(&A_Tzz,0,5,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,0,5,temp_rho); 
  
   temp_p_perp = 0.3535533905932737*p_perp[5]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,0,5,temp_p_perp); 
@@ -298,6 +340,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,0,6,temp_rho); 
   gkyl_mat_set(&A_Tyy,0,6,temp_rho); 
   gkyl_mat_set(&A_Tzz,0,6,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,0,6,temp_rho); 
  
   temp_p_perp = 0.3535533905932737*p_perp[6]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,0,6,temp_p_perp); 
@@ -308,6 +351,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,0,7,temp_rho); 
   gkyl_mat_set(&A_Tyy,0,7,temp_rho); 
   gkyl_mat_set(&A_Tzz,0,7,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,0,7,temp_rho); 
  
   temp_p_perp = 0.3535533905932737*p_perp[7]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,0,7,temp_p_perp); 
@@ -318,6 +362,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,0,8,temp_rho); 
   gkyl_mat_set(&A_Tyy,0,8,temp_rho); 
   gkyl_mat_set(&A_Tzz,0,8,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,0,8,temp_rho); 
  
   temp_p_perp = 0.3535533905932737*p_perp[8]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,0,8,temp_p_perp); 
@@ -328,6 +373,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,0,9,temp_rho); 
   gkyl_mat_set(&A_Tyy,0,9,temp_rho); 
   gkyl_mat_set(&A_Tzz,0,9,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,0,9,temp_rho); 
  
   temp_p_perp = 0.3535533905932737*p_perp[9]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,0,9,temp_p_perp); 
@@ -338,6 +384,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,0,10,temp_rho); 
   gkyl_mat_set(&A_Tyy,0,10,temp_rho); 
   gkyl_mat_set(&A_Tzz,0,10,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,0,10,temp_rho); 
  
   temp_p_perp = 0.3535533905932737*p_perp[10]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,0,10,temp_p_perp); 
@@ -348,6 +395,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,0,11,temp_rho); 
   gkyl_mat_set(&A_Tyy,0,11,temp_rho); 
   gkyl_mat_set(&A_Tzz,0,11,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,0,11,temp_rho); 
  
   temp_p_perp = 0.3535533905932737*p_perp[11]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,0,11,temp_p_perp); 
@@ -358,6 +406,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,0,12,temp_rho); 
   gkyl_mat_set(&A_Tyy,0,12,temp_rho); 
   gkyl_mat_set(&A_Tzz,0,12,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,0,12,temp_rho); 
  
   temp_p_perp = 0.3535533905932737*p_perp[12]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,0,12,temp_p_perp); 
@@ -368,6 +417,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,0,13,temp_rho); 
   gkyl_mat_set(&A_Tyy,0,13,temp_rho); 
   gkyl_mat_set(&A_Tzz,0,13,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,0,13,temp_rho); 
  
   temp_p_perp = 0.3535533905932737*p_perp[13]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,0,13,temp_p_perp); 
@@ -378,6 +428,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,0,14,temp_rho); 
   gkyl_mat_set(&A_Tyy,0,14,temp_rho); 
   gkyl_mat_set(&A_Tzz,0,14,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,0,14,temp_rho); 
  
   temp_p_perp = 0.3535533905932737*p_perp[14]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,0,14,temp_p_perp); 
@@ -388,6 +439,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,0,15,temp_rho); 
   gkyl_mat_set(&A_Tyy,0,15,temp_rho); 
   gkyl_mat_set(&A_Tzz,0,15,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,0,15,temp_rho); 
  
   temp_p_perp = 0.3535533905932737*p_perp[15]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,0,15,temp_p_perp); 
@@ -398,6 +450,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,0,16,temp_rho); 
   gkyl_mat_set(&A_Tyy,0,16,temp_rho); 
   gkyl_mat_set(&A_Tzz,0,16,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,0,16,temp_rho); 
  
   temp_p_perp = 0.3535533905932737*p_perp[16]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,0,16,temp_p_perp); 
@@ -408,6 +461,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,0,17,temp_rho); 
   gkyl_mat_set(&A_Tyy,0,17,temp_rho); 
   gkyl_mat_set(&A_Tzz,0,17,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,0,17,temp_rho); 
  
   temp_p_perp = 0.3535533905932737*p_perp[17]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,0,17,temp_p_perp); 
@@ -418,6 +472,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,0,18,temp_rho); 
   gkyl_mat_set(&A_Tyy,0,18,temp_rho); 
   gkyl_mat_set(&A_Tzz,0,18,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,0,18,temp_rho); 
  
   temp_p_perp = 0.3535533905932737*p_perp[18]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,0,18,temp_p_perp); 
@@ -428,6 +483,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,0,19,temp_rho); 
   gkyl_mat_set(&A_Tyy,0,19,temp_rho); 
   gkyl_mat_set(&A_Tzz,0,19,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,0,19,temp_rho); 
  
   temp_p_perp = 0.3535533905932737*p_perp[19]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,0,19,temp_p_perp); 
@@ -438,6 +494,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,0,20,temp_rho); 
   gkyl_mat_set(&A_Tyy,0,20,temp_rho); 
   gkyl_mat_set(&A_Tzz,0,20,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,0,20,temp_rho); 
  
   temp_p_perp = 0.3535533905932737*p_perp[20]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,0,20,temp_p_perp); 
@@ -448,6 +505,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,0,21,temp_rho); 
   gkyl_mat_set(&A_Tyy,0,21,temp_rho); 
   gkyl_mat_set(&A_Tzz,0,21,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,0,21,temp_rho); 
  
   temp_p_perp = 0.3535533905932737*p_perp[21]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,0,21,temp_p_perp); 
@@ -458,6 +516,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,0,22,temp_rho); 
   gkyl_mat_set(&A_Tyy,0,22,temp_rho); 
   gkyl_mat_set(&A_Tzz,0,22,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,0,22,temp_rho); 
  
   temp_p_perp = 0.3535533905932737*p_perp[22]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,0,22,temp_p_perp); 
@@ -468,6 +527,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,0,23,temp_rho); 
   gkyl_mat_set(&A_Tyy,0,23,temp_rho); 
   gkyl_mat_set(&A_Tzz,0,23,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,0,23,temp_rho); 
  
   temp_p_perp = 0.3535533905932737*p_perp[23]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,0,23,temp_p_perp); 
@@ -478,6 +538,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,0,24,temp_rho); 
   gkyl_mat_set(&A_Tyy,0,24,temp_rho); 
   gkyl_mat_set(&A_Tzz,0,24,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,0,24,temp_rho); 
  
   temp_p_perp = 0.3535533905932737*p_perp[24]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,0,24,temp_p_perp); 
@@ -488,6 +549,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,0,25,temp_rho); 
   gkyl_mat_set(&A_Tyy,0,25,temp_rho); 
   gkyl_mat_set(&A_Tzz,0,25,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,0,25,temp_rho); 
  
   temp_p_perp = 0.3535533905932737*p_perp[25]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,0,25,temp_p_perp); 
@@ -498,6 +560,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,0,26,temp_rho); 
   gkyl_mat_set(&A_Tyy,0,26,temp_rho); 
   gkyl_mat_set(&A_Tzz,0,26,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,0,26,temp_rho); 
  
   temp_p_perp = 0.3535533905932737*p_perp[26]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,0,26,temp_p_perp); 
@@ -508,6 +571,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,1,0,temp_rho); 
   gkyl_mat_set(&A_Tyy,1,0,temp_rho); 
   gkyl_mat_set(&A_Tzz,1,0,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,1,0,temp_rho); 
  
   temp_p_perp = 0.3535533905932737*p_perp[1]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,1,0,temp_p_perp); 
@@ -518,6 +582,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,1,1,temp_rho); 
   gkyl_mat_set(&A_Tyy,1,1,temp_rho); 
   gkyl_mat_set(&A_Tzz,1,1,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,1,1,temp_rho); 
  
   temp_p_perp = 0.3162277660168379*p_perp[7]+0.3535533905932737*p_perp[0]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,1,1,temp_p_perp); 
@@ -528,6 +593,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,1,2,temp_rho); 
   gkyl_mat_set(&A_Tyy,1,2,temp_rho); 
   gkyl_mat_set(&A_Tzz,1,2,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,1,2,temp_rho); 
  
   temp_p_perp = 0.3535533905932737*p_perp[4]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,1,2,temp_p_perp); 
@@ -538,6 +604,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,1,3,temp_rho); 
   gkyl_mat_set(&A_Tyy,1,3,temp_rho); 
   gkyl_mat_set(&A_Tzz,1,3,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,1,3,temp_rho); 
  
   temp_p_perp = 0.3535533905932737*p_perp[5]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,1,3,temp_p_perp); 
@@ -548,6 +615,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,1,4,temp_rho); 
   gkyl_mat_set(&A_Tyy,1,4,temp_rho); 
   gkyl_mat_set(&A_Tzz,1,4,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,1,4,temp_rho); 
  
   temp_p_perp = 0.3162277660168379*p_perp[11]+0.3535533905932737*p_perp[2]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,1,4,temp_p_perp); 
@@ -558,6 +626,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,1,5,temp_rho); 
   gkyl_mat_set(&A_Tyy,1,5,temp_rho); 
   gkyl_mat_set(&A_Tzz,1,5,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,1,5,temp_rho); 
  
   temp_p_perp = 0.3162277660168379*p_perp[13]+0.3535533905932737*p_perp[3]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,1,5,temp_p_perp); 
@@ -568,6 +637,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,1,6,temp_rho); 
   gkyl_mat_set(&A_Tyy,1,6,temp_rho); 
   gkyl_mat_set(&A_Tzz,1,6,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,1,6,temp_rho); 
  
   temp_p_perp = 0.3535533905932737*p_perp[10]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,1,6,temp_p_perp); 
@@ -578,6 +648,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,1,7,temp_rho); 
   gkyl_mat_set(&A_Tyy,1,7,temp_rho); 
   gkyl_mat_set(&A_Tzz,1,7,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,1,7,temp_rho); 
  
   temp_p_perp = 0.3162277660168379*p_perp[1]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,1,7,temp_p_perp); 
@@ -588,6 +659,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,1,8,temp_rho); 
   gkyl_mat_set(&A_Tyy,1,8,temp_rho); 
   gkyl_mat_set(&A_Tzz,1,8,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,1,8,temp_rho); 
  
   temp_p_perp = 0.3535533905932737*p_perp[12]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,1,8,temp_p_perp); 
@@ -598,6 +670,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,1,9,temp_rho); 
   gkyl_mat_set(&A_Tyy,1,9,temp_rho); 
   gkyl_mat_set(&A_Tzz,1,9,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,1,9,temp_rho); 
  
   temp_p_perp = 0.3535533905932737*p_perp[15]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,1,9,temp_p_perp); 
@@ -608,6 +681,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,1,10,temp_rho); 
   gkyl_mat_set(&A_Tyy,1,10,temp_rho); 
   gkyl_mat_set(&A_Tzz,1,10,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,1,10,temp_rho); 
  
   temp_p_perp = 0.3162277660168379*p_perp[17]+0.3535533905932737*p_perp[6]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,1,10,temp_p_perp); 
@@ -618,6 +692,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,1,11,temp_rho); 
   gkyl_mat_set(&A_Tyy,1,11,temp_rho); 
   gkyl_mat_set(&A_Tzz,1,11,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,1,11,temp_rho); 
  
   temp_p_perp = 0.3162277660168379*p_perp[4]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,1,11,temp_p_perp); 
@@ -628,6 +703,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,1,12,temp_rho); 
   gkyl_mat_set(&A_Tyy,1,12,temp_rho); 
   gkyl_mat_set(&A_Tzz,1,12,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,1,12,temp_rho); 
  
   temp_p_perp = 0.3162277660168379*p_perp[20]+0.3535533905932737*p_perp[8]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,1,12,temp_p_perp); 
@@ -638,6 +714,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,1,13,temp_rho); 
   gkyl_mat_set(&A_Tyy,1,13,temp_rho); 
   gkyl_mat_set(&A_Tzz,1,13,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,1,13,temp_rho); 
  
   temp_p_perp = 0.3162277660168379*p_perp[5]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,1,13,temp_p_perp); 
@@ -648,6 +725,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,1,14,temp_rho); 
   gkyl_mat_set(&A_Tyy,1,14,temp_rho); 
   gkyl_mat_set(&A_Tzz,1,14,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,1,14,temp_rho); 
  
   temp_p_perp = 0.3535533905932737*p_perp[18]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,1,14,temp_p_perp); 
@@ -658,6 +736,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,1,15,temp_rho); 
   gkyl_mat_set(&A_Tyy,1,15,temp_rho); 
   gkyl_mat_set(&A_Tzz,1,15,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,1,15,temp_rho); 
  
   temp_p_perp = 0.3162277660168379*p_perp[21]+0.3535533905932737*p_perp[9]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,1,15,temp_p_perp); 
@@ -668,6 +747,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,1,16,temp_rho); 
   gkyl_mat_set(&A_Tyy,1,16,temp_rho); 
   gkyl_mat_set(&A_Tzz,1,16,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,1,16,temp_rho); 
  
   temp_p_perp = 0.3535533905932737*p_perp[19]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,1,16,temp_p_perp); 
@@ -678,6 +758,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,1,17,temp_rho); 
   gkyl_mat_set(&A_Tyy,1,17,temp_rho); 
   gkyl_mat_set(&A_Tzz,1,17,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,1,17,temp_rho); 
  
   temp_p_perp = 0.3162277660168379*p_perp[10]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,1,17,temp_p_perp); 
@@ -688,6 +769,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,1,18,temp_rho); 
   gkyl_mat_set(&A_Tyy,1,18,temp_rho); 
   gkyl_mat_set(&A_Tzz,1,18,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,1,18,temp_rho); 
  
   temp_p_perp = 0.3162277660168379*p_perp[23]+0.3535533905932737*p_perp[14]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,1,18,temp_p_perp); 
@@ -698,6 +780,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,1,19,temp_rho); 
   gkyl_mat_set(&A_Tyy,1,19,temp_rho); 
   gkyl_mat_set(&A_Tzz,1,19,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,1,19,temp_rho); 
  
   temp_p_perp = 0.3162277660168379*p_perp[24]+0.3535533905932737*p_perp[16]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,1,19,temp_p_perp); 
@@ -708,6 +791,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,1,20,temp_rho); 
   gkyl_mat_set(&A_Tyy,1,20,temp_rho); 
   gkyl_mat_set(&A_Tzz,1,20,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,1,20,temp_rho); 
  
   temp_p_perp = 0.3162277660168379*p_perp[12]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,1,20,temp_p_perp); 
@@ -718,6 +802,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,1,21,temp_rho); 
   gkyl_mat_set(&A_Tyy,1,21,temp_rho); 
   gkyl_mat_set(&A_Tzz,1,21,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,1,21,temp_rho); 
  
   temp_p_perp = 0.3162277660168379*p_perp[15]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,1,21,temp_p_perp); 
@@ -728,6 +813,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,1,22,temp_rho); 
   gkyl_mat_set(&A_Tyy,1,22,temp_rho); 
   gkyl_mat_set(&A_Tzz,1,22,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,1,22,temp_rho); 
  
   temp_p_perp = 0.3535533905932737*p_perp[25]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,1,22,temp_p_perp); 
@@ -738,6 +824,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,1,23,temp_rho); 
   gkyl_mat_set(&A_Tyy,1,23,temp_rho); 
   gkyl_mat_set(&A_Tzz,1,23,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,1,23,temp_rho); 
  
   temp_p_perp = 0.3162277660168379*p_perp[18]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,1,23,temp_p_perp); 
@@ -748,6 +835,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,1,24,temp_rho); 
   gkyl_mat_set(&A_Tyy,1,24,temp_rho); 
   gkyl_mat_set(&A_Tzz,1,24,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,1,24,temp_rho); 
  
   temp_p_perp = 0.3162277660168379*p_perp[19]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,1,24,temp_p_perp); 
@@ -758,6 +846,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,1,25,temp_rho); 
   gkyl_mat_set(&A_Tyy,1,25,temp_rho); 
   gkyl_mat_set(&A_Tzz,1,25,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,1,25,temp_rho); 
  
   temp_p_perp = 0.3162277660168379*p_perp[26]+0.3535533905932737*p_perp[22]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,1,25,temp_p_perp); 
@@ -768,6 +857,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,1,26,temp_rho); 
   gkyl_mat_set(&A_Tyy,1,26,temp_rho); 
   gkyl_mat_set(&A_Tzz,1,26,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,1,26,temp_rho); 
  
   temp_p_perp = 0.3162277660168379*p_perp[25]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,1,26,temp_p_perp); 
@@ -778,6 +868,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,2,0,temp_rho); 
   gkyl_mat_set(&A_Tyy,2,0,temp_rho); 
   gkyl_mat_set(&A_Tzz,2,0,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,2,0,temp_rho); 
  
   temp_p_perp = 0.3535533905932737*p_perp[2]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,2,0,temp_p_perp); 
@@ -788,6 +879,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,2,1,temp_rho); 
   gkyl_mat_set(&A_Tyy,2,1,temp_rho); 
   gkyl_mat_set(&A_Tzz,2,1,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,2,1,temp_rho); 
  
   temp_p_perp = 0.3535533905932737*p_perp[4]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,2,1,temp_p_perp); 
@@ -798,6 +890,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,2,2,temp_rho); 
   gkyl_mat_set(&A_Tyy,2,2,temp_rho); 
   gkyl_mat_set(&A_Tzz,2,2,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,2,2,temp_rho); 
  
   temp_p_perp = 0.3162277660168379*p_perp[8]+0.3535533905932737*p_perp[0]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,2,2,temp_p_perp); 
@@ -808,6 +901,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,2,3,temp_rho); 
   gkyl_mat_set(&A_Tyy,2,3,temp_rho); 
   gkyl_mat_set(&A_Tzz,2,3,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,2,3,temp_rho); 
  
   temp_p_perp = 0.3535533905932737*p_perp[6]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,2,3,temp_p_perp); 
@@ -818,6 +912,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,2,4,temp_rho); 
   gkyl_mat_set(&A_Tyy,2,4,temp_rho); 
   gkyl_mat_set(&A_Tzz,2,4,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,2,4,temp_rho); 
  
   temp_p_perp = 0.3162277660168379*p_perp[12]+0.3535533905932737*p_perp[1]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,2,4,temp_p_perp); 
@@ -828,6 +923,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,2,5,temp_rho); 
   gkyl_mat_set(&A_Tyy,2,5,temp_rho); 
   gkyl_mat_set(&A_Tzz,2,5,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,2,5,temp_rho); 
  
   temp_p_perp = 0.3535533905932737*p_perp[10]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,2,5,temp_p_perp); 
@@ -838,6 +934,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,2,6,temp_rho); 
   gkyl_mat_set(&A_Tyy,2,6,temp_rho); 
   gkyl_mat_set(&A_Tzz,2,6,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,2,6,temp_rho); 
  
   temp_p_perp = 0.3162277660168379*p_perp[14]+0.3535533905932737*p_perp[3]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,2,6,temp_p_perp); 
@@ -848,6 +945,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,2,7,temp_rho); 
   gkyl_mat_set(&A_Tyy,2,7,temp_rho); 
   gkyl_mat_set(&A_Tzz,2,7,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,2,7,temp_rho); 
  
   temp_p_perp = 0.3535533905932737*p_perp[11]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,2,7,temp_p_perp); 
@@ -858,6 +956,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,2,8,temp_rho); 
   gkyl_mat_set(&A_Tyy,2,8,temp_rho); 
   gkyl_mat_set(&A_Tzz,2,8,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,2,8,temp_rho); 
  
   temp_p_perp = 0.3162277660168379*p_perp[2]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,2,8,temp_p_perp); 
@@ -868,6 +967,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,2,9,temp_rho); 
   gkyl_mat_set(&A_Tyy,2,9,temp_rho); 
   gkyl_mat_set(&A_Tzz,2,9,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,2,9,temp_rho); 
  
   temp_p_perp = 0.3535533905932737*p_perp[16]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,2,9,temp_p_perp); 
@@ -878,6 +978,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,2,10,temp_rho); 
   gkyl_mat_set(&A_Tyy,2,10,temp_rho); 
   gkyl_mat_set(&A_Tzz,2,10,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,2,10,temp_rho); 
  
   temp_p_perp = 0.3162277660168379*p_perp[18]+0.3535533905932737*p_perp[5]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,2,10,temp_p_perp); 
@@ -888,6 +989,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,2,11,temp_rho); 
   gkyl_mat_set(&A_Tyy,2,11,temp_rho); 
   gkyl_mat_set(&A_Tzz,2,11,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,2,11,temp_rho); 
  
   temp_p_perp = 0.3162277660168379*p_perp[20]+0.3535533905932737*p_perp[7]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,2,11,temp_p_perp); 
@@ -898,6 +1000,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,2,12,temp_rho); 
   gkyl_mat_set(&A_Tyy,2,12,temp_rho); 
   gkyl_mat_set(&A_Tzz,2,12,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,2,12,temp_rho); 
  
   temp_p_perp = 0.3162277660168379*p_perp[4]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,2,12,temp_p_perp); 
@@ -908,6 +1011,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,2,13,temp_rho); 
   gkyl_mat_set(&A_Tyy,2,13,temp_rho); 
   gkyl_mat_set(&A_Tzz,2,13,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,2,13,temp_rho); 
  
   temp_p_perp = 0.3535533905932737*p_perp[17]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,2,13,temp_p_perp); 
@@ -918,6 +1022,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,2,14,temp_rho); 
   gkyl_mat_set(&A_Tyy,2,14,temp_rho); 
   gkyl_mat_set(&A_Tzz,2,14,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,2,14,temp_rho); 
  
   temp_p_perp = 0.3162277660168379*p_perp[6]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,2,14,temp_p_perp); 
@@ -928,6 +1033,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,2,15,temp_rho); 
   gkyl_mat_set(&A_Tyy,2,15,temp_rho); 
   gkyl_mat_set(&A_Tzz,2,15,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,2,15,temp_rho); 
  
   temp_p_perp = 0.3535533905932737*p_perp[19]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,2,15,temp_p_perp); 
@@ -938,6 +1044,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,2,16,temp_rho); 
   gkyl_mat_set(&A_Tyy,2,16,temp_rho); 
   gkyl_mat_set(&A_Tzz,2,16,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,2,16,temp_rho); 
  
   temp_p_perp = 0.3162277660168379*p_perp[22]+0.3535533905932737*p_perp[9]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,2,16,temp_p_perp); 
@@ -948,6 +1055,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,2,17,temp_rho); 
   gkyl_mat_set(&A_Tyy,2,17,temp_rho); 
   gkyl_mat_set(&A_Tzz,2,17,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,2,17,temp_rho); 
  
   temp_p_perp = 0.3162277660168379*p_perp[23]+0.3535533905932737*p_perp[13]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,2,17,temp_p_perp); 
@@ -958,6 +1066,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,2,18,temp_rho); 
   gkyl_mat_set(&A_Tyy,2,18,temp_rho); 
   gkyl_mat_set(&A_Tzz,2,18,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,2,18,temp_rho); 
  
   temp_p_perp = 0.3162277660168379*p_perp[10]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,2,18,temp_p_perp); 
@@ -968,6 +1077,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,2,19,temp_rho); 
   gkyl_mat_set(&A_Tyy,2,19,temp_rho); 
   gkyl_mat_set(&A_Tzz,2,19,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,2,19,temp_rho); 
  
   temp_p_perp = 0.3162277660168379*p_perp[25]+0.3535533905932737*p_perp[15]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,2,19,temp_p_perp); 
@@ -978,6 +1088,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,2,20,temp_rho); 
   gkyl_mat_set(&A_Tyy,2,20,temp_rho); 
   gkyl_mat_set(&A_Tzz,2,20,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,2,20,temp_rho); 
  
   temp_p_perp = 0.3162277660168379*p_perp[11]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,2,20,temp_p_perp); 
@@ -988,6 +1099,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,2,21,temp_rho); 
   gkyl_mat_set(&A_Tyy,2,21,temp_rho); 
   gkyl_mat_set(&A_Tzz,2,21,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,2,21,temp_rho); 
  
   temp_p_perp = 0.3535533905932737*p_perp[24]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,2,21,temp_p_perp); 
@@ -998,6 +1110,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,2,22,temp_rho); 
   gkyl_mat_set(&A_Tyy,2,22,temp_rho); 
   gkyl_mat_set(&A_Tzz,2,22,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,2,22,temp_rho); 
  
   temp_p_perp = 0.3162277660168379*p_perp[16]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,2,22,temp_p_perp); 
@@ -1008,6 +1121,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,2,23,temp_rho); 
   gkyl_mat_set(&A_Tyy,2,23,temp_rho); 
   gkyl_mat_set(&A_Tzz,2,23,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,2,23,temp_rho); 
  
   temp_p_perp = 0.3162277660168379*p_perp[17]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,2,23,temp_p_perp); 
@@ -1018,6 +1132,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,2,24,temp_rho); 
   gkyl_mat_set(&A_Tyy,2,24,temp_rho); 
   gkyl_mat_set(&A_Tzz,2,24,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,2,24,temp_rho); 
  
   temp_p_perp = 0.3162277660168379*p_perp[26]+0.3535533905932737*p_perp[21]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,2,24,temp_p_perp); 
@@ -1028,6 +1143,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,2,25,temp_rho); 
   gkyl_mat_set(&A_Tyy,2,25,temp_rho); 
   gkyl_mat_set(&A_Tzz,2,25,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,2,25,temp_rho); 
  
   temp_p_perp = 0.3162277660168379*p_perp[19]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,2,25,temp_p_perp); 
@@ -1038,6 +1154,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,2,26,temp_rho); 
   gkyl_mat_set(&A_Tyy,2,26,temp_rho); 
   gkyl_mat_set(&A_Tzz,2,26,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,2,26,temp_rho); 
  
   temp_p_perp = 0.3162277660168379*p_perp[24]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,2,26,temp_p_perp); 
@@ -1048,6 +1165,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,3,0,temp_rho); 
   gkyl_mat_set(&A_Tyy,3,0,temp_rho); 
   gkyl_mat_set(&A_Tzz,3,0,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,3,0,temp_rho); 
  
   temp_p_perp = 0.3535533905932737*p_perp[3]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,3,0,temp_p_perp); 
@@ -1058,6 +1176,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,3,1,temp_rho); 
   gkyl_mat_set(&A_Tyy,3,1,temp_rho); 
   gkyl_mat_set(&A_Tzz,3,1,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,3,1,temp_rho); 
  
   temp_p_perp = 0.3535533905932737*p_perp[5]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,3,1,temp_p_perp); 
@@ -1068,6 +1187,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,3,2,temp_rho); 
   gkyl_mat_set(&A_Tyy,3,2,temp_rho); 
   gkyl_mat_set(&A_Tzz,3,2,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,3,2,temp_rho); 
  
   temp_p_perp = 0.3535533905932737*p_perp[6]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,3,2,temp_p_perp); 
@@ -1078,6 +1198,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,3,3,temp_rho); 
   gkyl_mat_set(&A_Tyy,3,3,temp_rho); 
   gkyl_mat_set(&A_Tzz,3,3,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,3,3,temp_rho); 
  
   temp_p_perp = 0.3162277660168379*p_perp[9]+0.3535533905932737*p_perp[0]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,3,3,temp_p_perp); 
@@ -1088,6 +1209,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,3,4,temp_rho); 
   gkyl_mat_set(&A_Tyy,3,4,temp_rho); 
   gkyl_mat_set(&A_Tzz,3,4,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,3,4,temp_rho); 
  
   temp_p_perp = 0.3535533905932737*p_perp[10]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,3,4,temp_p_perp); 
@@ -1098,6 +1220,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,3,5,temp_rho); 
   gkyl_mat_set(&A_Tyy,3,5,temp_rho); 
   gkyl_mat_set(&A_Tzz,3,5,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,3,5,temp_rho); 
  
   temp_p_perp = 0.3162277660168379*p_perp[15]+0.3535533905932737*p_perp[1]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,3,5,temp_p_perp); 
@@ -1108,6 +1231,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,3,6,temp_rho); 
   gkyl_mat_set(&A_Tyy,3,6,temp_rho); 
   gkyl_mat_set(&A_Tzz,3,6,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,3,6,temp_rho); 
  
   temp_p_perp = 0.3162277660168379*p_perp[16]+0.3535533905932737*p_perp[2]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,3,6,temp_p_perp); 
@@ -1118,6 +1242,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,3,7,temp_rho); 
   gkyl_mat_set(&A_Tyy,3,7,temp_rho); 
   gkyl_mat_set(&A_Tzz,3,7,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,3,7,temp_rho); 
  
   temp_p_perp = 0.3535533905932737*p_perp[13]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,3,7,temp_p_perp); 
@@ -1128,6 +1253,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,3,8,temp_rho); 
   gkyl_mat_set(&A_Tyy,3,8,temp_rho); 
   gkyl_mat_set(&A_Tzz,3,8,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,3,8,temp_rho); 
  
   temp_p_perp = 0.3535533905932737*p_perp[14]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,3,8,temp_p_perp); 
@@ -1138,6 +1264,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,3,9,temp_rho); 
   gkyl_mat_set(&A_Tyy,3,9,temp_rho); 
   gkyl_mat_set(&A_Tzz,3,9,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,3,9,temp_rho); 
  
   temp_p_perp = 0.3162277660168379*p_perp[3]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,3,9,temp_p_perp); 
@@ -1148,6 +1275,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,3,10,temp_rho); 
   gkyl_mat_set(&A_Tyy,3,10,temp_rho); 
   gkyl_mat_set(&A_Tzz,3,10,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,3,10,temp_rho); 
  
   temp_p_perp = 0.3162277660168379*p_perp[19]+0.3535533905932737*p_perp[4]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,3,10,temp_p_perp); 
@@ -1158,6 +1286,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,3,11,temp_rho); 
   gkyl_mat_set(&A_Tyy,3,11,temp_rho); 
   gkyl_mat_set(&A_Tzz,3,11,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,3,11,temp_rho); 
  
   temp_p_perp = 0.3535533905932737*p_perp[17]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,3,11,temp_p_perp); 
@@ -1168,6 +1297,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,3,12,temp_rho); 
   gkyl_mat_set(&A_Tyy,3,12,temp_rho); 
   gkyl_mat_set(&A_Tzz,3,12,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,3,12,temp_rho); 
  
   temp_p_perp = 0.3535533905932737*p_perp[18]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,3,12,temp_p_perp); 
@@ -1178,6 +1308,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,3,13,temp_rho); 
   gkyl_mat_set(&A_Tyy,3,13,temp_rho); 
   gkyl_mat_set(&A_Tzz,3,13,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,3,13,temp_rho); 
  
   temp_p_perp = 0.3162277660168379*p_perp[21]+0.3535533905932737*p_perp[7]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,3,13,temp_p_perp); 
@@ -1188,6 +1319,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,3,14,temp_rho); 
   gkyl_mat_set(&A_Tyy,3,14,temp_rho); 
   gkyl_mat_set(&A_Tzz,3,14,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,3,14,temp_rho); 
  
   temp_p_perp = 0.3162277660168379*p_perp[22]+0.3535533905932737*p_perp[8]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,3,14,temp_p_perp); 
@@ -1198,6 +1330,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,3,15,temp_rho); 
   gkyl_mat_set(&A_Tyy,3,15,temp_rho); 
   gkyl_mat_set(&A_Tzz,3,15,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,3,15,temp_rho); 
  
   temp_p_perp = 0.3162277660168379*p_perp[5]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,3,15,temp_p_perp); 
@@ -1208,6 +1341,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,3,16,temp_rho); 
   gkyl_mat_set(&A_Tyy,3,16,temp_rho); 
   gkyl_mat_set(&A_Tzz,3,16,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,3,16,temp_rho); 
  
   temp_p_perp = 0.3162277660168379*p_perp[6]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,3,16,temp_p_perp); 
@@ -1218,6 +1352,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,3,17,temp_rho); 
   gkyl_mat_set(&A_Tyy,3,17,temp_rho); 
   gkyl_mat_set(&A_Tzz,3,17,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,3,17,temp_rho); 
  
   temp_p_perp = 0.3162277660168379*p_perp[24]+0.3535533905932737*p_perp[11]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,3,17,temp_p_perp); 
@@ -1228,6 +1363,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,3,18,temp_rho); 
   gkyl_mat_set(&A_Tyy,3,18,temp_rho); 
   gkyl_mat_set(&A_Tzz,3,18,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,3,18,temp_rho); 
  
   temp_p_perp = 0.3162277660168379*p_perp[25]+0.3535533905932737*p_perp[12]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,3,18,temp_p_perp); 
@@ -1238,6 +1374,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,3,19,temp_rho); 
   gkyl_mat_set(&A_Tyy,3,19,temp_rho); 
   gkyl_mat_set(&A_Tzz,3,19,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,3,19,temp_rho); 
  
   temp_p_perp = 0.3162277660168379*p_perp[10]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,3,19,temp_p_perp); 
@@ -1248,6 +1385,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,3,20,temp_rho); 
   gkyl_mat_set(&A_Tyy,3,20,temp_rho); 
   gkyl_mat_set(&A_Tzz,3,20,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,3,20,temp_rho); 
  
   temp_p_perp = 0.3535533905932737*p_perp[23]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,3,20,temp_p_perp); 
@@ -1258,6 +1396,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,3,21,temp_rho); 
   gkyl_mat_set(&A_Tyy,3,21,temp_rho); 
   gkyl_mat_set(&A_Tzz,3,21,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,3,21,temp_rho); 
  
   temp_p_perp = 0.3162277660168379*p_perp[13]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,3,21,temp_p_perp); 
@@ -1268,6 +1407,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,3,22,temp_rho); 
   gkyl_mat_set(&A_Tyy,3,22,temp_rho); 
   gkyl_mat_set(&A_Tzz,3,22,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,3,22,temp_rho); 
  
   temp_p_perp = 0.3162277660168379*p_perp[14]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,3,22,temp_p_perp); 
@@ -1278,6 +1418,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,3,23,temp_rho); 
   gkyl_mat_set(&A_Tyy,3,23,temp_rho); 
   gkyl_mat_set(&A_Tzz,3,23,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,3,23,temp_rho); 
  
   temp_p_perp = 0.3162277660168379*p_perp[26]+0.3535533905932737*p_perp[20]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,3,23,temp_p_perp); 
@@ -1288,6 +1429,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,3,24,temp_rho); 
   gkyl_mat_set(&A_Tyy,3,24,temp_rho); 
   gkyl_mat_set(&A_Tzz,3,24,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,3,24,temp_rho); 
  
   temp_p_perp = 0.3162277660168379*p_perp[17]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,3,24,temp_p_perp); 
@@ -1298,6 +1440,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,3,25,temp_rho); 
   gkyl_mat_set(&A_Tyy,3,25,temp_rho); 
   gkyl_mat_set(&A_Tzz,3,25,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,3,25,temp_rho); 
  
   temp_p_perp = 0.3162277660168379*p_perp[18]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,3,25,temp_p_perp); 
@@ -1308,6 +1451,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,3,26,temp_rho); 
   gkyl_mat_set(&A_Tyy,3,26,temp_rho); 
   gkyl_mat_set(&A_Tzz,3,26,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,3,26,temp_rho); 
  
   temp_p_perp = 0.3162277660168379*p_perp[23]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,3,26,temp_p_perp); 
@@ -1318,6 +1462,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,4,0,temp_rho); 
   gkyl_mat_set(&A_Tyy,4,0,temp_rho); 
   gkyl_mat_set(&A_Tzz,4,0,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,4,0,temp_rho); 
  
   temp_p_perp = 0.3535533905932737*p_perp[4]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,4,0,temp_p_perp); 
@@ -1328,6 +1473,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,4,1,temp_rho); 
   gkyl_mat_set(&A_Tyy,4,1,temp_rho); 
   gkyl_mat_set(&A_Tzz,4,1,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,4,1,temp_rho); 
  
   temp_p_perp = 0.3162277660168379*p_perp[11]+0.3535533905932737*p_perp[2]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,4,1,temp_p_perp); 
@@ -1338,6 +1484,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,4,2,temp_rho); 
   gkyl_mat_set(&A_Tyy,4,2,temp_rho); 
   gkyl_mat_set(&A_Tzz,4,2,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,4,2,temp_rho); 
  
   temp_p_perp = 0.3162277660168379*p_perp[12]+0.3535533905932737*p_perp[1]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,4,2,temp_p_perp); 
@@ -1348,6 +1495,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,4,3,temp_rho); 
   gkyl_mat_set(&A_Tyy,4,3,temp_rho); 
   gkyl_mat_set(&A_Tzz,4,3,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,4,3,temp_rho); 
  
   temp_p_perp = 0.3535533905932737*p_perp[10]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,4,3,temp_p_perp); 
@@ -1358,6 +1506,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,4,4,temp_rho); 
   gkyl_mat_set(&A_Tyy,4,4,temp_rho); 
   gkyl_mat_set(&A_Tzz,4,4,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,4,4,temp_rho); 
  
   temp_p_perp = 0.2828427124746191*p_perp[20]+0.3162277660168379*p_perp[8]+0.3162277660168379*p_perp[7]+0.3535533905932737*p_perp[0]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,4,4,temp_p_perp); 
@@ -1368,6 +1517,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,4,5,temp_rho); 
   gkyl_mat_set(&A_Tyy,4,5,temp_rho); 
   gkyl_mat_set(&A_Tzz,4,5,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,4,5,temp_rho); 
  
   temp_p_perp = 0.3162277660168379*p_perp[17]+0.3535533905932737*p_perp[6]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,4,5,temp_p_perp); 
@@ -1378,6 +1528,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,4,6,temp_rho); 
   gkyl_mat_set(&A_Tyy,4,6,temp_rho); 
   gkyl_mat_set(&A_Tzz,4,6,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,4,6,temp_rho); 
  
   temp_p_perp = 0.3162277660168379*p_perp[18]+0.3535533905932737*p_perp[5]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,4,6,temp_p_perp); 
@@ -1388,6 +1539,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,4,7,temp_rho); 
   gkyl_mat_set(&A_Tyy,4,7,temp_rho); 
   gkyl_mat_set(&A_Tzz,4,7,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,4,7,temp_rho); 
  
   temp_p_perp = 0.3162277660168379*p_perp[4]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,4,7,temp_p_perp); 
@@ -1398,6 +1550,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,4,8,temp_rho); 
   gkyl_mat_set(&A_Tyy,4,8,temp_rho); 
   gkyl_mat_set(&A_Tzz,4,8,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,4,8,temp_rho); 
  
   temp_p_perp = 0.3162277660168379*p_perp[4]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,4,8,temp_p_perp); 
@@ -1408,6 +1561,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,4,9,temp_rho); 
   gkyl_mat_set(&A_Tyy,4,9,temp_rho); 
   gkyl_mat_set(&A_Tzz,4,9,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,4,9,temp_rho); 
  
   temp_p_perp = 0.3535533905932737*p_perp[19]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,4,9,temp_p_perp); 
@@ -1418,6 +1572,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,4,10,temp_rho); 
   gkyl_mat_set(&A_Tyy,4,10,temp_rho); 
   gkyl_mat_set(&A_Tzz,4,10,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,4,10,temp_rho); 
  
   temp_p_perp = 0.2828427124746191*p_perp[23]+0.3162277660168379*p_perp[14]+0.3162277660168379*p_perp[13]+0.3535533905932737*p_perp[3]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,4,10,temp_p_perp); 
@@ -1428,6 +1583,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,4,11,temp_rho); 
   gkyl_mat_set(&A_Tyy,4,11,temp_rho); 
   gkyl_mat_set(&A_Tzz,4,11,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,4,11,temp_rho); 
  
   temp_p_perp = 0.2828427124746191*p_perp[12]+0.3162277660168379*p_perp[1]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,4,11,temp_p_perp); 
@@ -1438,6 +1594,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,4,12,temp_rho); 
   gkyl_mat_set(&A_Tyy,4,12,temp_rho); 
   gkyl_mat_set(&A_Tzz,4,12,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,4,12,temp_rho); 
  
   temp_p_perp = 0.2828427124746191*p_perp[11]+0.3162277660168379*p_perp[2]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,4,12,temp_p_perp); 
@@ -1448,6 +1605,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,4,13,temp_rho); 
   gkyl_mat_set(&A_Tyy,4,13,temp_rho); 
   gkyl_mat_set(&A_Tzz,4,13,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,4,13,temp_rho); 
  
   temp_p_perp = 0.3162277660168379*p_perp[10]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,4,13,temp_p_perp); 
@@ -1458,6 +1616,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,4,14,temp_rho); 
   gkyl_mat_set(&A_Tyy,4,14,temp_rho); 
   gkyl_mat_set(&A_Tzz,4,14,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,4,14,temp_rho); 
  
   temp_p_perp = 0.3162277660168379*p_perp[10]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,4,14,temp_p_perp); 
@@ -1468,6 +1627,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,4,15,temp_rho); 
   gkyl_mat_set(&A_Tyy,4,15,temp_rho); 
   gkyl_mat_set(&A_Tzz,4,15,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,4,15,temp_rho); 
  
   temp_p_perp = 0.3162277660168379*p_perp[24]+0.3535533905932737*p_perp[16]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,4,15,temp_p_perp); 
@@ -1478,6 +1638,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,4,16,temp_rho); 
   gkyl_mat_set(&A_Tyy,4,16,temp_rho); 
   gkyl_mat_set(&A_Tzz,4,16,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,4,16,temp_rho); 
  
   temp_p_perp = 0.3162277660168379*p_perp[25]+0.3535533905932737*p_perp[15]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,4,16,temp_p_perp); 
@@ -1488,6 +1649,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,4,17,temp_rho); 
   gkyl_mat_set(&A_Tyy,4,17,temp_rho); 
   gkyl_mat_set(&A_Tzz,4,17,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,4,17,temp_rho); 
  
   temp_p_perp = 0.2828427124746191*p_perp[18]+0.3162277660168379*p_perp[5]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,4,17,temp_p_perp); 
@@ -1498,6 +1660,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,4,18,temp_rho); 
   gkyl_mat_set(&A_Tyy,4,18,temp_rho); 
   gkyl_mat_set(&A_Tzz,4,18,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,4,18,temp_rho); 
  
   temp_p_perp = 0.2828427124746191*p_perp[17]+0.3162277660168379*p_perp[6]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,4,18,temp_p_perp); 
@@ -1508,6 +1671,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,4,19,temp_rho); 
   gkyl_mat_set(&A_Tyy,4,19,temp_rho); 
   gkyl_mat_set(&A_Tzz,4,19,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,4,19,temp_rho); 
  
   temp_p_perp = 0.2828427124746191*p_perp[26]+0.3162277660168379*p_perp[22]+0.3162277660168379*p_perp[21]+0.3535533905932737*p_perp[9]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,4,19,temp_p_perp); 
@@ -1518,6 +1682,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,4,20,temp_rho); 
   gkyl_mat_set(&A_Tyy,4,20,temp_rho); 
   gkyl_mat_set(&A_Tzz,4,20,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,4,20,temp_rho); 
  
   temp_p_perp = 0.2828427124746191*p_perp[4]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,4,20,temp_p_perp); 
@@ -1528,6 +1693,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,4,21,temp_rho); 
   gkyl_mat_set(&A_Tyy,4,21,temp_rho); 
   gkyl_mat_set(&A_Tzz,4,21,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,4,21,temp_rho); 
  
   temp_p_perp = 0.3162277660168379*p_perp[19]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,4,21,temp_p_perp); 
@@ -1538,6 +1704,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,4,22,temp_rho); 
   gkyl_mat_set(&A_Tyy,4,22,temp_rho); 
   gkyl_mat_set(&A_Tzz,4,22,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,4,22,temp_rho); 
  
   temp_p_perp = 0.3162277660168379*p_perp[19]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,4,22,temp_p_perp); 
@@ -1548,6 +1715,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,4,23,temp_rho); 
   gkyl_mat_set(&A_Tyy,4,23,temp_rho); 
   gkyl_mat_set(&A_Tzz,4,23,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,4,23,temp_rho); 
  
   temp_p_perp = 0.2828427124746191*p_perp[10]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,4,23,temp_p_perp); 
@@ -1558,6 +1726,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,4,24,temp_rho); 
   gkyl_mat_set(&A_Tyy,4,24,temp_rho); 
   gkyl_mat_set(&A_Tzz,4,24,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,4,24,temp_rho); 
  
   temp_p_perp = 0.2828427124746191*p_perp[25]+0.3162277660168379*p_perp[15]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,4,24,temp_p_perp); 
@@ -1568,6 +1737,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,4,25,temp_rho); 
   gkyl_mat_set(&A_Tyy,4,25,temp_rho); 
   gkyl_mat_set(&A_Tzz,4,25,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,4,25,temp_rho); 
  
   temp_p_perp = 0.2828427124746191*p_perp[24]+0.3162277660168379*p_perp[16]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,4,25,temp_p_perp); 
@@ -1578,6 +1748,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,4,26,temp_rho); 
   gkyl_mat_set(&A_Tyy,4,26,temp_rho); 
   gkyl_mat_set(&A_Tzz,4,26,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,4,26,temp_rho); 
  
   temp_p_perp = 0.2828427124746191*p_perp[19]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,4,26,temp_p_perp); 
@@ -1588,6 +1759,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,5,0,temp_rho); 
   gkyl_mat_set(&A_Tyy,5,0,temp_rho); 
   gkyl_mat_set(&A_Tzz,5,0,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,5,0,temp_rho); 
  
   temp_p_perp = 0.3535533905932737*p_perp[5]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,5,0,temp_p_perp); 
@@ -1598,6 +1770,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,5,1,temp_rho); 
   gkyl_mat_set(&A_Tyy,5,1,temp_rho); 
   gkyl_mat_set(&A_Tzz,5,1,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,5,1,temp_rho); 
  
   temp_p_perp = 0.3162277660168379*p_perp[13]+0.3535533905932737*p_perp[3]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,5,1,temp_p_perp); 
@@ -1608,6 +1781,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,5,2,temp_rho); 
   gkyl_mat_set(&A_Tyy,5,2,temp_rho); 
   gkyl_mat_set(&A_Tzz,5,2,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,5,2,temp_rho); 
  
   temp_p_perp = 0.3535533905932737*p_perp[10]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,5,2,temp_p_perp); 
@@ -1618,6 +1792,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,5,3,temp_rho); 
   gkyl_mat_set(&A_Tyy,5,3,temp_rho); 
   gkyl_mat_set(&A_Tzz,5,3,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,5,3,temp_rho); 
  
   temp_p_perp = 0.3162277660168379*p_perp[15]+0.3535533905932737*p_perp[1]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,5,3,temp_p_perp); 
@@ -1628,6 +1803,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,5,4,temp_rho); 
   gkyl_mat_set(&A_Tyy,5,4,temp_rho); 
   gkyl_mat_set(&A_Tzz,5,4,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,5,4,temp_rho); 
  
   temp_p_perp = 0.3162277660168379*p_perp[17]+0.3535533905932737*p_perp[6]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,5,4,temp_p_perp); 
@@ -1638,6 +1814,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,5,5,temp_rho); 
   gkyl_mat_set(&A_Tyy,5,5,temp_rho); 
   gkyl_mat_set(&A_Tzz,5,5,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,5,5,temp_rho); 
  
   temp_p_perp = 0.2828427124746191*p_perp[21]+0.3162277660168379*p_perp[9]+0.3162277660168379*p_perp[7]+0.3535533905932737*p_perp[0]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,5,5,temp_p_perp); 
@@ -1648,6 +1825,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,5,6,temp_rho); 
   gkyl_mat_set(&A_Tyy,5,6,temp_rho); 
   gkyl_mat_set(&A_Tzz,5,6,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,5,6,temp_rho); 
  
   temp_p_perp = 0.3162277660168379*p_perp[19]+0.3535533905932737*p_perp[4]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,5,6,temp_p_perp); 
@@ -1658,6 +1836,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,5,7,temp_rho); 
   gkyl_mat_set(&A_Tyy,5,7,temp_rho); 
   gkyl_mat_set(&A_Tzz,5,7,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,5,7,temp_rho); 
  
   temp_p_perp = 0.3162277660168379*p_perp[5]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,5,7,temp_p_perp); 
@@ -1668,6 +1847,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,5,8,temp_rho); 
   gkyl_mat_set(&A_Tyy,5,8,temp_rho); 
   gkyl_mat_set(&A_Tzz,5,8,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,5,8,temp_rho); 
  
   temp_p_perp = 0.3535533905932737*p_perp[18]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,5,8,temp_p_perp); 
@@ -1678,6 +1858,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,5,9,temp_rho); 
   gkyl_mat_set(&A_Tyy,5,9,temp_rho); 
   gkyl_mat_set(&A_Tzz,5,9,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,5,9,temp_rho); 
  
   temp_p_perp = 0.3162277660168379*p_perp[5]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,5,9,temp_p_perp); 
@@ -1688,6 +1869,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,5,10,temp_rho); 
   gkyl_mat_set(&A_Tyy,5,10,temp_rho); 
   gkyl_mat_set(&A_Tzz,5,10,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,5,10,temp_rho); 
  
   temp_p_perp = 0.2828427124746191*p_perp[24]+0.3162277660168379*p_perp[16]+0.3162277660168379*p_perp[11]+0.3535533905932737*p_perp[2]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,5,10,temp_p_perp); 
@@ -1698,6 +1880,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,5,11,temp_rho); 
   gkyl_mat_set(&A_Tyy,5,11,temp_rho); 
   gkyl_mat_set(&A_Tzz,5,11,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,5,11,temp_rho); 
  
   temp_p_perp = 0.3162277660168379*p_perp[10]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,5,11,temp_p_perp); 
@@ -1708,6 +1891,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,5,12,temp_rho); 
   gkyl_mat_set(&A_Tyy,5,12,temp_rho); 
   gkyl_mat_set(&A_Tzz,5,12,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,5,12,temp_rho); 
  
   temp_p_perp = 0.3162277660168379*p_perp[23]+0.3535533905932737*p_perp[14]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,5,12,temp_p_perp); 
@@ -1718,6 +1902,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,5,13,temp_rho); 
   gkyl_mat_set(&A_Tyy,5,13,temp_rho); 
   gkyl_mat_set(&A_Tzz,5,13,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,5,13,temp_rho); 
  
   temp_p_perp = 0.2828427124746191*p_perp[15]+0.3162277660168379*p_perp[1]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,5,13,temp_p_perp); 
@@ -1728,6 +1913,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,5,14,temp_rho); 
   gkyl_mat_set(&A_Tyy,5,14,temp_rho); 
   gkyl_mat_set(&A_Tzz,5,14,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,5,14,temp_rho); 
  
   temp_p_perp = 0.3162277660168379*p_perp[25]+0.3535533905932737*p_perp[12]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,5,14,temp_p_perp); 
@@ -1738,6 +1924,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,5,15,temp_rho); 
   gkyl_mat_set(&A_Tyy,5,15,temp_rho); 
   gkyl_mat_set(&A_Tzz,5,15,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,5,15,temp_rho); 
  
   temp_p_perp = 0.2828427124746191*p_perp[13]+0.3162277660168379*p_perp[3]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,5,15,temp_p_perp); 
@@ -1748,6 +1935,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,5,16,temp_rho); 
   gkyl_mat_set(&A_Tyy,5,16,temp_rho); 
   gkyl_mat_set(&A_Tzz,5,16,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,5,16,temp_rho); 
  
   temp_p_perp = 0.3162277660168379*p_perp[10]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,5,16,temp_p_perp); 
@@ -1758,6 +1946,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,5,17,temp_rho); 
   gkyl_mat_set(&A_Tyy,5,17,temp_rho); 
   gkyl_mat_set(&A_Tzz,5,17,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,5,17,temp_rho); 
  
   temp_p_perp = 0.2828427124746191*p_perp[19]+0.3162277660168379*p_perp[4]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,5,17,temp_p_perp); 
@@ -1768,6 +1957,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,5,18,temp_rho); 
   gkyl_mat_set(&A_Tyy,5,18,temp_rho); 
   gkyl_mat_set(&A_Tzz,5,18,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,5,18,temp_rho); 
  
   temp_p_perp = 0.2828427124746191*p_perp[26]+0.3162277660168379*p_perp[22]+0.3162277660168379*p_perp[20]+0.3535533905932737*p_perp[8]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,5,18,temp_p_perp); 
@@ -1778,6 +1968,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,5,19,temp_rho); 
   gkyl_mat_set(&A_Tyy,5,19,temp_rho); 
   gkyl_mat_set(&A_Tzz,5,19,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,5,19,temp_rho); 
  
   temp_p_perp = 0.2828427124746191*p_perp[17]+0.3162277660168379*p_perp[6]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,5,19,temp_p_perp); 
@@ -1788,6 +1979,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,5,20,temp_rho); 
   gkyl_mat_set(&A_Tyy,5,20,temp_rho); 
   gkyl_mat_set(&A_Tzz,5,20,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,5,20,temp_rho); 
  
   temp_p_perp = 0.3162277660168379*p_perp[18]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,5,20,temp_p_perp); 
@@ -1798,6 +1990,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,5,21,temp_rho); 
   gkyl_mat_set(&A_Tyy,5,21,temp_rho); 
   gkyl_mat_set(&A_Tzz,5,21,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,5,21,temp_rho); 
  
   temp_p_perp = 0.2828427124746191*p_perp[5]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,5,21,temp_p_perp); 
@@ -1808,6 +2001,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,5,22,temp_rho); 
   gkyl_mat_set(&A_Tyy,5,22,temp_rho); 
   gkyl_mat_set(&A_Tzz,5,22,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,5,22,temp_rho); 
  
   temp_p_perp = 0.3162277660168379*p_perp[18]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,5,22,temp_p_perp); 
@@ -1818,6 +2012,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,5,23,temp_rho); 
   gkyl_mat_set(&A_Tyy,5,23,temp_rho); 
   gkyl_mat_set(&A_Tzz,5,23,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,5,23,temp_rho); 
  
   temp_p_perp = 0.2828427124746191*p_perp[25]+0.3162277660168379*p_perp[12]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,5,23,temp_p_perp); 
@@ -1828,6 +2023,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,5,24,temp_rho); 
   gkyl_mat_set(&A_Tyy,5,24,temp_rho); 
   gkyl_mat_set(&A_Tzz,5,24,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,5,24,temp_rho); 
  
   temp_p_perp = 0.2828427124746191*p_perp[10]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,5,24,temp_p_perp); 
@@ -1838,6 +2034,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,5,25,temp_rho); 
   gkyl_mat_set(&A_Tyy,5,25,temp_rho); 
   gkyl_mat_set(&A_Tzz,5,25,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,5,25,temp_rho); 
  
   temp_p_perp = 0.2828427124746191*p_perp[23]+0.3162277660168379*p_perp[14]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,5,25,temp_p_perp); 
@@ -1848,6 +2045,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,5,26,temp_rho); 
   gkyl_mat_set(&A_Tyy,5,26,temp_rho); 
   gkyl_mat_set(&A_Tzz,5,26,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,5,26,temp_rho); 
  
   temp_p_perp = 0.2828427124746191*p_perp[18]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,5,26,temp_p_perp); 
@@ -1858,6 +2056,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,6,0,temp_rho); 
   gkyl_mat_set(&A_Tyy,6,0,temp_rho); 
   gkyl_mat_set(&A_Tzz,6,0,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,6,0,temp_rho); 
  
   temp_p_perp = 0.3535533905932737*p_perp[6]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,6,0,temp_p_perp); 
@@ -1868,6 +2067,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,6,1,temp_rho); 
   gkyl_mat_set(&A_Tyy,6,1,temp_rho); 
   gkyl_mat_set(&A_Tzz,6,1,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,6,1,temp_rho); 
  
   temp_p_perp = 0.3535533905932737*p_perp[10]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,6,1,temp_p_perp); 
@@ -1878,6 +2078,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,6,2,temp_rho); 
   gkyl_mat_set(&A_Tyy,6,2,temp_rho); 
   gkyl_mat_set(&A_Tzz,6,2,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,6,2,temp_rho); 
  
   temp_p_perp = 0.3162277660168379*p_perp[14]+0.3535533905932737*p_perp[3]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,6,2,temp_p_perp); 
@@ -1888,6 +2089,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,6,3,temp_rho); 
   gkyl_mat_set(&A_Tyy,6,3,temp_rho); 
   gkyl_mat_set(&A_Tzz,6,3,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,6,3,temp_rho); 
  
   temp_p_perp = 0.3162277660168379*p_perp[16]+0.3535533905932737*p_perp[2]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,6,3,temp_p_perp); 
@@ -1898,6 +2100,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,6,4,temp_rho); 
   gkyl_mat_set(&A_Tyy,6,4,temp_rho); 
   gkyl_mat_set(&A_Tzz,6,4,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,6,4,temp_rho); 
  
   temp_p_perp = 0.3162277660168379*p_perp[18]+0.3535533905932737*p_perp[5]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,6,4,temp_p_perp); 
@@ -1908,6 +2111,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,6,5,temp_rho); 
   gkyl_mat_set(&A_Tyy,6,5,temp_rho); 
   gkyl_mat_set(&A_Tzz,6,5,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,6,5,temp_rho); 
  
   temp_p_perp = 0.3162277660168379*p_perp[19]+0.3535533905932737*p_perp[4]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,6,5,temp_p_perp); 
@@ -1918,6 +2122,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,6,6,temp_rho); 
   gkyl_mat_set(&A_Tyy,6,6,temp_rho); 
   gkyl_mat_set(&A_Tzz,6,6,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,6,6,temp_rho); 
  
   temp_p_perp = 0.2828427124746191*p_perp[22]+0.3162277660168379*p_perp[9]+0.3162277660168379*p_perp[8]+0.3535533905932737*p_perp[0]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,6,6,temp_p_perp); 
@@ -1928,6 +2133,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,6,7,temp_rho); 
   gkyl_mat_set(&A_Tyy,6,7,temp_rho); 
   gkyl_mat_set(&A_Tzz,6,7,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,6,7,temp_rho); 
  
   temp_p_perp = 0.3535533905932737*p_perp[17]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,6,7,temp_p_perp); 
@@ -1938,6 +2144,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,6,8,temp_rho); 
   gkyl_mat_set(&A_Tyy,6,8,temp_rho); 
   gkyl_mat_set(&A_Tzz,6,8,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,6,8,temp_rho); 
  
   temp_p_perp = 0.3162277660168379*p_perp[6]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,6,8,temp_p_perp); 
@@ -1948,6 +2155,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,6,9,temp_rho); 
   gkyl_mat_set(&A_Tyy,6,9,temp_rho); 
   gkyl_mat_set(&A_Tzz,6,9,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,6,9,temp_rho); 
  
   temp_p_perp = 0.3162277660168379*p_perp[6]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,6,9,temp_p_perp); 
@@ -1958,6 +2166,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,6,10,temp_rho); 
   gkyl_mat_set(&A_Tyy,6,10,temp_rho); 
   gkyl_mat_set(&A_Tzz,6,10,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,6,10,temp_rho); 
  
   temp_p_perp = 0.2828427124746191*p_perp[25]+0.3162277660168379*p_perp[15]+0.3162277660168379*p_perp[12]+0.3535533905932737*p_perp[1]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,6,10,temp_p_perp); 
@@ -1968,6 +2177,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,6,11,temp_rho); 
   gkyl_mat_set(&A_Tyy,6,11,temp_rho); 
   gkyl_mat_set(&A_Tzz,6,11,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,6,11,temp_rho); 
  
   temp_p_perp = 0.3162277660168379*p_perp[23]+0.3535533905932737*p_perp[13]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,6,11,temp_p_perp); 
@@ -1978,6 +2188,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,6,12,temp_rho); 
   gkyl_mat_set(&A_Tyy,6,12,temp_rho); 
   gkyl_mat_set(&A_Tzz,6,12,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,6,12,temp_rho); 
  
   temp_p_perp = 0.3162277660168379*p_perp[10]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,6,12,temp_p_perp); 
@@ -1988,6 +2199,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,6,13,temp_rho); 
   gkyl_mat_set(&A_Tyy,6,13,temp_rho); 
   gkyl_mat_set(&A_Tzz,6,13,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,6,13,temp_rho); 
  
   temp_p_perp = 0.3162277660168379*p_perp[24]+0.3535533905932737*p_perp[11]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,6,13,temp_p_perp); 
@@ -1998,6 +2210,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,6,14,temp_rho); 
   gkyl_mat_set(&A_Tyy,6,14,temp_rho); 
   gkyl_mat_set(&A_Tzz,6,14,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,6,14,temp_rho); 
  
   temp_p_perp = 0.2828427124746191*p_perp[16]+0.3162277660168379*p_perp[2]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,6,14,temp_p_perp); 
@@ -2008,6 +2221,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,6,15,temp_rho); 
   gkyl_mat_set(&A_Tyy,6,15,temp_rho); 
   gkyl_mat_set(&A_Tzz,6,15,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,6,15,temp_rho); 
  
   temp_p_perp = 0.3162277660168379*p_perp[10]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,6,15,temp_p_perp); 
@@ -2018,6 +2232,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,6,16,temp_rho); 
   gkyl_mat_set(&A_Tyy,6,16,temp_rho); 
   gkyl_mat_set(&A_Tzz,6,16,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,6,16,temp_rho); 
  
   temp_p_perp = 0.2828427124746191*p_perp[14]+0.3162277660168379*p_perp[3]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,6,16,temp_p_perp); 
@@ -2028,6 +2243,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,6,17,temp_rho); 
   gkyl_mat_set(&A_Tyy,6,17,temp_rho); 
   gkyl_mat_set(&A_Tzz,6,17,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,6,17,temp_rho); 
  
   temp_p_perp = 0.2828427124746191*p_perp[26]+0.3162277660168379*p_perp[21]+0.3162277660168379*p_perp[20]+0.3535533905932737*p_perp[7]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,6,17,temp_p_perp); 
@@ -2038,6 +2254,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,6,18,temp_rho); 
   gkyl_mat_set(&A_Tyy,6,18,temp_rho); 
   gkyl_mat_set(&A_Tzz,6,18,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,6,18,temp_rho); 
  
   temp_p_perp = 0.2828427124746191*p_perp[19]+0.3162277660168379*p_perp[4]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,6,18,temp_p_perp); 
@@ -2048,6 +2265,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,6,19,temp_rho); 
   gkyl_mat_set(&A_Tyy,6,19,temp_rho); 
   gkyl_mat_set(&A_Tzz,6,19,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,6,19,temp_rho); 
  
   temp_p_perp = 0.2828427124746191*p_perp[18]+0.3162277660168379*p_perp[5]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,6,19,temp_p_perp); 
@@ -2058,6 +2276,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,6,20,temp_rho); 
   gkyl_mat_set(&A_Tyy,6,20,temp_rho); 
   gkyl_mat_set(&A_Tzz,6,20,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,6,20,temp_rho); 
  
   temp_p_perp = 0.3162277660168379*p_perp[17]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,6,20,temp_p_perp); 
@@ -2068,6 +2287,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,6,21,temp_rho); 
   gkyl_mat_set(&A_Tyy,6,21,temp_rho); 
   gkyl_mat_set(&A_Tzz,6,21,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,6,21,temp_rho); 
  
   temp_p_perp = 0.3162277660168379*p_perp[17]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,6,21,temp_p_perp); 
@@ -2078,6 +2298,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,6,22,temp_rho); 
   gkyl_mat_set(&A_Tyy,6,22,temp_rho); 
   gkyl_mat_set(&A_Tzz,6,22,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,6,22,temp_rho); 
  
   temp_p_perp = 0.2828427124746191*p_perp[6]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,6,22,temp_p_perp); 
@@ -2088,6 +2309,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,6,23,temp_rho); 
   gkyl_mat_set(&A_Tyy,6,23,temp_rho); 
   gkyl_mat_set(&A_Tzz,6,23,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,6,23,temp_rho); 
  
   temp_p_perp = 0.2828427124746191*p_perp[24]+0.3162277660168379*p_perp[11]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,6,23,temp_p_perp); 
@@ -2098,6 +2320,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,6,24,temp_rho); 
   gkyl_mat_set(&A_Tyy,6,24,temp_rho); 
   gkyl_mat_set(&A_Tzz,6,24,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,6,24,temp_rho); 
  
   temp_p_perp = 0.2828427124746191*p_perp[23]+0.3162277660168379*p_perp[13]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,6,24,temp_p_perp); 
@@ -2108,6 +2331,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,6,25,temp_rho); 
   gkyl_mat_set(&A_Tyy,6,25,temp_rho); 
   gkyl_mat_set(&A_Tzz,6,25,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,6,25,temp_rho); 
  
   temp_p_perp = 0.2828427124746191*p_perp[10]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,6,25,temp_p_perp); 
@@ -2118,6 +2342,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,6,26,temp_rho); 
   gkyl_mat_set(&A_Tyy,6,26,temp_rho); 
   gkyl_mat_set(&A_Tzz,6,26,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,6,26,temp_rho); 
  
   temp_p_perp = 0.2828427124746191*p_perp[17]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,6,26,temp_p_perp); 
@@ -2128,6 +2353,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,7,0,temp_rho); 
   gkyl_mat_set(&A_Tyy,7,0,temp_rho); 
   gkyl_mat_set(&A_Tzz,7,0,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,7,0,temp_rho); 
  
   temp_p_perp = 0.3535533905932737*p_perp[7]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,7,0,temp_p_perp); 
@@ -2138,6 +2364,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,7,1,temp_rho); 
   gkyl_mat_set(&A_Tyy,7,1,temp_rho); 
   gkyl_mat_set(&A_Tzz,7,1,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,7,1,temp_rho); 
  
   temp_p_perp = 0.3162277660168379*p_perp[1]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,7,1,temp_p_perp); 
@@ -2148,6 +2375,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,7,2,temp_rho); 
   gkyl_mat_set(&A_Tyy,7,2,temp_rho); 
   gkyl_mat_set(&A_Tzz,7,2,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,7,2,temp_rho); 
  
   temp_p_perp = 0.3535533905932737*p_perp[11]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,7,2,temp_p_perp); 
@@ -2158,6 +2386,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,7,3,temp_rho); 
   gkyl_mat_set(&A_Tyy,7,3,temp_rho); 
   gkyl_mat_set(&A_Tzz,7,3,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,7,3,temp_rho); 
  
   temp_p_perp = 0.3535533905932737*p_perp[13]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,7,3,temp_p_perp); 
@@ -2168,6 +2397,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,7,4,temp_rho); 
   gkyl_mat_set(&A_Tyy,7,4,temp_rho); 
   gkyl_mat_set(&A_Tzz,7,4,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,7,4,temp_rho); 
  
   temp_p_perp = 0.3162277660168379*p_perp[4]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,7,4,temp_p_perp); 
@@ -2178,6 +2408,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,7,5,temp_rho); 
   gkyl_mat_set(&A_Tyy,7,5,temp_rho); 
   gkyl_mat_set(&A_Tzz,7,5,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,7,5,temp_rho); 
  
   temp_p_perp = 0.3162277660168379*p_perp[5]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,7,5,temp_p_perp); 
@@ -2188,6 +2419,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,7,6,temp_rho); 
   gkyl_mat_set(&A_Tyy,7,6,temp_rho); 
   gkyl_mat_set(&A_Tzz,7,6,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,7,6,temp_rho); 
  
   temp_p_perp = 0.3535533905932737*p_perp[17]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,7,6,temp_p_perp); 
@@ -2198,6 +2430,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,7,7,temp_rho); 
   gkyl_mat_set(&A_Tyy,7,7,temp_rho); 
   gkyl_mat_set(&A_Tzz,7,7,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,7,7,temp_rho); 
  
   temp_p_perp = 0.2258769757263128*p_perp[7]+0.3535533905932737*p_perp[0]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,7,7,temp_p_perp); 
@@ -2208,6 +2441,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,7,8,temp_rho); 
   gkyl_mat_set(&A_Tyy,7,8,temp_rho); 
   gkyl_mat_set(&A_Tzz,7,8,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,7,8,temp_rho); 
  
   temp_p_perp = 0.3535533905932737*p_perp[20]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,7,8,temp_p_perp); 
@@ -2218,6 +2452,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,7,9,temp_rho); 
   gkyl_mat_set(&A_Tyy,7,9,temp_rho); 
   gkyl_mat_set(&A_Tzz,7,9,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,7,9,temp_rho); 
  
   temp_p_perp = 0.3535533905932737*p_perp[21]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,7,9,temp_p_perp); 
@@ -2228,6 +2463,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,7,10,temp_rho); 
   gkyl_mat_set(&A_Tyy,7,10,temp_rho); 
   gkyl_mat_set(&A_Tzz,7,10,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,7,10,temp_rho); 
  
   temp_p_perp = 0.3162277660168379*p_perp[10]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,7,10,temp_p_perp); 
@@ -2238,6 +2474,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,7,11,temp_rho); 
   gkyl_mat_set(&A_Tyy,7,11,temp_rho); 
   gkyl_mat_set(&A_Tzz,7,11,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,7,11,temp_rho); 
  
   temp_p_perp = 0.2258769757263128*p_perp[11]+0.3535533905932737*p_perp[2]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,7,11,temp_p_perp); 
@@ -2248,6 +2485,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,7,12,temp_rho); 
   gkyl_mat_set(&A_Tyy,7,12,temp_rho); 
   gkyl_mat_set(&A_Tzz,7,12,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,7,12,temp_rho); 
  
   temp_p_perp = 0.3162277660168379*p_perp[12]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,7,12,temp_p_perp); 
@@ -2258,6 +2496,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,7,13,temp_rho); 
   gkyl_mat_set(&A_Tyy,7,13,temp_rho); 
   gkyl_mat_set(&A_Tzz,7,13,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,7,13,temp_rho); 
  
   temp_p_perp = 0.2258769757263128*p_perp[13]+0.3535533905932737*p_perp[3]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,7,13,temp_p_perp); 
@@ -2268,6 +2507,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,7,14,temp_rho); 
   gkyl_mat_set(&A_Tyy,7,14,temp_rho); 
   gkyl_mat_set(&A_Tzz,7,14,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,7,14,temp_rho); 
  
   temp_p_perp = 0.3535533905932737*p_perp[23]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,7,14,temp_p_perp); 
@@ -2278,6 +2518,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,7,15,temp_rho); 
   gkyl_mat_set(&A_Tyy,7,15,temp_rho); 
   gkyl_mat_set(&A_Tzz,7,15,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,7,15,temp_rho); 
  
   temp_p_perp = 0.3162277660168379*p_perp[15]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,7,15,temp_p_perp); 
@@ -2288,6 +2529,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,7,16,temp_rho); 
   gkyl_mat_set(&A_Tyy,7,16,temp_rho); 
   gkyl_mat_set(&A_Tzz,7,16,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,7,16,temp_rho); 
  
   temp_p_perp = 0.3535533905932737*p_perp[24]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,7,16,temp_p_perp); 
@@ -2298,6 +2540,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,7,17,temp_rho); 
   gkyl_mat_set(&A_Tyy,7,17,temp_rho); 
   gkyl_mat_set(&A_Tzz,7,17,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,7,17,temp_rho); 
  
   temp_p_perp = 0.2258769757263128*p_perp[17]+0.3535533905932737*p_perp[6]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,7,17,temp_p_perp); 
@@ -2308,6 +2551,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,7,18,temp_rho); 
   gkyl_mat_set(&A_Tyy,7,18,temp_rho); 
   gkyl_mat_set(&A_Tzz,7,18,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,7,18,temp_rho); 
  
   temp_p_perp = 0.3162277660168379*p_perp[18]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,7,18,temp_p_perp); 
@@ -2318,6 +2562,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,7,19,temp_rho); 
   gkyl_mat_set(&A_Tyy,7,19,temp_rho); 
   gkyl_mat_set(&A_Tzz,7,19,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,7,19,temp_rho); 
  
   temp_p_perp = 0.3162277660168379*p_perp[19]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,7,19,temp_p_perp); 
@@ -2328,6 +2573,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,7,20,temp_rho); 
   gkyl_mat_set(&A_Tyy,7,20,temp_rho); 
   gkyl_mat_set(&A_Tzz,7,20,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,7,20,temp_rho); 
  
   temp_p_perp = 0.2258769757263128*p_perp[20]+0.3535533905932737*p_perp[8]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,7,20,temp_p_perp); 
@@ -2338,6 +2584,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,7,21,temp_rho); 
   gkyl_mat_set(&A_Tyy,7,21,temp_rho); 
   gkyl_mat_set(&A_Tzz,7,21,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,7,21,temp_rho); 
  
   temp_p_perp = 0.2258769757263128*p_perp[21]+0.3535533905932737*p_perp[9]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,7,21,temp_p_perp); 
@@ -2348,6 +2595,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,7,22,temp_rho); 
   gkyl_mat_set(&A_Tyy,7,22,temp_rho); 
   gkyl_mat_set(&A_Tzz,7,22,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,7,22,temp_rho); 
  
   temp_p_perp = 0.3535533905932737*p_perp[26]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,7,22,temp_p_perp); 
@@ -2358,6 +2606,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,7,23,temp_rho); 
   gkyl_mat_set(&A_Tyy,7,23,temp_rho); 
   gkyl_mat_set(&A_Tzz,7,23,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,7,23,temp_rho); 
  
   temp_p_perp = 0.2258769757263128*p_perp[23]+0.3535533905932737*p_perp[14]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,7,23,temp_p_perp); 
@@ -2368,6 +2617,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,7,24,temp_rho); 
   gkyl_mat_set(&A_Tyy,7,24,temp_rho); 
   gkyl_mat_set(&A_Tzz,7,24,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,7,24,temp_rho); 
  
   temp_p_perp = 0.2258769757263128*p_perp[24]+0.3535533905932737*p_perp[16]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,7,24,temp_p_perp); 
@@ -2378,6 +2628,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,7,25,temp_rho); 
   gkyl_mat_set(&A_Tyy,7,25,temp_rho); 
   gkyl_mat_set(&A_Tzz,7,25,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,7,25,temp_rho); 
  
   temp_p_perp = 0.3162277660168379*p_perp[25]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,7,25,temp_p_perp); 
@@ -2388,6 +2639,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,7,26,temp_rho); 
   gkyl_mat_set(&A_Tyy,7,26,temp_rho); 
   gkyl_mat_set(&A_Tzz,7,26,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,7,26,temp_rho); 
  
   temp_p_perp = 0.2258769757263128*p_perp[26]+0.3535533905932737*p_perp[22]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,7,26,temp_p_perp); 
@@ -2398,6 +2650,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,8,0,temp_rho); 
   gkyl_mat_set(&A_Tyy,8,0,temp_rho); 
   gkyl_mat_set(&A_Tzz,8,0,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,8,0,temp_rho); 
  
   temp_p_perp = 0.3535533905932737*p_perp[8]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,8,0,temp_p_perp); 
@@ -2408,6 +2661,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,8,1,temp_rho); 
   gkyl_mat_set(&A_Tyy,8,1,temp_rho); 
   gkyl_mat_set(&A_Tzz,8,1,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,8,1,temp_rho); 
  
   temp_p_perp = 0.3535533905932737*p_perp[12]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,8,1,temp_p_perp); 
@@ -2418,6 +2672,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,8,2,temp_rho); 
   gkyl_mat_set(&A_Tyy,8,2,temp_rho); 
   gkyl_mat_set(&A_Tzz,8,2,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,8,2,temp_rho); 
  
   temp_p_perp = 0.3162277660168379*p_perp[2]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,8,2,temp_p_perp); 
@@ -2428,6 +2683,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,8,3,temp_rho); 
   gkyl_mat_set(&A_Tyy,8,3,temp_rho); 
   gkyl_mat_set(&A_Tzz,8,3,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,8,3,temp_rho); 
  
   temp_p_perp = 0.3535533905932737*p_perp[14]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,8,3,temp_p_perp); 
@@ -2438,6 +2694,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,8,4,temp_rho); 
   gkyl_mat_set(&A_Tyy,8,4,temp_rho); 
   gkyl_mat_set(&A_Tzz,8,4,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,8,4,temp_rho); 
  
   temp_p_perp = 0.3162277660168379*p_perp[4]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,8,4,temp_p_perp); 
@@ -2448,6 +2705,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,8,5,temp_rho); 
   gkyl_mat_set(&A_Tyy,8,5,temp_rho); 
   gkyl_mat_set(&A_Tzz,8,5,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,8,5,temp_rho); 
  
   temp_p_perp = 0.3535533905932737*p_perp[18]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,8,5,temp_p_perp); 
@@ -2458,6 +2716,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,8,6,temp_rho); 
   gkyl_mat_set(&A_Tyy,8,6,temp_rho); 
   gkyl_mat_set(&A_Tzz,8,6,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,8,6,temp_rho); 
  
   temp_p_perp = 0.3162277660168379*p_perp[6]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,8,6,temp_p_perp); 
@@ -2468,6 +2727,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,8,7,temp_rho); 
   gkyl_mat_set(&A_Tyy,8,7,temp_rho); 
   gkyl_mat_set(&A_Tzz,8,7,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,8,7,temp_rho); 
  
   temp_p_perp = 0.3535533905932737*p_perp[20]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,8,7,temp_p_perp); 
@@ -2478,6 +2738,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,8,8,temp_rho); 
   gkyl_mat_set(&A_Tyy,8,8,temp_rho); 
   gkyl_mat_set(&A_Tzz,8,8,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,8,8,temp_rho); 
  
   temp_p_perp = 0.2258769757263128*p_perp[8]+0.3535533905932737*p_perp[0]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,8,8,temp_p_perp); 
@@ -2488,6 +2749,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,8,9,temp_rho); 
   gkyl_mat_set(&A_Tyy,8,9,temp_rho); 
   gkyl_mat_set(&A_Tzz,8,9,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,8,9,temp_rho); 
  
   temp_p_perp = 0.3535533905932737*p_perp[22]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,8,9,temp_p_perp); 
@@ -2498,6 +2760,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,8,10,temp_rho); 
   gkyl_mat_set(&A_Tyy,8,10,temp_rho); 
   gkyl_mat_set(&A_Tzz,8,10,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,8,10,temp_rho); 
  
   temp_p_perp = 0.3162277660168379*p_perp[10]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,8,10,temp_p_perp); 
@@ -2508,6 +2771,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,8,11,temp_rho); 
   gkyl_mat_set(&A_Tyy,8,11,temp_rho); 
   gkyl_mat_set(&A_Tzz,8,11,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,8,11,temp_rho); 
  
   temp_p_perp = 0.3162277660168379*p_perp[11]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,8,11,temp_p_perp); 
@@ -2518,6 +2782,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,8,12,temp_rho); 
   gkyl_mat_set(&A_Tyy,8,12,temp_rho); 
   gkyl_mat_set(&A_Tzz,8,12,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,8,12,temp_rho); 
  
   temp_p_perp = 0.2258769757263128*p_perp[12]+0.3535533905932737*p_perp[1]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,8,12,temp_p_perp); 
@@ -2528,6 +2793,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,8,13,temp_rho); 
   gkyl_mat_set(&A_Tyy,8,13,temp_rho); 
   gkyl_mat_set(&A_Tzz,8,13,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,8,13,temp_rho); 
  
   temp_p_perp = 0.3535533905932737*p_perp[23]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,8,13,temp_p_perp); 
@@ -2538,6 +2804,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,8,14,temp_rho); 
   gkyl_mat_set(&A_Tyy,8,14,temp_rho); 
   gkyl_mat_set(&A_Tzz,8,14,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,8,14,temp_rho); 
  
   temp_p_perp = 0.2258769757263128*p_perp[14]+0.3535533905932737*p_perp[3]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,8,14,temp_p_perp); 
@@ -2548,6 +2815,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,8,15,temp_rho); 
   gkyl_mat_set(&A_Tyy,8,15,temp_rho); 
   gkyl_mat_set(&A_Tzz,8,15,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,8,15,temp_rho); 
  
   temp_p_perp = 0.3535533905932737*p_perp[25]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,8,15,temp_p_perp); 
@@ -2558,6 +2826,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,8,16,temp_rho); 
   gkyl_mat_set(&A_Tyy,8,16,temp_rho); 
   gkyl_mat_set(&A_Tzz,8,16,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,8,16,temp_rho); 
  
   temp_p_perp = 0.3162277660168379*p_perp[16]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,8,16,temp_p_perp); 
@@ -2568,6 +2837,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,8,17,temp_rho); 
   gkyl_mat_set(&A_Tyy,8,17,temp_rho); 
   gkyl_mat_set(&A_Tzz,8,17,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,8,17,temp_rho); 
  
   temp_p_perp = 0.3162277660168379*p_perp[17]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,8,17,temp_p_perp); 
@@ -2578,6 +2848,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,8,18,temp_rho); 
   gkyl_mat_set(&A_Tyy,8,18,temp_rho); 
   gkyl_mat_set(&A_Tzz,8,18,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,8,18,temp_rho); 
  
   temp_p_perp = 0.2258769757263128*p_perp[18]+0.3535533905932737*p_perp[5]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,8,18,temp_p_perp); 
@@ -2588,6 +2859,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,8,19,temp_rho); 
   gkyl_mat_set(&A_Tyy,8,19,temp_rho); 
   gkyl_mat_set(&A_Tzz,8,19,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,8,19,temp_rho); 
  
   temp_p_perp = 0.3162277660168379*p_perp[19]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,8,19,temp_p_perp); 
@@ -2598,6 +2870,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,8,20,temp_rho); 
   gkyl_mat_set(&A_Tyy,8,20,temp_rho); 
   gkyl_mat_set(&A_Tzz,8,20,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,8,20,temp_rho); 
  
   temp_p_perp = 0.2258769757263128*p_perp[20]+0.3535533905932737*p_perp[7]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,8,20,temp_p_perp); 
@@ -2608,6 +2881,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,8,21,temp_rho); 
   gkyl_mat_set(&A_Tyy,8,21,temp_rho); 
   gkyl_mat_set(&A_Tzz,8,21,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,8,21,temp_rho); 
  
   temp_p_perp = 0.3535533905932737*p_perp[26]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,8,21,temp_p_perp); 
@@ -2618,6 +2892,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,8,22,temp_rho); 
   gkyl_mat_set(&A_Tyy,8,22,temp_rho); 
   gkyl_mat_set(&A_Tzz,8,22,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,8,22,temp_rho); 
  
   temp_p_perp = 0.2258769757263128*p_perp[22]+0.3535533905932737*p_perp[9]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,8,22,temp_p_perp); 
@@ -2628,6 +2903,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,8,23,temp_rho); 
   gkyl_mat_set(&A_Tyy,8,23,temp_rho); 
   gkyl_mat_set(&A_Tzz,8,23,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,8,23,temp_rho); 
  
   temp_p_perp = 0.2258769757263128*p_perp[23]+0.3535533905932737*p_perp[13]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,8,23,temp_p_perp); 
@@ -2638,6 +2914,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,8,24,temp_rho); 
   gkyl_mat_set(&A_Tyy,8,24,temp_rho); 
   gkyl_mat_set(&A_Tzz,8,24,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,8,24,temp_rho); 
  
   temp_p_perp = 0.3162277660168379*p_perp[24]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,8,24,temp_p_perp); 
@@ -2648,6 +2925,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,8,25,temp_rho); 
   gkyl_mat_set(&A_Tyy,8,25,temp_rho); 
   gkyl_mat_set(&A_Tzz,8,25,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,8,25,temp_rho); 
  
   temp_p_perp = 0.2258769757263128*p_perp[25]+0.3535533905932737*p_perp[15]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,8,25,temp_p_perp); 
@@ -2658,6 +2936,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,8,26,temp_rho); 
   gkyl_mat_set(&A_Tyy,8,26,temp_rho); 
   gkyl_mat_set(&A_Tzz,8,26,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,8,26,temp_rho); 
  
   temp_p_perp = 0.2258769757263128*p_perp[26]+0.3535533905932737*p_perp[21]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,8,26,temp_p_perp); 
@@ -2668,6 +2947,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,9,0,temp_rho); 
   gkyl_mat_set(&A_Tyy,9,0,temp_rho); 
   gkyl_mat_set(&A_Tzz,9,0,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,9,0,temp_rho); 
  
   temp_p_perp = 0.3535533905932737*p_perp[9]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,9,0,temp_p_perp); 
@@ -2678,6 +2958,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,9,1,temp_rho); 
   gkyl_mat_set(&A_Tyy,9,1,temp_rho); 
   gkyl_mat_set(&A_Tzz,9,1,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,9,1,temp_rho); 
  
   temp_p_perp = 0.3535533905932737*p_perp[15]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,9,1,temp_p_perp); 
@@ -2688,6 +2969,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,9,2,temp_rho); 
   gkyl_mat_set(&A_Tyy,9,2,temp_rho); 
   gkyl_mat_set(&A_Tzz,9,2,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,9,2,temp_rho); 
  
   temp_p_perp = 0.3535533905932737*p_perp[16]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,9,2,temp_p_perp); 
@@ -2698,6 +2980,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,9,3,temp_rho); 
   gkyl_mat_set(&A_Tyy,9,3,temp_rho); 
   gkyl_mat_set(&A_Tzz,9,3,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,9,3,temp_rho); 
  
   temp_p_perp = 0.3162277660168379*p_perp[3]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,9,3,temp_p_perp); 
@@ -2708,6 +2991,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,9,4,temp_rho); 
   gkyl_mat_set(&A_Tyy,9,4,temp_rho); 
   gkyl_mat_set(&A_Tzz,9,4,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,9,4,temp_rho); 
  
   temp_p_perp = 0.3535533905932737*p_perp[19]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,9,4,temp_p_perp); 
@@ -2718,6 +3002,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,9,5,temp_rho); 
   gkyl_mat_set(&A_Tyy,9,5,temp_rho); 
   gkyl_mat_set(&A_Tzz,9,5,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,9,5,temp_rho); 
  
   temp_p_perp = 0.3162277660168379*p_perp[5]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,9,5,temp_p_perp); 
@@ -2728,6 +3013,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,9,6,temp_rho); 
   gkyl_mat_set(&A_Tyy,9,6,temp_rho); 
   gkyl_mat_set(&A_Tzz,9,6,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,9,6,temp_rho); 
  
   temp_p_perp = 0.3162277660168379*p_perp[6]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,9,6,temp_p_perp); 
@@ -2738,6 +3024,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,9,7,temp_rho); 
   gkyl_mat_set(&A_Tyy,9,7,temp_rho); 
   gkyl_mat_set(&A_Tzz,9,7,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,9,7,temp_rho); 
  
   temp_p_perp = 0.3535533905932737*p_perp[21]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,9,7,temp_p_perp); 
@@ -2748,6 +3035,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,9,8,temp_rho); 
   gkyl_mat_set(&A_Tyy,9,8,temp_rho); 
   gkyl_mat_set(&A_Tzz,9,8,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,9,8,temp_rho); 
  
   temp_p_perp = 0.3535533905932737*p_perp[22]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,9,8,temp_p_perp); 
@@ -2758,6 +3046,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,9,9,temp_rho); 
   gkyl_mat_set(&A_Tyy,9,9,temp_rho); 
   gkyl_mat_set(&A_Tzz,9,9,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,9,9,temp_rho); 
  
   temp_p_perp = 0.2258769757263128*p_perp[9]+0.3535533905932737*p_perp[0]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,9,9,temp_p_perp); 
@@ -2768,6 +3057,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,9,10,temp_rho); 
   gkyl_mat_set(&A_Tyy,9,10,temp_rho); 
   gkyl_mat_set(&A_Tzz,9,10,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,9,10,temp_rho); 
  
   temp_p_perp = 0.3162277660168379*p_perp[10]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,9,10,temp_p_perp); 
@@ -2778,6 +3068,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,9,11,temp_rho); 
   gkyl_mat_set(&A_Tyy,9,11,temp_rho); 
   gkyl_mat_set(&A_Tzz,9,11,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,9,11,temp_rho); 
  
   temp_p_perp = 0.3535533905932737*p_perp[24]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,9,11,temp_p_perp); 
@@ -2788,6 +3079,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,9,12,temp_rho); 
   gkyl_mat_set(&A_Tyy,9,12,temp_rho); 
   gkyl_mat_set(&A_Tzz,9,12,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,9,12,temp_rho); 
  
   temp_p_perp = 0.3535533905932737*p_perp[25]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,9,12,temp_p_perp); 
@@ -2798,6 +3090,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,9,13,temp_rho); 
   gkyl_mat_set(&A_Tyy,9,13,temp_rho); 
   gkyl_mat_set(&A_Tzz,9,13,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,9,13,temp_rho); 
  
   temp_p_perp = 0.3162277660168379*p_perp[13]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,9,13,temp_p_perp); 
@@ -2808,6 +3101,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,9,14,temp_rho); 
   gkyl_mat_set(&A_Tyy,9,14,temp_rho); 
   gkyl_mat_set(&A_Tzz,9,14,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,9,14,temp_rho); 
  
   temp_p_perp = 0.3162277660168379*p_perp[14]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,9,14,temp_p_perp); 
@@ -2818,6 +3112,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,9,15,temp_rho); 
   gkyl_mat_set(&A_Tyy,9,15,temp_rho); 
   gkyl_mat_set(&A_Tzz,9,15,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,9,15,temp_rho); 
  
   temp_p_perp = 0.2258769757263128*p_perp[15]+0.3535533905932737*p_perp[1]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,9,15,temp_p_perp); 
@@ -2828,6 +3123,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,9,16,temp_rho); 
   gkyl_mat_set(&A_Tyy,9,16,temp_rho); 
   gkyl_mat_set(&A_Tzz,9,16,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,9,16,temp_rho); 
  
   temp_p_perp = 0.2258769757263128*p_perp[16]+0.3535533905932737*p_perp[2]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,9,16,temp_p_perp); 
@@ -2838,6 +3134,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,9,17,temp_rho); 
   gkyl_mat_set(&A_Tyy,9,17,temp_rho); 
   gkyl_mat_set(&A_Tzz,9,17,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,9,17,temp_rho); 
  
   temp_p_perp = 0.3162277660168379*p_perp[17]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,9,17,temp_p_perp); 
@@ -2848,6 +3145,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,9,18,temp_rho); 
   gkyl_mat_set(&A_Tyy,9,18,temp_rho); 
   gkyl_mat_set(&A_Tzz,9,18,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,9,18,temp_rho); 
  
   temp_p_perp = 0.3162277660168379*p_perp[18]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,9,18,temp_p_perp); 
@@ -2858,6 +3156,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,9,19,temp_rho); 
   gkyl_mat_set(&A_Tyy,9,19,temp_rho); 
   gkyl_mat_set(&A_Tzz,9,19,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,9,19,temp_rho); 
  
   temp_p_perp = 0.2258769757263128*p_perp[19]+0.3535533905932737*p_perp[4]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,9,19,temp_p_perp); 
@@ -2868,6 +3167,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,9,20,temp_rho); 
   gkyl_mat_set(&A_Tyy,9,20,temp_rho); 
   gkyl_mat_set(&A_Tzz,9,20,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,9,20,temp_rho); 
  
   temp_p_perp = 0.3535533905932737*p_perp[26]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,9,20,temp_p_perp); 
@@ -2878,6 +3178,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,9,21,temp_rho); 
   gkyl_mat_set(&A_Tyy,9,21,temp_rho); 
   gkyl_mat_set(&A_Tzz,9,21,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,9,21,temp_rho); 
  
   temp_p_perp = 0.2258769757263128*p_perp[21]+0.3535533905932737*p_perp[7]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,9,21,temp_p_perp); 
@@ -2888,6 +3189,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,9,22,temp_rho); 
   gkyl_mat_set(&A_Tyy,9,22,temp_rho); 
   gkyl_mat_set(&A_Tzz,9,22,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,9,22,temp_rho); 
  
   temp_p_perp = 0.2258769757263128*p_perp[22]+0.3535533905932737*p_perp[8]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,9,22,temp_p_perp); 
@@ -2898,6 +3200,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,9,23,temp_rho); 
   gkyl_mat_set(&A_Tyy,9,23,temp_rho); 
   gkyl_mat_set(&A_Tzz,9,23,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,9,23,temp_rho); 
  
   temp_p_perp = 0.3162277660168379*p_perp[23]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,9,23,temp_p_perp); 
@@ -2908,6 +3211,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,9,24,temp_rho); 
   gkyl_mat_set(&A_Tyy,9,24,temp_rho); 
   gkyl_mat_set(&A_Tzz,9,24,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,9,24,temp_rho); 
  
   temp_p_perp = 0.2258769757263128*p_perp[24]+0.3535533905932737*p_perp[11]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,9,24,temp_p_perp); 
@@ -2918,6 +3222,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,9,25,temp_rho); 
   gkyl_mat_set(&A_Tyy,9,25,temp_rho); 
   gkyl_mat_set(&A_Tzz,9,25,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,9,25,temp_rho); 
  
   temp_p_perp = 0.2258769757263128*p_perp[25]+0.3535533905932737*p_perp[12]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,9,25,temp_p_perp); 
@@ -2928,6 +3233,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,9,26,temp_rho); 
   gkyl_mat_set(&A_Tyy,9,26,temp_rho); 
   gkyl_mat_set(&A_Tzz,9,26,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,9,26,temp_rho); 
  
   temp_p_perp = 0.2258769757263128*p_perp[26]+0.3535533905932737*p_perp[20]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,9,26,temp_p_perp); 
@@ -2938,6 +3244,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,10,0,temp_rho); 
   gkyl_mat_set(&A_Tyy,10,0,temp_rho); 
   gkyl_mat_set(&A_Tzz,10,0,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,10,0,temp_rho); 
  
   temp_p_perp = 0.3535533905932737*p_perp[10]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,10,0,temp_p_perp); 
@@ -2948,6 +3255,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,10,1,temp_rho); 
   gkyl_mat_set(&A_Tyy,10,1,temp_rho); 
   gkyl_mat_set(&A_Tzz,10,1,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,10,1,temp_rho); 
  
   temp_p_perp = 0.3162277660168379*p_perp[17]+0.3535533905932737*p_perp[6]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,10,1,temp_p_perp); 
@@ -2958,6 +3266,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,10,2,temp_rho); 
   gkyl_mat_set(&A_Tyy,10,2,temp_rho); 
   gkyl_mat_set(&A_Tzz,10,2,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,10,2,temp_rho); 
  
   temp_p_perp = 0.3162277660168379*p_perp[18]+0.3535533905932737*p_perp[5]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,10,2,temp_p_perp); 
@@ -2968,6 +3277,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,10,3,temp_rho); 
   gkyl_mat_set(&A_Tyy,10,3,temp_rho); 
   gkyl_mat_set(&A_Tzz,10,3,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,10,3,temp_rho); 
  
   temp_p_perp = 0.3162277660168379*p_perp[19]+0.3535533905932737*p_perp[4]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,10,3,temp_p_perp); 
@@ -2978,6 +3288,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,10,4,temp_rho); 
   gkyl_mat_set(&A_Tyy,10,4,temp_rho); 
   gkyl_mat_set(&A_Tzz,10,4,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,10,4,temp_rho); 
  
   temp_p_perp = 0.2828427124746191*p_perp[23]+0.3162277660168379*p_perp[14]+0.3162277660168379*p_perp[13]+0.3535533905932737*p_perp[3]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,10,4,temp_p_perp); 
@@ -2988,6 +3299,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,10,5,temp_rho); 
   gkyl_mat_set(&A_Tyy,10,5,temp_rho); 
   gkyl_mat_set(&A_Tzz,10,5,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,10,5,temp_rho); 
  
   temp_p_perp = 0.2828427124746191*p_perp[24]+0.3162277660168379*p_perp[16]+0.3162277660168379*p_perp[11]+0.3535533905932737*p_perp[2]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,10,5,temp_p_perp); 
@@ -2998,6 +3310,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,10,6,temp_rho); 
   gkyl_mat_set(&A_Tyy,10,6,temp_rho); 
   gkyl_mat_set(&A_Tzz,10,6,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,10,6,temp_rho); 
  
   temp_p_perp = 0.2828427124746191*p_perp[25]+0.3162277660168379*p_perp[15]+0.3162277660168379*p_perp[12]+0.3535533905932737*p_perp[1]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,10,6,temp_p_perp); 
@@ -3008,6 +3321,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,10,7,temp_rho); 
   gkyl_mat_set(&A_Tyy,10,7,temp_rho); 
   gkyl_mat_set(&A_Tzz,10,7,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,10,7,temp_rho); 
  
   temp_p_perp = 0.3162277660168379*p_perp[10]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,10,7,temp_p_perp); 
@@ -3018,6 +3332,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,10,8,temp_rho); 
   gkyl_mat_set(&A_Tyy,10,8,temp_rho); 
   gkyl_mat_set(&A_Tzz,10,8,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,10,8,temp_rho); 
  
   temp_p_perp = 0.3162277660168379*p_perp[10]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,10,8,temp_p_perp); 
@@ -3028,6 +3343,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,10,9,temp_rho); 
   gkyl_mat_set(&A_Tyy,10,9,temp_rho); 
   gkyl_mat_set(&A_Tzz,10,9,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,10,9,temp_rho); 
  
   temp_p_perp = 0.3162277660168379*p_perp[10]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,10,9,temp_p_perp); 
@@ -3038,6 +3354,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,10,10,temp_rho); 
   gkyl_mat_set(&A_Tyy,10,10,temp_rho); 
   gkyl_mat_set(&A_Tzz,10,10,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,10,10,temp_rho); 
  
   temp_p_perp = 0.2529822128134704*p_perp[26]+0.2828427124746191*p_perp[22]+0.2828427124746191*p_perp[21]+0.2828427124746191*p_perp[20]+0.3162277660168379*p_perp[9]+0.3162277660168379*p_perp[8]+0.3162277660168379*p_perp[7]+0.3535533905932737*p_perp[0]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,10,10,temp_p_perp); 
@@ -3048,6 +3365,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,10,11,temp_rho); 
   gkyl_mat_set(&A_Tyy,10,11,temp_rho); 
   gkyl_mat_set(&A_Tzz,10,11,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,10,11,temp_rho); 
  
   temp_p_perp = 0.282842712474619*p_perp[18]+0.3162277660168379*p_perp[5]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,10,11,temp_p_perp); 
@@ -3058,6 +3376,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,10,12,temp_rho); 
   gkyl_mat_set(&A_Tyy,10,12,temp_rho); 
   gkyl_mat_set(&A_Tzz,10,12,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,10,12,temp_rho); 
  
   temp_p_perp = 0.282842712474619*p_perp[17]+0.3162277660168379*p_perp[6]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,10,12,temp_p_perp); 
@@ -3068,6 +3387,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,10,13,temp_rho); 
   gkyl_mat_set(&A_Tyy,10,13,temp_rho); 
   gkyl_mat_set(&A_Tzz,10,13,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,10,13,temp_rho); 
  
   temp_p_perp = 0.282842712474619*p_perp[19]+0.3162277660168379*p_perp[4]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,10,13,temp_p_perp); 
@@ -3078,6 +3398,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,10,14,temp_rho); 
   gkyl_mat_set(&A_Tyy,10,14,temp_rho); 
   gkyl_mat_set(&A_Tzz,10,14,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,10,14,temp_rho); 
  
   temp_p_perp = 0.282842712474619*p_perp[19]+0.3162277660168379*p_perp[4]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,10,14,temp_p_perp); 
@@ -3088,6 +3409,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,10,15,temp_rho); 
   gkyl_mat_set(&A_Tyy,10,15,temp_rho); 
   gkyl_mat_set(&A_Tzz,10,15,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,10,15,temp_rho); 
  
   temp_p_perp = 0.282842712474619*p_perp[17]+0.3162277660168379*p_perp[6]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,10,15,temp_p_perp); 
@@ -3098,6 +3420,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,10,16,temp_rho); 
   gkyl_mat_set(&A_Tyy,10,16,temp_rho); 
   gkyl_mat_set(&A_Tzz,10,16,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,10,16,temp_rho); 
  
   temp_p_perp = 0.282842712474619*p_perp[18]+0.3162277660168379*p_perp[5]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,10,16,temp_p_perp); 
@@ -3108,6 +3431,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,10,17,temp_rho); 
   gkyl_mat_set(&A_Tyy,10,17,temp_rho); 
   gkyl_mat_set(&A_Tzz,10,17,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,10,17,temp_rho); 
  
   temp_p_perp = 0.2529822128134704*p_perp[25]+0.282842712474619*p_perp[15]+0.282842712474619*p_perp[12]+0.3162277660168379*p_perp[1]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,10,17,temp_p_perp); 
@@ -3118,6 +3442,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,10,18,temp_rho); 
   gkyl_mat_set(&A_Tyy,10,18,temp_rho); 
   gkyl_mat_set(&A_Tzz,10,18,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,10,18,temp_rho); 
  
   temp_p_perp = 0.2529822128134704*p_perp[24]+0.282842712474619*p_perp[16]+0.282842712474619*p_perp[11]+0.3162277660168379*p_perp[2]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,10,18,temp_p_perp); 
@@ -3128,6 +3453,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,10,19,temp_rho); 
   gkyl_mat_set(&A_Tyy,10,19,temp_rho); 
   gkyl_mat_set(&A_Tzz,10,19,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,10,19,temp_rho); 
  
   temp_p_perp = 0.2529822128134704*p_perp[23]+0.282842712474619*p_perp[14]+0.282842712474619*p_perp[13]+0.3162277660168379*p_perp[3]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,10,19,temp_p_perp); 
@@ -3138,6 +3464,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,10,20,temp_rho); 
   gkyl_mat_set(&A_Tyy,10,20,temp_rho); 
   gkyl_mat_set(&A_Tzz,10,20,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,10,20,temp_rho); 
  
   temp_p_perp = 0.2828427124746191*p_perp[10]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,10,20,temp_p_perp); 
@@ -3148,6 +3475,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,10,21,temp_rho); 
   gkyl_mat_set(&A_Tyy,10,21,temp_rho); 
   gkyl_mat_set(&A_Tzz,10,21,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,10,21,temp_rho); 
  
   temp_p_perp = 0.2828427124746191*p_perp[10]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,10,21,temp_p_perp); 
@@ -3158,6 +3486,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,10,22,temp_rho); 
   gkyl_mat_set(&A_Tyy,10,22,temp_rho); 
   gkyl_mat_set(&A_Tzz,10,22,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,10,22,temp_rho); 
  
   temp_p_perp = 0.2828427124746191*p_perp[10]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,10,22,temp_p_perp); 
@@ -3168,6 +3497,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,10,23,temp_rho); 
   gkyl_mat_set(&A_Tyy,10,23,temp_rho); 
   gkyl_mat_set(&A_Tzz,10,23,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,10,23,temp_rho); 
  
   temp_p_perp = 0.2529822128134704*p_perp[19]+0.2828427124746191*p_perp[4]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,10,23,temp_p_perp); 
@@ -3178,6 +3508,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,10,24,temp_rho); 
   gkyl_mat_set(&A_Tyy,10,24,temp_rho); 
   gkyl_mat_set(&A_Tzz,10,24,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,10,24,temp_rho); 
  
   temp_p_perp = 0.2529822128134704*p_perp[18]+0.2828427124746191*p_perp[5]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,10,24,temp_p_perp); 
@@ -3188,6 +3519,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,10,25,temp_rho); 
   gkyl_mat_set(&A_Tyy,10,25,temp_rho); 
   gkyl_mat_set(&A_Tzz,10,25,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,10,25,temp_rho); 
  
   temp_p_perp = 0.2529822128134704*p_perp[17]+0.2828427124746191*p_perp[6]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,10,25,temp_p_perp); 
@@ -3198,6 +3530,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,10,26,temp_rho); 
   gkyl_mat_set(&A_Tyy,10,26,temp_rho); 
   gkyl_mat_set(&A_Tzz,10,26,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,10,26,temp_rho); 
  
   temp_p_perp = 0.2529822128134704*p_perp[10]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,10,26,temp_p_perp); 
@@ -3208,6 +3541,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,11,0,temp_rho); 
   gkyl_mat_set(&A_Tyy,11,0,temp_rho); 
   gkyl_mat_set(&A_Tzz,11,0,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,11,0,temp_rho); 
  
   temp_p_perp = 0.3535533905932737*p_perp[11]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,11,0,temp_p_perp); 
@@ -3218,6 +3552,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,11,1,temp_rho); 
   gkyl_mat_set(&A_Tyy,11,1,temp_rho); 
   gkyl_mat_set(&A_Tzz,11,1,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,11,1,temp_rho); 
  
   temp_p_perp = 0.3162277660168379*p_perp[4]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,11,1,temp_p_perp); 
@@ -3228,6 +3563,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,11,2,temp_rho); 
   gkyl_mat_set(&A_Tyy,11,2,temp_rho); 
   gkyl_mat_set(&A_Tzz,11,2,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,11,2,temp_rho); 
  
   temp_p_perp = 0.3162277660168379*p_perp[20]+0.3535533905932737*p_perp[7]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,11,2,temp_p_perp); 
@@ -3238,6 +3574,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,11,3,temp_rho); 
   gkyl_mat_set(&A_Tyy,11,3,temp_rho); 
   gkyl_mat_set(&A_Tzz,11,3,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,11,3,temp_rho); 
  
   temp_p_perp = 0.3535533905932737*p_perp[17]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,11,3,temp_p_perp); 
@@ -3248,6 +3585,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,11,4,temp_rho); 
   gkyl_mat_set(&A_Tyy,11,4,temp_rho); 
   gkyl_mat_set(&A_Tzz,11,4,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,11,4,temp_rho); 
  
   temp_p_perp = 0.2828427124746191*p_perp[12]+0.3162277660168379*p_perp[1]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,11,4,temp_p_perp); 
@@ -3258,6 +3596,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,11,5,temp_rho); 
   gkyl_mat_set(&A_Tyy,11,5,temp_rho); 
   gkyl_mat_set(&A_Tzz,11,5,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,11,5,temp_rho); 
  
   temp_p_perp = 0.3162277660168379*p_perp[10]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,11,5,temp_p_perp); 
@@ -3268,6 +3607,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,11,6,temp_rho); 
   gkyl_mat_set(&A_Tyy,11,6,temp_rho); 
   gkyl_mat_set(&A_Tzz,11,6,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,11,6,temp_rho); 
  
   temp_p_perp = 0.3162277660168379*p_perp[23]+0.3535533905932737*p_perp[13]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,11,6,temp_p_perp); 
@@ -3278,6 +3618,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,11,7,temp_rho); 
   gkyl_mat_set(&A_Tyy,11,7,temp_rho); 
   gkyl_mat_set(&A_Tzz,11,7,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,11,7,temp_rho); 
  
   temp_p_perp = 0.2258769757263128*p_perp[11]+0.3535533905932737*p_perp[2]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,11,7,temp_p_perp); 
@@ -3288,6 +3629,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,11,8,temp_rho); 
   gkyl_mat_set(&A_Tyy,11,8,temp_rho); 
   gkyl_mat_set(&A_Tzz,11,8,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,11,8,temp_rho); 
  
   temp_p_perp = 0.3162277660168379*p_perp[11]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,11,8,temp_p_perp); 
@@ -3298,6 +3640,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,11,9,temp_rho); 
   gkyl_mat_set(&A_Tyy,11,9,temp_rho); 
   gkyl_mat_set(&A_Tzz,11,9,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,11,9,temp_rho); 
  
   temp_p_perp = 0.3535533905932737*p_perp[24]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,11,9,temp_p_perp); 
@@ -3308,6 +3651,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,11,10,temp_rho); 
   gkyl_mat_set(&A_Tyy,11,10,temp_rho); 
   gkyl_mat_set(&A_Tzz,11,10,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,11,10,temp_rho); 
  
   temp_p_perp = 0.282842712474619*p_perp[18]+0.3162277660168379*p_perp[5]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,11,10,temp_p_perp); 
@@ -3318,6 +3662,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,11,11,temp_rho); 
   gkyl_mat_set(&A_Tyy,11,11,temp_rho); 
   gkyl_mat_set(&A_Tzz,11,11,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,11,11,temp_rho); 
  
   temp_p_perp = 0.2020305089104422*p_perp[20]+0.3162277660168379*p_perp[8]+0.2258769757263128*p_perp[7]+0.3535533905932737*p_perp[0]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,11,11,temp_p_perp); 
@@ -3328,6 +3673,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,11,12,temp_rho); 
   gkyl_mat_set(&A_Tyy,11,12,temp_rho); 
   gkyl_mat_set(&A_Tzz,11,12,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,11,12,temp_rho); 
  
   temp_p_perp = 0.2828427124746191*p_perp[4]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,11,12,temp_p_perp); 
@@ -3338,6 +3684,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,11,13,temp_rho); 
   gkyl_mat_set(&A_Tyy,11,13,temp_rho); 
   gkyl_mat_set(&A_Tzz,11,13,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,11,13,temp_rho); 
  
   temp_p_perp = 0.2258769757263128*p_perp[17]+0.3535533905932737*p_perp[6]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,11,13,temp_p_perp); 
@@ -3348,6 +3695,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,11,14,temp_rho); 
   gkyl_mat_set(&A_Tyy,11,14,temp_rho); 
   gkyl_mat_set(&A_Tzz,11,14,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,11,14,temp_rho); 
  
   temp_p_perp = 0.3162277660168379*p_perp[17]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,11,14,temp_p_perp); 
@@ -3358,6 +3706,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,11,15,temp_rho); 
   gkyl_mat_set(&A_Tyy,11,15,temp_rho); 
   gkyl_mat_set(&A_Tzz,11,15,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,11,15,temp_rho); 
  
   temp_p_perp = 0.3162277660168379*p_perp[19]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,11,15,temp_p_perp); 
@@ -3368,6 +3717,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,11,16,temp_rho); 
   gkyl_mat_set(&A_Tyy,11,16,temp_rho); 
   gkyl_mat_set(&A_Tzz,11,16,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,11,16,temp_rho); 
  
   temp_p_perp = 0.3162277660168379*p_perp[26]+0.3535533905932737*p_perp[21]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,11,16,temp_p_perp); 
@@ -3378,6 +3728,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,11,17,temp_rho); 
   gkyl_mat_set(&A_Tyy,11,17,temp_rho); 
   gkyl_mat_set(&A_Tzz,11,17,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,11,17,temp_rho); 
  
   temp_p_perp = 0.2020305089104422*p_perp[23]+0.3162277660168379*p_perp[14]+0.2258769757263128*p_perp[13]+0.3535533905932737*p_perp[3]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,11,17,temp_p_perp); 
@@ -3388,6 +3739,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,11,18,temp_rho); 
   gkyl_mat_set(&A_Tyy,11,18,temp_rho); 
   gkyl_mat_set(&A_Tzz,11,18,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,11,18,temp_rho); 
  
   temp_p_perp = 0.282842712474619*p_perp[10]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,11,18,temp_p_perp); 
@@ -3398,6 +3750,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,11,19,temp_rho); 
   gkyl_mat_set(&A_Tyy,11,19,temp_rho); 
   gkyl_mat_set(&A_Tzz,11,19,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,11,19,temp_rho); 
  
   temp_p_perp = 0.282842712474619*p_perp[25]+0.3162277660168379*p_perp[15]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,11,19,temp_p_perp); 
@@ -3408,6 +3761,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,11,20,temp_rho); 
   gkyl_mat_set(&A_Tyy,11,20,temp_rho); 
   gkyl_mat_set(&A_Tzz,11,20,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,11,20,temp_rho); 
  
   temp_p_perp = 0.2020305089104422*p_perp[11]+0.3162277660168379*p_perp[2]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,11,20,temp_p_perp); 
@@ -3418,6 +3772,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,11,21,temp_rho); 
   gkyl_mat_set(&A_Tyy,11,21,temp_rho); 
   gkyl_mat_set(&A_Tzz,11,21,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,11,21,temp_rho); 
  
   temp_p_perp = 0.2258769757263128*p_perp[24]+0.3535533905932737*p_perp[16]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,11,21,temp_p_perp); 
@@ -3428,6 +3783,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,11,22,temp_rho); 
   gkyl_mat_set(&A_Tyy,11,22,temp_rho); 
   gkyl_mat_set(&A_Tzz,11,22,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,11,22,temp_rho); 
  
   temp_p_perp = 0.3162277660168379*p_perp[24]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,11,22,temp_p_perp); 
@@ -3438,6 +3794,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,11,23,temp_rho); 
   gkyl_mat_set(&A_Tyy,11,23,temp_rho); 
   gkyl_mat_set(&A_Tzz,11,23,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,11,23,temp_rho); 
  
   temp_p_perp = 0.2020305089104422*p_perp[17]+0.3162277660168379*p_perp[6]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,11,23,temp_p_perp); 
@@ -3448,6 +3805,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,11,24,temp_rho); 
   gkyl_mat_set(&A_Tyy,11,24,temp_rho); 
   gkyl_mat_set(&A_Tzz,11,24,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,11,24,temp_rho); 
  
   temp_p_perp = 0.2020305089104422*p_perp[26]+0.3162277660168379*p_perp[22]+0.2258769757263128*p_perp[21]+0.3535533905932737*p_perp[9]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,11,24,temp_p_perp); 
@@ -3458,6 +3816,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,11,25,temp_rho); 
   gkyl_mat_set(&A_Tyy,11,25,temp_rho); 
   gkyl_mat_set(&A_Tzz,11,25,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,11,25,temp_rho); 
  
   temp_p_perp = 0.282842712474619*p_perp[19]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,11,25,temp_p_perp); 
@@ -3468,6 +3827,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,11,26,temp_rho); 
   gkyl_mat_set(&A_Tyy,11,26,temp_rho); 
   gkyl_mat_set(&A_Tzz,11,26,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,11,26,temp_rho); 
  
   temp_p_perp = 0.2020305089104422*p_perp[24]+0.3162277660168379*p_perp[16]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,11,26,temp_p_perp); 
@@ -3478,6 +3838,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,12,0,temp_rho); 
   gkyl_mat_set(&A_Tyy,12,0,temp_rho); 
   gkyl_mat_set(&A_Tzz,12,0,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,12,0,temp_rho); 
  
   temp_p_perp = 0.3535533905932737*p_perp[12]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,12,0,temp_p_perp); 
@@ -3488,6 +3849,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,12,1,temp_rho); 
   gkyl_mat_set(&A_Tyy,12,1,temp_rho); 
   gkyl_mat_set(&A_Tzz,12,1,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,12,1,temp_rho); 
  
   temp_p_perp = 0.3162277660168379*p_perp[20]+0.3535533905932737*p_perp[8]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,12,1,temp_p_perp); 
@@ -3498,6 +3860,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,12,2,temp_rho); 
   gkyl_mat_set(&A_Tyy,12,2,temp_rho); 
   gkyl_mat_set(&A_Tzz,12,2,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,12,2,temp_rho); 
  
   temp_p_perp = 0.3162277660168379*p_perp[4]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,12,2,temp_p_perp); 
@@ -3508,6 +3871,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,12,3,temp_rho); 
   gkyl_mat_set(&A_Tyy,12,3,temp_rho); 
   gkyl_mat_set(&A_Tzz,12,3,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,12,3,temp_rho); 
  
   temp_p_perp = 0.3535533905932737*p_perp[18]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,12,3,temp_p_perp); 
@@ -3518,6 +3882,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,12,4,temp_rho); 
   gkyl_mat_set(&A_Tyy,12,4,temp_rho); 
   gkyl_mat_set(&A_Tzz,12,4,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,12,4,temp_rho); 
  
   temp_p_perp = 0.2828427124746191*p_perp[11]+0.3162277660168379*p_perp[2]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,12,4,temp_p_perp); 
@@ -3528,6 +3893,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,12,5,temp_rho); 
   gkyl_mat_set(&A_Tyy,12,5,temp_rho); 
   gkyl_mat_set(&A_Tzz,12,5,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,12,5,temp_rho); 
  
   temp_p_perp = 0.3162277660168379*p_perp[23]+0.3535533905932737*p_perp[14]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,12,5,temp_p_perp); 
@@ -3538,6 +3904,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,12,6,temp_rho); 
   gkyl_mat_set(&A_Tyy,12,6,temp_rho); 
   gkyl_mat_set(&A_Tzz,12,6,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,12,6,temp_rho); 
  
   temp_p_perp = 0.3162277660168379*p_perp[10]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,12,6,temp_p_perp); 
@@ -3548,6 +3915,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,12,7,temp_rho); 
   gkyl_mat_set(&A_Tyy,12,7,temp_rho); 
   gkyl_mat_set(&A_Tzz,12,7,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,12,7,temp_rho); 
  
   temp_p_perp = 0.3162277660168379*p_perp[12]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,12,7,temp_p_perp); 
@@ -3558,6 +3926,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,12,8,temp_rho); 
   gkyl_mat_set(&A_Tyy,12,8,temp_rho); 
   gkyl_mat_set(&A_Tzz,12,8,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,12,8,temp_rho); 
  
   temp_p_perp = 0.2258769757263128*p_perp[12]+0.3535533905932737*p_perp[1]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,12,8,temp_p_perp); 
@@ -3568,6 +3937,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,12,9,temp_rho); 
   gkyl_mat_set(&A_Tyy,12,9,temp_rho); 
   gkyl_mat_set(&A_Tzz,12,9,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,12,9,temp_rho); 
  
   temp_p_perp = 0.3535533905932737*p_perp[25]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,12,9,temp_p_perp); 
@@ -3578,6 +3948,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,12,10,temp_rho); 
   gkyl_mat_set(&A_Tyy,12,10,temp_rho); 
   gkyl_mat_set(&A_Tzz,12,10,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,12,10,temp_rho); 
  
   temp_p_perp = 0.282842712474619*p_perp[17]+0.3162277660168379*p_perp[6]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,12,10,temp_p_perp); 
@@ -3588,6 +3959,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,12,11,temp_rho); 
   gkyl_mat_set(&A_Tyy,12,11,temp_rho); 
   gkyl_mat_set(&A_Tzz,12,11,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,12,11,temp_rho); 
  
   temp_p_perp = 0.2828427124746191*p_perp[4]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,12,11,temp_p_perp); 
@@ -3598,6 +3970,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,12,12,temp_rho); 
   gkyl_mat_set(&A_Tyy,12,12,temp_rho); 
   gkyl_mat_set(&A_Tzz,12,12,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,12,12,temp_rho); 
  
   temp_p_perp = 0.2020305089104422*p_perp[20]+0.2258769757263128*p_perp[8]+0.3162277660168379*p_perp[7]+0.3535533905932737*p_perp[0]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,12,12,temp_p_perp); 
@@ -3608,6 +3981,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,12,13,temp_rho); 
   gkyl_mat_set(&A_Tyy,12,13,temp_rho); 
   gkyl_mat_set(&A_Tzz,12,13,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,12,13,temp_rho); 
  
   temp_p_perp = 0.3162277660168379*p_perp[18]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,12,13,temp_p_perp); 
@@ -3618,6 +3992,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,12,14,temp_rho); 
   gkyl_mat_set(&A_Tyy,12,14,temp_rho); 
   gkyl_mat_set(&A_Tzz,12,14,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,12,14,temp_rho); 
  
   temp_p_perp = 0.2258769757263128*p_perp[18]+0.3535533905932737*p_perp[5]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,12,14,temp_p_perp); 
@@ -3628,6 +4003,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,12,15,temp_rho); 
   gkyl_mat_set(&A_Tyy,12,15,temp_rho); 
   gkyl_mat_set(&A_Tzz,12,15,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,12,15,temp_rho); 
  
   temp_p_perp = 0.3162277660168379*p_perp[26]+0.3535533905932737*p_perp[22]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,12,15,temp_p_perp); 
@@ -3638,6 +4014,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,12,16,temp_rho); 
   gkyl_mat_set(&A_Tyy,12,16,temp_rho); 
   gkyl_mat_set(&A_Tzz,12,16,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,12,16,temp_rho); 
  
   temp_p_perp = 0.3162277660168379*p_perp[19]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,12,16,temp_p_perp); 
@@ -3648,6 +4025,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,12,17,temp_rho); 
   gkyl_mat_set(&A_Tyy,12,17,temp_rho); 
   gkyl_mat_set(&A_Tzz,12,17,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,12,17,temp_rho); 
  
   temp_p_perp = 0.282842712474619*p_perp[10]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,12,17,temp_p_perp); 
@@ -3658,6 +4036,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,12,18,temp_rho); 
   gkyl_mat_set(&A_Tyy,12,18,temp_rho); 
   gkyl_mat_set(&A_Tzz,12,18,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,12,18,temp_rho); 
  
   temp_p_perp = 0.2020305089104422*p_perp[23]+0.2258769757263128*p_perp[14]+0.3162277660168379*p_perp[13]+0.3535533905932737*p_perp[3]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,12,18,temp_p_perp); 
@@ -3668,6 +4047,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,12,19,temp_rho); 
   gkyl_mat_set(&A_Tyy,12,19,temp_rho); 
   gkyl_mat_set(&A_Tzz,12,19,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,12,19,temp_rho); 
  
   temp_p_perp = 0.282842712474619*p_perp[24]+0.3162277660168379*p_perp[16]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,12,19,temp_p_perp); 
@@ -3678,6 +4058,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,12,20,temp_rho); 
   gkyl_mat_set(&A_Tyy,12,20,temp_rho); 
   gkyl_mat_set(&A_Tzz,12,20,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,12,20,temp_rho); 
  
   temp_p_perp = 0.2020305089104422*p_perp[12]+0.3162277660168379*p_perp[1]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,12,20,temp_p_perp); 
@@ -3688,6 +4069,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,12,21,temp_rho); 
   gkyl_mat_set(&A_Tyy,12,21,temp_rho); 
   gkyl_mat_set(&A_Tzz,12,21,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,12,21,temp_rho); 
  
   temp_p_perp = 0.3162277660168379*p_perp[25]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,12,21,temp_p_perp); 
@@ -3698,6 +4080,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,12,22,temp_rho); 
   gkyl_mat_set(&A_Tyy,12,22,temp_rho); 
   gkyl_mat_set(&A_Tzz,12,22,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,12,22,temp_rho); 
  
   temp_p_perp = 0.2258769757263128*p_perp[25]+0.3535533905932737*p_perp[15]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,12,22,temp_p_perp); 
@@ -3708,6 +4091,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,12,23,temp_rho); 
   gkyl_mat_set(&A_Tyy,12,23,temp_rho); 
   gkyl_mat_set(&A_Tzz,12,23,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,12,23,temp_rho); 
  
   temp_p_perp = 0.2020305089104422*p_perp[18]+0.3162277660168379*p_perp[5]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,12,23,temp_p_perp); 
@@ -3718,6 +4102,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,12,24,temp_rho); 
   gkyl_mat_set(&A_Tyy,12,24,temp_rho); 
   gkyl_mat_set(&A_Tzz,12,24,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,12,24,temp_rho); 
  
   temp_p_perp = 0.282842712474619*p_perp[19]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,12,24,temp_p_perp); 
@@ -3728,6 +4113,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,12,25,temp_rho); 
   gkyl_mat_set(&A_Tyy,12,25,temp_rho); 
   gkyl_mat_set(&A_Tzz,12,25,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,12,25,temp_rho); 
  
   temp_p_perp = 0.2020305089104422*p_perp[26]+0.2258769757263128*p_perp[22]+0.3162277660168379*p_perp[21]+0.3535533905932737*p_perp[9]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,12,25,temp_p_perp); 
@@ -3738,6 +4124,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,12,26,temp_rho); 
   gkyl_mat_set(&A_Tyy,12,26,temp_rho); 
   gkyl_mat_set(&A_Tzz,12,26,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,12,26,temp_rho); 
  
   temp_p_perp = 0.2020305089104422*p_perp[25]+0.3162277660168379*p_perp[15]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,12,26,temp_p_perp); 
@@ -3748,6 +4135,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,13,0,temp_rho); 
   gkyl_mat_set(&A_Tyy,13,0,temp_rho); 
   gkyl_mat_set(&A_Tzz,13,0,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,13,0,temp_rho); 
  
   temp_p_perp = 0.3535533905932737*p_perp[13]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,13,0,temp_p_perp); 
@@ -3758,6 +4146,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,13,1,temp_rho); 
   gkyl_mat_set(&A_Tyy,13,1,temp_rho); 
   gkyl_mat_set(&A_Tzz,13,1,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,13,1,temp_rho); 
  
   temp_p_perp = 0.3162277660168379*p_perp[5]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,13,1,temp_p_perp); 
@@ -3768,6 +4157,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,13,2,temp_rho); 
   gkyl_mat_set(&A_Tyy,13,2,temp_rho); 
   gkyl_mat_set(&A_Tzz,13,2,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,13,2,temp_rho); 
  
   temp_p_perp = 0.3535533905932737*p_perp[17]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,13,2,temp_p_perp); 
@@ -3778,6 +4168,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,13,3,temp_rho); 
   gkyl_mat_set(&A_Tyy,13,3,temp_rho); 
   gkyl_mat_set(&A_Tzz,13,3,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,13,3,temp_rho); 
  
   temp_p_perp = 0.3162277660168379*p_perp[21]+0.3535533905932737*p_perp[7]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,13,3,temp_p_perp); 
@@ -3788,6 +4179,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,13,4,temp_rho); 
   gkyl_mat_set(&A_Tyy,13,4,temp_rho); 
   gkyl_mat_set(&A_Tzz,13,4,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,13,4,temp_rho); 
  
   temp_p_perp = 0.3162277660168379*p_perp[10]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,13,4,temp_p_perp); 
@@ -3798,6 +4190,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,13,5,temp_rho); 
   gkyl_mat_set(&A_Tyy,13,5,temp_rho); 
   gkyl_mat_set(&A_Tzz,13,5,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,13,5,temp_rho); 
  
   temp_p_perp = 0.2828427124746191*p_perp[15]+0.3162277660168379*p_perp[1]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,13,5,temp_p_perp); 
@@ -3808,6 +4201,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,13,6,temp_rho); 
   gkyl_mat_set(&A_Tyy,13,6,temp_rho); 
   gkyl_mat_set(&A_Tzz,13,6,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,13,6,temp_rho); 
  
   temp_p_perp = 0.3162277660168379*p_perp[24]+0.3535533905932737*p_perp[11]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,13,6,temp_p_perp); 
@@ -3818,6 +4212,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,13,7,temp_rho); 
   gkyl_mat_set(&A_Tyy,13,7,temp_rho); 
   gkyl_mat_set(&A_Tzz,13,7,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,13,7,temp_rho); 
  
   temp_p_perp = 0.2258769757263128*p_perp[13]+0.3535533905932737*p_perp[3]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,13,7,temp_p_perp); 
@@ -3828,6 +4223,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,13,8,temp_rho); 
   gkyl_mat_set(&A_Tyy,13,8,temp_rho); 
   gkyl_mat_set(&A_Tzz,13,8,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,13,8,temp_rho); 
  
   temp_p_perp = 0.3535533905932737*p_perp[23]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,13,8,temp_p_perp); 
@@ -3838,6 +4234,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,13,9,temp_rho); 
   gkyl_mat_set(&A_Tyy,13,9,temp_rho); 
   gkyl_mat_set(&A_Tzz,13,9,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,13,9,temp_rho); 
  
   temp_p_perp = 0.3162277660168379*p_perp[13]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,13,9,temp_p_perp); 
@@ -3848,6 +4245,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,13,10,temp_rho); 
   gkyl_mat_set(&A_Tyy,13,10,temp_rho); 
   gkyl_mat_set(&A_Tzz,13,10,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,13,10,temp_rho); 
  
   temp_p_perp = 0.282842712474619*p_perp[19]+0.3162277660168379*p_perp[4]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,13,10,temp_p_perp); 
@@ -3858,6 +4256,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,13,11,temp_rho); 
   gkyl_mat_set(&A_Tyy,13,11,temp_rho); 
   gkyl_mat_set(&A_Tzz,13,11,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,13,11,temp_rho); 
  
   temp_p_perp = 0.2258769757263128*p_perp[17]+0.3535533905932737*p_perp[6]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,13,11,temp_p_perp); 
@@ -3868,6 +4267,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,13,12,temp_rho); 
   gkyl_mat_set(&A_Tyy,13,12,temp_rho); 
   gkyl_mat_set(&A_Tzz,13,12,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,13,12,temp_rho); 
  
   temp_p_perp = 0.3162277660168379*p_perp[18]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,13,12,temp_p_perp); 
@@ -3878,6 +4278,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,13,13,temp_rho); 
   gkyl_mat_set(&A_Tyy,13,13,temp_rho); 
   gkyl_mat_set(&A_Tzz,13,13,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,13,13,temp_rho); 
  
   temp_p_perp = 0.2020305089104422*p_perp[21]+0.3162277660168379*p_perp[9]+0.2258769757263128*p_perp[7]+0.3535533905932737*p_perp[0]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,13,13,temp_p_perp); 
@@ -3888,6 +4289,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,13,14,temp_rho); 
   gkyl_mat_set(&A_Tyy,13,14,temp_rho); 
   gkyl_mat_set(&A_Tzz,13,14,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,13,14,temp_rho); 
  
   temp_p_perp = 0.3162277660168379*p_perp[26]+0.3535533905932737*p_perp[20]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,13,14,temp_p_perp); 
@@ -3898,6 +4300,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,13,15,temp_rho); 
   gkyl_mat_set(&A_Tyy,13,15,temp_rho); 
   gkyl_mat_set(&A_Tzz,13,15,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,13,15,temp_rho); 
  
   temp_p_perp = 0.2828427124746191*p_perp[5]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,13,15,temp_p_perp); 
@@ -3908,6 +4311,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,13,16,temp_rho); 
   gkyl_mat_set(&A_Tyy,13,16,temp_rho); 
   gkyl_mat_set(&A_Tzz,13,16,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,13,16,temp_rho); 
  
   temp_p_perp = 0.3162277660168379*p_perp[17]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,13,16,temp_p_perp); 
@@ -3918,6 +4322,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,13,17,temp_rho); 
   gkyl_mat_set(&A_Tyy,13,17,temp_rho); 
   gkyl_mat_set(&A_Tzz,13,17,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,13,17,temp_rho); 
  
   temp_p_perp = 0.2020305089104422*p_perp[24]+0.3162277660168379*p_perp[16]+0.2258769757263128*p_perp[11]+0.3535533905932737*p_perp[2]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,13,17,temp_p_perp); 
@@ -3928,6 +4333,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,13,18,temp_rho); 
   gkyl_mat_set(&A_Tyy,13,18,temp_rho); 
   gkyl_mat_set(&A_Tzz,13,18,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,13,18,temp_rho); 
  
   temp_p_perp = 0.282842712474619*p_perp[25]+0.3162277660168379*p_perp[12]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,13,18,temp_p_perp); 
@@ -3938,6 +4344,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,13,19,temp_rho); 
   gkyl_mat_set(&A_Tyy,13,19,temp_rho); 
   gkyl_mat_set(&A_Tzz,13,19,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,13,19,temp_rho); 
  
   temp_p_perp = 0.282842712474619*p_perp[10]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,13,19,temp_p_perp); 
@@ -3948,6 +4355,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,13,20,temp_rho); 
   gkyl_mat_set(&A_Tyy,13,20,temp_rho); 
   gkyl_mat_set(&A_Tzz,13,20,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,13,20,temp_rho); 
  
   temp_p_perp = 0.2258769757263128*p_perp[23]+0.3535533905932737*p_perp[14]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,13,20,temp_p_perp); 
@@ -3958,6 +4366,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,13,21,temp_rho); 
   gkyl_mat_set(&A_Tyy,13,21,temp_rho); 
   gkyl_mat_set(&A_Tzz,13,21,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,13,21,temp_rho); 
  
   temp_p_perp = 0.2020305089104422*p_perp[13]+0.3162277660168379*p_perp[3]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,13,21,temp_p_perp); 
@@ -3968,6 +4377,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,13,22,temp_rho); 
   gkyl_mat_set(&A_Tyy,13,22,temp_rho); 
   gkyl_mat_set(&A_Tzz,13,22,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,13,22,temp_rho); 
  
   temp_p_perp = 0.3162277660168379*p_perp[23]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,13,22,temp_p_perp); 
@@ -3978,6 +4388,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,13,23,temp_rho); 
   gkyl_mat_set(&A_Tyy,13,23,temp_rho); 
   gkyl_mat_set(&A_Tzz,13,23,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,13,23,temp_rho); 
  
   temp_p_perp = 0.2020305089104422*p_perp[26]+0.3162277660168379*p_perp[22]+0.2258769757263128*p_perp[20]+0.3535533905932737*p_perp[8]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,13,23,temp_p_perp); 
@@ -3988,6 +4399,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,13,24,temp_rho); 
   gkyl_mat_set(&A_Tyy,13,24,temp_rho); 
   gkyl_mat_set(&A_Tzz,13,24,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,13,24,temp_rho); 
  
   temp_p_perp = 0.2020305089104422*p_perp[17]+0.3162277660168379*p_perp[6]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,13,24,temp_p_perp); 
@@ -3998,6 +4410,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,13,25,temp_rho); 
   gkyl_mat_set(&A_Tyy,13,25,temp_rho); 
   gkyl_mat_set(&A_Tzz,13,25,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,13,25,temp_rho); 
  
   temp_p_perp = 0.282842712474619*p_perp[18]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,13,25,temp_p_perp); 
@@ -4008,6 +4421,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,13,26,temp_rho); 
   gkyl_mat_set(&A_Tyy,13,26,temp_rho); 
   gkyl_mat_set(&A_Tzz,13,26,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,13,26,temp_rho); 
  
   temp_p_perp = 0.2020305089104422*p_perp[23]+0.3162277660168379*p_perp[14]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,13,26,temp_p_perp); 
@@ -4018,6 +4432,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,14,0,temp_rho); 
   gkyl_mat_set(&A_Tyy,14,0,temp_rho); 
   gkyl_mat_set(&A_Tzz,14,0,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,14,0,temp_rho); 
  
   temp_p_perp = 0.3535533905932737*p_perp[14]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,14,0,temp_p_perp); 
@@ -4028,6 +4443,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,14,1,temp_rho); 
   gkyl_mat_set(&A_Tyy,14,1,temp_rho); 
   gkyl_mat_set(&A_Tzz,14,1,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,14,1,temp_rho); 
  
   temp_p_perp = 0.3535533905932737*p_perp[18]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,14,1,temp_p_perp); 
@@ -4038,6 +4454,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,14,2,temp_rho); 
   gkyl_mat_set(&A_Tyy,14,2,temp_rho); 
   gkyl_mat_set(&A_Tzz,14,2,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,14,2,temp_rho); 
  
   temp_p_perp = 0.3162277660168379*p_perp[6]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,14,2,temp_p_perp); 
@@ -4048,6 +4465,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,14,3,temp_rho); 
   gkyl_mat_set(&A_Tyy,14,3,temp_rho); 
   gkyl_mat_set(&A_Tzz,14,3,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,14,3,temp_rho); 
  
   temp_p_perp = 0.3162277660168379*p_perp[22]+0.3535533905932737*p_perp[8]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,14,3,temp_p_perp); 
@@ -4058,6 +4476,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,14,4,temp_rho); 
   gkyl_mat_set(&A_Tyy,14,4,temp_rho); 
   gkyl_mat_set(&A_Tzz,14,4,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,14,4,temp_rho); 
  
   temp_p_perp = 0.3162277660168379*p_perp[10]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,14,4,temp_p_perp); 
@@ -4068,6 +4487,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,14,5,temp_rho); 
   gkyl_mat_set(&A_Tyy,14,5,temp_rho); 
   gkyl_mat_set(&A_Tzz,14,5,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,14,5,temp_rho); 
  
   temp_p_perp = 0.3162277660168379*p_perp[25]+0.3535533905932737*p_perp[12]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,14,5,temp_p_perp); 
@@ -4078,6 +4498,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,14,6,temp_rho); 
   gkyl_mat_set(&A_Tyy,14,6,temp_rho); 
   gkyl_mat_set(&A_Tzz,14,6,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,14,6,temp_rho); 
  
   temp_p_perp = 0.2828427124746191*p_perp[16]+0.3162277660168379*p_perp[2]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,14,6,temp_p_perp); 
@@ -4088,6 +4509,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,14,7,temp_rho); 
   gkyl_mat_set(&A_Tyy,14,7,temp_rho); 
   gkyl_mat_set(&A_Tzz,14,7,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,14,7,temp_rho); 
  
   temp_p_perp = 0.3535533905932737*p_perp[23]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,14,7,temp_p_perp); 
@@ -4098,6 +4520,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,14,8,temp_rho); 
   gkyl_mat_set(&A_Tyy,14,8,temp_rho); 
   gkyl_mat_set(&A_Tzz,14,8,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,14,8,temp_rho); 
  
   temp_p_perp = 0.2258769757263128*p_perp[14]+0.3535533905932737*p_perp[3]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,14,8,temp_p_perp); 
@@ -4108,6 +4531,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,14,9,temp_rho); 
   gkyl_mat_set(&A_Tyy,14,9,temp_rho); 
   gkyl_mat_set(&A_Tzz,14,9,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,14,9,temp_rho); 
  
   temp_p_perp = 0.3162277660168379*p_perp[14]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,14,9,temp_p_perp); 
@@ -4118,6 +4542,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,14,10,temp_rho); 
   gkyl_mat_set(&A_Tyy,14,10,temp_rho); 
   gkyl_mat_set(&A_Tzz,14,10,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,14,10,temp_rho); 
  
   temp_p_perp = 0.282842712474619*p_perp[19]+0.3162277660168379*p_perp[4]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,14,10,temp_p_perp); 
@@ -4128,6 +4553,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,14,11,temp_rho); 
   gkyl_mat_set(&A_Tyy,14,11,temp_rho); 
   gkyl_mat_set(&A_Tzz,14,11,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,14,11,temp_rho); 
  
   temp_p_perp = 0.3162277660168379*p_perp[17]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,14,11,temp_p_perp); 
@@ -4138,6 +4564,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,14,12,temp_rho); 
   gkyl_mat_set(&A_Tyy,14,12,temp_rho); 
   gkyl_mat_set(&A_Tzz,14,12,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,14,12,temp_rho); 
  
   temp_p_perp = 0.2258769757263128*p_perp[18]+0.3535533905932737*p_perp[5]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,14,12,temp_p_perp); 
@@ -4148,6 +4575,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,14,13,temp_rho); 
   gkyl_mat_set(&A_Tyy,14,13,temp_rho); 
   gkyl_mat_set(&A_Tzz,14,13,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,14,13,temp_rho); 
  
   temp_p_perp = 0.3162277660168379*p_perp[26]+0.3535533905932737*p_perp[20]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,14,13,temp_p_perp); 
@@ -4158,6 +4586,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,14,14,temp_rho); 
   gkyl_mat_set(&A_Tyy,14,14,temp_rho); 
   gkyl_mat_set(&A_Tzz,14,14,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,14,14,temp_rho); 
  
   temp_p_perp = 0.2020305089104422*p_perp[22]+0.3162277660168379*p_perp[9]+0.2258769757263128*p_perp[8]+0.3535533905932737*p_perp[0]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,14,14,temp_p_perp); 
@@ -4168,6 +4597,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,14,15,temp_rho); 
   gkyl_mat_set(&A_Tyy,14,15,temp_rho); 
   gkyl_mat_set(&A_Tzz,14,15,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,14,15,temp_rho); 
  
   temp_p_perp = 0.3162277660168379*p_perp[18]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,14,15,temp_p_perp); 
@@ -4178,6 +4608,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,14,16,temp_rho); 
   gkyl_mat_set(&A_Tyy,14,16,temp_rho); 
   gkyl_mat_set(&A_Tzz,14,16,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,14,16,temp_rho); 
  
   temp_p_perp = 0.2828427124746191*p_perp[6]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,14,16,temp_p_perp); 
@@ -4188,6 +4619,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,14,17,temp_rho); 
   gkyl_mat_set(&A_Tyy,14,17,temp_rho); 
   gkyl_mat_set(&A_Tzz,14,17,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,14,17,temp_rho); 
  
   temp_p_perp = 0.282842712474619*p_perp[24]+0.3162277660168379*p_perp[11]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,14,17,temp_p_perp); 
@@ -4198,6 +4630,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,14,18,temp_rho); 
   gkyl_mat_set(&A_Tyy,14,18,temp_rho); 
   gkyl_mat_set(&A_Tzz,14,18,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,14,18,temp_rho); 
  
   temp_p_perp = 0.2020305089104422*p_perp[25]+0.3162277660168379*p_perp[15]+0.2258769757263128*p_perp[12]+0.3535533905932737*p_perp[1]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,14,18,temp_p_perp); 
@@ -4208,6 +4641,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,14,19,temp_rho); 
   gkyl_mat_set(&A_Tyy,14,19,temp_rho); 
   gkyl_mat_set(&A_Tzz,14,19,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,14,19,temp_rho); 
  
   temp_p_perp = 0.282842712474619*p_perp[10]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,14,19,temp_p_perp); 
@@ -4218,6 +4652,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,14,20,temp_rho); 
   gkyl_mat_set(&A_Tyy,14,20,temp_rho); 
   gkyl_mat_set(&A_Tzz,14,20,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,14,20,temp_rho); 
  
   temp_p_perp = 0.2258769757263128*p_perp[23]+0.3535533905932737*p_perp[13]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,14,20,temp_p_perp); 
@@ -4228,6 +4663,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,14,21,temp_rho); 
   gkyl_mat_set(&A_Tyy,14,21,temp_rho); 
   gkyl_mat_set(&A_Tzz,14,21,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,14,21,temp_rho); 
  
   temp_p_perp = 0.3162277660168379*p_perp[23]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,14,21,temp_p_perp); 
@@ -4238,6 +4674,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,14,22,temp_rho); 
   gkyl_mat_set(&A_Tyy,14,22,temp_rho); 
   gkyl_mat_set(&A_Tzz,14,22,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,14,22,temp_rho); 
  
   temp_p_perp = 0.2020305089104422*p_perp[14]+0.3162277660168379*p_perp[3]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,14,22,temp_p_perp); 
@@ -4248,6 +4685,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,14,23,temp_rho); 
   gkyl_mat_set(&A_Tyy,14,23,temp_rho); 
   gkyl_mat_set(&A_Tzz,14,23,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,14,23,temp_rho); 
  
   temp_p_perp = 0.2020305089104422*p_perp[26]+0.3162277660168379*p_perp[21]+0.2258769757263128*p_perp[20]+0.3535533905932737*p_perp[7]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,14,23,temp_p_perp); 
@@ -4258,6 +4696,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,14,24,temp_rho); 
   gkyl_mat_set(&A_Tyy,14,24,temp_rho); 
   gkyl_mat_set(&A_Tzz,14,24,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,14,24,temp_rho); 
  
   temp_p_perp = 0.282842712474619*p_perp[17]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,14,24,temp_p_perp); 
@@ -4268,6 +4707,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,14,25,temp_rho); 
   gkyl_mat_set(&A_Tyy,14,25,temp_rho); 
   gkyl_mat_set(&A_Tzz,14,25,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,14,25,temp_rho); 
  
   temp_p_perp = 0.2020305089104422*p_perp[18]+0.3162277660168379*p_perp[5]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,14,25,temp_p_perp); 
@@ -4278,6 +4718,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,14,26,temp_rho); 
   gkyl_mat_set(&A_Tyy,14,26,temp_rho); 
   gkyl_mat_set(&A_Tzz,14,26,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,14,26,temp_rho); 
  
   temp_p_perp = 0.2020305089104422*p_perp[23]+0.3162277660168379*p_perp[13]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,14,26,temp_p_perp); 
@@ -4288,6 +4729,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,15,0,temp_rho); 
   gkyl_mat_set(&A_Tyy,15,0,temp_rho); 
   gkyl_mat_set(&A_Tzz,15,0,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,15,0,temp_rho); 
  
   temp_p_perp = 0.3535533905932737*p_perp[15]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,15,0,temp_p_perp); 
@@ -4298,6 +4740,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,15,1,temp_rho); 
   gkyl_mat_set(&A_Tyy,15,1,temp_rho); 
   gkyl_mat_set(&A_Tzz,15,1,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,15,1,temp_rho); 
  
   temp_p_perp = 0.3162277660168379*p_perp[21]+0.3535533905932737*p_perp[9]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,15,1,temp_p_perp); 
@@ -4308,6 +4751,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,15,2,temp_rho); 
   gkyl_mat_set(&A_Tyy,15,2,temp_rho); 
   gkyl_mat_set(&A_Tzz,15,2,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,15,2,temp_rho); 
  
   temp_p_perp = 0.3535533905932737*p_perp[19]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,15,2,temp_p_perp); 
@@ -4318,6 +4762,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,15,3,temp_rho); 
   gkyl_mat_set(&A_Tyy,15,3,temp_rho); 
   gkyl_mat_set(&A_Tzz,15,3,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,15,3,temp_rho); 
  
   temp_p_perp = 0.3162277660168379*p_perp[5]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,15,3,temp_p_perp); 
@@ -4328,6 +4773,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,15,4,temp_rho); 
   gkyl_mat_set(&A_Tyy,15,4,temp_rho); 
   gkyl_mat_set(&A_Tzz,15,4,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,15,4,temp_rho); 
  
   temp_p_perp = 0.3162277660168379*p_perp[24]+0.3535533905932737*p_perp[16]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,15,4,temp_p_perp); 
@@ -4338,6 +4784,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,15,5,temp_rho); 
   gkyl_mat_set(&A_Tyy,15,5,temp_rho); 
   gkyl_mat_set(&A_Tzz,15,5,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,15,5,temp_rho); 
  
   temp_p_perp = 0.2828427124746191*p_perp[13]+0.3162277660168379*p_perp[3]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,15,5,temp_p_perp); 
@@ -4348,6 +4795,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,15,6,temp_rho); 
   gkyl_mat_set(&A_Tyy,15,6,temp_rho); 
   gkyl_mat_set(&A_Tzz,15,6,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,15,6,temp_rho); 
  
   temp_p_perp = 0.3162277660168379*p_perp[10]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,15,6,temp_p_perp); 
@@ -4358,6 +4806,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,15,7,temp_rho); 
   gkyl_mat_set(&A_Tyy,15,7,temp_rho); 
   gkyl_mat_set(&A_Tzz,15,7,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,15,7,temp_rho); 
  
   temp_p_perp = 0.3162277660168379*p_perp[15]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,15,7,temp_p_perp); 
@@ -4368,6 +4817,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,15,8,temp_rho); 
   gkyl_mat_set(&A_Tyy,15,8,temp_rho); 
   gkyl_mat_set(&A_Tzz,15,8,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,15,8,temp_rho); 
  
   temp_p_perp = 0.3535533905932737*p_perp[25]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,15,8,temp_p_perp); 
@@ -4378,6 +4828,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,15,9,temp_rho); 
   gkyl_mat_set(&A_Tyy,15,9,temp_rho); 
   gkyl_mat_set(&A_Tzz,15,9,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,15,9,temp_rho); 
  
   temp_p_perp = 0.2258769757263128*p_perp[15]+0.3535533905932737*p_perp[1]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,15,9,temp_p_perp); 
@@ -4388,6 +4839,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,15,10,temp_rho); 
   gkyl_mat_set(&A_Tyy,15,10,temp_rho); 
   gkyl_mat_set(&A_Tzz,15,10,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,15,10,temp_rho); 
  
   temp_p_perp = 0.282842712474619*p_perp[17]+0.3162277660168379*p_perp[6]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,15,10,temp_p_perp); 
@@ -4398,6 +4850,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,15,11,temp_rho); 
   gkyl_mat_set(&A_Tyy,15,11,temp_rho); 
   gkyl_mat_set(&A_Tzz,15,11,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,15,11,temp_rho); 
  
   temp_p_perp = 0.3162277660168379*p_perp[19]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,15,11,temp_p_perp); 
@@ -4408,6 +4861,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,15,12,temp_rho); 
   gkyl_mat_set(&A_Tyy,15,12,temp_rho); 
   gkyl_mat_set(&A_Tzz,15,12,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,15,12,temp_rho); 
  
   temp_p_perp = 0.3162277660168379*p_perp[26]+0.3535533905932737*p_perp[22]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,15,12,temp_p_perp); 
@@ -4418,6 +4872,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,15,13,temp_rho); 
   gkyl_mat_set(&A_Tyy,15,13,temp_rho); 
   gkyl_mat_set(&A_Tzz,15,13,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,15,13,temp_rho); 
  
   temp_p_perp = 0.2828427124746191*p_perp[5]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,15,13,temp_p_perp); 
@@ -4428,6 +4883,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,15,14,temp_rho); 
   gkyl_mat_set(&A_Tyy,15,14,temp_rho); 
   gkyl_mat_set(&A_Tzz,15,14,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,15,14,temp_rho); 
  
   temp_p_perp = 0.3162277660168379*p_perp[18]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,15,14,temp_p_perp); 
@@ -4438,6 +4894,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,15,15,temp_rho); 
   gkyl_mat_set(&A_Tyy,15,15,temp_rho); 
   gkyl_mat_set(&A_Tzz,15,15,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,15,15,temp_rho); 
  
   temp_p_perp = 0.2020305089104422*p_perp[21]+0.2258769757263128*p_perp[9]+0.3162277660168379*p_perp[7]+0.3535533905932737*p_perp[0]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,15,15,temp_p_perp); 
@@ -4448,6 +4905,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,15,16,temp_rho); 
   gkyl_mat_set(&A_Tyy,15,16,temp_rho); 
   gkyl_mat_set(&A_Tzz,15,16,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,15,16,temp_rho); 
  
   temp_p_perp = 0.2258769757263128*p_perp[19]+0.3535533905932737*p_perp[4]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,15,16,temp_p_perp); 
@@ -4458,6 +4916,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,15,17,temp_rho); 
   gkyl_mat_set(&A_Tyy,15,17,temp_rho); 
   gkyl_mat_set(&A_Tzz,15,17,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,15,17,temp_rho); 
  
   temp_p_perp = 0.282842712474619*p_perp[10]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,15,17,temp_p_perp); 
@@ -4468,6 +4927,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,15,18,temp_rho); 
   gkyl_mat_set(&A_Tyy,15,18,temp_rho); 
   gkyl_mat_set(&A_Tzz,15,18,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,15,18,temp_rho); 
  
   temp_p_perp = 0.282842712474619*p_perp[23]+0.3162277660168379*p_perp[14]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,15,18,temp_p_perp); 
@@ -4478,6 +4938,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,15,19,temp_rho); 
   gkyl_mat_set(&A_Tyy,15,19,temp_rho); 
   gkyl_mat_set(&A_Tzz,15,19,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,15,19,temp_rho); 
  
   temp_p_perp = 0.2020305089104422*p_perp[24]+0.2258769757263128*p_perp[16]+0.3162277660168379*p_perp[11]+0.3535533905932737*p_perp[2]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,15,19,temp_p_perp); 
@@ -4488,6 +4949,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,15,20,temp_rho); 
   gkyl_mat_set(&A_Tyy,15,20,temp_rho); 
   gkyl_mat_set(&A_Tzz,15,20,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,15,20,temp_rho); 
  
   temp_p_perp = 0.3162277660168379*p_perp[25]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,15,20,temp_p_perp); 
@@ -4498,6 +4960,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,15,21,temp_rho); 
   gkyl_mat_set(&A_Tyy,15,21,temp_rho); 
   gkyl_mat_set(&A_Tzz,15,21,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,15,21,temp_rho); 
  
   temp_p_perp = 0.2020305089104422*p_perp[15]+0.3162277660168379*p_perp[1]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,15,21,temp_p_perp); 
@@ -4508,6 +4971,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,15,22,temp_rho); 
   gkyl_mat_set(&A_Tyy,15,22,temp_rho); 
   gkyl_mat_set(&A_Tzz,15,22,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,15,22,temp_rho); 
  
   temp_p_perp = 0.2258769757263128*p_perp[25]+0.3535533905932737*p_perp[12]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,15,22,temp_p_perp); 
@@ -4518,6 +4982,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,15,23,temp_rho); 
   gkyl_mat_set(&A_Tyy,15,23,temp_rho); 
   gkyl_mat_set(&A_Tzz,15,23,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,15,23,temp_rho); 
  
   temp_p_perp = 0.282842712474619*p_perp[18]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,15,23,temp_p_perp); 
@@ -4528,6 +4993,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,15,24,temp_rho); 
   gkyl_mat_set(&A_Tyy,15,24,temp_rho); 
   gkyl_mat_set(&A_Tzz,15,24,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,15,24,temp_rho); 
  
   temp_p_perp = 0.2020305089104422*p_perp[19]+0.3162277660168379*p_perp[4]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,15,24,temp_p_perp); 
@@ -4538,6 +5004,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,15,25,temp_rho); 
   gkyl_mat_set(&A_Tyy,15,25,temp_rho); 
   gkyl_mat_set(&A_Tzz,15,25,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,15,25,temp_rho); 
  
   temp_p_perp = 0.2020305089104422*p_perp[26]+0.2258769757263128*p_perp[22]+0.3162277660168379*p_perp[20]+0.3535533905932737*p_perp[8]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,15,25,temp_p_perp); 
@@ -4548,6 +5015,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,15,26,temp_rho); 
   gkyl_mat_set(&A_Tyy,15,26,temp_rho); 
   gkyl_mat_set(&A_Tzz,15,26,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,15,26,temp_rho); 
  
   temp_p_perp = 0.2020305089104422*p_perp[25]+0.3162277660168379*p_perp[12]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,15,26,temp_p_perp); 
@@ -4558,6 +5026,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,16,0,temp_rho); 
   gkyl_mat_set(&A_Tyy,16,0,temp_rho); 
   gkyl_mat_set(&A_Tzz,16,0,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,16,0,temp_rho); 
  
   temp_p_perp = 0.3535533905932737*p_perp[16]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,16,0,temp_p_perp); 
@@ -4568,6 +5037,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,16,1,temp_rho); 
   gkyl_mat_set(&A_Tyy,16,1,temp_rho); 
   gkyl_mat_set(&A_Tzz,16,1,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,16,1,temp_rho); 
  
   temp_p_perp = 0.3535533905932737*p_perp[19]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,16,1,temp_p_perp); 
@@ -4578,6 +5048,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,16,2,temp_rho); 
   gkyl_mat_set(&A_Tyy,16,2,temp_rho); 
   gkyl_mat_set(&A_Tzz,16,2,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,16,2,temp_rho); 
  
   temp_p_perp = 0.3162277660168379*p_perp[22]+0.3535533905932737*p_perp[9]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,16,2,temp_p_perp); 
@@ -4588,6 +5059,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,16,3,temp_rho); 
   gkyl_mat_set(&A_Tyy,16,3,temp_rho); 
   gkyl_mat_set(&A_Tzz,16,3,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,16,3,temp_rho); 
  
   temp_p_perp = 0.3162277660168379*p_perp[6]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,16,3,temp_p_perp); 
@@ -4598,6 +5070,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,16,4,temp_rho); 
   gkyl_mat_set(&A_Tyy,16,4,temp_rho); 
   gkyl_mat_set(&A_Tzz,16,4,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,16,4,temp_rho); 
  
   temp_p_perp = 0.3162277660168379*p_perp[25]+0.3535533905932737*p_perp[15]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,16,4,temp_p_perp); 
@@ -4608,6 +5081,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,16,5,temp_rho); 
   gkyl_mat_set(&A_Tyy,16,5,temp_rho); 
   gkyl_mat_set(&A_Tzz,16,5,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,16,5,temp_rho); 
  
   temp_p_perp = 0.3162277660168379*p_perp[10]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,16,5,temp_p_perp); 
@@ -4618,6 +5092,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,16,6,temp_rho); 
   gkyl_mat_set(&A_Tyy,16,6,temp_rho); 
   gkyl_mat_set(&A_Tzz,16,6,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,16,6,temp_rho); 
  
   temp_p_perp = 0.2828427124746191*p_perp[14]+0.3162277660168379*p_perp[3]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,16,6,temp_p_perp); 
@@ -4628,6 +5103,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,16,7,temp_rho); 
   gkyl_mat_set(&A_Tyy,16,7,temp_rho); 
   gkyl_mat_set(&A_Tzz,16,7,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,16,7,temp_rho); 
  
   temp_p_perp = 0.3535533905932737*p_perp[24]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,16,7,temp_p_perp); 
@@ -4638,6 +5114,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,16,8,temp_rho); 
   gkyl_mat_set(&A_Tyy,16,8,temp_rho); 
   gkyl_mat_set(&A_Tzz,16,8,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,16,8,temp_rho); 
  
   temp_p_perp = 0.3162277660168379*p_perp[16]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,16,8,temp_p_perp); 
@@ -4648,6 +5125,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,16,9,temp_rho); 
   gkyl_mat_set(&A_Tyy,16,9,temp_rho); 
   gkyl_mat_set(&A_Tzz,16,9,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,16,9,temp_rho); 
  
   temp_p_perp = 0.2258769757263128*p_perp[16]+0.3535533905932737*p_perp[2]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,16,9,temp_p_perp); 
@@ -4658,6 +5136,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,16,10,temp_rho); 
   gkyl_mat_set(&A_Tyy,16,10,temp_rho); 
   gkyl_mat_set(&A_Tzz,16,10,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,16,10,temp_rho); 
  
   temp_p_perp = 0.282842712474619*p_perp[18]+0.3162277660168379*p_perp[5]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,16,10,temp_p_perp); 
@@ -4668,6 +5147,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,16,11,temp_rho); 
   gkyl_mat_set(&A_Tyy,16,11,temp_rho); 
   gkyl_mat_set(&A_Tzz,16,11,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,16,11,temp_rho); 
  
   temp_p_perp = 0.3162277660168379*p_perp[26]+0.3535533905932737*p_perp[21]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,16,11,temp_p_perp); 
@@ -4678,6 +5158,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,16,12,temp_rho); 
   gkyl_mat_set(&A_Tyy,16,12,temp_rho); 
   gkyl_mat_set(&A_Tzz,16,12,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,16,12,temp_rho); 
  
   temp_p_perp = 0.3162277660168379*p_perp[19]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,16,12,temp_p_perp); 
@@ -4688,6 +5169,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,16,13,temp_rho); 
   gkyl_mat_set(&A_Tyy,16,13,temp_rho); 
   gkyl_mat_set(&A_Tzz,16,13,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,16,13,temp_rho); 
  
   temp_p_perp = 0.3162277660168379*p_perp[17]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,16,13,temp_p_perp); 
@@ -4698,6 +5180,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,16,14,temp_rho); 
   gkyl_mat_set(&A_Tyy,16,14,temp_rho); 
   gkyl_mat_set(&A_Tzz,16,14,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,16,14,temp_rho); 
  
   temp_p_perp = 0.2828427124746191*p_perp[6]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,16,14,temp_p_perp); 
@@ -4708,6 +5191,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,16,15,temp_rho); 
   gkyl_mat_set(&A_Tyy,16,15,temp_rho); 
   gkyl_mat_set(&A_Tzz,16,15,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,16,15,temp_rho); 
  
   temp_p_perp = 0.2258769757263128*p_perp[19]+0.3535533905932737*p_perp[4]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,16,15,temp_p_perp); 
@@ -4718,6 +5202,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,16,16,temp_rho); 
   gkyl_mat_set(&A_Tyy,16,16,temp_rho); 
   gkyl_mat_set(&A_Tzz,16,16,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,16,16,temp_rho); 
  
   temp_p_perp = 0.2020305089104422*p_perp[22]+0.2258769757263128*p_perp[9]+0.3162277660168379*p_perp[8]+0.3535533905932737*p_perp[0]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,16,16,temp_p_perp); 
@@ -4728,6 +5213,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,16,17,temp_rho); 
   gkyl_mat_set(&A_Tyy,16,17,temp_rho); 
   gkyl_mat_set(&A_Tzz,16,17,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,16,17,temp_rho); 
  
   temp_p_perp = 0.282842712474619*p_perp[23]+0.3162277660168379*p_perp[13]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,16,17,temp_p_perp); 
@@ -4738,6 +5224,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,16,18,temp_rho); 
   gkyl_mat_set(&A_Tyy,16,18,temp_rho); 
   gkyl_mat_set(&A_Tzz,16,18,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,16,18,temp_rho); 
  
   temp_p_perp = 0.282842712474619*p_perp[10]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,16,18,temp_p_perp); 
@@ -4748,6 +5235,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,16,19,temp_rho); 
   gkyl_mat_set(&A_Tyy,16,19,temp_rho); 
   gkyl_mat_set(&A_Tzz,16,19,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,16,19,temp_rho); 
  
   temp_p_perp = 0.2020305089104422*p_perp[25]+0.2258769757263128*p_perp[15]+0.3162277660168379*p_perp[12]+0.3535533905932737*p_perp[1]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,16,19,temp_p_perp); 
@@ -4758,6 +5246,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,16,20,temp_rho); 
   gkyl_mat_set(&A_Tyy,16,20,temp_rho); 
   gkyl_mat_set(&A_Tzz,16,20,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,16,20,temp_rho); 
  
   temp_p_perp = 0.3162277660168379*p_perp[24]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,16,20,temp_p_perp); 
@@ -4768,6 +5257,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,16,21,temp_rho); 
   gkyl_mat_set(&A_Tyy,16,21,temp_rho); 
   gkyl_mat_set(&A_Tzz,16,21,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,16,21,temp_rho); 
  
   temp_p_perp = 0.2258769757263128*p_perp[24]+0.3535533905932737*p_perp[11]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,16,21,temp_p_perp); 
@@ -4778,6 +5268,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,16,22,temp_rho); 
   gkyl_mat_set(&A_Tyy,16,22,temp_rho); 
   gkyl_mat_set(&A_Tzz,16,22,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,16,22,temp_rho); 
  
   temp_p_perp = 0.2020305089104422*p_perp[16]+0.3162277660168379*p_perp[2]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,16,22,temp_p_perp); 
@@ -4788,6 +5279,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,16,23,temp_rho); 
   gkyl_mat_set(&A_Tyy,16,23,temp_rho); 
   gkyl_mat_set(&A_Tzz,16,23,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,16,23,temp_rho); 
  
   temp_p_perp = 0.282842712474619*p_perp[17]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,16,23,temp_p_perp); 
@@ -4798,6 +5290,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,16,24,temp_rho); 
   gkyl_mat_set(&A_Tyy,16,24,temp_rho); 
   gkyl_mat_set(&A_Tzz,16,24,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,16,24,temp_rho); 
  
   temp_p_perp = 0.2020305089104422*p_perp[26]+0.2258769757263128*p_perp[21]+0.3162277660168379*p_perp[20]+0.3535533905932737*p_perp[7]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,16,24,temp_p_perp); 
@@ -4808,6 +5301,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,16,25,temp_rho); 
   gkyl_mat_set(&A_Tyy,16,25,temp_rho); 
   gkyl_mat_set(&A_Tzz,16,25,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,16,25,temp_rho); 
  
   temp_p_perp = 0.2020305089104422*p_perp[19]+0.3162277660168379*p_perp[4]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,16,25,temp_p_perp); 
@@ -4818,6 +5312,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,16,26,temp_rho); 
   gkyl_mat_set(&A_Tyy,16,26,temp_rho); 
   gkyl_mat_set(&A_Tzz,16,26,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,16,26,temp_rho); 
  
   temp_p_perp = 0.2020305089104422*p_perp[24]+0.3162277660168379*p_perp[11]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,16,26,temp_p_perp); 
@@ -4828,6 +5323,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,17,0,temp_rho); 
   gkyl_mat_set(&A_Tyy,17,0,temp_rho); 
   gkyl_mat_set(&A_Tzz,17,0,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,17,0,temp_rho); 
  
   temp_p_perp = 0.3535533905932737*p_perp[17]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,17,0,temp_p_perp); 
@@ -4838,6 +5334,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,17,1,temp_rho); 
   gkyl_mat_set(&A_Tyy,17,1,temp_rho); 
   gkyl_mat_set(&A_Tzz,17,1,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,17,1,temp_rho); 
  
   temp_p_perp = 0.3162277660168379*p_perp[10]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,17,1,temp_p_perp); 
@@ -4848,6 +5345,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,17,2,temp_rho); 
   gkyl_mat_set(&A_Tyy,17,2,temp_rho); 
   gkyl_mat_set(&A_Tzz,17,2,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,17,2,temp_rho); 
  
   temp_p_perp = 0.3162277660168379*p_perp[23]+0.3535533905932737*p_perp[13]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,17,2,temp_p_perp); 
@@ -4858,6 +5356,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,17,3,temp_rho); 
   gkyl_mat_set(&A_Tyy,17,3,temp_rho); 
   gkyl_mat_set(&A_Tzz,17,3,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,17,3,temp_rho); 
  
   temp_p_perp = 0.3162277660168379*p_perp[24]+0.3535533905932737*p_perp[11]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,17,3,temp_p_perp); 
@@ -4868,6 +5367,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,17,4,temp_rho); 
   gkyl_mat_set(&A_Tyy,17,4,temp_rho); 
   gkyl_mat_set(&A_Tzz,17,4,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,17,4,temp_rho); 
  
   temp_p_perp = 0.2828427124746191*p_perp[18]+0.3162277660168379*p_perp[5]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,17,4,temp_p_perp); 
@@ -4878,6 +5378,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,17,5,temp_rho); 
   gkyl_mat_set(&A_Tyy,17,5,temp_rho); 
   gkyl_mat_set(&A_Tzz,17,5,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,17,5,temp_rho); 
  
   temp_p_perp = 0.2828427124746191*p_perp[19]+0.3162277660168379*p_perp[4]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,17,5,temp_p_perp); 
@@ -4888,6 +5389,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,17,6,temp_rho); 
   gkyl_mat_set(&A_Tyy,17,6,temp_rho); 
   gkyl_mat_set(&A_Tzz,17,6,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,17,6,temp_rho); 
  
   temp_p_perp = 0.2828427124746191*p_perp[26]+0.3162277660168379*p_perp[21]+0.3162277660168379*p_perp[20]+0.3535533905932737*p_perp[7]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,17,6,temp_p_perp); 
@@ -4898,6 +5400,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,17,7,temp_rho); 
   gkyl_mat_set(&A_Tyy,17,7,temp_rho); 
   gkyl_mat_set(&A_Tzz,17,7,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,17,7,temp_rho); 
  
   temp_p_perp = 0.2258769757263128*p_perp[17]+0.3535533905932737*p_perp[6]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,17,7,temp_p_perp); 
@@ -4908,6 +5411,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,17,8,temp_rho); 
   gkyl_mat_set(&A_Tyy,17,8,temp_rho); 
   gkyl_mat_set(&A_Tzz,17,8,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,17,8,temp_rho); 
  
   temp_p_perp = 0.3162277660168379*p_perp[17]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,17,8,temp_p_perp); 
@@ -4918,6 +5422,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,17,9,temp_rho); 
   gkyl_mat_set(&A_Tyy,17,9,temp_rho); 
   gkyl_mat_set(&A_Tzz,17,9,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,17,9,temp_rho); 
  
   temp_p_perp = 0.3162277660168379*p_perp[17]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,17,9,temp_p_perp); 
@@ -4928,6 +5433,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,17,10,temp_rho); 
   gkyl_mat_set(&A_Tyy,17,10,temp_rho); 
   gkyl_mat_set(&A_Tzz,17,10,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,17,10,temp_rho); 
  
   temp_p_perp = 0.2529822128134704*p_perp[25]+0.282842712474619*p_perp[15]+0.282842712474619*p_perp[12]+0.3162277660168379*p_perp[1]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,17,10,temp_p_perp); 
@@ -4938,6 +5444,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,17,11,temp_rho); 
   gkyl_mat_set(&A_Tyy,17,11,temp_rho); 
   gkyl_mat_set(&A_Tzz,17,11,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,17,11,temp_rho); 
  
   temp_p_perp = 0.2020305089104422*p_perp[23]+0.3162277660168379*p_perp[14]+0.2258769757263128*p_perp[13]+0.3535533905932737*p_perp[3]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,17,11,temp_p_perp); 
@@ -4948,6 +5455,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,17,12,temp_rho); 
   gkyl_mat_set(&A_Tyy,17,12,temp_rho); 
   gkyl_mat_set(&A_Tzz,17,12,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,17,12,temp_rho); 
  
   temp_p_perp = 0.282842712474619*p_perp[10]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,17,12,temp_p_perp); 
@@ -4958,6 +5466,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,17,13,temp_rho); 
   gkyl_mat_set(&A_Tyy,17,13,temp_rho); 
   gkyl_mat_set(&A_Tzz,17,13,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,17,13,temp_rho); 
  
   temp_p_perp = 0.2020305089104422*p_perp[24]+0.3162277660168379*p_perp[16]+0.2258769757263128*p_perp[11]+0.3535533905932737*p_perp[2]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,17,13,temp_p_perp); 
@@ -4968,6 +5477,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,17,14,temp_rho); 
   gkyl_mat_set(&A_Tyy,17,14,temp_rho); 
   gkyl_mat_set(&A_Tzz,17,14,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,17,14,temp_rho); 
  
   temp_p_perp = 0.282842712474619*p_perp[24]+0.3162277660168379*p_perp[11]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,17,14,temp_p_perp); 
@@ -4978,6 +5488,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,17,15,temp_rho); 
   gkyl_mat_set(&A_Tyy,17,15,temp_rho); 
   gkyl_mat_set(&A_Tzz,17,15,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,17,15,temp_rho); 
  
   temp_p_perp = 0.282842712474619*p_perp[10]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,17,15,temp_p_perp); 
@@ -4988,6 +5499,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,17,16,temp_rho); 
   gkyl_mat_set(&A_Tyy,17,16,temp_rho); 
   gkyl_mat_set(&A_Tzz,17,16,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,17,16,temp_rho); 
  
   temp_p_perp = 0.282842712474619*p_perp[23]+0.3162277660168379*p_perp[13]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,17,16,temp_p_perp); 
@@ -4998,6 +5510,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,17,17,temp_rho); 
   gkyl_mat_set(&A_Tyy,17,17,temp_rho); 
   gkyl_mat_set(&A_Tzz,17,17,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,17,17,temp_rho); 
  
   temp_p_perp = 0.1807015805810503*p_perp[26]+0.2828427124746191*p_perp[22]+0.2020305089104422*p_perp[21]+0.2020305089104422*p_perp[20]+0.3162277660168379*p_perp[9]+0.3162277660168379*p_perp[8]+0.2258769757263128*p_perp[7]+0.3535533905932737*p_perp[0]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,17,17,temp_p_perp); 
@@ -5008,6 +5521,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,17,18,temp_rho); 
   gkyl_mat_set(&A_Tyy,17,18,temp_rho); 
   gkyl_mat_set(&A_Tzz,17,18,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,17,18,temp_rho); 
  
   temp_p_perp = 0.2529822128134704*p_perp[19]+0.2828427124746191*p_perp[4]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,17,18,temp_p_perp); 
@@ -5018,6 +5532,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,17,19,temp_rho); 
   gkyl_mat_set(&A_Tyy,17,19,temp_rho); 
   gkyl_mat_set(&A_Tzz,17,19,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,17,19,temp_rho); 
  
   temp_p_perp = 0.2529822128134704*p_perp[18]+0.2828427124746191*p_perp[5]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,17,19,temp_p_perp); 
@@ -5028,6 +5543,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,17,20,temp_rho); 
   gkyl_mat_set(&A_Tyy,17,20,temp_rho); 
   gkyl_mat_set(&A_Tzz,17,20,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,17,20,temp_rho); 
  
   temp_p_perp = 0.2020305089104422*p_perp[17]+0.3162277660168379*p_perp[6]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,17,20,temp_p_perp); 
@@ -5038,6 +5554,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,17,21,temp_rho); 
   gkyl_mat_set(&A_Tyy,17,21,temp_rho); 
   gkyl_mat_set(&A_Tzz,17,21,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,17,21,temp_rho); 
  
   temp_p_perp = 0.2020305089104422*p_perp[17]+0.3162277660168379*p_perp[6]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,17,21,temp_p_perp); 
@@ -5048,6 +5565,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,17,22,temp_rho); 
   gkyl_mat_set(&A_Tyy,17,22,temp_rho); 
   gkyl_mat_set(&A_Tzz,17,22,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,17,22,temp_rho); 
  
   temp_p_perp = 0.2828427124746191*p_perp[17]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,17,22,temp_p_perp); 
@@ -5058,6 +5576,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,17,23,temp_rho); 
   gkyl_mat_set(&A_Tyy,17,23,temp_rho); 
   gkyl_mat_set(&A_Tzz,17,23,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,17,23,temp_rho); 
  
   temp_p_perp = 0.1807015805810503*p_perp[24]+0.282842712474619*p_perp[16]+0.2020305089104422*p_perp[11]+0.3162277660168379*p_perp[2]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,17,23,temp_p_perp); 
@@ -5068,6 +5587,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,17,24,temp_rho); 
   gkyl_mat_set(&A_Tyy,17,24,temp_rho); 
   gkyl_mat_set(&A_Tzz,17,24,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,17,24,temp_rho); 
  
   temp_p_perp = 0.1807015805810503*p_perp[23]+0.282842712474619*p_perp[14]+0.2020305089104422*p_perp[13]+0.3162277660168379*p_perp[3]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,17,24,temp_p_perp); 
@@ -5078,6 +5598,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,17,25,temp_rho); 
   gkyl_mat_set(&A_Tyy,17,25,temp_rho); 
   gkyl_mat_set(&A_Tzz,17,25,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,17,25,temp_rho); 
  
   temp_p_perp = 0.2529822128134704*p_perp[10]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,17,25,temp_p_perp); 
@@ -5088,6 +5609,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,17,26,temp_rho); 
   gkyl_mat_set(&A_Tyy,17,26,temp_rho); 
   gkyl_mat_set(&A_Tzz,17,26,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,17,26,temp_rho); 
  
   temp_p_perp = 0.1807015805810503*p_perp[17]+0.2828427124746191*p_perp[6]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,17,26,temp_p_perp); 
@@ -5098,6 +5620,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,18,0,temp_rho); 
   gkyl_mat_set(&A_Tyy,18,0,temp_rho); 
   gkyl_mat_set(&A_Tzz,18,0,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,18,0,temp_rho); 
  
   temp_p_perp = 0.3535533905932737*p_perp[18]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,18,0,temp_p_perp); 
@@ -5108,6 +5631,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,18,1,temp_rho); 
   gkyl_mat_set(&A_Tyy,18,1,temp_rho); 
   gkyl_mat_set(&A_Tzz,18,1,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,18,1,temp_rho); 
  
   temp_p_perp = 0.3162277660168379*p_perp[23]+0.3535533905932737*p_perp[14]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,18,1,temp_p_perp); 
@@ -5118,6 +5642,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,18,2,temp_rho); 
   gkyl_mat_set(&A_Tyy,18,2,temp_rho); 
   gkyl_mat_set(&A_Tzz,18,2,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,18,2,temp_rho); 
  
   temp_p_perp = 0.3162277660168379*p_perp[10]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,18,2,temp_p_perp); 
@@ -5128,6 +5653,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,18,3,temp_rho); 
   gkyl_mat_set(&A_Tyy,18,3,temp_rho); 
   gkyl_mat_set(&A_Tzz,18,3,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,18,3,temp_rho); 
  
   temp_p_perp = 0.3162277660168379*p_perp[25]+0.3535533905932737*p_perp[12]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,18,3,temp_p_perp); 
@@ -5138,6 +5664,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,18,4,temp_rho); 
   gkyl_mat_set(&A_Tyy,18,4,temp_rho); 
   gkyl_mat_set(&A_Tzz,18,4,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,18,4,temp_rho); 
  
   temp_p_perp = 0.2828427124746191*p_perp[17]+0.3162277660168379*p_perp[6]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,18,4,temp_p_perp); 
@@ -5148,6 +5675,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,18,5,temp_rho); 
   gkyl_mat_set(&A_Tyy,18,5,temp_rho); 
   gkyl_mat_set(&A_Tzz,18,5,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,18,5,temp_rho); 
  
   temp_p_perp = 0.2828427124746191*p_perp[26]+0.3162277660168379*p_perp[22]+0.3162277660168379*p_perp[20]+0.3535533905932737*p_perp[8]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,18,5,temp_p_perp); 
@@ -5158,6 +5686,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,18,6,temp_rho); 
   gkyl_mat_set(&A_Tyy,18,6,temp_rho); 
   gkyl_mat_set(&A_Tzz,18,6,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,18,6,temp_rho); 
  
   temp_p_perp = 0.2828427124746191*p_perp[19]+0.3162277660168379*p_perp[4]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,18,6,temp_p_perp); 
@@ -5168,6 +5697,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,18,7,temp_rho); 
   gkyl_mat_set(&A_Tyy,18,7,temp_rho); 
   gkyl_mat_set(&A_Tzz,18,7,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,18,7,temp_rho); 
  
   temp_p_perp = 0.3162277660168379*p_perp[18]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,18,7,temp_p_perp); 
@@ -5178,6 +5708,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,18,8,temp_rho); 
   gkyl_mat_set(&A_Tyy,18,8,temp_rho); 
   gkyl_mat_set(&A_Tzz,18,8,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,18,8,temp_rho); 
  
   temp_p_perp = 0.2258769757263128*p_perp[18]+0.3535533905932737*p_perp[5]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,18,8,temp_p_perp); 
@@ -5188,6 +5719,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,18,9,temp_rho); 
   gkyl_mat_set(&A_Tyy,18,9,temp_rho); 
   gkyl_mat_set(&A_Tzz,18,9,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,18,9,temp_rho); 
  
   temp_p_perp = 0.3162277660168379*p_perp[18]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,18,9,temp_p_perp); 
@@ -5198,6 +5730,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,18,10,temp_rho); 
   gkyl_mat_set(&A_Tyy,18,10,temp_rho); 
   gkyl_mat_set(&A_Tzz,18,10,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,18,10,temp_rho); 
  
   temp_p_perp = 0.2529822128134704*p_perp[24]+0.282842712474619*p_perp[16]+0.282842712474619*p_perp[11]+0.3162277660168379*p_perp[2]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,18,10,temp_p_perp); 
@@ -5208,6 +5741,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,18,11,temp_rho); 
   gkyl_mat_set(&A_Tyy,18,11,temp_rho); 
   gkyl_mat_set(&A_Tzz,18,11,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,18,11,temp_rho); 
  
   temp_p_perp = 0.282842712474619*p_perp[10]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,18,11,temp_p_perp); 
@@ -5218,6 +5752,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,18,12,temp_rho); 
   gkyl_mat_set(&A_Tyy,18,12,temp_rho); 
   gkyl_mat_set(&A_Tzz,18,12,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,18,12,temp_rho); 
  
   temp_p_perp = 0.2020305089104422*p_perp[23]+0.2258769757263128*p_perp[14]+0.3162277660168379*p_perp[13]+0.3535533905932737*p_perp[3]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,18,12,temp_p_perp); 
@@ -5228,6 +5763,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,18,13,temp_rho); 
   gkyl_mat_set(&A_Tyy,18,13,temp_rho); 
   gkyl_mat_set(&A_Tzz,18,13,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,18,13,temp_rho); 
  
   temp_p_perp = 0.282842712474619*p_perp[25]+0.3162277660168379*p_perp[12]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,18,13,temp_p_perp); 
@@ -5238,6 +5774,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,18,14,temp_rho); 
   gkyl_mat_set(&A_Tyy,18,14,temp_rho); 
   gkyl_mat_set(&A_Tzz,18,14,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,18,14,temp_rho); 
  
   temp_p_perp = 0.2020305089104422*p_perp[25]+0.3162277660168379*p_perp[15]+0.2258769757263128*p_perp[12]+0.3535533905932737*p_perp[1]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,18,14,temp_p_perp); 
@@ -5248,6 +5785,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,18,15,temp_rho); 
   gkyl_mat_set(&A_Tyy,18,15,temp_rho); 
   gkyl_mat_set(&A_Tzz,18,15,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,18,15,temp_rho); 
  
   temp_p_perp = 0.282842712474619*p_perp[23]+0.3162277660168379*p_perp[14]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,18,15,temp_p_perp); 
@@ -5258,6 +5796,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,18,16,temp_rho); 
   gkyl_mat_set(&A_Tyy,18,16,temp_rho); 
   gkyl_mat_set(&A_Tzz,18,16,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,18,16,temp_rho); 
  
   temp_p_perp = 0.282842712474619*p_perp[10]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,18,16,temp_p_perp); 
@@ -5268,6 +5807,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,18,17,temp_rho); 
   gkyl_mat_set(&A_Tyy,18,17,temp_rho); 
   gkyl_mat_set(&A_Tzz,18,17,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,18,17,temp_rho); 
  
   temp_p_perp = 0.2529822128134704*p_perp[19]+0.2828427124746191*p_perp[4]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,18,17,temp_p_perp); 
@@ -5278,6 +5818,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,18,18,temp_rho); 
   gkyl_mat_set(&A_Tyy,18,18,temp_rho); 
   gkyl_mat_set(&A_Tzz,18,18,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,18,18,temp_rho); 
  
   temp_p_perp = 0.1807015805810503*p_perp[26]+0.2020305089104422*p_perp[22]+0.2828427124746191*p_perp[21]+0.2020305089104422*p_perp[20]+0.3162277660168379*p_perp[9]+0.2258769757263128*p_perp[8]+0.3162277660168379*p_perp[7]+0.3535533905932737*p_perp[0]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,18,18,temp_p_perp); 
@@ -5288,6 +5829,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,18,19,temp_rho); 
   gkyl_mat_set(&A_Tyy,18,19,temp_rho); 
   gkyl_mat_set(&A_Tzz,18,19,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,18,19,temp_rho); 
  
   temp_p_perp = 0.2529822128134704*p_perp[17]+0.2828427124746191*p_perp[6]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,18,19,temp_p_perp); 
@@ -5298,6 +5840,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,18,20,temp_rho); 
   gkyl_mat_set(&A_Tyy,18,20,temp_rho); 
   gkyl_mat_set(&A_Tzz,18,20,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,18,20,temp_rho); 
  
   temp_p_perp = 0.2020305089104422*p_perp[18]+0.3162277660168379*p_perp[5]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,18,20,temp_p_perp); 
@@ -5308,6 +5851,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,18,21,temp_rho); 
   gkyl_mat_set(&A_Tyy,18,21,temp_rho); 
   gkyl_mat_set(&A_Tzz,18,21,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,18,21,temp_rho); 
  
   temp_p_perp = 0.2828427124746191*p_perp[18]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,18,21,temp_p_perp); 
@@ -5318,6 +5862,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,18,22,temp_rho); 
   gkyl_mat_set(&A_Tyy,18,22,temp_rho); 
   gkyl_mat_set(&A_Tzz,18,22,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,18,22,temp_rho); 
  
   temp_p_perp = 0.2020305089104422*p_perp[18]+0.3162277660168379*p_perp[5]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,18,22,temp_p_perp); 
@@ -5328,6 +5873,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,18,23,temp_rho); 
   gkyl_mat_set(&A_Tyy,18,23,temp_rho); 
   gkyl_mat_set(&A_Tzz,18,23,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,18,23,temp_rho); 
  
   temp_p_perp = 0.1807015805810503*p_perp[25]+0.282842712474619*p_perp[15]+0.2020305089104422*p_perp[12]+0.3162277660168379*p_perp[1]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,18,23,temp_p_perp); 
@@ -5338,6 +5884,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,18,24,temp_rho); 
   gkyl_mat_set(&A_Tyy,18,24,temp_rho); 
   gkyl_mat_set(&A_Tzz,18,24,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,18,24,temp_rho); 
  
   temp_p_perp = 0.2529822128134704*p_perp[10]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,18,24,temp_p_perp); 
@@ -5348,6 +5895,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,18,25,temp_rho); 
   gkyl_mat_set(&A_Tyy,18,25,temp_rho); 
   gkyl_mat_set(&A_Tzz,18,25,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,18,25,temp_rho); 
  
   temp_p_perp = 0.1807015805810503*p_perp[23]+0.2020305089104422*p_perp[14]+0.282842712474619*p_perp[13]+0.3162277660168379*p_perp[3]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,18,25,temp_p_perp); 
@@ -5358,6 +5906,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,18,26,temp_rho); 
   gkyl_mat_set(&A_Tyy,18,26,temp_rho); 
   gkyl_mat_set(&A_Tzz,18,26,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,18,26,temp_rho); 
  
   temp_p_perp = 0.1807015805810503*p_perp[18]+0.2828427124746191*p_perp[5]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,18,26,temp_p_perp); 
@@ -5368,6 +5917,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,19,0,temp_rho); 
   gkyl_mat_set(&A_Tyy,19,0,temp_rho); 
   gkyl_mat_set(&A_Tzz,19,0,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,19,0,temp_rho); 
  
   temp_p_perp = 0.3535533905932737*p_perp[19]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,19,0,temp_p_perp); 
@@ -5378,6 +5928,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,19,1,temp_rho); 
   gkyl_mat_set(&A_Tyy,19,1,temp_rho); 
   gkyl_mat_set(&A_Tzz,19,1,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,19,1,temp_rho); 
  
   temp_p_perp = 0.3162277660168379*p_perp[24]+0.3535533905932737*p_perp[16]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,19,1,temp_p_perp); 
@@ -5388,6 +5939,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,19,2,temp_rho); 
   gkyl_mat_set(&A_Tyy,19,2,temp_rho); 
   gkyl_mat_set(&A_Tzz,19,2,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,19,2,temp_rho); 
  
   temp_p_perp = 0.3162277660168379*p_perp[25]+0.3535533905932737*p_perp[15]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,19,2,temp_p_perp); 
@@ -5398,6 +5950,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,19,3,temp_rho); 
   gkyl_mat_set(&A_Tyy,19,3,temp_rho); 
   gkyl_mat_set(&A_Tzz,19,3,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,19,3,temp_rho); 
  
   temp_p_perp = 0.3162277660168379*p_perp[10]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,19,3,temp_p_perp); 
@@ -5408,6 +5961,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,19,4,temp_rho); 
   gkyl_mat_set(&A_Tyy,19,4,temp_rho); 
   gkyl_mat_set(&A_Tzz,19,4,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,19,4,temp_rho); 
  
   temp_p_perp = 0.2828427124746191*p_perp[26]+0.3162277660168379*p_perp[22]+0.3162277660168379*p_perp[21]+0.3535533905932737*p_perp[9]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,19,4,temp_p_perp); 
@@ -5418,6 +5972,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,19,5,temp_rho); 
   gkyl_mat_set(&A_Tyy,19,5,temp_rho); 
   gkyl_mat_set(&A_Tzz,19,5,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,19,5,temp_rho); 
  
   temp_p_perp = 0.2828427124746191*p_perp[17]+0.3162277660168379*p_perp[6]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,19,5,temp_p_perp); 
@@ -5428,6 +5983,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,19,6,temp_rho); 
   gkyl_mat_set(&A_Tyy,19,6,temp_rho); 
   gkyl_mat_set(&A_Tzz,19,6,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,19,6,temp_rho); 
  
   temp_p_perp = 0.2828427124746191*p_perp[18]+0.3162277660168379*p_perp[5]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,19,6,temp_p_perp); 
@@ -5438,6 +5994,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,19,7,temp_rho); 
   gkyl_mat_set(&A_Tyy,19,7,temp_rho); 
   gkyl_mat_set(&A_Tzz,19,7,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,19,7,temp_rho); 
  
   temp_p_perp = 0.3162277660168379*p_perp[19]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,19,7,temp_p_perp); 
@@ -5448,6 +6005,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,19,8,temp_rho); 
   gkyl_mat_set(&A_Tyy,19,8,temp_rho); 
   gkyl_mat_set(&A_Tzz,19,8,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,19,8,temp_rho); 
  
   temp_p_perp = 0.3162277660168379*p_perp[19]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,19,8,temp_p_perp); 
@@ -5458,6 +6016,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,19,9,temp_rho); 
   gkyl_mat_set(&A_Tyy,19,9,temp_rho); 
   gkyl_mat_set(&A_Tzz,19,9,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,19,9,temp_rho); 
  
   temp_p_perp = 0.2258769757263128*p_perp[19]+0.3535533905932737*p_perp[4]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,19,9,temp_p_perp); 
@@ -5468,6 +6027,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,19,10,temp_rho); 
   gkyl_mat_set(&A_Tyy,19,10,temp_rho); 
   gkyl_mat_set(&A_Tzz,19,10,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,19,10,temp_rho); 
  
   temp_p_perp = 0.2529822128134704*p_perp[23]+0.282842712474619*p_perp[14]+0.282842712474619*p_perp[13]+0.3162277660168379*p_perp[3]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,19,10,temp_p_perp); 
@@ -5478,6 +6038,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,19,11,temp_rho); 
   gkyl_mat_set(&A_Tyy,19,11,temp_rho); 
   gkyl_mat_set(&A_Tzz,19,11,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,19,11,temp_rho); 
  
   temp_p_perp = 0.282842712474619*p_perp[25]+0.3162277660168379*p_perp[15]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,19,11,temp_p_perp); 
@@ -5488,6 +6049,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,19,12,temp_rho); 
   gkyl_mat_set(&A_Tyy,19,12,temp_rho); 
   gkyl_mat_set(&A_Tzz,19,12,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,19,12,temp_rho); 
  
   temp_p_perp = 0.282842712474619*p_perp[24]+0.3162277660168379*p_perp[16]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,19,12,temp_p_perp); 
@@ -5498,6 +6060,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,19,13,temp_rho); 
   gkyl_mat_set(&A_Tyy,19,13,temp_rho); 
   gkyl_mat_set(&A_Tzz,19,13,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,19,13,temp_rho); 
  
   temp_p_perp = 0.282842712474619*p_perp[10]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,19,13,temp_p_perp); 
@@ -5508,6 +6071,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,19,14,temp_rho); 
   gkyl_mat_set(&A_Tyy,19,14,temp_rho); 
   gkyl_mat_set(&A_Tzz,19,14,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,19,14,temp_rho); 
  
   temp_p_perp = 0.282842712474619*p_perp[10]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,19,14,temp_p_perp); 
@@ -5518,6 +6082,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,19,15,temp_rho); 
   gkyl_mat_set(&A_Tyy,19,15,temp_rho); 
   gkyl_mat_set(&A_Tzz,19,15,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,19,15,temp_rho); 
  
   temp_p_perp = 0.2020305089104422*p_perp[24]+0.2258769757263128*p_perp[16]+0.3162277660168379*p_perp[11]+0.3535533905932737*p_perp[2]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,19,15,temp_p_perp); 
@@ -5528,6 +6093,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,19,16,temp_rho); 
   gkyl_mat_set(&A_Tyy,19,16,temp_rho); 
   gkyl_mat_set(&A_Tzz,19,16,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,19,16,temp_rho); 
  
   temp_p_perp = 0.2020305089104422*p_perp[25]+0.2258769757263128*p_perp[15]+0.3162277660168379*p_perp[12]+0.3535533905932737*p_perp[1]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,19,16,temp_p_perp); 
@@ -5538,6 +6104,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,19,17,temp_rho); 
   gkyl_mat_set(&A_Tyy,19,17,temp_rho); 
   gkyl_mat_set(&A_Tzz,19,17,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,19,17,temp_rho); 
  
   temp_p_perp = 0.2529822128134704*p_perp[18]+0.2828427124746191*p_perp[5]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,19,17,temp_p_perp); 
@@ -5548,6 +6115,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,19,18,temp_rho); 
   gkyl_mat_set(&A_Tyy,19,18,temp_rho); 
   gkyl_mat_set(&A_Tzz,19,18,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,19,18,temp_rho); 
  
   temp_p_perp = 0.2529822128134704*p_perp[17]+0.2828427124746191*p_perp[6]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,19,18,temp_p_perp); 
@@ -5558,6 +6126,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,19,19,temp_rho); 
   gkyl_mat_set(&A_Tyy,19,19,temp_rho); 
   gkyl_mat_set(&A_Tzz,19,19,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,19,19,temp_rho); 
  
   temp_p_perp = 0.1807015805810503*p_perp[26]+0.2020305089104422*p_perp[22]+0.2020305089104422*p_perp[21]+0.2828427124746191*p_perp[20]+0.2258769757263128*p_perp[9]+0.3162277660168379*p_perp[8]+0.3162277660168379*p_perp[7]+0.3535533905932737*p_perp[0]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,19,19,temp_p_perp); 
@@ -5568,6 +6137,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,19,20,temp_rho); 
   gkyl_mat_set(&A_Tyy,19,20,temp_rho); 
   gkyl_mat_set(&A_Tzz,19,20,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,19,20,temp_rho); 
  
   temp_p_perp = 0.2828427124746191*p_perp[19]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,19,20,temp_p_perp); 
@@ -5578,6 +6148,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,19,21,temp_rho); 
   gkyl_mat_set(&A_Tyy,19,21,temp_rho); 
   gkyl_mat_set(&A_Tzz,19,21,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,19,21,temp_rho); 
  
   temp_p_perp = 0.2020305089104422*p_perp[19]+0.3162277660168379*p_perp[4]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,19,21,temp_p_perp); 
@@ -5588,6 +6159,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,19,22,temp_rho); 
   gkyl_mat_set(&A_Tyy,19,22,temp_rho); 
   gkyl_mat_set(&A_Tzz,19,22,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,19,22,temp_rho); 
  
   temp_p_perp = 0.2020305089104422*p_perp[19]+0.3162277660168379*p_perp[4]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,19,22,temp_p_perp); 
@@ -5598,6 +6170,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,19,23,temp_rho); 
   gkyl_mat_set(&A_Tyy,19,23,temp_rho); 
   gkyl_mat_set(&A_Tzz,19,23,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,19,23,temp_rho); 
  
   temp_p_perp = 0.2529822128134704*p_perp[10]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,19,23,temp_p_perp); 
@@ -5608,6 +6181,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,19,24,temp_rho); 
   gkyl_mat_set(&A_Tyy,19,24,temp_rho); 
   gkyl_mat_set(&A_Tzz,19,24,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,19,24,temp_rho); 
  
   temp_p_perp = 0.1807015805810503*p_perp[25]+0.2020305089104422*p_perp[15]+0.282842712474619*p_perp[12]+0.3162277660168379*p_perp[1]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,19,24,temp_p_perp); 
@@ -5618,6 +6192,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,19,25,temp_rho); 
   gkyl_mat_set(&A_Tyy,19,25,temp_rho); 
   gkyl_mat_set(&A_Tzz,19,25,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,19,25,temp_rho); 
  
   temp_p_perp = 0.1807015805810503*p_perp[24]+0.2020305089104422*p_perp[16]+0.282842712474619*p_perp[11]+0.3162277660168379*p_perp[2]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,19,25,temp_p_perp); 
@@ -5628,6 +6203,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,19,26,temp_rho); 
   gkyl_mat_set(&A_Tyy,19,26,temp_rho); 
   gkyl_mat_set(&A_Tzz,19,26,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,19,26,temp_rho); 
  
   temp_p_perp = 0.1807015805810503*p_perp[19]+0.2828427124746191*p_perp[4]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,19,26,temp_p_perp); 
@@ -5638,6 +6214,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,20,0,temp_rho); 
   gkyl_mat_set(&A_Tyy,20,0,temp_rho); 
   gkyl_mat_set(&A_Tzz,20,0,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,20,0,temp_rho); 
  
   temp_p_perp = 0.3535533905932737*p_perp[20]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,20,0,temp_p_perp); 
@@ -5648,6 +6225,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,20,1,temp_rho); 
   gkyl_mat_set(&A_Tyy,20,1,temp_rho); 
   gkyl_mat_set(&A_Tzz,20,1,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,20,1,temp_rho); 
  
   temp_p_perp = 0.3162277660168379*p_perp[12]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,20,1,temp_p_perp); 
@@ -5658,6 +6236,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,20,2,temp_rho); 
   gkyl_mat_set(&A_Tyy,20,2,temp_rho); 
   gkyl_mat_set(&A_Tzz,20,2,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,20,2,temp_rho); 
  
   temp_p_perp = 0.3162277660168379*p_perp[11]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,20,2,temp_p_perp); 
@@ -5668,6 +6247,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,20,3,temp_rho); 
   gkyl_mat_set(&A_Tyy,20,3,temp_rho); 
   gkyl_mat_set(&A_Tzz,20,3,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,20,3,temp_rho); 
  
   temp_p_perp = 0.3535533905932737*p_perp[23]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,20,3,temp_p_perp); 
@@ -5678,6 +6258,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,20,4,temp_rho); 
   gkyl_mat_set(&A_Tyy,20,4,temp_rho); 
   gkyl_mat_set(&A_Tzz,20,4,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,20,4,temp_rho); 
  
   temp_p_perp = 0.2828427124746191*p_perp[4]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,20,4,temp_p_perp); 
@@ -5688,6 +6269,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,20,5,temp_rho); 
   gkyl_mat_set(&A_Tyy,20,5,temp_rho); 
   gkyl_mat_set(&A_Tzz,20,5,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,20,5,temp_rho); 
  
   temp_p_perp = 0.3162277660168379*p_perp[18]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,20,5,temp_p_perp); 
@@ -5698,6 +6280,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,20,6,temp_rho); 
   gkyl_mat_set(&A_Tyy,20,6,temp_rho); 
   gkyl_mat_set(&A_Tzz,20,6,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,20,6,temp_rho); 
  
   temp_p_perp = 0.3162277660168379*p_perp[17]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,20,6,temp_p_perp); 
@@ -5708,6 +6291,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,20,7,temp_rho); 
   gkyl_mat_set(&A_Tyy,20,7,temp_rho); 
   gkyl_mat_set(&A_Tzz,20,7,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,20,7,temp_rho); 
  
   temp_p_perp = 0.2258769757263128*p_perp[20]+0.3535533905932737*p_perp[8]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,20,7,temp_p_perp); 
@@ -5718,6 +6302,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,20,8,temp_rho); 
   gkyl_mat_set(&A_Tyy,20,8,temp_rho); 
   gkyl_mat_set(&A_Tzz,20,8,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,20,8,temp_rho); 
  
   temp_p_perp = 0.2258769757263128*p_perp[20]+0.3535533905932737*p_perp[7]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,20,8,temp_p_perp); 
@@ -5728,6 +6313,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,20,9,temp_rho); 
   gkyl_mat_set(&A_Tyy,20,9,temp_rho); 
   gkyl_mat_set(&A_Tzz,20,9,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,20,9,temp_rho); 
  
   temp_p_perp = 0.3535533905932737*p_perp[26]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,20,9,temp_p_perp); 
@@ -5738,6 +6324,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,20,10,temp_rho); 
   gkyl_mat_set(&A_Tyy,20,10,temp_rho); 
   gkyl_mat_set(&A_Tzz,20,10,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,20,10,temp_rho); 
  
   temp_p_perp = 0.2828427124746191*p_perp[10]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,20,10,temp_p_perp); 
@@ -5748,6 +6335,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,20,11,temp_rho); 
   gkyl_mat_set(&A_Tyy,20,11,temp_rho); 
   gkyl_mat_set(&A_Tzz,20,11,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,20,11,temp_rho); 
  
   temp_p_perp = 0.2020305089104422*p_perp[11]+0.3162277660168379*p_perp[2]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,20,11,temp_p_perp); 
@@ -5758,6 +6346,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,20,12,temp_rho); 
   gkyl_mat_set(&A_Tyy,20,12,temp_rho); 
   gkyl_mat_set(&A_Tzz,20,12,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,20,12,temp_rho); 
  
   temp_p_perp = 0.2020305089104422*p_perp[12]+0.3162277660168379*p_perp[1]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,20,12,temp_p_perp); 
@@ -5768,6 +6357,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,20,13,temp_rho); 
   gkyl_mat_set(&A_Tyy,20,13,temp_rho); 
   gkyl_mat_set(&A_Tzz,20,13,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,20,13,temp_rho); 
  
   temp_p_perp = 0.2258769757263128*p_perp[23]+0.3535533905932737*p_perp[14]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,20,13,temp_p_perp); 
@@ -5778,6 +6368,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,20,14,temp_rho); 
   gkyl_mat_set(&A_Tyy,20,14,temp_rho); 
   gkyl_mat_set(&A_Tzz,20,14,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,20,14,temp_rho); 
  
   temp_p_perp = 0.2258769757263128*p_perp[23]+0.3535533905932737*p_perp[13]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,20,14,temp_p_perp); 
@@ -5788,6 +6379,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,20,15,temp_rho); 
   gkyl_mat_set(&A_Tyy,20,15,temp_rho); 
   gkyl_mat_set(&A_Tzz,20,15,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,20,15,temp_rho); 
  
   temp_p_perp = 0.3162277660168379*p_perp[25]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,20,15,temp_p_perp); 
@@ -5798,6 +6390,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,20,16,temp_rho); 
   gkyl_mat_set(&A_Tyy,20,16,temp_rho); 
   gkyl_mat_set(&A_Tzz,20,16,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,20,16,temp_rho); 
  
   temp_p_perp = 0.3162277660168379*p_perp[24]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,20,16,temp_p_perp); 
@@ -5808,6 +6401,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,20,17,temp_rho); 
   gkyl_mat_set(&A_Tyy,20,17,temp_rho); 
   gkyl_mat_set(&A_Tzz,20,17,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,20,17,temp_rho); 
  
   temp_p_perp = 0.2020305089104422*p_perp[17]+0.3162277660168379*p_perp[6]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,20,17,temp_p_perp); 
@@ -5818,6 +6412,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,20,18,temp_rho); 
   gkyl_mat_set(&A_Tyy,20,18,temp_rho); 
   gkyl_mat_set(&A_Tzz,20,18,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,20,18,temp_rho); 
  
   temp_p_perp = 0.2020305089104422*p_perp[18]+0.3162277660168379*p_perp[5]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,20,18,temp_p_perp); 
@@ -5828,6 +6423,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,20,19,temp_rho); 
   gkyl_mat_set(&A_Tyy,20,19,temp_rho); 
   gkyl_mat_set(&A_Tzz,20,19,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,20,19,temp_rho); 
  
   temp_p_perp = 0.2828427124746191*p_perp[19]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,20,19,temp_p_perp); 
@@ -5838,6 +6434,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,20,20,temp_rho); 
   gkyl_mat_set(&A_Tyy,20,20,temp_rho); 
   gkyl_mat_set(&A_Tzz,20,20,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,20,20,temp_rho); 
  
   temp_p_perp = 0.1443075063646015*p_perp[20]+0.2258769757263128*p_perp[8]+0.2258769757263128*p_perp[7]+0.3535533905932737*p_perp[0]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,20,20,temp_p_perp); 
@@ -5848,6 +6445,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,20,21,temp_rho); 
   gkyl_mat_set(&A_Tyy,20,21,temp_rho); 
   gkyl_mat_set(&A_Tzz,20,21,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,20,21,temp_rho); 
  
   temp_p_perp = 0.2258769757263128*p_perp[26]+0.3535533905932737*p_perp[22]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,20,21,temp_p_perp); 
@@ -5858,6 +6456,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,20,22,temp_rho); 
   gkyl_mat_set(&A_Tyy,20,22,temp_rho); 
   gkyl_mat_set(&A_Tzz,20,22,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,20,22,temp_rho); 
  
   temp_p_perp = 0.2258769757263128*p_perp[26]+0.3535533905932737*p_perp[21]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,20,22,temp_p_perp); 
@@ -5868,6 +6467,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,20,23,temp_rho); 
   gkyl_mat_set(&A_Tyy,20,23,temp_rho); 
   gkyl_mat_set(&A_Tzz,20,23,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,20,23,temp_rho); 
  
   temp_p_perp = 0.1443075063646015*p_perp[23]+0.2258769757263128*p_perp[14]+0.2258769757263128*p_perp[13]+0.3535533905932737*p_perp[3]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,20,23,temp_p_perp); 
@@ -5878,6 +6478,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,20,24,temp_rho); 
   gkyl_mat_set(&A_Tyy,20,24,temp_rho); 
   gkyl_mat_set(&A_Tzz,20,24,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,20,24,temp_rho); 
  
   temp_p_perp = 0.2020305089104422*p_perp[24]+0.3162277660168379*p_perp[16]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,20,24,temp_p_perp); 
@@ -5888,6 +6489,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,20,25,temp_rho); 
   gkyl_mat_set(&A_Tyy,20,25,temp_rho); 
   gkyl_mat_set(&A_Tzz,20,25,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,20,25,temp_rho); 
  
   temp_p_perp = 0.2020305089104422*p_perp[25]+0.3162277660168379*p_perp[15]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,20,25,temp_p_perp); 
@@ -5898,6 +6500,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,20,26,temp_rho); 
   gkyl_mat_set(&A_Tyy,20,26,temp_rho); 
   gkyl_mat_set(&A_Tzz,20,26,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,20,26,temp_rho); 
  
   temp_p_perp = 0.1443075063646015*p_perp[26]+0.2258769757263128*p_perp[22]+0.2258769757263128*p_perp[21]+0.3535533905932737*p_perp[9]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,20,26,temp_p_perp); 
@@ -5908,6 +6511,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,21,0,temp_rho); 
   gkyl_mat_set(&A_Tyy,21,0,temp_rho); 
   gkyl_mat_set(&A_Tzz,21,0,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,21,0,temp_rho); 
  
   temp_p_perp = 0.3535533905932737*p_perp[21]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,21,0,temp_p_perp); 
@@ -5918,6 +6522,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,21,1,temp_rho); 
   gkyl_mat_set(&A_Tyy,21,1,temp_rho); 
   gkyl_mat_set(&A_Tzz,21,1,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,21,1,temp_rho); 
  
   temp_p_perp = 0.3162277660168379*p_perp[15]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,21,1,temp_p_perp); 
@@ -5928,6 +6533,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,21,2,temp_rho); 
   gkyl_mat_set(&A_Tyy,21,2,temp_rho); 
   gkyl_mat_set(&A_Tzz,21,2,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,21,2,temp_rho); 
  
   temp_p_perp = 0.3535533905932737*p_perp[24]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,21,2,temp_p_perp); 
@@ -5938,6 +6544,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,21,3,temp_rho); 
   gkyl_mat_set(&A_Tyy,21,3,temp_rho); 
   gkyl_mat_set(&A_Tzz,21,3,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,21,3,temp_rho); 
  
   temp_p_perp = 0.3162277660168379*p_perp[13]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,21,3,temp_p_perp); 
@@ -5948,6 +6555,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,21,4,temp_rho); 
   gkyl_mat_set(&A_Tyy,21,4,temp_rho); 
   gkyl_mat_set(&A_Tzz,21,4,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,21,4,temp_rho); 
  
   temp_p_perp = 0.3162277660168379*p_perp[19]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,21,4,temp_p_perp); 
@@ -5958,6 +6566,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,21,5,temp_rho); 
   gkyl_mat_set(&A_Tyy,21,5,temp_rho); 
   gkyl_mat_set(&A_Tzz,21,5,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,21,5,temp_rho); 
  
   temp_p_perp = 0.2828427124746191*p_perp[5]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,21,5,temp_p_perp); 
@@ -5968,6 +6577,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,21,6,temp_rho); 
   gkyl_mat_set(&A_Tyy,21,6,temp_rho); 
   gkyl_mat_set(&A_Tzz,21,6,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,21,6,temp_rho); 
  
   temp_p_perp = 0.3162277660168379*p_perp[17]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,21,6,temp_p_perp); 
@@ -5978,6 +6588,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,21,7,temp_rho); 
   gkyl_mat_set(&A_Tyy,21,7,temp_rho); 
   gkyl_mat_set(&A_Tzz,21,7,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,21,7,temp_rho); 
  
   temp_p_perp = 0.2258769757263128*p_perp[21]+0.3535533905932737*p_perp[9]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,21,7,temp_p_perp); 
@@ -5988,6 +6599,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,21,8,temp_rho); 
   gkyl_mat_set(&A_Tyy,21,8,temp_rho); 
   gkyl_mat_set(&A_Tzz,21,8,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,21,8,temp_rho); 
  
   temp_p_perp = 0.3535533905932737*p_perp[26]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,21,8,temp_p_perp); 
@@ -5998,6 +6610,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,21,9,temp_rho); 
   gkyl_mat_set(&A_Tyy,21,9,temp_rho); 
   gkyl_mat_set(&A_Tzz,21,9,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,21,9,temp_rho); 
  
   temp_p_perp = 0.2258769757263128*p_perp[21]+0.3535533905932737*p_perp[7]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,21,9,temp_p_perp); 
@@ -6008,6 +6621,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,21,10,temp_rho); 
   gkyl_mat_set(&A_Tyy,21,10,temp_rho); 
   gkyl_mat_set(&A_Tzz,21,10,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,21,10,temp_rho); 
  
   temp_p_perp = 0.2828427124746191*p_perp[10]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,21,10,temp_p_perp); 
@@ -6018,6 +6632,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,21,11,temp_rho); 
   gkyl_mat_set(&A_Tyy,21,11,temp_rho); 
   gkyl_mat_set(&A_Tzz,21,11,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,21,11,temp_rho); 
  
   temp_p_perp = 0.2258769757263128*p_perp[24]+0.3535533905932737*p_perp[16]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,21,11,temp_p_perp); 
@@ -6028,6 +6643,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,21,12,temp_rho); 
   gkyl_mat_set(&A_Tyy,21,12,temp_rho); 
   gkyl_mat_set(&A_Tzz,21,12,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,21,12,temp_rho); 
  
   temp_p_perp = 0.3162277660168379*p_perp[25]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,21,12,temp_p_perp); 
@@ -6038,6 +6654,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,21,13,temp_rho); 
   gkyl_mat_set(&A_Tyy,21,13,temp_rho); 
   gkyl_mat_set(&A_Tzz,21,13,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,21,13,temp_rho); 
  
   temp_p_perp = 0.2020305089104422*p_perp[13]+0.3162277660168379*p_perp[3]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,21,13,temp_p_perp); 
@@ -6048,6 +6665,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,21,14,temp_rho); 
   gkyl_mat_set(&A_Tyy,21,14,temp_rho); 
   gkyl_mat_set(&A_Tzz,21,14,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,21,14,temp_rho); 
  
   temp_p_perp = 0.3162277660168379*p_perp[23]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,21,14,temp_p_perp); 
@@ -6058,6 +6676,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,21,15,temp_rho); 
   gkyl_mat_set(&A_Tyy,21,15,temp_rho); 
   gkyl_mat_set(&A_Tzz,21,15,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,21,15,temp_rho); 
  
   temp_p_perp = 0.2020305089104422*p_perp[15]+0.3162277660168379*p_perp[1]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,21,15,temp_p_perp); 
@@ -6068,6 +6687,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,21,16,temp_rho); 
   gkyl_mat_set(&A_Tyy,21,16,temp_rho); 
   gkyl_mat_set(&A_Tzz,21,16,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,21,16,temp_rho); 
  
   temp_p_perp = 0.2258769757263128*p_perp[24]+0.3535533905932737*p_perp[11]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,21,16,temp_p_perp); 
@@ -6078,6 +6698,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,21,17,temp_rho); 
   gkyl_mat_set(&A_Tyy,21,17,temp_rho); 
   gkyl_mat_set(&A_Tzz,21,17,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,21,17,temp_rho); 
  
   temp_p_perp = 0.2020305089104422*p_perp[17]+0.3162277660168379*p_perp[6]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,21,17,temp_p_perp); 
@@ -6088,6 +6709,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,21,18,temp_rho); 
   gkyl_mat_set(&A_Tyy,21,18,temp_rho); 
   gkyl_mat_set(&A_Tzz,21,18,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,21,18,temp_rho); 
  
   temp_p_perp = 0.2828427124746191*p_perp[18]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,21,18,temp_p_perp); 
@@ -6098,6 +6720,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,21,19,temp_rho); 
   gkyl_mat_set(&A_Tyy,21,19,temp_rho); 
   gkyl_mat_set(&A_Tzz,21,19,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,21,19,temp_rho); 
  
   temp_p_perp = 0.2020305089104422*p_perp[19]+0.3162277660168379*p_perp[4]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,21,19,temp_p_perp); 
@@ -6108,6 +6731,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,21,20,temp_rho); 
   gkyl_mat_set(&A_Tyy,21,20,temp_rho); 
   gkyl_mat_set(&A_Tzz,21,20,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,21,20,temp_rho); 
  
   temp_p_perp = 0.2258769757263128*p_perp[26]+0.3535533905932737*p_perp[22]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,21,20,temp_p_perp); 
@@ -6118,6 +6742,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,21,21,temp_rho); 
   gkyl_mat_set(&A_Tyy,21,21,temp_rho); 
   gkyl_mat_set(&A_Tzz,21,21,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,21,21,temp_rho); 
  
   temp_p_perp = 0.1443075063646015*p_perp[21]+0.2258769757263128*p_perp[9]+0.2258769757263128*p_perp[7]+0.3535533905932737*p_perp[0]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,21,21,temp_p_perp); 
@@ -6128,6 +6753,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,21,22,temp_rho); 
   gkyl_mat_set(&A_Tyy,21,22,temp_rho); 
   gkyl_mat_set(&A_Tzz,21,22,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,21,22,temp_rho); 
  
   temp_p_perp = 0.2258769757263128*p_perp[26]+0.3535533905932737*p_perp[20]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,21,22,temp_p_perp); 
@@ -6138,6 +6764,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,21,23,temp_rho); 
   gkyl_mat_set(&A_Tyy,21,23,temp_rho); 
   gkyl_mat_set(&A_Tzz,21,23,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,21,23,temp_rho); 
  
   temp_p_perp = 0.2020305089104422*p_perp[23]+0.3162277660168379*p_perp[14]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,21,23,temp_p_perp); 
@@ -6148,6 +6775,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,21,24,temp_rho); 
   gkyl_mat_set(&A_Tyy,21,24,temp_rho); 
   gkyl_mat_set(&A_Tzz,21,24,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,21,24,temp_rho); 
  
   temp_p_perp = 0.1443075063646015*p_perp[24]+0.2258769757263128*p_perp[16]+0.2258769757263128*p_perp[11]+0.3535533905932737*p_perp[2]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,21,24,temp_p_perp); 
@@ -6158,6 +6786,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,21,25,temp_rho); 
   gkyl_mat_set(&A_Tyy,21,25,temp_rho); 
   gkyl_mat_set(&A_Tzz,21,25,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,21,25,temp_rho); 
  
   temp_p_perp = 0.2020305089104422*p_perp[25]+0.3162277660168379*p_perp[12]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,21,25,temp_p_perp); 
@@ -6168,6 +6797,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,21,26,temp_rho); 
   gkyl_mat_set(&A_Tyy,21,26,temp_rho); 
   gkyl_mat_set(&A_Tzz,21,26,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,21,26,temp_rho); 
  
   temp_p_perp = 0.1443075063646015*p_perp[26]+0.2258769757263128*p_perp[22]+0.2258769757263128*p_perp[20]+0.3535533905932737*p_perp[8]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,21,26,temp_p_perp); 
@@ -6178,6 +6808,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,22,0,temp_rho); 
   gkyl_mat_set(&A_Tyy,22,0,temp_rho); 
   gkyl_mat_set(&A_Tzz,22,0,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,22,0,temp_rho); 
  
   temp_p_perp = 0.3535533905932737*p_perp[22]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,22,0,temp_p_perp); 
@@ -6188,6 +6819,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,22,1,temp_rho); 
   gkyl_mat_set(&A_Tyy,22,1,temp_rho); 
   gkyl_mat_set(&A_Tzz,22,1,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,22,1,temp_rho); 
  
   temp_p_perp = 0.3535533905932737*p_perp[25]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,22,1,temp_p_perp); 
@@ -6198,6 +6830,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,22,2,temp_rho); 
   gkyl_mat_set(&A_Tyy,22,2,temp_rho); 
   gkyl_mat_set(&A_Tzz,22,2,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,22,2,temp_rho); 
  
   temp_p_perp = 0.3162277660168379*p_perp[16]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,22,2,temp_p_perp); 
@@ -6208,6 +6841,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,22,3,temp_rho); 
   gkyl_mat_set(&A_Tyy,22,3,temp_rho); 
   gkyl_mat_set(&A_Tzz,22,3,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,22,3,temp_rho); 
  
   temp_p_perp = 0.3162277660168379*p_perp[14]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,22,3,temp_p_perp); 
@@ -6218,6 +6852,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,22,4,temp_rho); 
   gkyl_mat_set(&A_Tyy,22,4,temp_rho); 
   gkyl_mat_set(&A_Tzz,22,4,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,22,4,temp_rho); 
  
   temp_p_perp = 0.3162277660168379*p_perp[19]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,22,4,temp_p_perp); 
@@ -6228,6 +6863,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,22,5,temp_rho); 
   gkyl_mat_set(&A_Tyy,22,5,temp_rho); 
   gkyl_mat_set(&A_Tzz,22,5,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,22,5,temp_rho); 
  
   temp_p_perp = 0.3162277660168379*p_perp[18]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,22,5,temp_p_perp); 
@@ -6238,6 +6874,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,22,6,temp_rho); 
   gkyl_mat_set(&A_Tyy,22,6,temp_rho); 
   gkyl_mat_set(&A_Tzz,22,6,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,22,6,temp_rho); 
  
   temp_p_perp = 0.2828427124746191*p_perp[6]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,22,6,temp_p_perp); 
@@ -6248,6 +6885,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,22,7,temp_rho); 
   gkyl_mat_set(&A_Tyy,22,7,temp_rho); 
   gkyl_mat_set(&A_Tzz,22,7,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,22,7,temp_rho); 
  
   temp_p_perp = 0.3535533905932737*p_perp[26]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,22,7,temp_p_perp); 
@@ -6258,6 +6896,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,22,8,temp_rho); 
   gkyl_mat_set(&A_Tyy,22,8,temp_rho); 
   gkyl_mat_set(&A_Tzz,22,8,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,22,8,temp_rho); 
  
   temp_p_perp = 0.2258769757263128*p_perp[22]+0.3535533905932737*p_perp[9]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,22,8,temp_p_perp); 
@@ -6268,6 +6907,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,22,9,temp_rho); 
   gkyl_mat_set(&A_Tyy,22,9,temp_rho); 
   gkyl_mat_set(&A_Tzz,22,9,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,22,9,temp_rho); 
  
   temp_p_perp = 0.2258769757263128*p_perp[22]+0.3535533905932737*p_perp[8]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,22,9,temp_p_perp); 
@@ -6278,6 +6918,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,22,10,temp_rho); 
   gkyl_mat_set(&A_Tyy,22,10,temp_rho); 
   gkyl_mat_set(&A_Tzz,22,10,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,22,10,temp_rho); 
  
   temp_p_perp = 0.2828427124746191*p_perp[10]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,22,10,temp_p_perp); 
@@ -6288,6 +6929,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,22,11,temp_rho); 
   gkyl_mat_set(&A_Tyy,22,11,temp_rho); 
   gkyl_mat_set(&A_Tzz,22,11,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,22,11,temp_rho); 
  
   temp_p_perp = 0.3162277660168379*p_perp[24]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,22,11,temp_p_perp); 
@@ -6298,6 +6940,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,22,12,temp_rho); 
   gkyl_mat_set(&A_Tyy,22,12,temp_rho); 
   gkyl_mat_set(&A_Tzz,22,12,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,22,12,temp_rho); 
  
   temp_p_perp = 0.2258769757263128*p_perp[25]+0.3535533905932737*p_perp[15]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,22,12,temp_p_perp); 
@@ -6308,6 +6951,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,22,13,temp_rho); 
   gkyl_mat_set(&A_Tyy,22,13,temp_rho); 
   gkyl_mat_set(&A_Tzz,22,13,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,22,13,temp_rho); 
  
   temp_p_perp = 0.3162277660168379*p_perp[23]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,22,13,temp_p_perp); 
@@ -6318,6 +6962,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,22,14,temp_rho); 
   gkyl_mat_set(&A_Tyy,22,14,temp_rho); 
   gkyl_mat_set(&A_Tzz,22,14,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,22,14,temp_rho); 
  
   temp_p_perp = 0.2020305089104422*p_perp[14]+0.3162277660168379*p_perp[3]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,22,14,temp_p_perp); 
@@ -6328,6 +6973,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,22,15,temp_rho); 
   gkyl_mat_set(&A_Tyy,22,15,temp_rho); 
   gkyl_mat_set(&A_Tzz,22,15,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,22,15,temp_rho); 
  
   temp_p_perp = 0.2258769757263128*p_perp[25]+0.3535533905932737*p_perp[12]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,22,15,temp_p_perp); 
@@ -6338,6 +6984,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,22,16,temp_rho); 
   gkyl_mat_set(&A_Tyy,22,16,temp_rho); 
   gkyl_mat_set(&A_Tzz,22,16,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,22,16,temp_rho); 
  
   temp_p_perp = 0.2020305089104422*p_perp[16]+0.3162277660168379*p_perp[2]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,22,16,temp_p_perp); 
@@ -6348,6 +6995,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,22,17,temp_rho); 
   gkyl_mat_set(&A_Tyy,22,17,temp_rho); 
   gkyl_mat_set(&A_Tzz,22,17,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,22,17,temp_rho); 
  
   temp_p_perp = 0.2828427124746191*p_perp[17]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,22,17,temp_p_perp); 
@@ -6358,6 +7006,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,22,18,temp_rho); 
   gkyl_mat_set(&A_Tyy,22,18,temp_rho); 
   gkyl_mat_set(&A_Tzz,22,18,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,22,18,temp_rho); 
  
   temp_p_perp = 0.2020305089104422*p_perp[18]+0.3162277660168379*p_perp[5]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,22,18,temp_p_perp); 
@@ -6368,6 +7017,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,22,19,temp_rho); 
   gkyl_mat_set(&A_Tyy,22,19,temp_rho); 
   gkyl_mat_set(&A_Tzz,22,19,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,22,19,temp_rho); 
  
   temp_p_perp = 0.2020305089104422*p_perp[19]+0.3162277660168379*p_perp[4]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,22,19,temp_p_perp); 
@@ -6378,6 +7028,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,22,20,temp_rho); 
   gkyl_mat_set(&A_Tyy,22,20,temp_rho); 
   gkyl_mat_set(&A_Tzz,22,20,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,22,20,temp_rho); 
  
   temp_p_perp = 0.2258769757263128*p_perp[26]+0.3535533905932737*p_perp[21]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,22,20,temp_p_perp); 
@@ -6388,6 +7039,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,22,21,temp_rho); 
   gkyl_mat_set(&A_Tyy,22,21,temp_rho); 
   gkyl_mat_set(&A_Tzz,22,21,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,22,21,temp_rho); 
  
   temp_p_perp = 0.2258769757263128*p_perp[26]+0.3535533905932737*p_perp[20]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,22,21,temp_p_perp); 
@@ -6398,6 +7050,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,22,22,temp_rho); 
   gkyl_mat_set(&A_Tyy,22,22,temp_rho); 
   gkyl_mat_set(&A_Tzz,22,22,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,22,22,temp_rho); 
  
   temp_p_perp = 0.1443075063646015*p_perp[22]+0.2258769757263128*p_perp[9]+0.2258769757263128*p_perp[8]+0.3535533905932737*p_perp[0]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,22,22,temp_p_perp); 
@@ -6408,6 +7061,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,22,23,temp_rho); 
   gkyl_mat_set(&A_Tyy,22,23,temp_rho); 
   gkyl_mat_set(&A_Tzz,22,23,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,22,23,temp_rho); 
  
   temp_p_perp = 0.2020305089104422*p_perp[23]+0.3162277660168379*p_perp[13]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,22,23,temp_p_perp); 
@@ -6418,6 +7072,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,22,24,temp_rho); 
   gkyl_mat_set(&A_Tyy,22,24,temp_rho); 
   gkyl_mat_set(&A_Tzz,22,24,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,22,24,temp_rho); 
  
   temp_p_perp = 0.2020305089104422*p_perp[24]+0.3162277660168379*p_perp[11]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,22,24,temp_p_perp); 
@@ -6428,6 +7083,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,22,25,temp_rho); 
   gkyl_mat_set(&A_Tyy,22,25,temp_rho); 
   gkyl_mat_set(&A_Tzz,22,25,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,22,25,temp_rho); 
  
   temp_p_perp = 0.1443075063646015*p_perp[25]+0.2258769757263128*p_perp[15]+0.2258769757263128*p_perp[12]+0.3535533905932737*p_perp[1]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,22,25,temp_p_perp); 
@@ -6438,6 +7094,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,22,26,temp_rho); 
   gkyl_mat_set(&A_Tyy,22,26,temp_rho); 
   gkyl_mat_set(&A_Tzz,22,26,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,22,26,temp_rho); 
  
   temp_p_perp = 0.1443075063646015*p_perp[26]+0.2258769757263128*p_perp[21]+0.2258769757263128*p_perp[20]+0.3535533905932737*p_perp[7]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,22,26,temp_p_perp); 
@@ -6448,6 +7105,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,23,0,temp_rho); 
   gkyl_mat_set(&A_Tyy,23,0,temp_rho); 
   gkyl_mat_set(&A_Tzz,23,0,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,23,0,temp_rho); 
  
   temp_p_perp = 0.3535533905932737*p_perp[23]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,23,0,temp_p_perp); 
@@ -6458,6 +7116,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,23,1,temp_rho); 
   gkyl_mat_set(&A_Tyy,23,1,temp_rho); 
   gkyl_mat_set(&A_Tzz,23,1,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,23,1,temp_rho); 
  
   temp_p_perp = 0.3162277660168379*p_perp[18]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,23,1,temp_p_perp); 
@@ -6468,6 +7127,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,23,2,temp_rho); 
   gkyl_mat_set(&A_Tyy,23,2,temp_rho); 
   gkyl_mat_set(&A_Tzz,23,2,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,23,2,temp_rho); 
  
   temp_p_perp = 0.3162277660168379*p_perp[17]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,23,2,temp_p_perp); 
@@ -6478,6 +7138,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,23,3,temp_rho); 
   gkyl_mat_set(&A_Tyy,23,3,temp_rho); 
   gkyl_mat_set(&A_Tzz,23,3,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,23,3,temp_rho); 
  
   temp_p_perp = 0.3162277660168379*p_perp[26]+0.3535533905932737*p_perp[20]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,23,3,temp_p_perp); 
@@ -6488,6 +7149,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,23,4,temp_rho); 
   gkyl_mat_set(&A_Tyy,23,4,temp_rho); 
   gkyl_mat_set(&A_Tzz,23,4,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,23,4,temp_rho); 
  
   temp_p_perp = 0.2828427124746191*p_perp[10]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,23,4,temp_p_perp); 
@@ -6498,6 +7160,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,23,5,temp_rho); 
   gkyl_mat_set(&A_Tyy,23,5,temp_rho); 
   gkyl_mat_set(&A_Tzz,23,5,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,23,5,temp_rho); 
  
   temp_p_perp = 0.2828427124746191*p_perp[25]+0.3162277660168379*p_perp[12]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,23,5,temp_p_perp); 
@@ -6508,6 +7171,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,23,6,temp_rho); 
   gkyl_mat_set(&A_Tyy,23,6,temp_rho); 
   gkyl_mat_set(&A_Tzz,23,6,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,23,6,temp_rho); 
  
   temp_p_perp = 0.2828427124746191*p_perp[24]+0.3162277660168379*p_perp[11]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,23,6,temp_p_perp); 
@@ -6518,6 +7182,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,23,7,temp_rho); 
   gkyl_mat_set(&A_Tyy,23,7,temp_rho); 
   gkyl_mat_set(&A_Tzz,23,7,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,23,7,temp_rho); 
  
   temp_p_perp = 0.2258769757263128*p_perp[23]+0.3535533905932737*p_perp[14]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,23,7,temp_p_perp); 
@@ -6528,6 +7193,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,23,8,temp_rho); 
   gkyl_mat_set(&A_Tyy,23,8,temp_rho); 
   gkyl_mat_set(&A_Tzz,23,8,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,23,8,temp_rho); 
  
   temp_p_perp = 0.2258769757263128*p_perp[23]+0.3535533905932737*p_perp[13]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,23,8,temp_p_perp); 
@@ -6538,6 +7204,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,23,9,temp_rho); 
   gkyl_mat_set(&A_Tyy,23,9,temp_rho); 
   gkyl_mat_set(&A_Tzz,23,9,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,23,9,temp_rho); 
  
   temp_p_perp = 0.3162277660168379*p_perp[23]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,23,9,temp_p_perp); 
@@ -6548,6 +7215,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,23,10,temp_rho); 
   gkyl_mat_set(&A_Tyy,23,10,temp_rho); 
   gkyl_mat_set(&A_Tzz,23,10,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,23,10,temp_rho); 
  
   temp_p_perp = 0.2529822128134704*p_perp[19]+0.2828427124746191*p_perp[4]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,23,10,temp_p_perp); 
@@ -6558,6 +7226,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,23,11,temp_rho); 
   gkyl_mat_set(&A_Tyy,23,11,temp_rho); 
   gkyl_mat_set(&A_Tzz,23,11,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,23,11,temp_rho); 
  
   temp_p_perp = 0.2020305089104422*p_perp[17]+0.3162277660168379*p_perp[6]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,23,11,temp_p_perp); 
@@ -6568,6 +7237,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,23,12,temp_rho); 
   gkyl_mat_set(&A_Tyy,23,12,temp_rho); 
   gkyl_mat_set(&A_Tzz,23,12,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,23,12,temp_rho); 
  
   temp_p_perp = 0.2020305089104422*p_perp[18]+0.3162277660168379*p_perp[5]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,23,12,temp_p_perp); 
@@ -6578,6 +7248,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,23,13,temp_rho); 
   gkyl_mat_set(&A_Tyy,23,13,temp_rho); 
   gkyl_mat_set(&A_Tzz,23,13,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,23,13,temp_rho); 
  
   temp_p_perp = 0.2020305089104422*p_perp[26]+0.3162277660168379*p_perp[22]+0.2258769757263128*p_perp[20]+0.3535533905932737*p_perp[8]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,23,13,temp_p_perp); 
@@ -6588,6 +7259,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,23,14,temp_rho); 
   gkyl_mat_set(&A_Tyy,23,14,temp_rho); 
   gkyl_mat_set(&A_Tzz,23,14,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,23,14,temp_rho); 
  
   temp_p_perp = 0.2020305089104422*p_perp[26]+0.3162277660168379*p_perp[21]+0.2258769757263128*p_perp[20]+0.3535533905932737*p_perp[7]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,23,14,temp_p_perp); 
@@ -6598,6 +7270,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,23,15,temp_rho); 
   gkyl_mat_set(&A_Tyy,23,15,temp_rho); 
   gkyl_mat_set(&A_Tzz,23,15,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,23,15,temp_rho); 
  
   temp_p_perp = 0.282842712474619*p_perp[18]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,23,15,temp_p_perp); 
@@ -6608,6 +7281,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,23,16,temp_rho); 
   gkyl_mat_set(&A_Tyy,23,16,temp_rho); 
   gkyl_mat_set(&A_Tzz,23,16,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,23,16,temp_rho); 
  
   temp_p_perp = 0.282842712474619*p_perp[17]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,23,16,temp_p_perp); 
@@ -6618,6 +7292,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,23,17,temp_rho); 
   gkyl_mat_set(&A_Tyy,23,17,temp_rho); 
   gkyl_mat_set(&A_Tzz,23,17,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,23,17,temp_rho); 
  
   temp_p_perp = 0.1807015805810503*p_perp[24]+0.282842712474619*p_perp[16]+0.2020305089104422*p_perp[11]+0.3162277660168379*p_perp[2]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,23,17,temp_p_perp); 
@@ -6628,6 +7303,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,23,18,temp_rho); 
   gkyl_mat_set(&A_Tyy,23,18,temp_rho); 
   gkyl_mat_set(&A_Tzz,23,18,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,23,18,temp_rho); 
  
   temp_p_perp = 0.1807015805810503*p_perp[25]+0.282842712474619*p_perp[15]+0.2020305089104422*p_perp[12]+0.3162277660168379*p_perp[1]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,23,18,temp_p_perp); 
@@ -6638,6 +7314,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,23,19,temp_rho); 
   gkyl_mat_set(&A_Tyy,23,19,temp_rho); 
   gkyl_mat_set(&A_Tzz,23,19,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,23,19,temp_rho); 
  
   temp_p_perp = 0.2529822128134704*p_perp[10]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,23,19,temp_p_perp); 
@@ -6648,6 +7325,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,23,20,temp_rho); 
   gkyl_mat_set(&A_Tyy,23,20,temp_rho); 
   gkyl_mat_set(&A_Tzz,23,20,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,23,20,temp_rho); 
  
   temp_p_perp = 0.1443075063646015*p_perp[23]+0.2258769757263128*p_perp[14]+0.2258769757263128*p_perp[13]+0.3535533905932737*p_perp[3]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,23,20,temp_p_perp); 
@@ -6658,6 +7336,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,23,21,temp_rho); 
   gkyl_mat_set(&A_Tyy,23,21,temp_rho); 
   gkyl_mat_set(&A_Tzz,23,21,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,23,21,temp_rho); 
  
   temp_p_perp = 0.2020305089104422*p_perp[23]+0.3162277660168379*p_perp[14]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,23,21,temp_p_perp); 
@@ -6668,6 +7347,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,23,22,temp_rho); 
   gkyl_mat_set(&A_Tyy,23,22,temp_rho); 
   gkyl_mat_set(&A_Tzz,23,22,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,23,22,temp_rho); 
  
   temp_p_perp = 0.2020305089104422*p_perp[23]+0.3162277660168379*p_perp[13]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,23,22,temp_p_perp); 
@@ -6678,6 +7358,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,23,23,temp_rho); 
   gkyl_mat_set(&A_Tyy,23,23,temp_rho); 
   gkyl_mat_set(&A_Tzz,23,23,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,23,23,temp_rho); 
  
   temp_p_perp = 0.1290725575578931*p_perp[26]+0.2020305089104422*p_perp[22]+0.2020305089104422*p_perp[21]+0.1443075063646015*p_perp[20]+0.3162277660168379*p_perp[9]+0.2258769757263128*p_perp[8]+0.2258769757263128*p_perp[7]+0.3535533905932737*p_perp[0]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,23,23,temp_p_perp); 
@@ -6688,6 +7369,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,23,24,temp_rho); 
   gkyl_mat_set(&A_Tyy,23,24,temp_rho); 
   gkyl_mat_set(&A_Tzz,23,24,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,23,24,temp_rho); 
  
   temp_p_perp = 0.1807015805810503*p_perp[17]+0.2828427124746191*p_perp[6]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,23,24,temp_p_perp); 
@@ -6698,6 +7380,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,23,25,temp_rho); 
   gkyl_mat_set(&A_Tyy,23,25,temp_rho); 
   gkyl_mat_set(&A_Tzz,23,25,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,23,25,temp_rho); 
  
   temp_p_perp = 0.1807015805810503*p_perp[18]+0.2828427124746191*p_perp[5]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,23,25,temp_p_perp); 
@@ -6708,6 +7391,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,23,26,temp_rho); 
   gkyl_mat_set(&A_Tyy,23,26,temp_rho); 
   gkyl_mat_set(&A_Tzz,23,26,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,23,26,temp_rho); 
  
   temp_p_perp = 0.1290725575578931*p_perp[23]+0.2020305089104422*p_perp[14]+0.2020305089104422*p_perp[13]+0.3162277660168379*p_perp[3]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,23,26,temp_p_perp); 
@@ -6718,6 +7402,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,24,0,temp_rho); 
   gkyl_mat_set(&A_Tyy,24,0,temp_rho); 
   gkyl_mat_set(&A_Tzz,24,0,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,24,0,temp_rho); 
  
   temp_p_perp = 0.3535533905932737*p_perp[24]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,24,0,temp_p_perp); 
@@ -6728,6 +7413,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,24,1,temp_rho); 
   gkyl_mat_set(&A_Tyy,24,1,temp_rho); 
   gkyl_mat_set(&A_Tzz,24,1,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,24,1,temp_rho); 
  
   temp_p_perp = 0.3162277660168379*p_perp[19]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,24,1,temp_p_perp); 
@@ -6738,6 +7424,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,24,2,temp_rho); 
   gkyl_mat_set(&A_Tyy,24,2,temp_rho); 
   gkyl_mat_set(&A_Tzz,24,2,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,24,2,temp_rho); 
  
   temp_p_perp = 0.3162277660168379*p_perp[26]+0.3535533905932737*p_perp[21]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,24,2,temp_p_perp); 
@@ -6748,6 +7435,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,24,3,temp_rho); 
   gkyl_mat_set(&A_Tyy,24,3,temp_rho); 
   gkyl_mat_set(&A_Tzz,24,3,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,24,3,temp_rho); 
  
   temp_p_perp = 0.3162277660168379*p_perp[17]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,24,3,temp_p_perp); 
@@ -6758,6 +7446,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,24,4,temp_rho); 
   gkyl_mat_set(&A_Tyy,24,4,temp_rho); 
   gkyl_mat_set(&A_Tzz,24,4,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,24,4,temp_rho); 
  
   temp_p_perp = 0.2828427124746191*p_perp[25]+0.3162277660168379*p_perp[15]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,24,4,temp_p_perp); 
@@ -6768,6 +7457,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,24,5,temp_rho); 
   gkyl_mat_set(&A_Tyy,24,5,temp_rho); 
   gkyl_mat_set(&A_Tzz,24,5,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,24,5,temp_rho); 
  
   temp_p_perp = 0.2828427124746191*p_perp[10]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,24,5,temp_p_perp); 
@@ -6778,6 +7468,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,24,6,temp_rho); 
   gkyl_mat_set(&A_Tyy,24,6,temp_rho); 
   gkyl_mat_set(&A_Tzz,24,6,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,24,6,temp_rho); 
  
   temp_p_perp = 0.2828427124746191*p_perp[23]+0.3162277660168379*p_perp[13]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,24,6,temp_p_perp); 
@@ -6788,6 +7479,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,24,7,temp_rho); 
   gkyl_mat_set(&A_Tyy,24,7,temp_rho); 
   gkyl_mat_set(&A_Tzz,24,7,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,24,7,temp_rho); 
  
   temp_p_perp = 0.2258769757263128*p_perp[24]+0.3535533905932737*p_perp[16]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,24,7,temp_p_perp); 
@@ -6798,6 +7490,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,24,8,temp_rho); 
   gkyl_mat_set(&A_Tyy,24,8,temp_rho); 
   gkyl_mat_set(&A_Tzz,24,8,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,24,8,temp_rho); 
  
   temp_p_perp = 0.3162277660168379*p_perp[24]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,24,8,temp_p_perp); 
@@ -6808,6 +7501,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,24,9,temp_rho); 
   gkyl_mat_set(&A_Tyy,24,9,temp_rho); 
   gkyl_mat_set(&A_Tzz,24,9,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,24,9,temp_rho); 
  
   temp_p_perp = 0.2258769757263128*p_perp[24]+0.3535533905932737*p_perp[11]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,24,9,temp_p_perp); 
@@ -6818,6 +7512,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,24,10,temp_rho); 
   gkyl_mat_set(&A_Tyy,24,10,temp_rho); 
   gkyl_mat_set(&A_Tzz,24,10,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,24,10,temp_rho); 
  
   temp_p_perp = 0.2529822128134704*p_perp[18]+0.2828427124746191*p_perp[5]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,24,10,temp_p_perp); 
@@ -6828,6 +7523,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,24,11,temp_rho); 
   gkyl_mat_set(&A_Tyy,24,11,temp_rho); 
   gkyl_mat_set(&A_Tzz,24,11,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,24,11,temp_rho); 
  
   temp_p_perp = 0.2020305089104422*p_perp[26]+0.3162277660168379*p_perp[22]+0.2258769757263128*p_perp[21]+0.3535533905932737*p_perp[9]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,24,11,temp_p_perp); 
@@ -6838,6 +7534,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,24,12,temp_rho); 
   gkyl_mat_set(&A_Tyy,24,12,temp_rho); 
   gkyl_mat_set(&A_Tzz,24,12,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,24,12,temp_rho); 
  
   temp_p_perp = 0.282842712474619*p_perp[19]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,24,12,temp_p_perp); 
@@ -6848,6 +7545,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,24,13,temp_rho); 
   gkyl_mat_set(&A_Tyy,24,13,temp_rho); 
   gkyl_mat_set(&A_Tzz,24,13,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,24,13,temp_rho); 
  
   temp_p_perp = 0.2020305089104422*p_perp[17]+0.3162277660168379*p_perp[6]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,24,13,temp_p_perp); 
@@ -6858,6 +7556,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,24,14,temp_rho); 
   gkyl_mat_set(&A_Tyy,24,14,temp_rho); 
   gkyl_mat_set(&A_Tzz,24,14,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,24,14,temp_rho); 
  
   temp_p_perp = 0.282842712474619*p_perp[17]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,24,14,temp_p_perp); 
@@ -6868,6 +7567,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,24,15,temp_rho); 
   gkyl_mat_set(&A_Tyy,24,15,temp_rho); 
   gkyl_mat_set(&A_Tzz,24,15,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,24,15,temp_rho); 
  
   temp_p_perp = 0.2020305089104422*p_perp[19]+0.3162277660168379*p_perp[4]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,24,15,temp_p_perp); 
@@ -6878,6 +7578,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,24,16,temp_rho); 
   gkyl_mat_set(&A_Tyy,24,16,temp_rho); 
   gkyl_mat_set(&A_Tzz,24,16,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,24,16,temp_rho); 
  
   temp_p_perp = 0.2020305089104422*p_perp[26]+0.2258769757263128*p_perp[21]+0.3162277660168379*p_perp[20]+0.3535533905932737*p_perp[7]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,24,16,temp_p_perp); 
@@ -6888,6 +7589,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,24,17,temp_rho); 
   gkyl_mat_set(&A_Tyy,24,17,temp_rho); 
   gkyl_mat_set(&A_Tzz,24,17,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,24,17,temp_rho); 
  
   temp_p_perp = 0.1807015805810503*p_perp[23]+0.282842712474619*p_perp[14]+0.2020305089104422*p_perp[13]+0.3162277660168379*p_perp[3]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,24,17,temp_p_perp); 
@@ -6898,6 +7600,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,24,18,temp_rho); 
   gkyl_mat_set(&A_Tyy,24,18,temp_rho); 
   gkyl_mat_set(&A_Tzz,24,18,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,24,18,temp_rho); 
  
   temp_p_perp = 0.2529822128134704*p_perp[10]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,24,18,temp_p_perp); 
@@ -6908,6 +7611,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,24,19,temp_rho); 
   gkyl_mat_set(&A_Tyy,24,19,temp_rho); 
   gkyl_mat_set(&A_Tzz,24,19,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,24,19,temp_rho); 
  
   temp_p_perp = 0.1807015805810503*p_perp[25]+0.2020305089104422*p_perp[15]+0.282842712474619*p_perp[12]+0.3162277660168379*p_perp[1]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,24,19,temp_p_perp); 
@@ -6918,6 +7622,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,24,20,temp_rho); 
   gkyl_mat_set(&A_Tyy,24,20,temp_rho); 
   gkyl_mat_set(&A_Tzz,24,20,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,24,20,temp_rho); 
  
   temp_p_perp = 0.2020305089104422*p_perp[24]+0.3162277660168379*p_perp[16]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,24,20,temp_p_perp); 
@@ -6928,6 +7633,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,24,21,temp_rho); 
   gkyl_mat_set(&A_Tyy,24,21,temp_rho); 
   gkyl_mat_set(&A_Tzz,24,21,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,24,21,temp_rho); 
  
   temp_p_perp = 0.1443075063646015*p_perp[24]+0.2258769757263128*p_perp[16]+0.2258769757263128*p_perp[11]+0.3535533905932737*p_perp[2]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,24,21,temp_p_perp); 
@@ -6938,6 +7644,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,24,22,temp_rho); 
   gkyl_mat_set(&A_Tyy,24,22,temp_rho); 
   gkyl_mat_set(&A_Tzz,24,22,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,24,22,temp_rho); 
  
   temp_p_perp = 0.2020305089104422*p_perp[24]+0.3162277660168379*p_perp[11]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,24,22,temp_p_perp); 
@@ -6948,6 +7655,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,24,23,temp_rho); 
   gkyl_mat_set(&A_Tyy,24,23,temp_rho); 
   gkyl_mat_set(&A_Tzz,24,23,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,24,23,temp_rho); 
  
   temp_p_perp = 0.1807015805810503*p_perp[17]+0.2828427124746191*p_perp[6]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,24,23,temp_p_perp); 
@@ -6958,6 +7666,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,24,24,temp_rho); 
   gkyl_mat_set(&A_Tyy,24,24,temp_rho); 
   gkyl_mat_set(&A_Tzz,24,24,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,24,24,temp_rho); 
  
   temp_p_perp = 0.1290725575578931*p_perp[26]+0.2020305089104422*p_perp[22]+0.1443075063646015*p_perp[21]+0.2020305089104422*p_perp[20]+0.2258769757263128*p_perp[9]+0.3162277660168379*p_perp[8]+0.2258769757263128*p_perp[7]+0.3535533905932737*p_perp[0]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,24,24,temp_p_perp); 
@@ -6968,6 +7677,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,24,25,temp_rho); 
   gkyl_mat_set(&A_Tyy,24,25,temp_rho); 
   gkyl_mat_set(&A_Tzz,24,25,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,24,25,temp_rho); 
  
   temp_p_perp = 0.1807015805810503*p_perp[19]+0.2828427124746191*p_perp[4]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,24,25,temp_p_perp); 
@@ -6978,6 +7688,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,24,26,temp_rho); 
   gkyl_mat_set(&A_Tyy,24,26,temp_rho); 
   gkyl_mat_set(&A_Tzz,24,26,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,24,26,temp_rho); 
  
   temp_p_perp = 0.1290725575578931*p_perp[24]+0.2020305089104422*p_perp[16]+0.2020305089104422*p_perp[11]+0.3162277660168379*p_perp[2]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,24,26,temp_p_perp); 
@@ -6988,6 +7699,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,25,0,temp_rho); 
   gkyl_mat_set(&A_Tyy,25,0,temp_rho); 
   gkyl_mat_set(&A_Tzz,25,0,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,25,0,temp_rho); 
  
   temp_p_perp = 0.3535533905932737*p_perp[25]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,25,0,temp_p_perp); 
@@ -6998,6 +7710,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,25,1,temp_rho); 
   gkyl_mat_set(&A_Tyy,25,1,temp_rho); 
   gkyl_mat_set(&A_Tzz,25,1,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,25,1,temp_rho); 
  
   temp_p_perp = 0.3162277660168379*p_perp[26]+0.3535533905932737*p_perp[22]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,25,1,temp_p_perp); 
@@ -7008,6 +7721,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,25,2,temp_rho); 
   gkyl_mat_set(&A_Tyy,25,2,temp_rho); 
   gkyl_mat_set(&A_Tzz,25,2,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,25,2,temp_rho); 
  
   temp_p_perp = 0.3162277660168379*p_perp[19]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,25,2,temp_p_perp); 
@@ -7018,6 +7732,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,25,3,temp_rho); 
   gkyl_mat_set(&A_Tyy,25,3,temp_rho); 
   gkyl_mat_set(&A_Tzz,25,3,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,25,3,temp_rho); 
  
   temp_p_perp = 0.3162277660168379*p_perp[18]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,25,3,temp_p_perp); 
@@ -7028,6 +7743,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,25,4,temp_rho); 
   gkyl_mat_set(&A_Tyy,25,4,temp_rho); 
   gkyl_mat_set(&A_Tzz,25,4,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,25,4,temp_rho); 
  
   temp_p_perp = 0.2828427124746191*p_perp[24]+0.3162277660168379*p_perp[16]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,25,4,temp_p_perp); 
@@ -7038,6 +7754,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,25,5,temp_rho); 
   gkyl_mat_set(&A_Tyy,25,5,temp_rho); 
   gkyl_mat_set(&A_Tzz,25,5,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,25,5,temp_rho); 
  
   temp_p_perp = 0.2828427124746191*p_perp[23]+0.3162277660168379*p_perp[14]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,25,5,temp_p_perp); 
@@ -7048,6 +7765,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,25,6,temp_rho); 
   gkyl_mat_set(&A_Tyy,25,6,temp_rho); 
   gkyl_mat_set(&A_Tzz,25,6,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,25,6,temp_rho); 
  
   temp_p_perp = 0.2828427124746191*p_perp[10]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,25,6,temp_p_perp); 
@@ -7058,6 +7776,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,25,7,temp_rho); 
   gkyl_mat_set(&A_Tyy,25,7,temp_rho); 
   gkyl_mat_set(&A_Tzz,25,7,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,25,7,temp_rho); 
  
   temp_p_perp = 0.3162277660168379*p_perp[25]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,25,7,temp_p_perp); 
@@ -7068,6 +7787,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,25,8,temp_rho); 
   gkyl_mat_set(&A_Tyy,25,8,temp_rho); 
   gkyl_mat_set(&A_Tzz,25,8,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,25,8,temp_rho); 
  
   temp_p_perp = 0.2258769757263128*p_perp[25]+0.3535533905932737*p_perp[15]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,25,8,temp_p_perp); 
@@ -7078,6 +7798,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,25,9,temp_rho); 
   gkyl_mat_set(&A_Tyy,25,9,temp_rho); 
   gkyl_mat_set(&A_Tzz,25,9,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,25,9,temp_rho); 
  
   temp_p_perp = 0.2258769757263128*p_perp[25]+0.3535533905932737*p_perp[12]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,25,9,temp_p_perp); 
@@ -7088,6 +7809,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,25,10,temp_rho); 
   gkyl_mat_set(&A_Tyy,25,10,temp_rho); 
   gkyl_mat_set(&A_Tzz,25,10,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,25,10,temp_rho); 
  
   temp_p_perp = 0.2529822128134704*p_perp[17]+0.2828427124746191*p_perp[6]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,25,10,temp_p_perp); 
@@ -7098,6 +7820,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,25,11,temp_rho); 
   gkyl_mat_set(&A_Tyy,25,11,temp_rho); 
   gkyl_mat_set(&A_Tzz,25,11,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,25,11,temp_rho); 
  
   temp_p_perp = 0.282842712474619*p_perp[19]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,25,11,temp_p_perp); 
@@ -7108,6 +7831,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,25,12,temp_rho); 
   gkyl_mat_set(&A_Tyy,25,12,temp_rho); 
   gkyl_mat_set(&A_Tzz,25,12,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,25,12,temp_rho); 
  
   temp_p_perp = 0.2020305089104422*p_perp[26]+0.2258769757263128*p_perp[22]+0.3162277660168379*p_perp[21]+0.3535533905932737*p_perp[9]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,25,12,temp_p_perp); 
@@ -7118,6 +7842,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,25,13,temp_rho); 
   gkyl_mat_set(&A_Tyy,25,13,temp_rho); 
   gkyl_mat_set(&A_Tzz,25,13,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,25,13,temp_rho); 
  
   temp_p_perp = 0.282842712474619*p_perp[18]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,25,13,temp_p_perp); 
@@ -7128,6 +7853,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,25,14,temp_rho); 
   gkyl_mat_set(&A_Tyy,25,14,temp_rho); 
   gkyl_mat_set(&A_Tzz,25,14,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,25,14,temp_rho); 
  
   temp_p_perp = 0.2020305089104422*p_perp[18]+0.3162277660168379*p_perp[5]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,25,14,temp_p_perp); 
@@ -7138,6 +7864,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,25,15,temp_rho); 
   gkyl_mat_set(&A_Tyy,25,15,temp_rho); 
   gkyl_mat_set(&A_Tzz,25,15,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,25,15,temp_rho); 
  
   temp_p_perp = 0.2020305089104422*p_perp[26]+0.2258769757263128*p_perp[22]+0.3162277660168379*p_perp[20]+0.3535533905932737*p_perp[8]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,25,15,temp_p_perp); 
@@ -7148,6 +7875,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,25,16,temp_rho); 
   gkyl_mat_set(&A_Tyy,25,16,temp_rho); 
   gkyl_mat_set(&A_Tzz,25,16,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,25,16,temp_rho); 
  
   temp_p_perp = 0.2020305089104422*p_perp[19]+0.3162277660168379*p_perp[4]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,25,16,temp_p_perp); 
@@ -7158,6 +7886,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,25,17,temp_rho); 
   gkyl_mat_set(&A_Tyy,25,17,temp_rho); 
   gkyl_mat_set(&A_Tzz,25,17,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,25,17,temp_rho); 
  
   temp_p_perp = 0.2529822128134704*p_perp[10]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,25,17,temp_p_perp); 
@@ -7168,6 +7897,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,25,18,temp_rho); 
   gkyl_mat_set(&A_Tyy,25,18,temp_rho); 
   gkyl_mat_set(&A_Tzz,25,18,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,25,18,temp_rho); 
  
   temp_p_perp = 0.1807015805810503*p_perp[23]+0.2020305089104422*p_perp[14]+0.282842712474619*p_perp[13]+0.3162277660168379*p_perp[3]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,25,18,temp_p_perp); 
@@ -7178,6 +7908,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,25,19,temp_rho); 
   gkyl_mat_set(&A_Tyy,25,19,temp_rho); 
   gkyl_mat_set(&A_Tzz,25,19,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,25,19,temp_rho); 
  
   temp_p_perp = 0.1807015805810503*p_perp[24]+0.2020305089104422*p_perp[16]+0.282842712474619*p_perp[11]+0.3162277660168379*p_perp[2]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,25,19,temp_p_perp); 
@@ -7188,6 +7919,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,25,20,temp_rho); 
   gkyl_mat_set(&A_Tyy,25,20,temp_rho); 
   gkyl_mat_set(&A_Tzz,25,20,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,25,20,temp_rho); 
  
   temp_p_perp = 0.2020305089104422*p_perp[25]+0.3162277660168379*p_perp[15]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,25,20,temp_p_perp); 
@@ -7198,6 +7930,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,25,21,temp_rho); 
   gkyl_mat_set(&A_Tyy,25,21,temp_rho); 
   gkyl_mat_set(&A_Tzz,25,21,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,25,21,temp_rho); 
  
   temp_p_perp = 0.2020305089104422*p_perp[25]+0.3162277660168379*p_perp[12]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,25,21,temp_p_perp); 
@@ -7208,6 +7941,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,25,22,temp_rho); 
   gkyl_mat_set(&A_Tyy,25,22,temp_rho); 
   gkyl_mat_set(&A_Tzz,25,22,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,25,22,temp_rho); 
  
   temp_p_perp = 0.1443075063646015*p_perp[25]+0.2258769757263128*p_perp[15]+0.2258769757263128*p_perp[12]+0.3535533905932737*p_perp[1]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,25,22,temp_p_perp); 
@@ -7218,6 +7952,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,25,23,temp_rho); 
   gkyl_mat_set(&A_Tyy,25,23,temp_rho); 
   gkyl_mat_set(&A_Tzz,25,23,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,25,23,temp_rho); 
  
   temp_p_perp = 0.1807015805810503*p_perp[18]+0.2828427124746191*p_perp[5]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,25,23,temp_p_perp); 
@@ -7228,6 +7963,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,25,24,temp_rho); 
   gkyl_mat_set(&A_Tyy,25,24,temp_rho); 
   gkyl_mat_set(&A_Tzz,25,24,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,25,24,temp_rho); 
  
   temp_p_perp = 0.1807015805810503*p_perp[19]+0.2828427124746191*p_perp[4]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,25,24,temp_p_perp); 
@@ -7238,6 +7974,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,25,25,temp_rho); 
   gkyl_mat_set(&A_Tyy,25,25,temp_rho); 
   gkyl_mat_set(&A_Tzz,25,25,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,25,25,temp_rho); 
  
   temp_p_perp = 0.1290725575578931*p_perp[26]+0.1443075063646015*p_perp[22]+0.2020305089104422*p_perp[21]+0.2020305089104422*p_perp[20]+0.2258769757263128*p_perp[9]+0.2258769757263128*p_perp[8]+0.3162277660168379*p_perp[7]+0.3535533905932737*p_perp[0]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,25,25,temp_p_perp); 
@@ -7248,6 +7985,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,25,26,temp_rho); 
   gkyl_mat_set(&A_Tyy,25,26,temp_rho); 
   gkyl_mat_set(&A_Tzz,25,26,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,25,26,temp_rho); 
  
   temp_p_perp = 0.1290725575578931*p_perp[25]+0.2020305089104422*p_perp[15]+0.2020305089104422*p_perp[12]+0.3162277660168379*p_perp[1]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,25,26,temp_p_perp); 
@@ -7258,6 +7996,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,26,0,temp_rho); 
   gkyl_mat_set(&A_Tyy,26,0,temp_rho); 
   gkyl_mat_set(&A_Tzz,26,0,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,26,0,temp_rho); 
  
   temp_p_perp = 0.3535533905932737*p_perp[26]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,26,0,temp_p_perp); 
@@ -7268,6 +8007,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,26,1,temp_rho); 
   gkyl_mat_set(&A_Tyy,26,1,temp_rho); 
   gkyl_mat_set(&A_Tzz,26,1,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,26,1,temp_rho); 
  
   temp_p_perp = 0.3162277660168379*p_perp[25]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,26,1,temp_p_perp); 
@@ -7278,6 +8018,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,26,2,temp_rho); 
   gkyl_mat_set(&A_Tyy,26,2,temp_rho); 
   gkyl_mat_set(&A_Tzz,26,2,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,26,2,temp_rho); 
  
   temp_p_perp = 0.3162277660168379*p_perp[24]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,26,2,temp_p_perp); 
@@ -7288,6 +8029,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,26,3,temp_rho); 
   gkyl_mat_set(&A_Tyy,26,3,temp_rho); 
   gkyl_mat_set(&A_Tzz,26,3,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,26,3,temp_rho); 
  
   temp_p_perp = 0.3162277660168379*p_perp[23]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,26,3,temp_p_perp); 
@@ -7298,6 +8040,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,26,4,temp_rho); 
   gkyl_mat_set(&A_Tyy,26,4,temp_rho); 
   gkyl_mat_set(&A_Tzz,26,4,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,26,4,temp_rho); 
  
   temp_p_perp = 0.2828427124746191*p_perp[19]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,26,4,temp_p_perp); 
@@ -7308,6 +8051,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,26,5,temp_rho); 
   gkyl_mat_set(&A_Tyy,26,5,temp_rho); 
   gkyl_mat_set(&A_Tzz,26,5,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,26,5,temp_rho); 
  
   temp_p_perp = 0.2828427124746191*p_perp[18]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,26,5,temp_p_perp); 
@@ -7318,6 +8062,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,26,6,temp_rho); 
   gkyl_mat_set(&A_Tyy,26,6,temp_rho); 
   gkyl_mat_set(&A_Tzz,26,6,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,26,6,temp_rho); 
  
   temp_p_perp = 0.2828427124746191*p_perp[17]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,26,6,temp_p_perp); 
@@ -7328,6 +8073,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,26,7,temp_rho); 
   gkyl_mat_set(&A_Tyy,26,7,temp_rho); 
   gkyl_mat_set(&A_Tzz,26,7,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,26,7,temp_rho); 
  
   temp_p_perp = 0.2258769757263128*p_perp[26]+0.3535533905932737*p_perp[22]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,26,7,temp_p_perp); 
@@ -7338,6 +8084,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,26,8,temp_rho); 
   gkyl_mat_set(&A_Tyy,26,8,temp_rho); 
   gkyl_mat_set(&A_Tzz,26,8,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,26,8,temp_rho); 
  
   temp_p_perp = 0.2258769757263128*p_perp[26]+0.3535533905932737*p_perp[21]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,26,8,temp_p_perp); 
@@ -7348,6 +8095,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,26,9,temp_rho); 
   gkyl_mat_set(&A_Tyy,26,9,temp_rho); 
   gkyl_mat_set(&A_Tzz,26,9,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,26,9,temp_rho); 
  
   temp_p_perp = 0.2258769757263128*p_perp[26]+0.3535533905932737*p_perp[20]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,26,9,temp_p_perp); 
@@ -7358,6 +8106,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,26,10,temp_rho); 
   gkyl_mat_set(&A_Tyy,26,10,temp_rho); 
   gkyl_mat_set(&A_Tzz,26,10,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,26,10,temp_rho); 
  
   temp_p_perp = 0.2529822128134704*p_perp[10]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,26,10,temp_p_perp); 
@@ -7368,6 +8117,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,26,11,temp_rho); 
   gkyl_mat_set(&A_Tyy,26,11,temp_rho); 
   gkyl_mat_set(&A_Tzz,26,11,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,26,11,temp_rho); 
  
   temp_p_perp = 0.2020305089104422*p_perp[24]+0.3162277660168379*p_perp[16]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,26,11,temp_p_perp); 
@@ -7378,6 +8128,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,26,12,temp_rho); 
   gkyl_mat_set(&A_Tyy,26,12,temp_rho); 
   gkyl_mat_set(&A_Tzz,26,12,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,26,12,temp_rho); 
  
   temp_p_perp = 0.2020305089104422*p_perp[25]+0.3162277660168379*p_perp[15]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,26,12,temp_p_perp); 
@@ -7388,6 +8139,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,26,13,temp_rho); 
   gkyl_mat_set(&A_Tyy,26,13,temp_rho); 
   gkyl_mat_set(&A_Tzz,26,13,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,26,13,temp_rho); 
  
   temp_p_perp = 0.2020305089104422*p_perp[23]+0.3162277660168379*p_perp[14]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,26,13,temp_p_perp); 
@@ -7398,6 +8150,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,26,14,temp_rho); 
   gkyl_mat_set(&A_Tyy,26,14,temp_rho); 
   gkyl_mat_set(&A_Tzz,26,14,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,26,14,temp_rho); 
  
   temp_p_perp = 0.2020305089104422*p_perp[23]+0.3162277660168379*p_perp[13]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,26,14,temp_p_perp); 
@@ -7408,6 +8161,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,26,15,temp_rho); 
   gkyl_mat_set(&A_Tyy,26,15,temp_rho); 
   gkyl_mat_set(&A_Tzz,26,15,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,26,15,temp_rho); 
  
   temp_p_perp = 0.2020305089104422*p_perp[25]+0.3162277660168379*p_perp[12]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,26,15,temp_p_perp); 
@@ -7418,6 +8172,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,26,16,temp_rho); 
   gkyl_mat_set(&A_Tyy,26,16,temp_rho); 
   gkyl_mat_set(&A_Tzz,26,16,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,26,16,temp_rho); 
  
   temp_p_perp = 0.2020305089104422*p_perp[24]+0.3162277660168379*p_perp[11]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,26,16,temp_p_perp); 
@@ -7428,6 +8183,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,26,17,temp_rho); 
   gkyl_mat_set(&A_Tyy,26,17,temp_rho); 
   gkyl_mat_set(&A_Tzz,26,17,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,26,17,temp_rho); 
  
   temp_p_perp = 0.1807015805810503*p_perp[17]+0.2828427124746191*p_perp[6]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,26,17,temp_p_perp); 
@@ -7438,6 +8194,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,26,18,temp_rho); 
   gkyl_mat_set(&A_Tyy,26,18,temp_rho); 
   gkyl_mat_set(&A_Tzz,26,18,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,26,18,temp_rho); 
  
   temp_p_perp = 0.1807015805810503*p_perp[18]+0.2828427124746191*p_perp[5]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,26,18,temp_p_perp); 
@@ -7448,6 +8205,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,26,19,temp_rho); 
   gkyl_mat_set(&A_Tyy,26,19,temp_rho); 
   gkyl_mat_set(&A_Tzz,26,19,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,26,19,temp_rho); 
  
   temp_p_perp = 0.1807015805810503*p_perp[19]+0.2828427124746191*p_perp[4]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,26,19,temp_p_perp); 
@@ -7458,6 +8216,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,26,20,temp_rho); 
   gkyl_mat_set(&A_Tyy,26,20,temp_rho); 
   gkyl_mat_set(&A_Tzz,26,20,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,26,20,temp_rho); 
  
   temp_p_perp = 0.1443075063646015*p_perp[26]+0.2258769757263128*p_perp[22]+0.2258769757263128*p_perp[21]+0.3535533905932737*p_perp[9]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,26,20,temp_p_perp); 
@@ -7468,6 +8227,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,26,21,temp_rho); 
   gkyl_mat_set(&A_Tyy,26,21,temp_rho); 
   gkyl_mat_set(&A_Tzz,26,21,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,26,21,temp_rho); 
  
   temp_p_perp = 0.1443075063646015*p_perp[26]+0.2258769757263128*p_perp[22]+0.2258769757263128*p_perp[20]+0.3535533905932737*p_perp[8]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,26,21,temp_p_perp); 
@@ -7478,6 +8238,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,26,22,temp_rho); 
   gkyl_mat_set(&A_Tyy,26,22,temp_rho); 
   gkyl_mat_set(&A_Tzz,26,22,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,26,22,temp_rho); 
  
   temp_p_perp = 0.1443075063646015*p_perp[26]+0.2258769757263128*p_perp[21]+0.2258769757263128*p_perp[20]+0.3535533905932737*p_perp[7]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,26,22,temp_p_perp); 
@@ -7488,6 +8249,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,26,23,temp_rho); 
   gkyl_mat_set(&A_Tyy,26,23,temp_rho); 
   gkyl_mat_set(&A_Tzz,26,23,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,26,23,temp_rho); 
  
   temp_p_perp = 0.1290725575578931*p_perp[23]+0.2020305089104422*p_perp[14]+0.2020305089104422*p_perp[13]+0.3162277660168379*p_perp[3]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,26,23,temp_p_perp); 
@@ -7498,6 +8260,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,26,24,temp_rho); 
   gkyl_mat_set(&A_Tyy,26,24,temp_rho); 
   gkyl_mat_set(&A_Tzz,26,24,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,26,24,temp_rho); 
  
   temp_p_perp = 0.1290725575578931*p_perp[24]+0.2020305089104422*p_perp[16]+0.2020305089104422*p_perp[11]+0.3162277660168379*p_perp[2]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,26,24,temp_p_perp); 
@@ -7508,6 +8271,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,26,25,temp_rho); 
   gkyl_mat_set(&A_Tyy,26,25,temp_rho); 
   gkyl_mat_set(&A_Tzz,26,25,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,26,25,temp_rho); 
  
   temp_p_perp = 0.1290725575578931*p_perp[25]+0.2020305089104422*p_perp[15]+0.2020305089104422*p_perp[12]+0.3162277660168379*p_perp[1]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,26,25,temp_p_perp); 
@@ -7518,6 +8282,7 @@ GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct
   gkyl_mat_set(&A_Txx,26,26,temp_rho); 
   gkyl_mat_set(&A_Tyy,26,26,temp_rho); 
   gkyl_mat_set(&A_Tzz,26,26,temp_rho); 
+  gkyl_mat_set(&A_p_perp_div_b,26,26,temp_rho); 
  
   temp_p_perp = 0.09219468396992364*p_perp[26]+0.1443075063646015*p_perp[22]+0.1443075063646015*p_perp[21]+0.1443075063646015*p_perp[20]+0.2258769757263128*p_perp[9]+0.2258769757263128*p_perp[8]+0.2258769757263128*p_perp[7]+0.3535533905932737*p_perp[0]; 
   gkyl_mat_set(&A_T_perp_over_m_inv,26,26,temp_p_perp); 

@@ -86,8 +86,8 @@ gkyl_dg_calc_pkpm_vars_cu_dev_new(const struct gkyl_rect_grid *conf_grid,
  */
 void gkyl_dg_calc_pkpm_vars_advance(struct gkyl_dg_calc_pkpm_vars *up, 
   const struct gkyl_array* vlasov_pkpm_moms, const struct gkyl_array* p_ij, 
-  const struct gkyl_array* pkpm_div_ppar, 
-  struct gkyl_array* cell_avg_prim, struct gkyl_array* prim);
+  const struct gkyl_array* pkpm_div_ppar, const struct gkyl_array* div_b, 
+  struct gkyl_array* cell_avg_prim, struct gkyl_array* prim, struct gkyl_array* pkpm_accel);
 
 /**
  * Compute volume expansion of flow velocity u in the PKPM system. Flow velocity is order p.

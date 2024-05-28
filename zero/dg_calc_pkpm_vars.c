@@ -67,15 +67,14 @@ gkyl_dg_calc_pkpm_vars_new(const struct gkyl_rect_grid *conf_grid,
   up->pkpm_set = choose_pkpm_set_kern(cdim, poly_order_2p);
   up->pkpm_copy = choose_pkpm_copy_kern(cdim, poly_order_2p);
   up->pkpm_pressure = choose_pkpm_pressure_kern(cdim, poly_order_2p);
-  up->pkpm_p_force = choose_pkpm_p_force_kern(cdim, poly_order_2p);
   up->pkpm_int = choose_pkpm_int_kern(cdim, poly_order_2p);
   up->pkpm_io = choose_pkpm_io_kern(cdim, poly_order_2p);
   // Fetch the kernels in each direction
   for (int d=0; d<cdim; ++d) {
     up->pkpm_accel[d] = choose_pkpm_accel_kern(d, cdim, poly_order_2p);
   }
-  // 6 components: div(p_par b)/rho, p_perp/rho, rho/p_perp, 3*Txx/m, 3*Tyy/m, 3*Tzz/m
-  up->Ncomp_prim = 6;
+  // 6 components: 1/rho*div(p_par b), p_perp/rho, rho/p_perp, 3*Txx/m, 3*Tyy/m, 3*Tzz/m, p_perp/rho*div(b)
+  up->Ncomp_prim = 7;
   int nc_2p = cbasis_2p->num_basis;
   up->As = gkyl_nmat_new(up->Ncomp_prim*mem_range->volume, nc_2p, nc_2p);
   up->xs = gkyl_nmat_new(up->Ncomp_prim*mem_range->volume, nc_2p, 1);
@@ -90,14 +89,14 @@ gkyl_dg_calc_pkpm_vars_new(const struct gkyl_rect_grid *conf_grid,
 
 void gkyl_dg_calc_pkpm_vars_advance(struct gkyl_dg_calc_pkpm_vars *up, 
   const struct gkyl_array* vlasov_pkpm_moms, const struct gkyl_array* p_ij, 
-  const struct gkyl_array* pkpm_div_ppar, 
-  struct gkyl_array* cell_avg_prim, struct gkyl_array* prim)
+  const struct gkyl_array* pkpm_div_ppar, const struct gkyl_array* div_b, 
+  struct gkyl_array* cell_avg_prim, struct gkyl_array* prim, struct gkyl_array* pkpm_accel)
 {
 #ifdef GKYL_HAVE_CUDA
   if (gkyl_array_is_cu_dev(prim)) {
     return gkyl_dg_calc_pkpm_vars_advance_cu(up, 
-      vlasov_pkpm_moms, p_ij, pkpm_div_ppar, 
-      cell_avg_prim, prim);
+      vlasov_pkpm_moms, p_ij, pkpm_div_ppar, div_b, 
+      cell_avg_prim, prim, pkpm_accel);
   }
 #endif
 
@@ -110,11 +109,12 @@ void gkyl_dg_calc_pkpm_vars_advance(struct gkyl_dg_calc_pkpm_vars *up,
     const double *vlasov_pkpm_moms_d = gkyl_array_cfetch(vlasov_pkpm_moms, loc);
     const double *p_ij_d = gkyl_array_cfetch(p_ij, loc);
     const double *pkpm_div_ppar_d = gkyl_array_cfetch(pkpm_div_ppar, loc);
+    const double *div_b_d = gkyl_array_cfetch(div_b, loc);
 
     int* cell_avg_prim_d = gkyl_array_fetch(cell_avg_prim, loc);
     // First index of cell_avg_prim is whether p = p_par + 2 p_perp < 0.0 at control points
     cell_avg_prim_d[1] = up->pkpm_set(count, up->As, up->xs, 
-      vlasov_pkpm_moms_d, p_ij_d, pkpm_div_ppar_d);
+      vlasov_pkpm_moms_d, p_ij_d, pkpm_div_ppar_d, div_b_d);
 
     count += up->Ncomp_prim;
   }
@@ -128,8 +128,9 @@ void gkyl_dg_calc_pkpm_vars_advance(struct gkyl_dg_calc_pkpm_vars *up,
     long loc = gkyl_range_idx(&up->mem_range, iter.idx);
 
     double* prim_d = gkyl_array_fetch(prim, loc);
+    double* pkpm_accel_d = gkyl_array_fetch(pkpm_accel, loc);
 
-    up->pkpm_copy(count, up->xs, prim_d);
+    up->pkpm_copy(count, up->xs, prim_d, pkpm_accel_d);
 
     count += up->Ncomp_prim;
   }
@@ -259,9 +260,6 @@ void gkyl_dg_calc_pkpm_vars_accel(struct gkyl_dg_calc_pkpm_vars *up, const struc
 
     double *pkpm_lax_d = gkyl_array_fetch(pkpm_lax, linc);
     double *pkpm_accel_d = gkyl_array_fetch(pkpm_accel, linc);
-
-    // Compute T_perp/m div(b) and p_force
-    up->pkpm_p_force(prim_c, div_b_d, pkpm_accel_d);
 
     for (int dir=0; dir<cdim; ++dir) {
       gkyl_copy_int_arr(cdim, iter.idx, idxl);

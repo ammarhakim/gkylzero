@@ -140,8 +140,8 @@ pkpm_species_init(struct gkyl_pkpm *pkpm, struct gkyl_pkpm_app *app, struct pkpm
   s->pkpm_div_ppar = mkarr(app->use_gpu, app->confBasis_2p.num_basis, app->local_ext.volume);
 
   // primitive variables, order 2*p, 
-  // [1/rho*div(p_par b), T_perp/m, m/T_perp, 3*T_xx/m, 3*T_yy/m, 3*T_zz/m]
-  s->pkpm_prim = mkarr(app->use_gpu, 6*app->confBasis_2p.num_basis, app->local_ext.volume);
+  // [1/rho*div(p_par b), T_perp/m, m/T_perp, 3*T_xx/m, 3*T_yy/m, 3*T_zz/m, p_perp/rho*div(b)]
+  s->pkpm_prim = mkarr(app->use_gpu, 7*app->confBasis_2p.num_basis, app->local_ext.volume);
 
   // pressure tensor, order 2*p
   // p_ij = (p_par - p_perp) b_i b_j + p_perp g_ij
@@ -150,7 +150,7 @@ pkpm_species_init(struct gkyl_pkpm *pkpm, struct gkyl_pkpm_app *app, struct pkpm
   // allocate array for pkpm acceleration variables, order 2*p: 
   // 0: p_perp_div_b (p_perp/rho*div(b) = T_perp/m*div(b))
   // 1: bb_grad_u (bb : grad(u))
-  // 2: p_force (total pressure forces in kinetic equation 1/rho div(p_parallel b_hat) - T_perp/m*div(b)
+  // 2: p_force (total pressure forces in kinetic equation 1/rho div(p_parallel b_hat) - p_perp/rho*div(b)
   // 3: p_perp_source (pressure source for higher Laguerre moments -> bb : grad(u) - div(u) - 2*nu)
   s->pkpm_accel = mkarr(app->use_gpu, 4*app->confBasis_2p.num_basis, app->local_ext.volume); 
 
@@ -465,14 +465,18 @@ pkpm_species_calc_pkpm_vars(gkyl_pkpm_app *app, struct pkpm_species *species,
     app->field->bvar, species->pkpm_moms.marr, species->pkpm_p_ij);
 
   // Compute flow velocity [ux, uy, uz] 
-  // and primitive variables [1/rho*div(p_par b), T_perp/m, m/T_perp, 3*T_xx/m, 3*T_yy/m, 3*T_zz/m]
+  // and primitive variables [1/rho*div(p_par b), T_perp/m, m/T_perp, 3*T_xx/m, 3*T_yy/m, 3*T_zz/m, p_perp/rho*div(b)]
+  // also compute p_force = 1/rho*div(p_par b) - p_perp/rho*div(b)
+  gkyl_array_clear(species->pkpm_accel, 0.0); // Incremented in each dimension, so clear beforehand
+
   if (species->bc_is_absorb) {
     gkyl_dg_calc_pkpm_vars_u(species->calc_pkpm_vars,
       species->pkpm_moms.marr, fluidin, 
       species->cell_avg_prim, species->pkpm_u);
     gkyl_dg_calc_pkpm_vars_advance(species->calc_pkpm_vars,
-      species->pkpm_moms.marr, species->pkpm_p_ij, species->pkpm_div_ppar, 
-      species->cell_avg_prim, species->pkpm_prim); 
+      species->pkpm_moms.marr, species->pkpm_p_ij, 
+      species->pkpm_div_ppar, app->field->div_b,
+      species->cell_avg_prim, species->pkpm_prim, species->pkpm_accel); 
     // Compute the flow velocity at needed surfaces
     gkyl_dg_calc_pkpm_vars_u_surf(species->calc_pkpm_vars,
       species->pkpm_u, species->pkpm_u_surf);
@@ -482,8 +486,9 @@ pkpm_species_calc_pkpm_vars(gkyl_pkpm_app *app, struct pkpm_species *species,
       species->pkpm_moms.marr, fluidin, 
       species->cell_avg_prim, species->pkpm_u);
     gkyl_dg_calc_pkpm_vars_advance(species->calc_pkpm_vars_ext,
-      species->pkpm_moms.marr, species->pkpm_p_ij, species->pkpm_div_ppar, 
-      species->cell_avg_prim, species->pkpm_prim); 
+      species->pkpm_moms.marr, species->pkpm_p_ij, 
+      species->pkpm_div_ppar, app->field->div_b,
+      species->cell_avg_prim, species->pkpm_prim, species->pkpm_accel); 
     // Compute the flow velocity at needed surfaces
     gkyl_dg_calc_pkpm_vars_u_surf(species->calc_pkpm_vars_ext,
       species->pkpm_u, species->pkpm_u_surf);
@@ -498,7 +503,6 @@ pkpm_species_calc_pkpm_update_vars(gkyl_pkpm_app *app, struct pkpm_species *spec
 {
   struct timespec tm = gkyl_wall_clock();
 
-  gkyl_array_clear(species->pkpm_accel, 0.0); // Incremented in each dimension, so clear beforehand
   gkyl_dg_calc_pkpm_vars_accel(species->calc_pkpm_vars, &app->local, 
     species->pkpm_u_surf, species->pkpm_u, 
     species->pkpm_prim, app->field->bvar, 

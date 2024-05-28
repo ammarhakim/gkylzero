@@ -12,20 +12,21 @@
 #include <assert.h>
 
 typedef int (*pkpm_set_t)(int count, struct gkyl_nmat *A, struct gkyl_nmat *rhs, 
-  const double *vlasov_pkpm_moms, const double *p_ij, const double *pkpm_div_ppar);
+  const double *vlasov_pkpm_moms, const double *p_ij, 
+  const double *pkpm_div_ppar, const double *div_b);
+
+typedef void (*pkpm_copy_t)(int count, struct gkyl_nmat *x, 
+  double* GKYL_RESTRICT pkpm_prim, double* GKYL_RESTRICT pkpm_accel);
 
 typedef int (*pkpm_u_set_t)(int count, struct gkyl_nmat *A, struct gkyl_nmat *rhs, 
   const double *vlasov_pkpm_moms, const double *euler_pkpm);
 
-typedef void (*pkpm_copy_t)(int count, struct gkyl_nmat *x, double* GKYL_RESTRICT out);
+typedef void (*pkpm_u_copy_t)(int count, struct gkyl_nmat *x, double* GKYL_RESTRICT pkpm_u);
 
 typedef void (*pkpm_u_surf_t)(const double *pkpm_u, double* GKYL_RESTRICT pkpm_u_surf);
 
 typedef void (*pkpm_pressure_t)(const double *bvar, const double *vlasov_pkpm_moms, 
   double* GKYL_RESTRICT p_ij);
-
-typedef void (*pkpm_p_force_t)(const double *prim_c, const double *div_b, 
-  double* GKYL_RESTRICT pkpm_accel);
 
 typedef void (*pkpm_int_t)(const double *vlasov_pkpm_moms, 
   const double *pkpm_u, double* GKYL_RESTRICT int_pkpm_vars); 
@@ -54,13 +55,12 @@ typedef void (*pkpm_limiter_t)(double limiter_fac, const struct gkyl_wv_eqn *wv_
 
 // for use in kernel tables
 typedef struct { pkpm_set_t kernels[3]; } gkyl_dg_pkpm_set_kern_list;
-typedef struct { pkpm_u_set_t kernels[3]; } gkyl_dg_pkpm_u_set_kern_list;
 typedef struct { pkpm_copy_t kernels[3]; } gkyl_dg_pkpm_copy_kern_list;
-typedef struct { pkpm_copy_t kernels[3]; } gkyl_dg_pkpm_u_copy_kern_list;
+typedef struct { pkpm_u_set_t kernels[3]; } gkyl_dg_pkpm_u_set_kern_list;
+typedef struct { pkpm_u_copy_t kernels[3]; } gkyl_dg_pkpm_u_copy_kern_list;
 typedef struct { pkpm_u_surf_t kernels[3]; } gkyl_dg_pkpm_u_surf_kern_list;
 
 typedef struct { pkpm_pressure_t kernels[3]; } gkyl_dg_pkpm_pressure_kern_list;
-typedef struct { pkpm_p_force_t kernels[3]; } gkyl_dg_pkpm_p_force_kern_list;
 
 typedef struct { pkpm_int_t kernels[3]; } gkyl_dg_pkpm_int_kern_list;
 typedef struct { pkpm_explicit_source_t kernels[3]; } gkyl_dg_pkpm_explicit_source_kern_list;
@@ -86,14 +86,13 @@ struct gkyl_dg_calc_pkpm_vars {
   gkyl_nmat_mem *mem_u; // memory for use in batched linear solve for velocity
   int Ncomp_u; // number of components in the linear solve (3 variables being solved for)
 
-  pkpm_set_t pkpm_set;  // kernel for setting matrices for linear solve
+  pkpm_set_t pkpm_set;  // kernel for setting matrices for linear solve for primitive variables
+  pkpm_copy_t pkpm_copy; // kernel for copying solution for primitive variables to output
   pkpm_u_set_t pkpm_u_set;  // kernel for setting matrices for linear solve for flow velocity
-  pkpm_copy_t pkpm_copy; // kernel for copying solution to output; also computed needed surface expansions
-  pkpm_copy_t pkpm_u_copy; // kernel for copying solution for flow velocity to output
+  pkpm_u_copy_t pkpm_u_copy; // kernel for copying solution for flow velocity to output
   pkpm_u_surf_t pkpm_u_surf;  // kernel for setting surface expansions of flow velocity
 
   pkpm_pressure_t pkpm_pressure; // kernel for computing pressure (Volume and surface expansion)
-  pkpm_p_force_t pkpm_p_force; // kernel for computing pressure force p_force = 1/rho div(p_par b) - T_perp/m div(b)
 
   pkpm_int_t pkpm_int; // kernel for computing integrated pkpm variables
   pkpm_explicit_source_t pkpm_explicit_source; // kernel for computing pkpm explicit source update
@@ -152,14 +151,6 @@ static const gkyl_dg_pkpm_pressure_kern_list ten_pkpm_pressure_kernels[] = {
   { NULL, NULL, pkpm_vars_pressure_1x_tensor_p2 }, // 0
   { NULL, NULL, pkpm_vars_pressure_2x_tensor_p2 }, // 1
   { NULL, NULL, pkpm_vars_pressure_3x_tensor_p2 }, // 2
-};
-
-// PKPM Pressure force p_force = 1/rho div(p_par b) - T_perp/m div(b), order 2*p (Tensor kernels)
-GKYL_CU_D
-static const gkyl_dg_pkpm_p_force_kern_list ten_pkpm_p_force_kernels[] = {
-  { NULL, NULL, pkpm_vars_p_force_1x_tensor_p2 }, // 0
-  { NULL, NULL, pkpm_vars_p_force_2x_tensor_p2 }, // 1
-  { NULL, NULL, pkpm_vars_p_force_3x_tensor_p2 }, // 2
 };
 
 // PKPM integrated variables, order 2*p (Tensor kernels)
@@ -249,13 +240,6 @@ choose_pkpm_set_kern(int cdim, int poly_order)
 }
 
 GKYL_CU_D
-static pkpm_u_set_t
-choose_pkpm_u_set_kern(int cdim, int poly_order)
-{
-  return ten_pkpm_u_set_kernels[cdim-1].kernels[poly_order];
-}
-
-GKYL_CU_D
 static pkpm_copy_t
 choose_pkpm_copy_kern(int cdim, int poly_order)
 {
@@ -263,7 +247,14 @@ choose_pkpm_copy_kern(int cdim, int poly_order)
 }
 
 GKYL_CU_D
-static pkpm_copy_t
+static pkpm_u_set_t
+choose_pkpm_u_set_kern(int cdim, int poly_order)
+{
+  return ten_pkpm_u_set_kernels[cdim-1].kernels[poly_order];
+}
+
+GKYL_CU_D
+static pkpm_u_copy_t
 choose_pkpm_u_copy_kern(int cdim, int poly_order)
 {
   return ten_pkpm_u_copy_kernels[cdim-1].kernels[poly_order];
@@ -281,13 +272,6 @@ static pkpm_pressure_t
 choose_pkpm_pressure_kern(int cdim, int poly_order)
 {
   return ten_pkpm_pressure_kernels[cdim-1].kernels[poly_order];
-}
-
-GKYL_CU_D
-static pkpm_p_force_t
-choose_pkpm_p_force_kern(int cdim, int poly_order)
-{
-  return ten_pkpm_p_force_kernels[cdim-1].kernels[poly_order];
 }
 
 GKYL_CU_D

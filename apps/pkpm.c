@@ -331,22 +331,33 @@ gkyl_pkpm_app_write_field(gkyl_pkpm_app* app, double tm, int frame)
   char fileNm_em_vars[sz_em_vars+1]; // ensures no buffer overflow
   snprintf(fileNm_em_vars, sizeof fileNm_em_vars, fmt_em_vars, app->name, frame);
 
+  // Construct the file handle for the div(b)
+  const char *fmt_div_b = "%s-field_div_b_%d.gkyl";
+  int sz_div_b = gkyl_calc_strlen(fmt_div_b, app->name, frame);
+  char fileNm_div_b[sz_div_b+1]; // ensures no buffer overflow
+  snprintf(fileNm_div_b, sizeof fileNm_div_b, fmt_div_b, app->name, frame);
+
   const char *fmt_cell_avg_bb = "%s-field_cell_avg_bb_%d.gkyl";
   int sz_cell_avg_bb = gkyl_calc_strlen(fmt_cell_avg_bb, app->name, frame);
   char fileNm_cell_avg_bb[sz_cell_avg_bb+1]; // ensures no buffer overflow
   snprintf(fileNm_cell_avg_bb, sizeof fileNm_cell_avg_bb, fmt_cell_avg_bb, app->name, frame);
 
   pkpm_field_calc_em_vars_diag(app, app->field, app->field->em);
+  // Compute magnetic field unit vector and tensor, and div(b)
+  pkpm_field_calc_bvar(app, app->field, app->field->em);  
+  pkpm_field_calc_div_b(app, app->field);
 
   if (app->use_gpu) {
     // copy data from device to host before writing it out
     gkyl_array_copy(app->field->em_host, app->field->em);
     gkyl_array_copy(app->field->em_vars_diag_host, app->field->em_vars_diag);
+    gkyl_array_copy(app->field->div_b_host, app->field->div_b);
     gkyl_array_copy(app->field->cell_avg_bb_host, app->field->cell_avg_bb);
   }
 
   gkyl_comm_array_write(app->comm, &app->grid, &app->local, app->field->em_host, fileNm);  
   gkyl_comm_array_write(app->comm, &app->grid, &app->local, app->field->em_vars_diag_host, fileNm_em_vars);  
+  gkyl_comm_array_write(app->comm, &app->grid, &app->local, app->field->div_b_host, fileNm_div_b);  
   gkyl_comm_array_write(app->comm, &app->grid, &app->local, app->field->cell_avg_bb_host, fileNm_cell_avg_bb);  
 }
 

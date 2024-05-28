@@ -109,13 +109,18 @@ pkpm_field_new(struct gkyl_pkpm *pkpm, struct gkyl_pkpm_app *app)
   f->em_vars_diag = mkarr(app->use_gpu, 12*app->confBasis_2p.num_basis, app->local_ext.volume);
   f->em_vars_diag_host = f->em_vars_diag;
 
+  // Volume expansion of div(b)
+  f->div_b = mkarr(app->use_gpu, app->confBasis_2p.num_basis, app->local_ext.volume);
+  f->div_b_host = f->div_b;
+
   // boolean array for whether [bxbx = Bx^2/|B|^2, byby = By^2/|B|^2, bzbz = Bz^2/|B|^2] 
   // are negative at control points. 
   f->cell_avg_bb = mk_int_arr(app->use_gpu, 3, app->local_ext.volume);  
   f->cell_avg_bb_host = f->cell_avg_bb;
-  
+
   if (app->use_gpu) {
     f->em_vars_diag_host = mkarr(false, 12*app->confBasis_2p.num_basis, app->local_ext.volume);
+    f->div_b_host = mkarr(false, app->confBasis_2p.num_basis, app->local_ext.volume);
     f->cell_avg_bb_host = mk_int_arr(false, 3, app->local_ext.volume);  
   }
 
@@ -125,9 +130,6 @@ pkpm_field_new(struct gkyl_pkpm *pkpm, struct gkyl_pkpm_app *app)
   int Ncomp_surf = 2*cdim;
   int Nbasis_surf_2p = app->confBasis_2p.num_basis/(app->confBasis_2p.poly_order + 1); 
   f->bvar_surf = mkarr(app->use_gpu, Ncomp_surf*Nbasis_surf_2p, app->local_ext.volume);
-
-  // Volume expansion of div(b)
-  f->div_b = mkarr(app->use_gpu, app->confBasis_2p.num_basis, app->local_ext.volume);
 
   // Surface expansion of max b penalization for streaming in PKPM system max(|b_i_l|, |b_i_r|)
   f->max_b = mkarr(app->use_gpu, 2*cdim*Nbasis_surf_2p, app->local_ext.volume);
@@ -497,6 +499,7 @@ pkpm_field_release(const gkyl_pkpm_app* app, struct pkpm_field *f)
   if (app->use_gpu) {
     gkyl_array_release(f->em_host);
     gkyl_array_release(f->em_vars_diag_host);
+    gkyl_array_release(f->div_b_host);
     gkyl_array_release(f->cell_avg_bb_host);
     gkyl_cu_free(f->omegaCfl_ptr);
     gkyl_cu_free(f->em_energy_red);
