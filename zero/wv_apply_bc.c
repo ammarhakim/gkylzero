@@ -58,6 +58,7 @@ gkyl_wv_apply_bc_advance(const gkyl_wv_apply_bc *bc, double tm,
   int meqn = bc->eqn->num_equations;
 
   double skin_local[meqn], ghost_local[meqn];
+  double skin_xc[GKYL_MAX_CDIM], ghost_xc[GKYL_MAX_CDIM];
 
   // return immediately if update region does not touch boundary
   if ( (edge == GKYL_LOWER_EDGE) && (update_rng->lower[dir] > bc->range.lower[dir]) )
@@ -107,6 +108,9 @@ gkyl_wv_apply_bc_advance(const gkyl_wv_apply_bc *bc, double tm,
     }
 
     const struct gkyl_wave_cell_geom *wg = gkyl_wave_geom_get(bc->geom, eidx);
+
+    gkyl_rect_grid_cell_center(&bc->grid, iter.idx, skin_xc);
+    gkyl_rect_grid_cell_center(&bc->grid, gidx, ghost_xc);
 
     // rotate skin data to local coordinates
     gkyl_wv_eqn_rotate_to_local(bc->eqn, wg->tau1[dir], wg->tau2[dir], wg->norm[dir],
