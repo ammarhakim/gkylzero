@@ -682,23 +682,24 @@ test_1x2v_gk(int poly_order, bool use_gpu)
   gkyl_proj_on_basis_advance(proj_vtsq, 0.0, &confLocal, vtsq);
 
   // proj_maxwellian expects the primitive moments as a single array.
-  struct gkyl_array *prim_moms_ho = mkarr(2*confBasis.num_basis, confLocal_ext.volume);
-  gkyl_array_set_offset(prim_moms_ho, 1., udrift, 0*confBasis.num_basis);
-  gkyl_array_set_offset(prim_moms_ho, 1., vtsq  , 1*confBasis.num_basis);
+  struct gkyl_array *prim_moms_ho = mkarr(3*confBasis.num_basis, confLocal_ext.volume);
+  gkyl_array_set(prim_moms_ho, 1., moms);
+  gkyl_array_set_offset(prim_moms_ho, 1., udrift, 1*confBasis.num_basis);
+  gkyl_array_set_offset(prim_moms_ho, 1., vtsq  , 2*confBasis.num_basis);
   struct gkyl_array *prim_moms;
   if (use_gpu) { // copy host array to device
-    prim_moms = gkyl_array_cu_dev_new(GKYL_DOUBLE, 2*confBasis.num_basis, confLocal_ext.volume);
+    prim_moms = gkyl_array_cu_dev_new(GKYL_DOUBLE, 3*confBasis.num_basis, confLocal_ext.volume);
     gkyl_array_copy(prim_moms, prim_moms_ho);
   } else {
     prim_moms = prim_moms_ho;
   }
 
   if (use_gpu) {
-    gkyl_proj_gkmaxwellian_on_basis_prim_mom(proj_max, &local, &confLocal, moms, prim_moms,
+    gkyl_proj_gkmaxwellian_on_basis_prim_mom(proj_max, &local, &confLocal, prim_moms,
                                              bmag_cu, jacob_tot_cu, mass, distf_cu);
     gkyl_array_copy(distf, distf_cu);
   } else {
-    gkyl_proj_gkmaxwellian_on_basis_prim_mom(proj_max, &local, &confLocal, moms, prim_moms,
+    gkyl_proj_gkmaxwellian_on_basis_prim_mom(proj_max, &local, &confLocal, prim_moms,
                                              bmag, jacob_tot, mass, distf);
   }
 
