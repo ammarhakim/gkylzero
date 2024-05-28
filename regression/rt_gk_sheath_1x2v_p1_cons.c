@@ -150,7 +150,7 @@ create_ctx(void)
   // Simulation parameters.
   int Nz = 8; // Cell count (configuration space: z-direction).
   int Nvpar = 16; // Cell count (velocity space: parallel velocity direction).
-  int Nmu = 8; // Cell count (velocity space: magnetic moment direction).
+  int Nmu = 16; // Cell count (velocity space: magnetic moment direction).
   double Lz = 4.0; // Domain size (configuration space: z-direction).
   double vpar_max_elc = 4.0 * vte; // Domain boundary (electron velocity space: parallel velocity direction).
   double mu_max_elc = (3.0 / 2.0) * 0.5 * mass_elc * pow(4.0 * vte,2) / (2.0 * B0); // Domain boundary (electron velocity space: magnetic moment direction).
