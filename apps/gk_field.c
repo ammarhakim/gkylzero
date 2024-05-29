@@ -35,6 +35,7 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
     f->apardot_fem = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
   }
 
+  f->init_phi_pol = false;
   if (f->info.polarization_phi) {
     // Project the initial potential onto a p+1 tensor basis and compute the polarization
     // density to use use by species in calculating the initial ion density.
