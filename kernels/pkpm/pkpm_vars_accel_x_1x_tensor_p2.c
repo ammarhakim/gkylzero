@@ -1,8 +1,7 @@
 #include <gkyl_euler_pkpm_kernels.h> 
-#include <gkyl_basis_tensor_1x_p2_surfx1_eval_quad.h> 
 GKYL_CU_DH void pkpm_vars_accel_x_1x_tensor_p2(const double *dxv, 
   const double *u_surf_l, const double *u_surf_c, const double *u_surf_r, 
-  const double *prim_l, const double *prim_c, const double *prim_r, 
+  const double *prim_surf_l, const double *prim_surf_c, const double *prim_surf_r, 
   const double *pkpm_u_c, const double *bb_c, const double *nu_c, 
   double* GKYL_RESTRICT pkpm_lax, double* GKYL_RESTRICT pkpm_accel) 
 { 
@@ -11,7 +10,7 @@ GKYL_CU_DH void pkpm_vars_accel_x_1x_tensor_p2(const double *dxv,
   //               [ux_xl, ux_xr, uy_xl, uy_xr, uz_xl, uz_xr, 
   //                ux_yl, ux_yr, uy_yl, uy_yr, uz_yl, uz_yr, 
   //                ux_zl, ux_zr, uy_zl, uy_zr, uz_zl, uz_zr]  
-  // prim_l/c/r:   Input volume expansion of primitive variables [1/rho div(p_par b), T_perp/m, m/T_perp, 3*Txx/m, 3*Tyy/m, 3*Tzz/m] in left/center/right cells.
+  // prim_surf_l/c/r: Input surface primitive variables [3*T_ii/m] in left/center/right cells in each direction.
   // pkpm_u_c:     Input volume expansion of flow velocity in center cell.
   // bb_c:         Input volume expansion of magnetic field unit tensor in center cell.
   // nu_c:         Input volume expansion of collisionality in center cell.
@@ -46,9 +45,10 @@ GKYL_CU_DH void pkpm_vars_accel_x_1x_tensor_p2(const double *dxv,
   const double *uy_surf_rl = &u_surf_r[2]; 
   const double *uz_surf_rl = &u_surf_r[4]; 
 
-  const double *Tii_l = &prim_l[9]; 
-  const double *Tii_c = &prim_c[9]; 
-  const double *Tii_r = &prim_r[9]; 
+  const double *Tii_surf_lr = &prim_surf_l[1]; 
+  const double *Tii_surf_cl = &prim_surf_c[0]; 
+  const double *Tii_surf_cr = &prim_surf_c[1]; 
+  const double *Tii_surf_rl = &prim_surf_r[0]; 
 
   double *pkpm_lax_l = &pkpm_lax[0]; 
   double *pkpm_lax_r = &pkpm_lax[1]; 
@@ -58,12 +58,8 @@ GKYL_CU_DH void pkpm_vars_accel_x_1x_tensor_p2(const double *dxv,
 
   double max_u_l = fmax(fabs(ux_surf_lr[0]), fabs(ux_surf_cl[0])); 
   double max_u_r = fmax(fabs(ux_surf_cr[0]), fabs(ux_surf_rl[0])); 
-  double Tiil_r = tensor_1x_p2_surfx1_eval_quad_node_0_r(Tii_l); 
-  double Tiic_l = tensor_1x_p2_surfx1_eval_quad_node_0_l(Tii_c); 
-  double Tiic_r = tensor_1x_p2_surfx1_eval_quad_node_0_r(Tii_c); 
-  double Tiir_l = tensor_1x_p2_surfx1_eval_quad_node_0_l(Tii_r); 
-  double max_vth_l = fmax(sqrt(fabs(Tiil_r)), sqrt(fabs(Tiic_l))); 
-  double max_vth_r = fmax(sqrt(fabs(Tiic_r)), sqrt(fabs(Tiir_l))); 
+  double max_vth_l = fmax(sqrt(fabs(Tii_surf_lr[0])), sqrt(fabs(Tii_surf_cl[0]))); 
+  double max_vth_r = fmax(sqrt(fabs(Tii_surf_cr[0])), sqrt(fabs(Tii_surf_rl[0]))); 
   pkpm_lax_l[0] = max_u_l + max_vth_l; 
   pkpm_lax_r[0] = max_u_r + max_vth_r; 
 

@@ -160,10 +160,12 @@ pkpm_species_init(struct gkyl_pkpm *pkpm, struct gkyl_pkpm_app *app, struct pkpm
   //  ux_yl, ux_yr, uy_yl, uy_yr, uz_yl, uz_yr, 
   //  ux_zl, ux_zr, uy_zl, uy_zr, uz_zl, uz_zr] 
   s->pkpm_u_surf = mkarr(app->use_gpu, 2*cdim*3*Nbasis_surf, app->local_ext.volume);
+  // Surface expansion of Lax penalization lambda_i = |u_i| + sqrt(3*P_ii/rho), order p
+  s->pkpm_lax = mkarr(app->use_gpu, 2*cdim*Nbasis_surf, app->local_ext.volume);
 
   int Nbasis_surf_2p = app->confBasis_2p.num_basis/(app->confBasis_2p.poly_order + 1); 
-  // Surface expansion of Lax penalization lambda_i = |u_i| + sqrt(3*P_ii/rho), order 2*p
-  s->pkpm_lax = mkarr(app->use_gpu, 2*cdim*Nbasis_surf_2p, app->local_ext.volume);
+  // Surface expansion of 3*P_ii/rho, order 2*p
+  s->pkpm_prim_surf = mkarr(app->use_gpu, 2*cdim*Nbasis_surf_2p, app->local_ext.volume);
 
   // Check if limiter_fac is specified for adjusting how much diffusion is applied through slope limiter
   // If not specified, set to 0.0 and updater sets default behavior (1/sqrt(3); see gkyl_dg_calc_pkpm_vars.h)
@@ -477,9 +479,11 @@ pkpm_species_calc_pkpm_vars(gkyl_pkpm_app *app, struct pkpm_species *species,
       species->pkpm_moms.marr, species->pkpm_p_ij, 
       species->pkpm_div_ppar, app->field->div_b,
       species->cell_avg_prim, species->pkpm_prim, species->pkpm_accel); 
-    // Compute the flow velocity at needed surfaces
+    // Compute the flow velocity and 3*Tii/m at needed surfaces
     gkyl_dg_calc_pkpm_vars_u_surf(species->calc_pkpm_vars,
       species->pkpm_u, species->pkpm_u_surf);
+    gkyl_dg_calc_pkpm_vars_surf_advance(species->calc_pkpm_vars,
+      species->pkpm_moms.marr, species->pkpm_p_ij, species->pkpm_prim_surf);
   }
   else {
     gkyl_dg_calc_pkpm_vars_u(species->calc_pkpm_vars_ext,
@@ -489,9 +493,11 @@ pkpm_species_calc_pkpm_vars(gkyl_pkpm_app *app, struct pkpm_species *species,
       species->pkpm_moms.marr, species->pkpm_p_ij, 
       species->pkpm_div_ppar, app->field->div_b,
       species->cell_avg_prim, species->pkpm_prim, species->pkpm_accel); 
-    // Compute the flow velocity at needed surfaces
+    // Compute the flow velocity and 3*Tii/m at needed surfaces
     gkyl_dg_calc_pkpm_vars_u_surf(species->calc_pkpm_vars_ext,
       species->pkpm_u, species->pkpm_u_surf);
+    gkyl_dg_calc_pkpm_vars_surf_advance(species->calc_pkpm_vars_ext,
+      species->pkpm_moms.marr, species->pkpm_p_ij, species->pkpm_prim_surf);
   }
 
   app->stat.species_pkpm_vars_tm += gkyl_time_diff_now_sec(tm);
@@ -505,8 +511,8 @@ pkpm_species_calc_pkpm_update_vars(gkyl_pkpm_app *app, struct pkpm_species *spec
 
   gkyl_dg_calc_pkpm_vars_accel(species->calc_pkpm_vars, &app->local, 
     species->pkpm_u_surf, species->pkpm_u, 
-    species->pkpm_prim, app->field->bb, 
-    app->field->div_b, species->lbo.nu_sum, 
+    species->pkpm_prim_surf, 
+    app->field->bb, app->field->div_b, species->lbo.nu_sum, 
     species->pkpm_lax, species->pkpm_accel); 
 
   // Calculate distrbution functions for coupling different Laguerre moments
@@ -834,6 +840,7 @@ pkpm_species_release(const gkyl_pkpm_app* app, const struct pkpm_species *s)
 
   gkyl_array_release(s->pkpm_div_ppar);
   gkyl_array_release(s->pkpm_prim);
+  gkyl_array_release(s->pkpm_prim_surf);
   gkyl_array_release(s->pkpm_p_ij);
   gkyl_array_release(s->pkpm_lax);
   gkyl_array_release(s->pkpm_accel);

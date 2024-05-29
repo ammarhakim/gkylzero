@@ -18,6 +18,11 @@ typedef int (*pkpm_set_t)(int count, struct gkyl_nmat *A, struct gkyl_nmat *rhs,
 typedef void (*pkpm_copy_t)(int count, struct gkyl_nmat *x, 
   double* GKYL_RESTRICT pkpm_prim, double* GKYL_RESTRICT pkpm_accel);
 
+typedef void (*pkpm_surf_set_t)(int count, struct gkyl_nmat *A, struct gkyl_nmat *rhs, 
+  const double *vlasov_pkpm_moms, const double *p_ij);
+
+typedef void (*pkpm_surf_copy_t)(int count, struct gkyl_nmat *x, double* GKYL_RESTRICT pkpm_prim_surf);
+
 typedef int (*pkpm_u_set_t)(int count, struct gkyl_nmat *A, struct gkyl_nmat *rhs, 
   const double *vlasov_pkpm_moms, const double *euler_pkpm);
 
@@ -56,6 +61,8 @@ typedef void (*pkpm_limiter_t)(double limiter_fac, const struct gkyl_wv_eqn *wv_
 // for use in kernel tables
 typedef struct { pkpm_set_t kernels[3]; } gkyl_dg_pkpm_set_kern_list;
 typedef struct { pkpm_copy_t kernels[3]; } gkyl_dg_pkpm_copy_kern_list;
+typedef struct { pkpm_surf_set_t kernels[3]; } gkyl_dg_pkpm_surf_set_kern_list;
+typedef struct { pkpm_surf_copy_t kernels[3]; } gkyl_dg_pkpm_surf_copy_kern_list;
 typedef struct { pkpm_u_set_t kernels[3]; } gkyl_dg_pkpm_u_set_kern_list;
 typedef struct { pkpm_u_copy_t kernels[3]; } gkyl_dg_pkpm_u_copy_kern_list;
 typedef struct { pkpm_u_surf_t kernels[3]; } gkyl_dg_pkpm_u_surf_kern_list;
@@ -82,12 +89,18 @@ struct gkyl_dg_calc_pkpm_vars {
   gkyl_nmat_mem *mem; // memory for use in batched linear solve
   int Ncomp_prim; // number of components in the linear solve (6 variables being solved for)
 
+  struct gkyl_nmat *As_surf, *xs_surf; // matrices for LHS and RHS of surface variable solve
+  gkyl_nmat_mem *mem_surf; // memory for use in batched linear solve of surface variables
+  int Ncomp_surf; // number of components in the surface linear solve (2*cdim variables being solved for)
+
   struct gkyl_nmat *As_u, *xs_u; // matrices for LHS and RHS for flow velocity solve
   gkyl_nmat_mem *mem_u; // memory for use in batched linear solve for velocity
   int Ncomp_u; // number of components in the linear solve (3 variables being solved for)
 
   pkpm_set_t pkpm_set;  // kernel for setting matrices for linear solve for primitive variables
   pkpm_copy_t pkpm_copy; // kernel for copying solution for primitive variables to output
+  pkpm_surf_set_t pkpm_surf_set;  // kernel for setting matrices for linear solve of surface variables
+  pkpm_surf_copy_t pkpm_surf_copy; // kernel for copying solution to output surface variables
   pkpm_u_set_t pkpm_u_set;  // kernel for setting matrices for linear solve for flow velocity
   pkpm_u_copy_t pkpm_u_copy; // kernel for copying solution for flow velocity to output
   pkpm_u_surf_t pkpm_u_surf;  // kernel for setting surface expansions of flow velocity
@@ -119,6 +132,22 @@ static const gkyl_dg_pkpm_copy_kern_list ten_pkpm_copy_kernels[] = {
   { NULL, NULL, pkpm_vars_copy_1x_tensor_p2 }, // 0
   { NULL, NULL, pkpm_vars_copy_2x_tensor_p2 }, // 1
   { NULL, NULL, pkpm_vars_copy_3x_tensor_p2 }, // 2
+};
+
+// Set matrices for computing surface pkpm primitive vars, order 2*p (Tensor kernels)
+GKYL_CU_D
+static const gkyl_dg_pkpm_surf_set_kern_list ten_pkpm_surf_set_kernels[] = {
+  { NULL, NULL, pkpm_vars_surf_set_1x_tensor_p2 }, // 0
+  { NULL, NULL, pkpm_vars_surf_set_2x_tensor_p2 }, // 1
+  { NULL, NULL, pkpm_vars_surf_set_3x_tensor_p2 }, // 2
+};
+
+// Copy solution for surface pkpm primitive vars, order 2*p (Tensor kernels)
+GKYL_CU_D
+static const gkyl_dg_pkpm_surf_copy_kern_list ten_pkpm_surf_copy_kernels[] = {
+  { NULL, NULL, pkpm_vars_surf_copy_1x_tensor_p2 }, // 0
+  { NULL, NULL, pkpm_vars_surf_copy_2x_tensor_p2 }, // 1
+  { NULL, NULL, pkpm_vars_surf_copy_3x_tensor_p2 }, // 2
 };
 
 // Set matrices for computing flow velocity, ux, uy, uz, order p (Tensor kernels)
@@ -244,6 +273,20 @@ static pkpm_copy_t
 choose_pkpm_copy_kern(int cdim, int poly_order)
 {
   return ten_pkpm_copy_kernels[cdim-1].kernels[poly_order];
+}
+
+GKYL_CU_D
+static pkpm_surf_set_t
+choose_pkpm_surf_set_kern(int cdim, int poly_order)
+{
+  return ten_pkpm_surf_set_kernels[cdim-1].kernels[poly_order];
+}
+
+GKYL_CU_D
+static pkpm_surf_copy_t
+choose_pkpm_surf_copy_kern(int cdim, int poly_order)
+{
+  return ten_pkpm_surf_copy_kernels[cdim-1].kernels[poly_order];
 }
 
 GKYL_CU_D

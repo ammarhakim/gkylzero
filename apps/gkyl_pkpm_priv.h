@@ -164,6 +164,8 @@ struct pkpm_species {
   struct gkyl_array *pkpm_div_ppar; // div(p_parallel b_hat), order 2*p, used for computing self-consistent total pressure force 
   struct gkyl_array *pkpm_prim; // primitive variables, order 2*p, 
                                 // [1/rho*div(p_par b), T_perp/m, m/T_perp, 3*T_xx/m, 3*T_yy/m, 3*T_zz/m]
+  struct gkyl_array *pkpm_prim_surf; // surface primitive variables, order 2*p, 
+                                     // [3*Txx_xl/m, 3*Txx_xr/m, 3*Tyy_yl/m, 3*Tyy_yr/m, 3*Tzz_zl/m, 3*Tzz_zr/m]
   struct gkyl_array *pkpm_p_ij; // pressure tensor, order 2*p, (p_par - p_perp) b_i b_j + p_perp g_ij
   struct gkyl_array *pkpm_lax; // Surface expansion of Lax penalization, order 2*p, lambda_i = |u_i| + sqrt(3.0*T_ii/m)
 

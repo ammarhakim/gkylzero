@@ -1,9 +1,8 @@
 #include <gkyl_euler_pkpm_kernels.h> 
-#include <gkyl_basis_tensor_3x_p2_surfx1_eval_quad.h> 
-#include <gkyl_basis_tensor_3x_p2_upwind_quad_to_modal.h> 
+#include <gkyl_basis_tensor_3x_p1_upwind_quad_to_modal.h> 
 GKYL_CU_DH void pkpm_vars_accel_x_3x_tensor_p2(const double *dxv, 
   const double *u_surf_l, const double *u_surf_c, const double *u_surf_r, 
-  const double *prim_l, const double *prim_c, const double *prim_r, 
+  const double *prim_surf_l, const double *prim_surf_c, const double *prim_surf_r, 
   const double *pkpm_u_c, const double *bb_c, const double *nu_c, 
   double* GKYL_RESTRICT pkpm_lax, double* GKYL_RESTRICT pkpm_accel) 
 { 
@@ -12,7 +11,7 @@ GKYL_CU_DH void pkpm_vars_accel_x_3x_tensor_p2(const double *dxv,
   //               [ux_xl, ux_xr, uy_xl, uy_xr, uz_xl, uz_xr, 
   //                ux_yl, ux_yr, uy_yl, uy_yr, uz_yl, uz_yr, 
   //                ux_zl, ux_zr, uy_zl, uy_zr, uz_zl, uz_zr]  
-  // prim_l/c/r:   Input volume expansion of primitive variables [1/rho div(p_par b), T_perp/m, m/T_perp, 3*Txx/m, 3*Tyy/m, 3*Tzz/m] in left/center/right cells.
+  // prim_surf_l/c/r: Input surface primitive variables [3*T_ii/m] in left/center/right cells in each direction.
   // pkpm_u_c:     Input volume expansion of flow velocity in center cell.
   // bb_c:         Input volume expansion of magnetic field unit tensor in center cell.
   // nu_c:         Input volume expansion of collisionality in center cell.
@@ -47,12 +46,13 @@ GKYL_CU_DH void pkpm_vars_accel_x_3x_tensor_p2(const double *dxv,
   const double *uy_surf_rl = &u_surf_r[8]; 
   const double *uz_surf_rl = &u_surf_r[16]; 
 
-  const double *Tii_l = &prim_l[81]; 
-  const double *Tii_c = &prim_c[81]; 
-  const double *Tii_r = &prim_r[81]; 
+  const double *Tii_surf_lr = &prim_surf_l[9]; 
+  const double *Tii_surf_cl = &prim_surf_c[0]; 
+  const double *Tii_surf_cr = &prim_surf_c[9]; 
+  const double *Tii_surf_rl = &prim_surf_r[0]; 
 
   double *pkpm_lax_l = &pkpm_lax[0]; 
-  double *pkpm_lax_r = &pkpm_lax[9]; 
+  double *pkpm_lax_r = &pkpm_lax[4]; 
 
   double *bb_grad_u = &pkpm_accel[27]; 
   double *p_perp_source = &pkpm_accel[81]; 
@@ -69,146 +69,71 @@ GKYL_CU_DH void pkpm_vars_accel_x_3x_tensor_p2(const double *dxv,
   double Tiir_l = 0.0; 
   double TiiQuad_l = 0.0; 
   double TiiQuad_r = 0.0; 
-  double pkpm_lax_quad_l[9] = {0.0}; 
-  double pkpm_lax_quad_r[9] = {0.0}; 
+  double pkpm_lax_quad_l[4] = {0.0}; 
+  double pkpm_lax_quad_r[4] = {0.0}; 
 
-  ul_r = 0.9*ux_surf_lr[3]-0.6708203932499369*ux_surf_lr[2]-0.6708203932499369*ux_surf_lr[1]+0.5*ux_surf_lr[0]; 
-  uc_l = 0.9*ux_surf_cl[3]-0.6708203932499369*ux_surf_cl[2]-0.6708203932499369*ux_surf_cl[1]+0.5*ux_surf_cl[0]; 
-  uc_r = 0.9*ux_surf_cr[3]-0.6708203932499369*ux_surf_cr[2]-0.6708203932499369*ux_surf_cr[1]+0.5*ux_surf_cr[0]; 
-  ur_l = 0.9*ux_surf_rl[3]-0.6708203932499369*ux_surf_rl[2]-0.6708203932499369*ux_surf_rl[1]+0.5*ux_surf_rl[0]; 
+  ul_r = 0.5*ux_surf_lr[3]-0.5*ux_surf_lr[2]-0.5*ux_surf_lr[1]+0.5*ux_surf_lr[0]; 
+  uc_l = 0.5*ux_surf_cl[3]-0.5*ux_surf_cl[2]-0.5*ux_surf_cl[1]+0.5*ux_surf_cl[0]; 
+  uc_r = 0.5*ux_surf_cr[3]-0.5*ux_surf_cr[2]-0.5*ux_surf_cr[1]+0.5*ux_surf_cr[0]; 
+  ur_l = 0.5*ux_surf_rl[3]-0.5*ux_surf_rl[2]-0.5*ux_surf_rl[1]+0.5*ux_surf_rl[0]; 
   uQuad_l = fmax(fabs(ul_r), fabs(uc_l)); 
   uQuad_r = fmax(fabs(uc_r), fabs(ur_l)); 
-  Tiil_r = tensor_3x_p2_surfx1_eval_quad_node_0_r(Tii_l); 
-  Tiic_l = tensor_3x_p2_surfx1_eval_quad_node_0_l(Tii_c); 
-  Tiic_r = tensor_3x_p2_surfx1_eval_quad_node_0_r(Tii_c); 
-  Tiir_l = tensor_3x_p2_surfx1_eval_quad_node_0_l(Tii_r); 
+  Tiil_r = 0.5*Tii_surf_lr[3]-0.5*Tii_surf_lr[2]-0.5*Tii_surf_lr[1]+0.5*Tii_surf_lr[0]; 
+  Tiic_l = 0.5*Tii_surf_cl[3]-0.5*Tii_surf_cl[2]-0.5*Tii_surf_cl[1]+0.5*Tii_surf_cl[0]; 
+  Tiic_r = 0.5*Tii_surf_cr[3]-0.5*Tii_surf_cr[2]-0.5*Tii_surf_cr[1]+0.5*Tii_surf_cr[0]; 
+  Tiir_l = 0.5*Tii_surf_rl[3]-0.5*Tii_surf_rl[2]-0.5*Tii_surf_rl[1]+0.5*Tii_surf_rl[0]; 
   TiiQuad_l = fmax(sqrt(fabs(Tiil_r)), sqrt(fabs(Tiic_l))); 
   TiiQuad_r = fmax(sqrt(fabs(Tiic_r)), sqrt(fabs(Tiir_l))); 
   pkpm_lax_quad_l[0] = uQuad_l + TiiQuad_l; 
   pkpm_lax_quad_r[0] = uQuad_r + TiiQuad_r; 
 
-  ul_r = 0.5*ux_surf_lr[0]-0.6708203932499369*ux_surf_lr[1]; 
-  uc_l = 0.5*ux_surf_cl[0]-0.6708203932499369*ux_surf_cl[1]; 
-  uc_r = 0.5*ux_surf_cr[0]-0.6708203932499369*ux_surf_cr[1]; 
-  ur_l = 0.5*ux_surf_rl[0]-0.6708203932499369*ux_surf_rl[1]; 
+  ul_r = (-0.5*ux_surf_lr[3])+0.5*ux_surf_lr[2]-0.5*ux_surf_lr[1]+0.5*ux_surf_lr[0]; 
+  uc_l = (-0.5*ux_surf_cl[3])+0.5*ux_surf_cl[2]-0.5*ux_surf_cl[1]+0.5*ux_surf_cl[0]; 
+  uc_r = (-0.5*ux_surf_cr[3])+0.5*ux_surf_cr[2]-0.5*ux_surf_cr[1]+0.5*ux_surf_cr[0]; 
+  ur_l = (-0.5*ux_surf_rl[3])+0.5*ux_surf_rl[2]-0.5*ux_surf_rl[1]+0.5*ux_surf_rl[0]; 
   uQuad_l = fmax(fabs(ul_r), fabs(uc_l)); 
   uQuad_r = fmax(fabs(uc_r), fabs(ur_l)); 
-  Tiil_r = tensor_3x_p2_surfx1_eval_quad_node_1_r(Tii_l); 
-  Tiic_l = tensor_3x_p2_surfx1_eval_quad_node_1_l(Tii_c); 
-  Tiic_r = tensor_3x_p2_surfx1_eval_quad_node_1_r(Tii_c); 
-  Tiir_l = tensor_3x_p2_surfx1_eval_quad_node_1_l(Tii_r); 
+  Tiil_r = (-0.5*Tii_surf_lr[3])+0.5*Tii_surf_lr[2]-0.5*Tii_surf_lr[1]+0.5*Tii_surf_lr[0]; 
+  Tiic_l = (-0.5*Tii_surf_cl[3])+0.5*Tii_surf_cl[2]-0.5*Tii_surf_cl[1]+0.5*Tii_surf_cl[0]; 
+  Tiic_r = (-0.5*Tii_surf_cr[3])+0.5*Tii_surf_cr[2]-0.5*Tii_surf_cr[1]+0.5*Tii_surf_cr[0]; 
+  Tiir_l = (-0.5*Tii_surf_rl[3])+0.5*Tii_surf_rl[2]-0.5*Tii_surf_rl[1]+0.5*Tii_surf_rl[0]; 
   TiiQuad_l = fmax(sqrt(fabs(Tiil_r)), sqrt(fabs(Tiic_l))); 
   TiiQuad_r = fmax(sqrt(fabs(Tiic_r)), sqrt(fabs(Tiir_l))); 
   pkpm_lax_quad_l[1] = uQuad_l + TiiQuad_l; 
   pkpm_lax_quad_r[1] = uQuad_r + TiiQuad_r; 
 
-  ul_r = (-0.9*ux_surf_lr[3])+0.6708203932499369*ux_surf_lr[2]-0.6708203932499369*ux_surf_lr[1]+0.5*ux_surf_lr[0]; 
-  uc_l = (-0.9*ux_surf_cl[3])+0.6708203932499369*ux_surf_cl[2]-0.6708203932499369*ux_surf_cl[1]+0.5*ux_surf_cl[0]; 
-  uc_r = (-0.9*ux_surf_cr[3])+0.6708203932499369*ux_surf_cr[2]-0.6708203932499369*ux_surf_cr[1]+0.5*ux_surf_cr[0]; 
-  ur_l = (-0.9*ux_surf_rl[3])+0.6708203932499369*ux_surf_rl[2]-0.6708203932499369*ux_surf_rl[1]+0.5*ux_surf_rl[0]; 
+  ul_r = (-0.5*ux_surf_lr[3])-0.5*ux_surf_lr[2]+0.5*ux_surf_lr[1]+0.5*ux_surf_lr[0]; 
+  uc_l = (-0.5*ux_surf_cl[3])-0.5*ux_surf_cl[2]+0.5*ux_surf_cl[1]+0.5*ux_surf_cl[0]; 
+  uc_r = (-0.5*ux_surf_cr[3])-0.5*ux_surf_cr[2]+0.5*ux_surf_cr[1]+0.5*ux_surf_cr[0]; 
+  ur_l = (-0.5*ux_surf_rl[3])-0.5*ux_surf_rl[2]+0.5*ux_surf_rl[1]+0.5*ux_surf_rl[0]; 
   uQuad_l = fmax(fabs(ul_r), fabs(uc_l)); 
   uQuad_r = fmax(fabs(uc_r), fabs(ur_l)); 
-  Tiil_r = tensor_3x_p2_surfx1_eval_quad_node_2_r(Tii_l); 
-  Tiic_l = tensor_3x_p2_surfx1_eval_quad_node_2_l(Tii_c); 
-  Tiic_r = tensor_3x_p2_surfx1_eval_quad_node_2_r(Tii_c); 
-  Tiir_l = tensor_3x_p2_surfx1_eval_quad_node_2_l(Tii_r); 
+  Tiil_r = (-0.5*Tii_surf_lr[3])-0.5*Tii_surf_lr[2]+0.5*Tii_surf_lr[1]+0.5*Tii_surf_lr[0]; 
+  Tiic_l = (-0.5*Tii_surf_cl[3])-0.5*Tii_surf_cl[2]+0.5*Tii_surf_cl[1]+0.5*Tii_surf_cl[0]; 
+  Tiic_r = (-0.5*Tii_surf_cr[3])-0.5*Tii_surf_cr[2]+0.5*Tii_surf_cr[1]+0.5*Tii_surf_cr[0]; 
+  Tiir_l = (-0.5*Tii_surf_rl[3])-0.5*Tii_surf_rl[2]+0.5*Tii_surf_rl[1]+0.5*Tii_surf_rl[0]; 
   TiiQuad_l = fmax(sqrt(fabs(Tiil_r)), sqrt(fabs(Tiic_l))); 
   TiiQuad_r = fmax(sqrt(fabs(Tiic_r)), sqrt(fabs(Tiir_l))); 
   pkpm_lax_quad_l[2] = uQuad_l + TiiQuad_l; 
   pkpm_lax_quad_r[2] = uQuad_r + TiiQuad_r; 
 
-  ul_r = 0.5*ux_surf_lr[0]-0.6708203932499369*ux_surf_lr[2]; 
-  uc_l = 0.5*ux_surf_cl[0]-0.6708203932499369*ux_surf_cl[2]; 
-  uc_r = 0.5*ux_surf_cr[0]-0.6708203932499369*ux_surf_cr[2]; 
-  ur_l = 0.5*ux_surf_rl[0]-0.6708203932499369*ux_surf_rl[2]; 
+  ul_r = 0.5*ux_surf_lr[3]+0.5*ux_surf_lr[2]+0.5*ux_surf_lr[1]+0.5*ux_surf_lr[0]; 
+  uc_l = 0.5*ux_surf_cl[3]+0.5*ux_surf_cl[2]+0.5*ux_surf_cl[1]+0.5*ux_surf_cl[0]; 
+  uc_r = 0.5*ux_surf_cr[3]+0.5*ux_surf_cr[2]+0.5*ux_surf_cr[1]+0.5*ux_surf_cr[0]; 
+  ur_l = 0.5*ux_surf_rl[3]+0.5*ux_surf_rl[2]+0.5*ux_surf_rl[1]+0.5*ux_surf_rl[0]; 
   uQuad_l = fmax(fabs(ul_r), fabs(uc_l)); 
   uQuad_r = fmax(fabs(uc_r), fabs(ur_l)); 
-  Tiil_r = tensor_3x_p2_surfx1_eval_quad_node_3_r(Tii_l); 
-  Tiic_l = tensor_3x_p2_surfx1_eval_quad_node_3_l(Tii_c); 
-  Tiic_r = tensor_3x_p2_surfx1_eval_quad_node_3_r(Tii_c); 
-  Tiir_l = tensor_3x_p2_surfx1_eval_quad_node_3_l(Tii_r); 
+  Tiil_r = 0.5*Tii_surf_lr[3]+0.5*Tii_surf_lr[2]+0.5*Tii_surf_lr[1]+0.5*Tii_surf_lr[0]; 
+  Tiic_l = 0.5*Tii_surf_cl[3]+0.5*Tii_surf_cl[2]+0.5*Tii_surf_cl[1]+0.5*Tii_surf_cl[0]; 
+  Tiic_r = 0.5*Tii_surf_cr[3]+0.5*Tii_surf_cr[2]+0.5*Tii_surf_cr[1]+0.5*Tii_surf_cr[0]; 
+  Tiir_l = 0.5*Tii_surf_rl[3]+0.5*Tii_surf_rl[2]+0.5*Tii_surf_rl[1]+0.5*Tii_surf_rl[0]; 
   TiiQuad_l = fmax(sqrt(fabs(Tiil_r)), sqrt(fabs(Tiic_l))); 
   TiiQuad_r = fmax(sqrt(fabs(Tiic_r)), sqrt(fabs(Tiir_l))); 
   pkpm_lax_quad_l[3] = uQuad_l + TiiQuad_l; 
   pkpm_lax_quad_r[3] = uQuad_r + TiiQuad_r; 
 
-  ul_r = 0.5*ux_surf_lr[0]; 
-  uc_l = 0.5*ux_surf_cl[0]; 
-  uc_r = 0.5*ux_surf_cr[0]; 
-  ur_l = 0.5*ux_surf_rl[0]; 
-  uQuad_l = fmax(fabs(ul_r), fabs(uc_l)); 
-  uQuad_r = fmax(fabs(uc_r), fabs(ur_l)); 
-  Tiil_r = tensor_3x_p2_surfx1_eval_quad_node_4_r(Tii_l); 
-  Tiic_l = tensor_3x_p2_surfx1_eval_quad_node_4_l(Tii_c); 
-  Tiic_r = tensor_3x_p2_surfx1_eval_quad_node_4_r(Tii_c); 
-  Tiir_l = tensor_3x_p2_surfx1_eval_quad_node_4_l(Tii_r); 
-  TiiQuad_l = fmax(sqrt(fabs(Tiil_r)), sqrt(fabs(Tiic_l))); 
-  TiiQuad_r = fmax(sqrt(fabs(Tiic_r)), sqrt(fabs(Tiir_l))); 
-  pkpm_lax_quad_l[4] = uQuad_l + TiiQuad_l; 
-  pkpm_lax_quad_r[4] = uQuad_r + TiiQuad_r; 
-
-  ul_r = 0.6708203932499369*ux_surf_lr[2]+0.5*ux_surf_lr[0]; 
-  uc_l = 0.6708203932499369*ux_surf_cl[2]+0.5*ux_surf_cl[0]; 
-  uc_r = 0.6708203932499369*ux_surf_cr[2]+0.5*ux_surf_cr[0]; 
-  ur_l = 0.6708203932499369*ux_surf_rl[2]+0.5*ux_surf_rl[0]; 
-  uQuad_l = fmax(fabs(ul_r), fabs(uc_l)); 
-  uQuad_r = fmax(fabs(uc_r), fabs(ur_l)); 
-  Tiil_r = tensor_3x_p2_surfx1_eval_quad_node_5_r(Tii_l); 
-  Tiic_l = tensor_3x_p2_surfx1_eval_quad_node_5_l(Tii_c); 
-  Tiic_r = tensor_3x_p2_surfx1_eval_quad_node_5_r(Tii_c); 
-  Tiir_l = tensor_3x_p2_surfx1_eval_quad_node_5_l(Tii_r); 
-  TiiQuad_l = fmax(sqrt(fabs(Tiil_r)), sqrt(fabs(Tiic_l))); 
-  TiiQuad_r = fmax(sqrt(fabs(Tiic_r)), sqrt(fabs(Tiir_l))); 
-  pkpm_lax_quad_l[5] = uQuad_l + TiiQuad_l; 
-  pkpm_lax_quad_r[5] = uQuad_r + TiiQuad_r; 
-
-  ul_r = (-0.9*ux_surf_lr[3])-0.6708203932499369*ux_surf_lr[2]+0.6708203932499369*ux_surf_lr[1]+0.5*ux_surf_lr[0]; 
-  uc_l = (-0.9*ux_surf_cl[3])-0.6708203932499369*ux_surf_cl[2]+0.6708203932499369*ux_surf_cl[1]+0.5*ux_surf_cl[0]; 
-  uc_r = (-0.9*ux_surf_cr[3])-0.6708203932499369*ux_surf_cr[2]+0.6708203932499369*ux_surf_cr[1]+0.5*ux_surf_cr[0]; 
-  ur_l = (-0.9*ux_surf_rl[3])-0.6708203932499369*ux_surf_rl[2]+0.6708203932499369*ux_surf_rl[1]+0.5*ux_surf_rl[0]; 
-  uQuad_l = fmax(fabs(ul_r), fabs(uc_l)); 
-  uQuad_r = fmax(fabs(uc_r), fabs(ur_l)); 
-  Tiil_r = tensor_3x_p2_surfx1_eval_quad_node_6_r(Tii_l); 
-  Tiic_l = tensor_3x_p2_surfx1_eval_quad_node_6_l(Tii_c); 
-  Tiic_r = tensor_3x_p2_surfx1_eval_quad_node_6_r(Tii_c); 
-  Tiir_l = tensor_3x_p2_surfx1_eval_quad_node_6_l(Tii_r); 
-  TiiQuad_l = fmax(sqrt(fabs(Tiil_r)), sqrt(fabs(Tiic_l))); 
-  TiiQuad_r = fmax(sqrt(fabs(Tiic_r)), sqrt(fabs(Tiir_l))); 
-  pkpm_lax_quad_l[6] = uQuad_l + TiiQuad_l; 
-  pkpm_lax_quad_r[6] = uQuad_r + TiiQuad_r; 
-
-  ul_r = 0.6708203932499369*ux_surf_lr[1]+0.5*ux_surf_lr[0]; 
-  uc_l = 0.6708203932499369*ux_surf_cl[1]+0.5*ux_surf_cl[0]; 
-  uc_r = 0.6708203932499369*ux_surf_cr[1]+0.5*ux_surf_cr[0]; 
-  ur_l = 0.6708203932499369*ux_surf_rl[1]+0.5*ux_surf_rl[0]; 
-  uQuad_l = fmax(fabs(ul_r), fabs(uc_l)); 
-  uQuad_r = fmax(fabs(uc_r), fabs(ur_l)); 
-  Tiil_r = tensor_3x_p2_surfx1_eval_quad_node_7_r(Tii_l); 
-  Tiic_l = tensor_3x_p2_surfx1_eval_quad_node_7_l(Tii_c); 
-  Tiic_r = tensor_3x_p2_surfx1_eval_quad_node_7_r(Tii_c); 
-  Tiir_l = tensor_3x_p2_surfx1_eval_quad_node_7_l(Tii_r); 
-  TiiQuad_l = fmax(sqrt(fabs(Tiil_r)), sqrt(fabs(Tiic_l))); 
-  TiiQuad_r = fmax(sqrt(fabs(Tiic_r)), sqrt(fabs(Tiir_l))); 
-  pkpm_lax_quad_l[7] = uQuad_l + TiiQuad_l; 
-  pkpm_lax_quad_r[7] = uQuad_r + TiiQuad_r; 
-
-  ul_r = 0.9*ux_surf_lr[3]+0.6708203932499369*ux_surf_lr[2]+0.6708203932499369*ux_surf_lr[1]+0.5*ux_surf_lr[0]; 
-  uc_l = 0.9*ux_surf_cl[3]+0.6708203932499369*ux_surf_cl[2]+0.6708203932499369*ux_surf_cl[1]+0.5*ux_surf_cl[0]; 
-  uc_r = 0.9*ux_surf_cr[3]+0.6708203932499369*ux_surf_cr[2]+0.6708203932499369*ux_surf_cr[1]+0.5*ux_surf_cr[0]; 
-  ur_l = 0.9*ux_surf_rl[3]+0.6708203932499369*ux_surf_rl[2]+0.6708203932499369*ux_surf_rl[1]+0.5*ux_surf_rl[0]; 
-  uQuad_l = fmax(fabs(ul_r), fabs(uc_l)); 
-  uQuad_r = fmax(fabs(uc_r), fabs(ur_l)); 
-  Tiil_r = tensor_3x_p2_surfx1_eval_quad_node_8_r(Tii_l); 
-  Tiic_l = tensor_3x_p2_surfx1_eval_quad_node_8_l(Tii_c); 
-  Tiic_r = tensor_3x_p2_surfx1_eval_quad_node_8_r(Tii_c); 
-  Tiir_l = tensor_3x_p2_surfx1_eval_quad_node_8_l(Tii_r); 
-  TiiQuad_l = fmax(sqrt(fabs(Tiil_r)), sqrt(fabs(Tiic_l))); 
-  TiiQuad_r = fmax(sqrt(fabs(Tiic_r)), sqrt(fabs(Tiir_l))); 
-  pkpm_lax_quad_l[8] = uQuad_l + TiiQuad_l; 
-  pkpm_lax_quad_r[8] = uQuad_r + TiiQuad_r; 
-
-  tensor_3x_p2_upwind_quad_to_modal(pkpm_lax_quad_l, pkpm_lax_l); 
-  tensor_3x_p2_upwind_quad_to_modal(pkpm_lax_quad_r, pkpm_lax_r); 
+  tensor_3x_p1_upwind_quad_to_modal(pkpm_lax_quad_l, pkpm_lax_l); 
+  tensor_3x_p1_upwind_quad_to_modal(pkpm_lax_quad_r, pkpm_lax_r); 
 
   double grad_u_x[27] = {0.0}; 
   double grad_u_y[27] = {0.0}; 

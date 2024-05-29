@@ -10,8 +10,11 @@ GKYL_CU_DH void pkpm_vars_pressure_1x_tensor_p2(const double *bb, const double *
 GKYL_CU_DH int pkpm_vars_set_1x_tensor_p2(int count, struct gkyl_nmat *A, struct gkyl_nmat *rhs, 
   const double *vlasov_pkpm_moms, const double *p_ij, 
   const double *pkpm_div_ppar, const double *div_b); 
+GKYL_CU_DH void pkpm_vars_surf_set_1x_tensor_p2(int count, struct gkyl_nmat *A, struct gkyl_nmat *rhs, 
+  const double *vlasov_pkpm_moms, const double *p_ij); 
 GKYL_CU_DH void pkpm_vars_copy_1x_tensor_p2(int count, struct gkyl_nmat *x, 
   double* GKYL_RESTRICT pkpm_prim, double* GKYL_RESTRICT pkpm_accel); 
+GKYL_CU_DH void pkpm_vars_surf_copy_1x_tensor_p2(int count, struct gkyl_nmat *x, double* GKYL_RESTRICT prim_surf); 
 GKYL_CU_DH void pkpm_vars_integrated_1x_tensor_p2(const double *vlasov_pkpm_moms, const double *pkpm_u, double* GKYL_RESTRICT pkpm_int_vars); 
 GKYL_CU_DH void pkpm_vars_io_1x_tensor_p2(const double *vlasov_pkpm_moms, const double *pkpm_u, 
   const double* p_ij, const double* prim, const double* pkpm_accel, 
@@ -56,8 +59,11 @@ GKYL_CU_DH void pkpm_vars_pressure_2x_tensor_p2(const double *bb, const double *
 GKYL_CU_DH int pkpm_vars_set_2x_tensor_p2(int count, struct gkyl_nmat *A, struct gkyl_nmat *rhs, 
   const double *vlasov_pkpm_moms, const double *p_ij, 
   const double *pkpm_div_ppar, const double *div_b); 
+GKYL_CU_DH void pkpm_vars_surf_set_2x_tensor_p2(int count, struct gkyl_nmat *A, struct gkyl_nmat *rhs, 
+  const double *vlasov_pkpm_moms, const double *p_ij); 
 GKYL_CU_DH void pkpm_vars_copy_2x_tensor_p2(int count, struct gkyl_nmat *x, 
   double* GKYL_RESTRICT pkpm_prim, double* GKYL_RESTRICT pkpm_accel); 
+GKYL_CU_DH void pkpm_vars_surf_copy_2x_tensor_p2(int count, struct gkyl_nmat *x, double* GKYL_RESTRICT prim_surf); 
 GKYL_CU_DH void pkpm_vars_integrated_2x_tensor_p2(const double *vlasov_pkpm_moms, const double *pkpm_u, double* GKYL_RESTRICT pkpm_int_vars); 
 GKYL_CU_DH void pkpm_vars_io_2x_tensor_p2(const double *vlasov_pkpm_moms, const double *pkpm_u, 
   const double* p_ij, const double* prim, const double* pkpm_accel, 
@@ -120,8 +126,11 @@ GKYL_CU_DH void pkpm_vars_pressure_3x_tensor_p2(const double *bb, const double *
 GKYL_CU_DH int pkpm_vars_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct gkyl_nmat *rhs, 
   const double *vlasov_pkpm_moms, const double *p_ij, 
   const double *pkpm_div_ppar, const double *div_b); 
+GKYL_CU_DH void pkpm_vars_surf_set_3x_tensor_p2(int count, struct gkyl_nmat *A, struct gkyl_nmat *rhs, 
+  const double *vlasov_pkpm_moms, const double *p_ij); 
 GKYL_CU_DH void pkpm_vars_copy_3x_tensor_p2(int count, struct gkyl_nmat *x, 
   double* GKYL_RESTRICT pkpm_prim, double* GKYL_RESTRICT pkpm_accel); 
+GKYL_CU_DH void pkpm_vars_surf_copy_3x_tensor_p2(int count, struct gkyl_nmat *x, double* GKYL_RESTRICT prim_surf); 
 GKYL_CU_DH void pkpm_vars_integrated_3x_tensor_p2(const double *vlasov_pkpm_moms, const double *pkpm_u, double* GKYL_RESTRICT pkpm_int_vars); 
 GKYL_CU_DH void pkpm_vars_io_3x_tensor_p2(const double *vlasov_pkpm_moms, const double *pkpm_u, 
   const double* p_ij, const double* prim, const double* pkpm_accel, 
