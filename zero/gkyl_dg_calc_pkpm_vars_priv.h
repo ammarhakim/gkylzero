@@ -25,7 +25,7 @@ typedef void (*pkpm_u_copy_t)(int count, struct gkyl_nmat *x, double* GKYL_RESTR
 
 typedef void (*pkpm_u_surf_t)(const double *pkpm_u, double* GKYL_RESTRICT pkpm_u_surf);
 
-typedef void (*pkpm_pressure_t)(const double *bvar, const double *vlasov_pkpm_moms, 
+typedef void (*pkpm_pressure_t)(const double *bb, const double *vlasov_pkpm_moms, 
   double* GKYL_RESTRICT p_ij);
 
 typedef void (*pkpm_int_t)(const double *vlasov_pkpm_moms, 
@@ -43,7 +43,7 @@ typedef void (*pkpm_io_t)(const double *vlasov_pkpm_moms,
 typedef void (*pkpm_accel_t)(const double *dxv, 
   const double *u_surf_l, const double *u_surf_c, const double *u_surf_r, 
   const double *prim_l, const double *prim_c, const double *prim_r, 
-  const double *pkpm_u_c, const double *bvar_c, const double *nu_c, 
+  const double *pkpm_u_c, const double *bb_c, const double *nu_c, 
   double* GKYL_RESTRICT pkpm_lax, double* GKYL_RESTRICT pkpm_accel); 
 
 typedef void (*pkpm_limiter_t)(double limiter_fac, const struct gkyl_wv_eqn *wv_eqn, 

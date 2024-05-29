@@ -7,7 +7,7 @@ GKYL_CU_DH double vlasov_pkpm_surfx_1x1v_tensor_p2(const double *w, const double
 { 
   // w[NDIM]:              Cell-center coordinates.
   // dxv[NDIM]:            Cell spacing.
-  // bvar_surf_l/c/r:      Input surface magnetic field unit vector and tensor in left/center/right cells in each direction.
+  // bvar_surf_l/c/r:      Input surface magnetic field unit vector in left/center/right cells in each direction.
   // pkpm_u_surf_l/c/r: Input surface primitive variables [u_i, 3*T_ii/m] in left/center/right cells in each direction.
   // fl/fc/fr:             Input distribution functions [F_0, T_perp/m G = T_perp/m (F_0 - F_1)] in left/center/right cells.
   // pkpm_max_b:           Surface expansion of max |b| for Lax penalization of streaming: lambda_i = |b_i|.

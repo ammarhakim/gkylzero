@@ -2,13 +2,16 @@
 #include <gkyl_maxwell_kernels.h> 
 #include <gkyl_basis_tensor_1x_2p_sqrt_with_sign.h> 
 GKYL_CU_DH void em_copy_diag_1x_tensor_p2(int count, struct gkyl_nmat *x, const double *em, int* cell_avg_bb, 
-    double* GKYL_RESTRICT out) 
+    double* GKYL_RESTRICT em_vars_diag, double* GKYL_RESTRICT bvar, double* GKYL_RESTRICT bvar_surf) 
 { 
-  // count:       Integer to indicate which matrix being fetched. 
-  // x:           Input solution vector. 
-  // em:          Input electromagnetic fields. 
-  // cell_avg_bb: Output flag for cell average if bb only used cell averages. 
-  // out:         Output volume expansion of diagnostic EM variables. 
+  // count:        Integer to indicate which matrix being fetched. 
+  // x:            Input solution vector. 
+  // em:           Input electromagnetic fields. 
+  // cell_avg_bb:  Output flag for cell average if bb only used cell averages. 
+  // em_vars_diag: Output volume expansion of diagnostic EM variables [bb, ExB/|B|^2]. 
+  // bvar:         Output volume expansion of b_i = B_i/|B| (3 components). 
+  // bvar_surf:    Output surface expansion of b_i = B_i/|B|. 
+  //               [bx_xl, bx_xr, by_yl, by_yr, bz_zl, bz_zr]. 
  
   struct gkyl_mat x_bxbx = gkyl_nmat_get(x, count); 
   struct gkyl_mat x_bxby = gkyl_nmat_get(x, count+1); 
@@ -19,18 +22,19 @@ GKYL_CU_DH void em_copy_diag_1x_tensor_p2(int count, struct gkyl_nmat *x, const 
   struct gkyl_mat x_ExBx = gkyl_nmat_get(x, count+6); 
   struct gkyl_mat x_ExBy = gkyl_nmat_get(x, count+7); 
   struct gkyl_mat x_ExBz = gkyl_nmat_get(x, count+8); 
-  double *bx = &out[0]; 
-  double *by = &out[3]; 
-  double *bz = &out[6]; 
-  double *bxbx = &out[9]; 
-  double *bxby = &out[12]; 
-  double *bxbz = &out[15]; 
-  double *byby = &out[18]; 
-  double *bybz = &out[21]; 
-  double *bzbz = &out[24]; 
-  double *ExBx = &out[27]; 
-  double *ExBy = &out[30]; 
-  double *ExBz = &out[33]; 
+  double *bx = &bvar[0]; 
+  double *by = &bvar[2]; 
+  double *bz = &bvar[4]; 
+ 
+  double *bxbx = &em_vars_diag[0]; 
+  double *bxby = &em_vars_diag[3]; 
+  double *bxbz = &em_vars_diag[6]; 
+  double *byby = &em_vars_diag[9]; 
+  double *bybz = &em_vars_diag[12]; 
+  double *bzbz = &em_vars_diag[15]; 
+  double *ExBx = &em_vars_diag[18]; 
+  double *ExBy = &em_vars_diag[21]; 
+  double *ExBz = &em_vars_diag[24]; 
  
   bxbx[0] = gkyl_mat_get(&x_bxbx,0,0); 
   bxby[0] = gkyl_mat_get(&x_bxby,0,0); 
@@ -66,15 +70,12 @@ GKYL_CU_DH void em_copy_diag_1x_tensor_p2(int count, struct gkyl_nmat *x, const 
   int cell_avg_bxbx = 0;
   int cell_avg_byby = 0;
   int cell_avg_bzbz = 0;
-  if (0.6324555320336759*bxbx[2]-0.9486832980505137*bxbx[1]+0.7071067811865475*bxbx[0] < 0.0) cell_avg_bxbx = 1; 
-  if (0.6324555320336759*byby[2]-0.9486832980505137*byby[1]+0.7071067811865475*byby[0] < 0.0) cell_avg_byby = 1; 
-  if (0.6324555320336759*bzbz[2]-0.9486832980505137*bzbz[1]+0.7071067811865475*bzbz[0] < 0.0) cell_avg_bzbz = 1; 
-  if (0.7071067811865475*bxbx[0]-0.7905694150420947*bxbx[2] < 0.0) cell_avg_bxbx = 1; 
-  if (0.7071067811865475*byby[0]-0.7905694150420947*byby[2] < 0.0) cell_avg_byby = 1; 
-  if (0.7071067811865475*bzbz[0]-0.7905694150420947*bzbz[2] < 0.0) cell_avg_bzbz = 1; 
-  if (0.6324555320336759*bxbx[2]+0.9486832980505137*bxbx[1]+0.7071067811865475*bxbx[0] < 0.0) cell_avg_bxbx = 1; 
-  if (0.6324555320336759*byby[2]+0.9486832980505137*byby[1]+0.7071067811865475*byby[0] < 0.0) cell_avg_byby = 1; 
-  if (0.6324555320336759*bzbz[2]+0.9486832980505137*bzbz[1]+0.7071067811865475*bzbz[0] < 0.0) cell_avg_bzbz = 1; 
+  if (0.7071067811865475*bxbx[0]-0.7071067811865475*bxbx[1] < 0.0) cell_avg_bxbx = 1; 
+  if (0.7071067811865475*byby[0]-0.7071067811865475*byby[1] < 0.0) cell_avg_byby = 1; 
+  if (0.7071067811865475*bzbz[0]-0.7071067811865475*bzbz[1] < 0.0) cell_avg_bzbz = 1; 
+  if (0.7071067811865475*bxbx[1]+0.7071067811865475*bxbx[0] < 0.0) cell_avg_bxbx = 1; 
+  if (0.7071067811865475*byby[1]+0.7071067811865475*byby[0] < 0.0) cell_avg_byby = 1; 
+  if (0.7071067811865475*bzbz[1]+0.7071067811865475*bzbz[0] < 0.0) cell_avg_bzbz = 1; 
   if (cell_avg_bxbx || cell_avg_byby || cell_avg_bzbz) { 
     bxbx[1] = 0.0; 
     bxby[1] = 0.0; 
@@ -94,9 +95,15 @@ GKYL_CU_DH void em_copy_diag_1x_tensor_p2(int count, struct gkyl_nmat *x, const 
   } 
   // Calculate b_i = B_i/|B| by taking square root of B_i^2/|B|^2 at quadrature points. 
   // Uses the sign of B_i at quadrature points to get the correct sign of b_i. 
-  // Also checks if B_i^2/|B|^2 < 0.0 at quadrature points and zeros out the value there. 
   tensor_1x_2p_sqrt_with_sign(B_x, bxbx, bx); 
   tensor_1x_2p_sqrt_with_sign(B_y, byby, by); 
   tensor_1x_2p_sqrt_with_sign(B_z, bzbz, bz); 
  
+  double *bx_xl = &bvar_surf[0]; 
+  double *bx_xr = &bvar_surf[1]; 
+ 
+  bx_xl[0] = 0.7071067811865475*bx[0]-1.224744871391589*bx[1]; 
+  bx_xr[0] = 1.224744871391589*bx[1]+0.7071067811865475*bx[0]; 
+ 
 } 
+ 

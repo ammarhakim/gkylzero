@@ -268,19 +268,21 @@ struct pkpm_field {
   struct gkyl_array *app_current_host; // host copy for use in IO and projecting
   gkyl_proj_on_basis *app_current_proj; // projector for applied current 
 
-  struct gkyl_array *bvar; // magnetic field unit vector and tensor (9 components)
-  struct gkyl_array *em_vars_diag; // EM variable diagnostics [bvar (9 components), ExB (3 components)]
+  struct gkyl_array *bvar; // magnetic field unit vector(3 components), order p
+  struct gkyl_array *bb; // magnetic field unit tensor (6 components), order 2*p
+  struct gkyl_array *em_vars_diag; // EM variable diagnostics [bb (6 components), ExB (3 components)], order 2*p
   struct gkyl_array *cell_avg_bb; // Integer array for whether [bxbx = Bx^2/|B|^2, byby = By^2/|B|^2, bzbz = Bz^2/|B|^2]
                                   // are negative at control points. 
   struct gkyl_array *div_b; // Volume expansion of div(b) 
 
+  struct gkyl_array *bvar_host; // host-side magnetic field unit vector for I/O on GPUs
   struct gkyl_array *em_vars_diag_host; // host-side EM variable diagnostics for I/O on GPUs
-  struct gkyl_array *div_b_host; // host-side Volume expansion of div(b) for I/O on GPUs
   struct gkyl_array *cell_avg_bb_host; // host-side positivity check for bb for I/O on GPUs
+  struct gkyl_array *div_b_host; // host-side Volume expansion of div(b) for I/O on GPUs
 
-  struct gkyl_array *bvar_surf; // Surface expansion magnetic field unit vector 
+  struct gkyl_array *bvar_surf; // Surface expansion magnetic field unit vector, order p 
                                 // [bx_xl, bx_xr, by_yl, by_yr, bz_zl, bz_zr] 
-  struct gkyl_array *max_b; // max(|b_i|) penalization
+  struct gkyl_array *max_b; // max(|b_i|) penalization, order p
 
   bool limit_em; // boolean for whether or not we are limiting EM fields
   struct gkyl_dg_calc_em_vars *calc_em_vars; // Updater to compute EM variables

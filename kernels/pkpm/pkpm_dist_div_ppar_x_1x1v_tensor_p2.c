@@ -6,9 +6,9 @@ GKYL_CU_DH void pkpm_dist_div_ppar_x_1x1v_tensor_p2(const double *w, const doubl
 { 
   // w[NDIM]:         Cell-center coordinates.
   // dxv[NDIM]:       Cell spacing.
-  // bvar_surf_l/c/r: Input surface magnetic field unit vector and tensor in left/center/right cells in each direction.
+  // bvar_surf_l/c/r: Input surface magnetic field unit vector in left/center/right cells in each direction.
   // fl/fc/fr:        Input distribution functions [F_0, T_perp/m G = T_perp/m (F_0 - F_1)] in left/center/right cells.
-  // bvar_c:          Input volume expansion of magnetic field unit vector and tensor in center cell.
+  // bvar_c:          Input volume expansion of magnetic field unit vector in center cell.
   // pkpm_max_b:      Input surface expansion of max |b| for Lax penalization of streaming: lambda_i = |b_i|.
   // pkpm_div_ppar:   Increment to volume expansion of div(p_par b).
   const double dx1 = 2.0/dxv[0]; 
@@ -54,8 +54,6 @@ GKYL_CU_DH void pkpm_dist_div_ppar_x_1x1v_tensor_p2(const double *w, const doubl
   alpha_c[1] = 1.414213562373095*b_c[1]*wvpar; 
   alpha_c[2] = 0.408248290463863*b_c[0]*dvpar; 
   alpha_c[3] = 0.408248290463863*b_c[1]*dvpar; 
-  alpha_c[4] = 1.414213562373095*b_c[2]*wvpar; 
-  alpha_c[6] = 0.408248290463863*b_c[2]*dvpar; 
 
   double bl_r = b_surf_lr[0]; 
   double bc_l = b_surf_cl[0]; 
@@ -89,7 +87,7 @@ GKYL_CU_DH void pkpm_dist_div_ppar_x_1x1v_tensor_p2(const double *w, const doubl
 
   } 
   pkpm_div_ppar[0] += dx1*volFact*((Ghat_F_0_vpar_r[0]-1.0*Ghat_F_0_vpar_l[0])*wvpar+(0.2886751345948129*Ghat_F_0_vpar_r[1]-0.2886751345948129*Ghat_F_0_vpar_l[1])*dvpar); 
-  pkpm_div_ppar[1] += dx1*volFact*((1.732050807568877*(Ghat_F_0_vpar_r[0]+Ghat_F_0_vpar_l[0])-1.224744871391589*(F_0c[6]*alpha_c[6]+F_0c[4]*alpha_c[4]+F_0c[3]*alpha_c[3]+F_0c[2]*alpha_c[2]+F_0c[1]*alpha_c[1]+F_0c[0]*alpha_c[0]))*wvpar+((-0.3162277660168379*(alpha_c[6]*F_0c[8]+alpha_c[3]*F_0c[7]))-0.3535533905932737*(F_0c[4]*alpha_c[6]+alpha_c[4]*F_0c[6])-0.3162277660168379*alpha_c[2]*F_0c[5]-0.3535533905932737*(F_0c[1]*alpha_c[3]+alpha_c[1]*F_0c[3]+F_0c[0]*alpha_c[2]+alpha_c[0]*F_0c[2])+0.5*(Ghat_F_0_vpar_r[1]+Ghat_F_0_vpar_l[1]))*dvpar); 
-  pkpm_div_ppar[2] += dx1*volFact*(((-2.449489742783178*(F_0c[3]*alpha_c[6]+alpha_c[3]*F_0c[6]+F_0c[1]*alpha_c[4]+alpha_c[1]*F_0c[4]))-2.738612787525831*(F_0c[2]*alpha_c[3]+alpha_c[2]*F_0c[3]+F_0c[0]*alpha_c[1]+alpha_c[0]*F_0c[1])+2.23606797749979*Ghat_F_0_vpar_r[0]-2.23606797749979*Ghat_F_0_vpar_l[0])*wvpar+((-0.6324555320336759*alpha_c[3]*F_0c[8])-0.7071067811865475*(alpha_c[2]*F_0c[7]+F_0c[1]*alpha_c[6]+alpha_c[1]*F_0c[6]+alpha_c[3]*F_0c[5]+F_0c[3]*alpha_c[4]+alpha_c[3]*F_0c[4])-0.6324555320336759*alpha_c[6]*F_0c[7]-0.7905694150420947*(F_0c[0]*alpha_c[3]+alpha_c[0]*F_0c[3]+F_0c[1]*alpha_c[2]+alpha_c[1]*F_0c[2])+0.6454972243679029*Ghat_F_0_vpar_r[1]-0.6454972243679029*Ghat_F_0_vpar_l[1])*dvpar); 
+  pkpm_div_ppar[1] += dx1*volFact*((1.732050807568877*(Ghat_F_0_vpar_r[0]+Ghat_F_0_vpar_l[0])-1.224744871391589*(F_0c[3]*alpha_c[3]+F_0c[2]*alpha_c[2]+F_0c[1]*alpha_c[1]+F_0c[0]*alpha_c[0]))*wvpar+((-0.3162277660168379*alpha_c[3]*F_0c[7])-0.3162277660168379*alpha_c[2]*F_0c[5]-0.3535533905932737*(F_0c[1]*alpha_c[3]+alpha_c[1]*F_0c[3]+F_0c[0]*alpha_c[2]+alpha_c[0]*F_0c[2])+0.5*(Ghat_F_0_vpar_r[1]+Ghat_F_0_vpar_l[1]))*dvpar); 
+  pkpm_div_ppar[2] += dx1*volFact*(((-2.449489742783178*(alpha_c[3]*F_0c[6]+alpha_c[1]*F_0c[4]))-2.738612787525831*(F_0c[2]*alpha_c[3]+alpha_c[2]*F_0c[3]+F_0c[0]*alpha_c[1]+alpha_c[0]*F_0c[1])+2.23606797749979*Ghat_F_0_vpar_r[0]-2.23606797749979*Ghat_F_0_vpar_l[0])*wvpar+((-0.6324555320336759*alpha_c[3]*F_0c[8])-0.7071067811865475*(alpha_c[2]*F_0c[7]+alpha_c[1]*F_0c[6]+alpha_c[3]*(F_0c[5]+F_0c[4]))-0.7905694150420947*(F_0c[0]*alpha_c[3]+alpha_c[0]*F_0c[3]+F_0c[1]*alpha_c[2]+alpha_c[1]*F_0c[2])+0.6454972243679029*Ghat_F_0_vpar_r[1]-0.6454972243679029*Ghat_F_0_vpar_l[1])*dvpar); 
 
 } 

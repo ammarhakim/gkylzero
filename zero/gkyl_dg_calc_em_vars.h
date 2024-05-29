@@ -14,16 +14,16 @@ typedef struct gkyl_dg_calc_em_vars gkyl_dg_calc_em_vars;
 /**
  * Create new updater to compute EM variables needed in 
  * updates and used for diagnostics. Supports:
- * 1. bvar = [b_i (3 components), b_i b_j (6 components)],
- * the magnetic field unit vector and unit tensor, b_i = B_i/|B|
- * 2. diagnostic EM variables [bvar (9 components), ExB = E x B/|B|^2, the E x B velocity (3 components)]
+ * 1. bb, the magnetic field unit tensor (6 components) and bvar, the magnetic field unit vector (3 components) 
+ * 2. diagnostic EM variables [bb (6 components), ExB = E x B/|B|^2, the E x B velocity (3 components)]
+ *                            and bvar, the magnetic field unit vector
  * 3. div(b)
  * 4. Slope limiter for EM variables using characteristic limiting of Maxwell's equations
  * Free using gkyl_dg_calc_em_vars_release.
  *
  * @param conf_grid Configuration space grid (for getting cell spacing and cell center)
  * @param cbasis Configuration space basis functions, order p (the order of the fields from Maxwell's equations)
- * @param cbasis_2p Configuration space basis functions, order 2*p (the order of the EM variables computed)
+ * @param cbasis_2p Configuration space basis functions, order 2*p (the order of quantities such as bb)
  * @param mem_range Configuration space range to compute variables over
  * Note: This range sets the size of the bin_op memory and thus sets the
  * range over which the updater loops for the batched linear solves
@@ -52,9 +52,10 @@ gkyl_dg_calc_em_vars_new(const struct gkyl_rect_grid *conf_grid,
  */
 struct gkyl_dg_calc_em_vars* 
 gkyl_dg_calc_em_vars_cu_dev_new(const struct gkyl_rect_grid *conf_grid, 
-  const struct gkyl_basis* cbasis, const struct gkyl_range *conf_range, 
+  const struct gkyl_basis* cbasis, const struct gkyl_basis* cbasis_2p, 
+  const struct gkyl_range *mem_range, 
   const struct gkyl_wv_eqn *wv_eqn, const struct gkyl_wave_geom *geom, 
-  double limiter_fac, bool is_ExB);
+  double limiter_fac);
 
 /**
  * Compute the magnetic field unit vector (b_i = B_i/|B|, three components) 
@@ -64,18 +65,19 @@ gkyl_dg_calc_em_vars_cu_dev_new(const struct gkyl_rect_grid *conf_grid,
  * 2. Compute unit tensor (b_i b_j = B_i B_j/|B|^2, 6 components) using weak division 
  * 3. For bvar, project diagonal components of bb onto quadrature points, evaluate square root point wise, 
  *    and project back onto modal basis using gkyl_basis_tensor_dx_2p_sqrt_with_sign.h to obtain b_i (d=1,2,3)
- *    Note that we use B_i to get the correct sign of b_i, but B_i uses an order p basis while b_i uses an order 2*p basis
+ *    Note that b_i utilizes an order p basis to insure b . b = 1
  *
  * @param up          Updater for computing EM variables (contains range, pre-allocated memory, and pointers to kernels)
  * @param em          Input array which contain EM fields (Ex, Ey, Ez, Bx, By, Bz)
  * @param cell_avg_bb Array for storing boolean value of whether bb uses *only* cell averages to minimize 
  *                    positivity violations and make sqrt(bb) at quadrature points defined (default: false)
- * @param out         Output array of volume expansion of magnetic field unit vector and unit tensor 
- * @param out_surf    Output array of surface expansion of magnetic field unit vector and unit tensor 
+ * @param bb          Output array of volume expansion of magnetic field unit tensor
+ * @param bvar        Output array of volume expansion of magnetic field unit vector 
+ * @param bvar_surf   Output array of surface expansion of magnetic field unit vector 
  */
 void gkyl_dg_calc_em_vars_advance(struct gkyl_dg_calc_em_vars *up, 
   const struct gkyl_array* em, struct gkyl_array* cell_avg_bb, 
-  struct gkyl_array* out, struct gkyl_array* out_surf);
+  struct gkyl_array* bb, struct gkyl_array* bvar, struct gkyl_array* bvar_surf);
 
 /**
  * Compute the diagnostic EM variables: magnetic field unit vector (b_i = B_i/|B|, three components) 
@@ -85,17 +87,19 @@ void gkyl_dg_calc_em_vars_advance(struct gkyl_dg_calc_em_vars *up,
  * 2. Compute unit tensor (b_i b_j = B_i B_j/|B|^2, 6 components) and (E x B)_i/|B|^2, 3 components, using weak division 
  * 3. For bvar, project diagonal components of bb onto quadrature points, evaluate square root point wise, 
  *    and project back onto modal basis using gkyl_basis_tensor_dx_2p_sqrt_with_sign.h to obtain b_i (d=1,2,3)
- *    Note that we use B_i to get the correct sign of b_i, but B_i uses an order p basis while b_i uses an order 2*p basis
+ *    Note that b_i utilizes an order p basis to insure b . b = 1
  *
- * @param up          Updater for computing EM variables (contains range, pre-allocated memory, and pointers to kernels)
- * @param em          Input array which contain EM fields (Ex, Ey, Ez, Bx, By, Bz)
- * @param cell_avg_bb Array for storing boolean value of whether bb uses *only* cell averages to minimize 
- *                    positivity violations and make sqrt(bb) at quadrature points defined (default: false)
- * @param out         Output array of volume expansion of diagnostic EM variables 
+ * @param up           Updater for computing EM variables (contains range, pre-allocated memory, and pointers to kernels)
+ * @param em           Input array which contain EM fields (Ex, Ey, Ez, Bx, By, Bz)
+ * @param cell_avg_bb  Array for storing boolean value of whether bb uses *only* cell averages to minimize 
+ *                     positivity violations and make sqrt(bb) at quadrature points defined (default: false)
+ * @param em_vars_diag Output array of volume expansion of diagnostic EM variables
+ * @param bvar         Output array of volume expansion of magnetic field unit vector 
+ * @param bvar_surf    Output array of surface expansion of magnetic field unit vector 
  */
 void gkyl_dg_calc_em_vars_diag(struct gkyl_dg_calc_em_vars *up, 
   const struct gkyl_array* em, struct gkyl_array* cell_avg_bb, 
-  struct gkyl_array* out);
+  struct gkyl_array* em_vars_diag, struct gkyl_array* bvar, struct gkyl_array* bvar_surf);
 
 /**
  * Compute div(b) and max(|b_i|) penalization
@@ -134,11 +138,11 @@ void gkyl_dg_calc_em_vars_release(struct gkyl_dg_calc_em_vars *up);
 
 void gkyl_dg_calc_em_vars_advance_cu(struct gkyl_dg_calc_em_vars *up, 
   const struct gkyl_array* em, struct gkyl_array* cell_avg_bb, 
-  struct gkyl_array* out, struct gkyl_array* out_surf);
+  struct gkyl_array* bb, struct gkyl_array* bvar, struct gkyl_array* bvar_surf);
 
 void gkyl_dg_calc_em_vars_diag_cu(struct gkyl_dg_calc_em_vars *up, 
   const struct gkyl_array* em, struct gkyl_array* cell_avg_bb, 
-  struct gkyl_array* out);
+  struct gkyl_array* em_vars_diag, struct gkyl_array* bvar, struct gkyl_array* bvar_surf);
 
 void gkyl_dg_calc_em_vars_div_b_cu(struct gkyl_dg_calc_em_vars *up, const struct gkyl_range *conf_range, 
   const struct gkyl_array* bvar_surf, const struct gkyl_array* bvar, 

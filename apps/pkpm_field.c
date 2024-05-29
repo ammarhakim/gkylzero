@@ -102,14 +102,16 @@ pkpm_field_new(struct gkyl_pkpm *pkpm, struct gkyl_pkpm_app *app)
     app->cdim, up_dirs, zero_flux_flags, 1, app->use_gpu);
 
   // Allocate arrays for diagonstics/parallel-kinetic-perpendicular-moment arrays
-  // These arrays are all order 2*p so we can *exactly* represent quantities such as |B|^2
-  // bvar = magnetic field unit vector (first 3 components) and unit tensor (last 6 components)
-  // em_vars_diag = [bvar (9 components), ExB (3 components)]
-  f->bvar = mkarr(app->use_gpu, 9*app->confBasis_2p.num_basis, app->local_ext.volume);
-  f->em_vars_diag = mkarr(app->use_gpu, 12*app->confBasis_2p.num_basis, app->local_ext.volume);
+  // bvar = magnetic field unit vector (first 3 components), order p
+  // bb = magnetic field unit unit tensor (last 6 components), order 2*p 
+  // em_vars_diag = [bb (6 components), ExB (3 components)], order 2*p 
+  // bb and em_vars_diag are order 2*p so we can *exactly* represent |B|^2
+  f->bvar = mkarr(app->use_gpu, 3*app->confBasis.num_basis, app->local_ext.volume);
+  f->bb = mkarr(app->use_gpu, 6*app->confBasis_2p.num_basis, app->local_ext.volume);
+  f->em_vars_diag = mkarr(app->use_gpu, 9*app->confBasis_2p.num_basis, app->local_ext.volume);
   f->em_vars_diag_host = f->em_vars_diag;
 
-  // Volume expansion of div(b)
+  // Volume expansion of div(b), order 2*p for kinetic equation coupling
   f->div_b = mkarr(app->use_gpu, app->confBasis_2p.num_basis, app->local_ext.volume);
   f->div_b_host = f->div_b;
 
@@ -119,20 +121,22 @@ pkpm_field_new(struct gkyl_pkpm *pkpm, struct gkyl_pkpm_app *app)
   f->cell_avg_bb_host = f->cell_avg_bb;
 
   if (app->use_gpu) {
-    f->em_vars_diag_host = mkarr(false, 12*app->confBasis_2p.num_basis, app->local_ext.volume);
+    f->bvar_host = mkarr(false, 3*app->confBasis.num_basis, app->local_ext.volume);
+    f->em_vars_diag_host = mkarr(false, 9*app->confBasis_2p.num_basis, app->local_ext.volume);
     f->div_b_host = mkarr(false, app->confBasis_2p.num_basis, app->local_ext.volume);
     f->cell_avg_bb_host = mk_int_arr(false, 3, app->local_ext.volume);  
   }
 
-  // Surface magnetic field vector organized as:
+  // Surface magnetic field vector, order p, organized as:
   // [bx_xl, bx_xr, by_yl, by_yr, bz_zl, bz_zr] 
   int cdim = app->cdim;
   int Ncomp_surf = 2*cdim;
-  int Nbasis_surf_2p = app->confBasis_2p.num_basis/(app->confBasis_2p.poly_order + 1); 
-  f->bvar_surf = mkarr(app->use_gpu, Ncomp_surf*Nbasis_surf_2p, app->local_ext.volume);
+  int Nbasis_surf = app->confBasis.num_basis/(app->confBasis.poly_order + 1); 
+  f->bvar_surf = mkarr(app->use_gpu, Ncomp_surf*Nbasis_surf, app->local_ext.volume);
 
-  // Surface expansion of max b penalization for streaming in PKPM system max(|b_i_l|, |b_i_r|)
-  f->max_b = mkarr(app->use_gpu, 2*cdim*Nbasis_surf_2p, app->local_ext.volume);
+  // Surface expansion of max b penalization, order p, 
+  // For streaming in PKPM system max(|b_i_l|, |b_i_r|)
+  f->max_b = mkarr(app->use_gpu, 2*cdim*Nbasis_surf, app->local_ext.volume);
 
   // Check if limiter_fac is specified for adjusting how much diffusion is applied through slope limiter
   // If not specified, set to 0.0 and updater sets default behavior (1/sqrt(3); see gkyl_dg_calc_em_vars.h)
@@ -271,26 +275,7 @@ pkpm_field_calc_bvar(gkyl_pkpm_app *app, struct pkpm_field *field,
   // Assumes magnetic field boundary conditions applied so magnetic field 
   // unit vector and unit tensor are defined everywhere in the domain
   gkyl_dg_calc_em_vars_advance(field->calc_em_vars, field->tot_em, 
-    field->cell_avg_bb, field->bvar, field->bvar_surf);
-
-  app->stat.field_em_vars_tm += gkyl_time_diff_now_sec(tm);
-}
-
-void
-pkpm_field_calc_em_vars_diag(gkyl_pkpm_app *app, struct pkpm_field *field,
-  const struct gkyl_array *em)
-{
-  struct timespec tm = gkyl_wall_clock();
-
-  gkyl_array_clear(field->tot_em, 0.0);
-  gkyl_array_set(field->tot_em, 1.0, em);
-  if (field->has_ext_em) {
-    gkyl_array_accumulate_range(field->tot_em, 1.0, field->ext_em, &app->local_ext);
-  }
-  // Assumes magnetic field boundary conditions applied so magnetic field 
-  // unit vector and unit tensor are defined everywhere in the domain
-  gkyl_dg_calc_em_vars_diag(field->calc_em_vars, field->tot_em, 
-    field->cell_avg_bb, field->em_vars_diag);
+    field->cell_avg_bb, field->bb, field->bvar, field->bvar_surf);
 
   app->stat.field_em_vars_tm += gkyl_time_diff_now_sec(tm);
 }
@@ -309,6 +294,30 @@ pkpm_field_calc_div_b(gkyl_pkpm_app *app, struct pkpm_field *field)
   app->stat.field_em_vars_tm += gkyl_time_diff_now_sec(tm);
 }
 
+void
+pkpm_field_calc_em_vars_diag(gkyl_pkpm_app *app, struct pkpm_field *field,
+  const struct gkyl_array *em)
+{
+  struct timespec tm = gkyl_wall_clock();
+
+  gkyl_array_clear(field->tot_em, 0.0);
+  gkyl_array_set(field->tot_em, 1.0, em);
+  if (field->has_ext_em) {
+    gkyl_array_accumulate_range(field->tot_em, 1.0, field->ext_em, &app->local_ext);
+  }
+  // Assumes magnetic field boundary conditions applied so magnetic field 
+  // unit vector and unit tensor are defined everywhere in the domain
+  gkyl_dg_calc_em_vars_diag(field->calc_em_vars, field->tot_em, 
+    field->cell_avg_bb, field->em_vars_diag, field->bvar, field->bvar_surf);
+
+  // Compute div(b) and max_b = max(|b_i_l|, |b_i_r|)
+  gkyl_array_clear(field->div_b, 0.0); // Incremented in each dimension, so clear beforehand
+  gkyl_dg_calc_em_vars_div_b(field->calc_em_vars, &app->local, 
+    field->bvar_surf, field->bvar, 
+    field->max_b, field->div_b); 
+
+  app->stat.field_em_vars_tm += gkyl_time_diff_now_sec(tm);
+}
 
 void
 pkpm_field_limiter(gkyl_pkpm_app *app, struct pkpm_field *field, struct gkyl_array *em)
@@ -473,9 +482,10 @@ pkpm_field_release(const gkyl_pkpm_app* app, struct pkpm_field *f)
 
   gkyl_array_release(f->cell_avg_bb);
   gkyl_array_release(f->bvar);
+  gkyl_array_release(f->bb);
   gkyl_array_release(f->em_vars_diag);
-  gkyl_array_release(f->bvar_surf);
   gkyl_array_release(f->div_b);
+  gkyl_array_release(f->bvar_surf);
   gkyl_array_release(f->max_b);
   gkyl_dg_calc_em_vars_release(f->calc_em_vars);
 
@@ -498,6 +508,7 @@ pkpm_field_release(const gkyl_pkpm_app* app, struct pkpm_field *f)
 
   if (app->use_gpu) {
     gkyl_array_release(f->em_host);
+    gkyl_array_release(f->bvar_host);
     gkyl_array_release(f->em_vars_diag_host);
     gkyl_array_release(f->div_b_host);
     gkyl_array_release(f->cell_avg_bb_host);

@@ -46,7 +46,7 @@ __global__ static void
 gkyl_dg_calc_em_vars_copy_cu_kernel(struct gkyl_dg_calc_em_vars* up, 
   struct gkyl_nmat *xs, struct gkyl_range conf_range,
   const struct gkyl_array* em, struct gkyl_array* cell_avg_bb, 
-  struct gkyl_array* out, struct gkyl_array* out_surf)
+  struct gkyl_array* bb, struct gkyl_array* bvar, struct gkyl_array* bvar_surf)
 {
   int idx[GKYL_MAX_DIM];
 
@@ -67,16 +67,18 @@ gkyl_dg_calc_em_vars_copy_cu_kernel(struct gkyl_dg_calc_em_vars* up,
 
     const double *em_d = (const double*) gkyl_array_cfetch(em, loc);
     int *cell_avg_bb_d = (int*) gkyl_array_fetch(cell_avg_bb, loc);
-    double *out_d = (double*) gkyl_array_fetch(out, loc);
-    double *out_surf_d = (double*) gkyl_array_fetch(out_surf, loc);
+    double *bb_d = (double*) gkyl_array_fetch(bb, loc);
+    double *bvar_d = (double*) gkyl_array_fetch(bvar, loc);
+    double *bvar_surf_d = (double*) gkyl_array_fetch(bvar_surf, loc);
 
-    up->em_copy(count, xs, em_d, cell_avg_bb_d, out_d, out_surf_d);
+    up->em_copy(count, xs, em_d, cell_avg_bb_d, b
+      b_d, bvar_d, bvar_surf_d);
   }
 }
 
 void gkyl_dg_calc_em_vars_advance_cu(struct gkyl_dg_calc_em_vars *up, 
   const struct gkyl_array* em, struct gkyl_array* cell_avg_bb, 
-  struct gkyl_array* out, struct gkyl_array* out_surf)
+  struct gkyl_array* bb, struct gkyl_array* bvar, struct gkyl_array* bvar_surf)
 {
   gkyl_array_clear(up->temp_var, 0.0);
   struct gkyl_range conf_range = up->mem_range;
@@ -91,7 +93,7 @@ void gkyl_dg_calc_em_vars_advance_cu(struct gkyl_dg_calc_em_vars *up,
   gkyl_dg_calc_em_vars_copy_cu_kernel<<<conf_range.nblocks, conf_range.nthreads>>>(up->on_dev,
     up->xs->on_dev, conf_range,
     em->on_dev, cell_avg_bb->on_dev, 
-    out->on_dev, out_surf->on_dev);
+    bb->on_dev, bvar->on_dev, bvar_surf->on_dev);
 }
 
 __global__ static void
@@ -127,7 +129,7 @@ __global__ static void
 gkyl_dg_calc_em_vars_diag_copy_cu_kernel(struct gkyl_dg_calc_em_vars* up, 
   struct gkyl_nmat *xs_diag, struct gkyl_range conf_range,
   const struct gkyl_array* em, struct gkyl_array* cell_avg_bb, 
-  struct gkyl_array* out)
+  struct gkyl_array* em_vars_diag, struct gkyl_array* bvar, struct gkyl_array* bvar_surf)
 {
   int idx[GKYL_MAX_DIM];
 
@@ -148,15 +150,18 @@ gkyl_dg_calc_em_vars_diag_copy_cu_kernel(struct gkyl_dg_calc_em_vars* up,
 
     const double *em_d = (const double*) gkyl_array_cfetch(em, loc);
     int *cell_avg_bb_d = (int*) gkyl_array_fetch(cell_avg_bb, loc);
-    double *out_d = (double*) gkyl_array_fetch(out, loc);
+    double *em_vars_diag_d = (double*) gkyl_array_fetch(em_vars_diag, loc);
+    double *bvar_d = (double*) gkyl_array_fetch(bvar, loc);
+    double *bvar_surf_d = (double*) gkyl_array_fetch(bvar_surf, loc);
 
-    up->em_diag_copy(count, xs_diag, em_d, cell_avg_bb_d, out_d);
+    up->em_diag_copy(count, up->xs_diag, em_d, cell_avg_bb_d, 
+      em_vars_diag_d, bvar_d, bvar_surf_d);
   }
 }
 
 void gkyl_dg_calc_em_vars_diag_cu(struct gkyl_dg_calc_em_vars *up, 
   const struct gkyl_array* em, struct gkyl_array* cell_avg_bb, 
-  struct gkyl_array* out)
+  struct gkyl_array* em_vars_diag, struct gkyl_array* bvar, struct gkyl_array* bvar_surf)
 {
   gkyl_array_clear(up->temp_var, 0.0);
   struct gkyl_range conf_range = up->mem_range;
@@ -171,7 +176,7 @@ void gkyl_dg_calc_em_vars_diag_cu(struct gkyl_dg_calc_em_vars *up,
   gkyl_dg_calc_em_vars_diag_copy_cu_kernel<<<conf_range.nblocks, conf_range.nthreads>>>(up->on_dev,
     up->xs_diag->on_dev, conf_range,
     em->on_dev, cell_avg_bb->on_dev, 
-    out->on_dev);
+    em_vars_diag->on_dev, bvar->on_dev, bvar_surf->on_dev);
 }
 
 __global__ void

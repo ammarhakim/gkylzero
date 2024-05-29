@@ -203,14 +203,13 @@ void gkyl_dg_calc_pkpm_vars_u_surf(struct gkyl_dg_calc_pkpm_vars *up,
   }
 }
 
-
 void gkyl_dg_calc_pkpm_vars_pressure(struct gkyl_dg_calc_pkpm_vars *up, const struct gkyl_range *conf_range, 
-  const struct gkyl_array* bvar, const struct gkyl_array* vlasov_pkpm_moms, struct gkyl_array* p_ij)
+  const struct gkyl_array* bb, const struct gkyl_array* vlasov_pkpm_moms, struct gkyl_array* p_ij)
 {
 #ifdef GKYL_HAVE_CUDA
   if (gkyl_array_is_cu_dev(p_ij)) {
     return gkyl_dg_calc_pkpm_vars_pressure_cu(up, conf_range, 
-      bvar, vlasov_pkpm_moms, p_ij);
+      bb, vlasov_pkpm_moms, p_ij);
   }
 #endif
   struct gkyl_range_iter iter;
@@ -219,25 +218,25 @@ void gkyl_dg_calc_pkpm_vars_pressure(struct gkyl_dg_calc_pkpm_vars *up, const st
   while (gkyl_range_iter_next(&iter)) {
     long loc = gkyl_range_idx(conf_range, iter.idx);
 
-    const double *bvar_d = gkyl_array_cfetch(bvar, loc);
+    const double *bb_d = gkyl_array_cfetch(bb, loc);
     const double *vlasov_pkpm_moms_d = gkyl_array_cfetch(vlasov_pkpm_moms, loc);
 
     double* p_ij_d = gkyl_array_fetch(p_ij, loc);
 
-    up->pkpm_pressure(bvar_d, vlasov_pkpm_moms_d, p_ij_d);
+    up->pkpm_pressure(bb_d, vlasov_pkpm_moms_d, p_ij_d);
   }
 }
 
 void gkyl_dg_calc_pkpm_vars_accel(struct gkyl_dg_calc_pkpm_vars *up, const struct gkyl_range *conf_range, 
   const struct gkyl_array* pkpm_u_surf, const struct gkyl_array* pkpm_u, 
-  const struct gkyl_array* prim, const struct gkyl_array* bvar, 
+  const struct gkyl_array* prim, const struct gkyl_array* bb, 
   const struct gkyl_array* div_b, const struct gkyl_array* nu, 
   struct gkyl_array* pkpm_lax, struct gkyl_array* pkpm_accel)
 {
 #ifdef GKYL_HAVE_CUDA
   if (gkyl_array_is_cu_dev(pkpm_accel)) {
     return gkyl_dg_calc_pkpm_vars_accel_cu(up, conf_range, 
-      pkpm_u_surf, pkpm_u, prim, bvar, div_b, nu, pkpm_lax, pkpm_accel);
+      pkpm_u_surf, pkpm_u, prim, bb, div_b, nu, pkpm_lax, pkpm_accel);
   }
 #endif
 
@@ -254,7 +253,7 @@ void gkyl_dg_calc_pkpm_vars_accel(struct gkyl_dg_calc_pkpm_vars *up, const struc
     const double *prim_c = gkyl_array_cfetch(prim, linc);
 
     const double *pkpm_u_d = gkyl_array_cfetch(pkpm_u, linc);
-    const double *bvar_d = gkyl_array_cfetch(bvar, linc);
+    const double *bb_d = gkyl_array_cfetch(bb, linc);
     const double *div_b_d = gkyl_array_cfetch(div_b, linc);
     const double *nu_d = gkyl_array_cfetch(nu, linc);
 
@@ -278,7 +277,7 @@ void gkyl_dg_calc_pkpm_vars_accel(struct gkyl_dg_calc_pkpm_vars *up, const struc
       up->pkpm_accel[dir](up->conf_grid.dx, 
         pkpm_u_surf_l, pkpm_u_surf_c, pkpm_u_surf_r, 
         prim_l, prim_c, prim_r, 
-        pkpm_u_d, bvar_d, nu_d,
+        pkpm_u_d, bb_d, nu_d,
         pkpm_lax_d, pkpm_accel_d);
     }
   }

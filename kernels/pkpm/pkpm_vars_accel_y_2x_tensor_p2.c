@@ -4,7 +4,7 @@
 GKYL_CU_DH void pkpm_vars_accel_y_2x_tensor_p2(const double *dxv, 
   const double *u_surf_l, const double *u_surf_c, const double *u_surf_r, 
   const double *prim_l, const double *prim_c, const double *prim_r, 
-  const double *pkpm_u_c, const double *bvar_c, const double *nu_c, 
+  const double *pkpm_u_c, const double *bb_c, const double *nu_c, 
   double* GKYL_RESTRICT pkpm_lax, double* GKYL_RESTRICT pkpm_accel) 
 { 
   // dxv[NDIM]:       Cell spacing.
@@ -14,7 +14,7 @@ GKYL_CU_DH void pkpm_vars_accel_y_2x_tensor_p2(const double *dxv,
   //                ux_zl, ux_zr, uy_zl, uy_zr, uz_zl, uz_zr]  
   // prim_l/c/r:   Input volume expansion of primitive variables [1/rho div(p_par b), T_perp/m, m/T_perp, 3*Txx/m, 3*Tyy/m, 3*Tzz/m] in left/center/right cells.
   // pkpm_u_c:     Input volume expansion of flow velocity in center cell.
-  // bvar_c:       Input volume expansion of magnetic field unit vector and tensor in center cell.
+  // bb_c:         Input volume expansion of magnetic field unit tensor in center cell.
   // nu_c:         Input volume expansion of collisionality in center cell.
   // pkpm_lax:     Surface expansion of pkpm Lax penalization: lambda_i = |u_i| + sqrt(3.0*T_ii/m).
   // pkpm_accel:   Volume expansion of pkpm acceleration variables.
@@ -24,12 +24,12 @@ GKYL_CU_DH void pkpm_vars_accel_y_2x_tensor_p2(const double *dxv,
   const double *uy_c = &pkpm_u_c[4]; 
   const double *uz_c = &pkpm_u_c[8]; 
 
-  const double *bxbx = &bvar_c[27]; 
-  const double *bxby = &bvar_c[36]; 
-  const double *bxbz = &bvar_c[45]; 
-  const double *byby = &bvar_c[54]; 
-  const double *bybz = &bvar_c[63]; 
-  const double *bzbz = &bvar_c[72]; 
+  const double *bxbx = &bb_c[0]; 
+  const double *bxby = &bb_c[9]; 
+  const double *bxbz = &bb_c[18]; 
+  const double *byby = &bb_c[27]; 
+  const double *bybz = &bb_c[36]; 
+  const double *bzbz = &bb_c[45]; 
 
   const double *ux_surf_lr = &u_surf_l[14]; 
   const double *uy_surf_lr = &u_surf_l[18]; 

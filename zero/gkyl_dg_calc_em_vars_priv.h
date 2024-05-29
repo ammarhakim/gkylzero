@@ -15,14 +15,11 @@ typedef void (*em_calc_temp_t)(const double *em, double* GKYL_RESTRICT out);
 
 typedef void (*em_set_t)(int count, struct gkyl_nmat *A, struct gkyl_nmat *rhs, const double *temp);
 
-typedef void (*em_copy_t)(int count, struct gkyl_nmat *x, const double *em, int* cell_avg_bb, 
-  double* GKYL_RESTRICT out, double* GKYL_RESTRICT out_surf);
-
 typedef void (*em_set_diag_t)(int count, struct gkyl_nmat *A, struct gkyl_nmat *rhs, 
   const double *em, const double *temp);
 
-typedef void (*em_copy_diag_t)(int count, struct gkyl_nmat *x, const double *em, int* cell_avg_bb, 
-  double* GKYL_RESTRICT out);
+typedef void (*em_copy_t)(int count, struct gkyl_nmat *x, const double *em, int* cell_avg_bb, 
+  double* GKYL_RESTRICT out, double* GKYL_RESTRICT bvar, double* GKYL_RESTRICT bvar_surf);
 
 typedef void (*em_div_b_t)(const double *dxv, 
   const double *bvar_surf_l, const double *bvar_surf_c, const double *bvar_surf_r, 
@@ -35,9 +32,9 @@ typedef void (*em_limiter_t)(double limiter_fac,
 // for use in kernel tables
 typedef struct { em_calc_temp_t kernels[3]; } gkyl_dg_em_calc_BB_kern_list;
 typedef struct { em_set_t kernels[3]; } gkyl_dg_em_set_bvar_kern_list;
-typedef struct { em_copy_t kernels[3]; } gkyl_dg_em_copy_bvar_kern_list;
 typedef struct { em_set_diag_t kernels[3]; } gkyl_dg_em_set_diag_kern_list;
-typedef struct { em_copy_diag_t kernels[3]; } gkyl_dg_em_copy_diag_kern_list;
+typedef struct { em_copy_t kernels[3]; } gkyl_dg_em_copy_bvar_kern_list;
+typedef struct { em_copy_t kernels[3]; } gkyl_dg_em_copy_diag_kern_list;
 typedef struct { em_div_b_t kernels[3]; } gkyl_dg_em_div_b_kern_list;
 typedef struct { em_limiter_t kernels[3]; } gkyl_dg_em_limiter_kern_list;
 
@@ -65,7 +62,7 @@ struct gkyl_dg_calc_em_vars {
   em_copy_t em_copy; // kernel for copying solution to output for bvar, also computes needed surface expansions
 
   em_set_diag_t em_diag_set;  // kernel for setting matrices for linear solve for diagnostic variables 
-  em_copy_diag_t em_diag_copy; // kernel for copying solution to output for diagnostic variables 
+  em_copy_t em_diag_copy; // kernel for copying solution to output for diagnostic variables 
 
   em_div_b_t em_div_b[3]; // kernel for computing div(b) and max(|b_i|) penalization
   em_limiter_t em_limiter[3]; // kernel for limiting slopes of em variables
@@ -191,7 +188,7 @@ choose_em_set_diag_kern(int cdim, int poly_order)
 }
 
 GKYL_CU_D
-static em_copy_diag_t
+static em_copy_t
 choose_em_copy_diag_kern(int cdim, int poly_order)
 {
   return ten_em_copy_diag_kernels[cdim-1].kernels[poly_order];

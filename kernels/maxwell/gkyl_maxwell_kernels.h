@@ -50,11 +50,11 @@ GKYL_CU_DH double maxwell_surfz_3x_tensor_p2(const gkyl_maxwell_inp *meq, const 
 GKYL_CU_DH void em_calc_BB_1x_tensor_p2(const double *em, double* GKYL_RESTRICT out); 
 GKYL_CU_DH void em_set_bvar_1x_tensor_p2(int count, struct gkyl_nmat *A, struct gkyl_nmat *rhs, const double *BB); 
 GKYL_CU_DH void em_copy_bvar_1x_tensor_p2(int count, struct gkyl_nmat *x, const double *em, int* cell_avg_bb, 
-  double* GKYL_RESTRICT bvar, double* GKYL_RESTRICT bvar_surf); 
+  double* GKYL_RESTRICT bb, double* GKYL_RESTRICT bvar, double* GKYL_RESTRICT bvar_surf); 
 GKYL_CU_DH void em_set_diag_1x_tensor_p2(int count, struct gkyl_nmat *A, struct gkyl_nmat *rhs, 
   const double *em, const double *BB); 
 GKYL_CU_DH void em_copy_diag_1x_tensor_p2(int count, struct gkyl_nmat *x, const double *em, int* cell_avg_bb, 
-  double* GKYL_RESTRICT out); 
+  double* GKYL_RESTRICT em_vars_diag, double* GKYL_RESTRICT bvar, double* GKYL_RESTRICT bvar_surf); 
 GKYL_CU_DH void em_div_b_x_1x_tensor_p2(const double *dxv, 
     const double *bvar_surf_l, const double *bvar_surf_c, const double *bvar_surf_r, 
     const double *bvar_c, double* GKYL_RESTRICT max_b, double* GKYL_RESTRICT div_b); 
@@ -63,11 +63,11 @@ GKYL_CU_DH void em_vars_limiter_x_1x_tensor_p1(double limiter_fac, const struct 
 GKYL_CU_DH void em_calc_BB_2x_tensor_p2(const double *em, double* GKYL_RESTRICT out); 
 GKYL_CU_DH void em_set_bvar_2x_tensor_p2(int count, struct gkyl_nmat *A, struct gkyl_nmat *rhs, const double *BB); 
 GKYL_CU_DH void em_copy_bvar_2x_tensor_p2(int count, struct gkyl_nmat *x, const double *em, int* cell_avg_bb, 
-  double* GKYL_RESTRICT bvar, double* GKYL_RESTRICT bvar_surf); 
+  double* GKYL_RESTRICT bb, double* GKYL_RESTRICT bvar, double* GKYL_RESTRICT bvar_surf); 
 GKYL_CU_DH void em_set_diag_2x_tensor_p2(int count, struct gkyl_nmat *A, struct gkyl_nmat *rhs, 
   const double *em, const double *BB); 
 GKYL_CU_DH void em_copy_diag_2x_tensor_p2(int count, struct gkyl_nmat *x, const double *em, int* cell_avg_bb, 
-  double* GKYL_RESTRICT out); 
+  double* GKYL_RESTRICT em_vars_diag, double* GKYL_RESTRICT bvar, double* GKYL_RESTRICT bvar_surf); 
 GKYL_CU_DH void em_div_b_x_2x_tensor_p2(const double *dxv, 
     const double *bvar_surf_l, const double *bvar_surf_c, const double *bvar_surf_r, 
     const double *bvar_c, double* GKYL_RESTRICT max_b, double* GKYL_RESTRICT div_b); 
@@ -80,11 +80,11 @@ GKYL_CU_DH void em_vars_limiter_y_2x_tensor_p1(double limiter_fac, const struct 
 GKYL_CU_DH void em_calc_BB_3x_tensor_p2(const double *em, double* GKYL_RESTRICT out); 
 GKYL_CU_DH void em_set_bvar_3x_tensor_p2(int count, struct gkyl_nmat *A, struct gkyl_nmat *rhs, const double *BB); 
 GKYL_CU_DH void em_copy_bvar_3x_tensor_p2(int count, struct gkyl_nmat *x, const double *em, int* cell_avg_bb, 
-  double* GKYL_RESTRICT bvar, double* GKYL_RESTRICT bvar_surf); 
+  double* GKYL_RESTRICT bb, double* GKYL_RESTRICT bvar, double* GKYL_RESTRICT bvar_surf); 
 GKYL_CU_DH void em_set_diag_3x_tensor_p2(int count, struct gkyl_nmat *A, struct gkyl_nmat *rhs, 
   const double *em, const double *BB); 
 GKYL_CU_DH void em_copy_diag_3x_tensor_p2(int count, struct gkyl_nmat *x, const double *em, int* cell_avg_bb, 
-  double* GKYL_RESTRICT out); 
+  double* GKYL_RESTRICT em_vars_diag, double* GKYL_RESTRICT bvar, double* GKYL_RESTRICT bvar_surf); 
 GKYL_CU_DH void em_div_b_x_3x_tensor_p2(const double *dxv, 
     const double *bvar_surf_l, const double *bvar_surf_c, const double *bvar_surf_r, 
     const double *bvar_c, double* GKYL_RESTRICT max_b, double* GKYL_RESTRICT div_b); 

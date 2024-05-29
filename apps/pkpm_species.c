@@ -462,7 +462,7 @@ pkpm_species_calc_pkpm_vars(gkyl_pkpm_app *app, struct pkpm_species *species,
 
   // Compute p_ij = (p_par - p_perp) b_i b_j + p_perp g_ij in the volume
   gkyl_dg_calc_pkpm_vars_pressure(species->calc_pkpm_vars, &app->local_ext, 
-    app->field->bvar, species->pkpm_moms.marr, species->pkpm_p_ij);
+    app->field->bb, species->pkpm_moms.marr, species->pkpm_p_ij);
 
   // Compute flow velocity [ux, uy, uz] 
   // and primitive variables [1/rho*div(p_par b), T_perp/m, m/T_perp, 3*T_xx/m, 3*T_yy/m, 3*T_zz/m, p_perp/rho*div(b)]
@@ -505,7 +505,7 @@ pkpm_species_calc_pkpm_update_vars(gkyl_pkpm_app *app, struct pkpm_species *spec
 
   gkyl_dg_calc_pkpm_vars_accel(species->calc_pkpm_vars, &app->local, 
     species->pkpm_u_surf, species->pkpm_u, 
-    species->pkpm_prim, app->field->bvar, 
+    species->pkpm_prim, app->field->bb, 
     app->field->div_b, species->lbo.nu_sum, 
     species->pkpm_lax, species->pkpm_accel); 
 
@@ -545,7 +545,7 @@ pkpm_fluid_species_limiter(gkyl_pkpm_app *app, struct pkpm_species *species,
 
     // Compute the pressure tensor
     gkyl_dg_calc_pkpm_vars_pressure(species->calc_pkpm_vars, &app->local_ext, 
-      app->field->bvar, species->pkpm_moms.marr, species->pkpm_p_ij);
+      app->field->bb, species->pkpm_moms.marr, species->pkpm_p_ij);
 
     // Limit the slopes of the solution of the fluid system
     gkyl_dg_calc_pkpm_vars_limiter(species->calc_pkpm_vars, &app->local, species->pkpm_u, 

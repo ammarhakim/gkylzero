@@ -1,22 +1,21 @@
 #include <gkyl_euler_pkpm_kernels.h> 
 #include <gkyl_binop_mul_ser.h> 
-GKYL_CU_DH void pkpm_vars_pressure_1x_tensor_p2(const double *bvar, const double *vlasov_pkpm_moms, 
+GKYL_CU_DH void pkpm_vars_pressure_1x_tensor_p2(const double *bb, const double *vlasov_pkpm_moms, 
     double* GKYL_RESTRICT p_ij) 
 { 
-  // bvar:             Input volume expansion of magnetic field unit vector and tensor.
-  //                   [bx, by, bz, bxbx, bxby, bxbz, byby, bybz, bzbz] 
+  // bb:               Input volume expansion of magnetic field unit vector and tensor.
+  //                   [bxbx, bxby, bxbz, byby, bybz, bzbz] 
   // vlasov_pkpm_moms: [rho, p_parallel, p_perp], Moments computed from kinetic equation in pkpm model.
   // p_ij:             Output volume expansion of p_ij = (p_par - p_perp) b_i b_j + p_perp g_ij.
 
-  // Parallel/Perp pressure are first/second component of pkpm moment array and unit tensor are last six components of bvar array.
   const double *p_parallel = &vlasov_pkpm_moms[3]; 
   const double *p_perp = &vlasov_pkpm_moms[6]; 
-  const double *bxbx = &bvar[9]; 
-  const double *bxby = &bvar[12]; 
-  const double *bxbz = &bvar[15]; 
-  const double *byby = &bvar[18]; 
-  const double *bybz = &bvar[21]; 
-  const double *bzbz = &bvar[24]; 
+  const double *bxbx = &bb[0]; 
+  const double *bxby = &bb[3]; 
+  const double *bxbz = &bb[6]; 
+  const double *byby = &bb[9]; 
+  const double *bybz = &bb[12]; 
+  const double *bzbz = &bb[15]; 
 
   double *Pxx = &p_ij[0]; 
   double *Pxy = &p_ij[3]; 

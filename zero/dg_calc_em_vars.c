@@ -84,11 +84,12 @@ gkyl_dg_calc_em_vars_new(const struct gkyl_rect_grid *conf_grid,
 
 void gkyl_dg_calc_em_vars_advance(struct gkyl_dg_calc_em_vars *up, 
   const struct gkyl_array* em, struct gkyl_array* cell_avg_bb, 
-  struct gkyl_array* out, struct gkyl_array* out_surf)
+  struct gkyl_array* bb, struct gkyl_array* bvar, struct gkyl_array* bvar_surf)
 {
 #ifdef GKYL_HAVE_CUDA
   if (gkyl_array_is_cu_dev(out)) {
-    return gkyl_dg_calc_em_vars_advance_cu(up, em, cell_avg_bb, out, out_surf);
+    return gkyl_dg_calc_em_vars_advance_cu(up, em, cell_avg_bb, 
+      bb, bvar, bvar_surf);
   }
 #endif
   gkyl_array_clear(up->temp_var, 0.0);
@@ -117,10 +118,12 @@ void gkyl_dg_calc_em_vars_advance(struct gkyl_dg_calc_em_vars *up,
 
     const double *em_d = gkyl_array_cfetch(em, loc);
     int *cell_avg_bb_d = gkyl_array_fetch(cell_avg_bb, loc);
-    double *out_d = gkyl_array_fetch(out, loc);
-    double *out_surf_d = gkyl_array_fetch(out_surf, loc);
+    double *bb_d = gkyl_array_fetch(bb, loc);
+    double *bvar_d = gkyl_array_fetch(bvar, loc);
+    double *bvar_surf_d = gkyl_array_fetch(bvar_surf, loc);
 
-    up->em_copy(count, up->xs, em_d, cell_avg_bb_d, out_d, out_surf_d);
+    up->em_copy(count, up->xs, em_d, cell_avg_bb_d, 
+      bb_d, bvar_d, bvar_surf_d);
 
     count += up->Ncomp;
   }  
@@ -128,11 +131,12 @@ void gkyl_dg_calc_em_vars_advance(struct gkyl_dg_calc_em_vars *up,
 
 void gkyl_dg_calc_em_vars_diag(struct gkyl_dg_calc_em_vars *up, 
   const struct gkyl_array* em, struct gkyl_array* cell_avg_bb, 
-  struct gkyl_array* out)
+  struct gkyl_array* em_vars_diag, struct gkyl_array* bvar, struct gkyl_array* bvar_surf)
 {
 #ifdef GKYL_HAVE_CUDA
   if (gkyl_array_is_cu_dev(out)) {
-    return gkyl_dg_calc_em_vars_diag_cu(up, em, cell_avg_bb, out);
+    return gkyl_dg_calc_em_vars_diag_cu(up, em, cell_avg_bb, 
+      em_vars_diag, bvar, bvar_surf);
   }
 #endif
   gkyl_array_clear(up->temp_var, 0.0);
@@ -161,9 +165,12 @@ void gkyl_dg_calc_em_vars_diag(struct gkyl_dg_calc_em_vars *up,
 
     const double *em_d = gkyl_array_cfetch(em, loc);
     int *cell_avg_bb_d = gkyl_array_fetch(cell_avg_bb, loc);
-    double *out_d = gkyl_array_fetch(out, loc);
+    double *em_vars_diag_d = gkyl_array_fetch(em_vars_diag, loc);
+    double *bvar_d = gkyl_array_fetch(bvar, loc);
+    double *bvar_surf_d = gkyl_array_fetch(bvar_surf, loc);
 
-    up->em_diag_copy(count, up->xs_diag, em_d, cell_avg_bb_d, out_d);
+    up->em_diag_copy(count, up->xs_diag, em_d, cell_avg_bb_d, 
+      em_vars_diag_d, bvar_d, bvar_surf_d);
 
     count += up->Ncomp_diag;
   }  
