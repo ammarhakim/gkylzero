@@ -24,17 +24,12 @@ struct gkyl_proj_on_basis {
   void *c2p_ctx; // Context for the c2p mapping.
 };
 
-// Context for the comp to phys coordinate identity mapping.
-struct c2p_identity_ctx {
-  int ndim;
-};
-
 // Identity comp to phys coord mapping, for when user doesn't provide a map.
 static inline void
 c2p_identity(const double *xcomp, double *xphys, void *ctx)
 {
-  struct c2p_identity_ctx *identity_ctx = ctx;
-  int ndim = identity_ctx->ndim;
+  struct gkyl_rect_grid *grid = ctx;
+  int ndim = grid->ndim;
   for (int d=0; d<ndim; d++) xphys[d] = xcomp[d];
 }
 
@@ -51,7 +46,7 @@ gkyl_proj_on_basis_new(const struct gkyl_rect_grid *grid, const struct gkyl_basi
       .eval = eval,
       .ctx = ctx,
       .c2p_func = 0,
-      .c2p_func_ctx = 0,
+      .c2p_func_ctx = NULL,
     }
   );
 }
@@ -69,9 +64,8 @@ gkyl_proj_on_basis_inew(const struct gkyl_proj_on_basis_inp *inp)
   up->num_basis = inp->basis->num_basis;
 
   if (inp->c2p_func == 0) {
-    struct c2p_identity_ctx identity_ctx = { .ndim = inp->grid->ndim };
     up->c2p = c2p_identity;
-    up->c2p_ctx = &identity_ctx;
+    up->c2p_ctx = &up->grid; // Use grid as the context since all we need is ndim.
   }
   else {
     up->c2p = inp->c2p_func;
