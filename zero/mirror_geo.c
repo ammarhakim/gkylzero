@@ -237,7 +237,34 @@ void gkyl_mirror_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, dou
     bmag_ctx_inp->cgrid = &up->decomp_grid;
     bmag_ctx_inp->bmag = gkyl_array_acquire(up->bmag_global);
   }
+
   int cidx[3] = { 0 };
+  if (nonuniform)
+  {
+    int ia = (nrange->lower[AL_IDX] + nrange->upper[AL_IDX])/2;
+    cidx[AL_IDX] = ia;
+    int ia_delta = 2;
+    double alpha_curr = alpha_lo + ia*dalpha + modifiers[ia_delta]*delta_alpha;
+
+    int ip = (nrange->lower[PSI_IDX] + nrange->upper[PSI_IDX])/2;
+    int ip_delta_max = 5;// should be 5
+    if(ia_delta != 0)
+      ip_delta_max = 1;
+    int ip_delta = ip_delta_max/2;
+    double psi_curr = psi_lo + ip*dpsi + modifiers[ip_delta]*delta_psi;
+    double zmin = inp->zmin, zmax = inp->zmax;
+    double darcL, arcL_curr, arcL_lo;
+    mirror_find_endpoints(inp, geo, &arc_ctx, &pctx, psi_curr, alpha_curr, &zmin, &zmax, arc_memo);
+    double arcL = arc_ctx.arcL_tot;
+    darcL = arcL/(up->basis.poly_order*inp->cgrid.cells[TH_IDX]) * (inp->cgrid.upper[TH_IDX] - inp->cgrid.lower[TH_IDX])/2/M_PI;
+
+    arc_ctx.mapping_frac = inp->nonuniform_mapping_fraction;
+    arc_ctx.psi = psi_curr;
+    arc_ctx.alpha = alpha_curr;
+    calculate_mirror_throat_location(&arc_ctx, bmag_ctx_inp);
+    calculate_optimal_mapping(&arc_ctx, bmag_ctx_inp);
+  }
+
   for(int ia=nrange->lower[AL_IDX]; ia<=nrange->upper[AL_IDX]; ++ia){
     cidx[AL_IDX] = ia;
     for(int ia_delta = 0; ia_delta < 5; ia_delta++){ // should be <5
@@ -282,14 +309,15 @@ void gkyl_mirror_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, dou
           double arcL = arc_ctx.arcL_tot;
           darcL = arcL/(up->basis.poly_order*inp->cgrid.cells[TH_IDX]) * (inp->cgrid.upper[TH_IDX] - inp->cgrid.lower[TH_IDX])/2/M_PI;
 
-          if (nonuniform)
-          {
-            arc_ctx.mapping_frac = inp->nonuniform_mapping_fraction;
-            arc_ctx.psi = psi_curr;
-            arc_ctx.alpha = alpha_curr;
-            calculate_mirror_throat_location(&arc_ctx, bmag_ctx_inp);
-            calculate_optimal_mapping(&arc_ctx, bmag_ctx_inp);
-          }
+          // if (nonuniform)
+          // {
+          //   arc_ctx.mapping_frac = inp->nonuniform_mapping_fraction;
+          //   // arc_ctx.psi = psi_curr;
+          //   arc_ctx.psi = (psi_lo + psi_hi) / 2;
+          //   arc_ctx.alpha = alpha_curr;
+          //   calculate_mirror_throat_location(&arc_ctx, bmag_ctx_inp);
+          //   calculate_optimal_mapping(&arc_ctx, bmag_ctx_inp);
+          // }
           // at the beginning of each theta loop we need to reset things
           cidx[PSI_IDX] = ip;
           arcL_curr = 0.0;
