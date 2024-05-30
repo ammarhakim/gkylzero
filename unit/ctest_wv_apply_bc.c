@@ -423,10 +423,72 @@ test_bc_buff_rtheta()
   gkyl_array_release(bc_buffer);
 }
 
+static void
+bc_math1d(double t, int nc, const double *skin, double *restrict ghost,
+    const double *skin_xc, const double *ghost_xc, void *ctx)
+{
+  double xg = ghost_xc[0];
+  for (int c=0; c<nc; ++c) ghost[c] = xg;
+}
+
+void
+test_1_bc_math1d()
+{
+  int ndim = 1;
+  double lower[] = {-1.0}, upper[] = {1.0};
+  int cells[] = {16};
+  struct gkyl_rect_grid grid;
+  gkyl_rect_grid_init(&grid, ndim, lower, upper, cells);
+
+  int nghost[GKYL_MAX_DIM] = { 2 };
+  struct gkyl_range range, ext_range;
+  gkyl_create_grid_ranges(&grid, nghost, &ext_range, &range);
+
+  struct gkyl_wave_geom *wg = gkyl_wave_geom_new(&grid, &ext_range, nomapc2p, &ndim, false);
+  struct gkyl_wv_eqn *eqn = gkyl_wv_burgers_new();
+
+  gkyl_wv_apply_bc *lbc = gkyl_wv_apply_bc_new(&grid, eqn, wg,
+    0, GKYL_LOWER_EDGE, nghost, bc_math1d, NULL);
+  gkyl_wv_apply_bc *rbc = gkyl_wv_apply_bc_new(&grid, eqn, wg,
+    0, GKYL_UPPER_EDGE, nghost, bc_math1d, NULL);
+
+  struct gkyl_array *distf = gkyl_array_new(GKYL_DOUBLE, 1, ext_range.volume);
+
+  gkyl_array_clear_range(distf, 1.0, &range);
+
+  // check if ghost-cells on left/right edges of domain are 0.0
+  double *data = distf->data;
+  TEST_CHECK( 0.0 == data[0] );
+  TEST_CHECK( 0.0 == data[1] );
+
+  TEST_CHECK( 0.0 == data[18] );
+  TEST_CHECK( 0.0 == data[19] );
+
+  // apply BC
+  gkyl_wv_apply_bc_advance(lbc, 0.0, &range, distf);
+  gkyl_wv_apply_bc_advance(rbc, 0.0, &range, distf);
+
+  // check if BCs applied correctly; must be consistent with bc_math1d
+  double dx = (upper[0] - lower[0]) / cells[0];
+
+  TEST_CHECK( data[0] == lower[0] - 1.5 * dx );
+  TEST_CHECK( data[1] == lower[0] - 0.5 * dx );
+
+  TEST_CHECK( data[18] == upper[0] + 0.5 * dx );
+  TEST_CHECK( data[19] == upper[0] + 1.5 * dx );
+
+  gkyl_wv_apply_bc_release(lbc);
+  gkyl_wv_apply_bc_release(rbc);
+  gkyl_wv_eqn_release(eqn);
+  gkyl_wave_geom_release(wg);
+  gkyl_array_release(distf);
+}
+
 TEST_LIST = {
   { "test_1", test_1 },
   { "test_2", test_2 },
   { "test_3", test_3 },
   { "test_bc_buff_rtheta", test_bc_buff_rtheta },
+  { "test_1_bc_math1d", test_1_bc_math1d },
   { NULL, NULL },
 };
