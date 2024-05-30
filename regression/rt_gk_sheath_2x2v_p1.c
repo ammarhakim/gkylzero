@@ -458,13 +458,16 @@ main(int argc, char **argv)
   cells[3] = APP_ARGS_CHOOSE(app_args.vcells[1], ctx.Nmu);
 
   // Create decomposition.
-  struct gkyl_rect_decomp *decomp = gyrokinetic_comms_decomp_new(ctx.cdim, cells, app_args);
+  struct gkyl_rect_decomp *decomp = gyrokinetic_comms_decomp_new(ctx.cdim, cells, app_args, stderr);
 
   // Construct communicator for use in app.
-  struct gkyl_comm *comm = gyrokinetic_comms_new(app_args, decomp);
+  struct gkyl_comm *comm = gyrokinetic_comms_new(app_args, decomp, stderr);
 
-  int my_rank;
-  gkyl_comm_get_rank(comm, &my_rank);
+  int my_rank = 0;
+#ifdef GKYL_HAVE_MPI
+  if (app_args.use_mpi)
+    gkyl_comm_get_rank(comm, &my_rank);
+#endif
 
   // Electron species.
   struct gkyl_gyrokinetic_species elc = {

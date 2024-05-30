@@ -19,21 +19,23 @@
  *
  * @param cdim Number of configuration space dimensions.
  * @param cells_conf Number of cells in each conf-space dimension.
- * @param app_args Command line argumnts passed to the app.
+ * @param app_args Command line arguments passed to the app.
+ * @param Pointer to place where to put error messages.
  * @return New gkyl_rect_decomp decomposition object.
  */
 struct gkyl_rect_decomp* 
-gyrokinetic_comms_decomp_new(int cdim, const int *cells_conf, struct gkyl_app_args app_args);
+gyrokinetic_comms_decomp_new(int cdim, const int *cells_conf, struct gkyl_app_args app_args, FILE *iostream);
 
 /**
  * Create a new communicator for the gyrokinetic app.
  *
  * @param app_args Command line argumnts passed to the app.
  * @param decomp Decomposition object.
+ * @param Pointer to place where to put error messages.
  * @return New gkyl_comm communicator object.
  */
 struct gkyl_comm* 
-gyrokinetic_comms_new(struct gkyl_app_args app_args, struct gkyl_rect_decomp *decomp);
+gyrokinetic_comms_new(struct gkyl_app_args app_args, struct gkyl_rect_decomp *decomp, FILE *iostream);
 
 /**
  * Free gyrokinetic app decomp and comm objects.
