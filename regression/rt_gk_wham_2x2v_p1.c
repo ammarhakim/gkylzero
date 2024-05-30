@@ -8,7 +8,10 @@
 #include <gkyl_fem_parproj.h>
 #include <gkyl_fem_poisson_bctype.h>
 #include <gkyl_gyrokinetic.h>
+#include <gkyl_mirror_geo.h>
 #include <gkyl_math.h>
+#include <gkyl_util.h>
+
 #include <gkyl_null_comm.h>
 
 #ifdef GKYL_HAVE_MPI
@@ -20,7 +23,6 @@
 #endif
 
 #include <rt_arg_parse.h>
-#include <gkyl_mirror_geo.h>
 
 // Define the context of the simulation. This is basically all the globals
 struct gk_mirror_ctx
@@ -93,10 +95,10 @@ struct gk_mirror_ctx
   double vpar_max_elc;
   double mu_max_ion;
   double mu_max_elc;
-  int num_cell_vpar;
-  int num_cell_mu;
-  int num_cell_z;
-  int num_cell_psi;
+  int Nx;
+  int Nz;
+  int Nvpar;
+  int Nmu;
   int poly_order;
   double t_end;
   int num_frames;
@@ -508,7 +510,8 @@ create_ctx(void)
   int num_cell_psi = 2;
   int num_cell_z = 30;
   int poly_order = 1;
-  double t_end = 1e-9;
+
+  double t_end = 1.5e-10;
   int num_frames = 1;
   int int_diag_calc_num = num_frames*100;
   double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.
@@ -583,10 +586,10 @@ create_ctx(void)
     .vpar_max_elc = vpar_max_elc,
     .mu_max_ion = mu_max_ion,
     .mu_max_elc = mu_max_elc,
-    .num_cell_psi = num_cell_psi,
-    .num_cell_z = num_cell_z,
-    .num_cell_vpar = num_cell_vpar,
-    .num_cell_mu = num_cell_mu,
+    .Nx = Nx,
+    .Nz = Nz,
+    .Nvpar = Nvpar,
+    .Nmu = Nmu,
     .poly_order = poly_order,
     .t_end = t_end,
     .num_frames = num_frames,
@@ -763,6 +766,7 @@ int main(int argc, char **argv)
       .num_cross_collisions = 1, // Not sure
       .collide_with = {"ion"},
     },
+
     .source = {
       .source_id = GKYL_PROJ_SOURCE,
       .write_source = true,
@@ -776,18 +780,27 @@ int main(int argc, char **argv)
         .temp = eval_temp_elc_source,      
       }, 
     },
+
+    .bcx = {
+      .lower = {
+        .type = GKYL_SPECIES_FIXED_FUNC,
+        .projection = elc_ic,
+      },
+      .upper = {
+        .type = GKYL_SPECIES_FIXED_FUNC,
+        .projection = elc_ic,
+      },
+    },
+    .bcy = {
+      .lower={.type = GKYL_SPECIES_GK_SHEATH,},
+      .upper={.type = GKYL_SPECIES_GK_SHEATH,},
+    },
+
     .num_diag_moments = 7, // Copied from GKsoloviev, but
     .diag_moments = {"M0", "M1", "M2", "M2par", "M2perp", "M3par", "M3perp"},
   };
-  struct gkyl_gyrokinetic_species ion = {
-    .name = "ion",
-    .charge = ctx.qi,
-    .mass = ctx.mi,
-    .lower = {-ctx.vpar_max_ion, 0.0},
-    .upper = {ctx.vpar_max_ion, ctx.mu_max_ion},
-    .cells = {NVPAR, NMU},
-    .polarization_density = ctx.n0,
-    .projection = {
+
+  struct gkyl_gyrokinetic_projection ion_ic = {
       .proj_id = GKYL_PROJ_BIMAXWELLIAN, 
       .ctx_density = &ctx,
       .density = eval_density_ion,
@@ -797,20 +810,26 @@ int main(int argc, char **argv)
       .temppar = eval_temp_par_ion,      
       .ctx_tempperp = &ctx,
       .tempperp = eval_temp_perp_ion,   
-    },
-    .bcx = {
-      .lower={.type = GKYL_SPECIES_FIXED_FUNC,},
-      .upper={.type = GKYL_SPECIES_FIXED_FUNC,},
-    },
-    .bcy = {
-      .lower={.type = GKYL_SPECIES_GK_SHEATH,},
-      .upper={.type = GKYL_SPECIES_GK_SHEATH,},
-    },    
+  };
+
+  struct gkyl_gyrokinetic_species ion = {
+    .name = "ion",
+    .charge = ctx.qi,
+    .mass = ctx.mi,
+    .lower = {-ctx.vpar_max_ion, 0.0},
+    .upper = { ctx.vpar_max_ion, ctx.mu_max_ion},
+    .cells = {NVPAR, NMU},
+
+    .polarization_density = ctx.n0,
+
+    .projection = ion_ic,
+
     .collisions = {
       .collision_id = GKYL_LBO_COLLISIONS,
       .ctx = &ctx,
       .self_nu = evalNuIon,
     },
+
     .source = {
       .source_id = GKYL_PROJ_SOURCE,
       .write_source = true,
@@ -824,9 +843,26 @@ int main(int argc, char **argv)
         .temp = eval_temp_ion_source,      
       }, 
     },
+
+    .bcx = {
+      .lower = {
+        .type = GKYL_SPECIES_FIXED_FUNC,
+        .projection = ion_ic,
+      },
+      .upper = {
+        .type = GKYL_SPECIES_FIXED_FUNC,
+        .projection = ion_ic,
+      },
+    },
+    .bcy = {
+      .lower={.type = GKYL_SPECIES_GK_SHEATH,},
+      .upper={.type = GKYL_SPECIES_GK_SHEATH,},
+    },    
+
     .num_diag_moments = 7,
     .diag_moments = {"M0", "M1", "M2", "M2par", "M2perp", "M3par", "M3perp"},
   };
+
   struct gkyl_gyrokinetic_field field =
   {
     .polarization_bmag = ctx.B_p,
@@ -838,15 +874,16 @@ int main(int argc, char **argv)
       .up_value = {0.0, 0.0},
     }
   };
-  struct gkyl_gk gk = {  // GK app
+
+  struct gkyl_gk app_inp = {
     .name = "gk_wham_2x2v_p1",
-    .cdim = 2,
-    .vdim = 2,
+    .cdim = 2,  .vdim = 2,
     .lower = {ctx.psi_min, ctx.z_min},
     .upper = {ctx.psi_max, ctx.z_max},
-    .cells = {NPSI, NZ},
+    .cells = {NX, NZ},
     .poly_order = ctx.poly_order,
     .basis_type = app_args.basis_type,
+
     .geometry = {
       .geometry_id = GKYL_MIRROR,
       .world = {0.0},
@@ -855,10 +892,13 @@ int main(int argc, char **argv)
       .mirror_geo_c2fa_ctx = ctx.mirror_geo_c2fa_ctx,
       .nonuniform_mapping_fraction = ctx.mapping_frac
     },
+
     .num_periodic_dir = 0,
     .periodic_dirs = {},
+
     .num_species = 2,
     .species = {elc, ion},
+
     .field = field,
     .use_gpu = app_args.use_gpu,
     .has_low_inp = true,
@@ -868,9 +908,8 @@ int main(int argc, char **argv)
     }
   };
 
-
   // Create app object.
-  gkyl_gyrokinetic_app *app = gkyl_gyrokinetic_app_new(&gk);
+  gkyl_gyrokinetic_app *app = gkyl_gyrokinetic_app_new(&app_inp);
 
   // Initial and final simulation times.
   int frame_curr = 0;
@@ -905,8 +944,7 @@ int main(int argc, char **argv)
   calc_integrated_diagnostics(&trig_calc_intdiag, app, t_curr, false);
   write_data(&trig_write, app, t_curr, false);
 
-  // initial time step
-  double dt = t_end - t_curr;
+  double dt = t_end-t_curr; // Initial time step.
   // Initialize small time-step check.
   double dt_init = -1.0, dt_failure_tol = ctx.dt_failure_tol;
   int num_failures = 0, num_failures_max = ctx.num_failures_max;
@@ -916,14 +954,17 @@ int main(int argc, char **argv)
   while ((t_curr < t_end) && (step <= num_steps))
   {
     gkyl_gyrokinetic_app_cout(app, stdout, "Taking time-step at t = %g ...", t_curr);
+  long step = 1;
+  while ((t_curr < t_end) && (step <= app_args.num_steps)) {
+    gkyl_gyrokinetic_app_cout(app, stdout, "Taking time-step %ld at t = %g ...", step, t_curr);
     struct gkyl_update_status status = gkyl_gyrokinetic_update(app, dt);
     gkyl_gyrokinetic_app_cout(app, stdout, " dt = %g\n", status.dt_actual);
 
-    if (!status.success)
-    {
+    if (!status.success) {
       gkyl_gyrokinetic_app_cout(app, stdout, "** Update method failed! Aborting simulation ....\n");
       break;
     }
+
     t_curr += status.dt_actual;
     dt = status.dt_suggested;
 

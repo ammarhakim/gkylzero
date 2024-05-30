@@ -80,9 +80,8 @@ gk_species_radiation_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s
       printf("No radiation fits exist for z=%d, charge state=%d\n",s->info.radiation.z[i], s->info.radiation.charge_state[i]);
     }
     rad->calc_gk_rad_vars[i] = gkyl_dg_calc_gk_rad_vars_new(&s->grid, &app->confBasis, &app->basis, 
-      s->info.charge, s->info.mass, app->gk_geom, 
-      a[0], alpha[0], beta[0], gamma[0], v0[0], 
-      app->use_gpu);
+      s->info.charge, s->info.mass, app->gk_geom, s->vel_map,
+      a[0], alpha[0], beta[0], gamma[0], v0[0], app->use_gpu);
 
     gkyl_dg_calc_gk_rad_vars_nu_advance(rad->calc_gk_rad_vars[i], 
       &app->local, &s->local, 
@@ -111,19 +110,13 @@ gk_species_radiation_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s
   // allocate moments needed for temperature update
   gk_species_moment_init(app, s, &rad->lab_moms, "ThreeMoments");
 
-  // edge of velocity space corrections to momentum and energy
-  double v_bounds[2*GKYL_MAX_DIM];
-  for (int d=0; d<vdim; ++d) {
-    v_bounds[d] = s->info.lower[d];
-    v_bounds[d + vdim] = s->info.upper[d];
-  }
-  rad->bcorr_calc = gkyl_mom_calc_bcorr_lbo_gyrokinetic_new(&s->grid, 
-    &app->confBasis, &app->basis, v_bounds, s->info.mass, app->use_gpu);
+  // Edge of velocity space corrections to momentum and energy.
+  rad->bcorr_calc = gkyl_mom_calc_bcorr_lbo_gyrokinetic_new(&s->grid,
+    &app->confBasis, &app->basis, s->info.mass, s->vel_map, app->use_gpu);
   
-  // primitive moment calculator
+  // Primitive moment calculator.
   rad->coll_pcalc = gkyl_prim_lbo_gyrokinetic_calc_new(&s->grid, 
     &app->confBasis, &app->basis, &app->local, app->use_gpu);
-
 
   rad->nvnu_surf_host = rad->nvnu_surf;
   rad->nvnu_host = rad->nvnu;
@@ -152,7 +145,6 @@ gk_species_radiation_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s
   // Allocate rhs arry to be used for calculation of integrated moments
   rad->integrated_moms_rhs = mkarr(app->use_gpu, app->basis.num_basis, s->local_ext.volume);
 
-
   // Arrays for emissivity
   rad->emissivity_rhs = mkarr(app->use_gpu, app->basis.num_basis, s->local_ext.volume);
   rad->emissivity_denominator = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
@@ -163,7 +155,7 @@ gk_species_radiation_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s
   struct gkyl_dg_rad_gyrokinetic_auxfields drag_inp = { .nvnu_surf = rad->nvnu_surf, .nvnu = rad->nvnu,
     .nvsqnu_surf = rad->nvsqnu_surf, .nvsqnu = rad->nvsqnu, .vtsq = rad->vtsq, .vtsq_min = rad->vtsq_min };
   rad->drag_slvr = gkyl_dg_updater_rad_gyrokinetic_new(&s->grid, 
-    &app->confBasis, &app->basis, &s->local, &app->local, &drag_inp, app->use_gpu);
+    &app->confBasis, &app->basis, &s->local, &app->local, s->vel_map, &drag_inp, app->use_gpu);
 }
 
 // computes density for computation of total radiation drag and primitive moments
@@ -253,10 +245,10 @@ void
 gk_species_radiation_integrated_moms(gkyl_gyrokinetic_app *app, struct gk_species *species,
 				struct gk_rad_drag *rad, const struct gkyl_array *fin[], const struct gkyl_array *fin_neut[])
 {
-    gkyl_array_clear(rad->integrated_moms_rhs, 0.0);
-    gkyl_dg_updater_rad_gyrokinetic_advance(rad->drag_slvr, &species->local,
-      species->f, species->cflrate, rad->integrated_moms_rhs);
-    gk_species_moment_calc(&rad->integ_moms, species->local, app->local, rad->integrated_moms_rhs);
+  gkyl_array_clear(rad->integrated_moms_rhs, 0.0);
+  gkyl_dg_updater_rad_gyrokinetic_advance(rad->drag_slvr, &species->local,
+    species->f, species->cflrate, rad->integrated_moms_rhs);
+  gk_species_moment_calc(&rad->integ_moms, species->local, app->local, rad->integrated_moms_rhs);
 }
 
 

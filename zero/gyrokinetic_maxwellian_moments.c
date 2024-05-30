@@ -69,18 +69,18 @@ gkyl_gyrokinetic_maxwellian_moments_inew(const struct gkyl_gyrokinetic_maxwellia
 
   // Moment calculator for needed moments (M0, M1, and M2)
   up->M0_calc = gkyl_dg_updater_moment_gyrokinetic_new(inp->phase_grid, inp->conf_basis,
-    inp->phase_basis, inp->conf_range, inp->vel_range, inp->mass, inp->gk_geom, "M0", 0, inp->use_gpu);
+    inp->phase_basis, inp->conf_range, inp->mass, inp->vel_map, inp->gk_geom, "M0", 0, inp->use_gpu);
   up->M1_calc = gkyl_dg_updater_moment_gyrokinetic_new(inp->phase_grid, inp->conf_basis,
-    inp->phase_basis, inp->conf_range, inp->vel_range, inp->mass, inp->gk_geom, "M1", 0, inp->use_gpu);
+    inp->phase_basis, inp->conf_range, inp->mass, inp->vel_map, inp->gk_geom, "M1", 0, inp->use_gpu);
   up->M2_calc = gkyl_dg_updater_moment_gyrokinetic_new(inp->phase_grid, inp->conf_basis,
-    inp->phase_basis, inp->conf_range, inp->vel_range, inp->mass, inp->gk_geom, "M2", 0, inp->use_gpu);   
+    inp->phase_basis, inp->conf_range, inp->mass, inp->vel_map, inp->gk_geom, "M2", 0, inp->use_gpu);   
 
   if (up->vdim == 3) {
     // Additional moment calculators for Bi-Maxwellian moments (M2par, M2perp) 
     up->M2_par_calc = gkyl_dg_updater_moment_gyrokinetic_new(inp->phase_grid, inp->conf_basis,
-      inp->phase_basis, inp->conf_range, inp->vel_range, inp->mass, inp->gk_geom, "M2par", 0, inp->use_gpu);   
+      inp->phase_basis, inp->conf_range, inp->mass, inp->vel_map, inp->gk_geom, "M2par", 0, inp->use_gpu);   
     up->M2_perp_calc = gkyl_dg_updater_moment_gyrokinetic_new(inp->phase_grid, inp->conf_basis,
-      inp->phase_basis, inp->conf_range, inp->vel_range, inp->mass, inp->gk_geom, "M2perp", 0, inp->use_gpu);  
+      inp->phase_basis, inp->conf_range, inp->mass, inp->vel_map, inp->gk_geom, "M2perp", 0, inp->use_gpu);  
   } 
 
   return up;

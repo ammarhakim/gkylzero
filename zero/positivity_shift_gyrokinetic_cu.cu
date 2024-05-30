@@ -52,13 +52,14 @@ __global__ static void
 gkyl_positivity_shift_gyrokinetic_advance_cu_ker(
   struct gkyl_positivity_shift_gyrokinetic_kernels *kers,
   const struct gkyl_rect_grid grid,
-  const struct gkyl_range phase_range, const struct gkyl_range conf_range,
+  const struct gkyl_range phase_range, const struct gkyl_range conf_range, const struct gkyl_range vel_range,
   double *ffloor, double ffloor_fac, double cellav_fac, double mass, const struct gkyl_array* GKYL_RESTRICT bmag, 
-  struct gkyl_array* GKYL_RESTRICT distf, struct gkyl_array* GKYL_RESTRICT mom)
+  const struct gkyl_array *vmap, struct gkyl_array* GKYL_RESTRICT distf, struct gkyl_array* GKYL_RESTRICT mom)
 {
-  double xc[GKYL_MAX_DIM];
   int pidx[GKYL_MAX_DIM];
   double distf_max = -DBL_MAX;
+  int cdim = conf_range.ndim;
+  int pdim = phase_range.ndim;
 
   for(unsigned long tid = threadIdx.x + blockIdx.x*blockDim.x;
       tid < phase_range.volume; tid += blockDim.x*gridDim.x) {
@@ -76,15 +77,19 @@ gkyl_positivity_shift_gyrokinetic_advance_cu_ker(
     distf_max = fmax(distf_max, fptr[0]);
 
     if (shiftedf) {
-      gkyl_rect_grid_cell_center(&grid, pidx, xc);
-
       double momLocal[max_num_basis] = {0.0};
 
-      long clinidx = gkyl_range_idx(&conf_range, pidx);
-      double *mptr = (double*) gkyl_array_fetch(mom, clinidx);
-      const double *bmagptr = (const double *) gkyl_array_cfetch(bmag, clinidx);
+      int idx_vel[2];
+      for (int d=cdim; d<pdim; d++) idx_vel[d-cdim] = pidx[d];
 
-      kers->int_mom(xc, grid.dx, pidx, mass, bmagptr, Deltaf, momLocal);
+      long clinidx = gkyl_range_idx(&conf_range, pidx);
+      long vlinidx = gkyl_range_idx(&vel_range, idx_vel);
+
+      double *mptr = (double*) gkyl_array_fetch(mom, clinidx);
+      const double *bmag_c = (const double *) gkyl_array_cfetch(bmag, clinidx);
+      const double *vmap_c = (const double *) gkyl_array_cfetch(vmap, vlinidx);
+
+      kers->int_mom(grid.dx, vmap_c, mass, bmag_c, Deltaf, momLocal);
 
       for (unsigned int k = 0; k < mom->ncomp; ++k) {
          if (tid < phase_range.volume)
@@ -105,6 +110,6 @@ gkyl_positivity_shift_gyrokinetic_advance_cu(gkyl_positivity_shift_gyrokinetic* 
   gkyl_array_clear_range(mom, 0.0, conf_rng);
 
   gkyl_positivity_shift_gyrokinetic_advance_cu_ker<<<nblocks, nthreads>>>
-    (up->kernels, up->grid, *phase_rng, *conf_rng, up->ffloor, up->ffloor_fac, up->cellav_fac,
-     up->mass, up->gk_geom->bmag->on_dev, distf->on_dev, mom->on_dev);
+    (up->kernels, up->grid, *phase_rng, *conf_rng, up->vel_map->local_vel, up->ffloor, up->ffloor_fac,
+     up->cellav_fac, up->mass, up->gk_geom->bmag->on_dev, up->vel_map->vmap->on_dev, distf->on_dev, mom->on_dev);
 }

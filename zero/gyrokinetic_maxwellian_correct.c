@@ -26,6 +26,7 @@ gkyl_gyrokinetic_maxwellian_correct_inew(const struct gkyl_gyrokinetic_maxwellia
   up->phase_basis = *inp->phase_basis;
   up->num_conf_basis = up->conf_basis.num_basis;
   up->gk_geom = gkyl_gk_geometry_acquire(inp->gk_geom);
+  up->vel_map = gkyl_velocity_map_acquire(inp->vel_map);
   up->divide_jacobgeo = inp->divide_jacobgeo;
   up->use_last_converged = inp->use_last_converged;
   up->mass = inp->mass;
@@ -72,9 +73,9 @@ gkyl_gyrokinetic_maxwellian_correct_inew(const struct gkyl_gyrokinetic_maxwellia
     .phase_basis = inp->phase_basis,
     .conf_range =  inp->conf_range,
     .conf_range_ext = inp->conf_range_ext,
-    .vel_range = inp->vel_range,
     .mass = inp->mass, 
     .gk_geom = inp->gk_geom, 
+    .vel_map = up->vel_map,
     .divide_jacobgeo = inp->divide_jacobgeo, 
     .use_gpu = inp->use_gpu,
   };
@@ -83,11 +84,11 @@ gkyl_gyrokinetic_maxwellian_correct_inew(const struct gkyl_gyrokinetic_maxwellia
   // Create a projection updater for projecting the gyrokinetic Maxwellian or BiMaxwellian
   if (up->correct_bimaxwellian) {
     up->proj_bimax_prim = gkyl_proj_bimaxwellian_on_basis_new(inp->phase_grid,
-      inp->conf_basis, inp->phase_basis, inp->phase_basis->poly_order+1, inp->use_gpu);
+      inp->conf_basis, inp->phase_basis, inp->phase_basis->poly_order+1, up->vel_map, inp->use_gpu);
   }
   else {
     up->proj_max_prim = gkyl_proj_maxwellian_on_basis_new(inp->phase_grid,
-      inp->conf_basis, inp->phase_basis, inp->phase_basis->poly_order+1, inp->use_gpu);
+      inp->conf_basis, inp->phase_basis, inp->phase_basis->poly_order+1, up->vel_map, inp->use_gpu);
   }
 
   return up;
@@ -138,8 +139,8 @@ gkyl_gyrokinetic_maxwellian_correct_all_moments(gkyl_gyrokinetic_maxwellian_corr
   gkyl_array_clear(up->dd_moms, 0.0);
 
   // Iteration loop, max_iter iterations is usually sufficient for machine precision moments
-  while ((ispositive_f_max) &&  ((niter < max_iter) && ((fabs(up->error[0]) > tol) || (fabs(up->error[1]) > tol) ||
-    (fabs(up->error[2]) > tol))))
+  while ( (ispositive_f_max) && 
+          ((niter < max_iter) && ((fabs(up->error[0]) > tol) || (fabs(up->error[1]) > tol) || (fabs(up->error[2]) > tol))) )
   {
     // 1. Calculate the Maxwellian moments (n, u_par, T/m) from the projected Maxwellian distribution
     gkyl_gyrokinetic_maxwellian_moments_advance(up->moments_up, phase_range, conf_range, f_max, up->moms_iter);
@@ -174,7 +175,7 @@ gkyl_gyrokinetic_maxwellian_correct_all_moments(gkyl_gyrokinetic_maxwellian_corr
         }
         // Iterate over the input configuration-space range to find the maximum error
         gkyl_range_iter_init(&biter, conf_range);
-        while (gkyl_range_iter_next(&biter)){
+        while (gkyl_range_iter_next(&biter)) {
           long midx = gkyl_range_idx(conf_range, biter.idx);
           const double *moms_local = gkyl_array_cfetch(up->moms_iter, midx);
           const double *moms_target_local = gkyl_array_cfetch(moms_target, midx);
@@ -207,14 +208,15 @@ gkyl_gyrokinetic_maxwellian_correct_all_moments(gkyl_gyrokinetic_maxwellian_corr
     gkyl_proj_gkmaxwellian_on_basis_prim_mom(up->proj_max_prim,
       phase_range, conf_range, up->moms_iter, 
       up->gk_geom->bmag, up->gk_geom->bmag, up->mass, f_max);
+    gkyl_array_scale_by_cell(f_max, up->vel_map->jacobvel);
     // Correct the density before the next iteration
     gkyl_gyrokinetic_maxwellian_correct_density_moment(up,
       f_max, up->moms_iter, phase_range, conf_range);
 
     niter += 1;
   }
-  if ((niter < max_iter) && (ispositive_f_max) && ((fabs(up->error[0]) < tol) && (fabs(up->error[1]) < tol) &&
-    (fabs(up->error[2]) < tol))) {
+  if ( (niter < max_iter) && (ispositive_f_max) &&
+       ((fabs(up->error[0]) < tol) && (fabs(up->error[1]) < tol) && (fabs(up->error[2]) < tol)) ) {
     corr_status = 0;
   } 
   else {
@@ -228,6 +230,7 @@ gkyl_gyrokinetic_maxwellian_correct_all_moments(gkyl_gyrokinetic_maxwellian_corr
     gkyl_proj_gkmaxwellian_on_basis_prim_mom(up->proj_max_prim,
       phase_range, conf_range, moms_target, 
       up->gk_geom->bmag, up->gk_geom->bmag, up->mass, f_max);
+    gkyl_array_scale_by_cell(f_max, up->vel_map->jacobvel);
     gkyl_gyrokinetic_maxwellian_correct_density_moment(up,
       f_max, moms_target, phase_range, conf_range);
 
@@ -251,7 +254,7 @@ gkyl_gyrokinetic_maxwellian_correct_all_moments(gkyl_gyrokinetic_maxwellian_corr
       }
       // Iterate over the input configuration-space range to find the maximum error
       gkyl_range_iter_init(&biter, conf_range);
-      while (gkyl_range_iter_next(&biter)){
+      while (gkyl_range_iter_next(&biter)) {
         long midx = gkyl_range_idx(conf_range, biter.idx);
         const double *moms_local = gkyl_array_cfetch(up->moms_iter, midx);
         const double *moms_target_local = gkyl_array_cfetch(moms_target, midx);
@@ -308,8 +311,9 @@ gkyl_gyrokinetic_bimaxwellian_correct_all_moments(gkyl_gyrokinetic_maxwellian_co
   gkyl_array_clear(up->dd_moms, 0.0);
 
   // Iteration loop, max_iter iterations is usually sufficient for machine precision moments
-  while ((ispositive_f_max) &&  ((niter < max_iter) && ((fabs(up->error[0]) > tol) || (fabs(up->error[1]) > tol) ||
-    (fabs(up->error[2]) > tol) || (fabs(up->error[3]) > tol))))
+  while ( (ispositive_f_max) &&
+          ((niter < max_iter) && ((fabs(up->error[0]) > tol) ||
+           (fabs(up->error[1]) > tol) || (fabs(up->error[2]) > tol) || (fabs(up->error[3]) > tol))) )
   {
     // 1. Calculate the BiMaxwellian moments (n, u_par, T_par/m, T_perp/m) from the projected BiMaxwellian distribution
     gkyl_gyrokinetic_bimaxwellian_moments_advance(up->moments_up, phase_range, conf_range, f_max, up->moms_iter);
@@ -379,14 +383,15 @@ gkyl_gyrokinetic_bimaxwellian_correct_all_moments(gkyl_gyrokinetic_maxwellian_co
     gkyl_proj_bimaxwellian_on_basis_gyrokinetic_prim_mom(up->proj_bimax_prim,
       phase_range, conf_range, up->moms_iter, 
       up->gk_geom->bmag, up->gk_geom->bmag, up->mass, f_max);
+    gkyl_array_scale_by_cell(f_max, up->vel_map->jacobvel);
     // Correct the density before the next iteration
     gkyl_gyrokinetic_maxwellian_correct_density_moment(up,
       f_max, up->moms_iter, phase_range, conf_range);
 
     niter += 1;
   }
-  if ((niter < max_iter) && (ispositive_f_max) && ((fabs(up->error[0]) < tol) && (fabs(up->error[1]) < tol) &&
-    (fabs(up->error[2]) < tol) && (fabs(up->error[3]) < tol))) {
+  if ( (niter < max_iter) && (ispositive_f_max) &&
+       ((fabs(up->error[0]) < tol) && (fabs(up->error[1]) < tol) && (fabs(up->error[2]) < tol) && (fabs(up->error[3]) < tol)) ) {
     corr_status = 0;
   } 
   else {
@@ -400,6 +405,7 @@ gkyl_gyrokinetic_bimaxwellian_correct_all_moments(gkyl_gyrokinetic_maxwellian_co
     gkyl_proj_bimaxwellian_on_basis_gyrokinetic_prim_mom(up->proj_bimax_prim,
       phase_range, conf_range, moms_target, 
       up->gk_geom->bmag, up->gk_geom->bmag, up->mass, f_max);
+    gkyl_array_scale_by_cell(f_max, up->vel_map->jacobvel);
     gkyl_gyrokinetic_maxwellian_correct_density_moment(up,
       f_max, moms_target, phase_range, conf_range);
 
@@ -458,7 +464,8 @@ gkyl_gyrokinetic_bimaxwellian_correct_all_moments(gkyl_gyrokinetic_maxwellian_co
 void 
 gkyl_gyrokinetic_maxwellian_correct_release(gkyl_gyrokinetic_maxwellian_correct *up)
 {
-  gkyl_gk_geometry_release(up->gk_geom);  
+  gkyl_gk_geometry_release(up->gk_geom);
+  gkyl_velocity_map_release(up->vel_map);
   gkyl_array_release(up->moms_iter);
   gkyl_array_release(up->d_moms);
   gkyl_array_release(up->dd_moms);

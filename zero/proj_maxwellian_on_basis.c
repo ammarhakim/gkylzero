@@ -121,30 +121,49 @@ init_quad_values(int cdim, const struct gkyl_basis *basis, int num_quad, struct 
 }
 
 gkyl_proj_maxwellian_on_basis*
-gkyl_proj_maxwellian_on_basis_new(
-  const struct gkyl_rect_grid *grid,
+gkyl_proj_maxwellian_on_basis_new(const struct gkyl_rect_grid *grid,
   const struct gkyl_basis *conf_basis, const struct gkyl_basis *phase_basis,
-  int num_quad, bool use_gpu)
+  int num_quad, const struct gkyl_velocity_map *vel_map, bool use_gpu)
+{
+  return gkyl_proj_maxwellian_on_basis_inew( &(struct gkyl_proj_maxwellian_on_basis_inp) {
+        .grid = grid,
+        .conf_basis = conf_basis,
+        .phase_basis = phase_basis,
+        .num_quad = num_quad,
+        .vel_map = vel_map,
+        .use_gpu = use_gpu,
+      }
+    ); 
+}
+
+gkyl_proj_maxwellian_on_basis*
+gkyl_proj_maxwellian_on_basis_inew(const struct gkyl_proj_maxwellian_on_basis_inp *inp)
 {
   gkyl_proj_maxwellian_on_basis *up = gkyl_malloc(sizeof(*up));
+
+  const struct gkyl_rect_grid *grid = inp->grid;
+  const struct gkyl_basis *conf_basis = inp->conf_basis;
+  const struct gkyl_basis *phase_basis = inp->phase_basis;
+  int num_quad = inp->num_quad == 0 ? phase_basis->poly_order+1 : inp->num_quad;
 
   up->grid = *grid;
   up->cdim = conf_basis->ndim;
   up->pdim = phase_basis->ndim;
   up->num_conf_basis = conf_basis->num_basis;
   up->num_phase_basis = phase_basis->num_basis;
-  up->use_gpu = use_gpu;
+  up->use_gpu = inp->use_gpu;
+  up->vel_map = gkyl_velocity_map_acquire(inp->vel_map);
 
   // MF 2022/08/09: device kernel has arrays hard-coded to 3x, vdim=3, p=2 for now.
-  if (use_gpu) assert((up->cdim<3 && conf_basis->poly_order<4) || (up->cdim==3 && conf_basis->poly_order<3));
+  if (up->use_gpu) assert((up->cdim<3 && conf_basis->poly_order<4) || (up->cdim==3 && conf_basis->poly_order<3));
 
   // initialize data needed for conf-space quadrature 
   up->tot_conf_quad = init_quad_values(up->cdim, conf_basis, num_quad,
-    &up->conf_ordinates, &up->conf_weights, &up->conf_basis_at_ords, use_gpu);
+    &up->conf_ordinates, &up->conf_weights, &up->conf_basis_at_ords, up->use_gpu);
 
   // initialize data needed for phase-space quadrature 
   up->tot_quad = init_quad_values(up->cdim, phase_basis, num_quad,
-    &up->ordinates, &up->weights, &up->basis_at_ords, use_gpu);
+    &up->ordinates, &up->weights, &up->basis_at_ords, up->use_gpu);
 
   up->fun_at_ords = gkyl_array_new(GKYL_DOUBLE, 1, up->tot_quad); // Only used in CPU implementation.
 
@@ -168,7 +187,6 @@ gkyl_proj_maxwellian_on_basis_new(
 #ifdef GKYL_HAVE_CUDA
   if (up->use_gpu) {
     // Allocate device copies of arrays needed for quadrature.
-
     int p2c_qidx_ho[up->phase_qrange.volume];
     up->p2c_qidx = (int*) gkyl_cu_malloc(sizeof(int)*up->phase_qrange.volume);
 
@@ -500,8 +518,17 @@ gkyl_proj_gkmaxwellian_on_basis_lab_mom(const gkyl_proj_maxwellian_on_basis *up,
         int cqidx = gkyl_range_idx(&up->conf_qrange, qiter.idx);
         int pqidx = gkyl_range_idx(&up->phase_qrange, qiter.idx);
 
-        comp_to_phys(pdim, gkyl_array_cfetch(up->ordinates, pqidx),
-          up->grid.dx, xc, xmu);
+        const double *xcomp_d = gkyl_array_cfetch(up->ordinates, pqidx);
+
+        // Convert comp velocity coordinate to phys velocity coord.
+        const struct gkyl_velocity_map *gvm = up->vel_map;
+        long vlinidx = gkyl_range_idx(&gvm->local_ext_vel, vel_iter.idx);
+        const double *vmap_d = gkyl_array_cfetch(gvm->vmap, vlinidx);
+        double xcomp[1];
+        for (int vd=0; vd<vdim; vd++) {
+          xcomp[0] = xcomp_d[cdim+vd];
+          xmu[cdim+vd] = gvm->vmap_basis->eval_expand(xcomp, vmap_d+vd*gvm->vmap_basis->num_basis);
+        }
 
         double efact = 0.0;        
         // vpar term.
@@ -605,8 +632,17 @@ gkyl_proj_gkmaxwellian_on_basis_prim_mom(const gkyl_proj_maxwellian_on_basis *up
         int cqidx = gkyl_range_idx(&up->conf_qrange, qiter.idx);
         int pqidx = gkyl_range_idx(&up->phase_qrange, qiter.idx);
 
-        comp_to_phys(pdim, gkyl_array_cfetch(up->ordinates, pqidx),
-          up->grid.dx, xc, xmu);
+        const double *xcomp_d = gkyl_array_cfetch(up->ordinates, pqidx);
+
+        // Convert comp velocity coordinate to phys velocity coord.
+        const struct gkyl_velocity_map *gvm = up->vel_map;
+        long vlinidx = gkyl_range_idx(&gvm->local_ext_vel, vel_iter.idx);
+        const double *vmap_d = gkyl_array_cfetch(gvm->vmap, vlinidx);
+        double xcomp[1];
+        for (int vd=0; vd<vdim; vd++) {
+          xcomp[0] = xcomp_d[cdim+vd];
+          xmu[cdim+vd] = gvm->vmap_basis->eval_expand(xcomp, vmap_d+vd*gvm->vmap_basis->num_basis);
+        }
 
         double efact = 0.0;        
         // vpar term.
@@ -629,8 +665,9 @@ void
 gkyl_proj_maxwellian_on_basis_release(gkyl_proj_maxwellian_on_basis* up)
 {
 #ifdef GKYL_HAVE_CUDA
-  if (up->use_gpu)
+  if (up->use_gpu) {
     gkyl_cu_free(up->p2c_qidx);
+  }
 #endif
   gkyl_array_release(up->ordinates);
   gkyl_array_release(up->weights);
@@ -639,5 +676,6 @@ gkyl_proj_maxwellian_on_basis_release(gkyl_proj_maxwellian_on_basis* up)
   gkyl_array_release(up->conf_weights);
   gkyl_array_release(up->conf_basis_at_ords);
   gkyl_array_release(up->fun_at_ords);
+  gkyl_velocity_map_release(up->vel_map);
   gkyl_free(up);
 }

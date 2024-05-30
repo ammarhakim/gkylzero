@@ -1,6 +1,15 @@
 #include <assert.h>
 #include <gkyl_gyrokinetic_priv.h>
 
+// c2p function assed to proj_on_basis.
+void
+proj_on_basis_c2p_func(const double *xcomp, double *xphys, void *ctx)
+{
+  struct gk_proj_on_basis_c2p_func_ctx *c2p_ctx = ctx;
+  int cdim = c2p_ctx->cdim; // Assumes update range is a phase range.
+  gkyl_velocity_map_eval_c2p(c2p_ctx->vel_map, &xcomp[cdim], &xphys[cdim]);
+}
+
 void 
 gk_species_projection_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s, 
   struct gkyl_gyrokinetic_projection inp, struct gk_proj *proj)
@@ -8,6 +17,12 @@ gk_species_projection_init(struct gkyl_gyrokinetic_app *app, struct gk_species *
   proj->proj_id = inp.proj_id;
 
   if (proj->proj_id == GKYL_PROJ_FUNC) {
+
+    // Assign members of context for c2p map used in project_on_basis.
+    proj->proj_on_basis_c2p_ctx.cdim = app->cdim;
+    proj->proj_on_basis_c2p_ctx.vdim = s->local_vel.ndim;
+    proj->proj_on_basis_c2p_ctx.vel_map = s->vel_map;
+
     proj->proj_func = gkyl_proj_on_basis_inew( &(struct gkyl_proj_on_basis_inp) {
         .grid = &s->grid,
         .basis = &app->basis,
@@ -16,6 +31,8 @@ gk_species_projection_init(struct gkyl_gyrokinetic_app *app, struct gk_species *
         .num_ret_vals = 1,
         .eval = inp.func,
         .ctx = inp.ctx_func,
+        .c2p_func = proj_on_basis_c2p_func,
+        .c2p_func_ctx = &proj->proj_on_basis_c2p_ctx,
       }
     );
     if (app->use_gpu) {
@@ -36,29 +53,32 @@ gk_species_projection_init(struct gkyl_gyrokinetic_app *app, struct gk_species *
     proj->proj_temp = gkyl_proj_on_basis_new(&app->grid, &app->confBasis,
       app->basis.poly_order+1, 1, inp.temp, inp.ctx_temp);
 
-    proj->correct_all_moms = false;
+    // Maxwellian correction updater
     struct gkyl_gyrokinetic_maxwellian_correct_inp inp_corr = {
       .phase_grid = &s->grid,
       .conf_basis = &app->confBasis,
       .phase_basis = &app->basis,
       .conf_range =  &app->local,
       .conf_range_ext = &app->local_ext,
-      .vel_range = &s->local_vel,
       .gk_geom = app->gk_geom,
+      .vel_map = s->vel_map,
+      .mass = s->info.mass,
       .divide_jacobgeo = false, // final Jacobian multiplication will be handled in advance
       .use_last_converged = false, // do not use the unconverged moments if the scheme fails to converge
-      .mass = s->info.mass,
       .use_gpu = app->use_gpu,
       .max_iter = 50,
       .eps = 1e-10,
     };
     proj->corr_max = gkyl_gyrokinetic_maxwellian_correct_inew( &inp_corr );
+
+    proj->correct_all_moms = false;
     if (inp.correct_all_moms) {
       proj->correct_all_moms = true;
     }
 
+    // Maxwellian projection updater.
     proj->proj_max_prim = gkyl_proj_maxwellian_on_basis_new(&s->grid,
-      &app->confBasis, &app->basis, app->basis.poly_order+1, app->use_gpu);
+      &app->confBasis, &app->basis, app->basis.poly_order+1, s->vel_map, app->use_gpu);
   }
   else if (proj->proj_id == GKYL_PROJ_BIMAXWELLIAN) {
     proj->dens = mkarr(false, app->confBasis.num_basis, app->local_ext.volume);
@@ -77,15 +97,15 @@ gk_species_projection_init(struct gkyl_gyrokinetic_app *app, struct gk_species *
     proj->proj_tempperp = gkyl_proj_on_basis_new(&app->grid, &app->confBasis,
       app->basis.poly_order+1, 1, inp.tempperp, inp.ctx_tempperp);
 
-    proj->correct_all_moms = false;
+    // Maxwellian correction updater
     struct gkyl_gyrokinetic_maxwellian_correct_inp inp_corr = {
       .phase_grid = &s->grid,
       .conf_basis = &app->confBasis,
       .phase_basis = &app->basis,
       .conf_range =  &app->local,
       .conf_range_ext = &app->local_ext,
-      .vel_range = &s->local_vel,
       .gk_geom = app->gk_geom,
+      .vel_map = s->vel_map,
       .divide_jacobgeo = false, // final Jacobian multiplication will be handled in advance
       .use_last_converged = false, // do not use the unconverged moments if the scheme fails to converge
       .correct_bimaxwellian = true, // correct the Bimaxwellian moments
@@ -95,12 +115,15 @@ gk_species_projection_init(struct gkyl_gyrokinetic_app *app, struct gk_species *
       .eps = 1e-10,
     };
     proj->corr_max = gkyl_gyrokinetic_maxwellian_correct_inew( &inp_corr );
+
+    proj->correct_all_moms = false;
     if (inp.correct_all_moms) {
       proj->correct_all_moms = true;
     }
 
+    // Maxwellian projection updater.
     proj->proj_bimax = gkyl_proj_bimaxwellian_on_basis_new(&s->grid,
-      &app->confBasis, &app->basis, app->basis.poly_order+1, app->use_gpu);
+      &app->confBasis, &app->basis, app->basis.poly_order+1, s->vel_map, app->use_gpu);
   }
 }
 
@@ -157,6 +180,9 @@ gk_species_projection_calc(gkyl_gyrokinetic_app *app, const struct gk_species *s
       proj->prim_moms, app->gk_geom->bmag, app->gk_geom->bmag, s->info.mass, f);
   }
 
+  // Multiply by the velocity space jacobian.
+  gkyl_array_scale_by_cell(f, s->vel_map->jacobvel);
+
   if (proj->proj_id == GKYL_PROJ_MAXWELLIAN_PRIM || proj->proj_id == GKYL_PROJ_BIMAXWELLIAN) {
     // Now compute and scale the density to the desired density function 
     // based on input density from Maxwellian projection and potentially correct
@@ -177,7 +203,7 @@ gk_species_projection_calc(gkyl_gyrokinetic_app *app, const struct gk_species *s
   }
   // Multiply by the configuration space jacobian.
   gkyl_dg_mul_conf_phase_op_range(&app->confBasis, &app->basis, f, 
-      app->gk_geom->jacobgeo, f, &app->local, &s->local);      
+    app->gk_geom->jacobgeo, f, &app->local, &s->local);      
 }
 
 void
