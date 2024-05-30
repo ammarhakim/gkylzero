@@ -505,9 +505,9 @@ gkyl_gyrokinetic_app_apply_ic(gkyl_gyrokinetic_app* app, double t0)
       struct gk_species *s = &app->species[i];
 
       // Compute advection speeds so we can compute the initial boundary flux.
-      gkyl_dg_calc_gyrokinetic_vars_alpha_surf(s->calc_gk_vars,
-        &app->local, &s->local, &s->local_ext,
-        app->field->phi_smooth, s->alpha_surf, s->sgn_alpha_surf, s->const_sgn_alpha);
+      gkyl_dg_calc_gyrokinetic_vars_alpha_surf(s->calc_gk_vars, 
+        &app->local, &s->local, &s->local_ext, app->field->phi_smooth,
+        s->alpha_surf, s->sgn_alpha_surf, s->const_sgn_alpha);
 
       // Compute and store (in the ghost cell of of out) the boundary fluxes.
       // NOTE: this overwrites ghost cells that may be used for sourcing.
@@ -1543,25 +1543,25 @@ gkyl_gyrokinetic_app_write_geometry(gkyl_gyrokinetic_app* app)
   struct gkyl_array *gxzj = mkarr(app->use_gpu, app->confBasis.num_basis, app->global_ext.volume);
   struct gkyl_array *eps2 = mkarr(app->use_gpu, app->confBasis.num_basis, app->global_ext.volume);
 
-  gkyl_comm_array_allgather(app->comm, &app->local, &app->global, app->gk_geom-> mc2p, mc2p);
-  gkyl_comm_array_allgather(app->comm, &app->local, &app->global, app->gk_geom-> bmag, bmag);
-  gkyl_comm_array_allgather(app->comm, &app->local, &app->global, app->gk_geom-> g_ij, g_ij);
-  gkyl_comm_array_allgather(app->comm, &app->local, &app->global, app->gk_geom-> dxdz, dxdz);
-  gkyl_comm_array_allgather(app->comm, &app->local, &app->global, app->gk_geom-> dzdx, dzdx);
-  gkyl_comm_array_allgather(app->comm, &app->local, &app->global, app->gk_geom-> jacobgeo, jacobgeo);
-  gkyl_comm_array_allgather(app->comm, &app->local, &app->global, app->gk_geom-> jacobgeo_inv, jacobgeo_inv);
-  gkyl_comm_array_allgather(app->comm, &app->local, &app->global, app->gk_geom-> gij, gij);
-  gkyl_comm_array_allgather(app->comm, &app->local, &app->global, app->gk_geom-> b_i, b_i);
-  gkyl_comm_array_allgather(app->comm, &app->local, &app->global, app->gk_geom-> cmag, cmag);
-  gkyl_comm_array_allgather(app->comm, &app->local, &app->global, app->gk_geom-> jacobtot, jacobtot);
-  gkyl_comm_array_allgather(app->comm, &app->local, &app->global, app->gk_geom-> jacobtot_inv, jacobtot_inv);
-  gkyl_comm_array_allgather(app->comm, &app->local, &app->global, app->gk_geom-> bmag_inv, bmag_inv);
-  gkyl_comm_array_allgather(app->comm, &app->local, &app->global, app->gk_geom-> bmag_inv_sq, bmag_inv_sq);
-  gkyl_comm_array_allgather(app->comm, &app->local, &app->global, app->gk_geom-> gxxj, gxxj);
-  gkyl_comm_array_allgather(app->comm, &app->local, &app->global, app->gk_geom-> gxyj, gxyj);
-  gkyl_comm_array_allgather(app->comm, &app->local, &app->global, app->gk_geom-> gyyj, gyyj);
-  gkyl_comm_array_allgather(app->comm, &app->local, &app->global, app->gk_geom-> gxzj, gxzj);
-  gkyl_comm_array_allgather(app->comm, &app->local, &app->global, app->gk_geom-> eps2, eps2);
+  gkyl_comm_array_allgather(app->comm, &app->local, &app->global, app->gk_geom->mc2p, mc2p);
+  gkyl_comm_array_allgather(app->comm, &app->local, &app->global, app->gk_geom->bmag, bmag);
+  gkyl_comm_array_allgather(app->comm, &app->local, &app->global, app->gk_geom->g_ij, g_ij);
+  gkyl_comm_array_allgather(app->comm, &app->local, &app->global, app->gk_geom->dxdz, dxdz);
+  gkyl_comm_array_allgather(app->comm, &app->local, &app->global, app->gk_geom->dzdx, dzdx);
+  gkyl_comm_array_allgather(app->comm, &app->local, &app->global, app->gk_geom->jacobgeo, jacobgeo);
+  gkyl_comm_array_allgather(app->comm, &app->local, &app->global, app->gk_geom->jacobgeo_inv, jacobgeo_inv);
+  gkyl_comm_array_allgather(app->comm, &app->local, &app->global, app->gk_geom->gij, gij);
+  gkyl_comm_array_allgather(app->comm, &app->local, &app->global, app->gk_geom->b_i, b_i);
+  gkyl_comm_array_allgather(app->comm, &app->local, &app->global, app->gk_geom->cmag, cmag);
+  gkyl_comm_array_allgather(app->comm, &app->local, &app->global, app->gk_geom->jacobtot, jacobtot);
+  gkyl_comm_array_allgather(app->comm, &app->local, &app->global, app->gk_geom->jacobtot_inv, jacobtot_inv);
+  gkyl_comm_array_allgather(app->comm, &app->local, &app->global, app->gk_geom->bmag_inv, bmag_inv);
+  gkyl_comm_array_allgather(app->comm, &app->local, &app->global, app->gk_geom->bmag_inv_sq, bmag_inv_sq);
+  gkyl_comm_array_allgather(app->comm, &app->local, &app->global, app->gk_geom->gxxj, gxxj);
+  gkyl_comm_array_allgather(app->comm, &app->local, &app->global, app->gk_geom->gxyj, gxyj);
+  gkyl_comm_array_allgather(app->comm, &app->local, &app->global, app->gk_geom->gyyj, gyyj);
+  gkyl_comm_array_allgather(app->comm, &app->local, &app->global, app->gk_geom->gxzj, gxzj);
+  gkyl_comm_array_allgather(app->comm, &app->local, &app->global, app->gk_geom->eps2, eps2);
 
   struct gkyl_array *mc2p_ho, *bmag_ho, *g_ij_ho, *dxdz_ho, *dzdx_ho, *jacobgeo_ho, *jacobgeo_inv_ho,
      *gij_ho, *b_i_ho, *cmag_ho, *jacobtot_ho, *jacobtot_inv_ho, *bmag_inv_ho, *bmag_inv_sq_ho,
@@ -2512,9 +2512,9 @@ gkyl_gyrokinetic_app_read_from_frame(gkyl_gyrokinetic_app *app, int frame)
         struct gk_species *s = &app->species[i];
 
         // Compute advection speeds so we can compute the initial boundary flux.
-        gkyl_dg_calc_gyrokinetic_vars_alpha_surf(s->calc_gk_vars,
-          &app->local, &s->local, &s->local_ext,
-          app->field->phi_smooth, s->alpha_surf, s->sgn_alpha_surf, s->const_sgn_alpha);
+        gkyl_dg_calc_gyrokinetic_vars_alpha_surf(s->calc_gk_vars, 
+          &app->local, &s->local, &s->local_ext, app->field->phi_smooth,
+          s->alpha_surf, s->sgn_alpha_surf, s->const_sgn_alpha);
 
         // Compute and store (in the ghost cell of of out) the boundary fluxes.
         // NOTE: this overwrites ghost cells that may be used for sourcing.

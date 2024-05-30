@@ -7,6 +7,7 @@
 #include <gkyl_fem_poisson_bctype.h>
 #include <gkyl_range.h>
 #include <gkyl_util.h>
+#include <gkyl_velocity_map.h>
 
 #include <stdbool.h>
 
@@ -85,10 +86,11 @@ struct gkyl_gyrokinetic_source {
 
 // Parameters for boundary conditions
 struct gkyl_gyrokinetic_bc {
-  enum gkyl_species_bc_type type;
-  void *aux_ctx;
-  void (*aux_profile)(double t, const double *xn, double *fout, void *ctx);  
-  double aux_parameter;
+  enum gkyl_species_bc_type type; // BC type flag.
+  void (*aux_profile)(double t, const double *xn, double *fout, void *ctx); // Auxiliary function (e.g. wall potential).
+  void *aux_ctx; // Context for aux_profile.
+  double aux_parameter; // Parameter for aux_profile (maybe redundant).
+  struct gkyl_gyrokinetic_projection projection; // Projection object input (e.g. for FIXED_FUNC).
 };
 
 struct gkyl_gyrokinetic_bcs {
@@ -167,6 +169,8 @@ struct gkyl_gyrokinetic_species {
   double lower[3], upper[3]; // Lower, upper bounds of velocity-space.
   int cells[3]; // Velocity-space cells.
 
+  struct gkyl_mapc2p_inp mapc2p;
+
   // Initial conditions using projection routine.
   struct gkyl_gyrokinetic_projection projection;
 
@@ -211,6 +215,8 @@ struct gkyl_gyrokinetic_neut_species {
   double lower[3], upper[3]; // Lower, upper bounds of velocity-space.
   int cells[3]; // Velocity-space cells.
 
+  struct gkyl_mapc2p_inp mapc2p;
+
   bool is_static; // Set to true if neutral species does not change in time.
 
   // Initial conditions using projection routine.
@@ -226,7 +232,7 @@ struct gkyl_gyrokinetic_neut_species {
   struct gkyl_gyrokinetic_react react_neut;
 
   // Boundary conditions.
-  enum gkyl_species_bc_type bcx[2], bcy[2], bcz[2];
+  struct gkyl_gyrokinetic_bcs bcx, bcy, bcz;
 };
 
 // Parameter for gk field.

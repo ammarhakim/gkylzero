@@ -93,13 +93,14 @@ create_ctx(void)
 
   // Physical constants (using non-normalized physical units).
   double epsilon0 = GKYL_EPSILON0; // Permittivity of free space.
+  double eV = GKYL_ELEMENTARY_CHARGE; // Elementary charge.
   double mass_elc = GKYL_ELECTRON_MASS; // Electron mass.
-  double charge_elc = -GKYL_ELEMENTARY_CHARGE; // Electron charge.
   double mass_ion = 2.014 * GKYL_PROTON_MASS; // Proton mass.
-  double charge_ion = GKYL_ELEMENTARY_CHARGE; // Proton charge.
+  double charge_elc = -eV; // Electron charge.
+  double charge_ion =  eV; // Proton charge.
 
-  double Te = 40.0 * GKYL_ELEMENTARY_CHARGE; // Electron temperature.
-  double Ti = 40.0 * GKYL_ELEMENTARY_CHARGE; // Ion temperature.
+  double Te = 40.0 * eV; // Electron temperature.
+  double Ti = 40.0 * eV; // Ion temperature.
   double n0 = 7.0e18; //  Reference number density (1 / m^3).
 
   double B_axis = 0.5; // Magnetic field axis (simple toroidal coordinates).
@@ -386,13 +387,6 @@ main(int argc, char **argv)
   int NVPAR = APP_ARGS_CHOOSE(app_args.vcells[0], ctx.Nvpar);
   int NMU = APP_ARGS_CHOOSE(app_args.vcells[1], ctx.Nmu);
 
-  int nrank = 1; // Number of processors in simulation.
-#ifdef GKYL_HAVE_MPI
-  if (app_args.use_mpi) {
-    MPI_Comm_size(MPI_COMM_WORLD, &nrank);
-  }
-#endif  
-
   // Create global range.
   int ccells[] = { NZ };
   int cdim = sizeof(ccells) / sizeof(ccells[0]);
@@ -455,9 +449,8 @@ main(int argc, char **argv)
   );
 #endif
 
-  int my_rank;
+  int my_rank, comm_size;
   gkyl_comm_get_rank(comm, &my_rank);
-  int comm_size;
   gkyl_comm_get_size(comm, &comm_size);
 
   int ncuts = 1;
@@ -486,7 +479,7 @@ main(int argc, char **argv)
     .name = "elc",
     .charge = ctx.charge_elc, .mass = ctx.mass_elc,
     .lower = { -ctx.vpar_max_elc, 0.0 },
-    .upper = { ctx.vpar_max_elc, ctx.mu_max_elc },
+    .upper = {  ctx.vpar_max_elc, ctx.mu_max_elc },
     .cells = { NVPAR, NMU },
     .polarization_density = ctx.n0,
 
@@ -499,6 +492,7 @@ main(int argc, char **argv)
       .temp = evalTempElcInit,
       .ctx_temp = &ctx,
     },
+
     .collisions =  {
       .collision_id = GKYL_LBO_COLLISIONS,
       .self_nu = evalNuElcInit,
@@ -506,6 +500,7 @@ main(int argc, char **argv)
       .num_cross_collisions = 1,
       .collide_with = { "ion" },
     },
+
     .source = {
       .source_id = GKYL_PROJ_SOURCE,
       .write_source = true,
@@ -535,7 +530,7 @@ main(int argc, char **argv)
     .name = "ion",
     .charge = ctx.charge_ion, .mass = ctx.mass_ion,
     .lower = { -ctx.vpar_max_ion, 0.0 },
-    .upper = { ctx.vpar_max_ion, ctx.mu_max_ion },
+    .upper = {  ctx.vpar_max_ion, ctx.mu_max_ion },
     .cells = { NVPAR, NMU },
     .polarization_density = ctx.n0,
 
@@ -548,6 +543,7 @@ main(int argc, char **argv)
       .temp = evalTempIonInit,
       .ctx_temp = &ctx,      
     },
+
     .collisions =  {
       .collision_id = GKYL_LBO_COLLISIONS,
       .self_nu = evalNuIonInit,
@@ -555,6 +551,7 @@ main(int argc, char **argv)
       .num_cross_collisions = 1,
       .collide_with = { "elc" },
     },
+
     .source = {
       .source_id = GKYL_PROJ_SOURCE,
       .write_source = true,
@@ -620,7 +617,7 @@ main(int argc, char **argv)
       .comm = comm
     }
   };
-  //
+
   // Create app object.
   gkyl_gyrokinetic_app *app = gkyl_gyrokinetic_app_new(&app_inp);
 

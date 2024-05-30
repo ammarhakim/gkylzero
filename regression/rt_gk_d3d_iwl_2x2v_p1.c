@@ -446,10 +446,10 @@ create_ctx(void)
   double floor_src = 1e-2;
 
   // Grid parameters
-  int num_cell_x = 48;
-  int num_cell_z = 32;
-  int num_cell_vpar = 16;
-  int num_cell_mu = 8;
+  int num_cell_x = 18;
+  int num_cell_z = 8;
+  int num_cell_vpar = 8;
+  int num_cell_mu = 4;
   int poly_order = 1;
 
   double vpar_max_elc = 4.*vte;
@@ -457,7 +457,7 @@ create_ctx(void)
   double vpar_max_ion = 4.*vti;
   double mu_max_ion = mi*pow(4*vti,2)/(2*B0);
 
-  double t_end = 100.e-6;
+  double t_end = 5.e-6;
   int num_frames = 1;
   int int_diag_calc_num = num_frames*100;
   double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.

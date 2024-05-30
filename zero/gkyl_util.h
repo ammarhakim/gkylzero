@@ -34,6 +34,11 @@
 # define GKYL_MAX_CDIM 3
 #endif
 
+// Maximum velocity-space dimensions supported
+#ifndef GKYL_MAX_VDIM
+# define GKYL_MAX_VDIM 3
+#endif
+
 // Maximum dimensions supported
 #ifndef GKYL_MAX_DIM
 # define GKYL_MAX_DIM 7

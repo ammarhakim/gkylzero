@@ -9,6 +9,7 @@
 #include <gkyl_gyrokinetic_maxwellian_moments.h>
 #include <gkyl_proj_maxwellian_on_basis.h>
 #include <gkyl_proj_on_basis.h>
+#include <gkyl_velocity_map.h>
 #include <gkyl_range.h>
 #include <gkyl_rect_grid.h>
 #include <gkyl_rect_decomp.h>
@@ -91,16 +92,33 @@ void test_1x1v(int poly_order, bool use_gpu)
   double vt = sqrt(10.0*1.602e-19/9.1e-31); // reference temperature
   double lower[] = {-M_PI, -4.0*vt}, upper[] = {M_PI, 4.0*vt};
   int cells[] = {4, 16};
-  int vdim = 1, cdim = 1;
-  int ndim = cdim + vdim;
-  double confLower[] = {lower[0]}, confUpper[] = {upper[0]};
-  int confCells[] = {cells[0]};
+  const int vdim = 1;
+
+  const int ndim = sizeof(cells)/sizeof(cells[0]);
+  const int cdim = ndim - vdim;
+
+  double confLower[cdim], confUpper[cdim];
+  int confCells[cdim];
+  for (int d=0; d<cdim; d++) {
+    confLower[d] = lower[d];
+    confUpper[d] = upper[d];
+    confCells[d] = cells[d];
+  }
+  double velLower[vdim], velUpper[vdim];
+  int velCells[vdim];
+  for (int d=0; d<vdim; d++) {
+    velLower[d] = lower[cdim+d];
+    velUpper[d] = upper[cdim+d];
+    velCells[d] = cells[cdim+d];
+  }
 
   // grids
   struct gkyl_rect_grid grid;
   gkyl_rect_grid_init(&grid, ndim, lower, upper, cells);
   struct gkyl_rect_grid confGrid;
   gkyl_rect_grid_init(&confGrid, cdim, confLower, confUpper, confCells);
+  struct gkyl_rect_grid velGrid;
+  gkyl_rect_grid_init(&velGrid, vdim, velLower, velUpper, velCells);
 
   // basis functions
   struct gkyl_basis basis, confBasis;
@@ -113,11 +131,16 @@ void test_1x1v(int poly_order, bool use_gpu)
   }
   gkyl_cart_modal_serendip(&confBasis, cdim, poly_order);
 
-  int confGhost[] = { 1, 1, 1 };
+  int confGhost[] = { 1, 1, 1 }; // 3 elements because it's used by geo.
   struct gkyl_range confLocal, confLocal_ext; // local, local-ext conf-space ranges
   gkyl_create_grid_ranges(&confGrid, confGhost, &confLocal_ext, &confLocal);
 
-  int ghost[] = { confGhost[0], 0 };
+  int velGhost[vdim] = { 0 };
+  struct gkyl_range velLocal, velLocal_ext; // local, local-ext vel-space ranges
+  gkyl_create_grid_ranges(&velGrid, velGhost, &velLocal_ext, &velLocal);
+
+  int ghost[ndim] = { 0 };
+  for (int d=0; d<cdim; d++) ghost[d] = confGhost[d];
   struct gkyl_range local, local_ext; // local, local-ext phase-space ranges
   gkyl_create_grid_ranges(&grid, ghost, &local_ext, &local);
 
@@ -128,7 +151,7 @@ void test_1x1v(int poly_order, bool use_gpu)
       .mapc2p = mapc2p_3x, // mapping of computational to physical space
       .c2p_ctx = 0,
       .bmag_func = bmag_func_3x, // magnetic field magnitude
-      .bmag_ctx =0 ,
+      .bmag_ctx = 0,
       .grid = confGrid,
       .local = confLocal,
       .local_ext = confLocal_ext,
@@ -144,6 +167,11 @@ void test_1x1v(int poly_order, bool use_gpu)
   // deflate geometry if necessary
   struct gk_geometry *gk_geom = gkyl_gk_geometry_deflate(gk_geom_3d, &geometry_input);
   gkyl_gk_geometry_release(gk_geom_3d);
+
+  // Initialize velocity space mapping.
+  struct gkyl_mapc2p_inp c2p_in = { };
+  struct gkyl_velocity_map *gvm = gkyl_velocity_map_new(c2p_in, grid, velGrid,
+    local, local_ext, velLocal, velLocal_ext, use_gpu);
 
   // Create correct moment arrays
   struct gkyl_array *m0_in_ho, *m1_in_ho, *m2_in_ho;
@@ -177,7 +205,8 @@ void test_1x1v(int poly_order, bool use_gpu)
   gkyl_array_set_offset(moms_in, 1., m1_in, 1*confBasis.num_basis);
   gkyl_array_set_offset(moms_in, 1., m2_in, 2*confBasis.num_basis);
   // (2) create distribution function array
-  gkyl_proj_maxwellian_on_basis *proj_maxwellian = gkyl_proj_maxwellian_on_basis_new(&grid, &confBasis, &basis, poly_order+1, use_gpu);
+  gkyl_proj_maxwellian_on_basis *proj_maxwellian = gkyl_proj_maxwellian_on_basis_new(&grid,
+    &confBasis, &basis, poly_order+1, gvm, use_gpu);
   struct gkyl_array *fM = mkarr(use_gpu, basis.num_basis, local_ext.volume);
   gkyl_proj_gkmaxwellian_on_basis_prim_mom(proj_maxwellian, &local, &confLocal, 
     moms_in, gk_geom->bmag, gk_geom->jacobtot, mass, fM);
@@ -203,12 +232,12 @@ void test_1x1v(int poly_order, bool use_gpu)
     .phase_basis = &basis,
     .conf_range =  &confLocal,
     .conf_range_ext = &confLocal_ext,
-    .vel_range = 0,
-    .gk_geom = gk_geom,
-    .divide_jacobgeo = true, 
     .mass = mass, 
     .max_iter = iter_max, 
     .eps = err_max, 
+    .gk_geom = gk_geom,
+    .vel_map = gvm,
+    .divide_jacobgeo = true, 
     .use_gpu = use_gpu
   };
   gkyl_gyrokinetic_maxwellian_correct *corr_max = gkyl_gyrokinetic_maxwellian_correct_inew(&inp);
@@ -233,8 +262,8 @@ void test_1x1v(int poly_order, bool use_gpu)
     .phase_basis = &basis,
     .conf_range =  &confLocal,
     .conf_range_ext = &confLocal_ext,
-    .vel_range = 0,
     .gk_geom = gk_geom,
+    .vel_map = gvm,
     .divide_jacobgeo = true, 
     .mass = mass, 
     .use_gpu = use_gpu,
@@ -295,6 +324,7 @@ void test_1x1v(int poly_order, bool use_gpu)
   gkyl_proj_on_basis_release(proj_m1);
   gkyl_proj_on_basis_release(proj_m2);
   gkyl_proj_maxwellian_on_basis_release(proj_maxwellian);
+  gkyl_velocity_map_release(gvm);
 }
 
 void test_1x2v(int poly_order, bool use_gpu)
@@ -304,17 +334,33 @@ void test_1x2v(int poly_order, bool use_gpu)
   double vt = sqrt(10.0*1.602e-19/9.1e-31); // reference temperature
   double lower[] = {-M_PI, -4.0*vt, 0.0}, upper[] = {M_PI, 4.0*vt, 4.0*vt*vt*mass};
   int cells[] = {4, 16, 16};
-  int vdim = 2, cdim = 1;
-  int ndim = cdim + vdim;
+  const int vdim = 2;
 
-  double confLower[] = {lower[0]}, confUpper[] = {upper[0]};
-  int confCells[] = {cells[0]};
+  const int ndim = sizeof(cells)/sizeof(cells[0]);
+  const int cdim = ndim - vdim;
+
+  double confLower[cdim], confUpper[cdim];
+  int confCells[cdim];
+  for (int d=0; d<cdim; d++) {
+    confLower[d] = lower[d];
+    confUpper[d] = upper[d];
+    confCells[d] = cells[d];
+  }
+  double velLower[vdim], velUpper[vdim];
+  int velCells[vdim];
+  for (int d=0; d<vdim; d++) {
+    velLower[d] = lower[cdim+d];
+    velUpper[d] = upper[cdim+d];
+    velCells[d] = cells[cdim+d];
+  }
 
   // grids
   struct gkyl_rect_grid grid;
   gkyl_rect_grid_init(&grid, ndim, lower, upper, cells);
   struct gkyl_rect_grid confGrid;
   gkyl_rect_grid_init(&confGrid, cdim, confLower, confUpper, confCells);
+  struct gkyl_rect_grid velGrid;
+  gkyl_rect_grid_init(&velGrid, vdim, velLower, velUpper, velCells);
 
   // basis functions
   struct gkyl_basis basis, confBasis;
@@ -326,11 +372,16 @@ void test_1x2v(int poly_order, bool use_gpu)
   }
   gkyl_cart_modal_serendip(&confBasis, cdim, poly_order);
 
-  int confGhost[] = { 1, 1, 1 };
+  int confGhost[] = { 1, 1, 1 }; // 3 elements because it's used by geo.
   struct gkyl_range confLocal, confLocal_ext; // local, local-ext conf-space ranges
   gkyl_create_grid_ranges(&confGrid, confGhost, &confLocal_ext, &confLocal);
 
-  int ghost[] = { confGhost[0], 0, 0 };
+  int velGhost[vdim] = { 0 };
+  struct gkyl_range velLocal, velLocal_ext; // local, local-ext vel-space ranges
+  gkyl_create_grid_ranges(&velGrid, velGhost, &velLocal_ext, &velLocal);
+
+  int ghost[ndim] = { 0 };
+  for (int d=0; d<cdim; d++) ghost[d] = confGhost[d];
   struct gkyl_range local, local_ext; // local, local-ext phase-space ranges
   gkyl_create_grid_ranges(&grid, ghost, &local_ext, &local);
 
@@ -357,6 +408,11 @@ void test_1x2v(int poly_order, bool use_gpu)
   // deflate geometry if necessary
   struct gk_geometry *gk_geom = gkyl_gk_geometry_deflate(gk_geom_3d, &geometry_input);
   gkyl_gk_geometry_release(gk_geom_3d);
+
+  // Initialize velocity space mapping.
+  struct gkyl_mapc2p_inp c2p_in = { };
+  struct gkyl_velocity_map *gvm = gkyl_velocity_map_new(c2p_in, grid, velGrid,
+    local, local_ext, velLocal, velLocal_ext, use_gpu);
 
   // Create correct moment arrays
   struct gkyl_array *m0_in_ho, *m1_in_ho, *m2_in_ho;
@@ -390,7 +446,8 @@ void test_1x2v(int poly_order, bool use_gpu)
   gkyl_array_set_offset(moms_in, 1., m1_in, 1*confBasis.num_basis);
   gkyl_array_set_offset(moms_in, 1., m2_in, 2*confBasis.num_basis);
   // (2) create distribution function array
-  gkyl_proj_maxwellian_on_basis *proj_maxwellian = gkyl_proj_maxwellian_on_basis_new(&grid, &confBasis, &basis, poly_order+1, use_gpu);
+  gkyl_proj_maxwellian_on_basis *proj_maxwellian = gkyl_proj_maxwellian_on_basis_new(&grid,
+    &confBasis, &basis, poly_order+1, gvm, use_gpu);
   struct gkyl_array *fM = mkarr(use_gpu, basis.num_basis, local_ext.volume);
   gkyl_proj_gkmaxwellian_on_basis_prim_mom(proj_maxwellian, &local, &confLocal, 
     moms_in, gk_geom->bmag, gk_geom->jacobtot, mass, fM);
@@ -416,8 +473,8 @@ void test_1x2v(int poly_order, bool use_gpu)
     .phase_basis = &basis,
     .conf_range =  &confLocal,
     .conf_range_ext = &confLocal_ext,
-    .vel_range = 0,
     .gk_geom = gk_geom,
+    .vel_map = gvm,
     .divide_jacobgeo = true, 
     .mass = mass, 
     .max_iter = iter_max, 
@@ -442,8 +499,8 @@ void test_1x2v(int poly_order, bool use_gpu)
     .phase_basis = &basis,
     .conf_range =  &confLocal,
     .conf_range_ext = &confLocal_ext,
-    .vel_range = 0,
     .gk_geom = gk_geom,
+    .vel_map = gvm,
     .divide_jacobgeo = true, 
     .mass = mass, 
     .use_gpu = use_gpu,
@@ -504,6 +561,7 @@ void test_1x2v(int poly_order, bool use_gpu)
   gkyl_proj_on_basis_release(proj_m1);
   gkyl_proj_on_basis_release(proj_m2);
   gkyl_proj_maxwellian_on_basis_release(proj_maxwellian);
+  gkyl_velocity_map_release(gvm);
 }
 
 void test_2x2v(int poly_order, bool use_gpu)
@@ -511,19 +569,33 @@ void test_2x2v(int poly_order, bool use_gpu)
   double mass = 9.1e-31;
   double err_max = 1.0e-10, iter_max = 50;
   double vt = sqrt(10.0*1.602e-19/9.1e-31); // reference temperature
-  double lower[] = {-M_PI, -M_PI, -4.0*vt, 0.0}, upper[] = {M_PI, M_PI, 4.0*vt, 4.0*vt*vt*mass};
-  int cells[] = {4, 4, 16, 16};
-  int vdim = 2, cdim = 2;
-  int ndim = cdim + vdim;
+  const int vdim = 2;
 
-  double confLower[] = {lower[0], lower[1]}, confUpper[] = {upper[0], upper[1]};
-  int confCells[] = {cells[0], cells[1]};
+  const int ndim = sizeof(cells)/sizeof(cells[0]);
+  const int cdim = ndim - vdim;
+
+  double confLower[cdim], confUpper[cdim];
+  int confCells[cdim];
+  for (int d=0; d<cdim; d++) {
+    confLower[d] = lower[d];
+    confUpper[d] = upper[d];
+    confCells[d] = cells[d];
+  }
+  double velLower[vdim], velUpper[vdim];
+  int velCells[vdim];
+  for (int d=0; d<vdim; d++) {
+    velLower[d] = lower[cdim+d];
+    velUpper[d] = upper[cdim+d];
+    velCells[d] = cells[cdim+d];
+  }
 
   // grids
   struct gkyl_rect_grid grid;
   gkyl_rect_grid_init(&grid, ndim, lower, upper, cells);
   struct gkyl_rect_grid confGrid;
   gkyl_rect_grid_init(&confGrid, cdim, confLower, confUpper, confCells);
+  struct gkyl_rect_grid velGrid;
+  gkyl_rect_grid_init(&velGrid, vdim, velLower, velUpper, velCells);
 
   // basis functions
   struct gkyl_basis basis, confBasis;
@@ -535,11 +607,16 @@ void test_2x2v(int poly_order, bool use_gpu)
   }
   gkyl_cart_modal_serendip(&confBasis, cdim, poly_order);
 
-  int confGhost[] = { 1, 1, 1 };
+  int confGhost[] = { 1, 1, 1 }; // 3 elements because it's used by geo.
   struct gkyl_range confLocal, confLocal_ext; // local, local-ext conf-space ranges
   gkyl_create_grid_ranges(&confGrid, confGhost, &confLocal_ext, &confLocal);
 
-  int ghost[] = { confGhost[0], confGhost[1], 0, 0 };
+  int velGhost[vdim] = { 0 };
+  struct gkyl_range velLocal, velLocal_ext; // local, local-ext vel-space ranges
+  gkyl_create_grid_ranges(&velGrid, velGhost, &velLocal_ext, &velLocal);
+
+  int ghost[ndim] = { 0 };
+  for (int d=0; d<cdim; d++) ghost[d] = confGhost[d];
   struct gkyl_range local, local_ext; // local, local-ext phase-space ranges
   gkyl_create_grid_ranges(&grid, ghost, &local_ext, &local);
 
@@ -566,6 +643,11 @@ void test_2x2v(int poly_order, bool use_gpu)
   // deflate geometry if necessary
   struct gk_geometry *gk_geom = gkyl_gk_geometry_deflate(gk_geom_3d, &geometry_input);
   gkyl_gk_geometry_release(gk_geom_3d);
+
+  // Initialize velocity space mapping.
+  struct gkyl_mapc2p_inp c2p_in = { };
+  struct gkyl_velocity_map *gvm = gkyl_velocity_map_new(c2p_in, grid, velGrid,
+    local, local_ext, velLocal, velLocal_ext, use_gpu);
 
   // Create correct moment arrays
   struct gkyl_array *m0_in_ho, *m1_in_ho, *m2_in_ho;
@@ -599,7 +681,8 @@ void test_2x2v(int poly_order, bool use_gpu)
   gkyl_array_set_offset(moms_in, 1., m1_in, 1*confBasis.num_basis);
   gkyl_array_set_offset(moms_in, 1., m2_in, 2*confBasis.num_basis);
   // (2) create distribution function array
-  gkyl_proj_maxwellian_on_basis *proj_maxwellian = gkyl_proj_maxwellian_on_basis_new(&grid, &confBasis, &basis, poly_order+1, use_gpu);
+  gkyl_proj_maxwellian_on_basis *proj_maxwellian = gkyl_proj_maxwellian_on_basis_new(&grid,
+    &confBasis, &basis, poly_order+1, gvm, use_gpu);
   struct gkyl_array *fM = mkarr(use_gpu, basis.num_basis, local_ext.volume);
   gkyl_proj_gkmaxwellian_on_basis_prim_mom(proj_maxwellian, &local, &confLocal, 
     moms_in, gk_geom->bmag, gk_geom->jacobtot, mass, fM);
@@ -625,8 +708,8 @@ void test_2x2v(int poly_order, bool use_gpu)
     .phase_basis = &basis,
     .conf_range =  &confLocal,
     .conf_range_ext = &confLocal_ext,
-    .vel_range = 0,
     .gk_geom = gk_geom,
+    .vel_map = gvm,
     .divide_jacobgeo = true, 
     .mass = mass, 
     .max_iter = iter_max, 
@@ -651,8 +734,8 @@ void test_2x2v(int poly_order, bool use_gpu)
     .phase_basis = &basis,
     .conf_range =  &confLocal,
     .conf_range_ext = &confLocal_ext,
-    .vel_range = 0,
     .gk_geom = gk_geom,
+    .vel_map = gvm,
     .divide_jacobgeo = true, 
     .mass = mass, 
     .use_gpu = use_gpu,
@@ -715,6 +798,9 @@ void test_2x2v(int poly_order, bool use_gpu)
   gkyl_proj_on_basis_release(proj_m1);
   gkyl_proj_on_basis_release(proj_m2);
   gkyl_proj_maxwellian_on_basis_release(proj_maxwellian);
+  gkyl_velocity_map_release(gvm);
+  gkyl_mom_calc_release(momsCalc);
+  gkyl_mom_type_release(MOMS_t);
 }
 
 // Run the test

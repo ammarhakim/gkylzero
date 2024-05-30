@@ -87,9 +87,9 @@ create_ctx(void)
   int Nmu = 8; // Cell count (velocity space: magnetic moment direction).
   double Lz = 1.0; // Domain size (configuration space: z-direction).
   double vpar_max = 8.0 * vt; // Domain boundary (velocity space: parallel velocity direction).
-  double mu_max = 12.0 * (vt * vt) / 2.0 / B0; // Domain boundary (velocity space: magnetic moment direction).
+  double mu_max = 0.5*mass*pow(3.5*vt,2.0) / B0; // Domain boundary (velocity space: magnetic moment direction).
 
-  double t_end = 1.0; // Final simulation time.
+  double t_end = 0.5/nu; // Final simulation time.
   int num_frames = 1; // Number of output frames.
   int int_diag_calc_num = num_frames*100;
   double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.
@@ -254,13 +254,6 @@ main(int argc, char **argv)
   int NZ = APP_ARGS_CHOOSE(app_args.xcells[0], ctx.Nz);
   int NVPAR = APP_ARGS_CHOOSE(app_args.vcells[0], ctx.Nvpar);
   int NMU = APP_ARGS_CHOOSE(app_args.vcells[1], ctx.Nmu);
-
-  int nrank = 1; // Number of processors in simulation.
-#ifdef GKYL_HAVE_MPI
-  if (app_args.use_mpi) {
-    MPI_Comm_size(MPI_COMM_WORLD, &nrank);
-  }
-#endif  
 
   // Create global range.
   int ccells[] = { NZ };

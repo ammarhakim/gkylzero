@@ -6,6 +6,7 @@
 #include <gkyl_eqn_type.h>
 #include <gkyl_dg_eqn.h>
 #include <gkyl_gk_geometry.h>
+#include <gkyl_velocity_map.h>
 #include <gkyl_range.h>
 
 // Struct containing the pointers to auxiliary fields.
@@ -29,22 +30,14 @@ struct gkyl_dg_gyrokinetic_auxfields {
  * @param mass Species mass
  * @param gkmodel_id Model ID for gyrokinetics (e.g., general geometry vs. no toroidal field, see gkyl_eqn_type.h)
  * @param gk_geom Geometry struct
+ * @param vel_map Velocity space mapping object.
  * @param use_gpu Boolean to determine if gyrokinetic equation object is on device
  * @return Pointer to Gyrokinetic equation object
  */
-struct gkyl_dg_eqn* gkyl_dg_gyrokinetic_new(const struct gkyl_basis* cbasis, const struct gkyl_basis* pbasis, 
-  const struct gkyl_range* conf_range, const struct gkyl_range* phase_range, 
-  const double charge, const double mass, enum gkyl_gkmodel_id gkmodel_id, 
-  const struct gk_geometry *gk_geom, bool use_gpu);
-
-/**
- * Create new Gyrokinetic equation object on NV-GPU: 
- * see new() method above for documentation.
- */
-struct gkyl_dg_eqn* gkyl_dg_gyrokinetic_cu_dev_new(const struct gkyl_basis* cbasis, const struct gkyl_basis* pbasis, 
-  const struct gkyl_range* conf_range, const struct gkyl_range* phase_range, 
-  const double charge, const double mass, enum gkyl_gkmodel_id gkmodel_id, 
-  const struct gk_geometry *gk_geom);
+struct gkyl_dg_eqn* gkyl_dg_gyrokinetic_new(const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis, 
+  const struct gkyl_range *conf_range, const struct gkyl_range *phase_range, 
+  const double charge, const double mass, enum gkyl_gkmodel_id gkmodel_id,
+  const struct gk_geometry *gk_geom, const struct gkyl_velocity_map *vel_map, bool use_gpu);
 
 /**
  * Set the auxiliary fields (e.g. EM fields) needed in computing
@@ -54,17 +47,5 @@ struct gkyl_dg_eqn* gkyl_dg_gyrokinetic_cu_dev_new(const struct gkyl_basis* cbas
  * @param auxfields Pointer to struct of aux fields.
  */
 void gkyl_gyrokinetic_set_auxfields(const struct gkyl_dg_eqn *eqn, struct gkyl_dg_gyrokinetic_auxfields auxin);
-
-#ifdef GKYL_HAVE_CUDA
-/**
- * CUDA device function to set the auxiliary fields (e.g. geometry & EM fields)
- * needed in computing gyrokinetic updates.
- *
- * @param eqn Equation pointer
- * @param auxfields Pointer to struct of aux fields.
- */
-void gkyl_gyrokinetic_set_auxfields_cu(const struct gkyl_dg_eqn *eqn, struct gkyl_dg_gyrokinetic_auxfields auxin);
-
-#endif
 
 

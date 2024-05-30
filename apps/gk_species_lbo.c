@@ -6,13 +6,8 @@ void
 gk_species_lbo_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s, struct gk_lbo_collisions *lbo)
 {
   int cdim = app->cdim, vdim = app->vdim;
-  double v_bounds[2*GKYL_MAX_DIM];
-  for (int d=0; d<vdim; ++d) {
-    v_bounds[d] = s->info.lower[d];
-    v_bounds[d + vdim] = s->info.upper[d];
-  }
 
-  // allocate nu and initialize it
+  // Allocate nu and initialize it.
   lbo->nu_sum = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
   lbo->self_nu = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
   struct gkyl_array *self_nu = mkarr(false, app->confBasis.num_basis, app->local_ext.volume);
@@ -87,7 +82,7 @@ gk_species_lbo_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s, stru
 
   // edge of velocity space corrections to momentum and energy 
   lbo->bcorr_calc = gkyl_mom_calc_bcorr_lbo_gyrokinetic_new(&s->grid, 
-    &app->confBasis, &app->basis, v_bounds, s->info.mass, app->use_gpu);
+    &app->confBasis, &app->basis, s->info.mass, s->vel_map, app->use_gpu);
   
   // primitive moment calculator
   lbo->coll_pcalc = gkyl_prim_lbo_gyrokinetic_calc_new(&s->grid, 
@@ -99,7 +94,8 @@ gk_species_lbo_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s, stru
   struct gkyl_dg_lbo_gyrokinetic_diff_auxfields diff_inp = { .nuSum = lbo->nu_sum, 
     .nuPrimMomsSum = lbo->nu_prim_moms, .m2self = lbo->m2self };
   lbo->coll_slvr = gkyl_dg_updater_lbo_gyrokinetic_new(&s->grid, 
-    &app->confBasis, &app->basis, &app->local, &drag_inp, &diff_inp, s->info.mass, app->gk_geom, app->use_gpu);
+    &app->confBasis, &app->basis, &app->local, &drag_inp, &diff_inp, s->info.mass,
+    app->gk_geom, s->vel_map,  app->use_gpu);
 }
 
 void 

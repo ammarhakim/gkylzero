@@ -7,7 +7,7 @@ typedef struct bc_block_tensor  bc_block_tensor;
 
 
 /**
- * Create a new updater  to compute the transformation required to pass fluxes from another block with different
+ * Create a new updater to compute the transformation required to pass fluxes from another block with different
  * geometry to this block
  *
  * @param grid of this block

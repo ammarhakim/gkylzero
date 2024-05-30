@@ -20,8 +20,9 @@ gkyl_dg_calc_gk_rad_vars_nu_advance_cu_kernel(struct gkyl_dg_calc_gk_rad_vars *u
   struct gkyl_array* vnu_surf, struct gkyl_array* vnu, 
   struct gkyl_array* vsqnu_surf, struct gkyl_array* vsqnu)
 {
-  double xc[GKYL_MAX_DIM] = {0.0};
-  int idx[GKYL_MAX_DIM];
+  int pdim = up->pdim;
+  int cdim = up->cdim;
+  int idx[GKYL_MAX_DIM], idx_vel[2];
   for (unsigned long linc1 = threadIdx.x + blockIdx.x*blockDim.x;
       linc1 < phase_range.volume;
       linc1 += gridDim.x*blockDim.x)
@@ -30,11 +31,13 @@ gkyl_dg_calc_gk_rad_vars_nu_advance_cu_kernel(struct gkyl_dg_calc_gk_rad_vars *u
     // must use gkyl_sub_range_inv_idx so that linc1=0 maps to idx={1,1,...}
     // since update_range is a subrange
     gkyl_sub_range_inv_idx(&phase_range, linc1, idx);
-    gkyl_rect_grid_cell_center(&up->phase_grid, idx, xc);
+
+    for (int d=cdim; d<pdim; d++) idx_vel[d-cdim] = idx[d];
 
     // convert back to a linear index on the super-range (with ghost cells)
     // linc will have jumps in it to jump over ghost cells
     long loc_conf = gkyl_range_idx(&conf_range, idx);
+    long loc_vel = gkyl_range_idx(&up->vel_map->local_vel, idx_vel);
     long loc_phase = gkyl_range_idx(&phase_range, idx);
 
     const double *bmag_d = (const double*) gkyl_array_cfetch(up->gk_geom->bmag, loc_conf);
@@ -43,11 +46,13 @@ gkyl_dg_calc_gk_rad_vars_nu_advance_cu_kernel(struct gkyl_dg_calc_gk_rad_vars *u
     double* vnu_d = (double*) gkyl_array_fetch(vnu, loc_phase);
     double* vsqnu_surf_d = (double*) gkyl_array_fetch(vsqnu_surf, loc_phase);  
     double* vsqnu_d = (double*) gkyl_array_fetch(vsqnu, loc_phase);   
+    const double *vmap_d = (const double*) gkyl_array_cfetch(up->vel_map->vmap, loc_vel);
+    const double *vmapSq_d = (const double*) gkyl_array_cfetch(up->vel_map->vmap_sq, loc_vel);
 
-    up->rad_nu_vpar(xc, up->phase_grid.dx, up->charge, up->mass, 
+    up->rad_nu_vpar(vmap_d, vmapSq_d, up->charge, up->mass, 
       up->a, up->alpha, up->beta, up->gamma, up->v0, 
       bmag_d, vnu_surf_d, vnu_d);
-    up->rad_nu_mu(xc, up->phase_grid.dx, up->charge, up->mass, 
+    up->rad_nu_mu(vmap_d, vmapSq_d, up->charge, up->mass, 
       up->a, up->alpha, up->beta, up->gamma, up->v0, 
       bmag_d, vsqnu_surf_d, vsqnu_d);
   }  
@@ -142,8 +147,8 @@ dg_calc_gk_rad_vars_set_cu_dev_ptrs(struct gkyl_dg_calc_gk_rad_vars *up,
 
 gkyl_dg_calc_gk_rad_vars*
 gkyl_dg_calc_gk_rad_vars_cu_dev_new(const struct gkyl_rect_grid *phase_grid, 
-  const struct gkyl_basis *conf_basis, const struct gkyl_basis *phase_basis, 
-  double charge, double mass, const struct gk_geometry *gk_geom, 
+  const struct gkyl_basis *conf_basis, const struct gkyl_basis *phase_basis, double charge,
+  double mass, const struct gk_geometry *gk_geom, const struct gkyl_velocity_map *vel_map, 
   double a, double alpha, double beta, double gamma, double v0)
 {
   struct gkyl_dg_calc_gk_rad_vars *up = (struct gkyl_dg_calc_gk_rad_vars*) gkyl_malloc(sizeof(*up));
@@ -166,9 +171,11 @@ gkyl_dg_calc_gk_rad_vars_cu_dev_new(const struct gkyl_rect_grid *phase_grid,
   up->gamma = gamma;
   up->v0 = v0;
 
-  // acquire pointer to geometry object
-  struct gk_geometry *geom = gkyl_gk_geometry_acquire(gk_geom);
-  up->gk_geom = geom->on_dev; // this is so the memcpy below has geometry on_dev
+  // Acquire pointers to on_dev objects so memcpy below copies those too.
+  struct gk_geometry *geom_ho = gkyl_gk_geometry_acquire(gk_geom);
+  struct gkyl_velocity_map *vel_map_ho = gkyl_velocity_map_acquire(vel_map);
+  up->gk_geom = geom_ho->on_dev;
+  up->vel_map = vel_map_ho->on_dev;
 
   up->flags = 0;
   GKYL_SET_CU_ALLOC(up->flags);
@@ -181,8 +188,9 @@ gkyl_dg_calc_gk_rad_vars_cu_dev_new(const struct gkyl_rect_grid *phase_grid,
   // set parent on_dev pointer
   up->on_dev = up_cu;
 
-  // updater should store host pointers
-  up->gk_geom = geom; 
+  // Updater should store host pointers.
+  up->gk_geom = geom_ho; 
+  up->vel_map = vel_map_ho; 
   
   return up;
 }

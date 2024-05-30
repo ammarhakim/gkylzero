@@ -15,6 +15,7 @@ gkyl_gyrokinetic_free(const struct gkyl_ref_count *ref)
   struct gkyl_dg_eqn *base = container_of(ref, struct gkyl_dg_eqn, ref_count);
   struct dg_gyrokinetic *gyrokinetic = container_of(base, struct dg_gyrokinetic, eqn);
   gkyl_gk_geometry_release(gyrokinetic->gk_geom);
+  gkyl_velocity_map_release(gyrokinetic->vel_map);
 
   if (gkyl_dg_eqn_is_cu_dev(base)) {
     // free inner on_dev object
@@ -45,14 +46,15 @@ gkyl_gyrokinetic_set_auxfields(const struct gkyl_dg_eqn *eqn, struct gkyl_dg_gyr
 }
 
 struct gkyl_dg_eqn*
-gkyl_dg_gyrokinetic_new(const struct gkyl_basis* cbasis, const struct gkyl_basis* pbasis,
-  const struct gkyl_range* conf_range, const struct gkyl_range* phase_range, 
-  const double charge, const double mass, enum gkyl_gkmodel_id gkmodel_id, 
-  const struct gk_geometry *gk_geom, bool use_gpu)
+gkyl_dg_gyrokinetic_new(const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis,
+  const struct gkyl_range *conf_range, const struct gkyl_range *phase_range, 
+  const double charge, const double mass, enum gkyl_gkmodel_id gkmodel_id, const struct gk_geometry *gk_geom,
+  const struct gkyl_velocity_map *vel_map, bool use_gpu)
 {
 #ifdef GKYL_HAVE_CUDA
   if (use_gpu)
-    return gkyl_dg_gyrokinetic_cu_dev_new(cbasis, pbasis, conf_range, phase_range, charge, mass, gkmodel_id, gk_geom);
+    return gkyl_dg_gyrokinetic_cu_dev_new(cbasis, pbasis, conf_range, phase_range,
+      charge, mass, gkmodel_id, gk_geom, vel_map);
 #endif
 
   struct dg_gyrokinetic *gyrokinetic = gkyl_malloc(sizeof(struct dg_gyrokinetic));
@@ -150,15 +152,16 @@ gkyl_dg_gyrokinetic_new(const struct gkyl_basis* cbasis, const struct gkyl_basis
   for (int i=0; i<cdim; ++i) assert(gyrokinetic->boundary_surf[i]);
   assert(gyrokinetic->boundary_surf[cdim]);
 
+  gyrokinetic->conf_range = *conf_range;
+  gyrokinetic->phase_range = *phase_range;
   gyrokinetic->gk_geom = gkyl_gk_geometry_acquire(gk_geom);
+  gyrokinetic->vel_map = gkyl_velocity_map_acquire(vel_map);
   gyrokinetic->auxfields.alpha_surf = 0;
   gyrokinetic->auxfields.sgn_alpha_surf = 0;
   gyrokinetic->auxfields.const_sgn_alpha = 0;
   gyrokinetic->auxfields.phi = 0;
   gyrokinetic->auxfields.apar = 0;
   gyrokinetic->auxfields.apardot = 0;
-  gyrokinetic->conf_range = *conf_range;
-  gyrokinetic->phase_range = *phase_range;
 
   gyrokinetic->eqn.flags = 0;
   GKYL_CLEAR_CU_ALLOC(gyrokinetic->eqn.flags);
@@ -168,17 +171,3 @@ gkyl_dg_gyrokinetic_new(const struct gkyl_basis* cbasis, const struct gkyl_basis
 
   return &gyrokinetic->eqn;
 }
-
-#ifndef GKYL_HAVE_CUDA
-
-struct gkyl_dg_eqn*
-gkyl_dg_gyrokinetic_cu_dev_new(const struct gkyl_basis* cbasis, const struct gkyl_basis* pbasis, 
-  const struct gkyl_range* conf_range, const struct gkyl_range* phase_range, 
-  const double charge, const double mass, enum gkyl_gkmodel_id gkmodel_id, 
-  const struct gk_geometry *gk_geom) 
-{
-  assert(false);
-  return 0;
-}
-
-#endif

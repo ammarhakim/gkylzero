@@ -11,15 +11,15 @@ typedef struct gkyl_gyrokinetic_maxwellian_moments gkyl_gyrokinetic_maxwellian_m
 
 // input packaged as a struct
 struct gkyl_gyrokinetic_maxwellian_moments_inp {
-  const struct gkyl_rect_grid *phase_grid; // Phase-space grid on which to compute moments
-  const struct gkyl_basis *conf_basis; // Configuration-space basis functions
-  const struct gkyl_basis *phase_basis; // Phase-space basis functions
-  const struct gkyl_range *conf_range; // Configuration-space range
+  const struct gkyl_rect_grid *phase_grid; // Phase-space grid on which to compute moments.
+  const struct gkyl_basis *conf_basis; // Configuration-space basis functions.
+  const struct gkyl_basis *phase_basis; // Phase-space basis functions.
+  const struct gkyl_range *conf_range; // Configuration-space range.
   const struct gkyl_range *conf_range_ext; // Extended configuration-space range (for internal memory allocations)
-  const struct gkyl_range *vel_range; // velocity space range
-  const struct gk_geometry *gk_geom; // Geometry object
-  bool divide_jacobgeo; // Boolean for if we are dividing out the configuration-space Jacobian from density
-  double mass; // Mass factor 
+  const struct gk_geometry *gk_geom; // Geometry object.
+  struct gkyl_velocity_map *vel_map; // Velocity mapping object.
+  double mass; // Mass factor. 
+  bool divide_jacobgeo; // Whether to divide out the conf-space Jacobian from density.
   bool use_gpu; // bool for gpu useage
 };
 

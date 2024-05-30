@@ -93,7 +93,7 @@ create_ctx(void)
   double vpar_max_ion = 6.0 * vti; // Domain boundary (ion velocity space: parallel velocity direction).
   double mu_max_ion = mass_ion * (pow(5.0 * vti,2)) / (2.0 * B0); // Domain boundary (ion velocity space: magnetic moment direction).
 
-  double t_end = 50.0; // Final simulation time.
+  double t_end = 20.0; // Final simulation time.
   int num_frames = 1; // Number of output frames.
   int int_diag_calc_num = num_frames*100;
   double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.
@@ -242,13 +242,6 @@ main(int argc, char **argv)
   int NVPAR = APP_ARGS_CHOOSE(app_args.vcells[0], ctx.Nvpar);
   int NMU = APP_ARGS_CHOOSE(app_args.vcells[1], ctx.Nmu);
 
-  int nrank = 1; // Number of processors in simulation.
-#ifdef GKYL_HAVE_MPI
-  if (app_args.use_mpi) {
-    MPI_Comm_size(MPI_COMM_WORLD, &nrank);
-  }
-#endif  
-
   // Create global range.
   int ccells[] = { NZ };
   int cdim = sizeof(ccells) / sizeof(ccells[0]);
@@ -311,9 +304,8 @@ main(int argc, char **argv)
   );
 #endif
 
-  int my_rank;
+  int my_rank, comm_size;
   gkyl_comm_get_rank(comm, &my_rank);
-  int comm_size;
   gkyl_comm_get_size(comm, &comm_size);
 
   int ncuts = 1;

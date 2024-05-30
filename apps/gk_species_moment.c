@@ -19,8 +19,8 @@ gk_species_moment_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s,
       .phase_basis = &app->basis,
       .conf_range =  &app->local,
       .conf_range_ext = &app->local_ext,
-      .vel_range = &s->local_vel,
       .gk_geom = app->gk_geom,
+      .vel_map = s->vel_map,
       .divide_jacobgeo = true,
       .mass = s->info.mass,
       .use_gpu = app->use_gpu,
@@ -35,7 +35,7 @@ gk_species_moment_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s,
   }
   else {
     sm->mcalc = gkyl_dg_updater_moment_gyrokinetic_new(&s->grid, &app->confBasis, 
-      &app->basis, &app->local, &s->local_vel, s->info.mass, app->gk_geom,
+      &app->basis, &app->local, s->info.mass, s->vel_map, app->gk_geom,
       nm, sm->is_integrated, app->use_gpu);    
 
     sm->num_mom = gkyl_dg_updater_moment_gyrokinetic_num_mom(sm->mcalc);
