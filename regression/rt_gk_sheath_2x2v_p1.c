@@ -8,6 +8,8 @@
 #include <gkyl_fem_parproj.h>
 #include <gkyl_gyrokinetic.h>
 
+#include <rt_arg_parse.h>
+
 struct sheath_ctx
 {
   // Mathematical constants (dimensionless).
@@ -458,10 +460,10 @@ main(int argc, char **argv)
   cells[3] = APP_ARGS_CHOOSE(app_args.vcells[1], ctx.Nmu);
 
   // Create decomposition.
-  struct gkyl_rect_decomp *decomp = gyrokinetic_comms_decomp_new(ctx.cdim, cells, app_args, stderr);
+  struct gkyl_rect_decomp *decomp = gyrokinetic_comms_decomp_new(ctx.cdim, cells, app_args.cuts, app_args.use_mpi, stderr);
 
   // Construct communicator for use in app.
-  struct gkyl_comm *comm = gyrokinetic_comms_new(app_args, decomp, stderr);
+  struct gkyl_comm *comm = gyrokinetic_comms_new(app_args.use_mpi, app_args.use_gpu, decomp, stderr);
 
   int my_rank = 0;
 #ifdef GKYL_HAVE_MPI

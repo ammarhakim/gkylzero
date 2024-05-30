@@ -12,8 +12,6 @@
 #endif
 #endif
 
-#include <rt_arg_parse.h>
-
 /**
  * Create a new decomposition of configuration space for the gyrokinetic app.
  *
@@ -24,7 +22,7 @@
  * @return New gkyl_rect_decomp decomposition object.
  */
 struct gkyl_rect_decomp* 
-gyrokinetic_comms_decomp_new(int cdim, const int *cells_conf, struct gkyl_app_args app_args, FILE *iostream);
+gyrokinetic_comms_decomp_new(int cdim, const int *cells_conf, const int *cuts, bool use_mpi, FILE *iostream);
 
 /**
  * Create a new communicator for the gyrokinetic app.
@@ -35,7 +33,7 @@ gyrokinetic_comms_decomp_new(int cdim, const int *cells_conf, struct gkyl_app_ar
  * @return New gkyl_comm communicator object.
  */
 struct gkyl_comm* 
-gyrokinetic_comms_new(struct gkyl_app_args app_args, struct gkyl_rect_decomp *decomp, FILE *iostream);
+gyrokinetic_comms_new(bool use_mpi, bool use_gpu, struct gkyl_rect_decomp *decomp, FILE *iostream);
 
 /**
  * Free gyrokinetic app decomp and comm objects.
