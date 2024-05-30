@@ -171,6 +171,9 @@ gkyl_vlasov_lte_proj_on_basis_inew(const struct gkyl_vlasov_lte_proj_on_basis_in
   up->num_conf_basis = up->conf_basis.num_basis;
   up->num_phase_basis = up->phase_basis.num_basis;
   up->use_gpu = inp->use_gpu;
+  up->vel_map = 0;
+  if (inp->vel_map != 0)
+    up->vel_map = gkyl_velocity_map_acquire(inp->vel_map);
 
   up->is_relativistic = false;
   if (inp->model_id == GKYL_MODEL_SR) {
@@ -374,8 +377,9 @@ gkyl_vlasov_lte_proj_on_basis_advance(gkyl_vlasov_lte_proj_on_basis *up,
         int cqidx = gkyl_range_idx(&up->conf_qrange, qiter.idx);
         int pqidx = gkyl_range_idx(&up->phase_qrange, qiter.idx);
 
-        comp_to_phys(pdim, gkyl_array_cfetch(up->ordinates, pqidx),
-          up->phase_grid.dx, xc, xmu);
+        const double *xcomp_d = gkyl_array_cfetch(up->ordinates, pqidx);
+
+        comp_to_phys(pdim, xcomp_d, up->phase_grid.dx, xc, xmu);
 
         double *fq = gkyl_array_fetch(up->fun_at_ords, pqidx);
         fq[0] = f_floor;
@@ -445,6 +449,9 @@ gkyl_vlasov_lte_proj_on_basis_release(gkyl_vlasov_lte_proj_on_basis* up)
   if (up->use_gpu)
     gkyl_cu_free(up->p2c_qidx);
 #endif
+  if (up->vel_map != 0)
+    gkyl_velocity_map_release(up->vel_map);
+
   gkyl_array_release(up->ordinates);
   gkyl_array_release(up->weights);
   gkyl_array_release(up->basis_at_ords);

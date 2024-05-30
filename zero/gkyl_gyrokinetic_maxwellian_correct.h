@@ -6,27 +6,30 @@
 #include <gkyl_gk_geometry.h>
 #include <gkyl_range.h>
 #include <gkyl_rect_grid.h>
+#include <gkyl_velocity_map.h>
 
 // Object type
 typedef struct gkyl_gyrokinetic_maxwellian_correct gkyl_gyrokinetic_maxwellian_correct;
 
 // input packaged as a struct
 struct gkyl_gyrokinetic_maxwellian_correct_inp {
-  const struct gkyl_rect_grid *phase_grid; // Phase-space grid on which to compute moments
-  const struct gkyl_basis *conf_basis; // Configuration-space basis functions
-  const struct gkyl_basis *phase_basis; // Phase-space basis functions
-  const struct gkyl_range *conf_range; // Configuration-space range
-  const struct gkyl_range *conf_range_ext; // Extended configuration-space range (for internal memory allocations)
-  const struct gkyl_range *vel_range; // velocity space range
-  const struct gk_geometry *gk_geom; // Geometry object
-  bool divide_jacobgeo; // Boolean for if we are dividing out the configuration-space Jacobian from density
+  const struct gkyl_rect_grid *phase_grid; // Phase-space grid.
+  const struct gkyl_basis *conf_basis; // Configuration-space basis functions.
+  const struct gkyl_basis *phase_basis; // Phase-space basis functions.
+  const struct gkyl_range *conf_range; // Configuration-space range.
+  const struct gkyl_range *conf_range_ext; // Extended conf-space range (for memory allocations).
+  const struct gkyl_range *vel_range; // velocity space range.
+  const struct gk_geometry *gk_geom; // Geometry object.
+  struct gkyl_velocity_map *vel_map; // Velocity space mapping object.
+  double mass; // Mass factor. 
+
+  bool divide_jacobgeo; // Whether to divide out the conf-space Jacobian from density.
   bool use_last_converged; // Boolean for if we are using the results of the iterative scheme
                            // *even if* the scheme fails to converge. 
-  bool correct_bimaxwellian; // Boolean for if we are correcting a BiMaxwellian's moments (n, u_par, T_par/m, T_perp/m)
-  double mass; // Mass factor 
-  bool use_gpu; // bool for gpu useage
-  double eps; // tolerance for the iterator
-  int max_iter; // number of total iterations
+  bool correct_bimaxwellian; // Whether to correct BiMaxwellian's moments (n, u_par, T_par/m, T_perp/m).
+  bool use_gpu; // Bool for gpu useage.
+  double eps; // Tolerance for the iterator.
+  int max_iter; // Number of total iterations.
 };
 
 // Correction status

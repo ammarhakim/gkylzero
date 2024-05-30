@@ -50,6 +50,8 @@
 #include <gkyl_gk_geometry_mapc2p.h>
 #include <gkyl_gk_geometry_tok.h>
 #include <gkyl_gk_geometry_mirror.h>
+#include <gkyl_tok_geo.h>
+#include <gkyl_velocity_map.h>
 #include <gkyl_gyrokinetic.h>
 #include <gkyl_gyrokinetic_cross_prim_moms_bgk.h>
 #include <gkyl_gyrokinetic_maxwellian_correct.h>
@@ -357,12 +359,19 @@ struct gk_react {
   };  
 };
 
+// Context for c2p function passed to proj_on_basis.
+struct gk_proj_on_basis_c2p_func_ctx {
+  int cdim, vdim;
+  struct gkyl_velocity_map *vel_map;
+};
+
 struct gk_proj {
   enum gkyl_projection_id proj_id; // type of projection
   // organization of the different projection objects and the required data and solvers
   union {
     // function projection
     struct {
+      struct gk_proj_on_basis_c2p_func_ctx proj_on_basis_c2p_ctx; // c2p function context.
       struct gkyl_proj_on_basis *proj_func; // projection operator for specified function
       struct gkyl_array *proj_host; // array for projection on host-side if running on GPUs
     };
@@ -435,6 +444,8 @@ struct gk_species {
 
   struct gkyl_rect_grid grid_vel; // velocity space grid
   struct gkyl_range local_vel, local_ext_vel; // local, local-ext velocity-space ranges
+
+  struct gkyl_velocity_map *vel_map; // Velocity mapping objects.
 
   struct gkyl_array *f, *f1, *fnew; // arrays for updates
   struct gkyl_array *cflrate; // CFL rate in each cell
@@ -551,6 +562,8 @@ struct gk_neut_species {
   struct gkyl_rect_grid grid_vel; // velocity space grid
   struct gkyl_range local_vel, local_ext_vel; // local, local-ext velocity-space ranges
 
+  struct gkyl_velocity_map *vel_map; // Velocity mapping objects.
+
   struct gkyl_array *f, *f1, *fnew; // arrays for updates
   struct gkyl_array *cflrate; // CFL rate in each cell
   struct gkyl_array *bc_buffer; // buffer for BCs (used by bc_basic)
@@ -581,8 +594,12 @@ struct gk_neut_species {
   gkyl_dg_updater_vlasov *slvr; // Vlasov solver 
   struct gkyl_dg_eqn *eqn_vlasov; // Vlasov equation object
   
+  int num_periodic_dir; // number of periodic directions
+  int periodic_dirs[3]; // list of periodic directions
+  bool bc_is_np[3]; // whether BC is nonperiodic.
+
   // boundary conditions on lower/upper edges in each direction  
-  enum gkyl_species_bc_type lower_bc[3], upper_bc[3];
+  struct gkyl_gyrokinetic_bc lower_bc[3], upper_bc[3];
   // Pointers to updaters that apply BC.
   struct gkyl_bc_basic *bc_lo[3];
   struct gkyl_bc_basic *bc_up[3];
@@ -600,7 +617,7 @@ struct gk_neut_species {
   bool has_neutral_reactions;
   struct gk_react react_neut; // reaction object
 
-  double *omega_cfl_ptr;
+  double *omega_cfl;
 };
 
 // field data

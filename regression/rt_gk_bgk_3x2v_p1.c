@@ -61,7 +61,7 @@ struct lapd_cart_ctx
   int Nx; // Cell count (configuration space: x-direction).
   int Ny; // Cell count (configuration space: y-direction).
   int Nz; // Cell count (configuration space: z-direction).
-  int Nv; // Cell count (velocity space: parallel velocity direction).
+  int Nvpar; // Cell count (velocity space: parallel velocity direction).
   int Nmu; // Cell count (velocity space: magnetic moment direction).
   double Lx; // Domain size (configuration space: x-direction).
   double Ly; // Domain size (configuration space: y-direction).
@@ -122,11 +122,11 @@ create_ctx(void)
   double floor_src = 0.01; // Minimum source intensity.
 
   // Simulation parameters.
-  int Nx = 18; // Cell count (configuration space: x-direction).
-  int Ny = 18; // Cell count (configuration space: y-direction).
-  int Nz = 10; // Cell count (configuration space: z-direction).
-  int Nv = 10; // Cell count (velocity space: parallel velocity direction).
-  int Nmu = 5; // Cell count (velocity space: magnetic moment direction).
+  int Nx = 8; // Cell count (configuration space: x-direction).
+  int Ny = 8; // Cell count (configuration space: y-direction).
+  int Nz = 4; // Cell count (configuration space: z-direction).
+  int Nvpar = 8; // Cell count (velocity space: parallel velocity direction).
+  int Nmu = 4; // Cell count (velocity space: magnetic moment direction).
   double Lx = 100.0 * rho_s; // Domain size (configuration space: x-direction).
   double Ly = 100.0 * rho_s; // Domain size (configuration space: y-direction).
   double Lz = 36.0 *  40.0 * rho_s; // Domain size (configuration space: z-direction).
@@ -136,7 +136,7 @@ create_ctx(void)
   double vpar_max_ion = 4.0 * vti; // Domain boundary (ion velocity space: parallel velocity direction).
   double mu_max_ion = (3.0 / 2.0) * 0.5 * mass_ion * pow(4.0 * vti,2) / (2.0 * B0); // Domain boundary (ion velocity space: magnetic moment direction).
 
-  double t_end = 5.0e-7; // Final simulation time.
+  double t_end = 8.0e-7; // Final simulation time.
   int num_frames = 1; // Number of output frames.
   int int_diag_calc_num = num_frames*100;
   double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.
@@ -171,7 +171,7 @@ create_ctx(void)
     .Nx = Nx,
     .Ny = Ny,
     .Nz = Nz,
-    .Nv = Nv,
+    .Nvpar = Nvpar,
     .Nmu = Nmu,
     .Lx = Lx,
     .Ly = Ly,
@@ -410,15 +410,8 @@ main(int argc, char **argv)
   int NX = APP_ARGS_CHOOSE(app_args.xcells[0], ctx.Nx);
   int NY = APP_ARGS_CHOOSE(app_args.xcells[1], ctx.Ny);
   int NZ = APP_ARGS_CHOOSE(app_args.xcells[2], ctx.Nz);
-  int NVPAR = APP_ARGS_CHOOSE(app_args.vcells[0], ctx.Nv);
+  int NVPAR = APP_ARGS_CHOOSE(app_args.vcells[0], ctx.Nvpar);
   int NMU = APP_ARGS_CHOOSE(app_args.vcells[1], ctx.Nmu);
-
-  int nrank = 1; // Number of processors in simulation.
-#ifdef GKYL_HAVE_MPI
-  if (app_args.use_mpi) {
-    MPI_Comm_size(MPI_COMM_WORLD, &nrank);
-  }
-#endif  
 
   // Create global range.
   int ccells[] = { NX, NY, NZ };
@@ -482,9 +475,8 @@ main(int argc, char **argv)
   );
 #endif
 
-  int my_rank;
+  int my_rank, comm_size;
   gkyl_comm_get_rank(comm, &my_rank);
-  int comm_size;
   gkyl_comm_get_size(comm, &comm_size);
 
   int ncuts = 1;

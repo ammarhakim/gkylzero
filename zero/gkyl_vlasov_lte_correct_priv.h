@@ -31,4 +31,6 @@ struct gkyl_vlasov_lte_correct
   bool use_gpu; // Boolean if we are performing projection on device.
   double *error_cu; // error on device if using GPUs 
   struct gkyl_array *abs_diff_moms;
+
+  struct gkyl_velocity_map *vel_map; // Velocity space mapping object.
 };

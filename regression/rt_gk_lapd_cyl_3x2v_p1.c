@@ -122,11 +122,11 @@ create_ctx(void)
   double floor_src = 0.01; // Minimum source intensity.
 
   // Simulation parameters.
-  int Nr = 18; // Cell count (configuration space: radial direction).
-  int Ntheta = 18; // Cell count (configuration space: angular direction).
-  int Nz = 10; // Cell count (configuration space: z-direction).
-  int Nvpar = 10; // Cell count (velocity space: parallel velocity direction).
-  int Nmu = 5; // Cell count (velocity space: magnetic moment direction).
+  int Nr = 10; // Cell count (configuration space: radial direction).
+  int Ntheta = 10; // Cell count (configuration space: angular direction).
+  int Nz = 8; // Cell count (configuration space: z-direction).
+  int Nvpar = 8; // Cell count (velocity space: parallel velocity direction).
+  int Nmu = 4; // Cell count (velocity space: magnetic moment direction).
   double Lr = 47.5 * rho_s; // Domain size (configuration space: radial direction).
   double Ltheta = 2.0 * pi; // Domain size (configuration space: angular direction).
   double Lz = 36.0 * 40.0 * rho_s; // Domain size (configuration space: z-direction).
@@ -409,13 +409,6 @@ main(int argc, char **argv)
   int NVPAR = APP_ARGS_CHOOSE(app_args.vcells[0], ctx.Nvpar);
   int NMU = APP_ARGS_CHOOSE(app_args.vcells[1], ctx.Nmu);
 
-  int nrank = 1; // Number of processors in simulation.
-#ifdef GKYL_HAVE_MPI
-  if (app_args.use_mpi) {
-    MPI_Comm_size(MPI_COMM_WORLD, &nrank);
-  }
-#endif  
-
   // Create global range.
   int ccells[] = { NR, NTHETA, NZ };
   int cdim = sizeof(ccells) / sizeof(ccells[0]);
@@ -478,9 +471,8 @@ main(int argc, char **argv)
   );
 #endif
 
-  int my_rank;
+  int my_rank, comm_size;
   gkyl_comm_get_rank(comm, &my_rank);
-  int comm_size;
   gkyl_comm_get_size(comm, &comm_size);
 
   int ncuts = 1;
@@ -505,6 +497,16 @@ main(int argc, char **argv)
   }
 
   // Electron species.
+  struct gkyl_gyrokinetic_projection elc_ic = {
+    .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM,
+    .density = evalDensityInit,
+    .ctx_density = &ctx,
+    .upar = evalUparInit,
+    .ctx_upar = &ctx,
+    .temp = evalTempElcInit,
+    .ctx_temp = &ctx,
+  };
+
   struct gkyl_gyrokinetic_species elc = {
     .name = "elc",
     .charge = ctx.charge_elc, .mass = ctx.mass_elc,
@@ -513,15 +515,8 @@ main(int argc, char **argv)
     .cells = { NVPAR, NMU },
     .polarization_density = ctx.n0,
 
-    .projection = {
-      .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM,
-      .density = evalDensityInit,
-      .ctx_density = &ctx,
-      .upar = evalUparInit,
-      .ctx_upar = &ctx,
-      .temp = evalTempElcInit,
-      .ctx_temp = &ctx,
-    },
+    .projection = elc_ic,
+
     .collisions =  {
       .collision_id = GKYL_LBO_COLLISIONS,
       .self_nu = evalNuElcInit,
@@ -545,7 +540,10 @@ main(int argc, char **argv)
     },
     
     .bcx = {
-      .lower = { .type = GKYL_SPECIES_FIXED_FUNC, },
+      .lower = {
+        .type = GKYL_SPECIES_FIXED_FUNC,
+        .projection = elc_ic,
+      },
       .upper = { .type = GKYL_SPECIES_ZERO_FLUX, },
     },
     .bcz = {
@@ -558,6 +556,16 @@ main(int argc, char **argv)
   };
 
   // Ion species.
+  struct gkyl_gyrokinetic_projection ion_ic = {
+    .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM, 
+    .density = evalDensityInit,
+    .ctx_density = &ctx,
+    .upar = evalUparInit,
+    .ctx_upar = &ctx,
+    .temp = evalTempIonInit,
+    .ctx_temp = &ctx,
+  };
+
   struct gkyl_gyrokinetic_species ion = {
     .name = "ion",
     .charge = ctx.charge_ion, .mass = ctx.mass_ion,
@@ -566,15 +574,8 @@ main(int argc, char **argv)
     .cells = { NVPAR, NMU },
     .polarization_density = ctx.n0,
 
-    .projection = {
-      .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM, 
-      .density = evalDensityInit,
-      .ctx_density = &ctx,
-      .upar = evalUparInit,
-      .ctx_upar = &ctx,
-      .temp = evalTempIonInit,
-      .ctx_temp = &ctx,
-    },
+    .projection = ion_ic,
+
     .collisions =  {
       .collision_id = GKYL_LBO_COLLISIONS,
       .self_nu = evalNuIonInit,
@@ -598,7 +599,10 @@ main(int argc, char **argv)
     },
     
     .bcx = {
-      .lower = { .type = GKYL_SPECIES_FIXED_FUNC, },
+      .lower = {
+        .type = GKYL_SPECIES_FIXED_FUNC,
+        .projection = ion_ic,
+      },
       .upper = { .type = GKYL_SPECIES_ZERO_FLUX, },
     },
     .bcz = {

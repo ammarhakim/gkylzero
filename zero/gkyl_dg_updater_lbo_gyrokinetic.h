@@ -6,6 +6,7 @@
 #include <gkyl_dg_lbo_gyrokinetic_drag.h>
 #include <gkyl_eqn_type.h>
 #include <gkyl_gk_geometry.h>
+#include <gkyl_velocity_map.h>
 #include <gkyl_range.h>
 #include <gkyl_rect_grid.h>
 
@@ -26,16 +27,18 @@ struct gkyl_dg_updater_lbo_gyrokinetic_tm {
  * @param conf_range Configuration space range
  * @param drag_inp Input struct to gyrokinetic drag operator (see gkyl_dg_lbo_gyrokinetic_drag.h) 
  * @param diff_inp Input struct to gyrokinetic diffusion operator (see gkyl_dg_lbo_gyrokinetic_diff.h) 
- * @param mass Species mass
+ * @param mass Species mass.
+ * @param gk_geom Gyrokinetic geometry object.
+ * @param vel_map Velocity space mapping object.
  * @param use_gpu Bool for whether updater is on host or device
  * @return New gyrokinetic LBO updater object
  */
 struct gkyl_dg_updater_collisions* 
 gkyl_dg_updater_lbo_gyrokinetic_new(const struct gkyl_rect_grid *phase_grid,
-  const struct gkyl_basis *conf_basis, const struct gkyl_basis *phase_basis, 
-  const struct gkyl_range *conf_range, 
+  const struct gkyl_basis *conf_basis, const struct gkyl_basis *phase_basis, const struct gkyl_range *conf_range,
   struct gkyl_dg_lbo_gyrokinetic_drag_auxfields *drag_inp, struct gkyl_dg_lbo_gyrokinetic_diff_auxfields *diff_inp, 
-  double mass, const struct gk_geometry *gk_geom, bool use_gpu);
+  double mass, const struct gk_geometry *gk_geom, const struct gkyl_velocity_map *vel_map,
+  bool use_gpu);
 
 /**
  * Compute RHS of DG update. The update_rng MUST be a sub-range of the
