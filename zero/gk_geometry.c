@@ -193,6 +193,7 @@ gkyl_gk_geometry_deflate(const struct gk_geometry* up_3d, struct gkyl_gk_geometr
   up->jacobgeo_inv = gkyl_array_new(GKYL_DOUBLE, up->basis.num_basis, up->local_ext.volume);
   up->gij = gkyl_array_new(GKYL_DOUBLE, 6*up->basis.num_basis, up->local_ext.volume);
   up->b_i = gkyl_array_new(GKYL_DOUBLE, 3*up->basis.num_basis, up->local_ext.volume);
+  up->bcart = gkyl_array_new(GKYL_DOUBLE, 3*up->basis.num_basis, up->local_ext.volume);
   up->cmag = gkyl_array_new(GKYL_DOUBLE, up->basis.num_basis, up->local_ext.volume);
   up->jacobtot = gkyl_array_new(GKYL_DOUBLE, up->basis.num_basis, up->local_ext.volume);
   up->jacobtot_inv = gkyl_array_new(GKYL_DOUBLE, up->basis.num_basis, up->local_ext.volume);
@@ -225,6 +226,7 @@ gkyl_gk_geometry_deflate(const struct gk_geometry* up_3d, struct gkyl_gk_geometr
   gkyl_deflate_geo_advance(deflator, &up_3d->local, &up->local, up_3d->jacobgeo_inv, up->jacobgeo_inv, 1);
   gkyl_deflate_geo_advance(deflator, &up_3d->local, &up->local, up_3d->gij, up->gij, 6);
   gkyl_deflate_geo_advance(deflator, &up_3d->local, &up->local, up_3d->b_i, up->b_i, 3);
+  gkyl_deflate_geo_advance(deflator, &up_3d->local, &up->local, up_3d->bcart, up->bcart, 3);
   gkyl_deflate_geo_advance(deflator, &up_3d->local, &up->local, up_3d->cmag, up->cmag, 1);
   gkyl_deflate_geo_advance(deflator, &up_3d->local, &up->local, up_3d->jacobtot, up->jacobtot, 1);
   gkyl_deflate_geo_advance(deflator, &up_3d->local, &up->local, up_3d->jacobtot_inv, up->jacobtot_inv, 1);
@@ -259,6 +261,7 @@ gkyl_gk_geometry_free(const struct gkyl_ref_count *ref)
   gkyl_array_release(up->dzdx);
   gkyl_array_release(up->gij);
   gkyl_array_release(up->b_i);
+  gkyl_array_release(up->bcart);
   gkyl_array_release(up->cmag);
   gkyl_array_release(up->jacobtot);
   gkyl_array_release(up->jacobtot_inv);
