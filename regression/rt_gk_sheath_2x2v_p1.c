@@ -15,8 +15,7 @@ struct sheath_ctx
   // Mathematical constants (dimensionless).
   double pi;
 
-  // Dimensionality
-  int cdim, vdim, pdim;
+  int cdim, vdim; // Dimensionality
 
   // Physical constants (using non-normalized physical units).
   double epsilon0; // Permittivity of free space.
@@ -61,6 +60,7 @@ struct sheath_ctx
   int Nz; // Cell count (configuration space: z-direction).
   int Nvpar; // Cell count (velocity space: parallel velocity direction).
   int Nmu; // Cell count (velocity space: magnetic moment direction).
+  int cells[GKYL_MAX_DIM]; // Number of cells in all directions.
   double Lx; // Domain size (configuration space: x-direction).
   double Lz; // Domain size (configuration space: z-direction).
   double vpar_max_elc; // Domain boundary (electron velocity space: parallel velocity direction).
@@ -81,8 +81,7 @@ create_ctx(void)
   // Mathematical constants (dimensionless).
   double pi = M_PI;
 
-  int cdim = 2, vdim = 2;
-  int pdim = cdim+vdim;
+  int cdim = 2, vdim = 2; // Dimensionality.
 
   // Physical constants (using non-normalized physical units).
   double epsilon0 = GKYL_EPSILON0; // Permittivity of free space.
@@ -151,7 +150,6 @@ create_ctx(void)
     .pi = pi,
     .cdim = cdim,
     .vdim = vdim,
-    .pdim = pdim,
     .epsilon0 = epsilon0,
     .mass_elc = mass_elc,
     .charge_elc = charge_elc,
@@ -184,6 +182,7 @@ create_ctx(void)
     .Nz = Nz,
     .Nvpar = Nvpar,
     .Nmu = Nmu,
+    .cells = {Nx, Nz, Nvpar, Nmu},
     .Lx = Lx,
     .Lz = Lz,
     .vpar_max_elc = vpar_max_elc,
@@ -453,14 +452,14 @@ main(int argc, char **argv)
 
   struct sheath_ctx ctx = create_ctx(); // Context for initialization functions.
 
-  int cells[ctx.pdim];
-  cells[0] = APP_ARGS_CHOOSE(app_args.xcells[0], ctx.Nx);
-  cells[1] = APP_ARGS_CHOOSE(app_args.xcells[1], ctx.Nz);
-  cells[2] = APP_ARGS_CHOOSE(app_args.vcells[0], ctx.Nvpar);
-  cells[3] = APP_ARGS_CHOOSE(app_args.vcells[1], ctx.Nmu);
+  int cells_x[ctx.cdim], cells_v[ctx.vdim];
+  for (int d=0; d<ctx.cdim; d++)
+    cells_x[d] = APP_ARGS_CHOOSE(app_args.xcells[d], ctx.cells[d]);
+  for (int d=0; d<ctx.vdim; d++)
+    cells_v[d] = APP_ARGS_CHOOSE(app_args.vcells[d], ctx.cells[ctx.cdim+d]);
 
   // Create decomposition.
-  struct gkyl_rect_decomp *decomp = gyrokinetic_comms_decomp_new(ctx.cdim, cells, app_args.cuts, app_args.use_mpi, stderr);
+  struct gkyl_rect_decomp *decomp = gyrokinetic_comms_decomp_new(ctx.cdim, cells_x, app_args.cuts, app_args.use_mpi, stderr);
 
   // Construct communicator for use in app.
   struct gkyl_comm *comm = gyrokinetic_comms_new(app_args.use_mpi, app_args.use_gpu, decomp, stderr);
@@ -477,7 +476,7 @@ main(int argc, char **argv)
     .charge = ctx.charge_elc, .mass = ctx.mass_elc,
     .lower = { -ctx.vpar_max_elc, 0.0},
     .upper = {  ctx.vpar_max_elc, ctx.mu_max_elc},
-    .cells = { cells[2], cells[3] },
+    .cells = { cells_v[0], cells_v[1] },
     .polarization_density = ctx.n0,
     .no_by = true, // Turn off drifts. 
 
@@ -531,7 +530,7 @@ main(int argc, char **argv)
     .charge = ctx.charge_ion, .mass = ctx.mass_ion,
     .lower = { -ctx.vpar_max_ion, 0.0},
     .upper = {  ctx.vpar_max_ion, ctx.mu_max_ion},
-    .cells = { cells[2], cells[3] },
+    .cells = { cells_v[0], cells_v[1] },
     .polarization_density = ctx.n0, 
     .no_by = true, 
 
@@ -596,7 +595,7 @@ main(int argc, char **argv)
     .cdim = 2, .vdim = 2,
     .lower = { ctx.R - (0.5 * ctx.Lx), -0.5 * ctx.Lz },
     .upper = { ctx.R + (0.5 * ctx.Lx),  0.5 * ctx.Lz },
-    .cells = { cells[0], cells[1] },
+    .cells = { cells_x[0], cells_x[1] },
     .poly_order = 1,
     .basis_type = app_args.basis_type,
     .cfl_frac = 0.4,
