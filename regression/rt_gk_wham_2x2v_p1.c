@@ -505,10 +505,10 @@ create_ctx(void)
   double mu_max_elc = me * pow(3. * vte, 2.) / (2. * B_p);
   double vpar_max_ion = 20 * vti;
   double mu_max_ion = mi * pow(3. * vti, 2.) / (2. * B_p);
-  int num_cell_vpar = 10; // Number of cells in the paralell velocity direction 96
-  int num_cell_mu = 10;  // Number of cells in the mu direction 192
-  int num_cell_psi = 2;
-  int num_cell_z = 30;
+  int Nvpar = 10; // Number of cells in the paralell velocity direction 96
+  int Nmu = 10;  // Number of cells in the mu direction 192
+  int Nx = 2;
+  int Nz = 30;
   int poly_order = 1;
 
   double t_end = 3e-9;
@@ -586,10 +586,10 @@ create_ctx(void)
     .vpar_max_elc = vpar_max_elc,
     .mu_max_ion = mu_max_ion,
     .mu_max_elc = mu_max_elc,
-    .Nx = num_cell_psi,
-    .Nz = num_cell_z,
-    .Nvpar = num_cell_vpar,
-    .Nmu = num_cell_mu,
+    .Nx = Nx,
+    .Nz = Nz,
+    .Nvpar = Nvpar,
+    .Nmu = Nmu,
     .poly_order = poly_order,
     .t_end = t_end,
     .num_frames = num_frames,
@@ -647,7 +647,7 @@ int main(int argc, char **argv)
     gkyl_mem_debug_set(true);
   }
   struct gk_mirror_ctx ctx = create_ctx(); // context for init functions
-  int NPSI = APP_ARGS_CHOOSE(app_args.xcells[0], ctx.Nx);
+  int NX = APP_ARGS_CHOOSE(app_args.xcells[0], ctx.Nx);
   int NZ = APP_ARGS_CHOOSE(app_args.xcells[1], ctx.Nz);
   int NVPAR = APP_ARGS_CHOOSE(app_args.vcells[0], ctx.Nvpar);
   int NMU = APP_ARGS_CHOOSE(app_args.vcells[1], ctx.Nmu);
@@ -659,7 +659,7 @@ int main(int argc, char **argv)
 #endif  
 
   // create global range
-  int ccells[] = { NPSI, NZ };
+  int ccells[] = { NX, NZ };
   int cdim = sizeof(ccells)/sizeof(ccells[0]);
   struct gkyl_range cglobal_r;
   gkyl_create_global_range(cdim, ccells, &cglobal_r);
@@ -865,7 +865,7 @@ int main(int argc, char **argv)
     .cdim = 2,  .vdim = 2,
     .lower = {ctx.psi_min, ctx.z_min},
     .upper = {ctx.psi_max, ctx.z_max},
-    .cells = {NPSI, NZ},
+    .cells = {NX, NZ},
     .poly_order = ctx.poly_order,
     .basis_type = app_args.basis_type,
 

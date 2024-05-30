@@ -109,7 +109,7 @@ struct gk_mirror_ctx
   int Nvpar;
   int Nmu;
   int poly_order;
-  double final_time;
+  double t_end;
   int num_frames;
   double psi_in;
   double z_in;
@@ -514,11 +514,11 @@ create_ctx(void)
   double mu_max_elc = me * pow(3. * vte, 2.) / (2. * B_p);
   double vpar_max_ion = 20 * vti;
   double mu_max_ion = mi * pow(3. * vti, 2.) / (2. * B_p);
-  int num_cell_vpar = 10; // Number of cells in the paralell velocity direction 96
-  int num_cell_mu = 10;  // Number of cells in the mu direction 192
-  int num_cell_z = 30;
+  int Nvpar = 10; // Number of cells in the paralell velocity direction 96
+  int Nmu = 10;  // Number of cells in the mu direction 192
+  int Nz = 30;
   int poly_order = 1;
-  double final_time = 1e-9;
+  double t_end = 1e-9;
   int num_frames = 1;
   int int_diag_calc_num = num_frames*100;
   double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.
@@ -612,11 +612,11 @@ create_ctx(void)
     .vpar_max_elc = vpar_max_elc,
     .mu_max_ion = mu_max_ion,
     .mu_max_elc = mu_max_elc,
-    .Nz = num_cell_z,
-    .Nvpar = num_cell_vpar,
-    .Nmu = num_cell_mu,
+    .Nz = Nz,
+    .Nvpar = Nvpar,
+    .Nmu = Nmu,
     .poly_order = poly_order,
-    .final_time = final_time,
+    .t_end = t_end,
     .num_frames = num_frames,
     .int_diag_calc_num = int_diag_calc_num,
     .dt_failure_tol = dt_failure_tol,
@@ -903,7 +903,7 @@ int main(int argc, char **argv)
 
   // Initial and final simulation times.
   int frame_curr = 0;
-  double t_curr = 0.0, t_end = ctx.final_time;
+  double t_curr = 0.0, t_end = ctx.t_end;
   // Initialize simulation.
   if (app_args.is_restart) {
     struct gkyl_app_restart_status status = gkyl_gyrokinetic_app_read_from_frame(app, app_args.restart_frame);
