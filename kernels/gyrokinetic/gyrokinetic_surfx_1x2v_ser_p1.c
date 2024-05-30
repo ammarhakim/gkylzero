@@ -1,13 +1,15 @@
 #include <gkyl_gyrokinetic_kernels.h>
 #include <gkyl_basis_gkhyb_1x2v_p1_upwind_quad_to_modal.h> 
-GKYL_CU_DH double gyrokinetic_surfx_1x2v_ser_p1(const double *w, const double *dxv, 
-  const double *alpha_surf_l, const double *alpha_surf_r, 
-  const double *sgn_alpha_surf_l, const double *sgn_alpha_surf_r, 
-  const int *const_sgn_alpha_l, const int *const_sgn_alpha_r, 
-  const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out) 
+GKYL_CU_DH double gyrokinetic_surfx_1x2v_ser_p1(const double *w, const double *dxv,
+    const double *vmap_prime_l, const double *vmap_prime_c, const double *vmap_prime_r,
+    const double *alpha_surf_l, const double *alpha_surf_r, 
+    const double *sgn_alpha_surf_l, const double *sgn_alpha_surf_r,
+    const int *const_sgn_alpha_l, const int *const_sgn_alpha_r, 
+    const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out) 
 { 
   // w[NDIM]: cell-center.
   // dxv[NDIM]: cell length.
+  // vmap_prime_l,vmap_prime_c,vmap_prime_r: velocity space mapping derivative in left, center and right cells.
   // alpha_surf_l: Surface expansion of phase space flux on the left.
   // alpha_surf_r: Surface expansion of phase space flux on the right.
   // sgn_alpha_surf_l: sign(alpha_surf_l) at quadrature points.

@@ -61,3 +61,5 @@ TAGS
 *.idb
 *.pdb
 
+# Adas data files
+data/adas/*.npy

@@ -25,9 +25,9 @@ struct gk_asdex_ctx {
   // Source parameters
   double lambda_source;
   double x_source;
-              
-              
-  // Simulation parameters
+  // Domain parameters.            
+  int Nx, Ny, Nz; // Number of cells in x,y,z.
+  int Nvpar, Nmu; // Number of cells in vpar,mu.
   double Lx; // Box size in x
   double Ly; // Box size in y
   double Lz; // Box size in z
@@ -278,7 +278,13 @@ create_ctx(void)
   double vpar_max_ion = 4.0*vtIon;
   double mu_max_ion = 0.75*mi*(4.0*vtIon)*(4.0*vtIon)/(2.0*B0);
 
-  double t_end = 1.0e-6; 
+  int Nx = 4; // Number of cells in x.
+  int Ny = 2; // Number of cells in y.
+  int Nz = 8; // Number of cells in z.
+  int Nvpar = 16; // Number of cells in vpar.
+  int Nmu = 8; // Number of cells in mu.
+
+  double t_end = 8.0e-8;
   double num_frames = 1;
   int int_diag_calc_num = num_frames*100;
   double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.
@@ -305,6 +311,11 @@ create_ctx(void)
     .mu_max_elc = mu_max_elc, 
     .vpar_max_ion = vpar_max_ion, 
     .mu_max_ion = mu_max_ion, 
+    .Nx = Nx,
+    .Ny = Ny,
+    .Nz = Nz,
+    .Nvpar = Nvpar,
+    .Nmu = Nmu,
     .t_end = t_end, 
     .num_frames = num_frames, 
     .int_diag_calc_num = int_diag_calc_num,
@@ -353,11 +364,11 @@ main(int argc, char **argv)
 
   struct gk_asdex_ctx ctx = create_ctx(); // context for init functions
 
-  int NX = APP_ARGS_CHOOSE(app_args.xcells[0], 16);
-  int NY = APP_ARGS_CHOOSE(app_args.xcells[1], 96);
-  int NZ = APP_ARGS_CHOOSE(app_args.xcells[2], 12);
-  int NVPAR = APP_ARGS_CHOOSE(app_args.vcells[0], 16);
-  int NMU = APP_ARGS_CHOOSE(app_args.vcells[1], 8);
+  int NX = APP_ARGS_CHOOSE(app_args.xcells[0], ctx.Nx);
+  int NY = APP_ARGS_CHOOSE(app_args.xcells[1], ctx.Ny);
+  int NZ = APP_ARGS_CHOOSE(app_args.xcells[2], ctx.Nz);
+  int NVPAR = APP_ARGS_CHOOSE(app_args.vcells[0], ctx.Nvpar);
+  int NMU = APP_ARGS_CHOOSE(app_args.vcells[1], ctx.Nmu);
 
   // electrons
   struct gkyl_gyrokinetic_species elc = {
@@ -475,7 +486,7 @@ main(int argc, char **argv)
 
   // GK app
   struct gkyl_gk gk = {
-    .name = "gk_asdex_out_3x2v_p1",
+    .name = "gk_asdex_3x2v_p1",
 
     .cdim = 3, .vdim = 2,
     .lower = { 0.16, -ctx.Ly/2.0, -ctx.Lz/2.0 },

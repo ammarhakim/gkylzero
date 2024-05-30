@@ -29,24 +29,22 @@ gkyl_calc_bmag_new(const struct gkyl_basis *cbasis, const struct gkyl_basis *pba
 static inline void bmag_comp(double t, const double *xn, double *fout, void *ctx)
 {
   struct bmag_ctx *gc = (struct bmag_ctx*) ctx;
-  struct gkyl_range_iter iter;
   double XYZ[gc->cgrid->ndim];
 
-  struct gkyl_range_iter citer;
-  gkyl_range_iter_init(&iter, gc->crange);
+  int cidx[GKYL_MAX_CDIM];
   for(int i = 0; i < gc->cgrid->ndim; i++){
     int idxtemp = gc->crange_global->lower[i] + (int) floor((xn[i] - (gc->cgrid->lower[i]) )/gc->cgrid->dx[i]);
     idxtemp = GKYL_MIN2(idxtemp, gc->crange->upper[i]);
     idxtemp = GKYL_MAX2(idxtemp, gc->crange->lower[i]);
-    citer.idx[i] = idxtemp;
+    cidx[i] = idxtemp;
   }
 
-  long lidx = gkyl_range_idx(gc->crange, citer.idx);
+  long lidx = gkyl_range_idx(gc->crange, cidx);
   const double *mcoeffs = gkyl_array_cfetch(gc->mapc2p, lidx);
   
   double cxc[gc->cgrid->ndim];
   double xyz[gc->cgrid->ndim];
-  gkyl_rect_grid_cell_center(gc->cgrid, citer.idx, cxc);
+  gkyl_rect_grid_cell_center(gc->cgrid, cidx, cxc);
   for(int i = 0; i < gc->cgrid->ndim; i++)
     xyz[i] = (xn[i]-cxc[i])/(gc->cgrid->dx[i]*0.5);
   for(int i = 0; i < gc->cgrid->ndim; i++){
@@ -56,19 +54,22 @@ static inline void bmag_comp(double t, const double *xn, double *fout, void *ctx
   double R = sqrt(XYZ[0]*XYZ[0] + XYZ[1]*XYZ[1]);
   double Z = XYZ[2];
 
-  gkyl_range_iter_init(&iter, gc->range);
-  iter.idx[0] = fmin(gc->range->lower[0] + (int) floor((R - gc->grid->lower[0])/gc->grid->dx[0]), gc->range->upper[0]);
-  iter.idx[1] = fmin(gc->range->lower[1] + (int) floor((Z - gc->grid->lower[1])/gc->grid->dx[1]), gc->range->upper[1]);
-  // 4 Lines below are to prevent issues cause by floating point comparison
-  if(iter.idx[0]<1)
-    iter.idx[0] = 1;
-  if(iter.idx[1]<1)
-    iter.idx[1] = 1;
-  long loc = gkyl_range_idx(gc->range, iter.idx);
+  int rzidx[2];
+  int idxtemp = gc->range->lower[0] + (int) floor((R - gc->grid->lower[0])/gc->grid->dx[0]);
+  idxtemp = GKYL_MIN2(idxtemp, gc->range->upper[0]);
+  idxtemp = GKYL_MAX2(idxtemp, gc->range->lower[0]);
+  rzidx[0] = idxtemp;
+  idxtemp = gc->range->lower[1] + (int) floor((Z - gc->grid->lower[1])/gc->grid->dx[1]);
+  idxtemp = GKYL_MIN2(idxtemp, gc->range->upper[1]);
+  idxtemp = GKYL_MAX2(idxtemp, gc->range->lower[1]);
+  rzidx[1] = idxtemp;
+
+
+  long loc = gkyl_range_idx(gc->range, rzidx);
   const double *coeffs = gkyl_array_cfetch(gc->bmagdg,loc);
 
   double xc[2];
-  gkyl_rect_grid_cell_center(gc->grid, iter.idx, xc);
+  gkyl_rect_grid_cell_center(gc->grid, rzidx, xc);
   double xy[2];
   xy[0] = (R-xc[0])/(gc->grid->dx[0]*0.5);
   xy[1] = (Z-xc[1])/(gc->grid->dx[1]*0.5);
