@@ -141,9 +141,6 @@ struct gkyl_tok_geo_grid_inp {
 
   double zxpt_lo; // z of the lower x point
   double zxpt_up; // z of the upper x point
-
-  bool write_node_coord_array; // set to true if nodal coordinates should be written
-  const char *node_file_nm; // name of nodal coordinate file
 };
 
 

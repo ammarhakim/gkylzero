@@ -177,8 +177,6 @@ test_fixed_z()
     .zmax = 8.3,
     .rmin = 1.1,
     .rmax = 6.2,
-    .write_node_coord_array = true,
-    .node_file_nm = "step_outboard_fixed_z_nodes.gkyl"
   }; 
   struct gkyl_gk_geometry_inp geometry_inp = {
     .geometry_id  = GKYL_TOKAMAK,
@@ -250,8 +248,6 @@ test_horizontal_plate()
     .rclose = 6.2,
     .zmin = -8.3,
     .zmax = 8.3,
-    .write_node_coord_array = true,
-    .node_file_nm = "step_outboard_horizontal_plate_nodes.gkyl"
   }; 
 
   struct gkyl_gk_geometry_inp geometry_inp = {
@@ -325,8 +321,6 @@ test_vertical_plate()
     .rclose = 6.2,
     .zmin = -8.3,
     .zmax = 8.3,
-    .write_node_coord_array = true,
-    .node_file_nm = "step_outboard_vertical_plate_nodes.gkyl"
   }; 
   struct gkyl_gk_geometry_inp geometry_inp = {
     .geometry_id  = GKYL_TOKAMAK,
@@ -402,8 +396,6 @@ test_shaped_plate()
     .rclose = 6.2,
     .zmin = -8.3,
     .zmax = 8.3,
-    .write_node_coord_array = true,
-    .node_file_nm = "step_outboard_shaped_plate_nodes.gkyl"
   }; 
 
   struct gkyl_gk_geometry_inp geometry_inp = {

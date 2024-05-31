@@ -346,24 +346,6 @@ gkyl_tok_geo_R_psiZ(const gkyl_tok_geo *geo, double psi, double Z, int nmaxroots
   return R_psiZ(geo, psi, Z, nmaxroots, R, dR);
 }
 
-// write out nodal coordinates 
-static void
-write_nodal_coordinates(const char *nm, struct gkyl_range *nrange,
-  struct gkyl_array *nodes)
-{
-  double lower[3] = { 0.0, 0.0, 0.0 };
-  double upper[3] = { 1.0, 1.0, 1.0 };
-  int cells[3];
-  for (int i=0; i<nrange->ndim; ++i)
-    cells[i] = gkyl_range_shape(nrange, i);
-  
-  struct gkyl_rect_grid grid;
-  gkyl_rect_grid_init(&grid, 3, lower, upper, cells);
-
-  gkyl_grid_sub_array_write(&grid, nrange, 0, nodes, nm);
-}
-
-
 void gkyl_tok_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, double dzc[3], struct gkyl_tok_geo *geo, 
     struct gkyl_tok_geo_grid_inp *inp, struct gkyl_array *mc2p_nodal_fd, struct gkyl_array *mc2p_nodal, struct gkyl_array *mc2p,
     struct gkyl_array *mc2prz_nodal_fd, struct gkyl_array *mc2prz_nodal, struct gkyl_array *mc2prz, struct gkyl_array *dphidtheta_nodal)
@@ -578,10 +560,7 @@ void gkyl_tok_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, double
 
   char str1[50] = "xyz";
   char str2[50] = "allxyz";
-  if (inp->write_node_coord_array){
-    write_nodal_coordinates(strcat(str1, inp->node_file_nm), nrange, mc2p_nodal);
-    write_nodal_coordinates(strcat(str2, inp->node_file_nm), nrange, mc2p_nodal_fd);
-  }
+
   gkyl_free(arc_memo);
   gkyl_free(arc_memo_left);
   gkyl_free(arc_memo_right);

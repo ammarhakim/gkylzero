@@ -60,8 +60,6 @@ struct gkyl_tok_geo_grid_inp ginp = {
   .rmax = 3.5,
   .zmin = -1.5,
   .zmax = 1.5,
-  .write_node_coord_array = true,
-  .node_file_nm = "solovev_nodes.gkyl"
 }; 
 
 
