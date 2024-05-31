@@ -42,7 +42,7 @@ gkyl_mom_bcorr_fpo_vlasov_cu_dev_new(const struct gkyl_basis* cbasis,
  * @param momt moment type.
  * @param auxfields Pointer to struct of aux fields.
  */
-void gkyl_bcorr_mom_fpo_vlasov_set_auxfields(const struct gkyl_mom_type *momt,
+void gkyl_mom_bcorr_fpo_vlasov_set_auxfields(const struct gkyl_mom_type *momt,
   struct gkyl_mom_bcorr_fpo_vlasov_auxfields auxin);
 
 #ifdef GKYL_HAVE_CUDA
@@ -53,7 +53,7 @@ void gkyl_bcorr_mom_fpo_vlasov_set_auxfields(const struct gkyl_mom_type *momt,
  * @param momt moment type.
  * @param auxfields Pointer to struct of aux fields.
  */
-void gkyl_bcorr_mom_fpo_vlasov_set_auxfields_cu(const struct gkyl_mom_type *momt,
+void gkyl_mom_bcorr_fpo_vlasov_set_auxfields_cu(const struct gkyl_mom_type *momt,
   struct gkyl_mom_bcorr_fpo_vlasov_auxfields auxin);
 
 #endif

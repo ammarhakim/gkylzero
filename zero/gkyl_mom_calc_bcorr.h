@@ -69,3 +69,9 @@ struct gkyl_mom_calc_bcorr*
 gkyl_mom_calc_bcorr_lbo_gyrokinetic_new(const struct gkyl_rect_grid *grid, 
   const struct gkyl_basis* cbasis, const struct gkyl_basis* pbasis, 
   const double* vBoundary, double mass, bool use_gpu);
+
+struct gkyl_mom_calc_bcorr*
+gkyl_mom_calc_bcorr_fpo_vlasov_new(const struct gkyl_rect_grid *grid, 
+  const struct gkyl_basis* cbasis, const struct gkyl_basis* pbasis, 
+  const struct gkyl_range* phase_range,
+  const double* vBoundary, const struct gkyl_array* diff_coeff, bool use_gpu);

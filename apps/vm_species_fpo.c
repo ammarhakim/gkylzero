@@ -55,6 +55,13 @@ vm_species_fpo_init(struct gkyl_vlasov_app *app, struct vm_species *s, struct vm
   fpo->diff_coeff = mkarr(app->use_gpu, vdim*vdim*app->basis.num_basis, s->local_ext.volume);
   fpo->diff_coeff_surf = mkarr(app->use_gpu, vdim*vdim*surf_basis.num_basis, s->local_ext.volume);
 
+  // velocity space boundary corrections for momentum and energy
+  fpo->prim_moms = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
+  fpo->boundary_corrections = mkarr(app->use_gpu, 2*(vdim+1)*app->confBasis.num_basis, app->local_ext.volume);
+
+  fpo->bcorr_calc = gkyl_mom_calc_bcorr_fpo_vlasov_new(&s->grid,
+    &app->confBasis, &app->basis, &s->local, v_bounds, fpo->diff_coeff, app->use_gpu);
+
   // initialize FPO updater
   fpo->coll_slvr = gkyl_dg_updater_fpo_vlasov_new(&s->grid, &app->basis, &s->local, app->use_gpu);
 }
@@ -81,6 +88,17 @@ vm_species_fpo_drag_diff_coeffs(gkyl_vlasov_app *app, const struct vm_species *s
   gkyl_calc_fpo_diff_coeff_recovery(&s->grid, app->basis, &s->local, &app->local, fpo->gamma,
     fpo->g, fpo->g_surf, fpo->dgdv_surf, fpo->d2gdv2_surf, 
     fpo->diff_coeff, fpo->diff_coeff_surf); 
+
+  if (app->use_gpu) {
+    // calculate boundary corrections for momentum and energy conservation
+    gkyl_mom_calc_bcorr_advance_cu(fpo->bcorr_calc,
+      &s->local, &app->local, fin, fpo->boundary_corrections);
+  }
+  else {
+    // calculate boundary corrections for momentum and energy conservation
+    gkyl_mom_calc_bcorr_advance(fpo->bcorr_calc,
+      &s->local, &app->local, fin, fpo->boundary_corrections);
+  }
 
   app->stat.species_coll_mom_tm += gkyl_time_diff_now_sec(wst);
 }
