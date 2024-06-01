@@ -28,17 +28,17 @@ gk_field_mb_new(struct gkyl_gk_mb *gk_mb, struct gkyl_gyrokinetic_mb_app *mb_app
   // We need first to create the global z ranges.
   int lower[2];
   int upper[2];
-  lower[0] = apps[0]->grid.lower[0];
-  upper[0] = apps[0]->grid.upper[0];
-  lower[1] = apps[0]->grid.lower[1];
-  upper[1] = apps[0]->grid.cells[1] + apps[1]->grid.cells[1] + apps[2]->grid.cells[1];
+  lower[0] = apps[0]->global.lower[0];
+  upper[0] = apps[0]->global.upper[0];
+  lower[1] = apps[0]->global.lower[1];
+  upper[1] = gkyl_range_shape(&apps[0]->global, 1) + gkyl_range_shape(&apps[1]->global, 1) + gkyl_range_shape(&apps[2]->global, 1);
   struct gkyl_range globalz;
   gkyl_range_init(&globalz, mb_app->cdim, lower, upper);
   int nghost[2] = {1,1};
   gkyl_create_ranges(&globalz, nghost, &f->globalz_ext, &f->globalz);
 
   // Create the decomp and communicator from the mb app communicator
-  int cuts[2] = {0,3}; // Sticking to blocks 2,3,4 for now
+  int cuts[2] = {1,3}; // Sticking to blocks 2,3,4 for now
   struct gkyl_rect_decomp *zdecomp = gkyl_rect_decomp_new_from_cuts(mb_app->cdim, cuts, &f->globalz);
   f->zcomm = gkyl_comm_split_comm(mb_app->comm, 0, zdecomp); // Would have different colors for other block groups like 11-12, 7-8-9
                                                              // Just 0 for now
@@ -47,14 +47,13 @@ gk_field_mb_new(struct gkyl_gk_mb *gk_mb, struct gkyl_gyrokinetic_mb_app *mb_app
   // Create global subrange we'll copy the field solver solution from (into local).
   int rank;
   gkyl_comm_get_rank(f->zcomm, &rank);
-  int intersect = gkyl_sub_range_intersect(&f->globalz_sub_range, &f->globalz, &apps[rank]->local);
+  int intersect = gkyl_sub_range_intersect(&f->globalz_sub_range, &f->globalz, &apps[rank]->global);
 
   // allocate arrays for charge density
   f->rho_c_global_dg = mkarr(mb_app->use_gpu, mb_app->confBasis.num_basis, f->globalz_ext.volume);
   f->rho_c_global_smooth = mkarr(mb_app->use_gpu, mb_app->confBasis.num_basis, f->globalz_ext.volume);
 
   // allocate arrays for electrostatic potential
-  // global phi (only used in 1x simulations)
   f->phi = mkarr(mb_app->use_gpu, mb_app->confBasis.num_basis, f->globalz_ext.volume);
 
   f->phi_host = f->phi;
@@ -91,14 +90,14 @@ gk_field_mb_rhs(gkyl_gyrokinetic_mb_app *mb_app, struct gk_field_mb *field_mb)
     // Each block can gather its own charge density.
     gkyl_comm_array_allgather(app->comm, &app->local, &app->global, field->rho_c, field->rho_c_global_dg);
 
-    // Now gather charge density into global cross-block array for smoothing in z
-    gkyl_comm_array_allgather(field_mb->zcomm, &app->local, &field_mb->globalz, field->rho_c_global_dg, field_mb->rho_c_global_dg);
-    // Do the smoothing
+    // Now gather charge density into global interblock array for smoothing in z
+    gkyl_comm_array_allgather(field_mb->zcomm, &app->global, &field_mb->globalz, field->rho_c_global_dg, field_mb->rho_c_global_dg);
+    // Do the smoothing on the inetrblock global z range
     gkyl_fem_parproj_set_rhs(field_mb->fem_parproj, field_mb->rho_c_global_dg, field_mb->rho_c_global_dg);
     gkyl_fem_parproj_solve(field_mb->fem_parproj, field_mb->rho_c_global_smooth);
-    // Copy globally (in z) smoothed potential to local potential per process
-    gkyl_array_copy_range_to_range(field->rho_c_global_smooth, field_mb->rho_c_global_smooth, &app->local, &field_mb->globalz_sub_range);
-    // Now call the perp solver
+    // Copy inter-block globally (in z) smoothed charge density to intrablock global charge density per process
+    gkyl_array_copy_range_to_range(field->rho_c_global_smooth, field_mb->rho_c_global_smooth, &app->global, &field_mb->globalz_sub_range);
+    // Now call the perp solver. The perp solver already accesses its own local part of the intra-block global range.
     gkyl_deflated_fem_poisson_advance(field->deflated_fem_poisson, field->rho_c_global_smooth, field->phi_smooth);
 }
 
