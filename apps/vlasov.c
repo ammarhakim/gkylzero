@@ -342,7 +342,7 @@ gkyl_vlasov_app_apply_ic(gkyl_vlasov_app* app, double t0)
     gkyl_vlasov_app_apply_ic_species(app, i, t0);
   // BCs must be done after all species initialize for emission BCs to work 
   for (int i=0; i<app->num_species; ++i)
-    vm_species_apply_bc(app, &app->species[i], app->species[i].f);
+    vm_species_apply_bc(app, &app->species[i], app->species[i].f, t0);
   for (int i=0; i<app->num_fluid_species; ++i)
     gkyl_vlasov_app_apply_ic_fluid_species(app, i, t0);
 }
@@ -368,8 +368,6 @@ gkyl_vlasov_app_apply_ic_species(gkyl_vlasov_app* app, int sidx, double t0)
   struct timespec wtm = gkyl_wall_clock();
   vm_species_apply_ic(app, &app->species[sidx], t0);
   app->stat.init_species_tm += gkyl_time_diff_now_sec(wtm);
-
-  // vm_species_apply_bc(app, &app->species[sidx], app->species[sidx].f);
 }
 
 void
@@ -832,7 +830,7 @@ forward_euler(gkyl_vlasov_app* app, double tcurr, double dt,
   // complete update of distribution function
   for (int i=0; i<app->num_species; ++i) {
     gkyl_array_accumulate(gkyl_array_scale(fout[i], dta), 1.0, fin[i]);
-    vm_species_apply_bc(app, &app->species[i], fout[i]);
+    vm_species_apply_bc(app, &app->species[i], fout[i], tcurr);
   }
 
   // complete update of fluid species

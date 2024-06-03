@@ -6,6 +6,7 @@
 #include <gkyl_vlasov.h>
 #include <rt_arg_parse.h>
 #include <gkyl_bc_emission_spectrum.h>
+#include <gkyl_bc_emission_elastic.h>
 #include <gkyl_vlasov_priv.h>
 
 struct sheath_ctx {
@@ -115,6 +116,7 @@ main(int argc, char **argv)
   struct sheath_ctx ctx = create_ctx(); // context for init functions
   struct gkyl_bc_emission_spectrum_norm_chung_everhart *chung_ctx = gkyl_malloc(sizeof(struct gkyl_bc_emission_spectrum_norm_chung_everhart));
   struct gkyl_bc_emission_spectrum_yield_furman_pivi *furman_ctx = gkyl_malloc(sizeof(struct gkyl_bc_emission_spectrum_yield_furman_pivi));
+  struct gkyl_bc_emission_elastic_cazaux *cazaux_ctx = gkyl_malloc(sizeof(struct gkyl_bc_emission_elastic_cazaux));
   
   chung_ctx->mass = 9.109e-31;
   chung_ctx->charge = -1.602e-19;
@@ -130,12 +132,20 @@ main(int argc, char **argv)
   furman_ctx->t4 = 1.0;
   furman_ctx->s = 1.54;
 
+  cazaux_ctx->mass = 9.109e-31;
+  cazaux_ctx->charge = -1.602e-19;
+  cazaux_ctx->E_f = 100.0;
+  cazaux_ctx->phi = 4.68;
+
   struct vm_emission_ctx bc_ctx = {
     .num_species = 1,
-    .norm_type = { GKYL_BC_CHUNG_EVERHART },
-    .yield_type = { GKYL_BC_FURMAN_PIVI },
+    .elastic = true,
+    .norm_type = { GKYL_SEE_CHUNG_EVERHART },
+    .yield_type = { GKYL_SEE_FURMAN_PIVI },
+    .elastic_type = GKYL_BS_CAZAUX,
     .norm_params = { chung_ctx },
     .yield_params = { furman_ctx },
+    .elastic_params = cazaux_ctx,
     .in_species = { "elc" },
   };
 
@@ -145,7 +155,7 @@ main(int argc, char **argv)
     .charge = ctx.chargeElc, .mass = ctx.massElc,
     .lower = { -6.0 * ctx.vte},
     .upper = { 6.0 * ctx.vte}, 
-    .cells = { 64 },
+    .cells = { 128 },
 
     .projection = {
       .proj_id = GKYL_PROJ_FUNC,

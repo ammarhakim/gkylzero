@@ -1,0 +1,152 @@
+#pragma once
+
+// Private header for bc_emission_spectrum updater, not for direct use in user code.
+
+#include <gkyl_bc_emission_elastic.h>
+#include <gkyl_array_ops.h>
+#include <gkyl_dg_updater_moment.h>
+#include <math.h>
+#include <assert.h>
+
+typedef void (*emission_elastic_yield_func_t)(double t, const double *xn, double *fout, void *ctx);
+
+struct gkyl_bc_emission_elastic_funcs {
+  emission_elastic_yield_func_t yield;
+};
+
+// Primary struct for the updater
+struct gkyl_bc_emission_elastic {
+  int dir, cdim, vdim;
+  enum gkyl_edge_loc edge;
+  double charge;
+  double mass;
+  struct gkyl_basis *basis;
+  void *elastic_param;
+  void *elastic_param_cu;
+  struct gkyl_array_copy_func *reflect_func;
+  struct gkyl_rect_grid *grid;
+  struct gkyl_bc_emission_elastic_funcs *funcs;
+  struct gkyl_bc_emission_elastic_funcs *funcs_cu;
+  bool use_gpu;
+};
+
+GKYL_CU_D
+static void
+reflection(size_t nc, double *out, const double *inp, void *ctx)
+{
+  struct gkyl_bc_emission_elastic *bc_ctx = ctx;
+  int dir = bc_ctx->dir, cdim = bc_ctx->cdim;
+
+  bc_ctx->basis->flip_odd_sign(dir, inp, out);
+  bc_ctx->basis->flip_odd_sign(dir+cdim, out, out);
+}
+
+// Furman-Pivi SEY calculation
+GKYL_CU_D
+static void
+furman_pivi_yield(double t, const double *xn, double *fout, void *ctx)
+// Electron impact model adapted from https://link.aps.org/doi/10.1103/PhysRevSTAB.5.124404
+{
+  struct gkyl_bc_emission_elastic *bc_ctx = ctx;
+  struct gkyl_bc_emission_elastic_furman_pivi *param = bc_ctx->elastic_param;
+  int cdim = bc_ctx->cdim;
+  int vdim = bc_ctx->vdim;
+  double mass = param->mass;
+  double charge = param->charge;
+  double P1_inf = param->P1_inf;
+  double P1_hat = param->P1_hat;
+  double E_hat = param->E_hat;
+  double W = param->W;
+  double p = param->p;
+
+  double E = 0.0;
+  double mu = 1.0; // currently hardcoded to normal, will add angular dependence later
+  for (int d=0; d<vdim; d++) {
+    E += 0.5*mass*xn[cdim+d]*xn[cdim+d]/fabs(charge);
+  }
+  fout[0] = P1_inf + (P1_hat - P1_inf)*exp(pow(-fabs(E - E_hat)/W, p)/p);
+}
+
+// Schou SEY calculation
+GKYL_CU_D
+static void
+cazaux_yield(double t, const double *xn, double *fout, void *ctx)
+// Ion impact model adapted from https://doi.org/10.1103/PhysRevB.22.2141
+{ // No angular dependence atm. Will have to add later
+  struct gkyl_bc_emission_elastic *bc_ctx = ctx;
+  struct gkyl_bc_emission_elastic_cazaux *param = bc_ctx->elastic_param;
+  int cdim = bc_ctx->cdim;
+  int vdim = bc_ctx->vdim;
+  double mass = param->mass;   
+  double charge = param->charge;
+  double E_f = param->E_f;
+  double phi = param->phi;
+
+  double E = 0.0;   
+  for (int d=0; d<vdim; d++) {
+    E += 0.5*mass*xn[cdim+d]*xn[cdim+d]/fabs(charge);  // Calculate energy in keV
+  }  
+  double E_s = E + E_f + phi;
+  double G = 1 + (E_s - E)/E;
+
+  fout[0] = pow(1 - sqrt(G), 2)/pow(1 + sqrt(G), 2);
+}
+
+// Fixed constant SEY
+GKYL_CU_D
+static void
+constant_yield(double t, const double *xn, double *fout, void *ctx)
+{
+  struct gkyl_bc_emission_elastic *bc_ctx = ctx;
+  struct gkyl_bc_emission_elastic_constant *param = bc_ctx->elastic_param;
+  double delta = param->delta;
+
+  fout[0] = delta;
+}
+
+void
+gkyl_bc_emission_elastic_choose_func_cu(enum gkyl_bc_emission_elastic_type yield_type);
+
+GKYL_CU_D
+static emission_elastic_yield_func_t
+bc_emission_elastic_choose_yield_func(enum gkyl_bc_emission_elastic_type yield_type)
+{
+  switch (yield_type) {
+    case GKYL_BS_FURMAN_PIVI:
+      return furman_pivi_yield;
+    case GKYL_BS_CAZAUX:
+      return cazaux_yield;
+    case GKYL_BS_CONSTANT:
+      return constant_yield;
+    default:
+      assert(false);
+      break;
+  }
+}
+
+#ifdef GKYL_HAVE_CUDA
+
+/**
+ * CUDA device function to set up function to apply boundary conditions.
+ *
+ * @param up BC updater
+ * @param f_skin Skin cell distribution
+ * @param f_proj Projected spectrum distribution
+ * @param f_buff Distribution buffer array
+ * @param weight Weighting coefficients
+ * @param k Normalization factor
+ * @param flux Flux into boundary
+ * @param grid Domain grid
+ * @param gamma SE yield values on incoming ghost space
+ * @param skin_r Incoming skin space range
+ * @param ghost_r Incoming ghost space range
+ * @param conf_r Configuration space range
+ * @param buff_r Buffer array range
+ */
+void gkyl_bc_emission_elastic_advance_cu(const struct gkyl_bc_emission_spectrum *up,
+  const struct gkyl_array *f_skin, const struct gkyl_array *f_proj, struct gkyl_array *f_buff,
+  struct gkyl_array *weight, struct gkyl_array *k,
+  const struct gkyl_array *flux, struct gkyl_rect_grid *grid, struct gkyl_array *gamma,
+  const struct gkyl_range *skin_r, const struct gkyl_range *ghost_r, const struct gkyl_range *conf_r,
+  const struct gkyl_range *buff_r);
+#endif

@@ -7,14 +7,14 @@
 
 // BC types in this updater.
 enum gkyl_bc_emission_spectrum_norm_type {
-  GKYL_BC_CHUNG_EVERHART = 0,
-  GKYL_BC_GAUSSIAN = 1,
-  GKYL_BC_MAXWELLIAN = 2};
+  GKYL_SEE_CHUNG_EVERHART = 0,
+  GKYL_SEE_GAUSSIAN = 1,
+  GKYL_SEE_MAXWELLIAN = 2};
 
 enum gkyl_bc_emission_spectrum_yield_type {
-  GKYL_BC_FURMAN_PIVI = 0,
-  GKYL_BC_SCHOU = 1,
-  GKYL_BC_CONSTANT = 2};
+  GKYL_SEE_FURMAN_PIVI = 0,
+  GKYL_SEE_SCHOU = 1,
+  GKYL_SEE_CONSTANT = 2};
 
 struct gkyl_bc_emission_spectrum_norm_gaussian {
   int cdim;

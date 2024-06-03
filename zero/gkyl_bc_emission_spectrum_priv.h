@@ -234,11 +234,11 @@ static emission_spectrum_spec_func_t
 bc_emission_spectrum_choose_spec_func(enum gkyl_bc_emission_spectrum_norm_type norm_type)
 {
   switch (norm_type) {
-    case GKYL_BC_CHUNG_EVERHART:
+    case GKYL_SEE_CHUNG_EVERHART:
       return chung_everhart_spec;
-    case GKYL_BC_GAUSSIAN:
+    case GKYL_SEE_GAUSSIAN:
       return gaussian_spec;
-    case GKYL_BC_MAXWELLIAN:
+    case GKYL_SEE_MAXWELLIAN:
       return maxwellian_spec;
     default:
       assert(false);
@@ -251,11 +251,11 @@ static emission_spectrum_norm_func_t
 bc_emission_spectrum_choose_norm_func(enum gkyl_bc_emission_spectrum_norm_type norm_type)
 {
   switch (norm_type) {
-    case GKYL_BC_CHUNG_EVERHART:
+    case GKYL_SEE_CHUNG_EVERHART:
       return chung_everhart_norm;
-    case GKYL_BC_GAUSSIAN:
+    case GKYL_SEE_GAUSSIAN:
       return gaussian_norm;
-    case GKYL_BC_MAXWELLIAN:
+    case GKYL_SEE_MAXWELLIAN:
       return maxwellian_norm;
     default:
       assert(false);
@@ -268,11 +268,11 @@ static emission_spectrum_yield_func_t
 bc_emission_spectrum_choose_yield_func(enum gkyl_bc_emission_spectrum_yield_type yield_type)
 {
   switch (yield_type) {
-    case GKYL_BC_FURMAN_PIVI:
+    case GKYL_SEE_FURMAN_PIVI:
       return furman_pivi_yield;
-    case GKYL_BC_SCHOU:
+    case GKYL_SEE_SCHOU:
       return schou_yield;
-    case GKYL_BC_CONSTANT:
+    case GKYL_SEE_CONSTANT:
       return constant_yield;
     default:
       assert(false);

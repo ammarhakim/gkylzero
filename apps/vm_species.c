@@ -387,7 +387,8 @@ vm_species_rhs(gkyl_vlasov_app *app, struct vm_species *species,
 // Determine which directions are periodic and which directions are not periodic,
 // and then apply boundary conditions for distribution function
 void
-vm_species_apply_bc(gkyl_vlasov_app *app, const struct vm_species *species, struct gkyl_array *f)
+vm_species_apply_bc(gkyl_vlasov_app *app, const struct vm_species *species, struct gkyl_array *f,
+  double tcurr)
 {
   struct timespec wst = gkyl_wall_clock();
   
@@ -404,7 +405,7 @@ vm_species_apply_bc(gkyl_vlasov_app *app, const struct vm_species *species, stru
 
       switch (species->lower_bc[d].type) {
         case GKYL_SPECIES_EMISSION:
-          vm_species_emission_apply_bc(app, &species->bc_emission_lo, f);
+          vm_species_emission_apply_bc(app, &species->bc_emission_lo, f, tcurr);
           break;
         case GKYL_SPECIES_COPY:
         case GKYL_SPECIES_REFLECT:
@@ -424,7 +425,7 @@ vm_species_apply_bc(gkyl_vlasov_app *app, const struct vm_species *species, stru
 
       switch (species->upper_bc[d].type) {
         case GKYL_SPECIES_EMISSION:
-          vm_species_emission_apply_bc(app, &species->bc_emission_up, f);
+          vm_species_emission_apply_bc(app, &species->bc_emission_up, f, tcurr);
           break;
         case GKYL_SPECIES_COPY:
         case GKYL_SPECIES_REFLECT:

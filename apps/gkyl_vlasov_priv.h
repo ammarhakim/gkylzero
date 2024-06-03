@@ -18,6 +18,7 @@
 #include <gkyl_array_rio.h>
 #include <gkyl_bc_basic.h>
 #include <gkyl_bc_emission_spectrum.h>
+#include <gkyl_bc_emission_elastic.h>
 #include <gkyl_bgk_collisions.h>
 #include <gkyl_dg_advection.h>
 #include <gkyl_dg_bin_ops.h>
@@ -199,7 +200,7 @@ struct vm_boundary_fluxes {
 };
 
 // context for use in computing applied acceleration
-struct vm_emission_ctx { int num_species; enum gkyl_bc_emission_spectrum_norm_type norm_type[GKYL_MAX_SPECIES]; enum gkyl_bc_emission_spectrum_yield_type yield_type[GKYL_MAX_SPECIES]; void *norm_params[GKYL_MAX_SPECIES]; void *yield_params[GKYL_MAX_SPECIES]; char in_species[GKYL_MAX_SPECIES][128]; };
+struct vm_emission_ctx { int num_species; double t_bound; bool elastic; enum gkyl_bc_emission_spectrum_norm_type norm_type[GKYL_MAX_SPECIES]; enum gkyl_bc_emission_spectrum_yield_type yield_type[GKYL_MAX_SPECIES]; enum gkyl_bc_emission_elastic_type elastic_type; void *norm_params[GKYL_MAX_SPECIES]; void *yield_params[GKYL_MAX_SPECIES]; void *elastic_params; char in_species[GKYL_MAX_SPECIES][128]; };
 
 struct vm_emitting_wall {
   // emitting wall sheath boundary conditions
@@ -207,9 +208,14 @@ struct vm_emitting_wall {
   int dir;
   enum gkyl_edge_loc edge;
   double *scale_ptr;
+  double t_bound;
+  bool elastic;
 
   struct gkyl_bc_emission_spectrum *update[GKYL_MAX_SPECIES];
+  struct gkyl_bc_emission_elastic *elastic_update;
   struct gkyl_array *f_emit;
+  struct gkyl_array *buffer;
+  struct gkyl_array *elastic_yield;
   struct gkyl_array *yield[GKYL_MAX_SPECIES]; // projected secondary electron yield
   struct gkyl_array *spectrum[GKYL_MAX_SPECIES]; // projected secondary electron spectrum
   struct gkyl_array *weight[GKYL_MAX_SPECIES];
@@ -230,6 +236,7 @@ struct vm_emitting_wall {
   struct gkyl_rect_grid *emit_grid;
   struct gkyl_range *emit_buff_r;
   struct gkyl_range *emit_ghost_r;
+  struct gkyl_range *emit_skin_r;
 };
 
 struct vm_proj {
@@ -650,7 +657,8 @@ void vm_species_emission_init(struct gkyl_vlasov_app *app, struct vm_emitting_wa
 void vm_species_emission_cross_init(struct gkyl_vlasov_app *app, struct vm_species *s,
   struct vm_emitting_wall *emit);
 
-void vm_species_emission_apply_bc(struct gkyl_vlasov_app *app, const struct vm_emitting_wall *emit, struct gkyl_array *fout);
+void vm_species_emission_apply_bc(struct gkyl_vlasov_app *app, const struct vm_emitting_wall *emit,
+  struct gkyl_array *fout, double tcurr);
 
 void vm_species_emission_release(const struct vm_emitting_wall *emit);
 
@@ -930,7 +938,7 @@ double vm_species_rhs(gkyl_vlasov_app *app, struct vm_species *species,
  * @param species Pointer to species
  * @param f Field to apply BCs
  */
-void vm_species_apply_bc(gkyl_vlasov_app *app, const struct vm_species *species, struct gkyl_array *f);
+void vm_species_apply_bc(gkyl_vlasov_app *app, const struct vm_species *species, struct gkyl_array *f, double tcurr);
 
 /**
  * Compute L2 norm (f^2) of the distribution function diagnostic
