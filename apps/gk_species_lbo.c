@@ -37,8 +37,13 @@ gk_species_lbo_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s, stru
     double bmag_mid = s->info.collisions.bmag_mid ? s->info.collisions.bmag_mid : bmag_mid_ptr[0];
     gkyl_array_release(bmag_mid_host);
 
-    double tpar_min = (s->info.mass/6.0)*pow(s->grid.dx[cdim],2);
-    double tperp_min = vdim>1 ? (bmag_mid/3.0)*s->grid.dx[cdim+1] : tpar_min;
+    // Compute a minimum representable temperature based on the largest dv in the grid.
+    // This is pessimistic for nonuniform grids, but it's a conservative choice for now.
+    double dv_max[vdim];
+    gkyl_velocity_map_reduce_dv_range(s->vel_map, GKYL_MAX, dv_max, s->vel_map->local_vel);
+
+    double tpar_min = (s->info.mass/6.0)*pow(dv_max[0],2);
+    double tperp_min = vdim>1 ? (bmag_mid/3.0)*dv_max[1] : tpar_min;
     lbo->vtsq_min = (tpar_min + 2.0*tperp_min)/(3.0*s->info.mass);
 
     lbo->spitzer_calc = gkyl_spitzer_coll_freq_new(&app->confBasis, app->poly_order+1,
