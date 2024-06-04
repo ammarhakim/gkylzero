@@ -47,7 +47,7 @@ struct all_radiation_states{
 /* Function to read in all the radiation fit parameters stored in "radiation_fit_params.txt"
  * @return pointer to structure of all_radiation_states
  */
-struct all_radiation_states* gkyl_read_rad_fit_params();
+struct all_radiation_states* gkyl_radiation_read_rad_fit_params();
 
 /* Function to return the fit information for a specfied atomic number, charge state, and ne
  * @param all_radiation_states rad data: Struct containing radiation fit data
@@ -58,7 +58,7 @@ struct all_radiation_states* gkyl_read_rad_fit_params();
  * @param electron densities: Array of electron densities
  * @return 1 if fit doesn't exist
  */
-int gkyl_get_fit_params(const struct all_radiation_states rad_data, int atomic_z,
+int gkyl_radiation_read_get_fit_params(const struct all_radiation_states rad_data, int atomic_z,
   int charge_state, double *a, double *alpha, double *beta, double *gamma, double *V0, int *num_densities, double *electron_densities);
 
 /* Function to return the fit emissivity (Lz) and temperature closest to a given input temperature
@@ -69,9 +69,9 @@ int gkyl_get_fit_params(const struct all_radiation_states rad_data, int atomic_z
  * @param te: returns closest fit temperature to input te
  * @param Lz: returns Lz for closest temperature to input te 
  */
-int gkyl_get_fit_lz(const struct all_radiation_states rad_data, int atomic_z, int charge_state, double ne, double* te, double* Lz);
+int gkyl_radiation_read_get_fit_lz(const struct all_radiation_states rad_data, int atomic_z, int charge_state, double ne, double* te, double* Lz);
 
 /*  Free memory of all_radiation_states
  * @param all_radiation_states rad data: Struct containing radiation fit data
  */
-void gkyl_release_fit_params(struct all_radiation_states *rad_data);
+void gkyl_radiation_read_release_fit_params(struct all_radiation_states *rad_data);

@@ -1,5 +1,5 @@
-#include <gkyl_read_radiation.h>
 #include <gkyl_util.h>
+#include <gkyl_radiation_read.h>
 
 #define XSTR(x) #x
 #define STR(x) XSTR(x)
@@ -9,7 +9,7 @@
  * DELIM can be any of: ,:;=
  */
 static inline void
-read_two_numbers(FILE *fptr, int *num1, int *num2){
+gkyl_radiation_read_two_numbers(FILE *fptr, int *num1, int *num2){
   char str[BUFFER_LEN];
   char delim[5]="=,;:";
   if(fgets(str,BUFFER_LEN,fptr)!=NULL) {
@@ -23,7 +23,7 @@ read_two_numbers(FILE *fptr, int *num1, int *num2){
 /* Concatenate two strings 
  */
 static inline char *
-concat(const char *s1, const char *s2)
+gkyl_radiation_read_concat(const char *s1, const char *s2)
 {
   char *result = malloc(strlen(s1) + strlen(s2) + 1); // +1 for the null-terminator
   strcpy(result, s1);
@@ -31,9 +31,9 @@ concat(const char *s1, const char *s2)
   return result;
 }
 
-struct all_radiation_states* gkyl_read_rad_fit_params(){
+struct all_radiation_states* gkyl_radiation_read_rad_fit_params(){
 
-  char *filepath=concat(STR(GKYL_SHARE_DIR),"/adas/radiation_fit_parameters.txt");
+  char *filepath=gkyl_radiation_read_concat(STR(GKYL_SHARE_DIR),"/adas/radiation_fit_parameters.txt");
   FILE *fptr = fopen(filepath,"r");
   if (fptr == NULL){
     printf("Error opening radiation fit file: %s\n", filepath);
@@ -42,7 +42,7 @@ struct all_radiation_states* gkyl_read_rad_fit_params(){
   free(filepath);
   // Read header: Max z of elements, number of elements
   int number_elements, max_atomic_number;
-  read_two_numbers(fptr, &max_atomic_number, &number_elements);
+  gkyl_radiation_read_two_numbers(fptr, &max_atomic_number, &number_elements);
   int max_charge_state = max_atomic_number;
 
   struct all_radiation_states *rad_data = malloc(sizeof(struct all_radiation_states));
@@ -70,12 +70,12 @@ struct all_radiation_states* gkyl_read_rad_fit_params(){
     // For each element, read atomic number and # of charge states
     num_of_charge_states = 0;
     while (num_of_charge_states == 0)
-      read_two_numbers(fptr, &atomic_number, &num_of_charge_states);
+      gkyl_radiation_read_two_numbers(fptr, &atomic_number, &num_of_charge_states);
     
     atomic_number = atomic_number-1;  // convert to based 0 array
     for (int j=0; j<num_of_charge_states; j++) {
       // For each charge state, read # of density intervals
-      read_two_numbers(fptr, &charge_state, &density_intervals);
+      gkyl_radiation_read_two_numbers(fptr, &charge_state, &density_intervals);
       charge_state = charge_state-1;  // convert to based 0 array
       if (density_intervals>0) {
 	int index = atomic_number*max_charge_state+charge_state;
@@ -123,7 +123,7 @@ struct all_radiation_states* gkyl_read_rad_fit_params(){
   return rad_data;
 }
 
-int gkyl_get_fit_params(const struct all_radiation_states rad_data, int atomic_z, int charge_state, double *a, double *alpha, double *beta, double *gamma, double *V0, int *num_densities, double electron_densities[GKYL_MAX_RAD_DENSITIES]){
+int gkyl_radiation_read_get_fit_params(const struct all_radiation_states rad_data, int atomic_z, int charge_state, double *a, double *alpha, double *beta, double *gamma, double *V0, int *num_densities, double electron_densities[GKYL_MAX_RAD_DENSITIES]){
   int location = 0;
   double ref_dens = 19;
   atomic_z = atomic_z-1;
@@ -166,7 +166,7 @@ int gkyl_get_fit_params(const struct all_radiation_states rad_data, int atomic_z
   return 0;
 }
 
-int gkyl_get_fit_lz(const struct all_radiation_states rad_data, int atomic_z, int charge_state, double ne, double* te, double* Lz){
+int gkyl_radiation_read_get_fit_lz(const struct all_radiation_states rad_data, int atomic_z, int charge_state, double ne, double* te, double* Lz){
   int location = 0;
   atomic_z = atomic_z-1;
   int index = atomic_z*rad_data.max_atomic_number+charge_state;
@@ -190,7 +190,7 @@ int gkyl_get_fit_lz(const struct all_radiation_states rad_data, int atomic_z, in
   return 0;
 }
 
-void gkyl_release_fit_params(struct all_radiation_states *rad_data){
+void gkyl_radiation_read_release_fit_params(struct all_radiation_states *rad_data){
   int max_Z = rad_data->max_atomic_number;
   for (int i=0; i<max_Z; i++){
     for (int j=0; j<max_Z; j++){
