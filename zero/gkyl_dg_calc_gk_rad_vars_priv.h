@@ -10,7 +10,7 @@
 #include <gkyl_util.h>
 #include <assert.h>
 
-typedef void (*rad_gyrokinetic_nu_t)(const double *vmap, const double *vmapSq,
+typedef void (*rad_gyrokinetic_nu_t)(const double *dv_min, const double *vmap, const double *vmapSq,
   double charge, double mass, double a, double alpha, double beta, double gamma, double v0, 
   const double *bmag, double* GKYL_RESTRICT drag_rad_surf, double* GKYL_RESTRICT drag_rad); 
 
@@ -45,6 +45,7 @@ struct gkyl_dg_calc_gk_rad_vars {
   double a, alpha, beta, gamma, v0; // Fitting parameters for radiation drag coefficient
   const struct gk_geometry *gk_geom; // Pointer to geometry struct
   const struct gkyl_velocity_map *vel_map; // Velocity space mapping object.
+  double dv_min[2]; // Minimum cell lengths in velocity grid.
 
   uint32_t flags;
   struct gkyl_dg_calc_gk_rad_vars *on_dev; // pointer to itself or device data

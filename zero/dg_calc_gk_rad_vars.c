@@ -37,6 +37,9 @@ gkyl_dg_calc_gk_rad_vars_new(const struct gkyl_rect_grid *phase_grid,
   up->gk_geom = gkyl_gk_geometry_acquire(gk_geom);
   up->vel_map = gkyl_velocity_map_acquire(vel_map);
 
+  // Obtain the minimum velocity cell length.
+  gkyl_velocity_map_reduce_dv_range(up->vel_map, GKYL_MIN, up->dv_min, up->vel_map->local_vel);
+
   // Fitting parameters for a given collision type
   up->a = a;
   up->alpha = alpha;
@@ -90,10 +93,10 @@ void gkyl_dg_calc_gk_rad_vars_nu_advance(const struct gkyl_dg_calc_gk_rad_vars *
     const double *vmap_d = gkyl_array_cfetch(up->vel_map->vmap, loc_vel);
     const double *vmapSq_d = gkyl_array_cfetch(up->vel_map->vmap_sq, loc_vel);
 
-    up->rad_nu_vpar(vmap_d, vmapSq_d, up->charge, up->mass, 
+    up->rad_nu_vpar(up->dv_min, vmap_d, vmapSq_d, up->charge, up->mass, 
       up->a, up->alpha, up->beta, up->gamma, up->v0, 
       bmag_d, vnu_surf_d, vnu_d);
-    up->rad_nu_mu(vmap_d, vmapSq_d, up->charge, up->mass, 
+    up->rad_nu_mu(up->dv_min, vmap_d, vmapSq_d, up->charge, up->mass, 
       up->a, up->alpha, up->beta, up->gamma, up->v0, 
       bmag_d, vsqnu_surf_d, vsqnu_d);
   }

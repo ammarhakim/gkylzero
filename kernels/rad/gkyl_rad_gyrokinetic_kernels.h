@@ -26,10 +26,10 @@ GKYL_CU_DH double rad_gyrokinetic_boundary_surfmu_1x2v_ser_p1(const double *w, c
             const double *vmap_prime_edge, const double *vmap_prime_skin, 
             const double *nvnu_edge, const double *nvnu_skin, const double *nvsqnu_edge, const double *nvsqnu_skin, 
             const int edge, const double *fedge, const double *fskin, double* GKYL_RESTRICT out) ; 
-GKYL_CU_DH void rad_gyrokinetic_drag_nuvpar_1x2v_ser_p1(const double *vmap, const double *vmapSq,
+GKYL_CU_DH void rad_gyrokinetic_drag_nuvpar_1x2v_ser_p1(const double *dv_min, const double *vmap, const double *vmapSq,
             double charge, double mass, double a, double alpha, double beta, double gamma, double v0, 
             const double *bmag, double* GKYL_RESTRICT drag_rad_surf, double* GKYL_RESTRICT drag_rad); 
-GKYL_CU_DH void rad_gyrokinetic_drag_numu_1x2v_ser_p1(const double *vmap, const double *vmapSq,
+GKYL_CU_DH void rad_gyrokinetic_drag_numu_1x2v_ser_p1(const double *dv_min, const double *vmap, const double *vmapSq,
             double charge, double mass, double a, double alpha, double beta, double gamma, double v0, 
             const double *bmag, double* GKYL_RESTRICT drag_rad_surf, double* GKYL_RESTRICT drag_rad); 
 GKYL_CU_DH void rad_gyrokinetic_drag_nI_nu_1x2v_ser_p1(const double *vnu_surf, const double *vnu,
@@ -58,10 +58,10 @@ GKYL_CU_DH double rad_gyrokinetic_boundary_surfmu_1x2v_ser_p2(const double *w, c
             const double *vmap_prime_edge, const double *vmap_prime_skin, 
             const double *nvnu_edge, const double *nvnu_skin, const double *nvsqnu_edge, const double *nvsqnu_skin, 
             const int edge, const double *fedge, const double *fskin, double* GKYL_RESTRICT out) ; 
-GKYL_CU_DH void rad_gyrokinetic_drag_nuvpar_1x2v_ser_p2(const double *vmap, const double *vmapSq,
+GKYL_CU_DH void rad_gyrokinetic_drag_nuvpar_1x2v_ser_p2(const double *dv_min, const double *vmap, const double *vmapSq,
             double charge, double mass, double a, double alpha, double beta, double gamma, double v0, 
             const double *bmag, double* GKYL_RESTRICT drag_rad_surf, double* GKYL_RESTRICT drag_rad); 
-GKYL_CU_DH void rad_gyrokinetic_drag_numu_1x2v_ser_p2(const double *vmap, const double *vmapSq,
+GKYL_CU_DH void rad_gyrokinetic_drag_numu_1x2v_ser_p2(const double *dv_min, const double *vmap, const double *vmapSq,
             double charge, double mass, double a, double alpha, double beta, double gamma, double v0, 
             const double *bmag, double* GKYL_RESTRICT drag_rad_surf, double* GKYL_RESTRICT drag_rad); 
 GKYL_CU_DH void rad_gyrokinetic_drag_nI_nu_1x2v_ser_p2(const double *vnu_surf, const double *vnu,
@@ -90,10 +90,10 @@ GKYL_CU_DH double rad_gyrokinetic_boundary_surfmu_2x2v_ser_p1(const double *w, c
             const double *vmap_prime_edge, const double *vmap_prime_skin, 
             const double *nvnu_edge, const double *nvnu_skin, const double *nvsqnu_edge, const double *nvsqnu_skin, 
             const int edge, const double *fedge, const double *fskin, double* GKYL_RESTRICT out) ; 
-GKYL_CU_DH void rad_gyrokinetic_drag_nuvpar_2x2v_ser_p1(const double *vmap, const double *vmapSq,
+GKYL_CU_DH void rad_gyrokinetic_drag_nuvpar_2x2v_ser_p1(const double *dv_min, const double *vmap, const double *vmapSq,
             double charge, double mass, double a, double alpha, double beta, double gamma, double v0, 
             const double *bmag, double* GKYL_RESTRICT drag_rad_surf, double* GKYL_RESTRICT drag_rad); 
-GKYL_CU_DH void rad_gyrokinetic_drag_numu_2x2v_ser_p1(const double *vmap, const double *vmapSq,
+GKYL_CU_DH void rad_gyrokinetic_drag_numu_2x2v_ser_p1(const double *dv_min, const double *vmap, const double *vmapSq,
             double charge, double mass, double a, double alpha, double beta, double gamma, double v0, 
             const double *bmag, double* GKYL_RESTRICT drag_rad_surf, double* GKYL_RESTRICT drag_rad); 
 GKYL_CU_DH void rad_gyrokinetic_drag_nI_nu_2x2v_ser_p1(const double *vnu_surf, const double *vnu,
@@ -122,10 +122,10 @@ GKYL_CU_DH double rad_gyrokinetic_boundary_surfmu_2x2v_ser_p2(const double *w, c
             const double *vmap_prime_edge, const double *vmap_prime_skin, 
             const double *nvnu_edge, const double *nvnu_skin, const double *nvsqnu_edge, const double *nvsqnu_skin, 
             const int edge, const double *fedge, const double *fskin, double* GKYL_RESTRICT out) ; 
-GKYL_CU_DH void rad_gyrokinetic_drag_nuvpar_2x2v_ser_p2(const double *vmap, const double *vmapSq,
+GKYL_CU_DH void rad_gyrokinetic_drag_nuvpar_2x2v_ser_p2(const double *dv_min, const double *vmap, const double *vmapSq,
             double charge, double mass, double a, double alpha, double beta, double gamma, double v0, 
             const double *bmag, double* GKYL_RESTRICT drag_rad_surf, double* GKYL_RESTRICT drag_rad); 
-GKYL_CU_DH void rad_gyrokinetic_drag_numu_2x2v_ser_p2(const double *vmap, const double *vmapSq,
+GKYL_CU_DH void rad_gyrokinetic_drag_numu_2x2v_ser_p2(const double *dv_min, const double *vmap, const double *vmapSq,
             double charge, double mass, double a, double alpha, double beta, double gamma, double v0, 
             const double *bmag, double* GKYL_RESTRICT drag_rad_surf, double* GKYL_RESTRICT drag_rad); 
 GKYL_CU_DH void rad_gyrokinetic_drag_nI_nu_2x2v_ser_p2(const double *vnu_surf, const double *vnu,
@@ -154,10 +154,10 @@ GKYL_CU_DH double rad_gyrokinetic_boundary_surfmu_3x2v_ser_p1(const double *w, c
             const double *vmap_prime_edge, const double *vmap_prime_skin, 
             const double *nvnu_edge, const double *nvnu_skin, const double *nvsqnu_edge, const double *nvsqnu_skin, 
             const int edge, const double *fedge, const double *fskin, double* GKYL_RESTRICT out) ; 
-GKYL_CU_DH void rad_gyrokinetic_drag_nuvpar_3x2v_ser_p1(const double *vmap, const double *vmapSq,
+GKYL_CU_DH void rad_gyrokinetic_drag_nuvpar_3x2v_ser_p1(const double *dv_min, const double *vmap, const double *vmapSq,
             double charge, double mass, double a, double alpha, double beta, double gamma, double v0, 
             const double *bmag, double* GKYL_RESTRICT drag_rad_surf, double* GKYL_RESTRICT drag_rad); 
-GKYL_CU_DH void rad_gyrokinetic_drag_numu_3x2v_ser_p1(const double *vmap, const double *vmapSq,
+GKYL_CU_DH void rad_gyrokinetic_drag_numu_3x2v_ser_p1(const double *dv_min, const double *vmap, const double *vmapSq,
             double charge, double mass, double a, double alpha, double beta, double gamma, double v0, 
             const double *bmag, double* GKYL_RESTRICT drag_rad_surf, double* GKYL_RESTRICT drag_rad); 
 GKYL_CU_DH void rad_gyrokinetic_drag_nI_nu_3x2v_ser_p1(const double *vnu_surf, const double *vnu,
