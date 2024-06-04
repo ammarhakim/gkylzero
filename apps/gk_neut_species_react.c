@@ -35,9 +35,17 @@ gk_neut_species_react_cross_init(struct gkyl_gyrokinetic_app *app, struct gk_neu
     gk_species_moment_init(app, &app->species[react->elc_idx[i]], &react->moms_elc[i], "ThreeMoments");
     gk_species_moment_init(app, &app->species[react->ion_idx[i]], &react->moms_ion[i], "ThreeMoments");
 
-    react->donor_idx[i] = gk_find_neut_species_idx(app, react->react_type[i].donor_nm);
-    gk_neut_species_moment_init(app, &app->neut_species[react->donor_idx[i]], &react->moms_donor[i], "FiveMoments");   
+    if (gk_find_neut_species(app, react->react_type[i].donor_nm)) {
+      react->donor_idx[i] = gk_find_neut_species_idx(app, react->react_type[i].donor_nm);
+      gk_neut_species_moment_init(app, &app->neut_species[react->donor_idx[i]], &react->moms_donor[i], "FiveMoments");   
+    }
+    if (gk_find_neut_species(app, react->react_type[i].partner_nm)) {
+      react->partner_idx[i] = gk_find_neut_species_idx(app, react->react_type[i].partner_nm);
+      gk_neut_species_moment_init(app, &app->neut_species[react->partner_idx[i]], &react->moms_partner[i], "FiveMoments");
 
+      react->prim_vars_cxi[i] = mkarr(app->use_gpu, (2+app->vdim)*app->confBasis.num_basis, app->local_ext.volume);
+      react->prim_vars_cxn[i] = mkarr(app->use_gpu, (2+app->vdim)*app->confBasis.num_basis, app->local_ext.volume);
+    }
     react->coeff_react[i] = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
     react->vt_sq_iz1[i] = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
     react->vt_sq_iz2[i] = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
@@ -150,17 +158,14 @@ gk_neut_species_react_cross_moms(gkyl_gyrokinetic_app *app, const struct gk_neut
       // calc moms_ion, moms_neut
       gk_species_moment_calc(&react->moms_ion[i], app->species[react->ion_idx[i]].local,
         app->local, fin[react->ion_idx[i]]);
-
       for (int j=0; j<react->moms_ion[i].num_mom; ++j) {
         gkyl_dg_div_op_range(react->moms_ion[i].mem_geo, app->confBasis, j, react->moms_ion[i].marr, j,
           react->moms_ion[i].marr, 0, app->gk_geom->jacobgeo, &app->local);
       }
-
       gkyl_array_set_range(react->m0_ion[i], 1.0, react->moms_ion[i].marr, &app->local);
 
       gk_neut_species_moment_calc(&react->moms_partner[i], app->neut_species[react->partner_idx[i]].local,
         app->local, fin_neut[react->partner_idx[i]]);
-
       for (int j=0; j<react->moms_partner[i].num_mom; ++j) {
         gkyl_dg_div_op_range(react->moms_partner[i].mem_geo, app->confBasis, j, react->moms_partner[i].marr, j,
           react->moms_partner[i].marr, 0, app->gk_geom->jacobgeo, &app->local);
@@ -169,14 +174,13 @@ gk_neut_species_react_cross_moms(gkyl_gyrokinetic_app *app, const struct gk_neut
 
       // prim_vars_neut_gk is returned to prim_vars[i] here.
       gkyl_dg_cx_coll(react->cx[i], app->species[react->ion_idx[i]].vtsq_min, app->neut_species[react->partner_idx[i]].vtsq_min,
-        react->moms_ion[i].marr, react->moms_partner[i].marr, app->gk_geom->b_i, react->prim_vars_cxi[i],
+        react->moms_ion[i].marr, react->moms_partner[i].marr, app->gk_geom->bcart, react->prim_vars_cxi[i],
         react->prim_vars_cxn[i], react->prim_vars[i], react->coeff_react[i], 0);
     }
   }
 }
 
 // updates the reaction terms in the rhs
-// CORRECT FOR JACOBIAN TERMS HERE TOO!
 void
 gk_neut_species_react_rhs(gkyl_gyrokinetic_app *app, const struct gk_neut_species *s,
   struct gk_react *react, const struct gkyl_array *fin, struct gkyl_array *rhs)
