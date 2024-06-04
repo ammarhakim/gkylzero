@@ -11,19 +11,19 @@
 
 gkyl_dg_calc_gk_rad_vars* 
 gkyl_dg_calc_gk_rad_vars_new(const struct gkyl_rect_grid *phase_grid, 
-  const struct gkyl_basis *conf_basis, const struct gkyl_basis *phase_basis, 
-  double charge, double mass, const struct gk_geometry *gk_geom, 
-  double a, double alpha, double beta, double gamma, double v0, 
-  bool use_gpu) 
+  const struct gkyl_basis *conf_basis, const struct gkyl_basis *phase_basis, double charge,
+  double mass, const struct gk_geometry *gk_geom, const struct gkyl_velocity_map *vel_map, 
+  double a, double alpha, double beta, double gamma, double v0, bool use_gpu) 
 {
 #ifdef GKYL_HAVE_CUDA
-  if(use_gpu) {
+  if (use_gpu) {
     return gkyl_dg_calc_gk_rad_vars_cu_dev_new(phase_grid, conf_basis, phase_basis, 
-      charge, mass, gk_geom, 
-      a, alpha, beta, gamma, v0);
+      charge, mass, gk_geom, vel_map, a, alpha, beta, gamma, v0);
   } 
 #endif 
+
   gkyl_dg_calc_gk_rad_vars *up = gkyl_malloc(sizeof(*up));
+
   up->phase_grid = *phase_grid;
   int cdim = conf_basis->ndim;
   int pdim = phase_basis->ndim;
@@ -35,6 +35,7 @@ gkyl_dg_calc_gk_rad_vars_new(const struct gkyl_rect_grid *phase_grid,
   up->charge = charge;
   up->mass = mass;
   up->gk_geom = gkyl_gk_geometry_acquire(gk_geom);
+  up->vel_map = gkyl_velocity_map_acquire(vel_map);
 
   // Fitting parameters for a given collision type
   up->a = a;
@@ -67,16 +68,18 @@ void gkyl_dg_calc_gk_rad_vars_nu_advance(const struct gkyl_dg_calc_gk_rad_vars *
 #endif
   int pdim = up->pdim;
   int cdim = up->cdim;
-  int idx[GKYL_MAX_DIM];
-  double xc[GKYL_MAX_DIM];
+  int idx[GKYL_MAX_DIM], idx_vel[2];
+
   struct gkyl_range_iter iter;
   gkyl_range_iter_init(&iter, phase_range);
-
   while (gkyl_range_iter_next(&iter)) {
     gkyl_copy_int_arr(pdim, iter.idx, idx);
+
+    for (int d=cdim; d<pdim; d++) idx_vel[d-cdim] = iter.idx[d];
+
     long loc_conf = gkyl_range_idx(conf_range, idx);
+    long loc_vel = gkyl_range_idx(&up->vel_map->local_vel, idx_vel);
     long loc_phase = gkyl_range_idx(phase_range, idx);
-    gkyl_rect_grid_cell_center(&up->phase_grid, idx, xc);
 
     const double *bmag_d = gkyl_array_cfetch(up->gk_geom->bmag, loc_conf);
 
@@ -84,11 +87,13 @@ void gkyl_dg_calc_gk_rad_vars_nu_advance(const struct gkyl_dg_calc_gk_rad_vars *
     double* vnu_d = gkyl_array_fetch(vnu, loc_phase);
     double* vsqnu_surf_d = gkyl_array_fetch(vsqnu_surf, loc_phase);  
     double* vsqnu_d = gkyl_array_fetch(vsqnu, loc_phase);   
+    const double *vmap_d = gkyl_array_cfetch(up->vel_map->vmap, loc_vel);
+    const double *vmapSq_d = gkyl_array_cfetch(up->vel_map->vmap_sq, loc_vel);
 
-    up->rad_nu_vpar(xc, up->phase_grid.dx, up->charge, up->mass, 
+    up->rad_nu_vpar(vmap_d, vmapSq_d, up->charge, up->mass, 
       up->a, up->alpha, up->beta, up->gamma, up->v0, 
       bmag_d, vnu_surf_d, vnu_d);
-    up->rad_nu_mu(xc, up->phase_grid.dx, up->charge, up->mass, 
+    up->rad_nu_mu(vmap_d, vmapSq_d, up->charge, up->mass, 
       up->a, up->alpha, up->beta, up->gamma, up->v0, 
       bmag_d, vsqnu_surf_d, vsqnu_d);
   }
@@ -113,13 +118,15 @@ void gkyl_dg_calc_gk_rad_vars_nI_nu_advance(const struct gkyl_dg_calc_gk_rad_var
   int cdim = up->cdim;
   int idx[GKYL_MAX_DIM];
   double xc[GKYL_MAX_DIM];
+
   struct gkyl_range_iter iter;
   gkyl_range_iter_init(&iter, phase_range);
-
   while (gkyl_range_iter_next(&iter)) {
     gkyl_copy_int_arr(pdim, iter.idx, idx);
+
     long loc_conf = gkyl_range_idx(conf_range, idx);
     long loc_phase = gkyl_range_idx(phase_range, idx);
+
     gkyl_rect_grid_cell_center(&up->phase_grid, idx, xc);
 
     const double* vnu_surf_d = gkyl_array_cfetch(vnu_surf, loc_phase);
@@ -142,6 +149,7 @@ void gkyl_dg_calc_gk_rad_vars_nI_nu_advance(const struct gkyl_dg_calc_gk_rad_var
 void gkyl_dg_calc_gk_rad_vars_release(gkyl_dg_calc_gk_rad_vars *up)
 {
   gkyl_gk_geometry_release(up->gk_geom);
+  gkyl_velocity_map_release(up->vel_map);
   if (GKYL_IS_CU_ALLOC(up->flags))
     gkyl_cu_free(up->on_dev);
   gkyl_free(up);

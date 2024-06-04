@@ -19,7 +19,19 @@ struct gkyl_proj_on_basis {
   struct gkyl_array *ordinates; // ordinates for quadrature
   struct gkyl_array *weights; // weights for quadrature
   struct gkyl_array *basis_at_ords; // basis functions at ordinates
+
+  proj_on_basis_c2p_t c2p; // Function transformin comp to phys coords.
+  void *c2p_ctx; // Context for the c2p mapping.
 };
+
+// Identity comp to phys coord mapping, for when user doesn't provide a map.
+static inline void
+c2p_identity(const double *xcomp, double *xphys, void *ctx)
+{
+  struct gkyl_rect_grid *grid = ctx;
+  int ndim = grid->ndim;
+  for (int d=0; d<ndim; d++) xphys[d] = xcomp[d];
+}
 
 struct gkyl_proj_on_basis*
 gkyl_proj_on_basis_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis *basis,
@@ -32,7 +44,9 @@ gkyl_proj_on_basis_new(const struct gkyl_rect_grid *grid, const struct gkyl_basi
       .num_quad = num_quad,
       .num_ret_vals = num_ret_vals,
       .eval = eval,
-      .ctx = ctx
+      .ctx = ctx,
+      .c2p_func = 0,
+      .c2p_func_ctx = NULL,
     }
   );
 }
@@ -48,6 +62,15 @@ gkyl_proj_on_basis_inew(const struct gkyl_proj_on_basis_inp *inp)
   up->eval = inp->eval;
   up->ctx = inp->ctx;
   up->num_basis = inp->basis->num_basis;
+
+  if (inp->c2p_func == 0) {
+    up->c2p = c2p_identity;
+    up->c2p_ctx = &up->grid; // Use grid as the context since all we need is ndim.
+  }
+  else {
+    up->c2p = inp->c2p_func;
+    up->c2p_ctx = inp->c2p_func_ctx;
+  }
 
   double ordinates1[num_quad], weights1[num_quad];
 
@@ -120,10 +143,11 @@ double* gkyl_proj_on_basis_fetch_ordinate(const struct gkyl_proj_on_basis *up, l
 }
 
 static inline void
-comp_to_phys(int ndim, const double *eta,
+log_to_comp(int ndim, const double *eta,
   const double * GKYL_RESTRICT dx, const double * GKYL_RESTRICT xc,
   double* GKYL_RESTRICT xout)
 {
+  // Convert logical to computational coordinates.
   for (int d=0; d<ndim; ++d) xout[d] = 0.5*dx[d]*eta[d]+xc[d];
 }
 
@@ -171,8 +195,9 @@ gkyl_proj_on_basis_advance(const struct gkyl_proj_on_basis *up,
     gkyl_rect_grid_cell_center(&up->grid, iter.idx, xc);
 
     for (int i=0; i<tot_quad; ++i) {
-      comp_to_phys(up->grid.ndim, gkyl_array_cfetch(up->ordinates, i),
+      log_to_comp(up->grid.ndim, gkyl_array_cfetch(up->ordinates, i),
         up->grid.dx, xc, xmu);
+      up->c2p(xmu, xmu, up->c2p_ctx);
       up->eval(tm, xmu, gkyl_array_fetch(fun_at_ords, i), up->ctx);
     }
 

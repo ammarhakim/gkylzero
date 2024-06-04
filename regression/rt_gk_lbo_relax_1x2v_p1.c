@@ -79,7 +79,7 @@ create_ctx(void)
   double vtb = 1.0; // Bump Maxwellian thermal velocity.
 
   // Derived physical quantities (using normalized code units).
-  double ub = 4.0 * sqrt(((3.0 * vt / 2.0) * (3.0 * vt / 2.0)) / 3.0); // Bump location (in velocity space).
+  double ub = 4.0 * sqrt((pow(3.0 * vt / 2.0, 2.0)) / 3.0); // Bump location (in velocity space).
 
   // Simulation parameters.
   int Nz = 2; // Cell count (configuration space: z-direction).
@@ -87,9 +87,9 @@ create_ctx(void)
   int Nmu = 16; // Cell count (velocity space: magnetic moment direction).
   double Lz = 1.0; // Domain size (configuration space: z-direction).
   double vpar_max = 8.0 * vt; // Domain boundary (velocity space: parallel velocity direction).
-  double mu_max = 12.0 * (vt * vt) / 2.0 / B0; // Domain boundary (velocity space: magnetic moment direction).
+  double mu_max = 0.5 * pow(3.5*vt,2.0) / B0; // Domain boundary (velocity space: magnetic moment direction).
 
-  double t_end = 100.0; // Final simulation time.
+  double t_end = 0.5/nu; // Final simulation time.
   int num_frames = 1; // Number of output frames.
   int int_diag_calc_num = num_frames*100;
   double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.
@@ -128,7 +128,7 @@ void
 evalTopHatInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
 {
   struct lbo_relax_ctx *app = ctx;
-  double v = xn[1];
+  double vpar = xn[1], mu = xn[2];
 
   double n0 = app->n0;
   double vt = app->vt;
@@ -137,7 +137,7 @@ evalTopHatInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT f
 
   double dist = 0.0;
 
-  if (fabs(v) < v0) {
+  if (fabs(vpar) < v0) {
     dist = n0 / 2.0 / v0;
   }
   else {
@@ -152,7 +152,7 @@ void
 evalBumpInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
 {
   struct lbo_relax_ctx *app = ctx;
-  double v = xn[1], mu = xn[2];
+  double vpar = xn[1], mu = xn[2];
 
   double pi = app->pi;
 
@@ -167,11 +167,12 @@ evalBumpInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fou
 
   double ub = app->ub;
 
-  double v_sq = ((v - u0) / (sqrt(2.0) * vt)) * ((v - u0) / (sqrt(2.0) * vt)) + mu * B0;
-  double vb_sq = ((v - u0) / (sqrt(2.0) * vtb)) * ((v - u0) / (sqrt(2.0) * vtb)) + mu * B0;
+  double v_sq = pow((vpar - u0) / (sqrt(2.0) * vt), 2.0) + mu * B0;
+  double vb_sq = pow((vpar - u0) / (sqrt(2.0) * vtb), 2.0) + mu * B0;
 
   // Set distribution function.
-  fout[0] = (n0 / sqrt(2.0 * pi * vt)) * exp(-v_sq) + (n0 / sqrt(2.0 * pi * vtb)) * exp(-vb_sq) * (ab * ab) / ((v - ub) * (v - ub) + sb * sb);
+  fout[0] = (n0 / sqrt(2.0 * pi * vt)) * exp(-v_sq)
+           +(n0 / sqrt(2.0 * pi * vtb)) * exp(-vb_sq) * pow(ab,2.0) / (pow(vpar - ub,2.0) + pow(sb,2.0));
 }
 
 void
@@ -254,13 +255,6 @@ main(int argc, char **argv)
   int NZ = APP_ARGS_CHOOSE(app_args.xcells[0], ctx.Nz);
   int NVPAR = APP_ARGS_CHOOSE(app_args.vcells[0], ctx.Nvpar);
   int NMU = APP_ARGS_CHOOSE(app_args.vcells[1], ctx.Nmu);
-
-  int nrank = 1; // Number of processors in simulation.
-#ifdef GKYL_HAVE_MPI
-  if (app_args.use_mpi) {
-    MPI_Comm_size(MPI_COMM_WORLD, &nrank);
-  }
-#endif  
 
   // Create global range.
   int ccells[] = { NZ };
@@ -380,7 +374,7 @@ main(int argc, char **argv)
     .name = "bump",
     .charge = ctx.charge, .mass = ctx.mass,
     .lower = { -ctx.vpar_max, 0.0 },
-    .upper = { ctx.vpar_max, ctx.mu_max }, 
+    .upper = {  ctx.vpar_max, ctx.mu_max }, 
     .cells = { NVPAR, NMU },
     .polarization_density = ctx.n0,
 
@@ -445,8 +439,6 @@ main(int argc, char **argv)
       .comm = comm
     }
   };
-
-
 
   // Create app object.
   gkyl_gyrokinetic_app *app = gkyl_gyrokinetic_app_new(&app_inp);

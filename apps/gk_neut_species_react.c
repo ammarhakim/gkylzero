@@ -19,7 +19,7 @@ gk_neut_species_react_cross_init(struct gkyl_gyrokinetic_app *app, struct gk_neu
   // react->f_react = n_elc*coeff_react*fmax(n_ion, upar_ion b_i, vt_ion^2)
   react->f_react = mkarr(app->use_gpu, app->neut_basis.num_basis, s->local_ext.volume);
   react->proj_max = gkyl_proj_maxwellian_on_basis_new(&s->grid,
-    &app->confBasis, &app->neut_basis, app->neut_basis.poly_order+1, app->use_gpu);  
+    &app->confBasis, &app->neut_basis, app->neut_basis.poly_order+1, s->vel_map, app->use_gpu);  
 
   for (int i=0; i<react->num_react; ++i) {
     react->react_id[i] = react->react_type[i].react_id;
