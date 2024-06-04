@@ -135,7 +135,7 @@ void test_1x1v(int poly_order, bool use_gpu)
   struct gkyl_range confLocal, confLocal_ext; // local, local-ext conf-space ranges
   gkyl_create_grid_ranges(&confGrid, confGhost, &confLocal_ext, &confLocal);
 
-  int velGhost[vdim] = { 0 };
+  int velGhost[] = { 0, 0 };
   struct gkyl_range velLocal, velLocal_ext; // local, local-ext vel-space ranges
   gkyl_create_grid_ranges(&velGrid, velGhost, &velLocal_ext, &velLocal);
 
@@ -307,6 +307,7 @@ void test_1x1v(int poly_order, bool use_gpu)
  
   // Release memory for moment data object
   gkyl_gk_geometry_release(gk_geom);  
+  gkyl_velocity_map_release(gvm);
   gkyl_array_release(m0_in);
   gkyl_array_release(m1_in);
   gkyl_array_release(m2_in);
@@ -324,7 +325,6 @@ void test_1x1v(int poly_order, bool use_gpu)
   gkyl_proj_on_basis_release(proj_m1);
   gkyl_proj_on_basis_release(proj_m2);
   gkyl_proj_maxwellian_on_basis_release(proj_maxwellian);
-  gkyl_velocity_map_release(gvm);
 }
 
 void test_1x2v(int poly_order, bool use_gpu)
@@ -376,7 +376,7 @@ void test_1x2v(int poly_order, bool use_gpu)
   struct gkyl_range confLocal, confLocal_ext; // local, local-ext conf-space ranges
   gkyl_create_grid_ranges(&confGrid, confGhost, &confLocal_ext, &confLocal);
 
-  int velGhost[vdim] = { 0 };
+  int velGhost[] = { 0, 0 };
   struct gkyl_range velLocal, velLocal_ext; // local, local-ext vel-space ranges
   gkyl_create_grid_ranges(&velGrid, velGhost, &velLocal_ext, &velLocal);
 
@@ -544,24 +544,24 @@ void test_1x2v(int poly_order, bool use_gpu)
 
   // Release memory for moment data object
   gkyl_gk_geometry_release(gk_geom);  
+  gkyl_velocity_map_release(gvm);
   gkyl_array_release(m0_in);
   gkyl_array_release(m1_in);
   gkyl_array_release(m2_in);
   gkyl_array_release(moms_in);
-  // gkyl_array_release(moms_corr);
+  gkyl_array_release(moms_corr);
   gkyl_array_release(fM);
   if (use_gpu) {
     gkyl_array_release(m0_in_ho);
     gkyl_array_release(m1_in_ho);
     gkyl_array_release(m2_in_ho);
-    // gkyl_array_release(moms_corr_ho);
+    gkyl_array_release(moms_corr_ho);
     gkyl_array_release(fM_ho);
   }
   gkyl_proj_on_basis_release(proj_m0);
   gkyl_proj_on_basis_release(proj_m1);
   gkyl_proj_on_basis_release(proj_m2);
   gkyl_proj_maxwellian_on_basis_release(proj_maxwellian);
-  gkyl_velocity_map_release(gvm);
 }
 
 void test_2x2v(int poly_order, bool use_gpu)
@@ -569,6 +569,8 @@ void test_2x2v(int poly_order, bool use_gpu)
   double mass = 9.1e-31;
   double err_max = 1.0e-10, iter_max = 50;
   double vt = sqrt(10.0*1.602e-19/9.1e-31); // reference temperature
+  double lower[] = {-M_PI, -M_PI, -4.0*vt, 0.0}, upper[] = {M_PI, M_PI, 4.0*vt, 4.0*vt*vt*mass};
+  int cells[] = {4, 4, 16, 16};
   const int vdim = 2;
 
   const int ndim = sizeof(cells)/sizeof(cells[0]);
@@ -611,7 +613,7 @@ void test_2x2v(int poly_order, bool use_gpu)
   struct gkyl_range confLocal, confLocal_ext; // local, local-ext conf-space ranges
   gkyl_create_grid_ranges(&confGrid, confGhost, &confLocal_ext, &confLocal);
 
-  int velGhost[vdim] = { 0 };
+  int velGhost[] = { 0, 0 };
   struct gkyl_range velLocal, velLocal_ext; // local, local-ext vel-space ranges
   gkyl_create_grid_ranges(&velGrid, velGhost, &velLocal_ext, &velLocal);
 
@@ -781,6 +783,7 @@ void test_2x2v(int poly_order, bool use_gpu)
 
   // Release memory for moment data object
   gkyl_gk_geometry_release(gk_geom);  
+  gkyl_velocity_map_release(gvm);
   gkyl_array_release(m0_in);
   gkyl_array_release(m1_in);
   gkyl_array_release(m2_in);
@@ -798,9 +801,6 @@ void test_2x2v(int poly_order, bool use_gpu)
   gkyl_proj_on_basis_release(proj_m1);
   gkyl_proj_on_basis_release(proj_m2);
   gkyl_proj_maxwellian_on_basis_release(proj_maxwellian);
-  gkyl_velocity_map_release(gvm);
-  gkyl_mom_calc_release(momsCalc);
-  gkyl_mom_type_release(MOMS_t);
 }
 
 // Run the test
