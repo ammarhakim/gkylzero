@@ -154,7 +154,7 @@ create_ctx(void)
   // Simulation parameters.
   int Nx = 4; // Cell count (configuration space: x-direction).
   int Ny = 1; // Cell count (configuration space: y-direction).
-  int Nz = 8; // Cell count (configuration space: z-direction).
+  int Nz = 4; // Cell count (configuration space: z-direction).
   int Nvpar = 16; // Cell count (velocity space: parallel velocity direction).
   int Nmu = 16; // Cell count (velocity space: magnetic moment direction).
   double Lx = 1.0;
@@ -164,7 +164,7 @@ create_ctx(void)
   double mu_max_elc = (3.0 / 2.0) * 0.5 * mass_elc * pow(4.0 * vte,2) / (2.0 * B0); // Domain boundary (electron velocity space: magnetic moment direction).
   double vpar_max_ion = 4.0 * vti; // Domain boundary (ion velocity space: parallel velocity direction).
   double mu_max_ion = (3.0 / 2.0) * 0.5 * mass_ion * pow(4.0 * vti,2) / (2.0 * B0); // Domain boundary (ion velocity space: magnetic moment direction).
-  double vpar_max_D0 = 4*vtD0;
+  double vpar_max_D0 = 8.0*vtD0;
 
   double t_end = 6.0e-8; // Final simulation time.
   int num_frames = 1; // Number of output frames.
