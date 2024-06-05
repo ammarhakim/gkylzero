@@ -71,6 +71,38 @@ calc_sym_gradz_3D(double dz, double a_lll, double a_llu, double a_lul, double a_
   return (a_llu + a_luu + a_ulu + a_uuu - a_lll - a_lul - a_ull - a_uul)/(4*dz);
 }
 
+// Calculate symmetrized gradients 2D
+static inline double
+calc_sym_grad_limiter_2D(double alpha, double a, double b)
+{
+  double avg = (a + b)/2;
+  double min = fmin(alpha*a, a/alpha);
+  double max = fmax(alpha*a, a/alpha);
+  if (avg <= min) {
+    return min;
+  } else if (avg >= max) {
+    return max;
+  } else {
+    return avg;
+  }
+}
+
+// Calculate symmetrized gradients 3D
+static inline double
+calc_sym_grad_limiter_3D(double alpha, double a, double b, double c, double d)
+{
+  double avg = (a + b + c + d)/4;
+  double min = fmin(alpha*a, a/alpha);
+  double max = fmax(alpha*a, a/alpha);
+  if (avg <= min) {
+    return min;
+  } else if (avg >= max) {
+    return max;
+  } else {
+    return avg;
+  }
+}
+
 // In 1D, computes quantity at cell edge of two-cell interface
 static inline double
 calc_arithm_avg_1D(double a_l, double a_u)

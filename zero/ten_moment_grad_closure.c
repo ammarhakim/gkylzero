@@ -109,6 +109,19 @@ calc_unmag_heat_flux(const gkyl_ten_moment_grad_closure *gces,
   double dTdx[6] = {0.0};
   double dTdy[6] = {0.0};
   double dTdz[6] = {0.0};
+  double Ax[6] = {0.0};
+  double Ay[6] = {0.0};
+  double Az[6] = {0.0};
+  double Bx[6] = {0.0};
+  double By[6] = {0.0};
+  double Bz[6] = {0.0};
+  double Cx[6] = {0.0};
+  double Cy[6] = {0.0};
+  double Cz[6] = {0.0};
+  double Dx[6] = {0.0};
+  double Dy[6] = {0.0};
+  double Dz[6] = {0.0};
+  double limit = 0.75;
 
   if (ndim == 1) {
     const double dx = gces->grid.dx[0];
@@ -138,19 +151,47 @@ calc_unmag_heat_flux(const gkyl_ten_moment_grad_closure *gces,
     rho_avg = calc_harmonic_avg_2D(rho[LL_2D], rho[LU_2D], rho[UL_2D], rho[UU_2D]);
     p_avg = calc_harmonic_avg_2D(p[LL_2D], p[LU_2D], p[UL_2D], p[UU_2D]);
 
-    dTdx[T11] = calc_sym_gradx_2D(dx, Tij[LL_2D][T11], Tij[LU_2D][T11], Tij[UL_2D][T11], Tij[UU_2D][T11]);
-    dTdx[T12] = calc_sym_gradx_2D(dx, Tij[LL_2D][T12], Tij[LU_2D][T12], Tij[UL_2D][T12], Tij[UU_2D][T12]);
-    dTdx[T13] = calc_sym_gradx_2D(dx, Tij[LL_2D][T13], Tij[LU_2D][T13], Tij[UL_2D][T13], Tij[UU_2D][T13]);
-    dTdx[T22] = calc_sym_gradx_2D(dx, Tij[LL_2D][T22], Tij[LU_2D][T22], Tij[UL_2D][T22], Tij[UU_2D][T22]);
-    dTdx[T23] = calc_sym_gradx_2D(dx, Tij[LL_2D][T23], Tij[LU_2D][T23], Tij[UL_2D][T23], Tij[UU_2D][T23]);
-    dTdx[T33] = calc_sym_gradx_2D(dx, Tij[LL_2D][T33], Tij[LU_2D][T33], Tij[UL_2D][T33], Tij[UU_2D][T33]);
+    Ax[T11] = calc_sym_grad_1D(dx, Tij[LL_2D][T11], Tij[UL_2D][T11]);
+    Ax[T12] = calc_sym_grad_1D(dx, Tij[LL_2D][T12], Tij[UL_2D][T12]);
+    Ax[T13] = calc_sym_grad_1D(dx, Tij[LL_2D][T13], Tij[UL_2D][T13]);
+    Ax[T22] = calc_sym_grad_1D(dx, Tij[LL_2D][T22], Tij[UL_2D][T22]);
+    Ax[T23] = calc_sym_grad_1D(dx, Tij[LL_2D][T23], Tij[UL_2D][T23]);
+    Ax[T33] = calc_sym_grad_1D(dx, Tij[LL_2D][T33], Tij[UL_2D][T33]);
 
-    dTdy[T11] = calc_sym_grady_2D(dy, Tij[LL_2D][T11], Tij[LU_2D][T11], Tij[UL_2D][T11], Tij[UU_2D][T11]);
-    dTdy[T12] = calc_sym_grady_2D(dy, Tij[LL_2D][T12], Tij[LU_2D][T12], Tij[UL_2D][T12], Tij[UU_2D][T12]);
-    dTdy[T13] = calc_sym_grady_2D(dy, Tij[LL_2D][T13], Tij[LU_2D][T13], Tij[UL_2D][T13], Tij[UU_2D][T13]);
-    dTdy[T22] = calc_sym_grady_2D(dy, Tij[LL_2D][T22], Tij[LU_2D][T22], Tij[UL_2D][T22], Tij[UU_2D][T22]);
-    dTdy[T23] = calc_sym_grady_2D(dy, Tij[LL_2D][T23], Tij[LU_2D][T23], Tij[UL_2D][T23], Tij[UU_2D][T23]);
-    dTdy[T33] = calc_sym_grady_2D(dy, Tij[LL_2D][T33], Tij[LU_2D][T33], Tij[UL_2D][T33], Tij[UU_2D][T33]);
+    Bx[T11] = calc_sym_grad_1D(dx, Tij[LU_2D][T11], Tij[UU_2D][T11]);
+    Bx[T12] = calc_sym_grad_1D(dx, Tij[LU_2D][T12], Tij[UU_2D][T12]);
+    Bx[T13] = calc_sym_grad_1D(dx, Tij[LU_2D][T13], Tij[UU_2D][T13]);
+    Bx[T22] = calc_sym_grad_1D(dx, Tij[LU_2D][T22], Tij[UU_2D][T22]);
+    Bx[T23] = calc_sym_grad_1D(dx, Tij[LU_2D][T23], Tij[UU_2D][T23]);
+    Bx[T33] = calc_sym_grad_1D(dx, Tij[LU_2D][T33], Tij[UU_2D][T33]);
+
+    dTdx[T11] = calc_sym_grad_limiter_2D(limit, Ax[T11], Bx[T11]);
+    dTdx[T12] = calc_sym_grad_limiter_2D(limit, Ax[T12], Bx[T12]);
+    dTdx[T13] = calc_sym_grad_limiter_2D(limit, Ax[T13], Bx[T13]);
+    dTdx[T22] = calc_sym_grad_limiter_2D(limit, Ax[T22], Bx[T22]);
+    dTdx[T23] = calc_sym_grad_limiter_2D(limit, Ax[T23], Bx[T23]);
+    dTdx[T33] = calc_sym_grad_limiter_2D(limit, Ax[T33], Bx[T33]);
+
+    Ay[T11] = calc_sym_grad_1D(dy, Tij[LL_2D][T11], Tij[LU_2D][T11]);
+    Ay[T12] = calc_sym_grad_1D(dy, Tij[LL_2D][T12], Tij[LU_2D][T12]);
+    Ay[T13] = calc_sym_grad_1D(dy, Tij[LL_2D][T13], Tij[LU_2D][T13]);
+    Ay[T22] = calc_sym_grad_1D(dy, Tij[LL_2D][T22], Tij[LU_2D][T22]);
+    Ay[T23] = calc_sym_grad_1D(dy, Tij[LL_2D][T23], Tij[LU_2D][T23]);
+    Ay[T33] = calc_sym_grad_1D(dy, Tij[LL_2D][T33], Tij[LU_2D][T33]);
+
+    By[T11] = calc_sym_grad_1D(dy, Tij[UL_2D][T11], Tij[UU_2D][T11]);
+    By[T12] = calc_sym_grad_1D(dy, Tij[UL_2D][T12], Tij[UU_2D][T12]);
+    By[T13] = calc_sym_grad_1D(dy, Tij[UL_2D][T13], Tij[UU_2D][T13]);
+    By[T22] = calc_sym_grad_1D(dy, Tij[UL_2D][T22], Tij[UU_2D][T22]);
+    By[T23] = calc_sym_grad_1D(dy, Tij[UL_2D][T23], Tij[UU_2D][T23]);
+    By[T33] = calc_sym_grad_1D(dy, Tij[UL_2D][T33], Tij[UU_2D][T33]);
+
+    dTdy[T11] = calc_sym_grad_limiter_2D(limit, Ay[T11], By[T11]);
+    dTdy[T12] = calc_sym_grad_limiter_2D(limit, Ay[T12], By[T12]);
+    dTdy[T13] = calc_sym_grad_limiter_2D(limit, Ay[T13], By[T13]);
+    dTdy[T22] = calc_sym_grad_limiter_2D(limit, Ay[T22], By[T22]);
+    dTdy[T23] = calc_sym_grad_limiter_2D(limit, Ay[T23], By[T23]);
+    dTdy[T33] = calc_sym_grad_limiter_2D(limit, Ay[T33], By[T33]);
   }
   else if (ndim == 3) {
     const double dx = gces->grid.dx[0];
@@ -167,44 +208,110 @@ calc_unmag_heat_flux(const gkyl_ten_moment_grad_closure *gces,
     p_avg = calc_harmonic_avg_3D(p[LLL_3D], p[LLU_3D], p[LUL_3D], p[LUU_3D],
                                  p[ULL_3D], p[ULU_3D], p[UUL_3D], p[UUU_3D]);
 
-    dTdx[T11] = calc_sym_gradx_3D(dx, Tij[LLL_3D][T11], Tij[LLU_3D][T11], Tij[LUL_3D][T11], Tij[LUU_3D][T11],
-                                      Tij[ULL_3D][T11], Tij[ULU_3D][T11], Tij[UUL_3D][T11], Tij[UUU_3D][T11]);
-    dTdx[T12] = calc_sym_gradx_3D(dx, Tij[LLL_3D][T12], Tij[LLU_3D][T12], Tij[LUL_3D][T12], Tij[LUU_3D][T12],
-                                      Tij[ULL_3D][T12], Tij[ULU_3D][T12], Tij[UUL_3D][T12], Tij[UUU_3D][T12]);
-    dTdx[T13] = calc_sym_gradx_3D(dx, Tij[LLL_3D][T13], Tij[LLU_3D][T13], Tij[LUL_3D][T13], Tij[LUU_3D][T13],
-                                      Tij[ULL_3D][T13], Tij[ULU_3D][T13], Tij[UUL_3D][T13], Tij[UUU_3D][T13]);
-    dTdx[T22] = calc_sym_gradx_3D(dx, Tij[LLL_3D][T22], Tij[LLU_3D][T22], Tij[LUL_3D][T22], Tij[LUU_3D][T22],
-                                      Tij[ULL_3D][T22], Tij[ULU_3D][T22], Tij[UUL_3D][T22], Tij[UUU_3D][T22]);
-    dTdx[T23] = calc_sym_gradx_3D(dx, Tij[LLL_3D][T23], Tij[LLU_3D][T23], Tij[LUL_3D][T23], Tij[LUU_3D][T23],
-                                      Tij[ULL_3D][T23], Tij[ULU_3D][T23], Tij[UUL_3D][T23], Tij[UUU_3D][T23]);
-    dTdx[T33] = calc_sym_gradx_3D(dx, Tij[LLL_3D][T33], Tij[LLU_3D][T33], Tij[LUL_3D][T33], Tij[LUU_3D][T33],
-                                      Tij[ULL_3D][T33], Tij[ULU_3D][T33], Tij[UUL_3D][T33], Tij[UUU_3D][T33]);
+    Ax[T11] = calc_sym_grad_1D(dx, Tij[LLL_3D][T11], Tij[ULL_3D][T11]);
+    Ax[T12] = calc_sym_grad_1D(dx, Tij[LLL_3D][T12], Tij[ULL_3D][T12]);
+    Ax[T13] = calc_sym_grad_1D(dx, Tij[LLL_3D][T13], Tij[ULL_3D][T13]);
+    Ax[T22] = calc_sym_grad_1D(dx, Tij[LLL_3D][T22], Tij[ULL_3D][T22]);
+    Ax[T23] = calc_sym_grad_1D(dx, Tij[LLL_3D][T23], Tij[ULL_3D][T23]);
+    Ax[T33] = calc_sym_grad_1D(dx, Tij[LLL_3D][T33], Tij[ULL_3D][T33]);
 
-    dTdy[T11] = calc_sym_grady_3D(dy, Tij[LLL_3D][T11], Tij[LLU_3D][T11], Tij[LUL_3D][T11], Tij[LUU_3D][T11],
-                                      Tij[ULL_3D][T11], Tij[ULU_3D][T11], Tij[UUL_3D][T11], Tij[UUU_3D][T11]);
-    dTdy[T12] = calc_sym_grady_3D(dy, Tij[LLL_3D][T12], Tij[LLU_3D][T12], Tij[LUL_3D][T12], Tij[LUU_3D][T12],
-                                      Tij[ULL_3D][T12], Tij[ULU_3D][T12], Tij[UUL_3D][T12], Tij[UUU_3D][T12]);
-    dTdy[T13] = calc_sym_grady_3D(dy, Tij[LLL_3D][T13], Tij[LLU_3D][T13], Tij[LUL_3D][T13], Tij[LUU_3D][T13],
-                                      Tij[ULL_3D][T13], Tij[ULU_3D][T13], Tij[UUL_3D][T13], Tij[UUU_3D][T13]);
-    dTdy[T22] = calc_sym_grady_3D(dy, Tij[LLL_3D][T22], Tij[LLU_3D][T22], Tij[LUL_3D][T22], Tij[LUU_3D][T22],
-                                      Tij[ULL_3D][T22], Tij[ULU_3D][T22], Tij[UUL_3D][T22], Tij[UUU_3D][T22]);
-    dTdy[T23] = calc_sym_grady_3D(dy, Tij[LLL_3D][T23], Tij[LLU_3D][T23], Tij[LUL_3D][T23], Tij[LUU_3D][T23],
-                                      Tij[ULL_3D][T23], Tij[ULU_3D][T23], Tij[UUL_3D][T23], Tij[UUU_3D][T23]);
-    dTdy[T33] = calc_sym_grady_3D(dy, Tij[LLL_3D][T33], Tij[LLU_3D][T33], Tij[LUL_3D][T33], Tij[LUU_3D][T33],
-                                      Tij[ULL_3D][T33], Tij[ULU_3D][T33], Tij[UUL_3D][T33], Tij[UUU_3D][T33]);
+    Bx[T11] = calc_sym_grad_1D(dx, Tij[LUL_3D][T11], Tij[UUL_3D][T11]);
+    Bx[T12] = calc_sym_grad_1D(dx, Tij[LUL_3D][T12], Tij[UUL_3D][T12]);
+    Bx[T13] = calc_sym_grad_1D(dx, Tij[LUL_3D][T13], Tij[UUL_3D][T13]);
+    Bx[T22] = calc_sym_grad_1D(dx, Tij[LUL_3D][T22], Tij[UUL_3D][T22]);
+    Bx[T23] = calc_sym_grad_1D(dx, Tij[LUL_3D][T23], Tij[UUL_3D][T23]);
+    Bx[T33] = calc_sym_grad_1D(dx, Tij[LUL_3D][T33], Tij[UUL_3D][T33]);
 
-    dTdz[T11] = calc_sym_gradz_3D(dz, Tij[LLL_3D][T11], Tij[LLU_3D][T11], Tij[LUL_3D][T11], Tij[LUU_3D][T11],
-                                      Tij[ULL_3D][T11], Tij[ULU_3D][T11], Tij[UUL_3D][T11], Tij[UUU_3D][T11]);
-    dTdz[T12] = calc_sym_gradz_3D(dz, Tij[LLL_3D][T12], Tij[LLU_3D][T12], Tij[LUL_3D][T12], Tij[LUU_3D][T12],
-                                      Tij[ULL_3D][T12], Tij[ULU_3D][T12], Tij[UUL_3D][T12], Tij[UUU_3D][T12]);
-    dTdz[T13] = calc_sym_gradz_3D(dz, Tij[LLL_3D][T13], Tij[LLU_3D][T13], Tij[LUL_3D][T13], Tij[LUU_3D][T13],
-                                      Tij[ULL_3D][T13], Tij[ULU_3D][T13], Tij[UUL_3D][T13], Tij[UUU_3D][T13]);
-    dTdz[T22] = calc_sym_gradz_3D(dz, Tij[LLL_3D][T22], Tij[LLU_3D][T22], Tij[LUL_3D][T22], Tij[LUU_3D][T22],
-                                      Tij[ULL_3D][T22], Tij[ULU_3D][T22], Tij[UUL_3D][T22], Tij[UUU_3D][T22]);
-    dTdz[T23] = calc_sym_gradz_3D(dz, Tij[LLL_3D][T23], Tij[LLU_3D][T23], Tij[LUL_3D][T23], Tij[LUU_3D][T23],
-                                      Tij[ULL_3D][T23], Tij[ULU_3D][T23], Tij[UUL_3D][T23], Tij[UUU_3D][T23]);
-    dTdz[T33] = calc_sym_gradz_3D(dz, Tij[LLL_3D][T33], Tij[LLU_3D][T33], Tij[LUL_3D][T33], Tij[LUU_3D][T33],
-                                      Tij[ULL_3D][T33], Tij[ULU_3D][T33], Tij[UUL_3D][T33], Tij[UUU_3D][T33]);
+    Cx[T11] = calc_sym_grad_1D(dx, Tij[LLU_3D][T11], Tij[ULU_3D][T11]);
+    Cx[T12] = calc_sym_grad_1D(dx, Tij[LLU_3D][T12], Tij[ULU_3D][T12]);
+    Cx[T13] = calc_sym_grad_1D(dx, Tij[LLU_3D][T13], Tij[ULU_3D][T13]);
+    Cx[T22] = calc_sym_grad_1D(dx, Tij[LLU_3D][T22], Tij[ULU_3D][T22]);
+    Cx[T23] = calc_sym_grad_1D(dx, Tij[LLU_3D][T23], Tij[ULU_3D][T23]);
+    Cx[T33] = calc_sym_grad_1D(dx, Tij[LLU_3D][T33], Tij[ULU_3D][T33]);
+
+    Dx[T11] = calc_sym_grad_1D(dx, Tij[LUU_3D][T11], Tij[UUU_3D][T11]);
+    Dx[T12] = calc_sym_grad_1D(dx, Tij[LUU_3D][T12], Tij[UUU_3D][T12]);
+    Dx[T13] = calc_sym_grad_1D(dx, Tij[LUU_3D][T13], Tij[UUU_3D][T13]);
+    Dx[T22] = calc_sym_grad_1D(dx, Tij[LUU_3D][T22], Tij[UUU_3D][T22]);
+    Dx[T23] = calc_sym_grad_1D(dx, Tij[LUU_3D][T23], Tij[UUU_3D][T23]);
+    Dx[T33] = calc_sym_grad_1D(dx, Tij[LUU_3D][T33], Tij[UUU_3D][T33]);
+
+    dTdx[T11] = calc_sym_grad_limiter_3D(limit, Ax[T11], Bx[T11], Cx[T11], Dx[T11]);
+    dTdx[T12] = calc_sym_grad_limiter_3D(limit, Ax[T12], Bx[T12], Cx[T12], Dx[T12]);
+    dTdx[T13] = calc_sym_grad_limiter_3D(limit, Ax[T13], Bx[T13], Cx[T13], Dx[T13]); 
+    dTdx[T22] = calc_sym_grad_limiter_3D(limit, Ax[T22], Bx[T22], Cx[T22], Dx[T22]);
+    dTdx[T23] = calc_sym_grad_limiter_3D(limit, Ax[T23], Bx[T23], Cx[T23], Dx[T23]);
+    dTdx[T33] = calc_sym_grad_limiter_3D(limit, Ax[T33], Bx[T33], Cx[T33], Dx[T33]);
+
+    Ay[T11] = calc_sym_grad_1D(dy, Tij[LLL_3D][T11], Tij[LUL_3D][T11]);
+    Ay[T12] = calc_sym_grad_1D(dy, Tij[LLL_3D][T12], Tij[LUL_3D][T12]);
+    Ay[T13] = calc_sym_grad_1D(dy, Tij[LLL_3D][T13], Tij[LUL_3D][T13]);
+    Ay[T22] = calc_sym_grad_1D(dy, Tij[LLL_3D][T22], Tij[LUL_3D][T22]);
+    Ay[T23] = calc_sym_grad_1D(dy, Tij[LLL_3D][T23], Tij[LUL_3D][T23]);
+    Ay[T33] = calc_sym_grad_1D(dy, Tij[LLL_3D][T33], Tij[LUL_3D][T33]);
+
+    By[T11] = calc_sym_grad_1D(dy, Tij[ULL_3D][T11], Tij[UUL_3D][T11]);
+    By[T12] = calc_sym_grad_1D(dy, Tij[ULL_3D][T12], Tij[UUL_3D][T12]);
+    By[T13] = calc_sym_grad_1D(dy, Tij[ULL_3D][T13], Tij[UUL_3D][T13]);
+    By[T22] = calc_sym_grad_1D(dy, Tij[ULL_3D][T22], Tij[UUL_3D][T22]);
+    By[T23] = calc_sym_grad_1D(dy, Tij[ULL_3D][T23], Tij[UUL_3D][T23]);
+    By[T33] = calc_sym_grad_1D(dy, Tij[ULL_3D][T33], Tij[UUL_3D][T33]);
+
+    Cy[T11] = calc_sym_grad_1D(dy, Tij[LLU_3D][T11], Tij[LUU_3D][T11]);
+    Cy[T12] = calc_sym_grad_1D(dy, Tij[LLU_3D][T12], Tij[LUU_3D][T12]);
+    Cy[T13] = calc_sym_grad_1D(dy, Tij[LLU_3D][T13], Tij[LUU_3D][T13]);
+    Cy[T22] = calc_sym_grad_1D(dy, Tij[LLU_3D][T22], Tij[LUU_3D][T22]);
+    Cy[T23] = calc_sym_grad_1D(dy, Tij[LLU_3D][T23], Tij[LUU_3D][T23]);
+    Cy[T33] = calc_sym_grad_1D(dy, Tij[LLU_3D][T33], Tij[LUU_3D][T33]);
+
+    Dy[T11] = calc_sym_grad_1D(dy, Tij[ULU_3D][T11], Tij[UUU_3D][T11]);
+    Dy[T12] = calc_sym_grad_1D(dy, Tij[ULU_3D][T12], Tij[UUU_3D][T12]);
+    Dy[T13] = calc_sym_grad_1D(dy, Tij[ULU_3D][T13], Tij[UUU_3D][T13]);
+    Dy[T22] = calc_sym_grad_1D(dy, Tij[ULU_3D][T22], Tij[UUU_3D][T22]);
+    Dy[T23] = calc_sym_grad_1D(dy, Tij[ULU_3D][T23], Tij[UUU_3D][T23]);
+    Dy[T33] = calc_sym_grad_1D(dy, Tij[ULU_3D][T33], Tij[UUU_3D][T33]);
+
+    dTdy[T11] = calc_sym_grad_limiter_3D(limit, Ay[T11], By[T11], Cy[T11], Dy[T11]);
+    dTdy[T12] = calc_sym_grad_limiter_3D(limit, Ay[T12], By[T12], Cy[T12], Dy[T12]);
+    dTdy[T13] = calc_sym_grad_limiter_3D(limit, Ay[T13], By[T13], Cy[T13], Dy[T13]); 
+    dTdy[T22] = calc_sym_grad_limiter_3D(limit, Ay[T22], By[T22], Cy[T22], Dy[T22]);
+    dTdy[T23] = calc_sym_grad_limiter_3D(limit, Ay[T23], By[T23], Cy[T23], Dy[T23]);
+    dTdy[T33] = calc_sym_grad_limiter_3D(limit, Ay[T33], By[T33], Cy[T33], Dy[T33]);
+
+    Az[T11] = calc_sym_grad_1D(dz, Tij[LLL_3D][T11], Tij[LLU_3D][T11]);
+    Az[T12] = calc_sym_grad_1D(dz, Tij[LLL_3D][T12], Tij[LLU_3D][T12]);
+    Az[T13] = calc_sym_grad_1D(dz, Tij[LLL_3D][T13], Tij[LLU_3D][T13]);
+    Az[T22] = calc_sym_grad_1D(dz, Tij[LLL_3D][T22], Tij[LLU_3D][T22]);
+    Az[T23] = calc_sym_grad_1D(dz, Tij[LLL_3D][T23], Tij[LLU_3D][T23]);
+    Az[T33] = calc_sym_grad_1D(dz, Tij[LLL_3D][T33], Tij[LLU_3D][T33]);
+
+    Bz[T11] = calc_sym_grad_1D(dz, Tij[ULL_3D][T11], Tij[ULU_3D][T11]);
+    Bz[T12] = calc_sym_grad_1D(dz, Tij[ULL_3D][T12], Tij[ULU_3D][T12]);
+    Bz[T13] = calc_sym_grad_1D(dz, Tij[ULL_3D][T13], Tij[ULU_3D][T13]);
+    Bz[T22] = calc_sym_grad_1D(dz, Tij[ULL_3D][T22], Tij[ULU_3D][T22]);
+    Bz[T23] = calc_sym_grad_1D(dz, Tij[ULL_3D][T23], Tij[ULU_3D][T23]);
+    Bz[T33] = calc_sym_grad_1D(dz, Tij[ULL_3D][T33], Tij[ULU_3D][T33]);
+
+    Cz[T11] = calc_sym_grad_1D(dz, Tij[LUL_3D][T11], Tij[LUU_3D][T11]);
+    Cz[T12] = calc_sym_grad_1D(dz, Tij[LUL_3D][T12], Tij[LUU_3D][T12]);
+    Cz[T13] = calc_sym_grad_1D(dz, Tij[LUL_3D][T13], Tij[LUU_3D][T13]);
+    Cz[T22] = calc_sym_grad_1D(dz, Tij[LUL_3D][T22], Tij[LUU_3D][T22]);
+    Cz[T23] = calc_sym_grad_1D(dz, Tij[LUL_3D][T23], Tij[LUU_3D][T23]);
+    Cz[T33] = calc_sym_grad_1D(dz, Tij[LUL_3D][T33], Tij[LUU_3D][T33]);
+
+    Dz[T11] = calc_sym_grad_1D(dz, Tij[UUL_3D][T11], Tij[UUU_3D][T11]);
+    Dz[T12] = calc_sym_grad_1D(dz, Tij[UUL_3D][T12], Tij[UUU_3D][T12]);
+    Dz[T13] = calc_sym_grad_1D(dz, Tij[UUL_3D][T13], Tij[UUU_3D][T13]);
+    Dz[T22] = calc_sym_grad_1D(dz, Tij[UUL_3D][T22], Tij[UUU_3D][T22]);
+    Dz[T23] = calc_sym_grad_1D(dz, Tij[UUL_3D][T23], Tij[UUU_3D][T23]);
+    Dz[T33] = calc_sym_grad_1D(dz, Tij[UUL_3D][T33], Tij[UUU_3D][T33]);
+
+    dTdz[T11] = calc_sym_grad_limiter_3D(limit, Az[T11], Bz[T11], Cz[T11], Dz[T11]);
+    dTdz[T12] = calc_sym_grad_limiter_3D(limit, Az[T12], Bz[T12], Cz[T12], Dz[T12]);
+    dTdz[T13] = calc_sym_grad_limiter_3D(limit, Az[T13], Bz[T13], Cz[T13], Dz[T13]); 
+    dTdz[T22] = calc_sym_grad_limiter_3D(limit, Az[T22], Bz[T22], Cz[T22], Dz[T22]);
+    dTdz[T23] = calc_sym_grad_limiter_3D(limit, Az[T23], Bz[T23], Cz[T23], Dz[T23]);
+    dTdz[T33] = calc_sym_grad_limiter_3D(limit, Az[T33], Bz[T33], Cz[T33], Dz[T33]);
   }
   double alpha = 1.0/gces->k0;
   double vth_avg = sqrt(p_avg/rho_avg);
