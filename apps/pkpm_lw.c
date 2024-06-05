@@ -564,7 +564,6 @@ pkpm_app_new(lua_State *L)
   }
 
   // set field input
-  pkpm.skip_field = true;
   with_lua_tbl_key(L, "field") {
     if (lua_type(L, -1) == LUA_TUSERDATA) {
       struct pkpm_field_lw *pkpm_f_lw = lua_touserdata(L, -1);
@@ -572,7 +571,6 @@ pkpm_app_new(lua_State *L)
         pkpm_f_lw->init_ref.ndim = cdim;
 
         pkpm.field = pkpm_f_lw->pkpm_field;
-        pkpm.skip_field = false; // if field object is present, we are updating the fields
 
         app_lw->field_func_ctx = pkpm_f_lw->init_ref;
         pkpm.field.init = eval_ic;
