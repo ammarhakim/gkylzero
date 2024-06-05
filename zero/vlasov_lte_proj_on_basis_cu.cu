@@ -215,8 +215,8 @@ gkyl_vlasov_lte_proj_on_basis_advance_cu(gkyl_vlasov_lte_proj_on_basis *up,
     (up->phase_grid, *phase_range, *conf_range, up->conf_basis_at_ords->on_dev, up->basis_at_ords->on_dev,
      up->ordinates->on_dev, up->weights->on_dev, up->p2c_qidx,
      up->is_relativistic, up->is_canonical_pb, 
-     up->h_ij_inv ? up->h_ij_inv->on_dev : 0, 
-     up->det_h ? up->det_h->on_dev : 0, 
+     up->is_canonical_pb ? up->h_ij_inv->on_dev : 0, 
+     up->is_canonical_pb ? up->det_h->on_dev : 0, 
      moms_lte->on_dev, f_lte->on_dev);
 
   // Correct the density of the projected LTE distribution function through rescaling.
