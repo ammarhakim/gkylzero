@@ -7,22 +7,13 @@
 #include <gkyl_const.h>
 #include <gkyl_fem_parproj.h>
 #include <gkyl_gyrokinetic.h>
-#include <gkyl_util.h>
-
-#include <gkyl_null_comm.h>
-
-#ifdef GKYL_HAVE_MPI
-#include <mpi.h>
-#include <gkyl_mpi_comm.h>
-#ifdef GKYL_HAVE_NCCL
-#include <gkyl_nccl_comm.h>
-#endif
-#endif
 
 #include <rt_arg_parse.h>
 
 struct rad_ctx
 {
+  int cdim, vdim; // Dimensionality.
+  
   // Mathematical constants (dimensionless).
   double pi;
 
@@ -77,6 +68,10 @@ create_ctx(void)
 {
   // Mathematical constants (dimensionless).
   double pi = M_PI;
+
+  // Dimensionality.
+  int cdim = 1, vdim = 2;
+  int pdim = cdim+vdim;
 
   // Physical constants (using non-normalized physical units).
   double epsilon0 = GKYL_EPSILON0; // Permittivity of free space.
