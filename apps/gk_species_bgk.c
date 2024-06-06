@@ -87,6 +87,8 @@ gk_species_bgk_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s, stru
     .max_iter = max_iter,
     .eps = iter_eps,
   };
+  bgk->self_niter = 0;
+  bgk->cross_niter = 0;
   bgk->corr_max = gkyl_gyrokinetic_maxwellian_correct_inew( &inp_corr );
   if (s->info.collisions.correct_all_moms) {
     bgk->correct_all_moms = true;
@@ -229,6 +231,8 @@ gk_species_bgk_rhs(gkyl_gyrokinetic_app *app, const struct gk_species *species,
     double corr_vec_global[5] = { 0.0 };
     gkyl_comm_allreduce_host(app->comm, GKYL_DOUBLE, GKYL_MAX, 5, corr_vec, corr_vec_global);    
     gkyl_dynvec_append(bgk->corr_stat, app->tcurr, corr_vec_global);
+
+    bgk->self_niter += status_corr.num_iter;
   } 
   // Multiply the Maxwellian by the configuration-space Jacobian.
   gkyl_dg_mul_conf_phase_op_range(&app->confBasis, &app->basis, bgk->fmax, 
@@ -253,6 +257,8 @@ gk_species_bgk_rhs(gkyl_gyrokinetic_app *app, const struct gk_species *species,
       struct gkyl_gyrokinetic_maxwellian_correct_status status_corr;
       status_corr = gkyl_gyrokinetic_maxwellian_correct_all_moments(bgk->corr_max, 
         bgk->fmax, bgk->cross_moms[i], &species->local, &app->local);
+
+      bgk->cross_niter += status_corr.num_iter;
     } 
     // Multiply the Maxwellian by the configuration-space Jacobian.
     gkyl_dg_mul_conf_phase_op_range(&app->confBasis, &app->basis, bgk->fmax, 
