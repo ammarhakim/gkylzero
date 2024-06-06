@@ -33,7 +33,7 @@ gkyl_gyrokinetic_mb_app_new(struct gkyl_gk_mb *inp)
   app->btopo = gkyl_block_topo_new(app->cdim, app->num_blocks);
 
   for (int bidx=0; bidx<app->num_blocks; bidx++) {
-    struct gkyl_gk *blinp = &(inp->blocks[bidx]);
+    struct gkyl_gk *blinp = inp->blocks[bidx];
 
     // Block name = <the name of the app>_b#.
     const char *fmt = "%s_b%d";

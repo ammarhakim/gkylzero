@@ -352,7 +352,7 @@ main(int argc, char **argv)
     .basis_type = app_args.basis_type,
 
     .num_blocks = 2,
-    .blocks = { bleft, bright },
+    .blocks = { &bleft, &bright },
 
     .num_periodic_dir = 1,
     .periodic_dirs = { 0 },
