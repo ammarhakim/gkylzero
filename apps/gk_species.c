@@ -83,12 +83,12 @@ gk_species_init(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *app, st
   gks->fnew = mkarr(app->use_gpu, app->basis.num_basis, gks->local_ext.volume);
 
   // Create an array with pointers to distribution functions.
-  int num_fs = gkyl_stepper_num_state_arrays[gk->stepper_type];
-  s->distfs = gkyl_malloc(num_fs * sizeof(struct gkyl_array *));
-  if (gk->stepper_type == GKYL_STEPPER_SSP_RK3) {
-    s->distfs[0] = s->f;
-    s->distfs[1] = s->f1;
-    s->distfs[2] = s->fnew;
+  int num_fs = gkyl_stepper_num_state_arrays[gk_app_inp->stepper_type];
+  gks->distfs = gkyl_malloc(num_fs * sizeof(struct gkyl_array *));
+  if (gk_app_inp->stepper_type == GKYL_STEPPER_SSP_RK3) {
+    gks->distfs[0] = gks->f;
+    gks->distfs[1] = gks->f1;
+    gks->distfs[2] = gks->fnew;
   }
 
   gks->f_host = gks->f;
