@@ -773,6 +773,20 @@ comm_reduce_app_stat(const gkyl_vlasov_app* app,
   global->nstage_2_fail = l_red_global[NSTAGE_2_FAIL];
   global->nstage_3_fail = l_red_global[NSTAGE_3_FAIL];  
 
+  int64_t l_red_bgk_corr[app->num_species];
+  for (int s=0; s<app->num_species; ++s) {
+    l_red_bgk_corr[s] = local->niter_self_bgk_corr[s];
+  }
+
+  int64_t l_red_global_bgk_corr[app->num_species];
+  gkyl_comm_all_reduce(app->comm, GKYL_INT_64, GKYL_MAX, app->num_species, 
+    l_red_bgk_corr, l_red_global_bgk_corr);
+
+  for (int s=0; s<app->num_species; ++s) {
+    global->niter_self_bgk_corr[s] = l_red_bgk_corr[s];
+  }
+
+
   enum {
     TOTAL_TM, RK3_TM, FL_EM_TM, 
     INIT_SPECIES_TM, INIT_FLUID_SPECIES_TM, INIT_FIELD_TM, 
@@ -860,6 +874,7 @@ gkyl_vlasov_app_stat_write(gkyl_vlasov_app* app)
   time_t t = time(NULL);
   struct tm curr_tm = *localtime(&t);
 
+  vm_species_bgk_niter(app);
   vm_species_coll_tm(app);
   vm_species_tm(app);
 
@@ -907,6 +922,9 @@ gkyl_vlasov_app_stat_write(gkyl_vlasov_app* app)
       stat.species_lbo_coll_drag_tm[s]);
     gkyl_vlasov_app_cout(app, fp, " species_coll_diff_tm[%d] : %lg,\n", s,
       stat.species_lbo_coll_diff_tm[s]);
+    printf("(vlasov.c) stat.niter_self_bgk_corr[s] = %ld \n",stat.niter_self_bgk_corr[s]);
+    gkyl_vlasov_app_cout(app, fp, " niter_self_bgk_corr[%d] : %ld,\n", s, 
+      stat.niter_self_bgk_corr[s]);
   }
 
   gkyl_vlasov_app_cout(app, fp, " species_coll_mom_tm : %lg,\n", stat.species_coll_mom_tm);

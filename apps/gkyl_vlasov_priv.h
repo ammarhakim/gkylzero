@@ -173,6 +173,8 @@ struct vm_bgk_collisions {
   // also corrects the density of projected distribution function
   struct gkyl_vlasov_lte_proj_on_basis *proj_lte; 
 
+  long self_niter; // total number of iterations correcting self collisions
+
   // Correction updater for insuring LTE distribution has desired LTE (n, V_drift, T/m) moments
   bool correct_all_moms; // boolean if we are correcting all the moments
   struct gkyl_vlasov_lte_correct *corr_lte; 
@@ -968,6 +970,15 @@ void vm_species_calc_L2(gkyl_vlasov_app *app, double tm, const struct vm_species
  * @param app App object to update stat timers
  */
 void vm_species_coll_tm(gkyl_vlasov_app *app);
+
+/**
+ * Fill stat object in app with total number of iterations
+ * used to correct moments in BGK collisions update.
+ *
+ * @param app App object to update stat timers
+ */
+void vm_species_bgk_niter(gkyl_vlasov_app *app);
+
 
 /**
  * Fill stat object in app with collisionless timers.

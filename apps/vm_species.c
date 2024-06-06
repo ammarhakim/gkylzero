@@ -552,6 +552,18 @@ vm_species_coll_tm(gkyl_vlasov_app *app)
 }
 
 void
+vm_species_bgk_niter(gkyl_vlasov_app *app)
+{
+  for (int i=0; i<app->num_species; ++i) {
+    if (app->species[i].collision_id == GKYL_BGK_COLLISIONS) {
+      app->stat.niter_self_bgk_corr[i] = app->species[i].bgk.self_niter;
+      printf("app->species[i].bgk.self_niter: %ld]\n",app->species[i].bgk.self_niter);
+    }
+  }
+}
+
+
+void
 vm_species_tm(gkyl_vlasov_app *app)
 {
   app->stat.species_rhs_tm = 0.0;

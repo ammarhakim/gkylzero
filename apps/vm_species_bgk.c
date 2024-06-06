@@ -90,6 +90,7 @@ vm_species_bgk_init(struct gkyl_vlasov_app *app, struct vm_species *s, struct vm
       .max_iter = max_iter,
       .eps = iter_eps,
     };
+    bgk->self_niter = 0;
     bgk->corr_lte = gkyl_vlasov_lte_correct_inew( &inp_corr );
 
     bgk->corr_stat = gkyl_dynvec_new(GKYL_DOUBLE,7);
@@ -141,6 +142,8 @@ vm_species_bgk_rhs(gkyl_vlasov_app *app, const struct vm_species *species,
     corr_vec[5] = status_corr.error[3];
     corr_vec[6] = status_corr.error[4];
     gkyl_dynvec_append(bgk->corr_stat,app->tcurr,corr_vec);
+
+    bgk->self_niter += status_corr.num_iter;
   } 
 
   gkyl_dg_mul_conf_phase_op_range(&app->confBasis, &app->basis, bgk->f_lte, 
