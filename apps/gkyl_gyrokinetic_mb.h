@@ -1,7 +1,6 @@
 #pragma once
 
 #include <gkyl_gyrokinetic.h>
-#include <gkyl_gyrokinetic.h>
 
 // Input struct to create a multiblock gyrokinetic app.
 struct gkyl_gk_mb {
@@ -28,7 +27,7 @@ struct gkyl_gk_mb {
   struct gkyl_gyrokinetic_field field; // field object
 
   int num_blocks;
-  struct gkyl_gk blocks[GKYL_MAX_BLOCKS];
+  struct gkyl_gk *blocks[GKYL_MAX_BLOCKS];
 };
 
 // Object representing gk app

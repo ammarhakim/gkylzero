@@ -7,7 +7,6 @@
 #include <gkyl_elem_type.h>
 #include <gkyl_eqn_type.h>
 #include <gkyl_gyrokinetic_priv.h>
-//#include <gkyl_eval_on_nodes.h>
 
 #include <assert.h>
 #include <time.h>
