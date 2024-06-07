@@ -10,6 +10,7 @@
 #include <gkyl_range.h>
 #include <gkyl_basis.h>
 #include <gkyl_dg_updater_gyrokinetic.h>
+#include <gkyl_velocity_map.h>
 
 void
 mapc2p(double t, const double *xc, double* GKYL_RESTRICT xp, void *ctx)
@@ -56,6 +57,19 @@ test_3x2v_p1(bool use_gpu)
   gkyl_rect_grid_init(&phaseGrid, pdim, lower, upper, cells);
   gkyl_create_grid_ranges(&phaseGrid, ghost, &phaseRange_ext, &phaseRange);
 
+  double velLower[vdim], velUpper[vdim];
+  int velCells[vdim];
+  for (int d=0; d<vdim; d++) {
+    velLower[d] = lower[cdim+d];
+    velUpper[d] = upper[cdim+d];
+    velCells[d] = cells[cdim+d];
+  }
+  struct gkyl_rect_grid velGrid;
+  int velGhost[] = { 0, 0 };
+  struct gkyl_range velLocal, velLocal_ext; // local, local-ext vel-space ranges
+  gkyl_rect_grid_init(&velGrid, vdim, velLower, velUpper, velCells);
+  gkyl_create_grid_ranges(&velGrid, velGhost, &velLocal_ext, &velLocal);
+
   // initialize basis
   int poly_order = 1;
   struct gkyl_basis basis, surf_basis, confBasis; // phase-space, conf-space basis
@@ -92,7 +106,6 @@ test_3x2v_p1(bool use_gpu)
       .geo_basis = confBasis,
   };
 
-
   struct gk_geometry *gk_geom = gkyl_gk_geometry_mapc2p_new(&geometry_input);
 
   // Initialize gyrokinetic variables
@@ -108,9 +121,15 @@ test_3x2v_p1(bool use_gpu)
 
   const bool is_zero_flux[GKYL_MAX_DIM] = {false};
 
+  // Initialize velocity space mapping.
+  struct gkyl_mapc2p_inp c2p_in = { };
+  struct gkyl_velocity_map *gvm = gkyl_velocity_map_new(c2p_in, phaseGrid, velGrid,
+    phaseRange, phaseRange_ext, velLocal, velLocal_ext, false);
+
+
   struct gkyl_dg_updater_gyrokinetic* up;
   up = gkyl_dg_updater_gyrokinetic_new(&phaseGrid, &confBasis, &basis, &confRange, &phaseRange, 
-    is_zero_flux, 1.0, 1.0, 0, gk_geom, &aux, use_gpu);
+    is_zero_flux, 1.0, 1.0, 0, gk_geom, gvm, &aux, use_gpu);
 
   // initialize arrays
   struct gkyl_array *fin, *rhs, *cflrate;
@@ -134,6 +153,7 @@ test_3x2v_p1(bool use_gpu)
 
   // clean up
   gkyl_gk_geometry_release(gk_geom);  
+  gkyl_velocity_map_release(gvm);
   gkyl_array_release(fin);
   gkyl_array_release(rhs);
   gkyl_array_release(cflrate);

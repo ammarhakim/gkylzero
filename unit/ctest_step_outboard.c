@@ -15,6 +15,7 @@
 #include <gkyl_rect_decomp.h>
 #include <gkyl_util.h>
 #include <gkyl_basis.h>
+#include <gkyl_nodal_ops.h>
 
 #include <gkyl_efit.h>
 #include <gkyl_calc_bmag.h>
@@ -52,6 +53,8 @@ write_geometry(gk_geometry *up, struct gkyl_rect_grid grid, struct gkyl_range lo
   gkyl_grid_sub_array_write(&grid, &local, 0,  up->gij, fileNm);
   sprintf(fileNm, fmt, name, "b_i");
   gkyl_grid_sub_array_write(&grid, &local, 0,  up->b_i, fileNm);
+  sprintf(fileNm, fmt, name, "bcart");
+  gkyl_grid_sub_array_write(&grid, &local, 0,  up->bcart, fileNm);
   sprintf(fileNm, fmt, name, "cmag");
   gkyl_grid_sub_array_write(&grid, &local, 0,  up->cmag, fileNm);
   sprintf(fileNm, fmt, name, "jacobtot");
@@ -201,6 +204,32 @@ test_fixed_z()
   struct gk_geometry* up = gkyl_gk_geometry_tok_new(&geometry_inp); 
   //write_geometry(up, cgrid, clocal, "step_outboard_fixed_z");
 
+  // Check that |bhat|=1 at nodes
+  int nodes[] = { 1, 1, 1 };
+  for (int d=0; d<cgrid.ndim; ++d)
+    nodes[d] = cgrid.cells[d] + 1;
+  struct gkyl_range nrange;
+  gkyl_range_init_from_shape(&nrange, cgrid.ndim, nodes);
+  struct gkyl_array* bhat_nodal_fld = gkyl_array_new(GKYL_DOUBLE, cgrid.ndim, nrange.volume);
+  struct gkyl_nodal_ops *n2m = gkyl_nodal_ops_new(&cbasis, &cgrid, false);
+  gkyl_nodal_ops_m2n(n2m, &cbasis, &cgrid, &nrange, &clocal, 3, bhat_nodal_fld, up->bcart);
+  enum { PSI_IDX, AL_IDX, TH_IDX }; // arrangement of computational coordinates
+  int cidx[3];
+  for(int ia=nrange.lower[AL_IDX]; ia<=nrange.upper[AL_IDX]; ++ia){
+      for (int ip=nrange.lower[PSI_IDX]; ip<=nrange.upper[PSI_IDX]; ++ip) {
+          for (int it=nrange.lower[TH_IDX]; it<=nrange.upper[TH_IDX]; ++it) {
+              cidx[PSI_IDX] = ip;
+              cidx[AL_IDX] = ia;
+              cidx[TH_IDX] = it;
+              double *bhat_n = gkyl_array_fetch(bhat_nodal_fld, gkyl_range_idx(&nrange, cidx));
+              double bhat_mag = sqrt(bhat_n[0]*bhat_n[0] + bhat_n[1]*bhat_n[1] + bhat_n[2]*bhat_n[2]);
+              TEST_CHECK( gkyl_compare( bhat_mag, 1.0, 1e-12) );
+          }
+      }
+  }
+
+  gkyl_array_release(bhat_nodal_fld);
+  gkyl_nodal_ops_release(n2m);
   gkyl_gk_geometry_release(up);
 
   end = clock();
