@@ -48,6 +48,8 @@ runTestGPU(const char* test_name, const char* test_name_human, const int test_ou
   snprintf(command_buffer3, 256, "srun -N 1 -t 00:10:00 --gres=gpu:1 ./cuda-build/regression/rt_%s -m -g > ./ci/output_gpu/rt_%s_%d.dat 2>&1", test_name, test_name, counter);
   system(command_buffer3);
 
+  system("sleep 30");
+
   char file_buffer1[128];
   snprintf(file_buffer1, 128, "./%s-stat.json", test_name);
   FILE *file_ptr1 = fopen(file_buffer1, "r");
