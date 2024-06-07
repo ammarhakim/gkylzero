@@ -181,9 +181,9 @@ GKYL_CU_DH double euler_pkpm_surfy_2x_tensor_p2(const double *w, const double *d
   double apdq_r[10] = {0.0}; 
 
   q_lr[0] = tensor_2x_p2_surfx2_eval_quad_node_0_r(rho_l); 
-  q_lr[1] = tensor_2x_p2_surfx2_eval_quad_node_0_r(rhoux_l); 
-  q_lr[2] = tensor_2x_p2_surfx2_eval_quad_node_0_r(rhouy_l); 
-  q_lr[3] = tensor_2x_p2_surfx2_eval_quad_node_0_r(rhouz_l); 
+  q_lr[1] = q_lr[0]*(0.6324555320336759*ux_surf_lr[2]-0.9486832980505137*ux_surf_lr[1]+0.7071067811865475*ux_surf_lr[0]); 
+  q_lr[2] = q_lr[0]*(0.6324555320336759*uy_surf_lr[2]-0.9486832980505137*uy_surf_lr[1]+0.7071067811865475*uy_surf_lr[0]); 
+  q_lr[3] = q_lr[0]*(0.6324555320336759*uz_surf_lr[2]-0.9486832980505137*uz_surf_lr[1]+0.7071067811865475*uz_surf_lr[0]); 
   q_lr[4] = tensor_2x_p2_surfx2_eval_quad_node_0_r(Pxx_l) + q_lr[1]*q_lr[1]/q_lr[0]; 
   q_lr[5] = tensor_2x_p2_surfx2_eval_quad_node_0_r(Pxy_l) + q_lr[1]*q_lr[2]/q_lr[0]; 
   q_lr[6] = tensor_2x_p2_surfx2_eval_quad_node_0_r(Pxz_l) + q_lr[1]*q_lr[3]/q_lr[0]; 
@@ -191,9 +191,9 @@ GKYL_CU_DH double euler_pkpm_surfy_2x_tensor_p2(const double *w, const double *d
   q_lr[8] = tensor_2x_p2_surfx2_eval_quad_node_0_r(Pyz_l) + q_lr[2]*q_lr[3]/q_lr[0]; 
   q_lr[9] = tensor_2x_p2_surfx2_eval_quad_node_0_r(Pzz_l) + q_lr[3]*q_lr[3]/q_lr[0]; 
   q_cl[0] = tensor_2x_p2_surfx2_eval_quad_node_0_l(rho_c); 
-  q_cl[1] = tensor_2x_p2_surfx2_eval_quad_node_0_l(rhoux_c); 
-  q_cl[2] = tensor_2x_p2_surfx2_eval_quad_node_0_l(rhouy_c); 
-  q_cl[3] = tensor_2x_p2_surfx2_eval_quad_node_0_l(rhouz_c); 
+  q_cl[1] = q_cl[0]*(0.6324555320336759*ux_surf_cl[2]-0.9486832980505137*ux_surf_cl[1]+0.7071067811865475*ux_surf_cl[0]); 
+  q_cl[2] = q_cl[0]*(0.6324555320336759*uy_surf_cl[2]-0.9486832980505137*uy_surf_cl[1]+0.7071067811865475*uy_surf_cl[0]); 
+  q_cl[3] = q_cl[0]*(0.6324555320336759*uz_surf_cl[2]-0.9486832980505137*uz_surf_cl[1]+0.7071067811865475*uz_surf_cl[0]); 
   q_cl[4] = tensor_2x_p2_surfx2_eval_quad_node_0_l(Pxx_c) + q_cl[1]*q_cl[1]/q_cl[0]; 
   q_cl[5] = tensor_2x_p2_surfx2_eval_quad_node_0_l(Pxy_c) + q_cl[1]*q_cl[2]/q_cl[0]; 
   q_cl[6] = tensor_2x_p2_surfx2_eval_quad_node_0_l(Pxz_c) + q_cl[1]*q_cl[3]/q_cl[0]; 
@@ -201,9 +201,9 @@ GKYL_CU_DH double euler_pkpm_surfy_2x_tensor_p2(const double *w, const double *d
   q_cl[8] = tensor_2x_p2_surfx2_eval_quad_node_0_l(Pyz_c) + q_cl[2]*q_cl[3]/q_cl[0]; 
   q_cl[9] = tensor_2x_p2_surfx2_eval_quad_node_0_l(Pzz_c) + q_cl[3]*q_cl[3]/q_cl[0]; 
   q_cr[0] = tensor_2x_p2_surfx2_eval_quad_node_0_r(rho_c); 
-  q_cr[1] = tensor_2x_p2_surfx2_eval_quad_node_0_r(rhoux_c); 
-  q_cr[2] = tensor_2x_p2_surfx2_eval_quad_node_0_r(rhouy_c); 
-  q_cr[3] = tensor_2x_p2_surfx2_eval_quad_node_0_r(rhouz_c); 
+  q_cr[1] = q_cr[0]*(0.6324555320336759*ux_surf_cr[2]-0.9486832980505137*ux_surf_cr[1]+0.7071067811865475*ux_surf_cr[0]); 
+  q_cr[2] = q_cr[0]*(0.6324555320336759*uy_surf_cr[2]-0.9486832980505137*uy_surf_cr[1]+0.7071067811865475*uy_surf_cr[0]); 
+  q_cr[3] = q_cr[0]*(0.6324555320336759*uz_surf_cr[2]-0.9486832980505137*uz_surf_cr[1]+0.7071067811865475*uz_surf_cr[0]); 
   q_cr[4] = tensor_2x_p2_surfx2_eval_quad_node_0_r(Pxx_c) + q_cr[1]*q_cr[1]/q_cr[0]; 
   q_cr[5] = tensor_2x_p2_surfx2_eval_quad_node_0_r(Pxy_c) + q_cr[1]*q_cr[2]/q_cr[0]; 
   q_cr[6] = tensor_2x_p2_surfx2_eval_quad_node_0_r(Pxz_c) + q_cr[1]*q_cr[3]/q_cr[0]; 
@@ -211,9 +211,9 @@ GKYL_CU_DH double euler_pkpm_surfy_2x_tensor_p2(const double *w, const double *d
   q_cr[8] = tensor_2x_p2_surfx2_eval_quad_node_0_r(Pyz_c) + q_cr[2]*q_cr[3]/q_cr[0]; 
   q_cr[9] = tensor_2x_p2_surfx2_eval_quad_node_0_r(Pzz_c) + q_cr[3]*q_cr[3]/q_cr[0]; 
   q_rl[0] = tensor_2x_p2_surfx2_eval_quad_node_0_l(rho_r); 
-  q_rl[1] = tensor_2x_p2_surfx2_eval_quad_node_0_l(rhoux_r); 
-  q_rl[2] = tensor_2x_p2_surfx2_eval_quad_node_0_l(rhouy_r); 
-  q_rl[3] = tensor_2x_p2_surfx2_eval_quad_node_0_l(rhouz_r); 
+  q_rl[1] = q_rl[0]*(0.6324555320336759*ux_surf_rl[2]-0.9486832980505137*ux_surf_rl[1]+0.7071067811865475*ux_surf_rl[0]); 
+  q_rl[2] = q_rl[0]*(0.6324555320336759*uy_surf_rl[2]-0.9486832980505137*uy_surf_rl[1]+0.7071067811865475*uy_surf_rl[0]); 
+  q_rl[3] = q_rl[0]*(0.6324555320336759*uz_surf_rl[2]-0.9486832980505137*uz_surf_rl[1]+0.7071067811865475*uz_surf_rl[0]); 
   q_rl[4] = tensor_2x_p2_surfx2_eval_quad_node_0_l(Pxx_r) + q_rl[1]*q_rl[1]/q_rl[0]; 
   q_rl[5] = tensor_2x_p2_surfx2_eval_quad_node_0_l(Pxy_r) + q_rl[1]*q_rl[2]/q_rl[0]; 
   q_rl[6] = tensor_2x_p2_surfx2_eval_quad_node_0_l(Pxz_r) + q_rl[1]*q_rl[3]/q_rl[0]; 
@@ -285,9 +285,9 @@ GKYL_CU_DH double euler_pkpm_surfy_2x_tensor_p2(const double *w, const double *d
   apdq_rhouz_quad_r[0] = apdq_r[3]; 
 
   q_lr[0] = tensor_2x_p2_surfx2_eval_quad_node_1_r(rho_l); 
-  q_lr[1] = tensor_2x_p2_surfx2_eval_quad_node_1_r(rhoux_l); 
-  q_lr[2] = tensor_2x_p2_surfx2_eval_quad_node_1_r(rhouy_l); 
-  q_lr[3] = tensor_2x_p2_surfx2_eval_quad_node_1_r(rhouz_l); 
+  q_lr[1] = q_lr[0]*(0.7071067811865475*ux_surf_lr[0]-0.7905694150420947*ux_surf_lr[2]); 
+  q_lr[2] = q_lr[0]*(0.7071067811865475*uy_surf_lr[0]-0.7905694150420947*uy_surf_lr[2]); 
+  q_lr[3] = q_lr[0]*(0.7071067811865475*uz_surf_lr[0]-0.7905694150420947*uz_surf_lr[2]); 
   q_lr[4] = tensor_2x_p2_surfx2_eval_quad_node_1_r(Pxx_l) + q_lr[1]*q_lr[1]/q_lr[0]; 
   q_lr[5] = tensor_2x_p2_surfx2_eval_quad_node_1_r(Pxy_l) + q_lr[1]*q_lr[2]/q_lr[0]; 
   q_lr[6] = tensor_2x_p2_surfx2_eval_quad_node_1_r(Pxz_l) + q_lr[1]*q_lr[3]/q_lr[0]; 
@@ -295,9 +295,9 @@ GKYL_CU_DH double euler_pkpm_surfy_2x_tensor_p2(const double *w, const double *d
   q_lr[8] = tensor_2x_p2_surfx2_eval_quad_node_1_r(Pyz_l) + q_lr[2]*q_lr[3]/q_lr[0]; 
   q_lr[9] = tensor_2x_p2_surfx2_eval_quad_node_1_r(Pzz_l) + q_lr[3]*q_lr[3]/q_lr[0]; 
   q_cl[0] = tensor_2x_p2_surfx2_eval_quad_node_1_l(rho_c); 
-  q_cl[1] = tensor_2x_p2_surfx2_eval_quad_node_1_l(rhoux_c); 
-  q_cl[2] = tensor_2x_p2_surfx2_eval_quad_node_1_l(rhouy_c); 
-  q_cl[3] = tensor_2x_p2_surfx2_eval_quad_node_1_l(rhouz_c); 
+  q_cl[1] = q_cl[0]*(0.7071067811865475*ux_surf_cl[0]-0.7905694150420947*ux_surf_cl[2]); 
+  q_cl[2] = q_cl[0]*(0.7071067811865475*uy_surf_cl[0]-0.7905694150420947*uy_surf_cl[2]); 
+  q_cl[3] = q_cl[0]*(0.7071067811865475*uz_surf_cl[0]-0.7905694150420947*uz_surf_cl[2]); 
   q_cl[4] = tensor_2x_p2_surfx2_eval_quad_node_1_l(Pxx_c) + q_cl[1]*q_cl[1]/q_cl[0]; 
   q_cl[5] = tensor_2x_p2_surfx2_eval_quad_node_1_l(Pxy_c) + q_cl[1]*q_cl[2]/q_cl[0]; 
   q_cl[6] = tensor_2x_p2_surfx2_eval_quad_node_1_l(Pxz_c) + q_cl[1]*q_cl[3]/q_cl[0]; 
@@ -305,9 +305,9 @@ GKYL_CU_DH double euler_pkpm_surfy_2x_tensor_p2(const double *w, const double *d
   q_cl[8] = tensor_2x_p2_surfx2_eval_quad_node_1_l(Pyz_c) + q_cl[2]*q_cl[3]/q_cl[0]; 
   q_cl[9] = tensor_2x_p2_surfx2_eval_quad_node_1_l(Pzz_c) + q_cl[3]*q_cl[3]/q_cl[0]; 
   q_cr[0] = tensor_2x_p2_surfx2_eval_quad_node_1_r(rho_c); 
-  q_cr[1] = tensor_2x_p2_surfx2_eval_quad_node_1_r(rhoux_c); 
-  q_cr[2] = tensor_2x_p2_surfx2_eval_quad_node_1_r(rhouy_c); 
-  q_cr[3] = tensor_2x_p2_surfx2_eval_quad_node_1_r(rhouz_c); 
+  q_cr[1] = q_cr[0]*(0.7071067811865475*ux_surf_cr[0]-0.7905694150420947*ux_surf_cr[2]); 
+  q_cr[2] = q_cr[0]*(0.7071067811865475*uy_surf_cr[0]-0.7905694150420947*uy_surf_cr[2]); 
+  q_cr[3] = q_cr[0]*(0.7071067811865475*uz_surf_cr[0]-0.7905694150420947*uz_surf_cr[2]); 
   q_cr[4] = tensor_2x_p2_surfx2_eval_quad_node_1_r(Pxx_c) + q_cr[1]*q_cr[1]/q_cr[0]; 
   q_cr[5] = tensor_2x_p2_surfx2_eval_quad_node_1_r(Pxy_c) + q_cr[1]*q_cr[2]/q_cr[0]; 
   q_cr[6] = tensor_2x_p2_surfx2_eval_quad_node_1_r(Pxz_c) + q_cr[1]*q_cr[3]/q_cr[0]; 
@@ -315,9 +315,9 @@ GKYL_CU_DH double euler_pkpm_surfy_2x_tensor_p2(const double *w, const double *d
   q_cr[8] = tensor_2x_p2_surfx2_eval_quad_node_1_r(Pyz_c) + q_cr[2]*q_cr[3]/q_cr[0]; 
   q_cr[9] = tensor_2x_p2_surfx2_eval_quad_node_1_r(Pzz_c) + q_cr[3]*q_cr[3]/q_cr[0]; 
   q_rl[0] = tensor_2x_p2_surfx2_eval_quad_node_1_l(rho_r); 
-  q_rl[1] = tensor_2x_p2_surfx2_eval_quad_node_1_l(rhoux_r); 
-  q_rl[2] = tensor_2x_p2_surfx2_eval_quad_node_1_l(rhouy_r); 
-  q_rl[3] = tensor_2x_p2_surfx2_eval_quad_node_1_l(rhouz_r); 
+  q_rl[1] = q_rl[0]*(0.7071067811865475*ux_surf_rl[0]-0.7905694150420947*ux_surf_rl[2]); 
+  q_rl[2] = q_rl[0]*(0.7071067811865475*uy_surf_rl[0]-0.7905694150420947*uy_surf_rl[2]); 
+  q_rl[3] = q_rl[0]*(0.7071067811865475*uz_surf_rl[0]-0.7905694150420947*uz_surf_rl[2]); 
   q_rl[4] = tensor_2x_p2_surfx2_eval_quad_node_1_l(Pxx_r) + q_rl[1]*q_rl[1]/q_rl[0]; 
   q_rl[5] = tensor_2x_p2_surfx2_eval_quad_node_1_l(Pxy_r) + q_rl[1]*q_rl[2]/q_rl[0]; 
   q_rl[6] = tensor_2x_p2_surfx2_eval_quad_node_1_l(Pxz_r) + q_rl[1]*q_rl[3]/q_rl[0]; 
@@ -389,9 +389,9 @@ GKYL_CU_DH double euler_pkpm_surfy_2x_tensor_p2(const double *w, const double *d
   apdq_rhouz_quad_r[1] = apdq_r[3]; 
 
   q_lr[0] = tensor_2x_p2_surfx2_eval_quad_node_2_r(rho_l); 
-  q_lr[1] = tensor_2x_p2_surfx2_eval_quad_node_2_r(rhoux_l); 
-  q_lr[2] = tensor_2x_p2_surfx2_eval_quad_node_2_r(rhouy_l); 
-  q_lr[3] = tensor_2x_p2_surfx2_eval_quad_node_2_r(rhouz_l); 
+  q_lr[1] = q_lr[0]*(0.6324555320336759*ux_surf_lr[2]+0.9486832980505137*ux_surf_lr[1]+0.7071067811865475*ux_surf_lr[0]); 
+  q_lr[2] = q_lr[0]*(0.6324555320336759*uy_surf_lr[2]+0.9486832980505137*uy_surf_lr[1]+0.7071067811865475*uy_surf_lr[0]); 
+  q_lr[3] = q_lr[0]*(0.6324555320336759*uz_surf_lr[2]+0.9486832980505137*uz_surf_lr[1]+0.7071067811865475*uz_surf_lr[0]); 
   q_lr[4] = tensor_2x_p2_surfx2_eval_quad_node_2_r(Pxx_l) + q_lr[1]*q_lr[1]/q_lr[0]; 
   q_lr[5] = tensor_2x_p2_surfx2_eval_quad_node_2_r(Pxy_l) + q_lr[1]*q_lr[2]/q_lr[0]; 
   q_lr[6] = tensor_2x_p2_surfx2_eval_quad_node_2_r(Pxz_l) + q_lr[1]*q_lr[3]/q_lr[0]; 
@@ -399,9 +399,9 @@ GKYL_CU_DH double euler_pkpm_surfy_2x_tensor_p2(const double *w, const double *d
   q_lr[8] = tensor_2x_p2_surfx2_eval_quad_node_2_r(Pyz_l) + q_lr[2]*q_lr[3]/q_lr[0]; 
   q_lr[9] = tensor_2x_p2_surfx2_eval_quad_node_2_r(Pzz_l) + q_lr[3]*q_lr[3]/q_lr[0]; 
   q_cl[0] = tensor_2x_p2_surfx2_eval_quad_node_2_l(rho_c); 
-  q_cl[1] = tensor_2x_p2_surfx2_eval_quad_node_2_l(rhoux_c); 
-  q_cl[2] = tensor_2x_p2_surfx2_eval_quad_node_2_l(rhouy_c); 
-  q_cl[3] = tensor_2x_p2_surfx2_eval_quad_node_2_l(rhouz_c); 
+  q_cl[1] = q_cl[0]*(0.6324555320336759*ux_surf_cl[2]+0.9486832980505137*ux_surf_cl[1]+0.7071067811865475*ux_surf_cl[0]); 
+  q_cl[2] = q_cl[0]*(0.6324555320336759*uy_surf_cl[2]+0.9486832980505137*uy_surf_cl[1]+0.7071067811865475*uy_surf_cl[0]); 
+  q_cl[3] = q_cl[0]*(0.6324555320336759*uz_surf_cl[2]+0.9486832980505137*uz_surf_cl[1]+0.7071067811865475*uz_surf_cl[0]); 
   q_cl[4] = tensor_2x_p2_surfx2_eval_quad_node_2_l(Pxx_c) + q_cl[1]*q_cl[1]/q_cl[0]; 
   q_cl[5] = tensor_2x_p2_surfx2_eval_quad_node_2_l(Pxy_c) + q_cl[1]*q_cl[2]/q_cl[0]; 
   q_cl[6] = tensor_2x_p2_surfx2_eval_quad_node_2_l(Pxz_c) + q_cl[1]*q_cl[3]/q_cl[0]; 
@@ -409,9 +409,9 @@ GKYL_CU_DH double euler_pkpm_surfy_2x_tensor_p2(const double *w, const double *d
   q_cl[8] = tensor_2x_p2_surfx2_eval_quad_node_2_l(Pyz_c) + q_cl[2]*q_cl[3]/q_cl[0]; 
   q_cl[9] = tensor_2x_p2_surfx2_eval_quad_node_2_l(Pzz_c) + q_cl[3]*q_cl[3]/q_cl[0]; 
   q_cr[0] = tensor_2x_p2_surfx2_eval_quad_node_2_r(rho_c); 
-  q_cr[1] = tensor_2x_p2_surfx2_eval_quad_node_2_r(rhoux_c); 
-  q_cr[2] = tensor_2x_p2_surfx2_eval_quad_node_2_r(rhouy_c); 
-  q_cr[3] = tensor_2x_p2_surfx2_eval_quad_node_2_r(rhouz_c); 
+  q_cr[1] = q_cr[0]*(0.6324555320336759*ux_surf_cr[2]+0.9486832980505137*ux_surf_cr[1]+0.7071067811865475*ux_surf_cr[0]); 
+  q_cr[2] = q_cr[0]*(0.6324555320336759*uy_surf_cr[2]+0.9486832980505137*uy_surf_cr[1]+0.7071067811865475*uy_surf_cr[0]); 
+  q_cr[3] = q_cr[0]*(0.6324555320336759*uz_surf_cr[2]+0.9486832980505137*uz_surf_cr[1]+0.7071067811865475*uz_surf_cr[0]); 
   q_cr[4] = tensor_2x_p2_surfx2_eval_quad_node_2_r(Pxx_c) + q_cr[1]*q_cr[1]/q_cr[0]; 
   q_cr[5] = tensor_2x_p2_surfx2_eval_quad_node_2_r(Pxy_c) + q_cr[1]*q_cr[2]/q_cr[0]; 
   q_cr[6] = tensor_2x_p2_surfx2_eval_quad_node_2_r(Pxz_c) + q_cr[1]*q_cr[3]/q_cr[0]; 
@@ -419,9 +419,9 @@ GKYL_CU_DH double euler_pkpm_surfy_2x_tensor_p2(const double *w, const double *d
   q_cr[8] = tensor_2x_p2_surfx2_eval_quad_node_2_r(Pyz_c) + q_cr[2]*q_cr[3]/q_cr[0]; 
   q_cr[9] = tensor_2x_p2_surfx2_eval_quad_node_2_r(Pzz_c) + q_cr[3]*q_cr[3]/q_cr[0]; 
   q_rl[0] = tensor_2x_p2_surfx2_eval_quad_node_2_l(rho_r); 
-  q_rl[1] = tensor_2x_p2_surfx2_eval_quad_node_2_l(rhoux_r); 
-  q_rl[2] = tensor_2x_p2_surfx2_eval_quad_node_2_l(rhouy_r); 
-  q_rl[3] = tensor_2x_p2_surfx2_eval_quad_node_2_l(rhouz_r); 
+  q_rl[1] = q_rl[0]*(0.6324555320336759*ux_surf_rl[2]+0.9486832980505137*ux_surf_rl[1]+0.7071067811865475*ux_surf_rl[0]); 
+  q_rl[2] = q_rl[0]*(0.6324555320336759*uy_surf_rl[2]+0.9486832980505137*uy_surf_rl[1]+0.7071067811865475*uy_surf_rl[0]); 
+  q_rl[3] = q_rl[0]*(0.6324555320336759*uz_surf_rl[2]+0.9486832980505137*uz_surf_rl[1]+0.7071067811865475*uz_surf_rl[0]); 
   q_rl[4] = tensor_2x_p2_surfx2_eval_quad_node_2_l(Pxx_r) + q_rl[1]*q_rl[1]/q_rl[0]; 
   q_rl[5] = tensor_2x_p2_surfx2_eval_quad_node_2_l(Pxy_r) + q_rl[1]*q_rl[2]/q_rl[0]; 
   q_rl[6] = tensor_2x_p2_surfx2_eval_quad_node_2_l(Pxz_r) + q_rl[1]*q_rl[3]/q_rl[0]; 

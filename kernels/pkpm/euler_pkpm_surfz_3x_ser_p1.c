@@ -189,9 +189,9 @@ GKYL_CU_DH double euler_pkpm_surfz_3x_ser_p1(const double *w, const double *dxv,
   double apdq_r[10] = {0.0}; 
 
   q_lr[0] = ser_3x_p1_surfx3_eval_quad_node_0_r(rho_l); 
-  q_lr[1] = ser_3x_p1_surfx3_eval_quad_node_0_r(rhoux_l); 
-  q_lr[2] = ser_3x_p1_surfx3_eval_quad_node_0_r(rhouy_l); 
-  q_lr[3] = ser_3x_p1_surfx3_eval_quad_node_0_r(rhouz_l); 
+  q_lr[1] = q_lr[0]*(0.5*ux_surf_lr[3]-0.5*(ux_surf_lr[2]+ux_surf_lr[1])+0.5*ux_surf_lr[0]); 
+  q_lr[2] = q_lr[0]*(0.5*uy_surf_lr[3]-0.5*(uy_surf_lr[2]+uy_surf_lr[1])+0.5*uy_surf_lr[0]); 
+  q_lr[3] = q_lr[0]*(0.5*uz_surf_lr[3]-0.5*(uz_surf_lr[2]+uz_surf_lr[1])+0.5*uz_surf_lr[0]); 
   q_lr[4] = ser_3x_p1_surfx3_eval_quad_node_0_r(Pxx_l) + q_lr[1]*q_lr[1]/q_lr[0]; 
   q_lr[5] = ser_3x_p1_surfx3_eval_quad_node_0_r(Pxy_l) + q_lr[1]*q_lr[2]/q_lr[0]; 
   q_lr[6] = ser_3x_p1_surfx3_eval_quad_node_0_r(Pxz_l) + q_lr[1]*q_lr[3]/q_lr[0]; 
@@ -199,9 +199,9 @@ GKYL_CU_DH double euler_pkpm_surfz_3x_ser_p1(const double *w, const double *dxv,
   q_lr[8] = ser_3x_p1_surfx3_eval_quad_node_0_r(Pyz_l) + q_lr[2]*q_lr[3]/q_lr[0]; 
   q_lr[9] = ser_3x_p1_surfx3_eval_quad_node_0_r(Pzz_l) + q_lr[3]*q_lr[3]/q_lr[0]; 
   q_cl[0] = ser_3x_p1_surfx3_eval_quad_node_0_l(rho_c); 
-  q_cl[1] = ser_3x_p1_surfx3_eval_quad_node_0_l(rhoux_c); 
-  q_cl[2] = ser_3x_p1_surfx3_eval_quad_node_0_l(rhouy_c); 
-  q_cl[3] = ser_3x_p1_surfx3_eval_quad_node_0_l(rhouz_c); 
+  q_cl[1] = q_cl[0]*(0.5*ux_surf_cl[3]-0.5*(ux_surf_cl[2]+ux_surf_cl[1])+0.5*ux_surf_cl[0]); 
+  q_cl[2] = q_cl[0]*(0.5*uy_surf_cl[3]-0.5*(uy_surf_cl[2]+uy_surf_cl[1])+0.5*uy_surf_cl[0]); 
+  q_cl[3] = q_cl[0]*(0.5*uz_surf_cl[3]-0.5*(uz_surf_cl[2]+uz_surf_cl[1])+0.5*uz_surf_cl[0]); 
   q_cl[4] = ser_3x_p1_surfx3_eval_quad_node_0_l(Pxx_c) + q_cl[1]*q_cl[1]/q_cl[0]; 
   q_cl[5] = ser_3x_p1_surfx3_eval_quad_node_0_l(Pxy_c) + q_cl[1]*q_cl[2]/q_cl[0]; 
   q_cl[6] = ser_3x_p1_surfx3_eval_quad_node_0_l(Pxz_c) + q_cl[1]*q_cl[3]/q_cl[0]; 
@@ -209,9 +209,9 @@ GKYL_CU_DH double euler_pkpm_surfz_3x_ser_p1(const double *w, const double *dxv,
   q_cl[8] = ser_3x_p1_surfx3_eval_quad_node_0_l(Pyz_c) + q_cl[2]*q_cl[3]/q_cl[0]; 
   q_cl[9] = ser_3x_p1_surfx3_eval_quad_node_0_l(Pzz_c) + q_cl[3]*q_cl[3]/q_cl[0]; 
   q_cr[0] = ser_3x_p1_surfx3_eval_quad_node_0_r(rho_c); 
-  q_cr[1] = ser_3x_p1_surfx3_eval_quad_node_0_r(rhoux_c); 
-  q_cr[2] = ser_3x_p1_surfx3_eval_quad_node_0_r(rhouy_c); 
-  q_cr[3] = ser_3x_p1_surfx3_eval_quad_node_0_r(rhouz_c); 
+  q_cr[1] = q_cr[0]*(0.5*ux_surf_cr[3]-0.5*(ux_surf_cr[2]+ux_surf_cr[1])+0.5*ux_surf_cr[0]); 
+  q_cr[2] = q_cr[0]*(0.5*uy_surf_cr[3]-0.5*(uy_surf_cr[2]+uy_surf_cr[1])+0.5*uy_surf_cr[0]); 
+  q_cr[3] = q_cr[0]*(0.5*uz_surf_cr[3]-0.5*(uz_surf_cr[2]+uz_surf_cr[1])+0.5*uz_surf_cr[0]); 
   q_cr[4] = ser_3x_p1_surfx3_eval_quad_node_0_r(Pxx_c) + q_cr[1]*q_cr[1]/q_cr[0]; 
   q_cr[5] = ser_3x_p1_surfx3_eval_quad_node_0_r(Pxy_c) + q_cr[1]*q_cr[2]/q_cr[0]; 
   q_cr[6] = ser_3x_p1_surfx3_eval_quad_node_0_r(Pxz_c) + q_cr[1]*q_cr[3]/q_cr[0]; 
@@ -219,9 +219,9 @@ GKYL_CU_DH double euler_pkpm_surfz_3x_ser_p1(const double *w, const double *dxv,
   q_cr[8] = ser_3x_p1_surfx3_eval_quad_node_0_r(Pyz_c) + q_cr[2]*q_cr[3]/q_cr[0]; 
   q_cr[9] = ser_3x_p1_surfx3_eval_quad_node_0_r(Pzz_c) + q_cr[3]*q_cr[3]/q_cr[0]; 
   q_rl[0] = ser_3x_p1_surfx3_eval_quad_node_0_l(rho_r); 
-  q_rl[1] = ser_3x_p1_surfx3_eval_quad_node_0_l(rhoux_r); 
-  q_rl[2] = ser_3x_p1_surfx3_eval_quad_node_0_l(rhouy_r); 
-  q_rl[3] = ser_3x_p1_surfx3_eval_quad_node_0_l(rhouz_r); 
+  q_rl[1] = q_rl[0]*(0.5*ux_surf_rl[3]-0.5*(ux_surf_rl[2]+ux_surf_rl[1])+0.5*ux_surf_rl[0]); 
+  q_rl[2] = q_rl[0]*(0.5*uy_surf_rl[3]-0.5*(uy_surf_rl[2]+uy_surf_rl[1])+0.5*uy_surf_rl[0]); 
+  q_rl[3] = q_rl[0]*(0.5*uz_surf_rl[3]-0.5*(uz_surf_rl[2]+uz_surf_rl[1])+0.5*uz_surf_rl[0]); 
   q_rl[4] = ser_3x_p1_surfx3_eval_quad_node_0_l(Pxx_r) + q_rl[1]*q_rl[1]/q_rl[0]; 
   q_rl[5] = ser_3x_p1_surfx3_eval_quad_node_0_l(Pxy_r) + q_rl[1]*q_rl[2]/q_rl[0]; 
   q_rl[6] = ser_3x_p1_surfx3_eval_quad_node_0_l(Pxz_r) + q_rl[1]*q_rl[3]/q_rl[0]; 
@@ -293,9 +293,9 @@ GKYL_CU_DH double euler_pkpm_surfz_3x_ser_p1(const double *w, const double *dxv,
   apdq_rhouz_quad_r[0] = apdq_r[3]; 
 
   q_lr[0] = ser_3x_p1_surfx3_eval_quad_node_1_r(rho_l); 
-  q_lr[1] = ser_3x_p1_surfx3_eval_quad_node_1_r(rhoux_l); 
-  q_lr[2] = ser_3x_p1_surfx3_eval_quad_node_1_r(rhouy_l); 
-  q_lr[3] = ser_3x_p1_surfx3_eval_quad_node_1_r(rhouz_l); 
+  q_lr[1] = q_lr[0]*((-0.5*ux_surf_lr[3])+0.5*ux_surf_lr[2]-0.5*ux_surf_lr[1]+0.5*ux_surf_lr[0]); 
+  q_lr[2] = q_lr[0]*((-0.5*uy_surf_lr[3])+0.5*uy_surf_lr[2]-0.5*uy_surf_lr[1]+0.5*uy_surf_lr[0]); 
+  q_lr[3] = q_lr[0]*((-0.5*uz_surf_lr[3])+0.5*uz_surf_lr[2]-0.5*uz_surf_lr[1]+0.5*uz_surf_lr[0]); 
   q_lr[4] = ser_3x_p1_surfx3_eval_quad_node_1_r(Pxx_l) + q_lr[1]*q_lr[1]/q_lr[0]; 
   q_lr[5] = ser_3x_p1_surfx3_eval_quad_node_1_r(Pxy_l) + q_lr[1]*q_lr[2]/q_lr[0]; 
   q_lr[6] = ser_3x_p1_surfx3_eval_quad_node_1_r(Pxz_l) + q_lr[1]*q_lr[3]/q_lr[0]; 
@@ -303,9 +303,9 @@ GKYL_CU_DH double euler_pkpm_surfz_3x_ser_p1(const double *w, const double *dxv,
   q_lr[8] = ser_3x_p1_surfx3_eval_quad_node_1_r(Pyz_l) + q_lr[2]*q_lr[3]/q_lr[0]; 
   q_lr[9] = ser_3x_p1_surfx3_eval_quad_node_1_r(Pzz_l) + q_lr[3]*q_lr[3]/q_lr[0]; 
   q_cl[0] = ser_3x_p1_surfx3_eval_quad_node_1_l(rho_c); 
-  q_cl[1] = ser_3x_p1_surfx3_eval_quad_node_1_l(rhoux_c); 
-  q_cl[2] = ser_3x_p1_surfx3_eval_quad_node_1_l(rhouy_c); 
-  q_cl[3] = ser_3x_p1_surfx3_eval_quad_node_1_l(rhouz_c); 
+  q_cl[1] = q_cl[0]*((-0.5*ux_surf_cl[3])+0.5*ux_surf_cl[2]-0.5*ux_surf_cl[1]+0.5*ux_surf_cl[0]); 
+  q_cl[2] = q_cl[0]*((-0.5*uy_surf_cl[3])+0.5*uy_surf_cl[2]-0.5*uy_surf_cl[1]+0.5*uy_surf_cl[0]); 
+  q_cl[3] = q_cl[0]*((-0.5*uz_surf_cl[3])+0.5*uz_surf_cl[2]-0.5*uz_surf_cl[1]+0.5*uz_surf_cl[0]); 
   q_cl[4] = ser_3x_p1_surfx3_eval_quad_node_1_l(Pxx_c) + q_cl[1]*q_cl[1]/q_cl[0]; 
   q_cl[5] = ser_3x_p1_surfx3_eval_quad_node_1_l(Pxy_c) + q_cl[1]*q_cl[2]/q_cl[0]; 
   q_cl[6] = ser_3x_p1_surfx3_eval_quad_node_1_l(Pxz_c) + q_cl[1]*q_cl[3]/q_cl[0]; 
@@ -313,9 +313,9 @@ GKYL_CU_DH double euler_pkpm_surfz_3x_ser_p1(const double *w, const double *dxv,
   q_cl[8] = ser_3x_p1_surfx3_eval_quad_node_1_l(Pyz_c) + q_cl[2]*q_cl[3]/q_cl[0]; 
   q_cl[9] = ser_3x_p1_surfx3_eval_quad_node_1_l(Pzz_c) + q_cl[3]*q_cl[3]/q_cl[0]; 
   q_cr[0] = ser_3x_p1_surfx3_eval_quad_node_1_r(rho_c); 
-  q_cr[1] = ser_3x_p1_surfx3_eval_quad_node_1_r(rhoux_c); 
-  q_cr[2] = ser_3x_p1_surfx3_eval_quad_node_1_r(rhouy_c); 
-  q_cr[3] = ser_3x_p1_surfx3_eval_quad_node_1_r(rhouz_c); 
+  q_cr[1] = q_cr[0]*((-0.5*ux_surf_cr[3])+0.5*ux_surf_cr[2]-0.5*ux_surf_cr[1]+0.5*ux_surf_cr[0]); 
+  q_cr[2] = q_cr[0]*((-0.5*uy_surf_cr[3])+0.5*uy_surf_cr[2]-0.5*uy_surf_cr[1]+0.5*uy_surf_cr[0]); 
+  q_cr[3] = q_cr[0]*((-0.5*uz_surf_cr[3])+0.5*uz_surf_cr[2]-0.5*uz_surf_cr[1]+0.5*uz_surf_cr[0]); 
   q_cr[4] = ser_3x_p1_surfx3_eval_quad_node_1_r(Pxx_c) + q_cr[1]*q_cr[1]/q_cr[0]; 
   q_cr[5] = ser_3x_p1_surfx3_eval_quad_node_1_r(Pxy_c) + q_cr[1]*q_cr[2]/q_cr[0]; 
   q_cr[6] = ser_3x_p1_surfx3_eval_quad_node_1_r(Pxz_c) + q_cr[1]*q_cr[3]/q_cr[0]; 
@@ -323,9 +323,9 @@ GKYL_CU_DH double euler_pkpm_surfz_3x_ser_p1(const double *w, const double *dxv,
   q_cr[8] = ser_3x_p1_surfx3_eval_quad_node_1_r(Pyz_c) + q_cr[2]*q_cr[3]/q_cr[0]; 
   q_cr[9] = ser_3x_p1_surfx3_eval_quad_node_1_r(Pzz_c) + q_cr[3]*q_cr[3]/q_cr[0]; 
   q_rl[0] = ser_3x_p1_surfx3_eval_quad_node_1_l(rho_r); 
-  q_rl[1] = ser_3x_p1_surfx3_eval_quad_node_1_l(rhoux_r); 
-  q_rl[2] = ser_3x_p1_surfx3_eval_quad_node_1_l(rhouy_r); 
-  q_rl[3] = ser_3x_p1_surfx3_eval_quad_node_1_l(rhouz_r); 
+  q_rl[1] = q_rl[0]*((-0.5*ux_surf_rl[3])+0.5*ux_surf_rl[2]-0.5*ux_surf_rl[1]+0.5*ux_surf_rl[0]); 
+  q_rl[2] = q_rl[0]*((-0.5*uy_surf_rl[3])+0.5*uy_surf_rl[2]-0.5*uy_surf_rl[1]+0.5*uy_surf_rl[0]); 
+  q_rl[3] = q_rl[0]*((-0.5*uz_surf_rl[3])+0.5*uz_surf_rl[2]-0.5*uz_surf_rl[1]+0.5*uz_surf_rl[0]); 
   q_rl[4] = ser_3x_p1_surfx3_eval_quad_node_1_l(Pxx_r) + q_rl[1]*q_rl[1]/q_rl[0]; 
   q_rl[5] = ser_3x_p1_surfx3_eval_quad_node_1_l(Pxy_r) + q_rl[1]*q_rl[2]/q_rl[0]; 
   q_rl[6] = ser_3x_p1_surfx3_eval_quad_node_1_l(Pxz_r) + q_rl[1]*q_rl[3]/q_rl[0]; 
@@ -397,9 +397,9 @@ GKYL_CU_DH double euler_pkpm_surfz_3x_ser_p1(const double *w, const double *dxv,
   apdq_rhouz_quad_r[1] = apdq_r[3]; 
 
   q_lr[0] = ser_3x_p1_surfx3_eval_quad_node_2_r(rho_l); 
-  q_lr[1] = ser_3x_p1_surfx3_eval_quad_node_2_r(rhoux_l); 
-  q_lr[2] = ser_3x_p1_surfx3_eval_quad_node_2_r(rhouy_l); 
-  q_lr[3] = ser_3x_p1_surfx3_eval_quad_node_2_r(rhouz_l); 
+  q_lr[1] = q_lr[0]*(0.5*(ux_surf_lr[1]+ux_surf_lr[0])-0.5*(ux_surf_lr[3]+ux_surf_lr[2])); 
+  q_lr[2] = q_lr[0]*(0.5*(uy_surf_lr[1]+uy_surf_lr[0])-0.5*(uy_surf_lr[3]+uy_surf_lr[2])); 
+  q_lr[3] = q_lr[0]*(0.5*(uz_surf_lr[1]+uz_surf_lr[0])-0.5*(uz_surf_lr[3]+uz_surf_lr[2])); 
   q_lr[4] = ser_3x_p1_surfx3_eval_quad_node_2_r(Pxx_l) + q_lr[1]*q_lr[1]/q_lr[0]; 
   q_lr[5] = ser_3x_p1_surfx3_eval_quad_node_2_r(Pxy_l) + q_lr[1]*q_lr[2]/q_lr[0]; 
   q_lr[6] = ser_3x_p1_surfx3_eval_quad_node_2_r(Pxz_l) + q_lr[1]*q_lr[3]/q_lr[0]; 
@@ -407,9 +407,9 @@ GKYL_CU_DH double euler_pkpm_surfz_3x_ser_p1(const double *w, const double *dxv,
   q_lr[8] = ser_3x_p1_surfx3_eval_quad_node_2_r(Pyz_l) + q_lr[2]*q_lr[3]/q_lr[0]; 
   q_lr[9] = ser_3x_p1_surfx3_eval_quad_node_2_r(Pzz_l) + q_lr[3]*q_lr[3]/q_lr[0]; 
   q_cl[0] = ser_3x_p1_surfx3_eval_quad_node_2_l(rho_c); 
-  q_cl[1] = ser_3x_p1_surfx3_eval_quad_node_2_l(rhoux_c); 
-  q_cl[2] = ser_3x_p1_surfx3_eval_quad_node_2_l(rhouy_c); 
-  q_cl[3] = ser_3x_p1_surfx3_eval_quad_node_2_l(rhouz_c); 
+  q_cl[1] = q_cl[0]*(0.5*(ux_surf_cl[1]+ux_surf_cl[0])-0.5*(ux_surf_cl[3]+ux_surf_cl[2])); 
+  q_cl[2] = q_cl[0]*(0.5*(uy_surf_cl[1]+uy_surf_cl[0])-0.5*(uy_surf_cl[3]+uy_surf_cl[2])); 
+  q_cl[3] = q_cl[0]*(0.5*(uz_surf_cl[1]+uz_surf_cl[0])-0.5*(uz_surf_cl[3]+uz_surf_cl[2])); 
   q_cl[4] = ser_3x_p1_surfx3_eval_quad_node_2_l(Pxx_c) + q_cl[1]*q_cl[1]/q_cl[0]; 
   q_cl[5] = ser_3x_p1_surfx3_eval_quad_node_2_l(Pxy_c) + q_cl[1]*q_cl[2]/q_cl[0]; 
   q_cl[6] = ser_3x_p1_surfx3_eval_quad_node_2_l(Pxz_c) + q_cl[1]*q_cl[3]/q_cl[0]; 
@@ -417,9 +417,9 @@ GKYL_CU_DH double euler_pkpm_surfz_3x_ser_p1(const double *w, const double *dxv,
   q_cl[8] = ser_3x_p1_surfx3_eval_quad_node_2_l(Pyz_c) + q_cl[2]*q_cl[3]/q_cl[0]; 
   q_cl[9] = ser_3x_p1_surfx3_eval_quad_node_2_l(Pzz_c) + q_cl[3]*q_cl[3]/q_cl[0]; 
   q_cr[0] = ser_3x_p1_surfx3_eval_quad_node_2_r(rho_c); 
-  q_cr[1] = ser_3x_p1_surfx3_eval_quad_node_2_r(rhoux_c); 
-  q_cr[2] = ser_3x_p1_surfx3_eval_quad_node_2_r(rhouy_c); 
-  q_cr[3] = ser_3x_p1_surfx3_eval_quad_node_2_r(rhouz_c); 
+  q_cr[1] = q_cr[0]*(0.5*(ux_surf_cr[1]+ux_surf_cr[0])-0.5*(ux_surf_cr[3]+ux_surf_cr[2])); 
+  q_cr[2] = q_cr[0]*(0.5*(uy_surf_cr[1]+uy_surf_cr[0])-0.5*(uy_surf_cr[3]+uy_surf_cr[2])); 
+  q_cr[3] = q_cr[0]*(0.5*(uz_surf_cr[1]+uz_surf_cr[0])-0.5*(uz_surf_cr[3]+uz_surf_cr[2])); 
   q_cr[4] = ser_3x_p1_surfx3_eval_quad_node_2_r(Pxx_c) + q_cr[1]*q_cr[1]/q_cr[0]; 
   q_cr[5] = ser_3x_p1_surfx3_eval_quad_node_2_r(Pxy_c) + q_cr[1]*q_cr[2]/q_cr[0]; 
   q_cr[6] = ser_3x_p1_surfx3_eval_quad_node_2_r(Pxz_c) + q_cr[1]*q_cr[3]/q_cr[0]; 
@@ -427,9 +427,9 @@ GKYL_CU_DH double euler_pkpm_surfz_3x_ser_p1(const double *w, const double *dxv,
   q_cr[8] = ser_3x_p1_surfx3_eval_quad_node_2_r(Pyz_c) + q_cr[2]*q_cr[3]/q_cr[0]; 
   q_cr[9] = ser_3x_p1_surfx3_eval_quad_node_2_r(Pzz_c) + q_cr[3]*q_cr[3]/q_cr[0]; 
   q_rl[0] = ser_3x_p1_surfx3_eval_quad_node_2_l(rho_r); 
-  q_rl[1] = ser_3x_p1_surfx3_eval_quad_node_2_l(rhoux_r); 
-  q_rl[2] = ser_3x_p1_surfx3_eval_quad_node_2_l(rhouy_r); 
-  q_rl[3] = ser_3x_p1_surfx3_eval_quad_node_2_l(rhouz_r); 
+  q_rl[1] = q_rl[0]*(0.5*(ux_surf_rl[1]+ux_surf_rl[0])-0.5*(ux_surf_rl[3]+ux_surf_rl[2])); 
+  q_rl[2] = q_rl[0]*(0.5*(uy_surf_rl[1]+uy_surf_rl[0])-0.5*(uy_surf_rl[3]+uy_surf_rl[2])); 
+  q_rl[3] = q_rl[0]*(0.5*(uz_surf_rl[1]+uz_surf_rl[0])-0.5*(uz_surf_rl[3]+uz_surf_rl[2])); 
   q_rl[4] = ser_3x_p1_surfx3_eval_quad_node_2_l(Pxx_r) + q_rl[1]*q_rl[1]/q_rl[0]; 
   q_rl[5] = ser_3x_p1_surfx3_eval_quad_node_2_l(Pxy_r) + q_rl[1]*q_rl[2]/q_rl[0]; 
   q_rl[6] = ser_3x_p1_surfx3_eval_quad_node_2_l(Pxz_r) + q_rl[1]*q_rl[3]/q_rl[0]; 
@@ -501,9 +501,9 @@ GKYL_CU_DH double euler_pkpm_surfz_3x_ser_p1(const double *w, const double *dxv,
   apdq_rhouz_quad_r[2] = apdq_r[3]; 
 
   q_lr[0] = ser_3x_p1_surfx3_eval_quad_node_3_r(rho_l); 
-  q_lr[1] = ser_3x_p1_surfx3_eval_quad_node_3_r(rhoux_l); 
-  q_lr[2] = ser_3x_p1_surfx3_eval_quad_node_3_r(rhouy_l); 
-  q_lr[3] = ser_3x_p1_surfx3_eval_quad_node_3_r(rhouz_l); 
+  q_lr[1] = q_lr[0]*(0.5*(ux_surf_lr[3]+ux_surf_lr[2]+ux_surf_lr[1]+ux_surf_lr[0])); 
+  q_lr[2] = q_lr[0]*(0.5*(uy_surf_lr[3]+uy_surf_lr[2]+uy_surf_lr[1]+uy_surf_lr[0])); 
+  q_lr[3] = q_lr[0]*(0.5*(uz_surf_lr[3]+uz_surf_lr[2]+uz_surf_lr[1]+uz_surf_lr[0])); 
   q_lr[4] = ser_3x_p1_surfx3_eval_quad_node_3_r(Pxx_l) + q_lr[1]*q_lr[1]/q_lr[0]; 
   q_lr[5] = ser_3x_p1_surfx3_eval_quad_node_3_r(Pxy_l) + q_lr[1]*q_lr[2]/q_lr[0]; 
   q_lr[6] = ser_3x_p1_surfx3_eval_quad_node_3_r(Pxz_l) + q_lr[1]*q_lr[3]/q_lr[0]; 
@@ -511,9 +511,9 @@ GKYL_CU_DH double euler_pkpm_surfz_3x_ser_p1(const double *w, const double *dxv,
   q_lr[8] = ser_3x_p1_surfx3_eval_quad_node_3_r(Pyz_l) + q_lr[2]*q_lr[3]/q_lr[0]; 
   q_lr[9] = ser_3x_p1_surfx3_eval_quad_node_3_r(Pzz_l) + q_lr[3]*q_lr[3]/q_lr[0]; 
   q_cl[0] = ser_3x_p1_surfx3_eval_quad_node_3_l(rho_c); 
-  q_cl[1] = ser_3x_p1_surfx3_eval_quad_node_3_l(rhoux_c); 
-  q_cl[2] = ser_3x_p1_surfx3_eval_quad_node_3_l(rhouy_c); 
-  q_cl[3] = ser_3x_p1_surfx3_eval_quad_node_3_l(rhouz_c); 
+  q_cl[1] = q_cl[0]*(0.5*(ux_surf_cl[3]+ux_surf_cl[2]+ux_surf_cl[1]+ux_surf_cl[0])); 
+  q_cl[2] = q_cl[0]*(0.5*(uy_surf_cl[3]+uy_surf_cl[2]+uy_surf_cl[1]+uy_surf_cl[0])); 
+  q_cl[3] = q_cl[0]*(0.5*(uz_surf_cl[3]+uz_surf_cl[2]+uz_surf_cl[1]+uz_surf_cl[0])); 
   q_cl[4] = ser_3x_p1_surfx3_eval_quad_node_3_l(Pxx_c) + q_cl[1]*q_cl[1]/q_cl[0]; 
   q_cl[5] = ser_3x_p1_surfx3_eval_quad_node_3_l(Pxy_c) + q_cl[1]*q_cl[2]/q_cl[0]; 
   q_cl[6] = ser_3x_p1_surfx3_eval_quad_node_3_l(Pxz_c) + q_cl[1]*q_cl[3]/q_cl[0]; 
@@ -521,9 +521,9 @@ GKYL_CU_DH double euler_pkpm_surfz_3x_ser_p1(const double *w, const double *dxv,
   q_cl[8] = ser_3x_p1_surfx3_eval_quad_node_3_l(Pyz_c) + q_cl[2]*q_cl[3]/q_cl[0]; 
   q_cl[9] = ser_3x_p1_surfx3_eval_quad_node_3_l(Pzz_c) + q_cl[3]*q_cl[3]/q_cl[0]; 
   q_cr[0] = ser_3x_p1_surfx3_eval_quad_node_3_r(rho_c); 
-  q_cr[1] = ser_3x_p1_surfx3_eval_quad_node_3_r(rhoux_c); 
-  q_cr[2] = ser_3x_p1_surfx3_eval_quad_node_3_r(rhouy_c); 
-  q_cr[3] = ser_3x_p1_surfx3_eval_quad_node_3_r(rhouz_c); 
+  q_cr[1] = q_cr[0]*(0.5*(ux_surf_cr[3]+ux_surf_cr[2]+ux_surf_cr[1]+ux_surf_cr[0])); 
+  q_cr[2] = q_cr[0]*(0.5*(uy_surf_cr[3]+uy_surf_cr[2]+uy_surf_cr[1]+uy_surf_cr[0])); 
+  q_cr[3] = q_cr[0]*(0.5*(uz_surf_cr[3]+uz_surf_cr[2]+uz_surf_cr[1]+uz_surf_cr[0])); 
   q_cr[4] = ser_3x_p1_surfx3_eval_quad_node_3_r(Pxx_c) + q_cr[1]*q_cr[1]/q_cr[0]; 
   q_cr[5] = ser_3x_p1_surfx3_eval_quad_node_3_r(Pxy_c) + q_cr[1]*q_cr[2]/q_cr[0]; 
   q_cr[6] = ser_3x_p1_surfx3_eval_quad_node_3_r(Pxz_c) + q_cr[1]*q_cr[3]/q_cr[0]; 
@@ -531,9 +531,9 @@ GKYL_CU_DH double euler_pkpm_surfz_3x_ser_p1(const double *w, const double *dxv,
   q_cr[8] = ser_3x_p1_surfx3_eval_quad_node_3_r(Pyz_c) + q_cr[2]*q_cr[3]/q_cr[0]; 
   q_cr[9] = ser_3x_p1_surfx3_eval_quad_node_3_r(Pzz_c) + q_cr[3]*q_cr[3]/q_cr[0]; 
   q_rl[0] = ser_3x_p1_surfx3_eval_quad_node_3_l(rho_r); 
-  q_rl[1] = ser_3x_p1_surfx3_eval_quad_node_3_l(rhoux_r); 
-  q_rl[2] = ser_3x_p1_surfx3_eval_quad_node_3_l(rhouy_r); 
-  q_rl[3] = ser_3x_p1_surfx3_eval_quad_node_3_l(rhouz_r); 
+  q_rl[1] = q_rl[0]*(0.5*(ux_surf_rl[3]+ux_surf_rl[2]+ux_surf_rl[1]+ux_surf_rl[0])); 
+  q_rl[2] = q_rl[0]*(0.5*(uy_surf_rl[3]+uy_surf_rl[2]+uy_surf_rl[1]+uy_surf_rl[0])); 
+  q_rl[3] = q_rl[0]*(0.5*(uz_surf_rl[3]+uz_surf_rl[2]+uz_surf_rl[1]+uz_surf_rl[0])); 
   q_rl[4] = ser_3x_p1_surfx3_eval_quad_node_3_l(Pxx_r) + q_rl[1]*q_rl[1]/q_rl[0]; 
   q_rl[5] = ser_3x_p1_surfx3_eval_quad_node_3_l(Pxy_r) + q_rl[1]*q_rl[2]/q_rl[0]; 
   q_rl[6] = ser_3x_p1_surfx3_eval_quad_node_3_l(Pxz_r) + q_rl[1]*q_rl[3]/q_rl[0]; 
