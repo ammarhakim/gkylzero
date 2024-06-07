@@ -119,7 +119,7 @@ gkyl_vlasov_lte_proj_on_basis_advance_cu_ker(const struct gkyl_rect_grid phase_g
     long lidx = gkyl_range_idx(&phase_range, pidx);
 
     // Select for a phase space index fq
-    double fq = (double*) gkyl_array_fetch(f_lte_at_nodes, pidx);
+    double *fq = (double*) gkyl_array_fetch(f_lte_at_nodes, lidx);
   
     // compute Maxwellian at phase-space quadrature nodes
     for (int n=0; n<tot_phase_quad; ++n) {
@@ -211,11 +211,11 @@ gkyl_proj_on_basis_cu_ker(const struct gkyl_rect_grid phase_grid,
     tid < phase_range.volume; tid += blockDim.x*gridDim.x) {
     gkyl_sub_range_inv_idx(&phase_range, tid, pidx);
 
-    // Select for a phase space index fq
-    double fq = (double*) gkyl_array_fetch(f_lte_at_nodes, pidx);
-
     long lidx = gkyl_range_idx(&phase_range, pidx);
     double *f_lte_d = (double*) gkyl_array_fetch(f_lte, lidx);
+
+    // Select for a phase space index fq
+    double *fq = (double*) gkyl_array_fetch(f_lte_at_nodes, lidx);
 
     for (int k=0; k<num_phase_basis; ++k) {
       f_lte_d[k] = 0.0;
