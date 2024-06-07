@@ -296,7 +296,9 @@ struct gkyl_gk {
   bool has_low_inp; // should one use low-level inputs?
   struct gkyl_app_comm_low_inp low_inp; // low-level inputs  
 
+  // Used for multiblock sims:
   struct gkyl_block_connections block_connections; // Block connectivity (for multiblock sims).
+  int cuts[GKYL_MAX_CDIM]; // Domain decompositions in each direction.
 };
 
 // Simulation statistics

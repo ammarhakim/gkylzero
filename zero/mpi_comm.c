@@ -705,8 +705,8 @@ gkyl_mpi_comm_new(const struct gkyl_mpi_comm_inp *inp)
   mpi->sync_corners = inp->sync_corners;
 
   mpi->has_decomp = false;
-  // In case this mpi_comm purely an object holding an MPI_Comm,
-  // not associated with any range nor decomposition of it.
+  // If decomp is absent, this mpi_comm purely an object holding an
+  // MPI_Comm, not associated with any range nor decomposition of it.
   if (inp->decomp != 0) {
     mpi->has_decomp = true;
     mpi->decomp = gkyl_rect_decomp_acquire(inp->decomp);

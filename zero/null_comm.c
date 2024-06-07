@@ -10,6 +10,7 @@
 // Private struct
 struct null_comm {
   struct gkyl_comm base; // base communicator
+  bool has_decomp; // Whether this comm is associated with a decomposition (e.g. of a range)
   struct gkyl_rect_decomp *decomp; // pre-computed decomposition
 
   bool use_gpu; // flag to use if this communicator is on GPUs
@@ -29,11 +30,13 @@ comm_free(const struct gkyl_ref_count *ref)
   struct gkyl_comm *comm = container_of(ref, struct gkyl_comm, ref_count);  
   struct null_comm *null_comm = container_of(comm, struct null_comm, base);
 
-  cmap_l2sgr_drop(&null_comm->l2sgr);
-  cmap_l2sgr_drop(&null_comm->l2sgr_wc);
-  if (null_comm->decomp)
+  if (null_comm->has_decomp) {
+    cmap_l2sgr_drop(&null_comm->l2sgr);
+    cmap_l2sgr_drop(&null_comm->l2sgr_wc);
     gkyl_rect_decomp_release(null_comm->decomp);
-  gkyl_mem_buff_release(null_comm->pbuff);
+    gkyl_mem_buff_release(null_comm->pbuff);
+  }
+
   gkyl_free(null_comm);
 }
 
@@ -236,27 +239,49 @@ extend_comm(const struct gkyl_comm *comm, const struct gkyl_range *erange)
   return ext_comm;
 }
 
+static struct gkyl_comm*
+split_comm(const struct gkyl_comm *comm, int color, struct gkyl_rect_decomp *new_decomp)
+{
+  struct null_comm *null_comm = container_of(comm, struct null_comm, base);
+  struct gkyl_comm *new_comm = gkyl_null_comm_inew( &(struct gkyl_null_comm_inp) {
+      .decomp = new_decomp,
+      .use_gpu = null_comm->use_gpu,
+      .sync_corners = null_comm->sync_corners
+    }
+  );
+  return new_comm;
+}
+
 struct gkyl_comm*
 gkyl_null_comm_inew(const struct gkyl_null_comm_inp *inp)
 {
   struct null_comm *comm = gkyl_malloc(sizeof *comm);
-  comm->decomp = gkyl_rect_decomp_acquire(inp->decomp);
 
-  // construct range to hash ghost layout
-  int lower[GKYL_MAX_DIM] = { 0 };
-  int upper[GKYL_MAX_DIM];
-  for (int d=0; d<inp->decomp->ndim; ++d) upper[d] = GKYL_MAX_NGHOST;
-  gkyl_range_init(&comm->grange, inp->decomp->ndim, lower, upper);
+  comm->has_decomp = false;
+  if (inp->decomp != 0) {
+    comm->has_decomp = true;
+    comm->decomp = gkyl_rect_decomp_acquire(inp->decomp);
+
+    // construct range to hash ghost layout
+    int lower[GKYL_MAX_DIM] = { 0 };
+    int upper[GKYL_MAX_DIM];
+    for (int d=0; d<inp->decomp->ndim; ++d) upper[d] = GKYL_MAX_NGHOST;
+    gkyl_range_init(&comm->grange, inp->decomp->ndim, lower, upper);
+
+    comm->base.gkyl_array_per_sync = array_per_sync;
+    comm->base.extend_comm = extend_comm;
+
+    if (comm->use_gpu)
+      comm->pbuff = gkyl_mem_buff_cu_new(1024); // will be reallocated
+    else
+      comm->pbuff = gkyl_mem_buff_new(1024); // will be reallocated
+
+    comm->l2sgr = cmap_l2sgr_init();
+    comm->l2sgr_wc = cmap_l2sgr_init();
+  }
 
   comm->use_gpu = inp->use_gpu;
   comm->sync_corners = inp->sync_corners;
-  comm->l2sgr = cmap_l2sgr_init();
-  comm->l2sgr_wc = cmap_l2sgr_init();
-
-  if (comm->use_gpu)
-    comm->pbuff = gkyl_mem_buff_cu_new(1024); // will be reallocated
-  else
-    comm->pbuff = gkyl_mem_buff_new(1024); // will be reallocated
 
   comm->base.get_rank = get_rank;
   comm->base.get_size = get_size;
@@ -266,11 +291,10 @@ gkyl_null_comm_inew(const struct gkyl_null_comm_inp *inp)
   comm->base.gkyl_array_bcast = array_bcast;
   comm->base.gkyl_array_bcast_host = array_bcast;
   comm->base.gkyl_array_sync = array_sync;
-  comm->base.gkyl_array_per_sync = array_per_sync;
-  comm->base.barrier = barrier;
   comm->base.gkyl_array_write = array_write;
   comm->base.gkyl_array_read = array_read;
-  comm->base.extend_comm = extend_comm;
+  comm->base.split_comm = split_comm;
+  comm->base.barrier = barrier;
 
   comm->base.ref_count = gkyl_ref_count_init(comm_free);
 

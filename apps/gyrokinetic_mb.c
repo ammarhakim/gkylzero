@@ -19,12 +19,6 @@ gkyl_gyrokinetic_mb_app_new(struct gkyl_gk_mb *inp)
 
   app->cfl = inp->cfl_frac == 0 ? 1.0 : inp->cfl_frac;
 
-#ifdef GKYL_HAVE_CUDA
-  app->use_gpu = inp->use_gpu;
-#else
-  app->use_gpu = false; // can't use GPUs if we don't have them!
-#endif
-
   app->num_blocks = inp->num_blocks;
   app->num_blocks_local = inp->num_blocks;
 
@@ -32,8 +26,182 @@ gkyl_gyrokinetic_mb_app_new(struct gkyl_gk_mb *inp)
 
   app->btopo = gkyl_block_topo_new(app->cdim, app->num_blocks);
 
+  app->use_mpi = false;
+  app->use_gpu = false;
+#ifdef GKYL_HAVE_MPI
+  app->use_mpi = inp->use_mpi;
+#endif
+#ifdef GKYL_HAVE_CUDA
+  app->use_gpu = inp->use_gpu;
+#endif
+
+  // Construct MB communicator.
+#ifdef GKYL_HAVE_MPI
+  if (app->use_gpu && app->use_mpi) {
+#ifdef GKYL_HAVE_NCCL
+    app->comm_mb = gkyl_nccl_comm_new( &(struct gkyl_nccl_comm_inp) { .mpi_comm = MPI_COMM_WORLD, } );
+#else
+    fprintf(stderr, " Using -g and -M together requires NCCL.\n");
+    assert(0 == 1);
+#endif
+  }
+  else if (app->use_mpi) {
+    app->comm_mb = gkyl_mpi_comm_new( &(struct gkyl_mpi_comm_inp) { .mpi_comm = MPI_COMM_WORLD, } );
+  }
+  else {
+    app->comm_mb = gkyl_null_comm_inew( &(struct gkyl_null_comm_inp) { .use_gpu = app->use_gpu } );
+  }
+#else
+  app->comm_mb = gkyl_null_comm_inew( &(struct gkyl_null_comm_inp) { .use_gpu = app->use_gpu } );
+#endif
+
+  int comm_size, comm_rank;
+  gkyl_comm_get_size(app->comm_mb, &comm_size);
+  gkyl_comm_get_rank(app->comm_mb, &comm_rank);
+
+  int decomp_vol = 0;
   for (int bidx=0; bidx<app->num_blocks; bidx++) {
+    int cuts_vol = 1;
+    for (int d=0; d<app->cdim; d++) cuts_vol *= inp->blocks[bidx]->cuts[d];
+    decomp_vol += cuts_vol;
+  }
+
+  if (decomp_vol == comm_size) {
+
+    // Each rank owns a single block, or a subdomain of one.
+    app->num_blocks_local = 1;
+    app->block_idxs = gkyl_malloc(app->num_blocks_local*sizeof(int));
+    int proc_count = 0;
+    for (int bidx=0; bidx<app->num_blocks; bidx++) {
+      int cuts_vol = 1;
+      for (int d=0; d<app->cdim; d++) cuts_vol *= inp->blocks[bidx]->cuts[d];
+      proc_count += cuts_vol;
+
+      if (comm_rank < proc_count)
+        app->block_idxs[0] = bidx;
+    }
+
+  }
+  else {
+    // This case is intended for simulations with multiple single-cut blocks
+    // (scbs, w/ cuts_vol=1). Blocks with cuts_vol>1 will have one rank owning
+    // a subdomain of those blocks, and that rank will own nothing else. Yet a
+    // rank may handle one or more scbs.
+
+    assert(decomp_vol > comm_size); // Can't have more ranks than decompositions.
+
+    int *cuts_vol_per_block = gkyl_malloc(app->num_blocks * sizeof(int));
+    int num_scb = 0; // Number of single-cut blocks (scb).
+    int scb[GKYL_MAX_BLOCKS]; // Block ID of single-cut blocks (scb)
+    int cuts_vol_max = -1;
+    for (int bidx=0; bidx<app->num_blocks; bidx++) {
+      int cuts_vol = 1;
+      for (int d=0; d<app->cdim; d++) cuts_vol *= inp->blocks[bidx]->cuts[d];
+
+      cuts_vol_per_block[bidx] = cuts_vol;
+      cuts_vol_max = GKYL_MAX2(cuts_vol_max, cuts_vol);
+
+      if (cuts_vol == 1) {
+        scb[num_scb] = bidx;
+        num_scb++;
+      }
+    }
+
+    // Additional blocks that need to be assigned to a rank owning another block.
+    int extra_blocks = decomp_vol - comm_size;
+    // Number of ranks owning single-cut blocks (scbrank).
+    int num_scbrank = num_scb - extra_blocks;
+    // Distribute scb amongst scbranks: 
+    int *scbrank_num_blocks = gkyl_malloc(num_scbrank * sizeof(int));
+    int base = num_scb/num_scbrank;
+    int rem = num_scb - num_scbrank * base;
+    for (int i=0; i<num_scbrank; i++)
+      scbrank_num_blocks[i] = base;
+    for (int i=0; i<rem; i++)
+      scbrank_num_blocks[i]++;
+
+    // List of block IDs owned by each scbrank.
+    int *scbrank_blocks = gkyl_malloc(num_scbrank * (base+1) * sizeof(int));
+    int curr_scb_idx = 0;
+    for (int i=0; i<num_scbrank; i++) {
+      int scb_count = 0;
+      for (int j=0; j<scbrank_num_blocks[i]; j++) {
+        scbrank_blocks[i*(base+1)+j] = scb[scb_count];
+        scb_count++;
+      }
+    }
+
+    // List of ranks in each block.
+    int *ranks_per_block = gkyl_malloc(app->num_blocks * cuts_vol_max * sizeof(int));
+    int curr_rank_to_assign = 0, curr_scbrank = 0, scbrank_count = 0;
+    for (int bidx=0; bidx<app->num_blocks; bidx++) {
+      if (cuts_vol_per_block[bidx] > 1) {
+        for (int i=0; i<cuts_vol_per_block[bidx]; i++) {
+          ranks_per_block[bidx*cuts_vol_max+i] = curr_rank_to_assign;
+          curr_rank_to_assign++;
+        }
+      }
+      else {
+        if (scbrank_count == 0) {
+          // Assigning the first scb to this scbrank.
+          ranks_per_block[bidx*cuts_vol_max] = curr_rank_to_assign;
+          curr_rank_to_assign++;
+        }
+        else {
+          // Assign this additional scb to a scbrank that already has one or more scbs.
+          int scb_idx = scbrank_blocks[curr_scbrank*(base+1)+scbrank_count];
+          ranks_per_block[bidx*cuts_vol_max] = ranks_per_block[scb_idx*cuts_vol_max];
+        }
+        scbrank_count++;
+
+        if (scbrank_count == scbrank_num_blocks[curr_scbrank]) {
+          scbrank_count = 0;
+          curr_scbrank++;
+        }
+      }
+    }
+
+    // Now use the list of ranks per block to populate
+    // the number and IDs of blocks owned by this rank.
+    app->num_blocks_local = 0;
+    int my_block_idxs[GKYL_MAX_BLOCKS];
+    for (int bidx=0; bidx<app->num_blocks; bidx++) {
+      for (int i=0; i<cuts_vol_per_block[bidx]; i++) {
+        if (comm_rank == ranks_per_block[bidx*cuts_vol_max+i]) {
+          my_block_idxs[app->num_blocks_local] = bidx;
+          app->num_blocks_local++;
+        }
+      }
+    }
+    app->block_idxs = gkyl_malloc(app->num_blocks_local*sizeof(int));
+    for (int i=0; i<app->num_blocks_local; i++)
+      app->block_idxs[i] = my_block_idxs[i];
+
+    gkyl_free(ranks_per_block);
+    gkyl_free(scbrank_blocks);
+    gkyl_free(scbrank_num_blocks);
+    gkyl_free(cuts_vol_per_block);
+  }
+
+  struct gkyl_comm **comm_intrab = gkyl_malloc(app->num_blocks_local * sizeof(struct gkyl_comm *));
+  struct gkyl_rect_decomp **decomp_intrab = gkyl_malloc(app->num_blocks_local * sizeof(struct gkyl_rect_decomp *));
+
+  for (int bc=0; bc<app->num_blocks_local; bc++) {
+    int bidx = app->block_idxs[bc];
     struct gkyl_gk *blinp = inp->blocks[bidx];
+
+    // Create intra block decompositions and communicators.
+    decomp_intrab[bc] = gkyl_gyrokinetic_comms_decomp_new(app->cdim,
+      blinp->cells, blinp->cuts, app->use_mpi, stderr);
+
+    int comm_color = bidx;
+    if (bc == 0)
+      comm_intrab[0] = gkyl_comm_split_comm(app->comm_mb, comm_color, decomp_intrab[bc]);
+    else
+      comm_intrab[bc] = gkyl_comm_split_comm(comm_intrab[0], comm_color, decomp_intrab[bc]);
+
+    int comm_intrab_rank;
+    gkyl_comm_get_rank(comm_intrab[bc], &comm_intrab_rank);
 
     // Block name = <the name of the app>_b#.
     const char *fmt = "%s_b%d";
@@ -64,11 +232,22 @@ gkyl_gyrokinetic_mb_app_new(struct gkyl_gk_mb *inp)
     blinp->num_periodic_dir = inp->num_periodic_dir;
     memcpy(blinp->periodic_dirs, inp->periodic_dirs, inp->num_periodic_dir*sizeof(int));
 
-    app->btopo->conn[bidx] = blinp->block_connections;
+    blinp->has_low_inp = true,
+    blinp->low_inp.local_range = decomp_intrab[bc]->ranges[comm_intrab_rank],
+    blinp->low_inp.comm = comm_intrab[bc],
 
     // Create a new app for each block.
     app->blocks[bidx] = gkyl_gyrokinetic_app_new(blinp);
+
+    app->btopo->conn[bidx] = blinp->block_connections;
   }
+
+  // Release decomp and comm. OK as they are acquired in the single block app.
+  for (int bc=0; bc<app->num_blocks_local; bc++) {
+    gyrokinetic_comms_release(decomp_intrab[bc], comm_intrab[bc]);
+  }
+  gkyl_free(decomp_intrab);
+  gkyl_free(comm_intrab);
 
   return app;
 }
@@ -508,9 +687,11 @@ gkyl_gyrokinetic_mb_app_release(gkyl_gyrokinetic_mb_app* app)
   for (int bidx=0; bidx<app->num_blocks_local; bidx++) {
     gkyl_gyrokinetic_app_release(app->blocks[bidx]);
   }
+  gkyl_free(app->blocks);
+  
+  gkyl_comm_release(app->comm_mb);
 
   gkyl_block_topo_release(app->btopo);
-  gkyl_free(app->blocks);
-
+  gkyl_free(app->block_idxs);
   gkyl_free(app);
 }
