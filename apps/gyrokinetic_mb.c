@@ -20,9 +20,6 @@ gkyl_gyrokinetic_mb_app_new(struct gkyl_gk_mb *inp)
   app->cfl = inp->cfl_frac == 0 ? 1.0 : inp->cfl_frac;
 
   app->num_blocks = inp->num_blocks;
-  app->num_blocks_local = inp->num_blocks;
-
-  app->blocks = gkyl_malloc(app->num_blocks * sizeof(struct gkyl_gyrokinetic_app));
 
   app->btopo = gkyl_block_topo_new(app->cdim, app->num_blocks);
 
@@ -71,13 +68,14 @@ gkyl_gyrokinetic_mb_app_new(struct gkyl_gk_mb *inp)
     // Each rank owns a single block, or a subdomain of one.
     app->num_blocks_local = 1;
     app->block_idxs = gkyl_malloc(app->num_blocks_local*sizeof(int));
+    app->block_idxs[0] = -1;
     int proc_count = 0;
     for (int bidx=0; bidx<app->num_blocks; bidx++) {
       int cuts_vol = 1;
       for (int d=0; d<app->cdim; d++) cuts_vol *= inp->blocks[bidx]->cuts[d];
       proc_count += cuts_vol;
 
-      if (comm_rank < proc_count)
+      if (app->block_idxs[0] < 0 && comm_rank < proc_count)
         app->block_idxs[0] = bidx;
     }
 
@@ -183,25 +181,26 @@ gkyl_gyrokinetic_mb_app_new(struct gkyl_gk_mb *inp)
     gkyl_free(cuts_vol_per_block);
   }
 
-  struct gkyl_comm **comm_intrab = gkyl_malloc(app->num_blocks_local * sizeof(struct gkyl_comm *));
-  struct gkyl_rect_decomp **decomp_intrab = gkyl_malloc(app->num_blocks_local * sizeof(struct gkyl_rect_decomp *));
+  app->blocks = gkyl_malloc(app->num_blocks_local * sizeof(struct gkyl_gyrokinetic_app));
+
+  app->comm_intrab = gkyl_malloc(app->num_blocks_local * sizeof(struct gkyl_comm *));
+  app->decomp_intrab = gkyl_malloc(app->num_blocks_local * sizeof(struct gkyl_rect_decomp *));
 
   for (int bc=0; bc<app->num_blocks_local; bc++) {
     int bidx = app->block_idxs[bc];
     struct gkyl_gk *blinp = inp->blocks[bidx];
 
     // Create intra block decompositions and communicators.
-    decomp_intrab[bc] = gkyl_gyrokinetic_comms_decomp_new(app->cdim,
-      blinp->cells, blinp->cuts, app->use_mpi, stderr);
+    struct gkyl_range global_range_conf;
+    gkyl_create_global_range(app->cdim, blinp->cells, &global_range_conf);
+    app->decomp_intrab[bc] = gkyl_rect_decomp_new_from_cuts(app->cdim, blinp->cuts, &global_range_conf);
 
     int comm_color = bidx;
-    if (bc == 0)
-      comm_intrab[0] = gkyl_comm_split_comm(app->comm_mb, comm_color, decomp_intrab[bc]);
-    else
-      comm_intrab[bc] = gkyl_comm_split_comm(comm_intrab[0], comm_color, decomp_intrab[bc]);
+    struct gkyl_comm *parent_comm = bc == 0? app->comm_mb : app->comm_intrab[0];
+    app->comm_intrab[bc] = gkyl_comm_split_comm(parent_comm, comm_color, app->decomp_intrab[bc]);
 
     int comm_intrab_rank;
-    gkyl_comm_get_rank(comm_intrab[bc], &comm_intrab_rank);
+    gkyl_comm_get_rank(app->comm_intrab[bc], &comm_intrab_rank);
 
     // Block name = <the name of the app>_b#.
     const char *fmt = "%s_b%d";
@@ -233,21 +232,14 @@ gkyl_gyrokinetic_mb_app_new(struct gkyl_gk_mb *inp)
     memcpy(blinp->periodic_dirs, inp->periodic_dirs, inp->num_periodic_dir*sizeof(int));
 
     blinp->has_low_inp = true,
-    blinp->low_inp.local_range = decomp_intrab[bc]->ranges[comm_intrab_rank],
-    blinp->low_inp.comm = comm_intrab[bc],
-
-    // Create a new app for each block.
-    app->blocks[bidx] = gkyl_gyrokinetic_app_new(blinp);
+    blinp->low_inp.local_range = app->decomp_intrab[bc]->ranges[comm_intrab_rank],
+    blinp->low_inp.comm = app->comm_intrab[bc],
 
     app->btopo->conn[bidx] = blinp->block_connections;
-  }
 
-  // Release decomp and comm. OK as they are acquired in the single block app.
-  for (int bc=0; bc<app->num_blocks_local; bc++) {
-    gyrokinetic_comms_release(decomp_intrab[bc], comm_intrab[bc]);
+    // Create a new app for each block.
+    app->blocks[bc] = gkyl_gyrokinetic_app_new(blinp);
   }
-  gkyl_free(decomp_intrab);
-  gkyl_free(comm_intrab);
 
   return app;
 }
@@ -684,14 +676,22 @@ gkyl_gyrokinetic_mb_app_cout(const gkyl_gyrokinetic_mb_app* app, FILE *fp, const
 void
 gkyl_gyrokinetic_mb_app_release(gkyl_gyrokinetic_mb_app* app)
 {
-  for (int bidx=0; bidx<app->num_blocks_local; bidx++) {
-    gkyl_gyrokinetic_app_release(app->blocks[bidx]);
+  for (int i=0; i<app->num_blocks_local; i++) {
+    gkyl_gyrokinetic_app_release(app->blocks[i]);
   }
   gkyl_free(app->blocks);
+  gkyl_free(app->block_idxs);
   
+  // Release decomp and comm.
+  for (int i=0; i<app->num_blocks_local; i++) {
+    gkyl_rect_decomp_release(app->decomp_intrab[i]);
+    gkyl_comm_release(app->comm_intrab[i]);
+  }
+  gkyl_free(app->decomp_intrab);
+  gkyl_free(app->comm_intrab);
+
   gkyl_comm_release(app->comm_mb);
 
   gkyl_block_topo_release(app->btopo);
-  gkyl_free(app->block_idxs);
   gkyl_free(app);
 }

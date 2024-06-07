@@ -18,6 +18,8 @@ struct gkyl_gyrokinetic_mb_app {
   bool use_gpu; // Should we use GPU (if present).
 
   struct gkyl_comm *comm_mb;   // Multiblock communicator object.
+  struct gkyl_comm **comm_intrab;
+  struct gkyl_rect_decomp **decomp_intrab;
 
   struct gkyl_block_topo *btopo; // Block topology.
 

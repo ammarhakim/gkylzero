@@ -257,6 +257,9 @@ gkyl_null_comm_inew(const struct gkyl_null_comm_inp *inp)
 {
   struct null_comm *comm = gkyl_malloc(sizeof *comm);
 
+  comm->use_gpu = inp->use_gpu;
+  comm->sync_corners = inp->sync_corners;
+
   comm->has_decomp = false;
   if (inp->decomp != 0) {
     comm->has_decomp = true;
@@ -271,7 +274,7 @@ gkyl_null_comm_inew(const struct gkyl_null_comm_inp *inp)
     comm->base.gkyl_array_per_sync = array_per_sync;
     comm->base.extend_comm = extend_comm;
 
-    if (comm->use_gpu)
+    if (inp->use_gpu)
       comm->pbuff = gkyl_mem_buff_cu_new(1024); // will be reallocated
     else
       comm->pbuff = gkyl_mem_buff_new(1024); // will be reallocated
@@ -279,9 +282,6 @@ gkyl_null_comm_inew(const struct gkyl_null_comm_inp *inp)
     comm->l2sgr = cmap_l2sgr_init();
     comm->l2sgr_wc = cmap_l2sgr_init();
   }
-
-  comm->use_gpu = inp->use_gpu;
-  comm->sync_corners = inp->sync_corners;
 
   comm->base.get_rank = get_rank;
   comm->base.get_size = get_size;

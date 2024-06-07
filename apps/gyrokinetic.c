@@ -216,7 +216,6 @@ gkyl_gyrokinetic_app_new(struct gkyl_gk *gk)
     gkyl_skin_ghost_ranges(&app->upper_skin[dir], &app->upper_ghost[dir], dir, GKYL_UPPER_EDGE, &app->local_ext, ghost);
   }
 
-
   // Configuration space geometry initialization
 
   // Initialize the input struct from user side input struct
@@ -318,7 +317,6 @@ gkyl_gyrokinetic_app_new(struct gkyl_gk *gk)
   }
 
   gkyl_gyrokinetic_app_write_geometry(app);
-
 
   // allocate space to store species and neutral species objects
   app->species = ns>0 ? gkyl_malloc(sizeof(struct gk_species[ns])) : 0;
