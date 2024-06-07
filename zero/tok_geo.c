@@ -449,6 +449,8 @@ void gkyl_tok_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, double
       }
 
       double alpha_curr = alpha_lo + ia*dalpha + modifiers[ia_delta]*delta_alpha;
+      // This is the convention described in Noah Mandell's Thesis Eq 5.104. comp coord y = -alpha.
+      alpha_curr*=-1.0;
 
       for (int ip=nrange->lower[PSI_IDX]; ip<=nrange->upper[PSI_IDX]; ++ip) {
         int ip_delta_max = 5;// should be 5
