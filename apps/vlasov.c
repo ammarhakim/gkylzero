@@ -922,7 +922,6 @@ gkyl_vlasov_app_stat_write(gkyl_vlasov_app* app)
       stat.species_lbo_coll_drag_tm[s]);
     gkyl_vlasov_app_cout(app, fp, " species_coll_diff_tm[%d] : %lg,\n", s,
       stat.species_lbo_coll_diff_tm[s]);
-    printf("(vlasov.c) stat.niter_self_bgk_corr[s] = %ld \n",stat.niter_self_bgk_corr[s]);
     gkyl_vlasov_app_cout(app, fp, " niter_self_bgk_corr[%d] : %ld,\n", s, 
       stat.niter_self_bgk_corr[s]);
   }
