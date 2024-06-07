@@ -8,6 +8,7 @@
 #include <gkyl_range.h>
 #include <gkyl_rect_decomp.h>
 #include <gkyl_rect_grid.h>
+#include <gkyl_velocity_map.h>
 #include <gkyl_array_ops.h>
 
 // allocate array (filled with zeros)
@@ -67,11 +68,21 @@ test_1x2v_gk(int poly_order, bool use_gpu)
   double confLower[] = {lower[0]}, confUpper[] = {upper[0]};
   int confCells[] = {cells[0]};
 
+  double velLower[vdim], velUpper[vdim];
+  int velCells[vdim];
+  for (int d=0; d<vdim; d++) {
+    velLower[d] = lower[cdim+d];
+    velUpper[d] = upper[cdim+d];
+    velCells[d] = cells[cdim+d];
+  }
+
   // grids
   struct gkyl_rect_grid grid;
   gkyl_rect_grid_init(&grid, ndim, lower, upper, cells);
   struct gkyl_rect_grid confGrid;
   gkyl_rect_grid_init(&confGrid, cdim, confLower, confUpper, confCells);
+  struct gkyl_rect_grid velGrid;
+  gkyl_rect_grid_init(&velGrid, vdim, velLower, velUpper, velCells);
 
   // basis functions
   struct gkyl_basis basis, confBasis;
@@ -85,9 +96,18 @@ test_1x2v_gk(int poly_order, bool use_gpu)
   struct gkyl_range confLocal, confLocal_ext; // local, local-ext conf-space ranges
   gkyl_create_grid_ranges(&confGrid, confGhost, &confLocal_ext, &confLocal);
 
-  int ghost[] = { confGhost[0], 1, 1 };
+  int velGhost[] = { 0, 0 };
+  struct gkyl_range velLocal, velLocal_ext; // local, local-ext vel-space ranges
+  gkyl_create_grid_ranges(&velGrid, velGhost, &velLocal_ext, &velLocal);
+
+  int ghost[] = { confGhost[0], 0, 0 };
   struct gkyl_range local, local_ext; // local, local-ext phase-space ranges
   gkyl_create_grid_ranges(&grid, ghost, &local_ext, &local);
+
+  // Initialize velocity space mapping.
+  struct gkyl_mapc2p_inp c2p_in = { };
+  struct gkyl_velocity_map *gvm = gkyl_velocity_map_new(c2p_in, grid, velGrid,
+    local, local_ext, velLocal, velLocal_ext, use_gpu);
 
   // create bmag and jacob_tot arrays
   struct gkyl_array *bmag_ho, *jacob_tot_ho, *bmag, *jacob_tot;
@@ -135,7 +155,7 @@ test_1x2v_gk(int poly_order, bool use_gpu)
 
   // projection updater to compute Maxwellian
   gkyl_proj_bimaxwellian_on_basis *proj_max = gkyl_proj_bimaxwellian_on_basis_new(&grid,
-    &confBasis, &basis, poly_order+1, use_gpu);
+    &confBasis, &basis, poly_order+1, gvm, use_gpu);
 
   gkyl_proj_bimaxwellian_on_basis_gyrokinetic_lab_mom(proj_max, &local, &confLocal, moms,
                                                       bmag, jacob_tot, mass, distf);
@@ -213,6 +233,7 @@ test_1x2v_gk(int poly_order, bool use_gpu)
 //  sprintf(fname, "ctest_proj_bimaxwellian_on_basis_gyrokinetic_test2_1x2v_p%d.gkyl", poly_order);
 //  gkyl_grid_sub_array_write(&grid, &local, distf_ho, fname);
 
+  gkyl_velocity_map_release(gvm);
   gkyl_array_release(prim_moms);
   if (use_gpu) {
     gkyl_array_release(prim_moms_ho);
