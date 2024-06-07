@@ -67,24 +67,24 @@ pkpm_species_init(struct gkyl_pkpm *pkpm, struct gkyl_pkpm_app *app, struct pkpm
   s->f1 = mkarr(app->use_gpu, 2*app->basis.num_basis, s->local_ext.volume);
   s->fnew = mkarr(app->use_gpu, 2*app->basis.num_basis, s->local_ext.volume);
   // allocate momentum arrays (rho ux, rho uy, rho uz) 
-  // Note: uses an order p basis
-  s->fluid = mkarr(app->use_gpu, 3*app->confBasis.num_basis, app->local_ext.volume);
-  s->fluid1 = mkarr(app->use_gpu, 3*app->confBasis.num_basis, app->local_ext.volume);
-  s->fluidnew = mkarr(app->use_gpu, 3*app->confBasis.num_basis, app->local_ext.volume);
+  // Note: uses an order 2*p basis, but ux, uy, uz are only an order p basis
+  s->fluid = mkarr(app->use_gpu, 3*app->confBasis_2p.num_basis, app->local_ext.volume);
+  s->fluid1 = mkarr(app->use_gpu, 3*app->confBasis_2p.num_basis, app->local_ext.volume);
+  s->fluidnew = mkarr(app->use_gpu, 3*app->confBasis_2p.num_basis, app->local_ext.volume);
 
   // create host arrays if on GPUs so initialization occurs host-side
   s->f_host = s->f;
   s->fluid_host = s->fluid;
   if (app->use_gpu) {
     s->f_host = mkarr(false, 2*app->basis.num_basis, s->local_ext.volume);
-    s->fluid_host = mkarr(false, 3*app->confBasis.num_basis, app->local_ext.volume);
+    s->fluid_host = mkarr(false, 3*app->confBasis_2p.num_basis, app->local_ext.volume);
   }
 
   // Duplicate copy of momentum data in case time step fails.
   // Needed because of implicit source split which modifies solution and 
   // is always successful, so if a time step fails due to the SSP RK3 
   // we must restore the old solution before restarting the time step
-  s->fluid_dup = mkarr(app->use_gpu, 3*app->confBasis.num_basis, app->local_ext.volume);
+  s->fluid_dup = mkarr(app->use_gpu, 3*app->confBasis_2p.num_basis, app->local_ext.volume);
 
   // Wave equation object for upwinding fluid equations
   // We use the 10 moment system since PKPM model generates a full pressure tensor
@@ -113,7 +113,7 @@ pkpm_species_init(struct gkyl_pkpm *pkpm, struct gkyl_pkpm_app *app, struct pkpm
   }
 
   // allocate array to store q/m*(E,B) if using a fully explicit update, order p
-  s->qmem = mkarr(app->use_gpu, 8*app->confBasis.num_basis, app->local_ext.volume);
+  s->qmem = mkarr(app->use_gpu, 8*app->confBasis_2p.num_basis, app->local_ext.volume);
 
   // pkpm moments for update (rho, p_par, p_perp, M1)
   pkpm_species_moment_init(app, s, &s->pkpm_moms, false);
@@ -160,12 +160,12 @@ pkpm_species_init(struct gkyl_pkpm *pkpm, struct gkyl_pkpm_app *app, struct pkpm
   //  ux_yl, ux_yr, uy_yl, uy_yr, uz_yl, uz_yr, 
   //  ux_zl, ux_zr, uy_zl, uy_zr, uz_zl, uz_zr] 
   s->pkpm_u_surf = mkarr(app->use_gpu, 2*cdim*3*Nbasis_surf, app->local_ext.volume);
-  // Surface expansion of Lax penalization lambda_i = |u_i| + sqrt(3*P_ii/rho), order p
-  s->pkpm_lax = mkarr(app->use_gpu, 2*cdim*Nbasis_surf, app->local_ext.volume);
 
   int Nbasis_surf_2p = app->confBasis_2p.num_basis/(app->confBasis_2p.poly_order + 1); 
   // Surface expansion of 3*P_ii/rho, order 2*p
   s->pkpm_prim_surf = mkarr(app->use_gpu, 2*cdim*Nbasis_surf_2p, app->local_ext.volume);
+  // Surface expansion of Lax penalization lambda_i = |u_i| + sqrt(3*P_ii/rho), order 2*p
+  s->pkpm_lax = mkarr(app->use_gpu, 2*cdim*Nbasis_surf_2p, app->local_ext.volume);
 
   // Check if limiter_fac is specified for adjusting how much diffusion is applied through slope limiter
   // If not specified, set to 0.0 and updater sets default behavior (1/sqrt(3); see gkyl_dg_calc_pkpm_vars.h)
@@ -280,7 +280,7 @@ pkpm_species_init(struct gkyl_pkpm *pkpm, struct gkyl_pkpm_app *app, struct pkpm
     }
 
     bool is_zero_flux[GKYL_MAX_CDIM] = {false};
-    s->diff_slvr = gkyl_dg_updater_diffusion_fluid_new(&app->grid, &app->confBasis,
+    s->diff_slvr = gkyl_dg_updater_diffusion_fluid_new(&app->grid, &app->confBasis_2p,
       true, num_eqn, NULL, s->info.diffusion.order, &app->local, is_zero_flux, app->use_gpu);
   }
 
@@ -326,10 +326,10 @@ pkpm_species_init(struct gkyl_pkpm *pkpm, struct gkyl_pkpm_app *app, struct pkpm
   s->bc_buffer_lo_fixed_dist = mkarr(app->use_gpu, 2*app->basis.num_basis, buff_sz_dist);
   s->bc_buffer_up_fixed_dist = mkarr(app->use_gpu, 2*app->basis.num_basis, buff_sz_dist);
 
-  s->bc_buffer_fluid = mkarr(app->use_gpu, 3*app->confBasis.num_basis, buff_sz_fluid);
+  s->bc_buffer_fluid = mkarr(app->use_gpu, 3*app->confBasis_2p.num_basis, buff_sz_fluid);
   // buffer arrays for fixed function boundary conditions on momentum
-  s->bc_buffer_lo_fixed_fluid = mkarr(app->use_gpu, 3*app->confBasis.num_basis, buff_sz_fluid);
-  s->bc_buffer_up_fixed_fluid = mkarr(app->use_gpu, 3*app->confBasis.num_basis, buff_sz_fluid);
+  s->bc_buffer_lo_fixed_fluid = mkarr(app->use_gpu, 3*app->confBasis_2p.num_basis, buff_sz_fluid);
+  s->bc_buffer_up_fixed_fluid = mkarr(app->use_gpu, 3*app->confBasis_2p.num_basis, buff_sz_fluid);
 
   // Certain operations fail if absorbing BCs used because absorbing BCs 
   // means the mass density is 0 in the ghost cells (divide by zero)
@@ -360,7 +360,7 @@ pkpm_species_init(struct gkyl_pkpm *pkpm, struct gkyl_pkpm_app *app, struct pkpm
     s->bc_lo_dist[d] = gkyl_bc_basic_new(d, GKYL_LOWER_EDGE, bctype_dist, app->basis_on_dev.basis,
       &s->lower_skin_dist[d], &s->lower_ghost_dist[d], s->f->ncomp, app->cdim, app->use_gpu);
     // Momentum non-periodic lower boundary conditions
-    s->bc_lo_fluid[d] = gkyl_bc_basic_new(d, GKYL_LOWER_EDGE, bctype_fluid, app->basis_on_dev.confBasis,
+    s->bc_lo_fluid[d] = gkyl_bc_basic_new(d, GKYL_LOWER_EDGE, bctype_fluid, app->basis_on_dev.confBasis_2p,
       &app->lower_skin[d], &app->lower_ghost[d], s->fluid->ncomp, app->cdim, app->use_gpu);
 
     // Upper BC updater. Copy BCs by default.
@@ -386,7 +386,7 @@ pkpm_species_init(struct gkyl_pkpm *pkpm, struct gkyl_pkpm_app *app, struct pkpm
     s->bc_up_dist[d] = gkyl_bc_basic_new(d, GKYL_UPPER_EDGE, bctype_dist, app->basis_on_dev.basis,
       &s->upper_skin_dist[d], &s->upper_ghost_dist[d], s->f->ncomp, app->cdim, app->use_gpu);
     // Momentum non-periodic upper boundary conditions
-    s->bc_up_fluid[d] = gkyl_bc_basic_new(d, GKYL_UPPER_EDGE, bctype_fluid, app->basis_on_dev.confBasis,
+    s->bc_up_fluid[d] = gkyl_bc_basic_new(d, GKYL_UPPER_EDGE, bctype_fluid, app->basis_on_dev.confBasis_2p,
       &app->upper_skin[d], &app->upper_ghost[d], s->fluid->ncomp, app->cdim, app->use_gpu);
   }
 }
@@ -400,11 +400,10 @@ pkpm_species_apply_ic(gkyl_pkpm_app *app, struct pkpm_species *species, double t
   proj_dist = gkyl_proj_on_basis_new(&species->grid, &app->basis,
     poly_order_2p+1, 2, species->info.init_dist, species->info.ctx_dist);
 
-  // Fluid equations are order p
-  int poly_order = app->confBasis.poly_order;
+  // Fluid equations are order 2*p (although flow velocity u is only order p)
   gkyl_proj_on_basis *proj_fluid;
-  proj_fluid = gkyl_proj_on_basis_new(&app->grid, &app->confBasis,
-    poly_order+1, 3, species->info.init_fluid, species->info.ctx_fluid);
+  proj_fluid = gkyl_proj_on_basis_new(&app->grid, &app->confBasis_2p,
+    poly_order_2p+1, 3, species->info.init_fluid, species->info.ctx_fluid);
 
   // run updaters; need to project onto extended range for ease of handling
   // subsequent operations over extended range such as primitive variable computations

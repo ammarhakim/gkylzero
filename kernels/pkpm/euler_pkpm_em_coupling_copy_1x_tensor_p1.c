@@ -37,15 +37,18 @@ GKYL_CU_DH void euler_pkpm_em_coupling_copy_1x_tensor_p1(int count,
     uz_new[1] = 2.0*gkyl_mat_get(&sol, 5 + i*(6), 0) - uz_old[1]; 
 
     double *out_rhoux = &euler_pkpm[i][0]; 
-    double *out_rhouy = &euler_pkpm[i][2]; 
-    double *out_rhouz = &euler_pkpm[i][4]; 
+    double *out_rhouy = &euler_pkpm[i][3]; 
+    double *out_rhouz = &euler_pkpm[i][6]; 
 
   out_rhoux[0] = 0.7071067811865475*rho_old[1]*ux_new[1]+0.7071067811865475*rho_old[0]*ux_new[0]; 
   out_rhoux[1] = 0.6324555320336759*ux_new[1]*rho_old[2]+0.7071067811865475*rho_old[0]*ux_new[1]+0.7071067811865475*ux_new[0]*rho_old[1]; 
+  out_rhoux[2] = 0.7071067811865475*ux_new[0]*rho_old[2]+0.6324555320336759*rho_old[1]*ux_new[1]; 
   out_rhouy[0] = 0.7071067811865475*rho_old[1]*uy_new[1]+0.7071067811865475*rho_old[0]*uy_new[0]; 
   out_rhouy[1] = 0.6324555320336759*uy_new[1]*rho_old[2]+0.7071067811865475*rho_old[0]*uy_new[1]+0.7071067811865475*uy_new[0]*rho_old[1]; 
+  out_rhouy[2] = 0.7071067811865475*uy_new[0]*rho_old[2]+0.6324555320336759*rho_old[1]*uy_new[1]; 
   out_rhouz[0] = 0.7071067811865475*rho_old[1]*uz_new[1]+0.7071067811865475*rho_old[0]*uz_new[0]; 
   out_rhouz[1] = 0.6324555320336759*uz_new[1]*rho_old[2]+0.7071067811865475*rho_old[0]*uz_new[1]+0.7071067811865475*uz_new[0]*rho_old[1]; 
+  out_rhouz[2] = 0.7071067811865475*uz_new[0]*rho_old[2]+0.6324555320336759*rho_old[1]*uz_new[1]; 
 
   } 
 

@@ -18,17 +18,17 @@ pkpm_field_new(struct gkyl_pkpm *pkpm, struct gkyl_pkpm_app *app)
   f->info = pkpm->field;
 
   // allocate EM arrays, order p
-  f->em = mkarr(app->use_gpu, 8*app->confBasis.num_basis, app->local_ext.volume);
-  f->em1 = mkarr(app->use_gpu, 8*app->confBasis.num_basis, app->local_ext.volume);
-  f->emnew = mkarr(app->use_gpu, 8*app->confBasis.num_basis, app->local_ext.volume);
+  f->em = mkarr(app->use_gpu, 8*app->confBasis_2p.num_basis, app->local_ext.volume);
+  f->em1 = mkarr(app->use_gpu, 8*app->confBasis_2p.num_basis, app->local_ext.volume);
+  f->emnew = mkarr(app->use_gpu, 8*app->confBasis_2p.num_basis, app->local_ext.volume);
   f->em_energy = mkarr(app->use_gpu, 6, app->local_ext.volume);
 
   // allocate a total field variable, order p, for methods which require ext_em + em such as b_hat calculation
-  f->tot_em = mkarr(app->use_gpu, 8*app->confBasis.num_basis, app->local_ext.volume);
+  f->tot_em = mkarr(app->use_gpu, 8*app->confBasis_2p.num_basis, app->local_ext.volume);
 
   f->em_host = f->em;  
   if (app->use_gpu) {
-    f->em_host = mkarr(false, 8*app->confBasis.num_basis, app->local_ext.volume);
+    f->em_host = mkarr(false, 8*app->confBasis_2p.num_basis, app->local_ext.volume);
     f->em_energy_red = gkyl_cu_malloc(sizeof(double[6]));
   }
 
@@ -36,13 +36,13 @@ pkpm_field_new(struct gkyl_pkpm *pkpm, struct gkyl_pkpm_app *app)
   // Needed because of implicit source split which modifies solution and 
   // is always successful, so if a time step fails due to the SSP RK3 
   // we must restore the old solution before restarting the time step
-  f->em_dup = mkarr(app->use_gpu, 8*app->confBasis.num_basis, app->local_ext.volume);
+  f->em_dup = mkarr(app->use_gpu, 8*app->confBasis_2p.num_basis, app->local_ext.volume);
 
   f->integ_energy = gkyl_dynvec_new(GKYL_DOUBLE, 6);
   f->is_first_energy_write_call = true;
 
   // Initialize external EM fields, order p (always used by implicit fluid sources, so always initialize) 
-  f->ext_em = mkarr(app->use_gpu, 6*app->confBasis.num_basis, app->local_ext.volume);
+  f->ext_em = mkarr(app->use_gpu, 6*app->confBasis_2p.num_basis, app->local_ext.volume);
   gkyl_array_clear(f->ext_em, 0.0);
   f->has_ext_em = false;
   f->ext_em_evolve = false;
@@ -55,14 +55,14 @@ pkpm_field_new(struct gkyl_pkpm *pkpm, struct gkyl_pkpm_app *app)
 
     f->ext_em_host = f->ext_em;
     if (app->use_gpu) {
-      f->ext_em_host = mkarr(false, 6*app->confBasis.num_basis, app->local_ext.volume);
+      f->ext_em_host = mkarr(false, 6*app->confBasis_2p.num_basis, app->local_ext.volume);
     }
-    f->ext_em_proj = gkyl_proj_on_basis_new(&app->grid, &app->confBasis, app->confBasis.poly_order+1,
+    f->ext_em_proj = gkyl_proj_on_basis_new(&app->grid, &app->confBasis_2p, app->confBasis_2p.poly_order+1,
       6, f->info.ext_em, f->info.ext_em_ctx);
   }
 
   // Initialize applied currents, order p (always used by implicit fluid sources, so always initialize) 
-  f->app_current = mkarr(app->use_gpu, 3*app->confBasis.num_basis, app->local_ext.volume);
+  f->app_current = mkarr(app->use_gpu, 3*app->confBasis_2p.num_basis, app->local_ext.volume);
   gkyl_array_clear(f->app_current, 0.0);
   f->has_app_current = false;
   f->app_current_evolve = false;
@@ -75,9 +75,9 @@ pkpm_field_new(struct gkyl_pkpm *pkpm, struct gkyl_pkpm_app *app)
 
     f->app_current_host = f->app_current;
     if (app->use_gpu) {
-      f->app_current_host = mkarr(false, 3*app->confBasis.num_basis, app->local_ext.volume);
+      f->app_current_host = mkarr(false, 3*app->confBasis_2p.num_basis, app->local_ext.volume);
     }
-    f->app_current_proj = gkyl_proj_on_basis_new(&app->grid, &app->confBasis, app->confBasis.poly_order+1,
+    f->app_current_proj = gkyl_proj_on_basis_new(&app->grid, &app->confBasis_2p, app->confBasis_2p.poly_order+1,
       3, f->info.app_current, f->info.app_current_ctx);
   }
 
@@ -93,12 +93,12 @@ pkpm_field_new(struct gkyl_pkpm *pkpm, struct gkyl_pkpm_app *app)
   double ef = f->info.elcErrorSpeedFactor, mf = f->info.mgnErrorSpeedFactor;
 
   struct gkyl_dg_eqn *eqn;
-  eqn = gkyl_dg_maxwell_new(&app->confBasis, c, ef, mf, app->use_gpu);
+  eqn = gkyl_dg_maxwell_new(&app->confBasis_2p, c, ef, mf, app->use_gpu);
 
   int up_dirs[GKYL_MAX_DIM] = {0, 1, 2}, zero_flux_flags[GKYL_MAX_DIM] = {0, 0, 0};
 
   // Maxwell solver
-  f->slvr = gkyl_hyper_dg_new(&app->grid, &app->confBasis, eqn,
+  f->slvr = gkyl_hyper_dg_new(&app->grid, &app->confBasis_2p, eqn,
     app->cdim, up_dirs, zero_flux_flags, 1, app->use_gpu);
 
   // Allocate arrays for diagonstics/parallel-kinetic-perpendicular-moment arrays
@@ -106,7 +106,7 @@ pkpm_field_new(struct gkyl_pkpm *pkpm, struct gkyl_pkpm_app *app)
   // bb = magnetic field unit unit tensor (last 6 components), order 2*p 
   // em_vars_diag = [bb (6 components), ExB (3 components)], order 2*p 
   // bb and em_vars_diag are order 2*p so we can *exactly* represent |B|^2
-  f->bvar = mkarr(app->use_gpu, 3*app->confBasis.num_basis, app->local_ext.volume);
+  f->bvar = mkarr(app->use_gpu, 3*app->confBasis_2p.num_basis, app->local_ext.volume);
   f->bb = mkarr(app->use_gpu, 6*app->confBasis_2p.num_basis, app->local_ext.volume);
   f->em_vars_diag = mkarr(app->use_gpu, 9*app->confBasis_2p.num_basis, app->local_ext.volume);
   f->em_vars_diag_host = f->em_vars_diag;
@@ -121,7 +121,7 @@ pkpm_field_new(struct gkyl_pkpm *pkpm, struct gkyl_pkpm_app *app)
   f->cell_avg_bb_host = f->cell_avg_bb;
 
   if (app->use_gpu) {
-    f->bvar_host = mkarr(false, 3*app->confBasis.num_basis, app->local_ext.volume);
+    f->bvar_host = mkarr(false, 3*app->confBasis_2p.num_basis, app->local_ext.volume);
     f->em_vars_diag_host = mkarr(false, 9*app->confBasis_2p.num_basis, app->local_ext.volume);
     f->div_b_host = mkarr(false, app->confBasis_2p.num_basis, app->local_ext.volume);
     f->cell_avg_bb_host = mk_int_arr(false, 3, app->local_ext.volume);  
@@ -131,7 +131,7 @@ pkpm_field_new(struct gkyl_pkpm *pkpm, struct gkyl_pkpm_app *app)
   // [bx_xl, bx_xr, by_yl, by_yr, bz_zl, bz_zr] 
   int cdim = app->cdim;
   int Ncomp_surf = 2*cdim;
-  int Nbasis_surf = app->confBasis.num_basis/(app->confBasis.poly_order + 1); 
+  int Nbasis_surf = app->confBasis_2p.num_basis/(app->confBasis_2p.poly_order + 1); 
   f->bvar_surf = mkarr(app->use_gpu, Ncomp_surf*Nbasis_surf, app->local_ext.volume);
 
   // Surface expansion of max b penalization, order p, 
@@ -177,7 +177,7 @@ pkpm_field_new(struct gkyl_pkpm *pkpm, struct gkyl_pkpm_app *app)
     long vol = GKYL_MAX2(app->lower_skin[dir].volume, app->upper_skin[dir].volume);
     buff_sz = buff_sz > vol ? buff_sz : vol;
   }
-  f->bc_buffer = mkarr(app->use_gpu, 8*app->confBasis.num_basis, buff_sz);
+  f->bc_buffer = mkarr(app->use_gpu, 8*app->confBasis_2p.num_basis, buff_sz);
   
   for (int d=0; d<app->cdim; ++d) {
     // Lower BC updater. Copy BCs by default.
@@ -191,7 +191,7 @@ pkpm_field_new(struct gkyl_pkpm *pkpm, struct gkyl_pkpm_app *app)
     else if (f->lower_bc[d] == GKYL_FIELD_RESERVOIR)
       bctype = GKYL_BC_MAXWELL_RESERVOIR;
 
-    f->bc_lo[d] = gkyl_bc_basic_new(d, GKYL_LOWER_EDGE, bctype, app->basis_on_dev.confBasis,
+    f->bc_lo[d] = gkyl_bc_basic_new(d, GKYL_LOWER_EDGE, bctype, app->basis_on_dev.confBasis_2p,
       &app->lower_skin[d], &app->lower_ghost[d], f->em->ncomp, app->cdim, app->use_gpu);
 
     // Upper BC updater. Copy BCs by default.
@@ -204,7 +204,7 @@ pkpm_field_new(struct gkyl_pkpm *pkpm, struct gkyl_pkpm_app *app)
     else if (f->upper_bc[d] == GKYL_FIELD_RESERVOIR)
       bctype = GKYL_BC_MAXWELL_RESERVOIR;
 
-    f->bc_up[d] = gkyl_bc_basic_new(d, GKYL_UPPER_EDGE, bctype, app->basis_on_dev.confBasis,
+    f->bc_up[d] = gkyl_bc_basic_new(d, GKYL_UPPER_EDGE, bctype, app->basis_on_dev.confBasis_2p,
       &app->upper_skin[d], &app->upper_ghost[d], f->em->ncomp, app->cdim, app->use_gpu);
   }
 
@@ -216,8 +216,8 @@ pkpm_field_new(struct gkyl_pkpm *pkpm, struct gkyl_pkpm_app *app)
 void
 pkpm_field_apply_ic(gkyl_pkpm_app *app, struct pkpm_field *field, double t0)
 {
-  int poly_order = app->confBasis.poly_order;
-  gkyl_proj_on_basis *proj = gkyl_proj_on_basis_new(&app->grid, &app->confBasis,
+  int poly_order = app->confBasis_2p.poly_order;
+  gkyl_proj_on_basis *proj = gkyl_proj_on_basis_new(&app->grid, &app->confBasis_2p,
     poly_order+1, 8, field->info.init, field->info.ctx);
 
   // run updater; need to project onto extended range for ease of handling
@@ -447,7 +447,7 @@ void
 pkpm_field_calc_energy(gkyl_pkpm_app *app, double tm, const struct pkpm_field *field)
 {
   for (int i=0; i<6; ++i)
-    gkyl_dg_calc_l2_range(app->confBasis, i, field->em_energy, i, field->em, app->local);
+    gkyl_dg_calc_l2_range(app->confBasis_2p, i, field->em_energy, i, field->em, app->local);
   gkyl_array_scale_range(field->em_energy, app->grid.cellVolume, &app->local);
   
   double energy[6] = { 0.0 };

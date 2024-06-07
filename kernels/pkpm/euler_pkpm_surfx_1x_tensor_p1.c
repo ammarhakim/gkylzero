@@ -21,18 +21,6 @@ GKYL_CU_DH double euler_pkpm_surfx_1x_tensor_p1(const double *w, const double *d
 
   const double dx1 = 2.0/dxv[0]; 
 
-  const double *rhoux_l = &euler_pkpm_l[0]; 
-  const double *rhouy_l = &euler_pkpm_l[2]; 
-  const double *rhouz_l = &euler_pkpm_l[4]; 
-
-  const double *rhoux_c = &euler_pkpm_c[0]; 
-  const double *rhouy_c = &euler_pkpm_c[2]; 
-  const double *rhouz_c = &euler_pkpm_c[4]; 
-
-  const double *rhoux_r = &euler_pkpm_r[0]; 
-  const double *rhouy_r = &euler_pkpm_r[2]; 
-  const double *rhouz_r = &euler_pkpm_r[4]; 
-
   const double *rho_l = &vlasov_pkpm_moms_l[0]; 
   const double *rho_c = &vlasov_pkpm_moms_c[0]; 
   const double *rho_r = &vlasov_pkpm_moms_r[0]; 
@@ -78,8 +66,8 @@ GKYL_CU_DH double euler_pkpm_surfx_1x_tensor_p1(const double *w, const double *d
   const double *pkpm_lax_r = &pkpm_lax[1]; 
 
   double *outrhou0 = &out[0]; 
-  double *outrhou1 = &out[2]; 
-  double *outrhou2 = &out[4]; 
+  double *outrhou1 = &out[3]; 
+  double *outrhou2 = &out[6]; 
 
   double Ghat_rhoux_l = 0.0; 
   double Ghat_rhoux_r = 0.0; 
@@ -232,12 +220,15 @@ GKYL_CU_DH double euler_pkpm_surfx_1x_tensor_p1(const double *w, const double *d
 
   outrhou0[0] += (0.7071067811865475*Ghat_rhoux_l-0.7071067811865475*Ghat_rhoux_r)*dx1; 
   outrhou0[1] += -1.224744871391589*(Ghat_rhoux_r+Ghat_rhoux_l)*dx1; 
+  outrhou0[2] += (1.58113883008419*Ghat_rhoux_l-1.58113883008419*Ghat_rhoux_r)*dx1; 
 
   outrhou1[0] += (0.7071067811865475*Ghat_rhouy_l-0.7071067811865475*Ghat_rhouy_r)*dx1; 
   outrhou1[1] += -1.224744871391589*(Ghat_rhouy_r+Ghat_rhouy_l)*dx1; 
+  outrhou1[2] += (1.58113883008419*Ghat_rhouy_l-1.58113883008419*Ghat_rhouy_r)*dx1; 
 
   outrhou2[0] += (0.7071067811865475*Ghat_rhouz_l-0.7071067811865475*Ghat_rhouz_r)*dx1; 
   outrhou2[1] += -1.224744871391589*(Ghat_rhouz_r+Ghat_rhouz_l)*dx1; 
+  outrhou2[2] += (1.58113883008419*Ghat_rhouz_l-1.58113883008419*Ghat_rhouz_r)*dx1; 
 
   return 0.;
 

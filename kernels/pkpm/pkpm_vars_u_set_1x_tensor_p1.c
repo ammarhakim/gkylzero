@@ -20,8 +20,8 @@ GKYL_CU_DH int pkpm_vars_u_set_1x_tensor_p1(int count, struct gkyl_nmat *A, stru
   gkyl_mat_clear(&A_uy, 0.0); gkyl_mat_clear(&rhs_uy, 0.0); 
   gkyl_mat_clear(&A_uz, 0.0); gkyl_mat_clear(&rhs_uz, 0.0); 
   const double *rhoux = &euler_pkpm[0]; 
-  const double *rhouy = &euler_pkpm[2]; 
-  const double *rhouz = &euler_pkpm[4]; 
+  const double *rhouy = &euler_pkpm[3]; 
+  const double *rhouz = &euler_pkpm[6]; 
   const double *rho = &vlasov_pkpm_moms[0]; 
   int cell_avg = 0;
   // Check if rho < 0 at control points for diagnostic purposes. 

@@ -1,5 +1,6 @@
+#include <gkyl_mat.h> 
 #include <gkyl_maxwell_kernels.h> 
-#include <gkyl_basis_tensor_1x_2p_exp_sq.h> 
+#include <gkyl_binop_mul_ser.h> 
 GKYL_CU_DH void em_calc_BB_1x_tensor_p2(const double *em, double* GKYL_RESTRICT out) 
 { 
   // em:  Input electromagnetic fields. 
@@ -12,25 +13,17 @@ GKYL_CU_DH void em_calc_BB_1x_tensor_p2(const double *em, double* GKYL_RESTRICT 
   double *B_y_B_z = &out[12]; 
   double *B_z_sq  = &out[15]; 
  
-  const double *B_x = &em[6]; 
-  const double *B_y = &em[8]; 
-  const double *B_z = &em[10]; 
- 
-  // Calculate B_i B_i. 
-  tensor_1x_2p_exp_sq(B_x, B_x_sq); 
-  tensor_1x_2p_exp_sq(B_y, B_y_sq); 
-  tensor_1x_2p_exp_sq(B_z, B_z_sq); 
+  const double *B_x = &em[9]; 
+  const double *B_y = &em[12]; 
+  const double *B_z = &em[15]; 
  
   // Calculate B_i B_j. 
-  B_x_B_y[0] = 0.7071067811865475*B_x[1]*B_y[1]+0.7071067811865475*B_x[0]*B_y[0]; 
-  B_x_B_y[1] = 0.7071067811865475*B_x[0]*B_y[1]+0.7071067811865475*B_y[0]*B_x[1]; 
-  B_x_B_y[2] = 0.6324555320336759*B_x[1]*B_y[1]; 
-  B_x_B_z[0] = 0.7071067811865475*B_x[1]*B_z[1]+0.7071067811865475*B_x[0]*B_z[0]; 
-  B_x_B_z[1] = 0.7071067811865475*B_x[0]*B_z[1]+0.7071067811865475*B_z[0]*B_x[1]; 
-  B_x_B_z[2] = 0.6324555320336759*B_x[1]*B_z[1]; 
-  B_y_B_z[0] = 0.7071067811865475*B_y[1]*B_z[1]+0.7071067811865475*B_y[0]*B_z[0]; 
-  B_y_B_z[1] = 0.7071067811865475*B_y[0]*B_z[1]+0.7071067811865475*B_z[0]*B_y[1]; 
-  B_y_B_z[2] = 0.6324555320336759*B_y[1]*B_z[1]; 
+  binop_mul_1d_tensor_p2(B_x, B_x, B_x_sq); 
+  binop_mul_1d_tensor_p2(B_x, B_y, B_x_B_y); 
+  binop_mul_1d_tensor_p2(B_x, B_z, B_x_B_z); 
+  binop_mul_1d_tensor_p2(B_y, B_y, B_y_sq); 
+  binop_mul_1d_tensor_p2(B_y, B_z, B_y_B_z); 
+  binop_mul_1d_tensor_p2(B_z, B_z, B_z_sq); 
  
 } 
  
