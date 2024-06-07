@@ -18,14 +18,13 @@ gkyl_vlasov_lte_proj_on_basis_advance_cu_ker(const struct gkyl_rect_grid phase_g
   const struct gkyl_array* GKYL_RESTRICT phase_ordinates, 
   const struct gkyl_array* GKYL_RESTRICT phase_weights, const int *p2c_qidx, bool is_relativistic, 
   bool is_canonical_pb, const struct gkyl_array* GKYL_RESTRICT h_ij_inv,  const struct gkyl_array* GKYL_RESTRICT det_h,
-  const struct gkyl_array* GKYL_RESTRICT moms_lte, struct gkyl_array* GKYL_RESTRICT f_lte)
+  const struct gkyl_array* GKYL_RESTRICT moms_lte, struct gkyl_array* GKYL_RESTRICT f_lte_at_nodes)
 {
   double f_floor = 1.e-40;
   int pdim = phase_range.ndim, cdim = conf_range.ndim;
   int vdim = pdim-cdim;
 
   int num_conf_basis = conf_basis_at_ords->ncomp;
-  int num_phase_basis = f_lte->ncomp;
   int tot_conf_quad = conf_basis_at_ords->size;
   int tot_phase_quad = phase_basis_at_ords->size;
 
@@ -118,16 +117,9 @@ gkyl_vlasov_lte_proj_on_basis_advance_cu_ker(const struct gkyl_rect_grid phase_g
     gkyl_rect_grid_cell_center(&phase_grid, pidx, xc);
 
     long lidx = gkyl_range_idx(&phase_range, pidx);
-    double *f_lte_d = (double*) gkyl_array_fetch(f_lte, lidx);
 
-    for (int k=0; k<num_phase_basis; ++k) {
-      f_lte_d[k] = 0.0;
-    }
-
-    // compute expansion coefficients of LTE distribution function on basis
-    // The following is modeled after proj_on_basis in the private header.
-    const double *phase_w = (const double*) phase_weights->data;
-    const double *phaseb_o = (const double*) phase_basis_at_ords->data;
+    // Select for a phase space index fq
+    double fq = (double*) gkyl_array_fetch(f_lte_at_nodes, pidx);
   
     // compute Maxwellian at phase-space quadrature nodes
     for (int n=0; n<tot_phase_quad; ++n) {
@@ -137,7 +129,7 @@ gkyl_vlasov_lte_proj_on_basis_advance_cu_ker(const struct gkyl_rect_grid phase_g
       comp_to_phys(pdim, (const double*) gkyl_array_cfetch(phase_ordinates, n),
         phase_grid.dx, xc, &xmu[0]);
 
-      double fq = f_floor;
+      fq[n] = f_floor;
       if (T_over_m_quad[cqidx] > 0.0) {
         if (is_relativistic) {
           double uu = 0.0;
@@ -163,7 +155,7 @@ gkyl_vlasov_lte_proj_on_basis_advance_cu_ker(const struct gkyl_rect_grid phase_g
             gamma_shifted = 1.0/sqrt(1.0-vv);
           }
 
-          fq += expamp_quad[cqidx]*exp( (1.0/T_over_m_quad[cqidx]) 
+          fq[n] += expamp_quad[cqidx]*exp( (1.0/T_over_m_quad[cqidx]) 
             - (gamma_shifted/T_over_m_quad[cqidx])*(sqrt(1+uu) - vu) );
         }
           // Assumes a (particle) hamiltonian in canocial form: g = 1/2g^{ij}w_i_w_j
@@ -186,18 +178,56 @@ gkyl_vlasov_lte_proj_on_basis_advance_cu_ker(const struct gkyl_rect_grid phase_g
             }
             // Accuracy of the prefactor doesn't really matter since it will 
             // be fixed by the correct routine
-            fq += expamp_quad[cqidx]*exp(-efact/(2.0*T_over_m_quad[cqidx]));
+            fq[n] += expamp_quad[cqidx]*exp(-efact/(2.0*T_over_m_quad[cqidx]));
         }
         else {
           double efact = 0.0;        
           for (int d=0; d<vdim; ++d) {
             efact += (xmu[cdim+d]-V_drift_quad[cqidx][d])*(xmu[cdim+d]-V_drift_quad[cqidx][d]);
           }
-          fq += expamp_quad[cqidx]*exp(-efact/(2.0*T_over_m_quad[cqidx]));
+          fq[n] += expamp_quad[cqidx]*exp(-efact/(2.0*T_over_m_quad[cqidx]));
         }
       }
+    }
+  }
+}
 
-      double tmp = phase_w[n]*fq;
+__global__ static void
+gkyl_proj_on_basis_cu_ker(const struct gkyl_rect_grid phase_grid,
+  const struct gkyl_range phase_range, const struct gkyl_range conf_range,
+  const struct gkyl_array* GKYL_RESTRICT conf_basis_at_ords, 
+  const struct gkyl_array* GKYL_RESTRICT phase_basis_at_ords, 
+  const struct gkyl_array* GKYL_RESTRICT phase_ordinates, 
+  const struct gkyl_array* GKYL_RESTRICT phase_weights, const int *p2c_qidx, bool is_relativistic, 
+  bool is_canonical_pb, const struct gkyl_array* GKYL_RESTRICT h_ij_inv,  const struct gkyl_array* GKYL_RESTRICT det_h,
+  const struct gkyl_array* GKYL_RESTRICT moms_lte, struct gkyl_array* GKYL_RESTRICT f_lte_at_nodes, 
+  struct gkyl_array* GKYL_RESTRICT f_lte)
+{
+
+  int num_phase_basis = f_lte->ncomp;
+  int tot_phase_quad = phase_basis_at_ords->size;
+  int pidx[GKYL_MAX_DIM];
+  for(unsigned long tid = threadIdx.x + blockIdx.x*blockDim.x;
+    tid < phase_range.volume; tid += blockDim.x*gridDim.x) {
+    gkyl_sub_range_inv_idx(&phase_range, tid, pidx);
+
+    // Select for a phase space index fq
+    double fq = (double*) gkyl_array_fetch(f_lte_at_nodes, pidx);
+
+    long lidx = gkyl_range_idx(&phase_range, pidx);
+    double *f_lte_d = (double*) gkyl_array_fetch(f_lte, lidx);
+
+    for (int k=0; k<num_phase_basis; ++k) {
+      f_lte_d[k] = 0.0;
+    }
+
+    // compute expansion coefficients of LTE distribution function on basis
+    // The following is modeled after proj_on_basis in the private header.
+    const double *phase_w = (const double*) phase_weights->data;
+    const double *phaseb_o = (const double*) phase_basis_at_ords->data;
+
+    for (int n=0; n<tot_phase_quad; ++n) {
+      double tmp = phase_w[n]*fq[n];
       for (int k=0; k<num_phase_basis; ++k) {
         f_lte_d[k] += tmp*phaseb_o[k+num_phase_basis*n];
       }
@@ -217,7 +247,15 @@ gkyl_vlasov_lte_proj_on_basis_advance_cu(gkyl_vlasov_lte_proj_on_basis *up,
      up->is_relativistic, up->is_canonical_pb, 
      up->is_canonical_pb ? up->h_ij_inv->on_dev : 0, 
      up->is_canonical_pb ? up->det_h->on_dev : 0, 
-     moms_lte->on_dev, f_lte->on_dev);
+     moms_lte->on_dev, up->f_lte_at_nodes->on_dev);
+
+  gkyl_proj_on_basis_cu_ker<<<nblocks, nthreads>>>
+    (up->phase_grid, *phase_range, *conf_range, up->conf_basis_at_ords->on_dev, up->basis_at_ords->on_dev,
+     up->ordinates->on_dev, up->weights->on_dev, up->p2c_qidx,
+     up->is_relativistic, up->is_canonical_pb, 
+     up->is_canonical_pb ? up->h_ij_inv->on_dev : 0, 
+     up->is_canonical_pb ? up->det_h->on_dev : 0, 
+     moms_lte->on_dev, up->f_lte_at_nodes->on_dev, f_lte->on_dev);
 
   // Correct the density of the projected LTE distribution function through rescaling.
   // This correction is needed especially for the relativistic LTE, whose pre-factor

@@ -66,6 +66,7 @@ struct gkyl_vlasov_lte_proj_on_basis {
                                   // ordinates in a cell.
 
   int *p2c_qidx;  // Mapping between Configuration-space and Phase-space ordinates.
+  struct gkyl_array *f_lte_at_nodes; // Array keeping f_lte at quadrature nodes
 
   struct gkyl_vlasov_lte_moments *moments_up; // LTE moment calculation routine for computing density
   struct gkyl_array *num_ratio; // Number density ratio: num_ratio = n_target/n0
