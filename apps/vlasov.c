@@ -248,14 +248,11 @@ gkyl_vlasov_app_new(struct gkyl_vm *vm)
 
 
   // Set the appropriate update function for taking a single time step
-  // If we have implicit fluid-EM coupling, we perform a Strang split on
-  // the fluid-EM coupling and treat those terms implicitly. 
+  // If we have implicit fluid-EM coupling or implicit BGK collisions, 
+  // we perform a first-order operator split and treat those terms implicitly.
   // Otherwise, we default to an SSP-RK3 method. 
-  if (app->has_fluid_em_coupling) {
-    app->update_func = vlasov_update_strang_split;
-  } 
-  else if (app->has_implicit_coll_scheme) {
-    app->update_func = vlasov_update_godunov_split_coll;
+  if (app->has_implicit_coll_scheme || app->has_fluid_em_coupling) {
+    app->update_func = vlasov_update_op_split;
   }
   else {
     app->update_func = vlasov_update_ssp_rk3;

@@ -195,13 +195,15 @@ gkyl_pkpm_app_new(struct gkyl_pkpm *pkpm)
   // Set the appropriate update function for taking a single time step
   app->use_explicit_source = pkpm->use_explicit_source;
   if (app->use_explicit_source) {
-    // If momentum-EM field coupling is explicit, we use a pure explicit SSP RK3 method
+    // If momentum-EM field coupling is explicit, 
+    // we use a pure explicit SSP RK3 method.
     app->update_func = pkpm_update_explicit_ssp_rk3;
   }
   else {
-    // By default: we perform a Strang split to implicitly treat the momentum-EM field coupling. 
+    // By default: we perform a first-order operator split 
+    // to implicitly treat the momentum-EM field coupling. 
     app->pkpm_em = pkpm_fluid_em_coupling_init(app);
-    app->update_func = pkpm_update_strang_split;
+    app->update_func = pkpm_update_op_split;
   }
   
   // initialize stat object
