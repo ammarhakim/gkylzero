@@ -28,9 +28,10 @@ struct pkpm_alf_ctx {
   double n0;
   double vAe;
   double B0;
-  double beta;
-  double vtElc;
-  double vtIon;
+  double beta_elc;
+  double beta_ion;
+  double vt_elc;
+  double vt_ion;
   double nuElc;
   double nuIon;
   double di; 
@@ -81,10 +82,12 @@ evalDistFuncElc(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT 
 
   double me = app->massElc;
   double B0 = app->B0;
+  double n0 = app->n0;
+  double beta_elc = app->beta_elc; 
   double B0perp = app->delta_B0;
   double a = app->a;
   double di = app->di; 
-  double n = 2.0*a*sech(a*x/di);
+  double n = 2.0*a*sech(a*x/di) + n0;
 
   double arg = 0.5*a*x/di;
   double phi = 4.0*atan(tanh(arg));
@@ -93,7 +96,7 @@ evalDistFuncElc(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT 
   double B_z = B0perp*cos(phi);
 
   double magB2 = 0.5*(B_x*B_x + B_y*B_y + B_z*B_z);
-  double Te = app->vtElc*app->vtElc*me*(magB2/n);
+  double Te = magB2*beta_elc/n;
   double vt_elc = sqrt(Te/me);
   
   double fv = maxwellian(n, vx, vt_elc);
@@ -110,10 +113,12 @@ evalDistFuncIon(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT 
 
   double mi = app->massIon;
   double B0 = app->B0;
+  double n0 = app->n0;
+  double beta_ion = app->beta_ion; 
   double B0perp = app->delta_B0;
   double a = app->a;
   double di = app->di; 
-  double n = 2.0*a*sech(a*x/di);
+  double n = 2.0*a*sech(a*x/di) + n0;
 
   double arg = 0.5*a*x/di;
   double phi = 4.0*atan(tanh(arg));
@@ -122,7 +127,7 @@ evalDistFuncIon(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT 
   double B_z = B0perp*cos(phi);
 
   double magB2 = 0.5*(B_x*B_x + B_y*B_y + B_z*B_z);
-  double Ti = app->vtIon*app->vtIon*mi*(magB2/n);
+  double Ti = magB2*beta_ion/n;
   double vt_ion = sqrt(Ti/mi);
 
   double fv = maxwellian(n, vx, vt_ion);
@@ -250,31 +255,32 @@ create_ctx(void)
   double Te_Ti = 1.0; // ratio of electron to ion temperature
   // initial conditions
   double a = 0.01;
-  double n0 = a; // initial number density 
+  double n0 = 1.0; // initial number density 
   double vAe = 0.25;
-  double beta = 0.5;
+  double beta_elc = 0.5;
 
   double B0 = vAe*sqrt(mu0*n0*massElc);
   double delta_B0 = a*B0;
-  double vtElc = vAe*sqrt(beta/2.0);
+  double vt_elc = vAe*sqrt(beta_elc/2.0);
   // ion velocities
   double vAi = vAe/sqrt(massIon);
-  double vtIon = vtElc/sqrt(massIon); //Ti/Te = 1.0
+  double vt_ion = vt_elc/sqrt(massIon*Te_Ti); //Ti/Te = 1.0
+  double beta_ion = beta_elc/Te_Ti;
 
   // ion cyclotron frequency and gyroradius
   double omegaCi = chargeIon*B0/massIon;
   double di = vAi/omegaCi;
-  double rhoi = sqrt(2.0)*vtIon/omegaCi;
+  double rhoi = sqrt(2.0)*vt_ion/omegaCi;
 
   // collision frequencies
-  double nuElc = 0.001*omegaCi;
-  double nuIon = 0.001*omegaCi/sqrt(massIon);
+  double nuElc = 0.0001*omegaCi;
+  double nuIon = 0.0001*omegaCi/sqrt(massIon);
 
-  double Lx = 5.0*(di/a);
+  double Lx = 10.0*(di/a);
   int Nx = 16; 
   double dx = Lx/Nx;
   double cfl_frac = 1.0; // CFL coefficient.
-  double t_end = 1000.0/omegaCi; // Final simulation time.
+  double t_end = 10000.0/omegaCi; // Final simulation time.
   int num_frames = 1; // Number of output frames.
   double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.
   int num_failures_max = 20; // Maximum allowable number of consecutive small time-steps.
@@ -291,9 +297,10 @@ create_ctx(void)
     .n0 = n0,
     .vAe = vAe,
     .B0 = B0,
-    .beta = beta,
-    .vtElc = vtElc,
-    .vtIon = vtIon,
+    .beta_elc = beta_elc,
+    .beta_ion = beta_ion,
+    .vt_elc = vt_elc,
+    .vt_ion = vt_ion,
     .nuElc = nuElc,
     .nuIon = nuIon,
     .di = di, 
@@ -349,8 +356,8 @@ main(int argc, char **argv)
   struct gkyl_pkpm_species elc = {
     .name = "elc",
     .charge = ctx.chargeElc, .mass = ctx.massElc,
-    .lower = { -6.0 * ctx.vtElc},
-    .upper = { 6.0 * ctx.vtElc}, 
+    .lower = { -6.0 * ctx.vt_elc},
+    .upper = { 6.0 * ctx.vt_elc}, 
     .cells = { VX },
 
     .ctx_dist = &ctx,
@@ -370,8 +377,8 @@ main(int argc, char **argv)
   struct gkyl_pkpm_species ion = {
     .name = "ion",
     .charge = ctx.chargeIon, .mass = ctx.massIon,
-    .lower = { -6.0 * ctx.vtIon},
-    .upper = { 6.0 * ctx.vtIon}, 
+    .lower = { -6.0 * ctx.vt_ion},
+    .upper = { 6.0 * ctx.vt_ion}, 
     .cells = { VX },
 
     .ctx_dist = &ctx,
