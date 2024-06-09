@@ -248,11 +248,14 @@ create_ctx(void)
   double chargeIon = 1.0; // ion charge
 
   double Te_Ti = 1.0; // ratio of electron to ion temperature
-  double n0 = 1.0; // initial number density
-  double vAe = 0.1;
-  double beta = 0.1;
+  // initial conditions
+  double a = 0.01;
+  double n0 = a; // initial number density 
+  double vAe = 0.25;
+  double beta = 0.5;
 
   double B0 = vAe*sqrt(mu0*n0*massElc);
+  double delta_B0 = a*B0;
   double vtElc = vAe*sqrt(beta/2.0);
   // ion velocities
   double vAi = vAe/sqrt(massIon);
@@ -264,18 +267,14 @@ create_ctx(void)
   double rhoi = sqrt(2.0)*vtIon/omegaCi;
 
   // collision frequencies
-  double nuElc = 0.01*omegaCi;
-  double nuIon = 0.01*omegaCi/sqrt(massIon);
-
-  // initial conditions
-  double a = 0.1;
-  double delta_B0 = a*B0;
+  double nuElc = 0.001*omegaCi;
+  double nuIon = 0.001*omegaCi/sqrt(massIon);
 
   double Lx = 5.0*(di/a);
   int Nx = 16; 
   double dx = Lx/Nx;
   double cfl_frac = 1.0; // CFL coefficient.
-  double t_end = 100.0/omegaCi; // Final simulation time.
+  double t_end = 1000.0/omegaCi; // Final simulation time.
   int num_frames = 1; // Number of output frames.
   double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.
   int num_failures_max = 20; // Maximum allowable number of consecutive small time-steps.
