@@ -191,7 +191,7 @@ gkyl_vlasov_lte_proj_on_basis_inew(const struct gkyl_vlasov_lte_proj_on_basis_in
     up->p2c_qidx = (int*) gkyl_cu_malloc(sizeof(int)*up->phase_qrange.volume);
 
     // Allocate f_lte_at_nodes
-    up->f_lte_at_nodes = gkyl_array_cu_dev_new(GKYL_DOUBLE, up->tot_quad, inp->conf_range->volume*inp->vel_range->volume);
+    up->f_lte_at_nodes = gkyl_array_cu_dev_new(GKYL_DOUBLE, up->tot_quad, inp->conf_range_ext->volume*inp->vel_range->volume);
 
     int pidx[GKYL_MAX_DIM];
     for (int n=0; n<up->tot_quad; ++n) {

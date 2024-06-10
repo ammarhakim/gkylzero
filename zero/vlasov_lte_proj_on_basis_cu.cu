@@ -15,9 +15,9 @@ static void
 gkyl_parallelize_components_kernel_launch_dims(dim3* dimGrid, dim3* dimBlock, gkyl_range range, int ncomp)
 {
   // Create a 2D thread grid so we launch ncomp*range.volume number of threads and can parallelize over components too
-  dimBlock->y = ncomp;
-  dimGrid->y = 1;
-  dimBlock->x = gkyl_int_div_up(252, ncomp);
+  dimBlock->y = GKYL_MIN2(ncomp, GKYL_DEFAULT_NUM_THREADS);
+  dimGrid->y = gkyl_int_div_up(ncomp, dimBlock->y);
+  dimBlock->x = GKYL_DEFAULT_NUM_THREADS/ncomp;
   dimGrid->x = gkyl_int_div_up(range.volume, dimBlock->x);
 }
 
@@ -139,7 +139,7 @@ gkyl_vlasov_lte_proj_on_basis_advance_cu_ker(const struct gkyl_rect_grid phase_g
     for (int n=0; n<tot_phase_quad; ++n) {
 
       // Each thread in linc2 thread grid handles a different component
-      if (linc2 == n) {
+      //if (linc2 == n) {
 
         int cqidx = p2c_qidx[n];
 
@@ -205,7 +205,7 @@ gkyl_vlasov_lte_proj_on_basis_advance_cu_ker(const struct gkyl_rect_grid phase_g
             fq[n] += expamp_quad[cqidx]*exp(-efact/(2.0*T_over_m_quad[cqidx]));
           }
         }
-      }
+      //}
     }
   }
 }
@@ -314,8 +314,10 @@ gkyl_vlasov_lte_proj_on_basis_advance_cu(gkyl_vlasov_lte_proj_on_basis *up,
   
   dim3 dimGrid, dimBlock;
   int tot_phase_quad = up->basis_at_ords->size;
-  gkyl_parallelize_components_kernel_launch_dims(&dimGrid, &dimBlock, *phase_range, tot_phase_quad);
-  gkyl_vlasov_lte_proj_on_basis_advance_cu_ker<<<dimGrid, dimBlock>>>
+  int num_phase_basis = f_lte->ncomp;
+  //gkyl_parallelize_components_kernel_launch_dims(&dimGrid, &dimBlock, *phase_range, tot_phase_quad);
+  int nblocks = phase_range->nblocks, nthreads = phase_range->nthreads;
+  gkyl_vlasov_lte_proj_on_basis_advance_cu_ker<<<nblocks, nthreads>>>
     (up->phase_grid, *phase_range, *conf_range, up->conf_basis_at_ords->on_dev, up->basis_at_ords->on_dev,
      up->ordinates->on_dev, up->weights->on_dev, up->p2c_qidx,
      up->is_relativistic, up->is_canonical_pb, 
@@ -325,7 +327,6 @@ gkyl_vlasov_lte_proj_on_basis_advance_cu(gkyl_vlasov_lte_proj_on_basis *up,
 
   gkyl_array_clear(f_lte, 0.0);
 
-  int num_phase_basis = f_lte->ncomp;
   gkyl_parallelize_components_kernel_launch_dims(&dimGrid, &dimBlock, *phase_range, num_phase_basis);
   gkyl_proj_on_basis_cu_ker<<<dimGrid, dimBlock>>>
     (up->phase_grid, *phase_range, *conf_range, up->conf_basis_at_ords->on_dev, up->basis_at_ords->on_dev,
