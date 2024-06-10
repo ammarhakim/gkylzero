@@ -32,7 +32,7 @@ vp_field_new(struct gkyl_vp *vp, struct gkyl_vlasov_poisson_app *app)
   int intersect = gkyl_sub_range_intersect(&vpf->global_sub_range, &app->global, &app->local);
 
   // Set the permittivity in the Poisson equation.
-  vpf->epsilon = mkarr(false, app->confBasis.num_basis, app->global_ext.volume); // fem_parproj expects weight on host
+  vpf->epsilon = mkarr(app->use_gpu, app->confBasis.num_basis, app->global_ext.volume);
   gkyl_array_clear(vpf->epsilon, 0.0);
   gkyl_array_shiftc(vpf->epsilon, vpf->info.permittivity*pow(sqrt(2.0),app->cdim), 0);
 

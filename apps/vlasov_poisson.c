@@ -204,6 +204,7 @@ gkyl_vlasov_poisson_app_new(struct gkyl_vp *vp)
     
     gkyl_rect_decomp_release(rect_decomp);
   }
+
   // Local skin and ghost ranges for configuration space fields.
   for (int dir=0; dir<cdim; ++dir) {
     gkyl_skin_ghost_ranges(&app->lower_skin[dir], &app->lower_ghost[dir], dir, GKYL_LOWER_EDGE, &app->local_ext, ghost); 
@@ -554,8 +555,8 @@ forward_euler(gkyl_vlasov_poisson_app* app, double tcurr, double dt,
   // Compute external EM field or applied currents if present and time-dependent.
   // Note: external EM field and  applied currents use proj_on_basis 
   // so does copy to GPU every call if app->use_gpu = true.
-  if (app->field->ext_em_evolve)
-    vp_field_calc_ext_em(app, app->field, tcurr);
+//  if (app->field->ext_em_evolve)
+//    vp_field_calc_ext_em(app, app->field, tcurr);
 
   // Compute necessary moments and boundary corrections for collisions.
   for (int i=0; i<app->num_species; ++i) {
@@ -611,7 +612,7 @@ forward_euler(gkyl_vlasov_poisson_app* app, double tcurr, double dt,
 
   // compute minimum time-step across all processors
   double dtmin_local = dtmin, dtmin_global;
-  gkyl_comm_allreduce(app->comm, GKYL_DOUBLE, GKYL_MIN, 1, &dtmin_local, &dtmin_global);
+  gkyl_comm_allreduce_host(app->comm, GKYL_DOUBLE, GKYL_MIN, 1, &dtmin_local, &dtmin_global);
   dtmin = dtmin_global;
   
   // don't take a time-step larger that input dt

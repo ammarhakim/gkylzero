@@ -270,6 +270,7 @@ struct vp_species {
 
   struct gkyl_array *f_host; // host copy for use IO and initialization
 
+  double qbym; // Charge (q) divided by mass (m).
   struct gkyl_array *qmem; // array for (q/m)*(phi_tot,A_ext), phi_tot=phi+phi_ext
 
   struct vp_species_moment m0; // for computing charge density

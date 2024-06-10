@@ -5,6 +5,7 @@
 #include <gkyl_eqn_type.h>
 #include <gkyl_range.h>
 #include <gkyl_util.h>
+#include <gkyl_fem_poisson_bctype.h>
 
 #include <stdbool.h>
 
@@ -74,9 +75,10 @@ struct gkyl_vlasov_poisson_source {
 // Parameters for boundary conditions
 struct gkyl_vlasov_poisson_bc {
   enum gkyl_species_bc_type type;
-  void *aux_ctx;
   void (*aux_profile)(double t, const double *xn, double *fout, void *ctx);
-  double aux_parameter;
+  void *aux_ctx;
+  double aux_double;
+  double aux_int;
 };
 
 struct gkyl_vlasov_poisson_bcs {
@@ -129,8 +131,8 @@ struct gkyl_vp {
   char name[128]; // name of app: used as output prefix
 
   int cdim, vdim; // conf, velocity space dimensions
-  double lower[3], upper[3]; // lower, upper bounds of config-space
-  int cells[3]; // config-space cells
+  double lower[GKYL_MAX_CDIM], upper[GKYL_MAX_CDIM]; // lower, upper bounds of config-space
+  int cells[GKYL_MAX_CDIM]; // config-space cells
   int poly_order; // polynomial order
   enum gkyl_basis_type basis_type; // type of basis functions to use
 
@@ -139,7 +141,7 @@ struct gkyl_vp {
   bool use_gpu; // Flag to indicate if solver should use GPUs
 
   int num_periodic_dir; // number of periodic directions
-  int periodic_dirs[3]; // list of periodic directions
+  int periodic_dirs[GKYL_MAX_CDIM]; // list of periodic directions
 
   int num_species; // number of species
   struct gkyl_vlasov_poisson_species species[GKYL_MAX_SPECIES]; // species objects

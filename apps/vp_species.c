@@ -83,6 +83,7 @@ vp_species_init(struct gkyl_vp *vp, struct gkyl_vlasov_poisson_app *app, struct 
     vps->omega_cfl = gkyl_malloc(sizeof(double));
 
   // Allocate arrays to store (q/m)*(phi,A_ext):
+  vps->qbym = vps->info.charge/vps->info.mass;
   vps->qmem = mkarr(app->use_gpu, 4*app->confBasis.num_basis, app->local_ext.volume);
 
   // By default, we do not have zero-flux boundary conditions in any direction.
@@ -243,13 +244,15 @@ vp_species_rhs(gkyl_vlasov_poisson_app *app, struct vp_species *species,
   gkyl_array_clear(species->cflrate, 0.0);
   gkyl_array_clear(rhs, 0.0);
 
+  gkyl_array_set_offset(species->qmem, species->qbym, app->field->phi, 0);
+
   gkyl_dg_updater_vlasov_poisson_advance(species->slvr, &species->local, 
     fin, species->cflrate, rhs);
 
   if (species->collision_id == GKYL_LBO_COLLISIONS)
     vp_species_lbo_rhs(app, species, &species->lbo, fin, rhs);
-  else if (species->collision_id == GKYL_BGK_COLLISIONS)
-    vp_species_bgk_rhs(app, species, &species->bgk, fin, rhs);
+//  else if (species->collision_id == GKYL_BGK_COLLISIONS)
+//    vp_species_bgk_rhs(app, species, &species->bgk, fin, rhs);
   
   app->stat.nspecies_omega_cfl +=1;
   struct timespec tm = gkyl_wall_clock();
@@ -378,8 +381,8 @@ vp_species_release(const gkyl_vlasov_poisson_app* app, const struct vp_species *
 
   if (s->collision_id == GKYL_LBO_COLLISIONS)
     vp_species_lbo_release(app, &s->lbo);
-  else if (s->collision_id == GKYL_BGK_COLLISIONS)
-    vp_species_bgk_release(app, &s->bgk);
+//  else if (s->collision_id == GKYL_BGK_COLLISIONS)
+//    vp_species_bgk_release(app, &s->bgk);
 
   vp_species_bflux_release(app, &s->bflux);
 
