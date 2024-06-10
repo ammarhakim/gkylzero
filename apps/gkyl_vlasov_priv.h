@@ -577,12 +577,9 @@ void vlasov_forward_euler(gkyl_vlasov_app* app, double tcurr, double dt,
 // Calls the vlasov implicit contribution for all vm species
 void vlasov_update_implicit_coll(gkyl_vlasov_app *app,  double dt0);
 
-// Take a single time-step using a Strang split implicit fluid-EM coupling + SSP RK3
-struct gkyl_update_status vlasov_update_strang_split(gkyl_vlasov_app *app,
-  double dt0);
-
-// Take a single time-step using an implicit godunov split bgk + SSP RK3 method
-struct gkyl_update_status vlasov_update_godunov_split_coll(gkyl_vlasov_app *app,  double dt0);
+// Take a single time-step using a first-order operator split 
+// implicit fluid-EM coupling and/or implicit BGK collisions + SSP RK3
+struct gkyl_update_status vlasov_update_op_split(gkyl_vlasov_app *app,  double dt0);
 
 // Take a single time-step using a SSP-RK3 stepper
 struct gkyl_update_status vlasov_update_ssp_rk3(gkyl_vlasov_app *app,
