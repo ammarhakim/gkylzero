@@ -327,7 +327,7 @@ main(int argc, char **argv)
 
   // Vlasov-Maxwell app.
   struct gkyl_vm app_inp = {
-    .name = "landau_damping_1x1v",
+    .name = "vlasov_landau_damping_1x3v",
     
     .cdim = 1, .vdim = 3,
     .lower = { -0.5 * ctx.Lx },
@@ -371,6 +371,9 @@ main(int argc, char **argv)
 
   // Compute initial guess of maximum stable time-step.
   double dt = t_end - t_curr;
+  if (app_args.fix_dt) {
+    dt = app_args.dt;
+  }
 
   // Initialize small time-step check.
   double dt_init = -1.0, dt_failure_tol = ctx.dt_failure_tol;
@@ -389,6 +392,9 @@ main(int argc, char **argv)
 
     t_curr += status.dt_actual;
     dt = status.dt_suggested;
+    if (app_args.fix_dt) {
+      dt = app_args.dt;
+    }
 
     write_data(&io_trig, app, t_curr, false);
 
