@@ -218,7 +218,7 @@ gkyl_proj_on_basis_cu_ker(const struct gkyl_rect_grid phase_grid,
   const struct gkyl_array* GKYL_RESTRICT phase_ordinates, 
   const struct gkyl_array* GKYL_RESTRICT phase_weights, const int *p2c_qidx, bool is_relativistic, 
   bool is_canonical_pb, const struct gkyl_array* GKYL_RESTRICT h_ij_inv,  const struct gkyl_array* GKYL_RESTRICT det_h,
-  const struct gkyl_array* GKYL_RESTRICT moms_lte, struct gkyl_array* GKYL_RESTRICT f_lte_at_nodes, 
+  const struct gkyl_array* GKYL_RESTRICT moms_lte, const struct gkyl_basis* phase_basis_on_dev, struct gkyl_array* GKYL_RESTRICT f_lte_at_nodes, 
   struct gkyl_array* GKYL_RESTRICT f_lte)
 {
 
@@ -241,7 +241,7 @@ gkyl_proj_on_basis_cu_ker(const struct gkyl_rect_grid phase_grid,
 
     // Convert back to modal basis; takes the thread id for the basis function
     // so we can parallelize over basis functions. 
-    up->phase_space_on_dev->quad_nodal_to_modal(fq, f_lte_d, linc2);
+    phase_basis_on_dev->quad_nodal_to_modal(fq, f_lte_d, linc2);
   }
 }
 
@@ -273,7 +273,8 @@ gkyl_vlasov_lte_proj_on_basis_advance_cu(gkyl_vlasov_lte_proj_on_basis *up,
      up->is_relativistic, up->is_canonical_pb, 
      up->is_canonical_pb ? up->h_ij_inv->on_dev : 0, 
      up->is_canonical_pb ? up->det_h->on_dev : 0, 
-     moms_lte->on_dev, up->f_lte_at_nodes->on_dev, f_lte->on_dev);
+     moms_lte->on_dev, up->phase_basis_on_dev, 
+     up->f_lte_at_nodes->on_dev, f_lte->on_dev);
 
   // Correct the density of the projected LTE distribution function through rescaling.
   // This correction is needed especially for the relativistic LTE, whose pre-factor
