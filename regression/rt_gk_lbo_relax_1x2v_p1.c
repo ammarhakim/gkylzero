@@ -332,7 +332,7 @@ main(int argc, char **argv)
   struct gkyl_gk app_inp = {
     .name = "gk_lbo_relax_1x2v_p1",
 
-    .cdim = 1, .vdim = 2,
+    .cdim = ctx.cdim, .vdim = ctx.vdim,
     .lower = { 0.0 },
     .upper = { ctx.Lz },
     .cells = { cells_x[0] },
