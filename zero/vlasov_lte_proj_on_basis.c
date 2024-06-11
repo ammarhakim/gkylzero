@@ -142,6 +142,8 @@ gkyl_vlasov_lte_proj_on_basis_inew(const struct gkyl_vlasov_lte_proj_on_basis_in
   up->num_phase_basis = up->phase_basis.num_basis;
   up->use_gpu = inp->use_gpu;
 
+  up->phase_basis_on_dev = inp->phase_basis_on_dev;
+
   up->is_relativistic = false;
   if (inp->model_id == GKYL_MODEL_SR) {
     up->is_relativistic = true;

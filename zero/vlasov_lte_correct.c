@@ -74,6 +74,7 @@ gkyl_vlasov_lte_correct_inew(const struct gkyl_vlasov_lte_correct_inp *inp)
     .phase_grid = inp->phase_grid,
     .conf_basis = inp->conf_basis,
     .phase_basis = inp->phase_basis,
+    .phase_basis_on_dev = inp->phase_basis_on_dev,
     .conf_range =  inp->conf_range,
     .conf_range_ext = inp->conf_range_ext,
     .vel_range = inp->vel_range,
