@@ -29,6 +29,8 @@ struct gkyl_app_args {
   enum gkyl_basis_type basis_type; // type of basis functions to use
   enum gkyl_mp_recon mp_recon; // the XX in MP-XX
   bool skip_limiters; // should we skip limiters?
+  bool fix_dt; // force a fixed time-step?
+  double dt; // fixed time-step to force
 };
 
 static int
@@ -78,6 +80,8 @@ parse_app_args(int argc, char **argv)
   bool skip_limiters = false;
   int num_steps = INT_MAX;
   int num_threads = 1; // by default use only 1 thread
+  bool fix_dt = false; // by default, do not force a fixed time-step
+  double dt = 0.0;
 
   struct gkyl_app_args args = {
     .xcells = { 0 },
@@ -89,7 +93,7 @@ parse_app_args(int argc, char **argv)
   args.basis_type = GKYL_BASIS_MODAL_SERENDIPITY;
 
   int c;
-  while ((c = getopt(argc, argv, "+hgmMt:s:i:b:x:y:z:u:v:w:r:c:d:e:")) != -1) {
+  while ((c = getopt(argc, argv, "+hgmMt:s:i:b:x:y:z:u:v:w:r:c:d:e:T:")) != -1) {
     switch (c)
     {
       case 'h':
@@ -105,6 +109,7 @@ parse_app_args(int argc, char **argv)
         printf("        (Only used for MP-XX solvers)\n");
         printf(" -l     Turn off limiters\n");
         printf(" -m     Turn on memory allocation/deallocation tracing\n");
+        printf(" -Tx    Run with fixed time-step x\n");
         printf("\n");
         printf(" Grid resolution in configuration space:\n");
         printf(" -xNX -yNY -zNZ\n");
@@ -185,10 +190,15 @@ parse_app_args(int argc, char **argv)
         assert(args.basis_type != -1);
         break;
 
-     case 'r':
+      case 'r':
         args.mp_recon = get_mp_recon_type(optarg);
         assert(args.mp_recon != -1);
-        break;        
+        break;
+
+      case 'T':
+        fix_dt = true;
+        dt = atof(optarg);
+        break;
 
       case '?':
         break;
@@ -202,6 +212,8 @@ parse_app_args(int argc, char **argv)
   args.num_steps = num_steps;
   args.num_threads = num_threads;
   args.skip_limiters = skip_limiters;
+  args.fix_dt = fix_dt;
+  args.dt = dt;
 
   return args;
 }

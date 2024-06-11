@@ -317,6 +317,9 @@ main(int argc, char **argv)
 
   // Compute initial guess of maximum stable time-step.
   double dt = t_end - t_curr;
+  if (app_args.fix_dt) {
+    dt = app_args.dt;
+  }
 
   // Initialize small time-step check.
   double dt_init = -1.0, dt_failure_tol = ctx.dt_failure_tol;
@@ -335,6 +338,9 @@ main(int argc, char **argv)
 
     t_curr += status.dt_actual;
     dt = status.dt_suggested;
+    if (app_args.fix_dt) {
+      dt = app_args.dt;
+    }
 
     write_data(&io_trig, app, t_curr, false);
 
