@@ -222,7 +222,10 @@ gkyl_vlasov_poisson_app_new(struct gkyl_vp *vp)
     app->species[i].info = vp->species[i];
 
   // Initialize the fields.
+  app->has_field = !vp->skip_field; // Note inversion of truth.
   app->field = vp_field_new(vp, app);
+  if (vp->skip_field)
+    gkyl_array_clear(app->field->phi, 0.0);
 
   // Initialize each species
   for (int i=0; i<ns; ++i) 
@@ -261,11 +264,13 @@ gkyl_vlasov_poisson_app_new(struct gkyl_vp *vp)
 static void
 calc_field(gkyl_vlasov_poisson_app* app, double tcurr, const struct gkyl_array *fin[])
 {
-  // Compute electrostatic potential from Poisson's equation.
-  vp_field_accumulate_rho_c(app, app->field, fin);
-
-  // Solve the field equation.
-  vp_field_rhs(app, app->field);
+  if (app->has_field) {
+    // Compute electrostatic potential from Poisson's equation.
+    vp_field_accumulate_rho_c(app, app->field, fin);
+  
+    // Solve the field equation.
+    vp_field_rhs(app, app->field);
+  }
 }
 
 // Compute fields and apply BCs.
@@ -393,7 +398,8 @@ gkyl_vlasov_poisson_app_write(gkyl_vlasov_poisson_app* app, double tm, int frame
   app->stat.nio += 1;
   struct timespec wtm = gkyl_wall_clock();
   
-  gkyl_vlasov_poisson_app_write_field(app, tm, frame);
+  if (app->has_field)
+    gkyl_vlasov_poisson_app_write_field(app, tm, frame);
 
   for (int i=0; i<app->num_species; ++i)
     gkyl_vlasov_poisson_app_write_species(app, i, tm, frame);
@@ -555,8 +561,10 @@ forward_euler(gkyl_vlasov_poisson_app* app, double tcurr, double dt,
   // Compute external EM field or applied currents if present and time-dependent.
   // Note: external EM field and  applied currents use proj_on_basis 
   // so does copy to GPU every call if app->use_gpu = true.
-//  if (app->field->ext_em_evolve)
-//    vp_field_calc_ext_em(app, app->field, tcurr);
+//  if (app->has_field) {
+//    if (app->field->ext_em_evolve)
+//      vp_field_calc_ext_em(app, app->field, tcurr);
+//  }
 
   // Compute necessary moments and boundary corrections for collisions.
   for (int i=0; i<app->num_species; ++i) {
@@ -928,7 +936,8 @@ gkyl_vlasov_poisson_app_stat_write(gkyl_vlasov_poisson_app* app)
   gkyl_vlasov_poisson_app_cout(app, fp, " init_species_tm : %lg,\n", stat.init_species_tm);
   
   gkyl_vlasov_poisson_app_cout(app, fp, " species_rhs_tm : %lg,\n", stat.species_rhs_tm);
-  gkyl_vlasov_poisson_app_cout(app, fp, " field_rhs_tm : %lg,\n", stat.field_rhs_tm);
+  if (app->has_field)
+    gkyl_vlasov_poisson_app_cout(app, fp, " field_rhs_tm : %lg,\n", stat.field_rhs_tm);
 
   for (int s=0; s<app->num_species; ++s) {
     gkyl_vlasov_poisson_app_cout(app, fp, " species_coll_drag_tm[%d] : %lg,\n", s,

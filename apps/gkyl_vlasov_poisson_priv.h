@@ -394,6 +394,7 @@ struct gkyl_vlasov_poisson_app {
     struct gkyl_basis *basis, *confBasis;
   } basis_on_dev;
 
+  bool has_field; // has field
   struct vp_field *field; // pointer to field object
 
   // species data
