@@ -49,23 +49,6 @@ eval_distf_elc(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT 
 }
 
 void
-eval_source_elc(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
-{
-  struct vp_sheath_ctx *app = ctx;
-  double x = xn[0], v = xn[1];
-  double n0 = app->n0;
-  double vt = sqrt(app->Te0/app->mass_elc);
-  double vt_sq = pow(vt,2.0);
-
-  double fv = n0/sqrt(2.0*M_PI*vt_sq)*(exp(-pow(v,2.0)/(2.0*vt_sq)));
-  if (fabs(x) < 100) {
-    fout[0] = (100 - fabs(x))/100*fv;
-  } else {
-    fout[0] = 0.0;
-  }
-}
-
-void
 eval_distf_ion(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
 {
   struct vp_sheath_ctx *app = ctx;
@@ -76,23 +59,6 @@ eval_distf_ion(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT 
 
   double fv = n0/sqrt(2.0*M_PI*vt_sq)*(exp(-pow(v,2.0)/(2.0*vt_sq)));
   fout[0] = fv;
-}
-
-void
-eval_source_ion(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
-{
-  struct vp_sheath_ctx *app = ctx;
-  double x = xn[0], v = xn[1];
-  double n0 = app->n0;
-  double vt = sqrt(app->Ti0/app->mass_ion);
-  double vt_sq = pow(vt,2.0);
-
-  double fv = n0/sqrt(2.0*M_PI*vt_sq)*(exp(-pow(v,2.0)/(2.0*vt_sq)));
-  if (fabs(x) < 100.0) {
-    fout[0] = (100.0 - fabs(x))/100.0*fv;
-  } else {
-    fout[0] = 0.0;
-  }
 }
 
 struct vp_sheath_ctx
