@@ -62,8 +62,11 @@ vp_species_init(struct gkyl_vp *vp, struct gkyl_vlasov_poisson_app *app, struct 
   gkyl_range_ten_prod(&local, &app->local, &vps->local_vel);
   gkyl_create_ranges(&local, ghost, &vps->local_ext, &vps->local);
 
-  // Determine field-type .
-  vps->field_id = app->field->info.field_id;
+  // Determine field-type.
+  if (app->has_field)
+    vps->field_id = app->field->info.field_id;
+  else
+    vps->field_id = GKYL_VP_FIELD_PHI;
 
   // Allocate distribution function arrays.
   vps->f = mkarr(app->use_gpu, app->basis.num_basis, vps->local_ext.volume);
@@ -244,7 +247,8 @@ vp_species_rhs(gkyl_vlasov_poisson_app *app, struct vp_species *species,
   gkyl_array_clear(species->cflrate, 0.0);
   gkyl_array_clear(rhs, 0.0);
 
-  gkyl_array_set_offset(species->qmem, species->qbym, app->field->phi, 0);
+  if (app->has_field)
+    gkyl_array_set_offset(species->qmem, species->qbym, app->field->phi, 0);
 
   gkyl_dg_updater_vlasov_poisson_advance(species->slvr, &species->local, 
     fin, species->cflrate, rhs);

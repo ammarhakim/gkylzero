@@ -223,9 +223,8 @@ gkyl_vlasov_poisson_app_new(struct gkyl_vp *vp)
 
   // Initialize the fields.
   app->has_field = !vp->skip_field; // Note inversion of truth.
-  app->field = vp_field_new(vp, app);
-  if (vp->skip_field)
-    gkyl_array_clear(app->field->phi, 0.0);
+  if (app->has_field)
+    app->field = vp_field_new(vp, app);
 
   // Initialize each species
   for (int i=0; i<ns; ++i) 
@@ -387,7 +386,8 @@ void
 gkyl_vlasov_poisson_app_calc_field_energy(gkyl_vlasov_poisson_app* app, double tm)
 {
   struct timespec wst = gkyl_wall_clock();
-  vp_field_calc_energy(app, tm, app->field);
+  if (app->has_field)
+    vp_field_calc_energy(app, tm, app->field);
   app->stat.diag_tm += gkyl_time_diff_now_sec(wst);
   app->stat.ndiag += 1;
 }
@@ -410,27 +410,28 @@ gkyl_vlasov_poisson_app_write(gkyl_vlasov_poisson_app* app, double tm, int frame
 void
 gkyl_vlasov_poisson_app_write_field(gkyl_vlasov_poisson_app* app, double tm, int frame)
 {
-  // Copy data from device to host before writing it out.
-  if (app->use_gpu) {
-    gkyl_array_copy(app->field->phi_host, app->field->phi);
+  if (app->has_field) {
+    // Copy data from device to host before writing it out.
+    if (app->use_gpu)
+      gkyl_array_copy(app->field->phi_host, app->field->phi);
+  
+    struct gkyl_array_meta *mt = vlasov_poisson_array_meta_new( (struct vlasov_poisson_output_meta) {
+        .frame = frame,
+        .stime = tm,
+        .poly_order = app->poly_order,
+        .basis_type = app->confBasis.id
+      }
+    );
+  
+    const char *fmt = "%s-field_%d.gkyl";
+    int sz = gkyl_calc_strlen(fmt, app->name, frame);
+    char fileNm[sz+1]; // ensures no buffer overflow
+    snprintf(fileNm, sizeof fileNm, fmt, app->name, frame);
+  
+    gkyl_comm_array_write(app->comm, &app->grid, &app->local, mt, app->field->phi_host, fileNm);
+  
+    vlasov_poisson_array_meta_release(mt);
   }
-
-  struct gkyl_array_meta *mt = vlasov_poisson_array_meta_new( (struct vlasov_poisson_output_meta) {
-      .frame = frame,
-      .stime = tm,
-      .poly_order = app->poly_order,
-      .basis_type = app->confBasis.id
-    }
-  );
-
-  const char *fmt = "%s-field_%d.gkyl";
-  int sz = gkyl_calc_strlen(fmt, app->name, frame);
-  char fileNm[sz+1]; // ensures no buffer overflow
-  snprintf(fileNm, sizeof fileNm, fmt, app->name, frame);
-
-  gkyl_comm_array_write(app->comm, &app->grid, &app->local, mt, app->field->phi_host, fileNm);
-
-  vlasov_poisson_array_meta_release(mt);
 }
 
 void
@@ -521,27 +522,29 @@ gkyl_vlasov_poisson_app_write_integrated_mom(gkyl_vlasov_poisson_app *app)
 void
 gkyl_vlasov_poisson_app_write_field_energy(gkyl_vlasov_poisson_app* app)
 {
-  // write out diagnostic moments
-  const char *fmt = "%s-field-energy.gkyl";
-  int sz = gkyl_calc_strlen(fmt, app->name);
-  char fileNm[sz+1]; // ensures no buffer overflow
-  snprintf(fileNm, sizeof fileNm, fmt, app->name);
+  if (app->has_field) {
+    // write out diagnostic moments
+    const char *fmt = "%s-field-energy.gkyl";
+    int sz = gkyl_calc_strlen(fmt, app->name);
+    char fileNm[sz+1]; // ensures no buffer overflow
+    snprintf(fileNm, sizeof fileNm, fmt, app->name);
 
-  int rank;
-  gkyl_comm_get_rank(app->comm, &rank);
+    int rank;
+    gkyl_comm_get_rank(app->comm, &rank);
 
-  if (rank == 0) {
-    if (app->field->is_first_energy_write_call) {
-      // write to a new file (this ensure previous output is removed)
-      gkyl_dynvec_write(app->field->integ_energy, fileNm);
-      app->field->is_first_energy_write_call = false;
+    if (rank == 0) {
+      if (app->field->is_first_energy_write_call) {
+        // write to a new file (this ensure previous output is removed)
+        gkyl_dynvec_write(app->field->integ_energy, fileNm);
+        app->field->is_first_energy_write_call = false;
+      }
+      else {
+        // append to existing file
+        gkyl_dynvec_awrite(app->field->integ_energy, fileNm);
+      }
     }
-    else {
-      // append to existing file
-      gkyl_dynvec_awrite(app->field->integ_energy, fileNm);
-    }
+    gkyl_dynvec_clear(app->field->integ_energy);
   }
-  gkyl_dynvec_clear(app->field->integ_energy);
 }
 
 // Take a forward Euler step with the suggested time-step dt. This may
@@ -1099,7 +1102,8 @@ gkyl_vlasov_poisson_app_cout(const gkyl_vlasov_poisson_app* app, FILE *fp, const
 void
 gkyl_vlasov_poisson_app_release(gkyl_vlasov_poisson_app* app)
 {
-  vp_field_release(app, app->field);
+  if (app->has_field)
+    vp_field_release(app, app->field);
 
   for (int i=0; i<app->num_species; ++i)
     vp_species_release(app, &app->species[i]);
