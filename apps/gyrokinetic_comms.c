@@ -100,7 +100,7 @@ gkyl_gyrokinetic_comms_new(bool use_mpi, bool use_gpu, struct gkyl_rect_decomp *
 }
 
 void
-gyrokinetic_comms_release(struct gkyl_rect_decomp *decomp, struct gkyl_comm *comm)
+gkyl_gyrokinetic_comms_release(struct gkyl_rect_decomp *decomp, struct gkyl_comm *comm)
 {
   gkyl_rect_decomp_release(decomp);
   gkyl_comm_release(comm);
