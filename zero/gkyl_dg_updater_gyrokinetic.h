@@ -4,6 +4,7 @@
 #include <gkyl_basis.h>
 #include <gkyl_eqn_type.h>
 #include <gkyl_gk_geometry.h>
+#include <gkyl_velocity_map.h>
 #include <gkyl_range.h>
 #include <gkyl_rect_grid.h>
 
@@ -23,21 +24,22 @@ struct gkyl_dg_updater_gyrokinetic_tm {
  * @param cbasis Configuration space basis functions
  * @param pbasis Phase-space basis function
  * @param conf_range Configuration space range
- * @param conf_range Phase space range
+ * @param phase_range Phase space range
  * @param is_zero_flux_bc[2*GKYL_MAX_DIM] True for boundaries with zero flux BCs.
  * @param charge Species charge
  * @param mass Species mass
  * @param gkmodel_id Model ID for gyrokinetics (e.g., general geometry vs. no toroidal field, see gkyl_eqn_type.h)
  * @param gk_geom Geometry struct 
+ * @param vel_map Velocity space mapping object.
  * @param aux_inp Void pointer to auxiliary fields. Void to be flexible to different auxfields structs
  * @param use_gpu Boolean to determine if gyrokinetic equation object is on device
  * @return Pointer to updater object for Gyrokinetic equation
  */
 gkyl_dg_updater_gyrokinetic* gkyl_dg_updater_gyrokinetic_new(const struct gkyl_rect_grid *grid, 
   const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis, 
-  const struct gkyl_range *conf_range, const struct gkyl_range *phase_range, const bool *is_zero_flux_bc,
-  double charge, double mass, enum gkyl_gkmodel_id gkmodel_id, 
-  const struct gk_geometry *gk_geom, void *aux_inp, bool use_gpu);
+  const struct gkyl_range *conf_range, const struct gkyl_range *phase_range,
+  const bool *is_zero_flux_bc, double charge, double mass, enum gkyl_gkmodel_id gkmodel_id,
+  const struct gk_geometry *gk_geom, const struct gkyl_velocity_map *vel_map, void *aux_inp, bool use_gpu);
 
 /**
  * Acquire gyrokinetic equation object

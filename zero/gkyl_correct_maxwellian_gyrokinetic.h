@@ -24,6 +24,8 @@ struct gkyl_correct_maxwellian_gyrokinetic_inp
   long max_iter; // maximum allowed iterations
   double eps_err; // desired error tolerance
   bool use_gpu; // Boolean for if updater is on GPU
+
+  struct gkyl_velocity_map *vel_map; // Velocity space mapping object.
 };
 
 

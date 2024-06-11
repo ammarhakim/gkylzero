@@ -9,20 +9,13 @@
 #include <gkyl_fem_poisson_bctype.h>
 #include <gkyl_gyrokinetic.h>
 #include <gkyl_math.h>
-#include <gkyl_null_comm.h>
-
-#ifdef GKYL_HAVE_MPI
-#include <mpi.h>
-#include <gkyl_mpi_comm.h>
-#ifdef GKYL_HAVE_NCCL
-#include <gkyl_nccl_comm.h>
-#endif
-#endif
 
 #include <rt_arg_parse.h>
 
 // Define the context of the simulation. This is basically all the globals
 struct gk_app_ctx {
+  int cdim, vdim; // Dimensionality.
+  
   // Geometry and magnetic field.
   double R_axis;    // Magnetic axis major radius [m].
   double R0;        // Major radius of the simulation box [m].
@@ -49,9 +42,10 @@ struct gk_app_ctx {
   double n_src;  double Ti_src;
 
   // Grid parameters.
-  int num_cell_z;
-  int num_cell_vpar;
-  int num_cell_mu;
+  int Nz;
+  int Nvpar;
+  int Nmu;
+  int cells[GKYL_MAX_DIM]; // Number of cells in all directions.
   int poly_order;
   double vpar_max_ion;  double mu_max_ion;
   double t_end;   int num_frames;
@@ -287,6 +281,8 @@ void bmag_func(double t, const double *xc, double* GKYL_RESTRICT fout, void *ctx
 struct gk_app_ctx
 create_ctx(void)
 {
+  int cdim = 1, vdim = 2; // Dimensionality.
+
   // Universal constant parameters.
   double eps0 = GKYL_EPSILON0, eV = GKYL_ELEMENTARY_CHARGE;
   double mp = GKYL_PROTON_MASS, me = GKYL_ELECTRON_MASS;
@@ -335,21 +331,23 @@ create_ctx(void)
   double Ti_src = 40*eV;
 
   // Grid parameters
-  int num_cell_z = 64;
-  int num_cell_vpar = 16;
-  int num_cell_mu = 45;
+  int Nz = 64;
+  int Nvpar = 16;
+  int Nmu = 45;
   int poly_order = 1;
 
   double vpar_max_ion = 4.*vti;
   double mu_max_ion = mi*pow(1.5*4*vti,2)/(2*B0);
 
-  double t_end = 1e-5;
+  double t_end = 8.0e-6;
   int num_frames = 1;
   int int_diag_calc_num = num_frames*100;
   double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.
   int num_failures_max = 20; // Maximum allowable number of consecutive small time-steps.
 
   struct gk_app_ctx ctx = {
+    .cdim = cdim,
+    .vdim = vdim,
     .R_axis = R_axis,
     .R0     = R0    ,
     .a_mid  = a_mid ,
@@ -371,9 +369,10 @@ create_ctx(void)
   
     .n_src = n_src,  .Ti_src = Ti_src,
   
-    .num_cell_z = num_cell_z,
-    .num_cell_vpar = num_cell_vpar,
-    .num_cell_mu = num_cell_mu,
+    .Nz = Nz,
+    .Nvpar = Nvpar,
+    .Nmu = Nmu,
+    .cells = {Nz, Nvpar, Nmu},
     .poly_order = poly_order,
     .vpar_max_ion = vpar_max_ion,  .mu_max_ion = mu_max_ion,
 
@@ -432,86 +431,23 @@ int main(int argc, char **argv)
 
   struct gk_app_ctx ctx = create_ctx(); // context for init functions
 
-  int NZ = APP_ARGS_CHOOSE(app_args.xcells[0], ctx.num_cell_z);
+  int cells_x[ctx.cdim], cells_v[ctx.vdim];
+  for (int d=0; d<ctx.cdim; d++)
+    cells_x[d] = APP_ARGS_CHOOSE(app_args.xcells[d], ctx.cells[d]);
+  for (int d=0; d<ctx.vdim; d++)
+    cells_v[d] = APP_ARGS_CHOOSE(app_args.vcells[d], ctx.cells[ctx.cdim+d]);
 
-  int nrank = 1; // number of processors in simulation
+  // Create decomposition.
+  struct gkyl_rect_decomp *decomp = gkyl_gyrokinetic_comms_decomp_new(ctx.cdim, cells_x, app_args.cuts, app_args.use_mpi, stderr);
+
+  // Construct communicator for use in app.
+  struct gkyl_comm *comm = gkyl_gyrokinetic_comms_new(app_args.use_mpi, app_args.use_gpu, decomp, stderr);
+
+  int my_rank = 0;
 #ifdef GKYL_HAVE_MPI
   if (app_args.use_mpi)
-    MPI_Comm_size(MPI_COMM_WORLD, &nrank);
-#endif  
-
-  // create global range
-  int ccells[] = { NZ };
-  int cdim = sizeof(ccells)/sizeof(ccells[0]);
-  struct gkyl_range cglobal_r;
-  gkyl_create_global_range(cdim, ccells, &cglobal_r);
-
-  // create decomposition
-  int cuts[cdim];
-#ifdef GKYL_HAVE_MPI  
-  for (int d=0; d<cdim; d++)
-    cuts[d] = app_args.use_mpi? app_args.cuts[d] : 1;
-#else
-  for (int d=0; d<cdim; d++) cuts[d] = 1;
-#endif  
-    
-  struct gkyl_rect_decomp *decomp =
-    gkyl_rect_decomp_new_from_cuts(cdim, cuts, &cglobal_r);
-
-  // construct communcator for use in app
-  struct gkyl_comm *comm;
-#ifdef GKYL_HAVE_MPI
-  if (app_args.use_gpu && app_args.use_mpi) {
-#ifdef GKYL_HAVE_NCCL
-    comm = gkyl_nccl_comm_new( &(struct gkyl_nccl_comm_inp) {
-        .mpi_comm = MPI_COMM_WORLD,
-        .decomp = decomp
-      }
-    );
-#else
-    printf("Using -g and -M together requires NCCL.\n");
-    assert( 0 == 1);
+    gkyl_comm_get_rank(comm, &my_rank);
 #endif
-  } else if (app_args.use_mpi) {
-    comm = gkyl_mpi_comm_new( &(struct gkyl_mpi_comm_inp) {
-        .mpi_comm = MPI_COMM_WORLD,
-        .decomp = decomp
-      }
-    );
-  } else {
-    comm = gkyl_null_comm_inew( &(struct gkyl_null_comm_inp) {
-        .decomp = decomp,
-        .use_gpu = app_args.use_gpu
-      }
-    );
-  }
-#else
-  comm = gkyl_null_comm_inew( &(struct gkyl_null_comm_inp) {
-      .decomp = decomp,
-      .use_gpu = app_args.use_gpu
-    }
-  );
-#endif
-
-  int my_rank, comm_sz;
-  gkyl_comm_get_rank(comm, &my_rank);
-  gkyl_comm_get_size(comm, &comm_sz);
-
-  int ncuts = 1;
-  for (int d=0; d<cdim; d++) ncuts *= cuts[d];
-  if (ncuts != comm_sz) {
-    if (my_rank == 0)
-      fprintf(stderr, "*** Number of ranks, %d, do not match total cuts, %d!\n", comm_sz, ncuts);
-    goto mpifinalize;
-  }  
-
-  for (int d=0; d<cdim-1; d++) {
-    if (cuts[d] > 1) {
-      if (my_rank == 0)
-        fprintf(stderr, "*** Parallelization only allowed in z. Number of ranks, %d, in direction %d cannot be > 1!\n", cuts[d], d);
-      goto mpifinalize;
-    }
-  }
 
   // ions
   struct gkyl_gyrokinetic_species ion = {
@@ -519,7 +455,7 @@ int main(int argc, char **argv)
     .charge = ctx.qi, .mass = ctx.mi,
     .lower = { -ctx.vpar_max_ion, 0.0},
     .upper = {  ctx.vpar_max_ion, ctx.mu_max_ion}, 
-    .cells = {  ctx.num_cell_vpar, ctx.num_cell_mu },
+    .cells = { cells_v[0], cells_v[1] },
     .polarization_density = ctx.n0,
     .projection = {
       .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM, 
@@ -573,7 +509,7 @@ int main(int argc, char **argv)
     .cdim = 1, .vdim = 2,
     .lower = { ctx.z_min },
     .upper = { ctx.z_max },
-    .cells = { ctx.num_cell_z },
+    .cells = { cells_x[0] },
     .poly_order = ctx.poly_order,
     .basis_type = app_args.basis_type,
 
@@ -713,11 +649,8 @@ int main(int argc, char **argv)
   freeresources:
   // simulation complete, free app
   gkyl_gyrokinetic_app_release(app);
-  gkyl_rect_decomp_release(decomp);
-  gkyl_comm_release(comm);
+  gyrokinetic_comms_release(decomp, comm);
   
-  mpifinalize:
-  ;
 #ifdef GKYL_HAVE_MPI
   if (app_args.use_mpi)
     MPI_Finalize();
