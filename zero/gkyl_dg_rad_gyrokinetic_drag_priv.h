@@ -38,7 +38,7 @@ struct dg_rad_gyrokinetic_drag {
   struct gkyl_dg_eqn eqn; // Base object.
   int cdim; // Config-space dimensions.
   int pdim; // Phase-space dimensions.
-  double cellav_norm; // Norm factor to multiply 0th DG coeff to get cell ave.
+  double cellav_norm_conf; // Norm factor to multiply 0th DG coeff to get cell ave.
   rad_gyrokinetic_surf_t surf[2]; // Surface terms for acceleration.
   rad_gyrokinetic_boundary_surf_t boundary_surf[2]; // Surface terms for acceleration.
   struct gkyl_range phase_range; // Phase-space range.
@@ -61,7 +61,7 @@ kernel_rad_gyrokinetic_vol_1x2v_ser_p1(const struct gkyl_dg_eqn *eqn, const doub
 
   long cidx = gkyl_range_idx(&grad_drag->conf_range, idx);
   const double *vtsq = (const double *) gkyl_array_cfetch(grad_drag->auxfields.vtsq, cidx);
-  if ( vtsq[0]*grad_drag->cellav_norm < grad_drag->auxfields.vtsq_min) {   
+  if ( vtsq[0]*grad_drag->cellav_norm_conf < grad_drag->auxfields.vtsq_min) {   
     return 0.0;
   } else {
     int vel_idx[2];
@@ -87,7 +87,7 @@ kernel_rad_gyrokinetic_vol_2x2v_ser_p1(const struct gkyl_dg_eqn *eqn, const doub
 
   long cidx = gkyl_range_idx(&grad_drag->conf_range, idx);
   const double *vtsq = (const double *) gkyl_array_cfetch(grad_drag->auxfields.vtsq, cidx);
-  if ( vtsq[0]*grad_drag->cellav_norm < grad_drag->auxfields.vtsq_min) {   
+  if ( vtsq[0]*grad_drag->cellav_norm_conf < grad_drag->auxfields.vtsq_min) {   
     return 0.0;
   } else {
     int vel_idx[2];
@@ -113,7 +113,7 @@ kernel_rad_gyrokinetic_vol_3x2v_ser_p1(const struct gkyl_dg_eqn *eqn, const doub
 
   long cidx = gkyl_range_idx(&grad_drag->conf_range, idx);
   const double *vtsq = (const double *) gkyl_array_cfetch(grad_drag->auxfields.vtsq, cidx);
-  if ( vtsq[0]*grad_drag->cellav_norm < grad_drag->auxfields.vtsq_min) {   
+  if ( vtsq[0]*grad_drag->cellav_norm_conf < grad_drag->auxfields.vtsq_min) {   
     return 0.0;
   } else {
     int vel_idx[2];
@@ -221,7 +221,7 @@ surf(const struct gkyl_dg_eqn *eqn,
     long pidxR = gkyl_range_idx(&grad_drag->phase_range, idxR);
     long cidx = gkyl_range_idx(&grad_drag->conf_range, idxR);
     const double *vtsq = (const double *) gkyl_array_cfetch(grad_drag->auxfields.vtsq, cidx);
-    if ( vtsq[0]*grad_drag->cellav_norm < grad_drag->auxfields.vtsq_min) {   
+    if ( vtsq[0]*grad_drag->cellav_norm_conf < grad_drag->auxfields.vtsq_min) {   
       return 0.0;
     } else {
       return grad_drag->surf[dir-grad_drag->cdim](xcC, dxC,
@@ -254,7 +254,7 @@ boundary_surf(const struct gkyl_dg_eqn *eqn,
   if (dir >= grad_drag->cdim) {
     long cidx = gkyl_range_idx(&grad_drag->conf_range, idxSkin);
     const double *vtsq = (const double *) gkyl_array_cfetch(grad_drag->auxfields.vtsq, cidx);
-    if ( vtsq[0]*grad_drag->cellav_norm < grad_drag->auxfields.vtsq_min) {   
+    if ( vtsq[0]*grad_drag->cellav_norm_conf < grad_drag->auxfields.vtsq_min) {   
       return 0.0;
     } else {
       int vel_idxEdge[2], vel_idxSkin[2];

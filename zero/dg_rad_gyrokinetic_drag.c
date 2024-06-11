@@ -60,7 +60,7 @@ gkyl_dg_rad_gyrokinetic_drag_new(const struct gkyl_basis *conf_basis,
   grad->cdim = cdim;
   grad->pdim = pdim;
 
-  grad->cellav_norm = 1.0/pow(sqrt(2.0),pdim);
+  grad->cellav_norm_conf = 1.0/pow(sqrt(2.0),cdim);
 
   grad->eqn.num_equations = 1;
   grad->eqn.surf_term = surf;
