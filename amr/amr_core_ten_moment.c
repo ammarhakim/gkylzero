@@ -101,7 +101,7 @@ ten_moment_1d_run_single(int argc, char **argv, struct ten_moment_1d_single_init
   for (int i = 0; i < num_patches; i++) {
     coarse_pdata[i].euler_elc = gkyl_wv_ten_moment_new(k0_elc);
     coarse_pdata[i].euler_ion = gkyl_wv_ten_moment_new(k0_ion);
-    coarse_pdata[i].maxwell = gkyl_wv_maxwell_new(light_speed, e_fact, b_fact);
+    coarse_pdata[i].maxwell = gkyl_wv_maxwell_new(light_speed, e_fact, b_fact, false);
 
     coarse_pdata[i].slvr_elc[0] = gkyl_wave_prop_new(& (struct gkyl_wave_prop_inp) {
         .grid = &coarse_pdata[i].grid,
@@ -158,7 +158,7 @@ ten_moment_1d_run_single(int argc, char **argv, struct ten_moment_1d_single_init
 #ifdef AMR_DEBUG
     fine_pdata[i].euler_elc = gkyl_wv_ten_moment_new(k0_elc);
     fine_pdata[i].euler_ion = gkyl_wv_ten_moment_new(k0_ion);
-    fine_pdata[i].maxwell = gkyl_wv_maxwell_new(light_speed, e_fact, b_fact);
+    fine_pdata[i].maxwell = gkyl_wv_maxwell_new(light_speed, e_fact, b_fact, false);
 
     fine_pdata[i].slvr_elc[0] = gkyl_wave_prop_new(& (struct gkyl_wave_prop_inp) {
         .grid = &fine_pdata[i].grid,
@@ -846,7 +846,7 @@ ten_moment_2d_run_single(int argc, char **argv, struct ten_moment_2d_single_init
   for (int i = 0; i < num_blocks; i++) {
     coarse_bdata[i].euler_elc = gkyl_wv_ten_moment_new(k0_elc);
     coarse_bdata[i].euler_ion = gkyl_wv_ten_moment_new(k0_ion);
-    coarse_bdata[i].maxwell = gkyl_wv_maxwell_new(light_speed, e_fact, b_fact);
+    coarse_bdata[i].maxwell = gkyl_wv_maxwell_new(light_speed, e_fact, b_fact, false);
 
     for (int d = 0; d < ndim; d++) {
       coarse_bdata[i].slvr_elc[d] = gkyl_wave_prop_new(& (struct gkyl_wave_prop_inp) {
@@ -905,7 +905,7 @@ ten_moment_2d_run_single(int argc, char **argv, struct ten_moment_2d_single_init
 #ifdef AMR_DEBUG
     fine_bdata[i].euler_elc = gkyl_wv_ten_moment_new(k0_elc);
     fine_bdata[i].euler_ion = gkyl_wv_ten_moment_new(k0_ion);
-    fine_bdata[i].maxwell = gkyl_wv_maxwell_new(light_speed, e_fact, b_fact);
+    fine_bdata[i].maxwell = gkyl_wv_maxwell_new(light_speed, e_fact, b_fact, false);
 
     for (int d = 0; d < ndim; d++) {
       fine_bdata[i].slvr_elc[d] = gkyl_wave_prop_new(& (struct gkyl_wave_prop_inp) {
