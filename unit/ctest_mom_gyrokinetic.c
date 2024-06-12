@@ -95,7 +95,7 @@ test_mom_gyrokinetic()
   int confGhost[] = { 1, 1, 1 }; // 3 elements because it's used by geo.
   struct gkyl_range confLocal, confLocal_ext; // local, local-ext conf-space ranges
   gkyl_create_grid_ranges(&confGrid, confGhost, &confLocal_ext, &confLocal);
-  int velGhost[vdim] = { 0 };
+  int velGhost[] = { 0, 0 };
   struct gkyl_range velLocal, velLocal_ext; // local, local-ext vel-space ranges
   gkyl_create_grid_ranges(&velGrid, velGhost, &velLocal_ext, &velLocal);
   int ghost[ndim] = { 0 };
@@ -221,7 +221,7 @@ test_1x1v(int polyOrder, bool use_gpu)
   struct gkyl_range confLocal, confLocal_ext; // local, local-ext conf-space ranges
   gkyl_create_grid_ranges(&confGrid, confGhost, &confLocal_ext, &confLocal);
 
-  int velGhost[vdim] = { 0 };
+  int velGhost[] = { 0, 0 };
   struct gkyl_range velLocal, velLocal_ext; // local, local-ext vel-space ranges
   gkyl_create_grid_ranges(&velGrid, velGhost, &velLocal_ext, &velLocal);
 
@@ -458,7 +458,7 @@ test_1x2v(int poly_order, bool use_gpu)
   struct gkyl_range confLocal, confLocal_ext; // local, local-ext conf-space ranges
   gkyl_create_grid_ranges(&confGrid, confGhost, &confLocal_ext, &confLocal);
 
-  int velGhost[vdim] = { 0 };
+  int velGhost[] = { 0, 0 };
   struct gkyl_range velLocal, velLocal_ext; // local, local-ext vel-space ranges
   gkyl_create_grid_ranges(&velGrid, velGhost, &velLocal_ext, &velLocal);
 
@@ -677,7 +677,7 @@ test_2x2v(int poly_order, bool use_gpu)
   struct gkyl_range confLocal, confLocal_ext; // local, local-ext conf-space ranges
   gkyl_create_grid_ranges(&confGrid, confGhost, &confLocal_ext, &confLocal);
 
-  int velGhost[vdim] = { 0 };
+  int velGhost[] = { 0, 0 };
   struct gkyl_range velLocal, velLocal_ext; // local, local-ext vel-space ranges
   gkyl_create_grid_ranges(&velGrid, velGhost, &velLocal_ext, &velLocal);
 

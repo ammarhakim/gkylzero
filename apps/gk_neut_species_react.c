@@ -18,8 +18,19 @@ gk_neut_species_react_cross_init(struct gkyl_gyrokinetic_app *app, struct gk_neu
   // form depend on react->type_self, e.g., for recombination and react->type_self == GKYL_SELF_RECVR
   // react->f_react = n_elc*coeff_react*fmax(n_ion, upar_ion b_i, vt_ion^2)
   react->f_react = mkarr(app->use_gpu, app->neut_basis.num_basis, s->local_ext.volume);
-  react->proj_max = gkyl_proj_maxwellian_on_basis_new(&s->grid,
-    &app->confBasis, &app->neut_basis, app->neut_basis.poly_order+1, s->vel_map, app->use_gpu);  
+  struct gkyl_vlasov_lte_proj_on_basis_inp inp_proj = {
+    .phase_grid = &s->grid,
+    .conf_basis = &app->confBasis,
+    .phase_basis = &app->neut_basis,
+    .conf_range =  &app->local,
+    .conf_range_ext = &app->local_ext,
+    .vel_range = &s->local_vel,
+    .vel_map = s->vel_map,
+    .model_id = GKYL_MODEL_DEFAULT, // default model is non-relativistic
+    .mass = s->info.mass,
+    .use_gpu = app->use_gpu,
+  };
+  react->proj_lte = gkyl_vlasov_lte_proj_on_basis_inew( &inp_proj );
 
   for (int i=0; i<react->num_react; ++i) {
     react->react_id[i] = react->react_type[i].react_id;
@@ -42,6 +53,7 @@ gk_neut_species_react_cross_init(struct gkyl_gyrokinetic_app *app, struct gk_neu
     react->m0_elc[i] = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
     //react->m0_donor[i] = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
     react->prim_vars[i] = mkarr(app->use_gpu, 4*app->confBasis.num_basis, app->local_ext.volume);
+    react->prim_vars_proj_inp[i] = mkarr(app->use_gpu, 5*app->confBasis.num_basis, app->local_ext.volume);
     if (react->react_id[i] == GKYL_REACT_IZ) {
       struct gkyl_dg_iz_inp iz_inp = {
         .grid = &s->grid, 
@@ -149,13 +161,10 @@ gk_neut_species_react_rhs(gkyl_gyrokinetic_app *app, const struct gk_neut_specie
 
     }
     else if (react->react_id[i] == GKYL_REACT_RECOMB) {
-      gkyl_proj_maxwellian_on_basis_prim_mom(react->proj_max, &s->local, &app->local, 
-        react->moms_ion[i].marr, react->prim_vars[i], react->f_react);
-      gk_neut_species_moment_calc(&s->m0, s->local_ext, app->local_ext, react->f_react); 
-      gkyl_dg_div_op_range(s->m0.mem_geo, app->confBasis, 0, react->m0_mod[i], 0,
-			     react->moms_ion[i].marr, 0, s->m0.marr, &app->local);
-      gkyl_dg_mul_conf_phase_op_range(&app->confBasis, &app->basis, react->f_react, 
-          react->m0_mod[i], react->f_react, &app->local_ext, &s->local_ext);
+      gkyl_array_set_offset(react->prim_vars_proj_inp[i], 1.0, react->moms_ion[i].marr, 0*app->confBasis.num_basis);
+      gkyl_array_set_offset(react->prim_vars_proj_inp[i], 1.0, react->prim_vars[i], 1*app->confBasis.num_basis);
+      gkyl_vlasov_lte_proj_on_basis_advance(react->proj_lte, &s->local, &app->local, 
+        react->prim_vars_proj_inp[i], react->f_react);
 
       // receiver update is n_elc*coeff_react*fmax(n_ion, upar_ion, vt_ion^2)
       gkyl_dg_mul_conf_phase_op_range(&app->confBasis, &app->neut_basis, react->f_react, 
@@ -174,7 +183,7 @@ void
 gk_neut_species_react_release(const struct gkyl_gyrokinetic_app *app, const struct gk_react *react)
 {
   gkyl_array_release(react->f_react);
-  gkyl_proj_maxwellian_on_basis_release(react->proj_max);
+  gkyl_vlasov_lte_proj_on_basis_release(react->proj_lte);
   for (int i=0; i<react->num_react; ++i) {
     gk_species_moment_release(app, &react->moms_elc[i]);
     gk_species_moment_release(app, &react->moms_ion[i]);
@@ -184,6 +193,7 @@ gk_neut_species_react_release(const struct gkyl_gyrokinetic_app *app, const stru
     gkyl_array_release(react->vt_sq_iz[i]);
     gkyl_array_release(react->m0_elc[i]);
     gkyl_array_release(react->prim_vars[i]); 
+    gkyl_array_release(react->prim_vars_proj_inp[i]); 
     if (react->react_id[i] == GKYL_REACT_IZ) 
       gkyl_dg_iz_release(react->iz[i]);
     else if (react->react_id[i] == GKYL_REACT_RECOMB)  
