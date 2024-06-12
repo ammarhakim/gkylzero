@@ -89,7 +89,6 @@ gkyl_vlasov_lte_correct_inew(const struct gkyl_vlasov_lte_correct_inp *inp)
     .h_ij_inv = inp->h_ij_inv,  
     .det_h = inp->det_h,
     .model_id = inp->model_id,
-
     .mass = inp->mass,
     .use_gpu = inp->use_gpu,
   };

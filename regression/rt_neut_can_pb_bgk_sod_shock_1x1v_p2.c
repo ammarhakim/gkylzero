@@ -200,7 +200,6 @@ main(int argc, char **argv)
 
   gkyl_vlasov_app_write(app, tcurr, 1);
   gkyl_vlasov_app_calc_mom(app); gkyl_vlasov_app_write_mom(app, tcurr, 1);
-  gkyl_vlasov_app_write_lte_corr_status(app);
   gkyl_vlasov_app_stat_write(app);
 
   // fetch simulation statistics
