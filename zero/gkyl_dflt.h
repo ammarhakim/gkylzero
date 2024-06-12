@@ -1,8 +1,8 @@
 #pragma once
 
 #if defined(__GNUC__) || defined(__GNUG__)
-#if defined(__arm__) || defined(__arm64__)
-// nothing for arm chips
+#if defined(__arm__) || defined(__arm64__) ||  defined(__powerpc64__)
+// nothing for arm chips / power9
 #else
 #include <xmmintrin.h>
 #endif
@@ -23,7 +23,7 @@ static void
 disable_denorm_float(void)
 {
 #if defined(__GNUC__) || defined(__GNUG__)
-#if defined(__arm__) || defined(__arm64__)
+#if defined(__arm__) || defined(__arm64__)  ||  defined(__powerpc64__)
 // nothing for arm chips
 #else
   _MM_SET_FLUSH_ZERO_MODE(_MM_FLUSH_ZERO_ON);

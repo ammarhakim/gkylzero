@@ -136,16 +136,16 @@ ifeq ($(UNAME), Darwin)
 endif
 
 # Header files 
-HEADERS := $(wildcard minus/*.h) $(wildcard zero/*.h) $(wildcard apps/*.h) $(wildcard kernels/*/*.h) $(wildcard data/adas/*.h)
+HEADERS := $(wildcard minus/*.h) $(wildcard zero/*.h) $(wildcard apps/*.h) $(wildcard amr/*.h) $(wildcard kernels/*/*.h) $(wildcard data/adas/*.h)
 # Headers to install
-INSTALL_HEADERS := $(shell ls apps/gkyl_*.h zero/gkyl_*.h | grep -v "priv" | sort)
+INSTALL_HEADERS := $(shell ls apps/gkyl_*.h zero/gkyl_*.h  amr/gkyl_*.h | grep -v "priv" | sort)
 INSTALL_HEADERS += $(shell ls minus/*.h)
 
 # all includes
-INCLUDES = -Iminus -Iminus/STC/include -Izero -Iapps -Iregression -I${BUILD_DIR} ${KERN_INCLUDES} -I${LAPACK_INC} -I${SUPERLU_INC} -I${MPI_INC_DIR} -I${NCCL_INC_DIR} -I${LUA_INC_DIR}
+INCLUDES = -Iminus -Iminus/STC/include -Izero -Iapps -Iamr -Iregression -I${BUILD_DIR} ${KERN_INCLUDES} -I${LAPACK_INC} -I${SUPERLU_INC} -I${MPI_INC_DIR} -I${NCCL_INC_DIR} -I${LUA_INC_DIR}
 
 # Directories containing source code
-SRC_DIRS := minus zero apps kernels data/adas
+SRC_DIRS := minus zero apps amr kernels data/adas
 
 # List of regression and unit test
 REGS := $(patsubst %.c,${BUILD_DIR}/%,$(wildcard regression/rt_*.c))
@@ -225,6 +225,10 @@ $(BUILD_DIR)/kernels/bgk/%.c.o : kernels/bgk/%.c
 	$(CC) $(CFLAGS) $(NVCC_FLAGS) $(INCLUDES) -c $< -o $@
 
 $(BUILD_DIR)/kernels/bin_op/%.c.o : kernels/bin_op/%.c
+	$(MKDIR_P) $(dir $@)
+	$(CC) $(CFLAGS) $(NVCC_FLAGS) $(INCLUDES) -c $< -o $@
+
+$(BUILD_DIR)/kernels/canonical_pb/%.c.o : kernels/canonical_pb/%.c
 	$(MKDIR_P) $(dir $@)
 	$(CC) $(CFLAGS) $(NVCC_FLAGS) $(INCLUDES) -c $< -o $@
 
@@ -385,7 +389,7 @@ install: all $(ZERO_SH_INSTALL_LIB) ## Install library and headers
 	test -e config.mak && cp -f config.mak ${INSTALL_PREFIX}/gkylzero/share/config.mak || echo "No config.mak"
 	sed ${SED_REPS_STR} Makefile.sample > ${INSTALL_PREFIX}/gkylzero/share/Makefile
 	cp -f regression/rt_arg_parse.h ${INSTALL_PREFIX}/gkylzero/include/rt_arg_parse.h
-	cp -f regression/rt_twostream.c ${INSTALL_PREFIX}/gkylzero/share/rt_twostream.c
+	cp -f regression/rt_vlasov_twostream_p2.c ${INSTALL_PREFIX}/gkylzero/share/rt_vlasov_twostream_p2.c
 
 .PHONY: clean
 clean: ## Clean build output

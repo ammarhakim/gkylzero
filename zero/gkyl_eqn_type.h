@@ -12,6 +12,7 @@ enum gkyl_eqn_type {
   GKYL_EQN_MHD,  // Ideal MHD equations
   GKYL_EQN_BURGERS, // Burgers equations
   GKYL_EQN_ADVECTION, // Scalar advection equation
+  GKYL_EQN_GR_EULER, // General relativistic Euler equations.
 };
 
 // Identifiers for specific gyrokinetic model types
@@ -55,6 +56,7 @@ enum gkyl_model_id {
   GKYL_MODEL_DEFAULT = 0, // No subsidiary model specified
   GKYL_MODEL_SR = 1,
   GKYL_MODEL_GEN_GEO = 2,
+  GKYL_MODEL_CANONICAL_PB = 3,
 };
 
 // Identifiers for specific collision object types
