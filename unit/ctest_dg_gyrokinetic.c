@@ -9,6 +9,7 @@
 #include <gkyl_rect_grid.h>
 #include <gkyl_rect_decomp.h>
 #include <gkyl_range.h>
+#include <gkyl_velocity_map.h>
 #include <gkyl_basis.h>
 
 void
@@ -44,6 +45,19 @@ test_dg_gyrokinetic()
   struct gkyl_range phaseRange, phaseRange_ext;
   gkyl_rect_grid_init(&phaseGrid, pdim, lower, upper, cells);
   gkyl_create_grid_ranges(&phaseGrid, ghost, &phaseRange_ext, &phaseRange);
+
+  double velLower[vdim], velUpper[vdim];
+  int velCells[vdim];
+  for (int d=0; d<vdim; d++) {
+    velLower[d] = lower[cdim+d];
+    velUpper[d] = upper[cdim+d];
+    velCells[d] = cells[cdim+d];
+  }
+  struct gkyl_rect_grid velGrid;
+  int velGhost[] = { 0, 0 };
+  struct gkyl_range velLocal, velLocal_ext; // local, local-ext vel-space ranges
+  gkyl_rect_grid_init(&velGrid, vdim, velLower, velUpper, velCells);
+  gkyl_create_grid_ranges(&velGrid, velGhost, &velLocal_ext, &velLocal);
 
   // initialize basis
   int poly_order = 1;
@@ -85,7 +99,13 @@ test_dg_gyrokinetic()
   double charge = 1.;
   double mass = 1.;
 
-  struct gkyl_dg_eqn* eqn = gkyl_dg_gyrokinetic_new(&confBasis, &basis, &confRange, &phaseRange, charge, mass, 0, gk_geom, false);
+  // Initialize velocity space mapping.
+  struct gkyl_mapc2p_inp c2p_in = { };
+  struct gkyl_velocity_map *gvm = gkyl_velocity_map_new(c2p_in, phaseGrid, velGrid,
+    phaseRange, phaseRange_ext, velLocal, velLocal_ext, false);
+
+  struct gkyl_dg_eqn* eqn = gkyl_dg_gyrokinetic_new(&confBasis, &basis, &confRange, &phaseRange, 
+    charge, mass, 0, gk_geom, gvm, false);
 
   TEST_CHECK( eqn->num_equations == 1 );
 
@@ -98,6 +118,7 @@ test_dg_gyrokinetic()
   TEST_CHECK( gyrokinetic->conf_range.volume == 512 );
 
   gkyl_gk_geometry_release(gk_geom);  
+  gkyl_velocity_map_release(gvm);
   gkyl_dg_eqn_release(eqn);
 }
 

@@ -7,17 +7,6 @@
 #include <gkyl_const.h>
 #include <gkyl_fem_parproj.h>
 #include <gkyl_gyrokinetic.h>
-#include <gkyl_util.h>
-
-#include <gkyl_null_comm.h>
-
-#ifdef GKYL_HAVE_MPI
-#include <mpi.h>
-#include <gkyl_mpi_comm.h>
-#ifdef GKYL_HAVE_NCCL
-#include <gkyl_nccl_comm.h>
-#endif
-#endif
 
 #include <rt_arg_parse.h>
 
@@ -25,6 +14,8 @@ struct lbo_relax_ctx
 {
   // Mathematical constants (dimensionless).
   double pi;
+
+  int cdim, vdim; // Dimensionality.
 
   // Physical constants (using normalized code units).
   double mass; // Top hat/bump mass.
@@ -47,6 +38,7 @@ struct lbo_relax_ctx
   int Nz; // Cell count (configuration space: z-direction).
   int Nvpar; // Cell count (velocity space: parallel velocity direction).
   int Nmu; // Cell count (velocity space: magnetic moment direction).
+  int cells[GKYL_MAX_DIM]; // Number of cells in all directions.
   double Lz; // Domain size (configuration space: z-direction).
   double vpar_max; // Domain boundary (velocity space: parallel velocity direction).
   double mu_max; // Domain boundary (velocity space: magnetic moment direction).
@@ -64,6 +56,8 @@ create_ctx(void)
   // Mathematical constants (dimensionless).
   double pi = M_PI;
 
+  int cdim = 1, vdim = 2; // Dimensionality.
+  
   // Physical constants (using normalized code units).
   double mass = 1.0; // Top hat/bump mass.
   double charge = 1.0; // Top hat/bump charge.
@@ -79,7 +73,7 @@ create_ctx(void)
   double vtb = 1.0; // Bump Maxwellian thermal velocity.
 
   // Derived physical quantities (using normalized code units).
-  double ub = 4.0 * sqrt(((3.0 * vt / 2.0) * (3.0 * vt / 2.0)) / 3.0); // Bump location (in velocity space).
+  double ub = 4.0 * sqrt((pow(3.0 * vt / 2.0, 2.0)) / 3.0); // Bump location (in velocity space).
 
   // Simulation parameters.
   int Nz = 2; // Cell count (configuration space: z-direction).
@@ -87,9 +81,9 @@ create_ctx(void)
   int Nmu = 16; // Cell count (velocity space: magnetic moment direction).
   double Lz = 1.0; // Domain size (configuration space: z-direction).
   double vpar_max = 8.0 * vt; // Domain boundary (velocity space: parallel velocity direction).
-  double mu_max = 12.0 * (vt * vt) / 2.0 / B0; // Domain boundary (velocity space: magnetic moment direction).
+  double mu_max = 0.5 * pow(3.5*vt,2.0) / B0; // Domain boundary (velocity space: magnetic moment direction).
 
-  double t_end = 100.0; // Final simulation time.
+  double t_end = 0.5/nu; // Final simulation time.
   int num_frames = 1; // Number of output frames.
   int int_diag_calc_num = num_frames*100;
   double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.
@@ -97,6 +91,8 @@ create_ctx(void)
   
   struct lbo_relax_ctx ctx = {
     .pi = pi,
+    .cdim = cdim,
+    .vdim = vdim,
     .mass = mass,
     .charge = charge,
     .B0 = B0,
@@ -111,6 +107,7 @@ create_ctx(void)
     .Nz = Nz,
     .Nvpar = Nvpar,
     .Nmu = Nmu,
+    .cells = {Nz, Nvpar, Nmu},
     .Lz = Lz,
     .vpar_max = vpar_max,
     .mu_max = mu_max,
@@ -128,7 +125,7 @@ void
 evalTopHatInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
 {
   struct lbo_relax_ctx *app = ctx;
-  double v = xn[1];
+  double vpar = xn[1], mu = xn[2];
 
   double n0 = app->n0;
   double vt = app->vt;
@@ -137,7 +134,7 @@ evalTopHatInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT f
 
   double dist = 0.0;
 
-  if (fabs(v) < v0) {
+  if (fabs(vpar) < v0) {
     dist = n0 / 2.0 / v0;
   }
   else {
@@ -152,7 +149,7 @@ void
 evalBumpInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
 {
   struct lbo_relax_ctx *app = ctx;
-  double v = xn[1], mu = xn[2];
+  double vpar = xn[1], mu = xn[2];
 
   double pi = app->pi;
 
@@ -167,11 +164,12 @@ evalBumpInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fou
 
   double ub = app->ub;
 
-  double v_sq = ((v - u0) / (sqrt(2.0) * vt)) * ((v - u0) / (sqrt(2.0) * vt)) + mu * B0;
-  double vb_sq = ((v - u0) / (sqrt(2.0) * vtb)) * ((v - u0) / (sqrt(2.0) * vtb)) + mu * B0;
+  double v_sq = pow((vpar - u0) / (sqrt(2.0) * vt), 2.0) + mu * B0;
+  double vb_sq = pow((vpar - u0) / (sqrt(2.0) * vtb), 2.0) + mu * B0;
 
   // Set distribution function.
-  fout[0] = (n0 / sqrt(2.0 * pi * vt)) * exp(-v_sq) + (n0 / sqrt(2.0 * pi * vtb)) * exp(-vb_sq) * (ab * ab) / ((v - ub) * (v - ub) + sb * sb);
+  fout[0] = (n0 / sqrt(2.0 * pi * vt)) * exp(-v_sq)
+           +(n0 / sqrt(2.0 * pi * vtb)) * exp(-vb_sq) * pow(ab,2.0) / (pow(vpar - ub,2.0) + pow(sb,2.0));
 }
 
 void
@@ -251,103 +249,23 @@ main(int argc, char **argv)
 
   struct lbo_relax_ctx ctx = create_ctx(); // Context for initialization functions.
 
-  int NZ = APP_ARGS_CHOOSE(app_args.xcells[0], ctx.Nz);
-  int NVPAR = APP_ARGS_CHOOSE(app_args.vcells[0], ctx.Nvpar);
-  int NMU = APP_ARGS_CHOOSE(app_args.vcells[1], ctx.Nmu);
-
-  int nrank = 1; // Number of processors in simulation.
-#ifdef GKYL_HAVE_MPI
-  if (app_args.use_mpi) {
-    MPI_Comm_size(MPI_COMM_WORLD, &nrank);
-  }
-#endif  
-
-  // Create global range.
-  int ccells[] = { NZ };
-  int cdim = sizeof(ccells) / sizeof(ccells[0]);
-  struct gkyl_range cglobal_r;
-  gkyl_create_global_range(cdim, ccells, &cglobal_r);
+  int cells_x[ctx.cdim], cells_v[ctx.vdim];
+  for (int d=0; d<ctx.cdim; d++)
+    cells_x[d] = APP_ARGS_CHOOSE(app_args.xcells[d], ctx.cells[d]);
+  for (int d=0; d<ctx.vdim; d++)
+    cells_v[d] = APP_ARGS_CHOOSE(app_args.vcells[d], ctx.cells[ctx.cdim+d]);
 
   // Create decomposition.
-  int cuts[cdim];
-#ifdef GKYL_HAVE_MPI  
-  for (int d = 0; d < cdim; d++) {
-    if (app_args.use_mpi) {
-      cuts[d] = app_args.cuts[d];
-    }
-    else {
-      cuts[d] = 1;
-    }
-  }
-#else
-  for (int d = 0; d < cdim; d++) {
-    cuts[d] = 1;
-  }
-#endif  
-    
-  struct gkyl_rect_decomp *decomp = gkyl_rect_decomp_new_from_cuts(cdim, cuts, &cglobal_r);
+  struct gkyl_rect_decomp *decomp = gkyl_gyrokinetic_comms_decomp_new(ctx.cdim, cells_x, app_args.cuts, app_args.use_mpi, stderr);
 
   // Construct communicator for use in app.
-  struct gkyl_comm *comm;
+  struct gkyl_comm *comm = gkyl_gyrokinetic_comms_new(app_args.use_mpi, app_args.use_gpu, decomp, stderr);
+
+  int my_rank = 0;
 #ifdef GKYL_HAVE_MPI
-  if (app_args.use_gpu && app_args.use_mpi) {
-#ifdef GKYL_HAVE_NCCL
-    comm = gkyl_nccl_comm_new( &(struct gkyl_nccl_comm_inp) {
-        .mpi_comm = MPI_COMM_WORLD,
-        .decomp = decomp
-      }
-    );
-#else
-    printf(" Using -g and -M together requires NCCL.\n");
-    assert(0 == 1);
+  if (app_args.use_mpi)
+    gkyl_comm_get_rank(comm, &my_rank);
 #endif
-  }
-  else if (app_args.use_mpi) {
-    comm = gkyl_mpi_comm_new( &(struct gkyl_mpi_comm_inp) {
-        .mpi_comm = MPI_COMM_WORLD,
-        .decomp = decomp
-      }
-    );
-  }
-  else {
-    comm = gkyl_null_comm_inew( &(struct gkyl_null_comm_inp) {
-        .decomp = decomp,
-        .use_gpu = app_args.use_gpu
-      }
-    );
-  }
-#else
-  comm = gkyl_null_comm_inew( &(struct gkyl_null_comm_inp) {
-      .decomp = decomp,
-      .use_gpu = app_args.use_gpu
-    }
-  );
-#endif
-
-  int my_rank, comm_size;
-  gkyl_comm_get_rank(comm, &my_rank);
-  gkyl_comm_get_size(comm, &comm_size);
-
-  int ncuts = 1;
-  for (int d = 0; d < cdim; d++) {
-    ncuts *= cuts[d];
-  }
-
-  if (ncuts != comm_size) {
-    if (my_rank == 0) {
-      fprintf(stderr, "*** Number of ranks, %d, does not match total cuts, %d!\n", comm_size, ncuts);
-    }
-    goto mpifinalize;
-  }
-
-  for (int d = 0; d < cdim - 1; d++) {
-    if (cuts[d] > 1) {
-      if (my_rank == 0) {
-        fprintf(stderr, "*** Parallelization only allowed in z. Number of ranks, %d, in direction %d cannot be > 1!\n", cuts[d], d);
-      }
-      goto mpifinalize;
-    }
-  }
 
   // Top hat species.
   struct gkyl_gyrokinetic_species square = {
@@ -355,7 +273,7 @@ main(int argc, char **argv)
     .charge = ctx.charge, .mass = ctx.mass,
     .lower = { -ctx.vpar_max, 0.0 },
     .upper = { ctx.vpar_max, ctx.mu_max }, 
-    .cells = { NVPAR, NMU },
+    .cells = { cells_v[0], cells_v[1] },
     .polarization_density = ctx.n0,
 
     .projection = {
@@ -380,8 +298,8 @@ main(int argc, char **argv)
     .name = "bump",
     .charge = ctx.charge, .mass = ctx.mass,
     .lower = { -ctx.vpar_max, 0.0 },
-    .upper = { ctx.vpar_max, ctx.mu_max }, 
-    .cells = { NVPAR, NMU },
+    .upper = {  ctx.vpar_max, ctx.mu_max }, 
+    .cells = { cells_v[0], cells_v[1] },
     .polarization_density = ctx.n0,
 
     .projection = {
@@ -417,7 +335,7 @@ main(int argc, char **argv)
     .cdim = 1, .vdim = 2,
     .lower = { 0.0 },
     .upper = { ctx.Lz },
-    .cells = { NZ },
+    .cells = { cells_x[0] },
     .poly_order = 1,
     .basis_type = app_args.basis_type,
 
@@ -445,8 +363,6 @@ main(int argc, char **argv)
       .comm = comm
     }
   };
-
-
 
   // Create app object.
   gkyl_gyrokinetic_app *app = gkyl_gyrokinetic_app_new(&app_inp);
@@ -557,10 +473,8 @@ main(int argc, char **argv)
   freeresources:
   // Free resources after simulation completion.
   gkyl_gyrokinetic_app_release(app);
-  gkyl_rect_decomp_release(decomp);
-  gkyl_comm_release(comm);
+  gyrokinetic_comms_release(decomp, comm);
 
-  mpifinalize:
 #ifdef GKYL_HAVE_MPI
   if (app_args.use_mpi) {
     MPI_Finalize();

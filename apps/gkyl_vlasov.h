@@ -138,6 +138,18 @@ struct gkyl_vlasov_species {
   void (*accel)(double t, const double *xn, double *aout, void *ctx);
   bool accel_evolve; // set to true if applied acceleration function is time dependent
 
+  void *hamil_ctx; // context for hamiltonian function
+  // pointer to hamilonian function
+  void (*hamil)(double t, const double *xn, double *aout, void *ctx);
+
+  void *h_ij_inv_ctx; // context for spatial metric function
+  // pointer to metric inverse function
+  void (*h_ij_inv)(double t, const double *xn, double *aout, void *ctx);
+
+  void *det_h_ctx; // context for determinant of the spatial metric
+  // pointer to the determinant of the spatial metric
+  void (*det_h)(double t, const double *xn, double *aout, void *ctx);
+
   // boundary conditions
   struct gkyl_vlasov_bcs bcx, bcy, bcz;
 };
@@ -338,6 +350,75 @@ void gkyl_vlasov_app_apply_ic_species(gkyl_vlasov_app* app, int sidx, double t0)
  * @param t0 Time for initial conditions
  */
 void gkyl_vlasov_app_apply_ic_fluid_species(gkyl_vlasov_app* app, int sidx, double t0);
+
+/**
+ * Initialize field from file
+ *
+ * @param app App object
+ * @param fname file to read
+ */
+struct gkyl_app_restart_status
+gkyl_vlasov_app_from_file_field(gkyl_vlasov_app *app, const char *fname);
+
+/**
+ * Initialize Vlasov species from file
+ *
+ * @param app App object
+ * @param sidx gk species index
+ * @param fname file to read
+ */
+struct gkyl_app_restart_status 
+gkyl_vlasov_app_from_file_species(gkyl_vlasov_app *app, int sidx,
+  const char *fname);
+
+/**
+ * Initialize fluid species from file
+ *
+ * @param app App object
+ * @param sidx gk species index
+ * @param fname file to read
+ */
+struct gkyl_app_restart_status 
+gkyl_vlasov_app_from_file_fluid_species(gkyl_vlasov_app *app, int sidx,
+  const char *fname);
+
+/**
+ * Initialize field from frame
+ *
+ * @param app App object
+ * @param frame frame to read
+ */
+struct gkyl_app_restart_status
+gkyl_vlasov_app_from_frame_field(gkyl_vlasov_app *app, int frame);
+
+/**
+ * Initialize Vlasov species from frame
+ *
+ * @param app App object
+ * @param sidx gk species index
+ * @param frame frame to read
+ */
+struct gkyl_app_restart_status
+gkyl_vlasov_app_from_frame_species(gkyl_vlasov_app *app, int sidx, int frame);
+
+/**
+ * Initialize fluid species from frame
+ *
+ * @param app App object
+ * @param sidx gk species index
+ * @param frame frame to read
+ */
+struct gkyl_app_restart_status
+gkyl_vlasov_app_from_frame_fluid_species(gkyl_vlasov_app *app, int sidx, int frame);
+
+/**
+ * Initialize the Vlasov app from a specific frame.
+ *
+ * @param app App object
+ * @param frame frame to read
+ */
+struct gkyl_app_restart_status
+gkyl_vlasov_app_read_from_frame(gkyl_vlasov_app *app, int frame);
 
 /**
  * Calculate diagnostic moments.

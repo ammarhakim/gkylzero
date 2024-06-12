@@ -4,14 +4,18 @@
 
 #include <gkyl_alloc.h>
 #include <gkyl_array_ops.h>
+#include <gkyl_array_rio_priv.h>
 #include <gkyl_basis.h>
 #include <gkyl_dflt.h>
 #include <gkyl_dynvec.h>
 #include <gkyl_null_comm.h>
 
 #include <gkyl_vlasov_priv.h>
+#include <gkyl_app_priv.h>
 
-// returned gkyl_array_meta must be freed using gyrokinetic_array_meta_release
+#include <mpack.h>
+
+// returned gkyl_array_meta must be freed using vlasov_array_meta_release
 static struct gkyl_array_meta*
 vlasov_array_meta_new(struct vlasov_output_meta meta)
 {
@@ -55,6 +59,37 @@ vlasov_array_meta_release(struct gkyl_array_meta *mt)
   if (!mt) return;
   MPACK_FREE(mt->meta);
   gkyl_free(mt);
+}
+
+static struct vlasov_output_meta
+vlasov_meta_from_mpack(struct gkyl_array_meta *mt)
+{
+  struct vlasov_output_meta meta = { .frame = 0, .stime = 0.0 };
+
+  if (mt->meta_sz > 0) {
+    mpack_tree_t tree;
+    mpack_tree_init_data(&tree, mt->meta, mt->meta_sz);
+    mpack_tree_parse(&tree);
+    mpack_node_t root = mpack_tree_root(&tree);
+
+    mpack_node_t tm_node = mpack_node_map_cstr(root, "time");
+    meta.stime = mpack_node_double(tm_node);
+
+    mpack_node_t fr_node = mpack_node_map_cstr(root, "frame");
+    meta.frame = mpack_node_i64(fr_node);
+
+    mpack_node_t po_node = mpack_node_map_cstr(root, "polyOrder");
+    meta.poly_order = mpack_node_i64(po_node);
+
+    mpack_node_t bt_node = mpack_node_map_cstr(root, "basisType");
+    char *basis_type = mpack_node_cstr_alloc(bt_node, 64);
+    strcpy(meta.basis_type_nm, basis_type);
+    meta.basis_type = meta.basis_type_nm;
+    MPACK_FREE(basis_type);
+
+    mpack_tree_destroy(&tree);
+  }
+  return meta;
 }
 
 gkyl_vlasov_app*
@@ -1239,6 +1274,159 @@ gkyl_vlasov_app_stat_write(gkyl_vlasov_app* app)
   if (rank == 0)
     fclose(fp);  
 
+}
+
+static struct gkyl_app_restart_status
+header_from_file(gkyl_vlasov_app *app, const char *fname)
+{
+  struct gkyl_app_restart_status rstat = { .io_status = 0 };
+  
+  FILE *fp = 0;
+  with_file(fp, fname, "r") {
+    struct gkyl_rect_grid grid;
+    struct gkyl_array_header_info hdr;
+    rstat.io_status = gkyl_grid_sub_array_header_read_fp(&grid, &hdr, fp);
+
+    if (GKYL_ARRAY_RIO_SUCCESS == rstat.io_status) {
+      if (hdr.etype != GKYL_DOUBLE)
+        rstat.io_status = GKYL_ARRAY_RIO_DATA_MISMATCH;
+    }
+
+    struct vlasov_output_meta meta =
+      vlasov_meta_from_mpack( &(struct gkyl_array_meta) {
+          .meta = hdr.meta,
+          .meta_sz = hdr.meta_size
+        }
+      );
+
+    rstat.frame = meta.frame;
+    rstat.stime = meta.stime;
+
+    gkyl_grid_sub_array_header_release(&hdr);
+  }
+  
+  return rstat;
+}
+
+struct gkyl_app_restart_status
+gkyl_vlasov_app_from_file_field(gkyl_vlasov_app *app, const char *fname)
+{
+  if (app->has_field != 1)
+    return (struct gkyl_app_restart_status) {
+      .io_status = GKYL_ARRAY_RIO_SUCCESS,
+      .frame = 0,
+      .stime = 0.0
+    };
+
+  struct gkyl_app_restart_status rstat = header_from_file(app, fname);
+
+  if (rstat.io_status == GKYL_ARRAY_RIO_SUCCESS) {
+    rstat.io_status =
+      gkyl_comm_array_read(app->comm, &app->grid, &app->local, app->field->em_host, fname);
+    if (app->use_gpu)
+      gkyl_array_copy(app->field->em, app->field->em_host);
+    if (GKYL_ARRAY_RIO_SUCCESS == rstat.io_status)
+      vm_field_apply_bc(app, app->field, app->field->em);
+  }
+  
+  return rstat;
+}
+
+struct gkyl_app_restart_status 
+gkyl_vlasov_app_from_file_species(gkyl_vlasov_app *app, int sidx,
+  const char *fname)
+{
+  struct gkyl_app_restart_status rstat = header_from_file(app, fname);
+
+  struct vm_species *vm_s = &app->species[sidx];
+  
+  if (rstat.io_status == GKYL_ARRAY_RIO_SUCCESS) {
+    rstat.io_status =
+      gkyl_comm_array_read(vm_s->comm, &vm_s->grid, &vm_s->local, vm_s->f_host, fname);
+    if (app->use_gpu)
+      gkyl_array_copy(vm_s->f, vm_s->f_host);
+    if (GKYL_ARRAY_RIO_SUCCESS == rstat.io_status) {
+      vm_species_apply_bc(app, vm_s, vm_s->f);
+      if (vm_s->source_id)
+        vm_species_source_calc(app, vm_s, &vm_s->src, 0.0);
+    }
+  }
+
+  return rstat;
+}
+
+struct gkyl_app_restart_status 
+gkyl_vlasov_app_from_file_fluid_species(gkyl_vlasov_app *app, int sidx,
+  const char *fname)
+{
+  struct gkyl_app_restart_status rstat = header_from_file(app, fname);
+
+  struct vm_fluid_species *vm_fs = &app->fluid_species[sidx];
+  
+  if (rstat.io_status == GKYL_ARRAY_RIO_SUCCESS) {
+    rstat.io_status =
+      gkyl_comm_array_read(app->comm, &app->grid, &app->local, vm_fs->fluid_host, fname);
+    if (app->use_gpu)
+      gkyl_array_copy(vm_fs->fluid, vm_fs->fluid_host);
+    if (GKYL_ARRAY_RIO_SUCCESS == rstat.io_status) {
+      vm_fluid_species_apply_bc(app, vm_fs, vm_fs->fluid);
+      if (vm_fs->source_id)
+        vm_fluid_species_source_calc(app, vm_fs, 0.0);
+    }
+  }
+
+  return rstat;
+}
+
+struct gkyl_app_restart_status
+gkyl_vlasov_app_from_frame_field(gkyl_vlasov_app *app, int frame)
+{
+  cstr fileNm = cstr_from_fmt("%s-%s_%d.gkyl", app->name, "field", frame);
+  struct gkyl_app_restart_status rstat = gkyl_vlasov_app_from_file_field(app, fileNm.str);
+  app->field->is_first_energy_write_call = false; // append to existing diagnostic
+  cstr_drop(&fileNm);
+  
+  return rstat;
+}
+
+struct gkyl_app_restart_status
+gkyl_vlasov_app_from_frame_species(gkyl_vlasov_app *app, int sidx, int frame)
+{
+  cstr fileNm = cstr_from_fmt("%s-%s_%d.gkyl", app->name, app->species[sidx].info.name, frame);
+  struct gkyl_app_restart_status rstat = gkyl_vlasov_app_from_file_species(app, sidx, fileNm.str);
+  app->species[sidx].is_first_integ_write_call = false; // append to existing diagnostic
+  app->species[sidx].is_first_integ_L2_write_call = false; // append to existing diagnostic
+  cstr_drop(&fileNm);
+  
+  return rstat;
+}
+
+struct gkyl_app_restart_status
+gkyl_vlasov_app_from_frame_fluid_species(gkyl_vlasov_app *app, int sidx, int frame)
+{
+  cstr fileNm = cstr_from_fmt("%s-%s_%d.gkyl", app->name, app->fluid_species[sidx].info.name, frame);
+  struct gkyl_app_restart_status rstat = gkyl_vlasov_app_from_file_fluid_species(app, sidx, fileNm.str);
+  app->fluid_species[sidx].is_first_integ_write_call = false; // append to existing diagnostic
+  cstr_drop(&fileNm);
+  
+  return rstat;
+}
+
+struct gkyl_app_restart_status
+gkyl_vlasov_app_read_from_frame(gkyl_vlasov_app *app, int frame)
+{
+  struct gkyl_app_restart_status rstat;
+  
+  rstat = gkyl_vlasov_app_from_frame_field(app, frame);
+
+  for (int i=0; i<app->num_species; i++) {
+    rstat = gkyl_vlasov_app_from_frame_species(app, i, frame);
+  }
+  for (int i=0; i<app->num_fluid_species; i++) {
+    rstat = gkyl_vlasov_app_from_frame_fluid_species(app, i, frame);
+  }
+
+  return rstat;
 }
 
 // private function to handle variable argument list for printing

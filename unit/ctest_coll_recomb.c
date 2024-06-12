@@ -4,7 +4,6 @@
 #include <gkyl_range.h>
 #include <gkyl_rect_decomp.h>
 #include <gkyl_proj_on_basis.h>
-#include <gkyl_proj_maxwellian_on_basis.h>
 #include <gkyl_dg_prim_vars_vlasov.h>
 #include <gkyl_dg_prim_vars_gyrokinetic.h>
 #include <gkyl_dg_recomb.h>
@@ -71,7 +70,7 @@ test_coll_recomb_h(bool use_gpu)
   double vmin_ion = -vmax_ion;
   double mumax_ion = 12.*4.*echarge/(2.*B0);
   int poly_order = 1;
-  int cdim = 3, vdim_gk = 2, vdim_vl = 3;
+  const int cdim = 3, vdim_gk = 2, vdim_vl = 3;
   int pdim_gk = cdim + vdim_gk, pdim_vl = cdim + vdim_vl;
   char basepath[4000] = ".";
 
@@ -85,7 +84,6 @@ test_coll_recomb_h(bool use_gpu)
   double lower_vl[] = {-2.0,-2.0,-2.0,vmin_ion,vmin_ion,vmin_ion}, upper_vl[] = {2.0,2.0,2.0,vmax_ion,vmax_ion,vmax_ion};
   int ghost_vl[] = {0, 0, 0, 0, 0, 0};
   int cells_vl[] = {16, 16, 16, 4, 4, 4};
-  int ghost[] = {0, 0, 0};
   
   struct gkyl_rect_grid confGrid;
   struct gkyl_range confRange, confRange_ext;
@@ -96,7 +94,7 @@ test_coll_recomb_h(bool use_gpu)
   struct gkyl_rect_grid phaseGrid_elc;
   struct gkyl_range phaseRange_elc, phaseRange_ext_elc;
   gkyl_rect_grid_init(&phaseGrid_elc, pdim_gk, lower_elc, upper_elc, cells_gk);
-  gkyl_create_grid_ranges(&phaseGrid_elc, ghost, &phaseRange_ext_elc, &phaseRange_elc);
+  gkyl_create_grid_ranges(&phaseGrid_elc, ghost_gk, &phaseRange_ext_elc, &phaseRange_elc);
 
   // ion phase grid
   struct gkyl_rect_grid phaseGrid_ion;
@@ -127,15 +125,6 @@ test_coll_recomb_h(bool use_gpu)
     poly_order+1, 1, eval_m2_3v_elc, NULL);
   gkyl_proj_on_basis *projM2_ion = gkyl_proj_on_basis_new(&confGrid, &basis,
     poly_order+1, 1, eval_m2_3v_h_ion, NULL);
-
-  // maxwellian on basis for fdist
-  gkyl_proj_maxwellian_on_basis *proj_max_elc = gkyl_proj_maxwellian_on_basis_new(&phaseGrid_elc,
-    &basis, &phaseBasis_gk, poly_order+1, use_gpu);
-  gkyl_proj_maxwellian_on_basis *proj_max_ion = gkyl_proj_maxwellian_on_basis_new(&phaseGrid_ion,
-    &basis, &phaseBasis_gk, poly_order+1, use_gpu);
-  gkyl_proj_maxwellian_on_basis *proj_max_neut = gkyl_proj_maxwellian_on_basis_new(&phaseGrid_vl,
-    &basis, &phaseBasis_vl, poly_order+1, use_gpu);
-
 
   struct gkyl_dg_recomb_inp rec_inp_elc = {
     .grid = &phaseGrid_elc,
@@ -336,12 +325,6 @@ test_coll_recomb_all_gk_li(bool use_gpu)
   gkyl_proj_on_basis *projM2_ion = gkyl_proj_on_basis_new(&confGrid, &basis,
     poly_order+1, 1, eval_m2_3v_li_ion, NULL);
   
-  // maxwellian on basis for fdist
-  gkyl_proj_maxwellian_on_basis *proj_max_elc = gkyl_proj_maxwellian_on_basis_new(&phaseGrid_elc,
-    &basis, &phaseBasis, poly_order+1, use_gpu);
-  gkyl_proj_maxwellian_on_basis *proj_max_ion = gkyl_proj_maxwellian_on_basis_new(&phaseGrid_ion,
-    &basis, &phaseBasis, poly_order+1, use_gpu);
-
   struct gkyl_dg_recomb_inp rec_inp_elc = {
     .grid = &phaseGrid_elc,
     .cbasis = &basis,
@@ -539,12 +522,6 @@ test_coll_recomb_all_gk_ar(bool use_gpu)
     poly_order+1, 1, eval_m2_3v_elc, NULL);
   gkyl_proj_on_basis *projM2_ion = gkyl_proj_on_basis_new(&confGrid, &basis,
     poly_order+1, 1, eval_m2_3v_li_ion, NULL);
-
-  // maxwellian on basis for fdist
-  gkyl_proj_maxwellian_on_basis *proj_max_elc = gkyl_proj_maxwellian_on_basis_new(&phaseGrid_elc,
-    &basis, &phaseBasis, poly_order+1, use_gpu);
-  gkyl_proj_maxwellian_on_basis *proj_max_ion = gkyl_proj_maxwellian_on_basis_new(&phaseGrid_ion,
-    &basis, &phaseBasis, poly_order+1, use_gpu);
 
   struct gkyl_dg_recomb_inp rec_inp_elc = {
     .grid = &phaseGrid_elc,

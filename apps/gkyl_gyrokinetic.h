@@ -7,6 +7,8 @@
 #include <gkyl_fem_poisson_bctype.h>
 #include <gkyl_range.h>
 #include <gkyl_util.h>
+#include <gkyl_velocity_map.h>
+#include <gkyl_gyrokinetic_comms.h>
 
 #include <stdbool.h>
 
@@ -34,9 +36,8 @@ struct gkyl_gyrokinetic_projection {
   void *ctx_tempperp;
   void (*tempperp)(double t, const double *xn, double *fout, void *ctx);
 
-  // pointer and context to lab moments (M0, M1, M2) function 
-  void *ctx_lab_moms; 
-  void (*lab_moms)(double t, const double *xn, double *fout, void *ctx); 
+  // boolean if we are correcting all the moments or only density
+  bool correct_all_moms;   
 };
 
 // Parameters for species collisions
@@ -53,7 +54,14 @@ struct gkyl_gyrokinetic_collisions {
   double T_ref; // Temperature used to calculate coulomb logarithm
   double bmag_mid; // bmag at the middle of the domain
   double nuFrac; // Parameter for rescaling collision frequency from SI values
-  double hbar, eps0, eV; // Planck's constant/2 pi, vacuum permativity, elementary charge
+  double hbar, eps0, eV; // Planck's constant/2 pi, vacuum permittivity, elementary charge
+
+  // Input quantities used by BGK collisions
+  bool correct_all_moms; // boolean if we are correcting all the moments or only density
+  double iter_eps; // error tolerance for moment fixes (density is always exact)
+  int max_iter; // maximum number of iteration
+  bool use_last_converged; // Boolean for if we are using the results of the iterative scheme
+                           // *even if* the scheme fails to converge.   
 
   int num_cross_collisions; // number of species to cross-collide with
   char collide_with[GKYL_MAX_SPECIES][128]; // names of species to cross collide with
@@ -79,10 +87,11 @@ struct gkyl_gyrokinetic_source {
 
 // Parameters for boundary conditions
 struct gkyl_gyrokinetic_bc {
-  enum gkyl_species_bc_type type;
-  void *aux_ctx;
-  void (*aux_profile)(double t, const double *xn, double *fout, void *ctx);  
-  double aux_parameter;
+  enum gkyl_species_bc_type type; // BC type flag.
+  void (*aux_profile)(double t, const double *xn, double *fout, void *ctx); // Auxiliary function (e.g. wall potential).
+  void *aux_ctx; // Context for aux_profile.
+  double aux_parameter; // Parameter for aux_profile (maybe redundant).
+  struct gkyl_gyrokinetic_projection projection; // Projection object input (e.g. for FIXED_FUNC).
 };
 
 struct gkyl_gyrokinetic_bcs {
@@ -152,16 +161,18 @@ struct gkyl_gyrokinetic_react {
   struct gkyl_gyrokinetic_react_type react_type[GKYL_MAX_SPECIES];
 };
 
-// Parameters for gk species
+// Parameters for gk species.
 struct gkyl_gyrokinetic_species {
-  char name[128]; // species name
+  char name[128]; // Species name.
 
   enum gkyl_gkmodel_id gkmodel_id;
-  double charge, mass; // charge and mass
-  double lower[3], upper[3]; // lower, upper bounds of velocity-space
-  int cells[3]; // velocity-space cells
+  double charge, mass; // Charge and mass.
+  double lower[3], upper[3]; // Lower, upper bounds of velocity-space.
+  int cells[3]; // Velocity-space cells.
 
-  // initial conditions using projection routine
+  struct gkyl_mapc2p_inp mapc2p;
+
+  // Initial conditions using projection routine.
   struct gkyl_gyrokinetic_projection projection;
 
   double polarization_density;
@@ -171,56 +182,61 @@ struct gkyl_gyrokinetic_species {
               // calculations where there is no toroidal field. 
 
   int num_diag_moments; // number of diagnostic moments
-  char diag_moments[16][16]; // list of diagnostic moments
+  char diag_moments[24][24]; // list of diagnostic moments
 
-  // collisions to include
+  // Collisions to include.
   struct gkyl_gyrokinetic_collisions collisions;
 
-  // diffusion coupling to include
+  // Diffusion coupling to include.
   struct gkyl_gyrokinetic_diffusion diffusion;
 
-  // source to include
+  // Source to include.
   struct gkyl_gyrokinetic_source source;
 
-  // radiation to include
+  // Radiation to include.
   struct gkyl_gyrokinetic_radiation radiation;
 
-  // reactions between plasma species to include
+  // Reactions between plasma species to include.
   struct gkyl_gyrokinetic_react react;
-  // reactions with neutral species to include
+  // Reactions with neutral species to include.
   struct gkyl_gyrokinetic_react react_neut;
 
-  // boundary conditions
+  // Boundary conditions.
   struct gkyl_gyrokinetic_bcs bcx, bcy, bcz;
+
+  // Positivity enforcement via shift in f.
+  bool enforce_positivity;
 };
 
 // Parameters for neutral species
 struct gkyl_gyrokinetic_neut_species {
-  char name[128]; // species name
+  char name[128]; // Species name.
 
-  double mass; // mass
-  double lower[3], upper[3]; // lower, upper bounds of velocity-space
-  int cells[3]; // velocity-space cells
+  double mass; // Mass.
+  double lower[3], upper[3]; // Lower, upper bounds of velocity-space.
+  int cells[3]; // Velocity-space cells.
 
-  bool is_static; // set to true if neutral species does not change in time
+  struct gkyl_mapc2p_inp mapc2p;
 
-  // initial conditions using projection routine
+  bool is_static; // Set to true if neutral species does not change in time.
+
+  // Initial conditions using projection routine.
   struct gkyl_gyrokinetic_projection projection;
 
-  int num_diag_moments; // number of diagnostic moments
-  char diag_moments[16][16]; // list of diagnostic moments
+  int num_diag_moments; // Number of diagnostic moments.
+  char diag_moments[16][16]; // List of diagnostic moments.
 
-  // source to include
+  // Source to include.
   struct gkyl_gyrokinetic_source source;
 
-  // reactions with plasma species to include
+  // Reactions with plasma species to include.
   struct gkyl_gyrokinetic_react react_neut;
 
-  // boundary conditions
-  enum gkyl_species_bc_type bcx[2], bcy[2], bcz[2];
+  // Boundary conditions.
+  struct gkyl_gyrokinetic_bcs bcx, bcy, bcz;
 };
 
-// Parameter for gk field
+// Parameter for gk field.
 struct gkyl_gyrokinetic_field {
   enum gkyl_gkfield_id gkfield_id;
   double polarization_bmag; 
@@ -651,6 +667,14 @@ void gkyl_gyrokinetic_app_write_integrated_source_mom(gkyl_gyrokinetic_app *app)
  * @param app App object.
  */
 void gkyl_gyrokinetic_app_write_field_energy(gkyl_gyrokinetic_app* app);
+
+/**
+ * Write integrated correct Maxwellian status of the species distribution function to file. Correct
+ * Maxwellian status is appended to the same file.
+ * 
+ * @param app App object.
+ */
+void gkyl_gyrokinetic_app_write_max_corr_status(gkyl_gyrokinetic_app *app);
 
 /**
  * Write geometry file.

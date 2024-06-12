@@ -22,10 +22,12 @@
 #include <gkyl_bgk_collisions.h>
 #include <gkyl_dg_advection.h>
 #include <gkyl_dg_bin_ops.h>
+#include <gkyl_dg_calc_canonical_pb_vars.h>
 #include <gkyl_dg_calc_em_vars.h>
 #include <gkyl_dg_calc_prim_vars.h>
 #include <gkyl_dg_calc_fluid_vars.h>
 #include <gkyl_dg_calc_sr_vars.h>
+#include <gkyl_dg_canonical_pb.h>
 #include <gkyl_dg_euler.h>
 #include <gkyl_dg_maxwell.h>
 #include <gkyl_dg_updater_fluid.h>
@@ -337,6 +339,19 @@ struct vm_species {
       struct gkyl_array *GammaV_inv; // Gamma_inv = sqrt(1 - V_drift^2/c^2), inverse Lorentz boost factor from bulk fluid velocity
 
       struct gkyl_dg_bin_op_mem *V_drift_mem; // memory used in the div-op for V_drift from M1i and M0
+    };
+    // Canonical Poisson Bracket using specified hamiltonian
+    struct {
+      struct gkyl_array *hamil; // Specified hamiltonian function for canonical poisson bracket
+      struct gkyl_array *hamil_host; // Host side hamiltonian array for intial projection
+      struct gkyl_array *h_ij_inv; // Specified metric inverse for canonical poisson bracket
+      struct gkyl_array *h_ij_inv_host; // Host side metric inverse array for intial projection
+      struct gkyl_array *det_h; // Specified metric determinant
+      struct gkyl_array *det_h_host; // Host side metric determinant
+
+      struct gkyl_array *alpha_surf; // Surface phase space velocity
+      struct gkyl_array *sgn_alpha_surf; // sign(alpha_surf) at quadrature points
+      struct gkyl_array *const_sgn_alpha; // boolean for if sign(alpha_surf) is a constant, either +1 or -1
     };
   };
 
