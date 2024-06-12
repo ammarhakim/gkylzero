@@ -2218,7 +2218,7 @@ comm_reduce_app_stat(const gkyl_gyrokinetic_app* app,
     [NUP] = local->nup,
     [NFEULER] = local->nfeuler,
     [NSTAGE_2_FAIL] = local->nstage_2_fail,
-    [NSTAGE_3_FAIL] = local->nstage_3_fail
+    [NSTAGE_3_FAIL] = local->nstage_3_fail, 
   };
 
   int64_t l_red_global[L_END];
@@ -2228,6 +2228,21 @@ comm_reduce_app_stat(const gkyl_gyrokinetic_app* app,
   global->nfeuler = l_red_global[NFEULER];
   global->nstage_2_fail = l_red_global[NSTAGE_2_FAIL];
   global->nstage_3_fail = l_red_global[NSTAGE_3_FAIL];  
+
+  int64_t l_red_bgk_corr[2*app->num_species];
+  for (int s=0; s<app->num_species; ++s) {
+    l_red_bgk_corr[s] = local->niter_self_bgk_corr[s];
+    l_red_bgk_corr[s+app->num_species] = local->niter_cross_bgk_corr[s];
+  }
+
+  int64_t l_red_global_bgk_corr[2*app->num_species];
+  gkyl_comm_allreduce_host(app->comm, GKYL_INT_64, GKYL_MAX, 2*app->num_species, 
+    l_red_bgk_corr, l_red_global_bgk_corr);
+
+  for (int s=0; s<app->num_species; ++s) {
+    global->niter_self_bgk_corr[s] = l_red_bgk_corr[s];
+    global->niter_cross_bgk_corr[s] = l_red_bgk_corr[s+app->num_species];
+  }
 
   enum {
     TOTAL_TM, INIT_SPECIES_TM, SPECIES_RHS_TM, 
@@ -2294,6 +2309,7 @@ gkyl_gyrokinetic_app_stat_write(gkyl_gyrokinetic_app* app)
   struct tm curr_tm = *localtime(&t);
 
   gk_species_coll_tm(app);
+  gk_species_bgk_niter(app); 
   gk_species_tm(app);
 
   struct gkyl_gyrokinetic_stat stat = { };
@@ -2337,6 +2353,10 @@ gkyl_gyrokinetic_app_stat_write(gkyl_gyrokinetic_app* app)
       stat.species_lbo_coll_drag_tm[s]);
     gkyl_gyrokinetic_app_cout(app, fp, " species_coll_diff_tm[%d] : %lg,\n", s,
       stat.species_lbo_coll_diff_tm[s]);
+    gkyl_gyrokinetic_app_cout(app, fp, " niter_self_bgk_corr[%d] : %ld,\n", s, 
+      stat.niter_self_bgk_corr[s]);
+    gkyl_gyrokinetic_app_cout(app, fp, " niter_cross_bgk_corr[%d] : %ld,\n", s, 
+      stat.niter_cross_bgk_corr[s]);    
   }
 
   gkyl_gyrokinetic_app_cout(app, fp, " species_coll_mom_tm : %lg,\n", stat.species_coll_mom_tm);

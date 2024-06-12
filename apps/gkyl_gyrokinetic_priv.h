@@ -301,6 +301,8 @@ struct gk_bgk_collisions {
   struct gkyl_gyrokinetic_cross_prim_moms_bgk *cross_bgk; // cross-species moment computation
 
   // Correction updater for insuring Maxwellian distribution has desired moments (n, u_par, T/m)
+  long self_niter; // total number of iterations correcting self collisions
+  long cross_niter; // total number of iterations correcting cross collisions (summed over all cross collisions)
   struct gkyl_gyrokinetic_maxwellian_correct *corr_max; 
   bool correct_all_moms; // boolean if we are correcting all the moments
   gkyl_dynvec corr_stat;
@@ -1243,6 +1245,14 @@ void gk_species_apply_bc(gkyl_gyrokinetic_app *app, const struct gk_species *spe
  * @param app App object to update stat timers
  */
 void gk_species_coll_tm(gkyl_gyrokinetic_app *app);
+
+/**
+ * Fill stat object in app with total number of iterations
+ * used to correct moments in BGK collisions update.
+ *
+ * @param app App object to update stat timers
+ */
+void gk_species_bgk_niter(gkyl_gyrokinetic_app *app);
 
 /**
  * Fill stat object in app with collisionless timers.
