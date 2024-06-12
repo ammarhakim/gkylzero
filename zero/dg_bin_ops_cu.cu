@@ -113,7 +113,7 @@ gkyl_dg_mul_comp_par_op_range_cu_kernel(struct gkyl_basis basis,
   int num_basis = basis.num_basis;
   int ndim = basis.ndim;
   int poly_order = basis.poly_order;
-  mul_op_comp_par_t mul_op = choose_ser_mul_kern(ndim, poly_order);
+  mul_op_comp_par_t mul_op = choose_ser_mul_comp_par_kern(ndim, poly_order);
 
   int idx[GKYL_MAX_DIM];
   long linc2 = threadIdx.y + blockIdx.y*blockDim.y;
