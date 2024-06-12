@@ -1,4 +1,5 @@
 #include <cusparse.h>
+#include <cudss.h>
 #include <cusolverSp.h>
 #include <cusolverRf.h>
 #include <cusolverSp_LOWLEVEL_PREVIEW.h>
@@ -16,6 +17,7 @@ extern "C" {
 
 #ifdef GKYL_HAVE_CUDA
 #include <cusparse.h>
+#include <cudss.h>
 #include <cusolverSp.h>
 #include <cusolverRf.h>
 #include <cusolverSp_LOWLEVEL_PREVIEW.h>
@@ -44,6 +46,8 @@ struct gkyl_cusolver_prob {
 
   // cusolverrf objects
   cusparseHandle_t cusparseH;
+  cudssHandle_t cudssH; // cuDSS handle.
+
   csrluInfoHost_t infolu;
   cusolverRfHandle_t cusolverRfH; // Refactorization object.
   // cusolverrf parameters.
@@ -100,7 +104,10 @@ gkyl_cusolver_prob_new(int nprob, int mrow, int ncol, int nrhs)
   cusparseSetMatIndexBase(prob->A, CUSPARSE_INDEX_BASE_ZERO); 
 
   cusparseCreate(&prob->cusparseH);
+  cudssCreate(&prob->cudssH); // Create correspond cuDSS handle.
+
   cusparseSetStream(prob->cusparseH, prob->stream);
+  cudssSetStream(&prob->cudssH, prob->stream); // Set corresponding cuDSS stream.
 
   // Create opaque info structure.
   cusolverSpCreateCsrluInfoHost(&prob->infolu);
@@ -493,6 +500,7 @@ gkyl_cusolver_prob_release(struct gkyl_cusolver_prob *prob)
   gkyl_cu_free(prob->d_T);
   cusolverRfDestroy(prob->cusolverRfH);
   cusparseDestroy(prob->cusparseH);
+  cudssDestroy(prob->cudssH);
   cusolverSpDestroyCsrluInfoHost(prob->infolu);
 
   cusparseDestroyMatDescr(prob->A);
