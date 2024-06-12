@@ -195,8 +195,8 @@ main(int argc, char **argv)
       .upper = { .type = GKYL_SPECIES_REFLECT, },
     },
 
-    .num_diag_moments = 3,
-    .diag_moments = { "M0", "M1i", "M2" },
+    .num_diag_moments = 1,
+    .diag_moments = { "LTEMoments" },
   };
 
   // Ions.
@@ -218,8 +218,8 @@ main(int argc, char **argv)
       .upper = { .type = GKYL_SPECIES_REFLECT, },
     },
 
-    .num_diag_moments = 3,
-    .diag_moments = { "M0", "M1i", "M2" },
+    .num_diag_moments = 1,
+    .diag_moments = { "LTEMoments" },
   };
 
   // Field.
