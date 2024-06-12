@@ -244,36 +244,10 @@ gkyl_bc_emission_spectrum_choose_func_cu(enum gkyl_bc_emission_spectrum_norm_typ
 
 void
 gkyl_bc_emission_spectrum_choose_norm_param_cu(enum gkyl_bc_emission_spectrum_norm_type norm_type,
-  void *norm_param_cu)
-{
-  switch (norm_type) {
-    case GKYL_SEE_CHUNG_EVERHART:
-      norm_param_cu = gkyl_cu_malloc(sizeof(struct gkyl_bc_emission_spectrum_norm_chung_everhart));
-    case GKYL_SEE_GAUSSIAN:
-      norm_param_cu = gkyl_cu_malloc(sizeof(struct gkyl_bc_emission_spectrum_norm_gaussian));
-    case GKYL_SEE_MAXWELLIAN:
-      norm_param_cu = gkyl_cu_malloc(sizeof(struct gkyl_bc_emission_spectrum_norm_maxwellian));
-    default:
-      assert(false);
-      break;
-  }
-};
+  void *norm_param_cu);
 
 void
-gkyl_bc_emission_spectrum_choose_yield_param_cu(enum gkyl_bc_emission_spectrum_yield_type yield_type, void *yield_param_cu)
-{
-  switch (yield_type) {
-    case GKYL_SEE_FURMAN_PIVI:
-      yield_param_cu = gkyl_cu_malloc(sizeof(struct gkyl_bc_emission_spectrum_yield_furman_pivi));
-    case GKYL_SEE_SCHOU:
-      yield_param_cu = gkyl_cu_malloc(sizeof(struct gkyl_bc_emission_spectrum_yield_schou));
-    case GKYL_SEE_CONSTANT:
-      yield_param_cu = gkyl_cu_malloc(sizeof(struct gkyl_bc_emission_spectrum_yield_constant));
-    default:
-      assert(false);
-      break;
-  }
-};
+gkyl_bc_emission_spectrum_choose_yield_param_cu(enum gkyl_bc_emission_spectrum_yield_type yield_type, void *yield_param_cu);
 
 GKYL_CU_D
 static emission_spectrum_spec_func_t

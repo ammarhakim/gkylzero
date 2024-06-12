@@ -2,6 +2,7 @@
 extern "C" {
 #include <gkyl_bc_emission_elastic.h>
 #include <gkyl_bc_emission_elastic_priv.h>
+#include <gkyl_alloc.h>
 #include <gkyl_array_ops.h>
 #include <gkyl_array_ops_priv.h>
 }
@@ -36,6 +37,23 @@ gkyl_bc_emission_elastic_choose_func_cu(enum gkyl_bc_emission_elastic_type yield
 {
   gkyl_bc_emission_elastic_set_cu_yield_func_ptrs<<<1,1>>>(yield_type, funcs);
 }
+
+void
+gkyl_bc_emission_elastic_choose_elastic_param_cu(enum gkyl_bc_emission_elastic_type elastic_type,
+  void *elastic_param_cu)
+{
+  switch (elastic_type) {
+    case GKYL_BS_FURMAN_PIVI:
+      elastic_param_cu = gkyl_cu_malloc(sizeof(struct gkyl_bc_emission_elastic_furman_pivi));
+    case GKYL_BS_CAZAUX:
+      elastic_param_cu = gkyl_cu_malloc(sizeof(struct gkyl_bc_emission_elastic_cazaux));
+    case GKYL_BS_CONSTANT:
+      elastic_param_cu = gkyl_cu_malloc(sizeof(struct gkyl_bc_emission_elastic_constant));
+    default:
+      assert(false);
+      break;
+  }
+};
 
 void
 gkyl_bc_emission_elastic_advance_cu(const struct gkyl_bc_emission_elastic *up,

@@ -60,8 +60,41 @@ gkyl_bc_emission_spectrum_choose_func_cu(enum gkyl_bc_emission_spectrum_norm_typ
   gkyl_bc_emission_spectrum_set_cu_yield_func_ptrs<<<1,1>>>(yield_type, funcs);
 }
 
+void
+gkyl_bc_emission_spectrum_choose_norm_param_cu(enum gkyl_bc_emission_spectrum_norm_type norm_type,
+  void *norm_param_cu)
+{
+  switch (norm_type) {
+    case GKYL_SEE_CHUNG_EVERHART:
+      norm_param_cu = gkyl_cu_malloc(sizeof(struct gkyl_bc_emission_spectrum_norm_chung_everhart));
+    case GKYL_SEE_GAUSSIAN:
+      norm_param_cu = gkyl_cu_malloc(sizeof(struct gkyl_bc_emission_spectrum_norm_gaussian));
+    case GKYL_SEE_MAXWELLIAN:
+      norm_param_cu = gkyl_cu_malloc(sizeof(struct gkyl_bc_emission_spectrum_norm_maxwellian));
+    default:
+      assert(false);
+      break;
+  }
+};
+
+void
+gkyl_bc_emission_spectrum_choose_yield_param_cu(enum gkyl_bc_emission_spectrum_yield_type yield_type, void *yield_param_cu)
+{
+  switch (yield_type) {
+    case GKYL_SEE_FURMAN_PIVI:
+      yield_param_cu = gkyl_cu_malloc(sizeof(struct gkyl_bc_emission_spectrum_yield_furman_pivi));
+    case GKYL_SEE_SCHOU:
+      yield_param_cu = gkyl_cu_malloc(sizeof(struct gkyl_bc_emission_spectrum_yield_schou));
+    case GKYL_SEE_CONSTANT:
+      yield_param_cu = gkyl_cu_malloc(sizeof(struct gkyl_bc_emission_spectrum_yield_constant));
+    default:
+      assert(false);
+      break;
+  }
+};
+
 __global__ static void
-gkyl_bc_emission_spectrum_sey_calc_cu_ker(int cdim, int vdim, double *sey_param, struct gkyl_rect_grid grid, const struct gkyl_range ghost_r, struct gkyl_array *gamma, struct gkyl_bc_emission_spectrum_funcs *funcs)
+gkyl_bc_emission_spectrum_sey_calc_cu_ker(int cdim, int vdim, void *sey_param, struct gkyl_rect_grid grid, const struct gkyl_range ghost_r, struct gkyl_array *gamma, struct gkyl_bc_emission_spectrum_funcs *funcs)
 {
   double xc[GKYL_MAX_DIM];
   int pidx[GKYL_MAX_DIM];
@@ -81,7 +114,7 @@ gkyl_bc_emission_spectrum_sey_calc_cu_ker(int cdim, int vdim, double *sey_param,
     
     gkyl_rect_grid_cell_center(&grid, pidx, xc);
     
-    funcs->gamma(out, cdim, vdim, xc, sey_param);
+    funcs->yield(out, cdim, vdim, xc, sey_param);
   }
 }
 
@@ -162,7 +195,7 @@ gkyl_bc_emission_spectrum_sey_calc_cu(const struct gkyl_bc_emission_spectrum *up
 {
   int nblocks = ghost_r->nblocks, nthreads = ghost_r->nthreads;
 
-  gkyl_bc_emission_spectrum_sey_calc_cu_ker<<<nblocks, nthreads>>>(up->cdim, up->vdim, up->yield_param_cu, *grid, *ghost_r, gamma->on_dev, up->funcs_cu);
+  gkyl_bc_emission_spectrum_sey_calc_cu_ker<<<nblocks, nthreads>>>(up->cdim, up->vdim, up->yield_param_cu, *grid, *ghost_r, yield->on_dev, up->funcs_cu);
 }
 
 void

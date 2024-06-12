@@ -34,7 +34,8 @@ GKYL_CU_D
 static void
 reflection(size_t nc, double *out, const double *inp, void *ctx)
 {
-  struct gkyl_bc_emission_elastic *bc_ctx = ctx;
+  struct gkyl_bc_emission_elastic *bc_ctx = 
+    (struct gkyl_bc_emission_elastic *) ctx;
   int dir = bc_ctx->dir, cdim = bc_ctx->cdim;
 
   bc_ctx->basis->flip_odd_sign(dir, inp, out);
@@ -47,8 +48,10 @@ static void
 furman_pivi_yield(double t, const double *xn, double *fout, void *ctx)
 // Electron impact model adapted from https://link.aps.org/doi/10.1103/PhysRevSTAB.5.124404
 {
-  struct gkyl_bc_emission_elastic *bc_ctx = ctx;
-  struct gkyl_bc_emission_elastic_furman_pivi *param = bc_ctx->elastic_param;
+  struct gkyl_bc_emission_elastic *bc_ctx = 
+    (struct gkyl_bc_emission_elastic *) ctx;
+  struct gkyl_bc_emission_elastic_furman_pivi *param =
+    (struct gkyl_bc_emission_elastic_furman_pivi *) bc_ctx->elastic_param;
   int cdim = bc_ctx->cdim;
   int vdim = bc_ctx->vdim;
   double mass = param->mass;
@@ -73,8 +76,10 @@ static void
 cazaux_yield(double t, const double *xn, double *fout, void *ctx)
 // Ion impact model adapted from https://doi.org/10.1103/PhysRevB.22.2141
 { // No angular dependence atm. Will have to add later
-  struct gkyl_bc_emission_elastic *bc_ctx = ctx;
-  struct gkyl_bc_emission_elastic_cazaux *param = bc_ctx->elastic_param;
+  struct gkyl_bc_emission_elastic *bc_ctx = 
+    (struct gkyl_bc_emission_elastic *) ctx;
+  struct gkyl_bc_emission_elastic_cazaux *param = 
+    (struct gkyl_bc_emission_elastic_cazaux *)bc_ctx->elastic_param;
   int cdim = bc_ctx->cdim;
   int vdim = bc_ctx->vdim;
   double mass = param->mass;   
@@ -97,8 +102,10 @@ GKYL_CU_D
 static void
 constant_yield(double t, const double *xn, double *fout, void *ctx)
 {
-  struct gkyl_bc_emission_elastic *bc_ctx = ctx;
-  struct gkyl_bc_emission_elastic_constant *param = bc_ctx->elastic_param;
+  struct gkyl_bc_emission_elastic *bc_ctx = 
+    (struct gkyl_bc_emission_elastic *) ctx;
+  struct gkyl_bc_emission_elastic_constant *param = 
+    (struct gkyl_bc_emission_elastic_constant *) bc_ctx->elastic_param;
   double delta = param->delta;
 
   fout[0] = delta;
@@ -107,6 +114,11 @@ constant_yield(double t, const double *xn, double *fout, void *ctx)
 void
 gkyl_bc_emission_elastic_choose_func_cu(enum gkyl_bc_emission_elastic_type yield_type,
   struct gkyl_bc_emission_elastic_funcs *funcs);
+
+
+void
+gkyl_bc_emission_spectrum_choose_elastic_param_cu(enum gkyl_bc_emission_elastic_type elastic_type,
+  void *elastic_param_cu);
 
 GKYL_CU_D
 static emission_elastic_yield_func_t
