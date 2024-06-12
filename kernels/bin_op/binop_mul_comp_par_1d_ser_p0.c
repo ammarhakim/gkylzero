@@ -4,10 +4,7 @@ GKYL_CU_DH
 void
 binop_mul_comp_par_1d_ser_p0(const double *f, const double *g, double *fg, int linc1 )
 {
-  double tmp[1] = {0.};
-  tmp[0] = 7.0710678118654757e-01*g[0]*f[0];
- 
-  fg[0] = tmp[0];
+  fg[0] = 7.0710678118654757e-01*g[0]*f[0];
   // nsum = 2, nprod = 1
 }
 
