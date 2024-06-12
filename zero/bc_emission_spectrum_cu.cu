@@ -11,18 +11,18 @@ extern "C" {
 
 // CUDA kernel to set device pointers to function for normalization coefficient calculation.
 __global__ static void
-gkyl_bc_emission_spectrum_set_cu_norm_func_ptrs(enum gkyl_bc_emission_spectrum_type bctype,
+gkyl_bc_emission_spectrum_set_cu_norm_func_ptrs(enum gkyl_bc_emission_spectrum_norm_type norm_type,
   struct gkyl_bc_emission_spectrum_funcs *funcs)
 {
-  funcs->func = bc_weighted_gamma;
-  switch (bctype) {
-    case GKYL_BC_CHUNG_EVERHART:
+  funcs->func = bc_weighted_delta;
+  switch (norm_type) {
+    case GKYL_SEE_CHUNG_EVERHART:
       funcs->norm = chung_everhart_norm;
       break;
-    case GKYL_BC_GAUSSIAN:
+    case GKYL_SEE_GAUSSIAN:
       funcs->norm = gaussian_norm;
       break;
-    case GKYL_BC_MAXWELLIAN:
+    case GKYL_SEE_MAXWELLIAN:
       funcs->norm = maxwellian_norm;
       break;
     default:
@@ -33,18 +33,18 @@ gkyl_bc_emission_spectrum_set_cu_norm_func_ptrs(enum gkyl_bc_emission_spectrum_t
 
 // CUDA kernel to set device pointers to function for SEY calculation.
 __global__ static void
-gkyl_bc_emission_spectrum_set_cu_gamma_func_ptrs(enum gkyl_bc_emission_spectrum_gamma_type gammatype,
+gkyl_bc_emission_spectrum_set_cu_yield_func_ptrs(enum gkyl_bc_emission_spectrum_yield_type yield_type,
   struct gkyl_bc_emission_spectrum_funcs *funcs)
 {
-  switch (gammatype) {
-    case GKYL_BC_FURMAN_PIVI:
-      funcs->gamma = furman_pivi_gamma;
+  switch (yield_type) {
+    case GKYL_SEE_FURMAN_PIVI:
+      funcs->yield = furman_pivi_yield;
       break;
-    case GKYL_BC_SCHOU:
-      funcs->gamma = schou_gamma;
+    case GKYL_SEE_SCHOU:
+      funcs->yield = schou_yield;
       break;
-    case GKYL_BC_CONSTANT:
-      funcs->gamma = constant_gamma;
+    case GKYL_SEE_CONSTANT:
+      funcs->yield = constant_yield;
       break; 
     default:
       assert(false);
@@ -53,11 +53,11 @@ gkyl_bc_emission_spectrum_set_cu_gamma_func_ptrs(enum gkyl_bc_emission_spectrum_
 };
 
 void
-gkyl_bc_emission_spectrum_choose_func_cu(enum gkyl_bc_emission_spectrum_type bctype,
-  enum gkyl_bc_emission_spectrum_gamma_type gammatype, struct gkyl_bc_emission_spectrum_funcs *funcs)
+gkyl_bc_emission_spectrum_choose_func_cu(enum gkyl_bc_emission_spectrum_norm_type norm_type,
+  enum gkyl_bc_emission_spectrum_yield_type yield_type, struct gkyl_bc_emission_spectrum_funcs *funcs)
 {
-  gkyl_bc_emission_spectrum_set_cu_norm_func_ptrs<<<1,1>>>(bctype, funcs);
-  gkyl_bc_emission_spectrum_set_cu_gamma_func_ptrs<<<1,1>>>(gammatype, funcs);
+  gkyl_bc_emission_spectrum_set_cu_norm_func_ptrs<<<1,1>>>(norm_type, funcs);
+  gkyl_bc_emission_spectrum_set_cu_yield_func_ptrs<<<1,1>>>(yield_type, funcs);
 }
 
 __global__ static void
@@ -158,31 +158,30 @@ gkyl_bc_emission_spectrum_advance_cu_accumulate_ker(const struct gkyl_array *f_p
 }
 
 void
-gkyl_bc_emission_spectrum_sey_calc_cu(const struct gkyl_bc_emission_spectrum *up, struct gkyl_array *gamma, struct gkyl_rect_grid *grid, const struct gkyl_range *ghost_r)
+gkyl_bc_emission_spectrum_sey_calc_cu(const struct gkyl_bc_emission_spectrum *up, struct gkyl_array *yield, struct gkyl_rect_grid *grid, const struct gkyl_range *ghost_r, const struct gkyl_range *gamma_r)
 {
   int nblocks = ghost_r->nblocks, nthreads = ghost_r->nthreads;
 
-  gkyl_bc_emission_spectrum_sey_calc_cu_ker<<<nblocks, nthreads>>>(up->cdim, up->vdim, up->sey_param_cu, *grid, *ghost_r, gamma->on_dev, up->funcs_cu);
+  gkyl_bc_emission_spectrum_sey_calc_cu_ker<<<nblocks, nthreads>>>(up->cdim, up->vdim, up->yield_param_cu, *grid, *ghost_r, gamma->on_dev, up->funcs_cu);
 }
 
 void
 gkyl_bc_emission_spectrum_advance_cu(const struct gkyl_bc_emission_spectrum *up,
-  const struct gkyl_array *f_skin, const struct gkyl_array *f_proj, struct gkyl_array *f_buff,
-  struct gkyl_array *weight, struct gkyl_array *k,
-  const struct gkyl_array *flux, struct gkyl_rect_grid *grid, struct gkyl_array *gamma,
-  const struct gkyl_range *skin_r, const struct gkyl_range *ghost_r, const struct gkyl_range *conf_r,
-  const struct gkyl_range *buff_r)
+  struct gkyl_range *impact_buff_r, struct gkyl_range *impact_cbuff_r,
+  struct gkyl_range *emit_buff_r, struct gkyl_array *bflux, struct gkyl_array *f_emit,
+  struct gkyl_array *yield, struct gkyl_array *spectrum, struct gkyl_array *weight,
+  struct gkyl_array *flux, struct gkyl_array *k)
 {
-  int nblocks = skin_r->nblocks, nthreads = skin_r->nthreads;
+  int nblocks = emit_buff_r->nblocks, nthreads = emit_buff_r->nthreads;
 
-  gkyl_array_clear_range(weight, 0.0, conf_r);
+  // gkyl_array_clear_range(weight, 0.0, conf_r);
 
-  // Calculate weighted mean numerator and denominator
-  gkyl_bc_emission_spectrum_advance_cu_weight_ker<<<nblocks, nthreads>>>(up->cdim, up->dir, up->edge, f_skin->on_dev, weight->on_dev, *grid, gamma->on_dev, *skin_r, *ghost_r, *conf_r, up->funcs_cu, up->bc_param_cu);
+  // // Calculate weighted mean numerator and denominator
+  // gkyl_bc_emission_spectrum_advance_cu_weight_ker<<<nblocks, nthreads>>>(up->cdim, up->dir, up->edge, f_skin->on_dev, weight->on_dev, *grid, gamma->on_dev, *skin_r, *ghost_r, *conf_r, up->funcs_cu, up->bc_param_cu);
 
-  nblocks = buff_r->nblocks;
-  nthreads = buff_r->nthreads;
+  // nblocks = buff_r->nblocks;
+  // nthreads = buff_r->nthreads;
 
-  // Finish weighted mean calculation and accumulate to buffer
-  gkyl_bc_emission_spectrum_advance_cu_accumulate_ker<<<nblocks, nthreads>>>(f_proj->on_dev, f_buff->on_dev, weight->on_dev, k->on_dev, flux->on_dev, *buff_r, *conf_r, up->funcs_cu, up->bc_param_cu);
+  // // Finish weighted mean calculation and accumulate to buffer
+  // gkyl_bc_emission_spectrum_advance_cu_accumulate_ker<<<nblocks, nthreads>>>(f_proj->on_dev, f_buff->on_dev, weight->on_dev, k->on_dev, flux->on_dev, *buff_r, *conf_r, up->funcs_cu, up->bc_param_cu);
 }

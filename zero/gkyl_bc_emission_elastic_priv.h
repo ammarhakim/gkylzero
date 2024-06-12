@@ -105,7 +105,8 @@ constant_yield(double t, const double *xn, double *fout, void *ctx)
 }
 
 void
-gkyl_bc_emission_elastic_choose_func_cu(enum gkyl_bc_emission_elastic_type yield_type);
+gkyl_bc_emission_elastic_choose_func_cu(enum gkyl_bc_emission_elastic_type yield_type,
+  struct gkyl_bc_emission_elastic_funcs *funcs);
 
 GKYL_CU_D
 static emission_elastic_yield_func_t
@@ -143,10 +144,7 @@ bc_emission_elastic_choose_yield_func(enum gkyl_bc_emission_elastic_type yield_t
  * @param conf_r Configuration space range
  * @param buff_r Buffer array range
  */
-void gkyl_bc_emission_elastic_advance_cu(const struct gkyl_bc_emission_spectrum *up,
-  const struct gkyl_array *f_skin, const struct gkyl_array *f_proj, struct gkyl_array *f_buff,
-  struct gkyl_array *weight, struct gkyl_array *k,
-  const struct gkyl_array *flux, struct gkyl_rect_grid *grid, struct gkyl_array *gamma,
-  const struct gkyl_range *skin_r, const struct gkyl_range *ghost_r, const struct gkyl_range *conf_r,
-  const struct gkyl_range *buff_r);
+void gkyl_bc_emission_elastic_advance_cu(const struct gkyl_bc_emission_elastic *up,
+  struct gkyl_range *emit_skin_r, struct gkyl_array *buff_arr, struct gkyl_array *f_skin,
+  struct gkyl_array *f_emit, struct gkyl_array *elastic_yield, struct gkyl_basis *basis);
 #endif

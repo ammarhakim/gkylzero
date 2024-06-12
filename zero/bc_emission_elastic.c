@@ -7,15 +7,6 @@
 #include <assert.h>
 #include <math.h>
 
-// Increment an int vector by fact*del[d] in each direction d.
-static inline void
-incr_int_array(int ndim, int fact, const int * GKYL_RESTRICT del,
-  const int * GKYL_RESTRICT inp, int *GKYL_RESTRICT out)
-{
-  for (int i=0; i<ndim; ++i)
-    out[i] = inp[i] + fact*del[i];
-}
-
 struct gkyl_bc_emission_elastic*
 gkyl_bc_emission_elastic_new(enum gkyl_bc_emission_elastic_type elastic_type,
   void *elastic_param, struct gkyl_array *elastic_yield, int dir, enum gkyl_edge_loc edge,
@@ -46,14 +37,13 @@ gkyl_bc_emission_elastic_new(enum gkyl_bc_emission_elastic_type elastic_type,
 #ifdef GKYL_HAVE_CUDA
   if (use_gpu) {
     up->funcs_cu = gkyl_cu_malloc(sizeof(struct gkyl_bc_emission_elastic_funcs));
-    gkyl_bc_emission_spectrum_choodgse_func_cu(norm_type, yield_type, up->funcs_cu);
+    gkyl_bc_emission_elastic_choose_func_cu(elastic_type, up->funcs_cu);
     up->elastic_param_cu = gkyl_cu_malloc(10*sizeof(double));
     gkyl_cu_memcpy(up->elastic_param_cu, up->elastic_param, 10*sizeof(double), GKYL_CU_MEMCPY_H2D);
   } else {
     up->funcs->yield = bc_emission_elastic_choose_yield_func(elastic_type);
     up->funcs_cu = up->funcs;
-    up->norm_param_cu = up->norm_param;
-    up->yield_param_cu = up->yield_param;
+    up->elastic_param_cu = up->elastic_param;
   }
 #else
   up->funcs->yield = bc_emission_elastic_choose_yield_func(elastic_type);
@@ -86,7 +76,8 @@ gkyl_bc_emission_elastic_advance(const struct gkyl_bc_emission_elastic *up,
 {
 #ifdef GKYL_HAVE_CUDA
   if (up->use_gpu) {
-    return gkyl_bc_emission_elastic_advance_cu(up, f_skin, f_proj, f_buff, grid);
+    return gkyl_bc_emission_elastic_advance_cu(up, emit_skin_r, buff_arr, f_skin, f_emit, elastic_yield,
+      basis);
   }
 #endif
   gkyl_array_flip_copy_to_buffer_fn(buff_arr->data, f_skin, up->dir+up->cdim, emit_skin_r,

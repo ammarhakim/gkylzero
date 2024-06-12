@@ -49,7 +49,7 @@ gkyl_bc_emission_spectrum_sey_calc(const struct gkyl_bc_emission_spectrum *up, s
 {
 #ifdef GKYL_HAVE_CUDA
   if (up->use_gpu) {
-    gkyl_bc_emission_spectrum_sey_calc_cu(up, yield, grid, ghost_r);
+    gkyl_bc_emission_spectrum_sey_calc_cu(up, yield, grid, ghost_r, gamma_r);
     return;
   }
 #endif
@@ -96,12 +96,11 @@ gkyl_bc_emission_spectrum_new(enum gkyl_bc_emission_spectrum_norm_type norm_type
   if (use_gpu) {
     up->funcs_cu = gkyl_cu_malloc(sizeof(struct gkyl_bc_emission_spectrum_funcs));
     gkyl_bc_emission_spectrum_choose_func_cu(norm_type, yield_type, up->funcs_cu);
-    up->norm_param_cu = gkyl_cu_malloc(10*sizeof(double));
-    gkyl_cu_memcpy(up->norm_param_cu, up->norm_param, 10*sizeof(double), GKYL_CU_MEMCPY_H2D);
-    up->yield_param_cu = gkyl_cu_malloc(10*sizeof(double));
-    gkyl_cu_memcpy(up->yield_param_cu, up->yield_param, 10*sizeof(double), GKYL_CU_MEMCPY_H2D);
+    gkyl_bc_emission_spectrum_choose_norm_param_cu(norm_type, up->norm_param_cu);
+    gkyl_bc_emission_spectrum_choose_yield_param_cu(yield_type, up->yield_param_cu);
   } else {
     up->funcs->func = bc_weighted_delta;
+    up->funcs->spec = bc_emission_spectrum_choose_spec_func(norm_type);
     up->funcs->norm = bc_emission_spectrum_choose_norm_func(norm_type);
     up->funcs->yield = bc_emission_spectrum_choose_yield_func(yield_type);
     up->funcs_cu = up->funcs;
@@ -146,7 +145,8 @@ gkyl_bc_emission_spectrum_advance(const struct gkyl_bc_emission_spectrum *up,
 {
 #ifdef GKYL_HAVE_CUDA
   if (up->use_gpu) {
-    return gkyl_bc_emission_spectrum_advance_cu(up, f_skin, f_proj, f_buff, grid);
+    return gkyl_bc_emission_spectrum_advance_cu(up, impact_buff_r, impact_cbuff_r, emit_buff_r,
+      bflux, f_emit, yield, spectrum, weight, flux, k);
   }
 #endif
   double xc[GKYL_MAX_DIM];
