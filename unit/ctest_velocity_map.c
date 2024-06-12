@@ -175,6 +175,48 @@ test_vmap_1x2v_p1(bool use_gpu)
   }
   gkyl_array_release(vmap_ref);
 
+  // Check min/max cell lengths over the whole grid.
+  double dv_min[vdim], dv_max[vdim];
+  gkyl_velocity_map_reduce_dv(gvm, GKYL_MIN, dv_min);
+  gkyl_velocity_map_reduce_dv(gvm, GKYL_MAX, dv_max);
+
+  double dv_comp[vdim];
+  for (int d=0; d<vdim; d++) {
+    dv_comp[d] = (upper_vel[d] - lower_vel[d])/cells_vel[d];
+  }
+  for (int d=0; d<vdim; d++) {
+    double vc_lo[1], vc_up[1];
+    double vp_lo[1], vp_up[1];
+  
+    // Check min dv.
+    vc_lo[0] = 0.0;
+    vc_up[0] = dv_comp[d];
+    if (d==0) {
+      test_vmap_1x2v_p1_mapc2p_vel_vpar(0.0, vc_lo, vp_lo, NULL);
+      test_vmap_1x2v_p1_mapc2p_vel_vpar(0.0, vc_up, vp_up, NULL);
+    }
+    else {
+      test_vmap_1x2v_p1_mapc2p_vel_mu(0.0, vc_lo, vp_lo, NULL);
+      test_vmap_1x2v_p1_mapc2p_vel_mu(0.0, vc_up, vp_up, NULL);
+    }
+    double dv_min_ref = vp_up[0] - vp_lo[0];
+    TEST_CHECK( gkyl_compare(dv_min[d], dv_min_ref, 1e-12) );
+
+    // Check max dv.
+    vc_lo[0] = upper_vel[d]-dv_comp[d];
+    vc_up[0] = upper_vel[d];
+    if (d==0) {
+      test_vmap_1x2v_p1_mapc2p_vel_vpar(0.0, vc_lo, vp_lo, NULL);
+      test_vmap_1x2v_p1_mapc2p_vel_vpar(0.0, vc_up, vp_up, NULL);
+    }
+    else {
+      test_vmap_1x2v_p1_mapc2p_vel_mu(0.0, vc_lo, vp_lo, NULL);
+      test_vmap_1x2v_p1_mapc2p_vel_mu(0.0, vc_up, vp_up, NULL);
+    }
+    double dv_max_ref = vp_up[0] - vp_lo[0];
+    TEST_CHECK( gkyl_compare(dv_max[1], dv_max_ref, 1e-12) );
+  }
+
   gkyl_array_release(vmap_ho);
   gkyl_velocity_map_release(gvm);
 }

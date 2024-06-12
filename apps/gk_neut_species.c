@@ -151,12 +151,12 @@ gk_neut_species_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app, struc
   }
 
   s->has_neutral_reactions = false;
+  s->model_id = GKYL_MODEL_GEN_GEO;
   if (!s->info.is_static) {
     struct gkyl_dg_vlasov_auxfields aux_inp = {.field = 0, .cot_vec = s->cot_vec, 
       .alpha_surf = s->alpha_surf, .sgn_alpha_surf = s->sgn_alpha_surf, .const_sgn_alpha = s->const_sgn_alpha };
     // Set field type and model id for neutral species in GK system and create solver
     s->field_id = GKYL_FIELD_NULL;
-    s->model_id = GKYL_MODEL_GEN_GEO;
     s->slvr = gkyl_dg_updater_vlasov_new(&s->grid, &app->confBasis, &app->neut_basis, 
       &app->local, &s->local_vel, &s->local, is_zero_flux, s->model_id, s->field_id, &aux_inp, app->use_gpu);
 

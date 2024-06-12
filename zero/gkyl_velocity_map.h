@@ -80,6 +80,30 @@ void
 gkyl_velocity_map_get_boundary_values(const struct gkyl_velocity_map* gvm, double *vbounds);
 
 /**
+ * Reduce (i.e. get the min or max) the cell length in physical
+ * velocity units over the whole velocity grid.
+ *
+ * @param gvm Velocity map object.
+ * @param op GKYL_MIN or GKYL_MAX.
+ * @param dv_m Min/Max velocity cell length on the grid.
+ */
+void
+gkyl_velocity_map_reduce_dv(const struct gkyl_velocity_map* gvm, enum gkyl_array_op op, double *dv_m);
+
+/**
+ * Reduce (i.e. get the min or max) the cell length in physical
+ * velocity units over a specified velocity range.
+ *
+ * @param gvm Velocity map object.
+ * @param op GKYL_MIN or GKYL_MAX.
+ * @param range_vel Velocity range to get min/max dv from.
+ * @param dv_m Min/Max velocity cell length on the grid.
+ */
+void
+gkyl_velocity_map_reduce_dv_range(const struct gkyl_velocity_map* gvm, enum gkyl_array_op op,
+  double *dv_m, struct gkyl_range range_vel);
+
+/**
  * Evaluate the velocity mapping at a specific computational (velocity) coordinate.
  * NOTE: done on the host.
  *

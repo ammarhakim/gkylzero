@@ -29,19 +29,27 @@ gk_species_bgk_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s, stru
     double eps0 = s->info.collisions.eps0 ? s->info.collisions.eps0: GKYL_EPSILON0;
     double hbar = s->info.collisions.hbar ? s->info.collisions.hbar: GKYL_PLANCKS_CONSTANT_H/2/M_PI;
     double eV = s->info.collisions.eV ? s->info.collisions.eV: GKYL_ELEMENTARY_CHARGE;
+
     struct gkyl_array* bmag_mid_host = app->use_gpu? mkarr(false, 1, 1) : gkyl_array_acquire(app->gk_geom->bmag_mid);
     gkyl_array_copy(bmag_mid_host, app->gk_geom->bmag_mid);
     double *bmag_mid_ptr = gkyl_array_fetch(bmag_mid_host, 0);
     double bmag_mid = s->info.collisions.bmag_mid ? s->info.collisions.bmag_mid : bmag_mid_ptr[0];
     gkyl_array_release(bmag_mid_host);
-    double tpar_min = (s->info.mass/6.0)*pow(s->grid.dx[cdim],2);
-    double tperp_min = vdim>1 ? (bmag_mid/3.0)*s->grid.dx[cdim+1] : tpar_min;
+
+    // Compute a minimum representable temperature based on the smallest dv in the grid.
+    double dv_min[vdim];
+    gkyl_velocity_map_reduce_dv_range(s->vel_map, GKYL_MIN, dv_min, s->vel_map->local_vel);
+
+    double tpar_min = (s->info.mass/6.0)*pow(dv_min[0],2);
+    double tperp_min = vdim>1 ? (bmag_mid/3.0)*dv_min[1] : tpar_min;
     bgk->vtsq_min = (tpar_min + 2.0*tperp_min)/(3.0*s->info.mass);
+
     bgk->spitzer_calc = gkyl_spitzer_coll_freq_new(&app->confBasis, app->poly_order+1,
       nuFrac, 1.0, 1.0, app->use_gpu);
     bgk->self_nu_fac = nuFrac*gkyl_calc_norm_nu(s->info.collisions.n_ref, s->info.collisions.n_ref, 
       s->info.mass, s->info.mass, s->info.charge, s->info.charge, 
       s->info.collisions.T_ref, s->info.collisions.T_ref, bmag_mid, eps0, hbar, eV);
+
     // Create arrays for scaling collisionality by normalization factor
     // norm_nu is computed from Spitzer calc and is the normalization factor for the local
     // density and thermal velocity, norm_nu_sr = n/(vth_s^2 + vth_r^2)^(3/2)

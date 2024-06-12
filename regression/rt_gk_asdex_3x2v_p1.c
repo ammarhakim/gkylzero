@@ -7,10 +7,12 @@
 #include <gkyl_fem_parproj.h>
 #include <gkyl_fem_poisson_bctype.h>
 #include <gkyl_gyrokinetic.h>
-#include <rt_arg_parse.h>
 #include <gkyl_tok_geo.h>
 
+#include <rt_arg_parse.h>
+
 struct gk_asdex_ctx {
+  int cdim, vdim; // Dimensionality
   double chargeElc; // electron charge
   double massElc; // electron mass
   double chargeIon; // ion charge
@@ -28,6 +30,7 @@ struct gk_asdex_ctx {
   // Domain parameters.            
   int Nx, Ny, Nz; // Number of cells in x,y,z.
   int Nvpar, Nmu; // Number of cells in vpar,mu.
+  int cells[GKYL_MAX_DIM]; // Number of cells in all directions.
   double Lx; // Box size in x
   double Ly; // Box size in y
   double Lz; // Box size in z
@@ -232,6 +235,8 @@ bmag_func(double t, const double *xc, double* GKYL_RESTRICT fout, void *ctx)
 struct gk_asdex_ctx
 create_ctx(void)
 {
+  int cdim = 3, vdim = 2; // Dimensionality.
+
   double eps0 = GKYL_EPSILON0;
   double eV = GKYL_ELEMENTARY_CHARGE;
   double mi = 2.014*GKYL_PROTON_MASS; // ion mass
@@ -291,6 +296,8 @@ create_ctx(void)
   int num_failures_max = 20; // Maximum allowable number of consecutive small time-steps.
 
   struct gk_asdex_ctx ctx = {
+    .cdim = cdim,
+    .vdim = vdim,
     .chargeElc = qe, 
     .massElc = me, 
     .chargeIon = qi, 
@@ -316,6 +323,7 @@ create_ctx(void)
     .Nz = Nz,
     .Nvpar = Nvpar,
     .Nmu = Nmu,
+    .cells = {Nx, Ny, Nz, Nvpar, Nmu},
     .t_end = t_end, 
     .num_frames = num_frames, 
     .int_diag_calc_num = int_diag_calc_num,
@@ -357,6 +365,12 @@ main(int argc, char **argv)
 {
   struct gkyl_app_args app_args = parse_app_args(argc, argv);
 
+#ifdef GKYL_HAVE_MPI
+  if (app_args.use_mpi) {
+    MPI_Init(&argc, &argv);
+  }
+#endif
+
   if (app_args.trace_mem) {
     gkyl_cu_dev_mem_debug_set(true);
     gkyl_mem_debug_set(true);
@@ -364,11 +378,23 @@ main(int argc, char **argv)
 
   struct gk_asdex_ctx ctx = create_ctx(); // context for init functions
 
-  int NX = APP_ARGS_CHOOSE(app_args.xcells[0], ctx.Nx);
-  int NY = APP_ARGS_CHOOSE(app_args.xcells[1], ctx.Ny);
-  int NZ = APP_ARGS_CHOOSE(app_args.xcells[2], ctx.Nz);
-  int NVPAR = APP_ARGS_CHOOSE(app_args.vcells[0], ctx.Nvpar);
-  int NMU = APP_ARGS_CHOOSE(app_args.vcells[1], ctx.Nmu);
+  int cells_x[ctx.cdim], cells_v[ctx.vdim];
+  for (int d=0; d<ctx.cdim; d++)
+    cells_x[d] = APP_ARGS_CHOOSE(app_args.xcells[d], ctx.cells[d]);
+  for (int d=0; d<ctx.vdim; d++)
+    cells_v[d] = APP_ARGS_CHOOSE(app_args.vcells[d], ctx.cells[ctx.cdim+d]);
+
+  // Create decomposition.
+  struct gkyl_rect_decomp *decomp = gkyl_gyrokinetic_comms_decomp_new(ctx.cdim, cells_x, app_args.cuts, app_args.use_mpi, stderr);
+
+  // Construct communicator for use in app.
+  struct gkyl_comm *comm = gkyl_gyrokinetic_comms_new(app_args.use_mpi, app_args.use_gpu, decomp, stderr);
+
+  int my_rank = 0;
+#ifdef GKYL_HAVE_MPI
+  if (app_args.use_mpi)
+    gkyl_comm_get_rank(comm, &my_rank);
+#endif
 
   // electrons
   struct gkyl_gyrokinetic_species elc = {
@@ -376,7 +402,7 @@ main(int argc, char **argv)
     .charge = ctx.chargeElc, .mass = ctx.massElc,
     .lower = { -ctx.vpar_max_elc, 0.0},
     .upper = { ctx.vpar_max_elc, ctx.mu_max_elc}, 
-    .cells = { NVPAR, NMU },
+    .cells = { cells_v[0], cells_v[1] },
     .polarization_density = ctx.n0,
 
     .projection = {
@@ -429,7 +455,7 @@ main(int argc, char **argv)
     .charge = ctx.chargeIon, .mass = ctx.massIon,
     .lower = { -ctx.vpar_max_ion, 0.0},
     .upper = { ctx.vpar_max_ion, ctx.mu_max_ion}, 
-    .cells = { NVPAR, NMU },
+    .cells = { cells_v[0], cells_v[1] },
     .polarization_density = ctx.n0,
 
     .projection = {
@@ -491,7 +517,7 @@ main(int argc, char **argv)
     .cdim = 3, .vdim = 2,
     .lower = { 0.16, -ctx.Ly/2.0, -ctx.Lz/2.0 },
     .upper = { 0.17501, ctx.Ly/2.0, ctx.Lz/2.0 },
-    .cells = { NX, NY, NZ },
+    .cells = { cells_x[0], cells_x[1], cells_x[2] },
     .poly_order = 1,
     .basis_type = app_args.basis_type,
 
@@ -509,6 +535,12 @@ main(int argc, char **argv)
     .field = field,
 
     .use_gpu = app_args.use_gpu,
+
+    .has_low_inp = true,
+    .low_inp = {
+      .local_range = decomp->ranges[my_rank],
+      .comm = comm
+    }
   };
 
   // Create app object.
@@ -619,6 +651,13 @@ main(int argc, char **argv)
   freeresources:
   // simulation complete, free app
   gkyl_gyrokinetic_app_release(app);
+  gyrokinetic_comms_release(decomp, comm);
+  
+#ifdef GKYL_HAVE_MPI
+  if (app_args.use_mpi) {
+    MPI_Finalize();
+  }
+#endif
   
   return 0;
 }
