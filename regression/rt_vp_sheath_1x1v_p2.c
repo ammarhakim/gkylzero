@@ -11,24 +11,24 @@ struct vp_sheath_ctx {
   int cdim, vdim; // Dimensionality.
 
   double epsilon0; // Permittivity of free space.
-  double mass_elc; // Electron mass.
-  double mass_ion; // Proton mass.
-  double charge_elc; // Electron charge.
-  double charge_ion; // Proton charge.
+  double mass_elc; // Electron mass (kg).
+  double mass_ion; // Proton mass (kg).
+  double charge_elc; // Electron charge (C).
+  double charge_ion; // Proton charge. (C)
 
   double n0; // Reference density (m^-3).
   double Te0; // Reference electron temperature (J).
   double Ti0; // Reference ion temperature (J).
 
-  double x_min, x_max; // Extents of the x grid.
-  double vx_min_elc, vx_max_elc; // Extents of the electron vx grid.
-  double vx_min_ion, vx_max_ion; // Extents of the ion vx grid.
+  double x_min, x_max; // Extents of the x grid (m).
+  double vx_min_elc, vx_max_elc; // Extents of the electron vx grid (m/s).
+  double vx_min_ion, vx_max_ion; // Extents of the ion vx grid (m/s).
   int Nx; // Number of cells along x.
   int Nvx; // Number of cells along vx.
   int poly_order; // Polynomial order of the basis.
-  double Lx; // Length of the domain along x.
+  double Lx; // Length of the domain along x (m).
 
-  double t_end; // Final simulation time.
+  double t_end; // Final simulation time (s).
   int num_frames; // Number of output frames.
   int int_diag_calc_num; // Number of times to compute integrated diagnostics.
   double dt_failure_tol; // Minimum allowable fraction of initial time-step.
@@ -67,21 +67,21 @@ create_ctx(void)
   int cdim = 1, vdim = 1; // Dimensionality.
 
   double epsilon0 = GKYL_EPSILON0; // Permittivity of free space.
-  double eV = GKYL_ELEMENTARY_CHARGE; // Elementary charge.
-  double mass_elc = GKYL_ELECTRON_MASS; // Electron mass.
-  double mass_ion = GKYL_PROTON_MASS; // Proton mass.
-  double charge_elc = -eV; // Electron charge.
-  double charge_ion =  eV; // Proton charge.
+  double eV = GKYL_ELEMENTARY_CHARGE; // Elementary charge (C).
+  double mass_elc = GKYL_ELECTRON_MASS; // Electron mass (kg).
+  double mass_ion = GKYL_PROTON_MASS; // Proton mass (kg).
+  double charge_elc = -eV; // Electron charge (C).
+  double charge_ion =  eV; // Proton charge (C).
 
   double n0 = 1.0e18; // Reference density (m^-3).
   double Te0 = 10*eV; // Reference electron temperature (J).
   double Ti0 = Te0; // Reference ion temperature (J).
 
-  // Thermal speeds.
+  // Thermal speeds (m/s).
   double vte = sqrt(Te0/mass_elc);
   double vti = sqrt(Ti0/mass_ion);
 
-  // Plasma frequency and electron Debye length.
+  // Plasma frequency (rad/s) and electron Debye length (m).
   double omega_pe = sqrt((n0 * pow(charge_elc,2.0))/(epsilon0*mass_elc));
   double lambda_D = sqrt((epsilon0 * Te0)/(n0 * pow(charge_elc,2.0)));
 
@@ -93,9 +93,9 @@ create_ctx(void)
   int Nx = 64;
   int Nvx = 16;
   int poly_order = 2;
-  double Lx = x_max - x_min; // Length of the x domain.
+  double Lx = x_max - x_min; // Length of the x domain (m).
 
-  double t_end = 100.0/omega_pe; // Final simulation time.
+  double t_end = 100.0/omega_pe; // Final simulation time (s).
   int num_frames = 1; // Number of output frames.
   int int_diag_calc_num = num_frames*100; // Number of times to compute integrated diagnostics.
   double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.

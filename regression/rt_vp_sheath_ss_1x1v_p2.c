@@ -16,9 +16,9 @@ struct vp_sheath_ctx {
   double charge_elc; // Electron charge.
   double charge_ion; // Proton charge.
 
-  double n0; // Reference density (m^-3).
-  double Te0; // Reference electron temperature (J).
-  double Ti0; // Reference ion temperature (J).
+  double n0; // Reference density.
+  double Te0; // Reference electron temperature.
+  double Ti0; // Reference ion temperature.
 
   double x_min, x_max; // Extents of the x grid.
   double vx_min_elc, vx_max_elc; // Extents of the electron vx grid.
@@ -115,9 +115,9 @@ create_ctx(void)
   double charge_elc = -eV; // Electron charge.
   double charge_ion =  eV; // Proton charge.
 
-  double n0 = 1.0; // Reference density (m^-3).
-  double Te0 = 1.0*eV; // Reference electron temperature (J).
-  double Ti0 = Te0; // Reference ion temperature (J).
+  double n0 = 1.0; // Reference density.
+  double Te0 = 1.0*eV; // Reference electron temperature.
+  double Ti0 = Te0; // Reference ion temperature.
 
   // Thermal speeds.
   double vte = sqrt(Te0/mass_elc);
@@ -159,6 +159,7 @@ create_ctx(void)
     .Te0               = Te0               ,
     .Ti0               = Ti0               ,
                                            
+    .Lx                = Lx                ,
     .x_min             = x_min             ,
     .x_max             = x_max             ,
     .vx_min_elc        = vx_min_elc        ,
@@ -168,7 +169,6 @@ create_ctx(void)
     .Nx                = Nx                ,
     .Nvx               = Nvx               ,
     .poly_order        = poly_order        ,
-    .Lx                = Lx                ,
 
     .L_src             = L_src             , 
                                            
