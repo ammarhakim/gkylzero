@@ -113,19 +113,16 @@ void gkyl_dg_mul_op_range(struct gkyl_basis basis,
   switch (basis.b_type) {
     case GKYL_BASIS_MODAL_SERENDIPITY:
       mul_op = choose_ser_mul_kern(ndim, poly_order);
-
       break;
 
     case GKYL_BASIS_MODAL_TENSOR:
       mul_op = choose_ten_mul_kern(ndim, poly_order);
-      
       break;
 
     default:
       assert(false);
       break;    
   }
-
   struct gkyl_range_iter iter;
   gkyl_range_iter_init(&iter, range);
 
@@ -137,6 +134,46 @@ void gkyl_dg_mul_op_range(struct gkyl_basis basis,
     double *out_d = gkyl_array_fetch(out, loc);
 
     mul_op(lop_d+c_lop*num_basis, rop_d+c_rop*num_basis, out_d+c_oop*num_basis);
+  }
+}
+
+void gkyl_dg_mul_comp_par_op_range(struct gkyl_basis basis,
+  int c_oop, struct gkyl_array* out,
+  int c_lop, const struct gkyl_array* lop,
+  int c_rop, const struct gkyl_array* rop, const struct gkyl_range *range)
+{
+#ifdef GKYL_HAVE_CUDA
+  if (gkyl_array_is_cu_dev(out)) {
+    return gkyl_dg_mul_comp_par_op_range_cu(basis, c_oop, out, c_lop, lop, c_rop, rop, range);
+  }
+#endif
+
+  int num_basis = basis.num_basis;
+  int ndim = basis.ndim;
+  int poly_order = basis.poly_order;
+  mul_op_comp_par_t mul_op;
+  switch (basis.b_type) {
+    case GKYL_BASIS_MODAL_SERENDIPITY:
+      mul_op = choose_ser_mul_comp_par_kern(ndim, poly_order);
+      break;
+    default:
+      assert(false);
+      break;    
+  }
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, range);
+
+  while (gkyl_range_iter_next(&iter)) {
+    long loc = gkyl_range_idx(range, iter.idx);
+
+    const double *lop_d = gkyl_array_cfetch(lop, loc);
+    const double *rop_d = gkyl_array_cfetch(rop, loc);
+    double *out_d = gkyl_array_fetch(out, loc);
+
+    // Change this to be using the comp_par version
+    for (int linc1=0; linc1<num_basis; ++linc1) {
+      mul_op(lop_d+c_lop*num_basis, rop_d+c_rop*num_basis, out_d+c_oop*num_basis, linc1);
+    }
   }
 }
 

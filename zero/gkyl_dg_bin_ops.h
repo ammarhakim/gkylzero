@@ -63,6 +63,11 @@ void gkyl_dg_mul_op_range(struct gkyl_basis basis,
   int c_lop, const struct gkyl_array* lop,
   int c_rop, const struct gkyl_array* rop, const struct gkyl_range *range);
 
+void gkyl_dg_mul_comp_par_op_range(struct gkyl_basis basis,
+  int c_oop, struct gkyl_array* out,
+  int c_lop, const struct gkyl_array* lop,
+  int c_rop, const struct gkyl_array* rop, const struct gkyl_range *range);
+
 /**
  * Compute pout = cop*pop on specified range (sub-range of range
  * containing the DG fields), where pout and pop are phase-space
@@ -220,6 +225,12 @@ gkyl_dg_mul_op_cu(struct gkyl_basis basis,
 
 void
 gkyl_dg_mul_op_range_cu(struct gkyl_basis basis,
+  int c_oop, struct gkyl_array* out,
+  int c_lop, const struct gkyl_array* lop,
+  int c_rop, const struct gkyl_array* rop, const struct gkyl_range *range);
+
+void
+gkyl_dg_mul_comp_par_op_range_cu(struct gkyl_basis basis,
   int c_oop, struct gkyl_array* out,
   int c_lop, const struct gkyl_array* lop,
   int c_rop, const struct gkyl_array* rop, const struct gkyl_range *range);

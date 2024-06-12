@@ -49,31 +49,6 @@ void gv3_1d(double t, const double *xn, double* restrict fout, void *ctx)
   fout[2] = 0.5*x*x + 4;
 }
 
-void check_dot_product_1d(const double *fv1_d, const double *gv1_d, const double *fvdgv1_d,
-                          const double *fv2_d, const double *gv2_d, const double *fvdgv2_d,
-                          const double *fv3_d, const double *gv3_d, const double *fvdgv3_d,
-                          int poly_order) {
-  if (poly_order == 1) {
-    TEST_CHECK( gkyl_compare(fvdgv1_d[0], 0.7071067811865475*(fv1_d[1]*gv1_d[1]+fv1_d[0]*gv1_d[0]), 1e-12) );
-    TEST_CHECK( gkyl_compare(fvdgv1_d[1], 0.7071067811865475*(fv1_d[0]*gv1_d[1]+gv1_d[0]*fv1_d[1]), 1e-12) );
-    TEST_CHECK( gkyl_compare(fvdgv2_d[0], 0.7071067811865475*(fv2_d[3]*gv2_d[3]+fv2_d[2]*gv2_d[2]+fv2_d[1]*gv2_d[1]+fv2_d[0]*gv2_d[0]), 1e-12) );
-    TEST_CHECK( gkyl_compare(fvdgv2_d[1], 0.7071067811865475*(fv2_d[2]*gv2_d[3]+gv2_d[2]*fv2_d[3]+fv2_d[0]*gv2_d[1]+gv2_d[0]*fv2_d[1]), 1e-12) );
-    TEST_CHECK( gkyl_compare(fvdgv3_d[0], 0.7071067811865475*(fv3_d[5]*gv3_d[5]+fv3_d[4]*gv3_d[4]+fv3_d[3]*gv3_d[3]+fv3_d[2]*gv3_d[2]+fv3_d[1]*gv3_d[1]+fv3_d[0]*gv3_d[0]), 1e-12) );
-    TEST_CHECK( gkyl_compare(fvdgv3_d[1], 0.7071067811865475*(fv3_d[4]*gv3_d[5]+gv3_d[4]*fv3_d[5]+fv3_d[2]*gv3_d[3]+gv3_d[2]*fv3_d[3]+fv3_d[0]*gv3_d[1]+gv3_d[0]*fv3_d[1]), 1e-12) );
-  } else if (poly_order == 2) {
-    TEST_CHECK( gkyl_compare(fvdgv1_d[0], 0.7071067811865475*(fv1_d[2]*gv1_d[2]+fv1_d[1]*gv1_d[1]+fv1_d[0]*gv1_d[0]), 1e-12) );
-    TEST_CHECK( gkyl_compare(fvdgv1_d[1], 0.1414213562373095*(4.47213595499958*fv1_d[1]*gv1_d[2]+4.47213595499958*gv1_d[1]*fv1_d[2]+5.0*fv1_d[0]*gv1_d[1]+5.0*gv1_d[0]*fv1_d[1]), 1e-12) );
-    TEST_CHECK( gkyl_compare(fvdgv1_d[2], 0.02020305089104421*((22.3606797749979*fv1_d[2]+35.0*fv1_d[0])*gv1_d[2]+35.0*gv1_d[0]*fv1_d[2]+31.30495168499706*fv1_d[1]*gv1_d[1]), 1e-12) );
-    TEST_CHECK( gkyl_compare(fvdgv2_d[0], 0.7071067811865475*(fv2_d[5]*gv2_d[5]+fv2_d[4]*gv2_d[4]+fv2_d[3]*gv2_d[3]+fv2_d[2]*gv2_d[2]+fv2_d[1]*gv2_d[1]+fv2_d[0]*gv2_d[0]), 1e-12) );
-    TEST_CHECK( gkyl_compare(fvdgv2_d[1], 0.1414213562373095*(4.47213595499958*fv2_d[4]*gv2_d[5]+4.47213595499958*gv2_d[4]*fv2_d[5]+5.0*fv2_d[3]*gv2_d[4]+5.0*gv2_d[3]*fv2_d[4]+4.47213595499958*fv2_d[1]*gv2_d[2]+4.47213595499958*gv2_d[1]*fv2_d[2]+5.0*fv2_d[0]*gv2_d[1]+5.0*gv2_d[0]*fv2_d[1]), 1e-12) );
-    TEST_CHECK( gkyl_compare(fvdgv2_d[2], 0.02020305089104421*((22.3606797749979*fv2_d[5]+35.0*fv2_d[3])*gv2_d[5]+35.0*gv2_d[3]*fv2_d[5]+31.30495168499706*fv2_d[4]*gv2_d[4]+(22.3606797749979*fv2_d[2]+35.0*fv2_d[0])*gv2_d[2]+35.0*gv2_d[0]*fv2_d[2]+31.30495168499706*fv2_d[1]*gv2_d[1]), 1e-12) );
-    TEST_CHECK( gkyl_compare(fvdgv3_d[0], 0.7071067811865475*(fv3_d[8]*gv3_d[8]+fv3_d[7]*gv3_d[7]+fv3_d[6]*gv3_d[6]+fv3_d[5]*gv3_d[5]+fv3_d[4]*gv3_d[4]+fv3_d[3]*gv3_d[3]+fv3_d[2]*gv3_d[2]+fv3_d[1]*gv3_d[1]+fv3_d[0]*gv3_d[0]), 1e-12) );
-    TEST_CHECK( gkyl_compare(fvdgv3_d[1], 0.1414213562373095*(4.47213595499958*fv3_d[7]*gv3_d[8]+4.47213595499958*gv3_d[7]*fv3_d[8]+5.0*fv3_d[6]*gv3_d[7]+5.0*gv3_d[6]*fv3_d[7]+4.47213595499958*fv3_d[4]*gv3_d[5]+4.47213595499958*gv3_d[4]*fv3_d[5]+5.0*fv3_d[3]*gv3_d[4]+5.0*gv3_d[3]*fv3_d[4]+4.47213595499958*fv3_d[1]*gv3_d[2]+4.47213595499958*gv3_d[1]*fv3_d[2]+5.0*fv3_d[0]*gv3_d[1]+5.0*gv3_d[0]*fv3_d[1]), 1e-12) );
-    TEST_CHECK( gkyl_compare(fvdgv3_d[2], 0.02020305089104421*((22.3606797749979*fv3_d[8]+35.0*fv3_d[6])*gv3_d[8]+35.0*gv3_d[6]*fv3_d[8]+31.30495168499706*fv3_d[7]*gv3_d[7]+(22.3606797749979*fv3_d[5]+35.0*fv3_d[3])*gv3_d[5]+35.0*gv3_d[3]*fv3_d[5]+31.30495168499706*fv3_d[4]*gv3_d[4]+(22.3606797749979*fv3_d[2]+35.0*fv3_d[0])*gv3_d[2]+35.0*gv3_d[0]*fv3_d[2]+31.30495168499706*fv3_d[1]*gv3_d[1]), 1e-12) );
-  }
-  return;
-}
-
 void
 test_1d(int poly_order, bool use_gpu)
 {
@@ -173,7 +148,7 @@ test_1d(int poly_order, bool use_gpu)
     // h = f*g
 
     clock_t start = clock();    
-    gkyl_dg_mul_op_range(basis, 0, h, 0, distf, 0, distg, &arr_range);
+    gkyl_dg_mul_comp_par_op_range(basis, 0, h, 0, distf, 0, distg, &arr_range);
     clock_t end = clock();
     double time_taken = ((double) (end - start)) / CLOCKS_PER_SEC;
     printf("Time taken for multiplication on CPU: %f\n", time_taken);

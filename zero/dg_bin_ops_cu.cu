@@ -95,6 +95,53 @@ gkyl_dg_mul_op_range_cu(struct gkyl_basis basis,
 }
 
 __global__ void
+gkyl_dg_mul_comp_par_op_range_cu_kernel(struct gkyl_basis basis,
+  int c_oop, struct gkyl_array* out,
+  int c_lop, const struct gkyl_array* lop,
+  int c_rop, const struct gkyl_array* rop, struct gkyl_range range)
+{
+  int num_basis = basis.num_basis;
+  int ndim = basis.ndim;
+  int poly_order = basis.poly_order;
+  mul_op_comp_par_t mul_op = choose_ser_mul_kern(ndim, poly_order);
+
+  int idx[GKYL_MAX_DIM];
+
+  for (unsigned long linc1 = threadIdx.x + blockIdx.x*blockDim.x;
+      linc1 < range.volume;
+      linc1 += gridDim.x*blockDim.x)
+  {
+    // inverse index from linc1 to idx
+    // must use gkyl_sub_range_inv_idx so that linc1=0 maps to idx={1,1,...}
+    // since update_range is a subrange
+    gkyl_sub_range_inv_idx(&range, linc1, idx);
+
+    // convert back to a linear index on the super-range (with ghost cells)
+    // linc will have jumps in it to jump over ghost cells
+    long start = gkyl_range_idx(&range, idx);
+
+    const double *lop_d = (const double*) gkyl_array_cfetch(lop, start);
+    const double *rop_d = (const double*) gkyl_array_cfetch(rop, start);
+    double *out_d = (double*) gkyl_array_fetch(out, start);
+    // This linc1 is wrong
+    mul_op(lop_d+c_lop*num_basis, rop_d+c_rop*num_basis, out_d+c_oop*num_basis, linc1);
+  }
+}
+
+// Host-side wrapper for range-based dg multiplication operation
+void
+gkyl_dg_mul_comp_par_op_range_cu(struct gkyl_basis basis,
+  int c_oop, struct gkyl_array* out,
+  int c_lop, const struct gkyl_array* lop,
+  int c_rop, const struct gkyl_array* rop, const struct gkyl_range *range)
+{
+  int nblocks = range->nblocks;
+  int nthreads = range->nthreads;
+  gkyl_dg_mul_comp_par_op_range_cu_kernel<<<nblocks, nthreads>>>(basis, c_oop, out->on_dev,
+    c_lop, lop->on_dev, c_rop, rop->on_dev, *range);
+}
+
+__global__ void
 gkyl_dg_mul_conf_phase_op_range_cu_kernel(struct gkyl_basis cbasis,
   struct gkyl_basis pbasis, struct gkyl_array* pout,
   const struct gkyl_array* cop, const struct gkyl_array* pop,
