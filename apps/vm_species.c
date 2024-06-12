@@ -142,6 +142,86 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
     s->slvr = gkyl_dg_updater_vlasov_new(&s->grid, &app->confBasis, &app->basis, 
       &app->local, &s->local_vel, &s->local, is_zero_flux, s->model_id, s->field_id, &aux_inp, app->use_gpu);
   }
+  else if (s->model_id == GKYL_MODEL_CANONICAL_PB) {
+    // Allocate arrays for specified hamiltonian
+    s->hamil = mkarr(app->use_gpu, app->basis.num_basis, s->local_ext.volume);
+    s->hamil_host = s->hamil;
+    if (app->use_gpu){
+      s->hamil_host = mkarr(false, app->basis.num_basis, s->local_ext.volume);
+    }
+
+    // Allocate arrays for specified metric inverse
+    s->h_ij_inv = mkarr(app->use_gpu, app->confBasis.num_basis*cdim*(cdim+1)/2, app->local_ext.volume);
+    s->h_ij_inv_host = s->h_ij_inv;
+    if (app->use_gpu){
+      s->h_ij_inv_host = mkarr(false, app->confBasis.num_basis*cdim*(cdim+1)/2, app->local_ext.volume);
+    }
+
+    // Allocate arrays for specified metric determinant
+    s->det_h = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
+    s->det_h_host = s->det_h;
+    if (app->use_gpu){
+      s->det_h_host = mkarr(false, app->confBasis.num_basis, app->local_ext.volume);
+    }
+
+
+    // Evaluate specified hamiltonian function at nodes to insure continuity of hamiltoniam
+    struct gkyl_eval_on_nodes* hamil_proj = gkyl_eval_on_nodes_new(&s->grid, &app->basis, 1, s->info.hamil, s->info.hamil_ctx);
+    gkyl_eval_on_nodes_advance(hamil_proj, 0.0, &s->local_ext, s->hamil_host);
+    if (app->use_gpu){
+      gkyl_array_copy(s->hamil, s->hamil_host);
+    }
+    gkyl_eval_on_nodes_release(hamil_proj);
+
+    // Evaluate specified inverse metric function at nodes to insure continuity of the inverse 
+    struct gkyl_eval_on_nodes* h_ij_inv_proj = gkyl_eval_on_nodes_new(&app->grid, &app->confBasis, cdim*(cdim+1)/2, s->info.h_ij_inv, s->info.h_ij_inv_ctx);
+    gkyl_eval_on_nodes_advance(h_ij_inv_proj, 0.0, &app->local, s->h_ij_inv_host);
+    if (app->use_gpu){
+      gkyl_array_copy(s->h_ij_inv, s->h_ij_inv_host);
+    }
+    gkyl_eval_on_nodes_release(h_ij_inv_proj);
+
+    // Evaluate specified determinant metric function at nodes to insure continuity of the determinant
+    struct gkyl_eval_on_nodes* det_h_proj = gkyl_eval_on_nodes_new(&app->grid, &app->confBasis, 1, s->info.det_h, s->info.det_h_ctx);
+    gkyl_eval_on_nodes_advance(det_h_proj, 0.0, &app->local, s->det_h_host);
+    if (app->use_gpu){
+      gkyl_array_copy(s->det_h, s->det_h_host);
+    }
+    gkyl_eval_on_nodes_release(det_h_proj);
+
+    // Need to figure out size of alpha_surf and sgn_alpha_surf by finding size of surface basis set 
+    struct gkyl_basis surf_basis, surf_quad_basis;
+    gkyl_cart_modal_serendip(&surf_basis, pdim-1, app->poly_order);
+    gkyl_cart_modal_tensor(&surf_quad_basis, pdim-1, app->poly_order);
+
+    // always 2*cdim
+    int alpha_surf_sz = (2*cdim)*surf_basis.num_basis; 
+    int sgn_alpha_surf_sz = (2*cdim)*surf_quad_basis.num_basis; // sign(alpha) is store at quadrature points
+
+    // allocate arrays to store fields: 
+    // 1. alpha_surf (surface phase space velocity)
+    // 2. sgn_alpha_surf (sign(alpha_surf) at quadrature points)
+    // 3. const_sgn_alpha (boolean for if sign(alpha_surf) is a constant, either +1 or -1)
+    s->alpha_surf = mkarr(app->use_gpu, alpha_surf_sz, s->local_ext.volume);
+    s->sgn_alpha_surf = mkarr(app->use_gpu, sgn_alpha_surf_sz, s->local_ext.volume);
+    s->const_sgn_alpha = mk_int_arr(app->use_gpu, (2*cdim), s->local_ext.volume);
+
+    // Pre-compute alpha_surf, sgn_alpha_surf, const_sgn_alpha, and cot_vec since they are time-independent
+    struct gkyl_dg_calc_canonical_pb_vars *calc_vars = gkyl_dg_calc_canonical_pb_vars_new(&s->grid, 
+      &app->confBasis, &app->basis, app->use_gpu);
+    gkyl_dg_calc_canonical_pb_vars_alpha_surf(calc_vars, &app->local, &s->local, &s->local_ext, s->hamil,
+      s->alpha_surf, s->sgn_alpha_surf, s->const_sgn_alpha);
+    gkyl_dg_calc_canonical_pb_vars_release(calc_vars);
+
+    // By default we do not have zero-flux boundary cond in any dir
+    bool is_zero_flux[GKYL_MAX_DIM] = {false};
+    struct gkyl_dg_canonical_pb_auxfields aux_inp = {.hamil = s->hamil, .alpha_surf = s->alpha_surf, 
+      .sgn_alpha_surf = s->sgn_alpha_surf, .const_sgn_alpha = s->const_sgn_alpha};
+
+    //create solver
+    s->slvr = gkyl_dg_updater_vlasov_new(&s->grid, &app->confBasis, &app->basis, 
+      &app->local, &s->local_vel, &s->local, is_zero_flux, s->model_id, s->field_id, &aux_inp, app->use_gpu);
+  }
   else {
     // By default, we do not have zero-flux BCs in configuration space.
     bool is_zero_flux[2*GKYL_MAX_DIM] = {false};
@@ -500,6 +580,19 @@ vm_species_release(const gkyl_vlasov_app* app, const struct vm_species *s)
       gkyl_array_release(s->gamma_inv_host);
     }
     gkyl_dg_bin_op_mem_release(s->V_drift_mem);
+  }
+  else if (s->model_id == GKYL_MODEL_CANONICAL_PB) {
+    gkyl_array_release(s->hamil);
+    gkyl_array_release(s->h_ij_inv);
+    gkyl_array_release(s->det_h);
+    gkyl_array_release(s->alpha_surf);
+    gkyl_array_release(s->sgn_alpha_surf);
+    gkyl_array_release(s->const_sgn_alpha);
+    if (app->use_gpu){
+      gkyl_array_release(s->hamil_host);
+      gkyl_array_release(s->h_ij_inv_host);
+      gkyl_array_release(s->det_h_host);
+    }
   }
 
   // release equation object and solver
