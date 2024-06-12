@@ -45,11 +45,9 @@ vp_species_projection_init(struct gkyl_vlasov_poisson_app *app, struct vp_specie
       .conf_range =  &app->local,
       .conf_range_ext = &app->local_ext,
       .vel_range = &s->local_vel,
-      .p_over_gamma = NULL,
-      .gamma = NULL,
-      .gamma_inv = NULL,
       .model_id = s->model_id,
       .mass = s->info.mass,
+      .quad_type = inp.quad_type,
       .use_gpu = app->use_gpu,
     };
     proj->proj_lte = gkyl_vlasov_lte_proj_on_basis_inew( &inp_proj );
@@ -65,14 +63,12 @@ vp_species_projection_init(struct gkyl_vlasov_poisson_app *app, struct vp_specie
         .conf_range =  &app->local,
         .conf_range_ext = &app->local_ext,
         .vel_range = &s->local_vel,
-        .p_over_gamma = NULL,
-        .gamma = NULL,
-        .gamma_inv = NULL,
         .model_id = s->model_id,
         .mass = s->info.mass,
-        .use_gpu = app->use_gpu,
         .max_iter = 100,
         .eps = 1e-12,
+        .quad_type = inp.quad_type,
+        .use_gpu = app->use_gpu,
       };
       proj->corr_lte = gkyl_vlasov_lte_correct_inew( &inp_corr );
     }

@@ -36,29 +36,59 @@ struct vp_sheath_ctx {
 };
 
 void
-eval_distf_elc(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
+eval_dens_elc(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
 {
-  struct vp_sheath_ctx *app = ctx;
   double x = xn[0], v = xn[1];
+  struct vp_sheath_ctx *app = ctx;
   double n0 = app->n0;
-  double vt = sqrt(app->Te0/app->mass_elc);
-  double vt_sq = pow(vt,2.0);
 
-  double fv = n0/sqrt(2.0*M_PI*vt_sq)*(exp(-pow(v,2.0)/(2.0*vt_sq)));
-  fout[0] = fv;
+  fout[0] = n0;
 }
 
 void
-eval_distf_ion(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
+eval_vdrift_elc(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
 {
-  struct vp_sheath_ctx *app = ctx;
   double x = xn[0], v = xn[1];
-  double n0 = app->n0;
-  double vt = sqrt(app->Ti0/app->mass_ion);
-  double vt_sq = pow(vt,2.0);
+  struct vp_sheath_ctx *app = ctx;
+  fout[0] = 0.0;
+}
 
-  double fv = n0/sqrt(2.0*M_PI*vt_sq)*(exp(-pow(v,2.0)/(2.0*vt_sq)));
-  fout[0] = fv;
+void
+eval_temp_elc(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
+{
+  double x = xn[0], v = xn[1];
+  struct vp_sheath_ctx *app = ctx;
+  double temp = app->Te0;
+
+  fout[0] = temp;
+}
+
+void
+eval_dens_ion(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
+{
+  double x = xn[0], v = xn[1];
+  struct vp_sheath_ctx *app = ctx;
+  double n0 = app->n0;
+
+  fout[0] = n0;
+}
+
+void
+eval_vdrift_ion(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
+{
+  double x = xn[0], v = xn[1];
+  struct vp_sheath_ctx *app = ctx;
+  fout[0] = 0.0;
+}
+
+void
+eval_temp_ion(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
+{
+  double x = xn[0], v = xn[1];
+  struct vp_sheath_ctx *app = ctx;
+  double temp = app->Ti0;
+
+  fout[0] = temp;
 }
 
 struct vp_sheath_ctx
@@ -185,9 +215,13 @@ main(int argc, char **argv)
     .cells = { ctx.Nvx },
 
     .projection = {
-      .proj_id = GKYL_PROJ_FUNC,
-      .func = eval_distf_elc,
-      .ctx_func = &ctx,
+      .proj_id = GKYL_PROJ_VLASOV_LTE,
+      .density = eval_dens_elc,
+      .V_drift = eval_vdrift_elc,
+      .temp = eval_temp_elc,
+      .ctx_density = &ctx,
+      .ctx_V_drift = &ctx,
+      .ctx_temp = &ctx,
     },
 
     .bcx = {
@@ -208,9 +242,13 @@ main(int argc, char **argv)
     .cells = { ctx.Nvx },
 
     .projection = {
-      .proj_id = GKYL_PROJ_FUNC,
-      .func = eval_distf_ion,
-      .ctx_func = &ctx,
+      .proj_id = GKYL_PROJ_VLASOV_LTE,
+      .density = eval_dens_ion,
+      .V_drift = eval_vdrift_ion,
+      .temp = eval_temp_ion,
+      .ctx_density = &ctx,
+      .ctx_V_drift = &ctx,
+      .ctx_temp = &ctx,
     },
 
     .bcx = {
