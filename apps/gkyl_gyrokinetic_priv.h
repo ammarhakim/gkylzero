@@ -327,6 +327,7 @@ struct gk_react {
                               // f_react = n_elc*coeff_react*(2*fmax(n_elc, upar_donor, vtiz^2) - f_elc)
 
   struct gkyl_proj_maxwellian_on_basis *proj_max; // Maxwellian projection object
+  struct gkyl_vlasov_lte_proj_on_basis *proj_lte; // Maxwellian projection object for Vlasov neutrals
 
   enum gkyl_react_id react_id[GKYL_MAX_SPECIES]; // what type of reaction (ionization, charge exchange, recombination)
   enum gkyl_react_self_type type_self[GKYL_MAX_SPECIES]; // what is the role of species in this reaction
