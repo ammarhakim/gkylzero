@@ -36,6 +36,16 @@ gkyl_dg_mul_op_cu_kernel(struct gkyl_basis basis,
   }  
 }
 
+void
+gkyl_parallelize_components_kernel_launch_dims(dim3* dimGrid, dim3* dimBlock, gkyl_range range, int ncomp)
+{
+  // Create a 2D thread grid so we launch ncomp*range.volume number of threads and can parallelize over components too
+  dimBlock->y = GKYL_MIN2(ncomp, GKYL_DEFAULT_NUM_THREADS);
+  dimGrid->y = gkyl_int_div_up(ncomp, dimBlock->y);
+  dimBlock->x = GKYL_DEFAULT_NUM_THREADS/ncomp;
+  dimGrid->x = gkyl_int_div_up(range.volume, dimBlock->x);
+}
+
 // Host-side wrapper for dg multiplication operation
 void
 gkyl_dg_mul_op_cu(struct gkyl_basis basis,
@@ -106,7 +116,7 @@ gkyl_dg_mul_comp_par_op_range_cu_kernel(struct gkyl_basis basis,
   mul_op_comp_par_t mul_op = choose_ser_mul_kern(ndim, poly_order);
 
   int idx[GKYL_MAX_DIM];
-
+  long linc2 = threadIdx.y + blockIdx.y*blockDim.y;
   for (unsigned long linc1 = threadIdx.x + blockIdx.x*blockDim.x;
       linc1 < range.volume;
       linc1 += gridDim.x*blockDim.x)
@@ -124,7 +134,7 @@ gkyl_dg_mul_comp_par_op_range_cu_kernel(struct gkyl_basis basis,
     const double *rop_d = (const double*) gkyl_array_cfetch(rop, start);
     double *out_d = (double*) gkyl_array_fetch(out, start);
     // This linc1 is wrong
-    mul_op(lop_d+c_lop*num_basis, rop_d+c_rop*num_basis, out_d+c_oop*num_basis, linc1);
+    mul_op(lop_d+c_lop*num_basis, rop_d+c_rop*num_basis, out_d+c_oop*num_basis, linc2);
   }
 }
 
@@ -135,9 +145,10 @@ gkyl_dg_mul_comp_par_op_range_cu(struct gkyl_basis basis,
   int c_lop, const struct gkyl_array* lop,
   int c_rop, const struct gkyl_array* rop, const struct gkyl_range *range)
 {
-  int nblocks = range->nblocks;
-  int nthreads = range->nthreads;
-  gkyl_dg_mul_comp_par_op_range_cu_kernel<<<nblocks, nthreads>>>(basis, c_oop, out->on_dev,
+  dim3 dimGrid, dimBlock;
+  gkyl_parallelize_components_kernel_launch_dims(&dimGrid, &dimBlock, *range, out->ncomp);
+
+  gkyl_dg_mul_comp_par_op_range_cu_kernel<<<dimGrid, dimBlock>>>(basis, c_oop, out->on_dev,
     c_lop, lop->on_dev, c_rop, rop->on_dev, *range);
 }
 
