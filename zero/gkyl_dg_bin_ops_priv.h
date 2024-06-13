@@ -32,7 +32,7 @@ struct gkyl_dg_bin_op_mem {
 
 // Function pointer type for multiplication
 typedef void (*mul_op_t)(const double *f, const double *g, double *fg);
-typedef void (*mul_op_comp_par_t)(const double *f, const double *g, double *fg, int linc1);
+typedef void (*mul_op_comp_par_t)(const double *f, const double *g, double *fg, int linc2);
 
 typedef struct gkyl_kern_op_count (*mul_op_count_t)(void);
 
@@ -64,8 +64,8 @@ GKYL_CU_D
 static const mul_op_comp_par_kern_list ser_mul_comp_par_list[] = {
   { NULL, NULL, NULL, NULL }, // No 0D basis functions
   { binop_mul_comp_par_1d_ser_p0, binop_mul_comp_par_1d_ser_p1, binop_mul_comp_par_1d_ser_p2, binop_mul_comp_par_1d_ser_p3 },
-  // { binop_mul_2d_ser_p0, binop_mul_2d_ser_p1, binop_mul_2d_ser_p2, binop_mul_2d_ser_p3 },
-  // { binop_mul_3d_ser_p0, binop_mul_3d_ser_p1, binop_mul_3d_ser_p2, binop_mul_3d_ser_p3 }
+  { binop_mul_comp_par_2d_ser_p0, binop_mul_comp_par_2d_ser_p1, binop_mul_comp_par_2d_ser_p2, binop_mul_comp_par_2d_ser_p3 },
+  { binop_mul_comp_par_3d_ser_p0, binop_mul_comp_par_3d_ser_p1, binop_mul_comp_par_3d_ser_p2, binop_mul_comp_par_3d_ser_p3 }
 };
 
 // Tensor multiplication kernels
@@ -145,13 +145,6 @@ static const mul_op_count_kern_list ser_mul_op_count_list[] = {
   { op_count_binop_mul_1d_ser_p0, op_count_binop_mul_1d_ser_p1, op_count_binop_mul_1d_ser_p2, op_count_binop_mul_1d_ser_p3 },
   { op_count_binop_mul_2d_ser_p0, op_count_binop_mul_2d_ser_p1, op_count_binop_mul_2d_ser_p2, op_count_binop_mul_2d_ser_p3 },
   { op_count_binop_mul_3d_ser_p0, op_count_binop_mul_3d_ser_p1, op_count_binop_mul_3d_ser_p2, op_count_binop_mul_3d_ser_p3 }
-};
-
-static const mul_comp_par_op_count_kern_list ser_mul_comp_par_op_count_list[] = {
-  { NULL, NULL, NULL, NULL }, // No 0D basis functions
-  { op_count_binop_mul_comp_par_1d_ser_p0, op_count_binop_mul_comp_par_1d_ser_p1, op_count_binop_mul_comp_par_1d_ser_p2 , op_count_binop_mul_comp_par_1d_ser_p3 },
-  // { op_count_binop_mul_2d_ser_p0, op_count_binop_mul_2d_ser_p1, op_count_binop_mul_2d_ser_p2, op_count_binop_mul_2d_ser_p3 },
-  // { op_count_binop_mul_3d_ser_p0, op_count_binop_mul_3d_ser_p1, op_count_binop_mul_3d_ser_p2, op_count_binop_mul_3d_ser_p3 }
 };
 
 // Serendipity division kernels
