@@ -44,12 +44,16 @@ gkyl_bc_emission_elastic_new(enum gkyl_bc_emission_elastic_type elastic_type,
     up->funcs->yield = bc_emission_elastic_choose_yield_func(elastic_type);
     up->funcs_cu = up->funcs;
     up->elastic_param_cu = up->elastic_param;
+
+    gkyl_proj_on_basis *proj = gkyl_proj_on_basis_new(grid, basis, poly_order + 1, 1,
+      up->funcs->yield, up);
+    gkyl_proj_on_basis_advance(proj, 0.0, emit_buff_r, elastic_yield);
+    gkyl_proj_on_basis_release(proj);
   }
 #else
   up->funcs->yield = bc_emission_elastic_choose_yield_func(elastic_type);
   up->funcs_cu = up->funcs;
   up->elastic_param_cu = up->elastic_param;
-  up->grid = grid;
   
   gkyl_proj_on_basis *proj = gkyl_proj_on_basis_new(grid, basis, poly_order + 1, 1,
     up->funcs->yield, up);

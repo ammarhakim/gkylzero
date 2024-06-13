@@ -82,6 +82,7 @@ gkyl_bc_emission_spectrum_new(enum gkyl_bc_emission_spectrum_norm_type norm_type
   up->use_gpu = use_gpu;
   up->norm_param = norm_param;
   up->yield_param = yield_param;
+  up->grid = grid;
 
   int ghost[GKYL_MAX_DIM];
   for (int d=0; d<cdim; ++d) {
@@ -106,6 +107,12 @@ gkyl_bc_emission_spectrum_new(enum gkyl_bc_emission_spectrum_norm_type norm_type
     up->funcs_cu = up->funcs;
     up->norm_param_cu = up->norm_param;
     up->yield_param_cu = up->yield_param;
+  
+    gkyl_bc_emission_spectrum_sey_calc(up, yield, grid, impact_ghost_r, impact_buff_r);
+    gkyl_proj_on_basis *proj = gkyl_proj_on_basis_new(grid, basis, poly_order + 1, 1,
+      up->funcs->spec, up);
+    gkyl_proj_on_basis_advance(proj, 0.0, impact_buff_r, spectrum);
+    gkyl_proj_on_basis_release(proj);
   }
 #else
   up->funcs->func = bc_weighted_delta;
@@ -115,7 +122,6 @@ gkyl_bc_emission_spectrum_new(enum gkyl_bc_emission_spectrum_norm_type norm_type
   up->funcs_cu = up->funcs;
   up->norm_param_cu = up->norm_param;
   up->yield_param_cu = up->yield_param;
-  up->grid = grid;
   
   gkyl_bc_emission_spectrum_sey_calc(up, yield, grid, impact_ghost_r, impact_buff_r);
   gkyl_proj_on_basis *proj = gkyl_proj_on_basis_new(grid, basis, poly_order + 1, 1,
@@ -166,11 +172,11 @@ gkyl_bc_emission_spectrum_advance(const struct gkyl_bc_emission_spectrum *up,
     gkyl_range_iter_no_split_init(&vel_iter, &vel_buff_r);
 
     double *w = gkyl_array_fetch(weight, midx);
-
+    
     while (gkyl_range_iter_next(&vel_iter)) {
       copy_idx_arrays(impact_cbuff_r->ndim, impact_buff_r->ndim, conf_iter.idx, vel_iter.idx, pidx);
       gkyl_rect_grid_cell_center(up->grid, pidx, xc);
-
+      
       long loc = gkyl_range_idx(&vel_buff_r, vel_iter.idx);
       
       const double *inp = gkyl_array_cfetch(bflux, loc);
