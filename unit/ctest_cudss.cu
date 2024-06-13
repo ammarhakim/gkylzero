@@ -2,6 +2,7 @@
 
 extern "C" {
 #include <gkyl_alloc.h>
+#include <gkyl_cudss_ops.h>
 #include <assert.h>
 }
 
@@ -10,6 +11,7 @@ extern "C" {
 
 extern "C" {
 void test_cudss_simple();
+void test_cudss_ops();
 }
 
 #define checkCUDSS(call, status, msg) \
@@ -98,14 +100,10 @@ void test_cudss_simple()
   checkCuda(cudaMalloc(&x_values_d, nrhs * n * sizeof(double)));
 
   /* Copy host memory to device for A and b */
-  checkCuda(cudaMemcpy(csr_offsets_d, csr_offsets_h, (n + 1) * sizeof(int),
-                      cudaMemcpyHostToDevice));
-  checkCuda(cudaMemcpy(csr_columns_d, csr_columns_h, nnz * sizeof(int),
-                      cudaMemcpyHostToDevice));
-  checkCuda(cudaMemcpy(csr_values_d, csr_values_h, nnz * sizeof(double),
-                      cudaMemcpyHostToDevice));
-  checkCuda(cudaMemcpy(b_values_d, b_values_h, nrhs * n * sizeof(double),
-                      cudaMemcpyHostToDevice));
+  checkCuda(cudaMemcpy(csr_offsets_d, csr_offsets_h, (n + 1) * sizeof(int), cudaMemcpyHostToDevice));
+  checkCuda(cudaMemcpy(csr_columns_d, csr_columns_h, nnz * sizeof(int), cudaMemcpyHostToDevice));
+  checkCuda(cudaMemcpy(csr_values_d, csr_values_h, nnz * sizeof(double), cudaMemcpyHostToDevice));
+  checkCuda(cudaMemcpy(b_values_d, b_values_h, nrhs * n * sizeof(double), cudaMemcpyHostToDevice));
 
   /* Create a CUDA stream */
   cudaStream_t stream = NULL;
@@ -131,10 +129,10 @@ void test_cudss_simple()
 
   int64_t nrows = n, ncols = n;
   int ldb = ncols, ldx = nrows;
-  checkCUDSS(cudssMatrixCreateDn(&b, ncols, nrhs, ldb, b_values_d, CUDA_R_64F,
-                       CUDSS_LAYOUT_COL_MAJOR), status, "cudssMatrixCreateDn for b");
-  checkCUDSS(cudssMatrixCreateDn(&x, nrows, nrhs, ldx, x_values_d, CUDA_R_64F,
-                       CUDSS_LAYOUT_COL_MAJOR), status, "cudssMatrixCreateDn for x");
+  checkCUDSS(cudssMatrixCreateDn(&b, ncols, nrhs, ldb, b_values_d, CUDA_R_64F, CUDSS_LAYOUT_COL_MAJOR),
+    status, "cudssMatrixCreateDn for b");
+  checkCUDSS(cudssMatrixCreateDn(&x, nrows, nrhs, ldx, x_values_d, CUDA_R_64F, CUDSS_LAYOUT_COL_MAJOR),
+    status, "cudssMatrixCreateDn for x");
 
   /* Create a matrix object for the sparse input matrix. */
   cudssMatrix_t A;
@@ -142,20 +140,20 @@ void test_cudss_simple()
   cudssMatrixViewType_t mview = CUDSS_MVIEW_UPPER;
   cudssIndexBase_t base       = CUDSS_BASE_ZERO;
   checkCUDSS(cudssMatrixCreateCsr(&A, nrows, ncols, nnz, csr_offsets_d, NULL,
-                       csr_columns_d, csr_values_d, CUDA_R_32I, CUDA_R_64F, mtype, mview,
-                       base), status, "cudssMatrixCreateCsr");
+    csr_columns_d, csr_values_d, CUDA_R_32I, CUDA_R_64F, mtype, mview,
+    base), status, "cudssMatrixCreateCsr");
 
   /* Symbolic factorization */
   checkCUDSS(cudssExecute(handle, CUDSS_PHASE_ANALYSIS, solverConfig, solverData,
-                       A, x, b), status, "cudssExecute for analysis");
+    A, x, b), status, "cudssExecute for analysis");
 
   /* Factorization */
   checkCUDSS(cudssExecute(handle, CUDSS_PHASE_FACTORIZATION, solverConfig,
-                       solverData, A, x, b), status, "cudssExecute for factor");
+    solverData, A, x, b), status, "cudssExecute for factor");
 
   /* Solving */
   checkCUDSS(cudssExecute(handle, CUDSS_PHASE_SOLVE, solverConfig, solverData,
-                       A, x, b), status, "cudssExecute for solve");
+    A, x, b), status, "cudssExecute for solve");
 
   /* Destroying opaque objects, matrix wrappers and the cuDSS library handle */
   checkCUDSS(cudssMatrixDestroy(A), status, "cudssMatrixDestroy for A");
@@ -168,8 +166,7 @@ void test_cudss_simple()
   checkCuda(cudaStreamSynchronize(stream));
 
   /* Print the solution and compare against the exact solution */
-  checkCuda(cudaMemcpy(x_values_h, x_values_d, nrhs * n * sizeof(double),
-                      cudaMemcpyDeviceToHost));
+  checkCuda(cudaMemcpy(x_values_h, x_values_d, nrhs * n * sizeof(double), cudaMemcpyDeviceToHost));
 
   int passed = 1;
   for (int i = 0; i < n; i++) {
@@ -195,3 +192,74 @@ void test_cudss_simple()
   else
     printf("Example FAILED\n");
 }
+
+void test_cudss_ops()
+{
+  double s, u, p, e, r, l;
+  int    nrhs, m, n;
+
+  /* Initialize matrix A. */
+  /*  A : matrix([s,0,u,u,0],[l,u,0,0,0],[0,l,p,0,0],[0,0,0,e,u],[l,l,0,0,r]); */
+  m = n = 5;
+  nrhs = 1;
+  
+  s = 19.0; u = 21.0; p = 16.0; e = 5.0; r = 18.0; l = 12.0;
+  /*  A : matrix([s,0,u,u,0],[l,u,0,0,0],[0,l,p,0,0],[0,0,0,e,u],[l,l,0,0,r]); */
+  struct gkyl_mat_triples **tri_arr = (struct gkyl_mat_triples **) gkyl_malloc(sizeof(struct gkyl_mat_triples *));
+  tri_arr[0] = gkyl_mat_triples_new(m, n);
+  struct gkyl_mat_triples *tri = tri_arr[0];
+  gkyl_mat_triples_set_rowmaj_order(tri);
+  // row 0
+  gkyl_mat_triples_insert(tri, 0, 0, s);
+  gkyl_mat_triples_insert(tri, 0, 2, u);
+  gkyl_mat_triples_insert(tri, 0, 3, u);
+  // row 1
+  gkyl_mat_triples_insert(tri, 1, 0, l);
+  gkyl_mat_triples_insert(tri, 1, 1, u);
+  // row 2
+  gkyl_mat_triples_insert(tri, 2, 1, l);
+  gkyl_mat_triples_insert(tri, 2, 2, p);
+  // row 3
+  gkyl_mat_triples_insert(tri, 3, 3, e);
+  gkyl_mat_triples_insert(tri, 3, 4, u);
+  // row 4
+  gkyl_mat_triples_insert(tri, 4, 0, l);
+  gkyl_mat_triples_insert(tri, 4, 1, l);
+  gkyl_mat_triples_insert(tri, 4, 4, r);
+
+  // Create the cuSolver linear problem setup.
+  gkyl_cudss_prob *prob = gkyl_cudss_prob_new(1, m, n, nrhs);
+
+  // Allocate the A matrix from triples.
+  gkyl_cudss_amat_from_triples(prob, tri_arr);
+  gkyl_mat_triples_release(tri);
+  gkyl_free(tri_arr);
+
+  // Create right-hand side matrix B = transpose([1,1,1,1,1]).
+  gkyl_mat_triples *triRHS = gkyl_mat_triples_new(m, nrhs);
+  gkyl_mat_triples_insert(triRHS, 0, 0, 1.0);
+  gkyl_mat_triples_insert(triRHS, 1, 0, 1.0);
+  gkyl_mat_triples_insert(triRHS, 2, 0, 1.0);
+  gkyl_mat_triples_insert(triRHS, 3, 0, 1.0);
+  gkyl_mat_triples_insert(triRHS, 4, 0, 1.0);
+  gkyl_cudss_brhs_from_triples(prob, triRHS);
+  gkyl_mat_triples_release(triRHS);
+
+  gkyl_cudss_solve(prob);
+  gkyl_cudss_finish_host(prob);
+
+  // Solution is: [-1/32, 11/168, 3/224, 1/16, 11/336].
+  TEST_CHECK( gkyl_compare_double(-1.0/32.0,   gkyl_cudss_get_sol_lin(prob,0), 1e-14) );
+  TEST_MSG( "Expected: %g | Got: %g\n", -1.0/32.0,   gkyl_cudss_get_sol_lin(prob,0) );
+  TEST_CHECK( gkyl_compare_double( 11.0/168.0, gkyl_cudss_get_sol_lin(prob,1), 1e-14) );
+  TEST_MSG( "Expected: %g | Got: %g\n",  11.0/168.0, gkyl_cudss_get_sol_lin(prob,1) );
+  TEST_CHECK( gkyl_compare_double( 3.0/224.0,  gkyl_cudss_get_sol_lin(prob,2), 1e-14) );
+  TEST_MSG( "Expected: %g | Got: %g\n",  3.0/224.0,  gkyl_cudss_get_sol_lin(prob,2) );
+  TEST_CHECK( gkyl_compare_double( 1.0/16.0,   gkyl_cudss_get_sol_lin(prob,3), 1e-14) );
+  TEST_MSG( "Expected: %g | Got: %g\n",  1.0/16.0,   gkyl_cudss_get_sol_lin(prob,3) );
+  TEST_CHECK( gkyl_compare_double( 11.0/336.0, gkyl_cudss_get_sol_lin(prob,4), 1e-14) );
+  TEST_MSG( "Expected: %g | Got: %g\n",  11.0/336.0, gkyl_cudss_get_sol_lin(prob,4) );
+
+  gkyl_cudss_prob_release(prob);
+}
+
