@@ -21,8 +21,8 @@ struct sheath_ctx {
   double Ti;
   double vte; // electron thermal velocity
   double vti; // ion thermal velocity
-  double Lx; // size of the box
   double lambda_D;
+  double Lx; // size of the box
   double omega_pe;
 };
 
@@ -107,8 +107,7 @@ create_ctx(void)
     .vte = sqrt(ctx.Te/massElc),
     .vti = sqrt(ctx.Ti/ctx.massIon),
     .lambda_D = sqrt(ctx.epsilon0*ctx.Te/(ctx.n0*q0*q0)),
-    //.Lx = 128.0*ctx.lambda_D,
-    .Lx = 128.0,
+    .Lx = 128.0*ctx.lambda_D,
     .omega_pe = sqrt(ctx.n0*q0*q0/(ctx.epsilon0*massElc))
   };
   return ctx;
@@ -178,9 +177,8 @@ main(int argc, char **argv)
 
     .bcx = {
       .lower = { .type = GKYL_SPECIES_ABSORB, },
-      //.upper = { .type = GKYL_SPECIES_EMISSION,
-        //         .aux_ctx = &bc_ctx, },
-      .upper = { .type = GKYL_SPECIES_ABSORB, },
+      .upper = { .type = GKYL_SPECIES_EMISSION,
+                 .aux_ctx = &bc_ctx, },
     },
     
     .num_diag_moments = 3,
