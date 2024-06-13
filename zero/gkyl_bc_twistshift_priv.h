@@ -68,6 +68,7 @@ struct gkyl_bc_twistshift {
   struct gkyl_bc_twistshift_kernels *kernels_cu;  // device copy.
   const struct gkyl_rect_grid *grid;
   const int *ndonors;
+  int donor_factor; // total number of donors is sum(ndonors)*donor_factor
   int *ndonors_cum_cu;
   const int *cells_do; // y indices of donor cells for each x and y
   int *remDir;
