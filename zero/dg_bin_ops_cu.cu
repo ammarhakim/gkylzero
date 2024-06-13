@@ -203,6 +203,62 @@ gkyl_dg_mul_conf_phase_op_range_cu(struct gkyl_basis *cbasis,
     pout->on_dev, cop->on_dev, pop->on_dev, *crange, *prange);
 }
 
+
+__global__ void
+gkyl_dg_mul_comp_par_conf_phase_op_range_cu_kernel(struct gkyl_basis cbasis,
+  struct gkyl_basis pbasis, struct gkyl_array* pout,
+  const struct gkyl_array* cop, const struct gkyl_array* pop,
+  struct gkyl_range crange, struct gkyl_range prange)
+{
+  int cdim = cbasis.ndim;
+  int vdim = pbasis.ndim - cdim;
+  int poly_order = cbasis.poly_order;
+  mul_op_comp_par_t mul_op = choose_mul_comp_par_conf_phase_kern(pbasis.b_type, cdim, vdim, poly_order);
+
+  int pidx[GKYL_MAX_DIM];
+  long linc2 = threadIdx.y + blockIdx.y*blockDim.y;
+  for (unsigned long linc1 = threadIdx.x + blockIdx.x*blockDim.x;
+      linc1 < prange.volume;
+      linc1 += gridDim.x*blockDim.x)
+  {
+    // inverse index from linc1 to idx
+    // must use gkyl_sub_range_inv_idx so that linc1=0 maps to idx={1,1,...}
+    // since update_range is a subrange
+    gkyl_sub_range_inv_idx(&prange, linc1, pidx);
+
+    // convert back to a linear index on the super-range (with ghost cells)
+    // linc will have jumps in it to jump over ghost cells
+    long start = gkyl_range_idx(&prange, pidx);
+
+    const double *pop_d = (const double*) gkyl_array_cfetch(pop, start);
+    double *pout_d = (double*) gkyl_array_fetch(pout, start);
+
+    int cidx[3];
+    for (int d=0; d<cdim; d++) cidx[d] = pidx[d];
+    long cstart = gkyl_range_idx(&crange, cidx);
+    const double *cop_d = (const double*) gkyl_array_cfetch(cop, cstart);
+
+    mul_op(cop_d, pop_d, pout_d, linc2);
+  }
+}
+
+// Host-side wrapper for range-based dg conf*phase multiplication.
+void
+gkyl_dg_mul_comp_par_conf_phase_op_range_cu(struct gkyl_basis *cbasis,
+  struct gkyl_basis *pbasis, struct gkyl_array* pout,
+  const struct gkyl_array* cop, const struct gkyl_array* pop,
+  const struct gkyl_range *crange, const struct gkyl_range *prange)
+{
+  dim3 dimGrid, dimBlock;
+  dimBlock.y = GKYL_MIN2(pout->ncomp, GKYL_DEFAULT_NUM_THREADS);
+  dimGrid.y = gkyl_int_div_up(pout->ncomp, dimBlock->y);
+  dimBlock.x = GKYL_DEFAULT_NUM_THREADS/pout->ncomp;
+  dimGrid.x = gkyl_int_div_up(crange.volume, dimBlock->x);
+
+  gkyl_dg_mul_comp_par_conf_phase_op_range_cu_kernel<<<dimGrid, dimBlock>>>(*cbasis, *pbasis,
+    pout->on_dev, cop->on_dev, pop->on_dev, *crange, *prange);
+}
+
 __global__ void
 gkyl_dg_dot_product_op_cu_kernel(struct gkyl_basis basis,
   struct gkyl_array* out, const struct gkyl_array* lop,

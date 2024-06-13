@@ -46,6 +46,7 @@ typedef void (*inv_op_t)(const double *A, double *A_inv);
 typedef struct { mul_op_t kernels[4]; } mul_op_kern_list;
 typedef struct { mul_op_comp_par_t kernels[4]; } mul_op_comp_par_kern_list;
 typedef struct { mul_op_kern_list list[3]; } cross_mul_op_kern_list;
+typedef struct { mul_op_comp_par_kern_list list[3]; } cross_mul_comp_par_op_kern_list;
 typedef struct { mul_op_count_t kernels[4]; } mul_op_count_kern_list;
 typedef struct { mul_op_count_t kernels[4]; } mul_comp_par_op_count_kern_list;
 typedef struct { div_set_op_t kernels[4]; } div_set_op_kern_list;
@@ -99,6 +100,30 @@ static const cross_mul_op_kern_list ser_cross_mul_list[] = {
   { .list = {{ NULL, NULL, NULL, NULL },
              { NULL, NULL, NULL, NULL },
              { binop_cross_mul_3d_6d_ser_p0, binop_cross_mul_3d_6d_ser_p1, NULL, NULL },} },
+};
+
+GKYL_CU_D
+static const cross_mul_comp_par_op_kern_list ser_cross_mul_comp_par_list[] = {
+  // pdim=2
+  { .list = {{ NULL, binop_cross_mul_comp_par_1d_2d_ser_p1, binop_cross_mul_comp_par_1d_2d_ser_p2, NULL },
+             { NULL, NULL, NULL, NULL },
+             { NULL, NULL, NULL, NULL },} },
+  // pdim=3
+  { .list = {{ NULL, binop_cross_mul_comp_par_1d_3d_ser_p1, binop_cross_mul_comp_par_1d_3d_ser_p2, NULL },
+             { NULL, NULL, NULL, NULL },
+             { NULL, NULL, NULL, NULL },} },
+  // pdim=4
+  { .list = {{ NULL, binop_cross_mul_comp_par_1d_4d_ser_p1, NULL, NULL },
+             { NULL, binop_cross_mul_comp_par_2d_4d_ser_p1, binop_cross_mul_comp_par_2d_4d_ser_p2, NULL },
+             { NULL, NULL, NULL, NULL },} },
+  // pdim=5
+  { .list = {{ NULL, NULL, NULL, NULL },
+             { NULL, binop_cross_mul_comp_par_2d_5d_ser_p1, binop_cross_mul_comp_par_2d_5d_ser_p2, NULL },
+             { NULL, binop_cross_mul_comp_par_3d_5d_ser_p1, NULL, NULL },} },
+  // pdim=6
+  { .list = {{ NULL, NULL, NULL, NULL },
+             { NULL, NULL, NULL, NULL },
+             { NULL, binop_cross_mul_comp_par_3d_6d_ser_p1, NULL, NULL },} },
 };
 
 GKYL_CU_D
@@ -216,6 +241,22 @@ choose_mul_conf_phase_kern(enum gkyl_basis_type btype, int cdim, int vdim, int p
       break;
     case GKYL_BASIS_MODAL_TENSOR:
       return ten_cross_mul_list[pdim-2].list[cdim-1].kernels[poly_order];
+      break;
+    default:
+      assert(false);
+      break;
+  }
+  return 0;
+}
+
+GKYL_CU_D
+static mul_op_comp_par_t
+choose_mul_comp_par_conf_phase_kern(enum gkyl_basis_type btype, int cdim, int vdim, int poly_order)
+{
+  int pdim = cdim+vdim;
+  switch (btype) {
+    case GKYL_BASIS_MODAL_SERENDIPITY:
+      return ser_cross_mul_comp_par_list[pdim-2].list[cdim-1].kernels[poly_order];
       break;
     default:
       assert(false);
