@@ -5,16 +5,25 @@
 #include <gkyl_alloc.h>
 #include <gkyl_vlasov.h>
 #include <rt_arg_parse.h>
+#include <gkyl_bc_emission_spectrum.h>
+#include <gkyl_bc_emission_elastic.h>
+#include <gkyl_vlasov_priv.h>
 
 struct sheath_ctx {
+  double epsilon0;
+  double mu0;
   double chargeElc; // electron charge
   double massElc; // electron mass
   double chargeIon; // ion charge
   double massIon; // ion mass
-  double Te_Ti; // electron to ion temperature ratio
+  double n0;
+  double Te; // electron to ion temperature ratio
+  double Ti;
   double vte; // electron thermal velocity
   double vti; // ion thermal velocity
+  double lambda_D;
   double Lx; // size of the box
+  double omega_pe;
 };
 
 static inline double sq(double x) { return x*x; }
@@ -25,7 +34,8 @@ evalDistFuncElc(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT
   struct sheath_ctx *app = ctx;
   double x = xn[0], v = xn[1];
   double vt = app->vte;
-  double fv = 1.0/sqrt(2.0*M_PI*sq(vt))*(exp(-sq(v)/(2*sq(vt))));
+  double n = app->n0;
+  double fv = n/sqrt(2.0*M_PI*sq(vt))*(exp(-sq(v)/(2*sq(vt))));
   fout[0] = fv;
 }
 
@@ -49,7 +59,8 @@ evalDistFuncIon(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT
   struct sheath_ctx *app = ctx;
   double x = xn[0], v = xn[1];
   double vt = app->vti;
-  double fv = 1.0/sqrt(2.0*M_PI*sq(vt))*(exp(-sq(v)/(2*sq(vt))));
+  double n = app->n0;
+  double fv = n/sqrt(2.0*M_PI*sq(vt))*(exp(-sq(v)/(2*sq(vt))));
   fout[0] = fv;
 }
 
@@ -81,15 +92,23 @@ evalFieldFunc(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fo
 struct sheath_ctx
 create_ctx(void)
 {
+  double massElc = 9.109e-31;
+  double q0 = 1.602e-19;
   struct sheath_ctx ctx = {
-    .chargeElc = -1.0,
-    .massElc = 1.0,
-    .chargeIon = 1.0,
-    .massIon = 1836.153,
-    .Te_Ti = 1.0,
-    .vte = 1.0,
-    .vti = ctx.vte/sqrt(ctx.Te_Ti*ctx.massIon),
-    .Lx = 128.0
+    .epsilon0 = 8.854e-12,
+    .mu0 = 1.257e-6,
+    .chargeElc = -q0,
+    .massElc = massElc,
+    .chargeIon = q0,
+    .massIon = 1836.153*massElc,
+    .n0 = 1.0e17,
+    .Te = 10.0*q0,
+    .Ti = 10.0*q0,
+    .vte = sqrt(ctx.Te/massElc),
+    .vti = sqrt(ctx.Ti/ctx.massIon),
+    .lambda_D = sqrt(ctx.epsilon0*ctx.Te/(ctx.n0*q0*q0)),
+    .Lx = 128.0*ctx.lambda_D,
+    .omega_pe = sqrt(ctx.n0*q0*q0/(ctx.epsilon0*massElc))
   };
   return ctx;
 }
@@ -104,14 +123,26 @@ main(int argc, char **argv)
     gkyl_mem_debug_set(true);
   }
   struct sheath_ctx ctx = create_ctx(); // context for init functions
+  
+  struct vm_emission_ctx bc_ctx = {
+    .num_species = 1,
+    .elastic = true,
+    .norm_type = { GKYL_SEE_CHUNG_EVERHART },
+    .yield_type = { GKYL_SEE_FURMAN_PIVI },
+    .elastic_type = GKYL_BS_FURMAN_PIVI,
+    .norm_params = { chung_ctx },
+    .yield_params = { furman_ctx },
+    .elastic_params = furman_elastic_ctx,
+    .in_species = { "elc" },
+  };
 
   // electrons
   struct gkyl_vlasov_species elc = {
     .name = "elc",
     .charge = ctx.chargeElc, .mass = ctx.massElc,
-    .lower = { -6.0 * ctx.vte},
-    .upper = { 6.0 * ctx.vte}, 
-    .cells = { 64 },
+    .lower = { -4.0*ctx.vte},
+    .upper = { 4.0*ctx.vte}, 
+    .cells = { 128 },
 
     .projection = {
       .proj_id = GKYL_PROJ_FUNC,
@@ -123,17 +154,6 @@ main(int argc, char **argv)
       .lower = { .type = GKYL_SPECIES_ABSORB, },
       .upper = { .type = GKYL_SPECIES_ABSORB, },
     },
-
-    .source = {
-      .source_id = GKYL_BFLUX_SOURCE,
-      .source_length = 100.0,
-      .source_species = "ion",
-      .projection = {
-        .proj_id = GKYL_PROJ_FUNC,
-        .func = evalDistFuncElcSource,
-        .ctx_func = &ctx,
-      },
-    },
     
     .num_diag_moments = 3,
     .diag_moments = { "M0", "M1i", "M2" },
@@ -143,9 +163,9 @@ main(int argc, char **argv)
   struct gkyl_vlasov_species ion = {
     .name = "ion",
     .charge = ctx.chargeIon, .mass = ctx.massIon,
-    .lower = { -6.0 * ctx.vti},
-    .upper = { 6.0 * ctx.vti}, 
-    .cells = { 64 },
+    .lower = { -4.0*ctx.vti},
+    .upper = { 4.0*ctx.vti}, 
+    .cells = { 128 },
 
     .projection = {
       .proj_id = GKYL_PROJ_FUNC,
@@ -157,17 +177,6 @@ main(int argc, char **argv)
       .lower = { .type = GKYL_SPECIES_ABSORB, },
       .upper = { .type = GKYL_SPECIES_ABSORB, },
     },
-
-    .source = {
-      .source_id = GKYL_BFLUX_SOURCE,
-      .source_length = 100.0,
-      .source_species = "ion",
-      .projection = {
-        .proj_id = GKYL_PROJ_FUNC,
-        .func = evalDistFuncIonSource,
-        .ctx_func = &ctx,
-      },
-    },
     
     .num_diag_moments = 3,
     .diag_moments = { "M0", "M1i", "M2" },
@@ -175,7 +184,7 @@ main(int argc, char **argv)
 
   // field
   struct gkyl_vlasov_field field = {
-    .epsilon0 = 1.0, .mu0 = 1.0,
+    .epsilon0 = ctx.epsilon0, .mu0 = ctx.mu0,
     .elcErrorSpeedFactor = 0.0,
     .mgnErrorSpeedFactor = 0.0,
 
@@ -187,7 +196,7 @@ main(int argc, char **argv)
 
   // VM app
   struct gkyl_vm vm = {
-    .name = "sheath_1v",
+    .name = "vlasov_sheath_1x1v_p2",
 
     .cdim = 1, .vdim = 1,
     .lower = { -ctx.Lx },
@@ -210,7 +219,7 @@ main(int argc, char **argv)
   gkyl_vlasov_app *app = gkyl_vlasov_app_new(&vm);
 
   // start, end and initial time-step
-  double tcurr = 0.0, tend = 20.0;
+  double tcurr = 0.0, tend = 10.0/ctx.omega_pe;
   double dt = tend-tcurr;
 
   // initialize simulation
