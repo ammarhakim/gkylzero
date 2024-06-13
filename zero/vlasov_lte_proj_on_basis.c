@@ -143,6 +143,7 @@ gkyl_vlasov_lte_proj_on_basis_inew(const struct gkyl_vlasov_lte_proj_on_basis_in
   up->use_gpu = inp->use_gpu;
 
   up->phase_basis_on_dev = inp->phase_basis_on_dev;
+  up->conf_basis_on_dev = inp->conf_basis_on_dev;
 
   up->is_relativistic = false;
   if (inp->model_id == GKYL_MODEL_SR) {
@@ -194,6 +195,12 @@ gkyl_vlasov_lte_proj_on_basis_inew(const struct gkyl_vlasov_lte_proj_on_basis_in
 
     // Allocate f_lte_at_nodes
     up->f_lte_at_nodes = gkyl_array_cu_dev_new(GKYL_DOUBLE, up->tot_quad, inp->conf_range_ext->volume*inp->vel_range->volume);
+    up->n_quad = gkyl_array_cu_dev_new(GKYL_DOUBLE, up->tot_conf_quad, inp->conf_range_ext->volume);
+    up->V_drift_quad = gkyl_array_cu_dev_new(GKYL_DOUBLE, up->tot_conf_quad*vdim, inp->conf_range_ext->volume);
+    up->T_over_m_quad = gkyl_array_cu_dev_new(GKYL_DOUBLE, up->tot_conf_quad, inp->conf_range_ext->volume);
+    up->V_drift_quad_cell_avg = gkyl_array_cu_dev_new(GKYL_DOUBLE, up->tot_conf_quad*vdim, inp->conf_range_ext->volume);
+    up->h_ij_inv_quad = gkyl_array_cu_dev_new(GKYL_DOUBLE, up->tot_conf_quad*(vdim*(vdim+1)/2), inp->conf_range_ext->volume);
+    up->det_h_quad = gkyl_array_cu_dev_new(GKYL_DOUBLE, up->tot_conf_quad, inp->conf_range_ext->volume);
 
     int pidx[GKYL_MAX_DIM];
     for (int n=0; n<up->tot_quad; ++n) {
@@ -474,6 +481,12 @@ gkyl_vlasov_lte_proj_on_basis_release(gkyl_vlasov_lte_proj_on_basis* up)
   if (up->use_gpu){
     gkyl_cu_free(up->p2c_qidx);
     gkyl_array_release(up->f_lte_at_nodes);
+    gkyl_array_release(up->n_quad);
+    gkyl_array_release(up->V_drift_quad);
+    gkyl_array_release(up->T_over_m_quad);
+    gkyl_array_release(up->V_drift_quad_cell_avg);
+    gkyl_array_release(up->h_ij_inv_quad);
+    gkyl_array_release(up->det_h_quad);
   }
 #endif
   gkyl_array_release(up->ordinates);
