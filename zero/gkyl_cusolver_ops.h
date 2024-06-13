@@ -35,17 +35,6 @@ struct gkyl_cusolver_prob* gkyl_cusolver_prob_new(int nprob, int mrow, int ncol,
 void gkyl_cusolver_amat_from_triples(struct gkyl_cusolver_prob *prob, struct gkyl_mat_triples **tri);
 
 /**
- * Method to print the matrix A to screen.
- */
-void gkyl_cusolver_print_amat(struct gkyl_cusolver_prob *prob);
-
-/**
- * Perform the LU decomposition of the A matrix.
- * The _solve method will use these if they are pre-computed.
- */
-void gkyl_cusolver_ludecomp(struct gkyl_cusolver_prob *prob);
-
-/**
  * Initialize right-hand-side cuSolver matrix B in Ax=B problem from a list of
  * triples.
  *

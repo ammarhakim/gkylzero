@@ -49,8 +49,8 @@ gkyl_cudss_prob_new(int nprob, int mrow, int ncol, int nrhs)
   prob->ncol = ncol;
   prob->nrhs = nrhs;
 
-  prob->rhs = (double*) gkyl_malloc(mrow*prob->nrhs*sizeof(double));
-  prob->rhs_cu = (double*) gkyl_cu_malloc(mrow*prob->nrhs*sizeof(double));
+  prob->rhs = (double*) gkyl_malloc(nrhs * mrow * sizeof(double));
+  prob->rhs_cu = (double*) gkyl_cu_malloc(nrhs * mrow * sizeof(double));
 
   cudssStatus_t status = CUDSS_STATUS_SUCCESS;
 
@@ -139,6 +139,7 @@ gkyl_cudss_amat_from_triples(struct gkyl_cudss_prob *prob, struct gkyl_mat_tripl
 
   // Create a matrix object for the sparse input matrix.
   cudssStatus_t status = CUDSS_STATUS_SUCCESS;
+//  cudssMatrixType_t mtype     = CUDSS_MTYPE_SPD;
   cudssMatrixType_t mtype     = CUDSS_MTYPE_GENERAL;
   cudssMatrixViewType_t mview = CUDSS_MVIEW_UPPER;
   cudssIndexBase_t base       = CUDSS_BASE_ZERO;
