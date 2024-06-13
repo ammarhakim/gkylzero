@@ -130,6 +130,22 @@ void gr_euler_transmissive_bc(double t, int nc, const double* GKYL_RESTRICT skin
 void euler_block_bc_updaters_init(struct euler_block_data* bdata, const struct gkyl_block_connections* conn);
 
 /**
+* Initialize nested block AMR updaters for both physical (outer-block) and non-physical (inter-block) boundary conditions for the Euler equations.
+*
+* @param bdata Block-structured data for the Euler equations.
+* @param conn Topology/connectivity data for the block hierarchy.
+*/
+void euler_nested_block_bc_updaters_init(struct euler_block_data* bdata, const struct gkyl_block_connections* conn);
+
+/**
+* Initialize nested block AMR updaters for both physical (outer-block) and non-physical (inter-block) boundary conditions for the general relativistic Euler equations.
+*
+* @param bdata Block-structured data for the general relativistic Euler equations.
+* @param conn Topology/connectivity data for the block hierarchy.
+*/
+void gr_euler_nested_block_bc_updaters_init(struct euler_block_data* bdata, const struct gkyl_block_connections* conn);
+
+/**
 * Initialize block AMR updaters for both physical (outer-block) and non-physical (inter-block) boundary conditions for the general relativistic Euler equations.
 *
 * @param bdata Block-structured data for the general relativistic Euler equations.
@@ -249,3 +265,8 @@ double euler_max_dt_block(int num_blocks, const struct euler_block_data bdata[])
 * Set up the topology/connectivity information for the block AMR hierarchy for a mesh containing a single refinement patch.
 */
 struct gkyl_block_topo* create_block_topo();
+
+/**
+* Set up the topology/connectivity information for the block AMR hierarchy for a mesh containing a doubly-nested refinement patch.
+*/
+struct gkyl_block_topo* create_nested_block_topo();

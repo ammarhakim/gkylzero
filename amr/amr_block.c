@@ -64,10 +64,82 @@ euler_block_bc_updaters_init(struct euler_block_data* bdata, const struct gkyl_b
 }
 
 void
+euler_nested_block_bc_updaters_init(struct euler_block_data* bdata, const struct gkyl_block_connections* conn)
+{
+  int nghost[25];
+  for (int i = 0; i < 25; i++) {
+    nghost[i] = 2;
+  }
+
+  for (int d = 0; d < 2; d++) {
+    bdata->lower_bc[d] = bdata->upper_bc[d] = 0;
+
+    if (conn->connections[d][0].edge == GKYL_PHYSICAL) {
+      bdata->lower_bc[d] = gkyl_wv_apply_bc_new(&bdata->grid, bdata->euler, bdata->geom, d, GKYL_LOWER_EDGE, nghost,
+        euler_transmissive_bc, 0);
+    }
+
+    if (conn->connections[d][1].edge == GKYL_PHYSICAL) {
+      bdata->upper_bc[d] = gkyl_wv_apply_bc_new(&bdata->grid, bdata->euler, bdata->geom, d, GKYL_UPPER_EDGE, nghost,
+        euler_transmissive_bc, 0);
+    }
+  }
+
+  skin_ghost_ranges_init_block(&bdata->skin_ghost, &bdata->ext_range, nghost);
+  long buff_sz = 0;
+
+  for (int d = 0; d < 2; d++) {
+    long vol = bdata->skin_ghost.lower_skin[d].volume;
+
+    if (buff_sz <= vol) {
+      buff_sz = vol;
+    }
+  }
+
+  bdata->bc_buffer = gkyl_array_new(GKYL_DOUBLE, 5, buff_sz);
+}
+
+void
 gr_euler_block_bc_updaters_init(struct euler_block_data* bdata, const struct gkyl_block_connections* conn)
 {
   int nghost[9];
   for (int i = 0; i < 9; i++) {
+    nghost[i] = 2;
+  }
+
+  for (int d = 0; d < 2; d++) {
+    bdata->lower_bc[d] = bdata->upper_bc[d] = 0;
+
+    if (conn->connections[d][0].edge == GKYL_PHYSICAL) {
+      bdata->lower_bc[d] = gkyl_wv_apply_bc_new(&bdata->grid, bdata->euler, bdata->geom, d, GKYL_LOWER_EDGE, nghost,
+        gr_euler_transmissive_bc, 0);
+    }
+
+    if (conn->connections[d][1].edge == GKYL_PHYSICAL) {
+      bdata->upper_bc[d] = gkyl_wv_apply_bc_new(&bdata->grid, bdata->euler, bdata->geom, d, GKYL_UPPER_EDGE, nghost,
+        gr_euler_transmissive_bc, 0);
+    }
+  }
+
+  skin_ghost_ranges_init_block(&bdata->skin_ghost, &bdata->ext_range, nghost);
+  long buff_sz = 0;
+
+  for (int d = 0; d < 2; d++) {
+    long vol = bdata->skin_ghost.lower_skin[d].volume;
+
+    if (buff_sz <= vol) {
+      buff_sz = vol;
+    }
+  }
+
+  bdata->bc_buffer = gkyl_array_new(GKYL_DOUBLE, 29, buff_sz);
+}
+
+void
+gr_euler_nested_block_bc_updaters_init(struct euler_block_data* bdata, const struct gkyl_block_connections* conn)
+{
+  int nghost[25];
+  for (int i = 0; i < 25; i++) {
     nghost[i] = 2;
   }
 
@@ -659,7 +731,7 @@ create_block_topo()
 
   btopo->conn[6] = (struct gkyl_block_connections) {
     .connections[0] = { { .bid = 0, .dir = 0, .edge = GKYL_PHYSICAL }, { .bid = 7, .dir = 0, .edge = GKYL_LOWER_POSITIVE } },
-    .connections[1] = { { .bid = 6, .dir = 1, .edge = GKYL_PHYSICAL }, { .bid = 4, .dir = 1, .edge = GKYL_LOWER_POSITIVE } },
+    .connections[1] = { { .bid = 0, .dir = 1, .edge = GKYL_PHYSICAL }, { .bid = 4, .dir = 1, .edge = GKYL_LOWER_POSITIVE } },
   };
 
   btopo->conn[7] = (struct gkyl_block_connections) {
@@ -670,6 +742,139 @@ create_block_topo()
   btopo->conn[8] = (struct gkyl_block_connections) {
     .connections[0] = { { .bid = 7, .dir = 0, .edge = GKYL_UPPER_POSITIVE }, { .bid = 0, .dir = 0, .edge = GKYL_PHYSICAL } },
     .connections[1] = { { .bid = 0, .dir = 1, .edge = GKYL_PHYSICAL }, { .bid = 5, .dir = 1, .edge = GKYL_LOWER_POSITIVE } },
+  };
+
+  return btopo;
+}
+
+struct gkyl_block_topo*
+create_nested_block_topo()
+{
+  struct gkyl_block_topo *btopo = gkyl_block_topo_new(2, 25);
+
+  btopo->conn[0] = (struct gkyl_block_connections) {
+    .connections[0] = { { .bid = 4, .dir = 0, .edge = GKYL_UPPER_POSITIVE }, { .bid = 5, .dir = 0, .edge = GKYL_LOWER_POSITIVE } },
+    .connections[1] = { { .bid = 7, .dir = 1, .edge = GKYL_UPPER_POSITIVE }, { .bid = 2, .dir = 1, .edge = GKYL_LOWER_POSITIVE } },
+  };
+
+  btopo->conn[1] = (struct gkyl_block_connections) {
+    .connections[0] = { { .bid = 14, .dir = 0, .edge = GKYL_UPPER_POSITIVE }, { .bid = 2, .dir = 0, .edge = GKYL_LOWER_POSITIVE } },
+    .connections[1] = { { .bid = 4, .dir = 1, .edge = GKYL_UPPER_POSITIVE }, { .bid = 10, .dir = 1, .edge = GKYL_LOWER_POSITIVE } },
+  };
+
+  btopo->conn[2] = (struct gkyl_block_connections) {
+    .connections[0] = { { .bid = 1, .dir = 0, .edge = GKYL_UPPER_POSITIVE }, { .bid = 3, .dir = 0, .edge = GKYL_LOWER_POSITIVE } },
+    .connections[1] = { { .bid = 0, .dir = 1, .edge = GKYL_UPPER_POSITIVE }, { .bid = 11, .dir = 1, .edge = GKYL_LOWER_POSITIVE } },
+  };
+
+  btopo->conn[3] = (struct gkyl_block_connections) {
+    .connections[0] = { { .bid = 2, .dir = 0, .edge = GKYL_UPPER_POSITIVE }, { .bid = 15, .dir = 0, .edge = GKYL_LOWER_POSITIVE } },
+    .connections[1] = { { .bid = 5, .dir = 1, .edge = GKYL_UPPER_POSITIVE }, { .bid = 12, .dir = 1, .edge = GKYL_LOWER_POSITIVE } },
+  };
+
+  btopo->conn[4] = (struct gkyl_block_connections) {
+   .connections[0] = { { .bid = 16, .dir = 0, .edge = GKYL_UPPER_POSITIVE }, { .bid = 0, .dir = 0, .edge = GKYL_LOWER_POSITIVE } },
+   .connections[1] = { { .bid = 6, .dir = 1, .edge = GKYL_UPPER_POSITIVE }, { .bid = 1, .dir = 1, .edge = GKYL_LOWER_POSITIVE } },
+  };
+
+  btopo->conn[5] = (struct gkyl_block_connections) {
+    .connections[0] = { { .bid = 0, .dir = 0, .edge = GKYL_UPPER_POSITIVE }, { .bid = 17, .dir = 0, .edge = GKYL_LOWER_POSITIVE } },
+    .connections[1] = { { .bid = 8, .dir = 1, .edge = GKYL_UPPER_POSITIVE }, { .bid = 3, .dir = 1, .edge = GKYL_LOWER_POSITIVE } },
+  };
+
+  btopo->conn[6] = (struct gkyl_block_connections) {
+    .connections[0] = { { .bid = 18, .dir = 0, .edge = GKYL_UPPER_POSITIVE }, { .bid = 7, .dir = 0, .edge = GKYL_LOWER_POSITIVE } },
+    .connections[1] = { { .bid = 21, .dir = 1, .edge = GKYL_UPPER_POSITIVE }, { .bid = 4, .dir = 1, .edge = GKYL_LOWER_POSITIVE } },
+  };
+
+  btopo->conn[7] = (struct gkyl_block_connections) {
+    .connections[0] = { { .bid = 6, .dir = 0, .edge = GKYL_UPPER_POSITIVE }, { .bid = 8, .dir = 0, .edge = GKYL_LOWER_POSITIVE } },
+    .connections[1] = { { .bid = 22, .dir = 1, .edge = GKYL_UPPER_POSITIVE }, { .bid = 0, .dir = 1, .edge = GKYL_LOWER_POSITIVE } },
+  };
+
+  btopo->conn[8] = (struct gkyl_block_connections) {
+    .connections[0] = { { .bid = 7, .dir = 0, .edge = GKYL_UPPER_POSITIVE }, { .bid = 19, .dir = 0, .edge = GKYL_LOWER_POSITIVE } },
+    .connections[1] = { { .bid = 23, .dir = 1, .edge = GKYL_UPPER_POSITIVE }, { .bid = 5, .dir = 1, .edge = GKYL_LOWER_POSITIVE } },
+  };
+
+  btopo->conn[9] = (struct gkyl_block_connections) {
+    .connections[0] = { { .bid = 0, .dir = 0, .edge = GKYL_PHYSICAL }, { .bid = 10, .dir = 0, .edge = GKYL_LOWER_POSITIVE } },
+    .connections[1] = { { .bid = 14, .dir = 1, .edge = GKYL_UPPER_POSITIVE }, { .bid = 0, .dir = 1, .edge = GKYL_PHYSICAL } },
+  };
+
+  btopo->conn[10] = (struct gkyl_block_connections) {
+    .connections[0] = { { .bid = 9, .dir = 0, .edge = GKYL_UPPER_POSITIVE }, { .bid = 11, .dir = 0, .edge = GKYL_LOWER_POSITIVE } },
+    .connections[1] = { { .bid = 1, .dir = 1, .edge = GKYL_UPPER_POSITIVE }, { .bid = 0, .dir = 1, .edge = GKYL_PHYSICAL } },
+  };
+
+  btopo->conn[11] = (struct gkyl_block_connections) {
+    .connections[0] = { { .bid = 10, .dir = 0, .edge = GKYL_UPPER_POSITIVE }, { .bid = 12, .dir = 0, .edge = GKYL_LOWER_POSITIVE } },
+    .connections[1] = { { .bid = 2, .dir = 1, .edge = GKYL_UPPER_POSITIVE }, { .bid = 0, .dir = 1, .edge = GKYL_PHYSICAL } },
+  };
+
+  btopo->conn[12] = (struct gkyl_block_connections) {
+    .connections[0] = { { .bid = 11, .dir = 0, .edge = GKYL_UPPER_POSITIVE }, { .bid = 13, .dir = 0, .edge = GKYL_LOWER_POSITIVE } },
+    .connections[1] = { { .bid = 3, .dir = 1, .edge = GKYL_UPPER_POSITIVE }, { .bid = 0, .dir = 1, .edge = GKYL_PHYSICAL } },
+  };
+
+  btopo->conn[13] = (struct gkyl_block_connections) {
+    .connections[0] = { { .bid = 12, .dir = 0, .edge = GKYL_UPPER_POSITIVE }, { .bid = 0, .dir = 0, .edge = GKYL_PHYSICAL } },
+    .connections[1] = { { .bid = 15, .dir = 1, .edge = GKYL_UPPER_POSITIVE }, { .bid = 0, .dir = 1, .edge = GKYL_PHYSICAL } },
+  };
+
+  btopo->conn[14] = (struct gkyl_block_connections) {
+    .connections[0] = { { .bid = 0, .dir = 0, .edge = GKYL_PHYSICAL }, { .bid = 1, .dir = 0, .edge = GKYL_LOWER_POSITIVE } },
+    .connections[1] = { { .bid = 16, .dir = 1, .edge = GKYL_UPPER_POSITIVE }, { .bid = 9, .dir = 1, .edge = GKYL_LOWER_POSITIVE } },
+  };
+
+  btopo->conn[15] = (struct gkyl_block_connections) {
+    .connections[0] = { { .bid = 3, .dir = 0, .edge = GKYL_UPPER_POSITIVE }, { .bid = 0, .dir = 0, .edge = GKYL_PHYSICAL } },
+    .connections[1] = { { .bid = 17, .dir = 1, .edge = GKYL_UPPER_POSITIVE }, { .bid = 13, .dir = 1, .edge = GKYL_LOWER_POSITIVE } },
+  };
+
+  btopo->conn[16] = (struct gkyl_block_connections) {
+    .connections[0] = { { .bid = 0, .dir = 0, .edge = GKYL_PHYSICAL }, { .bid = 4, .dir = 0, .edge = GKYL_LOWER_POSITIVE } },
+    .connections[1] = { { .bid = 18, .dir = 1, .edge = GKYL_UPPER_POSITIVE }, { .bid = 14, .dir = 1, .edge = GKYL_LOWER_POSITIVE } },
+  };
+
+  btopo->conn[17] = (struct gkyl_block_connections) {
+    .connections[0] = { { .bid = 5, .dir = 0, .edge = GKYL_UPPER_POSITIVE }, { .bid = 0, .dir = 0, .edge = GKYL_PHYSICAL } },
+    .connections[1] = { { .bid = 19, .dir = 1, .edge = GKYL_UPPER_POSITIVE }, { .bid = 15, .dir = 1, .edge = GKYL_LOWER_POSITIVE } },
+  };
+
+  btopo->conn[18] = (struct gkyl_block_connections) {
+    .connections[0] = { { .bid = 0, .dir = 0, .edge = GKYL_PHYSICAL }, { .bid = 6, .dir = 0, .edge = GKYL_LOWER_POSITIVE } },
+    .connections[1] = { { .bid = 20, .dir = 1, .edge = GKYL_UPPER_POSITIVE }, { .bid = 16, .dir = 1, .edge = GKYL_LOWER_POSITIVE } },
+  };
+
+  btopo->conn[19] = (struct gkyl_block_connections) {
+    .connections[0] = { { .bid = 8, .dir = 0, .edge = GKYL_UPPER_POSITIVE }, { .bid = 0, .dir = 0, .edge = GKYL_PHYSICAL } },
+    .connections[1] = { { .bid = 24, .dir = 1, .edge = GKYL_UPPER_POSITIVE }, { .bid = 17, .dir = 1, .edge = GKYL_LOWER_POSITIVE } },
+  };
+
+  btopo->conn[20] = (struct gkyl_block_connections) {
+    .connections[0] = { { .bid = 0, .dir = 0, .edge = GKYL_PHYSICAL }, { .bid = 21, .dir = 0, .edge = GKYL_LOWER_POSITIVE } },
+    .connections[1] = { { .bid = 0, .dir = 1, .edge = GKYL_PHYSICAL }, { .bid = 18, .dir = 1, .edge = GKYL_LOWER_POSITIVE } },
+  };
+
+  btopo->conn[21] = (struct gkyl_block_connections) {
+    .connections[0] = { { .bid = 20, .dir = 0, .edge = GKYL_UPPER_POSITIVE }, { .bid = 22, .dir = 0, .edge = GKYL_LOWER_POSITIVE } },
+    .connections[1] = { { .bid = 0, .dir = 1, .edge = GKYL_PHYSICAL }, { .bid = 6, .dir = 1, .edge = GKYL_LOWER_POSITIVE } },
+  };
+
+  btopo->conn[22] = (struct gkyl_block_connections) {
+    .connections[0] = { { .bid = 21, .dir = 0, .edge = GKYL_UPPER_POSITIVE }, { .bid = 23, .dir = 0, .edge = GKYL_LOWER_POSITIVE } },
+    .connections[1] = { { .bid = 0, .dir = 1, .edge = GKYL_PHYSICAL }, { .bid = 7, .dir = 1, .edge = GKYL_LOWER_POSITIVE } },
+  };
+
+  btopo->conn[23] = (struct gkyl_block_connections) {
+    .connections[0] = { { .bid = 22, .dir = 0, .edge = GKYL_UPPER_POSITIVE }, { .bid = 24, .dir = 0, .edge = GKYL_LOWER_POSITIVE } },
+    .connections[1] = { { .bid = 0, .dir = 1, .edge = GKYL_PHYSICAL }, { .bid = 8, .dir = 1, .edge = GKYL_LOWER_POSITIVE } },
+  };
+
+  btopo->conn[24] = (struct gkyl_block_connections) {
+    .connections[0] = { { .bid = 23, .dir = 0, .edge = GKYL_UPPER_POSITIVE }, { .bid = 0, .dir = 0, .edge = GKYL_PHYSICAL } },
+    .connections[1] = { { .bid = 0, .dir = 1, .edge = GKYL_PHYSICAL }, { .bid = 19, .dir = 1, .edge = GKYL_LOWER_POSITIVE } },
   };
 
   return btopo;
