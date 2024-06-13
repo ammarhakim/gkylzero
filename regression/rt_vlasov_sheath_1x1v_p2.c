@@ -124,18 +124,6 @@ main(int argc, char **argv)
   }
   struct sheath_ctx ctx = create_ctx(); // context for init functions
   
-  struct vm_emission_ctx bc_ctx = {
-    .num_species = 1,
-    .elastic = true,
-    .norm_type = { GKYL_SEE_CHUNG_EVERHART },
-    .yield_type = { GKYL_SEE_FURMAN_PIVI },
-    .elastic_type = GKYL_BS_FURMAN_PIVI,
-    .norm_params = { chung_ctx },
-    .yield_params = { furman_ctx },
-    .elastic_params = furman_elastic_ctx,
-    .in_species = { "elc" },
-  };
-
   // electrons
   struct gkyl_vlasov_species elc = {
     .name = "elc",

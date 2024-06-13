@@ -36,6 +36,7 @@ vm_species_emission_cross_init(struct gkyl_vlasov_app *app, struct vm_species *s
   emit->emit_skin_r = (emit->edge == GKYL_LOWER_EDGE) ? &s->lower_skin[emit->dir] : &s->upper_skin[emit->dir];
   emit->buffer = s->bc_buffer;
   emit->f_emit = mkarr(app->use_gpu, app->basis.num_basis, emit->emit_buff_r->volume);
+  struct gkyl_array *proj_buffer = mkarr(false, app->basis.num_basis, emit->emit_buff_r->volume);
 
   if (emit->elastic) {
     emit->elastic_yield = mkarr(app->use_gpu, app->basis.num_basis, emit->emit_buff_r->volume);
@@ -72,8 +73,9 @@ vm_species_emission_cross_init(struct gkyl_vlasov_app *app, struct vm_species *s
       emit->params->yield_type[i], emit->params->norm_params[i], emit->params->yield_params[i],
       emit->yield[i], emit->spectrum[i], emit->dir, emit->edge, cdim, vdim, 
       emit->impact_buff_r[i], emit->impact_ghost_r[i], emit->impact_grid[i], app->poly_order,
-      &app->basis, app->use_gpu);
+      &app->basis, proj_buffer, app->use_gpu);
   }
+  gkyl_array_release(proj_buffer);
 }
 
 void

@@ -89,7 +89,7 @@ struct gkyl_bc_emission_spectrum* gkyl_bc_emission_spectrum_new(enum gkyl_bc_emi
   enum gkyl_bc_emission_spectrum_yield_type yield_type, void *norm_param, void *yield_param,
   struct gkyl_array *yield, struct gkyl_array *spectrum, int dir, enum gkyl_edge_loc edge,
   int cdim, int vdim, struct gkyl_range *impact_buff_r,  struct gkyl_range *impact_ghost_r,
-  struct gkyl_rect_grid *grid, int poly_order, struct gkyl_basis *basis, bool use_gpu);
+  struct gkyl_rect_grid *grid, int poly_order, struct gkyl_basis *basis, struct gkyl_array *proj_buffer, bool use_gpu);
 
 /**
  * @param up BC updater

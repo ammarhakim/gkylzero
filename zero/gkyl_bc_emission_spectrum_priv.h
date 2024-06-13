@@ -19,6 +19,8 @@ struct gkyl_bc_emission_spectrum_funcs {
   emission_spectrum_spec_func_t spec;
   emission_spectrum_norm_func_t norm;
   emission_spectrum_yield_func_t yield;
+  void *norm_param;
+  void *yield_param;
 };
 
 // Primary struct for the updater
@@ -27,10 +29,6 @@ struct gkyl_bc_emission_spectrum {
   enum gkyl_edge_loc edge;
   double charge;
   double mass;
-  void *norm_param;
-  void *norm_param_cu;
-  void *yield_param;
-  void *yield_param_cu;
   struct gkyl_rect_grid *grid;
   struct gkyl_bc_emission_spectrum_funcs *funcs;
   struct gkyl_bc_emission_spectrum_funcs *funcs_cu;
@@ -47,7 +45,7 @@ chung_everhart_spec(double t, const double *xn, double *fout, void *ctx)
   struct gkyl_bc_emission_spectrum *bc_ctx =
     (struct gkyl_bc_emission_spectrum *) ctx;
   struct gkyl_bc_emission_spectrum_norm_chung_everhart *param =
-    (struct gkyl_bc_emission_spectrum_norm_chung_everhart *) bc_ctx->norm_param;
+    (struct gkyl_bc_emission_spectrum_norm_chung_everhart *) bc_ctx->funcs->norm_param;
   int cdim = bc_ctx->cdim;
   int vdim = bc_ctx->vdim;
   double mass = param->mass;
@@ -70,7 +68,7 @@ gaussian_spec(double t, const double *xn, double *fout, void *ctx)
   struct gkyl_bc_emission_spectrum *bc_ctx =
     (struct gkyl_bc_emission_spectrum *) ctx;
   struct gkyl_bc_emission_spectrum_norm_gaussian *param =
-    (struct gkyl_bc_emission_spectrum_norm_gaussian *) bc_ctx->norm_param;
+    (struct gkyl_bc_emission_spectrum_norm_gaussian *) bc_ctx->funcs->norm_param;
   int cdim = bc_ctx->cdim;
   int vdim = bc_ctx->vdim;
   double mass = param->mass;
@@ -94,7 +92,7 @@ maxwellian_spec(double t, const double *xn, double *fout, void *ctx)
   struct gkyl_bc_emission_spectrum *bc_ctx = 
     (struct gkyl_bc_emission_spectrum *) ctx;
   struct gkyl_bc_emission_spectrum_norm_maxwellian *param = 
-    (struct gkyl_bc_emission_spectrum_norm_maxwellian *) bc_ctx->norm_param;
+    (struct gkyl_bc_emission_spectrum_norm_maxwellian *) bc_ctx->funcs->norm_param;
   int cdim = bc_ctx->cdim;
   int vdim = bc_ctx->vdim;
   double mass = param->mass;
@@ -180,7 +178,7 @@ furman_pivi_yield(double *out, int cdim, int vdim, double xc[GKYL_MAX_DIM],
   double t3 = param->t3;
   double t4 = param->t4;
   double s = param->s;
-
+  
   double E = 0.0;
   double mu = 1.0; // currently hardcoded to normal, will add angular dependence later
   for (int d=0; d<vdim; d++) {
@@ -243,11 +241,11 @@ gkyl_bc_emission_spectrum_choose_func_cu(enum gkyl_bc_emission_spectrum_norm_typ
   enum gkyl_bc_emission_spectrum_yield_type yield_type, struct gkyl_bc_emission_spectrum_funcs *funcs);
 
 void
-gkyl_bc_emission_spectrum_choose_norm_param_cu(enum gkyl_bc_emission_spectrum_norm_type norm_type,
-  void *norm_param_cu);
+gkyl_bc_emission_spectrum_choose_norm_cu(enum gkyl_bc_emission_spectrum_norm_type norm_type,
+  struct gkyl_bc_emission_spectrum_funcs *funcs, void *norm_param);
 
 void
-gkyl_bc_emission_spectrum_choose_yield_param_cu(enum gkyl_bc_emission_spectrum_yield_type yield_type, void *yield_param_cu);
+gkyl_bc_emission_spectrum_choose_yield_cu(enum gkyl_bc_emission_spectrum_yield_type yield_type, struct gkyl_bc_emission_spectrum_funcs *funcs, void *yield_param);
 
 GKYL_CU_D
 static emission_spectrum_spec_func_t

@@ -61,7 +61,7 @@ gkyl_bc_emission_spectrum_sey_calc(const struct gkyl_bc_emission_spectrum *up, s
     long loc = gkyl_range_idx(gamma_r, iter.idx);
     double *out = gkyl_array_fetch(yield, loc);
     gkyl_rect_grid_cell_center(grid, iter.idx, xc);
-    up->funcs->yield(out, up->cdim, up->vdim, xc, up->yield_param);
+    up->funcs->yield(out, up->cdim, up->vdim, xc, up->funcs->yield_param);
   }
 }
 
@@ -70,7 +70,8 @@ gkyl_bc_emission_spectrum_new(enum gkyl_bc_emission_spectrum_norm_type norm_type
   enum gkyl_bc_emission_spectrum_yield_type yield_type, void *norm_param, void *yield_param,
   struct gkyl_array *yield, struct gkyl_array *spectrum, int dir, enum gkyl_edge_loc edge,
   int cdim, int vdim, struct gkyl_range *impact_buff_r,  struct gkyl_range *impact_ghost_r,
-  struct gkyl_rect_grid *grid, int poly_order, struct gkyl_basis *basis, bool use_gpu)
+  struct gkyl_rect_grid *grid, int poly_order, struct gkyl_basis *basis,
+  struct gkyl_array *proj_buffer, bool use_gpu)
 {
   // Allocate space for new updater.
   struct gkyl_bc_emission_spectrum *up = gkyl_malloc(sizeof(struct gkyl_bc_emission_spectrum));
@@ -80,8 +81,6 @@ gkyl_bc_emission_spectrum_new(enum gkyl_bc_emission_spectrum_norm_type norm_type
   up->vdim = vdim;
   up->edge = edge;
   up->use_gpu = use_gpu;
-  up->norm_param = norm_param;
-  up->yield_param = yield_param;
   up->grid = grid;
 
   int ghost[GKYL_MAX_DIM];
@@ -93,43 +92,43 @@ gkyl_bc_emission_spectrum_new(enum gkyl_bc_emission_spectrum_norm_type norm_type
   }
 
   up->funcs = gkyl_malloc(sizeof(struct gkyl_bc_emission_spectrum_funcs));
-#ifdef GKYL_HAVE_CUDA
-  if (use_gpu) {
-    up->funcs_cu = gkyl_cu_malloc(sizeof(struct gkyl_bc_emission_spectrum_funcs));
-    gkyl_bc_emission_spectrum_choose_func_cu(norm_type, yield_type, up->funcs_cu);
-    gkyl_bc_emission_spectrum_choose_norm_param_cu(norm_type, up->norm_param_cu);
-    gkyl_bc_emission_spectrum_choose_yield_param_cu(yield_type, up->yield_param_cu);
-  } else {
-    up->funcs->func = bc_weighted_delta;
-    up->funcs->spec = bc_emission_spectrum_choose_spec_func(norm_type);
-    up->funcs->norm = bc_emission_spectrum_choose_norm_func(norm_type);
-    up->funcs->yield = bc_emission_spectrum_choose_yield_func(yield_type);
-    up->funcs_cu = up->funcs;
-    up->norm_param_cu = up->norm_param;
-    up->yield_param_cu = up->yield_param;
-  
-    gkyl_bc_emission_spectrum_sey_calc(up, yield, grid, impact_ghost_r, impact_buff_r);
-    gkyl_proj_on_basis *proj = gkyl_proj_on_basis_new(grid, basis, poly_order + 1, 1,
-      up->funcs->spec, up);
-    gkyl_proj_on_basis_advance(proj, 0.0, impact_buff_r, spectrum);
-    gkyl_proj_on_basis_release(proj);
-  }
-#else
+  up->funcs->norm_param = norm_param;
+  up->funcs->yield_param = yield_param;
   up->funcs->func = bc_weighted_delta;
   up->funcs->spec = bc_emission_spectrum_choose_spec_func(norm_type);
   up->funcs->norm = bc_emission_spectrum_choose_norm_func(norm_type);
   up->funcs->yield = bc_emission_spectrum_choose_yield_func(yield_type);
-  up->funcs_cu = up->funcs;
-  up->norm_param_cu = up->norm_param;
-  up->yield_param_cu = up->yield_param;
-  
-  gkyl_bc_emission_spectrum_sey_calc(up, yield, grid, impact_ghost_r, impact_buff_r);
+
+#ifdef GKYL_HAVE_CUDA
+  if (use_gpu) {
+    gkyl_proj_on_basis *proj = gkyl_proj_on_basis_new(grid, basis, poly_order + 1, 1,
+      up->funcs->spec, up);
+    gkyl_proj_on_basis_advance(proj, 0.0, impact_buff_r, proj_buffer);
+    gkyl_proj_on_basis_release(proj);
+    
+    up->funcs_cu = gkyl_cu_malloc(sizeof(struct gkyl_bc_emission_spectrum_funcs));
+    gkyl_bc_emission_spectrum_choose_norm_cu(norm_type, up->funcs_cu, norm_param);
+    gkyl_bc_emission_spectrum_choose_yield_cu(yield_type, up->funcs_cu, yield_param);
+    
+    gkyl_cu_memcpy(spectrum->on_dev, proj_buffer, sizeof(struct gkyl_array), GKYL_CU_MEMCPY_H2D);
+  } else {
+    gkyl_proj_on_basis *proj = gkyl_proj_on_basis_new(grid, basis, poly_order + 1, 1,
+      up->funcs->spec, up);
+    gkyl_proj_on_basis_advance(proj, 0.0, impact_buff_r, spectrum);
+    gkyl_proj_on_basis_release(proj);
+
+    up->funcs_cu = up->funcs;;
+  }
+#else
   gkyl_proj_on_basis *proj = gkyl_proj_on_basis_new(grid, basis, poly_order + 1, 1,
     up->funcs->spec, up);
   gkyl_proj_on_basis_advance(proj, 0.0, impact_buff_r, spectrum);
   gkyl_proj_on_basis_release(proj);
+ 
+  up->funcs_cu = up->funcs;
 #endif
-
+  gkyl_bc_emission_spectrum_sey_calc(up, yield, grid, impact_ghost_r, impact_buff_r);
+  
   return up;
 }
 
@@ -188,7 +187,7 @@ gkyl_bc_emission_spectrum_advance(const struct gkyl_bc_emission_spectrum *up,
     const double *bflux = gkyl_array_cfetch(flux, midx);
     double *out = gkyl_array_fetch(k, midx);
     
-    up->funcs->norm(out, bflux, up->norm_param, effective_delta);
+    up->funcs->norm(out, bflux, up->funcs->norm_param, effective_delta);
     gkyl_array_accumulate(f_emit, out[0], spectrum);
   }
 }
@@ -198,13 +197,13 @@ void gkyl_bc_emission_spectrum_release(struct gkyl_bc_emission_spectrum *up)
 #ifdef GKYL_HAVE_CUDA
   if (up->use_gpu) {
     gkyl_cu_free(up->funcs_cu);
-    gkyl_cu_free(up->norm_param_cu);
-    gkyl_cu_free(up->yield_param_cu);
+    //gkyl_cu_free(up->norm_param_cu);
+    //gkyl_cu_free(up->yield_param_cu);
   }
 #endif
   gkyl_free(up->funcs);
-  gkyl_free(up->norm_param);
-  gkyl_free(up->yield_param);
+  //gkyl_free(up->norm_param);
+  //gkyl_free(up->yield_param);
   // Release updater memory.
   gkyl_free(up);
 }
