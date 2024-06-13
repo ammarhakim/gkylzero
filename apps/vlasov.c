@@ -465,7 +465,7 @@ gkyl_vlasov_app_calc_integrated_mom(gkyl_vlasov_app* app, double tm)
       gkyl_array_reduce_range(avals, s->integ_moms.marr_host, GKYL_SUM, &(app->local));
     }
 
-    gkyl_comm_allreduce(app->comm, GKYL_DOUBLE, GKYL_SUM, 2+vdim, avals, avals_global);
+    gkyl_comm_allreduce_host(app->comm, GKYL_DOUBLE, GKYL_SUM, 2+vdim, avals, avals_global);
     gkyl_dynvec_append(s->integ_diag, tm, avals_global);
 
     app->stat.mom_tm += gkyl_time_diff_now_sec(wst);
@@ -564,7 +564,7 @@ gkyl_vlasov_app_write_species(gkyl_vlasov_app* app, int sidx, double tm, int fra
   if (app->use_gpu) {
     // copy data from device to host before writing it out
     gkyl_array_copy(app->species[sidx].f_host, app->species[sidx].f);
-    gkyl_comm_array_write(app->species[sidx].comm, &app->species[sidx].grid, &app->species[sidx].local,
+    gkyl_comm_array_write(app->species[sidx].comm, &app->species[sidx].grid, &app->species[sidx].local_ext,
       mt, app->species[sidx].f_host, fileNm);
   }
   else {
@@ -855,7 +855,7 @@ forward_euler(gkyl_vlasov_app* app, double tcurr, double dt,
 
   // compute minimum time-step across all processors
   double dtmin_local = dtmin, dtmin_global;
-  gkyl_comm_allreduce(app->comm, GKYL_DOUBLE, GKYL_MIN, 1, &dtmin_local, &dtmin_global);
+  gkyl_comm_allreduce_host(app->comm, GKYL_DOUBLE, GKYL_MIN, 1, &dtmin_local, &dtmin_global);
   dtmin = dtmin_global;
   
   // don't take a time-step larger that input dt
@@ -1102,7 +1102,7 @@ comm_reduce_app_stat(const gkyl_vlasov_app* app,
   };
 
   int64_t l_red_global[L_END];
-  gkyl_comm_allreduce(app->comm, GKYL_INT_64, GKYL_MAX, L_END, l_red, l_red_global);
+  gkyl_comm_allreduce_host(app->comm, GKYL_INT_64, GKYL_MAX, L_END, l_red, l_red_global);
 
   global->nup = l_red_global[NUP];
   global->nfeuler = l_red_global[NFEULER];
@@ -1141,7 +1141,7 @@ comm_reduce_app_stat(const gkyl_vlasov_app* app,
   };
 
   double d_red_global[D_END];
-  gkyl_comm_allreduce(app->comm, GKYL_DOUBLE, GKYL_MAX, D_END, d_red, d_red_global);
+  gkyl_comm_allreduce_host(app->comm, GKYL_DOUBLE, GKYL_MAX, D_END, d_red, d_red_global);
   
   global->total_tm = d_red_global[TOTAL_TM];
   global->init_species_tm = d_red_global[INIT_SPECIES_TM];
@@ -1165,14 +1165,14 @@ comm_reduce_app_stat(const gkyl_vlasov_app* app,
 
   // misc data needing reduction
 
-  gkyl_comm_allreduce(app->comm, GKYL_DOUBLE, GKYL_MAX, 2, local->stage_2_dt_diff,
+  gkyl_comm_allreduce_host(app->comm, GKYL_DOUBLE, GKYL_MAX, 2, local->stage_2_dt_diff,
     global->stage_2_dt_diff);
-  gkyl_comm_allreduce(app->comm, GKYL_DOUBLE, GKYL_MAX, 2, local->stage_3_dt_diff,
+  gkyl_comm_allreduce_host(app->comm, GKYL_DOUBLE, GKYL_MAX, 2, local->stage_3_dt_diff,
     global->stage_3_dt_diff);
 
-  gkyl_comm_allreduce(app->comm, GKYL_DOUBLE, GKYL_MAX, GKYL_MAX_SPECIES, local->species_lbo_coll_drag_tm,
+  gkyl_comm_allreduce_host(app->comm, GKYL_DOUBLE, GKYL_MAX, GKYL_MAX_SPECIES, local->species_lbo_coll_drag_tm,
     global->species_lbo_coll_drag_tm);
-  gkyl_comm_allreduce(app->comm, GKYL_DOUBLE, GKYL_MAX, GKYL_MAX_SPECIES, local->species_lbo_coll_diff_tm,
+  gkyl_comm_allreduce_host(app->comm, GKYL_DOUBLE, GKYL_MAX, GKYL_MAX_SPECIES, local->species_lbo_coll_diff_tm,
     global->species_lbo_coll_diff_tm);
 }
 
@@ -1346,7 +1346,7 @@ gkyl_vlasov_app_from_file_species(gkyl_vlasov_app *app, int sidx,
     if (app->use_gpu)
       gkyl_array_copy(vm_s->f, vm_s->f_host);
     if (GKYL_ARRAY_RIO_SUCCESS == rstat.io_status) {
-      vm_species_apply_bc(app, vm_s, vm_s->f);
+      vm_species_apply_bc(app, vm_s, vm_s->f, 0.0);
       if (vm_s->source_id)
         vm_species_source_calc(app, vm_s, &vm_s->src, 0.0);
     }
