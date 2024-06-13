@@ -66,6 +66,11 @@ ifeq (${USE_MPI}, 1)
 	USING_MPI = yes
 	MPI_INC_DIR = ${CONF_MPI_INC_DIR}
 	MPI_LIB_DIR = ${CONF_MPI_LIB_DIR}
+ifdef USING_NVCC
+	MPI_RPATH = -Xlinker "-rpath,${CONF_MPI_LIB_DIR}"
+else
+	MPI_RPATH = -Wl,-rpath,${CONF_MPI_LIB_DIR}
+endif
 	MPI_LIBS = -lmpi
 	CFLAGS += -DGKYL_HAVE_MPI
 endif
@@ -90,11 +95,17 @@ endif
 USING_CUDSS =
 CUDSS_INC_DIR = zero # dummy
 CUDSS_LIB_DIR = .
+CUDSS_RPATH =
 ifeq (${USE_CUDSS}, 1)
 ifdef USING_NVCC
 	USING_CUDSS = yes
 	CUDSS_INC_DIR = ${CONF_CUDSS_INC_DIR}
 	CUDSS_LIB_DIR = ${CONF_CUDSS_LIB_DIR}
+ifdef USING_NVCC
+	CUDSS_RPATH = -Xlinker "-rpath,${CONF_CUDSS_LIB_DIR}"
+else
+	CUDSS_RPATH = -Wl,-rpath,${CONF_CUDSS_LIB_DIR}
+endif
 	CUDSS_LIBS = -lcudss
 	CFLAGS += -DGKYL_HAVE_CUDSS
 endif
@@ -186,7 +197,7 @@ endif
 
 # List of link directories and libraries for unit and regression tests
 EXEC_LIB_DIRS = -L${SUPERLU_LIB_DIR} -L${LAPACK_LIB_DIR} -L${BUILD_DIR} -L${MPI_LIB_DIR} -L${NCCL_LIB_DIR} -L${CUDSS_LIB_DIR} -L${LUA_LIB_DIR}
-EXEC_EXT_LIBS = -lsuperlu ${LAPACK_LIB} ${CUDA_LIBS} ${MPI_RPATH} ${MPI_LIBS} ${NCCL_LIBS} ${CUDSS_LIBS} ${LUA_RPATH} ${LUA_LIBS} -lm -lpthread -ldl
+EXEC_EXT_LIBS = -lsuperlu ${LAPACK_LIB} ${CUDA_LIBS} ${MPI_RPATH} ${MPI_LIBS} ${NCCL_LIBS} ${CUDSS_RPATH} ${CUDSS_LIBS} ${LUA_RPATH} ${LUA_LIBS} -lm -lpthread -ldl
 EXEC_LIBS = ${BUILD_DIR}/libgkylzero.so ${EXEC_EXT_LIBS}
 EXEC_RPATH = 
 
