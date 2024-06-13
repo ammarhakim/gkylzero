@@ -176,7 +176,14 @@ gkyl_cudss_brhs_from_triples(struct gkyl_cudss_prob *prob, gkyl_mat_triples *tri
   gkyl_cu_memcpy(prob->rhs_cu, prob->rhs, sizeof(double)*prob->mrow*prob->nrhs, GKYL_CU_MEMCPY_H2D);
 
   cudssStatus_t status = CUDSS_STATUS_SUCCESS;
-  checkCUDSS(cudssMatrixSetValues(prob->b, prob->rhs_cu), status, "cudssMatrixSetValues for setting brhs");
+  checkCUDSS(cudssMatrixSetValues(prob->b, prob->rhs_cu), status, "cudssMatrixSetValues for setting brhs_from_triples");
+}
+
+void
+gkyl_cudss_brhs_from_vec(struct gkyl_cudss_prob *prob, double *rhs)
+{
+  cudssStatus_t status = CUDSS_STATUS_SUCCESS;
+  checkCUDSS(cudssMatrixSetValues(prob->b, rhs), status, "cudssMatrixSetValues for setting brhs_from_vec");
 }
 
 void
@@ -201,6 +208,24 @@ gkyl_cudss_finish_host(struct gkyl_cudss_prob *prob)
   cudssStatus_t status = CUDSS_STATUS_SUCCESS;
   checkCUDSS(cudssMatrixGetDn(prob->x, NULL, NULL, NULL, (void**) &(prob->rhs_cu), NULL, NULL), status, "cudssMatrixGetDn in finish_host");
   gkyl_cu_memcpy(prob->rhs, prob->rhs_cu, sizeof(double)*prob->mrow*prob->nrhs, GKYL_CU_MEMCPY_D2H);
+}
+
+void
+gkyl_cudss_clear_rhs(struct gkyl_cudss_prob *prob, double val)
+{
+  gkyl_cu_memset(prob->rhs_cu, val, prob->mrow*prob->nrhs*sizeof(double));
+}
+
+double*
+gkyl_cudss_get_rhs_ptr(struct gkyl_cudss_prob *prob, long loc)
+{
+  return prob->rhs_cu+loc;
+}
+
+double*
+gkyl_cudss_get_sol_ptr(struct gkyl_cudss_prob *prob, long loc)
+{
+  return prob->rhs_cu+loc;
 }
 
 double
