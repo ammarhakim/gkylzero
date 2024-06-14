@@ -12,11 +12,11 @@
 
 struct rad_ctx
 {
-  int cdim, vdim; // Dimensionality.
-  
   // Mathematical constants (dimensionless).
   double pi;
 
+  int cdim, vdim; // Dimensionality.
+  
   // Physical constants (using non-normalized physical units).
   double epsilon0; // Permittivity of free space.
   double mass_elc; // Electron mass.
@@ -50,6 +50,7 @@ struct rad_ctx
   int Nz; // Cell count (configuration space: z-direction).
   int Nvpar; // Cell count (velocity space: parallel velocity direction).
   int Nmu; // Cell count (velocity space: magnetic moment direction).
+  int cells[GKYL_MAX_DIM]; // Number of cells in all directions.
   double Lz; // Domain size (configuration space: z-direction).
   double vpar_max_elc; // Domain boundary (electron velocity space: parallel velocity direction).
   double mu_max_elc; // Domain boundary (electron velocity space: magnetic moment direction).
@@ -69,9 +70,7 @@ create_ctx(void)
   // Mathematical constants (dimensionless).
   double pi = M_PI;
 
-  // Dimensionality.
-  int cdim = 1, vdim = 2;
-  int pdim = cdim+vdim;
+  int cdim = 1, vdim = 2; // Dimensionality.
 
   // Physical constants (using non-normalized physical units).
   double epsilon0 = GKYL_EPSILON0; // Permittivity of free space.
@@ -125,6 +124,8 @@ create_ctx(void)
   
   struct rad_ctx ctx = {
     .pi = pi,
+    .cdim = cdim,
+    .vdim = vdim,
     .epsilon0 = epsilon0,
     .mass_elc = mass_elc,
     .charge_elc = charge_elc,
@@ -149,6 +150,7 @@ create_ctx(void)
     .Nz = Nz,
     .Nvpar = Nvpar,
     .Nmu = Nmu,
+    .cells = {Nz, Nvpar, Nmu},
     .Lz = Lz,
     .vpar_max_elc = vpar_max_elc,
     .mu_max_elc = mu_max_elc,
@@ -292,98 +294,23 @@ main(int argc, char **argv)
 
   struct rad_ctx ctx = create_ctx(); // Context for initialization functions.
 
-  int NZ = APP_ARGS_CHOOSE(app_args.xcells[0], ctx.Nz);
-  int NVPAR = APP_ARGS_CHOOSE(app_args.vcells[0], ctx.Nvpar);
-  int NMU = APP_ARGS_CHOOSE(app_args.vcells[1], ctx.Nmu);
-
-  // Create global range.
-  int ccells[] = { NZ };
-  int cdim = sizeof(ccells) / sizeof(ccells[0]);
-  struct gkyl_range cglobal_r;
-  gkyl_create_global_range(cdim, ccells, &cglobal_r);
+  int cells_x[ctx.cdim], cells_v[ctx.vdim];
+  for (int d=0; d<ctx.cdim; d++)
+    cells_x[d] = APP_ARGS_CHOOSE(app_args.xcells[d], ctx.cells[d]);
+  for (int d=0; d<ctx.vdim; d++)
+    cells_v[d] = APP_ARGS_CHOOSE(app_args.vcells[d], ctx.cells[ctx.cdim+d]);
 
   // Create decomposition.
-  int cuts[cdim];
-#ifdef GKYL_HAVE_MPI  
-  for (int d = 0; d < cdim; d++) {
-    if (app_args.use_mpi) {
-      cuts[d] = app_args.cuts[d];
-    }
-    else {
-      cuts[d] = 1;
-    }
-  }
-#else
-  for (int d = 0; d < cdim; d++) {
-    cuts[d] = 1;
-  }
-#endif  
-    
-  struct gkyl_rect_decomp *decomp = gkyl_rect_decomp_new_from_cuts(cdim, cuts, &cglobal_r);
+  struct gkyl_rect_decomp *decomp = gkyl_gyrokinetic_comms_decomp_new(ctx.cdim, cells_x, app_args.cuts, app_args.use_mpi, stderr);
 
   // Construct communicator for use in app.
-  struct gkyl_comm *comm;
+  struct gkyl_comm *comm = gkyl_gyrokinetic_comms_new(app_args.use_mpi, app_args.use_gpu, decomp, stderr);
+
+  int my_rank = 0;
 #ifdef GKYL_HAVE_MPI
-  if (app_args.use_gpu && app_args.use_mpi) {
-#ifdef GKYL_HAVE_NCCL
-    comm = gkyl_nccl_comm_new( &(struct gkyl_nccl_comm_inp) {
-        .mpi_comm = MPI_COMM_WORLD,
-        .decomp = decomp
-      }
-    );
-#else
-    printf(" Using -g and -M together requires NCCL.\n");
-    assert(0 == 1);
+  if (app_args.use_mpi)
+    gkyl_comm_get_rank(comm, &my_rank);
 #endif
-  }
-  else if (app_args.use_mpi) {
-    comm = gkyl_mpi_comm_new( &(struct gkyl_mpi_comm_inp) {
-        .mpi_comm = MPI_COMM_WORLD,
-        .decomp = decomp
-      }
-    );
-  }
-  else {
-    comm = gkyl_null_comm_inew( &(struct gkyl_null_comm_inp)
-      {
-        .decomp = decomp,
-        .use_gpu = app_args.use_gpu
-      }
-    );
-  }
-#else
-  comm = gkyl_null_comm_inew( &(struct gkyl_null_comm_inp)
-    {
-      .decomp = decomp,
-      .use_gpu = app_args.use_gpu
-    }
-  );
-#endif
-
-  int my_rank, comm_size;
-  gkyl_comm_get_rank(comm, &my_rank);
-  gkyl_comm_get_size(comm, &comm_size);
-
-  int ncuts = 1;
-  for (int d = 0; d < cdim; d++) {
-    ncuts *= cuts[d];
-  }
-
-  if (ncuts != comm_size) {
-    if (my_rank == 0) {
-      fprintf(stderr, "*** Number of ranks, %d, does not match total cuts, %d!\n", comm_size, ncuts);
-    }
-    goto mpifinalize;
-  }
-
-  for (int d = 0; d < cdim - 1; d++) {
-    if (cuts[d] > 1) {
-      if (my_rank == 0) {
-        fprintf(stderr, "*** Parallelization only allowed in z. Number of ranks, %d, in direction %d cannot be > 1!\n", cuts[d], d);
-      }
-      goto mpifinalize;
-    }
-  }
 
   // Electron species.
   struct gkyl_gyrokinetic_species elc = {
@@ -391,7 +318,7 @@ main(int argc, char **argv)
     .charge = ctx.charge_elc, .mass = ctx.mass_elc,
     .lower = { -ctx.vpar_max_elc, 0.0 },
     .upper = { ctx.vpar_max_elc, ctx.mu_max_elc },
-    .cells = { NVPAR, NMU },
+    .cells = { cells_v[0], cells_v[1] },
     .polarization_density = ctx.n0,
 
     .projection = {
@@ -445,7 +372,7 @@ main(int argc, char **argv)
     .charge = ctx.charge_ion, .mass = ctx.mass_ion,
     .lower = { -ctx.vpar_max_ion, 0.0 },
     .upper = { ctx.vpar_max_ion, ctx.mu_max_ion },
-    .cells = { NVPAR, NMU },
+    .cells = { cells_v[0], cells_v[1] },
     .polarization_density = ctx.n0,
 
     .projection = {
@@ -494,10 +421,10 @@ main(int argc, char **argv)
   struct gkyl_gk app_inp = {
     .name = "gk_rad_1x2v_p1",
 
-    .cdim = 1, .vdim = 2,
+    .cdim = ctx.cdim, .vdim = ctx.vdim,
     .lower = { -0.5 * ctx.Lz },
     .upper = { 0.5 * ctx.Lz },
-    .cells = { NZ },
+    .cells = { cells_x[0] },
     .poly_order = 1,
     .basis_type = app_args.basis_type,
 
@@ -636,10 +563,8 @@ main(int argc, char **argv)
   freeresources:
   // Free resources after simulation completion.
   gkyl_gyrokinetic_app_release(app);
-  gkyl_rect_decomp_release(decomp);
-  gkyl_comm_release(comm);
+  gkyl_gyrokinetic_comms_release(decomp, comm);
 
-  mpifinalize:
 #ifdef GKYL_HAVE_MPI
   if (app_args.use_mpi) {
     MPI_Finalize();
