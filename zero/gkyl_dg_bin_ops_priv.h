@@ -158,11 +158,26 @@ static const mul_op_kern_list hyb_cross_mul_list[] = {
   { binop_cross_mul_3x1v_hyb_p1, binop_cross_mul_3x2v_hyb_p1, binop_cross_mul_3x3v_hyb_p1 },
 };
 
+// Hybrid basis multiplication kernels
+GKYL_CU_D    
+static const mul_op_comp_par_kern_list hyb_cross_mul_comp_par_list[] = {
+  { binop_cross_mul_comp_par_1x1v_hyb_p1, binop_cross_mul_comp_par_1x2v_hyb_p1, binop_cross_mul_comp_par_1x3v_hyb_p1 },
+  { binop_cross_mul_comp_par_2x1v_hyb_p1, binop_cross_mul_comp_par_2x2v_hyb_p1, binop_cross_mul_comp_par_2x3v_hyb_p1 },
+  { binop_cross_mul_comp_par_3x1v_hyb_p1, binop_cross_mul_comp_par_3x2v_hyb_p1, binop_cross_mul_comp_par_3x3v_hyb_p1 },
+};
+
 GKYL_CU_D
 static const mul_op_kern_list gkhyb_cross_mul_list[] = {
   { binop_cross_mul_1x1v_gkhyb_p1, binop_cross_mul_1x2v_gkhyb_p1 },
   {                          NULL, binop_cross_mul_2x2v_gkhyb_p1 },
   {                          NULL, binop_cross_mul_3x2v_gkhyb_p1 },
+};
+
+GKYL_CU_D
+static const mul_op_comp_par_kern_list gkhyb_cross_mul_comp_par_list[] = {
+  { binop_cross_mul_comp_par_1x1v_gkhyb_p1, binop_cross_mul_comp_par_1x2v_gkhyb_p1 },
+  {                          NULL, binop_cross_mul_comp_par_2x2v_gkhyb_p1 },
+  {                          NULL, binop_cross_mul_comp_par_3x2v_gkhyb_p1 },
 };
 
 static const mul_op_count_kern_list ser_mul_op_count_list[] = {
@@ -257,6 +272,12 @@ choose_mul_comp_par_conf_phase_kern(enum gkyl_basis_type btype, int cdim, int vd
   switch (btype) {
     case GKYL_BASIS_MODAL_SERENDIPITY:
       return ser_cross_mul_comp_par_list[pdim-2].list[cdim-1].kernels[poly_order];
+      break;
+    case GKYL_BASIS_MODAL_HYBRID:
+      return hyb_cross_mul_comp_par_list[cdim-1].kernels[vdim-1];
+      break;
+    case GKYL_BASIS_MODAL_GKHYBRID:
+      return gkhyb_cross_mul_comp_par_list[cdim-1].kernels[vdim-1];
       break;
     default:
       assert(false);

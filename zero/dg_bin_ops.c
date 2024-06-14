@@ -72,9 +72,7 @@ gkyl_dg_mul_op(struct gkyl_basis basis,
   switch (basis.b_type) {
     case GKYL_BASIS_MODAL_SERENDIPITY:
       mul_op = choose_ser_mul_kern(ndim, poly_order);
-
       break;
-
     case GKYL_BASIS_MODAL_TENSOR:
       mul_op = choose_ten_mul_kern(ndim, poly_order);
       
