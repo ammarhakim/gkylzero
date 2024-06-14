@@ -1,3 +1,5 @@
+#ifndef GKYL_HAVE_CUDSS
+
 #include <cusparse.h>
 #include <cusolverSp.h>
 #include <cusolverRf.h>
@@ -12,7 +14,6 @@ extern "C" {
 #include <gkyl_util.h>
 #include <gkyl_cusolver_ops.h>
 }
-
 
 #ifdef GKYL_HAVE_CUDA
 #include <cusparse.h>
@@ -468,7 +469,6 @@ gkyl_cusolver_get_sol_ij(struct gkyl_cusolver_prob *prob, long ielement, long jp
   return prob->rhs[jprob*prob->mrow+ielement];
 }
 
-
 double
 gkyl_cusolver_get_sol_lin(struct gkyl_cusolver_prob *prob, long loc)
 {
@@ -500,3 +500,6 @@ gkyl_cusolver_prob_release(struct gkyl_cusolver_prob *prob)
   cudaStreamDestroy(prob->stream);
   gkyl_free(prob);
 }
+
+// End ifndef GKYL_HAVE_CUDSS statement.
+#endif
