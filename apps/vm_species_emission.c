@@ -11,7 +11,7 @@ vm_species_emission_init(struct gkyl_vlasov_app *app, struct vm_emitting_wall *e
   emit->edge = edge;
   emit->dir = dir;
   emit->elastic = params->elastic;
-  emit->t_bound = (params->t_bound) ? params->t_bound : 1.0;
+  emit->t_bound = params->t_bound;
 }
 
 void
@@ -42,7 +42,7 @@ vm_species_emission_cross_init(struct gkyl_vlasov_app *app, struct vm_species *s
     emit->elastic_yield = mkarr(app->use_gpu, app->basis.num_basis, emit->emit_buff_r->volume);
     emit->elastic_update = gkyl_bc_emission_elastic_new(emit->params->elastic_type,
       emit->params->elastic_params, emit->elastic_yield, emit->dir, emit->edge, cdim, vdim,
-      emit->emit_grid, emit->emit_buff_r, app->poly_order, &app->basis, app->use_gpu);
+      emit->emit_grid, emit->emit_buff_r, app->poly_order, &app->basis, proj_buffer, app->use_gpu);
   }
 
   for (int i=0; i<emit->num_species; ++i) {
@@ -82,7 +82,10 @@ void
 vm_species_emission_apply_bc(struct gkyl_vlasov_app *app, const struct vm_emitting_wall *emit,
   struct gkyl_array *fout, double tcurr)
 {
-  double t_scale = sin(M_PI*tcurr/(2.0*emit->t_bound));
+  double t_scale = 1.0;
+  if (emit->t_bound)
+    t_scale = sin(M_PI*tcurr/(2.0*emit->t_bound));
+
   gkyl_array_clear(emit->f_emit, 0.0); // Zero emitted distribution before beginning accumulate
   if (emit->elastic) {
     gkyl_bc_emission_elastic_advance(emit->elastic_update, emit->emit_skin_r, emit->buffer, fout, emit->f_emit, emit->elastic_yield, &app->basis);
@@ -97,8 +100,7 @@ vm_species_emission_apply_bc(struct gkyl_vlasov_app *app, const struct vm_emitti
       emit->impact_cbuff_r[i], emit->emit_buff_r, emit->bflux_arr[i],
       emit->f_emit, emit->yield[i], emit->spectrum[i], emit->weight[i], emit->flux[i], emit->k[i]);
   }
-  gkyl_array_copy_range_to_range(fout, emit->f_emit, emit->emit_ghost_r, emit->emit_buff_r);
-  // gkyl_array_set_range_to_range(fout, t_scale, emit->f_emit, emit->emit_ghost_r, emit->emit_buff_r);
+  gkyl_array_set_range_to_range(fout, t_scale, emit->f_emit, emit->emit_ghost_r, emit->emit_buff_r);
 }
 
 void

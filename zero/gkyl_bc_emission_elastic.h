@@ -52,7 +52,7 @@ typedef struct gkyl_bc_emission_elastic gkyl_bc_emission_elastic;
 struct gkyl_bc_emission_elastic* gkyl_bc_emission_elastic_new(enum gkyl_bc_emission_elastic_type elastic_type,
   void *elastic_param, struct gkyl_array *elastic_yield, int dir, enum gkyl_edge_loc edge,
   int cdim, int vdim, struct gkyl_rect_grid *grid, struct gkyl_range *emit_buff_r, int poly_order,
-  struct gkyl_basis *basis, bool use_gpu);
+  struct gkyl_basis *basis, struct gkyl_array *proj_buffer, bool use_gpu);
 
 /**
  * @param up BC updater

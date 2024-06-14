@@ -151,7 +151,7 @@ main(int argc, char **argv)
 
  struct vm_emission_ctx bc_ctx = {
     .num_species = 1,
-    .elastic = false,
+    .elastic = true,
     .norm_type = { GKYL_SEE_CHUNG_EVERHART },
     .yield_type = { GKYL_SEE_FURMAN_PIVI },
     .elastic_type = GKYL_BS_FURMAN_PIVI,

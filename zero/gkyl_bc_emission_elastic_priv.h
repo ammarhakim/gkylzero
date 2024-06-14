@@ -12,6 +12,7 @@ typedef void (*emission_elastic_yield_func_t)(double t, const double *xn, double
 
 struct gkyl_bc_emission_elastic_funcs {
   emission_elastic_yield_func_t yield;
+  void *elastic_param;
 };
 
 // Primary struct for the updater
@@ -21,8 +22,6 @@ struct gkyl_bc_emission_elastic {
   double charge;
   double mass;
   struct gkyl_basis *basis;
-  void *elastic_param;
-  void *elastic_param_cu;
   struct gkyl_array_copy_func *reflect_func;
   struct gkyl_rect_grid *grid;
   struct gkyl_bc_emission_elastic_funcs *funcs;
@@ -51,7 +50,7 @@ furman_pivi_yield(double t, const double *xn, double *fout, void *ctx)
   struct gkyl_bc_emission_elastic *bc_ctx = 
     (struct gkyl_bc_emission_elastic *) ctx;
   struct gkyl_bc_emission_elastic_furman_pivi *param =
-    (struct gkyl_bc_emission_elastic_furman_pivi *) bc_ctx->elastic_param;
+    (struct gkyl_bc_emission_elastic_furman_pivi *) bc_ctx->funcs->elastic_param;
   int cdim = bc_ctx->cdim;
   int vdim = bc_ctx->vdim;
   double mass = param->mass;
@@ -79,7 +78,7 @@ cazaux_yield(double t, const double *xn, double *fout, void *ctx)
   struct gkyl_bc_emission_elastic *bc_ctx = 
     (struct gkyl_bc_emission_elastic *) ctx;
   struct gkyl_bc_emission_elastic_cazaux *param = 
-    (struct gkyl_bc_emission_elastic_cazaux *)bc_ctx->elastic_param;
+    (struct gkyl_bc_emission_elastic_cazaux *)bc_ctx->funcs->elastic_param;
   int cdim = bc_ctx->cdim;
   int vdim = bc_ctx->vdim;
   double mass = param->mass;   
@@ -105,20 +104,15 @@ constant_yield(double t, const double *xn, double *fout, void *ctx)
   struct gkyl_bc_emission_elastic *bc_ctx = 
     (struct gkyl_bc_emission_elastic *) ctx;
   struct gkyl_bc_emission_elastic_constant *param = 
-    (struct gkyl_bc_emission_elastic_constant *) bc_ctx->elastic_param;
+    (struct gkyl_bc_emission_elastic_constant *) bc_ctx->funcs->elastic_param;
   double delta = param->delta;
 
   fout[0] = delta;
 }
 
 void
-gkyl_bc_emission_elastic_choose_func_cu(enum gkyl_bc_emission_elastic_type yield_type,
-  struct gkyl_bc_emission_elastic_funcs *funcs);
-
-
-void
-gkyl_bc_emission_spectrum_choose_elastic_param_cu(enum gkyl_bc_emission_elastic_type elastic_type,
-  void *elastic_param_cu);
+gkyl_bc_emission_elastic_choose_elastic_cu(enum gkyl_bc_emission_elastic_type elastic_type,
+  struct gkyl_bc_emission_elastic_funcs *funcs, void *elastic_param);
 
 GKYL_CU_D
 static emission_elastic_yield_func_t
