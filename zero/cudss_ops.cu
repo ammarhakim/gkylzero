@@ -29,11 +29,11 @@ struct gkyl_cudss_prob {
 
   cudaStream_t stream; // CUDA stream cuDSS runs on.
   cudssHandle_t handle; // cuDSS handle.
-  cudssConfig_t solverConfig;
-  cudssData_t solverData;
+  cudssConfig_t *solverConfig;
+  cudssData_t *solverData;
 
-  cudssMatrix_t A; // cuDSS object holding the LHS matrix.
-  cudssMatrix_t x, b; // cuDSS objects holding the unknowns vector and RHS vector.
+  cudssMatrix_t *A; // cuDSS object holding the LHS matrix.
+  cudssMatrix_t *x, *b; // cuDSS objects holding the unknowns vector and RHS vector.
 
   // Arrays used to populate the LHS matrix in CSR format.
   double *csr_val_cu;
@@ -50,10 +50,10 @@ gkyl_cudss_prob_new(int nprob, int mrow, int ncol, int nrhs)
   prob->ncol = ncol;
   prob->nrhs = nrhs;
 
-  prob->rhs_ho = (double*) gkyl_malloc(nrhs * mrow * sizeof(double));
-  prob->rhs_cu = (double*) gkyl_cu_malloc(nrhs * mrow * sizeof(double));
-  prob->x_ho = (double*) gkyl_malloc(nrhs * mrow * sizeof(double));
-  prob->x_cu = (double*) gkyl_cu_malloc(nrhs * mrow * sizeof(double));
+  prob->rhs_ho = (double*) gkyl_malloc(nprob * nrhs * mrow * sizeof(double));
+  prob->rhs_cu = (double*) gkyl_cu_malloc(nprob * nrhs * mrow * sizeof(double));
+  prob->x_ho = (double*) gkyl_malloc(nprob * nrhs * mrow * sizeof(double));
+  prob->x_cu = (double*) gkyl_cu_malloc(nprob * nrhs * mrow * sizeof(double));
 
   cudssStatus_t status = CUDSS_STATUS_SUCCESS;
 
@@ -68,21 +68,31 @@ gkyl_cudss_prob_new(int nprob, int mrow, int ncol, int nrhs)
   checkCUDSS(cudssSetStream(prob->handle, prob->stream), status, "cudssSetStream");
 
   /* Creating cuDSS solver configuration and data objects */
-  checkCUDSS(cudssConfigCreate(&prob->solverConfig), status, "cudssConfigCreate");
-  checkCUDSS(cudssDataCreate(prob->handle, &prob->solverData), status, "cudssDataCreate");
+  prob->solverConfig = (cudssConfig_t *) gkyl_malloc(nprob * sizeof(cudssConfig_t));
+  prob->solverData = (cudssData_t *) gkyl_malloc(nprob * sizeof(cudssData_t));
+  for (int i=0; i<nprob; i++) {
+    checkCUDSS(cudssConfigCreate(&prob->solverConfig[i]), status, "cudssConfigCreate");
+    checkCUDSS(cudssDataCreate(prob->handle, &prob->solverData[i]), status, "cudssDataCreate");
+  }
 
   /* Create matrix objects for the right-hand side b and solution x (as dense matrices). */
   int64_t mrow_64 = mrow, ncol_64 = ncol;
   int ldb = ncol_64, ldx = mrow_64;
-  for (int i=0; i<nrhs * mrow; i++)
+  for (int i=0; i<nprob * nrhs * mrow; i++)
     prob->rhs_ho[i] = 1.0;
-  gkyl_cu_memcpy(prob->rhs_cu, prob->rhs_ho, nrhs * mrow * sizeof(double), GKYL_CU_MEMCPY_H2D);
-  gkyl_cu_memcpy(prob->x_cu, prob->rhs_ho, nrhs * mrow * sizeof(double), GKYL_CU_MEMCPY_H2D);
+  gkyl_cu_memcpy(prob->rhs_cu, prob->rhs_ho, nprob * nrhs * mrow * sizeof(double), GKYL_CU_MEMCPY_H2D);
+  gkyl_cu_memcpy(prob->x_cu, prob->rhs_ho, nprob * nrhs * mrow * sizeof(double), GKYL_CU_MEMCPY_H2D);
 
-  checkCUDSS(cudssMatrixCreateDn(&prob->b, ncol_64, nrhs, ldb, prob->rhs_cu, CUDA_R_64F, CUDSS_LAYOUT_COL_MAJOR),
-    status, "cudssMatrixCreateDn for b");
-  checkCUDSS(cudssMatrixCreateDn(&prob->x, mrow_64, nrhs, ldx, prob->x_cu, CUDA_R_64F, CUDSS_LAYOUT_COL_MAJOR),
-    status, "cudssMatrixCreateDn for x");
+  prob->b = (cudssMatrix_t *) gkyl_malloc(nprob * sizeof(cudssMatrix_t));
+  prob->x = (cudssMatrix_t *) gkyl_malloc(nprob * sizeof(cudssMatrix_t));
+
+  for (int i=0; i<nprob; i++) {
+    long off = i * nrhs * mrow;
+    checkCUDSS(cudssMatrixCreateDn(&prob->b[i], ncol_64, nrhs, ldb, prob->rhs_cu+off, CUDA_R_64F, CUDSS_LAYOUT_COL_MAJOR),
+      status, "cudssMatrixCreateDn for b");
+    checkCUDSS(cudssMatrixCreateDn(&prob->x[i], mrow_64, nrhs, ldx, prob->x_cu+off, CUDA_R_64F, CUDSS_LAYOUT_COL_MAJOR),
+      status, "cudssMatrixCreateDn for x");
+  }
 
   return prob;
 }
@@ -141,17 +151,22 @@ gkyl_cudss_amat_from_triples(struct gkyl_cudss_prob *prob, struct gkyl_mat_tripl
   cudssMatrixType_t mtype     = CUDSS_MTYPE_GENERAL;
   cudssMatrixViewType_t mview = CUDSS_MVIEW_UPPER;
   cudssIndexBase_t base       = CUDSS_BASE_ZERO;
-  checkCUDSS(cudssMatrixCreateCsr(&prob->A, prob->mrow, prob->ncol, prob->nnz, prob->csr_rowptr_cu, NULL,
-    prob->csr_colind_cu, prob->csr_val_cu, CUDA_R_32I, CUDA_R_64F, mtype, mview,
-    base), status, "cudssMatrixCreateCsr");
+  prob->A = (cudssMatrix_t *) gkyl_malloc(prob->nprob * sizeof(cudssMatrix_t));
+  for (int i=0; i<prob->nprob; i++) {
+    long off = i * prob->nnz;
 
-  // Symbolic factorization.
-  checkCUDSS(cudssExecute(prob->handle, CUDSS_PHASE_ANALYSIS, prob->solverConfig, prob->solverData,
-    prob->A, prob->x, prob->b), status, "cudssExecute for analysis");
-
-  // Factorization.
-  checkCUDSS(cudssExecute(prob->handle, CUDSS_PHASE_FACTORIZATION, prob->solverConfig,
-    prob->solverData, prob->A, prob->x, prob->b), status, "cudssExecute for factor");
+    checkCUDSS(cudssMatrixCreateCsr(&prob->A[i], prob->mrow, prob->ncol, prob->nnz, prob->csr_rowptr_cu, NULL,
+      prob->csr_colind_cu, prob->csr_val_cu+off, CUDA_R_32I, CUDA_R_64F, mtype, mview,
+      base), status, "cudssMatrixCreateCsr");
+  
+    // Symbolic factorization.
+    checkCUDSS(cudssExecute(prob->handle, CUDSS_PHASE_ANALYSIS, prob->solverConfig[i], prob->solverData[i],
+      prob->A[i], prob->x[i], prob->b[i]), status, "cudssExecute for analysis");
+  
+    // Factorization.
+    checkCUDSS(cudssExecute(prob->handle, CUDSS_PHASE_FACTORIZATION, prob->solverConfig[i],
+      prob->solverData[i], prob->A[i], prob->x[i], prob->b[i]), status, "cudssExecute for factor");
+  }
 
   gkyl_free(csr_val);
   gkyl_free(csr_colind);
@@ -172,17 +187,14 @@ gkyl_cudss_brhs_from_triples(struct gkyl_cudss_prob *prob, gkyl_mat_triples *tri
   }
   gkyl_mat_triples_iter_release(iter);
 
-  gkyl_cu_memcpy(prob->rhs_cu, prob->rhs_ho, sizeof(double)*prob->mrow*prob->nrhs, GKYL_CU_MEMCPY_H2D);
+  gkyl_cu_memcpy(prob->rhs_cu, prob->rhs_ho, prob->nprob*prob->mrow*prob->nrhs*sizeof(double), GKYL_CU_MEMCPY_H2D);
 
   cudssStatus_t status = CUDSS_STATUS_SUCCESS;
-  checkCUDSS(cudssMatrixSetValues(prob->b, prob->rhs_cu), status, "cudssMatrixSetValues for setting brhs_from_triples");
-}
-
-void
-gkyl_cudss_brhs_from_vec(struct gkyl_cudss_prob *prob, double *rhs)
-{
-  cudssStatus_t status = CUDSS_STATUS_SUCCESS;
-  checkCUDSS(cudssMatrixSetValues(prob->b, rhs), status, "cudssMatrixSetValues for setting brhs_from_vec");
+  for (size_t i=0; i<prob->nprob; i++) {
+    long off = i * prob->mrow*prob->nrhs;
+    checkCUDSS(cudssMatrixSetValues(prob->b[i], prob->rhs_cu+off),
+      status, "cudssMatrixSetValues for setting brhs_from_triples");
+  }
 }
 
 void
@@ -190,8 +202,10 @@ gkyl_cudss_solve(struct gkyl_cudss_prob *prob)
 {
   cudssStatus_t status = CUDSS_STATUS_SUCCESS;
 
-  checkCUDSS(cudssExecute(prob->handle, CUDSS_PHASE_SOLVE, prob->solverConfig, prob->solverData,
-    prob->A, prob->x, prob->b), status, "cudssExecute for solve");
+  for (size_t i=0; i<prob->nprob; i++) {
+    checkCUDSS(cudssExecute(prob->handle, CUDSS_PHASE_SOLVE, prob->solverConfig[i], prob->solverData[i],
+      prob->A[i], prob->x[i], prob->b[i]), status, "cudssExecute for solve");
+  }
 }
 
 void
@@ -204,13 +218,13 @@ void
 gkyl_cudss_finish_host(struct gkyl_cudss_prob *prob)
 {
   //cudaStreamSynchronize(prob->stream); // not needed when using blocking stream
-  gkyl_cu_memcpy(prob->x_ho, prob->x_cu, sizeof(double)*prob->mrow*prob->nrhs, GKYL_CU_MEMCPY_D2H);
+  gkyl_cu_memcpy(prob->x_ho, prob->x_cu, prob->nprob*prob->mrow*prob->nrhs*sizeof(double), GKYL_CU_MEMCPY_D2H);
 }
 
 void
 gkyl_cudss_clear_rhs(struct gkyl_cudss_prob *prob, double val)
 {
-  gkyl_cu_memset(prob->rhs_cu, val, prob->mrow*prob->nrhs*sizeof(double));
+  gkyl_cu_memset(prob->rhs_cu, val, prob->nprob*prob->mrow*prob->nrhs*sizeof(double));
 }
 
 double*
@@ -236,12 +250,19 @@ gkyl_cudss_prob_release(struct gkyl_cudss_prob *prob)
 {
   cudssStatus_t status = CUDSS_STATUS_SUCCESS;
 
-  checkCUDSS(cudssMatrixDestroy(prob->A), status, "cudssMatrixDestroy for A");
-  checkCUDSS(cudssMatrixDestroy(prob->b), status, "cudssMatrixDestroy for b");
-  checkCUDSS(cudssMatrixDestroy(prob->x), status, "cudssMatrixDestroy for x");
-  checkCUDSS(cudssDataDestroy(prob->handle, prob->solverData), status, "cudssDataDestroy");
-  checkCUDSS(cudssConfigDestroy(prob->solverConfig), status, "cudssConfigDestroy");
+  for (size_t i=0; i<prob->nprob; i++) {
+    checkCUDSS(cudssMatrixDestroy(prob->A[i]), status, "cudssMatrixDestroy for A");
+    checkCUDSS(cudssMatrixDestroy(prob->b[i]), status, "cudssMatrixDestroy for b");
+    checkCUDSS(cudssMatrixDestroy(prob->x[i]), status, "cudssMatrixDestroy for x");
+    checkCUDSS(cudssDataDestroy(prob->handle, prob->solverData[i]), status, "cudssDataDestroy");
+    checkCUDSS(cudssConfigDestroy(prob->solverConfig[i]), status, "cudssConfigDestroy");
+  }
   checkCUDSS(cudssDestroy(prob->handle), status, "cudssHandleDestroy");
+  gkyl_free(prob->A);
+  gkyl_free(prob->b);
+  gkyl_free(prob->x);
+  gkyl_free(prob->solverData);
+  gkyl_free(prob->solverConfig);
 
   gkyl_cu_free(prob->csr_colind_cu);
   gkyl_cu_free(prob->csr_rowptr_cu);

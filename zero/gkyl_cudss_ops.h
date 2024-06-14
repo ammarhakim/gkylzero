@@ -14,15 +14,12 @@
 typedef struct gkyl_cudss_prob gkyl_cudss_prob;
 
 /**
- * Create a new cuDSS A_i x_i = B_i where i \in {0,1,...,nprob-1},
- * for solving nprob linear problems. This module can be used in two ways:
- *   a) Using nprob=1 and nrhs>=1, so that one can solve nrhs linear problems
- *      with the same left-side matrix A_i for each problem, i.e. B is a matrix
- *      of nprob columns.
- *   b) Using nprob=>1 and nrhs=1, so we are solving nprob separate linear
- *      problems (each with a different left-side Matrix A_i, but with the same
- *      dimensions and sparsity pattern) where each problem only has a
- *      right-side vector with a single column.
+ * Create a new cuDSS object to solve the linear problem
+ *   A_i x_i = B_i
+ * where i \in {0,1,...,nprob-1}. Each B_i can be a matrix (nrhs>1),
+ * meaning that the result x_i is a matrix with the same number of columns.
+ * This solver assumes that nrhs is the same for all nprob problems,
+ * and that the sparsity pattern of all A_i's is the same.
  */
 struct gkyl_cudss_prob* gkyl_cudss_prob_new(int nprob, int mrow, int ncol, int nrhs);
 
@@ -42,14 +39,6 @@ void gkyl_cudss_amat_from_triples(struct gkyl_cudss_prob *prob, struct gkyl_mat_
  * @param tri coordinates & values of non-zero entries in B matrix (triplets).
  */
 void gkyl_cudss_brhs_from_triples(struct gkyl_cudss_prob *prob, gkyl_mat_triples *tri);
-
-/**
- * Initialize right-hand-side cuDSS matrix B in Ax=B problem from a flat array on the device.
- *
- * @param prob cuDSS struct holding arrays used in problem.
- * @param rhs Flat device array with the values in the RHS B matrix.
- */
-void gkyl_cudss_brhs_from_vec(struct gkyl_cudss_prob *prob, double *rhs);
 
 /**
  * Solve Ax=B problem.
