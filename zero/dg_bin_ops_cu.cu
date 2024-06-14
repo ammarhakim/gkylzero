@@ -133,7 +133,7 @@ gkyl_dg_mul_comp_par_op_range_cu_kernel(struct gkyl_basis basis,
     const double *lop_d = (const double*) gkyl_array_cfetch(lop, start);
     const double *rop_d = (const double*) gkyl_array_cfetch(rop, start);
     double *out_d = (double*) gkyl_array_fetch(out, start);
-    // This linc1 is wrong
+
     mul_op(lop_d+c_lop*num_basis, rop_d+c_rop*num_basis, out_d+c_oop*num_basis, linc2);
   }
 }
@@ -251,9 +251,9 @@ gkyl_dg_mul_comp_par_conf_phase_op_range_cu(struct gkyl_basis *cbasis,
 {
   dim3 dimGrid, dimBlock;
   dimBlock.y = GKYL_MIN2(pout->ncomp, GKYL_DEFAULT_NUM_THREADS);
-  dimGrid.y = gkyl_int_div_up(pout->ncomp, dimBlock->y);
+  dimGrid.y = gkyl_int_div_up(pout->ncomp, dimBlock.y);
   dimBlock.x = GKYL_DEFAULT_NUM_THREADS/pout->ncomp;
-  dimGrid.x = gkyl_int_div_up(crange.volume, dimBlock->x);
+  dimGrid.x = gkyl_int_div_up(crange->volume, dimBlock.x);
 
   gkyl_dg_mul_comp_par_conf_phase_op_range_cu_kernel<<<dimGrid, dimBlock>>>(*cbasis, *pbasis,
     pout->on_dev, cop->on_dev, pop->on_dev, *crange, *prange);
