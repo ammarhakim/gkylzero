@@ -144,8 +144,13 @@ fem_parproj_choose_kernels_cu(const struct gkyl_basis *basis, bool isperiodic, b
 void
 gkyl_fem_parproj_set_rhs_cu(gkyl_fem_parproj *up, const struct gkyl_array *rhsin, const struct gkyl_array *phibc)
 {
+#ifdef GKYL_HAVE_CUDSS
+  gkyl_cudss_clear_rhs(up->prob_cu, 0);
+  double *rhs_cu = gkyl_cudss_get_rhs_ptr(up->prob_cu, 0);
+#else
   gkyl_cusolver_clear_rhs(up->prob_cu, 0);
   double *rhs_cu = gkyl_cusolver_get_rhs_ptr(up->prob_cu, 0);
+#endif
   const struct gkyl_array *phibc_cu = phibc? phibc->on_dev : NULL;
   gkyl_fem_parproj_set_rhs_kernel<<<rhsin->nblocks, rhsin->nthreads>>>(rhs_cu, rhsin->on_dev, phibc_cu, *up->solve_range, *up->solve_range_ext, up->perp_range2d, up->par_range1d, up->kernels_cu, up->numnodes_global);
 }
@@ -153,10 +158,13 @@ gkyl_fem_parproj_set_rhs_cu(gkyl_fem_parproj *up, const struct gkyl_array *rhsin
 void
 gkyl_fem_parproj_solve_cu(gkyl_fem_parproj *up, struct gkyl_array *phiout)
 {
-  // Do linear solve with cusolver.
+#ifdef GKYL_HAVE_CUDSS
+  gkyl_cudss_solve(up->prob_cu);
+  double *x_cu = gkyl_cudss_get_sol_ptr(up->prob_cu, 0);
+#else
   gkyl_cusolver_solve(up->prob_cu);
-
   double *x_cu = gkyl_cusolver_get_sol_ptr(up->prob_cu, 0);
+#endif
 
   gkyl_fem_parproj_get_sol_kernel<<<phiout->nblocks, phiout->nthreads>>>(phiout->on_dev, x_cu, *up->solve_range, up->perp_range2d, up->par_range1d, up->kernels_cu, up->numnodes_global);
 }

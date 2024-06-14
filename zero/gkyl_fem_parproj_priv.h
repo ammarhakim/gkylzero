@@ -4,7 +4,11 @@
 #include <gkyl_basis.h>
 #include <gkyl_superlu_ops.h>
 #ifdef GKYL_HAVE_CUDA
+#ifdef GKYL_HAVE_CUDSS
+#include <gkyl_cudss_ops.h>
+#else
 #include <gkyl_cusolver_ops.h>
+#endif
 #endif
 
 static long
@@ -335,8 +339,12 @@ struct gkyl_fem_parproj {
 
   struct gkyl_superlu_prob* prob;
 #ifdef GKYL_HAVE_CUDA
-  struct gkyl_cusolver_prob* prob_cu;
   struct gkyl_array *brhs_cu;
+#ifdef GKYL_HAVE_CUDSS
+  struct gkyl_cudss_prob* prob_cu;
+#else
+  struct gkyl_cusolver_prob* prob_cu;
+#endif
 #endif
 
   long *globalidx;
@@ -418,6 +426,7 @@ fem_parproj_choose_solstencil_kernel(const struct gkyl_basis *basis)
       assert(false);
       break;
   }
+  return 0;
 }
 
 GKYL_CU_DH

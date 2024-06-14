@@ -162,8 +162,12 @@ gkyl_fem_poisson_new(const struct gkyl_range *solve_range, const struct gkyl_rec
   // Create a linear Ax=B problem. Here A is the discrete (global) matrix
   // representation of the LHS of the Helmholtz equation.
 #ifdef GKYL_HAVE_CUDA
-  if (up->use_gpu) 
+  if (up->use_gpu)
+#ifdef GKYL_HAVE_CUDSS
+    up->prob_cu = gkyl_cudss_prob_new(1, up->numnodes_global, up->numnodes_global, 1);
+#else
     up->prob_cu = gkyl_cusolver_prob_new(1, up->numnodes_global, up->numnodes_global, 1);
+#endif
   else
     up->prob = gkyl_superlu_prob_new(1, up->numnodes_global, up->numnodes_global, 1);
 #else
@@ -194,7 +198,11 @@ gkyl_fem_poisson_new(const struct gkyl_range *solve_range, const struct gkyl_rec
   }
 #ifdef GKYL_HAVE_CUDA
   if (up->use_gpu) {
+#ifdef GKYL_HAVE_CUDSS
+    gkyl_cudss_amat_from_triples(up->prob_cu, tri);
+#else
     gkyl_cusolver_amat_from_triples(up->prob_cu, tri);
+#endif
   } else {
     gkyl_superlu_amat_from_triples(up->prob, tri);
   }
@@ -313,7 +321,11 @@ void gkyl_fem_poisson_release(gkyl_fem_poisson *up)
     gkyl_cu_free(up->dx_cu);
     if (up->isdomperiodic) gkyl_cu_free(up->rhs_avg_cu);
     gkyl_cu_free(up->bcvals_cu);
+#ifdef GKYL_HAVE_CUDSS
+    gkyl_cudss_prob_release(up->prob_cu);
+#else
     gkyl_cusolver_prob_release(up->prob_cu);
+#endif
   } else {
     gkyl_superlu_prob_release(up->prob);
   }

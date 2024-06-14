@@ -165,7 +165,11 @@ gkyl_fem_poisson_perp_new(const struct gkyl_range *solve_range, const struct gky
   // structure for the GPU solve.
 #ifdef GKYL_HAVE_CUDA
   if (up->use_gpu) {
+#ifdef GKYL_HAVE_CUDSS
+    up->prob_cu = gkyl_cudss_prob_new(up->par_range.volume, up->numnodes_global, up->numnodes_global, 1);
+#else
     up->prob_cu = gkyl_cusolver_prob_new(up->par_range.volume, up->numnodes_global, up->numnodes_global, 1);
+#endif
   } else {
     up->prob = gkyl_superlu_prob_new(up->par_range.volume, up->numnodes_global, up->numnodes_global, 1);
   }
@@ -210,7 +214,11 @@ gkyl_fem_poisson_perp_new(const struct gkyl_range *solve_range, const struct gky
   }
 #ifdef GKYL_HAVE_CUDA
   if (up->use_gpu)
+#ifdef GKYL_HAVE_CUDSS
+    gkyl_cudss_amat_from_triples(up->prob_cu, tri);
+#else
     gkyl_cusolver_amat_from_triples(up->prob_cu, tri);
+#endif
   else
     gkyl_superlu_amat_from_triples(up->prob, tri);
 #else
@@ -359,7 +367,11 @@ void gkyl_fem_poisson_perp_release(struct gkyl_fem_poisson_perp *up)
     gkyl_cu_free(up->dx_cu);
     if (up->isdomperiodic) gkyl_cu_free(up->rhs_avg_cu);
     gkyl_cu_free(up->bcvals_cu);
+#ifdef GKYL_HAVE_CUDSS
+    gkyl_cudss_prob_release(up->prob_cu);
+#else
     gkyl_cusolver_prob_release(up->prob_cu);
+#endif
   } else {
     gkyl_superlu_prob_release(up->prob);
   }
