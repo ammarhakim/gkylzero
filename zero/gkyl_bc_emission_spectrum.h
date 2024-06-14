@@ -88,7 +88,7 @@ typedef struct gkyl_bc_emission_spectrum gkyl_bc_emission_spectrum;
 struct gkyl_bc_emission_spectrum* gkyl_bc_emission_spectrum_new(enum gkyl_bc_emission_spectrum_norm_type norm_type,
   enum gkyl_bc_emission_spectrum_yield_type yield_type, void *norm_param, void *yield_param,
   struct gkyl_array *yield, struct gkyl_array *spectrum, int dir, enum gkyl_edge_loc edge,
-  int cdim, int vdim, struct gkyl_range *impact_buff_r,  struct gkyl_range *impact_ghost_r,
+  int cdim, int vdim, struct gkyl_range *impact_buff_r,  struct gkyl_range *emit_buff_r,
   struct gkyl_rect_grid *grid, int poly_order, struct gkyl_basis *basis, struct gkyl_array *proj_buffer, bool use_gpu);
 
 /**
@@ -118,7 +118,7 @@ void gkyl_bc_emission_spectrum_advance(const struct gkyl_bc_emission_spectrum *u
  * @param gamma SE yield values on incoming ghost space
  * @param ghost_r Incoming ghost space range
  */
-void gkyl_bc_emission_spectrum_sey_calc(const struct gkyl_bc_emission_spectrum *up, struct gkyl_array *yield, struct gkyl_rect_grid *grid, const struct gkyl_range *ghost_r, const struct gkyl_range *gamma_r);
+void gkyl_bc_emission_spectrum_sey_calc(const struct gkyl_bc_emission_spectrum *up, struct gkyl_array *yield, struct gkyl_rect_grid *grid, const struct gkyl_range *gamma_r);
 
 void gkyl_bc_emission_flux_ranges(struct gkyl_range *flux_r, int dir,
   const struct gkyl_range *parent, const int *nghost, enum gkyl_edge_loc edge);

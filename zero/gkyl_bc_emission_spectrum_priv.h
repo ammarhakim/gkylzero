@@ -331,6 +331,6 @@ void gkyl_bc_emission_spectrum_advance_cu(const struct gkyl_bc_emission_spectrum
  * @param gamma SE yield values on incoming ghost space
  * @param ghost_r Incoming ghost space range
  */
-void gkyl_bc_emission_spectrum_sey_calc_cu(const struct gkyl_bc_emission_spectrum *up, struct gkyl_array *yield, struct gkyl_rect_grid *grid, const struct gkyl_range *ghost_r, const struct gkyl_range *gamma_r);
+void gkyl_bc_emission_spectrum_sey_calc_cu(const struct gkyl_bc_emission_spectrum *up, struct gkyl_array *yield, struct gkyl_rect_grid *grid, const struct gkyl_range *gamma_r);
 
 #endif
