@@ -16,6 +16,11 @@ enum gkyl_mat_trans { GKYL_NO_TRANS, GKYL_TRANS, GKYL_CONJ_TRANS };
 struct gkyl_mat {
   size_t nr, nc; // Number of rows, columns
   double *data; // Pointer to data
+  double **mptr; // pointers to start of each sub-matrix
+
+  uint32_t flags;  
+  struct gkyl_ref_count ref_count;
+  struct gkyl_mat *on_dev; // pointer to itself or device data
 };
 
 /**
@@ -229,6 +234,25 @@ void gkyl_mat_release(struct gkyl_mat *mat);
 struct gkyl_nmat *gkyl_nmat_new(size_t num, size_t nr, size_t nc);
 
 /**
+ * Construct new matrix. Delete using
+ * gkyl_mat_release method.
+ *
+ * CAUTION: The mat returned by this method lives on the GPU. You
+ * CAN'T modify it directly on the host! If you try, it will crash the
+ * program.
+ *
+ * NOTE: the data member lives on GPU, but the struct lives on the
+ * host.  However, the on_dev member for this cal is set to a device
+ * clone of the host struct, and is what should be used to pass to
+ * CUDA kernels which require the entire array struct on device.
+ * 
+ * @param nr Number of rows
+ * @param nc Number of cols
+ * @return Pointer to new multi-matrix.
+ */
+struct gkyl_mat* gkyl_mat_cu_dev_new(size_t nr, size_t nc);
+
+/**
  * Construct new multi-matrix (batch of matrices). Delete using
  * gkyl_nmat_release method. Each matrix has the same shape.
  *
@@ -257,6 +281,16 @@ struct gkyl_nmat* gkyl_nmat_cu_dev_new(size_t num, size_t nr, size_t nc);
  * @return dest is returned
  */
 struct gkyl_nmat* gkyl_nmat_copy(struct gkyl_nmat *dest, const struct gkyl_nmat *src);
+
+/**
+ * Copy into mat: pointer to dest mat is returned. 'dest' and 'src'
+ * must not point to same data.
+ *
+ * @param dest Destination for copy.
+ * @param src Srouce to copy from.
+ * @return dest is returned
+ */
+struct gkyl_mat* gkyl_mat_copy(struct gkyl_mat *dest, const struct gkyl_mat *src);
 
 /**
  * Get a matrix from multi-matrix. DO NOT free the returned matrix!
