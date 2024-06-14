@@ -95,16 +95,27 @@ void gkyl_bc_twistshift_integral_fullcelllimdg(struct gkyl_bc_twistshift *up,
   double dyDo, double yOff, const double *ySh, int cellidx, int doidx);
 
 /**
- * Multiply the donor matrices by the donor cell dg coefficients
+ * Fill the donor vectors
+ * Multiply the donor matrices by the donor vectors to get the contribution vectors
+ * Fill the target field
  *
+ *
+ * @param up gkyl_bc_twistshift updater
  * @param matsdo nmat of donor matrices for all x grid cells and all donor cells
  * @param vecsdo nmat of donor vectors for all x grid cells and all donor cells
- * @param vecstar nmat of target vectors for all x grid cells
+ * @param vecs_contribution nmat of target vectors for all x grid cells
  */
 void gkyl_bc_twistshift_advance(struct gkyl_bc_twistshift *up, struct gkyl_array *fdo, struct gkyl_array *ftar);
 
 /**
+ * Advance method which used NV GPU
+ */
+void gkyl_bc_twistshift_advance_cu(struct gkyl_bc_twistshift *up, struct gkyl_array *fdo, struct gkyl_array *ftar);
+
+/**
+ * @param up gkyl_bc_twistshift updater
  * Copy donor matrices to device if necessary
+ * If we are using a gpu, also duplicate the donor matrices to batch the matrix-vector multiply
  */
 void gkyl_bc_twistshift_copy_matsdo(struct gkyl_bc_twistshift *up);
 
@@ -115,12 +126,14 @@ void gkyl_bc_twistshift_copy_matsdo(struct gkyl_bc_twistshift *up);
  * @param ftar target field at specific location
  * @param tar_locs target locations
  * @param num_tar_locs number of target locations
- * @param vecstar vectors to be accumulated into ftar
+ * @param vecs_contribution vectors to be accumulated into ftar
  * @param ndonors_cum cumulative list of number of donors
- * @param
+ * @param local_range_update update range
+ * @param unique_donor_mats number of unique donor matrices
+ * @param grid grid on which donor and target fields are defined
  */
+void gkyl_bc_twistshift_inc_cu(const struct gkyl_array* ftar, long* tar_locs, int num_tar_locs, struct gkyl_nmat* vecs_contribution, int* ndonors_cum, const struct gkyl_range *local_range_update, int unique_donor_mats, const struct gkyl_rect_grid *grid);
 
-void gkyl_bc_twistshift_inc_cu(const struct gkyl_array* ftar, long* tar_locs, int num_tar_locs, struct gkyl_nmat* vecstar, int* ndonors_cum);
 
 /**
  * Zero out target field

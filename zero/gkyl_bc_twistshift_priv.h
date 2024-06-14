@@ -58,35 +58,41 @@ struct gkyl_bc_twistshift_kernels {
 
 // Primary struct in this updater.
 struct gkyl_bc_twistshift {
-  int dir;
-  int do_dir;
-  int shift_dir;
-  enum gkyl_edge_loc edge;
+  int dir; // BC direction
+  int do_dir; // Donor direction (x)
+  int shift_dir; // Shift direction (y)
+  enum gkyl_edge_loc edge; // Upper or Lower edge
   const struct gkyl_basis *basis;
   bool use_gpu;
   struct gkyl_bc_twistshift_kernels *kernels;  // kernels.
   struct gkyl_bc_twistshift_kernels *kernels_cu;  // device copy.
   const struct gkyl_rect_grid *grid;
-  const int *ndonors;
-  int donor_factor; // total number of donors is sum(ndonors)*donor_factor
-  int *ndonors_cum_cu;
+  const int *ndonors; // List of number of donors for each cell in the donor direction
+  int unique_donor_mats; // unique_donor_mats = sum(ndonors)
+  int donor_factor; // number of cells in extra dimensions (y,vpar,mu)
+                    // total number of donors is sum(ndonors)*donor_factor
+  int *ndonors_cum_cu; // Cumulative sum of ndonors
   const int *cells_do; // y indices of donor cells for each x and y
-  int *remDir;
-  int *locDir;
-  int *remDir_do;
-  int *locDir_do;
-  long *locs;
-  long *locs_cu;
-  long *tar_locs;
-  long *tar_locs_cu;
-  const struct gkyl_range *local_range_ext;
-  const struct gkyl_range *local_range_update;
-  struct gkyl_range *yrange;
-  struct gkyl_range *xrange;
-  struct gkyl_nmat *matsdo;
-  struct gkyl_nmat *matsdo_ho;
-  struct gkyl_nmat *vecsdo;
-  struct gkyl_nmat *vecstar;
+
+  const struct gkyl_range *local_range_update; // Update range
+  const struct gkyl_range *local_range_ext; // Extended range
+  struct gkyl_range *yrange; // Deflated range: y + extra dimensions (vpar, mu)
+  struct gkyl_range *xrange; // Deflated range: x only
+  struct gkyl_range *local_boundary_range; // Range covering every direction except BC dir. NOT a deflated range.
+
+  int *remDir;  // Used to deflate local_range_update into range into yrange to populate target vectors
+  int *locDir; // See above
+  int *remDir_do; // Used to deflate local_range_update into range into yrange for populating donor vectors
+  int *locDir_do; // See above
+  long *locs; // Donor DG field linear indices
+  long *locs_cu; // device copy
+  long *tar_locs; // Target DG field linear indices
+  long *tar_locs_cu; // device copy
+
+  struct gkyl_nmat *matsdo; // Donor matrices
+  struct gkyl_nmat *matsdo_ho; // Host copy
+  struct gkyl_nmat *vecsdo; // Donor vectors
+  struct gkyl_nmat *vecs_contribution; // Target vectors
 };
 
 void gkyl_bc_twistshift_choose_kernels_cu(const struct gkyl_basis *basis, int cdim,
