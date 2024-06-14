@@ -169,8 +169,8 @@ void gkyl_dg_mul_comp_par_op_range(struct gkyl_basis basis,
     double *out_d = gkyl_array_fetch(out, loc);
 
     // Change this to be using the comp_par version
-    for (int linc1=0; linc1<num_basis; ++linc1) {
-      mul_op(lop_d+c_lop*num_basis, rop_d+c_rop*num_basis, out_d+c_oop*num_basis, linc1);
+    for (int linc2=0; linc2<num_basis; ++linc2) {
+      mul_op(lop_d+c_lop*num_basis, rop_d+c_rop*num_basis, out_d+c_oop*num_basis, linc2);
     }
   }
 }
