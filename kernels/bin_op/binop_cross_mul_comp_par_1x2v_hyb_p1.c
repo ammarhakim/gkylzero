@@ -1,4 +1,4 @@
-#include <gkyl_binop_cross_mul_ser.h> 
+#include <gkyl_binop_cross_mul_hyb.h> 
  
 GKYL_CU_DH
 void
