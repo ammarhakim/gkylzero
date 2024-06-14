@@ -14,6 +14,7 @@ void test_cusolver_ops_multiple_rhs();
 void test_cusolver_ops_multiple_prob();
 void test_cudss_simple();
 void test_cudss_ops();
+void test_cudss_ops_multiple_rhs();
 
 void test_slu_example()
 {
@@ -286,6 +287,7 @@ TEST_LIST = {
   { "cusolver_ops_multiple_prob", test_cusolver_ops_multiple_prob },
   { "cudss_simple", test_cudss_simple },
   { "cudss_ops", test_cudss_ops },
+  { "cudss_ops_multiple_rhs", test_cudss_ops_multiple_rhs },
 #endif
   { NULL, NULL }
 };

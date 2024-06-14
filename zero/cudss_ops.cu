@@ -20,7 +20,8 @@ do { \
 } while(0);
 
 struct gkyl_cudss_prob {
-  double *rhs, *rhs_cu; // right-hand side vector (reused to store the answer x).
+  double *rhs_ho, *rhs_cu; // right-hand side vector.
+  double *x_ho, *x_cu; // solution vector.
   int nprob; // number of problems to solve.
   int mrow, ncol; // A is a mrow x ncol matrix.
   int nnz; // number of non-zero entries in A.
@@ -49,8 +50,10 @@ gkyl_cudss_prob_new(int nprob, int mrow, int ncol, int nrhs)
   prob->ncol = ncol;
   prob->nrhs = nrhs;
 
-  prob->rhs = (double*) gkyl_malloc(nrhs * mrow * sizeof(double));
+  prob->rhs_ho = (double*) gkyl_malloc(nrhs * mrow * sizeof(double));
   prob->rhs_cu = (double*) gkyl_cu_malloc(nrhs * mrow * sizeof(double));
+  prob->x_ho = (double*) gkyl_malloc(nrhs * mrow * sizeof(double));
+  prob->x_cu = (double*) gkyl_cu_malloc(nrhs * mrow * sizeof(double));
 
   cudssStatus_t status = CUDSS_STATUS_SUCCESS;
 
@@ -71,20 +74,15 @@ gkyl_cudss_prob_new(int nprob, int mrow, int ncol, int nrhs)
   /* Create matrix objects for the right-hand side b and solution x (as dense matrices). */
   int64_t mrow_64 = mrow, ncol_64 = ncol;
   int ldb = ncol_64, ldx = mrow_64;
-  // Temporary vector. True values set later.
-  double *tmp_vec_h = (double*) gkyl_malloc(nrhs * mrow * sizeof(double));
-  double *tmp_vec_d = (double*) gkyl_cu_malloc(nrhs * mrow * sizeof(double));
   for (int i=0; i<nrhs * mrow; i++)
-    tmp_vec_h[i] = 1.0;
-  gkyl_cu_memcpy(tmp_vec_d, tmp_vec_h, nrhs * mrow * sizeof(double), GKYL_CU_MEMCPY_H2D);
+    prob->rhs_ho[i] = 1.0;
+  gkyl_cu_memcpy(prob->rhs_cu, prob->rhs_ho, nrhs * mrow * sizeof(double), GKYL_CU_MEMCPY_H2D);
+  gkyl_cu_memcpy(prob->x_cu, prob->rhs_ho, nrhs * mrow * sizeof(double), GKYL_CU_MEMCPY_H2D);
 
-  checkCUDSS(cudssMatrixCreateDn(&prob->b, ncol_64, nrhs, ldb, tmp_vec_d, CUDA_R_64F, CUDSS_LAYOUT_COL_MAJOR),
+  checkCUDSS(cudssMatrixCreateDn(&prob->b, ncol_64, nrhs, ldb, prob->rhs_cu, CUDA_R_64F, CUDSS_LAYOUT_COL_MAJOR),
     status, "cudssMatrixCreateDn for b");
-  checkCUDSS(cudssMatrixCreateDn(&prob->x, mrow_64, nrhs, ldx, tmp_vec_d, CUDA_R_64F, CUDSS_LAYOUT_COL_MAJOR),
+  checkCUDSS(cudssMatrixCreateDn(&prob->x, mrow_64, nrhs, ldx, prob->x_cu, CUDA_R_64F, CUDSS_LAYOUT_COL_MAJOR),
     status, "cudssMatrixCreateDn for x");
-
-  gkyl_cu_free(tmp_vec_d);
-  gkyl_free(tmp_vec_h);
 
   return prob;
 }
@@ -170,11 +168,11 @@ gkyl_cudss_brhs_from_triples(struct gkyl_cudss_prob *prob, gkyl_mat_triples *tri
   for (size_t i=0; i<nnz_rhs; i++) {
     gkyl_mat_triples_iter_next(iter); // bump iterator
     struct gkyl_mtriple mt = gkyl_mat_triples_iter_at(iter);
-    prob->rhs[i] = mt.val;
+    prob->rhs_ho[i] = mt.val;
   }
   gkyl_mat_triples_iter_release(iter);
 
-  gkyl_cu_memcpy(prob->rhs_cu, prob->rhs, sizeof(double)*prob->mrow*prob->nrhs, GKYL_CU_MEMCPY_H2D);
+  gkyl_cu_memcpy(prob->rhs_cu, prob->rhs_ho, sizeof(double)*prob->mrow*prob->nrhs, GKYL_CU_MEMCPY_H2D);
 
   cudssStatus_t status = CUDSS_STATUS_SUCCESS;
   checkCUDSS(cudssMatrixSetValues(prob->b, prob->rhs_cu), status, "cudssMatrixSetValues for setting brhs_from_triples");
@@ -206,9 +204,7 @@ void
 gkyl_cudss_finish_host(struct gkyl_cudss_prob *prob)
 {
   //cudaStreamSynchronize(prob->stream); // not needed when using blocking stream
-  cudssStatus_t status = CUDSS_STATUS_SUCCESS;
-  checkCUDSS(cudssMatrixGetDn(prob->x, NULL, NULL, NULL, (void**) &(prob->rhs_cu), NULL, NULL), status, "cudssMatrixGetDn in finish_host");
-  gkyl_cu_memcpy(prob->rhs, prob->rhs_cu, sizeof(double)*prob->mrow*prob->nrhs, GKYL_CU_MEMCPY_D2H);
+  gkyl_cu_memcpy(prob->x_ho, prob->x_cu, sizeof(double)*prob->mrow*prob->nrhs, GKYL_CU_MEMCPY_D2H);
 }
 
 void
@@ -226,13 +222,13 @@ gkyl_cudss_get_rhs_ptr(struct gkyl_cudss_prob *prob, long loc)
 double*
 gkyl_cudss_get_sol_ptr(struct gkyl_cudss_prob *prob, long loc)
 {
-  return prob->rhs_cu+loc;
+  return prob->x_cu+loc;
 }
 
 double
 gkyl_cudss_get_sol_lin(struct gkyl_cudss_prob *prob, long loc)
 {
-  return prob->rhs[loc];
+  return prob->x_ho[loc];
 }
 
 void
@@ -254,8 +250,10 @@ gkyl_cudss_prob_release(struct gkyl_cudss_prob *prob)
   checkCuda(cudaStreamSynchronize(prob->stream));
   cudaStreamDestroy(prob->stream);
 
-  gkyl_free(prob->rhs);
+  gkyl_free(prob->rhs_ho);
+  gkyl_free(prob->x_ho);
   gkyl_cu_free(prob->rhs_cu);
+  gkyl_cu_free(prob->x_cu);
 
   gkyl_free(prob);
 }
