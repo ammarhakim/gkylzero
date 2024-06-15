@@ -7,8 +7,9 @@ struct gkyl_bc_twistshift*
 gkyl_bc_twistshift_new(int dir, int do_dir, int shift_dir, enum gkyl_edge_loc edge,
   const struct gkyl_range *local_range_ext, const struct gkyl_range *local_range_update, const int *num_ghosts, const struct gkyl_basis *basis,
   const struct gkyl_rect_grid *grid, int cdim,
-  const struct gkyl_array *yshift, const int *ndonors, const int *cells_do, bool use_gpu) {
-
+  evalf_t ySh_eval, const int *cells_do, bool use_gpu) {
+  //const struct gkyl_array *yshift, const int *ndonors, const int *cells_do, bool use_gpu) {
+  
   // Allocate space for new updater.
   struct gkyl_bc_twistshift *up = gkyl_malloc(sizeof(struct gkyl_bc_twistshift));
 
@@ -18,12 +19,67 @@ gkyl_bc_twistshift_new(int dir, int do_dir, int shift_dir, enum gkyl_edge_loc ed
   up->edge = edge;
   up->basis = basis;
   up->grid = grid;
-  up->ndonors = ndonors;
-  up->cells_do = cells_do;
+  //up->ndonors = ndonors;
+  //up->cells_do = cells_do;
   up->use_gpu = use_gpu;
   up->local_range_ext = local_range_ext;
   up->local_range_update = local_range_update; // rename this range
+  int poly_order = up->basis->poly_order;
 
+  // Create 2D array for donor cell indices
+  int grid_NX = up->grid.cells[0];
+  int grid_NY = up->grid.cells[1];
+  // should be 1D array.
+  int *do_cells[] = get_donors(...);
+  
+  // Project the y-shift function (of x) onto a 1D grid/basis.  
+  local yShGridIngr = self.grid:childGrid({1})
+  local yShGrid = Grid.RectCart {
+     lower = yShGridIngr.lower,  periodicDirs  = yShGridIngr.periodicDirs,
+     upper = yShGridIngr.upper,  decomposition = yShGridIngr.decomposition,
+     cells = yShGridIngr.cells,
+  }  
+  struct gkyl_rect_grid ySh_grid;
+  double ySh_lo[] = {grid->lower[0]};
+  double ySh_up[] = {grid->upper[0]};
+  int ySh_cells[] = {grid->cells[0]};
+  gkyl_create_grid_init(&ySh_grid, 1, ySh_lo, ySh_up, ySh_cells);
+  
+  /* local yShBasis = createBasis(yShGrid:ndim(), yShPolyOrder, self.confBasis:id()) */
+  struct gkyl_basis ySh_basis;
+  gkyl_cart_modal_serendip(&ySh_basis, 1, poly_order);
+  
+  /* self.yShFld = DataStruct.Field { */
+  /*    onGrid        = yShGrid, */
+  /*    numComponents = yShBasis:numBasis(), */
+  /*    ghost         = {1, 1}, */
+  /*    metaData      = {polyOrder = yShBasis:polyOrder(), basisType = yShBasis:id()}, */
+  /* } */
+  struct gkyl_range ySh_range, ySh_ext_range;
+  int ySh_ghost[] = {0};
+  gkyl_create_grid_ranges(&ySh_grid, ySh_ghost, &ySh_range, &ySh_ext_range);
+  struct gkyl_array *ySh_arr = mkarr(ySh_basis.num_basis, ySh_ext_range);
+  
+  /* local projUpd = EvOnNodesUpd { */
+  /*    onGrid   = yShGrid, */
+  /*    basis    = yShBasis, */
+  /*    evaluate = yShFunc, */
+  /* } */
+  gkyl_proj_on_basis *proj_ySh = gkyl_proj_on_basis_new(&ySh_grid, &ySh_basis,
+    poly_order+1, 1, ySh_eval, NULL);
+
+  /* projUpd:advance(0., {}, {self.yShFld}) */
+  gkyl_proj_on_basis_advance(proj_ySh, 0.0, &ySh_ext_range, ySh_arr);
+
+  /* local yShIndexer, yShItr = self.yShFld:genIndexer(), self.yShFld:get(1) */
+  // not needed
+  /* struct gkyl_range_iter ySh_iter; */
+  /* gkyl_range_iter_init(&ySh_iter, ySh_arr); */
+
+  up->ySh_arr = ySh_arr;
+  up->ySh_basis = ySh_basis;
+  up->ySh_iter = ySh_iter;
+		       
   // Choose the kernels that do the subcell and full cell integrals
   up->kernels = gkyl_malloc(sizeof(struct gkyl_bc_twistshift_kernels));
 #ifdef GKYL_HAVE_CUDA
