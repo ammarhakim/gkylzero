@@ -37,8 +37,8 @@ gkyl_bc_twistshift_inc_cu_kernel(struct gkyl_array* ftar, long* tar_locs, int nu
     int vectar_start = (mu_idx-1)*unique_donor_mats + (vpar_idx-1)*nmu*unique_donor_mats + (y_idx-1)*nv*nmu*unique_donor_mats;
     for(int i = do_start; i < do_end; i++){ // needs to only loop over ndonors[i] elements
       int lin_vectar_idx = i + vectar_start;
-      struct gkyl_mat temp = gkyl_nmat_get(vecs_contribution, lin_vectar_idx);
-      ftar_itr[set_idx] += gkyl_mat_get(&temp, set_idx, 0);
+      struct gkyl_mat temp = gkyl_nmat_get(vecs_contribution, lin_vectar_idx%unique_donor_mats);
+      ftar_itr[set_idx] += gkyl_mat_get(&temp, set_idx, lin_vectar_idx/unique_donor_mats);
     }
   }
 }
@@ -55,14 +55,14 @@ gkyl_bc_twistshift_clear_cu_kernel(struct gkyl_array* ftar, long* locs, int num_
 }
 
 __global__ void
-gkyl_bc_twistshift_set_vecsdo_cu_kernel(const struct gkyl_array* fdo, long* locs, struct gkyl_nmat* vecsdo)
+gkyl_bc_twistshift_set_vecsdo_cu_kernel(const struct gkyl_array* fdo, long* locs, struct gkyl_nmat* vecsdo, int donor_factor, int unique_donor_mats)
 {
   int vecdo_idx = START_ID/fdo->ncomp;
   int set_idx = START_ID%fdo->ncomp;
-  if(vecdo_idx < vecsdo->num && set_idx<fdo->ncomp){
+  if(vecdo_idx < vecsdo->num*donor_factor && set_idx<fdo->ncomp){
     const double *fdo_itr = (const double*) gkyl_array_cfetch(fdo, locs[vecdo_idx]);
-    struct gkyl_mat temp = gkyl_nmat_get(vecsdo, vecdo_idx);
-    gkyl_mat_set(&temp, set_idx, 0, fdo_itr[set_idx]);
+    struct gkyl_mat temp = gkyl_nmat_get(vecsdo, vecdo_idx%unique_donor_mats);
+    gkyl_mat_set(&temp, set_idx, vecdo_idx/unique_donor_mats, fdo_itr[set_idx]);
   }
 }
 
@@ -84,6 +84,6 @@ gkyl_bc_twistshift_clear_cu(struct gkyl_array* ftar, long* locs, int num_locs)
 
 
 void
-gkyl_bc_twistshift_set_vecsdo_cu(struct gkyl_array* fdo, long* locs, struct gkyl_nmat* vecsdo){
-  gkyl_bc_twistshift_set_vecsdo_cu_kernel<<<(vecsdo->num*fdo->ncomp+255)/GKYL_DEFAULT_NUM_THREADS, GKYL_DEFAULT_NUM_THREADS>>>(fdo->on_dev, locs, vecsdo->on_dev);
+gkyl_bc_twistshift_set_vecsdo_cu(struct gkyl_array* fdo, long* locs, struct gkyl_nmat* vecsdo, int donor_factor, int unique_donor_mats){
+  gkyl_bc_twistshift_set_vecsdo_cu_kernel<<<(vecsdo->num*donor_factor*fdo->ncomp+255)/GKYL_DEFAULT_NUM_THREADS, GKYL_DEFAULT_NUM_THREADS>>>(fdo->on_dev, locs, vecsdo->on_dev, donor_factor, unique_donor_mats);
 }

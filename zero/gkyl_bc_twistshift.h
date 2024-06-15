@@ -149,7 +149,7 @@ void gkyl_bc_twistshift_clear_cu(struct gkyl_array* ftar, long* locs, int num_lo
  * @param locs donor locations
  * @param vecsdo donor vectors
  */
-void gkyl_bc_twistshift_set_vecsdo_cu(struct gkyl_array* fdo, long* locs, struct gkyl_nmat* vecsdo);
+void gkyl_bc_twistshift_set_vecsdo_cu(struct gkyl_array* fdo, long* locs, struct gkyl_nmat* vecsdo, int donor_factor, int unique_donor_mats);
 
 /**
  * Free memory associated with bc_twistshift updater.
