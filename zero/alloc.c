@@ -152,8 +152,10 @@ gkyl_mem_buff_resize(gkyl_mem_buff mem, size_t count)
 {
   if (count > mem->count) {
     if (mem->on_gpu) {
+      char *data_new = gkyl_cu_malloc(count);
+      gkyl_cu_memcpy(data_new, mem->data, mem->count, GKYL_CU_MEMCPY_D2D);
       gkyl_cu_free(mem->data);
-      mem->data = gkyl_cu_malloc(count);
+      mem->data = data_new;
     }
     else {
       mem->data = gkyl_realloc(mem->data, count);
