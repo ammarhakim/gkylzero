@@ -200,8 +200,8 @@ void gkyl_correct_maxwellian_gyrokinetic_advance(gkyl_correct_maxwellian_gyrokin
     // Project the maxwellian
     gkyl_array_set_offset(up->moms, 1., up->m0_num, 0*up->conf_basis.num_basis);
     gkyl_array_set_offset(up->moms, 1., up->m12, 1*up->conf_basis.num_basis);
-    gkyl_proj_gkmaxwellian_on_basis_lab_mom(up->proj_maxwellian, phase_local, conf_local, up->moms, 
-      up->gk_geom->bmag, up->gk_geom->bmag, up->mass, fM);
+    gkyl_proj_gkmaxwellian_on_basis_prim_mom(up->proj_maxwellian, phase_local, conf_local, up->moms, 
+      up->gk_geom->bmag, up->gk_geom->bmag, up->mass, fM); // D.L. changed lab_mom to prim_mom to make it compile 06/13/2024.
     gkyl_array_scale_by_cell(fM, up->vel_map->jacobvel);
     // Rescale the maxwellian
     gkyl_dg_updater_moment_gyrokinetic_advance(up->m0_calc, phase_local, conf_local, fM, up->m0_num);
@@ -218,8 +218,8 @@ void gkyl_correct_maxwellian_gyrokinetic_advance(gkyl_correct_maxwellian_gyrokin
   // Project maxwellian with the target moments if it fails to converge
   if (i==up->max_iter) {
     gkyl_array_set_offset(up->moms, 1., moms_tar, 0*up->conf_basis.num_basis);
-    gkyl_proj_gkmaxwellian_on_basis_lab_mom(up->proj_maxwellian, phase_local, conf_local, up->moms, 
-      up->gk_geom->bmag, up->gk_geom->bmag, up->mass, fM);
+    gkyl_proj_gkmaxwellian_on_basis_prim_mom(up->proj_maxwellian, phase_local, conf_local, up->moms, 
+      up->gk_geom->bmag, up->gk_geom->bmag, up->mass, fM); // D.L. changed lab_mom to prim_mom to make it compile 06/13/2024.
     gkyl_array_scale_by_cell(fM, up->vel_map->jacobvel);
   }
 }
