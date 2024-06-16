@@ -9,10 +9,13 @@
 #include <gkyl_fem_poisson_bctype.h>
 #include <gkyl_gyrokinetic.h>
 #include <gkyl_math.h>
+
 #include <rt_arg_parse.h>
 
 // Define the context of the simulation. This is basically all the globals
 struct gk_app_ctx {
+  int cdim, vdim; // Dimensionality.
+  
   // Geometry and magnetic field.
   double a_shift;   // Parameter in Shafranov shift.
   double Z_axis;    // Magnetic axis height [m].
@@ -55,10 +58,11 @@ struct gk_app_ctx {
   double Lz;        // Domain size along magnetic field.
   double x_min;  double x_max;
   double z_min;  double z_max;
-  int num_cell_x;
-  int num_cell_z;
-  int num_cell_vpar;
-  int num_cell_mu;
+  int Nx;
+  int Nz;
+  int Nvpar;
+  int Nmu;
+  int cells[GKYL_MAX_DIM]; // Number of cells in all directions.
   int poly_order;
   double vpar_max_elc;  double mu_max_elc;
   double vpar_max_ion;  double mu_max_ion;
@@ -371,6 +375,8 @@ void bmag_func(double t, const double *xc, double* GKYL_RESTRICT fout, void *ctx
 struct gk_app_ctx
 create_ctx(void)
 {
+  int cdim = 2, vdim = 2; // Dimensionality.
+
   // Universal constant parameters.
   double eps0 = GKYL_EPSILON0, eV = GKYL_ELEMENTARY_CHARGE;
   double mp = GKYL_PROTON_MASS, me = GKYL_ELECTRON_MASS;
@@ -446,10 +452,10 @@ create_ctx(void)
   double floor_src = 1e-2;
 
   // Grid parameters
-  int num_cell_x = 18;
-  int num_cell_z = 8;
-  int num_cell_vpar = 8;
-  int num_cell_mu = 4;
+  int Nx = 18;
+  int Nz = 8;
+  int Nvpar = 8;
+  int Nmu = 4;
   int poly_order = 1;
 
   double vpar_max_elc = 4.*vte;
@@ -464,6 +470,8 @@ create_ctx(void)
   int num_failures_max = 20; // Maximum allowable number of consecutive small time-steps.
 
   struct gk_app_ctx ctx = {
+    .cdim = cdim,
+    .vdim = vdim,
     .a_shift = a_shift,
     .R_axis = R_axis,
     .R0     = R0    ,
@@ -499,10 +507,11 @@ create_ctx(void)
     .Ti_srcGB     = Ti_srcGB    ,
     .floor_src    = floor_src   ,
   
-    .num_cell_x = num_cell_x,
-    .num_cell_z = num_cell_z,
-    .num_cell_vpar = num_cell_vpar,
-    .num_cell_mu = num_cell_mu,
+    .Nx = Nx,
+    .Nz = Nz,
+    .Nvpar = Nvpar,
+    .Nmu = Nmu,
+    .cells = {Nx, Nz, Nvpar, Nmu},
     .poly_order = poly_order,
     .vpar_max_elc = vpar_max_elc,  .mu_max_elc = mu_max_elc,
     .vpar_max_ion = vpar_max_ion,  .mu_max_ion = mu_max_ion,
@@ -550,6 +559,12 @@ main(int argc, char **argv)
 {
   struct gkyl_app_args app_args = parse_app_args(argc, argv);
 
+#ifdef GKYL_HAVE_MPI
+  if (app_args.use_mpi) {
+    MPI_Init(&argc, &argv);
+  }
+#endif
+
   if (app_args.trace_mem) {
     gkyl_cu_dev_mem_debug_set(true);
     gkyl_mem_debug_set(true);
@@ -557,13 +572,31 @@ main(int argc, char **argv)
 
   struct gk_app_ctx ctx = create_ctx(); // context for init functions
 
+  int cells_x[ctx.cdim], cells_v[ctx.vdim];
+  for (int d=0; d<ctx.cdim; d++)
+    cells_x[d] = APP_ARGS_CHOOSE(app_args.xcells[d], ctx.cells[d]);
+  for (int d=0; d<ctx.vdim; d++)
+    cells_v[d] = APP_ARGS_CHOOSE(app_args.vcells[d], ctx.cells[ctx.cdim+d]);
+
+  // Create decomposition.
+  struct gkyl_rect_decomp *decomp = gkyl_gyrokinetic_comms_decomp_new(ctx.cdim, cells_x, app_args.cuts, app_args.use_mpi, stderr);
+
+  // Construct communicator for use in app.
+  struct gkyl_comm *comm = gkyl_gyrokinetic_comms_new(app_args.use_mpi, app_args.use_gpu, decomp, stderr);
+
+  int my_rank = 0;
+#ifdef GKYL_HAVE_MPI
+  if (app_args.use_mpi)
+    gkyl_comm_get_rank(comm, &my_rank);
+#endif
+
   // electrons
   struct gkyl_gyrokinetic_species elc = {
     .name = "elc",
     .charge = ctx.qe, .mass = ctx.me,
     .lower = { -ctx.vpar_max_elc, 0.0},
     .upper = {  ctx.vpar_max_elc, ctx.mu_max_elc}, 
-    .cells = {  ctx.num_cell_vpar, ctx.num_cell_mu },
+    .cells = { cells_v[0], cells_v[1] },
     .polarization_density = ctx.n0,
 
     .projection = {
@@ -636,7 +669,7 @@ main(int argc, char **argv)
     .charge = ctx.qi, .mass = ctx.mi,
     .lower = { -ctx.vpar_max_ion, 0.0},
     .upper = {  ctx.vpar_max_ion, ctx.mu_max_ion}, 
-    .cells = {  ctx.num_cell_vpar, ctx.num_cell_mu },
+    .cells = { cells_v[0], cells_v[1] },
     .polarization_density = ctx.n0,
 
     .projection = {
@@ -720,7 +753,7 @@ main(int argc, char **argv)
     .cdim = 2, .vdim = 2,
     .lower = { ctx.x_min, ctx.z_min },
     .upper = { ctx.x_max, ctx.z_max },
-    .cells = { ctx.num_cell_x, ctx.num_cell_z },
+    .cells = { cells_x[0], cells_x[1] },
     .poly_order = ctx.poly_order,
     .basis_type = app_args.basis_type,
 
@@ -741,6 +774,12 @@ main(int argc, char **argv)
     .field = field,
 
     .use_gpu = app_args.use_gpu,
+
+    .has_low_inp = true,
+    .low_inp = {
+      .local_range = decomp->ranges[my_rank],
+      .comm = comm
+    }
   };
 
 
@@ -790,15 +829,15 @@ main(int argc, char **argv)
   printf("Starting main loop ...\n");
   long step = 1, num_steps = app_args.num_steps;
   while ((t_curr < t_end) && (step <= num_steps)) {
+    gkyl_gyrokinetic_app_cout(app, stdout, "Taking time-step at t = %g ...", t_curr);
     struct gkyl_update_status status = gkyl_gyrokinetic_update(app, dt);
-    if (step % 100 == 0) {
-      gkyl_gyrokinetic_app_cout(app, stdout, "Taking time-step at t = %g ...", t_curr);
-      gkyl_gyrokinetic_app_cout(app, stdout, " dt = %g\n", status.dt_actual);
-    }
+    gkyl_gyrokinetic_app_cout(app, stdout, " dt = %g\n", status.dt_actual);
+
     if (!status.success) {
       gkyl_gyrokinetic_app_cout(app, stdout, "** Update method failed! Aborting simulation ....\n");
       break;
     }
+
     t_curr += status.dt_actual;
     dt = status.dt_suggested;
 
@@ -856,6 +895,13 @@ main(int argc, char **argv)
   freeresources:
   // simulation complete, free app
   gkyl_gyrokinetic_app_release(app);
+  gkyl_gyrokinetic_comms_release(decomp, comm);
+
+#ifdef GKYL_HAVE_MPI
+  if (app_args.use_mpi) {
+    MPI_Finalize();
+  }
+#endif
   
   return 0;
 }
