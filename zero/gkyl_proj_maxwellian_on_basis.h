@@ -13,6 +13,10 @@ typedef struct gkyl_proj_maxwellian_on_basis gkyl_proj_maxwellian_on_basis;
 struct gkyl_proj_maxwellian_on_basis_inp {
   const struct gkyl_rect_grid *grid; // grid on which to project
   const struct gkyl_basis *conf_basis, *phase_basis; // basis functions
+  const struct gkyl_basis *phase_basis_on_dev; // Phase-space basis functions on device for basis function pointers
+  const struct gkyl_basis *conf_basis_on_dev; // Configuration space basis functions on device for basis function pointers
+  const struct gkyl_range *phase_range, *phase_range_ext; // D.L. added 06/06/2024.
+  const struct gkyl_range *conf_range, *conf_range_ext; // D.L. added 06/14/2024.
   int num_quad; // number of quadrature points
   const struct gkyl_velocity_map *vel_map; // Velocity space mapping object.
   bool use_gpu; // whether to use the GPU.

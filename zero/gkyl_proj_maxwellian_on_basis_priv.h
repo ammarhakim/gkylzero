@@ -26,6 +26,9 @@ struct gkyl_proj_maxwellian_on_basis {
   int num_conf_basis; // number of conf-space basis functions
   int num_phase_basis; // number of phase-space basis functions
 
+  const struct gkyl_basis *phase_basis_on_dev; // Pointer to phase-space basis functions on device
+  const struct gkyl_basis *conf_basis_on_dev; // Pointer to configuration space basis functions on device
+
   const struct gkyl_velocity_map *vel_map; // Velocity space mapping object.
 
   bool use_gpu;
@@ -48,6 +51,15 @@ struct gkyl_proj_maxwellian_on_basis {
   struct gkyl_array *fun_at_ords; // function (Maxwellian) evaluated at
                                   // ordinates in a cell.
   int *p2c_qidx;  // Mapping between conf-space and phase-space ordinates.
+
+  // for fm at the quadrature points
+  struct gkyl_array *fm_quad; // D.L. added 06/06/2024.
+  struct gkyl_array *den_quad; 
+  struct gkyl_array *upar_quad; 
+  struct gkyl_array *vtsq_quad; 
+  struct gkyl_array *bmag_quad; 
+  struct gkyl_array *jactot_quad; 
+  struct gkyl_array *expamp_quad; 
 };
 
 void
