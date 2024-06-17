@@ -303,12 +303,6 @@ choose_ser_mul_op_count_kern(int dim, int poly_order)
   return ser_mul_op_count_list[dim].kernels[poly_order];
 }
 
-static mul_op_count_t
-choose_ser_mul_comp_par_op_count_kern(int dim, int poly_order)
-{
-  return ser_mul_op_count_list[dim].kernels[poly_order];
-}
-
 GKYL_CU_D
 static div_set_op_t
 choose_ser_div_set_kern(int dim, int poly_order)
