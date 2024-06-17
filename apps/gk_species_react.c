@@ -244,8 +244,8 @@ gk_species_react_rhs(gkyl_gyrokinetic_app *app, const struct gk_species *s,
         gkyl_array_accumulate(rhs, -1.0, react->f_react);
       }
       else {
-        gkyl_proj_gkmaxwellian_on_basis_lab_mom(react->proj_max, &s->local, &app->local,
-          react->moms_ion[i].marr, app->gk_geom->bmag, app->gk_geom->jacobtot, s->info.mass, react->f_react);
+        gkyl_proj_gkmaxwellian_on_basis_prim_mom(react->proj_max, &s->local, &app->local,
+          react->moms_ion[i].marr, app->gk_geom->bmag, app->gk_geom->jacobtot, s->info.mass, react->f_react); // D.L. changed lab_mom to prim_mom to make it compile 06/13/2024. 
         // scale to correct m0
         gk_species_moment_calc(&s->m0, s->local_ext, app->local_ext, react->f_react); 
         gkyl_dg_div_op_range(s->m0.mem_geo, app->confBasis, 0, react->m0_mod[i], 0,
