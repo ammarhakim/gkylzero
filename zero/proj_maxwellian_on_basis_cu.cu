@@ -74,15 +74,11 @@ gkyl_expand_prim_mom_at_quad_cu_ker(const struct gkyl_rect_grid grid,
     //const double *b_ord = (const double *) gkyl_array_cfetch(conf_basis_at_ords, n);
 
     // Compute primitive moments at quadrature nodes.
-    for (int k=0; k<num_conf_basis; ++k) {
-      printf("n=%d, den_quad=%d\n", n, &den_quad_d->size);
-      conf_basis_on_dev->modal_to_quad_nodal(den_d, den_quad, n);
-      printf("n=%d, upar_quad=%d\n", n, &upar_quad_d->size);
-      conf_basis_on_dev->modal_to_quad_nodal(upar_d, upar_quad, n);
-      conf_basis_on_dev->modal_to_quad_nodal(vtsq_d, vtsq_quad, n);
-      conf_basis_on_dev->modal_to_quad_nodal(bmag_d, bmag_quad, n);
-      conf_basis_on_dev->modal_to_quad_nodal(jactot_d, jactot_quad, n);
-    }
+    conf_basis_on_dev->modal_to_quad_nodal(den_d, den_quad, n);
+    conf_basis_on_dev->modal_to_quad_nodal(upar_d, upar_quad, n);
+    conf_basis_on_dev->modal_to_quad_nodal(vtsq_d, vtsq_quad, n);
+    conf_basis_on_dev->modal_to_quad_nodal(bmag_d, bmag_quad, n);
+    conf_basis_on_dev->modal_to_quad_nodal(jactot_d, jactot_quad, n);
 
     // Amplitude of the exponential.
     if ((den_quad[n] > 0.) && (vtsq_quad[n]>0.))
