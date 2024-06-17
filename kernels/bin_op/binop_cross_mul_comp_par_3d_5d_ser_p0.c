@@ -2,7 +2,7 @@
  
 GKYL_CU_DH
 void
-binop_cross_mul_comp_par_3d_5d_ser_p1(const double *f, const double *g, double *fg, int linc2) 
+binop_cross_mul_comp_par_3d_5d_ser_p0(const double *f, const double *g, double *fg, int linc2) 
 { 
   // f:  First input DG field. 
   // g:  Second input DG field. 
