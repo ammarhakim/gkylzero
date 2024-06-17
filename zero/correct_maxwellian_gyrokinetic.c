@@ -38,6 +38,8 @@ struct gkyl_correct_maxwellian_gyrokinetic
   double *err1_cu, *err2_cu;
   struct gkyl_array *mvals, *mvals1, *mvals2;
   struct gkyl_array *mvals_host;
+
+  struct gkyl_velocity_map *vel_map;
 };
 
 gkyl_correct_maxwellian_gyrokinetic*
@@ -54,8 +56,9 @@ gkyl_correct_maxwellian_gyrokinetic_new(const struct gkyl_correct_maxwellian_gyr
   up->phase_basis = *inp->phase_basis;
   up->conf_basis = *inp->conf_basis;
 
-  // acquire pointer to geometry object
+  // Ccquire pointer to geometry and v-space jacobian.
   up->gk_geom = gkyl_gk_geometry_acquire(inp->gk_geom);
+  up->vel_map = gkyl_velocity_map_acquire(inp->vel_map);
 
   // Allocate memory
   up->m0_tar = mkarr(up->conf_basis.num_basis, inp->conf_local_ext->volume, up->use_gpu);
@@ -68,15 +71,22 @@ gkyl_correct_maxwellian_gyrokinetic_new(const struct gkyl_correct_maxwellian_gyr
   up->moms = mkarr(3*up->conf_basis.num_basis, inp->conf_local_ext->volume, up->use_gpu);
   up->moms_num = mkarr(3*up->conf_basis.num_basis, inp->conf_local_ext->volume, up->use_gpu);
 
-  up->proj_maxwellian = gkyl_proj_maxwellian_on_basis_new(&up->phase_grid, 
-    &up->conf_basis, &up->phase_basis, up->phase_basis.poly_order+1, up->use_gpu); 
+  struct gkyl_proj_maxwellian_on_basis_inp proj_max_inp = {
+    .grid = &up->phase_grid,
+    .conf_basis = &up->conf_basis,
+    .phase_basis = &up->phase_basis,
+    .num_quad = up->phase_basis.poly_order+1,
+    .vel_map = inp->vel_map,
+    .use_gpu = up->use_gpu,
+  };
+  up->proj_maxwellian = gkyl_proj_maxwellian_on_basis_inew(&proj_max_inp);
 
   up->m0_calc = gkyl_dg_updater_moment_gyrokinetic_new(&up->phase_grid, &up->conf_basis, 
-    &up->phase_basis, inp->conf_local, 0, up->mass, inp->gk_geom,
-    "M0", false, up->use_gpu);   
+    &up->phase_basis, inp->conf_local, up->mass, inp->vel_map, inp->gk_geom,
+    "M0", false, up->use_gpu);
 
   up->moms_calc = gkyl_dg_updater_moment_gyrokinetic_new(&up->phase_grid, &up->conf_basis, 
-    &up->phase_basis, inp->conf_local, 0, up->mass, inp->gk_geom,
+    &up->phase_basis, inp->conf_local, up->mass, inp->vel_map, inp->gk_geom,
     "ThreeMoments", false, up->use_gpu); 
 
   if (up->use_gpu) {
@@ -192,6 +202,7 @@ void gkyl_correct_maxwellian_gyrokinetic_advance(gkyl_correct_maxwellian_gyrokin
     gkyl_array_set_offset(up->moms, 1., up->m12, 1*up->conf_basis.num_basis);
     gkyl_proj_gkmaxwellian_on_basis_lab_mom(up->proj_maxwellian, phase_local, conf_local, up->moms, 
       up->gk_geom->bmag, up->gk_geom->bmag, up->mass, fM);
+    gkyl_array_scale_by_cell(fM, up->vel_map->jacobvel);
     // Rescale the maxwellian
     gkyl_dg_updater_moment_gyrokinetic_advance(up->m0_calc, phase_local, conf_local, fM, up->m0_num);
     gkyl_dg_div_op_range(up->weak_divide, up->conf_basis, 0, up->m0_scl, 0, up->m0_tar, 0, up->m0_num, conf_local);
@@ -209,6 +220,7 @@ void gkyl_correct_maxwellian_gyrokinetic_advance(gkyl_correct_maxwellian_gyrokin
     gkyl_array_set_offset(up->moms, 1., moms_tar, 0*up->conf_basis.num_basis);
     gkyl_proj_gkmaxwellian_on_basis_lab_mom(up->proj_maxwellian, phase_local, conf_local, up->moms, 
       up->gk_geom->bmag, up->gk_geom->bmag, up->mass, fM);
+    gkyl_array_scale_by_cell(fM, up->vel_map->jacobvel);
   }
 }
 
@@ -222,6 +234,8 @@ gkyl_correct_maxwellian_gyrokinetic_release(gkyl_correct_maxwellian_gyrokinetic*
   }
 
   gkyl_gk_geometry_release(up->gk_geom);
+  gkyl_velocity_map_release(up->vel_map);
+
   gkyl_array_release(up->m0_tar);
   gkyl_array_release(up->m0_num);
   gkyl_array_release(up->m0_scl);

@@ -1,7 +1,7 @@
 #pragma once
 
 #include <gkyl_gyrokinetic.h>
-#include <gkyl_gyrokinetic.h>
+#include <gkyl_gyrokinetic_comms.h>
 
 // Input struct to create a multiblock gyrokinetic app.
 struct gkyl_gk_mb {
@@ -13,7 +13,8 @@ struct gkyl_gk_mb {
 
   double cfl_frac; // CFL fraction to use (default 1.0)
 
-  bool use_gpu; // Flag to indicate if solver should use GPUs
+  bool use_mpi; // Flag to indicate if solver should use MPI.
+  bool use_gpu; // Flag to indicate if solver should use GPUs.
 
   int num_periodic_dir; // number of periodic directions
   int periodic_dirs[3]; // list of periodic directions
@@ -28,7 +29,7 @@ struct gkyl_gk_mb {
   struct gkyl_gyrokinetic_field field; // field object
 
   int num_blocks;
-  struct gkyl_gk blocks[GKYL_MAX_BLOCKS];
+  struct gkyl_gk *blocks[GKYL_MAX_BLOCKS];
 };
 
 // Object representing gk app

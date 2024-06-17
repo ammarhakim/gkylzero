@@ -4,6 +4,7 @@
 #include <gkyl_basis.h>
 #include <gkyl_eqn_type.h>
 #include <gkyl_gk_geometry.h>
+#include <gkyl_velocity_map.h>
 #include <gkyl_range.h>
 #include <gkyl_rect_grid.h>
 
@@ -22,6 +23,7 @@ typedef struct gkyl_dg_calc_gyrokinetic_vars gkyl_dg_calc_gyrokinetic_vars;
  * @param mass Species mass
  * @param gkmodel_id Model ID for gyrokinetics (e.g., general geometry vs. no toroidal field, see gkyl_eqn_type.h)
  * @param gk_geom Geometry struct
+ * @param vel_map Velocity space mapping object.
  * @param use_gpu bool to determine if on GPU
  * @return New updater pointer.
  */
@@ -29,17 +31,8 @@ struct gkyl_dg_calc_gyrokinetic_vars*
 gkyl_dg_calc_gyrokinetic_vars_new(const struct gkyl_rect_grid *phase_grid, 
   const struct gkyl_basis *conf_basis, const struct gkyl_basis *phase_basis, 
   const double charge, const double mass, enum gkyl_gkmodel_id gkmodel_id, 
-  const struct gk_geometry *gk_geom, bool use_gpu);
-
-/**
- * Create new updater to compute gyrokinetic variables on
- * NV-GPU. See new() method for documentation.
- */
-struct gkyl_dg_calc_gyrokinetic_vars* 
-gkyl_dg_calc_gyrokinetic_vars_cu_dev_new(const struct gkyl_rect_grid *phase_grid, 
-  const struct gkyl_basis *conf_basis, const struct gkyl_basis *phase_basis, 
-  double charge, double mass, enum gkyl_gkmodel_id gkmodel_id, 
-  const struct gk_geometry *gk_geom);
+  const struct gk_geometry *gk_geom, const struct gkyl_velocity_map *vel_map,
+  bool use_gpu);
 
 /**
  * Compute surface expansion of phase space flux alpha
@@ -58,8 +51,8 @@ gkyl_dg_calc_gyrokinetic_vars_cu_dev_new(const struct gkyl_rect_grid *phase_grid
  *                        If sign(alpha) is a constant, kernels are simpler and we exploit this fact.
  */
 void gkyl_dg_calc_gyrokinetic_vars_alpha_surf(struct gkyl_dg_calc_gyrokinetic_vars *up, 
-  const struct gkyl_range *conf_range, const struct gkyl_range *phase_range, const struct gkyl_range *phase_ext_range, 
-  const struct gkyl_array *phi, 
+  const struct gkyl_range *conf_range, const struct gkyl_range *phase_range,
+  const struct gkyl_range *phase_ext_range, const struct gkyl_array *phi, 
   struct gkyl_array* alpha_surf, struct gkyl_array* sgn_alpha_surf, struct gkyl_array* const_sgn_alpha);
 
 /**
@@ -68,11 +61,3 @@ void gkyl_dg_calc_gyrokinetic_vars_alpha_surf(struct gkyl_dg_calc_gyrokinetic_va
  * @param up Updater to delete.
  */
 void gkyl_dg_calc_gyrokinetic_vars_release(struct gkyl_dg_calc_gyrokinetic_vars *up);
-
-/**
- * Host-side wrappers for gyrokinetic vars operations on device
- */
-void gkyl_dg_calc_gyrokinetic_vars_alpha_surf_cu(struct gkyl_dg_calc_gyrokinetic_vars *up, 
-  const struct gkyl_range *conf_range, const struct gkyl_range *phase_range, const struct gkyl_range *phase_ext_range, 
-  const struct gkyl_array *phi, 
-  struct gkyl_array* alpha_surf, struct gkyl_array* sgn_alpha_surf, struct gkyl_array* const_sgn_alpha);

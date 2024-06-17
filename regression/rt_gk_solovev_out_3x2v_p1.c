@@ -7,10 +7,12 @@
 #include <gkyl_fem_parproj.h>
 #include <gkyl_fem_poisson_bctype.h>
 #include <gkyl_gyrokinetic.h>
-#include <rt_arg_parse.h>
 #include <gkyl_tok_geo.h>
 
+#include <rt_arg_parse.h>
+
 struct gk_solovev_ctx {
+  int cdim, vdim; // Dimensionality.
   double chargeElc; // electron charge
   double massElc; // electron mass
   double chargeIon; // ion charge
@@ -22,12 +24,13 @@ struct gk_solovev_ctx {
   double nuIon; // ion collision frequency
   double B0; // reference magnetic field
   double n0; // reference density
-  // Source parameters
+  // Source parameters.
   double lambda_source;
   double x_source;
-              
-              
-  // Simulation parameters
+  // Domain parameters.            
+  int Nx, Ny, Nz; // Number of cells in x,y,z.
+  int Nvpar, Nmu; // Number of cells in vpar,mu.
+  int cells[GKYL_MAX_DIM]; // Number of cells in all directions.
   double Lx; // Box size in x
   double Ly; // Box size in y
   double Lz; // Box size in z
@@ -35,6 +38,7 @@ struct gk_solovev_ctx {
   double mu_max_elc; // Velocity space extents in mu for electrons
   double vpar_max_ion; // Velocity space extents in vparallel for ions
   double mu_max_ion; // Velocity space extents in mu for ions
+
   double t_end; // end time
   int num_frames; // number of output frames
   int int_diag_calc_num; // Number of integrated diagnostics computations (=INT_MAX for every step).
@@ -212,6 +216,8 @@ bmag_func(double t, const double *xc, double* GKYL_RESTRICT fout, void *ctx)
 struct gk_solovev_ctx
 create_ctx(void)
 {
+  int cdim = 3, vdim = 2; // Dimensionality.
+
   double eps0 = GKYL_EPSILON0;
   double eV = GKYL_ELEMENTARY_CHARGE;
   double mi = 2.014*GKYL_PROTON_MASS; // ion mass
@@ -258,13 +264,21 @@ create_ctx(void)
   double vpar_max_ion = 4.0*vtIon;
   double mu_max_ion = 0.75*mi*(4.0*vtIon)*(4.0*vtIon)/(2.0*B0);
 
-  double t_end = 1.0e-6; 
+  int Nx = 4; // Number of cells in x.
+  int Ny = 1; // Number of cells in y.
+  int Nz = 8; // Number of cells in z.
+  int Nvpar = 16; // Number of cells in vpar.
+  int Nmu = 8; // Number of cells in mu.
+
+  double t_end = 4.0e-7; 
   double num_frames = 1;
   int int_diag_calc_num = num_frames*100;
   double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.
   int num_failures_max = 20; // Maximum allowable number of consecutive small time-steps.
 
   struct gk_solovev_ctx ctx = {
+    .cdim = cdim,
+    .vdim = vdim,
     .chargeElc = qe, 
     .massElc = me, 
     .chargeIon = qi, 
@@ -285,6 +299,12 @@ create_ctx(void)
     .mu_max_elc = mu_max_elc, 
     .vpar_max_ion = vpar_max_ion, 
     .mu_max_ion = mu_max_ion, 
+    .Nx = Nx,
+    .Ny = Ny,
+    .Nz = Nz,
+    .Nvpar = Nvpar,
+    .Nmu = Nmu,
+    .cells = {Nx, Ny, Nz, Nvpar, Nmu},
     .t_end = t_end, 
     .num_frames = num_frames, 
     .int_diag_calc_num = int_diag_calc_num,
@@ -329,6 +349,12 @@ main(int argc, char **argv)
 {
   struct gkyl_app_args app_args = parse_app_args(argc, argv);
 
+#ifdef GKYL_HAVE_MPI
+  if (app_args.use_mpi) {
+    MPI_Init(&argc, &argv);
+  }
+#endif
+
   if (app_args.trace_mem) {
     gkyl_cu_dev_mem_debug_set(true);
     gkyl_mem_debug_set(true);
@@ -336,19 +362,31 @@ main(int argc, char **argv)
 
   struct gk_solovev_ctx ctx = create_ctx(); // context for init functions
 
-  int NX = APP_ARGS_CHOOSE(app_args.xcells[0], 36);
-  int NY = APP_ARGS_CHOOSE(app_args.xcells[1], 1);
-  int NZ = APP_ARGS_CHOOSE(app_args.xcells[2], 12);
-  int NVPAR = APP_ARGS_CHOOSE(app_args.vcells[0], 16);
-  int NMU = APP_ARGS_CHOOSE(app_args.vcells[1], 8);
+  int cells_x[ctx.cdim], cells_v[ctx.vdim];
+  for (int d=0; d<ctx.cdim; d++)
+    cells_x[d] = APP_ARGS_CHOOSE(app_args.xcells[d], ctx.cells[d]);
+  for (int d=0; d<ctx.vdim; d++)
+    cells_v[d] = APP_ARGS_CHOOSE(app_args.vcells[d], ctx.cells[ctx.cdim+d]);
+
+  // Create decomposition.
+  struct gkyl_rect_decomp *decomp = gkyl_gyrokinetic_comms_decomp_new(ctx.cdim, cells_x, app_args.cuts, app_args.use_mpi, stderr);
+
+  // Construct communicator for use in app.
+  struct gkyl_comm *comm = gkyl_gyrokinetic_comms_new(app_args.use_mpi, app_args.use_gpu, decomp, stderr);
+
+  int my_rank = 0;
+#ifdef GKYL_HAVE_MPI
+  if (app_args.use_mpi)
+    gkyl_comm_get_rank(comm, &my_rank);
+#endif
 
   // electrons
   struct gkyl_gyrokinetic_species elc = {
     .name = "elc",
     .charge = ctx.chargeElc, .mass = ctx.massElc,
     .lower = { -ctx.vpar_max_elc, 0.0},
-    .upper = { ctx.vpar_max_elc, ctx.mu_max_elc}, 
-    .cells = { NVPAR, NMU },
+    .upper = {  ctx.vpar_max_elc, ctx.mu_max_elc}, 
+    .cells = { cells_v[0], cells_v[1] },
     .polarization_density = ctx.n0,
 
     .projection = {
@@ -400,8 +438,8 @@ main(int argc, char **argv)
     .name = "ion",
     .charge = ctx.chargeIon, .mass = ctx.massIon,
     .lower = { -ctx.vpar_max_ion, 0.0},
-    .upper = { ctx.vpar_max_ion, ctx.mu_max_ion}, 
-    .cells = { NVPAR, NMU },
+    .upper = {  ctx.vpar_max_ion, ctx.mu_max_ion}, 
+    .cells = { cells_v[0], cells_v[1] },
     .polarization_density = ctx.n0,
 
     .projection = {
@@ -457,13 +495,13 @@ main(int argc, char **argv)
   };
 
   // GK app
-  struct gkyl_gk gk = {
+  struct gkyl_gk app_inp = {
     .name = "gk_solovev_out_3x2v_p1",
 
     .cdim = 3, .vdim = 2,
     .lower = { -0.08, -ctx.Ly/2.0, -ctx.Lz/2.0 },
     .upper = { -0.06, ctx.Ly/2.0, ctx.Lz/2.0 },
-    .cells = { NX, NY, NZ },
+    .cells = { cells_x[0], cells_x[1], cells_x[2] },
     .poly_order = 1,
     .basis_type = app_args.basis_type,
 
@@ -484,7 +522,7 @@ main(int argc, char **argv)
   };
 
   // Create app object.
-  gkyl_gyrokinetic_app *app = gkyl_gyrokinetic_app_new(&gk);
+  gkyl_gyrokinetic_app *app = gkyl_gyrokinetic_app_new(&app_inp);
 
   // Initial and final simulation times.
   int frame_curr = 0;
@@ -519,15 +557,16 @@ main(int argc, char **argv)
   calc_integrated_diagnostics(&trig_calc_intdiag, app, t_curr, false);
   write_data(&trig_write, app, t_curr, false);
 
-  // initial time step
-  double dt = t_end-t_curr;
+  // Compute initial guess of maximum stable time-step.
+  double dt = t_end - t_curr;
+
   // Initialize small time-step check.
   double dt_init = -1.0, dt_failure_tol = ctx.dt_failure_tol;
   int num_failures = 0, num_failures_max = ctx.num_failures_max;
 
-  long step = 1, num_steps = app_args.num_steps;
-  while ((t_curr < t_end) && (step <= num_steps)) {
-    gkyl_gyrokinetic_app_cout(app, stdout, "Taking time-step at t = %g ...", t_curr);
+  long step = 1;
+  while ((t_curr < t_end) && (step <= app_args.num_steps)) {
+    gkyl_gyrokinetic_app_cout(app, stdout, "Taking time-step %ld at t = %g ...", step, t_curr);
     struct gkyl_update_status status = gkyl_gyrokinetic_update(app, dt);
     gkyl_gyrokinetic_app_cout(app, stdout, " dt = %g\n", status.dt_actual);
 
@@ -535,6 +574,7 @@ main(int argc, char **argv)
       gkyl_gyrokinetic_app_cout(app, stdout, "** Update method failed! Aborting simulation ....\n");
       break;
     }
+
     t_curr += status.dt_actual;
     dt = status.dt_suggested;
 
@@ -589,8 +629,15 @@ main(int argc, char **argv)
   gkyl_gyrokinetic_app_cout(app, stdout, "IO time took %g secs \n", stat.io_tm);
 
   freeresources:
-  // simulation complete, free app
+  // Free resources after simulation completion.
   gkyl_gyrokinetic_app_release(app);
+  gyrokinetic_comms_release(decomp, comm);
+
+#ifdef GKYL_HAVE_MPI
+  if (app_args.use_mpi) {
+    MPI_Finalize();
+  }
+#endif
   
   return 0;
 }

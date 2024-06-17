@@ -134,8 +134,8 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
     else
       s->V_drift_mem = gkyl_dg_bin_op_mem_new(app->local.volume, app->confBasis.num_basis);
 
-    // by default, we do not have zero-flux boundary conditions in any direction
-    bool is_zero_flux[GKYL_MAX_DIM] = {false};
+    // By default, we do not have zero-flux BCs in configuration space.
+    bool is_zero_flux[2*GKYL_MAX_DIM] = {false};
 
     struct gkyl_dg_vlasov_sr_auxfields aux_inp = {.qmem = s->qmem, .p_over_gamma = s->p_over_gamma};
     // create solver
@@ -143,8 +143,8 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
       &app->local, &s->local_vel, &s->local, is_zero_flux, s->model_id, s->field_id, &aux_inp, app->use_gpu);
   }
   else {
-    // by default, we do not have zero-flux boundary conditions in any direction
-    bool is_zero_flux[GKYL_MAX_DIM] = {false};
+    // By default, we do not have zero-flux BCs in configuration space.
+    bool is_zero_flux[2*GKYL_MAX_DIM] = {false};
 
     struct gkyl_dg_vlasov_auxfields aux_inp = {.field = s->qmem, .cot_vec = 0, 
       .alpha_surf = 0, .sgn_alpha_surf = 0, .const_sgn_alpha = 0 };

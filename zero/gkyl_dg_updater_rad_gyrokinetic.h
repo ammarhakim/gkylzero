@@ -5,6 +5,7 @@
 #include <gkyl_eqn_type.h>
 #include <gkyl_range.h>
 #include <gkyl_rect_grid.h>
+#include <gkyl_velocity_map.h>
 
 // Object type
 typedef struct gkyl_dg_updater_collisions gkyl_dg_updater_collisions;
@@ -22,6 +23,7 @@ struct gkyl_dg_updater_rad_gyrokinetic_tm {
  * @param phase_basis Phase-space basis function
  * @param phase_range Phase-space range
  * @param conf_range Configuration-space range
+ * @param vel_map Velocity space mapping object.
  * @param aux_inp Void pointer to auxiliary fields. Void to be flexible to different auxfields structs
  * @param use_gpu Boolean to determine if gyrokinetic equation object is on device
  * @return Pointer to updater object for Radiation operator in Gyrokinetic equation
@@ -29,7 +31,8 @@ struct gkyl_dg_updater_rad_gyrokinetic_tm {
 struct gkyl_dg_updater_collisions* 
 gkyl_dg_updater_rad_gyrokinetic_new(const struct gkyl_rect_grid *grid, 
   const struct gkyl_basis *conf_basis, const struct gkyl_basis *phase_basis, 
-  const struct gkyl_range *phase_range, const struct gkyl_range *conf_range,  void *aux_inp, bool use_gpu);
+  const struct gkyl_range *phase_range, const struct gkyl_range *conf_range,
+  const struct gkyl_velocity_map *vel_map, void *aux_inp, bool use_gpu);
 
 
 /**

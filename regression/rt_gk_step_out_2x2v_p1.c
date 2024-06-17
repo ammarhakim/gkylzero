@@ -7,21 +7,12 @@
 #include <gkyl_const.h>
 #include <gkyl_fem_parproj.h>
 #include <gkyl_gyrokinetic.h>
-#include <gkyl_util.h>
-#include <rt_arg_parse.h>
 #include <gkyl_tok_geo.h>
 
-#include <gkyl_null_comm.h>
-
-#ifdef GKYL_HAVE_MPI
-#include <mpi.h>
-#include <gkyl_mpi_comm.h>
-#ifdef GKYL_HAVE_NCCL
-#include <gkyl_nccl_comm.h>
-#endif
-#endif
+#include <rt_arg_parse.h>
 
 struct gk_step_ctx {
+  int cdim, vdim; // Dimensionality.
   double chargeElc; // electron charge
   double massElc; // electron mass
   double chargeIon; // ion charge
@@ -45,8 +36,14 @@ struct gk_step_ctx {
   double cx;
   double cz;
   // Simulation parameters
-  double Ly; // Box size in y
-  double Lz; // Box size in z
+  int Nx; // Cell count (configuration space: x-direction).
+  int Nz; // Cell count (configuration space: z-direction).
+  int Nvpar; // Cell count (velocity space: parallel velocity direction).
+  int Nmu; // Cell count (velocity space: magnetic moment direction).
+  int cells[GKYL_MAX_DIM]; // Number of cells in all directions.
+  double lower_x, upper_x; // Limits of the domain along x.
+  double Lx; // Domain size (configuration space: x-direction).
+  double Lz; // Domain size (configuration space: z-direction).
   double vpar_max_elc; // Velocity space extents in vparallel for electrons
   double mu_max_elc; // Velocity space extents in mu for electrons
   double vpar_max_ion; // Velocity space extents in vparallel for ions
@@ -225,6 +222,8 @@ double plasma_frequency(double n, double m)
 struct gk_step_ctx
 create_ctx(void)
 {
+  int cdim = 2, vdim = 2; // Dimensionality.
+
   double eps0 = GKYL_EPSILON0;
   double eV = GKYL_ELEMENTARY_CHARGE;
   double mi = 2.014*GKYL_PROTON_MASS; // ion mass
@@ -260,7 +259,9 @@ create_ctx(void)
   double nuIon = nuFrac*logLambdaIon*pow(eV, 4.0)*n0/(12.0*M_PI*sqrt(M_PI)*eps0*eps0*sqrt(mi)*(Ti*sqrt(Ti)));
 
   // Simulation box size (m).
-  double Ly = 0.02;
+  double lower_x = 0.934;
+  double upper_x = 1.4688;
+  double Lx = upper_x - lower_x;
   double Lz = 3.14*2;
 
   double vpar_max_elc = 4.0*vtElc;
@@ -272,13 +273,21 @@ create_ctx(void)
   double vpar_max_Ar = 4.0*vtAr;
   double mu_max_Ar = 18.*mAr*vtAr*vtAr/(2.0*B0);
 
-  double t_end = 4.0e-7; 
-  double num_frames = 2;
+  // Number of cells.
+  int Nx = 4;
+  int Nz = 8;
+  int Nvpar = 16;
+  int Nmu = 8;
+
+  double t_end = 5.0e-7; 
+  double num_frames = 1;
   int int_diag_calc_num = num_frames*100;
   double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.
   int num_failures_max = 20; // Maximum allowable number of consecutive small time-steps.
 
   struct gk_step_ctx ctx = {
+    .cdim = cdim,
+    .vdim = vdim,
     .chargeElc = qe, 
     .massElc = me, 
     .chargeIon = qi, 
@@ -300,7 +309,9 @@ create_ctx(void)
     .nsource = nsource,
     .cx = cx,
     .cz = cz,
-    .Ly = Ly,  
+    .lower_x = lower_x,
+    .upper_x = upper_x,
+    .Lx = Lx,
     .Lz = Lz, 
     .vpar_max_elc = vpar_max_elc, 
     .mu_max_elc = mu_max_elc, 
@@ -308,6 +319,11 @@ create_ctx(void)
     .mu_max_ion = mu_max_ion, 
     .vpar_max_Ar = vpar_max_Ar, 
     .mu_max_Ar = mu_max_Ar, 
+    .Nx = Nx,
+    .Nz = Nz,
+    .Nvpar = Nvpar,
+    .Nmu = Nmu,
+    .cells = {Nx, Nz, Nvpar, Nmu},
     .t_end = t_end, 
     .num_frames = num_frames, 
     .int_diag_calc_num = int_diag_calc_num,
@@ -363,108 +379,33 @@ main(int argc, char **argv)
     gkyl_mem_debug_set(true);
   }
 
-  struct gk_step_ctx ctx = create_ctx(); // context for init functions
+  struct gk_step_ctx ctx = create_ctx(); // Context for init functions.
 
-  int NX = APP_ARGS_CHOOSE(app_args.xcells[0], 4);
-  int NZ = APP_ARGS_CHOOSE(app_args.xcells[2], 8);
-  int NVPAR = APP_ARGS_CHOOSE(app_args.vcells[0], 16);
-  int NMU = APP_ARGS_CHOOSE(app_args.vcells[1], 8);
-
-  int nrank = 1; // number of processors in simulation
-#ifdef GKYL_HAVE_MPI
-  if (app_args.use_mpi) {
-    MPI_Comm_size(MPI_COMM_WORLD, &nrank);
-  }
-#endif  
-
-  // create global range
-  int cells[] = { NX, NZ };
-  int cdim = sizeof(cells) / sizeof(cells[0]);
-  struct gkyl_range globalr;
-  gkyl_create_global_range(2, cells, &globalr);
-
+  int cells_x[ctx.cdim], cells_v[ctx.vdim];
+  for (int d=0; d<ctx.cdim; d++)
+    cells_x[d] = APP_ARGS_CHOOSE(app_args.xcells[d], ctx.cells[d]);
+  for (int d=0; d<ctx.vdim; d++)
+    cells_v[d] = APP_ARGS_CHOOSE(app_args.vcells[d], ctx.cells[ctx.cdim+d]);
 
   // Create decomposition.
-  int cuts[2];
-#ifdef GKYL_HAVE_MPI  
-  for (int d = 0; d < 2; d++) {
-    if (app_args.use_mpi) {
-      cuts[d] = app_args.cuts[d];
-    }
-    else {
-      cuts[d] = 1;
-    }
-  }
-#else
-  for (int d = 0; d < cdim; d++) {
-    cuts[d] = 1;
-  }
-#endif  
-    
-  struct gkyl_rect_decomp *decomp = gkyl_rect_decomp_new_from_cuts(globalr.ndim, cuts, &globalr);
+  struct gkyl_rect_decomp *decomp = gkyl_gyrokinetic_comms_decomp_new(ctx.cdim, cells_x, app_args.cuts, app_args.use_mpi, stderr);
 
-  // Construct communcator for use in app
-  struct gkyl_comm *comm;
+  // Construct communicator for use in app.
+  struct gkyl_comm *comm = gkyl_gyrokinetic_comms_new(app_args.use_mpi, app_args.use_gpu, decomp, stderr);
+
+  int my_rank = 0;
 #ifdef GKYL_HAVE_MPI
-  if (app_args.use_gpu && app_args.use_mpi) {
-#ifdef GKYL_HAVE_NCCL
-    comm = gkyl_nccl_comm_new( &(struct gkyl_nccl_comm_inp) {
-        .mpi_comm = MPI_COMM_WORLD,
-        .decomp = decomp
-      }
-    );
-#else
-    printf(" Using -g and -M together requires NCCL.\n");
-    assert(0 == 1);
-#endif
-  }
-  else if (app_args.use_mpi) {
-    comm = gkyl_mpi_comm_new( &(struct gkyl_mpi_comm_inp) {
-        .mpi_comm = MPI_COMM_WORLD,
-        .decomp = decomp
-      }
-    );
-  }
-  else {
-    comm = gkyl_null_comm_inew( &(struct gkyl_null_comm_inp) {
-        .decomp = decomp,
-        .use_gpu = app_args.use_gpu
-      }
-    );
-  }
-#else
-  comm = gkyl_null_comm_inew( &(struct gkyl_null_comm_inp) {
-      .decomp = decomp,
-      .use_gpu = app_args.use_gpu
-    }
-  );
+  if (app_args.use_mpi)
+    gkyl_comm_get_rank(comm, &my_rank);
 #endif
 
-  int my_rank;
-  gkyl_comm_get_rank(comm, &my_rank);
-  int comm_sz;
-  gkyl_comm_get_size(comm, &comm_sz);
-
-  int ncuts = cuts[0]*cuts[1];
-  if (ncuts != comm_sz) {
-    if (my_rank == 0)
-      fprintf(stderr, "*** Number of ranks, %d, do not match total cuts, %d!\n", comm_sz, ncuts);
-    goto mpifinalize;
-  }  
-
-  if (cuts[0] > 1) {
-    if (my_rank == 0)
-      fprintf(stderr, "*** Parallelization only allowed in z. Number of ranks, %d, in x cannot be > 1!\n", cuts[0]);
-    goto mpifinalize;
-  }
-
-  // electrons
+  // Electrons.
   struct gkyl_gyrokinetic_species elc = {
     .name = "elc",
     .charge = ctx.chargeElc, .mass = ctx.massElc,
     .lower = { -ctx.vpar_max_elc, 0.0},
-    .upper = { ctx.vpar_max_elc, ctx.mu_max_elc}, 
-    .cells = { NVPAR, NMU },
+    .upper = {  ctx.vpar_max_elc, ctx.mu_max_elc}, 
+    .cells = { cells_v[0], cells_v[1] },
     .polarization_density = ctx.n0,
 
     .projection = {
@@ -510,7 +451,7 @@ main(int argc, char **argv)
       .z = 18,
       .charge_state = 1,
       .num_of_densities = 1, // Must be 1 for now
-      },
+    },
 
     .react_neut = {
       .num_react = 2,
@@ -559,13 +500,13 @@ main(int argc, char **argv)
     .diag_moments = { "M0", "M1", "M2", "M2par", "M2perp", "M3par", "M3perp" },
   };
 
-  // ions
+  // Ions.
   struct gkyl_gyrokinetic_species ion = {
     .name = "ion",
     .charge = ctx.chargeIon, .mass = ctx.massIon,
     .lower = { -ctx.vpar_max_ion, 0.0},
-    .upper = { ctx.vpar_max_ion, ctx.mu_max_ion}, 
-    .cells = { NVPAR, NMU },
+    .upper = {  ctx.vpar_max_ion, ctx.mu_max_ion}, 
+    .cells = { cells_v[0], cells_v[1] },
     .polarization_density = ctx.n0,
 
     .projection = {
@@ -623,13 +564,13 @@ main(int argc, char **argv)
     .diag_moments = { "M0", "M1", "M2", "M2par", "M2perp", "M3par", "M3perp" },
   };
 
-  // Ar1+ ions
+  // Ar1+ ions.
   struct gkyl_gyrokinetic_species Ar1 = {
     .name = "Ar1",
     .charge = ctx.chargeIon, .mass = ctx.massAr,
     .lower = { -ctx.vpar_max_Ar, 0.0},
-    .upper = { ctx.vpar_max_Ar, ctx.mu_max_Ar}, 
-    .cells = { NVPAR, NMU },
+    .upper = {  ctx.vpar_max_Ar, ctx.mu_max_Ar}, 
+    .cells = { cells_v[0], cells_v[1] },
     .polarization_density = ctx.n0Ar,
 
     .projection = {
@@ -701,12 +642,12 @@ main(int argc, char **argv)
   };
 
 
-  // neutral Ar
+  // Neutral Ar.
   struct gkyl_gyrokinetic_neut_species Ar0 = {
     .name = "Ar0", .mass = ctx.massAr,
     .lower = { -ctx.vpar_max_Ar, -ctx.vpar_max_Ar, -ctx.vpar_max_Ar},
-    .upper = { ctx.vpar_max_Ar, ctx.vpar_max_Ar, ctx.vpar_max_Ar },
-    .cells = { NVPAR, NVPAR, NVPAR},
+    .upper = {  ctx.vpar_max_Ar,  ctx.vpar_max_Ar,  ctx.vpar_max_Ar },
+    .cells = { cells_v[0], cells_v[0], cells_v[0] },
     .is_static = true,
 
     .projection = {
@@ -719,15 +660,21 @@ main(int argc, char **argv)
       .temp = eval_temp_ar,      
     },
 
-    .bcx = { GKYL_SPECIES_ABSORB, GKYL_SPECIES_ZERO_FLUX },
-    .bcy = { GKYL_SPECIES_ZERO_FLUX, GKYL_SPECIES_ZERO_FLUX },
+    .bcx = { 
+      .lower = { .type = GKYL_SPECIES_ABSORB },
+      .upper = { .type = GKYL_SPECIES_ZERO_FLUX },
+    },
+    .bcy = { 
+      .lower = { .type = GKYL_SPECIES_ZERO_FLUX },
+      .upper = { .type = GKYL_SPECIES_ZERO_FLUX },
+    },
     
     .num_diag_moments = 3,
     .diag_moments = { "M0", "M1i", "M2"},
   };
 
 
-  // field
+  // Field.
   struct gkyl_gyrokinetic_field field = {
     .fem_parbc = GKYL_FEM_PARPROJ_NONE, 
     .poisson_bcs = {.lo_type = {GKYL_POISSON_DIRICHLET}, 
@@ -740,9 +687,9 @@ main(int argc, char **argv)
     .name = "gk_step_out_2x2v_p1",
 
     .cdim = 2, .vdim = 2,
-    .lower = { 0.934, -ctx.Lz/2.0 },
-    .upper = { 1.4688, ctx.Lz/2.0 },
-    .cells = { NX, NZ },
+    .lower = { ctx.lower_x, -ctx.Lz/2.0 },
+    .upper = { ctx.upper_x,  ctx.Lz/2.0 },
+    .cells = { cells_x[0], cells_x[1] },
     .poly_order = 1,
     .basis_type = app_args.basis_type,
 
@@ -809,8 +756,7 @@ main(int argc, char **argv)
   calc_integrated_diagnostics(&trig_calc_intdiag, app, t_curr, false);
   write_data(&trig_write, app, t_curr, false);
 
-  // initial time step
-  double dt = t_end-t_curr;
+  double dt = t_end-t_curr; // Initial time step.
   // Initialize small time-step check.
   double dt_init = -1.0, dt_failure_tol = ctx.dt_failure_tol;
   int num_failures = 0, num_failures_max = ctx.num_failures_max;
@@ -857,7 +803,7 @@ main(int argc, char **argv)
 
   gkyl_gyrokinetic_app_stat_write(app);
   
-  // fetch simulation statistics
+  // Fetch simulation statistics.
   struct gkyl_gyrokinetic_stat stat = gkyl_gyrokinetic_app_stat(app);
 
   gkyl_gyrokinetic_app_cout(app, stdout, "\n");
@@ -879,13 +825,10 @@ main(int argc, char **argv)
   gkyl_gyrokinetic_app_cout(app, stdout, "IO time took %g secs \n", stat.io_tm);
 
   freeresources:
-  // simulation complete, free app
+  // Free resources after simulation completion.
   gkyl_rect_decomp_release(decomp);
-  gkyl_comm_release(comm);
-  gkyl_gyrokinetic_app_release(app);
+  gyrokinetic_comms_release(decomp, comm);
 
-  mpifinalize:
-  ;
 #ifdef GKYL_HAVE_MPI
   if (app_args.use_mpi)
     MPI_Finalize();

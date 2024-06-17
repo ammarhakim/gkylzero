@@ -37,6 +37,7 @@ struct lbo_relax_ctx
   int Nz; // Cell count (configuration space: z-direction).
   int Nvpar; // Cell count (velocity space: parallel velocity direction).
   int Nmu; // Cell count (velocity space: magnetic moment direction).
+  int cells[GKYL_MAX_DIM]; // Number of cells in all dimensions.
   double Lz; // Domain size (configuration space: z-direction).
   double vpar_max; // Domain boundary (velocity space: parallel velocity direction).
   double mu_max; // Domain boundary (velocity space: magnetic moment direction).
@@ -101,6 +102,7 @@ create_ctx(void)
     .Nz = Nz,
     .Nvpar = Nvpar,
     .Nmu = Nmu,
+    .cells = {Nz, Nvpar, Nmu},
     .Lz = Lz,
     .vpar_max = vpar_max,
     .mu_max = mu_max,
@@ -228,6 +230,12 @@ main(int argc, char **argv)
 {
   struct gkyl_app_args app_args = parse_app_args(argc, argv);
 
+#ifdef GKYL_HAVE_MPI
+  if (app_args.use_mpi) {
+    MPI_Init(&argc, &argv);
+  }
+#endif
+
   if (app_args.trace_mem) {
     gkyl_cu_dev_mem_debug_set(true);
     gkyl_mem_debug_set(true);
@@ -235,17 +243,13 @@ main(int argc, char **argv)
 
   struct lbo_relax_ctx ctx = create_ctx(); // Context for initialization functions.
 
-  int NZ = APP_ARGS_CHOOSE(app_args.xcells[0], ctx.Nz);
-  int NVPAR = APP_ARGS_CHOOSE(app_args.vcells[0], ctx.Nvpar);
-  int NMU = APP_ARGS_CHOOSE(app_args.vcells[1], ctx.Nmu);
-
   // Top hat species.
   struct gkyl_gyrokinetic_species square = {
     .name = "square",
     .charge = ctx.charge, .mass = ctx.mass,
     .lower = { -ctx.vpar_max, 0.0 },
     .upper = {  ctx.vpar_max, ctx.mu_max }, 
-    .cells = { NVPAR, NMU },
+    .cells = { ctx.Nvpar, ctx.Nmu },
     .polarization_density = ctx.n0,
 
     .projection = {
@@ -271,7 +275,7 @@ main(int argc, char **argv)
     .charge = ctx.charge, .mass = ctx.mass,
     .lower = { -ctx.vpar_max, 0.0 },
     .upper = {  ctx.vpar_max, ctx.mu_max }, 
-    .cells = { NVPAR, NMU },
+    .cells = { ctx.Nvpar, ctx.Nmu },
     .polarization_density = ctx.n0,
 
     .projection = {
@@ -303,7 +307,7 @@ main(int argc, char **argv)
   struct gkyl_gk bleft = {
     .lower = { 0.0 },
     .upper = { ctx.Lz/2 },
-    .cells = { NZ/2 },
+    .cells = { ctx.Nz/2 },
 
     .geometry = {
       .geometry_id = GKYL_MAPC2P,
@@ -318,13 +322,15 @@ main(int argc, char **argv)
         { .bid = 0, .dir = 0, .edge = GKYL_BLOCK_EDGE_PHYSICAL }, // physical boundary
         { .bid = 1, .dir = 0, .edge = GKYL_BLOCK_EDGE_LOWER_POSITIVE },
       }
-    }
+    }, 
+
+    .cuts = { 1 },
   };
 
   struct gkyl_gk bright = {
     .lower = { ctx.Lz/2 },
     .upper = { ctx.Lz },
-    .cells = { NZ/2 },
+    .cells = { ctx.Nz/2 },
 
     .geometry = {
       .geometry_id = GKYL_MAPC2P,
@@ -339,7 +345,9 @@ main(int argc, char **argv)
         { .bid = 0, .dir = 0, .edge = GKYL_BLOCK_EDGE_UPPER_POSITIVE },
         { .bid = 1, .dir = 0, .edge = GKYL_BLOCK_EDGE_PHYSICAL }, // physical boundary
       }
-    }
+    },
+
+    .cuts = { 1 },
   };
 
 
@@ -352,7 +360,7 @@ main(int argc, char **argv)
     .basis_type = app_args.basis_type,
 
     .num_blocks = 2,
-    .blocks = { bleft, bright },
+    .blocks = { &bleft, &bright },
 
     .num_periodic_dir = 1,
     .periodic_dirs = { 0 },
@@ -364,8 +372,8 @@ main(int argc, char **argv)
     .field = field,
 
     .use_gpu = app_args.use_gpu,
+    .use_mpi = app_args.use_mpi,
   };
-
 
   // Create app object.
   gkyl_gyrokinetic_mb_app *app = gkyl_gyrokinetic_mb_app_new(&app_inp);
@@ -476,6 +484,12 @@ main(int argc, char **argv)
   freeresources:
   // Free resources after simulation completion.
   gkyl_gyrokinetic_mb_app_release(app);
+
+#ifdef GKYL_HAVE_MPI
+  if (app_args.use_mpi) {
+    MPI_Finalize();
+  }
+#endif
 
   return 0;
 }
