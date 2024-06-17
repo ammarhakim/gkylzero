@@ -689,7 +689,6 @@ void test_cu_mat_mm_arrays()
   struct gkyl_array *array_ycu = gkyl_array_cu_dev_new(GKYL_DOUBLE, 4, 2);
 
   // fill each A matrix with its number
-  printf("\n");
   for (size_t j=0; j<mat_A->nc; ++j){
     for (size_t i=0; i<mat_A->nr; ++i){
       double a_val = i*3 + j;
@@ -732,6 +731,8 @@ void test_cu_mat_mm_arrays()
 	cublasCreate_v2(&cuh);
 
   cu_mat_mm_array(cuh, alpha, beta, transa, mat_Acu, transb, array_xcu, array_ycu);
+
+  cublasDestroy(cuh);
 
   // copy to host
   gkyl_mat_copy(mat_A, mat_Acu);

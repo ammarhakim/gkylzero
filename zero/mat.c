@@ -389,6 +389,38 @@ gkyl_nmat_linsolve_lu_release(gkyl_nmat_mem *mem)
   gkyl_free(mem);
 }
 
+gkyl_phase_nodal_to_modal_mem *
+gkyl_phase_nodal_to_modal_cu_dev_new(int nr, int nc, double alpha, double beta, 
+  enum gkyl_mat_trans transa, enum gkyl_mat_trans transb)
+{
+  gkyl_phase_nodal_to_modal_mem *mem = gkyl_malloc(sizeof(*mem));
+
+  mem->alpha = alpha;
+  mem->beta = beta;
+  mem->transa = transa;
+  mem->transb = transb;
+  //mem->A_cu = gkyl_mat_cu_dev_new(nr, nc);
+  //mem->A_ho = gkyl_mat_new(nr, nc, 0.0);
+
+#ifdef GKYL_HAVE_CUDA
+  mem->cuh = 0;
+  cublasCreate_v2(&mem->cuh);
+#endif
+
+  return mem;
+}
+
+void
+gkyl_phase_nodal_to_modal_release(gkyl_phase_nodal_to_modal_mem *mem)
+{
+  //gkyl_mat_release(mem->A_cu);
+  //gkyl_mat_release(mem->A_ho);
+#ifdef GKYL_HAVE_CUDA
+    cublasDestroy(mem->cuh);
+#endif 
+  gkyl_free(mem);
+}
+
 void
 ho_nmat_mm(double alpha, double beta, enum gkyl_mat_trans transa, struct gkyl_nmat *A, enum gkyl_mat_trans transb, struct gkyl_nmat *B, struct gkyl_nmat *C)
 {
@@ -663,7 +695,8 @@ gkyl_nmat_cu_dev_new(size_t num, size_t nr, size_t nc)
 }
 
 void
-cu_mat_mm_array(cublasHandle_t cuh, double alpha, double beta, enum gkyl_mat_trans transa, struct gkyl_mat *A, enum gkyl_mat_trans transb, struct gkyl_array *B, struct gkyl_array *C)
+cu_mat_mm_array(cublasHandle_t cuh, double alpha, double beta, enum gkyl_mat_trans transa, 
+  struct gkyl_mat *A, enum gkyl_mat_trans transb, struct gkyl_array *B, struct gkyl_array *C)
 {
   struct mat_sizes sza = get_mat_sizes(transa, A); 
   size_t k = sza.nc;
@@ -675,14 +708,20 @@ cu_mat_mm_array(cublasHandle_t cuh, double alpha, double beta, enum gkyl_mat_tra
   cublasStatus_t info;
   //double time_cublasDgemm;
   //struct timespec src1_tm = gkyl_wall_clock();
-  info = cublasDgemm(cuh, transa, transb, A->nr, B->ncomp, A->nc, &alpha, A->data, lda, B->data, ldb, &beta, C->data, ldc);
+  info = cublasDgemm(cuh, transa, transb, A->nr, B->size, A->nc, &alpha, A->data, lda, B->data, ldb, &beta, C->data, ldc);
   //time_cublasDgemm += gkyl_time_diff_now_sec(src1_tm);
   //printf("\nTime wall-clock (cublasDgemmStridedBatched): %1.16e\n",time_cublasDgemm);
-  cublasDestroy(cuh);
 }
 
 
 #else
+
+struct gkyl_mat*
+gkyl_mat_cu_dev_new(size_t num, size_t nr, size_t nc)
+{
+  assert(false);
+  return 0;
+}
 
 struct gkyl_nmat*
 gkyl_nmat_cu_dev_new(size_t num, size_t nr, size_t nc)

@@ -41,6 +41,10 @@ struct gkyl_nmat {
 // operations
 typedef struct gkyl_nmat_mem gkyl_nmat_mem;
 
+// Type for storing preallocating memory needed specificially for 
+// cu_mat_mm_array
+typedef struct gkyl_phase_nodal_to_modal_mem gkyl_phase_nodal_to_modal_mem;
+
 /**
  * Construct new matrix with all elements initialized to @a
  * val. Delete using gkyl_mat_release method.
@@ -344,6 +348,28 @@ gkyl_nmat_mem *gkyl_nmat_linsolve_lu_cu_dev_new(size_t num, size_t nrow);
  * @param mem Memory to release
  */
 void gkyl_nmat_linsolve_lu_release(gkyl_nmat_mem *mem);
+
+/**
+ * Allocate memory needed in modal to nodal conversion matrices needed 
+ * by cublasDgemm
+ *
+ * @param nr Number of rows in the matrix A
+ * @param nc Number of columns in the matrix A
+ * @param alpha Coefficient infront of A*B
+ * @param beta Coefficient infron of C
+ * @param transa Whether or not to transpose A
+ * @param transb Whether or not to transpose B
+ * @return Preallocated memory
+ */
+gkyl_phase_nodal_to_modal_mem *gkyl_phase_nodal_to_modal_cu_dev_new(int nr, int nc,
+  double alpha, double beta, enum gkyl_mat_trans transa, enum gkyl_mat_trans transb);
+
+/**
+ * Release memory allocated for batched LU solves.
+ *
+ * @param mem Memory to release
+ */
+void gkyl_phase_nodal_to_modal_release(gkyl_phase_nodal_to_modal_mem *mem);
 
 /**
  * Solve a batched system of linear equations using LU

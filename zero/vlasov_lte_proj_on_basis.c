@@ -5,6 +5,7 @@
 #include <gkyl_array.h>
 #include <gkyl_const.h>
 #include <gkyl_gauss_quad_data.h>
+#include <gkyl_mat.h>
 #include <gkyl_vlasov_lte_proj_on_basis.h>
 #include <gkyl_vlasov_lte_proj_on_basis_priv.h>
 #include <gkyl_range.h>
@@ -164,11 +165,11 @@ gkyl_vlasov_lte_proj_on_basis_inew(const struct gkyl_vlasov_lte_proj_on_basis_in
   int num_quad = up->conf_basis.poly_order+1;
   // initialize data needed for conf-space quadrature 
   up->tot_conf_quad = init_quad_values(up->cdim, &up->conf_basis, num_quad,
-    &up->conf_ordinates, &up->conf_weights, &up->conf_basis_at_ords, up->use_gpu);
+    &up->conf_ordinates, &up->conf_weights, &up->conf_basis_at_ords, false);
 
   // initialize data needed for phase-space quadrature 
   up->tot_quad = init_quad_values(up->cdim, &up->phase_basis, num_quad,
-    &up->ordinates, &up->weights, &up->basis_at_ords, up->use_gpu);
+    &up->ordinates, &up->weights, &up->basis_at_ords, false);
 
   up->fun_at_ords = gkyl_array_new(GKYL_DOUBLE, 1, up->tot_quad); // Only used in CPU implementation.
 
@@ -201,6 +202,40 @@ gkyl_vlasov_lte_proj_on_basis_inew(const struct gkyl_vlasov_lte_proj_on_basis_in
     up->V_drift_quad_cell_avg = gkyl_array_cu_dev_new(GKYL_DOUBLE, up->tot_conf_quad*vdim, inp->conf_range_ext->volume);
     up->h_ij_inv_quad = gkyl_array_cu_dev_new(GKYL_DOUBLE, up->tot_conf_quad*(vdim*(vdim+1)/2), inp->conf_range_ext->volume);
     up->det_h_quad = gkyl_array_cu_dev_new(GKYL_DOUBLE, up->tot_conf_quad, inp->conf_range_ext->volume);
+
+    // Allocate the memory for computing the specific phase nodal to modal calculation
+    // up->phase_nodal_to_modal_mem = gkyl_phase_nodal_to_modal_cu_dev_new(up->num_phase_basis, up->tot_quad, 1.0, 0.0, 
+    //    GKYL_NO_TRANS, GKYL_NO_TRANS);
+    up->alpha = 1.0;
+    up->beta = 0.0;
+    up->transa = GKYL_NO_TRANS;
+    up->transb = GKYL_NO_TRANS;
+
+    // Compute the matrix A for the phase nodal to modal memory
+    const double *phase_w = (const double*) up->weights->data;
+    const double *phaseb_o = (const double*) up->basis_at_ords->data;
+    up->mat_A = gkyl_mat_new(up->num_phase_basis, up->tot_quad, 0.0);
+    up->mat_Acu = gkyl_mat_cu_dev_new(up->num_phase_basis, up->tot_quad);
+    for (int n=0; n<up->tot_quad; ++n){
+      for (int k=0; k<up->num_phase_basis; ++k){
+        gkyl_mat_set(up->mat_A, k, n, phase_w[n]*phaseb_o[k+up->num_phase_basis*n]);
+      }
+    }
+    
+    // copy to device
+    gkyl_mat_copy(up->mat_Acu, up->mat_A);
+
+
+    up->cuh = 0;
+    cublasCreate_v2(&up->cuh);
+
+    // initialize data needed for conf-space quadrature 
+    up->tot_conf_quad = init_quad_values(up->cdim, &up->conf_basis, num_quad,
+      &up->conf_ordinates, &up->conf_weights, &up->conf_basis_at_ords, up->use_gpu);
+
+    // initialize data needed for phase-space quadrature 
+    up->tot_quad = init_quad_values(up->cdim, &up->phase_basis, num_quad,
+      &up->ordinates, &up->weights, &up->basis_at_ords, up->use_gpu);
 
     int pidx[GKYL_MAX_DIM];
     for (int n=0; n<up->tot_quad; ++n) {
@@ -487,6 +522,11 @@ gkyl_vlasov_lte_proj_on_basis_release(gkyl_vlasov_lte_proj_on_basis* up)
     gkyl_array_release(up->V_drift_quad_cell_avg);
     gkyl_array_release(up->h_ij_inv_quad);
     gkyl_array_release(up->det_h_quad);
+
+    // gkyl_phase_nodal_to_modal_release(up->phase_nodal_to_modal_mem);
+    gkyl_mat_release(up->mat_A);
+    gkyl_mat_release(up->mat_Acu);
+    cublasDestroy(up->cuh);
   }
 #endif
   gkyl_array_release(up->ordinates);
