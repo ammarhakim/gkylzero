@@ -211,11 +211,16 @@ gkyl_vlasov_lte_proj_on_basis_advance_cu(gkyl_vlasov_lte_proj_on_basis *up,
   const struct gkyl_array *moms_lte, struct gkyl_array *f_lte)
 {
   int nblocks = phase_range->nblocks, nthreads = phase_range->nthreads;
+  const struct gkyl_array *h_ij_inv_dev = NULL, *det_h_dev = NULL;;
+  if (up->is_canonical_pb) {
+    h_ij_inv_dev = up->h_ij_inv->on_dev;
+    det_h_dev = up->det_h->on_dev;
+  }
   gkyl_vlasov_lte_proj_on_basis_advance_cu_ker<<<nblocks, nthreads>>>
     (up->phase_grid, *phase_range, *conf_range, up->conf_basis_at_ords->on_dev, up->basis_at_ords->on_dev,
      up->ordinates->on_dev, up->weights->on_dev, up->p2c_qidx,
-     up->is_relativistic, up->is_canonical_pb, up->h_ij_inv->on_dev,  
-     up->det_h->on_dev, moms_lte->on_dev, f_lte->on_dev);
+     up->is_relativistic, up->is_canonical_pb, h_ij_inv_dev,  
+     det_h_dev, moms_lte->on_dev, f_lte->on_dev);
 
   // Correct the density of the projected LTE distribution function through rescaling.
   // This correction is needed especially for the relativistic LTE, whose pre-factor
