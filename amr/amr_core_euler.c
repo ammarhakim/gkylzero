@@ -271,43 +271,43 @@ euler1d_run_single(int argc, char **argv, struct euler1d_single_init* init)
     for (int i = 1; i < num_frames; i++) {
       if (coarse_t_curr < (i * io_trigger) && (coarse_t_curr + coarse_status.dt_actual) > (i * io_trigger)) {
 #ifdef AMR_DEBUG
-      char buf_coarse[64];
-      char buf_fine[64];
+        char buf_coarse[64];
+        char buf_fine[64];
 
-      snprintf(buf_coarse, 64, "%s_coarse_%d", euler_output, i);
-      snprintf(buf_fine, 64, "%s_fine_%d", euler_output, i);
+        snprintf(buf_coarse, 64, "%s_coarse_%d", euler_output, i);
+        snprintf(buf_fine, 64, "%s_fine_%d", euler_output, i);
 
-      euler_write_sol_patch(buf_coarse, num_patches, coarse_pdata);
-      euler_write_sol_patch(buf_fine, num_patches, fine_pdata);
+        euler_write_sol_patch(buf_coarse, num_patches, coarse_pdata);
+        euler_write_sol_patch(buf_fine, num_patches, fine_pdata);
 
-      char buf_fine_old[64];
-      char buf_fine_new[64];
-      char buf_coarse_old[64];
+        char buf_fine_old[64];
+        char buf_fine_new[64];
+        char buf_coarse_old[64];
 
-      snprintf(buf_fine_old, 64, "%s_fine_%d_p0.gkyl", euler_output, i);
-      snprintf(buf_fine_new, 64, "%s_%d_p0.gkyl", euler_output, i);
-      snprintf(buf_coarse_old, 64, "%s_coarse_%d_p0.gkyl", euler_output, i);
+        snprintf(buf_fine_old, 64, "%s_fine_%d_p0.gkyl", euler_output, i);
+        snprintf(buf_fine_new, 64, "%s_%d_p0.gkyl", euler_output, i);
+        snprintf(buf_coarse_old, 64, "%s_coarse_%d_p0.gkyl", euler_output, i);
 
-      rename(buf_fine_old, buf_fine_new);
-      remove(buf_coarse_old);
+        rename(buf_fine_old, buf_fine_new);
+        remove(buf_coarse_old);
 
-      for (int j = 1; j < 3; j++) {
-        char buf_old[64];
-        char buf_new[64];
-        char buf_del[64];
+        for (int j = 1; j < 3; j++) {
+          char buf_old[64];
+          char buf_new[64];
+          char buf_del[64];
 
-        snprintf(buf_old, 64, "%s_coarse_%d_p%d.gkyl", euler_output, i, j);
-        snprintf(buf_new, 64, "%s_%d_p%d.gkyl", euler_output, i, j);
-        snprintf(buf_del, 64, "%s_fine_%d_p%d.gkyl", euler_output, i, j);
+          snprintf(buf_old, 64, "%s_coarse_%d_p%d.gkyl", euler_output, i, j);
+          snprintf(buf_new, 64, "%s_%d_p%d.gkyl", euler_output, i, j);
+          snprintf(buf_del, 64, "%s_fine_%d_p%d.gkyl", euler_output, i, j);
 
-        rename(buf_old, buf_new);
-        remove(buf_del);
-      }
+          rename(buf_old, buf_new);
+          remove(buf_del);
+        }
 #else
-      char buf[64];
-      snprintf(buf, 64, "%s_%d", euler_output, i);
+        char buf[64];
+        snprintf(buf, 64, "%s_%d", euler_output, i);
 
-      euler_write_sol_patch(buf, num_patches, coarse_pdata);
+        euler_write_sol_patch(buf, num_patches, coarse_pdata);
 #endif
       }
     }
@@ -333,7 +333,7 @@ euler1d_run_single(int argc, char **argv, struct euler1d_single_init* init)
     else {
       num_failures = 0;
     }
-    
+
     coarse_step += 1;
   }
 
@@ -728,43 +728,43 @@ euler2d_run_single(int argc, char **argv, struct euler2d_single_init* init)
     for (int i = 1; i < num_frames; i++) {
       if (coarse_t_curr < (i * io_trigger) && (coarse_t_curr + coarse_status.dt_actual) > (i * io_trigger)) {
 #ifdef AMR_DEBUG
-      char buf_coarse[64];
-      char buf_fine[64];
+        char buf_coarse[64];
+        char buf_fine[64];
 
-      snprintf(buf_coarse, 64, "%s_coarse_%d", euler_output, i);
-      snprintf(buf_fine, 64, "%s_fine_%d", euler_output, i);
+        snprintf(buf_coarse, 64, "%s_coarse_%d", euler_output, i);
+        snprintf(buf_fine, 64, "%s_fine_%d", euler_output, i);
 
-      euler_write_sol_block(buf_coarse, num_blocks, coarse_bdata);
-      euler_write_sol_block(buf_fine, num_blocks, fine_bdata);
+        euler_write_sol_block(buf_coarse, num_blocks, coarse_bdata);
+        euler_write_sol_block(buf_fine, num_blocks, fine_bdata);
 
-      char buf_fine_old[64];
-      char buf_fine_new[64];
-      char buf_coarse_old[64];
+        char buf_fine_old[64];
+        char buf_fine_new[64];
+        char buf_coarse_old[64];
 
-      snprintf(buf_fine_old, 64, "%s_fine_%d_b0.gkyl", euler_output, i);
-      snprintf(buf_fine_new, 64, "%s_%d_b0.gkyl", euler_output, i);
-      snprintf(buf_coarse_old, 64, "%s_coarse_%d_b0.gkyl", euler_output, i);
+        snprintf(buf_fine_old, 64, "%s_fine_%d_b0.gkyl", euler_output, i);
+        snprintf(buf_fine_new, 64, "%s_%d_b0.gkyl", euler_output, i);
+        snprintf(buf_coarse_old, 64, "%s_coarse_%d_b0.gkyl", euler_output, i);
 
-      rename(buf_fine_old, buf_fine_new);
-      remove(buf_coarse_old);
+        rename(buf_fine_old, buf_fine_new);
+        remove(buf_coarse_old);
 
-      for (int j = 1; j < 9; j++) {
-        char buf_old[64];
-        char buf_new[64];
-        char buf_del[64];
+        for (int j = 1; j < 9; j++) {
+          char buf_old[64];
+          char buf_new[64];
+          char buf_del[64];
 
-        snprintf(buf_old, 64, "%s_coarse_%d_b%d.gkyl", euler_output, i, j);
-        snprintf(buf_new, 64, "%s_%d_b%d.gkyl", euler_output, i, j);
-        snprintf(buf_del, 64, "%s_fine_%d_b%d.gkyl", euler_output, i, j);
+          snprintf(buf_old, 64, "%s_coarse_%d_b%d.gkyl", euler_output, i, j);
+          snprintf(buf_new, 64, "%s_%d_b%d.gkyl", euler_output, i, j);
+          snprintf(buf_del, 64, "%s_fine_%d_b%d.gkyl", euler_output, i, j);
 
-        rename(buf_old, buf_new);
-        remove(buf_del);
-      }
+          rename(buf_old, buf_new);
+          remove(buf_del);
+        }
 #else
-      char buf[64];
-      snprintf(buf, 64, "%s_%d", euler_output, i);
+        char buf[64];
+        snprintf(buf, 64, "%s_%d", euler_output, i);
 
-      euler_write_sol_block(buf, num_blocks, coarse_bdata);
+        euler_write_sol_block(buf, num_blocks, coarse_bdata);
 #endif
       }
     }
@@ -1408,66 +1408,66 @@ euler2d_run_double(int argc, char **argv, struct euler2d_double_init* init)
       if (coarse_t_curr < (i * io_trigger) && (coarse_t_curr + coarse_status.dt_actual) > (i * io_trigger)) {
       // TODO: Make file output work correctly in the AMR_DEBUG case.
 #ifdef AMR_DEBUG
-      char buf_coarse[64];
-      char buf_intermediate[64];
-      char buf_fine[64];
+        char buf_coarse[64];
+        char buf_intermediate[64];
+        char buf_fine[64];
 
-      snprintf(buf_coarse, 64, "%s_coarse_%d", euler_output, i);
-      snprintf(buf_intermediate, 64, "%s_intermediate_%d", euler_output, i);
-      snprintf(buf_fine, 64, "%s_fine_%d", euler_output, i);
+        snprintf(buf_coarse, 64, "%s_coarse_%d", euler_output, i);
+        snprintf(buf_intermediate, 64, "%s_intermediate_%d", euler_output, i);
+        snprintf(buf_fine, 64, "%s_fine_%d", euler_output, i);
 
-      euler_write_sol_block(buf_coarse, num_blocks, coarse_bdata);
-      euler_write_sol_block(buf_intermediate, num_blocks, intermediate_bdata);
-      euler_write_sol_block(buf_fine, num_blocks, fine_bdata);
+        euler_write_sol_block(buf_coarse, num_blocks, coarse_bdata);
+        euler_write_sol_block(buf_intermediate, num_blocks, intermediate_bdata);
+        euler_write_sol_block(buf_fine, num_blocks, fine_bdata);
 
-      char buf_fine_old[64];
-      char buf_fine_new[64];
-      char buf_intermediate_old[64];
-      char buf_coarse_old[64];
+        char buf_fine_old[64];
+        char buf_fine_new[64];
+        char buf_intermediate_old[64];
+        char buf_coarse_old[64];
 
-      snprintf(buf_fine_old, 64, "%s_fine_%d_b0.gkyl", euler_output, i);
-      snprintf(buf_fine_new, 64, "%s_%d_b0.gkyl", euler_output, i);
-      snprintf(buf_intermediate_old, 64, "%s_intermediate_%d_b0.gkyl", euler_output, i);
-      snprintf(buf_coarse_old, 64, "%s_coarse_%d_b0.gkyl", euler_output, i);
+        snprintf(buf_fine_old, 64, "%s_fine_%d_b0.gkyl", euler_output, i);
+        snprintf(buf_fine_new, 64, "%s_%d_b0.gkyl", euler_output, i);
+        snprintf(buf_intermediate_old, 64, "%s_intermediate_%d_b0.gkyl", euler_output, i);
+        snprintf(buf_coarse_old, 64, "%s_coarse_%d_b0.gkyl", euler_output, i);
 
-      rename(buf_fine_old, buf_fine_new);
-      remove(buf_intermediate_old);
-      remove(buf_coarse_old);
+        rename(buf_fine_old, buf_fine_new);
+        remove(buf_intermediate_old);
+        remove(buf_coarse_old);
 
-      for (int j = 1; j < 9; j++) {
-        char fine_bi[64];
-        char intermediate_bi[64];
-        char coarse_bi[64];
-        char bi[64];
-        snprintf(fine_bi, 64, "%s_fine_%d_b%d.gkyl", euler_output, i, j);
-        snprintf(intermediate_bi, 64, "%s_intermediate_%d_b%d.gkyl", euler_output, i, j);
-        snprintf(coarse_bi, 64, "%s_coarse_%d_b%d.gkyl", euler_output, i, j);
-        snprintf(bi, 64, "%s_%d_b%d.gkyl", euler_output, i, j);
-        rename(intermediate_bi, bi);
-        remove(fine_bi);
-        remove(coarse_bi);
-      }
+        for (int j = 1; j < 9; j++) {
+          char fine_bi[64];
+          char intermediate_bi[64];
+          char coarse_bi[64];
+          char bi[64];
+          snprintf(fine_bi, 64, "%s_fine_%d_b%d.gkyl", euler_output, i, j);
+          snprintf(intermediate_bi, 64, "%s_intermediate_%d_b%d.gkyl", euler_output, i, j);
+          snprintf(coarse_bi, 64, "%s_coarse_%d_b%d.gkyl", euler_output, i, j);
+          snprintf(bi, 64, "%s_%d_b%d.gkyl", euler_output, i, j);
+          rename(intermediate_bi, bi);
+          remove(fine_bi);
+          remove(coarse_bi);
+        }
 
-      for (int j = 9; j < 25; j++) {
-        char buf_old[64];
-        char buf_new[64];
-        char buf_del1[64];
-        char buf_del2[64];
+        for (int j = 9; j < 25; j++) {
+          char buf_old[64];
+          char buf_new[64];
+          char buf_del1[64];
+          char buf_del2[64];
 
-        snprintf(buf_old, 64, "%s_coarse_%d_b%d.gkyl", euler_output, i, j);
-        snprintf(buf_new, 64, "%s_%d_b%d.gkyl", euler_output, i, j);
-        snprintf(buf_del1, 64, "%s_intermediate_%d_b%d.gkyl", euler_output, i, j);
-        snprintf(buf_del2, 64, "%s_fine_%d_b%d.gkyl", euler_output, i, j);
+          snprintf(buf_old, 64, "%s_coarse_%d_b%d.gkyl", euler_output, i, j);
+          snprintf(buf_new, 64, "%s_%d_b%d.gkyl", euler_output, i, j);
+          snprintf(buf_del1, 64, "%s_intermediate_%d_b%d.gkyl", euler_output, i, j);
+          snprintf(buf_del2, 64, "%s_fine_%d_b%d.gkyl", euler_output, i, j);
 
-        rename(buf_old, buf_new);
-        remove(buf_del1);
-        remove(buf_del2);
-      }
+          rename(buf_old, buf_new);
+          remove(buf_del1);
+          remove(buf_del2);
+        }
 #else
-      char buf[64];
-      snprintf(buf, 64, "%s_%d", euler_output, i);
+        char buf[64];
+        snprintf(buf, 64, "%s_%d", euler_output, i);
 
-      euler_write_sol_block(buf, num_blocks, coarse_bdata);
+        euler_write_sol_block(buf, num_blocks, coarse_bdata);
 #endif
       }
     }

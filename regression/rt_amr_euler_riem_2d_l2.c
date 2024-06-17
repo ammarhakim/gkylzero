@@ -1,4 +1,4 @@
-// 2D Riemann (quadrant) problem, using static, block-structured mesh refinement with a single refinement block (4x refinement), for the 5-moment (Euler) equations.
+// 2D Riemann (quadrant) problem, using static, block-structured mesh refinement with doubly-nested refinement blocks (4x4x refinement), for the 5-moment (Euler) equations.
 // Input parameters match the initial conditions in Section 4.3, Case 3, with final time set to t = 0.8 rather than t = 0.3, from the article:
 // R. Liska and B. Wendroff (2003), "Comparison of Several Difference Schemes on 1D and 2D Test Problems for the Euler Equations",
 // SIAM Journal on Scientific Computing, Volume 25 (3): 995-1017.

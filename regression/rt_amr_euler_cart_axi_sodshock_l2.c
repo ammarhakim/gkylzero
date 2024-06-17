@@ -1,4 +1,4 @@
-// 2D Sod-type shock tube test in axial symmetry, in Cartesian coordinates, using static, block-structured mesh refinement with a single refinement block (4x refinement), for the 5-moment (Euler) equations.
+// 2D Sod-type shock tube test in axial symmetry, in Cartesian coordinates, using static, block-structured mesh refinement with doubly-nested refinement blocks (4x4x refinement), for the 5-moment (Euler) equations.
 // Input parameters are an axisymmetric generalization of those in Section 2.6.2, with the contact discontinuity placed at r = 0.75, from the thesis:
 // A. Hakim (2006), "High Resolution Wave Propagation Schemes for Two-Fluid Plasma Simulations",
 // PhD Thesis, University of Washington.
