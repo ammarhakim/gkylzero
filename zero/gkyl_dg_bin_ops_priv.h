@@ -61,14 +61,6 @@ static const mul_op_kern_list ser_mul_list[] = {
   { binop_mul_3d_ser_p0, binop_mul_3d_ser_p1, binop_mul_3d_ser_p2, binop_mul_3d_ser_p3 }
 };
 
-GKYL_CU_D
-static const mul_comp_par_op_kern_list ser_mul_comp_par_list[] = {
-  { NULL, NULL, NULL, NULL }, // No 0D basis functions
-  { binop_mul_comp_par_1d_ser_p0, binop_mul_comp_par_1d_ser_p1, binop_mul_comp_par_1d_ser_p2, binop_mul_comp_par_1d_ser_p3 },
-  { binop_mul_comp_par_2d_ser_p0, binop_mul_comp_par_2d_ser_p1, binop_mul_comp_par_2d_ser_p2, binop_mul_comp_par_2d_ser_p3 },
-  { binop_mul_comp_par_3d_ser_p0, binop_mul_comp_par_3d_ser_p1, binop_mul_comp_par_3d_ser_p2, binop_mul_comp_par_3d_ser_p3 }
-};
-
 // Tensor multiplication kernels
 GKYL_CU_D
 static const mul_op_kern_list ten_mul_list[] = {
@@ -244,14 +236,6 @@ choose_ser_mul_kern(int dim, int poly_order)
 {
   assert(dim < 4);
   return ser_mul_list[dim].kernels[poly_order];
-}
-
-GKYL_CU_D
-static mul_comp_par_op_t
-choose_ser_mul_comp_par_kern(int dim, int poly_order)
-{
-  assert(dim < 4);
-  return ser_mul_comp_par_list[dim].kernels[poly_order];
 }
 
 GKYL_CU_D
