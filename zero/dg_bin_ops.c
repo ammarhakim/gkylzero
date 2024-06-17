@@ -274,47 +274,6 @@ void gkyl_dg_mul_conf_phase_op_range(struct gkyl_basis *cbasis,
   }
 }
 
-// paralellized conf*phase multiplication.
-void gkyl_dg_mul_comp_par_conf_phase_op_range(struct gkyl_basis *cbasis,
-  struct gkyl_basis *pbasis, struct gkyl_array* pout,
-  const struct gkyl_array* cop, const struct gkyl_array* pop,
-  const struct gkyl_range *crange, const struct gkyl_range *prange)
-{
-#ifdef GKYL_HAVE_CUDA
-  if (gkyl_array_is_cu_dev(pout)) {
-    return gkyl_dg_mul_comp_par_conf_phase_op_range_cu(cbasis, pbasis, pout, cop, pop, crange, prange);
-  }
-#endif
-
-  int cnum_basis = cbasis->num_basis, pnum_basis = pbasis->num_basis;
-  assert(pnum_basis > cnum_basis);
-
-  int cdim = cbasis->ndim;
-  int vdim = pbasis->ndim - cdim;
-  int poly_order = cbasis->poly_order;
-  mul_comp_par_op_t mul_op = choose_mul_comp_par_conf_phase_kern(pbasis->b_type, cdim, vdim, poly_order);
-
-  struct gkyl_range_iter piter;
-  gkyl_range_iter_init(&piter, prange);
-
-  while (gkyl_range_iter_next(&piter)) {
-    long ploc = gkyl_range_idx(prange, piter.idx);
-
-    const double *pop_d = gkyl_array_cfetch(pop, ploc);
-    double *pout_d = gkyl_array_fetch(pout, ploc);
-
-    int cidx[3]; 
-    for (int d=0; d<cdim; d++) cidx[d] = piter.idx[d];
-    long cloc = gkyl_range_idx(crange, cidx);
-    const double *cop_d = gkyl_array_cfetch(cop, cloc);
-    // Not sure if this is the right top of the loop
-    for (int linc1=0; linc1<pnum_basis; ++linc1) {
-      mul_op(cop_d, pop_d, pout_d, linc1);
-    }
-  }
-}
-
-
 // division
 void
 gkyl_dg_div_op(gkyl_dg_bin_op_mem *mem, struct gkyl_basis basis,

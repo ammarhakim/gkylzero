@@ -48,7 +48,6 @@ typedef struct { mul_comp_par_op_t kernels[4]; } mul_comp_par_op_kern_list;
 typedef struct { mul_op_kern_list list[3]; } cross_mul_op_kern_list;
 typedef struct { mul_comp_par_op_kern_list list[3]; } cross_mul_comp_par_op_kern_list;
 typedef struct { mul_op_count_t kernels[4]; } mul_op_count_kern_list;
-typedef struct { mul_op_count_t kernels[4]; } mul_comp_par_op_count_kern_list;
 typedef struct { div_set_op_t kernels[4]; } div_set_op_kern_list;
 typedef struct { inv_op_t kernels[4]; } inv_op_kern_list;
 

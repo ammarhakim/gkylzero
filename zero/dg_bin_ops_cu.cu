@@ -94,8 +94,6 @@ gkyl_dg_mul_op_range_cu(struct gkyl_basis basis,
     c_lop, lop->on_dev, c_rop, rop->on_dev, *range);
 }
 
-
-
 __global__ void
 gkyl_dg_mul_conf_phase_op_range_cu_kernel(struct gkyl_basis cbasis,
   struct gkyl_basis pbasis, struct gkyl_array* pout,
