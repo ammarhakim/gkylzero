@@ -3,15 +3,43 @@
 #include <gkyl_dg_bin_ops.h>
 #include <gkyl_proj_on_basis.h>
 #include <gkyl_alloc.h>
+#include <gkyl_alloc_flags_priv.h>
 #include <gkyl_array.h>
 #include <assert.h>
 #include <math.h>
 
+struct gkyl_array_copy_func*
+gkyl_bc_emission_elastic_create_arr_copy_func(int dir, int cdim, const struct gkyl_basis *basis,
+  int ncomp, bool use_gpu)
+{
+#ifdef GKYL_HAVE_CUDA
+  if (use_gpu)
+    return gkyl_bc_emission_elastic_create_arr_copy_func_cu(dir, cdim, basis, ncomp);
+#endif
+
+  struct bc_elastic_ctx *ctx = gkyl_malloc(sizeof(*ctx));
+  ctx->basis = basis;
+  ctx->dir = dir;
+  ctx->cdim = cdim;
+  ctx->ncomp = ncomp;
+
+  struct gkyl_array_copy_func *fout = gkyl_malloc(sizeof(*fout));
+  fout->func = reflection;
+  fout->ctx = ctx;
+  fout->ctx_on_dev = fout->ctx;
+
+  fout->flags = 0;
+  GKYL_CLEAR_CU_ALLOC(fout->flags);
+  fout->on_dev = fout; // CPU function obj points to itself.
+  return fout;
+}
+
 struct gkyl_bc_emission_elastic*
 gkyl_bc_emission_elastic_new(enum gkyl_bc_emission_elastic_type elastic_type,
   void *elastic_param, struct gkyl_array *elastic_yield, int dir, enum gkyl_edge_loc edge,
-  int cdim, int vdim, struct gkyl_rect_grid *grid, struct gkyl_range *emit_buff_r, int poly_order,
-  struct gkyl_basis *basis, struct gkyl_array *proj_buffer, bool use_gpu)
+  int cdim, int vdim, int ncomp, struct gkyl_rect_grid *grid, struct gkyl_range *emit_buff_r,
+  int poly_order, const struct gkyl_basis *dev_basis, struct gkyl_basis *basis,
+  struct gkyl_array *proj_buffer, bool use_gpu)
 {
   // Allocate space for new updater.
   struct gkyl_bc_emission_elastic *up = gkyl_malloc(sizeof(struct gkyl_bc_emission_elastic));
@@ -20,17 +48,10 @@ gkyl_bc_emission_elastic_new(enum gkyl_bc_emission_elastic_type elastic_type,
   up->cdim = cdim;
   up->vdim = vdim;
   up->edge = edge;
-  up->basis = basis;
   up->use_gpu = use_gpu;
 
-  struct gkyl_array_copy_func *cf = gkyl_malloc(sizeof(*cf));
-  cf->func = reflection;
-  cf->ctx = up;
-  cf->ctx_on_dev = cf->ctx;
-
-  cf->flags = 0;
-  cf->on_dev = cf; // CPU function obj points to itself.
-  up->reflect_func = cf;
+  up->reflect_func = gkyl_bc_emission_elastic_create_arr_copy_func(dir, cdim, dev_basis, ncomp,
+    use_gpu);
 
   up->funcs = gkyl_malloc(sizeof(struct gkyl_bc_emission_elastic_funcs));
   up->funcs->elastic_param = elastic_param;
@@ -58,7 +79,7 @@ gkyl_bc_emission_elastic_new(enum gkyl_bc_emission_elastic_type elastic_type,
   up->funcs_cu = up->funcs;
 #endif
   gkyl_proj_on_basis_release(proj);
-  
+
   return up;
 }
 

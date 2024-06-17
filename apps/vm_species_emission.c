@@ -42,7 +42,8 @@ vm_species_emission_cross_init(struct gkyl_vlasov_app *app, struct vm_species *s
     emit->elastic_yield = mkarr(app->use_gpu, app->basis.num_basis, emit->emit_buff_r->volume);
     emit->elastic_update = gkyl_bc_emission_elastic_new(emit->params->elastic_type,
       emit->params->elastic_params, emit->elastic_yield, emit->dir, emit->edge, cdim, vdim,
-      emit->emit_grid, emit->emit_buff_r, app->poly_order, &app->basis, proj_buffer, app->use_gpu);
+      s->f->ncomp, emit->emit_grid, emit->emit_buff_r, app->poly_order, app->basis_on_dev.basis,
+      &app->basis, proj_buffer, app->use_gpu);
   }
 
   for (int i=0; i<emit->num_species; ++i) {
@@ -73,7 +74,7 @@ vm_species_emission_cross_init(struct gkyl_vlasov_app *app, struct vm_species *s
       emit->params->yield_type[i], emit->params->norm_params[i], emit->params->yield_params[i],
       emit->yield[i], emit->spectrum[i], emit->dir, emit->edge, cdim, vdim, 
       emit->impact_buff_r[i], emit->emit_buff_r, emit->impact_grid[i], app->poly_order,
-      &app->basis, proj_buffer, app->use_gpu);
+      &app->basis,  proj_buffer, app->use_gpu);
   }
   gkyl_array_release(proj_buffer);
 }
@@ -98,7 +99,8 @@ vm_species_emission_apply_bc(struct gkyl_vlasov_app *app, const struct vm_emitti
     
     gkyl_bc_emission_spectrum_advance(emit->update[i], emit->impact_buff_r[i],
       emit->impact_cbuff_r[i], emit->emit_buff_r, emit->bflux_arr[i],
-      emit->f_emit, emit->yield[i], emit->spectrum[i], emit->weight[i], emit->flux[i], emit->k[i]);
+      emit->f_emit, emit->yield[i], emit->spectrum[i], emit->weight[i], emit->flux[i],
+      emit->k[i]);
   }
   gkyl_array_set_range_to_range(fout, t_scale, emit->f_emit, emit->emit_ghost_r, emit->emit_buff_r);
 }

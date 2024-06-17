@@ -29,14 +29,20 @@ struct gkyl_bc_emission_elastic {
   bool use_gpu;
 };
 
+struct bc_elastic_ctx {
+  int dir; // direction for BCs.
+  int cdim; // config-space dimensions.
+  int ncomp; // number of components within a cell.
+  const struct gkyl_basis *basis; // basis function.
+};
+
 GKYL_CU_D
 static void
 reflection(size_t nc, double *out, const double *inp, void *ctx)
 {
-  struct gkyl_bc_emission_elastic *bc_ctx = 
-    (struct gkyl_bc_emission_elastic *) ctx;
+  struct bc_elastic_ctx *bc_ctx = (struct bc_elastic_ctx *) ctx;
   int dir = bc_ctx->dir, cdim = bc_ctx->cdim;
-
+  
   bc_ctx->basis->flip_odd_sign(dir, inp, out);
   bc_ctx->basis->flip_odd_sign(dir+cdim, out, out);
 }
@@ -109,6 +115,10 @@ constant_yield(double t, const double *xn, double *fout, void *ctx)
 
   fout[0] = delta;
 }
+
+struct gkyl_array_copy_func*
+gkyl_bc_emission_elastic_create_arr_copy_func_cu(int dir, int cdim, const struct gkyl_basis *basis,
+  int ncomp);
 
 void
 gkyl_bc_emission_elastic_choose_elastic_cu(enum gkyl_bc_emission_elastic_type elastic_type,
