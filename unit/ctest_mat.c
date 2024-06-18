@@ -679,12 +679,15 @@ void test_cu_nmat_mm()
 
 void test_cu_mat_mm_arrays()
 {
+  struct gkyl_cu_mat_mm_array_mem *ctest_prob_mem; 
+  ctest_prob_mem = gkyl_cu_mat_mm_array_mem_cu_dev_new(4, 3, 1.0, 0.0, 
+    GKYL_NO_TRANS, GKYL_NO_TRANS);
 
-  struct gkyl_mat *mat_A = gkyl_mat_new(4, 3, 0.0);
+  struct gkyl_mat *mat_A = ctest_prob_mem->A_ho;
   struct gkyl_array *array_x = gkyl_array_new(GKYL_DOUBLE, 3, 2);
   struct gkyl_array *array_y = gkyl_array_new(GKYL_DOUBLE, 4, 2);
 
-  struct gkyl_mat *mat_Acu = gkyl_mat_cu_dev_new(4, 3);
+  struct gkyl_mat *mat_Acu = ctest_prob_mem->A_cu;
   struct gkyl_array *array_xcu = gkyl_array_cu_dev_new(GKYL_DOUBLE, 3, 2);
   struct gkyl_array *array_ycu = gkyl_array_cu_dev_new(GKYL_DOUBLE, 4, 2);
 
@@ -715,12 +718,6 @@ void test_cu_mat_mm_arrays()
     }
   } 
 
-  enum gkyl_mat_trans transa = GKYL_NO_TRANS;
-  enum gkyl_mat_trans transb = GKYL_NO_TRANS;
-  double alpha = 1.0;
-  double beta = 0.0;
-
-
   // copy to device
   gkyl_mat_copy(mat_Acu, mat_A);
   gkyl_array_copy(array_xcu, array_x);
@@ -730,7 +727,7 @@ void test_cu_mat_mm_arrays()
   cublasHandle_t cuh;
 	cublasCreate_v2(&cuh);
 
-  cu_mat_mm_array(cuh, alpha, beta, transa, mat_Acu, transb, array_xcu, array_ycu);
+  cu_mat_mm_array(cuh, ctest_prob_mem, array_xcu, array_ycu);
 
   cublasDestroy(cuh);
 
@@ -757,7 +754,7 @@ void test_cu_mat_mm_arrays()
   gkyl_mat_release(mat_Acu);
   gkyl_array_release(array_xcu);
   gkyl_array_release(array_ycu);
-
+  gkyl_cu_mat_mm_array_mem_release(ctest_prob_mem);
 
 }
 

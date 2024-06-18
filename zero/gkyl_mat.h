@@ -361,7 +361,7 @@ void gkyl_nmat_linsolve_lu_release(gkyl_nmat_mem *mem);
  * @param transb Whether or not to transpose B
  * @return Preallocated memory
  */
-gkyl_cu_mat_mm_array_mem *gkyl_mat_mm_array_mem_cu_dev_new(int nr, int nc,
+gkyl_cu_mat_mm_array_mem *gkyl_cu_mat_mm_array_mem_cu_dev_new(int nr, int nc,
   double alpha, double beta, enum gkyl_mat_trans transa, enum gkyl_mat_trans transb);
 
 /**
@@ -369,7 +369,7 @@ gkyl_cu_mat_mm_array_mem *gkyl_mat_mm_array_mem_cu_dev_new(int nr, int nc,
  *
  * @param mem Memory to release
  */
-void gkyl_mat_mm_array_mem_release(gkyl_cu_mat_mm_array_mem *mem);
+void gkyl_cu_mat_mm_array_mem_release(gkyl_cu_mat_mm_array_mem *mem);
 
 /**
  * Solve a batched system of linear equations using LU

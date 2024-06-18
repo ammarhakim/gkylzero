@@ -390,7 +390,7 @@ gkyl_nmat_linsolve_lu_release(gkyl_nmat_mem *mem)
 }
 
 gkyl_cu_mat_mm_array_mem *
-gkyl_mat_mm_array_mem_cu_dev_new(int nr, int nc, double alpha, double beta, 
+gkyl_cu_mat_mm_array_mem_cu_dev_new(int nr, int nc, double alpha, double beta, 
   enum gkyl_mat_trans transa, enum gkyl_mat_trans transb)
 {
   gkyl_cu_mat_mm_array_mem *mem = gkyl_malloc(sizeof(*mem));
@@ -399,24 +399,24 @@ gkyl_mat_mm_array_mem_cu_dev_new(int nr, int nc, double alpha, double beta,
   mem->beta = beta;
   mem->transa = transa;
   mem->transb = transb;
-  //mem->A_cu = gkyl_mat_cu_dev_new(nr, nc);
-  //mem->A_ho = gkyl_mat_new(nr, nc, 0.0);
+  mem->A_cu = gkyl_mat_cu_dev_new(nr, nc);
+  mem->A_ho = gkyl_mat_new(nr, nc, 0.0);
 
 #ifdef GKYL_HAVE_CUDA
-  mem->cuh = 0;
-  cublasCreate_v2(&mem->cuh);
+  //mem->cuh = 0;
+  //cublasCreate_v2(&mem->cuh);
 #endif
 
   return mem;
 }
 
 void
-gkyl_mat_mm_array_mem_release(gkyl_cu_mat_mm_array_mem *mem)
+gkyl_cu_mat_mm_array_mem_release(gkyl_cu_mat_mm_array_mem *mem)
 {
-  //gkyl_mat_release(mem->A_cu);
-  //gkyl_mat_release(mem->A_ho);
+  gkyl_mat_release(mem->A_cu);
+  gkyl_mat_release(mem->A_ho);
 #ifdef GKYL_HAVE_CUDA
-    cublasDestroy(mem->cuh);
+    //cublasDestroy(mem->cuh);
 #endif 
   gkyl_free(mem);
 }
@@ -695,22 +695,24 @@ gkyl_nmat_cu_dev_new(size_t num, size_t nr, size_t nc)
 }
 
 void
-cu_mat_mm_array(cublasHandle_t cuh, double alpha, double beta, enum gkyl_mat_trans transa, 
-  struct gkyl_mat *A, enum gkyl_mat_trans transb, struct gkyl_array *B, struct gkyl_array *C)
+cu_mat_mm_array(cublasHandle_t cuh, struct gkyl_cu_mat_mm_array_mem *mem, struct gkyl_array *B, struct gkyl_array *C)
 {
+
+  double alpha = mem->alpha;
+  double beta = mem->beta; 
+  enum gkyl_mat_trans transa = mem->transa;
+  struct gkyl_mat *A = mem->A_cu;
+  enum gkyl_mat_trans transb = mem->transb;
+
   struct mat_sizes sza = get_mat_sizes(transa, A); 
   size_t k = sza.nc;
   size_t lda = transa == GKYL_NO_TRANS ? C->ncomp : k;
   size_t ldb = transb == GKYL_NO_TRANS ? k : C->size;
   size_t ldc = C->ncomp;
 
-  // Now do the strided batched multiply
+  // Now do the matrix multiply
   cublasStatus_t info;
-  //double time_cublasDgemm;
-  //struct timespec src1_tm = gkyl_wall_clock();
   info = cublasDgemm(cuh, transa, transb, A->nr, B->size, A->nc, &alpha, A->data, lda, B->data, ldb, &beta, C->data, ldc);
-  //time_cublasDgemm += gkyl_time_diff_now_sec(src1_tm);
-  //printf("\nTime wall-clock (cublasDgemmStridedBatched): %1.16e\n",time_cublasDgemm);
 }
 
 
