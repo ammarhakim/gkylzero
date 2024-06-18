@@ -748,10 +748,8 @@ void test_cu_mat_mm_arrays()
       TEST_CHECK ( expected == actual );
     }
   }
-  gkyl_mat_release(mat_A);
   gkyl_array_release(array_x);
   gkyl_array_release(array_y);
-  gkyl_mat_release(mat_Acu);
   gkyl_array_release(array_xcu);
   gkyl_array_release(array_ycu);
   gkyl_cu_mat_mm_array_mem_release(ctest_prob_mem);
