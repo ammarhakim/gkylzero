@@ -1,3 +1,5 @@
+#ifdef GKYL_HAVE_CUDSS
+
 #include <cuDSS.h>
 
 extern "C" {
@@ -7,19 +9,19 @@ extern "C" {
 #include <gkyl_range.h>
 #include <gkyl_rect_grid.h>
 #include <gkyl_util.h>
-#include <gkyl_cudss_ops.h>
+#include <gkyl_culinsolver_ops.h>
 }
 
 #define checkCUDSS(call, status, msg) \
 do { \
     status = call; \
     if (status != CUDSS_STATUS_SUCCESS) { \
-        printf("Example FAILED: CUDSS call ended unsuccessfully with status = %d, details: " #msg "\n", status); \
+        fprintf(stderr, "Example FAILED: CUDSS call ended unsuccessfully with status = %d, details: " #msg "\n", status); \
         exit(EXIT_FAILURE); \
     } \
 } while(0);
 
-struct gkyl_cudss_prob {
+struct gkyl_culinsolver_prob {
   double *rhs_ho, *rhs_cu; // right-hand side vector.
   double *x_ho, *x_cu; // solution vector.
   int nprob; // number of problems to solve.
@@ -40,10 +42,10 @@ struct gkyl_cudss_prob {
   int *csr_rowptr_cu, *csr_colind_cu;
 };
 
-gkyl_cudss_prob*
-gkyl_cudss_prob_new(int nprob, int mrow, int ncol, int nrhs)
+gkyl_culinsolver_prob*
+gkyl_culinsolver_prob_new(int nprob, int mrow, int ncol, int nrhs)
 {
-  struct gkyl_cudss_prob *prob = (struct gkyl_cudss_prob*) gkyl_malloc(sizeof(*prob));
+  struct gkyl_culinsolver_prob *prob = (struct gkyl_culinsolver_prob*) gkyl_malloc(sizeof(*prob));
 
   prob->nprob = nprob;
   prob->mrow = mrow;
@@ -98,7 +100,7 @@ gkyl_cudss_prob_new(int nprob, int mrow, int ncol, int nrhs)
 }
 
 void
-gkyl_cudss_amat_from_triples(struct gkyl_cudss_prob *prob, struct gkyl_mat_triples **tri)
+gkyl_culinsolver_amat_from_triples(struct gkyl_culinsolver_prob *prob, struct gkyl_mat_triples **tri)
 {
   prob->nnz = gkyl_mat_triples_size(tri[0]);
   for (size_t k=0; k<prob->nprob; k++) {
@@ -174,7 +176,7 @@ gkyl_cudss_amat_from_triples(struct gkyl_cudss_prob *prob, struct gkyl_mat_tripl
 }
 
 void
-gkyl_cudss_brhs_from_triples(struct gkyl_cudss_prob *prob, gkyl_mat_triples *tri)
+gkyl_culinsolver_brhs_from_triples(struct gkyl_culinsolver_prob *prob, gkyl_mat_triples *tri)
 {
   long nnz_rhs = gkyl_mat_triples_size(tri);  // Number of non-zero entries in RHS matrix B.
 
@@ -198,7 +200,7 @@ gkyl_cudss_brhs_from_triples(struct gkyl_cudss_prob *prob, gkyl_mat_triples *tri
 }
 
 void
-gkyl_cudss_solve(struct gkyl_cudss_prob *prob)
+gkyl_culinsolver_solve(struct gkyl_culinsolver_prob *prob)
 {
   cudssStatus_t status = CUDSS_STATUS_SUCCESS;
 
@@ -209,44 +211,44 @@ gkyl_cudss_solve(struct gkyl_cudss_prob *prob)
 }
 
 void
-gkyl_cudss_sync(struct gkyl_cudss_prob *prob)
+gkyl_culinsolver_sync(struct gkyl_culinsolver_prob *prob)
 {
   cudaStreamSynchronize(prob->stream);
 }
 
 void
-gkyl_cudss_finish_host(struct gkyl_cudss_prob *prob)
+gkyl_culinsolver_finish_host(struct gkyl_culinsolver_prob *prob)
 {
   //cudaStreamSynchronize(prob->stream); // not needed when using blocking stream
   gkyl_cu_memcpy(prob->x_ho, prob->x_cu, prob->nprob*prob->mrow*prob->nrhs*sizeof(double), GKYL_CU_MEMCPY_D2H);
 }
 
 void
-gkyl_cudss_clear_rhs(struct gkyl_cudss_prob *prob, double val)
+gkyl_culinsolver_clear_rhs(struct gkyl_culinsolver_prob *prob, double val)
 {
   gkyl_cu_memset(prob->rhs_cu, val, prob->nprob*prob->mrow*prob->nrhs*sizeof(double));
 }
 
 double*
-gkyl_cudss_get_rhs_ptr(struct gkyl_cudss_prob *prob, long loc)
+gkyl_culinsolver_get_rhs_ptr(struct gkyl_culinsolver_prob *prob, long loc)
 {
   return prob->rhs_cu+loc;
 }
 
 double*
-gkyl_cudss_get_sol_ptr(struct gkyl_cudss_prob *prob, long loc)
+gkyl_culinsolver_get_sol_ptr(struct gkyl_culinsolver_prob *prob, long loc)
 {
   return prob->x_cu+loc;
 }
 
 double
-gkyl_cudss_get_sol_lin(struct gkyl_cudss_prob *prob, long loc)
+gkyl_culinsolver_get_sol_lin(struct gkyl_culinsolver_prob *prob, long loc)
 {
   return prob->x_ho[loc];
 }
 
 void
-gkyl_cudss_prob_release(struct gkyl_cudss_prob *prob)
+gkyl_culinsolver_prob_release(struct gkyl_culinsolver_prob *prob)
 {
   cudssStatus_t status = CUDSS_STATUS_SUCCESS;
 
@@ -278,3 +280,6 @@ gkyl_cudss_prob_release(struct gkyl_cudss_prob *prob)
 
   gkyl_free(prob);
 }
+
+// End ifdef GKYL_HAVE_CUDSS statement.
+#endif
