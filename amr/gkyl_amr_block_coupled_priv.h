@@ -171,6 +171,14 @@ void maxwell_transmissive_bc(double t, int nc, const double* GKYL_RESTRICT skin,
 void five_moment_block_bc_updaters_init(struct five_moment_block_data* bdata, const struct gkyl_block_connections* conn);
 
 /**
+* Initialize nested block AMR updaters for both physical (outer-block) and non-physical (inter-block) boundary conditions for the coupled five-moment equations.
+*
+* @param bdata Block-structured data for the coupled five-moment equations.
+* @param conn Topology/connectivity data for the block hierarchy.
+*/
+void five_moment_nested_block_bc_updaters_init(struct five_moment_block_data* bdata, const struct gkyl_block_connections* conn);
+
+/**
 * Initialize block AMR updaters for both physical (outer-block) and non-physical (inter-block) boundary conditions for the coupled ten-moment equations.
 *
 * @param bdata Block-structured data for the coupled ten-moment equations.
