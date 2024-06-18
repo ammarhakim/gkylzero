@@ -8,6 +8,7 @@
 #include <gkyl_range.h>
 #include <gkyl_util.h>
 #include <gkyl_velocity_map.h>
+#include <gkyl_gyrokinetic_comms.h>
 
 #include <stdbool.h>
 

@@ -70,6 +70,7 @@ create_ctx(void)
   double Lx = 1.0; // Domain size (configuration space: x-direction).
   int poly_order = 2; // Polynomial order.
   double cfl_frac = 0.9; // CFL coefficient.
+  
   double t_end = 0.1; // Final simulation time.
   int num_frames = 1; // Number of output frames.
   double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.
@@ -269,7 +270,7 @@ main(int argc, char **argv)
 
   // Vlasov-Maxwell app.
   struct gkyl_vm app_inp = {
-   .name = "dg_euler_sod_shock_p2",
+   .name = "dg_euler_sodshock_p2",
 
    .cdim = 1, .vdim = 0, 
    .lower = { 0.25 },
@@ -294,10 +295,10 @@ main(int argc, char **argv)
    .use_gpu = app_args.use_gpu,
 
    .has_low_inp = true,
-    .low_inp = {
-      .local_range = decomp->ranges[my_rank],
-      .comm = comm
-    }
+   .low_inp = {
+     .local_range = decomp->ranges[my_rank],
+     .comm = comm
+   }
   };
 
   // Create app object.
@@ -379,7 +380,7 @@ main(int argc, char **argv)
   gkyl_vlasov_app_cout(app, stdout, "Species collisional moments took %g secs\n", stat.species_coll_mom_tm);
   gkyl_vlasov_app_cout(app, stdout, "Total updates took %g secs\n", stat.total_tm);
 
-  gkyl_vlasov_app_cout(app, stdout, "Number of write calls %ld,\n", stat.nio);
+  gkyl_vlasov_app_cout(app, stdout, "Number of write calls %ld\n", stat.nio);
   gkyl_vlasov_app_cout(app, stdout, "IO time took %g secs \n", stat.io_tm);
 
   // Free resources after simulation completion.

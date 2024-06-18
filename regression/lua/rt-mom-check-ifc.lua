@@ -115,6 +115,13 @@ momentApp = Moments.App.new {
 
 -- check each Lua-C interface method
 
+num_species = momentApp:num_species()
+print("num_species", num_species)
+
+for i = 1, num_species do
+   print("species", momentApp:species_name(i))
+end
+
 field_ic_status = momentApp:apply_ic_field()
 print("field_ic_status", field_ic_status)
 

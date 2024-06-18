@@ -27,9 +27,9 @@ struct gk_geometry {
   struct gkyl_basis decomp_basis;
   struct gkyl_rect_grid decomp_grid;
 
-  // These 20 DG fields contain the geometric quantities needed to solve the
+  // These 21 DG fields contain the geometric quantities needed to solve the
   // GK Equation and Poisson Equation and to apply certain BC's
-  // The first 19 are defined on the configuration space domain. The last is a single element.
+  // The first 20 are defined on the configuration space domain. The last is a single element.
   struct gkyl_array* mc2p; // 3 components. Cartesian X,Y, and Z
   struct gkyl_array* bmag; // 1 component. B Magnitude of magnetic field
   struct gkyl_array* bmag_global; // 1 component. B Magnitude of magnetic field. Global bmag in computational coordinates
@@ -43,6 +43,7 @@ struct gk_geometry {
   struct gkyl_array* jacobgeo_inv; // 1 component. 1/J
   struct gkyl_array* gij; // Matric coefficients g^{ij}. See g_ij for order.
   struct gkyl_array* b_i; // 3 components. Contravariant components of magnetic field vector b_1, b_2, b_3.
+  struct gkyl_array* bcart; // 3 components. Cartesian components of magnetic field vector b_X, b_Y, b_Z.
   struct gkyl_array* cmag; // 1 component. C = JB/sqrt(g_33)
   struct gkyl_array* jacobtot; // 1 component. Phase space Jacobian = JB
   struct gkyl_array* jacobtot_inv; // 1 component. 1/(JB)
