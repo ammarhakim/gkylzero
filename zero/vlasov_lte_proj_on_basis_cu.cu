@@ -43,7 +43,7 @@ gkyl_vlasov_lte_proj_on_basis_advance_cu_ker(const struct gkyl_rect_grid phase_g
   int pdim = phase_range.ndim, cdim = conf_range.ndim;
   int vdim = pdim-cdim;
 
-  int pidx[GKYL_MAX_DIM], cidx[GKYL_MAX_CDIM];
+  int cidx[GKYL_MAX_CDIM];
 
   // 2D thread grid
   // linc2 = c where c is the component index (from 0 to tot_conf_quad)
@@ -218,7 +218,6 @@ gkyl_vlasov_lte_proj_on_basis_advance_cu(gkyl_vlasov_lte_proj_on_basis *up,
   dim3 dimGrid, dimBlock;
   int tot_phase_quad = up->basis_at_ords->size;
   int tot_conf_quad = up->conf_basis_at_ords->size;
-  int num_phase_basis = f_lte->ncomp;
   int num_conf_basis = up->num_conf_basis;
   //gkyl_parallelize_components_kernel_launch_dims(&dimGrid, &dimBlock, *phase_range, tot_phase_quad);
   gkyl_parallelize_components_kernel_launch_dims(&dimGrid, &dimBlock, *conf_range, tot_conf_quad);

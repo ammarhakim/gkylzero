@@ -46,11 +46,7 @@ struct gkyl_cu_mat_mm_array_mem {
  * Such calculations use this function like the conversion from nodal to modal representation of phase space
  * quantities.
  * @param cuh cublasHandle_t object
- * @param alpha Coefficient infront of A*B
- * @param beta Coefficient infron of C
- * @param transa Whether or not to transpose A
- * @param A gkyl_mat matrix for computing A*B = C
- * @param transb Whether or not to transpose B
+ * @param mem structure containing the A matrix, associated transpose properties, alpha, beta
  * @param B gkyl_array matrix for computing A*B = C
  * @param C gkyl_array matrix for computing A*B = C
 */

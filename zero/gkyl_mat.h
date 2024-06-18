@@ -16,7 +16,6 @@ enum gkyl_mat_trans { GKYL_NO_TRANS, GKYL_TRANS, GKYL_CONJ_TRANS };
 struct gkyl_mat {
   size_t nr, nc; // Number of rows, columns
   double *data; // Pointer to data
-  double **mptr; // pointers to start of each sub-matrix
 
   uint32_t flags;  
   struct gkyl_ref_count ref_count;

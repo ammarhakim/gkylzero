@@ -56,16 +56,6 @@ get_mat_sizes(enum gkyl_mat_trans trans, const struct gkyl_mat *A)
 }
 
 struct gkyl_mat*
-gkyl_mat_new(size_t nr, size_t nc, double val)
-{
-  struct gkyl_mat *m = gkyl_malloc(sizeof(struct gkyl_mat));
-  m->data = gkyl_malloc(sizeof(double[nr*nc]));
-  m->nr = nr; m->nc = nc;
-  for (size_t i=0; i<nr*nc; ++i) m->data[i] = val;
-  return m;
-}
-
-struct gkyl_mat*
 gkyl_mat_clone(const struct gkyl_mat *in)
 {
   struct gkyl_mat *m = gkyl_malloc(sizeof(struct gkyl_mat));
@@ -215,12 +205,10 @@ mat_free(const struct gkyl_ref_count *ref)
   struct gkyl_mat *mat = container_of(ref, struct gkyl_mat, ref_count);
   if (GKYL_IS_CU_ALLOC(mat->flags)) {
     gkyl_cu_free(mat->data);
-    gkyl_cu_free(mat->mptr);
     gkyl_cu_free(mat->on_dev);
   }
   else {
     gkyl_free(mat->data);
-    gkyl_free(mat->mptr);
   }
   gkyl_free(mat);  
 }
@@ -239,6 +227,24 @@ nmat_free(const struct gkyl_ref_count *ref)
     gkyl_free(mat->mptr);
   }
   gkyl_free(mat);  
+}
+
+struct gkyl_mat*
+gkyl_mat_new(size_t nr, size_t nc, double val)
+{
+  struct gkyl_mat *mat = gkyl_malloc(sizeof(struct gkyl_mat));
+  mat->nr = nr; mat->nc = nc;
+  mat->flags = 0;
+  mat->data = gkyl_malloc(sizeof(double[nr*nc]));  
+  mat->on_dev = mat; // on CPU this is a self-reference
+  mat->ref_count = gkyl_ref_count_init(mat_free);
+  return mat;
+
+  // struct gkyl_mat *m = gkyl_malloc(sizeof(struct gkyl_mat));
+  // m->data = gkyl_malloc(sizeof(double[nr*nc]));
+  // m->nr = nr; m->nc = nc;
+  // for (size_t i=0; i<nr*nc; ++i) m->data[i] = val;
+  // return m;
 }
 
 struct gkyl_nmat*
@@ -295,10 +301,8 @@ struct gkyl_mat*
 gkyl_mat_copy(struct gkyl_mat *dest, const struct gkyl_mat *src)
 {
   assert( dest->nr == src->nr && dest->nc == src->nc );
-
   bool dest_is_cu_dev = gkyl_mat_is_cu_dev(dest);
   bool src_is_cu_dev = gkyl_mat_is_cu_dev(src);
-
   size_t nby = src->nr*src->nc*sizeof(double);
 
   if (src_is_cu_dev) {
@@ -315,7 +319,6 @@ gkyl_mat_copy(struct gkyl_mat *dest, const struct gkyl_mat *src)
     else
       memcpy(dest->data, src->data, nby);
   }
-  
   return dest;
 }
 
@@ -632,14 +635,7 @@ gkyl_mat_cu_dev_new(size_t nr, size_t nc)
   mat->flags = 0;
   GKYL_SET_CU_ALLOC(mat->flags);
   mat->data = gkyl_cu_malloc(sizeof(double[nr*nc]));
-  mat->mptr = gkyl_cu_malloc(sizeof(double*));
   mat->ref_count = gkyl_ref_count_init(mat_free);
-
-  double *mptr_h = gkyl_malloc(sizeof(double[nr*nc]));
-  // create pointers to various matrices and copy to device
-  mptr_h = mat->data;
-  gkyl_cu_memcpy(mat->mptr, mptr_h, sizeof(double*), GKYL_CU_MEMCPY_H2D);
-  //gkyl_free(mptr_h);  
 
   // create a clone of struct mat->on_dev that lives on device, so
   // that the whole mat->on_dev struct can be passed to a device
@@ -650,10 +646,6 @@ gkyl_mat_cu_dev_new(size_t nr, size_t nc)
   // set device-side data pointer in mat->on_dev to mat->data 
   // (which is the host-side pointer to the device data)
   gkyl_cu_memcpy(&((mat->on_dev)->data), &mat->data, sizeof(double*), GKYL_CU_MEMCPY_H2D);
-
-  // set device-side mptr pointer in mat->on_dev to mat->mptr 
-  // (which is the host-side pointer to the device mptr)
-  gkyl_cu_memcpy(&((mat->on_dev)->mptr), &mat->mptr, sizeof(double**), GKYL_CU_MEMCPY_H2D);
 
   return mat;
 }
