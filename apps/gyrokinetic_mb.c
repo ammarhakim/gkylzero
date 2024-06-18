@@ -22,6 +22,10 @@ gkyl_gyrokinetic_mb_app_new(struct gkyl_gk_mb *inp)
   app->num_blocks = inp->num_blocks;
 
   app->btopo = gkyl_block_topo_new(app->cdim, app->num_blocks);
+  for (int bc=0; bc<app->num_blocks; bc++) {
+    struct gkyl_gk *blinp = inp->blocks[bc];
+    app->btopo->conn[bc] = blinp->block_connections;
+  }
 
   app->use_mpi = false;
   app->use_gpu = false;
@@ -186,8 +190,7 @@ gkyl_gyrokinetic_mb_app_new(struct gkyl_gk_mb *inp)
   app->decomp_intrab = gkyl_malloc(app->num_blocks * sizeof(struct gkyl_rect_decomp *));
 
   for (int bc=0; bc<app->num_blocks; bc++) {
-    int bidx = app->block_idxs[bc];
-    struct gkyl_gk *blinp = inp->blocks[bidx];
+    struct gkyl_gk *blinp = inp->blocks[bc];
 
     // Create intra block decompositions.
     struct gkyl_range global_range_conf;
@@ -243,8 +246,6 @@ gkyl_gyrokinetic_mb_app_new(struct gkyl_gk_mb *inp)
     blinp->has_low_inp = true,
     blinp->low_inp.local_range = app->decomp_intrab[bidx]->ranges[comm_intrab_rank],
     blinp->low_inp.comm = app->comm_intrab[bc],
-
-    app->btopo->conn[bidx] = blinp->block_connections;
 
     // Create a new app for each block.
     app->blocks[bc] = gkyl_gyrokinetic_app_new(blinp);
