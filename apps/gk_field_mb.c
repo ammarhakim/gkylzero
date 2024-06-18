@@ -25,23 +25,47 @@ gk_field_mb_new(struct gkyl_gk_mb *gk_mb, struct gkyl_gyrokinetic_mb_app *mb_app
   // Handle only the 3 block case at first
   struct gkyl_gyrokinetic_app **apps = mb_app->blocks;
 
+  //// We need first to create the global z ranges.
+  //int lower[2];
+  //int upper[2];
+  //lower[0] = apps[0]->global.lower[0];
+  //upper[0] = apps[0]->global.upper[0];
+  //lower[1] = apps[0]->global.lower[1];
+  //upper[1] = gkyl_range_shape(&apps[0]->global, 1) + gkyl_range_shape(&apps[1]->global, 1) + gkyl_range_shape(&apps[2]->global, 1);
+  //struct gkyl_range globalz;
+  //gkyl_range_init(&globalz, mb_app->cdim, lower, upper);
+  //int nghost[2] = {1,1};
+  //gkyl_create_ranges(&globalz, nghost, &f->globalz_ext, &f->globalz);
+
+  //// Create the decomp and communicator from the mb app communicator
+  //int cuts[2] = {1,3}; // Sticking to blocks 2,3,4 for now
+  //struct gkyl_rect_decomp *zdecomp = gkyl_rect_decomp_new_from_cuts(mb_app->cdim, cuts, &f->globalz);
+  //f->zcomm = gkyl_comm_split_comm(mb_app->comm_mb, 0, zdecomp); // Would have different colors for other 
+  //                                                           // block groups like 11-12, 7-8-9
+  //                                                           // but just 0 for now
+
+  // For the two-block case:
   // We need first to create the global z ranges.
+  printf("Making ranges\n");
   int lower[2];
   int upper[2];
   lower[0] = apps[0]->global.lower[0];
   upper[0] = apps[0]->global.upper[0];
+  printf("set x lims \n");
   lower[1] = apps[0]->global.lower[1];
-  upper[1] = gkyl_range_shape(&apps[0]->global, 1) + gkyl_range_shape(&apps[1]->global, 1) + gkyl_range_shape(&apps[2]->global, 1);
+  printf("set y lims 0\n");
+  upper[1] = gkyl_range_shape(&apps[0]->global, 1) + gkyl_range_shape(&apps[1]->global, 1);
+  printf("set lims \n");
   struct gkyl_range globalz;
   gkyl_range_init(&globalz, mb_app->cdim, lower, upper);
   int nghost[2] = {1,1};
   gkyl_create_ranges(&globalz, nghost, &f->globalz_ext, &f->globalz);
+  printf("Made ranges\n");
 
   // Create the decomp and communicator from the mb app communicator
-  int cuts[2] = {1,3}; // Sticking to blocks 2,3,4 for now
+  int cuts[2] = {1,2}; // For only two blocks
   struct gkyl_rect_decomp *zdecomp = gkyl_rect_decomp_new_from_cuts(mb_app->cdim, cuts, &f->globalz);
-  f->zcomm = gkyl_comm_split_comm(mb_app->comm, 0, zdecomp); // Would have different colors for other block groups like 11-12, 7-8-9
-                                                             // Just 0 for now
+  f->zcomm = gkyl_comm_split_comm(mb_app->comm_mb, 0, zdecomp);
 
   // Now get the sub range intersects
   // Create global subrange we'll copy the field solver solution from (into local).
@@ -50,20 +74,20 @@ gk_field_mb_new(struct gkyl_gk_mb *gk_mb, struct gkyl_gyrokinetic_mb_app *mb_app
   int intersect = gkyl_sub_range_intersect(&f->globalz_sub_range, &f->globalz, &apps[rank]->global);
 
   // allocate arrays for charge density
-  f->rho_c_global_dg = mkarr(mb_app->use_gpu, mb_app->confBasis.num_basis, f->globalz_ext.volume);
-  f->rho_c_global_smooth = mkarr(mb_app->use_gpu, mb_app->confBasis.num_basis, f->globalz_ext.volume);
+  f->rho_c_global_dg = mkarr(mb_app->use_gpu, apps[0]->confBasis.num_basis, f->globalz_ext.volume);
+  f->rho_c_global_smooth = mkarr(mb_app->use_gpu, apps[0]->confBasis.num_basis, f->globalz_ext.volume);
 
   // allocate arrays for electrostatic potential
-  f->phi = mkarr(mb_app->use_gpu, mb_app->confBasis.num_basis, f->globalz_ext.volume);
+  f->phi = mkarr(mb_app->use_gpu, apps[0]->confBasis.num_basis, f->globalz_ext.volume);
 
   f->phi_host = f->phi;
   if (mb_app->use_gpu) {
-    f->phi_host = mkarr(false, mb_app->confBasis.num_basis, f->globalz_ext.volume);
+    f->phi_host = mkarr(false, apps[0]->confBasis.num_basis, f->globalz_ext.volume);
   }
 
 
   f->fem_parproj = gkyl_fem_parproj_new(&f->globalz, &f->globalz_ext, 
-    &mb_app->confBasis, f->info.fem_parbc, NULL, mb_app->use_gpu);
+    &apps[0]->confBasis, f->info.fem_parbc, NULL, mb_app->use_gpu);
 
 
   return f;

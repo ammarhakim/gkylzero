@@ -27,10 +27,7 @@ struct gkyl_gyrokinetic_mb_app {
   int *block_idxs; // List of blocks handled on this rank.
   struct gkyl_gyrokinetic_app **blocks; // Pointers to blocks on this rank.
 
-  struct gkyl_basis confBasis; // conf-space basis
-
   struct gk_field_mb *field; // mb field object.
-  struct gkyl_comm *comm;   // communicator object for conf-space arrays
   struct gkyl_gyrokinetic_stat stat; // statistics
 };
 
@@ -62,3 +59,7 @@ struct gk_field_mb {
                                                           // - nabla . (epsilon * nabla phi) - kSq * phi = rho
 };
 
+
+struct gk_field_mb* gk_field_mb_new(struct gkyl_gk_mb *gk_mb, struct gkyl_gyrokinetic_mb_app *mb_app);
+
+void gk_field_mb_rhs(gkyl_gyrokinetic_mb_app *mb_app, struct gk_field_mb *field_mb);

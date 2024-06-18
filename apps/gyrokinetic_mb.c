@@ -241,6 +241,8 @@ gkyl_gyrokinetic_mb_app_new(struct gkyl_gk_mb *inp)
     app->blocks[bc] = gkyl_gyrokinetic_app_new(blinp);
   }
 
+  app->field = gk_field_mb_new(inp, app);
+
   return app;
 }
 
@@ -256,9 +258,7 @@ static void
 calc_field(gkyl_gyrokinetic_mb_app* app, double tcurr, int fidx)
 {
   // Compute fields.
-
-
-  // NYI.
+  gk_field_mb_rhs(app, app->field);
 }
 
 static void
