@@ -226,12 +226,18 @@ gkyl_gyrokinetic_app_new(struct gkyl_gk *gk)
     .tok_grid_info = gk->geometry.tok_grid_info,
     .mirror_efit_info = gk->geometry.mirror_efit_info,
     .mirror_grid_info = gk->geometry.mirror_grid_info,
+    .mirror_geo_c2fa_ctx = gk->geometry.mirror_geo_c2fa_ctx,
+    .nonuniform_geom = false,
+    .nonuniform_map_fraction = gk->geometry.nonuniform_mapping_fraction,
     .grid = app->grid,
     .local = app->local,
     .local_ext = app->local_ext,
     .global = app->global,
     .global_ext = app->global_ext,
     .basis = app->confBasis,
+    .cdim = app->cdim,
+    .use_gpu = app->use_gpu,
+    .comm = app->comm,
   };
   for(int i = 0; i<3; i++)
     geometry_inp.world[i] = gk->geometry.world[i];
@@ -491,6 +497,9 @@ gkyl_gyrokinetic_app_apply_ic(gkyl_gyrokinetic_app* app, double t0)
   for (int i=0; i<app->num_neut_species; ++i)
     gkyl_gyrokinetic_app_apply_ic_neut_species(app, i, t0);
 
+  for (int i=0; i<app->num_species; ++i)
+    gkyl_gyrokinetic_app_apply_ic_cross_species(app, i, t0);
+
   // Compute the fields and apply BCs.
   struct gkyl_array *distf[app->num_species];
   struct gkyl_array *distf_neut[app->num_neut_species];
@@ -500,7 +509,7 @@ gkyl_gyrokinetic_app_apply_ic(gkyl_gyrokinetic_app* app, double t0)
   for (int i=0; i<app->num_neut_species; ++i) {
     distf_neut[i] = app->neut_species[i].f;
   }
-  if (app->update_field || app->field->gkfield_id == GKYL_GK_FIELD_BOLTZMANN) {
+  if (app->update_field && app->field->gkfield_id == GKYL_GK_FIELD_BOLTZMANN) {
     for (int i=0; i<app->num_species; ++i) {
       struct gk_species *s = &app->species[i];
 
@@ -540,6 +549,19 @@ gkyl_gyrokinetic_app_apply_ic_neut_species(gkyl_gyrokinetic_app* app, int sidx, 
   app->tcurr = t0;
   struct timespec wtm = gkyl_wall_clock();
   gk_neut_species_apply_ic(app, gk_ns, t0);
+  app->stat.init_species_tm += gkyl_time_diff_now_sec(wtm);
+}
+
+void
+gkyl_gyrokinetic_app_apply_ic_cross_species(gkyl_gyrokinetic_app* app, int sidx, double t0)
+{
+  assert(sidx < app->num_species);
+
+  struct gk_species *gk_s = &app->species[sidx];
+
+  app->tcurr = t0;
+  struct timespec wtm = gkyl_wall_clock();
+  gk_species_apply_ic_cross(app, gk_s, t0);
   app->stat.init_species_tm += gkyl_time_diff_now_sec(wtm);
 }
 
@@ -1915,7 +1937,7 @@ forward_euler(gkyl_gyrokinetic_app* app, double tcurr, double dt,
 
     // Compute and store (in the ghost cell of of out) the boundary fluxes.
     // NOTE: this overwrites ghost cells that may be used for sourcing.
-    if (app->update_field || app->field->gkfield_id == GKYL_GK_FIELD_BOLTZMANN)
+    if (app->update_field && app->field->gkfield_id == GKYL_GK_FIELD_BOLTZMANN)
       gk_species_bflux_rhs(app, s, &s->bflux, fin[i], fout[i]);
   }
 
@@ -2521,7 +2543,7 @@ gkyl_gyrokinetic_app_read_from_frame(gkyl_gyrokinetic_app *app, int frame)
     for (int i=0; i<app->num_neut_species; ++i) {
       distf_neut[i] = app->neut_species[i].f;
     }
-    if (app->update_field || app->field->gkfield_id == GKYL_GK_FIELD_BOLTZMANN) {
+    if (app->update_field && app->field->gkfield_id == GKYL_GK_FIELD_BOLTZMANN) {
       for (int i=0; i<app->num_species; ++i) {
         struct gk_species *s = &app->species[i];
 

@@ -15,6 +15,7 @@ gk_species_projection_init(struct gkyl_gyrokinetic_app *app, struct gk_species *
   struct gkyl_gyrokinetic_projection inp, struct gk_proj *proj)
 {
   proj->proj_id = inp.proj_id;
+
   if (proj->proj_id == GKYL_PROJ_FUNC) {
 
     // Assign members of context for c2p map used in project_on_basis.
