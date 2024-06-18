@@ -826,8 +826,8 @@ main(int argc, char **argv)
 
   freeresources:
   // Free resources after simulation completion.
-  gkyl_rect_decomp_release(decomp);
-  gyrokinetic_comms_release(decomp, comm);
+  gkyl_gyrokinetic_app_release(app);
+  gkyl_gyrokinetic_comms_release(decomp, comm);
 
 #ifdef GKYL_HAVE_MPI
   if (app_args.use_mpi)

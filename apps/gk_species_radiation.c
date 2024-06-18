@@ -8,7 +8,8 @@ gk_species_radiation_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s
   int pdim = cdim+vdim;
   // Cutoff below which radiation is set to 0. Set to 1eV. Keep the radiation from driving Te negative.
   // Very little radiation below 1eV for most elements.
-  rad->vtsq_min = s->info.charge/s->info.mass;
+  double T_min_eV = 1.0;
+  rad->vtsq_min = T_min_eV*fabs(s->info.charge)/s->info.mass;
   // make appropriate reduced bases and surface bases for radiation variables
   struct gkyl_basis rad_basis, surf_rad_vpar_basis, surf_rad_mu_basis, surf_vpar_basis, surf_mu_basis;
   if (app->poly_order > 1) {
