@@ -182,7 +182,7 @@ furman_pivi_yield(double *out, int cdim, int vdim, double xc[GKYL_MAX_DIM],
   double E = 0.0;
   double mu = 1.0; // currently hardcoded to normal, will add angular dependence later
   for (int d=0; d<vdim; d++) {
-    E += 0.5*mass*xc[cdim+d]*xc[cdim+d]/fabs(charge);
+    E += 0.5*mass*xc[cdim+d]*xc[cdim+d]/fabs(charge); // Calculate energy in eV
   }
   double deltahat = deltahat_ts*(1 + t1*(1 - pow(mu, t2)));
   double Ehat = Ehat_ts*(1 + t3*(1 - pow(mu, t4)));

@@ -45,20 +45,21 @@ gkyl_bc_emission_flux_ranges(struct gkyl_range *flux_r, int dir,
 }
 
 void
-gkyl_bc_emission_spectrum_sey_calc(const struct gkyl_bc_emission_spectrum *up, struct gkyl_array *yield, struct gkyl_rect_grid *grid, const struct gkyl_range *gamma_r)
+gkyl_bc_emission_spectrum_sey_calc(const struct gkyl_bc_emission_spectrum *up,
+  struct gkyl_array *yield, struct gkyl_rect_grid *grid, const struct gkyl_range *impact_buff_r)
 {
 #ifdef GKYL_HAVE_CUDA
   if (up->use_gpu) {
-    gkyl_bc_emission_spectrum_sey_calc_cu(up, yield, grid, gamma_r);
+    gkyl_bc_emission_spectrum_sey_calc_cu(up, yield, grid, impact_buff_r);
     return;
   }
 #endif
   double xc[GKYL_MAX_DIM];
   
   struct gkyl_range_iter iter;
-  gkyl_range_iter_init(&iter, gamma_r);
+  gkyl_range_iter_init(&iter, impact_buff_r);
   while (gkyl_range_iter_next(&iter)) {
-    long loc = gkyl_range_idx(gamma_r, iter.idx);
+    long loc = gkyl_range_idx(impact_buff_r, iter.idx);
     double *out = gkyl_array_fetch(yield, loc);
     gkyl_rect_grid_cell_center(grid, iter.idx, xc);
     up->funcs->yield(out, up->cdim, up->vdim, xc, up->funcs->yield_param);
@@ -191,9 +192,13 @@ void gkyl_bc_emission_spectrum_release(struct gkyl_bc_emission_spectrum *up)
 {
 #ifdef GKYL_HAVE_CUDA
   if (up->use_gpu) {
+    gkyl_free(up->funcs_cu->norm_param);
+    gkyl_free(up->funcs_cu->yield_param);
     gkyl_cu_free(up->funcs_cu);
   }
 #endif
+  gkyl_free(up->funcs->norm_param);
+  gkyl_free(up->funcs->yield_param);
   gkyl_free(up->funcs);
   // Release updater memory.
   gkyl_free(up);

@@ -50,6 +50,9 @@ gkyl_bc_emission_elastic_new(enum gkyl_bc_emission_elastic_type elastic_type,
   up->edge = edge;
   up->use_gpu = use_gpu;
 
+  // Need to pass on_dev basis to create_arr_copy_func, but host copy to proj_on_basis.
+  // These are stored separately by the app, so new function takes both dev_basis and basis
+  // as arguments.
   up->reflect_func = gkyl_bc_emission_elastic_create_arr_copy_func(dir, cdim, dev_basis, ncomp,
     use_gpu);
 
@@ -99,6 +102,7 @@ gkyl_bc_emission_elastic_advance(const struct gkyl_bc_emission_elastic *up,
 {
   gkyl_array_flip_copy_to_buffer_fn(buff_arr->data, f_skin, up->dir+up->cdim, emit_skin_r,
     up->reflect_func->on_dev);
+  // Basis is passed directly instead of by pointer for bin op, so advance uses host copy.
   gkyl_dg_mul_op(*basis, 0, f_emit, 0, buff_arr, 0, elastic_yield);
 }
 
@@ -106,10 +110,13 @@ void gkyl_bc_emission_elastic_release(struct gkyl_bc_emission_elastic *up)
 {
 #ifdef GKYL_HAVE_CUDA
   if (up->use_gpu) {
+    gkyl_free(up->funcs_cu->elastic_param);
     gkyl_cu_free(up->funcs_cu);
   }
 #endif
+  gkyl_free(up->funcs->elastic_param);
   gkyl_free(up->funcs);
+  gkyl_free(up->reflect_func->ctx);
   gkyl_free(up->reflect_func);
   // Release updater memory.
   gkyl_free(up);

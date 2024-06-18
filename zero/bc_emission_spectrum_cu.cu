@@ -123,7 +123,9 @@ gkyl_bc_emission_spectrum_choose_yield_cu(enum gkyl_bc_emission_spectrum_yield_t
 };
 
 __global__ static void
-gkyl_bc_emission_spectrum_sey_calc_cu_ker(int cdim, int vdim, struct gkyl_rect_grid grid, const struct gkyl_range ghost_r, struct gkyl_array *yield, struct gkyl_bc_emission_spectrum_funcs *funcs)
+gkyl_bc_emission_spectrum_sey_calc_cu_ker(int cdim, int vdim, struct gkyl_rect_grid grid,
+  const struct gkyl_range ghost_r, struct gkyl_array *yield,
+  struct gkyl_bc_emission_spectrum_funcs *funcs)
 {
 
   double xc[GKYL_MAX_DIM];
@@ -218,11 +220,13 @@ gkyl_bc_emission_spectrum_advance_cu_accumulate_ker(const struct gkyl_array *spe
 }
 
 void
-gkyl_bc_emission_spectrum_sey_calc_cu(const struct gkyl_bc_emission_spectrum *up, struct gkyl_array *yield, struct gkyl_rect_grid *grid, const struct gkyl_range *gamma_r)
+gkyl_bc_emission_spectrum_sey_calc_cu(const struct gkyl_bc_emission_spectrum *up,
+  struct gkyl_array *yield, struct gkyl_rect_grid *grid, const struct gkyl_range *impact_buff_r)
 {
-  int nblocks = gamma_r->nblocks, nthreads = gamma_r->nthreads;
+  int nblocks = impact_buff_r->nblocks, nthreads = impact_buff_r->nthreads;
 
-  gkyl_bc_emission_spectrum_sey_calc_cu_ker<<<nblocks, nthreads>>>(up->cdim, up->vdim, *grid, *gamma_r, yield->on_dev, up->funcs_cu);
+  gkyl_bc_emission_spectrum_sey_calc_cu_ker<<<nblocks, nthreads>>>(up->cdim, up->vdim, *grid,
+    *impact_buff_r, yield->on_dev, up->funcs_cu);
 }
 
 void

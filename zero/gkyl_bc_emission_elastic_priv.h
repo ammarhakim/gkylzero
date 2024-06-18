@@ -19,11 +19,7 @@ struct gkyl_bc_emission_elastic_funcs {
 struct gkyl_bc_emission_elastic {
   int dir, cdim, vdim;
   enum gkyl_edge_loc edge;
-  double charge;
-  double mass;
-  struct gkyl_basis *basis;
   struct gkyl_array_copy_func *reflect_func;
-  struct gkyl_rect_grid *grid;
   struct gkyl_bc_emission_elastic_funcs *funcs;
   struct gkyl_bc_emission_elastic_funcs *funcs_cu;
   bool use_gpu;
@@ -70,17 +66,17 @@ furman_pivi_yield(double t, const double *xn, double *fout, void *ctx)
   double E = 0.0;
   double mu = 1.0; // currently hardcoded to normal, will add angular dependence later
   for (int d=0; d<vdim; d++) {
-    E += 0.5*mass*xn[cdim+d]*xn[cdim+d]/fabs(charge);
+    E += 0.5*mass*xn[cdim+d]*xn[cdim+d]/fabs(charge); // Calculate energy in eV
   }
   fout[0] = P1_inf + (P1_hat - P1_inf)*exp(pow(-fabs(E - E_hat)/W, p)/p);
 }
 
-// Schou SEY calculation
+// Cazaux backscattering
 GKYL_CU_D
 static void
 cazaux_yield(double t, const double *xn, double *fout, void *ctx)
-// Ion impact model adapted from https://doi.org/10.1103/PhysRevB.22.2141
-{ // No angular dependence atm. Will have to add later
+// Low-energy backscattering model adapted from https://doi.org/10.1063/1.3691956
+{ 
   struct gkyl_bc_emission_elastic *bc_ctx = 
     (struct gkyl_bc_emission_elastic *) ctx;
   struct gkyl_bc_emission_elastic_cazaux *param = 
@@ -94,7 +90,7 @@ cazaux_yield(double t, const double *xn, double *fout, void *ctx)
 
   double E = 0.0;   
   for (int d=0; d<vdim; d++) {
-    E += 0.5*mass*xn[cdim+d]*xn[cdim+d]/fabs(charge);  // Calculate energy in keV
+    E += 0.5*mass*xn[cdim+d]*xn[cdim+d]/fabs(charge);  // Calculate energy in eV
   }  
   double E_s = E + E_f + phi;
   double G = 1 + (E_s - E)/E;
@@ -102,7 +98,7 @@ cazaux_yield(double t, const double *xn, double *fout, void *ctx)
   fout[0] = pow(1 - sqrt(G), 2)/pow(1 + sqrt(G), 2);
 }
 
-// Fixed constant SEY
+// Fixed constant reflection
 GKYL_CU_D
 static void
 constant_yield(double t, const double *xn, double *fout, void *ctx)

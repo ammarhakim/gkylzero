@@ -16,6 +16,7 @@ enum gkyl_bc_emission_spectrum_yield_type {
   GKYL_SEE_SCHOU = 1,
   GKYL_SEE_CONSTANT = 2};
 
+// BC normalization factor structs
 struct gkyl_bc_emission_spectrum_norm_gaussian {
   int cdim;
   int vdim;
@@ -41,6 +42,7 @@ struct gkyl_bc_emission_spectrum_norm_maxwellian {
   double vt;
 };
 
+// BC SEY equation structs
 struct gkyl_bc_emission_spectrum_yield_furman_pivi {
   double mass;
   double charge;
@@ -74,16 +76,24 @@ typedef struct gkyl_bc_emission_spectrum gkyl_bc_emission_spectrum;
 /**
  * Create a new updater to apply emitting wall spectrum boundary conditions.
  *
- * @param dir Direction in which to apply BC.
- * @param edge Lower or upper edge at which to apply BC (emission_spectrum gkyl_edge_loc).
- * @param bctype BC spectrum type (see gkyl_bc_emission_spectrum_type).
- * @param gammatype SE yield type (see gkyl_bc_emission_spectrum_type).
- * @param bc_param Parameters used for calculating BC spectrum.
- * @param sey_param Parameters used for calculating SE yield.
- * @param cdim Configuration space dimensions.
- * @param vdim Velocity space dimensions.
- * @param use_gpu Boolean to indicate whether to use the GPU.
- * @return New updater pointer.
+ * @param norm_type Type of spectrum to use for calculation of normalization factor
+ * @param yield_type Type of yield equation for SEY calculation
+ * @param norm_param Parameters of normalization factor calculation
+ * @param yield_param Parameters of yield calculation
+ * @param yield Array of calculated yield values at cell centers
+ * @param spectrum Emission spectrum projected onto basis
+ * @param dir Direction in which to apply BC
+ * @param edge Lower or upper edge at which to apply BC (emission_spectrum gkyl_edge_loc)
+ * @param cdim Configuration space dimensions
+ * @param vdim Velocity space dimensions
+ * @param impact_buff_r Range over the impacting species buffer array
+ * @param emit_buff_r Range over the emitting species buffer array
+ * @param grid Impacting species boundary grid
+ * @param poly_order Polynomial order of basis functions.
+ * @param basis Basis functions
+ * @param proj_buffer Host array to temporarily store projection of emission spectrum
+ * @param use_gpu Boolean to indicate whether to use the GPU
+ * @return New updater pointer
  */
 struct gkyl_bc_emission_spectrum* gkyl_bc_emission_spectrum_new(enum gkyl_bc_emission_spectrum_norm_type norm_type,
   enum gkyl_bc_emission_spectrum_yield_type yield_type, void *norm_param, void *yield_param,
@@ -93,18 +103,16 @@ struct gkyl_bc_emission_spectrum* gkyl_bc_emission_spectrum_new(enum gkyl_bc_emi
 
 /**
  * @param up BC updater
- * @param f_skin Skin cell distribution
- * @param f_proj Projected spectrum distribution
- * @param f_buff Distribution buffer array
+ * @param impact_buff_r Range over the impacting species buffer array
+ * @param impact_cbuff_r Configuration space range over the impacting species buffer array
+ * @param emit_buff_r Range over the emitting species buffer array
+ * @param bflux Boundary flux df/dt in ghost cells
+ * @param f_emit Emitted distribution
+ * @param yield Array of calculated yield values at cell centers
+ * @param spectrum Emission spectrum projected onto basis
  * @param weight Weighting coefficients
- * @param k Normalization factor
  * @param flux Flux into boundary
- * @param grid Domain grid
- * @param gamma SE yield values on incoming ghost space
- * @param skin_r Incoming skin space range
- * @param ghost_r Incoming ghost space range
- * @param conf_r Configuration space range
- * @param buff_r Buffer array range
+ * @param k Normalization factor
  */
 void gkyl_bc_emission_spectrum_advance(const struct gkyl_bc_emission_spectrum *up,
   struct gkyl_range *impact_buff_r, struct gkyl_range *impact_cbuff_r,
@@ -113,14 +121,26 @@ void gkyl_bc_emission_spectrum_advance(const struct gkyl_bc_emission_spectrum *u
   struct gkyl_array *flux, struct gkyl_array *k);
 
 /**
+ * Loop over impacting species velocity space and calculate SEY at cell centers
+ *
  * @param up BC updater
- * @param grid Domain grid
- * @param gamma SE yield values on incoming ghost space
- * @param ghost_r Incoming ghost space range
+ * @param yield Array of calculated yield values at cell centers
+ * @param grid Impacting species boundary grid
+ * @param impact_buff_r Range over the impacting species buffer array
  */
-void gkyl_bc_emission_spectrum_sey_calc(const struct gkyl_bc_emission_spectrum *up, struct gkyl_array *yield, struct gkyl_rect_grid *grid, const struct gkyl_range *gamma_r);
+void gkyl_bc_emission_spectrum_sey_calc(const struct gkyl_bc_emission_spectrum *up,
+  struct gkyl_array *yield, struct gkyl_rect_grid *grid, const struct gkyl_range *impact_buffer_r);
 
-void gkyl_bc_emission_flux_ranges(struct gkyl_range *flux_r, int dir,
+/**
+ * Create range over velocity space into wall
+ *
+ * @param flux_r Output range over impacting velocity space
+ * @param dir Direction in which to apply BC
+ * @param parent Input range over all of velocity space
+ * @param nghost Number of ghost cells
+ * @param edge Lower or upper edge at which to apply BC (emission_spectrum gkyl_edge_loc)
+ */
+void gkyl_bc_emission_flux_ranges(struct gkyl_range *impact_buff_r, int dir,
   const struct gkyl_range *parent, const int *nghost, enum gkyl_edge_loc edge);
 
 /**
