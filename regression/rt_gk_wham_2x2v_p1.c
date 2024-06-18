@@ -832,11 +832,11 @@ int main(int argc, char **argv)
     },
     .bcx = {
       .lower = {
-        .type = GKYL_SPECIES_FIXED_FUNC,
+        .type = GKYL_SPECIES_REFLECT,
         .projection = ion_ic,
       },
       .upper = {
-        .type = GKYL_SPECIES_FIXED_FUNC,
+        .type = GKYL_SPECIES_ZERO_FLUX  ,
         .projection = ion_ic,
       },
     },
