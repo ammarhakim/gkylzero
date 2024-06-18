@@ -245,7 +245,7 @@ main(int argc, char **argv)
   gkyl_vlasov_app *app = gkyl_vlasov_app_new(&vm);
 
   // start, end and initial time-step
-  double tcurr = 0.0, tend = 10.0/ctx.omega_pe;
+  double tcurr = 0.0, tend = 1.0/ctx.omega_pe;
   double dt = tend-tcurr;
 
   // initialize simulation
