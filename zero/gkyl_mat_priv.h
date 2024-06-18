@@ -39,7 +39,7 @@ void cu_mat_mm_array(cublasHandle_t cuh, double alpha, double beta, enum gkyl_ma
   
 #endif
 
-struct gkyl_phase_nodal_to_modal_mem {
+struct gkyl_cu_mat_mm_array_mem {
 
   // info for alpha*matrix_multiplication(A,B) + Beta*C = C 
   // using cu_mat_mm_array

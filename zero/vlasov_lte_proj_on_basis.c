@@ -204,7 +204,7 @@ gkyl_vlasov_lte_proj_on_basis_inew(const struct gkyl_vlasov_lte_proj_on_basis_in
     up->det_h_quad = gkyl_array_cu_dev_new(GKYL_DOUBLE, up->tot_conf_quad, inp->conf_range_ext->volume);
 
     // Allocate the memory for computing the specific phase nodal to modal calculation
-    // up->phase_nodal_to_modal_mem = gkyl_phase_nodal_to_modal_cu_dev_new(up->num_phase_basis, up->tot_quad, 1.0, 0.0, 
+    // up->phase_nodal_to_modal_mem = gkyl_mat_mm_array_mem_cu_dev_new(up->num_phase_basis, up->tot_quad, 1.0, 0.0, 
     //    GKYL_NO_TRANS, GKYL_NO_TRANS);
     up->alpha = 1.0;
     up->beta = 0.0;
@@ -523,7 +523,7 @@ gkyl_vlasov_lte_proj_on_basis_release(gkyl_vlasov_lte_proj_on_basis* up)
     gkyl_array_release(up->h_ij_inv_quad);
     gkyl_array_release(up->det_h_quad);
 
-    // gkyl_phase_nodal_to_modal_release(up->phase_nodal_to_modal_mem);
+    // gkyl_mat_mm_array_mem_release(up->phase_nodal_to_modal_mem);
     gkyl_mat_release(up->mat_A);
     gkyl_mat_release(up->mat_Acu);
     cublasDestroy(up->cuh);

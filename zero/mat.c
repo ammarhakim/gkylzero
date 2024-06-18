@@ -389,11 +389,11 @@ gkyl_nmat_linsolve_lu_release(gkyl_nmat_mem *mem)
   gkyl_free(mem);
 }
 
-gkyl_phase_nodal_to_modal_mem *
-gkyl_phase_nodal_to_modal_cu_dev_new(int nr, int nc, double alpha, double beta, 
+gkyl_cu_mat_mm_array_mem *
+gkyl_mat_mm_array_mem_cu_dev_new(int nr, int nc, double alpha, double beta, 
   enum gkyl_mat_trans transa, enum gkyl_mat_trans transb)
 {
-  gkyl_phase_nodal_to_modal_mem *mem = gkyl_malloc(sizeof(*mem));
+  gkyl_cu_mat_mm_array_mem *mem = gkyl_malloc(sizeof(*mem));
 
   mem->alpha = alpha;
   mem->beta = beta;
@@ -411,7 +411,7 @@ gkyl_phase_nodal_to_modal_cu_dev_new(int nr, int nc, double alpha, double beta,
 }
 
 void
-gkyl_phase_nodal_to_modal_release(gkyl_phase_nodal_to_modal_mem *mem)
+gkyl_mat_mm_array_mem_release(gkyl_cu_mat_mm_array_mem *mem)
 {
   //gkyl_mat_release(mem->A_cu);
   //gkyl_mat_release(mem->A_ho);
