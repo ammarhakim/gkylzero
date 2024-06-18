@@ -39,7 +39,7 @@ gk_neut_species_projection_init(struct gkyl_gyrokinetic_app *app, struct gk_neut
     struct gkyl_vlasov_lte_proj_on_basis_inp inp_proj = {
       .phase_grid = &s->grid,
       .conf_basis = &app->confBasis,
-      .phase_basis = &app->basis,
+      .phase_basis = &app->neut_basis,
       .conf_range =  &app->local,
       .conf_range_ext = &app->local_ext,
       .vel_range = &s->local_vel,
@@ -57,7 +57,7 @@ gk_neut_species_projection_init(struct gkyl_gyrokinetic_app *app, struct gk_neut
       struct gkyl_vlasov_lte_correct_inp inp_corr = {
         .phase_grid = &s->grid,
         .conf_basis = &app->confBasis,
-        .phase_basis = &app->basis,
+        .phase_basis = &app->neut_basis,
         .conf_range =  &app->local,
         .conf_range_ext = &app->local_ext,
         .vel_range = &s->local_vel,

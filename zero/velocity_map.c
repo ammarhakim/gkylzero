@@ -5,6 +5,8 @@
 #include <gkyl_eval_on_nodes.h>
 #include <gkyl_dg_bin_ops.h>
 #include <gkyl_alloc_flags_priv.h>
+#include <float.h>
+#include <assert.h>
 
 // Context for comp. coords = phys. coords (default).
 struct mapc2p_vel_identity_ctx {
@@ -81,7 +83,7 @@ gkyl_velocity_map_new(struct gkyl_mapc2p_inp mapc2p_in,
   gvm->vmap_sq    = mkarr(false, vdim*vmap_sq_basis.num_basis, gvm->local_ext_vel.volume);
   gvm->vmap_prime = mkarr(false, vdim, gvm->local_ext_vel.volume);
   gvm->jacobvel   = mkarr(false, 1, gvm->local_ext.volume);
-  // Need a host copy of vmap for some IC projection options.
+  // Need a host copy of vmap for some IC setting options.
   gvm->vmap_ho    = gkyl_array_acquire(gvm->vmap);
 
   // Project the velocity mapping (onto a vdim basis).
@@ -179,11 +181,9 @@ gkyl_velocity_map_write(const struct gkyl_velocity_map* gvm, struct gkyl_comm* s
   const char* app_name, const char* species_name)
 {
   // Write out the velocity space mapping.
-  struct gkyl_array *vmap_ho = gvm->vmap, *jacobvel_ho = gvm->jacobvel;
+  struct gkyl_array *vmap_ho = gvm->vmap_ho, *jacobvel_ho = gvm->jacobvel;
   if (gkyl_velocity_map_is_cu_dev(gvm)) {
-    vmap_ho = mkarr(false, gvm->vmap->ncomp, gvm->vmap->size);
     jacobvel_ho = mkarr(false, gvm->jacobvel->ncomp, gvm->jacobvel->size);
-    gkyl_array_copy(vmap_ho, gvm->vmap);
     gkyl_array_copy(jacobvel_ho, gvm->jacobvel);
   }
 
@@ -206,7 +206,6 @@ gkyl_velocity_map_write(const struct gkyl_velocity_map* gvm, struct gkyl_comm* s
   gkyl_comm_array_write(species_comm, &gvm->grid, &gvm->local, NULL, jacobvel_ho, fileNm1);
 
   if (gkyl_velocity_map_is_cu_dev(gvm)) {
-    gkyl_array_release(vmap_ho);
     gkyl_array_release(jacobvel_ho);
   }
 }
@@ -214,30 +213,67 @@ gkyl_velocity_map_write(const struct gkyl_velocity_map* gvm, struct gkyl_comm* s
 void
 gkyl_velocity_map_get_boundary_values(const struct gkyl_velocity_map* gvm, double *vbounds)
 {
-  struct gkyl_array *vmap_ho = mkarr(false, gvm->vmap->ncomp, gvm->vmap->size);
-  gkyl_array_copy(vmap_ho, gvm->vmap);
-
-  struct gkyl_basis vmap_basis_ho;
-  gkyl_cart_modal_serendip(&vmap_basis_ho, gvm->vmap_basis->ndim, gvm->vmap_basis->poly_order);
-
   int vdim = gvm->local_vel.ndim;
-
   for (int d=0; d<vdim; ++d) {
     long vlinidx;
     double vlog[1], *vmap_d;
-    int off = d*vmap_basis_ho.num_basis;
+    int off = d*gvm->vmap_basis_ho.num_basis;
 
     vlog[0] = -1.0;
     vlinidx = gkyl_range_idx(&gvm->local_vel, gvm->local_vel.lower);
-    vmap_d = gkyl_array_fetch(vmap_ho, vlinidx);
-    vbounds[d] = vmap_basis_ho.eval_expand(vlog, off+vmap_d);
+    vmap_d = gkyl_array_fetch(gvm->vmap_ho, vlinidx);
+    vbounds[d] = gvm->vmap_basis_ho.eval_expand(vlog, off+vmap_d);
 
     vlog[0] = 1.0;
     vlinidx = gkyl_range_idx(&gvm->local_vel, gvm->local_vel.upper);
-    vmap_d = gkyl_array_fetch(vmap_ho, vlinidx);
-    vbounds[d + vdim] = vmap_basis_ho.eval_expand(vlog, off+vmap_d);
+    vmap_d = gkyl_array_fetch(gvm->vmap_ho, vlinidx);
+    vbounds[d + vdim] = gvm->vmap_basis_ho.eval_expand(vlog, off+vmap_d);
   }
-  gkyl_array_release(vmap_ho);
+}
+
+void
+gkyl_velocity_map_reduce_dv_range(const struct gkyl_velocity_map* gvm, enum gkyl_array_op op,
+  double *dv_m, struct gkyl_range range_vel)
+{
+  int vdim = gvm->local_vel.ndim;
+  if (op == GKYL_MIN)
+    for (int d=0; d<vdim; ++d) dv_m[d] = DBL_MAX;
+  else if (op == GKYL_MAX)
+    for (int d=0; d<vdim; ++d) dv_m[d] = -DBL_MAX;
+  else
+    assert(false);
+
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, &range_vel);
+  while (gkyl_range_iter_next(&iter)) {
+
+    long linidx = gkyl_range_idx(&range_vel, iter.idx);
+    double *vmap_d = gkyl_array_fetch(gvm->vmap_ho, linidx);
+
+    for (int d=0; d<vdim; ++d) {
+      int off = d*gvm->vmap_basis_ho.num_basis;
+      double vlog[1];
+
+      vlog[0] = -1.0;
+      double vlo = gvm->vmap_basis_ho.eval_expand(vlog, off+vmap_d);
+
+      vlog[0] = 1.0;
+      double vup = gvm->vmap_basis_ho.eval_expand(vlog, off+vmap_d);
+
+      double dv = vup - vlo;
+
+      if (op == GKYL_MIN)
+        dv_m[d] = GKYL_MIN2(dv_m[d], dv);
+      else if (op == GKYL_MAX)
+        dv_m[d] = GKYL_MAX2(dv_m[d], dv);
+    }
+  }
+}
+
+void
+gkyl_velocity_map_reduce_dv(const struct gkyl_velocity_map* gvm, enum gkyl_array_op op, double *dv_m)
+{
+  gkyl_velocity_map_reduce_dv_range(gvm, op, dv_m, gvm->local_vel);
 }
 
 void

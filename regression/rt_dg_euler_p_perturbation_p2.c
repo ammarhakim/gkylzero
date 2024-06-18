@@ -258,10 +258,10 @@ int nrank = 1; // Number of processors in simulation.
    .use_gpu = app_args.use_gpu,
 
    .has_low_inp = true,
-    .low_inp = {
-      .local_range = decomp->ranges[my_rank],
-      .comm = comm
-    }
+   .low_inp = {
+     .local_range = decomp->ranges[my_rank],
+     .comm = comm
+   }
   };
 
   // Create app object.
@@ -343,7 +343,7 @@ int nrank = 1; // Number of processors in simulation.
   gkyl_vlasov_app_cout(app, stdout, "Species collisional moments took %g secs\n", stat.species_coll_mom_tm);
   gkyl_vlasov_app_cout(app, stdout, "Total updates took %g secs\n", stat.total_tm);
 
-  gkyl_vlasov_app_cout(app, stdout, "Number of write calls %ld,\n", stat.nio);
+  gkyl_vlasov_app_cout(app, stdout, "Number of write calls %ld\n", stat.nio);
   gkyl_vlasov_app_cout(app, stdout, "IO time took %g secs \n", stat.io_tm);
 
   // Free resources after simulation completion.
