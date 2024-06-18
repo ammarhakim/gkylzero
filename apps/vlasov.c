@@ -1346,7 +1346,7 @@ gkyl_vlasov_app_from_file_species(gkyl_vlasov_app *app, int sidx,
     if (app->use_gpu)
       gkyl_array_copy(vm_s->f, vm_s->f_host);
     if (GKYL_ARRAY_RIO_SUCCESS == rstat.io_status) {
-      vm_species_apply_bc(app, vm_s, vm_s->f, 0.0);
+      vm_species_apply_bc(app, vm_s, vm_s->f, rstat.stime);
       if (vm_s->source_id)
         vm_species_source_calc(app, vm_s, &vm_s->src, 0.0);
     }
