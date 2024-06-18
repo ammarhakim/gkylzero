@@ -604,6 +604,11 @@ gk_species_release(const gkyl_gyrokinetic_app* app, const struct gk_species *s)
 
   gk_species_bflux_release(app, &s->bflux);
 
+  if (s->has_diffusion) {
+    gkyl_array_release(s->diffD);
+    gkyl_dg_updater_diffusion_gyrokinetic_release(s->diff_slvr);
+  }
+
   // Copy BCs are allocated by default. Need to free.
   for (int d=0; d<app->cdim; ++d) {
     if ((s->lower_bc[d].type == GKYL_SPECIES_GK_SHEATH) ||
