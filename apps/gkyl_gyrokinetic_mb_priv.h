@@ -38,7 +38,7 @@ struct gk_field_mb {
   enum gkyl_gkfield_id gkfield_id;
 
   // z ranges
-  struct gkyl_range globalz, globalz_ext; // globalz, globalz-ext conf-space ranges. Cross-block ranges across z boundaries for the smoother. We need 5 of these in the double null case (2-3-4, 11-12, 1-8-9, 5-6, 1-10)
+  struct gkyl_range crossz, crossz_ext; // crossz, crossz-ext conf-space ranges. Cross-block ranges across z boundaries for the smoother. We need 5 of these in the double null case (2-3-4, 11-12, 1-8-9, 5-6, 1-10)
   struct gkyl_comm *zcomm;   // communicator object for z smoothing
 
   struct gkyl_job_pool *job_pool; // Job pool  
@@ -49,7 +49,7 @@ struct gk_field_mb {
 
   struct gkyl_array *phi_host;  // host copy for use IO and initialization
 
-  struct gkyl_range globalz_sub_range; // sub range of intersection of global range and local range
+  struct gkyl_range crossz_sub_range; // sub range of intersection of global range and local range
                                       // for solving subset of Poisson solves with parallelization in z
 
   struct gkyl_array *epsilon;
@@ -60,6 +60,6 @@ struct gk_field_mb {
 };
 
 
-struct gk_field_mb* gk_field_mb_new(struct gkyl_gk_mb *gk_mb, struct gkyl_gyrokinetic_mb_app *mb_app);
+struct gk_field_mb* gk_field_mb_new(struct gkyl_gk_mb *gk_mb, struct gkyl_gyrokinetic_mb_app *mb_app, struct gkyl_gyrokinetic_app *app);
 
-void gk_field_mb_rhs(gkyl_gyrokinetic_mb_app *mb_app, struct gk_field_mb *field_mb);
+void gk_field_mb_rhs(gkyl_gyrokinetic_mb_app *mb_app, struct gk_field_mb *field_mb, struct gkyl_gyrokinetic_app *app);
