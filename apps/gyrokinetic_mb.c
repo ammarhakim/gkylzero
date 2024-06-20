@@ -201,6 +201,7 @@ gkyl_gyrokinetic_mb_app_new(struct gkyl_gk_mb *inp)
   // Only allocate memory for local blocks and their intrablock communicators.
   app->blocks = gkyl_malloc(app->num_blocks_local * sizeof(struct gkyl_gyrokinetic_app));
   app->comm_intrab = gkyl_malloc(app->num_blocks_local * sizeof(struct gkyl_comm *));
+  app->field = gkyl_malloc(app->num_blocks_local * sizeof(struct gk_field_mb));
 
   for (int bc=0; bc<app->num_blocks_local; bc++) {
     int bidx = app->block_idxs[bc];
@@ -249,7 +250,7 @@ gkyl_gyrokinetic_mb_app_new(struct gkyl_gk_mb *inp)
 
     // Create a new app for each block.
     app->blocks[bc] = gkyl_gyrokinetic_app_new(blinp);
-    app->field = gk_field_mb_new(inp, app, app->blocks[bc]);
+    app->field[bc] = gk_field_mb_new(inp, app, app->blocks[bc]);
   }
 
 
@@ -269,7 +270,7 @@ calc_field(gkyl_gyrokinetic_mb_app* app, double tcurr, int fidx)
 {
   // Compute fields.
   for (int bc=0; bc<app->num_blocks_local; bc++) {
-    gk_field_mb_rhs(app, app->field, app->blocks[bc]);
+    gk_field_mb_rhs(app, app->field[bc], app->blocks[bc]);
   }
 }
 
@@ -700,6 +701,7 @@ gkyl_gyrokinetic_mb_app_release(gkyl_gyrokinetic_mb_app* app)
   }
   for (int i=0; i<app->num_blocks_local; i++) {
     gkyl_comm_release(app->comm_intrab[i]);
+    gk_field_mb_release(app, app->field[i]);
   }
   gkyl_free(app->decomp_intrab);
   gkyl_free(app->comm_intrab);

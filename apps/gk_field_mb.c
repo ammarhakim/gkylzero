@@ -9,6 +9,51 @@
 #include <float.h>
 #include <time.h>
 
+static void
+insert_below(int* arr, int n, int old_val, int new_val)
+{
+  int old_val_idx = 0;
+
+}
+
+// This function should be called in a loop over num blocks local
+void
+gk_field_mb_set_crossz_idxs(struct gkyl_gk_mb *gk_mb, struct gkyl_gyrokinetic_mb_app *mb_app, struct gkyl_gyrokinetic_app *app, int bidx){
+  struct gkyl_block_topo *btopo = mb_app->btopo;
+  struct gkyl_block_connections *conn = btopo->conn;
+  int dir = 1;
+
+  int crossz_blocks[GKYL_MAX_BLOCKS] = {-1};
+
+  int cz_idx = 0;
+  crossz_blocks[cz_idx] = bidx;
+  int last_val = bidx;
+  int num_blocks = 1;
+
+  while(true) {
+    if (conn[bidx].connections[dir][0].edge == GKYL_BLOCK_EDGE_PHYSICAL) {
+      break;
+    }
+    else if (conn[bidx].connections[dir][0].edge == GKYL_BLOCK_EDGE_UPPER_POSITIVE) { 
+      insert_below(crossz_blocks, num_blocks, last_val, conn[bidx].connections[dir][0].bid);
+      num_blocks+=1;
+    }
+  }
+
+  while(true) {
+    if (conn[bidx].connections[dir][1].edge == GKYL_BLOCK_EDGE_PHYSICAL) {
+      break;
+    }
+    else if (conn[bidx].connections[dir][1].edge == GKYL_BLOCK_EDGE_LOWER_POSITIVE) { 
+      insert_below(crossz_blocks, num_blocks, last_val, conn[bidx].connections[dir][1].bid);
+      num_blocks+=1;
+    }
+  }
+  
+
+
+
+}
 
 // initialize field object
 struct gk_field_mb* 
