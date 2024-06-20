@@ -10,54 +10,74 @@
 #include <time.h>
 
 static void
-insert_below(int* arr, int n, int old_val, int new_val)
+insert_below(int* arr, int *n, int new_val)
 {
-  int old_val_idx = 0;
+  int temp_arr[GKYL_MAX_BLOCKS] = {-1};
+  for (int i = 0; i<*n; i++) {
+    temp_arr[i+1] = arr[i];
+  }
+  temp_arr[0] = new_val;
+  *n = *n+1;
+  for (int i = 0; i<*n; i++) {
+    arr[i] = temp_arr[i];
+  }
 
+}
+
+static void
+insert_above(int* arr, int *n, int new_val)
+{
+  arr[*n] = new_val;
+  *n = *n+1;
 }
 
 // This function should be called in a loop over num blocks local
 void
-gk_field_mb_set_crossz_idxs(struct gkyl_gk_mb *gk_mb, struct gkyl_gyrokinetic_mb_app *mb_app, struct gkyl_gyrokinetic_app *app, int bidx){
+set_crossz_idxs(struct gkyl_gyrokinetic_mb_app *mb_app, struct gkyl_gyrokinetic_app *app, int myidx){
   struct gkyl_block_topo *btopo = mb_app->btopo;
   struct gkyl_block_connections *conn = btopo->conn;
   int dir = 1;
 
   int crossz_blocks[GKYL_MAX_BLOCKS] = {-1};
 
-  int cz_idx = 0;
-  crossz_blocks[cz_idx] = bidx;
-  int last_val = bidx;
+  int bidx = myidx;
+  crossz_blocks[0] = bidx;
   int num_blocks = 1;
+  printf("my idx = %d\n", bidx);
 
   while(true) {
     if (conn[bidx].connections[dir][0].edge == GKYL_BLOCK_EDGE_PHYSICAL) {
       break;
     }
     else if (conn[bidx].connections[dir][0].edge == GKYL_BLOCK_EDGE_UPPER_POSITIVE) { 
-      insert_below(crossz_blocks, num_blocks, last_val, conn[bidx].connections[dir][0].bid);
-      num_blocks+=1;
+      insert_below(crossz_blocks, &num_blocks, conn[bidx].connections[dir][0].bid);
+      bidx = conn[bidx].connections[dir][0].bid;
+      printf(" Looking below, num_blocks = %d\n", num_blocks);
     }
   }
 
+  bidx = myidx;
   while(true) {
     if (conn[bidx].connections[dir][1].edge == GKYL_BLOCK_EDGE_PHYSICAL) {
       break;
     }
     else if (conn[bidx].connections[dir][1].edge == GKYL_BLOCK_EDGE_LOWER_POSITIVE) { 
-      insert_below(crossz_blocks, num_blocks, last_val, conn[bidx].connections[dir][1].bid);
-      num_blocks+=1;
+      insert_above(crossz_blocks, &num_blocks, conn[bidx].connections[dir][1].bid);
+      bidx = conn[bidx].connections[dir][1].bid;
+      printf(" Looking above, num_blocks = %d\n", num_blocks);
     }
   }
-  
 
-
-
+  printf("num blocks = %d\n block order = ", num_blocks);
+  for (int i = 0; i < num_blocks; i++) {
+    printf(" %d ", crossz_blocks[i]);
+  }
+  printf("\n");
 }
 
 // initialize field object
 struct gk_field_mb* 
-gk_field_mb_new(struct gkyl_gk_mb *gk_mb, struct gkyl_gyrokinetic_mb_app *mb_app, struct gkyl_gyrokinetic_app *app)
+gk_field_mb_new(struct gkyl_gk_mb *gk_mb, struct gkyl_gyrokinetic_mb_app *mb_app, struct gkyl_gyrokinetic_app *app, int bidx)
 {
 
   struct gk_field_mb *f = gkyl_malloc(sizeof(struct gk_field_mb));
@@ -65,6 +85,8 @@ gk_field_mb_new(struct gkyl_gk_mb *gk_mb, struct gkyl_gyrokinetic_mb_app *mb_app
   f->info = gk_mb->field;
 
   f->gkfield_id = f->info.gkfield_id ? f->info.gkfield_id : GKYL_GK_FIELD_ES;
+
+  set_crossz_idxs(mb_app, app, bidx);
 
   // We need first to create the global z ranges.
   // For the two-block case:

@@ -250,7 +250,7 @@ gkyl_gyrokinetic_mb_app_new(struct gkyl_gk_mb *inp)
 
     // Create a new app for each block.
     app->blocks[bc] = gkyl_gyrokinetic_app_new(blinp);
-    app->field[bc] = gk_field_mb_new(inp, app, app->blocks[bc]);
+    app->field[bc] = gk_field_mb_new(inp, app, app->blocks[bc], bidx);
   }
 
 
