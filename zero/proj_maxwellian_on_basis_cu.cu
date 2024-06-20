@@ -15,22 +15,17 @@ gkyl_parallelize_components_kernel_launch_dims(dim3* dimGrid, dim3* dimBlock, gk
   dimGrid->y = gkyl_int_div_up(ncomp, dimBlock->y);
   dimBlock->x = GKYL_DEFAULT_NUM_THREADS/ncomp;
   dimGrid->x = gkyl_int_div_up(range.volume, dimBlock->x);
-  printf("dimBlock->y=%d, dimGrid->y=%d, dimBlock->x=%d, dimGrid->x=%d\n", dimBlock->y, dimGrid->y, dimBlock->x,  dimGrid->x);
 }
 
 __global__ static void
-gkyl_expand_prim_mom_at_quad_cu_ker(const struct gkyl_rect_grid grid,
-  const struct gkyl_range phase_r, const struct gkyl_range conf_r, 
+gkyl_expand_prim_mom_at_quad_cu_ker(const struct gkyl_range phase_r, const struct gkyl_range conf_r, 
   const struct gkyl_array* GKYL_RESTRICT conf_basis_at_ords, 
-  const struct gkyl_array* GKYL_RESTRICT basis_at_ords, 
-  const struct gkyl_array* GKYL_RESTRICT phase_ordinates, 
   struct gkyl_array* GKYL_RESTRICT den_quad_d,
   struct gkyl_array* GKYL_RESTRICT upar_quad_d,
   struct gkyl_array* GKYL_RESTRICT vtsq_quad_d,
   struct gkyl_array* GKYL_RESTRICT bmag_quad_d, 
   struct gkyl_array* GKYL_RESTRICT jactot_quad_d,
   struct gkyl_array* GKYL_RESTRICT expamp_quad_d,
-  //struct gkyl_array* GKYL_RESTRICT fm_quad,
   const struct gkyl_array* GKYL_RESTRICT prim_moms,
   const struct gkyl_array* GKYL_RESTRICT bmag, 
   const struct gkyl_array* GKYL_RESTRICT jacob_tot,
@@ -67,11 +62,8 @@ gkyl_expand_prim_mom_at_quad_cu_ker(const struct gkyl_rect_grid grid,
     double *bmag_quad = (double*) gkyl_array_fetch(bmag_quad_d, lincC);  
     double *jactot_quad = (double*) gkyl_array_fetch(jactot_quad_d, lincC);  
     double *expamp_quad = (double*) gkyl_array_fetch(expamp_quad_d, lincC);  
-    printf("den_quad=%d\n", &den_quad_d->size);
 
-    // Sum over basis for given primitive moments.
     int n = linc2;
-    //const double *b_ord = (const double *) gkyl_array_cfetch(conf_basis_at_ords, n);
 
     // Compute primitive moments at quadrature nodes.
     conf_basis_on_dev->modal_to_quad_nodal(den_d, den_quad, n);
@@ -168,13 +160,11 @@ gkyl_construct_gkmaxwellian_at_quad_cu_ker(const struct gkyl_rect_grid grid,
 }
 
 __global__ static void
-gkyl_proj_gkmaxwellian_on_basis_cu_ker(const struct gkyl_rect_grid grid,
-  const struct gkyl_range phase_r, const struct gkyl_range conf_r,
-  const struct gkyl_array* GKYL_RESTRICT conf_basis_at_ords, 
+gkyl_proj_gkmaxwellian_on_basis_cu_ker(const struct gkyl_range phase_r, 
   const struct gkyl_array* GKYL_RESTRICT basis_at_ords, 
-  const struct gkyl_array* GKYL_RESTRICT phase_ordinates, 
-  const struct gkyl_array* GKYL_RESTRICT phase_weights, 
-  const struct gkyl_basis* phase_basis_on_dev, struct gkyl_array* GKYL_RESTRICT fm_quad, struct gkyl_array* GKYL_RESTRICT fmax)
+  const struct gkyl_basis* phase_basis_on_dev, 
+  //const struct gkyl_array* GKYL_RESTRICT phase_weights, 
+  struct gkyl_array* GKYL_RESTRICT fm_quad, struct gkyl_array* GKYL_RESTRICT fmax)
 {
   int num_phase_basis = fmax->ncomp;
   int tot_phase_quad = basis_at_ords->size;
@@ -197,8 +187,8 @@ gkyl_proj_gkmaxwellian_on_basis_cu_ker(const struct gkyl_rect_grid grid,
     // so we cant parallelize over basis functions.
     phase_basis_on_dev->quad_nodal_to_modal(fq, fm, linc2);
      
-    // The following is modeled after proj_on_basis in the private header.
     /*
+    // The following is modeled after proj_on_basis in the private header.
     const double *phase_w = (const double*) phase_weights->data;
     const double *phaseb_o = (const double*) basis_at_ords->data;
     for (int n=0; n<tot_phase_quad; ++n) {
@@ -228,16 +218,13 @@ gkyl_proj_gkmaxwellian_on_basis_prim_mom_cu(const gkyl_proj_maxwellian_on_basis 
   
   gkyl_parallelize_components_kernel_launch_dims(&dimGrid, &dimBlock, *conf_r, tot_conf_quad);
   gkyl_expand_prim_mom_at_quad_cu_ker<<<dimGrid, dimBlock>>>
-    (up->grid, *phase_r, *conf_r, 
-     up->conf_basis_at_ords->on_dev, up->basis_at_ords->on_dev, 
-     up->ordinates->on_dev,
+    (*phase_r, *conf_r, up->conf_basis_at_ords->on_dev,
      up->den_quad->on_dev, 
      up->upar_quad->on_dev, 
      up->vtsq_quad->on_dev, 
      up->bmag_quad->on_dev, 
      up->jactot_quad->on_dev, 
      up->expamp_quad->on_dev, 
-     //up->fm_quad->on_dev,
      prim_moms->on_dev, bmag->on_dev, jacob_tot->on_dev,
      up->conf_basis_on_dev);     
 
@@ -259,9 +246,7 @@ gkyl_proj_gkmaxwellian_on_basis_prim_mom_cu(const gkyl_proj_maxwellian_on_basis 
 
   gkyl_parallelize_components_kernel_launch_dims(&dimGrid, &dimBlock, *phase_r, num_phase_basis);
   gkyl_proj_gkmaxwellian_on_basis_cu_ker<<<dimGrid, dimBlock>>>
-    (up->grid, *phase_r, *conf_r, 
-     up->conf_basis_at_ords->on_dev, up->basis_at_ords->on_dev,
-     up->ordinates->on_dev, 
-     up->weights->on_dev,
-     up->phase_basis_on_dev, up->fm_quad->on_dev, fmax->on_dev);
+    (*phase_r, up->basis_at_ords->on_dev, up->phase_basis_on_dev, 
+     //up->weights->on_dev,
+     up->fm_quad->on_dev, fmax->on_dev);
 }

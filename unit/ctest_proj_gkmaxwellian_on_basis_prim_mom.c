@@ -126,9 +126,10 @@ test_1x2v_gk(int poly_order, bool use_gpu)
     gkyl_cart_modal_serendip_cu_dev(conf_basis_on_dev, cdim, poly_order);
 #endif
   }
-  else 
+  else { 
     basis_on_dev = &basis;
     conf_basis_on_dev = &confBasis;
+  }
 
   int confGhost[] = { 1 };
   struct gkyl_range confLocal, confLocal_ext; // local, local-ext conf-space ranges
@@ -211,13 +212,11 @@ test_1x2v_gk(int poly_order, bool use_gpu)
   // projection updater to compute Maxwellian
   struct gkyl_proj_maxwellian_on_basis_inp inp_proj = {
     .grid = &grid,
-    .conf_basis = &confBasis,
     .phase_basis = &basis,
+    .conf_basis = &confBasis,
     .phase_basis_on_dev = basis_on_dev, 
     .conf_basis_on_dev = conf_basis_on_dev, 
-    .phase_range = &local, 
     .phase_range_ext = &local_ext, 
-    .conf_range = &confLocal, 
     .conf_range_ext = &confLocal_ext, 
     .vel_map = gvm,
     .use_gpu = use_gpu,
@@ -225,12 +224,9 @@ test_1x2v_gk(int poly_order, bool use_gpu)
   gkyl_proj_maxwellian_on_basis *proj_max = gkyl_proj_maxwellian_on_basis_inew(&inp_proj);
 
   if (use_gpu) {
-    printf("flag 0\n");
     gkyl_proj_gkmaxwellian_on_basis_prim_mom(proj_max, &local, &confLocal, prim_moms,
                                              bmag_cu, jacob_tot_cu, mass, distf_cu);
-    printf("flag 1\n");
     gkyl_array_copy(distf, distf_cu);
-    printf("flag 2\n");
   } else {
     gkyl_proj_gkmaxwellian_on_basis_prim_mom(proj_max, &local, &confLocal, prim_moms,
                                              bmag, jacob_tot, mass, distf);

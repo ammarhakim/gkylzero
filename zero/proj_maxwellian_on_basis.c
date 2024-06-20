@@ -169,8 +169,6 @@ gkyl_proj_maxwellian_on_basis_inew(const struct gkyl_proj_maxwellian_on_basis_in
   up->tot_quad = init_quad_values(up->cdim, phase_basis, num_quad,
     &up->ordinates, &up->weights, &up->basis_at_ords, up->use_gpu);
 
-  printf("tot_quad=%d, tot_conf_quad=%d\n", up->tot_quad, up->tot_conf_quad);
-
   up->fun_at_ords = gkyl_array_new(GKYL_DOUBLE, 1, up->tot_quad); // Only used in CPU implementation.
 
   int vdim = up->pdim-up->cdim;
@@ -203,8 +201,6 @@ gkyl_proj_maxwellian_on_basis_inew(const struct gkyl_proj_maxwellian_on_basis_in
     up->bmag_quad = gkyl_array_cu_dev_new(GKYL_DOUBLE, up->tot_conf_quad, inp->conf_range_ext->volume); 
     up->jactot_quad = gkyl_array_cu_dev_new(GKYL_DOUBLE, up->tot_conf_quad, inp->conf_range_ext->volume); 
     up->expamp_quad = gkyl_array_cu_dev_new(GKYL_DOUBLE, up->tot_conf_quad, inp->conf_range_ext->volume); 
-
-    printf("range_ext=%d, conf_range_ext=%d\n", inp->phase_range_ext->volume, inp->conf_range_ext->volume);
 
     int pidx[GKYL_MAX_DIM];
     for (int n=0; n<up->tot_quad; ++n) {
