@@ -239,12 +239,6 @@ gkyl_mat_new(size_t nr, size_t nc, double val)
   mat->on_dev = mat; // on CPU this is a self-reference
   mat->ref_count = gkyl_ref_count_init(mat_free);
   return mat;
-
-  // struct gkyl_mat *m = gkyl_malloc(sizeof(struct gkyl_mat));
-  // m->data = gkyl_malloc(sizeof(double[nr*nc]));
-  // m->nr = nr; m->nc = nc;
-  // for (size_t i=0; i<nr*nc; ++i) m->data[i] = val;
-  // return m;
 }
 
 struct gkyl_nmat*
@@ -405,11 +399,6 @@ gkyl_cu_mat_mm_array_mem_cu_dev_new(int nr, int nc, double alpha, double beta,
   mem->A_cu = gkyl_mat_cu_dev_new(nr, nc);
   mem->A_ho = gkyl_mat_new(nr, nc, 0.0);
 
-#ifdef GKYL_HAVE_CUDA
-  //mem->cuh = 0;
-  //cublasCreate_v2(&mem->cuh);
-#endif
-
   return mem;
 }
 
@@ -418,9 +407,6 @@ gkyl_cu_mat_mm_array_mem_release(gkyl_cu_mat_mm_array_mem *mem)
 {
   gkyl_mat_release(mem->A_cu);
   gkyl_mat_release(mem->A_ho);
-#ifdef GKYL_HAVE_CUDA
-    //cublasDestroy(mem->cuh);
-#endif 
   gkyl_free(mem);
 }
 
@@ -581,6 +567,29 @@ cu_nmat_linsolve_lu(gkyl_nmat_mem *mem, struct gkyl_nmat *A, struct gkyl_nmat *x
 #endif  
 }
 
+#ifdef GKYL_HAVE_CUDA
+void
+cu_mat_mm_array(cublasHandle_t cuh, struct gkyl_cu_mat_mm_array_mem *mem, const struct gkyl_array *B, struct gkyl_array *C)
+{
+
+  double alpha = mem->alpha;
+  double beta = mem->beta; 
+  enum gkyl_mat_trans transa = mem->transa;
+  struct gkyl_mat *A = mem->A_cu;
+  enum gkyl_mat_trans transb = mem->transb;
+
+  struct mat_sizes sza = get_mat_sizes(transa, A); 
+  size_t k = sza.nc;
+  size_t lda = transa == GKYL_NO_TRANS ? C->ncomp : k;
+  size_t ldb = transb == GKYL_NO_TRANS ? k : C->size;
+  size_t ldc = C->ncomp;
+
+  // Now do the matrix multiply
+  cublasStatus_t info;
+  info = cublasDgemm(cuh, transa, transb, A->nr, B->size, A->nc, &alpha, A->data, lda, B->data, ldb, &beta, C->data, ldc);
+}
+#endif 
+
 bool
 gkyl_nmat_linsolve_lu(struct gkyl_nmat *A, struct gkyl_nmat *x)
 {
@@ -684,27 +693,6 @@ gkyl_nmat_cu_dev_new(size_t num, size_t nr, size_t nc)
   gkyl_cu_memcpy(&((mat->on_dev)->mptr), &mat->mptr, sizeof(double**), GKYL_CU_MEMCPY_H2D);
 
   return mat;
-}
-
-void
-cu_mat_mm_array(cublasHandle_t cuh, struct gkyl_cu_mat_mm_array_mem *mem, struct gkyl_array *B, struct gkyl_array *C)
-{
-
-  double alpha = mem->alpha;
-  double beta = mem->beta; 
-  enum gkyl_mat_trans transa = mem->transa;
-  struct gkyl_mat *A = mem->A_cu;
-  enum gkyl_mat_trans transb = mem->transb;
-
-  struct mat_sizes sza = get_mat_sizes(transa, A); 
-  size_t k = sza.nc;
-  size_t lda = transa == GKYL_NO_TRANS ? C->ncomp : k;
-  size_t ldb = transb == GKYL_NO_TRANS ? k : C->size;
-  size_t ldc = C->ncomp;
-
-  // Now do the matrix multiply
-  cublasStatus_t info;
-  info = cublasDgemm(cuh, transa, transb, A->nr, B->size, A->nc, &alpha, A->data, lda, B->data, ldb, &beta, C->data, ldc);
 }
 
 

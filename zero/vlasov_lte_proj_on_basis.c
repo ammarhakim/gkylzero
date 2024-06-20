@@ -202,7 +202,7 @@ gkyl_vlasov_lte_proj_on_basis_inew(const struct gkyl_vlasov_lte_proj_on_basis_in
     up->V_drift_quad_cell_avg = gkyl_array_cu_dev_new(GKYL_DOUBLE, up->tot_conf_quad*vdim, inp->conf_range_ext->volume);
     up->h_ij_inv_quad = gkyl_array_cu_dev_new(GKYL_DOUBLE, up->tot_conf_quad*(vdim*(vdim+1)/2), inp->conf_range_ext->volume);
     up->det_h_quad = gkyl_array_cu_dev_new(GKYL_DOUBLE, up->tot_conf_quad, inp->conf_range_ext->volume);
-
+    
     // Allocate the memory for computing the specific phase nodal to modal calculation
     up->phase_nodal_to_modal_mem = gkyl_cu_mat_mm_array_mem_cu_dev_new(up->num_phase_basis, up->tot_quad, 1.0, 0.0, 
       GKYL_NO_TRANS, GKYL_NO_TRANS);
@@ -219,9 +219,59 @@ gkyl_vlasov_lte_proj_on_basis_inew(const struct gkyl_vlasov_lte_proj_on_basis_in
     // copy to device
     gkyl_mat_copy(up->phase_nodal_to_modal_mem->A_cu, up->phase_nodal_to_modal_mem->A_ho);
 
+    // Allocate the memory for computing the specific conf modal to nodal calculation
+    up->conf_modal_to_nodal_h_ij_inv_quad_mem = gkyl_cu_mat_mm_array_mem_cu_dev_new(up->tot_conf_quad*(vdim*(vdim+1)/2), up->num_conf_basis*(vdim*(vdim+1)/2), 1.0, 0.0, 
+      GKYL_NO_TRANS, GKYL_NO_TRANS);
 
+    // Compute the matrix A for the conf modal to nodal memory, and copy to the mat to GPU
+    const double *confb_o = (const double*) up->conf_basis_at_ords->data;
+    for (int n=0; n<up->num_conf_basis*(vdim*(vdim+1)/2); ++n){
+      for (int k=0; k<up->tot_conf_quad*(vdim*(vdim+1)/2); ++k){
+
+        // Since all elements of h_ij (symmetric unqiue elements) are in the components, we have 
+        // to construct a matrix which only maps the relevant modal comps. to the relevent nodes
+        // This ultimately takes a block-diagnol form for the mapping, A.
+        int n_rem = n%up->num_conf_basis;
+        int n_seg = (n-n_rem)/up->num_conf_basis;
+        int k_rem = k%up->tot_conf_quad;
+        int k_seg = (k-k_rem)/up->tot_conf_quad;
+        if (k_seg == n_seg){
+          gkyl_mat_set(up->conf_modal_to_nodal_h_ij_inv_quad_mem->A_ho, k, n, confb_o[n_rem]);
+        }
+        else {
+          gkyl_mat_set(up->conf_modal_to_nodal_h_ij_inv_quad_mem->A_ho, k, n, 0.0);
+        }
+        //double actual = gkyl_mat_get(up->conf_modal_to_nodal_h_ij_inv_quad_mem->A_ho, k, n);
+        //printf("A(m=%d,n=%d): %1.2e,\n", k, n, actual);
+      }
+    }
+
+    gkyl_mat_copy(up->conf_modal_to_nodal_h_ij_inv_quad_mem->A_cu, up->conf_modal_to_nodal_h_ij_inv_quad_mem->A_ho);
+
+    // Allocate the memory for computing the specific conf modal to nodal calculation
+    up->conf_modal_to_nodal_det_h_quad_mem = gkyl_cu_mat_mm_array_mem_cu_dev_new(up->tot_conf_quad, up->num_conf_basis, 1.0, 0.0, 
+      GKYL_NO_TRANS, GKYL_NO_TRANS);
+
+    // Compute the matrix A for the conf modal to nodal memory, and copy to the mat to GPU
+    for (int n=0; n<up->num_conf_basis; ++n){
+      for (int k=0; k<up->tot_conf_quad; ++k){
+        gkyl_mat_set(up->conf_modal_to_nodal_det_h_quad_mem->A_ho, k, n, confb_o[n]);
+      }
+    }
+
+    gkyl_mat_copy(up->conf_modal_to_nodal_det_h_quad_mem->A_cu, up->conf_modal_to_nodal_det_h_quad_mem->A_ho);
+
+
+    // Create a cuda handle for all cublas operations
     up->cuh = 0;
     cublasCreate_v2(&up->cuh);
+
+    
+    // Call cublas to do the modal to nodal conversion on conf-space quanitites
+    if(up->is_canonical_pb){
+      cu_mat_mm_array(up->cuh, up->conf_modal_to_nodal_h_ij_inv_quad_mem, up->h_ij_inv, up->h_ij_inv_quad);
+      cu_mat_mm_array(up->cuh, up->conf_modal_to_nodal_det_h_quad_mem, up->det_h, up->det_h_quad);
+    }
 
     // initialize data needed for conf-space quadrature 
     up->tot_conf_quad = init_quad_values(up->cdim, &up->conf_basis, num_quad,
@@ -517,6 +567,8 @@ gkyl_vlasov_lte_proj_on_basis_release(gkyl_vlasov_lte_proj_on_basis* up)
     gkyl_array_release(up->h_ij_inv_quad);
     gkyl_array_release(up->det_h_quad);
 
+    gkyl_cu_mat_mm_array_mem_release(up->conf_modal_to_nodal_h_ij_inv_quad_mem);
+    gkyl_cu_mat_mm_array_mem_release(up->conf_modal_to_nodal_det_h_quad_mem);
     gkyl_cu_mat_mm_array_mem_release(up->phase_nodal_to_modal_mem);
     cublasDestroy(up->cuh);
   }

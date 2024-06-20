@@ -34,9 +34,7 @@ gkyl_vlasov_lte_proj_on_basis_advance_cu_ker(const struct gkyl_rect_grid phase_g
   struct gkyl_array* GKYL_RESTRICT V_drift_quad_d, 
   struct gkyl_array* GKYL_RESTRICT T_over_m_quad_d, 
   struct gkyl_array* GKYL_RESTRICT V_drift_quad_cell_avg_d, 
-  struct gkyl_array* GKYL_RESTRICT h_ij_inv_quad_d, 
-  struct gkyl_array* GKYL_RESTRICT det_h_quad_d, const int *p2c_qidx, bool is_relativistic, 
-  bool is_canonical_pb, const struct gkyl_array* GKYL_RESTRICT h_ij_inv,  const struct gkyl_array* GKYL_RESTRICT det_h,
+  const int *p2c_qidx, bool is_relativistic, bool is_canonical_pb, 
   const struct gkyl_array* GKYL_RESTRICT moms_lte, const struct gkyl_basis* conf_basis_on_dev,
    struct gkyl_array* GKYL_RESTRICT f_lte_at_nodes, int num_conf_basis, int tot_conf_quad)
 {
@@ -58,19 +56,11 @@ gkyl_vlasov_lte_proj_on_basis_advance_cu_ker(const struct gkyl_rect_grid phase_g
     double *V_drift_quad = (double*) gkyl_array_fetch(V_drift_quad_d, lincC);
     double *T_over_m_quad = (double*) gkyl_array_fetch(T_over_m_quad_d, lincC);
     double *V_drift_quad_cell_avg = (double*) gkyl_array_fetch(V_drift_quad_cell_avg_d, lincC);
-    double *h_ij_inv_quad = (double*) gkyl_array_fetch(h_ij_inv_quad_d, lincC);
-    double *det_h_quad = (double*) gkyl_array_fetch(det_h_quad_d, lincC);
 
     const double *moms_lte_d = (const double*) gkyl_array_cfetch(moms_lte, lincC);
     const double *n_d = moms_lte_d;
     const double *V_drift_d = &moms_lte_d[num_conf_basis];
     const double *T_over_m_d = &moms_lte_d[num_conf_basis*(vdim+1)];
-    const double *h_ij_inv_d;
-    const double *det_h_d;
-    if (is_canonical_pb) {
-      h_ij_inv_d = (const double*) gkyl_array_cfetch(h_ij_inv, lincC);
-      det_h_d = (const double*) gkyl_array_cfetch(det_h, lincC);
-    }
 
     // Sum over basis for given LTE moments (n, V_drift, T/m) in the stationary frame
     int n = linc2;
@@ -84,13 +74,6 @@ gkyl_vlasov_lte_proj_on_basis_advance_cu_ker(const struct gkyl_rect_grid phase_g
     }
     // Update T at nodal points
     conf_basis_on_dev->modal_to_quad_nodal(T_over_m_d, T_over_m_quad, n);
-
-    if (is_canonical_pb) {
-      conf_basis_on_dev->modal_to_quad_nodal(det_h_d, det_h_quad, n);
-      for (int j=0; j<vdim*(vdim+1)/2; ++j) {
-        conf_basis_on_dev->modal_to_quad_nodal(&h_ij_inv_d[num_conf_basis*j], &h_ij_inv_quad[tot_conf_quad*j], n);
-      }
-    }     
   }
 }
 
@@ -226,12 +209,8 @@ gkyl_vlasov_lte_proj_on_basis_advance_cu(gkyl_vlasov_lte_proj_on_basis *up,
      up->n_quad->on_dev, 
      up->V_drift_quad->on_dev, 
      up->T_over_m_quad->on_dev, 
-     up->V_drift_quad_cell_avg->on_dev, 
-     up->h_ij_inv_quad->on_dev, 
-     up->det_h_quad->on_dev, up->p2c_qidx,
+     up->V_drift_quad_cell_avg->on_dev, up->p2c_qidx,
      up->is_relativistic, up->is_canonical_pb, 
-     up->is_canonical_pb ? up->h_ij_inv->on_dev : 0, 
-     up->is_canonical_pb ? up->det_h->on_dev : 0, 
      moms_lte->on_dev, up->conf_basis_on_dev, up->f_lte_at_nodes->on_dev, num_conf_basis, tot_conf_quad);
 
   //int nblocks = phase_range->nblocks, nthreads = phase_range->nthreads;
@@ -250,7 +229,7 @@ gkyl_vlasov_lte_proj_on_basis_advance_cu(gkyl_vlasov_lte_proj_on_basis *up,
      up->is_canonical_pb ? up->det_h->on_dev : 0, 
      moms_lte->on_dev, up->f_lte_at_nodes->on_dev, num_conf_basis, tot_conf_quad);
 
-  // Call cublas to do the nodal to modal conversion
+  // Call cublas to do the matrix multiplication nodal to modal conversion
   cu_mat_mm_array(up->cuh, up->phase_nodal_to_modal_mem, up->f_lte_at_nodes, f_lte);
 
   // Correct the density of the projected LTE distribution function through rescaling.

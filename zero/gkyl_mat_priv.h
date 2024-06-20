@@ -11,8 +11,6 @@
 #include <stdio.h>
 
 #ifdef GKYL_HAVE_CUDA
-//#define CUBLAS_H_
-//#include <cuda_runtime.h>
 #if !defined(CUBLAS_V2_H_)
 #include <cublas_v2.h>
 #endif
@@ -30,9 +28,6 @@ struct gkyl_cu_mat_mm_array_mem {
   struct gkyl_mat *A_ho;
   struct gkyl_mat *A_cu;
 
-#ifdef GKYL_HAVE_CUDA
-  //cublasHandle_t cuh; // cublas handle
-#endif  
 };
 
 #ifdef GKYL_HAVE_CUDA
@@ -50,6 +45,6 @@ struct gkyl_cu_mat_mm_array_mem {
  * @param B gkyl_array matrix for computing A*B = C
  * @param C gkyl_array matrix for computing A*B = C
 */
-void cu_mat_mm_array(cublasHandle_t cuh, struct gkyl_cu_mat_mm_array_mem *mem, struct gkyl_array *B, struct gkyl_array *C);
+void cu_mat_mm_array(cublasHandle_t cuh, struct gkyl_cu_mat_mm_array_mem *mem, const struct gkyl_array *B, struct gkyl_array *C);
   
 #endif
