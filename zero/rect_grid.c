@@ -54,7 +54,7 @@ gkyl_rect_grid_find_cell(const struct gkyl_rect_grid *grid, const double *point,
   
   for (int d=0; d<nDim; d++) {
     dim_trans[d] = (int*)malloc(1*sizeof(int));
-    if (known_index[d]<0) {
+    if (known_index[d] < 0) {
       search_dim[search_num] = d;
       *dim_trans[d] = search_num;
       search_num = search_num + 1;
