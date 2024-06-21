@@ -217,11 +217,12 @@ gkyl_proj_gkmaxwellian_on_basis_prim_mom_cu(const gkyl_proj_maxwellian_on_basis 
   int num_phase_basis = fmax->ncomp;
   int tot_phase_quad = up->basis_at_ords->size;
   int tot_conf_quad = up->conf_basis_at_ords->size;
+  int nblocks = conf_r->nblocks, nthreads = conf_r->nthreads;
 
   const struct gkyl_velocity_map *gvm = up->vel_map;
   
-  gkyl_parallelize_components_kernel_launch_dims(&dimGrid, &dimBlock, *conf_r, tot_conf_quad);
-  gkyl_expand_prim_mom_at_quad_cu_ker<<<dimGrid, dimBlock>>>
+  //gkyl_parallelize_components_kernel_launch_dims(&dimGrid, &dimBlock, *conf_r, tot_conf_quad);
+  gkyl_expand_prim_mom_at_quad_cu_ker<<<nblocks, nthreads>>>
     (*phase_r, *conf_r, up->conf_basis_at_ords->on_dev,
      up->den_quad->on_dev, 
      up->upar_quad->on_dev, 
