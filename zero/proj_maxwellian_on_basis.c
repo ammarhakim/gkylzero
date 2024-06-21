@@ -163,11 +163,11 @@ gkyl_proj_maxwellian_on_basis_inew(const struct gkyl_proj_maxwellian_on_basis_in
 
   // initialize data needed for conf-space quadrature 
   up->tot_conf_quad = init_quad_values(up->cdim, conf_basis, num_quad,
-    &up->conf_ordinates, &up->conf_weights, &up->conf_basis_at_ords, up->use_gpu);
+    &up->conf_ordinates, &up->conf_weights, &up->conf_basis_at_ords, false);
 
   // initialize data needed for phase-space quadrature 
   up->tot_quad = init_quad_values(up->cdim, phase_basis, num_quad,
-    &up->ordinates, &up->weights, &up->basis_at_ords, up->use_gpu);
+    &up->ordinates, &up->weights, &up->basis_at_ords, false);
 
   up->fun_at_ords = gkyl_array_new(GKYL_DOUBLE, 1, up->tot_quad); // Only used in CPU implementation.
 
@@ -201,6 +201,33 @@ gkyl_proj_maxwellian_on_basis_inew(const struct gkyl_proj_maxwellian_on_basis_in
     up->bmag_quad = gkyl_array_cu_dev_new(GKYL_DOUBLE, up->tot_conf_quad, inp->conf_range_ext->volume); 
     up->jactot_quad = gkyl_array_cu_dev_new(GKYL_DOUBLE, up->tot_conf_quad, inp->conf_range_ext->volume); 
     up->expamp_quad = gkyl_array_cu_dev_new(GKYL_DOUBLE, up->tot_conf_quad, inp->conf_range_ext->volume); 
+
+    // Allocate the memory for computing the specific phase nodal to modal calculation
+    up->phase_nodal_to_modal_mem = gkyl_cu_mat_mm_array_mem_cu_dev_new(up->num_phase_basis, up->tot_quad, 1.0, 0.0,
+      GKYL_NO_TRANS, GKYL_NO_TRANS);
+    // Compute the matrix A for the phase nodal to modal memory
+    const double *phase_w = (const double*) up->weights->data;
+    const double *phaseb_o = (const double*) up->basis_at_ords->data;
+    for (int n=0; n<up->tot_quad; ++n){
+      for (int k=0; k<up->num_phase_basis; ++k){
+        gkyl_mat_set(up->phase_nodal_to_modal_mem->A_ho, k, n, phase_w[n]*phaseb_o[k+up->num_phase_basis*n]);
+        double actual = gkyl_mat_get(up->phase_nodal_to_modal_mem->A_ho, k, n);
+      }
+    }
+    // copy to device
+    gkyl_mat_copy(up->phase_nodal_to_modal_mem->A_cu, up->phase_nodal_to_modal_mem->A_ho);
+
+    // Create a cuda handle for all cublas operations
+    up->cuh = 0;
+    cublasCreate_v2(&up->cuh);
+
+    // initialize data needed for conf-space quadrature 
+    up->tot_conf_quad = init_quad_values(up->cdim, conf_basis, num_quad,
+      &up->conf_ordinates, &up->conf_weights, &up->conf_basis_at_ords, up->use_gpu);
+
+    // initialize data needed for phase-space quadrature 
+    up->tot_quad = init_quad_values(up->cdim, phase_basis, num_quad,
+      &up->ordinates, &up->weights, &up->basis_at_ords, up->use_gpu);
 
     int pidx[GKYL_MAX_DIM];
     for (int n=0; n<up->tot_quad; ++n) {
@@ -361,6 +388,8 @@ gkyl_proj_maxwellian_on_basis_release(gkyl_proj_maxwellian_on_basis* up)
     gkyl_array_release(up->bmag_quad); 
     gkyl_array_release(up->jactot_quad); 
     gkyl_array_release(up->expamp_quad); 
+    gkyl_cu_mat_mm_array_mem_release(up->phase_nodal_to_modal_mem);
+    cublasDestroy(up->cuh);
   }
 #endif
   gkyl_array_release(up->ordinates);
