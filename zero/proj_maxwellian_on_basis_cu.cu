@@ -43,10 +43,10 @@ gkyl_expand_prim_mom_at_quad_cu_ker(const struct gkyl_range phase_r, const struc
   int num_conf_basis = conf_basis_at_ords->ncomp;
   int tot_conf_quad = conf_basis_at_ords->size;
 
-  int pidx[GKYL_MAX_DIM], cidx[GKYL_MAX_CDIM];
+  int cidx[GKYL_MAX_CDIM];
  
   // 2D thread grid.
-  long linc2 = threadIdx.y + blockIdx.y*blockDim.y;
+  // long linc2 = threadIdx.y + blockIdx.y*blockDim.y;
   for(unsigned long tid = threadIdx.x + blockIdx.x*blockDim.x;
       tid < conf_r.volume; tid += blockDim.x*gridDim.x) {
     gkyl_sub_range_inv_idx(&conf_r, tid, cidx);
@@ -68,20 +68,32 @@ gkyl_expand_prim_mom_at_quad_cu_ker(const struct gkyl_range phase_r, const struc
     double *jactot_quad = (double*) gkyl_array_fetch(jactot_quad_d, lincC);  
     double *expamp_quad = (double*) gkyl_array_fetch(expamp_quad_d, lincC);  
 
-    int n = linc2;
+    // Sum over basis for give primitive moments.    
+    for (int n=0; n<tot_conf_quad; ++n) {
+      const double *b_ord = (const double *) gkyl_array_cfetch(conf_basis_at_ords, n);
 
-    // Compute primitive moments at quadrature nodes.
-    conf_basis_on_dev->modal_to_quad_nodal(den_d, den_quad, n);
-    conf_basis_on_dev->modal_to_quad_nodal(upar_d, upar_quad, n);
-    conf_basis_on_dev->modal_to_quad_nodal(vtsq_d, vtsq_quad, n);
-    conf_basis_on_dev->modal_to_quad_nodal(bmag_d, bmag_quad, n);
-    conf_basis_on_dev->modal_to_quad_nodal(jactot_d, jactot_quad, n);
+      // Zero out quadrature values.
+      den_quad[n] = 0.0;
+      upar_quad[n] = 0.0;
+      vtsq_quad[n] = 0.0;
+      bmag_quad[n] = 0.0;
+      jactot_quad[n] = 0.0;
 
-    // Amplitude of the exponential.
-    if ((den_quad[n] > 0.) && (vtsq_quad[n]>0.))
-      expamp_quad[n] = jactot_quad[n]*den_quad[n]/sqrt(pow(2.0*GKYL_PI*vtsq_quad[n], vdim_phys));
-    else
-      expamp_quad[n] = 0.;
+      // Compute configuration space quadrature values.
+      for (int k=0; k<num_conf_basis; ++k) {
+        den_quad[n] += den_d[k]*b_ord[k];
+        upar_quad[n] += upar_d[k]*b_ord[k];
+        vtsq_quad[n] += vtsq_d[k]*b_ord[k];
+        bmag_quad[n] += bmag_d[k]*b_ord[k];
+        jactot_quad[n] += jactot_d[k]*b_ord[k];
+      }
+
+      // Amplitude of the exponential.
+      if ((den_quad[n] > 0.) && (vtsq_quad[n]>0.))
+        expamp_quad[n] = jactot_quad[n]*den_quad[n]/sqrt(pow(2.0*GKYL_PI*vtsq_quad[n], vdim_phys));
+      else
+        expamp_quad[n] = 0.;
+    }
   }
 }
 
@@ -163,7 +175,7 @@ gkyl_construct_gkmaxwellian_at_quad_cu_ker(const struct gkyl_rect_grid grid,
     fq[n] = vtsq_quad[cqidx] > 0.0 ? fJacB_floor+expamp_quad[cqidx]*exp(-efact/(2.0*vtsq_quad[cqidx])) : fJacB_floor;
   }
 }
-
+/*
 __global__ static void
 gkyl_proj_gkmaxwellian_on_basis_cu_ker(const struct gkyl_range phase_r, 
   const struct gkyl_array* GKYL_RESTRICT basis_at_ords, 
@@ -191,22 +203,9 @@ gkyl_proj_gkmaxwellian_on_basis_cu_ker(const struct gkyl_range phase_r,
     // Convert back to modal basis; take the thread id for the basis function 
     // so we cant parallelize over basis functions.
     phase_basis_on_dev->quad_nodal_to_modal(fq, fm, linc2);
-     
-    /*
-    // The following is modeled after proj_on_basis in the private header.
-    const double *phase_w = (const double*) phase_weights->data;
-    const double *phaseb_o = (const double*) basis_at_ords->data;
-    for (int n=0; n<tot_phase_quad; ++n) {
-      double tmp = phase_w[n]*fq[n];
-      fm[linc2] += tmp*phaseb_o[linc2+num_phase_basis*n];
-      if (linc2==0) {
-        printf("quad=%d\n", n);
-        printf("coeff=%g\n", phase_w[n]*phaseb_o[num_phase_basis*n]);
-      }
-    }*/
   }
 }
-
+*/
 void
 gkyl_proj_gkmaxwellian_on_basis_prim_mom_cu(const gkyl_proj_maxwellian_on_basis *up,
   const struct gkyl_range *phase_r, const struct gkyl_range *conf_r,
