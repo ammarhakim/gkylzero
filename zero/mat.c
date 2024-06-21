@@ -238,6 +238,7 @@ gkyl_mat_new(size_t nr, size_t nc, double val)
   mat->data = gkyl_malloc(sizeof(double[nr*nc]));  
   mat->on_dev = mat; // on CPU this is a self-reference
   mat->ref_count = gkyl_ref_count_init(mat_free);
+  for (size_t i=0; i<nr*nc; ++i) mat->data[i] = val;
   return mat;
 }
 
