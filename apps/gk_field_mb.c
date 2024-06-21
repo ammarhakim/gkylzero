@@ -96,14 +96,19 @@ gk_field_mb_new(struct gkyl_gk_mb *gk_mb, struct gkyl_gyrokinetic_mb_app *mb_app
   lower[0] = mb_app->decomp_intrab[0]->parent_range.lower[0];
   upper[0] = mb_app->decomp_intrab[0]->parent_range.upper[0];
   lower[1] = mb_app->decomp_intrab[0]->parent_range.lower[1];
-  upper[1] = gkyl_range_shape(&mb_app->decomp_intrab[0]->parent_range, 1) + gkyl_range_shape(&mb_app->decomp_intrab[1]->parent_range, 1); // Need to add up all ranges connected in z. So would need one more [2] in for 3 blocks
+  // Add up all ranges in z direction
+  upper[1] = 0;
+  for ( int i = 0; i < num_blocks; i++) {
+    upper[1] += gkyl_range_shape(&mb_app->decomp_intrab[crossz_blocks[i]]->parent_range, 1);
+  }
+  printf("upper[1] = %d\n", upper[1]);
   struct gkyl_range crossz;
   gkyl_range_init(&crossz, mb_app->cdim, lower, upper);
   int nghost[2] = {1,1};
   gkyl_create_ranges(&crossz, nghost, &f->crossz_ext, &f->crossz);
 
   // Create the decomp and communicator from the mb app communicator
-  int cuts[2] = {1,2}; // For only two blocks. Would be 1,3 for 3 blocks along z
+  int cuts[2] = {1,num_blocks};
   struct gkyl_rect_decomp *zdecomp = gkyl_rect_decomp_new_from_cuts(mb_app->cdim, cuts, &f->crossz);
   f->zcomm = gkyl_comm_split_comm(mb_app->comm_mb, 0, zdecomp); // Would have different colors for other 
                                                                // block groups like 11-12, 7-8-9
