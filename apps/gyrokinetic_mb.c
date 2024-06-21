@@ -672,7 +672,7 @@ static void
 v_gk_app_cout(const gkyl_gyrokinetic_mb_app* app, FILE *fp, const char *fmt, va_list argp)
 {
   int rank, r = 0;
-  gkyl_comm_get_rank(app->blocks[0]->comm, &rank);
+  gkyl_comm_get_rank(app->comm_mb, &rank);
   if ((rank == 0) && fp)
     vfprintf(fp, fmt, argp);
 }
