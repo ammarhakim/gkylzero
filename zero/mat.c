@@ -1,15 +1,11 @@
 #include <gkyl_alloc.h>
 #include <gkyl_alloc_flags_priv.h>
 #include <gkyl_mat.h>
+#include <gkyl_mat_priv.h>
 #include <gkyl_ref_count.h>
 #include <gkyl_util.h>
 
 #include <stdbool.h>
-
-#ifdef GKYL_HAVE_CUDA
-# include <cuda_runtime.h>
-# include <cublas_v2.h>
-#endif
 
 // BLAS and LAPACKE includes
 #ifdef GKYL_USING_FRAMEWORK_ACCELERATE
@@ -57,16 +53,6 @@ get_mat_sizes(enum gkyl_mat_trans trans, const struct gkyl_mat *A)
   if (trans == GKYL_NO_TRANS)
     return (struct mat_sizes) { .nr = A->nr, .nc = A->nc };
   return (struct mat_sizes) { .nr = A->nc, .nc = A->nr };
-}
-
-struct gkyl_mat*
-gkyl_mat_new(size_t nr, size_t nc, double val)
-{
-  struct gkyl_mat *m = gkyl_malloc(sizeof(struct gkyl_mat));
-  m->data = gkyl_malloc(sizeof(double[nr*nc]));
-  m->nr = nr; m->nc = nc;
-  for (size_t i=0; i<nr*nc; ++i) m->data[i] = val;
-  return m;
 }
 
 struct gkyl_mat*
@@ -203,10 +189,28 @@ gkyl_mat_linsolve_lu(struct gkyl_mat *A, struct gkyl_mat *x, void* ipiv)
 void
 gkyl_mat_release(struct gkyl_mat *mat)
 {
+  #ifdef GKYL_HAVE_CUDA
+    gkyl_ref_count_dec(&mat->ref_count);
+  #else
   if (mat) {
     gkyl_free(mat->data);
     gkyl_free(mat);
   }
+  #endif
+}
+
+static void
+mat_free(const struct gkyl_ref_count *ref)
+{
+  struct gkyl_mat *mat = container_of(ref, struct gkyl_mat, ref_count);
+  if (GKYL_IS_CU_ALLOC(mat->flags)) {
+    gkyl_cu_free(mat->data);
+    gkyl_cu_free(mat->on_dev);
+  }
+  else {
+    gkyl_free(mat->data);
+  }
+  gkyl_free(mat);  
 }
 
 static void
@@ -223,6 +227,19 @@ nmat_free(const struct gkyl_ref_count *ref)
     gkyl_free(mat->mptr);
   }
   gkyl_free(mat);  
+}
+
+struct gkyl_mat*
+gkyl_mat_new(size_t nr, size_t nc, double val)
+{
+  struct gkyl_mat *mat = gkyl_malloc(sizeof(struct gkyl_mat));
+  mat->nr = nr; mat->nc = nc;
+  mat->flags = 0;
+  mat->data = gkyl_malloc(sizeof(double[nr*nc]));  
+  mat->on_dev = mat; // on CPU this is a self-reference
+  mat->ref_count = gkyl_ref_count_init(mat_free);
+  for (size_t i=0; i<nr*nc; ++i) mat->data[i] = val;
+  return mat;
 }
 
 struct gkyl_nmat*
@@ -266,6 +283,37 @@ gkyl_nmat_copy(struct gkyl_nmat *dest, const struct gkyl_nmat *src)
       memcpy(dest->data, src->data, nby);
   }
   
+  return dest;
+}
+
+bool
+gkyl_mat_is_cu_dev(const struct gkyl_mat *mat)
+{
+  return GKYL_IS_CU_ALLOC(mat->flags);
+}
+
+struct gkyl_mat*
+gkyl_mat_copy(struct gkyl_mat *dest, const struct gkyl_mat *src)
+{
+  assert( dest->nr == src->nr && dest->nc == src->nc );
+  bool dest_is_cu_dev = gkyl_mat_is_cu_dev(dest);
+  bool src_is_cu_dev = gkyl_mat_is_cu_dev(src);
+  size_t nby = src->nr*src->nc*sizeof(double);
+
+  if (src_is_cu_dev) {
+    // source is on device
+    if (dest_is_cu_dev)
+      gkyl_cu_memcpy(dest->data, src->data, nby, GKYL_CU_MEMCPY_D2D);
+    else
+      gkyl_cu_memcpy(dest->data, src->data, nby, GKYL_CU_MEMCPY_D2H);
+  }
+  else {
+    // source is on host
+    if (dest_is_cu_dev)
+      gkyl_cu_memcpy(dest->data, src->data, nby, GKYL_CU_MEMCPY_H2D);
+    else
+      memcpy(dest->data, src->data, nby);
+  }
   return dest;
 }
 
@@ -336,6 +384,30 @@ gkyl_nmat_linsolve_lu_release(gkyl_nmat_mem *mem)
     gkyl_free(mem->ipiv_ho);
   }
   
+  gkyl_free(mem);
+}
+
+gkyl_cu_mat_mm_array_mem *
+gkyl_cu_mat_mm_array_mem_cu_dev_new(int nr, int nc, double alpha, double beta, 
+  enum gkyl_mat_trans transa, enum gkyl_mat_trans transb)
+{
+  gkyl_cu_mat_mm_array_mem *mem = gkyl_malloc(sizeof(*mem));
+
+  mem->alpha = alpha;
+  mem->beta = beta;
+  mem->transa = transa;
+  mem->transb = transb;
+  mem->A_cu = gkyl_mat_cu_dev_new(nr, nc);
+  mem->A_ho = gkyl_mat_new(nr, nc, 0.0);
+
+  return mem;
+}
+
+void
+gkyl_cu_mat_mm_array_mem_release(gkyl_cu_mat_mm_array_mem *mem)
+{
+  gkyl_mat_release(mem->A_cu);
+  gkyl_mat_release(mem->A_ho);
   gkyl_free(mem);
 }
 
@@ -496,6 +568,29 @@ cu_nmat_linsolve_lu(gkyl_nmat_mem *mem, struct gkyl_nmat *A, struct gkyl_nmat *x
 #endif  
 }
 
+#ifdef GKYL_HAVE_CUDA
+void
+cu_mat_mm_array(cublasHandle_t cuh, struct gkyl_cu_mat_mm_array_mem *mem, const struct gkyl_array *B, struct gkyl_array *C)
+{
+
+  double alpha = mem->alpha;
+  double beta = mem->beta; 
+  enum gkyl_mat_trans transa = mem->transa;
+  struct gkyl_mat *A = mem->A_cu;
+  enum gkyl_mat_trans transb = mem->transb;
+
+  struct mat_sizes sza = get_mat_sizes(transa, A); 
+  size_t k = sza.nc;
+  size_t lda = transa == GKYL_NO_TRANS ? C->ncomp : k;
+  size_t ldb = transb == GKYL_NO_TRANS ? k : C->size;
+  size_t ldc = C->ncomp;
+
+  // Now do the matrix multiply
+  cublasStatus_t info;
+  info = cublasDgemm(cuh, transa, transb, A->nr, B->size, A->nc, &alpha, A->data, lda, B->data, ldb, &beta, C->data, ldc);
+}
+#endif 
+
 bool
 gkyl_nmat_linsolve_lu(struct gkyl_nmat *A, struct gkyl_nmat *x)
 {
@@ -541,6 +636,30 @@ gkyl_nmat_release(struct gkyl_nmat *mat)
 
 #ifdef GKYL_HAVE_CUDA
 
+struct gkyl_mat*
+gkyl_mat_cu_dev_new(size_t nr, size_t nc)
+{
+  struct gkyl_mat *mat = gkyl_malloc(sizeof(struct gkyl_mat));
+  mat->nr = nr; mat->nc = nc;
+
+  mat->flags = 0;
+  GKYL_SET_CU_ALLOC(mat->flags);
+  mat->data = gkyl_cu_malloc(sizeof(double[nr*nc]));
+  mat->ref_count = gkyl_ref_count_init(mat_free);
+
+  // create a clone of struct mat->on_dev that lives on device, so
+  // that the whole mat->on_dev struct can be passed to a device
+  // kernel
+  mat->on_dev = gkyl_cu_malloc(sizeof(struct gkyl_mat));
+  gkyl_cu_memcpy(mat->on_dev, mat, sizeof(struct gkyl_mat), GKYL_CU_MEMCPY_H2D);
+  
+  // set device-side data pointer in mat->on_dev to mat->data 
+  // (which is the host-side pointer to the device data)
+  gkyl_cu_memcpy(&((mat->on_dev)->data), &mat->data, sizeof(double*), GKYL_CU_MEMCPY_H2D);
+
+  return mat;
+}
+
 struct gkyl_nmat*
 gkyl_nmat_cu_dev_new(size_t num, size_t nr, size_t nc)
 {
@@ -577,7 +696,15 @@ gkyl_nmat_cu_dev_new(size_t num, size_t nr, size_t nc)
   return mat;
 }
 
+
 #else
+
+struct gkyl_mat*
+gkyl_mat_cu_dev_new(size_t num, size_t nr, size_t nc)
+{
+  assert(false);
+  return 0;
+}
 
 struct gkyl_nmat*
 gkyl_nmat_cu_dev_new(size_t num, size_t nr, size_t nc)
