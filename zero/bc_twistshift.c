@@ -21,6 +21,8 @@ gkyl_bc_twistshift_new(const struct gkyl_bc_twistshift_inp *inp)
   up->local_ext_r = inp->local_ext_r;
   up->local_r = inp->local_r;
   up->grid = inp->grid;
+  up->shift_func     = inp->shift_func; // Function defining the shift.
+  up->shift_func_ctx = inp->shift_func_ctx; // Context for shift_func.
   up->use_gpu = inp->use_gpu;
 
   // Assume the poly order of the DG shift is the same as that of the field,
@@ -78,10 +80,26 @@ gkyl_bc_twistshift_new(const struct gkyl_bc_twistshift_inp *inp)
   // Find the donor cells for each target cell.
   ts_find_donors(up);
 
-//  // Choose the kernels that do the subcell and full cell integrals
-//  up->kernels = gkyl_malloc(sizeof(struct gkyl_bc_twistshift_kernels));
-//  gkyl_bc_twistshift_choose_kernels(inp->basis, inp->cdim, up->kernels);
-//
+  // Allocate matrices containing the discrete subcell integrals.
+  int num_do_tot = 0;
+  for (int i=0; i<up->shear_r.volume; i++)
+    num_do_tot += up->num_do[i];
+
+  struct gkyl_nmat *matsdo_ho = gkyl_nmat_new(num_do_tot, inp->basis.num_basis, inp->basis.num_basis);
+  for (int n=0; n<matsdo_ho->num; ++n) {
+    struct gkyl_mat m = gkyl_nmat_get(matsdo_ho, n);
+    for (int j=0; j<matsdo_ho->nc; ++j)
+      for (int i=0; i<matsdo_ho->nr; ++i)
+        gkyl_mat_set(&m, i, j, 0.0);
+  }
+
+  // Choose the kernels that do the subcell and full cell integrals
+  up->kernels = gkyl_malloc(sizeof(struct gkyl_bc_twistshift_kernels));
+  gkyl_bc_twistshift_choose_kernels(inp->basis, inp->cdim, up->kernels);
+
+  // Calculate the entries in the matrices used to apply the BC.
+  ts_calc_mats(up, matsdo_ho);
+
 //  // Allocate matrices and vectors, initialize if needed
 //  int total_donor_mats = 0;
 //  int ndonors_cum[up->grid->cells[up->shear_dir]+1];
@@ -159,6 +177,7 @@ gkyl_bc_twistshift_new(const struct gkyl_bc_twistshift_inp *inp)
 //  }
 //  gkyl_range_deflate(up->yrange, up->local_r, up->remDir, up->locDir);
 
+  gkyl_nmat_release(matsdo_ho);
 
   return up;
 }
@@ -269,22 +288,20 @@ gkyl_bc_twistshift_new(const struct gkyl_bc_twistshift_inp *inp)
 void gkyl_bc_twistshift_release(struct gkyl_bc_twistshift *up) {
   // Release memory associated with this updater.
   gkyl_free(up->num_do);
-//  gkyl_free(up->shift_dir_idx_do);
+  gkyl_free(up->shift_dir_idx_do);
+
+  gkyl_free(up->kernels);
 
   gkyl_free(up);
 
   // *****   IN PROGRESS   ****** 
 //#ifdef GKYL_HAVE_CUDA
-//  gkyl_nmat_release(up->matsdo_ho);
 //  gkyl_cu_free(up->tar_locs_cu);
 //  gkyl_cu_free(up->locs_cu);
 //  gkyl_cu_free(up->ndonors_cum_cu);
-//  if (up->use_gpu)
-//    gkyl_cu_free(up->kernels_cu);
 //#endif
 //  gkyl_free(up->locs);
 //  gkyl_free(up->tar_locs);
-//  gkyl_free(up->kernels);
 //  gkyl_free(up->yrange);
 //  gkyl_free(up->xrange);
 //  gkyl_free(up->remDir);
