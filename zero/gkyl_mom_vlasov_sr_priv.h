@@ -135,7 +135,7 @@ kernel_vlasov_sr_M1i_1x1v_ser_p1(const struct gkyl_mom_type *momt, const double 
   long vidx = gkyl_range_idx(&mom_vm_sr->vel_range, idx_vel);
 
   return vlasov_sr_M1i_1x1v_ser_p1(xc, dx, idx, 
-    (const double*) gkyl_array_cfetch(mom_vm_sr->auxfields.p_over_gamma, vidx),
+    (const double*) gkyl_array_cfetch(mom_vm_sr->auxfields.gamma, vidx),
     f, out);
 }
 
@@ -155,7 +155,7 @@ kernel_vlasov_sr_M1i_1x1v_ser_p2(const struct gkyl_mom_type *momt, const double 
   long vidx = gkyl_range_idx(&mom_vm_sr->vel_range, idx_vel);
 
   return vlasov_sr_M1i_1x1v_ser_p2(xc, dx, idx, 
-    (const double*) gkyl_array_cfetch(mom_vm_sr->auxfields.p_over_gamma, vidx),
+    (const double*) gkyl_array_cfetch(mom_vm_sr->auxfields.gamma, vidx),
     f, out);
 }
 
@@ -175,7 +175,7 @@ kernel_vlasov_sr_M1i_1x2v_ser_p1(const struct gkyl_mom_type *momt, const double 
   long vidx = gkyl_range_idx(&mom_vm_sr->vel_range, idx_vel);
 
   return vlasov_sr_M1i_1x2v_ser_p1(xc, dx, idx, 
-    (const double*) gkyl_array_cfetch(mom_vm_sr->auxfields.p_over_gamma, vidx),
+    (const double*) gkyl_array_cfetch(mom_vm_sr->auxfields.gamma, vidx),
     f, out);
 }
 
@@ -195,7 +195,7 @@ kernel_vlasov_sr_M1i_1x2v_ser_p2(const struct gkyl_mom_type *momt, const double 
   long vidx = gkyl_range_idx(&mom_vm_sr->vel_range, idx_vel);
 
   return vlasov_sr_M1i_1x2v_ser_p2(xc, dx, idx, 
-    (const double*) gkyl_array_cfetch(mom_vm_sr->auxfields.p_over_gamma, vidx),
+    (const double*) gkyl_array_cfetch(mom_vm_sr->auxfields.gamma, vidx),
     f, out);
 }
 
@@ -215,7 +215,7 @@ kernel_vlasov_sr_M1i_1x3v_ser_p1(const struct gkyl_mom_type *momt, const double 
   long vidx = gkyl_range_idx(&mom_vm_sr->vel_range, idx_vel);
 
   return vlasov_sr_M1i_1x3v_ser_p1(xc, dx, idx, 
-    (const double*) gkyl_array_cfetch(mom_vm_sr->auxfields.p_over_gamma, vidx),
+    (const double*) gkyl_array_cfetch(mom_vm_sr->auxfields.gamma, vidx),
     f, out);
 }
 
@@ -235,7 +235,7 @@ kernel_vlasov_sr_M1i_1x3v_ser_p2(const struct gkyl_mom_type *momt, const double 
   long vidx = gkyl_range_idx(&mom_vm_sr->vel_range, idx_vel);
 
   return vlasov_sr_M1i_1x3v_ser_p2(xc, dx, idx, 
-    (const double*) gkyl_array_cfetch(mom_vm_sr->auxfields.p_over_gamma, vidx),
+    (const double*) gkyl_array_cfetch(mom_vm_sr->auxfields.gamma, vidx),
     f, out);
 }
 
@@ -255,7 +255,7 @@ kernel_vlasov_sr_M1i_2x2v_ser_p1(const struct gkyl_mom_type *momt, const double 
   long vidx = gkyl_range_idx(&mom_vm_sr->vel_range, idx_vel);
 
   return vlasov_sr_M1i_2x2v_ser_p1(xc, dx, idx, 
-    (const double*) gkyl_array_cfetch(mom_vm_sr->auxfields.p_over_gamma, vidx),
+    (const double*) gkyl_array_cfetch(mom_vm_sr->auxfields.gamma, vidx),
     f, out);
 }
 
@@ -275,7 +275,7 @@ kernel_vlasov_sr_M1i_2x2v_ser_p2(const struct gkyl_mom_type *momt, const double 
   long vidx = gkyl_range_idx(&mom_vm_sr->vel_range, idx_vel);
 
   return vlasov_sr_M1i_2x2v_ser_p2(xc, dx, idx, 
-    (const double*) gkyl_array_cfetch(mom_vm_sr->auxfields.p_over_gamma, vidx),
+    (const double*) gkyl_array_cfetch(mom_vm_sr->auxfields.gamma, vidx),
     f, out);
 }
 
@@ -295,7 +295,7 @@ kernel_vlasov_sr_M1i_2x3v_ser_p1(const struct gkyl_mom_type *momt, const double 
   long vidx = gkyl_range_idx(&mom_vm_sr->vel_range, idx_vel);
 
   return vlasov_sr_M1i_2x3v_ser_p1(xc, dx, idx, 
-    (const double*) gkyl_array_cfetch(mom_vm_sr->auxfields.p_over_gamma, vidx),
+    (const double*) gkyl_array_cfetch(mom_vm_sr->auxfields.gamma, vidx),
     f, out);
 }
 
@@ -315,7 +315,7 @@ kernel_vlasov_sr_M1i_2x3v_ser_p2(const struct gkyl_mom_type *momt, const double 
   long vidx = gkyl_range_idx(&mom_vm_sr->vel_range, idx_vel);
 
   return vlasov_sr_M1i_2x3v_ser_p2(xc, dx, idx, 
-    (const double*) gkyl_array_cfetch(mom_vm_sr->auxfields.p_over_gamma, vidx),
+    (const double*) gkyl_array_cfetch(mom_vm_sr->auxfields.gamma, vidx),
     f, out);
 }
 
@@ -335,7 +335,7 @@ kernel_vlasov_sr_M1i_3x3v_ser_p1(const struct gkyl_mom_type *momt, const double 
   long vidx = gkyl_range_idx(&mom_vm_sr->vel_range, idx_vel);
 
   return vlasov_sr_M1i_3x3v_ser_p1(xc, dx, idx, 
-    (const double*) gkyl_array_cfetch(mom_vm_sr->auxfields.p_over_gamma, vidx),
+    (const double*) gkyl_array_cfetch(mom_vm_sr->auxfields.gamma, vidx),
     f, out);
 }
 
@@ -355,7 +355,7 @@ kernel_vlasov_sr_Ni_1x1v_ser_p1(const struct gkyl_mom_type *momt, const double *
   long vidx = gkyl_range_idx(&mom_vm_sr->vel_range, idx_vel);
 
   return vlasov_sr_Ni_1x1v_ser_p1(xc, dx, idx, 
-    (const double*) gkyl_array_cfetch(mom_vm_sr->auxfields.p_over_gamma, vidx),
+    (const double*) gkyl_array_cfetch(mom_vm_sr->auxfields.gamma, vidx),
     f, out);
 }
 
@@ -375,7 +375,7 @@ kernel_vlasov_sr_Ni_1x1v_ser_p2(const struct gkyl_mom_type *momt, const double *
   long vidx = gkyl_range_idx(&mom_vm_sr->vel_range, idx_vel);
 
   return vlasov_sr_Ni_1x1v_ser_p2(xc, dx, idx, 
-    (const double*) gkyl_array_cfetch(mom_vm_sr->auxfields.p_over_gamma, vidx),
+    (const double*) gkyl_array_cfetch(mom_vm_sr->auxfields.gamma, vidx),
     f, out);
 }
 
@@ -395,7 +395,7 @@ kernel_vlasov_sr_Ni_1x2v_ser_p1(const struct gkyl_mom_type *momt, const double *
   long vidx = gkyl_range_idx(&mom_vm_sr->vel_range, idx_vel);
 
   return vlasov_sr_Ni_1x2v_ser_p1(xc, dx, idx, 
-    (const double*) gkyl_array_cfetch(mom_vm_sr->auxfields.p_over_gamma, vidx),
+    (const double*) gkyl_array_cfetch(mom_vm_sr->auxfields.gamma, vidx),
     f, out);
 }
 
@@ -415,7 +415,7 @@ kernel_vlasov_sr_Ni_1x2v_ser_p2(const struct gkyl_mom_type *momt, const double *
   long vidx = gkyl_range_idx(&mom_vm_sr->vel_range, idx_vel);
 
   return vlasov_sr_Ni_1x2v_ser_p2(xc, dx, idx, 
-    (const double*) gkyl_array_cfetch(mom_vm_sr->auxfields.p_over_gamma, vidx),
+    (const double*) gkyl_array_cfetch(mom_vm_sr->auxfields.gamma, vidx),
     f, out);
 }
 
@@ -435,7 +435,7 @@ kernel_vlasov_sr_Ni_1x3v_ser_p1(const struct gkyl_mom_type *momt, const double *
   long vidx = gkyl_range_idx(&mom_vm_sr->vel_range, idx_vel);
 
   return vlasov_sr_Ni_1x3v_ser_p1(xc, dx, idx, 
-    (const double*) gkyl_array_cfetch(mom_vm_sr->auxfields.p_over_gamma, vidx),
+    (const double*) gkyl_array_cfetch(mom_vm_sr->auxfields.gamma, vidx),
     f, out);
 }
 
@@ -455,7 +455,7 @@ kernel_vlasov_sr_Ni_1x3v_ser_p2(const struct gkyl_mom_type *momt, const double *
   long vidx = gkyl_range_idx(&mom_vm_sr->vel_range, idx_vel);
 
   return vlasov_sr_Ni_1x3v_ser_p2(xc, dx, idx, 
-    (const double*) gkyl_array_cfetch(mom_vm_sr->auxfields.p_over_gamma, vidx),
+    (const double*) gkyl_array_cfetch(mom_vm_sr->auxfields.gamma, vidx),
     f, out);
 }
 
@@ -475,7 +475,7 @@ kernel_vlasov_sr_Ni_2x2v_ser_p1(const struct gkyl_mom_type *momt, const double *
   long vidx = gkyl_range_idx(&mom_vm_sr->vel_range, idx_vel);
 
   return vlasov_sr_Ni_2x2v_ser_p1(xc, dx, idx, 
-    (const double*) gkyl_array_cfetch(mom_vm_sr->auxfields.p_over_gamma, vidx),
+    (const double*) gkyl_array_cfetch(mom_vm_sr->auxfields.gamma, vidx),
     f, out);
 }
 
@@ -495,7 +495,7 @@ kernel_vlasov_sr_Ni_2x2v_ser_p2(const struct gkyl_mom_type *momt, const double *
   long vidx = gkyl_range_idx(&mom_vm_sr->vel_range, idx_vel);
 
   return vlasov_sr_Ni_2x2v_ser_p2(xc, dx, idx, 
-    (const double*) gkyl_array_cfetch(mom_vm_sr->auxfields.p_over_gamma, vidx),
+    (const double*) gkyl_array_cfetch(mom_vm_sr->auxfields.gamma, vidx),
     f, out);
 }
 
@@ -515,7 +515,7 @@ kernel_vlasov_sr_Ni_2x3v_ser_p1(const struct gkyl_mom_type *momt, const double *
   long vidx = gkyl_range_idx(&mom_vm_sr->vel_range, idx_vel);
 
   return vlasov_sr_Ni_2x3v_ser_p1(xc, dx, idx, 
-    (const double*) gkyl_array_cfetch(mom_vm_sr->auxfields.p_over_gamma, vidx),
+    (const double*) gkyl_array_cfetch(mom_vm_sr->auxfields.gamma, vidx),
     f, out);
 }
 
@@ -535,7 +535,7 @@ kernel_vlasov_sr_Ni_2x3v_ser_p2(const struct gkyl_mom_type *momt, const double *
   long vidx = gkyl_range_idx(&mom_vm_sr->vel_range, idx_vel);
 
   return vlasov_sr_Ni_2x3v_ser_p2(xc, dx, idx, 
-    (const double*) gkyl_array_cfetch(mom_vm_sr->auxfields.p_over_gamma, vidx),
+    (const double*) gkyl_array_cfetch(mom_vm_sr->auxfields.gamma, vidx),
     f, out);
 }
 
@@ -555,7 +555,7 @@ kernel_vlasov_sr_Ni_3x3v_ser_p1(const struct gkyl_mom_type *momt, const double *
   long vidx = gkyl_range_idx(&mom_vm_sr->vel_range, idx_vel);
 
   return vlasov_sr_Ni_3x3v_ser_p1(xc, dx, idx, 
-    (const double*) gkyl_array_cfetch(mom_vm_sr->auxfields.p_over_gamma, vidx),
+    (const double*) gkyl_array_cfetch(mom_vm_sr->auxfields.gamma, vidx),
     f, out);
 }
 
@@ -1059,7 +1059,6 @@ kernel_vlasov_sr_Tij_1x1v_ser_p1(const struct gkyl_mom_type *momt, const double 
   long vidx = gkyl_range_idx(&mom_vm_sr->vel_range, idx_vel);
 
   return vlasov_sr_Tij_1x1v_ser_p1(xc, dx, idx, 
-    (const double*) gkyl_array_cfetch(mom_vm_sr->auxfields.p_over_gamma, vidx),
     (const double*) gkyl_array_cfetch(mom_vm_sr->auxfields.gamma, vidx),
     f, out);
 }
@@ -1080,7 +1079,6 @@ kernel_vlasov_sr_Tij_1x1v_ser_p2(const struct gkyl_mom_type *momt, const double 
   long vidx = gkyl_range_idx(&mom_vm_sr->vel_range, idx_vel);
 
   return vlasov_sr_Tij_1x1v_ser_p2(xc, dx, idx, 
-    (const double*) gkyl_array_cfetch(mom_vm_sr->auxfields.p_over_gamma, vidx),
     (const double*) gkyl_array_cfetch(mom_vm_sr->auxfields.gamma, vidx),
     f, out);
 }
@@ -1101,7 +1099,6 @@ kernel_vlasov_sr_Tij_1x2v_ser_p1(const struct gkyl_mom_type *momt, const double 
   long vidx = gkyl_range_idx(&mom_vm_sr->vel_range, idx_vel);
 
   return vlasov_sr_Tij_1x2v_ser_p1(xc, dx, idx, 
-    (const double*) gkyl_array_cfetch(mom_vm_sr->auxfields.p_over_gamma, vidx),
     (const double*) gkyl_array_cfetch(mom_vm_sr->auxfields.gamma, vidx),
     f, out);
 }
@@ -1122,7 +1119,6 @@ kernel_vlasov_sr_Tij_1x2v_ser_p2(const struct gkyl_mom_type *momt, const double 
   long vidx = gkyl_range_idx(&mom_vm_sr->vel_range, idx_vel);
 
   return vlasov_sr_Tij_1x2v_ser_p2(xc, dx, idx, 
-    (const double*) gkyl_array_cfetch(mom_vm_sr->auxfields.p_over_gamma, vidx),
     (const double*) gkyl_array_cfetch(mom_vm_sr->auxfields.gamma, vidx),
     f, out);
 }
@@ -1143,7 +1139,6 @@ kernel_vlasov_sr_Tij_1x3v_ser_p1(const struct gkyl_mom_type *momt, const double 
   long vidx = gkyl_range_idx(&mom_vm_sr->vel_range, idx_vel);
 
   return vlasov_sr_Tij_1x3v_ser_p1(xc, dx, idx, 
-    (const double*) gkyl_array_cfetch(mom_vm_sr->auxfields.p_over_gamma, vidx),
     (const double*) gkyl_array_cfetch(mom_vm_sr->auxfields.gamma, vidx),
     f, out);
 }
@@ -1164,7 +1159,6 @@ kernel_vlasov_sr_Tij_1x3v_ser_p2(const struct gkyl_mom_type *momt, const double 
   long vidx = gkyl_range_idx(&mom_vm_sr->vel_range, idx_vel);
 
   return vlasov_sr_Tij_1x3v_ser_p2(xc, dx, idx, 
-    (const double*) gkyl_array_cfetch(mom_vm_sr->auxfields.p_over_gamma, vidx),
     (const double*) gkyl_array_cfetch(mom_vm_sr->auxfields.gamma, vidx),
     f, out);
 }
@@ -1185,7 +1179,6 @@ kernel_vlasov_sr_Tij_2x2v_ser_p1(const struct gkyl_mom_type *momt, const double 
   long vidx = gkyl_range_idx(&mom_vm_sr->vel_range, idx_vel);
 
   return vlasov_sr_Tij_2x2v_ser_p1(xc, dx, idx, 
-    (const double*) gkyl_array_cfetch(mom_vm_sr->auxfields.p_over_gamma, vidx),
     (const double*) gkyl_array_cfetch(mom_vm_sr->auxfields.gamma, vidx),
     f, out);
 }
@@ -1206,7 +1199,6 @@ kernel_vlasov_sr_Tij_2x2v_ser_p2(const struct gkyl_mom_type *momt, const double 
   long vidx = gkyl_range_idx(&mom_vm_sr->vel_range, idx_vel);
 
   return vlasov_sr_Tij_2x2v_ser_p2(xc, dx, idx, 
-    (const double*) gkyl_array_cfetch(mom_vm_sr->auxfields.p_over_gamma, vidx),
     (const double*) gkyl_array_cfetch(mom_vm_sr->auxfields.gamma, vidx),
     f, out);
 }
@@ -1227,7 +1219,6 @@ kernel_vlasov_sr_Tij_2x3v_ser_p1(const struct gkyl_mom_type *momt, const double 
   long vidx = gkyl_range_idx(&mom_vm_sr->vel_range, idx_vel);
 
   return vlasov_sr_Tij_2x3v_ser_p1(xc, dx, idx, 
-    (const double*) gkyl_array_cfetch(mom_vm_sr->auxfields.p_over_gamma, vidx),
     (const double*) gkyl_array_cfetch(mom_vm_sr->auxfields.gamma, vidx),
     f, out);
 }
@@ -1248,7 +1239,6 @@ kernel_vlasov_sr_Tij_2x3v_ser_p2(const struct gkyl_mom_type *momt, const double 
   long vidx = gkyl_range_idx(&mom_vm_sr->vel_range, idx_vel);
 
   return vlasov_sr_Tij_2x3v_ser_p2(xc, dx, idx, 
-    (const double*) gkyl_array_cfetch(mom_vm_sr->auxfields.p_over_gamma, vidx),
     (const double*) gkyl_array_cfetch(mom_vm_sr->auxfields.gamma, vidx),
     f, out);
 }
@@ -1269,7 +1259,6 @@ kernel_vlasov_sr_Tij_3x3v_ser_p1(const struct gkyl_mom_type *momt, const double 
   long vidx = gkyl_range_idx(&mom_vm_sr->vel_range, idx_vel);
 
   return vlasov_sr_Tij_3x3v_ser_p1(xc, dx, idx, 
-    (const double*) gkyl_array_cfetch(mom_vm_sr->auxfields.p_over_gamma, vidx),
     (const double*) gkyl_array_cfetch(mom_vm_sr->auxfields.gamma, vidx),
     f, out);
 }
@@ -1287,13 +1276,10 @@ kernel_vlasov_sr_int_mom_1x1v_ser_p1(const struct gkyl_mom_type *momt, const dou
   for (int i=0; i<pdim-cdim; ++i)
     idx_vel[i] = idx[cdim+i];
 
-  long cidx = gkyl_range_idx(&mom_vm_sr->conf_range, idx);
   long vidx = gkyl_range_idx(&mom_vm_sr->vel_range, idx_vel);
 
   return vlasov_sr_int_mom_1x1v_ser_p1(xc, dx, idx, 
-    (const double*) gkyl_array_cfetch(mom_vm_sr->auxfields.p_over_gamma, vidx),
     (const double*) gkyl_array_cfetch(mom_vm_sr->auxfields.gamma, vidx),
-    (const double*) gkyl_array_cfetch(mom_vm_sr->auxfields.GammaV_inv, cidx),
     f, out);
 }
 
@@ -1310,13 +1296,10 @@ kernel_vlasov_sr_int_mom_1x1v_ser_p2(const struct gkyl_mom_type *momt, const dou
   for (int i=0; i<pdim-cdim; ++i)
     idx_vel[i] = idx[cdim+i];
 
-  long cidx = gkyl_range_idx(&mom_vm_sr->conf_range, idx);
   long vidx = gkyl_range_idx(&mom_vm_sr->vel_range, idx_vel);
 
   return vlasov_sr_int_mom_1x1v_ser_p2(xc, dx, idx, 
-    (const double*) gkyl_array_cfetch(mom_vm_sr->auxfields.p_over_gamma, vidx),
     (const double*) gkyl_array_cfetch(mom_vm_sr->auxfields.gamma, vidx),
-    (const double*) gkyl_array_cfetch(mom_vm_sr->auxfields.GammaV_inv, cidx),
     f, out);
 }
 
@@ -1333,13 +1316,10 @@ kernel_vlasov_sr_int_mom_1x2v_ser_p1(const struct gkyl_mom_type *momt, const dou
   for (int i=0; i<pdim-cdim; ++i)
     idx_vel[i] = idx[cdim+i];
 
-  long cidx = gkyl_range_idx(&mom_vm_sr->conf_range, idx);
   long vidx = gkyl_range_idx(&mom_vm_sr->vel_range, idx_vel);
 
   return vlasov_sr_int_mom_1x2v_ser_p1(xc, dx, idx, 
-    (const double*) gkyl_array_cfetch(mom_vm_sr->auxfields.p_over_gamma, vidx),
     (const double*) gkyl_array_cfetch(mom_vm_sr->auxfields.gamma, vidx),
-    (const double*) gkyl_array_cfetch(mom_vm_sr->auxfields.GammaV_inv, cidx),
     f, out);
 }
 
@@ -1356,13 +1336,10 @@ kernel_vlasov_sr_int_mom_1x2v_ser_p2(const struct gkyl_mom_type *momt, const dou
   for (int i=0; i<pdim-cdim; ++i)
     idx_vel[i] = idx[cdim+i];
 
-  long cidx = gkyl_range_idx(&mom_vm_sr->conf_range, idx);
   long vidx = gkyl_range_idx(&mom_vm_sr->vel_range, idx_vel);
 
   return vlasov_sr_int_mom_1x2v_ser_p2(xc, dx, idx, 
-    (const double*) gkyl_array_cfetch(mom_vm_sr->auxfields.p_over_gamma, vidx),
     (const double*) gkyl_array_cfetch(mom_vm_sr->auxfields.gamma, vidx),
-    (const double*) gkyl_array_cfetch(mom_vm_sr->auxfields.GammaV_inv, cidx),
     f, out);
 }
 
@@ -1379,13 +1356,10 @@ kernel_vlasov_sr_int_mom_1x3v_ser_p1(const struct gkyl_mom_type *momt, const dou
   for (int i=0; i<pdim-cdim; ++i)
     idx_vel[i] = idx[cdim+i];
 
-  long cidx = gkyl_range_idx(&mom_vm_sr->conf_range, idx);
   long vidx = gkyl_range_idx(&mom_vm_sr->vel_range, idx_vel);
 
   return vlasov_sr_int_mom_1x3v_ser_p1(xc, dx, idx, 
-    (const double*) gkyl_array_cfetch(mom_vm_sr->auxfields.p_over_gamma, vidx),
     (const double*) gkyl_array_cfetch(mom_vm_sr->auxfields.gamma, vidx),
-    (const double*) gkyl_array_cfetch(mom_vm_sr->auxfields.GammaV_inv, cidx),
     f, out);
 }
 
@@ -1402,13 +1376,10 @@ kernel_vlasov_sr_int_mom_1x3v_ser_p2(const struct gkyl_mom_type *momt, const dou
   for (int i=0; i<pdim-cdim; ++i)
     idx_vel[i] = idx[cdim+i];
 
-  long cidx = gkyl_range_idx(&mom_vm_sr->conf_range, idx);
   long vidx = gkyl_range_idx(&mom_vm_sr->vel_range, idx_vel);
 
   return vlasov_sr_int_mom_1x3v_ser_p2(xc, dx, idx, 
-    (const double*) gkyl_array_cfetch(mom_vm_sr->auxfields.p_over_gamma, vidx),
     (const double*) gkyl_array_cfetch(mom_vm_sr->auxfields.gamma, vidx),
-    (const double*) gkyl_array_cfetch(mom_vm_sr->auxfields.GammaV_inv, cidx),
     f, out);
 }
 
@@ -1425,13 +1396,10 @@ kernel_vlasov_sr_int_mom_2x2v_ser_p1(const struct gkyl_mom_type *momt, const dou
   for (int i=0; i<pdim-cdim; ++i)
     idx_vel[i] = idx[cdim+i];
 
-  long cidx = gkyl_range_idx(&mom_vm_sr->conf_range, idx);
   long vidx = gkyl_range_idx(&mom_vm_sr->vel_range, idx_vel);
 
   return vlasov_sr_int_mom_2x2v_ser_p1(xc, dx, idx, 
-    (const double*) gkyl_array_cfetch(mom_vm_sr->auxfields.p_over_gamma, vidx),
     (const double*) gkyl_array_cfetch(mom_vm_sr->auxfields.gamma, vidx),
-    (const double*) gkyl_array_cfetch(mom_vm_sr->auxfields.GammaV_inv, cidx),
     f, out);
 }
 
@@ -1448,13 +1416,10 @@ kernel_vlasov_sr_int_mom_2x2v_ser_p2(const struct gkyl_mom_type *momt, const dou
   for (int i=0; i<pdim-cdim; ++i)
     idx_vel[i] = idx[cdim+i];
 
-  long cidx = gkyl_range_idx(&mom_vm_sr->conf_range, idx);
   long vidx = gkyl_range_idx(&mom_vm_sr->vel_range, idx_vel);
 
   return vlasov_sr_int_mom_2x2v_ser_p2(xc, dx, idx, 
-    (const double*) gkyl_array_cfetch(mom_vm_sr->auxfields.p_over_gamma, vidx),
     (const double*) gkyl_array_cfetch(mom_vm_sr->auxfields.gamma, vidx),
-    (const double*) gkyl_array_cfetch(mom_vm_sr->auxfields.GammaV_inv, cidx),
     f, out);
 }
 
@@ -1471,13 +1436,10 @@ kernel_vlasov_sr_int_mom_2x3v_ser_p1(const struct gkyl_mom_type *momt, const dou
   for (int i=0; i<pdim-cdim; ++i)
     idx_vel[i] = idx[cdim+i];
 
-  long cidx = gkyl_range_idx(&mom_vm_sr->conf_range, idx);
   long vidx = gkyl_range_idx(&mom_vm_sr->vel_range, idx_vel);
 
   return vlasov_sr_int_mom_2x3v_ser_p1(xc, dx, idx, 
-    (const double*) gkyl_array_cfetch(mom_vm_sr->auxfields.p_over_gamma, vidx),
     (const double*) gkyl_array_cfetch(mom_vm_sr->auxfields.gamma, vidx),
-    (const double*) gkyl_array_cfetch(mom_vm_sr->auxfields.GammaV_inv, cidx),
     f, out);
 }
 
@@ -1494,13 +1456,10 @@ kernel_vlasov_sr_int_mom_2x3v_ser_p2(const struct gkyl_mom_type *momt, const dou
   for (int i=0; i<pdim-cdim; ++i)
     idx_vel[i] = idx[cdim+i];
 
-  long cidx = gkyl_range_idx(&mom_vm_sr->conf_range, idx);
   long vidx = gkyl_range_idx(&mom_vm_sr->vel_range, idx_vel);
 
   return vlasov_sr_int_mom_2x3v_ser_p2(xc, dx, idx, 
-    (const double*) gkyl_array_cfetch(mom_vm_sr->auxfields.p_over_gamma, vidx),
     (const double*) gkyl_array_cfetch(mom_vm_sr->auxfields.gamma, vidx),
-    (const double*) gkyl_array_cfetch(mom_vm_sr->auxfields.GammaV_inv, cidx),
     f, out);
 }
 
@@ -1517,13 +1476,10 @@ kernel_vlasov_sr_int_mom_3x3v_ser_p1(const struct gkyl_mom_type *momt, const dou
   for (int i=0; i<pdim-cdim; ++i)
     idx_vel[i] = idx[cdim+i];
 
-  long cidx = gkyl_range_idx(&mom_vm_sr->conf_range, idx);
   long vidx = gkyl_range_idx(&mom_vm_sr->vel_range, idx_vel);
 
   return vlasov_sr_int_mom_3x3v_ser_p1(xc, dx, idx, 
-    (const double*) gkyl_array_cfetch(mom_vm_sr->auxfields.p_over_gamma, vidx),
     (const double*) gkyl_array_cfetch(mom_vm_sr->auxfields.gamma, vidx),
-    (const double*) gkyl_array_cfetch(mom_vm_sr->auxfields.GammaV_inv, cidx),
     f, out);
 }
 

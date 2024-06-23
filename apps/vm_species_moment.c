@@ -20,7 +20,6 @@ vm_species_moment_init(struct gkyl_vlasov_app *app, struct vm_species *s,
       .conf_range =  &app->local,
       .conf_range_ext = &app->local_ext,
       .vel_range = &s->local_vel,
-      .p_over_gamma = s->p_over_gamma,
       .gamma = s->gamma,
       .gamma_inv = s->gamma_inv,
       .h_ij_inv = s->h_ij_inv,
@@ -34,9 +33,9 @@ vm_species_moment_init(struct gkyl_vlasov_app *app, struct vm_species *s,
   }
   else {
     if (s->model_id == GKYL_MODEL_SR) {
-      struct gkyl_mom_vlasov_sr_auxfields sr_inp = {.p_over_gamma = s->p_over_gamma, 
-        .gamma = s->gamma, .gamma_inv = s->gamma_inv, .V_drift = s->V_drift, 
-        .GammaV2 = s->GammaV2, .GammaV_inv = s->GammaV_inv};
+      // Computes non-LTE SR moments, so V_drift and GammaV2 are null
+      struct gkyl_mom_vlasov_sr_auxfields sr_inp = {.gamma = s->gamma, .gamma_inv = s->gamma_inv, 
+        .V_drift = 0, .GammaV2 = 0};
       sm->mcalc = gkyl_dg_updater_moment_new(&s->grid, &app->confBasis, 
         &app->basis, &app->local, &s->local_vel, s->model_id, &sr_inp, 
         nm, is_integrated, s->info.mass, app->use_gpu);

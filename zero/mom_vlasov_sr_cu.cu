@@ -88,24 +88,22 @@ v_num_mom(int vdim, int mom_id)
 // and so its members cannot be modified without a full __global__ kernel on device.
 __global__ static void
 gkyl_mom_vlasov_sr_set_auxfields_cu_kernel(const struct gkyl_mom_type *momt, 
-  const struct gkyl_array *p_over_gamma, const struct gkyl_array *gamma, const struct gkyl_array *gamma_inv, 
-  const struct gkyl_array *V_drift, const struct gkyl_array *GammaV2, const struct gkyl_array *GammaV_inv)
+  const struct gkyl_array *gamma, const struct gkyl_array *gamma_inv, 
+  const struct gkyl_array *V_drift, const struct gkyl_array *GammaV2)
 {
   struct mom_type_vlasov_sr *mom_vm_sr = container_of(momt, struct mom_type_vlasov_sr, momt);
-  mom_vm_sr->auxfields.p_over_gamma = p_over_gamma;
   mom_vm_sr->auxfields.gamma = gamma;
   mom_vm_sr->auxfields.gamma_inv = gamma_inv;
   mom_vm_sr->auxfields.V_drift = V_drift;
   mom_vm_sr->auxfields.GammaV2 = GammaV2;
-  mom_vm_sr->auxfields.GammaV_inv = GammaV_inv;
 }
 
 // Host-side wrapper for set_auxfields_cu_kernel
 void
 gkyl_mom_vlasov_sr_set_auxfields_cu(const struct gkyl_mom_type *momt, struct gkyl_mom_vlasov_sr_auxfields auxin)
 {
-  gkyl_mom_vlasov_sr_set_auxfields_cu_kernel<<<1,1>>>(momt, auxin.p_over_gamma->on_dev, auxin.gamma->on_dev, auxin.gamma_inv->on_dev, 
-    auxin.V_drift->on_dev, auxin.GammaV2->on_dev, auxin.GammaV_inv->on_dev);
+  gkyl_mom_vlasov_sr_set_auxfields_cu_kernel<<<1,1>>>(momt, auxin.gamma->on_dev, auxin.gamma_inv->on_dev, 
+    auxin.V_drift->on_dev, auxin.GammaV2->on_dev);
 }
 
 
@@ -114,12 +112,10 @@ static void
 set_cu_ptrs(struct mom_type_vlasov_sr* mom_vm_sr, int mom_id, enum gkyl_basis_type b_type, int vdim,
   int poly_order, int tblidx)
 {
-  mom_vm_sr->auxfields.p_over_gamma = 0;
   mom_vm_sr->auxfields.gamma = 0;
   mom_vm_sr->auxfields.gamma_inv = 0;
   mom_vm_sr->auxfields.V_drift = 0;
   mom_vm_sr->auxfields.GammaV2 = 0;
-  mom_vm_sr->auxfields.GammaV_inv = 0; 
   
   // choose kernel tables based on basis-function type
   const gkyl_vlasov_sr_mom_kern_list *m0_kernels, *m1i_kernels, 
@@ -226,12 +222,10 @@ static void
 set_int_cu_ptrs(struct mom_type_vlasov_sr* mom_vm_sr, enum gkyl_basis_type b_type, int vdim,
   int poly_order, int tblidx)
 {
-  mom_vm_sr->auxfields.p_over_gamma = 0;
   mom_vm_sr->auxfields.gamma = 0;
   mom_vm_sr->auxfields.gamma_inv = 0;
   mom_vm_sr->auxfields.V_drift = 0;
   mom_vm_sr->auxfields.GammaV2 = 0;
-  mom_vm_sr->auxfields.GammaV_inv = 0; 
 
   // choose kernel tables based on basis-function type
   const gkyl_vlasov_sr_mom_kern_list *int_mom_kernels;  

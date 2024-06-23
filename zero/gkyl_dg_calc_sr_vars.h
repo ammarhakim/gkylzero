@@ -7,18 +7,18 @@
 
 /**
  * Compute the momentum grid variables for special relativistic simulations
- * Uses project_on_basis with Gauss-Lobatto nodes to insure continuity of resulting modal projection
+ * Uses special kernels which convert between a Gauss-Lobatto nodal basis and
+ * our modal basis to insure continuity of the momentum grid variables.
  *
  * @param vgrid Momentum-space grid
  * @param vbasis Momentum-space basis
  * @param vrange Momentum-space range
- * @param p_over_gamma Output array of relativistic velocity, v = p/(gamma) = p/sqrt(1 + p^2)
  * @param gamma Output array of particle Lorentz boost factor, gamma = sqrt(1 + p^2) 
  * @param gamma_inv Output array of inverse particle Lorentz boost factor, 1/gamma = 1/sqrt(1 + p^2) 
  */
 void gkyl_calc_sr_vars_init_p_vars(const struct gkyl_rect_grid *vgrid, 
   const struct gkyl_basis *vbasis, const struct gkyl_range *vrange,
-  struct gkyl_array* p_over_gamma, struct gkyl_array* gamma, struct gkyl_array* gamma_inv);
+  struct gkyl_array* gamma, struct gkyl_array* gamma_inv);
 
 /**
  * Compute the square of the Lorentz boost factor for a given bulk velocity, V.
@@ -57,6 +57,10 @@ void gkyl_calc_sr_vars_GammaV_inv(const struct gkyl_basis* cbasis, const struct 
 /**
  * Host-side wrappers for sr vars operations on device
  */
+
+void gkyl_calc_sr_vars_init_p_vars_cu(const struct gkyl_rect_grid *vgrid, 
+  const struct gkyl_basis *vbasis, const struct gkyl_range *vrange,
+  struct gkyl_array* gamma, struct gkyl_array* gamma_inv);
 
 void gkyl_calc_sr_vars_GammaV2_cu(const struct gkyl_basis* cbasis, const struct gkyl_basis* pbasis, 
   const struct gkyl_range* range, 

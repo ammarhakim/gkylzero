@@ -59,9 +59,8 @@ gkyl_vlasov_lte_moments_inew(const struct gkyl_vlasov_lte_moments_inp *inp)
       up->M0_minus_V_drift_dot_M1i = gkyl_array_new(GKYL_DOUBLE, up->num_conf_basis, conf_local_ext_ncells);
     }
     // Set auxiliary fields for moment updates. 
-    struct gkyl_mom_vlasov_sr_auxfields sr_inp = {.p_over_gamma = inp->p_over_gamma, 
-      .gamma = inp->gamma, .gamma_inv = inp->gamma_inv, .V_drift = up->V_drift, 
-      .GammaV2 = up->GammaV2, .GammaV_inv = up->GammaV_inv};  
+    struct gkyl_mom_vlasov_sr_auxfields sr_inp = {.gamma = inp->gamma, .gamma_inv = inp->gamma_inv, 
+      .V_drift = up->V_drift, .GammaV2 = up->GammaV2};  
     // Moment calculator for needed moments (M0, M1i, and P for relativistic)
     up->M0_calc = gkyl_dg_updater_moment_new(inp->phase_grid, inp->conf_basis,
       inp->phase_basis, inp->conf_range, inp->vel_range, up->model_id, &sr_inp, "M0", 0, up->mass, inp->use_gpu);

@@ -154,21 +154,10 @@ test_1x1v(int poly_order)
   gkyl_proj_on_basis_advance(proj_m1i, 0.0, &confLocal, m1i);
   gkyl_proj_on_basis_advance(proj_m2, 0.0, &confLocal, m2);
 
-  // build the p_over_gamma
-  struct gkyl_array *p_over_gamma;
-  p_over_gamma = mkarr(vdim * velBasis.num_basis, velLocal.volume);
-
-  // build gamma
-  struct gkyl_array *gamma;
-  gamma = mkarr(velBasis.num_basis, velLocal.volume);
-
-  // build gamma_inv
-  struct gkyl_array *gamma_inv;
-  gamma_inv = mkarr(velBasis.num_basis, velLocal.volume);
-
-  // Make GammaV2, GammaV, GammaV_inv
-  gkyl_calc_sr_vars_init_p_vars(&vel_grid, &velBasis, &velLocal,
-    p_over_gamma, gamma, gamma_inv);
+  // build gamma and gamma_inv
+  struct gkyl_array *gamma = mkarr(velBasis.num_basis, velLocal.volume);
+  struct gkyl_array *gamma_inv = mkarr(velBasis.num_basis, velLocal.volume);
+  gkyl_calc_sr_vars_init_p_vars(&vel_grid, &velBasis, &velLocal, gamma, gamma_inv);
 
   // create distribution function array
   struct gkyl_array *distf;
@@ -182,7 +171,6 @@ test_1x1v(int poly_order)
     .conf_range =  &confLocal,
     .conf_range_ext = &confLocal_ext,
     .vel_range = &velLocal,
-    .p_over_gamma = p_over_gamma,
     .gamma = gamma,
     .gamma_inv = gamma_inv,
     .h_ij_inv = 0, 
@@ -203,7 +191,6 @@ test_1x1v(int poly_order)
     .conf_range =  &confLocal,
     .conf_range_ext = &confLocal_ext,
     .vel_range = &velLocal,
-    .p_over_gamma = p_over_gamma,
     .gamma = gamma,
     .gamma_inv = gamma_inv,
     .h_ij_inv = 0, 
@@ -232,7 +219,6 @@ test_1x1v(int poly_order)
     .conf_range =  &confLocal,
     .conf_range_ext = &confLocal_ext,
     .vel_range = &velLocal,
-    .p_over_gamma = p_over_gamma,
     .gamma = gamma,
     .gamma_inv = gamma_inv,
     .h_ij_inv = 0,
@@ -273,7 +259,6 @@ test_1x1v(int poly_order)
   gkyl_proj_on_basis_release(proj_m0);
   gkyl_proj_on_basis_release(proj_m1i);
   gkyl_proj_on_basis_release(proj_m2);
-  gkyl_array_release(p_over_gamma);
   gkyl_array_release(gamma);
   gkyl_array_release(gamma_inv);
 }
@@ -350,21 +335,10 @@ test_1x1v_spatially_varied(int poly_order)
   gkyl_proj_on_basis_advance(proj_m1i, 0.0, &confLocal, m1i);
   gkyl_proj_on_basis_advance(proj_m2, 0.0, &confLocal, m2);
 
-  // build the p_over_gamma
-  struct gkyl_array *p_over_gamma;
-  p_over_gamma = mkarr(vdim * velBasis.num_basis, velLocal.volume);
-
-  // build gamma
-  struct gkyl_array *gamma;
-  gamma = mkarr(velBasis.num_basis, velLocal.volume);
-
-  // build gamma_inv
-  struct gkyl_array *gamma_inv;
-  gamma_inv = mkarr(velBasis.num_basis, velLocal.volume);
-
-  // Make GammaV2, GammaV, GammaV_inv
-  gkyl_calc_sr_vars_init_p_vars(&vel_grid, &velBasis, &velLocal,
-    p_over_gamma, gamma, gamma_inv);
+  // build gamma and gamma_inv
+  struct gkyl_array *gamma = mkarr(velBasis.num_basis, velLocal.volume);
+  struct gkyl_array *gamma_inv = mkarr(velBasis.num_basis, velLocal.volume);
+  gkyl_calc_sr_vars_init_p_vars(&vel_grid, &velBasis, &velLocal, gamma, gamma_inv);
 
   // create distribution function array
   struct gkyl_array *distf;
@@ -378,7 +352,6 @@ test_1x1v_spatially_varied(int poly_order)
     .conf_range =  &confLocal,
     .conf_range_ext = &confLocal_ext,
     .vel_range = &velLocal,
-    .p_over_gamma = p_over_gamma,
     .gamma = gamma,
     .gamma_inv = gamma_inv,
     .h_ij_inv = 0,
@@ -399,7 +372,6 @@ test_1x1v_spatially_varied(int poly_order)
     .conf_range =  &confLocal,
     .conf_range_ext = &confLocal_ext,
     .vel_range = &velLocal,
-    .p_over_gamma = p_over_gamma,
     .gamma = gamma,
     .gamma_inv = gamma_inv,
     .h_ij_inv = 0, 
@@ -428,7 +400,6 @@ test_1x1v_spatially_varied(int poly_order)
     .conf_range =  &confLocal,
     .conf_range_ext = &confLocal_ext,
     .vel_range = &velLocal,
-    .p_over_gamma = p_over_gamma,
     .gamma = gamma,
     .gamma_inv = gamma_inv,
     .h_ij_inv = 0,
@@ -494,7 +465,6 @@ test_1x1v_spatially_varied(int poly_order)
   gkyl_proj_on_basis_release(proj_m0);
   gkyl_proj_on_basis_release(proj_m1i);
   gkyl_proj_on_basis_release(proj_m2);
-  gkyl_array_release(p_over_gamma);
   gkyl_array_release(gamma);
   gkyl_array_release(gamma_inv);
 }
@@ -571,21 +541,10 @@ test_1x2v(int poly_order)
   gkyl_proj_on_basis_advance(proj_m1i, 0.0, &confLocal, m1i);
   gkyl_proj_on_basis_advance(proj_m2, 0.0, &confLocal, m2);
 
-  // build the p_over_gamma
-  struct gkyl_array *p_over_gamma;
-  p_over_gamma = mkarr(vdim * velBasis.num_basis, velLocal.volume);
-
-  // build gamma
-  struct gkyl_array *gamma;
-  gamma = mkarr(velBasis.num_basis, velLocal.volume);
-
-  // build gamma_inv
-  struct gkyl_array *gamma_inv;
-  gamma_inv = mkarr(velBasis.num_basis, velLocal.volume);
-
-  // Make GammaV2, GammaV, GammaV_inv
-  gkyl_calc_sr_vars_init_p_vars(&vel_grid, &velBasis, &velLocal,
-    p_over_gamma, gamma, gamma_inv);
+  // build gamma and gamma_inv
+  struct gkyl_array *gamma = mkarr(velBasis.num_basis, velLocal.volume);
+  struct gkyl_array *gamma_inv = mkarr(velBasis.num_basis, velLocal.volume);
+  gkyl_calc_sr_vars_init_p_vars(&vel_grid, &velBasis, &velLocal, gamma, gamma_inv);
 
   // create distribution function array
   struct gkyl_array *distf;
@@ -599,7 +558,6 @@ test_1x2v(int poly_order)
     .conf_range =  &confLocal,
     .conf_range_ext = &confLocal_ext,
     .vel_range = &velLocal,
-    .p_over_gamma = p_over_gamma,
     .gamma = gamma,
     .gamma_inv = gamma_inv,
     .h_ij_inv = 0,
@@ -620,7 +578,6 @@ test_1x2v(int poly_order)
     .conf_range =  &confLocal,
     .conf_range_ext = &confLocal_ext,
     .vel_range = &velLocal,
-    .p_over_gamma = p_over_gamma,
     .gamma = gamma,
     .gamma_inv = gamma_inv,
     .h_ij_inv = 0,
@@ -644,7 +601,6 @@ test_1x2v(int poly_order)
     .conf_range =  &confLocal,
     .conf_range_ext = &confLocal_ext,
     .vel_range = &velLocal,
-    .p_over_gamma = p_over_gamma,
     .gamma = gamma,
     .gamma_inv = gamma_inv,
     .h_ij_inv = 0,
@@ -694,7 +650,6 @@ test_1x2v(int poly_order)
   gkyl_proj_on_basis_release(proj_m0);
   gkyl_proj_on_basis_release(proj_m1i);
   gkyl_proj_on_basis_release(proj_m2);
-  gkyl_array_release(p_over_gamma);
   gkyl_array_release(gamma);
   gkyl_array_release(gamma_inv);
 }
@@ -770,21 +725,10 @@ test_1x3v(int poly_order)
   gkyl_proj_on_basis_advance(proj_m1i, 0.0, &confLocal, m1i);
   gkyl_proj_on_basis_advance(proj_m2, 0.0, &confLocal, m2);
 
-  // build the p_over_gamma
-  struct gkyl_array *p_over_gamma;
-  p_over_gamma = mkarr(vdim * velBasis.num_basis, velLocal.volume);
-
-  // build gamma
-  struct gkyl_array *gamma;
-  gamma = mkarr(velBasis.num_basis, velLocal.volume);
-
-  // build gamma_inv
-  struct gkyl_array *gamma_inv;
-  gamma_inv = mkarr(velBasis.num_basis, velLocal.volume);
-
-  // Make GammaV2, GammaV, GammaV_inv
-  gkyl_calc_sr_vars_init_p_vars(&vel_grid, &velBasis, &velLocal,
-    p_over_gamma, gamma, gamma_inv);
+  // build gamma and gamma_inv
+  struct gkyl_array *gamma = mkarr(velBasis.num_basis, velLocal.volume);
+  struct gkyl_array *gamma_inv = mkarr(velBasis.num_basis, velLocal.volume);
+  gkyl_calc_sr_vars_init_p_vars(&vel_grid, &velBasis, &velLocal, gamma, gamma_inv);
 
   // create distribution function array
   struct gkyl_array *distf;
@@ -798,7 +742,6 @@ test_1x3v(int poly_order)
     .conf_range =  &confLocal,
     .conf_range_ext = &confLocal_ext,
     .vel_range = &velLocal,
-    .p_over_gamma = p_over_gamma,
     .gamma = gamma,
     .gamma_inv = gamma_inv,
     .h_ij_inv = 0,
@@ -819,7 +762,6 @@ test_1x3v(int poly_order)
     .conf_range =  &confLocal,
     .conf_range_ext = &confLocal_ext,
     .vel_range = &velLocal,
-    .p_over_gamma = p_over_gamma,
     .gamma = gamma,
     .gamma_inv = gamma_inv,
     .h_ij_inv = 0, 
@@ -843,7 +785,6 @@ test_1x3v(int poly_order)
     .conf_range =  &confLocal,
     .conf_range_ext = &confLocal_ext,
     .vel_range = &velLocal,
-    .p_over_gamma = p_over_gamma,
     .gamma = gamma,
     .gamma_inv = gamma_inv,
     .h_ij_inv = 0,
@@ -902,7 +843,6 @@ test_1x3v(int poly_order)
   gkyl_proj_on_basis_release(proj_m0);
   gkyl_proj_on_basis_release(proj_m1i);
   gkyl_proj_on_basis_release(proj_m2);
-  gkyl_array_release(p_over_gamma);
   gkyl_array_release(gamma);
   gkyl_array_release(gamma_inv);
 }

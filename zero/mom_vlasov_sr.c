@@ -28,12 +28,10 @@ gkyl_mom_vlasov_sr_set_auxfields(const struct gkyl_mom_type *momt, struct gkyl_m
 #endif
 
   struct mom_type_vlasov_sr *mom_vm_sr = container_of(momt, struct mom_type_vlasov_sr, momt);
-  mom_vm_sr->auxfields.p_over_gamma = auxin.p_over_gamma;
   mom_vm_sr->auxfields.gamma = auxin.gamma;
   mom_vm_sr->auxfields.gamma_inv = auxin.gamma_inv;
   mom_vm_sr->auxfields.V_drift = auxin.V_drift;
   mom_vm_sr->auxfields.GammaV2 = auxin.GammaV2;
-  mom_vm_sr->auxfields.GammaV_inv = auxin.GammaV_inv;
 }
 
 struct gkyl_mom_type*
@@ -127,12 +125,10 @@ gkyl_mom_vlasov_sr_new(const struct gkyl_basis* cbasis, const struct gkyl_basis*
   mom_vm_sr->conf_range = *conf_range;
   mom_vm_sr->vel_range = *vel_range;
 
-  mom_vm_sr->auxfields.p_over_gamma = 0;
   mom_vm_sr->auxfields.gamma = 0;
   mom_vm_sr->auxfields.gamma_inv = 0;
   mom_vm_sr->auxfields.V_drift = 0;
   mom_vm_sr->auxfields.GammaV2 = 0;
-  mom_vm_sr->auxfields.GammaV_inv = 0;
 
   mom_vm_sr->momt.flags = 0;
   GKYL_CLEAR_CU_ALLOC(mom_vm_sr->momt.flags);
@@ -186,12 +182,10 @@ gkyl_int_mom_vlasov_sr_new(const struct gkyl_basis* cbasis, const struct gkyl_ba
   mom_vm_sr->conf_range = *conf_range;
   mom_vm_sr->vel_range = *vel_range;
 
-  mom_vm_sr->auxfields.p_over_gamma = 0;
   mom_vm_sr->auxfields.gamma = 0;
   mom_vm_sr->auxfields.gamma_inv = 0;
   mom_vm_sr->auxfields.V_drift = 0;
   mom_vm_sr->auxfields.GammaV2 = 0;
-  mom_vm_sr->auxfields.GammaV_inv = 0;
 
   mom_vm_sr->momt.flags = 0;
   GKYL_CLEAR_CU_ALLOC(mom_vm_sr->momt.flags);

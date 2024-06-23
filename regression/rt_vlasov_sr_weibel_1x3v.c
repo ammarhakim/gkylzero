@@ -24,7 +24,6 @@ struct weibel_sr_ctx
 {
   // Mathematical constants (dimensionless).
   double pi;
-  double K_2; // Modified Bessel function of the second kind, evaluated for vt = 0.04 mc^2.
 
   // Physical constants (using normalized code units).
   double epsilon0; // Permittivity of free space.
@@ -40,8 +39,8 @@ struct weibel_sr_ctx
   double uy_elc2; // Second electron velocity (y-direction).
   double uz_elc1; // First electron velocity (z-direction).
   double uz_elc2; // Second electron velocity (z-direction).
-  double vt_elc1; // First electron thermal velocity.
-  double vt_elc2; // Second electron thermal velocity.
+  double T_elc1; // First electron temperature (units of mc^2).
+  double T_elc2; // Second electron temperature (units of mc^2).
 
   double alpha; // Applied perturbation amplitude.
   double kx; // Perturbed wave number (x-direction).
@@ -73,7 +72,6 @@ create_ctx(void)
 {
   // Mathematical constants (dimensionless).
   double pi = M_PI;
-  double K_2 = 3.7467838080691090570137658745889511812329380156362352887017e-12; // Modified Bessel function of the second kind, evaluated for vt = 0.04 mc^2.
 
   // Physical constants (using normalized code units).
   double epsilon0 = 1.0; // Permittivity of free space.
@@ -89,8 +87,8 @@ create_ctx(void)
   double uy_elc2 = -0.9; // Second electron velocity (y-direction).
   double uz_elc1 = 0.0; // First electron velocity (z-direction).
   double uz_elc2 = 0.0; // Second electron velocity (z-direction).
-  double vt_elc1 = 0.04; // First electron thermal velocity.
-  double vt_elc2 = 0.04; // Second electron thermal velocity.
+  double T_elc1 = 0.04; // First electron temperature (units of mc^2).
+  double T_elc2 = 0.04; // Second electron temperature (units of mc^2).
 
   double alpha = 1.0e-3; // Applied perturbation amplitude.
   double kx = 0.4; // Perturbed wave number (x-direction).
@@ -118,7 +116,6 @@ create_ctx(void)
 
   struct weibel_sr_ctx ctx = {
     .pi = pi,
-    .K_2 = K_2,
     .epsilon0 = epsilon0,
     .mu0 = mu0,
     .mass_elc = mass_elc,
@@ -131,8 +128,8 @@ create_ctx(void)
     .uy_elc2 = uy_elc2,
     .uz_elc1 = uz_elc1,
     .uz_elc2 = uz_elc2,
-    .vt_elc1 = vt_elc1,
-    .vt_elc2 = vt_elc2,
+    .T_elc1 = T_elc1,
+    .T_elc2 = T_elc2,
     .alpha = alpha,
     .kx = kx,
     .gamma_elc1 = gamma_elc1,
@@ -157,34 +154,83 @@ create_ctx(void)
 }
 
 void
-evalElcInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
+evalDensityLInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
 {
   struct weibel_sr_ctx *app = ctx;
-  double x = xn[0], vx = xn[1], vy = xn[2], vz = xn[3];
+  double x = xn[0];
 
-  double pi = app->pi;
-  double K_2 = app->K_2;
+  double alpha = app->alpha;
+  double kx = app->kx;
+  double n = app->n_elc1;
 
-  double n_elc1 = app->n_elc1;
-  double n_elc2 = app->n_elc2;
-  double ux_elc1 = app->ux_elc1;
-  double ux_elc2 = app->ux_elc2;
-  double uy_elc1 = app->uy_elc1;
-  double uy_elc2 = app->uy_elc2;
-  double uz_elc1 = app->uz_elc1;
-  double uz_elc2 = app->uz_elc2;
-  double vt_elc1 = app->vt_elc1;
-  double vt_elc2 = app->vt_elc2;
+  // Set left-going distribution density.
+  fout[0] = n;
+}
 
+void
+evalDensityRInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
+{
+  struct weibel_sr_ctx *app = ctx;
+  double x = xn[0];
 
-  double gamma_elc1 = app->gamma_elc1;
-  double gamma_elc2 = app->gamma_elc2;
+  double alpha = app->alpha;
+  double kx = app->kx;
+  double n = app->n_elc2;
 
-  double maxwell_juttner_dist1 = (n_elc1 / (4.0 * pi * vt_elc1 * K_2)) * exp(-(gamma_elc1 / vt_elc1) * (sqrt(1.0 + (vx * vx) + (vy * vy) + (vz * vz)) - (ux_elc1 * vx) - (uy_elc1 * vy) - (uz_elc1 * vz)));
-  double maxwell_juttner_dist2 = (n_elc2 / (4.0 * pi * vt_elc2 * K_2)) * exp(-(gamma_elc2 / vt_elc2) * (sqrt(1.0 + (vx * vx) + (vy * vy) + (vz * vz)) - (ux_elc2 * vx) - (uy_elc2 * vy) - (uz_elc2 * vz)));
+  // Set right-going distribution density.
+  fout[0] = n;
+}
 
-  // Set electron distribution function.
-  fout[0] = maxwell_juttner_dist1 + maxwell_juttner_dist2;
+void
+evalTempLInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
+{
+  struct weibel_sr_ctx *app = ctx;
+
+  double T = app->T_elc1;
+
+  // Set left-going distribution temperature.
+  fout[0] = T;
+}
+
+void
+evalTempRInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
+{
+  struct weibel_sr_ctx *app = ctx;
+
+  double T = app->T_elc2;
+
+  // Set right-going distribution temperature.
+  fout[0] = T;
+}
+
+void
+evalVDriftLInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
+{
+  struct weibel_sr_ctx *app = ctx;
+
+  double ux_elc = app->ux_elc1;
+  double uy_elc = app->uy_elc1;
+  double uz_elc = app->uz_elc1;
+
+  // Set left-going distribution drift velocity.
+  fout[0] = ux_elc;
+  fout[1] = uy_elc;
+  fout[2] = uz_elc;
+}
+
+void
+evalVDriftRInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
+{
+  struct weibel_sr_ctx *app = ctx;
+
+  double ux_elc = app->ux_elc2;
+  double uy_elc = app->uy_elc2;
+  double uz_elc = app->uz_elc2;
+
+  // Set right-going distribution drift velocity.
+  fout[0] = ux_elc;
+  fout[1] = uy_elc;
+  fout[2] = uz_elc;
 }
 
 void
@@ -340,10 +386,27 @@ main(int argc, char **argv)
     .upper = { ctx.vx_max, ctx.vy_max, ctx.vz_max }, 
     .cells = { NVX, NVY, NVZ },
 
-    .projection = {
-      .proj_id = GKYL_PROJ_FUNC,
-      .func = evalElcInit,
-      .ctx_func = &ctx,
+    .num_init = 2, 
+    // Two counter-streaming Maxwellians.
+    .projection[0] = {
+      .proj_id = GKYL_PROJ_VLASOV_LTE,
+      .density = evalDensityLInit,
+      .ctx_density = &ctx,
+      .temp = evalTempLInit,
+      .ctx_temp = &ctx,
+      .V_drift = evalVDriftLInit,
+      .ctx_V_drift = &ctx,
+      .correct_all_moms = true,
+    },
+    .projection[1] = {
+      .proj_id = GKYL_PROJ_VLASOV_LTE,
+      .density = evalDensityRInit,
+      .ctx_density = &ctx,
+      .temp = evalTempRInit,
+      .ctx_temp = &ctx,
+      .V_drift = evalVDriftRInit,
+      .ctx_V_drift = &ctx,
+      .correct_all_moms = true,
     },
 
     .num_diag_moments = 2,

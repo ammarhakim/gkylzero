@@ -7,12 +7,10 @@
 
 // Struct containing the pointers to auxiliary fields.
 struct gkyl_mom_vlasov_sr_auxfields { 
-  const struct gkyl_array *p_over_gamma; // p/gamma (velocity)
   const struct gkyl_array *gamma; // gamma = sqrt(1 + p^2)
   const struct gkyl_array *gamma_inv; // gamma_inv = 1/gamma = 1/sqrt(1 + p^2)
   const struct gkyl_array *V_drift; // bulk fluid velocity (computed from M0*V_drift = M1i with weak division)
   const struct gkyl_array *GammaV2; // Gamma^2 = 1/(1 - V_drift^2/c^2), Lorentz boost factor squared from bulk fluid velocity
-  const struct gkyl_array *GammaV_inv; // Gamma_inv = sqrt(1 - V_drift^2/c^2), inverse Lorentz boost factor from bulk fluid velocity
 };
 
 /**

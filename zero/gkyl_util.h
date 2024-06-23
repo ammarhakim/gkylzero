@@ -44,6 +44,11 @@
 # define GKYL_MAX_SPECIES 8
 #endif
 
+// Maximum number of supported projection objects
+#ifndef GKYL_MAX_PROJ
+# define GKYL_MAX_PROJ 4
+#endif
+
 // Maximum number of ghost cells in each direction
 #ifndef GKYL_MAX_NGHOST
 # define GKYL_MAX_NGHOST 8

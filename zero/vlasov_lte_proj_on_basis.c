@@ -220,7 +220,6 @@ gkyl_vlasov_lte_proj_on_basis_inew(const struct gkyl_vlasov_lte_proj_on_basis_in
     .conf_range =  inp->conf_range,
     .conf_range_ext = inp->conf_range_ext,
     .vel_range = inp->vel_range,
-    .p_over_gamma = inp->p_over_gamma,
     .gamma = inp->gamma,
     .gamma_inv = inp->gamma_inv,
     .h_ij_inv = inp->h_ij_inv,

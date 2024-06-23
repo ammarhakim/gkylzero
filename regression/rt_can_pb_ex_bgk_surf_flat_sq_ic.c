@@ -143,7 +143,8 @@ main(int argc, char **argv)
     .h_ij_inv_ctx = &ctx,
     .det_h_ctx = &ctx,
 
-    .projection = {
+    .num_init = 1, 
+    .projection[0] = {
       .proj_id = GKYL_PROJ_FUNC,
       .func = evalDistFuncSquare,
       .ctx_func = &ctx,

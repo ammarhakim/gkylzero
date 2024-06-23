@@ -74,15 +74,30 @@ struct gkyl_vlasov_collisions {
   char collide_with_fluid[128]; // name of fluid species to cross collide with
 };
 
+// Parameters for species radiation
+struct gkyl_vlasov_radiation {
+  enum gkyl_radiation_id radiation_id; // type of radiation (see gkyl_eqn_type.h)
+
+  void *ctx_nu; // context for collision frequency
+  // function for computing collision frequency
+  void (*nu)(double t, const double *xn, double *fout, void *ctx);
+
+  void *ctx_nu_rad_drag; // context for collision frequency * drag
+  // function for computing collision frequency * drag
+  void (*nu_rad_drag)(double t, const double *xn, double *fout, void *ctx);  
+};
+
 // Parameters for species source
 struct gkyl_vlasov_source {
   enum gkyl_source_id source_id; // type of source
+  bool write_source; // optional parameter to write out source
+  int num_sources;
 
   double source_length; // required for boundary flux source
   char source_species[128];
   
   // sources using projection routine
-  struct gkyl_vlasov_projection projection;
+  struct gkyl_vlasov_projection projection[GKYL_MAX_PROJ];
 };
 
 // Parameters for fluid species source
@@ -123,13 +138,17 @@ struct gkyl_vlasov_species {
   int cells[3]; // velocity-space cells
 
   // initial conditions using projection routine
-  struct gkyl_vlasov_projection projection;
+  int num_init; // number of initial condition functions
+  struct gkyl_vlasov_projection projection[GKYL_MAX_PROJ];
 
   int num_diag_moments; // number of diagnostic moments
   char diag_moments[16][16]; // list of diagnostic moments
 
   // collisions to include
   struct gkyl_vlasov_collisions collisions;
+
+  // radiation to include
+  struct gkyl_vlasov_radiation radiation;
 
   // source to include
   struct gkyl_vlasov_source source;
@@ -287,6 +306,8 @@ struct gkyl_vlasov_stat {
   double species_lbo_coll_diff_tm[GKYL_MAX_SPECIES]; // time to compute LBO diffusion terms
   double species_coll_tm; // total time for collision updater (excluded moments)
 
+  double species_rad_tm; // total time for radiation updater 
+
   long niter_self_bgk_corr[GKYL_MAX_SPECIES]; // number of iterations used to correct self collisions in BGK
 
   double species_bc_tm; // time to compute species BCs
@@ -422,16 +443,6 @@ void gkyl_vlasov_app_write_field(gkyl_vlasov_app* app, double tm, int frame);
  * @param frame Frame number
  */
 void gkyl_vlasov_app_write_species(gkyl_vlasov_app* app, int sidx, double tm, int frame);
-
-/**
- * Write species p/gamma to file.
- * 
- * @param app App object.
- * @param sidx Index of species to initialize.
- * @param tm Time-stamp
- * @param frame Frame number
- */
-void gkyl_vlasov_app_write_species_gamma(gkyl_vlasov_app* app, int sidx, double tm, int frame);
 
 /**
  * Write fluid species data to file. 

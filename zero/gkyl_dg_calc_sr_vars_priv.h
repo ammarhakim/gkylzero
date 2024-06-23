@@ -11,65 +11,10 @@
 #include <gkyl_util.h>
 #include <assert.h>
 
-// Projection functions for p/(gamma) = v in special relativistic systems
-// Simplifies to p/sqrt(1 + p^2) where c = 1
-static void 
-ev_p_over_gamma_1p(double t, const double *xn, double *out, void *ctx)
-{
-  out[0] = xn[0]/sqrt(1.0 + xn[0]*xn[0]);
-}
-static void 
-ev_p_over_gamma_2p(double t, const double *xn, double *out, void *ctx)
-{
-  out[0] = xn[0]/sqrt(1.0 + xn[0]*xn[0] + xn[1]*xn[1]);
-  out[1] = xn[1]/sqrt(1.0 + xn[0]*xn[0] + xn[1]*xn[1]);
-}
-static void 
-ev_p_over_gamma_3p(double t, const double *xn, double *out, void *ctx)
-{
-  out[0] = xn[0]/sqrt(1.0 + xn[0]*xn[0] + xn[1]*xn[1] + xn[2]*xn[2]);
-  out[1] = xn[1]/sqrt(1.0 + xn[0]*xn[0] + xn[1]*xn[1] + xn[2]*xn[2]);
-  out[2] = xn[2]/sqrt(1.0 + xn[0]*xn[0] + xn[1]*xn[1] + xn[2]*xn[2]);
-}
-static const evalf_t p_over_gamma_func[3] = {ev_p_over_gamma_1p, ev_p_over_gamma_2p, ev_p_over_gamma_3p};
+typedef void (*p_vars_t)(const double *w, const double *dv, 
+  double* GKYL_RESTRICT gamma, double* GKYL_RESTRICT gamma_inv);
 
-// Projection functions for gamma = sqrt(1 + p^2) in special relativistic systems
-static void 
-ev_gamma_1p(double t, const double *xn, double *out, void *ctx)
-{
-  out[0] = sqrt(1.0 + xn[0]*xn[0]);
-}
-static void 
-ev_gamma_2p(double t, const double *xn, double *out, void *ctx)
-{
-  out[0] = sqrt(1.0 + xn[0]*xn[0] + xn[1]*xn[1]);
-}
-static void 
-ev_gamma_3p(double t, const double *xn, double *out, void *ctx)
-{
-  out[0] = sqrt(1.0 + xn[0]*xn[0] + xn[1]*xn[1] + xn[2]*xn[2]);
-}
-static const evalf_t gamma_func[3] = {ev_gamma_1p, ev_gamma_2p, ev_gamma_3p};
-
-// Projection functions for gamma_inv = 1/sqrt(1 + p^2) in special relativistic systems
-static void 
-ev_gamma_inv_1p(double t, const double *xn, double *out, void *ctx)
-{
-  out[0] = 1.0/sqrt(1.0 + xn[0]*xn[0]);
-}
-static void 
-ev_gamma_inv_2p(double t, const double *xn, double *out, void *ctx)
-{
-  out[0] = 1.0/sqrt(1.0 + xn[0]*xn[0] + xn[1]*xn[1]);
-}
-static void 
-ev_gamma_inv_3p(double t, const double *xn, double *out, void *ctx)
-{
-  out[0] = 1.0/sqrt(1.0 + xn[0]*xn[0] + xn[1]*xn[1] + xn[2]*xn[2]);
-}
-static const evalf_t gamma_inv_func[3] = {ev_gamma_inv_1p, ev_gamma_inv_2p, ev_gamma_inv_3p};
-
-// Function pointer type for different GammaV functions (GammaV^2, GammaV, 1/GammaV)
+// Function pointer type for different GammaV functions (GammaV^2, 1/GammaV)
 typedef void (*sr_t)(const double *V_i, double* GKYL_RESTRICT out);
 
 // The cv_index[cd].vdim[vd] is used to index the various list of
@@ -83,8 +28,18 @@ static struct { int vdim[4]; } cv_index[] = {
 };
 
 // for use in kernel tables
+typedef struct { p_vars_t kernels[3]; } gkyl_dg_sr_p_vars_kern_list;
 typedef struct { sr_t kernels[3]; } gkyl_dg_sr_GammaV2_kern_list;
 typedef struct { sr_t kernels[3]; } gkyl_dg_sr_GammaV_inv_kern_list;
+
+// Particle Lorentz boost factor gamma = sqrt(1 + p^2) (also 1/gamma) kernel list
+GKYL_CU_D
+static const gkyl_dg_sr_p_vars_kern_list ser_sr_p_vars_kernels[] = {
+  // 1x kernels
+  { NULL, NULL, sr_vars_lorentz_1v_ser_p2 }, // 0
+  { NULL, NULL, sr_vars_lorentz_2v_ser_p2 }, // 1
+  { NULL, NULL, sr_vars_lorentz_3v_ser_p2 }, // 2
+};
 
 // Lorentz boost factor *squared* kernel list
 GKYL_CU_D
@@ -113,6 +68,13 @@ static const gkyl_dg_sr_GammaV_inv_kern_list ser_sr_GammaV_inv_kernels[] = {
   // 3x kernels
   { NULL, sr_Gamma_inv_3x3v_ser_p1, NULL }, // 5
 };
+
+GKYL_CU_D
+static p_vars_t
+choose_ser_sr_p_vars_kern(int vdim, int poly_order)
+{
+  return ser_sr_p_vars_kernels[vdim-1].kernels[poly_order];
+}
 
 GKYL_CU_D
 static sr_t

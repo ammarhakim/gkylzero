@@ -33,6 +33,7 @@
 #include <gkyl_dg_updater_diffusion_fluid.h>
 #include <gkyl_dg_updater_diffusion_gen.h>
 #include <gkyl_dg_updater_lbo_vlasov.h>
+#include <gkyl_dg_updater_rad_vlasov.h>
 #include <gkyl_dg_updater_moment.h>
 #include <gkyl_dg_updater_vlasov.h>
 #include <gkyl_dg_vlasov.h>
@@ -187,6 +188,12 @@ struct vm_bgk_collisions {
   double dt_implicit; // timestep used by the implicit collisions
 };
 
+struct vm_rad_drag {  
+  struct gkyl_array *nu; // collision frequency for radiation
+  struct gkyl_array *nu_rad_drag; // nu*drag for drag force
+  gkyl_dg_updater_rad_vlasov *rad_slvr; // radiation solver
+};
+
 struct vm_boundary_fluxes {
   struct vm_species_moment integ_moms[2*GKYL_MAX_CDIM]; // integrated moments
   gkyl_ghost_surf_calc *flux_slvr; // boundary flux solver
@@ -228,21 +235,29 @@ struct vm_proj {
 };
 
 struct vm_source {
-  struct vm_species_moment moms; // source moments
+  bool write_source; // optional parameter to write out source distribution
 
   bool calc_bflux; // flag for calculating boundary fluxes
   struct vm_boundary_fluxes bflux; // boundary flux object
-
-  struct gkyl_array *source; // applied source
-  struct gkyl_array *source_host; // host copy for use in IO and projecting
-  struct vm_proj proj_source; // projector for source
-
   struct vm_species *source_species; // species to use for the source
   int source_species_idx; // index of source species
   
   double scale_factor; // factor to scale source function
   double source_length; // length used to scale the source function
   double *scale_ptr;
+
+  struct gkyl_array *source; // applied source
+  struct gkyl_array *source_host; // host copy for use in IO 
+  struct gkyl_array *source_tmp; // temporary array for sources for accumulation if num_sources>1
+  struct vm_proj proj_source[GKYL_MAX_PROJ]; // projector for source
+  int num_sources; // Number of sources.
+
+  int num_diag_moments; // number of diagnostics moments
+  struct vm_species_moment *moms; // diagnostic moments
+  struct vm_species_moment integ_moms; // integrated moments
+  double *red_integ_diag, *red_integ_diag_global; // for reduction of integrated moments
+  gkyl_dynvec integ_diag; // integrated moments reduced across grid
+  bool is_first_integ_write_call; // flag for integrated moments dynvec written first time
 };
 
 // species data
@@ -275,19 +290,10 @@ struct vm_species {
   union {
     // Special relativistic Vlasov-Maxwell model
     struct {
-      struct vm_species_moment Ni; // for computing four-current (gamma*N, gamma*N*V_drift)
-      struct gkyl_array *p_over_gamma; // array for p/gamma (velocity) in special relativistic equation
-      struct gkyl_array *p_over_gamma_host; // host copy for use in projecting before copying over to GPU
       struct gkyl_array *gamma; // array for gamma = sqrt(1 + p^2) 
       struct gkyl_array *gamma_host; // host copy for use in projecting before copying over to GPU
       struct gkyl_array *gamma_inv; // array for gamma = 1.0/sqrt(1 + p^2) 
       struct gkyl_array *gamma_inv_host; // host copy for use in projecting before copying over to GPU
-      // Special relativistic derived quantities
-      struct gkyl_array *V_drift; // bulk fluid velocity (computed from M0*V_drift = M1i with weak division)
-      struct gkyl_array *GammaV2; // Gamma^2 = 1/(1 - V_drift^2/c^2), Lorentz boost factor squared from bulk fluid velocity
-      struct gkyl_array *GammaV_inv; // Gamma_inv = sqrt(1 - V_drift^2/c^2), inverse Lorentz boost factor from bulk fluid velocity
-
-      struct gkyl_dg_bin_op_mem *V_drift_mem; // memory used in the div-op for V_drift from M1i and M0
     };
     // Canonical Poisson Bracket using specified hamiltonian
     struct {
@@ -336,8 +342,10 @@ struct vm_species {
   struct gkyl_array *app_accel_host; // host copy for use in IO and projecting
   gkyl_proj_on_basis *app_accel_proj; // projector for acceleration
 
-  struct vm_proj proj_init; // projector for initial conditions
-
+  int num_init; // Number of initial condition functions.
+  struct vm_proj proj_init[GKYL_MAX_PROJ]; // projectors for initial conditions
+  struct gkyl_array *f_tmp; // temporary array for accumulating initial conditions
+  
   enum gkyl_source_id source_id; // type of source
   struct vm_source src; // applied source
 
@@ -351,6 +359,9 @@ struct vm_species {
       struct vm_bgk_collisions bgk; // BGK collisions object
     };
   }; 
+
+  enum gkyl_radiation_id radiation_id; // type of radiation
+  struct vm_rad_drag rad; // Vlasov radiation object
 
   double *omegaCfl_ptr;
 };
@@ -780,6 +791,40 @@ void vm_species_bgk_rhs(gkyl_vlasov_app *app,
  */
 void vm_species_bgk_release(const struct gkyl_vlasov_app *app, const struct vm_bgk_collisions *bgk);
 
+/** vm_species_radiation API */
+
+/**
+ * Initialize species radiation object.
+ *
+ * @param app Vlasov app object
+ * @param s Species object 
+ * @param rad Species radiation object
+ */
+void vm_species_radiation_init(struct gkyl_vlasov_app *app, struct vm_species *s,
+  struct vm_rad_drag *rad);
+
+/**
+ * Compute RHS from radiation operator
+ *
+ * @param app Vlasov app object
+ * @param species Pointer to species
+ * @param rad Pointer to radiation object
+ * @param fin Input distribution function
+ * @param rhs On output, the RHS from radiation
+ */
+void vm_species_radiation_rhs(gkyl_vlasov_app *app,
+  const struct vm_species *species,
+  struct vm_rad_drag *rad,
+  const struct gkyl_array *fin, struct gkyl_array *rhs);
+
+/**
+ * Release species radiation object.
+ *
+ * @param app Vlasov app object
+ * @param rad Species radiation object to release
+ */
+void vm_species_radiation_release(const struct gkyl_vlasov_app *app, const struct vm_rad_drag *rad);
+
 /** vm_species_boundary_fluxes API */
 
 /**
@@ -983,6 +1028,13 @@ void vm_species_bgk_niter(gkyl_vlasov_app *app);
  * @param app App object to update stat timers
  */
 void vm_species_tm(gkyl_vlasov_app *app);
+
+/**
+ * Fill stat object in app with radiation timers.
+ *
+ * @param app App object to update stat timers
+ */
+void vm_species_rad_tm(gkyl_vlasov_app *app);
 
 /**
  * Delete resources used in species.
