@@ -145,7 +145,7 @@ void gkyl_mat_show(const char *name, FILE *fp, const struct gkyl_mat *mat);
  */
 struct gkyl_mat* gkyl_mat_mm(double alpha, double beta,
   enum gkyl_mat_trans transa, const struct gkyl_mat *A,
-  enum gkyl_mat_trans transb, const struct gkyl_mat *B, struct gkyl_mat *C);
+  enum gkyl_mat_trans transb, const struct gkyl_mat *B, struct gkyl_mat *, bool on_gpu);
 
 /**
  * Computes matrix-vector product:

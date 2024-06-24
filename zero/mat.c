@@ -104,11 +104,62 @@ gkyl_mat_show(const char *name, FILE *fp, const struct gkyl_mat *mat)
   fprintf(fp, " )\n");
 }
 
-struct gkyl_mat*
-gkyl_mat_mm(double alpha, double beta,
+#ifdef GKYL_HAVE_CUDA
+void
+gkyl_mat_mm_cu(double alpha, double beta,
   enum gkyl_mat_trans transa, const struct gkyl_mat *A,
   enum gkyl_mat_trans transb, const struct gkyl_mat *B, struct gkyl_mat *C)
 {
+
+  // device handle
+	cublasHandle_t cuh;
+	cublasCreate_v2(&cuh);
+
+  // determine matrix sizes
+  struct mat_sizes sza = get_mat_sizes(transa, A);
+  struct mat_sizes szb = get_mat_sizes(transb, B);
+  struct mat_sizes szc = get_mat_sizes(GKYL_NO_TRANS, C);
+
+  // intermediate size
+  size_t k = sza.nc; // same as szb.nr
+  size_t lda = transa == GKYL_NO_TRANS ? C->nr : k;
+  size_t ldb = transb == GKYL_NO_TRANS ? k : C->nc;
+  size_t ldc = C->nr;
+  
+  assert( (sza.nr == szc.nr) && (sza.nc == k) && (szb.nr == k) && (szb.nc == szc.nc) );
+
+  // call BLAS routine to perform matrix-matrix multiply
+  cublasDgemm(cuh,
+    transa,
+    transb,
+    C->nr, C->nc, k,
+    &alpha,
+    A->data, lda,
+    B->data, ldb,
+    &beta, C->data, ldc);
+
+  // Destory the cuda handle
+  cublasDestroy(cuh);
+}
+#endif
+
+
+
+struct gkyl_mat*
+gkyl_mat_mm(double alpha, double beta,
+  enum gkyl_mat_trans transa, const struct gkyl_mat *A,
+  enum gkyl_mat_trans transb, const struct gkyl_mat *B, struct gkyl_mat *C, bool on_gpu)
+{
+
+  #ifdef GKYL_HAVE_CUDA
+  // Now do the matrix multiply using either the cublas or lapack funcs.
+  cublasStatus_t info;
+  if(on_gpu){
+    gkyl_mat_mm_cu(alpha, beta, transa, A, transb, B, C);
+    return C;
+  }
+#endif
+
   // determine matrix sizes
   struct mat_sizes sza = get_mat_sizes(transa, A);
   struct mat_sizes szb = get_mat_sizes(transb, B);
@@ -438,7 +489,7 @@ ho_nmat_mm(double alpha, double beta, enum gkyl_mat_trans transa, struct gkyl_nm
     struct gkyl_mat Ai = gkyl_nmat_get(A,i);
     struct gkyl_mat Bi = gkyl_nmat_get(B,i);
     struct gkyl_mat Ci = gkyl_nmat_get(C,i);
-    gkyl_mat_mm( alpha, beta, transa,  &Ai, transb, &Bi, &Ci);
+    gkyl_mat_mm( alpha, beta, transa,  &Ai, transb, &Bi, &Ci, false);
   }
 }
 
@@ -631,6 +682,8 @@ gkyl_mat_mm_array(struct gkyl_mat_mm_array_mem *mem, const struct gkyl_array *B,
   size_t lda = transa == GKYL_NO_TRANS ? C->ncomp : k;
   size_t ldb = transb == GKYL_NO_TRANS ? k : C->size;
   size_t ldc = C->ncomp;
+
+  assert( (sza.nr == C->ncomp) && (B->ncomp == k) && (B->size == C->size) );
 
   // For CPU side calculations
   // call BLAS routine to perform matrix-matrix multiply 

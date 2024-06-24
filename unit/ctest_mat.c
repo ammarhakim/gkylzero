@@ -86,7 +86,7 @@ test_mat_mm_op()
     }
 
   // C = 0.5*A*B + 0.0*C
-  gkyl_mat_mm(0.5, 0.0, GKYL_NO_TRANS, A, GKYL_NO_TRANS, B, C);
+  gkyl_mat_mm(0.5, 0.0, GKYL_NO_TRANS, A, GKYL_NO_TRANS, B, C, false);
 
   // C : matrix( [29.0, 32.0], [69.5, 77.0] )
   TEST_CHECK( gkyl_mat_get(C, 0, 0) == 29.0 );
@@ -95,7 +95,7 @@ test_mat_mm_op()
   TEST_CHECK( gkyl_mat_get(C, 1, 1) == 77.0 );
 
   // D = 0.5*A'*B'
-  gkyl_mat_mm(0.5, 0.0, GKYL_TRANS, A, GKYL_TRANS, B, D);
+  gkyl_mat_mm(0.5, 0.0, GKYL_TRANS, A, GKYL_TRANS, B, D, false);
 
   // D : matrix( [ 19.5  24.5  29.5 ], [ 27.0  34.0  41.0 ], [ 34.5  43.5  52.5 ] )
   TEST_CHECK( gkyl_mat_get(D, 0, 0) == 19.5 );
@@ -655,6 +655,71 @@ void test_cu_nmat_mv()
 
 }
 
+
+void test_cu_mat_mm()
+{
+
+  struct gkyl_mat *mat_A = gkyl_mat_new(4, 3, 0);
+  struct gkyl_mat *mat_x = gkyl_mat_new(3, 2, 0);
+  struct gkyl_mat *mat_y = gkyl_mat_new(4, 2, 0);
+
+  struct gkyl_mat *mat_Acu = gkyl_mat_cu_dev_new(4, 3);
+  struct gkyl_mat *mat_xcu = gkyl_mat_cu_dev_new(3, 2);
+  struct gkyl_mat *mat_ycu = gkyl_mat_cu_dev_new(4, 2);
+
+  // fill each A matrix with its number
+  for (size_t j=0; j<mat_A->nc; ++j)
+    for (size_t i=0; i<mat_A->nr; ++i)
+      gkyl_mat_set(mat_A, i, j, 1);
+
+  // fill each x vecotr with ones
+  for (size_t j=0; j<mat_x->nc; ++j)
+    for (size_t i=0; i<mat_x->nr; ++i)
+      gkyl_mat_set(mat_x, i, j, 1);
+
+
+  // fill each y matrix with 0
+  for (size_t j=0; j<mat_y->nc; ++j)
+    for (size_t i=0; i<mat_y->nr; ++i)
+      gkyl_mat_set(mat_y, i, j, 0);
+
+  enum gkyl_mat_trans transa = GKYL_NO_TRANS;
+  enum gkyl_mat_trans transb = GKYL_NO_TRANS;
+  double alpha = 1.0;
+  double beta = 0.0;
+
+
+  // copy to device
+  gkyl_mat_copy(mat_Acu, mat_A);
+  gkyl_mat_copy(mat_xcu, mat_x);
+  gkyl_mat_copy(mat_ycu, mat_y);
+
+  gkyl_mat_mm(alpha, beta, transa, mat_Acu, transb, mat_xcu, mat_ycu, true);
+
+  // copy to host
+  gkyl_mat_copy(mat_A, mat_Acu);
+  gkyl_mat_copy(mat_x, mat_xcu);
+  gkyl_mat_copy(mat_y, mat_ycu);
+
+
+  // check the expected result
+  double expected = 3;
+  for (size_t j=0; j<mat_y->nc; ++j){
+    for (size_t i=0; i<mat_y->nr; ++i){
+      double actual = gkyl_mat_get(mat_y, i, j);
+      TEST_CHECK ( expected == actual );
+    }
+  }
+  gkyl_mat_release(mat_A);
+  gkyl_mat_release(mat_x);
+  gkyl_mat_release(mat_y);
+  gkyl_mat_release(mat_Acu);
+  gkyl_mat_release(mat_xcu);
+  gkyl_mat_release(mat_ycu);
+
+
+}
+
 void test_cu_nmat_mm()
 {
 
@@ -828,6 +893,7 @@ TEST_LIST = {
   { "cu_nmat_linsolve", test_cu_nmat_linsolve },
   { "cu_nmat_linsolve_pa", test_cu_nmat_linsolve_pa },
   { "cu_nmat_mv", test_cu_nmat_mv},
+  { "cu_mat_mm", test_cu_mat_mm},
   { "cu_nmat_mm", test_cu_nmat_mm},
   { "cu_mat_mm_arrays", test_cu_mat_mm_arrays},
 #endif
