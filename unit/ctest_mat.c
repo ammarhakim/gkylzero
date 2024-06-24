@@ -516,11 +516,65 @@ void test_nmat_mm()
       for (size_t i=0; i<y.nr; ++i)
         TEST_CHECK ( expected == gkyl_mat_get(&y, i, j) );
   }
-
-
 }
 
 
+void test_mat_mm_arrays()
+{
+  struct gkyl_mat_mm_array_mem *ctest_prob_mem; 
+  ctest_prob_mem = gkyl_mat_mm_array_mem_dev_new(4, 3, 1.0, 0.0, 
+    GKYL_NO_TRANS, GKYL_NO_TRANS, false);
+
+  struct gkyl_mat *mat_A = ctest_prob_mem->A_ho;
+  struct gkyl_array *array_x = gkyl_array_new(GKYL_DOUBLE, 3, 2);
+  struct gkyl_array *array_y = gkyl_array_new(GKYL_DOUBLE, 4, 2);
+
+  // fill each A matrix with its number
+  for (size_t j=0; j<mat_A->nc; ++j){
+    for (size_t i=0; i<mat_A->nr; ++i){
+      double a_val = i*3 + j;
+      gkyl_mat_set(mat_A, i, j, a_val);
+      double actual = gkyl_mat_get(mat_A, i, j);
+      //printf("A(m=%d,n=%d): %1.2e,\n", i, j, actual);
+    }
+  }
+
+  // fill each x vector with ones
+  for (size_t j=0; j<array_x->size; ++j){
+    double *x = gkyl_array_fetch(array_x,j);
+    for (size_t i=0; i<array_x->ncomp; ++i){
+      x[i] = i*2 + j;
+      //printf("B(m=%d,n=%d): %1.2e,\n", i, j, x[i]);
+    }
+  } 
+
+  for (size_t j=0; j<array_y->size; ++j){
+    double *y = gkyl_array_fetch(array_y,j);
+    for (size_t i=0; i<array_y->ncomp; ++i){
+      y[i] = 0.0;
+      //printf("C(m=%d,n=%d): %1.2e,\n", i, j, 0.0);
+    }
+  } 
+
+  // Preform the matrix multiply
+  gkyl_mat_mm_array(ctest_prob_mem, array_x, array_y);
+
+  // check the expected result
+  double expected_array[8] = {10.0, 13.0, 28.0, 40.0, 46.0, 67.0, 64.0, 94.0};
+  for (size_t j=0; j<array_y->size; ++j){
+    double *y = gkyl_array_fetch(array_y,j);
+    for (size_t i=0; i<array_y->ncomp; ++i){
+      double actual = y[i];
+      double expected = expected_array[i*2 + j];
+      //printf("expected: %1.2e, actual: %1.2e\n", expected, actual);
+      TEST_CHECK ( expected == actual );
+    }
+  }
+  gkyl_array_release(array_x);
+  gkyl_array_release(array_y);
+  gkyl_mat_mm_array_mem_release(ctest_prob_mem);
+
+}
 
 
 #ifdef GKYL_HAVE_CUDA
@@ -679,9 +733,9 @@ void test_cu_nmat_mm()
 
 void test_cu_mat_mm_arrays()
 {
-  struct gkyl_cu_mat_mm_array_mem *ctest_prob_mem; 
-  ctest_prob_mem = gkyl_cu_mat_mm_array_mem_cu_dev_new(4, 3, 1.0, 0.0, 
-    GKYL_NO_TRANS, GKYL_NO_TRANS);
+  struct gkyl_mat_mm_array_mem *ctest_prob_mem; 
+  ctest_prob_mem = gkyl_mat_mm_array_mem_dev_new(4, 3, 1.0, 0.0, 
+    GKYL_NO_TRANS, GKYL_NO_TRANS, true);
 
   struct gkyl_mat *mat_A = ctest_prob_mem->A_ho;
   struct gkyl_array *array_x = gkyl_array_new(GKYL_DOUBLE, 3, 2);
@@ -723,7 +777,7 @@ void test_cu_mat_mm_arrays()
   gkyl_array_copy(array_xcu, array_x);
   gkyl_array_copy(array_ycu, array_y);
 
-  gkyl_cu_mat_mm_array(ctest_prob_mem, array_xcu, array_ycu);
+  gkyl_mat_mm_array(ctest_prob_mem, array_xcu, array_ycu);
 
   // copy to host
   gkyl_mat_copy(mat_A, mat_Acu);
@@ -746,7 +800,7 @@ void test_cu_mat_mm_arrays()
   gkyl_array_release(array_y);
   gkyl_array_release(array_xcu);
   gkyl_array_release(array_ycu);
-  gkyl_cu_mat_mm_array_mem_release(ctest_prob_mem);
+  gkyl_mat_mm_array_mem_release(ctest_prob_mem);
 
 }
 
@@ -765,6 +819,7 @@ TEST_LIST = {
   { "mv", test_mat_mv},
   { "nmat_mv", test_nmat_mv},
   { "nmat_mm", test_nmat_mm},
+  { "mat_mm_arrays", test_mat_mm_arrays},
 #ifdef GKYL_HAVE_CUDA
   { "cu_nmat_base", test_cu_nmat_base },
   { "cu_nmat_linsolve", test_cu_nmat_linsolve },

@@ -42,8 +42,8 @@ struct gkyl_nmat {
 typedef struct gkyl_nmat_mem gkyl_nmat_mem;
 
 // Type for storing preallocating memory needed specificially for 
-// cu_mat_mm_array
-typedef struct gkyl_cu_mat_mm_array_mem gkyl_cu_mat_mm_array_mem;
+// mat_mm_array
+typedef struct gkyl_mat_mm_array_mem gkyl_mat_mm_array_mem;
 
 /**
  * Construct new matrix with all elements initialized to @a
@@ -359,23 +359,24 @@ void gkyl_nmat_linsolve_lu_release(gkyl_nmat_mem *mem);
  * @param beta Coefficient infron of C
  * @param transa Whether or not to transpose A
  * @param transb Whether or not to transpose B
+ * @param use_gpu 
  * @return Preallocated memory
  */
-gkyl_cu_mat_mm_array_mem *gkyl_cu_mat_mm_array_mem_cu_dev_new(int nr, int nc,
-  double alpha, double beta, enum gkyl_mat_trans transa, enum gkyl_mat_trans transb);
+gkyl_mat_mm_array_mem *gkyl_mat_mm_array_mem_dev_new(int nr, int nc, double alpha, 
+  double beta, enum gkyl_mat_trans transa, enum gkyl_mat_trans transb, bool use_gpu);
 
 /**
  * Release memory allocated for batched LU solves.
  *
  * @param mem Memory to release
  */
-void gkyl_cu_mat_mm_array_mem_release(gkyl_cu_mat_mm_array_mem *mem);
+void gkyl_mat_mm_array_mem_release(gkyl_mat_mm_array_mem *mem);
 
 #ifdef GKYL_HAVE_CUDA
 
 /**
  * Computes: alpha*matrix_multiplication(A,B) + Beta*C = C 
- * This is done using the cublas_v2 library. The function here, cu_mat_mm_array is designed specifically so
+ * This is done using the cublas_v2 library. The function here, mat_mm_array is designed specifically so
  * A is type gkyl_mat_trans, and B/C are gkyl_arrays. This is purposefully done for calculations with
  * small A but and very large B, C where we don't wish to translate B, C to mat/nmat types. 
  * 
@@ -385,7 +386,7 @@ void gkyl_cu_mat_mm_array_mem_release(gkyl_cu_mat_mm_array_mem *mem);
  * @param B gkyl_array matrix for computing A*B = C
  * @param C gkyl_array matrix for computing A*B = C
 */
-void gkyl_cu_mat_mm_array(struct gkyl_cu_mat_mm_array_mem *mem, const struct gkyl_array *B, struct gkyl_array *C);
+void gkyl_mat_mm_array(struct gkyl_mat_mm_array_mem *mem, const struct gkyl_array *B, struct gkyl_array *C);
   
 #endif
 

@@ -236,7 +236,7 @@ gkyl_vlasov_lte_proj_on_basis_advance_cu(gkyl_vlasov_lte_proj_on_basis *up,
      moms_lte->on_dev, up->f_lte_at_nodes->on_dev, num_conf_basis, tot_conf_quad);
 
   // Call cublas to do the matrix multiplication nodal to modal conversion
-  gkyl_cu_mat_mm_array(up->phase_nodal_to_modal_mem, up->f_lte_at_nodes, f_lte);
+  gkyl_mat_mm_array(up->phase_nodal_to_modal_mem, up->f_lte_at_nodes, f_lte);
 
   // Correct the density of the projected LTE distribution function through rescaling.
   // This correction is needed especially for the relativistic LTE, whose pre-factor

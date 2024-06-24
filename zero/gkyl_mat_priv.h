@@ -17,10 +17,11 @@
 #endif
 
 
-struct gkyl_cu_mat_mm_array_mem {
+struct gkyl_mat_mm_array_mem {
 
   // info for alpha*matrix_multiplication(A,B) + Beta*C = C 
-  // using cu_mat_mm_array
+  // using mat_mm_array
+  bool on_gpu; // flag to indicate if we are on GPU
   double alpha;
   double beta;
   enum gkyl_mat_trans transa;
