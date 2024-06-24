@@ -587,10 +587,39 @@ cu_nmat_linsolve_lu(gkyl_nmat_mem *mem, struct gkyl_nmat *A, struct gkyl_nmat *x
 #endif  
 }
 
+#ifdef GKYL_HAVE_CUDA
+void
+gkyl_mat_mm_array_cu(struct gkyl_mat_mm_array_mem *mem, const struct gkyl_array *B, struct gkyl_array *C, cublasStatus_t info)
+{
+   double alpha = mem->alpha;
+  double beta = mem->beta; 
+  enum gkyl_mat_trans transa = mem->transa;
+  struct gkyl_mat *A = mem->A;
+  enum gkyl_mat_trans transb = mem->transb;
+
+  struct mat_sizes sza = get_mat_sizes(transa, A); 
+  size_t k = sza.nc;
+  size_t lda = transa == GKYL_NO_TRANS ? C->ncomp : k;
+  size_t ldb = transb == GKYL_NO_TRANS ? k : C->size;
+  size_t ldc = C->ncomp;
+
+  // Do the cublas gemm
+  info = cublasDgemm(mem->cuh, transa, transb, A->nr, B->size, A->nc, &alpha, A->data, lda, B->data, ldb, &beta, C->data, ldc);
+}
+#endif
 
 void
 gkyl_mat_mm_array(struct gkyl_mat_mm_array_mem *mem, const struct gkyl_array *B, struct gkyl_array *C)
 {
+#ifdef GKYL_HAVE_CUDA
+  // Now do the matrix multiply using either the cublas or lapack funcs.
+  cublasStatus_t info;
+  if(mem->on_gpu){
+    gkyl_mat_mm_array_cu(mem, B, C, info);
+    return;
+  }
+#endif
+
   double alpha = mem->alpha;
   double beta = mem->beta; 
   enum gkyl_mat_trans transa = mem->transa;
@@ -603,20 +632,11 @@ gkyl_mat_mm_array(struct gkyl_mat_mm_array_mem *mem, const struct gkyl_array *B,
   size_t ldb = transb == GKYL_NO_TRANS ? k : C->size;
   size_t ldc = C->ncomp;
 
-  // Now do the matrix multiply using either the cublas or lapack funcs.
-  cublasStatus_t info;
-#ifdef GKYL_HAVE_CUDA
-  if(mem->on_gpu)
-    info = cublasDgemm(mem->cuh, transa, transb, A->nr, B->size, A->nc, &alpha, A->data, lda, B->data, ldb, &beta, C->data, ldc);
-#endif
-
   // For CPU side calculations
-  if(!mem->on_gpu){ 
-    // call BLAS routine to perform matrix-matrix multiply 
-    // (specifically for CPU, with gkyl_array B/C)
-    cblas_dgemm(CblasColMajor, cblas_trans_flags[transa], cblas_trans_flags[transb], A->nr, B->size, A->nc,
-      alpha, A->data, lda, B->data, ldb, beta, C->data, ldc);
-  }
+  // call BLAS routine to perform matrix-matrix multiply 
+  // (specifically for CPU, with gkyl_array B/C)
+  cblas_dgemm(CblasColMajor, cblas_trans_flags[transa], cblas_trans_flags[transb], A->nr, B->size, A->nc,
+    alpha, A->data, lda, B->data, ldb, beta, C->data, ldc);
 }
  
 
