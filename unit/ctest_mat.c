@@ -723,7 +723,7 @@ void test_cu_mat_mm_arrays()
   gkyl_array_copy(array_xcu, array_x);
   gkyl_array_copy(array_ycu, array_y);
 
-  cu_mat_mm_array(ctest_prob_mem, array_xcu, array_ycu);
+  gkyl_cu_mat_mm_array(ctest_prob_mem, array_xcu, array_ycu);
 
   // copy to host
   gkyl_mat_copy(mat_A, mat_Acu);

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <gkyl_array.h>
 #include <gkyl_ref_count.h>
 #include <gkyl_util.h>
 
@@ -369,6 +370,24 @@ gkyl_cu_mat_mm_array_mem *gkyl_cu_mat_mm_array_mem_cu_dev_new(int nr, int nc,
  * @param mem Memory to release
  */
 void gkyl_cu_mat_mm_array_mem_release(gkyl_cu_mat_mm_array_mem *mem);
+
+#ifdef GKYL_HAVE_CUDA
+
+/**
+ * Computes: alpha*matrix_multiplication(A,B) + Beta*C = C 
+ * This is done using the cublas_v2 library. The function here, cu_mat_mm_array is designed specifically so
+ * A is type gkyl_mat_trans, and B/C are gkyl_arrays. This is purposefully done for calculations with
+ * small A but and very large B, C where we don't wish to translate B, C to mat/nmat types. 
+ * 
+ * Such calculations use this function like the conversion from nodal to modal representation of phase space
+ * quantities.
+ * @param mem structure containing the A matrix, associated transpose properties, alpha, beta
+ * @param B gkyl_array matrix for computing A*B = C
+ * @param C gkyl_array matrix for computing A*B = C
+*/
+void gkyl_cu_mat_mm_array(struct gkyl_cu_mat_mm_array_mem *mem, const struct gkyl_array *B, struct gkyl_array *C);
+  
+#endif
 
 /**
  * Solve a batched system of linear equations using LU

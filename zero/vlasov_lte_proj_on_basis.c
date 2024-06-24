@@ -264,8 +264,8 @@ gkyl_vlasov_lte_proj_on_basis_inew(const struct gkyl_vlasov_lte_proj_on_basis_in
     
     // Call cublas to do the modal to nodal conversion on conf-space quanitites
     if(up->is_canonical_pb){
-      cu_mat_mm_array(up->conf_modal_to_nodal_h_ij_inv_quad_mem, up->h_ij_inv, up->h_ij_inv_quad);
-      cu_mat_mm_array(up->conf_modal_to_nodal_det_h_quad_mem, up->det_h, up->det_h_quad);
+      gkyl_cu_mat_mm_array(up->conf_modal_to_nodal_h_ij_inv_quad_mem, up->h_ij_inv, up->h_ij_inv_quad);
+      gkyl_cu_mat_mm_array(up->conf_modal_to_nodal_det_h_quad_mem, up->det_h, up->det_h_quad);
     }
 
     // initialize data needed for conf-space quadrature 

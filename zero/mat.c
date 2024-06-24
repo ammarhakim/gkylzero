@@ -7,6 +7,11 @@
 
 #include <stdbool.h>
 
+#ifdef GKYL_HAVE_CUDA
+# include <cuda_runtime.h>
+# include <cublas_v2.h>
+#endif
+
 // BLAS and LAPACKE includes
 #ifdef GKYL_USING_FRAMEWORK_ACCELERATE
 # include <Accelerate/Accelerate.h>
@@ -578,7 +583,7 @@ cu_nmat_linsolve_lu(gkyl_nmat_mem *mem, struct gkyl_nmat *A, struct gkyl_nmat *x
 
 #ifdef GKYL_HAVE_CUDA
 void
-cu_mat_mm_array(struct gkyl_cu_mat_mm_array_mem *mem, const struct gkyl_array *B, struct gkyl_array *C)
+gkyl_cu_mat_mm_array(struct gkyl_cu_mat_mm_array_mem *mem, const struct gkyl_array *B, struct gkyl_array *C)
 {
 
   double alpha = mem->alpha;
