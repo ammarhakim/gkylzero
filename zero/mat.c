@@ -400,6 +400,11 @@ gkyl_cu_mat_mm_array_mem_cu_dev_new(int nr, int nc, double alpha, double beta,
   mem->A_cu = gkyl_mat_cu_dev_new(nr, nc);
   mem->A_ho = gkyl_mat_new(nr, nc, 0.0);
 
+#ifdef GKYL_HAVE_CUDA
+  mem->cuh = 0;
+  cublasCreate_v2(&mem->cuh);
+#endif
+
   return mem;
 }
 
@@ -408,6 +413,9 @@ gkyl_cu_mat_mm_array_mem_release(gkyl_cu_mat_mm_array_mem *mem)
 {
   gkyl_mat_release(mem->A_cu);
   gkyl_mat_release(mem->A_ho);
+#ifdef GKYL_HAVE_CUDA
+    cublasDestroy(mem->cuh);
+#endif
   gkyl_free(mem);
 }
 
@@ -570,7 +578,7 @@ cu_nmat_linsolve_lu(gkyl_nmat_mem *mem, struct gkyl_nmat *A, struct gkyl_nmat *x
 
 #ifdef GKYL_HAVE_CUDA
 void
-cu_mat_mm_array(cublasHandle_t cuh, struct gkyl_cu_mat_mm_array_mem *mem, const struct gkyl_array *B, struct gkyl_array *C)
+cu_mat_mm_array(struct gkyl_cu_mat_mm_array_mem *mem, const struct gkyl_array *B, struct gkyl_array *C)
 {
 
   double alpha = mem->alpha;
@@ -587,7 +595,7 @@ cu_mat_mm_array(cublasHandle_t cuh, struct gkyl_cu_mat_mm_array_mem *mem, const 
 
   // Now do the matrix multiply
   cublasStatus_t info;
-  info = cublasDgemm(cuh, transa, transb, A->nr, B->size, A->nc, &alpha, A->data, lda, B->data, ldb, &beta, C->data, ldc);
+  info = cublasDgemm(mem->cuh, transa, transb, A->nr, B->size, A->nc, &alpha, A->data, lda, B->data, ldb, &beta, C->data, ldc);
 }
 #endif 
 

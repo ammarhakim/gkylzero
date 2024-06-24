@@ -89,10 +89,5 @@ struct gkyl_vlasov_lte_proj_on_basis {
                                                                 // stores the info to convert phase
                                                                 // space nodal to modal gkyl arrays  
   struct gkyl_cu_mat_mm_array_mem *conf_modal_to_nodal_h_ij_inv_quad_mem;  // modal to nodal mm for h_ij_inv_quad
-  struct gkyl_cu_mat_mm_array_mem *conf_modal_to_nodal_det_h_quad_mem;  // modal to nodal mm for det_h_quad
-
-
-#ifdef GKYL_HAVE_CUDA
-  cublasHandle_t cuh; // cublas handle
-#endif                
+  struct gkyl_cu_mat_mm_array_mem *conf_modal_to_nodal_det_h_quad_mem;  // modal to nodal mm for det_h_quad               
 };

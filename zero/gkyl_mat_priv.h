@@ -28,6 +28,9 @@ struct gkyl_cu_mat_mm_array_mem {
   struct gkyl_mat *A_ho;
   struct gkyl_mat *A_cu;
 
+#ifdef GKYL_HAVE_CUDA
+  cublasHandle_t cuh; // cublas handle
+#endif  
 };
 
 #ifdef GKYL_HAVE_CUDA
@@ -40,11 +43,10 @@ struct gkyl_cu_mat_mm_array_mem {
  * 
  * Such calculations use this function like the conversion from nodal to modal representation of phase space
  * quantities.
- * @param cuh cublasHandle_t object
  * @param mem structure containing the A matrix, associated transpose properties, alpha, beta
  * @param B gkyl_array matrix for computing A*B = C
  * @param C gkyl_array matrix for computing A*B = C
 */
-void cu_mat_mm_array(cublasHandle_t cuh, struct gkyl_cu_mat_mm_array_mem *mem, const struct gkyl_array *B, struct gkyl_array *C);
+void cu_mat_mm_array(struct gkyl_cu_mat_mm_array_mem *mem, const struct gkyl_array *B, struct gkyl_array *C);
   
 #endif

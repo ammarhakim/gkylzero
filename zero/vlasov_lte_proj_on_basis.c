@@ -261,16 +261,11 @@ gkyl_vlasov_lte_proj_on_basis_inew(const struct gkyl_vlasov_lte_proj_on_basis_in
 
     gkyl_mat_copy(up->conf_modal_to_nodal_det_h_quad_mem->A_cu, up->conf_modal_to_nodal_det_h_quad_mem->A_ho);
 
-
-    // Create a cuda handle for all cublas operations
-    up->cuh = 0;
-    cublasCreate_v2(&up->cuh);
-
     
     // Call cublas to do the modal to nodal conversion on conf-space quanitites
     if(up->is_canonical_pb){
-      cu_mat_mm_array(up->cuh, up->conf_modal_to_nodal_h_ij_inv_quad_mem, up->h_ij_inv, up->h_ij_inv_quad);
-      cu_mat_mm_array(up->cuh, up->conf_modal_to_nodal_det_h_quad_mem, up->det_h, up->det_h_quad);
+      cu_mat_mm_array(up->conf_modal_to_nodal_h_ij_inv_quad_mem, up->h_ij_inv, up->h_ij_inv_quad);
+      cu_mat_mm_array(up->conf_modal_to_nodal_det_h_quad_mem, up->det_h, up->det_h_quad);
     }
 
     // initialize data needed for conf-space quadrature 
@@ -570,7 +565,6 @@ gkyl_vlasov_lte_proj_on_basis_release(gkyl_vlasov_lte_proj_on_basis* up)
     gkyl_cu_mat_mm_array_mem_release(up->conf_modal_to_nodal_h_ij_inv_quad_mem);
     gkyl_cu_mat_mm_array_mem_release(up->conf_modal_to_nodal_det_h_quad_mem);
     gkyl_cu_mat_mm_array_mem_release(up->phase_nodal_to_modal_mem);
-    cublasDestroy(up->cuh);
   }
 #endif
   gkyl_array_release(up->ordinates);
