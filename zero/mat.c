@@ -403,12 +403,17 @@ gkyl_mat_mm_array_mem_dev_new(int nr, int nc, double alpha, double beta,
   mem->beta = beta;
   mem->transa = transa;
   mem->transb = transb;
-  mem->A_cu = gkyl_mat_cu_dev_new(nr, nc);
-  mem->A_ho = gkyl_mat_new(nr, nc, 0.0);
+  if (use_gpu){
+    mem->A = gkyl_mat_cu_dev_new(nr, nc);
+  } else {
+    mem->A = gkyl_mat_new(nr, nc, 0.0);
+  }
 
 #ifdef GKYL_HAVE_CUDA
-  mem->cuh = 0;
-  cublasCreate_v2(&mem->cuh);
+  if(mem->on_gpu){
+    mem->cuh = 0;
+    cublasCreate_v2(&mem->cuh);
+  }
 #endif
 
   return mem;
@@ -417,9 +422,9 @@ gkyl_mat_mm_array_mem_dev_new(int nr, int nc, double alpha, double beta,
 void
 gkyl_mat_mm_array_mem_release(gkyl_mat_mm_array_mem *mem)
 {
-  gkyl_mat_release(mem->A_cu);
-  gkyl_mat_release(mem->A_ho);
+  gkyl_mat_release(mem->A);
 #ifdef GKYL_HAVE_CUDA
+  if(mem->on_gpu)
     cublasDestroy(mem->cuh);
 #endif
   gkyl_free(mem);
@@ -589,11 +594,7 @@ gkyl_mat_mm_array(struct gkyl_mat_mm_array_mem *mem, const struct gkyl_array *B,
   double alpha = mem->alpha;
   double beta = mem->beta; 
   enum gkyl_mat_trans transa = mem->transa;
-  struct gkyl_mat *A = mem->A_ho;
-#ifdef GKYL_HAVE_CUDA
-  if(mem->on_gpu)
-    A = mem->A_cu;
-#endif
+  struct gkyl_mat *A = mem->A;
   enum gkyl_mat_trans transb = mem->transb;
 
   struct mat_sizes sza = get_mat_sizes(transa, A); 

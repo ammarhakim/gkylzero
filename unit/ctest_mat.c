@@ -525,7 +525,7 @@ void test_mat_mm_arrays()
   ctest_prob_mem = gkyl_mat_mm_array_mem_dev_new(4, 3, 1.0, 0.0, 
     GKYL_NO_TRANS, GKYL_NO_TRANS, false);
 
-  struct gkyl_mat *mat_A = ctest_prob_mem->A_ho;
+  struct gkyl_mat *mat_A = ctest_prob_mem->A;
   struct gkyl_array *array_x = gkyl_array_new(GKYL_DOUBLE, 3, 2);
   struct gkyl_array *array_y = gkyl_array_new(GKYL_DOUBLE, 4, 2);
 
@@ -733,15 +733,17 @@ void test_cu_nmat_mm()
 
 void test_cu_mat_mm_arrays()
 {
-  struct gkyl_mat_mm_array_mem *ctest_prob_mem; 
-  ctest_prob_mem = gkyl_mat_mm_array_mem_dev_new(4, 3, 1.0, 0.0, 
+  struct gkyl_mat_mm_array_mem *ctest_prob_mem_ho, *ctest_prob_mem_cu; 
+  ctest_prob_mem_ho = gkyl_mat_mm_array_mem_dev_new(4, 3, 1.0, 0.0, 
+    GKYL_NO_TRANS, GKYL_NO_TRANS, false);
+  ctest_prob_mem_cu = gkyl_mat_mm_array_mem_dev_new(4, 3, 1.0, 0.0, 
     GKYL_NO_TRANS, GKYL_NO_TRANS, true);
 
-  struct gkyl_mat *mat_A = ctest_prob_mem->A_ho;
+  struct gkyl_mat *mat_A = ctest_prob_mem_ho->A;
   struct gkyl_array *array_x = gkyl_array_new(GKYL_DOUBLE, 3, 2);
   struct gkyl_array *array_y = gkyl_array_new(GKYL_DOUBLE, 4, 2);
 
-  struct gkyl_mat *mat_Acu = ctest_prob_mem->A_cu;
+  struct gkyl_mat *mat_Acu = ctest_prob_mem_cu->A;
   struct gkyl_array *array_xcu = gkyl_array_cu_dev_new(GKYL_DOUBLE, 3, 2);
   struct gkyl_array *array_ycu = gkyl_array_cu_dev_new(GKYL_DOUBLE, 4, 2);
 
@@ -777,7 +779,7 @@ void test_cu_mat_mm_arrays()
   gkyl_array_copy(array_xcu, array_x);
   gkyl_array_copy(array_ycu, array_y);
 
-  gkyl_mat_mm_array(ctest_prob_mem, array_xcu, array_ycu);
+  gkyl_mat_mm_array(ctest_prob_mem_cu, array_xcu, array_ycu);
 
   // copy to host
   gkyl_mat_copy(mat_A, mat_Acu);
@@ -800,7 +802,8 @@ void test_cu_mat_mm_arrays()
   gkyl_array_release(array_y);
   gkyl_array_release(array_xcu);
   gkyl_array_release(array_ycu);
-  gkyl_mat_mm_array_mem_release(ctest_prob_mem);
+  gkyl_mat_mm_array_mem_release(ctest_prob_mem_ho);
+  gkyl_mat_mm_array_mem_release(ctest_prob_mem_cu);
 
 }
 

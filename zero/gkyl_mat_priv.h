@@ -26,8 +26,7 @@ struct gkyl_mat_mm_array_mem {
   double beta;
   enum gkyl_mat_trans transa;
   enum gkyl_mat_trans transb;
-  struct gkyl_mat *A_ho;
-  struct gkyl_mat *A_cu;
+  struct gkyl_mat *A;
 
 #ifdef GKYL_HAVE_CUDA
   cublasHandle_t cuh; // cublas handle

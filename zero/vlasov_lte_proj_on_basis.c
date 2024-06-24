@@ -204,24 +204,29 @@ gkyl_vlasov_lte_proj_on_basis_inew(const struct gkyl_vlasov_lte_proj_on_basis_in
     up->det_h_quad = gkyl_array_cu_dev_new(GKYL_DOUBLE, up->tot_conf_quad, inp->conf_range_ext->volume);
     
     // Allocate the memory for computing the specific phase nodal to modal calculation
-    up->phase_nodal_to_modal_mem = gkyl_mat_mm_array_mem_dev_new(up->num_phase_basis, up->tot_quad, 1.0, 0.0, 
-      GKYL_NO_TRANS, GKYL_NO_TRANS, up->use_gpu);
+    struct gkyl_mat_mm_array_mem *phase_nodal_to_modal_mem_ho;
+    phase_nodal_to_modal_mem_ho = gkyl_mat_mm_array_mem_dev_new(up->num_phase_basis, up->tot_quad, 1.0, 0.0, 
+      GKYL_NO_TRANS, GKYL_NO_TRANS, false);
 
     // Compute the matrix A for the phase nodal to modal memory
     const double *phase_w = (const double*) up->weights->data;
     const double *phaseb_o = (const double*) up->basis_at_ords->data;
     for (int n=0; n<up->tot_quad; ++n){
       for (int k=0; k<up->num_phase_basis; ++k){
-        gkyl_mat_set(up->phase_nodal_to_modal_mem->A_ho, k, n, phase_w[n]*phaseb_o[k+up->num_phase_basis*n]);
+        gkyl_mat_set(phase_nodal_to_modal_mem_ho->A, k, n, phase_w[n]*phaseb_o[k+up->num_phase_basis*n]);
       }
     }
     
     // copy to device
-    gkyl_mat_copy(up->phase_nodal_to_modal_mem->A_cu, up->phase_nodal_to_modal_mem->A_ho);
+    up->phase_nodal_to_modal_mem = gkyl_mat_mm_array_mem_dev_new(up->num_phase_basis, up->tot_quad, 1.0, 0.0, 
+      GKYL_NO_TRANS, GKYL_NO_TRANS, up->use_gpu);
+    gkyl_mat_copy(up->phase_nodal_to_modal_mem->A, phase_nodal_to_modal_mem_ho->A);
+    gkyl_mat_mm_array_mem_release(phase_nodal_to_modal_mem_ho);
 
     // Allocate the memory for computing the specific conf modal to nodal calculation
-    up->conf_modal_to_nodal_h_ij_inv_quad_mem = gkyl_mat_mm_array_mem_dev_new(up->tot_conf_quad*(vdim*(vdim+1)/2), up->num_conf_basis*(vdim*(vdim+1)/2), 1.0, 0.0, 
-      GKYL_NO_TRANS, GKYL_NO_TRANS, up->use_gpu);
+    struct gkyl_mat_mm_array_mem *conf_modal_to_nodal_h_ij_inv_quad_mem_ho;
+    conf_modal_to_nodal_h_ij_inv_quad_mem_ho = gkyl_mat_mm_array_mem_dev_new(up->tot_conf_quad*(vdim*(vdim+1)/2), up->num_conf_basis*(vdim*(vdim+1)/2), 1.0, 0.0, 
+      GKYL_NO_TRANS, GKYL_NO_TRANS, false);
 
     // Compute the matrix A for the conf modal to nodal memory, and copy to the mat to GPU
     const double *confb_o = (const double*) up->conf_basis_at_ords->data;
@@ -236,31 +241,37 @@ gkyl_vlasov_lte_proj_on_basis_inew(const struct gkyl_vlasov_lte_proj_on_basis_in
         int k_rem = k%up->tot_conf_quad;
         int k_seg = (k-k_rem)/up->tot_conf_quad;
         if (k_seg == n_seg){
-          gkyl_mat_set(up->conf_modal_to_nodal_h_ij_inv_quad_mem->A_ho, k, n, confb_o[n_rem]);
+          gkyl_mat_set(conf_modal_to_nodal_h_ij_inv_quad_mem_ho->A, k, n, confb_o[n_rem]);
         }
         else {
-          gkyl_mat_set(up->conf_modal_to_nodal_h_ij_inv_quad_mem->A_ho, k, n, 0.0);
+          gkyl_mat_set(conf_modal_to_nodal_h_ij_inv_quad_mem_ho->A, k, n, 0.0);
         }
-        //double actual = gkyl_mat_get(up->conf_modal_to_nodal_h_ij_inv_quad_mem->A_ho, k, n);
+        //double actual = gkyl_mat_get(conf_modal_to_nodal_h_ij_inv_quad_mem_ho->A, k, n);
         //printf("A(m=%d,n=%d): %1.2e,\n", k, n, actual);
       }
     }
-
-    gkyl_mat_copy(up->conf_modal_to_nodal_h_ij_inv_quad_mem->A_cu, up->conf_modal_to_nodal_h_ij_inv_quad_mem->A_ho);
+    // copy to device
+    up->conf_modal_to_nodal_h_ij_inv_quad_mem = gkyl_mat_mm_array_mem_dev_new(up->tot_conf_quad*(vdim*(vdim+1)/2), 
+      up->num_conf_basis*(vdim*(vdim+1)/2), 1.0, 0.0, GKYL_NO_TRANS, GKYL_NO_TRANS, up->use_gpu);
+    gkyl_mat_copy(up->conf_modal_to_nodal_h_ij_inv_quad_mem->A, conf_modal_to_nodal_h_ij_inv_quad_mem_ho->A);
+    gkyl_mat_mm_array_mem_release(conf_modal_to_nodal_h_ij_inv_quad_mem_ho);
 
     // Allocate the memory for computing the specific conf modal to nodal calculation
-    up->conf_modal_to_nodal_det_h_quad_mem = gkyl_mat_mm_array_mem_dev_new(up->tot_conf_quad, up->num_conf_basis, 1.0, 0.0, 
-      GKYL_NO_TRANS, GKYL_NO_TRANS, up->use_gpu);
+    struct gkyl_mat_mm_array_mem *conf_modal_to_nodal_det_h_quad_mem_ho;
+    conf_modal_to_nodal_det_h_quad_mem_ho = gkyl_mat_mm_array_mem_dev_new(up->tot_conf_quad, up->num_conf_basis, 1.0, 0.0, 
+      GKYL_NO_TRANS, GKYL_NO_TRANS, false);
 
     // Compute the matrix A for the conf modal to nodal memory, and copy to the mat to GPU
     for (int n=0; n<up->num_conf_basis; ++n){
       for (int k=0; k<up->tot_conf_quad; ++k){
-        gkyl_mat_set(up->conf_modal_to_nodal_det_h_quad_mem->A_ho, k, n, confb_o[n]);
+        gkyl_mat_set(conf_modal_to_nodal_det_h_quad_mem_ho->A, k, n, confb_o[n]);
       }
     }
 
-    gkyl_mat_copy(up->conf_modal_to_nodal_det_h_quad_mem->A_cu, up->conf_modal_to_nodal_det_h_quad_mem->A_ho);
-
+    up->conf_modal_to_nodal_det_h_quad_mem = gkyl_mat_mm_array_mem_dev_new(up->tot_conf_quad, up->num_conf_basis, 1.0, 0.0, 
+      GKYL_NO_TRANS, GKYL_NO_TRANS, up->use_gpu);
+    gkyl_mat_copy(up->conf_modal_to_nodal_det_h_quad_mem->A, conf_modal_to_nodal_det_h_quad_mem_ho->A);
+    gkyl_mat_mm_array_mem_release(conf_modal_to_nodal_det_h_quad_mem_ho);
     
     // Call cublas to do the modal to nodal conversion on conf-space quanitites
     if(up->is_canonical_pb){
