@@ -49,6 +49,7 @@ struct gkyl_ten_moment_grad_closure {
   int ndim; // number of dimensions
   double k0; // damping coefficient
   double cfl; // CFL number
+  double mass;
 
   struct gkyl_comm *comm;
 };
@@ -139,7 +140,7 @@ calc_unmag_heat_flux(const gkyl_ten_moment_grad_closure *gces,
 
     rho_avg = calc_harmonic_avg_1D(rho[L_1D], rho[U_1D]);
     p_avg = calc_harmonic_avg_1D(p[L_1D], p[U_1D]);
-
+    
     dTdx[T11] = calc_sym_grad_1D(dx, Tij[L_1D][T11], Tij[U_1D][T11]);
     dTdx[T12] = calc_sym_grad_1D(dx, Tij[L_1D][T12], Tij[U_1D][T12]);
     dTdx[T13] = calc_sym_grad_1D(dx, Tij[L_1D][T13], Tij[U_1D][T13]);
@@ -330,18 +331,19 @@ calc_unmag_heat_flux(const gkyl_ten_moment_grad_closure *gces,
   }
   double alpha = 1.0/gces->k0;
   double vth_avg = sqrt(p_avg/rho_avg);
-  heat_flux_d[Q111] = alpha*vth_avg*rho_avg*(dTdx[T11] + dTdx[T11] + dTdx[T11])/3.0;
-  heat_flux_d[Q112] = alpha*vth_avg*rho_avg*(dTdx[T12] + dTdx[T12] + dTdy[T11])/3.0;
-  heat_flux_d[Q113] = alpha*vth_avg*rho_avg*(dTdx[T13] + dTdx[T13] + dTdz[T11])/3.0;
-  heat_flux_d[Q122] = alpha*vth_avg*rho_avg*(dTdx[T22] + dTdy[T12] + dTdy[T12])/3.0;
-  heat_flux_d[Q123] = alpha*vth_avg*rho_avg*(dTdx[T23] + dTdy[T13] + dTdz[T12])/3.0;
-  heat_flux_d[Q133] = alpha*vth_avg*rho_avg*(dTdx[T33] + dTdz[T13] + dTdz[T13])/3.0;
-  heat_flux_d[Q222] = alpha*vth_avg*rho_avg*(dTdy[T22] + dTdy[T22] + dTdy[T22])/3.0;
-  heat_flux_d[Q223] = alpha*vth_avg*rho_avg*(dTdy[T23] + dTdy[T23] + dTdz[T22])/3.0;
-  heat_flux_d[Q233] = alpha*vth_avg*rho_avg*(dTdy[T33] + dTdz[T23] + dTdz[T23])/3.0;
-  heat_flux_d[Q333] = alpha*vth_avg*rho_avg*(dTdz[T33] + dTdz[T33] + dTdz[T33])/3.0;
+  double n_avg = rho_avg/gces->mass;
+  heat_flux_d[Q111] = alpha*vth_avg*n_avg*(dTdx[T11] + dTdx[T11] + dTdx[T11])/3.0;
+  heat_flux_d[Q112] = alpha*vth_avg*n_avg*(dTdx[T12] + dTdx[T12] + dTdy[T11])/3.0;
+  heat_flux_d[Q113] = alpha*vth_avg*n_avg*(dTdx[T13] + dTdx[T13] + dTdz[T11])/3.0;
+  heat_flux_d[Q122] = alpha*vth_avg*n_avg*(dTdx[T22] + dTdy[T12] + dTdy[T12])/3.0;
+  heat_flux_d[Q123] = alpha*vth_avg*n_avg*(dTdx[T23] + dTdy[T13] + dTdz[T12])/3.0;
+  heat_flux_d[Q133] = alpha*vth_avg*n_avg*(dTdx[T33] + dTdz[T13] + dTdz[T13])/3.0;
+  heat_flux_d[Q222] = alpha*vth_avg*n_avg*(dTdy[T22] + dTdy[T22] + dTdy[T22])/3.0;
+  heat_flux_d[Q223] = alpha*vth_avg*n_avg*(dTdy[T23] + dTdy[T23] + dTdz[T22])/3.0;
+  heat_flux_d[Q233] = alpha*vth_avg*n_avg*(dTdy[T33] + dTdz[T23] + dTdz[T23])/3.0;
+  heat_flux_d[Q333] = alpha*vth_avg*n_avg*(dTdz[T33] + dTdz[T33] + dTdz[T33])/3.0;
 
-  return fmax(alpha*vth_avg*rho_avg*cfla, cfl);
+  return fmax(alpha*vth_avg*cfla, cfl);
 }
 
 static void
@@ -458,6 +460,7 @@ gkyl_ten_moment_grad_closure_new(struct gkyl_ten_moment_grad_closure_inp inp)
   up->ndim = up->grid.ndim;
   up->k0 = inp.k0;
   up->cfl = inp.cfl;
+  up->mass = inp.mass;
 
   if (inp.comm)
     up->comm = gkyl_comm_acquire(inp.comm);
