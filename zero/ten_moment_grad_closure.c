@@ -1,5 +1,8 @@
+#include <float.h>
+
 #include <gkyl_alloc.h>
 #include <gkyl_array_ops.h>
+#include <gkyl_null_comm.h>
 #include <gkyl_ten_moment_grad_closure.h>
 #include <gkyl_moment_non_ideal_priv.h>
 
@@ -45,6 +48,9 @@ struct gkyl_ten_moment_grad_closure {
   struct gkyl_rect_grid grid; // grid object
   int ndim; // number of dimensions
   double k0; // damping coefficient
+  double cfl; // CFL number
+
+  struct gkyl_comm *comm;
 };
 
 static void
@@ -99,9 +105,9 @@ var_setup(const gkyl_ten_moment_grad_closure *gces,
   }
 }
 
-static void
+double
 calc_unmag_heat_flux(const gkyl_ten_moment_grad_closure *gces,
-  const double *fluid_d[], double *cflrate, double *heat_flux_d)
+  const double *fluid_d[], double *cflrate, double *heat_flux_d, double cfl, double dt)
 {
   const int ndim = gces->ndim;
   double rho_avg = 0.0;
@@ -122,7 +128,8 @@ calc_unmag_heat_flux(const gkyl_ten_moment_grad_closure *gces,
   double Dy[6] = {0.0};
   double Dz[6] = {0.0};
   double limit = 0.75;
-
+  double cfla = 0.0;
+  
   if (ndim == 1) {
     const double dx = gces->grid.dx[0];
     double Tij[2][6] = {0.0};
@@ -139,6 +146,8 @@ calc_unmag_heat_flux(const gkyl_ten_moment_grad_closure *gces,
     dTdx[T22] = calc_sym_grad_1D(dx, Tij[L_1D][T22], Tij[U_1D][T22]);
     dTdx[T23] = calc_sym_grad_1D(dx, Tij[L_1D][T23], Tij[U_1D][T23]);
     dTdx[T33] = calc_sym_grad_1D(dx, Tij[L_1D][T33], Tij[U_1D][T33]);
+
+    cfla = dt/(dx*dx);
   }
   else if (ndim == 2) {
     const double dx = gces->grid.dx[0];
@@ -192,6 +201,9 @@ calc_unmag_heat_flux(const gkyl_ten_moment_grad_closure *gces,
     dTdy[T22] = calc_sym_grad_limiter_2D(limit, Ay[T22], By[T22]);
     dTdy[T23] = calc_sym_grad_limiter_2D(limit, Ay[T23], By[T23]);
     dTdy[T33] = calc_sym_grad_limiter_2D(limit, Ay[T33], By[T33]);
+
+    double da = fmin(dx, dy);
+    cfla = dt/(da*da);
   }
   else if (ndim == 3) {
     const double dx = gces->grid.dx[0];
@@ -312,6 +324,9 @@ calc_unmag_heat_flux(const gkyl_ten_moment_grad_closure *gces,
     dTdz[T22] = calc_sym_grad_limiter_3D(limit, Az[T22], Bz[T22], Cz[T22], Dz[T22]);
     dTdz[T23] = calc_sym_grad_limiter_3D(limit, Az[T23], Bz[T23], Cz[T23], Dz[T23]);
     dTdz[T33] = calc_sym_grad_limiter_3D(limit, Az[T33], Bz[T33], Cz[T33], Dz[T33]);
+
+    double da = fmin(fmin(dx, dy), dz);
+    cfla = dt/(da*da);
   }
   double alpha = 1.0/gces->k0;
   double vth_avg = sqrt(p_avg/rho_avg);
@@ -325,6 +340,8 @@ calc_unmag_heat_flux(const gkyl_ten_moment_grad_closure *gces,
   heat_flux_d[Q223] = alpha*vth_avg*rho_avg*(dTdy[T23] + dTdy[T23] + dTdz[T22])/3.0;
   heat_flux_d[Q233] = alpha*vth_avg*rho_avg*(dTdy[T33] + dTdz[T23] + dTdz[T23])/3.0;
   heat_flux_d[Q333] = alpha*vth_avg*rho_avg*(dTdz[T33] + dTdz[T33] + dTdz[T33])/3.0;
+
+  return fmax(alpha*vth_avg*rho_avg*cfla, cfl);
 }
 
 static void
@@ -440,19 +457,28 @@ gkyl_ten_moment_grad_closure_new(struct gkyl_ten_moment_grad_closure_inp inp)
   up->grid = *(inp.grid);
   up->ndim = up->grid.ndim;
   up->k0 = inp.k0;
+  up->cfl = inp.cfl;
+
+  if (inp.comm)
+    up->comm = gkyl_comm_acquire(inp.comm);
+  else
+    up->comm = gkyl_null_comm_new();
 
   return up;
 }
 
-void
+struct gkyl_ten_moment_grad_closure_status
 gkyl_ten_moment_grad_closure_advance(const gkyl_ten_moment_grad_closure *gces,
   const struct gkyl_range *heat_flux_range, const struct gkyl_range *update_range,
   const struct gkyl_array *fluid, const struct gkyl_array *em_tot,
-  struct gkyl_array *cflrate, struct gkyl_array *heat_flux,
+  struct gkyl_array *cflrate, double dt, struct gkyl_array *heat_flux,
   struct gkyl_array *rhs)
 {
   int ndim = update_range->ndim;
   long sz[] = { 2, 4, 8 };
+
+  double cfla = 0.0, cfl = gces->cfl, cflm = 1.1*cfl;
+  double is_cfl_violated = 0.0; // delibrately a double
 
   long offsets_vertices[sz[ndim-1]];
   create_offsets_vertices(update_range, offsets_vertices);
@@ -480,8 +506,12 @@ gkyl_ten_moment_grad_closure_advance(const gkyl_ten_moment_grad_closure *gces,
 
     heat_flux_d = gkyl_array_fetch(heat_flux, linc_vertex);
 
-    calc_unmag_heat_flux(gces, fluid_d, gkyl_array_fetch(cflrate, linc_center), heat_flux_d);
+    cfla = calc_unmag_heat_flux(gces, fluid_d, gkyl_array_fetch(cflrate, linc_center),
+      heat_flux_d, cfla, dt);
   }
+
+  if (cfla > cflm)
+    is_cfl_violated = 1.0;
 
   struct gkyl_range_iter iter_center;
   gkyl_range_iter_init(&iter_center, update_range);
@@ -497,6 +527,32 @@ gkyl_ten_moment_grad_closure_advance(const gkyl_ten_moment_grad_closure *gces,
 
     calc_grad_closure_update(gces, heat_flux_up, rhs_d);
   }
+
+  // compute actual CFL, status & max-speed across all domains
+  double red_vars[2] = { cfla, is_cfl_violated };
+  double red_vars_global[2] = { 0.0, 0.0 };
+  gkyl_comm_allreduce(gces->comm, GKYL_DOUBLE, GKYL_MAX, 2, &red_vars, &red_vars_global);
+
+  cfla = red_vars_global[0];
+  is_cfl_violated = red_vars_global[1];
+
+  double dt_suggested = dt*cfl/fmax(cfla, DBL_MIN);
+
+  if (is_cfl_violated > 0.0)
+    // indicate failure, and return smaller stable time-step
+    return (struct gkyl_ten_moment_grad_closure_status) {
+      .success = 0,
+      .dt_suggested = dt_suggested,
+    };
+  
+  // on success, suggest only bigger time-step; (Only way dt can
+  // reduce is if the update fails. If the code comes here the update
+  // succeeded and so we should not allow dt to reduce).
+  
+  return (struct gkyl_ten_moment_grad_closure_status) {
+    .success = is_cfl_violated > 0.0 ? 0 : 1,
+    .dt_suggested = dt_suggested > dt ? dt_suggested : dt,
+  };
 }
 
 void

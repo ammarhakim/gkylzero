@@ -39,9 +39,17 @@ moment_update_one_step(gkyl_moment_app* app, double dt0)
       case FIRST_COUPLING_UPDATE:
         state = FIELD_UPDATE; // next state
 
-        if (app->update_sources) {
+	if (app->update_sources) {
           struct timespec src1_tm = gkyl_wall_clock();
-          moment_coupling_update(app, &app->sources, 0, tcurr, dt/2);
+          struct gkyl_update_status s = moment_coupling_update(app, &app->sources, 0, tcurr, dt/2);
+	  if (!s.success) {
+            app->stat.nfail += 1;
+            dt = s.dt_suggested;
+            state = UPDATE_REDO;
+            break;
+          }
+            
+          dt_suggested = fmin(dt_suggested, s.dt_suggested);
           app->stat.sources_tm += gkyl_time_diff_now_sec(src1_tm);
         }
         if (app->update_mhd_source) {
@@ -49,7 +57,7 @@ moment_update_one_step(gkyl_moment_app* app, double dt0)
           mhd_src_update(app, &app->mhd_source, 0, tcurr, dt/2);
           app->stat.sources_tm += gkyl_time_diff_now_sec(src1_tm);
         }
-
+	
         break;
 
       case FIELD_UPDATE:
@@ -58,7 +66,7 @@ moment_update_one_step(gkyl_moment_app* app, double dt0)
         if (app->has_field) {
           struct timespec fl_tm = gkyl_wall_clock();
           struct gkyl_update_status s = moment_field_update(app, &app->field, tcurr, dt);
-          if (!s.success) {
+	  if (!s.success) {
             app->stat.nfail += 1;
             dt = s.dt_suggested;
             state = UPDATE_REDO;
@@ -78,7 +86,7 @@ moment_update_one_step(gkyl_moment_app* app, double dt0)
         for (int i=0; i<ns; ++i) {         
           struct gkyl_update_status s =
             moment_species_update(app, &app->species[i], tcurr, dt);
-
+	  
           if (!s.success) {
             app->stat.nfail += 1;
             dt = s.dt_suggested;
