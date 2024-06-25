@@ -132,7 +132,7 @@ create_ctx(void)
 
   // Simulation parameters.
   int Nx = 4; // Cell count (configuration space: x-direction).
-  int Nz = 8; // Cell count (configuration space: z-direction).
+  int Nz = 16; // Cell count (configuration space: z-direction).
   int Nvpar = 6; // Cell count (velocity space: parallel velocity direction).
   int Nmu = 4; // Cell count (velocity space: magnetic moment direction).
   double Lx = 50.0 * rho_s; // Domain size (configuration space: x-direction).
@@ -537,14 +537,7 @@ main(int argc, char **argv)
     
   */  
 
-
-
-
   struct gkyl_gk blo = {
-    //.lower = { 0.0 },
-    //.upper = { ctx.Lz/2 },
-    //.cells = { ctx.Nz/2 },
-
     .lower = { ctx.R - (0.5 * ctx.Lx), -0.5 * ctx.Lz },
     .upper = { ctx.R + (0.5 * ctx.Lx),  0.0 },
     .cells = { cells_x[0], cells_x[1]/2 },
@@ -568,14 +561,10 @@ main(int argc, char **argv)
       }
     }, 
 
-    .cuts = { 1, 1 },
+    .cuts = { 1, 2 },
   };
 
   struct gkyl_gk bup= {
-    //.lower = { ctx.Lz/2 },
-    //.upper = { ctx.Lz },
-    //.cells = { ctx.Nz/2 },
-
     .lower = { ctx.R - (0.5 * ctx.Lx), 0.0},
     .upper = { ctx.R + (0.5 * ctx.Lx),  0.5 * ctx.Lz },
     .cells = { cells_x[0], cells_x[1]/2 },
@@ -599,17 +588,13 @@ main(int argc, char **argv)
       }
     }, 
 
-    .cuts = { 1, 1 },
+    .cuts = { 1, 2 },
   };
 
   // GK app.
   struct gkyl_gk_mb app_inp = {
     .name = "gk_mb_sheath_2x2v_p1",
-
     .cdim = 2, .vdim = 2,
-    //.lower = { ctx.R - (0.5 * ctx.Lx), -0.5 * ctx.Lz },
-    //.upper = { ctx.R + (0.5 * ctx.Lx),  0.5 * ctx.Lz },
-    //.cells = { cells_x[0], cells_x[1] },
     .poly_order = 1,
     .basis_type = app_args.basis_type,
     .cfl_frac = 0.4,

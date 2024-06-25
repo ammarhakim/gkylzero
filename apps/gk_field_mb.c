@@ -126,23 +126,20 @@ gk_field_mb_new(struct gkyl_gk_mb *gk_mb, struct gkyl_gyrokinetic_mb_app *mb_app
       lower[1] = decomp_i->ranges[id].lower[1] + num_zcells_before;
       upper[1] = decomp_i->ranges[id].upper[1] + num_zcells_before;
       gkyl_range_init(&ranges[range_count], mb_app->cdim, lower, upper);
-      printf("For range %d, we have z in [%d, %d]\n", range_count, ranges[range_count].lower[1],ranges[range_count].upper[1]);
       range_count+=1;
     }
     num_zcells_before += gkyl_range_shape(&decomp_i->parent_range, 1);
   }
-  printf("made the ranges\n");
 
-  struct gkyl_rect_decomp *zdecomp = gkyl_rect_decomp_new_from_ranges(mb_app->cdim, ranges, num_ranges, &f->crossz);
+  f->zdecomp = gkyl_rect_decomp_new_from_ranges(mb_app->cdim, ranges, num_ranges, &f->crossz);
 
   for (int i = 0; i<num_ranges; i++) {
-    printf("For range %d, we have z in [%d, %d]\n", i, zdecomp->ranges[i].lower[1],zdecomp->ranges[i].upper[1]);
+    printf("For range %d, we have z in [%d, %d]\n", i, f->zdecomp->ranges[i].lower[1], f->zdecomp->ranges[i].upper[1]);
   }
 
 
-  printf("Made the decomp\n");
-  printf("For the decomp ndecomp is = %d\n", zdecomp->ndecomp);
-  f->zcomm = gkyl_comm_split_comm(mb_app->comm_mb, 0, zdecomp);
+  printf("For the decomp ndecomp is = %d\n", f->zdecomp->ndecomp);
+  f->zcomm = gkyl_comm_split_comm(mb_app->comm_mb, 0, f->zdecomp);
 
   // Now get the sub range intersects
   // Create global subrange we'll copy the field solver solution from (into local).
@@ -174,6 +171,9 @@ gk_field_mb_new(struct gkyl_gk_mb *gk_mb, struct gkyl_gyrokinetic_mb_app *mb_app
 void
 gk_field_mb_rhs(gkyl_gyrokinetic_mb_app *mb_app, struct gk_field_mb *field_mb, struct gkyl_gyrokinetic_app *app)
 {
+    int rank;
+    gkyl_comm_get_rank(field_mb->zcomm, &rank);
+
     // Get fin and the field for app we own
     const struct gkyl_array *fin[app->num_species];
     for (int i=0; i<app->num_species; ++i) {
@@ -185,7 +185,7 @@ gk_field_mb_rhs(gkyl_gyrokinetic_mb_app *mb_app, struct gk_field_mb *field_mb, s
     gk_field_accumulate_rho_c(app, field, fin);
 
     // Now gather charge density into global interblock array for smoothing in z
-    gkyl_comm_array_allgather(field_mb->zcomm, &app->global, &field_mb->crossz, field->rho_c, field_mb->rho_c_global_dg);
+    gkyl_comm_array_allgather(field_mb->zcomm, &field_mb->zdecomp->ranges[rank], &field_mb->crossz, field->rho_c, field_mb->rho_c_global_dg);
     // Do the smoothing on the inetrblock global z range
     gkyl_fem_parproj_set_rhs(field_mb->fem_parproj, field_mb->rho_c_global_dg, field_mb->rho_c_global_dg);
     gkyl_fem_parproj_solve(field_mb->fem_parproj, field_mb->rho_c_global_smooth);
