@@ -248,14 +248,11 @@ gkyl_vlasov_app_new(struct gkyl_vm *vm)
 
 
   // Set the appropriate update function for taking a single time step
-  // If we have implicit fluid-EM coupling, we perform a Strang split on
-  // the fluid-EM coupling and treat those terms implicitly. 
+  // If we have implicit fluid-EM coupling or implicit BGK collisions, 
+  // we perform a first-order operator split and treat those terms implicitly.
   // Otherwise, we default to an SSP-RK3 method. 
-  if (app->has_fluid_em_coupling) {
-    app->update_func = vlasov_update_strang_split;
-  } 
-  else if (app->has_implicit_coll_scheme) {
-    app->update_func = vlasov_update_godunov_split_coll;
+  if (app->has_implicit_coll_scheme || app->has_fluid_em_coupling) {
+    app->update_func = vlasov_update_op_split;
   }
   else {
     app->update_func = vlasov_update_ssp_rk3;
@@ -922,7 +919,6 @@ gkyl_vlasov_app_stat_write(gkyl_vlasov_app* app)
       stat.species_lbo_coll_drag_tm[s]);
     gkyl_vlasov_app_cout(app, fp, " species_coll_diff_tm[%d] : %lg,\n", s,
       stat.species_lbo_coll_diff_tm[s]);
-    printf("(vlasov.c) stat.niter_self_bgk_corr[s] = %ld \n",stat.niter_self_bgk_corr[s]);
     gkyl_vlasov_app_cout(app, fp, " niter_self_bgk_corr[%d] : %ld,\n", s, 
       stat.niter_self_bgk_corr[s]);
   }

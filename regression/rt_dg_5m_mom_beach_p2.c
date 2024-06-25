@@ -77,13 +77,13 @@ create_ctx(void)
   double light_speed = 1.0 / sqrt(mu0 * epsilon0); // Speed of light.
 
   // Simulation parameters.
-  int Nx = 100; // Cell count (x-direction).
+  int Nx = 200; // Cell count (x-direction).
   double Lx = 1.0; // Domain size (x-direction).
   double Lx100 = Lx / 100.0; // Domain size over 100 (x-direction).
   double x_last_edge = Lx - Lx / Nx; // Location of center of last upper cell (low density side).
   double cfl_frac = 1.0; // CFL coefficient.
   double t_end = 5.0e-9; // Final simulation time.
-  int num_frames = 100; // Number of output frames.
+  int num_frames = 1; // Number of output frames.
   double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.
   int num_failures_max = 20; // Maximum allowable number of consecutive small time-steps.
 
@@ -138,7 +138,7 @@ evalElcInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout
   double factor = app ->factor;
 
   double omegaPdt = 25.0 * (1.0 - x) * (1.0 - x) * (1.0 - x) * (1.0 - x) * (1.0 - x); // Plasma frequency profile.
-  double ne = omegaPdt * omegaPdt / factor; // Electron number density.
+  double ne = omegaPdt * omegaPdt / factor + 1.0; // Electron number density (with a floor for avoiding negative density).
 
   // Set electron mass density.
   fout[0] = mass_elc * ne;

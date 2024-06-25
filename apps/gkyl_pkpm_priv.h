@@ -358,8 +358,8 @@ void pkpm_forward_euler(gkyl_pkpm_app* app, double tcurr, double dt,
   struct gkyl_array *fout[], struct gkyl_array *fluidout[], struct gkyl_array *emout, 
   struct gkyl_update_status *st);
 
-// Take a single time-step using a Strang split implicit fluid-EM coupling + SSP RK3
-struct gkyl_update_status pkpm_update_strang_split(gkyl_pkpm_app *app,
+// Take a single time-step using a first-order operator split implicit fluid-EM coupling + SSP RK3
+struct gkyl_update_status pkpm_update_op_split(gkyl_pkpm_app *app,
   double dt0);
 
 // Take a fully explicit single time-step using a SSP RK3 (including explicit fluid-EM coupling)

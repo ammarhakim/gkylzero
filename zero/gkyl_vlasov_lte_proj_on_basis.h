@@ -14,6 +14,8 @@ struct gkyl_vlasov_lte_proj_on_basis_inp {
   const struct gkyl_rect_grid *phase_grid; // Phase-space grid on which to compute moments
   const struct gkyl_basis *conf_basis; // Configuration-space basis functions
   const struct gkyl_basis *phase_basis; // Phase-space basis functions
+  const struct gkyl_basis *phase_basis_on_dev; // Phase-space basis functions on device for basis function pointers
+  const struct gkyl_basis *conf_basis_on_dev; // conf-space basis functions on device for basis function pointers
   const struct gkyl_range *conf_range; // Configuration-space range
   const struct gkyl_range *conf_range_ext; // Extended configuration-space range (for internal memory allocations)
   const struct gkyl_range *vel_range; // velocity space range

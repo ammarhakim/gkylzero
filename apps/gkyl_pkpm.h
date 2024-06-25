@@ -140,7 +140,8 @@ struct gkyl_pkpm {
   struct gkyl_pkpm_field field; // field object
 
   bool use_explicit_source; // Use fully explicit SSP RK3 scheme 
-                            // Default is Strang split with implicit fluid-EM coupling
+                            // Default is a first-order operator split with 
+                            // implicit fluid-EM coupling.
 
   // this should not be set by typical user-facing code but only by
   // higher-level drivers

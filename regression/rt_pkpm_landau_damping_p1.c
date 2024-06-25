@@ -65,7 +65,7 @@ evalFieldFunc(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fo
 void
 evalExtEmFunc(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
 {
-  struct pkpm_sheath_ctx *app = ctx;
+  struct langmuir_ctx *app = ctx;
   double x = xn[0];
   double B_x = 1.0;
   

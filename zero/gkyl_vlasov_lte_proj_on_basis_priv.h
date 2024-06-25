@@ -41,6 +41,9 @@ struct gkyl_vlasov_lte_proj_on_basis {
   int num_conf_basis; // number of Configuration-space basis functions
   int num_phase_basis; // number of Phase-space basis functions
 
+  const struct gkyl_basis *phase_basis_on_dev; // Pointer to phase-space basis functions on device
+  const struct gkyl_basis *conf_basis_on_dev; // Pointer to phase-space basis functions on device
+
   bool is_relativistic; // Boolean for if we are projecting the relativistic LTE
   bool is_canonical_pb; // Boolean for if we are projecting the canonical-pb LTE
   const struct gkyl_array *h_ij_inv; // inverse metric tensor 
@@ -66,6 +69,15 @@ struct gkyl_vlasov_lte_proj_on_basis {
                                   // ordinates in a cell.
 
   int *p2c_qidx;  // Mapping between Configuration-space and Phase-space ordinates.
+  struct gkyl_array *f_lte_at_nodes; // Array keeping f_lte at quadrature nodes
+
+  struct gkyl_array *n_quad; // Density at quadrature nodes
+  struct gkyl_array *V_drift_quad; // velocity at quadrature nodes
+  struct gkyl_array *T_over_m_quad; // Temperature at quadrature nodes
+  struct gkyl_array *V_drift_quad_cell_avg; // v_drift average at quadrature nodes
+  struct gkyl_array *expamp_quad; // lte-equilibrium pre-factor at quadrature nodes
+  struct gkyl_array *h_ij_inv_quad; // metric inverse at quadrature nodes
+  struct gkyl_array *det_h_quad; // metric determinant at quadrature nodes
 
   struct gkyl_vlasov_lte_moments *moments_up; // LTE moment calculation routine for computing density
   struct gkyl_array *num_ratio; // Number density ratio: num_ratio = n_target/n0

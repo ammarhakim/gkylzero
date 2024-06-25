@@ -1,6 +1,7 @@
 #include <acutest.h>
 #include <gkyl_alloc.h>
 #include <gkyl_mat.h>
+#include <gkyl_mat_priv.h>
 
 void
 test_mat_base()
@@ -675,6 +676,90 @@ void test_cu_nmat_mm()
 
 }
 
+
+void test_cu_mat_mm_arrays()
+{
+
+  struct gkyl_mat *mat_A = gkyl_mat_new(4, 3, 0.0);
+  struct gkyl_array *array_x = gkyl_array_new(GKYL_DOUBLE, 3, 2);
+  struct gkyl_array *array_y = gkyl_array_new(GKYL_DOUBLE, 4, 2);
+
+  struct gkyl_mat *mat_Acu = gkyl_mat_cu_dev_new(4, 3);
+  struct gkyl_array *array_xcu = gkyl_array_cu_dev_new(GKYL_DOUBLE, 3, 2);
+  struct gkyl_array *array_ycu = gkyl_array_cu_dev_new(GKYL_DOUBLE, 4, 2);
+
+  // fill each A matrix with its number
+  printf("\n");
+  for (size_t j=0; j<mat_A->nc; ++j){
+    for (size_t i=0; i<mat_A->nr; ++i){
+      double a_val = i*3 + j;
+      gkyl_mat_set(mat_A, i, j, a_val);
+      double actual = gkyl_mat_get(mat_A, i, j);
+      //printf("A(m=%d,n=%d): %1.2e,\n", i, j, actual);
+    }
+  }
+
+  // fill each x vector with ones
+  for (size_t j=0; j<array_x->size; ++j){
+    double *x = gkyl_array_fetch(array_x,j);
+    for (size_t i=0; i<array_x->ncomp; ++i){
+      x[i] = i*2 + j;
+      //printf("B(m=%d,n=%d): %1.2e,\n", i, j, x[i]);
+    }
+  } 
+
+  for (size_t j=0; j<array_y->size; ++j){
+    double *y = gkyl_array_fetch(array_y,j);
+    for (size_t i=0; i<array_y->ncomp; ++i){
+      y[i] = 0.0;
+      //printf("C(m=%d,n=%d): %1.2e,\n", i, j, 0.0);
+    }
+  } 
+
+  enum gkyl_mat_trans transa = GKYL_NO_TRANS;
+  enum gkyl_mat_trans transb = GKYL_NO_TRANS;
+  double alpha = 1.0;
+  double beta = 0.0;
+
+
+  // copy to device
+  gkyl_mat_copy(mat_Acu, mat_A);
+  gkyl_array_copy(array_xcu, array_x);
+  gkyl_array_copy(array_ycu, array_y);
+
+  // Creat the cuda handle
+  cublasHandle_t cuh;
+	cublasCreate_v2(&cuh);
+
+  cu_mat_mm_array(cuh, alpha, beta, transa, mat_Acu, transb, array_xcu, array_ycu);
+
+  // copy to host
+  gkyl_mat_copy(mat_A, mat_Acu);
+  gkyl_array_copy(array_x, array_xcu);
+  gkyl_array_copy(array_y, array_ycu);
+
+
+  // check the expected result
+  double expected_array[8] = {10.0, 13.0, 28.0, 40.0, 46.0, 67.0, 64.0, 94.0};
+  for (size_t j=0; j<array_y->size; ++j){
+    double *y = gkyl_array_fetch(array_y,j);
+    for (size_t i=0; i<array_y->ncomp; ++i){
+      double actual = y[i];
+      double expected = expected_array[i*2 + j];
+      //printf("expected: %1.2e, actual: %1.2e\n", expected, actual);
+      TEST_CHECK ( expected == actual );
+    }
+  }
+  gkyl_mat_release(mat_A);
+  gkyl_array_release(array_x);
+  gkyl_array_release(array_y);
+  gkyl_mat_release(mat_Acu);
+  gkyl_array_release(array_xcu);
+  gkyl_array_release(array_ycu);
+
+
+}
+
 #endif
 
 
@@ -696,6 +781,7 @@ TEST_LIST = {
   { "cu_nmat_linsolve_pa", test_cu_nmat_linsolve_pa },
   { "cu_nmat_mv", test_cu_nmat_mv},
   { "cu_nmat_mm", test_cu_nmat_mm},
+  { "cu_mat_mm_arrays", test_cu_mat_mm_arrays},
 #endif
   { NULL, NULL },
 };
