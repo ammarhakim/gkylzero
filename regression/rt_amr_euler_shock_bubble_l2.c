@@ -20,8 +20,8 @@ struct amr_euler_shock_bubble_ctx
   // Simulation parameters.
   int Nx; // Coarse cell count (x-direction).
   int Ny; // Coarse cell count (y-direction).
-  int ref_factor1; // First refinement factor.
-  int ref_factor2; // Second refinement factor.
+  int ref_factor1; // First refinement factor (coarse-to-intermediate).
+  int ref_factor2; // Second refinement factor (intermediate-to-fine).
   double Lx; // Coarse domain size (x-direction).
   double Ly; // Coarse domain size (y-direction).
   double intermediate_Lx; // Intermediate domain size (x-direction).
@@ -61,8 +61,8 @@ create_ctx(void)
   // Simulation parameters.
   int Nx = 16; // Coarse cell count (x-direction).
   int Ny = 16; // Coarse cell count (y-direction).
-  int ref_factor1 = 4; // First refinement factor.
-  int ref_factor2 = 4; // Second refinement factor.
+  int ref_factor1 = 4; // First refinement factor (coarse-to-intermediate).
+  int ref_factor2 = 4; // Second refinement factor (intermediate-to-fine).
   double Lx = 1.0; // Coarse domain size (x-direction).
   double Ly = 1.0; // Coarse domain size (y-direction).
   double intermediate_Lx = 0.75; // Intermediate domain size (x-direction).

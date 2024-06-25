@@ -38,8 +38,8 @@ struct amr_10m_gem_ctx
   // Simulation parameters.
   int Nx; // Coarse cell count (x-direction).
   int Ny; // Coarse cell count (y-direction).
-  int ref_factor1; // First refinement factor.
-  int ref_factor2; // Second refinement factor.
+  int ref_factor1; // First refinement factor (coarse-to-intermediate).
+  int ref_factor2; // Second refinement factor (intermediate-to-fine).
   double Lx; // Coarse domain size (x-direction).
   double Ly; // Coarse domain size (y-direction).
   double intermediate_Lx; // Intermediate domain size (x-direction).
@@ -87,8 +87,8 @@ create_ctx(void)
   // Simulation parameters.
   int Nx = 32; // Coarse cell count (x-direction).
   int Ny = 16; // Coarse cell count (y-direction).
-  int ref_factor1 = 2; // First refinement factor.
-  int ref_factor2 = 2; // Second refinement factor.
+  int ref_factor1 = 2; // First refinement factor (coarse-to-intermediate).
+  int ref_factor2 = 2; // Second refinement factor (intermediate-to-fine).
   double Lx = 25.6; // Coarse domain size (x-direction).
   double Ly = 12.8; // Coarse domain size (y-direction).
   double intermediate_Lx = 20.6; // Intermediate domain size (x-direction).
