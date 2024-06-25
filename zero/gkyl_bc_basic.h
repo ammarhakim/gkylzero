@@ -15,7 +15,8 @@ enum gkyl_bc_basic_type {
   GKYL_BC_FIXED_FUNC = 6,
   GKYL_BC_PKPM_SPECIES_REFLECT = 7,  
   GKYL_BC_PKPM_MOM_REFLECT = 8, 
-  GKYL_BC_PKPM_MOM_NO_SLIP = 9};
+  GKYL_BC_PKPM_MOM_NO_SLIP = 9
+};
 
 // Object type
 typedef struct gkyl_bc_basic gkyl_bc_basic;
