@@ -2,10 +2,10 @@
 #pragma once
 
 #include <gkyl_gyrokinetic_priv.h>
-#include <gkyl_gyrokinetic_mb.h>
+#include <gkyl_gyrokinetic_multib.h>
 
 // Top-level multiblock gyrokinetic App object.
-struct gkyl_gyrokinetic_mb_app {
+struct gkyl_gyrokinetic_multib_app {
   char name[128]; // Name of app.
   struct gkyl_job_pool *job_pool; // Job pool.
 
@@ -17,7 +17,7 @@ struct gkyl_gyrokinetic_mb_app {
   bool use_mpi; // Should we use MPI (if present).
   bool use_gpu; // Should we use GPU (if present).
 
-  struct gkyl_comm *comm_mb;   // Multiblock communicator object.
+  struct gkyl_comm *comm_multib;   // Multiblock communicator object.
   struct gkyl_comm **comm_intrab;
   struct gkyl_rect_decomp **decomp_intrab;
 
@@ -27,12 +27,12 @@ struct gkyl_gyrokinetic_mb_app {
   int *block_idxs; // List of blocks handled on this rank.
   struct gkyl_gyrokinetic_app **blocks; // Pointers to blocks on this rank.
 
-  struct gk_field_mb **field; // mb field object.
+  struct gk_field_multib **field_multib; // mb field object.
   struct gkyl_gyrokinetic_stat stat; // statistics
 };
 
 // field data
-struct gk_field_mb {
+struct gk_field_multib {
   struct gkyl_gyrokinetic_field info; // data for field
 
   enum gkyl_gkfield_id gkfield_id;
@@ -61,9 +61,9 @@ struct gk_field_mb {
 };
 
 
-struct gk_field_mb* gk_field_mb_new(struct gkyl_gk_mb *gk_mb, struct gkyl_gyrokinetic_mb_app *mb_app, struct gkyl_gyrokinetic_app *app, int bidx);
+struct gk_field_multib* gk_field_multib_new(struct gkyl_gk_multib *gk_multib, struct gkyl_gyrokinetic_multib_app *mb_app, struct gkyl_gyrokinetic_app *app, int bidx);
 
-void gk_field_mb_rhs(gkyl_gyrokinetic_mb_app *mb_app, struct gk_field_mb *field_mb, struct gkyl_gyrokinetic_app *app);
+void gk_field_multib_rhs(gkyl_gyrokinetic_multib_app *mb_app, struct gk_field_multib *field_multib, struct gkyl_gyrokinetic_app *app);
 
 void
-gk_field_mb_release(const gkyl_gyrokinetic_mb_app* mb_app, struct gk_field_mb *f);
+gk_field_multib_release(const gkyl_gyrokinetic_multib_app* mb_app, struct gk_field_multib *f);

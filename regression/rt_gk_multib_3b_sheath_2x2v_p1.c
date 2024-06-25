@@ -7,7 +7,7 @@
 #include <gkyl_alloc.h>
 #include <gkyl_const.h>
 #include <gkyl_fem_parproj.h>
-#include <gkyl_gyrokinetic_mb.h>
+#include <gkyl_gyrokinetic_multib.h>
 #include <gkyl_util.h>
 
 #include <rt_arg_parse.h>
@@ -342,32 +342,32 @@ void bmag_func(double t, const double* GKYL_RESTRICT zc, double* GKYL_RESTRICT f
 }
 
 void
-calc_integrated_diagnostics(struct gkyl_tm_trigger* iot, gkyl_gyrokinetic_mb_app* app, double t_curr, bool force_calc)
+calc_integrated_diagnostics(struct gkyl_tm_trigger* iot, gkyl_gyrokinetic_multib_app* app, double t_curr, bool force_calc)
 {
   if (gkyl_tm_trigger_check_and_bump(iot, t_curr) || force_calc) {
     //gkyl_gyrokinetic_app_calc_field_energy(app, t_curr);
-    gkyl_gyrokinetic_mb_app_calc_integrated_mom(app, t_curr);
+    gkyl_gyrokinetic_multib_app_calc_integrated_mom(app, t_curr);
   }
 }
 
 void
-write_data(struct gkyl_tm_trigger* iot, gkyl_gyrokinetic_mb_app* app, double t_curr, bool force_write)
+write_data(struct gkyl_tm_trigger* iot, gkyl_gyrokinetic_multib_app* app, double t_curr, bool force_write)
 {
   bool trig_now = gkyl_tm_trigger_check_and_bump(iot, t_curr);
   if (trig_now || force_write) {
     int frame = (!trig_now) && force_write? iot->curr : iot->curr-1;
 
-    gkyl_gyrokinetic_mb_app_write(app, t_curr, frame);
+    gkyl_gyrokinetic_multib_app_write(app, t_curr, frame);
 
-    gkyl_gyrokinetic_mb_app_calc_mom(app);
-    gkyl_gyrokinetic_mb_app_write_mom(app, t_curr, frame);
-    //gkyl_gyrokinetic_mb_app_write_source_mom(app, t_curr, frame);
+    gkyl_gyrokinetic_multib_app_calc_mom(app);
+    gkyl_gyrokinetic_multib_app_write_mom(app, t_curr, frame);
+    //gkyl_gyrokinetic_multib_app_write_source_mom(app, t_curr, frame);
 
-    //gkyl_gyrokinetic_mb_app_calc_field_energy(app, t_curr);
-    //gkyl_gyrokinetic_mb_app_write_field_energy(app);
+    //gkyl_gyrokinetic_multib_app_calc_field_energy(app, t_curr);
+    //gkyl_gyrokinetic_multib_app_write_field_energy(app);
 
-    gkyl_gyrokinetic_mb_app_calc_integrated_mom(app, t_curr);
-    gkyl_gyrokinetic_mb_app_write_integrated_mom(app);
+    gkyl_gyrokinetic_multib_app_calc_integrated_mom(app, t_curr);
+    gkyl_gyrokinetic_multib_app_write_integrated_mom(app);
   }
 }
 
@@ -625,8 +625,8 @@ main(int argc, char **argv)
   };
 
   // GK app.
-  struct gkyl_gk_mb app_inp = {
-    .name = "gk_mb_3b_sheath_2x2v_p1",
+  struct gkyl_gk_multib app_inp = {
+    .name = "gk_multib_3b_sheath_2x2v_p1",
 
     .cdim = 2, .vdim = 2,
     //.lower = { ctx.R - (0.5 * ctx.Lx), -0.5 * ctx.Lz },
@@ -657,17 +657,17 @@ main(int argc, char **argv)
   };
 
   // Create app object.
-  gkyl_gyrokinetic_mb_app *app = gkyl_gyrokinetic_mb_app_new(&app_inp);
+  gkyl_gyrokinetic_multib_app *app = gkyl_gyrokinetic_multib_app_new(&app_inp);
 
   // Initial and final simulation times.
   int frame_curr = 0;
   double t_curr = 0.0, t_end = ctx.t_end;
   // Initialize simulation.
   if (app_args.is_restart) {
-    struct gkyl_app_restart_status status = gkyl_gyrokinetic_mb_app_read_from_frame(app, app_args.restart_frame);
+    struct gkyl_app_restart_status status = gkyl_gyrokinetic_multib_app_read_from_frame(app, app_args.restart_frame);
 
     if (status.io_status != GKYL_ARRAY_RIO_SUCCESS) {
-      gkyl_gyrokinetic_mb_app_cout(app, stderr, "*** Failed to read restart file! (%s)\n",
+      gkyl_gyrokinetic_multib_app_cout(app, stderr, "*** Failed to read restart file! (%s)\n",
         gkyl_array_rio_status_msg(status.io_status));
       goto freeresources;
     }
@@ -675,11 +675,11 @@ main(int argc, char **argv)
     frame_curr = status.frame;
     t_curr = status.stime;
 
-    gkyl_gyrokinetic_mb_app_cout(app, stdout, "Restarting from frame %d", frame_curr);
-    gkyl_gyrokinetic_mb_app_cout(app, stdout, " at time = %g\n", t_curr);
+    gkyl_gyrokinetic_multib_app_cout(app, stdout, "Restarting from frame %d", frame_curr);
+    gkyl_gyrokinetic_multib_app_cout(app, stdout, " at time = %g\n", t_curr);
   }
   else {
-    gkyl_gyrokinetic_mb_app_apply_ic(app, t_curr);
+    gkyl_gyrokinetic_multib_app_apply_ic(app, t_curr);
   }  
 
   // Create triggers for IO.
@@ -699,12 +699,12 @@ main(int argc, char **argv)
 
   long step = 1;
   while ((t_curr < t_end) && (step <= app_args.num_steps)) {
-    gkyl_gyrokinetic_mb_app_cout(app, stdout, "Taking time-step %ld at t = %g ...", step, t_curr);
-    struct gkyl_update_status status = gkyl_gyrokinetic_mb_update(app, dt);
-    gkyl_gyrokinetic_mb_app_cout(app, stdout, " dt = %g\n", status.dt_actual);
+    gkyl_gyrokinetic_multib_app_cout(app, stdout, "Taking time-step %ld at t = %g ...", step, t_curr);
+    struct gkyl_update_status status = gkyl_gyrokinetic_multib_update(app, dt);
+    gkyl_gyrokinetic_multib_app_cout(app, stdout, " dt = %g\n", status.dt_actual);
 
     if (!status.success) {
-      gkyl_gyrokinetic_mb_app_cout(app, stdout, "** Update method failed! Aborting simulation ....\n");
+      gkyl_gyrokinetic_multib_app_cout(app, stdout, "** Update method failed! Aborting simulation ....\n");
       break;
     }
 
@@ -720,12 +720,12 @@ main(int argc, char **argv)
     else if (status.dt_actual < dt_failure_tol * dt_init) {
       num_failures += 1;
 
-      gkyl_gyrokinetic_mb_app_cout(app, stdout, "WARNING: Time-step dt = %g", status.dt_actual);
-      gkyl_gyrokinetic_mb_app_cout(app, stdout, " is below %g*dt_init ...", dt_failure_tol);
-      gkyl_gyrokinetic_mb_app_cout(app, stdout, " num_failures = %d\n", num_failures);
+      gkyl_gyrokinetic_multib_app_cout(app, stdout, "WARNING: Time-step dt = %g", status.dt_actual);
+      gkyl_gyrokinetic_multib_app_cout(app, stdout, " is below %g*dt_init ...", dt_failure_tol);
+      gkyl_gyrokinetic_multib_app_cout(app, stdout, " num_failures = %d\n", num_failures);
       if (num_failures >= num_failures_max) {
-        gkyl_gyrokinetic_mb_app_cout(app, stdout, "ERROR: Time-step was below %g*dt_init ", dt_failure_tol);
-        gkyl_gyrokinetic_mb_app_cout(app, stdout, "%d consecutive times. Aborting simulation ....\n", num_failures_max);
+        gkyl_gyrokinetic_multib_app_cout(app, stdout, "ERROR: Time-step was below %g*dt_init ", dt_failure_tol);
+        gkyl_gyrokinetic_multib_app_cout(app, stdout, "%d consecutive times. Aborting simulation ....\n", num_failures_max);
         calc_integrated_diagnostics(&trig_calc_intdiag, app, t_curr, true);
         write_data(&trig_write, app, t_curr, true);
         break;
@@ -738,31 +738,31 @@ main(int argc, char **argv)
     step += 1;
   }
 
-  gkyl_gyrokinetic_mb_app_stat_write(app);
+  gkyl_gyrokinetic_multib_app_stat_write(app);
   
-  struct gkyl_gyrokinetic_stat stat = gkyl_gyrokinetic_mb_app_stat(app);
+  struct gkyl_gyrokinetic_stat stat = gkyl_gyrokinetic_multib_app_stat(app);
 
-  gkyl_gyrokinetic_mb_app_cout(app, stdout, "\n");
-  gkyl_gyrokinetic_mb_app_cout(app, stdout, "Number of update calls %ld\n", stat.nup);
-  gkyl_gyrokinetic_mb_app_cout(app, stdout, "Number of forward-Euler calls %ld\n", stat.nfeuler);
-  gkyl_gyrokinetic_mb_app_cout(app, stdout, "Number of RK stage-2 failures %ld\n", stat.nstage_2_fail);
+  gkyl_gyrokinetic_multib_app_cout(app, stdout, "\n");
+  gkyl_gyrokinetic_multib_app_cout(app, stdout, "Number of update calls %ld\n", stat.nup);
+  gkyl_gyrokinetic_multib_app_cout(app, stdout, "Number of forward-Euler calls %ld\n", stat.nfeuler);
+  gkyl_gyrokinetic_multib_app_cout(app, stdout, "Number of RK stage-2 failures %ld\n", stat.nstage_2_fail);
   if (stat.nstage_2_fail > 0) {
-    gkyl_gyrokinetic_mb_app_cout(app, stdout, "  Max rel dt diff for RK stage-2 failures %g\n", stat.stage_2_dt_diff[1]);
-    gkyl_gyrokinetic_mb_app_cout(app, stdout, "  Min rel dt diff for RK stage-2 failures %g\n", stat.stage_2_dt_diff[0]);
+    gkyl_gyrokinetic_multib_app_cout(app, stdout, "  Max rel dt diff for RK stage-2 failures %g\n", stat.stage_2_dt_diff[1]);
+    gkyl_gyrokinetic_multib_app_cout(app, stdout, "  Min rel dt diff for RK stage-2 failures %g\n", stat.stage_2_dt_diff[0]);
   }  
-  gkyl_gyrokinetic_mb_app_cout(app, stdout, "Number of RK stage-3 failures %ld\n", stat.nstage_3_fail);
-  gkyl_gyrokinetic_mb_app_cout(app, stdout, "Species RHS calc took %g secs\n", stat.species_rhs_tm);
-  gkyl_gyrokinetic_mb_app_cout(app, stdout, "Species collisions RHS calc took %g secs\n", stat.species_coll_tm);
-  gkyl_gyrokinetic_mb_app_cout(app, stdout, "Field RHS calc took %g secs\n", stat.field_rhs_tm);
-  gkyl_gyrokinetic_mb_app_cout(app, stdout, "Species collisional moments took %g secs\n", stat.species_coll_mom_tm);
-  gkyl_gyrokinetic_mb_app_cout(app, stdout, "Total updates took %g secs\n", stat.total_tm);
+  gkyl_gyrokinetic_multib_app_cout(app, stdout, "Number of RK stage-3 failures %ld\n", stat.nstage_3_fail);
+  gkyl_gyrokinetic_multib_app_cout(app, stdout, "Species RHS calc took %g secs\n", stat.species_rhs_tm);
+  gkyl_gyrokinetic_multib_app_cout(app, stdout, "Species collisions RHS calc took %g secs\n", stat.species_coll_tm);
+  gkyl_gyrokinetic_multib_app_cout(app, stdout, "Field RHS calc took %g secs\n", stat.field_rhs_tm);
+  gkyl_gyrokinetic_multib_app_cout(app, stdout, "Species collisional moments took %g secs\n", stat.species_coll_mom_tm);
+  gkyl_gyrokinetic_multib_app_cout(app, stdout, "Total updates took %g secs\n", stat.total_tm);
 
-  gkyl_gyrokinetic_mb_app_cout(app, stdout, "Number of write calls %ld,\n", stat.nio);
-  gkyl_gyrokinetic_mb_app_cout(app, stdout, "IO time took %g secs \n", stat.io_tm);
+  gkyl_gyrokinetic_multib_app_cout(app, stdout, "Number of write calls %ld,\n", stat.nio);
+  gkyl_gyrokinetic_multib_app_cout(app, stdout, "IO time took %g secs \n", stat.io_tm);
 
   freeresources:
   // Free resources after simulation completion.
-  gkyl_gyrokinetic_mb_app_release(app);
+  gkyl_gyrokinetic_multib_app_release(app);
   //gyrokinetic_comms_release(decomp, comm);
 
 #ifdef GKYL_HAVE_MPI
