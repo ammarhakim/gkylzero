@@ -1088,11 +1088,11 @@ gr_euler2d_run_double(int argc, char **argv, struct gr_euler2d_double_init* init
 #endif
 
   for (int i = 0; i < num_blocks; i++) {
-    coarse_bdata[i].fv_proj = gkyl_fv_proj_new(&coarse_bdata[i].grid, 2, 5, eval, 0);
+    coarse_bdata[i].fv_proj = gkyl_fv_proj_new(&coarse_bdata[i].grid, 2, 29, eval, 0);
 
 #ifdef AMR_DEBUG
-    intermediate_bdata[i].fv_proj = gkyl_fv_proj_new(&intermediate_bdata[i].grid, 2, 5, eval, 0);
-    fine_bdata[i].fv_proj = gkyl_fv_proj_new(&fine_bdata[i].grid, 2, 5, eval, 0);
+    intermediate_bdata[i].fv_proj = gkyl_fv_proj_new(&intermediate_bdata[i].grid, 2, 29, eval, 0);
+    fine_bdata[i].fv_proj = gkyl_fv_proj_new(&fine_bdata[i].grid, 2, 29, eval, 0);
 #endif
   }
   
@@ -1170,7 +1170,7 @@ gr_euler2d_run_double(int argc, char **argv, struct gr_euler2d_double_init* init
     coarse_bdata[i].fdup = gkyl_array_new(GKYL_DOUBLE, 29, coarse_bdata[i].ext_range.volume);
 
     for (int d = 0; d < ndim + 1; d++) {
-      coarse_bdata[i].f[d] = gkyl_array_new(GKYL_DOUBLE, 20, coarse_bdata[i].ext_range.volume);
+      coarse_bdata[i].f[d] = gkyl_array_new(GKYL_DOUBLE, 29, coarse_bdata[i].ext_range.volume);
     }
 
 #ifdef AMR_DEBUG
