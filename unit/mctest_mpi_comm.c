@@ -226,6 +226,76 @@ mpi_n4_allgather_2d()
 }
 
 static void
+mpi_n3_allgatherv_1d()
+{
+  int m_sz;
+  MPI_Comm_size(MPI_COMM_WORLD, &m_sz);
+  if (m_sz != 3) return;
+
+  int rank;
+  MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+
+  // create global range
+  int cells[] = { 10 };
+  const int ndim = sizeof(cells)/sizeof(cells[0]);
+  struct gkyl_range global;
+  gkyl_create_global_range(ndim, cells, &global);
+
+  int cuts[] = { 3 };
+  struct gkyl_rect_decomp *decomp = gkyl_rect_decomp_new_from_cuts(ndim, cuts, &global);  
+  
+  struct gkyl_comm *comm = gkyl_mpi_comm_new( &(struct gkyl_mpi_comm_inp) {
+      .mpi_comm = MPI_COMM_WORLD,
+      .decomp = decomp,
+    }
+  );
+
+  int nghost[ndim] = { 1 };
+  struct gkyl_range local, local_ext;
+  gkyl_create_ranges(&decomp->ranges[rank], nghost, &local_ext, &local);
+
+  struct gkyl_array *arr_local = gkyl_array_new(GKYL_DOUBLE, 1, local_ext.volume);
+  struct gkyl_array *arr_global = gkyl_array_new(GKYL_DOUBLE, 1, global.volume);
+  gkyl_array_clear(arr_local, 200005.0);
+  gkyl_array_clear(arr_global, 0.0);
+
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, &local);
+  while (gkyl_range_iter_next(&iter)) {
+    long idx = gkyl_range_idx(&local, iter.idx);
+    double  *f = gkyl_array_fetch(arr_local, idx);
+    f[0] = iter.idx[0]*(rank+1.0) + 10.0*rank;
+  } 
+
+  //gkyl_comm_array_allgather(comm, &local, &global, arr_local, arr_global);
+  gkyl_comm_array_allgatherv(comm, &local, decomp, arr_local, arr_global);
+
+  gkyl_range_iter_init(&iter, &global);
+  while (gkyl_range_iter_next(&iter)) {
+    long linidx = gkyl_range_idx(&global, iter.idx);
+    double *f = gkyl_array_fetch(arr_global, linidx);
+    // check value of decomp organized as 
+    // rank 0 owns {1} to {3}
+    // rank 1 owns {1} to {6}
+    // rank 2 owns {1} to {9}
+    double val;
+    if (iter.idx[0] < 5)
+      val = iter.idx[0]*(0 + 1.0) + 10.0*0;
+    else if (iter.idx[0] < 8)
+      val = iter.idx[0]*(1 + 1.0) + 10.0*1;
+    else if (iter.idx[0] < 11)
+      val = iter.idx[0]*(2 + 1.0) + 10.0*2;
+    TEST_CHECK( val == f[0] );
+    TEST_MSG( "In cell:%d | Got:%g | Expected:%g\n",iter.idx[0],f[0],val );
+  }
+
+  gkyl_array_release(arr_local);      
+  gkyl_array_release(arr_global);   
+  gkyl_comm_release(comm);
+  gkyl_rect_decomp_release(decomp);
+}
+
+static void
 mpi_n2_sync_1d()
 {
   int m_sz;
@@ -1285,6 +1355,7 @@ TEST_LIST = {
   
   {"mpi_n2_allgather_1d", mpi_n2_allgather_1d},
   {"mpi_n4_allgather_2d", mpi_n4_allgather_2d},
+  {"mpi_n3_allgatherv_1d", mpi_n3_allgatherv_1d},
   
   {"mpi_n2_sync_1d", mpi_n2_sync_1d},
   {"mpi_n4_sync_2d_no_corner", mpi_n4_sync_2d_no_corner },

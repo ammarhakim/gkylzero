@@ -87,6 +87,15 @@ array_allgather(struct gkyl_comm *comm,
 }
 
 static int
+array_allgatherv(struct gkyl_comm *comm,
+  const struct gkyl_range *local, const struct gkyl_rect_decomp *decomp,
+  const struct gkyl_array *array_local, struct gkyl_array *array_global)
+{
+  gkyl_array_copy(array_global, array_local);
+  return 0;
+}
+
+static int
 array_bcast(struct gkyl_comm *comm, const struct gkyl_array *asend,
   struct gkyl_array *arecv, int root)
 {
@@ -288,6 +297,7 @@ gkyl_null_comm_inew(const struct gkyl_null_comm_inp *inp)
   comm->base.allreduce = allreduce;
   comm->base.allreduce_host = allreduce_host;
   comm->base.gkyl_array_allgather = array_allgather;
+  comm->base.gkyl_array_allgatherv = array_allgatherv;
   comm->base.gkyl_array_bcast = array_bcast;
   comm->base.gkyl_array_bcast_host = array_bcast;
   comm->base.gkyl_array_sync = array_sync;

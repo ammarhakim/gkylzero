@@ -49,6 +49,11 @@ typedef int (*gkyl_array_allgather_t)(struct gkyl_comm *comm,
   const struct gkyl_range *local, const struct gkyl_range *global,
   const struct gkyl_array *array_local, struct gkyl_array *array_global);
 
+// Gather local arrays (of different sizes) into global array on each process.
+typedef int (*gkyl_array_allgatherv_t)(struct gkyl_comm *comm,
+  const struct gkyl_range *local, const struct gkyl_rect_decomp *decomp,
+  const struct gkyl_array *array_local, struct gkyl_array *array_global);
+
 // Broadcast array to other processes.
 typedef int (*gkyl_array_bcast_t)(struct gkyl_comm *comm,
   const struct gkyl_array *array_send, struct gkyl_array *array_recv, int root);
@@ -116,6 +121,8 @@ struct gkyl_comm {
   allreduce_t allreduce; // all reduce function
   allreduce_t allreduce_host; // all reduce using the host (MPI) communicator.
   gkyl_array_allgather_t gkyl_array_allgather; // gather local arrays to global array.
+  gkyl_array_allgatherv_t gkyl_array_allgatherv; // gather local arrays (of
+                                                // different sizes) to global array.
   gkyl_array_bcast_t gkyl_array_bcast; // broadcast array to other processes.
   gkyl_array_bcast_t gkyl_array_bcast_host; // broadcast host side array to other processes.
   gkyl_array_sync_t gkyl_array_sync; // sync array.
@@ -279,6 +286,25 @@ gkyl_comm_array_allgather(struct gkyl_comm *comm,
   const struct gkyl_array *array_local, struct gkyl_array *array_global)
 {
   return comm->gkyl_array_allgather(comm, local, global, array_local, array_global);
+}
+
+/**
+ * Gather all local data into a global array on each process. This is meant
+ * for decompositions in which each process has a different amount of data.
+ *
+ * @param comm Communicator
+ * @param local Local range for array
+ * @param global Global range for array
+ * @param array_local Local array
+ * @param array_global Global array
+ * @return error code: 0 for success
+ */
+static int
+gkyl_comm_array_allgatherv(struct gkyl_comm *comm, 
+  const struct gkyl_range *local, const struct gkyl_rect_decomp *decomp,
+  const struct gkyl_array *array_local, struct gkyl_array *array_global)
+{
+  return comm->gkyl_array_allgatherv(comm, local, decomp, array_local, array_global);
 }
 
 /**
