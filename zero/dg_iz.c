@@ -238,11 +238,11 @@ void gkyl_dg_iz_coll(const struct gkyl_dg_iz *up, const struct gkyl_array *moms_
 	//calculate vtSq_iz at each cell for primary and secondary elc
 	if ( 3./2.*temp_elc_av >= 2.*up->E) {
 	  // T_e2 = 1/3*sqrt(3./2.*T_e*E_iz - E_iz)
-	  temp_elc_2 = pow(up->E*(3./2.*temp_elc_av - up->E), 0.5);
+	  temp_elc_2 = 1.0/3.0*pow(up->E*(3./2.*temp_elc_av - up->E), 0.5);
 	  vtSq_iz2_d[0] = temp_elc_2*up->elem_charge/(up->mass_elc*cell_av_fac);
 	  // T_e1 = T_e - 2/3*E_iz - T_e2
 	  array_set2(nc, nc, vtSq_iz1_d, 1.0, prim_vars_elc_d);
-	  vtSq_iz1_d[0] = vtSq_iz1_d[0] - up->elem_charge*(2./3.*up->E - temp_elc_2)/(up->mass_elc*cell_av_fac);
+	  vtSq_iz1_d[0] = vtSq_iz1_d[0] - up->elem_charge*(2./3.*up->E + temp_elc_2)/(up->mass_elc*cell_av_fac);
 	}
 	else if (3./2.*temp_elc_av >= up->E) {
 	  // T_e2 = 1/3*(3/2*T_e - E_iz)
@@ -250,7 +250,7 @@ void gkyl_dg_iz_coll(const struct gkyl_dg_iz *up, const struct gkyl_array *moms_
 	  vtSq_iz2_d[0] = temp_elc_2*up->elem_charge/(up->mass_elc*cell_av_fac);
 	  // T_e1 = T_e - 2/3*E_iz - T_e2
 	  array_set2(nc, nc, vtSq_iz1_d, 1.0, prim_vars_elc_d);
-	  vtSq_iz1_d[0] = vtSq_iz1_d[0] - up->elem_charge*(2./3.*up->E - temp_elc_2)/(up->mass_elc*cell_av_fac);
+	  vtSq_iz1_d[0] = vtSq_iz1_d[0] - up->elem_charge*(2./3.*up->E + temp_elc_2)/(up->mass_elc*cell_av_fac);
 	}
 	else {
 	  vtSq_iz2_d[0] = temp_flr*up->elem_charge/(up->mass_elc*cell_av_fac);

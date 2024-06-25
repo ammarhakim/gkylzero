@@ -105,11 +105,11 @@ gkyl_iz_react_rate_cu_ker(const struct gkyl_dg_iz *up, const struct gkyl_range c
 	//calculate vtSq_iz at each cell for primary and secondary elc
 	if ( 3./2.*temp_elc_av >= 2.*E) {
 	  // T_e2 = 1/3*sqrt(3./2.*T_e*E_iz - E_iz)
-	  temp_elc_2 = pow(E*(3./2.*temp_elc_av - E), 0.5);
+	  temp_elc_2 = 1.0/3.0 * pow(E*(3./2.*temp_elc_av - E), 0.5);
 	  vtSq_iz2_d[0] = temp_elc_2*elem_charge/(mass_elc*cell_av_fac);
 	  // T_e1 = T_e - 2/3*E_iz - T_e2
 	  array_set2(nc, nc, vtSq_iz1_d, 1.0, prim_vars_elc_d);
-	  vtSq_iz1_d[0] = vtSq_iz1_d[0] - elem_charge*(2./3.*E - temp_elc_2)/(mass_elc*cell_av_fac);
+	  vtSq_iz1_d[0] = vtSq_iz1_d[0] - elem_charge*(2./3.*E + temp_elc_2)/(mass_elc*cell_av_fac);
 	}
 	else if (3./2.*temp_elc_av >= E) {
 	  // T_e2 = 1/3*(3/2*T_e - E_iz)
@@ -117,7 +117,7 @@ gkyl_iz_react_rate_cu_ker(const struct gkyl_dg_iz *up, const struct gkyl_range c
 	  vtSq_iz2_d[0] = temp_elc_2*elem_charge/(mass_elc*cell_av_fac);
 	  // T_e1 = T_e - 2/3*E_iz - T_e2
 	  array_set2(nc, nc, vtSq_iz1_d, 1.0, prim_vars_elc_d);
-	  vtSq_iz1_d[0] = vtSq_iz1_d[0] - elem_charge*(2./3.*E - temp_elc_2)/(mass_elc*cell_av_fac);
+	  vtSq_iz1_d[0] = vtSq_iz1_d[0] - elem_charge*(2./3.*E + temp_elc_2)/(mass_elc*cell_av_fac);
 	}
 	else {
 	  vtSq_iz2_d[0] = temp_flr*elem_charge/(mass_elc*cell_av_fac);
