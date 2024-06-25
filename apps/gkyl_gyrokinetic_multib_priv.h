@@ -2,10 +2,10 @@
 #pragma once
 
 #include <gkyl_gyrokinetic_priv.h>
-#include <gkyl_gyrokinetic_mb.h>
+#include <gkyl_gyrokinetic_multib.h>
 
 // Top-level multiblock gyrokinetic App object.
-struct gkyl_gyrokinetic_mb_app {
+struct gkyl_gyrokinetic_multib_app {
   char name[128]; // Name of app.
   struct gkyl_job_pool *job_pool; // Job pool.
 
@@ -17,7 +17,7 @@ struct gkyl_gyrokinetic_mb_app {
   bool use_mpi; // Should we use MPI (if present).
   bool use_gpu; // Should we use GPU (if present).
 
-  struct gkyl_comm *comm_mb;   // Multiblock communicator object.
+  struct gkyl_comm *comm_multib;   // Multiblock communicator object.
   struct gkyl_comm **comm_intrab;
   struct gkyl_rect_decomp **decomp_intrab;
 
