@@ -1406,7 +1406,6 @@ euler2d_run_double(int argc, char **argv, struct euler2d_double_init* init)
 
     for (int i = 1; i < num_frames; i++) {
       if (coarse_t_curr < (i * io_trigger) && (coarse_t_curr + coarse_status.dt_actual) > (i * io_trigger)) {
-      // TODO: Make file output work correctly in the AMR_DEBUG case.
 #ifdef AMR_DEBUG
         char buf_coarse[64];
         char buf_intermediate[64];
@@ -1499,7 +1498,6 @@ euler2d_run_double(int argc, char **argv, struct euler2d_double_init* init)
 
   double tm_total_sec = gkyl_time_diff_now_sec(tm_start);
 
-  // TODO: Make file output work correctly in the AMR_DEBUG case.
 #ifdef AMR_DEBUG
   char buf_coarse[64];
   char buf_intermediate[64];
