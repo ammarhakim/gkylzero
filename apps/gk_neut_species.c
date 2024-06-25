@@ -445,13 +445,13 @@ gk_neut_species_release(const gkyl_gyrokinetic_app* app, const struct gk_neut_sp
     if (s->lower_bc[d].type == GKYL_SPECIES_RECYCLE) 
       ;
     else if (s->lower_bc[d].type == GKYL_SPECIES_COPY || s->lower_bc[d].type == GKYL_SPECIES_ABSORB || 
-             s->lower_bc[d].type == GKYL_SPECIES_REFLECT || s->lower_bc[d].type == GKYL_SPECIES_FIXED_FUNC) {
+             s->lower_bc[d].type == GKYL_SPECIES_REFLECT || s->lower_bc[d].type == GKYL_SPECIES_FIXED_FUNC)
       gkyl_bc_basic_release(s->bc_lo[d]);
     
     if (s->upper_bc[d].type == GKYL_SPECIES_RECYCLE) 
       ;
     else if (s->upper_bc[d].type == GKYL_SPECIES_COPY || s->upper_bc[d].type == GKYL_SPECIES_ABSORB || 
-             s->upper_bc[d].type == GKYL_SPECIES_REFLECT || s->upper_bc[d].type == GKYL_SPECIES_FIXED_FUNC) {
+             s->upper_bc[d].type == GKYL_SPECIES_REFLECT || s->upper_bc[d].type == GKYL_SPECIES_FIXED_FUNC)
       gkyl_bc_basic_release(s->bc_up[d]);
   }
   

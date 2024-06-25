@@ -243,7 +243,7 @@ struct gkyl_gyrokinetic_field {
   double kperpSq; // kperp^2 parameter for 1D field equations
   double xLCFS; // radial location of the LCFS.
 
-  // parameters for adiabatic electrons simulations
+  // parameters for adiabatic electron simulations
   double electron_mass, electron_charge, electron_density, electron_temp;
 
   enum gkyl_fem_parproj_bc_type fem_parbc;
@@ -292,6 +292,8 @@ struct gkyl_gk {
   // higher-level drivers
   bool has_low_inp; // should one use low-level inputs?
   struct gkyl_app_comm_low_inp low_inp; // low-level inputs  
+
+  int cuts[GKYL_MAX_CDIM]; // Domain decompositions in each direction.
 };
 
 // Simulation statistics
@@ -726,6 +728,36 @@ void gkyl_gyrokinetic_app_cout(const gkyl_gyrokinetic_app* app, FILE *fp, const 
  * @return Status of update.
  */
 struct gkyl_update_status gkyl_gyrokinetic_update(gkyl_gyrokinetic_app* app, double dt);
+
+/**
+ * Compute the time rate of change, df/dt, of the kinetic equations.
+ * The actual time-step and dt_suggested are returned in
+ * the status object.
+ *
+ * @param app App object.
+ * @param tcurr Current simulation time.
+ * @param dt Suggested time step to use.
+ * @param fin Array of input charged-particle distributions.
+ * @param fout Array of output charged-particle distributions.
+ * @param fin_neut Array of input neutral distributions.
+ * @param fout_neut Array of output neutral distributions.
+ * @param st Time stepping status object.
+ */
+void
+gkyl_gyrokinetic_dfdt(gkyl_gyrokinetic_app* app, double tcurr, double dt,
+  const struct gkyl_array *fin[], struct gkyl_array *fout[],
+  const struct gkyl_array *fin_neut[], struct gkyl_array *fout_neut[],
+  struct gkyl_update_status *st);
+
+/**
+ * Apply boundary conditions to the distributions.
+ *
+ * @param app App object.
+ * @param distf Array of charged species distribution functions.
+ * @param distf_neut Array of neutral species distribution functions.
+ */
+void
+gkyl_gyrokinetic_apply_bc(gkyl_gyrokinetic_app* app, struct gkyl_array *distf[], struct gkyl_array *distf_neut[]);
 
 /**
  * Return simulation statistics.
