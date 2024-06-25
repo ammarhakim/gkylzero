@@ -89,7 +89,7 @@ gk_field_mb_new(struct gkyl_gk_mb *gk_mb, struct gkyl_gyrokinetic_mb_app *mb_app
   }
   printf("\n");
 
-  // We need first to create the global z ranges.
+  // We need first to create the cross z ranges.
   // For the two-block case:
   int lower[2];
   int upper[2];
@@ -108,12 +108,41 @@ gk_field_mb_new(struct gkyl_gk_mb *gk_mb, struct gkyl_gyrokinetic_mb_app *mb_app
   gkyl_create_ranges(&crossz, nghost, &f->crossz_ext, &f->crossz);
 
   // Create the decomp and communicator from the mb app communicator
-  int cuts[2] = {1,num_blocks};
-  struct gkyl_rect_decomp *zdecomp = gkyl_rect_decomp_new_from_cuts(mb_app->cdim, cuts, &f->crossz);
-  f->zcomm = gkyl_comm_split_comm(mb_app->comm_mb, 0, zdecomp); // Would have different colors for other 
-                                                               // block groups like 11-12, 7-8-9
-                                                               // but just 0 for now
+  // Stack all the individual ranges together
+  int num_ranges = 0;
+  for ( int i = 0; i < num_blocks; i++) {
+    num_ranges += mb_app->decomp_intrab[crossz_blocks[i]]->ndecomp;
+  }
+  printf("num ranges = %d\n", num_ranges);
+  struct gkyl_range ranges[num_ranges];
+  int range_count = 0;
+  int num_zcells_before = 0;
+  for (int ib = 0; ib < num_blocks; ib++) {
+    //printf("ib = %d\n", ib);
+    struct gkyl_rect_decomp *decomp_i = mb_app->decomp_intrab[ib];
+    for (int id = 0; id < decomp_i->ndecomp; id++) {
+      lower[0] = decomp_i->ranges[id].lower[0];
+      upper[0] = decomp_i->ranges[id].upper[0];
+      lower[1] = decomp_i->ranges[id].lower[1] + num_zcells_before;
+      upper[1] = decomp_i->ranges[id].upper[1] + num_zcells_before;
+      gkyl_range_init(&ranges[range_count], mb_app->cdim, lower, upper);
+      printf("For range %d, we have z in [%d, %d]\n", range_count, ranges[range_count].lower[1],ranges[range_count].upper[1]);
+      range_count+=1;
+    }
+    num_zcells_before += gkyl_range_shape(&decomp_i->parent_range, 1);
+  }
+  printf("made the ranges\n");
 
+  struct gkyl_rect_decomp *zdecomp = gkyl_rect_decomp_new_from_ranges(mb_app->cdim, ranges, num_ranges, &f->crossz);
+
+  for (int i = 0; i<num_ranges; i++) {
+    printf("For range %d, we have z in [%d, %d]\n", i, zdecomp->ranges[i].lower[1],zdecomp->ranges[i].upper[1]);
+  }
+
+
+  printf("Made the decomp\n");
+  printf("For the decomp ndecomp is = %d\n", zdecomp->ndecomp);
+  f->zcomm = gkyl_comm_split_comm(mb_app->comm_mb, 0, zdecomp);
 
   // Now get the sub range intersects
   // Create global subrange we'll copy the field solver solution from (into local).
@@ -145,11 +174,6 @@ gk_field_mb_new(struct gkyl_gk_mb *gk_mb, struct gkyl_gyrokinetic_mb_app *mb_app
 void
 gk_field_mb_rhs(gkyl_gyrokinetic_mb_app *mb_app, struct gk_field_mb *field_mb, struct gkyl_gyrokinetic_app *app)
 {
-    // Get rank and figure out which app is ours
-    //int rank;
-    //gkyl_comm_get_rank(field_mb->zcomm, &rank);
-    //struct gkyl_gyrokinetic_app* app = mb_app->blocks[rank];
-
     // Get fin and the field for app we own
     const struct gkyl_array *fin[app->num_species];
     for (int i=0; i<app->num_species; ++i) {
@@ -159,11 +183,9 @@ gk_field_mb_rhs(gkyl_gyrokinetic_mb_app *mb_app, struct gk_field_mb *field_mb, s
 
     // accumulate rho_c in each block
     gk_field_accumulate_rho_c(app, field, fin);
-    // Each block can gather its own charge density.
-    gkyl_comm_array_allgather(app->comm, &app->local, &app->global, field->rho_c, field->rho_c_global_dg);
 
     // Now gather charge density into global interblock array for smoothing in z
-    gkyl_comm_array_allgather(field_mb->zcomm, &app->global, &field_mb->crossz, field->rho_c_global_dg, field_mb->rho_c_global_dg);
+    gkyl_comm_array_allgather(field_mb->zcomm, &app->global, &field_mb->crossz, field->rho_c, field_mb->rho_c_global_dg);
     // Do the smoothing on the inetrblock global z range
     gkyl_fem_parproj_set_rhs(field_mb->fem_parproj, field_mb->rho_c_global_dg, field_mb->rho_c_global_dg);
     gkyl_fem_parproj_solve(field_mb->fem_parproj, field_mb->rho_c_global_smooth);

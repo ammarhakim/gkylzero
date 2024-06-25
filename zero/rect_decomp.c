@@ -102,6 +102,24 @@ gkyl_rect_decomp_new_from_cuts_and_cells(int ndim, const int cuts[], const int c
   return gkyl_rect_decomp_new_from_cuts(ndim, cuts, &range);
 }
 
+struct gkyl_rect_decomp*
+gkyl_rect_decomp_new_from_ranges(int ndim, const struct gkyl_range* ranges, int num_ranges, const struct gkyl_range *range)
+{
+  struct gkyl_rect_decomp *decomp = gkyl_malloc(sizeof(*decomp));
+
+  decomp->ndim = ndim;
+
+  decomp->ndecomp = num_ranges;
+  decomp->ranges = gkyl_malloc(sizeof(struct gkyl_range[num_ranges]));
+  memcpy(decomp->ranges, ranges, sizeof(struct gkyl_range[num_ranges]));
+
+  memcpy(&decomp->parent_range, range, sizeof(struct gkyl_range));
+
+  decomp->ref_count = gkyl_ref_count_init(rect_decomp_free);
+
+  return decomp;
+}
+
 // ext_range = a X b 
 static void
 init_extend_range(struct gkyl_range *ext_range,
