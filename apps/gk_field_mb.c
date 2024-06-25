@@ -185,7 +185,7 @@ gk_field_mb_rhs(gkyl_gyrokinetic_mb_app *mb_app, struct gk_field_mb *field_mb, s
     gk_field_accumulate_rho_c(app, field, fin);
 
     // Now gather charge density into global interblock array for smoothing in z
-    gkyl_comm_array_allgather(field_mb->zcomm, &field_mb->zdecomp->ranges[rank], &field_mb->crossz, field->rho_c, field_mb->rho_c_global_dg);
+    gkyl_comm_array_allgatherv(field_mb->zcomm, &app->local, field_mb->zdecomp, field->rho_c, field_mb->rho_c_global_dg);
     // Do the smoothing on the inetrblock global z range
     gkyl_fem_parproj_set_rhs(field_mb->fem_parproj, field_mb->rho_c_global_dg, field_mb->rho_c_global_dg);
     gkyl_fem_parproj_solve(field_mb->fem_parproj, field_mb->rho_c_global_smooth);
