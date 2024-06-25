@@ -73,6 +73,9 @@ struct mpi_comm {
   // buffers for for allgather
   struct comm_buff_stat allgather_buff_local; 
   struct comm_buff_stat allgather_buff_global; 
+
+  // Receive counts and displacements for allgatherv.
+  int *allgatherv_counts, *allgatherv_displs;
 };
 
 static void
@@ -97,6 +100,9 @@ comm_free(const struct gkyl_ref_count *ref)
   
     gkyl_mem_buff_release(mpi->allgather_buff_local.buff);
     gkyl_mem_buff_release(mpi->allgather_buff_global.buff);
+
+    gkyl_free(mpi->allgatherv_counts);
+    gkyl_free(mpi->allgatherv_displs);
   }
 
   gkyl_free(mpi);
@@ -184,12 +190,12 @@ array_allgather(struct gkyl_comm *comm,
   assert(global->volume == mpi->decomp->parent_range.volume);
 
   // potentially re-size local buffer volume
-  size_t send_vol = array_local->esznc*mpi->decomp->ranges[rank].volume;
+  size_t send_vol = array_local->esznc * mpi->decomp->ranges[rank].volume;
   if (gkyl_mem_buff_size(mpi->allgather_buff_local.buff) < send_vol)
     gkyl_mem_buff_resize(mpi->allgather_buff_local.buff, send_vol);
 
   // potentially re-size global buffer volume
-  size_t buff_global_vol = array_local->esznc*mpi->decomp->parent_range.volume;
+  size_t buff_global_vol = array_local->esznc * mpi->decomp->parent_range.volume;
   if (gkyl_mem_buff_size(mpi->allgather_buff_global.buff) < buff_global_vol)
     gkyl_mem_buff_resize(mpi->allgather_buff_global.buff, buff_global_vol);
 
@@ -208,6 +214,61 @@ array_allgather(struct gkyl_comm *comm,
   for (int r=0; r<mpi->decomp->ndecomp; ++r) {
     int isrecv = gkyl_sub_range_intersect(
       &gather_range, global, &mpi->decomp->ranges[r]);
+    gkyl_array_copy_from_buffer(array_global, 
+      gkyl_mem_buff_data(mpi->allgather_buff_global.buff) + idx, &gather_range);
+    idx += array_local->esznc*gather_range.volume;
+  }
+
+  return 0;
+}
+
+static int
+array_allgatherv(struct gkyl_comm *comm,
+  const struct gkyl_range *local, const struct gkyl_rect_decomp *decomp,
+  const struct gkyl_array *array_local, struct gkyl_array *array_global)
+{
+  assert(array_global->esznc == array_local->esznc);
+
+  struct mpi_comm *mpi = container_of(comm, struct mpi_comm, base);
+
+  struct gkyl_range gather_range;
+
+  int rank;
+  MPI_Comm_rank(mpi->mcomm, &rank);
+
+  assert(local->volume == mpi->decomp->ranges[rank].volume);
+
+  // potentially re-size local buffer volume
+  size_t send_vol = array_local->esznc * mpi->decomp->ranges[rank].volume;
+  if (gkyl_mem_buff_size(mpi->allgather_buff_local.buff) < send_vol)
+    gkyl_mem_buff_resize(mpi->allgather_buff_local.buff, send_vol);
+
+  // potentially re-size global buffer volume
+  size_t buff_global_vol = array_local->esznc * mpi->decomp->parent_range.volume;
+  if (gkyl_mem_buff_size(mpi->allgather_buff_global.buff) < buff_global_vol)
+    gkyl_mem_buff_resize(mpi->allgather_buff_global.buff, buff_global_vol);
+
+  // copy data to local buffer
+  gkyl_array_copy_to_buffer(gkyl_mem_buff_data(mpi->allgather_buff_local.buff), 
+    array_local, local);
+
+  // gather data into global buffer
+  int counts_sz[mpi->decomp->ndecomp], displs_sz[mpi->decomp->ndecomp];
+  for (int i=0; i<mpi->decomp->ndecomp; i++) {
+    counts_sz[i] = array_local->esznc * mpi->allgatherv_counts[i];
+    displs_sz[i] = array_local->esznc * mpi->allgatherv_displs[i];
+  }
+  
+  int ret = 
+    MPI_Allgatherv(gkyl_mem_buff_data(mpi->allgather_buff_local.buff), send_vol, MPI_CHAR, 
+      gkyl_mem_buff_data(mpi->allgather_buff_global.buff), counts_sz,
+      displs_sz, MPI_CHAR, mpi->mcomm);
+
+  // copy data to global array
+  int idx = 0;
+  for (int r=0; r<mpi->decomp->ndecomp; ++r) {
+    int isrecv = gkyl_sub_range_intersect(
+      &gather_range, &decomp->parent_range, &mpi->decomp->ranges[r]);
     gkyl_array_copy_from_buffer(array_global, 
       gkyl_mem_buff_data(mpi->allgather_buff_global.buff) + idx, &gather_range);
     idx += array_local->esznc*gather_range.volume;
@@ -750,11 +811,24 @@ gkyl_mpi_comm_new(const struct gkyl_mpi_comm_inp *inp)
     mpi->allgather_buff_local.buff = gkyl_mem_buff_new(16);
     mpi->allgather_buff_global.buff = gkyl_mem_buff_new(16);
 
+    // Compute the counts and displacements for allgatherv.
+    int ndecomp = mpi->decomp->ndecomp;
+    mpi->allgatherv_counts = gkyl_malloc(ndecomp*sizeof(int));
+    mpi->allgatherv_displs = gkyl_malloc(ndecomp*sizeof(int));
+    long lincount = 0;
+    for (int i=0; i<ndecomp; i++) {
+      struct gkyl_range *curr_r = &mpi->decomp->ranges[i];
+      mpi->allgatherv_counts[i] = curr_r->volume;
+      mpi->allgatherv_displs[i] = lincount;
+      lincount += curr_r->volume;
+    }
+
     mpi->base.gkyl_array_sync = array_sync;
     mpi->base.gkyl_array_per_sync = array_per_sync;
     mpi->base.gkyl_array_write = array_write;
     mpi->base.gkyl_array_read = array_read;
     mpi->base.gkyl_array_allgather = array_allgather;
+    mpi->base.gkyl_array_allgatherv = array_allgatherv;
   }
   
   mpi->base.get_rank = get_rank;
