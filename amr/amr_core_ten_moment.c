@@ -323,17 +323,9 @@ ten_moment_1d_run_single(int argc, char **argv, struct ten_moment_1d_single_init
   remove(coarse0_field_p0);
 
   for (int i = 1; i < 3; i++) {
-    char buf_old_elc[64];
-    char buf_old_ion[64];
-    char buf_old_field[64];
-
-    char buf_new_elc[64];
-    char buf_new_ion[64];
-    char buf_new_field[64];
-
-    char buf_del_elc[64];
-    char buf_del_ion[64];
-    char buf_del_field[64];
+    char buf_old_elc[64], buf_old_ion[64], buf_old_field[64];
+    char buf_new_elc[64], buf_new_ion[64], buf_new_field[64];
+    char buf_del_elc[64], buf_del_ion[64], buf_del_field[64];
 
     snprintf(buf_old_elc, 64, "%s_coarse_0_elc_p%d.gkyl", ten_moment_output, i);
     snprintf(buf_old_ion, 64, "%s_coarse_0_ion_p%d.gkyl", ten_moment_output, i);
@@ -427,17 +419,9 @@ ten_moment_1d_run_single(int argc, char **argv, struct ten_moment_1d_single_init
         five_moment_write_sol_patch(buf_coarse, num_patches, coarse_pdata);
         five_moment_write_sol_patch(buf_fine, num_patches, fine_pdata);
 
-        char buf_fine_old_elc[64];
-        char buf_fine_old_ion[64];
-        char buf_fine_old_field[64];
-
-        char buf_fine_new_elc[64];
-        char buf_fine_new_ion[64];
-        char buf_fine_new_field[64];
-
-        char buf_coarse_old_elc[64];
-        char buf_coarse_old_ion[64];
-        char buf_coarse_old_field[64];
+        char buf_fine_old_elc[64], buf_fine_old_ion[64], buf_fine_old_field[64];
+        char buf_fine_new_elc[64], buf_fine_new_ion[64], buf_fine_new_field[64];
+        char buf_coarse_old_elc[64], buf_coarse_old_ion[64], buf_coarse_old_field[64];
 
         snprintf(buf_fine_old_elc, 64, "%s_fine_%d_elc_p0.gkyl", ten_moment_output, i);
         snprintf(buf_fine_old_ion, 64, "%s_fine_%d_ion_p0.gkyl", ten_moment_output, i);
@@ -460,17 +444,9 @@ ten_moment_1d_run_single(int argc, char **argv, struct ten_moment_1d_single_init
         remove(buf_coarse_old_field);
 
         for (int j = 1; j < 3; j++) {
-          char buf_old_elc[64];
-          char buf_old_ion[64];
-          char buf_old_field[64];
-
-          char buf_new_elc[64];
-          char buf_new_ion[64];
-          char buf_new_field[64];
-
-          char buf_del_elc[64];
-          char buf_del_ion[64];
-          char buf_del_field[64];
+          char buf_old_elc[64], buf_old_ion[64], buf_old_field[64];
+          char buf_new_elc[64], buf_new_ion[64], buf_new_field[64];
+          char buf_del_elc[64], buf_del_ion[64], buf_del_field[64];
 
           snprintf(buf_old_elc, 64, "%s_coarse_%d_elc_p%d.gkyl", ten_moment_output, i, j);
           snprintf(buf_old_ion, 64, "%s_coarse_%d_ion_p%d.gkyl", ten_moment_output, i, j);
@@ -538,17 +514,9 @@ ten_moment_1d_run_single(int argc, char **argv, struct ten_moment_1d_single_init
   five_moment_write_sol_patch(buf_coarse, num_patches, coarse_pdata);
   five_moment_write_sol_patch(buf_fine, num_patches, fine_pdata);
 
-  char buf_fine_old_elc[64];
-  char buf_fine_old_ion[64];
-  char buf_fine_old_field[64];
-
-  char buf_fine_new_elc[64];
-  char buf_fine_new_ion[64];
-  char buf_fine_new_field[64];
-
-  char buf_coarse_old_elc[64];
-  char buf_coarse_old_ion[64];
-  char buf_coarse_old_field[64];
+  char buf_fine_old_elc[64], buf_fine_old_ion[64], buf_fine_old_field[64];
+  char buf_fine_new_elc[64], buf_fine_new_ion[64], buf_fine_new_field[64];
+  char buf_coarse_old_elc[64], buf_coarse_old_ion[64], buf_coarse_old_field[64];
 
   snprintf(buf_fine_old_elc, 64, "%s_fine_%d_elc_p0.gkyl", ten_moment_output, num_frames);
   snprintf(buf_fine_old_ion, 64, "%s_fine_%d_ion_p0.gkyl", ten_moment_output, num_frames);
@@ -571,17 +539,9 @@ ten_moment_1d_run_single(int argc, char **argv, struct ten_moment_1d_single_init
   remove(buf_coarse_old_field);
 
   for (int i = 1; i < 3; i++) {
-    char buf_old_elc[64];
-    char buf_old_ion[64];
-    char buf_old_field[64];
-
-    char buf_new_elc[64];
-    char buf_new_ion[64];
-    char buf_new_field[64];
-
-    char buf_del_elc[64];
-    char buf_del_ion[64];
-    char buf_del_field[64];
+    char buf_old_elc[64], buf_old_ion[64], buf_old_field[64];
+    char buf_new_elc[64], buf_new_ion[64], buf_new_field[64];
+    char buf_del_elc[64], buf_del_ion[64], buf_del_field[64];
 
     snprintf(buf_old_elc, 64, "%s_coarse_%d_elc_p%d.gkyl", ten_moment_output, num_frames, i);
     snprintf(buf_old_ion, 64, "%s_coarse_%d_ion_p%d.gkyl", ten_moment_output, num_frames, i);
@@ -1072,17 +1032,9 @@ ten_moment_2d_run_single(int argc, char **argv, struct ten_moment_2d_single_init
   remove(coarse0_field_b0);
 
   for (int i = 1; i < 9; i++) {
-    char buf_old_elc[64];
-    char buf_old_ion[64];
-    char buf_old_field[64];
-
-    char buf_new_elc[64];
-    char buf_new_ion[64];
-    char buf_new_field[64];
-
-    char buf_del_elc[64];
-    char buf_del_ion[64];
-    char buf_del_field[64];
+    char buf_old_elc[64], buf_old_ion[64], buf_old_field[64];
+    char buf_new_elc[64], buf_new_ion[64], buf_new_field[64];
+    char buf_del_elc[64], buf_del_ion[64], buf_del_field[64];
 
     snprintf(buf_old_elc, 64, "%s_coarse_0_elc_b%d.gkyl", ten_moment_output, i);
     snprintf(buf_old_ion, 64, "%s_coarse_0_ion_b%d.gkyl", ten_moment_output, i);
@@ -1176,17 +1128,9 @@ ten_moment_2d_run_single(int argc, char **argv, struct ten_moment_2d_single_init
         five_moment_write_sol_block(buf_coarse, num_blocks, coarse_bdata);
         five_moment_write_sol_block(buf_fine, num_blocks, fine_bdata);
 
-        char buf_fine_old_elc[64];
-        char buf_fine_old_ion[64];
-        char buf_fine_old_field[64];
-
-        char buf_fine_new_elc[64];
-        char buf_fine_new_ion[64];
-        char buf_fine_new_field[64];
-
-        char buf_coarse_old_elc[64];
-        char buf_coarse_old_ion[64];
-        char buf_coarse_old_field[64];
+        char buf_fine_old_elc[64], buf_fine_old_ion[64], buf_fine_old_field[64];
+        char buf_fine_new_elc[64], buf_fine_new_ion[64], buf_fine_new_field[64];
+        char buf_coarse_old_elc[64], buf_coarse_old_ion[64], buf_coarse_old_field[64];
 
         snprintf(buf_fine_old_elc, 64, "%s_fine_%d_elc_b0.gkyl", ten_moment_output, i);
         snprintf(buf_fine_old_ion, 64, "%s_fine_%d_ion_b0.gkyl", ten_moment_output, i);
@@ -1209,17 +1153,9 @@ ten_moment_2d_run_single(int argc, char **argv, struct ten_moment_2d_single_init
         remove(buf_coarse_old_field);
 
         for (int j = 1; j < 9; j++) {
-          char buf_old_elc[64];
-          char buf_old_ion[64];
-          char buf_old_field[64];
-
-          char buf_new_elc[64];
-          char buf_new_ion[64];
-          char buf_new_field[64];
-
-          char buf_del_elc[64];
-          char buf_del_ion[64];
-          char buf_del_field[64];
+          char buf_old_elc[64], buf_old_ion[64], buf_old_field[64];
+          char buf_new_elc[64], buf_new_ion[64], buf_new_field[64];
+          char buf_del_elc[64], buf_del_ion[64], buf_del_field[64];
 
           snprintf(buf_old_elc, 64, "%s_coarse_%d_elc_b%d.gkyl", ten_moment_output, i, j);
           snprintf(buf_old_ion, 64, "%s_coarse_%d_ion_b%d.gkyl", ten_moment_output, i, j);
@@ -1287,17 +1223,9 @@ ten_moment_2d_run_single(int argc, char **argv, struct ten_moment_2d_single_init
   five_moment_write_sol_block(buf_coarse, num_blocks, coarse_bdata);
   five_moment_write_sol_block(buf_fine, num_blocks, fine_bdata);
 
-  char buf_fine_old_elc[64];
-  char buf_fine_old_ion[64];
-  char buf_fine_old_field[64];
-
-  char buf_fine_new_elc[64];
-  char buf_fine_new_ion[64];
-  char buf_fine_new_field[64];
-
-  char buf_coarse_old_elc[64];
-  char buf_coarse_old_ion[64];
-  char buf_coarse_old_field[64];
+  char buf_fine_old_elc[64], buf_fine_old_ion[64], buf_fine_old_field[64];
+  char buf_fine_new_elc[64], buf_fine_new_ion[64], buf_fine_new_field[64];
+  char buf_coarse_old_elc[64], buf_coarse_old_ion[64], buf_coarse_old_field[64];
 
   snprintf(buf_fine_old_elc, 64, "%s_fine_%d_elc_b0.gkyl", ten_moment_output, num_frames);
   snprintf(buf_fine_old_ion, 64, "%s_fine_%d_ion_b0.gkyl", ten_moment_output, num_frames);
@@ -1320,17 +1248,9 @@ ten_moment_2d_run_single(int argc, char **argv, struct ten_moment_2d_single_init
   remove(buf_coarse_old_field);
 
   for (int i = 1; i < 9; i++) {
-    char buf_old_elc[64];
-    char buf_old_ion[64];
-    char buf_old_field[64];
-
-    char buf_new_elc[64];
-    char buf_new_ion[64];
-    char buf_new_field[64];
-
-    char buf_del_elc[64];
-    char buf_del_ion[64];
-    char buf_del_field[64];
+    char buf_old_elc[64], buf_old_ion[64], buf_old_field[64];
+    char buf_new_elc[64], buf_new_ion[64], buf_new_field[64];
+    char buf_del_elc[64], buf_del_ion[64], buf_del_field[64];
 
     snprintf(buf_old_elc, 64, "%s_coarse_%d_elc_b%d.gkyl", ten_moment_output, num_frames, i);
     snprintf(buf_old_ion, 64, "%s_coarse_%d_ion_b%d.gkyl", ten_moment_output, num_frames, i);
