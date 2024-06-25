@@ -203,6 +203,8 @@ gk_field_mb_release(const gkyl_gyrokinetic_mb_app* mb_app, struct gk_field_mb *f
   gkyl_array_release(f->rho_c_global_smooth);
   gkyl_array_release(f->phi);
 
+  gkyl_rect_decomp_release(f->zdecomp);
+
   gkyl_fem_parproj_release(f->fem_parproj);
 
   if (mb_app->use_gpu) {

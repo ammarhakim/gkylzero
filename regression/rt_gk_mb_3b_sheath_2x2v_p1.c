@@ -545,8 +545,8 @@ main(int argc, char **argv)
 
   struct gkyl_gk blo = {
     .lower = { ctx.R - (0.5 * ctx.Lx), -0.5 * ctx.Lz },
-    .upper = { ctx.R + (0.5 * ctx.Lx),  0.0 },
-    .cells = { cells_x[0], cells_x[1]/2 },
+    .upper = { ctx.R + (0.5 * ctx.Lx),  -0.25*ctx.Lz },
+    .cells = { cells_x[0], cells_x[1]/4 },
 
     .geometry = {
       .geometry_id = GKYL_MAPC2P,
@@ -571,9 +571,9 @@ main(int argc, char **argv)
   };
 
   struct gkyl_gk bmid = {
-    .lower = { ctx.R - (0.5 * ctx.Lx), 0.0 },
-    .upper = { ctx.R + (0.5 * ctx.Lx), 0.5 * 3.0/5.0 * ctx.Lz },
-    .cells = { cells_x[0], 3 },
+    .lower = { ctx.R - (0.5 * ctx.Lx), -0.25*ctx.Lz },
+    .upper = { ctx.R + (0.5 * ctx.Lx), 0.25 * ctx.Lz },
+    .cells = { cells_x[0], cells_x[1]/2 },
 
     .geometry = {
       .geometry_id = GKYL_MAPC2P,
@@ -598,9 +598,9 @@ main(int argc, char **argv)
   };
 
   struct gkyl_gk bup= {
-    .lower = { ctx.R - (0.5 * ctx.Lx),  0.5 * 3.0/5.0 * ctx.Lz },
+    .lower = { ctx.R - (0.5 * ctx.Lx),  0.25 * ctx.Lz },
     .upper = { ctx.R + (0.5 * ctx.Lx),  0.5 * ctx.Lz },
-    .cells = { cells_x[0], 5 },
+    .cells = { cells_x[0], cells_x[1]/4 },
 
     .geometry = {
       .geometry_id = GKYL_MAPC2P,
