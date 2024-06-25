@@ -132,7 +132,7 @@ create_ctx(void)
 
   // Simulation parameters.
   int Nx = 4; // Cell count (configuration space: x-direction).
-  int Nz = 8; // Cell count (configuration space: z-direction).
+  int Nz = 16; // Cell count (configuration space: z-direction).
   int Nvpar = 6; // Cell count (velocity space: parallel velocity direction).
   int Nmu = 4; // Cell count (velocity space: magnetic moment direction).
   double Lx = 50.0 * rho_s; // Domain size (configuration space: x-direction).
@@ -544,13 +544,9 @@ main(int argc, char **argv)
 
 
   struct gkyl_gk blo = {
-    //.lower = { 0.0 },
-    //.upper = { ctx.Lz/2 },
-    //.cells = { ctx.Nz/2 },
-
     .lower = { ctx.R - (0.5 * ctx.Lx), -0.5 * ctx.Lz },
-    .upper = { ctx.R + (0.5 * ctx.Lx),  -1.0/6.0 * ctx.Lz },
-    .cells = { cells_x[0], cells_x[1]/3 },
+    .upper = { ctx.R + (0.5 * ctx.Lx),  0.0 },
+    .cells = { cells_x[0], cells_x[1]/2 },
 
     .geometry = {
       .geometry_id = GKYL_MAPC2P,
@@ -575,13 +571,9 @@ main(int argc, char **argv)
   };
 
   struct gkyl_gk bmid = {
-    //.lower = { 0.0 },
-    //.upper = { ctx.Lz/2 },
-    //.cells = { ctx.Nz/2 },
-
-    .lower = { ctx.R - (0.5 * ctx.Lx), -1.0/6.0 * ctx.Lz },
-    .upper = { ctx.R + (0.5 * ctx.Lx),  1.0/6.0 * ctx.Lz },
-    .cells = { cells_x[0], cells_x[1]/3 },
+    .lower = { ctx.R - (0.5 * ctx.Lx), 0.0 },
+    .upper = { ctx.R + (0.5 * ctx.Lx), 0.5 * 3.0/5.0 * ctx.Lz },
+    .cells = { cells_x[0], 3 },
 
     .geometry = {
       .geometry_id = GKYL_MAPC2P,
@@ -606,13 +598,9 @@ main(int argc, char **argv)
   };
 
   struct gkyl_gk bup= {
-    //.lower = { ctx.Lz/2 },
-    //.upper = { ctx.Lz },
-    //.cells = { ctx.Nz/2 },
-
-    .lower = { ctx.R - (0.5 * ctx.Lx), 1.0/6.0 * ctx.Lz},
+    .lower = { ctx.R - (0.5 * ctx.Lx),  0.5 * 3.0/5.0 * ctx.Lz },
     .upper = { ctx.R + (0.5 * ctx.Lx),  0.5 * ctx.Lz },
-    .cells = { cells_x[0], cells_x[1]/3 },
+    .cells = { cells_x[0], 5 },
 
     .geometry = {
       .geometry_id = GKYL_MAPC2P,
@@ -638,7 +626,7 @@ main(int argc, char **argv)
 
   // GK app.
   struct gkyl_gk_mb app_inp = {
-    .name = "gk_3b_sheath_2x2v_p1",
+    .name = "gk_mb_3b_sheath_2x2v_p1",
 
     .cdim = 2, .vdim = 2,
     //.lower = { ctx.R - (0.5 * ctx.Lx), -0.5 * ctx.Lz },
