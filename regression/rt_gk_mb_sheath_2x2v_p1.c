@@ -394,18 +394,6 @@ main(int argc, char **argv)
   for (int d=0; d<ctx.vdim; d++)
     cells_v[d] = APP_ARGS_CHOOSE(app_args.vcells[d], ctx.cells[ctx.cdim+d]);
 
-//  // Create decomposition.
-//  struct gkyl_rect_decomp *decomp = gkyl_gyrokinetic_comms_decomp_new(ctx.cdim, cells_x, app_args.cuts, app_args.use_mpi, stderr);
-//
-//  // Construct communicator for use in app.
-//  struct gkyl_comm *comm = gkyl_gyrokinetic_comms_new(app_args.use_mpi, app_args.use_gpu, decomp, stderr);
-//
-//  int my_rank = 0;
-//#ifdef GKYL_HAVE_MPI
-//  if (app_args.use_mpi)
-//    gkyl_comm_get_rank(comm, &my_rank);
-//#endif
-
   // Electron species.
   struct gkyl_gyrokinetic_species elc = {
     .name = "elc",
