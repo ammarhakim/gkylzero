@@ -730,36 +730,6 @@ void gkyl_gyrokinetic_app_cout(const gkyl_gyrokinetic_app* app, FILE *fp, const 
 struct gkyl_update_status gkyl_gyrokinetic_update(gkyl_gyrokinetic_app* app, double dt);
 
 /**
- * Compute the time rate of change, df/dt, of the kinetic equations.
- * The actual time-step and dt_suggested are returned in
- * the status object.
- *
- * @param app App object.
- * @param tcurr Current simulation time.
- * @param dt Suggested time step to use.
- * @param fin Array of input charged-particle distributions.
- * @param fout Array of output charged-particle distributions.
- * @param fin_neut Array of input neutral distributions.
- * @param fout_neut Array of output neutral distributions.
- * @param st Time stepping status object.
- */
-void
-gkyl_gyrokinetic_dfdt(gkyl_gyrokinetic_app* app, double tcurr, double dt,
-  const struct gkyl_array *fin[], struct gkyl_array *fout[],
-  const struct gkyl_array *fin_neut[], struct gkyl_array *fout_neut[],
-  struct gkyl_update_status *st);
-
-/**
- * Apply boundary conditions to the distributions.
- *
- * @param app App object.
- * @param distf Array of charged species distribution functions.
- * @param distf_neut Array of neutral species distribution functions.
- */
-void
-gkyl_gyrokinetic_apply_bc(gkyl_gyrokinetic_app* app, struct gkyl_array *distf[], struct gkyl_array *distf_neut[]);
-
-/**
  * Return simulation statistics.
  * 
  * @return Return statistics object.
