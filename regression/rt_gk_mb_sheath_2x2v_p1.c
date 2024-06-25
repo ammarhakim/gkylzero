@@ -1,4 +1,3 @@
-#include "gkyl_block_topo.h"
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
