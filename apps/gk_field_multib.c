@@ -1,4 +1,3 @@
-#include "gkyl_gyrokinetic.h"
 #include <gkyl_alloc.h>
 #include <gkyl_array_ops.h>
 #include <gkyl_bc_basic.h>
@@ -132,7 +131,7 @@ gk_field_multib_new(struct gkyl_gk_multib *inp, struct gkyl_gyrokinetic_multib_a
     // Create global subrange we'll copy the field solver solution from (into local).
     int rank;
     gkyl_comm_get_rank(mbf->zcomm, &rank);
-    int intersect = gkyl_sub_range_intersect(&mbf->crossz_sub_range, &mbf->crossz, &app->global);
+    int intersect = gkyl_sub_range_intersect(&mbf->crossz_sub_range[bc], &mbf->crossz, &app->global);
 
     // allocate arrays for charge density
     mbf->rho_c_global_dg = mkarr(mba->use_gpu, app->confBasis.num_basis, mbf->crossz_ext.volume);
@@ -184,7 +183,7 @@ gk_field_multib_rhs(gkyl_gyrokinetic_multib_app *mba, struct gk_field_multib *mb
     struct gkyl_gyrokinetic_app *app = mba->blocks[bc];
     struct gk_field* field = app->field ;
     // Copy inter-block cross-z smoothed charge density to intrablock global charge density per process
-    gkyl_array_copy_range_to_range(field->rho_c_global_smooth, mbf->rho_c_global_smooth, &app->global, &mbf->crossz_sub_range);
+    gkyl_array_copy_range_to_range(field->rho_c_global_smooth, mbf->rho_c_global_smooth, &app->global, &mbf->crossz_sub_range[bc]);
     // Now call the perp solver. The perp solver already accesses its own local part of the intrablock global range.
     gkyl_deflated_fem_poisson_advance(field->deflated_fem_poisson, field->rho_c_global_smooth, field->phi_smooth);
   }

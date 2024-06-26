@@ -50,7 +50,7 @@ struct gk_field_multib {
 
   struct gkyl_array *phi_host;  // host copy for use IO and initialization
 
-  struct gkyl_range crossz_sub_range; // sub range of intersection of global range and local range
+  struct gkyl_range crossz_sub_range[GKYL_MAX_BLOCKS]; // sub range of intersection of global range and local range
                                       // for solving subset of Poisson solves with parallelization in z
 
   struct gkyl_array *epsilon;
