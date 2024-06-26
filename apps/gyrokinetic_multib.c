@@ -201,7 +201,6 @@ gkyl_gyrokinetic_multib_app_new(struct gkyl_gk_multib *inp)
   // Only allocate memory for local blocks and their intrablock communicators.
   mba->blocks = gkyl_malloc(mba->num_blocks_local * sizeof(struct gkyl_gyrokinetic_app));
   mba->comm_intrab = gkyl_malloc(mba->num_blocks_local * sizeof(struct gkyl_comm *));
-  mba->field_multib = gkyl_malloc(mba->num_blocks_local * sizeof(struct gk_field_multib));
 
   for (int bc=0; bc<mba->num_blocks_local; bc++) {
     int bidx = mba->block_idxs[bc];
@@ -250,9 +249,10 @@ gkyl_gyrokinetic_multib_app_new(struct gkyl_gk_multib *inp)
 
     // Create a new app for each block.
     mba->blocks[bc] = gkyl_gyrokinetic_app_new(blinp);
-    // Create a new field app for each block.
-    mba->field_multib[bc] = gk_field_multib_new(inp, mba, mba->blocks[bc], bidx);
   }
+
+  // Create a new field_multib object.
+  mba->field_multib = gk_field_multib_new(inp, mba);
 
   return mba;
 }
@@ -269,9 +269,7 @@ static void
 calc_field(gkyl_gyrokinetic_multib_app* mba, double tcurr, int fidx)
 {
   // Compute fields.
-  for (int bc=0; bc<mba->num_blocks_local; bc++) {
-    gk_field_multib_rhs(mba, mba->field_multib[bc], mba->blocks[bc]);
-  }
+  gk_field_multib_rhs(mba, mba->field_multib);
 }
 
 static void
@@ -701,7 +699,7 @@ gkyl_gyrokinetic_multib_app_release(gkyl_gyrokinetic_multib_app* mba)
   }
   for (int i=0; i<mba->num_blocks_local; i++) {
     gkyl_comm_release(mba->comm_intrab[i]);
-    gk_field_multib_release(mba, mba->field_multib[i]);
+    gk_field_multib_release(mba, mba->field_multib);
   }
   gkyl_free(mba->decomp_intrab);
   gkyl_free(mba->comm_intrab);

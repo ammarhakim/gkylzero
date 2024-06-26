@@ -1,3 +1,4 @@
+#include "gkyl_gyrokinetic.h"
 #include <gkyl_alloc.h>
 #include <gkyl_array_ops.h>
 #include <gkyl_bc_basic.h>
@@ -67,94 +68,101 @@ set_crossz_idxs(struct gkyl_gyrokinetic_multib_app *mba, struct gkyl_gyrokinetic
 
 // initialize field object
 struct gk_field_multib* 
-gk_field_multib_new(struct gkyl_gk_multib *gk_multib, struct gkyl_gyrokinetic_multib_app *mba, struct gkyl_gyrokinetic_app *app, int bidx)
+gk_field_multib_new(struct gkyl_gk_multib *inp, struct gkyl_gyrokinetic_multib_app *mba)
 {
 
   struct gk_field_multib *mbf = gkyl_malloc(sizeof(struct gk_field_multib));
 
-  mbf->info = gk_multib->field;
+  for (int bc=0; bc<mba->num_blocks_local; bc++) {
+    int bidx = mba->block_idxs[bc];
+    struct gkyl_gyrokinetic_app *app = mba->blocks[bc];
 
-  mbf->gkfield_id = mbf->info.gkfield_id ? mbf->info.gkfield_id : GKYL_GK_FIELD_ES;
+    mbf->info = inp->field;
 
-  int num_blocks = 0;
-  int crossz_blocks[GKYL_MAX_BLOCKS] = {-1};
-  set_crossz_idxs(mba, app, bidx, crossz_blocks, &num_blocks);
+    mbf->gkfield_id = mbf->info.gkfield_id ? mbf->info.gkfield_id : GKYL_GK_FIELD_ES;
 
-  // We need first to create the cross z ranges.
-  // For the two-block case:
-  int lower[2];
-  int upper[2];
-  lower[0] = mba->decomp_intrab[0]->parent_range.lower[0];
-  upper[0] = mba->decomp_intrab[0]->parent_range.upper[0];
-  lower[1] = mba->decomp_intrab[0]->parent_range.lower[1];
-  // Add up all ranges in z direction
-  upper[1] = 0;
-  for ( int i = 0; i < num_blocks; i++) {
-    upper[1] += gkyl_range_shape(&mba->decomp_intrab[crossz_blocks[i]]->parent_range, 1);
-  }
-  struct gkyl_range crossz;
-  gkyl_range_init(&crossz, mba->cdim, lower, upper);
-  int nghost[2] = {1,1};
-  gkyl_create_ranges(&crossz, nghost, &mbf->crossz_ext, &mbf->crossz);
+    int num_blocks = 0;
+    int crossz_blocks[GKYL_MAX_BLOCKS] = {-1};
+    set_crossz_idxs(mba, app, bidx, crossz_blocks, &num_blocks);
 
-  // Create the decomp and communicator from the mb app communicator
-  // Stack all the individual ranges together
-  int num_ranges = 0;
-  for ( int i = 0; i < num_blocks; i++) {
-    num_ranges += mba->decomp_intrab[crossz_blocks[i]]->ndecomp;
-  }
-  struct gkyl_range ranges[num_ranges];
-  int range_count = 0;
-  int num_zcells_before = 0;
-  for (int ib = 0; ib < num_blocks; ib++) {
-    struct gkyl_rect_decomp *decomp_i = mba->decomp_intrab[ib];
-    for (int id = 0; id < decomp_i->ndecomp; id++) {
-      lower[0] = decomp_i->ranges[id].lower[0];
-      upper[0] = decomp_i->ranges[id].upper[0];
-      lower[1] = decomp_i->ranges[id].lower[1] + num_zcells_before;
-      upper[1] = decomp_i->ranges[id].upper[1] + num_zcells_before;
-      gkyl_range_init(&ranges[range_count], mba->cdim, lower, upper);
-      range_count+=1;
+    // We need first to create the cross z ranges.
+    // For the two-block case:
+    int lower[2];
+    int upper[2];
+    lower[0] = mba->decomp_intrab[0]->parent_range.lower[0];
+    upper[0] = mba->decomp_intrab[0]->parent_range.upper[0];
+    lower[1] = mba->decomp_intrab[0]->parent_range.lower[1];
+    // Add up all ranges in z direction
+    upper[1] = 0;
+    for ( int i = 0; i < num_blocks; i++) {
+      upper[1] += gkyl_range_shape(&mba->decomp_intrab[crossz_blocks[i]]->parent_range, 1);
     }
-    num_zcells_before += gkyl_range_shape(&decomp_i->parent_range, 1);
+    struct gkyl_range crossz;
+    gkyl_range_init(&crossz, mba->cdim, lower, upper);
+    int nghost[2] = {1,1};
+    gkyl_create_ranges(&crossz, nghost, &mbf->crossz_ext, &mbf->crossz);
+
+    // Create the decomp and communicator from the mb app communicator
+    // Stack all the individual ranges together
+    int num_ranges = 0;
+    for ( int i = 0; i < num_blocks; i++) {
+      num_ranges += mba->decomp_intrab[crossz_blocks[i]]->ndecomp;
+    }
+    struct gkyl_range ranges[num_ranges];
+    int range_count = 0;
+    int num_zcells_before = 0;
+    for (int ib = 0; ib < num_blocks; ib++) {
+      struct gkyl_rect_decomp *decomp_i = mba->decomp_intrab[ib];
+      for (int id = 0; id < decomp_i->ndecomp; id++) {
+        lower[0] = decomp_i->ranges[id].lower[0];
+        upper[0] = decomp_i->ranges[id].upper[0];
+        lower[1] = decomp_i->ranges[id].lower[1] + num_zcells_before;
+        upper[1] = decomp_i->ranges[id].upper[1] + num_zcells_before;
+        gkyl_range_init(&ranges[range_count], mba->cdim, lower, upper);
+        range_count+=1;
+      }
+      num_zcells_before += gkyl_range_shape(&decomp_i->parent_range, 1);
+    }
+
+    mbf->zdecomp = gkyl_rect_decomp_new_from_ranges(mba->cdim, ranges, num_ranges, &mbf->crossz);
+
+    mbf->zcomm = gkyl_comm_split_comm(mba->comm_multib, 0, mbf->zdecomp);
+
+    // Now get the sub range intersects
+    // Create global subrange we'll copy the field solver solution from (into local).
+    int rank;
+    gkyl_comm_get_rank(mbf->zcomm, &rank);
+    int intersect = gkyl_sub_range_intersect(&mbf->crossz_sub_range, &mbf->crossz, &app->global);
+
+    // allocate arrays for charge density
+    mbf->rho_c_global_dg = mkarr(mba->use_gpu, app->confBasis.num_basis, mbf->crossz_ext.volume);
+    mbf->rho_c_global_smooth = mkarr(mba->use_gpu, app->confBasis.num_basis, mbf->crossz_ext.volume);
+
+    // allocate arrays for electrostatic potential
+    mbf->phi = mkarr(mba->use_gpu, app->confBasis.num_basis, mbf->crossz_ext.volume);
+
+    mbf->phi_host = mbf->phi;
+    if (mba->use_gpu) {
+      mbf->phi_host = mkarr(false, app->confBasis.num_basis, mbf->crossz_ext.volume);
+    }
+
+
+    mbf->fem_parproj = gkyl_fem_parproj_new(&mbf->crossz, &mbf->crossz_ext, 
+      &app->confBasis, mbf->info.fem_parbc, NULL, mba->use_gpu);
   }
-
-  mbf->zdecomp = gkyl_rect_decomp_new_from_ranges(mba->cdim, ranges, num_ranges, &mbf->crossz);
-
-  mbf->zcomm = gkyl_comm_split_comm(mba->comm_multib, 0, mbf->zdecomp);
-
-  // Now get the sub range intersects
-  // Create global subrange we'll copy the field solver solution from (into local).
-  int rank;
-  gkyl_comm_get_rank(mbf->zcomm, &rank);
-  int intersect = gkyl_sub_range_intersect(&mbf->crossz_sub_range, &mbf->crossz, &app->global);
-
-  // allocate arrays for charge density
-  mbf->rho_c_global_dg = mkarr(mba->use_gpu, app->confBasis.num_basis, mbf->crossz_ext.volume);
-  mbf->rho_c_global_smooth = mkarr(mba->use_gpu, app->confBasis.num_basis, mbf->crossz_ext.volume);
-
-  // allocate arrays for electrostatic potential
-  mbf->phi = mkarr(mba->use_gpu, app->confBasis.num_basis, mbf->crossz_ext.volume);
-
-  mbf->phi_host = mbf->phi;
-  if (mba->use_gpu) {
-    mbf->phi_host = mkarr(false, app->confBasis.num_basis, mbf->crossz_ext.volume);
-  }
-
-
-  mbf->fem_parproj = gkyl_fem_parproj_new(&mbf->crossz, &mbf->crossz_ext, 
-    &app->confBasis, mbf->info.fem_parbc, NULL, mba->use_gpu);
-
 
   return mbf;
 }
 
 // Compute the electrostatic potential
 void
-gk_field_multib_rhs(gkyl_gyrokinetic_multib_app *mba, struct gk_field_multib *mbf, struct gkyl_gyrokinetic_app *app)
+gk_field_multib_rhs(gkyl_gyrokinetic_multib_app *mba, struct gk_field_multib *mbf)
 {
-    int rank;
-    gkyl_comm_get_rank(mbf->zcomm, &rank);
+  int rank;
+  gkyl_comm_get_rank(mbf->zcomm, &rank);
+
+  for (int bc=0; bc<mba->num_blocks_local; bc++) {
+    struct gkyl_gyrokinetic_app *app = mba->blocks[bc];
 
     // Get fin and the field for app we own
     const struct gkyl_array *fin[app->num_species];
@@ -167,13 +175,20 @@ gk_field_multib_rhs(gkyl_gyrokinetic_multib_app *mba, struct gk_field_multib *mb
     gk_field_accumulate_rho_c(app, field, fin);
     // Now gather charge density into the interblock cross-z array for smoothing in z
     gkyl_comm_array_allgatherv(mbf->zcomm, &app->local, mbf->zdecomp, field->rho_c, mbf->rho_c_global_dg);
+  }
     // Do the smoothing on the inetrblock cross-z range
     gkyl_fem_parproj_set_rhs(mbf->fem_parproj, mbf->rho_c_global_dg, mbf->rho_c_global_dg);
     gkyl_fem_parproj_solve(mbf->fem_parproj, mbf->rho_c_global_smooth);
+
+  for (int bc=0; bc<mba->num_blocks_local; bc++) {
+    struct gkyl_gyrokinetic_app *app = mba->blocks[bc];
+    struct gk_field* field = app->field ;
     // Copy inter-block cross-z smoothed charge density to intrablock global charge density per process
     gkyl_array_copy_range_to_range(field->rho_c_global_smooth, mbf->rho_c_global_smooth, &app->global, &mbf->crossz_sub_range);
     // Now call the perp solver. The perp solver already accesses its own local part of the intrablock global range.
     gkyl_deflated_fem_poisson_advance(field->deflated_fem_poisson, field->rho_c_global_smooth, field->phi_smooth);
+  }
+  
 }
 
 // release resources for field

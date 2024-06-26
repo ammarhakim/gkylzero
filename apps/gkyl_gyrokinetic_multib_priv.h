@@ -27,7 +27,7 @@ struct gkyl_gyrokinetic_multib_app {
   int *block_idxs; // List of blocks handled on this rank.
   struct gkyl_gyrokinetic_app **blocks; // Pointers to blocks on this rank.
 
-  struct gk_field_multib **field_multib; // mb field object.
+  struct gk_field_multib *field_multib; // mb field object.
   struct gkyl_gyrokinetic_stat stat; // statistics
 };
 
@@ -61,9 +61,9 @@ struct gk_field_multib {
 };
 
 
-struct gk_field_multib* gk_field_multib_new(struct gkyl_gk_multib *gk_multib, struct gkyl_gyrokinetic_multib_app *mb_app, struct gkyl_gyrokinetic_app *app, int bidx);
+struct gk_field_multib* gk_field_multib_new(struct gkyl_gk_multib *gk_multib, struct gkyl_gyrokinetic_multib_app *mb_app);
 
-void gk_field_multib_rhs(gkyl_gyrokinetic_multib_app *mb_app, struct gk_field_multib *field_multib, struct gkyl_gyrokinetic_app *app);
+void gk_field_multib_rhs(gkyl_gyrokinetic_multib_app *mb_app, struct gk_field_multib *field_multib);
 
 void
 gk_field_multib_release(const gkyl_gyrokinetic_multib_app* mb_app, struct gk_field_multib *f);
