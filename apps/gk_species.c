@@ -81,6 +81,10 @@ gk_species_init(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *app, st
   gks->f = mkarr(app->use_gpu, app->basis.num_basis, gks->local_ext.volume);
   gks->f1 = mkarr(app->use_gpu, app->basis.num_basis, gks->local_ext.volume);
   gks->fnew = mkarr(app->use_gpu, app->basis.num_basis, gks->local_ext.volume);
+  // Populate an array with pointers to distribution functions.
+  gks->distfs[0] = gks->f;
+  gks->distfs[1] = gks->f1;
+  gks->distfs[2] = gks->fnew;
 
   gks->f_host = gks->f;
   if (app->use_gpu)

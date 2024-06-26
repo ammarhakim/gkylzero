@@ -69,6 +69,8 @@ struct sheath_ctx
   double vpar_max_ion; // Domain boundary (ion velocity space: parallel velocity direction).
   double mu_max_ion; // Domain boundary (ion velocity space: magnetic moment direction).
 
+  int num_blocks; // Number of position space blocks.
+
   double t_end; // Final simulation time.
   int num_frames; // Number of output frames.
   int int_diag_calc_num; // Number of integrated diagnostics computations (=INT_MAX for every step).
@@ -141,6 +143,8 @@ create_ctx(void)
   double vpar_max_ion = 4.0 * vti; // Domain boundary (ion velocity space: parallel velocity direction).
   double mu_max_ion = (3.0 / 2.0) * 0.5 * mass_ion * pow(4.0 * vti,2) / (2.0 * B0); // Domain boundary (ion velocity space: magnetic moment direction).
 
+  int num_blocks = 2;
+
   double t_end = 6.0e-6; // Final simulation time.
   int num_frames = 1; // Number of output frames.
   int int_diag_calc_num = num_frames*100;
@@ -190,6 +194,7 @@ create_ctx(void)
     .mu_max_elc = mu_max_elc,
     .vpar_max_ion = vpar_max_ion,
     .mu_max_ion = mu_max_ion,
+    .num_blocks = num_blocks,
     .t_end = t_end,
     .num_frames = num_frames,
     .int_diag_calc_num = int_diag_calc_num,
@@ -537,17 +542,6 @@ main(int argc, char **argv)
       .bmag_ctx = &ctx,
     },
 
-    .block_connections = {
-      .connections[0] = { // x-direction
-        { .bid = 0, .dir = 0, .edge = GKYL_BLOCK_EDGE_PHYSICAL }, // physical boundary
-        { .bid = 0, .dir = 0, .edge = GKYL_BLOCK_EDGE_PHYSICAL },
-      },
-      .connections[1] = { // z-direction
-        { .bid = 0, .dir = 1, .edge = GKYL_BLOCK_EDGE_PHYSICAL }, // physical boundary
-        { .bid = 1, .dir = 1, .edge = GKYL_BLOCK_EDGE_LOWER_POSITIVE },
-      }
-    }, 
-
     .cuts = { 1, 2 },
   };
 
@@ -564,18 +558,30 @@ main(int argc, char **argv)
       .bmag_ctx = &ctx,
     },
 
-    .block_connections = {
-      .connections[0] = { // x-direction
-        { .bid = 1, .dir = 0, .edge = GKYL_BLOCK_EDGE_PHYSICAL }, // physical boundary
-        { .bid = 1, .dir = 0, .edge = GKYL_BLOCK_EDGE_PHYSICAL },
-      },
-      .connections[1] = { // z-direction
-        { .bid = 0, .dir = 1, .edge = GKYL_BLOCK_EDGE_UPPER_POSITIVE}, // physical boundary
-        { .bid = 1, .dir = 1, .edge = GKYL_BLOCK_EDGE_PHYSICAL},
-      }
-    }, 
-
     .cuts = { 1, 2 },
+  };
+
+  // Specify the connectivity of evevery block.
+  struct gkyl_block_connections bconnect[ctx.num_blocks];
+  bconnect[0] = (struct gkyl_block_connections) {
+    .connections[0] = { // x-direction
+      { .bid = 0, .dir = 0, .edge = GKYL_PHYSICAL }, // physical boundary
+      { .bid = 0, .dir = 0, .edge = GKYL_PHYSICAL },
+    },
+    .connections[1] = { // z-direction
+      { .bid = 0, .dir = 1, .edge = GKYL_PHYSICAL }, // physical boundary
+      { .bid = 1, .dir = 1, .edge = GKYL_LOWER_POSITIVE },
+    }
+  };
+  bconnect[1] = (struct gkyl_block_connections) {
+    .connections[0] = { // x-direction
+      { .bid = 1, .dir = 0, .edge = GKYL_PHYSICAL }, // physical boundary
+      { .bid = 1, .dir = 0, .edge = GKYL_PHYSICAL },
+    },
+    .connections[1] = { // z-direction
+      { .bid = 0, .dir = 1, .edge = GKYL_UPPER_POSITIVE}, // physical boundary
+      { .bid = 1, .dir = 1, .edge = GKYL_PHYSICAL},
+    }
   };
 
   // GK app.
@@ -588,6 +594,7 @@ main(int argc, char **argv)
 
     .num_blocks = 2,
     .blocks = { &blo, &bup },
+    .block_connections = bconnect,
 
     .num_periodic_dir = 0,
     .periodic_dirs = { },
