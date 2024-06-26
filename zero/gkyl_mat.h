@@ -372,8 +372,6 @@ gkyl_mat_mm_array_mem *gkyl_mat_mm_array_mem_dev_new(int nr, int nc, double alph
  */
 void gkyl_mat_mm_array_mem_release(gkyl_mat_mm_array_mem *mem);
 
-#ifdef GKYL_HAVE_CUDA
-
 /**
  * Computes: alpha*matrix_multiplication(A,B) + Beta*C = C 
  * This is done using the cublas_v2 library. The function here, mat_mm_array is designed specifically so
@@ -387,8 +385,6 @@ void gkyl_mat_mm_array_mem_release(gkyl_mat_mm_array_mem *mem);
  * @param C gkyl_array matrix for computing A*B = C
 */
 void gkyl_mat_mm_array(struct gkyl_mat_mm_array_mem *mem, const struct gkyl_array *B, struct gkyl_array *C);
-  
-#endif
 
 /**
  * Solve a batched system of linear equations using LU

@@ -802,7 +802,7 @@ gkyl_nmat_cu_dev_new(size_t num, size_t nr, size_t nc)
 #else
 
 struct gkyl_mat*
-gkyl_mat_cu_dev_new(size_t num, size_t nr, size_t nc)
+gkyl_mat_cu_dev_new(size_t nr, size_t nc)
 {
   assert(false);
   return 0;
