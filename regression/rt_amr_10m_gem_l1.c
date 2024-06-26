@@ -277,7 +277,7 @@ int main(int argc, char **argv)
     .wall_x = false,
     .wall_y = true,
 
-    .ten_moment_output = "amr_10m_gem",
+    .ten_moment_output = "amr_10m_gem_l1",
 
     .low_order_flux = false,
     .cfl_frac = ctx.cfl_frac,
