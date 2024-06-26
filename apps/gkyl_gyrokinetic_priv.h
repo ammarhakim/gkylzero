@@ -768,7 +768,7 @@ gkyl_gyrokinetic_dfdt(gkyl_gyrokinetic_app* app, double tcurr, double dt,
  * @param distf_neut Array of neutral species distribution functions.
  */
 void
-gkyl_gyrokinetic_apply_bc(gkyl_gyrokinetic_app* app, struct gkyl_array *distf[], struct gkyl_array *distf_neut[]);
+gkyl_gyrokinetic_apply_species_bc(gkyl_gyrokinetic_app* app, struct gkyl_array *distf[], struct gkyl_array *distf_neut[]);
 
 /**
  * Find species with given name.

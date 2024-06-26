@@ -428,7 +428,7 @@ calc_field(gkyl_gyrokinetic_app* app, double tcurr, const struct gkyl_array *fin
 }
 
 void
-gkyl_gyrokinetic_apply_bc(gkyl_gyrokinetic_app* app, struct gkyl_array *distf[], struct gkyl_array *distf_neut[])
+gkyl_gyrokinetic_apply_species_bc(gkyl_gyrokinetic_app* app, struct gkyl_array *distf[], struct gkyl_array *distf_neut[])
 {
   // Apply boundary conditions.
   for (int i=0; i<app->num_species; ++i) {
@@ -448,7 +448,7 @@ calc_field_and_apply_bc(gkyl_gyrokinetic_app* app, double tcurr, struct gkyl_arr
   calc_field(app, tcurr, (const struct gkyl_array **) distf);
 
   // Apply boundary conditions.
-  gkyl_gyrokinetic_apply_bc(app, distf, distf_neut);
+  gkyl_gyrokinetic_apply_species_bc(app, distf, distf_neut);
 }
 
 struct gk_species *
