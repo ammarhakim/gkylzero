@@ -63,12 +63,28 @@ void skin_ghost_ranges_init_patch(struct skin_ghost_ranges_patch* sgr, const str
 void euler_patch_bc_updaters_init(struct euler_patch_data* pdata, const struct gkyl_block_connections* conn);
 
 /**
+* Initialize nested patch AMR updaters for both physical (outer-patch) and non-physical (inter-patch) boundary conditions for the Euler equations.
+*
+* @param pdata Patch-structured data for the Euler equations.
+* @param conn Topology/connectivity data for the patch hierarchy.
+*/
+void euler_nested_patch_bc_updaters_init(struct euler_patch_data* pdata, const struct gkyl_block_connections* conn);
+
+/**
 * Initialize patch AMR updaters for both physical (outer-patch) and non-physical (inter-patch) boundary conditions for the general relativistic Euler equations.
 *
 * @param pdata Patch-structured data for the general relativistic Euler equations.
 * @param conn Topology/connectivity data for the patch hierarchy.
 */
 void gr_euler_patch_bc_updaters_init(struct euler_patch_data* pdata, const struct gkyl_block_connections* conn);
+
+/**
+* Initialize nested patch AMR updaters for both physical (outer-patch) and non-physical (inter-patch) boundary conditions for the general relativistic Euler equations.
+*
+* @param pdata Patch-structured data for the general relativistic Euler equations.
+* @param conn Topology/connectivity data for the patch hierarchy.
+*/
+void gr_euler_nested_patch_bc_updaters_init(struct euler_patch_data* pdata, const struct gkyl_block_connections* conn);
 
 /**
 * Release patch AMR updaters for both physical (outer-patch) and non-physical (inter-patch) boundary conditions for the Euler equations.
@@ -175,3 +191,8 @@ double euler_max_dt_patch(int num_patches, const struct euler_patch_data pdata[]
 * Set up the topology/connectivity information for the patch AMR hierarchy for a mesh containing a single refinement patch.
 */
 struct gkyl_block_topo* create_patch_topo();
+
+/**
+* Set up the topology/connectivity information for the patch AMR hierarchy for a mesh containing a doubly-nested refinement patch.
+*/
+struct gkyl_block_topo* create_nested_patch_topo();

@@ -40,10 +40,74 @@ euler_patch_bc_updaters_init(struct euler_patch_data* pdata, const struct gkyl_b
 }
 
 void
+euler_nested_patch_bc_updaters_init(struct euler_patch_data* pdata, const struct gkyl_block_connections* conn)
+{
+  int nghost[5];
+  for (int i = 0; i < 5; i++) {
+    nghost[i] = 2;
+  }
+
+  pdata->lower_bc[0] = pdata->upper_bc[0] = 0;
+
+  if (conn->connections[0][0].edge == GKYL_PHYSICAL) {
+    pdata->lower_bc[0] = gkyl_wv_apply_bc_new(&pdata->grid, pdata->euler, pdata->geom, 0, GKYL_LOWER_EDGE, nghost,
+      euler_transmissive_bc, 0);
+  }
+
+  if (conn->connections[0][1].edge == GKYL_PHYSICAL) {
+    pdata->upper_bc[0] = gkyl_wv_apply_bc_new(&pdata->grid, pdata->euler, pdata->geom, 0, GKYL_UPPER_EDGE, nghost,
+      euler_transmissive_bc, 0);
+  }
+
+  skin_ghost_ranges_init_patch(&pdata->skin_ghost, &pdata->ext_range, nghost);
+  long buff_sz = 0;
+
+  long vol = pdata->skin_ghost.lower_skin[0].volume;
+  
+  if (buff_sz <= vol) {
+    buff_sz = vol;
+  }
+
+  pdata->bc_buffer = gkyl_array_new(GKYL_DOUBLE, 5, buff_sz);
+}
+
+void
 gr_euler_patch_bc_updaters_init(struct euler_patch_data* pdata, const struct gkyl_block_connections* conn)
 {
   int nghost[3];
   for (int i = 0; i < 3; i++) {
+    nghost[i] = 2;
+  }
+
+  pdata->lower_bc[0] = pdata->upper_bc[0] = 0;
+
+  if (conn->connections[0][0].edge == GKYL_PHYSICAL) {
+    pdata->lower_bc[0] = gkyl_wv_apply_bc_new(&pdata->grid, pdata->euler, pdata->geom, 0, GKYL_LOWER_EDGE, nghost,
+      gr_euler_transmissive_bc, 0);
+  }
+
+  if (conn->connections[0][1].edge == GKYL_PHYSICAL) {
+    pdata->upper_bc[0] = gkyl_wv_apply_bc_new(&pdata->grid, pdata->euler, pdata->geom, 0, GKYL_UPPER_EDGE, nghost,
+      gr_euler_transmissive_bc, 0);
+  }
+
+  skin_ghost_ranges_init_patch(&pdata->skin_ghost, &pdata->ext_range, nghost);
+  long buff_sz = 0;
+
+  long vol = pdata->skin_ghost.lower_skin[0].volume;
+  
+  if (buff_sz <= vol) {
+    buff_sz = vol;
+  }
+
+  pdata->bc_buffer = gkyl_array_new(GKYL_DOUBLE, 29, buff_sz);
+}
+
+void
+gr_euler_nested_patch_bc_updaters_init(struct euler_patch_data* pdata, const struct gkyl_block_connections* conn)
+{
+  int nghost[5];
+  for (int i = 0; i < 5; i++) {
     nghost[i] = 2;
   }
 
@@ -552,6 +616,30 @@ create_patch_topo()
   };
   ptopo->conn[2] = (struct gkyl_block_connections) {
     .connections[0] = { { .bid = 0, .dir = 0, .edge = GKYL_UPPER_POSITIVE }, { .bid = 0, .dir = 0, .edge = GKYL_PHYSICAL } },
+  };
+
+  return ptopo;
+}
+
+struct gkyl_block_topo*
+create_nested_patch_topo()
+{
+  struct gkyl_block_topo *ptopo = gkyl_block_topo_new(1, 5);
+
+  ptopo->conn[0] = (struct gkyl_block_connections) {
+    .connections[0] = { { .bid = 1, .dir = 0, .edge = GKYL_UPPER_POSITIVE }, { .bid = 2, .dir = 0, .edge = GKYL_LOWER_POSITIVE } },
+  };
+  ptopo->conn[1] = (struct gkyl_block_connections) {
+    .connections[0] = { { .bid = 3, .dir = 0, .edge = GKYL_UPPER_POSITIVE }, { .bid = 0, .dir = 0, .edge = GKYL_LOWER_POSITIVE } },
+  };
+  ptopo->conn[2] = (struct gkyl_block_connections) {
+    .connections[0] = { { .bid = 0, .dir = 0, .edge = GKYL_UPPER_POSITIVE }, { .bid = 4, .dir = 0, .edge = GKYL_LOWER_POSITIVE } },
+  };
+  ptopo->conn[3] = (struct gkyl_block_connections) {
+    .connections[0] = { { .bid = 0, .dir = 0, .edge = GKYL_PHYSICAL }, { .bid = 1, .dir = 0, .edge = GKYL_LOWER_POSITIVE } },
+  };
+  ptopo->conn[4] = (struct gkyl_block_connections) {
+    .connections[0] = { { .bid = 2, .dir = 0, .edge = GKYL_UPPER_POSITIVE }, { .bid = 0, .dir = 0, .edge = GKYL_PHYSICAL } },
   };
 
   return ptopo;
