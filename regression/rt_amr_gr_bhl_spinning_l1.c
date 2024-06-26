@@ -1,5 +1,5 @@
-// 2D Bondi-Hoyle-Lyttleton accretion problem onto a static (Schwarzschild) black hole, using static, block-structured mesh refinement with a single refinement block (4x refinement), for the general relativistic Euler equations.
-// Input parameters describe wind accretion of a cold relativistic gas onto a non-rotating black hole.
+// 2D Bondi-Hoyle-Lyttleton accretion problem onto a non-static (Kerr) black hole, using static, block-structured mesh refinement with a single refinement block (4x refinement), for the general relativistic Euler equations.
+// Input parameters describe wind accretion of a cold relativistic gas onto a spinning black hole.
 // Based on the analytical solution for stiff relativistic fluids presented in the article:
 // L. I. Petrich, S. L. Shapiro and S. A. Teukolsky (1988), "Accretion onto a moving black hole: An exact solution",
 // Physical Review Letters, Volume 60 (18): 1781-1784.
@@ -9,7 +9,7 @@
 #include <gkyl_gr_blackhole.h>
 #include <gkyl_alloc.h>
 
-struct amr_gr_bhl_static_ctx
+struct amr_gr_bhl_spinning_ctx
 {
   // Mathematical constants (dimensionless).
   double pi;
@@ -54,7 +54,7 @@ struct amr_gr_bhl_static_ctx
   double x_loc; // Shock location (x-direction).
 };
 
-struct amr_gr_bhl_static_ctx
+struct amr_gr_bhl_spinning_ctx
 create_ctx(void)
 {
   // Mathematical constants (dimensionless).
@@ -73,7 +73,7 @@ create_ctx(void)
 
   // Spacetime parameters (using geometric units).
   double mass = 0.3; // Mass of the black hole.
-  double spin = 0.0; // Spin of the black hole.
+  double spin = -0.5; // Spin of the black hole.
 
   double pos_x = 2.5; // Position of the black hole (x-direction).
   double pos_y = 2.5; // Position of the black hole (y-direction).
@@ -91,7 +91,7 @@ create_ctx(void)
   double fine_Lx = 2.5; // Fine domain size (x-direction).
   double fine_Ly = 2.5; // Fine domain size (y-direction).
   double cfl_frac = 0.95; // CFL coefficient.
-  
+
   double t_end = 15.0; // Final simulation time.
   int num_frames = 1; // Number of output frames.
   double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.
@@ -99,7 +99,7 @@ create_ctx(void)
 
   double x_loc = 1.0; // Shock location (x-direction).
 
-  struct amr_gr_bhl_static_ctx ctx = {
+  struct amr_gr_bhl_spinning_ctx ctx = {
     .pi = pi,
     .gas_gamma = gas_gamma,
     .rhol = rhol,
@@ -136,8 +136,8 @@ void
 evalGREulerInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
 {
   double x = xn[0], y = xn[1];
-  struct amr_gr_bhl_static_ctx new_ctx = create_ctx(); // Context for initialization functions.
-  struct amr_gr_bhl_static_ctx *app = &new_ctx;
+  struct amr_gr_bhl_spinning_ctx new_ctx = create_ctx(); // Context for initialization functions.
+  struct amr_gr_bhl_spinning_ctx *app = &new_ctx;
 
   double gas_gamma = app->gas_gamma;
 
@@ -261,7 +261,7 @@ evalGREulerInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT 
 
 int main(int argc, char **argv)
 {
-  struct amr_gr_bhl_static_ctx ctx = create_ctx(); // Context for initialization functions.
+  struct amr_gr_bhl_spinning_ctx ctx = create_ctx(); // Context for initialization functions.
 
   struct gr_euler2d_single_init init = {
     .base_Nx = ctx.Nx,
@@ -282,7 +282,7 @@ int main(int argc, char **argv)
     .gas_gamma = ctx.gas_gamma,
     .spacetime = ctx.spacetime,
 
-    .gr_euler_output = "amr_gr_bhl_static",
+    .gr_euler_output = "amr_gr_bhl_spinning_l1",
 
     .low_order_flux = true,
     .cfl_frac = ctx.cfl_frac,
