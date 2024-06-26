@@ -243,7 +243,7 @@ struct gkyl_gyrokinetic_field {
   double kperpSq; // kperp^2 parameter for 1D field equations
   double xLCFS; // radial location of the LCFS.
 
-  // parameters for adiabatic electrons simulations
+  // parameters for adiabatic electron simulations
   double electron_mass, electron_charge, electron_density, electron_temp;
 
   enum gkyl_fem_parproj_bc_type fem_parbc;
@@ -292,6 +292,8 @@ struct gkyl_gk {
   // higher-level drivers
   bool has_low_inp; // should one use low-level inputs?
   struct gkyl_app_comm_low_inp low_inp; // low-level inputs  
+
+  int cuts[GKYL_MAX_CDIM]; // Domain decompositions in each direction.
 };
 
 // Simulation statistics

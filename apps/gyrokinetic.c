@@ -400,10 +400,11 @@ gkyl_gyrokinetic_app_new(struct gkyl_gk *gk)
   return app;
 }
 
-// Compute fields.
 static void
 calc_field(gkyl_gyrokinetic_app* app, double tcurr, const struct gkyl_array *fin[])
 {
+  // Compute electromagnetic potentials.
+
   if (app->update_field) {
     // Compute electrostatic potential from gyrokinetic Poisson's equation.
     gk_field_accumulate_rho_c(app, app->field, fin);
@@ -426,14 +427,9 @@ calc_field(gkyl_gyrokinetic_app* app, double tcurr, const struct gkyl_array *fin
   }
 }
 
-// Compute fields and apply BCs.
-static void
-calc_field_and_apply_bc(gkyl_gyrokinetic_app* app, double tcurr, struct gkyl_array *distf[], struct gkyl_array *distf_neut[])
+void
+gkyl_gyrokinetic_apply_species_bc(gkyl_gyrokinetic_app* app, struct gkyl_array *distf[], struct gkyl_array *distf_neut[])
 {
-
-  // Compute the field.
-  calc_field(app, tcurr, (const struct gkyl_array **) distf);
-
   // Apply boundary conditions.
   for (int i=0; i<app->num_species; ++i) {
     gk_species_apply_bc(app, &app->species[i], distf[i]);
@@ -443,7 +439,16 @@ calc_field_and_apply_bc(gkyl_gyrokinetic_app* app, double tcurr, struct gkyl_arr
       gk_neut_species_apply_bc(app, &app->neut_species[i], distf_neut[i]);
     }
   }
+}
 
+static void
+calc_field_and_apply_bc(gkyl_gyrokinetic_app* app, double tcurr, struct gkyl_array *distf[], struct gkyl_array *distf_neut[])
+{
+  // Compute electromagnetic potentials.
+  calc_field(app, tcurr, (const struct gkyl_array **) distf);
+
+  // Apply boundary conditions.
+  gkyl_gyrokinetic_apply_species_bc(app, distf, distf_neut);
 }
 
 struct gk_species *
@@ -1841,17 +1846,13 @@ gkyl_gyrokinetic_app_read_geometry(gkyl_gyrokinetic_app* app)
   gkyl_array_release(eps2);
 }
 
-// Take a forward Euler step with the suggested time-step dt. This may
-// not be the actual time-step taken. However, the function will never
-// take a time-step larger than dt even if it is allowed by
-// stability. The actual time-step and dt_suggested are returned in
-// the status object.
-static void
-forward_euler(gkyl_gyrokinetic_app* app, double tcurr, double dt,
+void
+gkyl_gyrokinetic_dfdt(gkyl_gyrokinetic_app* app, double tcurr, double dt,
   const struct gkyl_array *fin[], struct gkyl_array *fout[], 
   const struct gkyl_array *fin_neut[], struct gkyl_array *fout_neut[], 
   struct gkyl_update_status *st)
 {
+  // Compute the time rate of change of the distribution, df/dt.
   app->stat.nfeuler += 1;
 
   double dtmin = DBL_MAX;
@@ -1958,10 +1959,28 @@ forward_euler(gkyl_gyrokinetic_app* app, double tcurr, double dt,
   dtmin = dtmin_global;
   
   // Don't take a time-step larger that input dt.
-  double dta = st->dt_actual = dt < dtmin ? dt : dtmin;
+  st->dt_actual = dt < dtmin ? dt : dtmin;
   st->dt_suggested = dtmin;
+}
+
+static void
+forward_euler(gkyl_gyrokinetic_app* app, double tcurr, double dt,
+  const struct gkyl_array *fin[], struct gkyl_array *fout[],
+  const struct gkyl_array *fin_neut[], struct gkyl_array *fout_neut[],
+  struct gkyl_update_status *st)
+{
+  // Take a forward Euler step with the suggested time-step dt. This may
+  // not be the actual time-step taken. However, the function will never
+  // take a time-step larger than dt even if it is allowed by
+  // stability. The actual time-step and dt_suggested are returned in
+  // the status object.
+  app->stat.nfeuler += 1;
+
+  // Compute the time rate of change of the distributions, df/dt.
+  gkyl_gyrokinetic_dfdt(app, tcurr, dt, fin, fout, fin_neut, fout_neut, st);
 
   // Complete update of distribution functions.
+  double dta = st->dt_actual;
   for (int i=0; i<app->num_species; ++i) {
     gkyl_array_accumulate(gkyl_array_scale(fout[i], dta), 1.0, fin[i]);
   }
