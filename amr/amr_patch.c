@@ -105,39 +105,6 @@ euler_sync_patches(const struct gkyl_block_topo* ptopo, const struct euler_patch
   for (int i = 0; i < num_patches; i++) {
     const struct gkyl_target_edge *te = ptopo->conn[i].connections[0];
 
-#ifdef AMR_DEBUG
-    if (te[0].edge != GKYL_PHYSICAL) {
-      struct gkyl_array *bc_buffer = pdata[i].bc_buffer;
-
-      gkyl_array_copy_to_buffer(bc_buffer->data, fld[i], &(pdata[i].skin_ghost.lower_skin[0]));
-
-      int tbid = te[0].bid;
-      int tdir = te[0].dir;
-
-      if (te[0].edge == GKYL_LOWER_POSITIVE) {
-        gkyl_array_copy_from_buffer(fld[tbid], bc_buffer->data, &(pdata[tbid].skin_ghost.lower_ghost[tdir]));
-      }
-      else if (te[0].edge == GKYL_UPPER_POSITIVE) {
-        gkyl_array_copy_from_buffer(fld[tbid], bc_buffer->data, &(pdata[tbid].skin_ghost.upper_ghost[tdir]));
-      }
-    }
-
-    if (te[1].edge != GKYL_PHYSICAL) {
-      struct gkyl_array *bc_buffer = pdata[i].bc_buffer;
-
-      gkyl_array_copy_to_buffer(bc_buffer->data, fld[i], &(pdata[i].skin_ghost.upper_skin[0]));
-
-      int tbid = te[1].bid;
-      int tdir = te[1].dir;
-
-      if (te[1].edge == GKYL_LOWER_POSITIVE) {
-        gkyl_array_copy_from_buffer(fld[tbid], bc_buffer->data, &(pdata[tbid].skin_ghost.lower_ghost[tdir]));
-      }
-      else if (te[1].edge == GKYL_UPPER_POSITIVE) {
-        gkyl_array_copy_from_buffer(fld[tbid], bc_buffer->data, &(pdata[tbid].skin_ghost.upper_ghost[tdir]));
-      }
-    }
-#else
     if (te[0].edge != GKYL_PHYSICAL) {
       struct gkyl_array *bc_buffer = pdata[i].bc_buffer;
       
@@ -345,7 +312,6 @@ euler_sync_patches(const struct gkyl_block_topo* ptopo, const struct euler_patch
         }
       }
     }
-#endif
   }
 }
 
