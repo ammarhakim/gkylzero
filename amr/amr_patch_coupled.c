@@ -151,55 +151,6 @@ five_moment_sync_patches(const struct gkyl_block_topo* ptopo, const struct five_
   for (int i = 0; i < num_patches; i++) {
     const struct gkyl_target_edge *te = ptopo->conn[i].connections[0];
 
-#ifdef AMR_DEBUG
-    if (te[0].edge != GKYL_PHYSICAL) {
-      struct gkyl_array *bc_buffer_elc = pdata[i].bc_buffer_elc;
-      struct gkyl_array *bc_buffer_ion = pdata[i].bc_buffer_ion;
-      struct gkyl_array *bc_buffer_maxwell = pdata[i].bc_buffer_maxwell;
-
-      gkyl_array_copy_to_buffer(bc_buffer_elc->data, fld_elc[i], &(pdata[i].skin_ghost.lower_skin[0]));
-      gkyl_array_copy_to_buffer(bc_buffer_ion->data, fld_ion[i], &(pdata[i].skin_ghost.lower_skin[0]));
-      gkyl_array_copy_to_buffer(bc_buffer_maxwell->data, fld_maxwell[i], &(pdata[i].skin_ghost.lower_skin[0]));
-
-      int tbid = te[0].bid;
-      int tdir = te[0].dir;
-
-      if (te[0].edge == GKYL_LOWER_POSITIVE) {
-        gkyl_array_copy_from_buffer(fld_elc[tbid], bc_buffer_elc->data, &(pdata[tbid].skin_ghost.lower_ghost[tdir]));
-        gkyl_array_copy_from_buffer(fld_ion[tbid], bc_buffer_ion->data, &(pdata[tbid].skin_ghost.lower_ghost[tdir]));
-        gkyl_array_copy_from_buffer(fld_maxwell[tbid], bc_buffer_maxwell->data, &(pdata[tbid].skin_ghost.lower_ghost[tdir]));
-      }
-      else if (te[0].edge == GKYL_UPPER_POSITIVE) {
-        gkyl_array_copy_from_buffer(fld_elc[tbid], bc_buffer_elc->data, &(pdata[tbid].skin_ghost.upper_ghost[tdir]));
-        gkyl_array_copy_from_buffer(fld_ion[tbid], bc_buffer_ion->data, &(pdata[tbid].skin_ghost.upper_ghost[tdir]));
-        gkyl_array_copy_from_buffer(fld_maxwell[tbid], bc_buffer_maxwell->data, &(pdata[tbid].skin_ghost.upper_ghost[tdir]));
-      }
-    }
-
-    if (te[1].edge != GKYL_PHYSICAL) {
-      struct gkyl_array *bc_buffer_elc = pdata[i].bc_buffer_elc;
-      struct gkyl_array *bc_buffer_ion = pdata[i].bc_buffer_ion;
-      struct gkyl_array *bc_buffer_maxwell = pdata[i].bc_buffer_maxwell;
-
-      gkyl_array_copy_to_buffer(bc_buffer_elc->data, fld_elc[i], &(pdata[i].skin_ghost.upper_skin[0]));
-      gkyl_array_copy_to_buffer(bc_buffer_ion->data, fld_ion[i], &(pdata[i].skin_ghost.upper_skin[0]));
-      gkyl_array_copy_to_buffer(bc_buffer_maxwell->data, fld_maxwell[i], &(pdata[i].skin_ghost.upper_skin[0]));
-
-      int tbid = te[1].bid;
-      int tdir = te[1].dir;
-
-      if (te[1].edge == GKYL_LOWER_POSITIVE) {
-        gkyl_array_copy_from_buffer(fld_elc[tbid], bc_buffer_elc->data, &(pdata[tbid].skin_ghost.lower_ghost[tdir]));
-        gkyl_array_copy_from_buffer(fld_ion[tbid], bc_buffer_ion->data, &(pdata[tbid].skin_ghost.lower_ghost[tdir]));
-        gkyl_array_copy_from_buffer(fld_maxwell[tbid], bc_buffer_maxwell->data, &(pdata[tbid].skin_ghost.lower_ghost[tdir]));
-      }
-      else if (te[1].edge == GKYL_UPPER_POSITIVE) {
-        gkyl_array_copy_from_buffer(fld_elc[tbid], bc_buffer_elc->data, &(pdata[tbid].skin_ghost.upper_ghost[tdir]));
-        gkyl_array_copy_from_buffer(fld_ion[tbid], bc_buffer_ion->data, &(pdata[tbid].skin_ghost.upper_ghost[tdir]));
-        gkyl_array_copy_from_buffer(fld_maxwell[tbid], bc_buffer_maxwell->data, &(pdata[tbid].skin_ghost.upper_ghost[tdir]));
-      }
-    }
-#else
     if (te[0].edge != GKYL_PHYSICAL) {
       struct gkyl_array *bc_buffer_elc = pdata[i].bc_buffer_elc;
       struct gkyl_array *bc_buffer_ion = pdata[i].bc_buffer_ion;
@@ -495,7 +446,6 @@ five_moment_sync_patches(const struct gkyl_block_topo* ptopo, const struct five_
         }
       }
     }
-#endif
   }
 }
 
