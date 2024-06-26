@@ -198,7 +198,7 @@ gkyl_gyrokinetic_multib_app_new(struct gkyl_gk_multib *inp)
   }
 
   // Only allocate memory for local blocks and their intrablock communicators.
-  mba->blocks = gkyl_malloc(mba->num_blocks_local * sizeof(struct gkyl_gyrokinetic_app));
+  mba->blocks = gkyl_malloc(mba->num_blocks_local * sizeof(struct gkyl_gyrokinetic_app *));
   mba->comm_intrab = gkyl_malloc(mba->num_blocks_local * sizeof(struct gkyl_comm *));
 
   for (int bc=0; bc<mba->num_blocks_local; bc++) {
