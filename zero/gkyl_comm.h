@@ -26,6 +26,15 @@ typedef int (*get_size_t)(struct gkyl_comm *comm, int *sz);
 typedef int (*gkyl_array_send_t)(struct gkyl_array *array, int dest, int tag,
   struct gkyl_comm *comm);
 
+// "Reduce" all elements of @a type in array @a data and store output in @a out
+typedef int (*allreduce_t)(struct gkyl_comm *comm, enum gkyl_elem_type type,
+  enum gkyl_array_op op, int nelem, const void *inp, void *out);
+
+// Broadcast ellements of @a data from rank @a root to other ranks in the
+// communicator @a comm.
+typedef int (*bcast_t)(struct gkyl_comm *comm, void *data, size_t data_sz,
+  int root);
+
 // Nonblocking send @a array to @a dest process using @a tag, and.
 // store the status of this comm in @a state.
 typedef int (*gkyl_array_isend_t)(struct gkyl_array *array, int dest, int tag,
@@ -39,10 +48,6 @@ typedef int (*gkyl_array_recv_t)(struct gkyl_array *array, int src, int tag,
 // store the status of this comm in @a state.
 typedef int (*gkyl_array_irecv_t)(struct gkyl_array *array, int src, int tag,
   struct gkyl_comm *comm, struct gkyl_comm_state *state);
-
-// "Reduce" all elements of @a type in array @a data and store output in @a out
-typedef int (*allreduce_t)(struct gkyl_comm *comm, enum gkyl_elem_type type,
-  enum gkyl_array_op op, int nelem, const void *inp, void *out);
 
 // Gather local arrays into global array on each process.
 typedef int (*gkyl_array_allgather_t)(struct gkyl_comm *comm,
@@ -120,6 +125,7 @@ struct gkyl_comm {
   gkyl_array_irecv_t gkyl_array_irecv; // nonblocking recv array.
   allreduce_t allreduce; // all reduce function
   allreduce_t allreduce_host; // all reduce using the host (MPI) communicator.
+  bcast_t bcast; // all reduce function
   gkyl_array_allgather_t gkyl_array_allgather; // gather local arrays to global array.
   gkyl_array_allgatherv_t gkyl_array_allgatherv; // gather local arrays (of
                                                 // different sizes) to global array.
@@ -170,6 +176,57 @@ static int
 gkyl_comm_get_size(struct gkyl_comm *comm, int *sz)
 {
   return comm->get_size(comm, sz);
+}
+
+/**
+ * All reduce values across domains.
+ *
+ * @param comm Communicator
+ * @param type Data-type of element
+ * @param op Operator to use in reduction
+ * @param nelem Number of elemets in inp and out
+ * @param inp Local values on domain
+ * @param out Reduced values
+ * @return error code: 0 for success
+ */
+static int
+gkyl_comm_allreduce(struct gkyl_comm *comm, enum gkyl_elem_type type,
+  enum gkyl_array_op op, int nelem, const void *inp, void *out)
+{
+  return comm->allreduce(comm, type, op, nelem, inp, out);
+}
+
+/**
+ * All reduce values across domains on the host/MPI communicator.
+ *
+ * @param comm Communicator
+ * @param type Data-type of element
+ * @param op Operator to use in reduction
+ * @param nelem Number of elemets in inp and out
+ * @param inp Local values on domain
+ * @param out Reduced values
+ * @return error code: 0 for success
+ */
+static int
+gkyl_comm_allreduce_host(struct gkyl_comm *comm, enum gkyl_elem_type type,
+  enum gkyl_array_op op, int nelem, const void *inp, void *out)
+{
+  return comm->allreduce_host(comm, type, op, nelem, inp, out);
+}
+
+/**
+ * Broadcast data from one process to all other processes in a communicator.
+ *
+ * @param comm Communicator
+ * @param data Data to send (from root rank) and received (all other ranks).
+ * @param data_sz Size of the data (in bytes).
+ * @param root Rank of the process sending data.
+ * @return error code: 0 for success
+ */
+static int
+gkyl_comm_bcast(struct gkyl_comm *comm, void *data, size_t data_sz, int root)
+{
+  return comm->bcast(comm, data, data_sz, root);
 }
 
 /**
@@ -232,42 +289,6 @@ gkyl_comm_array_irecv(struct gkyl_comm *comm, struct gkyl_array *array,
   int src, int tag, struct gkyl_comm_state *state)
 {
   return comm->gkyl_array_irecv(array, src, tag, comm, state);
-}
-
-/**
- * All reduce values across domains.
- *
- * @param comm Communicator
- * @param type Data-type of element
- * @param op Operator to use in reduction
- * @param nelem Number of elemets in inp and out
- * @param inp Local values on domain
- * @param out Reduced values
- * @return error code: 0 for success
- */
-static int
-gkyl_comm_allreduce(struct gkyl_comm *comm, enum gkyl_elem_type type,
-  enum gkyl_array_op op, int nelem, const void *inp, void *out)
-{
-  return comm->allreduce(comm, type, op, nelem, inp, out);
-}
-
-/**
- * All reduce values across domains on the host/MPI communicator.
- *
- * @param comm Communicator
- * @param type Data-type of element
- * @param op Operator to use in reduction
- * @param nelem Number of elemets in inp and out
- * @param inp Local values on domain
- * @param out Reduced values
- * @return error code: 0 for success
- */
-static int
-gkyl_comm_allreduce_host(struct gkyl_comm *comm, enum gkyl_elem_type type,
-  enum gkyl_array_op op, int nelem, const void *inp, void *out)
-{
-  return comm->allreduce_host(comm, type, op, nelem, inp, out);
 }
 
 /**

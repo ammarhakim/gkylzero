@@ -125,6 +125,28 @@ get_size(struct gkyl_comm *comm, int *sz)
 }
 
 static int
+bcast(struct gkyl_comm *comm, void *data, size_t data_sz, int root)
+{
+  struct mpi_comm *mpi = container_of(comm, struct mpi_comm, base);
+
+  int ret = 
+    MPI_Bcast(data, data_sz, MPI_CHAR, root, mpi->mcomm);
+
+  return 0;
+}
+
+static int
+allreduce(struct gkyl_comm *comm, enum gkyl_elem_type type,
+  enum gkyl_array_op op, int nelem, const void *inp,
+  void *out)
+{
+  struct mpi_comm *mpi = container_of(comm, struct mpi_comm, base);  
+  int ret =
+    MPI_Allreduce(inp, out, nelem, g2_mpi_datatype[type], g2_mpi_op[op], mpi->mcomm);
+  return ret == MPI_SUCCESS ? 0 : 1;
+}
+
+static int
 array_send(struct gkyl_array *array, int dest, int tag, struct gkyl_comm *comm)
 {
   size_t vol = array->esznc*array->size;
@@ -158,17 +180,6 @@ array_irecv(struct gkyl_array *array, int src, int tag, struct gkyl_comm *comm, 
   size_t vol = array->esznc*array->size;
   struct mpi_comm *mpi = container_of(comm, struct mpi_comm, base);  
   int ret = MPI_Irecv(array->data, vol, MPI_CHAR, src, tag, mpi->mcomm, &state->req); 
-  return ret == MPI_SUCCESS ? 0 : 1;
-}
-
-static int
-allreduce(struct gkyl_comm *comm, enum gkyl_elem_type type,
-  enum gkyl_array_op op, int nelem, const void *inp,
-  void *out)
-{
-  struct mpi_comm *mpi = container_of(comm, struct mpi_comm, base);  
-  int ret =
-    MPI_Allreduce(inp, out, nelem, g2_mpi_datatype[type], g2_mpi_op[op], mpi->mcomm);
   return ret == MPI_SUCCESS ? 0 : 1;
 }
 
@@ -841,6 +852,7 @@ gkyl_mpi_comm_new(const struct gkyl_mpi_comm_inp *inp)
   mpi->base.gkyl_array_bcast = array_bcast;
   mpi->base.gkyl_array_bcast_host = array_bcast;
   mpi->base.allreduce = allreduce;
+  mpi->base.bcast = bcast;
   mpi->base.allreduce_host = allreduce;
   mpi->base.extend_comm = extend_comm;
   mpi->base.split_comm = split_comm;
