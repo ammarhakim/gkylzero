@@ -1109,13 +1109,19 @@ mpi_bcast_1d()
     f[0] = linidx+10.0*rank;
   }
 
-  gkyl_comm_array_bcast(comm, arr, arr, bcast_rank);
+  // Test it with array_bcast and just bcast
+  for (int i=0; i<2; i++) {
+    if (i == 0)
+      gkyl_comm_array_bcast(comm, arr, arr, bcast_rank);
+    else
+      gkyl_comm_bcast(comm, arr->data, arr->size*arr->esznc, bcast_rank);
 
-  gkyl_range_iter_init(&iter, &local);
-  while (gkyl_range_iter_next(&iter)) {
-    long linidx = gkyl_range_idx(&local, iter.idx);
-    double *f = gkyl_array_fetch(arr, linidx);
-    TEST_CHECK( linidx+10.0*bcast_rank == f[0] );
+    gkyl_range_iter_init(&iter, &local);
+    while (gkyl_range_iter_next(&iter)) {
+      long linidx = gkyl_range_idx(&local, iter.idx);
+      double *f = gkyl_array_fetch(arr, linidx);
+      TEST_CHECK( linidx+10.0*bcast_rank == f[0] );
+    }
   }
 
   gkyl_rect_decomp_release(decomp);
