@@ -256,7 +256,7 @@ int main(int argc, char **argv)
     .mass_ion = ctx.mass_ion,
     .charge_ion = ctx.charge_ion,
 
-    .five_moment_output = "amr_5m_riem",
+    .five_moment_output = "amr_5m_riem_l1",
 
     .low_order_flux = false,
     .cfl_frac = ctx.cfl_frac,

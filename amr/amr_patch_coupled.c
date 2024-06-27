@@ -46,10 +46,98 @@ five_moment_patch_bc_updaters_init(struct five_moment_patch_data* pdata, const s
 }
 
 void
+five_moment_nested_patch_bc_updaters_init(struct five_moment_patch_data* pdata, const struct gkyl_block_connections* conn)
+{
+  int nghost[5];
+  for (int i = 0; i < 5; i++) {
+    nghost[i] = 2;
+  }
+
+  pdata->lower_bc_elc[0] = pdata->upper_bc_elc[0] = 0;
+  pdata->lower_bc_ion[0] = pdata->upper_bc_ion[0] = 0;
+  pdata->lower_bc_maxwell[0] = pdata->upper_bc_maxwell[0] = 0;
+
+  if (conn->connections[0][0].edge == GKYL_PHYSICAL) {
+    pdata->lower_bc_elc[0] = gkyl_wv_apply_bc_new(&pdata->grid, pdata->euler_elc, pdata->geom, 0, GKYL_LOWER_EDGE, nghost,
+      five_moment_transmissive_bc, 0);
+    pdata->lower_bc_ion[0] = gkyl_wv_apply_bc_new(&pdata->grid, pdata->euler_ion, pdata->geom, 0, GKYL_LOWER_EDGE, nghost,
+      five_moment_transmissive_bc, 0);
+    pdata->lower_bc_maxwell[0] = gkyl_wv_apply_bc_new(&pdata->grid, pdata->maxwell, pdata->geom, 0, GKYL_LOWER_EDGE, nghost,
+      maxwell_transmissive_bc, 0);
+  }
+
+  if (conn->connections[0][1].edge == GKYL_PHYSICAL) {
+    pdata->upper_bc_elc[0] = gkyl_wv_apply_bc_new(&pdata->grid, pdata->euler_elc, pdata->geom, 0, GKYL_UPPER_EDGE, nghost,
+      five_moment_transmissive_bc, 0);
+    pdata->upper_bc_ion[0] = gkyl_wv_apply_bc_new(&pdata->grid, pdata->euler_ion, pdata->geom, 0, GKYL_UPPER_EDGE, nghost,
+      five_moment_transmissive_bc, 0);
+    pdata->upper_bc_maxwell[0] = gkyl_wv_apply_bc_new(&pdata->grid, pdata->maxwell, pdata->geom, 0, GKYL_UPPER_EDGE, nghost,
+      maxwell_transmissive_bc, 0);
+  }
+
+  skin_ghost_ranges_init_patch(&pdata->skin_ghost, &pdata->ext_range, nghost);
+  long buff_sz = 0;
+
+  long vol = pdata->skin_ghost.lower_skin[0].volume;
+  
+  if (buff_sz <= vol) {
+    buff_sz = vol;
+  }
+
+  pdata->bc_buffer_elc = gkyl_array_new(GKYL_DOUBLE, 5, buff_sz);
+  pdata->bc_buffer_ion = gkyl_array_new(GKYL_DOUBLE, 5, buff_sz);
+  pdata->bc_buffer_maxwell = gkyl_array_new(GKYL_DOUBLE, 8, buff_sz);
+}
+
+void
 ten_moment_patch_bc_updaters_init(struct five_moment_patch_data* pdata, const struct gkyl_block_connections* conn)
 {
   int nghost[3];
   for (int i = 0; i < 3; i++) {
+    nghost[i] = 2;
+  }
+
+  pdata->lower_bc_elc[0] = pdata->upper_bc_elc[0] = 0;
+  pdata->lower_bc_ion[0] = pdata->upper_bc_ion[0] = 0;
+  pdata->lower_bc_maxwell[0] = pdata->upper_bc_maxwell[0] = 0;
+
+  if (conn->connections[0][0].edge == GKYL_PHYSICAL) {
+    pdata->lower_bc_elc[0] = gkyl_wv_apply_bc_new(&pdata->grid, pdata->euler_elc, pdata->geom, 0, GKYL_LOWER_EDGE, nghost,
+      ten_moment_transmissive_bc, 0);
+    pdata->lower_bc_ion[0] = gkyl_wv_apply_bc_new(&pdata->grid, pdata->euler_ion, pdata->geom, 0, GKYL_LOWER_EDGE, nghost,
+      ten_moment_transmissive_bc, 0);
+    pdata->lower_bc_maxwell[0] = gkyl_wv_apply_bc_new(&pdata->grid, pdata->maxwell, pdata->geom, 0, GKYL_LOWER_EDGE, nghost,
+      maxwell_transmissive_bc, 0);
+  }
+
+  if (conn->connections[0][1].edge == GKYL_PHYSICAL) {
+    pdata->upper_bc_elc[0] = gkyl_wv_apply_bc_new(&pdata->grid, pdata->euler_elc, pdata->geom, 0, GKYL_UPPER_EDGE, nghost,
+      ten_moment_transmissive_bc, 0);
+    pdata->upper_bc_ion[0] = gkyl_wv_apply_bc_new(&pdata->grid, pdata->euler_ion, pdata->geom, 0, GKYL_UPPER_EDGE, nghost,
+      ten_moment_transmissive_bc, 0);
+    pdata->upper_bc_maxwell[0] = gkyl_wv_apply_bc_new(&pdata->grid, pdata->maxwell, pdata->geom, 0, GKYL_UPPER_EDGE, nghost,
+      maxwell_transmissive_bc, 0);
+  }
+
+  skin_ghost_ranges_init_patch(&pdata->skin_ghost, &pdata->ext_range, nghost);
+  long buff_sz = 0;
+
+  long vol = pdata->skin_ghost.lower_skin[0].volume;
+  
+  if (buff_sz <= vol) {
+    buff_sz = vol;
+  }
+
+  pdata->bc_buffer_elc = gkyl_array_new(GKYL_DOUBLE, 10, buff_sz);
+  pdata->bc_buffer_ion = gkyl_array_new(GKYL_DOUBLE, 10, buff_sz);
+  pdata->bc_buffer_maxwell = gkyl_array_new(GKYL_DOUBLE, 8, buff_sz);
+}
+
+void
+ten_moment_nested_patch_bc_updaters_init(struct five_moment_patch_data* pdata, const struct gkyl_block_connections* conn)
+{
+  int nghost[5];
+  for (int i = 0; i < 5; i++) {
     nghost[i] = 2;
   }
 
