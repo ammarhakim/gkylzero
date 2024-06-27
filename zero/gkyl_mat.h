@@ -362,7 +362,7 @@ void gkyl_nmat_linsolve_lu_release(gkyl_nmat_mem *mem);
  * @param use_gpu 
  * @return Preallocated memory
  */
-gkyl_mat_mm_array_mem *gkyl_mat_mm_array_mem_dev_new(int nr, int nc, double alpha, 
+gkyl_mat_mm_array_mem *gkyl_mat_mm_array_mem_new(int nr, int nc, double alpha, 
   double beta, enum gkyl_mat_trans transa, enum gkyl_mat_trans transb, bool use_gpu);
 
 /**

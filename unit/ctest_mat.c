@@ -522,7 +522,7 @@ void test_nmat_mm()
 void test_mat_mm_arrays()
 {
   struct gkyl_mat_mm_array_mem *ctest_prob_mem; 
-  ctest_prob_mem = gkyl_mat_mm_array_mem_dev_new(4, 3, 1.0, 0.0, 
+  ctest_prob_mem = gkyl_mat_mm_array_mem_new(4, 3, 1.0, 0.0, 
     GKYL_NO_TRANS, GKYL_NO_TRANS, false);
 
   struct gkyl_mat *mat_A = ctest_prob_mem->A;
@@ -799,9 +799,9 @@ void test_cu_nmat_mm()
 void test_cu_mat_mm_arrays()
 {
   struct gkyl_mat_mm_array_mem *ctest_prob_mem_ho, *ctest_prob_mem_cu; 
-  ctest_prob_mem_ho = gkyl_mat_mm_array_mem_dev_new(4, 3, 1.0, 0.0, 
+  ctest_prob_mem_ho = gkyl_mat_mm_array_mem_new(4, 3, 1.0, 0.0, 
     GKYL_NO_TRANS, GKYL_NO_TRANS, false);
-  ctest_prob_mem_cu = gkyl_mat_mm_array_mem_dev_new(4, 3, 1.0, 0.0, 
+  ctest_prob_mem_cu = gkyl_mat_mm_array_mem_new(4, 3, 1.0, 0.0, 
     GKYL_NO_TRANS, GKYL_NO_TRANS, true);
 
   struct gkyl_mat *mat_A = ctest_prob_mem_ho->A;
