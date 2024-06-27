@@ -103,6 +103,10 @@ typedef struct gkyl_comm* (*split_comm_t)(const struct gkyl_comm *comm,
 typedef struct gkyl_comm* (*create_group_comm_t)(const struct gkyl_comm *comm,
   int num_ranks, const int *ranks, int tag, struct gkyl_rect_decomp *new_decomp);
 
+// MPI_Group_translate_ranks
+typedef int (*group_translate_ranks_t)(const struct gkyl_comm *comm1,
+    int num_ranks, const int ranks1[], struct gkyl_comm *comm2, int ranks2[]);
+
 // Barrier
 typedef int (*barrier_t)(struct gkyl_comm *comm);
 
@@ -146,6 +150,7 @@ struct gkyl_comm {
   extend_comm_t extend_comm; // extend communcator
   split_comm_t split_comm; // split communicator.
   create_group_comm_t create_group_comm; // Create a new comm for a group of ranks.
+  group_translate_ranks_t group_translate_ranks; // Create a new comm for a group of ranks.
 
   comm_state_new_t comm_state_new; // Allocate a new state object.
   comm_state_release_t comm_state_release; // Free a state object.
@@ -549,6 +554,24 @@ gkyl_comm_create_group_comm(const struct gkyl_comm *comm, int num_ranks,
   const int *ranks, int tag, struct gkyl_rect_decomp *new_decomp)
 {
   return comm->create_group_comm(comm, num_ranks, ranks, tag, new_decomp);
+}
+
+
+/**
+ * Create a new communicator out of a group of @a num_ranks @a ranks.
+ * Note that this communicator is only valid for the ranks in that group.
+ *
+ * @param comm1 Communicator 1.
+ * @param num_ranks number of ranks
+ * @param comm2 Communicator 1.
+ * @param ranks1 ranks in comm 1
+ * @param ranks2 ranks in comm 2 on output
+ * @return error value
+ */
+static int
+gkyl_comm_group_translate_ranks(const struct gkyl_comm *comm1, int num_ranks, const int ranks1[], struct gkyl_comm *comm2, int ranks2[])
+{
+  return comm1->group_translate_ranks(comm1, num_ranks, ranks1, comm2, ranks2);
 }
 
 /**

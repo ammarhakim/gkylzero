@@ -1,3 +1,4 @@
+#include "gkyl_comm.h"
 #include <gkyl_alloc.h>
 #include <gkyl_array_rio.h>
 #include <gkyl_comm_priv.h>
@@ -281,6 +282,14 @@ create_group_comm(const struct gkyl_comm *comm, int num_ranks, const int *ranks,
   return new_comm;
 }
 
+static int
+group_translate_ranks(const struct gkyl_comm *comm1, int num_ranks, const int ranks1[], struct gkyl_comm *comm2, int ranks2[])
+{
+  for(int i = 0; i < num_ranks; i++)
+    ranks2[i] = ranks1[i];
+  return 0;
+}
+
 struct gkyl_comm*
 gkyl_null_comm_inew(const struct gkyl_null_comm_inp *inp)
 {
@@ -326,6 +335,7 @@ gkyl_null_comm_inew(const struct gkyl_null_comm_inp *inp)
   comm->base.gkyl_array_read = array_read;
   comm->base.split_comm = split_comm;
   comm->base.create_group_comm = create_group_comm;
+  comm->base.group_translate_ranks = group_translate_ranks;
   comm->base.barrier = barrier;
 
   comm->base.ref_count = gkyl_ref_count_init(comm_free);

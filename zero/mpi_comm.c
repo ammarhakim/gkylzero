@@ -777,6 +777,18 @@ create_group_comm(const struct gkyl_comm *comm, int num_ranks, const int *ranks,
   return newcomm;
 }
 
+static int
+group_translate_ranks(const struct gkyl_comm *comm1, int num_ranks, const int ranks1[], struct gkyl_comm *comm2, int ranks2[])
+{
+  MPI_Group group1, group2;
+  struct mpi_comm *mpi1 = container_of(comm1, struct mpi_comm, base);
+  struct mpi_comm *mpi2 = container_of(comm2, struct mpi_comm, base);
+  MPI_Comm_group(mpi1->mcomm, &group1);
+  MPI_Comm_group(mpi2->mcomm, &group2);
+
+  return MPI_Group_translate_ranks(group1, num_ranks, ranks1, group2, ranks2);
+}
+
 static struct gkyl_comm_state *
 comm_state_new(struct gkyl_comm *comm)
 {
@@ -884,6 +896,7 @@ gkyl_mpi_comm_new(const struct gkyl_mpi_comm_inp *inp)
   mpi->base.extend_comm = extend_comm;
   mpi->base.split_comm = split_comm;
   mpi->base.create_group_comm = create_group_comm;
+  mpi->base.group_translate_ranks = group_translate_ranks;
   mpi->base.comm_state_new = comm_state_new;
   mpi->base.comm_state_release = comm_state_release;
   mpi->base.comm_state_wait = comm_state_wait;
