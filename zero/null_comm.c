@@ -261,6 +261,20 @@ split_comm(const struct gkyl_comm *comm, int color, struct gkyl_rect_decomp *new
   return new_comm;
 }
 
+static struct gkyl_comm*
+create_group_comm(const struct gkyl_comm *comm, int num_ranks, const int *ranks,
+  int tag, struct gkyl_rect_decomp *new_decomp)
+{
+  struct null_comm *null_comm = container_of(comm, struct null_comm, base);
+  struct gkyl_comm *new_comm = gkyl_null_comm_inew( &(struct gkyl_null_comm_inp) {
+      .decomp = new_decomp,
+      .use_gpu = null_comm->use_gpu,
+      .sync_corners = null_comm->sync_corners
+    }
+  );
+  return new_comm;
+}
+
 struct gkyl_comm*
 gkyl_null_comm_inew(const struct gkyl_null_comm_inp *inp)
 {
@@ -304,6 +318,7 @@ gkyl_null_comm_inew(const struct gkyl_null_comm_inp *inp)
   comm->base.gkyl_array_write = array_write;
   comm->base.gkyl_array_read = array_read;
   comm->base.split_comm = split_comm;
+  comm->base.create_group_comm = create_group_comm;
   comm->base.barrier = barrier;
 
   comm->base.ref_count = gkyl_ref_count_init(comm_free);
