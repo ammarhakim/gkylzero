@@ -97,7 +97,8 @@ void gkyl_calc_fpo_diff_coeff_recovery(const struct gkyl_rect_grid *grid,
           fpo_g_stencil[i] = gkyl_array_cfetch(fpo_g, linc+offsets[i]);
         }
       }
-      
+     
+      // Compute diagonal element of diffusion tensor
       diff_coeff_diag_recovery_stencil[d1][keri](grid->dx, gamma_c, 
         fpo_g_stencil, fpo_d2gdv2_surf_c, fpo_diff_coeff_c);
 
@@ -140,12 +141,20 @@ void gkyl_calc_fpo_diff_coeff_recovery(const struct gkyl_rect_grid *grid,
 
         diff_coeff_cross_recovery_stencil[d1][d2][keri](grid->dx, gamma_c, fpo_g_stencil,
           fpo_g_surf_stencil, fpo_dgdv_surf_c, fpo_diff_coeff_c);
+        
       }
     }
-     double *fpo_diff_coeff_surf_c = gkyl_array_fetch(fpo_diff_coeff_surf, linc);
+  }
+
+  // Loop back over phase space to calculate surface expansions on LOWER cell boundary
+  gkyl_range_iter_init(&iter, range);
+  while (gkyl_range_iter_next(&iter)) {
+    gkyl_copy_int_arr(pdim, iter.idx, idxc);
+    long linc = gkyl_range_idx(range, idxc);
+    double *fpo_diff_coeff_surf_c = gkyl_array_fetch(fpo_diff_coeff_surf, linc);
     
-     // Iterate over primary direction for recovery, the kernel will handle
-     // populating the three directions for the derivative across/along that boundary
+    // Iterate over primary direction for recovery, the kernel will handle
+    // populating the three directions for the derivative across/along that boundary
     for (int d1=0; d1<vdim; ++d1) {
       int dir1 = d1 + cdim;
 
@@ -159,10 +168,10 @@ void gkyl_calc_fpo_diff_coeff_recovery(const struct gkyl_rect_grid *grid,
       long linl = gkyl_range_idx(range, idxl);
       
       const double *fpo_diff_coeff_l = gkyl_array_cfetch(fpo_diff_coeff, linl);
+      const double *fpo_diff_coeff_c = gkyl_array_cfetch(fpo_diff_coeff, linc);
 
-      diff_coeff_surf_recovery[d1](fpo_diff_coeff_l, (const double*)fpo_diff_coeff_c,
+      diff_coeff_surf_recovery[d1](fpo_diff_coeff_l, fpo_diff_coeff_c,
         fpo_diff_coeff_surf_c);
-     }
-
+    }
   }
 }

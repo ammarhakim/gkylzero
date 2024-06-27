@@ -22,9 +22,9 @@ GKYL_CU_DH double fpo_vlasov_diff_boundary_surfvyvy_1x3v_ser_p2_lovy(const doubl
 
   // Index into D and f stencils. 
   const double *DC = &diff_coeff_C[192]; 
-  const double *D_surf_C = &diff_coeff_surf_stencil[0][80]; 
+  const double *D_surf_C = &diff_coeff_surf_stencil[0][160]; 
   const double* fC = f_stencil[0]; 
-  const double *D_surf_R = &diff_coeff_surf_stencil[1][80]; 
+  const double *D_surf_R = &diff_coeff_surf_stencil[1][160]; 
   const double* fR = f_stencil[1]; 
 
   f_rec_lo[0] = 1.5811388300841895*fC[13]-1.224744871391589*fC[3]+0.7071067811865475*fC[0]; 

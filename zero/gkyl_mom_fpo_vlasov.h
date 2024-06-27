@@ -49,5 +49,5 @@ void gkyl_mom_fpo_vlasov_set_auxfields(const struct gkyl_mom_type *momt,
  */
 void gkyl_mom_fpo_vlasov_set_auxfields_cu(const struct gkyl_mom_type *momt,
   struct gkyl_mom_fpo_vlasov_auxfields auxin);
-
 #endif
+

@@ -27,11 +27,11 @@ kernel_mom_fpo_vlasov_1x3v_ser_p1(const struct gkyl_mom_type *momt, const double
 {
   struct mom_type_fpo_vlasov *mom_fpo_vlasov = container_of(momt, struct mom_type_fpo_vlasov, momt);
 
-  long pidx = gkyl_range_idx(&mom_fpo_vlasov->phase_range, idx);
+  long linp = gkyl_range_idx(&mom_fpo_vlasov->phase_range, idx);
 
   return mom_fpo_vlasov_1x3v_ser_p1(xc, dx, idx, 
-    (const double*) gkyl_array_cfetch(mom_fpo_vlasov->auxfields.a, pidx), 
-    (const double*) gkyl_array_cfetch(mom_fpo_vlasov->auxfields.D, pidx), 
+    (const double*) gkyl_array_cfetch(mom_fpo_vlasov->auxfields.a, linp), 
+    (const double*) gkyl_array_cfetch(mom_fpo_vlasov->auxfields.D, linp), 
     f, out);  
 }
 
@@ -42,11 +42,11 @@ kernel_mom_fpo_vlasov_1x3v_ser_p2(const struct gkyl_mom_type *momt, const double
 {
   struct mom_type_fpo_vlasov *mom_fpo_vlasov = container_of(momt, struct mom_type_fpo_vlasov, momt);
 
-  long pidx = gkyl_range_idx(&mom_fpo_vlasov->phase_range, idx);
+  long linp = gkyl_range_idx(&mom_fpo_vlasov->phase_range, idx);
 
   return mom_fpo_vlasov_1x3v_ser_p2(xc, dx, idx, 
-    (const double*) gkyl_array_cfetch(mom_fpo_vlasov->auxfields.a, pidx), 
-    (const double*) gkyl_array_cfetch(mom_fpo_vlasov->auxfields.D, pidx), 
+    (const double*) gkyl_array_cfetch(mom_fpo_vlasov->auxfields.a, linp), 
+    (const double*) gkyl_array_cfetch(mom_fpo_vlasov->auxfields.D, linp), 
     f, out);  
 }
 
@@ -57,11 +57,11 @@ kernel_mom_fpo_vlasov_2x3v_ser_p1(const struct gkyl_mom_type *momt, const double
 {
   struct mom_type_fpo_vlasov *mom_fpo_vlasov = container_of(momt, struct mom_type_fpo_vlasov, momt);
 
-  long pidx = gkyl_range_idx(&mom_fpo_vlasov->phase_range, idx);
+  long linp = gkyl_range_idx(&mom_fpo_vlasov->phase_range, idx);
 
   return mom_fpo_vlasov_2x3v_ser_p1(xc, dx, idx, 
-    (const double*) gkyl_array_cfetch(mom_fpo_vlasov->auxfields.a, pidx), 
-    (const double*) gkyl_array_cfetch(mom_fpo_vlasov->auxfields.D, pidx), 
+    (const double*) gkyl_array_cfetch(mom_fpo_vlasov->auxfields.a, linp), 
+    (const double*) gkyl_array_cfetch(mom_fpo_vlasov->auxfields.D, linp), 
     f, out);  
 }
 
@@ -72,11 +72,11 @@ kernel_mom_fpo_vlasov_2x3v_ser_p2(const struct gkyl_mom_type *momt, const double
 {
   struct mom_type_fpo_vlasov *mom_fpo_vlasov = container_of(momt, struct mom_type_fpo_vlasov, momt);
 
-  long pidx = gkyl_range_idx(&mom_fpo_vlasov->phase_range, idx);
+  long linp = gkyl_range_idx(&mom_fpo_vlasov->phase_range, idx);
 
   return mom_fpo_vlasov_2x3v_ser_p2(xc, dx, idx, 
-    (const double*) gkyl_array_cfetch(mom_fpo_vlasov->auxfields.a, pidx), 
-    (const double*) gkyl_array_cfetch(mom_fpo_vlasov->auxfields.D, pidx), 
+    (const double*) gkyl_array_cfetch(mom_fpo_vlasov->auxfields.a, linp), 
+    (const double*) gkyl_array_cfetch(mom_fpo_vlasov->auxfields.D, linp), 
     f, out);  
 }
 
@@ -87,11 +87,11 @@ kernel_mom_fpo_vlasov_3x3v_ser_p1(const struct gkyl_mom_type *momt, const double
 {
   struct mom_type_fpo_vlasov *mom_fpo_vlasov = container_of(momt, struct mom_type_fpo_vlasov, momt);
 
-  long pidx = gkyl_range_idx(&mom_fpo_vlasov->phase_range, idx);
+  long linp = gkyl_range_idx(&mom_fpo_vlasov->phase_range, idx);
 
   return mom_fpo_vlasov_3x3v_ser_p1(xc, dx, idx, 
-    (const double*) gkyl_array_cfetch(mom_fpo_vlasov->auxfields.a, pidx), 
-    (const double*) gkyl_array_cfetch(mom_fpo_vlasov->auxfields.D, pidx), 
+    (const double*) gkyl_array_cfetch(mom_fpo_vlasov->auxfields.a, linp), 
+    (const double*) gkyl_array_cfetch(mom_fpo_vlasov->auxfields.D, linp), 
     f, out);   
 }
 

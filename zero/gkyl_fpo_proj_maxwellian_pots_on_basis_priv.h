@@ -253,8 +253,7 @@ init_quad_values(int cdim, const struct gkyl_basis *basis, int num_quad, struct 
   return tot_quad;
 }
 
-// vth used in these equations is not the same vth used generally in Gkeyll,
-// it has the factor of sqrt(2)
+// Note we're multiplying the input vtsq=T/m by sqrt(2)
 static inline double eval_fpo_h(double den,
   double rel_speed, double vtsq) 
 {
@@ -278,33 +277,36 @@ static inline double eval_fpo_dhdv(double den,
 {
   double rel_speedsq = pow(rel_speed, 2);
   double vth = sqrt(2.0*vtsq);
-  return den*rel_vel_in_dir * (
+  double dHdvi = den*rel_vel_in_dir*(
     2.0*exp(-rel_speedsq/pow(vth,2))/(sqrt(GKYL_PI)*vth*rel_speedsq) -
-    erf(rel_speed/vth)/pow(rel_speedsq, 1.5)
-  );
+    erf(rel_speed/vth)/pow(rel_speed,3));
+  return dHdvi;
 }
 
 static inline double eval_fpo_dgdv(double den, double rel_vel_in_dir,
   double vtsq, double rel_speed) {
   double rel_speedsq = pow(rel_speed,2);
   double vth = sqrt(2.0*vtsq);
-  return den*rel_vel_in_dir * (
-    exp(-rel_speedsq/pow(vth,2))*vth/(sqrt(GKYL_PI)*rel_speedsq) -
-    erf(rel_speed/vth)*(pow(vth,2)/(2.0*pow(rel_speed,3)) - 1.0/rel_speed)
-  );
+  double dGdvi = den*rel_vel_in_dir/pow(rel_speed, 3)*(
+      vth*exp(-rel_speedsq/pow(vth,2))*rel_speed/sqrt(GKYL_PI) +
+      (2.0*rel_speedsq - pow(vth,2))*erf(rel_speed/vth)/2.0
+      );
+  return dGdvi;
 }
 
 static inline double eval_fpo_d2gdv2(double den,
   double rel_vel_in_dir, double vtsq, double rel_speed) {
   double rel_speedsq = pow(rel_speed,2);
   double vth = sqrt(2.0*vtsq);
-  return den*(exp(-rel_speedsq/pow(vth,2))/sqrt(GKYL_PI)*(vth/rel_speedsq - 
-    pow(rel_vel_in_dir,2)*2.0*vth*(1.0/pow(rel_speedsq, 2) +
-    1.0/(pow(vth,2)*rel_speedsq) + (pow(vth,2) - 
-    2.0*rel_speedsq)/(2.0*pow(vth,2)*pow(rel_speedsq, 2)))) +
-    erf(rel_speed/vth)*(pow(rel_vel_in_dir,2)*
-    (3.0*pow(vth,2)-2.0*rel_speedsq)/(2.0*pow(rel_speed, 5)) - 
-    pow(vth, 2)/(2.0*pow(rel_speed, 3)) + 1.0/rel_speed));
+  double term1 = den*vth*exp(-rel_speedsq/pow(vth,2))*
+    (rel_speedsq - 3.0*pow(rel_vel_in_dir, 2))/(sqrt(GKYL_PI)*pow(rel_speedsq,2));
+
+  double term2 = den*erf(rel_speed/vth)*(
+    2.0*pow(rel_speedsq,2) - rel_speedsq*pow(vth,2) +
+    pow(rel_vel_in_dir,2)*(3.0*pow(vth,2) - 2.0*rel_speedsq))/(2.0*pow(rel_speed,5));
+
+  double d2Gdvi2 = term1 + term2;
+  return d2Gdvi2;
 }
 
 static inline double eval_fpo_d2gdv2_cross(double den,
@@ -312,9 +314,14 @@ static inline double eval_fpo_d2gdv2_cross(double den,
   double vtsq) {
   double rel_speedsq = pow(rel_speed,2);
   double vth = sqrt(2.0*vtsq);
-  return den*rel_vel_in_dir1*rel_vel_in_dir2/pow(rel_speedsq,4)*(
-    erf(rel_speed/vth)*(3.0*pow(vth,2)-2.0*rel_speedsq)/(2.0*rel_speed) -
-    3.0*exp(-rel_speedsq/pow(vth,2))*vth/sqrt(GKYL_PI)
-  );
+
+  double term1 = -1.0*den*rel_vel_in_dir1*rel_vel_in_dir2/(2.0*sqrt(GKYL_PI)*pow(rel_speed,5))*
+    6.0*exp(-rel_speedsq/pow(vth,2)*(vth*rel_speed));
+
+  double term2 = -1.0*den*rel_vel_in_dir1*rel_vel_in_dir2/(2.0*pow(rel_speed,5))*
+    erf(rel_speed/vth)*(2.0*rel_speedsq - 3.0*pow(vth,2));
+
+  double d2Gdvidvj = term1 + term2;
+  return d2Gdvidvj;
 }
 

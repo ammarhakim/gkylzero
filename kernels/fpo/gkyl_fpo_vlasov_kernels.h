@@ -459,12 +459,12 @@ GKYL_CU_DH void fpo_diff_coeff_diag_1x3v_vz_ser_p2_invz(const double *dxv, const
 GKYL_CU_DH void fpo_diff_coeff_diag_1x3v_vz_ser_p2_lovz(const double *dxv, const double *gamma, const double* fpo_g_stencil[3], const double* fpo_d2gdv2_surf, double *diff_coeff);
 GKYL_CU_DH void fpo_diff_coeff_diag_1x3v_vz_ser_p2_upvz(const double *dxv, const double *gamma, const double* fpo_g_stencil[3], const double* fpo_d2gdv2_surf, double *diff_coeff);
 
-GKYL_CU_DH void fpo_diff_coeff_diag_1x3v_vx_ser_p1(const double *diff_coeff_L, const double *diff_coeff_R, double *diff_coeff_surf_R);
-GKYL_CU_DH void fpo_diff_coeff_diag_1x3v_vy_ser_p1(const double *diff_coeff_L, const double *diff_coeff_R, double *diff_coeff_surf_R);
-GKYL_CU_DH void fpo_diff_coeff_diag_1x3v_vz_ser_p1(const double *diff_coeff_L, const double *diff_coeff_R, double *diff_coeff_surf_R);
-GKYL_CU_DH void fpo_diff_coeff_diag_1x3v_vx_ser_p2(const double *diff_coeff_L, const double *diff_coeff_R, double *diff_coeff_surf_R);
-GKYL_CU_DH void fpo_diff_coeff_diag_1x3v_vy_ser_p2(const double *diff_coeff_L, const double *diff_coeff_R, double *diff_coeff_surf_R);
-GKYL_CU_DH void fpo_diff_coeff_diag_1x3v_vz_ser_p2(const double *diff_coeff_L, const double *diff_coeff_R, double *diff_coeff_surf_R);
+GKYL_CU_DH void fpo_diff_coeff_surf_1x3v_vx_ser_p1(const double *diff_coeff_L, const double *diff_coeff_R, double *diff_coeff_surf_R);
+GKYL_CU_DH void fpo_diff_coeff_surf_1x3v_vy_ser_p1(const double *diff_coeff_L, const double *diff_coeff_R, double *diff_coeff_surf_R);
+GKYL_CU_DH void fpo_diff_coeff_surf_1x3v_vz_ser_p1(const double *diff_coeff_L, const double *diff_coeff_R, double *diff_coeff_surf_R);
+GKYL_CU_DH void fpo_diff_coeff_surf_1x3v_vx_ser_p2(const double *diff_coeff_L, const double *diff_coeff_R, double *diff_coeff_surf_R);
+GKYL_CU_DH void fpo_diff_coeff_surf_1x3v_vy_ser_p2(const double *diff_coeff_L, const double *diff_coeff_R, double *diff_coeff_surf_R);
+GKYL_CU_DH void fpo_diff_coeff_surf_1x3v_vz_ser_p2(const double *diff_coeff_L, const double *diff_coeff_R, double *diff_coeff_surf_R);
 
 GKYL_CU_DH int fpo_drag_coeff_1x3v_vx_ser_p1_invx(const double *dxv, const double *gamma, 
     const double* fpo_h_stencil[3], const double* fpo_dhdv_surf, double *drag_coeff, 

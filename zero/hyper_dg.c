@@ -123,7 +123,7 @@ gkyl_hyper_dg_gen_stencil_advance(gkyl_hyper_dg *hdg, const struct gkyl_range *u
         int dir1 = hdg->update_dirs[d1];
         int dir2 = hdg->update_dirs[d2];
 
-        // Sort update directions from least to greatest for indexing 
+        // Sort update directions from least to greatest for domain indexing 
         int update_dirs[2] = {0};
         update_dirs[0] = dir1 < dir2 ? dir1 : dir2;
         update_dirs[1] = dir1 < dir2 ? dir2 : dir1;

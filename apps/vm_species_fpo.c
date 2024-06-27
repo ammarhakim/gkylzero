@@ -37,7 +37,8 @@ vm_species_fpo_init(struct gkyl_vlasov_app *app, struct vm_species *s, struct vm
   fpo->pot_slvr = gkyl_proj_maxwellian_pots_on_basis_new(&s->grid, &app->confBasis, &app->basis, app->poly_order+1);
 
   // allocate moments needed for FPO update
-  vm_species_moment_init(app, s, &fpo->moms, "LTEMoments");
+  vm_species_moment_init(app, s, &fpo->lte_moms, "LTEMoments");
+  vm_species_moment_init(app, s, &fpo->moms, "FiveMoments");
 
   double v_bounds[2*GKYL_MAX_DIM];
   for (int d=0; d<vdim; ++d) {
@@ -53,14 +54,25 @@ vm_species_fpo_init(struct gkyl_vlasov_app *app, struct vm_species *s, struct vm
   fpo->const_sgn_drag_coeff_surf = mkarr(app->use_gpu, vdim, s->local_ext.volume);
 
   fpo->diff_coeff = mkarr(app->use_gpu, vdim*vdim*app->basis.num_basis, s->local_ext.volume);
-  fpo->diff_coeff_surf = mkarr(app->use_gpu, vdim*vdim*surf_basis.num_basis, s->local_ext.volume);
+  fpo->diff_coeff_surf = mkarr(app->use_gpu, 2*vdim*vdim*surf_basis.num_basis, s->local_ext.volume);
 
   // velocity space boundary corrections for momentum and energy
-  fpo->prim_moms = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
+  fpo->fpo_moms = mkarr(app->use_gpu, (vdim+1)*app->confBasis.num_basis, app->local_ext.volume);
   fpo->boundary_corrections = mkarr(app->use_gpu, 2*(vdim+1)*app->confBasis.num_basis, app->local_ext.volume);
+  fpo->drag_diff_coeff_corrs = mkarr(app->use_gpu, (vdim+1)*app->confBasis.num_basis, app->local_ext.volume);
 
+  const struct gkyl_mom_type* fpo_mom_type = gkyl_mom_fpo_vlasov_new(&app->confBasis, 
+    &app->basis, &s->local, app->use_gpu);
+
+  struct gkyl_mom_fpo_vlasov_auxfields fpo_mom_auxfields = { 
+    .a = fpo->drag_coeff, .D = fpo->diff_coeff};
+  gkyl_mom_fpo_vlasov_set_auxfields(fpo_mom_type, fpo_mom_auxfields);
+  
+  fpo->fpo_mom_calc = gkyl_mom_calc_new(&s->grid, fpo_mom_type, app->use_gpu);
   fpo->bcorr_calc = gkyl_mom_calc_bcorr_fpo_vlasov_new(&s->grid,
     &app->confBasis, &app->basis, &s->local, v_bounds, fpo->diff_coeff, app->use_gpu);
+
+  fpo->coeffs_correct_calc = gkyl_fpo_coeffs_correct_new(app->use_gpu, &s->grid, &app->confBasis, &app->local);
 
   // initialize FPO updater
   fpo->coll_slvr = gkyl_dg_updater_fpo_vlasov_new(&s->grid, &app->basis, &s->local, app->use_gpu);
@@ -74,31 +86,46 @@ vm_species_fpo_drag_diff_coeffs(gkyl_vlasov_app *app, const struct vm_species *s
   struct timespec wst = gkyl_wall_clock();
 
   // calculate needed moments
+  vm_species_moment_calc(&fpo->lte_moms, s->local, app->local, fin);
   vm_species_moment_calc(&fpo->moms, s->local, app->local, fin);
 
   // calculate maxwellian potentials
-  gkyl_proj_maxwellian_pots_on_basis_advance(fpo->pot_slvr, &s->local, &app->local, fpo->moms.marr, 
-    fpo->h, fpo->g, fpo->h_surf, fpo->g_surf, fpo->dhdv_surf, fpo->dgdv_surf, fpo->d2gdv2_surf);
+  gkyl_proj_maxwellian_pots_on_basis_advance(fpo->pot_slvr, &s->local, &app->local, 
+    fpo->lte_moms.marr, fpo->h, fpo->g, fpo->h_surf, fpo->g_surf,
+    fpo->dhdv_surf, fpo->dgdv_surf, fpo->d2gdv2_surf);
 
-  // Calculate drag and diffusion coefficients
+  // calculate drag and diffusion coefficients
   gkyl_calc_fpo_drag_coeff_recovery(&s->grid, app->basis, &s->local, &app->local, fpo->gamma,
     fpo->h, fpo->dhdv_surf, fpo->drag_coeff, fpo->drag_coeff_surf,
     fpo->sgn_drag_coeff_surf, fpo->const_sgn_drag_coeff_surf); 
-
   gkyl_calc_fpo_diff_coeff_recovery(&s->grid, app->basis, &s->local, &app->local, fpo->gamma,
     fpo->g, fpo->g_surf, fpo->dgdv_surf, fpo->d2gdv2_surf, 
     fpo->diff_coeff, fpo->diff_coeff_surf); 
 
+  // Calculate corrections for momentum and energy conservation
   if (app->use_gpu) {
-    // calculate boundary corrections for momentum and energy conservation
+    // calculate volume corrections
+    gkyl_mom_calc_advance_cu(fpo->fpo_mom_calc, &s->local, &app->local, fin, fpo->fpo_moms);
+
+    // calculate boundary corrections
     gkyl_mom_calc_bcorr_advance_cu(fpo->bcorr_calc,
       &s->local, &app->local, fin, fpo->boundary_corrections);
   }
   else {
-    // calculate boundary corrections for momentum and energy conservation
+    // calculate volume corrections
+    gkyl_mom_calc_advance(fpo->fpo_mom_calc, &s->local, &app->local, fin, fpo->fpo_moms);
+
+    // calculate boundary corrections
     gkyl_mom_calc_bcorr_advance(fpo->bcorr_calc,
       &s->local, &app->local, fin, fpo->boundary_corrections);
   }
+
+  // solve linear system for corrections and accumulate onto drag/diff coefficients
+  gkyl_fpo_coeffs_correct_advance(fpo->coeffs_correct_calc, 
+    &app->local, &s->local, fpo->fpo_moms, fpo->boundary_corrections, 
+    fpo->moms.marr, fpo->drag_diff_coeff_corrs, 
+    fpo->drag_coeff, fpo->drag_coeff_surf, 
+    fpo->diff_coeff, fpo->diff_coeff_surf);
 
   app->stat.species_coll_mom_tm += gkyl_time_diff_now_sec(wst);
 }
@@ -111,7 +138,7 @@ vm_species_fpo_rhs(gkyl_vlasov_app *app, const struct vm_species *s,
   struct timespec wst = gkyl_wall_clock();
 
   wst = gkyl_wall_clock();
-  
+ 
   // accumulate update due to collisions onto rhs
   gkyl_dg_updater_fpo_vlasov_advance(fpo->coll_slvr, &s->local,
     fpo->drag_coeff, fpo->drag_coeff_surf, 

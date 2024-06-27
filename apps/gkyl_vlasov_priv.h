@@ -40,6 +40,7 @@
 #include <gkyl_dynvec.h>
 #include <gkyl_elem_type.h>
 #include <gkyl_eqn_type.h>
+#include <gkyl_fpo_vlasov_coeffs_correct.h>
 #include <gkyl_fpo_proj_maxwellian_pots_on_basis.h>
 #include <gkyl_eval_on_nodes.h>
 #include <gkyl_ghost_surf_calc.h>
@@ -47,6 +48,7 @@
 #include <gkyl_mom_bcorr_lbo_vlasov.h>
 #include <gkyl_mom_calc.h>
 #include <gkyl_mom_calc_bcorr.h>
+#include <gkyl_mom_fpo_vlasov.h>
 #include <gkyl_mom_vlasov.h>
 #include <gkyl_mom_vlasov_sr.h>
 #include <gkyl_null_pool.h>
@@ -185,25 +187,31 @@ struct vm_bgk_collisions {
 struct vm_fpo_collisions {
   struct gkyl_array *gamma, *gamma_host; // FPO Gamma factor
   struct gkyl_array *h, *g; // Rosenbluth potentials
-  struct gkyl_array *m0;
 
   // Maxwellian potentials and derivatives on velocity space edges for boundary conditions
   struct gkyl_array *h_surf, *g_surf;
   struct gkyl_array *dhdv_surf, *dgdv_surf, *d2gdv2_surf;
 
-  struct gkyl_array *prim_moms, *boundary_corrections; // Primitive moments and boundary corrections (the latter is 0, used so we can reuse LBO infrastructure)
-  struct gkyl_mom_calc_bcorr *bcorr_calc; // FPO boundary corrections calculator
-
   struct gkyl_proj_maxwellian_pots_on_basis *pot_slvr; // potential solver for Maxwellian potentials
 
-  struct vm_species_moment moms; // moments needed in LBO (single array includes Zeroth, First, and Second moment)
+  struct vm_species_moment lte_moms; // calculator for LTE moments for potential calculation (n u_drift, T/m)
+  struct vm_species_moment moms; // calculator for moments (M0, M1i, M2)
 
   struct gkyl_array *drag_coeff, *diff_coeff; // Drag and diffusion coefficients
   struct gkyl_array *drag_coeff_surf, *diff_coeff_surf; // Drag and diffusion coefficient surface expansions at lower cell boundary
   struct gkyl_array *sgn_drag_coeff_surf, *const_sgn_drag_coeff_surf; // Sign of drag coefficient at lower boundary of cell, and boolean for checking if sign(drag_coeff) is constant along boundary
+
+  // Momentum and energy conservation corrections
+  struct gkyl_array *fpo_moms, *boundary_corrections; // Primitive moments and boundary corrections
+  struct gkyl_array *drag_diff_coeff_corrs; // Correction quantities added to drag and diffusion coefficients
+
+  struct gkyl_mom_calc *fpo_mom_calc; // FPO volume corrections calculator 
+  struct gkyl_mom_calc_bcorr *bcorr_calc; // FPO boundary corrections calculator
+  struct gkyl_fpo_coeffs_correct *coeffs_correct_calc; // FPO drag and diffusion coeff correction calculator
+
   gkyl_dg_updater_collisions *coll_slvr; // collision solver
 
-  gkyl_prim_lbo_calc *coll_pcalc; // primitive moment calculator
+  // gkyl_prim_lbo_calc *coll_pcalc; // primitive moment calculator
 };
 
 struct vm_boundary_fluxes {
