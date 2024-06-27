@@ -99,6 +99,10 @@ typedef struct gkyl_comm* (*extend_comm_t)(const struct gkyl_comm *comm,
 typedef struct gkyl_comm* (*split_comm_t)(const struct gkyl_comm *comm,
   int color, struct gkyl_rect_decomp *new_decomp);
 
+// MPI_Comm_create_group
+typedef struct gkyl_comm* (*create_group_comm_t)(const struct gkyl_comm *comm,
+  int num_ranks, const int *ranks, int tag, struct gkyl_rect_decomp *new_decomp);
+
 // Barrier
 typedef int (*barrier_t)(struct gkyl_comm *comm);
 
@@ -141,6 +145,7 @@ struct gkyl_comm {
 
   extend_comm_t extend_comm; // extend communcator
   split_comm_t split_comm; // split communicator.
+  create_group_comm_t create_group_comm; // Create a new comm for a group of ranks.
 
   comm_state_new_t comm_state_new; // Allocate a new state object.
   comm_state_release_t comm_state_release; // Free a state object.
@@ -528,6 +533,22 @@ gkyl_comm_split_comm(const struct gkyl_comm *comm, int color,
   struct gkyl_rect_decomp *new_decomp)
 {
   return comm->split_comm(comm, color, new_decomp);
+}
+
+/**
+ * Create a new communicator out of a group of @a num_ranks @a ranks.
+ * Note that this communicator is only valid for the ranks in that group.
+ *
+ * @param comm Communicator.
+ * @param color All ranks of same color will share a communicator.
+ * @param new_decomp Decomp object to associate with the new communicator.
+ * @return Newly created communicator
+ */
+static struct gkyl_comm*
+gkyl_comm_create_group_comm(const struct gkyl_comm *comm, int num_ranks,
+  const int *ranks, int tag, struct gkyl_rect_decomp *new_decomp)
+{
+  return comm->create_group_comm(comm, num_ranks, ranks, tag, new_decomp);
 }
 
 /**

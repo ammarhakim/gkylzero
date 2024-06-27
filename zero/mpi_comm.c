@@ -750,6 +750,33 @@ split_comm(const struct gkyl_comm *comm, int color, struct gkyl_rect_decomp *new
   return newcomm;
 }
 
+static struct gkyl_comm*
+create_group_comm(const struct gkyl_comm *comm, int num_ranks, const int *ranks,
+  int tag, struct gkyl_rect_decomp *new_decomp)
+{
+  struct mpi_comm *mpi = container_of(comm, struct mpi_comm, base);
+
+  MPI_Group group;
+  MPI_Comm_group(mpi->mcomm, &group);
+  // Create a new group with specified ranks.
+  MPI_Group new_group;
+  MPI_Group_incl(group, num_ranks, ranks, &new_group);
+
+  // Create new comm for ranks in this group.
+  MPI_Comm new_mcomm;
+  MPI_Comm_create_group(mpi->mcomm, new_group, tag, &new_mcomm);
+
+  struct gkyl_comm *newcomm = gkyl_mpi_comm_new( &(struct gkyl_mpi_comm_inp) {
+      .mpi_comm = new_mcomm,
+      .decomp = new_decomp,
+    }
+  );
+
+  MPI_Group_free(&new_group);
+  MPI_Group_free(&group);
+  return newcomm;
+}
+
 static struct gkyl_comm_state *
 comm_state_new(struct gkyl_comm *comm)
 {
@@ -856,6 +883,7 @@ gkyl_mpi_comm_new(const struct gkyl_mpi_comm_inp *inp)
   mpi->base.allreduce_host = allreduce;
   mpi->base.extend_comm = extend_comm;
   mpi->base.split_comm = split_comm;
+  mpi->base.create_group_comm = create_group_comm;
   mpi->base.comm_state_new = comm_state_new;
   mpi->base.comm_state_release = comm_state_release;
   mpi->base.comm_state_wait = comm_state_wait;

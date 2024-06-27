@@ -1354,6 +1354,120 @@ mpi_bcast_2d_host()
   }
 }
 
+static inline bool
+is_prime(int ain) {
+  int primes[] = {1,2,3,5,7,9,11,13,17,19,23};
+  int num_primes = sizeof(primes)/sizeof(primes[0]);
+
+  bool isp = false;
+  for (int i=0; i<num_primes; i++) {
+    if (ain == primes[i]) {
+      isp = true;
+      break;
+    }
+  }
+  return isp;
+}
+
+static void
+mpi_comm_create_group_1d()
+{
+  int m_sz, rank;
+  MPI_Comm_size(MPI_COMM_WORLD, &m_sz);
+  MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+
+  if (m_sz > 12) return;
+
+  int num_cell_fac = 2;
+  struct gkyl_range global;
+  gkyl_range_init(&global, 1, (int[]) { 1 }, (int[]) { num_cell_fac*m_sz });
+
+  int cuts[] = { m_sz };
+  struct gkyl_rect_decomp *decomp = gkyl_rect_decomp_new_from_cuts(global.ndim, cuts, &global);
+  
+  struct gkyl_comm *comm = gkyl_mpi_comm_new( &(struct gkyl_mpi_comm_inp) {
+      .mpi_comm = MPI_COMM_WORLD,
+      .decomp = decomp,
+    }
+  );
+
+  int nghost[] = { 1 };
+  struct gkyl_range local, local_ext;
+  gkyl_create_ranges(&decomp->ranges[rank], nghost, &local_ext, &local);
+  printf("r:%d | lower=%d | upper=%d\n",rank,local.lower[0],local.upper[0]);
+
+  struct gkyl_array *arr = gkyl_array_new(GKYL_DOUBLE, 1, local_ext.volume);
+
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, &local);
+  while (gkyl_range_iter_next(&iter)) {
+    long linidx = gkyl_range_idx(&local, iter.idx);
+    double *f = gkyl_array_fetch(arr, linidx);
+    f[0] = rank;
+  }
+
+  bool am_i_prime = is_prime(rank);
+
+  // Create separate communicators for prime ranks and non-prime ranks.
+  int tag;
+  int num_ranks_group = 0;
+  int ranks_group[m_sz]; // MF 2024/06/27: not ideal to pass something larger
+                         // than num_ranks_group, but I think it might be fine
+  for (int i=0; i<m_sz; i++) {
+    if (am_i_prime && is_prime(i)) { 
+      ranks_group[num_ranks_group] = i;
+      num_ranks_group += 1;
+      tag = 0;
+    }
+    else if (!am_i_prime && !is_prime(i)) { 
+      ranks_group[num_ranks_group] = i;
+      num_ranks_group += 1;
+      tag = 1;
+    }
+  }
+
+  if (rank ==0)
+    printf("\n");
+  gkyl_comm_barrier(comm);
+  gkyl_comm_barrier(comm);
+
+  struct gkyl_range global_group_r;
+  gkyl_range_init(&global_group_r, 1, (int[]) { 1 }, (int[]) { num_cell_fac*num_ranks_group });
+  int cuts_group[] = { num_ranks_group };
+  struct gkyl_rect_decomp *decomp_group = gkyl_rect_decomp_new_from_cuts(global_group_r.ndim, cuts_group, &global_group_r);
+
+  struct gkyl_comm *comm_group = gkyl_comm_create_group_comm(comm, num_ranks_group, ranks_group, tag, decomp_group);
+
+  // Do an allgather on this comm and check the result.
+  int rank_group;
+  gkyl_comm_get_rank(comm_group, &rank_group);
+  struct gkyl_range local_group, local_ext_group;
+  gkyl_create_ranges(&decomp_group->ranges[rank_group], nghost, &local_ext_group, &local_group);
+
+  struct gkyl_array *arr_global_group = gkyl_array_new(GKYL_DOUBLE, 1, global_group_r.volume);
+
+  gkyl_comm_array_allgather(comm_group, &local, &global_group_r, arr, arr_global_group);
+
+  for (int ri=0; ri<num_ranks_group; ri++) {
+    gkyl_range_iter_init(&iter, &local);
+    for (int j=0; j<num_cell_fac; j++) {
+      int idx_global[] = {j+1 + ri*num_cell_fac};
+      long linidx = gkyl_range_idx(&global_group_r, idx_global);
+      double *f = gkyl_array_fetch(arr_global_group, linidx);
+      for (int k=0; k<arr->ncomp; k++) {
+        TEST_CHECK( f[k] == ranks_group[ri] );
+      }
+    }
+  }
+
+  gkyl_array_release(arr_global_group); 
+  gkyl_array_release(arr); 
+  gkyl_rect_decomp_release(decomp_group);
+  gkyl_comm_release(comm_group);
+  gkyl_comm_release(comm);
+  gkyl_rect_decomp_release(decomp);
+}
+
 
 TEST_LIST = {
   {"mpi_1", mpi_1},
@@ -1393,6 +1507,8 @@ TEST_LIST = {
 
   {"mpi_bcast_1d_host", mpi_bcast_1d_host},
   {"mpi_bcast_2d_host", mpi_bcast_2d_host},
+
+  {"mpi_comm_create_group_1d", mpi_comm_create_group_1d},
   {NULL, NULL},
 };
 
