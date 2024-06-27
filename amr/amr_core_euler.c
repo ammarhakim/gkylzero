@@ -295,7 +295,7 @@ euler1d_run_double(int argc, char **argv, struct euler1d_double_init* init)
   struct gkyl_block_topo *ptopo = create_nested_patch_topo();
 
   for (int i = 0; i < num_patches; i++) {
-    euler_patch_bc_updaters_init(&mesh_pdata[i], &ptopo->conn[i]);
+    euler_nested_patch_bc_updaters_init(&mesh_pdata[i], &ptopo->conn[i]);
   }
 
   for (int i = 0; i < num_patches; i++) {
@@ -360,7 +360,7 @@ euler1d_run_double(int argc, char **argv, struct euler1d_double_init* init)
         printf(" dt = %g\n", (1.0 / (ref_factor1 * ref_factor2)) * coarse_status.dt_actual);
 
         fine_t_curr += (1.0 / (ref_factor1 * ref_factor2)) * coarse_status.dt_actual;
-        fine_dt += (1.0 / (ref_factor1 * ref_factor2)) * coarse_status.dt_suggested;
+        fine_dt = (1.0 / (ref_factor1 * ref_factor2)) * coarse_status.dt_suggested;
       }
 
       intermediate_t_curr += (1.0 / ref_factor1) * coarse_status.dt_actual;
