@@ -55,6 +55,12 @@ get_size(struct gkyl_comm *comm, int *sz)
 }
 
 static int
+bcast(struct gkyl_comm *comm, void *data, size_t data_sz, int root)
+{
+  return 0;
+}
+
+static int
 allreduce(struct gkyl_comm *comm, enum gkyl_elem_type type,
   enum gkyl_array_op op, int nelem, const void *inp,
   void *out)
@@ -308,6 +314,7 @@ gkyl_null_comm_inew(const struct gkyl_null_comm_inp *inp)
 
   comm->base.get_rank = get_rank;
   comm->base.get_size = get_size;
+  comm->base.bcast = bcast;
   comm->base.allreduce = allreduce;
   comm->base.allreduce_host = allreduce_host;
   comm->base.gkyl_array_allgather = array_allgather;
