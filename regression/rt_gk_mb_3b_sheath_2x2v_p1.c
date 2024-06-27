@@ -395,18 +395,6 @@ main(int argc, char **argv)
   for (int d=0; d<ctx.vdim; d++)
     cells_v[d] = APP_ARGS_CHOOSE(app_args.vcells[d], ctx.cells[ctx.cdim+d]);
 
-//  // Create decomposition.
-//  struct gkyl_rect_decomp *decomp = gkyl_gyrokinetic_comms_decomp_new(ctx.cdim, cells_x, app_args.cuts, app_args.use_mpi, stderr);
-//
-//  // Construct communicator for use in app.
-//  struct gkyl_comm *comm = gkyl_gyrokinetic_comms_new(app_args.use_mpi, app_args.use_gpu, decomp, stderr);
-//
-//  int my_rank = 0;
-//#ifdef GKYL_HAVE_MPI
-//  if (app_args.use_mpi)
-//    gkyl_comm_get_rank(comm, &my_rank);
-//#endif
-
   // Electron species.
   struct gkyl_gyrokinetic_species elc = {
     .name = "elc",
@@ -629,9 +617,6 @@ main(int argc, char **argv)
     .name = "gk_mb_3b_sheath_2x2v_p1",
 
     .cdim = 2, .vdim = 2,
-    //.lower = { ctx.R - (0.5 * ctx.Lx), -0.5 * ctx.Lz },
-    //.upper = { ctx.R + (0.5 * ctx.Lx),  0.5 * ctx.Lz },
-    //.cells = { cells_x[0], cells_x[1] },
     .poly_order = 1,
     .basis_type = app_args.basis_type,
     .cfl_frac = 0.4,
@@ -648,12 +633,6 @@ main(int argc, char **argv)
 
     .use_gpu = app_args.use_gpu,
     .use_mpi = app_args.use_mpi,
-
-    //.has_low_inp = true,
-    //.low_inp = {
-    //  .local_range = decomp->ranges[my_rank],
-    //  .comm = comm
-    //}
   };
 
   // Create app object.

@@ -146,7 +146,6 @@ gkyl_gyrokinetic_multib_app_new(struct gkyl_gk_multib *inp)
     }
 
     // List of ranks in each block.
-    int *ranks_per_block = gkyl_malloc(mba->num_blocks * cuts_vol_max * sizeof(int));
     int curr_rank_to_assign = 0, curr_scbrank = 0, scbrank_count = 0;
     for (int bidx=0; bidx<mba->num_blocks; bidx++) {
       if (cuts_vol_per_block[bidx] > 1) {
@@ -191,7 +190,6 @@ gkyl_gyrokinetic_multib_app_new(struct gkyl_gk_multib *inp)
     for (int i=0; i<mba->num_blocks_local; i++)
       mba->block_idxs[i] = my_block_idxs[i];
 
-    gkyl_free(ranks_per_block);
     gkyl_free(scbrank_blocks);
     gkyl_free(scbrank_num_blocks);
   }
@@ -208,8 +206,6 @@ gkyl_gyrokinetic_multib_app_new(struct gkyl_gk_multib *inp)
     cuts_vol_cum += cuts_vol_per_block[bidx];
   }
 
-  gkyl_free(cuts_vol_per_block);
-
   // Allocate memory for all the block decompositions because the cross-block
   // field object needs to know the range of every block.
   mba->decomp_intrab = gkyl_malloc(mba->num_blocks * sizeof(struct gkyl_rect_decomp *));
@@ -222,6 +218,9 @@ gkyl_gyrokinetic_multib_app_new(struct gkyl_gk_multib *inp)
     gkyl_create_global_range(mba->cdim, blinp->cells, &global_range_conf);
     mba->decomp_intrab[bc] = gkyl_rect_decomp_new_from_cuts(mba->cdim, blinp->cuts, &global_range_conf);
   }
+  gkyl_free(cuts_vol_per_block);
+  gkyl_free(ranks_per_block);
+
 
   // Only allocate memory for local blocks and their intrablock communicators.
   mba->blocks = gkyl_malloc(mba->num_blocks_local * sizeof(struct gkyl_gyrokinetic_app));
