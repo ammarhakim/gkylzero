@@ -42,7 +42,7 @@ euler1d_run_single(int argc, char **argv, struct euler1d_single_init* init)
   int Nx = base_Nx;
 
   struct euler_patch_data mesh_pdata[num_patches];
-  struct gkyl_job_pool *coarse_job_pool = gkyl_thread_pool_new(app_args.num_threads);
+  struct gkyl_job_pool *mesh_job_pool = gkyl_thread_pool_new(app_args.num_threads);
 
   gkyl_rect_grid_init(&mesh_pdata[0].grid, 1, (double []) { refined_x1 }, (double []) { refined_x2 }, (int []) { Nx * ref_factor } );
   
@@ -99,9 +99,9 @@ euler1d_run_single(int argc, char **argv, struct euler1d_single_init* init)
 
 #ifdef AMR_USETHREADS
   for (int i = 0; i < num_patches; i++) {
-    gkyl_job_pool_add_work(coarse_job_pool, euler_init_job_func_patch, &mesh_pdata[i]);
+    gkyl_job_pool_add_work(mesh_job_pool, euler_init_job_func_patch, &mesh_pdata[i]);
   }
-  gkyl_job_pool_wait(coarse_job_pool);
+  gkyl_job_pool_wait(mesh_job_pool);
 #else
   for (int i = 0; i < num_patches; i++) {
     euler_init_job_func_patch(&mesh_pdata[i]);
@@ -132,7 +132,7 @@ euler1d_run_single(int argc, char **argv, struct euler1d_single_init* init)
 
   while ((coarse_t_curr < t_end) && (coarse_step <= num_steps)) {
     printf("Taking coarse (level 0) time-step %ld at t = %g; ", coarse_step, coarse_t_curr);
-    struct gkyl_update_status coarse_status = euler_update_patch(coarse_job_pool, ptopo, mesh_pdata, coarse_t_curr, coarse_dt, &stats);
+    struct gkyl_update_status coarse_status = euler_update_patch(mesh_job_pool, ptopo, mesh_pdata, coarse_t_curr, coarse_dt, &stats);
     printf(" dt = %g\n", coarse_status.dt_actual);
 
     if (!coarse_status.success) {
@@ -203,7 +203,7 @@ euler1d_run_single(int argc, char **argv, struct euler1d_single_init* init)
   }
 
   gkyl_block_topo_release(ptopo);
-  gkyl_job_pool_release(coarse_job_pool);
+  gkyl_job_pool_release(mesh_job_pool);
 }
 
 void
@@ -248,7 +248,7 @@ euler1d_run_double(int argc, char **argv, struct euler1d_double_init* init)
   int Nx = base_Nx;
 
   struct euler_patch_data mesh_pdata[num_patches];
-  struct gkyl_job_pool *coarse_job_pool = gkyl_thread_pool_new(app_args.num_threads);
+  struct gkyl_job_pool *mesh_job_pool = gkyl_thread_pool_new(app_args.num_threads);
 
   gkyl_rect_grid_init(&mesh_pdata[0].grid, 1, (double []) { refined_x1 }, (double []) { refined_x2 }, (int []) { Nx * (ref_factor1 * ref_factor2) } );
   
@@ -308,9 +308,9 @@ euler1d_run_double(int argc, char **argv, struct euler1d_double_init* init)
 
 #ifdef AMR_USETHREADS
   for (int i = 0; i < num_patches; i++) {
-    gkyl_job_pool_add_work(coarse_job_pool, euler_init_job_func_patch, &mesh_pdata[i]);
+    gkyl_job_pool_add_work(mesh_job_pool, euler_init_job_func_patch, &mesh_pdata[i]);
   }
-  gkyl_job_pool_wait(coarse_job_pool);
+  gkyl_job_pool_wait(mesh_job_pool);
 #else
   for (int i = 0; i < num_patches; i++) {
     euler_init_job_func_patch(&mesh_pdata[i]);
@@ -343,7 +343,7 @@ euler1d_run_double(int argc, char **argv, struct euler1d_double_init* init)
 
   while ((coarse_t_curr < t_end) && (coarse_step <= num_steps)) {
     printf("Taking coarse (level 0) time-step %ld at t = %g; ", coarse_step, coarse_t_curr);
-    struct gkyl_update_status coarse_status = euler_update_patch(coarse_job_pool, ptopo, mesh_pdata, coarse_t_curr, coarse_dt, &stats);
+    struct gkyl_update_status coarse_status = euler_update_patch(mesh_job_pool, ptopo, mesh_pdata, coarse_t_curr, coarse_dt, &stats);
     printf(" dt = %g\n", coarse_status.dt_actual);
 
     if (!coarse_status.success) {
@@ -422,7 +422,7 @@ euler1d_run_double(int argc, char **argv, struct euler1d_double_init* init)
   }
 
   gkyl_block_topo_release(ptopo);
-  gkyl_job_pool_release(coarse_job_pool);
+  gkyl_job_pool_release(mesh_job_pool);
 }
 
 void
@@ -469,7 +469,7 @@ euler2d_run_single(int argc, char **argv, struct euler2d_single_init* init)
   int Ny = base_Ny;
 
   struct euler_block_data mesh_bdata[num_blocks];
-  struct gkyl_job_pool *coarse_job_pool = gkyl_thread_pool_new(app_args.num_threads);
+  struct gkyl_job_pool *mesh_job_pool = gkyl_thread_pool_new(app_args.num_threads);
 
   gkyl_rect_grid_init(&mesh_bdata[0].grid, 2, (double []) { refined_x1, refined_y1 }, (double []) { refined_x2, refined_y2 },
     (int []) { Nx * ref_factor, Ny * ref_factor });
@@ -543,9 +543,9 @@ euler2d_run_single(int argc, char **argv, struct euler2d_single_init* init)
 
 #ifdef AMR_USETHREADS
   for (int i = 0; i < num_blocks; i++) {
-    gkyl_job_pool_add_work(coarse_job_pool, euler_init_job_func_block, &mesh_bdata[i]);
+    gkyl_job_pool_add_work(mesh_job_pool, euler_init_job_func_block, &mesh_bdata[i]);
   }
-  gkyl_job_pool_wait(coarse_job_pool);
+  gkyl_job_pool_wait(mesh_job_pool);
 #else
   for (int i = 0; i < num_blocks; i++) {
     euler_init_job_func_block(&mesh_bdata[i]);
@@ -576,7 +576,7 @@ euler2d_run_single(int argc, char **argv, struct euler2d_single_init* init)
 
   while ((coarse_t_curr < t_end) && (coarse_step <= num_steps)) {
     printf("Taking coarse (level 0) time-step %ld at t = %g; ", coarse_step, coarse_t_curr);
-    struct gkyl_update_status coarse_status = euler_update_block(coarse_job_pool, btopo, mesh_bdata, coarse_t_curr, coarse_dt, &stats);
+    struct gkyl_update_status coarse_status = euler_update_block(mesh_job_pool, btopo, mesh_bdata, coarse_t_curr, coarse_dt, &stats);
     printf(" dt = %g\n", coarse_status.dt_actual);
 
     if (!coarse_status.success) {
@@ -653,7 +653,7 @@ euler2d_run_single(int argc, char **argv, struct euler2d_single_init* init)
   }
 
   gkyl_block_topo_release(btopo);
-  gkyl_job_pool_release(coarse_job_pool);
+  gkyl_job_pool_release(mesh_job_pool);
 }
 
 void
@@ -706,7 +706,7 @@ euler2d_run_double(int argc, char **argv, struct euler2d_double_init* init)
   int Ny = base_Ny;
 
   struct euler_block_data mesh_bdata[num_blocks];
-  struct gkyl_job_pool *coarse_job_pool = gkyl_thread_pool_new(app_args.num_threads);
+  struct gkyl_job_pool *mesh_job_pool = gkyl_thread_pool_new(app_args.num_threads);
 
   gkyl_rect_grid_init(&mesh_bdata[0].grid, 2, (double []) { refined_x1, refined_y1 }, (double []) { refined_x2, refined_y2 },
     (int []) { Nx * (ref_factor1 * ref_factor2), Ny * (ref_factor1 * ref_factor2) });
@@ -813,9 +813,9 @@ euler2d_run_double(int argc, char **argv, struct euler2d_double_init* init)
 
 #ifdef AMR_USETHREADS
   for (int i = 0; i < num_blocks; i++) {
-    gkyl_job_pool_add_work(coarse_job_pool, euler_init_job_func_block, &mesh_bdata[i]);
+    gkyl_job_pool_add_work(mesh_job_pool, euler_init_job_func_block, &mesh_bdata[i]);
   }
-  gkyl_job_pool_wait(coarse_job_pool);
+  gkyl_job_pool_wait(mesh_job_pool);
 #else
   for (int i = 0; i < num_blocks; i++) {
     euler_init_job_func_block(&mesh_bdata[i]);
@@ -848,7 +848,7 @@ euler2d_run_double(int argc, char **argv, struct euler2d_double_init* init)
 
   while ((coarse_t_curr < t_end) && (coarse_step <= num_steps)) {
     printf("Taking coarse (level 0) time-step %ld at t = %g; ", coarse_step, coarse_t_curr);
-    struct gkyl_update_status coarse_status = euler_update_block(coarse_job_pool, btopo, mesh_bdata, coarse_t_curr, coarse_dt, &stats);
+    struct gkyl_update_status coarse_status = euler_update_block(mesh_job_pool, btopo, mesh_bdata, coarse_t_curr, coarse_dt, &stats);
     printf(" dt = %g\n", coarse_status.dt_actual);
 
     if (!coarse_status.success) {
@@ -933,5 +933,5 @@ euler2d_run_double(int argc, char **argv, struct euler2d_double_init* init)
   }
 
   gkyl_block_topo_release(btopo);
-  gkyl_job_pool_release(coarse_job_pool);
+  gkyl_job_pool_release(mesh_job_pool);
 }

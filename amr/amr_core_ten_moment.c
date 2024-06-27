@@ -56,7 +56,7 @@ ten_moment_1d_run_single(int argc, char **argv, struct ten_moment_1d_single_init
   int Nx = base_Nx;
 
   struct five_moment_patch_data mesh_pdata[num_patches];
-  struct gkyl_job_pool *coarse_job_pool = gkyl_thread_pool_new(app_args.num_threads);
+  struct gkyl_job_pool *mesh_job_pool = gkyl_thread_pool_new(app_args.num_threads);
 
   gkyl_rect_grid_init(&mesh_pdata[0].grid, 1, (double []) { refined_x1 }, (double []) { refined_x2 }, (int []) { Nx * ref_factor } );
   
@@ -161,9 +161,9 @@ ten_moment_1d_run_single(int argc, char **argv, struct ten_moment_1d_single_init
 
 #ifdef AMR_USETHREADS
   for (int i = 0; i < num_patches; i++) {
-    gkyl_job_pool_add_work(coarse_job_pool, five_moment_init_job_func_patch, &mesh_pdata[i]);
+    gkyl_job_pool_add_work(mesh_job_pool, five_moment_init_job_func_patch, &mesh_pdata[i]);
   }
-  gkyl_job_pool_wait(coarse_job_pool);
+  gkyl_job_pool_wait(mesh_job_pool);
 #else
   for (int i = 0; i < num_patches; i++) {
     five_moment_init_job_func_patch(&mesh_pdata[i]);
@@ -194,7 +194,7 @@ ten_moment_1d_run_single(int argc, char **argv, struct ten_moment_1d_single_init
 
   while ((coarse_t_curr < t_end) && (coarse_step <= num_steps)) {
     printf("Taking coarse (level 0) time-step %ld at t = %g; ", coarse_step, coarse_t_curr);
-    struct gkyl_update_status coarse_status = five_moment_update_patch(coarse_job_pool, ptopo, mesh_pdata, coarse_t_curr, coarse_dt, &stats);
+    struct gkyl_update_status coarse_status = five_moment_update_patch(mesh_job_pool, ptopo, mesh_pdata, coarse_t_curr, coarse_dt, &stats);
     printf(" dt = %g\n", coarse_status.dt_actual);
 
     if (!coarse_status.success) {
@@ -287,7 +287,7 @@ ten_moment_1d_run_single(int argc, char **argv, struct ten_moment_1d_single_init
   }
 
   gkyl_block_topo_release(ptopo);
-  gkyl_job_pool_release(coarse_job_pool);
+  gkyl_job_pool_release(mesh_job_pool);
 }
 
 void
@@ -354,7 +354,7 @@ ten_moment_2d_run_single(int argc, char **argv, struct ten_moment_2d_single_init
   int Ny = base_Ny;
 
   struct five_moment_block_data mesh_bdata[num_blocks];
-  struct gkyl_job_pool *coarse_job_pool = gkyl_thread_pool_new(app_args.num_threads);
+  struct gkyl_job_pool *mesh_job_pool = gkyl_thread_pool_new(app_args.num_threads);
 
   gkyl_rect_grid_init(&mesh_bdata[0].grid, 2, (double []) { refined_x1, refined_y1 }, (double []) { refined_x2, refined_y2 },
     (int []) { Nx * ref_factor, Ny * ref_factor });
@@ -482,9 +482,9 @@ ten_moment_2d_run_single(int argc, char **argv, struct ten_moment_2d_single_init
 
 #ifdef AMR_USETHREADS
   for (int i = 0; i < num_blocks; i++) {
-    gkyl_job_pool_add_work(coarse_job_pool, five_moment_init_job_func_block, &mesh_bdata[i]);
+    gkyl_job_pool_add_work(mesh_job_pool, five_moment_init_job_func_block, &mesh_bdata[i]);
   }
-  gkyl_job_pool_wait(coarse_job_pool);
+  gkyl_job_pool_wait(mesh_job_pool);
 #else
   for (int i = 0; i < num_blocks; i++) {
     five_moment_init_job_func_block(&mesh_bdata[i]);
@@ -515,7 +515,7 @@ ten_moment_2d_run_single(int argc, char **argv, struct ten_moment_2d_single_init
 
   while ((coarse_t_curr < t_end) && (coarse_step <= num_steps)) {
     printf("Taking coarse (level 0) time-step %ld at t = %g; ", coarse_step, coarse_t_curr);
-    struct gkyl_update_status coarse_status = five_moment_update_block(coarse_job_pool, btopo, mesh_bdata, coarse_t_curr, coarse_dt, &stats);
+    struct gkyl_update_status coarse_status = five_moment_update_block(mesh_job_pool, btopo, mesh_bdata, coarse_t_curr, coarse_dt, &stats);
     printf(" dt = %g\n", coarse_status.dt_actual);
 
     if (!coarse_status.success) {
@@ -613,7 +613,7 @@ ten_moment_2d_run_single(int argc, char **argv, struct ten_moment_2d_single_init
   }
 
   gkyl_block_topo_release(btopo);
-  gkyl_job_pool_release(coarse_job_pool);
+  gkyl_job_pool_release(mesh_job_pool);
 }
 
 void
@@ -687,7 +687,7 @@ ten_moment_2d_run_double(int argc, char **argv, struct ten_moment_2d_double_init
   int Ny = base_Ny;
 
   struct five_moment_block_data mesh_bdata[num_blocks];
-  struct gkyl_job_pool *coarse_job_pool = gkyl_thread_pool_new(app_args.num_threads);
+  struct gkyl_job_pool *mesh_job_pool = gkyl_thread_pool_new(app_args.num_threads);
 
   gkyl_rect_grid_init(&mesh_bdata[0].grid, 2, (double []) { refined_x1, refined_y1 }, (double []) { refined_x2, refined_y2 },
     (int []) { Nx * (ref_factor1 * ref_factor2), Ny * (ref_factor1 * ref_factor2) });
@@ -848,9 +848,9 @@ ten_moment_2d_run_double(int argc, char **argv, struct ten_moment_2d_double_init
 
 #ifdef AMR_USETHREADS
   for (int i = 0; i < num_blocks; i++) {
-    gkyl_job_pool_add_work(coarse_job_pool, five_moment_init_job_func_block, &mesh_bdata[i]);
+    gkyl_job_pool_add_work(mesh_job_pool, five_moment_init_job_func_block, &mesh_bdata[i]);
   }
-  gkyl_job_pool_wait(coarse_job_pool);
+  gkyl_job_pool_wait(mesh_job_pool);
 #else
   for (int i = 0; i < num_blocks; i++) {
     five_moment_init_job_func_block(&mesh_bdata[i]);
@@ -883,7 +883,7 @@ ten_moment_2d_run_double(int argc, char **argv, struct ten_moment_2d_double_init
 
   while ((coarse_t_curr < t_end) && (coarse_step <= num_steps)) {
     printf("Taking coarse (level 0) time-step %ld at t = %g; ", coarse_step, coarse_t_curr);
-    struct gkyl_update_status coarse_status = five_moment_update_block(coarse_job_pool, btopo, mesh_bdata, coarse_t_curr, coarse_dt, &stats);
+    struct gkyl_update_status coarse_status = five_moment_update_block(mesh_job_pool, btopo, mesh_bdata, coarse_t_curr, coarse_dt, &stats);
     printf(" dt = %g\n", coarse_status.dt_actual);
 
     if (!coarse_status.success) {
@@ -989,5 +989,5 @@ ten_moment_2d_run_double(int argc, char **argv, struct ten_moment_2d_double_init
   }
 
   gkyl_block_topo_release(btopo);
-  gkyl_job_pool_release(coarse_job_pool);
+  gkyl_job_pool_release(mesh_job_pool);
 }
