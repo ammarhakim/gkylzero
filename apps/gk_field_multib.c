@@ -9,6 +9,58 @@
 #include <float.h>
 #include <time.h>
 
+static int count_distinct(int a[], int n)      //Function Definition
+{
+   int i, j, count = 1;
+   //Traverse the array
+   for (i = 1; i < n; i++)      //hold an array element
+   {
+      for (j = 0; j < i; j++)   
+      {
+         if (a[i] == a[j])    //Check for duplicate elements
+         {
+            break;             //If duplicate elements found then break
+         }
+      }
+      if (i == j)
+      {
+         count++;     //increment the number of distinct elements
+      }
+   }
+   return count;      //Return the number of distinct elements
+}
+
+static int get_unique(int *input_array, int n, int *unique_array) {
+    // Initialize an array to keep track of unique elements
+    int isUnique[n];  // Using VLA (Variable Length Array) for simplicity
+    
+    // Initialize all elements as unique (false)
+    for (int i = 0; i < n; i++) {
+        isUnique[i] = 1;
+    }
+    
+    // Mark duplicates as non-unique
+    for (int i = 0; i < n; i++) {
+        if (isUnique[i]) {
+            for (int j = i + 1; j < n; j++) {
+                if (input_array[i] == input_array[j]) {
+                    isUnique[j] = 0;  // Mark as non-unique
+                }
+            }
+        }
+    }
+    
+    // Copy unique elements to unique_array and count them
+    int uniqueCount = 0;
+    for (int i = 0; i < n; i++) {
+        if (isUnique[i]) {
+            unique_array[uniqueCount++] = input_array[i];
+        }
+    }
+    
+    return uniqueCount;
+}
+
 static void
 insert_below(int* arr, int *n, int new_val)
 {
@@ -148,11 +200,25 @@ gk_field_multib_new(struct gkyl_gk_multib *inp, struct gkyl_gyrokinetic_multib_a
     mbf->zranks[2] = 2;
     mbf->zranks[3] = 0;
 
+    int num_unique_ranks = count_distinct(mbf->zranks, num_ranges);
+    mbf->unique_zranks = gkyl_malloc(num_unique_ranks*sizeof(int));
+    int num_unique_ranks2 = get_unique(mbf->zranks, num_ranges, mbf->unique_zranks);
+    printf("unique ranks = %d\n", num_unique_ranks);
+    printf("unique ranks2 = %d\n", num_unique_ranks2);
+    printf("the uq ranks are ");
+    for(int i = 0; i < num_unique_ranks; i++){
+      printf(" %d", mbf->unique_zranks[i]);
+    }
+    printf("\n");
 
-    mbf->zdecomp = gkyl_rect_decomp_new_from_ranges(mba->cdim, mbf->cut_ranges, num_ranges, &mbf->crossz);
+
+
 
     //mbf->zcomm = gkyl_comm_split_comm(mba->comm_multib, 0, mbf->zdecomp);
-    mbf->zcomm = gkyl_comm_split_comm(mba->comm_multib, 0, 0);
+    //mbf->zcomm = gkyl_comm_split_comm(mba->comm_multib, 0, 0);
+    //mbf->zcomm = gkyl_comm_create_group_comm(comm, num_ranks_group, ranks_group, tag, decomp_group);
+    int tag = 0;
+    mbf->zcomm = gkyl_comm_create_group_comm(mba->comm_multib, num_unique_ranks, mbf->unique_zranks, tag, 0);
 
     // allocate arrays for charge density
     mbf->rho_c_global_dg = mkarr(mba->use_gpu, app->confBasis.num_basis, mbf->crossz_ext.volume);
@@ -199,7 +265,6 @@ gk_field_multib_rhs(gkyl_gyrokinetic_multib_app *mba, struct gk_field_multib *mb
     // accumulate rho_c in each block
     gk_field_accumulate_rho_c(app, field, fin);
     // Now gather charge density into the interblock cross-z array for smoothing in z
-    //gkyl_comm_array_allgatherv(mbf->zcomm, &app->local, mbf->zdecomp, field->rho_c, mbf->rho_c_global_dg);
   }
 
   // Now we need to do two things instead of the allgather.
@@ -235,13 +300,13 @@ gk_field_multib_rhs(gkyl_gyrokinetic_multib_app *mba, struct gk_field_multib *mb
   }
   int rank = 0;
   gkyl_comm_get_rank(mba->comm_multib, &rank);
-  printf("my rank is %d. Did the broadcast\n", rank);
+  //printf("my rank is %d. Did the broadcast\n", rank);
 
 
   // Do the smoothing on the inetrblock cross-z range
   gkyl_fem_parproj_set_rhs(mbf->fem_parproj, mbf->rho_c_global_dg, mbf->rho_c_global_dg);
   gkyl_fem_parproj_solve(mbf->fem_parproj, mbf->rho_c_global_smooth);
-  printf("my rank is %d. Did the smoothing\n", rank);
+  //printf("my rank is %d. Did the smoothing\n", rank);
 
   for (int bc=0; bc<mba->num_blocks_local; bc++) {
     struct gkyl_gyrokinetic_app *app = mba->blocks[bc];
@@ -251,7 +316,7 @@ gk_field_multib_rhs(gkyl_gyrokinetic_multib_app *mba, struct gk_field_multib *mb
     // Now call the perp solver. The perp solver already accesses its own local part of the intrablock global range.
     gkyl_deflated_fem_poisson_advance(field->deflated_fem_poisson, field->rho_c_global_smooth, field->phi_smooth);
   }
-  printf("my rank is %d. Did the solve\n", rank);
+  //printf("my rank is %d. Did the solve\n", rank);
   
 }
 
@@ -264,7 +329,7 @@ gk_field_multib_release(const gkyl_gyrokinetic_multib_app* mba, struct gk_field_
   gkyl_array_release(mbf->phi);
   gkyl_free(mbf->cut_ranges);
 
-  gkyl_rect_decomp_release(mbf->zdecomp);
+  gkyl_comm_release(mbf->zcomm);
 
   gkyl_fem_parproj_release(mbf->fem_parproj);
 
