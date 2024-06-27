@@ -203,9 +203,9 @@ gkyl_gyrokinetic_multib_app_new(struct gkyl_gk_multib *inp)
   for (int bidx=0; bidx<mba->num_blocks; bidx++) {
     mba->cuts_vol_cum_per_block[bidx] = cuts_vol_cum;
     for (int i=0; i<cuts_vol_per_block[bidx]; i++) {
-      mba->ranks_per_block[bidx*cuts_vol_cum+i] = ranks_per_block[bidx*cuts_vol_max+i];
-      cuts_vol_cum += cuts_vol_per_block[bidx];
+      mba->ranks_per_block[cuts_vol_cum+i] = ranks_per_block[bidx*cuts_vol_max+i];
     }
+    cuts_vol_cum += cuts_vol_per_block[bidx];
   }
 
   gkyl_free(cuts_vol_per_block);

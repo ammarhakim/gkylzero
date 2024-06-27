@@ -81,7 +81,7 @@ struct gk_field_multib* gk_field_multib_new(struct gkyl_gk_multib *gk_multib, st
  * @return number of ranks in that block.
  */
 int
-gkyl_gyrokinetic_multib_num_ranks_per_block(gkyl_gyrokinetic_multib_app *mba, int bidx)
+gkyl_gyrokinetic_multib_num_ranks_per_block(gkyl_gyrokinetic_multib_app *mba, int bidx);
 
 /**
  * Get the list of rank IDs for @a ranks owning a given block of ID @a bidx.
@@ -94,7 +94,7 @@ gkyl_gyrokinetic_multib_num_ranks_per_block(gkyl_gyrokinetic_multib_app *mba, in
  * @return number of ranks in that block.
  */
 int
-gkyl_gyrokinetic_multib_ranks_per_block(gkyl_gyrokinetic_multib_app *mba, int bidx, int *ranks)
+gkyl_gyrokinetic_multib_ranks_per_block(gkyl_gyrokinetic_multib_app *mba, int bidx, int *ranks);
 
 void gk_field_multib_rhs(gkyl_gyrokinetic_multib_app *mb_app, struct gk_field_multib *field_multib);
 
