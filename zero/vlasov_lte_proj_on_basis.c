@@ -136,7 +136,7 @@ gkyl_vlasov_lte_proj_on_basis_geom_quad_vars(gkyl_vlasov_lte_proj_on_basis *up,
 // Setup the intial geometric vars, on GPU 
 #ifdef GKYL_HAVE_CUDA
   if (up->use_gpu)
-    gkyl_vlasov_lte_proj_on_basis_geom_quad_vars_cu(up, conf_range);
+    return gkyl_vlasov_lte_proj_on_basis_geom_quad_vars_cu(up, conf_range);
 #endif
 
   // Otherwise run the CPU Version to setup h_ij_inv, det_h
