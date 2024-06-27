@@ -39,6 +39,7 @@ struct gk_field_multib {
 
   // z ranges
   struct gkyl_range crossz, crossz_ext; // crossz, crossz-ext conf-space ranges. Cross-block ranges across z boundaries for the smoother. We need 5 of these in the double null case (2-3-4, 11-12, 1-8-9, 5-6, 1-10)
+  struct gkyl_range *cut_ranges;
   struct gkyl_comm *zcomm;   // communicator object for z smoothing
   struct gkyl_rect_decomp *zdecomp; // decomp on which zcomm is based
 

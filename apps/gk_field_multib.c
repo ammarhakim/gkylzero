@@ -107,7 +107,7 @@ gk_field_multib_new(struct gkyl_gk_multib *inp, struct gkyl_gyrokinetic_multib_a
     for ( int i = 0; i < num_blocks; i++) {
       num_ranges += mba->decomp_intrab[crossz_blocks[i]]->ndecomp;
     }
-    struct gkyl_range ranges[num_ranges];
+    mbf->cut_ranges = gkyl_malloc(sizeof(struct gkyl_range[num_ranges]));
     int range_count = 0;
     int num_zcells_before = 0;
     for (int ib = 0; ib < num_blocks; ib++) {
@@ -117,13 +117,13 @@ gk_field_multib_new(struct gkyl_gk_multib *inp, struct gkyl_gyrokinetic_multib_a
         upper[0] = decomp_i->ranges[id].upper[0];
         lower[1] = decomp_i->ranges[id].lower[1] + num_zcells_before;
         upper[1] = decomp_i->ranges[id].upper[1] + num_zcells_before;
-        gkyl_range_init(&ranges[range_count], mba->cdim, lower, upper);
+        gkyl_range_init(&mbf->cut_ranges[range_count], mba->cdim, lower, upper);
         range_count+=1;
       }
       num_zcells_before += gkyl_range_shape(&decomp_i->parent_range, 1);
     }
 
-    mbf->zdecomp = gkyl_rect_decomp_new_from_ranges(mba->cdim, ranges, num_ranges, &mbf->crossz);
+    mbf->zdecomp = gkyl_rect_decomp_new_from_ranges(mba->cdim, mbf->cut_ranges, num_ranges, &mbf->crossz);
 
     mbf->zcomm = gkyl_comm_split_comm(mba->comm_multib, 0, mbf->zdecomp);
 
@@ -175,9 +175,9 @@ gk_field_multib_rhs(gkyl_gyrokinetic_multib_app *mba, struct gk_field_multib *mb
     // Now gather charge density into the interblock cross-z array for smoothing in z
     gkyl_comm_array_allgatherv(mbf->zcomm, &app->local, mbf->zdecomp, field->rho_c, mbf->rho_c_global_dg);
   }
-    // Do the smoothing on the inetrblock cross-z range
-    gkyl_fem_parproj_set_rhs(mbf->fem_parproj, mbf->rho_c_global_dg, mbf->rho_c_global_dg);
-    gkyl_fem_parproj_solve(mbf->fem_parproj, mbf->rho_c_global_smooth);
+  // Do the smoothing on the inetrblock cross-z range
+  gkyl_fem_parproj_set_rhs(mbf->fem_parproj, mbf->rho_c_global_dg, mbf->rho_c_global_dg);
+  gkyl_fem_parproj_solve(mbf->fem_parproj, mbf->rho_c_global_smooth);
 
   for (int bc=0; bc<mba->num_blocks_local; bc++) {
     struct gkyl_gyrokinetic_app *app = mba->blocks[bc];
