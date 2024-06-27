@@ -26,6 +26,9 @@ struct gkyl_gyrokinetic_multib_app {
   int num_blocks, num_blocks_local; // Total and local number of blocks.
   int *block_idxs; // List of blocks handled on this rank.
   struct gkyl_gyrokinetic_app **blocks; // Pointers to blocks on this rank.
+  int *ranks_per_block; // All ranks in a single block. Num ranks per block is
+                        // the same as decomp_intrab[bidx]->ndecomp.
+  int *cuts_vol_cum_per_block; // Cumulative num_ranks prior at given rank.
 
   struct gk_field_multib *field_multib; // mb field object.
   struct gkyl_gyrokinetic_stat stat; // statistics
@@ -68,6 +71,30 @@ struct gk_field_multib {
 
 
 struct gk_field_multib* gk_field_multib_new(struct gkyl_gk_multib *gk_multib, struct gkyl_gyrokinetic_multib_app *mb_app);
+
+/**
+ * Get the number of ranks in a given block of ID @a bidx.
+ *
+ * @param mba MB gyrokinetic app.
+ * @param bidx Block ID.
+ *
+ * @return number of ranks in that block.
+ */
+int
+gkyl_gyrokinetic_multib_num_ranks_per_block(gkyl_gyrokinetic_multib_app *mba, int bidx)
+
+/**
+ * Get the list of rank IDs for @a ranks owning a given block of ID @a bidx.
+ * Also returns the number of ranks in that block.
+ *
+ * @param mba MB gyrokinetic app.
+ * @param bidx Block ID.
+ * @param ranks list of ranks in that block.
+ *
+ * @return number of ranks in that block.
+ */
+int
+gkyl_gyrokinetic_multib_ranks_per_block(gkyl_gyrokinetic_multib_app *mba, int bidx, int *ranks)
 
 void gk_field_multib_rhs(gkyl_gyrokinetic_multib_app *mb_app, struct gk_field_multib *field_multib);
 
