@@ -699,8 +699,8 @@ gkyl_gyrokinetic_multib_app_release(gkyl_gyrokinetic_multib_app* mba)
   }
   for (int i=0; i<mba->num_blocks_local; i++) {
     gkyl_comm_release(mba->comm_intrab[i]);
-    gk_field_multib_release(mba, mba->field_multib);
   }
+  gk_field_multib_release(mba, mba->field_multib);
   gkyl_free(mba->decomp_intrab);
   gkyl_free(mba->comm_intrab);
 

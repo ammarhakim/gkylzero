@@ -33,7 +33,7 @@ insert_above(int* arr, int *n, int new_val)
 
 // This function should be called in a loop over num blocks local
 void
-set_crossz_idxs(struct gkyl_gyrokinetic_multib_app *mba, struct gkyl_gyrokinetic_app *app, int myidx, int* crossz_blocks, int* num_blocks){
+set_crossz_idxs(struct gkyl_gyrokinetic_multib_app *mba, int myidx, int* crossz_blocks, int* num_blocks){
   struct gkyl_block_topo *btopo = mba->btopo;
   struct gkyl_block_connections *conn = btopo->conn;
   int dir = 1;
@@ -72,7 +72,7 @@ gk_field_multib_new(struct gkyl_gk_multib *inp, struct gkyl_gyrokinetic_multib_a
 
   struct gk_field_multib *mbf = gkyl_malloc(sizeof(struct gk_field_multib));
 
-  for (int bc=0; bc<mba->num_blocks_local; bc++) {
+    int bc = 0; // Set block counter to 0. Assume blocks are connected along z
     int bidx = mba->block_idxs[bc];
     struct gkyl_gyrokinetic_app *app = mba->blocks[bc];
 
@@ -81,8 +81,8 @@ gk_field_multib_new(struct gkyl_gk_multib *inp, struct gkyl_gyrokinetic_multib_a
     mbf->gkfield_id = mbf->info.gkfield_id ? mbf->info.gkfield_id : GKYL_GK_FIELD_ES;
 
     int num_blocks = 0;
-    int crossz_blocks[GKYL_MAX_BLOCKS] = {-1};
-    set_crossz_idxs(mba, app, bidx, crossz_blocks, &num_blocks);
+    for (int i =0; i < GKYL_MAX_BLOCKS; i++) mbf->crossz_block_idxs[i] = -1;
+    set_crossz_idxs(mba, bidx, mbf->crossz_block_idxs, &num_blocks);
 
     // We need first to create the cross z ranges.
     // For the two-block case:
@@ -94,7 +94,7 @@ gk_field_multib_new(struct gkyl_gk_multib *inp, struct gkyl_gyrokinetic_multib_a
     // Add up all ranges in z direction
     upper[1] = 0;
     for ( int i = 0; i < num_blocks; i++) {
-      upper[1] += gkyl_range_shape(&mba->decomp_intrab[crossz_blocks[i]]->parent_range, 1);
+      upper[1] += gkyl_range_shape(&mba->decomp_intrab[mbf->crossz_block_idxs[i]]->parent_range, 1);
     }
     struct gkyl_range crossz;
     gkyl_range_init(&crossz, mba->cdim, lower, upper);
@@ -105,7 +105,7 @@ gk_field_multib_new(struct gkyl_gk_multib *inp, struct gkyl_gyrokinetic_multib_a
     // Stack all the individual ranges together
     int num_ranges = 0;
     for ( int i = 0; i < num_blocks; i++) {
-      num_ranges += mba->decomp_intrab[crossz_blocks[i]]->ndecomp;
+      num_ranges += mba->decomp_intrab[mbf->crossz_block_idxs[i]]->ndecomp;
     }
     mbf->cut_ranges = gkyl_malloc(sizeof(struct gkyl_range[num_ranges]));
     int range_count = 0;
@@ -127,12 +127,6 @@ gk_field_multib_new(struct gkyl_gk_multib *inp, struct gkyl_gyrokinetic_multib_a
 
     mbf->zcomm = gkyl_comm_split_comm(mba->comm_multib, 0, mbf->zdecomp);
 
-    // Now get the sub range intersects
-    // Create global subrange we'll copy the field solver solution from (into local).
-    int rank;
-    gkyl_comm_get_rank(mbf->zcomm, &rank);
-    int intersect = gkyl_sub_range_intersect(&mbf->crossz_sub_range[bc], &mbf->crossz, &app->global);
-
     // allocate arrays for charge density
     mbf->rho_c_global_dg = mkarr(mba->use_gpu, app->confBasis.num_basis, mbf->crossz_ext.volume);
     mbf->rho_c_global_smooth = mkarr(mba->use_gpu, app->confBasis.num_basis, mbf->crossz_ext.volume);
@@ -148,7 +142,14 @@ gk_field_multib_new(struct gkyl_gk_multib *inp, struct gkyl_gyrokinetic_multib_a
 
     mbf->fem_parproj = gkyl_fem_parproj_new(&mbf->crossz, &mbf->crossz_ext, 
       &app->confBasis, mbf->info.fem_parbc, NULL, mba->use_gpu);
+  
+  // Now get the sub range intersects
+  // Create global subrange we'll copy the field solver solution from (into local).
+  for (int bc=0; bc<mba->num_blocks_local; bc++) {
+    struct gkyl_gyrokinetic_app *app = mba->blocks[bc];
+    int intersect = gkyl_sub_range_intersect(&mbf->crossz_sub_range[bc], &mbf->crossz, &app->global);
   }
+
 
   return mbf;
 }
@@ -157,8 +158,6 @@ gk_field_multib_new(struct gkyl_gk_multib *inp, struct gkyl_gyrokinetic_multib_a
 void
 gk_field_multib_rhs(gkyl_gyrokinetic_multib_app *mba, struct gk_field_multib *mbf)
 {
-  int rank;
-  gkyl_comm_get_rank(mbf->zcomm, &rank);
 
   for (int bc=0; bc<mba->num_blocks_local; bc++) {
     struct gkyl_gyrokinetic_app *app = mba->blocks[bc];
@@ -175,6 +174,7 @@ gk_field_multib_rhs(gkyl_gyrokinetic_multib_app *mba, struct gk_field_multib *mb
     // Now gather charge density into the interblock cross-z array for smoothing in z
     gkyl_comm_array_allgatherv(mbf->zcomm, &app->local, mbf->zdecomp, field->rho_c, mbf->rho_c_global_dg);
   }
+
   // Do the smoothing on the inetrblock cross-z range
   gkyl_fem_parproj_set_rhs(mbf->fem_parproj, mbf->rho_c_global_dg, mbf->rho_c_global_dg);
   gkyl_fem_parproj_solve(mbf->fem_parproj, mbf->rho_c_global_smooth);
@@ -197,6 +197,7 @@ gk_field_multib_release(const gkyl_gyrokinetic_multib_app* mba, struct gk_field_
   gkyl_array_release(mbf->rho_c_global_dg);
   gkyl_array_release(mbf->rho_c_global_smooth);
   gkyl_array_release(mbf->phi);
+  gkyl_free(mbf->cut_ranges);
 
   gkyl_rect_decomp_release(mbf->zdecomp);
 
