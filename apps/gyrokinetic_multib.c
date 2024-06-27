@@ -60,14 +60,18 @@ gkyl_gyrokinetic_multib_app_new(struct gkyl_gk_multib *inp)
   gkyl_comm_get_size(mba->comm_multib, &comm_size);
   gkyl_comm_get_rank(mba->comm_multib, &comm_rank);
 
-  int decomp_vol = 0;
+  int cuts_vol_max = -1, cuts_vol_tot = 0;
   for (int bidx=0; bidx<mba->num_blocks; bidx++) {
     int cuts_vol = 1;
     for (int d=0; d<mba->cdim; d++) cuts_vol *= inp->blocks[bidx]->cuts[d];
-    decomp_vol += cuts_vol;
+    cuts_vol_tot += cuts_vol;
+    cuts_vol_max = GKYL_MAX2(cuts_vol_max, cuts_vol);
   }
 
-  if (decomp_vol == comm_size) {
+  int *cuts_vol_per_block = gkyl_malloc(mba->num_blocks * sizeof(int));
+  int *ranks_per_block = gkyl_malloc(mba->num_blocks * cuts_vol_max * sizeof(int));
+
+  if (cuts_vol_tot == comm_size) {
 
     // Each rank owns a single block, or a subdomain of one.
     mba->num_blocks_local = 1;
@@ -79,8 +83,19 @@ gkyl_gyrokinetic_multib_app_new(struct gkyl_gk_multib *inp)
       for (int d=0; d<mba->cdim; d++) cuts_vol *= inp->blocks[bidx]->cuts[d];
       proc_count += cuts_vol;
 
+      cuts_vol_per_block[bidx] = cuts_vol;
+
       if (mba->block_idxs[0] < 0 && comm_rank < proc_count)
         mba->block_idxs[0] = bidx;
+
+    }
+
+    int curr_rank_to_assign = 0;
+    for (int bidx=0; bidx<mba->num_blocks; bidx++) {
+      for (int i=0; i<cuts_vol_per_block[bidx]; i++) {
+        ranks_per_block[bidx*cuts_vol_max+i] = curr_rank_to_assign;
+        curr_rank_to_assign++;
+      }
     }
 
   }
@@ -90,18 +105,15 @@ gkyl_gyrokinetic_multib_app_new(struct gkyl_gk_multib *inp)
     // a subdomain of those blocks, and that rank will own nothing else. Yet a
     // rank may handle one or more scbs.
 
-    assert(decomp_vol > comm_size); // Can't have more ranks than decompositions.
+    assert(cuts_vol_tot > comm_size); // Can't have more ranks than decompositions.
 
-    int *cuts_vol_per_block = gkyl_malloc(mba->num_blocks * sizeof(int));
     int num_scb = 0; // Number of single-cut blocks (scb).
     int scb[GKYL_MAX_BLOCKS]; // Block ID of single-cut blocks (scb)
-    int cuts_vol_max = -1;
     for (int bidx=0; bidx<mba->num_blocks; bidx++) {
       int cuts_vol = 1;
       for (int d=0; d<mba->cdim; d++) cuts_vol *= inp->blocks[bidx]->cuts[d];
 
       cuts_vol_per_block[bidx] = cuts_vol;
-      cuts_vol_max = GKYL_MAX2(cuts_vol_max, cuts_vol);
 
       if (cuts_vol == 1) {
         scb[num_scb] = bidx;
@@ -110,7 +122,7 @@ gkyl_gyrokinetic_multib_app_new(struct gkyl_gk_multib *inp)
     }
 
     // Additional blocks that need to be assigned to a rank owning another block.
-    int extra_blocks = decomp_vol - comm_size;
+    int extra_blocks = cuts_vol_tot - comm_size;
     // Number of ranks owning single-cut blocks (scbrank).
     int num_scbrank = num_scb - extra_blocks;
     // Distribute scb amongst scbranks: 
@@ -182,8 +194,21 @@ gkyl_gyrokinetic_multib_app_new(struct gkyl_gk_multib *inp)
     gkyl_free(ranks_per_block);
     gkyl_free(scbrank_blocks);
     gkyl_free(scbrank_num_blocks);
-    gkyl_free(cuts_vol_per_block);
   }
+
+  // Store the ranks_per_block for later use.
+  mba->ranks_per_block = gkyl_malloc(cuts_vol_tot * sizeof(int));
+  mba->cuts_vol_cum_per_block = gkyl_malloc(mba->num_blocks * sizeof(int));
+  int cuts_vol_cum = 0;
+  for (int bidx=0; bidx<mba->num_blocks; bidx++) {
+    mba->cuts_vol_cum_per_block[bidx] = cuts_vol_cum;
+    for (int i=0; i<cuts_vol_per_block[bidx]; i++) {
+      mba->ranks_per_block[bidx*cuts_vol_cum+i] = ranks_per_block[bidx*cuts_vol_max+i];
+      cuts_vol_cum += cuts_vol_per_block[bidx];
+    }
+  }
+
+  gkyl_free(cuts_vol_per_block);
 
   // Allocate memory for all the block decompositions because the cross-block
   // field object needs to know the range of every block.
@@ -255,6 +280,23 @@ gkyl_gyrokinetic_multib_app_new(struct gkyl_gk_multib *inp)
   mba->field_multib = gk_field_multib_new(inp, mba);
 
   return mba;
+}
+
+int
+gkyl_gyrokinetic_multib_num_ranks_per_block(gkyl_gyrokinetic_multib_app *mba, int bidx)
+{
+  return mba->decomp_intrab[bidx]->ndecomp;
+}
+
+int
+gkyl_gyrokinetic_multib_ranks_per_block(gkyl_gyrokinetic_multib_app *mba, int bidx, int *ranks)
+{
+  int cuts_vol = gkyl_gyrokinetic_multib_num_ranks_per_block(mba, bidx);
+  int off = mba->cuts_vol_cum_per_block[bidx];
+  for (int i=0; i<cuts_vol; i++)
+    ranks[i] = mba->ranks_per_block[off+i];
+
+  return cuts_vol; 
 }
 
 void
@@ -693,6 +735,9 @@ gkyl_gyrokinetic_multib_app_release(gkyl_gyrokinetic_multib_app* mba)
   gkyl_free(mba->blocks);
   gkyl_free(mba->block_idxs);
   
+  gkyl_free(mba->ranks_per_block);
+  gkyl_free(mba->cuts_vol_cum_per_block);
+
   // Release decomp and comm.
   for (int i=0; i<mba->num_blocks; i++) {
     gkyl_rect_decomp_release(mba->decomp_intrab[i]);
