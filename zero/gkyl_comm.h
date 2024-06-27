@@ -105,7 +105,7 @@ typedef struct gkyl_comm* (*create_group_comm_t)(const struct gkyl_comm *comm,
 
 // MPI_Group_translate_ranks
 typedef int (*group_translate_ranks_t)(const struct gkyl_comm *comm1,
-    int num_ranks, const int ranks1[], struct gkyl_comm *comm2, int ranks2[]);
+    int num_ranks, const int *ranks1, const struct gkyl_comm *comm2, int *ranks2);
 
 // Barrier
 typedef int (*barrier_t)(struct gkyl_comm *comm);
@@ -569,7 +569,7 @@ gkyl_comm_create_group_comm(const struct gkyl_comm *comm, int num_ranks,
  * @return error value
  */
 static int
-gkyl_comm_group_translate_ranks(const struct gkyl_comm *comm1, int num_ranks, const int ranks1[], struct gkyl_comm *comm2, int ranks2[])
+gkyl_comm_group_translate_ranks(const struct gkyl_comm *comm1, int num_ranks, const int *ranks1, const struct gkyl_comm *comm2, int *ranks2)
 {
   return comm1->group_translate_ranks(comm1, num_ranks, ranks1, comm2, ranks2);
 }

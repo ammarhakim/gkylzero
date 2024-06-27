@@ -283,7 +283,7 @@ create_group_comm(const struct gkyl_comm *comm, int num_ranks, const int *ranks,
 }
 
 static int
-group_translate_ranks(const struct gkyl_comm *comm1, int num_ranks, const int ranks1[], struct gkyl_comm *comm2, int ranks2[])
+group_translate_ranks(const struct gkyl_comm *comm1, int num_ranks, const int *ranks1, const struct gkyl_comm *comm2, int *ranks2)
 {
   for(int i = 0; i < num_ranks; i++)
     ranks2[i] = ranks1[i];

@@ -778,7 +778,7 @@ create_group_comm(const struct gkyl_comm *comm, int num_ranks, const int *ranks,
 }
 
 static int
-group_translate_ranks(const struct gkyl_comm *comm1, int num_ranks, const int ranks1[], struct gkyl_comm *comm2, int ranks2[])
+group_translate_ranks(const struct gkyl_comm *comm1, int num_ranks, const int *ranks1, const struct gkyl_comm *comm2, int *ranks2)
 {
   MPI_Group group1, group2;
   struct mpi_comm *mpi1 = container_of(comm1, struct mpi_comm, base);
