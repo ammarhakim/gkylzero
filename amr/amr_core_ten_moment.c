@@ -110,26 +110,26 @@ ten_moment_1d_run_single(int argc, char **argv, struct ten_moment_1d_single_init
       }
     );
 
-    struct gkyl_moment_em_coupling_inp coarse_src_inp = {
+    struct gkyl_moment_em_coupling_inp mesh_src_inp = {
       .grid = &mesh_pdata[i].grid,
       .nfluids = 2,
       .epsilon0 = epsilon0,
     };
 
-    coarse_src_inp.param[0] = (struct gkyl_moment_em_coupling_data) {
+    mesh_src_inp.param[0] = (struct gkyl_moment_em_coupling_data) {
       .type = mesh_pdata[i].euler_elc->type,
       .charge = charge_elc,
       .mass = mass_elc,
       .k0 = k0_elc,
     };
-    coarse_src_inp.param[1] = (struct gkyl_moment_em_coupling_data) {
+    mesh_src_inp.param[1] = (struct gkyl_moment_em_coupling_data) {
       .type = mesh_pdata[i].euler_ion->type,
       .charge = charge_ion,
       .mass = mass_ion,
       .k0 = k0_ion,
     };
 
-    mesh_pdata[i].src_slvr = gkyl_moment_em_coupling_new(coarse_src_inp);
+    mesh_pdata[i].src_slvr = gkyl_moment_em_coupling_new(mesh_src_inp);
   }
 
   struct gkyl_block_topo *ptopo = create_patch_topo();
@@ -431,26 +431,26 @@ ten_moment_2d_run_single(int argc, char **argv, struct ten_moment_2d_single_init
       );
     }
 
-    struct gkyl_moment_em_coupling_inp coarse_src_inp = {
+    struct gkyl_moment_em_coupling_inp mesh_src_inp = {
       .grid = &mesh_bdata[i].grid,
       .nfluids = 2,
       .epsilon0 = epsilon0,
     };
 
-    coarse_src_inp.param[0] = (struct gkyl_moment_em_coupling_data) {
+    mesh_src_inp.param[0] = (struct gkyl_moment_em_coupling_data) {
       .type = mesh_bdata[i].euler_elc->type,
       .charge = charge_elc,
       .mass = mass_elc,
       .k0 = k0_elc,
     };
-    coarse_src_inp.param[1] = (struct gkyl_moment_em_coupling_data) {
+    mesh_src_inp.param[1] = (struct gkyl_moment_em_coupling_data) {
       .type = mesh_bdata[i].euler_ion->type,
       .charge = charge_ion,
       .mass = mass_ion,
       .k0 = k0_ion,
     };
 
-    mesh_bdata[i].src_slvr = gkyl_moment_em_coupling_new(coarse_src_inp);
+    mesh_bdata[i].src_slvr = gkyl_moment_em_coupling_new(mesh_src_inp);
   }
 
   struct gkyl_block_topo *btopo = create_block_topo();
@@ -797,26 +797,26 @@ ten_moment_2d_run_double(int argc, char **argv, struct ten_moment_2d_double_init
       );
     }
 
-    struct gkyl_moment_em_coupling_inp coarse_src_inp = {
+    struct gkyl_moment_em_coupling_inp mesh_src_inp = {
       .grid = &mesh_bdata[i].grid,
       .nfluids = 2,
       .epsilon0 = epsilon0,
     };
 
-    coarse_src_inp.param[0] = (struct gkyl_moment_em_coupling_data) {
+    mesh_src_inp.param[0] = (struct gkyl_moment_em_coupling_data) {
       .type = mesh_bdata[i].euler_elc->type,
       .charge = charge_elc,
       .mass = mass_elc,
       .k0 = k0_elc,
     };
-    coarse_src_inp.param[1] = (struct gkyl_moment_em_coupling_data) {
+    mesh_src_inp.param[1] = (struct gkyl_moment_em_coupling_data) {
       .type = mesh_bdata[i].euler_ion->type,
       .charge = charge_ion,
       .mass = mass_ion,
       .k0 = k0_ion,
     };
 
-    mesh_bdata[i].src_slvr = gkyl_moment_em_coupling_new(coarse_src_inp);
+    mesh_bdata[i].src_slvr = gkyl_moment_em_coupling_new(mesh_src_inp);
   }
 
   struct gkyl_block_topo *btopo = create_nested_block_topo();
