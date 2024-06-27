@@ -528,10 +528,7 @@ main(int argc, char **argv)
   /* Block layout
 
      +------+
-     |2(bup)|
-     |      |
-     +------+
-     |1(bmid)|
+     |1(bup)|
      |      |
      +------+
      |0(blo)|
@@ -540,13 +537,10 @@ main(int argc, char **argv)
     
   */  
 
-
-
-
   struct gkyl_gk blo = {
     .lower = { ctx.R - (0.5 * ctx.Lx), -0.5 * ctx.Lz },
-    .upper = { ctx.R + (0.5 * ctx.Lx),  -0.25*ctx.Lz },
-    .cells = { cells_x[0], cells_x[1]/4 },
+    .upper = { ctx.R + (0.5 * ctx.Lx),  0.25 * ctx.Lz },
+    .cells = { cells_x[0], 3*cells_x[1]/4 },
 
     .geometry = {
       .geometry_id = GKYL_MAPC2P,
@@ -567,13 +561,13 @@ main(int argc, char **argv)
       }
     }, 
 
-    .cuts = { 1, 1 },
+    .cuts = { 1, 2 },
   };
 
-  struct gkyl_gk bmid = {
-    .lower = { ctx.R - (0.5 * ctx.Lx), -0.25*ctx.Lz },
-    .upper = { ctx.R + (0.5 * ctx.Lx), 0.25 * ctx.Lz },
-    .cells = { cells_x[0], cells_x[1]/2 },
+  struct gkyl_gk bup= {
+    .lower = { ctx.R - (0.5 * ctx.Lx), 0.25 * ctx.Lz },
+    .upper = { ctx.R + (0.5 * ctx.Lx),  0.5 * ctx.Lz },
+    .cells = { cells_x[0], 1*cells_x[1]/4 },
 
     .geometry = {
       .geometry_id = GKYL_MAPC2P,
@@ -589,55 +583,24 @@ main(int argc, char **argv)
         { .bid = 1, .dir = 0, .edge = GKYL_BLOCK_EDGE_PHYSICAL },
       },
       .connections[1] = { // z-direction
-        { .bid = 0, .dir = 1, .edge = GKYL_BLOCK_EDGE_UPPER_POSITIVE}, 
-        { .bid = 2, .dir = 1, .edge = GKYL_BLOCK_EDGE_LOWER_POSITIVE },
+        { .bid = 0, .dir = 1, .edge = GKYL_BLOCK_EDGE_UPPER_POSITIVE}, // physical boundary
+        { .bid = 1, .dir = 1, .edge = GKYL_BLOCK_EDGE_PHYSICAL},
       }
     }, 
 
-    .cuts = { 1, 1 },
-  };
-
-  struct gkyl_gk bup= {
-    .lower = { ctx.R - (0.5 * ctx.Lx),  0.25 * ctx.Lz },
-    .upper = { ctx.R + (0.5 * ctx.Lx),  0.5 * ctx.Lz },
-    .cells = { cells_x[0], cells_x[1]/4 },
-
-    .geometry = {
-      .geometry_id = GKYL_MAPC2P,
-      .mapc2p = mapc2p,
-      .c2p_ctx = &ctx,
-      .bmag_func = bmag_func,
-      .bmag_ctx = &ctx,
-    },
-
-    .block_connections = {
-      .connections[0] = { // x-direction
-        { .bid = 2, .dir = 0, .edge = GKYL_BLOCK_EDGE_PHYSICAL }, // physical boundary
-        { .bid = 2, .dir = 0, .edge = GKYL_BLOCK_EDGE_PHYSICAL },
-      },
-      .connections[1] = { // z-direction
-        { .bid = 1, .dir = 1, .edge = GKYL_BLOCK_EDGE_UPPER_POSITIVE}, // physical boundary
-        { .bid = 2, .dir = 1, .edge = GKYL_BLOCK_EDGE_PHYSICAL},
-      }
-    }, 
-
-    .cuts = { 1, 1 },
+    .cuts = { 1, 2 },
   };
 
   // GK app.
   struct gkyl_gk_multib app_inp = {
-    .name = "gk_multib_3b_sheath_2x2v_p1",
-
+    .name = "gk_mb_sheath_2x2v_p1",
     .cdim = 2, .vdim = 2,
-    //.lower = { ctx.R - (0.5 * ctx.Lx), -0.5 * ctx.Lz },
-    //.upper = { ctx.R + (0.5 * ctx.Lx),  0.5 * ctx.Lz },
-    //.cells = { cells_x[0], cells_x[1] },
     .poly_order = 1,
     .basis_type = app_args.basis_type,
     .cfl_frac = 0.4,
 
-    .num_blocks = 3,
-    .blocks = { &blo, &bmid, &bup },
+    .num_blocks = 2,
+    .blocks = { &blo, &bup },
 
     .num_periodic_dir = 0,
     .periodic_dirs = { },

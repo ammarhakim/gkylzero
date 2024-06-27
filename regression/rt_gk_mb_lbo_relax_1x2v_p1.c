@@ -353,7 +353,7 @@ main(int argc, char **argv)
 
   // GK app.
   struct gkyl_gk_multib app_inp = {
-    .name = "gk_multib_lbo_relax_1x2v_p1",
+    .name = "gk_mb_lbo_relax_1x2v_p1",
 
     .cdim = 1, .vdim = 2,
     .poly_order = 1,
