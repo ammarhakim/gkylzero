@@ -9,56 +9,50 @@
 #include <float.h>
 #include <time.h>
 
-static int count_distinct(int a[], int n)      //Function Definition
+/**
+ * Count number of distinct elements in an array of ints
+ * .
+ * @param a input array of ints
+ * @param n length of a
+ * return number of unique elements in a
+ */
+static int count_distinct(int a[], int n)
 {
    int i, j, count = 1;
-   //Traverse the array
-   for (i = 1; i < n; i++)      //hold an array element
-   {
-      for (j = 0; j < i; j++)   
-      {
-         if (a[i] == a[j])    //Check for duplicate elements
-         {
-            break;             //If duplicate elements found then break
-         }
-      }
-      if (i == j)
-      {
-         count++;     //increment the number of distinct elements
-      }
+   for (i = 1; i < n; i++) { // Check if a[i] is a new element
+     for (j = 0; j < i; j++) {
+       if (a[i] == a[j])    // Check if a[i] has already been found 
+          break;            // Break if it is a duplicate
+     }
+     if (i == j)
+       count++;     //increment the number of distinct elements
    }
-   return count;      //Return the number of distinct elements
+   return count;
 }
 
-static int get_unique(int *input_array, int n, int *unique_array) {
-    // Initialize an array to keep track of unique elements
-    int isUnique[n];  // Using VLA (Variable Length Array) for simplicity
-    
-    // Initialize all elements as unique (false)
-    for (int i = 0; i < n; i++) {
-        isUnique[i] = 1;
-    }
-    
-    // Mark duplicates as non-unique
-    for (int i = 0; i < n; i++) {
-        if (isUnique[i]) {
-            for (int j = i + 1; j < n; j++) {
-                if (input_array[i] == input_array[j]) {
-                    isUnique[j] = 0;  // Mark as non-unique
-                }
-            }
-        }
-    }
-    
-    // Copy unique elements to unique_array and count them
-    int uniqueCount = 0;
-    for (int i = 0; i < n; i++) {
-        if (isUnique[i]) {
-            unique_array[uniqueCount++] = input_array[i];
-        }
-    }
-    
-    return uniqueCount;
+/**
+ * Populate an output array with the distinct elements in an array of ints
+ * .
+ * @param a input array of ints
+ * @param n length of input array
+ * @param n_unique number of unique elements in a
+ * @param unique_array on output contains the unique elements in a
+ * return number of unique elements in a
+ */
+static int get_unique(int *a, int n, int *unique_array) {
+   unique_array[0] = a[0]; // The first element of a is the first unique element
+   int i, j, count = 1;
+   for (i = 1; i < n; i++) { // Check if a[i] is a new element
+     for (j = 0; j < i; j++) {
+       if (a[i] == a[j])    // Check if a[i] has already been found 
+          break;            // Break if it is a duplicate
+     }
+     if (i == j) {
+       count++;     //increment the number of distinct elements
+       unique_array[i] = a[i];
+     }
+   }
+   return count;
 }
 
 static void
