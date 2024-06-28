@@ -163,11 +163,11 @@ gk_field_multib_new(struct gkyl_gk_multib *inp, struct gkyl_gyrokinetic_multib_a
 
   // Create the decomp and communicator from the mb app communicator
   // Stack all the individual ranges together
-  int num_ranges = 0;
+  int num_ranges_z = 0;
   for (int i=0; i<num_blocks; i++)
-    num_ranges += mba->decomp_intrab[mbf->crossz_block_idxs[i]]->ndecomp;
-  mbf->num_cuts = num_ranges;
-  mbf->cut_ranges = gkyl_malloc(num_ranges * sizeof(struct gkyl_range));
+    num_ranges_z += mba->decomp_intrab[mbf->crossz_block_idxs[i]]->ndecomp;
+  mbf->num_cuts = num_ranges_z;
+  mbf->cut_ranges = gkyl_malloc(num_ranges_z * sizeof(struct gkyl_range));
   int range_count = 0;
   int num_zcells_cum = 0;
   for (int ib=0; ib<num_blocks; ib++) {
@@ -186,20 +186,20 @@ gk_field_multib_new(struct gkyl_gk_multib *inp, struct gkyl_gyrokinetic_multib_a
   }
 
   // Populate with ranks in each block
-  mbf->zranks = gkyl_malloc(num_ranges*sizeof(int));
+  int zranks_mb[num_ranges_z];
   int num_ranks_cum = 0;
   for (int i=0; i<num_blocks; i++) {
-    int num_ranks = gkyl_gyrokinetic_multib_ranks_per_block(mba, mbf->crossz_block_idxs[i], &mbf->zranks[num_ranks_cum]);
+    int num_ranks = gkyl_gyrokinetic_multib_ranks_per_block(mba, mbf->crossz_block_idxs[i], &zranks_mb[num_ranks_cum]);
     num_ranks_cum += num_ranks;
   }
 
-  int num_unique_ranks = count_distinct(mbf->zranks, num_ranges);
-  mbf->unique_zranks = gkyl_malloc(num_unique_ranks*sizeof(int));
-  int num_unique_ranks2 = get_unique(mbf->zranks, num_ranges, mbf->unique_zranks);
+  int num_unique_ranks = count_distinct(zranks_mb, num_ranges_z);
+  int unique_zranks_mb[num_unique_ranks];
+  int num_unique_ranks2 = get_unique(zranks_mb, num_ranges_z, unique_zranks_mb);
   assert(num_unique_ranks == num_unique_ranks2);
 
   int tag = 0;
-  mbf->zcomm = gkyl_comm_create_group_comm(mba->comm_multib, num_unique_ranks, mbf->unique_zranks, tag, 0);
+  mbf->zcomm = gkyl_comm_create_group_comm(mba->comm_multib, num_unique_ranks, unique_zranks_mb, tag, 0);
 
   // allocate arrays for charge density
   struct gkyl_gyrokinetic_app *app = mba->blocks[bc];
@@ -214,6 +214,12 @@ gk_field_multib_new(struct gkyl_gk_multib *inp, struct gkyl_gyrokinetic_multib_a
 
   mbf->fem_parproj = gkyl_fem_parproj_new(&mbf->crossz, &mbf->crossz_ext, 
     &app->confBasis, mbf->info.fem_parbc, NULL, mba->use_gpu);
+
+  mbf->zranks = gkyl_malloc(num_ranges_z*sizeof(int));
+  gkyl_comm_group_translate_ranks(mba->comm_multib, num_ranges_z, zranks_mb,  mbf->zcomm, mbf->zranks);
+
+  mbf->unique_zranks = gkyl_malloc(num_unique_ranks*sizeof(int));
+  gkyl_comm_group_translate_ranks(mba->comm_multib, num_unique_ranks, unique_zranks_mb,  mbf->zcomm, mbf->unique_zranks);
   
   int rank = 0;
   gkyl_comm_get_rank(mba->comm_multib, &rank);

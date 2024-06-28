@@ -540,7 +540,7 @@ main(int argc, char **argv)
   struct gkyl_gk blo = {
     .lower = { ctx.R - (0.5 * ctx.Lx), -0.5 * ctx.Lz },
     .upper = { ctx.R + (0.5 * ctx.Lx),  0.25 * ctx.Lz },
-    .cells = { cells_x[0], 16 },
+    .cells = { cells_x[0], 3*cells_x[1]/4 },
 
     .geometry = {
       .geometry_id = GKYL_MAPC2P,
