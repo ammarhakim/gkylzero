@@ -200,7 +200,7 @@ five_moment_patch_bc_updaters_release(struct five_moment_patch_data* pdata)
     gkyl_wv_apply_bc_release(pdata->upper_bc_maxwell[0]);
   }
 
-  //gkyl_array_release(pdata->bc_buffer_elc);
+  gkyl_array_release(pdata->bc_buffer_elc);
   gkyl_array_release(pdata->bc_buffer_ion);
   gkyl_array_release(pdata->bc_buffer_maxwell);
 }
@@ -601,8 +601,8 @@ five_moment_update_patch_job_func_source(void* ctx)
   nT_source[0] = pdata->nT_source_elc;
   nT_source[1] = pdata->nT_source_ion;
 
-  gkyl_moment_em_coupling_implicit_advance(pdata->src_slvr, t_curr, dt, &pdata->range, fluids, app_accel, rhs_source,
-    pdata->f_maxwell[nstrang], pdata->app_current, pdata->ext_em, nT_source);
+  /*gkyl_moment_em_coupling_implicit_advance(pdata->src_slvr, t_curr, dt, &pdata->range, fluids, app_accel, rhs_source,
+    pdata->f_maxwell[nstrang], pdata->app_current, pdata->ext_em, nT_source);*/
 
   five_moment_patch_bc_updaters_apply(pdata, t_curr, pdata->f_elc[nstrang], pdata->f_ion[nstrang], pdata->f_maxwell[nstrang]);
 }
@@ -634,7 +634,7 @@ five_moment_update_all_patches(const struct gkyl_job_pool* job_pool, const struc
   gkyl_job_pool_wait(job_pool);
 #else
   for (int i = 0; i < num_patches; i++) {
-    five_moment_update_patches_job_func(&five_moment_patch_ctx[i]);
+    five_moment_update_patch_job_func(&five_moment_patch_ctx[i]);
   }
 #endif
 

@@ -44,10 +44,10 @@ ten_moment_1d_run_single(int argc, char **argv, struct ten_moment_1d_single_init
   strcpy(ten_moment_output, init->ten_moment_output);
 
   bool low_order_flux = init->low_order_flux;
-  double cfl_frac = init->cfl_frac;
-
-  double t_end = init->t_end;
   int num_frames = init->num_frames;
+
+  double cfl_frac = init->cfl_frac;
+  double t_end = init->t_end;
   double dt_failure_tol = init->dt_failure_tol;
   int num_failures_max = init->num_failures_max;
 
@@ -62,6 +62,7 @@ ten_moment_1d_run_single(int argc, char **argv, struct ten_moment_1d_single_init
   
   gkyl_rect_grid_init(&mesh_pdata[1].grid, 1, (double []) { coarse_x1 }, (double []) { refined_x1 }, (int []) { Nx } );
   gkyl_rect_grid_init(&mesh_pdata[2].grid, 1, (double []) { refined_x2 }, (double []) { coarse_x2 }, (int []) { Nx } );
+
 
   for (int i = 0; i < num_patches; i++) {
     mesh_pdata[i].fv_proj_elc = gkyl_fv_proj_new(&mesh_pdata[i].grid, 1, 10, eval_elc, 0);
@@ -120,13 +121,15 @@ ten_moment_1d_run_single(int argc, char **argv, struct ten_moment_1d_single_init
       .type = mesh_pdata[i].euler_elc->type,
       .charge = charge_elc,
       .mass = mass_elc,
-      .k0 = k0_elc,
+      //.k0 = k0_elc,
+      .k0 = 0.0,
     };
     mesh_src_inp.param[1] = (struct gkyl_moment_em_coupling_data) {
       .type = mesh_pdata[i].euler_ion->type,
       .charge = charge_ion,
       .mass = mass_ion,
-      .k0 = k0_ion,
+      //.k0 = k0_ion,
+      .k0 = 0.0,
     };
 
     mesh_pdata[i].src_slvr = gkyl_moment_em_coupling_new(mesh_src_inp);
