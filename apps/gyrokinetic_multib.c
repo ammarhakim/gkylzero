@@ -102,7 +102,7 @@ gkyl_gyrokinetic_multib_app_new(struct gkyl_gk_multib *inp)
   }
   else {
     // This case is intended for simulations with multiple single-cut blocks
-    // (scbs, w/ cuts_vol=1). Blocks with cuts_vol>1 will have one rank owning
+    // (scb, w/ cuts_vol=1). Blocks with cuts_vol>1 will have one rank owning
     // a subdomain of those blocks, and that rank will own nothing else. Yet a
     // rank may handle one or more scbs.
 
@@ -127,7 +127,7 @@ gkyl_gyrokinetic_multib_app_new(struct gkyl_gk_multib *inp)
     // Number of ranks owning single-cut blocks (scbrank).
     int num_scbrank = num_scb - extra_blocks;
     // Distribute scb amongst scbranks: 
-    int *scbrank_num_blocks = gkyl_malloc(num_scbrank * sizeof(int));
+    int scbrank_num_blocks[num_scbrank];
     int base = num_scb/num_scbrank;
     int rem = num_scb - num_scbrank * base;
     for (int i=0; i<num_scbrank; i++)
@@ -136,8 +136,7 @@ gkyl_gyrokinetic_multib_app_new(struct gkyl_gk_multib *inp)
       scbrank_num_blocks[i]++;
 
     // List of block IDs owned by each scbrank.
-    int *scbrank_blocks = gkyl_malloc(num_scbrank * (base+1) * sizeof(int));
-    int curr_scb_idx = 0;
+    int scbrank_blocks[num_scbrank * (base+1)];
     for (int i=0; i<num_scbrank; i++) {
       int scb_count = 0;
       for (int j=0; j<scbrank_num_blocks[i]; j++) {
@@ -163,7 +162,7 @@ gkyl_gyrokinetic_multib_app_new(struct gkyl_gk_multib *inp)
         }
         else {
           // Assign this additional scb to a scbrank that already has one or more scbs.
-          int scb_idx = scbrank_blocks[curr_scbrank*(base+1)+scbrank_count];
+          int scb_idx = scbrank_blocks[curr_scbrank*(base+1)];
           ranks_per_block[bidx*cuts_vol_max] = ranks_per_block[scb_idx*cuts_vol_max];
         }
         scbrank_count++;
@@ -191,8 +190,6 @@ gkyl_gyrokinetic_multib_app_new(struct gkyl_gk_multib *inp)
     for (int i=0; i<mba->num_blocks_local; i++)
       mba->block_idxs[i] = my_block_idxs[i];
 
-    gkyl_free(scbrank_blocks);
-    gkyl_free(scbrank_num_blocks);
   }
 
   // Store the ranks_per_block for later use.
