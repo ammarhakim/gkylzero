@@ -154,6 +154,10 @@ gk_field_multib_new(struct gkyl_gk_multib *inp, struct gkyl_gyrokinetic_multib_a
     int nghost[2] = {1,1};
     gkyl_create_ranges(&crossz, nghost, &mbf->crossz_ext, &mbf->crossz);
 
+
+    printf("crossz.lower = %d %d\n", crossz.lower[0], crossz.lower[1]);
+    printf("crossz.upper = %d %d\n", crossz.upper[0], crossz.upper[1]);
+
     // Create the decomp and communicator from the mb app communicator
     // Stack all the individual ranges together
     int num_ranges = 0;
@@ -172,6 +176,9 @@ gk_field_multib_new(struct gkyl_gk_multib *inp, struct gkyl_gyrokinetic_multib_a
         lower[1] = decomp_i->ranges[id].lower[1] + num_zcells_before;
         upper[1] = decomp_i->ranges[id].upper[1] + num_zcells_before;
         gkyl_range_init(&mbf->cut_ranges[range_count], mba->cdim, lower, upper);
+
+        printf("cut_ranges[%d].lower = %d %d\n", range_count, mbf->cut_ranges[range_count].lower[0], mbf->cut_ranges[range_count].lower[1]);
+        printf("cut_ranges[%d].upper = %d %d\n", range_count, mbf->cut_ranges[range_count].upper[0], mbf->cut_ranges[range_count].upper[1]);
         range_count+=1;
       }
       num_zcells_before += gkyl_range_shape(&decomp_i->parent_range, 1);
@@ -189,10 +196,10 @@ gk_field_multib_new(struct gkyl_gk_multib *inp, struct gkyl_gyrokinetic_multib_a
     // Populates ranks with ranks in each block
     int num_populated = 0;
     for (int i = 0; i < num_blocks; i++) {
-      printf("rank before = %d\n", zranks[num_populated]);
+      //printf("rank before = %d\n", zranks[num_populated]);
       int num_ranks = gkyl_gyrokinetic_multib_ranks_per_block(mba, mbf->crossz_block_idxs[i], &zranks[num_populated]);
-      printf("bidx = %d | rank after = %d\n", mbf->crossz_block_idxs[i], zranks[num_populated]);
-      printf("bidx = %d | num ranks = %d\n", bidx, num_ranks);
+      //printf("bidx = %d | rank after = %d\n", mbf->crossz_block_idxs[i], zranks[num_populated]);
+      //printf("bidx = %d | num ranks = %d\n", bidx, num_ranks);
       //num_populated += mba->decomp_intrab[mbf->crossz_block_idxs[i]]->ndecomp; Should be same as line below
       num_populated += num_ranks;
     }
@@ -209,7 +216,7 @@ gk_field_multib_new(struct gkyl_gk_multib *inp, struct gkyl_gyrokinetic_multib_a
     int unique_zranks[num_unique_ranks];
     int num_unique_ranks2 = get_unique(zranks, num_ranges, unique_zranks);
     printf("unique ranks = %d\n", num_unique_ranks);
-    printf("unique ranks2 = %d\n", num_unique_ranks2);
+    //printf("unique ranks2 = %d\n", num_unique_ranks2);
     printf("the uq ranks are ");
     for(int i = 0; i < num_unique_ranks; i++){
       printf(" %d", unique_zranks[i]);
@@ -304,9 +311,9 @@ gk_field_multib_rhs(gkyl_gyrokinetic_multib_app *mba, struct gk_field_multib *mb
     //printf("range_curr.upper = %d %d\n", range_curr.upper[0], range_curr.upper[1]);
     long start_loc = gkyl_range_idx(&mbf->crossz, idx);
     double *data_start = gkyl_array_fetch(mbf->rho_c_global_dg, start_loc);
-    printf("ic = %d, start_loc = %ld\n", ic, start_loc);
-    printf(" size = %ld\n", range_curr.volume);
-    printf(" root rank - %d\n", mbf->zranks[ic]);
+    //printf("ic = %d, start_loc = %ld\n", ic, start_loc);
+    //printf(" size = %ld\n", range_curr.volume);
+    //printf(" root rank - %d\n", mbf->zranks[ic]);
     gkyl_comm_bcast(mbf->zcomm, data_start, range_curr.volume, mbf->zranks[ic]);
   }
   //int rank = 0;
