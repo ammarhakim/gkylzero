@@ -540,7 +540,7 @@ main(int argc, char **argv)
   struct gkyl_gk blo = {
     .lower = { ctx.R - (0.5 * ctx.Lx), -0.5 * ctx.Lz },
     .upper = { ctx.R + (0.5 * ctx.Lx),  0.25 * ctx.Lz },
-    .cells = { cells_x[0], 3*cells_x[1]/4 },
+    .cells = { cells_x[0], 16 },
 
     .geometry = {
       .geometry_id = GKYL_MAPC2P,
@@ -661,45 +661,45 @@ main(int argc, char **argv)
   int num_failures = 0, num_failures_max = ctx.num_failures_max;
 
   long step = 1;
-  while ((t_curr < t_end) && (step <= app_args.num_steps)) {
-    gkyl_gyrokinetic_multib_app_cout(app, stdout, "Taking time-step %ld at t = %g ...", step, t_curr);
-    struct gkyl_update_status status = gkyl_gyrokinetic_multib_update(app, dt);
-    gkyl_gyrokinetic_multib_app_cout(app, stdout, " dt = %g\n", status.dt_actual);
-
-    if (!status.success) {
-      gkyl_gyrokinetic_multib_app_cout(app, stdout, "** Update method failed! Aborting simulation ....\n");
-      break;
-    }
-
-    t_curr += status.dt_actual;
-    dt = status.dt_suggested;
-
-    calc_integrated_diagnostics(&trig_calc_intdiag, app, t_curr, t_curr > t_end);
-    write_data(&trig_write, app, t_curr, t_curr > t_end);
-
-    if (dt_init < 0.0) {
-      dt_init = status.dt_actual;
-    }
-    else if (status.dt_actual < dt_failure_tol * dt_init) {
-      num_failures += 1;
-
-      gkyl_gyrokinetic_multib_app_cout(app, stdout, "WARNING: Time-step dt = %g", status.dt_actual);
-      gkyl_gyrokinetic_multib_app_cout(app, stdout, " is below %g*dt_init ...", dt_failure_tol);
-      gkyl_gyrokinetic_multib_app_cout(app, stdout, " num_failures = %d\n", num_failures);
-      if (num_failures >= num_failures_max) {
-        gkyl_gyrokinetic_multib_app_cout(app, stdout, "ERROR: Time-step was below %g*dt_init ", dt_failure_tol);
-        gkyl_gyrokinetic_multib_app_cout(app, stdout, "%d consecutive times. Aborting simulation ....\n", num_failures_max);
-        calc_integrated_diagnostics(&trig_calc_intdiag, app, t_curr, true);
-        write_data(&trig_write, app, t_curr, true);
-        break;
-      }
-    }
-    else {
-      num_failures = 0;
-    }
-
-    step += 1;
-  }
+//  while ((t_curr < t_end) && (step <= app_args.num_steps)) {
+//    gkyl_gyrokinetic_multib_app_cout(app, stdout, "Taking time-step %ld at t = %g ...", step, t_curr);
+//    struct gkyl_update_status status = gkyl_gyrokinetic_multib_update(app, dt);
+//    gkyl_gyrokinetic_multib_app_cout(app, stdout, " dt = %g\n", status.dt_actual);
+//
+//    if (!status.success) {
+//      gkyl_gyrokinetic_multib_app_cout(app, stdout, "** Update method failed! Aborting simulation ....\n");
+//      break;
+//    }
+//
+//    t_curr += status.dt_actual;
+//    dt = status.dt_suggested;
+//
+//    calc_integrated_diagnostics(&trig_calc_intdiag, app, t_curr, t_curr > t_end);
+//    write_data(&trig_write, app, t_curr, t_curr > t_end);
+//
+//    if (dt_init < 0.0) {
+//      dt_init = status.dt_actual;
+//    }
+//    else if (status.dt_actual < dt_failure_tol * dt_init) {
+//      num_failures += 1;
+//
+//      gkyl_gyrokinetic_multib_app_cout(app, stdout, "WARNING: Time-step dt = %g", status.dt_actual);
+//      gkyl_gyrokinetic_multib_app_cout(app, stdout, " is below %g*dt_init ...", dt_failure_tol);
+//      gkyl_gyrokinetic_multib_app_cout(app, stdout, " num_failures = %d\n", num_failures);
+//      if (num_failures >= num_failures_max) {
+//        gkyl_gyrokinetic_multib_app_cout(app, stdout, "ERROR: Time-step was below %g*dt_init ", dt_failure_tol);
+//        gkyl_gyrokinetic_multib_app_cout(app, stdout, "%d consecutive times. Aborting simulation ....\n", num_failures_max);
+//        calc_integrated_diagnostics(&trig_calc_intdiag, app, t_curr, true);
+//        write_data(&trig_write, app, t_curr, true);
+//        break;
+//      }
+//    }
+//    else {
+//      num_failures = 0;
+//    }
+//
+//    step += 1;
+//  }
 
   gkyl_gyrokinetic_multib_app_stat_write(app);
   

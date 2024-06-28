@@ -582,7 +582,7 @@ main(int argc, char **argv)
       }
     }, 
 
-    .cuts = { 1, 1 },
+    .cuts = { 1, 2 },
   };
 
   struct gkyl_gk bup= {

@@ -57,8 +57,9 @@ struct gk_field_multib {
   struct gkyl_array *rho_c_global_smooth; 
   struct gkyl_array *phi; // arrays for updates
 
-  struct gkyl_array *phi_host;  // host copy for use IO and initialization
+  struct gkyl_array *phi_ho;  // host copy for use IO and initialization
 
+  struct gkyl_range parent_range_off[GKYL_MAX_BLOCKS];
   struct gkyl_range crossz_sub_range[GKYL_MAX_BLOCKS]; // sub range of intersection of global range and local range
                                       // for solving subset of Poisson solves with parallelization in z
 
@@ -96,7 +97,7 @@ gkyl_gyrokinetic_multib_num_ranks_per_block(gkyl_gyrokinetic_multib_app *mba, in
 int
 gkyl_gyrokinetic_multib_ranks_per_block(gkyl_gyrokinetic_multib_app *mba, int bidx, int *ranks);
 
-void gk_field_multib_rhs(gkyl_gyrokinetic_multib_app *mb_app, struct gk_field_multib *field_multib);
+void gk_field_multib_rhs(gkyl_gyrokinetic_multib_app *mb_app, struct gk_field_multib *field_multib, int fidx);
 
 void
 gk_field_multib_release(const gkyl_gyrokinetic_multib_app* mb_app, struct gk_field_multib *f);

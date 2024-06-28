@@ -310,7 +310,7 @@ static void
 calc_field(gkyl_gyrokinetic_multib_app* mba, double tcurr, int fidx)
 {
   // Compute fields.
-  gk_field_multib_rhs(mba, mba->field_multib);
+  gk_field_multib_rhs(mba, mba->field_multib, fidx);
 }
 
 static void
