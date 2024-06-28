@@ -152,7 +152,7 @@ gk_field_multib_new(struct gkyl_gk_multib *inp, struct gkyl_gyrokinetic_multib_a
   struct gkyl_range crossz;
   gkyl_range_init(&crossz, mba->cdim, lower, upper);
   int nghost[mba->cdim];
-  for (int d=0; d<mba->cdim-1; d++) nghost[d] = 1;
+  for (int d=0; d<mba->cdim; d++) nghost[d] = 1;
   gkyl_create_ranges(&crossz, nghost, &mbf->crossz_ext, &mbf->crossz);
 
   // Create the decomp and communicator from the mb app communicator

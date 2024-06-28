@@ -70,6 +70,7 @@ gkyl_gyrokinetic_multib_app_new(struct gkyl_gk_multib *inp)
 
   int *cuts_vol_per_block = gkyl_malloc(mba->num_blocks * sizeof(int));
   int *ranks_per_block = gkyl_malloc(mba->num_blocks * cuts_vol_max * sizeof(int));
+  for (int i = 0 ; i < mba->num_blocks * cuts_vol_max;i++) ranks_per_block[i] = -1;
 
   if (cuts_vol_tot == comm_size) {
 
