@@ -268,8 +268,8 @@ split_comm(const struct gkyl_comm *comm, int color, struct gkyl_rect_decomp *new
 }
 
 static struct gkyl_comm*
-create_group_comm(const struct gkyl_comm *comm, int num_ranks, const int *ranks,
-  int tag, struct gkyl_rect_decomp *new_decomp)
+create_comm(const struct gkyl_comm *comm, int num_ranks, const int *ranks,
+  struct gkyl_rect_decomp *new_decomp)
 {
   struct null_comm *null_comm = container_of(comm, struct null_comm, base);
   struct gkyl_comm *new_comm = gkyl_null_comm_inew( &(struct gkyl_null_comm_inp) {
@@ -333,7 +333,7 @@ gkyl_null_comm_inew(const struct gkyl_null_comm_inp *inp)
   comm->base.gkyl_array_write = array_write;
   comm->base.gkyl_array_read = array_read;
   comm->base.split_comm = split_comm;
-  comm->base.create_group_comm = create_group_comm;
+  comm->base.create_comm = create_comm;
   comm->base.group_translate_ranks = group_translate_ranks;
   comm->base.barrier = barrier;
 

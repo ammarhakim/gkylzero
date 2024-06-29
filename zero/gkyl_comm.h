@@ -99,9 +99,9 @@ typedef struct gkyl_comm* (*extend_comm_t)(const struct gkyl_comm *comm,
 typedef struct gkyl_comm* (*split_comm_t)(const struct gkyl_comm *comm,
   int color, struct gkyl_rect_decomp *new_decomp);
 
-// MPI_Comm_create_group
-typedef struct gkyl_comm* (*create_group_comm_t)(const struct gkyl_comm *comm,
-  int num_ranks, const int *ranks, int tag, struct gkyl_rect_decomp *new_decomp);
+// MPI_Comm_create
+typedef struct gkyl_comm* (*create_comm_t)(const struct gkyl_comm *comm,
+  int num_ranks, const int *ranks, struct gkyl_rect_decomp *new_decomp);
 
 // MPI_Group_translate_ranks
 typedef int (*group_translate_ranks_t)(const struct gkyl_comm *comm1,
@@ -149,7 +149,7 @@ struct gkyl_comm {
 
   extend_comm_t extend_comm; // extend communcator
   split_comm_t split_comm; // split communicator.
-  create_group_comm_t create_group_comm; // Create a new comm for a group of ranks.
+  create_comm_t create_comm; // Create a new comm for a group of ranks.
   group_translate_ranks_t group_translate_ranks; // Create a new comm for a group of ranks.
 
   comm_state_new_t comm_state_new; // Allocate a new state object.
@@ -550,10 +550,10 @@ gkyl_comm_split_comm(const struct gkyl_comm *comm, int color,
  * @return Newly created communicator
  */
 static struct gkyl_comm*
-gkyl_comm_create_group_comm(const struct gkyl_comm *comm, int num_ranks,
-  const int *ranks, int tag, struct gkyl_rect_decomp *new_decomp)
+gkyl_comm_create_comm(const struct gkyl_comm *comm, int num_ranks,
+  const int *ranks, struct gkyl_rect_decomp *new_decomp)
 {
-  return comm->create_group_comm(comm, num_ranks, ranks, tag, new_decomp);
+  return comm->create_comm(comm, num_ranks, ranks, new_decomp);
 }
 
 

@@ -192,8 +192,7 @@ gk_field_multib_new(struct gkyl_gk_multib *inp, struct gkyl_gyrokinetic_multib_a
   int num_unique_ranks2 = get_unique(zranks_mb, num_ranges_z, unique_zranks_mb);
   assert(num_unique_ranks == num_unique_ranks2);
 
-  int tag = 0;
-  mbf->zcomm = gkyl_comm_create_group_comm(mba->comm_multib, num_unique_ranks, unique_zranks_mb, tag, 0);
+  mbf->zcomm = gkyl_comm_create_comm(mba->comm_multib, num_unique_ranks, unique_zranks_mb, 0);
 
   // allocate arrays for charge density
   struct gkyl_gyrokinetic_app *app = mba->blocks[bc];

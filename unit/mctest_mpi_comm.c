@@ -250,7 +250,8 @@ mpi_n3_allgatherv_1d()
     }
   );
 
-  int nghost[ndim] = { 1 };
+  int nghost[ndim];
+  for (int i =0; i < ndim; i++) nghost[i]= 1 ;
   struct gkyl_range local, local_ext;
   gkyl_create_ranges(&decomp->ranges[rank], nghost, &local_ext, &local);
 
@@ -1409,7 +1410,6 @@ mpi_comm_create_group_1d()
   bool am_i_prime = is_prime(rank);
 
   // Create separate communicators for prime ranks and non-prime ranks.
-  int tag;
   int num_ranks_group = 0;
   int ranks_group[m_sz]; // MF 2024/06/27: not ideal to pass something larger
                          // than num_ranks_group, but I think it might be fine
@@ -1417,12 +1417,10 @@ mpi_comm_create_group_1d()
     if (am_i_prime && is_prime(i)) { 
       ranks_group[num_ranks_group] = i;
       num_ranks_group += 1;
-      tag = 0;
     }
     else if (!am_i_prime && !is_prime(i)) { 
       ranks_group[num_ranks_group] = i;
       num_ranks_group += 1;
-      tag = 1;
     }
   }
 
@@ -1436,7 +1434,7 @@ mpi_comm_create_group_1d()
   int cuts_group[] = { num_ranks_group };
   struct gkyl_rect_decomp *decomp_group = gkyl_rect_decomp_new_from_cuts(global_group_r.ndim, cuts_group, &global_group_r);
 
-  struct gkyl_comm *comm_group = gkyl_comm_create_group_comm(comm, num_ranks_group, ranks_group, tag, decomp_group);
+  struct gkyl_comm *comm_group = gkyl_comm_create_comm(comm, num_ranks_group, ranks_group, decomp_group);
 
   // Do an allgather on this comm and check the result.
   int rank_group;
