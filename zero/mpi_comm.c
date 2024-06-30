@@ -130,7 +130,7 @@ bcast(struct gkyl_comm *comm, void *data, size_t data_sz, int root)
   struct mpi_comm *mpi = container_of(comm, struct mpi_comm, base);
 
   int ret = 
-    MPI_Bcast(data, data_sz, MPI_CHAR, root, mpi->mcomm);
+    MPI_Bcast(data, data_sz, MPI_DOUBLE, root, mpi->mcomm);
 
   return 0;
 }

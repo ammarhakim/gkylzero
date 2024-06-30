@@ -302,6 +302,8 @@ gkyl_gyrokinetic_multib_app_apply_ic(gkyl_gyrokinetic_multib_app* mba, double t0
   for (int bidx=0; bidx<mba->num_blocks_local; bidx++) {
     gkyl_gyrokinetic_app_apply_ic(mba->blocks[bidx], t0);
   }
+  int fidx=0;
+  gk_field_multib_rhs(mba, mba->field_multib, fidx);
 }
 
 static void

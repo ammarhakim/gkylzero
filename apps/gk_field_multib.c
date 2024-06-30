@@ -146,7 +146,7 @@ gk_field_multib_new(struct gkyl_gk_multib *inp, struct gkyl_gyrokinetic_multib_a
   for (int i=0; i<num_blocks; i++) {
     upper[mba->cdim-1] += gkyl_range_shape(&mba->decomp_intrab[mbf->crossz_block_idxs[i]]->parent_range, mba->cdim-1);
     gkyl_range_init(&mbf->parent_range_off[mbf->crossz_block_idxs[i]], mba->cdim, lower_off, upper);
-    lower_off[mba->cdim-1] = upper[mba->cdim-1]+1;
+    lower_off[mba->cdim-1] += gkyl_range_shape(&mba->decomp_intrab[mbf->crossz_block_idxs[i]]->parent_range, mba->cdim-1);
   }
 
   struct gkyl_range crossz;
@@ -214,12 +214,11 @@ gk_field_multib_new(struct gkyl_gk_multib *inp, struct gkyl_gyrokinetic_multib_a
   mbf->unique_zranks = gkyl_malloc(num_unique_ranks*sizeof(int));
   gkyl_comm_group_translate_ranks(mba->comm_multib, num_unique_ranks, unique_zranks_mb,  mbf->zcomm, mbf->unique_zranks);
   
-  int rank = 0;
-  gkyl_comm_get_rank(mba->comm_multib, &rank);
   // Now get the sub range intersects
   // Create global subrange we'll copy the field solver solution from (into local).
   for (int bc=0; bc<mba->num_blocks_local; bc++) {
     struct gkyl_gyrokinetic_app *app = mba->blocks[bc];
+    int bidx = mba->block_idxs[bc];
     int intersect = gkyl_sub_range_intersect(&mbf->crossz_sub_range[bc], &mbf->crossz, &mbf->parent_range_off[bidx]);
   }
 
@@ -246,35 +245,34 @@ gk_field_multib_rhs(gkyl_gyrokinetic_multib_app *mba, struct gk_field_multib *mb
   }
 
   // Now we need to do two things instead of the allgather.
-  // 1. for each local block, copy field->rho_c into the correct part of mbf->rho_c_global_dg
-  // 2. do the broadcast which will loop over num_cuts
+  // 1. Do an allgather within each block to fill and then copy the result in to the right part of
+  // the crossz global rho
+  // 2. Do the broadcast which will loop over num_cuts
    
-  int rank = 0;
-  gkyl_comm_get_rank(mba->comm_multib, &rank);
   // Do 1.
   for (int bc=0; bc<mba->num_blocks_local; bc++) {
     struct gkyl_gyrokinetic_app *app = mba->blocks[bc];
-    struct gk_field* field = app->field;
-    gkyl_array_copy_range_to_range(mbf->rho_c_global_dg, field->rho_c, &mbf->cut_ranges[rank], &app->local);
+    struct gk_field *field = app->field;
+    // Each block can gather its own charge density.
+    gkyl_comm_array_allgather(app->comm, &app->local, &app->global, field->rho_c, field->rho_c_global_dg);
+    // Copy into correct location of crossz rho
+    gkyl_array_copy_range_to_range(mbf->rho_c_global_dg, field->rho_c_global_dg, &mbf->crossz_sub_range[bc], &app->global);
   }
 
-  int lower[mba->cdim];
-  int upper[mba->cdim];
-  int bc = 0; // assume all are connected along z
-  for (int d=0; d<mba->cdim-1; d++) {
-    lower[d] = mba->decomp_intrab[bc]->parent_range.lower[d];
-    upper[d] = mba->decomp_intrab[bc]->parent_range.upper[d];
-  }
-  
   // Do 2.
   for (int ic=0; ic<mbf->num_cuts; ic++) {
     struct gkyl_range range_curr = mbf->cut_ranges[ic];
-    int idx[mba->cdim];
-    for (int d=0; d<mba->cdim; d++)
-      idx[d] = range_curr.lower[d];
-    long start_loc = gkyl_range_idx(&mbf->crossz, idx);
-    double *data_start = gkyl_array_fetch(mbf->rho_c_global_dg, start_loc);
-    gkyl_comm_bcast(mbf->zcomm, data_start, range_curr.volume, mbf->zranks[ic]);
+    int start_idx[mba->cdim];
+    for (int d=0; d<mba->cdim; d++) start_idx[d] = range_curr.lower[d];
+      int xstart_idx[mba->cdim-1];
+      xstart_idx[mba->cdim-1] = start_idx[mba->cdim-1];
+    for(int ix = range_curr.lower[0]; ix<=range_curr.upper[0]; ix++) {
+      xstart_idx[0] = ix;
+      long start_loc = gkyl_range_idx(&mbf->crossz_ext, xstart_idx);
+      long send_size = range_curr.volume/gkyl_range_shape(&range_curr, 0)*mbf->rho_c_global_dg->ncomp;
+      double *data_start = gkyl_array_fetch(mbf->rho_c_global_dg, start_loc);
+      gkyl_comm_bcast(mbf->zcomm, data_start, send_size, mbf->zranks[ic]);
+    }
   }
 
   // Do the smoothing on the inetrblock cross-z range
