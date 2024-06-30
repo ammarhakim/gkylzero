@@ -52,6 +52,21 @@ struct gkyl_rect_decomp *gkyl_rect_decomp_new_from_cuts_and_cells(int ndim,
   const int cuts[], const int cells[]);
 
 /**
+ * Create a new decomposition of @a range, given @a cuts in each
+ * direction. The total number of decomposed ranges are product of all
+ * cuts. The decomposed ranges index independent of @a range,
+ * i.e. decomposed ranges are NOT sub-ranges of @a range.
+ *
+ * @param ndim Number of dimensions
+ * @param ranges set of decomposed ranges
+ * @param num_ranges number of ranges
+ * @param range Range to decompose
+ * @return Decomposition of @a range
+ */
+struct gkyl_rect_decomp* gkyl_rect_decomp_new_from_ranges(int ndim, const struct gkyl_range ranges[],
+    int num_ranges, const struct gkyl_range *range);
+
+/**
  * Create a new decomposition from a given decomposition. The new
  * decomposition extends each region by a tensor product with @a
  * arange.

@@ -26,6 +26,15 @@ typedef int (*get_size_t)(struct gkyl_comm *comm, int *sz);
 typedef int (*gkyl_array_send_t)(struct gkyl_array *array, int dest, int tag,
   struct gkyl_comm *comm);
 
+// "Reduce" all elements of @a type in array @a data and store output in @a out
+typedef int (*allreduce_t)(struct gkyl_comm *comm, enum gkyl_elem_type type,
+  enum gkyl_array_op op, int nelem, const void *inp, void *out);
+
+// Broadcast ellements of @a data from rank @a root to other ranks in the
+// communicator @a comm.
+typedef int (*bcast_t)(struct gkyl_comm *comm, void *data, size_t data_sz,
+  int root);
+
 // Nonblocking send @a array to @a dest process using @a tag, and.
 // store the status of this comm in @a state.
 typedef int (*gkyl_array_isend_t)(struct gkyl_array *array, int dest, int tag,
@@ -40,13 +49,14 @@ typedef int (*gkyl_array_recv_t)(struct gkyl_array *array, int src, int tag,
 typedef int (*gkyl_array_irecv_t)(struct gkyl_array *array, int src, int tag,
   struct gkyl_comm *comm, struct gkyl_comm_state *state);
 
-// "Reduce" all elements of @a type in array @a data and store output in @a out
-typedef int (*allreduce_t)(struct gkyl_comm *comm, enum gkyl_elem_type type,
-  enum gkyl_array_op op, int nelem, const void *inp, void *out);
-
 // Gather local arrays into global array on each process.
 typedef int (*gkyl_array_allgather_t)(struct gkyl_comm *comm,
   const struct gkyl_range *local, const struct gkyl_range *global,
+  const struct gkyl_array *array_local, struct gkyl_array *array_global);
+
+// Gather local arrays (of different sizes) into global array on each process.
+typedef int (*gkyl_array_allgatherv_t)(struct gkyl_comm *comm,
+  const struct gkyl_range *local, const struct gkyl_rect_decomp *decomp,
   const struct gkyl_array *array_local, struct gkyl_array *array_global);
 
 // Broadcast array to other processes.
@@ -89,6 +99,14 @@ typedef struct gkyl_comm* (*extend_comm_t)(const struct gkyl_comm *comm,
 typedef struct gkyl_comm* (*split_comm_t)(const struct gkyl_comm *comm,
   int color, struct gkyl_rect_decomp *new_decomp);
 
+// MPI_Comm_create
+typedef struct gkyl_comm* (*create_comm_t)(const struct gkyl_comm *comm,
+  int num_ranks, const int *ranks, struct gkyl_rect_decomp *new_decomp);
+
+// MPI_Group_translate_ranks
+typedef int (*group_translate_ranks_t)(const struct gkyl_comm *comm1,
+    int num_ranks, const int *ranks1, const struct gkyl_comm *comm2, int *ranks2);
+
 // Barrier
 typedef int (*barrier_t)(struct gkyl_comm *comm);
 
@@ -115,7 +133,10 @@ struct gkyl_comm {
   gkyl_array_irecv_t gkyl_array_irecv; // nonblocking recv array.
   allreduce_t allreduce; // all reduce function
   allreduce_t allreduce_host; // all reduce using the host (MPI) communicator.
+  bcast_t bcast; // all reduce function
   gkyl_array_allgather_t gkyl_array_allgather; // gather local arrays to global array.
+  gkyl_array_allgatherv_t gkyl_array_allgatherv; // gather local arrays (of
+                                                // different sizes) to global array.
   gkyl_array_bcast_t gkyl_array_bcast; // broadcast array to other processes.
   gkyl_array_bcast_t gkyl_array_bcast_host; // broadcast host side array to other processes.
   gkyl_array_sync_t gkyl_array_sync; // sync array.
@@ -128,6 +149,8 @@ struct gkyl_comm {
 
   extend_comm_t extend_comm; // extend communcator
   split_comm_t split_comm; // split communicator.
+  create_comm_t create_comm; // Create a new comm for a group of ranks.
+  group_translate_ranks_t group_translate_ranks; // Create a new comm for a group of ranks.
 
   comm_state_new_t comm_state_new; // Allocate a new state object.
   comm_state_release_t comm_state_release; // Free a state object.
@@ -163,6 +186,57 @@ static int
 gkyl_comm_get_size(struct gkyl_comm *comm, int *sz)
 {
   return comm->get_size(comm, sz);
+}
+
+/**
+ * All reduce values across domains.
+ *
+ * @param comm Communicator
+ * @param type Data-type of element
+ * @param op Operator to use in reduction
+ * @param nelem Number of elemets in inp and out
+ * @param inp Local values on domain
+ * @param out Reduced values
+ * @return error code: 0 for success
+ */
+static int
+gkyl_comm_allreduce(struct gkyl_comm *comm, enum gkyl_elem_type type,
+  enum gkyl_array_op op, int nelem, const void *inp, void *out)
+{
+  return comm->allreduce(comm, type, op, nelem, inp, out);
+}
+
+/**
+ * All reduce values across domains on the host/MPI communicator.
+ *
+ * @param comm Communicator
+ * @param type Data-type of element
+ * @param op Operator to use in reduction
+ * @param nelem Number of elemets in inp and out
+ * @param inp Local values on domain
+ * @param out Reduced values
+ * @return error code: 0 for success
+ */
+static int
+gkyl_comm_allreduce_host(struct gkyl_comm *comm, enum gkyl_elem_type type,
+  enum gkyl_array_op op, int nelem, const void *inp, void *out)
+{
+  return comm->allreduce_host(comm, type, op, nelem, inp, out);
+}
+
+/**
+ * Broadcast data from one process to all other processes in a communicator.
+ *
+ * @param comm Communicator
+ * @param data Data to send (from root rank) and received (all other ranks).
+ * @param data_sz Size of the data (in bytes).
+ * @param root Rank of the process sending data.
+ * @return error code: 0 for success
+ */
+static int
+gkyl_comm_bcast(struct gkyl_comm *comm, void *data, size_t data_sz, int root)
+{
+  return comm->bcast(comm, data, data_sz, root);
 }
 
 /**
@@ -228,42 +302,6 @@ gkyl_comm_array_irecv(struct gkyl_comm *comm, struct gkyl_array *array,
 }
 
 /**
- * All reduce values across domains.
- *
- * @param comm Communicator
- * @param type Data-type of element
- * @param op Operator to use in reduction
- * @param nelem Number of elemets in inp and out
- * @param inp Local values on domain
- * @param out Reduced values
- * @return error code: 0 for success
- */
-static int
-gkyl_comm_allreduce(struct gkyl_comm *comm, enum gkyl_elem_type type,
-  enum gkyl_array_op op, int nelem, const void *inp, void *out)
-{
-  return comm->allreduce(comm, type, op, nelem, inp, out);
-}
-
-/**
- * All reduce values across domains on the host/MPI communicator.
- *
- * @param comm Communicator
- * @param type Data-type of element
- * @param op Operator to use in reduction
- * @param nelem Number of elemets in inp and out
- * @param inp Local values on domain
- * @param out Reduced values
- * @return error code: 0 for success
- */
-static int
-gkyl_comm_allreduce_host(struct gkyl_comm *comm, enum gkyl_elem_type type,
-  enum gkyl_array_op op, int nelem, const void *inp, void *out)
-{
-  return comm->allreduce_host(comm, type, op, nelem, inp, out);
-}
-
-/**
  * Gather all local data into a global array on each process.
  *
  * @param comm Communicator
@@ -279,6 +317,25 @@ gkyl_comm_array_allgather(struct gkyl_comm *comm,
   const struct gkyl_array *array_local, struct gkyl_array *array_global)
 {
   return comm->gkyl_array_allgather(comm, local, global, array_local, array_global);
+}
+
+/**
+ * Gather all local data into a global array on each process. This is meant
+ * for decompositions in which each process has a different amount of data.
+ *
+ * @param comm Communicator
+ * @param local Local range for array
+ * @param global Global range for array
+ * @param array_local Local array
+ * @param array_global Global array
+ * @return error code: 0 for success
+ */
+static int
+gkyl_comm_array_allgatherv(struct gkyl_comm *comm, 
+  const struct gkyl_range *local, const struct gkyl_rect_decomp *decomp,
+  const struct gkyl_array *array_local, struct gkyl_array *array_global)
+{
+  return comm->gkyl_array_allgatherv(comm, local, decomp, array_local, array_global);
 }
 
 /**
@@ -481,6 +538,40 @@ gkyl_comm_split_comm(const struct gkyl_comm *comm, int color,
   struct gkyl_rect_decomp *new_decomp)
 {
   return comm->split_comm(comm, color, new_decomp);
+}
+
+/**
+ * Create a new communicator out of a group of @a num_ranks @a ranks.
+ * Note that this communicator is only valid for the ranks in that group.
+ *
+ * @param comm Communicator.
+ * @param color All ranks of same color will share a communicator.
+ * @param new_decomp Decomp object to associate with the new communicator.
+ * @return Newly created communicator
+ */
+static struct gkyl_comm*
+gkyl_comm_create_comm(const struct gkyl_comm *comm, int num_ranks,
+  const int *ranks, struct gkyl_rect_decomp *new_decomp)
+{
+  return comm->create_comm(comm, num_ranks, ranks, new_decomp);
+}
+
+
+/**
+ * Create a new communicator out of a group of @a num_ranks @a ranks.
+ * Note that this communicator is only valid for the ranks in that group.
+ *
+ * @param comm1 Communicator 1.
+ * @param num_ranks number of ranks
+ * @param comm2 Communicator 1.
+ * @param ranks1 ranks in comm 1
+ * @param ranks2 ranks in comm 2 on output
+ * @return error value
+ */
+static int
+gkyl_comm_group_translate_ranks(const struct gkyl_comm *comm1, int num_ranks, const int *ranks1, const struct gkyl_comm *comm2, int *ranks2)
+{
+  return comm1->group_translate_ranks(comm1, num_ranks, ranks1, comm2, ranks2);
 }
 
 /**
