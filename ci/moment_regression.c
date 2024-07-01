@@ -16,7 +16,7 @@
 int system(const char *command);
 
 void
-runTest(const char* test_name, const char* test_name_human, const int test_output_count, const char test_outputs[][64], const int test_amr)
+runTest(const char* test_name, const char* test_name_human, const int test_output_count, const char test_outputs[][64], const int test_amr, const int test_gr)
 {
   int counter = 0;
 
@@ -45,7 +45,14 @@ runTest(const char* test_name, const char* test_name_human, const int test_outpu
   system(command_buffer2);
 
   char command_buffer3[256];
-  snprintf(command_buffer3, 256, "./build/regression/rt_%s -m > ./ci/output/rt_%s_%d.dat 2>&1", test_name, test_name, counter);
+
+  if (test_gr == 0) {
+    snprintf(command_buffer3, 256, "./build/regression/rt_%s -m > ./ci/output/rt_%s_%d.dat 2>&1", test_name, test_name, counter);
+  }
+  else {
+    snprintf(command_buffer3, 256, "./build/regression/rt_%s > ./ci/output/rt_%s_%d.dat 2>&1", test_name, test_name, counter);
+  }
+
   system(command_buffer3);
 
   if (test_amr == 0) {
@@ -94,7 +101,8 @@ runTest(const char* test_name, const char* test_name_human, const int test_outpu
 }
 
 void
-analyzeTestOutput(const char* test_name, const char* test_name_human, const int test_output_count, const char test_outputs[][64])
+analyzeTestOutput(const char* test_name, const char* test_name_human, const int test_output_count, const char test_outputs[][64], const int test_amr,
+  const int test_gr)
 {
   printf("%s:\n\n", test_name_human);
 
@@ -177,67 +185,69 @@ analyzeTestOutput(const char* test_name, const char* test_name_human, const int 
       failure[i] = 1;
     }
 
-    speciesupdate[i] = 0.0;
-    if (strstr(output, "Species updates took ") != NULL) {
-      char *full_substring = strstr(output, "Species updates took ");
-      char substring[64];
-      for (int j = 0; j < 64; j++) {
-        substring[j] = '\0';
+    if (test_amr == 0) {
+      speciesupdate[i] = 0.0;
+      if (strstr(output, "Species updates took ") != NULL) {
+        char *full_substring = strstr(output, "Species updates took ");
+        char substring[64];
+        for (int j = 0; j < 64; j++) {
+          substring[j] = '\0';
+        }
+        int substring_index = 0;
+
+        while (full_substring[substring_index + strlen("Species updates took ")] != '\n') {
+          substring[substring_index] = full_substring[substring_index + strlen("Species updates took ")];
+          substring_index += 1;
+        }
+
+        char *end_ptr;
+        speciesupdate[i] = strtod(substring, &end_ptr);
       }
-      int substring_index = 0;
-
-      while (full_substring[substring_index + strlen("Species updates took ")] != '\n') {
-        substring[substring_index] = full_substring[substring_index + strlen("Species updates took ")];
-        substring_index += 1;
-      }
-
-      char *end_ptr;
-      speciesupdate[i] = strtod(substring, &end_ptr);
-    }
-    else {
-      failure[i] = 1;
-    }
-
-    fieldupdate[i] = 0.0;
-    if (strstr(output, "Field updates took ") != NULL) {
-      char *full_substring = strstr(output, "Field updates took ");
-      char substring[64];
-      for (int j = 0; j < 64; j++) {
-        substring[j] = '\0';
-      }
-      int substring_index = 0;
-
-      while (full_substring[substring_index + strlen("Field updates took ")] != '\n') {
-        substring[substring_index] = full_substring[substring_index + strlen("Field updates took ")];
-        substring_index += 1;
+      else {
+        failure[i] = 1;
       }
 
-      char *end_ptr;
-      fieldupdate[i] = strtod(substring, &end_ptr);
-    }
-    else {
-      failure[i] = 1;
-    }
+      fieldupdate[i] = 0.0;
+      if (strstr(output, "Field updates took ") != NULL) {
+        char *full_substring = strstr(output, "Field updates took ");
+        char substring[64];
+        for (int j = 0; j < 64; j++) {
+          substring[j] = '\0';
+        }
+        int substring_index = 0;
 
-    sourceupdate[i] = 0.0;
-    if (strstr(output, "Source updates took ") != NULL) {
-      char *full_substring = strstr(output, "Source updates took ");
-      char substring[64];
-      for (int j = 0; j < 64; j++) {
-        substring[j] = '\0';
+        while (full_substring[substring_index + strlen("Field updates took ")] != '\n') {
+          substring[substring_index] = full_substring[substring_index + strlen("Field updates took ")];
+          substring_index += 1;
+        }
+
+        char *end_ptr;
+        fieldupdate[i] = strtod(substring, &end_ptr);
       }
-      int substring_index = 0;
-
-      while (full_substring[substring_index + strlen("Source updates took ")] != '\n') {
-        substring[substring_index] = full_substring[substring_index + strlen("Source updates took ")];
-        substring_index += 1;
+      else {
+        failure[i] = 1;
       }
 
-      char *end_ptr;
-      sourceupdate[i] = strtod(substring, &end_ptr);
-    }
-    else {
-      failure[i] = 1;
+      sourceupdate[i] = 0.0;
+      if (strstr(output, "Source updates took ") != NULL) {
+        char *full_substring = strstr(output, "Source updates took ");
+        char substring[64];
+        for (int j = 0; j < 64; j++) {
+          substring[j] = '\0';
+        }
+        int substring_index = 0;
+
+        while (full_substring[substring_index + strlen("Source updates took ")] != '\n') {
+          substring[substring_index] = full_substring[substring_index + strlen("Source updates took ")];
+          substring_index += 1;
+        }
+
+        char *end_ptr;
+        sourceupdate[i] = strtod(substring, &end_ptr);
+      }
+      else {
+        failure[i] = 1;
+      }
     }
 
     totalupdate[i] = 0.0;
@@ -261,7 +271,7 @@ analyzeTestOutput(const char* test_name, const char* test_name_human, const int 
       failure[i] = 1;
     }
     
-    if (failure[i] == 0) {
+    if (failure[i] == 0 && test_gr == 0) {
       char *temp = output;
       memoryleakcount[i] = 0;
       memoryleaks[i] = (char*)calloc(8192, sizeof(char));
@@ -344,15 +354,22 @@ analyzeTestOutput(const char* test_name, const char* test_name_human, const int 
       if (i == 1 || failure[i - 1] == 1) {
         printf("Update calls: %d\n", updatecalls[i]);
         printf("Failed time-steps: %d\n", failedsteps[i]);
-        printf("Species update time: %f\n", speciesupdate[i]);
-        printf("Field update time: %f\n", fieldupdate[i]);
-        printf("Source update time: %f\n", sourceupdate[i]);
-        printf("Total update time: %f\n", totalupdate[i]);
-        if (memoryleakcount[i] != 0) {
-          printf("Memory leaks: " ANSI_COLOR_RED "%s" ANSI_COLOR_RESET "\n", memoryleaks[i]);
+        
+        if (test_amr == 0) {
+          printf("Species update time: %f\n", speciesupdate[i]);
+          printf("Field update time: %f\n", fieldupdate[i]);
+          printf("Source update time: %f\n", sourceupdate[i]);
         }
-        else {
-          printf("Memory leaks: " ANSI_COLOR_GREEN "None" ANSI_COLOR_RESET "\n");
+
+        printf("Total update time: %f\n", totalupdate[i]);
+
+        if (test_gr == 0) {
+          if (memoryleakcount[i] != 0) {
+            printf("Memory leaks: " ANSI_COLOR_RED "%s" ANSI_COLOR_RESET "\n", memoryleaks[i]);
+          }
+          else {
+            printf("Memory leaks: " ANSI_COLOR_GREEN "None" ANSI_COLOR_RESET "\n");
+          }
         }
         printf("Correct: N/A\n\n");
       }
@@ -371,59 +388,61 @@ analyzeTestOutput(const char* test_name, const char* test_name_human, const int 
           printf("Failed time-steps: " ANSI_COLOR_GREEN "%d" ANSI_COLOR_RESET "\n", failedsteps[i]);
         }
 
-        if (speciesupdate[i] > speciesupdate[i - 1]) {
-          if (speciesupdate[i - 1] > pow(10.0, -8.0)) {
-            printf("Species update time: " ANSI_COLOR_RED "%f (+%.2f%%)" ANSI_COLOR_RESET "\n", speciesupdate[i],
-              (((double)speciesupdate[i] / (double)speciesupdate[i - 1]) - 1.0) * 100.0);
-          } else {
-            printf("Species update time: " ANSI_COLOR_RED "%f (N/A)" ANSI_COLOR_RESET "\n", speciesupdate[i]);
-          }
-        }
-        else {
-          if (speciesupdate[i - 1] > pow(10.0, -8.0)) {
-            printf("Species update time: " ANSI_COLOR_GREEN "%f (%.2f%%)" ANSI_COLOR_RESET "\n", speciesupdate[i],
-              (((double)speciesupdate[i] / (double)speciesupdate[i - 1]) - 1.0) * 100.0);
+        if (test_amr == 0) {
+          if (speciesupdate[i] > speciesupdate[i - 1]) {
+            if (speciesupdate[i - 1] > pow(10.0, -8.0)) {
+              printf("Species update time: " ANSI_COLOR_RED "%f (+%.2f%%)" ANSI_COLOR_RESET "\n", speciesupdate[i],
+                (((double)speciesupdate[i] / (double)speciesupdate[i - 1]) - 1.0) * 100.0);
+            } else {
+              printf("Species update time: " ANSI_COLOR_RED "%f (N/A)" ANSI_COLOR_RESET "\n", speciesupdate[i]);
+            }
           }
           else {
-            printf("Species update time: " ANSI_COLOR_GREEN "%f (N/A)" ANSI_COLOR_RESET "\n", speciesupdate[i]);
+            if (speciesupdate[i - 1] > pow(10.0, -8.0)) {
+              printf("Species update time: " ANSI_COLOR_GREEN "%f (%.2f%%)" ANSI_COLOR_RESET "\n", speciesupdate[i],
+                (((double)speciesupdate[i] / (double)speciesupdate[i - 1]) - 1.0) * 100.0);
+            }
+            else {
+              printf("Species update time: " ANSI_COLOR_GREEN "%f (N/A)" ANSI_COLOR_RESET "\n", speciesupdate[i]);
+            }
           }
-        }
 
-        if (fieldupdate[i] > fieldupdate[i - 1]) {
-          if (fieldupdate[i - 1] > pow(10.0, -8.0)) {
-            printf("Field update time: " ANSI_COLOR_RED "%f (+%.2f%%)" ANSI_COLOR_RESET "\n", fieldupdate[i],
-              (((double)fieldupdate[i] / (double)fieldupdate[i - 1]) - 1.0) * 100.0);
+          if (fieldupdate[i] > fieldupdate[i - 1]) {
+            if (fieldupdate[i - 1] > pow(10.0, -8.0)) {
+              printf("Field update time: " ANSI_COLOR_RED "%f (+%.2f%%)" ANSI_COLOR_RESET "\n", fieldupdate[i],
+                (((double)fieldupdate[i] / (double)fieldupdate[i - 1]) - 1.0) * 100.0);
+            }
+            else {
+              printf("Field update time: " ANSI_COLOR_RED "%f (N/A)" ANSI_COLOR_RESET, fieldupdate[i]);
+            }
           }
           else {
-            printf("Field update time: " ANSI_COLOR_RED "%f (N/A)" ANSI_COLOR_RESET, fieldupdate[i]);
+            if (fieldupdate[i - 1] > pow(10.0, -8.0)) {
+              printf("Field update time: " ANSI_COLOR_GREEN "%f (%.2f%%)" ANSI_COLOR_RESET "\n", fieldupdate[i],
+                (((double)fieldupdate[i] / (double)fieldupdate[i - 1]) - 1.0) * 100.0);
+            }
+            else {
+              printf("Field update time: " ANSI_COLOR_GREEN "%f (N/A)" ANSI_COLOR_RESET "\n", fieldupdate[i]);
+            }
           }
-        }
-        else {
-          if (fieldupdate[i - 1] > pow(10.0, -8.0)) {
-            printf("Field update time: " ANSI_COLOR_GREEN "%f (%.2f%%)" ANSI_COLOR_RESET "\n", fieldupdate[i],
-              (((double)fieldupdate[i] / (double)fieldupdate[i - 1]) - 1.0) * 100.0);
-          }
-          else {
-            printf("Field update time: " ANSI_COLOR_GREEN "%f (N/A)" ANSI_COLOR_RESET "\n", fieldupdate[i]);
-          }
-        }
 
-        if (sourceupdate[i] > sourceupdate[i - 1]) {
-          if (sourceupdate[i - 1] > pow(10.0, -8.0)) {
-            printf("Source update time: " ANSI_COLOR_RED "%f (+%.2f%%)" ANSI_COLOR_RESET "\n", sourceupdate[i],
-              (((double)sourceupdate[i] / (double)sourceupdate[i - 1]) - 1.0) * 100.0);
+          if (sourceupdate[i] > sourceupdate[i - 1]) {
+            if (sourceupdate[i - 1] > pow(10.0, -8.0)) {
+              printf("Source update time: " ANSI_COLOR_RED "%f (+%.2f%%)" ANSI_COLOR_RESET "\n", sourceupdate[i],
+                (((double)sourceupdate[i] / (double)sourceupdate[i - 1]) - 1.0) * 100.0);
+            }
+            else {
+              printf("Source update time: " ANSI_COLOR_RED "%f (N/A)" ANSI_COLOR_RESET "\n", sourceupdate[i]);
+            }
           }
           else {
-            printf("Source update time: " ANSI_COLOR_RED "%f (N/A)" ANSI_COLOR_RESET "\n", sourceupdate[i]);
-          }
-        }
-        else {
-          if (sourceupdate[i - 1] > pow(10.0, -8.0)) {
-            printf("Source update time: " ANSI_COLOR_GREEN "%f (%.2f%%)" ANSI_COLOR_RESET "\n", sourceupdate[i],
-              (((double)sourceupdate[i] / (double)sourceupdate[i - 1]) - 1.0) * 100.0);
-          }
-          else {
-            printf("Source update time: " ANSI_COLOR_GREEN "%f (N/A)" ANSI_COLOR_RESET "\n", sourceupdate[i]);
+            if (sourceupdate[i - 1] > pow(10.0, -8.0)) {
+              printf("Source update time: " ANSI_COLOR_GREEN "%f (%.2f%%)" ANSI_COLOR_RESET "\n", sourceupdate[i],
+                (((double)sourceupdate[i] / (double)sourceupdate[i - 1]) - 1.0) * 100.0);
+            }
+            else {
+              printf("Source update time: " ANSI_COLOR_GREEN "%f (N/A)" ANSI_COLOR_RESET "\n", sourceupdate[i]);
+            }
           }
         }
 
@@ -446,11 +465,13 @@ analyzeTestOutput(const char* test_name, const char* test_name_human, const int 
           }
         }
 
-        if (memoryleakcount[i] != 0) {
-          printf("Memory leaks: " ANSI_COLOR_RED "%s" ANSI_COLOR_RESET "\n", memoryleaks[i]);
-        }
-        else {
-          printf("Memory leaks: " ANSI_COLOR_GREEN "None" ANSI_COLOR_RESET "\n");
+        if (test_gr == 0) {
+          if (memoryleakcount[i] != 0) {
+            printf("Memory leaks: " ANSI_COLOR_RED "%s" ANSI_COLOR_RESET "\n", memoryleaks[i]);
+          }
+          else {
+            printf("Memory leaks: " ANSI_COLOR_GREEN "None" ANSI_COLOR_RESET "\n");
+          }
         }
 
         int correct = 1;
@@ -808,6 +829,9 @@ main(int argc, char **argv)
   int test_amr[86] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
     1, 1, 1, 1, 1, 1, 1, 1, 1, 1 };
+  int test_gr[86] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+    1, 1, 1, 1, 0, 0, 0, 0, 0, 0 };
 
   system("clear");
   system("mkdir -p ci/output");
@@ -819,12 +843,12 @@ main(int argc, char **argv)
 
     if (strtol(argv[1], &arg_ptr, 10) == 1) {
       for (int i = 0; i < test_count; i++) {
-        runTest(test_names[i], test_names_human[i], test_output_count[i], test_outputs[i], test_amr[i]);
+        runTest(test_names[i], test_names_human[i], test_output_count[i], test_outputs[i], test_amr[i], test_gr[i]);
       }
     }
     else if (strtol(argv[1], &arg_ptr, 10) == 2) {
       for (int i = 0; i < test_count; i++) {
-        analyzeTestOutput(test_names[i], test_names_human[i], test_output_count[i], test_outputs[i]);
+        analyzeTestOutput(test_names[i], test_names_human[i], test_output_count[i], test_outputs[i], test_amr[i], test_gr[i]);
       }
     }
     else if (strtol(argv[1], &arg_ptr, 10) == 3) {
@@ -832,7 +856,7 @@ main(int argc, char **argv)
         if (strtol(argv[2], &arg_ptr, 10) >= 1 && strtol(argv[2], &arg_ptr, 10) <= test_count) {
           runTest(test_names[strtol(argv[2], &arg_ptr, 10) - 1], test_names_human[strtol(argv[2], &arg_ptr, 10) - 1],
             test_output_count[strtol(argv[2], &arg_ptr, 10) - 1], test_outputs[strtol(argv[2], &arg_ptr, 10) - 1],
-            test_amr[strtol(argv[2], &arg_ptr, 10) - 1]);
+            test_amr[strtol(argv[2], &arg_ptr, 10) - 1], test_gr[strtol(argv[2], &arg_ptr, 10) - 1]);
         }
         else {
           printf("Invalid test!\n");
@@ -846,7 +870,8 @@ main(int argc, char **argv)
       if (argc > 2) {
         if (strtol(argv[2], &arg_ptr, 10) >= 1 && strtol(argv[2], &arg_ptr, 10) <= test_count) {
           analyzeTestOutput(test_names[strtol(argv[2], &arg_ptr, 10) - 1], test_names_human[strtol(argv[2], &arg_ptr, 10) - 1],
-            test_output_count[strtol(argv[2], &arg_ptr, 10) - 1], test_outputs[strtol(argv[2], &arg_ptr, 10) - 1]);
+            test_output_count[strtol(argv[2], &arg_ptr, 10) - 1], test_outputs[strtol(argv[2], &arg_ptr, 10) - 1],
+            test_amr[strtol(argv[2], &arg_ptr, 10) - 1], test_gr[strtol(argv[2], &arg_ptr, 10) - 1]);
         }
         else {
           printf("Invalid test!\n");
@@ -859,7 +884,7 @@ main(int argc, char **argv)
     else if (strtol(argv[1], &arg_ptr, 10) == 5) {
       for (int i = 0; i < test_count; i++) {
         regenerateTest(test_names[i], test_output_count[i], test_outputs[i]);
-        runTest(test_names[i], test_names_human[i], test_output_count[i], test_outputs[i], test_amr[i]);
+        runTest(test_names[i], test_names_human[i], test_output_count[i], test_outputs[i], test_amr[i], test_gr[i]);
       }
     }
     else if (strtol(argv[1], &arg_ptr, 10) == 6) {
@@ -869,7 +894,7 @@ main(int argc, char **argv)
             test_outputs[strtol(argv[2], &arg_ptr, 10) - 1]);
           runTest(test_names[strtol(argv[2], &arg_ptr, 10) - 1], test_names_human[strtol(argv[2], &arg_ptr, 10) - 1],
             test_output_count[strtol(argv[2], &arg_ptr, 10) - 1], test_outputs[strtol(argv[2], &arg_ptr, 10) - 1],
-            test_amr[strtol(argv[2], &arg_ptr, 10) - 1]);
+            test_amr[strtol(argv[2], &arg_ptr, 10) - 1], test_gr[strtol(argv[2], &arg_ptr, 10) - 1]);
         }
         else {
           printf("Invalid test!\n");
@@ -900,12 +925,12 @@ main(int argc, char **argv)
 
       if (option == 1) {
         for (int i = 0; i < test_count; i++) {
-          runTest(test_names[i], test_names_human[i], test_output_count[i], test_outputs[i], test_amr[i]);
+          runTest(test_names[i], test_names_human[i], test_output_count[i], test_outputs[i], test_amr[i], test_gr[i]);
         }
       }
       else if (option == 2) {
         for (int i = 0; i < test_count; i++) {
-          analyzeTestOutput(test_names[i], test_names_human[i], test_output_count[i], test_outputs[i]);
+          analyzeTestOutput(test_names[i], test_names_human[i], test_output_count[i], test_outputs[i], test_amr[i], test_gr[i]);
         }
       }
       else if (option == 3) {
@@ -920,7 +945,7 @@ main(int argc, char **argv)
 
         if (option2 >= 1 && option2 <= test_count) {
           runTest(test_names[option2 - 1], test_names_human[option2 - 1], test_output_count[option2 - 1], test_outputs[option2 - 1],
-            test_amr[option2 - 1]);
+            test_amr[option2 - 1], test_gr[option2 - 1]);
         }
         else {
           printf("Invalid test!\n\n");
@@ -937,7 +962,8 @@ main(int argc, char **argv)
         printf("\n");
 
         if (option2 >= 1 && option2 <= test_count) {
-          analyzeTestOutput(test_names[option2 - 1], test_names_human[option2 - 1], test_output_count[option2 - 1], test_outputs[option2 - 1]);
+          analyzeTestOutput(test_names[option2 - 1], test_names_human[option2 - 1], test_output_count[option2 - 1], test_outputs[option2 - 1],
+            test_amr[option2 - 1], test_gr[option2 - 1]);
         }
         else {
           printf("Invalid test!\n\n");
@@ -946,7 +972,7 @@ main(int argc, char **argv)
       else if (option == 5) {
         for (int i = 0; i < test_count; i++) {
           regenerateTest(test_names[i], test_output_count[i], test_outputs[i]);
-          runTest(test_names[i], test_names_human[i], test_output_count[i], test_outputs[i], test_amr[i]);
+          runTest(test_names[i], test_names_human[i], test_output_count[i], test_outputs[i], test_amr[i], test_gr[i]);
         }
       }
       else if (option == 6) {
@@ -962,7 +988,7 @@ main(int argc, char **argv)
         if (option2 >= 1 && option2 <= test_count) {
           regenerateTest(test_names[option2 - 1], test_output_count[option2 - 1], test_outputs[option2 - 1]);
           runTest(test_names[option2 - 1], test_names_human[option2 - 1], test_output_count[option2 - 1], test_outputs[option2 - 1],
-            test_amr[option2 - 1]);
+            test_amr[option2 - 1], test_gr[option2 - 1]);
         }
         else {
           printf("Invalid test!\n\n");
