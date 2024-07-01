@@ -1,4 +1,6 @@
 /* -*- c++ -*- */
+#include <cuda_runtime.h>
+#include <cublas_v2.h>
 
 extern "C" {
 #include <gkyl_alloc.h>
@@ -9,6 +11,9 @@ extern "C" {
 #include <gkyl_vlasov_lte_proj_on_basis.h>
 #include <gkyl_vlasov_lte_proj_on_basis_priv.h>
 #include <gkyl_range.h>
+
+#include <gkyl_mat.h>
+#include <gkyl_mat_priv.h>
 }
 
 static void
@@ -25,30 +30,20 @@ __global__ static void
 gkyl_vlasov_lte_proj_on_basis_advance_cu_ker(const struct gkyl_rect_grid phase_grid,
   const struct gkyl_range phase_range, const struct gkyl_range conf_range,
   const struct gkyl_array* GKYL_RESTRICT conf_basis_at_ords, 
-  const struct gkyl_array* GKYL_RESTRICT phase_basis_at_ords, 
-  const struct gkyl_array* GKYL_RESTRICT phase_ordinates, 
   struct gkyl_array* GKYL_RESTRICT n_quad_d, 
   struct gkyl_array* GKYL_RESTRICT V_drift_quad_d, 
   struct gkyl_array* GKYL_RESTRICT T_over_m_quad_d, 
   struct gkyl_array* GKYL_RESTRICT V_drift_quad_cell_avg_d, 
-  struct gkyl_array* GKYL_RESTRICT h_ij_inv_quad_d, 
-  struct gkyl_array* GKYL_RESTRICT det_h_quad_d, 
-  const struct gkyl_array* GKYL_RESTRICT phase_weights, const int *p2c_qidx, bool is_relativistic, 
-  bool is_canonical_pb, const struct gkyl_array* GKYL_RESTRICT h_ij_inv,  const struct gkyl_array* GKYL_RESTRICT det_h,
-  const struct gkyl_array* GKYL_RESTRICT moms_lte, const struct gkyl_basis* conf_basis_on_dev,
-   struct gkyl_array* GKYL_RESTRICT f_lte_at_nodes)
+  const int *p2c_qidx, const struct gkyl_array* GKYL_RESTRICT moms_lte, const struct gkyl_basis* conf_basis_on_dev,
+  struct gkyl_array* GKYL_RESTRICT f_lte_at_nodes, int num_conf_basis, int tot_conf_quad)
 {
   int pdim = phase_range.ndim, cdim = conf_range.ndim;
   int vdim = pdim-cdim;
 
-  int num_conf_basis = conf_basis_at_ords->ncomp;
-  int tot_conf_quad = conf_basis_at_ords->size;
-
-  int pidx[GKYL_MAX_DIM], cidx[GKYL_MAX_CDIM];
+  int cidx[GKYL_MAX_CDIM];
 
   // 2D thread grid
   // linc2 = c where c is the component index (from 0 to tot_conf_quad)
-  long linc2 = threadIdx.y + blockIdx.y*blockDim.y;
   for(unsigned long tid = threadIdx.x + blockIdx.x*blockDim.x;
       tid < conf_range.volume; tid += blockDim.x*gridDim.x) {
     gkyl_sub_range_inv_idx(&conf_range, tid, cidx);
@@ -59,75 +54,53 @@ gkyl_vlasov_lte_proj_on_basis_advance_cu_ker(const struct gkyl_rect_grid phase_g
     double *V_drift_quad = (double*) gkyl_array_fetch(V_drift_quad_d, lincC);
     double *T_over_m_quad = (double*) gkyl_array_fetch(T_over_m_quad_d, lincC);
     double *V_drift_quad_cell_avg = (double*) gkyl_array_fetch(V_drift_quad_cell_avg_d, lincC);
-    double *h_ij_inv_quad = (double*) gkyl_array_fetch(h_ij_inv_quad_d, lincC);
-    double *det_h_quad = (double*) gkyl_array_fetch(det_h_quad_d, lincC);
 
     const double *moms_lte_d = (const double*) gkyl_array_cfetch(moms_lte, lincC);
     const double *n_d = moms_lte_d;
     const double *V_drift_d = &moms_lte_d[num_conf_basis];
     const double *T_over_m_d = &moms_lte_d[num_conf_basis*(vdim+1)];
-    const double *h_ij_inv_d;
-    const double *det_h_d;
-    if (is_canonical_pb) {
-      h_ij_inv_d = (const double*) gkyl_array_cfetch(h_ij_inv, lincC);
-      det_h_d = (const double*) gkyl_array_cfetch(det_h, lincC);
-    }
 
     // Sum over basis for given LTE moments (n, V_drift, T/m) in the stationary frame
-    int n = linc2;
-    const double *b_ord = (const double*) gkyl_array_cfetch(conf_basis_at_ords, n);
+    for (int n=0; n<tot_conf_quad; ++n) {
+      const double *b_ord = (const double*) gkyl_array_cfetch(conf_basis_at_ords, n);
 
-    // Compute the configuration-space quadrature
-    for (int k=0; k<num_conf_basis; ++k) {
-      conf_basis_on_dev->modal_to_quad_nodal(n_d, n_quad, n);
+      // Zero out quadrature values
+      n_quad[n] = 0.0;
       for (int d=0; d<vdim; ++d) {
-        conf_basis_on_dev->modal_to_quad_nodal(&V_drift_d[num_conf_basis*d], &V_drift_quad[tot_conf_quad*d], n);
+        V_drift_quad[tot_conf_quad*d + n] = 0.0;
+        // Store the cell average of V_drift to use if V_drift^2 > c^2 at quadrature points
         V_drift_quad_cell_avg[tot_conf_quad*d + n] = V_drift_d[num_conf_basis*d]*b_ord[0];
       }
-      // Update T at nodal points
-      conf_basis_on_dev->modal_to_quad_nodal(T_over_m_d, T_over_m_quad, n);
-    }
+      T_over_m_quad[n] = 0.0;
 
-    if (is_canonical_pb) {
+      // Compute the configuration-space quadrature
       for (int k=0; k<num_conf_basis; ++k) {
-        for (int j=0; j<vdim*(vdim+1)/2; ++j) {
-          h_ij_inv_quad[j + (vdim*(vdim+1)/2)*n] = 0;
+        n_quad[n] += n_d[k]*b_ord[k];
+        for (int d=0; d<vdim; ++d) {
+          V_drift_quad[tot_conf_quad*d + n] += V_drift_d[num_conf_basis*d+k]*b_ord[k];
         }
+        T_over_m_quad[n] += T_over_m_d[k]*b_ord[k];
       }
-      for (int k=0; k<num_conf_basis; ++k) {
-        det_h_quad[n] += det_h_d[k]*b_ord[k];
-        conf_basis_on_dev->modal_to_quad_nodal(det_h_d, det_h_quad, n);
-        for (int j=0; j<vdim*(vdim+1)/2; ++j) {
-          //h_ij_inv_quad[j + (vdim*(vdim+1)/2)*n] += h_ij_inv_d[num_conf_basis*j+k]*b_ord[k];
-          conf_basis_on_dev->modal_to_quad_nodal(&h_ij_inv_d[num_conf_basis*j], &h_ij_inv_quad[tot_conf_quad*j], n);
-        }
-      }
-    }     
+    }
   }
 }
 
 __global__ static void
 gkyl_vlasov_lte_proj_on_basis_accumulate_cu_ker(const struct gkyl_rect_grid phase_grid,
   const struct gkyl_range phase_range, const struct gkyl_range conf_range,
-  const struct gkyl_array* GKYL_RESTRICT conf_basis_at_ords, 
-  const struct gkyl_array* GKYL_RESTRICT phase_basis_at_ords, 
   const struct gkyl_array* GKYL_RESTRICT phase_ordinates, 
   struct gkyl_array* GKYL_RESTRICT n_quad_d, 
   struct gkyl_array* GKYL_RESTRICT V_drift_quad_d, 
   struct gkyl_array* GKYL_RESTRICT T_over_m_quad_d, 
   struct gkyl_array* GKYL_RESTRICT V_drift_quad_cell_avg_d, 
   struct gkyl_array* GKYL_RESTRICT h_ij_inv_quad_d, 
-  struct gkyl_array* GKYL_RESTRICT det_h_quad_d, 
-  const struct gkyl_array* GKYL_RESTRICT phase_weights, const int *p2c_qidx, bool is_relativistic, 
+  struct gkyl_array* GKYL_RESTRICT det_h_quad_d,  const int *p2c_qidx, bool is_relativistic, 
   bool is_canonical_pb, const struct gkyl_array* GKYL_RESTRICT h_ij_inv,  const struct gkyl_array* GKYL_RESTRICT det_h,
-  const struct gkyl_array* GKYL_RESTRICT moms_lte, struct gkyl_array* GKYL_RESTRICT f_lte_at_nodes)
+  const struct gkyl_array* GKYL_RESTRICT moms_lte, struct gkyl_array* GKYL_RESTRICT f_lte_at_nodes, int num_conf_basis, int tot_conf_quad)
 {
   double f_floor = 1.e-40;
   int pdim = phase_range.ndim, cdim = conf_range.ndim;
   int vdim = pdim-cdim;
-
-  int tot_conf_quad = conf_basis_at_ords->size;
-  int tot_phase_quad = phase_basis_at_ords->size;
 
   double xc[GKYL_MAX_DIM], xmu[GKYL_MAX_DIM];
   int pidx[GKYL_MAX_DIM], cidx[GKYL_MAX_CDIM];
@@ -205,10 +178,7 @@ gkyl_vlasov_lte_proj_on_basis_accumulate_cu_ker(const struct gkyl_rect_grid phas
               // q_can includes the canonical variables list
               double h_ij_inv_loc = h_ij_inv_quad[tot_conf_quad*sym_tensor_index + cqidx]; 
               // For off-diagnol components, we need to count these twice, due to symmetry
-              int sym_fact = 2;
-              if (d0 == d1){
-                sym_fact = 1;
-              }
+              int sym_fact = (d0 == d1) ? 1 : 2;
               efact += sym_fact*h_ij_inv_loc*(xmu[cdim+d0]-V_drift_quad[tot_conf_quad*d0 + cqidx])*(xmu[cdim+d1]-V_drift_quad[tot_conf_quad*d1 + cqidx]);
             }
           }
@@ -228,39 +198,75 @@ gkyl_vlasov_lte_proj_on_basis_accumulate_cu_ker(const struct gkyl_rect_grid phas
 }
 
 __global__ static void
-gkyl_proj_on_basis_cu_ker(const struct gkyl_rect_grid phase_grid,
-  const struct gkyl_range phase_range, const struct gkyl_range conf_range,
+gkyl_vlasov_lte_proj_on_basis_geom_quad_vars_cu_ker(const struct gkyl_range conf_range,
   const struct gkyl_array* GKYL_RESTRICT conf_basis_at_ords, 
-  const struct gkyl_array* GKYL_RESTRICT phase_basis_at_ords, 
-  const struct gkyl_array* GKYL_RESTRICT phase_ordinates, 
-  const struct gkyl_array* GKYL_RESTRICT phase_weights, const int *p2c_qidx, bool is_relativistic, 
-  bool is_canonical_pb, const struct gkyl_array* GKYL_RESTRICT h_ij_inv,  const struct gkyl_array* GKYL_RESTRICT det_h,
-  const struct gkyl_array* GKYL_RESTRICT moms_lte, const struct gkyl_basis* phase_basis_on_dev, struct gkyl_array* GKYL_RESTRICT f_lte_at_nodes, 
-  struct gkyl_array* GKYL_RESTRICT f_lte)
-{
+  bool is_canonical_pb, int vdim, 
+  struct gkyl_array* GKYL_RESTRICT h_ij_inv_quad_d, 
+  struct gkyl_array* GKYL_RESTRICT det_h_quad_d,
+   struct gkyl_array* GKYL_RESTRICT h_ij_inv, struct gkyl_array* GKYL_RESTRICT det_h, 
+  const struct gkyl_basis* conf_basis_on_dev)
+{    
+  int num_conf_basis = conf_basis_at_ords->ncomp;
+  int tot_conf_quad = conf_basis_at_ords->size;
 
-  int num_phase_basis = f_lte->ncomp;
-  int tot_phase_quad = phase_basis_at_ords->size;
-  int pidx[GKYL_MAX_DIM];
+  int pidx[GKYL_MAX_DIM], cidx[GKYL_MAX_CDIM];
 
   // 2D thread grid
-  // linc2 = c where c is the component index (from 0 to num_phase_basis)
-  long linc2 = threadIdx.y + blockIdx.y*blockDim.y;
+  // linc2 = c where c is the component index (from 0 to tot_conf_quad)
   for(unsigned long tid = threadIdx.x + blockIdx.x*blockDim.x;
-    tid < phase_range.volume; tid += blockDim.x*gridDim.x) {
-    gkyl_sub_range_inv_idx(&phase_range, tid, pidx);
+      tid < conf_range.volume; tid += blockDim.x*gridDim.x) {
+    gkyl_sub_range_inv_idx(&conf_range, tid, cidx);
+    long lincC = gkyl_range_idx(&conf_range, cidx);
+    double *h_ij_inv_quad = (double*) gkyl_array_fetch(h_ij_inv_quad_d, lincC);
+    double *det_h_quad = (double*) gkyl_array_fetch(det_h_quad_d, lincC);
+    const double *h_ij_inv_d;
+    const double *det_h_d;
+    if (is_canonical_pb) {
+      h_ij_inv_d = (const double*) gkyl_array_cfetch(h_ij_inv, lincC);
+      det_h_d = (const double*) gkyl_array_cfetch(det_h, lincC);
 
-    long lidx = gkyl_range_idx(&phase_range, pidx);
-    double *f_lte_d = (double*) gkyl_array_fetch(f_lte, lidx);
+      // Sum over basis
+      for (int n=0; n<tot_conf_quad; ++n) {
+        const double *b_ord = (const double*) gkyl_array_cfetch(conf_basis_at_ords, n);
 
-    // Select for a phase space index fq
-    double *fq = (double*) gkyl_array_fetch(f_lte_at_nodes, lidx);
-
-    // Convert back to modal basis; takes the thread id for the basis function
-    // so we can parallelize over basis functions. 
-    phase_basis_on_dev->quad_nodal_to_modal(fq, f_lte_d, linc2);
+        // Zero out then set the values of h_ij_inv/ det_h at quad points
+        det_h_quad[n] = 0.0;
+        for (int k=0; k<num_conf_basis; ++k) {
+          for (int j=0; j<vdim*(vdim+1)/2; ++j) {
+            h_ij_inv_quad[tot_conf_quad*j + n] = 0;
+          }
+        }
+        for (int k=0; k<num_conf_basis; ++k) {
+          det_h_quad[n] += det_h_d[k]*b_ord[k];
+          for (int j=0; j<vdim*(vdim+1)/2; ++j) {
+            h_ij_inv_quad[tot_conf_quad*j + n] += h_ij_inv_d[num_conf_basis*j+k]*b_ord[k];
+          }
+        }
+      }
+    }
   }
 }
+
+void 
+gkyl_vlasov_lte_proj_on_basis_geom_quad_vars_cu(gkyl_vlasov_lte_proj_on_basis *up,
+  const struct gkyl_range *conf_range)
+{
+
+  // Setup the initial conditions needed 
+  int vdim = up->pdim - up->cdim;
+  int nblocks = conf_range->nblocks, nthreads = conf_range->nthreads;
+  gkyl_vlasov_lte_proj_on_basis_geom_quad_vars_cu_ker<<<nblocks, nthreads>>>
+    (*conf_range, up->conf_basis_at_ords->on_dev, 
+     up->is_canonical_pb, vdim,
+     up->h_ij_inv_quad->on_dev, 
+     up->det_h_quad->on_dev,
+     up->is_canonical_pb ? up->h_ij_inv->on_dev : 0, 
+     up->is_canonical_pb ? up->det_h->on_dev : 0, 
+     up->conf_basis_on_dev);
+
+}
+
+
 
 void
 gkyl_vlasov_lte_proj_on_basis_advance_cu(gkyl_vlasov_lte_proj_on_basis *up,
@@ -271,57 +277,39 @@ gkyl_vlasov_lte_proj_on_basis_advance_cu(gkyl_vlasov_lte_proj_on_basis *up,
   dim3 dimGrid, dimBlock;
   int tot_phase_quad = up->basis_at_ords->size;
   int tot_conf_quad = up->conf_basis_at_ords->size;
-  int num_phase_basis = f_lte->ncomp;
-  //gkyl_parallelize_components_kernel_launch_dims(&dimGrid, &dimBlock, *phase_range, tot_phase_quad);
-  gkyl_parallelize_components_kernel_launch_dims(&dimGrid, &dimBlock, *conf_range, tot_conf_quad);
-  gkyl_vlasov_lte_proj_on_basis_advance_cu_ker<<<dimGrid, dimBlock>>>
-    (up->phase_grid, *phase_range, *conf_range, up->conf_basis_at_ords->on_dev, up->basis_at_ords->on_dev,
-     up->ordinates->on_dev, 
+  int num_conf_basis = up->num_conf_basis;
+  int nblocks = conf_range->nblocks, nthreads = conf_range->nthreads;
+  gkyl_vlasov_lte_proj_on_basis_advance_cu_ker<<<nblocks, nthreads>>>
+    (up->phase_grid, *phase_range, *conf_range, up->conf_basis_at_ords->on_dev, 
      up->n_quad->on_dev, 
      up->V_drift_quad->on_dev, 
      up->T_over_m_quad->on_dev, 
-     up->V_drift_quad_cell_avg->on_dev, 
-     up->h_ij_inv_quad->on_dev, 
-     up->det_h_quad->on_dev, 
-     up->weights->on_dev, up->p2c_qidx,
-     up->is_relativistic, up->is_canonical_pb, 
-     up->is_canonical_pb ? up->h_ij_inv->on_dev : 0, 
-     up->is_canonical_pb ? up->det_h->on_dev : 0, 
-     moms_lte->on_dev, up->conf_basis_on_dev, up->f_lte_at_nodes->on_dev);
+     up->V_drift_quad_cell_avg->on_dev, up->p2c_qidx,
+     moms_lte->on_dev, up->conf_basis_on_dev, up->f_lte_at_nodes->on_dev, num_conf_basis, tot_conf_quad);
 
   //int nblocks = phase_range->nblocks, nthreads = phase_range->nthreads;
   gkyl_parallelize_components_kernel_launch_dims(&dimGrid, &dimBlock, *phase_range, tot_phase_quad);
   gkyl_vlasov_lte_proj_on_basis_accumulate_cu_ker<<<dimGrid, dimBlock>>>
-    (up->phase_grid, *phase_range, *conf_range, up->conf_basis_at_ords->on_dev, up->basis_at_ords->on_dev,
+    (up->phase_grid, *phase_range, *conf_range,
      up->ordinates->on_dev,
      up->n_quad->on_dev, 
      up->V_drift_quad->on_dev, 
      up->T_over_m_quad->on_dev, 
      up->V_drift_quad_cell_avg->on_dev, 
      up->h_ij_inv_quad->on_dev, 
-     up->det_h_quad->on_dev, 
-     up->weights->on_dev, up->p2c_qidx,
+     up->det_h_quad->on_dev, up->p2c_qidx,
      up->is_relativistic, up->is_canonical_pb, 
      up->is_canonical_pb ? up->h_ij_inv->on_dev : 0, 
      up->is_canonical_pb ? up->det_h->on_dev : 0, 
-     moms_lte->on_dev, up->f_lte_at_nodes->on_dev);
+     moms_lte->on_dev, up->f_lte_at_nodes->on_dev, num_conf_basis, tot_conf_quad);
 
-  gkyl_array_clear(f_lte, 0.0);
-
-  gkyl_parallelize_components_kernel_launch_dims(&dimGrid, &dimBlock, *phase_range, num_phase_basis);
-  gkyl_proj_on_basis_cu_ker<<<dimGrid, dimBlock>>>
-    (up->phase_grid, *phase_range, *conf_range, up->conf_basis_at_ords->on_dev, up->basis_at_ords->on_dev,
-     up->ordinates->on_dev, up->weights->on_dev, up->p2c_qidx,
-     up->is_relativistic, up->is_canonical_pb, 
-     up->is_canonical_pb ? up->h_ij_inv->on_dev : 0, 
-     up->is_canonical_pb ? up->det_h->on_dev : 0, 
-     moms_lte->on_dev, up->phase_basis_on_dev, 
-     up->f_lte_at_nodes->on_dev, f_lte->on_dev);
+  // Call cublas to do the matrix multiplication nodal to modal conversion
+  gkyl_mat_mm_array(up->phase_nodal_to_modal_mem, up->f_lte_at_nodes, f_lte);
 
   // Correct the density of the projected LTE distribution function through rescaling.
   // This correction is needed especially for the relativistic LTE, whose pre-factor
   // we construct through an expansion of the Bessel functions to avoid finite 
-  // precision effects in such a way that we can recover arbitrary temperature 
+  // precision effects in such a way that we can recover arbitrary temperature  
   // relativistic LTE distributions by rescaling the distribution to the desired density.  
   gkyl_vlasov_lte_density_moment_advance(up->moments_up, phase_range, conf_range, f_lte, up->num_ratio);
 

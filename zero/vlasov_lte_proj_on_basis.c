@@ -5,6 +5,7 @@
 #include <gkyl_array.h>
 #include <gkyl_const.h>
 #include <gkyl_gauss_quad_data.h>
+#include <gkyl_mat.h>
 #include <gkyl_vlasov_lte_proj_on_basis.h>
 #include <gkyl_vlasov_lte_proj_on_basis_priv.h>
 #include <gkyl_range.h>
@@ -126,6 +127,62 @@ init_quad_values(int cdim, const struct gkyl_basis *basis, int num_quad, struct 
   return tot_quad;
 }
 
+
+static void
+gkyl_vlasov_lte_proj_on_basis_geom_quad_vars(gkyl_vlasov_lte_proj_on_basis *up, 
+  const struct gkyl_range *conf_range)
+{
+
+// Setup the intial geometric vars, on GPU 
+#ifdef GKYL_HAVE_CUDA
+  if (up->use_gpu)
+    return gkyl_vlasov_lte_proj_on_basis_geom_quad_vars_cu(up, conf_range);
+#endif
+
+  // Otherwise run the CPU Version to setup h_ij_inv, det_h
+  int cdim = up->cdim, pdim = up->pdim;
+  int vdim = pdim-cdim;
+  int tot_quad = up->tot_quad;
+  int num_phase_basis = up->num_phase_basis;  
+
+  int tot_conf_quad = up->tot_conf_quad;
+  int num_conf_basis = up->num_conf_basis;
+
+  struct gkyl_range_iter conf_iter;
+
+  // outer loop over configuration space cells; for each
+  // config-space cell inner loop walks over velocity space
+  gkyl_range_iter_init(&conf_iter, conf_range);
+  while (gkyl_range_iter_next(&conf_iter)) {
+    long midx = gkyl_range_idx(conf_range, conf_iter.idx);
+    const double *h_ij_inv_d;
+    const double *det_h_d;
+    h_ij_inv_d = gkyl_array_cfetch(up->h_ij_inv, midx);
+    det_h_d = gkyl_array_cfetch(up->det_h, midx);
+    double *h_ij_inv_quad = (double*) gkyl_array_fetch(up->h_ij_inv_quad, midx);
+    double *det_h_quad = (double*) gkyl_array_fetch(up->det_h_quad, midx);
+
+    // Sum over basis for given LTE moments (n, V_drift, T/m) in the stationary frame
+    for (int n=0; n<tot_conf_quad; ++n) {
+      const double *b_ord = gkyl_array_cfetch(up->conf_basis_at_ords, n);
+
+      det_h_quad[n] = 0.0;
+      for (int k=0; k<num_conf_basis; ++k) {
+        for (int j=0; j<vdim*(vdim+1)/2; ++j) {
+          h_ij_inv_quad[tot_conf_quad*j + n] = 0;
+        }
+      }
+      for (int k=0; k<num_conf_basis; ++k) {
+        det_h_quad[n] += det_h_d[k]*b_ord[k];
+        for (int j=0; j<vdim*(vdim+1)/2; ++j) {
+          h_ij_inv_quad[tot_conf_quad*j + n] += h_ij_inv_d[num_conf_basis*j+k]*b_ord[k];
+        }
+      }
+    }
+  }
+}
+
+
 struct gkyl_vlasov_lte_proj_on_basis* 
 gkyl_vlasov_lte_proj_on_basis_inew(const struct gkyl_vlasov_lte_proj_on_basis_inp *inp)
 {
@@ -164,11 +221,11 @@ gkyl_vlasov_lte_proj_on_basis_inew(const struct gkyl_vlasov_lte_proj_on_basis_in
   int num_quad = up->conf_basis.poly_order+1;
   // initialize data needed for conf-space quadrature 
   up->tot_conf_quad = init_quad_values(up->cdim, &up->conf_basis, num_quad,
-    &up->conf_ordinates, &up->conf_weights, &up->conf_basis_at_ords, up->use_gpu);
+    &up->conf_ordinates, &up->conf_weights, &up->conf_basis_at_ords, false);
 
   // initialize data needed for phase-space quadrature 
   up->tot_quad = init_quad_values(up->cdim, &up->phase_basis, num_quad,
-    &up->ordinates, &up->weights, &up->basis_at_ords, up->use_gpu);
+    &up->ordinates, &up->weights, &up->basis_at_ords, false);
 
   up->fun_at_ords = gkyl_array_new(GKYL_DOUBLE, 1, up->tot_quad); // Only used in CPU implementation.
 
@@ -186,6 +243,24 @@ gkyl_vlasov_lte_proj_on_basis_inew(const struct gkyl_vlasov_lte_proj_on_basis_in
   up->conf_qrange = get_qrange(up->cdim, up->cdim, num_quad, num_quad_v, is_vdim_p2);
   up->phase_qrange = get_qrange(up->cdim, up->pdim, num_quad, num_quad_v, is_vdim_p2);
 
+  long conf_local_ncells = inp->conf_range->volume;
+  long conf_local_ext_ncells = inp->conf_range_ext->volume;
+
+  // Number density ratio: num_ratio = n_target/n0 and bin_op memory to compute ratio
+  // Used for fixing the density with simple rescaling
+  if (up->use_gpu) {
+    up->num_ratio = gkyl_array_cu_dev_new(GKYL_DOUBLE, up->conf_basis.num_basis, conf_local_ext_ncells);
+    up->mem = gkyl_dg_bin_op_mem_cu_dev_new(conf_local_ncells, up->conf_basis.num_basis);
+    up->h_ij_inv_quad = gkyl_array_cu_dev_new(GKYL_DOUBLE, up->tot_conf_quad*(vdim*(vdim+1)/2), inp->conf_range_ext->volume);
+    up->det_h_quad = gkyl_array_cu_dev_new(GKYL_DOUBLE, up->tot_conf_quad, inp->conf_range_ext->volume);
+  }
+  else {
+    up->num_ratio = gkyl_array_new(GKYL_DOUBLE, up->conf_basis.num_basis, conf_local_ext_ncells);
+    up->mem = gkyl_dg_bin_op_mem_new(conf_local_ncells, up->conf_basis.num_basis);
+    up->h_ij_inv_quad = gkyl_array_new(GKYL_DOUBLE, up->tot_conf_quad*(vdim*(vdim+1)/2), inp->conf_range_ext->volume);
+    up->det_h_quad = gkyl_array_new(GKYL_DOUBLE, up->tot_conf_quad, inp->conf_range_ext->volume);
+  }
+
 #ifdef GKYL_HAVE_CUDA
   if (up->use_gpu) {
     // Allocate device copies of arrays needed for quadrature.
@@ -199,8 +274,34 @@ gkyl_vlasov_lte_proj_on_basis_inew(const struct gkyl_vlasov_lte_proj_on_basis_in
     up->V_drift_quad = gkyl_array_cu_dev_new(GKYL_DOUBLE, up->tot_conf_quad*vdim, inp->conf_range_ext->volume);
     up->T_over_m_quad = gkyl_array_cu_dev_new(GKYL_DOUBLE, up->tot_conf_quad, inp->conf_range_ext->volume);
     up->V_drift_quad_cell_avg = gkyl_array_cu_dev_new(GKYL_DOUBLE, up->tot_conf_quad*vdim, inp->conf_range_ext->volume);
-    up->h_ij_inv_quad = gkyl_array_cu_dev_new(GKYL_DOUBLE, up->tot_conf_quad*(vdim*(vdim+1)/2), inp->conf_range_ext->volume);
-    up->det_h_quad = gkyl_array_cu_dev_new(GKYL_DOUBLE, up->tot_conf_quad, inp->conf_range_ext->volume);
+    
+    // Allocate the memory for computing the specific phase nodal to modal calculation
+    struct gkyl_mat_mm_array_mem *phase_nodal_to_modal_mem_ho;
+    phase_nodal_to_modal_mem_ho = gkyl_mat_mm_array_mem_new(up->num_phase_basis, up->tot_quad, 1.0, 0.0, 
+      GKYL_NO_TRANS, GKYL_NO_TRANS, false);
+
+    // Compute the matrix A for the phase nodal to modal memory
+    const double *phase_w = (const double*) up->weights->data;
+    const double *phaseb_o = (const double*) up->basis_at_ords->data;
+    for (int n=0; n<up->tot_quad; ++n){
+      for (int k=0; k<up->num_phase_basis; ++k){
+        gkyl_mat_set(phase_nodal_to_modal_mem_ho->A, k, n, phase_w[n]*phaseb_o[k+up->num_phase_basis*n]);
+      }
+    }
+    
+    // copy to device
+    up->phase_nodal_to_modal_mem = gkyl_mat_mm_array_mem_new(up->num_phase_basis, up->tot_quad, 1.0, 0.0, 
+      GKYL_NO_TRANS, GKYL_NO_TRANS, up->use_gpu);
+    gkyl_mat_copy(up->phase_nodal_to_modal_mem->A, phase_nodal_to_modal_mem_ho->A);
+    gkyl_mat_mm_array_mem_release(phase_nodal_to_modal_mem_ho);
+
+    // initialize data needed for conf-space quadrature 
+    up->tot_conf_quad = init_quad_values(up->cdim, &up->conf_basis, num_quad,
+      &up->conf_ordinates, &up->conf_weights, &up->conf_basis_at_ords, up->use_gpu);
+
+    // initialize data needed for phase-space quadrature 
+    up->tot_quad = init_quad_values(up->cdim, &up->phase_basis, num_quad,
+      &up->ordinates, &up->weights, &up->basis_at_ords, up->use_gpu);
 
     int pidx[GKYL_MAX_DIM];
     for (int n=0; n<up->tot_quad; ++n) {
@@ -231,19 +332,9 @@ gkyl_vlasov_lte_proj_on_basis_inew(const struct gkyl_vlasov_lte_proj_on_basis_in
   };
   up->moments_up = gkyl_vlasov_lte_moments_inew( &inp_mom );
 
-  long conf_local_ncells = inp->conf_range->volume;
-  long conf_local_ext_ncells = inp->conf_range_ext->volume;
-
-  // Number density ratio: num_ratio = n_target/n0 and bin_op memory to compute ratio
-  // Used for fixing the density with simple rescaling
-  if (up->use_gpu) {
-    up->num_ratio = gkyl_array_cu_dev_new(GKYL_DOUBLE, up->conf_basis.num_basis, conf_local_ext_ncells);
-    up->mem = gkyl_dg_bin_op_mem_cu_dev_new(conf_local_ncells, up->conf_basis.num_basis);
-  }
-  else {
-    up->num_ratio = gkyl_array_new(GKYL_DOUBLE, up->conf_basis.num_basis, conf_local_ext_ncells);
-    up->mem = gkyl_dg_bin_op_mem_new(conf_local_ncells, up->conf_basis.num_basis);
-  }
+  // Build the inital geometric vars for canonical-pb
+  if(up->is_canonical_pb)
+    gkyl_vlasov_lte_proj_on_basis_geom_quad_vars(up, inp->conf_range);
 
   return up;
 }
@@ -296,8 +387,6 @@ gkyl_vlasov_lte_proj_on_basis_advance(gkyl_vlasov_lte_proj_on_basis *up,
 
   double xc[GKYL_MAX_DIM], xmu[GKYL_MAX_DIM];
   double n_quad[tot_conf_quad], V_drift_quad[tot_conf_quad][vdim], T_over_m_quad[tot_conf_quad];
-  double h_ij_inv_quad[tot_conf_quad][vdim*(vdim + 1)/2];
-  double det_h_quad[tot_conf_quad];
   double V_drift_quad_cell_avg[tot_conf_quad][vdim];
   double expamp_quad[tot_conf_quad];
 
@@ -311,11 +400,11 @@ gkyl_vlasov_lte_proj_on_basis_advance(gkyl_vlasov_lte_proj_on_basis *up,
     const double *n_d = moms_lte_d;
     const double *V_drift_d = &moms_lte_d[num_conf_basis];
     const double *T_over_m_d = &moms_lte_d[num_conf_basis*(vdim+1)];
-    const double *h_ij_inv_d;
-    const double *det_h_d;
+    double *h_ij_inv_quad;
+    double *det_h_quad;
     if (up->is_canonical_pb) {
-      h_ij_inv_d = gkyl_array_cfetch(up->h_ij_inv, midx);
-      det_h_d = gkyl_array_cfetch(up->det_h, midx);
+      h_ij_inv_quad = gkyl_array_fetch(up->h_ij_inv_quad, midx);
+      det_h_quad = gkyl_array_fetch(up->det_h_quad, midx);
     }
 
     // Sum over basis for given LTE moments (n, V_drift, T/m) in the stationary frame
@@ -338,21 +427,6 @@ gkyl_vlasov_lte_proj_on_basis_advance(gkyl_vlasov_lte_proj_on_basis *up,
           V_drift_quad[n][d] += V_drift_d[num_conf_basis*d+k]*b_ord[k];
         }
         T_over_m_quad[n] += T_over_m_d[k]*b_ord[k];
-      }
-
-      if (up->is_canonical_pb) {
-        det_h_quad[n] = 0.0;
-        for (int k=0; k<num_conf_basis; ++k) {
-          for (int j=0; j<vdim*(vdim+1)/2; ++j) {
-            h_ij_inv_quad[n][j] = 0;
-          }
-        }
-        for (int k=0; k<num_conf_basis; ++k) {
-          det_h_quad[n] += det_h_d[k]*b_ord[k];
-          for (int j=0; j<vdim*(vdim+1)/2; ++j) {
-            h_ij_inv_quad[n][j] += h_ij_inv_d[num_conf_basis*j+k]*b_ord[k];
-          }
-        }
       }
 
       // Amplitude of the exponential.
@@ -430,12 +504,9 @@ gkyl_vlasov_lte_proj_on_basis_advance(gkyl_vlasov_lte_proj_on_basis *up,
                 // Grab the spatial metric component, the ctx includes geometry that isn't 
                 // part of the canonical set of variables, like R on the surf of a sphere
                 // q_can includes the canonical variables list
-                double h_ij_inv_loc = h_ij_inv_quad[cqidx][sym_tensor_index]; 
+                double h_ij_inv_loc = h_ij_inv_quad[tot_conf_quad*sym_tensor_index + cqidx]; 
                 // For off-diagnol components, we need to count these twice, due to symmetry
-                int sym_fact = 2;
-                if (d0 == d1){
-                  sym_fact = 1;
-                }
+                int sym_fact = (d0 == d1) ? 1 : 2;
                 efact += sym_fact*h_ij_inv_loc*(xmu[cdim+d0]-V_drift_quad[cqidx][d0])*(xmu[cdim+d1]-V_drift_quad[cqidx][d1]);
               }
             }
@@ -485,8 +556,8 @@ gkyl_vlasov_lte_proj_on_basis_release(gkyl_vlasov_lte_proj_on_basis* up)
     gkyl_array_release(up->V_drift_quad);
     gkyl_array_release(up->T_over_m_quad);
     gkyl_array_release(up->V_drift_quad_cell_avg);
-    gkyl_array_release(up->h_ij_inv_quad);
-    gkyl_array_release(up->det_h_quad);
+
+    gkyl_mat_mm_array_mem_release(up->phase_nodal_to_modal_mem);
   }
 #endif
   gkyl_array_release(up->ordinates);
@@ -505,6 +576,8 @@ gkyl_vlasov_lte_proj_on_basis_release(gkyl_vlasov_lte_proj_on_basis* up)
   gkyl_vlasov_lte_moments_release(up->moments_up);
   gkyl_array_release(up->num_ratio);
   gkyl_dg_bin_op_mem_release(up->mem);
+  gkyl_array_release(up->h_ij_inv_quad);
+  gkyl_array_release(up->det_h_quad);
 
   gkyl_free(up);
 }

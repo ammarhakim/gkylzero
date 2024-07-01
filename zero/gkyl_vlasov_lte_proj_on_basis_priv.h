@@ -7,6 +7,8 @@
 #include <gkyl_basis.h>
 #include <gkyl_dg_bin_ops.h>
 #include <gkyl_vlasov_lte_moments.h>
+#include <gkyl_mat.h>
+#include <gkyl_mat_priv.h>
 #include <gkyl_range.h>
 #include <gkyl_rect_grid.h> 
 #include <gkyl_util.h>
@@ -82,4 +84,8 @@ struct gkyl_vlasov_lte_proj_on_basis {
   struct gkyl_vlasov_lte_moments *moments_up; // LTE moment calculation routine for computing density
   struct gkyl_array *num_ratio; // Number density ratio: num_ratio = n_target/n0
   struct gkyl_dg_bin_op_mem *mem; // bin_op memory to compute ratio and rescale distribution function
+
+  struct gkyl_mat_mm_array_mem *phase_nodal_to_modal_mem; // structure of data which converts  
+                                                                // stores the info to convert phase
+                                                                // space nodal to modal gkyl arrays            
 };
