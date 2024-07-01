@@ -180,7 +180,10 @@ gr_euler1d_run_single(int argc, char **argv, struct gr_euler1d_single_init* init
 
   euler_write_sol_patch(buf, num_patches, mesh_pdata);
 
-  printf("Total run-time: %g. Failed steps: %d\n", tm_total_sec, stats.nfail);
+  printf("\n");
+  printf("Number of update calls %ld\n", (coarse_step - 1));
+  printf("Number of failed time-steps %d\n", stats.nfail);
+  printf("Total updates took %g secs\n", tm_total_sec);
 
   for (int i = 0; i < num_patches; i++) {
     gkyl_fv_proj_release(mesh_pdata[i].fv_proj);
@@ -391,7 +394,10 @@ gr_euler1d_run_double(int argc, char **argv, struct gr_euler1d_double_init* init
 
   euler_write_sol_patch(buf, num_patches, mesh_pdata);
 
-  printf("Total run-time: %g. Failed steps: %d\n", tm_total_sec, stats.nfail);
+  printf("\n");
+  printf("Number of update calls %ld\n", (coarse_step - 1));
+  printf("Number of failed time-steps %d\n", stats.nfail);
+  printf("Total updates took %g secs\n", tm_total_sec);
 
   for (int i = 0; i < num_patches; i++) {
     gkyl_fv_proj_release(mesh_pdata[i].fv_proj);
@@ -608,7 +614,10 @@ gr_euler2d_run_single(int argc, char **argv, struct gr_euler2d_single_init* init
 
   euler_write_sol_block(buf, num_blocks, mesh_bdata);
 
-  printf("Total run-time: %g. Failed steps: %d\n", tm_total_sec, stats.nfail);
+  printf("\n");
+  printf("Number of update calls %ld\n", (coarse_step - 1));
+  printf("Number of failed time-steps %d\n", stats.nfail);
+  printf("Total updates took %g secs\n", tm_total_sec);
 
   for (int i = 0; i < num_blocks; i++) {
     gkyl_fv_proj_release(mesh_bdata[i].fv_proj);
@@ -880,7 +889,10 @@ gr_euler2d_run_double(int argc, char **argv, struct gr_euler2d_double_init* init
 
   euler_write_sol_block(buf, num_blocks, mesh_bdata);
 
-  printf("Total run-time: %g. Failed steps: %d\n", tm_total_sec, stats.nfail);
+  printf("\n");
+  printf("Number of update calls %ld\n", (coarse_step - 1));
+  printf("Number of failed time-steps %d\n", stats.nfail);
+  printf("Total updates took %g secs\n", tm_total_sec);
 
   for (int i = 0; i < num_blocks; i++) {
     gkyl_fv_proj_release(mesh_bdata[i].fv_proj);
