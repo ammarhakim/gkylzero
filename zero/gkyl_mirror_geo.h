@@ -104,34 +104,14 @@ struct gkyl_mirror_geo_grid_inp {
   double nonuniform_mapping_fraction; // Zero is uniform mapping, one is fully nonuniform mapping. In between values 
 };
 
-// An evaluator object for the non-uniform mapping to be read by initial conditions
-// compuational to field aligned context object
-struct gkyl_mirror_geo_c2fa_ctx {
-  struct gkyl_rect_grid grid;
-  struct gkyl_rect_grid cgrid;
-  struct gkyl_range range;
-  struct gkyl_range crange;
-  struct gkyl_range crange_global;
-  struct gkyl_basis basis;
-  struct gkyl_basis cbasis;
-  struct gkyl_array* c2fa; // nonuniform map
-  struct gkyl_array* c2fa_deflate; // nonuniform map
-
-  struct gkyl_rect_grid grid_deflate;
-  struct gkyl_range range_deflate;
-  struct gkyl_range range_global_deflate;
-  struct gkyl_basis basis_deflate;
-};
-
 /**
  * Updater for advancing the map from computational coordinates to non-uniform coordinates
  * 
- * @param t Time
  * @param xn Computational coordinates as given in deflated geometry
  * @param fout Non-uniform coordinates in full 3D field alligned coordinates
  * @param ctx Context for the map
  */
-void gkyl_mirror_geo_comp2fieldalligned_advance(double t, const double *xn, double *fout, void *ctx);
+void gkyl_mirror_geo_c2fa_advance(const double *xn, double *fout, void *ctx);
 // gkyl_mirror_geo_comp2fieldalligned_advance
 
 /**
@@ -198,7 +178,8 @@ void gkyl_mirror_geo_mapc2p(const gkyl_mirror_geo *geo, const struct gkyl_mirror
 void gkyl_mirror_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, double dzc[3], 
   evalf_t mapc2p_func, void* mapc2p_ctx, evalf_t bmag_func, void *bmag_ctx, 
   struct gkyl_array *mc2p_nodal_fd, struct gkyl_array *mc2p_nodal, struct gkyl_array *mc2p, bool nonuniform,
-  struct gkyl_array* map_arcL_nodal_fd, struct gkyl_array* map_arcL_nodal, struct gkyl_array* c2fa);
+  struct gkyl_array* map_arcL_nodal_fd, struct gkyl_array* map_arcL_nodal, struct gkyl_array* c2fa,
+  struct gk_geometry* up_deflated);
 
 /**
  * Return cumulative statistics from geometry computations

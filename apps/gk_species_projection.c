@@ -1,13 +1,24 @@
 #include <assert.h>
 #include <gkyl_gyrokinetic_priv.h>
+#include <gkyl_mirror_geo.h>
 
 // c2p function assed to proj_on_basis.
 void
-proj_on_basis_c2p_func(const double *xcomp, double *xphys, void *ctx)
+proj_on_basis_c2p_phase_func(const double *xcomp, double *xphys, void *ctx)
 {
   struct gk_proj_on_basis_c2p_func_ctx *c2p_ctx = ctx;
   int cdim = c2p_ctx->cdim; // Assumes update range is a phase range.
   gkyl_velocity_map_eval_c2p(c2p_ctx->vel_map, &xcomp[cdim], &xphys[cdim]);
+  gkyl_gk_geometry_c2fa(xcomp, xphys, c2p_ctx->gk_geom);
+}
+
+void
+proj_on_basis_c2p_conf_func(const double *xcomp, double *xphys, void *ctx)
+{
+  struct gk_proj_on_basis_c2p_func_ctx *c2p_ctx = ctx;
+  printf("conf_func: gk_geom->geometry_id = %d\n", c2p_ctx->gk_geom->geometry_id);
+  gkyl_gk_geometry_c2fa(xcomp, xphys, c2p_ctx->gk_geom);
+  // printf("Mapping xcomp %f %f %f to xphys %f %f %f\n", xcomp[0], xcomp[1], xcomp[2], xphys[0], xphys[1], xphys[2]);
 }
 
 void 
@@ -15,9 +26,11 @@ gk_species_projection_init(struct gkyl_gyrokinetic_app *app, struct gk_species *
   struct gkyl_gyrokinetic_projection inp, struct gk_proj *proj)
 {
   proj->proj_id = inp.proj_id;
+  proj->proj_on_basis_c2p_ctx.gk_geom = app->gk_geom;
+  printf("init\napp->gk_geom->geometry_id = %d\n", app->gk_geom->geometry_id);
+  printf("proj->proj_on_basis_c2p_ctx.gk_geom->geometry_id = %d\n", proj->proj_on_basis_c2p_ctx.gk_geom->geometry_id);
 
   if (proj->proj_id == GKYL_PROJ_FUNC) {
-
     // Assign members of context for c2p map used in project_on_basis.
     proj->proj_on_basis_c2p_ctx.cdim = app->cdim;
     proj->proj_on_basis_c2p_ctx.vdim = s->local_vel.ndim;
@@ -31,7 +44,7 @@ gk_species_projection_init(struct gkyl_gyrokinetic_app *app, struct gk_species *
         .num_ret_vals = 1,
         .eval = inp.func,
         .ctx = inp.ctx_func,
-        .c2p_func = proj_on_basis_c2p_func,
+        .c2p_func = proj_on_basis_c2p_phase_func,
         .c2p_func_ctx = &proj->proj_on_basis_c2p_ctx,
       }
     );
@@ -46,12 +59,42 @@ gk_species_projection_init(struct gkyl_gyrokinetic_app *app, struct gk_species *
     proj->prim_moms_host = mkarr(false, 3*app->confBasis.num_basis, app->local_ext.volume);
     proj->prim_moms = mkarr(app->use_gpu, 3*app->confBasis.num_basis, app->local_ext.volume);
 
-    proj->proj_dens = gkyl_proj_on_basis_new(&app->grid, &app->confBasis,
-      app->basis.poly_order+1, 1, inp.density, inp.ctx_density);
-    proj->proj_upar = gkyl_proj_on_basis_new(&app->grid, &app->confBasis,
-      app->basis.poly_order+1, 1, inp.upar, inp.ctx_upar);
-    proj->proj_temp = gkyl_proj_on_basis_new(&app->grid, &app->confBasis,
-      app->basis.poly_order+1, 1, inp.temp, inp.ctx_temp);
+    proj->proj_dens = gkyl_proj_on_basis_inew( &(struct gkyl_proj_on_basis_inp) {
+        .grid = &app->grid,
+        .basis = &app->confBasis,
+        .qtype = GKYL_GAUSS_QUAD,
+        .num_quad = app->basis.poly_order+1,
+        .num_ret_vals = 1,
+        .eval = inp.density,
+        .ctx = inp.ctx_density,
+        .c2p_func = proj_on_basis_c2p_conf_func,
+        .c2p_func_ctx = &proj->proj_on_basis_c2p_ctx,
+      }
+    );
+    proj->proj_upar = gkyl_proj_on_basis_inew( &(struct gkyl_proj_on_basis_inp) {
+        .grid = &app->grid,
+        .basis = &app->confBasis,
+        .qtype = GKYL_GAUSS_QUAD,
+        .num_quad = app->basis.poly_order+1,
+        .num_ret_vals = 1,
+        .eval = inp.upar,
+        .ctx = inp.ctx_upar,
+        .c2p_func = proj_on_basis_c2p_conf_func,
+        .c2p_func_ctx = &proj->proj_on_basis_c2p_ctx,
+      }
+    );
+    proj->proj_temp = gkyl_proj_on_basis_inew( &(struct gkyl_proj_on_basis_inp) {
+        .grid = &app->grid,
+        .basis = &app->confBasis,
+        .qtype = GKYL_GAUSS_QUAD,
+        .num_quad = app->basis.poly_order+1,
+        .num_ret_vals = 1,
+        .eval = inp.temp,
+        .ctx = inp.ctx_temp,
+        .c2p_func = proj_on_basis_c2p_conf_func,
+        .c2p_func_ctx = &proj->proj_on_basis_c2p_ctx,
+      }
+    );
 
     // Maxwellian correction updater
     struct gkyl_gyrokinetic_maxwellian_correct_inp inp_corr = {

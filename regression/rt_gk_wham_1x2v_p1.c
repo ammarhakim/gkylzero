@@ -113,7 +113,6 @@ struct gk_mirror_ctx
   double dt_failure_tol; // Minimum allowable fraction of initial time-step.
   int num_failures_max; // Maximum allowable number of consecutive small time-steps.
   double mapping_frac;
-  void *mirror_geo_c2fa_ctx;
 };
 
 
@@ -140,9 +139,7 @@ void
 eval_density_elc_source(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   struct gk_mirror_ctx *app = ctx;
-  double x_fa[1];
-  gkyl_mirror_geo_comp2fieldalligned_advance(t, xn, x_fa, app->mirror_geo_c2fa_ctx);
-  double z = x_fa[0];
+  double z = xn[0];
   double NSrc = app->NSrcElc;
   double zSrc = app->lineLengthSrcElc;
   double sigSrc = app->sigSrcElc;
@@ -168,9 +165,7 @@ void
 eval_temp_elc_source(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   struct gk_mirror_ctx *app = ctx;
-  double x_fa[1];
-  gkyl_mirror_geo_comp2fieldalligned_advance(t, xn, x_fa, app->mirror_geo_c2fa_ctx);
-  double z = x_fa[0];
+  double z = xn[0];
   double sigSrc = app->sigSrcElc;
   double TSrc0 = app->TSrc0Elc;
   double Tfloor = app->TSrcFloorElc;
@@ -188,9 +183,7 @@ void
 eval_density_ion_source(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   struct gk_mirror_ctx *app = ctx;
-  double x_fa[1];
-  gkyl_mirror_geo_comp2fieldalligned_advance(t, xn, x_fa, app->mirror_geo_c2fa_ctx);
-  double z = x_fa[0];
+  double z = xn[0];
   double NSrc = app->NSrcIon;
   double zSrc = app->lineLengthSrcIon;
   double sigSrc = app->sigSrcIon;
@@ -216,9 +209,7 @@ void
 eval_temp_ion_source(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   struct gk_mirror_ctx *app = ctx;
-  double x_fa[1];
-  gkyl_mirror_geo_comp2fieldalligned_advance(t, xn, x_fa, app->mirror_geo_c2fa_ctx);
-  double z = x_fa[0];
+  double z = xn[0];
   double sigSrc = app->sigSrcIon;
   double TSrc0 = app->TSrc0Ion;
   double Tfloor = app->TSrcFloorIon;
@@ -237,9 +228,7 @@ void
 eval_density_elc(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   struct gk_mirror_ctx *app = ctx;
-  double x_fa[1];
-  gkyl_mirror_geo_comp2fieldalligned_advance(t, xn, x_fa, app->mirror_geo_c2fa_ctx);
-  double z = x_fa[0];
+  double z = xn[0];
   double z_m = app->z_m;
   double sigma = 0.9*z_m;
   if (fabs(z) <= sigma)
@@ -256,9 +245,7 @@ void
 eval_upar_elc(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   struct gk_mirror_ctx *app = ctx;
-  double x_fa[1];
-  gkyl_mirror_geo_comp2fieldalligned_advance(t, xn, x_fa, app->mirror_geo_c2fa_ctx);
-  double z = x_fa[0];
+  double z = xn[0];
   double cs_m = app->cs_m;
   double z_m = app->z_m;
   double z_max = app->z_max;
@@ -276,9 +263,7 @@ void
 eval_temp_par_elc(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   struct gk_mirror_ctx *app = ctx;
-  double x_fa[1];
-  gkyl_mirror_geo_comp2fieldalligned_advance(t, xn, x_fa, app->mirror_geo_c2fa_ctx);
-  double z = x_fa[0];
+  double z = xn[0];
   double z_m = app->z_m;
   double Te_par0 = app->Te_par0;
   double Te_par_m = app->Te_par_m;
@@ -296,9 +281,7 @@ void
 eval_temp_perp_elc(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   struct gk_mirror_ctx *app = ctx;
-  double x_fa[1];
-  gkyl_mirror_geo_comp2fieldalligned_advance(t, xn, x_fa, app->mirror_geo_c2fa_ctx);
-  double z = x_fa[0];
+  double z = xn[0];
   double z_m = app->z_m;
   double Te_perp0 = app->Te_perp0;
   double Te_perp_m = app->Te_perp_m;
@@ -328,9 +311,7 @@ void
 eval_density_ion(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   struct gk_mirror_ctx *app = ctx;
-  double x_fa[1];
-  gkyl_mirror_geo_comp2fieldalligned_advance(t, xn, x_fa, app->mirror_geo_c2fa_ctx);
-  double z = x_fa[0];
+  double z = xn[0];
   double z_m = app->z_m;
   double sigma = 0.9*z_m;
   if (fabs(z) <= sigma)
@@ -347,9 +328,7 @@ void
 eval_upar_ion(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   struct gk_mirror_ctx *app = ctx;
-  double x_fa[1];
-  gkyl_mirror_geo_comp2fieldalligned_advance(t, xn, x_fa, app->mirror_geo_c2fa_ctx);
-  double z = x_fa[0];
+  double z = xn[0];
   double cs_m = app->cs_m;
   double z_m = app->z_m;
   double z_max = app->z_max;
@@ -367,9 +346,7 @@ void
 eval_temp_par_ion(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   struct gk_mirror_ctx *app = ctx;
-  double x_fa[1];
-  gkyl_mirror_geo_comp2fieldalligned_advance(t, xn, x_fa, app->mirror_geo_c2fa_ctx);
-  double z = x_fa[0];
+  double z = xn[0];
   double z_m = app->z_m;
   double Ti_par0 = app->Ti_par0;
   double Ti_par_m = app->Ti_par_m;
@@ -387,9 +364,7 @@ void
 eval_temp_perp_ion(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   struct gk_mirror_ctx *app = ctx;
-  double x_fa[1];
-  gkyl_mirror_geo_comp2fieldalligned_advance(t, xn, x_fa, app->mirror_geo_c2fa_ctx);
-  double z = x_fa[0];
+  double z = xn[0];
   double z_m = app->z_m;
   double Ti_perp0 = app->Ti_perp0;
   double Ti_perp_m = app->Ti_perp_m;
@@ -505,13 +480,13 @@ create_ctx(void)
   double TSrcFloorElc = TSrcFloorIon / tau;
 
   // Grid parameters
-  double vpar_max_elc = 20 * vte;
+  double vpar_max_elc = 5 * vte;
   double mu_max_elc = me * pow(3. * vte, 2.) / (2. * B_p);
-  double vpar_max_ion = 20 * vti;
+  double vpar_max_ion = 5 * vti;
   double mu_max_ion = mi * pow(3. * vti, 2.) / (2. * B_p);
-  int Nvpar = 10; // Number of cells in the paralell velocity direction 96
-  int Nmu = 10;  // Number of cells in the mu direction 192
-  int Nz = 30;
+  int Nvpar = 32; // Number of cells in the paralell velocity direction 96
+  int Nmu = 32;  // Number of cells in the mu direction 192
+  int Nz = 100;
   int poly_order = 1;
   double t_end = 1e-9;
   int num_frames = 1;
@@ -621,7 +596,6 @@ create_ctx(void)
     .num_failures_max = num_failures_max,
   };
   ctx.z_m = 1;
-  ctx.mirror_geo_c2fa_ctx = gkyl_malloc(sizeof(struct gkyl_mirror_geo_c2fa_ctx));
   return ctx;
 }
 
@@ -700,15 +674,17 @@ int main(int argc, char **argv)
     .polarization_density = ctx.n0,
 
     .projection = {
-      .proj_id = GKYL_PROJ_BIMAXWELLIAN, 
+      .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM, 
       .ctx_density = &ctx,
       .density = eval_density_elc,
       .ctx_upar = &ctx,
       .upar = eval_upar_elc,
-      .ctx_temppar = &ctx,
-      .temppar = eval_temp_par_elc,
-      .ctx_tempperp = &ctx,
-      .tempperp = eval_temp_perp_elc,     
+      // .ctx_temppar = &ctx,
+      // .temppar = eval_temp_par_elc,
+      // .ctx_tempperp = &ctx,
+      // .tempperp = eval_temp_perp_elc,     
+      .ctx_temp = &ctx,
+      .temp = eval_temp_elc,
     },
 
     .collisions =  {
@@ -753,15 +729,17 @@ int main(int argc, char **argv)
     .polarization_density = ctx.n0,
 
     .projection = {
-      .proj_id = GKYL_PROJ_BIMAXWELLIAN, 
+      .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM, 
       .ctx_density = &ctx,
       .density = eval_density_ion,
       .ctx_upar = &ctx,
       .upar = eval_upar_ion,
-      .ctx_temppar = &ctx,    
-      .temppar = eval_temp_par_ion,
-      .ctx_tempperp = &ctx,
-      .tempperp = eval_temp_perp_ion,
+      // .ctx_temppar = &ctx,    
+      // .temppar = eval_temp_par_ion,
+      // .ctx_tempperp = &ctx,
+      // .tempperp = eval_temp_perp_ion,
+      .ctx_temp = &ctx,
+      .temp = eval_temp_ion,
     },
 
     .collisions =  {
@@ -816,7 +794,6 @@ int main(int argc, char **argv)
       .world = {ctx.psi_eval, 0.0},
       .mirror_efit_info = &inp,
       .mirror_grid_info = &ginp,
-      .mirror_geo_c2fa_ctx = ctx.mirror_geo_c2fa_ctx,
       .nonuniform_mapping_fraction = 0.7,
     },
 
@@ -947,10 +924,6 @@ int main(int argc, char **argv)
   freeresources:
   // simulation complete, free app
   gkyl_gyrokinetic_app_release(app);
-  struct gkyl_mirror_geo_c2fa_ctx *c2fa_release = ctx.mirror_geo_c2fa_ctx;
-  gkyl_array_release(c2fa_release->c2fa);
-  gkyl_array_release(c2fa_release->c2fa_deflate);
-  gkyl_free(c2fa_release);
   gkyl_gyrokinetic_comms_release(decomp, comm);
   
 #ifdef GKYL_HAVE_MPI

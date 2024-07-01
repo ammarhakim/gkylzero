@@ -12,6 +12,8 @@
 typedef struct gk_geometry gk_geometry;
 
 struct gk_geometry {
+  enum gkyl_geometry_id geometry_id;
+
   // stuff for mapc2p and finite differences array
   struct gkyl_range local;
   struct gkyl_range local_ext;
@@ -20,17 +22,11 @@ struct gk_geometry {
   struct gkyl_basis basis;
   struct gkyl_rect_grid grid;
 
-  struct gkyl_range decomp_local;
-  struct gkyl_range decomp_local_ext;
-  struct gkyl_range decomp_global;
-  struct gkyl_range decomp_global_ext;
-  struct gkyl_basis decomp_basis;
-  struct gkyl_rect_grid decomp_grid;
-
   // These 21 DG fields contain the geometric quantities needed to solve the
   // GK Equation and Poisson Equation and to apply certain BC's
   // The first 20 are defined on the configuration space domain. The last is a single element.
   struct gkyl_array* mc2p; // 3 components. Cartesian X,Y, and Z
+  struct gkyl_array* c2fa; // 3 components. Mapping from computational to field alligned coordinates for non-uniform grids
   struct gkyl_array* bmag; // 1 component. B Magnitude of magnetic field
   struct gkyl_array* bmag_global; // 1 component. B Magnitude of magnetic field. Global bmag in computational coordinates
   struct gkyl_array* g_ij; // 6 components. 
@@ -62,7 +58,7 @@ struct gk_geometry {
 };
 
 
-// Input struct gor geometry creation
+// Input struct for geometry creation
 struct gkyl_gk_geometry_inp {
   enum gkyl_geometry_id geometry_id;
 
@@ -70,8 +66,6 @@ struct gkyl_gk_geometry_inp {
   // pointer to mapc2p function: xc are the computational space
   // coordinates and on output xp are the corresponding physical space
   // coordinates.
-  
-  void *mirror_geo_c2fa_ctx; // context for arcL mapping used in the non-uniform grids
 
   void (*mapc2p)(double t, const double *xc, double *xp, void *ctx);
 
@@ -162,6 +156,16 @@ gkyl_gk_geometry_augment_local(const struct gkyl_range *inrange, const int *ngho
  * Evaluate and set bmag at the center of the domain
  */
 void gkyl_gk_geometry_bmag_mid(struct gk_geometry* up);
+
+/**
+ * Evaluate the computational to field aligned conversion of configuration space
+ * coordinates
+ * @param xcomp configuration space coordinates
+ * @param xphys field aligned coordinates
+ * @param up geometry object
+ */
+void gkyl_gk_geometry_c2fa(const double *xcomp, double *xphys, void* up);
+
 
 /**
  * deflate geometry to lower dimensionality

@@ -8,6 +8,7 @@
 #include <gkyl_basis.h>
 #include <gkyl_deflate_geo.h>
 #include <gkyl_gk_geometry.h>
+#include <gkyl_mirror_geo.h>
 #include <gkyl_alloc_flags_priv.h>
 
 struct gk_geometry*
@@ -174,6 +175,28 @@ void gkyl_gk_geometry_bmag_mid(struct gk_geometry* up) {
   }
 }
 
+void gkyl_gk_geometry_c2fa(const double *xcomp, double *xphys, void* ctx) 
+{
+  struct gk_geometry *geo = ctx;
+  // printf("geometry_id = %d\n", geo->geometry_id);
+  // printf("up->local.ndim = %d\n", geo->local.ndim);  
+  switch (geo->geometry_id) {
+    case GKYL_MIRROR:
+      // printf("Mirror case");
+      gkyl_mirror_geo_c2fa_advance(xcomp, xphys, ctx);
+      break;
+    default:
+    {
+      // printf("Default case");
+      int cdim = geo->grid.ndim;
+      for (int i = 0; i < cdim; i++) {
+        xphys[i] = xcomp[i];
+      }
+      break;
+    }
+  }
+}
+
 struct gk_geometry*
 gkyl_gk_geometry_deflate(const struct gk_geometry* up_3d, struct gkyl_gk_geometry_inp *geometry_inp)
 {
@@ -186,6 +209,7 @@ gkyl_gk_geometry_deflate(const struct gk_geometry* up_3d, struct gkyl_gk_geometr
 
   // bmag, metrics and derived geo quantities
   up->mc2p= gkyl_array_new(GKYL_DOUBLE, 3*up->basis.num_basis, up->local_ext.volume);
+  up->c2fa = gkyl_array_new(GKYL_DOUBLE, 3*up->basis.num_basis, up->local_ext.volume);
   up->bmag = gkyl_array_new(GKYL_DOUBLE, up->basis.num_basis, up->local_ext.volume);
   up->g_ij = gkyl_array_new(GKYL_DOUBLE, 6*up->basis.num_basis, up->local_ext.volume);
   up->dxdz = gkyl_array_new(GKYL_DOUBLE, 9*up->basis.num_basis, up->local_ext.volume);
@@ -219,6 +243,7 @@ gkyl_gk_geometry_deflate(const struct gk_geometry* up_3d, struct gkyl_gk_geometr
   struct gkyl_deflate_geo* deflator = gkyl_deflate_geo_new(&up_3d->basis, &up->basis, &up_3d->grid, &up->grid, rem_dirs, false);
 
   gkyl_deflate_geo_advance(deflator, &up_3d->local, &up->local, up_3d->mc2p, up->mc2p, 3);
+  gkyl_deflate_geo_advance(deflator, &up_3d->local, &up->local, up_3d->c2fa, up->c2fa, 3);
   gkyl_deflate_geo_advance(deflator, &up_3d->local, &up->local, up_3d->bmag, up->bmag, 1);
   gkyl_deflate_geo_advance(deflator, &up_3d->local, &up->local, up_3d->g_ij, up->g_ij, 6);
   gkyl_deflate_geo_advance(deflator, &up_3d->local, &up->local, up_3d->dxdz, up->dxdz, 9);
@@ -254,6 +279,7 @@ gkyl_gk_geometry_free(const struct gkyl_ref_count *ref)
 {
   struct gk_geometry *up = container_of(ref, struct gk_geometry, ref_count);
   gkyl_array_release(up->mc2p);
+  gkyl_array_release(up->c2fa);
   gkyl_array_release(up->bmag);
   gkyl_array_release(up->g_ij);
   gkyl_array_release(up->jacobgeo);

@@ -132,7 +132,7 @@ eval_density_elc_source(double t, const double *GKYL_RESTRICT xn, double *GKYL_R
 {
   struct gk_mirror_ctx *app = ctx;
   double x_fa[3];
-  gkyl_mirror_geo_comp2fieldalligned_advance(t, xn, x_fa, app->mirror_geo_c2fa_ctx);
+  gkyl_mirror_geo_c2fa_advance(xn, x_fa, app->mirror_geo_c2fa_ctx);
   double psi = x_fa[0];
   double z = x_fa[2];
   double NSrc = app->NSrcElc;
@@ -161,7 +161,7 @@ eval_temp_elc_source(double t, const double *GKYL_RESTRICT xn, double *GKYL_REST
 {
   struct gk_mirror_ctx *app = ctx;
   double x_fa[3];
-  gkyl_mirror_geo_comp2fieldalligned_advance(t, xn, x_fa, app->mirror_geo_c2fa_ctx);
+  gkyl_mirror_geo_c2fa_advance(xn, x_fa, app->mirror_geo_c2fa_ctx);
   double psi = x_fa[0];
   double z = x_fa[2];
   double sigSrc = app->sigSrcElc;
@@ -182,7 +182,7 @@ eval_density_ion_source(double t, const double *GKYL_RESTRICT xn, double *GKYL_R
 {
   struct gk_mirror_ctx *app = ctx;
   double x_fa[3];
-  gkyl_mirror_geo_comp2fieldalligned_advance(t, xn, x_fa, app->mirror_geo_c2fa_ctx);
+  gkyl_mirror_geo_c2fa_advance(xn, x_fa, app->mirror_geo_c2fa_ctx);
   double psi = x_fa[0];
   double z = x_fa[2];
   double NSrc = app->NSrcIon;
@@ -211,7 +211,7 @@ eval_temp_ion_source(double t, const double *GKYL_RESTRICT xn, double *GKYL_REST
 {
   struct gk_mirror_ctx *app = ctx;
   double x_fa[3];
-  gkyl_mirror_geo_comp2fieldalligned_advance(t, xn, x_fa, app->mirror_geo_c2fa_ctx);
+  gkyl_mirror_geo_c2fa_advance(xn, x_fa, app->mirror_geo_c2fa_ctx);
   double psi = x_fa[0];
   double z = x_fa[2];
   double sigSrc = app->sigSrcIon;
@@ -233,7 +233,7 @@ eval_density_elc(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT
 {
   struct gk_mirror_ctx *app = ctx;
   double x_fa[3];
-  gkyl_mirror_geo_comp2fieldalligned_advance(t, xn, x_fa, app->mirror_geo_c2fa_ctx);
+  gkyl_mirror_geo_c2fa_advance(xn, x_fa, app->mirror_geo_c2fa_ctx);
   double psi = x_fa[0];
   double z = x_fa[2];
   double z_m = app->z_m;
@@ -253,7 +253,7 @@ eval_upar_elc(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fo
 {
   struct gk_mirror_ctx *app = ctx;
   double x_fa[3];
-  gkyl_mirror_geo_comp2fieldalligned_advance(t, xn, x_fa, app->mirror_geo_c2fa_ctx);
+  gkyl_mirror_geo_c2fa_advance(xn, x_fa, app->mirror_geo_c2fa_ctx);
   double psi = x_fa[0];
   double z = x_fa[2];
   double cs_m = app->cs_m;
@@ -274,7 +274,7 @@ eval_temp_par_elc(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRIC
 {
   struct gk_mirror_ctx *app = ctx;
   double x_fa[3];
-  gkyl_mirror_geo_comp2fieldalligned_advance(t, xn, x_fa, app->mirror_geo_c2fa_ctx);
+  gkyl_mirror_geo_c2fa_advance(xn, x_fa, app->mirror_geo_c2fa_ctx);
   double psi = x_fa[0];
   double z = x_fa[2];
   double z_m = app->z_m;
@@ -295,7 +295,7 @@ eval_temp_perp_elc(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRI
 {
   struct gk_mirror_ctx *app = ctx;
   double x_fa[3];
-  gkyl_mirror_geo_comp2fieldalligned_advance(t, xn, x_fa, app->mirror_geo_c2fa_ctx);
+  gkyl_mirror_geo_c2fa_advance(xn, x_fa, app->mirror_geo_c2fa_ctx);
   double psi = x_fa[0];
   double z = x_fa[2];
   double z_m = app->z_m;
@@ -328,7 +328,7 @@ eval_density_ion(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT
 {
   struct gk_mirror_ctx *app = ctx;
   double x_fa[3];
-  gkyl_mirror_geo_comp2fieldalligned_advance(t, xn, x_fa, app->mirror_geo_c2fa_ctx);
+  gkyl_mirror_geo_c2fa_advance(xn, x_fa, app->mirror_geo_c2fa_ctx);
   double psi = x_fa[0];
   double z = x_fa[2];
   double z_m = app->z_m;
@@ -348,7 +348,7 @@ eval_upar_ion(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fo
 {
   struct gk_mirror_ctx *app = ctx;
   double x_fa[3];
-  gkyl_mirror_geo_comp2fieldalligned_advance(t, xn, x_fa, app->mirror_geo_c2fa_ctx);
+  gkyl_mirror_geo_c2fa_advance(xn, x_fa, app->mirror_geo_c2fa_ctx);
   double psi = x_fa[0];
   double z = x_fa[2];
   double cs_m = app->cs_m;
@@ -369,7 +369,7 @@ eval_temp_par_ion(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRIC
 {
   struct gk_mirror_ctx *app = ctx;
   double x_fa[3];
-  gkyl_mirror_geo_comp2fieldalligned_advance(t, xn, x_fa, app->mirror_geo_c2fa_ctx);
+  gkyl_mirror_geo_c2fa_advance(xn, x_fa, app->mirror_geo_c2fa_ctx);
   double psi = x_fa[0];
   double z = x_fa[2];
   double z_m = app->z_m;
@@ -390,7 +390,7 @@ eval_temp_perp_ion(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRI
 {
   struct gk_mirror_ctx *app = ctx;
   double x_fa[3];
-  gkyl_mirror_geo_comp2fieldalligned_advance(t, xn, x_fa, app->mirror_geo_c2fa_ctx);
+  gkyl_mirror_geo_c2fa_advance(xn, x_fa, app->mirror_geo_c2fa_ctx);
   double psi = x_fa[0];
   double z = x_fa[2];
   double z_m = app->z_m;

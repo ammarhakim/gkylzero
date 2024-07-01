@@ -226,7 +226,6 @@ gkyl_gyrokinetic_app_new(struct gkyl_gk *gk)
     .tok_grid_info = gk->geometry.tok_grid_info,
     .mirror_efit_info = gk->geometry.mirror_efit_info,
     .mirror_grid_info = gk->geometry.mirror_grid_info,
-    .mirror_geo_c2fa_ctx = gk->geometry.mirror_geo_c2fa_ctx,
     .nonuniform_geom = false,
     .nonuniform_map_fraction = gk->geometry.nonuniform_mapping_fraction,
     .grid = app->grid,
@@ -304,6 +303,8 @@ gkyl_gyrokinetic_app_new(struct gkyl_gk *gk)
   }
 
   gkyl_gk_geometry_release(gk_geom_3d); // release temporary 3d geometry
+
+  app->gk_geom->geometry_id = geometry_inp.geometry_id;
 
   gkyl_gk_geometry_bmag_mid(app->gk_geom); // set bmag mid
   int comm_sz;

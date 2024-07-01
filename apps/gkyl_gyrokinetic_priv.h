@@ -50,6 +50,7 @@
 #include <gkyl_gk_geometry_mapc2p.h>
 #include <gkyl_gk_geometry_tok.h>
 #include <gkyl_gk_geometry_mirror.h>
+#include <gkyl_mirror_geo.h>
 #include <gkyl_tok_geo.h>
 #include <gkyl_velocity_map.h>
 #include <gkyl_gyrokinetic.h>
@@ -363,6 +364,7 @@ struct gk_react {
 struct gk_proj_on_basis_c2p_func_ctx {
   int cdim, vdim;
   struct gkyl_velocity_map *vel_map;
+  struct gk_geometry *gk_geom;
 };
 
 struct gk_proj {

@@ -15,9 +15,6 @@
 #include <math.h>
 #include <string.h>
 
-
-
-
 double
 mirror_plate_psi_func(double s, void *ctx){
   // uses a pointer to the plate function to get R(s), Z(s)
@@ -50,8 +47,6 @@ mirror_plate_psi_func(double s, void *ctx){
   return psi - gc->psi_curr;
 }
 
-
-
 // Function to pass to root-finder to find Z location for given arc-length
 static inline double
 arc_length_func(double Z, void *ctx)
@@ -65,32 +60,35 @@ arc_length_func(double Z, void *ctx)
   return ival;
 }
 
-void gkyl_mirror_geo_comp2fieldalligned_advance(double t, const double *x_comp, double *x_fa, void *ctx)
+void gkyl_mirror_geo_c2fa_advance(const double *x_comp, double *x_fa, void *ctx)
 {
-  struct gkyl_mirror_geo_c2fa_ctx *gc = ctx;
+  struct gk_geometry *gc = ctx;
   int cidx[GKYL_MAX_CDIM];
-  for(int i = 0; i < gc->grid_deflate.ndim; i++){
-    int idxtemp = gc->range_global_deflate.lower[i] + (int) floor((x_comp[i] - (gc->grid_deflate.lower[i]) )/gc->grid_deflate.dx[i]);
-    idxtemp = GKYL_MIN2(idxtemp, gc->range_deflate.upper[i]);
-    idxtemp = GKYL_MAX2(idxtemp, gc->range_deflate.lower[i]);
+  for(int i = 0; i < gc->grid.ndim; i++){
+    int idxtemp = gc->global.lower[i] + (int) floor((x_comp[i] - (gc->grid.lower[i]) )/gc->grid.dx[i]);
+    idxtemp = GKYL_MIN2(idxtemp, gc->local.upper[i]);
+    idxtemp = GKYL_MAX2(idxtemp, gc->local.lower[i]);
     cidx[i] = idxtemp;
   }
-  long lidx = gkyl_range_idx(&gc->range_deflate, cidx);
-  const double *c2fa_coeffs = gkyl_array_cfetch(gc->c2fa_deflate, lidx);
-  double cxc[gc->grid_deflate.ndim];
-  double x_log[gc->grid_deflate.ndim];
-  gkyl_rect_grid_cell_center(&gc->grid_deflate, cidx, cxc);
-  for(int i = 0; i < gc->grid_deflate.ndim; i++){
-    x_log[i] = (x_comp[i]-cxc[i])/(gc->grid_deflate.dx[i]*0.5);
+  long lidx = gkyl_range_idx(&gc->local, cidx);
+  const double *c2fa_coeffs = gkyl_array_cfetch(gc->c2fa, lidx);
+  double cxc[gc->grid.ndim];
+  double x_log[gc->grid.ndim];
+  gkyl_rect_grid_cell_center(&gc->grid, cidx, cxc);
+  for(int i = 0; i < gc->grid.ndim; i++){
+    x_log[i] = (x_comp[i]-cxc[i])/(gc->grid.dx[i]*0.5);
   }
   double xyz_fa[3];
   for(int i = 0; i < 3; i++){
-    xyz_fa[i] = gc->basis_deflate.eval_expand(x_log, &c2fa_coeffs[i*gc->basis_deflate.num_basis]);
+    xyz_fa[i] = gc->basis.eval_expand(x_log, &c2fa_coeffs[i*gc->basis.num_basis]);
   }
-  for (int i=0; i<gc->grid_deflate.ndim; i++) {
+  // Takes the output xyz_fa, which has all three coordinats psi, theta, z independent of grid and assigns
+  // them to the appropriate component in the current dimensional simulation grid.
+  for (int i=0; i<gc->grid.ndim; i++) {
     x_fa[i] = xyz_fa[i];
   }
-  x_fa[gc->grid_deflate.ndim-1] = xyz_fa[2];
+  x_fa[gc->grid.ndim-1] = xyz_fa[2];
+  printf("mirror mapped %f %f %f to %f %f %f\n", x_comp[0], x_comp[1], x_comp[2], x_fa[0], x_fa[1], x_fa[2]);
 }
 
 
@@ -180,7 +178,8 @@ write_nodal_coordinates(const char *nm, struct gkyl_range *nrange,
 void gkyl_mirror_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, double dzc[3], 
   evalf_t mapc2p_func, void* mapc2p_ctx, evalf_t bmag_func, void *bmag_ctx, 
   struct gkyl_array *mc2p_nodal_fd, struct gkyl_array *mc2p_nodal, struct gkyl_array *mc2p, bool nonuniform,
-  struct gkyl_array* c2fa_nodal_fd, struct gkyl_array* c2fa_nodal, struct gkyl_array* c2fa)
+  struct gkyl_array* c2fa_nodal_fd, struct gkyl_array* c2fa_nodal, struct gkyl_array* c2fa,
+  struct gk_geometry* up_deflated)
 {
 
   struct gkyl_mirror_geo *geo = mapc2p_ctx;
@@ -232,9 +231,9 @@ void gkyl_mirror_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, dou
   struct bmag_ctx *bmag_ctx_inp = gkyl_malloc(sizeof(struct bmag_ctx));
   if (nonuniform)
   {
-    bmag_ctx_inp->crange_global = &up->decomp_global;
-    bmag_ctx_inp->cbasis = &up->decomp_basis;
-    bmag_ctx_inp->cgrid = &up->decomp_grid;
+    bmag_ctx_inp->crange_global = &up_deflated->global;
+    bmag_ctx_inp->cbasis = &up_deflated->basis;
+    bmag_ctx_inp->cgrid = &up_deflated->grid;
     bmag_ctx_inp->bmag = gkyl_array_acquire(up->bmag_global);
   }
 
@@ -310,16 +309,6 @@ void gkyl_mirror_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, dou
           mirror_find_endpoints(inp, geo, &arc_ctx, &pctx, psi_curr, alpha_curr, &zmin, &zmax, arc_memo);
           double arcL = arc_ctx.arcL_tot;
           darcL = arcL/(up->basis.poly_order*inp->cgrid.cells[TH_IDX]) * (inp->cgrid.upper[TH_IDX] - inp->cgrid.lower[TH_IDX])/2/M_PI;
-
-          // if (nonuniform)
-          // {
-          //   arc_ctx.mapping_frac = inp->nonuniform_mapping_fraction;
-          //   // arc_ctx.psi = psi_curr;
-          //   arc_ctx.psi = (psi_lo + psi_hi) / 2;
-          //   arc_ctx.alpha = alpha_curr;
-          //   calculate_mirror_throat_location(&arc_ctx, bmag_ctx_inp);
-          //   calculate_optimal_mapping(&arc_ctx, bmag_ctx_inp);
-          // }
           // at the beginning of each theta loop we need to reset things
           cidx[PSI_IDX] = ip;
           arcL_curr = 0.0;
