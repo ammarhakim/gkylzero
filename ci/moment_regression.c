@@ -702,7 +702,7 @@ main(int argc, char **argv)
     "Generalized Brio-Wu Riemann Problem Test with Level-1 Patch-Structured AMR (5-moment equations)",
     "Generalized Brio-Wu Riemann Problem Test with Level-2 Patch-Structured AMR (5-moment equations)",
     "Geospace Environment Modeling Reconnection Test with Level-1 Block-Structured AMR (5-moment equations)",
-    "Geospace Environment Modeling Reconnection Test with Level-2 Block-Strutcured AMR (5-moment equations)",
+    "Geospace Environment Modeling Reconnection Test with Level-2 Block-Structured AMR (5-moment equations)",
     "Geospace Environment Modeling Reconnection Test with Level-1 Block-Structured AMR (10-moment equations)",
     "Geospace Environment Modeling Reconnection Test with Level-2 Block-Structured AMR (10-moment equations)",
   };
