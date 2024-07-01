@@ -87,12 +87,28 @@ struct five_moment_update_patch_ctx {
 void five_moment_patch_bc_updaters_init(struct five_moment_patch_data* pdata, const struct gkyl_block_connections* conn);
 
 /**
+* Initialize nested patch AMR updaters for both physical (outer-patch) and non-physical (inter-patch) boundary conditions for the coupled five-moment equations.
+*
+* @param pdata Patch-structured data for the coupled five-moment equations.
+* @param conn Topology/connectivity data for the patch hierarchy.
+*/
+void five_moment_nested_patch_bc_updaters_init(struct five_moment_patch_data* pdata, const struct gkyl_block_connections* conn);
+
+/**
 * Initialize patch AMR updaters for both physical (outer-patch) and non-physical (inter-patch) boundary conditions for the coupled ten-moment equations.
 *
 * @param pdata Patch-structured data for the coupled ten-moment equations.
 * @param conn Topology/connectivity data for the patch hierarchy.
 */
 void ten_moment_patch_bc_updaters_init(struct five_moment_patch_data* pdata, const struct gkyl_block_connections* conn);
+
+/**
+* Initialize nested patch AMR updaters for both physical (outer-patch) and non-physical (inter-patch) boundary conditions for the coupled ten-moment equations.
+*
+* @param pdata Patch-structured data for the coupled ten-moment equations.
+* @param conn Topology/connectivity data for the patch hierarchy.
+*/
+void ten_moment_nested_patch_bc_updaters_init(struct five_moment_patch_data* pdata, const struct gkyl_block_connections* conn);
 
 /**
 * Release patch AMR updaters for both physical (outer-patch) and non-physical (inter-patch) boundary conditions for the coupled five-moment equations.

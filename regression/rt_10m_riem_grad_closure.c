@@ -1,4 +1,4 @@
-// Generalized Brio-Wu Riemann problem for the 5-moment equations.
+// Generalized Brio-Wu Riemann problem, with gradient-closure, for the 10-moment equations.
 // Input parameters match the initial conditions found in entry JE4 of Ammar's Simulation Journal (https://ammar-hakim.org/sj/je/je4/je4-twofluid-shock.html), adapted from Section 7.1 of the article:
 // A. Hakim, J. Loverich and U. Shumlak (2006), "A high resolution wave propagation scheme for ideal Two-Fluid plasma equations",
 // Journal of Computational Physics, Volume 219 (1): 418-442.
@@ -12,7 +12,7 @@
 #include <gkyl_alloc.h>
 #include <gkyl_moment.h>
 #include <gkyl_util.h>
-#include <gkyl_wv_euler.h>
+#include <gkyl_wv_ten_moment.h>
 
 #include <gkyl_null_comm.h>
 
@@ -23,10 +23,9 @@
 
 #include <rt_arg_parse.h>
 
-struct riem_ctx
+struct riem_grad_closure_ctx
 {
   // Physical constants (using normalized code units).
-  double gas_gamma; // Adiabatic index.
   double epsilon0; // Permittivity of free space.
   double mu0; // Permeability of free space.
   double mass_ion; // Proton mass.
@@ -53,6 +52,7 @@ struct riem_ctx
   // Simulation parameters.
   int Nx; // Cell count (x-direction).
   double Lx; // Domain size (x-direction).
+  double k0; // Closure parameter.
   double cfl_frac; // CFL coefficient.
 
   double t_end; // Final simulation time.
@@ -61,11 +61,10 @@ struct riem_ctx
   int num_failures_max; // Maximum allowable number of consecutive small time-steps.
 };
 
-struct riem_ctx
+struct riem_grad_closure_ctx
 create_ctx(void)
 {
   // Physical constants (using normalized code units).
-  double gas_gamma = 5.0 / 3.0; // Adiabatic index.
   double epsilon0 = 1.0; // Permittivity of free space.
   double mu0 = 1.0; // Permeability of free space.
   double mass_ion = 1.0; // Proton mass.
@@ -92,6 +91,7 @@ create_ctx(void)
   // Simulation parameters.
   int Nx = 1024; // Cell count (x-direction).
   double Lx = 1.0; // Domain size (x-direction).
+  double k0 = 500.0; // Closure parameter.
   double cfl_frac = 0.95; // CFL coefficient.
 
   double t_end = 10.0; // Final simulation time.
@@ -99,8 +99,7 @@ create_ctx(void)
   double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.
   int num_failures_max = 20; // Maximum allowable number of consecutive small time-steps.
   
-  struct riem_ctx ctx = {
-    .gas_gamma = gas_gamma,
+  struct riem_grad_closure_ctx ctx = {
     .epsilon0 = epsilon0,
     .mu0 = mu0,
     .mass_ion = mass_ion,
@@ -120,6 +119,7 @@ create_ctx(void)
     .rhor_elc = rhor_elc,
     .Nx = Nx,
     .Lx = Lx,
+    .k0 = k0,
     .cfl_frac = cfl_frac,
     .t_end = t_end,
     .num_frames = num_frames,
@@ -134,9 +134,7 @@ void
 evalElcInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
 {
   double x = xn[0];
-  struct riem_ctx *app = ctx;
-
-  double gas_gamma = app->gas_gamma;
+  struct riem_grad_closure_ctx *app = ctx;
 
   double rhol_elc = app->rhol_elc;
   double rhor_elc = app->rhor_elc;
@@ -160,21 +158,20 @@ evalElcInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout
   fout[0] = rho;
   // Set electron momentum density.
   fout[1] = 0.0; fout[2] = 0.0; fout[3] = 0.0;
-  // Set electron total energy density.
-  fout[4] = p / (gas_gamma - 1.0);  
+  // Set electron pressure tensor.
+  fout[4] = p; fout[5] = 0.0; fout[6] = 0.0;
+  fout[7] = p; fout[8] = 0.0; fout[9] = p;
 }
 
 void
 evalIonInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
 {
   double x = xn[0];
-  struct riem_ctx *app = ctx;
-
-  double gas_gamma = app->gas_gamma;
+  struct riem_grad_closure_ctx *app = ctx;
 
   double rhol_ion = app->rhol_ion;
   double rhor_ion = app->rhor_ion;
-  
+
   double pl = app->pl;
   double pr = app->pr;
 
@@ -194,15 +191,16 @@ evalIonInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout
   fout[0] = rho;
   // Set ion momentum density.
   fout[1] = 0.0; fout[2] = 0.0; fout[3] = 0.0;
-  // Set ion total energy density.
-  fout[4] = p / (gas_gamma - 1.0);  
+  // Set ion pressure tensor.
+  fout[4] = p; fout[5] = 0.0; fout[6] = 0.0;
+  fout[7] = p; fout[8] = 0.0; fout[9] = p;
 }
 
 void
 evalFieldInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
 {
   double x = xn[0];
-  struct riem_ctx *app = ctx;
+  struct riem_grad_closure_ctx *app = ctx;
 
   double Bx = app->Bx;
   double Bzl = app->Bzl;
@@ -254,18 +252,19 @@ main(int argc, char **argv)
     gkyl_mem_debug_set(true);
   }
 
-  struct riem_ctx ctx = create_ctx(); // Context for initialization functions.
+  struct riem_grad_closure_ctx ctx = create_ctx(); // Context for initialization functions.
 
   int NX = APP_ARGS_CHOOSE(app_args.xcells[0], ctx.Nx);
 
   // Electron/ion equations.
-  struct gkyl_wv_eqn *elc_euler = gkyl_wv_euler_new(ctx.gas_gamma, app_args.use_gpu);
-  struct gkyl_wv_eqn *ion_euler = gkyl_wv_euler_new(ctx.gas_gamma, app_args.use_gpu);
+  struct gkyl_wv_eqn *elc_ten_moment = gkyl_wv_ten_moment_new(ctx.k0);
+  struct gkyl_wv_eqn *ion_ten_moment = gkyl_wv_ten_moment_new(ctx.k0);
 
   struct gkyl_moment_species elc = {
     .name = "elc",
     .charge = ctx.charge_elc, .mass = ctx.mass_elc,
-    .equation = elc_euler,
+    .equation = elc_ten_moment,
+    .has_grad_closure = true, // Include gradient closure.
     .evolve = true,
     .init = evalElcInit,
     .ctx = &ctx,
@@ -274,7 +273,8 @@ main(int argc, char **argv)
   struct gkyl_moment_species ion = {
     .name = "ion",
     .charge = ctx.charge_ion, .mass = ctx.mass_ion,
-    .equation = ion_euler,
+    .equation = ion_ten_moment,
+    .has_grad_closure = true, // Include gradient closure.
     .evolve = true,
     .init = evalIonInit,
     .ctx = &ctx,
@@ -365,7 +365,7 @@ main(int argc, char **argv)
 
   // Moment app.
   struct gkyl_moment app_inp = {
-    .name = "5m_riem",
+    .name = "10m_riem_grad_closure",
 
     .ndim = 1,
     .lower = { 0.0 },
@@ -465,8 +465,8 @@ main(int argc, char **argv)
   gkyl_moment_app_cout(app, stdout, "Total updates took %g secs\n", stat.total_tm);
 
   // Free resources after simulation completion.
-  gkyl_wv_eqn_release(elc_euler);
-  gkyl_wv_eqn_release(ion_euler);
+  gkyl_wv_eqn_release(elc_ten_moment);
+  gkyl_wv_eqn_release(ion_ten_moment);
   gkyl_rect_decomp_release(decomp);
   gkyl_comm_release(comm);
   gkyl_moment_app_release(app);  

@@ -167,7 +167,7 @@ int main(int argc, char **argv)
     .eval = evalEulerInit,
     .gas_gamma = ctx.gas_gamma,
 
-    .euler_output = "amr_euler_cart_axi_sodshock",
+    .euler_output = "amr_euler_cart_axi_sodshock_l1",
 
     .low_order_flux = false,
     .cfl_frac = ctx.cfl_frac,
