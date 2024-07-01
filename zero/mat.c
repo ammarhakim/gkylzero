@@ -106,7 +106,7 @@ gkyl_mat_show(const char *name, FILE *fp, const struct gkyl_mat *mat)
 
 #ifdef GKYL_HAVE_CUDA
 void
-gkyl_mat_mm_cu(double alpha, double beta,
+cu_mat_mm(double alpha, double beta,
   enum gkyl_mat_trans transa, const struct gkyl_mat *A,
   enum gkyl_mat_trans transb, const struct gkyl_mat *B, struct gkyl_mat *C)
 {
@@ -144,22 +144,11 @@ gkyl_mat_mm_cu(double alpha, double beta,
 #endif
 
 
-
-struct gkyl_mat*
-gkyl_mat_mm(double alpha, double beta,
+void
+ho_mat_mm(double alpha, double beta,
   enum gkyl_mat_trans transa, const struct gkyl_mat *A,
-  enum gkyl_mat_trans transb, const struct gkyl_mat *B, struct gkyl_mat *C, bool on_gpu)
+  enum gkyl_mat_trans transb, const struct gkyl_mat *B, struct gkyl_mat *C)
 {
-
-  #ifdef GKYL_HAVE_CUDA
-  // Now do the matrix multiply using either the cublas or lapack funcs.
-  cublasStatus_t info;
-  if(on_gpu){
-    gkyl_mat_mm_cu(alpha, beta, transa, A, transb, B, C);
-    return C;
-  }
-#endif
-
   // determine matrix sizes
   struct mat_sizes sza = get_mat_sizes(transa, A);
   struct mat_sizes szb = get_mat_sizes(transb, B);
@@ -182,7 +171,24 @@ gkyl_mat_mm(double alpha, double beta,
     A->data, lda,
     B->data, ldb,
     beta, C->data, ldc);
+}
 
+
+struct gkyl_mat*
+gkyl_mat_mm(double alpha, double beta,
+  enum gkyl_mat_trans transa, const struct gkyl_mat *A,
+  enum gkyl_mat_trans transb, const struct gkyl_mat *B, struct gkyl_mat *C, bool on_gpu)
+{
+
+#ifdef GKYL_HAVE_CUDA
+  // Now do the matrix multiply using either the cublas or lapack funcs.
+  if(on_gpu){
+    cu_mat_mm(alpha, beta, transa, A, transb, B, C);
+    return C;
+  }
+#endif
+
+  ho_mat_mm(alpha, beta, transa, A, transb, B, C);
   return C;
 }
 
@@ -640,7 +646,7 @@ cu_nmat_linsolve_lu(gkyl_nmat_mem *mem, struct gkyl_nmat *A, struct gkyl_nmat *x
 
 #ifdef GKYL_HAVE_CUDA
 void
-gkyl_mat_mm_array_cu(struct gkyl_mat_mm_array_mem *mem, const struct gkyl_array *B, struct gkyl_array *C, cublasStatus_t info)
+cu_mat_mm_array(struct gkyl_mat_mm_array_mem *mem, const struct gkyl_array *B, struct gkyl_array *C, cublasStatus_t info)
 {
    double alpha = mem->alpha;
   double beta = mem->beta; 
@@ -659,18 +665,10 @@ gkyl_mat_mm_array_cu(struct gkyl_mat_mm_array_mem *mem, const struct gkyl_array 
 }
 #endif
 
-void
-gkyl_mat_mm_array(struct gkyl_mat_mm_array_mem *mem, const struct gkyl_array *B, struct gkyl_array *C)
-{
-#ifdef GKYL_HAVE_CUDA
-  // Now do the matrix multiply using either the cublas or lapack funcs.
-  cublasStatus_t info;
-  if(mem->on_gpu){
-    gkyl_mat_mm_array_cu(mem, B, C, info);
-    return;
-  }
-#endif
 
+void
+ho_mat_mm_array(struct gkyl_mat_mm_array_mem *mem, const struct gkyl_array *B, struct gkyl_array *C)
+{
   double alpha = mem->alpha;
   double beta = mem->beta; 
   enum gkyl_mat_trans transa = mem->transa;
@@ -690,6 +688,22 @@ gkyl_mat_mm_array(struct gkyl_mat_mm_array_mem *mem, const struct gkyl_array *B,
   // (specifically for CPU, with gkyl_array B/C)
   cblas_dgemm(CblasColMajor, cblas_trans_flags[transa], cblas_trans_flags[transb], A->nr, B->size, A->nc,
     alpha, A->data, lda, B->data, ldb, beta, C->data, ldc);
+}
+
+
+void
+gkyl_mat_mm_array(struct gkyl_mat_mm_array_mem *mem, const struct gkyl_array *B, struct gkyl_array *C)
+{
+#ifdef GKYL_HAVE_CUDA
+  // Now do the matrix multiply using either the cublas or lapack funcs.
+  cublasStatus_t info;
+  if(mem->on_gpu){
+    cu_mat_mm_array(mem, B, C, info);
+    return;
+  }
+#endif
+
+  ho_mat_mm_array(mem, B, C);
 }
  
 
