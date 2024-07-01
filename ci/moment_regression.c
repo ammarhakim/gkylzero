@@ -16,7 +16,7 @@
 int system(const char *command);
 
 void
-runTest(const char* test_name, const char* test_name_human, const int test_output_count, const char test_outputs[][64])
+runTest(const char* test_name, const char* test_name_human, const int test_output_count, const char test_outputs[][64], const int test_amr)
 {
   int counter = 0;
 
@@ -48,28 +48,44 @@ runTest(const char* test_name, const char* test_name_human, const int test_outpu
   snprintf(command_buffer3, 256, "./build/regression/rt_%s -m > ./ci/output/rt_%s_%d.dat 2>&1", test_name, test_name, counter);
   system(command_buffer3);
 
-  char file_buffer1[128];
-  snprintf(file_buffer1, 128, "./%s-stat.json", test_name);
-  FILE *file_ptr1 = fopen(file_buffer1, "r");
-  if (file_ptr1 == NULL) {
-    printf("*** Something catastrophic happened. Test aborting... ***\n");
-  }
-  else {
-    char command_buffer4[256];
-    snprintf(command_buffer4, 256, "mv ./%s-stat.json ci/output/%s-stat_%d.json", test_name, test_name, counter);
-    system(command_buffer4);
+  if (test_amr == 0) {
+    char file_buffer1[128];
+    snprintf(file_buffer1, 128, "./%s-stat.json", test_name);
+    FILE *file_ptr1 = fopen(file_buffer1, "r");
+    if (file_ptr1 == NULL) {
+      printf("*** Something catastrophic happened. Test aborting... ***\n");
+    }
+    else {
+      char command_buffer4[256];
+      snprintf(command_buffer4, 256, "mv ./%s-stat.json ci/output/%s-stat_%d.json", test_name, test_name, counter);
+      system(command_buffer4);
+    }
   }
 
   for (int i = 0; i < test_output_count; i++) {
     char file_buffer2[128];
-    snprintf(file_buffer2, 128, "./%s-%s.gkyl", test_name, test_outputs[i]);
+
+    if (test_amr == 0) {
+      snprintf(file_buffer2, 128, "./%s-%s.gkyl", test_name, test_outputs[i]);
+    }
+    else {
+      snprintf(file_buffer2, 128, "./%s_%s.gkyl", test_name, test_outputs[i]);
+    }
+
     FILE *file_ptr2 = fopen(file_buffer2, "r");
     if (file_ptr2 == NULL) {
       printf("*** Something catastrophic happened. Test aborting... ***\n");
     }
     else {
       char command_buffer5[256];
-      snprintf(command_buffer5, 256, "mv ./%s-%s.gkyl ci/output/%s-%s_%d.gkyl", test_name, test_outputs[i], test_name, test_outputs[i], counter);
+
+      if (test_amr == 0) {
+        snprintf(command_buffer5, 256, "mv ./%s-%s.gkyl ci/output/%s-%s_%d.gkyl", test_name, test_outputs[i], test_name, test_outputs[i], counter);
+      }
+      else {
+        snprintf(command_buffer5, 256, "mv ./%s_%s.gkyl ci/output/%s-%s_%d.gkyl", test_name, test_outputs[i], test_name, test_outputs[i], counter);
+      }
+      
       system(command_buffer5);
     }
   }
@@ -492,8 +508,8 @@ regenerateTest(const char* test_name, const int test_output_count, const char te
 int
 main(int argc, char **argv)
 {
-  int test_count = 47;
-  char test_names[47][32] = {
+  int test_count = 86;
+  char test_names[86][32] = {
     "10m_burch",
     "10m_burch_grad_closure",
     "10m_gem",
@@ -541,8 +557,47 @@ main(int argc, char **argv)
     "iso_euler_sodshock",
     "iso_euler_sodshock_lax",
     "iso_gem",
+    "gr_mild_shock",
+    "gr_strong_blast",
+    "gr_perturbed_density",
+    "gr_quadrants_2d",
+    "gr_kh_2d",
+    "gr_blackhole_static",
+    "gr_blackhole_spinning",
+    "gr_bhl_static",
+    "gr_bhl_spinning",
+    "amr_euler_sodshock_l1",
+    "amr_euler_sodshock_l2",
+    "amr_euler_cart_axi_sodshock_l1",
+    "amr_euler_cart_axi_sodshock_l2",
+    "amr_euler_riem_2d_l1",
+    "amr_euler_riem_2d_l2",
+    "amr_euler_shock_bubble_l1",
+    "amr_euler_shock_bubble_l2",
+    "amr_gr_mild_shock_l1",
+    "amr_gr_mild_shock_l2",
+    "amr_gr_strong_blast_l1",
+    "amr_gr_strong_blast_l2",
+    "amr_gr_perturbed_density_l1",
+    "amr_gr_perturbed_density_l2",
+    "amr_gr_quadrants_2d_l1",
+    "amr_gr_quadrants_2d_l2",
+    "amr_gr_blackhole_static_l1",
+    "amr_gr_blackhole_static_l2",
+    "amr_gr_blackhole_spinning_l1",
+    "amr_gr_blackhole_spinning_l2",
+    "amr_gr_bhl_static_l1",
+    "amr_gr_bhl_static_l2",
+    "amr_gr_bhl_spinning_l1",
+    "amr_gr_bhl_spinning_l2",
+    "amr_5m_riem_l1",
+    "amr_5m_riem_l2",
+    "amr_5m_gem_l1",
+    "amr_5m_gem_l2",
+    "amr_10m_gem_l1",
+    "amr_10m_gem_l2",
   };
-  char test_names_human[47][128] = {
+  char test_names_human[86][256] = {
     "Burch et al. Magnetic Reconnection Test (10-moment equations)",
     "Burch et al. Magnetic Reconnection Gradient-Closure Test (10-moment equations)",
     "Geospace Environment Modeling Reconnection Test (10-moment equations)",
@@ -590,10 +645,50 @@ main(int argc, char **argv)
     "Sod-Type Shock Tube Test, with Roe fluxes (isothermal Euler equations)",
     "Sod-Type Shock Tube Test, with Lax fluxes (isothermal Euler equations)",
     "Geospace Environment Modeling Reconnection Test (isothermal Euler equations)",
+    "Mildly Relativistic Blast Wave Test (general relativistic Euler equations)",
+    "Strongly Relativistic Blast Wave Test (general relativistic Euler equations)",
+    "Perturbed Density Test (general relativistic Euler equations)",
+    "2D Quadrants Test (general relativistic Euler equations)",
+    "2D Relativistic Kelvin-Helmholtz Instability Test (general relativistic Euler equations)",
+    "2D Ring-Accretion Problem onto a Static/Schwarzschild Black Hole (general relativistic Euler equations)",
+    "2D Ring-Accretion Problem onto a Spinning/Kerr Black Hole (general relativistic Euler equations)",
+    "2D Bondi-Hoyle-Lyttleton Accretion Problem onto a Static/Schwarzschild Black Hole (general relativistic Euler equations)",
+    "2D Bondi-Hoyle-Lyttleton Accretion Problem onto a Spinning/Kerr Black Hole (general relativistic Euler equations)",
+    "Sod-Type Shock Tube Test with Level-1 Patch-Structured AMR (Euler equations)",
+    "Sod-Type Shock Tube Test with Level-2 Patch-Structured AMR (Euler equations)",
+    "2D Sod-Type Shock Tube Test in Axial Symmetry with Level-1 Block-Structured AMR (Euler equations)",
+    "2D Sod-Type Shock Tube Test in Axial Symmetry with Level-2 Block-Structured AMR (Euler equations)",
+    "2D Riemann/quadrant Problem with Level-1 Block-Structured AMR (Euler equations)",
+    "2D Riemann/quadrant Problem with Level-2 Block-Structured AMR (Euler equations)",
+    "2D Shock Bubble Collapse Test with Level-1 Block-Structured AMR (Euler equations)",
+    "2D Shock Bubble Collapse Test with Level-2 Block-Structured AMR (Euler equations)",
+    "Mildly Relativistic Blast Wave Test with Level-1 Patch-Structured AMR (general relativistic Euler equations)",
+    "Mildly Relativistic Blast Wave Test with Level-2 Patch-Structured AMR (general relativistic Euler equations)",
+    "Strongly Relativistic Blast Wave Test with Level-1 Patch-Structured AMR (general relativistic Euler equations)",
+    "Strongly Relativistic Blast Wave Test with Level-2 Patch-Structured AMR (general relativistic Euler equations)",
+    "Perturbed Density Test with Level-1 Patch-Structured AMR (general relativistic Euler equations)",
+    "Perturbed Density Test with Level-2 Patch-Structured AMR (general relativistic Euler equations)",
+    "2D Quadrants Test with Level-1 Block-Structured AMR (general relativistic Euler equations)",
+    "2D Quadrants Test with Level-2 Block-Structured AMR (general relativistic Euler equations)",
+    "2D Ring-Accretion Problem onto a Static/Schwarzschild Black Hole with Level-1 Block-Structured AMR (general relativistic Euler equations)",
+    "2D Ring-Accretion Problem onto a Static/Schwarzschild Black Hole with Level-2 Block-Structured AMR (general relativistic Euler equations)",
+    "2D Ring-Accretion Problem onto a Spinning/Kerr Black Hole with Level-1 Block-Structured AMR (general relativistic Euler equations)",
+    "2D Ring-Accretion Problem onto a Spinning/Kerr Black Hole with Level-2 Block-Structured AMR (general relativistic Euler equations)",
+    "2D Bondi-Hoyle-Lyttleton Accretion Problem onto a Static/Schwarzschild Black Hole with Level-1 Block-Structured AMR (general relativistic Euler equations)",
+    "2D Bondi-Hoyle-Lyttleton Accretion Problem onto a Static/Schwarzschild Black Hole with Level-2 Block-Structured AMR (general relativistic Euler equations)",
+    "2D Bondi-Hoyle-Lyttleton Accretion Problem onto a Spinning/Kerr Black Hole with Level-1 Block-Structured AMR (general relativistic Euler equations)",
+    "2D Bondi-Hoyle-Lyttleton Accretion Problem onto a Spinning/Kerr Black Hole with Level-2 Block-Structured AMR (general relativistic Euler equations)",
+    "Generalized Brio-Wu Riemann Problem Test with Level-1 Patch-Structured AMR (5-moment equations)",
+    "Generalized Brio-Wu Riemann Problem Test with Level-2 Patch-Structured AMR (5-moment equations)",
+    "Geospace Environment Modeling Reconnection Test with Level-1 Block-Structured AMR (5-moment equations)",
+    "Geospace Environment Modeling Reconnection Test with Level-2 Block-Strutcured AMR (5-moment equations)",
+    "Geospace Environment Modeling Reconnection Test with Level-1 Block-Structured AMR (10-moment equations)",
+    "Geospace Environment Modeling Reconnection Test with Level-2 Block-Structured AMR (10-moment equations)",
   };
-  int test_output_count[47] = { 4, 4, 4, 4, 4, 4, 4, 4, 1, 1, 4, 4, 3, 4, 1, 1, 1, 1, 3, 1, 2, 2, 2, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-    1, 1, 1, 1, 1, 1, 2, 1, 1, 2, 1, 1, 4 };
-  char test_outputs[47][64][64] = {
+  int test_output_count[86] = { 4, 4, 4, 4, 4, 4, 4, 4, 1, 1, 4, 4, 3, 4, 1, 1, 1, 1, 3, 1, 2, 2, 2, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+    1, 1, 1, 1, 1, 1, 2, 1, 1, 2, 1, 1, 4, 1, 1, 1, 1, 1, 1, 1, 1, 1, 3, 5, 9, 25, 9, 25, 9, 25, 3, 5, 3, 5, 3, 5, 9, 25, 9, 25, 9,
+    25, 9, 25, 9, 25, 9, 15, 27, 75, 27, 75 };
+  char test_outputs[86][128][64] = {
     { "elc_1", "ion_1", "field_1", "ext_em_field_1" },
     { "elc_1", "ion_1", "field_1", "ext_em_field_1" },
     { "elc_1", "ion_1", "field_1", "ext_em_field_1" },
@@ -641,7 +736,78 @@ main(int argc, char **argv)
     { "iso_euler_1" },
     { "iso_euler_1" },
     { "elc_1", "ion_1", "field_1", "ext_em_field_1" },
+    { "gr_euler_1" },
+    { "gr_euler_1" },
+    { "gr_euler_1" },
+    { "gr_euler_1" },
+    { "gr_euler_1" },
+    { "gr_euler_1" },
+    { "gr_euler_1" },
+    { "gr_euler_1" },
+    { "gr_euler_1" },
+    { "1_p0", "1_p1", "1_p2" },
+    { "1_p0", "1_p1", "1_p2", "1_p3", "1_p4" },
+    { "1_b0", "1_b1", "1_b2", "1_b3", "1_b4", "1_b5", "1_b6", "1_b7", "1_b8" },
+    { "1_b0", "1_b1", "1_b2", "1_b3", "1_b4", "1_b5", "1_b6", "1_b7", "1_b8", "1_b9", "1_b10", "1_b11", "1_b12", "1_b13", "1_b14",
+      "1_b15", "1_b16", "1_b17", "1_b18", "1_b19", "1_b20", "1_b21", "1_b22", "1_b23", "1_b24" },
+    { "1_b0", "1_b1", "1_b2", "1_b3", "1_b4", "1_b5", "1_b6", "1_b7", "1_b8" },
+    { "1_b0", "1_b1", "1_b2", "1_b3", "1_b4", "1_b5", "1_b6", "1_b7", "1_b8", "1_b9", "1_b10", "1_b11", "1_b12", "1_b13", "1_b14",
+      "1_b15", "1_b16", "1_b17", "1_b18", "1_b19", "1_b20", "1_b21", "1_b22", "1_b23", "1_b24" },
+    { "1_b0", "1_b1", "1_b2", "1_b3", "1_b4", "1_b5", "1_b6", "1_b7", "1_b8" },
+    { "1_b0", "1_b1", "1_b2", "1_b3", "1_b4", "1_b5", "1_b6", "1_b7", "1_b8", "1_b9", "1_b10", "1_b11", "1_b12", "1_b13", "1_b14",
+      "1_b15", "1_b16", "1_b17", "1_b18", "1_b19", "1_b20", "1_b21", "1_b22", "1_b23", "1_b24" },
+    { "1_p0", "1_p1", "1_p2" },
+    { "1_p0", "1_p1", "1_p2", "1_p3", "1_p4" },
+    { "1_p0", "1_p1", "1_p2" },
+    { "1_p0", "1_p1", "1_p2", "1_p3", "1_p4" },
+    { "1_p0", "1_p1", "1_p2" },
+    { "1_p0", "1_p1", "1_p2", "1_p3", "1_p4" },
+    { "1_b0", "1_b1", "1_b2", "1_b3", "1_b4", "1_b5", "1_b6", "1_b7", "1_b8" },
+    { "1_b0", "1_b1", "1_b2", "1_b3", "1_b4", "1_b5", "1_b6", "1_b7", "1_b8", "1_b9", "1_b10", "1_b11", "1_b12", "1_b13", "1_b14",
+      "1_b15", "1_b16", "1_b17", "1_b18", "1_b19", "1_b20", "1_b21", "1_b22", "1_b23", "1_b24" },
+    { "1_b0", "1_b1", "1_b2", "1_b3", "1_b4", "1_b5", "1_b6", "1_b7", "1_b8" },
+    { "1_b0", "1_b1", "1_b2", "1_b3", "1_b4", "1_b5", "1_b6", "1_b7", "1_b8", "1_b9", "1_b10", "1_b11", "1_b12", "1_b13", "1_b14",
+      "1_b15", "1_b16", "1_b17", "1_b18", "1_b19", "1_b20", "1_b21", "1_b22", "1_b23", "1_b24" },
+    { "1_b0", "1_b1", "1_b2", "1_b3", "1_b4", "1_b5", "1_b6", "1_b7", "1_b8" },
+    { "1_b0", "1_b1", "1_b2", "1_b3", "1_b4", "1_b5", "1_b6", "1_b7", "1_b8", "1_b9", "1_b10", "1_b11", "1_b12", "1_b13", "1_b14",
+      "1_b15", "1_b16", "1_b17", "1_b18", "1_b19", "1_b20", "1_b21", "1_b22", "1_b23", "1_b24" },
+    { "1_b0", "1_b1", "1_b2", "1_b3", "1_b4", "1_b5", "1_b6", "1_b7", "1_b8" },
+    { "1_b0", "1_b1", "1_b2", "1_b3", "1_b4", "1_b5", "1_b6", "1_b7", "1_b8", "1_b9", "1_b10", "1_b11", "1_b12", "1_b13", "1_b14",
+      "1_b15", "1_b16", "1_b17", "1_b18", "1_b19", "1_b20", "1_b21", "1_b22", "1_b23", "1_b24" },
+    { "1_b0", "1_b1", "1_b2", "1_b3", "1_b4", "1_b5", "1_b6", "1_b7", "1_b8" },
+    { "1_b0", "1_b1", "1_b2", "1_b3", "1_b4", "1_b5", "1_b6", "1_b7", "1_b8", "1_b9", "1_b10", "1_b11", "1_b12", "1_b13", "1_b14",
+      "1_b15", "1_b16", "1_b17", "1_b18", "1_b19", "1_b20", "1_b21", "1_b22", "1_b23", "1_b24" },
+    { "1_elc_p0", "1_ion_p0", "1_field_p0", "1_elc_p1", "1_ion_p1", "1_field_p1", "1_elc_p2", "1_ion_p2", "1_field_p2", },
+    { "1_elc_p0", "1_ion_p0", "1_field_p0", "1_elc_p1", "1_ion_p1", "1_field_p1", "1_elc_p2", "1_ion_p2", "1_field_p2",
+      "1_elc_p3", "1_ion_p3", "1_field_p3", "1_elc_p4", "1_ion_p4", "1_field_p4" },
+    { "1_elc_b0", "1_ion_b0", "1_field_b0", "1_elc_b1", "1_ion_b1", "1_field_b1", "1_elc_b2", "1_ion_b2", "1_field_b2", 
+      "1_elc_b3", "1_ion_b3", "1_field_b3", "1_elc_b4", "1_ion_b4", "1_field_b4", "1_elc_b5", "1_ion_b5", "1_field_b5", 
+      "1_elc_b6", "1_ion_b6", "1_field_b6", "1_elc_b7", "1_ion_b7", "1_field_b7", "1_elc_b8", "1_ion_b8", "1_field_b8", },
+    { "1_elc_b0", "1_ion_b0", "1_field_b0", "1_elc_b1", "1_ion_b1", "1_field_b1", "1_elc_b2", "1_ion_b2", "1_field_b2", 
+      "1_elc_b3", "1_ion_b3", "1_field_b3", "1_elc_b4", "1_ion_b4", "1_field_b4", "1_elc_b5", "1_ion_b5", "1_field_b5", 
+      "1_elc_b6", "1_ion_b6", "1_field_b6", "1_elc_b7", "1_ion_b7", "1_field_b7", "1_elc_b8", "1_ion_b8", "1_field_b8",
+      "1_elc_b9", "1_ion_b9", "1_field_b9", "1_elc_b10", "1_ion_b10", "1_field_b10", "1_elc_b11", "1_ion_b11", "1_field_b11",
+      "1_elc_b12", "1_ion_b12", "1_field_b12", "1_elc_b13", "1_ion_b13", "1_field_b13", "1_elc_b14", "1_ion_b14", "1_field_b14",
+      "1_elc_b15", "1_ion_b15", "1_field_b15", "1_elc_b16", "1_ion_b16", "1_field_b16", "1_elc_b17", "1_ion_b17", "1_field_b17",
+      "1_elc_b18", "1_ion_b18", "1_field_b18", "1_elc_b19", "1_ion_b19", "1_field_b19", "1_elc_b20", "1_ion_b20", "1_field_b20",
+      "1_elc_b21", "1_ion_b21", "1_field_b21", "1_elc_b22", "1_ion_b22", "1_field_b22", "1_elc_b23", "1_ion_b23", "1_field_b23",
+      "1_elc_b24", "1_ion_b24", "1_field_b24" },
+    { "1_elc_b0", "1_ion_b0", "1_field_b0", "1_elc_b1", "1_ion_b1", "1_field_b1", "1_elc_b2", "1_ion_b2", "1_field_b2", 
+      "1_elc_b3", "1_ion_b3", "1_field_b3", "1_elc_b4", "1_ion_b4", "1_field_b4", "1_elc_b5", "1_ion_b5", "1_field_b5", 
+      "1_elc_b6", "1_ion_b6", "1_field_b6", "1_elc_b7", "1_ion_b7", "1_field_b7", "1_elc_b8", "1_ion_b8", "1_field_b8", },
+    { "1_elc_b0", "1_ion_b0", "1_field_b0", "1_elc_b1", "1_ion_b1", "1_field_b1", "1_elc_b2", "1_ion_b2", "1_field_b2", 
+      "1_elc_b3", "1_ion_b3", "1_field_b3", "1_elc_b4", "1_ion_b4", "1_field_b4", "1_elc_b5", "1_ion_b5", "1_field_b5", 
+      "1_elc_b6", "1_ion_b6", "1_field_b6", "1_elc_b7", "1_ion_b7", "1_field_b7", "1_elc_b8", "1_ion_b8", "1_field_b8",
+      "1_elc_b9", "1_ion_b9", "1_field_b9", "1_elc_b10", "1_ion_b10", "1_field_b10", "1_elc_b11", "1_ion_b11", "1_field_b11",
+      "1_elc_b12", "1_ion_b12", "1_field_b12", "1_elc_b13", "1_ion_b13", "1_field_b13", "1_elc_b14", "1_ion_b14", "1_field_b14",
+      "1_elc_b15", "1_ion_b15", "1_field_b15", "1_elc_b16", "1_ion_b16", "1_field_b16", "1_elc_b17", "1_ion_b17", "1_field_b17",
+      "1_elc_b18", "1_ion_b18", "1_field_b18", "1_elc_b19", "1_ion_b19", "1_field_b19", "1_elc_b20", "1_ion_b20", "1_field_b20",
+      "1_elc_b21", "1_ion_b21", "1_field_b21", "1_elc_b22", "1_ion_b22", "1_field_b22", "1_elc_b23", "1_ion_b23", "1_field_b23",
+      "1_elc_b24", "1_ion_b24", "1_field_b24" }
   };
+  int test_amr[86] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+    1, 1, 1, 1, 1, 1, 1, 1, 1, 1 };
 
   system("clear");
   system("mkdir -p ci/output");
@@ -653,7 +819,7 @@ main(int argc, char **argv)
 
     if (strtol(argv[1], &arg_ptr, 10) == 1) {
       for (int i = 0; i < test_count; i++) {
-        runTest(test_names[i], test_names_human[i], test_output_count[i], test_outputs[i]);
+        runTest(test_names[i], test_names_human[i], test_output_count[i], test_outputs[i], test_amr[i]);
       }
     }
     else if (strtol(argv[1], &arg_ptr, 10) == 2) {
@@ -665,7 +831,8 @@ main(int argc, char **argv)
       if (argc > 2) {
         if (strtol(argv[2], &arg_ptr, 10) >= 1 && strtol(argv[2], &arg_ptr, 10) <= test_count) {
           runTest(test_names[strtol(argv[2], &arg_ptr, 10) - 1], test_names_human[strtol(argv[2], &arg_ptr, 10) - 1],
-            test_output_count[strtol(argv[2], &arg_ptr, 10) - 1], test_outputs[strtol(argv[2], &arg_ptr, 10) - 1]);
+            test_output_count[strtol(argv[2], &arg_ptr, 10) - 1], test_outputs[strtol(argv[2], &arg_ptr, 10) - 1],
+            test_amr[strtol(argv[2], &arg_ptr, 10) - 1]);
         }
         else {
           printf("Invalid test!\n");
@@ -692,7 +859,7 @@ main(int argc, char **argv)
     else if (strtol(argv[1], &arg_ptr, 10) == 5) {
       for (int i = 0; i < test_count; i++) {
         regenerateTest(test_names[i], test_output_count[i], test_outputs[i]);
-        runTest(test_names[i], test_names_human[i], test_output_count[i], test_outputs[i]);
+        runTest(test_names[i], test_names_human[i], test_output_count[i], test_outputs[i], test_amr[i]);
       }
     }
     else if (strtol(argv[1], &arg_ptr, 10) == 6) {
@@ -701,7 +868,8 @@ main(int argc, char **argv)
           regenerateTest(test_names[strtol(argv[2], &arg_ptr, 10) - 1], test_output_count[strtol(argv[2], &arg_ptr, 10) - 1],
             test_outputs[strtol(argv[2], &arg_ptr, 10) - 1]);
           runTest(test_names[strtol(argv[2], &arg_ptr, 10) - 1], test_names_human[strtol(argv[2], &arg_ptr, 10) - 1],
-            test_output_count[strtol(argv[2], &arg_ptr, 10) - 1], test_outputs[strtol(argv[2], &arg_ptr, 10) - 1]);
+            test_output_count[strtol(argv[2], &arg_ptr, 10) - 1], test_outputs[strtol(argv[2], &arg_ptr, 10) - 1],
+            test_amr[strtol(argv[2], &arg_ptr, 10) - 1]);
         }
         else {
           printf("Invalid test!\n");
@@ -732,7 +900,7 @@ main(int argc, char **argv)
 
       if (option == 1) {
         for (int i = 0; i < test_count; i++) {
-          runTest(test_names[i], test_names_human[i], test_output_count[i], test_outputs[i]);
+          runTest(test_names[i], test_names_human[i], test_output_count[i], test_outputs[i], test_amr[i]);
         }
       }
       else if (option == 2) {
@@ -751,7 +919,8 @@ main(int argc, char **argv)
         printf("\n");
 
         if (option2 >= 1 && option2 <= test_count) {
-          runTest(test_names[option2 - 1], test_names_human[option2 - 1], test_output_count[option2 - 1], test_outputs[option2 - 1]);
+          runTest(test_names[option2 - 1], test_names_human[option2 - 1], test_output_count[option2 - 1], test_outputs[option2 - 1],
+            test_amr[option2 - 1]);
         }
         else {
           printf("Invalid test!\n\n");
@@ -777,7 +946,7 @@ main(int argc, char **argv)
       else if (option == 5) {
         for (int i = 0; i < test_count; i++) {
           regenerateTest(test_names[i], test_output_count[i], test_outputs[i]);
-          runTest(test_names[i], test_names_human[i], test_output_count[i], test_outputs[i]);
+          runTest(test_names[i], test_names_human[i], test_output_count[i], test_outputs[i], test_amr[i]);
         }
       }
       else if (option == 6) {
@@ -792,7 +961,8 @@ main(int argc, char **argv)
 
         if (option2 >= 1 && option2 <= test_count) {
           regenerateTest(test_names[option2 - 1], test_output_count[option2 - 1], test_outputs[option2 - 1]);
-          runTest(test_names[option2 - 1], test_names_human[option2 - 1], test_output_count[option2 - 1], test_outputs[option2 - 1]);
+          runTest(test_names[option2 - 1], test_names_human[option2 - 1], test_output_count[option2 - 1], test_outputs[option2 - 1],
+            test_amr[option2 - 1]);
         }
         else {
           printf("Invalid test!\n\n");
