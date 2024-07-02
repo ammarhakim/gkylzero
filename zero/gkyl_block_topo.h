@@ -1,5 +1,6 @@
 #pragma once
 
+#include <gkyl_ref_count.h>
 #include <gkyl_util.h>
 
 // edge (lower/upper) with orientation (positive/negative)
@@ -30,6 +31,8 @@ struct gkyl_block_topo {
   int ndim; // dimension
   int num_blocks; // total number of blocks
   struct gkyl_block_connections *conn; // connection info for each block
+
+  struct gkyl_ref_count ref_count;
 };
 
 /**
@@ -42,6 +45,15 @@ struct gkyl_block_topo {
  * @return New block topology
  */
 struct gkyl_block_topo* gkyl_block_topo_new(int ndim, int nblocks);
+
+/**
+ * Acquire pointer to block-topology. The pointer must be released
+ * using release method.
+ *
+ * @param btopo Block-topo to which reference is required
+ * @return Pointer to acquired block-topo
+ */
+struct gkyl_block_topo* gkyl_block_topo_acquire(const struct gkyl_block_topo* btopo);
 
 /**
  * Check consistency of block topology: the topology typically has

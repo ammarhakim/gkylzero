@@ -11,6 +11,14 @@ static const enum gkyl_oriented_edge complimentary_edges[] = {
   [GKYL_PHYSICAL] = GKYL_PHYSICAL, 
 };
 
+static void
+block_topo_free(const struct gkyl_ref_count *ref)
+{
+  struct gkyl_block_topo *btopo = container_of(ref, struct gkyl_block_topo, ref_count);
+  gkyl_free(btopo->conn);
+  gkyl_free(btopo);
+}
+
 struct gkyl_block_topo*
 gkyl_block_topo_new(int ndim, int nblocks)
 {
@@ -18,6 +26,8 @@ gkyl_block_topo_new(int ndim, int nblocks)
   btopo->ndim = ndim;
   btopo->num_blocks = nblocks;
   btopo->conn = gkyl_calloc(sizeof(struct gkyl_block_connections), nblocks);
+
+  btopo->ref_count = gkyl_ref_count_init(block_topo_free);
 
   return btopo;
 }
@@ -59,9 +69,15 @@ gkyl_block_topo_check_consistency(const struct gkyl_block_topo *btopo)
   return 1;
 }
 
+struct gkyl_block_topo *
+gkyl_block_topo_acquire(const struct gkyl_block_topo* btopo)
+{
+  gkyl_ref_count_inc(&btopo->ref_count);
+  return (struct gkyl_block_topo*) btopo;
+}     
+
 void
 gkyl_block_topo_release(struct gkyl_block_topo* btopo)
 {
-  gkyl_free(btopo->conn);
-  gkyl_free(btopo);
+  gkyl_ref_count_dec(&btopo->ref_count);
 }
