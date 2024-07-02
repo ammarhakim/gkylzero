@@ -1,5 +1,6 @@
 #pragma once
 
+#include <gkyl_array.h>
 #include <gkyl_ref_count.h>
 #include <gkyl_util.h>
 
@@ -16,7 +17,6 @@ enum gkyl_mat_trans { GKYL_NO_TRANS, GKYL_TRANS, GKYL_CONJ_TRANS };
 struct gkyl_mat {
   size_t nr, nc; // Number of rows, columns
   double *data; // Pointer to data
-  double **mptr; // pointers to start of each sub-matrix
 
   uint32_t flags;  
   struct gkyl_ref_count ref_count;
@@ -40,6 +40,10 @@ struct gkyl_nmat {
 // Type for storing preallocating memory needed in various batch
 // operations
 typedef struct gkyl_nmat_mem gkyl_nmat_mem;
+
+// Type for storing preallocating memory needed specificially for 
+// mat_mm_array
+typedef struct gkyl_mat_mm_array_mem gkyl_mat_mm_array_mem;
 
 /**
  * Construct new matrix with all elements initialized to @a
@@ -141,7 +145,7 @@ void gkyl_mat_show(const char *name, FILE *fp, const struct gkyl_mat *mat);
  */
 struct gkyl_mat* gkyl_mat_mm(double alpha, double beta,
   enum gkyl_mat_trans transa, const struct gkyl_mat *A,
-  enum gkyl_mat_trans transb, const struct gkyl_mat *B, struct gkyl_mat *C);
+  enum gkyl_mat_trans transb, const struct gkyl_mat *B, struct gkyl_mat *, bool on_gpu);
 
 /**
  * Computes matrix-vector product:
@@ -344,6 +348,43 @@ gkyl_nmat_mem *gkyl_nmat_linsolve_lu_cu_dev_new(size_t num, size_t nrow);
  * @param mem Memory to release
  */
 void gkyl_nmat_linsolve_lu_release(gkyl_nmat_mem *mem);
+
+/**
+ * Allocate memory needed in modal to nodal conversion matrices needed 
+ * by cublasDgemm
+ *
+ * @param nr Number of rows in the matrix A
+ * @param nc Number of columns in the matrix A
+ * @param alpha Coefficient infront of A*B
+ * @param beta Coefficient infron of C
+ * @param transa Whether or not to transpose A
+ * @param transb Whether or not to transpose B
+ * @param use_gpu 
+ * @return Preallocated memory
+ */
+gkyl_mat_mm_array_mem *gkyl_mat_mm_array_mem_new(int nr, int nc, double alpha, 
+  double beta, enum gkyl_mat_trans transa, enum gkyl_mat_trans transb, bool use_gpu);
+
+/**
+ * Release memory allocated for batched LU solves.
+ *
+ * @param mem Memory to release
+ */
+void gkyl_mat_mm_array_mem_release(gkyl_mat_mm_array_mem *mem);
+
+/**
+ * Computes: alpha*matrix_multiplication(A,B) + Beta*C = C 
+ * This is done using the cublas_v2 library. The function here, mat_mm_array is designed specifically so
+ * A is type gkyl_mat_trans, and B/C are gkyl_arrays. This is purposefully done for calculations with
+ * small A but and very large B, C where we don't wish to translate B, C to mat/nmat types. 
+ * 
+ * Such calculations use this function like the conversion from nodal to modal representation of phase space
+ * quantities.
+ * @param mem structure containing the A matrix, associated transpose properties, alpha, beta
+ * @param B gkyl_array matrix for computing A*B = C
+ * @param C gkyl_array matrix for computing A*B = C
+*/
+void gkyl_mat_mm_array(struct gkyl_mat_mm_array_mem *mem, const struct gkyl_array *B, struct gkyl_array *C);
 
 /**
  * Solve a batched system of linear equations using LU
