@@ -28,14 +28,14 @@ gkyl_gr_maxwell_flux(double light_speed, double e_fact, double b_fact, const dou
   }
 
   if (!in_excision_region) {
-    flux[0] = e_fact * (light_speed * light_speed) * phi;
-    flux[1] = (light_speed * light_speed) * Bz;
-    flux[2] = -(light_speed * light_speed) * By;
+    flux[0] = (1.0 / ((lapse * lapse) * spatial_det)) * e_fact * (light_speed * light_speed) * phi;
+    flux[1] = (1.0 / ((lapse * lapse) * spatial_det)) * (light_speed * light_speed) * Bz;
+    flux[2] = -(1.0 / ((lapse * lapse) * spatial_det)) * (light_speed * light_speed) * By;
     flux[3] = b_fact * psi;
     flux[4] = -Ez;
     flux[5] = Ey;
     flux[6] = e_fact * Ex;
-    flux[7] = b_fact * (light_speed * light_speed) * Bx;
+    flux[7] = (1.0 / ((lapse * lapse) * spatial_det)) * b_fact * (light_speed * light_speed) * Bx;
 
     for (int i = 8; i < 11; i++) {
       flux[i] = 0.0;
@@ -277,4 +277,40 @@ gkyl_wv_gr_maxwell_inew(const struct gkyl_wv_gr_maxwell_inp* inp)
   gr_maxwell->eqn.on_dev = &gr_maxwell->eqn; // On the CPU, the equation object points to itself.
 
   return &gr_maxwell->eqn;
+}
+
+double
+gkyl_wv_gr_maxwell_light_speed(const struct gkyl_wv_eqn* eqn)
+{
+  const struct wv_gr_maxwell *gr_maxwell = container_of(eqn, struct wv_gr_maxwell, eqn);
+  double light_speed = gr_maxwell->light_speed;
+  
+  return light_speed;
+}
+
+double
+gkyl_wv_gr_maxwell_e_fact(const struct gkyl_wv_eqn* eqn)
+{
+  const struct wv_gr_maxwell *gr_maxwell = container_of(eqn, struct wv_gr_maxwell, eqn);
+  double e_fact = gr_maxwell->e_fact;
+
+  return e_fact;
+}
+
+double
+gkyl_wv_gr_maxwell_b_fact(const struct gkyl_wv_eqn* eqn)
+{
+  const struct wv_gr_maxwell *gr_maxwell = container_of(eqn, struct wv_gr_maxwell, eqn);
+  double b_fact = gr_maxwell->b_fact;
+
+  return b_fact;
+}
+
+struct gkyl_gr_spacetime*
+gkyl_wv_gr_maxwell_spacetime(const struct gkyl_wv_eqn* eqn)
+{
+  const struct wv_gr_maxwell *gr_maxwell = container_of(eqn, struct wv_gr_maxwell, eqn);
+  struct gkyl_gr_spacetime* spacetime = gr_maxwell->spacetime;
+
+  return spacetime;
 }
