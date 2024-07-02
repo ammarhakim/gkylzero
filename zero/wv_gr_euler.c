@@ -1303,3 +1303,12 @@ gkyl_wv_gr_euler_gas_gamma(const struct gkyl_wv_eqn* eqn)
 
   return gas_gamma;
 }
+
+struct gkyl_gr_spacetime*
+gkyl_wv_gr_euler_spacetime(const struct gkyl_wv_eqn* eqn)
+{
+  const struct wv_gr_euler *gr_euler = container_of(eqn, struct wv_gr_euler, eqn);
+  struct gkyl_gr_spacetime* spacetime = gr_euler->spacetime;
+
+  return spacetime;
+}

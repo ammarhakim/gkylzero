@@ -9,7 +9,20 @@
 static inline double
 gkyl_gr_maxwell_max_abs_speed(double light_speed, const double q[11])
 {
-  return light_speed;
+  double spatial_det = q[8];
+  double lapse = q[9];
+
+  bool in_excision_region = false;
+  if (q[10] < pow(10.0, -8.0)) {
+    in_excision_region = true;
+  }
+
+  if (!in_excision_region) {
+    return light_speed / (lapse * sqrt(spatial_det));
+  }
+  else {
+    return light_speed;
+  }
 }
 
 static void
