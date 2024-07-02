@@ -280,13 +280,18 @@ gkyl_null_comm_inew(const struct gkyl_null_comm_inp *inp)
 struct gkyl_comm*
 gkyl_null_comm_new(void)
 {
+  // dummy decomp to we can make null comm without a decomp
+  struct gkyl_rect_decomp *decomp =
+    gkyl_rect_decomp_new_from_cuts_and_cells(1, (int[]) { 1 }, (int[]) { 1 });
+  
   struct gkyl_comm *comm = gkyl_null_comm_inew( &(struct gkyl_null_comm_inp) {
-      .decomp = 0,
+      .decomp = decomp,
       .use_gpu = false,
       .sync_corners = false
     }
   );
-
+  gkyl_rect_decomp_release(decomp);
+  
   return comm;
 }
 
