@@ -194,8 +194,6 @@ evalGRMaxwellInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRIC
       fout[i] = 0.0;
     }
 
-    fout[0] = -5.0;
-
     fout[10] = -1.0;
   }
   else {
@@ -245,7 +243,7 @@ main(int argc, char **argv)
     .equation = gr_maxwell,
     .evolve = true,
     .init = evalGRMaxwellInit,
-    .force_low_order_flux = true, // Use Lax fluxes.
+    //.force_low_order_flux = true
     .ctx = &ctx,
   };
 
