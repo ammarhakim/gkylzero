@@ -354,14 +354,14 @@ main(int argc, char **argv)
   struct gkyl_block_connections bconnect[ctx.num_blocks];
   bconnect[0] = (struct gkyl_block_connections) {
     .connections[0] = {
-      { .bid = 0, .dir = 0, .edge = GKYL_PHYSICAL }, // physical boundary
+      { .bid = 1, .dir = 0, .edge = GKYL_UPPER_POSITIVE },
       { .bid = 1, .dir = 0, .edge = GKYL_LOWER_POSITIVE },
     }
   };
   bconnect[1] = (struct gkyl_block_connections) {
     .connections[0] = {
       { .bid = 0, .dir = 0, .edge = GKYL_UPPER_POSITIVE },
-      { .bid = 1, .dir = 0, .edge = GKYL_PHYSICAL }, // physical boundary
+      { .bid = 0, .dir = 0, .edge = GKYL_LOWER_POSITIVE },
     }
   }; 
 
@@ -377,8 +377,8 @@ main(int argc, char **argv)
     .blocks = { &bleft, &bright },
     .block_connections = bconnect,
 
-    .num_periodic_dir = 1,
-    .periodic_dirs = { 0 },
+    .num_periodic_dir = 0,
+    .periodic_dirs = { },
 
     .num_species = 2,
     .species = { square, bump },

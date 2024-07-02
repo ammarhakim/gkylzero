@@ -19,6 +19,9 @@ gkyl_gyrokinetic_multib_app_new(struct gkyl_gk_multib *inp)
 
   mba->cfl = inp->cfl_frac == 0 ? 1.0 : inp->cfl_frac;
 
+  mba->num_species = inp->num_species;
+  mba->num_neut_species = inp->num_neut_species;
+
   mba->num_blocks = inp->num_blocks;
 
   mba->btopo = gkyl_block_topo_new(mba->cdim, mba->num_blocks);
@@ -219,6 +222,9 @@ gkyl_gyrokinetic_multib_app_new(struct gkyl_gk_multib *inp)
   mba->blocks = gkyl_malloc(mba->num_blocks_local * sizeof(struct gkyl_gyrokinetic_app *));
   mba->comm_intrab = gkyl_malloc(mba->num_blocks_local * sizeof(struct gkyl_comm *));
 
+  // Allocate memory for buffers and statuses used in sync.
+  mba->syncdat = gkyl_malloc(mba->num_blocks_local * sizeof(struct gkyl_gyrokinetic_multib_sync_data));
+
   for (int bc=0; bc<mba->num_blocks_local; bc++) {
     int bidx = mba->block_idxs[bc];
     struct gkyl_gk *blinp = inp->blocks[bidx];
@@ -260,9 +266,22 @@ gkyl_gyrokinetic_multib_app_new(struct gkyl_gk_multib *inp)
     blinp->num_periodic_dir = inp->num_periodic_dir;
     memcpy(blinp->periodic_dirs, inp->periodic_dirs, inp->num_periodic_dir*sizeof(int));
 
-    blinp->has_low_inp = true,
-    blinp->low_inp.local_range = mba->decomp_intrab[bidx]->ranges[comm_intrab_rank],
-    blinp->low_inp.comm = mba->comm_intrab[bc],
+    blinp->has_low_inp = true;
+    blinp->low_inp.local_range = mba->decomp_intrab[bidx]->ranges[comm_intrab_rank];
+    blinp->low_inp.comm = mba->comm_intrab[bc];
+
+    // Sync buffer and states.
+    for (int d=0; d<mba->cdim; d++) {
+      mba->syncdat[bc].lower[d].send_buff = gkyl_mem_buff_new(16);
+      mba->syncdat[bc].lower[d].recv_buff = gkyl_mem_buff_new(16);
+      mba->syncdat[bc].lower[d].recv_state = gkyl_comm_state_new(mba->comm_multib);
+      mba->syncdat[bc].lower[d].send_state = gkyl_comm_state_new(mba->comm_multib);
+
+      mba->syncdat[bc].upper[d].send_buff = gkyl_mem_buff_new(16);
+      mba->syncdat[bc].upper[d].recv_buff = gkyl_mem_buff_new(16);
+      mba->syncdat[bc].upper[d].recv_state = gkyl_comm_state_new(mba->comm_multib);
+      mba->syncdat[bc].upper[d].send_state = gkyl_comm_state_new(mba->comm_multib);
+    }
 
     // Create a new app for each block.
     mba->blocks[bc] = gkyl_gyrokinetic_app_new(blinp);
@@ -286,6 +305,271 @@ gkyl_gyrokinetic_multib_ranks_per_block(gkyl_gyrokinetic_multib_app *mba, int bi
     ranks[i] = mba->ranks_per_block[off+i];
 
   return cuts_vol;
+}
+
+void
+gkyl_gyrokinetic_multib_sync(gkyl_gyrokinetic_multib_app* mba, int fidx)
+{
+  for (int sI=0; sI<mba->num_species; sI++) {
+
+    // Post nonblocking recv to get data into ghost range.
+    for (int bc=0; bc<mba->num_blocks_local; bc++) {
+      struct gkyl_gyrokinetic_app *app = mba->blocks[bc];
+      struct gk_species *gks = &app->species[sI];
+      struct gkyl_array *arr = gks->distfs[fidx];
+  
+      int bidx = mba->block_idxs[bc];
+      for (int dir=0; dir<mba->cdim; ++dir) {
+        const struct gkyl_target_edge *te = mba->btopo->conn[bidx].connections[dir];
+  
+        // Lower edge of this block.
+        enum gkyl_oriented_edge neighb_edge_lo = te[0].edge;
+        if (neighb_edge_lo != GKYL_PHYSICAL) {
+          struct gkyl_gyrokinetic_multib_buff_state *bust = &mba->syncdat[bc].lower[dir];
+          size_t recv_vol = arr->ncomp * gks->lower_ghost[dir].volume;
+          int neighb_id = te[0].bid, neighb_dir = te[0].dir;
+
+          if (gkyl_mem_buff_size(bust->recv_buff) < recv_vol)
+            gkyl_mem_buff_resize(bust->recv_buff, recv_vol);
+
+          // Translate block ID to rank.
+          int neighb_num_ranks = gkyl_gyrokinetic_multib_num_ranks_per_block(mba, neighb_id);
+          int neighb_ranks[neighb_num_ranks];
+          gkyl_gyrokinetic_multib_ranks_per_block(mba, neighb_id, neighb_ranks);
+          // Assume neighbor rank has the same local range in the dirs perp to
+          // the boundary dir as us.
+          // Find the rank that has the same perp-range as us
+          int neighb_rank = -1;
+          for (int i=0; i<neighb_num_ranks; i++) {
+            // Local range of this rank.
+            struct gkyl_range *neighb_local = &mba->decomp_intrab[neighb_id]->ranges[i];
+            // Create a skin rank for this rank.
+            struct gkyl_range neighb_skin_range;
+            int remove_dir[GKYL_MAX_DIM] = {0}, loc_in_dir[GKYL_MAX_DIM] = {0};
+            remove_dir[neighb_dir] = 1;
+            if (neighb_edge_lo == GKYL_LOWER_POSITIVE || neighb_edge_lo == GKYL_LOWER_NEGATIVE)
+              loc_in_dir[neighb_dir] = neighb_local->lower[neighb_dir];
+            else
+              loc_in_dir[neighb_dir] = neighb_local->upper[neighb_dir];
+            gkyl_range_deflate(&neighb_skin_range, neighb_local, remove_dir, loc_in_dir);
+
+            // If skin range = our ghost range, this is the rank we need.
+            if (gkyl_range_compare(&gks->lower_ghost[dir], &neighb_skin_range)) {
+              neighb_rank = neighb_ranks[i];
+              break;
+            }
+          }
+  
+          int tag = 4242; // Should get it from gkyl_comm.
+          gkyl_comm_irecv(mba->comm_multib, gkyl_mem_buff_data(bust->recv_buff),
+            recv_vol, GKYL_DOUBLE, neighb_rank, tag, bust->recv_state);
+        }
+  
+        // Upper edge of this block.
+        enum gkyl_oriented_edge neighb_edge_up = te[1].edge;
+        if (neighb_edge_up != GKYL_PHYSICAL) {
+          struct gkyl_gyrokinetic_multib_buff_state *bust = &mba->syncdat[bc].upper[dir];
+          size_t recv_vol = arr->ncomp * gks->upper_ghost[dir].volume;
+          int neighb_id = te[1].bid, neighb_dir = te[1].dir;
+
+          if (gkyl_mem_buff_size(bust->recv_buff) < recv_vol)
+            gkyl_mem_buff_resize(bust->recv_buff, recv_vol);
+
+          // Translate block ID to rank.
+          int neighb_num_ranks = gkyl_gyrokinetic_multib_num_ranks_per_block(mba, neighb_id);
+          int neighb_ranks[neighb_num_ranks];
+          gkyl_gyrokinetic_multib_ranks_per_block(mba, neighb_id, neighb_ranks);
+          // Assume neighbor rank has the same local range in the dirs perp to
+          // the boundary dir as us.
+          // Find the rank that has the same perp-range as us
+          int neighb_rank = -1;
+          for (int i=0; i<neighb_num_ranks; i++) {
+            // Local range of this rank.
+            struct gkyl_range *neighb_local = &mba->decomp_intrab[neighb_id]->ranges[i];
+            // Create a skin rank for this rank.
+            struct gkyl_range neighb_skin_range;
+            int remove_dir[GKYL_MAX_DIM] = {0}, loc_in_dir[GKYL_MAX_DIM] = {0};
+            remove_dir[neighb_dir] = 1;
+            if (neighb_edge_up == GKYL_LOWER_POSITIVE || neighb_edge_up == GKYL_LOWER_NEGATIVE)
+              loc_in_dir[neighb_dir] = neighb_local->lower[neighb_dir];
+            else
+              loc_in_dir[neighb_dir] = neighb_local->upper[neighb_dir];
+            gkyl_range_deflate(&neighb_skin_range, neighb_local, remove_dir, loc_in_dir);
+
+            // If skin range = our ghost range, this is the rank we need.
+            if (gkyl_range_compare(&gks->upper_ghost[dir], &neighb_skin_range)) {
+              neighb_rank = neighb_ranks[i];
+              break;
+            }
+          }
+  
+          int tag = 4242; // Should get it from gkyl_comm.
+          gkyl_comm_irecv(mba->comm_multib, gkyl_mem_buff_data(bust->recv_buff),
+            recv_vol, GKYL_DOUBLE, neighb_rank, tag, bust->recv_state);
+        }
+      }
+    }
+
+    // Post nonblocking send of skin range data.
+    for (int bc=0; bc<mba->num_blocks_local; bc++) {
+      struct gkyl_gyrokinetic_app *app = mba->blocks[bc];
+      struct gk_species *gks = &app->species[sI];
+      struct gkyl_array *arr = gks->distfs[fidx];
+  
+      int bidx = mba->block_idxs[bc];
+      for (int dir=0; dir<mba->cdim; ++dir) {
+        const struct gkyl_target_edge *te = mba->btopo->conn[bidx].connections[dir];
+  
+        // Lower edge of this block.
+        enum gkyl_oriented_edge neighb_edge_lo = te[0].edge;
+        if (neighb_edge_lo != GKYL_PHYSICAL) {
+          struct gkyl_gyrokinetic_multib_buff_state *bust = &mba->syncdat[bc].lower[dir];
+          size_t send_vol = arr->ncomp * gks->lower_skin[dir].volume;
+          int neighb_id = te[0].bid, neighb_dir = te[0].dir;
+
+          if (gkyl_mem_buff_size(bust->send_buff) < send_vol)
+            gkyl_mem_buff_resize(bust->send_buff, send_vol);
+
+          gkyl_array_copy_to_buffer(gkyl_mem_buff_data(bust->send_buff),
+            arr, &gks->lower_skin[dir]);
+
+          // Translate block ID to rank.
+          int neighb_num_ranks = gkyl_gyrokinetic_multib_num_ranks_per_block(mba, neighb_id);
+          int neighb_ranks[neighb_num_ranks];
+          gkyl_gyrokinetic_multib_ranks_per_block(mba, neighb_id, neighb_ranks);
+          // Assume neighbor rank has the same local range in the dirs perp to
+          // the boundary dir as us.
+          // Find the rank that has the same perp-range as us
+          int neighb_rank = -1;
+          for (int i=0; i<neighb_num_ranks; i++) {
+            // Local range of this rank.
+            struct gkyl_range *neighb_local = &mba->decomp_intrab[neighb_id]->ranges[i];
+            // Create a skin rank for this rank.
+            struct gkyl_range neighb_skin_range;
+            int remove_dir[GKYL_MAX_DIM] = {0}, loc_in_dir[GKYL_MAX_DIM] = {0};
+            remove_dir[neighb_dir] = 1;
+            if (neighb_edge_lo == GKYL_LOWER_POSITIVE || neighb_edge_lo == GKYL_LOWER_NEGATIVE)
+              loc_in_dir[neighb_dir] = neighb_local->lower[neighb_dir];
+            else
+              loc_in_dir[neighb_dir] = neighb_local->upper[neighb_dir];
+            gkyl_range_deflate(&neighb_skin_range, neighb_local, remove_dir, loc_in_dir);
+
+            // If skin range = our ghost range, this is the rank we need.
+            if (gkyl_range_compare(&gks->lower_ghost[dir], &neighb_skin_range)) {
+              neighb_rank = neighb_ranks[i];
+              break;
+            }
+          }
+  
+          int tag = 4242; // Should get it from gkyl_comm.
+          gkyl_comm_isend(mba->comm_multib, gkyl_mem_buff_data(bust->send_buff),
+            send_vol, GKYL_DOUBLE, neighb_rank, tag, bust->send_state);
+        }
+
+        // Upper edge of this block.
+        enum gkyl_oriented_edge neighb_edge_up = te[1].edge;
+        if (neighb_edge_up != GKYL_PHYSICAL) {
+          struct gkyl_gyrokinetic_multib_buff_state *bust = &mba->syncdat[bc].upper[dir];
+          size_t send_vol = arr->ncomp * gks->upper_skin[dir].volume;
+          int neighb_id = te[1].bid, neighb_dir = te[1].dir;
+
+          if (gkyl_mem_buff_size(bust->send_buff) < send_vol)
+            gkyl_mem_buff_resize(bust->send_buff, send_vol);
+
+          gkyl_array_copy_to_buffer(gkyl_mem_buff_data(bust->send_buff),
+            arr, &gks->upper_skin[dir]);
+
+          // Translate block ID to rank.
+          int neighb_num_ranks = gkyl_gyrokinetic_multib_num_ranks_per_block(mba, neighb_id);
+          int neighb_ranks[neighb_num_ranks];
+          gkyl_gyrokinetic_multib_ranks_per_block(mba, neighb_id, neighb_ranks);
+          // Assume neighbor rank has the same local range in the dirs perp to
+          // the boundary dir as us.
+          // Find the rank that has the same perp-range as us
+          int neighb_rank = -1;
+          for (int i=0; i<neighb_num_ranks; i++) {
+            // Local range of this rank.
+            struct gkyl_range *neighb_local = &mba->decomp_intrab[neighb_id]->ranges[i];
+            // Create a skin rank for this rank.
+            struct gkyl_range neighb_skin_range;
+            int remove_dir[GKYL_MAX_DIM] = {0}, loc_in_dir[GKYL_MAX_DIM] = {0};
+            remove_dir[neighb_dir] = 1;
+            if (neighb_edge_up == GKYL_LOWER_POSITIVE || neighb_edge_up == GKYL_LOWER_NEGATIVE)
+              loc_in_dir[neighb_dir] = neighb_local->lower[neighb_dir];
+            else
+              loc_in_dir[neighb_dir] = neighb_local->upper[neighb_dir];
+            gkyl_range_deflate(&neighb_skin_range, neighb_local, remove_dir, loc_in_dir);
+
+            // If skin range = our ghost range, this is the rank we need.
+            if (gkyl_range_compare(&gks->upper_ghost[dir], &neighb_skin_range)) {
+              neighb_rank = neighb_ranks[i];
+              break;
+            }
+          }
+  
+          int tag = 4242; // Should get it from gkyl_comm.
+          gkyl_comm_isend(mba->comm_multib, gkyl_mem_buff_data(bust->send_buff),
+            send_vol, GKYL_DOUBLE, neighb_rank, tag, bust->send_state);
+        }
+      }
+    }
+
+    // Complete the sends.
+    for (int bc=0; bc<mba->num_blocks_local; bc++) {
+  
+      int bidx = mba->block_idxs[bc];
+      for (int dir=0; dir<mba->cdim; ++dir) {
+        const struct gkyl_target_edge *te = mba->btopo->conn[bidx].connections[dir];
+  
+        // Lower edge of this block.
+        if (te[0].edge != GKYL_PHYSICAL) {
+          struct gkyl_gyrokinetic_multib_buff_state *bust = &mba->syncdat[bc].lower[dir];
+          gkyl_comm_state_wait(mba->comm_multib, bust->send_state);
+        }
+
+        // Upper edge of this block.
+        if (te[1].edge != GKYL_PHYSICAL) {
+          struct gkyl_gyrokinetic_multib_buff_state *bust = &mba->syncdat[bc].upper[dir];
+          gkyl_comm_state_wait(mba->comm_multib, bust->send_state);
+        }
+      }
+    }
+
+    // Complete the receives and copy data into ghost cells.
+    for (int bc=0; bc<mba->num_blocks_local; bc++) {
+      struct gkyl_gyrokinetic_app *app = mba->blocks[bc];
+      struct gk_species *gks = &app->species[sI];
+      struct gkyl_array *arr = gks->distfs[fidx];
+  
+      int bidx = mba->block_idxs[bc];
+      for (int dir=0; dir<mba->cdim; ++dir) {
+        const struct gkyl_target_edge *te = mba->btopo->conn[bidx].connections[dir];
+  
+        // Lower edge of this block.
+        if (te[0].edge != GKYL_PHYSICAL) {
+          struct gkyl_gyrokinetic_multib_buff_state *bust = &mba->syncdat[bc].lower[dir];
+          gkyl_comm_state_wait(mba->comm_multib, bust->recv_state);
+
+          gkyl_array_copy_from_buffer(arr,
+            gkyl_mem_buff_data(bust->recv_buff),
+            &(gks->lower_ghost[dir])
+          );
+        }
+  
+        // Upper edge of this block.
+        if (te[1].edge != GKYL_PHYSICAL) {
+          struct gkyl_gyrokinetic_multib_buff_state *bust = &mba->syncdat[bc].upper[dir];
+          gkyl_comm_state_wait(mba->comm_multib, bust->recv_state);
+
+          gkyl_array_copy_from_buffer(arr,
+            gkyl_mem_buff_data(bust->recv_buff),
+            &(gks->upper_ghost[dir])
+          );
+        }
+      }
+    }
+
+  }
 }
 
 void
@@ -320,10 +604,7 @@ calc_field_and_apply_bc(gkyl_gyrokinetic_multib_app* mba, double tcurr, int fidx
 
   // NYI.
 
-  // We need to 
-  //   a) apply the BCs on physical boundaries.
-  //   b) sync within each block
-  //   c) sync between blocks.
+  // Sync within each block and apply physical BCs.
   const int nblocks = mba->num_blocks_local;
   for (int bidx=0; bidx<nblocks; bidx++) {
     struct gkyl_gyrokinetic_app *app = mba->blocks[bidx];
@@ -341,6 +622,9 @@ calc_field_and_apply_bc(gkyl_gyrokinetic_multib_app* mba, double tcurr, int fidx
 
     gkyl_gyrokinetic_apply_species_bc(app, f_charged, f_neut);
   }
+
+  // Sync between blocks.
+  gkyl_gyrokinetic_multib_sync(mba, fidx);
 }
 
 static void

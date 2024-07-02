@@ -22,6 +22,14 @@ typedef int (*get_rank_t)(struct gkyl_comm *comm, int *rank);
 // Get number of ranks
 typedef int (*get_size_t)(struct gkyl_comm *comm, int *sz);
 
+// Asynchronouse send.
+typedef int (*gkyl_isend_t)(void *data, int count, enum gkyl_elem_type type, int dest,
+  int tag, struct gkyl_comm *comm, struct gkyl_comm_state *state);
+
+// Asynchronouse receive.
+typedef int (*gkyl_irecv_t)(void *data, int count, enum gkyl_elem_type type, int src,
+  int tag, struct gkyl_comm *comm, struct gkyl_comm_state *state);
+
 // Blocking send @a array to @a dest process using @a tag.
 typedef int (*gkyl_array_send_t)(struct gkyl_array *array, int dest, int tag,
   struct gkyl_comm *comm);
@@ -109,6 +117,8 @@ struct gkyl_comm {
 
   get_rank_t get_rank; // get local rank function.
   get_size_t get_size; // get number of ranks.
+  gkyl_isend_t gkyl_isend; // nonblocking send array.
+  gkyl_irecv_t gkyl_irecv; // nonblocking recv array.
   gkyl_array_send_t gkyl_array_send; // blocking send array.
   gkyl_array_isend_t gkyl_array_isend; // nonblocking send array.
   gkyl_array_recv_t gkyl_array_recv; // blocking recv array.
@@ -163,6 +173,42 @@ static int
 gkyl_comm_get_size(struct gkyl_comm *comm, int *sz)
 {
   return comm->get_size(comm, sz);
+}
+
+/**
+ * Nonblocking send.
+ * @param comm Communicator.
+ * @param data Pointer to data to send.
+ * @param count Number of elements of kind 'type' to send.
+ * @param type Data type.
+ * @param dest Rank to send data to.
+ * @param tag Message tag.
+ * @param state Comm state object to check (e.g. if comm finished).
+ * @return error code: 0 for success
+ */
+static int
+gkyl_comm_isend(struct gkyl_comm *comm, void *data, int count,
+  enum gkyl_elem_type type, int dest, int tag, struct gkyl_comm_state *state)
+{
+  return comm->gkyl_isend(data, count, type, dest, tag, comm, state);
+}
+
+/**
+ * Nonblocking receive.
+ * @param comm Communicator.
+ * @param data Pointer to data to send.
+ * @param count Number of elements of kind 'type' to send.
+ * @param type Data type.
+ * @param src Rank to receive data from.
+ * @param tag Message tag.
+ * @param state Comm state object to check (e.g. if comm finished).
+ * @return error code: 0 for success
+ */
+static int
+gkyl_comm_irecv(struct gkyl_comm *comm, void *data, int count,
+  enum gkyl_elem_type type, int src, int tag, struct gkyl_comm_state *state)
+{
+  return comm->gkyl_irecv(data, count, type, src, tag, comm, state);
 }
 
 /**

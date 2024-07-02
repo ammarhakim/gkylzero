@@ -119,6 +119,24 @@ get_size(struct gkyl_comm *comm, int *sz)
 }
 
 static int
+isend(void *data, int count, enum gkyl_elem_type type, int dest,
+  int tag, struct gkyl_comm *comm, struct gkyl_comm_state *state)
+{
+  struct mpi_comm *mpi = container_of(comm, struct mpi_comm, base);  
+  int ret = MPI_Isend(data, count, g2_mpi_datatype[type], dest, tag, mpi->mcomm, &state->req); 
+  return ret == MPI_SUCCESS ? 0 : 1;
+}
+
+static int
+irecv(void *data, int count, enum gkyl_elem_type type, int src,
+  int tag, struct gkyl_comm *comm, struct gkyl_comm_state *state)
+{
+  struct mpi_comm *mpi = container_of(comm, struct mpi_comm, base);  
+  int ret = MPI_Irecv(data, count, g2_mpi_datatype[type], src, tag, mpi->mcomm, &state->req); 
+  return ret == MPI_SUCCESS ? 0 : 1;
+}
+
+static int
 array_send(struct gkyl_array *array, int dest, int tag, struct gkyl_comm *comm)
 {
   size_t vol = array->esznc*array->size;
@@ -760,6 +778,8 @@ gkyl_mpi_comm_new(const struct gkyl_mpi_comm_inp *inp)
   mpi->base.get_rank = get_rank;
   mpi->base.get_size = get_size;
   mpi->base.barrier = barrier;
+  mpi->base.gkyl_isend = isend;
+  mpi->base.gkyl_irecv = irecv;
   mpi->base.gkyl_array_send = array_send;
   mpi->base.gkyl_array_isend = array_isend;
   mpi->base.gkyl_array_recv = array_recv;
