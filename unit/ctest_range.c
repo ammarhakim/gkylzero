@@ -239,14 +239,14 @@ void test_sub_sub_range()
   }
 }
 
-void test_shorten()
+void test_shorten_from_above()
 {
   int lower[] = {1, 1, 1}, upper[] = {20, 30, 20};
   struct gkyl_range range, shortr, shortr2;
 
   gkyl_range_init(&range, 3, lower, upper);
-  gkyl_range_shorten(&shortr, &range, 1, 1);
-  gkyl_range_shorten(&shortr2, &range, 1, 3);
+  gkyl_range_shorten_from_above(&shortr, &range, 1, 1);
+  gkyl_range_shorten_from_above(&shortr2, &range, 1, 3);
 
   TEST_CHECK( gkyl_range_is_sub_range(&shortr) == 1 );
 
@@ -268,6 +268,42 @@ void test_shorten()
 
   TEST_CHECK( shortr2.lower[1] == range.lower[1] );
   TEST_CHECK( shortr2.upper[1] == range.lower[1]+3-1 ); // shortened range
+
+  TEST_CHECK( shortr2.lower[2] == range.lower[2] );
+  TEST_CHECK( shortr2.upper[2] == range.upper[2] );
+
+  TEST_CHECK( shortr2.volume == 20*20*3 );
+}
+
+void test_shorten_from_below()
+{
+  int lower[] = {1, 1, 1}, upper[] = {20, 30, 20};
+  struct gkyl_range range, shortr, shortr2;
+
+  gkyl_range_init(&range, 3, lower, upper);
+  gkyl_range_shorten_from_below(&shortr, &range, 1, 1);
+  gkyl_range_shorten_from_below(&shortr2, &range, 1, 3);
+
+  TEST_CHECK( gkyl_range_is_sub_range(&shortr) == 1 );
+
+  // shortr
+  TEST_CHECK( shortr.lower[0] == range.lower[0] );
+  TEST_CHECK( shortr.upper[0] == range.upper[0] );
+
+  TEST_CHECK( shortr.lower[1] == range.upper[1] );
+  TEST_CHECK( shortr.upper[1] == range.upper[1] ); // shortened range
+
+  TEST_CHECK( shortr.lower[2] == range.lower[2] );
+  TEST_CHECK( shortr.upper[2] == range.upper[2] );
+
+  TEST_CHECK( shortr.volume == 20*20 );
+
+  // shortr2
+  TEST_CHECK( shortr2.lower[0] == range.lower[0] );
+  TEST_CHECK( shortr2.upper[0] == range.upper[0] );
+
+  TEST_CHECK( shortr2.lower[1] == range.upper[1]-3+1 );
+  TEST_CHECK( shortr2.upper[1] == range.upper[1] ); // shortened range
 
   TEST_CHECK( shortr2.lower[2] == range.lower[2] );
   TEST_CHECK( shortr2.upper[2] == range.upper[2] );
@@ -1077,7 +1113,8 @@ TEST_LIST = {
   { "range_iter_init_next", test_range_iter_init_next},
   { "sub_sub_range",  test_sub_sub_range },
   { "sub_range_inv_idx",  test_sub_range_inv_idx },
-  { "shorten", test_shorten },
+  { "shorten_from_above", test_shorten_from_above },
+  { "shorten_from_below", test_shorten_from_below },
   { "skin", test_skin },
   { "range_index_1d", test_range_index_1d },
   { "range_index_2d", test_range_index_2d },
