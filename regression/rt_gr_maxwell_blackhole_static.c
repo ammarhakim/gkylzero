@@ -162,10 +162,12 @@ evalGRMaxwellInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRIC
   double phi = (2.0 * pi / Lx) * ((k_wave_x * x) + (k_wave_y * y));
   
   double spatial_det, lapse;
+  double *shift = gkyl_malloc(sizeof(double[3]));
   bool in_excision_region;
 
   spacetime->spatial_metric_det_func(spacetime, 0.0, x, y, 0.0, &spatial_det);
   spacetime->lapse_function_func(spacetime, 0.0, x, y, 0.0, &lapse);
+  spacetime->shift_vector_func(spacetime, 0.0, x, y, 0.0, &shift);
   spacetime->excision_region_func(spacetime, 0.0, x, y, 0.0, &in_excision_region);
 
   double Ex = -E0 * cos(phi); // Electric field (x-direction).
@@ -187,17 +189,19 @@ evalGRMaxwellInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRIC
   fout[8] = spatial_det;
   // Set lapse gauge variable.
   fout[9] = lapse;
+  // Set shift gauge variables.
+  fout[10] = shift[0]; fout[11] = shift[1]; fout[12] = shift[2];
 
   // Set excision boundary conditions.
   if (in_excision_region) {
-    for (int i = 0; i < 10; i++) {
+    for (int i = 0; i < 13; i++) {
       fout[i] = 0.0;
     }
 
-    fout[10] = -1.0;
+    fout[13] = -1.0;
   }
   else {
-    fout[10] = 1.0;
+    fout[13] = 1.0;
   }
 }
 

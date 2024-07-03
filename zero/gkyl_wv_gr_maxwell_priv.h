@@ -27,7 +27,7 @@ struct wv_gr_maxwell {
 */
 GKYL_CU_D
 static inline double
-gkyl_gr_maxwell_max_abs_speed(double light_speed, const double q[11]);
+gkyl_gr_maxwell_max_abs_speed(double light_speed, const double q[14]);
 
 /**
 * Compute flux vector. Assumes rotation to local coordinate system.
@@ -40,7 +40,7 @@ gkyl_gr_maxwell_max_abs_speed(double light_speed, const double q[11]);
 */
 GKYL_CU_D
 static void
-gkyl_gr_maxwell_flux(double light_speed, double e_fact, double b_fact, const double q[11], double flux[11]);
+gkyl_gr_maxwell_flux(double light_speed, double e_fact, double b_fact, const double q[14], double flux[14]);
 
 /**
 * Compute Riemann variables given the conserved variables.
