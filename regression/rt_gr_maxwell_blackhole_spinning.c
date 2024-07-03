@@ -1,5 +1,5 @@
-// 2D plane electromagnetic wave propagating onto a static (Schwarzschild) black hole, for the general relativistic Maxwell equations.
-// Input parameters describe a plane electromagnetic wave being lensed by a non-rotating black hole.
+// 2D plane electromagnetic wave propagating onto a spinning (Kerr) black hole, for the general relativistic Maxwell equations.
+// Input parameters describe a plane electromagnetic wave being lensed by a spinning black hole.
 
 #include <math.h>
 #include <stdio.h>
@@ -22,7 +22,7 @@
 
 #include <rt_arg_parse.h>
 
-struct maxwell_blackhole_static_ctx
+struct maxwell_blackhole_spinning_ctx
 {
   // Mathematical constants (dimensionless).
   double pi;
@@ -66,7 +66,7 @@ struct maxwell_blackhole_static_ctx
   int num_failures_max; // Maximum allowable number of consecutive small time-steps.
 };
 
-struct maxwell_blackhole_static_ctx
+struct maxwell_blackhole_spinning_ctx
 create_ctx(void)
 {
   // Mathematical constants (dimensionless).
@@ -88,8 +88,8 @@ create_ctx(void)
   double k_yn = k_wave_y / k_norm; // Normalized wave number (y-direction).
 
   // Spacetime parameters (using geometric units).
-  double mass = 0.05; // Mass of the black hole.
-  double spin = 0.0; // Spin of the black hole.
+  double mass = 0.1; // Mass of the black hole.
+  double spin = -0.9; // Spin of the black hole.
 
   double pos_x = 0.5; // Position of the black hole (x-direction).
   double pos_y = 0.5; // Position of the black hole (y-direction).
@@ -110,7 +110,7 @@ create_ctx(void)
   double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.
   int num_failures_max = 20; // Maximum allowable number of consecutive small time-steps.
 
-  struct maxwell_blackhole_static_ctx ctx = {
+  struct maxwell_blackhole_spinning_ctx ctx = {
     .pi = pi,
     .light_speed = light_speed,
     .e_fact = e_fact,
@@ -144,7 +144,7 @@ void
 evalGRMaxwellInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
 {
   double x = xn[0], y = xn[1];
-  struct maxwell_blackhole_static_ctx *app = ctx;
+  struct maxwell_blackhole_spinning_ctx *app = ctx;
 
   double pi = app->pi;
 
@@ -238,7 +238,7 @@ main(int argc, char **argv)
     gkyl_mem_debug_set(true);
   }
 
-  struct maxwell_blackhole_static_ctx ctx = create_ctx(); // Context for initialization functions.
+  struct maxwell_blackhole_spinning_ctx ctx = create_ctx(); // Context for initialization functions.
 
   int NX = APP_ARGS_CHOOSE(app_args.xcells[0], ctx.Nx);
   int NY = APP_ARGS_CHOOSE(app_args.xcells[1], ctx.Ny);
@@ -331,7 +331,7 @@ main(int argc, char **argv)
 
   // Moment app.
   struct gkyl_moment app_inp = {
-    .name = "gr_maxwell_blackhole_static",
+    .name = "gr_maxwell_blackhole_spinning",
 
     .ndim = 2,
     .lower = { 0.0, 0.0 },
