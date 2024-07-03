@@ -38,6 +38,14 @@
 #include <gkyl_wv_mhd.h>
 #include <gkyl_wv_ten_moment.h>
 
+// number of components that various applied functions should return
+enum {
+  GKYL_MOM_APP_NUM_APPLIED_CURRENT = 3,
+  GKYL_MOM_APP_NUM_EXT_EM = 6,
+  GKYL_MOM_APP_NUM_APPLIED_ACCELERATION = 3,
+  GKYL_MOM_APP_NUM_NT_SOURCE = 2
+};
+
 // Species data
 struct moment_species {
   int ndim;

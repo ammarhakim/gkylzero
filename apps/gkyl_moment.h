@@ -10,14 +10,6 @@
 
 #include <time.h>
 
-// number of components that various applied functions should return
-enum {
-  GKYL_MOM_APP_NUM_APPLIED_CURRENT = 3,
-  GKYL_MOM_APP_NUM_EXT_EM = 6,
-  GKYL_MOM_APP_NUM_APPLIED_ACCELERATION = 3,
-  GKYL_MOM_APP_NUM_NT_SOURCE = 2
-};
-
 // Parameters for moment species
 struct gkyl_moment_species {
   char name[128]; // species name
