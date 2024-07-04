@@ -5,7 +5,7 @@
 
 // edge (lower/upper) with orientation (positive/negative)
 enum gkyl_oriented_edge {
-  GKYL_LOWER_POSITIVE = 1,
+  GKYL_LOWER_POSITIVE = 1, // this needs to be 1 and not 0
   GKYL_LOWER_NEGATIVE,
   GKYL_UPPER_POSITIVE,
   GKYL_UPPER_NEGATIVE,
