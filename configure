@@ -16,7 +16,6 @@ CUDA_ARCH=70
 USE_MPI=
 USE_LUA=
 USE_ADAS=
-# Lua link to static library
 CONF_LUA_LIB=luajit-5.1
 
 # Location of CUDA math libraries
@@ -50,6 +49,7 @@ CUDA_ARCH                  CUDA architecture flag to specify compute capability.
 
 --use-mpi                  [no] Build MPI-dependent code
 --use-nccl                 [no] Build NCCL-dependent code
+--use-cudss                [no] Build CUDSS-dependent code
 --use-lua                  [no] Build Lua dependent code
 --use-adas                 [no] Build adas dependent code
 
@@ -66,6 +66,9 @@ Library Includes and Locations
 
 --nccl-inc                 Location of NCCL headers
 --nccl-lib                 Location to NCCL library
+
+--cudss-inc                 Location of cuDSS headers
+--cudss-lib                 Location to cuDSS library
 
 --lua-inc                  Location of Lua headers
 --lua-lib                  Location to Lua library
@@ -175,6 +178,18 @@ do
       [ -n "$value" ] || die "Missing value in flag $key."
       CONF_NCCL_LIB_DIR="$value"
       ;;
+   --use-cudss)
+      [ -n "$value" ] || die "Missing value in flag $key."
+      USE_CUDSS="$value"
+      ;;       
+   --cudss-inc)
+      [ -n "$value" ] || die "Missing value in flag $key."
+      CONF_CUDSS_INC_DIR="$value"
+      ;;
+   --cudss-lib)
+      [ -n "$value" ] || die "Missing value in flag $key."
+      CONF_CUDSS_LIB_DIR="$value"
+      ;;
    --use-lua)
       [ -n "$value" ] || die "Missing value in flag $key."
       USE_LUA="$value"
@@ -216,6 +231,13 @@ else
     USE_NCCL=
 fi
 
+if [ "$USE_CUDSS" = "yes" ]
+then
+    USE_CUDSS=1
+else
+    USE_CUDSS=
+fi
+
 if [ "$USE_LUA" = "yes" ]
 then
     USE_LUA=1
@@ -241,6 +263,10 @@ fi
 # Lua specific paths and flags
 : "${CONF_LUA_INC_DIR=$PREFIX/luajit/include/luajit-2.1}"
 : "${CONF_LUA_LIB_DIR=$PREFIX/luajit/lib/}"
+
+# cuDSS specific paths and flags
+: "${CONF_CUDSS_INC_DIR=$PREFIX/cuDSS/include/}"
+: "${CONF_CUDSS_LIB_DIR=$PREFIX/cuDSS/lib/}"
 
 # SuperLU includes and librararies
 : "${SUPERLU_INC=$PREFIX/superlu/include}"
@@ -276,6 +302,10 @@ CONF_MPI_LIB_DIR=$CONF_MPI_LIB_DIR
 USE_NCCL=$USE_NCCL
 CONF_NCCL_INC_DIR=$CONF_NCCL_INC_DIR
 CONF_NCCL_LIB_DIR=$CONF_NCCL_LIB_DIR
+
+USE_CUDSS=$USE_CUDSS
+CONF_CUDSS_INC_DIR=$CONF_CUDSS_INC_DIR
+CONF_CUDSS_LIB_DIR=$CONF_CUDSS_LIB_DIR
 
 USE_LUA=$USE_LUA
 CONF_LUA_INC_DIR=$CONF_LUA_INC_DIR

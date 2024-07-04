@@ -21,7 +21,6 @@
 #include <gkyl_bc_basic.h>
 #include <gkyl_bc_sheath_gyrokinetic.h>
 #include <gkyl_bgk_collisions.h>
-#include <gkyl_correct_maxwellian_gyrokinetic.h>
 #include <gkyl_dg_advection.h>
 #include <gkyl_dg_bin_ops.h>
 #include <gkyl_dg_calc_gk_rad_vars.h>
@@ -49,16 +48,19 @@
 #include <gkyl_deflated_fem_poisson.h>
 #include <gkyl_ghost_surf_calc.h>
 #include <gkyl_gk_geometry.h>
-#include <gkyl_gk_geometry_fromfile.h>
 #include <gkyl_gk_geometry_mapc2p.h>
 #include <gkyl_gk_geometry_tok.h>
 #include <gkyl_gk_geometry_mirror.h>
+#include <gkyl_tok_geo.h>
+#include <gkyl_velocity_map.h>
 #include <gkyl_gyrokinetic.h>
+#include <gkyl_gyrokinetic_cross_prim_moms_bgk.h>
+#include <gkyl_gyrokinetic_maxwellian_correct.h>
+#include <gkyl_gyrokinetic_maxwellian_moments.h>
 #include <gkyl_hyper_dg.h>
 #include <gkyl_mom_bcorr_lbo_gyrokinetic.h>
 #include <gkyl_mom_calc.h>
 #include <gkyl_mom_calc_bcorr.h>
-#include <gkyl_mom_cross_bgk.h>
 #include <gkyl_mom_gyrokinetic.h>
 #include <gkyl_null_pool.h>
 #include <gkyl_prim_lbo_calc.h>
@@ -74,6 +76,10 @@
 #include <gkyl_rect_grid.h>
 #include <gkyl_spitzer_coll_freq.h>
 #include <gkyl_tok_geo.h>
+#include <gkyl_positivity_shift_gyrokinetic.h>
+#include <gkyl_vlasov_lte_correct.h>
+#include <gkyl_vlasov_lte_moments.h>
+#include <gkyl_vlasov_lte_proj_on_basis.h>
 #include <gkyl_util.h>
 
 // Definitions of private structs and APIs attached to these objects
@@ -98,6 +104,8 @@ static const char *const valid_moment_names[] = {
   "M3par",
   "M3perp",
   "ThreeMoments",
+  "MaxwellianMoments", // internal flag for whether we are computing (n, u_par, T/m)
+  "BiMaxwellianMoments", // internal flag for whether we are computing (n, u_par, T_par/m, T_perp/m)
   "Integrated", // this is an internal flag, not for passing to moment type
 };
 
@@ -144,10 +152,24 @@ struct gk_species_moment {
                       // the inverse Jacobian is already included in the computation
   int num_mom; // number of moments 
 
-  struct gkyl_dg_updater_moment *mcalc; // moment update
-
   struct gkyl_array *marr; // array to moment data
   struct gkyl_array *marr_host; // host copy (same as marr if not on GPUs)
+
+  // Options for moment calculation: 
+  // 1. Compute the moment directly with dg_updater_moment_gyrokinetic
+  // 2. Compute the moments of the equivalent Maxwellian (n, u_par, T/m)
+  // 3. Compute the moments of the equivalent Bi-Maxwellian (n, u_par, T_par/m, T_perp/m)
+  //    Latter two options use specialized gkyl_gyrokinetic_maxwellian_moments updater
+  union {
+    struct {
+      struct gkyl_gyrokinetic_maxwellian_moments *gyrokinetic_maxwellian_moms; 
+    };
+    struct {
+      struct gkyl_dg_updater_moment *mcalc; 
+    };
+  };
+  bool is_maxwellian_moms;
+  bool is_bimaxwellian_moms;
 };
 
 struct gk_rad_drag {  
@@ -253,11 +275,16 @@ struct gk_bgk_collisions {
 
   bool normNu; // Boolean to determine if using Spitzer value
   struct gkyl_array *norm_nu; // Array for normalization factor computed from Spitzer updater n/sqrt(2 vt^2)^3
+  double self_nu_fac; // Self collision frequency without factor of n_r/(v_ts^2+v_tr^2)^(3/2)
+  double cross_nu_fac[GKYL_MAX_SPECIES]; // Cross collision freqs without factor of n_r/(v_ts^2+v_tr^2)^(3/2)
+  double vtsq_min; // minimum vtsq
   struct gkyl_array *nu_init; // Array for initial collisionality when using Spitzer updater
   struct gkyl_spitzer_coll_freq* spitzer_calc; // Updater for Spitzer collisionality if computing Spitzer value
 
   struct gk_species_moment moms; // moments needed in BGK (single array includes Zeroth, First, and Second moment)
-
+  struct gkyl_array *m0;
+  struct gkyl_array *vtsq;
+  
   struct gkyl_array *fmax;
   struct gkyl_array *nu_fmax;
 
@@ -272,9 +299,14 @@ struct gk_bgk_collisions {
   struct gkyl_array *cross_nu[GKYL_MAX_SPECIES]; // cross-species collision frequencies
 
   struct gkyl_array *cross_moms[GKYL_MAX_SPECIES];
-  struct gkyl_mom_cross_bgk_gyrokinetic *cross_bgk; // cross-species moment computation
+  struct gkyl_gyrokinetic_cross_prim_moms_bgk *cross_bgk; // cross-species moment computation
 
-  struct gkyl_correct_maxwellian_gyrokinetic *corr_max; // Maxwellian correction
+  // Correction updater for insuring Maxwellian distribution has desired moments (n, u_par, T/m)
+  struct gkyl_gyrokinetic_maxwellian_correct *corr_max; 
+  bool correct_all_moms; // boolean if we are correcting all the moments
+  gkyl_dynvec corr_stat;
+  bool is_first_corr_status_write_call;
+
   struct gkyl_proj_maxwellian_on_basis *proj_max; // Maxwellian projection object
   struct gkyl_bgk_collisions *up_bgk; // BGK updater (also computes stable timestep)
 };
@@ -322,6 +354,8 @@ struct gk_react {
   struct gkyl_array *prim_vars_donor[GKYL_MAX_REACT]; // primitive variables of donor (gk) or ion (vlasov), used for fmax
   struct gkyl_array *prim_vars_cxi[GKYL_MAX_REACT]; // primitive variables of ion cx, used for fmax
   struct gkyl_array *prim_vars_cxn[GKYL_MAX_REACT]; // primitive variables of neut cx, used for fmax
+  struct gkyl_array *prim_vars_proj_inp[GKYL_MAX_REACT]; // primitive variables input to projection routine
+  struct gkyl_array *prim_vars_se_proj_inp[GKYL_MAX_REACT]; // primitive variables input to projection routine for iz se
   
   union {
     // ionization
@@ -338,12 +372,19 @@ struct gk_react {
   };
 };
 
+// Context for c2p function passed to proj_on_basis.
+struct gk_proj_on_basis_c2p_func_ctx {
+  int cdim, vdim;
+  struct gkyl_velocity_map *vel_map;
+};
+
 struct gk_proj {
   enum gkyl_projection_id proj_id; // type of projection
   // organization of the different projection objects and the required data and solvers
   union {
     // function projection
     struct {
+      struct gk_proj_on_basis_c2p_func_ctx proj_on_basis_c2p_ctx; // c2p function context.
       struct gkyl_proj_on_basis *proj_func; // projection operator for specified function
       struct gkyl_array *proj_host; // array for projection on host-side if running on GPUs
     };
@@ -351,45 +392,33 @@ struct gk_proj {
     struct {
       struct gkyl_array *dens; // host-side density
       struct gkyl_array *upar; // host-side upar
-      struct gkyl_array *udrift; // host-side udrift
-      struct gkyl_array *prim_moms; // host-side prim_moms 
 
-      struct gkyl_array *dens_mod; // array for correcting density
+      struct gkyl_array *prim_moms_host; // host-side prim_moms for initialization with proj_on_basis
+      struct gkyl_array *prim_moms; // prim_moms we pass to Maxwellian projection object (potentially on device)
 
-      struct gkyl_array *prim_moms_dev; // device-side prim_moms for GPU simulations
-      struct gkyl_array *dens_dev; // device-side density for GPU simulations
-      struct gkyl_dg_bin_op_mem *mem; // memory needed in correcting density
+      bool correct_all_moms; // boolean if we are correcting all the moments
 
       struct gkyl_proj_on_basis *proj_dens; // projection operator for density
       struct gkyl_proj_on_basis *proj_upar; // projection operator for upar
-      struct gkyl_proj_on_basis *proj_udrift; // projection operator for upar
-      
+      struct gkyl_array *vtsq; // host-side vth^2 = T/m (temperature/mass)
+      struct gkyl_proj_on_basis *proj_temp; // projection operator for temperature
       union {
-        // Maxwellian-specific arrays and functions
-        struct {
-          struct gkyl_array *vtsq; // host-side vth^2 = T/m (temperature/mass)
-          struct gkyl_proj_on_basis *proj_temp; // projection operator for temperature
-          struct gkyl_proj_maxwellian_on_basis *proj_max_prim; // Maxwellian projection object
+        struct {         
+          struct gkyl_proj_maxwellian_on_basis *proj_max_prim; // Maxwellian projection object for GK
+          struct gkyl_gyrokinetic_maxwellian_correct *corr_max; // Maxwellian correction object for GK
         };
-        // Bi-Maxwellian-specific arrays and functions
-        struct {
-          struct gkyl_array *vtsqpar; // host-side vth_par^2 = Tpar/m (parallel temperature/mass)
-          struct gkyl_array *vtsqperp; // host-side vth_perp^2 = Tperp/m (perpendicular temperature/mass)
-          struct gkyl_proj_on_basis *proj_temppar; // projection operator for parallel temperature
-          struct gkyl_proj_on_basis *proj_tempperp; // projection operator for parallel temperature
-          struct gkyl_proj_bimaxwellian_on_basis *proj_bimax; // Bi-Maxwellian projection object
-        };
-      };
-    };
-    // Maxwellian from lab moments, includes correction to Maxwellian to produce desired moments
-    struct { 
-      struct gkyl_array *lab_moms; // lab moms (M0, M1, M2)
-      struct gkyl_array *lab_moms_host; // host-side lab moms (M0, M1, M2) for GPU simulations
-
-      struct gkyl_proj_on_basis *proj_lab_moms; // projection operator for (M0, M1, M2)
-
-      struct gkyl_correct_maxwellian_gyrokinetic *corr_max_lab; // Maxwellian correction
-      struct gkyl_proj_maxwellian_on_basis *proj_max_lab; // Maxwellian projection object      
+        struct { 
+          struct gkyl_array *udrift; // host-side udrift
+          struct gkyl_proj_on_basis *proj_udrift; // projection operator for udrift
+          struct gkyl_vlasov_lte_proj_on_basis *proj_lte; // Maxwellian projection object for Vlasov neutrals
+          struct gkyl_vlasov_lte_correct *corr_lte; // Maxwellian correction object for Vlasov neutrals
+        };     
+      };  
+      struct gkyl_array *vtsqpar; // host-side vth_par^2 = Tpar/m (parallel temperature/mass)
+      struct gkyl_array *vtsqperp; // host-side vth_perp^2 = Tperp/m (perpendicular temperature/mass)
+      struct gkyl_proj_on_basis *proj_temppar; // projection operator for parallel temperature
+      struct gkyl_proj_on_basis *proj_tempperp; // projection operator for parallel temperature
+      struct gkyl_proj_bimaxwellian_on_basis *proj_bimax; // Bi-Maxwellian projection object
     };
   };
 };
@@ -428,6 +457,8 @@ struct gk_species {
 
   struct gkyl_rect_grid grid_vel; // velocity space grid
   struct gkyl_range local_vel, local_ext_vel; // local, local-ext velocity-space ranges
+
+  struct gkyl_velocity_map *vel_map; // Velocity mapping objects.
 
   struct gkyl_array *f, *f1, *fnew; // arrays for updates
   struct gkyl_array *cflrate; // CFL rate in each cell
@@ -513,10 +544,17 @@ struct gk_species {
   enum gkyl_radiation_id radiation_id; // type of radiation
   struct gk_rad_drag rad; // radiation object
 
-  // gyrokinetic diffusion
-  bool has_diffusion; // flag to indicate there is applied diffusion
-  struct gkyl_array *diffD; // array for diffusion tensor
-  struct gkyl_dg_updater_diffusion_gyrokinetic *diff_slvr; // gyrokinetic diffusion equation solver
+  // Gyrokinetic diffusion.
+  bool has_diffusion; // Flag to indicate there is applied diffusion.
+  struct gkyl_array *diffD; // Array for diffusion tensor.
+  struct gkyl_dg_updater_diffusion_gyrokinetic *diff_slvr; // Gyrokinetic diffusion equation solver.
+
+  // Updater that enforces positivity by shifting f.
+  bool enforce_positivity; // Flag indicating whether to apply positivity_shift.
+  struct gkyl_positivity_shift_gyrokinetic *pos_shift_op;
+  struct gkyl_array *ps_intmom_grid; // Grid contribution to the integrated moments of the positivity shift.
+  gkyl_dynvec ps_integ_diag; // Integrated moments of the positivity shift.
+  bool is_first_ps_integ_write_call; // Flag first time writing ps_integ_diag.
 
   double *omega_cfl;
 
@@ -539,6 +577,8 @@ struct gk_neut_species {
 
   struct gkyl_rect_grid grid_vel; // velocity space grid
   struct gkyl_range local_vel, local_ext_vel; // local, local-ext velocity-space ranges
+
+  struct gkyl_velocity_map *vel_map; // Velocity mapping objects.
 
   struct gkyl_array *f, *f1, *fnew; // arrays for updates
   struct gkyl_array *cflrate; // CFL rate in each cell
@@ -570,8 +610,12 @@ struct gk_neut_species {
   gkyl_dg_updater_vlasov *slvr; // Vlasov solver 
   struct gkyl_dg_eqn *eqn_vlasov; // Vlasov equation object
   
+  int num_periodic_dir; // number of periodic directions
+  int periodic_dirs[3]; // list of periodic directions
+  bool bc_is_np[3]; // whether BC is nonperiodic.
+
   // boundary conditions on lower/upper edges in each direction  
-  enum gkyl_species_bc_type lower_bc[3], upper_bc[3];
+  struct gkyl_gyrokinetic_bc lower_bc[3], upper_bc[3];
   // Pointers to updaters that apply BC.
   struct gkyl_bc_basic *bc_lo[3];
   struct gkyl_bc_basic *bc_up[3];
@@ -589,10 +633,10 @@ struct gk_neut_species {
   bool has_neutral_reactions;
   struct gk_react react_neut; // reaction object
 
-  double *omega_cfl_ptr;
-
   // vtsq_min
   double vtsq_min; 
+
+  double *omega_cfl;
 };
 
 // field data

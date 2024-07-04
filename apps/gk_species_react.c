@@ -21,7 +21,7 @@ gk_species_react_cross_init(struct gkyl_gyrokinetic_app *app, struct gk_species 
   react->f_react = mkarr(app->use_gpu, app->basis.num_basis, s->local_ext.volume);
   react->f_react_other = mkarr(app->use_gpu, app->basis.num_basis, s->local_ext.volume);
   react->proj_max = gkyl_proj_maxwellian_on_basis_new(&s->grid,
-    &app->confBasis, &app->basis, app->basis.poly_order+1, app->use_gpu);
+    &app->confBasis, &app->basis, app->basis.poly_order+1, s->vel_map, app->use_gpu);
 
   for (int i=0; i<react->num_react; ++i) {
     react->react_id[i] = react->react_type[i].react_id;
@@ -73,6 +73,8 @@ gk_species_react_cross_init(struct gkyl_gyrokinetic_app *app, struct gk_species 
     react->m0_mod[i] = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
     react->prim_vars[i] = mkarr(app->use_gpu, 2*app->confBasis.num_basis, app->local_ext.volume);
     react->prim_vars_donor[i] = mkarr(app->use_gpu, 2*app->confBasis.num_basis, app->local_ext.volume);
+    react->prim_vars_proj_inp[i] = mkarr(app->use_gpu, 3*app->confBasis.num_basis, app->local_ext.volume);
+
     if (react->react_id[i] == GKYL_REACT_IZ) {
       struct gkyl_dg_iz_inp iz_inp = {
         .grid = &s->grid,
@@ -222,9 +224,11 @@ gk_species_react_rhs(gkyl_gyrokinetic_app *app, const struct gk_species *s,
 	//   + fmax2(n_elc, upar_donor, vtiz2^2) - f_elc)
 
 	// primary elc
-      	gkyl_array_set_offset(react->prim_vars[i], 1.0, react->vt_sq_iz1[i], 1*app->confBasis.num_basis);
+        gkyl_array_set_offset(react->prim_vars_proj_inp[i], 1.0, react->m0_elc[i], 0*app->confBasis.num_basis);
+        gkyl_array_set_offset(react->prim_vars_proj_inp[i], 1.0, react->vt_sq_iz1[i], 2*app->confBasis.num_basis);
+
         gkyl_proj_gkmaxwellian_on_basis_prim_mom(react->proj_max, &s->local, &app->local,
-          react->moms_elc[i].marr, react->prim_vars[i],
+          react->prim_vars_proj_inp[i],
           app->gk_geom->bmag, app->gk_geom->jacobtot, s->info.mass, react->f_react);
 
         // scale to correct m0
@@ -235,10 +239,14 @@ gk_species_react_rhs(gkyl_gyrokinetic_app *app, const struct gk_species *s,
         gkyl_dg_mul_conf_phase_op_range(&app->confBasis, &app->basis, react->f_react, 
           react->m0_mod[i], react->f_react, &app->local_ext, &s->local_ext);
        
-	// secondary elc
+	// secondary elc (se)
+	gkyl_array_set_offset(react->prim_vars_se_proj_inp[i], 1.0, react->m0_elc[i], 0*app->confBasis.num_basis);
+	gkyl_array_set_offset(react->prim_vars_se_proj_inp[i], 1.0, react->prim_vars_donor[i], 1*app->confBasis.num_basis);
+        gkyl_array_set_offset(react->prim_vars_se_proj_inp[i], 1.0, react->vt_sq_iz2[i], 2*app->confBasis.num_basis);
+
       	gkyl_array_set_offset(react->prim_vars_donor[i], 1.0, react->vt_sq_iz2[i], 1*app->confBasis.num_basis);
         gkyl_proj_gkmaxwellian_on_basis_prim_mom(react->proj_max, &s->local, &app->local,
-          react->moms_elc[i].marr, react->prim_vars_donor[i],
+          react->prim_vars_se_proj_inp[i],
           app->gk_geom->bmag, app->gk_geom->jacobtot, s->info.mass, react->f_react_other);
 
         // scale to correct m0
@@ -260,8 +268,10 @@ gk_species_react_rhs(gkyl_gyrokinetic_app *app, const struct gk_species *s,
         gkyl_array_accumulate(rhs, 1.0, react->f_react);
       }
       else if (react->type_self[i] == GKYL_SELF_ION) {
+        gkyl_array_set_offset(react->prim_vars_proj_inp[i], 1.0, react->m0_donor[i], 0*app->confBasis.num_basis);
+        gkyl_array_set_offset(react->prim_vars_proj_inp[i], 1.0, react->prim_vars[i], 1*app->confBasis.num_basis);        
         gkyl_proj_gkmaxwellian_on_basis_prim_mom(react->proj_max, &s->local, &app->local,
-          react->moms_donor[i].marr, react->prim_vars_donor[i],
+	  react->prim_vars_proj_inp[i], 
           app->gk_geom->bmag, app->gk_geom->jacobtot, s->info.mass, react->f_react);
 
         // scale to correct m0
@@ -330,8 +340,10 @@ gk_species_react_rhs(gkyl_gyrokinetic_app *app, const struct gk_species *s,
     else if (react->react_id[i] == GKYL_REACT_CX) {
       // calculate RHS for ions
       // here prim_vars[i] is prim_vars_neut_gk
+      gkyl_array_set_offset(react->prim_vars_proj_inp[i], 1.0, react->m0_partner[i], 0*app->confBasis.num_basis);
+        gkyl_array_set_offset(react->prim_vars_proj_inp[i], 1.0, react->prim_vars[i], 1*app->confBasis.num_basis); 
       gkyl_proj_gkmaxwellian_on_basis_prim_mom(react->proj_max, &s->local, &app->local,
-        react->moms_partner[i].marr, react->prim_vars[i],
+        react->prim_vars_proj_inp[i],
 	app->gk_geom->bmag, app->gk_geom->jacobtot, s->info.mass, react->f_react);
 
       // scale to correct m0 and multiply f
@@ -385,7 +397,8 @@ gk_species_react_release(const struct gkyl_gyrokinetic_app *app, const struct gk
     gkyl_array_release(react->prim_vars_donor[i]); 
     gkyl_array_release(react->prim_vars_cxi[i]);
     gkyl_array_release(react->prim_vars_cxn[i]);
-    
+    gkyl_array_release(react->prim_vars_proj_inp[i]); 
+
     if(app->use_gpu)
       gkyl_array_release(react->coeff_react_host[i]);
 

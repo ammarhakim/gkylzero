@@ -4,7 +4,6 @@
 #include <gkyl_range.h>
 #include <gkyl_rect_decomp.h>
 #include <gkyl_proj_on_basis.h>
-#include <gkyl_proj_maxwellian_on_basis.h>
 #include <gkyl_dg_prim_vars_vlasov.h>
 #include <gkyl_dg_prim_vars_gyrokinetic.h>
 #include <gkyl_dg_prim_vars_transform.h>
@@ -630,11 +629,6 @@ test_coll_iz_all_gk_li_1x(bool use_gpu)
   gkyl_proj_on_basis *projJac = gkyl_proj_on_basis_new(&confGrid, &basis,
     poly_order+1, 1, eval_jac, NULL);
 
-  // maxwellian on basis for fdist
-  gkyl_proj_maxwellian_on_basis *proj_max_elc = gkyl_proj_maxwellian_on_basis_new(&phaseGrid_elc,
-    &basis, &phaseBasis, poly_order+1, use_gpu);
-  gkyl_proj_maxwellian_on_basis *proj_max_ion = gkyl_proj_maxwellian_on_basis_new(&phaseGrid_ion,
-    &basis, &phaseBasis, poly_order+1, use_gpu);
   // coll struct.
   struct gkyl_dg_iz *coll_iz_up_elc = gkyl_dg_iz_new(&iz_inp_elc, use_gpu);
   struct gkyl_dg_iz *coll_iz_up_ion = gkyl_dg_iz_new(&iz_inp_ion, use_gpu);

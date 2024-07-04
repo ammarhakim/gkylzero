@@ -88,7 +88,7 @@ gkyl_fem_parproj_new(const struct gkyl_range *solve_range, const struct gkyl_ran
   //     separate Ax=B problem for each perpendicular cell.
 #ifdef GKYL_HAVE_CUDA
   if (up->use_gpu)
-    up->prob_cu = gkyl_cusolver_prob_new(1, up->numnodes_global, up->numnodes_global, up->perp_range.volume);
+    up->prob_cu = gkyl_culinsolver_prob_new(1, up->numnodes_global, up->numnodes_global, up->perp_range.volume);
   else
     up->prob = gkyl_superlu_prob_new(1, up->numnodes_global, up->numnodes_global, up->perp_range.volume);
 #else
@@ -116,7 +116,7 @@ gkyl_fem_parproj_new(const struct gkyl_range *solve_range, const struct gkyl_ran
   }
 #ifdef GKYL_HAVE_CUDA
   if (up->use_gpu)
-    gkyl_cusolver_amat_from_triples(up->prob_cu, tri);
+    gkyl_culinsolver_amat_from_triples(up->prob_cu, tri);
   else
     gkyl_superlu_amat_from_triples(up->prob, tri);
 #else
@@ -218,7 +218,7 @@ void gkyl_fem_parproj_release(struct gkyl_fem_parproj *up)
 #ifdef GKYL_HAVE_CUDA
   if (up->use_gpu) {
     gkyl_cu_free(up->kernels_cu);
-    gkyl_cusolver_prob_release(up->prob_cu);
+    gkyl_culinsolver_prob_release(up->prob_cu);
   } else {
     gkyl_superlu_prob_release(up->prob);
   }

@@ -62,3 +62,5 @@ data/adas/*.npy
 *.idb
 *.pdb
 
+# Adas data files
+data/adas/*.npy

@@ -209,6 +209,8 @@ void gkyl_mirror_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, dou
       }
 
       double alpha_curr = alpha_lo + ia*dalpha + modifiers[ia_delta]*delta_alpha;
+      // This is the convention described in Noah Mandell's Thesis Eq 5.104. comp coord y = -alpha.
+      alpha_curr*=-1.0;
 
       for (int ip=nrange->lower[PSI_IDX]; ip<=nrange->upper[PSI_IDX]; ++ip) {
         int ip_delta_max = 5;// should be 5
@@ -327,6 +329,11 @@ gkyl_mirror_geo_get_stat(const gkyl_mirror_geo *geo)
 void
 gkyl_mirror_geo_release(gkyl_mirror_geo *geo)
 {
+  gkyl_array_release(geo->psiRZ);
+  gkyl_array_release(geo->psibyrRZ);
+  gkyl_array_release(geo->psibyr2RZ);
+  gkyl_array_release(geo->fpoldg);
+  gkyl_array_release(geo->qdg);
   gkyl_efit_release(geo->efit);
   gkyl_free(geo);
 }

@@ -9,6 +9,7 @@
 #include <gkyl_rect_grid.h>
 #include <gkyl_basis.h>
 #include <gkyl_bc_sheath_gyrokinetic.h>
+#include <gkyl_velocity_map.h>
 
 void
 test_bc_sheath_gyrokinetic(bool use_gpu)
@@ -42,6 +43,24 @@ test_bc_sheath_gyrokinetic(bool use_gpu)
   struct gkyl_range local, local_ext; // local, local-ext phase-space ranges
   gkyl_create_grid_ranges(&grid, ghost, &local_ext, &local);
 
+  double velLower[vdim], velUpper[vdim];
+  int velCells[vdim];
+  for (int d=0; d<vdim; d++) {
+    velLower[d] = lower[cdim+d];
+    velUpper[d] = upper[cdim+d];
+    velCells[d] = cells[cdim+d];
+  }
+  struct gkyl_rect_grid velGrid;
+  gkyl_rect_grid_init(&velGrid, vdim, velLower, velUpper, velCells);
+  int velGhost[] = { 0, 0 };
+  struct gkyl_range velLocal, velLocal_ext; // local, local-ext vel-space ranges
+  gkyl_create_grid_ranges(&velGrid, velGhost, &velLocal_ext, &velLocal);
+
+  // Initialize velocity space mapping.
+  struct gkyl_mapc2p_inp c2p_in = { };
+  struct gkyl_velocity_map *gvm = gkyl_velocity_map_new(c2p_in, grid, velGrid,
+    local, local_ext, velLocal, velLocal_ext, use_gpu);
+
   // Create the skin/ghost ranges.
   struct gkyl_range skin_r, ghost_r;
   gkyl_skin_ghost_ranges(&skin_r, &ghost_r, dir, edge, &local_ext, ghost);
@@ -58,8 +77,9 @@ test_bc_sheath_gyrokinetic(bool use_gpu)
   double q2Dm = 2.*charge/mass;
 
   struct gkyl_bc_sheath_gyrokinetic *bcsheath = gkyl_bc_sheath_gyrokinetic_new(dir, edge,
-    &basis, &skin_r, &ghost_r, &grid, cdim, q2Dm, use_gpu);
+    &basis, &skin_r, &ghost_r, gvm, cdim, q2Dm, use_gpu);
 
+  gkyl_velocity_map_release(gvm);
   gkyl_bc_sheath_gyrokinetic_release(bcsheath);
 }
 

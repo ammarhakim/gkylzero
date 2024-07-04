@@ -2,14 +2,10 @@
 
 #include <gkyl_app.h>
 #include <gkyl_lw_priv.h>
-
-struct reg_str_int_pair {
-  const char *str;
-  int val;
-};
+#include <gkyl_util.h>
 
 // species BC strings -> enum map
-static const struct reg_str_int_pair species_bcs[] = {
+static const struct gkyl_str_int_pair species_bcs[] = {
   {"bcCopy", GKYL_SPECIES_COPY},
   {"bcWall", GKYL_SPECIES_REFLECT},
   {"bcReflect", GKYL_SPECIES_REFLECT},
@@ -26,7 +22,7 @@ static const struct reg_str_int_pair species_bcs[] = {
 };
 
 // field BC strings -> enum map
-static const struct reg_str_int_pair field_bcs[] = {
+static const struct gkyl_str_int_pair field_bcs[] = {
   { "bcCopy", GKYL_FIELD_COPY }, 
   { "bcWall", GKYL_FIELD_PEC_WALL },
   { "bcPECWall", GKYL_FIELD_PEC_WALL },
@@ -38,7 +34,7 @@ static const struct reg_str_int_pair field_bcs[] = {
 };
 
 static void
-register_types(lua_State *L, const struct reg_str_int_pair types[], const char *nm)
+register_types(lua_State *L, const struct gkyl_str_int_pair types[], const char *nm)
 {
   lua_getglobal(L, "G0"); // push in a table inside global G0 table
   lua_pushstring(L, nm);
@@ -58,7 +54,6 @@ gkyl_register_species_bc_types(lua_State *L)
 {
   register_types(L, species_bcs, "SpeciesBc");
 }
-
 
 void
 gkyl_register_field_bc_types(lua_State *L)

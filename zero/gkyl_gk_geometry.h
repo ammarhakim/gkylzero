@@ -20,26 +20,33 @@ struct gk_geometry {
   struct gkyl_basis basis;
   struct gkyl_rect_grid grid;
 
-  struct gkyl_array* mc2p;
-  struct gkyl_array* bmag;
-  struct gkyl_array* g_ij;
-  struct gkyl_array* dxdz;
-  struct gkyl_array* dzdx;
-  struct gkyl_array* jacobgeo;
-  struct gkyl_array* jacobgeo_inv;
-  struct gkyl_array* gij;
-  struct gkyl_array* b_i;
-  struct gkyl_array* bcart;
-  struct gkyl_array* cmag;
-  struct gkyl_array* jacobtot;
-  struct gkyl_array* jacobtot_inv;
-  struct gkyl_array* bmag_inv;
-  struct gkyl_array* bmag_inv_sq;
-  struct gkyl_array* gxxj;
-  struct gkyl_array* gxyj;
-  struct gkyl_array* gyyj;
-  struct gkyl_array* gxzj;
-  struct gkyl_array* eps2; // eps2 = Jg^33 - J/g_33
+  // These 21 DG fields contain the geometric quantities needed to solve the
+  // GK Equation and Poisson Equation and to apply certain BC's
+  // The first 20 are defined on the configuration space domain. The last is a single element.
+  struct gkyl_array* mc2p; // 3 components. Cartesian X,Y, and Z
+  struct gkyl_array* bmag; // 1 component. B Magnitude of magnetic field
+  struct gkyl_array* g_ij; // 6 components. 
+                           // Metric coefficients g_{ij} Stored in order g_11, g12, g_13, g_22, g_23, g_33
+  struct gkyl_array* dxdz; // 9 components.
+                           // Cartesian components of tangent Vectors stored in order e_1, e_2, e_3
+  struct gkyl_array* dzdx; // 9 components.
+                           // Cartesian components of dual vectors stroed in order e^1, e^2, e^3
+  struct gkyl_array* jacobgeo; // 1 component. Configuration space jacobian J
+  struct gkyl_array* jacobgeo_inv; // 1 component. 1/J
+  struct gkyl_array* gij; // Matric coefficients g^{ij}. See g_ij for order.
+  struct gkyl_array* b_i; // 3 components. Contravariant components of magnetic field vector b_1, b_2, b_3.
+  struct gkyl_array* bcart; // 3 components. Cartesian components of magnetic field vector b_X, b_Y, b_Z.
+  struct gkyl_array* cmag; // 1 component. C = JB/sqrt(g_33)
+  struct gkyl_array* jacobtot; // 1 component. Phase space Jacobian = JB
+  struct gkyl_array* jacobtot_inv; // 1 component. 1/(JB)
+  struct gkyl_array* bmag_inv; // 1 component. 1/B.
+  struct gkyl_array* bmag_inv_sq; // 1 component. 1/B^2.
+  struct gkyl_array* gxxj; // 1 component. g^{xx} * J. For poisson solve.
+  struct gkyl_array* gxyj; // 1 component. g^{xy} * J. For poisson solve.
+  struct gkyl_array* gyyj; // 1 component. g^{yy} * J. For poisson solve.
+  struct gkyl_array* gxzj; // 1 component. g^{xz} * J. For poisson solve if z derivatives are kept.
+  struct gkyl_array* eps2; // 1 component. eps2 = Jg^33 - J/g_33. For poisson if z derivatives are kept.
+  struct gkyl_array* bmag_mid; // 1 component. B at center of domain.
 
   uint32_t flags;
   struct gkyl_ref_count ref_count;  
@@ -87,6 +94,27 @@ struct gkyl_gk_geometry_inp {
 
 };
 
+/**
+ * Create a new geometry object
+ * If use-gpu is false, the geometric quantities will be empty, so quantities should be read 
+ * from file later on
+ * If use-gpu is true, the geometric quantities will be copied from the pre-populated host object
+ *
+ * @param geo_host gk_geometry object on the host
+ *   Unused if calling with use_gpu=false
+ *   If use_gpu=true, geo_host must already be initialized.
+ * @param geometry_inp geometry input struct containing grid, range, and other geo info
+ * @param use_gpu whether or not to use gpu
+ */
+struct gk_geometry*
+gkyl_gk_geometry_new(struct gk_geometry* geo_host, struct gkyl_gk_geometry_inp *geometry_inp, bool use_gpu);
+
+/**
+ * Create a new gk geometry object that lives on NV-GPU from a host geometry object: see new() method
+ * above for documentation.
+ */
+struct gk_geometry* 
+gkyl_gk_geometry_cu_dev_new(struct gk_geometry* geo_host, struct gkyl_gk_geometry_inp *geometry_inp);
 
 /**
  * Augment a grid with dim < 3 to 3d by adding 1 cell in the other directions
@@ -110,6 +138,12 @@ gkyl_gk_geometry_augment_grid(struct gkyl_rect_grid grid, struct gkyl_gk_geometr
  */
 void 
 gkyl_gk_geometry_augment_local(const struct gkyl_range *inrange, const int *nghost, struct gkyl_range *ext_range, struct gkyl_range *range);
+
+
+/**
+ * Evaluate and set bmag at the center of the domain
+ */
+void gkyl_gk_geometry_bmag_mid(struct gk_geometry* up);
 
 /**
  * deflate geometry to lower dimensionality

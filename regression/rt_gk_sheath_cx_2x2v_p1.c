@@ -9,16 +9,6 @@
 #include <gkyl_gyrokinetic.h>
 #include <gkyl_util.h>
 
-#include <gkyl_null_comm.h>
-
-#ifdef GKYL_HAVE_MPI
-#include <mpi.h>
-#include <gkyl_mpi_comm.h>
-#ifdef GKYL_HAVE_NCCL
-#include <gkyl_nccl_comm.h>
-#endif
-#endif
-
 #include <rt_arg_parse.h>
 
 struct sheath_ctx
@@ -743,8 +733,8 @@ main(int argc, char **argv)
       .temp = evalTempNeutInit,      
     },
 
-    .bcx = { GKYL_SPECIES_ABSORB, GKYL_SPECIES_ZERO_FLUX },
-    .bcy = { GKYL_SPECIES_ZERO_FLUX, GKYL_SPECIES_ZERO_FLUX },
+    //.bcx = { GKYL_SPECIES_ABSORB, GKYL_SPECIES_ZERO_FLUX },
+    //.bcy = { GKYL_SPECIES_ZERO_FLUX, GKYL_SPECIES_ZERO_FLUX },
     
     .num_diag_moments = 3,
     .diag_moments = { "M0", "M1i", "M2"},
@@ -752,7 +742,6 @@ main(int argc, char **argv)
 
   // Field.
   struct gkyl_gyrokinetic_field field = {
-    .bmag_fac = ctx.B0,
     .fem_parbc = GKYL_FEM_PARPROJ_NONE,
     .poisson_bcs = {
       .lo_type = { GKYL_POISSON_DIRICHLET },

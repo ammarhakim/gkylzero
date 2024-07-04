@@ -162,7 +162,7 @@ main(int argc, char **argv)
  
   // VM app
   struct gkyl_moment app_inp = {
-    .name = "mhd_ot_glm",
+    .name = "mhd_ot",
 
     .ndim = 2,
     .lower = { -0.5, -0.5 },

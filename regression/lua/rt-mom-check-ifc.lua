@@ -115,6 +115,13 @@ momentApp = Moments.App.new {
 
 -- check each Lua-C interface method
 
+num_species = momentApp:num_species()
+print("num_species", num_species)
+
+for i = 1, num_species do
+   print("species", momentApp:species_name(i))
+end
+
 field_ic_status = momentApp:apply_ic_field()
 print("field_ic_status", field_ic_status)
 
@@ -162,3 +169,9 @@ success = update_status and 1 or 0
 io.write( string.format("update_status = { success = %d, dt_actual = %g, dt_suggested = %g }\n", 
   success, update_status.dt_actual, update_status.dt_suggested)
 )
+
+nghost = momentApp:nghost()
+io.write( string.format("nghost = { %d, %d, %d }\n", nghost[1], nghost[2], nghost[3]) )
+
+nfield_energy = momentApp:field_energy_ndiag()
+print("Number of field-energy diagonostics are", nfield_energy)

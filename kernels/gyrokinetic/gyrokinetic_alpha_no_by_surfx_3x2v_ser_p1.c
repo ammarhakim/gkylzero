@@ -1,10 +1,13 @@
 #include <gkyl_gyrokinetic_kernels.h> 
-GKYL_CU_DH int gyrokinetic_alpha_no_by_surfx_3x2v_ser_p1(const double *w, const double *dxv, const double q_, const double m_, 
-  const double *bmag, const double *jacobtot_inv, const double *cmag, const double *b_i, 
-  const double *phi, double* GKYL_RESTRICT alpha_surf, double* GKYL_RESTRICT sgn_alpha_surf) 
+GKYL_CU_DH int gyrokinetic_alpha_no_by_surfx_3x2v_ser_p1(const double *w, const double *dxv, const double *vmap, const double *vmapSq,
+    const double q_, const double m_, const double *bmag, const double *jacobtot_inv,
+    const double *cmag, const double *b_i, const double *phi, double* GKYL_RESTRICT alpha_surf,
+    double* GKYL_RESTRICT sgn_alpha_surf) 
 { 
   // w[NDIM]: cell-center.
   // dxv[NDIM]: cell length.
+  // vmap: velocity space mapping.
+  // vmapSq: velocity space mapping squared.
   // q_,m_: species charge and mass.
   // bmag: magnetic field amplitude.
   // jacobtot_inv: reciprocal of the conf-space jacobian time the guiding center coordinate Jacobian.
@@ -17,39 +20,30 @@ GKYL_CU_DH int gyrokinetic_alpha_no_by_surfx_3x2v_ser_p1(const double *w, const 
   //                 Note: Each cell owns their *lower* edge sign(alpha_surf).
   // returns int const_sgn_alpha (true if sign(alpha_surf) is only one sign, either +1 or -1).
 
-  double wx = w[0];
   double rdx2 = 2.0/dxv[0];
-  double wy = w[1];
   double rdy2 = 2.0/dxv[1];
-  double wz = w[2];
   double rdz2 = 2.0/dxv[2];
-  double wvpar = w[3];
   double rdvpar2 = 2.0/dxv[3];
-  double wmu = w[4];
-  double rdmu2 = 2.0/dxv[4];
-
-  double wvparSq = wvpar*wvpar;
-  double rdvpar2Sq = rdvpar2*rdvpar2;
 
   const double *b_x = &b_i[0];
   const double *b_y = &b_i[8];
   const double *b_z = &b_i[16];
 
   double hamil[48] = {0.}; 
-  hamil[0] = 2.828427124746191*m_*wvparSq+2.0*bmag[0]*wmu+(0.9428090415820636*m_)/rdvpar2Sq+2.0*phi[0]*q_; 
-  hamil[1] = 2.0*(bmag[1]*wmu+phi[1]*q_); 
+  hamil[0] = 2.0*(phi[0]*q_+vmapSq[0]*m_)+1.414213562373095*bmag[0]*vmap[2]; 
+  hamil[1] = 2.0*phi[1]*q_+1.414213562373095*bmag[1]*vmap[2]; 
   hamil[2] = 2.0*phi[2]*q_; 
-  hamil[3] = 2.0*(bmag[3]*wmu+phi[3]*q_); 
-  hamil[4] = (3.265986323710906*m_*wvpar)/rdvpar2; 
-  hamil[5] = (1.154700538379252*bmag[0])/rdmu2; 
+  hamil[3] = 2.0*phi[3]*q_+1.414213562373095*vmap[2]*bmag[3]; 
+  hamil[4] = 2.0*vmapSq[1]*m_; 
+  hamil[5] = 1.414213562373095*bmag[0]*vmap[3]; 
   hamil[6] = 2.0*phi[4]*q_; 
-  hamil[7] = 2.0*(bmag[5]*wmu+phi[5]*q_); 
+  hamil[7] = 2.0*phi[5]*q_+1.414213562373095*vmap[2]*bmag[5]; 
   hamil[8] = 2.0*phi[6]*q_; 
-  hamil[12] = (1.154700538379252*bmag[1])/rdmu2; 
-  hamil[14] = (1.154700538379252*bmag[3])/rdmu2; 
+  hamil[12] = 1.414213562373095*bmag[1]*vmap[3]; 
+  hamil[14] = 1.414213562373095*bmag[3]*vmap[3]; 
   hamil[16] = 2.0*phi[7]*q_; 
-  hamil[21] = (1.154700538379252*bmag[5])/rdmu2; 
-  hamil[32] = (0.8432740427115681*m_)/rdvpar2Sq; 
+  hamil[21] = 1.414213562373095*vmap[3]*bmag[5]; 
+  hamil[32] = 2.0*vmapSq[2]*m_; 
 
   double *alphaL = &alpha_surf[0];
   double *sgn_alpha_surfL = &sgn_alpha_surf[0];

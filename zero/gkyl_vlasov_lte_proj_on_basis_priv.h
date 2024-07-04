@@ -42,6 +42,9 @@ struct gkyl_vlasov_lte_proj_on_basis {
   int num_phase_basis; // number of Phase-space basis functions
 
   bool is_relativistic; // Boolean for if we are projecting the relativistic LTE
+  bool is_canonical_pb; // Boolean for if we are projecting the canonical-pb LTE
+  const struct gkyl_array *h_ij_inv; // inverse metric tensor 
+  const struct gkyl_array *det_h; // determinant of the metric tensor 
   bool use_gpu; // Boolean if we are performing projection on device.
 
   struct gkyl_range conf_qrange; // Range of Configuration-space ordinates.
@@ -67,4 +70,6 @@ struct gkyl_vlasov_lte_proj_on_basis {
   struct gkyl_vlasov_lte_moments *moments_up; // LTE moment calculation routine for computing density
   struct gkyl_array *num_ratio; // Number density ratio: num_ratio = n_target/n0
   struct gkyl_dg_bin_op_mem *mem; // bin_op memory to compute ratio and rescale distribution function
+
+  struct gkyl_velocity_map *vel_map; // Velocity space mapping object.
 };

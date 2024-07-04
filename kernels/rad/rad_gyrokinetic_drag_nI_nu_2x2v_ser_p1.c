@@ -1,8 +1,8 @@
 #include <gkyl_rad_gyrokinetic_kernels.h> 
 GKYL_CU_DH void rad_gyrokinetic_drag_nI_nu_2x2v_ser_p1(const double *vnu_surf, const double *vnu,
-  const double *vsqnu_surf, const double *vsqnu, const double *nI, 
-  double* GKYL_RESTRICT nvnu_surf, double* GKYL_RESTRICT nvnu, 
-  double* GKYL_RESTRICT nvsqnu_surf, double* GKYL_RESTRICT nvsqnu) 
+    const double *vsqnu_surf, const double *vsqnu, const double *nI, 
+    double* GKYL_RESTRICT nvnu_surf, double* GKYL_RESTRICT nvnu, 
+    double* GKYL_RESTRICT nvsqnu_surf, double* GKYL_RESTRICT nvsqnu) 
 { 
   // vnu_surf/vnu: Input radiation drag in vparallel direction, surface and volume expansions.
   // vsqnu_surf/vsqnu: Input radiation drag in mu direction, surface and volume expansions.
