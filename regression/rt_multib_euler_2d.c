@@ -1,0 +1,148 @@
+#include <gkyl_alloc.h>
+#include <gkyl_wv_euler.h>
+#include <gkyl_moment_multib.h>
+
+// Gas constant
+static const double gas_gamma = 1.4;
+
+struct gkyl_block_geom*
+create_block_geom(void)
+{
+  struct gkyl_block_geom *bgeom = gkyl_block_geom_new(2, 3);
+
+  /* Block layout and coordinates
+
+   Y  
+   ^  
+   |  
+   2  +------+
+   |  |b0    |
+   |  |      |
+   1  +------+-----+
+   |  |b1    |b2   |
+   |  |      |     |
+   0  +------+-----+
+
+      0 -----1-----2 -> X
+  */  
+
+  // block 0
+  gkyl_block_geom_set_block(bgeom, 0, &(struct gkyl_block_info) {
+      .lower = { 0, 1 },
+      .upper = { 1, 2 },
+      .cells = { 128, 128 },
+      
+      .connections[0] = { // x-direction connections
+        { .bid = 0, .dir = 0, .edge = GKYL_PHYSICAL }, // physical boundary
+        { .bid = 0, .dir = 0, .edge = GKYL_PHYSICAL }  // physical boundary
+      },
+      .connections[1] = { // y-direction connections
+        { .bid = 1, .dir = 1, .edge = GKYL_UPPER_POSITIVE },
+        { .bid = 0, .dir = 1, .edge = GKYL_PHYSICAL } // physical boundary
+      }
+    }
+  );
+  
+  // block 1
+  gkyl_block_geom_set_block(bgeom, 1, &(struct gkyl_block_info) {
+      .lower = { 0, 0 },
+      .upper = { 1, 1 },
+      .cells = { 128, 128 },
+      
+      .connections[0] = { // x-direction connections
+        { .bid = 0, .dir = 0, .edge = GKYL_PHYSICAL }, // physical boundary
+        { .bid = 2, .dir = 0, .edge = GKYL_LOWER_POSITIVE }
+      },
+      .connections[1] = { // y-direction connections
+        { .bid = 0, .dir = 1, .edge = GKYL_PHYSICAL }, // physical boundary
+        { .bid = 0, .dir = 1, .edge = GKYL_LOWER_POSITIVE }
+      }
+    }
+  );
+
+  // block 2
+  gkyl_block_geom_set_block(bgeom, 2, &(struct gkyl_block_info) {
+      .lower = { 1, 0 },
+      .upper = { 2, 1 },
+      .cells = { 128, 128 },
+      
+      .connections[0] = { // x-direction connections
+        { .bid = 1, .dir = 0, .edge = GKYL_UPPER_POSITIVE },
+        { .bid = 0, .dir = 0, .edge = GKYL_PHYSICAL } // physical boundary
+      },
+      .connections[1] = { // y-direction connections
+        { .bid = 0, .dir = 1, .edge = GKYL_PHYSICAL }, // physical boundary
+        { .bid = 0, .dir = 1, .edge = GKYL_PHYSICAL } // physical boundary
+      }
+    }
+  );
+
+  return bgeom;
+}
+
+void
+initFluidSod(double t, const double *xn, double* restrict fout, void *ctx)
+{
+  double xsloc = 1.25, ysloc = 1.5;
+  double x = xn[0], y = xn[1];
+
+  double rho = 0.125, pr = 0.1;
+  if (y>ysloc || x>xsloc) {
+    rho = 1.0;
+    pr = 1.0;
+  }
+  
+  fout[0] = rho;
+  fout[1] = 0.0; fout[2] = 0.0; fout[3] = 0.0;
+  fout[4] = pr/(gas_gamma-1);
+}
+
+int
+main(int argc, char **argv)
+{
+  // construct block geometry
+  struct gkyl_block_geom *bgeom = create_block_geom();
+  int nblocks = gkyl_block_geom_num_blocks(bgeom);
+
+  // Equation system
+  struct gkyl_wv_eqn *euler = gkyl_wv_euler_inew( &(struct gkyl_wv_euler_inp) {
+      .gas_gamma = gas_gamma
+    }
+  );
+
+  // block-common info for species
+  struct gkyl_moment_multib_species_info euler_info = {
+    .name = "euler",
+    .charge = 0.0, .mass = 1.0,
+    .equation = euler,
+  };
+
+  struct gkyl_moment_multib_species *species =
+    gkyl_malloc(sizeof(struct gkyl_moment_multib_species[nblocks]));
+  
+  // block-specific info for species
+  for (int i=0; i<nblocks; ++i) {
+    species[i] = (struct gkyl_moment_multib_species) {
+      .block_id = i,
+      .init = initFluidSod
+    };
+  }
+
+  struct gkyl_moment_multib app_inp = {
+    .name = "multib_euler_2d",
+
+    .block_geom = bgeom,
+
+    .num_species = 1,
+    .species_info = euler_info,
+    .species[0] = species
+  };
+
+  struct gkyl_moment_multib_app *app = gkyl_moment_multib_app_new(&app_inp);
+
+  gkyl_block_geom_release(bgeom);
+  gkyl_wv_eqn_release(euler);
+  gkyl_free(species);
+  
+  return 0;
+}     
