@@ -107,4 +107,190 @@ struct gkyl_moment_multib {
  */
 struct gkyl_moment_multib_app* gkyl_moment_multib_app_new(struct gkyl_moment_multib *mbinp);
                                 
-  
+/**
+ * Compute maximum estimated stable dt wtih current app state. Call
+ * after app initialized and after initial conditions set.
+ *
+ * @param app App object.
+ * @retuen maximum estimated stable dt
+ */
+double gkyl_moment_multib_app_max_dt(gkyl_moment_multib_app* app);
+
+/**
+ * Initialize species and field.
+ *
+ * @param app App object.
+ * @param t0 Time for initial conditions.
+ */
+void gkyl_moment_multib_app_apply_ic(gkyl_moment_multib_app* app, double t0);
+
+/**
+ * Initialize field.
+ *
+ * @param app App object.
+ * @param t0 Time for initial conditions
+ */
+void gkyl_moment_multib_app_apply_ic_field(gkyl_moment_multib_app* app, double t0);
+
+/**
+ * Initialize species.
+ *
+ * @param app App object.
+ * @param sidx Index of species to initialize.
+ * @param t0 Time for initial conditions
+ */
+void gkyl_moment_multib_app_apply_ic_species(gkyl_moment_multib_app* app, int sidx, double t0);
+
+/**
+ * Read field data from .gkyl file.
+ *
+ * @param app App object.
+ * @param fname File to read from.
+ * @return Status of read
+ */
+struct gkyl_app_restart_status gkyl_moment_multib_app_from_file_field(gkyl_moment_multib_app *app,
+  const char *fname);
+
+/**
+ * Read species data from .gkyl file.
+ *
+ * @param app App object.
+ * @param sidx Index of species to read
+ * @param fname File to read from.
+ * @return Status of read
+ */
+struct gkyl_app_restart_status gkyl_moment_multib_app_from_file_species(gkyl_moment_multib_app *app,
+  int sidx, const char *fname);
+
+/**
+ * Read field data from specified frame of previous simulation.
+ *
+ * @param app App object.
+ * @param frame Frame number to read from
+ * @return Status of read
+ */
+struct gkyl_app_restart_status gkyl_moment_multib_app_from_frame_field(gkyl_moment_multib_app *app,
+  int frame);
+
+/**
+ * Read species data from specified frame of previous simulation.
+ *
+ * @param app App object.
+ * @param sidx Index of species to read
+ * @param frame Frame number to read from
+ * @return Status of read
+ */
+struct gkyl_app_restart_status gkyl_moment_multib_app_from_frame_species(gkyl_moment_multib_app *app,
+  int sidx, int frame);
+
+/**
+ * Write output to console: this is mainly for diagnostic messages the
+ * driver code wants to write to console. It accounts for parallel
+ * output by not messing up the console with messages from each rank.
+ *
+ * @param app App object
+ * @param fp File pointer for open file for output
+ * @param fmt Format string for console output
+ * @param argp Objects to write
+ */
+void gkyl_moment_multib_app_cout(const gkyl_moment_multib_app* app, FILE *fp, const char *fmt, ...);
+
+/**
+ * Write field and species data to file.
+ * 
+ * @param app App object.
+ * @param tm Time-stamp
+ * @param frame Frame number
+ */
+void gkyl_moment_multib_app_write(const gkyl_moment_multib_app* app, double tm, int frame);
+
+/**
+ * Write field data to file.
+ * 
+ * @param app App object.
+ * @param tm Time-stamp
+ * @param frame Frame number
+ */
+void gkyl_moment_multib_app_write_field(const gkyl_moment_multib_app *app, double tm, int frame);
+
+/**
+ * Write species data to file.
+ * 
+ * @param app App object.
+ * @param sidx Index of species to write
+ * @param tm Time-stamp
+ * @param frame Frame number
+ */
+void gkyl_moment_multib_app_write_species(const gkyl_moment_multib_app* app, int sidx, double tm, int frame);
+
+/**
+ * Write field energy to file.
+ *
+ * @param app App object.
+ */
+void gkyl_moment_multib_app_write_field_energy(gkyl_moment_multib_app *app);
+
+/**
+ * Write integrated moments to file.
+ *
+ * @param app App object.
+ */
+void gkyl_moment_multib_app_write_integrated_mom(gkyl_moment_multib_app *app);
+
+/**
+ * Write stats to file. Data is written in json format.
+ *
+ * @param app App object.
+ */
+void gkyl_moment_multib_app_stat_write(const gkyl_moment_multib_app *app);
+
+/**
+ * Advance simulation by a suggested time-step 'dt'. The dt may be too
+ * large in which case method will attempt to take a smaller time-step
+ * and also return it as the 'dt_actual' field of the status
+ * object. If the suggested time-step 'dt' is smaller than the largest
+ * stable time-step the method will use the smaller value instead,
+ * returning the larger time-step in the 'dt_suggested' field of the
+ * status object. If the method fails to find any stable time-step
+ * then the 'success' flag will be set to 0. At that point the calling
+ * code must abort the simulation as this signals a catastrophic
+ * failure and the simulation can't be safely continued.
+ * 
+ * @param app App object.
+ * @param dt Suggested time-step to advance simulation
+ * @return Status of update.
+ */
+struct gkyl_update_status gkyl_moment_multib_update(gkyl_moment_multib_app *app, double dt);
+
+/**
+ * Calculate integrated field energy. The "calc" method computes the
+ * integrated moments and stores it. The "get" method returns the
+ * values in the vals array, without storing it.
+ *
+ * @param tm Time at which integrated diagnostic are to be computed
+ * @param app App object.
+ */
+void gkyl_moment_multib_app_calc_field_energy(gkyl_moment_multib_app *app, double tm);
+void gkyl_moment_multib_app_get_field_energy(gkyl_moment_multib_app *app, double *vals);
+
+/**
+ * Calculate integrated moments.
+ *
+ * @param app App object.
+ * @param tm Time at which integrated diagnostic are to be computed
+ */
+void gkyl_moment_multib_app_calc_integrated_mom(gkyl_moment_multib_app *app, double tm);
+
+/**
+ * Return simulation statistics.
+ * 
+ * @return Return statistics.
+ */
+struct gkyl_moment_stat gkyl_moment_multib_app_stat(gkyl_moment_multib_app *app);
+
+/**
+ * Free moment app.
+ *
+ * @param app App to release.
+ */
+void gkyl_moment_multib_app_release(gkyl_moment_multib_app* app);  
