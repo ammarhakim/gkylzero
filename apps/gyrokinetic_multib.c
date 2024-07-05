@@ -626,10 +626,10 @@ gkyl_gyrokinetic_multib_sync(gkyl_gyrokinetic_multib_app* mba, int fidx)
           struct gkyl_gyrokinetic_multib_buff_state *bust = &mba->syncdat[bc].lower[dir];
           gkyl_comm_state_wait(mba->comm_multib, bust->recv_state);
 
-//          gkyl_array_copy_from_buffer(arr,
-//            gkyl_mem_buff_data(bust->recv_buff),
-//            &(gks->lower_ghost[dir])
-//          );
+          gkyl_array_copy_from_buffer(arr,
+            gkyl_mem_buff_data(bust->recv_buff),
+            &(gks->lower_ghost[dir])
+          );
         }
   
         // Upper edge of this block.
@@ -637,10 +637,10 @@ gkyl_gyrokinetic_multib_sync(gkyl_gyrokinetic_multib_app* mba, int fidx)
           struct gkyl_gyrokinetic_multib_buff_state *bust = &mba->syncdat[bc].upper[dir];
           gkyl_comm_state_wait(mba->comm_multib, bust->recv_state);
 
-//          gkyl_array_copy_from_buffer(arr,
-//            gkyl_mem_buff_data(bust->recv_buff),
-//            &(gks->upper_ghost[dir])
-//          );
+          gkyl_array_copy_from_buffer(arr,
+            gkyl_mem_buff_data(bust->recv_buff),
+            &(gks->upper_ghost[dir])
+          );
         }
       }
     }
