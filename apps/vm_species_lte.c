@@ -85,7 +85,7 @@ vm_species_lte(gkyl_vlasov_app *app, const struct vm_species *species,
 {
 
   // Always update the moments
-   vm_species_lte_moms(app, species, lte, fin);
+  vm_species_lte_moms(app, species, lte, fin);
 
   struct timespec wst = gkyl_wall_clock();
   gkyl_array_clear(lte->f_lte, 0.0);

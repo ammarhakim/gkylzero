@@ -121,38 +121,18 @@ vm_species_bgk_moms(gkyl_vlasov_app *app, const struct vm_species *species,
 
 // updates the collision terms in the rhs
 void
-vm_species_bgk_rhs(gkyl_vlasov_app *app, const struct vm_species *species,
+vm_species_bgk_rhs(gkyl_vlasov_app *app, struct vm_species *species,
   struct vm_bgk_collisions *bgk, const struct gkyl_array *fin, struct gkyl_array *rhs)
 {
   struct timespec wst = gkyl_wall_clock();
   gkyl_array_clear(bgk->nu_f_lte, 0.0);
 
-  // Project the LTE distribution function to obtain self-collisions nu*f_lte.
-  // e.g., Maxwellian for non-relativistic and Maxwell-Juttner for relativistic.
-  // Projection routine also corrects the density of the projected distribution function.
-  gkyl_vlasov_lte_proj_on_basis_advance(bgk->proj_lte, &species->local, &app->local, 
-    bgk->moms.marr, bgk->f_lte);
+  // Project the LTE distribution function
+  vm_species_lte(app, species, &species->lte, fin);
 
-  // Correct all the moments of the projected LTE distribution function.
-  if (bgk->correct_all_moms) {
-    struct gkyl_vlasov_lte_correct_status status_corr = gkyl_vlasov_lte_correct_all_moments(bgk->corr_lte, bgk->f_lte, bgk->moms.marr,
-      &species->local, &app->local);
-    double corr_vec[7];
-    corr_vec[0] = status_corr.num_iter;
-    corr_vec[1] = status_corr.iter_converged;
-    corr_vec[2] = status_corr.error[0];
-    corr_vec[3] = status_corr.error[1];
-    corr_vec[4] = status_corr.error[2];
-    corr_vec[5] = status_corr.error[3];
-    corr_vec[6] = status_corr.error[4];
-    gkyl_dynvec_append(bgk->corr_stat,app->tcurr,corr_vec);
-
-    bgk->self_niter += status_corr.num_iter;
-  } 
-
-  gkyl_dg_mul_conf_phase_op_range(&app->confBasis, &app->basis, bgk->f_lte, 
-    bgk->self_nu, bgk->f_lte, &app->local, &species->local);
-  gkyl_array_accumulate(bgk->nu_f_lte, 1.0, bgk->f_lte);
+  gkyl_dg_mul_conf_phase_op_range(&app->confBasis, &app->basis, species->lte.f_lte, 
+    bgk->self_nu, species->lte.f_lte, &app->local, &species->local);
+  gkyl_array_accumulate(bgk->nu_f_lte, 1.0, species->lte.f_lte);
 
   gkyl_bgk_collisions_advance(bgk->up_bgk, &app->local, &species->local, 
     bgk->nu_sum, bgk->nu_f_lte, fin, bgk->implicit_step, bgk->dt_implicit, rhs, species->cflrate);

@@ -201,6 +201,8 @@ struct vm_bgk_collisions {
 
   struct gkyl_bgk_collisions *up_bgk; // BGK updater (also computes stable timestep)
 
+  struct vm_lte lte; // lte data and updater
+
   bool implicit_step; // whether or not to take an implcit bgk step
   double dt_implicit; // timestep used by the implicit collisions
 };
@@ -769,7 +771,7 @@ void vm_species_lte_moms(gkyl_vlasov_app *app,
   const struct gkyl_array *fin);
 
 /**
- * Compute RHS for f-lte creation
+ * Compute f-lte
  *
  * @param app Vlasov app object
  * @param species Pointer to species
@@ -824,7 +826,7 @@ void vm_species_bgk_moms(gkyl_vlasov_app *app,
  * @param rhs On output, the RHS from bgk
  */
 void vm_species_bgk_rhs(gkyl_vlasov_app *app,
-  const struct vm_species *species,
+  struct vm_species *species,
   struct vm_bgk_collisions *bgk,
   const struct gkyl_array *fin, struct gkyl_array *rhs);
 
@@ -835,6 +837,14 @@ void vm_species_bgk_rhs(gkyl_vlasov_app *app,
  * @param bgk Species BGK object to release
  */
 void vm_species_bgk_release(const struct gkyl_vlasov_app *app, const struct vm_bgk_collisions *bgk);
+
+/**
+ * Release species lte object.
+ *
+ * @param app Vlasov app object
+ * @param lte Species lte object to release
+ */
+void vm_species_lte_release(const struct gkyl_vlasov_app *app, const struct vm_lte *lte);
 
 /** vm_species_boundary_fluxes API */
 

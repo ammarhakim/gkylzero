@@ -656,7 +656,9 @@ vm_species_release(const gkyl_vlasov_app* app, const struct vm_species *s)
   if (s->source_id) {
     vm_species_source_release(app, &s->src);
   }
-
+  if (s->collision_id == GKYL_BGK_COLLISIONS || s->info.output_f_lte){
+    vm_species_lte_release(app, &s->lte);
+  }
   if (s->collision_id == GKYL_LBO_COLLISIONS) {
     vm_species_lbo_release(app, &s->lbo);
   }
