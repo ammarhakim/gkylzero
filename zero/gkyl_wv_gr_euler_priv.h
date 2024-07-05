@@ -35,7 +35,7 @@ gkyl_gr_euler_prim_vars(double gas_gamma, const double q[29], double v[29]);
 * @return Maximum absolute wave speed for a given q.
 */
 GKYL_CU_D
-static inline double
+double
 gkyl_gr_euler_max_abs_speed(double gas_gamma, const double q[29]);
 
 /**
@@ -58,7 +58,7 @@ gkyl_gr_euler_flux(double gas_gamma, const double q[29], double flux[29]);
 * @param wout Riemann variable vector (output).
 */
 GKYL_CU_D
-static inline void
+void
 cons_to_riem(const struct gkyl_wv_eqn* eqn, const double* qstate, const double* qin, double* wout);
 
 /**
@@ -70,7 +70,7 @@ cons_to_riem(const struct gkyl_wv_eqn* eqn, const double* qstate, const double* 
 * @param qout Conserved variable vector (output).
 */
 GKYL_CU_D
-static inline void
+void
 riem_to_cons(const struct gkyl_wv_eqn* eqn, const double* qstate, const double* win, double *qout);
 
 /**
@@ -83,7 +83,7 @@ riem_to_cons(const struct gkyl_wv_eqn* eqn, const double* qstate, const double* 
 * @param ctx Context to pass to the function.
 */
 GKYL_CU_D
-static void
+void
 gr_euler_wall(double t, int nc, const double* skin, double* GKYL_RESTRICT ghost, void* ctx);
 
 /**
@@ -96,7 +96,7 @@ gr_euler_wall(double t, int nc, const double* skin, double* GKYL_RESTRICT ghost,
 * @param ctx Context to pass to the function.
 */
 GKYL_CU_D
-static void
+void
 gr_euler_no_slip(double t, int nc, const double* skin, double* GKYL_RESTRICT ghost, void* ctx);
 
 /**
@@ -109,7 +109,7 @@ gr_euler_no_slip(double t, int nc, const double* skin, double* GKYL_RESTRICT gho
 * @param qlocal State vector in local coordinate frame (output).
 */
 GKYL_CU_D
-static inline void
+void
 rot_to_local(const double* tau1, const double* tau2, const double* norm, const double* GKYL_RESTRICT qglobal, double* GKYL_RESTRICT qlocal);
 
 /**
@@ -122,7 +122,7 @@ rot_to_local(const double* tau1, const double* tau2, const double* norm, const d
 * @param qglobal State vector in global coordinate frame (output).
 */
 GKYL_CU_D
-static inline void
+void
 rot_to_global(const double* tau1, const double* tau2, const double* norm, const double* GKYL_RESTRICT qlocal, double* GKYL_RESTRICT qglobal);
 
 /**
@@ -261,7 +261,7 @@ qfluct_roe_l(const struct gkyl_wv_eqn* eqn, enum gkyl_wv_flux_type type, const d
 * @return Maximum wave speeds for states ql and qr.
 */
 GKYL_CU_D
-static double
+double
 flux_jump(const struct gkyl_wv_eqn* eqn, const double* ql, const double* qr, double* flux_jump);
 
 /**
@@ -272,7 +272,7 @@ flux_jump(const struct gkyl_wv_eqn* eqn, const double* ql, const double* qr, dou
 * @return Whether the invariant domain is satisfied.
 */
 GKYL_CU_D
-static bool
+bool
 check_inv(const struct gkyl_wv_eqn* eqn, const double* q);
 
 /**
@@ -283,7 +283,7 @@ check_inv(const struct gkyl_wv_eqn* eqn, const double* q);
 * @return Maximum absolute wave speed.
 */
 GKYL_CU_D
-static double
+double
 max_speed(const struct gkyl_wv_eqn* eqn, const double* q);
 
 /**
@@ -294,7 +294,7 @@ max_speed(const struct gkyl_wv_eqn* eqn, const double* q);
 * @param diag Diagnostic variable vector (output).
 */
 GKYL_CU_D
-static inline void
+void
 gr_euler_cons_to_diag(const struct gkyl_wv_eqn* eqn, const double* qin, double* diag);
 
 /**
