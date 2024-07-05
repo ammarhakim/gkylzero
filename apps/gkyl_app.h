@@ -23,6 +23,14 @@ struct gkyl_app_comm_low_inp {
   struct gkyl_comm *comm; // communicator to used
 };
 
+// BC for blocks
+struct gkyl_block_physical_bcs {
+  int bidx; // block index
+  int dir;  // direction in which BC is specified
+  enum gkyl_edge_loc edge; // which edge this BC is for
+  int bc_type; // BC code
+};
+
 // Boundary conditions on particles
 enum gkyl_species_bc_type {
   GKYL_SPECIES_COPY = 0, // copy BCs

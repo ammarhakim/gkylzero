@@ -115,13 +115,28 @@ main(int argc, char **argv)
     .init = initFluidSod,
   };
 
+  struct gkyl_block_physical_bcs euler_phys_bcs[] = {
+    // block 0 BCs
+    { .bidx = 0, .dir = 0, .edge = GKYL_LOWER_EDGE, .bc_type = GKYL_SPECIES_REFLECT },
+    { .bidx = 0, .dir = 0, .edge = GKYL_UPPER_EDGE, .bc_type = GKYL_SPECIES_REFLECT },
+    { .bidx = 0, .dir = 1, .edge = GKYL_UPPER_EDGE, .bc_type = GKYL_SPECIES_COPY },
+    // block 1 BCs
+    { .bidx = 1, .dir = 0, .edge = GKYL_LOWER_EDGE, .bc_type = GKYL_SPECIES_REFLECT },
+    { .bidx = 1, .dir = 1, .edge = GKYL_LOWER_EDGE, .bc_type = GKYL_SPECIES_REFLECT },
+    // block 2 BCs
+    { .bidx = 2, .dir = 0, .edge = GKYL_UPPER_EDGE, .bc_type = GKYL_SPECIES_COPY },
+    { .bidx = 2, .dir = 1, .edge = GKYL_LOWER_EDGE, .bc_type = GKYL_SPECIES_REFLECT },
+    { .bidx = 2, .dir = 1, .edge = GKYL_UPPER_EDGE, .bc_type = GKYL_SPECIES_REFLECT },
+  };
+
   struct gkyl_moment_multib_species euler = {
     .name = "euler",
     .charge = 0.0, .mass = 1.0,
     .equation = euler_eqn,
 
     .are_all_blocks_same = true,
-    .blocks = euler_blocks
+    .blocks = euler_blocks,
+    .bcs = euler_phys_bcs,
   };
 
   struct gkyl_moment_multib app_inp = {

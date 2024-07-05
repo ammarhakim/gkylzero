@@ -45,6 +45,9 @@ struct gkyl_moment_multib_species {
   bool are_all_blocks_same; // set to true if all blocks are identical  
   // species inputs per-block: only one is needed is are_all_blocks_same = true
   const struct gkyl_moment_multib_species_pb *blocks;
+
+  int num_physical_bcs;
+  const struct gkyl_block_physical_bcs *bcs;
 };
 
 // Field input per-block
@@ -66,10 +69,6 @@ struct gkyl_moment_multib_field_pb {
   void (*ext_em_func)(double t, const double *xn, double *fout, void *ctx);
   double t_ramp_ext_em; // linear ramp for turning on external E field
 
-  // boundary conditions
-  enum gkyl_field_bc_type bcx[2], bcy[2], bcz[2];
-  // for function BCs these should be set
-  wv_bc_func_t bcx_func[2], bcy_func[2], bcz_func[2];
 };
 
 // Field input
@@ -85,6 +84,9 @@ struct gkyl_moment_multib_field {
   bool are_all_blocks_same; // set to true if all blocks are identical
   // field inputs per-block
   const struct gkyl_moment_multib_field_pb *blocks;
+
+  int num_physical_bcs;
+  const struct gkyl_block_physical_bcs *bcs;  
 };
 
 
