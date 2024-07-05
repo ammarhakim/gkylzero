@@ -1,5 +1,6 @@
 #pragma once
 
+#include <gkyl_block_geom.h>
 #include <gkyl_moment.h>
 
 typedef struct gkyl_moment_multib_app gkyl_moment_multib_app;
@@ -34,6 +35,12 @@ struct gkyl_moment_multib_species {
   // pointer to user-defined number density and temperature sources
   void (*nT_source_func)(double t, const double *xn, double *fout, void *ctx);
   bool nT_source_set_only_once;
+
+  // boundary conditions
+  enum gkyl_species_bc_type bcx[2], bcy[2], bcz[2];
+
+  // for function BCs these should be set
+  wv_bc_func_t bcx_func[2], bcy_func[2], bcz_func[2];  
 };
 
 // data common to species on all blocks
@@ -73,18 +80,31 @@ struct gkyl_moment_multib_field {
 };
 
 // Top-level app parameters: this
-struct gkyl_moment_multib_info {
+struct gkyl_moment_multib {
   char name[128]; // name of app
 
-  int num_blocks; // number of blocks
+ // geometry and topology of all blocks in simulation  
+  struct gkyl_block_geom *block_geom;
+
+  int num_species; // number of species
+  // block-independent species info
+  struct gkyl_moment_multib_species_info species_info[GKYL_MAX_SPECIES];
+  // per-block species info
+  struct gkyl_moment_multib_species *species[GKYL_MAX_SPECIES];
+ 
+  // block-independent field info
+  struct gkyl_moment_multib_field_info field_info;
+  // per-block species info
+  struct gkyl_moment_multib_field *field; 
 };
+
 
 /**
  * Construct a new moments multi-block app.
  *
- * @param vm App inputs. See struct docs.
+ * @param mbinp Multi-block App inputs. See struct docs.
  * @return New multi-block moment app object.
  */
-struct gkyl_moment_multib_app* gkyl_moment_multib_app_new(struct gkyl_moment_multib_info *info);
+struct gkyl_moment_multib_app* gkyl_moment_multib_app_new(struct gkyl_moment_multib *mbinp);
                                 
   

@@ -288,6 +288,13 @@ bc_copy(double t, int nc, const double *skin,
     ghost[c] = skin[c];
 }
 
+// function for skip BCs
+static inline void
+bc_skip(double t, int nc, const double *skin,
+  double *GKYL_RESTRICT ghost, void *ctx)
+{
+}
+
 // Compute integrated quantities specified by i_func
 void calc_integ_quant(const struct gkyl_wv_eqn *eqn, double vol,
   const struct gkyl_array *q,

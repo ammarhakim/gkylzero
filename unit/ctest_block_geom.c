@@ -8,6 +8,7 @@ test_L_domain()
   struct gkyl_block_geom *bgeom = gkyl_block_geom_new(2, 3);
 
   TEST_CHECK( 0 == gkyl_block_geom_check_consistency(bgeom) );
+  TEST_CHECK( 3 == gkyl_block_geom_num_blocks(bgeom) );
 
   /* Block layout
 
@@ -116,7 +117,7 @@ test_mobius_domain()
       },
       .connections[1] = { // y-direction connections
         { .bid = 0, .dir = 1, .edge = GKYL_UPPER_POSITIVE },
-      { .bid = 0, .dir = 1, .edge = GKYL_LOWER_POSITIVE }
+        { .bid = 0, .dir = 1, .edge = GKYL_LOWER_POSITIVE }
       }
     }
   );

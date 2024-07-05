@@ -27,6 +27,14 @@ typedef struct gkyl_block_geom gkyl_block_geom;
 struct gkyl_block_geom* gkyl_block_geom_new(int ndim, int nblocks);
 
 /**
+ * Return number of blocks in domain
+ *
+ * @param bgeom Block geometry
+ * @return number of blocks
+ */
+int gkyl_block_geom_num_blocks(const struct gkyl_block_geom *bgeom);
+
+/**
  * Acquire pointer to block-geometry. The pointer must be released
  * using release method.
  *

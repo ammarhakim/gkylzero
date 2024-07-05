@@ -120,7 +120,8 @@ main(int argc, char **argv)
   struct gkyl_moment_multib_species *species =
     gkyl_malloc(sizeof(struct gkyl_moment_multib_species[nblocks]));
   
-  // block-specific info for species
+  // block-specific info for species: in this case, most of the info
+  // is identical
   for (int i=0; i<nblocks; ++i) {
     species[i] = (struct gkyl_moment_multib_species) {
       .block_id = i,

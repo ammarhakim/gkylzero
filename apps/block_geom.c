@@ -43,6 +43,12 @@ gkyl_block_geom_new(int ndim, int nblocks)
   return bgeom;
 }
 
+int
+gkyl_block_geom_num_blocks(const struct gkyl_block_geom *bgeom)
+{
+  return bgeom->num_blocks;
+}
+
 void
 gkyl_block_geom_set_block(struct gkyl_block_geom *bgeom, int bidx,
   const struct gkyl_block_info *info)
