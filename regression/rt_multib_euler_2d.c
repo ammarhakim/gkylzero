@@ -134,7 +134,7 @@ main(int argc, char **argv)
     .charge = 0.0, .mass = 1.0,
     .equation = euler_eqn,
 
-    .are_all_blocks_same = true,
+    .duplicate_across_blocks = true,
     .blocks = euler_blocks,
     .bcs = euler_phys_bcs,
   };

@@ -42,7 +42,7 @@ struct gkyl_moment_multib_species {
   int evolve; // evolve species? 1-yes, 0-no
   bool force_low_order_flux; // should  we force low-order flux?
 
-  bool are_all_blocks_same; // set to true if all blocks are identical  
+  bool duplicate_across_blocks; // set to true if all blocks are identical  
   // species inputs per-block: only one is needed is are_all_blocks_same = true
   const struct gkyl_moment_multib_species_pb *blocks;
 
@@ -81,7 +81,7 @@ struct gkyl_moment_multib_field {
   int evolve; // evolve field? 1-yes, 0-no
   bool use_explicit_em_coupling; // flag to indicate if using explicit em-coupling
 
-  bool are_all_blocks_same; // set to true if all blocks are identical
+  bool duplicate_across_blocks; // set to true if all blocks are identical
   // field inputs per-block
   const struct gkyl_moment_multib_field_pb *blocks;
 
