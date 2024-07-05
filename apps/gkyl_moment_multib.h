@@ -5,24 +5,11 @@
 
 typedef struct gkyl_moment_multib_app gkyl_moment_multib_app;
 
-// data common to species on all blocks
-struct gkyl_moment_multib_species_info {
-  char name[128]; // species name
-  double charge, mass; // charge and mass
- 
-  struct gkyl_wv_eqn *equation; // equation object
-  enum gkyl_wave_limiter limiter; // limiter to use
-  enum gkyl_wave_split_type split_type; // edge splitting to use
-
-  int evolve; // evolve species? 1-yes, 0-no
-  bool force_low_order_flux; // should  we force low-order flux?
-};
-
-// data for individual blocks
-struct gkyl_moment_multib_species {
+// Species input per-block
+struct gkyl_moment_multib_species_pb {
   int block_id; // block ID
   
-  void *ctx; // context for initial condition init function (and potentially other functions)
+  void *ctx; // context for initial condition init function
   // pointer to initialization function
   void (*init)(double t, const double *xn, double *fout, void *ctx);
 
@@ -40,25 +27,31 @@ struct gkyl_moment_multib_species {
   enum gkyl_species_bc_type bcx[2], bcy[2], bcz[2];
 
   // for function BCs these should be set
-  wv_bc_func_t bcx_func[2], bcy_func[2], bcz_func[2];  
+  wv_bc_func_t bcx_func[2], bcy_func[2], bcz_func[2];
 };
 
-// data common to species on all blocks
-struct gkyl_moment_multib_field_info {
-  double epsilon0, mu0;
-  double elc_error_speed_fact, mag_error_speed_fact;
-
+// Species input 
+struct gkyl_moment_multib_species {
+  char name[128]; // species name
+  double charge, mass; // charge and mass
+ 
+  struct gkyl_wv_eqn *equation; // equation object
   enum gkyl_wave_limiter limiter; // limiter to use
+  enum gkyl_wave_split_type split_type; // edge splitting to use
 
-  int evolve; // evolve field? 1-yes, 0-no
-  bool use_explicit_em_coupling; // flag to indicate if using explicit em-coupling
+  int evolve; // evolve species? 1-yes, 0-no
+  bool force_low_order_flux; // should  we force low-order flux?
+
+  bool are_all_blocks_same; // set to true if all blocks are identical  
+  // species inputs per-block: only one is needed is are_all_blocks_same = true
+  const struct gkyl_moment_multib_species_pb *blocks;
 };
 
-// data for individual blocks
-struct gkyl_moment_multib_field {
+// Field input per-block
+struct gkyl_moment_multib_field_pb {
   int block_id; // block ID
   
-  void *ctx; // context for initial condition init function (and potentially other functions)
+  void *ctx; // context for initial condition init function
   // pointer to initialization function
   void (*init)(double t, const double *xn, double *fout, void *ctx);
 
@@ -79,23 +72,37 @@ struct gkyl_moment_multib_field {
   wv_bc_func_t bcx_func[2], bcy_func[2], bcz_func[2];
 };
 
+// Field input
+struct gkyl_moment_multib_field {
+  double epsilon0, mu0;
+  double elc_error_speed_fact, mag_error_speed_fact;
+
+  enum gkyl_wave_limiter limiter; // limiter to use
+
+  int evolve; // evolve field? 1-yes, 0-no
+  bool use_explicit_em_coupling; // flag to indicate if using explicit em-coupling
+
+  bool are_all_blocks_same; // set to true if all blocks are identical
+  // field inputs per-block
+  const struct gkyl_moment_multib_field_pb *blocks;
+};
+
+
 // Top-level app parameters: this
 struct gkyl_moment_multib {
   char name[128]; // name of app
 
- // geometry and topology of all blocks in simulation  
+ // geometry and topology of all blocks in simulation
   struct gkyl_block_geom *block_geom;
 
+  double cfl_frac; // CFL fraction to use
+
   int num_species; // number of species
-  // block-independent species info
-  struct gkyl_moment_multib_species_info species_info[GKYL_MAX_SPECIES];
-  // per-block species info
-  struct gkyl_moment_multib_species *species[GKYL_MAX_SPECIES];
+  // species inputs
+  struct gkyl_moment_multib_species species[GKYL_MAX_SPECIES];
  
-  // block-independent field info
-  struct gkyl_moment_multib_field_info field_info;
-  // per-block species info
-  struct gkyl_moment_multib_field *field; 
+  // field inputs
+  struct gkyl_moment_multib_field field;
 };
 
 

@@ -104,46 +104,40 @@ main(int argc, char **argv)
   struct gkyl_block_geom *bgeom = create_block_geom();
   int nblocks = gkyl_block_geom_num_blocks(bgeom);
 
-  // Equation system
-  struct gkyl_wv_eqn *euler = gkyl_wv_euler_inew( &(struct gkyl_wv_euler_inp) {
+  struct gkyl_wv_eqn *euler_eqn = gkyl_wv_euler_inew( &(struct gkyl_wv_euler_inp) {
       .gas_gamma = gas_gamma
     }
   );
 
-  // block-common info for species
-  struct gkyl_moment_multib_species_info euler_info = {
-    .name = "euler",
-    .charge = 0.0, .mass = 1.0,
-    .equation = euler,
+  // all data is common across blocks
+  struct gkyl_moment_multib_species_pb euler_blocks[1];
+  euler_blocks[0] = (struct gkyl_moment_multib_species_pb) {
+    .init = initFluidSod,
   };
 
-  struct gkyl_moment_multib_species *species =
-    gkyl_malloc(sizeof(struct gkyl_moment_multib_species[nblocks]));
-  
-  // block-specific info for species: in this case, most of the info
-  // is identical
-  for (int i=0; i<nblocks; ++i) {
-    species[i] = (struct gkyl_moment_multib_species) {
-      .block_id = i,
-      .init = initFluidSod
-    };
-  }
+  struct gkyl_moment_multib_species euler = {
+    .name = "euler",
+    .charge = 0.0, .mass = 1.0,
+    .equation = euler_eqn,
+
+    .are_all_blocks_same = true,
+    .blocks = euler_blocks
+  };
 
   struct gkyl_moment_multib app_inp = {
     .name = "multib_euler_2d",
 
     .block_geom = bgeom,
+    .cfl_frac = 0.9,
 
     .num_species = 1,
-    .species_info = euler_info,
-    .species[0] = species
+    .species = { euler },
   };
 
   struct gkyl_moment_multib_app *app = gkyl_moment_multib_app_new(&app_inp);
 
   gkyl_block_geom_release(bgeom);
-  gkyl_wv_eqn_release(euler);
-  gkyl_free(species);
+  gkyl_wv_eqn_release(euler_eqn);
   
   return 0;
 }     

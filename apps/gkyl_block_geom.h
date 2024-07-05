@@ -24,7 +24,15 @@ typedef struct gkyl_block_geom gkyl_block_geom;
  * @param nblocks Total number of blocks in geometry
  * @return New block geometry
  */
-struct gkyl_block_geom* gkyl_block_geom_new(int ndim, int nblocks);
+struct gkyl_block_geom *gkyl_block_geom_new(int ndim, int nblocks);
+
+/**
+ * Return geometry dimension
+ *
+ * @param bgeom Block geometry
+ * @return Dimension
+ */
+int gkyl_block_geom_ndim(const struct gkyl_block_geom *bgeom);
 
 /**
  * Return number of blocks in domain
