@@ -149,7 +149,7 @@ static int
 array_isend(struct gkyl_array *array, int dest, int tag, struct gkyl_comm *comm, struct gkyl_comm_state *state)
 {
   size_t vol = array->esznc*array->size;
-  struct mpi_comm *mpi = container_of(comm, struct mpi_comm, base);  
+  struct mpi_comm *mpi = container_of(comm, struct mpi_comm, base);
   int ret = MPI_Isend(array->data, vol, MPI_CHAR, dest, tag, mpi->mcomm, &state->req); 
   return ret == MPI_SUCCESS ? 0 : 1;
 }
@@ -168,8 +168,8 @@ static int
 array_irecv(struct gkyl_array *array, int src, int tag, struct gkyl_comm *comm, struct gkyl_comm_state *state)
 {
   size_t vol = array->esznc*array->size;
-  struct mpi_comm *mpi = container_of(comm, struct mpi_comm, base);  
-  int ret = MPI_Irecv(array->data, vol, MPI_CHAR, src, tag, mpi->mcomm, &state->req); 
+  struct mpi_comm *mpi = container_of(comm, struct mpi_comm, base);
+  int ret = MPI_Irecv(array->data, vol, MPI_CHAR, src, tag, mpi->mcomm, &state->req);
   return ret == MPI_SUCCESS ? 0 : 1;
 }
 
