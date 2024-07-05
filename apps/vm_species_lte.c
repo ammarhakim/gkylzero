@@ -2,7 +2,7 @@
 #include <gkyl_vlasov_priv.h>
 
 void 
-vm_species_lte_init(struct gkyl_vlasov_app *app, struct vm_species *s, struct vm_lte *lte)
+vm_species_lte_init(struct gkyl_vlasov_app *app, struct vm_species *s, struct vm_lte *lte, bool correct_all_moms)
 {
   int cdim = app->cdim, vdim = app->vdim;
 
@@ -33,7 +33,7 @@ vm_species_lte_init(struct gkyl_vlasov_app *app, struct vm_species *s, struct vm
   int max_iter = s->info.max_iter > 0 ? s->info.max_iter : 100;
   double iter_eps = s->info.iter_eps > 0 ? s->info.iter_eps  : 1e-12;
   
-  if (s->lte.correct_all_moms) {
+  if (correct_all_moms) {
     lte->correct_all_moms = true;
 
     struct gkyl_vlasov_lte_correct_inp inp_corr = {

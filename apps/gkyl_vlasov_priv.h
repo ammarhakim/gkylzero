@@ -181,23 +181,8 @@ struct vm_bgk_collisions {
   struct gkyl_array *nu_init; // Array for initial collisionality when using Spitzer updater
   struct gkyl_spitzer_coll_freq* spitzer_calc; // Updater for Spitzer collisionality if computing Spitzer value
 
-  struct gkyl_array *f_lte;
-  struct gkyl_array *nu_f_lte;
-
-  enum gkyl_model_id model_id;
-  struct vm_species_moment moms; // moments needed in BGK (n, V_drift, T/m) for LTE distribution
-
-  // LTE distribution function projection object
-  // also corrects the density of projected distribution function
-  struct gkyl_vlasov_lte_proj_on_basis *proj_lte; 
-
-  long self_niter; // total number of iterations correcting self collisions
-
-  // Correction updater for insuring LTE distribution has desired LTE (n, V_drift, T/m) moments
-  bool correct_all_moms; // boolean if we are correcting all the moments
-  struct gkyl_vlasov_lte_correct *corr_lte; 
-  gkyl_dynvec corr_stat;
-  bool is_first_corr_status_write_call;
+  struct gkyl_array *nu_f_lte; // collision frequency times 
+  enum gkyl_model_id model_id; // species model id
 
   struct gkyl_bgk_collisions *up_bgk; // BGK updater (also computes stable timestep)
 
@@ -753,9 +738,10 @@ void vm_species_lbo_rhs(gkyl_vlasov_app *app,
  * @param app Vlasov app object
  * @param s Species object 
  * @param lte Species lte object
+ * @param correct_all_moms boolean to correct all moms
  */
 void vm_species_lte_init(struct gkyl_vlasov_app *app, struct vm_species *s,
-  struct vm_lte *lte);
+  struct vm_lte *lte, bool correct_all_moms);
 
 /**
  * Compute necessary moments for f-lte creation

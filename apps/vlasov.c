@@ -465,7 +465,6 @@ gkyl_vlasov_app_write(gkyl_vlasov_app* app, double tm, int frame)
     gkyl_vlasov_app_write_field(app, tm, frame);
   for (int i=0; i<app->num_species; ++i) {
     gkyl_vlasov_app_write_species(app, i, tm, frame);
-    printf("app->species[i].output_f_lte: %d\n",app->species[i].info.output_f_lte);
     if(app->species[i].info.output_f_lte)
       gkyl_vlasov_app_write_species_lte(app, i, tm, frame);
     if (app->species[i].model_id == GKYL_MODEL_SR && frame == 0)
@@ -714,17 +713,17 @@ gkyl_vlasov_app_write_lte_corr_status(gkyl_vlasov_app* app)
       gkyl_comm_get_rank(app->comm, &rank);
 
       if (rank == 0) {
-        if (s->bgk.is_first_corr_status_write_call) {
+        if (s->bgk.lte.is_first_corr_status_write_call) {
           // write to a new file (this ensure previous output is removed)
-          gkyl_dynvec_write(s->bgk.corr_stat, fileNm);
-          s->bgk.is_first_corr_status_write_call = false;
+          gkyl_dynvec_write(s->bgk.lte.corr_stat, fileNm);
+          s->bgk.lte.is_first_corr_status_write_call = false;
         }
         else {
           // append to existing file
-          gkyl_dynvec_awrite(s->bgk.corr_stat, fileNm);
+          gkyl_dynvec_awrite(s->bgk.lte.corr_stat, fileNm);
         }
       }
-      gkyl_dynvec_clear(s->bgk.corr_stat);
+      gkyl_dynvec_clear(s->bgk.lte.corr_stat);
     }
   } 
 }
