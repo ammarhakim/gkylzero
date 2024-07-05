@@ -316,6 +316,15 @@ void moment_apply_wedge_bc(const gkyl_moment_app *app, double tcurr,
   const struct gkyl_wv_apply_bc *up,
   struct gkyl_array *f);
 
+/**
+ * Return ghost cell layout for grid.
+ *
+ * @param app App object.
+ * @param nghost On output, ghost-cells used for grid.
+ *
+ */
+void gkyl_moment_app_nghost(gkyl_moment_app *app, int nghost[3]);
+
 /** moment_species API */
 
 // Initialize the moment species object

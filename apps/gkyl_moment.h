@@ -360,15 +360,6 @@ void gkyl_moment_app_calc_integrated_mom(gkyl_moment_app *app, double tm);
 void gkyl_moment_app_get_integrated_mom(gkyl_moment_app *app, double *vals);
 
 /**
- * Return ghost cell layout for grid.
- *
- * @param app App object.
- * @param nghost On output, ghost-cells used for grid.
- *
- */
-void gkyl_moment_app_nghost(gkyl_moment_app *app, int nghost[3]);
-
-/**
  * Get a pointer to the species array that needs to be written out. If
  * you want to store the pointer, you must gkyl_array_acquire a
  * pointer to it. In general, this is not a method most users should
