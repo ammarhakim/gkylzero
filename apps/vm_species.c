@@ -274,8 +274,12 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
   
   // determine collision type to use in vlasov update
   s->collision_id = s->info.collisions.collision_id;
+  s->lte = (struct vm_lte) { };
   s->lbo = (struct vm_lbo_collisions) { };
   s->bgk = (struct vm_bgk_collisions) { };
+  if (s->collision_id == GKYL_BGK_COLLISIONS || s->info.output_f_lte){
+    vm_species_lte_init(app, s, &s->lte);
+  }
   if (s->collision_id == GKYL_LBO_COLLISIONS) {
     vm_species_lbo_init(app, s, &s->lbo);
   }
