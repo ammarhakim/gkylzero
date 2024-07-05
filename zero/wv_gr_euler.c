@@ -124,7 +124,7 @@ gkyl_gr_euler_prim_vars(double gas_gamma, const double q[29], double v[29])
   gkyl_free(inv_spatial_metric);
 }
 
-static inline double
+double
 gkyl_gr_euler_max_abs_speed(double gas_gamma, const double q[29])
 {
   double v[29] = { 0.0 };
@@ -354,7 +354,7 @@ gkyl_gr_euler_flux(double gas_gamma, const double q[29], double flux[29])
   gkyl_free(inv_spatial_metric);
 }
 
-static inline void
+void
 cons_to_riem(const struct gkyl_wv_eqn* eqn, const double* qstate, const double* qin, double* wout)
 {
   // TODO: This should use a proper L matrix.
@@ -363,7 +363,7 @@ cons_to_riem(const struct gkyl_wv_eqn* eqn, const double* qstate, const double* 
   }
 }
 
-static inline void
+void
 riem_to_cons(const struct gkyl_wv_eqn* eqn, const double* qstate, const double* win, double* qout)
 {
   // TODO: This should use a proper L matrix.
@@ -372,7 +372,7 @@ riem_to_cons(const struct gkyl_wv_eqn* eqn, const double* qstate, const double* 
   }
 }
 
-static void
+void
 gr_euler_wall(double t, int nc, const double* skin, double* GKYL_RESTRICT ghost, void* ctx)
 {
   for (int i = 0; i < 29; i++) {
@@ -382,7 +382,7 @@ gr_euler_wall(double t, int nc, const double* skin, double* GKYL_RESTRICT ghost,
   ghost[1] = -ghost[1];
 }
 
-static void
+void
 gr_euler_no_slip(double t, int nc, const double* skin, double* GKYL_RESTRICT ghost, void* ctx)
 {
   for (int i = 1; i < 4; i++) {
@@ -397,7 +397,7 @@ gr_euler_no_slip(double t, int nc, const double* skin, double* GKYL_RESTRICT gho
   }
 }
 
-static inline void
+void
 rot_to_local(const double* tau1, const double* tau2, const double* norm, const double* GKYL_RESTRICT qglobal, double* GKYL_RESTRICT qlocal)
 {
   qlocal[0] = qglobal[0];
@@ -481,7 +481,7 @@ rot_to_local(const double* tau1, const double* tau2, const double* norm, const d
   qlocal[28] = qglobal[28];
 }
 
-static inline void
+void
 rot_to_global(const double* tau1, const double* tau2, const double* norm, const double* GKYL_RESTRICT qlocal, double* GKYL_RESTRICT qglobal)
 {
   qglobal[0] = qlocal[0];
@@ -1152,7 +1152,7 @@ qfluct_roe_l(const struct gkyl_wv_eqn* eqn, enum gkyl_wv_flux_type type, const d
   }
 }
 
-static double
+double
 flux_jump(const struct gkyl_wv_eqn* eqn, const double* ql, const double* qr, double* flux_jump)
 {
   const struct wv_gr_euler *gr_euler = container_of(eqn, struct wv_gr_euler, eqn);
@@ -1188,7 +1188,7 @@ flux_jump(const struct gkyl_wv_eqn* eqn, const double* ql, const double* qr, dou
   return fmax(amaxl, amaxr);
 }
 
-static bool
+bool
 check_inv(const struct gkyl_wv_eqn* eqn, const double* q)
 {
   const struct wv_gr_euler *gr_euler = container_of(eqn, struct wv_gr_euler, eqn);
@@ -1205,7 +1205,7 @@ check_inv(const struct gkyl_wv_eqn* eqn, const double* q)
   }
 }
 
-static double
+double
 max_speed(const struct gkyl_wv_eqn* eqn, const double* q)
 {
   const struct wv_gr_euler *gr_euler = container_of(eqn, struct wv_gr_euler, eqn);
@@ -1214,7 +1214,7 @@ max_speed(const struct gkyl_wv_eqn* eqn, const double* q)
   return gkyl_gr_euler_max_abs_speed(gas_gamma, q);
 }
 
-static inline void
+void
 gr_euler_cons_to_diag(const struct gkyl_wv_eqn* eqn, const double* qin, double* diag)
 {
   for (int i = 0; i < 29; i++) {

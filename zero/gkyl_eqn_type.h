@@ -14,6 +14,7 @@ enum gkyl_eqn_type {
   GKYL_EQN_ADVECTION, // Scalar advection equation
   GKYL_EQN_GR_EULER, // General relativistic Euler equations.
   GKYL_EQN_GR_MAXWELL, // General relativistic Maxwell equations.
+  GKYL_EQN_GR_EULER_TETRAD, // General relativistic Euler equations, using the tetrad formalism.
 };
 
 // Identifiers for specific field object types
