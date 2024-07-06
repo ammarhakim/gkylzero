@@ -14,8 +14,22 @@
 typedef void (*p_vars_t)(const double *w, const double *dv, 
   double* GKYL_RESTRICT gamma, double* GKYL_RESTRICT gamma_inv);
 
-// Function pointer type for different GammaV functions (GammaV^2, 1/GammaV)
-typedef void (*sr_t)(const double *V_i, double* GKYL_RESTRICT out);
+typedef void (*sr_n_set_t)(int count, struct gkyl_nmat *A, struct gkyl_nmat *rhs, 
+  const double *M0, const double *M1i);
+
+typedef void (*sr_n_copy_t)(int count, struct gkyl_nmat *x, 
+  const double *M0, double* GKYL_RESTRICT n);
+
+typedef void (*sr_u_i_set_t)(int count, struct gkyl_nmat *A, struct gkyl_nmat *rhs, 
+  const double *M0, const double *M1i, const double *n);
+
+typedef void (*sr_u_i_copy_t)(int count, struct gkyl_nmat *x, 
+  double* GKYL_RESTRICT u_i);
+
+typedef void (*sr_pressure_t)(const double *w, const double *dxv, 
+  const double *gamma, const double *gamma_inv, 
+  const double *u_i, const double *f, 
+  double* GKYL_RESTRICT sr_pressure);
 
 // The cv_index[cd].vdim[vd] is used to index the various list of
 // kernels below
@@ -29,10 +43,41 @@ static struct { int vdim[4]; } cv_index[] = {
 
 // for use in kernel tables
 typedef struct { p_vars_t kernels[3]; } gkyl_dg_sr_p_vars_kern_list;
-typedef struct { sr_t kernels[3]; } gkyl_dg_sr_GammaV2_kern_list;
-typedef struct { sr_t kernels[3]; } gkyl_dg_sr_GammaV_inv_kern_list;
+typedef struct { sr_n_set_t kernels[3]; } gkyl_dg_sr_vars_n_set_kern_list;
+typedef struct { sr_n_copy_t kernels[3]; } gkyl_dg_sr_vars_n_copy_kern_list;
+typedef struct { sr_u_i_set_t kernels[3]; } gkyl_dg_sr_vars_u_i_set_kern_list;
+typedef struct { sr_u_i_copy_t kernels[3]; } gkyl_dg_sr_vars_u_i_copy_kern_list;
+typedef struct { sr_pressure_t kernels[3]; } gkyl_dg_sr_vars_pressure_kern_list;
 
-// Particle Lorentz boost factor gamma = sqrt(1 + p^2) (also 1/gamma) kernel list
+struct gkyl_dg_calc_sr_vars {
+  struct gkyl_rect_grid phase_grid; // Phase-space grid for cell spacing and cell center 
+                                    // in pressure velocity moment computation.
+  struct gkyl_rect_grid vel_grid; // Momentum (four-velocity)-space grid for cell spacing and cell center 
+                                  // in gamma and 1/gamma computation.
+  struct gkyl_range vel_range; // Momentum (four-velocity)-space range.
+  int poly_order; // polynomial order (determines whether we solve linear system or use basis_inv method).
+  struct gkyl_range mem_range; // Configuration-space range for linear solve.
+
+  struct gkyl_nmat *As, *xs; // matrices for LHS and RHS for V_drift solve to find rest-frame density.
+  gkyl_nmat_mem *mem; // memory for use in batched linear solve for V_drift solve to find rest-frame density.
+  int Ncomp; // number of components in the linear solve (vdim components of V_drift from weak division).
+
+  struct gkyl_nmat *As_u_i, *xs_u_i; // matrices for LHS and RHS for four-velocity solve.
+  gkyl_nmat_mem *mem_u_i; // memory for use in batched linear solve for four-velocity.
+  int Ncomp_u_i; // number of components in the linear solve (vdim+1 components of four-velocity from weak division).
+
+  p_vars_t sr_p_vars; // kernel for computing gamma = sqrt(1 + p^2) and its inverse on momentum (four-velocity) grid. 
+  sr_n_set_t sr_n_set; // kernel for setting matrices for linear solve for rest-frame density.
+  sr_n_copy_t sr_n_copy; // kernel for copying solution for V_drift from weak division and computing rest-frame density.
+  sr_u_i_set_t sr_u_i_set; // kernel for setting matrices for linear solve for bulk four-velocity.
+  sr_u_i_copy_t sr_u_i_copy; // kernel for copying solution to output for bulk four-velocity.
+  sr_pressure_t sr_pressure; // kernel for computing rest-frame pressure as a velocity moment of distribution function.
+
+  uint32_t flags;
+  struct gkyl_dg_calc_sr_vars *on_dev; // pointer to itself or device data.
+};
+
+// Particle Lorentz boost factor gamma = sqrt(1 + p^2) (also 1/gamma) kernel list (Serendipity kernels).
 GKYL_CU_D
 static const gkyl_dg_sr_p_vars_kern_list ser_sr_p_vars_kernels[] = {
   // 1x kernels
@@ -41,51 +86,156 @@ static const gkyl_dg_sr_p_vars_kern_list ser_sr_p_vars_kernels[] = {
   { NULL, NULL, sr_vars_lorentz_3v_ser_p2 }, // 2
 };
 
-// Lorentz boost factor *squared* kernel list
+// Set matrices for computing rest-frame density kernel list (Serendipity kernels).
 GKYL_CU_D
-static const gkyl_dg_sr_GammaV2_kern_list ser_sr_GammaV2_kernels[] = {
+static const gkyl_dg_sr_vars_n_set_kern_list ser_sr_vars_n_set_kernels[] = {
   // 1x kernels
-  { NULL, sr_Gamma2_1x1v_ser_p1, sr_Gamma2_1x1v_ser_p2 }, // 0
-  { NULL, sr_Gamma2_1x2v_ser_p1, sr_Gamma2_1x2v_ser_p2 }, // 1
-  { NULL, sr_Gamma2_1x3v_ser_p1, sr_Gamma2_1x3v_ser_p2 }, // 2
+  { NULL, sr_vars_n_set_1x1v_ser_p1, sr_vars_n_set_1x1v_ser_p2 }, // 0
+  { NULL, sr_vars_n_set_1x2v_ser_p1, sr_vars_n_set_1x2v_ser_p2 }, // 1
+  { NULL, sr_vars_n_set_1x3v_ser_p1, sr_vars_n_set_1x3v_ser_p2 }, // 2
   // 2x kernels
-  { NULL, sr_Gamma2_2x2v_ser_p1, NULL }, // 3
-  { NULL, sr_Gamma2_2x3v_ser_p1, NULL }, // 4
+  { NULL, sr_vars_n_set_2x2v_ser_p1, sr_vars_n_set_2x2v_ser_p2 }, // 3
+  { NULL, sr_vars_n_set_2x3v_ser_p1, sr_vars_n_set_2x3v_ser_p2 }, // 4
   // 3x kernels
-  { NULL, sr_Gamma2_3x3v_ser_p1, NULL }, // 5
+  { NULL, sr_vars_n_set_3x3v_ser_p1, NULL }, // 5
 };
 
-// *inverse* Lorentz boost factor kernel list
+// Copy solution for computing rest-frame density kernel list (Serendipity kernels).
 GKYL_CU_D
-static const gkyl_dg_sr_GammaV_inv_kern_list ser_sr_GammaV_inv_kernels[] = {
+static const gkyl_dg_sr_vars_n_copy_kern_list ser_sr_vars_n_copy_kernels[] = {
   // 1x kernels
-  { NULL, sr_Gamma_inv_1x1v_ser_p1, sr_Gamma_inv_1x1v_ser_p2 }, // 0
-  { NULL, sr_Gamma_inv_1x2v_ser_p1, sr_Gamma_inv_1x2v_ser_p2 }, // 1
-  { NULL, sr_Gamma_inv_1x3v_ser_p1, sr_Gamma_inv_1x3v_ser_p2 }, // 2
+  { NULL, sr_vars_n_copy_1x1v_ser_p1, sr_vars_n_copy_1x1v_ser_p2 }, // 0
+  { NULL, sr_vars_n_copy_1x2v_ser_p1, sr_vars_n_copy_1x2v_ser_p2 }, // 1
+  { NULL, sr_vars_n_copy_1x3v_ser_p1, sr_vars_n_copy_1x3v_ser_p2 }, // 2
   // 2x kernels
-  { NULL, sr_Gamma_inv_2x2v_ser_p1, NULL }, // 3
-  { NULL, sr_Gamma_inv_2x3v_ser_p1, NULL }, // 4
+  { NULL, sr_vars_n_copy_2x2v_ser_p1, sr_vars_n_copy_2x2v_ser_p2 }, // 3
+  { NULL, sr_vars_n_copy_2x3v_ser_p1, sr_vars_n_copy_2x3v_ser_p2 }, // 4
   // 3x kernels
-  { NULL, sr_Gamma_inv_3x3v_ser_p1, NULL }, // 5
+  { NULL, sr_vars_n_copy_3x3v_ser_p1, NULL }, // 5
+};
+
+// Set matrices for computing bulk four-velocity kernel list (Serendipity kernels).
+GKYL_CU_D
+static const gkyl_dg_sr_vars_u_i_set_kern_list ser_sr_vars_u_i_set_kernels[] = {
+  // 1x kernels
+  { NULL, sr_vars_u_i_set_1x1v_ser_p1, sr_vars_u_i_set_1x1v_ser_p2 }, // 0
+  { NULL, sr_vars_u_i_set_1x2v_ser_p1, sr_vars_u_i_set_1x2v_ser_p2 }, // 1
+  { NULL, sr_vars_u_i_set_1x3v_ser_p1, sr_vars_u_i_set_1x3v_ser_p2 }, // 2
+  // 2x kernels
+  { NULL, sr_vars_u_i_set_2x2v_ser_p1, sr_vars_u_i_set_2x2v_ser_p2 }, // 3
+  { NULL, sr_vars_u_i_set_2x3v_ser_p1, sr_vars_u_i_set_2x3v_ser_p2 }, // 4
+  // 3x kernels
+  { NULL, sr_vars_u_i_set_3x3v_ser_p1, NULL }, // 5
+};
+
+// Copy solution for computing bulk four-velocity kernel list (Serendipity kernels).
+GKYL_CU_D
+static const gkyl_dg_sr_vars_u_i_copy_kern_list ser_sr_vars_u_i_copy_kernels[] = {
+  // 1x kernels
+  { NULL, sr_vars_u_i_copy_1x1v_ser_p1, sr_vars_u_i_copy_1x1v_ser_p2 }, // 0
+  { NULL, sr_vars_u_i_copy_1x2v_ser_p1, sr_vars_u_i_copy_1x2v_ser_p2 }, // 1
+  { NULL, sr_vars_u_i_copy_1x3v_ser_p1, sr_vars_u_i_copy_1x3v_ser_p2 }, // 2
+  // 2x kernels
+  { NULL, sr_vars_u_i_copy_2x2v_ser_p1, sr_vars_u_i_copy_2x2v_ser_p2 }, // 3
+  { NULL, sr_vars_u_i_copy_2x3v_ser_p1, sr_vars_u_i_copy_2x3v_ser_p2 }, // 4
+  // 3x kernels
+  { NULL, sr_vars_u_i_copy_3x3v_ser_p1, NULL }, // 5
+};
+
+// Compute rest-frame pressure kernel list (Serendipity kernels).
+GKYL_CU_D
+static const gkyl_dg_sr_vars_pressure_kern_list ser_sr_vars_pressure_kernels[] = {
+  // 1x kernels
+  { NULL, sr_vars_pressure_1x1v_ser_p1, sr_vars_pressure_1x1v_ser_p2 }, // 0
+  { NULL, sr_vars_pressure_1x2v_ser_p1, sr_vars_pressure_1x2v_ser_p2 }, // 1
+  { NULL, sr_vars_pressure_1x3v_ser_p1, sr_vars_pressure_1x3v_ser_p2 }, // 2
+  // 2x kernels
+  { NULL, sr_vars_pressure_2x2v_ser_p1, sr_vars_pressure_2x2v_ser_p2 }, // 3
+  { NULL, sr_vars_pressure_2x3v_ser_p1, sr_vars_pressure_2x3v_ser_p2 }, // 4
+  // 3x kernels
+  { NULL, sr_vars_pressure_3x3v_ser_p1, NULL }, // 5
 };
 
 GKYL_CU_D
 static p_vars_t
-choose_ser_sr_p_vars_kern(int vdim, int poly_order)
+choose_sr_p_vars_kern(enum gkyl_basis_type b_type, int vdim, int poly_order)
 {
-  return ser_sr_p_vars_kernels[vdim-1].kernels[poly_order];
+  switch (b_type) {
+    case GKYL_BASIS_MODAL_SERENDIPITY:  
+      return ser_sr_p_vars_kernels[vdim-1].kernels[poly_order];
+      break;
+    default:
+      assert(false);
+      break;  
+  }
 }
 
 GKYL_CU_D
-static sr_t
-choose_ser_sr_GammaV2_kern(int cdim, int vdim, int poly_order)
+static sr_n_set_t
+choose_sr_vars_n_set_kern(enum gkyl_basis_type b_type, int cdim, int vdim, int poly_order)
 {
-  return ser_sr_GammaV2_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
+  switch (b_type) {
+    case GKYL_BASIS_MODAL_SERENDIPITY:    
+      return ser_sr_vars_n_set_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
+      break;
+    default:
+      assert(false);
+      break;  
+  }
 }
 
 GKYL_CU_D
-static sr_t
-choose_ser_sr_GammaV_inv_kern(int cdim, int vdim, int poly_order)
+static sr_n_copy_t
+choose_sr_vars_n_copy_kern(enum gkyl_basis_type b_type, int cdim, int vdim, int poly_order)
 {
-  return ser_sr_GammaV_inv_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
+  switch (b_type) {
+    case GKYL_BASIS_MODAL_SERENDIPITY:   
+      return ser_sr_vars_n_copy_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
+      break;
+    default:
+      assert(false);
+      break;  
+  }
+}
+
+GKYL_CU_D
+static sr_u_i_set_t
+choose_sr_vars_u_i_set_kern(enum gkyl_basis_type b_type, int cdim, int vdim, int poly_order)
+{
+  switch (b_type) {
+    case GKYL_BASIS_MODAL_SERENDIPITY:    
+      return ser_sr_vars_u_i_set_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
+      break;
+    default:
+      assert(false);
+      break;  
+  }
+}
+
+GKYL_CU_D
+static sr_u_i_copy_t
+choose_sr_vars_u_i_copy_kern(enum gkyl_basis_type b_type, int cdim, int vdim, int poly_order)
+{
+  switch (b_type) {
+    case GKYL_BASIS_MODAL_SERENDIPITY:   
+      return ser_sr_vars_u_i_copy_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
+      break;
+    default:
+      assert(false);
+      break;  
+  }
+}
+
+GKYL_CU_D
+static sr_pressure_t
+choose_sr_vars_pressure_kern(enum gkyl_basis_type b_type, int cdim, int vdim, int poly_order)
+{
+  switch (b_type) {
+    case GKYL_BASIS_MODAL_SERENDIPITY:    
+      return ser_sr_vars_pressure_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
+      break;
+    default:
+      assert(false);
+      break;  
+  }
 }

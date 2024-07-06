@@ -5,7 +5,7 @@
 #include <gkyl_basis.h>
 #include <gkyl_dg_bin_ops.h>
 #include <gkyl_dg_calc_canonical_pb_vars.h>
-#include <gkyl_dg_calc_canonical_pb_vars_priv.h>
+#include <gkyl_dg_calc_sr_vars.h>
 #include <gkyl_eqn_type.h>
 #include <gkyl_range.h>
 
@@ -29,9 +29,11 @@ struct gkyl_vlasov_lte_moments
   union {
     // special relativistic Vlasov-Maxwell model
     struct {
-      struct gkyl_array *GammaV2;
-      struct gkyl_array *GammaV_inv;
-      struct gkyl_array *M0_minus_V_drift_dot_M1i;  
+      struct gkyl_range vel_range;
+      struct gkyl_array *u_i;
+      struct gkyl_array *gamma;
+      struct gkyl_array *gamma_inv;
+      struct gkyl_dg_calc_sr_vars *sr_vars;
     };
     // canonical-pb model
     struct {

@@ -5,67 +5,148 @@
 #include <gkyl_rect_grid.h>
 #include <gkyl_basis.h>
 
+// Object type
+typedef struct gkyl_dg_calc_sr_vars gkyl_dg_calc_sr_vars;
+
+/**
+ * Create new updater to compute relativistic variables needed in 
+ * updates and used for diagnostics. Methods compute:
+ * "p_vars" : the particle Lorentz boost factor gamma = sqrt(1 + p^2) and its inverse
+ * n : the rest-frame plasma density n = GammaV_inv*M0 where GammaV_inv = sqrt(1 - |V_drift|^2)
+ *     and V_drift is the bulk velocity computed via weak division V_drift = M1i/M0
+ * u_i : the bulk four-velocity (GammaV, GammaV*V_drift) computed using weak division from M0 and M1i
+ * p = n*T : the rest-frame pressure. The rest-frame pressure is computed as a velocity moment 
+ *           with the weight = gamma*GammaV^2 - 2*GammaV*(v . p) + 1/gamma*((v . p)^2 - 1)
+ *           where v is the spatial component of the bulk four-velocity: GammaV*V_drift, 
+ *           GammaV is the bulk Lorentz boost factor: sqrt(1 + v^2), 
+ *           p is the spatial component of the particle four-velocity, 
+ *           and gamma = sqrt(1 + p^2) is the particle Lorentz boost factor.
+ * 
+ * @param phase_grid Phase-space grid (for getting cell spacing and cell center in pressure calculation) 
+ * @param vel_grid   Momentum (four-velocity)-space grid 
+ *                   (for getting cell spacing and cell center in gamma and 1/gamma calculation) 
+ * @param conf_basis Configuration-space basis functions
+ * @param vel_basis  Momentum (four-velocity)-space basis functions
+ * @param mem_range  Configuration-space range that sets the size of the bin_op memory
+ *                   for computing V_drift. Note range is stored so updater loops 
+ *                   over consistent range solving linear systems since memory is pre-allocated.
+ * @param vel_range  Momentum (four-velocity)-space
+ * @param use_gpu bool to determine if on GPU
+ * @return New updater pointer.
+ */
+struct gkyl_dg_calc_sr_vars* 
+gkyl_dg_calc_sr_vars_new(const struct gkyl_rect_grid *phase_grid, const struct gkyl_rect_grid *vel_grid, 
+  const struct gkyl_basis *conf_basis, const struct gkyl_basis *vel_basis, 
+  const struct gkyl_range *mem_range, const struct gkyl_range *vel_range, bool use_gpu);
+
+/**
+ * Create new updater to compute relativistic variables on
+ * NV-GPU. See new() method for documentation.
+ */
+struct gkyl_dg_calc_sr_vars* 
+gkyl_dg_calc_sr_vars_cu_dev_new(const struct gkyl_rect_grid *phase_grid, const struct gkyl_rect_grid *vel_grid, 
+  const struct gkyl_basis *conf_basis, const struct gkyl_basis *vel_basis, 
+  const struct gkyl_range *mem_range, const struct gkyl_range *vel_range);
+
 /**
  * Compute the momentum grid variables for special relativistic simulations
  * Uses special kernels which convert between a Gauss-Lobatto nodal basis and
- * our modal basis to insure continuity of the momentum grid variables.
+ * our modal basis to insure continuity of the momentum (four-velocity)-grid variables.
  *
- * @param vgrid Momentum-space grid
- * @param vbasis Momentum-space basis
- * @param vrange Momentum-space range
- * @param gamma Output array of particle Lorentz boost factor, gamma = sqrt(1 + p^2) 
+ * @param up        Updater for computing sr variables 
+ * @param gamma     Output array of particle Lorentz boost factor, gamma = sqrt(1 + p^2) 
  * @param gamma_inv Output array of inverse particle Lorentz boost factor, 1/gamma = 1/sqrt(1 + p^2) 
  */
-void gkyl_calc_sr_vars_init_p_vars(const struct gkyl_rect_grid *vgrid, 
-  const struct gkyl_basis *vbasis, const struct gkyl_range *vrange,
+void gkyl_calc_sr_vars_init_p_vars(struct gkyl_dg_calc_sr_vars *up, 
   struct gkyl_array* gamma, struct gkyl_array* gamma_inv);
 
 /**
- * Compute the square of the Lorentz boost factor for a given bulk velocity, V.
- * GammaV2 = 1/(1 - V^2/c^2)
- * Note order of operations is designed to minimize aliasing errors
- * 1. Compute (1 - V^2/c^2) using basis_exp_sq (see gkyl_basis_*_exp_sq.h in kernels/basis/)
- * 2. Compute 1/(1 - V^2/c^2) using basis_inv (see gkyl_basis_*_inv.h in kernels/basis/)
- *
- * @param basis Basis functions used in expansions
- * @param range Range to apply division operator
- * @param V Input array which contain bulk velocity
- * @param GammaV2 Output array of the square of the Lorentz boost factor
- */
-void gkyl_calc_sr_vars_GammaV2(const struct gkyl_basis* cbasis, const struct gkyl_basis* pbasis, 
-  const struct gkyl_range* range, 
-  const struct gkyl_array* V, struct gkyl_array* GammaV2);
-
-/**
- * Compute the inverse of the Lorentz boost factor for a given bulk velocity, V.
- * GammaV_inv = sqrt(1 - V^2/c^2)
- * Note order of operations is designed to minimize aliasing errors
- * 1. Compute GammV2_inv = 1 - V^2/c^2 using basis_exp_sq 
+ * Compute the rest-frame density n = GammaV_inv*M0 where GammaV_inv = sqrt(1 - |V_drift|^2).
+ * Updater first computes V_drift from M1i = GammaV*n*V_drift and M0 = GammaV*n using weak division. 
+ * The updater then attempts to do the following operation
+ * 1. Compute (GammaV_inv)^2 = 1 - |V_drift|^2 using basis_exp_sq 
  *    (see gkyl_basis_*_exp_sq.h in kernels/basis/)
  * 2. Project onto quadrature points, evaluate square root point wise, 
  *    and project back onto modal basis using basis_sqrt (see gkyl_basis_*_sqrt.h in kernels/basis/)
+ * If any quadrature points are assessed to be negative, the updater then switches to a more robust
+ * evaluation of V_drift at p=1 Gauss-Lobatto quadrature points (the corners of the reference element)
+ * and then evaluates 1 - (V_drift_lobatto)^2 (with V_drift_lobatto = 1.0e-16 if the result is still negative).
+ * We can then guarantee the 1 - (V_drift_lobatto)^2 > 0.0 at quadrature points and GammaV_inv is well defined.
+ * Finally, the rest-frame density is computed with weak multiplication with the final GammaV_inv basis expansion.
  *
- * @param basis Basis functions used in expansions
- * @param range Range to apply division operator
- * @param V Input array which contain bulk velocity
- * @param GammaV_inv Output array of inverse Lorentz boost factor
+ * @param up  Updater for computing sr variables 
+ * @param M0  Input lab-frame density = GammaV*n
+ * @param M1i Input lab-frame flux = GammaV*n*V_drift
+ * @param n   Output rest-frame density.
  */
-void gkyl_calc_sr_vars_GammaV_inv(const struct gkyl_basis* cbasis, const struct gkyl_basis* pbasis, 
-  const struct gkyl_range* range, 
-  const struct gkyl_array* V, struct gkyl_array* GammaV_inv);
+void gkyl_dg_calc_sr_vars_n(struct gkyl_dg_calc_sr_vars *up, 
+  const struct gkyl_array* M0, const struct gkyl_array* M1i, struct gkyl_array* n);
+
+/**
+ * Compute the bulk four-velocity u_i = (GammaV, GammaV*V_drift).
+ * We compute these quantities using the rest-frame density and the lab-frame moments 
+ * GammaV = M0/n
+ * GammaV*V_drift = M1i/n
+ * using weak division. With this formulation, GammaV = sqrt(1 + |u_i|^2) and so long 
+ * as M0 and n are positive, GammaV will be realizable without worrying about u_i ~ c.
+ *
+ * @param up  Updater for computing sr variables 
+ * @param M0  Input lab-frame density = GammaV*n
+ * @param M1i Input lab-frame flux = GammaV*n*V_drift
+ * @param n   Input rest-frame density.
+ * @param u_i Output bulk four-velocity (GammaV, GammaV*V_drift)
+ */
+void gkyl_dg_calc_sr_vars_u_i(struct gkyl_dg_calc_sr_vars *up, 
+  const struct gkyl_array* M0, const struct gkyl_array* M1i, const struct gkyl_array* n, 
+  struct gkyl_array* u_i);
+
+/**
+ * Compute the rest-frame pressure = n*T. The rest-frame pressure is computed as a velocity moment.
+ * The weight = gamma*GammaV^2 - 2*GammaV*(v . p) + 1/gamma*((v . p)^2 - 1)
+ * where v is the spatial component of the bulk four-velocity: GammaV*V_drift, 
+ * GammaV is the bulk Lorentz boost factor: sqrt(1 + v^2), 
+ * p is the spatial component of the particle four-velocity, 
+ * and gamma = sqrt(1 + p^2) is the particle Lorentz boost factor.
+ *
+ * @param up  Updater for computing sr variables 
+ * @param conf_range  Configuration-space range
+ * @param vel_range   Momentum (four-velocity)-space range
+ * @param phase_range Phase-space range
+ * @param gamma       Input array of particle Lorentz boost factor, gamma = sqrt(1 + p^2) 
+ * @param gamma_inv   Input array of inverse particle Lorentz boost factor, 1/gamma = 1/sqrt(1 + p^2) 
+ * @param u_i         Input bulk four-velocity (GammaV, GammaV*V_drift)
+ * @param f           Input distribution function
+ * @param sr_pressure Output pressure
+ */
+void gkyl_dg_calc_sr_vars_pressure(struct gkyl_dg_calc_sr_vars *up, 
+  const struct gkyl_range *conf_range, const struct gkyl_range *phase_range,
+  const struct gkyl_array* gamma, const struct gkyl_array* gamma_inv, 
+  const struct gkyl_array* u_i, const struct gkyl_array* f, 
+  struct gkyl_array* sr_pressure);
+
+/**
+ * Delete pointer to updater to compute sr variables.
+ *
+ * @param up Updater to delete.
+ */
+void gkyl_dg_calc_sr_vars_release(struct gkyl_dg_calc_sr_vars *up);
 
 /**
  * Host-side wrappers for sr vars operations on device
  */
 
-void gkyl_calc_sr_vars_init_p_vars_cu(const struct gkyl_rect_grid *vgrid, 
-  const struct gkyl_basis *vbasis, const struct gkyl_range *vrange,
+void gkyl_calc_sr_vars_init_p_vars_cu(struct gkyl_dg_calc_sr_vars *up, 
   struct gkyl_array* gamma, struct gkyl_array* gamma_inv);
 
-void gkyl_calc_sr_vars_GammaV2_cu(const struct gkyl_basis* cbasis, const struct gkyl_basis* pbasis, 
-  const struct gkyl_range* range, 
-  const struct gkyl_array* V, struct gkyl_array* GammaV2);
+void gkyl_dg_calc_sr_vars_n_cu(struct gkyl_dg_calc_sr_vars *up, 
+  const struct gkyl_array* M0, const struct gkyl_array* M1i, struct gkyl_array* n);
 
-void gkyl_calc_sr_vars_GammaV_inv_cu(const struct gkyl_basis* cbasis, const struct gkyl_basis* pbasis, 
-  const struct gkyl_range* range, 
-  const struct gkyl_array* V, struct gkyl_array* GammaV_inv);
+void gkyl_dg_calc_sr_vars_u_i_cu(struct gkyl_dg_calc_sr_vars *up, 
+  const struct gkyl_array* M0, const struct gkyl_array* M1i, const struct gkyl_array* n, 
+  struct gkyl_array* u_i);
+
+void gkyl_dg_calc_sr_vars_pressure_cu(struct gkyl_dg_calc_sr_vars *up, 
+  const struct gkyl_range *conf_range, const struct gkyl_range *phase_range,
+  const struct gkyl_array* gamma, const struct gkyl_array* gamma_inv, 
+  const struct gkyl_array* u_i, const struct gkyl_array* f, 
+  struct gkyl_array* sr_pressure);

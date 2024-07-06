@@ -341,6 +341,314 @@ kernel_vlasov_sr_M1i_3x3v_ser_p1(const struct gkyl_mom_type *momt, const double 
 
 GKYL_CU_DH
 static void
+kernel_vlasov_sr_M2_1x1v_ser_p1(const struct gkyl_mom_type *momt, const double *xc, const double *dx,
+  const int *idx, const double *f, double* out, void *param)
+{
+  struct mom_type_vlasov_sr *mom_vm_sr = container_of(momt, struct mom_type_vlasov_sr, momt);
+
+  int cdim = mom_vm_sr->momt.cdim;
+  int pdim = mom_vm_sr->momt.pdim;
+  int idx_vel[GKYL_MAX_DIM];
+  for (int i=0; i<pdim-cdim; ++i)
+    idx_vel[i] = idx[cdim+i];
+
+  long vidx = gkyl_range_idx(&mom_vm_sr->vel_range, idx_vel);
+
+  return vlasov_sr_M2_1x1v_ser_p1(xc, dx, idx, 
+    (const double*) gkyl_array_cfetch(mom_vm_sr->auxfields.gamma, vidx),
+    f, out);
+}
+
+GKYL_CU_DH
+static void
+kernel_vlasov_sr_M2_1x1v_ser_p2(const struct gkyl_mom_type *momt, const double *xc, const double *dx,
+  const int *idx, const double *f, double* out, void *param)
+{
+  struct mom_type_vlasov_sr *mom_vm_sr = container_of(momt, struct mom_type_vlasov_sr, momt);
+
+  int cdim = mom_vm_sr->momt.cdim;
+  int pdim = mom_vm_sr->momt.pdim;
+  int idx_vel[GKYL_MAX_DIM];
+  for (int i=0; i<pdim-cdim; ++i)
+    idx_vel[i] = idx[cdim+i];
+
+  long vidx = gkyl_range_idx(&mom_vm_sr->vel_range, idx_vel);
+
+  return vlasov_sr_M2_1x1v_ser_p2(xc, dx, idx, 
+    (const double*) gkyl_array_cfetch(mom_vm_sr->auxfields.gamma, vidx),
+    f, out);
+}
+
+GKYL_CU_DH
+static void
+kernel_vlasov_sr_M2_1x2v_ser_p1(const struct gkyl_mom_type *momt, const double *xc, const double *dx,
+  const int *idx, const double *f, double* out, void *param)
+{
+  struct mom_type_vlasov_sr *mom_vm_sr = container_of(momt, struct mom_type_vlasov_sr, momt);
+
+  int cdim = mom_vm_sr->momt.cdim;
+  int pdim = mom_vm_sr->momt.pdim;
+  int idx_vel[GKYL_MAX_DIM];
+  for (int i=0; i<pdim-cdim; ++i)
+    idx_vel[i] = idx[cdim+i];
+
+  long vidx = gkyl_range_idx(&mom_vm_sr->vel_range, idx_vel);
+
+  return vlasov_sr_M2_1x2v_ser_p1(xc, dx, idx, 
+    (const double*) gkyl_array_cfetch(mom_vm_sr->auxfields.gamma, vidx),
+    f, out);
+}
+
+GKYL_CU_DH
+static void
+kernel_vlasov_sr_M2_1x2v_ser_p2(const struct gkyl_mom_type *momt, const double *xc, const double *dx,
+  const int *idx, const double *f, double* out, void *param)
+{
+  struct mom_type_vlasov_sr *mom_vm_sr = container_of(momt, struct mom_type_vlasov_sr, momt);
+
+  int cdim = mom_vm_sr->momt.cdim;
+  int pdim = mom_vm_sr->momt.pdim;
+  int idx_vel[GKYL_MAX_DIM];
+  for (int i=0; i<pdim-cdim; ++i)
+    idx_vel[i] = idx[cdim+i];
+
+  long vidx = gkyl_range_idx(&mom_vm_sr->vel_range, idx_vel);
+
+  return vlasov_sr_M2_1x2v_ser_p2(xc, dx, idx, 
+    (const double*) gkyl_array_cfetch(mom_vm_sr->auxfields.gamma, vidx),
+    f, out);
+}
+
+GKYL_CU_DH
+static void
+kernel_vlasov_sr_M2_1x3v_ser_p1(const struct gkyl_mom_type *momt, const double *xc, const double *dx,
+  const int *idx, const double *f, double* out, void *param)
+{
+  struct mom_type_vlasov_sr *mom_vm_sr = container_of(momt, struct mom_type_vlasov_sr, momt);
+
+  int cdim = mom_vm_sr->momt.cdim;
+  int pdim = mom_vm_sr->momt.pdim;
+  int idx_vel[GKYL_MAX_DIM];
+  for (int i=0; i<pdim-cdim; ++i)
+    idx_vel[i] = idx[cdim+i];
+
+  long vidx = gkyl_range_idx(&mom_vm_sr->vel_range, idx_vel);
+
+  return vlasov_sr_M2_1x3v_ser_p1(xc, dx, idx, 
+    (const double*) gkyl_array_cfetch(mom_vm_sr->auxfields.gamma, vidx),
+    f, out);
+}
+
+GKYL_CU_DH
+static void
+kernel_vlasov_sr_M2_1x3v_ser_p2(const struct gkyl_mom_type *momt, const double *xc, const double *dx,
+  const int *idx, const double *f, double* out, void *param)
+{
+  struct mom_type_vlasov_sr *mom_vm_sr = container_of(momt, struct mom_type_vlasov_sr, momt);
+
+  int cdim = mom_vm_sr->momt.cdim;
+  int pdim = mom_vm_sr->momt.pdim;
+  int idx_vel[GKYL_MAX_DIM];
+  for (int i=0; i<pdim-cdim; ++i)
+    idx_vel[i] = idx[cdim+i];
+
+  long vidx = gkyl_range_idx(&mom_vm_sr->vel_range, idx_vel);
+
+  return vlasov_sr_M2_1x3v_ser_p2(xc, dx, idx, 
+    (const double*) gkyl_array_cfetch(mom_vm_sr->auxfields.gamma, vidx),
+    f, out);
+}
+
+GKYL_CU_DH
+static void
+kernel_vlasov_sr_M2_2x2v_ser_p1(const struct gkyl_mom_type *momt, const double *xc, const double *dx,
+  const int *idx, const double *f, double* out, void *param)
+{
+  struct mom_type_vlasov_sr *mom_vm_sr = container_of(momt, struct mom_type_vlasov_sr, momt);
+
+  int cdim = mom_vm_sr->momt.cdim;
+  int pdim = mom_vm_sr->momt.pdim;
+  int idx_vel[GKYL_MAX_DIM];
+  for (int i=0; i<pdim-cdim; ++i)
+    idx_vel[i] = idx[cdim+i];
+
+  long vidx = gkyl_range_idx(&mom_vm_sr->vel_range, idx_vel);
+
+  return vlasov_sr_M2_2x2v_ser_p1(xc, dx, idx, 
+    (const double*) gkyl_array_cfetch(mom_vm_sr->auxfields.gamma, vidx),
+    f, out);
+}
+
+GKYL_CU_DH
+static void
+kernel_vlasov_sr_M2_2x2v_ser_p2(const struct gkyl_mom_type *momt, const double *xc, const double *dx,
+  const int *idx, const double *f, double* out, void *param)
+{
+  struct mom_type_vlasov_sr *mom_vm_sr = container_of(momt, struct mom_type_vlasov_sr, momt);
+
+  int cdim = mom_vm_sr->momt.cdim;
+  int pdim = mom_vm_sr->momt.pdim;
+  int idx_vel[GKYL_MAX_DIM];
+  for (int i=0; i<pdim-cdim; ++i)
+    idx_vel[i] = idx[cdim+i];
+
+  long vidx = gkyl_range_idx(&mom_vm_sr->vel_range, idx_vel);
+
+  return vlasov_sr_M2_2x2v_ser_p2(xc, dx, idx, 
+    (const double*) gkyl_array_cfetch(mom_vm_sr->auxfields.gamma, vidx),
+    f, out);
+}
+
+GKYL_CU_DH
+static void
+kernel_vlasov_sr_M2_2x3v_ser_p1(const struct gkyl_mom_type *momt, const double *xc, const double *dx,
+  const int *idx, const double *f, double* out, void *param)
+{
+  struct mom_type_vlasov_sr *mom_vm_sr = container_of(momt, struct mom_type_vlasov_sr, momt);
+
+  int cdim = mom_vm_sr->momt.cdim;
+  int pdim = mom_vm_sr->momt.pdim;
+  int idx_vel[GKYL_MAX_DIM];
+  for (int i=0; i<pdim-cdim; ++i)
+    idx_vel[i] = idx[cdim+i];
+
+  long vidx = gkyl_range_idx(&mom_vm_sr->vel_range, idx_vel);
+
+  return vlasov_sr_M2_2x3v_ser_p1(xc, dx, idx, 
+    (const double*) gkyl_array_cfetch(mom_vm_sr->auxfields.gamma, vidx),
+    f, out);
+}
+
+GKYL_CU_DH
+static void
+kernel_vlasov_sr_M2_2x3v_ser_p2(const struct gkyl_mom_type *momt, const double *xc, const double *dx,
+  const int *idx, const double *f, double* out, void *param)
+{
+  struct mom_type_vlasov_sr *mom_vm_sr = container_of(momt, struct mom_type_vlasov_sr, momt);
+
+  int cdim = mom_vm_sr->momt.cdim;
+  int pdim = mom_vm_sr->momt.pdim;
+  int idx_vel[GKYL_MAX_DIM];
+  for (int i=0; i<pdim-cdim; ++i)
+    idx_vel[i] = idx[cdim+i];
+
+  long vidx = gkyl_range_idx(&mom_vm_sr->vel_range, idx_vel);
+
+  return vlasov_sr_M2_2x3v_ser_p2(xc, dx, idx, 
+    (const double*) gkyl_array_cfetch(mom_vm_sr->auxfields.gamma, vidx),
+    f, out);
+}
+
+GKYL_CU_DH
+static void
+kernel_vlasov_sr_M2_3x3v_ser_p1(const struct gkyl_mom_type *momt, const double *xc, const double *dx,
+  const int *idx, const double *f, double* out, void *param)
+{
+  struct mom_type_vlasov_sr *mom_vm_sr = container_of(momt, struct mom_type_vlasov_sr, momt);
+
+  int cdim = mom_vm_sr->momt.cdim;
+  int pdim = mom_vm_sr->momt.pdim;
+  int idx_vel[GKYL_MAX_DIM];
+  for (int i=0; i<pdim-cdim; ++i)
+    idx_vel[i] = idx[cdim+i];
+
+  long vidx = gkyl_range_idx(&mom_vm_sr->vel_range, idx_vel);
+
+  return vlasov_sr_M2_3x3v_ser_p1(xc, dx, idx, 
+    (const double*) gkyl_array_cfetch(mom_vm_sr->auxfields.gamma, vidx),
+    f, out);
+}
+
+GKYL_CU_DH
+static void
+kernel_vlasov_sr_M3i_1x1v_ser_p1(const struct gkyl_mom_type *momt, const double *xc, const double *dx,
+  const int *idx, const double *f, double* out, void *param)
+{
+  return vlasov_sr_M3i_1x1v_ser_p1(xc, dx, idx, f, out);  
+}
+
+GKYL_CU_DH
+static void
+kernel_vlasov_sr_M3i_1x1v_ser_p2(const struct gkyl_mom_type *momt, const double *xc, const double *dx,
+  const int *idx, const double *f, double* out, void *param)
+{
+  return vlasov_sr_M3i_1x1v_ser_p2(xc, dx, idx, f, out);  
+}
+
+GKYL_CU_DH
+static void
+kernel_vlasov_sr_M3i_1x2v_ser_p1(const struct gkyl_mom_type *momt, const double *xc, const double *dx,
+  const int *idx, const double *f, double* out, void *param)
+{
+  return vlasov_sr_M3i_1x2v_ser_p1(xc, dx, idx, f, out);  
+}
+
+GKYL_CU_DH
+static void
+kernel_vlasov_sr_M3i_1x2v_ser_p2(const struct gkyl_mom_type *momt, const double *xc, const double *dx,
+  const int *idx, const double *f, double* out, void *param)
+{
+  return vlasov_sr_M3i_1x2v_ser_p2(xc, dx, idx, f, out);  
+}
+
+GKYL_CU_DH
+static void
+kernel_vlasov_sr_M3i_1x3v_ser_p1(const struct gkyl_mom_type *momt, const double *xc, const double *dx,
+  const int *idx, const double *f, double* out, void *param)
+{
+  return vlasov_sr_M3i_1x3v_ser_p1(xc, dx, idx, f, out);  
+}
+
+GKYL_CU_DH
+static void
+kernel_vlasov_sr_M3i_1x3v_ser_p2(const struct gkyl_mom_type *momt, const double *xc, const double *dx,
+  const int *idx, const double *f, double* out, void *param)
+{
+  return vlasov_sr_M3i_1x3v_ser_p2(xc, dx, idx, f, out);  
+}
+
+GKYL_CU_DH
+static void
+kernel_vlasov_sr_M3i_2x2v_ser_p1(const struct gkyl_mom_type *momt, const double *xc, const double *dx,
+  const int *idx, const double *f, double* out, void *param)
+{
+  return vlasov_sr_M3i_2x2v_ser_p1(xc, dx, idx, f, out);  
+}
+
+GKYL_CU_DH
+static void
+kernel_vlasov_sr_M3i_2x2v_ser_p2(const struct gkyl_mom_type *momt, const double *xc, const double *dx,
+  const int *idx, const double *f, double* out, void *param)
+{
+  return vlasov_sr_M3i_2x2v_ser_p2(xc, dx, idx, f, out);  
+}
+
+GKYL_CU_DH
+static void
+kernel_vlasov_sr_M3i_2x3v_ser_p1(const struct gkyl_mom_type *momt, const double *xc, const double *dx,
+  const int *idx, const double *f, double* out, void *param)
+{
+  return vlasov_sr_M3i_2x3v_ser_p1(xc, dx, idx, f, out);  
+}
+
+GKYL_CU_DH
+static void
+kernel_vlasov_sr_M3i_2x3v_ser_p2(const struct gkyl_mom_type *momt, const double *xc, const double *dx,
+  const int *idx, const double *f, double* out, void *param)
+{
+  return vlasov_sr_M3i_2x3v_ser_p2(xc, dx, idx, f, out);  
+}
+
+GKYL_CU_DH
+static void
+kernel_vlasov_sr_M3i_3x3v_ser_p1(const struct gkyl_mom_type *momt, const double *xc, const double *dx,
+  const int *idx, const double *f, double* out, void *param)
+{
+  return vlasov_sr_M3i_3x3v_ser_p1(xc, dx, idx, f, out);  
+}
+
+GKYL_CU_DH
+static void
 kernel_vlasov_sr_Ni_1x1v_ser_p1(const struct gkyl_mom_type *momt, const double *xc, const double *dx,
   const int *idx, const double *f, double* out, void *param)
 {
@@ -556,490 +864,6 @@ kernel_vlasov_sr_Ni_3x3v_ser_p1(const struct gkyl_mom_type *momt, const double *
 
   return vlasov_sr_Ni_3x3v_ser_p1(xc, dx, idx, 
     (const double*) gkyl_array_cfetch(mom_vm_sr->auxfields.gamma, vidx),
-    f, out);
-}
-
-GKYL_CU_DH
-static void
-kernel_vlasov_sr_Energy_1x1v_ser_p1(const struct gkyl_mom_type *momt, const double *xc, const double *dx,
-  const int *idx, const double *f, double* out, void *param)
-{
-  struct mom_type_vlasov_sr *mom_vm_sr = container_of(momt, struct mom_type_vlasov_sr, momt);
-
-  int cdim = mom_vm_sr->momt.cdim;
-  int pdim = mom_vm_sr->momt.pdim;
-  int idx_vel[GKYL_MAX_DIM];
-  for (int i=0; i<pdim-cdim; ++i)
-    idx_vel[i] = idx[cdim+i];
-
-  long vidx = gkyl_range_idx(&mom_vm_sr->vel_range, idx_vel);
-
-  return vlasov_sr_Energy_1x1v_ser_p1(xc, dx, idx, 
-    (const double*) gkyl_array_cfetch(mom_vm_sr->auxfields.gamma, vidx),
-    f, out);
-}
-
-GKYL_CU_DH
-static void
-kernel_vlasov_sr_Energy_1x1v_ser_p2(const struct gkyl_mom_type *momt, const double *xc, const double *dx,
-  const int *idx, const double *f, double* out, void *param)
-{
-  struct mom_type_vlasov_sr *mom_vm_sr = container_of(momt, struct mom_type_vlasov_sr, momt);
-
-  int cdim = mom_vm_sr->momt.cdim;
-  int pdim = mom_vm_sr->momt.pdim;
-  int idx_vel[GKYL_MAX_DIM];
-  for (int i=0; i<pdim-cdim; ++i)
-    idx_vel[i] = idx[cdim+i];
-
-  long vidx = gkyl_range_idx(&mom_vm_sr->vel_range, idx_vel);
-
-  return vlasov_sr_Energy_1x1v_ser_p2(xc, dx, idx, 
-    (const double*) gkyl_array_cfetch(mom_vm_sr->auxfields.gamma, vidx),
-    f, out);
-}
-
-GKYL_CU_DH
-static void
-kernel_vlasov_sr_Energy_1x2v_ser_p1(const struct gkyl_mom_type *momt, const double *xc, const double *dx,
-  const int *idx, const double *f, double* out, void *param)
-{
-  struct mom_type_vlasov_sr *mom_vm_sr = container_of(momt, struct mom_type_vlasov_sr, momt);
-
-  int cdim = mom_vm_sr->momt.cdim;
-  int pdim = mom_vm_sr->momt.pdim;
-  int idx_vel[GKYL_MAX_DIM];
-  for (int i=0; i<pdim-cdim; ++i)
-    idx_vel[i] = idx[cdim+i];
-
-  long vidx = gkyl_range_idx(&mom_vm_sr->vel_range, idx_vel);
-
-  return vlasov_sr_Energy_1x2v_ser_p1(xc, dx, idx, 
-    (const double*) gkyl_array_cfetch(mom_vm_sr->auxfields.gamma, vidx),
-    f, out);
-}
-
-GKYL_CU_DH
-static void
-kernel_vlasov_sr_Energy_1x2v_ser_p2(const struct gkyl_mom_type *momt, const double *xc, const double *dx,
-  const int *idx, const double *f, double* out, void *param)
-{
-  struct mom_type_vlasov_sr *mom_vm_sr = container_of(momt, struct mom_type_vlasov_sr, momt);
-
-  int cdim = mom_vm_sr->momt.cdim;
-  int pdim = mom_vm_sr->momt.pdim;
-  int idx_vel[GKYL_MAX_DIM];
-  for (int i=0; i<pdim-cdim; ++i)
-    idx_vel[i] = idx[cdim+i];
-
-  long vidx = gkyl_range_idx(&mom_vm_sr->vel_range, idx_vel);
-
-  return vlasov_sr_Energy_1x2v_ser_p2(xc, dx, idx, 
-    (const double*) gkyl_array_cfetch(mom_vm_sr->auxfields.gamma, vidx),
-    f, out);
-}
-
-GKYL_CU_DH
-static void
-kernel_vlasov_sr_Energy_1x3v_ser_p1(const struct gkyl_mom_type *momt, const double *xc, const double *dx,
-  const int *idx, const double *f, double* out, void *param)
-{
-  struct mom_type_vlasov_sr *mom_vm_sr = container_of(momt, struct mom_type_vlasov_sr, momt);
-
-  int cdim = mom_vm_sr->momt.cdim;
-  int pdim = mom_vm_sr->momt.pdim;
-  int idx_vel[GKYL_MAX_DIM];
-  for (int i=0; i<pdim-cdim; ++i)
-    idx_vel[i] = idx[cdim+i];
-
-  long vidx = gkyl_range_idx(&mom_vm_sr->vel_range, idx_vel);
-
-  return vlasov_sr_Energy_1x3v_ser_p1(xc, dx, idx, 
-    (const double*) gkyl_array_cfetch(mom_vm_sr->auxfields.gamma, vidx),
-    f, out);
-}
-
-GKYL_CU_DH
-static void
-kernel_vlasov_sr_Energy_1x3v_ser_p2(const struct gkyl_mom_type *momt, const double *xc, const double *dx,
-  const int *idx, const double *f, double* out, void *param)
-{
-  struct mom_type_vlasov_sr *mom_vm_sr = container_of(momt, struct mom_type_vlasov_sr, momt);
-
-  int cdim = mom_vm_sr->momt.cdim;
-  int pdim = mom_vm_sr->momt.pdim;
-  int idx_vel[GKYL_MAX_DIM];
-  for (int i=0; i<pdim-cdim; ++i)
-    idx_vel[i] = idx[cdim+i];
-
-  long vidx = gkyl_range_idx(&mom_vm_sr->vel_range, idx_vel);
-
-  return vlasov_sr_Energy_1x3v_ser_p2(xc, dx, idx, 
-    (const double*) gkyl_array_cfetch(mom_vm_sr->auxfields.gamma, vidx),
-    f, out);
-}
-
-GKYL_CU_DH
-static void
-kernel_vlasov_sr_Energy_2x2v_ser_p1(const struct gkyl_mom_type *momt, const double *xc, const double *dx,
-  const int *idx, const double *f, double* out, void *param)
-{
-  struct mom_type_vlasov_sr *mom_vm_sr = container_of(momt, struct mom_type_vlasov_sr, momt);
-
-  int cdim = mom_vm_sr->momt.cdim;
-  int pdim = mom_vm_sr->momt.pdim;
-  int idx_vel[GKYL_MAX_DIM];
-  for (int i=0; i<pdim-cdim; ++i)
-    idx_vel[i] = idx[cdim+i];
-
-  long vidx = gkyl_range_idx(&mom_vm_sr->vel_range, idx_vel);
-
-  return vlasov_sr_Energy_2x2v_ser_p1(xc, dx, idx, 
-    (const double*) gkyl_array_cfetch(mom_vm_sr->auxfields.gamma, vidx),
-    f, out);
-}
-
-GKYL_CU_DH
-static void
-kernel_vlasov_sr_Energy_2x2v_ser_p2(const struct gkyl_mom_type *momt, const double *xc, const double *dx,
-  const int *idx, const double *f, double* out, void *param)
-{
-  struct mom_type_vlasov_sr *mom_vm_sr = container_of(momt, struct mom_type_vlasov_sr, momt);
-
-  int cdim = mom_vm_sr->momt.cdim;
-  int pdim = mom_vm_sr->momt.pdim;
-  int idx_vel[GKYL_MAX_DIM];
-  for (int i=0; i<pdim-cdim; ++i)
-    idx_vel[i] = idx[cdim+i];
-
-  long vidx = gkyl_range_idx(&mom_vm_sr->vel_range, idx_vel);
-
-  return vlasov_sr_Energy_2x2v_ser_p2(xc, dx, idx, 
-    (const double*) gkyl_array_cfetch(mom_vm_sr->auxfields.gamma, vidx),
-    f, out);
-}
-
-GKYL_CU_DH
-static void
-kernel_vlasov_sr_Energy_2x3v_ser_p1(const struct gkyl_mom_type *momt, const double *xc, const double *dx,
-  const int *idx, const double *f, double* out, void *param)
-{
-  struct mom_type_vlasov_sr *mom_vm_sr = container_of(momt, struct mom_type_vlasov_sr, momt);
-
-  int cdim = mom_vm_sr->momt.cdim;
-  int pdim = mom_vm_sr->momt.pdim;
-  int idx_vel[GKYL_MAX_DIM];
-  for (int i=0; i<pdim-cdim; ++i)
-    idx_vel[i] = idx[cdim+i];
-
-  long vidx = gkyl_range_idx(&mom_vm_sr->vel_range, idx_vel);
-
-  return vlasov_sr_Energy_2x3v_ser_p1(xc, dx, idx, 
-    (const double*) gkyl_array_cfetch(mom_vm_sr->auxfields.gamma, vidx),
-    f, out);
-}
-
-GKYL_CU_DH
-static void
-kernel_vlasov_sr_Energy_2x3v_ser_p2(const struct gkyl_mom_type *momt, const double *xc, const double *dx,
-  const int *idx, const double *f, double* out, void *param)
-{
-  struct mom_type_vlasov_sr *mom_vm_sr = container_of(momt, struct mom_type_vlasov_sr, momt);
-
-  int cdim = mom_vm_sr->momt.cdim;
-  int pdim = mom_vm_sr->momt.pdim;
-  int idx_vel[GKYL_MAX_DIM];
-  for (int i=0; i<pdim-cdim; ++i)
-    idx_vel[i] = idx[cdim+i];
-
-  long vidx = gkyl_range_idx(&mom_vm_sr->vel_range, idx_vel);
-
-  return vlasov_sr_Energy_2x3v_ser_p2(xc, dx, idx, 
-    (const double*) gkyl_array_cfetch(mom_vm_sr->auxfields.gamma, vidx),
-    f, out);
-}
-
-GKYL_CU_DH
-static void
-kernel_vlasov_sr_Energy_3x3v_ser_p1(const struct gkyl_mom_type *momt, const double *xc, const double *dx,
-  const int *idx, const double *f, double* out, void *param)
-{
-  struct mom_type_vlasov_sr *mom_vm_sr = container_of(momt, struct mom_type_vlasov_sr, momt);
-
-  int cdim = mom_vm_sr->momt.cdim;
-  int pdim = mom_vm_sr->momt.pdim;
-  int idx_vel[GKYL_MAX_DIM];
-  for (int i=0; i<pdim-cdim; ++i)
-    idx_vel[i] = idx[cdim+i];
-
-  long vidx = gkyl_range_idx(&mom_vm_sr->vel_range, idx_vel);
-
-  return vlasov_sr_Energy_3x3v_ser_p1(xc, dx, idx, 
-    (const double*) gkyl_array_cfetch(mom_vm_sr->auxfields.gamma, vidx),
-    f, out);
-}
-
-GKYL_CU_DH
-static void
-kernel_vlasov_sr_Pressure_1x1v_ser_p1(const struct gkyl_mom_type *momt, const double *xc, const double *dx,
-  const int *idx, const double *f, double* out, void *param)
-{
-  struct mom_type_vlasov_sr *mom_vm_sr = container_of(momt, struct mom_type_vlasov_sr, momt);
-
-  int cdim = mom_vm_sr->momt.cdim;
-  int pdim = mom_vm_sr->momt.pdim;
-  int idx_vel[GKYL_MAX_DIM];
-  for (int i=0; i<pdim-cdim; ++i)
-    idx_vel[i] = idx[cdim+i];
-
-  long cidx = gkyl_range_idx(&mom_vm_sr->conf_range, idx);
-  long vidx = gkyl_range_idx(&mom_vm_sr->vel_range, idx_vel);
-
-  return vlasov_sr_Pressure_1x1v_ser_p1(xc, dx, idx, 
-    (const double*) gkyl_array_cfetch(mom_vm_sr->auxfields.gamma_inv, vidx),
-    (const double*) gkyl_array_cfetch(mom_vm_sr->auxfields.gamma, vidx),
-    (const double*) gkyl_array_cfetch(mom_vm_sr->auxfields.GammaV2, cidx),
-    (const double*) gkyl_array_cfetch(mom_vm_sr->auxfields.V_drift, cidx),
-    f, out);
-}
-
-GKYL_CU_DH
-static void
-kernel_vlasov_sr_Pressure_1x1v_ser_p2(const struct gkyl_mom_type *momt, const double *xc, const double *dx,
-  const int *idx, const double *f, double* out, void *param)
-{
-  struct mom_type_vlasov_sr *mom_vm_sr = container_of(momt, struct mom_type_vlasov_sr, momt);
-
-  int cdim = mom_vm_sr->momt.cdim;
-  int pdim = mom_vm_sr->momt.pdim;
-  int idx_vel[GKYL_MAX_DIM];
-  for (int i=0; i<pdim-cdim; ++i)
-    idx_vel[i] = idx[cdim+i];
-
-  long cidx = gkyl_range_idx(&mom_vm_sr->conf_range, idx);
-  long vidx = gkyl_range_idx(&mom_vm_sr->vel_range, idx_vel);
-
-  return vlasov_sr_Pressure_1x1v_ser_p2(xc, dx, idx, 
-    (const double*) gkyl_array_cfetch(mom_vm_sr->auxfields.gamma_inv, vidx),
-    (const double*) gkyl_array_cfetch(mom_vm_sr->auxfields.gamma, vidx),
-    (const double*) gkyl_array_cfetch(mom_vm_sr->auxfields.GammaV2, cidx),
-    (const double*) gkyl_array_cfetch(mom_vm_sr->auxfields.V_drift, cidx),
-    f, out);
-}
-
-GKYL_CU_DH
-static void
-kernel_vlasov_sr_Pressure_1x2v_ser_p1(const struct gkyl_mom_type *momt, const double *xc, const double *dx,
-  const int *idx, const double *f, double* out, void *param)
-{
-  struct mom_type_vlasov_sr *mom_vm_sr = container_of(momt, struct mom_type_vlasov_sr, momt);
-
-  int cdim = mom_vm_sr->momt.cdim;
-  int pdim = mom_vm_sr->momt.pdim;
-  int idx_vel[GKYL_MAX_DIM];
-  for (int i=0; i<pdim-cdim; ++i)
-    idx_vel[i] = idx[cdim+i];
-
-  long cidx = gkyl_range_idx(&mom_vm_sr->conf_range, idx);
-  long vidx = gkyl_range_idx(&mom_vm_sr->vel_range, idx_vel);
-
-  return vlasov_sr_Pressure_1x2v_ser_p1(xc, dx, idx, 
-    (const double*) gkyl_array_cfetch(mom_vm_sr->auxfields.gamma_inv, vidx),
-    (const double*) gkyl_array_cfetch(mom_vm_sr->auxfields.gamma, vidx),
-    (const double*) gkyl_array_cfetch(mom_vm_sr->auxfields.GammaV2, cidx),
-    (const double*) gkyl_array_cfetch(mom_vm_sr->auxfields.V_drift, cidx),
-    f, out);
-}
-
-GKYL_CU_DH
-static void
-kernel_vlasov_sr_Pressure_1x2v_ser_p2(const struct gkyl_mom_type *momt, const double *xc, const double *dx,
-  const int *idx, const double *f, double* out, void *param)
-{
-  struct mom_type_vlasov_sr *mom_vm_sr = container_of(momt, struct mom_type_vlasov_sr, momt);
-
-  int cdim = mom_vm_sr->momt.cdim;
-  int pdim = mom_vm_sr->momt.pdim;
-  int idx_vel[GKYL_MAX_DIM];
-  for (int i=0; i<pdim-cdim; ++i)
-    idx_vel[i] = idx[cdim+i];
-
-  long cidx = gkyl_range_idx(&mom_vm_sr->conf_range, idx);
-  long vidx = gkyl_range_idx(&mom_vm_sr->vel_range, idx_vel);
-
-  return vlasov_sr_Pressure_1x2v_ser_p2(xc, dx, idx, 
-    (const double*) gkyl_array_cfetch(mom_vm_sr->auxfields.gamma_inv, vidx),
-    (const double*) gkyl_array_cfetch(mom_vm_sr->auxfields.gamma, vidx),
-    (const double*) gkyl_array_cfetch(mom_vm_sr->auxfields.GammaV2, cidx),
-    (const double*) gkyl_array_cfetch(mom_vm_sr->auxfields.V_drift, cidx),
-    f, out);
-}
-
-GKYL_CU_DH
-static void
-kernel_vlasov_sr_Pressure_1x3v_ser_p1(const struct gkyl_mom_type *momt, const double *xc, const double *dx,
-  const int *idx, const double *f, double* out, void *param)
-{
-  struct mom_type_vlasov_sr *mom_vm_sr = container_of(momt, struct mom_type_vlasov_sr, momt);
-
-  int cdim = mom_vm_sr->momt.cdim;
-  int pdim = mom_vm_sr->momt.pdim;
-  int idx_vel[GKYL_MAX_DIM];
-  for (int i=0; i<pdim-cdim; ++i)
-    idx_vel[i] = idx[cdim+i];
-
-  long cidx = gkyl_range_idx(&mom_vm_sr->conf_range, idx);
-  long vidx = gkyl_range_idx(&mom_vm_sr->vel_range, idx_vel);
-
-  return vlasov_sr_Pressure_1x3v_ser_p1(xc, dx, idx, 
-    (const double*) gkyl_array_cfetch(mom_vm_sr->auxfields.gamma_inv, vidx),
-    (const double*) gkyl_array_cfetch(mom_vm_sr->auxfields.gamma, vidx),
-    (const double*) gkyl_array_cfetch(mom_vm_sr->auxfields.GammaV2, cidx),
-    (const double*) gkyl_array_cfetch(mom_vm_sr->auxfields.V_drift, cidx),
-    f, out);
-}
-
-GKYL_CU_DH
-static void
-kernel_vlasov_sr_Pressure_1x3v_ser_p2(const struct gkyl_mom_type *momt, const double *xc, const double *dx,
-  const int *idx, const double *f, double* out, void *param)
-{
-  struct mom_type_vlasov_sr *mom_vm_sr = container_of(momt, struct mom_type_vlasov_sr, momt);
-
-  int cdim = mom_vm_sr->momt.cdim;
-  int pdim = mom_vm_sr->momt.pdim;
-  int idx_vel[GKYL_MAX_DIM];
-  for (int i=0; i<pdim-cdim; ++i)
-    idx_vel[i] = idx[cdim+i];
-
-  long cidx = gkyl_range_idx(&mom_vm_sr->conf_range, idx);
-  long vidx = gkyl_range_idx(&mom_vm_sr->vel_range, idx_vel);
-
-  return vlasov_sr_Pressure_1x3v_ser_p2(xc, dx, idx, 
-    (const double*) gkyl_array_cfetch(mom_vm_sr->auxfields.gamma_inv, vidx),
-    (const double*) gkyl_array_cfetch(mom_vm_sr->auxfields.gamma, vidx),
-    (const double*) gkyl_array_cfetch(mom_vm_sr->auxfields.GammaV2, cidx),
-    (const double*) gkyl_array_cfetch(mom_vm_sr->auxfields.V_drift, cidx),
-    f, out);
-}
-
-GKYL_CU_DH
-static void
-kernel_vlasov_sr_Pressure_2x2v_ser_p1(const struct gkyl_mom_type *momt, const double *xc, const double *dx,
-  const int *idx, const double *f, double* out, void *param)
-{
-  struct mom_type_vlasov_sr *mom_vm_sr = container_of(momt, struct mom_type_vlasov_sr, momt);
-
-  int cdim = mom_vm_sr->momt.cdim;
-  int pdim = mom_vm_sr->momt.pdim;
-  int idx_vel[GKYL_MAX_DIM];
-  for (int i=0; i<pdim-cdim; ++i)
-    idx_vel[i] = idx[cdim+i];
-
-  long cidx = gkyl_range_idx(&mom_vm_sr->conf_range, idx);
-  long vidx = gkyl_range_idx(&mom_vm_sr->vel_range, idx_vel);
-
-  return vlasov_sr_Pressure_2x2v_ser_p1(xc, dx, idx, 
-    (const double*) gkyl_array_cfetch(mom_vm_sr->auxfields.gamma_inv, vidx),
-    (const double*) gkyl_array_cfetch(mom_vm_sr->auxfields.gamma, vidx),
-    (const double*) gkyl_array_cfetch(mom_vm_sr->auxfields.GammaV2, cidx),
-    (const double*) gkyl_array_cfetch(mom_vm_sr->auxfields.V_drift, cidx),
-    f, out);
-}
-
-GKYL_CU_DH
-static void
-kernel_vlasov_sr_Pressure_2x2v_ser_p2(const struct gkyl_mom_type *momt, const double *xc, const double *dx,
-  const int *idx, const double *f, double* out, void *param)
-{
-  struct mom_type_vlasov_sr *mom_vm_sr = container_of(momt, struct mom_type_vlasov_sr, momt);
-
-  int cdim = mom_vm_sr->momt.cdim;
-  int pdim = mom_vm_sr->momt.pdim;
-  int idx_vel[GKYL_MAX_DIM];
-  for (int i=0; i<pdim-cdim; ++i)
-    idx_vel[i] = idx[cdim+i];
-
-  long cidx = gkyl_range_idx(&mom_vm_sr->conf_range, idx);
-  long vidx = gkyl_range_idx(&mom_vm_sr->vel_range, idx_vel);
-
-  return vlasov_sr_Pressure_2x2v_ser_p2(xc, dx, idx, 
-    (const double*) gkyl_array_cfetch(mom_vm_sr->auxfields.gamma_inv, vidx),
-    (const double*) gkyl_array_cfetch(mom_vm_sr->auxfields.gamma, vidx),
-    (const double*) gkyl_array_cfetch(mom_vm_sr->auxfields.GammaV2, cidx),
-    (const double*) gkyl_array_cfetch(mom_vm_sr->auxfields.V_drift, cidx),
-    f, out);
-}
-
-GKYL_CU_DH
-static void
-kernel_vlasov_sr_Pressure_2x3v_ser_p1(const struct gkyl_mom_type *momt, const double *xc, const double *dx,
-  const int *idx, const double *f, double* out, void *param)
-{
-  struct mom_type_vlasov_sr *mom_vm_sr = container_of(momt, struct mom_type_vlasov_sr, momt);
-
-  int cdim = mom_vm_sr->momt.cdim;
-  int pdim = mom_vm_sr->momt.pdim;
-  int idx_vel[GKYL_MAX_DIM];
-  for (int i=0; i<pdim-cdim; ++i)
-    idx_vel[i] = idx[cdim+i];
-
-  long cidx = gkyl_range_idx(&mom_vm_sr->conf_range, idx);
-  long vidx = gkyl_range_idx(&mom_vm_sr->vel_range, idx_vel);
-
-  return vlasov_sr_Pressure_2x3v_ser_p1(xc, dx, idx, 
-    (const double*) gkyl_array_cfetch(mom_vm_sr->auxfields.gamma_inv, vidx),
-    (const double*) gkyl_array_cfetch(mom_vm_sr->auxfields.gamma, vidx),
-    (const double*) gkyl_array_cfetch(mom_vm_sr->auxfields.GammaV2, cidx),
-    (const double*) gkyl_array_cfetch(mom_vm_sr->auxfields.V_drift, cidx),
-    f, out);
-}
-
-GKYL_CU_DH
-static void
-kernel_vlasov_sr_Pressure_2x3v_ser_p2(const struct gkyl_mom_type *momt, const double *xc, const double *dx,
-  const int *idx, const double *f, double* out, void *param)
-{
-  struct mom_type_vlasov_sr *mom_vm_sr = container_of(momt, struct mom_type_vlasov_sr, momt);
-
-  int cdim = mom_vm_sr->momt.cdim;
-  int pdim = mom_vm_sr->momt.pdim;
-  int idx_vel[GKYL_MAX_DIM];
-  for (int i=0; i<pdim-cdim; ++i)
-    idx_vel[i] = idx[cdim+i];
-
-  long cidx = gkyl_range_idx(&mom_vm_sr->conf_range, idx);
-  long vidx = gkyl_range_idx(&mom_vm_sr->vel_range, idx_vel);
-
-  return vlasov_sr_Pressure_2x3v_ser_p2(xc, dx, idx, 
-    (const double*) gkyl_array_cfetch(mom_vm_sr->auxfields.gamma_inv, vidx),
-    (const double*) gkyl_array_cfetch(mom_vm_sr->auxfields.gamma, vidx),
-    (const double*) gkyl_array_cfetch(mom_vm_sr->auxfields.GammaV2, cidx),
-    (const double*) gkyl_array_cfetch(mom_vm_sr->auxfields.V_drift, cidx),
-    f, out);
-}
-
-GKYL_CU_DH
-static void
-kernel_vlasov_sr_Pressure_3x3v_ser_p1(const struct gkyl_mom_type *momt, const double *xc, const double *dx,
-  const int *idx, const double *f, double* out, void *param)
-{
-  struct mom_type_vlasov_sr *mom_vm_sr = container_of(momt, struct mom_type_vlasov_sr, momt);
-
-  int cdim = mom_vm_sr->momt.cdim;
-  int pdim = mom_vm_sr->momt.pdim;
-  int idx_vel[GKYL_MAX_DIM];
-  for (int i=0; i<pdim-cdim; ++i)
-    idx_vel[i] = idx[cdim+i];
-
-  long cidx = gkyl_range_idx(&mom_vm_sr->conf_range, idx);
-  long vidx = gkyl_range_idx(&mom_vm_sr->vel_range, idx_vel);
-
-  return vlasov_sr_Pressure_3x3v_ser_p1(xc, dx, idx, 
-    (const double*) gkyl_array_cfetch(mom_vm_sr->auxfields.gamma_inv, vidx),
-    (const double*) gkyl_array_cfetch(mom_vm_sr->auxfields.gamma, vidx),
-    (const double*) gkyl_array_cfetch(mom_vm_sr->auxfields.GammaV2, cidx),
-    (const double*) gkyl_array_cfetch(mom_vm_sr->auxfields.V_drift, cidx),
     f, out);
 }
 
@@ -1515,6 +1339,34 @@ static const gkyl_vlasov_sr_mom_kern_list ser_m1i_kernels[] = {
   { NULL, kernel_vlasov_sr_M1i_3x3v_ser_p1, NULL                             }, // 5
 };
 
+// M2 kernel list
+GKYL_CU_D
+static const gkyl_vlasov_sr_mom_kern_list ser_m2_kernels[] = {
+  // 1x kernels
+  { NULL, kernel_vlasov_sr_M2_1x1v_ser_p1, kernel_vlasov_sr_M2_1x1v_ser_p2 }, // 0
+  { NULL, kernel_vlasov_sr_M2_1x2v_ser_p1, kernel_vlasov_sr_M2_1x2v_ser_p2 }, // 1
+  { NULL, kernel_vlasov_sr_M2_1x3v_ser_p1, kernel_vlasov_sr_M2_1x3v_ser_p2 }, // 2
+  // 2x kernels
+  { NULL, kernel_vlasov_sr_M2_2x2v_ser_p1, kernel_vlasov_sr_M2_2x2v_ser_p2 }, // 3
+  { NULL, kernel_vlasov_sr_M2_2x3v_ser_p1, kernel_vlasov_sr_M2_2x3v_ser_p2 }, // 4
+  // 3x kernels
+  { NULL, kernel_vlasov_sr_M2_3x3v_ser_p1, NULL                                }, // 5
+};
+
+// M3i kernel list
+GKYL_CU_D
+static const gkyl_vlasov_sr_mom_kern_list ser_m3i_kernels[] = {
+  // 1x kernels
+  { NULL, kernel_vlasov_sr_M3i_1x1v_ser_p1, kernel_vlasov_sr_M3i_1x1v_ser_p2 }, // 0
+  { NULL, kernel_vlasov_sr_M3i_1x2v_ser_p1, kernel_vlasov_sr_M3i_1x2v_ser_p2 }, // 1
+  { NULL, kernel_vlasov_sr_M3i_1x3v_ser_p1, kernel_vlasov_sr_M3i_1x3v_ser_p2 }, // 2
+  // 2x kernels
+  { NULL, kernel_vlasov_sr_M3i_2x2v_ser_p1, kernel_vlasov_sr_M3i_2x2v_ser_p2 }, // 3
+  { NULL, kernel_vlasov_sr_M3i_2x3v_ser_p1, kernel_vlasov_sr_M3i_2x3v_ser_p2 }, // 4
+  // 3x kernels
+  { NULL, kernel_vlasov_sr_M3i_3x3v_ser_p1, NULL                            }, // 5
+};
+
 // Ni = (M0, M1i) kernel list
 GKYL_CU_D
 static const gkyl_vlasov_sr_mom_kern_list ser_Ni_kernels[] = {
@@ -1529,35 +1381,7 @@ static const gkyl_vlasov_sr_mom_kern_list ser_Ni_kernels[] = {
   { NULL, kernel_vlasov_sr_Ni_3x3v_ser_p1, NULL                            }, // 5
 };
 
-// Energy kernel list
-GKYL_CU_D
-static const gkyl_vlasov_sr_mom_kern_list ser_Energy_kernels[] = {
-  // 1x kernels
-  { NULL, kernel_vlasov_sr_Energy_1x1v_ser_p1, kernel_vlasov_sr_Energy_1x1v_ser_p2 }, // 0
-  { NULL, kernel_vlasov_sr_Energy_1x2v_ser_p1, kernel_vlasov_sr_Energy_1x2v_ser_p2 }, // 1
-  { NULL, kernel_vlasov_sr_Energy_1x3v_ser_p1, kernel_vlasov_sr_Energy_1x3v_ser_p2 }, // 2
-  // 2x kernels
-  { NULL, kernel_vlasov_sr_Energy_2x2v_ser_p1, kernel_vlasov_sr_Energy_2x2v_ser_p2 }, // 3
-  { NULL, kernel_vlasov_sr_Energy_2x3v_ser_p1, kernel_vlasov_sr_Energy_2x3v_ser_p2 }, // 4
-  // 3x kernels
-  { NULL, kernel_vlasov_sr_Energy_3x3v_ser_p1, NULL                                }, // 5
-};
-
-// Pressure kernel list
-GKYL_CU_D
-static const gkyl_vlasov_sr_mom_kern_list ser_Pressure_kernels[] = {
-  // 1x kernels
-  { NULL, kernel_vlasov_sr_Pressure_1x1v_ser_p1, kernel_vlasov_sr_Pressure_1x1v_ser_p2 }, // 0
-  { NULL, kernel_vlasov_sr_Pressure_1x2v_ser_p1, kernel_vlasov_sr_Pressure_1x2v_ser_p2 }, // 1
-  { NULL, kernel_vlasov_sr_Pressure_1x3v_ser_p1, kernel_vlasov_sr_Pressure_1x3v_ser_p2 }, // 2
-  // 2x kernels
-  { NULL, kernel_vlasov_sr_Pressure_2x2v_ser_p1, kernel_vlasov_sr_Pressure_2x2v_ser_p2 }, // 3
-  { NULL, kernel_vlasov_sr_Pressure_2x3v_ser_p1, kernel_vlasov_sr_Pressure_2x3v_ser_p2 }, // 4
-  // 3x kernels
-  { NULL, kernel_vlasov_sr_Pressure_3x3v_ser_p1, NULL                                  }, // 5
-};
-
-// Tij = (Energy, Energy flux (vdim components), Stress tensor (vdim*(vdim+1))/2 components)) kernel list
+// Tij = (M2, M3i (vdim components), Stress tensor (vdim*(vdim+1))/2 components)) kernel list
 GKYL_CU_D
 static const gkyl_vlasov_sr_mom_kern_list ser_Tij_kernels[] = {
   // 1x kernels

@@ -89,18 +89,21 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
     s->qmem = mkarr(app->use_gpu, 4*app->confBasis.num_basis, app->local_ext.volume);
 
   if (s->model_id  == GKYL_MODEL_SR) {
-    // Allocate special relativistic variables, p/gamma, gamma, & 1/gamma
+    // Allocate special relativistic variables gamma and its inverse
     s->gamma = mkarr(app->use_gpu, app->velBasis.num_basis, s->local_vel.volume);
     s->gamma_host = s->gamma;
     s->gamma_inv = mkarr(app->use_gpu, app->velBasis.num_basis, s->local_vel.volume);
     s->gamma_inv_host = s->gamma_inv;
-    // Projection routines are done on CPU, need to allocate host arrays if simulation on GPU
+
     if (app->use_gpu) {
       s->gamma_host = mkarr(false, app->velBasis.num_basis, s->local_vel.volume);
       s->gamma_inv_host = mkarr(false, app->velBasis.num_basis, s->local_vel.volume);
     }
-    // Project gamma, & 1/gamma
-    gkyl_calc_sr_vars_init_p_vars(&s->grid_vel, &app->velBasis, &s->local_vel, s->gamma, s->gamma_inv);
+
+    s->sr_vars = gkyl_dg_calc_sr_vars_new(&s->grid, &s->grid_vel,
+      &app->confBasis,  &app->velBasis, &app->local, &s->local_vel, app->use_gpu);
+    // Project gamma and its inverse
+    gkyl_calc_sr_vars_init_p_vars(s->sr_vars, s->gamma, s->gamma_inv);
 
     // by default, we do not have zero-flux boundary conditions in any direction
     bool is_zero_flux[GKYL_MAX_DIM] = {false};

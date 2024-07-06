@@ -12,7 +12,9 @@ typedef struct gkyl_vlasov_lte_proj_on_basis gkyl_vlasov_lte_proj_on_basis;
 // input packaged as a struct
 struct gkyl_vlasov_lte_proj_on_basis_inp {
   const struct gkyl_rect_grid *phase_grid; // Phase-space grid on which to compute moments
+  const struct gkyl_rect_grid *vel_grid; // Velocity-space grid
   const struct gkyl_basis *conf_basis; // Configuration-space basis functions
+  const struct gkyl_basis *vel_basis; // Velocity-space basis functions
   const struct gkyl_basis *phase_basis; // Phase-space basis functions
   const struct gkyl_basis *phase_basis_on_dev; // Phase-space basis functions on device for basis function pointers
   const struct gkyl_basis *conf_basis_on_dev; // conf-space basis functions on device for basis function pointers

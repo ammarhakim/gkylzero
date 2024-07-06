@@ -215,7 +215,9 @@ gkyl_vlasov_lte_proj_on_basis_inew(const struct gkyl_vlasov_lte_proj_on_basis_in
   // Store a LTE moment calculation updater to compute and correct the density
   struct gkyl_vlasov_lte_moments_inp inp_mom = {
     .phase_grid = inp->phase_grid,
+    .vel_grid = inp->vel_grid,
     .conf_basis = inp->conf_basis,
+    .vel_basis = inp->vel_basis,
     .phase_basis = inp->phase_basis,
     .conf_range =  inp->conf_range,
     .conf_range_ext = inp->conf_range_ext,
@@ -225,7 +227,6 @@ gkyl_vlasov_lte_proj_on_basis_inew(const struct gkyl_vlasov_lte_proj_on_basis_in
     .h_ij_inv = inp->h_ij_inv,
     .det_h = inp->det_h,
     .model_id = inp->model_id,
-    .mass = inp->mass,
     .use_gpu = inp->use_gpu,
   };
   up->moments_up = gkyl_vlasov_lte_moments_inew( &inp_mom );

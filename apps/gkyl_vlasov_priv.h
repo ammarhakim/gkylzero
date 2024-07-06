@@ -75,13 +75,16 @@
 static const char *const valid_moment_names[] = {
   "M0",
   "M1i",
-  "M2ij",
   "M2",
   "M3i",
-  "M3ijk",
-  "FiveMoments",
+  "FiveMoments", // non-relativistic (M0, M1i, M2)
+  "M2ij", // non-relativistic stress tensor
+  "M3ijk", // non-relativistic heat flux tensor
+  "Ni", // relativistic four-flux (M0, M1i)
+  "Tij", // relativistic stress-energy tensor
   "LTEMoments", // this is an internal flag for computing moments (n, V_drift, T/m)
                 // of the LTE (local thermodynamic equilibrium) distribution
+                // Note: in relativity V_drift is the bulk four-velocity (GammaV, GammaV*V_drift)
   "Integrated", // this is an internal flag, not for passing to moment type
 };
 
@@ -104,6 +107,7 @@ struct vm_species_moment {
   // 1. Compute the moment directly with dg_updater_moment
   // 2. Compute the moments of the equivalent LTE (local thermodynamic equilibrium)
   //    distribution (n, V_drift, T/m) with specialized updater
+  //    Note: in relativity V_drift is the bulk four-velocity (GammaV, GammaV*V_drift)
   union {
     struct {
       struct gkyl_vlasov_lte_moments *vlasov_lte_moms; // updater for computing LTE moments
@@ -291,9 +295,10 @@ struct vm_species {
     // Special relativistic Vlasov-Maxwell model
     struct {
       struct gkyl_array *gamma; // array for gamma = sqrt(1 + p^2) 
-      struct gkyl_array *gamma_host; // host copy for use in projecting before copying over to GPU
-      struct gkyl_array *gamma_inv; // array for gamma = 1.0/sqrt(1 + p^2) 
-      struct gkyl_array *gamma_inv_host; // host copy for use in projecting before copying over to GPU
+      struct gkyl_array *gamma_inv; // array for 1/gamma = 1.0/sqrt(1 + p^2) 
+      struct gkyl_array *gamma_host; // host copy for I/O
+      struct gkyl_array *gamma_inv_host; // host copy for I/O
+      struct gkyl_dg_calc_sr_vars *sr_vars; // updater for computing SR variables
     };
     // Canonical Poisson Bracket using specified hamiltonian
     struct {

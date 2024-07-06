@@ -49,7 +49,9 @@ vm_species_bgk_init(struct gkyl_vlasov_app *app, struct vm_species *s, struct vm
 
   struct gkyl_vlasov_lte_proj_on_basis_inp inp_proj = {
     .phase_grid = &s->grid,
+    .vel_grid = &s->grid_vel, 
     .conf_basis = &app->confBasis,
+    .vel_basis = &app->velBasis, 
     .phase_basis = &app->basis,
     .phase_basis_on_dev = app->basis_on_dev.basis, // pointer to (potentially) device-side basis
     .conf_basis_on_dev = app->basis_on_dev.confBasis, // pointer to (potentially) device-side conf basis
@@ -61,7 +63,6 @@ vm_species_bgk_init(struct gkyl_vlasov_app *app, struct vm_species *s, struct vm
     .h_ij_inv = s->h_ij_inv,
     .det_h = s->det_h,
     .model_id = s->model_id,
-    .mass = s->info.mass,
     .use_gpu = app->use_gpu,
   };
   bgk->proj_lte = gkyl_vlasov_lte_proj_on_basis_inew( &inp_proj );
@@ -75,7 +76,9 @@ vm_species_bgk_init(struct gkyl_vlasov_app *app, struct vm_species *s, struct vm
 
     struct gkyl_vlasov_lte_correct_inp inp_corr = {
       .phase_grid = &s->grid,
+      .vel_grid = &s->grid_vel, 
       .conf_basis = &app->confBasis,
+      .vel_basis = &app->velBasis, 
       .phase_basis = &app->basis,
       .phase_basis_on_dev = app->basis_on_dev.basis, // pointer to (potentially) device-side basis
       .conf_basis_on_dev = app->basis_on_dev.confBasis, // pointer to (potentially) device-side conf basis
@@ -87,7 +90,6 @@ vm_species_bgk_init(struct gkyl_vlasov_app *app, struct vm_species *s, struct vm
       .h_ij_inv = s->h_ij_inv,
       .det_h = s->det_h,
       .model_id = s->model_id,
-      .mass = s->info.mass,
       .use_gpu = app->use_gpu,
       .max_iter = max_iter,
       .eps = iter_eps,
