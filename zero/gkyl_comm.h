@@ -475,10 +475,8 @@ gkyl_comm_extend_comm(const struct gkyl_comm *comm,
 }
 
 /**
- * Create a new communicator that extends the communicator to work on a
- * extended domain specified by erange. (Each range handled by the
- * communicator is extended by a tensor-product with erange). The
- * returned communicator must be freed by calling gkyl_comm_release.
+ * Split a communicator into a new communcator based on color. All
+ * ranks with the same color will form the new communcator.
  *
  * @param comm Communicator.
  * @param color All ranks of same color will share a communicator.
