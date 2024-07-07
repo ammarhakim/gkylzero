@@ -147,10 +147,12 @@ evalVDriftLInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT 
 {
   struct twostream_sr_ctx *app = ctx;
 
+  double gamma = app->gamma;
   double Vx_drift = app->Vx_drift;
 
   // Set left-going drift velocity.
-  fout[0] = Vx_drift;
+  fout[0] = gamma;
+  fout[1] = gamma*Vx_drift;
 }
 
 void
@@ -158,10 +160,12 @@ evalVDriftRInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT 
 {
   struct twostream_sr_ctx *app = ctx;
 
+  double gamma = app->gamma;
   double Vx_drift = app->Vx_drift;
 
   // Set right-going drift velocity.
-  fout[0] = -Vx_drift;
+  fout[0] = gamma;
+  fout[1] = -gamma*Vx_drift;
 }
 
 void

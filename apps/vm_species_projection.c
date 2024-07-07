@@ -23,20 +23,26 @@ vm_species_projection_init(struct gkyl_vlasov_app *app, struct vm_species *s,
     }
   }
   else if (proj->proj_id == GKYL_PROJ_VLASOV_LTE) {
-    int vdim = app->vdim; 
+    int num_comp_V_drift;
+    if (s->model_id == GKYL_MODEL_SR) {
+      num_comp_V_drift = app->vdim+1;
+    }
+    else {
+      num_comp_V_drift = app->vdim;
+    }
     proj->dens = mkarr(false, app->confBasis.num_basis, app->local_ext.volume);
-    proj->V_drift = mkarr(false, vdim*app->confBasis.num_basis, app->local_ext.volume);
+    proj->V_drift = mkarr(false, num_comp_V_drift*app->confBasis.num_basis, app->local_ext.volume);
     proj->T_over_m = mkarr(false, app->confBasis.num_basis, app->local_ext.volume);
-    proj->vlasov_lte_moms_host = mkarr(false, (vdim+2)*app->confBasis.num_basis, app->local_ext.volume);
+    proj->vlasov_lte_moms_host = mkarr(false, (num_comp_V_drift+2)*app->confBasis.num_basis, app->local_ext.volume);
 
     proj->proj_dens = gkyl_proj_on_basis_new(&app->grid, &app->confBasis,
       app->basis.poly_order+1, 1, inp.density, inp.ctx_density);
     proj->proj_V_drift = gkyl_proj_on_basis_new(&app->grid, &app->confBasis,
-      app->basis.poly_order+1, vdim, inp.V_drift, inp.ctx_V_drift);
+      app->basis.poly_order+1, num_comp_V_drift, inp.V_drift, inp.ctx_V_drift);
     proj->proj_temp = gkyl_proj_on_basis_new(&app->grid, &app->confBasis,
       app->basis.poly_order+1, 1, inp.temp, inp.ctx_temp);
 
-    proj->vlasov_lte_moms = mkarr(app->use_gpu, (vdim+2)*app->confBasis.num_basis, app->local_ext.volume);
+    proj->vlasov_lte_moms = mkarr(app->use_gpu, (num_comp_V_drift+2)*app->confBasis.num_basis, app->local_ext.volume);
 
     struct gkyl_vlasov_lte_proj_on_basis_inp inp_proj = {
       .phase_grid = &s->grid,
@@ -44,8 +50,6 @@ vm_species_projection_init(struct gkyl_vlasov_app *app, struct vm_species *s,
       .conf_basis = &app->confBasis,
       .vel_basis = &app->velBasis, 
       .phase_basis = &app->basis,
-      .phase_basis_on_dev = app->basis_on_dev.basis, // pointer to (potentially) device-side basis
-      .conf_basis_on_dev = app->basis_on_dev.confBasis, // pointer to (potentially) device-side conf basis
       .conf_range =  &app->local,
       .conf_range_ext = &app->local_ext,
       .vel_range = &s->local_vel,
@@ -68,8 +72,6 @@ vm_species_projection_init(struct gkyl_vlasov_app *app, struct vm_species *s,
         .conf_basis = &app->confBasis,
         .vel_basis = &app->velBasis, 
         .phase_basis = &app->basis,
-        .phase_basis_on_dev = app->basis_on_dev.basis, // pointer to (potentially) device-side phase basis
-        .conf_basis_on_dev = app->basis_on_dev.confBasis, // pointer to (potentially) device-side conf basis
         .conf_range =  &app->local,
         .conf_range_ext = &app->local_ext,
         .vel_range = &s->local_vel,
@@ -101,7 +103,13 @@ vm_species_projection_calc(gkyl_vlasov_app *app, const struct vm_species *s,
     }
   }
   else if (proj->proj_id == GKYL_PROJ_VLASOV_LTE) {
-    int vdim = app->vdim;
+    int num_comp_V_drift;
+    if (s->model_id == GKYL_MODEL_SR) {
+      num_comp_V_drift = app->vdim+1;
+    }
+    else {
+      num_comp_V_drift = app->vdim;
+    }
     gkyl_proj_on_basis_advance(proj->proj_dens, tm, &app->local_ext, proj->dens); 
     gkyl_proj_on_basis_advance(proj->proj_V_drift, tm, &app->local_ext, proj->V_drift);
     gkyl_proj_on_basis_advance(proj->proj_temp, tm, &app->local_ext, proj->T_over_m);
@@ -110,7 +118,7 @@ vm_species_projection_calc(gkyl_vlasov_app *app, const struct vm_species *s,
     // Projection routines expect the LTE moments as a single array.
     gkyl_array_set_offset(proj->vlasov_lte_moms_host, 1.0, proj->dens, 0*app->confBasis.num_basis);
     gkyl_array_set_offset(proj->vlasov_lte_moms_host, 1.0, proj->V_drift, 1*app->confBasis.num_basis);
-    gkyl_array_set_offset(proj->vlasov_lte_moms_host, 1.0, proj->T_over_m, (vdim+1)*app->confBasis.num_basis);
+    gkyl_array_set_offset(proj->vlasov_lte_moms_host, 1.0, proj->T_over_m, (num_comp_V_drift+1)*app->confBasis.num_basis);
 
     // Copy the contents into the array we will use (potentially on GPUs).
     gkyl_array_copy(proj->vlasov_lte_moms, proj->vlasov_lte_moms_host);

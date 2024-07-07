@@ -155,9 +155,10 @@ evalVDriftInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT f
   struct sr_sodshock_ctx *app = ctx;
 
   double Vx_drift = app->Vx_drift;
-
+  double gamma = 1.0/sqrt(1.0 - Vx_drift*Vx_drift);
   // Set drift velocity.
-  fout[0] = Vx_drift;
+  fout[0] = gamma;
+  fout[1] = gamma*Vx_drift;
 }
 
 void
@@ -418,6 +419,7 @@ main(int argc, char **argv)
   }
 
   write_data(&io_trig, app, t_curr, false);
+  gkyl_vlasov_app_write_lte_corr_status(app);
   gkyl_vlasov_app_stat_write(app);
 
   struct gkyl_vlasov_stat stat = gkyl_vlasov_app_stat(app);

@@ -2,6 +2,7 @@
 
 #include <gkyl_alloc.h>
 #include <gkyl_alloc_flags_priv.h>
+#include <gkyl_array_ops.h>
 #include <gkyl_array_ops_priv.h>
 #include <gkyl_dg_calc_sr_vars.h>
 #include <gkyl_dg_calc_sr_vars_priv.h>
@@ -192,6 +193,7 @@ void gkyl_dg_calc_sr_vars_pressure(struct gkyl_dg_calc_sr_vars *up,
       sr_pressure);
   }
 #endif
+  gkyl_array_clear(sr_pressure, 0.0); 
 
   int cdim = conf_range->ndim;
   int pdim = phase_range->ndim;

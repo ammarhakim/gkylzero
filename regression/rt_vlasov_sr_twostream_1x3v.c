@@ -208,14 +208,16 @@ evalVDriftLInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT 
 {
   struct twostream_sr_ctx *app = ctx;
 
+  double gamma = app->gamma_elc1;
   double ux_elc = app->ux_elc1;
   double uy_elc = app->uy_elc1;
   double uz_elc = app->uz_elc1;
 
   // Set left-going distribution drift velocity.
-  fout[0] = ux_elc;
-  fout[1] = uy_elc;
-  fout[2] = uz_elc;
+  fout[0] = gamma;
+  fout[1] = gamma*ux_elc;
+  fout[2] = gamma*uy_elc;
+  fout[3] = gamma*uz_elc;
 }
 
 void
@@ -223,14 +225,16 @@ evalVDriftRInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT 
 {
   struct twostream_sr_ctx *app = ctx;
 
+  double gamma = app->gamma_elc2;
   double ux_elc = app->ux_elc2;
   double uy_elc = app->uy_elc2;
   double uz_elc = app->uz_elc2;
 
   // Set right-going distribution drift velocity.
-  fout[0] = ux_elc;
-  fout[1] = uy_elc;
-  fout[2] = uz_elc;
+  fout[0] = gamma;
+  fout[1] = gamma*ux_elc;
+  fout[2] = gamma*uy_elc;
+  fout[3] = gamma*uz_elc;
 }
 
 void

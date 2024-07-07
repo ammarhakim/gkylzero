@@ -53,8 +53,6 @@ vm_species_bgk_init(struct gkyl_vlasov_app *app, struct vm_species *s, struct vm
     .conf_basis = &app->confBasis,
     .vel_basis = &app->velBasis, 
     .phase_basis = &app->basis,
-    .phase_basis_on_dev = app->basis_on_dev.basis, // pointer to (potentially) device-side basis
-    .conf_basis_on_dev = app->basis_on_dev.confBasis, // pointer to (potentially) device-side conf basis
     .conf_range =  &app->local,
     .conf_range_ext = &app->local_ext,
     .vel_range = &s->local_vel,
@@ -80,8 +78,6 @@ vm_species_bgk_init(struct gkyl_vlasov_app *app, struct vm_species *s, struct vm
       .conf_basis = &app->confBasis,
       .vel_basis = &app->velBasis, 
       .phase_basis = &app->basis,
-      .phase_basis_on_dev = app->basis_on_dev.basis, // pointer to (potentially) device-side basis
-      .conf_basis_on_dev = app->basis_on_dev.confBasis, // pointer to (potentially) device-side conf basis
       .conf_range =  &app->local,
       .conf_range_ext = &app->local_ext,
       .vel_range = &s->local_vel,
