@@ -561,7 +561,7 @@ vm_species_bgk_niter(gkyl_vlasov_app *app)
 {
   for (int i=0; i<app->num_species; ++i) {
     if (app->species[i].collision_id == GKYL_BGK_COLLISIONS) {
-      app->stat.niter_self_bgk_corr[i] = app->species[i].bgk.lte.self_niter;
+      app->stat.niter_self_bgk_corr[i] = app->species[i].bgk.lte.niter;
     }
   }
 }

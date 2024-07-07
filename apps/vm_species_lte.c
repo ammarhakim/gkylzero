@@ -56,7 +56,7 @@ vm_species_lte_init(struct gkyl_vlasov_app *app, struct vm_species *s, struct vm
       .max_iter = max_iter,
       .eps = iter_eps,
     };
-    lte->self_niter = 0;
+    lte->niter = 0;
     lte->corr_lte = gkyl_vlasov_lte_correct_inew( &inp_corr );
 
     lte->corr_stat = gkyl_dynvec_new(GKYL_DOUBLE,7);
@@ -110,7 +110,7 @@ vm_species_lte(gkyl_vlasov_app *app, const struct vm_species *species,
     corr_vec[6] = status_corr.error[4];
     gkyl_dynvec_append(lte->corr_stat,app->tcurr,corr_vec);
 
-    lte->self_niter += status_corr.num_iter;
+    lte->niter += status_corr.num_iter;
   } 
 
   app->stat.species_lte_tm += gkyl_time_diff_now_sec(wst);

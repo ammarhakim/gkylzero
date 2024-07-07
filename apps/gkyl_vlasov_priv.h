@@ -162,7 +162,7 @@ struct vm_lte {
   // also corrects the density of projected distribution function
   struct gkyl_vlasov_lte_proj_on_basis *proj_lte; 
 
-  long self_niter; // total number of iterations correcting self collisions
+  long niter; // total number of iterations correcting self collisions
 
   // Correction updater for insuring LTE distribution has desired LTE (n, V_drift, T/m) moments
   bool correct_all_moms; // boolean if we are correcting all the moments
