@@ -107,34 +107,43 @@ typedef void (*comm_group_call_end_t)();
 // Gkeyll objects across multi-region or multi-block domains
 struct gkyl_comm {
 
+  // FOLLOWING DO NOT NEED A DECOMP
+  
   get_rank_t get_rank; // get local rank function.
   get_size_t get_size; // get number of ranks.
-  gkyl_array_send_t gkyl_array_send; // blocking send array.
-  gkyl_array_isend_t gkyl_array_isend; // nonblocking send array.
-  gkyl_array_recv_t gkyl_array_recv; // blocking recv array.
-  gkyl_array_irecv_t gkyl_array_irecv; // nonblocking recv array.
-  allreduce_t allreduce; // all reduce function
-  allreduce_t allreduce_host; // all reduce using the host (MPI) communicator.
-  gkyl_array_allgather_t gkyl_array_allgather; // gather local arrays to global array.
-  gkyl_array_bcast_t gkyl_array_bcast; // broadcast array to other processes.
-  gkyl_array_bcast_t gkyl_array_bcast_host; // broadcast host side array to other processes.
-  gkyl_array_sync_t gkyl_array_sync; // sync array.
-  gkyl_array_per_sync_t gkyl_array_per_sync; // sync array in periodic dirs.
-
   barrier_t barrier; // barrier.
+  allreduce_t allreduce; // all reduce function
+  allreduce_t allreduce_host; // ?? all reduce using the host (MPI) communicator
+  
+  extend_comm_t extend_comm; // extend communcator
+  split_comm_t split_comm;   // ?? split communicator.
+
+  comm_group_call_start_t comm_group_call_start; // Start a group call
+  comm_group_call_end_t comm_group_call_end; // End a group call
+
+  // ?? Have 1 set of methods and take a bool flag for blocking or
+  // non-blocking
+  gkyl_array_send_t gkyl_array_send; // blocking send array
+  gkyl_array_isend_t gkyl_array_isend; // nonblocking send array
+  gkyl_array_recv_t gkyl_array_recv; // blocking recv array
+  gkyl_array_irecv_t gkyl_array_irecv; // nonblocking recv array
+
+  comm_state_new_t comm_state_new; // ?? Allocate a new state object
+  comm_state_release_t comm_state_release; // ?? Free a state object.
+  comm_state_wait_t comm_state_wait; // ?? Wait for a request to complete
+
+  // FOLLOWING NEED A DECOMP 
+
+  gkyl_array_allgather_t gkyl_array_allgather; // gather local arrays to global array
+
+  gkyl_array_bcast_t gkyl_array_bcast; // broadcast array to other processes
+  gkyl_array_bcast_t gkyl_array_bcast_host; // ?? broadcast host side array to other processes
+
+  gkyl_array_sync_t gkyl_array_sync; // sync array
+  gkyl_array_per_sync_t gkyl_array_per_sync; // sync array in periodic dirs
 
   gkyl_array_write_t gkyl_array_write; // array output
   gkyl_array_read_t gkyl_array_read; // array input
-
-  extend_comm_t extend_comm; // extend communcator
-  split_comm_t split_comm; // split communicator.
-
-  comm_state_new_t comm_state_new; // Allocate a new state object.
-  comm_state_release_t comm_state_release; // Free a state object.
-  comm_state_wait_t comm_state_wait; // Wait for a request to complete.
-
-  comm_group_call_start_t comm_group_call_start; // Start a group call.
-  comm_group_call_end_t comm_group_call_end; // End a group call.
 
   struct gkyl_ref_count ref_count; // reference count
 };

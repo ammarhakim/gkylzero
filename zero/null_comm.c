@@ -240,13 +240,19 @@ struct gkyl_comm*
 gkyl_null_comm_inew(const struct gkyl_null_comm_inp *inp)
 {
   struct null_comm *comm = gkyl_malloc(sizeof *comm);
-  comm->decomp = gkyl_rect_decomp_acquire(inp->decomp);
+  if (0 == inp->decomp)
+    // construct a dummy decomposition
+    comm->decomp =
+      gkyl_rect_decomp_new_from_cuts_and_cells(1, (int[]) { 1 }, (int[]) { 1 });
+  else
+    comm->decomp = gkyl_rect_decomp_acquire(inp->decomp);
 
   // construct range to hash ghost layout
   int lower[GKYL_MAX_DIM] = { 0 };
   int upper[GKYL_MAX_DIM];
-  for (int d=0; d<inp->decomp->ndim; ++d) upper[d] = GKYL_MAX_NGHOST;
-  gkyl_range_init(&comm->grange, inp->decomp->ndim, lower, upper);
+  for (int d=0; d<comm->decomp->ndim; ++d)
+    upper[d] = GKYL_MAX_NGHOST;
+  gkyl_range_init(&comm->grange, comm->decomp->ndim, lower, upper);
 
   comm->use_gpu = inp->use_gpu;
   comm->sync_corners = inp->sync_corners;
@@ -276,22 +282,3 @@ gkyl_null_comm_inew(const struct gkyl_null_comm_inp *inp)
 
   return &comm->base;
 }
-
-struct gkyl_comm*
-gkyl_null_comm_new(void)
-{
-  // dummy decomp to we can make null comm without a decomp
-  struct gkyl_rect_decomp *decomp =
-    gkyl_rect_decomp_new_from_cuts_and_cells(1, (int[]) { 1 }, (int[]) { 1 });
-  
-  struct gkyl_comm *comm = gkyl_null_comm_inew( &(struct gkyl_null_comm_inp) {
-      .decomp = decomp,
-      .use_gpu = false,
-      .sync_corners = false
-    }
-  );
-  gkyl_rect_decomp_release(decomp);
-  
-  return comm;
-}
-
