@@ -239,7 +239,13 @@ extend_comm(const struct gkyl_comm *comm, const struct gkyl_range *erange)
 static struct gkyl_comm*
 split_comm(const struct gkyl_comm *comm, int color, struct gkyl_rect_decomp *new_decomp)
 {
-  return gkyl_comm_acquire(comm);
+  struct null_comm *null_comm = container_of(comm, struct null_comm, base);  
+  return gkyl_null_comm_inew( &(struct gkyl_null_comm_inp) {
+      .use_gpu = null_comm->use_gpu,
+      .sync_corners = null_comm->sync_corners,
+      .decomp = new_decomp
+    }
+  );
 }
 
 struct gkyl_comm*
