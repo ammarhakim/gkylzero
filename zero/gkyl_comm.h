@@ -476,8 +476,9 @@ gkyl_comm_extend_comm(const struct gkyl_comm *comm,
 
 /**
  * Split a communicator into a new communcator based on color. All
- * ranks with the same color will form the new communcator.
- *
+ * ranks with the same color will form the new communcator. In the input @a
+ * new_decomp can be 0.
+ * 
  * @param comm Communicator.
  * @param color All ranks of same color will share a communicator.
  * @param new_decomp Decomp object to associate with the new communicator.

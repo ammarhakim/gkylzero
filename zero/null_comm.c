@@ -236,6 +236,12 @@ extend_comm(const struct gkyl_comm *comm, const struct gkyl_range *erange)
   return ext_comm;
 }
 
+static struct gkyl_comm*
+split_comm(const struct gkyl_comm *comm, int color, struct gkyl_rect_decomp *new_decomp)
+{
+  return gkyl_comm_acquire(comm);
+}
+
 struct gkyl_comm*
 gkyl_null_comm_inew(const struct gkyl_null_comm_inp *inp)
 {
@@ -277,6 +283,7 @@ gkyl_null_comm_inew(const struct gkyl_null_comm_inp *inp)
   comm->base.gkyl_array_write = array_write;
   comm->base.gkyl_array_read = array_read;
   comm->base.extend_comm = extend_comm;
+  comm->base.split_comm = split_comm;
 
   comm->base.ref_count = gkyl_ref_count_init(comm_free);
 

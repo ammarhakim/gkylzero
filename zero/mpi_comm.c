@@ -669,6 +669,7 @@ split_comm(const struct gkyl_comm *comm, int color, struct gkyl_rect_decomp *new
 
   struct gkyl_comm *newcomm = gkyl_mpi_comm_new( &(struct gkyl_mpi_comm_inp) {
       .mpi_comm = new_mcomm,
+      .sync_corners = mpi->sync_corners,
       .decomp = new_decomp,
     }
   );
