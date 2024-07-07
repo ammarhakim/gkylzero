@@ -151,27 +151,6 @@ void gkyl_moment_multib_app_apply_ic_field(gkyl_moment_multib_app* app, double t
 void gkyl_moment_multib_app_apply_ic_species(gkyl_moment_multib_app* app, int sidx, double t0);
 
 /**
- * Read field data from .gkyl file.
- *
- * @param app App object.
- * @param fname File to read from.
- * @return Status of read
- */
-struct gkyl_app_restart_status gkyl_moment_multib_app_from_file_field(gkyl_moment_multib_app *app,
-  const char *fname);
-
-/**
- * Read species data from .gkyl file.
- *
- * @param app App object.
- * @param sidx Index of species to read
- * @param fname File to read from.
- * @return Status of read
- */
-struct gkyl_app_restart_status gkyl_moment_multib_app_from_file_species(gkyl_moment_multib_app *app,
-  int sidx, const char *fname);
-
-/**
  * Read field data from specified frame of previous simulation.
  *
  * @param app App object.

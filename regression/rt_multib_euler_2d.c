@@ -2,6 +2,9 @@
 #include <gkyl_wv_euler.h>
 #include <gkyl_moment_multib.h>
 
+#include <rt_arg_parse.h>
+#include <mpi.h>
+
 // Gas constant
 static const double gas_gamma = 1.4;
 
@@ -80,6 +83,19 @@ create_block_geom(void)
   return bgeom;
 }
 
+static void
+write_data(struct gkyl_tm_trigger* iot, gkyl_moment_multib_app* app,
+  double t_curr, bool force_write)
+{
+  if (gkyl_tm_trigger_check_and_bump(iot, t_curr)) {
+    int frame = iot->curr - 1;
+    if (force_write) {
+      frame = iot->curr;
+    }
+    gkyl_moment_multib_app_write(app, t_curr, frame);
+  }
+}
+
 void
 initFluidSod(double t, const double *xn, double* restrict fout, void *ctx)
 {
@@ -100,6 +116,19 @@ initFluidSod(double t, const double *xn, double* restrict fout, void *ctx)
 int
 main(int argc, char **argv)
 {
+  struct gkyl_app_args app_args = parse_app_args(argc, argv);
+
+#ifdef GKYL_HAVE_MPI
+  if (app_args.use_mpi) {
+    MPI_Init(&argc, &argv);
+  }
+#endif
+
+  if (app_args.trace_mem) {
+    gkyl_cu_dev_mem_debug_set(true);
+    gkyl_mem_debug_set(true);
+  }
+  
   // construct block geometry
   struct gkyl_block_geom *bgeom = create_block_geom();
   int nblocks = gkyl_block_geom_num_blocks(bgeom);
@@ -151,8 +180,20 @@ main(int argc, char **argv)
 
   struct gkyl_moment_multib_app *app = gkyl_moment_multib_app_new(&app_inp);
 
+  // Initial and final simulation times.
+  double t_curr = 0.0, t_end = 0.6;
+
+  // Create trigger for IO.
+  int num_frames = 4;
+  struct gkyl_tm_trigger io_trig = { .dt = t_end / num_frames };
+
+  // Initialize simulation.
+  gkyl_moment_multib_app_apply_ic(app, t_curr);
+  write_data(&io_trig, app, t_curr, false);
+
   gkyl_block_geom_release(bgeom);
   gkyl_wv_eqn_release(euler_eqn);
+  gkyl_moment_multib_app_release(app);
   
   return 0;
 }     

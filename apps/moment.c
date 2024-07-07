@@ -507,7 +507,8 @@ gkyl_moment_app_stat(gkyl_moment_app* app)
 
 // ensure stats across processors are made consistent
 static void
-comm_reduce_app_stat(const gkyl_moment_app* app, const struct gkyl_moment_stat *local, struct gkyl_moment_stat *global)
+comm_reduce_app_stat(const gkyl_moment_app* app, const struct gkyl_moment_stat *local,
+  struct gkyl_moment_stat *global)
 {
   int comm_sz;
   gkyl_comm_get_size(app->comm, &comm_sz);
