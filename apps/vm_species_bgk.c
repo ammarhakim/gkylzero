@@ -68,6 +68,7 @@ vm_species_bgk_init(struct gkyl_vlasov_app *app, struct vm_species *s, struct vm
   bgk->correct_all_moms = false;
   int max_iter = s->info.collisions.max_iter > 0 ? s->info.collisions.max_iter : 100;
   double iter_eps = s->info.collisions.iter_eps > 0 ? s->info.collisions.iter_eps  : 1e-12;
+  bool use_last_converged = s->info.collisions.use_last_converged; 
   
   if (s->info.collisions.correct_all_moms) {
     bgk->correct_all_moms = true;
@@ -89,6 +90,7 @@ vm_species_bgk_init(struct gkyl_vlasov_app *app, struct vm_species *s, struct vm
       .use_gpu = app->use_gpu,
       .max_iter = max_iter,
       .eps = iter_eps,
+      .use_last_converged = use_last_converged, 
     };
     bgk->self_niter = 0;
     bgk->corr_lte = gkyl_vlasov_lte_correct_inew( &inp_corr );

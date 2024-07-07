@@ -41,7 +41,10 @@ struct gkyl_vlasov_projection {
       void (*temp)(double t, const double *xn, double *fout, void *ctx);
 
       // boolean if we are correcting all the moments or only density
-      bool correct_all_moms;       
+      bool correct_all_moms;  
+      double iter_eps; // error tolerance for moment fixes (density is always exact)
+      int max_iter; // maximum number of iteration
+      bool use_last_converged; // use last iteration value regardless of convergence?
     };
   };
 };
@@ -64,6 +67,7 @@ struct gkyl_vlasov_collisions {
   bool correct_all_moms;
   double iter_eps; // error tolerance for moment fixes (density is always exact)
   int max_iter; // maximum number of iteration
+  bool use_last_converged; // use last iteration value regardless of convergence?
 
   // Boolean for using implicit BGK collisions (replaces rk3)   
   bool has_implicit_coll_scheme; 

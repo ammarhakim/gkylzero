@@ -314,15 +314,16 @@ main(int argc, char **argv)
       .V_drift = evalVDriftInit,
       .ctx_V_drift = &ctx,
       .correct_all_moms = true,
+      .use_last_converged = true, 
     },
     .collisions =  {
       .collision_id = GKYL_BGK_COLLISIONS,
       .self_nu = evalNu,
       .ctx = &ctx,
       .correct_all_moms = true,
-
-      .iter_eps = 1e-6,
-      .max_iter = 20,
+      // .iter_eps = 1e-6,
+      // .max_iter = 20,
+      .use_last_converged = true, 
     },
     
     .num_diag_moments = 3,
