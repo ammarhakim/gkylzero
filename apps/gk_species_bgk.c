@@ -82,9 +82,11 @@ gk_species_bgk_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s, stru
     .phase_grid = &s->grid,
     .conf_basis = &app->confBasis,
     .phase_basis = &app->basis,
+    .phase_basis_on_dev = app->basis_on_dev.basis,
+    .conf_basis_on_dev = app->basis_on_dev.confBasis,
     .conf_range =  &app->local,
     .conf_range_ext = &app->local_ext,
-    .vel_range = &s->local_vel,
+    .phase_range_ext = &s->local_ext,
     .gk_geom = app->gk_geom,
     .vel_map = s->vel_map,
     .divide_jacobgeo = false, // final Jacobian multiplication will be handled in advance
@@ -105,8 +107,19 @@ gk_species_bgk_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s, stru
   }
 
   // Maxwellian projection updater.
-  bgk->proj_max = gkyl_proj_maxwellian_on_basis_new(&s->grid, &app->confBasis, &app->basis, 
-    app->poly_order+1, s->vel_map, app->use_gpu);
+  struct gkyl_proj_maxwellian_on_basis_inp inp_proj = {
+    .grid = &s->grid,
+    .phase_basis = &app->basis,
+    .conf_basis = &app->confBasis,
+    .phase_basis_on_dev = app->basis_on_dev.basis,
+    .conf_basis_on_dev = app->basis_on_dev.confBasis,
+    .phase_range_ext = &s->local_ext,
+    .conf_range_ext = &app->local_ext,
+    .vel_map = s->vel_map,
+    .use_gpu = app->use_gpu,
+  };
+  bgk->proj_max = gkyl_proj_maxwellian_on_basis_inew( &inp_proj );
+  //bgk->proj_max = gkyl_proj_maxwellian_on_basis_new(&s->grid, &app->confBasis, &app->basis, app->poly_order+1, s->vel_map, app->use_gpu);
   bgk->fmax = mkarr(app->use_gpu, app->basis.num_basis, s->local_ext.volume);
   bgk->nu_fmax = mkarr(app->use_gpu, app->basis.num_basis, s->local_ext.volume);
   // BGK updater (also computes stable timestep)

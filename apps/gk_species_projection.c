@@ -57,8 +57,11 @@ gk_species_projection_init(struct gkyl_gyrokinetic_app *app, struct gk_species *
       .phase_grid = &s->grid,
       .conf_basis = &app->confBasis,
       .phase_basis = &app->basis,
+      .phase_basis_on_dev = app->basis_on_dev.basis,
+      .conf_basis_on_dev = app->basis_on_dev.confBasis,
       .conf_range =  &app->local,
       .conf_range_ext = &app->local_ext,
+      .phase_range_ext = &s->local_ext,
       .gk_geom = app->gk_geom,
       .vel_map = s->vel_map,
       .mass = s->info.mass,
@@ -69,15 +72,25 @@ gk_species_projection_init(struct gkyl_gyrokinetic_app *app, struct gk_species *
       .eps = 1e-10,
     };
     proj->corr_max = gkyl_gyrokinetic_maxwellian_correct_inew( &inp_corr );
-
+    
     proj->correct_all_moms = false;
     if (inp.correct_all_moms) {
       proj->correct_all_moms = true;
     }
 
     // Maxwellian projection updater.
-    proj->proj_max_prim = gkyl_proj_maxwellian_on_basis_new(&s->grid,
-      &app->confBasis, &app->basis, app->basis.poly_order+1, s->vel_map, app->use_gpu);
+    struct gkyl_proj_maxwellian_on_basis_inp inp_proj = {
+      .grid = &s->grid,
+      .phase_basis = &app->basis,
+      .conf_basis = &app->confBasis,
+      .phase_basis_on_dev = app->basis_on_dev.basis,
+      .conf_basis_on_dev = app->basis_on_dev.confBasis,
+      .phase_range_ext = &s->local_ext,
+      .conf_range_ext = &app->local_ext,
+      .vel_map = s->vel_map,
+      .use_gpu = app->use_gpu,
+    };
+    proj->proj_max_prim = gkyl_proj_maxwellian_on_basis_inew( &inp_proj );
   }
   else if (proj->proj_id == GKYL_PROJ_BIMAXWELLIAN) {
     proj->dens = mkarr(false, app->confBasis.num_basis, app->local_ext.volume);
@@ -181,7 +194,7 @@ gk_species_projection_calc(gkyl_gyrokinetic_app *app, const struct gk_species *s
 
   // Multiply by the velocity space jacobian.
   gkyl_array_scale_by_cell(f, s->vel_map->jacobvel);
-
+  
   if (proj->proj_id == GKYL_PROJ_MAXWELLIAN_PRIM || proj->proj_id == GKYL_PROJ_BIMAXWELLIAN) {
     // Now compute and scale the density to the desired density function 
     // based on input density from Maxwellian projection and potentially correct
