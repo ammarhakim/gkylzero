@@ -169,6 +169,118 @@ void euler_block_bc_updaters_release(struct euler_block_data* bdata);
 void euler_block_bc_updaters_apply(const struct euler_block_data* bdata, double tm, struct gkyl_array* fld);
 
 /**
+* Coarse-to-fine projection operator for block-structured AMR, assuming a lower coarse block and a lower fine block.
+*
+* @param tbid Target (fine) block ID.
+* @param tdir Target (fine) block direction.
+* @param i Reference (coarse) block ID.
+* @param d Reference (coarse) block direction.
+* @param bdata Block-structured data for the Euler equations.
+* @param bc_buffer Buffer for applying boundary conditions.
+* @param fld Output array.
+*/
+void block_ll_projection_op(const int tbid, const int tdir, const int i, const int d, const struct euler_block_data bdata[],
+  const struct gkyl_array* bc_buffer, struct gkyl_array* fld[]);
+
+/**
+* Fine-to-coarse restriction operator for block-structured AMR, assuming a lower fine block and a lower coarse block.
+*
+* @param tbid Target (coarse) block ID.
+* @param tdir Target (coarse) block direction.
+* @param i Reference (fine) block ID.
+* @param d Reference (fine) block direction.
+* @param bdata Block-structured data for the Euler equations.
+* @param bc_buffer Buffer for applying boundary conditions.
+* @param fld Output array.
+*/
+void block_ll_restriction_op(const int tbid, const int tdir, const int i, const int d, const struct euler_block_data bdata[],
+  const struct gkyl_array* bc_buffer, struct gkyl_array* fld[]);
+
+/**
+* Coarse-to-fine projection operator for block-structured AMR, assuming a lower coarse block and an upper fine block.
+*
+* @param tbid Target (fine) block ID.
+* @param tdir Target (fine) block direction.
+* @param i Reference (coarse) block ID.
+* @param d Reference (coarse) block direction.
+* @param bdata Block-structured data for the Euler equations.
+* @param bc_buffer Buffer for applying boundary conditions.
+* @param fld Output array.
+*/
+void block_lu_projection_op(const int tbid, const int tdir, const int i, const int d, const struct euler_block_data bdata[],
+  const struct gkyl_array* bc_buffer, struct gkyl_array* fld[]);
+
+/**
+* Fine-to-coarse restriction operator for block-structured AMR, assuming a lower fine block and an upper coarse block.
+*
+* @param tbid Target (coarse) block ID.
+* @param tdir Target (coarse) block direction.
+* @param i Reference (fine) block ID.
+* @param d Reference (fine) block direction.
+* @param bdata Block-structured data for the Euler equations.
+* @param bc_buffer Buffer for applying boundary conditions.
+* @param fld Output array.
+*/
+void block_lu_restriction_op(const int tbid, const int tdir, const int i, const int d, const struct euler_block_data bdata[],
+  const struct gkyl_array* bc_buffer, struct gkyl_array* fld[]);
+
+  /**
+* Coarse-to-fine projection operator for block-structured AMR, assuming an upper coarse block and a lower fine block.
+*
+* @param tbid Target (fine) block ID.
+* @param tdir Target (fine) block direction.
+* @param i Reference (coarse) block ID.
+* @param d Reference (coarse) block direction.
+* @param bdata Block-structured data for the Euler equations.
+* @param bc_buffer Buffer for applying boundary conditions.
+* @param fld Output array.
+*/
+void block_ul_projection_op(const int tbid, const int tdir, const int i, const int d, const struct euler_block_data bdata[],
+  const struct gkyl_array* bc_buffer, struct gkyl_array* fld[]);
+
+/**
+* Fine-to-coarse restriction operator for block-structured AMR, assuming an upper fine block and a lower coarse block.
+*
+* @param tbid Target (coarse) block ID.
+* @param tdir Target (coarse) block direction.
+* @param i Reference (fine) block ID.
+* @param d Reference (fine) block direction.
+* @param bdata Block-structured data for the Euler equations.
+* @param bc_buffer Buffer for applying boundary conditions.
+* @param fld Output array.
+*/
+void block_ul_restriction_op(const int tbid, const int tdir, const int i, const int d, const struct euler_block_data bdata[],
+  const struct gkyl_array* bc_buffer, struct gkyl_array* fld[]);
+
+/**
+* Coarse-to-fine projection operator for block-structured AMR, assuming an upper coarse block and an upper fine block.
+*
+* @param tbid Target (fine) block ID.
+* @param tdir Target (fine) block direction.
+* @param i Reference (coarse) block ID.
+* @param d Reference (coarse) block direction.
+* @param bdata Block-structured data for the Euler equations.
+* @param bc_buffer Buffer for applying boundary conditions.
+* @param fld Output array.
+*/
+void block_uu_projection_op(const int tbid, const int tdir, const int i, const int d, const struct euler_block_data bdata[],
+  const struct gkyl_array* bc_buffer, struct gkyl_array* fld[]);
+
+/**
+* Fine-to-coarse restriction operator for block-structured AMR, assuming an upper fine block and an upper coarse block.
+*
+* @param tbid Target (coarse) block ID.
+* @param tdir Target (coarse) block direction.
+* @param i Reference (fine) block ID.
+* @param d Reference (fine) block direction.
+* @param bdata Block-structured data for the Euler equations.
+* @param bc_buffer Buffer for applying boundary conditions.
+* @param fld Output array.
+*/
+void block_uu_restriction_op(const int tbid, const int tdir, const int i, const int d, const struct euler_block_data bdata[],
+  const struct gkyl_array* bc_buffer, struct gkyl_array* fld[]);
+
+/**
 * Synchronize all blocks in the block AMR hierarchy by applying all appropriate physical (outer-block) and non-physical (inter-block)
 * boundary conditions for the Euler equations.
 *
