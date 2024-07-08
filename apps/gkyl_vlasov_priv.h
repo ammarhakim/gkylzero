@@ -744,20 +744,20 @@ void vm_species_lte_init(struct gkyl_vlasov_app *app, struct vm_species *s,
   struct vm_lte *lte, bool correct_all_moms);
 
 /**
- * Compute necessary moments for f-lte creation
+ * Compute LTE distribution from input moments
  *
  * @param app Vlasov app object
  * @param species Pointer to species
  * @param lte Pointer to lte object
- * @param fin Input distribution function
+ * @param moms_lte Input LTE moments
  */
-void vm_species_lte_moms(gkyl_vlasov_app *app,
+void vm_species_lte_from_moms(gkyl_vlasov_app *app,
   const struct vm_species *species,
   struct vm_lte *lte,
-  const struct gkyl_array *fin);
+  const struct gkyl_array *moms_lte);
 
 /**
- * Compute f-lte
+ * Compute equivalent LTE distribution from input distribution function. 
  *
  * @param app Vlasov app object
  * @param species Pointer to species

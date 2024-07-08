@@ -76,8 +76,8 @@ vm_species_bgk_rhs(gkyl_vlasov_app *app, struct vm_species *species,
   struct timespec wst = gkyl_wall_clock();
   gkyl_array_clear(bgk->nu_f_lte, 0.0);
 
-  // Project the LTE distribution function
-  vm_species_lte(app, species, &bgk->lte, fin);
+  // Project the LTE distribution function from the computed LTE moments
+  vm_species_lte_from_moms(app, species, &bgk->lte, bgk->lte.moms.marr);
 
   gkyl_dg_mul_conf_phase_op_range(&app->confBasis, &app->basis, bgk->lte.f_lte, 
     bgk->self_nu, bgk->lte.f_lte, &app->local, &species->local);

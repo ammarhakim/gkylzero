@@ -66,39 +66,24 @@ vm_species_lte_init(struct gkyl_vlasov_app *app, struct vm_species *s, struct vm
   lte->f_lte = mkarr(app->use_gpu, app->basis.num_basis, s->local_ext.volume);
 }
 
-// computes moments
+// Compute f_lte from input LTE moments
 void
-vm_species_lte_moms(gkyl_vlasov_app *app, const struct vm_species *species,
-  struct vm_lte *lte, const struct gkyl_array *fin)
+vm_species_lte_from_moms(gkyl_vlasov_app *app, const struct vm_species *species,
+  struct vm_lte *lte, const struct gkyl_array *moms_lte)
 {
   struct timespec wst = gkyl_wall_clock();
 
-  vm_species_moment_calc(&lte->moms, species->local, app->local, fin);
-  
-  app->stat.species_lte_tm += gkyl_time_diff_now_sec(wst);    
-}
-
-// updates f_lte to the current fin
-void
-vm_species_lte(gkyl_vlasov_app *app, const struct vm_species *species,
-  struct vm_lte *lte, const struct gkyl_array *fin)
-{
-
-  // Always update the moments
-  vm_species_lte_moms(app, species, lte, fin);
-
-  struct timespec wst = gkyl_wall_clock();
   gkyl_array_clear(lte->f_lte, 0.0);
 
   // Project the LTE distribution function to obtain f_lte.
   // e.g., Maxwellian for non-relativistic and Maxwell-Juttner for relativistic.
   // Projection routine also corrects the density of the projected distribution function.
   gkyl_vlasov_lte_proj_on_basis_advance(lte->proj_lte, &species->local, &app->local, 
-    lte->moms.marr, lte->f_lte);
+    moms_lte, lte->f_lte);
 
   // Correct all the moments of the projected LTE distribution function.
   if (lte->correct_all_moms) {
-    struct gkyl_vlasov_lte_correct_status status_corr = gkyl_vlasov_lte_correct_all_moments(lte->corr_lte, lte->f_lte, lte->moms.marr,
+    struct gkyl_vlasov_lte_correct_status status_corr = gkyl_vlasov_lte_correct_all_moments(lte->corr_lte, lte->f_lte, moms_lte,
       &species->local, &app->local);
     double corr_vec[7];
     corr_vec[0] = status_corr.num_iter;
@@ -108,12 +93,22 @@ vm_species_lte(gkyl_vlasov_app *app, const struct vm_species *species,
     corr_vec[4] = status_corr.error[2];
     corr_vec[5] = status_corr.error[3];
     corr_vec[6] = status_corr.error[4];
-    gkyl_dynvec_append(lte->corr_stat,app->tcurr,corr_vec);
+    gkyl_dynvec_append(lte->corr_stat, app->tcurr, corr_vec);
 
     lte->niter += status_corr.num_iter;
   } 
 
-  app->stat.species_lte_tm += gkyl_time_diff_now_sec(wst);
+  app->stat.species_lte_tm += gkyl_time_diff_now_sec(wst);   
+}
+
+// Compute equivalent f_lte from fin
+void
+vm_species_lte(gkyl_vlasov_app *app, const struct vm_species *species,
+  struct vm_lte *lte, const struct gkyl_array *fin)
+{
+  vm_species_moment_calc(&lte->moms, species->local, app->local, fin);
+
+  vm_species_lte_from_moms(app, species, lte, lte->moms.marr);
 }
 
 void 

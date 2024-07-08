@@ -14,6 +14,14 @@ vlasov_update_implicit_coll(gkyl_vlasov_app* app, double dt0)
     fout[i] = app->species[i].f1;
   }
 
+  // compute necessary moments and boundary corrections for collisions
+  for (int i=0; i<app->num_species; ++i) {
+    if (app->species[i].collision_id == GKYL_BGK_COLLISIONS) {
+      vm_species_bgk_moms(app, &app->species[i], 
+        &app->species[i].bgk, fin[i]);
+    }
+  }
+  
   // implicit BGK contributions
   for (int i=0; i<app->num_species; ++i) {
     app->species[i].bgk.implicit_step = true;

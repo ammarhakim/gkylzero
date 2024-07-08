@@ -523,19 +523,8 @@ gkyl_vlasov_app_write_species_lte(gkyl_vlasov_app* app, int sidx, double tm, int
   char fileNm[sz+1]; // ensures no buffer overflow
   snprintf(fileNm, sizeof fileNm, fmt, app->name, app->species[sidx].info.name, frame);
 
-  // Call the update for f_lte (only neeeded for explicit collisions)
-  int ns = app->num_species;  
-  const struct gkyl_array *fin[ns];
-  struct gkyl_array *fout[ns];
-  for (int i=0; i<ns; ++i) {
-    fin[i] = app->species[i].f;
-  }
-
-  // compute necessary moments and boundary corrections for collisions
-  for (int i=0; i<app->num_species; ++i) {
-    if (app->species[i].info.output_f_lte) {
-      vm_species_lte(app, &app->species[i], &app->species[i].lte, fin[i]);
-    }
+  if (app->species[sidx].info.output_f_lte) {
+    vm_species_lte(app, &app->species[sidx], &app->species[sidx].lte, app->species[sidx].f);
   }
   
   if (app->use_gpu) {
