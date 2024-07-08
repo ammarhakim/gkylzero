@@ -149,10 +149,13 @@ phi_func(double alpha_curr, double Z, void *ctx)
     }
   }
   else if (actx->ftype==GKYL_CORE_L){ 
-    if (Z<actx->zmaxis)
-      ival = integrate_phi_along_psi_contour_memo(actx->geo, psi, Z, actx->zmaxis, rclose, false, false, arc_memo);
-    else
-      ival = -integrate_phi_along_psi_contour_memo(actx->geo, psi, actx->zmaxis, Z, rclose, false, false, arc_memo);
+    //if (Z<actx->zmaxis)
+    //  ival = integrate_phi_along_psi_contour_memo(actx->geo, psi, Z, actx->zmaxis, rclose, false, false, arc_memo);
+    //else
+    //  ival = -integrate_phi_along_psi_contour_memo(actx->geo, psi, actx->zmaxis, Z, rclose, false, false, arc_memo);
+    ival = integrate_phi_along_psi_contour_memo(actx->geo, psi, Z, actx->zmax, rclose, false, false, arc_memo);
+    phi_ref = actx->phi_right;
+    //printf("Z = %g, adding %g\n", actx->phi_right, ival = %g);
   }
 
   else if (actx->ftype==GKYL_CORE_R){ 
@@ -527,6 +530,13 @@ void gkyl_tok_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, double
               int nr = R_psiZ(geo, psi_curr, z_curr, 4, R, dR);
               double r_curr = choose_closest(rclose, R, R, nr);
 
+              if(inp->ftype == GKYL_CORE_L){ // Match the core right boundary at upper and lower theta ends
+                if ((it == nrange->lower[TH_IDX]) && (up->local.lower[TH_IDX]== up->global.lower[TH_IDX]))
+                  r_curr = choose_closest(inp->rright, R, R, nr);
+                if((it == nrange->upper[TH_IDX]) && (up->local.upper[TH_IDX]== up->global.upper[TH_IDX]))
+                  r_curr = choose_closest(inp->rright, R, R, nr);
+              }
+
               if(nr==0){
                 printf("Failed to find a root at psi = %g, Z = %g\n", psi_curr, z_curr);
                 assert(false);
@@ -567,6 +577,23 @@ void gkyl_tok_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, double
                 mc2prz_n[Z_IDX] = phi_curr;
                 dphidtheta_n[0] = dphidtheta_func(z_curr, &arc_ctx);
               }
+
+
+          //if(ip==0 && ia==0 && it_delta==0 && ia_delta==0){
+          //  if(inp->ftype==GKYL_CORE_R && it == nrange->upper[TH_IDX]) 
+          //    printf("ip_delta = %d, r,z,phi = %1.16f, %g, %g\n  all R = %1.16f %1.16f %1.16f %1.16f\n", ip_delta, r_curr, z_curr, phi_curr, R[0], R[1], R[2], R[3]);
+          //  if(inp->ftype==GKYL_CORE_L && it == 0) 
+          //    printf("ip_delta = %d, r,z,phi = %1.16f, %g, %g\n  all R = %1.16f %1.16f %1.16f %1.16f\n", ip_delta, r_curr, z_curr, phi_curr, R[0], R[1], R[2], R[3]);
+          //}
+
+          if(ip==0 && ia==0 && it_delta==0 && ia_delta==0){
+            if(inp->ftype==GKYL_CORE_R && it == 0) 
+              printf("ip_delta = %d, r,z,phi = %1.16f, %g, %g\n  all R = %1.16f %1.16f %1.16f %1.16f\n", ip_delta, r_curr, z_curr, phi_curr, R[0], R[1], R[2], R[3]);
+            if(inp->ftype==GKYL_CORE_L && it == nrange->upper[TH_IDX]) 
+              printf("ip_delta = %d, r,z,phi = %1.16f, %g, %g\n  all R = %1.16f %1.16f %1.16f %1.16f\n", ip_delta, r_curr, z_curr, phi_curr, R[0], R[1], R[2], R[3]);
+          }
+
+
             }
           }
         }

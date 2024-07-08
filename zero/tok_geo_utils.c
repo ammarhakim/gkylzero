@@ -232,6 +232,15 @@ tok_find_endpoints(struct gkyl_tok_geo_grid_inp* inp, struct gkyl_tok_geo *geo, 
     // Set arc length
     arc_ctx->arcL_tot = integrate_psi_contour_memo(geo, psi_curr, arc_ctx->zmin, arc_ctx->zmax, arc_ctx->rclose,
       true, true, arc_memo);
+
+    arc_ctx->right = true;
+    arc_ctx->ftype = GKYL_CORE_R;
+    arc_ctx->phi_right = 0.0;
+    arc_ctx->rclose = inp->rright;
+    arc_ctx->phi_right = phi_func(alpha_curr, arc_ctx->zmax, arc_ctx) - alpha_curr;
+    arc_ctx->right = false;
+    arc_ctx->rclose = inp->rleft;
+    arc_ctx->ftype = GKYL_CORE_L;
   }
 
   if(inp->ftype == GKYL_CORE_R){
