@@ -36,7 +36,7 @@ gkyl_gr_euler_tetrad_flux(double gas_gamma, const double q[29], double flux[29])
     flux[1] = (rho * h * (W * W) * (vx * vx)) + p;
     flux[2] = rho * h * (W * W) * (vy * vx);
     flux[3] = rho * h * (W * W) * (vz * vx);
-    flux[4] = (((rho * h * (W * W)) - p - (rho * W)) * vx) + (p * vx);
+    flux[4] = ((rho * h * (W * W)) - (rho * W)) * vx;
 
     for (int i = 5; i < 29; i++) {
       flux[i] = 0.0;
@@ -47,6 +47,111 @@ gkyl_gr_euler_tetrad_flux(double gas_gamma, const double q[29], double flux[29])
       flux[i] = 0.0;
     }
   }
+}
+
+static void
+gkyl_gr_euler_tetrad_extrapolate_flux(double gas_gamma, const double q[29], const double flux[29], double flux_extrap[29])
+{
+  double v[29];
+  gkyl_gr_euler_prim_vars(gas_gamma, q, v);
+  double rho = v[0];
+  double vx = v[1];
+  double vy = v[2];
+  double vz = v[3];
+  double p = v[4];
+
+  double spatial_det = v[5];
+  double lapse = v[6];
+  double shift_x = v[7];
+  double shift_y = v[8];
+  double shift_z = v[9];
+
+  double **spatial_metric = gkyl_malloc(sizeof(double*[3]));
+  for (int i = 0; i < 3; i++) {
+    spatial_metric[i] = gkyl_malloc(sizeof(double[3]));
+  }
+
+  spatial_metric[0][0] = v[10]; spatial_metric[0][1] = v[11]; spatial_metric[0][2] = v[12];
+  spatial_metric[1][0] = v[13]; spatial_metric[1][1] = v[14]; spatial_metric[1][2] = v[15];
+  spatial_metric[2][0] = v[16]; spatial_metric[2][1] = v[17]; spatial_metric[2][2] = v[18];
+
+  double **inv_spatial_metric = gkyl_malloc(sizeof(double*[3]));
+  for (int i = 0; i < 3; i++) {
+    inv_spatial_metric[i] = gkyl_malloc(sizeof(double[3]));
+  }
+
+  inv_spatial_metric[0][0] = v[19]; inv_spatial_metric[0][1] = v[20]; inv_spatial_metric[0][2] = v[21];
+  inv_spatial_metric[1][0] = v[22]; inv_spatial_metric[1][1] = v[23]; inv_spatial_metric[1][2] = v[24];
+  inv_spatial_metric[2][0] = v[25]; inv_spatial_metric[2][1] = v[26]; inv_spatial_metric[2][2] = v[27];
+
+  bool in_excision_region = false;
+  if (v[28] < pow(10.0, -8.0)) {
+    in_excision_region = true;
+  }
+  
+  if (!in_excision_region) {
+    double W_flat = 1.0 / (sqrt(1.0 - (vx * vx) - (vy * vy) - (vz * vz)));
+    if ((vx * vx) + (vy * vy) + (vz * vz) > 1.0 - pow(1.0, -8.0)) {
+      W_flat = 1.0 / sqrt(pow(1.0, -8.0));
+    }
+
+    double *vel = gkyl_malloc(sizeof(double[3]));
+    double v_sq = 0.0;
+    vel[0] = vx; vel[1] = vy; vel[2] = vz;
+
+    for (int i = 0; i < 3; i++) {
+      for (int j = 0; j < 3; j++) {
+        v_sq += spatial_metric[i][j] * vel[i] * vel[j];
+      }
+    }
+
+    double W_curved = 1.0 / sqrt(1.0 - v_sq);
+    if(v_sq > 1.0 - pow(10.0, -8.0)) {
+      W_curved = 1.0 / sqrt(pow(1.0, -8.0));
+    }
+
+    double h = 1.0 + ((p / rho) * (gas_gamma / (gas_gamma - 1.0)));
+
+    if (W_curved > 1.5) {
+      printf("%f = %f\n", W_flat, W_curved);
+    }
+    
+    if (fabs(vx) < pow(10.0, -16.0)) {
+      flux_extrap[0] = flux[0] + (lapse * sqrt(spatial_det)) * rho * W_curved * (- (shift_x / lapse));
+      flux_extrap[1] = (flux[1] - p) + (lapse * sqrt(spatial_det)) * p;
+      flux_extrap[2] = flux[2] + (lapse * sqrt(spatial_det)) * (rho * h * (W_curved * W_curved) * (vy * (- (shift_x / lapse))));
+      flux_extrap[3] = flux[3] + (lapse * sqrt(spatial_det)) * (rho * h * (W_curved * W_curved) * (vz * (- (shift_x / lapse))));
+      flux_extrap[4] = flux[4] + (lapse * sqrt(spatial_det)) * (((rho * h * (W_curved * W_curved)) - p - (rho * W_curved)) * (- (shift_x / lapse)));
+    }
+    else {
+      flux_extrap[0] = (flux[0] / W_flat) * (lapse * sqrt(spatial_det)) * W_curved * (1.0 - (shift_x / (lapse * vx)));
+      flux_extrap[1] = ((flux[1] - p) / (W_flat * W_flat)) * (lapse * sqrt(spatial_det)) * (W_curved * W_curved) * (1.0 - (shift_x / (lapse * vx)))
+        + (lapse * sqrt(spatial_det)) * p;
+      flux_extrap[2] = (flux[2] / (W_flat * W_flat)) * (lapse * sqrt(spatial_det)) * (W_curved * W_curved) * (1.0 - (shift_x / (lapse * vx)));
+      flux_extrap[3] = (flux[3] / (W_flat * W_flat)) * (lapse * sqrt(spatial_det)) * (W_curved * W_curved) * (1.0 - (shift_x / (lapse * vx)));
+      // The general extrapolation for energy is horrifying, so instead we extract pressure, transform that, and then transform back.
+      flux_extrap[4] = (flux[4] / (((rho * h * (W_flat * W_flat)) - (rho * W_flat)) * vx)) * (lapse * sqrt(spatial_det)) *
+        (((rho * h * (W_curved * W_curved)) - p - (rho * W_curved)) * (vx - (shift_x / lapse)) + (p * vx));
+    }
+
+    for (int i = 5; i < 29; i++) {
+      flux_extrap[i] = 0.0;
+    }
+
+    gkyl_free(vel);
+  }
+  else {
+    for (int i = 0; i < 29; i++) {
+      flux_extrap[i] = 0.0;
+    }
+  }
+
+  for (int i = 0; i < 3; i++) {
+    gkyl_free(spatial_metric[i]);
+    gkyl_free(inv_spatial_metric[i]);
+  }
+  gkyl_free(spatial_metric);
+  gkyl_free(inv_spatial_metric);
 }
 
 static double
@@ -63,6 +168,10 @@ wave_lax_tetrad(const struct gkyl_wv_eqn* eqn, const double* delta, const double
   gkyl_gr_euler_tetrad_flux(gas_gamma, ql, fl);
   gkyl_gr_euler_tetrad_flux(gas_gamma, qr, fr);
 
+  double fl_extrap[29], fr_extrap[29];
+  gkyl_gr_euler_tetrad_extrapolate_flux(gas_gamma, ql, fl, fl_extrap);
+  gkyl_gr_euler_tetrad_extrapolate_flux(gas_gamma, qr, fr, fr_extrap);
+
   bool in_excision_region_l = false;
   if (ql[28] < pow(10.0, -8.0)) {
     in_excision_region_l = true;
@@ -76,8 +185,8 @@ wave_lax_tetrad(const struct gkyl_wv_eqn* eqn, const double* delta, const double
   double *w0 = &waves[0], *w1 = &waves[29];
   if (!in_excision_region_l && !in_excision_region_r) {
     for (int i = 0; i < 29; i++) {
-      w0[i] = 0.5 * ((qr[i] - ql[i]) - (fr[i] - fl[i]) / amax);
-      w1[i] = 0.5 * ((qr[i] - ql[i]) + (fr[i] - fl[i]) / amax);
+      w0[i] = 0.5 * ((qr[i] - ql[i]) - (fr_extrap[i] - fl_extrap[i]) / amax);
+      w1[i] = 0.5 * ((qr[i] - ql[i]) + (fr_extrap[i] - fl_extrap[i]) / amax);
     }
   }
   else {

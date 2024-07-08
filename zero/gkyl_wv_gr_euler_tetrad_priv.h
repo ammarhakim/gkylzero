@@ -28,6 +28,19 @@ static void
 gkyl_gr_euler_tetrad_flux(double gas_gamma, const double q[29], double flux[29]);
 
 /**
+* Perform a boundary extrapolation of the flux vector in the tetrad frame, accounting for parallel transport.
+*
+*
+* @param gas_gamma Adiabatic index.
+* @param q Conserved variable vector.
+* @param flux Flux vector in direction 'dir' in the local tetrad basis.
+* @param flux_extrap Extrapolated vector in direction 'dir' (output).
+*/
+GKYL_CU_D
+static void
+gkyl_gr_euler_tetrad_extrapolate_flux(double gas_gamma, const double q[20], const double flux[29], double flux_extrap[29]);
+
+/**
 * Compute waves and speeds using Lax fluxes.
 *
 * @param eqn Base equation object.
