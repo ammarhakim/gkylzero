@@ -592,6 +592,219 @@ test_3x2v_gk(int poly_order, bool use_gpu)
 #endif  
 }
 
+void
+test_3x2v_gk_compare(int poly_order, bool use_gpu)
+{
+  double mass = 1.0;
+  double lower[] = {0.1, 0.1, 0.1, -6.0, 0.0}, upper[] = {1.0, 1.0, 1.0, 6.0, 6.0};
+  int cells[] = {2, 2, 2, 16, 16};
+  const int vdim = 2;
+  const int ndim = sizeof(cells)/sizeof(cells[0]);
+  const int cdim = ndim-vdim;
+
+  double confLower[cdim], confUpper[cdim];
+  int confCells[cdim];
+  for (int d=0; d<cdim; d++) {
+    confLower[d] = lower[d];
+    confUpper[d] = upper[d];
+    confCells[d] = cells[d];
+  }
+  double vLower[vdim], vUpper[vdim];
+  int vCells[vdim];
+  for (int d=0; d<vdim; d++) {
+    vLower[d] = lower[cdim+d];
+    vUpper[d] = upper[cdim+d];
+    vCells[d] = cells[cdim+d];
+  }
+
+  // grids
+  struct gkyl_rect_grid grid;
+  gkyl_rect_grid_init(&grid, ndim, lower, upper, cells);
+  struct gkyl_rect_grid confGrid;
+  gkyl_rect_grid_init(&confGrid, cdim, confLower, confUpper, confCells);
+  struct gkyl_rect_grid vGrid;
+  gkyl_rect_grid_init(&vGrid, vdim, vLower, vUpper, vCells);
+
+  // basis functions
+  struct gkyl_basis basis, confBasis;
+  if (poly_order == 1) 
+    gkyl_cart_modal_gkhybrid(&basis, cdim, vdim);
+  else
+    gkyl_cart_modal_serendip(&basis, ndim, poly_order);
+  gkyl_cart_modal_serendip(&confBasis, cdim, poly_order);
+
+  struct gkyl_basis *basis_on_dev, *conf_basis_on_dev;
+  if (use_gpu) {
+#ifdef GKYL_HAVE_CUDA
+    basis_on_dev = gkyl_cu_malloc(sizeof(struct gkyl_basis));
+    conf_basis_on_dev = gkyl_cu_malloc(sizeof(struct gkyl_basis));
+    if (poly_order == 1) 
+      gkyl_cart_modal_gkhybrid_cu_dev(basis_on_dev, cdim, vdim);
+    else
+      gkyl_cart_modal_serendip_cu_dev(basis_on_dev, ndim, poly_order);
+    gkyl_cart_modal_serendip_cu_dev(conf_basis_on_dev, cdim, poly_order);
+#endif
+  }
+  else { 
+    basis_on_dev = &basis;
+    conf_basis_on_dev = &confBasis;
+  }
+
+  int confGhost[] = { 1, 1, 1 };
+  struct gkyl_range confLocal, confLocal_ext; // local, local-ext conf-space ranges
+  gkyl_create_grid_ranges(&confGrid, confGhost, &confLocal_ext, &confLocal);
+  struct skin_ghost_ranges confSkin_ghost; // conf-space skin/ghost
+  skin_ghost_ranges_init(&confSkin_ghost, &confLocal_ext, confGhost);
+
+  int ghost[] = { confGhost[0], confGhost[1], confGhost[2], 0, 0 };
+  struct gkyl_range local, local_ext; // local, local-ext phase-space ranges
+  gkyl_create_grid_ranges(&grid, ghost, &local_ext, &local);
+  struct skin_ghost_ranges skin_ghost; // phase-space skin/ghost
+  skin_ghost_ranges_init(&skin_ghost, &local_ext, ghost);
+
+  int vGhost[] = {0, 0};
+  struct gkyl_range vLocal, vLocal_ext;
+  gkyl_create_grid_ranges(&vGrid, vGhost, &vLocal_ext, &vLocal);
+
+  // Create primitive moment arrays
+  struct gkyl_array *den, *udrift, *vtsq;
+  den = mkarr(confBasis.num_basis, confLocal_ext.volume);
+  udrift = mkarr(confBasis.num_basis, confLocal_ext.volume);
+  vtsq = mkarr(confBasis.num_basis, confLocal_ext.volume);
+
+  gkyl_proj_on_basis *proj_den = gkyl_proj_on_basis_new(&confGrid, &confBasis,
+    poly_order+1, 1, eval_den_3x, NULL);
+  gkyl_proj_on_basis *proj_udrift = gkyl_proj_on_basis_new(&confGrid, &confBasis,
+    poly_order+1, vdim, eval_udrift_2v_gk, NULL);
+  gkyl_proj_on_basis *proj_vtsq = gkyl_proj_on_basis_new(&confGrid, &confBasis,
+    poly_order+1, 1, eval_vtsq, NULL);
+
+  gkyl_proj_on_basis_advance(proj_den, 0.0, &confLocal, den);
+  gkyl_proj_on_basis_advance(proj_udrift, 0.0, &confLocal, udrift);
+  gkyl_proj_on_basis_advance(proj_vtsq, 0.0, &confLocal, vtsq);
+
+  // proj_maxwellian expects the primitive moments as a single array.
+  struct gkyl_array *prim_moms_ho = mkarr(3*confBasis.num_basis, confLocal_ext.volume);
+  gkyl_array_set_offset(prim_moms_ho, 1., den, 0*confBasis.num_basis);
+  gkyl_array_set_offset(prim_moms_ho, 1., udrift, 1*confBasis.num_basis);
+  gkyl_array_set_offset(prim_moms_ho, 1., vtsq  , 2*confBasis.num_basis);
+  struct gkyl_array *prim_moms;
+  if (use_gpu) { // copy host array to device
+    prim_moms = gkyl_array_cu_dev_new(GKYL_DOUBLE, 3*confBasis.num_basis, confLocal_ext.volume);
+    gkyl_array_copy(prim_moms, prim_moms_ho);
+  } else {
+    prim_moms = prim_moms_ho;
+  }
+
+  // Initialize geometry
+  struct gkyl_gk_geometry_inp geometry_input = {
+      .geometry_id = GKYL_MAPC2P,
+      .mapc2p = mapc2p_3x, // mapping of computational to physical space
+      .c2p_ctx = 0,
+      .bmag_func = bmag_func_3x, // magnetic field magnitude
+      .bmag_ctx =0 ,
+      .grid = confGrid,
+      .local = confLocal,
+      .local_ext = confLocal_ext,
+      .global = confLocal,
+      .global_ext = confLocal_ext,
+      .basis = confBasis,
+      .geo_grid = confGrid,
+      .geo_local = confLocal,
+      .geo_local_ext = confLocal_ext,
+      .geo_global = confLocal,
+      .geo_global_ext = confLocal_ext,
+      .geo_basis = confBasis,
+  };
+  struct gk_geometry* gk_geom;
+  gk_geom = gkyl_gk_geometry_mapc2p_new(&geometry_input);
+
+  // If we are on the gpu, copy from host
+  if (use_gpu) {
+    struct gk_geometry* gk_geom_dev = gkyl_gk_geometry_new(gk_geom, &geometry_input, use_gpu);
+    gkyl_gk_geometry_release(gk_geom);
+    gk_geom = gkyl_gk_geometry_acquire(gk_geom_dev);
+    gkyl_gk_geometry_release(gk_geom_dev);
+  }
+
+  // Create distribution function array
+  struct gkyl_array *distf;
+  distf = mkarr(basis.num_basis, local_ext.volume);
+  struct gkyl_array *distf_cu, *distf_ho;
+  if (use_gpu)  { // create device copy.
+    distf_cu  = gkyl_array_cu_dev_new(GKYL_DOUBLE, basis.num_basis, local_ext.volume);
+    distf_ho = mkarr(basis.num_basis, local_ext.volume); // array to load cpu data.
+  }
+
+  // Velocity space mapping.
+  struct gkyl_mapc2p_inp c2p_in = { };
+  struct gkyl_velocity_map *gvm = gkyl_velocity_map_new(c2p_in, grid, vGrid,
+    local, local_ext, vLocal, vLocal_ext, use_gpu);
+
+  // Projection updater to compute Maxwellian
+  struct gkyl_proj_maxwellian_on_basis_inp inp_proj = {
+    .grid = &grid,
+    .phase_basis = &basis,
+    .conf_basis = &confBasis,
+    .phase_basis_on_dev = basis_on_dev, 
+    .conf_basis_on_dev = conf_basis_on_dev, 
+    .phase_range_ext = &local_ext, 
+    .conf_range_ext = &confLocal_ext, 
+    .vel_map = gvm,
+    .use_gpu = use_gpu,
+  };
+  gkyl_proj_maxwellian_on_basis *proj_max = gkyl_proj_maxwellian_on_basis_inew(&inp_proj);
+  
+  if (use_gpu) {
+    gkyl_proj_gkmaxwellian_on_basis_prim_mom(proj_max, &local, &confLocal, prim_moms,
+      gk_geom->bmag, gk_geom->jacobtot, mass, distf_cu);
+    gkyl_array_copy(distf, distf_cu);
+    gkyl_grid_sub_array_read(&grid, &local, distf_ho, "ctest_proj_gkmaxwellian_on_basis_prim_mom_test_3x2v_p1_cpu.gkyl"); // load cpu data from file.
+  } else {
+    gkyl_proj_gkmaxwellian_on_basis_prim_mom(proj_max, &local, &confLocal, prim_moms,
+      gk_geom->bmag, gk_geom->jacobtot, mass, distf);
+  }
+
+  // Compare the GPU results against the CPU results
+  if (use_gpu) {
+    struct gkyl_range_iter iter;
+    gkyl_range_iter_init(&iter, &local_ext);
+    while (gkyl_range_iter_next(&iter)) {
+      long loc = gkyl_range_idx(&local_ext, iter.idx);
+      const double *fv_cpu = gkyl_array_fetch(distf_ho, loc);
+      const double *fv_gpu = gkyl_array_fetch(distf, loc);
+      for (int i=0; i<basis.num_basis; ++i)
+        TEST_CHECK( gkyl_compare_double(fv_cpu[i], fv_gpu[i], 1e-8) );
+    }
+  }
+
+  gkyl_array_release(den); 
+  gkyl_array_release(udrift); 
+  gkyl_array_release(vtsq);
+  gkyl_proj_on_basis_release(proj_den);
+  gkyl_proj_on_basis_release(proj_udrift);
+  gkyl_proj_on_basis_release(proj_vtsq);
+
+  gkyl_array_release(prim_moms_ho);
+  if (use_gpu) {
+    gkyl_array_release(prim_moms);
+  }
+
+  gkyl_gk_geometry_release(gk_geom);
+  gkyl_array_release(distf);
+  if (use_gpu)
+    gkyl_array_release(distf_cu);
+    gkyl_array_release(distf_ho);
+  gkyl_proj_maxwellian_on_basis_release(proj_max);
+  gkyl_velocity_map_release(gvm);
+
+#ifdef GKYL_HAVE_CUDA
+  if (use_gpu) 
+    gkyl_cu_free(basis_on_dev);
+    gkyl_cu_free(conf_basis_on_dev);
+#endif  
+}
+
 void test_1x2v_p1_gk() { test_1x2v_gk(1, false); }
 void test_1x2v_p2_gk() { test_1x2v_gk(2, false); }
 void test_3x2v_p1_gk() { test_3x2v_gk(1, false); }
@@ -601,6 +814,7 @@ void test_3x2v_p1_gk() { test_3x2v_gk(1, false); }
 void test_1x2v_p1_gk_gpu() { test_1x2v_gk(1, true); }
 void test_1x2v_p2_gk_gpu() { test_1x2v_gk(2, true); }
 void test_3x2v_p1_gk_gpu() { test_3x2v_gk(1, true); }
+void test_3x2v_p1_gk_compare() { test_3x2v_gk_compare(1, true); }
 #endif
 
 TEST_LIST = {
@@ -612,6 +826,7 @@ TEST_LIST = {
   { "test_1x2v_p1_gk_gpu", test_1x2v_p1_gk_gpu },
   { "test_1x2v_p2_gk_gpu", test_1x2v_p2_gk_gpu },
   { "test_3x2v_p1_gk_gpu", test_3x2v_p1_gk_gpu },
+  { "test_3x2v_p1_gk_compare", test_3x2v_p1_gk_compare },
 #endif
   { NULL, NULL },
 };
