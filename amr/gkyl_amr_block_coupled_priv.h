@@ -214,6 +214,158 @@ void five_moment_block_bc_updaters_apply(const struct five_moment_block_data* bd
   struct gkyl_array* fld_elc, struct gkyl_array *fld_ion, struct gkyl_array* fld_maxwell);
 
 /**
+* Coarse-to-fine projection operator for coupled, block-structured AMR, assuming a lower coarse block and a lower fine block.
+*
+* @param tbid Target (fine) block ID.
+* @param tdir Target (fine) block direction.
+* @param i Reference (coarse) block ID.
+* @param d Reference (coarse) block direction.
+* @param bdata Block-structured data for the Euler equations.
+* @param bc_buffer_elc Buffer for applying electron boundary conditions.
+* @param bc_buffer_ion Buffer for applying ion boundary conditions.
+* @param bc_buffer_maxwell Buffer for applying Maxwell field boundary conditions.
+* @param fld_elc Output array (electons).
+* @param fld_ion Output array (ions).
+* @param fld_maxwell Output array (Maxwell field).
+*/
+void block_coupled_ll_projection_op(const int tbid, const int tdir, const int i, const int d, const struct five_moment_block_data bdata[],
+  const struct gkyl_array* bc_buffer_elc, const struct gkyl_array* bc_buffer_ion, const struct gkyl_array* bc_buffer_maxwell,
+  struct gkyl_array* fld_elc[], struct gkyl_array* fld_ion[], struct gkyl_array* fld_maxwell[]);
+
+/**
+* Fine-to-coarse restriction operator for coupled, block-structured AMR, assuming a lower fine block and a lower coarse block.
+*
+* @param tbid Target (coarse) block ID.
+* @param tdir Target (coarse) block direction.
+* @param i Reference (fine) block ID.
+* @param d Reference (fine) block direction.
+* @param bdata Block-structured data for the Euler equations.
+* @param bc_buffer_elc Buffer for applying electron boundary conditions.
+* @param bc_buffer_ion Buffer for applying ion boundary conditions.
+* @param bc_buffer_maxwell Buffer for applying Maxwell field boundary conditions.
+* @param fld_elc Output array (electons).
+* @param fld_ion Output array (ions).
+* @param fld_maxwell Output array (Maxwell field).
+*/
+void block_coupled_ll_restriction_op(const int tbid, const int tdir, const int i, const int d, const struct five_moment_block_data bdata[],
+  const struct gkyl_array* bc_buffer_elc, const struct gkyl_array* bc_buffer_ion, const struct gkyl_array* bc_buffer_maxwell,
+  struct gkyl_array* fld_elc[], struct gkyl_array* fld_ion[], struct gkyl_array* fld_maxwell[]);
+
+/**
+* Coarse-to-fine projection operator for coupled, block-structured AMR, assuming a lower coarse block and an upper fine block.
+*
+* @param tbid Target (fine) block ID.
+* @param tdir Target (fine) block direction.
+* @param i Reference (coarse) block ID.
+* @param d Reference (coarse) block direction.
+* @param bdata Block-structured data for the Euler equations.
+* @param bc_buffer_elc Buffer for applying electron boundary conditions.
+* @param bc_buffer_ion Buffer for applying ion boundary conditions.
+* @param bc_buffer_maxwell Buffer for applying Maxwell field boundary conditions.
+* @param fld_elc Output array (electons).
+* @param fld_ion Output array (ions).
+* @param fld_maxwell Output array (Maxwell field).
+*/
+void block_coupled_lu_projection_op(const int tbid, const int tdir, const int i, const int d, const struct five_moment_block_data bdata[],
+  const struct gkyl_array* bc_buffer_elc, const struct gkyl_array* bc_buffer_ion, const struct gkyl_array* bc_buffer_maxwell,
+  struct gkyl_array* fld_elc[], struct gkyl_array* fld_ion[], struct gkyl_array* fld_maxwell[]);
+
+/**
+* Fine-to-coarse restriction operator for coupled, block-structured AMR, assuming a lower fine block and an upper coarse block.
+*
+* @param tbid Target (coarse) block ID.
+* @param tdir Target (coarse) block direction.
+* @param i Reference (fine) block ID.
+* @param d Reference (fine) block direction.
+* @param bdata Block-structured data for the Euler equations.
+* @param bc_buffer_elc Buffer for applying electron boundary conditions.
+* @param bc_buffer_ion Buffer for applying ion boundary conditions.
+* @param bc_buffer_maxwell Buffer for applying Maxwell field boundary conditions.
+* @param fld_elc Output array (electons).
+* @param fld_ion Output array (ions).
+* @param fld_maxwell Output array (Maxwell field).
+*/
+void block_coupled_lu_restriction_op(const int tbid, const int tdir, const int i, const int d, const struct five_moment_block_data bdata[],
+ const struct gkyl_array* bc_buffer_elc, const struct gkyl_array* bc_buffer_ion, const struct gkyl_array* bc_buffer_maxwell,
+ struct gkyl_array* fld_elc[], struct gkyl_array* fld_ion[], struct gkyl_array* fld_maxwell[]);
+
+/**
+* Coarse-to-fine projection operator for coupled, block-structured AMR, assuming an upper coarse block and a lower fine block.
+*
+* @param tbid Target (fine) block ID.
+* @param tdir Target (fine) block direction.
+* @param i Reference (coarse) block ID.
+* @param d Reference (coarse) block direction.
+* @param bdata Block-structured data for the Euler equations.
+* @param bc_buffer_elc Buffer for applying electron boundary conditions.
+* @param bc_buffer_ion Buffer for applying ion boundary conditions.
+* @param bc_buffer_maxwell Buffer for applying Maxwell field boundary conditions.
+* @param fld_elc Output array (electons).
+* @param fld_ion Output array (ions).
+* @param fld_maxwell Output array (Maxwell field).
+*/
+void block_coupled_ul_projection_op(const int tbid, const int tdir, const int i, const int d, const struct five_moment_block_data bdata[],
+  const struct gkyl_array* bc_buffer_elc, const struct gkyl_array* bc_buffer_ion, const struct gkyl_array* bc_buffer_maxwell,
+  struct gkyl_array* fld_elc[], struct gkyl_array* fld_ion[], struct gkyl_array* fld_maxwell[]);
+
+/**
+* Fine-to-coarse restriction operator for coupled, block-structured AMR, assuming an upper fine block and a lower coarse block.
+*
+* @param tbid Target (coarse) block ID.
+* @param tdir Target (coarse) block direction.
+* @param i Reference (fine) block ID.
+* @param d Reference (fine) block direction.
+* @param bdata Block-structured data for the Euler equations.
+* @param bc_buffer_elc Buffer for applying electron boundary conditions.
+* @param bc_buffer_ion Buffer for applying ion boundary conditions.
+* @param bc_buffer_maxwell Buffer for applying Maxwell field boundary conditions.
+* @param fld_elc Output array (electons).
+* @param fld_ion Output array (ions).
+* @param fld_maxwell Output array (Maxwell field).
+*/
+void block_coupled_ul_restriction_op(const int tbid, const int tdir, const int i, const int d, const struct five_moment_block_data bdata[],
+  const struct gkyl_array* bc_buffer_elc, const struct gkyl_array* bc_buffer_ion, const struct gkyl_array* bc_buffer_maxwell,
+  struct gkyl_array* fld_elc[], struct gkyl_array* fld_ion[], struct gkyl_array* fld_maxwell[]);
+
+/**
+* Coarse-to-fine projection operator for coupled, block-structured AMR, assuming an upper coarse block and an upper fine block.
+*
+* @param tbid Target (fine) block ID.
+* @param tdir Target (fine) block direction.
+* @param i Reference (coarse) block ID.
+* @param d Reference (coarse) block direction.
+* @param bdata Block-structured data for the Euler equations.
+* @param bc_buffer_elc Buffer for applying electron boundary conditions.
+* @param bc_buffer_ion Buffer for applying ion boundary conditions.
+* @param bc_buffer_maxwell Buffer for applying Maxwell field boundary conditions.
+* @param fld_elc Output array (electons).
+* @param fld_ion Output array (ions).
+* @param fld_maxwell Output array (Maxwell field).
+*/
+void block_coupled_uu_projection_op(const int tbid, const int tdir, const int i, const int d, const struct five_moment_block_data bdata[],
+  const struct gkyl_array* bc_buffer_elc, const struct gkyl_array* bc_buffer_ion, const struct gkyl_array* bc_buffer_maxwell,
+  struct gkyl_array* fld_elc[], struct gkyl_array* fld_ion[], struct gkyl_array* fld_maxwell[]);
+
+/**
+* Fine-to-coarse restriction operator for coupled, block-structured AMR, assuming an upper fine block and an upper coarse block.
+*
+* @param tbid Target (coarse) block ID.
+* @param tdir Target (coarse) block direction.
+* @param i Reference (fine) block ID.
+* @param d Reference (fine) block direction.
+* @param bdata Block-structured data for the Euler equations.
+* @param bc_buffer_elc Buffer for applying electron boundary conditions.
+* @param bc_buffer_ion Buffer for applying ion boundary conditions.
+* @param bc_buffer_maxwell Buffer for applying Maxwell field boundary conditions.
+* @param fld_elc Output array (electons).
+* @param fld_ion Output array (ions).
+* @param fld_maxwell Output array (Maxwell field).
+*/
+void block_coupled_uu_restriction_op(const int tbid, const int tdir, const int i, const int d, const struct five_moment_block_data bdata[],
+  const struct gkyl_array* bc_buffer_elc, const struct gkyl_array* bc_buffer_ion, const struct gkyl_array* bc_buffer_maxwell,
+  struct gkyl_array* fld_elc[], struct gkyl_array* fld_ion[], struct gkyl_array* fld_maxwell[]);
+
+/**
 * Synchronize all blocks in the block AMR hierarchy by applying all appropriate physical (outer-block) and non-physical (inter-block)
 * boundary conditions for the coupled five-moment equations.
 *
