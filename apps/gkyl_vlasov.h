@@ -151,6 +151,10 @@ struct gkyl_vlasov_species {
   // pointer to the determinant of the spatial metric
   void (*det_h)(double t, const double *xn, double *aout, void *ctx);
 
+  bool output_f_lte; // Boolean for writing out f_lte (used for calculating transport coeff.)
+  int max_iter; //Maximum number of iterations for f_lte correction
+  double iter_eps; //Maximum eps for f_lte correction
+
   // boundary conditions
   enum gkyl_species_bc_type bcx[2], bcy[2], bcz[2];
 };
@@ -287,6 +291,8 @@ struct gkyl_vlasov_stat {
   double species_lbo_coll_diff_tm[GKYL_MAX_SPECIES]; // time to compute LBO diffusion terms
   double species_coll_tm; // total time for collision updater (excluded moments)
 
+  double species_lte_tm; // time needed to compute the lte equilibrium
+
   long niter_self_bgk_corr[GKYL_MAX_SPECIES]; // number of iterations used to correct self collisions in BGK
 
   double species_bc_tm; // time to compute species BCs
@@ -422,6 +428,16 @@ void gkyl_vlasov_app_write_field(gkyl_vlasov_app* app, double tm, int frame);
  * @param frame Frame number
  */
 void gkyl_vlasov_app_write_species(gkyl_vlasov_app* app, int sidx, double tm, int frame);
+
+/**
+ * Write species data to file - for the local equilbrium.
+ * 
+ * @param app App object.
+ * @param sidx Index of species to initialize.
+ * @param tm Time-stamp
+ * @param frame Frame number
+ */
+void gkyl_vlasov_app_write_species_lte(gkyl_vlasov_app* app, int sidx, double tm, int frame);
 
 /**
  * Write species p/gamma to file.

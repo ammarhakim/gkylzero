@@ -153,6 +153,24 @@ struct vm_lbo_collisions {
   gkyl_dg_updater_collisions *coll_slvr; // collision solver
 };
 
+struct vm_lte {  
+  struct gkyl_array *f_lte;
+
+  struct vm_species_moment moms; // moments needed in the equilibrium
+
+  // LTE distribution function projection object
+  // also corrects the density of projected distribution function
+  struct gkyl_vlasov_lte_proj_on_basis *proj_lte; 
+
+  long niter; // total number of iterations correcting self collisions
+
+  // Correction updater for insuring LTE distribution has desired LTE (n, V_drift, T/m) moments
+  bool correct_all_moms; // boolean if we are correcting all the moments
+  struct gkyl_vlasov_lte_correct *corr_lte; 
+  gkyl_dynvec corr_stat;
+  bool is_first_corr_status_write_call;
+};
+
 struct vm_bgk_collisions {  
   struct gkyl_array *nu_sum; // BGK collision frequency 
   struct gkyl_array *nu_sum_host; // BGK collision frequency host-side for I/O
@@ -163,25 +181,12 @@ struct vm_bgk_collisions {
   struct gkyl_array *nu_init; // Array for initial collisionality when using Spitzer updater
   struct gkyl_spitzer_coll_freq* spitzer_calc; // Updater for Spitzer collisionality if computing Spitzer value
 
-  struct gkyl_array *f_lte;
-  struct gkyl_array *nu_f_lte;
-
-  enum gkyl_model_id model_id;
-  struct vm_species_moment moms; // moments needed in BGK (n, V_drift, T/m) for LTE distribution
-
-  // LTE distribution function projection object
-  // also corrects the density of projected distribution function
-  struct gkyl_vlasov_lte_proj_on_basis *proj_lte; 
-
-  long self_niter; // total number of iterations correcting self collisions
-
-  // Correction updater for insuring LTE distribution has desired LTE (n, V_drift, T/m) moments
-  bool correct_all_moms; // boolean if we are correcting all the moments
-  struct gkyl_vlasov_lte_correct *corr_lte; 
-  gkyl_dynvec corr_stat;
-  bool is_first_corr_status_write_call;
+  struct gkyl_array *nu_f_lte; // collision frequency times 
+  enum gkyl_model_id model_id; // species model id
 
   struct gkyl_bgk_collisions *up_bgk; // BGK updater (also computes stable timestep)
+
+  struct vm_lte lte; // lte data and updater
 
   bool implicit_step; // whether or not to take an implcit bgk step
   double dt_implicit; // timestep used by the implicit collisions
@@ -340,6 +345,8 @@ struct vm_species {
 
   enum gkyl_source_id source_id; // type of source
   struct vm_source src; // applied source
+
+  struct vm_lte lte; // object needed for the lte equilibrium
 
   enum gkyl_collision_id collision_id; // type of collisions
   // collisions
@@ -726,6 +733,43 @@ void vm_species_lbo_rhs(gkyl_vlasov_app *app,
   const struct gkyl_array *fin, struct gkyl_array *rhs);
 
 /**
+ * Initialize species lte object.
+ *
+ * @param app Vlasov app object
+ * @param s Species object 
+ * @param lte Species lte object
+ * @param correct_all_moms boolean to correct all moms
+ */
+void vm_species_lte_init(struct gkyl_vlasov_app *app, struct vm_species *s,
+  struct vm_lte *lte, bool correct_all_moms);
+
+/**
+ * Compute LTE distribution from input moments
+ *
+ * @param app Vlasov app object
+ * @param species Pointer to species
+ * @param lte Pointer to lte object
+ * @param moms_lte Input LTE moments
+ */
+void vm_species_lte_from_moms(gkyl_vlasov_app *app,
+  const struct vm_species *species,
+  struct vm_lte *lte,
+  const struct gkyl_array *moms_lte);
+
+/**
+ * Compute equivalent LTE distribution from input distribution function. 
+ *
+ * @param app Vlasov app object
+ * @param species Pointer to species
+ * @param lte Pointer to lte
+ * @param fin Input distribution function
+ */
+void vm_species_lte(gkyl_vlasov_app *app,
+  const struct vm_species *species,
+  struct vm_lte *lte,
+  const struct gkyl_array *fin);
+
+/**
  * Release species LBO object.
  *
  * @param app Vlasov app object
@@ -768,7 +812,7 @@ void vm_species_bgk_moms(gkyl_vlasov_app *app,
  * @param rhs On output, the RHS from bgk
  */
 void vm_species_bgk_rhs(gkyl_vlasov_app *app,
-  const struct vm_species *species,
+  struct vm_species *species,
   struct vm_bgk_collisions *bgk,
   const struct gkyl_array *fin, struct gkyl_array *rhs);
 
@@ -779,6 +823,14 @@ void vm_species_bgk_rhs(gkyl_vlasov_app *app,
  * @param bgk Species BGK object to release
  */
 void vm_species_bgk_release(const struct gkyl_vlasov_app *app, const struct vm_bgk_collisions *bgk);
+
+/**
+ * Release species lte object.
+ *
+ * @param app Vlasov app object
+ * @param lte Species lte object to release
+ */
+void vm_species_lte_release(const struct gkyl_vlasov_app *app, const struct vm_lte *lte);
 
 /** vm_species_boundary_fluxes API */
 
