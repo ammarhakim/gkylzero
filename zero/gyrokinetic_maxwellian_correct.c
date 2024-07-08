@@ -87,8 +87,19 @@ gkyl_gyrokinetic_maxwellian_correct_inew(const struct gkyl_gyrokinetic_maxwellia
       inp->conf_basis, inp->phase_basis, inp->phase_basis->poly_order+1, up->vel_map, inp->use_gpu);
   }
   else {
-    up->proj_max_prim = gkyl_proj_maxwellian_on_basis_new(inp->phase_grid,
-      inp->conf_basis, inp->phase_basis, inp->phase_basis->poly_order+1, up->vel_map, inp->use_gpu);
+    struct gkyl_proj_maxwellian_on_basis_inp inp_proj = {
+      .grid = inp->phase_grid,
+      .phase_basis = inp->phase_basis,
+      .conf_basis = inp->conf_basis,
+      .phase_basis_on_dev = inp->phase_basis_on_dev,
+      .conf_basis_on_dev = inp->conf_basis_on_dev,
+      .phase_range_ext = inp->phase_range_ext,
+      .conf_range_ext = inp->conf_range_ext,
+      .vel_map = up->vel_map,
+      .use_gpu = inp->use_gpu,
+    };
+    up->proj_max_prim = gkyl_proj_maxwellian_on_basis_inew( &inp_proj );
+    //up->proj_max_prim = gkyl_proj_maxwellian_on_basis_new(inp->phase_grid, inp->conf_basis, inp->phase_basis, inp->phase_basis->poly_order+1, up->vel_map, inp->use_gpu);
   }
 
   return up;

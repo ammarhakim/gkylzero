@@ -16,9 +16,11 @@ struct gkyl_gyrokinetic_maxwellian_correct_inp {
   const struct gkyl_rect_grid *phase_grid; // Phase-space grid.
   const struct gkyl_basis *conf_basis; // Configuration-space basis functions.
   const struct gkyl_basis *phase_basis; // Phase-space basis functions.
+  const struct gkyl_basis *conf_basis_on_dev; // Configuration-space basis functions on device, added by D.L. 06/21/204.
+  const struct gkyl_basis *phase_basis_on_dev; // Phase-space basis functions on device, added by D.L. 06/21/2024.
   const struct gkyl_range *conf_range; // Configuration-space range.
   const struct gkyl_range *conf_range_ext; // Extended conf-space range (for memory allocations).
-  const struct gkyl_range *vel_range; // velocity space range.
+  const struct gkyl_range *phase_range_ext; // Extende phase-space range, added by D.L. 06/21/2024.
   const struct gk_geometry *gk_geom; // Geometry object.
   struct gkyl_velocity_map *vel_map; // Velocity space mapping object.
   double mass; // Mass factor. 
