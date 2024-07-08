@@ -63,12 +63,9 @@ struct gkyl_proj_maxwellian_on_basis {
   struct gkyl_array *jactot_quad; 
   struct gkyl_array *expamp_quad; 
 
-  struct gkyl_cu_mat_mm_array_mem *phase_nodal_to_modal_mem; // structure of data which converts
-                                                                // stores the info to convert phase
-                                                                // space nodal to modal gkyl arrays
-#ifdef GKYL_HAVE_CUDA
-  cublasHandle_t cuh; // cublas handle
-#endif
+  struct gkyl_mat_mm_array_mem *phase_nodal_to_modal_mem; // structure of data which converts
+                                                          // stores the info to convert phase
+                                                          // space nodal to modal gkyl arrays
 };
 
 void

@@ -247,15 +247,6 @@ gkyl_proj_gkmaxwellian_on_basis_prim_mom_cu(const gkyl_proj_maxwellian_on_basis 
      up->p2c_qidx, gvm->vmap->on_dev, gvm->vmap_basis, 
      mass, up->fm_quad->on_dev);
     
-/*
-  gkyl_array_clear(fmax, 0.0);
-  gkyl_parallelize_components_kernel_launch_dims(&dimGrid, &dimBlock, *phase_r, num_phase_basis);
-  gkyl_proj_gkmaxwellian_on_basis_cu_ker<<<dimGrid, dimBlock>>>
-    (*phase_r, up->basis_at_ords->on_dev, up->phase_basis_on_dev, 
-     //up->weights->on_dev,
-     up->fm_quad->on_dev, fmax->on_dev);
-*/
-
   // Call cublas to do the matrix multiplication nodal to modal conversion
-  cu_mat_mm_array(up->cuh, up->phase_nodal_to_modal_mem, up->fm_quad, fmax);
+  gkyl_mat_mm_array(up->phase_nodal_to_modal_mem, up->fm_quad, fmax);
 }
