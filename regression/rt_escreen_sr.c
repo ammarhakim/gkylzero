@@ -34,7 +34,6 @@ struct escreen_ctx
   double charge_elc; // Electron charge.
 
   double n0; // Reference density.
-  double vdrift; // Drift velocity. 
   double T; // Temperature (units of mc^2).
   double E0; // Electric field amplitude.
   double noise_amp; // Noise level for perturbation.
@@ -70,7 +69,6 @@ create_ctx(void)
   double charge_elc = -1.0; // Electron charge.
 
   double n0 = 1.0; // Reference density.
-  double vdrift = 0.0; // Initial drift velocity.
   double T = 1.0; // Reference temperature (in units of mc^2).
 
   double E0 = 100.0; // Electric field amplitude
@@ -100,7 +98,6 @@ create_ctx(void)
     .mass_elc = mass_elc,
     .charge_elc = charge_elc,
     .n0 = n0, 
-    .vdrift = vdrift,
     .T = T,
     .E0 = E0, 
     .noise_amp = noise_amp,
@@ -172,10 +169,8 @@ evalVDriftInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT f
 {
   struct escreen_ctx *app = ctx;
 
-  double vdrift = app->vdrift;
-
-  // Set left-going drift velocity.
-  fout[0] = vdrift;
+  // Set drift (four-) velocity.
+  fout[0] = 0.0;
 }
 
 void
@@ -347,6 +342,7 @@ main(int argc, char **argv)
       .V_drift = evalVDriftInit,
       .ctx_V_drift = &ctx,
       .correct_all_moms = true,
+      .use_last_converged = true, 
     },
 
     // Source is the same as initial condition without perturbation.
@@ -362,6 +358,7 @@ main(int argc, char **argv)
         .V_drift = evalVDriftInit,
         .ctx_V_drift = &ctx,
         .correct_all_moms = true,
+        .use_last_converged = true, 
       },
     },
 

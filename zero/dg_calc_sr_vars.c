@@ -40,8 +40,7 @@ gkyl_dg_calc_sr_vars_new(const struct gkyl_rect_grid *phase_grid, const struct g
   up->sr_p_vars = choose_sr_p_vars_kern(b_type_v, vdim, poly_order_v);
   up->sr_n_set = choose_sr_vars_n_set_kern(b_type, cdim, vdim, poly_order);
   up->sr_n_copy = choose_sr_vars_n_copy_kern(b_type, cdim, vdim, poly_order);
-  up->sr_u_i_set = choose_sr_vars_u_i_set_kern(b_type, cdim, vdim, poly_order);
-  up->sr_u_i_copy = choose_sr_vars_u_i_copy_kern(b_type, cdim, vdim, poly_order);
+  up->sr_GammaV = choose_sr_vars_GammaV_kern(b_type, cdim, vdim, poly_order);
   up->sr_pressure = choose_sr_vars_pressure_kern(b_type, cdim, vdim, poly_order);
 
   // Linear system for solving for the drift velocity V_drift = M1i/M0 
@@ -51,13 +50,6 @@ gkyl_dg_calc_sr_vars_new(const struct gkyl_rect_grid *phase_grid, const struct g
   up->As = gkyl_nmat_new(up->Ncomp*mem_range->volume, nc, nc);
   up->xs = gkyl_nmat_new(up->Ncomp*mem_range->volume, nc, 1);
   up->mem = gkyl_nmat_linsolve_lu_new(up->As->num, up->As->nr);
-
-  // Linear system for solving for the four-velocity (Gamma, Gamma*V_drift) 
-  // from the rest-frame density -> (M0/n, M1i/n)
-  up->Ncomp_u_i = vdim+1; 
-  up->As_u_i = gkyl_nmat_new(up->Ncomp_u_i*mem_range->volume, nc, nc);
-  up->xs_u_i = gkyl_nmat_new(up->Ncomp_u_i*mem_range->volume, nc, 1);
-  up->mem_u_i = gkyl_nmat_linsolve_lu_new(up->As_u_i->num, up->As_u_i->nr);
 
   up->flags = 0;
   GKYL_CLEAR_CU_ALLOC(up->flags);
@@ -134,63 +126,45 @@ void gkyl_dg_calc_sr_vars_n(struct gkyl_dg_calc_sr_vars *up,
   }
 }
 
-void gkyl_dg_calc_sr_vars_u_i(struct gkyl_dg_calc_sr_vars *up, 
-  const struct gkyl_array* M0, const struct gkyl_array* M1i, const struct gkyl_array* n, 
-  struct gkyl_array* u_i)
+void gkyl_dg_calc_sr_vars_GammaV(struct gkyl_dg_calc_sr_vars *up, 
+  const struct gkyl_range *conf_range,
+  const struct gkyl_array* u_i, struct gkyl_array* u_i_sq, 
+  struct gkyl_array* GammaV, struct gkyl_array* GammaV_sq)
 {
 #ifdef GKYL_HAVE_CUDA
-  if (gkyl_array_is_cu_dev(u_i)) {
-    return gkyl_dg_calc_sr_vars_n_cu(up, M0, M1i, n, u_i);
+  if (gkyl_array_is_cu_dev(GammaV)) {
+    return gkyl_calc_sr_vars_GammaV_cu(up, conf_range, 
+      u_i, u_i_sq, GammaV, GammaV_sq);
   }
 #endif
 
-  // First loop over mem_range for setting matrices to solve linear systems for four-velocity, u_i.
   struct gkyl_range_iter iter;
-  gkyl_range_iter_init(&iter, &up->mem_range);
-  long count = 0;
+  gkyl_range_iter_init(&iter, conf_range);
   while (gkyl_range_iter_next(&iter)) {
-    long loc = gkyl_range_idx(&up->mem_range, iter.idx);
+    long loc_conf = gkyl_range_idx(conf_range, iter.idx);
 
-    const double *M0_d = gkyl_array_cfetch(M0, loc);
-    const double *M1i_d = gkyl_array_cfetch(M1i, loc);
-    const double *n_d = gkyl_array_cfetch(n, loc);
+    const double *u_i_d = gkyl_array_cfetch(u_i, loc_conf);
+    double *u_i_sq_d = gkyl_array_fetch(u_i_sq, loc_conf);
+    double *GammaV_d = gkyl_array_fetch(GammaV, loc_conf);
+    double *GammaV_sq_d = gkyl_array_fetch(GammaV_sq, loc_conf);
 
-    up->sr_u_i_set(count, up->As_u_i, up->xs_u_i, M0_d, M1i_d, n_d);
-
-    count += up->Ncomp_u_i;
-  }
-
-  if (up->poly_order > 1) {
-    bool status = gkyl_nmat_linsolve_lu_pa(up->mem_u_i, up->As_u_i, up->xs_u_i);
-    assert(status);
-  }
-
-  // Then loop over mem_range to copy solution of batched linear solve for four-velocity, u_i. 
-  gkyl_range_iter_init(&iter, &up->mem_range);
-  count = 0;
-  while (gkyl_range_iter_next(&iter)) {
-    long loc = gkyl_range_idx(&up->mem_range, iter.idx);
-
-    double* u_i_d = gkyl_array_fetch(u_i, loc);
-
-    up->sr_u_i_copy(count, up->xs_u_i, u_i_d);
-
-    count += up->Ncomp_u_i;
+    up->sr_GammaV(u_i_d, u_i_sq_d, GammaV_d, GammaV_sq_d); 
   }
 }
 
 void gkyl_dg_calc_sr_vars_pressure(struct gkyl_dg_calc_sr_vars *up, 
   const struct gkyl_range *conf_range, const struct gkyl_range *phase_range, 
-  const struct gkyl_array* gamma, const struct gkyl_array* gamma_inv,  
-  const struct gkyl_array* u_i, const struct gkyl_array* f, 
-  struct gkyl_array* sr_pressure)
+  const struct gkyl_array* gamma, const struct gkyl_array* gamma_inv, 
+  const struct gkyl_array* u_i, const struct gkyl_array* u_i_sq, 
+  const struct gkyl_array* GammaV, const struct gkyl_array* GammaV_sq, 
+  const struct gkyl_array* f, struct gkyl_array* sr_pressure)
 {
 #ifdef GKYL_HAVE_CUDA
   if (gkyl_array_is_cu_dev(sr_pressure)) {
     return gkyl_dg_calc_pkpm_dist_vars_div_ppar_cu(up, 
       conf_range, phase_range, 
-      gamma, gamma_inv, u_i, f, 
-      sr_pressure);
+      gamma, gamma_inv, u_i, u_i_sq, GammaV, GammaV_sq, 
+      f, sr_pressure);
   }
 #endif
   gkyl_array_clear(sr_pressure, 0.0); 
@@ -216,12 +190,16 @@ void gkyl_dg_calc_sr_vars_pressure(struct gkyl_dg_calc_sr_vars *up,
     const double *gamma_d = gkyl_array_cfetch(gamma, loc_vel);
     const double *gamma_inv_d = gkyl_array_cfetch(gamma_inv, loc_vel);
     const double *u_i_d = gkyl_array_cfetch(u_i, loc_conf);
+    const double *u_i_sq_d = gkyl_array_cfetch(u_i_sq, loc_conf);
+    const double *GammaV_d = gkyl_array_cfetch(GammaV, loc_conf);
+    const double *GammaV_sq_d = gkyl_array_cfetch(GammaV_sq, loc_conf);
     const double *f_d = gkyl_array_cfetch(f, loc_phase);
 
     double *sr_pressure_d = gkyl_array_fetch(sr_pressure, loc_conf);
 
     up->sr_pressure(xc, up->phase_grid.dx, 
-      gamma_d, gamma_inv_d, u_i_d, f_d, sr_pressure_d);   
+      gamma_d, gamma_inv_d, u_i_d, u_i_sq_d, GammaV_d, GammaV_sq_d, 
+      f_d, sr_pressure_d);   
   }  
 }
 
@@ -230,10 +208,6 @@ void gkyl_dg_calc_sr_vars_release(gkyl_dg_calc_sr_vars *up)
   gkyl_nmat_release(up->As);
   gkyl_nmat_release(up->xs);
   gkyl_nmat_linsolve_lu_release(up->mem);
-
-  gkyl_nmat_release(up->As_u_i);
-  gkyl_nmat_release(up->xs_u_i);
-  gkyl_nmat_linsolve_lu_release(up->mem_u_i);
 
   if (GKYL_IS_CU_ALLOC(up->flags))
     gkyl_cu_free(up->on_dev);

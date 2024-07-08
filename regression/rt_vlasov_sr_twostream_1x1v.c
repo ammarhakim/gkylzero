@@ -150,9 +150,8 @@ evalVDriftLInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT 
   double gamma = app->gamma;
   double Vx_drift = app->Vx_drift;
 
-  // Set left-going drift velocity.
-  fout[0] = gamma;
-  fout[1] = gamma*Vx_drift;
+  // Set left-going drift (four-) velocity.
+  fout[0] = gamma*Vx_drift;
 }
 
 void
@@ -163,9 +162,8 @@ evalVDriftRInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT 
   double gamma = app->gamma;
   double Vx_drift = app->Vx_drift;
 
-  // Set right-going drift velocity.
-  fout[0] = gamma;
-  fout[1] = -gamma*Vx_drift;
+  // Set right-going drift (four-) velocity.
+  fout[0] = -gamma*Vx_drift;
 }
 
 void
@@ -330,6 +328,7 @@ main(int argc, char **argv)
       .V_drift = evalVDriftLInit,
       .ctx_V_drift = &ctx,
       .correct_all_moms = true,
+      .use_last_converged = true, 
     },
     .projection[1] = {
       .proj_id = GKYL_PROJ_VLASOV_LTE,
@@ -340,6 +339,7 @@ main(int argc, char **argv)
       .V_drift = evalVDriftRInit,
       .ctx_V_drift = &ctx,
       .correct_all_moms = true,
+      .use_last_converged = true, 
     },
 
     .num_diag_moments = 2,

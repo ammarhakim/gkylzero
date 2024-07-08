@@ -1,35 +1,30 @@
 #include <gkyl_sr_Gamma_kernels.h> 
-#include <gkyl_basis_ser_1x_p2_exp_sq.h> 
-GKYL_CU_DH void sr_vars_pressure_1x3v_ser_p2(const double *w, const double *dxv, const double *gamma, const double *gamma_inv, const double *u_i, const double *f, double* GKYL_RESTRICT sr_pressure) 
+GKYL_CU_DH void sr_vars_pressure_1x3v_ser_p2(const double *w, const double *dxv, const double *gamma, const double *gamma_inv, const double *u_i, const double *u_i_sq, const double *GammaV, const double *GammaV_sq, const double *f, double* GKYL_RESTRICT sr_pressure) 
 { 
   // gamma:       Particle Lorentz boost factor sqrt(1 + p^2).
   // gamma_inv:   Inverse particle Lorentz boost factor 1/sqrt(1 + p^2).
-  // u_i:         Bulk four-velocity (GammaV, GammaV*V_drift). 
+  // u_i:         Spatial components of bulk four-velocity = GammaV*V_drift. 
+  // u_i_sq:      Squared spatial components of bulk four-velocity = u_i^2. 
+  // GammaV:      Bulk four-velocity Lorentz factor = sqrt(1 + |u_i|^2). 
+  // GammaV_sq:   Squared bulk four-velocity Lorentz factor = 1 + |u_i|^2. 
   // f:           Input distribution function.
   // sr_pressure: Output relativistic pressure.
   const double volFact = dxv[1]*dxv[2]*dxv[3]/8; 
  
-  const double *GammaV = &u_i[0]; 
-  double GammaV_sq[3] = {0.0}; 
-  ser_1x_p2_exp_sq(GammaV, GammaV_sq); 
- 
   const double wx1 = w[1], dv1 = dxv[1]; 
   const double wx1_sq = wx1*wx1, dv1_sq = dv1*dv1; 
-  const double *V_0 = &u_i[3]; 
-  double V_0_sq[3] = {0.0}; 
-  ser_1x_p2_exp_sq(V_0, V_0_sq); 
+  const double *V_0 = &u_i[0]; 
+  const double *V_0_sq = &u_i_sq[0]; 
  
   const double wx2 = w[2], dv2 = dxv[2]; 
   const double wx2_sq = wx2*wx2, dv2_sq = dv2*dv2; 
-  const double *V_1 = &u_i[6]; 
-  double V_1_sq[3] = {0.0}; 
-  ser_1x_p2_exp_sq(V_1, V_1_sq); 
+  const double *V_1 = &u_i[3]; 
+  const double *V_1_sq = &u_i_sq[3]; 
  
   const double wx3 = w[3], dv3 = dxv[3]; 
   const double wx3_sq = wx3*wx3, dv3_sq = dv3*dv3; 
-  const double *V_2 = &u_i[9]; 
-  double V_2_sq[3] = {0.0}; 
-  ser_1x_p2_exp_sq(V_2, V_2_sq); 
+  const double *V_2 = &u_i[6]; 
+  const double *V_2_sq = &u_i_sq[6]; 
  
   double temp[48] = {0.0}; 
   double temp_sq[48] = {0.0}; 

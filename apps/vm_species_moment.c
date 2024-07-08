@@ -31,13 +31,7 @@ vm_species_moment_init(struct gkyl_vlasov_app *app, struct vm_species *s,
     };
     // Compute (n, V_drift, T/m)
     sm->vlasov_lte_moms = gkyl_vlasov_lte_moments_inew(&inp_mom);
-    // If relativistic, V_drift is the bulk four-velocity (GammaV, GammaV*V_drift)
-    if (s->model_id == GKYL_MODEL_SR) {
-      num_mom = app->vdim + 3; 
-    }
-    else {
-      num_mom = app->vdim + 2;
-    }
+    num_mom = app->vdim + 2;
   }
   else {
     if (s->model_id == GKYL_MODEL_SR) {

@@ -230,15 +230,9 @@ gkyl_vlasov_lte_proj_on_basis_inew(const struct gkyl_vlasov_lte_proj_on_basis_in
     up->mem = gkyl_dg_bin_op_mem_new(conf_local_ncells, up->conf_basis.num_basis);
   }
 
-  // Determine model information for setting number of components of V_drift (for relativity)
-  // and pre-computing geometric quantities (for canonical-pb)
   up->is_relativistic = false;
   if (inp->model_id == GKYL_MODEL_SR) {
     up->is_relativistic = true;
-    up->num_comp_V_drift = vdim+1;
-  }
-  else {
-    up->num_comp_V_drift = vdim;
   }
 
   up->is_canonical_pb = false;
@@ -275,7 +269,7 @@ gkyl_vlasov_lte_proj_on_basis_inew(const struct gkyl_vlasov_lte_proj_on_basis_in
     up->f_lte_quad = gkyl_array_cu_dev_new(GKYL_DOUBLE, 
       up->tot_quad, inp->conf_range_ext->volume*inp->vel_range->volume);
     up->moms_lte_quad = gkyl_array_cu_dev_new(GKYL_DOUBLE, 
-      up->tot_conf_quad*(up->num_comp_V_drift+2), inp->conf_range_ext->volume);
+      up->tot_conf_quad*(vdim+2), inp->conf_range_ext->volume);
     
     // Allocate the memory for computing the specific phase nodal to modal calculation
     struct gkyl_mat_mm_array_mem *phase_nodal_to_modal_mem_ho;
@@ -384,7 +378,7 @@ gkyl_vlasov_lte_proj_on_basis_advance(gkyl_vlasov_lte_proj_on_basis *up,
   for (int d=0; d<conf_range->ndim; ++d) rem_dir[d] = 1;
 
   double xc[GKYL_MAX_DIM], xmu[GKYL_MAX_DIM];
-  double n_quad[tot_conf_quad], V_drift_quad[tot_conf_quad][up->num_comp_V_drift], T_over_m_quad[tot_conf_quad];
+  double n_quad[tot_conf_quad], V_drift_quad[tot_conf_quad][vdim], T_over_m_quad[tot_conf_quad];
 
   // outer loop over configuration space cells; for each
   // config-space cell inner loop walks over velocity space
@@ -395,7 +389,7 @@ gkyl_vlasov_lte_proj_on_basis_advance(gkyl_vlasov_lte_proj_on_basis *up,
     const double *moms_lte_d = gkyl_array_cfetch(moms_lte, midx);
     const double *n_d = moms_lte_d;
     const double *V_drift_d = &moms_lte_d[num_conf_basis];
-    const double *T_over_m_d = &moms_lte_d[num_conf_basis*(up->num_comp_V_drift+1)];
+    const double *T_over_m_d = &moms_lte_d[num_conf_basis*(vdim+1)];
 
     // Sum over basis for given LTE moments (n, V_drift, T/m) in the stationary frame
     for (int n=0; n<tot_conf_quad; ++n) {
@@ -403,7 +397,7 @@ gkyl_vlasov_lte_proj_on_basis_advance(gkyl_vlasov_lte_proj_on_basis *up,
 
       // Zero out quadrature values
       n_quad[n] = 0.0;
-      for (int d=0; d<up->num_comp_V_drift; ++d) {
+      for (int d=0; d<vdim; ++d) {
         V_drift_quad[n][d] = 0.0;
       }
       T_over_m_quad[n] = 0.0;
@@ -411,7 +405,7 @@ gkyl_vlasov_lte_proj_on_basis_advance(gkyl_vlasov_lte_proj_on_basis *up,
       // Compute the configuration-space quadrature
       for (int k=0; k<num_conf_basis; ++k) {
         n_quad[n] += n_d[k]*b_ord[k];
-        for (int d=0; d<up->num_comp_V_drift; ++d) {
+        for (int d=0; d<vdim; ++d) {
           V_drift_quad[n][d] += V_drift_d[num_conf_basis*d+k]*b_ord[k];
         }
         T_over_m_quad[n] += T_over_m_d[k]*b_ord[k];
@@ -438,18 +432,21 @@ gkyl_vlasov_lte_proj_on_basis_advance(gkyl_vlasov_lte_proj_on_basis *up,
           up->phase_grid.dx, xc, xmu);
 
         double *fq = gkyl_array_fetch(up->fun_at_ords, pqidx);
+        fq[0] = f_floor;
         if (T_over_m_quad[cqidx] > 0.0) {
           if (up->is_relativistic) {
-            double uu = 0.0;
+            double vv = 0.0;
             double vu = 0.0;
-            // V_drift_quad is the four-velocity (GammaV_quad, GammaV_quad*V_drift_quad)
-            double GammaV_quad = V_drift_quad[cqidx][0];
+            double uu = 0.0;
+            // V_drift_quad is the spatial component of the four-velocity u_i = GammaV*V_drift
             for (int d=0; d<vdim; ++d) {
-              vu += (V_drift_quad[cqidx][d+1]*xmu[cdim+d]);
+              vv += (V_drift_quad[cqidx][d]*V_drift_quad[cqidx][d]);
+              vu += (V_drift_quad[cqidx][d]*xmu[cdim+d]);
               uu += (xmu[cdim+d]*xmu[cdim+d]);
             }
-            fq[0] = f_floor + exp((1.0/T_over_m_quad[cqidx]) 
-              - (1.0/T_over_m_quad[cqidx])*(GammaV_quad*sqrt(1+uu) - vu));
+            double GammaV_quad = sqrt(1.0 + vv);
+            fq[0] += exp((1.0/T_over_m_quad[cqidx]) 
+              - (1.0/T_over_m_quad[cqidx])*(GammaV_quad*sqrt(1.0 + uu) - vu));
           }
           else if (up->is_canonical_pb) {
             // Assumes a (particle) hamiltonian in canocial form: g = 1/2 g^{ij} w_i_w_j
@@ -468,27 +465,25 @@ gkyl_vlasov_lte_proj_on_basis_advance(gkyl_vlasov_lte_proj_on_basis *up,
                 efact += sym_fact*h_ij_inv_loc*(xmu[cdim+d0]-V_drift_quad[cqidx][d0])*(xmu[cdim+d1]-V_drift_quad[cqidx][d1]);
               }
             }
-            fq[0] = f_floor + exp(-efact/(2.0*T_over_m_quad[cqidx]));
+            fq[0] += exp(-efact/(2.0*T_over_m_quad[cqidx]));
           }
           else {
             double efact = 0.0;        
             for (int d=0; d<vdim; ++d) {
               efact += (xmu[cdim+d]-V_drift_quad[cqidx][d])*(xmu[cdim+d]-V_drift_quad[cqidx][d]);
             }
-            fq[0] = f_floor + exp(-efact/(2.0*T_over_m_quad[cqidx]));
+            fq[0] += exp(-efact/(2.0*T_over_m_quad[cqidx]));
           }
         }
       }
       // compute expansion coefficients of LTE distributiuon function on basis
+      // Note: This projection has **no** exponential pre-factor because **we do not need it**
+      // We correct the density with a rescaling, insuring the exponential is scaled precisely.
       long lidx = gkyl_range_idx(&vel_rng, vel_iter.idx);
       proj_on_basis(up, up->fun_at_ords, gkyl_array_fetch(f_lte, lidx));
     }
   }
-  // Correct the density of the projected LTE distribution function through rescaling.
-  // This correction is needed especially for the relativistic LTE, whose pre-factor
-  // we construct through an expansion of the Bessel functions to avoid finite 
-  // precision effects in such a way that we can recover arbitrary temperature 
-  // relativistic LTE distributions by rescaling the distribution to the desired density.  
+  // Correct the density of the projected LTE distribution function through rescaling. 
   gkyl_vlasov_lte_density_moment_advance(up->moments_up, phase_range, conf_range, f_lte, up->num_ratio);
 
   // compute number density ratio: num_ratio = n/n0
@@ -524,7 +519,6 @@ gkyl_vlasov_lte_proj_on_basis_release(gkyl_vlasov_lte_proj_on_basis* up)
     gkyl_cu_free(up->p2c_qidx);
     gkyl_array_release(up->f_lte_quad);
     gkyl_array_release(up->moms_lte_quad);
-
     gkyl_mat_mm_array_mem_release(up->phase_nodal_to_modal_mem);
   }
 

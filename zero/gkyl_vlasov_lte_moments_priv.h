@@ -29,8 +29,9 @@ struct gkyl_vlasov_lte_moments
   union {
     // special relativistic Vlasov-Maxwell model
     struct {
-      struct gkyl_range vel_range;
-      struct gkyl_array *u_i;
+      struct gkyl_array *V_drift_sq;
+      struct gkyl_array *GammaV;
+      struct gkyl_array *GammaV_sq;
       struct gkyl_array *gamma;
       struct gkyl_array *gamma_inv;
       struct gkyl_dg_calc_sr_vars *sr_vars;

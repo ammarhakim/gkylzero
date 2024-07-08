@@ -213,11 +213,10 @@ evalVDriftLInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT 
   double uy_elc = app->uy_elc1;
   double uz_elc = app->uz_elc1;
 
-  // Set left-going distribution drift velocity.
-  fout[0] = gamma;
-  fout[1] = gamma*ux_elc;
-  fout[2] = gamma*uy_elc;
-  fout[3] = gamma*uz_elc;
+  // Set left-going distribution drift (four-) velocity.
+  fout[0] = gamma*ux_elc;
+  fout[1] = gamma*uy_elc;
+  fout[2] = gamma*uz_elc;
 }
 
 void
@@ -230,11 +229,10 @@ evalVDriftRInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT 
   double uy_elc = app->uy_elc2;
   double uz_elc = app->uz_elc2;
 
-  // Set right-going distribution drift velocity.
-  fout[0] = gamma;
-  fout[1] = gamma*ux_elc;
-  fout[2] = gamma*uy_elc;
-  fout[3] = gamma*uz_elc;
+  // Set right-going distribution drift (four-) velocity.
+  fout[0] = gamma*ux_elc;
+  fout[1] = gamma*uy_elc;
+  fout[2] = gamma*uz_elc;
 }
 
 void
@@ -401,6 +399,7 @@ main(int argc, char **argv)
       .V_drift = evalVDriftLInit,
       .ctx_V_drift = &ctx,
       .correct_all_moms = true,
+      .use_last_converged = true, 
     },
     .projection[1] = {
       .proj_id = GKYL_PROJ_VLASOV_LTE,
@@ -411,6 +410,7 @@ main(int argc, char **argv)
       .V_drift = evalVDriftRInit,
       .ctx_V_drift = &ctx,
       .correct_all_moms = true,
+      .use_last_converged = true, 
     },
 
     .num_diag_moments = 2,

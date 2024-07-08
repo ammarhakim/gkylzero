@@ -157,8 +157,7 @@ evalVDriftInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT f
   double Vx_drift = app->Vx_drift;
   double gamma = 1.0/sqrt(1.0 - Vx_drift*Vx_drift);
   // Set drift velocity.
-  fout[0] = gamma;
-  fout[1] = gamma*Vx_drift;
+  fout[0] = gamma*Vx_drift;
 }
 
 void
@@ -321,8 +320,6 @@ main(int argc, char **argv)
       .self_nu = evalNu,
       .ctx = &ctx,
       .correct_all_moms = true,
-      // .iter_eps = 1e-6,
-      // .max_iter = 20,
       .use_last_converged = true, 
     },
     

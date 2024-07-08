@@ -25,14 +25,9 @@ gkyl_vlasov_lte_correct_inew(const struct gkyl_vlasov_lte_correct_inp *inp)
 
   up->num_conf_basis = inp->conf_basis->num_basis;
   // (n, V_drift, T/m) being corrected
-  // If the model is SR, V_drift is the four-velocity (Gamma, Gamma*V_drift)
+  // If the model is SR, V_drift is the spatial component of the four-velocity u_i = GammaV*V_drift
   int vdim = inp->phase_basis->ndim - inp->conf_basis->ndim;
-  if (inp->model_id == GKYL_MODEL_SR) {
-    up->num_comp = vdim+3; 
-  }
-  else {
-    up->num_comp = vdim+2;
-  }
+  up->num_comp = vdim+2;
 
   long conf_local_ncells = inp->conf_range->volume;
   long conf_local_ext_ncells = inp->conf_range_ext->volume;
@@ -190,6 +185,7 @@ gkyl_vlasov_lte_correct_all_moments(gkyl_vlasov_lte_correct *up,
       }
     }
     // Find the maximum error looping over the error in each component
+    max_error = 0.0; // reset maximum error 
     for (int d=0; d<num_comp; ++d) {
       max_error = fmax(max_error, up->error[d]);
     }

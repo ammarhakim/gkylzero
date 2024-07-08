@@ -1,23 +1,20 @@
 #include <gkyl_sr_Gamma_kernels.h> 
-#include <gkyl_basis_ser_1x_p2_exp_sq.h> 
-GKYL_CU_DH void sr_vars_pressure_1x1v_ser_p2(const double *w, const double *dxv, const double *gamma, const double *gamma_inv, const double *u_i, const double *f, double* GKYL_RESTRICT sr_pressure) 
+GKYL_CU_DH void sr_vars_pressure_1x1v_ser_p2(const double *w, const double *dxv, const double *gamma, const double *gamma_inv, const double *u_i, const double *u_i_sq, const double *GammaV, const double *GammaV_sq, const double *f, double* GKYL_RESTRICT sr_pressure) 
 { 
   // gamma:       Particle Lorentz boost factor sqrt(1 + p^2).
   // gamma_inv:   Inverse particle Lorentz boost factor 1/sqrt(1 + p^2).
-  // u_i:         Bulk four-velocity (GammaV, GammaV*V_drift). 
+  // u_i:         Spatial components of bulk four-velocity = GammaV*V_drift. 
+  // u_i_sq:      Squared spatial components of bulk four-velocity = u_i^2. 
+  // GammaV:      Bulk four-velocity Lorentz factor = sqrt(1 + |u_i|^2). 
+  // GammaV_sq:   Squared bulk four-velocity Lorentz factor = 1 + |u_i|^2. 
   // f:           Input distribution function.
   // sr_pressure: Output relativistic pressure.
   const double volFact = dxv[1]/2; 
  
-  const double *GammaV = &u_i[0]; 
-  double GammaV_sq[3] = {0.0}; 
-  ser_1x_p2_exp_sq(GammaV, GammaV_sq); 
- 
   const double wx1 = w[1], dv1 = dxv[1]; 
   const double wx1_sq = wx1*wx1, dv1_sq = dv1*dv1; 
-  const double *V_0 = &u_i[3]; 
-  double V_0_sq[3] = {0.0}; 
-  ser_1x_p2_exp_sq(V_0, V_0_sq); 
+  const double *V_0 = &u_i[0]; 
+  const double *V_0_sq = &u_i_sq[0]; 
  
   double temp[8] = {0.0}; 
   double temp_sq[8] = {0.0}; 
