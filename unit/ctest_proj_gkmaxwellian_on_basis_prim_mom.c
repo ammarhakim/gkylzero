@@ -206,7 +206,7 @@ test_1x2v_gk(int poly_order, bool use_gpu)
   if (use_gpu)  // create device copy.
     distf_cu  = gkyl_array_cu_dev_new(GKYL_DOUBLE, basis.num_basis, local_ext.volume);
 
-  // Velocity space mapping.
+  // velocity space mapping.
   struct gkyl_mapc2p_inp c2p_in = { };
   struct gkyl_velocity_map *gvm = gkyl_velocity_map_new(c2p_in, grid, vGrid,
     local, local_ext, vLocal, vLocal_ext, use_gpu);
@@ -388,7 +388,7 @@ test_3x2v_gk(int poly_order, bool use_gpu)
   struct gkyl_range vLocal, vLocal_ext;
   gkyl_create_grid_ranges(&vGrid, vGhost, &vLocal_ext, &vLocal);
 
-  // create primitive moment arrays
+  // Create primitive moment arrays
   struct gkyl_array *den, *udrift, *vtsq;
   den = mkarr(confBasis.num_basis, confLocal_ext.volume);
   udrift = mkarr(confBasis.num_basis, confLocal_ext.volume);
@@ -418,27 +418,6 @@ test_3x2v_gk(int poly_order, bool use_gpu)
     prim_moms = prim_moms_ho;
   }
 
-  // create bmag and jacob_tot arrays
-  /*
-  struct gkyl_array *bmag, *jacob_tot;
-  bmag = mkarr(confBasis.num_basis, confLocal_ext.volume);
-  jacob_tot = mkarr(confBasis.num_basis, confLocal_ext.volume);
-  struct gkyl_array *bmag_cu, *jacob_tot_cu;
-  if (use_gpu) { // create device copies
-    bmag_cu = gkyl_array_cu_dev_new(GKYL_DOUBLE, confBasis.num_basis, confLocal_ext.volume);
-    jacob_tot_cu = gkyl_array_cu_dev_new(GKYL_DOUBLE, confBasis.num_basis, confLocal_ext.volume);
-  }
-  gkyl_proj_on_basis *proj_bmag = gkyl_proj_on_basis_new(&confGrid, &confBasis,
-    poly_order+1, 1, eval_bmag, NULL);
-  gkyl_proj_on_basis *proj_jac = gkyl_proj_on_basis_new(&confGrid, &confBasis,
-    poly_order+1, 1, eval_jacob_tot, NULL);
-  gkyl_proj_on_basis_advance(proj_bmag, 0.0, &confLocal, bmag);
-  gkyl_proj_on_basis_advance(proj_jac, 0.0, &confLocal, jacob_tot);
-  if (use_gpu) {  // copy host array to device
-    gkyl_array_copy(bmag_cu, bmag);
-    gkyl_array_copy(jacob_tot_cu, jacob_tot);
-  }
-  */
   // Initialize geometry
   struct gkyl_gk_geometry_inp geometry_input = {
       .geometry_id = GKYL_MAPC2P,
@@ -462,7 +441,15 @@ test_3x2v_gk(int poly_order, bool use_gpu)
   struct gk_geometry* gk_geom;
   gk_geom = gkyl_gk_geometry_mapc2p_new(&geometry_input);
 
-  // create distribution function array
+  // If we are on the gpu, copy from host
+  if (use_gpu) {
+    struct gk_geometry* gk_geom_dev = gkyl_gk_geometry_new(gk_geom, &geometry_input, use_gpu);
+    gkyl_gk_geometry_release(gk_geom);
+    gk_geom = gkyl_gk_geometry_acquire(gk_geom_dev);
+    gkyl_gk_geometry_release(gk_geom_dev);
+  }
+
+  // Create distribution function array
   struct gkyl_array *distf;
   distf = mkarr(basis.num_basis, local_ext.volume);
   struct gkyl_array *distf_cu;
@@ -474,7 +461,7 @@ test_3x2v_gk(int poly_order, bool use_gpu)
   struct gkyl_velocity_map *gvm = gkyl_velocity_map_new(c2p_in, grid, vGrid,
     local, local_ext, vLocal, vLocal_ext, use_gpu);
 
-  // projection updater to compute Maxwellian
+  // Projection updater to compute Maxwellian
   struct gkyl_proj_maxwellian_on_basis_inp inp_proj = {
     .grid = &grid,
     .phase_basis = &basis,
@@ -491,15 +478,14 @@ test_3x2v_gk(int poly_order, bool use_gpu)
   if (use_gpu) {
     gkyl_proj_gkmaxwellian_on_basis_prim_mom(proj_max, &local, &confLocal, prim_moms,
       gk_geom->bmag, gk_geom->jacobtot, mass, distf_cu);
-      //bmag_cu, jacob_tot_cu, mass, distf_cu);
     gkyl_array_copy(distf, distf_cu);
   } else {
     gkyl_proj_gkmaxwellian_on_basis_prim_mom(proj_max, &local, &confLocal, prim_moms,
       gk_geom->bmag, gk_geom->jacobtot, mass, distf);
-      //bmag, jacob_tot, mass, distf);
   }
 
-  // values to compare  at index (1, 1, 1, 9, 9) [remember, lower-left index is (1,1,1)]
+  // Values to compare at index (1, 1, 1, 9, 9) [remember, lower-left index is (1,1,1)]
+  // They come from the gpu run results using the previous parallelization. 
   double p1_vals[] = {  
     2.4243050727223950e-02, -1.6882464773457025e-04, -1.6882464773457199e-04,
    -1.6882464773457155e-04,  6.4367806805923898e-04, -2.6141835388891624e-03,
@@ -569,7 +555,8 @@ test_3x2v_gk(int poly_order, bool use_gpu)
     for (int i=0; i<basis.num_basis; ++i)
       TEST_CHECK( gkyl_compare_double(p2_vals[i], fv[i], 1e-8) );
   }
-  // write distribution function to file
+
+  // Write distribution function to file
   char fname[1024];
   if (use_gpu) {
     sprintf(fname, "ctest_proj_gkmaxwellian_on_basis_prim_mom_test_3x2v_p%d_gpu.gkyl", poly_order);
@@ -587,12 +574,8 @@ test_3x2v_gk(int poly_order, bool use_gpu)
   gkyl_proj_on_basis_release(proj_vtsq);
 
   gkyl_array_release(prim_moms_ho);
-  //gkyl_array_release(bmag); 
-  //gkyl_array_release(jacob_tot);
   if (use_gpu) {
     gkyl_array_release(prim_moms);
-    //gkyl_array_release(bmag_cu); 
-    //gkyl_array_release(jacob_tot_cu);
   }
 
   gkyl_gk_geometry_release(gk_geom);
@@ -612,6 +595,7 @@ test_3x2v_gk(int poly_order, bool use_gpu)
 void test_1x2v_p1_gk() { test_1x2v_gk(1, false); }
 void test_1x2v_p2_gk() { test_1x2v_gk(2, false); }
 void test_3x2v_p1_gk() { test_3x2v_gk(1, false); }
+// No p2 geometry in 3D
 
 #ifdef GKYL_HAVE_CUDA
 void test_1x2v_p1_gk_gpu() { test_1x2v_gk(1, true); }
