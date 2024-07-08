@@ -65,8 +65,11 @@ moment_coupling_init(const struct gkyl_moment_app *app, struct moment_coupling *
   
 
   // In Gradient-closure case, non-ideal variables are 10 heat flux tensor components
-  for (int n=0;  n<app->num_species; ++n)
-    src->non_ideal_vars[n] = mkarr(false, 10, src->non_ideal_local_ext.volume);
+  // KB - Modification: This now stores the upper and lower temperature gradient at each vertex
+  int adj_cells[3] = { 1, 2, 4 };
+  for (int n=0;  n<app->num_species; ++n) {
+    src->non_ideal_vars[n] = mkarr(false, app->ndim*adj_cells[app->ndim - 1]*6, src->non_ideal_local_ext.volume);
+  }
 
   // check if gradient-closure is present
   for (int i=0; i<app->num_species; ++i) {

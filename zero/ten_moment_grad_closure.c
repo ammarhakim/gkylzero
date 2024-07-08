@@ -108,14 +108,15 @@ var_setup(const gkyl_ten_moment_grad_closure *gces,
 
 double
 calc_unmag_heat_flux(const gkyl_ten_moment_grad_closure *gces,
-  const double *fluid_d[], double *cflrate, double *heat_flux_d, double cfl, double dt)
+  const double *fluid_d[], double *cflrate, double *temp_grad_d,
+  double cfl, double dt)
 {
   const int ndim = gces->ndim;
+  double alpha = 1.0/gces->k0;
   double rho_avg = 0.0;
   double p_avg = 0.0;
-  double dTdx[6] = {0.0};
-  double dTdy[6] = {0.0};
-  double dTdz[6] = {0.0};
+  double vth_avg = 0.0;
+  double n_avg = 0.0;
   double Ax[6] = {0.0};
   double Ay[6] = {0.0};
   double Az[6] = {0.0};
@@ -133,6 +134,7 @@ calc_unmag_heat_flux(const gkyl_ten_moment_grad_closure *gces,
   
   if (ndim == 1) {
     const double dx = gces->grid.dx[0];
+    double dTdx[6] = {0.0};
     double Tij[2][6] = {0.0};
     double rho[2] = {0.0};
     double p[2] = {0.0};
@@ -140,6 +142,8 @@ calc_unmag_heat_flux(const gkyl_ten_moment_grad_closure *gces,
 
     rho_avg = calc_harmonic_avg_1D(rho[L_1D], rho[U_1D]);
     p_avg = calc_harmonic_avg_1D(p[L_1D], p[U_1D]);
+    vth_avg = sqrt(p_avg/rho_avg);
+    n_avg = rho_avg/gces->mass;
     
     dTdx[T11] = calc_sym_grad_1D(dx, Tij[L_1D][T11], Tij[U_1D][T11]);
     dTdx[T12] = calc_sym_grad_1D(dx, Tij[L_1D][T12], Tij[U_1D][T12]);
@@ -148,11 +152,17 @@ calc_unmag_heat_flux(const gkyl_ten_moment_grad_closure *gces,
     dTdx[T23] = calc_sym_grad_1D(dx, Tij[L_1D][T23], Tij[U_1D][T23]);
     dTdx[T33] = calc_sym_grad_1D(dx, Tij[L_1D][T33], Tij[U_1D][T33]);
 
+    for (int k = 0; k < 6; ++k) {
+      temp_grad_d[k] = alpha*n_avg*vth_avg*dTdx[k];
+    }
+
     cfla = dt/(dx*dx);
   }
   else if (ndim == 2) {
     const double dx = gces->grid.dx[0];
     const double dy = gces->grid.dx[1];
+    double dTdx[2][6] = {0.0};
+    double dTdy[2][6] = {0.0};
     double Tij[4][6] = {0.0};
     double rho[4] = {0.0};
     double p[4] = {0.0};
@@ -160,6 +170,8 @@ calc_unmag_heat_flux(const gkyl_ten_moment_grad_closure *gces,
 
     rho_avg = calc_harmonic_avg_2D(rho[LL_2D], rho[LU_2D], rho[UL_2D], rho[UU_2D]);
     p_avg = calc_harmonic_avg_2D(p[LL_2D], p[LU_2D], p[UL_2D], p[UU_2D]);
+    vth_avg = sqrt(p_avg/rho_avg);
+    n_avg = rho_avg/gces->mass;
 
     Ax[T11] = calc_sym_grad_1D(dx, Tij[LL_2D][T11], Tij[UL_2D][T11]);
     Ax[T12] = calc_sym_grad_1D(dx, Tij[LL_2D][T12], Tij[UL_2D][T12]);
@@ -175,12 +187,19 @@ calc_unmag_heat_flux(const gkyl_ten_moment_grad_closure *gces,
     Bx[T23] = calc_sym_grad_1D(dx, Tij[LU_2D][T23], Tij[UU_2D][T23]);
     Bx[T33] = calc_sym_grad_1D(dx, Tij[LU_2D][T33], Tij[UU_2D][T33]);
 
-    dTdx[T11] = calc_sym_grad_limiter_2D(limit, Ax[T11], Bx[T11]);
-    dTdx[T12] = calc_sym_grad_limiter_2D(limit, Ax[T12], Bx[T12]);
-    dTdx[T13] = calc_sym_grad_limiter_2D(limit, Ax[T13], Bx[T13]);
-    dTdx[T22] = calc_sym_grad_limiter_2D(limit, Ax[T22], Bx[T22]);
-    dTdx[T23] = calc_sym_grad_limiter_2D(limit, Ax[T23], Bx[T23]);
-    dTdx[T33] = calc_sym_grad_limiter_2D(limit, Ax[T33], Bx[T33]);
+    dTdx[L_1D][T11] = calc_sym_grad_limiter_2D(limit, Ax[T11], Bx[T11]);
+    dTdx[L_1D][T12] = calc_sym_grad_limiter_2D(limit, Ax[T12], Bx[T12]);
+    dTdx[L_1D][T13] = calc_sym_grad_limiter_2D(limit, Ax[T13], Bx[T13]);
+    dTdx[L_1D][T22] = calc_sym_grad_limiter_2D(limit, Ax[T22], Bx[T22]);
+    dTdx[L_1D][T23] = calc_sym_grad_limiter_2D(limit, Ax[T23], Bx[T23]);
+    dTdx[L_1D][T33] = calc_sym_grad_limiter_2D(limit, Ax[T33], Bx[T33]);
+
+    dTdx[U_1D][T11] = calc_sym_grad_limiter_2D(limit, Bx[T11], Ax[T11]);
+    dTdx[U_1D][T12] = calc_sym_grad_limiter_2D(limit, Bx[T12], Ax[T12]);
+    dTdx[U_1D][T13] = calc_sym_grad_limiter_2D(limit, Bx[T13], Ax[T13]);
+    dTdx[U_1D][T22] = calc_sym_grad_limiter_2D(limit, Bx[T22], Ax[T22]);
+    dTdx[U_1D][T23] = calc_sym_grad_limiter_2D(limit, Bx[T23], Ax[T23]);
+    dTdx[U_1D][T33] = calc_sym_grad_limiter_2D(limit, Bx[T33], Ax[T33]);
 
     Ay[T11] = calc_sym_grad_1D(dy, Tij[LL_2D][T11], Tij[LU_2D][T11]);
     Ay[T12] = calc_sym_grad_1D(dy, Tij[LL_2D][T12], Tij[LU_2D][T12]);
@@ -196,21 +215,38 @@ calc_unmag_heat_flux(const gkyl_ten_moment_grad_closure *gces,
     By[T23] = calc_sym_grad_1D(dy, Tij[UL_2D][T23], Tij[UU_2D][T23]);
     By[T33] = calc_sym_grad_1D(dy, Tij[UL_2D][T33], Tij[UU_2D][T33]);
 
-    dTdy[T11] = calc_sym_grad_limiter_2D(limit, Ay[T11], By[T11]);
-    dTdy[T12] = calc_sym_grad_limiter_2D(limit, Ay[T12], By[T12]);
-    dTdy[T13] = calc_sym_grad_limiter_2D(limit, Ay[T13], By[T13]);
-    dTdy[T22] = calc_sym_grad_limiter_2D(limit, Ay[T22], By[T22]);
-    dTdy[T23] = calc_sym_grad_limiter_2D(limit, Ay[T23], By[T23]);
-    dTdy[T33] = calc_sym_grad_limiter_2D(limit, Ay[T33], By[T33]);
+    dTdy[L_1D][T11] = calc_sym_grad_limiter_2D(limit, Ay[T11], By[T11]);
+    dTdy[L_1D][T12] = calc_sym_grad_limiter_2D(limit, Ay[T12], By[T12]);
+    dTdy[L_1D][T13] = calc_sym_grad_limiter_2D(limit, Ay[T13], By[T13]);
+    dTdy[L_1D][T22] = calc_sym_grad_limiter_2D(limit, Ay[T22], By[T22]);
+    dTdy[L_1D][T23] = calc_sym_grad_limiter_2D(limit, Ay[T23], By[T23]);
+    dTdy[L_1D][T33] = calc_sym_grad_limiter_2D(limit, Ay[T33], By[T33]);
 
-    double da = fmin(dx, dy);
-    cfla = dt/(da*da);
+    dTdy[U_1D][T11] = calc_sym_grad_limiter_2D(limit, By[T11], Ay[T11]);
+    dTdy[U_1D][T12] = calc_sym_grad_limiter_2D(limit, By[T12], Ay[T12]);
+    dTdy[U_1D][T13] = calc_sym_grad_limiter_2D(limit, By[T13], Ay[T13]);
+    dTdy[U_1D][T22] = calc_sym_grad_limiter_2D(limit, By[T22], Ay[T22]);
+    dTdy[U_1D][T23] = calc_sym_grad_limiter_2D(limit, By[T23], Ay[T23]);
+    dTdy[U_1D][T33] = calc_sym_grad_limiter_2D(limit, By[T33], Ay[T33]);
+
+    for (int j = L_1D; j <= U_1D; ++j) {
+      for (int k = 0; k < 6; ++k) {
+        temp_grad_d[6*j*ndim + k] = alpha*n_avg*vth_avg*dTdx[j][k];
+        temp_grad_d[6*(j*ndim + 1) + k] = alpha*n_avg*vth_avg*dTdy[j][k];
+      }
+    }
+
+    double dmin = fmin(dx, dy);
+    cfla = dt/(dmin*dmin);
   }
   else if (ndim == 3) {
     const double dx = gces->grid.dx[0];
     const double dy = gces->grid.dx[1];
     const double dz = gces->grid.dx[2];
 
+    double dTdx[4][6] = {0.0};
+    double dTdy[4][6] = {0.0};
+    double dTdz[4][6] = {0.0};
     double Tij[8][6] = {0.0};
     double rho[8] = {0.0};
     double p[8] = {0.0};
@@ -220,6 +256,8 @@ calc_unmag_heat_flux(const gkyl_ten_moment_grad_closure *gces,
                                    rho[ULL_3D], rho[ULU_3D], rho[UUL_3D], rho[UUU_3D]);
     p_avg = calc_harmonic_avg_3D(p[LLL_3D], p[LLU_3D], p[LUL_3D], p[LUU_3D],
                                  p[ULL_3D], p[ULU_3D], p[UUL_3D], p[UUU_3D]);
+    vth_avg = sqrt(p_avg/rho_avg);
+    n_avg = rho_avg/gces->mass;
 
     Ax[T11] = calc_sym_grad_1D(dx, Tij[LLL_3D][T11], Tij[ULL_3D][T11]);
     Ax[T12] = calc_sym_grad_1D(dx, Tij[LLL_3D][T12], Tij[ULL_3D][T12]);
@@ -249,12 +287,33 @@ calc_unmag_heat_flux(const gkyl_ten_moment_grad_closure *gces,
     Dx[T23] = calc_sym_grad_1D(dx, Tij[LUU_3D][T23], Tij[UUU_3D][T23]);
     Dx[T33] = calc_sym_grad_1D(dx, Tij[LUU_3D][T33], Tij[UUU_3D][T33]);
 
-    dTdx[T11] = calc_sym_grad_limiter_3D(limit, Ax[T11], Bx[T11], Cx[T11], Dx[T11]);
-    dTdx[T12] = calc_sym_grad_limiter_3D(limit, Ax[T12], Bx[T12], Cx[T12], Dx[T12]);
-    dTdx[T13] = calc_sym_grad_limiter_3D(limit, Ax[T13], Bx[T13], Cx[T13], Dx[T13]); 
-    dTdx[T22] = calc_sym_grad_limiter_3D(limit, Ax[T22], Bx[T22], Cx[T22], Dx[T22]);
-    dTdx[T23] = calc_sym_grad_limiter_3D(limit, Ax[T23], Bx[T23], Cx[T23], Dx[T23]);
-    dTdx[T33] = calc_sym_grad_limiter_3D(limit, Ax[T33], Bx[T33], Cx[T33], Dx[T33]);
+    dTdx[LL_2D][T11] = calc_sym_grad_limiter_3D(limit, Ax[T11], Bx[T11], Cx[T11], Dx[T11]);
+    dTdx[LL_2D][T12] = calc_sym_grad_limiter_3D(limit, Ax[T12], Bx[T12], Cx[T12], Dx[T12]);
+    dTdx[LL_2D][T13] = calc_sym_grad_limiter_3D(limit, Ax[T13], Bx[T13], Cx[T13], Dx[T13]); 
+    dTdx[LL_2D][T22] = calc_sym_grad_limiter_3D(limit, Ax[T22], Bx[T22], Cx[T22], Dx[T22]);
+    dTdx[LL_2D][T23] = calc_sym_grad_limiter_3D(limit, Ax[T23], Bx[T23], Cx[T23], Dx[T23]);
+    dTdx[LL_2D][T33] = calc_sym_grad_limiter_3D(limit, Ax[T33], Bx[T33], Cx[T33], Dx[T33]);
+
+    dTdx[LU_2D][T11] = calc_sym_grad_limiter_3D(limit, Bx[T11], Ax[T11], Cx[T11], Dx[T11]);
+    dTdx[LU_2D][T12] = calc_sym_grad_limiter_3D(limit, Bx[T12], Ax[T12], Cx[T12], Dx[T12]);
+    dTdx[LU_2D][T13] = calc_sym_grad_limiter_3D(limit, Bx[T13], Ax[T13], Cx[T13], Dx[T13]); 
+    dTdx[LU_2D][T22] = calc_sym_grad_limiter_3D(limit, Bx[T22], Ax[T22], Cx[T22], Dx[T22]);
+    dTdx[LU_2D][T23] = calc_sym_grad_limiter_3D(limit, Bx[T23], Ax[T23], Cx[T23], Dx[T23]);
+    dTdx[LU_2D][T33] = calc_sym_grad_limiter_3D(limit, Bx[T33], Ax[T33], Cx[T33], Dx[T33]);
+
+    dTdx[UL_2D][T11] = calc_sym_grad_limiter_3D(limit, Cx[T11], Ax[T11], Bx[T11], Dx[T11]);
+    dTdx[UL_2D][T12] = calc_sym_grad_limiter_3D(limit, Cx[T12], Ax[T12], Bx[T12], Dx[T12]);
+    dTdx[UL_2D][T13] = calc_sym_grad_limiter_3D(limit, Cx[T13], Ax[T13], Bx[T13], Dx[T13]); 
+    dTdx[UL_2D][T22] = calc_sym_grad_limiter_3D(limit, Cx[T22], Ax[T22], Bx[T22], Dx[T22]);
+    dTdx[UL_2D][T23] = calc_sym_grad_limiter_3D(limit, Cx[T23], Ax[T23], Bx[T23], Dx[T23]);
+    dTdx[UL_2D][T33] = calc_sym_grad_limiter_3D(limit, Cx[T33], Ax[T33], Bx[T33], Dx[T33]);
+
+    dTdx[UU_2D][T11] = calc_sym_grad_limiter_3D(limit, Dx[T11], Ax[T11], Bx[T11], Cx[T11]);
+    dTdx[UU_2D][T12] = calc_sym_grad_limiter_3D(limit, Dx[T12], Ax[T12], Bx[T12], Cx[T12]);
+    dTdx[UU_2D][T13] = calc_sym_grad_limiter_3D(limit, Dx[T13], Ax[T13], Bx[T13], Cx[T13]); 
+    dTdx[UU_2D][T22] = calc_sym_grad_limiter_3D(limit, Dx[T22], Ax[T22], Bx[T22], Cx[T22]);
+    dTdx[UU_2D][T23] = calc_sym_grad_limiter_3D(limit, Dx[T23], Ax[T23], Bx[T23], Cx[T23]);
+    dTdx[UU_2D][T33] = calc_sym_grad_limiter_3D(limit, Dx[T33], Ax[T33], Bx[T33], Cx[T33]);
 
     Ay[T11] = calc_sym_grad_1D(dy, Tij[LLL_3D][T11], Tij[LUL_3D][T11]);
     Ay[T12] = calc_sym_grad_1D(dy, Tij[LLL_3D][T12], Tij[LUL_3D][T12]);
@@ -284,12 +343,33 @@ calc_unmag_heat_flux(const gkyl_ten_moment_grad_closure *gces,
     Dy[T23] = calc_sym_grad_1D(dy, Tij[ULU_3D][T23], Tij[UUU_3D][T23]);
     Dy[T33] = calc_sym_grad_1D(dy, Tij[ULU_3D][T33], Tij[UUU_3D][T33]);
 
-    dTdy[T11] = calc_sym_grad_limiter_3D(limit, Ay[T11], By[T11], Cy[T11], Dy[T11]);
-    dTdy[T12] = calc_sym_grad_limiter_3D(limit, Ay[T12], By[T12], Cy[T12], Dy[T12]);
-    dTdy[T13] = calc_sym_grad_limiter_3D(limit, Ay[T13], By[T13], Cy[T13], Dy[T13]); 
-    dTdy[T22] = calc_sym_grad_limiter_3D(limit, Ay[T22], By[T22], Cy[T22], Dy[T22]);
-    dTdy[T23] = calc_sym_grad_limiter_3D(limit, Ay[T23], By[T23], Cy[T23], Dy[T23]);
-    dTdy[T33] = calc_sym_grad_limiter_3D(limit, Ay[T33], By[T33], Cy[T33], Dy[T33]);
+    dTdy[LL_2D][T11] = calc_sym_grad_limiter_3D(limit, Ay[T11], By[T11], Cy[T11], Dy[T11]);
+    dTdy[LL_2D][T12] = calc_sym_grad_limiter_3D(limit, Ay[T12], By[T12], Cy[T12], Dy[T12]);
+    dTdy[LL_2D][T13] = calc_sym_grad_limiter_3D(limit, Ay[T13], By[T13], Cy[T13], Dy[T13]); 
+    dTdy[LL_2D][T22] = calc_sym_grad_limiter_3D(limit, Ay[T22], By[T22], Cy[T22], Dy[T22]);
+    dTdy[LL_2D][T23] = calc_sym_grad_limiter_3D(limit, Ay[T23], By[T23], Cy[T23], Dy[T23]);
+    dTdy[LL_2D][T33] = calc_sym_grad_limiter_3D(limit, Ay[T33], By[T33], Cy[T33], Dy[T33]);
+
+    dTdy[LU_2D][T11] = calc_sym_grad_limiter_3D(limit, By[T11], Ay[T11], Cy[T11], Dy[T11]);
+    dTdy[LU_2D][T12] = calc_sym_grad_limiter_3D(limit, By[T12], Ay[T12], Cy[T12], Dy[T12]);
+    dTdy[LU_2D][T13] = calc_sym_grad_limiter_3D(limit, By[T13], Ay[T13], Cy[T13], Dy[T13]); 
+    dTdy[LU_2D][T22] = calc_sym_grad_limiter_3D(limit, By[T22], Ay[T22], Cy[T22], Dy[T22]);
+    dTdy[LU_2D][T23] = calc_sym_grad_limiter_3D(limit, By[T23], Ay[T23], Cy[T23], Dy[T23]);
+    dTdy[LU_2D][T33] = calc_sym_grad_limiter_3D(limit, By[T33], Ay[T33], Cy[T33], Dy[T33]);
+
+    dTdy[UL_2D][T11] = calc_sym_grad_limiter_3D(limit, Cy[T11], Ay[T11], By[T11], Dy[T11]);
+    dTdy[UL_2D][T12] = calc_sym_grad_limiter_3D(limit, Cy[T12], Ay[T12], By[T12], Dy[T12]);
+    dTdy[UL_2D][T13] = calc_sym_grad_limiter_3D(limit, Cy[T13], Ay[T13], By[T13], Dy[T13]); 
+    dTdy[UL_2D][T22] = calc_sym_grad_limiter_3D(limit, Cy[T22], Ay[T22], By[T22], Dy[T22]);
+    dTdy[UL_2D][T23] = calc_sym_grad_limiter_3D(limit, Cy[T23], Ay[T23], By[T23], Dy[T23]);
+    dTdy[UL_2D][T33] = calc_sym_grad_limiter_3D(limit, Cy[T33], Ay[T33], By[T33], Dy[T33]);
+
+    dTdy[UU_2D][T11] = calc_sym_grad_limiter_3D(limit, Dy[T11], Ay[T11], By[T11], Cy[T11]);
+    dTdy[UU_2D][T12] = calc_sym_grad_limiter_3D(limit, Dy[T12], Ay[T12], By[T12], Cy[T12]);
+    dTdy[UU_2D][T13] = calc_sym_grad_limiter_3D(limit, Dy[T13], Ay[T13], By[T13], Cy[T13]); 
+    dTdy[UU_2D][T22] = calc_sym_grad_limiter_3D(limit, Dy[T22], Ay[T22], By[T22], Cy[T22]);
+    dTdy[UU_2D][T23] = calc_sym_grad_limiter_3D(limit, Dy[T23], Ay[T23], By[T23], Cy[T23]);
+    dTdy[UU_2D][T33] = calc_sym_grad_limiter_3D(limit, Dy[T33], Ay[T33], By[T33], Cy[T33]);
 
     Az[T11] = calc_sym_grad_1D(dz, Tij[LLL_3D][T11], Tij[LLU_3D][T11]);
     Az[T12] = calc_sym_grad_1D(dz, Tij[LLL_3D][T12], Tij[LLU_3D][T12]);
@@ -319,48 +399,81 @@ calc_unmag_heat_flux(const gkyl_ten_moment_grad_closure *gces,
     Dz[T23] = calc_sym_grad_1D(dz, Tij[UUL_3D][T23], Tij[UUU_3D][T23]);
     Dz[T33] = calc_sym_grad_1D(dz, Tij[UUL_3D][T33], Tij[UUU_3D][T33]);
 
-    dTdz[T11] = calc_sym_grad_limiter_3D(limit, Az[T11], Bz[T11], Cz[T11], Dz[T11]);
-    dTdz[T12] = calc_sym_grad_limiter_3D(limit, Az[T12], Bz[T12], Cz[T12], Dz[T12]);
-    dTdz[T13] = calc_sym_grad_limiter_3D(limit, Az[T13], Bz[T13], Cz[T13], Dz[T13]); 
-    dTdz[T22] = calc_sym_grad_limiter_3D(limit, Az[T22], Bz[T22], Cz[T22], Dz[T22]);
-    dTdz[T23] = calc_sym_grad_limiter_3D(limit, Az[T23], Bz[T23], Cz[T23], Dz[T23]);
-    dTdz[T33] = calc_sym_grad_limiter_3D(limit, Az[T33], Bz[T33], Cz[T33], Dz[T33]);
+    dTdz[LL_2D][T11] = calc_sym_grad_limiter_3D(limit, Az[T11], Bz[T11], Cz[T11], Dz[T11]);
+    dTdz[LL_2D][T12] = calc_sym_grad_limiter_3D(limit, Az[T12], Bz[T12], Cz[T12], Dz[T12]);
+    dTdz[LL_2D][T13] = calc_sym_grad_limiter_3D(limit, Az[T13], Bz[T13], Cz[T13], Dz[T13]); 
+    dTdz[LL_2D][T22] = calc_sym_grad_limiter_3D(limit, Az[T22], Bz[T22], Cz[T22], Dz[T22]);
+    dTdz[LL_2D][T23] = calc_sym_grad_limiter_3D(limit, Az[T23], Bz[T23], Cz[T23], Dz[T23]);
+    dTdz[LL_2D][T33] = calc_sym_grad_limiter_3D(limit, Az[T33], Bz[T33], Cz[T33], Dz[T33]);
 
-    double da = fmin(fmin(dx, dy), dz);
-    cfla = dt/(da*da);
+    dTdz[LU_2D][T11] = calc_sym_grad_limiter_3D(limit, Bz[T11], Az[T11], Cz[T11], Dz[T11]);
+    dTdz[LU_2D][T12] = calc_sym_grad_limiter_3D(limit, Bz[T12], Az[T12], Cz[T12], Dz[T12]);
+    dTdz[LU_2D][T13] = calc_sym_grad_limiter_3D(limit, Bz[T13], Az[T13], Cz[T13], Dz[T13]); 
+    dTdz[LU_2D][T22] = calc_sym_grad_limiter_3D(limit, Bz[T22], Az[T22], Cz[T22], Dz[T22]);
+    dTdz[LU_2D][T23] = calc_sym_grad_limiter_3D(limit, Bz[T23], Az[T23], Cz[T23], Dz[T23]);
+    dTdz[LU_2D][T33] = calc_sym_grad_limiter_3D(limit, Bz[T33], Az[T33], Cz[T33], Dz[T33]);
+
+    dTdz[UL_2D][T11] = calc_sym_grad_limiter_3D(limit, Cz[T11], Az[T11], Bz[T11], Dz[T11]);
+    dTdz[UL_2D][T12] = calc_sym_grad_limiter_3D(limit, Cz[T12], Az[T12], Bz[T12], Dz[T12]);
+    dTdz[UL_2D][T13] = calc_sym_grad_limiter_3D(limit, Cz[T13], Az[T13], Bz[T13], Dz[T13]); 
+    dTdz[UL_2D][T22] = calc_sym_grad_limiter_3D(limit, Cz[T22], Az[T22], Bz[T22], Dz[T22]);
+    dTdz[UL_2D][T23] = calc_sym_grad_limiter_3D(limit, Cz[T23], Az[T23], Bz[T23], Dz[T23]);
+    dTdz[UL_2D][T33] = calc_sym_grad_limiter_3D(limit, Cz[T33], Az[T33], Bz[T33], Dz[T33]);
+
+    dTdz[UU_2D][T11] = calc_sym_grad_limiter_3D(limit, Dz[T11], Az[T11], Bz[T11], Cz[T11]);
+    dTdz[UU_2D][T12] = calc_sym_grad_limiter_3D(limit, Dz[T12], Az[T12], Bz[T12], Cz[T12]);
+    dTdz[UU_2D][T13] = calc_sym_grad_limiter_3D(limit, Dz[T13], Az[T13], Bz[T13], Cz[T13]); 
+    dTdz[UU_2D][T22] = calc_sym_grad_limiter_3D(limit, Dz[T22], Az[T22], Bz[T22], Cz[T22]);
+    dTdz[UU_2D][T23] = calc_sym_grad_limiter_3D(limit, Dz[T23], Az[T23], Bz[T23], Cz[T23]);
+    dTdz[UU_2D][T33] = calc_sym_grad_limiter_3D(limit, Dz[T33], Az[T33], Bz[T33], Cz[T33]);
+
+    for (int j = LL_2D; j <= UU_2D; ++j) {
+      for (int k = 0; k < 6; ++k) {
+        temp_grad_d[6*j*ndim + k] = alpha*n_avg*vth_avg*dTdx[j][k];
+        temp_grad_d[6*(j*ndim + 1) + k] = alpha*n_avg*vth_avg*dTdy[j][k];
+        temp_grad_d[6*(j*ndim + 2) + k] = alpha*n_avg*vth_avg*dTdz[j][k];
+      }
+    }
+
+    double dmin = fmin(fmin(dx, dy), dz);
+    cfla = dt/(dmin*dmin);
   }
-  double alpha = 1.0/gces->k0;
-  double vth_avg = sqrt(p_avg/rho_avg);
-  double n_avg = rho_avg/gces->mass;
-  heat_flux_d[Q111] = alpha*vth_avg*n_avg*(dTdx[T11] + dTdx[T11] + dTdx[T11])/3.0;
-  heat_flux_d[Q112] = alpha*vth_avg*n_avg*(dTdx[T12] + dTdx[T12] + dTdy[T11])/3.0;
-  heat_flux_d[Q113] = alpha*vth_avg*n_avg*(dTdx[T13] + dTdx[T13] + dTdz[T11])/3.0;
-  heat_flux_d[Q122] = alpha*vth_avg*n_avg*(dTdx[T22] + dTdy[T12] + dTdy[T12])/3.0;
-  heat_flux_d[Q123] = alpha*vth_avg*n_avg*(dTdx[T23] + dTdy[T13] + dTdz[T12])/3.0;
-  heat_flux_d[Q133] = alpha*vth_avg*n_avg*(dTdx[T33] + dTdz[T13] + dTdz[T13])/3.0;
-  heat_flux_d[Q222] = alpha*vth_avg*n_avg*(dTdy[T22] + dTdy[T22] + dTdy[T22])/3.0;
-  heat_flux_d[Q223] = alpha*vth_avg*n_avg*(dTdy[T23] + dTdy[T23] + dTdz[T22])/3.0;
-  heat_flux_d[Q233] = alpha*vth_avg*n_avg*(dTdy[T33] + dTdz[T23] + dTdz[T23])/3.0;
-  heat_flux_d[Q333] = alpha*vth_avg*n_avg*(dTdz[T33] + dTdz[T33] + dTdz[T33])/3.0;
 
   return fmax(alpha*vth_avg*cfla, cfl);
 }
 
 static void
 calc_grad_closure_update(const gkyl_ten_moment_grad_closure *gces,
-  const double *heat_flux_d[], double *rhs)
+  const double *temp_grad_d[], double *rhs)
 {
   const int ndim = gces->ndim;
+  int ncomp = 1;
   double divQx[6] = {0.0};
   double divQy[6] = {0.0};
   double divQz[6] = {0.0};
 
   if (ndim == 1) {
     const double dx = gces->grid.dx[0];
+    double dTdx[2][6] = {0.0};
+    double dTdy[2][6] = {0.0};
+    double dTdz[2][6] = {0.0};
     double q[2][10] = {0.0};
-    for (int j = L_1D; j <= U_1D; ++j)
-      for (int k = 0; k < 10; ++k)
-        q[j][k] = heat_flux_d[j][k];
+    
+    for (int j = L_1D; j <= U_1D; ++j) {
+      for (int k = 0; k < 6; ++k) {
+        dTdx[j][k] = temp_grad_d[j][k];
+      }
+      q[j][Q111] = (dTdx[j][T11] + dTdx[j][T11] + dTdx[j][T11])/3.0;
+      q[j][Q112] = (dTdx[j][T12] + dTdx[j][T12] + dTdy[j][T11])/3.0;
+      q[j][Q113] = (dTdx[j][T13] + dTdx[j][T13] + dTdz[j][T11])/3.0;
+      q[j][Q122] = (dTdx[j][T22] + dTdy[j][T12] + dTdy[j][T12])/3.0;
+      q[j][Q123] = (dTdx[j][T23] + dTdy[j][T13] + dTdz[j][T12])/3.0;
+      q[j][Q133] = (dTdx[j][T33] + dTdz[j][T13] + dTdz[j][T13])/3.0;
+      q[j][Q222] = (dTdy[j][T22] + dTdy[j][T22] + dTdy[j][T22])/3.0;
+      q[j][Q223] = (dTdy[j][T23] + dTdy[j][T23] + dTdz[j][T22])/3.0;
+      q[j][Q233] = (dTdy[j][T33] + dTdz[j][T23] + dTdz[j][T23])/3.0;
+      q[j][Q333] = (dTdz[j][T33] + dTdz[j][T33] + dTdz[j][T33])/3.0;
+    }
 
     divQx[0] = calc_sym_grad_1D(dx, q[L_1D][Q111], q[U_1D][Q111]);
     divQx[1] = calc_sym_grad_1D(dx, q[L_1D][Q112], q[U_1D][Q112]);
@@ -370,12 +483,32 @@ calc_grad_closure_update(const gkyl_ten_moment_grad_closure *gces,
     divQx[5] = calc_sym_grad_1D(dx, q[L_1D][Q133], q[U_1D][Q133]);
   }
   else if (ndim == 2) {
+    ncomp = 2;
     const double dx = gces->grid.dx[0];
     const double dy = gces->grid.dx[1];
+    double dTdx[4][6] = {0.0};
+    double dTdy[4][6] = {0.0};
+    double dTdz[4][6] = {0.0};
     double q[4][10] = {0.0};
-    for (int j = LL_2D; j <= UU_2D; ++j)
-      for (int k = 0; k < 10; ++k)
-        q[j][k] = heat_flux_d[j][k];
+
+    int compx[4] = { U_1D, L_1D, U_1D, L_1D };
+    int compy[4] = { U_1D, U_1D, L_1D, L_1D };
+    for (int j = LL_2D; j <= UU_2D; ++j) {
+      for (int k = 0; k < 6; ++k) {
+        dTdx[j][k] = temp_grad_d[j][6*compx[j]*ndim + k];
+        dTdy[j][k] = temp_grad_d[j][6*(compy[j]*ndim + 1) + k];
+      }
+      q[j][Q111] = (dTdx[j][T11] + dTdx[j][T11] + dTdx[j][T11])/3.0;
+      q[j][Q112] = (dTdx[j][T12] + dTdx[j][T12] + dTdy[j][T11])/3.0;
+      q[j][Q113] = (dTdx[j][T13] + dTdx[j][T13] + dTdz[j][T11])/3.0;
+      q[j][Q122] = (dTdx[j][T22] + dTdy[j][T12] + dTdy[j][T12])/3.0;
+      q[j][Q123] = (dTdx[j][T23] + dTdy[j][T13] + dTdz[j][T12])/3.0;
+      q[j][Q133] = (dTdx[j][T33] + dTdz[j][T13] + dTdz[j][T13])/3.0;
+      q[j][Q222] = (dTdy[j][T22] + dTdy[j][T22] + dTdy[j][T22])/3.0;
+      q[j][Q223] = (dTdy[j][T23] + dTdy[j][T23] + dTdz[j][T22])/3.0;
+      q[j][Q233] = (dTdy[j][T33] + dTdz[j][T23] + dTdz[j][T23])/3.0;
+      q[j][Q333] = (dTdz[j][T33] + dTdz[j][T33] + dTdz[j][T33])/3.0;
+    }
 
     divQx[0] = calc_sym_gradx_2D(dx, q[LL_2D][Q111], q[LU_2D][Q111], q[UL_2D][Q111], q[UU_2D][Q111]);
     divQx[1] = calc_sym_gradx_2D(dx, q[LL_2D][Q112], q[LU_2D][Q112], q[UL_2D][Q112], q[UU_2D][Q112]);
@@ -395,10 +528,32 @@ calc_grad_closure_update(const gkyl_ten_moment_grad_closure *gces,
     const double dx = gces->grid.dx[0];
     const double dy = gces->grid.dx[1];
     const double dz = gces->grid.dx[2];
+
+    double dTdx[8][6] = {0.0};
+    double dTdy[8][6] = {0.0};
+    double dTdz[8][6] = {0.0};
     double q[8][10] = {0.0};
-    for (int j = LLL_3D; j <= UUU_3D; ++j)
-      for (int k = 0; k < 10; ++k)
-        q[j][k] = heat_flux_d[j][k];
+
+    int compx[8] = { UU_2D, LU_2D, UL_2D, LL_2D, UU_2D, LU_2D, UL_2D, LL_2D };
+    int compy[8] = { UU_2D, UL_2D, UU_2D, UL_2D, LU_2D, LL_2D, LU_2D, LL_2D };
+    int compz[8] = { UU_2D, UU_2D, UL_2D, UL_2D, LU_2D, LU_2D, LL_2D, LL_2D };
+    for (int j = LL_2D; j <= UU_2D; ++j) {
+      for (int k = 0; k < 6; ++k) {
+        dTdx[j][k] = temp_grad_d[j][6*compx[j]*ndim + k];
+        dTdy[j][k] = temp_grad_d[j][6*(compy[j]*ndim + 1) + k];
+        dTdz[j][k] = temp_grad_d[j][6*(compz[j]*ndim + 2) + k];
+      }
+      q[j][Q111] = (dTdx[j][T11] + dTdx[j][T11] + dTdx[j][T11])/3.0;
+      q[j][Q112] = (dTdx[j][T12] + dTdx[j][T12] + dTdy[j][T11])/3.0;
+      q[j][Q113] = (dTdx[j][T13] + dTdx[j][T13] + dTdz[j][T11])/3.0;
+      q[j][Q122] = (dTdx[j][T22] + dTdy[j][T12] + dTdy[j][T12])/3.0;
+      q[j][Q123] = (dTdx[j][T23] + dTdy[j][T13] + dTdz[j][T12])/3.0;
+      q[j][Q133] = (dTdx[j][T33] + dTdz[j][T13] + dTdz[j][T13])/3.0;
+      q[j][Q222] = (dTdy[j][T22] + dTdy[j][T22] + dTdy[j][T22])/3.0;
+      q[j][Q223] = (dTdy[j][T23] + dTdy[j][T23] + dTdz[j][T22])/3.0;
+      q[j][Q233] = (dTdy[j][T33] + dTdz[j][T23] + dTdz[j][T23])/3.0;
+      q[j][Q333] = (dTdz[j][T33] + dTdz[j][T33] + dTdz[j][T33])/3.0;
+    }
 
     divQx[0] = calc_sym_gradx_3D(dx, q[LLL_3D][Q111], q[LLU_3D][Q111], q[LUL_3D][Q111], q[LUU_3D][Q111],
                                      q[ULL_3D][Q111], q[ULU_3D][Q111], q[UUL_3D][Q111], q[UUU_3D][Q111]);
@@ -474,7 +629,7 @@ struct gkyl_ten_moment_grad_closure_status
 gkyl_ten_moment_grad_closure_advance(const gkyl_ten_moment_grad_closure *gces,
   const struct gkyl_range *heat_flux_range, const struct gkyl_range *update_range,
   const struct gkyl_array *fluid, const struct gkyl_array *em_tot,
-  struct gkyl_array *cflrate, double dt, struct gkyl_array *heat_flux,
+  struct gkyl_array *cflrate, double dt, struct gkyl_array *temp_grad,
   struct gkyl_array *rhs)
 {
   int ndim = update_range->ndim;
@@ -491,12 +646,13 @@ gkyl_ten_moment_grad_closure_advance(const gkyl_ten_moment_grad_closure *gces,
 
   const double* fluid_d[sz[ndim-1]];
   const double* em_tot_d[sz[ndim-1]];
-  double *heat_flux_d;
-  const double* heat_flux_up[sz[ndim-1]];
+  double *temp_grad_d;
+  const double* temp_grad_up[sz[ndim-1]];
   double *rhs_d;
 
   struct gkyl_range_iter iter_vertex;
   gkyl_range_iter_init(&iter_vertex, heat_flux_range);
+  int counter = 0;
   while (gkyl_range_iter_next(&iter_vertex)) {
 
     long linc_vertex = gkyl_range_idx(heat_flux_range, iter_vertex.idx);
@@ -507,28 +663,31 @@ gkyl_ten_moment_grad_closure_advance(const gkyl_ten_moment_grad_closure *gces,
       fluid_d[i] = gkyl_array_cfetch(fluid, linc_center + offsets_vertices[i]);
     }
 
-    heat_flux_d = gkyl_array_fetch(heat_flux, linc_vertex);
-
+    temp_grad_d = gkyl_array_fetch(temp_grad, linc_vertex);
+    
     cfla = calc_unmag_heat_flux(gces, fluid_d, gkyl_array_fetch(cflrate, linc_center),
-      heat_flux_d, cfla, dt);
+      temp_grad_d, cfla, dt);
+    counter = counter + 1;
   }
 
   if (cfla > cflm)
     is_cfl_violated = 1.0;
 
+  counter = 0;
   struct gkyl_range_iter iter_center;
   gkyl_range_iter_init(&iter_center, update_range);
   while (gkyl_range_iter_next(&iter_center)) {
-
     long linc_vertex = gkyl_range_idx(heat_flux_range, iter_center.idx);
     long linc_center = gkyl_range_idx(update_range, iter_center.idx);
 
-    for (int i=0; i<sz[ndim-1]; ++i)
-      heat_flux_up[i] = gkyl_array_fetch(heat_flux, linc_vertex + offsets_centers[i]);
+    for (int i=0; i<sz[ndim-1]; ++i) {
+      temp_grad_up[i] = gkyl_array_fetch(temp_grad, linc_vertex + offsets_centers[i]);
+    }
 
     rhs_d = gkyl_array_fetch(rhs, linc_center);
 
-    calc_grad_closure_update(gces, heat_flux_up, rhs_d);
+    calc_grad_closure_update(gces, temp_grad_up, rhs_d);
+    counter = counter + 1;
   }
 
   // compute actual CFL, status & max-speed across all domains
@@ -540,7 +699,7 @@ gkyl_ten_moment_grad_closure_advance(const gkyl_ten_moment_grad_closure *gces,
   is_cfl_violated = red_vars_global[1];
 
   double dt_suggested = dt*cfl/fmax(cfla, DBL_MIN);
-
+  
   if (is_cfl_violated > 0.0)
     // indicate failure, and return smaller stable time-step
     return (struct gkyl_ten_moment_grad_closure_status) {
