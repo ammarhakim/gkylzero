@@ -1,6 +1,8 @@
 #pragma once
 
 #include <gkyl_block_topo.h>
+#include <gkyl_gyrokinetic.h> // I think this include breaks the layering, how do I do this?
+                              // We need the gk geometry user side input struct
 #include <gkyl_util.h>
 
 // Geometry info a single config-space block
@@ -9,6 +11,7 @@ struct gkyl_block_info {
   double lower[GKYL_MAX_CDIM], upper[GKYL_MAX_CDIM];
   int cells[GKYL_MAX_CDIM]; // cells extents in each direction
   int cuts[GKYL_MAX_CDIM];  // domain split to use
+  struct gkyl_gyrokinetic_geometry geometry; // geometry input struct
 
   struct gkyl_target_edge connections[GKYL_MAX_CDIM][2]; // block connections
 };
