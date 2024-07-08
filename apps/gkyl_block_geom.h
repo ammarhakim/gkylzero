@@ -11,7 +11,11 @@ struct gkyl_block_info {
   double lower[GKYL_MAX_CDIM], upper[GKYL_MAX_CDIM];
   int cells[GKYL_MAX_CDIM]; // cells extents in each direction
   int cuts[GKYL_MAX_CDIM];  // domain split to use
-  struct gkyl_gyrokinetic_geometry geometry; // geometry input struct
+
+  // App specific geometry information should go into this union
+  union {
+    struct gkyl_gyrokinetic_geometry geometry; // GK geometry
+  };    
 
   struct gkyl_target_edge connections[GKYL_MAX_CDIM][2]; // block connections
 };
