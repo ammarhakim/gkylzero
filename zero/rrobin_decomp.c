@@ -35,9 +35,8 @@ gkyl_rrobin_decomp_getranks(const struct gkyl_rrobin_decomp *rr, int bn, int ran
   for (int i=0; i<bn; ++i)
     loc += rrd->branks[i];
   int start = loc % rr->total_ranks;
-  for (int i=0; i<rrd->branks[bn]; ++i) {
-    ranks[i] = start+i;
-  }
+  for (int i=0; i<rrd->branks[bn]; ++i)
+    ranks[i] = (start+i) % rr->total_ranks;
 }
 
 void
