@@ -277,22 +277,22 @@ GKYL_CU_DH double vlasov_sr_boundary_surfvz_1x3v_ser_p2(const double *w, const d
 
   } else { 
 
-  alpha[0] = (-1.0*B0[0]*p1_over_gamma_l[0])+B1[0]*p0_over_gamma_r[0]+2.0*E2[0]; 
-  alpha[1] = 2.0*E2[1]+p0_over_gamma_r[0]*B1[1]-1.0*p1_over_gamma_l[0]*B0[1]; 
-  alpha[2] = B1[0]*p0_over_gamma_r[1]-1.0*B0[0]*p1_over_gamma_l[1]; 
-  alpha[3] = B1[0]*p0_over_gamma_r[2]-1.0*B0[0]*p1_over_gamma_l[2]; 
-  alpha[4] = B1[1]*p0_over_gamma_r[1]-1.0*B0[1]*p1_over_gamma_l[1]; 
-  alpha[5] = B1[1]*p0_over_gamma_r[2]-1.0*B0[1]*p1_over_gamma_l[2]; 
-  alpha[6] = B1[0]*p0_over_gamma_r[3]-1.0*B0[0]*p1_over_gamma_l[3]; 
-  alpha[7] = 2.0*E2[2]+p0_over_gamma_r[0]*B1[2]-1.0*p1_over_gamma_l[0]*B0[2]; 
+  alpha[0] = (-1.0*B0[0]*p1_over_gamma_l[0])+B1[0]*p0_over_gamma_l[0]+2.0*E2[0]; 
+  alpha[1] = 2.0*E2[1]+p0_over_gamma_l[0]*B1[1]-1.0*p1_over_gamma_l[0]*B0[1]; 
+  alpha[2] = B1[0]*p0_over_gamma_l[1]-1.0*B0[0]*p1_over_gamma_l[1]; 
+  alpha[3] = B1[0]*p0_over_gamma_l[2]-1.0*B0[0]*p1_over_gamma_l[2]; 
+  alpha[4] = B1[1]*p0_over_gamma_l[1]-1.0*B0[1]*p1_over_gamma_l[1]; 
+  alpha[5] = B1[1]*p0_over_gamma_l[2]-1.0*B0[1]*p1_over_gamma_l[2]; 
+  alpha[6] = B1[0]*p0_over_gamma_l[3]-1.0*B0[0]*p1_over_gamma_l[3]; 
+  alpha[7] = 2.0*E2[2]+p0_over_gamma_l[0]*B1[2]-1.0*p1_over_gamma_l[0]*B0[2]; 
   alpha[8] = -1.0*B0[0]*p1_over_gamma_l[4]; 
-  alpha[9] = B1[0]*p0_over_gamma_r[5]; 
-  alpha[10] = B1[1]*p0_over_gamma_r[3]-1.0*B0[1]*p1_over_gamma_l[3]; 
-  alpha[11] = 1.0*p0_over_gamma_r[1]*B1[2]-1.0*p1_over_gamma_l[1]*B0[2]; 
+  alpha[9] = B1[0]*p0_over_gamma_l[5]; 
+  alpha[10] = B1[1]*p0_over_gamma_l[3]-1.0*B0[1]*p1_over_gamma_l[3]; 
+  alpha[11] = 1.0*p0_over_gamma_l[1]*B1[2]-1.0*p1_over_gamma_l[1]*B0[2]; 
   alpha[12] = -1.0*B0[1]*p1_over_gamma_l[4]; 
-  alpha[13] = 1.0*B1[2]*p0_over_gamma_r[2]-1.0*B0[2]*p1_over_gamma_l[2]; 
-  alpha[15] = 1.0*B1[1]*p0_over_gamma_r[5]; 
-  alpha[17] = B1[2]*p0_over_gamma_r[3]-1.0*B0[2]*p1_over_gamma_l[3]; 
+  alpha[13] = 1.0*B1[2]*p0_over_gamma_l[2]-1.0*B0[2]*p1_over_gamma_l[2]; 
+  alpha[15] = 1.0*B1[1]*p0_over_gamma_l[5]; 
+  alpha[17] = B1[2]*p0_over_gamma_l[3]-1.0*B0[2]*p1_over_gamma_l[3]; 
 
   if (0.5692099788303082*alpha[17]-0.4242640687119281*alpha[15]-0.4242640687119285*alpha[13]-0.4242640687119281*alpha[12]-0.4242640687119285*alpha[11]-0.853814968245462*alpha[10]+0.3162277660168379*(alpha[9]+alpha[8]+alpha[7])+0.6363961030678926*(alpha[6]+alpha[5]+alpha[4])-0.4743416490252568*(alpha[3]+alpha[2]+alpha[1])+0.3535533905932737*alpha[0] > 0) { 
     fUpwindQuad[0] = ser_4x_p2_surfx4_eval_quad_node_0_r(fEdge); 

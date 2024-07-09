@@ -63,8 +63,9 @@ void gkyl_vlasov_lte_proj_on_basis_advance(gkyl_vlasov_lte_proj_on_basis *up,
 /**
  * Host-side wrapper for initial canonical-pb vars
  */
-void gkyl_vlasov_lte_proj_on_basis_geom_quad_vars_cu(gkyl_vlasov_lte_proj_on_basis *up,
-  const struct gkyl_range *conf_range);
+void gkyl_vlasov_lte_proj_on_basis_geom_quad_vars_cu(gkyl_vlasov_lte_proj_on_basis *up, 
+  const struct gkyl_range *conf_range, 
+  const struct gkyl_array *h_ij_inv, const struct gkyl_array *det_h);
 
 /**
  * Host-side wrapper for projection of LTE distribution function on device

@@ -216,16 +216,16 @@ GKYL_CU_DH double vlasov_sr_boundary_surfvy_1x3v_ser_p1(const double *w, const d
 
   } else { 
 
-  alpha[0] = B0[0]*p2_over_gamma_r[0]-1.0*B2[0]*p0_over_gamma_l[0]+2.0*E1[0]; 
-  alpha[1] = 2.0*E1[1]-1.0*p0_over_gamma_l[0]*B2[1]+p2_over_gamma_r[0]*B0[1]; 
-  alpha[2] = B0[0]*p2_over_gamma_r[1]-1.0*B2[0]*p0_over_gamma_l[1]; 
-  alpha[3] = B0[0]*p2_over_gamma_r[2]-1.0*B2[0]*p0_over_gamma_l[2]; 
-  alpha[4] = B0[1]*p2_over_gamma_r[1]-1.0*B2[1]*p0_over_gamma_l[1]; 
-  alpha[5] = B0[1]*p2_over_gamma_r[2]-1.0*B2[1]*p0_over_gamma_l[2]; 
-  alpha[6] = B0[0]*p2_over_gamma_r[3]-1.0*B2[0]*p0_over_gamma_l[3]; 
-  alpha[7] = B0[1]*p2_over_gamma_r[3]-1.0*B2[1]*p0_over_gamma_l[3]; 
-  alpha[8] = B0[0]*p2_over_gamma_r[4]; 
-  alpha[9] = 1.0*B0[1]*p2_over_gamma_r[4]; 
+  alpha[0] = B0[0]*p2_over_gamma_l[0]-1.0*B2[0]*p0_over_gamma_l[0]+2.0*E1[0]; 
+  alpha[1] = 2.0*E1[1]-1.0*p0_over_gamma_l[0]*B2[1]+p2_over_gamma_l[0]*B0[1]; 
+  alpha[2] = B0[0]*p2_over_gamma_l[1]-1.0*B2[0]*p0_over_gamma_l[1]; 
+  alpha[3] = B0[0]*p2_over_gamma_l[2]-1.0*B2[0]*p0_over_gamma_l[2]; 
+  alpha[4] = B0[1]*p2_over_gamma_l[1]-1.0*B2[1]*p0_over_gamma_l[1]; 
+  alpha[5] = B0[1]*p2_over_gamma_l[2]-1.0*B2[1]*p0_over_gamma_l[2]; 
+  alpha[6] = B0[0]*p2_over_gamma_l[3]-1.0*B2[0]*p0_over_gamma_l[3]; 
+  alpha[7] = B0[1]*p2_over_gamma_l[3]-1.0*B2[1]*p0_over_gamma_l[3]; 
+  alpha[8] = B0[0]*p2_over_gamma_l[4]; 
+  alpha[9] = 1.0*B0[1]*p2_over_gamma_l[4]; 
   alpha[12] = -1.0*B2[0]*p0_over_gamma_l[5]; 
   alpha[13] = -1.0*B2[1]*p0_over_gamma_l[5]; 
 

@@ -43,22 +43,22 @@ GKYL_CU_DH double vlasov_sr_surfvz_1x3v_ser_p2(const double *w, const double *dx
   double alpha_l[20] = {0.0}; 
   double alpha_r[20] = {0.0}; 
 
-  alpha_l[0] = (-1.0*B0[0]*p1_over_gamma_l[0])+B1[0]*p0_over_gamma_r[0]+2.0*E2[0]; 
-  alpha_l[1] = 2.0*E2[1]+p0_over_gamma_r[0]*B1[1]-1.0*p1_over_gamma_l[0]*B0[1]; 
-  alpha_l[2] = B1[0]*p0_over_gamma_r[1]-1.0*B0[0]*p1_over_gamma_l[1]; 
-  alpha_l[3] = B1[0]*p0_over_gamma_r[2]-1.0*B0[0]*p1_over_gamma_l[2]; 
-  alpha_l[4] = B1[1]*p0_over_gamma_r[1]-1.0*B0[1]*p1_over_gamma_l[1]; 
-  alpha_l[5] = B1[1]*p0_over_gamma_r[2]-1.0*B0[1]*p1_over_gamma_l[2]; 
-  alpha_l[6] = B1[0]*p0_over_gamma_r[3]-1.0*B0[0]*p1_over_gamma_l[3]; 
-  alpha_l[7] = 2.0*E2[2]+p0_over_gamma_r[0]*B1[2]-1.0*p1_over_gamma_l[0]*B0[2]; 
+  alpha_l[0] = (-1.0*B0[0]*p1_over_gamma_l[0])+B1[0]*p0_over_gamma_l[0]+2.0*E2[0]; 
+  alpha_l[1] = 2.0*E2[1]+p0_over_gamma_l[0]*B1[1]-1.0*p1_over_gamma_l[0]*B0[1]; 
+  alpha_l[2] = B1[0]*p0_over_gamma_l[1]-1.0*B0[0]*p1_over_gamma_l[1]; 
+  alpha_l[3] = B1[0]*p0_over_gamma_l[2]-1.0*B0[0]*p1_over_gamma_l[2]; 
+  alpha_l[4] = B1[1]*p0_over_gamma_l[1]-1.0*B0[1]*p1_over_gamma_l[1]; 
+  alpha_l[5] = B1[1]*p0_over_gamma_l[2]-1.0*B0[1]*p1_over_gamma_l[2]; 
+  alpha_l[6] = B1[0]*p0_over_gamma_l[3]-1.0*B0[0]*p1_over_gamma_l[3]; 
+  alpha_l[7] = 2.0*E2[2]+p0_over_gamma_l[0]*B1[2]-1.0*p1_over_gamma_l[0]*B0[2]; 
   alpha_l[8] = -1.0*B0[0]*p1_over_gamma_l[4]; 
-  alpha_l[9] = B1[0]*p0_over_gamma_r[5]; 
-  alpha_l[10] = B1[1]*p0_over_gamma_r[3]-1.0*B0[1]*p1_over_gamma_l[3]; 
-  alpha_l[11] = 1.0*p0_over_gamma_r[1]*B1[2]-1.0*p1_over_gamma_l[1]*B0[2]; 
+  alpha_l[9] = B1[0]*p0_over_gamma_l[5]; 
+  alpha_l[10] = B1[1]*p0_over_gamma_l[3]-1.0*B0[1]*p1_over_gamma_l[3]; 
+  alpha_l[11] = 1.0*p0_over_gamma_l[1]*B1[2]-1.0*p1_over_gamma_l[1]*B0[2]; 
   alpha_l[12] = -1.0*B0[1]*p1_over_gamma_l[4]; 
-  alpha_l[13] = 1.0*B1[2]*p0_over_gamma_r[2]-1.0*B0[2]*p1_over_gamma_l[2]; 
-  alpha_l[15] = 1.0*B1[1]*p0_over_gamma_r[5]; 
-  alpha_l[17] = B1[2]*p0_over_gamma_r[3]-1.0*B0[2]*p1_over_gamma_l[3]; 
+  alpha_l[13] = 1.0*B1[2]*p0_over_gamma_l[2]-1.0*B0[2]*p1_over_gamma_l[2]; 
+  alpha_l[15] = 1.0*B1[1]*p0_over_gamma_l[5]; 
+  alpha_l[17] = B1[2]*p0_over_gamma_l[3]-1.0*B0[2]*p1_over_gamma_l[3]; 
 
   alpha_r[0] = (-1.0*B0[0]*p1_over_gamma_r[0])+B1[0]*p0_over_gamma_r[0]+2.0*E2[0]; 
   alpha_r[1] = 2.0*E2[1]+p0_over_gamma_r[0]*B1[1]-1.0*p1_over_gamma_r[0]*B0[1]; 

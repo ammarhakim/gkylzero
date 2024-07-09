@@ -8,7 +8,7 @@ GKYL_CU_DH double vlasov_sr_surfx_1x2v_ser_p1(const double *w, const double *dxv
   // out:       Incremented distribution function in center cell.
   const double dx10 = 2.0/dxv[0]; 
   const double dv10 = 2.0/dxv[1]; 
-  const double dv = dxv[1], wv = w[1]; 
+  const double wv = w[1]; 
 
   double p_over_gamma[8] = {0.0}; 
   p_over_gamma[0] = 1.732050807568877*gamma[1]*dv10; 

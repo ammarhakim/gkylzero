@@ -112,7 +112,7 @@ set_cu_ptrs(struct mom_type_vlasov_sr* mom_vm_sr, int mom_id, enum gkyl_basis_ty
   const gkyl_vlasov_sr_mom_kern_list *m0_kernels, *m1i_kernels, 
     *m2_kernels, *m3i_kernels, *Ni_kernels, *Tij_kernels;
 
-  switch (cbasis->b_type) {
+  switch (b_type) {
     case GKYL_BASIS_MODAL_SERENDIPITY:
       m0_kernels = ser_m0_kernels;
       m1i_kernels = ser_m1i_kernels;
