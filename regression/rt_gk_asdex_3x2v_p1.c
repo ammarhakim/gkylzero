@@ -56,32 +56,6 @@ void shaped_pfunc_lower(double s, double* RZ){
   RZ[1] = -1.26 + (-1.1 + 1.26)*s;
 }
 
-struct gkyl_tok_geo_efit_inp efit_inp = {
-  // psiRZ and related inputs
-  .filepath = "./data/eqdsk/asdex.geqdsk",
-  .rzpoly_order = 2,
-  .fluxpoly_order = 1,
-  .plate_spec = true,
-  .plate_func_lower = shaped_pfunc_lower,
-  .plate_func_upper = shaped_pfunc_upper,
-  .quad_param = {  .eps = 1e-10 }
-};
-
-struct gkyl_tok_geo_grid_inp grid_inp = {
-  .ftype = GKYL_SOL_SN_LO,
-  .rclose = 2.5,
-  .rright = 2.5,
-  .rleft = 0.7,
-  .rmax = 2.5,
-  .rmin = 0.7,
-  .zmin = -1.3,
-  .zmax = 1.0,
-  .zmin_left = -1.3,
-  .zmin_right = -1.3,
-  .write_node_coord_array = true,
-  .node_file_nm = "asdex_fixed_z_nodes.gkyl"
-};
-
 double random0to1() 
 {
   return (double)rand() / (double)RAND_MAX;
@@ -508,6 +482,32 @@ main(int argc, char **argv)
     .poisson_bcs = {.lo_type = {GKYL_POISSON_DIRICHLET, GKYL_POISSON_PERIODIC}, 
                     .up_type = {GKYL_POISSON_DIRICHLET, GKYL_POISSON_PERIODIC}, 
                     .lo_value = {0.0, 0.0}, .up_value = {0.0, 0.0}}, 
+  };
+
+  struct gkyl_tok_geo_efit_inp efit_inp = {
+    // psiRZ and related inputs
+    .filepath = "./data/eqdsk/asdex.geqdsk",
+    .rzpoly_order = 2,
+    .fluxpoly_order = 1,
+    .plate_spec = true,
+    .plate_func_lower = shaped_pfunc_lower,
+    .plate_func_upper = shaped_pfunc_upper,
+    .quad_param = {  .eps = 1e-10 }
+  };
+
+  struct gkyl_tok_geo_grid_inp grid_inp = {
+    .ftype = GKYL_SOL_SN_LO,
+    .rclose = 2.5,
+    .rright = 2.5,
+    .rleft = 0.7,
+    .rmax = 2.5,
+    .rmin = 0.7,
+    .zmin = -1.3,
+    .zmax = 1.0,
+    .zmin_left = -1.3,
+    .zmin_right = -1.3,
+    .write_node_coord_array = true,
+    .node_file_nm = "asdex_fixed_z_nodes.gkyl"
   };
 
   // GK app

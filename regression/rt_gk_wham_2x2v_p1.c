@@ -98,25 +98,6 @@ struct gk_mirror_ctx
   int num_failures_max; // Maximum allowable number of consecutive small time-steps.
 };
 
-
-struct gkyl_mirror_geo_efit_inp efit_inp = {
-  .filepath = "./data/eqdsk/wham.geqdsk",
-  .rzpoly_order = 2,
-  .fluxpoly_order = 1,
-  .plate_spec = false,
-  .quad_param = {  .eps = 1e-10 }
-};
-
-
-struct gkyl_mirror_geo_grid_inp grid_inp = {
-  .rclose = 0.2,
-  .zmin = -2.48,
-  .zmax =  2.48,
-  .write_node_coord_array = true,
-  .node_file_nm = "wham_nodes.gkyl",
-  // .nonuniform_mapping_fraction = 0.7,
-};
-
 // -- Source functions.
 void
 eval_density_elc_source(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
@@ -779,6 +760,24 @@ int main(int argc, char **argv)
       .lo_value = {0.0, 0.0},
       .up_value = {0.0, 0.0},
     }
+  };
+
+  struct gkyl_mirror_geo_efit_inp efit_inp = {
+    .filepath = "./data/eqdsk/wham.geqdsk",
+    .rzpoly_order = 2,
+    .fluxpoly_order = 1,
+    .plate_spec = false,
+    .quad_param = {  .eps = 1e-10 }
+  };
+
+
+  struct gkyl_mirror_geo_grid_inp grid_inp = {
+    .rclose = 0.2,
+    .zmin = -2.48,
+    .zmax =  2.48,
+    .write_node_coord_array = true,
+    .node_file_nm = "wham_nodes.gkyl",
+    // .nonuniform_mapping_fraction = 0.7,
   };
 
   struct gkyl_gk app_inp = {

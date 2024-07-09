@@ -109,25 +109,6 @@ struct gk_mirror_ctx
   double mapping_frac;
 };
 
-
-struct gkyl_mirror_geo_efit_inp efit_inp = {
-  // psiRZ and related inputs
-  .filepath = "./data/eqdsk/wham.geqdsk",
-  .rzpoly_order = 2,
-  .fluxpoly_order = 1,
-  .plate_spec = false,
-  .quad_param = {  .eps = 1e-10 }
-};
-
-
-struct gkyl_mirror_geo_grid_inp grid_inp = {
-  .rclose = 0.2,
-  .zmin = -2.48,
-  .zmax =  2.48,
-  .write_node_coord_array = true,
-  .node_file_nm = "wham_nodes.gkyl"
-};
-
 double
 psi_RZ(double RIn, double ZIn, void *ctx)
 {
@@ -902,6 +883,25 @@ int main(int argc, char **argv)
     .fem_parbc = GKYL_FEM_PARPROJ_NONE,
     .kperpSq = pow(ctx.kperp, 2.),
   };
+
+  struct gkyl_mirror_geo_efit_inp efit_inp = {
+    // psiRZ and related inputs
+    .filepath = "./data/eqdsk/wham.geqdsk",
+    .rzpoly_order = 2,
+    .fluxpoly_order = 1,
+    .plate_spec = false,
+    .quad_param = {  .eps = 1e-10 }
+  };
+
+
+  struct gkyl_mirror_geo_grid_inp grid_inp = {
+    .rclose = 0.2,
+    .zmin = -2.48,
+    .zmax =  2.48,
+    .write_node_coord_array = true,
+    .node_file_nm = "wham_nodes.gkyl"
+  };
+
 
   struct gkyl_gk app_inp = {
     .name = "gk_wham_1x2v_p1",

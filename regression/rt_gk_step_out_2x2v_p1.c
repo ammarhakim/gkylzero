@@ -57,29 +57,6 @@ struct gk_step_ctx {
   int num_failures_max; // Maximum allowable number of consecutive small time-steps.
 };
 
-struct gkyl_tok_geo_efit_inp efit_inp = {
-  // psiRZ and related inputs
-  .filepath = "./data/eqdsk/step.geqdsk",
-  .rzpoly_order = 2,
-  .fluxpoly_order = 1,
-  .plate_spec = false,
-  .quad_param = {  .eps = 1e-10 }
-};
-
-
-struct gkyl_tok_geo_grid_inp grid_inp = {
-    .ftype = GKYL_SOL_DN_OUT,
-    .rclose = 6.2,
-    .rright= 6.2,
-    .rleft= 2.0,
-    .rmin = 1.1,
-    .rmax = 6.2,
-    .zmin = -5.14213,
-    .zmax = 5.14226,
-    .write_node_coord_array = true,
-    .node_file_nm = "step_outboard_fixed_z_nodes.gkyl"
-  };
-
 void
 eval_density(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
 {
@@ -680,6 +657,29 @@ main(int argc, char **argv)
     .poisson_bcs = {.lo_type = {GKYL_POISSON_DIRICHLET}, 
                     .up_type = {GKYL_POISSON_DIRICHLET}, 
                     .lo_value = {0.0}, .up_value = {0.0}}, 
+  };
+
+  struct gkyl_tok_geo_efit_inp efit_inp = {
+    // psiRZ and related inputs
+    .filepath = "./data/eqdsk/step.geqdsk",
+    .rzpoly_order = 2,
+    .fluxpoly_order = 1,
+    .plate_spec = false,
+    .quad_param = {  .eps = 1e-10 }
+  };
+
+
+  struct gkyl_tok_geo_grid_inp grid_inp = {
+      .ftype = GKYL_SOL_DN_OUT,
+      .rclose = 6.2,
+      .rright= 6.2,
+      .rleft= 2.0,
+      .rmin = 1.1,
+      .rmax = 6.2,
+      .zmin = -5.14213,
+      .zmax = 5.14226,
+      .write_node_coord_array = true,
+      .node_file_nm = "step_outboard_fixed_z_nodes.gkyl"
   };
 
   // GK app
