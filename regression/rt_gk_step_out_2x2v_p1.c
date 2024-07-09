@@ -57,7 +57,7 @@ struct gk_step_ctx {
   int num_failures_max; // Maximum allowable number of consecutive small time-steps.
 };
 
-struct gkyl_tok_geo_efit_inp inp = {
+struct gkyl_tok_geo_efit_inp efit_inp = {
   // psiRZ and related inputs
   .filepath = "./data/eqdsk/step.geqdsk",
   .rzpoly_order = 2,
@@ -67,7 +67,7 @@ struct gkyl_tok_geo_efit_inp inp = {
 };
 
 
-struct gkyl_tok_geo_grid_inp ginp = {
+struct gkyl_tok_geo_grid_inp grid_inp = {
     .ftype = GKYL_SOL_DN_OUT,
     .rclose = 6.2,
     .rright= 6.2,
@@ -696,8 +696,8 @@ main(int argc, char **argv)
     .geometry = {
       .world = {0.0},
       .geometry_id = GKYL_TOKAMAK,
-      .tok_efit_info = &inp,
-      .tok_grid_info = &ginp,
+      .tok_efit_info = efit_inp,
+      .tok_grid_info = grid_inp,
     },
 
     .num_periodic_dir = 0,

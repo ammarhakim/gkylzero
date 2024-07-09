@@ -63,7 +63,7 @@ arc_length_func(double Z, void *ctx)
   return ival;
 }
 
-gkyl_mirror_geo*
+struct gkyl_mirror_geo*
 gkyl_mirror_geo_new(const struct gkyl_mirror_geo_efit_inp *inp)
 {
   struct gkyl_mirror_geo *geo = gkyl_malloc(sizeof(*geo));
@@ -114,7 +114,7 @@ gkyl_mirror_geo_new(const struct gkyl_mirror_geo_efit_inp *inp)
 }
 
 double
-gkyl_mirror_geo_integrate_psi_contour(const gkyl_mirror_geo *geo, double psi,
+gkyl_mirror_geo_integrate_psi_contour(const struct gkyl_mirror_geo *geo, double psi,
   double zmin, double zmax, double rclose)
 {
   return integrate_psi_contour_memo(geo, psi, zmin, zmax, rclose,
@@ -122,7 +122,7 @@ gkyl_mirror_geo_integrate_psi_contour(const gkyl_mirror_geo *geo, double psi,
 }
 
 int
-gkyl_mirror_geo_R_psiZ(const gkyl_mirror_geo *geo, double psi, double Z, int nmaxroots,
+gkyl_mirror_geo_R_psiZ(const struct gkyl_mirror_geo *geo, double psi, double Z, int nmaxroots,
   double *R, double *dR)
 {
   return R_psiZ(geo, psi, Z, nmaxroots, R, dR);
@@ -147,12 +147,10 @@ write_nodal_coordinates(const char *nm, struct gkyl_range *nrange,
 
 
 void gkyl_mirror_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, double dzc[3], 
-  evalf_t mapc2p_func, void* mapc2p_ctx, evalf_t bmag_func, void *bmag_ctx, 
+  struct gkyl_mirror_geo *geo, struct gkyl_mirror_geo_grid_inp *inp, 
   struct gkyl_array *mc2p_nodal_fd, struct gkyl_array *mc2p_nodal, struct gkyl_array *mc2p)
 {
 
-  struct gkyl_mirror_geo *geo = mapc2p_ctx;
-  struct gkyl_mirror_geo_grid_inp *inp = bmag_ctx;
 
   enum { PSI_IDX, AL_IDX, TH_IDX }; // arrangement of computational coordinates
   enum { X_IDX, Y_IDX, Z_IDX }; // arrangement of cartesian coordinates
@@ -270,7 +268,7 @@ void gkyl_mirror_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, dou
                 arc_ctx.zmin, arc_ctx.zmax, ridders_min, ridders_max,
                 geo->root_param.max_iter, 1e-10);
               double z_curr = res.res;
-              ((gkyl_mirror_geo *)geo)->stat.nroot_cont_calls += res.nevals;
+              ((struct gkyl_mirror_geo *)geo)->stat.nroot_cont_calls += res.nevals;
               double R[4] = { 0 }, dR[4] = { 0 };
               int nr = R_psiZ(geo, psi_curr, z_curr, 4, R, dR);
               double r_curr = choose_closest(rclose, R, R, nr);
@@ -321,13 +319,13 @@ void gkyl_mirror_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, dou
 
 
 struct gkyl_mirror_geo_stat
-gkyl_mirror_geo_get_stat(const gkyl_mirror_geo *geo)
+gkyl_mirror_geo_get_stat(const struct gkyl_mirror_geo *geo)
 {
   return geo->stat;
 }
 
 void
-gkyl_mirror_geo_release(gkyl_mirror_geo *geo)
+gkyl_mirror_geo_release(struct gkyl_mirror_geo *geo)
 {
   gkyl_array_release(geo->psiRZ);
   gkyl_array_release(geo->psibyrRZ);

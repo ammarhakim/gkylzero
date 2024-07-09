@@ -2,7 +2,7 @@
 
 // Function context to pass to root finder
 struct arc_length_ctx {
-  const gkyl_tok_geo *geo;
+  const struct gkyl_tok_geo *geo;
   double *arc_memo;
   double *arc_memo_left;
   double *arc_memo_right;
@@ -292,7 +292,7 @@ calc_RdR_p2_tensor_nrc_none(const double *psi, double psi0, double Z, double xc[
 // copied in the array R and dR. The calling function must ensure that
 // these arrays are big enough to hold all roots required
 static int
-R_psiZ(const gkyl_tok_geo *geo, double psi, double Z, int nmaxroots,
+R_psiZ(const struct gkyl_tok_geo *geo, double psi, double Z, int nmaxroots,
   double *R, double *dR)
 {
   int zcell = get_idx(1, Z, &geo->rzgrid, &geo->rzlocal);
@@ -359,7 +359,7 @@ R_psiZ(const gkyl_tok_geo *geo, double psi, double Z, int nmaxroots,
 
 // Function context to pass to coutour integration function
 struct contour_ctx {
-  const gkyl_tok_geo *geo;
+  const struct gkyl_tok_geo *geo;
   double psi, last_R;
   long ncall;
 };
@@ -451,7 +451,7 @@ dphidtheta_integrand(double Z, void *ctx)
 // well, discontinuous, and adaptive quadrature struggles with such
 // functions.
 static double
-integrate_psi_contour_memo(const gkyl_tok_geo *geo, double psi,
+integrate_psi_contour_memo(const struct gkyl_tok_geo *geo, double psi,
   double zmin, double zmax, double rclose,
   bool use_memo, bool fill_memo, double *memo)
 {
@@ -504,12 +504,12 @@ integrate_psi_contour_memo(const gkyl_tok_geo *geo, double psi,
     }
   }
 
-  ((gkyl_tok_geo *)geo)->stat.nquad_cont_calls += ctx.ncall;
+  ((struct gkyl_tok_geo *)geo)->stat.nquad_cont_calls += ctx.ncall;
   return res;
 }
 
 static double
-integrate_phi_along_psi_contour_memo(const gkyl_tok_geo *geo, double psi,
+integrate_phi_along_psi_contour_memo(const struct gkyl_tok_geo *geo, double psi,
   double zmin, double zmax, double rclose,
   bool use_memo, bool fill_memo, double *memo)
 {
@@ -562,7 +562,7 @@ integrate_phi_along_psi_contour_memo(const gkyl_tok_geo *geo, double psi,
     }
   }
 
-  ((gkyl_tok_geo *)geo)->stat.nquad_cont_calls += ctx.ncall;
+  ((struct gkyl_tok_geo *)geo)->stat.nquad_cont_calls += ctx.ncall;
   return res;
 }
 

@@ -56,7 +56,7 @@ void shaped_pfunc_lower(double s, double* RZ){
   RZ[1] = -1.26 + (-1.1 + 1.26)*s;
 }
 
-struct gkyl_tok_geo_efit_inp inp = {
+struct gkyl_tok_geo_efit_inp efit_inp = {
   // psiRZ and related inputs
   .filepath = "./data/eqdsk/asdex.geqdsk",
   .rzpoly_order = 2,
@@ -67,7 +67,7 @@ struct gkyl_tok_geo_efit_inp inp = {
   .quad_param = {  .eps = 1e-10 }
 };
 
-struct gkyl_tok_geo_grid_inp ginp = {
+struct gkyl_tok_geo_grid_inp grid_inp = {
   .ftype = GKYL_SOL_SN_LO,
   .rclose = 2.5,
   .rright = 2.5,
@@ -523,8 +523,8 @@ main(int argc, char **argv)
 
     .geometry = {
       .geometry_id = GKYL_TOKAMAK,
-      .tok_efit_info = &inp,
-      .tok_grid_info = &ginp,
+      .tok_efit_info = efit_inp,
+      .tok_grid_info = grid_inp,
     },
 
     .num_periodic_dir = 1,

@@ -1,17 +1,18 @@
 #pragma once
 
+#include <math.h>
 #include <stdbool.h>
+#include <string.h>
 
+#include <gkyl_array.h>
+#include <gkyl_basis.h>
+#include <gkyl_evalf_def.h>
 #include <gkyl_math.h>
 #include <gkyl_range.h>
 #include <gkyl_rect_grid.h>
-#include <math.h>
-#include <string.h>
-#include <gkyl_evalf_def.h>
-#include <gkyl_gk_geometry.h>
 
-// Object type
-typedef struct gkyl_tok_geo gkyl_tok_geo;
+
+typedef struct gk_geometry gk_geometry;
 
 
 // Some cumulative statistics
@@ -103,7 +104,7 @@ struct gkyl_tok_geo {
 // Inputs to create a new GK geometry creation object
 struct gkyl_tok_geo_efit_inp {
   // Inputs to get psiRZ and related inputs from efit
-  char* filepath;
+  char filepath[1024];
   int rzpoly_order;
   enum gkyl_basis_type rz_basis_type;
   int fluxpoly_order;
@@ -143,7 +144,7 @@ struct gkyl_tok_geo_grid_inp {
   double zxpt_up; // z of the upper x point
 
   bool write_node_coord_array; // set to true if nodal coordinates should be written
-  const char *node_file_nm; // name of nodal coordinate file
+  char node_file_nm[1024]; // name of nodal coordinate file
 };
 
 
@@ -154,7 +155,7 @@ struct gkyl_tok_geo_grid_inp {
  * @param inp Input parameters
  * @param New GK geometry updater
  */
-gkyl_tok_geo *gkyl_tok_geo_new(const struct gkyl_tok_geo_efit_inp *inp);
+struct gkyl_tok_geo *gkyl_tok_geo_new(const struct gkyl_tok_geo_efit_inp *inp);
 
 /**
  * Get R(psi,Z) for a specified psi and Z value. Multiple values may
@@ -168,7 +169,7 @@ gkyl_tok_geo *gkyl_tok_geo_new(const struct gkyl_tok_geo_efit_inp *inp);
  * @param R on output, R(psi,Z)
  * @param dR on output, dR/dZ
  */
-int gkyl_tok_geo_R_psiZ(const gkyl_tok_geo *geo, double psi, double Z, int nmaxroots,
+int gkyl_tok_geo_R_psiZ(const struct gkyl_tok_geo *geo, double psi, double Z, int nmaxroots,
   double *R, double *dR);
 
 /**
@@ -187,7 +188,7 @@ int gkyl_tok_geo_R_psiZ(const gkyl_tok_geo *geo, double psi, double Z, int nmaxr
  *    contours
  * @return Length of contour
  */
-double gkyl_tok_geo_integrate_psi_contour(const gkyl_tok_geo *geo, double psi,
+double gkyl_tok_geo_integrate_psi_contour(const struct gkyl_tok_geo *geo, double psi,
   double zmin, double zmax, double rclose);
 
 /**
@@ -197,7 +198,7 @@ double gkyl_tok_geo_integrate_psi_contour(const gkyl_tok_geo *geo, double psi,
  * @param xn computational coordinates
  * @param ret physical coordinates
  */
-void gkyl_tok_geo_mapc2p(const gkyl_tok_geo *geo, const struct gkyl_tok_geo_grid_inp *inp,
+void gkyl_tok_geo_mapc2p(const struct gkyl_tok_geo *geo, const struct gkyl_tok_geo_grid_inp *inp,
     const double *xn, double *ret);
 
 /**
@@ -229,15 +230,11 @@ void gkyl_tok_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, double
  * @param geo Geometry object
  * @return Cumulative statistics
  */
-struct gkyl_tok_geo_stat gkyl_tok_geo_get_stat(const gkyl_tok_geo *geo);
+struct gkyl_tok_geo_stat gkyl_tok_geo_get_stat(const struct gkyl_tok_geo *geo);
 
 /**
  * Delete updater.
  *
  * @param geo Geometry object to delete
  */
-void gkyl_tok_geo_release(gkyl_tok_geo *geo);
-
-struct gkyl_range* gkyl_tok_geo_get_nrange(gkyl_tok_geo* geo);
-struct gkyl_array* gkyl_tok_geo_get_mc2p_nodal_fd(gkyl_tok_geo* geo);
-double* gkyl_tok_geo_get_dzc(gkyl_tok_geo* geo);
+void gkyl_tok_geo_release(struct gkyl_tok_geo *geo);
