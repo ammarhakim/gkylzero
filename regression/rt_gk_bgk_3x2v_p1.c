@@ -200,7 +200,8 @@ evalDensityInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT 
   double r = sqrt(x * x + y * y);
 
   pcg32_random_t rng = gkyl_pcg32_init(0);
-  double perturb = 2.0e-3 * (1.0 - 0.5 * gkyl_pcg32_rand_double(&rng));
+  //double perturb = 2.0e-3 * (1.0 - 0.5 * gkyl_pcg32_rand_double(&rng));
+  double perturb = 0.0;
 
   double n = 0.0;
 
@@ -448,8 +449,8 @@ main(int argc, char **argv)
       .use_last_converged = true,   //
       .iter_eps = 1e-12,   //
       .max_iter = 50,   //
-      //.num_cross_collisions = 1,
-      //.collide_with = { "ion" },
+      .num_cross_collisions = 1,
+      .collide_with = { "ion" },
     },
     .source = {
       .source_id = GKYL_PROJ_SOURCE,
@@ -479,8 +480,8 @@ main(int argc, char **argv)
       .upper = { .type = GKYL_SPECIES_GK_SHEATH, },
     },
 
-    .num_diag_moments = 7,
-    .diag_moments = { "M0", "M1", "M2", "M2par", "M2perp", "M3par", "M3perp" },
+    .num_diag_moments = 4,
+    .diag_moments = { "M0", "M1", "M2", "MaxwellianMoments" },
   };
 
   // Ion species.
@@ -509,8 +510,8 @@ main(int argc, char **argv)
       .use_last_converged = true,   //
       .iter_eps = 1e-12,   //
       .max_iter = 50,   //
-      //.num_cross_collisions = 1,
-      //.collide_with = { "elc" },
+      .num_cross_collisions = 1,
+      .collide_with = { "elc" },
     },
     .source = {
       .source_id = GKYL_PROJ_SOURCE,
@@ -540,8 +541,8 @@ main(int argc, char **argv)
       .upper = { .type = GKYL_SPECIES_GK_SHEATH, },
     },
 
-    .num_diag_moments = 7,
-    .diag_moments = { "M0", "M1", "M2", "M2par", "M2perp", "M3par", "M3perp" },
+    .num_diag_moments = 4,
+    .diag_moments = { "M0", "M1", "M2", "MaxwellianMoments" },
   };
 
   // Field.
@@ -554,7 +555,7 @@ main(int argc, char **argv)
 
   // GK app.
   struct gkyl_gk app_inp = {
-    .name = "gk_bgk_3x2v_p1",
+    .name = "gk_bgk_3x2v_p1_cpu",
 
     .cdim = 3, .vdim = 2,
     .lower = { -0.5 * ctx.Lx, -0.5 * ctx.Ly, -0.5 * ctx.Lz },
