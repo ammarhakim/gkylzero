@@ -163,8 +163,8 @@ gkyl_vlasov_lte_proj_on_basis_f_lte_quad_ker(struct gkyl_rect_grid phase_grid,
         double uu = 0.0;
         // V_drift_quad is the spatial component of the four-velocity u_i = GammaV*V_drift
         for (int d=0; d<vdim; ++d) {
-          vv += (V_drift_quad[cqidx][d]*V_drift_quad[cqidx][d]);
-          vu += (V_drift_quad[cqidx][d]*xmu[cdim+d]);
+          vv += (V_drift_quad[tot_conf_quad*d + cqidx]*V_drift_quad[tot_conf_quad*d + cqidx]);
+          vu += (V_drift_quad[tot_conf_quad*d + cqidx]*xmu[cdim+d]);
           uu += (xmu[cdim+d]*xmu[cdim+d]);
         }
         double GammaV_quad = sqrt(1.0 + vv);
