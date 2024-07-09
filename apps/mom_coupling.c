@@ -62,14 +62,6 @@ moment_coupling_init(const struct gkyl_moment_app *app, struct moment_coupling *
   // has one additional cell in each direction because non-ideal variables are stored at cell vertices
   // gkyl_create_ranges(&app->local, ghost, &src->non_ideal_local_ext, &src->non_ideal_local);
   gkyl_create_vertex_ranges(&app->local, ghost, &src->non_ideal_local_ext, &src->non_ideal_local);
-  
-
-  // In Gradient-closure case, non-ideal variables are 10 heat flux tensor components
-  // KB - Modification: This now stores the upper and lower temperature gradient at each vertex
-  int adj_cells[3] = { 1, 2, 4 };
-  for (int n=0;  n<app->num_species; ++n) {
-    src->non_ideal_vars[n] = mkarr(false, app->ndim*adj_cells[app->ndim - 1]*6, src->non_ideal_local_ext.volume);
-  }
 
   // check if gradient-closure is present
   for (int i=0; i<app->num_species; ++i) {
@@ -122,7 +114,7 @@ moment_coupling_update(gkyl_moment_app *app, struct moment_coupling *src,
       stat = gkyl_ten_moment_grad_closure_advance(src->grad_closure_slvr[i],
         &src->non_ideal_local, &app->local,
         app->species[i].f[sidx[nstrang]], app->field.f[sidx[nstrang]],
-        src->non_ideal_cflrate[i], dt, src->non_ideal_vars[i], src->pr_rhs[i]);
+        src->non_ideal_cflrate[i], dt, src->pr_rhs[i]);
       
       if (!stat.success)
         return (struct gkyl_update_status) {
@@ -202,7 +194,6 @@ moment_coupling_release(const struct gkyl_moment_app *app, const struct moment_c
   for (int i=0; i<app->num_species; ++i) {
     gkyl_array_release(src->pr_rhs[i]);
     gkyl_array_release(src->non_ideal_cflrate[i]);
-    gkyl_array_release(src->non_ideal_vars[i]);
     if (app->species[i].eqn_type == GKYL_EQN_TEN_MOMENT && app->species[i].has_grad_closure)
       gkyl_ten_moment_grad_closure_release(src->grad_closure_slvr[i]);
   }

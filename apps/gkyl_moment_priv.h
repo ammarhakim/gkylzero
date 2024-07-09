@@ -158,17 +158,15 @@ struct moment_field {
 
 // Source data
 struct moment_coupling {
-// grid for braginskii variables (braginskii variables located at cell nodes)  
+  // grid for braginskii variables (braginskii variables located at cell nodes)  
   struct gkyl_rect_grid non_ideal_grid;
- // local, local-ext ranges for braginskii variables (loop over nodes)  
+  // local, local-ext ranges for braginskii variables (loop over nodes)  
   struct gkyl_range non_ideal_local, non_ideal_local_ext;
 
- // Gradient-based closure solver (if present)  
+  // Gradient-based closure solver (if present)  
   gkyl_ten_moment_grad_closure *grad_closure_slvr[GKYL_MAX_SPECIES];
- // array for stable time-step from non-ideal terms  
+  // array for stable time-step from non-ideal terms  
   struct gkyl_array *non_ideal_cflrate[GKYL_MAX_SPECIES];
- // array for non-ideal variables (heat-flux tensor)  
-  struct gkyl_array *non_ideal_vars[GKYL_MAX_SPECIES];
   // array for storing RHS of each species from non-ideal term updates (gradient-based closure)
   struct gkyl_array  *pr_rhs[GKYL_MAX_SPECIES];
   // array for storing RHS of number density and temperature source terms
