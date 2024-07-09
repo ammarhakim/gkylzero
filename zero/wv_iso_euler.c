@@ -229,6 +229,14 @@ max_speed(const struct gkyl_wv_eqn *eqn, const double *q)
   return gkyl_iso_euler_max_abs_speed(iso_euler->vt, q);
 }
 
+static inline void
+iso_euler_source(const struct gkyl_wv_eqn* eqn, const double* qin, double* sout)
+{
+  for (int i = 0; i < 4; i++) {
+    sout[i] = 0.0;
+  }
+}
+
 struct gkyl_wv_eqn*
 gkyl_wv_iso_euler_new(double vt)
 {
@@ -256,6 +264,8 @@ gkyl_wv_iso_euler_new(double vt)
   iso_euler->eqn.no_slip_bc_func = iso_euler_no_slip;
 
   iso_euler->eqn.cons_to_diag = gkyl_default_cons_to_diag;
+
+  iso_euler->eqn.source_func = iso_euler_source;
 
   iso_euler->eqn.ref_count = gkyl_ref_count_init(iso_euler_free);
 

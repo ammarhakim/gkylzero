@@ -298,6 +298,17 @@ static inline void
 gr_euler_cons_to_diag(const struct gkyl_wv_eqn* eqn, const double* qin, double* diag);
 
 /**
+* Compute forcing/source term vector from conserved variable.
+*
+* @param eqn Base equation object.
+* @param qin Conserved variable vector (input).
+* @param sout Forcing/source term vector (output).
+*/
+GKYL_CU_DH
+static inline void
+gr_euler_source(const struct gkyl_wv_eqn* eqn, const double* qin, double* sout);
+
+/**
 * Free general relativistic Euler equations object.
 *
 * @param ref Reference counter for general relativistic Euler equations.

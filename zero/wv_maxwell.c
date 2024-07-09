@@ -243,6 +243,14 @@ maxwell_cons_to_diag(const struct gkyl_wv_eqn *eqn,
   for (int i=0; i<6; ++i) diag[i] = qin[i]*qin[i];
 }
 
+static inline void
+maxwell_source(const struct gkyl_wv_eqn* eqn, const double* qin, double* sout)
+{
+  for (int i = 0; i < 8; i++) {
+    sout[i] = 0.0;
+  }
+}
+
 struct gkyl_wv_eqn*
 gkyl_wv_maxwell_new(double c, double e_fact, double b_fact)
 {
@@ -272,6 +280,8 @@ gkyl_wv_maxwell_new(double c, double e_fact, double b_fact)
   maxwell->eqn.wall_bc_func = maxwell_wall;
 
   maxwell->eqn.cons_to_diag = maxwell_cons_to_diag;
+
+  maxwell->eqn.source_func = maxwell_source;
 
   maxwell->eqn.ref_count = gkyl_ref_count_init(maxwell_free);
 

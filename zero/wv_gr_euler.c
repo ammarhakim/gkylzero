@@ -1222,6 +1222,14 @@ gr_euler_cons_to_diag(const struct gkyl_wv_eqn* eqn, const double* qin, double* 
   }
 }
 
+static inline void
+gr_euler_source(const struct gkyl_wv_eqn* eqn, const double* qin, double* sout)
+{
+  for (int i = 0; i < 29; i++) {
+    sout[i] = 0.0;
+  }
+}
+
 void
 gkyl_gr_euler_free(const struct gkyl_ref_count* ref)
 {
@@ -1286,6 +1294,8 @@ gkyl_wv_gr_euler_inew(const struct gkyl_wv_gr_euler_inp* inp)
   gr_euler->eqn.riem_to_cons = riem_to_cons;
 
   gr_euler->eqn.cons_to_diag = gr_euler_cons_to_diag;
+
+  gr_euler->eqn.source_func = gr_euler_source;
 
   gr_euler->eqn.flags = 0;
   GKYL_CLEAR_CU_ALLOC(gr_euler->eqn.flags);
