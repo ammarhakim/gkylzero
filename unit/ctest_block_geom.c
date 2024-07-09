@@ -85,6 +85,17 @@ test_L_domain()
   TEST_CHECK( 3 == btopo->num_blocks );
   TEST_CHECK( 1 == gkyl_block_topo_check_consistency(btopo) );
 
+  int nblocks = gkyl_block_geom_num_blocks(bgeom);
+  for (int i=0; i<nblocks; ++i) {
+    const struct gkyl_block_geom_info *ginfo = gkyl_block_geom_get_block(bgeom, i);
+    TEST_CHECK( 10 == ginfo->cells[0] );
+    TEST_CHECK( 10 == ginfo->cells[1] );
+
+    TEST_CHECK( 1 == ginfo->cuts[0] );
+    TEST_CHECK( 1 == ginfo->cuts[1] );
+  }
+    
+
   gkyl_block_geom_release(bgeom);
   gkyl_block_topo_release(btopo);
 }

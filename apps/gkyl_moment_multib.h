@@ -44,7 +44,7 @@ struct gkyl_moment_multib_species {
 
   bool duplicate_across_blocks; // set to true if all blocks are identical  
   // species inputs per-block: only one is needed is are_all_blocks_same = true
-  const struct gkyl_moment_multib_species_pb *blocks;
+  const struct gkyl_moment_multib_species_pb *blocks;  
 
   int num_physical_bcs;
   const struct gkyl_block_physical_bcs *bcs;
@@ -89,24 +89,26 @@ struct gkyl_moment_multib_field {
   const struct gkyl_block_physical_bcs *bcs;  
 };
 
-
 // Top-level app parameters: this
 struct gkyl_moment_multib {
   char name[128]; // name of app
-
- // geometry and topology of all blocks in simulation
+ // geometry and for blocks in simulation
   struct gkyl_block_geom *block_geom;
 
-  double cfl_frac; // CFL fraction to use
+ // CFL fraction to use  
+  double cfl_frac;
 
-  int num_species; // number of species
+ // number of species  
+  int num_species;
   // species inputs
   struct gkyl_moment_multib_species species[GKYL_MAX_SPECIES];
  
   // field inputs
   struct gkyl_moment_multib_field field;
-};
 
+ // communicator to used  
+  struct gkyl_comm *comm;
+};
 
 /**
  * Construct a new moments multi-block app.
@@ -114,7 +116,7 @@ struct gkyl_moment_multib {
  * @param mbinp Multi-block App inputs. See struct docs.
  * @return New multi-block moment app object.
  */
-struct gkyl_moment_multib_app* gkyl_moment_multib_app_new(struct gkyl_moment_multib *mbinp);
+struct gkyl_moment_multib_app* gkyl_moment_multib_app_new(const struct gkyl_moment_multib *mbinp);
                                 
 /**
  * Compute maximum estimated stable dt wtih current app state. Call

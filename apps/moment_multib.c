@@ -1,18 +1,47 @@
 #include <gkyl_moment_multib.h>
 #include <gkyl_moment_multib_priv.h>
+#include <gkyl_rrobin_decomp.h>
 
 #include <mpack.h>
 
+static inline int
+calc_cuts(int ndim, const int *cuts)
+{
+  int tc = 1;
+  for (int d=0; d<ndim; ++d) tc *= cuts[d];
+  return tc;
+}
+
 struct gkyl_moment_multib_app *
-gkyl_moment_multib_app_new(struct gkyl_moment_multib *mbinp)
+gkyl_moment_multib_app_new(const struct gkyl_moment_multib *mbinp)
 {
   struct gkyl_moment_multib_app *mbapp = gkyl_malloc(sizeof(*mbapp));
-  
-  int num_blocks = mbapp->num_blocks = gkyl_block_geom_num_blocks(mbinp->block_geom);
-  mbapp->app = gkyl_malloc(sizeof(struct gkyl_moment_app*[num_blocks]));
+  strcpy(mbapp->name, mbinp->name);
+  mbapp->comm = gkyl_comm_acquire(mbinp->comm);
+
+  mbapp->block_geom = gkyl_block_geom_acquire(mbinp->block_geom);
+  int ndim = gkyl_block_geom_ndim(mbapp->block_geom);
+
+  int num_ranks;
+  gkyl_comm_get_size(mbapp->comm, &num_ranks);
+  int num_blocks = gkyl_block_geom_num_blocks(mbapp->block_geom);
+
+  // construct round-robin decomposition
+  int *branks = gkyl_malloc(sizeof(int[num_blocks]));
+  for (int i=0; i<num_blocks; ++i) {
+    const struct gkyl_block_geom_info *bgi = gkyl_block_geom_get_block(mbapp->block_geom, i);
+    branks[i] = calc_cuts(ndim, bgi->cuts);
+  }
+  const struct gkyl_rrobin_decomp *rrd = gkyl_rrobin_decomp_new(num_ranks, num_blocks, branks);
+
+  int num_local_blocks = mbapp->num_local_blocks = num_blocks;
+  mbapp->app = gkyl_malloc(sizeof(struct gkyl_moment_app*[num_local_blocks]));
 
   mbapp->stat = (struct gkyl_moment_stat) {
   };
+
+  gkyl_free(branks);
+  gkyl_rrobin_decomp_release(rrd);
   
   return mbapp;
 }
@@ -136,6 +165,8 @@ void
 gkyl_moment_multib_app_release(gkyl_moment_multib_app* mbapp)
 {
 
+  gkyl_comm_release(mbapp->comm);
+  gkyl_block_geom_release(mbapp->block_geom);
   
   gkyl_free(mbapp->app);
   gkyl_free(mbapp);

@@ -1,19 +1,11 @@
 #include <gkyl_block_geom.h>
 #include <gkyl_alloc.h>
 
-// Geometry info a single config-space block
-struct block_info {
-  // lower and upper extents of blocks
-  double lower[GKYL_MAX_CDIM], upper[GKYL_MAX_CDIM];
-  int cells[GKYL_MAX_CDIM]; // cells extents in each direction
-  int cuts[GKYL_MAX_CDIM]; // domain split to use
-};
-
 // Geometry info for all blocks in simulation
 struct gkyl_block_geom {
   int ndim; // dimension
   int num_blocks; // total number of blocks
-  struct block_info *blocks; // info for each block
+  struct gkyl_block_geom_info *blocks; // info for each block
   struct gkyl_block_topo *btopo; // topology of blocks
   
   struct gkyl_ref_count ref_count;
@@ -59,17 +51,20 @@ void
 gkyl_block_geom_set_block(struct gkyl_block_geom *bgeom, int bidx,
   const struct gkyl_block_geom_info *info)
 {
-  // set geometry information
-  for (int i=0; i<bgeom->ndim; ++i) {
-    bgeom->blocks[bidx].lower[i] = info->lower[i];
-    bgeom->blocks[bidx].upper[i] = info->upper[i];
-    bgeom->blocks[bidx].cells[i] = info->cells[i];
-    bgeom->blocks[bidx].cuts[i] = info->cuts[i];
-  }
+  bgeom->blocks[bidx] = *info;
+  for (int d=0; d<bgeom->ndim; ++d)
+    bgeom->blocks[bidx].cuts[d] = info->cuts[d] > 0 ? info->cuts[d] : 1;
+  
   // set topology information
   for (int i=0; i<bgeom->ndim; ++i)
     for (int e=0; e<2; ++e)
-      bgeom->btopo->conn[bidx].connections[i][e] = info->connections[i][e];
+      bgeom->btopo->conn[bidx].connections[i][e] = info->connections[i][e];  
+}
+
+const struct gkyl_block_geom_info*
+gkyl_block_geom_get_block(const struct gkyl_block_geom *bgeom, int bidx)
+{
+  return &bgeom->blocks[bidx];
 }
 
 int
