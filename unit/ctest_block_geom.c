@@ -23,7 +23,7 @@ test_L_domain()
   */
 
   // block 0
-  gkyl_block_geom_set_block(bgeom, 0, &(struct gkyl_block_info) {
+  gkyl_block_geom_set_block(bgeom, 0, &(struct gkyl_block_geom_info) {
       .lower = { 0, 0 },
       .upper = { 1, 1 },
       .cells = { 10, 10 },
@@ -42,7 +42,7 @@ test_L_domain()
   TEST_CHECK( 0 == gkyl_block_geom_check_consistency(bgeom) );
   
   // block 1
-  gkyl_block_geom_set_block(bgeom, 1, &(struct gkyl_block_info) {
+  gkyl_block_geom_set_block(bgeom, 1, &(struct gkyl_block_geom_info) {
       .lower = { 0, 0 },
       .upper = { 1, 1 },
       .cells = { 10, 10 },
@@ -61,7 +61,7 @@ test_L_domain()
   TEST_CHECK( 0 == gkyl_block_geom_check_consistency(bgeom) );
 
   // block 2
-  gkyl_block_geom_set_block(bgeom, 2, &(struct gkyl_block_info) {
+  gkyl_block_geom_set_block(bgeom, 2, &(struct gkyl_block_geom_info) {
       .lower = { 0, 0 },
       .upper = { 1, 1 },
       .cells = { 10, 10 },
@@ -106,7 +106,7 @@ test_mobius_domain()
   */
 
   // block 0
-  gkyl_block_geom_set_block(bgeom, 0, &(struct gkyl_block_info) {
+  gkyl_block_geom_set_block(bgeom, 0, &(struct gkyl_block_geom_info) {
       .lower = { 0, 0 },
       .upper = { 1, 1 },
       .cells = { 10, 10 },      

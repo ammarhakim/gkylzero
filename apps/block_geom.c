@@ -34,7 +34,7 @@ gkyl_block_geom_new(int ndim, int nblocks)
   struct gkyl_block_geom *bgeom = gkyl_malloc(sizeof(struct gkyl_block_geom));
   bgeom->ndim = ndim;
   bgeom->num_blocks = nblocks;
-  bgeom->blocks = gkyl_calloc(sizeof(struct gkyl_block_info), nblocks);
+  bgeom->blocks = gkyl_calloc(sizeof(struct gkyl_block_geom_info), nblocks);
 
   bgeom->btopo = gkyl_block_topo_new(ndim, nblocks);
 
@@ -57,7 +57,7 @@ gkyl_block_geom_num_blocks(const struct gkyl_block_geom *bgeom)
 
 void
 gkyl_block_geom_set_block(struct gkyl_block_geom *bgeom, int bidx,
-  const struct gkyl_block_info *info)
+  const struct gkyl_block_geom_info *info)
 {
   // set geometry information
   for (int i=0; i<bgeom->ndim; ++i) {

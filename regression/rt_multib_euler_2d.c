@@ -30,7 +30,7 @@ create_block_geom(void)
   */  
 
   // block 0
-  gkyl_block_geom_set_block(bgeom, 0, &(struct gkyl_block_info) {
+  gkyl_block_geom_set_block(bgeom, 0, &(struct gkyl_block_geom_info) {
       .lower = { 0, 1 },
       .upper = { 1, 2 },
       .cells = { 128, 128 },
@@ -47,7 +47,7 @@ create_block_geom(void)
   );
   
   // block 1
-  gkyl_block_geom_set_block(bgeom, 1, &(struct gkyl_block_info) {
+  gkyl_block_geom_set_block(bgeom, 1, &(struct gkyl_block_geom_info) {
       .lower = { 0, 0 },
       .upper = { 1, 1 },
       .cells = { 128, 128 },
@@ -64,7 +64,7 @@ create_block_geom(void)
   );
 
   // block 2
-  gkyl_block_geom_set_block(bgeom, 2, &(struct gkyl_block_info) {
+  gkyl_block_geom_set_block(bgeom, 2, &(struct gkyl_block_geom_info) {
       .lower = { 1, 0 },
       .upper = { 2, 1 },
       .cells = { 128, 128 },
