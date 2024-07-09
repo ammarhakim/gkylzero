@@ -161,7 +161,7 @@ void gkyl_dg_calc_sr_vars_pressure(struct gkyl_dg_calc_sr_vars *up,
 {
 #ifdef GKYL_HAVE_CUDA
   if (gkyl_array_is_cu_dev(sr_pressure)) {
-    return gkyl_dg_calc_pkpm_dist_vars_div_ppar_cu(up, 
+    return gkyl_dg_calc_sr_vars_pressure_cu(up, 
       conf_range, phase_range, 
       gamma, gamma_inv, u_i, u_i_sq, GammaV, GammaV_sq, 
       f, sr_pressure);
