@@ -37,7 +37,7 @@ gkyl_calc_sr_vars_init_p_vars_cu_kernel(gkyl_dg_calc_sr_vars* up,
 
     double *gamma_d = (double*) gkyl_array_fetch(gamma, loc);
     double *gamma_inv_d = (double*) gkyl_array_fetch(gamma_inv, loc);
-    up->sr_p_vars(xc, up->vgrid.dx, gamma_d, gamma_inv_d);
+    up->sr_p_vars(xc, up->vel_grid.dx, gamma_d, gamma_inv_d);
   }
 }
 
@@ -180,8 +180,13 @@ gkyl_dg_calc_sr_vars_pressure_cu_kernel(struct gkyl_dg_calc_sr_vars *up,
   const struct gkyl_array* GammaV, const struct gkyl_array* GammaV_sq, 
   const struct gkyl_array* f, struct gkyl_array* sr_pressure)
 {
-  double xc[GKYL_MAX_DIM] = {0.0};
+  int cdim = conf_range.ndim;
+  int pdim = phase_range.ndim;
+
+  double xc[GKYL_MAX_DIM];
+  int idx_vel[GKYL_MAX_DIM];
   int idx[GKYL_MAX_DIM];
+
   for (unsigned long linc1 = threadIdx.x + blockIdx.x*blockDim.x;
       linc1 < phase_range.volume;
       linc1 += gridDim.x*blockDim.x)
@@ -194,8 +199,8 @@ gkyl_dg_calc_sr_vars_pressure_cu_kernel(struct gkyl_dg_calc_sr_vars *up,
 
     // convert back to a linear index on the super-range (with ghost cells)
     // linc will have jumps in it to jump over ghost cells
-    long linc_conf = gkyl_range_idx(&conf_range, idx);
-    long linc_phase = gkyl_range_idx(&phase_range, idx);
+    long loc_conf = gkyl_range_idx(&conf_range, idx);
+    long loc_phase = gkyl_range_idx(&phase_range, idx);
 
     for (int i=0; i<pdim-cdim; ++i) {
       idx_vel[i] = idx[cdim+i];
@@ -239,10 +244,11 @@ gkyl_dg_calc_sr_vars_pressure_cu(struct gkyl_dg_calc_sr_vars *up,
 {
   int nblocks = phase_range->nblocks;
   int nthreads = phase_range->nthreads;
+  gkyl_array_clear(sr_pressure, 0.0); 
   gkyl_dg_calc_sr_vars_pressure_cu_kernel<<<nblocks, nthreads>>>(up->on_dev, 
     *conf_range, *phase_range, 
     gamma->on_dev, gamma_inv->on_dev, 
-    u_i->on_dev, u_i_sq->on_dev, GammaV->on_dev, GammaV_sq->on_dev
+    u_i->on_dev, u_i_sq->on_dev, GammaV->on_dev, GammaV_sq->on_dev, 
     f->on_dev, sr_pressure->on_dev);
 }
 
