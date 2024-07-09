@@ -5,6 +5,7 @@
 #include <gkyl_array_rio.h>
 #include <gkyl_gk_geometry.h>
 #include <gkyl_gk_geometry_mapc2p.h>
+#include <gkyl_gyrokinetic_maxwellian_moments.h>
 #include <gkyl_proj_maxwellian_on_basis.h>
 #include <gkyl_proj_on_basis.h>
 #include <gkyl_velocity_map.h>
@@ -259,10 +260,10 @@ test_1x2v_gk(int poly_order, bool use_gpu)
   // write distribution function to file
   char fname[1024];
   if (use_gpu) {
-    sprintf(fname, "ctest_proj_gkmaxwellian_on_basis_prim_mom_test_1x2v_p%d_gpu.gkyl", poly_order);
+    sprintf(fname, "ctest_proj_gkmaxwellian_on_basis_prim_mom_1x2v_p%d_gpu.gkyl", poly_order);
   } 
   else {
-    sprintf(fname, "ctest_proj_gkmaxwellian_on_basis_prim_mom_test_1x2v_p%d_cpu.gkyl", poly_order);
+    sprintf(fname, "ctest_proj_gkmaxwellian_on_basis_prim_mom_1x2v_p%d_cpu.gkyl", poly_order);
   }   
   gkyl_grid_sub_array_write(&grid, &local, 0, distf, fname);
 
@@ -559,12 +560,50 @@ test_3x2v_gk(int poly_order, bool use_gpu)
   // Write distribution function to file
   char fname[1024];
   if (use_gpu) {
-    sprintf(fname, "ctest_proj_gkmaxwellian_on_basis_prim_mom_test_3x2v_p%d_gpu.gkyl", poly_order);
+    sprintf(fname, "ctest_proj_gkmaxwellian_on_basis_prim_mom_3x2v_p%d_gpu.gkyl", poly_order);
   } 
   else {
-    sprintf(fname, "ctest_proj_gkmaxwellian_on_basis_prim_mom_test_3x2v_p%d_cpu.gkyl", poly_order);
+    sprintf(fname, "ctest_proj_gkmaxwellian_on_basis_prim_mom_3x2v_p%d_cpu.gkyl", poly_order);
   }   
   gkyl_grid_sub_array_write(&grid, &local, 0, distf, fname);
+
+  // Calculate the moments and copy from device to host.
+  struct gkyl_gyrokinetic_maxwellian_moments_inp inp_calc = {
+    .phase_grid = &grid,
+    .conf_basis = &confBasis,
+    .phase_basis = &basis,
+    .conf_range =  &confLocal,
+    .conf_range_ext = &confLocal_ext,
+    .gk_geom = gk_geom,
+    .vel_map = gvm,
+    .divide_jacobgeo = true,
+    .mass = mass,
+    .use_gpu = use_gpu,
+  };
+  gkyl_gyrokinetic_maxwellian_moments *calc_moms = gkyl_gyrokinetic_maxwellian_moments_inew( &inp_calc );
+
+  struct gkyl_array *moms;
+  moms = mkarr(3*confBasis.num_basis, confLocal_ext.volume);
+  struct gkyl_array *moms_cu;
+  if (use_gpu) {
+    moms_cu  = gkyl_array_cu_dev_new(GKYL_DOUBLE, 3*confBasis.num_basis, confLocal_ext.volume);
+    gkyl_gyrokinetic_maxwellian_moments_advance(calc_moms, &local, &confLocal, distf_cu, moms_cu);
+    gkyl_array_copy(moms, moms_cu);
+  }
+  else {
+    gkyl_gyrokinetic_maxwellian_moments_advance(calc_moms, &local, &confLocal, distf, moms);
+  }
+  gkyl_gyrokinetic_maxwellian_moments_release(calc_moms);
+
+  // Write moments to file
+  char fname_moms[1024];
+  if (use_gpu) {
+    sprintf(fname_moms, "ctest_proj_gkmaxwellian_on_basis_prim_mom_3x2v_p%d_moms_gpu.gkyl", poly_order);
+  } 
+  else {
+    sprintf(fname_moms, "ctest_proj_gkmaxwellian_on_basis_prim_mom_3x2v_p%d_moms_cpu.gkyl", poly_order);
+  }   
+  gkyl_grid_sub_array_write(&confGrid, &confLocal, 0, moms, fname_moms);
 
   gkyl_array_release(den); 
   gkyl_array_release(udrift); 
@@ -574,9 +613,8 @@ test_3x2v_gk(int poly_order, bool use_gpu)
   gkyl_proj_on_basis_release(proj_vtsq);
 
   gkyl_array_release(prim_moms_ho);
-  if (use_gpu) {
+  if (use_gpu)
     gkyl_array_release(prim_moms);
-  }
 
   gkyl_gk_geometry_release(gk_geom);
   gkyl_array_release(distf);
@@ -584,6 +622,10 @@ test_3x2v_gk(int poly_order, bool use_gpu)
     gkyl_array_release(distf_cu);
   gkyl_proj_maxwellian_on_basis_release(proj_max);
   gkyl_velocity_map_release(gvm);
+
+  gkyl_array_release(moms);
+  if (use_gpu) 
+    gkyl_array_release(moms_cu);
 
 #ifdef GKYL_HAVE_CUDA
   if (use_gpu) 
@@ -759,7 +801,7 @@ test_3x2v_gk_compare(int poly_order, bool use_gpu)
     gkyl_proj_gkmaxwellian_on_basis_prim_mom(proj_max, &local, &confLocal, prim_moms,
       gk_geom->bmag, gk_geom->jacobtot, mass, distf_cu);
     gkyl_array_copy(distf, distf_cu);
-    gkyl_grid_sub_array_read(&grid, &local, distf_ho, "ctest_proj_gkmaxwellian_on_basis_prim_mom_test_3x2v_p1_cpu.gkyl"); // load cpu data from file.
+    gkyl_grid_sub_array_read(&grid, &local, distf_ho, "ctest_proj_gkmaxwellian_on_basis_prim_mom_3x2v_p1_cpu.gkyl"); // load cpu data from file.
   } else {
     gkyl_proj_gkmaxwellian_on_basis_prim_mom(proj_max, &local, &confLocal, prim_moms,
       gk_geom->bmag, gk_geom->jacobtot, mass, distf);
@@ -792,9 +834,10 @@ test_3x2v_gk_compare(int poly_order, bool use_gpu)
 
   gkyl_gk_geometry_release(gk_geom);
   gkyl_array_release(distf);
-  if (use_gpu)
+  if (use_gpu) {
     gkyl_array_release(distf_cu);
     gkyl_array_release(distf_ho);
+  }
   gkyl_proj_maxwellian_on_basis_release(proj_max);
   gkyl_velocity_map_release(gvm);
 
