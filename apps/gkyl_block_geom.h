@@ -1,14 +1,20 @@
 #pragma once
 
 #include <gkyl_block_topo.h>
+#include <gkyl_gyrokinetic.h>
 #include <gkyl_util.h>
 
 // Geometry info a single config-space block
-struct gkyl_block_info {
+struct gkyl_block_geom_info {
   // lower and upper extents of blocks
   double lower[GKYL_MAX_CDIM], upper[GKYL_MAX_CDIM];
   int cells[GKYL_MAX_CDIM]; // cells extents in each direction
   int cuts[GKYL_MAX_CDIM];  // domain split to use
+
+  // App specific geometry information should go into this union
+  union {
+    struct gkyl_gyrokinetic_geometry geometry; // GK geometry
+  };    
 
   struct gkyl_target_edge connections[GKYL_MAX_CDIM][2]; // block connections
 };
@@ -69,7 +75,7 @@ struct gkyl_block_topo* gkyl_block_geom_topo(const struct gkyl_block_geom *bgeom
  *
  */
 void gkyl_block_geom_set_block(struct gkyl_block_geom *bgeom, int bidx,
-  const struct gkyl_block_info *info);
+  const struct gkyl_block_geom_info *info);
 
 
 /**
