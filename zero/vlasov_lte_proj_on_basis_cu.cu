@@ -60,7 +60,7 @@ gkyl_vlasov_lte_proj_on_basis_geom_quad_vars_cu(gkyl_vlasov_lte_proj_on_basis *u
   int nblocks = conf_range->nblocks, nthreads = conf_range->nthreads;
   gkyl_vlasov_lte_proj_on_basis_geom_quad_vars_cu_ker<<<nblocks, nthreads>>>(*conf_range, 
     up->conf_basis_at_ords->on_dev, vdim,
-    h_ij_inv->on_dev, det_h->on_dev
+    h_ij_inv->on_dev, det_h->on_dev, 
     up->h_ij_inv_quad->on_dev, up->det_h_quad->on_dev);
 }
 
@@ -77,7 +77,7 @@ gkyl_parallelize_components_kernel_launch_dims(dim3* dimGrid, dim3* dimBlock, gk
 __global__ static void
 gkyl_vlasov_lte_proj_on_basis_moms_lte_quad_ker(struct gkyl_range conf_range, int vdim, 
   const struct gkyl_array* GKYL_RESTRICT conf_basis_at_ords, 
-  const struct gkyl_array* GKYL_RESTRICT moms_lte, struct gkyl_array* GKYL_RESTRICT moms_lte_quad_d)
+  const struct gkyl_array* GKYL_RESTRICT moms_lte, struct gkyl_array* GKYL_RESTRICT moms_lte_quad)
 {
   int num_conf_basis = conf_basis_at_ords->ncomp;
   int tot_conf_quad = conf_basis_at_ords->size;  
@@ -95,14 +95,14 @@ gkyl_vlasov_lte_proj_on_basis_moms_lte_quad_ker(struct gkyl_range conf_range, in
 
     const double *moms_lte_d = (const double*) gkyl_array_cfetch(moms_lte, lincC);
 
-    double *moms_lte_quad = (double*) gkyl_array_fetch(moms_lte_d, lincC);
+    double *moms_lte_quad_d = (double*) gkyl_array_fetch(moms_lte_quad, lincC);
+
     // Sum over basis for given LTE moments (n, V_drift, T/m) in the stationary frame
     // at configuration-space quadrature points. 
     const double *b_ord = (const double*) gkyl_array_cfetch(conf_basis_at_ords, linc2);
-
     for (int k=0; k<num_conf_basis; ++k) {
       for (int d=0; d<vdim+2; ++d) {
-        moms_lte_quad[tot_conf_quad*d+linc2] += moms_lte_quad_d[num_conf_basis*d+k]*b_ord[k];
+        moms_lte_quad_d[tot_conf_quad*d+linc2] += moms_lte_d[num_conf_basis*d+k]*b_ord[k];
       }
     }
   }
@@ -110,12 +110,12 @@ gkyl_vlasov_lte_proj_on_basis_moms_lte_quad_ker(struct gkyl_range conf_range, in
 
 __global__ static void
 gkyl_vlasov_lte_proj_on_basis_f_lte_quad_ker(struct gkyl_rect_grid phase_grid,
-  struct gkyl_range phase_range, struct gkyl_range conf_range, int vdim, 
+  struct gkyl_range phase_range, struct gkyl_range conf_range, 
   const struct gkyl_array* GKYL_RESTRICT conf_basis_at_ords, 
   const struct gkyl_array* GKYL_RESTRICT phase_ordinates, 
-  const struct gkyl_array* GKYL_RESTRICT moms_lte_quad_d, 
-  const struct gkyl_array* GKYL_RESTRICT h_ij_inv_quad_d, 
-  const struct gkyl_array* GKYL_RESTRICT det_h_quad_d, 
+  const struct gkyl_array* GKYL_RESTRICT moms_lte_quad, 
+  const struct gkyl_array* GKYL_RESTRICT h_ij_inv_quad, 
+  const struct gkyl_array* GKYL_RESTRICT det_h_quad, 
   const int *p2c_qidx, bool is_relativistic, bool is_canonical_pb, 
   struct gkyl_array* GKYL_RESTRICT f_lte_quad)
 {
@@ -173,8 +173,8 @@ gkyl_vlasov_lte_proj_on_basis_f_lte_quad_ker(struct gkyl_rect_grid phase_grid,
       }
       else if (is_canonical_pb) {
         // Assumes a (particle) hamiltonian in canocial form: g = 1/2 g^{ij} w_i_w_j
-        const double *h_ij_inv_quad = (const double*) gkyl_array_cfetch(h_ij_inv_quad_d, lincC);
-        const double *det_h_quad = (const double*) gkyl_array_cfetch(det_h_quad_d, lincC);
+        const double *h_ij_inv_quad_d = (const double*) gkyl_array_cfetch(h_ij_inv_quad, lincC);
+        const double *det_h_quad_d = (const double*) gkyl_array_cfetch(det_h_quad, lincC);
         double efact = 0.0;
         for (int d0=0; d0<vdim; ++d0) {
           for (int d1=d0; d1<vdim; ++d1) {
@@ -182,7 +182,7 @@ gkyl_vlasov_lte_proj_on_basis_f_lte_quad_ker(struct gkyl_rect_grid phase_grid,
             // Grab the spatial metric component, the ctx includes geometry that isn't 
             // part of the canonical set of variables, like R on the surf of a sphere
             // q_can includes the canonical variables list
-            double h_ij_inv_loc = h_ij_inv_quad[tot_conf_quad*sym_tensor_index + cqidx]; 
+            double h_ij_inv_loc = h_ij_inv_quad_d[tot_conf_quad*sym_tensor_index + cqidx]; 
             // For off-diagonal components, we need to count these twice, due to symmetry
             int sym_fact = (d0 == d1) ? 1 : 2;
             efact += sym_fact*h_ij_inv_loc*(xmu[cdim+d0]-V_drift_quad[tot_conf_quad*d0 + cqidx])*(xmu[cdim+d1]-V_drift_quad[tot_conf_quad*d1 + cqidx]);
@@ -220,7 +220,7 @@ gkyl_vlasov_lte_proj_on_basis_advance_cu(gkyl_vlasov_lte_proj_on_basis *up,
   int tot_phase_quad = up->basis_at_ords->size;
   gkyl_parallelize_components_kernel_launch_dims(&dimGrid, &dimBlock, *phase_range, tot_phase_quad);
   gkyl_vlasov_lte_proj_on_basis_f_lte_quad_ker<<<dimGrid, dimBlock>>>(up->phase_grid, 
-    *phase_range, *conf_range, vdim, 
+    *phase_range, *conf_range, 
     up->conf_basis_at_ords->on_dev, up->ordinates->on_dev,
     up->moms_lte_quad->on_dev, 
     up->is_canonical_pb ? up->h_ij_inv_quad->on_dev : 0, 
