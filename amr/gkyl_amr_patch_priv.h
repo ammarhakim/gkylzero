@@ -103,6 +103,118 @@ void euler_patch_bc_updaters_release(struct euler_patch_data* pdata);
 void euler_patch_bc_updaters_apply(const struct euler_patch_data* pdata, double tm, struct gkyl_array* fld);
 
 /**
+* Coarse-to-fine projection operator for patch-structured AMR, assuming a lower coarse patch and a lower fine patch.
+*
+* @param tbid Target (fine) patch ID.
+* @param tdir Target (fine) patch direction.
+* @param i Reference (coarse) patch ID.
+* @param d Reference (coarse) patch direction.
+* @param pdata Patch-structured data for the Euler equations.
+* @param bc_buffer Buffer for applying boundary conditions.
+* @param fld Output array.
+*/
+void patch_ll_projection_op(const int tbid, const int tdir, const int i, const int d, const struct euler_patch_data pdata[],
+  const struct gkyl_array* bc_buffer, struct gkyl_array* fld[]);
+
+/**
+* Fine-to-coarse restriction operator for patch-structured AMR, assuming a lower fine patch and a lower coarse patch.
+*
+* @param tbid Target (coarse) patch ID.
+* @param tdir Target (coarse) patch direction.
+* @param i Reference (fine) patch ID.
+* @param d Reference (fine) patch direction.
+* @param pdata Patch-structured data for the Euler equations.
+* @param bc_buffer Buffer for applying boundary conditions.
+* @param fld Output array.
+*/
+void patch_ll_restriction_op(const int tbid, const int tdir, const int i, const int d, const struct euler_patch_data pdata[],
+  const struct gkyl_array* bc_buffer, struct gkyl_array* fld[]);
+
+/**
+* Coarse-to-fine projection operator for patch-structured AMR, assuming a lower coarse patch and an upper fine patch.
+*
+* @param tbid Target (fine) patch ID.
+* @param tdir Target (fine) patch direction.
+* @param i Reference (coarse) patch ID.
+* @param d Reference (coarse) patch direction.
+* @param pdata Patch-structured data for the Euler equations.
+* @param bc_buffer Buffer for applying boundary conditions.
+* @param fld Output array.
+*/
+void patch_lu_projection_op(const int tbid, const int tdir, const int i, const int d, const struct euler_patch_data pdata[],
+  const struct gkyl_array* bc_buffer, struct gkyl_array* fld[]);
+
+/**
+* Fine-to-coarse restriction operator for patch-structured AMR, assuming a lower fine patch and an upper coarse patch.
+*
+* @param tbid Target (coarse) patch ID.
+* @param tdir Target (coarse) patch direction.
+* @param i Reference (fine) patch ID.
+* @param d Reference (fine) patch direction.
+* @param pdata Patch-structured data for the Euler equations.
+* @param bc_buffer Buffer for applying boundary conditions.
+* @param fld Output array.
+*/
+void patch_lu_restriction_op(const int tbid, const int tdir, const int i, const int d, const struct euler_patch_data pdata[],
+  const struct gkyl_array* bc_buffer, struct gkyl_array* fld[]);
+
+  /**
+* Coarse-to-fine projection operator for patch-structured AMR, assuming an upper coarse patch and a lower fine patch.
+*
+* @param tbid Target (fine) patch ID.
+* @param tdir Target (fine) patch direction.
+* @param i Reference (coarse) patch ID.
+* @param d Reference (coarse) patch direction.
+* @param pdata Patch-structured data for the Euler equations.
+* @param bc_buffer Buffer for applying boundary conditions.
+* @param fld Output array.
+*/
+void patch_ul_projection_op(const int tbid, const int tdir, const int i, const int d, const struct euler_patch_data pdata[],
+  const struct gkyl_array* bc_buffer, struct gkyl_array* fld[]);
+
+/**
+* Fine-to-coarse restriction operator for patch-structured AMR, assuming an upper fine patch and a lower coarse patch.
+*
+* @param tbid Target (coarse) patch ID.
+* @param tdir Target (coarse) patch direction.
+* @param i Reference (fine) patch ID.
+* @param d Reference (fine) patch direction.
+* @param pdata Patch-structured data for the Euler equations.
+* @param bc_buffer Buffer for applying boundary conditions.
+* @param fld Output array.
+*/
+void patch_ul_restriction_op(const int tbid, const int tdir, const int i, const int d, const struct euler_patch_data pdata[],
+  const struct gkyl_array* bc_buffer, struct gkyl_array* fld[]);
+
+/**
+* Coarse-to-fine projection operator for patch-structured AMR, assuming an upper coarse patch and an upper fine patch.
+*
+* @param tbid Target (fine) patch ID.
+* @param tdir Target (fine) patch direction.
+* @param i Reference (coarse) patch ID.
+* @param d Reference (coarse) patch direction.
+* @param pdata Patch-structured data for the Euler equations.
+* @param bc_buffer Buffer for applying boundary conditions.
+* @param fld Output array.
+*/
+void patch_uu_projection_op(const int tbid, const int tdir, const int i, const int d, const struct euler_patch_data pdata[],
+  const struct gkyl_array* bc_buffer, struct gkyl_array* fld[]);
+
+/**
+* Fine-to-coarse restriction operator for patch-structured AMR, assuming an upper fine patch and an upper coarse patch.
+*
+* @param tbid Target (coarse) patch ID.
+* @param tdir Target (coarse) patch direction.
+* @param i Reference (fine) patch ID.
+* @param d Reference (fine) patch direction.
+* @param pdata Patch-structured data for the Euler equations.
+* @param bc_buffer Buffer for applying boundary conditions.
+* @param fld Output array.
+*/
+void patch_uu_restriction_op(const int tbid, const int tdir, const int i, const int d, const struct euler_patch_data pdata[],
+  const struct gkyl_array* bc_buffer, struct gkyl_array* fld[]);
+
+/**
 * Synchronize all patches in the patch AMR hierarchy by applying all appropriate physical (outer-patch) and non-physical (inter-patch)
 * boundary conditions for the Euler equations.
 *

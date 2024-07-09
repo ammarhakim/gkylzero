@@ -220,7 +220,7 @@ void five_moment_block_bc_updaters_apply(const struct five_moment_block_data* bd
 * @param tdir Target (fine) block direction.
 * @param i Reference (coarse) block ID.
 * @param d Reference (coarse) block direction.
-* @param bdata Block-structured data for the Euler equations.
+* @param bdata Block-structured data for the coupled five-moment equations.
 * @param bc_buffer_elc Buffer for applying electron boundary conditions.
 * @param bc_buffer_ion Buffer for applying ion boundary conditions.
 * @param bc_buffer_maxwell Buffer for applying Maxwell field boundary conditions.
@@ -239,7 +239,7 @@ void block_coupled_ll_projection_op(const int tbid, const int tdir, const int i,
 * @param tdir Target (coarse) block direction.
 * @param i Reference (fine) block ID.
 * @param d Reference (fine) block direction.
-* @param bdata Block-structured data for the Euler equations.
+* @param bdata Block-structured data for the coupled five-moment equations.
 * @param bc_buffer_elc Buffer for applying electron boundary conditions.
 * @param bc_buffer_ion Buffer for applying ion boundary conditions.
 * @param bc_buffer_maxwell Buffer for applying Maxwell field boundary conditions.
@@ -258,7 +258,7 @@ void block_coupled_ll_restriction_op(const int tbid, const int tdir, const int i
 * @param tdir Target (fine) block direction.
 * @param i Reference (coarse) block ID.
 * @param d Reference (coarse) block direction.
-* @param bdata Block-structured data for the Euler equations.
+* @param bdata Block-structured data for the coupled five-moment equations.
 * @param bc_buffer_elc Buffer for applying electron boundary conditions.
 * @param bc_buffer_ion Buffer for applying ion boundary conditions.
 * @param bc_buffer_maxwell Buffer for applying Maxwell field boundary conditions.
@@ -277,7 +277,7 @@ void block_coupled_lu_projection_op(const int tbid, const int tdir, const int i,
 * @param tdir Target (coarse) block direction.
 * @param i Reference (fine) block ID.
 * @param d Reference (fine) block direction.
-* @param bdata Block-structured data for the Euler equations.
+* @param bdata Block-structured data for the coupled five-moment equations.
 * @param bc_buffer_elc Buffer for applying electron boundary conditions.
 * @param bc_buffer_ion Buffer for applying ion boundary conditions.
 * @param bc_buffer_maxwell Buffer for applying Maxwell field boundary conditions.
@@ -296,7 +296,7 @@ void block_coupled_lu_restriction_op(const int tbid, const int tdir, const int i
 * @param tdir Target (fine) block direction.
 * @param i Reference (coarse) block ID.
 * @param d Reference (coarse) block direction.
-* @param bdata Block-structured data for the Euler equations.
+* @param bdata Block-structured data for the coupled five-moment equations.
 * @param bc_buffer_elc Buffer for applying electron boundary conditions.
 * @param bc_buffer_ion Buffer for applying ion boundary conditions.
 * @param bc_buffer_maxwell Buffer for applying Maxwell field boundary conditions.
@@ -315,7 +315,7 @@ void block_coupled_ul_projection_op(const int tbid, const int tdir, const int i,
 * @param tdir Target (coarse) block direction.
 * @param i Reference (fine) block ID.
 * @param d Reference (fine) block direction.
-* @param bdata Block-structured data for the Euler equations.
+* @param bdata Block-structured data for the coupled five-moment equations.
 * @param bc_buffer_elc Buffer for applying electron boundary conditions.
 * @param bc_buffer_ion Buffer for applying ion boundary conditions.
 * @param bc_buffer_maxwell Buffer for applying Maxwell field boundary conditions.
@@ -334,7 +334,7 @@ void block_coupled_ul_restriction_op(const int tbid, const int tdir, const int i
 * @param tdir Target (fine) block direction.
 * @param i Reference (coarse) block ID.
 * @param d Reference (coarse) block direction.
-* @param bdata Block-structured data for the Euler equations.
+* @param bdata Block-structured data for the coupled five-moment equations.
 * @param bc_buffer_elc Buffer for applying electron boundary conditions.
 * @param bc_buffer_ion Buffer for applying ion boundary conditions.
 * @param bc_buffer_maxwell Buffer for applying Maxwell field boundary conditions.
@@ -353,7 +353,7 @@ void block_coupled_uu_projection_op(const int tbid, const int tdir, const int i,
 * @param tdir Target (coarse) block direction.
 * @param i Reference (fine) block ID.
 * @param d Reference (fine) block direction.
-* @param bdata Block-structured data for the Euler equations.
+* @param bdata Block-structured data for the coupled five-moment equations.
 * @param bc_buffer_elc Buffer for applying electron boundary conditions.
 * @param bc_buffer_ion Buffer for applying ion boundary conditions.
 * @param bc_buffer_maxwell Buffer for applying Maxwell field boundary conditions.
