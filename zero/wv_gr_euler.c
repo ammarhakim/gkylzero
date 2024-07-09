@@ -124,6 +124,104 @@ gkyl_gr_euler_prim_vars(double gas_gamma, const double q[29], double v[29])
   gkyl_free(inv_spatial_metric);
 }
 
+void
+gkyl_gr_euler_stress_energy_tensor(double gas_gamma, const double q[29], double stress_energy[4][4])
+{
+  double v[29] = { 0.0 };
+  gkyl_gr_euler_prim_vars(gas_gamma, q, v);
+  double rho = v[0];
+  double vx = v[1];
+  double vy = v[2];
+  double vz = v[3];
+  double p = v[4];
+
+  double spatial_det = v[5];
+  double lapse = v[6];
+  double shift_x = v[7];
+  double shift_y = v[8];
+  double shift_z = v[0];
+
+  double **spatial_metric = gkyl_malloc(sizeof(double*[3]));
+  for (int i = 0; i < 3; i++) {
+    spatial_metric[i] = gkyl_malloc(sizeof(double[3]));
+  }
+
+  spatial_metric[0][0] = v[10]; spatial_metric[0][1] = v[11]; spatial_metric[0][2] = v[12];
+  spatial_metric[1][0] = v[13]; spatial_metric[1][1] = v[14]; spatial_metric[1][2] = v[15];
+  spatial_metric[2][0] = v[16]; spatial_metric[2][1] = v[17]; spatial_metric[2][2] = v[18];
+
+  double **inv_spatial_metric = gkyl_malloc(sizeof(double*[3]));
+  for (int i = 0; i < 3; i++) {
+    inv_spatial_metric[i] = gkyl_malloc(sizeof(double[3]));
+  }
+
+  inv_spatial_metric[0][0] = v[19]; inv_spatial_metric[0][1] = v[20]; inv_spatial_metric[0][2] = v[21];
+  inv_spatial_metric[1][0] = v[22]; inv_spatial_metric[1][1] = v[23]; inv_spatial_metric[1][2] = v[24];
+  inv_spatial_metric[2][0] = v[25]; inv_spatial_metric[2][1] = v[26]; inv_spatial_metric[2][2] = v[27];
+
+  bool in_excision_region = false;
+  if (v[28] < pow(10.0, -8.0)) {
+    in_excision_region = true;
+  }
+
+  if (!in_excision_region) {
+    double *vel = gkyl_malloc(sizeof(double[3]));
+    double v_sq = 0.0;
+    vel[0] = vx; vel[1] = vy; vel[2] = vz;
+
+    for (int i = 0; i < 3; i++) {
+      for (int j = 0; j < 3; j++) {
+        v_sq += spatial_metric[i][j] * vel[i] * vel[j];
+      }
+    }
+
+    double W = 1.0 / sqrt(1.0 - v_sq);
+    if (v_sq > 1.0 - pow(10.0, -8.0)) {
+      W = 1.0 / sqrt(pow(10.0, -8.0));
+    }
+
+    double h = 1.0 + ((p / rho) * (gas_gamma / (gas_gamma - 1.0)));
+
+    double *spacetime_vel = gkyl_malloc(sizeof(double[4]));
+    spacetime_vel[0] = W / lapse;
+    spacetime_vel[1] = (W * vx) - (shift_x * (W / lapse));
+    spacetime_vel[2] = (W * vy) - (shift_y * (W / lapse));
+    spacetime_vel[3] = (W * vz) - (shift_z * (W / lapse));
+
+    double *shift = gkyl_malloc(sizeof(double[3]));
+    shift[0] = shift_x; shift[1] = shift_y; shift[2] = shift_z;
+
+    double **inv_spacetime_metric = gkyl_malloc(sizeof(double*[4]));
+    for (int i = 0; i < 4; i++) {
+      inv_spacetime_metric[i] = gkyl_malloc(sizeof(double[4]));
+    }
+
+    inv_spacetime_metric[0][0] = - (1.0 / (lapse * lapse));
+    for (int i = 0; i < 3; i++) {
+      inv_spacetime_metric[0][i] = (1.0 / (lapse * lapse)) * shift[i];
+      inv_spacetime_metric[i][0] = (1.0 / (lapse * lapse)) * shift[i];
+    }
+    for (int i = 0; i < 3; i++) {
+      for (int j = 0; j < 3; j++) {
+        inv_spacetime_metric[i][j] = inv_spatial_metric[i][j] - ((1.0 / (lapse * lapse)) * shift[i] * shift[j]);
+      }
+    }
+
+    for (int i = 0; i < 4; i++) {
+      for (int j = 0; j < 4; j++) {
+        stress_energy[i][j] = (rho * h * spacetime_vel[i] * spacetime_vel[j]) + (p * inv_spacetime_metric[i][j]);
+      }
+    }
+  }
+  else {
+    for (int i = 0; i < 4; i++) {
+      for (int j = 0; j < 4; j++) {
+        stress_energy[i][j] = 0.0;
+      }
+    }
+  }
+}
+
 static inline double
 gkyl_gr_euler_max_abs_speed(double gas_gamma, const double q[29])
 {

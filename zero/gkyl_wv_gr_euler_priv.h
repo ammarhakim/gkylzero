@@ -28,6 +28,17 @@ void
 gkyl_gr_euler_prim_vars(double gas_gamma, const double q[29], double v[29]);
 
 /**
+* Compute perfect fluid stress-energy tensor (in contravariant component form) given the conserved variables.
+*
+* @param gas_gamma Adiabatic index.
+* @param q Conserved variable vector.
+* @param stress_energy Stress-energy tensor (output).
+*/
+GKYL_CU_D
+void
+gkyl_gr_euler_stress_energy_tensor(double gas_gamma, const double q[29], double stress_energy[4][4]);
+
+/**
 * Compute maximum absolute wave speed.
 *
 * @param gas_gamma Adiabatic index.
