@@ -1,8 +1,7 @@
 #pragma once
 
 #include <gkyl_block_topo.h>
-#include <gkyl_gyrokinetic.h> // I think this include breaks the layering, how do I do this?
-                              // We need the gk geometry user side input struct
+#include <gkyl_gyrokinetic.h>
 #include <gkyl_util.h>
 
 // Geometry info a single config-space block
