@@ -172,7 +172,8 @@ calc_unmag_heat_flux(const gkyl_ten_moment_grad_closure *gces,
     rho_avg = calc_harmonic_avg_2D(rho[LL_2D], rho[LU_2D], rho[UL_2D], rho[UU_2D]);
     p_avg = calc_harmonic_avg_2D(p[LL_2D], p[LU_2D], p[UL_2D], p[UU_2D]);
     vth_avg = sqrt(p_avg/rho_avg);
-    n_avg = rho_avg/gces->mass;
+    // n_avg = rho_avg/gces->mass;
+    n_avg = rho_avg;
 
     for (int k = T11; k <= T33; ++k) {
       dTx[L_1D][k] = calc_sym_grad_1D(dx, Tij[LL_2D][k], Tij[UL_2D][k]);
@@ -202,7 +203,7 @@ calc_unmag_heat_flux(const gkyl_ten_moment_grad_closure *gces,
       q[j][Q222] = alpha*n_avg*vth_avg*dTdy[compy[j]][T22];
       q[j][Q223] = alpha*n_avg*vth_avg*2.0*dTdy[compy[j]][T23]/3.0;
       q[j][Q233] = alpha*n_avg*vth_avg*dTdy[compy[j]][T33]/3.0;
-      
+
       rhs_d[j][P11] += signx[j]*q[j][Q111]/(2.0*dx) + signy[j]*q[LL_2D][Q112]/(2.0*dy);
       rhs_d[j][P12] += signx[j]*q[j][Q112]/(2.0*dx) + signy[j]*q[j][Q122]/(2.0*dy);
       rhs_d[j][P13] += signx[j]*q[j][Q113]/(2.0*dx) + signy[j]*q[j][Q123]/(2.0*dy);
@@ -236,7 +237,8 @@ calc_unmag_heat_flux(const gkyl_ten_moment_grad_closure *gces,
     p_avg = calc_harmonic_avg_3D(p[LLL_3D], p[LLU_3D], p[LUL_3D], p[LUU_3D],
                                  p[ULL_3D], p[ULU_3D], p[UUL_3D], p[UUU_3D]);
     vth_avg = sqrt(p_avg/rho_avg);
-    n_avg = rho_avg/gces->mass;
+    // n_avg = rho_avg/gces->mass;
+    n_avg = rho_avg;
 
     for (int k = T11; k <= T33; ++k) {
       dTx[LL_2D][k] = calc_sym_grad_1D(dx, Tij[LLL_3D][k], Tij[ULL_3D][k]);
@@ -267,13 +269,13 @@ calc_unmag_heat_flux(const gkyl_ten_moment_grad_closure *gces,
       dTdz[UU_2D][k] = calc_sym_grad_limiter_3D(limit, dTz[UU_2D][k], dTz[LL_2D][k], dTz[LU_2D][k], dTz[UL_2D][k]);
     }
 
-    int compx[8] = { L_1D, L_1D, L_1D, L_1D, U_1D, U_1D, U_1D, U_1D };
-    int compy[8] = { L_1D, L_1D, U_1D, U_1D, L_1D, L_1D, U_1D, U_1D };
-    int compz[8] = { L_1D, U_1D, L_1D, U_1D, L_1D, U_1D, L_1D, U_1D };
+    int compx[8] = { LL_2D, UL_2D, LU_2D, UU_2D, LL_2D, UL_2D, LU_2D, UU_2D };
+    int compy[8] = { LL_2D, UL_2D, LL_2D, UL_2D, LU_2D, UU_2D, LU_2D, UU_2D };
+    int compz[8] = { LL_2D, LL_2D, UL_2D, UL_2D, LU_2D, LU_2D, UU_2D, UU_2D };
 
-    int signx[8] = { -1.0, -1.0, -1.0, -1.0, 1.0, 1.0, 1.0, 1.0 };
-    int signy[8] = { -1.0, -1.0, 1.0, 1.0, -1.0, -1.0, 1.0, 1.0 };
-    int signz[8] = { -1.0, 1.0, -1.0, 1.0, -1.0, 1.0, -1.0, 1.0 };
+    int signx[8] = { 1.0, 1.0, 1.0, 1.0, -1.0, -1.0, -1.0, -1.0 };
+    int signy[8] = { 1.0, 1.0, -1.0, -1.0, 1.0, 1.0, -1.0, -1.0 };
+    int signz[8] = { 1.0, -1.0, 1.0, -1.0, 1.0, -1.0, 1.0, -1.0 };
 
     for (int j = LLL_3D; j <= UUU_3D; ++j) {
       q[j][Q111] = alpha*n_avg*vth_avg*(dTdx[compx[j]][T11] + dTdx[compx[j]][T11] + dTdx[compx[j]][T11])/3.0;
