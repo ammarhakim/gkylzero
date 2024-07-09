@@ -71,6 +71,17 @@ struct gkyl_block_topo* gkyl_block_geom_topo(const struct gkyl_block_geom *bgeom
 void gkyl_block_geom_set_block(struct gkyl_block_geom *bgeom, int bidx,
   const struct gkyl_block_info *info);
 
+
+/**
+ * Get geometry and connectivity information about a block.
+ *
+ * @param bgeom Geometry object
+ * @param bidx Block index
+ * @return Geometry info for block @a bidx
+ *
+ */
+const struct gkyl_block_info* gkyl_block_geom_get_block(const struct gkyl_block_geom *bgeom, int bidx);
+    
 /**
  * Check consistency of block geometry: the geometry typically has
  * redundant data in it. This method ensures the redundant data is

@@ -20,7 +20,7 @@ struct gkyl_app_restart_status {
 // inputs from user for specifying range and communicator to use
 struct gkyl_app_comm_low_inp {
   struct gkyl_range local_range; // local range over which App operates
-  struct gkyl_comm *comm; // communicator to used
+  struct gkyl_comm *comm; // communicator to use
 };
 
 // BC for blocks

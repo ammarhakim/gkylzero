@@ -1,6 +1,8 @@
 #include <gkyl_alloc.h>
-#include <gkyl_wv_euler.h>
 #include <gkyl_moment_multib.h>
+#include <gkyl_mpi_comm.h>
+#include <gkyl_null_comm.h>
+#include <gkyl_wv_euler.h>
 
 #include <rt_arg_parse.h>
 #include <mpi.h>
@@ -34,6 +36,7 @@ create_block_geom(void)
       .lower = { 0, 1 },
       .upper = { 1, 2 },
       .cells = { 128, 128 },
+      .cuts = { 1, 1 },
       
       .connections[0] = { // x-direction connections
         { .bid = 0, .dir = 0, .edge = GKYL_PHYSICAL }, // physical boundary
@@ -51,6 +54,7 @@ create_block_geom(void)
       .lower = { 0, 0 },
       .upper = { 1, 1 },
       .cells = { 128, 128 },
+      .cuts = { 1, 1 },
       
       .connections[0] = { // x-direction connections
         { .bid = 0, .dir = 0, .edge = GKYL_PHYSICAL }, // physical boundary
@@ -68,6 +72,7 @@ create_block_geom(void)
       .lower = { 1, 0 },
       .upper = { 2, 1 },
       .cells = { 128, 128 },
+      .cuts = { 1, 1 },
       
       .connections[0] = { // x-direction connections
         { .bid = 1, .dir = 0, .edge = GKYL_UPPER_POSITIVE },
@@ -118,11 +123,18 @@ main(int argc, char **argv)
 {
   struct gkyl_app_args app_args = parse_app_args(argc, argv);
 
-#ifdef GKYL_HAVE_MPI
+  struct gkyl_comm *comm = 0;
   if (app_args.use_mpi) {
+#ifdef GKYL_HAVE_MPI    
     MPI_Init(&argc, &argv);
+    comm = gkyl_mpi_comm_new( &(struct gkyl_mpi_comm_inp) {
+        .mpi_comm = MPI_COMM_WORLD
+      }
+    );
+#endif    
   }
-#endif
+  if (comm == 0)
+    comm = gkyl_null_comm_inew( &(struct gkyl_null_comm_inp) { } );
 
   if (app_args.trace_mem) {
     gkyl_cu_dev_mem_debug_set(true);
@@ -160,11 +172,14 @@ main(int argc, char **argv)
 
   struct gkyl_moment_multib_species euler = {
     .name = "euler",
-    .charge = 0.0, .mass = 1.0,
+    .charge = 0.0,
+    .mass = 1.0,
     .equation = euler_eqn,
 
     .duplicate_across_blocks = true,
     .blocks = euler_blocks,
+
+    .num_physical_bcs = 8,
     .bcs = euler_phys_bcs,
   };
 
@@ -176,6 +191,8 @@ main(int argc, char **argv)
 
     .num_species = 1,
     .species = { euler },
+
+    .comm = comm
   };
 
   struct gkyl_moment_multib_app *app = gkyl_moment_multib_app_new(&app_inp);
@@ -191,9 +208,10 @@ main(int argc, char **argv)
   gkyl_moment_multib_app_apply_ic(app, t_curr);
   write_data(&io_trig, app, t_curr, false);
 
+  gkyl_comm_release(comm);
   gkyl_block_geom_release(bgeom);
   gkyl_wv_eqn_release(euler_eqn);
   gkyl_moment_multib_app_release(app);
   
   return 0;
-}     
+}
