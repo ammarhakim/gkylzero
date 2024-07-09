@@ -130,6 +130,158 @@ void five_moment_patch_bc_updaters_apply(const struct five_moment_patch_data* pd
   struct gkyl_array* fld_elc, struct gkyl_array *fld_ion, struct gkyl_array* fld_maxwell);
 
 /**
+* Coarse-to-fine projection operator for coupled, patch-structured AMR, assuming a lower coarse patch and a lower fine patch.
+*
+* @param tbid Target (fine) patch ID.
+* @param tdir Target (fine) patch direction.
+* @param i Reference (coarse) patch ID.
+* @param d Reference (coarse) patch direction.
+* @param pdata Patch-structured data for the coupled five-moment equations.
+* @param bc_buffer_elc Buffer for applying electron boundary conditions.
+* @param bc_buffer_ion Buffer for applying ion boundary conditions.
+* @param bc_buffer_maxwell Buffer for applying Maxwell field boundary conditions.
+* @param fld_elc Output array (electons).
+* @param fld_ion Output array (ions).
+* @param fld_maxwell Output array (Maxwell field).
+*/
+void patch_coupled_ll_projection_op(const int tbid, const int tdir, const int i, const int d, const struct five_moment_patch_data pdata[],
+  const struct gkyl_array* bc_buffer_elc, const struct gkyl_array* bc_buffer_ion, const struct gkyl_array* bc_buffer_maxwell,
+  struct gkyl_array* fld_elc[], struct gkyl_array* fld_ion[], struct gkyl_array* fld_maxwell[]);
+
+/**
+* Fine-to-coarse restriction operator for coupled, patch-structured AMR, assuming a lower fine patch and a lower coarse patch.
+*
+* @param tbid Target (coarse) patch ID.
+* @param tdir Target (coarse) patch direction.
+* @param i Reference (fine) patch ID.
+* @param d Reference (fine) patch direction.
+* @param pdata Patch-structured data for the coupled five-moment equations.
+* @param bc_buffer_elc Buffer for applying electron boundary conditions.
+* @param bc_buffer_ion Buffer for applying ion boundary conditions.
+* @param bc_buffer_maxwell Buffer for applying Maxwell field boundary conditions.
+* @param fld_elc Output array (electons).
+* @param fld_ion Output array (ions).
+* @param fld_maxwell Output array (Maxwell field).
+*/
+void patch_coupled_ll_restriction_op(const int tbid, const int tdir, const int i, const int d, const struct five_moment_patch_data pdata[],
+  const struct gkyl_array* bc_buffer_elc, const struct gkyl_array* bc_buffer_ion, const struct gkyl_array* bc_buffer_maxwell,
+  struct gkyl_array* fld_elc[], struct gkyl_array* fld_ion[], struct gkyl_array* fld_maxwell[]);
+
+/**
+* Coarse-to-fine projection operator for coupled, patch-structured AMR, assuming a lower coarse patch and an upper fine patch.
+*
+* @param tbid Target (fine) patch ID.
+* @param tdir Target (fine) patch direction.
+* @param i Reference (coarse) patch ID.
+* @param d Reference (coarse) patch direction.
+* @param pdata Patch-structured data for the coupled five-moment equations.
+* @param bc_buffer_elc Buffer for applying electron boundary conditions.
+* @param bc_buffer_ion Buffer for applying ion boundary conditions.
+* @param bc_buffer_maxwell Buffer for applying Maxwell field boundary conditions.
+* @param fld_elc Output array (electons).
+* @param fld_ion Output array (ions).
+* @param fld_maxwell Output array (Maxwell field).
+*/
+void patch_coupled_lu_projection_op(const int tbid, const int tdir, const int i, const int d, const struct five_moment_patch_data pdata[],
+  const struct gkyl_array* bc_buffer_elc, const struct gkyl_array* bc_buffer_ion, const struct gkyl_array* bc_buffer_maxwell,
+  struct gkyl_array* fld_elc[], struct gkyl_array* fld_ion[], struct gkyl_array* fld_maxwell[]);
+
+/**
+* Fine-to-coarse restriction operator for coupled, patch-structured AMR, assuming a lower fine patch and an upper coarse patch.
+*
+* @param tbid Target (coarse) patch ID.
+* @param tdir Target (coarse) patch direction.
+* @param i Reference (fine) patch ID.
+* @param d Reference (fine) patch direction.
+* @param pdata Patch-structured data for the coupled five-moment equations.
+* @param bc_buffer_elc Buffer for applying electron boundary conditions.
+* @param bc_buffer_ion Buffer for applying ion boundary conditions.
+* @param bc_buffer_maxwell Buffer for applying Maxwell field boundary conditions.
+* @param fld_elc Output array (electons).
+* @param fld_ion Output array (ions).
+* @param fld_maxwell Output array (Maxwell field).
+*/
+void patch_coupled_lu_restriction_op(const int tbid, const int tdir, const int i, const int d, const struct five_moment_patch_data pdata[],
+ const struct gkyl_array* bc_buffer_elc, const struct gkyl_array* bc_buffer_ion, const struct gkyl_array* bc_buffer_maxwell,
+ struct gkyl_array* fld_elc[], struct gkyl_array* fld_ion[], struct gkyl_array* fld_maxwell[]);
+
+/**
+* Coarse-to-fine projection operator for coupled, patch-structured AMR, assuming an upper coarse patch and a lower fine patch.
+*
+* @param tbid Target (fine) patch ID.
+* @param tdir Target (fine) patch direction.
+* @param i Reference (coarse) patch ID.
+* @param d Reference (coarse) patch direction.
+* @param pdata Patch-structured data for the coupled five-moment equations.
+* @param bc_buffer_elc Buffer for applying electron boundary conditions.
+* @param bc_buffer_ion Buffer for applying ion boundary conditions.
+* @param bc_buffer_maxwell Buffer for applying Maxwell field boundary conditions.
+* @param fld_elc Output array (electons).
+* @param fld_ion Output array (ions).
+* @param fld_maxwell Output array (Maxwell field).
+*/
+void patch_coupled_ul_projection_op(const int tbid, const int tdir, const int i, const int d, const struct five_moment_patch_data pdata[],
+  const struct gkyl_array* bc_buffer_elc, const struct gkyl_array* bc_buffer_ion, const struct gkyl_array* bc_buffer_maxwell,
+  struct gkyl_array* fld_elc[], struct gkyl_array* fld_ion[], struct gkyl_array* fld_maxwell[]);
+
+/**
+* Fine-to-coarse restriction operator for coupled, patch-structured AMR, assuming an upper fine patch and a lower coarse patch.
+*
+* @param tbid Target (coarse) patch ID.
+* @param tdir Target (coarse) patch direction.
+* @param i Reference (fine) patch ID.
+* @param d Reference (fine) patch direction.
+* @param pdata Patch-structured data for the coupled five-moment equations.
+* @param bc_buffer_elc Buffer for applying electron boundary conditions.
+* @param bc_buffer_ion Buffer for applying ion boundary conditions.
+* @param bc_buffer_maxwell Buffer for applying Maxwell field boundary conditions.
+* @param fld_elc Output array (electons).
+* @param fld_ion Output array (ions).
+* @param fld_maxwell Output array (Maxwell field).
+*/
+void patch_coupled_ul_restriction_op(const int tbid, const int tdir, const int i, const int d, const struct five_moment_patch_data pdata[],
+  const struct gkyl_array* bc_buffer_elc, const struct gkyl_array* bc_buffer_ion, const struct gkyl_array* bc_buffer_maxwell,
+  struct gkyl_array* fld_elc[], struct gkyl_array* fld_ion[], struct gkyl_array* fld_maxwell[]);
+
+/**
+* Coarse-to-fine projection operator for coupled, patch-structured AMR, assuming an upper coarse patch and an upper fine patch.
+*
+* @param tbid Target (fine) patch ID.
+* @param tdir Target (fine) patch direction.
+* @param i Reference (coarse) patch ID.
+* @param d Reference (coarse) patch direction.
+* @param pdata Patch-structured data for the coupled five-moment equations.
+* @param bc_buffer_elc Buffer for applying electron boundary conditions.
+* @param bc_buffer_ion Buffer for applying ion boundary conditions.
+* @param bc_buffer_maxwell Buffer for applying Maxwell field boundary conditions.
+* @param fld_elc Output array (electons).
+* @param fld_ion Output array (ions).
+* @param fld_maxwell Output array (Maxwell field).
+*/
+void patch_coupled_uu_projection_op(const int tbid, const int tdir, const int i, const int d, const struct five_moment_patch_data pdata[],
+  const struct gkyl_array* bc_buffer_elc, const struct gkyl_array* bc_buffer_ion, const struct gkyl_array* bc_buffer_maxwell,
+  struct gkyl_array* fld_elc[], struct gkyl_array* fld_ion[], struct gkyl_array* fld_maxwell[]);
+
+/**
+* Fine-to-coarse restriction operator for coupled, patch-structured AMR, assuming an upper fine patch and an upper coarse patch.
+*
+* @param tbid Target (coarse) patch ID.
+* @param tdir Target (coarse) patch direction.
+* @param i Reference (fine) patch ID.
+* @param d Reference (fine) patch direction.
+* @param pdata Patch-structured data for the coupled five-moment equations.
+* @param bc_buffer_elc Buffer for applying electron boundary conditions.
+* @param bc_buffer_ion Buffer for applying ion boundary conditions.
+* @param bc_buffer_maxwell Buffer for applying Maxwell field boundary conditions.
+* @param fld_elc Output array (electons).
+* @param fld_ion Output array (ions).
+* @param fld_maxwell Output array (Maxwell field).
+*/
+void patch_coupled_uu_restriction_op(const int tbid, const int tdir, const int i, const int d, const struct five_moment_patch_data pdata[],
+  const struct gkyl_array* bc_buffer_elc, const struct gkyl_array* bc_buffer_ion, const struct gkyl_array* bc_buffer_maxwell,
+  struct gkyl_array* fld_elc[], struct gkyl_array* fld_ion[], struct gkyl_array* fld_maxwell[]);
+
+/**
 * Synchronize all patches in the patch AMR hierarchy by applying all appropriate physical (outer-patch) and non-physical (inter-patch)
 * boundary conditions for the coupled five-moment equations.
 *
