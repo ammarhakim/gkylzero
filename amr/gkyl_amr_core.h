@@ -503,8 +503,8 @@ struct five_moment_2d_single_init {
   double mass_ion;
   double charge_ion;
 
-  bool transmissive_x;
-  bool transmissive_y;
+  bool copy_x;
+  bool copy_y;
 
   bool wall_x;
   bool wall_y;
@@ -562,8 +562,8 @@ struct ten_moment_2d_single_init {
   double mass_ion;
   double charge_ion;
 
-  bool transmissive_x;
-  bool transmissive_y;
+  bool copy_x;
+  bool copy_y;
 
   bool wall_x;
   bool wall_y;
@@ -628,8 +628,8 @@ struct five_moment_2d_double_init {
   double mass_ion;
   double charge_ion;
 
-  bool transmissive_x;
-  bool transmissive_y;
+  bool copy_x;
+  bool copy_y;
 
   bool wall_x;
   bool wall_y;
@@ -694,8 +694,8 @@ struct ten_moment_2d_double_init {
   double mass_ion;
   double charge_ion;
 
-  bool transmissive_x;
-  bool transmissive_y;
+  bool copy_x;
+  bool copy_y;
 
   bool wall_x;
   bool wall_y;

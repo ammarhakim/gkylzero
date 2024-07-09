@@ -338,8 +338,8 @@ ten_moment_2d_run_single(int argc, char **argv, struct ten_moment_2d_single_init
   double mass_ion = init->mass_ion;
   double charge_ion = init->charge_ion;
 
-  bool transmissive_x = init->transmissive_x;
-  bool transmissive_y = init->transmissive_y;
+  bool copy_x = init->copy_x;
+  bool copy_y = init->copy_y;
 
   bool wall_x = init->wall_x;
   bool wall_y = init->wall_y;
@@ -393,8 +393,8 @@ ten_moment_2d_run_single(int argc, char **argv, struct ten_moment_2d_single_init
     gkyl_create_grid_ranges(&mesh_bdata[i].grid, (int []) { 2, 2 }, &mesh_bdata[i].ext_range, &mesh_bdata[i].range);
     mesh_bdata[i].geom = gkyl_wave_geom_new(&mesh_bdata[i].grid, &mesh_bdata[i].ext_range, 0, 0, false);
     
-    mesh_bdata[i].transmissive_x = transmissive_x;
-    mesh_bdata[i].transmissive_y = transmissive_y;
+    mesh_bdata[i].copy_x = copy_x;
+    mesh_bdata[i].copy_y = copy_y;
 
     mesh_bdata[i].wall_x = wall_x;
     mesh_bdata[i].wall_y = wall_y;
@@ -674,8 +674,8 @@ ten_moment_2d_run_double(int argc, char **argv, struct ten_moment_2d_double_init
   double mass_ion = init->mass_ion;
   double charge_ion = init->charge_ion;
 
-  bool transmissive_x = init->transmissive_x;
-  bool transmissive_y = init->transmissive_y;
+  bool copy_x = init->copy_x;
+  bool copy_y = init->copy_y;
 
   bool wall_x = init->wall_x;
   bool wall_y = init->wall_y;
@@ -762,8 +762,8 @@ ten_moment_2d_run_double(int argc, char **argv, struct ten_moment_2d_double_init
     gkyl_create_grid_ranges(&mesh_bdata[i].grid, (int []) { 2, 2 }, &mesh_bdata[i].ext_range, &mesh_bdata[i].range);
     mesh_bdata[i].geom = gkyl_wave_geom_new(&mesh_bdata[i].grid, &mesh_bdata[i].ext_range, 0, 0, false);
     
-    mesh_bdata[i].transmissive_x = transmissive_x;
-    mesh_bdata[i].transmissive_y = transmissive_y;
+    mesh_bdata[i].copy_x = copy_x;
+    mesh_bdata[i].copy_y = copy_y;
 
     mesh_bdata[i].wall_x = wall_x;
     mesh_bdata[i].wall_y = wall_y;

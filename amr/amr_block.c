@@ -12,7 +12,7 @@ skin_ghost_ranges_init_block(struct skin_ghost_ranges_block* sgr, const struct g
 }
 
 void
-euler_transmissive_bc(double t, int nc, const double* GKYL_RESTRICT skin, double* GKYL_RESTRICT ghost, void* ctx)
+euler_copy_bc(double t, int nc, const double* GKYL_RESTRICT skin, double* GKYL_RESTRICT ghost, void* ctx)
 {
   for (int i = 0; i < 5; i++) {
     ghost[i] = skin[i];
@@ -20,7 +20,7 @@ euler_transmissive_bc(double t, int nc, const double* GKYL_RESTRICT skin, double
 }
 
 void
-gr_euler_transmissive_bc(double t, int nc, const double* GKYL_RESTRICT skin, double* GKYL_RESTRICT ghost, void* ctx)
+gr_euler_copy_bc(double t, int nc, const double* GKYL_RESTRICT skin, double* GKYL_RESTRICT ghost, void* ctx)
 {
   for (int i = 0; i < 29; i++) {
     ghost[i] = skin[i];
@@ -40,12 +40,12 @@ euler_block_bc_updaters_init(struct euler_block_data* bdata, const struct gkyl_b
 
     if (conn->connections[d][0].edge == GKYL_PHYSICAL) {
       bdata->lower_bc[d] = gkyl_wv_apply_bc_new(&bdata->grid, bdata->euler, bdata->geom, d, GKYL_LOWER_EDGE, nghost,
-        euler_transmissive_bc, 0);
+        euler_copy_bc, 0);
     }
 
     if (conn->connections[d][1].edge == GKYL_PHYSICAL) {
       bdata->upper_bc[d] = gkyl_wv_apply_bc_new(&bdata->grid, bdata->euler, bdata->geom, d, GKYL_UPPER_EDGE, nghost,
-        euler_transmissive_bc, 0);
+        euler_copy_bc, 0);
     }
   }
 
@@ -76,12 +76,12 @@ euler_nested_block_bc_updaters_init(struct euler_block_data* bdata, const struct
 
     if (conn->connections[d][0].edge == GKYL_PHYSICAL) {
       bdata->lower_bc[d] = gkyl_wv_apply_bc_new(&bdata->grid, bdata->euler, bdata->geom, d, GKYL_LOWER_EDGE, nghost,
-        euler_transmissive_bc, 0);
+        euler_copy_bc, 0);
     }
 
     if (conn->connections[d][1].edge == GKYL_PHYSICAL) {
       bdata->upper_bc[d] = gkyl_wv_apply_bc_new(&bdata->grid, bdata->euler, bdata->geom, d, GKYL_UPPER_EDGE, nghost,
-        euler_transmissive_bc, 0);
+        euler_copy_bc, 0);
     }
   }
 
@@ -112,12 +112,12 @@ gr_euler_block_bc_updaters_init(struct euler_block_data* bdata, const struct gky
 
     if (conn->connections[d][0].edge == GKYL_PHYSICAL) {
       bdata->lower_bc[d] = gkyl_wv_apply_bc_new(&bdata->grid, bdata->euler, bdata->geom, d, GKYL_LOWER_EDGE, nghost,
-        gr_euler_transmissive_bc, 0);
+        gr_euler_copy_bc, 0);
     }
 
     if (conn->connections[d][1].edge == GKYL_PHYSICAL) {
       bdata->upper_bc[d] = gkyl_wv_apply_bc_new(&bdata->grid, bdata->euler, bdata->geom, d, GKYL_UPPER_EDGE, nghost,
-        gr_euler_transmissive_bc, 0);
+        gr_euler_copy_bc, 0);
     }
   }
 
@@ -148,12 +148,12 @@ gr_euler_nested_block_bc_updaters_init(struct euler_block_data* bdata, const str
 
     if (conn->connections[d][0].edge == GKYL_PHYSICAL) {
       bdata->lower_bc[d] = gkyl_wv_apply_bc_new(&bdata->grid, bdata->euler, bdata->geom, d, GKYL_LOWER_EDGE, nghost,
-        gr_euler_transmissive_bc, 0);
+        gr_euler_copy_bc, 0);
     }
 
     if (conn->connections[d][1].edge == GKYL_PHYSICAL) {
       bdata->upper_bc[d] = gkyl_wv_apply_bc_new(&bdata->grid, bdata->euler, bdata->geom, d, GKYL_UPPER_EDGE, nghost,
-        gr_euler_transmissive_bc, 0);
+        gr_euler_copy_bc, 0);
     }
   }
 

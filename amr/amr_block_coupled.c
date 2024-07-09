@@ -37,7 +37,7 @@ maxwell_wall_bc(double t, int nc, const double* GKYL_RESTRICT skin, double* GKYL
 }
 
 void
-five_moment_transmissive_bc(double t, int nc, const double* GKYL_RESTRICT skin, double* GKYL_RESTRICT ghost, void* ctx)
+five_moment_copy_bc(double t, int nc, const double* GKYL_RESTRICT skin, double* GKYL_RESTRICT ghost, void* ctx)
 {
   for (int i = 0; i < 5; i++) {
     ghost[i] = skin[i];
@@ -45,7 +45,7 @@ five_moment_transmissive_bc(double t, int nc, const double* GKYL_RESTRICT skin, 
 }
 
 void
-ten_moment_transmissive_bc(double t, int nc, const double* GKYL_RESTRICT skin, double* GKYL_RESTRICT ghost, void* ctx)
+ten_moment_copy_bc(double t, int nc, const double* GKYL_RESTRICT skin, double* GKYL_RESTRICT ghost, void* ctx)
 {
   for (int i = 0; i < 10; i++) {
     ghost[i] = skin[i];
@@ -53,7 +53,7 @@ ten_moment_transmissive_bc(double t, int nc, const double* GKYL_RESTRICT skin, d
 }
 
 void
-maxwell_transmissive_bc(double t, int nc, const double* GKYL_RESTRICT skin, double* GKYL_RESTRICT ghost, void* ctx)
+maxwell_copy_bc(double t, int nc, const double* GKYL_RESTRICT skin, double* GKYL_RESTRICT ghost, void* ctx)
 {
   for (int i = 0; i < 8; i++) {
     ghost[i] = skin[i];
@@ -71,8 +71,8 @@ five_moment_block_bc_updaters_init(struct five_moment_block_data* bdata, const s
   bool wall_x = bdata->wall_x;
   bool wall_y = bdata->wall_y;
 
-  bool transmissive_x = bdata->transmissive_x;
-  bool transmissive_y = bdata->transmissive_y;
+  bool copy_x = bdata->copy_x;
+  bool copy_y = bdata->copy_y;
 
   for (int d = 0; d < 2; d++) {
     bdata->lower_bc_elc[d] = bdata->upper_bc_elc[d] = 0;
@@ -98,23 +98,23 @@ five_moment_block_bc_updaters_init(struct five_moment_block_data* bdata, const s
           maxwell_wall_bc, 0);
       }
     }
-    else if ((d == 0 && transmissive_x) || (d == 1 && transmissive_y)) {
+    else if ((d == 0 && copy_x) || (d == 1 && copy_y)) {
       if (conn->connections[d][0].edge == GKYL_PHYSICAL) {
         bdata->lower_bc_elc[d] = gkyl_wv_apply_bc_new(&bdata->grid, bdata->euler_elc, bdata->geom, d, GKYL_LOWER_EDGE, nghost,
-          five_moment_transmissive_bc, 0);
+          five_moment_copy_bc, 0);
         bdata->lower_bc_ion[d] = gkyl_wv_apply_bc_new(&bdata->grid, bdata->euler_ion, bdata->geom, d, GKYL_LOWER_EDGE, nghost,
-          five_moment_transmissive_bc, 0);
+          five_moment_copy_bc, 0);
         bdata->lower_bc_maxwell[d] = gkyl_wv_apply_bc_new(&bdata->grid, bdata->maxwell, bdata->geom, d, GKYL_LOWER_EDGE, nghost,
-          maxwell_transmissive_bc, 0);
+          maxwell_copy_bc, 0);
       }
 
       if (conn->connections[d][1].edge == GKYL_PHYSICAL) {
         bdata->upper_bc_elc[d] = gkyl_wv_apply_bc_new(&bdata->grid, bdata->euler_elc, bdata->geom, d, GKYL_UPPER_EDGE, nghost,
-          five_moment_transmissive_bc, 0);
+          five_moment_copy_bc, 0);
         bdata->upper_bc_ion[d] = gkyl_wv_apply_bc_new(&bdata->grid, bdata->euler_ion, bdata->geom, d, GKYL_UPPER_EDGE, nghost,
-          five_moment_transmissive_bc, 0);
+          five_moment_copy_bc, 0);
         bdata->upper_bc_maxwell[d] = gkyl_wv_apply_bc_new(&bdata->grid, bdata->maxwell, bdata->geom, d, GKYL_UPPER_EDGE, nghost,
-          maxwell_transmissive_bc, 0);
+          maxwell_copy_bc, 0);
       }
     }
   }
@@ -146,8 +146,8 @@ five_moment_nested_block_bc_updaters_init(struct five_moment_block_data* bdata, 
   bool wall_x = bdata->wall_x;
   bool wall_y = bdata->wall_y;
 
-  bool transmissive_x = bdata->transmissive_x;
-  bool transmissive_y = bdata->transmissive_y;
+  bool copy_x = bdata->copy_x;
+  bool copy_y = bdata->copy_y;
 
   for (int d = 0; d < 2; d++) {
     bdata->lower_bc_elc[d] = bdata->upper_bc_elc[d] = 0;
@@ -173,23 +173,23 @@ five_moment_nested_block_bc_updaters_init(struct five_moment_block_data* bdata, 
           maxwell_wall_bc, 0);
       }
     }
-    else if ((d == 0 && transmissive_x) || (d == 1 && transmissive_y)) {
+    else if ((d == 0 && copy_x) || (d == 1 && copy_y)) {
       if (conn->connections[d][0].edge == GKYL_PHYSICAL) {
         bdata->lower_bc_elc[d] = gkyl_wv_apply_bc_new(&bdata->grid, bdata->euler_elc, bdata->geom, d, GKYL_LOWER_EDGE, nghost,
-          five_moment_transmissive_bc, 0);
+          five_moment_copy_bc, 0);
         bdata->lower_bc_ion[d] = gkyl_wv_apply_bc_new(&bdata->grid, bdata->euler_ion, bdata->geom, d, GKYL_LOWER_EDGE, nghost,
-          five_moment_transmissive_bc, 0);
+          five_moment_copy_bc, 0);
         bdata->lower_bc_maxwell[d] = gkyl_wv_apply_bc_new(&bdata->grid, bdata->maxwell, bdata->geom, d, GKYL_LOWER_EDGE, nghost,
-          maxwell_transmissive_bc, 0);
+          maxwell_copy_bc, 0);
       }
 
       if (conn->connections[d][1].edge == GKYL_PHYSICAL) {
         bdata->upper_bc_elc[d] = gkyl_wv_apply_bc_new(&bdata->grid, bdata->euler_elc, bdata->geom, d, GKYL_UPPER_EDGE, nghost,
-          five_moment_transmissive_bc, 0);
+          five_moment_copy_bc, 0);
         bdata->upper_bc_ion[d] = gkyl_wv_apply_bc_new(&bdata->grid, bdata->euler_ion, bdata->geom, d, GKYL_UPPER_EDGE, nghost,
-          five_moment_transmissive_bc, 0);
+          five_moment_copy_bc, 0);
         bdata->upper_bc_maxwell[d] = gkyl_wv_apply_bc_new(&bdata->grid, bdata->maxwell, bdata->geom, d, GKYL_UPPER_EDGE, nghost,
-          maxwell_transmissive_bc, 0);
+          maxwell_copy_bc, 0);
       }
     }
   }
@@ -221,8 +221,8 @@ ten_moment_block_bc_updaters_init(struct five_moment_block_data* bdata, const st
   bool wall_x = bdata->wall_x;
   bool wall_y = bdata->wall_y;
 
-  bool transmissive_x = bdata->transmissive_x;
-  bool transmissive_y = bdata->transmissive_y;
+  bool copy_x = bdata->copy_x;
+  bool copy_y = bdata->copy_y;
 
   for (int d = 0; d < 2; d++) {
     bdata->lower_bc_elc[d] = bdata->upper_bc_elc[d] = 0;
@@ -248,23 +248,23 @@ ten_moment_block_bc_updaters_init(struct five_moment_block_data* bdata, const st
           maxwell_wall_bc, 0);
       }
     }
-    else if ((d == 0 && transmissive_x) || (d == 1 && transmissive_y)) {
+    else if ((d == 0 && copy_x) || (d == 1 && copy_y)) {
       if (conn->connections[d][0].edge == GKYL_PHYSICAL) {
         bdata->lower_bc_elc[d] = gkyl_wv_apply_bc_new(&bdata->grid, bdata->euler_elc, bdata->geom, d, GKYL_LOWER_EDGE, nghost,
-          ten_moment_transmissive_bc, 0);
+          ten_moment_copy_bc, 0);
         bdata->lower_bc_ion[d] = gkyl_wv_apply_bc_new(&bdata->grid, bdata->euler_ion, bdata->geom, d, GKYL_LOWER_EDGE, nghost,
-          ten_moment_transmissive_bc, 0);
+          ten_moment_copy_bc, 0);
         bdata->lower_bc_maxwell[d] = gkyl_wv_apply_bc_new(&bdata->grid, bdata->maxwell, bdata->geom, d, GKYL_LOWER_EDGE, nghost,
-          maxwell_transmissive_bc, 0);
+          maxwell_copy_bc, 0);
       }
 
       if (conn->connections[d][1].edge == GKYL_PHYSICAL) {
         bdata->upper_bc_elc[d] = gkyl_wv_apply_bc_new(&bdata->grid, bdata->euler_elc, bdata->geom, d, GKYL_UPPER_EDGE, nghost,
-          ten_moment_transmissive_bc, 0);
+          ten_moment_copy_bc, 0);
         bdata->upper_bc_ion[d] = gkyl_wv_apply_bc_new(&bdata->grid, bdata->euler_ion, bdata->geom, d, GKYL_UPPER_EDGE, nghost,
-          ten_moment_transmissive_bc, 0);
+          ten_moment_copy_bc, 0);
         bdata->upper_bc_maxwell[d] = gkyl_wv_apply_bc_new(&bdata->grid, bdata->maxwell, bdata->geom, d, GKYL_UPPER_EDGE, nghost,
-          maxwell_transmissive_bc, 0);
+          maxwell_copy_bc, 0);
       }
     }
   }
@@ -296,8 +296,8 @@ ten_moment_nested_block_bc_updaters_init(struct five_moment_block_data* bdata, c
   bool wall_x = bdata->wall_x;
   bool wall_y = bdata->wall_y;
 
-  bool transmissive_x = bdata->transmissive_x;
-  bool transmissive_y = bdata->transmissive_y;
+  bool copy_x = bdata->copy_x;
+  bool copy_y = bdata->copy_y;
 
   for (int d = 0; d < 2; d++) {
     bdata->lower_bc_elc[d] = bdata->upper_bc_elc[d] = 0;
@@ -323,23 +323,23 @@ ten_moment_nested_block_bc_updaters_init(struct five_moment_block_data* bdata, c
           maxwell_wall_bc, 0);
       }
     }
-    else if ((d == 0 && transmissive_x) || (d == 1 && transmissive_y)) {
+    else if ((d == 0 && copy_x) || (d == 1 && copy_y)) {
       if (conn->connections[d][0].edge == GKYL_PHYSICAL) {
         bdata->lower_bc_elc[d] = gkyl_wv_apply_bc_new(&bdata->grid, bdata->euler_elc, bdata->geom, d, GKYL_LOWER_EDGE, nghost,
-          ten_moment_transmissive_bc, 0);
+          ten_moment_copy_bc, 0);
         bdata->lower_bc_ion[d] = gkyl_wv_apply_bc_new(&bdata->grid, bdata->euler_ion, bdata->geom, d, GKYL_LOWER_EDGE, nghost,
-          ten_moment_transmissive_bc, 0);
+          ten_moment_copy_bc, 0);
         bdata->lower_bc_maxwell[d] = gkyl_wv_apply_bc_new(&bdata->grid, bdata->maxwell, bdata->geom, d, GKYL_LOWER_EDGE, nghost,
-          maxwell_transmissive_bc, 0);
+          maxwell_copy_bc, 0);
       }
 
       if (conn->connections[d][1].edge == GKYL_PHYSICAL) {
         bdata->upper_bc_elc[d] = gkyl_wv_apply_bc_new(&bdata->grid, bdata->euler_elc, bdata->geom, d, GKYL_UPPER_EDGE, nghost,
-          ten_moment_transmissive_bc, 0);
+          ten_moment_copy_bc, 0);
         bdata->upper_bc_ion[d] = gkyl_wv_apply_bc_new(&bdata->grid, bdata->euler_ion, bdata->geom, d, GKYL_UPPER_EDGE, nghost,
-          ten_moment_transmissive_bc, 0);
+          ten_moment_copy_bc, 0);
         bdata->upper_bc_maxwell[d] = gkyl_wv_apply_bc_new(&bdata->grid, bdata->maxwell, bdata->geom, d, GKYL_UPPER_EDGE, nghost,
-          maxwell_transmissive_bc, 0);
+          maxwell_copy_bc, 0);
       }
     }
   }

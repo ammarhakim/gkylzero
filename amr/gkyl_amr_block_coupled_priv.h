@@ -61,8 +61,8 @@ struct five_moment_block_data {
 
   gkyl_moment_em_coupling *src_slvr;
 
-  bool transmissive_x;
-  bool transmissive_y;
+  bool copy_x;
+  bool copy_y;
 
   bool wall_x;
   bool wall_y;
@@ -130,29 +130,29 @@ void ten_moment_wall_bc(double t, int nc, const double* GKYL_RESTRICT skin, doub
 void maxwell_wall_bc(double t, int nc, const double* GKYL_RESTRICT skin, double* GKYL_RESTRICT ghost, void* ctx);
 
 /**
-* Boundary condition function for applying transmissive boundary conditions for the coupled five-moment equations.
+* Boundary condition function for applying copy boundary conditions for the coupled five-moment equations.
 *
 * @param t Current simulation time.
-* @param nc Number of boundary cells to which to apply transmissive boundary conditions.
+* @param nc Number of boundary cells to which to apply copy boundary conditions.
 * @param skin Skin cells in boundary region (from which values are copied).
 * @param ghost Ghost cells in boundary region (to which values are copied).
 * @param ctx Context to pass to the function.
 */
-void five_moment_transmissive_bc(double t, int nc, const double* GKYL_RESTRICT skin, double* GKYL_RESTRICT ghost, void* ctx);
+void five_moment_copy_bc(double t, int nc, const double* GKYL_RESTRICT skin, double* GKYL_RESTRICT ghost, void* ctx);
 
 /**
-* Boundary condition function for applying transmissive boundary conditions for the coupled ten-moment equations.
+* Boundary condition function for applying copy boundary conditions for the coupled ten-moment equations.
 *
 * @param t Current simulation time.
-* @param nc Number of boundary cells to which to apply transmissive boundary conditions.
+* @param nc Number of boundary cells to which to apply copy boundary conditions.
 * @param skin Skin cells in boundary region (from which values are copied).
 * @param ghost Ghost cells in boundary region (to which values are copied).
 * @param ctx Context to pass to the function.
 */
-void ten_moment_transmissive_bc(double t, int nc, const double* GKYL_RESTRICT skin, double* GKYL_RESTRICT ghost, void* ctx);
+void ten_moment_copy_bc(double t, int nc, const double* GKYL_RESTRICT skin, double* GKYL_RESTRICT ghost, void* ctx);
 
 /**
-* Boundary condition function for applying transmissive boundary conditions for the Maxwell equations.
+* Boundary condition function for applying copy boundary conditions for the Maxwell equations.
 *
 * @param t Current simulation time.
 * @param nc Number of boundary cells to which to apply tranmissive boundary conditions.
@@ -160,7 +160,7 @@ void ten_moment_transmissive_bc(double t, int nc, const double* GKYL_RESTRICT sk
 * @param ghost Ghost cells in boundary region (to which values are copied).
 * @param ctx Context to pass to the function.
 */
-void maxwell_transmissive_bc(double t, int nc, const double* GKYL_RESTRICT skin, double* GKYL_RESTRICT ghost, void* ctx);
+void maxwell_copy_bc(double t, int nc, const double* GKYL_RESTRICT skin, double* GKYL_RESTRICT ghost, void* ctx);
 
 /**
 * Initialize block AMR updaters for both physical (outer-block) and non-physical (inter-block) boundary conditions for the coupled five-moment equations.

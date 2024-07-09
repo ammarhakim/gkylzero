@@ -286,8 +286,8 @@ int main(int argc, char **argv)
     .mass_ion = ctx.mass_ion,
     .charge_ion = ctx.charge_ion,
 
-    .transmissive_x = true,
-    .transmissive_y = false,
+    .copy_x = true,
+    .copy_y = false,
 
     .wall_x = false,
     .wall_y = true,

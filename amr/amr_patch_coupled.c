@@ -15,20 +15,20 @@ five_moment_patch_bc_updaters_init(struct five_moment_patch_data* pdata, const s
 
   if (conn->connections[0][0].edge == GKYL_PHYSICAL) {
     pdata->lower_bc_elc[0] = gkyl_wv_apply_bc_new(&pdata->grid, pdata->euler_elc, pdata->geom, 0, GKYL_LOWER_EDGE, nghost,
-      five_moment_transmissive_bc, 0);
+      five_moment_copy_bc, 0);
     pdata->lower_bc_ion[0] = gkyl_wv_apply_bc_new(&pdata->grid, pdata->euler_ion, pdata->geom, 0, GKYL_LOWER_EDGE, nghost,
-      five_moment_transmissive_bc, 0);
+      five_moment_copy_bc, 0);
     pdata->lower_bc_maxwell[0] = gkyl_wv_apply_bc_new(&pdata->grid, pdata->maxwell, pdata->geom, 0, GKYL_LOWER_EDGE, nghost,
-      maxwell_transmissive_bc, 0);
+      maxwell_copy_bc, 0);
   }
 
   if (conn->connections[0][1].edge == GKYL_PHYSICAL) {
     pdata->upper_bc_elc[0] = gkyl_wv_apply_bc_new(&pdata->grid, pdata->euler_elc, pdata->geom, 0, GKYL_UPPER_EDGE, nghost,
-      five_moment_transmissive_bc, 0);
+      five_moment_copy_bc, 0);
     pdata->upper_bc_ion[0] = gkyl_wv_apply_bc_new(&pdata->grid, pdata->euler_ion, pdata->geom, 0, GKYL_UPPER_EDGE, nghost,
-      five_moment_transmissive_bc, 0);
+      five_moment_copy_bc, 0);
     pdata->upper_bc_maxwell[0] = gkyl_wv_apply_bc_new(&pdata->grid, pdata->maxwell, pdata->geom, 0, GKYL_UPPER_EDGE, nghost,
-      maxwell_transmissive_bc, 0);
+      maxwell_copy_bc, 0);
   }
 
   skin_ghost_ranges_init_patch(&pdata->skin_ghost, &pdata->ext_range, nghost);
@@ -59,20 +59,20 @@ five_moment_nested_patch_bc_updaters_init(struct five_moment_patch_data* pdata, 
 
   if (conn->connections[0][0].edge == GKYL_PHYSICAL) {
     pdata->lower_bc_elc[0] = gkyl_wv_apply_bc_new(&pdata->grid, pdata->euler_elc, pdata->geom, 0, GKYL_LOWER_EDGE, nghost,
-      five_moment_transmissive_bc, 0);
+      five_moment_copy_bc, 0);
     pdata->lower_bc_ion[0] = gkyl_wv_apply_bc_new(&pdata->grid, pdata->euler_ion, pdata->geom, 0, GKYL_LOWER_EDGE, nghost,
-      five_moment_transmissive_bc, 0);
+      five_moment_copy_bc, 0);
     pdata->lower_bc_maxwell[0] = gkyl_wv_apply_bc_new(&pdata->grid, pdata->maxwell, pdata->geom, 0, GKYL_LOWER_EDGE, nghost,
-      maxwell_transmissive_bc, 0);
+      maxwell_copy_bc, 0);
   }
 
   if (conn->connections[0][1].edge == GKYL_PHYSICAL) {
     pdata->upper_bc_elc[0] = gkyl_wv_apply_bc_new(&pdata->grid, pdata->euler_elc, pdata->geom, 0, GKYL_UPPER_EDGE, nghost,
-      five_moment_transmissive_bc, 0);
+      five_moment_copy_bc, 0);
     pdata->upper_bc_ion[0] = gkyl_wv_apply_bc_new(&pdata->grid, pdata->euler_ion, pdata->geom, 0, GKYL_UPPER_EDGE, nghost,
-      five_moment_transmissive_bc, 0);
+      five_moment_copy_bc, 0);
     pdata->upper_bc_maxwell[0] = gkyl_wv_apply_bc_new(&pdata->grid, pdata->maxwell, pdata->geom, 0, GKYL_UPPER_EDGE, nghost,
-      maxwell_transmissive_bc, 0);
+      maxwell_copy_bc, 0);
   }
 
   skin_ghost_ranges_init_patch(&pdata->skin_ghost, &pdata->ext_range, nghost);
@@ -103,20 +103,20 @@ ten_moment_patch_bc_updaters_init(struct five_moment_patch_data* pdata, const st
 
   if (conn->connections[0][0].edge == GKYL_PHYSICAL) {
     pdata->lower_bc_elc[0] = gkyl_wv_apply_bc_new(&pdata->grid, pdata->euler_elc, pdata->geom, 0, GKYL_LOWER_EDGE, nghost,
-      ten_moment_transmissive_bc, 0);
+      ten_moment_copy_bc, 0);
     pdata->lower_bc_ion[0] = gkyl_wv_apply_bc_new(&pdata->grid, pdata->euler_ion, pdata->geom, 0, GKYL_LOWER_EDGE, nghost,
-      ten_moment_transmissive_bc, 0);
+      ten_moment_copy_bc, 0);
     pdata->lower_bc_maxwell[0] = gkyl_wv_apply_bc_new(&pdata->grid, pdata->maxwell, pdata->geom, 0, GKYL_LOWER_EDGE, nghost,
-      maxwell_transmissive_bc, 0);
+      maxwell_copy_bc, 0);
   }
 
   if (conn->connections[0][1].edge == GKYL_PHYSICAL) {
     pdata->upper_bc_elc[0] = gkyl_wv_apply_bc_new(&pdata->grid, pdata->euler_elc, pdata->geom, 0, GKYL_UPPER_EDGE, nghost,
-      ten_moment_transmissive_bc, 0);
+      ten_moment_copy_bc, 0);
     pdata->upper_bc_ion[0] = gkyl_wv_apply_bc_new(&pdata->grid, pdata->euler_ion, pdata->geom, 0, GKYL_UPPER_EDGE, nghost,
-      ten_moment_transmissive_bc, 0);
+      ten_moment_copy_bc, 0);
     pdata->upper_bc_maxwell[0] = gkyl_wv_apply_bc_new(&pdata->grid, pdata->maxwell, pdata->geom, 0, GKYL_UPPER_EDGE, nghost,
-      maxwell_transmissive_bc, 0);
+      maxwell_copy_bc, 0);
   }
 
   skin_ghost_ranges_init_patch(&pdata->skin_ghost, &pdata->ext_range, nghost);
@@ -147,20 +147,20 @@ ten_moment_nested_patch_bc_updaters_init(struct five_moment_patch_data* pdata, c
 
   if (conn->connections[0][0].edge == GKYL_PHYSICAL) {
     pdata->lower_bc_elc[0] = gkyl_wv_apply_bc_new(&pdata->grid, pdata->euler_elc, pdata->geom, 0, GKYL_LOWER_EDGE, nghost,
-      ten_moment_transmissive_bc, 0);
+      ten_moment_copy_bc, 0);
     pdata->lower_bc_ion[0] = gkyl_wv_apply_bc_new(&pdata->grid, pdata->euler_ion, pdata->geom, 0, GKYL_LOWER_EDGE, nghost,
-      ten_moment_transmissive_bc, 0);
+      ten_moment_copy_bc, 0);
     pdata->lower_bc_maxwell[0] = gkyl_wv_apply_bc_new(&pdata->grid, pdata->maxwell, pdata->geom, 0, GKYL_LOWER_EDGE, nghost,
-      maxwell_transmissive_bc, 0);
+      maxwell_copy_bc, 0);
   }
 
   if (conn->connections[0][1].edge == GKYL_PHYSICAL) {
     pdata->upper_bc_elc[0] = gkyl_wv_apply_bc_new(&pdata->grid, pdata->euler_elc, pdata->geom, 0, GKYL_UPPER_EDGE, nghost,
-      ten_moment_transmissive_bc, 0);
+      ten_moment_copy_bc, 0);
     pdata->upper_bc_ion[0] = gkyl_wv_apply_bc_new(&pdata->grid, pdata->euler_ion, pdata->geom, 0, GKYL_UPPER_EDGE, nghost,
-      ten_moment_transmissive_bc, 0);
+      ten_moment_copy_bc, 0);
     pdata->upper_bc_maxwell[0] = gkyl_wv_apply_bc_new(&pdata->grid, pdata->maxwell, pdata->geom, 0, GKYL_UPPER_EDGE, nghost,
-      maxwell_transmissive_bc, 0);
+      maxwell_copy_bc, 0);
   }
 
   skin_ghost_ranges_init_patch(&pdata->skin_ghost, &pdata->ext_range, nghost);
