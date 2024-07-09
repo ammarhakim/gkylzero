@@ -133,7 +133,7 @@ void gkyl_dg_calc_sr_vars_GammaV(struct gkyl_dg_calc_sr_vars *up,
 {
 #ifdef GKYL_HAVE_CUDA
   if (gkyl_array_is_cu_dev(GammaV)) {
-    return gkyl_calc_sr_vars_GammaV_cu(up, conf_range, 
+    return gkyl_dg_calc_sr_vars_GammaV_cu(up, conf_range, 
       u_i, u_i_sq, GammaV, GammaV_sq);
   }
 #endif
