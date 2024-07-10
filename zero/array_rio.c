@@ -48,8 +48,7 @@ sub_array_write_priv(const struct gkyl_range *range,
 }
 
 int
-gkyl_grid_sub_array_header_write_fp(const struct gkyl_rect_grid *grid,
-  const struct gkyl_array_header_info *hdr, FILE *fp)
+gkyl_header_meta_write_fp(const struct gkyl_array_header_info *hdr, FILE *fp)
 {
   const char g0[5] = "gkyl0";
 
@@ -62,6 +61,15 @@ gkyl_grid_sub_array_header_write_fp(const struct gkyl_rect_grid *grid,
   fwrite(&meta_size, sizeof(uint64_t), 1, fp);
   if (meta_size > 0)
     fwrite(hdr->meta, meta_size, 1, fp);
+
+  return GKYL_ARRAY_RIO_SUCCESS;
+}
+
+int
+gkyl_grid_sub_array_header_write_fp(const struct gkyl_rect_grid *grid,
+  const struct gkyl_array_header_info *hdr, FILE *fp)
+{
+  gkyl_header_meta_write_fp(hdr, fp);  
   
   // Version 0 format is used for rest of the header
   uint64_t real_type = gkyl_array_data_type[hdr->etype];
@@ -79,8 +87,6 @@ grid_sub_array_header_read_fp(struct gkyl_rect_grid *grid,
   struct gkyl_array_header_info *hdr, bool read_meta, FILE *fp)
 {
   size_t frr;
-
-  
   hdr->meta_size = 0;
 
   char g0[6];

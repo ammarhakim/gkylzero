@@ -31,7 +31,7 @@ struct gkyl_array_meta {
 };
 
 // Array header data to write: this is for low-level control and is
-// typically not something most users would every encounter
+// typically not something most users would ever encounter
 struct gkyl_array_header_info {
   uint64_t file_type; // file type
   enum gkyl_elem_type etype; // element type

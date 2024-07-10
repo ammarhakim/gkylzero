@@ -73,6 +73,9 @@
 
   Note: the global range in Gkeyll, of which each range is a part,
   is 1-indexed.
+
+  * For file_type = 4 (block topology) there is no additional data 
+
  */
 
 #include <stdio.h>
