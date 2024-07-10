@@ -103,10 +103,10 @@ gkyl_dg_mul_conf_phase_op_range_cu_kernel(struct gkyl_basis cbasis,
   int cdim = cbasis.ndim;
   int vdim = pbasis.ndim - cdim;
   int poly_order = cbasis.poly_order;
-  mul_comp_par_op_t mul_op = choose_mul_comp_par_conf_phase_kern(pbasis.b_type, cdim, vdim, poly_order);
+  mul_op_t mul_op = choose_mul_conf_phase_kern(pbasis.b_type, cdim, vdim, poly_order);
 
   int pidx[GKYL_MAX_DIM];
-  long linc2 = threadIdx.y + blockIdx.y*blockDim.y;
+
   for (unsigned long linc1 = threadIdx.x + blockIdx.x*blockDim.x;
       linc1 < prange.volume;
       linc1 += gridDim.x*blockDim.x)
@@ -128,7 +128,7 @@ gkyl_dg_mul_conf_phase_op_range_cu_kernel(struct gkyl_basis cbasis,
     long cstart = gkyl_range_idx(&crange, cidx);
     const double *cop_d = (const double*) gkyl_array_cfetch(cop, cstart);
 
-    mul_op(cop_d, pop_d, pout_d, linc2);
+    mul_op(cop_d, pop_d, pout_d);
   }
 }
 
@@ -139,13 +139,9 @@ gkyl_dg_mul_conf_phase_op_range_cu(struct gkyl_basis *cbasis,
   const struct gkyl_array* cop, const struct gkyl_array* pop,
   const struct gkyl_range *crange, const struct gkyl_range *prange)
 {
-  dim3 dimGrid, dimBlock;
-  dimBlock.y = GKYL_MIN2(pout->ncomp, GKYL_DEFAULT_NUM_THREADS);
-  dimGrid.y = gkyl_int_div_up(pout->ncomp, dimBlock.y);
-  dimBlock.x = GKYL_DEFAULT_NUM_THREADS/pout->ncomp;
-  dimGrid.x = gkyl_int_div_up(crange->volume, dimBlock.x);
-
-  gkyl_dg_mul_conf_phase_op_range_cu_kernel<<<dimGrid, dimBlock>>>(*cbasis, *pbasis,
+  int nblocks = prange->nblocks;
+  int nthreads = prange->nthreads;
+  gkyl_dg_mul_conf_phase_op_range_cu_kernel<<<nblocks, nthreads>>>(*cbasis, *pbasis,
     pout->on_dev, cop->on_dev, pop->on_dev, *crange, *prange);
 }
 
