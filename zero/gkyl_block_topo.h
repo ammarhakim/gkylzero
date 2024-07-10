@@ -3,6 +3,8 @@
 #include <gkyl_ref_count.h>
 #include <gkyl_util.h>
 
+#include <stdio.h>
+
 // edge (lower/upper) with orientation (positive/negative)
 enum gkyl_oriented_edge {
   GKYL_LOWER_POSITIVE = 1, // this needs to be 1 and not 0
@@ -65,6 +67,16 @@ struct gkyl_block_topo* gkyl_block_topo_acquire(const struct gkyl_block_topo* bt
  * @return 1 if topology is consistent, 0 otherwise.
  */
 int gkyl_block_topo_check_consistency(const struct gkyl_block_topo *btopo);
+
+/**
+ * Write block-topology to a binary file. See description of output
+ * format in the gkyl_array_rio_formace_desc.h file (file_type = 4).
+ *
+ * @param btopo Block-topology to write to file
+ * @param fname File name to write topo
+ * @return IO status as enum gkyl_array_rio_status
+ */
+int gkyl_block_topo_write(const struct gkyl_block_topo *btopo, const char *fname);
 
 /**
  * Free block topology.

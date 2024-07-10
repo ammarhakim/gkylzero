@@ -1,5 +1,8 @@
 #include <gkyl_alloc.h>
+#include <gkyl_array_rio.h>
 #include <gkyl_block_topo.h>
+
+#include <mpack.h>
 
 // for use in consistency checking
 static const enum gkyl_oriented_edge complimentary_edges[] = {
@@ -17,6 +20,46 @@ block_topo_free(const struct gkyl_ref_count *ref)
   struct gkyl_block_topo *btopo = container_of(ref, struct gkyl_block_topo, ref_count);
   gkyl_free(btopo->conn);
   gkyl_free(btopo);
+}
+
+static struct gkyl_array_meta *
+btopo_create_mpack(const struct gkyl_block_topo *btopo)
+{
+  struct gkyl_array_meta *mt = gkyl_malloc(sizeof(*mt));
+  mt->meta_sz = 0;
+  mt->meta = 0;
+
+  mpack_writer_t writer;
+  mpack_writer_init_growable(&writer, &mt->meta, &mt->meta_sz);
+
+  // add some data to mpack
+  mpack_build_map(&writer);
+
+  mpack_write_cstr(&writer, "ndim");
+  mpack_write_i64(&writer, btopo->ndim);
+  
+  mpack_write_cstr(&writer, "num_blocks");
+  mpack_write_i64(&writer, btopo->num_blocks);
+  
+  mpack_complete_map(&writer);
+
+  int status = mpack_writer_destroy(&writer);
+
+  if (status != mpack_ok) {
+    free(mt->meta); // we need to use free here as mpack does its own malloc
+    gkyl_free(mt);
+    mt = 0;
+  }  
+
+  return mt;
+}
+
+static void
+btopo_array_meta_release(struct gkyl_array_meta *amet)
+{
+  if (!amet) return;
+  MPACK_FREE(amet->meta);
+  gkyl_free(amet);
 }
 
 struct gkyl_block_topo*
@@ -67,6 +110,21 @@ gkyl_block_topo_check_consistency(const struct gkyl_block_topo *btopo)
   }
 
   return 1;
+}
+
+int
+gkyl_block_topo_write(const struct gkyl_block_topo *btopo, const char *fname)
+{
+  enum gkyl_array_rio_status status = GKYL_ARRAY_RIO_FOPEN_FAILED;
+  FILE *fp = 0;
+  int err;
+  with_file (fp, fname, "w") {
+    struct gkyl_array_meta *amet = btopo_create_mpack(btopo);
+
+
+    btopo_array_meta_release(amet);
+  }
+  return status;  
 }
 
 struct gkyl_block_topo *

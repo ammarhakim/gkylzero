@@ -185,7 +185,7 @@ gkyl_grid_sub_array_write(const struct gkyl_rect_grid *grid, const struct gkyl_r
   const struct gkyl_array_meta *meta,
   const struct gkyl_array *arr, const char *fname)
 {
-  enum gkyl_array_rio_status status = GKYL_ARRAY_RIO_FREAD_FAILED;
+  enum gkyl_array_rio_status status = GKYL_ARRAY_RIO_FOPEN_FAILED;
   FILE *fp = 0;
   int err;
   with_file (fp, fname, "w") {
