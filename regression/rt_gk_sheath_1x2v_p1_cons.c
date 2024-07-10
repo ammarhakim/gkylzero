@@ -612,7 +612,7 @@ main(int argc, char **argv)
     
     
     .react_neut = {
-      .num_react = 3,
+      .num_react = 2,
       .react_type = {
         { .react_id = GKYL_REACT_CX,
           .type_self = GKYL_SELF_ION,
@@ -623,16 +623,16 @@ main(int argc, char **argv)
           .ion_mass = ctx.mass_ion,
           .partner_mass = ctx.mass_ion,
         },
-        { .react_id = GKYL_REACT_IZ,
-          .type_self = GKYL_SELF_ION,
-          .ion_id = GKYL_ION_H,
-          .elc_nm = "elc",
-          .ion_nm = "ion", // ion is always the higher charge state
-          .donor_nm = "D0", // interacts with elc to give up charge
-          .charge_state = 0, // corresponds to lower charge state (donor)
-          .ion_mass = ctx.mass_ion,
-          .elc_mass = ctx.mass_elc,
-        },
+        /* { .react_id = GKYL_REACT_IZ, */
+        /*   .type_self = GKYL_SELF_ION, */
+        /*   .ion_id = GKYL_ION_H, */
+        /*   .elc_nm = "elc", */
+        /*   .ion_nm = "ion", // ion is always the higher charge state */
+        /*   .donor_nm = "D0", // interacts with elc to give up charge */
+        /*   .charge_state = 0, // corresponds to lower charge state (donor) */
+        /*   .ion_mass = ctx.mass_ion, */
+        /*   .elc_mass = ctx.mass_elc, */
+        /* }, */
         { .react_id = GKYL_REACT_RECOMB,
           .type_self = GKYL_SELF_ION,
           .ion_id = GKYL_ION_H,
@@ -677,7 +677,6 @@ main(int argc, char **argv)
 
   // Field.
   struct gkyl_gyrokinetic_field field = {
-    .bmag_fac = ctx.B0, 
     .fem_parbc = GKYL_FEM_PARPROJ_NONE, 
     .kperpSq = ctx.k_perp * ctx.k_perp,
   };

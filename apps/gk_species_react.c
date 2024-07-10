@@ -74,7 +74,8 @@ gk_species_react_cross_init(struct gkyl_gyrokinetic_app *app, struct gk_species 
     react->prim_vars[i] = mkarr(app->use_gpu, 2*app->confBasis.num_basis, app->local_ext.volume);
     react->prim_vars_donor[i] = mkarr(app->use_gpu, 2*app->confBasis.num_basis, app->local_ext.volume);
     react->prim_vars_proj_inp[i] = mkarr(app->use_gpu, 3*app->confBasis.num_basis, app->local_ext.volume);
-
+    react->prim_vars_se_proj_inp[i] = mkarr(app->use_gpu, 3*app->confBasis.num_basis, app->local_ext.volume);
+    
     if (react->react_id[i] == GKYL_REACT_IZ) {
       struct gkyl_dg_iz_inp iz_inp = {
         .grid = &s->grid,
@@ -398,6 +399,7 @@ gk_species_react_release(const struct gkyl_gyrokinetic_app *app, const struct gk
     gkyl_array_release(react->prim_vars_cxi[i]);
     gkyl_array_release(react->prim_vars_cxn[i]);
     gkyl_array_release(react->prim_vars_proj_inp[i]); 
+    gkyl_array_release(react->prim_vars_se_proj_inp[i]); 
 
     if(app->use_gpu)
       gkyl_array_release(react->coeff_react_host[i]);

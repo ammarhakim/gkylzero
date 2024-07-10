@@ -608,7 +608,7 @@ main(int argc, char **argv)
       .collide_with = { "ion" },
     },
     .react_neut = {
-      .num_react = 0,
+      .num_react = 1,
       .react_type = {
         { .react_id = GKYL_REACT_RECOMB,
           .type_self = GKYL_SELF_ELC,
@@ -676,7 +676,7 @@ main(int argc, char **argv)
       .collide_with = { "elc" },
     },
     .react_neut = {
-      .num_react = 0,
+      .num_react = 2,
       .react_type = {
         { .react_id = GKYL_REACT_RECOMB,
           .type_self = GKYL_SELF_ION,
@@ -688,15 +688,15 @@ main(int argc, char **argv)
           .ion_mass = ctx.mass_ion,
           .elc_mass = ctx.mass_elc,
         },
-        /* { .react_id = GKYL_REACT_CX, */
-        /*   .type_self = GKYL_SELF_ION, */
-        /*   .ion_id = GKYL_ION_D, */
-    	/*   .elc_nm = "elc", // gets called for other rxn. fix this? */
-        /*   .ion_nm = "ion", */
-        /*   .partner_nm = "neut", */
-        /*   .ion_mass = ctx.mass_ion, */
-        /*   .partner_mass = ctx.mass_ion, */
-        /* }, */
+        { .react_id = GKYL_REACT_CX,
+          .type_self = GKYL_SELF_ION,
+          .ion_id = GKYL_ION_D,
+    	  .elc_nm = "elc", // gets called for other rxn. fix this?
+          .ion_nm = "ion",
+          .partner_nm = "neut",
+          .ion_mass = ctx.mass_ion,
+          .partner_mass = ctx.mass_ion,
+        },
       },
     },
     .source = {
@@ -745,7 +745,7 @@ main(int argc, char **argv)
     },
 
     .react_neut = {
-      .num_react = 0,
+      .num_react = 2,
       .react_type = {
         { .react_id = GKYL_REACT_RECOMB,
           .type_self = GKYL_SELF_RECVR,
