@@ -4,6 +4,7 @@
 #include <gkyl_basis.h>
 #include <gkyl_array.h>
 #include <gkyl_rect_grid.h>
+#include <gkyl_bc_emission_elastic.h>
 
 // BC types in this updater.
 enum gkyl_bc_emission_spectrum_norm_type {
@@ -69,6 +70,10 @@ struct gkyl_bc_emission_spectrum_yield_schou {
 struct gkyl_bc_emission_spectrum_yield_constant{
   double delta;
 };
+
+// context for use in computing applied acceleration
+struct vm_emission_ctx { int num_species; double t_bound; bool elastic; enum gkyl_bc_emission_spectrum_norm_type norm_type[GKYL_MAX_SPECIES]; enum gkyl_bc_emission_spectrum_yield_type yield_type[GKYL_MAX_SPECIES]; enum gkyl_bc_emission_elastic_type elastic_type; void *norm_params[GKYL_MAX_SPECIES]; void *yield_params[GKYL_MAX_SPECIES]; void *elastic_params; char in_species[GKYL_MAX_SPECIES][128]; };
+
 
 // Object type
 typedef struct gkyl_bc_emission_spectrum gkyl_bc_emission_spectrum;
