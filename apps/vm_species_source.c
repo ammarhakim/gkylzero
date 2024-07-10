@@ -45,17 +45,19 @@ vm_species_source_rhs(gkyl_vlasov_app *app, const struct vm_species *species,
   if (species->source_id == GKYL_BFLUX_SOURCE) {
     src->scale_factor = 0;
     double z[app->confBasis.num_basis];
-    double red_mom[1];
+    double red_mom[1] = { 0.0 };
 
     for (int d=0; d<app->cdim; ++d) {
-      gkyl_array_reduce(src->scale_ptr, src->source_species->bflux.mom_arr[2*d], GKYL_SUM);
       if (app->use_gpu) {
+	gkyl_array_reduce(src->scale_ptr, src->source_species->bflux.mom_arr[2*d], GKYL_SUM);
         gkyl_cu_memcpy(red_mom, src->scale_ptr, sizeof(double), GKYL_CU_MEMCPY_D2H);
       }
       else {
-        red_mom[0] = src->scale_ptr[0];
+	gkyl_array_reduce(red_mom, src->source_species->bflux.mom_arr[2*d], GKYL_SUM);
       }
-      src->scale_factor += red_mom[0];
+      double red_mom_global[1] = { 0.0 };
+      gkyl_comm_allreduce_host(app->comm, GKYL_DOUBLE, GKYL_SUM, 1, red_mom, red_mom_global);
+      src->scale_factor += red_mom_global[0];
       gkyl_array_reduce(src->scale_ptr, src->source_species->bflux.mom_arr[2*d+1], GKYL_SUM);
       if (app->use_gpu) {
         gkyl_cu_memcpy(red_mom, src->scale_ptr, sizeof(double), GKYL_CU_MEMCPY_D2H);
@@ -63,7 +65,8 @@ vm_species_source_rhs(gkyl_vlasov_app *app, const struct vm_species *species,
       else {
         red_mom[0] = src->scale_ptr[0];
       }
-      src->scale_factor += red_mom[0];
+      gkyl_comm_allreduce_host(app->comm, GKYL_DOUBLE, GKYL_SUM, 1, red_mom, red_mom_global);
+      src->scale_factor += red_mom_global[0];
     }
     src->scale_factor = src->scale_factor/src->source_length;
   }
