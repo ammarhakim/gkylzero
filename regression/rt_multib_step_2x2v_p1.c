@@ -16,24 +16,24 @@ create_block_geom(void)
    x  
    ^  
    |
-   4  +------------+------------+------------+
-   |  |b1          |b2          |b3          |
-   |  |            |            |            |
-   |  |            |            |            |
-   3  +------------+------------+------------+
-   |  |b0         x|o b10      %|$ b4        |
-   |  |           x|o          %|$           |
-   |  |           x|o          %|$           |
-   |  +------------+------------+------------+
-   2  +------------+------------+------------+
-   |  |b9         x|o b11      %|$ b5        |
-   |  |           x|o          %|$           |
-   |  |           x|o          %|$           |
-   1  +------------+------------+------------+
-   |  |b8          |b7          |b6          |
-   |  |            |            |            |
-   |  |            |            |            |
-   0  +------------+------------+------------+
+   4  +------------------+------------------+------------------+
+   |  |b1                |b2                |b3                |
+   |  |lower outer SOL   |middle outer sol  |upper outer sol   |
+   |  |                  |                  |                  |
+   3  +------------------+------------------+------------------+
+   |  |b0               x|o b10            %|$ b4              |
+   |  |lower outer PF   x|o outer core     %|$ upper outer PF  |
+   |  |                 x|o                %|$                 |
+   |  +------------------+------------------+------------------+
+   2  +------------------+------------------+------------------+
+   |  |b9               x|o b11            %|$ b5              |
+   |  |lower inner PF   x|o inner core     %|$ upper inner PF  |
+   |  |                 x|o                %|$                 |
+   1  +------------------+------------------+------------------+
+   |  |b8                |b7                |b6                |
+   |  |lower inner SOL   |middle inner SOL  |upper inner SOL   |
+   |  |                  |                  |                  |
+   0  +------------------+------------------+------------------+
 
       0 -----------1------------2------------3 -> z
 
@@ -79,8 +79,8 @@ create_block_geom(void)
       .geometry = {
         .world = {0.0},
         .geometry_id = GKYL_TOKAMAK,
-        .tok_efit_info = &efit_inp,
-        .tok_grid_info = &(struct gkyl_tok_geo_grid_inp) {
+        .tok_efit_info = efit_inp,
+        .tok_grid_info = (struct gkyl_tok_geo_grid_inp) {
           .ftype = GKYL_PF_LO_R,
           // other parameters: zmin.zmax, rclose, etc
         }
@@ -105,8 +105,8 @@ create_block_geom(void)
       .geometry = {
         .world = {0.0},
         .geometry_id = GKYL_TOKAMAK,
-        .tok_efit_info = &efit_inp,
-        .tok_grid_info = &(struct gkyl_tok_geo_grid_inp) {
+        .tok_efit_info = efit_inp,
+        .tok_grid_info = (struct gkyl_tok_geo_grid_inp) {
           .ftype = GKYL_SOL_DN_OUT_LO,
           // other parameters: zmin.zmax, rclose, etc
         }
@@ -131,8 +131,8 @@ create_block_geom(void)
       .geometry = {
         .world = {0.0},
         .geometry_id = GKYL_TOKAMAK,
-        .tok_efit_info = &efit_inp,
-        .tok_grid_info = &(struct gkyl_tok_geo_grid_inp) {
+        .tok_efit_info = efit_inp,
+        .tok_grid_info = (struct gkyl_tok_geo_grid_inp) {
           .ftype = GKYL_SOL_DN_OUT_MID,
           // other parameters: zmin.zmax, rclose, etc
         }
@@ -157,8 +157,8 @@ create_block_geom(void)
       .geometry = {
         .world = {0.0},
         .geometry_id = GKYL_TOKAMAK,
-        .tok_efit_info = &efit_inp,
-        .tok_grid_info = &(struct gkyl_tok_geo_grid_inp) {
+        .tok_efit_info = efit_inp,
+        .tok_grid_info = (struct gkyl_tok_geo_grid_inp) {
           .ftype = GKYL_SOL_DN_OUT_UP,
           // other parameters: zmin.zmax, rclose, etc
         }
@@ -183,8 +183,8 @@ create_block_geom(void)
       .geometry = {
         .world = {0.0},
         .geometry_id = GKYL_TOKAMAK,
-        .tok_efit_info = &efit_inp,
-        .tok_grid_info = &(struct gkyl_tok_geo_grid_inp) {
+        .tok_efit_info = efit_inp,
+        .tok_grid_info = (struct gkyl_tok_geo_grid_inp) {
           .ftype = GKYL_PF_UP_R,
           // other parameters: zmin.zmax, rclose, etc
         }
@@ -209,8 +209,8 @@ create_block_geom(void)
       .geometry = {
         .world = {0.0},
         .geometry_id = GKYL_TOKAMAK,
-        .tok_efit_info = &efit_inp,
-        .tok_grid_info = &(struct gkyl_tok_geo_grid_inp) {
+        .tok_efit_info = efit_inp,
+        .tok_grid_info = (struct gkyl_tok_geo_grid_inp) {
           .ftype = GKYL_PF_UP_L,
           // other parameters: zmin.zmax, rclose, etc
         }
@@ -235,8 +235,8 @@ create_block_geom(void)
       .geometry = {
         .world = {0.0},
         .geometry_id = GKYL_TOKAMAK,
-        .tok_efit_info = &efit_inp,
-        .tok_grid_info = &(struct gkyl_tok_geo_grid_inp) {
+        .tok_efit_info = efit_inp,
+        .tok_grid_info = (struct gkyl_tok_geo_grid_inp) {
           .ftype = GKYL_SOL_DN_IN_UP,
           // other parameters: zmin.zmax, rclose, etc
         }
@@ -261,8 +261,8 @@ create_block_geom(void)
       .geometry = {
         .world = {0.0},
         .geometry_id = GKYL_TOKAMAK,
-        .tok_efit_info = &efit_inp,
-        .tok_grid_info = &(struct gkyl_tok_geo_grid_inp) {
+        .tok_efit_info = efit_inp,
+        .tok_grid_info = (struct gkyl_tok_geo_grid_inp) {
           .ftype = GKYL_SOL_DN_IN_MID,
           // other parameters: zmin.zmax, rclose, etc
         }
@@ -287,8 +287,8 @@ create_block_geom(void)
       .geometry = {
         .world = {0.0},
         .geometry_id = GKYL_TOKAMAK,
-        .tok_efit_info = &efit_inp,
-        .tok_grid_info = &(struct gkyl_tok_geo_grid_inp) {
+        .tok_efit_info = efit_inp,
+        .tok_grid_info = (struct gkyl_tok_geo_grid_inp) {
           .ftype = GKYL_SOL_DN_IN_LO,
           // other parameters: zmin.zmax, rclose, etc
         }
@@ -313,8 +313,8 @@ create_block_geom(void)
       .geometry = {
         .world = {0.0},
         .geometry_id = GKYL_TOKAMAK,
-        .tok_efit_info = &efit_inp,
-        .tok_grid_info = &(struct gkyl_tok_geo_grid_inp) {
+        .tok_efit_info = efit_inp,
+        .tok_grid_info = (struct gkyl_tok_geo_grid_inp) {
           .ftype = GKYL_PF_LO_L,
           // other parameters: zmin.zmax, rclose, etc
         }
@@ -339,8 +339,8 @@ create_block_geom(void)
       .geometry = {
         .world = {0.0},
         .geometry_id = GKYL_TOKAMAK,
-        .tok_efit_info = &efit_inp,
-        .tok_grid_info = &(struct gkyl_tok_geo_grid_inp) {
+        .tok_efit_info = efit_inp,
+        .tok_grid_info = (struct gkyl_tok_geo_grid_inp) {
           .ftype = GKYL_CORE_R,
           // other parameters: zmin.zmax, rclose, etc
         }
@@ -365,8 +365,8 @@ create_block_geom(void)
       .geometry = {
         .world = {0.0},
         .geometry_id = GKYL_TOKAMAK,
-        .tok_efit_info = &efit_inp,
-        .tok_grid_info = &(struct gkyl_tok_geo_grid_inp) {
+        .tok_efit_info = efit_inp,
+        .tok_grid_info = (struct gkyl_tok_geo_grid_inp) {
           .ftype = GKYL_CORE_L,
           // other parameters: zmin.zmax, rclose, etc
         }

@@ -1,18 +1,18 @@
 #pragma once
 
+#include <math.h>
+#include <string.h>
 #include <stdbool.h>
 
+#include <gkyl_array.h>
+#include <gkyl_basis.h>
+#include <gkyl_evalf_def.h>
 #include <gkyl_math.h>
 #include <gkyl_range.h>
 #include <gkyl_rect_grid.h>
-#include <math.h>
-#include <string.h>
-#include <gkyl_evalf_def.h>
-#include <gkyl_gk_geometry.h>
 
-// Object type
-typedef struct gkyl_mirror_geo gkyl_mirror_geo;
 
+typedef struct gk_geometry gk_geometry;
 
 // Some cumulative statistics
 struct gkyl_mirror_geo_stat {
@@ -67,7 +67,7 @@ struct gkyl_mirror_geo {
 // Inputs to create a new GK geometry creation object
 struct gkyl_mirror_geo_efit_inp {
   // Inputs to get psiRZ and related inputs from efit
-  char* filepath;
+  char filepath[1024];
   int rzpoly_order;
   enum gkyl_basis_type rz_basis_type;
   int fluxpoly_order;
@@ -99,7 +99,7 @@ struct gkyl_mirror_geo_grid_inp {
   double zmin, zmax; // extents of Z for integration
 
   bool write_node_coord_array; // set to true if nodal coordinates should be written
-  const char *node_file_nm; // name of nodal coordinate file
+  char node_file_nm[1024]; // name of nodal coordinate file
 };
 
 
@@ -110,7 +110,7 @@ struct gkyl_mirror_geo_grid_inp {
  * @param inp Input parameters
  * @param New GK geometry updater
  */
-gkyl_mirror_geo *gkyl_mirror_geo_new(const struct gkyl_mirror_geo_efit_inp *inp);
+struct gkyl_mirror_geo *gkyl_mirror_geo_new(const struct gkyl_mirror_geo_efit_inp *inp);
 
 /**
  * Get R(psi,Z) for a specified psi and Z value. Multiple values may
@@ -124,7 +124,7 @@ gkyl_mirror_geo *gkyl_mirror_geo_new(const struct gkyl_mirror_geo_efit_inp *inp)
  * @param R on output, R(psi,Z)
  * @param dR on output, dR/dZ
  */
-int gkyl_mirror_geo_R_psiZ(const gkyl_mirror_geo *geo, double psi, double Z, int nmaxroots,
+int gkyl_mirror_geo_R_psiZ(const struct gkyl_mirror_geo *geo, double psi, double Z, int nmaxroots,
   double *R, double *dR);
 
 /**
@@ -143,7 +143,7 @@ int gkyl_mirror_geo_R_psiZ(const gkyl_mirror_geo *geo, double psi, double Z, int
  *    contours
  * @return Length of contour
  */
-double gkyl_mirror_geo_integrate_psi_contour(const gkyl_mirror_geo *geo, double psi,
+double gkyl_mirror_geo_integrate_psi_contour(const struct gkyl_mirror_geo *geo, double psi,
   double zmin, double zmax, double rclose);
 
 /**
@@ -153,7 +153,7 @@ double gkyl_mirror_geo_integrate_psi_contour(const gkyl_mirror_geo *geo, double 
  * @param xn computational coordinates
  * @param ret physical coordinates
  */
-void gkyl_mirror_geo_mapc2p(const gkyl_mirror_geo *geo, const struct gkyl_mirror_geo_grid_inp *inp,
+void gkyl_mirror_geo_mapc2p(const struct gkyl_mirror_geo *geo, const struct gkyl_mirror_geo_grid_inp *inp,
     const double *xn, double *ret);
 
 /**
@@ -165,7 +165,7 @@ void gkyl_mirror_geo_mapc2p(const gkyl_mirror_geo *geo, const struct gkyl_mirror
  * @param mapc2p On output, the DG representation of mapc2p
  */
 void gkyl_mirror_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, double dzc[3], 
-  evalf_t mapc2p_func, void* mapc2p_ctx, evalf_t bmag_func, void *bmag_ctx, 
+  struct gkyl_mirror_geo *geo, struct gkyl_mirror_geo_grid_inp *inp, 
   struct gkyl_array *mc2p_nodal_fd, struct gkyl_array *mc2p_nodal, struct gkyl_array *mc2p);
 
 /**
@@ -174,15 +174,11 @@ void gkyl_mirror_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, dou
  * @param geo Geometry object
  * @return Cumulative statistics
  */
-struct gkyl_mirror_geo_stat gkyl_mirror_geo_get_stat(const gkyl_mirror_geo *geo);
+struct gkyl_mirror_geo_stat gkyl_mirror_geo_get_stat(const struct gkyl_mirror_geo *geo);
 
 /**
  * Delete updater.
  *
  * @param geo Geometry object to delete
  */
-void gkyl_mirror_geo_release(gkyl_mirror_geo *geo);
-
-struct gkyl_range* gkyl_mirror_geo_get_nrange(gkyl_mirror_geo* geo);
-struct gkyl_array* gkyl_mirror_geo_get_mc2p_nodal_fd(gkyl_mirror_geo* geo);
-double* gkyl_mirror_geo_get_dzc(gkyl_mirror_geo* geo);
+void gkyl_mirror_geo_release(struct gkyl_mirror_geo *geo);

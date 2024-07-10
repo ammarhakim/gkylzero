@@ -46,29 +46,6 @@ struct gk_solovev_ctx {
   int num_failures_max; // Maximum allowable number of consecutive small time-steps.
 };
 
-struct gkyl_tok_geo_efit_inp inp = {
-  // psiRZ and related inputs
-  .filepath = "./data/eqdsk/solovev.geqdsk",
-  .rzpoly_order = 2,
-  .fluxpoly_order = 1,
-  .plate_spec = false,
-  .quad_param = {  .eps = 1e-10 }
-};
-
-struct gkyl_tok_geo_grid_inp ginp = {
-  .ftype = GKYL_SOL_DN_OUT,
-  .rclose = 3.0, // any number larger than ~2 will do
-  .rright = 3.0,
-  .rleft = 0.1,
-  .rmin = 0.1,
-  .rmax = 3.5,
-  .zmin = -1.5,
-  .zmax = 1.5,
-  .write_node_coord_array = true,
-  .node_file_nm = "solovev_nodes.gkyl"
-}; 
-
-
 void
 eval_density(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
 {
@@ -494,6 +471,31 @@ main(int argc, char **argv)
                     .lo_value = {0.0, 0.0}, .up_value = {0.0, 0.0}}, 
   };
 
+
+  struct gkyl_tok_geo_efit_inp efit_inp = {
+    // psiRZ and related inputs
+    .filepath = "./data/eqdsk/solovev.geqdsk",
+    .rzpoly_order = 2,
+    .fluxpoly_order = 1,
+    .plate_spec = false,
+    .quad_param = {  .eps = 1e-10 }
+  };
+  
+  struct gkyl_tok_geo_grid_inp grid_inp = {
+    .ftype = GKYL_SOL_DN_OUT,
+    .rclose = 3.0, // any number larger than ~2 will do
+    .rright = 3.0,
+    .rleft = 0.1,
+    .rmin = 0.1,
+    .rmax = 3.5,
+    .zmin = -1.5,
+    .zmax = 1.5,
+    .write_node_coord_array = true,
+    .node_file_nm = "solovev_nodes.gkyl"
+  }; 
+
+
+
   // GK app
   struct gkyl_gk app_inp = {
     .name = "gk_solovev_out_3x2v_p1",
@@ -507,8 +509,8 @@ main(int argc, char **argv)
 
     .geometry = {
       .geometry_id = GKYL_TOKAMAK,
-      .tok_efit_info = &inp,
-      .tok_grid_info = &ginp,
+      .tok_efit_info = efit_inp,
+      .tok_grid_info = grid_inp,
     },
 
     .num_periodic_dir = 1,

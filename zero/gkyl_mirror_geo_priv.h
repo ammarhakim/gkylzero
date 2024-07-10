@@ -2,7 +2,7 @@
 
 // Function context to pass to root finder
 struct arc_length_ctx {
-  const gkyl_mirror_geo *geo;
+  const struct gkyl_mirror_geo *geo;
   double *arc_memo;
   double psi, rclose, zmin, zmax, arcL;
   double arcL_tot; // total arc length
@@ -126,7 +126,7 @@ calc_RdR_p2(const double *psi, double psi0, double Z, double xc[2], double dx[2]
 // copied in the array R and dR. The calling function must ensure that
 // these arrays are big enough to hold all roots required
 static int
-R_psiZ(const gkyl_mirror_geo *geo, double psi, double Z, int nmaxroots,
+R_psiZ(const struct gkyl_mirror_geo *geo, double psi, double Z, int nmaxroots,
   double *R, double *dR)
 {
   int zcell = get_idx(1, Z, &geo->rzgrid, &geo->rzlocal);
@@ -165,7 +165,7 @@ R_psiZ(const gkyl_mirror_geo *geo, double psi, double Z, int nmaxroots,
 
 // Function context to pass to coutour integration function
 struct contour_ctx {
-  const gkyl_mirror_geo *geo;
+  const struct gkyl_mirror_geo *geo;
   double psi, last_R;
   long ncall;
 };
@@ -224,7 +224,7 @@ phi_contour_func(double Z, void *ctx)
 // well, discontinuous, and adaptive quadrature struggles with such
 // functions.
 static double
-integrate_psi_contour_memo(const gkyl_mirror_geo *geo, double psi,
+integrate_psi_contour_memo(const struct gkyl_mirror_geo *geo, double psi,
   double zmin, double zmax, double rclose,
   bool use_memo, bool fill_memo, double *memo)
 {
@@ -277,12 +277,12 @@ integrate_psi_contour_memo(const gkyl_mirror_geo *geo, double psi,
     }
   }
 
-  ((gkyl_mirror_geo *)geo)->stat.nquad_cont_calls += ctx.ncall;
+  ((struct gkyl_mirror_geo *)geo)->stat.nquad_cont_calls += ctx.ncall;
   return res;
 }
 
 static double
-integrate_phi_along_psi_contour_memo(const gkyl_mirror_geo *geo, double psi,
+integrate_phi_along_psi_contour_memo(const struct gkyl_mirror_geo *geo, double psi,
   double zmin, double zmax, double rclose,
   bool use_memo, bool fill_memo, double *memo)
 {
@@ -335,7 +335,7 @@ integrate_phi_along_psi_contour_memo(const gkyl_mirror_geo *geo, double psi,
     }
   }
 
-  ((gkyl_mirror_geo *)geo)->stat.nquad_cont_calls += ctx.ncall;
+  ((struct gkyl_mirror_geo *)geo)->stat.nquad_cont_calls += ctx.ncall;
   return res;
 }
 

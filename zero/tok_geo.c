@@ -277,7 +277,7 @@ dphidtheta_func(double Z, void *ctx)
 
 
 
-gkyl_tok_geo*
+struct gkyl_tok_geo*
 gkyl_tok_geo_new(const struct gkyl_tok_geo_efit_inp *inp)
 {
   struct gkyl_tok_geo *geo = gkyl_malloc(sizeof(*geo));
@@ -332,7 +332,7 @@ gkyl_tok_geo_new(const struct gkyl_tok_geo_efit_inp *inp)
 }
 
 double
-gkyl_tok_geo_integrate_psi_contour(const gkyl_tok_geo *geo, double psi,
+gkyl_tok_geo_integrate_psi_contour(const struct gkyl_tok_geo *geo, double psi,
   double zmin, double zmax, double rclose)
 {
   return integrate_psi_contour_memo(geo, psi, zmin, zmax, rclose,
@@ -340,7 +340,7 @@ gkyl_tok_geo_integrate_psi_contour(const gkyl_tok_geo *geo, double psi,
 }
 
 int
-gkyl_tok_geo_R_psiZ(const gkyl_tok_geo *geo, double psi, double Z, int nmaxroots,
+gkyl_tok_geo_R_psiZ(const struct gkyl_tok_geo *geo, double psi, double Z, int nmaxroots,
   double *R, double *dR)
 {
   return R_psiZ(geo, psi, Z, nmaxroots, R, dR);
@@ -522,7 +522,7 @@ void gkyl_tok_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, double
                 arc_ctx.zmin, arc_ctx.zmax, ridders_min, ridders_max,
                 geo->root_param.max_iter, 1e-10);
               double z_curr = res.res;
-              ((gkyl_tok_geo *)geo)->stat.nroot_cont_calls += res.nevals;
+              ((struct gkyl_tok_geo *)geo)->stat.nroot_cont_calls += res.nevals;
               double R[4] = { 0 }, dR[4] = { 0 };
               int nr = R_psiZ(geo, psi_curr, z_curr, 4, R, dR);
               double r_curr = choose_closest(rclose, R, R, nr);
@@ -591,13 +591,13 @@ void gkyl_tok_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, double
 
 
 struct gkyl_tok_geo_stat
-gkyl_tok_geo_get_stat(const gkyl_tok_geo *geo)
+gkyl_tok_geo_get_stat(const struct gkyl_tok_geo *geo)
 {
   return geo->stat;
 }
 
 void
-gkyl_tok_geo_release(gkyl_tok_geo *geo)
+gkyl_tok_geo_release(struct gkyl_tok_geo *geo)
 {
   gkyl_array_release(geo->psiRZ);
   gkyl_array_release(geo->psibyrRZ);
