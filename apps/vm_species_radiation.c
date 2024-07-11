@@ -17,11 +17,13 @@ vm_species_radiation_init(struct gkyl_vlasov_app *app, struct vm_species *s, str
   gkyl_array_copy(rad->nu, nu_host);
   gkyl_array_release(nu_host);
 
-  rad->nu_rad_drag = mkarr(app->use_gpu, vdim*app->confBasis.num_basis, app->local_ext.volume);
-  struct gkyl_array *nu_rad_drag_host = mkarr(false, app->confBasis.num_basis, app->local_ext.volume);
+  // Using the LBO operator, which expects a vdim+1 primitive moments array
+  // Last array entry is T/m which is checked for positivity before applying drag operator. 
+  rad->nu_rad_drag = mkarr(app->use_gpu, (vdim+1)*app->confBasis.num_basis, app->local_ext.volume);
+  struct gkyl_array *nu_rad_drag_host = mkarr(false, (vdim+1)*app->confBasis.num_basis, app->local_ext.volume);
   
   gkyl_proj_on_basis *proj_rad_drag = gkyl_proj_on_basis_new(&app->grid, &app->confBasis,
-    app->poly_order+1, vdim, s->info.radiation.nu_rad_drag, s->info.radiation.ctx_nu_rad_drag);
+    app->poly_order+1, vdim+1, s->info.radiation.nu_rad_drag, s->info.radiation.ctx_nu_rad_drag);
   gkyl_proj_on_basis_advance(proj_rad_drag, 0.0, &app->local, nu_rad_drag_host);
   gkyl_proj_on_basis_release(proj_rad_drag);
   gkyl_array_copy(rad->nu_rad_drag, nu_rad_drag_host);
