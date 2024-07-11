@@ -325,7 +325,8 @@ main(int argc, char **argv)
 
     .bcx = {
       .lower = { .type = GKYL_SPECIES_REFLECT, },
-      .upper = { .type = GKYL_SPECIES_ABSORB, },
+      .upper = { .type = GKYL_SPECIES_EMISSION,
+                 .aux_ctx = &bc_ctx, },
     },
     
     .num_diag_moments = 3,
