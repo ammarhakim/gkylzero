@@ -2,12 +2,31 @@
 #include <gkyl_array_ops.h>
 #include <gkyl_fv_proj.h>
 #include <gkyl_sources_implicit.h>
+#include <gkyl_sources_explicit.h>
 #include <gkyl_mat.h>
+
+void
+implicit_neut_source_update(const gkyl_moment_em_coupling* mom_em, double t_curr, double dt, double* fluid_s[GKYL_MAX_SPECIES],
+  const double* app_accel_s[GKYL_MAX_SPECIES])
+{
+  int nfluids = mom_em->nfluids;
+
+  for (int i = 0; i < nfluids; i++) {
+    double *f = fluid_s[i];
+    const double* app_accel = app_accel_s[i];
+
+    double rho = f[0];
+
+    f[1] += dt * rho * app_accel[0];
+    f[2] += dt * rho * app_accel[1];
+    f[3] += dt * rho * app_accel[2];
+  }
+}
 
 void
 implicit_source_coupling_update(const gkyl_moment_em_coupling* mom_em, double t_curr, double dt, double* fluid_s[GKYL_MAX_SPECIES],
   const double* app_accel_s[GKYL_MAX_SPECIES], const double* p_rhs_s[GKYL_MAX_SPECIES], double* em, const double* app_current,
-  const double* ext_em, const double* nT_source_s[GKYL_MAX_SPECIES])
+  const double* ext_em, const double* nT_sources_s[GKYL_MAX_SPECIES])
 {
   int nfluids = mom_em->nfluids;
   double ke_old[GKYL_MAX_SPECIES];
@@ -74,7 +93,7 @@ implicit_source_coupling_update(const gkyl_moment_em_coupling* mom_em, double t_
     // TODO: Add implicit source updater for electromagnetic sources here.
   }
   else {
-    // TODO: Add implicit source updater for neutrals here.
+    implicit_neut_source_update(mom_em, t_curr, dt, fluid_s, app_accel_s);
   }
 
   for (int i = 0; i < nfluids; i++) {
@@ -103,7 +122,8 @@ implicit_source_coupling_update(const gkyl_moment_em_coupling* mom_em, double t_
     // TODO: Add implicit source updater for collisions.
   }
 
+  // These are handled by their own specialized explicit forcing solver. To be revisited...
   if (mom_em->has_nT_sources) {
-    // TODO: Add implicit source updater for number density and temperature.
+    explicit_nT_source_update(mom_em, dt, fluid_s, nT_sources_s);
   }
 }
