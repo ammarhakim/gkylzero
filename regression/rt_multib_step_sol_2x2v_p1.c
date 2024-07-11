@@ -16,49 +16,24 @@ create_block_geom(void)
    x  
    ^  
    |
-   4  +------------------+------------------+------------------+
-   |  |b1                |b2                |b3                |
-   |  |lower outer SOL   |middle outer sol  |upper outer sol   |
-   |  |                  |                  |                  |
-   3  +------------------+------------------+------------------+
-   |  |b0               x|o b10            %|$ b4              |
-   |  |lower outer PF   x|o outer core     %|$ upper outer PF  |
-   |  |                 x|o                %|$                 |
-   |  +------------------+------------------+------------------+
-   2  +------------------+------------------+------------------+
-   |  |b9               x|o b11            %|$ b5              |
-   |  |lower inner PF   x|o inner core     %|$ upper inner PF  |
-   |  |                 x|o                %|$                 |
-   1  +------------------+------------------+------------------+
-   |  |b8                |b7                |b6                |
-   |  |lower inner SOL   |middle inner SOL  |upper inner SOL   |
-   |  |                  |                  |                  |
-   0  +------------------+------------------+------------------+
+   1  +------------------+-----------------+
+   |  |b0                |b1               |
+   |  |lower outer SOL   |middle outer sol |
+   |  |                  |                 |
+   0  +------------------+-----------------+
+      0 -----------------1-----------------2--> z
 
-      0 -----------1------------2------------3 -> z
-
-      Edges that touch coincide are physically connected unless
-      otherwise indicated by a special symbol. Edges with a special
-      symbol such as o,x,%, or % are instead connected to the other
-      edge with the same symbol. Edges that do not coincide with
-      another edge are a physical boundary.
+      Special two-block outer SOL layout for testing.
+      Edges that coincide are physically connected.
   */  
 
   double psisep = 1.50982;
-  double psi_up_core = 1.8;
-  double psi_up_pf = 1.6;
   double psi_lo_outer_sol = 0.9;
-  double psi_lo_inner_sol = 1.4;
 
   int npsi_outer_sol = 40;
-  int npsi_core = 20;
-  int npsi_inner_sol = 20;
-  int npsi_lower_pf = 10;
-  int npsi_upper_pf = 10;
 
   double ntheta_lower  = 12;
   double ntheta_middle = 24;
-  double ntheta_upper  = 12;
 
   double theta_lo = -M_PI, theta_up = M_PI;
 
@@ -71,34 +46,8 @@ create_block_geom(void)
     .quad_param = {  .eps = 1e-10 }
   };
 
-  // block 0. Lower outer PF region.
+  // block 0. Lower outer SOL.
   gkyl_block_geom_set_block(bgeom, 0, &(struct gkyl_block_geom_info) {
-      .lower = { psisep, theta_lo},
-      .upper = { psi_up_pf, theta_up},
-      .cells = { npsi_lower_pf, ntheta_lower },
-      .geometry = {
-        .world = {0.0},
-        .geometry_id = GKYL_TOKAMAK,
-        .tok_efit_info = efit_inp,
-        .tok_grid_info = (struct gkyl_tok_geo_grid_inp) {
-          .ftype = GKYL_PF_LO_R,
-          // other parameters: zmin.zmax, rclose, etc
-        }
-      },
-      
-      .connections[0] = { // x-direction connections
-        { .bid = 1, .dir = 0, .edge = GKYL_UPPER_POSITIVE },
-        { .bid = 0, .dir = 0, .edge = GKYL_PHYSICAL }  // physical boundary
-      },
-      .connections[1] = { // z-direction connections
-        { .bid = 0, .dir = 1, .edge = GKYL_PHYSICAL}, // physical boundary
-        { .bid = 9, .dir = 1, .edge = GKYL_LOWER_POSITIVE}
-      }
-    }
-  );
-  
-  // block 1. Lower outer SOL.
-  gkyl_block_geom_set_block(bgeom, 1, &(struct gkyl_block_geom_info) {
       .lower = { psi_lo_outer_sol, theta_lo },
       .upper = { psisep, theta_up },
       .cells = { npsi_outer_sol, ntheta_lower},
@@ -114,17 +63,17 @@ create_block_geom(void)
       
       .connections[0] = { // x-direction connections
         { .bid = 0, .dir = 0, .edge = GKYL_PHYSICAL}, // physical boundary
-        { .bid = 0, .dir = 0, .edge = GKYL_LOWER_POSITIVE }
+        { .bid = 0, .dir = 0, .edge = GKYL_PHYSICAL}  // physical boundary
       },
       .connections[1] = { // z-direction connections
         { .bid = 0, .dir = 1, .edge = GKYL_PHYSICAL}, // physical boundary
-        { .bid = 2, .dir = 1, .edge = GKYL_LOWER_POSITIVE}
+        { .bid = 1, .dir = 1, .edge = GKYL_LOWER_POSITIVE}
       }
     }
   );
 
-  // block 2. Middle outer SOL.
-  gkyl_block_geom_set_block(bgeom, 2, &(struct gkyl_block_geom_info) {
+  // block 1. Middle outer SOL.
+  gkyl_block_geom_set_block(bgeom, 1, &(struct gkyl_block_geom_info) {
       .lower = { psi_lo_outer_sol, theta_lo },
       .upper = { psisep, theta_up },
       .cells = { npsi_outer_sol, ntheta_middle},
@@ -140,245 +89,11 @@ create_block_geom(void)
       
       .connections[0] = { // x-direction connections
         { .bid = 0, .dir = 0, .edge = GKYL_PHYSICAL}, // physical boundary
-        { .bid = 10, .dir = 0, .edge = GKYL_LOWER_POSITIVE}
+        { .bid = 0, .dir = 0, .edge = GKYL_PHYSICAL}  // physical boundary
       },
       .connections[1] = { // z-direction connections
-        { .bid = 1, .dir = 1, .edge = GKYL_LOWER_POSITIVE},
-        { .bid = 3, .dir = 1, .edge = GKYL_UPPER_POSITIVE}
-      }
-    }
-  );
-
-  // block 3. Upper outer SOL.
-  gkyl_block_geom_set_block(bgeom, 3, &(struct gkyl_block_geom_info) {
-      .lower = { psi_lo_outer_sol, theta_lo },
-      .upper = { psisep, theta_up },
-      .cells = { npsi_outer_sol, ntheta_upper},
-      .geometry = {
-        .world = {0.0},
-        .geometry_id = GKYL_TOKAMAK,
-        .tok_efit_info = efit_inp,
-        .tok_grid_info = (struct gkyl_tok_geo_grid_inp) {
-          .ftype = GKYL_SOL_DN_OUT_UP,
-          // other parameters: zmin.zmax, rclose, etc
-        }
-      },
-      
-      .connections[0] = { // x-direction connections
-        { .bid = 0, .dir = 0, .edge = GKYL_PHYSICAL}, // physical boundary
-        { .bid = 4, .dir = 0, .edge = GKYL_LOWER_POSITIVE}
-      },
-      .connections[1] = { // z-direction connections
-        { .bid = 2, .dir = 1, .edge = GKYL_UPPER_POSITIVE},
+        { .bid = 0, .dir = 1, .edge = GKYL_LOWER_POSITIVE},
         { .bid = 0, .dir = 1, .edge = GKYL_PHYSICAL} // physical boundary
-      }
-    }
-  );
-
-  // block 4. Upper outer PF region.
-  gkyl_block_geom_set_block(bgeom, 4, &(struct gkyl_block_geom_info) {
-      .lower = { psisep, theta_lo},
-      .upper = { psi_up_pf, theta_up},
-      .cells = { npsi_upper_pf, ntheta_upper},
-      .geometry = {
-        .world = {0.0},
-        .geometry_id = GKYL_TOKAMAK,
-        .tok_efit_info = efit_inp,
-        .tok_grid_info = (struct gkyl_tok_geo_grid_inp) {
-          .ftype = GKYL_PF_UP_R,
-          // other parameters: zmin.zmax, rclose, etc
-        }
-      },
-      
-      .connections[0] = { // x-direction connections
-        { .bid = 3, .dir = 0, .edge = GKYL_UPPER_POSITIVE},
-        { .bid = 0, .dir = 0, .edge = GKYL_PHYSICAL}  // physical boundary
-      },
-      .connections[1] = { // z-direction connections
-        { .bid = 5, .dir = 1, .edge = GKYL_UPPER_POSITIVE},
-        { .bid = 0, .dir = 1, .edge = GKYL_PHYSICAL} // physical boundary
-      }
-    }
-  );
-  
-  // block 5. Upper inner PF region.
-  gkyl_block_geom_set_block(bgeom, 5, &(struct gkyl_block_geom_info) {
-      .lower = { psisep, theta_lo},
-      .upper = { psi_up_pf, theta_up},
-      .cells = { npsi_upper_pf, ntheta_upper},
-      .geometry = {
-        .world = {0.0},
-        .geometry_id = GKYL_TOKAMAK,
-        .tok_efit_info = efit_inp,
-        .tok_grid_info = (struct gkyl_tok_geo_grid_inp) {
-          .ftype = GKYL_PF_UP_L,
-          // other parameters: zmin.zmax, rclose, etc
-        }
-      },
-      
-      .connections[0] = { // x-direction connections
-        { .bid = 6, .dir = 0, .edge = GKYL_UPPER_POSITIVE},
-        { .bid = 0, .dir = 0, .edge = GKYL_PHYSICAL}  // physical boundary
-      },
-      .connections[1] = { // z-direction connections
-        { .bid = 0, .dir = 1, .edge = GKYL_PHYSICAL }, // physical boundary
-        { .bid = 4, .dir = 1, .edge = GKYL_LOWER_POSITIVE}
-      }
-    }
-  );
-
-  // block 6. Upper inner SOL.
-  gkyl_block_geom_set_block(bgeom, 6, &(struct gkyl_block_geom_info) {
-      .lower = { psi_lo_inner_sol, theta_lo },
-      .upper = { psisep, theta_up },
-      .cells = { npsi_inner_sol, ntheta_upper},
-      .geometry = {
-        .world = {0.0},
-        .geometry_id = GKYL_TOKAMAK,
-        .tok_efit_info = efit_inp,
-        .tok_grid_info = (struct gkyl_tok_geo_grid_inp) {
-          .ftype = GKYL_SOL_DN_IN_UP,
-          // other parameters: zmin.zmax, rclose, etc
-        }
-      },
-      
-      .connections[0] = { // x-direction connections
-        { .bid = 0, .dir = 0, .edge = GKYL_PHYSICAL}, // physical boundary
-        { .bid = 5, .dir = 0, .edge = GKYL_LOWER_POSITIVE}
-      },
-      .connections[1] = { // z-direction connections
-        { .bid = 0, .dir = 1, .edge = GKYL_PHYSICAL}, // physical boundary
-        { .bid = 7, .dir = 1, .edge = GKYL_LOWER_POSITIVE}
-      }
-    }
-  );
-  
-  // block 7. Middle inner SOL.
-  gkyl_block_geom_set_block(bgeom, 7, &(struct gkyl_block_geom_info) {
-      .lower = { psi_lo_inner_sol, theta_lo },
-      .upper = { psisep, theta_up },
-      .cells = { npsi_outer_sol, ntheta_middle},
-      .geometry = {
-        .world = {0.0},
-        .geometry_id = GKYL_TOKAMAK,
-        .tok_efit_info = efit_inp,
-        .tok_grid_info = (struct gkyl_tok_geo_grid_inp) {
-          .ftype = GKYL_SOL_DN_IN_MID,
-          // other parameters: zmin.zmax, rclose, etc
-        }
-      },
-      
-      .connections[0] = { // x-direction connections
-        { .bid = 0, .dir = 0, .edge = GKYL_PHYSICAL}, // physical boundary
-        { .bid = 11, .dir = 0, .edge = GKYL_LOWER_POSITIVE}
-      },
-      .connections[1] = { // z-direction connections
-        { .bid = 6, .dir = 1, .edge = GKYL_UPPER_POSITIVE},
-        { .bid = 8, .dir = 1, .edge = GKYL_LOWER_POSITIVE}
-      }
-    }
-  );
-
-  // block 8. Lower inner SOL.
-  gkyl_block_geom_set_block(bgeom, 8, &(struct gkyl_block_geom_info) {
-      .lower = { psi_lo_inner_sol, theta_lo },
-      .upper = { psisep, theta_up },
-      .cells = { npsi_outer_sol, ntheta_lower},
-      .geometry = {
-        .world = {0.0},
-        .geometry_id = GKYL_TOKAMAK,
-        .tok_efit_info = efit_inp,
-        .tok_grid_info = (struct gkyl_tok_geo_grid_inp) {
-          .ftype = GKYL_SOL_DN_IN_LO,
-          // other parameters: zmin.zmax, rclose, etc
-        }
-      },
-      
-      .connections[0] = { // x-direction connections
-        { .bid = 0, .dir = 0, .edge = GKYL_PHYSICAL}, // physical boundary
-        { .bid = 9, .dir = 0, .edge = GKYL_LOWER_POSITIVE}
-      },
-      .connections[1] = { // z-direction connections
-        { .bid = 7, .dir = 1, .edge = GKYL_UPPER_POSITIVE},
-        { .bid = 0, .dir = 1, .edge = GKYL_PHYSICAL}
-      }
-    }
-  );
-
-  // block 9. Lower inner PF region.
-  gkyl_block_geom_set_block(bgeom, 9, &(struct gkyl_block_geom_info) {
-      .lower = { psisep, theta_lo},
-      .upper = { psi_up_pf, theta_up},
-      .cells = { npsi_lower_pf, ntheta_lower },
-      .geometry = {
-        .world = {0.0},
-        .geometry_id = GKYL_TOKAMAK,
-        .tok_efit_info = efit_inp,
-        .tok_grid_info = (struct gkyl_tok_geo_grid_inp) {
-          .ftype = GKYL_PF_LO_L,
-          // other parameters: zmin.zmax, rclose, etc
-        }
-      },
-      
-      .connections[0] = { // x-direction connections
-        { .bid = 8, .dir = 0, .edge = GKYL_UPPER_POSITIVE},
-        { .bid = 0, .dir = 0, .edge = GKYL_PHYSICAL}  // physical boundary
-      },
-      .connections[1] = { // z-direction connections
-        { .bid = 0, .dir = 1, .edge = GKYL_UPPER_POSITIVE},
-        { .bid = 0, .dir = 1, .edge = GKYL_PHYSICAL} // physical boundary
-      }
-    }
-  );
-
-  // block 10. Outer core.
-  gkyl_block_geom_set_block(bgeom, 10, &(struct gkyl_block_geom_info) {
-      .lower = { psisep, theta_lo},
-      .upper = { psi_up_core, theta_up},
-      .cells = { npsi_core, ntheta_middle},
-      .geometry = {
-        .world = {0.0},
-        .geometry_id = GKYL_TOKAMAK,
-        .tok_efit_info = efit_inp,
-        .tok_grid_info = (struct gkyl_tok_geo_grid_inp) {
-          .ftype = GKYL_CORE_R,
-          // other parameters: zmin.zmax, rclose, etc
-        }
-      },
-      
-      .connections[0] = { // x-direction connections
-        { .bid = 2, .dir = 0, .edge = GKYL_UPPER_POSITIVE},
-        { .bid = 0, .dir = 0, .edge = GKYL_PHYSICAL}  // physical boundary
-      },
-      .connections[1] = { // z-direction connections
-        { .bid = 11, .dir = 1, .edge = GKYL_UPPER_POSITIVE},
-        { .bid = 11, .dir = 1, .edge = GKYL_LOWER_POSITIVE}
-      }
-    }
-  );
-
-  // block 11. Outer core.
-  gkyl_block_geom_set_block(bgeom, 11, &(struct gkyl_block_geom_info) {
-      .lower = { psisep, theta_lo},
-      .upper = { psi_up_core, theta_up},
-      .cells = { npsi_core, ntheta_middle},
-      .geometry = {
-        .world = {0.0},
-        .geometry_id = GKYL_TOKAMAK,
-        .tok_efit_info = efit_inp,
-        .tok_grid_info = (struct gkyl_tok_geo_grid_inp) {
-          .ftype = GKYL_CORE_L,
-          // other parameters: zmin.zmax, rclose, etc
-        }
-      },
-      
-      .connections[0] = { // x-direction connections
-        { .bid = 7, .dir = 0, .edge = GKYL_UPPER_POSITIVE},
-        { .bid = 0, .dir = 0, .edge = GKYL_PHYSICAL}  // physical boundary
-      },
-      .connections[1] = { // z-direction connections
-        { .bid = 10, .dir = 1, .edge = GKYL_UPPER_POSITIVE},
-        { .bid = 10, .dir = 1, .edge = GKYL_LOWER_POSITIVE}
       }
     }
   );
@@ -726,37 +441,13 @@ main(int argc, char **argv)
 
   struct gkyl_block_physical_bcs elc_phys_bcs[] = {
     // block 0 BCs
+    { .bidx = 0, .dir = 0, .edge = GKYL_LOWER_EDGE, .bc_type = GKYL_SPECIES_ABSORB},
     { .bidx = 0, .dir = 0, .edge = GKYL_UPPER_EDGE, .bc_type = GKYL_SPECIES_ABSORB},
     { .bidx = 0, .dir = 1, .edge = GKYL_LOWER_EDGE, .bc_type = GKYL_SPECIES_GK_SHEATH},
     // block 1 BCs
-    { .bidx = 1, .dir = 0, .edge = GKYL_LOWER_EDGE, .bc_type = GKYL_SPECIES_ABSORB},
-    { .bidx = 1, .dir = 1, .edge = GKYL_LOWER_EDGE, .bc_type = GKYL_SPECIES_GK_SHEATH},
-    // block 2 BCs
-    { .bidx = 2, .dir = 0, .edge = GKYL_LOWER_EDGE, .bc_type = GKYL_SPECIES_ABSORB },
-    // block 3 BCs
-    { .bidx = 3, .dir = 0, .edge = GKYL_LOWER_EDGE, .bc_type = GKYL_SPECIES_ABSORB},
-    { .bidx = 3, .dir = 1, .edge = GKYL_UPPER_EDGE, .bc_type = GKYL_SPECIES_GK_SHEATH },
-    // block 4 BCs
-    { .bidx = 4, .dir = 0, .edge = GKYL_UPPER_EDGE, .bc_type = GKYL_SPECIES_ABSORB},
-    { .bidx = 4, .dir = 1, .edge = GKYL_UPPER_EDGE, .bc_type = GKYL_SPECIES_GK_SHEATH},
-    // block 5 BCs
-    { .bidx = 5, .dir = 0, .edge = GKYL_UPPER_EDGE, .bc_type = GKYL_SPECIES_ABSORB},
-    { .bidx = 5, .dir = 1, .edge = GKYL_LOWER_EDGE, .bc_type = GKYL_SPECIES_GK_SHEATH },
-    // block 6 BCs
-    { .bidx = 6, .dir = 0, .edge = GKYL_LOWER_EDGE, .bc_type = GKYL_SPECIES_ABSORB },
-    { .bidx = 6, .dir = 1, .edge = GKYL_LOWER_EDGE, .bc_type = GKYL_SPECIES_GK_SHEATH },
-    // block 7 BCs
-    { .bidx = 7, .dir = 0, .edge = GKYL_LOWER_EDGE, .bc_type = GKYL_SPECIES_ABSORB},
-    // block 8 BCs
-    { .bidx = 8, .dir = 0, .edge = GKYL_LOWER_EDGE, .bc_type = GKYL_SPECIES_ABSORB },
-    { .bidx = 8, .dir = 1, .edge = GKYL_UPPER_EDGE, .bc_type = GKYL_SPECIES_GK_SHEATH},
-    // block 9 BCs
-    { .bidx = 9, .dir = 0, .edge = GKYL_UPPER_EDGE, .bc_type = GKYL_SPECIES_ABSORB },
-    { .bidx = 9, .dir = 1, .edge = GKYL_UPPER_EDGE, .bc_type = GKYL_SPECIES_GK_SHEATH},
-    // block 10 BCs
-    { .bidx = 10, .dir = 0, .edge = GKYL_UPPER_EDGE, .bc_type = GKYL_SPECIES_FIXED_FUNC},
-    // block 11 BCs
-    { .bidx = 11, .dir = 0, .edge = GKYL_UPPER_EDGE, .bc_type = GKYL_SPECIES_FIXED_FUNC},
+    { .bidx = 0, .dir = 0, .edge = GKYL_LOWER_EDGE, .bc_type = GKYL_SPECIES_ABSORB},
+    { .bidx = 0, .dir = 0, .edge = GKYL_UPPER_EDGE, .bc_type = GKYL_SPECIES_ABSORB},
+    { .bidx = 0, .dir = 1, .edge = GKYL_UPPER_EDGE, .bc_type = GKYL_SPECIES_GK_SHEATH},
   };
 
   struct gkyl_gyrokinetic_multib_species elc = {
@@ -826,7 +517,7 @@ main(int argc, char **argv)
 
     .duplicate_across_blocks = true,
     .blocks = elc_blocks,
-    .num_physical_bcs = 20,
+    .num_physical_bcs = 6,
     .bcs = elc_phys_bcs,
   };
 
@@ -867,37 +558,13 @@ main(int argc, char **argv)
 
   struct gkyl_block_physical_bcs ion_phys_bcs[] = {
     // block 0 BCs
+    { .bidx = 0, .dir = 0, .edge = GKYL_LOWER_EDGE, .bc_type = GKYL_SPECIES_ABSORB},
     { .bidx = 0, .dir = 0, .edge = GKYL_UPPER_EDGE, .bc_type = GKYL_SPECIES_ABSORB},
     { .bidx = 0, .dir = 1, .edge = GKYL_LOWER_EDGE, .bc_type = GKYL_SPECIES_GK_SHEATH},
     // block 1 BCs
-    { .bidx = 1, .dir = 0, .edge = GKYL_LOWER_EDGE, .bc_type = GKYL_SPECIES_ABSORB},
-    { .bidx = 1, .dir = 1, .edge = GKYL_LOWER_EDGE, .bc_type = GKYL_SPECIES_GK_SHEATH},
-    // block 2 BCs
-    { .bidx = 2, .dir = 0, .edge = GKYL_LOWER_EDGE, .bc_type = GKYL_SPECIES_ABSORB },
-    // block 3 BCs
-    { .bidx = 3, .dir = 0, .edge = GKYL_LOWER_EDGE, .bc_type = GKYL_SPECIES_ABSORB},
-    { .bidx = 3, .dir = 1, .edge = GKYL_UPPER_EDGE, .bc_type = GKYL_SPECIES_GK_SHEATH },
-    // block 4 BCs
-    { .bidx = 4, .dir = 0, .edge = GKYL_UPPER_EDGE, .bc_type = GKYL_SPECIES_ABSORB},
-    { .bidx = 4, .dir = 1, .edge = GKYL_UPPER_EDGE, .bc_type = GKYL_SPECIES_GK_SHEATH},
-    // block 5 BCs
-    { .bidx = 5, .dir = 0, .edge = GKYL_UPPER_EDGE, .bc_type = GKYL_SPECIES_ABSORB},
-    { .bidx = 5, .dir = 1, .edge = GKYL_LOWER_EDGE, .bc_type = GKYL_SPECIES_GK_SHEATH },
-    // block 6 BCs
-    { .bidx = 6, .dir = 0, .edge = GKYL_LOWER_EDGE, .bc_type = GKYL_SPECIES_ABSORB },
-    { .bidx = 6, .dir = 1, .edge = GKYL_LOWER_EDGE, .bc_type = GKYL_SPECIES_GK_SHEATH },
-    // block 7 BCs
-    { .bidx = 7, .dir = 0, .edge = GKYL_LOWER_EDGE, .bc_type = GKYL_SPECIES_ABSORB},
-    // block 8 BCs
-    { .bidx = 8, .dir = 0, .edge = GKYL_LOWER_EDGE, .bc_type = GKYL_SPECIES_ABSORB },
-    { .bidx = 8, .dir = 1, .edge = GKYL_UPPER_EDGE, .bc_type = GKYL_SPECIES_GK_SHEATH},
-    // block 9 BCs
-    { .bidx = 9, .dir = 0, .edge = GKYL_UPPER_EDGE, .bc_type = GKYL_SPECIES_ABSORB },
-    { .bidx = 9, .dir = 1, .edge = GKYL_UPPER_EDGE, .bc_type = GKYL_SPECIES_GK_SHEATH},
-    // block 10 BCs
-    { .bidx = 10, .dir = 0, .edge = GKYL_UPPER_EDGE, .bc_type = GKYL_SPECIES_FIXED_FUNC},
-    // block 11 BCs
-    { .bidx = 11, .dir = 0, .edge = GKYL_UPPER_EDGE, .bc_type = GKYL_SPECIES_FIXED_FUNC},
+    { .bidx = 0, .dir = 0, .edge = GKYL_LOWER_EDGE, .bc_type = GKYL_SPECIES_ABSORB},
+    { .bidx = 0, .dir = 0, .edge = GKYL_UPPER_EDGE, .bc_type = GKYL_SPECIES_ABSORB},
+    { .bidx = 0, .dir = 1, .edge = GKYL_UPPER_EDGE, .bc_type = GKYL_SPECIES_GK_SHEATH},
   };
 
   struct gkyl_gyrokinetic_multib_species ion = {
@@ -932,7 +599,7 @@ main(int argc, char **argv)
   
     .duplicate_across_blocks = true,
     .blocks = ion_blocks,
-    .num_physical_bcs = 20,
+    .num_physical_bcs = 6,
     .bcs = ion_phys_bcs,
   };
 
@@ -957,37 +624,13 @@ main(int argc, char **argv)
 
   struct gkyl_block_physical_bcs Ar1_phys_bcs[] = {
     // block 0 BCs
+    { .bidx = 0, .dir = 0, .edge = GKYL_LOWER_EDGE, .bc_type = GKYL_SPECIES_ABSORB},
     { .bidx = 0, .dir = 0, .edge = GKYL_UPPER_EDGE, .bc_type = GKYL_SPECIES_ABSORB},
     { .bidx = 0, .dir = 1, .edge = GKYL_LOWER_EDGE, .bc_type = GKYL_SPECIES_GK_SHEATH},
     // block 1 BCs
-    { .bidx = 1, .dir = 0, .edge = GKYL_LOWER_EDGE, .bc_type = GKYL_SPECIES_ABSORB},
-    { .bidx = 1, .dir = 1, .edge = GKYL_LOWER_EDGE, .bc_type = GKYL_SPECIES_GK_SHEATH},
-    // block 2 BCs
-    { .bidx = 2, .dir = 0, .edge = GKYL_LOWER_EDGE, .bc_type = GKYL_SPECIES_ABSORB },
-    // block 3 BCs
-    { .bidx = 3, .dir = 0, .edge = GKYL_LOWER_EDGE, .bc_type = GKYL_SPECIES_ABSORB},
-    { .bidx = 3, .dir = 1, .edge = GKYL_UPPER_EDGE, .bc_type = GKYL_SPECIES_GK_SHEATH },
-    // block 4 BCs
-    { .bidx = 4, .dir = 0, .edge = GKYL_UPPER_EDGE, .bc_type = GKYL_SPECIES_ABSORB},
-    { .bidx = 4, .dir = 1, .edge = GKYL_UPPER_EDGE, .bc_type = GKYL_SPECIES_GK_SHEATH},
-    // block 5 BCs
-    { .bidx = 5, .dir = 0, .edge = GKYL_UPPER_EDGE, .bc_type = GKYL_SPECIES_ABSORB},
-    { .bidx = 5, .dir = 1, .edge = GKYL_LOWER_EDGE, .bc_type = GKYL_SPECIES_GK_SHEATH },
-    // block 6 BCs
-    { .bidx = 6, .dir = 0, .edge = GKYL_LOWER_EDGE, .bc_type = GKYL_SPECIES_ABSORB },
-    { .bidx = 6, .dir = 1, .edge = GKYL_LOWER_EDGE, .bc_type = GKYL_SPECIES_GK_SHEATH },
-    // block 7 BCs
-    { .bidx = 7, .dir = 0, .edge = GKYL_LOWER_EDGE, .bc_type = GKYL_SPECIES_ABSORB},
-    // block 8 BCs
-    { .bidx = 8, .dir = 0, .edge = GKYL_LOWER_EDGE, .bc_type = GKYL_SPECIES_ABSORB },
-    { .bidx = 8, .dir = 1, .edge = GKYL_UPPER_EDGE, .bc_type = GKYL_SPECIES_GK_SHEATH},
-    // block 9 BCs
-    { .bidx = 9, .dir = 0, .edge = GKYL_UPPER_EDGE, .bc_type = GKYL_SPECIES_ABSORB },
-    { .bidx = 9, .dir = 1, .edge = GKYL_UPPER_EDGE, .bc_type = GKYL_SPECIES_GK_SHEATH},
-    // block 10 BCs
-    { .bidx = 10, .dir = 0, .edge = GKYL_UPPER_EDGE, .bc_type = GKYL_SPECIES_FIXED_FUNC},
-    // block 11 BCs
-    { .bidx = 11, .dir = 0, .edge = GKYL_UPPER_EDGE, .bc_type = GKYL_SPECIES_FIXED_FUNC},
+    { .bidx = 0, .dir = 0, .edge = GKYL_LOWER_EDGE, .bc_type = GKYL_SPECIES_ABSORB},
+    { .bidx = 0, .dir = 0, .edge = GKYL_UPPER_EDGE, .bc_type = GKYL_SPECIES_ABSORB},
+    { .bidx = 0, .dir = 1, .edge = GKYL_UPPER_EDGE, .bc_type = GKYL_SPECIES_GK_SHEATH},
   };
 
   struct gkyl_gyrokinetic_multib_species Ar1 = {
@@ -1049,7 +692,7 @@ main(int argc, char **argv)
   
     .duplicate_across_blocks = true,
     .blocks = ion_blocks,
-    .num_physical_bcs = 20,
+    .num_physical_bcs = 6,
     .bcs = ion_phys_bcs,
   };
 
@@ -1072,37 +715,13 @@ main(int argc, char **argv)
 
   struct gkyl_block_physical_bcs Ar0_phys_bcs[] = {
     // block 0 BCs
+    { .bidx = 0, .dir = 0, .edge = GKYL_LOWER_EDGE, .bc_type = GKYL_SPECIES_ABSORB},
     { .bidx = 0, .dir = 0, .edge = GKYL_UPPER_EDGE, .bc_type = GKYL_SPECIES_ABSORB},
     { .bidx = 0, .dir = 1, .edge = GKYL_LOWER_EDGE, .bc_type = GKYL_SPECIES_GK_SHEATH},
     // block 1 BCs
-    { .bidx = 1, .dir = 0, .edge = GKYL_LOWER_EDGE, .bc_type = GKYL_SPECIES_ABSORB},
-    { .bidx = 1, .dir = 1, .edge = GKYL_LOWER_EDGE, .bc_type = GKYL_SPECIES_GK_SHEATH},
-    // block 2 BCs
-    { .bidx = 2, .dir = 0, .edge = GKYL_LOWER_EDGE, .bc_type = GKYL_SPECIES_ABSORB },
-    // block 3 BCs
-    { .bidx = 3, .dir = 0, .edge = GKYL_LOWER_EDGE, .bc_type = GKYL_SPECIES_ABSORB},
-    { .bidx = 3, .dir = 1, .edge = GKYL_UPPER_EDGE, .bc_type = GKYL_SPECIES_GK_SHEATH },
-    // block 4 BCs
-    { .bidx = 4, .dir = 0, .edge = GKYL_UPPER_EDGE, .bc_type = GKYL_SPECIES_ABSORB},
-    { .bidx = 4, .dir = 1, .edge = GKYL_UPPER_EDGE, .bc_type = GKYL_SPECIES_GK_SHEATH},
-    // block 5 BCs
-    { .bidx = 5, .dir = 0, .edge = GKYL_UPPER_EDGE, .bc_type = GKYL_SPECIES_ABSORB},
-    { .bidx = 5, .dir = 1, .edge = GKYL_LOWER_EDGE, .bc_type = GKYL_SPECIES_GK_SHEATH },
-    // block 6 BCs
-    { .bidx = 6, .dir = 0, .edge = GKYL_LOWER_EDGE, .bc_type = GKYL_SPECIES_ABSORB },
-    { .bidx = 6, .dir = 1, .edge = GKYL_LOWER_EDGE, .bc_type = GKYL_SPECIES_GK_SHEATH },
-    // block 7 BCs
-    { .bidx = 7, .dir = 0, .edge = GKYL_LOWER_EDGE, .bc_type = GKYL_SPECIES_ABSORB},
-    // block 8 BCs
-    { .bidx = 8, .dir = 0, .edge = GKYL_LOWER_EDGE, .bc_type = GKYL_SPECIES_ABSORB },
-    { .bidx = 8, .dir = 1, .edge = GKYL_UPPER_EDGE, .bc_type = GKYL_SPECIES_GK_SHEATH},
-    // block 9 BCs
-    { .bidx = 9, .dir = 0, .edge = GKYL_UPPER_EDGE, .bc_type = GKYL_SPECIES_ABSORB },
-    { .bidx = 9, .dir = 1, .edge = GKYL_UPPER_EDGE, .bc_type = GKYL_SPECIES_GK_SHEATH},
-    // block 10 BCs
-    { .bidx = 10, .dir = 0, .edge = GKYL_UPPER_EDGE, .bc_type = GKYL_SPECIES_FIXED_FUNC},
-    // block 11 BCs
-    { .bidx = 11, .dir = 0, .edge = GKYL_UPPER_EDGE, .bc_type = GKYL_SPECIES_FIXED_FUNC},
+    { .bidx = 0, .dir = 0, .edge = GKYL_LOWER_EDGE, .bc_type = GKYL_SPECIES_ABSORB},
+    { .bidx = 0, .dir = 0, .edge = GKYL_UPPER_EDGE, .bc_type = GKYL_SPECIES_ABSORB},
+    { .bidx = 0, .dir = 1, .edge = GKYL_UPPER_EDGE, .bc_type = GKYL_SPECIES_GK_SHEATH},
   };
 
   struct gkyl_gyrokinetic_multib_neut_species Ar0 = {
@@ -1116,7 +735,7 @@ main(int argc, char **argv)
 
     .duplicate_across_blocks = true,
     .blocks = Ar0_blocks,
-    .num_physical_bcs = 20,
+    .num_physical_bcs = 6,
     .bcs = Ar0_phys_bcs,
   };
 
@@ -1128,41 +747,17 @@ main(int argc, char **argv)
 
   struct gkyl_block_physical_bcs field_phys_bcs[] = {
     // block 0 BCs
+    { .bidx = 0, .dir = 0, .edge = GKYL_LOWER_EDGE, .bc_type = GKYL_FIELD_DIRICHLET},
     { .bidx = 0, .dir = 0, .edge = GKYL_UPPER_EDGE, .bc_type = GKYL_FIELD_DIRICHLET},
     { .bidx = 0, .dir = 1, .edge = GKYL_LOWER_EDGE, .bc_type = GKYL_FIELD_NONE},
     // block 1 BCs
     { .bidx = 1, .dir = 0, .edge = GKYL_LOWER_EDGE, .bc_type = GKYL_FIELD_DIRICHLET},
-    { .bidx = 1, .dir = 1, .edge = GKYL_LOWER_EDGE, .bc_type = GKYL_FIELD_NONE},
-    // block 2 BCs
-    { .bidx = 2, .dir = 0, .edge = GKYL_LOWER_EDGE, .bc_type = GKYL_FIELD_DIRICHLET},
-    // block 3 BCs
-    { .bidx = 3, .dir = 0, .edge = GKYL_LOWER_EDGE, .bc_type = GKYL_FIELD_DIRICHLET},
-    { .bidx = 3, .dir = 1, .edge = GKYL_UPPER_EDGE, .bc_type = GKYL_FIELD_NONE },
-    // block 4 BCs
-    { .bidx = 4, .dir = 0, .edge = GKYL_UPPER_EDGE, .bc_type = GKYL_FIELD_DIRICHLET},
-    { .bidx = 4, .dir = 1, .edge = GKYL_UPPER_EDGE, .bc_type = GKYL_FIELD_NONE},
-    // block 5 BCs
-    { .bidx = 5, .dir = 0, .edge = GKYL_UPPER_EDGE, .bc_type = GKYL_FIELD_DIRICHLET},
-    { .bidx = 5, .dir = 1, .edge = GKYL_LOWER_EDGE, .bc_type = GKYL_FIELD_NONE },
-    // block 6 BCs
-    { .bidx = 6, .dir = 0, .edge = GKYL_LOWER_EDGE, .bc_type = GKYL_FIELD_DIRICHLET },
-    { .bidx = 6, .dir = 1, .edge = GKYL_LOWER_EDGE, .bc_type = GKYL_FIELD_NONE },
-    // block 7 BCs
-    { .bidx = 7, .dir = 0, .edge = GKYL_LOWER_EDGE, .bc_type = GKYL_FIELD_DIRICHLET},
-    // block 8 BCs
-    { .bidx = 8, .dir = 0, .edge = GKYL_LOWER_EDGE, .bc_type = GKYL_FIELD_DIRICHLET },
-    { .bidx = 8, .dir = 1, .edge = GKYL_UPPER_EDGE, .bc_type = GKYL_FIELD_NONE},
-    // block 9 BCs
-    { .bidx = 9, .dir = 0, .edge = GKYL_UPPER_EDGE, .bc_type = GKYL_FIELD_DIRICHLET },
-    { .bidx = 9, .dir = 1, .edge = GKYL_UPPER_EDGE, .bc_type = GKYL_FIELD_NONE},
-    // block 10 BCs
-    { .bidx = 10, .dir = 0, .edge = GKYL_UPPER_EDGE, .bc_type = GKYL_FIELD_NEUMANN},
-    // block 11 BCs
-    { .bidx = 11, .dir = 0, .edge = GKYL_UPPER_EDGE, .bc_type = GKYL_FIELD_NEUMANN},
+    { .bidx = 1, .dir = 0, .edge = GKYL_UPPER_EDGE, .bc_type = GKYL_FIELD_DIRICHLET},
+    { .bidx = 1, .dir = 1, .edge = GKYL_UPPER_EDGE, .bc_type = GKYL_FIELD_NONE},
   };
 
   struct gkyl_gyrokinetic_multib_field field = {
-    .num_physical_bcs = 20,
+    .num_physical_bcs = 6,
     .bcs = field_phys_bcs,
   };
 
