@@ -21,7 +21,7 @@ vlasov_update_implicit_coll(gkyl_vlasov_app* app, double dt0)
         &app->species[i].bgk, fin[i]);
     }
   }
-
+  
   // implicit BGK contributions
   for (int i=0; i<app->num_species; ++i) {
     app->species[i].bgk.implicit_step = true;

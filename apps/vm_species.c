@@ -265,8 +265,16 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
   
   // determine collision type to use in vlasov update
   s->collision_id = s->info.collisions.collision_id;
+  s->lte = (struct vm_lte) { };
   s->lbo = (struct vm_lbo_collisions) { };
   s->bgk = (struct vm_bgk_collisions) { };
+  if (s->info.output_f_lte){
+    // Always have correct moments on for the f_lte output
+    struct correct_all_moms_inp corr_inp = { .correct_all_moms = true, 
+      .max_iter = s->info.max_iter, .iter_eps = s->info.iter_eps, 
+      .use_last_converged = s->info.use_last_converged };
+    vm_species_lte_init(app, s, &s->lte, corr_inp);
+  }
   if (s->collision_id == GKYL_LBO_COLLISIONS) {
     vm_species_lbo_init(app, s, &s->lbo);
   }
@@ -569,7 +577,7 @@ vm_species_bgk_niter(gkyl_vlasov_app *app)
 {
   for (int i=0; i<app->num_species; ++i) {
     if (app->species[i].collision_id == GKYL_BGK_COLLISIONS) {
-      app->stat.niter_self_bgk_corr[i] = app->species[i].bgk.self_niter;
+      app->stat.niter_self_bgk_corr[i] = app->species[i].bgk.lte.niter;
     }
   }
 }
@@ -673,7 +681,9 @@ vm_species_release(const gkyl_vlasov_app* app, const struct vm_species *s)
   if (s->source_id) {
     vm_species_source_release(app, &s->src);
   }
-
+  if (s->info.output_f_lte){
+    vm_species_lte_release(app, &s->lte);
+  }
   if (s->collision_id == GKYL_LBO_COLLISIONS) {
     vm_species_lbo_release(app, &s->lbo);
   }

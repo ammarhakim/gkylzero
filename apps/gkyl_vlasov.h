@@ -62,11 +62,10 @@ struct gkyl_vlasov_collisions {
   double nuFrac; // Parameter for rescaling collision frequency from SI values
   double hbar; // Planck's constant/2 pi 
 
-  // boolean if we are correcting all the moments or only density:
-  // only used by BGK collisions
-  bool correct_all_moms;
+  // BGK collisions specific inputs
+  bool correct_all_moms; // boolean if we are correcting all the moments or only density
   double iter_eps; // error tolerance for moment fixes (density is always exact)
-  int max_iter; // maximum number of iteration
+  int max_iter; // maximum number of iterations
   bool use_last_converged; // use last iteration value regardless of convergence?
 
   // Boolean for using implicit BGK collisions (replaces rk3)   
@@ -173,6 +172,11 @@ struct gkyl_vlasov_species {
   void *det_h_ctx; // context for determinant of the spatial metric
   // pointer to the determinant of the spatial metric
   void (*det_h)(double t, const double *xn, double *aout, void *ctx);
+
+  bool output_f_lte; // Boolean for writing out f_lte (used for calculating transport coeff.)
+  double iter_eps; // error tolerance for moment fixes of f_lte (density is always exact)
+  int max_iter; // maximum number of iterations for correction output f_lte
+  bool use_last_converged; // use last iteration value regardless of convergence for f_lte?
 
   // boundary conditions
   enum gkyl_species_bc_type bcx[2], bcy[2], bcz[2];
@@ -312,6 +316,8 @@ struct gkyl_vlasov_stat {
 
   double species_rad_tm; // total time for radiation updater 
 
+  double species_lte_tm; // time needed to compute the lte equilibrium
+
   long niter_self_bgk_corr[GKYL_MAX_SPECIES]; // number of iterations used to correct self collisions in BGK
 
   double species_bc_tm; // time to compute species BCs
@@ -447,6 +453,16 @@ void gkyl_vlasov_app_write_field(gkyl_vlasov_app* app, double tm, int frame);
  * @param frame Frame number
  */
 void gkyl_vlasov_app_write_species(gkyl_vlasov_app* app, int sidx, double tm, int frame);
+
+/**
+ * Write species data to file - for the local equilbrium.
+ * 
+ * @param app App object.
+ * @param sidx Index of species to initialize.
+ * @param tm Time-stamp
+ * @param frame Frame number
+ */
+void gkyl_vlasov_app_write_species_lte(gkyl_vlasov_app* app, int sidx, double tm, int frame);
 
 /**
  * Write fluid species data to file. 
