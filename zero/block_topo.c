@@ -1,6 +1,8 @@
 #include <gkyl_alloc.h>
 #include <gkyl_array_rio.h>
+#include <gkyl_array_rio_priv.h>
 #include <gkyl_block_topo.h>
+#include <gkyl_elem_type_priv.h>
 
 #include <mpack.h>
 
@@ -29,6 +31,8 @@ btopo_create_mpack(const struct gkyl_block_topo *btopo)
   mt->meta_sz = 0;
   mt->meta = 0;
 
+  const char *edge_names[2] = { "lower", "upper" };
+
   mpack_writer_t writer;
   mpack_writer_init_growable(&writer, &mt->meta, &mt->meta_sz);
 
@@ -40,7 +44,34 @@ btopo_create_mpack(const struct gkyl_block_topo *btopo)
   
   mpack_write_cstr(&writer, "num_blocks");
   mpack_write_i64(&writer, btopo->num_blocks);
+
+  // write each block connectivity into an array  
+  mpack_write_cstr(&writer, "connections");
+  mpack_start_array(&writer, btopo->num_blocks);
   
+  for (int i=0; i<btopo->num_blocks; ++i) {
+    mpack_build_map(&writer);
+    for (int d=0; d<btopo->ndim; ++d) {
+      for (int e=0; e<2; ++e) {
+        mpack_write_cstr(&writer, edge_names[e]);
+        mpack_build_map(&writer);
+        
+        mpack_write_cstr(&writer, "block_idx");
+        mpack_write_i64(&writer, btopo->conn[i].connections[d][e].bid);
+        
+        mpack_write_cstr(&writer, "dir");
+        mpack_write_i64(&writer, btopo->conn[i].connections[d][e].dir);
+        
+        mpack_write_cstr(&writer, "edge");
+        mpack_write_i64(&writer, btopo->conn[i].connections[d][e].edge);
+        
+        mpack_complete_map(&writer);
+      }
+    }
+    mpack_complete_map(&writer);
+  }
+
+  mpack_finish_array(&writer);
   mpack_complete_map(&writer);
 
   int status = mpack_writer_destroy(&writer);
@@ -121,10 +152,17 @@ gkyl_block_topo_write(const struct gkyl_block_topo *btopo, const char *fname)
   with_file (fp, fname, "w") {
     struct gkyl_array_meta *amet = btopo_create_mpack(btopo);
 
+    status = gkyl_header_meta_write_fp( &(struct gkyl_array_header_info) {
+        .file_type = gkyl_file_type_int[GKYL_BLOCK_TOPO_DATA_FILE],
+        .meta_size = amet->meta_sz,
+        .meta = amet->meta
+      },
+      fp
+    );
 
     btopo_array_meta_release(amet);
   }
-  return status;  
+  return status;
 }
 
 struct gkyl_block_topo *

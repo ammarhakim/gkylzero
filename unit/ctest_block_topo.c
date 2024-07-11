@@ -1,8 +1,8 @@
 #include <acutest.h>
 #include <gkyl_block_topo.h>
 
-void
-test_L_domain()
+static struct gkyl_block_topo *
+create_L_domain(void)
 {
   // 2D with 3 blocks
   struct gkyl_block_topo *btopo = gkyl_block_topo_new(2, 3);
@@ -63,13 +63,21 @@ test_L_domain()
     }
   };
 
+  return btopo;
+}
+
+static void
+test_L_domain()
+{
+  struct gkyl_block_topo *btopo = create_L_domain();
+
   // should be fully consistent as all blocks properly specified
   TEST_CHECK( 1 == gkyl_block_topo_check_consistency(btopo) );
 
   gkyl_block_topo_release(btopo);
 }
 
-void
+static void
 test_mobius_domain()
 {
   // 2D with 1 block
@@ -106,10 +114,19 @@ test_mobius_domain()
   gkyl_block_topo_release(btopo);
 }
 
+static void
+test_topo_io()
+{
+  struct gkyl_block_topo *btopo = create_L_domain();
 
+  gkyl_block_topo_write(btopo, "ctest_block_topo_L_domain.gkyl");
+
+  gkyl_block_topo_release(btopo);  
+}
 
 TEST_LIST = {
   { "mobius_domain", test_mobius_domain },
   { "L_domain", test_L_domain },
+  { "topo_io", test_topo_io },  
   { NULL, NULL },
 };
