@@ -6,6 +6,132 @@
 #include <gkyl_mat.h>
 
 void
+implicit_em_source_update(const gkyl_moment_em_coupling* mom_em, double t_curr, double dt, double* fluid_s[GKYL_MAX_SPECIES],
+  const double *app_accel_s[GKYL_MAX_SPECIES], double* em, const double* app_current, const double* ext_em)
+{
+  int nfluids = mom_em->nfluids;
+  double epsilon0 = mom_em->epsilon0;
+
+  double Bx = em[3] + ext_em[3];
+  double By = em[4] + ext_em[4];
+  double Bz = em[5] + ext_em[5];
+  double B_mag = sqrt((Bx * Bx) + (By * By) + (Bz * Bz));
+  
+  double bx = 0.0, by = 0.0, bz = 0.0;
+  if (B_mag > 0.0) {
+    bx = Bx / B_mag;
+    by = By / B_mag;
+    bz = Bz / B_mag;
+  }
+
+  double q_over_m[GKYL_MAX_SPECIES];
+  double wc_dt[GKYL_MAX_SPECIES];
+  double wp_dt_sq[GKYL_MAX_SPECIES];
+  double J_old[GKYL_MAX_SPECIES][3];
+  double J[GKYL_MAX_SPECIES][3];
+
+  double scale_fact_E = 1.0;
+  double scale_fact_curr = 1.0;
+  double t_ramp_E = mom_em->t_ramp_E;
+  double t_ramp_curr = mom_em->t_ramp_curr;
+
+  double w0_sq = 0.0;
+  double gam_sq = 0.0;
+  double delta = 0.0;
+  double Kx = 0.0, Ky = 0.0, Kz = 0.0;
+
+  for (int i = 0; i < nfluids; i++) {
+    double q = mom_em->param[i].charge;
+    double m = mom_em->param[i].mass;
+    q_over_m[i] = q / m;
+
+    const double *f = fluid_s[i];
+    const double *app_accel = app_accel_s[i];
+
+    double rho = f[0];
+    double mom_x = f[1], mom_y = f[2], mom_z = f[3];
+
+    J_old[i][0] = mom_x * q_over_m[i];
+    J_old[i][1] = mom_y * q_over_m[i];
+    J_old[i][2] = mom_z * q_over_m[i];
+
+    if (mom_em->ramp_app_E) {
+      scale_fact_E = fmin(1.0, t_curr / t_ramp_E);
+    }
+
+    J[i][0] = J_old[i][0] + (0.5 * dt * q_over_m[i] * rho * ((q_over_m[i] * ext_em[0] * scale_fact_E) + app_accel[0]));
+    J[i][1] = J_old[i][1] + (0.5 * dt * q_over_m[i] * rho * ((q_over_m[i] * ext_em[1] * scale_fact_E) + app_accel[1]));
+    J[i][2] = J_old[i][2] + (0.5 * dt * q_over_m[i] * rho * ((q_over_m[i] * ext_em[2] * scale_fact_E) + app_accel[2]));
+
+    wc_dt[i] = q_over_m[i] * B_mag * dt;
+    wp_dt_sq[i] = (rho * (q_over_m[i] * q_over_m[i]) * (dt * dt)) / epsilon0;
+
+    double denom = 1.0 + ((wc_dt[i] * wc_dt[i]) / 4.0);
+    w0_sq += wp_dt_sq[i] / denom;
+    gam_sq += (wp_dt_sq[i] * (wc_dt[i] * wc_dt[i])) / denom;
+    delta += (wp_dt_sq[i] * wc_dt[i]) / denom;
+
+    Kx -= (dt / denom) * (J[i][0] + (((wc_dt[i] * wc_dt[i]) / 4.0) * bx * ((bx * J[i][0]) + (by * J[i][1]) + (bz * J[i][2]))) -
+      ((wc_dt[i] / 2.0) * ((by * J[i][2]) - (bz * J[i][1]))));
+    Ky -= (dt / denom) * (J[i][1] + (((wc_dt[i] * wc_dt[i]) / 4.0) * by * ((bx * J[i][0]) + (by * J[i][1]) + (bz * J[i][2]))) -
+      ((wc_dt[i] / 2.0) * ((bz * J[i][0]) - (bx * J[i][2]))));
+    Kz -= (dt / denom) * (J[i][2] + (((wc_dt[i] * wc_dt[i]) / 4.0) * bz * ((bx * J[i][0]) + (by * J[i][1]) + (bz * J[i][2]))) -
+      ((wc_dt[i] / 2.0) * ((bx * J[i][1]) - (by * J[i][0]))));
+  }
+
+  double Delta_sq = (delta * delta) / (1.0 + (w0_sq / 4.0));
+
+  double Fx_old = em[0] * epsilon0;
+  double Fy_old = em[1] * epsilon0;
+  double Fz_old = em[2] * epsilon0;
+
+  if (mom_em->ramp_app_curr) {
+    scale_fact_curr = fmin(1.0, t_curr / t_ramp_curr);
+  }
+
+  double Fx = Fx_old - (0.5 * dt * app_current[0] * scale_fact_curr);
+  double Fy = Fy_old - (0.5 * dt * app_current[1] * scale_fact_curr);
+  double Fz = Fz_old - (0.5 * dt * app_current[2] * scale_fact_curr);
+
+  double Fx_K = Fx + (0.5 * Kx);
+  double Fy_K = Fy + (0.5 * Ky);
+  double Fz_K = Fz + (0.5 * Kz);
+
+  double Fx_bar = (1.0 / (1.0 + (w0_sq / 4.0) + (Delta_sq / 64.0))) * (Fx_K + ((((Delta_sq / 64.0) - (gam_sq / 16.0)) /
+    (1.0 + (w0_sq / 4.0) + (gam_sq / 16.0))) * bx * ((bx * Fx_K) + (by * Fy_K) + (bz * Fz_K))) + (((delta / 8.0) /
+    (1.0 + (w0_sq / 4.0))) * ((by * Fz_K) - (bz * Fy_K))));
+  double Fy_bar = (1.0 / (1.0 + (w0_sq / 4.0) + (Delta_sq / 64.0))) * (Fy_K + ((((Delta_sq / 64.0) - (gam_sq / 16.0)) /
+    (1.0 + (w0_sq / 4.0) + (gam_sq / 16.0))) * by * ((bx * Fx_K) + (by * Fy_K) + (bz * Fz_K))) + (((delta / 8.0) /
+    (1.0 + (w0_sq / 4.0))) * ((bz * Fx_K) - (bx * Fz_K))));
+  double Fz_bar = (1.0 / (1.0 + (w0_sq / 4.0) + (Delta_sq / 64.0))) * (Fz_K + ((((Delta_sq / 64.0) - (gam_sq / 16.0)) /
+    (1.0 + (w0_sq / 4.0) + (gam_sq / 16.0))) * bz * ((bx * Fx_K) + (by * Fy_K) + (bz * Fz_K))) + (((delta / 8.0) /
+    (1.0 + (w0_sq / 4.0))) * ((bx * Fy_K) - (by * Fx_K))));
+  
+  em[0] = ((2.0 * Fx_bar) - Fx_old) / epsilon0;
+  em[1] = ((2.0 * Fy_bar) - Fy_old) / epsilon0;
+  em[2] = ((2.0 * Fz_bar) - Fz_old) / epsilon0;
+
+  for (int i = 0; i < nfluids; i++) {
+    double *f = fluid_s[i];
+
+    double Jx_star = J[i][0] + (Fx_bar * ((wp_dt_sq[i] / dt) / 2.0));
+    double Jy_star = J[i][1] + (Fy_bar * ((wp_dt_sq[i] / dt) / 2.0));
+    double Jz_star = J[i][2] + (Fz_bar * ((wp_dt_sq[i] / dt) / 2.0));
+
+    double Jx_new = ((2.0 * (Jx_star + (((wc_dt[i] * wc_dt[i]) / 4.0) * bx * ((bx * Jx_star) + (by * Jy_star) + (bz * Jz_star))) -
+      ((wc_dt[i] / 2.0) * ((by * Jz_star) - (bz * Jy_star))))) / (1.0 + ((wc_dt[i] * wc_dt[i]) / 4.0))) - J_old[i][0];
+    double Jy_new = ((2.0 * (Jy_star + (((wc_dt[i] * wc_dt[i]) / 4.0) * by * ((bx * Jx_star) + (by * Jy_star) + (bz * Jz_star))) -
+      ((wc_dt[i] / 2.0) * ((bz * Jx_star) - (bx * Jz_star))))) / (1.0 + ((wc_dt[i] * wc_dt[i]) / 4.0))) - J_old[i][1];
+    double Jz_new = ((2.0 * (Jz_star + (((wc_dt[i] * wc_dt[i]) / 4.0) * bz * ((bx * Jx_star) + (by * Jy_star) + (bz * Jz_star))) -
+      ((wc_dt[i] / 2.0) * ((bx * Jy_star) - (by * Jx_star))))) / (1.0 + ((wc_dt[i] * wc_dt[i]) / 4.0))) - J_old[i][2];
+    
+    f[1] = Jx_new / q_over_m[i];
+    f[2] = Jy_new / q_over_m[i];
+    f[3] = Jz_new / q_over_m[i];
+  }
+}
+
+void
 implicit_neut_source_update(const gkyl_moment_em_coupling* mom_em, double t_curr, double dt, double* fluid_s[GKYL_MAX_SPECIES],
   const double* app_accel_s[GKYL_MAX_SPECIES])
 {
@@ -13,7 +139,7 @@ implicit_neut_source_update(const gkyl_moment_em_coupling* mom_em, double t_curr
 
   for (int i = 0; i < nfluids; i++) {
     double *f = fluid_s[i];
-    const double* app_accel = app_accel_s[i];
+    const double *app_accel = app_accel_s[i];
 
     double rho = f[0];
 
@@ -90,7 +216,7 @@ implicit_source_coupling_update(const gkyl_moment_em_coupling* mom_em, double t_
   }
 
   if (mom_em->is_charged_species) {
-    // TODO: Add implicit source updater for electromagnetic sources here.
+    implicit_em_source_update(mom_em, t_curr, dt, fluid_s, app_accel_s, em, app_current, ext_em);
   }
   else {
     implicit_neut_source_update(mom_em, t_curr, dt, fluid_s, app_accel_s);
