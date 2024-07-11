@@ -25,7 +25,7 @@ gkyl_vlasov_lte_proj_on_basis_geom_quad_vars_cu_ker(struct gkyl_range conf_range
   int num_conf_basis = conf_basis_at_ords->ncomp;
   int tot_conf_quad = conf_basis_at_ords->size;
 
-  int pidx[GKYL_MAX_DIM], cidx[GKYL_MAX_CDIM];
+  int cidx[GKYL_MAX_CDIM];
 
   for(unsigned long tid = threadIdx.x + blockIdx.x*blockDim.x;
       tid < conf_range.volume; tid += blockDim.x*gridDim.x) {
@@ -160,8 +160,8 @@ gkyl_vlasov_lte_proj_on_basis_f_lte_quad_ker(struct gkyl_rect_grid phase_grid,
     }
     long lincC = gkyl_range_idx(&conf_range, cidx);
 
+    // Fetch V_drift and T/m; density dependence already included in expamp_quad
     const double *moms_lte_quad_d = (const double*) gkyl_array_cfetch(moms_lte_quad, lincC);
-    const double *n_quad = moms_lte_quad_d;
     const double *V_drift_quad = &moms_lte_quad_d[tot_conf_quad];
     const double *T_over_m_quad = &moms_lte_quad_d[tot_conf_quad*(vdim+1)];
 
