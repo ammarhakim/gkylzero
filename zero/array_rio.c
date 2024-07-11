@@ -82,6 +82,48 @@ gkyl_grid_sub_array_header_write_fp(const struct gkyl_rect_grid *grid,
   return GKYL_ARRAY_RIO_SUCCESS;
 }
 
+int
+gkyl_header_meta_read_fp(struct gkyl_array_header_info *hdr, FILE *fp)
+{
+  size_t frr;
+  hdr->meta_size = 0;
+
+  char g0[6];
+  frr = fread(g0, sizeof(char[5]), 1, fp); // no trailing '\0'
+  g0[5] = '\0';                            // add the NULL
+  if (strcmp(g0, "gkyl0") != 0)
+    return GKYL_ARRAY_RIO_BAD_VERSION;
+  
+  uint64_t version;
+  frr = fread(&version, sizeof(uint64_t), 1, fp);
+  if (version != 1)
+    return GKYL_ARRAY_RIO_BAD_VERSION;
+
+  uint64_t file_type;
+  frr = fread(&file_type, sizeof(uint64_t), 1, fp);
+
+  uint64_t meta_size;
+  frr = fread(&meta_size, sizeof(uint64_t), 1, fp);
+  if (1 != frr)
+    return GKYL_ARRAY_RIO_FREAD_FAILED;
+
+  hdr->meta = 0;
+  if (meta_size > 0) {
+    hdr->meta = gkyl_malloc(meta_size);
+    if (1 != fread(hdr->meta, meta_size, 1, fp)) {
+      gkyl_free(hdr->meta);
+      return GKYL_ARRAY_RIO_FREAD_FAILED;
+    }
+  }
+
+  hdr->file_type = file_type;
+  hdr->esznc = 0;
+  hdr->tot_cells = 0;
+  hdr->meta_size = meta_size;
+
+  return GKYL_ARRAY_RIO_SUCCESS;  
+}
+
 static int
 grid_sub_array_header_read_fp(struct gkyl_rect_grid *grid,
   struct gkyl_array_header_info *hdr, bool read_meta, FILE *fp)

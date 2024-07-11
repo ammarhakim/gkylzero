@@ -1,5 +1,6 @@
 #include <acutest.h>
 #include <gkyl_block_topo.h>
+#include <gkyl_array_rio.h>
 
 static struct gkyl_block_topo *
 create_L_domain(void)
@@ -118,10 +119,20 @@ static void
 test_topo_io()
 {
   struct gkyl_block_topo *btopo = create_L_domain();
+  int status_out = gkyl_block_topo_write(btopo, "ctest_block_topo_L_domain.gkyl");
+  TEST_CHECK( GKYL_ARRAY_RIO_SUCCESS == status_out );
 
-  gkyl_block_topo_write(btopo, "ctest_block_topo_L_domain.gkyl");
+  int status_inp;
+  struct gkyl_block_topo *btopo_inp = gkyl_block_topo_read("ctest_block_topo_L_domain.gkyl",
+    &status_inp);
+  TEST_CHECK( GKYL_ARRAY_RIO_SUCCESS == status_out );
 
-  gkyl_block_topo_release(btopo);  
+  TEST_CHECK( 2 == btopo_inp->ndim );
+  TEST_CHECK( 3 == btopo_inp->num_blocks );
+  TEST_CHECK( 1 == gkyl_block_topo_check_consistency(btopo_inp) );
+    
+  gkyl_block_topo_release(btopo_inp);
+  gkyl_block_topo_release(btopo);
 }
 
 TEST_LIST = {

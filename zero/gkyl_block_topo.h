@@ -79,6 +79,17 @@ int gkyl_block_topo_check_consistency(const struct gkyl_block_topo *btopo);
 int gkyl_block_topo_write(const struct gkyl_block_topo *btopo, const char *fname);
 
 /**
+ * Read block-topology from a binary file. A new block topology object
+ * is returned. Free using the release method. The returned object is
+ * NULL if read failed.
+ *
+ * @param fname File name to write topo
+ * @param status On output, status as enum gkyl_array_rio_status
+ * @return btopo New block-topology from file
+ */
+struct gkyl_block_topo* gkyl_block_topo_read(const char *fname, int *status);
+
+/**
  * Free block topology.
  *
  * @return Block topology to free

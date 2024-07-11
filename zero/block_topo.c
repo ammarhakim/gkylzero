@@ -6,6 +6,27 @@
 
 #include <mpack.h>
 
+static void
+show_conn(const char *msg, int bid, int ndim, struct gkyl_block_connections conn)
+{
+  printf("(%s) Block %d {\n", msg, bid);
+
+  for (int d=0; d<ndim; ++d) {
+    printf("  lower = { bid = %d, dir = %d, edge = %d }\n",
+      conn.connections[d][0].bid,
+      conn.connections[d][0].dir,
+      conn.connections[d][0].edge
+    );
+    printf("  upper = { bid = %d, dir = %d, edge = %d }\n",
+      conn.connections[d][1].bid,
+      conn.connections[d][1].dir,
+      conn.connections[d][1].edge
+    );    
+  }
+  
+  printf("}\n");
+}
+
 // for use in consistency checking
 static const enum gkyl_oriented_edge complimentary_edges[] = {
   [0] = 0, // can't happen for fully-specified edges
@@ -13,8 +34,10 @@ static const enum gkyl_oriented_edge complimentary_edges[] = {
   [GKYL_LOWER_NEGATIVE] = GKYL_UPPER_NEGATIVE,
   [GKYL_UPPER_POSITIVE] = GKYL_LOWER_POSITIVE,
   [GKYL_UPPER_NEGATIVE] = GKYL_LOWER_NEGATIVE,
-  [GKYL_PHYSICAL] = GKYL_PHYSICAL, 
+  [GKYL_PHYSICAL] = GKYL_PHYSICAL,
 };
+
+const char *block_edge_names[] = { "lower", "upper" };
 
 static void
 block_topo_free(const struct gkyl_ref_count *ref)
@@ -31,8 +54,6 @@ btopo_create_mpack(const struct gkyl_block_topo *btopo)
   mt->meta_sz = 0;
   mt->meta = 0;
 
-  const char *edge_names[2] = { "lower", "upper" };
-
   mpack_writer_t writer;
   mpack_writer_init_growable(&writer, &mt->meta, &mt->meta_sz);
 
@@ -47,16 +68,19 @@ btopo_create_mpack(const struct gkyl_block_topo *btopo)
 
   // write each block connectivity into an array  
   mpack_write_cstr(&writer, "connections");
-  mpack_start_array(&writer, btopo->num_blocks);
+  mpack_start_array(&writer, btopo->num_blocks*btopo->ndim);
   
   for (int i=0; i<btopo->num_blocks; ++i) {
-    mpack_build_map(&writer);
+    show_conn("write", i, btopo->ndim, btopo->conn[i]);
+    
     for (int d=0; d<btopo->ndim; ++d) {
+      mpack_build_map(&writer);
+      
       for (int e=0; e<2; ++e) {
-        mpack_write_cstr(&writer, edge_names[e]);
+        mpack_write_cstr(&writer, block_edge_names[e]);
         mpack_build_map(&writer);
         
-        mpack_write_cstr(&writer, "block_idx");
+        mpack_write_cstr(&writer, "target_block");
         mpack_write_i64(&writer, btopo->conn[i].connections[d][e].bid);
         
         mpack_write_cstr(&writer, "dir");
@@ -67,8 +91,9 @@ btopo_create_mpack(const struct gkyl_block_topo *btopo)
         
         mpack_complete_map(&writer);
       }
+
+      mpack_complete_map(&writer);
     }
-    mpack_complete_map(&writer);
   }
 
   mpack_finish_array(&writer);
@@ -163,6 +188,78 @@ gkyl_block_topo_write(const struct gkyl_block_topo *btopo, const char *fname)
     btopo_array_meta_release(amet);
   }
   return status;
+}
+
+struct gkyl_block_topo *
+gkyl_block_topo_read(const char *fname, int *status)
+{
+  struct gkyl_block_topo *btopo = 0;
+  
+  enum gkyl_array_rio_status read_status = GKYL_ARRAY_RIO_FOPEN_FAILED;
+  FILE *fp = 0;
+  int err;
+  with_file (fp, fname, "r") {
+    struct gkyl_array_header_info hdr = { };
+    read_status = gkyl_header_meta_read_fp(&hdr, fp);
+    if (hdr.file_type != 4) {
+      read_status = GKYL_ARRAY_RIO_BAD_VERSION;
+      break;
+    }
+    if (hdr.meta_size > 0) {
+      // parse header and construct a new block-topo
+      mpack_tree_t tree;
+      mpack_tree_init_data(&tree, hdr.meta, hdr.meta_size);
+      mpack_tree_parse(&tree);
+      mpack_node_t root = mpack_tree_root(&tree);
+
+      mpack_node_t ndim_node = mpack_node_map_cstr(root, "ndim");
+      int ndim = mpack_node_i64(ndim_node);
+
+      mpack_node_t num_blocks_node = mpack_node_map_cstr(root, "num_blocks");
+      int num_blocks = mpack_node_i64(num_blocks_node);
+
+      btopo = gkyl_block_topo_new(ndim, num_blocks);
+      mpack_node_t conn_array_node = mpack_node_map_cstr(root, "connections");
+
+      int array_idx = 0;
+      for (int i=0; i<num_blocks; ++i) {
+
+        struct gkyl_block_connections conn = { };
+        
+        for (int d=0; d<ndim; ++d) {
+          mpack_node_t conn_map = mpack_node_array_at(conn_array_node, array_idx++);
+          printf("--> %d:%d (%d) %d\n", i, d, array_idx-1, mpack_node_type(conn_map));
+
+          for (int e=0; e<2; ++e) {
+            mpack_node_t edge_map = mpack_node_map_cstr(conn_map, block_edge_names[e]);
+            
+            for (int k=0; k<3; ++k) {
+              char buff[124];
+              mpack_node_t key_at = mpack_node_map_key_at(edge_map, k);
+              mpack_node_copy_cstr(key_at, buff, 124);
+              mpack_node_t val_at = mpack_node_map_value_at(edge_map, k);
+              printf("----> key_at %d : %s = %d\n", k, buff, mpack_node_int(val_at));
+            }
+
+            //printf("----> has target_node = %d\n", mpack_node_map_(edge_map, "target_node"));
+            
+
+            /* conn.connections[d][e].bid = target_block; */
+            /* conn.connections[d][e].dir = dir; */
+            /* conn.connections[d][e].edge = edge; */
+          }
+        }
+        //show_conn("read", i, ndim, conn);
+        btopo->conn[i] = conn;
+      }
+      
+      mpack_tree_destroy(&tree);
+      gkyl_free(hdr.meta);
+    }
+  }
+  
+  *status = read_status;
+  return btopo;
 }
 
 struct gkyl_block_topo *
