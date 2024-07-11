@@ -178,6 +178,9 @@ struct vm_bgk_collisions {
   enum gkyl_model_id model_id;
   struct vm_species_moment moms; // moments needed in BGK (n, V_drift, T/m) for LTE distribution
 
+  bool fixed_temp_relax; // boolean for whether the temperature being relaxed to is fixed in time.
+  struct gkyl_array *fixed_temp; // array of fixed temperature BGK collisions are relaxing to
+
   // LTE distribution function projection object
   // also corrects the density of projected distribution function
   struct gkyl_vlasov_lte_proj_on_basis *proj_lte; 
@@ -767,6 +770,19 @@ void vm_species_bgk_init(struct gkyl_vlasov_app *app, struct vm_species *s,
  * @param fin Input distribution function
  */
 void vm_species_bgk_moms(gkyl_vlasov_app *app,
+  const struct vm_species *species,
+  struct vm_bgk_collisions *bgk,
+  const struct gkyl_array *fin);
+
+/**
+ * Compute and store a fixed temperature for BGK collisions
+ *
+ * @param app Vlasov app object
+ * @param species Pointer to species
+ * @param bgk Pointer to BGK
+ * @param fin Input distribution function
+ */
+void vm_species_bgk_moms_fixed_temp(gkyl_vlasov_app *app,
   const struct vm_species *species,
   struct vm_bgk_collisions *bgk,
   const struct gkyl_array *fin);

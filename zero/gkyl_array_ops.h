@@ -252,7 +252,7 @@ struct gkyl_array* gkyl_array_copy_range(struct gkyl_array *out,
  * @return out array
  */
 struct gkyl_array* gkyl_array_copy_range_to_range(struct gkyl_array *out,
-  const struct gkyl_array *inp, struct gkyl_range *out_range, struct gkyl_range *inp_range);
+  const struct gkyl_array *inp, const struct gkyl_range *out_range, const struct gkyl_range *inp_range);
 
 /**
  * Perform an "reduce" operation of data in the array.

@@ -290,6 +290,7 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
   
   // determine collision type to use in vlasov update
   s->collision_id = s->info.collisions.collision_id;
+  // initialize empty collision structs so inputs of structs are set to 0
   s->lbo = (struct vm_lbo_collisions) { };
   s->bgk = (struct vm_bgk_collisions) { };
   if (s->collision_id == GKYL_LBO_COLLISIONS) {
@@ -396,6 +397,12 @@ vm_species_apply_ic(gkyl_vlasov_app *app, struct vm_species *species, double t0)
   vm_species_source_calc(app, species, &species->src, t0);
 
   vm_species_bflux_rhs(app, species, &species->bflux, species->f, species->f1);
+
+  // Optional runtime configuration to use BGK collisions but with fixed input 
+  // temperature relaxation based on the initial temperature value. 
+  if (species->bgk.fixed_temp_relax) {
+    vm_species_bgk_moms_fixed_temp(app, species, &species->bgk, species->f);
+  }
   
   // copy contents of initial conditions into buffer if specific BCs require them
   // *only works in x dimension for now*

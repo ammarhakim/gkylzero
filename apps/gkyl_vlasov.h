@@ -49,11 +49,11 @@ struct gkyl_vlasov_collisions {
   double nuFrac; // Parameter for rescaling collision frequency from SI values
   double hbar; // Planck's constant/2 pi 
 
-  // boolean if we are correcting all the moments or only density:
-  // only used by BGK collisions
-  bool correct_all_moms;
+  // BGK collisions specific inputs
+  bool correct_all_moms; // boolean if we are correcting all the moments or only density
   double iter_eps; // error tolerance for moment fixes (density is always exact)
   int max_iter; // maximum number of iteration
+  bool fixed_temp_relax; // Are BGK collisions relaxing to a fixed input temperature?
 
   int num_cross_collisions; // number of species to cross-collide with
   char collide_with[GKYL_MAX_SPECIES][128]; // names of species to cross collide with
