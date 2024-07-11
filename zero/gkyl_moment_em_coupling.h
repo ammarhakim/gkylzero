@@ -60,7 +60,7 @@ gkyl_moment_em_coupling* gkyl_moment_em_coupling_new(struct gkyl_moment_em_coupl
 * @param mom_em Moment-EM coupling object.
 * @param t_curr Current simulation time.
 * @param dt Current stable time-step.
-* @param update_rng Range object over which to integrate the electromagnetic sources using an implicit time-centered method.
+* @param update_range Range object over which to integrate the electromagnetic sources using an implicit time-centered method.
 * @param fluid Array of fluid variables (array size = nfluids).
 * @param app_accel Array of acceleration terms to be applied to the fluid equations (for external forces).
 * @param p_rhs Array of RHS/source terms to be applied to the pressure tensor (for the case of 10-moment gradient-based closure only).
@@ -69,7 +69,7 @@ gkyl_moment_em_coupling* gkyl_moment_em_coupling_new(struct gkyl_moment_em_coupl
 * @param ext_em External electromagnetic variables (for EM fields coming from external sources, e.g. coils, capacitors, etc.).
 * @param nT_sources Array of number density and temperature source terms.
 */
-void gkyl_moment_em_coupling_implicit_advance(const gkyl_moment_em_coupling* mom_em, double t_curr, double dt, const struct gkyl_range* update_rng,
+void gkyl_moment_em_coupling_implicit_advance(const gkyl_moment_em_coupling* mom_em, double t_curr, double dt, const struct gkyl_range* update_range,
   struct gkyl_array* fluid[GKYL_MAX_SPECIES], const struct gkyl_array* app_accel[GKYL_MAX_SPECIES], const struct gkyl_array *p_rhs[GKYL_MAX_SPECIES],
   struct gkyl_array* em, const struct gkyl_array* app_current, const struct gkyl_array* ext_em, const struct gkyl_array* nT_sources[GKYL_MAX_SPECIES]);
 
@@ -82,7 +82,7 @@ void gkyl_moment_em_coupling_implicit_advance(const gkyl_moment_em_coupling* mom
 * @param mom_em Moment-EM coupling object.
 * @param t_curr Current simulation time.
 * @param dt Current stable time-step.
-* @param update_rng Range object over which to integrate the electromagnetic sources using an explicit time integration method.
+* @param update_range Range object over which to integrate the electromagnetic sources using an explicit time integration method.
 * @param fluid Array of fluid variables (array size = nfluids).
 * @param app_accel Array of acceleration terms to be applied to the fluid equations (for external forces).
 * @param p_rhs Array of RHS/source terms to be applied to the pressure tensor (for the case of 10-moment gradient-based closure only).
@@ -93,7 +93,7 @@ void gkyl_moment_em_coupling_implicit_advance(const gkyl_moment_em_coupling* mom
 * @param ext_em External electromagnetic variables (for EM fields coming from external sources, e.g. coils, capacitors, etc.).
 * @param nT_sources Array of number density and temperature source terms.
 */
-void gkyl_moment_em_coupling_explicit_advance(const gkyl_moment_em_coupling* mom_em, double t_curr, double dt, const struct gkyl_range* update_rng,
+void gkyl_moment_em_coupling_explicit_advance(const gkyl_moment_em_coupling* mom_em, double t_curr, double dt, const struct gkyl_range* update_range,
   struct gkyl_array* fluid[GKYL_MAX_SPECIES], const struct gkyl_array* app_accel[GKYL_MAX_SPECIES], const struct gkyl_array* p_rhs[GKYL_MAX_SPECIES],
   struct gkyl_array* em, const struct gkyl_array *app_current, const struct gkyl_array* app_current1, const struct gkyl_array* app_current2,
   const struct gkyl_array* ext_em, const struct gkyl_array* nT_sources[GKYL_MAX_SPECIES], gkyl_fv_proj* proj_app_curr, int nstrang);
