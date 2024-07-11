@@ -117,8 +117,8 @@ gkyl_vlasov_lte_proj_on_basis_moms_lte_quad_ker(struct gkyl_range conf_range, in
         expamp_quad_d[linc2] = n_quad[linc2]*(1.0/(4.0*GKYL_PI*T_over_m_quad[linc2]))*(sqrt(2.0*T_over_m_quad[linc2]/GKYL_PI));
       }
       else if (is_canonical_pb) { 
-        const double *det_h_quad = (const double*) gkyl_array_cfetch(det_h_quad, lincC);
-        expamp_quad_d[linc2] = (1.0/det_h_quad[linc2])*n_quad[linc2]/sqrt(pow(2.0*GKYL_PI*T_over_m_quad[linc2], vdim));
+        const double *det_h_quad_d = (const double*) gkyl_array_cfetch(det_h_quad, lincC);
+        expamp_quad_d[linc2] = (1.0/det_h_quad_d[linc2])*n_quad[linc2]/sqrt(pow(2.0*GKYL_PI*T_over_m_quad[linc2], vdim));
       }
       else {
         expamp_quad_d[linc2] = n_quad[linc2]/sqrt(pow(2.0*GKYL_PI*T_over_m_quad[linc2], vdim));
