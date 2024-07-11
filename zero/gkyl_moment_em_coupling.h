@@ -25,8 +25,8 @@ struct gkyl_moment_em_coupling_inp {
   double epsilon0; // Permittivity of free space.
   double mu0; // Permeability of free space.
 
-  double t_ramp_E; // Linear ramp function for initializing external electric field.
-  double t_ramp_curr; // Linear ramp function for initializing applied currents.
+  double t_ramp_E; // Ramp-up time for the linear ramp function for initializing external electric fields.
+  double t_ramp_curr; // Ramp-up time for the linear ramp function for initializing applied currents.
 
   bool has_collision; // Run with collisions switched on.
   bool use_rel; // Assume special relativistic fluid species.
