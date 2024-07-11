@@ -265,12 +265,15 @@ gkyl_vlasov_lte_proj_on_basis_inew(const struct gkyl_vlasov_lte_proj_on_basis_in
     up->p2c_qidx = (int*) gkyl_cu_malloc(sizeof(int)*up->phase_qrange.volume);
 
     // Allocate f_lte_quad at phase-space quadrature points
-    // and moms_lte_quad (n, V_drift, T/m) at configuration-space quadrature points.
+    // moms_lte_quad (n, V_drift, T/m) at configuration-space quadrature points.
+    // expamp_quad, the exponential pre-factor in the LTE distribution, at quadrature points.
     up->f_lte_quad = gkyl_array_cu_dev_new(GKYL_DOUBLE, 
       up->tot_quad, inp->conf_range_ext->volume*inp->vel_range->volume);
     up->moms_lte_quad = gkyl_array_cu_dev_new(GKYL_DOUBLE, 
       up->tot_conf_quad*(vdim+2), inp->conf_range_ext->volume);
-    
+    up->expamp_quad = gkyl_array_cu_dev_new(GKYL_DOUBLE, 
+      up->tot_conf_quad, inp->conf_range_ext->volume);
+
     // Allocate the memory for computing the specific phase nodal to modal calculation
     struct gkyl_mat_mm_array_mem *phase_nodal_to_modal_mem_ho;
     phase_nodal_to_modal_mem_ho = gkyl_mat_mm_array_mem_new(up->num_phase_basis, up->tot_quad, 1.0, 0.0, 
@@ -379,6 +382,7 @@ gkyl_vlasov_lte_proj_on_basis_advance(gkyl_vlasov_lte_proj_on_basis *up,
 
   double xc[GKYL_MAX_DIM], xmu[GKYL_MAX_DIM];
   double n_quad[tot_conf_quad], V_drift_quad[tot_conf_quad][vdim], T_over_m_quad[tot_conf_quad];
+  double expamp_quad[tot_conf_quad];
 
   // outer loop over configuration space cells; for each
   // config-space cell inner loop walks over velocity space
@@ -410,6 +414,22 @@ gkyl_vlasov_lte_proj_on_basis_advance(gkyl_vlasov_lte_proj_on_basis *up,
         }
         T_over_m_quad[n] += T_over_m_d[k]*b_ord[k];
       }   
+      // Amplitude of the exponential.
+      if ((n_quad[n] > 0.0) && (T_over_m_quad[n] > 0.0)) {
+        if (up->is_relativistic) {
+          expamp_quad[n] = n_quad[n]*(1.0/(4.0*GKYL_PI*T_over_m_quad[n]))*(sqrt(2.0*T_over_m_quad[n]/GKYL_PI));
+        }
+        else if (up->is_canonical_pb) { 
+          const double *det_h_quad = gkyl_array_cfetch(up->det_h_quad, midx);
+          expamp_quad[n] = (1.0/det_h_quad[n])*n_quad[n]/sqrt(pow(2.0*GKYL_PI*T_over_m_quad[n], vdim));
+        }
+        else {
+          expamp_quad[n] = n_quad[n]/sqrt(pow(2.0*GKYL_PI*T_over_m_quad[n], vdim));
+        }
+      }
+      else {
+        expamp_quad[n] = 0.0;
+      }      
     }
 
     // inner loop over velocity space
@@ -445,13 +465,12 @@ gkyl_vlasov_lte_proj_on_basis_advance(gkyl_vlasov_lte_proj_on_basis *up,
               uu += (xmu[cdim+d]*xmu[cdim+d]);
             }
             double GammaV_quad = sqrt(1.0 + vv);
-            fq[0] += exp((1.0/T_over_m_quad[cqidx]) 
+            fq[0] += expamp_quad[cqidx]*exp((1.0/T_over_m_quad[cqidx]) 
               - (1.0/T_over_m_quad[cqidx])*(GammaV_quad*sqrt(1.0 + uu) - vu));
           }
           else if (up->is_canonical_pb) {
             // Assumes a (particle) hamiltonian in canocial form: g = 1/2 g^{ij} w_i_w_j
             const double *h_ij_inv_quad = gkyl_array_cfetch(up->h_ij_inv_quad, midx);
-            const double *det_h_quad = gkyl_array_cfetch(up->det_h_quad, midx);
             double efact = 0.0;
             for (int d0=0; d0<vdim; ++d0) {
               for (int d1=d0; d1<vdim; ++d1) {
@@ -465,26 +484,29 @@ gkyl_vlasov_lte_proj_on_basis_advance(gkyl_vlasov_lte_proj_on_basis *up,
                 efact += sym_fact*h_ij_inv_loc*(xmu[cdim+d0]-V_drift_quad[cqidx][d0])*(xmu[cdim+d1]-V_drift_quad[cqidx][d1]);
               }
             }
-            fq[0] += exp(-efact/(2.0*T_over_m_quad[cqidx]));
+            fq[0] += expamp_quad[cqidx]*exp(-efact/(2.0*T_over_m_quad[cqidx]));
           }
           else {
             double efact = 0.0;        
             for (int d=0; d<vdim; ++d) {
               efact += (xmu[cdim+d]-V_drift_quad[cqidx][d])*(xmu[cdim+d]-V_drift_quad[cqidx][d]);
             }
-            fq[0] += exp(-efact/(2.0*T_over_m_quad[cqidx]));
+            fq[0] += expamp_quad[cqidx]*exp(-efact/(2.0*T_over_m_quad[cqidx]));
           }
         }
       }
       // compute expansion coefficients of LTE distributiuon function on basis
-      // Note: This projection has **no** exponential pre-factor because **we do not need it**
-      // We correct the density with a rescaling, insuring the exponential is scaled precisely.
       long lidx = gkyl_range_idx(&vel_rng, vel_iter.idx);
       proj_on_basis(up, up->fun_at_ords, gkyl_array_fetch(f_lte, lidx));
     }
   }
-  // Correct the density of the projected LTE distribution function through rescaling. 
-  gkyl_vlasov_lte_density_moment_advance(up->moments_up, phase_range, conf_range, f_lte, up->num_ratio);
+  // Correct the density of the projected LTE distribution function through rescaling.
+  // This correction is needed especially for the relativistic LTE, whose pre-factor
+  // we construct through an expansion of the Bessel functions to avoid finite 
+  // precision effects in such a way that we can recover arbitrary temperature 
+  // relativistic LTE distributions by rescaling the distribution to the desired density.  
+  gkyl_vlasov_lte_density_moment_advance(up->moments_up, phase_range, conf_range, 
+    f_lte, up->num_ratio);
 
   // compute number density ratio: num_ratio = n/n0
   // 0th component of moms_target is the target density
@@ -519,6 +541,7 @@ gkyl_vlasov_lte_proj_on_basis_release(gkyl_vlasov_lte_proj_on_basis* up)
     gkyl_cu_free(up->p2c_qidx);
     gkyl_array_release(up->f_lte_quad);
     gkyl_array_release(up->moms_lte_quad);
+    gkyl_array_release(up->expamp_quad);
     gkyl_mat_mm_array_mem_release(up->phase_nodal_to_modal_mem);
   }
 

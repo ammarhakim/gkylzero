@@ -106,9 +106,10 @@ test_1x1v(int poly_order, bool use_gpu)
   gkyl_create_grid_ranges(&vel_grid, velGhost, &velLocal_ext, &velLocal);
 
   // basis functions
-  struct gkyl_basis basis, confBasis;
+  struct gkyl_basis basis, confBasis, velBasis;
   gkyl_cart_modal_serendip(&basis, ndim, poly_order);
   gkyl_cart_modal_serendip(&confBasis, cdim, poly_order);
+  gkyl_cart_modal_serendip(&velBasis, vdim, poly_order);
 
   int confGhost[] = { 1 };
   struct gkyl_range confLocal, confLocal_ext; // local, local-ext conf-space ranges
@@ -149,15 +150,13 @@ test_1x1v(int poly_order, bool use_gpu)
   // projection updater to compute LTE distribution
   struct gkyl_vlasov_lte_proj_on_basis_inp inp_lte = {
     .phase_grid = &grid,
+    .vel_grid = &vel_grid, 
     .conf_basis = &confBasis,
+    .vel_basis = &velBasis, 
     .phase_basis = &basis,
     .conf_range =  &confLocal,
     .conf_range_ext = &confLocal_ext,
     .vel_range = &velLocal,
-    .gamma = 0,
-    .gamma_inv = 0,
-    .h_ij_inv = 0,
-    .det_h = 0,
     .model_id = GKYL_MODEL_DEFAULT,
     .mass = 1.0,
     .use_gpu = false,
@@ -168,15 +167,13 @@ test_1x1v(int poly_order, bool use_gpu)
   // Compute the moments of our corrected distribution function
   struct gkyl_vlasov_lte_moments_inp inp_mom = {
     .phase_grid = &grid,
+    .vel_grid = &vel_grid, 
     .conf_basis = &confBasis,
+    .vel_basis = &velBasis, 
     .phase_basis = &basis,
     .conf_range =  &confLocal,
     .conf_range_ext = &confLocal_ext,
     .vel_range = &velLocal,
-    .gamma = 0,
-    .gamma_inv = 0,
-    .h_ij_inv = 0,
-    .det_h = 0,
     .model_id = GKYL_MODEL_DEFAULT,
     .mass = 1.0,
     .use_gpu = false,
@@ -186,17 +183,14 @@ test_1x1v(int poly_order, bool use_gpu)
   // correction updater
   struct gkyl_vlasov_lte_correct_inp inp = {
     .phase_grid = &grid,
+    .vel_grid = &vel_grid, 
     .conf_basis = &confBasis,
+    .vel_basis = &velBasis, 
     .phase_basis = &basis,
     .conf_range =  &confLocal,
     .conf_range_ext = &confLocal_ext,
     .vel_range = &velLocal,
-    .gamma = 0,
-    .gamma_inv = 0,
-    .h_ij_inv = 0,
-    .det_h = 0,
     .model_id = GKYL_MODEL_DEFAULT,
-    .mass = 1.0,
     .use_gpu = false,
     .max_iter = 100,
     .eps = 1e-12,

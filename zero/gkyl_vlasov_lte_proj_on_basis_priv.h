@@ -70,6 +70,8 @@ struct gkyl_vlasov_lte_proj_on_basis {
   struct gkyl_array *f_lte_quad; // Array keeping f_lte at phase-space quadrature nodes
   struct gkyl_array *moms_lte_quad; // Array keeping moms_lte (n, V_drift, T/m) 
                                     // at configuration-space quadrature nodes
+  struct gkyl_array *expamp_quad; // Array keeping exponential pre-factor 
+                                  // at configuration-space quadrature nodes
   struct gkyl_array *h_ij_inv_quad; // metric inverse at configuration-space quadrature nodes
   struct gkyl_array *det_h_quad; // metric determinant at configuration-space quadrature nodes
 
