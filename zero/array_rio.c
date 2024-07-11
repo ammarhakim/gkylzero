@@ -17,7 +17,8 @@ static const char *array_rio_status_msg[] = {
   [GKYL_ARRAY_RIO_BAD_VERSION] = "Incorrect header version",
   [GKYL_ARRAY_RIO_FOPEN_FAILED] = "File open failed",
   [GKYL_ARRAY_RIO_FREAD_FAILED] = "Data read failed",
-  [GKYL_ARRAY_RIO_DATA_MISMATCH] = "Data mismatch"
+  [GKYL_ARRAY_RIO_DATA_MISMATCH] = "Data mismatch",
+  [GKYL_ARRAY_RIO_META_FAILED] = "Metadata output failed"
 };
 
 const char*

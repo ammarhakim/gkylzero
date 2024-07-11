@@ -12,7 +12,8 @@ enum gkyl_array_rio_status {
   GKYL_ARRAY_RIO_BAD_VERSION,
   GKYL_ARRAY_RIO_FOPEN_FAILED,
   GKYL_ARRAY_RIO_FREAD_FAILED,
-  GKYL_ARRAY_RIO_DATA_MISMATCH
+  GKYL_ARRAY_RIO_DATA_MISMATCH,
+  GKYL_ARRAY_RIO_META_FAILED
 };
 
 /**
@@ -22,7 +23,6 @@ enum gkyl_array_rio_status {
  * @return string corresponding to flag
  */
 const char* gkyl_array_rio_status_msg(enum gkyl_array_rio_status status);
-
 
 // Structure to pass meta-data to write methods
 struct gkyl_array_meta {

@@ -127,11 +127,14 @@ test_topo_io()
     &status_inp);
   TEST_CHECK( GKYL_ARRAY_RIO_SUCCESS == status_out );
 
-  TEST_CHECK( 2 == btopo_inp->ndim );
-  TEST_CHECK( 3 == btopo_inp->num_blocks );
-  TEST_CHECK( 1 == gkyl_block_topo_check_consistency(btopo_inp) );
+  if (status_out == GKYL_ARRAY_RIO_SUCCESS) {
+    TEST_CHECK( 2 == btopo_inp->ndim );
+    TEST_CHECK( 3 == btopo_inp->num_blocks );
+    TEST_CHECK( 1 == gkyl_block_topo_check_consistency(btopo_inp) );
     
-  gkyl_block_topo_release(btopo_inp);
+    gkyl_block_topo_release(btopo_inp);
+  }
+  
   gkyl_block_topo_release(btopo);
 }
 
