@@ -230,33 +230,6 @@ gkyl_vlasov_lte_proj_on_basis_inew(const struct gkyl_vlasov_lte_proj_on_basis_in
     up->mem = gkyl_dg_bin_op_mem_new(conf_local_ncells, up->conf_basis.num_basis);
   }
 
-  up->is_relativistic = false;
-  if (inp->model_id == GKYL_MODEL_SR) {
-    up->is_relativistic = true;
-  }
-
-  up->is_canonical_pb = false;
-  if (inp->model_id == GKYL_MODEL_CANONICAL_PB) {
-    up->is_canonical_pb = true;
-    // Allocate and obtain geometric variables at quadrature points for canonical-pb
-    // since these quantities are time-independent.
-    if (up->use_gpu) { 
-      up->h_ij_inv_quad = gkyl_array_cu_dev_new(GKYL_DOUBLE, 
-        up->tot_conf_quad*(vdim*(vdim+1)/2), inp->conf_range_ext->volume);
-      up->det_h_quad = gkyl_array_cu_dev_new(GKYL_DOUBLE, 
-        up->tot_conf_quad, inp->conf_range_ext->volume);
-    }
-    else {
-      up->h_ij_inv_quad = gkyl_array_new(GKYL_DOUBLE, 
-        up->tot_conf_quad*(vdim*(vdim+1)/2), inp->conf_range_ext->volume);
-      up->det_h_quad = gkyl_array_new(GKYL_DOUBLE, 
-        up->tot_conf_quad, inp->conf_range_ext->volume);
-    }
-    gkyl_array_clear(up->h_ij_inv_quad, 0.0); 
-    gkyl_array_clear(up->det_h_quad, 0.0); 
-    gkyl_vlasov_lte_proj_on_basis_geom_quad_vars(up, inp->conf_range, inp->h_ij_inv, inp->det_h);
-  }
-
 #ifdef GKYL_HAVE_CUDA
   if (up->use_gpu) {
     // Allocate device copies of arrays needed for quadrature.
@@ -311,6 +284,33 @@ gkyl_vlasov_lte_proj_on_basis_inew(const struct gkyl_vlasov_lte_proj_on_basis_in
     gkyl_cu_memcpy(up->p2c_qidx, p2c_qidx_ho, sizeof(int)*up->phase_qrange.volume, GKYL_CU_MEMCPY_H2D);
   }
 #endif
+
+  up->is_relativistic = false;
+  if (inp->model_id == GKYL_MODEL_SR) {
+    up->is_relativistic = true;
+  }
+
+  up->is_canonical_pb = false;
+  if (inp->model_id == GKYL_MODEL_CANONICAL_PB) {
+    up->is_canonical_pb = true;
+    // Allocate and obtain geometric variables at quadrature points for canonical-pb
+    // since these quantities are time-independent.
+    if (up->use_gpu) { 
+      up->h_ij_inv_quad = gkyl_array_cu_dev_new(GKYL_DOUBLE, 
+        up->tot_conf_quad*(vdim*(vdim+1)/2), inp->conf_range_ext->volume);
+      up->det_h_quad = gkyl_array_cu_dev_new(GKYL_DOUBLE, 
+        up->tot_conf_quad, inp->conf_range_ext->volume);
+    }
+    else {
+      up->h_ij_inv_quad = gkyl_array_new(GKYL_DOUBLE, 
+        up->tot_conf_quad*(vdim*(vdim+1)/2), inp->conf_range_ext->volume);
+      up->det_h_quad = gkyl_array_new(GKYL_DOUBLE, 
+        up->tot_conf_quad, inp->conf_range_ext->volume);
+    }
+    gkyl_array_clear(up->h_ij_inv_quad, 0.0); 
+    gkyl_array_clear(up->det_h_quad, 0.0); 
+    gkyl_vlasov_lte_proj_on_basis_geom_quad_vars(up, inp->conf_range, inp->h_ij_inv, inp->det_h);
+  }
 
   // Store a LTE moment calculation updater to compute and correct the density
   struct gkyl_vlasov_lte_moments_inp inp_mom = {
