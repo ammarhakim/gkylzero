@@ -151,6 +151,171 @@ implicit_neut_source_update(const gkyl_moment_em_coupling* mom_em, double t_curr
 }
 
 void
+implicit_collision_source_update(const gkyl_moment_em_coupling* mom_em, double dt, double* fluid_s[GKYL_MAX_SPECIES])
+{
+  int nfluids = mom_em->nfluids;
+  double nu_base[GKYL_MAX_SPECIES][GKYL_MAX_SPECIES];
+  for (int i  = 0; i < nfluids; i++) {
+    for (int j = 0; j < nfluids; j++) {
+      nu_base[i][j] = (mom_em->nu_base)[i][j];
+    }
+  }
+
+  double nu[nfluids * nfluids];
+  for (int i = 0; i < nfluids; i++) {
+    double *nu_i = nu + (nfluids * i);
+
+    for (int j = 0; j < nfluids; j++) {
+      double rho = fluid_s[j][0];
+
+      nu_i[j] = nu_base[i][j] * rho;
+    }
+  }
+
+  double lhs[nfluids][nfluids];
+  double rhs[nfluids][3];
+  for (int i = 0; i < nfluids; i++) {
+    for (int j =0 ; j < nfluids; j++) {
+      lhs[i][j] = 0.0;
+    }
+
+    rhs[i][0] = 0.0; rhs[i][1] = 0.0; rhs[i][2] = 0.0;
+  }
+
+  for (int i = 0; i < nfluids; i++) {
+    double *f = fluid_s[i];
+
+    double rho = f[0];
+    double mom_x = f[1], mom_y = f[2], mom_z = f[3];
+
+    rhs[i][0] = mom_x / rho;
+    rhs[i][1] = mom_y / rho;
+    rhs[i][2] = mom_z / rho;
+
+    lhs[i][i] = 1.0;
+    double* nu_i = nu + (nfluids * i);
+
+    for (int j = 0; j < nfluids; j++) {
+      if (i == j) {
+        lhs[i][i] += 0.5 * dt * nu_i[i];
+      }
+      else {
+        double dt_nu_ij = 0.5 * dt * nu_i[j];
+        lhs[i][i] += dt_nu_ij;
+        lhs[i][j] -= dt_nu_ij;
+      }
+    }
+  }
+
+  struct gkyl_mat *lhs_mat = gkyl_mat_new(nfluids, nfluids, 0.0);
+  struct gkyl_mat *rhs_mat = gkyl_mat_new(nfluids, 3, 0.0);
+
+  for (int i = 0; i < nfluids; i++) {
+    for (int j = 0; j < nfluids; j++) {
+      gkyl_mat_set(lhs_mat, i, j, lhs[i][j]);
+    }
+
+    gkyl_mat_set(rhs_mat, i, 0, rhs[i][0]);
+    gkyl_mat_set(rhs_mat, i, 1, rhs[i][1]);
+    gkyl_mat_set(rhs_mat, i, 2, rhs[i][2]);
+  }
+
+  gkyl_mem_buff sol_buff = gkyl_mem_buff_new(sizeof(long[nfluids]));
+  bool status = gkyl_mat_linsolve_lu(lhs_mat, rhs_mat, gkyl_mem_buff_data(sol_buff));
+
+  for (int i = 0; i < nfluids; i++) {
+    for (int j = 0; j < 3; j++) {
+      rhs[i][j] = gkyl_mat_get(rhs_mat, i, j);
+    }
+  }
+
+  double rhs_T[nfluids][1];
+  for (int i = 0; i < nfluids; i++) {
+    rhs_T[i][0] = 0.0;
+
+    for (int j = 0; j < nfluids; j++) {
+      lhs[i][j] = 0.0;
+    }
+  }
+
+  double T[nfluids];
+  for (int i = 0; i < nfluids; i++) {
+    double *f = fluid_s[i];
+    double m = mom_em->param[i].mass;
+
+    double rho = f[0];
+    double mom_x = f[1], mom_y = f[2], mom_z = f[3];
+    double E = f[4];
+    double internal_energy = E - (0.5 * ((mom_x * mom_x) + (mom_y * mom_y) + (mom_z * mom_z)) / rho);
+
+    T[i] = (internal_energy / rho) * m;
+    rhs_T[i][0] = T[i];
+    lhs[i][i] = 1.0;
+
+    double *nu_i = nu + (nfluids * i);
+
+    for (int j = 0; j < nfluids; j++) {
+      if (i != j) {
+        double m_j = mom_em->param[j].mass;
+        
+        double du_sq = ((rhs[i][0] - rhs[j][0]) * (rhs[i][0] - rhs[j][0])) + ((rhs[i][1] - rhs[j][1]) * (rhs[i][1] - rhs[j][1])) + ((rhs[i][2] - rhs[j][2]) * (rhs[i][2] - rhs[j][2]));
+        double coeff_ij = (dt * nu_i[j] * m) / (m + m_j);
+
+        rhs_T[i][0] += 0.5 * coeff_ij * m_j * du_sq;
+        lhs[i][i] += coeff_ij;
+        lhs[i][j] -= coeff_ij;
+      }
+    }
+  }
+
+  struct gkyl_mat *lhs_T_mat = gkyl_mat_new(nfluids, nfluids, 0.0);
+  struct gkyl_mat *rhs_T_mat = gkyl_mat_new(nfluids, 1, 0.0);
+
+  for (int i = 0; i < nfluids; i++) {
+    for (int j = 0; j < nfluids; j++) {
+      gkyl_mat_set(lhs_T_mat, i, j, lhs[i][j]);
+    }
+
+    gkyl_mat_set(rhs_T_mat, i, 0, rhs_T[i][0]);
+  }
+
+  status = gkyl_mat_linsolve_lu(lhs_T_mat, rhs_T_mat, gkyl_mem_buff_data(sol_buff));
+
+  for (int i = 0; i < nfluids; i++) {
+    rhs_T[i][0] = gkyl_mat_get(rhs_T_mat, i, 0);
+  }
+
+  for (int i = 0; i < nfluids; i++) {
+    double *f = fluid_s[i];
+    double m = mom_em->param[i].mass;
+
+    double rho = f[0];
+
+    f[4] = ((2.0 * rhs_T[i][0] - T[i]) * rho) / m;
+  }
+
+  for (int i = 0; i < nfluids; i++) {
+    double *f = fluid_s[i];
+
+    double rho = f[0];
+    double mom_x = f[1], mom_y = f[2], mom_z = f[3];
+    double E = f[4];
+
+    f[1] = 2.0 * rho * rhs[i][0] - mom_x;
+    f[2] = 2.0 * rho * rhs[i][1] - mom_y;
+    f[3] = 2.0 * rho * rhs[i][2] - mom_z;
+
+    mom_x = f[1], mom_y = f[2], mom_z = f[3];
+    f[4] = E + (0.5 * ((mom_x * mom_x) + (mom_y * mom_y) + (mom_z * mom_z)) / rho);
+  }
+
+  gkyl_mem_buff_release(sol_buff);
+  gkyl_mat_release(lhs_mat);
+  gkyl_mat_release(rhs_mat);
+  gkyl_mat_release(rhs_T_mat);
+}
+
+void
 implicit_source_coupling_update(const gkyl_moment_em_coupling* mom_em, double t_curr, double dt, double* fluid_s[GKYL_MAX_SPECIES],
   const double* app_accel_s[GKYL_MAX_SPECIES], const double* p_rhs_s[GKYL_MAX_SPECIES], double* em, const double* app_current,
   const double* ext_em, const double* nT_sources_s[GKYL_MAX_SPECIES])
@@ -246,7 +411,7 @@ implicit_source_coupling_update(const gkyl_moment_em_coupling* mom_em, double t_
   }
 
   if (mom_em->has_collision) {
-    // TODO: Add implicit source updater for collisions.
+    implicit_collision_source_update(mom_em, dt, fluid_s);
   }
 
   // These are handled by their own specialized explicit forcing solver. To be revisited...

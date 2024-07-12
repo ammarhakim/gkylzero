@@ -1,5 +1,6 @@
 #pragma once
 
+#include <string.h>
 #include <gkyl_moment_em_coupling.h>
 #include <gkyl_sources_implicit.h>
 
