@@ -168,18 +168,16 @@ test_2x2v(int poly_order)
   // projection updater to compute LTE distribution
   struct gkyl_vlasov_lte_proj_on_basis_inp inp_lte = {
     .phase_grid = &grid,
+    .vel_grid = &vel_grid, 
     .conf_basis = &confBasis,
+    .vel_basis = &velBasis, 
     .phase_basis = &basis,
     .conf_range =  &confLocal,
     .conf_range_ext = &confLocal_ext,
     .vel_range = &velLocal,
-    .p_over_gamma = 0,
-    .gamma = 0,
-    .gamma_inv = 0,
     .h_ij_inv = h_ij_inv,
     .det_h = det_h,
     .model_id = GKYL_MODEL_CANONICAL_PB,
-    .mass = 1.0,
     .use_gpu = false,
   };  
   gkyl_vlasov_lte_proj_on_basis *proj_lte = gkyl_vlasov_lte_proj_on_basis_inew(&inp_lte);
@@ -189,42 +187,39 @@ test_2x2v(int poly_order)
   // Create a MJ with corrected moments
   struct gkyl_vlasov_lte_correct_inp inp_corr = {
     .phase_grid = &grid,
+    .vel_grid = &vel_grid, 
     .conf_basis = &confBasis,
+    .vel_basis = &velBasis, 
     .phase_basis = &basis,
     .conf_range =  &confLocal,
     .conf_range_ext = &confLocal_ext,
     .vel_range = &velLocal,
-    .p_over_gamma = 0,
-    .gamma = 0,
-    .gamma_inv = 0,
     .h_ij_inv = h_ij_inv,
     .det_h = det_h,
     .model_id = GKYL_MODEL_CANONICAL_PB,
-    .mass = 1.0,
     .use_gpu = false,
     .max_iter = 100,
     .eps = 1e-12,
   };
   gkyl_vlasov_lte_correct *corr_mj = gkyl_vlasov_lte_correct_inew( &inp_corr );
   // Correct the other moments (V_drift, T/m)
-  gkyl_vlasov_lte_correct_all_moments(corr_mj, distf, moms_corr, &local, &confLocal);
+  struct gkyl_vlasov_lte_correct_status status_corr;
+  status_corr = gkyl_vlasov_lte_correct_all_moments(corr_mj, distf, moms_corr, &local, &confLocal);
   gkyl_vlasov_lte_correct_release(corr_mj);
 
   // Correct the distribution function
   struct gkyl_vlasov_lte_moments_inp inp_mom = {
     .phase_grid = &grid,
+    .vel_grid = &vel_grid, 
     .conf_basis = &confBasis,
+    .vel_basis = &velBasis, 
     .phase_basis = &basis,
     .conf_range =  &confLocal,
     .conf_range_ext = &confLocal_ext,
     .vel_range = &velLocal,
-    .p_over_gamma = 0,
-    .gamma = 0,
-    .gamma_inv = 0,
     .h_ij_inv = h_ij_inv,
     .det_h = det_h,
     .model_id = GKYL_MODEL_CANONICAL_PB,
-    .mass = 1.0,
     .use_gpu = false,
   };
   gkyl_vlasov_lte_moments *lte_moms = gkyl_vlasov_lte_moments_inew( &inp_mom );
@@ -238,7 +233,7 @@ test_2x2v(int poly_order)
   sprintf(fname, "ctest_can_pb_eq_2x2v_p%d.gkyl", poly_order);
   gkyl_grid_sub_array_write(&grid, &local, distf, fname);
 
-  // Write the output (moments)
+  // // Write the output (moments)
   // sprintf(fname, "ctest_can_pb_eq_2x2v_p%d_n_corr.gkyl", poly_order);
   // gkyl_grid_sub_array_write(&confGrid,&confLocal,m0_corr,fname);
   // sprintf(fname, "ctest_can_pb_eq_2x2v_p%d_vb_corr.gkyl", poly_order);
@@ -246,7 +241,7 @@ test_2x2v(int poly_order)
   // sprintf(fname, "ctest_can_pb_eq_2x2v_p%d_T_corr.gkyl", poly_order);
   // gkyl_grid_sub_array_write(&confGrid,&confLocal,m2_corr,fname);
 
-  // Write the output (moments)
+  // // Write the output (moments)
   // sprintf(fname, "ctest_can_pb_eq_2x2v_p%d_n.gkyl", poly_order);
   // gkyl_grid_sub_array_write(&confGrid,&confLocal,m0,fname);
   // sprintf(fname, "ctest_can_pb_eq_2x2v_p%d_vb.gkyl", poly_order);
@@ -254,12 +249,13 @@ test_2x2v(int poly_order)
   // sprintf(fname, "ctest_can_pb_eq_2x2v_p%d_T.gkyl", poly_order);
   // gkyl_grid_sub_array_write(&confGrid,&confLocal,m2,fname);
 
-  // Write the h^{ij}, det(h_ij)
-  //sprintf(fname, "ctest_can_pb_eq_2x2v_p%d_h_ij_inv.gkyl", poly_order);
-  //gkyl_grid_sub_array_write(&confGrid,&confLocal,h_ij_inv,fname);
-  //sprintf(fname, "ctest_can_pb_eq_2x2v_p%d_det_h.gkyl", poly_order);
-  //gkyl_grid_sub_array_write(&confGrid,&confLocal,det_h,fname);
+  // // Write the h^{ij}, det(h_ij)
+  // sprintf(fname, "ctest_can_pb_eq_2x2v_p%d_h_ij_inv.gkyl", poly_order);
+  // gkyl_grid_sub_array_write(&confGrid,&confLocal,h_ij_inv,fname);
+  // sprintf(fname, "ctest_can_pb_eq_2x2v_p%d_det_h.gkyl", poly_order);
+  // gkyl_grid_sub_array_write(&confGrid,&confLocal,det_h,fname);
 
+  // values to compare  at index (1, 17) [remember, lower-left index is (1,1)]
   // values to compare  at index (1, 17) [remember, lower-left index is (1,1)]
   double p2_vals[] = {7.4389783023265099e-02, 1.7499522696968448e-04, -4.2253321330719359e-19, 
     1.7197294780095105e-02, 3.2822459503714825e-02, 2.5019571528486421e-18, 4.0454999945222635e-05, 
@@ -277,10 +273,12 @@ test_2x2v(int poly_order)
 
   const double *fv = gkyl_array_cfetch(distf, gkyl_range_idx(&local_ext, (int[4]){1, 1, 8, 8}));
 
-  if (poly_order == 2)
-    for (int i = 0; i < basis.num_basis; ++i)
+  if (poly_order == 2) {
+    for (int i = 0; i < basis.num_basis; ++i) {
       TEST_CHECK(gkyl_compare_double(p2_vals[i], fv[i], 1e-10));
-      //printf("%1.16e, ",fv[i]);
+      // printf("p2_vals = %1.16e fv = %1.16e\n", p2_vals[i], fv[i]);
+    }
+  }
 
   // release memory for moment data object
   gkyl_array_release(m0);

@@ -358,11 +358,11 @@ void
 gkyl_vlasov_app_calc_mom(gkyl_vlasov_app* app)
 {
   for (int i=0; i<app->num_species; ++i) {
-    struct vm_species *s = &app->species[i];
+    struct vm_species *vm_s = &app->species[i];
 
-    for (int m=0; m<app->species[i].info.num_diag_moments; ++m) {
+    for (int m=0; m<vm_s->info.num_diag_moments; ++m) {
       struct timespec wst = gkyl_wall_clock();
-      vm_species_moment_calc(&s->moms[m], s->local, app->local, s->f);
+      vm_species_moment_calc(&vm_s->moms[m], vm_s->local, app->local, vm_s->f);
       app->stat.mom_tm += gkyl_time_diff_now_sec(wst);
       app->stat.nmom += 1;
     }
@@ -378,31 +378,35 @@ gkyl_vlasov_app_calc_integrated_mom(gkyl_vlasov_app* app, double tm)
   struct timespec wst = gkyl_wall_clock();
 
   for (int i=0; i<app->num_species; ++i) {
-    struct vm_species *s = &app->species[i];
+    struct vm_species *vm_s = &app->species[i];
 
     struct timespec wst = gkyl_wall_clock();
 
-    if (s->model_id == GKYL_MODEL_SR) {
-      // Compute the necessary factors to correctly integrate relativistic quantities such as:
-      // GammaV_inv = sqrt(1 - V_drift^2/c^2) where V_drift is computed from weak division: M0 * V_drift = M1i
-      vm_species_moment_calc(&s->m0, s->local, app->local, s->f);
-      vm_species_moment_calc(&s->m1i, s->local, app->local, s->f);
-      gkyl_calc_prim_vars_u_from_rhou(s->V_drift_mem, app->confBasis, &app->local, 
-        s->m0.marr, s->m1i.marr, s->V_drift); 
-      gkyl_calc_sr_vars_GammaV_inv(&app->confBasis, &app->basis, &app->local, s->V_drift, s->GammaV_inv);
-    }
-    vm_species_moment_calc(&s->integ_moms, s->local, app->local, s->f);
+    vm_species_moment_calc(&vm_s->integ_moms, vm_s->local, app->local, vm_s->f);
     // reduce to compute sum over whole domain, append to diagnostics
     if (app->use_gpu) {
-      gkyl_array_reduce_range(s->red_integ_diag, s->integ_moms.marr, GKYL_SUM, &(app->local));
-      gkyl_cu_memcpy(avals, s->red_integ_diag, sizeof(double[2+vdim]), GKYL_CU_MEMCPY_D2H);
+      gkyl_array_reduce_range(vm_s->red_integ_diag, vm_s->integ_moms.marr, GKYL_SUM, &app->local);
+      gkyl_cu_memcpy(avals, vm_s->red_integ_diag, sizeof(double[2+vdim]), GKYL_CU_MEMCPY_D2H);
     }
     else {
-      gkyl_array_reduce_range(avals, s->integ_moms.marr_host, GKYL_SUM, &(app->local));
+      gkyl_array_reduce_range(avals, vm_s->integ_moms.marr_host, GKYL_SUM, &app->local);
     }
-
     gkyl_comm_all_reduce(app->comm, GKYL_DOUBLE, GKYL_SUM, 2+vdim, avals, avals_global);
-    gkyl_dynvec_append(s->integ_diag, tm, avals_global);
+    gkyl_dynvec_append(vm_s->integ_diag, tm, avals_global);
+
+    if (vm_s->source_id) {
+      vm_species_moment_calc(&vm_s->src.integ_moms, vm_s->local, app->local, vm_s->src.source); 
+      // reduce to compute sum over whole domain, append to diagnostics
+      if (app->use_gpu) {
+        gkyl_array_reduce_range(vm_s->src.red_integ_diag, vm_s->src.integ_moms.marr, GKYL_SUM, &app->local);
+        gkyl_cu_memcpy(avals, vm_s->src.red_integ_diag, sizeof(double[2+vdim]), GKYL_CU_MEMCPY_D2H);
+      }
+      else {
+        gkyl_array_reduce_range(avals, vm_s->integ_moms.marr_host, GKYL_SUM, &app->local);
+      }
+      gkyl_comm_all_reduce(app->comm, GKYL_DOUBLE, GKYL_SUM, 2+vdim, avals, avals_global);
+      gkyl_dynvec_append(vm_s->src.integ_diag, tm, avals_global);
+    }
 
     app->stat.mom_tm += gkyl_time_diff_now_sec(wst);
     app->stat.nmom += 1;
@@ -439,8 +443,8 @@ gkyl_vlasov_app_calc_integrated_L2_f(gkyl_vlasov_app* app, double tm)
 {
   struct timespec wst = gkyl_wall_clock();
   for (int i=0; i<app->num_species; ++i) {
-    struct vm_species *s = &app->species[i];
-    vm_species_calc_L2(app, tm, s);
+    struct vm_species *vm_s = &app->species[i];
+    vm_species_calc_L2(app, tm, vm_s);
   }
   app->stat.diag_tm += gkyl_time_diff_now_sec(wst);
   app->stat.ndiag += 1;
@@ -465,10 +469,9 @@ gkyl_vlasov_app_write(gkyl_vlasov_app* app, double tm, int frame)
     gkyl_vlasov_app_write_field(app, tm, frame);
   for (int i=0; i<app->num_species; ++i) {
     gkyl_vlasov_app_write_species(app, i, tm, frame);
-    if(app->species[i].info.output_f_lte)
+    if(app->species[i].info.output_f_lte) {
       gkyl_vlasov_app_write_species_lte(app, i, tm, frame);
-    if (app->species[i].model_id == GKYL_MODEL_SR && frame == 0)
-      gkyl_vlasov_app_write_species_gamma(app, i, tm, frame);
+    }
   }
   for (int i=0; i<app->num_fluid_species; ++i) {
     gkyl_vlasov_app_write_fluid_species(app, i, tm, frame);
@@ -498,21 +501,36 @@ gkyl_vlasov_app_write_field(gkyl_vlasov_app* app, double tm, int frame)
 void
 gkyl_vlasov_app_write_species(gkyl_vlasov_app* app, int sidx, double tm, int frame)
 {
+  struct vm_species *vm_s = &app->species[sidx];
+
   const char *fmt = "%s-%s_%d.gkyl";
-  int sz = gkyl_calc_strlen(fmt, app->name, app->species[sidx].info.name, frame);
+  int sz = gkyl_calc_strlen(fmt, app->name, vm_s->info.name, frame);
   char fileNm[sz+1]; // ensures no buffer overflow
-  snprintf(fileNm, sizeof fileNm, fmt, app->name, app->species[sidx].info.name, frame);
+  snprintf(fileNm, sizeof fileNm, fmt, app->name, vm_s->info.name, frame);
 
   if (app->use_gpu) {
     // copy data from device to host before writing it out
-    gkyl_array_copy(app->species[sidx].f_host, app->species[sidx].f);
-    gkyl_comm_array_write(app->species[sidx].comm, &app->species[sidx].grid, &app->species[sidx].local,
-      app->species[sidx].f_host, fileNm);
+    gkyl_array_copy(vm_s->f_host, vm_s->f);
   }
-  else {
-    gkyl_comm_array_write(app->species[sidx].comm, &app->species[sidx].grid, &app->species[sidx].local,
-      app->species[sidx].f, fileNm);
-  }
+  gkyl_comm_array_write(vm_s->comm, &vm_s->grid, &vm_s->local, 
+    vm_s->f_host, fileNm);  
+
+  if (vm_s->source_id) {
+    if (vm_s->src.write_source) {
+      // Write out the source distribution function
+      const char *fmt_source = "%s-%s_source_%d.gkyl";
+      int sz_source = gkyl_calc_strlen(fmt_source, app->name, vm_s->info.name, frame);
+      char fileNm_source[sz_source+1]; // ensures no buffer overflow
+      snprintf(fileNm_source, sizeof fileNm_source, fmt_source, app->name, vm_s->info.name, frame);
+      // copy data from device to host before writing it out
+      if (app->use_gpu) {
+        gkyl_array_copy(vm_s->src.source_host, vm_s->src.source);
+      }
+
+      gkyl_comm_array_write(vm_s->comm, &vm_s->grid, &vm_s->local, 
+        vm_s->src.source_host, fileNm); 
+    }
+  }  
 }
 
 void
@@ -539,32 +557,6 @@ gkyl_vlasov_app_write_species_lte(gkyl_vlasov_app* app, int sidx, double tm, int
   }
 }
 
-
-void
-gkyl_vlasov_app_write_species_gamma(gkyl_vlasov_app* app, int sidx, double tm, int frame)
-{
-// This seems to be just for debugging and is not needed in
-// production. So commenting it out. A.H April 22nd 2023.
-  
-  /* const char *fmt = "%s-%s_p_over_gamma_%d.gkyl"; */
-  /* int sz = gkyl_calc_strlen(fmt, app->name, app->species[sidx].info.name, frame); */
-  /* char fileNm[sz+1]; // ensures no buffer overflow */
-  /* snprintf(fileNm, sizeof fileNm, fmt, app->name, app->species[sidx].info.name, frame); */
-
-  /* if (app->use_gpu) { */
-  /*   // copy data from device to host before writing it out */
-  /*   gkyl_array_copy(app->species[sidx].p_over_gamma_host, app->species[sidx].p_over_gamma); */
-  /*   // TODO: not parallel yet */
-  /*   gkyl_grid_sub_array_write(&app->species[sidx].grid_vel, &app->species[sidx].local_vel, */
-  /*     app->species[sidx].p_over_gamma_host, fileNm); */
-  /* } */
-  /* else { */
-  /*   // TODO: not parallel yet */
-  /*   gkyl_grid_sub_array_write(&app->species[sidx].grid_vel, &app->species[sidx].local_vel, */
-  /*     app->species[sidx].p_over_gamma, fileNm); */
-  /* } */
-}
-
 void
 gkyl_vlasov_app_write_fluid_species(gkyl_vlasov_app* app, int sidx, double tm, int frame)
 {
@@ -584,19 +576,37 @@ void
 gkyl_vlasov_app_write_mom(gkyl_vlasov_app* app, double tm, int frame)
 {
   for (int i=0; i<app->num_species; ++i) {
-    for (int m=0; m<app->species[i].info.num_diag_moments; ++m) {
+    struct vm_species *vm_s = &app->species[i];
+
+    for (int m=0; m<vm_s->info.num_diag_moments; ++m) {
 
       const char *fmt = "%s-%s_%s_%d.gkyl";
-      int sz = gkyl_calc_strlen(fmt, app->name, app->species[i].info.name,
-        app->species[i].info.diag_moments[m], frame);
+      int sz = gkyl_calc_strlen(fmt, app->name, vm_s->info.name,
+        vm_s->info.diag_moments[m], frame);
       char fileNm[sz+1]; // ensures no buffer overflow
-      snprintf(fileNm, sizeof fileNm, fmt, app->name, app->species[i].info.name,
-        app->species[i].info.diag_moments[m], frame);
+      snprintf(fileNm, sizeof fileNm, fmt, app->name, vm_s->info.name,
+        vm_s->info.diag_moments[m], frame);
 
-      if (app->use_gpu)
-        gkyl_array_copy(app->species[i].moms[m].marr_host, app->species[i].moms[m].marr);
+      if (app->use_gpu) {
+        gkyl_array_copy(vm_s->moms[m].marr_host, vm_s->moms[m].marr);
+      }
+      gkyl_comm_array_write(app->comm, &app->grid, &app->local, vm_s->moms[m].marr_host, fileNm);
 
-      gkyl_comm_array_write(app->comm, &app->grid, &app->local, app->species[i].moms[m].marr_host, fileNm);
+      if (vm_s->source_id) {
+        if (vm_s->src.write_source) {
+          const char *fmt_source = "%s-%s_source_%s_%d.gkyl";
+          int sz_source = gkyl_calc_strlen(fmt, app->name, vm_s->info.name,
+            vm_s->info.diag_moments[m], frame);
+          char fileNm_source[sz_source+1]; // ensures no buffer overflow
+          snprintf(fileNm_source, sizeof fileNm_source, fmt_source, app->name, vm_s->info.name,
+            vm_s->info.diag_moments[m], frame);
+
+          if (app->use_gpu) {
+            gkyl_array_copy(vm_s->src.moms[m].marr_host, vm_s->src.moms[m].marr);
+          }
+          gkyl_comm_array_write(app->comm, &app->grid, &app->local, vm_s->src.moms[m].marr_host, fileNm_source); 
+        }
+      }      
     }
   }
 }
@@ -605,26 +615,53 @@ void
 gkyl_vlasov_app_write_integrated_mom(gkyl_vlasov_app *app)
 {
   for (int i=0; i<app->num_species; ++i) {
+    struct vm_species *vm_s = &app->species[i];
+
     int rank;
     gkyl_comm_get_rank(app->comm, &rank);
     if (rank == 0) {
       // write out integrated diagnostic moments
       const char *fmt = "%s-%s-%s.gkyl";
-      int sz = gkyl_calc_strlen(fmt, app->name, app->species[i].info.name,
+      int sz = gkyl_calc_strlen(fmt, app->name, vm_s->info.name,
         "imom");
       char fileNm[sz+1]; // ensures no buffer overflow
-      snprintf(fileNm, sizeof fileNm, fmt, app->name, app->species[i].info.name,
+      snprintf(fileNm, sizeof fileNm, fmt, app->name, vm_s->info.name,
         "imom");
 
-      if (app->species[i].is_first_integ_write_call) {
-        gkyl_dynvec_write(app->species[i].integ_diag, fileNm);
-        app->species[i].is_first_integ_write_call = false;
+      if (vm_s->is_first_integ_write_call) {
+        gkyl_dynvec_write(vm_s->integ_diag, fileNm);
+        vm_s->is_first_integ_write_call = false;
       }
       else {
-        gkyl_dynvec_awrite(app->species[i].integ_diag, fileNm);
+        gkyl_dynvec_awrite(vm_s->integ_diag, fileNm);
+      }
+
+      if (vm_s->source_id) {
+        if (vm_s->src.write_source) { 
+          // write out integrated diagnostic moments from sources
+          const char *fmt_source = "%s-%s-source-%s.gkyl";
+          int sz_source = gkyl_calc_strlen(fmt, app->name, vm_s->info.name,
+            "imom");
+          char fileNm_source[sz_source+1]; // ensures no buffer overflow
+          snprintf(fileNm_source, sizeof fileNm_source, fmt_source, app->name, vm_s->info.name,
+            "imom");
+
+          if (vm_s->src.is_first_integ_write_call) {
+            gkyl_dynvec_write(vm_s->src.integ_diag, fileNm_source);
+            vm_s->src.is_first_integ_write_call = false;
+          }
+          else {
+            gkyl_dynvec_awrite(vm_s->src.integ_diag, fileNm_source);
+          }          
+        }
+      }      
+    }
+    gkyl_dynvec_clear(vm_s->integ_diag);
+    if (vm_s->source_id) {
+      if (vm_s->src.write_source) { 
+        gkyl_dynvec_clear(vm_s->src.integ_diag);
       }
     }
-    gkyl_dynvec_clear(app->species[i].integ_diag);
   }
 }
 
@@ -632,28 +669,30 @@ void
 gkyl_vlasov_app_write_integrated_L2_f(gkyl_vlasov_app* app)
 {
   for (int i=0; i<app->num_species; ++i) {
+    struct vm_species *vm_s = &app->species[i];
+
     int rank;
     gkyl_comm_get_rank(app->comm, &rank);
     if (rank == 0) {
       // write out integrated L^2
       const char *fmt = "%s-%s-%s.gkyl";
-      int sz = gkyl_calc_strlen(fmt, app->name, app->species[i].info.name,
+      int sz = gkyl_calc_strlen(fmt, app->name, vm_s->info.name,
         "L2");
       char fileNm[sz+1]; // ensures no buffer overflow
-      snprintf(fileNm, sizeof fileNm, fmt, app->name, app->species[i].info.name,
+      snprintf(fileNm, sizeof fileNm, fmt, app->name, vm_s->info.name,
         "L2");
 
-      if (app->species[i].is_first_integ_L2_write_call) {
+      if (vm_s->is_first_integ_L2_write_call) {
         // write to a new file (this ensure previous output is removed)
-        gkyl_dynvec_write(app->species[i].integ_L2_f, fileNm);
-        app->species[i].is_first_integ_L2_write_call = false;
+        gkyl_dynvec_write(vm_s->integ_L2_f, fileNm);
+        vm_s->is_first_integ_L2_write_call = false;
       }
       else {
         // append to existing file
-        gkyl_dynvec_awrite(app->species[i].integ_L2_f, fileNm);
+        gkyl_dynvec_awrite(vm_s->integ_L2_f, fileNm);
       }
     }
-    gkyl_dynvec_clear(app->species[i].integ_L2_f);
+    gkyl_dynvec_clear(vm_s->integ_L2_f);
   }
 }
 
@@ -687,32 +726,32 @@ void
 gkyl_vlasov_app_write_lte_corr_status(gkyl_vlasov_app* app)
 {
   for (int i=0; i<app->num_species; ++i) {
-    struct vm_species *s = &app->species[i];
+    struct vm_species *vm_s = &app->species[i];
 
-    if (s->collision_id == GKYL_BGK_COLLISIONS) {
-       // write out diagnostic moments
-      const char *fmt = "%s-%s-%s.gkyl";
-      int sz = gkyl_calc_strlen(fmt, app->name, app->species[i].info.name,
-        "corr-lte-stat");
-      char fileNm[sz+1]; // ensures no buffer overflow
-      snprintf(fileNm, sizeof fileNm, fmt, app->name, app->species[i].info.name,
-        "corr-lte-stat");
+    if (vm_s->collision_id == GKYL_BGK_COLLISIONS) {
 
       int rank;
       gkyl_comm_get_rank(app->comm, &rank);
-
       if (rank == 0) {
-        if (s->bgk.lte.is_first_corr_status_write_call) {
+         // write out correction statistics
+        const char *fmt = "%s-%s-%s.gkyl";
+        int sz = gkyl_calc_strlen(fmt, app->name, vm_s->info.name,
+          "corr-lte-stat");
+        char fileNm[sz+1]; // ensures no buffer overflow
+        snprintf(fileNm, sizeof fileNm, fmt, app->name, vm_s->info.name,
+          "corr-lte-stat"); 
+          
+        if (vm_s->bgk.lte.is_first_corr_status_write_call) {
           // write to a new file (this ensure previous output is removed)
-          gkyl_dynvec_write(s->bgk.lte.corr_stat, fileNm);
-          s->bgk.lte.is_first_corr_status_write_call = false;
+          gkyl_dynvec_write(vm_s->bgk.lte.corr_stat, fileNm);
+          vm_s->bgk.lte.is_first_corr_status_write_call = false;
         }
         else {
           // append to existing file
-          gkyl_dynvec_awrite(s->bgk.lte.corr_stat, fileNm);
+          gkyl_dynvec_awrite(vm_s->bgk.lte.corr_stat, fileNm);
         }
       }
-      gkyl_dynvec_clear(s->bgk.lte.corr_stat);
+      gkyl_dynvec_clear(vm_s->bgk.lte.corr_stat);
     }
   } 
 }
@@ -737,8 +776,10 @@ gkyl_vlasov_update(gkyl_vlasov_app* app, double dt)
 struct gkyl_vlasov_stat
 gkyl_vlasov_app_stat(gkyl_vlasov_app* app)
 {
-  vm_species_tm(app);
   vm_species_coll_tm(app);
+  vm_species_bgk_niter(app);
+  vm_species_tm(app);
+  vm_species_rad_tm(app);
   return app->stat;
 }
 
@@ -815,7 +856,8 @@ comm_reduce_app_stat(const gkyl_vlasov_app* app,
     TOTAL_TM, RK3_TM, FL_EM_TM, 
     INIT_SPECIES_TM, INIT_FLUID_SPECIES_TM, INIT_FIELD_TM, 
     SPECIES_RHS_TM, FLUID_SPECIES_RHS_TM, FLUID_SPECIES_VARS_TM, 
-    SPECIES_COLL_MOM_TM, SPECIES_COL_TM, FIELD_RHS_TM, SPECIES_LTE_TM, CURRENT_TM,
+    SPECIES_COLL_MOM_TM, SPECIES_COL_TM, SPECIES_RAD_TM, SPECIES_LTE_TM, 
+    FIELD_RHS_TM, CURRENT_TM,
     SPECIES_OMEGA_CFL_TM, FIELD_OMEGA_CFL_TM, MOM_TM, DIAG_TM, IO_TM,
     SPECIES_BC_TM, FLUID_SPECIES_BC_TM, FIELD_BC_TM,
     D_END
@@ -833,8 +875,9 @@ comm_reduce_app_stat(const gkyl_vlasov_app* app,
     [FLUID_SPECIES_VARS_TM] = local->fluid_species_vars_tm,
     [SPECIES_COLL_MOM_TM] = local->species_coll_mom_tm,
     [SPECIES_COL_TM] = local->species_coll_tm,
-    [FIELD_RHS_TM] = local->field_rhs_tm,
+    [SPECIES_RAD_TM] = local->species_rad_tm,
     [SPECIES_LTE_TM] = local->species_lte_tm,
+    [FIELD_RHS_TM] = local->field_rhs_tm,
     [CURRENT_TM] = local->current_tm,
     [SPECIES_OMEGA_CFL_TM] = local->species_omega_cfl_tm,
     [FIELD_OMEGA_CFL_TM] = local->field_omega_cfl_tm,
@@ -860,8 +903,9 @@ comm_reduce_app_stat(const gkyl_vlasov_app* app,
   global->fluid_species_vars_tm = d_red_global[FLUID_SPECIES_VARS_TM];
   global->species_coll_mom_tm = d_red_global[SPECIES_COLL_MOM_TM];
   global->species_coll_tm = d_red_global[SPECIES_COL_TM];
-  global->field_rhs_tm = d_red_global[FIELD_RHS_TM];
+  global->species_rad_tm = d_red_global[SPECIES_RAD_TM];
   global->species_lte_tm = d_red_global[SPECIES_LTE_TM];
+  global->field_rhs_tm = d_red_global[FIELD_RHS_TM];
   global->current_tm = d_red_global[CURRENT_TM];
   global->species_omega_cfl_tm = d_red_global[SPECIES_OMEGA_CFL_TM];
   global->field_omega_cfl_tm = d_red_global[FIELD_OMEGA_CFL_TM];
@@ -900,9 +944,10 @@ gkyl_vlasov_app_stat_write(gkyl_vlasov_app* app)
   time_t t = time(NULL);
   struct tm curr_tm = *localtime(&t);
 
-  vm_species_bgk_niter(app);
   vm_species_coll_tm(app);
+  vm_species_bgk_niter(app);
   vm_species_tm(app);
+  vm_species_rad_tm(app);
 
   struct gkyl_vlasov_stat stat = { };
   comm_reduce_app_stat(app, &app->stat, &stat);
@@ -954,6 +999,7 @@ gkyl_vlasov_app_stat_write(gkyl_vlasov_app* app)
 
   gkyl_vlasov_app_cout(app, fp, " species_coll_mom_tm : %lg,\n", stat.species_coll_mom_tm);
   gkyl_vlasov_app_cout(app, fp, " species_coll_tm : %lg,\n", stat.species_coll_tm);
+  gkyl_vlasov_app_cout(app, fp, " species_rad_tm : %lg,\n", stat.species_rad_tm);
 
   gkyl_vlasov_app_cout(app, fp, " species_lte_tm : %lg,\n", stat.species_lte_tm);
 

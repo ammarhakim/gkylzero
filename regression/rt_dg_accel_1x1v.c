@@ -167,7 +167,8 @@ main(int argc, char **argv)
     .upper = { 0.5 * ctx.Lvx }, 
     .cells = { NVX },
 
-    .projection = {
+    .num_init = 1, 
+    .projection[0] = {
       .proj_id = GKYL_PROJ_FUNC,
       .func = evalElcInit,
       .ctx_func = &ctx,

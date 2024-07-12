@@ -330,7 +330,8 @@ main(int argc, char **argv)
     .det_h_ctx = &ctx,
     .output_f_lte = true,
 
-    .projection = {
+    .num_init = 1, 
+    .projection[0] = {
       .proj_id = GKYL_PROJ_VLASOV_LTE,
       .density = evalDensityInit,
       .ctx_density = &ctx,

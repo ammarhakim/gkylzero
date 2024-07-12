@@ -41,7 +41,10 @@ struct gkyl_vlasov_projection {
       void (*temp)(double t, const double *xn, double *fout, void *ctx);
 
       // boolean if we are correcting all the moments or only density
-      bool correct_all_moms;       
+      bool correct_all_moms;  
+      double iter_eps; // error tolerance for moment fixes (density is always exact)
+      int max_iter; // maximum number of iteration
+      bool use_last_converged; // use last iteration value regardless of convergence?
     };
   };
 };
@@ -59,11 +62,11 @@ struct gkyl_vlasov_collisions {
   double nuFrac; // Parameter for rescaling collision frequency from SI values
   double hbar; // Planck's constant/2 pi 
 
-  // boolean if we are correcting all the moments or only density:
-  // only used by BGK collisions
-  bool correct_all_moms;
+  // BGK collisions specific inputs
+  bool correct_all_moms; // boolean if we are correcting all the moments or only density
   double iter_eps; // error tolerance for moment fixes (density is always exact)
-  int max_iter; // maximum number of iteration
+  int max_iter; // maximum number of iterations
+  bool use_last_converged; // use last iteration value regardless of convergence?
 
   // Boolean for using implicit BGK collisions (replaces rk3)   
   bool has_implicit_coll_scheme; 
@@ -74,15 +77,30 @@ struct gkyl_vlasov_collisions {
   char collide_with_fluid[128]; // name of fluid species to cross collide with
 };
 
+// Parameters for species radiation
+struct gkyl_vlasov_radiation {
+  enum gkyl_radiation_id radiation_id; // type of radiation (see gkyl_eqn_type.h)
+
+  void *ctx_nu; // context for collision frequency
+  // function for computing collision frequency
+  void (*nu)(double t, const double *xn, double *fout, void *ctx);
+
+  void *ctx_nu_rad_drag; // context for collision frequency * drag
+  // function for computing collision frequency * drag
+  void (*nu_rad_drag)(double t, const double *xn, double *fout, void *ctx);  
+};
+
 // Parameters for species source
 struct gkyl_vlasov_source {
   enum gkyl_source_id source_id; // type of source
+  bool write_source; // optional parameter to write out source
+  int num_sources;
 
   double source_length; // required for boundary flux source
   char source_species[128];
   
   // sources using projection routine
-  struct gkyl_vlasov_projection projection;
+  struct gkyl_vlasov_projection projection[GKYL_MAX_PROJ];
 };
 
 // Parameters for fluid species source
@@ -123,13 +141,17 @@ struct gkyl_vlasov_species {
   int cells[3]; // velocity-space cells
 
   // initial conditions using projection routine
-  struct gkyl_vlasov_projection projection;
+  int num_init; // number of initial condition functions
+  struct gkyl_vlasov_projection projection[GKYL_MAX_PROJ];
 
   int num_diag_moments; // number of diagnostic moments
   char diag_moments[16][16]; // list of diagnostic moments
 
   // collisions to include
   struct gkyl_vlasov_collisions collisions;
+
+  // radiation to include
+  struct gkyl_vlasov_radiation radiation;
 
   // source to include
   struct gkyl_vlasov_source source;
@@ -152,8 +174,9 @@ struct gkyl_vlasov_species {
   void (*det_h)(double t, const double *xn, double *aout, void *ctx);
 
   bool output_f_lte; // Boolean for writing out f_lte (used for calculating transport coeff.)
-  int max_iter; //Maximum number of iterations for f_lte correction
-  double iter_eps; //Maximum eps for f_lte correction
+  double iter_eps; // error tolerance for moment fixes of f_lte (density is always exact)
+  int max_iter; // maximum number of iterations for correction output f_lte
+  bool use_last_converged; // use last iteration value regardless of convergence for f_lte?
 
   // boundary conditions
   enum gkyl_species_bc_type bcx[2], bcy[2], bcz[2];
@@ -290,6 +313,8 @@ struct gkyl_vlasov_stat {
   double species_lbo_coll_drag_tm[GKYL_MAX_SPECIES]; // time to compute LBO drag terms
   double species_lbo_coll_diff_tm[GKYL_MAX_SPECIES]; // time to compute LBO diffusion terms
   double species_coll_tm; // total time for collision updater (excluded moments)
+
+  double species_rad_tm; // total time for radiation updater 
 
   double species_lte_tm; // time needed to compute the lte equilibrium
 
@@ -438,16 +463,6 @@ void gkyl_vlasov_app_write_species(gkyl_vlasov_app* app, int sidx, double tm, in
  * @param frame Frame number
  */
 void gkyl_vlasov_app_write_species_lte(gkyl_vlasov_app* app, int sidx, double tm, int frame);
-
-/**
- * Write species p/gamma to file.
- * 
- * @param app App object.
- * @param sidx Index of species to initialize.
- * @param tm Time-stamp
- * @param frame Frame number
- */
-void gkyl_vlasov_app_write_species_gamma(gkyl_vlasov_app* app, int sidx, double tm, int frame);
 
 /**
  * Write fluid species data to file. 

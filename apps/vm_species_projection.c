@@ -40,20 +40,18 @@ vm_species_projection_init(struct gkyl_vlasov_app *app, struct vm_species *s,
 
     struct gkyl_vlasov_lte_proj_on_basis_inp inp_proj = {
       .phase_grid = &s->grid,
+      .vel_grid = &s->grid_vel, 
       .conf_basis = &app->confBasis,
+      .vel_basis = &app->velBasis, 
       .phase_basis = &app->basis,
-      .phase_basis_on_dev = app->basis_on_dev.basis, // pointer to (potentially) device-side basis
-      .conf_basis_on_dev = app->basis_on_dev.confBasis, // pointer to (potentially) device-side conf basis
       .conf_range =  &app->local,
       .conf_range_ext = &app->local_ext,
       .vel_range = &s->local_vel,
-      .p_over_gamma = s->p_over_gamma,
       .gamma = s->gamma,
       .gamma_inv = s->gamma_inv,
       .h_ij_inv = s->h_ij_inv, 
       .det_h = s->det_h,
       .model_id = s->model_id,
-      .mass = s->info.mass,
       .use_gpu = app->use_gpu,
     };
     proj->proj_lte = gkyl_vlasov_lte_proj_on_basis_inew( &inp_proj );
@@ -62,25 +60,28 @@ vm_species_projection_init(struct gkyl_vlasov_app *app, struct vm_species *s,
     if (inp.correct_all_moms) {
       proj->correct_all_moms = true;
 
+      int max_iter = inp.max_iter > 0 ? inp.max_iter : 100;
+      double iter_eps = inp.iter_eps > 0 ? inp.iter_eps  : 1e-12;
+      bool use_last_converged = inp.use_last_converged; 
+
       struct gkyl_vlasov_lte_correct_inp inp_corr = {
         .phase_grid = &s->grid,
+        .vel_grid = &s->grid_vel, 
         .conf_basis = &app->confBasis,
+        .vel_basis = &app->velBasis, 
         .phase_basis = &app->basis,
-        .phase_basis_on_dev = app->basis_on_dev.basis, // pointer to (potentially) device-side phase basis
-        .conf_basis_on_dev = app->basis_on_dev.confBasis, // pointer to (potentially) device-side conf basis
         .conf_range =  &app->local,
         .conf_range_ext = &app->local_ext,
         .vel_range = &s->local_vel,
-        .p_over_gamma = s->p_over_gamma,
         .gamma = s->gamma,
         .gamma_inv = s->gamma_inv,
         .h_ij_inv = s->h_ij_inv,
         .det_h = s->det_h,
         .model_id = s->model_id,
-        .mass = s->info.mass,
         .use_gpu = app->use_gpu,
-        .max_iter = 100,
-        .eps = 1e-12,
+        .max_iter = max_iter,
+        .eps = iter_eps,
+        .use_last_converged = use_last_converged, 
       };
       proj->corr_lte = gkyl_vlasov_lte_correct_inew( &inp_corr );
     }

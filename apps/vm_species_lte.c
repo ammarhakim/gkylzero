@@ -2,7 +2,8 @@
 #include <gkyl_vlasov_priv.h>
 
 void 
-vm_species_lte_init(struct gkyl_vlasov_app *app, struct vm_species *s, struct vm_lte *lte, bool correct_all_moms)
+vm_species_lte_init(struct gkyl_vlasov_app *app, struct vm_species *s, struct vm_lte *lte, 
+  struct correct_all_moms_inp corr_inp)
 {
   int cdim = app->cdim, vdim = app->vdim;
 
@@ -11,55 +12,51 @@ vm_species_lte_init(struct gkyl_vlasov_app *app, struct vm_species *s, struct vm
 
   struct gkyl_vlasov_lte_proj_on_basis_inp inp_proj = {
     .phase_grid = &s->grid,
+    .vel_grid = &s->grid_vel, 
     .conf_basis = &app->confBasis,
+    .vel_basis = &app->velBasis, 
     .phase_basis = &app->basis,
-    .phase_basis_on_dev = app->basis_on_dev.basis, // pointer to (potentially) device-side basis
-    .conf_basis_on_dev = app->basis_on_dev.confBasis, // pointer to (potentially) device-side conf basis
     .conf_range =  &app->local,
     .conf_range_ext = &app->local_ext,
     .vel_range = &s->local_vel,
-    .p_over_gamma = s->p_over_gamma,
     .gamma = s->gamma,
     .gamma_inv = s->gamma_inv,
     .h_ij_inv = s->h_ij_inv,
     .det_h = s->det_h,
     .model_id = s->model_id,
-    .mass = s->info.mass,
     .use_gpu = app->use_gpu,
   };
   lte->proj_lte = gkyl_vlasov_lte_proj_on_basis_inew( &inp_proj );
 
-  lte->correct_all_moms = false;
-  int max_iter = s->info.max_iter > 0 ? s->info.max_iter : 100;
-  double iter_eps = s->info.iter_eps > 0 ? s->info.iter_eps  : 1e-12;
+  lte->correct_all_moms = corr_inp.correct_all_moms;
+  int max_iter = corr_inp.max_iter > 0 ? s->info.max_iter : 100;
+  double iter_eps = corr_inp.iter_eps > 0 ? s->info.iter_eps  : 1e-12;
+  bool use_last_converged = corr_inp.use_last_converged;
   
-  if (correct_all_moms) {
-    lte->correct_all_moms = true;
-
+  if (lte->correct_all_moms) {
     struct gkyl_vlasov_lte_correct_inp inp_corr = {
       .phase_grid = &s->grid,
+      .vel_grid = &s->grid_vel, 
       .conf_basis = &app->confBasis,
+      .vel_basis = &app->velBasis, 
       .phase_basis = &app->basis,
-      .phase_basis_on_dev = app->basis_on_dev.basis, // pointer to (potentially) device-side basis
-      .conf_basis_on_dev = app->basis_on_dev.confBasis, // pointer to (potentially) device-side conf basis
       .conf_range =  &app->local,
       .conf_range_ext = &app->local_ext,
       .vel_range = &s->local_vel,
-      .p_over_gamma = s->p_over_gamma,
       .gamma = s->gamma,
       .gamma_inv = s->gamma_inv,
       .h_ij_inv = s->h_ij_inv,
       .det_h = s->det_h,
       .model_id = s->model_id,
-      .mass = s->info.mass,
       .use_gpu = app->use_gpu,
       .max_iter = max_iter,
       .eps = iter_eps,
+      .use_last_converged = use_last_converged, 
     };
     lte->niter = 0;
     lte->corr_lte = gkyl_vlasov_lte_correct_inew( &inp_corr );
 
-    lte->corr_stat = gkyl_dynvec_new(GKYL_DOUBLE,7);
+    lte->corr_stat = gkyl_dynvec_new(GKYL_DOUBLE, app->vdim+4);
     lte->is_first_corr_status_write_call = true;
   }
 
@@ -85,14 +82,12 @@ vm_species_lte_from_moms(gkyl_vlasov_app *app, const struct vm_species *species,
   if (lte->correct_all_moms) {
     struct gkyl_vlasov_lte_correct_status status_corr = gkyl_vlasov_lte_correct_all_moments(lte->corr_lte, lte->f_lte, moms_lte,
       &species->local, &app->local);
-    double corr_vec[7];
+    double corr_vec[app->vdim+4];
     corr_vec[0] = status_corr.num_iter;
     corr_vec[1] = status_corr.iter_converged;
-    corr_vec[2] = status_corr.error[0];
-    corr_vec[3] = status_corr.error[1];
-    corr_vec[4] = status_corr.error[2];
-    corr_vec[5] = status_corr.error[3];
-    corr_vec[6] = status_corr.error[4];
+    for (int i=0; i<app->vdim+2; ++i) {
+      corr_vec[2+i] = status_corr.error[i];
+    }
     gkyl_dynvec_append(lte->corr_stat, app->tcurr, corr_vec);
 
     lte->niter += status_corr.num_iter;

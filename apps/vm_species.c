@@ -89,41 +89,25 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
     s->qmem = mkarr(app->use_gpu, 4*app->confBasis.num_basis, app->local_ext.volume);
 
   if (s->model_id  == GKYL_MODEL_SR) {
-    // Allocate special relativistic variables, p/gamma, gamma, & 1/gamma
-    s->p_over_gamma = mkarr(app->use_gpu, vdim*app->velBasis.num_basis, s->local_vel.volume);
-    s->p_over_gamma_host = s->p_over_gamma;
+    // Allocate special relativistic variables gamma and its inverse
     s->gamma = mkarr(app->use_gpu, app->velBasis.num_basis, s->local_vel.volume);
     s->gamma_host = s->gamma;
     s->gamma_inv = mkarr(app->use_gpu, app->velBasis.num_basis, s->local_vel.volume);
     s->gamma_inv_host = s->gamma_inv;
-    // Projection routines are done on CPU, need to allocate host arrays if simulation on GPU
+
     if (app->use_gpu) {
-      s->p_over_gamma_host = mkarr(false, vdim*app->velBasis.num_basis, s->local_vel.volume);
       s->gamma_host = mkarr(false, app->velBasis.num_basis, s->local_vel.volume);
       s->gamma_inv_host = mkarr(false, app->velBasis.num_basis, s->local_vel.volume);
     }
-    // Project p/gamma, gamma, & 1/gamma
-    gkyl_calc_sr_vars_init_p_vars(&s->grid_vel, &app->velBasis, &s->local_vel, 
-      s->p_over_gamma_host, s->gamma_host, s->gamma_inv_host);
-    // Copy CPU arrays to GPU 
-    if (app->use_gpu) {
-      gkyl_array_copy(s->p_over_gamma, s->p_over_gamma_host);
-      gkyl_array_copy(s->gamma, s->gamma_host);
-      gkyl_array_copy(s->gamma_inv, s->gamma_inv_host);
-    }
-    // Derived quantities array
-    s->V_drift = mkarr(app->use_gpu, vdim*app->confBasis.num_basis, app->local_ext.volume);
-    s->GammaV2 = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
-    s->GammaV_inv = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
-    if (app->use_gpu)
-      s->V_drift_mem = gkyl_dg_bin_op_mem_cu_dev_new(app->local.volume, app->confBasis.num_basis);
-    else
-      s->V_drift_mem = gkyl_dg_bin_op_mem_new(app->local.volume, app->confBasis.num_basis);
+
+    s->sr_vars = gkyl_dg_calc_sr_vars_new(&s->grid, &s->grid_vel,
+      &app->confBasis,  &app->velBasis, &app->local, &s->local_vel, app->use_gpu);
+    // Project gamma and its inverse
+    gkyl_calc_sr_vars_init_p_vars(s->sr_vars, s->gamma, s->gamma_inv);
 
     // by default, we do not have zero-flux boundary conditions in any direction
     bool is_zero_flux[GKYL_MAX_DIM] = {false};
-
-    struct gkyl_dg_vlasov_sr_auxfields aux_inp = {.qmem = s->qmem, .p_over_gamma = s->p_over_gamma};
+    struct gkyl_dg_vlasov_sr_auxfields aux_inp = {.qmem = s->qmem, .gamma = s->gamma};
     // create solver
     s->slvr = gkyl_dg_updater_vlasov_new(&s->grid, &app->confBasis, &app->basis, 
       &app->local, &s->local_vel, &s->local, is_zero_flux, s->model_id, s->field_id, &aux_inp, app->use_gpu);
@@ -267,7 +251,14 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
   }
 
   // initialize projection routine for initial conditions
-  vm_species_projection_init(app, s, s->info.projection, &s->proj_init);
+  s->num_init = s->info.num_init;
+  for (int k=0; k<s->num_init; k++) {
+    vm_species_projection_init(app, s, s->info.projection[k], &s->proj_init[k]);
+  }
+  // If the number of initial condition functions > 1, make a temporary array for accumulation
+  if (s->num_init > 1) {
+    s->f_tmp = mkarr(app->use_gpu, app->basis.num_basis, s->local_ext.volume);
+  }
 
   // set species source id
   s->source_id = s->info.source.source_id;
@@ -279,13 +270,23 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
   s->bgk = (struct vm_bgk_collisions) { };
   if (s->info.output_f_lte){
     // Always have correct moments on for the f_lte output
-    vm_species_lte_init(app, s, &s->lte, true);
+    struct correct_all_moms_inp corr_inp = { .correct_all_moms = true, 
+      .max_iter = s->info.max_iter, .iter_eps = s->info.iter_eps, 
+      .use_last_converged = s->info.use_last_converged };
+    vm_species_lte_init(app, s, &s->lte, corr_inp);
   }
   if (s->collision_id == GKYL_LBO_COLLISIONS) {
     vm_species_lbo_init(app, s, &s->lbo);
   }
   else if (s->collision_id == GKYL_BGK_COLLISIONS) {
     vm_species_bgk_init(app, s, &s->bgk);
+  }
+
+  // determine radiation type to use in vlasov update
+  s->radiation_id = s->info.radiation.radiation_id;
+  s->rad = (struct vm_rad_drag) { };
+  if (s->radiation_id == GKYL_VM_COMPTON_RADIATION) {
+    vm_species_radiation_init(app, s, &s->rad);
   }
 
   // determine which directions are not periodic
@@ -358,7 +359,18 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
 void
 vm_species_apply_ic(gkyl_vlasov_app *app, struct vm_species *species, double t0)
 {
-  vm_species_projection_calc(app, species, &species->proj_init, species->f, t0);
+  if (species->num_init > 1) {
+    gkyl_array_clear(species->f, 0.0); 
+    for (int k=0; k<species->num_init; k++) {
+      vm_species_projection_calc(app, species, &species->proj_init[k], species->f_tmp, t0);
+      gkyl_array_accumulate(species->f, 1.0, species->f_tmp);
+    }
+    // Free the temporary array now that initial conditions are complete
+    gkyl_array_release(species->f_tmp);
+  }
+  else {
+    vm_species_projection_calc(app, species, &species->proj_init[0], species->f, t0);
+  }
 
   // Pre-compute applied acceleration in case it's time-independent
   vm_species_calc_app_accel(app, species, t0);
@@ -414,6 +426,10 @@ vm_species_rhs(gkyl_vlasov_app *app, struct vm_species *species,
   else if (species->collision_id == GKYL_BGK_COLLISIONS && !app->has_implicit_coll_scheme) {
     species->bgk.implicit_step = false;
     vm_species_bgk_rhs(app, species, &species->bgk, fin, rhs);
+  }
+
+  if (species->radiation_id == GKYL_VM_COMPTON_RADIATION) {
+    vm_species_radiation_rhs(app, species, &species->rad, fin, rhs);
   }
   
   app->stat.nspecies_omega_cfl +=1;
@@ -578,6 +594,18 @@ vm_species_tm(gkyl_vlasov_app *app)
   }
 }
 
+void
+vm_species_rad_tm(gkyl_vlasov_app *app)
+{
+  for (int i=0; i<app->num_species; ++i) {
+    if (app->species[i].radiation_id == GKYL_VM_COMPTON_RADIATION) {
+      struct gkyl_dg_updater_rad_vlasov_tm tm =
+        gkyl_dg_updater_rad_vlasov_get_tm(app->species[i].rad.rad_slvr);
+      app->stat.species_rad_tm += tm.drag_tm;
+    }
+  }
+}
+
 // release resources for species
 void
 vm_species_release(const gkyl_vlasov_app* app, const struct vm_species *s)
@@ -591,7 +619,9 @@ vm_species_release(const gkyl_vlasov_app* app, const struct vm_species *s)
   gkyl_array_release(s->bc_buffer_lo_fixed);
   gkyl_array_release(s->bc_buffer_up_fixed);
 
-  vm_species_projection_release(app, &s->proj_init);
+  for (int k=0; k<s->num_init; k++) {
+    vm_species_projection_release(app, &s->proj_init[k]);
+  }
 
   gkyl_comm_release(s->comm);
 
@@ -603,18 +633,12 @@ vm_species_release(const gkyl_vlasov_app* app, const struct vm_species *s)
   // Release arrays for different types of Vlasov equations
   if (s->model_id  == GKYL_MODEL_SR) {
     // release relativistic arrays data
-    gkyl_array_release(s->p_over_gamma);
     gkyl_array_release(s->gamma);
     gkyl_array_release(s->gamma_inv);
-    gkyl_array_release(s->V_drift);
-    gkyl_array_release(s->GammaV2);
-    gkyl_array_release(s->GammaV_inv);
     if (app->use_gpu) {
-      gkyl_array_release(s->p_over_gamma_host);
       gkyl_array_release(s->gamma_host);
       gkyl_array_release(s->gamma_inv_host);
     }
-    gkyl_dg_bin_op_mem_release(s->V_drift_mem);
   }
   else if (s->model_id == GKYL_MODEL_CANONICAL_PB) {
     gkyl_array_release(s->hamil);
@@ -665,6 +689,10 @@ vm_species_release(const gkyl_vlasov_app* app, const struct vm_species *s)
   }
   else if (s->collision_id == GKYL_BGK_COLLISIONS) {
     vm_species_bgk_release(app, &s->bgk);
+  }
+
+  if (s->radiation_id == GKYL_VM_COMPTON_RADIATION) {
+    vm_species_radiation_release(app, &s->rad);
   }
 
   // Copy BCs are allocated by default. Need to free.

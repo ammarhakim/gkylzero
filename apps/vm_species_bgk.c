@@ -43,14 +43,13 @@ vm_species_bgk_init(struct gkyl_vlasov_app *app, struct vm_species *s, struct vm
     bgk->nu_sum_host = mkarr(false, app->confBasis.num_basis, app->local_ext.volume);
   }
 
-  bgk->model_id = s->model_id;
-
-  int max_iter = s->info.collisions.max_iter > 0 ? s->info.collisions.max_iter : 100;
-  double iter_eps = s->info.collisions.iter_eps > 0 ? s->info.collisions.iter_eps  : 1e-12;
-
   // Allocate everything needed to make f_lte
-  vm_species_lte_init(app, s, &bgk->lte, s->info.collisions.correct_all_moms);
+  struct correct_all_moms_inp corr_inp = { .correct_all_moms = s->info.collisions.correct_all_moms, 
+    .max_iter = s->info.collisions.max_iter, .iter_eps = s->info.collisions.iter_eps, 
+    .use_last_converged = s->info.collisions.use_last_converged };
+  vm_species_lte_init(app, s, &bgk->lte, corr_inp);
   
+
   bgk->nu_f_lte = mkarr(app->use_gpu, app->basis.num_basis, s->local_ext.volume);
   // BGK updater (also computes stable timestep)
   bgk->up_bgk = gkyl_bgk_collisions_new(&app->confBasis, &app->basis, app->use_gpu);
