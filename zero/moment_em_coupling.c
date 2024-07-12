@@ -78,7 +78,7 @@ gkyl_moment_em_coupling_implicit_advance(const gkyl_moment_em_coupling* mom_em, 
   struct gkyl_range_iter iter;
   gkyl_range_iter_init(&iter, update_range);
 
-  while(gkyl_range_iter_next(&iter)) {
+  while (gkyl_range_iter_next(&iter)) {
     long cell_idx = gkyl_range_idx(update_range, iter.idx);
 
     for (int i = 0; i < nfluids; i++) {
@@ -93,6 +93,42 @@ gkyl_moment_em_coupling_implicit_advance(const gkyl_moment_em_coupling* mom_em, 
     const double *ext_em_arr = gkyl_array_cfetch(ext_em, cell_idx);
 
     implicit_source_coupling_update(mom_em, t_curr, dt, fluid_s, app_accel_s, p_rhs_s, em_arr, app_current_arr, ext_em_arr, nT_sources_s);
+  }
+}
+
+void
+gkyl_moment_em_coupling_explicit_advance(const gkyl_moment_em_coupling* mom_em, double t_curr, double dt, const struct gkyl_range* update_range,
+  struct gkyl_array* fluid[GKYL_MAX_SPECIES], const struct gkyl_array* app_accel[GKYL_MAX_SPECIES], const struct gkyl_array* p_rhs[GKYL_MAX_SPECIES],
+  struct gkyl_array* em, const struct gkyl_array* app_current, const struct gkyl_array* app_current1, const struct gkyl_array* app_current2,
+  const struct gkyl_array* ext_em, const struct gkyl_array* nT_sources[GKYL_MAX_SPECIES], gkyl_fv_proj *proj_app_curr, int nstrang)
+{
+  int nfluids = mom_em->nfluids;
+  double *fluid_s[GKYL_MAX_SPECIES];
+  const double *app_accel_s[GKYL_MAX_SPECIES];
+  const double *p_rhs_s[GKYL_MAX_SPECIES];
+  const double *nT_sources_s[GKYL_MAX_SPECIES];
+
+  double dt_local = 2.0 * dt;
+
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, update_range);
+
+  while (gkyl_range_iter_next(&iter)) {
+    long cell_idx = gkyl_range_idx(update_range, iter.idx);
+
+    for (int i = 0; i < nfluids; i++) {
+      fluid_s[i] = gkyl_array_fetch(fluid[i], cell_idx);
+      app_accel_s[i] = gkyl_array_cfetch(app_accel[i], cell_idx);
+    }
+
+    double *em_arr = gkyl_array_fetch(em, cell_idx);
+    const double *app_current_arr = gkyl_array_cfetch(app_current, cell_idx);
+    const double *app_current1_arr = gkyl_array_cfetch(app_current1, cell_idx);
+    const double *app_current2_arr = gkyl_array_cfetch(app_current2, cell_idx);
+    const double *ext_em_arr = gkyl_array_cfetch(ext_em, cell_idx);
+
+    explicit_source_coupling_update(mom_em, t_curr, dt, fluid_s, app_accel_s, em_arr, app_current_arr, app_current1_arr, app_current2_arr,
+      ext_em_arr, nstrang);
   }
 }
 

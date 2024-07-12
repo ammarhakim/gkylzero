@@ -3,6 +3,7 @@
 #include <string.h>
 #include <gkyl_moment_em_coupling.h>
 #include <gkyl_sources_implicit.h>
+#include <gkyl_sources_explicit.h>
 
 struct gkyl_moment_em_coupling {
   struct gkyl_rect_grid grid; // Grid over which the equations are solved.

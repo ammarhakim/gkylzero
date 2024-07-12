@@ -42,3 +42,16 @@ explicit_nT_source_update(const gkyl_moment_em_coupling* mom_em, const double dt
     explicit_nT_source_update_euler(mass, dt, f, f, nT_sources);
   }
 }
+
+void
+explicit_source_coupling_update(const gkyl_moment_em_coupling* mom_em, double t_curr, double dt, double* fluid_s[GKYL_MAX_SPECIES],
+  const double* app_accel_s[GKYL_MAX_SPECIES], double* em, const double* app_current, const double* app_current1, const double* app_current2,
+  const double* ext_em, int nstrang)
+{
+  if (nstrang == 0) {
+    // TODO: Add explicit source updater for electric fields.
+  }
+  else if (nstrang == 1) {
+    // TODO: Add explicit Higuera-Cary update step.
+  }
+}

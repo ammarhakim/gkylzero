@@ -92,6 +92,8 @@ void gkyl_moment_em_coupling_implicit_advance(const gkyl_moment_em_coupling* mom
 * @param app_current2 Array of stage-2 current terms to be applied to the fluid equations (for stage-2 of external current driving).
 * @param ext_em External electromagnetic variables (for EM fields coming from external sources, e.g. coils, capacitors, etc.).
 * @param nT_sources Array of number density and temperature source terms.
+* @param proj_app_curr The finite-volume projection routine for the external current.
+* @param nstrang Indicator of which step in the Strang splitting we are currently considering.
 */
 void gkyl_moment_em_coupling_explicit_advance(const gkyl_moment_em_coupling* mom_em, double t_curr, double dt, const struct gkyl_range* update_range,
   struct gkyl_array* fluid[GKYL_MAX_SPECIES], const struct gkyl_array* app_accel[GKYL_MAX_SPECIES], const struct gkyl_array* p_rhs[GKYL_MAX_SPECIES],

@@ -258,7 +258,8 @@ implicit_collision_source_update(const gkyl_moment_em_coupling* mom_em, double d
       if (i != j) {
         double m_j = mom_em->param[j].mass;
         
-        double du_sq = ((rhs[i][0] - rhs[j][0]) * (rhs[i][0] - rhs[j][0])) + ((rhs[i][1] - rhs[j][1]) * (rhs[i][1] - rhs[j][1])) + ((rhs[i][2] - rhs[j][2]) * (rhs[i][2] - rhs[j][2]));
+        double du_sq = ((rhs[i][0] - rhs[j][0]) * (rhs[i][0] - rhs[j][0])) + ((rhs[i][1] - rhs[j][1]) * (rhs[i][1] - rhs[j][1])) +
+          ((rhs[i][2] - rhs[j][2]) * (rhs[i][2] - rhs[j][2]));
         double coeff_ij = (dt * nu_i[j] * m) / (m + m_j);
 
         rhs_T[i][0] += 0.5 * coeff_ij * m_j * du_sq;
@@ -322,7 +323,7 @@ implicit_source_coupling_update(const gkyl_moment_em_coupling* mom_em, double t_
 {
   int nfluids = mom_em->nfluids;
   double ke_old[GKYL_MAX_SPECIES];
-  double p_inp[6], p_source[6], p_tensor[GKYL_MAX_SPECIES][6];
+  double p_tensor_old[6], p_tensor_rhs[6], p_tensor_new[GKYL_MAX_SPECIES][6];
 
   for (int i = 0; i < nfluids; i++) {
     const double *f = fluid_s[i];
@@ -346,38 +347,38 @@ implicit_source_coupling_update(const gkyl_moment_em_coupling* mom_em, double t_
       double p11 = f[4], p12 = f[5], p13 = f[6];
       double p22 = f[7], p23 = f[8], p33 = f[9];
 
-      p_inp[0] = p11 - ((mom_x * mom_x) / rho);
-      p_inp[1] = p12 - ((mom_x * mom_y) / rho);
-      p_inp[2] = p13 - ((mom_x * mom_z) / rho);
-      p_inp[3] = p22 - ((mom_y * mom_y) / rho);
-      p_inp[4] = p23 - ((mom_y * mom_z) / rho);
-      p_inp[5] = p33 - ((mom_z * mom_z) / rho);
+      p_tensor_old[0] = p11 - ((mom_x * mom_x) / rho);
+      p_tensor_old[1] = p12 - ((mom_x * mom_y) / rho);
+      p_tensor_old[2] = p13 - ((mom_x * mom_z) / rho);
+      p_tensor_old[3] = p22 - ((mom_y * mom_y) / rho);
+      p_tensor_old[4] = p23 - ((mom_y * mom_z) / rho);
+      p_tensor_old[5] = p33 - ((mom_z * mom_z) / rho);
 
       double p11_rhs = p_rhs[4], p12_rhs = p_rhs[5], p13_rhs = p_rhs[6];
       double p22_rhs = p_rhs[7], p23_rhs = p_rhs[8], p33_rhs = p_rhs[9];
 
-      p_source[0] = p_inp[0] + (0.5 * dt * p11_rhs);
-      p_source[1] = p_inp[1] + (0.5 * dt * p12_rhs);
-      p_source[2] = p_inp[2] + (0.5 * dt * p13_rhs);
-      p_source[3] = p_inp[3] + (0.5 * dt * p22_rhs);
-      p_source[4] = p_inp[4] + (0.5 * dt * p23_rhs);
-      p_source[5] = p_inp[5] + (0.5 * dt * p33_rhs);
+      p_tensor_rhs[0] = p_tensor_old[0] + (0.5 * dt * p11_rhs);
+      p_tensor_rhs[1] = p_tensor_old[1] + (0.5 * dt * p12_rhs);
+      p_tensor_rhs[2] = p_tensor_old[2] + (0.5 * dt * p13_rhs);
+      p_tensor_rhs[3] = p_tensor_old[3] + (0.5 * dt * p22_rhs);
+      p_tensor_rhs[4] = p_tensor_old[4] + (0.5 * dt * p23_rhs);
+      p_tensor_rhs[5] = p_tensor_old[5] + (0.5 * dt * p33_rhs);
 
-      double p = (1.0 / 3.0) * (p_inp[0] + p_inp[3] + p_inp[5]);
+      double p = (1.0 / 3.0) * (p_tensor_old[0] + p_tensor_old[3] + p_tensor_old[5]);
       double v_th = sqrt(p / rho);
       double nu = v_th * k0;
       double exp_nu = exp(nu * dt);
 
       if (mom_em->is_charged_species) {
-        pressure_tensor_rotate(q_over_m, dt, em, ext_em, p_inp, p_source, p_tensor[i]);
+        pressure_tensor_rotate(q_over_m, dt, em, ext_em, p_tensor_old, p_tensor_rhs, p_tensor_new[i]);
       }
 
-      p_tensor[i][0] = ((p_tensor[i][0] - p) / exp_nu) + p;
-      p_tensor[i][1] = p_tensor[i][1] / exp_nu;
-      p_tensor[i][2] = p_tensor[i][2] / exp_nu;
-      p_tensor[i][3] = ((p_tensor[i][3] - p) / exp_nu) + p;
-      p_tensor[i][4] = p_tensor[i][4] / exp_nu;
-      p_tensor[i][5] = ((p_tensor[i][5] - p) / exp_nu) + p;
+      p_tensor_new[i][0] = ((p_tensor_new[i][0] - p) / exp_nu) + p;
+      p_tensor_new[i][1] = p_tensor_new[i][1] / exp_nu;
+      p_tensor_new[i][2] = p_tensor_new[i][2] / exp_nu;
+      p_tensor_new[i][3] = ((p_tensor_new[i][3] - p) / exp_nu) + p;
+      p_tensor_new[i][4] = p_tensor_new[i][4] / exp_nu;
+      p_tensor_new[i][5] = ((p_tensor_new[i][5] - p) / exp_nu) + p;
     }
   }
 
@@ -401,12 +402,12 @@ implicit_source_coupling_update(const gkyl_moment_em_coupling* mom_em, double t_
       double rho = f[0];
       double mom_x = f[1], mom_y = f[2], mom_z = f[3];
 
-      f[4] = ((mom_x * mom_x) / rho) + p_tensor[i][0];
-      f[5] = ((mom_x * mom_y) / rho) + p_tensor[i][1];
-      f[6] = ((mom_x * mom_z) / rho) + p_tensor[i][2];
-      f[7] = ((mom_y * mom_y) / rho) + p_tensor[i][3];
-      f[8] = ((mom_y * mom_z) / rho) + p_tensor[i][4];
-      f[9] = ((mom_z * mom_z) / rho) + p_tensor[i][5];
+      f[4] = ((mom_x * mom_x) / rho) + p_tensor_new[i][0];
+      f[5] = ((mom_x * mom_y) / rho) + p_tensor_new[i][1];
+      f[6] = ((mom_x * mom_z) / rho) + p_tensor_new[i][2];
+      f[7] = ((mom_y * mom_y) / rho) + p_tensor_new[i][3];
+      f[8] = ((mom_y * mom_z) / rho) + p_tensor_new[i][4];
+      f[9] = ((mom_z * mom_z) / rho) + p_tensor_new[i][5];
     }
   }
 
