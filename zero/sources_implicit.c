@@ -3,6 +3,7 @@
 #include <gkyl_fv_proj.h>
 #include <gkyl_sources_implicit.h>
 #include <gkyl_sources_explicit.h>
+#include <gkyl_source_utils.h>
 #include <gkyl_mat.h>
 
 void
@@ -203,7 +204,7 @@ implicit_source_coupling_update(const gkyl_moment_em_coupling* mom_em, double t_
       double exp_nu = exp(nu * dt);
 
       if (mom_em->is_charged_species) {
-        // TODO: Add pressure tensor rotation here.
+        pressure_tensor_rotate(q_over_m, dt, em, ext_em, p_inp, p_source, p_tensor[i]);
       }
 
       p_tensor[i][0] = ((p_tensor[i][0] - p) / exp_nu) + p;
