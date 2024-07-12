@@ -285,7 +285,7 @@ gkyl_tok_geo_new(const struct gkyl_tok_geo_efit_inp *inp)
 {
   struct gkyl_tok_geo *geo = gkyl_malloc(sizeof(*geo));
 
-  geo->efit = gkyl_efit_new(inp->filepath, inp->rzpoly_order, inp->rz_basis_type, inp->fluxpoly_order, false);
+  geo->efit = gkyl_efit_new(inp->filepath, inp->rzpoly_order, inp->rz_basis_type, inp->fluxpoly_order, inp->reflect, false);
 
   geo->plate_spec = inp->plate_spec;
   geo->plate_func_lower = inp->plate_func_lower;
@@ -375,16 +375,7 @@ void gkyl_tok_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, double
   geo->rleft = inp->rleft;
   geo->rright = inp->rright;
 
-  geo->tol_no_roots = false;
-  // The block below can be used if one wishes to tolerate approximate roots
-  //if( (inp->ftype == GKYL_SOL_DN_OUT_LO) || (inp->ftype == GKYL_SOL_DN_OUT_UP) 
-  //    || (inp->ftype == GKYL_SOL_DN_IN_LO) || (inp->ftype == GKYL_SOL_DN_IN_UP)
-  //    || (inp->ftype == GKYL_PF_LO_L) || (inp->ftype == GKYL_PF_LO_R)
-  //    || (inp->ftype == GKYL_PF_UP_L) || (inp->ftype == GKYL_PF_UP_R) )
-  //  geo->tol_no_roots = true;
-  //else
-  //  geo->tol_no_roots = false;
-
+  geo->exact_roots = inp->exact_roots;
 
   geo->rmax = inp->rmax;
   geo->rmin = inp->rmin;
@@ -538,7 +529,8 @@ void gkyl_tok_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, double
               }
 
               if(nr==0){
-                printf("Failed to find a root at psi = %g, Z = %g\n", psi_curr, z_curr);
+                printf(" ip = %d, it = %d, ia = %d, ip_delta = %d, it_delta = %d, ia_delta = %d\n", ip, it, ia, ip_delta, it_delta, ia_delta);
+                printf("Failed to find a root at psi = %g, Z = %1.16f\n", psi_curr, z_curr);
                 assert(false);
               }
 
@@ -577,23 +569,6 @@ void gkyl_tok_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, double
                 mc2prz_n[Z_IDX] = phi_curr;
                 dphidtheta_n[0] = dphidtheta_func(z_curr, &arc_ctx);
               }
-
-
-          //if(ip==0 && ia==0 && it_delta==0 && ia_delta==0){
-          //  if(inp->ftype==GKYL_CORE_R && it == nrange->upper[TH_IDX]) 
-          //    printf("ip_delta = %d, r,z,phi = %1.16f, %g, %g\n  all R = %1.16f %1.16f %1.16f %1.16f\n", ip_delta, r_curr, z_curr, phi_curr, R[0], R[1], R[2], R[3]);
-          //  if(inp->ftype==GKYL_CORE_L && it == 0) 
-          //    printf("ip_delta = %d, r,z,phi = %1.16f, %g, %g\n  all R = %1.16f %1.16f %1.16f %1.16f\n", ip_delta, r_curr, z_curr, phi_curr, R[0], R[1], R[2], R[3]);
-          //}
-
-          if(ip==0 && ia==0 && it_delta==0 && ia_delta==0){
-            if(inp->ftype==GKYL_CORE_R && it == 0) 
-              printf("ip_delta = %d, r,z,phi = %1.16f, %g, %g\n  all R = %1.16f %1.16f %1.16f %1.16f\n", ip_delta, r_curr, z_curr, phi_curr, R[0], R[1], R[2], R[3]);
-            if(inp->ftype==GKYL_CORE_L && it == nrange->upper[TH_IDX]) 
-              printf("ip_delta = %d, r,z,phi = %1.16f, %g, %g\n  all R = %1.16f %1.16f %1.16f %1.16f\n", ip_delta, r_curr, z_curr, phi_curr, R[0], R[1], R[2], R[3]);
-          }
-
-
             }
           }
         }

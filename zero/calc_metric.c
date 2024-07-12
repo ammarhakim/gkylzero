@@ -203,18 +203,6 @@ void gkyl_calc_metric_advance_rz(
               normFld_n[6] = dualFld_n[6]/norm3;
               normFld_n[7] = dualFld_n[7]/norm3;
               normFld_n[8] = dualFld_n[8]/norm3;
-
-
-              //if((it == nrange->lower[TH_IDX]) && (up->local.lower[TH_IDX]== up->global.lower[TH_IDX])){
-              //  printf("At lower edge, ip = %d, dxdz[0][0] = %g, dxdz[1][0] = %g, R = %g, Z = %g, phi=%g\n", ip, dxdz[0][0], dxdz[1][0], R,Z, phi);
-              //}
-
-              if((it == nrange->upper[TH_IDX]) && (up->local.upper[TH_IDX]== up->global.upper[TH_IDX])){
-                printf("At upper edge, ip = %d, dxdz[0][0] = %g, dxdz[1][0] = %g, R = %g, Z = %g, phi=%g\n", ip, dxdz[0][0], dxdz[1][0], R,Z, phi);
-              }
-
-
-
       }
     }
   }

@@ -16,7 +16,7 @@
 #include <assert.h>
 
 gkyl_efit* gkyl_efit_new(const char *filepath, int rz_poly_order, 
-  enum gkyl_basis_type rz_basis_type, int flux_poly_order, bool use_gpu)
+  enum gkyl_basis_type rz_basis_type, int flux_poly_order, bool reflect, bool use_gpu)
 {
   gkyl_efit *up = gkyl_malloc(sizeof(struct gkyl_efit));
   up->rzbasis = gkyl_malloc(sizeof(struct gkyl_basis));
@@ -64,6 +64,13 @@ gkyl_efit* gkyl_efit_new(const char *filepath, int rz_poly_order,
     &up->rdim, &up->zdim, &up->rcentr, &up->rleft, &up->zmid, &up-> rmaxis, &up->zmaxis, 
     &up->simag, &up->sibry, &up->bcentr, &up-> current, &up->simag, &up->xdum, &up->rmaxis, 
     &up->xdum, &up-> zmaxis, &up->xdum, &up->sibry, &up->xdum, &up->xdum);
+
+
+  // Set zmid to 0 for double null
+  if (reflect) {
+    up->zmid = 0.0;
+    up->zmaxis = 0.0;
+  }
 
 
   // Now we need to make the grid
@@ -158,6 +165,31 @@ gkyl_efit* gkyl_efit_new(const char *filepath, int rz_poly_order,
       double *psibyr2_n = gkyl_array_fetch(psibyr2zr_n, gkyl_range_idx(&nrange, idx));
       psibyr_n[0] = psi_n[0]/R;
       psibyr2_n[0] = psi_n[0]/R/R;
+    }
+  }
+  // Reflect psi psi/R and psi/R^2 for double null
+  if (reflect) {
+    int iz_ref = up->nz/2 - 1;
+    int idx_ref[2];
+    for(int iz = up->nz/2 + 1; iz < up->nz; iz++){
+      idx[1] = iz;
+      idx_ref[1] = iz_ref;
+      for(int ir = 0; ir < up->nr; ir++){
+        idx[0] = ir;
+        idx_ref[0] = ir;
+        // set psi
+        double *psi_n = gkyl_array_fetch(psizr_n, gkyl_range_idx(&nrange, idx));
+        const double *psi_n_ref = gkyl_array_cfetch(psizr_n, gkyl_range_idx(&nrange, idx_ref));
+        psi_n[0] = psi_n_ref[0];
+        // set psibyr and psibyr2
+        double *psibyr_n = gkyl_array_fetch(psibyrzr_n, gkyl_range_idx(&nrange, idx));
+        double *psibyr_n_ref = gkyl_array_fetch(psibyrzr_n, gkyl_range_idx(&nrange, idx_ref));
+        psibyr_n[0] = psibyr_n_ref[0];
+        double *psibyr2_n = gkyl_array_fetch(psibyr2zr_n, gkyl_range_idx(&nrange, idx));
+        double *psibyr2_n_ref = gkyl_array_fetch(psibyr2zr_n, gkyl_range_idx(&nrange, idx_ref));
+        psibyr2_n[0] = psibyr2_n_ref[0];
+      }
+      iz_ref-=1;
     }
   }
   // We filled psizr_nodal
