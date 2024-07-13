@@ -1065,7 +1065,7 @@ mpi_n4_create_comm_from_ranks_1()
   }
 
   int rb2[4];
-  gkyl_rrobin_decomp_getranks(rrd, 0, rb2);
+  gkyl_rrobin_decomp_getranks(rrd, 1, rb2);
 
   struct gkyl_comm *comm_b2 =
     gkyl_comm_create_comm_from_ranks(comm, branks[1], rb2, 0, &status);
@@ -1077,7 +1077,7 @@ mpi_n4_create_comm_from_ranks_1()
 
   if (comm_b2) {
     int sz_b2;
-    gkyl_comm_get_size(comm_b1, &sz_b2);
+    gkyl_comm_get_size(comm_b2, &sz_b2);
     TEST_CHECK( branks[1] == sz_b2);
   }  
 
@@ -1086,7 +1086,72 @@ mpi_n4_create_comm_from_ranks_1()
   gkyl_comm_release(comm_b1);
   gkyl_comm_release(comm_b2);
 }
+
+static void
+mpi_n4_create_comm_from_ranks_2()
+{
+  int m_sz;
+  MPI_Comm_size(MPI_COMM_WORLD, &m_sz);
+  if (m_sz != 4) return;
+
+  int rank;
+  MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+
+  struct gkyl_comm *comm = gkyl_mpi_comm_new( &(struct gkyl_mpi_comm_inp) {
+      .mpi_comm = MPI_COMM_WORLD,
+    }
+  );
+
+  int branks[2] =  { 4, 2 };
+  bool status = false;
   
+  const struct gkyl_rrobin_decomp *rrd =
+    gkyl_rrobin_decomp_new(m_sz, 2, branks);
+
+  int rb1[4];
+  gkyl_rrobin_decomp_getranks(rrd, 0, rb1);
+
+  struct gkyl_comm *comm_b1 =
+    gkyl_comm_create_comm_from_ranks(comm, branks[0], rb1, 0, &status);
+
+  if (rank == rb1[0])
+    TEST_CHECK( status );
+  if (rank == rb1[1])
+    TEST_CHECK( status );
+  if (rank == rb1[2])
+    TEST_CHECK( status );
+  if (rank == rb1[3])
+    TEST_CHECK( status );
+
+  if (comm_b1) {
+    int sz_b1;
+    gkyl_comm_get_size(comm_b1, &sz_b1);
+    TEST_CHECK( branks[0] == sz_b1);
+  }
+
+  int rb2[4];
+  gkyl_rrobin_decomp_getranks(rrd, 1, rb2);
+
+  struct gkyl_comm *comm_b2 =
+    gkyl_comm_create_comm_from_ranks(comm, branks[1], rb2, 0, &status);
+
+  if (rank == rb2[0])
+    TEST_CHECK( status );
+  if (rank == rb2[1])
+    TEST_CHECK( status );
+
+  if (comm_b2) {
+    int sz_b2;
+    gkyl_comm_get_size(comm_b2, &sz_b2);
+    TEST_CHECK( branks[1] == sz_b2);
+  }
+
+  gkyl_rrobin_decomp_release(rrd);
+  gkyl_comm_release(comm);
+  gkyl_comm_release(comm_b1);
+  gkyl_comm_release(comm_b2);
+}
+
 static void
 mpi_bcast_1d()
 {
@@ -1398,6 +1463,7 @@ TEST_LIST = {
   
   {"mpi_n4_split_comm_2d", mpi_n4_split_comm_2d },
   {"mpi_n4_create_comm_from_ranks_1", mpi_n4_create_comm_from_ranks_1 },
+  {"mpi_n4_create_comm_from_ranks_2", mpi_n4_create_comm_from_ranks_2 },
   
   {"mpi_bcast_1d", mpi_bcast_1d},
   {"mpi_bcast_2d", mpi_bcast_2d},
