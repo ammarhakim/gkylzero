@@ -21,10 +21,13 @@ gkyl_moment_multib_app_new(const struct gkyl_moment_multib *mbinp)
 
   mbapp->block_geom = gkyl_block_geom_acquire(mbinp->block_geom);
   int ndim = gkyl_block_geom_ndim(mbapp->block_geom);
+  int num_blocks = gkyl_block_geom_num_blocks(mbapp->block_geom);
 
+  int rank;
+  gkyl_comm_get_rank(mbapp->comm, &rank);
+  
   int num_ranks;
   gkyl_comm_get_size(mbapp->comm, &num_ranks);
-  int num_blocks = gkyl_block_geom_num_blocks(mbapp->block_geom);
 
   // construct round-robin decomposition
   int *branks = gkyl_malloc(sizeof(int[num_blocks]));
@@ -34,8 +37,33 @@ gkyl_moment_multib_app_new(const struct gkyl_moment_multib *mbinp)
   }
   const struct gkyl_rrobin_decomp *rrd = gkyl_rrobin_decomp_new(num_ranks, num_blocks, branks);
 
-  int num_local_blocks = mbapp->num_local_blocks = num_blocks;
-  mbapp->app = gkyl_malloc(sizeof(struct gkyl_moment_app*[num_local_blocks]));
+  int num_local_blocks = 0;
+  
+  int *rank_list = gkyl_malloc(sizeof(int[num_ranks])); // this is larger than needed
+  // construct list of block communicators: there are as many
+  // communictor as blocks. Not all communictors are valid on each
+  // rank. The total number of valid communictors is num_local_blocks.
+  mbapp->block_comms = gkyl_malloc(num_blocks*sizeof(struct gkyl_comm *));
+  for (int i=0; i<num_blocks; ++i) {
+    gkyl_rrobin_decomp_getranks(rrd, i, rank_list);
+
+    // TODO: Construct and pass decomp!
+
+    bool status;
+    mbapp->block_comms[i] = gkyl_comm_create_comm_from_ranks(mbinp->comm,
+      branks[i], rank_list, 0, &status);
+
+    if (status)
+      num_local_blocks += 1;
+  }
+  gkyl_free(rank_list);
+
+  printf("Rank %d handles %d Apps\n", rank, num_local_blocks);
+
+  mbapp->num_local_blocks = num_local_blocks;
+  mbapp->app = 0;
+  if (num_local_blocks > 0)
+    mbapp->app = gkyl_malloc(sizeof(struct gkyl_moment_app*[num_local_blocks]));
 
   mbapp->stat = (struct gkyl_moment_stat) {
   };
@@ -166,8 +194,13 @@ gkyl_moment_multib_app_release(gkyl_moment_multib_app* mbapp)
 {
 
   gkyl_comm_release(mbapp->comm);
-  gkyl_block_geom_release(mbapp->block_geom);
+  int num_blocks = gkyl_block_geom_num_blocks(mbapp->block_geom);
+  for (int i=0; i<num_blocks; ++i)
+    gkyl_comm_release(mbapp->block_comms[i]);
+  gkyl_free(mbapp->block_comms);
   
-  gkyl_free(mbapp->app);
+  gkyl_block_geom_release(mbapp->block_geom);
+  if (mbapp->app)
+    gkyl_free(mbapp->app);
   gkyl_free(mbapp);
 }

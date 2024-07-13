@@ -3,6 +3,7 @@
 #pragma once
 
 #include <gkyl_moment_priv.h>
+#include <gkyl_comm.h>
 
 // top-level internal App
 struct gkyl_moment_multib_app {
@@ -13,6 +14,8 @@ struct gkyl_moment_multib_app {
   struct gkyl_block_geom *block_geom;
   double cfl_frac; // CFL fraction to use
   int num_species; // number of species
+
+  struct gkyl_comm **block_comms; // list of block-communicators
   
   int num_local_blocks; // total number of blocks on current rank
   struct gkyl_moment_app **app; // individual App objects, one per-block

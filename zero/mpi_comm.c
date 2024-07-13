@@ -733,6 +733,8 @@ struct gkyl_comm*
 gkyl_mpi_comm_new(const struct gkyl_mpi_comm_inp *inp)
 {
   struct mpi_comm *mpi = gkyl_malloc(sizeof *mpi);
+  strcpy(mpi->base.id, "mpi_comm");
+  
   mpi->mcomm = inp->mpi_comm;
   mpi->sync_corners = inp->sync_corners;
 

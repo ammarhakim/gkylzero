@@ -125,7 +125,7 @@ main(int argc, char **argv)
 
   struct gkyl_comm *comm = 0;
   if (app_args.use_mpi) {
-#ifdef GKYL_HAVE_MPI    
+#ifdef GKYL_HAVE_MPI
     MPI_Init(&argc, &argv);
     comm = gkyl_mpi_comm_new( &(struct gkyl_mpi_comm_inp) {
         .mpi_comm = MPI_COMM_WORLD,
@@ -213,6 +213,11 @@ main(int argc, char **argv)
   gkyl_block_geom_release(bgeom);
   gkyl_wv_eqn_release(euler_eqn);
   gkyl_moment_multib_app_release(app);
+
+#ifdef GKYL_HAVE_MPI
+  if (app_args.use_mpi)
+    MPI_Finalize();
+#endif
   
   return 0;
 }

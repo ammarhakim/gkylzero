@@ -620,6 +620,8 @@ struct gkyl_comm*
 gkyl_nccl_comm_new(const struct gkyl_nccl_comm_inp *inp)
 {
   struct nccl_comm *nccl = gkyl_malloc(sizeof *nccl);
+  strcpy(mpi->base.id, "nccl_comm");
+  
   nccl->mcomm = inp->mpi_comm;
 
   nccl->mpi_comm = gkyl_mpi_comm_new( &(struct gkyl_mpi_comm_inp)

@@ -114,6 +114,7 @@ typedef void (*comm_group_call_end_t)();
 // Structure holding data and function pointers to communicate various
 // Gkeyll objects across multi-region or multi-block domains
 struct gkyl_comm {
+  char id[128]; // string ID for communcator
 
   // FOLLOWING DO NOT NEED A DECOMP
   
