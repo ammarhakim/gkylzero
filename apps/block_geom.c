@@ -51,7 +51,8 @@ void
 gkyl_block_geom_set_block(struct gkyl_block_geom *bgeom, int bidx,
   const struct gkyl_block_geom_info *info)
 {
-  bgeom->blocks[bidx] = *info;
+  memcpy(&bgeom->blocks[bidx], info, sizeof(struct gkyl_block_geom_info));
+  
   for (int d=0; d<bgeom->ndim; ++d)
     bgeom->blocks[bidx].cuts[d] = info->cuts[d] > 0 ? info->cuts[d] : 1;
   
