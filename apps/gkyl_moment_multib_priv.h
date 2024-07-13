@@ -19,7 +19,7 @@ struct gkyl_moment_multib_app {
 
   int num_local_blocks; // total number of blocks on current rank
   int *local_blocks; // local blocks IDs handled by current rank
-  struct gkyl_moment_app **app; // individual App objects, one per-block
+  struct gkyl_moment_app **apps; // individual App objects, one per-block
 
   struct gkyl_moment_stat stat; // statistics
 };
