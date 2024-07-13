@@ -417,19 +417,19 @@ gkyl_moment_multib_app_stat(gkyl_moment_multib_app *app)
 void
 gkyl_moment_multib_app_release(gkyl_moment_multib_app* mbapp)
 {
+  if (mbapp->apps) {
+    for (int i=0; i<mbapp->num_local_blocks; ++i)
+      gkyl_moment_app_release(mbapp->apps[i]);
+    gkyl_free(mbapp->apps);
+  }  
+
   int num_blocks = gkyl_block_geom_num_blocks(mbapp->block_geom);
-  
+
   for (int i=0; i<num_blocks; ++i)
     gkyl_comm_release(mbapp->block_comms[i]);
   gkyl_free(mbapp->block_comms);
   gkyl_comm_release(mbapp->comm);  
   
-  /* if (mbapp->apps) { */
-  /*   for (int i=0; mbapp->num_local_blocks; ++i) */
-  /*     gkyl_moment_app_release(mbapp->apps[i]); */
-  /*   gkyl_free(mbapp->apps); */
-  /* } */
-
   gkyl_block_geom_release(mbapp->block_geom);
   gkyl_free(mbapp->local_blocks);    
   
