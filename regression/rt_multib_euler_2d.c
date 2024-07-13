@@ -128,10 +128,11 @@ main(int argc, char **argv)
 #ifdef GKYL_HAVE_MPI    
     MPI_Init(&argc, &argv);
     comm = gkyl_mpi_comm_new( &(struct gkyl_mpi_comm_inp) {
-        .mpi_comm = MPI_COMM_WORLD
+        .mpi_comm = MPI_COMM_WORLD,
+        .sync_corners = true
       }
     );
-#endif    
+#endif
   }
   if (comm == 0)
     comm = gkyl_null_comm_inew( &(struct gkyl_null_comm_inp) { } );

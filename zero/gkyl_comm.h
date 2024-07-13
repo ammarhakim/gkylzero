@@ -89,6 +89,14 @@ typedef struct gkyl_comm* (*extend_comm_t)(const struct gkyl_comm *comm,
 typedef struct gkyl_comm* (*split_comm_t)(const struct gkyl_comm *comm,
   int color, struct gkyl_rect_decomp *new_decomp);
 
+// Create a new communicator from the input comm that takes a list of
+// ranks to include in it.
+typedef struct gkyl_comm *(*create_comm_from_ranks_t)(
+  const struct gkyl_comm *comm, int nranks, const int *ranks,
+  struct gkyl_rect_decomp *new_decomp,
+  bool *is_valid
+);
+
 // Barrier
 typedef int (*barrier_t)(struct gkyl_comm *comm);
 
@@ -117,6 +125,7 @@ struct gkyl_comm {
   
   extend_comm_t extend_comm; // extend communcator
   split_comm_t split_comm;   // ?? split communicator.
+  create_comm_from_ranks_t  create_comm_from_ranks; // communictor from ranks
 
   comm_group_call_start_t comm_group_call_start; // Start a group call
   comm_group_call_end_t comm_group_call_end; // End a group call
@@ -434,7 +443,9 @@ static int gkyl_comm_array_write(struct gkyl_comm *comm,
   const struct gkyl_array_meta *meta,
   const struct gkyl_array *arr, const char *fname)
 {
-  return comm->gkyl_array_write(comm, grid, range, meta, arr, fname);
+  int status = comm->gkyl_array_write(comm, grid, range, meta, arr, fname);
+  gkyl_comm_barrier(comm);
+  return status;
 }
 
 /**
@@ -454,7 +465,9 @@ gkyl_comm_array_read(struct gkyl_comm *comm,
   const struct gkyl_rect_grid *grid, const struct gkyl_range *range,
   struct gkyl_array *arr, const char *fname)
 {
-  return comm->gkyl_array_read(comm, grid, range, arr, fname);
+  int status = comm->gkyl_array_read(comm, grid, range, arr, fname);
+  gkyl_comm_barrier(comm);
+  return status;
 }
 
 /**
@@ -477,11 +490,11 @@ gkyl_comm_extend_comm(const struct gkyl_comm *comm,
 /**
  * Split a communicator into a new communcator based on color. All
  * ranks with the same color will form the new communcator. In the input @a
- * new_decomp can be 0.
- * 
+ * new_decomp can be NULL.
+ *
  * @param comm Communicator.
  * @param color All ranks of same color will share a communicator.
- * @param new_decomp Decomp object to associate with the new communicator.
+ * @param new_decomp Decomp object to associate new communicator. Can be NULL
  * @return Newly created communicator
  */
 static struct gkyl_comm*
@@ -489,6 +502,27 @@ gkyl_comm_split_comm(const struct gkyl_comm *comm, int color,
   struct gkyl_rect_decomp *new_decomp)
 {
   return comm->split_comm(comm, color, new_decomp);
+}
+
+/**
+ * Create a new communicator that incudes a subset of ranks in @a
+ * comm. This call can return a NULL if the communicator is not valid
+ * on the parent calling rank. In this case the is_valid flag is also
+ * set to false.
+ *
+ * @param comm Communicator.
+ * @param nrank Number of ranks to include
+ * @param ranks List of ranks to include
+ * @param new_decomp Decomp object to associate new communicator. Can be NULL
+ * @param is_valid On output, true if comm is usable, false otherwise
+ * @return Newly created communicator
+ */
+static struct gkyl_comm *
+gkyl_comm_create_comm_from_ranks(const struct gkyl_comm *comm, int nranks,
+  const int *ranks, struct gkyl_rect_decomp *new_decomp,
+  bool *is_valid)
+{
+  return comm->create_comm_from_ranks(comm, nranks, ranks, new_decomp, is_valid);
 }
 
 /**

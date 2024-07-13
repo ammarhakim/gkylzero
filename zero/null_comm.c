@@ -248,6 +248,27 @@ split_comm(const struct gkyl_comm *comm, int color, struct gkyl_rect_decomp *new
   );
 }
 
+static struct gkyl_comm*
+create_comm_from_ranks(const struct gkyl_comm *comm,
+  int nranks, const int *ranks, struct gkyl_rect_decomp *new_decomp,
+  bool *is_valid)
+{
+  if (nranks > 1) {
+    *is_valid = false;
+    return 0;
+  }
+  
+  *is_valid = true;
+  
+  struct null_comm *null_comm = container_of(comm, struct null_comm, base);  
+  return gkyl_null_comm_inew( &(struct gkyl_null_comm_inp) {
+      .use_gpu = null_comm->use_gpu,
+      .sync_corners = null_comm->sync_corners,
+      .decomp = new_decomp
+    }
+  );  
+}
+
 struct gkyl_comm*
 gkyl_null_comm_inew(const struct gkyl_null_comm_inp *inp)
 {
@@ -290,6 +311,7 @@ gkyl_null_comm_inew(const struct gkyl_null_comm_inp *inp)
   comm->base.gkyl_array_read = array_read;
   comm->base.extend_comm = extend_comm;
   comm->base.split_comm = split_comm;
+  comm->base.create_comm_from_ranks = create_comm_from_ranks;
 
   comm->base.ref_count = gkyl_ref_count_init(comm_free);
 

@@ -667,13 +667,47 @@ split_comm(const struct gkyl_comm *comm, int color, struct gkyl_rect_decomp *new
   int ret = MPI_Comm_split(mpi->mcomm, color, rank, &new_mcomm);
   assert(ret == MPI_SUCCESS);
 
-  struct gkyl_comm *newcomm = gkyl_mpi_comm_new( &(struct gkyl_mpi_comm_inp) {
+  return gkyl_mpi_comm_new( &(struct gkyl_mpi_comm_inp) {
       .mpi_comm = new_mcomm,
       .sync_corners = mpi->sync_corners,
       .decomp = new_decomp,
     }
   );
-  return newcomm;
+}
+
+static struct gkyl_comm*
+create_comm_from_ranks(const struct gkyl_comm *comm,
+  int nranks, const int *ranks, struct gkyl_rect_decomp *new_decomp,
+  bool *is_valid)
+{
+  struct mpi_comm *mpi = container_of(comm, struct mpi_comm, base);
+
+  MPI_Group group;
+  MPI_Comm_group(mpi->mcomm, &group);
+
+  MPI_Group new_group;
+  MPI_Group_incl(group, nranks, ranks, &new_group);
+
+  MPI_Comm new_mcomm;
+  MPI_Comm_create_group(mpi->mcomm, new_group, 0, &new_mcomm);
+
+  *is_valid = false;
+  struct gkyl_comm *new_comm = 0;
+  if (MPI_COMM_NULL != new_mcomm) {
+    *is_valid = true;
+
+    new_comm = gkyl_mpi_comm_new( &(struct gkyl_mpi_comm_inp) {
+        .mpi_comm = new_mcomm,
+        .sync_corners = mpi->sync_corners,
+        .decomp = new_decomp,
+      }
+    );
+  }
+
+  MPI_Group_free(&group);
+  MPI_Group_free(&new_group);
+  
+  return new_comm;
 }
 
 static struct gkyl_comm_state *
@@ -702,10 +736,14 @@ gkyl_mpi_comm_new(const struct gkyl_mpi_comm_inp *inp)
   mpi->mcomm = inp->mpi_comm;
   mpi->sync_corners = inp->sync_corners;
 
+  int comm_size;
+  MPI_Comm_size(inp->mpi_comm, &comm_size);
+
   if (0 == inp->decomp)
     // construct a dummy decomposition
     mpi->decomp =
-      gkyl_rect_decomp_new_from_cuts_and_cells(1, (int[]) { 1 }, (int[]) { 1 });
+      gkyl_rect_decomp_new_from_cuts_and_cells(1,
+        (int[]) { comm_size }, (int[]) { comm_size });
   else
     mpi->decomp = gkyl_rect_decomp_acquire(inp->decomp);
 
@@ -767,6 +805,8 @@ gkyl_mpi_comm_new(const struct gkyl_mpi_comm_inp *inp)
   mpi->base.allreduce_host = allreduce;
   mpi->base.extend_comm = extend_comm;
   mpi->base.split_comm = split_comm;
+  mpi->base.create_comm_from_ranks = create_comm_from_ranks;
+  
   mpi->base.comm_state_new = comm_state_new;
   mpi->base.comm_state_release = comm_state_release;
   mpi->base.comm_state_wait = comm_state_wait;
