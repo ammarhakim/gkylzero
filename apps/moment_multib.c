@@ -4,12 +4,23 @@
 
 #include <mpack.h>
 
+// compute total number of ranges specified by cuts
 static inline int
 calc_cuts(int ndim, const int *cuts)
 {
   int tc = 1;
   for (int d=0; d<ndim; ++d) tc *= cuts[d];
   return tc;
+}
+
+// simple linear search to check if val occurs in lst
+static bool
+has_int(int n, int val, const int *lst)
+{
+  for (int i=0; i<n; ++i)
+    if (val == lst[i])
+      return true;
+  return false;
 }
 
 struct gkyl_moment_multib_app *
@@ -23,8 +34,8 @@ gkyl_moment_multib_app_new(const struct gkyl_moment_multib *mbinp)
   int ndim = gkyl_block_geom_ndim(mbapp->block_geom);
   int num_blocks = gkyl_block_geom_num_blocks(mbapp->block_geom);
 
-  int rank;
-  gkyl_comm_get_rank(mbapp->comm, &rank);
+  int my_rank;
+  gkyl_comm_get_rank(mbapp->comm, &my_rank);
   
   int num_ranks;
   gkyl_comm_get_size(mbapp->comm, &num_ranks);
@@ -38,27 +49,41 @@ gkyl_moment_multib_app_new(const struct gkyl_moment_multib *mbinp)
   const struct gkyl_rrobin_decomp *rrd = gkyl_rrobin_decomp_new(num_ranks, num_blocks, branks);
 
   int num_local_blocks = 0;
-  
+  mbapp->local_blocks = gkyl_malloc(sizeof(int[num_blocks]));
+
+  int lidx = 0;
   int *rank_list = gkyl_malloc(sizeof(int[num_ranks])); // this is larger than needed
+  
   // construct list of block communicators: there are as many
-  // communictor as blocks. Not all communictors are valid on each
+  // communictor as blocks. Not all communicators are valid on each
   // rank. The total number of valid communictors is num_local_blocks.
   mbapp->block_comms = gkyl_malloc(num_blocks*sizeof(struct gkyl_comm *));
   for (int i=0; i<num_blocks; ++i) {
     gkyl_rrobin_decomp_getranks(rrd, i, rank_list);
 
-    // TODO: Construct and pass decomp!
+    bool is_my_rank_in_decomp = has_int(branks[i], my_rank, rank_list);
+
+    if (is_my_rank_in_decomp) {
+      mbapp->local_blocks[lidx++] = i;
+      num_local_blocks += 1;      
+    }
+
+    const struct gkyl_block_geom_info *bgi = gkyl_block_geom_get_block(mbapp->block_geom, i);
+    struct gkyl_range block_global_range;
+    gkyl_create_global_range(ndim, bgi->cells, &block_global_range);
+
+    struct gkyl_rect_decomp *decomp = gkyl_rect_decomp_new_from_cuts(
+      ndim, bgi->cuts, &block_global_range);
 
     bool status;
     mbapp->block_comms[i] = gkyl_comm_create_comm_from_ranks(mbinp->comm,
-      branks[i], rank_list, 0, &status);
+      branks[i], rank_list, decomp, &status);
 
-    if (status)
-      num_local_blocks += 1;
+    gkyl_rect_decomp_release(decomp);
   }
   gkyl_free(rank_list);
 
-  printf("Rank %d handles %d Apps\n", rank, num_local_blocks);
+  printf("Rank %d handles %d Apps\n", my_rank, num_local_blocks);
 
   mbapp->num_local_blocks = num_local_blocks;
   mbapp->app = 0;
@@ -192,14 +217,16 @@ gkyl_moment_multib_app_stat(gkyl_moment_multib_app *app)
 void
 gkyl_moment_multib_app_release(gkyl_moment_multib_app* mbapp)
 {
-
-  gkyl_comm_release(mbapp->comm);
   int num_blocks = gkyl_block_geom_num_blocks(mbapp->block_geom);
+  
   for (int i=0; i<num_blocks; ++i)
     gkyl_comm_release(mbapp->block_comms[i]);
   gkyl_free(mbapp->block_comms);
+  gkyl_comm_release(mbapp->comm);  
   
   gkyl_block_geom_release(mbapp->block_geom);
+  gkyl_free(mbapp->local_blocks);  
+
   if (mbapp->app)
     gkyl_free(mbapp->app);
   gkyl_free(mbapp);

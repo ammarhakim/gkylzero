@@ -46,10 +46,19 @@ struct gkyl_comm_state {
   MPI_Status stat;
 };
 
+struct extra_mpi_comm_inp {
+  bool is_comm_allocated; // is MPI_Comm allocated?
+};
+
+// Internal method to create a new MPI communicator
+static struct gkyl_comm* mpi_comm_new(
+  const struct gkyl_mpi_comm_inp *inp, const struct extra_mpi_comm_inp *extra_inp);
+
 // Private struct wrapping MPI-specific code
 struct mpi_comm {
   struct gkyl_comm base; // base communicator
 
+  bool is_mcomm_allocated; // is the mcomm allocated?
   MPI_Comm mcomm; // MPI communicator to use
   struct gkyl_rect_decomp *decomp; // pre-computed decomposition
   long local_range_offset; // offset of the local region
@@ -95,6 +104,9 @@ comm_free(const struct gkyl_ref_count *ref)
   
   gkyl_mem_buff_release(mpi->allgather_buff_local.buff);
   gkyl_mem_buff_release(mpi->allgather_buff_global.buff);
+
+  if (mpi->is_mcomm_allocated)
+    MPI_Comm_free(&mpi->mcomm);
 
   gkyl_free(mpi);
 }
@@ -696,10 +708,13 @@ create_comm_from_ranks(const struct gkyl_comm *comm,
   if (MPI_COMM_NULL != new_mcomm) {
     *is_valid = true;
 
-    new_comm = gkyl_mpi_comm_new( &(struct gkyl_mpi_comm_inp) {
+    new_comm = mpi_comm_new( &(struct gkyl_mpi_comm_inp) {
         .mpi_comm = new_mcomm,
         .sync_corners = mpi->sync_corners,
         .decomp = new_decomp,
+      },
+      &(struct extra_mpi_comm_inp) {
+        .is_comm_allocated = true
       }
     );
   }
@@ -729,12 +744,14 @@ comm_state_wait(struct gkyl_comm_state *state)
   MPI_Wait(&state->req, &state->stat);
 }
 
-struct gkyl_comm*
-gkyl_mpi_comm_new(const struct gkyl_mpi_comm_inp *inp)
+static struct gkyl_comm*
+mpi_comm_new(const struct gkyl_mpi_comm_inp *inp,
+  const struct extra_mpi_comm_inp *extra_inp)
 {
   struct mpi_comm *mpi = gkyl_malloc(sizeof *mpi);
   strcpy(mpi->base.id, "mpi_comm");
-  
+
+  mpi->is_mcomm_allocated = extra_inp->is_comm_allocated;
   mpi->mcomm = inp->mpi_comm;
   mpi->sync_corners = inp->sync_corners;
 
@@ -815,6 +832,15 @@ gkyl_mpi_comm_new(const struct gkyl_mpi_comm_inp *inp)
   mpi->base.ref_count = gkyl_ref_count_init(comm_free);
 
   return &mpi->base;
+}
+
+struct gkyl_comm*
+gkyl_mpi_comm_new(const struct gkyl_mpi_comm_inp *inp)
+{
+  return mpi_comm_new(inp, &(struct extra_mpi_comm_inp) {
+      .is_comm_allocated = false
+    }
+  );
 }
 
 #endif
