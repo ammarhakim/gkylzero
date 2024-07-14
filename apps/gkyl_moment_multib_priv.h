@@ -8,7 +8,7 @@
 // top-level internal App
 struct gkyl_moment_multib_app {
   char name[128]; // name of app
-  struct gkyl_comm *comm; // communicator to use
+  struct gkyl_comm *comm; // global communicator to use
   
  // geometry and topology of all blocks in simulation
   struct gkyl_block_geom *block_geom;
@@ -19,7 +19,9 @@ struct gkyl_moment_multib_app {
 
   int num_local_blocks; // total number of blocks on current rank
   int *local_blocks; // local blocks IDs handled by current rank
-  struct gkyl_moment_app **apps; // individual App objects, one per-block
+  struct gkyl_moment_app **singleb_apps; // individual App objects, one per-block
 
+  double tcurr; // current time
+  
   struct gkyl_moment_stat stat; // statistics
 };
