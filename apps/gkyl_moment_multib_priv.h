@@ -12,6 +12,8 @@ struct gkyl_moment_multib_app {
   
  // geometry and topology of all blocks in simulation
   struct gkyl_block_geom *block_geom;
+  struct gkyl_block_topo *block_topo;
+  
   double cfl_frac; // CFL fraction to use
   int num_species; // number of species
 

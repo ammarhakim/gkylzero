@@ -197,6 +197,12 @@ main(int argc, char **argv)
   };
 
   struct gkyl_moment_multib_app *app = gkyl_moment_multib_app_new(&app_inp);
+  if (app == 0) {
+    fprintf(stderr, "Unable to construct multiblock App! (Probably too few ranks)\n");
+    goto finish;
+  }
+  
+  gkyl_moment_multib_app_write_topo(app);
 
   // Initial and final simulation times.
   double t_curr = 0.0, t_end = 0.6;
@@ -213,6 +219,8 @@ main(int argc, char **argv)
   gkyl_block_geom_release(bgeom);
   gkyl_wv_eqn_release(euler_eqn);
   gkyl_moment_multib_app_release(app);
+
+  finish:
 
 #ifdef GKYL_HAVE_MPI
   if (app_args.use_mpi)

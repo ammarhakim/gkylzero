@@ -23,6 +23,21 @@ has_int(int n, int val, const int *lst)
   return false;
 }
 
+static int
+calc_max_cuts(const struct gkyl_block_geom *block_geom)
+{
+  int ndim = gkyl_block_geom_ndim(block_geom);
+  int num_blocks = gkyl_block_geom_num_blocks(block_geom);
+
+  int max_cuts = 0;
+  for (int i=0; i<num_blocks; ++i) {
+    const struct gkyl_block_geom_info *bgi = gkyl_block_geom_get_block(block_geom, i);
+    int ncuts = calc_cuts(ndim, bgi->cuts);
+    max_cuts = ncuts > max_cuts ? ncuts : max_cuts;
+  }
+  return max_cuts;
+}
+
 // construct single-block App for given block ID
 struct gkyl_moment_app *
 singleb_app_new(const struct gkyl_moment_multib *mbinp, int bid,
@@ -220,19 +235,23 @@ singleb_app_new(const struct gkyl_moment_multib *mbinp, int bid,
 struct gkyl_moment_multib_app *
 gkyl_moment_multib_app_new(const struct gkyl_moment_multib *mbinp)
 {
+  int my_rank;
+  gkyl_comm_get_rank(mbinp->comm, &my_rank);
+  int num_ranks;
+  gkyl_comm_get_size(mbinp->comm, &num_ranks);
+
+  if (num_ranks < calc_max_cuts(mbinp->block_geom))
+    return 0;
+
   struct gkyl_moment_multib_app *mbapp = gkyl_malloc(sizeof(*mbapp));
   strcpy(mbapp->name, mbinp->name);
-  mbapp->comm = gkyl_comm_acquire(mbinp->comm);
-
+  mbapp->comm = gkyl_comm_acquire(mbinp->comm);  
+  
   mbapp->block_geom = gkyl_block_geom_acquire(mbinp->block_geom);
+  mbapp->block_topo = gkyl_block_geom_topo(mbinp->block_geom);
+  
   int ndim = gkyl_block_geom_ndim(mbapp->block_geom);
   int num_blocks = gkyl_block_geom_num_blocks(mbapp->block_geom);
-
-  int my_rank;
-  gkyl_comm_get_rank(mbapp->comm, &my_rank);
-  
-  int num_ranks;
-  gkyl_comm_get_size(mbapp->comm, &num_ranks);
 
   // construct round-robin decomposition
   int *branks = gkyl_malloc(sizeof(int[num_blocks]));
@@ -315,7 +334,7 @@ gkyl_moment_multib_app_apply_ic(gkyl_moment_multib_app* app, double t0)
 {
   app->tcurr = t0;
   gkyl_moment_multib_app_apply_ic_field(app, t0);
-  for (int i=0;  i<app->num_species; ++i)
+  for (int i=0; i<app->num_species; ++i)
     gkyl_moment_multib_app_apply_ic_species(app, i, t0);
 }
 
@@ -334,7 +353,7 @@ gkyl_moment_multib_app_apply_ic_species(gkyl_moment_multib_app* app, int sidx, d
   app->tcurr = t0;
   for (int i=0; i<app->num_local_blocks; ++i)
     gkyl_moment_app_apply_ic_species(app->singleb_apps[i], sidx, t0);
-  gkyl_comm_barrier(app->comm);  
+  gkyl_comm_barrier(app->comm);
 }
 
 struct gkyl_app_restart_status
@@ -353,10 +372,35 @@ gkyl_moment_multib_app_from_frame_species(gkyl_moment_multib_app *app,
   return (struct gkyl_app_restart_status) { };  
 }
 
+// private function to handle variable argument list for printing
+static void
+v_moment_app_cout(const gkyl_moment_multib_app* app, FILE *fp, const char *fmt, va_list argp)
+{
+  int rank;
+  gkyl_comm_get_rank(app->comm, &rank);
+  if ((rank == 0) && fp)
+    vfprintf(fp, fmt, argp);
+}
+
 void
 gkyl_moment_multib_app_cout(const gkyl_moment_multib_app* app, FILE *fp, const char *fmt, ...)
 {
-  // TODO
+  va_list argp;
+  va_start(argp, fmt);
+  v_moment_app_cout(app, fp, fmt, argp);
+  va_end(argp);
+}
+
+void
+gkyl_moment_multib_app_write_topo(const gkyl_moment_multib_app* app)
+{
+  int rank;
+  gkyl_comm_get_rank(app->comm, &rank);
+  if (0 == rank) {
+    cstr file_name = cstr_from_fmt("%s_btopo.gkyl", app->name);
+    gkyl_block_topo_write(app->block_topo, file_name.str);
+    cstr_drop(&file_name);
+  }
 }
 
 void
@@ -449,6 +493,7 @@ gkyl_moment_multib_app_release(gkyl_moment_multib_app* mbapp)
   gkyl_comm_release(mbapp->comm);  
   
   gkyl_block_geom_release(mbapp->block_geom);
+  gkyl_block_topo_release(mbapp->block_topo);
   gkyl_free(mbapp->local_blocks);    
   
   gkyl_free(mbapp);

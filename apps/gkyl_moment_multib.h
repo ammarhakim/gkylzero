@@ -190,6 +190,13 @@ struct gkyl_app_restart_status gkyl_moment_multib_app_from_frame_species(gkyl_mo
 void gkyl_moment_multib_app_cout(const gkyl_moment_multib_app* app, FILE *fp, const char *fmt, ...);
 
 /**
+ * Write block topology to file.
+ * 
+ * @param app App object.
+ */
+void gkyl_moment_multib_app_write_topo(const gkyl_moment_multib_app* app);
+
+/**
  * Write field and species data to file.
  * 
  * @param app App object.
