@@ -18,6 +18,8 @@
 #include <gkyl_gk_geometry_tok.h>
 
 
+
+
 void
 write_geometry(gk_geometry *up, struct gkyl_rect_grid grid, struct gkyl_range local, const char *name)
 {
@@ -98,6 +100,76 @@ double Rxpt_lo = 2.4901129589826647;
 double Zxpt_up = 6.16726668549029;
 double Rxpt_up = 2.4901129589826647;
 
+
+// Somer vertical and horizontal plates
+//void shaped_pfunc_lower_inner(double s, double* RZ){
+//  RZ[0] = 1.71;
+//  RZ[1] = -6.2 - s;
+//}
+//
+//void shaped_pfunc_upper_inner(double s, double* RZ){
+//  RZ[0] = 2.235;
+//  RZ[1] = 6.267 + s;
+//}
+
+void shaped_pfunc_lower_outer(double s, double* RZ){
+  RZ[0] = 3.5+2.0*s;
+  RZ[1] = -8.29;
+}
+
+void shaped_pfunc_upper_outer(double s, double* RZ){
+  RZ[0] = 3.5+2.0*s;
+  RZ[1] = 8.29;
+}
+
+// Actual Plate info (Inboard Upper Plate):
+// p1 = [1.651,6.331]
+// p2 = [1.8, 6.777]
+// Try a Different (slanted) plate instead
+// p1 [5.151,8.516]
+// p2 [5.852, 8.434]
+// Reasonable Diagonal plate:
+void shaped_pfunc_upper_inner(double s, double* RZ){
+    RZ[0] = 1.651 + (1.8 - 1.651)*s;
+    RZ[1] = 6.331 + (6.777 - 6.331)*s;
+}
+
+void shaped_pfunc_lower_inner(double s, double* RZ){
+    RZ[0] = 1.65 + (1.8 - 1.65)*s;
+    RZ[1] = -(6.33 + (6.777 - 6.33)*s);
+}
+
+// Actual Plate info:
+// p1 = [5.7413,8.5471]
+// p2 = [5.8544, 8.5229]
+// p3 = [5.8549, 8.4258]
+// Try a Different (slanted) plate instead
+// p1 [5.151,8.516]
+// p2 [5.852, 8.434]
+// Reasonable Diagonal plate:
+//void shaped_pfunc_upper_outer(double s, double* RZ){
+//    RZ[0] = 5.151 + (5.852 - 5.151)*s;
+//    RZ[1] = 8.516 + (8.434 - 8.516)*s;
+//}
+//
+//void shaped_pfunc_lower_outer(double s, double* RZ){
+//    RZ[0] = 5.151 + (5.852 - 5.151)*(2*s-1);
+//    RZ[1] = -(8.516 + (8.434 - 8.516)*(2*s-1));
+//}
+
+struct gkyl_tok_geo_efit_inp inp_inner= {
+    // psiRZ and related inputs
+    .filepath = "./data/eqdsk/step.geqdsk",
+    .rzpoly_order = 2,
+    .rz_basis_type = GKYL_BASIS_MODAL_TENSOR,
+    .fluxpoly_order = 1,
+    .plate_spec = true,
+    .quad_param = {  .eps = 1e-10 },
+    .reflect = true,
+    .plate_func_lower = shaped_pfunc_lower_inner,
+    .plate_func_upper = shaped_pfunc_upper_inner,
+  };
+
 struct gkyl_tok_geo_efit_inp inp = {
     // psiRZ and related inputs
     .filepath = "./data/eqdsk/step.geqdsk",
@@ -107,6 +179,19 @@ struct gkyl_tok_geo_efit_inp inp = {
     .plate_spec = false,
     .quad_param = {  .eps = 1e-10 },
     .reflect = true,
+  };
+
+struct gkyl_tok_geo_efit_inp inp_outer = {
+    // psiRZ and related inputs
+    .filepath = "./data/eqdsk/step.geqdsk",
+    .rzpoly_order = 2,
+    .rz_basis_type = GKYL_BASIS_MODAL_TENSOR,
+    .fluxpoly_order = 1,
+    .plate_spec = true,
+    .quad_param = {  .eps = 1e-10 },
+    .reflect = true,
+    .plate_func_lower = shaped_pfunc_lower_outer,
+    .plate_func_upper = shaped_pfunc_upper_outer,
   };
 
 int cpoly_order = 1;
@@ -147,7 +232,7 @@ test_core()
   }; 
   struct gkyl_gk_geometry_inp geometry_inp = {
     .geometry_id  = GKYL_TOKAMAK,
-    .tok_efit_info = &inp,
+    .tok_efit_info = &inp_outer,
     .tok_grid_info = &ginp,
     .grid = cgrid,
     .local = clocal,
@@ -265,7 +350,7 @@ test_outer()
   }; 
   struct gkyl_gk_geometry_inp geometry_inp = {
     .geometry_id  = GKYL_TOKAMAK,
-    .tok_efit_info = &inp,
+    .tok_efit_info = &inp_outer,
     .tok_grid_info = &ginp,
     .grid = cgrid,
     .local = clocal,
@@ -320,7 +405,7 @@ test_upper()
   }; 
   struct gkyl_gk_geometry_inp geometry_inp = {
     .geometry_id  = GKYL_TOKAMAK,
-    .tok_efit_info = &inp,
+    .tok_efit_info = &inp_outer,
     .tok_grid_info = &ginp,
     .grid = cgrid,
     .local = clocal,
@@ -375,7 +460,7 @@ test_lower()
   }; 
   struct gkyl_gk_geometry_inp geometry_inp = {
     .geometry_id  = GKYL_TOKAMAK,
-    .tok_efit_info = &inp,
+    .tok_efit_info = &inp_outer,
     .tok_grid_info = &ginp,
     .grid = cgrid,
     .local = clocal,
@@ -407,8 +492,8 @@ test_pflo_r()
   double cpu_time_used;
   start = clock();
 
-  double clower[] = { psisep+2e-16, -0.01, -M_PI+1e-14 };
-  double cupper[] = {1.52, 0.01, M_PI-1e-14 };
+  double clower[] = { psisep, -0.01, -M_PI+1e-14 };
+  double cupper[] = {1.8, 0.01, M_PI-1e-14 };
   int ccells[] = { 4, 1, 8 };
 
   gkyl_rect_grid_init(&cgrid, 3, clower, cupper, ccells);
@@ -428,7 +513,7 @@ test_pflo_r()
   }; 
   struct gkyl_gk_geometry_inp geometry_inp = {
     .geometry_id  = GKYL_TOKAMAK,
-    .tok_efit_info = &inp,
+    .tok_efit_info = &inp_outer,
     .tok_grid_info = &ginp,
     .grid = cgrid,
     .local = clocal,
@@ -460,8 +545,8 @@ test_pflo_l()
   double cpu_time_used;
   start = clock();
 
-  double clower[] = { psisep + 2e-16, -0.01, -M_PI+1e-14 };
-  double cupper[] = {1.52, 0.01, M_PI-1e-14 };
+  double clower[] = { psisep, -0.01, -M_PI+1e-14 };
+  double cupper[] = {1.8, 0.01, M_PI-1e-14 };
   int ccells[] = { 4, 1, 8 };
 
   gkyl_rect_grid_init(&cgrid, 3, clower, cupper, ccells);
@@ -481,7 +566,7 @@ test_pflo_l()
   }; 
   struct gkyl_gk_geometry_inp geometry_inp = {
     .geometry_id  = GKYL_TOKAMAK,
-    .tok_efit_info = &inp,
+    .tok_efit_info = &inp_inner,
     .tok_grid_info = &ginp,
     .grid = cgrid,
     .local = clocal,
@@ -513,8 +598,8 @@ test_pfup_r()
   double cpu_time_used;
   start = clock();
 
-  double clower[] = { psisep, -0.01, -M_PI+1e-14 };
-  double cupper[] = {1.52, 0.01, M_PI-1e-14 };
+  double clower[] = { psisep + 2e-16, -0.01, -M_PI+1e-14 };
+  double cupper[] = {1.8, 0.01, M_PI-1e-14 };
   int ccells[] = { 4, 1, 8 };
 
   gkyl_rect_grid_init(&cgrid, 3, clower, cupper, ccells);
@@ -534,7 +619,7 @@ test_pfup_r()
   }; 
   struct gkyl_gk_geometry_inp geometry_inp = {
     .geometry_id  = GKYL_TOKAMAK,
-    .tok_efit_info = &inp,
+    .tok_efit_info = &inp_outer,
     .tok_grid_info = &ginp,
     .grid = cgrid,
     .local = clocal,
@@ -566,8 +651,8 @@ test_pfup_l()
   double cpu_time_used;
   start = clock();
 
-  double clower[] = { psisep+2e-16, -0.01, -M_PI+1e-14 };
-  double cupper[] = {1.52, 0.01, M_PI-1e-14 };
+  double clower[] = { psisep+0e-16, -0.01, -M_PI+1e-14 };
+  double cupper[] = {1.8, 0.01, M_PI-1e-14 };
   int ccells[] = { 4, 1, 8 };
 
   gkyl_rect_grid_init(&cgrid, 3, clower, cupper, ccells);
@@ -587,7 +672,7 @@ test_pfup_l()
   }; 
   struct gkyl_gk_geometry_inp geometry_inp = {
     .geometry_id  = GKYL_TOKAMAK,
-    .tok_efit_info = &inp,
+    .tok_efit_info = &inp_inner,
     .tok_grid_info = &ginp,
     .grid = cgrid,
     .local = clocal,
@@ -747,7 +832,7 @@ test_inner_lower()
   }; 
   struct gkyl_gk_geometry_inp geometry_inp = {
     .geometry_id  = GKYL_TOKAMAK,
-    .tok_efit_info = &inp,
+    .tok_efit_info = &inp_inner,
     .tok_grid_info = &ginp,
     .grid = cgrid,
     .local = clocal,

@@ -516,6 +516,18 @@ void gkyl_tok_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, double
                 arc_ctx.zmin, arc_ctx.zmax, ridders_min, ridders_max,
                 geo->root_param.max_iter, 1e-10);
               double z_curr = res.res;
+              
+              // PF Regions struggke if the ridders value of z_curr is used (very sensitive)
+              if( inp->ftype == GKYL_PF_UP_L ||inp->ftype == GKYL_PF_LO_L) {
+                if(it == nrange->upper[TH_IDX] && it_delta == 0) z_curr = arc_ctx.zmin;
+                if(it == nrange->lower[TH_IDX] && it_delta == 0) z_curr = arc_ctx.zmax;
+              }
+              else if ( inp->ftype == GKYL_PF_UP_R ||inp->ftype == GKYL_PF_LO_R) {
+                if(it == nrange->upper[TH_IDX] && it_delta == 0) z_curr = arc_ctx.zmax;
+                if(it == nrange->lower[TH_IDX] && it_delta == 0) z_curr = arc_ctx.zmin;
+              }
+
+
               ((gkyl_tok_geo *)geo)->stat.nroot_cont_calls += res.nevals;
               double R[4] = { 0 }, dR[4] = { 0 };
               int nr = R_psiZ(geo, psi_curr, z_curr, 4, R, dR);
@@ -526,6 +538,18 @@ void gkyl_tok_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, double
                   r_curr = choose_closest(inp->rright, R, R, nr);
                 if((it == nrange->upper[TH_IDX]) && (up->local.upper[TH_IDX]== up->global.upper[TH_IDX]))
                   r_curr = choose_closest(inp->rright, R, R, nr);
+              }
+
+              if(inp->ftype == GKYL_PF_LO_L){ // Match the right pf lo boundary at lower theta end
+                if ((it == nrange->lower[TH_IDX]) && (up->local.lower[TH_IDX]== up->global.lower[TH_IDX])) {
+                  r_curr = choose_closest(inp->rright, R, R, nr);
+                }
+              }
+
+              if(inp->ftype == GKYL_PF_UP_L){ // Match the right pf lo boundary at lower theta end
+                if ((it == nrange->upper[TH_IDX]) && (up->local.upper[TH_IDX]== up->global.upper[TH_IDX])) {
+                  r_curr = choose_closest(inp->rright, R, R, nr);
+                }
               }
 
               if(nr==0){
