@@ -44,7 +44,15 @@ typedef void (*pkpm_io_t)(const double *vlasov_pkpm_moms,
 typedef void (*pkpm_accel_t)(const double *dxv, 
   const double *prim_surf_l, const double *prim_surf_c, const double *prim_surf_r, 
   const double *prim_c, const double *bvar_c, const double *nu_c, 
-  double* GKYL_RESTRICT pkpm_lax, double* GKYL_RESTRICT pkpm_accel); 
+  double* GKYL_RESTRICT pkpm_accel); 
+
+typedef void (*pkpm_penalization_t)(double tol, 
+  const struct gkyl_wv_eqn *wv_eqn, const struct gkyl_wave_cell_geom *geom, 
+  const double *vlasov_pkpm_moms_l, const double *vlasov_pkpm_moms_r,
+  const double *p_ij_l, const double *p_ij_r,
+  const double *prim_l, const double *prim_r, 
+  const double *euler_pkpm_l, const double *euler_pkpm_r,
+  double* GKYL_RESTRICT pkpm_lax, double* GKYL_RESTRICT pkpm_penalization); 
 
 typedef void (*pkpm_limiter_t)(double limiter_fac, const struct gkyl_wv_eqn *wv_eqn, 
   const struct gkyl_wave_cell_geom *geom, const double *prim_c, 
@@ -65,6 +73,7 @@ typedef struct { pkpm_source_t kernels[3]; } gkyl_dg_pkpm_source_kern_list;
 typedef struct { pkpm_io_t kernels[3]; } gkyl_dg_pkpm_io_kern_list;
 
 typedef struct { pkpm_accel_t kernels[3]; } gkyl_dg_pkpm_accel_kern_list;
+typedef struct { pkpm_penalization_t kernels[3]; } gkyl_dg_pkpm_penalization_kern_list;
 typedef struct { pkpm_limiter_t kernels[4]; } gkyl_dg_pkpm_limiter_kern_list;
 
 struct gkyl_dg_calc_pkpm_vars {
@@ -75,7 +84,10 @@ struct gkyl_dg_calc_pkpm_vars {
 
   const struct gkyl_wv_eqn *wv_eqn; // Wave equation for characteristic limiting of solution
   const struct gkyl_wave_geom *geom; // Wave geometry for rotating solution
-  double limiter_fac; // Factor for relationship between cell slopes and cell average differences (by default: 1/sqrt(3))
+  double limiter_fac; // Factor for relationship between cell slopes and cell average differences (default: 1/sqrt(3))
+
+  double tol; // Tolerance in mass density and average normal velocity at the interface
+              // for switching to Lax fluxes in computing penalization of the momentum solve (default: 1.0e-12)
 
   struct gkyl_nmat *As, *xs; // matrices for LHS and RHS
   gkyl_nmat_mem *mem; // memory for use in batched linear solve
@@ -96,6 +108,7 @@ struct gkyl_dg_calc_pkpm_vars {
   pkpm_io_t pkpm_io; // kernel for constructing I/O arrays for pkpm diagnostics
 
   pkpm_accel_t pkpm_accel[3]; // kernel for computing pkpm acceleration and Lax variables
+  pkpm_penalization_t pkpm_penalization[3]; // kernel for computing pkpm acceleration and Lax variables
   pkpm_limiter_t pkpm_limiter[3]; // kernel for limiting slopes of fluid variables
 
   uint32_t flags;
@@ -252,8 +265,7 @@ static const gkyl_dg_pkpm_io_kern_list ten_pkpm_io_kernels[] = {
   { NULL, pkpm_vars_io_3x_ser_p1, NULL }, // 2
 };
 
-// PKPM acceleration variables, e.g., bb:grad(u), 
-// and Lax penalization (lambda_i = |u_i| + sqrt(3*T_ii/m)) (in x) (Serendipity kernels)
+// PKPM acceleration variables, e.g., bb:grad(u), (in x) (Serendipity kernels)
 GKYL_CU_D
 static const gkyl_dg_pkpm_accel_kern_list ser_pkpm_accel_x_kernels[] = {
   { NULL, pkpm_vars_accel_x_1x_ser_p1, pkpm_vars_accel_x_1x_ser_p2 }, // 0
@@ -261,8 +273,7 @@ static const gkyl_dg_pkpm_accel_kern_list ser_pkpm_accel_x_kernels[] = {
   { NULL, pkpm_vars_accel_x_3x_ser_p1, NULL }, // 2
 };
 
-// PKPM acceleration variables, e.g., bb:grad(u), 
-// and Lax penalization (lambda_i = |u_i| + sqrt(3*T_ii/m)) (in y) (Serendipity kernels)
+// PKPM acceleration variables, e.g., bb:grad(u), (in y) (Serendipity kernels)
 GKYL_CU_D
 static const gkyl_dg_pkpm_accel_kern_list ser_pkpm_accel_y_kernels[] = {
   { NULL, NULL, NULL }, // 0
@@ -270,8 +281,7 @@ static const gkyl_dg_pkpm_accel_kern_list ser_pkpm_accel_y_kernels[] = {
   { NULL, pkpm_vars_accel_y_3x_ser_p1, NULL }, // 2
 };
 
-// PKPM acceleration variables, e.g., bb:grad(u), 
-// and Lax penalization (lambda_i = |u_i| + sqrt(3*T_ii/m)) (in z) (Serendipity kernels)
+// PKPM acceleration variables, e.g., bb:grad(u), (in z) (Serendipity kernels)
 GKYL_CU_D
 static const gkyl_dg_pkpm_accel_kern_list ser_pkpm_accel_z_kernels[] = {
   { NULL, NULL, NULL }, // 0
@@ -279,8 +289,7 @@ static const gkyl_dg_pkpm_accel_kern_list ser_pkpm_accel_z_kernels[] = {
   { NULL, pkpm_vars_accel_z_3x_ser_p1, NULL }, // 2
 };
 
-// PKPM acceleration variables, e.g., bb:grad(u), 
-// and Lax penalization (lambda_i = |u_i| + sqrt(3*T_ii/m)) (in x) (Tensor kernels)
+// PKPM acceleration variables, e.g., bb:grad(u), (Tensor kernels)
 GKYL_CU_D
 static const gkyl_dg_pkpm_accel_kern_list ten_pkpm_accel_x_kernels[] = {
   { NULL, pkpm_vars_accel_x_1x_ser_p1, pkpm_vars_accel_x_1x_ser_p2 }, // 0
@@ -288,8 +297,7 @@ static const gkyl_dg_pkpm_accel_kern_list ten_pkpm_accel_x_kernels[] = {
   { NULL, pkpm_vars_accel_x_3x_ser_p1, NULL }, // 2
 };
 
-// PKPM acceleration variables, e.g., bb:grad(u), 
-// and Lax penalization (lambda_i = |u_i| + sqrt(3*T_ii/m)) (in y) (Tensor kernels)
+// PKPM acceleration variables, e.g., bb:grad(u), (in y) (Tensor kernels)
 GKYL_CU_D
 static const gkyl_dg_pkpm_accel_kern_list ten_pkpm_accel_y_kernels[] = {
   { NULL, NULL, NULL }, // 0
@@ -297,13 +305,66 @@ static const gkyl_dg_pkpm_accel_kern_list ten_pkpm_accel_y_kernels[] = {
   { NULL, pkpm_vars_accel_y_3x_ser_p1, NULL }, // 2
 };
 
-// PKPM acceleration variables, e.g., bb:grad(u), 
-// and Lax penalization (lambda_i = |u_i| + sqrt(3*T_ii/m)) (in z) (Tensor kernels)
+// PKPM acceleration variables, e.g., bb:grad(u), (in z) (Tensor kernels)
 GKYL_CU_D
 static const gkyl_dg_pkpm_accel_kern_list ten_pkpm_accel_z_kernels[] = {
   { NULL, NULL, NULL }, // 0
   { NULL, NULL, NULL }, // 1
   { NULL, pkpm_vars_accel_z_3x_ser_p1, NULL }, // 2
+};
+
+// PKPM penalization variables, e.g., total momentum penalization and
+// Lax penalization (lambda_i = |u_i| + sqrt(3*T_ii/m)) (in x) (Serendipity kernels)
+GKYL_CU_D
+static const gkyl_dg_pkpm_penalization_kern_list ser_pkpm_penalization_x_kernels[] = {
+  { NULL, pkpm_vars_penalization_x_1x_ser_p1, pkpm_vars_penalization_x_1x_ser_p2 }, // 0
+  { NULL, pkpm_vars_penalization_x_2x_ser_p1, NULL }, // 1
+  { NULL, pkpm_vars_penalization_x_3x_ser_p1, NULL }, // 2
+};
+
+// PKPM penalization variables, e.g., total momentum penalization and 
+// Lax penalization (lambda_i = |u_i| + sqrt(3*T_ii/m)) (in y) (Serendipity kernels)
+GKYL_CU_D
+static const gkyl_dg_pkpm_penalization_kern_list ser_pkpm_penalization_y_kernels[] = {
+  { NULL, NULL, NULL }, // 0
+  { NULL, pkpm_vars_penalization_y_2x_ser_p1, NULL }, // 1
+  { NULL, pkpm_vars_penalization_y_3x_ser_p1, NULL }, // 2
+};
+
+// PKPM penalization variables, e.g., total momentum penalization and 
+// Lax penalization (lambda_i = |u_i| + sqrt(3*T_ii/m)) (in z) (Serendipity kernels)
+GKYL_CU_D
+static const gkyl_dg_pkpm_penalization_kern_list ser_pkpm_penalization_z_kernels[] = {
+  { NULL, NULL, NULL }, // 0
+  { NULL, NULL, NULL }, // 1
+  { NULL, pkpm_vars_penalization_z_3x_ser_p1, NULL }, // 2
+};
+
+// PKPM penalization variables, e.g., total momentum penalization and 
+// Lax penalization (lambda_i = |u_i| + sqrt(3*T_ii/m)) (in x) (Tensor kernels)
+GKYL_CU_D
+static const gkyl_dg_pkpm_penalization_kern_list ten_pkpm_penalization_x_kernels[] = {
+  { NULL, pkpm_vars_penalization_x_1x_ser_p1, pkpm_vars_penalization_x_1x_ser_p2 }, // 0
+  { NULL, pkpm_vars_penalization_x_2x_ser_p1, pkpm_vars_penalization_x_2x_tensor_p2 }, // 1
+  { NULL, pkpm_vars_penalization_x_3x_ser_p1, NULL }, // 2
+};
+
+// PKPM penalization variables, e.g., total momentum penalization and 
+// Lax penalization (lambda_i = |u_i| + sqrt(3*T_ii/m)) (in y) (Tensor kernels)
+GKYL_CU_D
+static const gkyl_dg_pkpm_penalization_kern_list ten_pkpm_penalization_y_kernels[] = {
+  { NULL, NULL, NULL }, // 0
+  { NULL, pkpm_vars_penalization_y_2x_ser_p1, pkpm_vars_penalization_y_2x_tensor_p2 }, // 1
+  { NULL, pkpm_vars_penalization_y_3x_ser_p1, NULL }, // 2
+};
+
+// PKPM penalization variables, e.g., total momentum penalization and 
+// Lax penalization (lambda_i = |u_i| + sqrt(3*T_ii/m)) (in z) (Tensor kernels)
+GKYL_CU_D
+static const gkyl_dg_pkpm_penalization_kern_list ten_pkpm_penalization_z_kernels[] = {
+  { NULL, NULL, NULL }, // 0
+  { NULL, NULL, NULL }, // 1
+  { NULL, pkpm_vars_penalization_z_3x_ser_p1, NULL }, // 2
 };
 
 // Characteristic limiter in x (Serendipity kernels)
@@ -529,6 +590,37 @@ choose_pkpm_accel_kern(int dir, enum gkyl_basis_type b_type, int cdim, int poly_
         return ten_pkpm_accel_y_kernels[cdim-1].kernels[poly_order];
       else if (dir == 2)
         return ten_pkpm_accel_z_kernels[cdim-1].kernels[poly_order];
+      else
+        return NULL;
+      break;
+    default:
+      assert(false);
+      break;  
+  }
+}
+
+GKYL_CU_D
+static pkpm_penalization_t
+choose_pkpm_penalization_kern(int dir, enum gkyl_basis_type b_type, int cdim, int poly_order)
+{
+  switch (b_type) {
+    case GKYL_BASIS_MODAL_SERENDIPITY:
+      if (dir == 0)
+        return ser_pkpm_penalization_x_kernels[cdim-1].kernels[poly_order];
+      else if (dir == 1)
+        return ser_pkpm_penalization_y_kernels[cdim-1].kernels[poly_order];
+      else if (dir == 2)
+        return ser_pkpm_penalization_z_kernels[cdim-1].kernels[poly_order];
+      else
+        return NULL;
+      break;
+    case GKYL_BASIS_MODAL_TENSOR:
+      if (dir == 0)
+        return ten_pkpm_penalization_x_kernels[cdim-1].kernels[poly_order];
+      else if (dir == 1)
+        return ten_pkpm_penalization_y_kernels[cdim-1].kernels[poly_order];
+      else if (dir == 2)
+        return ten_pkpm_penalization_z_kernels[cdim-1].kernels[poly_order];
       else
         return NULL;
       break;

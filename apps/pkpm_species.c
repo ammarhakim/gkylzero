@@ -138,8 +138,13 @@ pkpm_species_init(struct gkyl_pkpm *pkpm, struct gkyl_pkpm_app *app, struct pkpm
   //  ux_yl, ux_yr, uy_yl, uy_yr, uz_yl, uz_yr, 3.0*Tyy_yl/m, 3.0*Tyy_yr/m, 
   //  ux_zl, ux_zr, uy_zl, uy_zr, uz_zl, uz_zr, 3.0*Tzz_zl/m, 3.0*Tzz_zr/m] 
   s->pkpm_prim_surf = mkarr(app->use_gpu, 2*cdim*4*Nbasis_surf, app->local_ext.volume);
-  // Surface expansion of Lax penalization lambda_i = |u_i| + sqrt(3*P_ii/rho)
-  s->pkpm_lax = mkarr(app->use_gpu, 2*cdim*Nbasis_surf, app->local_ext.volume);
+  // Surface expansions of:
+  // 1. Lax penalization maximum speed lambda_i = |u_i| + sqrt(3*P_ii/rho)
+  // 2. Momentum solve penalization (either 10 moment Roe solve or Lax penalization)
+  //    Momentum penalization returns the full penalization, e.g., the modal surface expansion of
+  //    jump in the fluctuations from the 10 moment Roe solve 1/2 (A^+ Delta Q - A^- Delta Q)
+  s->pkpm_lax = mkarr(app->use_gpu, cdim*Nbasis_surf, app->local_ext.volume);
+  s->pkpm_penalization = mkarr(app->use_gpu, cdim*Nbasis_surf, app->local_ext.volume);
 
   // allocate array for pkpm acceleration variables, stored in pkpm_accel: 
   // 0: p_perp_div_b (p_perp/rho*div(b) = T_perp/m*div(b))
@@ -190,14 +195,13 @@ pkpm_species_init(struct gkyl_pkpm *pkpm, struct gkyl_pkpm_app *app, struct pkpm
     .div_b = app->field->div_b, .pkpm_accel_vars = s->pkpm_accel, 
     .g_dist_source = s->g_dist_source};
   struct gkyl_dg_euler_pkpm_auxfields euler_pkpm_inp = {.vlasov_pkpm_moms = s->pkpm_moms.marr, 
-    .pkpm_prim = s->pkpm_prim, .pkpm_prim_surf = s->pkpm_prim_surf, 
-    .pkpm_p_ij = s->pkpm_p_ij, .pkpm_lax = s->pkpm_lax};
+    .pkpm_prim = s->pkpm_prim, .pkpm_prim_surf = s->pkpm_prim_surf, .pkpm_p_ij = s->pkpm_p_ij, 
+    .pkpm_lax = s->pkpm_lax, .pkpm_penalization = s->pkpm_penalization};
   // create solver
   s->slvr = gkyl_dg_updater_pkpm_new(&app->grid, &s->grid, 
     &app->confBasis, &app->basis, 
-    &app->local, &s->local_vel, &s->local, 
-    is_zero_flux, s->equation, app->geom, 
-    &vlasov_pkpm_inp, &euler_pkpm_inp, app->use_gpu);
+    &app->local, &s->local, 
+    is_zero_flux, &vlasov_pkpm_inp, &euler_pkpm_inp, app->use_gpu);
 
   // array for storing F_0^2 (0th Laguerre coefficient) in each cell
   s->L2_f = mkarr(app->use_gpu, 1, s->local_ext.volume);
@@ -459,6 +463,14 @@ pkpm_species_calc_pkpm_vars(gkyl_pkpm_app *app, struct pkpm_species *species,
       species->cell_avg_prim, species->pkpm_prim, species->pkpm_prim_surf); 
   }
 
+  // Compute the penalization terms, both the maximum speed used in Lax fluxes
+  // and the total momentum penalization (either 10 moment Roe solve or Lax penalization)
+  gkyl_array_clear(species->pkpm_lax, 0.0);
+  gkyl_array_clear(species->pkpm_penalization, 0.0);
+  gkyl_dg_calc_pkpm_vars_penalization(species->calc_pkpm_vars, &app->local, 
+    species->pkpm_moms.marr, species->pkpm_p_ij, species->pkpm_prim, fluidin, 
+    species->pkpm_lax, species->pkpm_penalization);
+
   app->stat.species_pkpm_vars_tm += gkyl_time_diff_now_sec(tm);
 }
 
@@ -472,7 +484,7 @@ pkpm_species_calc_pkpm_update_vars(gkyl_pkpm_app *app, struct pkpm_species *spec
   gkyl_dg_calc_pkpm_vars_accel(species->calc_pkpm_vars, &app->local, 
     species->pkpm_prim_surf, species->pkpm_prim, 
     app->field->bvar, app->field->div_b, species->lbo.nu_sum, 
-    species->pkpm_lax, species->pkpm_accel); 
+    species->pkpm_accel); 
 
   // Calculate distrbution functions for coupling different Laguerre moments
   gkyl_dg_calc_pkpm_dist_vars_mirror_force(species->calc_pkpm_dist_vars, 
@@ -792,6 +804,7 @@ pkpm_species_release(const gkyl_pkpm_app* app, const struct pkpm_species *s)
   gkyl_array_release(s->cell_avg_prim);
   gkyl_array_release(s->pkpm_prim_surf);
   gkyl_array_release(s->pkpm_lax);
+  gkyl_array_release(s->pkpm_penalization);
   gkyl_array_release(s->pkpm_accel);
   gkyl_array_release(s->integ_pkpm_mom);
   gkyl_array_release(s->fluid_io);

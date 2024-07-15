@@ -18,9 +18,11 @@ extern "C" {
 // This is required because eqn object lives on device,
 // and so its members cannot be modified without a full __global__ kernel on device.
 __global__ static void
-gkyl_euler_pkpm_set_auxfields_cu_kernel(const struct gkyl_dg_eqn *eqn, const struct gkyl_array *vlasov_pkpm_moms, 
+gkyl_euler_pkpm_set_auxfields_cu_kernel(const struct gkyl_dg_eqn *eqn, 
+  const struct gkyl_array *vlasov_pkpm_moms, 
   const struct gkyl_array *pkpm_prim, const struct gkyl_array *pkpm_prim_surf, 
-  const struct gkyl_array *pkpm_p_ij, const struct gkyl_array *pkpm_lax)
+  const struct gkyl_array *pkpm_p_ij, const struct gkyl_array *pkpm_lax, 
+  const struct gkyl_array *pkpm_penalization)
 {
   struct dg_euler_pkpm *euler_pkpm = container_of(eqn, struct dg_euler_pkpm, eqn);
   euler_pkpm->auxfields.vlasov_pkpm_moms = vlasov_pkpm_moms;
@@ -28,6 +30,7 @@ gkyl_euler_pkpm_set_auxfields_cu_kernel(const struct gkyl_dg_eqn *eqn, const str
   euler_pkpm->auxfields.pkpm_prim_surf = pkpm_prim_surf;
   euler_pkpm->auxfields.pkpm_p_ij = pkpm_p_ij;
   euler_pkpm->auxfields.pkpm_lax = pkpm_lax;
+  euler_pkpm->auxfields.pkpm_penalization = pkpm_penalization;
 }
 
 // Host-side wrapper for set_auxfields_cu_kernel
@@ -36,7 +39,7 @@ gkyl_euler_pkpm_set_auxfields_cu(const struct gkyl_dg_eqn *eqn, struct gkyl_dg_e
 {
   gkyl_euler_pkpm_set_auxfields_cu_kernel<<<1,1>>>(eqn, auxin.vlasov_pkpm_moms->on_dev, 
     auxin.pkpm_prim->on_dev, auxin.pkpm_prim_surf->on_dev, 
-    auxin.pkpm_p_ij->on_dev, auxin.pkpm_lax->on_dev);
+    auxin.pkpm_p_ij->on_dev, auxin.pkpm_lax->on_dev, auxin.pkpm_penalization->on_dev);
 }
 
 __global__ void static
@@ -47,6 +50,7 @@ dg_euler_pkpm_set_cu_dev_ptrs(struct dg_euler_pkpm* euler_pkpm, enum gkyl_basis_
   euler_pkpm->auxfields.pkpm_prim_surf = 0;  
   euler_pkpm->auxfields.pkpm_p_ij = 0;
   euler_pkpm->auxfields.pkpm_lax = 0; 
+  euler_pkpm->auxfields.pkpm_penalization = 0; 
   
   const gkyl_dg_euler_pkpm_vol_kern_list *vol_kernels;
   const gkyl_dg_euler_pkpm_surf_kern_list *surf_x_kernels, *surf_y_kernels, *surf_z_kernels;  
@@ -86,21 +90,13 @@ dg_euler_pkpm_set_cu_dev_ptrs(struct dg_euler_pkpm* euler_pkpm, enum gkyl_basis_
 }
 
 struct gkyl_dg_eqn*
-gkyl_dg_euler_pkpm_cu_dev_new(const struct gkyl_basis* cbasis, const struct gkyl_range* conf_range, 
-  const struct gkyl_wv_eqn *wv_eqn, const struct gkyl_wave_geom *wg)
+gkyl_dg_euler_pkpm_cu_dev_new(const struct gkyl_basis* cbasis, 
+  const struct gkyl_range* conf_range)
 {
   struct dg_euler_pkpm *euler_pkpm = (struct dg_euler_pkpm*) gkyl_malloc(sizeof(struct dg_euler_pkpm));
 
   // set basic parameters
   euler_pkpm->eqn.num_equations = 3;
-
-  // acquire pointer to wave equation object
-  struct gkyl_wv_eqn *eqn = gkyl_wv_eqn_acquire(wv_eqn);
-  euler_pkpm->wv_eqn = eqn->on_dev; // this is so the memcpy below has wv_eqn on_dev
-
-  // acquire pointer to wave equation object
-  struct gkyl_wave_geom *geom = gkyl_wave_geom_acquire(wg);
-  euler_pkpm->geom = geom->on_dev; // this is so the memcpy below has geom on_dev
 
   euler_pkpm->conf_range = *conf_range;
 
@@ -115,10 +111,6 @@ gkyl_dg_euler_pkpm_cu_dev_new(const struct gkyl_basis* cbasis, const struct gkyl
 
   // set parent on_dev pointer
   euler_pkpm->eqn.on_dev = &euler_pkpm_cu->eqn;
-
-  // updater should store host pointers
-  euler_pkpm->wv_eqn = eqn; 
-  euler_pkpm->geom = geom; 
 
   return &euler_pkpm->eqn;
 }

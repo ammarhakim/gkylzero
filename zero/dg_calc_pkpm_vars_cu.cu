@@ -226,7 +226,7 @@ __global__ void
 gkyl_dg_calc_pkpm_vars_accel_cu_kernel(struct gkyl_dg_calc_pkpm_vars *up, struct gkyl_range conf_range, 
   const struct gkyl_array* prim_surf, const struct gkyl_array* prim, 
   const struct gkyl_array* bvar, const struct gkyl_array* div_b, const struct gkyl_array* nu, 
-  struct gkyl_array* pkpm_lax, struct gkyl_array* pkpm_accel)
+  struct gkyl_array* pkpm_accel)
 {
   int cdim = up->cdim;
   int idxl[GKYL_MAX_DIM], idxc[GKYL_MAX_DIM], idxr[GKYL_MAX_DIM];
@@ -250,7 +250,6 @@ gkyl_dg_calc_pkpm_vars_accel_cu_kernel(struct gkyl_dg_calc_pkpm_vars *up, struct
     const double *div_b_d = (const double*) gkyl_array_cfetch(div_b, linc);
     const double *nu_d = (const double*) gkyl_array_cfetch(nu, linc);
 
-    double *pkpm_lax_d = (double*) gkyl_array_fetch(pkpm_lax, linc);
     double *pkpm_accel_d = (double*) gkyl_array_fetch(pkpm_accel, linc);
 
     // Compute T_perp/m div(b) and p_force
@@ -271,24 +270,117 @@ gkyl_dg_calc_pkpm_vars_accel_cu_kernel(struct gkyl_dg_calc_pkpm_vars *up, struct
       up->pkpm_accel[dir](up->conf_grid.dx, 
         prim_surf_l, prim_surf_c, prim_surf_r, 
         prim_d, bvar_d, nu_d,
-        pkpm_lax_d, pkpm_accel_d);
+        pkpm_accel_d);
     }
   }
 }
 
-// Host-side wrapper for pkpm acceleration variable calculations with recovery or averaging
+// Host-side wrapper for pkpm acceleration variable calculations with averaging for gradients
 void
 gkyl_dg_calc_pkpm_vars_accel_cu(struct gkyl_dg_calc_pkpm_vars *up, const struct gkyl_range *conf_range, 
   const struct gkyl_array* prim_surf, const struct gkyl_array* prim, 
   const struct gkyl_array* bvar, const struct gkyl_array* div_b, const struct gkyl_array* nu, 
-  struct gkyl_array* pkpm_lax, struct gkyl_array* pkpm_accel)
+  struct gkyl_array* pkpm_accel)
 {
   int nblocks = conf_range->nblocks;
   int nthreads = conf_range->nthreads;
   gkyl_dg_calc_pkpm_vars_accel_cu_kernel<<<nblocks, nthreads>>>(up->on_dev, *conf_range, 
     prim_surf->on_dev, prim->on_dev, 
     bvar->on_dev, div_b->on_dev, nu->on_dev, 
-    pkpm_lax->on_dev, pkpm_accel->on_dev);
+    pkpm_accel->on_dev);
+}
+
+__global__ void
+gkyl_dg_calc_pkpm_vars_penalization_cu_kernel(struct gkyl_dg_calc_pkpm_vars *up, struct gkyl_range conf_range, 
+  const struct gkyl_array* vlasov_pkpm_moms, const struct gkyl_array* p_ij, 
+  const struct gkyl_array* prim, const struct gkyl_array* euler_pkpm, 
+  struct gkyl_array* pkpm_lax, struct gkyl_array* pkpm_penalization)
+{
+  int cdim = up->cdim;
+  int idxl[GKYL_MAX_DIM], idxc[GKYL_MAX_DIM], idxr[GKYL_MAX_DIM];
+  for (unsigned long linc1 = threadIdx.x + blockIdx.x*blockDim.x;
+      linc1 < conf_range.volume;
+      linc1 += gridDim.x*blockDim.x)
+  {
+    // inverse index from linc1 to idx
+    // must use gkyl_sub_range_inv_idx so that linc1=0 maps to idx={1,1,...}
+    // since update_range is a subrange
+    gkyl_sub_range_inv_idx(&conf_range, linc1, idxc);
+
+    const struct gkyl_wave_cell_geom *geom = gkyl_wave_geom_get(up->geom, idxc);
+
+    // convert back to a linear index on the super-range (with ghost cells)
+    // linc will have jumps in it to jump over ghost cells
+    long linc = gkyl_range_idx(&conf_range, idxc);
+  
+    const double *vlasov_pkpm_moms_d = (const double*) gkyl_array_cfetch(vlasov_pkpm_moms, linc);
+    const double *p_ij_d = (const double*) gkyl_array_cfetch(p_ij, linc);
+    const double *prim_d = (const double*) gkyl_array_cfetch(prim, linc);
+    const double *euler_pkpm_d = (const double*) gkyl_array_cfetch(euler_pkpm, linc);
+
+    double *pkpm_lax_d = (double*) gkyl_array_fetch(pkpm_lax, linc);
+    double *pkpm_penalization_d = (double*) gkyl_array_fetch(pkpm_penalization, linc);
+
+    for (int dir=0; dir<cdim; ++dir) {
+      gkyl_copy_int_arr(cdim, idxc, idxl);
+
+      // Each cell owns their *lower* edge surface evaluation so we need both 
+      // the cell we are in (linc) and our lower neighbor (linl) to compute 
+      // the penalization surface expansions at the lower edge surface. 
+      idxl[dir] = idxl[dir]-1; 
+      long linl = gkyl_range_idx(&conf_range, idxl); 
+
+      const double *vlasov_pkpm_moms_l = (const double*) gkyl_array_cfetch(vlasov_pkpm_moms, linl);
+      const double *p_ij_l = (const double*) gkyl_array_cfetch(p_ij, linl);
+      const double *prim_l = (const double*) gkyl_array_cfetch(prim, linl);
+      const double *euler_pkpm_l = (const double*) gkyl_array_cfetch(euler_pkpm, linl);
+
+      up->pkpm_penalization[dir](up->tol, up->wv_eqn, geom, 
+        vlasov_pkpm_moms_l, vlasov_pkpm_moms_d, p_ij_l, p_ij_d, 
+        prim_l, prim_d, euler_pkpm_l, euler_pkpm_d, 
+        pkpm_lax_d, pkpm_penalization_d);
+
+      // If the configuration-space index is at the local configuration space upper value, 
+      // we are at the configuration space upper edge and we also need to evaluate the 
+      // penalization terms at the upper edge interface. We index into the ghost cells (linr)
+      // and following the convention of each cell owning their lower surface expansion,
+      // the upper edge surface expansions are store in the ghost cells of the array. 
+      if (idxc[dir] == conf_range.upper[dir]) {
+        gkyl_copy_int_arr(cdim, idxc, idxr);
+        idxr[dir] = idxr[dir]+1; 
+        long linr = gkyl_range_idx(&conf_range, idxr);
+
+        const struct gkyl_wave_cell_geom *geom_r = gkyl_wave_geom_get(up->geom, idxr);
+
+        const double *vlasov_pkpm_moms_r = (const double*) gkyl_array_cfetch(vlasov_pkpm_moms, linr);
+        const double *p_ij_r = (const double*) gkyl_array_cfetch(p_ij, linr);
+        const double *prim_r = (const double*) gkyl_array_cfetch(prim, linr);
+        const double *euler_pkpm_r = (const double*) gkyl_array_cfetch(euler_pkpm, linr);
+
+        double *pkpm_lax_r = (double*) gkyl_array_fetch(pkpm_lax, linr);
+        double *pkpm_penalization_r = (double*) gkyl_array_fetch(pkpm_penalization, linr);
+
+        up->pkpm_penalization[dir](up->tol, up->wv_eqn, geom_r, 
+          vlasov_pkpm_moms_d, vlasov_pkpm_moms_r, p_ij_d, p_ij_r, 
+          prim_d, prim_r, euler_pkpm_d, euler_pkpm_r, 
+          pkpm_lax_r, pkpm_penalization_r);
+      }
+    }
+  }
+}
+
+// Host-side wrapper for surface expansions of pkpm penalization variables calculation
+void
+gkyl_dg_calc_pkpm_vars_penalization_cu(struct gkyl_dg_calc_pkpm_vars *up, const struct gkyl_range *conf_range, 
+  const struct gkyl_array* vlasov_pkpm_moms, const struct gkyl_array* p_ij, 
+  const struct gkyl_array* prim, const struct gkyl_array* euler_pkpm, 
+  struct gkyl_array* pkpm_lax, struct gkyl_array* pkpm_penalization)
+{
+  int nblocks = conf_range->nblocks;
+  int nthreads = conf_range->nthreads;
+  gkyl_dg_calc_pkpm_vars_penalization_cu_kernel<<<nblocks, nthreads>>>(up->on_dev, *conf_range, 
+    vlasov_pkpm_moms->on_dev, p_ij->on_dev, prim->on_dev, euler_pkpm->on_dev, 
+    pkpm_lax->on_dev, pkpm_penalization->on_dev);
 }
 
 __global__ void
@@ -509,6 +601,7 @@ dg_calc_pkpm_vars_set_cu_dev_ptrs(struct gkyl_dg_calc_pkpm_vars *up, enum gkyl_b
   // Fetch the kernels in each direction
   for (int d=0; d<cdim; ++d) {
     up->pkpm_accel[d] = choose_pkpm_accel_kern(d, b_type, cdim, poly_order);
+    up->pkpm_penalization[d] = choose_pkpm_penalization_kern(d, b_type, cdim, poly_order);
     up->pkpm_limiter[d] = choose_pkpm_limiter_kern(d, b_type, cdim, poly_order);
   }
 }
@@ -550,6 +643,10 @@ gkyl_dg_calc_pkpm_vars_cu_dev_new(const struct gkyl_rect_grid *conf_grid,
   else {
     up->limiter_fac = limiter_fac;
   }
+
+  // Tolerance in mass density and average normal velocity at the interface
+  // for switching to Lax fluxes in computing penalization of the momentum solve
+  up->tol = 1.0e-12;
 
   // There are Ncomp*range->volume linear systems to be solved 
   // 6 components: ux, uy, uz, div(p_par b)/rho, p_perp/rho, rho/p_perp

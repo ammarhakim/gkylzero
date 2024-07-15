@@ -48,6 +48,10 @@ gkyl_dg_calc_pkpm_vars_new(const struct gkyl_rect_grid *conf_grid,
     up->limiter_fac = limiter_fac;
   }
 
+  // Tolerance in mass density and average normal velocity at the interface
+  // for switching to Lax fluxes in computing penalization of the momentum solve
+  up->tol = 1.0e-12;
+
   up->pkpm_set = choose_pkpm_set_kern(b_type, cdim, poly_order);
   up->pkpm_copy = choose_pkpm_copy_kern(b_type, cdim, poly_order);
   up->pkpm_u_set = choose_pkpm_u_set_kern(b_type, cdim, poly_order);
@@ -60,6 +64,7 @@ gkyl_dg_calc_pkpm_vars_new(const struct gkyl_rect_grid *conf_grid,
   // Fetch the kernels in each direction
   for (int d=0; d<cdim; ++d) {
     up->pkpm_accel[d] = choose_pkpm_accel_kern(d, b_type, cdim, poly_order);
+    up->pkpm_penalization[d] = choose_pkpm_penalization_kern(d, b_type, cdim, poly_order);
     up->pkpm_limiter[d] = choose_pkpm_limiter_kern(d, b_type, cdim, poly_order);
   }
 
@@ -209,12 +214,12 @@ void gkyl_dg_calc_pkpm_vars_pressure(struct gkyl_dg_calc_pkpm_vars *up, const st
 void gkyl_dg_calc_pkpm_vars_accel(struct gkyl_dg_calc_pkpm_vars *up, const struct gkyl_range *conf_range, 
   const struct gkyl_array* prim_surf, const struct gkyl_array* prim, 
   const struct gkyl_array* bvar, const struct gkyl_array* div_b, const struct gkyl_array* nu, 
-  struct gkyl_array* pkpm_lax, struct gkyl_array* pkpm_accel)
+  struct gkyl_array* pkpm_accel)
 {
 #ifdef GKYL_HAVE_CUDA
   if (gkyl_array_is_cu_dev(pkpm_accel)) {
     return gkyl_dg_calc_pkpm_vars_accel_cu(up, conf_range, 
-      prim_surf, prim, bvar, div_b, nu, pkpm_lax, pkpm_accel);
+      prim_surf, prim, bvar, div_b, nu, pkpm_accel);
   }
 #endif
 
@@ -234,7 +239,6 @@ void gkyl_dg_calc_pkpm_vars_accel(struct gkyl_dg_calc_pkpm_vars *up, const struc
     const double *div_b_d = gkyl_array_cfetch(div_b, linc);
     const double *nu_d = gkyl_array_cfetch(nu, linc);
 
-    double *pkpm_lax_d = gkyl_array_fetch(pkpm_lax, linc);
     double *pkpm_accel_d = gkyl_array_fetch(pkpm_accel, linc);
 
     // Compute T_perp/m div(b) and p_force
@@ -255,7 +259,86 @@ void gkyl_dg_calc_pkpm_vars_accel(struct gkyl_dg_calc_pkpm_vars *up, const struc
       up->pkpm_accel[dir](up->conf_grid.dx, 
         prim_surf_l, prim_surf_c, prim_surf_r, 
         prim_d, bvar_d, nu_d,
-        pkpm_lax_d, pkpm_accel_d);
+        pkpm_accel_d);
+    }
+  }
+}
+
+void gkyl_dg_calc_pkpm_vars_penalization(struct gkyl_dg_calc_pkpm_vars *up, const struct gkyl_range *conf_range, 
+  const struct gkyl_array* vlasov_pkpm_moms, const struct gkyl_array* p_ij, 
+  const struct gkyl_array* prim, const struct gkyl_array* euler_pkpm, 
+  struct gkyl_array* pkpm_lax, struct gkyl_array* pkpm_penalization)
+{
+#ifdef GKYL_HAVE_CUDA
+  if (gkyl_array_is_cu_dev(pkpm_penalization)) {
+    return gkyl_dg_calc_pkpm_vars_accel_cu(up, conf_range, 
+      vlasov_pkpm_moms, p_ij, prim, euler_pkpm, 
+      pkpm_lax, pkpm_penalization);
+  }
+#endif
+
+  // Loop over configuration space range to compute gradients and pkpm acceleration variables
+  int cdim = up->cdim;
+  int idxl[GKYL_MAX_DIM], idxc[GKYL_MAX_DIM], idxr[GKYL_MAX_DIM];
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, conf_range);
+  while (gkyl_range_iter_next(&iter)) {
+    gkyl_copy_int_arr(cdim, iter.idx, idxc);
+    long linc = gkyl_range_idx(conf_range, idxc);
+    const struct gkyl_wave_cell_geom *geom = gkyl_wave_geom_get(up->geom, idxc);
+  
+    const double *vlasov_pkpm_moms_d = gkyl_array_cfetch(vlasov_pkpm_moms, linc);
+    const double *p_ij_d = gkyl_array_cfetch(p_ij, linc);
+    const double *prim_d = gkyl_array_cfetch(prim, linc);
+    const double *euler_pkpm_d = gkyl_array_cfetch(euler_pkpm, linc);
+
+    double *pkpm_lax_d = gkyl_array_fetch(pkpm_lax, linc);
+    double *pkpm_penalization_d = gkyl_array_fetch(pkpm_penalization, linc);
+
+    for (int dir=0; dir<cdim; ++dir) {
+      gkyl_copy_int_arr(cdim, idxc, idxl);
+
+      // Each cell owns their *lower* edge surface evaluation so we need both 
+      // the cell we are in (linc) and our lower neighbor (linl) to compute 
+      // the penalization surface expansions at the lower edge surface. 
+      idxl[dir] = idxl[dir]-1; 
+      long linl = gkyl_range_idx(conf_range, idxl); 
+
+      const double *vlasov_pkpm_moms_l = gkyl_array_cfetch(vlasov_pkpm_moms, linl);
+      const double *p_ij_l = gkyl_array_cfetch(p_ij, linl);
+      const double *prim_l = gkyl_array_cfetch(prim, linl);
+      const double *euler_pkpm_l = gkyl_array_cfetch(euler_pkpm, linl);
+
+      up->pkpm_penalization[dir](up->tol, up->wv_eqn, geom, 
+        vlasov_pkpm_moms_l, vlasov_pkpm_moms_d, p_ij_l, p_ij_d, 
+        prim_l, prim_d, euler_pkpm_l, euler_pkpm_d, 
+        pkpm_lax_d, pkpm_penalization_d);
+
+      // If the configuration-space index is at the local configuration space upper value, 
+      // we are at the configuration space upper edge and we also need to evaluate the 
+      // penalization terms at the upper edge interface. We index into the ghost cells (linr)
+      // and following the convention of each cell owning their lower surface expansion,
+      // the upper edge surface expansions are store in the ghost cells of the array. 
+      if (idxc[dir] == conf_range->upper[dir]) {
+        gkyl_copy_int_arr(cdim, idxc, idxr);
+        idxr[dir] = idxr[dir]+1; 
+        long linr = gkyl_range_idx(conf_range, idxr);
+
+        const struct gkyl_wave_cell_geom *geom_r = gkyl_wave_geom_get(up->geom, idxr);
+
+        const double *vlasov_pkpm_moms_r = gkyl_array_cfetch(vlasov_pkpm_moms, linr);
+        const double *p_ij_r = gkyl_array_cfetch(p_ij, linr);
+        const double *prim_r = gkyl_array_cfetch(prim, linr);
+        const double *euler_pkpm_r = gkyl_array_cfetch(euler_pkpm, linr);
+
+        double *pkpm_lax_r = gkyl_array_fetch(pkpm_lax, linr);
+        double *pkpm_penalization_r = gkyl_array_fetch(pkpm_penalization, linr);
+
+        up->pkpm_penalization[dir](up->tol, up->wv_eqn, geom_r, 
+          vlasov_pkpm_moms_d, vlasov_pkpm_moms_r, p_ij_d, p_ij_r, 
+          prim_d, prim_r, euler_pkpm_d, euler_pkpm_r, 
+          pkpm_lax_r, pkpm_penalization_r);
+      }
     }
   }
 }

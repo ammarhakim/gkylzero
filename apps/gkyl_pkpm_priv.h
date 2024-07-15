@@ -165,7 +165,6 @@ struct pkpm_species {
                                      //  ux_zl, ux_zr, uy_zl, uy_zr, uz_zl, uz_zr, 3.0*Tzz_zl/m, 3.0*Tzz_zr/m] 
   struct gkyl_array *pkpm_u; // [ux, uy, uz]
   struct gkyl_array *pkpm_p_ij; // (p_par - p_perp) b_i b_j + p_perp g_ij
-  struct gkyl_array *pkpm_lax; // Surface expansion of Lax penalization lambda_i = |u_i| + sqrt(3.0*T_ii/m)
   struct gkyl_array *cell_avg_prim; // Integer array for whether rho, p_par, or p_perp < 0.0 at control points
                                     // *only* currently used for diagnostic purposes
   struct gkyl_array *pkpm_accel; // Acceleration variables for PKPM, pkpm_accel:
@@ -174,6 +173,11 @@ struct pkpm_species {
                                  // 2: p_force (total pressure forces in kinetic equation 1/rho div(p_parallel b_hat) - T_perp/m*div(b)
                                  // 3: p_perp_source (pressure source for higher Laguerre moments -> bb : grad(u) - div(u) - 2*nu)
   struct gkyl_array *integ_pkpm_mom; // integrated PKPM variables [rho, rho ux, rho uy, rho uz, rho ux^2, rho uy^2, rho uz^2, p_par, p_perp]
+
+  // Note: Each cell owns the *lower* surface expansions for pkpm_lax and pkpm_penalization 
+  struct gkyl_array *pkpm_lax; // Surface expansion of Lax penalization lambda_i = |u_i| + sqrt(3.0*T_ii/m)
+  struct gkyl_array *pkpm_penalization; // Surface expansion of total momentum penalization
+
   struct gkyl_dg_calc_pkpm_vars *calc_pkpm_vars; // Updater to compute PKPM variables (primitive and acceleration variables)
   struct gkyl_dg_calc_pkpm_vars *calc_pkpm_vars_ext; // Updater to compute PKPM variables (primitive and acceleration variables)
                                                      // over extended range (used when BCs are not absorbing to minimize apply BCs calls)
