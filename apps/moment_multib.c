@@ -268,7 +268,7 @@ gkyl_moment_multib_app_new(const struct gkyl_moment_multib *mbinp)
   int *rank_list = gkyl_malloc(sizeof(int[num_ranks])); // this is larger than needed
   
   // construct list of block communicators: there are as many
-  // communictor as blocks. Not all communicators are valid on each
+  // communicators as blocks. Not all communicators are valid on each
   // rank. The total number of valid communictors is num_local_blocks.
   mbapp->block_comms = gkyl_malloc(num_blocks*sizeof(struct gkyl_comm *));
   for (int i=0; i<num_blocks; ++i) {
