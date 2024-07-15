@@ -12,6 +12,7 @@ struct gkyl_elastic_model {
   double charge;
   emission_elastic_func_t function;
 
+  struct gkyl_elastic_model *on_dev;
   struct gkyl_ref_count ref_count; // reference count
 };
 
@@ -24,8 +25,23 @@ struct gkyl_elastic_furman_pivi {
   double p;
 };
 
+struct gkyl_elastic_cazaux {
+  struct gkyl_elastic_model elastic;
+  double E_f;
+  double phi;
+};
+
+struct gkyl_elastic_constant {
+  struct gkyl_elastic_model elastic;
+  double delta;
+};
+
 struct gkyl_elastic_model* gkyl_elastic_furman_pivi_new(double P1_inf, double P1_hat, double E_hat,
   double W, double p);
+
+struct gkyl_elastic_model* gkyl_elastic_cazaux_new(double E_f, double phi);
+
+struct gkyl_elastic_model* gkyl_elastic_constant_new(double delta);
 
 struct gkyl_elastic_model* gkyl_elastic_model_acquire(const struct gkyl_elastic_model* model);
 

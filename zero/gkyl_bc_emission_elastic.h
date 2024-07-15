@@ -7,34 +7,6 @@
 #include <gkyl_elastic_model.h>
 #include <gkyl_bc_emission_elastic_priv.h>
 
-// BC types in this updater.
-enum gkyl_bc_emission_elastic_type {
-  GKYL_BS_FURMAN_PIVI = 0,
-  GKYL_BS_CAZAUX = 1,
-  GKYL_BS_CONSTANT = 2};
-
-// Elastic emission model structures
-struct gkyl_bc_emission_elastic_furman_pivi {
-  double mass;
-  double charge;
-  double P1_inf;
-  double P1_hat;
-  double E_hat;
-  double W;
-  double p;
-};
-
-struct gkyl_bc_emission_elastic_cazaux {
-  double mass;
-  double charge;
-  double E_f;
-  double phi;
-};
-
-struct gkyl_bc_emission_elastic_constant{
-  double delta;
-};
-
 // Object type
 typedef struct gkyl_bc_emission_elastic gkyl_bc_emission_elastic;
 

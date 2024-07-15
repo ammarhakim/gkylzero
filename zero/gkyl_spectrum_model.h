@@ -18,7 +18,8 @@ struct gkyl_spectrum_model {
   double charge;
   emission_spectrum_dist_func_t distribution;
   emission_spectrum_norm_func_t normalization;
-
+  
+  struct gkyl_spectrum_model *on_dev;
   struct gkyl_ref_count ref_count; // reference count
 };
 
@@ -27,7 +28,22 @@ struct gkyl_spectrum_chung_everhart {
   double phi;
 };
 
+struct gkyl_spectrum_gaussian {
+  struct gkyl_spectrum_model spectrum;
+  double E_0;
+  double tau;
+};
+
+struct gkyl_spectrum_maxwellian {
+  struct gkyl_spectrum_model spectrum;
+  double vt;
+};
+
 struct gkyl_spectrum_model* gkyl_spectrum_chung_everhart_new(double phi);
+
+struct gkyl_spectrum_model* gkyl_spectrum_gaussian_new(double E_0, double tau);
+
+struct gkyl_spectrum_model* gkyl_spectrum_maxwellian_new(double vt);
 
 struct gkyl_spectrum_model* gkyl_spectrum_model_acquire(const struct gkyl_spectrum_model* model);
 
