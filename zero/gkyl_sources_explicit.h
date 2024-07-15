@@ -42,7 +42,7 @@ void explicit_e_field_source_update_euler(const gkyl_moment_em_coupling* mom_em,
   double* fluid_s[GKYL_MAX_SPECIES], const double* app_current);
 
 /**
-* Integrate the electric field source terms in the multi-fluid equation system within a singl ecell, using an explicit forcing solver (specifically
+* Integrate the electric field source terms in the multi-fluid equation system within a single cell, using an explicit forcing solver (specifically
 * a strong stability-preserving third-order Runge-Kutta method), assuming a cold relativistic fluid.
 *
 * @param mom_em Moment-EM coupling object.
@@ -57,6 +57,35 @@ void explicit_e_field_source_update_euler(const gkyl_moment_em_coupling* mom_em,
 */
 void explicit_e_field_source_update(const gkyl_moment_em_coupling* mom_em, double t_curr, double dt, double* fluid_s[GKYL_MAX_SPECIES],
   double* em, const double* app_current, const double* app_current1, const double* app_current2, const double* ext_em);
+
+/**
+* Perform a Higuera-Cary particle push of the fluid momentum in the multi-fluid equation system within a single cell, assuming a cold relativistic
+* fluid.
+*
+* @param vel Fluid species velocity vector.
+* @param q Charge of fluid species.
+* @param m Mass of fluid species.
+* @param dt Current stable time-step.
+* @param e_field Array of electric field variables.
+* @param b_field Array of magnetic field variables.
+*/
+void explicit_higuera_cary_push(double* vel, const double q, const double m, const double dt, const double c, const double e_field[3],
+  const double b_field[3]);
+
+/**
+* Integrate the momentum source terms in the multi-fluid equation system within a single cell, using a Higuera-Cary particle push, assuming a cold
+* relativistic fluid.
+*
+* @param mom_em Moment-EM coupling object.
+* @param t_curr Current simulation time.
+* @param dt Current stable time-step.
+* @param fluid_s Array of fluid variables (array size = nfluids).
+* @param app_accel_s Array of acceleration terms to be applied to the fluid equations (for external forces).
+* @param em Array of electromagnetic variables.
+* @param ext_em External electromagnetic variables (for EM fields coming from external sources, e.g. coils, capacitors, etc.).
+*/
+void explicit_higuera_cary_update(const gkyl_moment_em_coupling* mom_em, double t_curr, double dt, double* fluid_s[GKYL_MAX_SPECIES],
+  const double* app_accel_s[GKYL_MAX_SPECIES], double* em, const double* ext_em);
 
 /**
 * Integrate the electromagnetic source terms in the multi-fluid equation system within each cell, using an explicit forcing solver (specifically

@@ -85,6 +85,8 @@ void
 explicit_e_field_source_update(const gkyl_moment_em_coupling* mom_em, double t_curr, double dt, double* fluid_s[GKYL_MAX_SPECIES], double* em,
   const double* app_current, const double* app_current1, const double* app_current2, const double* ext_em)
 {
+  printf("E-field");
+
   double e_field_new[3], e_field_stage1[3], e_field_stage2[3];
   double e_field_old[3];
   e_field_old[0] = em[0]; e_field_old[1] = em[1]; e_field_old[2] = em[2];
@@ -106,6 +108,88 @@ explicit_e_field_source_update(const gkyl_moment_em_coupling* mom_em, double t_c
 }
 
 void
+explicit_higuera_cary_push(double* vel, const double q, const double m, const double dt, const double c, const double e_field[3],
+  const double b_field[3])
+{
+  const double q_over_m = (0.5 * dt) * (q / m);
+  const double Ex = q_over_m * e_field[0];
+  const double Ey = q_over_m * e_field[1];
+  const double Ez = q_over_m * e_field[2];
+  const double Bx = q_over_m * b_field[0];
+  const double By = q_over_m * b_field[1];
+  const double Bz = q_over_m * b_field[2];
+
+  const double vel_x_minus = vel[0] + Ex;
+  const double vel_y_minus = vel[1] + Ey;
+  const double vel_z_minus = vel[2] + Ez;
+
+  const double vel_star = (vel_x_minus * (Bx / c)) + (vel_y_minus * (By / c)) + (vel_z_minus * (Bz / c));
+  const double gamma_minus = sqrt(1.0 + (((vel_x_minus * vel_x_minus) + (vel_y_minus * vel_y_minus) + (vel_z_minus * vel_z_minus)) / (c * c)));
+  const double dot_tau_tau = (Bx * Bx) + (By * By) + (Bz * Bz);
+  const double sigma = (gamma_minus * gamma_minus) - dot_tau_tau;
+  const double gamma_new = sqrt(0.5 * (sigma + sqrt((sigma * sigma) + (4.0 * (dot_tau_tau + (vel_star * vel_star))))));
+
+  const double tx = Bx / gamma_new;
+  const double ty = By / gamma_new;
+  const double tz = Bz / gamma_new;
+  const double s =  1.0 / (1.0 + ((tx * tx) + (ty * ty) + (tz * tz)));
+
+  const double t_vel_minus = (vel_x_minus * tx) + (vel_y_minus * ty) + (vel_z_minus * tz);
+  const double vel_x_plus = s * (vel_x_minus + (t_vel_minus * tx) + ((vel_y_minus * tz) - (vel_z_minus * ty)));
+  const double vel_y_plus = s * (vel_y_minus + (t_vel_minus * ty) + ((vel_z_minus * tx) - (vel_x_minus * tz)));
+  const double vel_z_plus = s * (vel_z_minus + (t_vel_minus * tz) + ((vel_x_minus * ty) - (vel_y_minus * tx)));
+
+  vel[0] = vel_x_plus + Ex + ((vel_y_plus * tz) - (vel_z_plus * ty));
+  vel[1] = vel_y_plus + Ey + ((vel_z_plus * tx) - (vel_x_plus * tz));
+  vel[2] = vel_z_plus + Ez + ((vel_x_plus * ty) - (vel_y_plus * tx));
+}
+
+void
+explicit_higuera_cary_update(const gkyl_moment_em_coupling* mom_em, double t_curr, double dt, double* fluid_s[GKYL_MAX_SPECIES],
+  const double* app_accel_s[GKYL_MAX_SPECIES], double* em, const double* ext_em)
+{
+  printf("Higuera");
+
+  int nfluids = mom_em->nfluids;
+
+  double epsilon0 = mom_em->epsilon0;
+  double mu0 = mom_em->mu0;
+  double c = 1.0 / sqrt(mu0 * epsilon0);
+
+  double Ex = em[0] + ext_em[0];
+  double Ey = em[1] + ext_em[1];
+  double Ez = em[2] + ext_em[2];
+  double Bx = em[3] + ext_em[3];
+  double By = em[4] + ext_em[4];
+  double Bz = em[5] + ext_em[5];
+
+  double e_field[3], b_field[3];
+  e_field[0] = Ex; e_field[1] = Ey; e_field[2] = Ez;
+  b_field[0] = Bx; b_field[1] = By; b_field[2] = Bz;
+
+  for (int i = 0; i < nfluids; i++) {
+    double *f = fluid_s[i];
+    const double q = mom_em->param[i].charge;
+    const double m = mom_em->param[i].mass;
+
+    double rho = f[0];
+
+    if (rho > 0.0) {
+      double vel[3];
+      vel[0] = f[1] / rho;
+      vel[1] = f[2] / rho;
+      vel[2] = f[3] / rho;
+
+      explicit_higuera_cary_push(vel, q, m, dt, c, e_field, b_field);
+
+      f[1] = rho * vel[0];
+      f[2] = rho * vel[1];
+      f[3] = rho * vel[2];
+    }
+  }
+}
+
+void
 explicit_source_coupling_update(const gkyl_moment_em_coupling* mom_em, double t_curr, double dt, double* fluid_s[GKYL_MAX_SPECIES],
   const double* app_accel_s[GKYL_MAX_SPECIES], double* em, const double* app_current, const double* app_current1, const double* app_current2,
   const double* ext_em, int nstrang)
@@ -114,6 +198,6 @@ explicit_source_coupling_update(const gkyl_moment_em_coupling* mom_em, double t_
     explicit_e_field_source_update(mom_em, t_curr, dt, fluid_s, em, app_current, app_current1, app_current2, ext_em);
   }
   else if (nstrang == 1) {
-    // TODO: Add explicit Higuera-Cary update step.
+    explicit_higuera_cary_update(mom_em, t_curr, dt, fluid_s, app_accel_s, em, ext_em);
   }
 }

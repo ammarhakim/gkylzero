@@ -42,6 +42,8 @@ gkyl_moment_em_coupling_new(struct gkyl_moment_em_coupling_inp inp)
   }
 
   mom_em->has_collision = inp.has_collision;
+  mom_em->use_rel = inp.use_rel;
+
   if (mom_em->has_collision) {
     for (int i = 0; i < mom_em->nfluids; i++) {
       for (int j = 0; j < mom_em->nfluids; j++) {
@@ -127,8 +129,10 @@ gkyl_moment_em_coupling_explicit_advance(const gkyl_moment_em_coupling* mom_em, 
     const double *app_current2_arr = gkyl_array_cfetch(app_current2, cell_idx);
     const double *ext_em_arr = gkyl_array_cfetch(ext_em, cell_idx);
 
-    explicit_source_coupling_update(mom_em, t_curr, dt_local, fluid_s, app_accel_s, em_arr, app_current_arr, app_current1_arr, app_current2_arr,
-      ext_em_arr, nstrang);
+    if (mom_em->use_rel) {
+      explicit_source_coupling_update(mom_em, t_curr, dt_local, fluid_s, app_accel_s, em_arr, app_current_arr, app_current1_arr, app_current2_arr,
+        ext_em_arr, nstrang);
+    }
   }
 }
 
