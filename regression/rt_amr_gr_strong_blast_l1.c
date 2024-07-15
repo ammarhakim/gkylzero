@@ -1,5 +1,5 @@
-// Perturbed density test, using static, patch-structured mesh refinement with a single refinement patch (8x refinement), for the general relativistic Euler equations.
-// Input parameters taken from the initial conditions in Section 4.1 (density perturbation), from the article:
+// Strongly relativistic blast wave test, using static, patch-structured mesh refinement with a single refinement patch (4x refinement), for the general relativistic Euler equations.
+// Input parameters taken from the initial conditions in Section 4.1 (blast wave 2), from the article:
 // L. Del Zanna and N. Bucciantini (2002), "An efficient shock-capturing central-type scheme for multidimensional relativistic flows. I. Hydrodynamics",
 // Astronomy and Astrophysics, Volume 390 (3): 1177-1186.
 // https://arxiv.org/abs/astro-ph/0205290
@@ -8,7 +8,7 @@
 #include <gkyl_gr_minkowski.h>
 #include <gkyl_alloc.h>
 
-struct amr_gr_perturbed_density_ctx
+struct amr_gr_strong_blast_ctx
 {
   // Physical constants (using normalized code units).
   double gas_gamma; // Adiabatic index.
@@ -37,26 +37,26 @@ struct amr_gr_perturbed_density_ctx
   int num_failures_max; // Maximum allowable number of consecutive small time-steps.
 };
 
-struct amr_gr_perturbed_density_ctx
+struct amr_gr_strong_blast_ctx
 create_ctx(void)
 {
   // Physical constants (using normalized code units).
   double gas_gamma = 5.0 / 3.0; // Adiabatic index.
 
-  double rhol = 5.0; // Left fluid mass density.
+  double rhol = 1.0; // Left fluid mass density.
   double ul = 0.0; // Left fluid velocity.
-  double pl = 50.0; // Left fluid pressure.
+  double pl = 1000.0; // Left fluid pressure.
 
-  double rhor = 2.0; // Right fluid mass density.
+  double rhor = 1.0; // Right fluid mass density.
   double ur = 0.0; // Right fluid velocity.
-  double pr = 5.0; // Right fluid pressure.
+  double pr = 0.01; // Right fluid pressure.
 
   // Pointer to spacetime metric.
   struct gkyl_gr_spacetime *spacetime = gkyl_gr_minkowski_new(false);
 
   // Simulation parameters.
   int Nx = 128; // Coarse cell count (x-direction).
-  int ref_factor = 8; // Refinement factor.
+  int ref_factor = 4; // Refinement factor.
   double Lx = 1.0; // Coarse domain size (x-direction).
   double fine_Lx = 0.4; // Fine domain size (x-direction).
   double cfl_frac = 0.95; // CFL coefficient.
@@ -66,7 +66,7 @@ create_ctx(void)
   double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.
   int num_failures_max = 20; // Maximum allowable number of consecutive small time-steps.
 
-  struct amr_gr_perturbed_density_ctx ctx = {
+  struct amr_gr_strong_blast_ctx ctx = {
     .gas_gamma = gas_gamma,
     .rhol = rhol,
     .ul = ul,
@@ -93,8 +93,8 @@ void
 evalGREulerInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
 {
   double x = xn[0];
-  struct amr_gr_perturbed_density_ctx new_ctx = create_ctx(); // Context for initialization functions.
-  struct amr_gr_perturbed_density_ctx *app = &new_ctx;
+  struct amr_gr_strong_blast_ctx new_ctx = create_ctx(); // Context for initialization functions.
+  struct amr_gr_strong_blast_ctx *app = &new_ctx;
 
   double gas_gamma = app->gas_gamma;
 
@@ -118,7 +118,7 @@ evalGREulerInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT 
     p = pl; // Fluid pressure (left).
   }
   else {
-    rho = rhor + 0.3 * sin(50.0 * x); // Fluid mass density (right).
+    rho = rhor; // Fluid mass density (right).
     u = ur; // Fluid velocity (right).
     p = pr; // Fluid pressure (right).
   }
@@ -213,7 +213,7 @@ evalGREulerInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT 
 
 int main(int argc, char **argv)
 {
-  struct amr_gr_perturbed_density_ctx ctx = create_ctx(); // Context for initialization functions.
+  struct amr_gr_strong_blast_ctx ctx = create_ctx(); // Context for initialization functions.
 
   struct gr_euler1d_single_init init = {
     .base_Nx = ctx.Nx,
@@ -229,7 +229,7 @@ int main(int argc, char **argv)
     .gas_gamma = ctx.gas_gamma,
     .spacetime = ctx.spacetime,
 
-    .gr_euler_output = "amr_gr_perturbed_density",
+    .gr_euler_output = "amr_gr_strong_blast_l1",
 
     .low_order_flux = true,
     .cfl_frac = ctx.cfl_frac,

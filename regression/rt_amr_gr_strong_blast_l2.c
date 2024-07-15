@@ -1,4 +1,4 @@
-// Strongly relativistic blast wave test, using static, patch-structured mesh refinement with a single refinement patch (4x refinement), for the general relativistic Euler equations.
+// Strongly relativistic blast wave test, using static, patch-structured mesh refinement with doubly-nested refinement patches (4x4x refinement), for the general relativistic Euler equations.
 // Input parameters taken from the initial conditions in Section 4.1 (blast wave 2), from the article:
 // L. Del Zanna and N. Bucciantini (2002), "An efficient shock-capturing central-type scheme for multidimensional relativistic flows. I. Hydrodynamics",
 // Astronomy and Astrophysics, Volume 390 (3): 1177-1186.
@@ -26,8 +26,10 @@ struct amr_gr_strong_blast_ctx
 
   // Simulation parameters.
   int Nx; // Coarse cell count (x-direction).
-  int ref_factor; // Refinement factor.
+  int ref_factor1; // First refinement factor (coarse-to-intermediate).
+  int ref_factor2; // Second refinement factor (intermediate-to-fine).
   double Lx; // Coarse domain size (x-direction).
+  double intermediate_Lx; // Intermediate domain size (x-direction).
   double fine_Lx; // Fine domain size (x-direction).
   double cfl_frac; // CFL coefficient.
 
@@ -55,10 +57,12 @@ create_ctx(void)
   struct gkyl_gr_spacetime *spacetime = gkyl_gr_minkowski_new(false);
 
   // Simulation parameters.
-  int Nx = 128; // Coarse cell count (x-direction).
-  int ref_factor = 4; // Refinement factor.
+  int Nx = 64; // Coarse cell count (x-direction).
+  int ref_factor1 = 4; // First refinement factor (coarse-to-intermediate).
+  int ref_factor2 = 4; // Second refinement factor (intermediate-to-fine).
   double Lx = 1.0; // Coarse domain size (x-direction).
-  double fine_Lx = 0.4; // Fine domain size (x-direction).
+  double intermediate_Lx = 0.3; // Intermediate domain size (x-direction).
+  double fine_Lx = 0.15; // Fine domain size (x-direction).
   double cfl_frac = 0.95; // CFL coefficient.
 
   double t_end = 0.35; // Final simulation time.
@@ -76,8 +80,10 @@ create_ctx(void)
     .pr = pr,
     .spacetime = spacetime,
     .Nx = Nx,
-    .ref_factor = ref_factor,
+    .ref_factor1 = ref_factor1,
+    .ref_factor2 = ref_factor2,
     .Lx = Lx,
+    .intermediate_Lx = intermediate_Lx,
     .fine_Lx = fine_Lx,
     .cfl_frac = cfl_frac,
     .t_end = t_end,
@@ -215,21 +221,25 @@ int main(int argc, char **argv)
 {
   struct amr_gr_strong_blast_ctx ctx = create_ctx(); // Context for initialization functions.
 
-  struct gr_euler1d_single_init init = {
+  struct gr_euler1d_double_init init = {
     .base_Nx = ctx.Nx,
-    .ref_factor = ctx.ref_factor,
+    .ref_factor1 = ctx.ref_factor1,
+    .ref_factor2 = ctx.ref_factor2,
 
     .coarse_x1 = 0.0,
     .coarse_x2 = ctx.Lx,
 
-    .refined_x1 = (0.75 * ctx.Lx) - (0.5 * ctx.fine_Lx),
-    .refined_x2 = (0.75 * ctx.Lx) + (0.5 * ctx.fine_Lx),
+    .intermediate_x1 = (0.8 * ctx.Lx) - (0.5 * ctx.intermediate_Lx),
+    .intermediate_x2 = (0.8 * ctx.Lx) + (0.5 * ctx.intermediate_Lx),
+
+    .refined_x1 = (0.8 * ctx.Lx) - (0.5 * ctx.fine_Lx),
+    .refined_x2 = (0.8 * ctx.Lx) + (0.5 * ctx.fine_Lx),
 
     .eval = evalGREulerInit,
     .gas_gamma = ctx.gas_gamma,
     .spacetime = ctx.spacetime,
 
-    .gr_euler_output = "amr_gr_strong_blast",
+    .gr_euler_output = "amr_gr_strong_blast_l2",
 
     .low_order_flux = true,
     .cfl_frac = ctx.cfl_frac,
@@ -240,5 +250,5 @@ int main(int argc, char **argv)
     .num_failures_max = ctx.num_failures_max,
   };
 
-  gr_euler1d_run_single(argc, argv, &init);
+  gr_euler1d_run_double(argc, argv, &init);
 }
