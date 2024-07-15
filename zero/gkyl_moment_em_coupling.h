@@ -75,9 +75,9 @@ void gkyl_moment_em_coupling_implicit_advance(const gkyl_moment_em_coupling* mom
 
 /**
 * Integrate the electromagnetic source terms in the multi-fluid equation system using an explicit forcing solver (specifically either the strong
-* stability-preserving Runge-Kutta method or the simple forward-Euler method). The gkyl_range object to be updated should be a (non-strict) subrange
-* of the range over which the fluid variable array is defined (i.e. either the fluid variable array gkyl_range object itself, or a gkyl_range object
-* initialized using the gkyl_sub_range_init method).
+* stability-preserving third-order Runge-Kutta method or the simple first-order forward-Euler method). The gkyl_range object to be updated should be a
+* (non-strict) subrange of the range over which the fluid variable array is defined (i.e. either the fluid variable array gkyl_range object itself, or
+* a gkyl_range object initialized using the gkyl_sub_range_init method).
 *
 * @param mom_em Moment-EM coupling object.
 * @param t_curr Current simulation time.

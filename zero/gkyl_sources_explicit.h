@@ -4,7 +4,7 @@
 
 /**
 * Integrate the number density and temperature source terms for a single fluid species within a single cell, using an explicit forcing solver
-* (specifically the simple forward-Euler method).
+* (specifically the simple first-order forward-Euler method).
 *
 * @param mass Mass of the fluid species.
 * @param dt Current stable time-step.
@@ -16,7 +16,7 @@ void explicit_nT_source_update_euler(const double mass, const double dt, double*
 
 /**
 * Integrate the number density and temperature source terms in the multi-fluid equation system within a single cell, using an explicit forcing
-* solver (specifically the simple forward-Euler method).
+* solver (specifically the simple first-order forward-Euler method)
 *
 * @param mom_em Moment-EM coupling object.
 * @param dt Current stable time-step.
@@ -27,8 +27,40 @@ void explicit_nT_source_update(const gkyl_moment_em_coupling* mom_em, const doub
   const double* nT_sources_s[GKYL_MAX_SPECIES]);
 
 /**
+* Integrate the electric field source terms in the multi-field equation system within a single cell, using an explicit forcing solver (specifically
+* a simple first-order forward-Euler method), assuming a cold relativistic fluid.
+*
+* @param mom_em Moment-EM coupling object.
+* @param t_curr Current simulation time.
+* @param dt Current stable time-step.
+* @param e_field_old Array of old electric field variables (before source update).
+* @param e_field_new Array of new electric field variables (after source update).
+* @param fluid_s Array of fluid variables (array size = nfluids).
+* @param app_current Array of current terms to be applied to the fluid equations (for external current driving).
+*/
+void explicit_e_field_source_update_euler(const gkyl_moment_em_coupling* mom_em, double t_curr, double dt, double e_field_old[3], double* e_field_new,
+  double* fluid_s[GKYL_MAX_SPECIES], const double* app_current);
+
+/**
+* Integrate the electric field source terms in the multi-fluid equation system within a singl ecell, using an explicit forcing solver (specifically
+* a strong stability-preserving third-order Runge-Kutta method), assuming a cold relativistic fluid.
+*
+* @param mom_em Moment-EM coupling object.
+* @param t_curr Current simulation time.
+* @param dt Current stable time-step.
+* @param fluid_s Array of fluid variables (array size = nfluids).
+* @param em Array of electromagnetic variables.
+* @param app_current Array of current terms to be applied to the fluid equations (for external current driving).
+* @param app_current1 Array of stage-1 current terms to be applied to the fluid equations (for stage-1 of external current driving).
+* @param app_current2 Array of stage-2 current terms to be applied to the fluid equations (for stage-2 of external current driving).
+* @param ext_em External electromagnetic variables (for EM fields coming from external sources, e.g. coils, capacitors, etc.).
+*/
+void explicit_e_field_source_update(const gkyl_moment_em_coupling* mom_em, double t_curr, double dt, double* fluid_s[GKYL_MAX_SPECIES],
+  double* em, const double* app_current, const double* app_current1, const double* app_current2, const double* ext_em);
+
+/**
 * Integrate the electromagnetic source terms in the multi-fluid equation system within each cell, using an explicit forcing solver (specifically
-* a simple forward-Euler method combined with a Higuera-Cary update).
+* a strong stability-preserving third-order Runge-Kutta method combined with a Higuera-Cary update), assuming a cold relativistic fluid.
 *
 * @param mom_em Moment-EM coupling object.
 * @param t_curr Current simulation tine.

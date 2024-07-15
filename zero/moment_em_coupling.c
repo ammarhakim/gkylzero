@@ -127,7 +127,7 @@ gkyl_moment_em_coupling_explicit_advance(const gkyl_moment_em_coupling* mom_em, 
     const double *app_current2_arr = gkyl_array_cfetch(app_current2, cell_idx);
     const double *ext_em_arr = gkyl_array_cfetch(ext_em, cell_idx);
 
-    explicit_source_coupling_update(mom_em, t_curr, dt, fluid_s, app_accel_s, em_arr, app_current_arr, app_current1_arr, app_current2_arr,
+    explicit_source_coupling_update(mom_em, t_curr, dt_local, fluid_s, app_accel_s, em_arr, app_current_arr, app_current1_arr, app_current2_arr,
       ext_em_arr, nstrang);
   }
 }
