@@ -6,8 +6,6 @@
 #include <gkyl_alloc_flags_priv.h>
 #include <gkyl_dg_euler_pkpm.h>
 #include <gkyl_dg_euler_pkpm_priv.h>
-#include <gkyl_wave_geom.h>
-#include <gkyl_wv_eqn.h>
 #include <gkyl_util.h>
 
 // "Choose Kernel" based on cdim and polyorder
