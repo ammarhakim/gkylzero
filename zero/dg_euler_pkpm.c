@@ -52,7 +52,7 @@ gkyl_dg_euler_pkpm_new(const struct gkyl_basis* cbasis,
 {
 #ifdef GKYL_HAVE_CUDA
   if(use_gpu) {
-    return gkyl_dg_euler_pkpm_cu_dev_new(cbasis, conf_range, wv_eqn, geom);
+    return gkyl_dg_euler_pkpm_cu_dev_new(cbasis, conf_range);
   } 
 #endif
   struct dg_euler_pkpm *euler_pkpm = gkyl_malloc(sizeof(struct dg_euler_pkpm));

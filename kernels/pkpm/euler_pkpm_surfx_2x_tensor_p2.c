@@ -38,27 +38,6 @@ GKYL_CU_DH double euler_pkpm_surfx_2x_tensor_p2(const double *w, const double *d
   const double *rho_c = &vlasov_pkpm_moms_c[0]; 
   const double *rho_r = &vlasov_pkpm_moms_r[0]; 
 
-  const double *Pxx_l = &p_ij_l[0]; 
-  const double *Pxy_l = &p_ij_l[9]; 
-  const double *Pxz_l = &p_ij_l[18]; 
-  const double *Pyy_l = &p_ij_l[27]; 
-  const double *Pyz_l = &p_ij_l[36]; 
-  const double *Pzz_l = &p_ij_l[45]; 
-
-  const double *Pxx_c = &p_ij_c[0]; 
-  const double *Pxy_c = &p_ij_c[9]; 
-  const double *Pxz_c = &p_ij_c[18]; 
-  const double *Pyy_c = &p_ij_c[27]; 
-  const double *Pyz_c = &p_ij_c[36]; 
-  const double *Pzz_c = &p_ij_c[45]; 
-
-  const double *Pxx_r = &p_ij_r[0]; 
-  const double *Pxy_r = &p_ij_r[9]; 
-  const double *Pxz_r = &p_ij_r[18]; 
-  const double *Pyy_r = &p_ij_r[27]; 
-  const double *Pyz_r = &p_ij_r[36]; 
-  const double *Pzz_r = &p_ij_r[45]; 
-
   const double *ux_surf_lr = &prim_surf_l[3]; 
   const double *uy_surf_lr = &prim_surf_l[9]; 
   const double *uz_surf_lr = &prim_surf_l[15]; 
@@ -99,6 +78,18 @@ GKYL_CU_DH double euler_pkpm_surfx_2x_tensor_p2(const double *w, const double *d
   double avg_p_ij_y_r[3] = {0.0}; 
   double avg_p_ij_z_l[3] = {0.0}; 
   double avg_p_ij_z_r[3] = {0.0}; 
+
+  const double *Pxx_l = &p_ij_l[0]; 
+  const double *Pxy_l = &p_ij_l[9]; 
+  const double *Pxz_l = &p_ij_l[18]; 
+
+  const double *Pxx_c = &p_ij_c[0]; 
+  const double *Pxy_c = &p_ij_c[9]; 
+  const double *Pxz_c = &p_ij_c[18]; 
+
+  const double *Pxx_r = &p_ij_r[0]; 
+  const double *Pxy_r = &p_ij_r[9]; 
+  const double *Pxz_r = &p_ij_r[18]; 
 
   flux_rho_l[0] = 0.2795084971874737*ux_surf_lr[2]*rho_l[8]+0.2795084971874737*ux_surf_cl[2]*rho_l[8]+0.5590169943749475*pkpm_lax_dir_l[2]*rho_l[8]+0.2795084971874737*ux_surf_lr[2]*rho_c[8]+0.2795084971874737*ux_surf_cl[2]*rho_c[8]-0.5590169943749475*pkpm_lax_dir_l[2]*rho_c[8]+0.2165063509461097*ux_surf_lr[2]*rho_l[7]+0.2165063509461097*ux_surf_cl[2]*rho_l[7]+0.4330127018922194*pkpm_lax_dir_l[2]*rho_l[7]-0.2165063509461097*ux_surf_lr[2]*rho_c[7]-0.2165063509461097*ux_surf_cl[2]*rho_c[7]+0.4330127018922194*pkpm_lax_dir_l[2]*rho_c[7]+0.2795084971874738*ux_surf_lr[1]*rho_l[6]+0.2795084971874738*ux_surf_cl[1]*rho_l[6]+0.5590169943749476*pkpm_lax_dir_l[1]*rho_l[6]+0.2795084971874738*ux_surf_lr[1]*rho_c[6]+0.2795084971874738*ux_surf_cl[1]*rho_c[6]-0.5590169943749476*pkpm_lax_dir_l[1]*rho_c[6]+0.125*ux_surf_lr[2]*rho_l[5]+0.125*ux_surf_cl[2]*rho_l[5]+0.25*pkpm_lax_dir_l[2]*rho_l[5]+0.125*ux_surf_lr[2]*rho_c[5]+0.125*ux_surf_cl[2]*rho_c[5]-0.25*pkpm_lax_dir_l[2]*rho_c[5]+0.2795084971874737*ux_surf_lr[0]*rho_l[4]+0.2795084971874737*ux_surf_cl[0]*rho_l[4]+0.5590169943749475*pkpm_lax_dir_l[0]*rho_l[4]+0.2795084971874737*ux_surf_lr[0]*rho_c[4]+0.2795084971874737*ux_surf_cl[0]*rho_c[4]-0.5590169943749475*pkpm_lax_dir_l[0]*rho_c[4]+0.2165063509461096*ux_surf_lr[1]*rho_l[3]+0.2165063509461096*ux_surf_cl[1]*rho_l[3]+0.4330127018922193*pkpm_lax_dir_l[1]*rho_l[3]-0.2165063509461096*ux_surf_lr[1]*rho_c[3]-0.2165063509461096*ux_surf_cl[1]*rho_c[3]+0.4330127018922193*pkpm_lax_dir_l[1]*rho_c[3]+0.125*ux_surf_lr[1]*rho_l[2]+0.125*ux_surf_cl[1]*rho_l[2]+0.25*pkpm_lax_dir_l[1]*rho_l[2]+0.125*ux_surf_lr[1]*rho_c[2]+0.125*ux_surf_cl[1]*rho_c[2]-0.25*pkpm_lax_dir_l[1]*rho_c[2]+0.2165063509461096*ux_surf_lr[0]*rho_l[1]+0.2165063509461096*ux_surf_cl[0]*rho_l[1]+0.4330127018922193*pkpm_lax_dir_l[0]*rho_l[1]-0.2165063509461096*ux_surf_lr[0]*rho_c[1]-0.2165063509461096*ux_surf_cl[0]*rho_c[1]+0.4330127018922193*pkpm_lax_dir_l[0]*rho_c[1]+0.125*rho_l[0]*ux_surf_lr[0]+0.125*rho_c[0]*ux_surf_lr[0]+0.125*rho_l[0]*ux_surf_cl[0]+0.125*rho_c[0]*ux_surf_cl[0]+0.25*pkpm_lax_dir_l[0]*rho_l[0]-0.25*pkpm_lax_dir_l[0]*rho_c[0]; 
   flux_rho_l[1] = 0.25*ux_surf_lr[1]*rho_l[8]+0.25*ux_surf_cl[1]*rho_l[8]+0.5*pkpm_lax_dir_l[1]*rho_l[8]+0.25*ux_surf_lr[1]*rho_c[8]+0.25*ux_surf_cl[1]*rho_c[8]-0.5*pkpm_lax_dir_l[1]*rho_c[8]+0.1936491673103709*ux_surf_lr[1]*rho_l[7]+0.1936491673103709*ux_surf_cl[1]*rho_l[7]+0.3872983346207417*pkpm_lax_dir_l[1]*rho_l[7]-0.1936491673103709*ux_surf_lr[1]*rho_c[7]-0.1936491673103709*ux_surf_cl[1]*rho_c[7]+0.3872983346207417*pkpm_lax_dir_l[1]*rho_c[7]+0.2500000000000001*ux_surf_lr[2]*rho_l[6]+0.2500000000000001*ux_surf_cl[2]*rho_l[6]+0.5000000000000001*pkpm_lax_dir_l[2]*rho_l[6]+0.2795084971874738*ux_surf_lr[0]*rho_l[6]+0.2795084971874738*ux_surf_cl[0]*rho_l[6]+0.5590169943749476*pkpm_lax_dir_l[0]*rho_l[6]+0.2500000000000001*ux_surf_lr[2]*rho_c[6]+0.2500000000000001*ux_surf_cl[2]*rho_c[6]-0.5000000000000001*pkpm_lax_dir_l[2]*rho_c[6]+0.2795084971874738*ux_surf_lr[0]*rho_c[6]+0.2795084971874738*ux_surf_cl[0]*rho_c[6]-0.5590169943749476*pkpm_lax_dir_l[0]*rho_c[6]+0.1118033988749895*ux_surf_lr[1]*rho_l[5]+0.1118033988749895*ux_surf_cl[1]*rho_l[5]+0.223606797749979*pkpm_lax_dir_l[1]*rho_l[5]+0.1118033988749895*ux_surf_lr[1]*rho_c[5]+0.1118033988749895*ux_surf_cl[1]*rho_c[5]-0.223606797749979*pkpm_lax_dir_l[1]*rho_c[5]+0.2795084971874737*ux_surf_lr[1]*rho_l[4]+0.2795084971874737*ux_surf_cl[1]*rho_l[4]+0.5590169943749475*pkpm_lax_dir_l[1]*rho_l[4]+0.2795084971874737*ux_surf_lr[1]*rho_c[4]+0.2795084971874737*ux_surf_cl[1]*rho_c[4]-0.5590169943749475*pkpm_lax_dir_l[1]*rho_c[4]+0.1936491673103708*ux_surf_lr[2]*rho_l[3]+0.1936491673103708*ux_surf_cl[2]*rho_l[3]+0.3872983346207416*pkpm_lax_dir_l[2]*rho_l[3]+0.2165063509461096*ux_surf_lr[0]*rho_l[3]+0.2165063509461096*ux_surf_cl[0]*rho_l[3]+0.4330127018922193*pkpm_lax_dir_l[0]*rho_l[3]-0.1936491673103708*ux_surf_lr[2]*rho_c[3]-0.1936491673103708*ux_surf_cl[2]*rho_c[3]+0.3872983346207416*pkpm_lax_dir_l[2]*rho_c[3]-0.2165063509461096*ux_surf_lr[0]*rho_c[3]-0.2165063509461096*ux_surf_cl[0]*rho_c[3]+0.4330127018922193*pkpm_lax_dir_l[0]*rho_c[3]+0.1118033988749895*rho_l[2]*ux_surf_lr[2]+0.1118033988749895*rho_c[2]*ux_surf_lr[2]+0.1118033988749895*rho_l[2]*ux_surf_cl[2]+0.1118033988749895*rho_c[2]*ux_surf_cl[2]+0.223606797749979*pkpm_lax_dir_l[2]*rho_l[2]+0.125*ux_surf_lr[0]*rho_l[2]+0.125*ux_surf_cl[0]*rho_l[2]+0.25*pkpm_lax_dir_l[0]*rho_l[2]-0.223606797749979*pkpm_lax_dir_l[2]*rho_c[2]+0.125*ux_surf_lr[0]*rho_c[2]+0.125*ux_surf_cl[0]*rho_c[2]-0.25*pkpm_lax_dir_l[0]*rho_c[2]+0.2165063509461096*rho_l[1]*ux_surf_lr[1]-0.2165063509461096*rho_c[1]*ux_surf_lr[1]+0.125*rho_l[0]*ux_surf_lr[1]+0.125*rho_c[0]*ux_surf_lr[1]+0.2165063509461096*rho_l[1]*ux_surf_cl[1]-0.2165063509461096*rho_c[1]*ux_surf_cl[1]+0.125*rho_l[0]*ux_surf_cl[1]+0.125*rho_c[0]*ux_surf_cl[1]+0.4330127018922193*pkpm_lax_dir_l[1]*rho_l[1]+0.4330127018922193*pkpm_lax_dir_l[1]*rho_c[1]+0.25*rho_l[0]*pkpm_lax_dir_l[1]-0.25*rho_c[0]*pkpm_lax_dir_l[1]; 

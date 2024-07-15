@@ -38,27 +38,6 @@ GKYL_CU_DH double euler_pkpm_surfx_2x_ser_p1(const double *w, const double *dxv,
   const double *rho_c = &vlasov_pkpm_moms_c[0]; 
   const double *rho_r = &vlasov_pkpm_moms_r[0]; 
 
-  const double *Pxx_l = &p_ij_l[0]; 
-  const double *Pxy_l = &p_ij_l[4]; 
-  const double *Pxz_l = &p_ij_l[8]; 
-  const double *Pyy_l = &p_ij_l[12]; 
-  const double *Pyz_l = &p_ij_l[16]; 
-  const double *Pzz_l = &p_ij_l[20]; 
-
-  const double *Pxx_c = &p_ij_c[0]; 
-  const double *Pxy_c = &p_ij_c[4]; 
-  const double *Pxz_c = &p_ij_c[8]; 
-  const double *Pyy_c = &p_ij_c[12]; 
-  const double *Pyz_c = &p_ij_c[16]; 
-  const double *Pzz_c = &p_ij_c[20]; 
-
-  const double *Pxx_r = &p_ij_r[0]; 
-  const double *Pxy_r = &p_ij_r[4]; 
-  const double *Pxz_r = &p_ij_r[8]; 
-  const double *Pyy_r = &p_ij_r[12]; 
-  const double *Pyz_r = &p_ij_r[16]; 
-  const double *Pzz_r = &p_ij_r[20]; 
-
   const double *ux_surf_lr = &prim_surf_l[2]; 
   const double *uy_surf_lr = &prim_surf_l[6]; 
   const double *uz_surf_lr = &prim_surf_l[10]; 
@@ -99,6 +78,18 @@ GKYL_CU_DH double euler_pkpm_surfx_2x_ser_p1(const double *w, const double *dxv,
   double avg_p_ij_y_r[2] = {0.0}; 
   double avg_p_ij_z_l[2] = {0.0}; 
   double avg_p_ij_z_r[2] = {0.0}; 
+
+  const double *Pxx_l = &p_ij_l[0]; 
+  const double *Pxy_l = &p_ij_l[4]; 
+  const double *Pxz_l = &p_ij_l[8]; 
+
+  const double *Pxx_c = &p_ij_c[0]; 
+  const double *Pxy_c = &p_ij_c[4]; 
+  const double *Pxz_c = &p_ij_c[8]; 
+
+  const double *Pxx_r = &p_ij_r[0]; 
+  const double *Pxy_r = &p_ij_r[4]; 
+  const double *Pxz_r = &p_ij_r[8]; 
 
   flux_rho_l[0] = 0.2165063509461096*ux_surf_lr[1]*rho_l[3]+0.2165063509461096*ux_surf_cl[1]*rho_l[3]+0.4330127018922193*pkpm_lax_dir_l[1]*rho_l[3]-0.2165063509461096*ux_surf_lr[1]*rho_c[3]-0.2165063509461096*ux_surf_cl[1]*rho_c[3]+0.4330127018922193*pkpm_lax_dir_l[1]*rho_c[3]+0.125*ux_surf_lr[1]*rho_l[2]+0.125*ux_surf_cl[1]*rho_l[2]+0.25*pkpm_lax_dir_l[1]*rho_l[2]+0.125*ux_surf_lr[1]*rho_c[2]+0.125*ux_surf_cl[1]*rho_c[2]-0.25*pkpm_lax_dir_l[1]*rho_c[2]+0.2165063509461096*ux_surf_lr[0]*rho_l[1]+0.2165063509461096*ux_surf_cl[0]*rho_l[1]+0.4330127018922193*pkpm_lax_dir_l[0]*rho_l[1]-0.2165063509461096*ux_surf_lr[0]*rho_c[1]-0.2165063509461096*ux_surf_cl[0]*rho_c[1]+0.4330127018922193*pkpm_lax_dir_l[0]*rho_c[1]+0.125*rho_l[0]*ux_surf_lr[0]+0.125*rho_c[0]*ux_surf_lr[0]+0.125*rho_l[0]*ux_surf_cl[0]+0.125*rho_c[0]*ux_surf_cl[0]+0.25*pkpm_lax_dir_l[0]*rho_l[0]-0.25*pkpm_lax_dir_l[0]*rho_c[0]; 
   flux_rho_l[1] = 0.2165063509461096*ux_surf_lr[0]*rho_l[3]+0.2165063509461096*ux_surf_cl[0]*rho_l[3]+0.4330127018922193*pkpm_lax_dir_l[0]*rho_l[3]-0.2165063509461096*ux_surf_lr[0]*rho_c[3]-0.2165063509461096*ux_surf_cl[0]*rho_c[3]+0.4330127018922193*pkpm_lax_dir_l[0]*rho_c[3]+0.125*ux_surf_lr[0]*rho_l[2]+0.125*ux_surf_cl[0]*rho_l[2]+0.25*pkpm_lax_dir_l[0]*rho_l[2]+0.125*ux_surf_lr[0]*rho_c[2]+0.125*ux_surf_cl[0]*rho_c[2]-0.25*pkpm_lax_dir_l[0]*rho_c[2]+0.2165063509461096*rho_l[1]*ux_surf_lr[1]-0.2165063509461096*rho_c[1]*ux_surf_lr[1]+0.125*rho_l[0]*ux_surf_lr[1]+0.125*rho_c[0]*ux_surf_lr[1]+0.2165063509461096*rho_l[1]*ux_surf_cl[1]-0.2165063509461096*rho_c[1]*ux_surf_cl[1]+0.125*rho_l[0]*ux_surf_cl[1]+0.125*rho_c[0]*ux_surf_cl[1]+0.4330127018922193*pkpm_lax_dir_l[1]*rho_l[1]+0.4330127018922193*pkpm_lax_dir_l[1]*rho_c[1]+0.25*rho_l[0]*pkpm_lax_dir_l[1]-0.25*rho_c[0]*pkpm_lax_dir_l[1]; 

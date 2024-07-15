@@ -6,8 +6,6 @@
 #include <gkyl_eqn_type.h>
 #include <gkyl_dg_eqn.h>
 #include <gkyl_range.h>
-#include <gkyl_wave_geom.h>
-#include <gkyl_wv_eqn.h>
 
 // Struct containing the pointers to auxiliary fields.
 struct gkyl_dg_euler_pkpm_auxfields { 

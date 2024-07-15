@@ -6,8 +6,6 @@ extern "C" {
 #include <gkyl_dg_euler_pkpm.h>    
 #include <gkyl_dg_euler_pkpm_priv.h>
 #include <gkyl_util.h>
-#include <gkyl_wave_geom.h>
-#include <gkyl_wv_eqn.h>
 }
 
 #include <cassert>

@@ -40,23 +40,14 @@ GKYL_CU_DH double euler_pkpm_surfx_1x_ser_p1(const double *w, const double *dxv,
   const double *Pxx_l = &p_ij_l[0]; 
   const double *Pxy_l = &p_ij_l[2]; 
   const double *Pxz_l = &p_ij_l[4]; 
-  const double *Pyy_l = &p_ij_l[6]; 
-  const double *Pyz_l = &p_ij_l[8]; 
-  const double *Pzz_l = &p_ij_l[10]; 
 
   const double *Pxx_c = &p_ij_c[0]; 
   const double *Pxy_c = &p_ij_c[2]; 
   const double *Pxz_c = &p_ij_c[4]; 
-  const double *Pyy_c = &p_ij_c[6]; 
-  const double *Pyz_c = &p_ij_c[8]; 
-  const double *Pzz_c = &p_ij_c[10]; 
 
   const double *Pxx_r = &p_ij_r[0]; 
   const double *Pxy_r = &p_ij_r[2]; 
   const double *Pxz_r = &p_ij_r[4]; 
-  const double *Pyy_r = &p_ij_r[6]; 
-  const double *Pyz_r = &p_ij_r[8]; 
-  const double *Pzz_r = &p_ij_r[10]; 
 
   const double *ux_surf_lr = &prim_surf_l[1]; 
   const double *uy_surf_lr = &prim_surf_l[3]; 
