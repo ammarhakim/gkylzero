@@ -27,13 +27,16 @@ GKYL_CU_D
 static void
 bc_weighted_delta(const double *inp, int cdim, int dir, enum gkyl_edge_loc edge, double xc[GKYL_MAX_DIM], const double *gain, double *weight)
 {
-  if ((edge == GKYL_LOWER_EDGE && xc[cdim+dir] < 0) || (edge == GKYL_UPPER_EDGE && xc[cdim+dir] > 0)) { 
+  if ((edge == GKYL_LOWER_EDGE && xc[cdim+dir] < 0) || (edge == GKYL_UPPER_EDGE && xc[cdim+dir] > 0)) {
     weight[0] += inp[0]*gain[0];
     weight[1] += inp[0];
   }
 }
 
 #ifdef GKYL_HAVE_CUDA
+
+void gkyl_bc_emission_spectrum_set_extern_params_cu(const struct gkyl_bc_emission_spectrum *up,
+  int cdim, int vdim, double mass_in, double mass_out);
 
 /**
  * CUDA device function to set up function to apply boundary conditions.

@@ -35,7 +35,7 @@ typedef struct gkyl_bc_emission_spectrum gkyl_bc_emission_spectrum;
  */
 struct gkyl_bc_emission_spectrum* gkyl_bc_emission_spectrum_new(struct gkyl_spectrum_model *spectrum_model,
   struct gkyl_yield_model *yield_model, struct gkyl_array *yield, struct gkyl_array *spectrum,
-  int dir, enum gkyl_edge_loc edge, int cdim, int vdim, struct gkyl_range *impact_buff_r,
+  int dir, enum gkyl_edge_loc edge, int cdim, int vdim, double mass_in, double mass_out, struct gkyl_range *impact_buff_r,
   struct gkyl_range *emit_buff_r, struct gkyl_rect_grid *grid, int poly_order,
   struct gkyl_basis *basis, struct gkyl_array *proj_buffer, bool use_gpu);
 

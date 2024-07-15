@@ -21,6 +21,7 @@
 struct sheath_ctx {
   double epsilon0;
   double mu0;
+  double q0;
   double chargeElc; // electron charge
   double massElc; // electron mass
   double chargeIon; // ion charge
@@ -144,6 +145,7 @@ create_ctx(void)
   struct sheath_ctx ctx = {
     .epsilon0 = 8.854e-12,
     .mu0 = 1.257e-6,
+    .q0 = q0,
     .chargeElc = -q0,
     .massElc = massElc,
     .chargeIon = q0,
@@ -306,10 +308,10 @@ main(int argc, char **argv)
   }
 
   struct gkyl_spectrum_model *spectrum_model[1];
-  spectrum_model[0] = gkyl_spectrum_chung_everhart_new(ctx.phi);
+  spectrum_model[0] = gkyl_spectrum_chung_everhart_new(ctx.q0, ctx.phi, app_args.use_gpu);
   struct gkyl_yield_model *yield_model[1];
-  yield_model[0] = gkyl_yield_furman_pivi_new(ctx.deltahat_ts, ctx.Ehat_ts, ctx.t1, ctx.t2, ctx.t3, ctx.t4, ctx.s);
-  struct gkyl_elastic_model *elastic_model = gkyl_elastic_furman_pivi_new(ctx.P1_inf, ctx.P1_hat, ctx.E_hat, ctx.W, ctx.p);
+  yield_model[0] = gkyl_yield_furman_pivi_new(ctx.q0, ctx.deltahat_ts, ctx.Ehat_ts, ctx.t1, ctx.t2, ctx.t3, ctx.t4, ctx.s, app_args.use_gpu);
+  struct gkyl_elastic_model *elastic_model = gkyl_elastic_furman_pivi_new(ctx.q0, ctx.P1_inf, ctx.P1_hat, ctx.E_hat, ctx.W, ctx.p, app_args.use_gpu);
   char in_species[1][128] = { "elc" };
   struct gkyl_bc_emission_ctx *bc_ctx = gkyl_bc_emission_new(ctx.num_emission_species, 0.0, true, spectrum_model, yield_model, elastic_model, in_species);
 

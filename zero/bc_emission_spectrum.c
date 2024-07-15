@@ -69,9 +69,9 @@ gkyl_bc_emission_spectrum_sey_calc(const struct gkyl_bc_emission_spectrum *up,
 struct gkyl_bc_emission_spectrum*
 gkyl_bc_emission_spectrum_new(struct gkyl_spectrum_model *spectrum_model,
   struct gkyl_yield_model *yield_model, struct gkyl_array *yield, struct gkyl_array *spectrum,
-  int dir, enum gkyl_edge_loc edge, int cdim, int vdim, struct gkyl_range *impact_buff_r,
-  struct gkyl_range *emit_buff_r, struct gkyl_rect_grid *grid, int poly_order,
-  struct gkyl_basis *basis, struct gkyl_array *proj_buffer, bool use_gpu)
+  int dir, enum gkyl_edge_loc edge, int cdim, int vdim, double mass_in, double mass_out,
+  struct gkyl_range *impact_buff_r, struct gkyl_range *emit_buff_r, struct gkyl_rect_grid *grid,
+  int poly_order, struct gkyl_basis *basis, struct gkyl_array *proj_buffer, bool use_gpu)
 {
   // Allocate space for new updater.
   struct gkyl_bc_emission_spectrum *up = gkyl_malloc(sizeof(struct gkyl_bc_emission_spectrum));
@@ -92,13 +92,20 @@ gkyl_bc_emission_spectrum_new(struct gkyl_spectrum_model *spectrum_model,
   }
 
   up->spectrum_model = spectrum_model;
+  up->spectrum_model->cdim = cdim;
+  up->spectrum_model->vdim = vdim;
+  up->spectrum_model->mass = mass_out;
   up->yield_model = yield_model;
+  up->yield_model->cdim = cdim;
+  up->yield_model->vdim = vdim;
+  up->yield_model->mass = mass_in;
 
   gkyl_proj_on_basis *proj = gkyl_proj_on_basis_new(grid, basis, poly_order + 1, 1,
       up->spectrum_model->distribution, up->spectrum_model);
 
 #ifdef GKYL_HAVE_CUDA
   if (use_gpu) {
+    gkyl_bc_emission_spectrum_set_extern_params_cu(up, cdim, vdim, mass_in, mass_out);
     gkyl_proj_on_basis_advance(proj, 0.0, emit_buff_r, proj_buffer);
     
     gkyl_array_copy(spectrum, proj_buffer);

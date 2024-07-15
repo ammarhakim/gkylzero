@@ -42,6 +42,9 @@ struct gkyl_array_copy_func*
 gkyl_bc_emission_elastic_create_arr_copy_func_cu(int dir, int cdim, const struct gkyl_basis *basis,
   int ncomp);
 
+void gkyl_bc_emission_elastic_set_extern_params_cu(const struct gkyl_bc_emission_elastic *up,
+  int cdim, int vdim, double mass);
+
 #ifdef GKYL_HAVE_CUDA
 
 /**
