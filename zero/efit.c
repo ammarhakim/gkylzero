@@ -167,37 +167,34 @@ gkyl_efit* gkyl_efit_new(const char *filepath, int rz_poly_order,
       psibyr2_n[0] = psi_n[0]/R/R;
     }
   }
-  // Reflect psi psi/R and psi/R^2 for double null
-  if (reflect) {
-    int iz_ref = up->nz/2 - 1;
-    int idx_ref[2];
-    for(int iz = up->nz/2 + 1; iz < up->nz; iz++){
-      idx[1] = iz;
-      idx_ref[1] = iz_ref;
-      for(int ir = 0; ir < up->nr; ir++){
-        idx[0] = ir;
-        idx_ref[0] = ir;
-        // set psi
-        double *psi_n = gkyl_array_fetch(psizr_n, gkyl_range_idx(&nrange, idx));
-        const double *psi_n_ref = gkyl_array_cfetch(psizr_n, gkyl_range_idx(&nrange, idx_ref));
-        psi_n[0] = psi_n_ref[0];
-        // set psibyr and psibyr2
-        double *psibyr_n = gkyl_array_fetch(psibyrzr_n, gkyl_range_idx(&nrange, idx));
-        double *psibyr_n_ref = gkyl_array_fetch(psibyrzr_n, gkyl_range_idx(&nrange, idx_ref));
-        psibyr_n[0] = psibyr_n_ref[0];
-        double *psibyr2_n = gkyl_array_fetch(psibyr2zr_n, gkyl_range_idx(&nrange, idx));
-        double *psibyr2_n_ref = gkyl_array_fetch(psibyr2zr_n, gkyl_range_idx(&nrange, idx_ref));
-        psibyr2_n[0] = psibyr2_n_ref[0];
-      }
-      iz_ref-=1;
-    }
-  }
+
   // We filled psizr_nodal
   struct gkyl_nodal_ops *n2m_rz = gkyl_nodal_ops_new(up->rzbasis, up->rzgrid, false);
   gkyl_nodal_ops_n2m(n2m_rz, up->rzbasis, up->rzgrid, &nrange, up->rzlocal, 1, psizr_n, up->psizr);
   gkyl_nodal_ops_n2m(n2m_rz, up->rzbasis, up->rzgrid, &nrange, up->rzlocal, 1, psibyrzr_n, up->psibyrzr);
   gkyl_nodal_ops_n2m(n2m_rz, up->rzbasis, up->rzgrid, &nrange, up->rzlocal, 1, psibyr2zr_n, up->psibyr2zr);
   gkyl_nodal_ops_release(n2m_rz);
+
+  // Reflect psi psi/R and psi/R^2 for double null
+  // Reflect DG coeffs rather than nodal data to avoid symmetry errors in n2m conversion
+  if (reflect) {
+    struct gkyl_range_iter iter;
+    gkyl_range_iter_init(&iter, up->rzlocal);
+    while (gkyl_range_iter_next(&iter)) {
+      if (iter.idx[1] < gkyl_range_shape(up->rzlocal,1)/2 +1 ) {
+        int idx_change[2] = {iter.idx[0], gkyl_range_shape(up->rzlocal, 1) - iter.idx[1]+1};
+        const double *coeffs_ref = gkyl_array_cfetch(up->psizr, gkyl_range_idx(up->rzlocal, iter.idx));
+        double *coeffs  = gkyl_array_fetch(up->psizr, gkyl_range_idx(up->rzlocal, idx_change));
+        up->rzbasis->flip_odd_sign( 1, coeffs_ref, coeffs);
+        coeffs_ref = gkyl_array_cfetch(up->psibyrzr, gkyl_range_idx(up->rzlocal, iter.idx));
+        coeffs  = gkyl_array_fetch(up->psibyrzr, gkyl_range_idx(up->rzlocal, idx_change));
+        up->rzbasis->flip_odd_sign( 1, coeffs_ref, coeffs);
+        coeffs_ref = gkyl_array_cfetch(up->psibyr2zr, gkyl_range_idx(up->rzlocal, iter.idx));
+        coeffs  = gkyl_array_fetch(up->psibyr2zr, gkyl_range_idx(up->rzlocal, idx_change));
+        up->rzbasis->flip_odd_sign( 1, coeffs_ref, coeffs);
+      }
+    }
+  }
  
   // Now lets read the q profile
   struct gkyl_array *qflux_n = gkyl_array_new(GKYL_DOUBLE, 1, flux_nrange.volume);

@@ -311,7 +311,7 @@ tok_find_endpoints(struct gkyl_tok_geo_grid_inp* inp, struct gkyl_tok_geo *geo, 
     //Find the lower turning point to set zmin
     arc_ctx->zmin = inp->zxpt_up; // Initial guess
     double zup = arc_ctx->zmax;
-    find_lower_turning_point(geo, psi_curr, zup, &arc_ctx->zmin, 1e-12);
+    find_lower_turning_point(geo, psi_curr, zup, &arc_ctx->zmin, 1e-15);
     // Done finding turning point
     arc_ctx->arcL_tot = integrate_psi_contour_memo(geo, psi_curr, arc_ctx->zmin, arc_ctx->zmax, arc_ctx->rclose,
       true, true, arc_memo);
@@ -330,7 +330,7 @@ tok_find_endpoints(struct gkyl_tok_geo_grid_inp* inp, struct gkyl_tok_geo *geo, 
     //Find the lower turning point to set zmin
     arc_ctx->zmin = inp->zxpt_up; // Initial guess
     double zup = arc_ctx->zmax;
-    find_lower_turning_point(geo, psi_curr, zup, &arc_ctx->zmin, 1e-12);
+    find_lower_turning_point(geo, psi_curr, zup, &arc_ctx->zmin, 1e-15);
     // Done finding turning point
     arc_ctx->arcL_tot = integrate_psi_contour_memo(geo, psi_curr, arc_ctx->zmin, arc_ctx->zmax, arc_ctx->rclose,
       true, true, arc_memo);

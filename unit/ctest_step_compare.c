@@ -88,17 +88,27 @@ write_geometry(gk_geometry *up, struct gkyl_rect_grid grid, struct gkyl_range lo
 //double psisep = 1.5093073363672997;
 double psisep = 1.5093065418975686;
 
+// After dg reflect
+//double psisep = 1.5093065418975689;
+
 
 //from python
 //double Zxpt_up = 6.167215740711948;
 //double Zxpt_up = 6.1672157229985665;
 //double Rxpt_up = 2.490007067421558;
 
-double Zxpt_lo = -6.16726668549029;
-double Rxpt_lo = 2.4901129589826647;
+//double Zxpt_lo = -6.16726668549029;
+//double Rxpt_lo = 2.4901129589826647;
+//
+//double Zxpt_up = 6.16726668549029;
+//double Rxpt_up = 2.4901129589826647;
 
-double Zxpt_up = 6.16726668549029;
-double Rxpt_up = 2.4901129589826647;
+// After Dg reflect:
+double Zxpt_lo = -6.1672666854902927;
+double Rxpt_lo = 2.4901129589826714;
+
+double Zxpt_up = 6.1672666854902927;
+double Rxpt_up = 2.4901129589826714;
 
 
 // Somer vertical and horizontal plates
@@ -598,7 +608,7 @@ test_pfup_r()
   double cpu_time_used;
   start = clock();
 
-  double clower[] = { psisep + 2e-16, -0.01, -M_PI+1e-14 };
+  double clower[] = { psisep, -0.01, -M_PI+1e-14 };
   double cupper[] = {1.8, 0.01, M_PI-1e-14 };
   int ccells[] = { 4, 1, 8 };
 
@@ -651,7 +661,7 @@ test_pfup_l()
   double cpu_time_used;
   start = clock();
 
-  double clower[] = { psisep+0e-16, -0.01, -M_PI+1e-14 };
+  double clower[] = { psisep, -0.01, -M_PI+1e-14 };
   double cupper[] = {1.8, 0.01, M_PI-1e-14 };
   int ccells[] = { 4, 1, 8 };
 
@@ -706,7 +716,7 @@ test_inner_upper()
   start = clock();
 
   double clower[] = { 1.45, -0.01, -M_PI+1e-14 };
-  double cupper[] = {psisep-2e-16, 0.01, M_PI-1e-13 };
+  double cupper[] = {psisep, 0.01, M_PI-1e-14 };
   int ccells[] = { 4, 1, 8 };
 
   gkyl_rect_grid_init(&cgrid, 3, clower, cupper, ccells);
@@ -726,7 +736,7 @@ test_inner_upper()
   }; 
   struct gkyl_gk_geometry_inp geometry_inp = {
     .geometry_id  = GKYL_TOKAMAK,
-    .tok_efit_info = &inp,
+    .tok_efit_info = &inp_inner,
     .tok_grid_info = &ginp,
     .grid = cgrid,
     .local = clocal,
@@ -759,7 +769,7 @@ test_inner_middle()
   start = clock();
 
   double clower[] = { 1.45, -0.01, -M_PI+1e-14 };
-  double cupper[] = {psisep-2.0e-16, 0.01, M_PI-1e-13 };
+  double cupper[] = {psisep, 0.01, M_PI-1e-14 };
   int ccells[] = { 4, 1, 8 };
 
   gkyl_rect_grid_init(&cgrid, 3, clower, cupper, ccells);
@@ -812,7 +822,7 @@ test_inner_lower()
   start = clock();
 
   double clower[] = { 1.45, -0.01, -M_PI+1e-14 };
-  double cupper[] = {psisep-2.0e-16, 0.01, M_PI-1e-13 };
+  double cupper[] = {psisep, 0.01, M_PI-1e-14 };
   int ccells[] = { 4, 1, 8 };
 
   gkyl_rect_grid_init(&cgrid, 3, clower, cupper, ccells);
