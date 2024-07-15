@@ -58,6 +58,8 @@ gkyl_yield_furman_pivi_new(double deltahat_ts, double Ehat_ts, double t1, double
   model->s = s;
   model->yield.function = furman_pivi_yield;
 
+  model->yield.ref_count = gkyl_ref_count_init(furman_pivi_free);
+
   return &model->yield;
 }
 

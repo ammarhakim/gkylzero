@@ -98,6 +98,8 @@ gkyl_bc_emission_elastic_advance(const struct gkyl_bc_emission_elastic *up,
 
 void gkyl_bc_emission_elastic_release(struct gkyl_bc_emission_elastic *up)
 {
+  gkyl_free(up->reflect_func->ctx);
+  gkyl_free(up->reflect_func);
   // Release updater memory.
   gkyl_free(up);
 }

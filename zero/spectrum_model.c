@@ -74,14 +74,14 @@ gkyl_spectrum_chung_everhart_new(double phi)
 /* } */
 
 struct gkyl_spectrum_model*
-gkyl_spectrum_model_acquire(const struct gkyl_spectrum_model* model)
+gkyl_spectrum_model_acquire(const struct gkyl_spectrum_model* spectrum)
 {
-  gkyl_ref_count_inc(&model->ref_count);
-  return (struct gkyl_spectrum_model*) model;
+  gkyl_ref_count_inc(&spectrum->ref_count);
+  return (struct gkyl_spectrum_model*) spectrum;
 }
 
 void
-gkyl_spectrum_model_release(const struct gkyl_spectrum_model* model)
+gkyl_spectrum_model_release(const struct gkyl_spectrum_model* spectrum)
 {
-  gkyl_ref_count_dec(&model->ref_count);
+  gkyl_ref_count_dec(&spectrum->ref_count);
 }
