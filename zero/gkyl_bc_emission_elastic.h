@@ -4,6 +4,8 @@
 #include <gkyl_basis.h>
 #include <gkyl_array.h>
 #include <gkyl_rect_grid.h>
+#include <gkyl_elastic_model.h>
+#include <gkyl_bc_emission_elastic_priv.h>
 
 // BC types in this updater.
 enum gkyl_bc_emission_elastic_type {
@@ -56,10 +58,10 @@ typedef struct gkyl_bc_emission_elastic gkyl_bc_emission_elastic;
  * @param use_gpu Boolean to indicate whether to use the GPU
  * @return New updater pointer
  */
-struct gkyl_bc_emission_elastic* gkyl_bc_emission_elastic_new(enum gkyl_bc_emission_elastic_type elastic_type,
-  void *elastic_param, struct gkyl_array *elastic_yield, int dir, enum gkyl_edge_loc edge,
+struct gkyl_bc_emission_elastic* gkyl_bc_emission_elastic_new(struct gkyl_elastic_model *elastic_model, struct gkyl_array *elastic_yield, int dir, enum gkyl_edge_loc edge,
   int cdim, int vdim, int ncomp, struct gkyl_rect_grid *grid, struct gkyl_range *emit_buff_r,
-  int poly_order, const struct gkyl_basis *dev_basis, struct gkyl_basis *basis, struct gkyl_array *proj_buffer, bool use_gpu);
+  int poly_order, const struct gkyl_basis *dev_basis, struct gkyl_basis *basis,
+  struct gkyl_array *proj_buffer, bool use_gpu);
 
 /**
  * @param up BC updater

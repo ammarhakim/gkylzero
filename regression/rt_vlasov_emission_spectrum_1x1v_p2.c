@@ -6,6 +6,7 @@
 #include <gkyl_vlasov.h>
 #include <rt_arg_parse.h>
 #include <gkyl_vlasov_priv.h>
+#include <gkyl_bc_emission.h>
 
 #include <gkyl_null_comm.h>
 
@@ -33,6 +34,19 @@ struct sheath_ctx {
   double Lx; // size of the box
   double Ls;
   double omega_pe;
+  double phi;
+  double deltahat_ts;
+  double Ehat_ts;
+  double t1;
+  double t2;
+  double t3;
+  double t4;
+  double s;
+  double P1_inf;
+  double P1_hat;
+  double E_hat;
+  double W;
+  double p;
   int Nx;
   int Nv;
   double t_end;
@@ -111,6 +125,21 @@ create_ctx(void)
 {
   double massElc = 9.109e-31;
   double q0 = 1.602e-19;
+
+  // SEE parameters
+  double phi = 4.68;
+  double deltahat_ts = 1.885;
+  double Ehat_ts = 276.8;
+  double t1 = 0.66;
+  double t2 = 0.8;
+  double t3 = 0.7;
+  double t4 = 1.0;
+  double s = 1.54;
+  double P1_inf = 0.02;
+  double P1_hat = 0.496;
+  double E_hat = 1.0e-6;
+  double W = 60.86;
+  double p = 1.0;
   struct sheath_ctx ctx = {
     .epsilon0 = 8.854e-12,
     .mu0 = 1.257e-6,
@@ -127,6 +156,19 @@ create_ctx(void)
     .Lx = 128.0*ctx.lambda_D,
     .Ls = 100.0*ctx.lambda_D,
     .omega_pe = sqrt(ctx.n0*q0*q0/(ctx.epsilon0*massElc)),
+    .phi = phi,
+    .deltahat_ts = deltahat_ts,
+    .Ehat_ts = Ehat_ts,
+    .t1 = t1,
+    .t2 = t2,
+    .t3 = t3,
+    .t4 = t4,
+    .s = s,
+    .P1_inf = P1_inf,
+    .P1_hat = P1_hat,
+    .E_hat = E_hat,
+    .W = W,
+    .p = p,
     .Nx = 128,
     .Nv = 32,
     .t_end = 10.0/ctx.omega_pe,
@@ -171,31 +213,6 @@ main(int argc, char **argv)
   }
 
   struct sheath_ctx ctx = create_ctx(); // Context for initialization functions.
-  struct gkyl_bc_emission_spectrum_norm_chung_everhart *chung_ctx = gkyl_malloc(sizeof(struct gkyl_bc_emission_spectrum_norm_chung_everhart));
-  struct gkyl_bc_emission_spectrum_yield_furman_pivi *furman_ctx = gkyl_malloc(sizeof(struct gkyl_bc_emission_spectrum_yield_furman_pivi));
-  struct gkyl_bc_emission_elastic_furman_pivi *furman_elastic_ctx = gkyl_malloc(sizeof(struct gkyl_bc_emission_elastic_furman_pivi));
-  
-  chung_ctx->mass = 9.109e-31;
-  chung_ctx->charge = -1.602e-19;
-  chung_ctx->phi = 4.68;
-
-  furman_ctx->mass = 9.109e-31;
-  furman_ctx->charge = -1.602e-19;
-  furman_ctx->deltahat_ts = 1.885;
-  furman_ctx->Ehat_ts = 276.8;
-  furman_ctx->t1 = 0.66;
-  furman_ctx->t2 = 0.8;
-  furman_ctx->t3 = 0.7;
-  furman_ctx->t4 = 1.0;
-  furman_ctx->s = 1.54;
-
-  furman_elastic_ctx->mass = 9.109e-31;
-  furman_elastic_ctx->charge = -1.602e-19;
-  furman_elastic_ctx->P1_inf = 0.02;
-  furman_elastic_ctx->P1_hat = 0.496;
-  furman_elastic_ctx->E_hat = 1.0e-6;
-  furman_elastic_ctx->W = 60.86;
-  furman_elastic_ctx->p = 1.0;
 
   int NX = APP_ARGS_CHOOSE(app_args.xcells[0], ctx.Nx);
   int NV = APP_ARGS_CHOOSE(app_args.vcells[0], ctx.Nv);
@@ -286,17 +303,13 @@ main(int argc, char **argv)
     goto mpifinalize;
   }
 
-  struct vm_emission_ctx bc_ctx = {
-    .num_species = 1,
-    .elastic = true,
-    .norm_type = { GKYL_SEE_CHUNG_EVERHART },
-    .yield_type = { GKYL_SEE_FURMAN_PIVI },
-    .elastic_type = GKYL_BS_FURMAN_PIVI,
-    .norm_params = { chung_ctx },
-    .yield_params = { furman_ctx },
-    .elastic_params = furman_elastic_ctx,
-    .in_species = { "elc" },
-  };
+  struct gkyl_spectrum_model *spectrum_model[1];
+  spectrum_model[0] = gkyl_spectrum_chung_everhart_new(ctx.phi);
+  struct gkyl_yield_model *yield_model[1];
+  yield_model[0] = gkyl_yield_furman_pivi_new(ctx.deltahat_ts, ctx.Ehat_ts, ctx.t1, ctx.t2, ctx.t3, ctx.t4, ctx.s);
+  struct gkyl_elastic_model *elastic_model = gkyl_elastic_furman_pivi_new(ctx.P1_inf, ctx.P1_hat, ctx.E_hat, ctx.W, ctx.p);
+  char in_species[1][128] = { "elc" };
+  struct gkyl_bc_emission_ctx *bc_ctx = gkyl_bc_emission_new(1, true, spectrum_model, yield_model, elastic_model, in_species);
 
   // electrons
   struct gkyl_vlasov_species elc = {
@@ -326,7 +339,7 @@ main(int argc, char **argv)
     .bcx = {
       .lower = { .type = GKYL_SPECIES_REFLECT, },
       .upper = { .type = GKYL_SPECIES_EMISSION,
-                 .aux_ctx = &bc_ctx, },
+                 .aux_ctx = bc_ctx, },
     },
     
     .num_diag_moments = 3,
@@ -381,7 +394,7 @@ main(int argc, char **argv)
 
   // VM app
   struct gkyl_vm app_inp = {
-    .name = "vlasov_sheath_1x1v_p2",
+    .name = "vlasov_emission_spectrum_1x1v_p2",
 
     .cdim = 1, .vdim = 1,
     .lower = { 0.0 },
