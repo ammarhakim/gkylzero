@@ -62,6 +62,7 @@ gkyl_moment_em_coupling_new(struct gkyl_moment_em_coupling_inp inp)
   mom_em->use_explicit_em_coupling = inp.use_explicit_em_coupling;
 
   mom_em->has_nT_sources = inp.has_nT_sources;
+  mom_em->has_frictional_sources = inp.has_frictional_sources;
 
   return mom_em;
 }

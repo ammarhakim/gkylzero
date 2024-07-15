@@ -415,8 +415,11 @@ implicit_source_coupling_update(const gkyl_moment_em_coupling* mom_em, double t_
     implicit_collision_source_update(mom_em, dt, fluid_s);
   }
 
-  // These are handled by their own specialized explicit forcing solver. To be revisited...
+  // These terms are handled by their own specialized explicit forcing solver(s). To be revisited...
   if (mom_em->has_nT_sources) {
     explicit_nT_source_update(mom_em, dt, fluid_s, nT_sources_s);
+  }
+  if (mom_em->has_frictional_sources) {
+    explicit_frictional_source_update(mom_em, dt, fluid_s);
   }
 }

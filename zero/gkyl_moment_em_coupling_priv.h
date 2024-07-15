@@ -30,4 +30,5 @@ struct gkyl_moment_em_coupling {
   bool use_explicit_em_coupling; // Use the explicit source-solver for handling moment-EM coupling (not operational yet).
 
   bool has_nT_sources; // Run with number density and temperature sources.
+  bool has_frictional_sources; // Run with frictional sources.
 };

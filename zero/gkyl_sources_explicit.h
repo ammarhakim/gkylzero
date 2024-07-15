@@ -27,6 +27,16 @@ void explicit_nT_source_update(const gkyl_moment_em_coupling* mom_em, const doub
   const double* nT_sources_s[GKYL_MAX_SPECIES]);
 
 /**
+* Integrate the frictional source terms in the multi-fluid equation system within a single cell, using an explicit forcing solver (specifically the
+* simple first-order forward-Euler method).
+*
+* @param mom_em Moment-EM coupling object.
+* @param dt Current stable time-step.
+* @param fluid_s Array of fluid variables (array size = nfluids).
+*/
+void explicit_frictional_source_update(const gkyl_moment_em_coupling* mom_em, const double dt, double* fluid_s[GKYL_MAX_SPECIES]);
+
+/**
 * Integrate the electric field source terms in the multi-field equation system within a single cell, using an explicit forcing solver (specifically
 * a simple first-order forward-Euler method), assuming a cold relativistic fluid.
 *
