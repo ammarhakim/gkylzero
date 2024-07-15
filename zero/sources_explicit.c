@@ -85,8 +85,6 @@ void
 explicit_e_field_source_update(const gkyl_moment_em_coupling* mom_em, double t_curr, double dt, double* fluid_s[GKYL_MAX_SPECIES], double* em,
   const double* app_current, const double* app_current1, const double* app_current2, const double* ext_em)
 {
-  printf("E-field");
-
   double e_field_new[3], e_field_stage1[3], e_field_stage2[3];
   double e_field_old[3];
   e_field_old[0] = em[0]; e_field_old[1] = em[1]; e_field_old[2] = em[2];
@@ -148,8 +146,6 @@ void
 explicit_higuera_cary_update(const gkyl_moment_em_coupling* mom_em, double t_curr, double dt, double* fluid_s[GKYL_MAX_SPECIES],
   const double* app_accel_s[GKYL_MAX_SPECIES], double* em, const double* ext_em)
 {
-  printf("Higuera");
-
   int nfluids = mom_em->nfluids;
 
   double epsilon0 = mom_em->epsilon0;
