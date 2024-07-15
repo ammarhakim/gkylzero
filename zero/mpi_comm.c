@@ -759,9 +759,9 @@ mpi_comm_new(const struct gkyl_mpi_comm_inp *inp,
   int comm_size;
   MPI_Comm_size(inp->mpi_comm, &comm_size);
 
+  mpi->priv_comm.pub_comm.has_decomp = true;
   if (0 == inp->decomp) {
     mpi->priv_comm.pub_comm.has_decomp = false;
-    mpi->priv_comm.pub_comm.decomp = 0;
     
     // construct a dummy decomposition
     mpi->decomp =

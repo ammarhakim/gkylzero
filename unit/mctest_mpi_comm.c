@@ -26,6 +26,9 @@ mpi_0()
     }
   );
 
+  TEST_CHECK( strcmp(comm->id, "mpi_comm") == 0 );
+  TEST_CHECK( false == comm->has_decomp );
+
   int rank;
   gkyl_comm_get_rank(comm, &rank);
   int m_rank;
@@ -56,6 +59,8 @@ mpi_1()
       .decomp = decomp
     }
   );
+
+  TEST_CHECK( comm->has_decomp );
 
   int rank;
   gkyl_comm_get_rank(comm, &rank);

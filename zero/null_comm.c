@@ -349,10 +349,10 @@ gkyl_null_comm_inew(const struct gkyl_null_comm_inp *inp)
 {
   struct null_comm *comm = gkyl_malloc(sizeof *comm);
   strcpy(comm->priv_comm.pub_comm.id, "null_comm");
-  
+
+  comm->priv_comm.pub_comm.has_decomp = true;  
   if (0 == inp->decomp) {
     comm->priv_comm.pub_comm.has_decomp = false;
-    comm->priv_comm.pub_comm.decomp = 0;
     
     // construct a dummy decomposition
     comm->decomp =

@@ -13,7 +13,6 @@
 struct gkyl_comm {
   char id[128]; // string ID for communcator
   bool has_decomp; // flag to indicate if comm has an associated decomp
-  const struct gkyl_rect_decomp *decomp; // decomp, if it exists, or NULL
 
   struct gkyl_ref_count ref_count; // reference count
 };
