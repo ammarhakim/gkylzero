@@ -9,7 +9,7 @@
 struct gkyl_block_geom*
 create_block_geom(void)
 {
-  struct gkyl_block_geom *bgeom = gkyl_block_geom_new(2, 3);
+  struct gkyl_block_geom *bgeom = gkyl_block_geom_new(2, 12);
 
   /* Block layout and coordinates
 
@@ -60,7 +60,7 @@ create_block_geom(void)
   double ntheta_middle = 24;
   double ntheta_upper  = 12;
 
-  double theta_lo = -M_PI, theta_up = M_PI;
+  double theta_lo = -M_PI + 1e-14, theta_up = M_PI - 1e-14;
 
   struct gkyl_tok_geo_efit_inp efit_inp = {
     // psiRZ and related inputs

@@ -11,7 +11,7 @@
 struct gkyl_block_geom*
 create_block_geom(void)
 {
-  struct gkyl_block_geom *bgeom = gkyl_block_geom_new(2, 3);
+  struct gkyl_block_geom *bgeom = gkyl_block_geom_new(2, 2);
 
   /* Block layout and coordinates
 
@@ -38,7 +38,7 @@ create_block_geom(void)
   double ntheta_lower  = 4;
   double ntheta_middle = 8;
 
-  double theta_lo = -M_PI, theta_up = M_PI;
+  double theta_lo = -M_PI + 1e-14, theta_up = M_PI - 1e-14;
 
   double Zxpt_lo = -6.1672666854902927;
   double Zxpt_up = 6.1672666854902927;
