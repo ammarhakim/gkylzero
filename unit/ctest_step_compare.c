@@ -219,7 +219,7 @@ test_core()
 
   double clower[] = { psisep, -0.01, -M_PI+3e-16 };
   double cupper[] = {1.8, 0.01, M_PI-3e-16 };
-  int ccells[] = { 4, 1, 8 };
+  int ccells[] = { 2,1,2 };
 
   gkyl_rect_grid_init(&cgrid, 3, clower, cupper, ccells);
   gkyl_create_grid_ranges(&cgrid, cnghost, &clocal_ext, &clocal);
@@ -276,7 +276,7 @@ test_core_l()
 
   double clower[] = { psisep, -0.01, -M_PI+3e-16 };
   double cupper[] = {1.8, 0.01, M_PI-3e-16 };
-  int ccells[] = { 4, 1, 8 };
+  int ccells[] = { 2,1,2 };
 
   gkyl_rect_grid_init(&cgrid, 3, clower, cupper, ccells);
   gkyl_create_grid_ranges(&cgrid, cnghost, &clocal_ext, &clocal);
@@ -335,7 +335,7 @@ test_outer()
 
   double clower[] = { 0.934, -0.01, -M_PI+1e-14 };
   double cupper[] = {psisep, 0.01, M_PI-1e-14 };
-  int ccells[] = { 4, 1, 8 };
+  int ccells[] = { 2,1,2 };
 
 
 
@@ -394,7 +394,7 @@ test_upper()
 
   double clower[] = { 0.934, -0.01, -M_PI+1e-14 };
   double cupper[] = {psisep, 0.01, M_PI-1e-14 };
-  int ccells[] = { 4, 1, 8 };
+  int ccells[] = { 2,1,2 };
 
 
 
@@ -449,7 +449,7 @@ test_lower()
 
   double clower[] = { 0.934, -0.01, -M_PI+1e-14 };
   double cupper[] = {psisep, 0.01, M_PI-1e-14 };
-  int ccells[] = { 4, 1, 8 };
+  int ccells[] = { 2,1,2 };
 
 
 
@@ -504,7 +504,7 @@ test_pflo_r()
 
   double clower[] = { psisep, -0.01, -M_PI+1e-14 };
   double cupper[] = {1.8, 0.01, M_PI-1e-14 };
-  int ccells[] = { 4, 1, 8 };
+  int ccells[] = { 2,1,2 };
 
   gkyl_rect_grid_init(&cgrid, 3, clower, cupper, ccells);
   gkyl_create_grid_ranges(&cgrid, cnghost, &clocal_ext, &clocal);
@@ -557,7 +557,7 @@ test_pflo_l()
 
   double clower[] = { psisep, -0.01, -M_PI+1e-14 };
   double cupper[] = {1.8, 0.01, M_PI-1e-14 };
-  int ccells[] = { 4, 1, 8 };
+  int ccells[] = { 2,1,2 };
 
   gkyl_rect_grid_init(&cgrid, 3, clower, cupper, ccells);
   gkyl_create_grid_ranges(&cgrid, cnghost, &clocal_ext, &clocal);
@@ -610,7 +610,7 @@ test_pfup_r()
 
   double clower[] = { psisep, -0.01, -M_PI+1e-14 };
   double cupper[] = {1.8, 0.01, M_PI-1e-14 };
-  int ccells[] = { 4, 1, 8 };
+  int ccells[] = { 2,1,2 };
 
   gkyl_rect_grid_init(&cgrid, 3, clower, cupper, ccells);
   gkyl_create_grid_ranges(&cgrid, cnghost, &clocal_ext, &clocal);
@@ -663,7 +663,7 @@ test_pfup_l()
 
   double clower[] = { psisep, -0.01, -M_PI+1e-14 };
   double cupper[] = {1.8, 0.01, M_PI-1e-14 };
-  int ccells[] = { 4, 1, 8 };
+  int ccells[] = { 2,1,2 };
 
   gkyl_rect_grid_init(&cgrid, 3, clower, cupper, ccells);
   gkyl_create_grid_ranges(&cgrid, cnghost, &clocal_ext, &clocal);
@@ -717,7 +717,7 @@ test_inner_upper()
 
   double clower[] = { 1.45, -0.01, -M_PI+1e-14 };
   double cupper[] = {psisep, 0.01, M_PI-1e-14 };
-  int ccells[] = { 4, 1, 8 };
+  int ccells[] = { 2,1,2 };
 
   gkyl_rect_grid_init(&cgrid, 3, clower, cupper, ccells);
   gkyl_create_grid_ranges(&cgrid, cnghost, &clocal_ext, &clocal);
@@ -770,7 +770,7 @@ test_inner_middle()
 
   double clower[] = { 1.45, -0.01, -M_PI+1e-14 };
   double cupper[] = {psisep, 0.01, M_PI-1e-14 };
-  int ccells[] = { 4, 1, 8 };
+  int ccells[] = { 2,1,2 };
 
   gkyl_rect_grid_init(&cgrid, 3, clower, cupper, ccells);
   gkyl_create_grid_ranges(&cgrid, cnghost, &clocal_ext, &clocal);
@@ -823,7 +823,7 @@ test_inner_lower()
 
   double clower[] = { 1.45, -0.01, -M_PI+1e-14 };
   double cupper[] = {psisep, 0.01, M_PI-1e-14 };
-  int ccells[] = { 4, 1, 8 };
+  int ccells[] = { 2,1,2 };
 
   gkyl_rect_grid_init(&cgrid, 3, clower, cupper, ccells);
   gkyl_create_grid_ranges(&cgrid, cnghost, &clocal_ext, &clocal);

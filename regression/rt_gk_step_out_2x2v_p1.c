@@ -75,8 +75,8 @@ struct gkyl_tok_geo_grid_inp ginp = {
     .rleft= 1.1,
     .rmin = 2.1,
     .rmax = 6.2,
-    .zxpt_lo = -6.16726668549029,
-    .zxpt_up = 6.16726668549029,
+    .zxpt_lo = -6.1672666854902927,
+    .zxpt_up = 6.1672666854902927,
     .write_node_coord_array = true,
     .node_file_nm = "step_outboard_fixed_z_nodes.gkyl"
   };
