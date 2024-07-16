@@ -16,7 +16,7 @@ static const enum gkyl_oriented_edge complimentary_edges[] = {
   [GKYL_PHYSICAL] = GKYL_PHYSICAL,
 };
 
-const char *block_edge_names[] = { "lower", "upper" };
+static const char *block_edge_names[] = { "lower", "upper" };
 
 static void
 block_topo_free(const struct gkyl_ref_count *ref)

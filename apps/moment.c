@@ -794,7 +794,7 @@ gkyl_moment_app_from_frame_species(gkyl_moment_app *app, int sidx, int frame)
 static void
 v_moment_app_cout(const gkyl_moment_app* app, FILE *fp, const char *fmt, va_list argp)
 {
-  int rank, r = 0;
+  int rank;
   gkyl_comm_get_rank(app->comm, &rank);
   if ((rank == 0) && fp)
     vfprintf(fp, fmt, argp);

@@ -125,13 +125,14 @@ main(int argc, char **argv)
 
   struct gkyl_comm *comm = 0;
   if (app_args.use_mpi) {
-#ifdef GKYL_HAVE_MPI    
+#ifdef GKYL_HAVE_MPI
     MPI_Init(&argc, &argv);
     comm = gkyl_mpi_comm_new( &(struct gkyl_mpi_comm_inp) {
-        .mpi_comm = MPI_COMM_WORLD
+        .mpi_comm = MPI_COMM_WORLD,
+        .sync_corners = true
       }
     );
-#endif    
+#endif
   }
   if (comm == 0)
     comm = gkyl_null_comm_inew( &(struct gkyl_null_comm_inp) { } );
@@ -196,6 +197,12 @@ main(int argc, char **argv)
   };
 
   struct gkyl_moment_multib_app *app = gkyl_moment_multib_app_new(&app_inp);
+  if (app == 0) {
+    fprintf(stderr, "Unable to construct multiblock App! (Probably too few ranks)\n");
+    goto finish;
+  }
+  
+  gkyl_moment_multib_app_write_topo(app);
 
   // Initial and final simulation times.
   double t_curr = 0.0, t_end = 0.6;
@@ -212,6 +219,13 @@ main(int argc, char **argv)
   gkyl_block_geom_release(bgeom);
   gkyl_wv_eqn_release(euler_eqn);
   gkyl_moment_multib_app_release(app);
+
+  finish:
+
+#ifdef GKYL_HAVE_MPI
+  if (app_args.use_mpi)
+    MPI_Finalize();
+#endif
   
   return 0;
 }

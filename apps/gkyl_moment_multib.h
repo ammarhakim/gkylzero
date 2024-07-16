@@ -22,12 +22,6 @@ struct gkyl_moment_multib_species_pb {
   // pointer to user-defined number density and temperature sources
   void (*nT_source_func)(double t, const double *xn, double *fout, void *ctx);
   bool nT_source_set_only_once;
-
-  // boundary conditions
-  enum gkyl_species_bc_type bcx[2], bcy[2], bcz[2];
-
-  // for function BCs these should be set
-  wv_bc_func_t bcx_func[2], bcy_func[2], bcz_func[2];
 };
 
 // Species input 
@@ -69,6 +63,7 @@ struct gkyl_moment_multib_field_pb {
   void (*ext_em_func)(double t, const double *xn, double *fout, void *ctx);
   double t_ramp_ext_em; // linear ramp for turning on external E field
 
+  bool use_explicit_em_coupling; // flag to indicate if using explicit em-coupling  
 };
 
 // Field input
@@ -95,8 +90,17 @@ struct gkyl_moment_multib {
  // geometry and for blocks in simulation
   struct gkyl_block_geom *block_geom;
 
- // CFL fraction to use  
+ // CFL fraction to use
   double cfl_frac;
+
+  enum gkyl_moment_scheme scheme_type; // scheme to update fluid and moment eqns
+  
+  enum gkyl_mp_recon mp_recon; // reconstruction scheme to use
+  bool skip_mp_limiter; // should MP limiter be skipped?
+  bool use_hybrid_flux_kep; // should shock-hybrid scheme be used when using KEP?
+
+  int num_skip_dirs; // number of directions to skip
+  int skip_dirs[3]; // directions to skip
 
  // number of species  
   int num_species;
@@ -184,6 +188,13 @@ struct gkyl_app_restart_status gkyl_moment_multib_app_from_frame_species(gkyl_mo
  * @param argp Objects to write
  */
 void gkyl_moment_multib_app_cout(const gkyl_moment_multib_app* app, FILE *fp, const char *fmt, ...);
+
+/**
+ * Write block topology to file.
+ * 
+ * @param app App object.
+ */
+void gkyl_moment_multib_app_write_topo(const gkyl_moment_multib_app* app);
 
 /**
  * Write field and species data to file.

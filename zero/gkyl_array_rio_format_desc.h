@@ -74,7 +74,20 @@
   Note: the global range in Gkeyll, of which each range is a part,
   is 1-indexed.
 
-  * For file_type = 4 (block topology) there is no additional data 
+  * For file_type = 4 (block topology) there is no additional
+    data. The topology is store in mpack format in the following way.
+
+    {
+      ndim = dimension of topology,
+      num_blocks = number of blocks,
+      connections = array of connection data
+    }
+
+    The array of connection data is a list of integers with bid, dir
+    and edge (in this order) for each block, in each direction and
+    lower and upper edges (in this order). See struct gkyl_block_topo
+    and btopo_create_mpack in file block_topo.c file for details.
+  
 
  */
 
