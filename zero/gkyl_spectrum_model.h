@@ -187,8 +187,8 @@ struct gkyl_spectrum_model* gkyl_spectrum_model_acquire(const struct gkyl_spectr
 
 void gkyl_spectrum_model_release(const struct gkyl_spectrum_model* model);
 
-struct gkyl_spectrum_model* gkyl_spectrum_chung_everhart_cu_dev_new(double charge, double phi);
+struct gkyl_spectrum_model* gkyl_spectrum_chung_everhart_cu_dev_new(struct gkyl_spectrum_chung_everhart *model, double charge, double phi);
 
-struct gkyl_spectrum_model* gkyl_spectrum_gaussian_cu_dev_new(double charge, double E_0, double tau);
+struct gkyl_spectrum_model* gkyl_spectrum_gaussian_cu_dev_new(struct gkyl_spectrum_gaussian *model, double charge, double E_0, double tau);
 
-struct gkyl_spectrum_model* gkyl_spectrum_maxwellian_cu_dev_new(double charge, double vt);
+struct gkyl_spectrum_model* gkyl_spectrum_maxwellian_cu_dev_new(struct gkyl_spectrum_maxwellian *model, double charge, double vt);
