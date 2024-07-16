@@ -271,7 +271,7 @@ void gkyl_dg_calc_pkpm_vars_penalization(struct gkyl_dg_calc_pkpm_vars *up, cons
 {
 #ifdef GKYL_HAVE_CUDA
   if (gkyl_array_is_cu_dev(pkpm_penalization)) {
-    return gkyl_dg_calc_pkpm_vars_accel_cu(up, conf_range, 
+    return gkyl_dg_calc_pkpm_vars_penalization_cu(up, conf_range, 
       vlasov_pkpm_moms, p_ij, prim, euler_pkpm, 
       pkpm_lax, pkpm_penalization);
   }
