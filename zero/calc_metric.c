@@ -225,11 +225,13 @@ void gkyl_calc_metric_advance(gkyl_calc_metric *up, struct gkyl_range *nrange,
   struct gkyl_array *gFld,
   struct gkyl_array *tanvecFld,
   struct gkyl_array *dualFld,
+  struct gkyl_array *normFld,
   const struct gkyl_range *update_range)
 {
   struct gkyl_array* gFld_nodal = gkyl_array_new(GKYL_DOUBLE, 6, nrange->volume);
   struct gkyl_array* tanvecFld_nodal = gkyl_array_new(GKYL_DOUBLE, 9, nrange->volume);
   struct gkyl_array* dualFld_nodal = gkyl_array_new(GKYL_DOUBLE, 9, nrange->volume);
+  struct gkyl_array* normFld_nodal = gkyl_array_new(GKYL_DOUBLE, 9, nrange->volume);
   enum { PSI_IDX, AL_IDX, TH_IDX }; // arrangement of computational coordinates
   enum { X_IDX, Y_IDX, Z_IDX }; // arrangement of cartesian coordinates
   int cidx[3];
@@ -332,15 +334,35 @@ void gkyl_calc_metric_advance(gkyl_calc_metric *up, struct gkyl_range *nrange,
               tanvecFld_n[6] = dxdz[0][2]; 
               tanvecFld_n[7] = dxdz[1][2]; 
               tanvecFld_n[8] = dxdz[2][2]; 
+
+              double norm1 = sqrt(dualFld_n[0]*dualFld_n[0] + dualFld_n[1]*dualFld_n[1] + dualFld_n[2]*dualFld_n[2]);
+              double norm2 = sqrt(dualFld_n[3]*dualFld_n[3] + dualFld_n[4]*dualFld_n[4] + dualFld_n[5]*dualFld_n[5]);
+              double norm3 = sqrt(dualFld_n[6]*dualFld_n[6] + dualFld_n[7]*dualFld_n[7] + dualFld_n[8]*dualFld_n[8]);
+              
+              // Set normal vectors
+              double *normFld_n = gkyl_array_fetch(normFld_nodal, gkyl_range_idx(nrange, cidx));
+              normFld_n[0] = dualFld_n[0]/norm1;
+              normFld_n[1] = dualFld_n[1]/norm1;
+              normFld_n[2] = dualFld_n[2]/norm1;
+
+              normFld_n[3] = dualFld_n[3]/norm2;
+              normFld_n[4] = dualFld_n[4]/norm2;
+              normFld_n[5] = dualFld_n[5]/norm2;
+
+              normFld_n[6] = dualFld_n[6]/norm3;
+              normFld_n[7] = dualFld_n[7]/norm3;
+              normFld_n[8] = dualFld_n[8]/norm3;
       }
     }
   }
   gkyl_nodal_ops_n2m(up->n2m, up->cbasis, up->grid, nrange, update_range, 6, gFld_nodal, gFld);
   gkyl_nodal_ops_n2m(up->n2m, up->cbasis, up->grid, nrange, update_range, 9, tanvecFld_nodal, tanvecFld);
   gkyl_nodal_ops_n2m(up->n2m, up->cbasis, up->grid, nrange, update_range, 9, dualFld_nodal, dualFld);
+  gkyl_nodal_ops_n2m(up->n2m, up->cbasis, up->grid, nrange, update_range, 9, normFld_nodal, normFld);
   gkyl_array_release(gFld_nodal);
   gkyl_array_release(tanvecFld_nodal);
   gkyl_array_release(dualFld_nodal);
+  gkyl_array_release(normFld_nodal);
 }
 
 void gkyl_calc_metric_advance_bcart(gkyl_calc_metric *up, struct gkyl_range *nrange,
