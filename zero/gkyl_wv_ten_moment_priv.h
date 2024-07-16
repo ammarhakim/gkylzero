@@ -167,9 +167,9 @@ ten_moment_wall(double t, int nc, const double *skin, double * GKYL_RESTRICT gho
 }
 
 GKYL_CU_D
-static void
+static inline void
 rot_to_local(const double *tau1, const double *tau2, const double *norm,
-  const double *qglobal, double *qlocal)
+  const double *GKYL_RESTRICT qglobal, double *GKYL_RESTRICT qlocal)
 {
   // Mass density is a scalar
   qlocal[0] = qglobal[0];
@@ -215,9 +215,9 @@ rot_to_local(const double *tau1, const double *tau2, const double *norm,
 }
 
 GKYL_CU_D
-static void
+static inline void
 rot_to_global(const double *tau1, const double *tau2, const double *norm,
-  const double *qlocal, double *qglobal)
+  const double *GKYL_RESTRICT qlocal, double *GKYL_RESTRICT qglobal)
 {
  
   // Mass density is a scalar
