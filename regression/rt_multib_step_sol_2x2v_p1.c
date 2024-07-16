@@ -33,10 +33,10 @@ create_block_geom(void)
                           // the gap removal changes get merged in
   double psi_lo_outer_sol = 0.9;
 
-  int npsi_outer_sol = 40;
+  int npsi_outer_sol = 4;
 
-  double ntheta_lower  = 12;
-  double ntheta_middle = 24;
+  double ntheta_lower  = 4;
+  double ntheta_middle = 8;
 
   double theta_lo = -M_PI, theta_up = M_PI;
 
