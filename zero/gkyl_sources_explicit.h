@@ -4,7 +4,7 @@
 
 /**
 * Integrate the number density and temperature source terms for a single fluid species within a single cell, using an explicit forcing solver
-* (specifically the simple first-order forward-Euler method).
+* (specifically a simple first-order forward-Euler method).
 *
 * @param mass Mass of the fluid species.
 * @param dt Current stable time-step.
@@ -16,7 +16,7 @@ void explicit_nT_source_update_euler(const double mass, const double dt, double*
 
 /**
 * Integrate the number density and temperature source terms in the multi-fluid equation system within a single cell, using an explicit forcing
-* solver (specifically the simple first-order forward-Euler method)
+* solver (specifically a simple first-order forward-Euler method)
 *
 * @param mom_em Moment-EM coupling object.
 * @param dt Current stable time-step.
@@ -27,14 +27,33 @@ void explicit_nT_source_update(const gkyl_moment_em_coupling* mom_em, const doub
   const double* nT_sources_s[GKYL_MAX_SPECIES]);
 
 /**
-* Integrate the frictional source terms in the multi-fluid equation system within a single cell, using an explicit forcing solver (specifically the
+* Integrate the frictional source terms in the multi-fluid equation system within a single cell, using an explicit forcing solver (specifically a
 * simple first-order forward-Euler method).
 *
 * @param mom_em Moment-EM coupling object.
+* @param Z Ionization number.
+* @param T_elc Electron temperature.
+* @param Lambda_ee Electron-electron collisional term.
+* @param t_curr Current simulation time.
+* @param dt Current stable time-step.
+* @param f_elc_old Array of old electron fluid variables (before source update).
+* @param f_ion_old Array of old ion fluid variables (before source update).
+* @param f_elc_new Array of new electron fluid variables (after source update).
+* @param f_ion_new Array of new ion fluid variables (after source update).
+*/
+void explicit_frictional_source_update_euler(const gkyl_moment_em_coupling* mom_em, const double Z, const double T_elc, const double Lambda_ee,
+  double t_curr, const double dt, double* f_elc_old, double* f_ion_old, double* f_elc_new, double* f_ion_new);
+
+/**
+* Integrate the frictional source terms in the multi-fluid equation system within a single cell, using an explicit forcing solver (specifically a
+* strong stability-preserving third-order Runge-Kutta method).
+*
+* @param mom_em Moment-EM coupling object.
+* @param t_curr Current simulation time.
 * @param dt Current stable time-step.
 * @param fluid_s Array of fluid variables (array size = nfluids).
 */
-void explicit_frictional_source_update(const gkyl_moment_em_coupling* mom_em, const double dt, double* fluid_s[GKYL_MAX_SPECIES]);
+void explicit_frictional_source_update(const gkyl_moment_em_coupling* mom_em, double t_curr, const double dt, double* fluid_s[GKYL_MAX_SPECIES]);
 
 /**
 * Integrate the electric field source terms in the multi-field equation system within a single cell, using an explicit forcing solver (specifically

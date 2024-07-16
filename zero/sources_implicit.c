@@ -420,6 +420,10 @@ implicit_source_coupling_update(const gkyl_moment_em_coupling* mom_em, double t_
     explicit_nT_source_update(mom_em, dt, fluid_s, nT_sources_s);
   }
   if (mom_em->has_frictional_sources) {
-    explicit_frictional_source_update(mom_em, dt, fluid_s);
+    int subcycling = 1000;
+
+    for (int i = 0; i < subcycling; i++) {
+      explicit_frictional_source_update(mom_em, t_curr, (1.0 / subcycling) * dt, fluid_s);
+    }
   }
 }

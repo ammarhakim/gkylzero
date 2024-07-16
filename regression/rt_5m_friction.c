@@ -66,8 +66,8 @@ create_ctx(void)
   double epsilon0 = 1.0; // Permittivity of free space.
   double mu0 = 1.0; // Permeability of free space.
   double mass_ion = 1.0; // Ion mass.
-  double charge_ion = 11.0; // Ion charge.
-  double mass_elc = 1.0 / 2000.0; // Electron mass.
+  double charge_ion = 1.0; // Ion charge.
+  double mass_elc = 1.0 / 200.0; // Electron mass.
   double charge_elc = -1.0; // Electron charge.
 
   double n_elc = 1.0; // Electron number density.
@@ -91,8 +91,8 @@ create_ctx(void)
   double Lx = 1.0; // Domain size (x-direction).
   double cfl_frac = 1.0; // CFL coefficient.
 
-  double t_end = 0.5; // Final simulation time.
-  int num_frames = 1; // Number of output frames.
+  double t_end = 0.2; // Final simulation time.
+  int num_frames = 100; // Number of output frames.
   double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.
   int num_failures_max = 20; // Maximum allowable number of consecutive small time-steps.
 
