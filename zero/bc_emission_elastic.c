@@ -65,9 +65,8 @@ gkyl_bc_emission_elastic_new(struct gkyl_elastic_model *elastic_model, struct gk
 
 #ifdef GKYL_HAVE_CUDA
   if (use_gpu) {
-    gkyl_bc_emission_elastic_set_extern_params_cu(up, cdim, vdim, mass);
     gkyl_proj_on_basis_advance(proj, 0.0, emit_buff_r, proj_buffer);
-
+    
     gkyl_array_copy(elastic_yield, proj_buffer);
   } else {
     gkyl_proj_on_basis_advance(proj, 0.0, emit_buff_r, elastic_yield);

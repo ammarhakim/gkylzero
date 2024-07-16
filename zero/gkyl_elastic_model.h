@@ -139,9 +139,3 @@ struct gkyl_elastic_model* gkyl_elastic_constant_new(double charge, double delta
 struct gkyl_elastic_model* gkyl_elastic_model_acquire(const struct gkyl_elastic_model* model);
 
 void gkyl_elastic_model_release(const struct gkyl_elastic_model* model);
-
-struct gkyl_elastic_model* gkyl_elastic_furman_pivi_cu_dev_new(double charge, double P1_inf, double P1_hat, double E_hat, double W, double p);
-
-struct gkyl_elastic_model* gkyl_elastic_cazaux_cu_dev_new(double charge, double E_f, double phi);
-
-struct gkyl_elastic_model* gkyl_elastic_constant_cu_dev_new(double charge, double delta);

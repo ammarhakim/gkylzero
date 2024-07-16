@@ -5,11 +5,6 @@
 struct gkyl_elastic_model*
 gkyl_elastic_furman_pivi_new(double charge, double P1_inf, double P1_hat, double E_hat, double W, double p, bool use_gpu)
 {
-#ifdef GKYL_HAVE_CUDA
-  if(use_gpu) {
-    return gkyl_elastic_furman_pivi_cu_dev_new(charge, P1_inf, P1_hat, E_hat, W, p);
-  }
-#endif
   struct gkyl_elastic_furman_pivi *model = gkyl_malloc(sizeof(struct gkyl_elastic_furman_pivi));
 
   model->P1_inf = P1_inf;
@@ -28,11 +23,6 @@ gkyl_elastic_furman_pivi_new(double charge, double P1_inf, double P1_hat, double
 struct gkyl_elastic_model*
 gkyl_elastic_cazaux_new(double charge, double E_f, double phi, bool use_gpu)
 {
-#ifdef GKYL_HAVE_CUDA
-  if(use_gpu) {
-    return gkyl_elastic_cazaux_cu_dev_new(charge, E_f, phi);
-  }
-#endif
   struct gkyl_elastic_cazaux *model = gkyl_malloc(sizeof(struct gkyl_elastic_cazaux));
   
   model->E_f = E_f;
@@ -48,11 +38,6 @@ gkyl_elastic_cazaux_new(double charge, double E_f, double phi, bool use_gpu)
 struct gkyl_elastic_model*
 gkyl_elastic_constant_new(double charge, double delta, bool use_gpu)
 {
-#ifdef GKYL_HAVE_CUDA
-  if(use_gpu) {
-    return gkyl_elastic_constant_cu_dev_new(charge, delta);
-  }
-#endif
   struct gkyl_elastic_constant *model = gkyl_malloc(sizeof(struct gkyl_elastic_constant));
   
   model->delta = delta;
