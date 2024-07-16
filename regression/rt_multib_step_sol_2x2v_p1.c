@@ -1,6 +1,8 @@
 #include <gkyl_alloc.h>
 #include <gkyl_const.h>
 #include <gkyl_gyrokinetic_multib.h>
+#include <gkyl_mpi_comm.h>
+#include <gkyl_null_comm.h>
 #include <gkyl_tok_geo.h>
 
 #include <rt_arg_parse.h>
@@ -380,11 +382,18 @@ main(int argc, char **argv)
 {
   struct gkyl_app_args app_args = parse_app_args(argc, argv);
 
-#ifdef GKYL_HAVE_MPI
+  struct gkyl_comm *comm = 0;
   if (app_args.use_mpi) {
+#ifdef GKYL_HAVE_MPI
     MPI_Init(&argc, &argv);
-  }
+    comm = gkyl_mpi_comm_new( &(struct gkyl_mpi_comm_inp) {
+        .mpi_comm = MPI_COMM_WORLD,
+      }
+    );
 #endif
+  }
+  if (comm == 0)
+    comm = gkyl_null_comm_inew( &(struct gkyl_null_comm_inp) { } );
 
   if (app_args.trace_mem) {
     gkyl_cu_dev_mem_debug_set(true);
@@ -395,14 +404,12 @@ main(int argc, char **argv)
   struct gkyl_block_geom *bgeom = create_block_geom();
   int nblocks = gkyl_block_geom_num_blocks(bgeom);
 
-
   struct gk_step_ctx ctx = create_ctx(); // Context for init functions.
   int cells_x[ctx.cdim], cells_v[ctx.vdim];
   for (int d=0; d<ctx.cdim; d++)
     cells_x[d] = APP_ARGS_CHOOSE(app_args.xcells[d], ctx.cells[d]);
   for (int d=0; d<ctx.vdim; d++)
     cells_v[d] = APP_ARGS_CHOOSE(app_args.vcells[d], ctx.cells[ctx.cdim+d]);
-
 
   // Elc Species
   // all data is common across blocks
@@ -689,7 +696,6 @@ main(int argc, char **argv)
       },
     },
 
-  
     .duplicate_across_blocks = true,
     .blocks = ion_blocks,
     .num_physical_bcs = 6,
@@ -757,11 +763,11 @@ main(int argc, char **argv)
   };
 
   struct gkyl_gyrokinetic_multib_field field = {
+    .duplicate_across_blocks = true,
+    .blocks = field_blocks, 
     .num_physical_bcs = 6,
     .bcs = field_phys_bcs,
   };
-
-
 
   struct gkyl_gyrokinetic_multib app_inp = {
     .name = "multib_step_sol_2x2v_p1",
@@ -777,10 +783,12 @@ main(int argc, char **argv)
     .num_species = 3,
     .species = { elc, ion, Ar1},
 
-    .num_neut_species = 3,
+    .num_neut_species = 1,
     .neut_species = { Ar0 },
 
-    .field = field
+    .field = field, 
+
+    .comm = comm
   };
 
   struct gkyl_gyrokinetic_multib_app *app = gkyl_gyrokinetic_multib_app_new(&app_inp);
@@ -796,9 +804,17 @@ main(int argc, char **argv)
   gkyl_gyrokinetic_multib_app_apply_ic(app, t_curr);
   write_data(&io_trig, app, t_curr, false);
 
+  gkyl_comm_release(comm);
   gkyl_block_geom_release(bgeom);
   gkyl_gyrokinetic_multib_app_release(app);
-  
+
+  finish:
+
+#ifdef GKYL_HAVE_MPI
+  if (app_args.use_mpi)
+    MPI_Finalize();
+#endif
+
   return 0;
 
 
