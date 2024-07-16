@@ -39,7 +39,7 @@ calc_max_cuts(const struct gkyl_block_geom *block_geom)
 }
 
 // construct single-block App for given block ID
-struct gkyl_moment_app *
+static struct gkyl_moment_app *
 singleb_app_new(const struct gkyl_moment_multib *mbinp, int bid,
   const struct gkyl_moment_multib_app *mbapp)
 {
@@ -204,7 +204,7 @@ singleb_app_new(const struct gkyl_moment_multib *mbinp, int bid,
       }
     }    
 
-    // copy species input into app input
+    // copy field input into app input
     memcpy(&app_inp.field, &field_inp, sizeof(struct gkyl_moment_field));
   }
 
