@@ -144,7 +144,7 @@ pkpm_species_init(struct gkyl_pkpm *pkpm, struct gkyl_pkpm_app *app, struct pkpm
   //    Momentum penalization returns the full penalization, e.g., the modal surface expansion of
   //    jump in the fluctuations from the 10 moment Roe solve 1/2 (A^+ Delta Q - A^- Delta Q)
   s->pkpm_lax = mkarr(app->use_gpu, cdim*Nbasis_surf, app->local_ext.volume);
-  s->pkpm_penalization = mkarr(app->use_gpu, cdim*Nbasis_surf, app->local_ext.volume);
+  s->pkpm_penalization = mkarr(app->use_gpu, 3*cdim*Nbasis_surf, app->local_ext.volume);
 
   // allocate array for pkpm acceleration variables, stored in pkpm_accel: 
   // 0: p_perp_div_b (p_perp/rho*div(b) = T_perp/m*div(b))
