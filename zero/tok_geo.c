@@ -518,12 +518,12 @@ void gkyl_tok_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, double
               double z_curr = res.res;
               
               if( inp->ftype == GKYL_PF_UP_L ||inp->ftype == GKYL_PF_LO_L || inp->ftype == GKYL_CORE_L || inp->ftype == GKYL_SOL_DN_IN|| inp->ftype == GKYL_SOL_DN_IN_UP || inp->ftype == GKYL_SOL_DN_IN_MID || inp->ftype == GKYL_SOL_DN_IN_LO) {
-                if(it == nrange->upper[TH_IDX] && it_delta == 0) z_curr = arc_ctx.zmin;
-                if(it == nrange->lower[TH_IDX] && it_delta == 0) z_curr = arc_ctx.zmax;
+                if(it == nrange->upper[TH_IDX] && (up->local.upper[TH_IDX]== up->global.upper[TH_IDX]) && it_delta == 0) z_curr = arc_ctx.zmin;
+                if(it == nrange->lower[TH_IDX] && (up->local.lower[TH_IDX]== up->global.lower[TH_IDX]) && it_delta == 0) z_curr = arc_ctx.zmax;
               }
               else {
-                if(it == nrange->upper[TH_IDX] && it_delta == 0) z_curr = arc_ctx.zmax;
-                if(it == nrange->lower[TH_IDX] && it_delta == 0) z_curr = arc_ctx.zmin;
+                if(it == nrange->upper[TH_IDX] && (up->local.upper[TH_IDX]== up->global.upper[TH_IDX]) && it_delta == 0) z_curr = arc_ctx.zmax;
+                if(it == nrange->lower[TH_IDX] && (up->local.lower[TH_IDX]== up->global.lower[TH_IDX]) && it_delta == 0) z_curr = arc_ctx.zmin;
               }
 
 
