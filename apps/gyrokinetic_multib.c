@@ -180,8 +180,8 @@ singleb_app_new(const struct gkyl_gyrokinetic_multib *mbinp, int bid,
     neut_species_inp.mass = nsp->mass; 
     neut_species_inp.is_static = nsp->is_static; 
 
-    // Velocity space information
-    for (int v=0; v<vdim; ++v) {
+    // Velocity space information (neutrals are 3V)
+    for (int v=0; v<3; ++v) {
       neut_species_inp.lower[v] = nsp->lower[v];
       neut_species_inp.upper[v] = nsp->upper[v];
       neut_species_inp.cells[v] = nsp->cells[v];

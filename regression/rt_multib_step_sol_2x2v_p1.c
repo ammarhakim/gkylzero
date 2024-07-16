@@ -347,7 +347,7 @@ initUpar(double t, const double *xn, double* restrict fout, void *ctx)
 }
 
 void
-initUparNeutral(double t, const double *xn, double* restrict fout, void *ctx)
+initUDriftNeutral(double t, const double *xn, double* restrict fout, void *ctx)
 {
   fout[0] = 0.0; 
   fout[1] = 0.0;
@@ -725,8 +725,8 @@ main(int argc, char **argv)
       .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM, 
       .ctx_density = &ctx,
       .density = initDensityNeutral,
-      .ctx_upar = &ctx,
-      .upar = initUparNeutral,
+      .ctx_udrift = &ctx,
+      .udrift = initUDriftNeutral,
       .ctx_temp = &ctx,
       .temp = initTempAr,
     },
@@ -750,6 +750,7 @@ main(int argc, char **argv)
     .lower = { -ctx.vpar_max_Ar, -ctx.vpar_max_Ar, -ctx.vpar_max_Ar},
     .upper = {  ctx.vpar_max_Ar,  ctx.vpar_max_Ar,  ctx.vpar_max_Ar },
     .cells = { cells_v[0], cells_v[0], cells_v[0] },
+    .is_static = true,
     .num_diag_moments = 3,
     .diag_moments = { "M0", "M1i", "M2"},
 
