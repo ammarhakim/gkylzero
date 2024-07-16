@@ -29,7 +29,8 @@ create_block_geom(void)
       Edges that coincide are physically connected.
   */  
 
-  double psisep = 1.50982;
+  double psisep = 1.4688; // This is a good dummy value to use until
+                          // the gap removal changes get merged in
   double psi_lo_outer_sol = 0.9;
 
   int npsi_outer_sol = 40;
@@ -38,6 +39,9 @@ create_block_geom(void)
   double ntheta_middle = 24;
 
   double theta_lo = -M_PI, theta_up = M_PI;
+
+  double Zxpt_lo = -6.1672666854902927;
+  double Zxpt_up = 6.1672666854902927;
 
   struct gkyl_tok_geo_efit_inp efit_inp = {
     // psiRZ and related inputs
@@ -59,7 +63,12 @@ create_block_geom(void)
         .tok_efit_info = efit_inp,
         .tok_grid_info = (struct gkyl_tok_geo_grid_inp) {
           .ftype = GKYL_SOL_DN_OUT_LO,
-          // other parameters: zmin.zmax, rclose, etc
+          .rright = 6.2,
+          .rleft = 1.1,
+          .rmin = 2.1,
+          .rmax = 6.2,
+          .zxpt_lo = Zxpt_lo,
+          .zmin = -8.29,
         }
       },
       
@@ -85,7 +94,12 @@ create_block_geom(void)
         .tok_efit_info = efit_inp,
         .tok_grid_info = (struct gkyl_tok_geo_grid_inp) {
           .ftype = GKYL_SOL_DN_OUT_MID,
-          // other parameters: zmin.zmax, rclose, etc
+          .rright = 6.2,
+          .rleft = 1.1,
+          .rmin = 2.1,
+          .rmax = 6.2,
+          .zxpt_lo = Zxpt_lo,
+          .zxpt_up = Zxpt_up,
         }
       },
       
