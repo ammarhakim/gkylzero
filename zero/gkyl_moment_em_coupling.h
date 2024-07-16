@@ -15,7 +15,7 @@ struct gkyl_moment_em_coupling_data {
   double charge; // Species charge.
   double mass; // Species mass.
 
-  double k0; // Closure parameter (for 10-moment equations onl; defaults to 0.0).
+  double k0; // Closure parameter (for 10-moment equations only; defaults to 0.0).
 };
 
 struct gkyl_moment_em_coupling_inp {
@@ -38,7 +38,11 @@ struct gkyl_moment_em_coupling_inp {
   bool use_explicit_em_coupling; // Use the explicit source-solver for handling moment-EM coupling (not operational yet).
 
   bool has_nT_sources; // Run with number density and temperature sources.
+
   bool has_frictional_sources; // Run with frictional sources.
+  double friction_Z; // Ionization number for frictional sources.
+  double friction_T_elc; // Electron temperature for frictional sources.
+  double friction_Lambda_ee; // Electron-electron collisional term for frictional sources.
 };
 
 // Moment-EM coupling object.

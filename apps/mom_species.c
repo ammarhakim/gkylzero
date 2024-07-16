@@ -23,7 +23,16 @@ moment_species_init(const struct gkyl_moment *mom, const struct gkyl_moment_spec
   // check if we are running with gradient-based closure
   sp->has_grad_closure = mom_sp->has_grad_closure == 0 ? 0 : mom_sp->has_grad_closure;
 
-  sp->has_friction = mom_sp->has_friction == 0 ? 0 : mom_sp->has_friction;
+  if (mom_sp->has_friction) {
+    sp->has_friction = true;
+    
+    sp->friction_Z = mom_sp->friction_Z;
+    sp->friction_T_elc = mom_sp->friction_T_elc;
+    sp->friction_Lambda_ee = mom_sp->friction_Lambda_ee;
+  }
+  else {
+    sp->has_friction = false;
+  }
 
   sp->scheme_type = mom->scheme_type;
 

@@ -48,6 +48,9 @@ struct moment_species {
   bool has_grad_closure; // has gradient-based closure (only for 10 moment)
 
   bool has_friction; // Run with frictional sources.
+  double friction_Z; // Ionization number for frictional sources.
+  double friction_T_elc; // Electron temperature for frictional sources.
+  double friction_Lambda_ee; // Electron-electron collisional term for frictional sources.
 
   int evolve; // evolve species? 1-yes, 0-no
 

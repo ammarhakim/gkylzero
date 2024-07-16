@@ -101,9 +101,9 @@ explicit_frictional_source_update(const gkyl_moment_em_coupling* mom_em, double 
     double *f_elc = fluid_s[0];
     double *f_ion = fluid_s[1];
 
-    double Z = 1.0; // PLACEHOLDER
-    double T_elc = 1.0; // PLACEHOLDER
-    double Lambda_ee = exp(1.0); // PLACEHOLDER
+    double Z = mom_em->friction_Z;
+    double T_elc = mom_em->friction_T_elc;
+    double Lambda_ee = mom_em->friction_Lambda_ee;
 
     double f_elc_new[5], f_elc_stage1[5], f_elc_stage2[5];
     double f_ion_new[5], f_ion_stage1[5], f_ion_stage2[5];

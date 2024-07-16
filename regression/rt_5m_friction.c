@@ -34,6 +34,10 @@ struct friction_ctx
   double u_elc; // Electron velocity (x-direction).
   double u_ion; // Ion velocity (x-direction).
 
+  double friction_Z; // Ionization number for frictional sources.
+  double friction_T_elc; // Electron temperature for frictional sources.
+  double friction_Lambda_ee; // Electron-electron collisional term for frictional sources.
+
   // Derived physical quantities (using normalized code units).
   double rho_elc; // Electron mass density.
   double rho_ion; // Ion mass density.
@@ -76,6 +80,10 @@ create_ctx(void)
   double u_elc = 0.1; // Electron velocity (x-direction).
   double u_ion = -0.1; // Ion velocity (x-direction).
 
+  double friction_Z = 1.0; // Ionization number for frictional sources.
+  double friction_T_elc = 1.0; // Electron temperature for frictional sources.
+  double friction_Lambda_ee = exp(1.0); // Electron-electron collisional term for frictional sources.
+
   // Derived physical quantities (using normalized code units).
   double rho_elc = n_elc * mass_elc; // Electron mass density.
   double rho_ion = n_ion * mass_ion; // Ion mass density;
@@ -108,6 +116,9 @@ create_ctx(void)
     .n_ion = n_ion,
     .u_elc = u_elc,
     .u_ion = u_ion,
+    .friction_Z = friction_Z,
+    .friction_T_elc = friction_T_elc,
+    .friction_Lambda_ee = friction_Lambda_ee,
     .rho_elc = rho_elc,
     .rho_ion = rho_ion,
     .mom_elc = mom_elc,
@@ -216,10 +227,14 @@ main(int argc, char **argv)
     .equation = elc_euler,
     .evolve = true,
     .init = evalElcInit,
-    .has_friction = true,
     .ctx = &ctx,
 
     .bcy = { GKYL_SPECIES_REFLECT, GKYL_SPECIES_REFLECT },
+
+    .has_friction = true,
+    .friction_Z = ctx.friction_Z,
+    .friction_T_elc = ctx.friction_T_elc,
+    .friction_Lambda_ee = ctx.friction_Lambda_ee,
   };
 
   struct gkyl_moment_species ion = {
@@ -228,10 +243,14 @@ main(int argc, char **argv)
     .equation = ion_euler,
     .evolve = true,
     .init = evalIonInit,
-    .has_friction = true,
     .ctx = &ctx,
 
     .bcy = { GKYL_SPECIES_REFLECT, GKYL_SPECIES_REFLECT },    
+
+    .has_friction = true,
+    .friction_Z = ctx.friction_Z,
+    .friction_T_elc = ctx.friction_T_elc,
+    .friction_Lambda_ee = ctx.friction_Lambda_ee,
   };
 
   // Field.
