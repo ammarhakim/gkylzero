@@ -25,7 +25,7 @@ struct gkyl_wv_eqn*
 gkyl_wv_ten_moment_new(double k0, bool use_gpu)
 {
 #ifdef GKYL_HAVE_CUDA
-  if(inp->use_gpu) {
+  if (use_gpu) {
     return gkyl_wv_ten_moment_cu_dev_new(k0);
   } 
 #endif    
