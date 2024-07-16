@@ -563,6 +563,26 @@ void gkyl_gyrokinetic_app_write_coll_mom(gkyl_gyrokinetic_app *app, int sidx, do
 void gkyl_gyrokinetic_app_write_rad_drag(gkyl_gyrokinetic_app *app, int sidx, double tm, int frame);
 
 /**
+ * Write radiation momentum loss (m1 momentum of radiation rhs)
+ * 
+ * @param app App object.
+ * @param sidx Index of species to initialize.
+ * @param tm Time-stamp
+ * @param frame Frame number
+ */
+void gkyl_gyrokinetic_app_write_rad_momentum(gkyl_gyrokinetic_app *app, int sidx, double tm, int frame);
+
+/**
+ * Write radiation particle conservation (m0 momentum of radiation rhs)
+ * 
+ * @param app App object.
+ * @param sidx Index of species to initialize.
+ * @param tm Time-stamp
+ * @param frame Frame number
+ */
+void gkyl_gyrokinetic_app_write_rad_particles(gkyl_gyrokinetic_app *app, int sidx, double tm, int frame);
+
+/**
  * Write radiation emissivity of each species that species sidx collides with
  * 
  * @param app App object.
@@ -571,6 +591,17 @@ void gkyl_gyrokinetic_app_write_rad_drag(gkyl_gyrokinetic_app *app, int sidx, do
  * @param frame Frame number
  */
 void gkyl_gyrokinetic_app_write_rad_emissivity(gkyl_gyrokinetic_app *app, int sidx, double tm, int frame);
+
+/**
+ * Write radiation emissivity of a each species that species sidx collides with, assuming a 
+ *  maxwellian for sidx
+ * 
+ * @param app App object.
+ * @param sidx Index of species to initialize.
+ * @param tm Time-stamp
+ * @param frame Frame number
+ */
+void gkyl_gyrokinetic_app_write_rad_maxwellian_f_emissivity(gkyl_gyrokinetic_app *app, int sidx, double tm, int frame);
 
 /**
  * Write integrated moments of radiation rhs for radiating species 

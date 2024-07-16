@@ -1,6 +1,9 @@
 #include <assert.h>
 #include <gkyl_gyrokinetic_priv.h>
 
+#define XSTR(x) #x
+#define STR(x) XSTR(x)
+
 void 
 gk_species_react_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s, 
   struct gkyl_gyrokinetic_react inp, struct gk_react *react, bool all_gk)
@@ -73,7 +76,7 @@ gk_species_react_cross_init(struct gkyl_gyrokinetic_app *app, struct gk_species 
         .charge_state = react->react_type[i].charge_state,
         .type_self = react->type_self[i],
         .all_gk = react->all_gk,
-        .base = ".",
+        .base = STR(GKYL_SHARE_DIR),
       };
       react->iz[i] = gkyl_dg_iz_new(&iz_inp, app->use_gpu);
     }
@@ -90,7 +93,7 @@ gk_species_react_cross_init(struct gkyl_gyrokinetic_app *app, struct gk_species 
         .charge_state = react->react_type[i].charge_state,
         .type_self = react->type_self[i],
         .all_gk = react->all_gk,
-        .base = ".",
+        .base = STR(GKYL_SHARE_DIR),
       };
       react->recomb[i] = gkyl_dg_recomb_new(&recomb_inp, app->use_gpu);
     }
