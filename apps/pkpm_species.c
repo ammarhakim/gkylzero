@@ -87,7 +87,7 @@ pkpm_species_init(struct gkyl_pkpm *pkpm, struct gkyl_pkpm_app *app, struct pkpm
 
   // Wave equation object for upwinding fluid equations
   // We use the 10 moment system since PKPM model generates a full pressure tensor
-  s->equation = gkyl_wv_ten_moment_new(0.0); // k0 = 0.0 because we do not need a closure
+  s->equation = gkyl_wv_ten_moment_new(0.0, app->use_gpu); // k0 = 0.0 because we do not need a closure
 
   // Distribution function arrays for coupling different Laguerre moments
   // g_dist_source has two components: 
