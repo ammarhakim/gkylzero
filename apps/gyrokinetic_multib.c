@@ -334,14 +334,14 @@ gkyl_gyrokinetic_multib_app* gkyl_gyrokinetic_multib_app_new(const struct gkyl_g
   mbapp->block_geom = gkyl_block_geom_acquire(mbinp->block_geom);
   mbapp->block_topo = gkyl_block_geom_topo(mbinp->block_geom);
   
-  int ndim = gkyl_block_geom_ndim(mbapp->block_geom);
+  int cdim = gkyl_block_geom_ndim(mbapp->block_geom);
   int num_blocks = gkyl_block_geom_num_blocks(mbapp->block_geom);
 
   // construct round-robin decomposition
   int *branks = gkyl_malloc(sizeof(int[num_blocks]));
   for (int i=0; i<num_blocks; ++i) {
     const struct gkyl_block_geom_info *bgi = gkyl_block_geom_get_block(mbapp->block_geom, i);
-    branks[i] = calc_cuts(ndim, bgi->cuts);
+    branks[i] = calc_cuts(cdim, bgi->cuts);
   }
   const struct gkyl_rrobin_decomp *rrd = gkyl_rrobin_decomp_new(num_ranks, num_blocks, branks);
 
@@ -367,10 +367,10 @@ gkyl_gyrokinetic_multib_app* gkyl_gyrokinetic_multib_app_new(const struct gkyl_g
 
     const struct gkyl_block_geom_info *bgi = gkyl_block_geom_get_block(mbapp->block_geom, i);
     struct gkyl_range block_global_range;
-    gkyl_create_global_range(ndim, bgi->cells, &block_global_range);
+    gkyl_create_global_range(cdim, bgi->cells, &block_global_range);
 
     struct gkyl_rect_decomp *decomp = gkyl_rect_decomp_new_from_cuts(
-      ndim, bgi->cuts, &block_global_range);
+      cdim, bgi->cuts, &block_global_range);
 
     bool status;
     mbapp->block_comms[i] = gkyl_comm_create_comm_from_ranks(mbinp->comm,

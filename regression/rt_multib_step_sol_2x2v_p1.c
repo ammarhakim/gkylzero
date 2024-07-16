@@ -57,6 +57,7 @@ create_block_geom(void)
       .lower = { psi_lo_outer_sol, theta_lo },
       .upper = { psisep, theta_up },
       .cells = { npsi_outer_sol, ntheta_lower},
+      .cuts = { 1, 1 },
       .geometry = {
         .world = {0.0},
         .geometry_id = GKYL_TOKAMAK,
@@ -88,6 +89,7 @@ create_block_geom(void)
       .lower = { psi_lo_outer_sol, theta_lo },
       .upper = { psisep, theta_up },
       .cells = { npsi_outer_sol, ntheta_middle},
+      .cuts = { 1, 1 },
       .geometry = {
         .world = {0.0},
         .geometry_id = GKYL_TOKAMAK,
