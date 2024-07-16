@@ -47,6 +47,8 @@ struct moment_species {
   double k0; // closure parameter (default is 0.0, used by 10 moment)
   bool has_grad_closure; // has gradient-based closure (only for 10 moment)
 
+  bool has_friction; // Run with frictional sources.
+
   int evolve; // evolve species? 1-yes, 0-no
 
   void *ctx; // context for initial condition init function

@@ -40,6 +40,15 @@ moment_coupling_init(const struct gkyl_moment_app *app, struct moment_coupling *
   for (int n=0;  n<app->num_species; ++n) 
     use_rel = use_rel || (app->species[n].eqn_type == GKYL_EQN_COLDFLUID_SR) || app->field.use_explicit_em_coupling;
 
+  bool has_friction = 0;
+  for (int i = 0; i < app->num_species; i++) {
+    if(app->species[i].has_friction) {
+      has_friction = 1;
+    }
+  }
+
+  src_inp.has_frictional_sources = has_friction;
+
   // save the use-rel bool
   src_inp.use_rel = use_rel;
 

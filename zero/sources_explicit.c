@@ -65,7 +65,7 @@ void explicit_frictional_source_update(const gkyl_moment_em_coupling* mom_em, co
 
     double Z = 1.0; // PLACEHOLDER
     double T_elc = 1.0; // PLACEHOLDER
-    double Lambda_ee = 1.0; // PLACEHOLDER
+    double Lambda_ee = exp(1.0); // PLACEHOLDER
 
     double n_elc = rho_elc / mass_elc;
 
