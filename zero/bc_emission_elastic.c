@@ -55,7 +55,7 @@ gkyl_bc_emission_elastic_new(struct gkyl_elastic_model *elastic_model, struct gk
     use_gpu);
 
   
-  up->elastic_model = elastic_model;
+  up->elastic_model = gkyl_elastic_model_acquire(elastic_model);
   up->elastic_model->cdim = cdim;
   up->elastic_model->vdim = vdim;
   up->elastic_model->mass = mass;
@@ -101,6 +101,7 @@ gkyl_bc_emission_elastic_advance(const struct gkyl_bc_emission_elastic *up,
 
 void gkyl_bc_emission_elastic_release(struct gkyl_bc_emission_elastic *up)
 {
+  gkyl_elastic_model_release(up->elastic_model);
   gkyl_free(up->reflect_func->ctx);
   gkyl_free(up->reflect_func);
   // Release updater memory.

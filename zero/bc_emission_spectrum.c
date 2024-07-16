@@ -91,11 +91,11 @@ gkyl_bc_emission_spectrum_new(struct gkyl_spectrum_model *spectrum_model,
     ghost[cdim+d] = 0;
   }
 
-  up->spectrum_model = spectrum_model;
+  up->spectrum_model = gkyl_spectrum_model_acquire(spectrum_model);
   up->spectrum_model->cdim = cdim;
   up->spectrum_model->vdim = vdim;
   up->spectrum_model->mass = mass_out;
-  up->yield_model = yield_model;
+  up->yield_model = gkyl_yield_model_acquire(yield_model);
   up->yield_model->cdim = cdim;
   up->yield_model->vdim = vdim;
   up->yield_model->mass = mass_in;
@@ -183,6 +183,8 @@ gkyl_bc_emission_spectrum_advance(const struct gkyl_bc_emission_spectrum *up,
 
 void gkyl_bc_emission_spectrum_release(struct gkyl_bc_emission_spectrum *up)
 {
+  gkyl_spectrum_model_release(up->spectrum_model);
+  gkyl_yield_model_release(up->yield_model);
   // Release updater memory.
   gkyl_free(up);
 }
