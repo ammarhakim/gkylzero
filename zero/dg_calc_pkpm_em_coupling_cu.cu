@@ -84,7 +84,7 @@ gkyl_dg_calc_pkpm_em_coupling_copy_one_fluid_cu_kernel(gkyl_dg_calc_pkpm_em_coup
     double *em_d = (double*) gkyl_array_fetch(em, loc);
 
     up->pkpm_em_coupling_copy(linc1, up->num_species, up->qbym, up->epsilon0, 
-      up->xs, pkpm_moms, pkpm_flows, fluids, em_d);
+      xs, pkpm_moms, pkpm_flows, fluids, em_d);
   }
 }
 
@@ -167,7 +167,7 @@ gkyl_dg_calc_pkpm_em_coupling_copy_two_fluids_cu_kernel(gkyl_dg_calc_pkpm_em_cou
     double *em_d = (double*) gkyl_array_fetch(em, loc);
 
     up->pkpm_em_coupling_copy(linc1, up->num_species, up->qbym, up->epsilon0, 
-      up->xs, pkpm_moms, pkpm_flows, fluids, em_d);
+      xs, pkpm_moms, pkpm_flows, fluids, em_d);
   }
 }
 
