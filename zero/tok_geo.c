@@ -352,10 +352,10 @@ gkyl_tok_geo_R_psiZ(const struct gkyl_tok_geo *geo, double psi, double Z, int nm
 // write out nodal coordinates 
 static void
 write_nodal_coordinates(const char *nm, struct gkyl_range *nrange,
-  struct gkyl_array *nodes)
+  struct gkyl_array *nodes, struct gkyl_rect_grid *mgrid)
 {
-  double lower[3] = { 0.0, 0.0, 0.0 };
-  double upper[3] = { 1.0, 1.0, 1.0 };
+  double lower[3] = { mgrid->lower[0], mgrid->lower[1], mgrid->lower[2] };
+  double upper[3] = { mgrid->upper[0], mgrid->upper[1], mgrid->upper[2] };
   int cells[3];
   for (int i=0; i<nrange->ndim; ++i)
     cells[i] = gkyl_range_shape(nrange, i);
@@ -635,8 +635,8 @@ void gkyl_tok_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, double
   char str1[50] = "xyz";
   char str2[50] = "allxyz";
   if (inp->write_node_coord_array){
-    write_nodal_coordinates(strcat(str1, inp->node_file_nm), nrange, mc2p_nodal);
-    write_nodal_coordinates(strcat(str2, inp->node_file_nm), nrange, mc2p_nodal_fd);
+    write_nodal_coordinates(strcat(str1, inp->node_file_nm), nrange, mc2p_nodal, &inp->cgrid);
+    write_nodal_coordinates(strcat(str2, inp->node_file_nm), nrange, mc2p_nodal_fd, &inp->cgrid);
   }
   gkyl_free(arc_memo);
   gkyl_free(arc_memo_left);
