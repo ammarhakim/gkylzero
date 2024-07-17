@@ -28,7 +28,7 @@ GKYL_CU_DH void fpo_diff_coeff_cross_1x3v_vxvy_ser_p2_lovx_invy(const double *dx
   const double* GBR = fpo_g_stencil[3]; 
   const double* GCR = fpo_g_stencil[4]; 
   const double* GTR = fpo_g_stencil[5]; 
-  const double* dGdvy_surf_CC_vx = &fpo_dgdv_surf[20]; 
+  const double* dGdvy_surf_CC_vx = &fpo_dgdv_surf[0]; 
 
   surft1_lo[0] = dGdvy_surf_CC_vx[0]/dv2; 
   surft1_lo[1] = dGdvy_surf_CC_vx[1]/dv2; 

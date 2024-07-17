@@ -225,5 +225,5 @@ GKYL_CU_DH double fpo_vlasov_diff_boundary_surfvzvy_1x3v_ser_p2_upvz_lovy(const 
   out[47] += (0.5*vol[47]-2.3717082451262845*(surft2_up[10]+surft2_lo[10])+0.7905694150420949*surft1_up[10]-0.7905694150420949*surft1_lo[10])*dv1_sq; 
   double cflFreq = fabs(Dsurf_CC_vz[0]); 
 
-  return 2.25*dv1_sq*cflFreq; 
+  return 3.181980515339463*dv1_sq*cflFreq; 
 } 

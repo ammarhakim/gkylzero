@@ -141,7 +141,6 @@ void gkyl_calc_fpo_diff_coeff_recovery(const struct gkyl_rect_grid *grid,
 
         diff_coeff_cross_recovery_stencil[d1][d2][keri](grid->dx, gamma_c, fpo_g_stencil,
           fpo_g_surf_stencil, fpo_dgdv_surf_c, fpo_diff_coeff_c);
-        
       }
     }
   }

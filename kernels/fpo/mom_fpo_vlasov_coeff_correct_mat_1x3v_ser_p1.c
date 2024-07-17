@@ -64,25 +64,25 @@ GKYL_CU_DH void mom_fpo_vlasov_coeff_correct_mat_1x3v_ser_p1(struct gkyl_mat *lh
   gkyl_mat_set(lhs, 7, 4, 0.7071067811865475*m1z[1]); 
   gkyl_mat_set(lhs, 7, 5, 0.7071067811865475*m1z[0]); 
  
-  // Block from weak multiply of bcorr_ax with diff_coeff_corr. 
+  // Block from weak multiply of -bcorr_ax with diff_coeff_corr. 
   gkyl_mat_set(lhs, 0, 6, -(0.7071067811865475*bcorr_ax[0])); 
   gkyl_mat_set(lhs, 0, 7, -(0.7071067811865475*bcorr_ax[1])); 
   gkyl_mat_set(lhs, 1, 6, -(0.7071067811865475*bcorr_ax[1])); 
   gkyl_mat_set(lhs, 1, 7, -(0.7071067811865475*bcorr_ax[0])); 
  
-  // Block from weak multiply of bcorr_ay with diff_coeff_corr. 
+  // Block from weak multiply of -bcorr_ay with diff_coeff_corr. 
   gkyl_mat_set(lhs, 2, 6, -(0.7071067811865475*bcorr_ay[0])); 
   gkyl_mat_set(lhs, 2, 7, -(0.7071067811865475*bcorr_ay[1])); 
   gkyl_mat_set(lhs, 3, 6, -(0.7071067811865475*bcorr_ay[1])); 
   gkyl_mat_set(lhs, 3, 7, -(0.7071067811865475*bcorr_ay[0])); 
  
-  // Block from weak multiply of bcorr_az with diff_coeff_corr. 
+  // Block from weak multiply of -bcorr_az with diff_coeff_corr. 
   gkyl_mat_set(lhs, 4, 6, -(0.7071067811865475*bcorr_az[0])); 
   gkyl_mat_set(lhs, 4, 7, -(0.7071067811865475*bcorr_az[1])); 
   gkyl_mat_set(lhs, 5, 6, -(0.7071067811865475*bcorr_az[1])); 
   gkyl_mat_set(lhs, 5, 7, -(0.7071067811865475*bcorr_az[0])); 
  
-  // Block from weak multiply of (bcorr_energy+vdim*M0) with diff_coeff_corr. 
+  // Block from weak multiply of (vdim*M0-bcorr_energy) with diff_coeff_corr. 
   gkyl_mat_set(lhs, 6, 6, 2.1213203435596424*m0[0]-0.7071067811865475*bcorr_energy[0]); 
   gkyl_mat_set(lhs, 6, 7, 2.1213203435596424*m0[1]-0.7071067811865475*bcorr_energy[1]); 
   gkyl_mat_set(lhs, 7, 6, 2.1213203435596424*m0[1]-0.7071067811865475*bcorr_energy[1]); 

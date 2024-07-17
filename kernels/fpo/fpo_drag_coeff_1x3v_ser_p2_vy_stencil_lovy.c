@@ -1,17 +1,14 @@
 #include <gkyl_fpo_vlasov_kernels.h> 
 
-GKYL_CU_DH int fpo_drag_coeff_1x3v_vy_ser_p2_lovy(const double *dxv, const double *gamma, 
+GKYL_CU_DH void fpo_drag_coeff_1x3v_vy_ser_p2_lovy(const double *dxv, const double *gamma, 
     const double* fpo_h_stencil[3], const double* fpo_dhdv_surf, double *drag_coeff, 
-    double *drag_coeff_surf, double *sgn_drag_coeff_surf
-    ) {
+    double *drag_coeff_surf) {
   // dxv[NDIM]: Cell spacing in each direction. 
   // gamma: Scalar factor gamma. 
   // fpo_h_stencil[3]: 3 cell stencil of Rosenbluth potential H. 
   // fpo_dhdv_surf: Surface projection of dH/dv in center cell. 
   // drag_coeff: Output array for drag coefficient. 
   // drag_coeff_surf: Surface projection of drag coefficient at lower boundary.
-  // sgn_drag_coeff_surf: Sign(drag_coeff_surf) evaluated at quadrature points along lower surface.
-  // returns const_sgn_drag_coeff: 1 if sign(drag_coeff_surf) is constant along lower boundary, 0 otherwise. 
 
   // Use cell-average value for gamma. 
   double gamma_avg = gamma[0]/sqrt(pow(2, 1)); 
@@ -24,7 +21,7 @@ GKYL_CU_DH int fpo_drag_coeff_1x3v_vy_ser_p2_lovy(const double *dxv, const doubl
   
   double *out = &drag_coeff[48]; 
   double *out_surf = &drag_coeff_surf[20]; 
-  double *sgn_alpha_surf = &sgn_drag_coeff_surf[27]; 
+  // double *sgn_alpha_surf = &sgn_drag_coeff_surf[8]; 
   
   out[0] = (0.8441156615061707*H_R[13]-2.01805134969356*H_C[13]-1.1691342951089918*H_R[3]+1.6454482671904334*H_C[3]+0.8125*H_R[0]-0.8125*H_C[0])*dv1*gamma_avg+0.1414213562373096*dHdv_surf_C[0]*gamma_avg; 
   out[1] = (0.8441156615061707*H_R[23]-2.0180513496935606*H_C[23]-1.1691342951089916*H_R[6]+1.6454482671904334*H_C[6]+0.8125*H_R[1]-0.8125*H_C[1])*dv1*gamma_avg+0.1414213562373096*dHdv_surf_C[1]*gamma_avg; 
@@ -96,34 +93,5 @@ GKYL_CU_DH int fpo_drag_coeff_1x3v_vy_ser_p2_lovy(const double *dxv, const doubl
   out_surf[18] = 0.0; 
   out_surf[19] = 0.0; 
 
-  sgn_alpha_surf[0] = 0.0;
-  sgn_alpha_surf[1] = 0.0;
-  sgn_alpha_surf[2] = 0.0;
-  sgn_alpha_surf[3] = 0.0;
-  sgn_alpha_surf[4] = 0.0;
-  sgn_alpha_surf[5] = 0.0;
-  sgn_alpha_surf[6] = 0.0;
-  sgn_alpha_surf[7] = 0.0;
-  sgn_alpha_surf[8] = 0.0;
-  sgn_alpha_surf[9] = 0.0;
-  sgn_alpha_surf[10] = 0.0;
-  sgn_alpha_surf[11] = 0.0;
-  sgn_alpha_surf[12] = 0.0;
-  sgn_alpha_surf[13] = 0.0;
-  sgn_alpha_surf[14] = 0.0;
-  sgn_alpha_surf[15] = 0.0;
-  sgn_alpha_surf[16] = 0.0;
-  sgn_alpha_surf[17] = 0.0;
-  sgn_alpha_surf[18] = 0.0;
-  sgn_alpha_surf[19] = 0.0;
-  sgn_alpha_surf[20] = 0.0;
-  sgn_alpha_surf[21] = 0.0;
-  sgn_alpha_surf[22] = 0.0;
-  sgn_alpha_surf[23] = 0.0;
-  sgn_alpha_surf[24] = 0.0;
-  sgn_alpha_surf[25] = 0.0;
-  sgn_alpha_surf[26] = 0.0;
-  int const_sgn_alpha_surf = 0; 
-  return const_sgn_alpha_surf; 
 } 
 

@@ -8,9 +8,19 @@
 #include <gkyl_util.h>
 #include <gkyl_fpo_vlasov_kernels.h>
 
+GKYL_CU_DH
 static void
-create_offsets(const int num_up_dirs, const bool is_edge_lower[], const bool is_edge_upper[], const int update_dirs[], const struct gkyl_range *range, long offsets[])
+create_offsets(const int num_up_dirs, const int update_dirs[2], 
+  const struct gkyl_range *range, const int idxc[GKYL_MAX_DIM], long offsets[9])
 {
+  
+  // Check if we're at an upper or lower edge in each direction
+  bool is_edge_upper[2], is_edge_lower[2];
+  for (int i=0; i<num_up_dirs; ++i) {
+    is_edge_lower[i] = idxc[update_dirs[i]] == range->lower[update_dirs[i]];
+    is_edge_upper[i] = idxc[update_dirs[i]] == range->upper[update_dirs[i]];
+  }
+
   // Construct the offsets *only* in the directions being updated.
   // No need to load the neighbors that are not needed for the update.
   int lower_offset[GKYL_MAX_DIM] = {0};
@@ -30,6 +40,7 @@ create_offsets(const int num_up_dirs, const bool is_edge_lower[], const bool is_
   int count = 0;
   while (gkyl_range_iter_next(&iter3))
     offsets[count++] = gkyl_range_offset(range, iter3.idx);
+
 }
 
 static int idx_to_inloup_ker(int dim, const int *idx, const int *dirs, const int *num_cells) {
@@ -46,13 +57,18 @@ static int idx_to_inloup_ker(int dim, const int *idx, const int *dirs, const int
 }
 
 // Kernel function pointers
-typedef int (*fpo_drag_coeff_t)(const double *dxv, const double *gamma,
-  const double* fpo_h_stencil[3], const double* fpo_dhdv_surf, double *drag_coeff,
-  double *drag_coeff_surf, double *sgn_drag_coeff_surf);
+typedef void (*fpo_drag_coeff_t)(const double *dxv, const double *gamma, 
+    const double* fpo_h_stencil[3], const double* fpo_dhdv_surf, double *drag_coeff, 
+    double *drag_coeff_surf);
+
+typedef int (*fpo_sgn_drag_coeff_t)(const double *drag_coeff_surf, double *sgn_drag_coeff_surf);
 
 // For use in kernel tables
 typedef struct { fpo_drag_coeff_t kernels[3]; } gkyl_dg_fpo_drag_coeff_kern_list;
 typedef struct { gkyl_dg_fpo_drag_coeff_kern_list list[3]; } gkyl_dg_fpo_drag_coeff_stencil_list;
+
+typedef struct { fpo_sgn_drag_coeff_t kernels[3]; } gkyl_dg_fpo_sgn_drag_coeff_kern_list;
+typedef struct { gkyl_dg_fpo_sgn_drag_coeff_kern_list list[3]; } gkyl_dg_fpo_sgn_drag_coeff_stencil_list;
 
 // drag coefficient kernel lists
 GKYL_CU_D
@@ -82,6 +98,34 @@ static const gkyl_dg_fpo_drag_coeff_stencil_list ser_fpo_drag_coeff_1x3v_vz_kern
   }
 };
 
+// sgn drag coefficient kernel lists
+GKYL_CU_D
+static const gkyl_dg_fpo_sgn_drag_coeff_stencil_list ser_fpo_sgn_drag_coeff_1x3v_vx_kernels = {
+  {
+    {NULL, NULL, NULL},
+    {fpo_sgn_drag_coeff_1x3v_vx_ser_p1_invx, fpo_sgn_drag_coeff_1x3v_vx_ser_p1_lovx, fpo_sgn_drag_coeff_1x3v_vx_ser_p1_upvx},
+    {fpo_sgn_drag_coeff_1x3v_vx_ser_p2_invx, fpo_sgn_drag_coeff_1x3v_vx_ser_p2_lovx, fpo_sgn_drag_coeff_1x3v_vx_ser_p2_upvx}
+  }
+};
+
+GKYL_CU_D
+static const gkyl_dg_fpo_sgn_drag_coeff_stencil_list ser_fpo_sgn_drag_coeff_1x3v_vy_kernels = {
+  {
+    {NULL, NULL, NULL},
+    {fpo_sgn_drag_coeff_1x3v_vy_ser_p1_invy, fpo_sgn_drag_coeff_1x3v_vy_ser_p1_lovy, fpo_sgn_drag_coeff_1x3v_vy_ser_p1_upvy},
+    {fpo_sgn_drag_coeff_1x3v_vy_ser_p2_invy, fpo_sgn_drag_coeff_1x3v_vy_ser_p2_lovy, fpo_sgn_drag_coeff_1x3v_vy_ser_p2_upvy}
+  }
+};
+
+GKYL_CU_D
+static const gkyl_dg_fpo_sgn_drag_coeff_stencil_list ser_fpo_sgn_drag_coeff_1x3v_vz_kernels = {
+  {
+    {NULL, NULL, NULL},
+    {fpo_sgn_drag_coeff_1x3v_vz_ser_p1_invz, fpo_sgn_drag_coeff_1x3v_vz_ser_p1_lovz, fpo_sgn_drag_coeff_1x3v_vz_ser_p1_upvz},
+    {fpo_sgn_drag_coeff_1x3v_vz_ser_p2_invz, fpo_sgn_drag_coeff_1x3v_vz_ser_p2_lovz, fpo_sgn_drag_coeff_1x3v_vz_ser_p2_upvz}
+  }
+};
+
 GKYL_CU_D
 static fpo_drag_coeff_t
 choose_ser_fpo_drag_coeff_recovery_kern(int dir, int cdim, int poly_order, int stencil_idx)
@@ -92,6 +136,20 @@ choose_ser_fpo_drag_coeff_recovery_kern(int dir, int cdim, int poly_order, int s
     return ser_fpo_drag_coeff_1x3v_vy_kernels.list[poly_order].kernels[stencil_idx];
   else if (dir == 2)
     return ser_fpo_drag_coeff_1x3v_vz_kernels.list[poly_order].kernels[stencil_idx];
+  else
+    return NULL;
+};
+
+GKYL_CU_D
+static fpo_sgn_drag_coeff_t
+choose_ser_fpo_sgn_drag_coeff_recovery_kern(int dir, int cdim, int poly_order, int stencil_idx)
+{
+  if (dir == 0)
+    return ser_fpo_sgn_drag_coeff_1x3v_vx_kernels.list[poly_order].kernels[stencil_idx];
+  else if (dir == 1)
+    return ser_fpo_sgn_drag_coeff_1x3v_vy_kernels.list[poly_order].kernels[stencil_idx];
+  else if (dir == 2)
+    return ser_fpo_sgn_drag_coeff_1x3v_vz_kernels.list[poly_order].kernels[stencil_idx];
   else
     return NULL;
 };
