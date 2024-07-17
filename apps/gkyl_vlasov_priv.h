@@ -17,6 +17,7 @@
 #include <gkyl_array_reduce.h>
 #include <gkyl_array_rio.h>
 #include <gkyl_bc_basic.h>
+#include <gkyl_bc_emission.h>
 #include <gkyl_bc_emission_spectrum.h>
 #include <gkyl_bc_emission_elastic.h>
 #include <gkyl_bgk_collisions.h>
@@ -213,6 +214,11 @@ struct vm_emitting_wall {
   double t_bound;
   bool elastic;
 
+  struct gkyl_spectrum_model *spectrum_model[GKYL_MAX_SPECIES];
+  struct gkyl_yield_model *yield_model[GKYL_MAX_SPECIES];
+  struct gkyl_elastic_model *elastic_model;
+  struct gkyl_bc_emission_ctx *params;
+
   struct gkyl_bc_emission_spectrum *update[GKYL_MAX_SPECIES];
   struct gkyl_bc_emission_elastic *elastic_update;
   struct gkyl_array *f_emit;
@@ -226,7 +232,6 @@ struct vm_emitting_wall {
   struct gkyl_array *k[GKYL_MAX_SPECIES];
   struct vm_species *impact_species[GKYL_MAX_SPECIES]; // pointers to impacting species
   struct gkyl_range impact_normal_r[GKYL_MAX_SPECIES];
-  struct vm_emission_ctx *params;
   struct gkyl_dg_updater_moment *flux_slvr[GKYL_MAX_SPECIES]; // integrated moments
 
   struct gkyl_rect_grid *impact_grid[GKYL_MAX_SPECIES];

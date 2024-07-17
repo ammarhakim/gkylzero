@@ -5,7 +5,7 @@ void
 vm_species_emission_init(struct gkyl_vlasov_app *app, struct vm_emitting_wall *emit,
   int dir, enum gkyl_edge_loc edge, void *ctx, bool use_gpu)
 {
-  struct vm_emission_ctx *params = ctx;
+  struct gkyl_bc_emission_ctx *params = ctx;
   emit->params = params;
   emit->num_species = params->num_species;
   emit->edge = edge;
@@ -41,10 +41,10 @@ vm_species_emission_cross_init(struct gkyl_vlasov_app *app, struct vm_species *s
   // Initialize elastic component of emission
   if (emit->elastic) {
     emit->elastic_yield = mkarr(app->use_gpu, app->basis.num_basis, emit->emit_buff_r->volume);
-    emit->elastic_update = gkyl_bc_emission_elastic_new(emit->params->elastic_type,
-      emit->params->elastic_params, emit->elastic_yield, emit->dir, emit->edge, cdim, vdim,
-      s->f->ncomp, emit->emit_grid, emit->emit_buff_r, app->poly_order, app->basis_on_dev.basis,
-      &app->basis, proj_buffer, app->use_gpu);
+    emit->elastic_update = gkyl_bc_emission_elastic_new(emit->params->elastic_model,
+      emit->elastic_yield, emit->dir, emit->edge, cdim, vdim, s->info.mass, s->f->ncomp, emit->emit_grid,
+      emit->emit_buff_r, app->poly_order, app->basis_on_dev.basis, &app->basis, proj_buffer,
+      app->use_gpu);
   }
 
   // Initialize inelastic emission spectrums
@@ -69,13 +69,12 @@ vm_species_emission_cross_init(struct gkyl_vlasov_app *app, struct vm_species *s
     emit->bflux_arr[i] = emit->impact_species[i]->bflux.flux_arr[bdir];
     emit->k[i] = mkarr(app->use_gpu, app->confBasis.num_basis, emit->impact_cbuff_r[i]->volume);
 
-    gkyl_bc_emission_flux_ranges(&emit->impact_normal_r[i], emit->dir + cdim, emit->impact_buff_r[i],
-      ghost, emit->edge);
+    gkyl_bc_emission_flux_ranges(&emit->impact_normal_r[i], emit->dir + cdim,
+      emit->impact_buff_r[i], ghost, emit->edge);
     
-    emit->update[i] = gkyl_bc_emission_spectrum_new(emit->params->norm_type[i],
-      emit->params->yield_type[i], emit->params->norm_params[i], emit->params->yield_params[i],
-      emit->yield[i], emit->spectrum[i], emit->dir, emit->edge, cdim, vdim, 
-      emit->impact_buff_r[i], emit->emit_buff_r, emit->impact_grid[i], app->poly_order,
+    emit->update[i] = gkyl_bc_emission_spectrum_new(emit->params->spectrum_model[i],
+      emit->params->yield_model[i], emit->yield[i], emit->spectrum[i], emit->dir, emit->edge,
+      cdim, vdim, emit->impact_species[i]->info.mass, s->info.mass, emit->impact_buff_r[i], emit->emit_buff_r, emit->impact_grid[i], app->poly_order,
       &app->basis,  proj_buffer, app->use_gpu);
   }
   gkyl_array_release(proj_buffer);

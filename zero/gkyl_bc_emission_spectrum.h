@@ -4,76 +4,9 @@
 #include <gkyl_basis.h>
 #include <gkyl_array.h>
 #include <gkyl_rect_grid.h>
-#include <gkyl_bc_emission_elastic.h>
-
-// BC types in this updater.
-enum gkyl_bc_emission_spectrum_norm_type {
-  GKYL_SEE_CHUNG_EVERHART = 0,
-  GKYL_SEE_GAUSSIAN = 1,
-  GKYL_SEE_MAXWELLIAN = 2};
-
-enum gkyl_bc_emission_spectrum_yield_type {
-  GKYL_SEE_FURMAN_PIVI = 0,
-  GKYL_SEE_SCHOU = 1,
-  GKYL_SEE_CONSTANT = 2};
-
-// BC normalization factor structs
-struct gkyl_bc_emission_spectrum_norm_gaussian {
-  int cdim;
-  int vdim;
-  double mass;
-  double charge;
-  double E_0;
-  double tau;
-};
-
-struct gkyl_bc_emission_spectrum_norm_chung_everhart {
-  int cdim;
-  int vdim;
-  double mass;
-  double charge;
-  double phi;
-};
-
-struct gkyl_bc_emission_spectrum_norm_maxwellian {
-  int cdim;
-  int vdim;
-  double mass;
-  double charge;
-  double vt;
-};
-
-// BC SEY equation structs
-struct gkyl_bc_emission_spectrum_yield_furman_pivi {
-  double mass;
-  double charge;
-  double deltahat_ts;
-  double Ehat_ts;
-  double t1;
-  double t2;
-  double t3;
-  double t4;
-  double s;
-};
-
-struct gkyl_bc_emission_spectrum_yield_schou {
-  double mass;
-  double charge;
-  double int_wall;
-  double a2;
-  double a3;
-  double a4;
-  double a5;
-  double nw;
-};
-
-struct gkyl_bc_emission_spectrum_yield_constant{
-  double delta;
-};
-
-// context for use in computing applied acceleration
-struct vm_emission_ctx { int num_species; double t_bound; bool elastic; enum gkyl_bc_emission_spectrum_norm_type norm_type[GKYL_MAX_SPECIES]; enum gkyl_bc_emission_spectrum_yield_type yield_type[GKYL_MAX_SPECIES]; enum gkyl_bc_emission_elastic_type elastic_type; void *norm_params[GKYL_MAX_SPECIES]; void *yield_params[GKYL_MAX_SPECIES]; void *elastic_params; char in_species[GKYL_MAX_SPECIES][128]; };
-
+#include <gkyl_spectrum_model.h>
+#include <gkyl_yield_model.h>
+#include <gkyl_elastic_model.h>
 
 // Object type
 typedef struct gkyl_bc_emission_spectrum gkyl_bc_emission_spectrum;
@@ -81,16 +14,16 @@ typedef struct gkyl_bc_emission_spectrum gkyl_bc_emission_spectrum;
 /**
  * Create a new updater to apply emitting wall spectrum boundary conditions.
  *
- * @param norm_type Type of spectrum to use for calculation of normalization factor
- * @param yield_type Type of yield equation for SEY calculation
- * @param norm_param Parameters of normalization factor calculation
- * @param yield_param Parameters of yield calculation
+ * @param spectrum_model Spectrum model type
+ * @param yield_model Yield model type
  * @param yield Array of calculated yield values at cell centers
  * @param spectrum Emission spectrum projected onto basis
  * @param dir Direction in which to apply BC
  * @param edge Lower or upper edge at which to apply BC (emission_spectrum gkyl_edge_loc)
  * @param cdim Configuration space dimensions
  * @param vdim Velocity space dimensions
+ * @param mass_in Impacting species mass
+ * @param mass_out Emitted species mass
  * @param impact_buff_r Range over the impacting species buffer array
  * @param emit_buff_r Range over the emitting species buffer array
  * @param grid Impacting species boundary grid
@@ -100,11 +33,11 @@ typedef struct gkyl_bc_emission_spectrum gkyl_bc_emission_spectrum;
  * @param use_gpu Boolean to indicate whether to use the GPU
  * @return New updater pointer
  */
-struct gkyl_bc_emission_spectrum* gkyl_bc_emission_spectrum_new(enum gkyl_bc_emission_spectrum_norm_type norm_type,
-  enum gkyl_bc_emission_spectrum_yield_type yield_type, void *norm_param, void *yield_param,
-  struct gkyl_array *yield, struct gkyl_array *spectrum, int dir, enum gkyl_edge_loc edge,
-  int cdim, int vdim, struct gkyl_range *impact_buff_r,  struct gkyl_range *emit_buff_r,
-  struct gkyl_rect_grid *grid, int poly_order, struct gkyl_basis *basis, struct gkyl_array *proj_buffer, bool use_gpu);
+struct gkyl_bc_emission_spectrum* gkyl_bc_emission_spectrum_new(struct gkyl_spectrum_model *spectrum_model,
+  struct gkyl_yield_model *yield_model, struct gkyl_array *yield, struct gkyl_array *spectrum,
+  int dir, enum gkyl_edge_loc edge, int cdim, int vdim, double mass_in, double mass_out,
+  struct gkyl_range *impact_buff_r, struct gkyl_range *emit_buff_r, struct gkyl_rect_grid *grid,
+  int poly_order, struct gkyl_basis *basis, struct gkyl_array *proj_buffer, bool use_gpu);
 
 /**
  * @param up BC updater

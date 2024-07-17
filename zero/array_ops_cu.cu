@@ -668,7 +668,7 @@ gkyl_array_copy_range_cu(struct gkyl_array *out,
 
 void
 gkyl_array_copy_range_to_range_cu(struct gkyl_array *out,
-  const struct gkyl_array *inp, struct gkyl_range *out_range, struct gkyl_range *inp_range)
+  const struct gkyl_array *inp, const struct gkyl_range *out_range, const struct gkyl_range *inp_range)
 {
   if (inp_range->volume > 0) {
     dim3 dimGrid, dimBlock;

@@ -4,34 +4,8 @@
 #include <gkyl_basis.h>
 #include <gkyl_array.h>
 #include <gkyl_rect_grid.h>
-
-// BC types in this updater.
-enum gkyl_bc_emission_elastic_type {
-  GKYL_BS_FURMAN_PIVI = 0,
-  GKYL_BS_CAZAUX = 1,
-  GKYL_BS_CONSTANT = 2};
-
-// Elastic emission model structures
-struct gkyl_bc_emission_elastic_furman_pivi {
-  double mass;
-  double charge;
-  double P1_inf;
-  double P1_hat;
-  double E_hat;
-  double W;
-  double p;
-};
-
-struct gkyl_bc_emission_elastic_cazaux {
-  double mass;
-  double charge;
-  double E_f;
-  double phi;
-};
-
-struct gkyl_bc_emission_elastic_constant{
-  double delta;
-};
+#include <gkyl_elastic_model.h>
+#include <gkyl_bc_emission_elastic_priv.h>
 
 // Object type
 typedef struct gkyl_bc_emission_elastic gkyl_bc_emission_elastic;
@@ -39,13 +13,13 @@ typedef struct gkyl_bc_emission_elastic gkyl_bc_emission_elastic;
 /**
  * Create a new updater to apply emitting wall spectrum boundary conditions.
  *
- * @param elastic_type Backscattering model to use for calculation
- * @param elastic_param Parameters of elastic model calculation
+ * @param elastic_model Elastic model type
  * @param elastic_yield Projection of elastic yield model onto basis
  * @param dir Direction in which to apply BC
  * @param edge Lower or upper edge at which to apply BC (emission_spectrum gkyl_edge_loc)
  * @param cdim Configuration space dimensions
  * @param vdim Velocity space dimensions
+ * @param mass Mass of species
  * @param ncomp Number of components
  * @param grid Impacting species boundary grid
  * @param emit_buff_r Range over the emitting species buffer array
@@ -56,10 +30,10 @@ typedef struct gkyl_bc_emission_elastic gkyl_bc_emission_elastic;
  * @param use_gpu Boolean to indicate whether to use the GPU
  * @return New updater pointer
  */
-struct gkyl_bc_emission_elastic* gkyl_bc_emission_elastic_new(enum gkyl_bc_emission_elastic_type elastic_type,
-  void *elastic_param, struct gkyl_array *elastic_yield, int dir, enum gkyl_edge_loc edge,
-  int cdim, int vdim, int ncomp, struct gkyl_rect_grid *grid, struct gkyl_range *emit_buff_r,
-  int poly_order, const struct gkyl_basis *dev_basis, struct gkyl_basis *basis, struct gkyl_array *proj_buffer, bool use_gpu);
+struct gkyl_bc_emission_elastic* gkyl_bc_emission_elastic_new(struct gkyl_elastic_model *elastic_model, struct gkyl_array *elastic_yield, int dir, enum gkyl_edge_loc edge, int cdim, int vdim,
+  double mass, int ncomp, struct gkyl_rect_grid *grid, struct gkyl_range *emit_buff_r,
+  int poly_order, const struct gkyl_basis *dev_basis, struct gkyl_basis *basis,
+  struct gkyl_array *proj_buffer, bool use_gpu);
 
 /**
  * @param up BC updater

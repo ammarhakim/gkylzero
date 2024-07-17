@@ -1,5 +1,4 @@
 #include <gkyl_bc_emission_elastic.h>
-#include <gkyl_bc_emission_elastic_priv.h>
 #include <gkyl_dg_bin_ops.h>
 #include <gkyl_proj_on_basis.h>
 #include <gkyl_alloc.h>
@@ -35,9 +34,9 @@ gkyl_bc_emission_elastic_create_arr_copy_func(int dir, int cdim, const struct gk
 }
 
 struct gkyl_bc_emission_elastic*
-gkyl_bc_emission_elastic_new(enum gkyl_bc_emission_elastic_type elastic_type,
-  void *elastic_param, struct gkyl_array *elastic_yield, int dir, enum gkyl_edge_loc edge,
-  int cdim, int vdim, int ncomp, struct gkyl_rect_grid *grid, struct gkyl_range *emit_buff_r,
+gkyl_bc_emission_elastic_new(struct gkyl_elastic_model *elastic_model,
+  struct gkyl_array *elastic_yield, int dir, enum gkyl_edge_loc edge, int cdim,
+  int vdim, double mass, int ncomp, struct gkyl_rect_grid *grid, struct gkyl_range *emit_buff_r,
   int poly_order, const struct gkyl_basis *dev_basis, struct gkyl_basis *basis,
   struct gkyl_array *proj_buffer, bool use_gpu)
 {
@@ -56,30 +55,25 @@ gkyl_bc_emission_elastic_new(enum gkyl_bc_emission_elastic_type elastic_type,
   up->reflect_func = gkyl_bc_emission_elastic_create_arr_copy_func(dir, cdim, dev_basis, ncomp,
     use_gpu);
 
-  up->funcs = gkyl_malloc(sizeof(struct gkyl_bc_emission_elastic_funcs));
-  up->funcs->elastic_param = elastic_param;
-  up->funcs->yield = bc_emission_elastic_choose_yield_func(elastic_type);
+  
+  up->elastic_model = gkyl_elastic_model_acquire(elastic_model);
+  up->elastic_model->cdim = cdim;
+  up->elastic_model->vdim = vdim;
+  up->elastic_model->mass = mass;
 
   gkyl_proj_on_basis *proj = gkyl_proj_on_basis_new(grid, basis, poly_order + 1, 1,
-      up->funcs->yield, up);
+      up->elastic_model->function, up->elastic_model);
 
 #ifdef GKYL_HAVE_CUDA
   if (use_gpu) {
     gkyl_proj_on_basis_advance(proj, 0.0, emit_buff_r, proj_buffer);
-
-    up->funcs_cu = gkyl_cu_malloc(sizeof(struct gkyl_bc_emission_elastic_funcs));
-    gkyl_bc_emission_elastic_choose_elastic_cu(elastic_type, up->funcs_cu, elastic_param);
-
+    
     gkyl_array_copy(elastic_yield, proj_buffer);
   } else {
     gkyl_proj_on_basis_advance(proj, 0.0, emit_buff_r, elastic_yield);
-    
-    up->funcs_cu = up->funcs;
   }
 #else
   gkyl_proj_on_basis_advance(proj, 0.0, emit_buff_r, elastic_yield);
-  
-  up->funcs_cu = up->funcs;
 #endif
   gkyl_proj_on_basis_release(proj);
 
@@ -108,14 +102,7 @@ gkyl_bc_emission_elastic_advance(const struct gkyl_bc_emission_elastic *up,
 
 void gkyl_bc_emission_elastic_release(struct gkyl_bc_emission_elastic *up)
 {
-#ifdef GKYL_HAVE_CUDA
-  if (up->use_gpu) {
-    gkyl_free(up->funcs_cu->elastic_param);
-    gkyl_cu_free(up->funcs_cu);
-  }
-#endif
-  gkyl_free(up->funcs->elastic_param);
-  gkyl_free(up->funcs);
+  gkyl_elastic_model_release(up->elastic_model);
   gkyl_free(up->reflect_func->ctx);
   gkyl_free(up->reflect_func);
   // Release updater memory.
