@@ -1216,7 +1216,7 @@ struct gkyl_comm *comm = 0;
       .ctx_density = &ctx,
       .density = initDensityNeutral,
       .ctx_udrift = &ctx,
-      .upar = initUDriftNeutral,
+      .udrift = initUDriftNeutral,
       .ctx_temp = &ctx,
       .temp = initTempAr,
     },
