@@ -1,6 +1,6 @@
 #include <gkyl_euler_pkpm_kernels.h> 
 #include <gkyl_basis_ser_1x_p2_surfx1_eval_quad.h> 
-GKYL_CU_DH void pkpm_vars_penalization_x_1x_ser_p2(double tol, 
+GKYL_CU_DH void pkpm_vars_penalization_x_1x_ser_p2(double tol, bool force_lax, 
   const struct gkyl_wv_eqn *wv_eqn, const struct gkyl_wave_cell_geom *geom, 
   const double *vlasov_pkpm_moms_l, const double *vlasov_pkpm_moms_r,
   const double *p_ij_l, const double *p_ij_r,
@@ -9,6 +9,7 @@ GKYL_CU_DH void pkpm_vars_penalization_x_1x_ser_p2(double tol,
   double* GKYL_RESTRICT pkpm_lax, double* GKYL_RESTRICT pkpm_penalization) 
 { 
   // tol:                  Tolerance in rho^+, rho^-, and u_avg for switching to Lax fluxes.
+  // force_lax:            Flag for forcing Lax fluxes to be turned on.
   // wv_eqn:               Wave equation for computing fluctuations at the interface for upwinding.
   // geom:                 Geometry for the surface update.
   // vlasov_pkpm_moms_l/r: Input pkpm moments to the left/right of the interface.
@@ -30,14 +31,10 @@ GKYL_CU_DH void pkpm_vars_penalization_x_1x_ser_p2(double tol,
   const double *rhouy_r = &euler_pkpm_r[3]; 
   const double *rhouz_r = &euler_pkpm_r[6]; 
 
-  const double *ux_l = &prim_l[0]; 
-  const double *uy_l = &prim_l[3]; 
-  const double *uz_l = &prim_l[6]; 
+  const double *u_i_l = &prim_l[0]; 
   const double *Tii_l = &prim_l[18]; 
 
-  const double *ux_r = &prim_r[0]; 
-  const double *uy_r = &prim_r[3]; 
-  const double *uz_r = &prim_r[6]; 
+  const double *u_i_r = &prim_r[0]; 
   const double *Tii_r = &prim_r[18]; 
 
   const double *Pxx_l = &p_ij_l[0]; 
@@ -70,8 +67,8 @@ GKYL_CU_DH void pkpm_vars_penalization_x_1x_ser_p2(double tol,
 
   double q_l[10] = {0.0}; 
   double q_r[10] = {0.0}; 
-  double u_l[3] = {0.0}; 
-  double u_r[3] = {0.0}; 
+  double u_l = 0.0; 
+  double u_r = 0.0; 
   double T_l = 0.0; 
   double T_r = 0.0; 
   double u_max = 0.0; 
@@ -90,12 +87,9 @@ GKYL_CU_DH void pkpm_vars_penalization_x_1x_ser_p2(double tol,
 
   int use_lax = 0;
   q_l[0] = ser_1x_p2_surfx1_eval_quad_node_0_r(rho_l); 
-  u_l[0] = ser_1x_p2_surfx1_eval_quad_node_0_r(ux_l); 
-  u_l[1] = ser_1x_p2_surfx1_eval_quad_node_0_r(uy_l); 
-  u_l[2] = ser_1x_p2_surfx1_eval_quad_node_0_r(uz_l); 
-  q_l[1] = q_l[0]*u_l[0]; 
-  q_l[2] = q_l[0]*u_l[1]; 
-  q_l[3] = q_l[0]*u_l[2]; 
+  q_l[1] = ser_1x_p2_surfx1_eval_quad_node_0_r(rhoux_l); 
+  q_l[2] = ser_1x_p2_surfx1_eval_quad_node_0_r(rhouy_l); 
+  q_l[3] = ser_1x_p2_surfx1_eval_quad_node_0_r(rhouz_l); 
   q_l[4] = ser_1x_p2_surfx1_eval_quad_node_0_r(Pxx_l) + q_l[1]*q_l[1]/q_l[0]; 
   q_l[5] = ser_1x_p2_surfx1_eval_quad_node_0_r(Pxy_l) + q_l[1]*q_l[2]/q_l[0]; 
   q_l[6] = ser_1x_p2_surfx1_eval_quad_node_0_r(Pxz_l) + q_l[1]*q_l[3]/q_l[0]; 
@@ -103,12 +97,9 @@ GKYL_CU_DH void pkpm_vars_penalization_x_1x_ser_p2(double tol,
   q_l[8] = ser_1x_p2_surfx1_eval_quad_node_0_r(Pyz_l) + q_l[2]*q_l[3]/q_l[0]; 
   q_l[9] = ser_1x_p2_surfx1_eval_quad_node_0_r(Pzz_l) + q_l[3]*q_l[3]/q_l[0]; 
   q_r[0] = ser_1x_p2_surfx1_eval_quad_node_0_l(rho_r); 
-  u_r[0] = ser_1x_p2_surfx1_eval_quad_node_0_l(ux_r); 
-  u_r[1] = ser_1x_p2_surfx1_eval_quad_node_0_l(uy_r); 
-  u_r[2] = ser_1x_p2_surfx1_eval_quad_node_0_l(uz_r); 
-  q_r[1] = q_r[0]*u_r[0]; 
-  q_r[2] = q_r[0]*u_r[1]; 
-  q_r[3] = q_r[0]*u_r[2]; 
+  q_r[1] = ser_1x_p2_surfx1_eval_quad_node_0_l(rhoux_r); 
+  q_r[2] = ser_1x_p2_surfx1_eval_quad_node_0_l(rhouy_r); 
+  q_r[3] = ser_1x_p2_surfx1_eval_quad_node_0_l(rhouz_r); 
   q_r[4] = ser_1x_p2_surfx1_eval_quad_node_0_l(Pxx_r) + q_r[1]*q_r[1]/q_r[0]; 
   q_r[5] = ser_1x_p2_surfx1_eval_quad_node_0_l(Pxy_r) + q_r[1]*q_r[2]/q_r[0]; 
   q_r[6] = ser_1x_p2_surfx1_eval_quad_node_0_l(Pxz_r) + q_r[1]*q_r[3]/q_r[0]; 
@@ -118,16 +109,25 @@ GKYL_CU_DH void pkpm_vars_penalization_x_1x_ser_p2(double tol,
 
   T_l = ser_1x_p2_surfx1_eval_quad_node_0_r(Tii_l); 
   T_r = ser_1x_p2_surfx1_eval_quad_node_0_l(Tii_r); 
-  u_max = fmax(fabs(u_l[0]), fabs(u_r[0])); 
-  if (T_l > 0.0 && T_r > 0.0) vth_max = fmax(sqrt(fabs(T_l)), sqrt(fabs(T_r))); 
-  else vth_max = 0.0; 
+  if (T_l > 0.0 && T_r > 0.0) { 
+    vth_max = fmax(sqrt(T_l), sqrt(T_r)); 
+  } else if (T_l > 0.0 && T_r < 0.0) { 
+    vth_max = sqrt(T_l); 
+    use_lax = 1; 
+  } else if (T_l < 0.0 && T_r > 0.0) { 
+    vth_max = sqrt(T_r); 
+    use_lax = 1; 
+  } else { 
+    vth_max = 0.0; 
+    use_lax = 1; 
+  } 
+  u_l = ser_1x_p2_surfx1_eval_quad_node_0_r(u_i_l); 
+  u_r = ser_1x_p2_surfx1_eval_quad_node_0_l(u_i_r); 
+  u_max = fmax(fabs(u_l), fabs(u_r)); 
   pkpm_lax_quad[0] = u_max + vth_max; 
 
   if (q_l[0] < tol) use_lax = 1; 
   if (q_r[0] < tol) use_lax = 1; 
-  if (T_l < tol) use_lax = 1; 
-  if (T_r < tol) use_lax = 1; 
-  if (u_l[0] + u_r[0] < tol) use_lax = 1; 
 
   gkyl_wv_eqn_rotate_to_local(wv_eqn, geom->tau1[0], geom->tau2[0], geom->norm[0], q_l, q_l_local); 
   gkyl_wv_eqn_rotate_to_local(wv_eqn, geom->tau1[0], geom->tau2[0], geom->norm[0], q_r, q_r_local); 
@@ -161,7 +161,7 @@ GKYL_CU_DH void pkpm_vars_penalization_x_1x_ser_p2(double tol,
   apdq_rhouz_quad[0] = apdq[3]; 
 
   pkpm_lax_l[0] = pkpm_lax_quad[0]; 
-  if (use_lax) { 
+  if (use_lax || force_lax) { 
     double rhouxl_r = ser_1x_p2_surfx1_eval_quad_node_0_r(rhoux_l); 
     double rhouyl_r = ser_1x_p2_surfx1_eval_quad_node_0_r(rhouy_l); 
     double rhouzl_r = ser_1x_p2_surfx1_eval_quad_node_0_r(rhouz_l); 

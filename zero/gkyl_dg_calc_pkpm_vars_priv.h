@@ -46,7 +46,7 @@ typedef void (*pkpm_accel_t)(const double *dxv,
   const double *prim_c, const double *bvar_c, const double *nu_c, 
   double* GKYL_RESTRICT pkpm_accel); 
 
-typedef void (*pkpm_penalization_t)(double tol, 
+typedef void (*pkpm_penalization_t)(double tol, bool force_lax, 
   const struct gkyl_wv_eqn *wv_eqn, const struct gkyl_wave_cell_geom *geom, 
   const double *vlasov_pkpm_moms_l, const double *vlasov_pkpm_moms_r,
   const double *p_ij_l, const double *p_ij_r,
@@ -88,6 +88,7 @@ struct gkyl_dg_calc_pkpm_vars {
 
   double tol; // Tolerance in mass density and average normal velocity at the interface
               // for switching to Lax fluxes in computing penalization of the momentum solve (default: 1.0e-12)
+  bool force_lax; // Boolean for forcing the system to use Lax fluxes for the momentum (default: false)
 
   struct gkyl_nmat *As, *xs; // matrices for LHS and RHS
   gkyl_nmat_mem *mem; // memory for use in batched linear solve

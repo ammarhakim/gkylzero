@@ -336,7 +336,7 @@ gkyl_dg_calc_pkpm_vars_penalization_cu_kernel(struct gkyl_dg_calc_pkpm_vars *up,
       const double *prim_l = (const double*) gkyl_array_cfetch(prim, linl);
       const double *euler_pkpm_l = (const double*) gkyl_array_cfetch(euler_pkpm, linl);
 
-      up->pkpm_penalization[dir](up->tol, up->wv_eqn, geom, 
+      up->pkpm_penalization[dir](up->tol, up->force_lax, up->wv_eqn, geom, 
         vlasov_pkpm_moms_l, vlasov_pkpm_moms_d, p_ij_l, p_ij_d, 
         prim_l, prim_d, euler_pkpm_l, euler_pkpm_d, 
         pkpm_lax_d, pkpm_penalization_d);
@@ -361,7 +361,7 @@ gkyl_dg_calc_pkpm_vars_penalization_cu_kernel(struct gkyl_dg_calc_pkpm_vars *up,
         double *pkpm_lax_r = (double*) gkyl_array_fetch(pkpm_lax, linr);
         double *pkpm_penalization_r = (double*) gkyl_array_fetch(pkpm_penalization, linr);
 
-        up->pkpm_penalization[dir](up->tol, up->wv_eqn, geom_r, 
+        up->pkpm_penalization[dir](up->tol, up->force_lax, up->wv_eqn, geom_r, 
           vlasov_pkpm_moms_d, vlasov_pkpm_moms_r, p_ij_d, p_ij_r, 
           prim_d, prim_r, euler_pkpm_d, euler_pkpm_r, 
           pkpm_lax_r, pkpm_penalization_r);
@@ -650,6 +650,7 @@ gkyl_dg_calc_pkpm_vars_cu_dev_new(const struct gkyl_rect_grid *conf_grid,
   // Tolerance in mass density and average normal velocity at the interface
   // for switching to Lax fluxes in computing penalization of the momentum solve
   up->tol = 1.0e-12;
+  up->force_lax = false; 
 
   // There are Ncomp*range->volume linear systems to be solved 
   // 6 components: ux, uy, uz, div(p_par b)/rho, p_perp/rho, rho/p_perp

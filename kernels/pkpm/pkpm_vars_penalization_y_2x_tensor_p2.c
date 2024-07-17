@@ -1,7 +1,7 @@
 #include <gkyl_euler_pkpm_kernels.h> 
 #include <gkyl_basis_tensor_2x_p2_surfx2_eval_quad.h> 
 #include <gkyl_basis_tensor_2x_p2_upwind_quad_to_modal.h> 
-GKYL_CU_DH void pkpm_vars_penalization_y_2x_tensor_p2(double tol, 
+GKYL_CU_DH void pkpm_vars_penalization_y_2x_tensor_p2(double tol, bool force_lax, 
   const struct gkyl_wv_eqn *wv_eqn, const struct gkyl_wave_cell_geom *geom, 
   const double *vlasov_pkpm_moms_l, const double *vlasov_pkpm_moms_r,
   const double *p_ij_l, const double *p_ij_r,
@@ -10,6 +10,7 @@ GKYL_CU_DH void pkpm_vars_penalization_y_2x_tensor_p2(double tol,
   double* GKYL_RESTRICT pkpm_lax, double* GKYL_RESTRICT pkpm_penalization) 
 { 
   // tol:                  Tolerance in rho^+, rho^-, and u_avg for switching to Lax fluxes.
+  // force_lax:            Flag for forcing Lax fluxes to be turned on.
   // wv_eqn:               Wave equation for computing fluctuations at the interface for upwinding.
   // geom:                 Geometry for the surface update.
   // vlasov_pkpm_moms_l/r: Input pkpm moments to the left/right of the interface.
@@ -31,14 +32,10 @@ GKYL_CU_DH void pkpm_vars_penalization_y_2x_tensor_p2(double tol,
   const double *rhouy_r = &euler_pkpm_r[9]; 
   const double *rhouz_r = &euler_pkpm_r[18]; 
 
-  const double *ux_l = &prim_l[0]; 
-  const double *uy_l = &prim_l[9]; 
-  const double *uz_l = &prim_l[18]; 
+  const double *u_i_l = &prim_l[9]; 
   const double *Tii_l = &prim_l[63]; 
 
-  const double *ux_r = &prim_r[0]; 
-  const double *uy_r = &prim_r[9]; 
-  const double *uz_r = &prim_r[18]; 
+  const double *u_i_r = &prim_r[9]; 
   const double *Tii_r = &prim_r[63]; 
 
   const double *Pxx_l = &p_ij_l[0]; 
@@ -71,8 +68,8 @@ GKYL_CU_DH void pkpm_vars_penalization_y_2x_tensor_p2(double tol,
 
   double q_l[10] = {0.0}; 
   double q_r[10] = {0.0}; 
-  double u_l[3] = {0.0}; 
-  double u_r[3] = {0.0}; 
+  double u_l = 0.0; 
+  double u_r = 0.0; 
   double T_l = 0.0; 
   double T_r = 0.0; 
   double u_max = 0.0; 
@@ -91,12 +88,9 @@ GKYL_CU_DH void pkpm_vars_penalization_y_2x_tensor_p2(double tol,
 
   int use_lax = 0;
   q_l[0] = tensor_2x_p2_surfx2_eval_quad_node_0_r(rho_l); 
-  u_l[0] = tensor_2x_p2_surfx2_eval_quad_node_0_r(ux_l); 
-  u_l[1] = tensor_2x_p2_surfx2_eval_quad_node_0_r(uy_l); 
-  u_l[2] = tensor_2x_p2_surfx2_eval_quad_node_0_r(uz_l); 
-  q_l[1] = q_l[0]*u_l[0]; 
-  q_l[2] = q_l[0]*u_l[1]; 
-  q_l[3] = q_l[0]*u_l[2]; 
+  q_l[1] = tensor_2x_p2_surfx2_eval_quad_node_0_r(rhoux_l); 
+  q_l[2] = tensor_2x_p2_surfx2_eval_quad_node_0_r(rhouy_l); 
+  q_l[3] = tensor_2x_p2_surfx2_eval_quad_node_0_r(rhouz_l); 
   q_l[4] = tensor_2x_p2_surfx2_eval_quad_node_0_r(Pxx_l) + q_l[1]*q_l[1]/q_l[0]; 
   q_l[5] = tensor_2x_p2_surfx2_eval_quad_node_0_r(Pxy_l) + q_l[1]*q_l[2]/q_l[0]; 
   q_l[6] = tensor_2x_p2_surfx2_eval_quad_node_0_r(Pxz_l) + q_l[1]*q_l[3]/q_l[0]; 
@@ -104,12 +98,9 @@ GKYL_CU_DH void pkpm_vars_penalization_y_2x_tensor_p2(double tol,
   q_l[8] = tensor_2x_p2_surfx2_eval_quad_node_0_r(Pyz_l) + q_l[2]*q_l[3]/q_l[0]; 
   q_l[9] = tensor_2x_p2_surfx2_eval_quad_node_0_r(Pzz_l) + q_l[3]*q_l[3]/q_l[0]; 
   q_r[0] = tensor_2x_p2_surfx2_eval_quad_node_0_l(rho_r); 
-  u_r[0] = tensor_2x_p2_surfx2_eval_quad_node_0_l(ux_r); 
-  u_r[1] = tensor_2x_p2_surfx2_eval_quad_node_0_l(uy_r); 
-  u_r[2] = tensor_2x_p2_surfx2_eval_quad_node_0_l(uz_r); 
-  q_r[1] = q_r[0]*u_r[0]; 
-  q_r[2] = q_r[0]*u_r[1]; 
-  q_r[3] = q_r[0]*u_r[2]; 
+  q_r[1] = tensor_2x_p2_surfx2_eval_quad_node_0_l(rhoux_r); 
+  q_r[2] = tensor_2x_p2_surfx2_eval_quad_node_0_l(rhouy_r); 
+  q_r[3] = tensor_2x_p2_surfx2_eval_quad_node_0_l(rhouz_r); 
   q_r[4] = tensor_2x_p2_surfx2_eval_quad_node_0_l(Pxx_r) + q_r[1]*q_r[1]/q_r[0]; 
   q_r[5] = tensor_2x_p2_surfx2_eval_quad_node_0_l(Pxy_r) + q_r[1]*q_r[2]/q_r[0]; 
   q_r[6] = tensor_2x_p2_surfx2_eval_quad_node_0_l(Pxz_r) + q_r[1]*q_r[3]/q_r[0]; 
@@ -119,16 +110,25 @@ GKYL_CU_DH void pkpm_vars_penalization_y_2x_tensor_p2(double tol,
 
   T_l = tensor_2x_p2_surfx2_eval_quad_node_0_r(Tii_l); 
   T_r = tensor_2x_p2_surfx2_eval_quad_node_0_l(Tii_r); 
-  u_max = fmax(fabs(u_l[1]), fabs(u_r[1])); 
-  if (T_l > 0.0 && T_r > 0.0) vth_max = fmax(sqrt(fabs(T_l)), sqrt(fabs(T_r))); 
-  else vth_max = 0.0; 
+  if (T_l > 0.0 && T_r > 0.0) { 
+    vth_max = fmax(sqrt(T_l), sqrt(T_r)); 
+  } else if (T_l > 0.0 && T_r < 0.0) { 
+    vth_max = sqrt(T_l); 
+    use_lax = 1; 
+  } else if (T_l < 0.0 && T_r > 0.0) { 
+    vth_max = sqrt(T_r); 
+    use_lax = 1; 
+  } else { 
+    vth_max = 0.0; 
+    use_lax = 1; 
+  } 
+  u_l = tensor_2x_p2_surfx2_eval_quad_node_0_r(u_i_l); 
+  u_r = tensor_2x_p2_surfx2_eval_quad_node_0_l(u_i_r); 
+  u_max = fmax(fabs(u_l), fabs(u_r)); 
   pkpm_lax_quad[0] = u_max + vth_max; 
 
   if (q_l[0] < tol) use_lax = 1; 
   if (q_r[0] < tol) use_lax = 1; 
-  if (T_l < tol) use_lax = 1; 
-  if (T_r < tol) use_lax = 1; 
-  if (u_l[1] + u_r[1] < tol) use_lax = 1; 
 
   gkyl_wv_eqn_rotate_to_local(wv_eqn, geom->tau1[1], geom->tau2[1], geom->norm[1], q_l, q_l_local); 
   gkyl_wv_eqn_rotate_to_local(wv_eqn, geom->tau1[1], geom->tau2[1], geom->norm[1], q_r, q_r_local); 
@@ -162,12 +162,9 @@ GKYL_CU_DH void pkpm_vars_penalization_y_2x_tensor_p2(double tol,
   apdq_rhouz_quad[0] = apdq[3]; 
 
   q_l[0] = tensor_2x_p2_surfx2_eval_quad_node_1_r(rho_l); 
-  u_l[0] = tensor_2x_p2_surfx2_eval_quad_node_1_r(ux_l); 
-  u_l[1] = tensor_2x_p2_surfx2_eval_quad_node_1_r(uy_l); 
-  u_l[2] = tensor_2x_p2_surfx2_eval_quad_node_1_r(uz_l); 
-  q_l[1] = q_l[0]*u_l[0]; 
-  q_l[2] = q_l[0]*u_l[1]; 
-  q_l[3] = q_l[0]*u_l[2]; 
+  q_l[1] = tensor_2x_p2_surfx2_eval_quad_node_1_r(rhoux_l); 
+  q_l[2] = tensor_2x_p2_surfx2_eval_quad_node_1_r(rhouy_l); 
+  q_l[3] = tensor_2x_p2_surfx2_eval_quad_node_1_r(rhouz_l); 
   q_l[4] = tensor_2x_p2_surfx2_eval_quad_node_1_r(Pxx_l) + q_l[1]*q_l[1]/q_l[0]; 
   q_l[5] = tensor_2x_p2_surfx2_eval_quad_node_1_r(Pxy_l) + q_l[1]*q_l[2]/q_l[0]; 
   q_l[6] = tensor_2x_p2_surfx2_eval_quad_node_1_r(Pxz_l) + q_l[1]*q_l[3]/q_l[0]; 
@@ -175,12 +172,9 @@ GKYL_CU_DH void pkpm_vars_penalization_y_2x_tensor_p2(double tol,
   q_l[8] = tensor_2x_p2_surfx2_eval_quad_node_1_r(Pyz_l) + q_l[2]*q_l[3]/q_l[0]; 
   q_l[9] = tensor_2x_p2_surfx2_eval_quad_node_1_r(Pzz_l) + q_l[3]*q_l[3]/q_l[0]; 
   q_r[0] = tensor_2x_p2_surfx2_eval_quad_node_1_l(rho_r); 
-  u_r[0] = tensor_2x_p2_surfx2_eval_quad_node_1_l(ux_r); 
-  u_r[1] = tensor_2x_p2_surfx2_eval_quad_node_1_l(uy_r); 
-  u_r[2] = tensor_2x_p2_surfx2_eval_quad_node_1_l(uz_r); 
-  q_r[1] = q_r[0]*u_r[0]; 
-  q_r[2] = q_r[0]*u_r[1]; 
-  q_r[3] = q_r[0]*u_r[2]; 
+  q_r[1] = tensor_2x_p2_surfx2_eval_quad_node_1_l(rhoux_r); 
+  q_r[2] = tensor_2x_p2_surfx2_eval_quad_node_1_l(rhouy_r); 
+  q_r[3] = tensor_2x_p2_surfx2_eval_quad_node_1_l(rhouz_r); 
   q_r[4] = tensor_2x_p2_surfx2_eval_quad_node_1_l(Pxx_r) + q_r[1]*q_r[1]/q_r[0]; 
   q_r[5] = tensor_2x_p2_surfx2_eval_quad_node_1_l(Pxy_r) + q_r[1]*q_r[2]/q_r[0]; 
   q_r[6] = tensor_2x_p2_surfx2_eval_quad_node_1_l(Pxz_r) + q_r[1]*q_r[3]/q_r[0]; 
@@ -190,16 +184,25 @@ GKYL_CU_DH void pkpm_vars_penalization_y_2x_tensor_p2(double tol,
 
   T_l = tensor_2x_p2_surfx2_eval_quad_node_1_r(Tii_l); 
   T_r = tensor_2x_p2_surfx2_eval_quad_node_1_l(Tii_r); 
-  u_max = fmax(fabs(u_l[1]), fabs(u_r[1])); 
-  if (T_l > 0.0 && T_r > 0.0) vth_max = fmax(sqrt(fabs(T_l)), sqrt(fabs(T_r))); 
-  else vth_max = 0.0; 
+  if (T_l > 0.0 && T_r > 0.0) { 
+    vth_max = fmax(sqrt(T_l), sqrt(T_r)); 
+  } else if (T_l > 0.0 && T_r < 0.0) { 
+    vth_max = sqrt(T_l); 
+    use_lax = 1; 
+  } else if (T_l < 0.0 && T_r > 0.0) { 
+    vth_max = sqrt(T_r); 
+    use_lax = 1; 
+  } else { 
+    vth_max = 0.0; 
+    use_lax = 1; 
+  } 
+  u_l = tensor_2x_p2_surfx2_eval_quad_node_1_r(u_i_l); 
+  u_r = tensor_2x_p2_surfx2_eval_quad_node_1_l(u_i_r); 
+  u_max = fmax(fabs(u_l), fabs(u_r)); 
   pkpm_lax_quad[1] = u_max + vth_max; 
 
   if (q_l[0] < tol) use_lax = 1; 
   if (q_r[0] < tol) use_lax = 1; 
-  if (T_l < tol) use_lax = 1; 
-  if (T_r < tol) use_lax = 1; 
-  if (u_l[1] + u_r[1] < tol) use_lax = 1; 
 
   gkyl_wv_eqn_rotate_to_local(wv_eqn, geom->tau1[1], geom->tau2[1], geom->norm[1], q_l, q_l_local); 
   gkyl_wv_eqn_rotate_to_local(wv_eqn, geom->tau1[1], geom->tau2[1], geom->norm[1], q_r, q_r_local); 
@@ -233,12 +236,9 @@ GKYL_CU_DH void pkpm_vars_penalization_y_2x_tensor_p2(double tol,
   apdq_rhouz_quad[1] = apdq[3]; 
 
   q_l[0] = tensor_2x_p2_surfx2_eval_quad_node_2_r(rho_l); 
-  u_l[0] = tensor_2x_p2_surfx2_eval_quad_node_2_r(ux_l); 
-  u_l[1] = tensor_2x_p2_surfx2_eval_quad_node_2_r(uy_l); 
-  u_l[2] = tensor_2x_p2_surfx2_eval_quad_node_2_r(uz_l); 
-  q_l[1] = q_l[0]*u_l[0]; 
-  q_l[2] = q_l[0]*u_l[1]; 
-  q_l[3] = q_l[0]*u_l[2]; 
+  q_l[1] = tensor_2x_p2_surfx2_eval_quad_node_2_r(rhoux_l); 
+  q_l[2] = tensor_2x_p2_surfx2_eval_quad_node_2_r(rhouy_l); 
+  q_l[3] = tensor_2x_p2_surfx2_eval_quad_node_2_r(rhouz_l); 
   q_l[4] = tensor_2x_p2_surfx2_eval_quad_node_2_r(Pxx_l) + q_l[1]*q_l[1]/q_l[0]; 
   q_l[5] = tensor_2x_p2_surfx2_eval_quad_node_2_r(Pxy_l) + q_l[1]*q_l[2]/q_l[0]; 
   q_l[6] = tensor_2x_p2_surfx2_eval_quad_node_2_r(Pxz_l) + q_l[1]*q_l[3]/q_l[0]; 
@@ -246,12 +246,9 @@ GKYL_CU_DH void pkpm_vars_penalization_y_2x_tensor_p2(double tol,
   q_l[8] = tensor_2x_p2_surfx2_eval_quad_node_2_r(Pyz_l) + q_l[2]*q_l[3]/q_l[0]; 
   q_l[9] = tensor_2x_p2_surfx2_eval_quad_node_2_r(Pzz_l) + q_l[3]*q_l[3]/q_l[0]; 
   q_r[0] = tensor_2x_p2_surfx2_eval_quad_node_2_l(rho_r); 
-  u_r[0] = tensor_2x_p2_surfx2_eval_quad_node_2_l(ux_r); 
-  u_r[1] = tensor_2x_p2_surfx2_eval_quad_node_2_l(uy_r); 
-  u_r[2] = tensor_2x_p2_surfx2_eval_quad_node_2_l(uz_r); 
-  q_r[1] = q_r[0]*u_r[0]; 
-  q_r[2] = q_r[0]*u_r[1]; 
-  q_r[3] = q_r[0]*u_r[2]; 
+  q_r[1] = tensor_2x_p2_surfx2_eval_quad_node_2_l(rhoux_r); 
+  q_r[2] = tensor_2x_p2_surfx2_eval_quad_node_2_l(rhouy_r); 
+  q_r[3] = tensor_2x_p2_surfx2_eval_quad_node_2_l(rhouz_r); 
   q_r[4] = tensor_2x_p2_surfx2_eval_quad_node_2_l(Pxx_r) + q_r[1]*q_r[1]/q_r[0]; 
   q_r[5] = tensor_2x_p2_surfx2_eval_quad_node_2_l(Pxy_r) + q_r[1]*q_r[2]/q_r[0]; 
   q_r[6] = tensor_2x_p2_surfx2_eval_quad_node_2_l(Pxz_r) + q_r[1]*q_r[3]/q_r[0]; 
@@ -261,16 +258,25 @@ GKYL_CU_DH void pkpm_vars_penalization_y_2x_tensor_p2(double tol,
 
   T_l = tensor_2x_p2_surfx2_eval_quad_node_2_r(Tii_l); 
   T_r = tensor_2x_p2_surfx2_eval_quad_node_2_l(Tii_r); 
-  u_max = fmax(fabs(u_l[1]), fabs(u_r[1])); 
-  if (T_l > 0.0 && T_r > 0.0) vth_max = fmax(sqrt(fabs(T_l)), sqrt(fabs(T_r))); 
-  else vth_max = 0.0; 
+  if (T_l > 0.0 && T_r > 0.0) { 
+    vth_max = fmax(sqrt(T_l), sqrt(T_r)); 
+  } else if (T_l > 0.0 && T_r < 0.0) { 
+    vth_max = sqrt(T_l); 
+    use_lax = 1; 
+  } else if (T_l < 0.0 && T_r > 0.0) { 
+    vth_max = sqrt(T_r); 
+    use_lax = 1; 
+  } else { 
+    vth_max = 0.0; 
+    use_lax = 1; 
+  } 
+  u_l = tensor_2x_p2_surfx2_eval_quad_node_2_r(u_i_l); 
+  u_r = tensor_2x_p2_surfx2_eval_quad_node_2_l(u_i_r); 
+  u_max = fmax(fabs(u_l), fabs(u_r)); 
   pkpm_lax_quad[2] = u_max + vth_max; 
 
   if (q_l[0] < tol) use_lax = 1; 
   if (q_r[0] < tol) use_lax = 1; 
-  if (T_l < tol) use_lax = 1; 
-  if (T_r < tol) use_lax = 1; 
-  if (u_l[1] + u_r[1] < tol) use_lax = 1; 
 
   gkyl_wv_eqn_rotate_to_local(wv_eqn, geom->tau1[1], geom->tau2[1], geom->norm[1], q_l, q_l_local); 
   gkyl_wv_eqn_rotate_to_local(wv_eqn, geom->tau1[1], geom->tau2[1], geom->norm[1], q_r, q_r_local); 
@@ -304,7 +310,7 @@ GKYL_CU_DH void pkpm_vars_penalization_y_2x_tensor_p2(double tol,
   apdq_rhouz_quad[2] = apdq[3]; 
 
   tensor_2x_p2_upwind_quad_to_modal(pkpm_lax_quad, pkpm_lax_l); 
-  if (use_lax) { 
+  if (use_lax || force_lax) { 
   pkpm_penalization_rhoux_l[0] = 0.5590169943749475*pkpm_lax_l[2]*rhoux_r[8]-0.5590169943749475*pkpm_lax_l[2]*rhoux_l[8]+0.5590169943749476*pkpm_lax_l[1]*rhoux_r[7]-0.5590169943749476*pkpm_lax_l[1]*rhoux_l[7]-0.4330127018922194*pkpm_lax_l[2]*rhoux_r[6]-0.4330127018922194*pkpm_lax_l[2]*rhoux_l[6]+0.5590169943749475*pkpm_lax_l[0]*rhoux_r[5]-0.5590169943749475*pkpm_lax_l[0]*rhoux_l[5]+0.25*pkpm_lax_l[2]*rhoux_r[4]-0.25*pkpm_lax_l[2]*rhoux_l[4]-0.4330127018922193*pkpm_lax_l[1]*rhoux_r[3]-0.4330127018922193*pkpm_lax_l[1]*rhoux_l[3]-0.4330127018922193*pkpm_lax_l[0]*rhoux_r[2]-0.4330127018922193*pkpm_lax_l[0]*rhoux_l[2]+0.25*pkpm_lax_l[1]*rhoux_r[1]-0.25*pkpm_lax_l[1]*rhoux_l[1]+0.25*pkpm_lax_l[0]*rhoux_r[0]-0.25*pkpm_lax_l[0]*rhoux_l[0]; 
   pkpm_penalization_rhoux_l[1] = 0.5*pkpm_lax_l[1]*rhoux_r[8]-0.5*pkpm_lax_l[1]*rhoux_l[8]+0.5000000000000001*pkpm_lax_l[2]*rhoux_r[7]+0.5590169943749476*pkpm_lax_l[0]*rhoux_r[7]-0.5000000000000001*pkpm_lax_l[2]*rhoux_l[7]-0.5590169943749476*pkpm_lax_l[0]*rhoux_l[7]-0.3872983346207417*pkpm_lax_l[1]*rhoux_r[6]-0.3872983346207417*pkpm_lax_l[1]*rhoux_l[6]+0.5590169943749475*pkpm_lax_l[1]*rhoux_r[5]-0.5590169943749475*pkpm_lax_l[1]*rhoux_l[5]+0.223606797749979*pkpm_lax_l[1]*rhoux_r[4]-0.223606797749979*pkpm_lax_l[1]*rhoux_l[4]-0.3872983346207416*pkpm_lax_l[2]*rhoux_r[3]-0.4330127018922193*pkpm_lax_l[0]*rhoux_r[3]-0.3872983346207416*pkpm_lax_l[2]*rhoux_l[3]-0.4330127018922193*pkpm_lax_l[0]*rhoux_l[3]-0.4330127018922193*pkpm_lax_l[1]*rhoux_r[2]-0.4330127018922193*pkpm_lax_l[1]*rhoux_l[2]+0.223606797749979*rhoux_r[1]*pkpm_lax_l[2]-0.223606797749979*rhoux_l[1]*pkpm_lax_l[2]+0.25*pkpm_lax_l[0]*rhoux_r[1]-0.25*pkpm_lax_l[0]*rhoux_l[1]+0.25*rhoux_r[0]*pkpm_lax_l[1]-0.25*rhoux_l[0]*pkpm_lax_l[1]; 
   pkpm_penalization_rhoux_l[2] = 0.3571428571428572*pkpm_lax_l[2]*rhoux_r[8]+0.5590169943749475*pkpm_lax_l[0]*rhoux_r[8]-0.3571428571428572*pkpm_lax_l[2]*rhoux_l[8]-0.5590169943749475*pkpm_lax_l[0]*rhoux_l[8]+0.5000000000000001*pkpm_lax_l[1]*rhoux_r[7]-0.5000000000000001*pkpm_lax_l[1]*rhoux_l[7]-0.276641667586244*pkpm_lax_l[2]*rhoux_r[6]-0.4330127018922194*pkpm_lax_l[0]*rhoux_r[6]-0.276641667586244*pkpm_lax_l[2]*rhoux_l[6]-0.4330127018922194*pkpm_lax_l[0]*rhoux_l[6]+0.5590169943749475*pkpm_lax_l[2]*rhoux_r[5]-0.5590169943749475*pkpm_lax_l[2]*rhoux_l[5]+0.159719141249985*pkpm_lax_l[2]*rhoux_r[4]+0.25*pkpm_lax_l[0]*rhoux_r[4]-0.159719141249985*pkpm_lax_l[2]*rhoux_l[4]-0.25*pkpm_lax_l[0]*rhoux_l[4]-0.3872983346207416*pkpm_lax_l[1]*rhoux_r[3]-0.3872983346207416*pkpm_lax_l[1]*rhoux_l[3]-0.4330127018922193*pkpm_lax_l[2]*rhoux_r[2]-0.4330127018922193*pkpm_lax_l[2]*rhoux_l[2]+0.25*rhoux_r[0]*pkpm_lax_l[2]-0.25*rhoux_l[0]*pkpm_lax_l[2]+0.223606797749979*pkpm_lax_l[1]*rhoux_r[1]-0.223606797749979*pkpm_lax_l[1]*rhoux_l[1]; 
