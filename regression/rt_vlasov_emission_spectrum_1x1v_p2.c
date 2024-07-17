@@ -307,13 +307,14 @@ main(int argc, char **argv)
     goto mpifinalize;
   }
 
-  struct gkyl_spectrum_model *spectrum_model[1];
-  spectrum_model[0] = gkyl_spectrum_chung_everhart_new(ctx.q0, ctx.phi, app_args.use_gpu);
-  struct gkyl_yield_model *yield_model[1];
-  yield_model[0] = gkyl_yield_furman_pivi_new(ctx.q0, ctx.deltahat_ts, ctx.Ehat_ts, ctx.t1, ctx.t2, ctx.t3, ctx.t4, ctx.s, app_args.use_gpu);
-  struct gkyl_elastic_model *elastic_model = gkyl_elastic_furman_pivi_new(ctx.q0, ctx.P1_inf, ctx.P1_hat, ctx.E_hat, ctx.W, ctx.p, app_args.use_gpu);
   char in_species[1][128] = { "elc" };
-  struct gkyl_bc_emission_ctx *bc_ctx = gkyl_bc_emission_new(ctx.num_emission_species, 0.0, true, spectrum_model, yield_model, elastic_model, in_species);
+  struct gkyl_bc_emission_ctx *bc_ctx = gkyl_bc_emission_secondary_electron_copper_new(ctx.num_emission_species, 0.0, in_species, app_args.use_gpu);
+  /* struct gkyl_spectrum_model *spectrum_model[1]; */
+  /* spectrum_model[0] = gkyl_spectrum_chung_everhart_new(ctx.q0, ctx.phi, app_args.use_gpu); */
+  /* struct gkyl_yield_model *yield_model[1]; */
+  /* yield_model[0] = gkyl_yield_furman_pivi_new(ctx.q0, ctx.deltahat_ts, ctx.Ehat_ts, ctx.t1, ctx.t2, ctx.t3, ctx.t4, ctx.s, app_args.use_gpu); */
+  /* struct gkyl_elastic_model *elastic_model = gkyl_elastic_furman_pivi_new(ctx.q0, ctx.P1_inf, ctx.P1_hat, ctx.E_hat, ctx.W, ctx.p, app_args.use_gpu); */
+  /* struct gkyl_bc_emission_ctx *bc_ctx = gkyl_bc_emission_new(ctx.num_emission_species, 0.0, true, spectrum_model, yield_model, elastic_model, in_species); */
 
   // electrons
   struct gkyl_vlasov_species elc = {
@@ -510,11 +511,11 @@ main(int argc, char **argv)
   gkyl_rect_decomp_release(decomp);
   gkyl_comm_release(comm);
   gkyl_vlasov_app_release(app);
-  for (int i=0; i<ctx.num_emission_species; ++i) {
-    gkyl_spectrum_model_release(spectrum_model[i]);
-    gkyl_yield_model_release(yield_model[i]);
-  }
-  gkyl_elastic_model_release(elastic_model);
+  /* for (int i=0; i<ctx.num_emission_species; ++i) { */
+  /*   gkyl_spectrum_model_release(spectrum_model[i]); */
+  /*   gkyl_yield_model_release(yield_model[i]); */
+  /* } */
+  /* gkyl_elastic_model_release(elastic_model); */
   gkyl_bc_emission_release(bc_ctx);
 
 mpifinalize:
