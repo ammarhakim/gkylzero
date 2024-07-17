@@ -19,6 +19,7 @@ struct gkyl_yield_model {
   double charge;
   emission_yield_func_t function;
 
+  uint32_t flags;
   struct gkyl_yield_model *on_dev;
   struct gkyl_ref_count ref_count; // reference count
 };
@@ -54,10 +55,27 @@ struct gkyl_yield_constant {
 
 // Free functions
 
+// Free functions
+
+/**
+ * Check if model is on device.
+ *
+ * @param model Model to check
+ * @return true if model on device, false otherwise
+ */
+bool gkyl_yield_model_is_cu_dev(const struct gkyl_yield_model *model);
+
 static void
 furman_pivi_free(const struct gkyl_ref_count *ref)
 {
   struct gkyl_yield_model *yield = container_of(ref, struct gkyl_yield_model, ref_count);
+
+  if (gkyl_yield_model_is_cu_dev(yield)) {
+    struct gkyl_yield_furman_pivi *model = container_of(yield->on_dev,
+      struct gkyl_yield_furman_pivi, yield);
+    gkyl_cu_free(model);
+  }
+
   struct gkyl_yield_furman_pivi *model = container_of(yield, struct gkyl_yield_furman_pivi, yield);
   gkyl_free(model);
 }
@@ -66,6 +84,13 @@ static void
 schou_free(const struct gkyl_ref_count *ref)
 {
   struct gkyl_yield_model *yield = container_of(ref, struct gkyl_yield_model, ref_count);
+
+  if (gkyl_yield_model_is_cu_dev(yield)) {
+    struct gkyl_yield_schou *model = container_of(yield->on_dev,
+      struct gkyl_yield_schou, yield);
+    gkyl_cu_free(model);
+  }
+
   struct gkyl_yield_schou *model = container_of(yield, struct gkyl_yield_schou, yield);
   gkyl_free(model);
 }
@@ -74,6 +99,13 @@ static void
 constant_free(const struct gkyl_ref_count *ref)
 {
   struct gkyl_yield_model *yield = container_of(ref, struct gkyl_yield_model, ref_count);
+
+  if (gkyl_yield_model_is_cu_dev(yield)) {
+    struct gkyl_yield_constant *model = container_of(yield->on_dev,
+      struct gkyl_yield_constant, yield);
+    gkyl_cu_free(model);
+  }
+
   struct gkyl_yield_constant *model = container_of(yield, struct gkyl_yield_constant, yield);
   gkyl_free(model);
 }

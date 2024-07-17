@@ -2,6 +2,7 @@
 
 extern "C" {
 #include <gkyl_alloc.h>
+#include <gkyl_alloc_flags_priv.h>
 #include <gkyl_yield_model.h> 
 }
 
@@ -26,10 +27,11 @@ constant_set_cu_dev_ptrs(struct gkyl_yield_constant *model)
 }
 
 struct gkyl_yield_model*
-gkyl_yield_furman_pivi_cu_dev_new(double charge, double deltahat_ts, double Ehat_ts, double t1, double t2,
-  double t3, double t4, double s)
+gkyl_yield_furman_pivi_cu_dev_new(double charge, double deltahat_ts, double Ehat_ts,
+  double t1, double t2, double t3, double t4, double s)
 {
-  struct gkyl_yield_furman_pivi *model = (struct gkyl_yield_furman_pivi*) gkyl_malloc(sizeof(struct gkyl_yield_furman_pivi));
+  struct gkyl_yield_furman_pivi *model = (struct gkyl_yield_furman_pivi*)
+    gkyl_malloc(sizeof(struct gkyl_yield_furman_pivi));
 
   model->deltahat_ts = deltahat_ts;
   model->Ehat_ts = Ehat_ts;
@@ -40,6 +42,8 @@ gkyl_yield_furman_pivi_cu_dev_new(double charge, double deltahat_ts, double Ehat
   model->s = s;
   model->yield.charge = charge;
 
+  model->yield.flags = 0;
+  GKYL_SET_CU_ALLOC(model->yield.flags);
   model->yield.ref_count = gkyl_ref_count_init(furman_pivi_free);
 
   struct gkyl_yield_furman_pivi *model_cu = (struct gkyl_yield_furman_pivi*)
@@ -54,9 +58,11 @@ gkyl_yield_furman_pivi_cu_dev_new(double charge, double deltahat_ts, double Ehat
 }
 
 struct gkyl_yield_model*
-gkyl_yield_schou_cu_dev_new(double charge, double int_wall, double a2, double a3, double a4, double a5, double nw)
+gkyl_yield_schou_cu_dev_new(double charge, double int_wall, double a2, double a3, double a4,
+  double a5, double nw)
 {
-  struct gkyl_yield_schou *model = (struct gkyl_yield_schou*) gkyl_malloc(sizeof(struct gkyl_yield_schou));
+  struct gkyl_yield_schou *model = (struct gkyl_yield_schou*) 
+    gkyl_malloc(sizeof(struct gkyl_yield_schou));
 
   model->int_wall = int_wall;
   model->a2 = a2;
@@ -66,6 +72,8 @@ gkyl_yield_schou_cu_dev_new(double charge, double int_wall, double a2, double a3
   model->nw = nw;
   model->yield.charge = charge;
 
+  model->yield.flags = 0;
+  GKYL_SET_CU_ALLOC(model->yield.flags);
   model->yield.ref_count = gkyl_ref_count_init(schou_free);
 
   struct gkyl_yield_schou *model_cu = (struct gkyl_yield_schou*)
@@ -82,11 +90,14 @@ gkyl_yield_schou_cu_dev_new(double charge, double int_wall, double a2, double a3
 struct gkyl_yield_model*
 gkyl_yield_constant_cu_dev_new(double charge, double delta)
 {
-  struct gkyl_yield_constant *model = (struct gkyl_yield_constant*) gkyl_malloc(sizeof(struct gkyl_yield_constant));
+  struct gkyl_yield_constant *model = (struct gkyl_yield_constant*)
+    gkyl_malloc(sizeof(struct gkyl_yield_constant));
 
   model->delta = delta;
   model->yield.charge = charge;
 
+  model->yield.flags = 0;
+  GKYL_SET_CU_ALLOC(model->yield.flags);
   model->yield.ref_count = gkyl_ref_count_init(constant_free);
 
   struct gkyl_yield_constant *model_cu = (struct gkyl_yield_constant*)

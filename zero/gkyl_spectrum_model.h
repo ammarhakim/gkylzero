@@ -1,7 +1,6 @@
 #pragma once
 
 #include <math.h>
-#include <assert.h>
 #include <gkyl_alloc.h>
 #include <gkyl_ref_count.h>
 
@@ -21,6 +20,7 @@ struct gkyl_spectrum_model {
   emission_spectrum_dist_func_t distribution;
   emission_spectrum_norm_func_t normalization;
   
+  uint32_t flags;
   struct gkyl_spectrum_model *on_dev;
   struct gkyl_ref_count ref_count; // reference count
 };
@@ -46,11 +46,27 @@ struct gkyl_spectrum_maxwellian {
 
 // Free functions
 
+/**
+ * Check if model is on device.
+ *
+ * @param model Model to check
+ * @return true if model on device, false otherwise
+ */
+bool gkyl_spectrum_model_is_cu_dev(const struct gkyl_spectrum_model *model);
+
 static void
 chung_everhart_free(const struct gkyl_ref_count *ref)
 {
   struct gkyl_spectrum_model *spectrum = container_of(ref, struct gkyl_spectrum_model, ref_count);
-  struct gkyl_spectrum_chung_everhart *model = container_of(spectrum, struct gkyl_spectrum_chung_everhart, spectrum);
+
+  if (gkyl_spectrum_model_is_cu_dev(spectrum)) {
+    struct gkyl_spectrum_chung_everhart *model = container_of(spectrum->on_dev,
+      struct gkyl_spectrum_chung_everhart, spectrum);
+    gkyl_cu_free(model);
+  }
+
+  struct gkyl_spectrum_chung_everhart *model = container_of(spectrum,
+    struct gkyl_spectrum_chung_everhart, spectrum);
   gkyl_free(model);
 }
 
@@ -58,7 +74,15 @@ static void
 gaussian_free(const struct gkyl_ref_count *ref)
 {
   struct gkyl_spectrum_model *spectrum = container_of(ref, struct gkyl_spectrum_model, ref_count);
-  struct gkyl_spectrum_gaussian *model = container_of(spectrum, struct gkyl_spectrum_gaussian, spectrum);
+
+  if (gkyl_spectrum_model_is_cu_dev(spectrum)) {
+    struct gkyl_spectrum_gaussian *model = container_of(spectrum->on_dev,
+      struct gkyl_spectrum_gaussian, spectrum);
+    gkyl_cu_free(model);
+  }
+
+  struct gkyl_spectrum_gaussian *model = container_of(spectrum,
+    struct gkyl_spectrum_gaussian, spectrum);
   gkyl_free(model);
 }
 
@@ -66,7 +90,15 @@ static void
 maxwellian_free(const struct gkyl_ref_count *ref)
 {
   struct gkyl_spectrum_model *spectrum = container_of(ref, struct gkyl_spectrum_model, ref_count);
-  struct gkyl_spectrum_maxwellian *model = container_of(spectrum, struct gkyl_spectrum_maxwellian, spectrum);
+
+  if (gkyl_spectrum_model_is_cu_dev(spectrum)) {
+    struct gkyl_spectrum_maxwellian *model = container_of(spectrum->on_dev,
+      struct gkyl_spectrum_maxwellian, spectrum);
+    gkyl_cu_free(model);
+  }
+
+  struct gkyl_spectrum_maxwellian *model = container_of(spectrum,
+    struct gkyl_spectrum_maxwellian, spectrum);
   gkyl_free(model);
 }
 

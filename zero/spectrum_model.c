@@ -1,6 +1,7 @@
-#include <gkyl_spectrum_model.h>
 #include <math.h>
 #include <gkyl_alloc.h>
+#include <gkyl_alloc_flags_priv.h>
+#include <gkyl_spectrum_model.h>
 
 struct gkyl_spectrum_model*
 gkyl_spectrum_chung_everhart_new(double charge, double phi, bool use_gpu)
@@ -12,6 +13,8 @@ gkyl_spectrum_chung_everhart_new(double charge, double phi, bool use_gpu)
   model->spectrum.distribution = chung_everhart_dist;
   model->spectrum.normalization = chung_everhart_norm;
 
+  model->spectrum.flags = 0;
+  GKYL_CLEAR_CU_ALLOC(model->spectrum.flags);
   model->spectrum.ref_count = gkyl_ref_count_init(chung_everhart_free);
 
 #ifdef GKYL_HAVE_CUDA
@@ -34,6 +37,8 @@ gkyl_spectrum_gaussian_new(double charge, double E_0, double tau, bool use_gpu)
   model->spectrum.distribution = gaussian_dist;
   model->spectrum.normalization = gaussian_norm;
 
+  model->spectrum.flags = 0;
+  GKYL_CLEAR_CU_ALLOC(model->spectrum.flags);
   model->spectrum.ref_count = gkyl_ref_count_init(gaussian_free);
 
 #ifdef GKYL_HAVE_CUDA
@@ -55,6 +60,8 @@ gkyl_spectrum_maxwellian_new(double charge, double vt, bool use_gpu)
   model->spectrum.distribution = maxwellian_dist;
   model->spectrum.normalization = maxwellian_norm;
 
+  model->spectrum.flags = 0;
+  GKYL_CLEAR_CU_ALLOC(model->spectrum.flags);
   model->spectrum.ref_count = gkyl_ref_count_init(maxwellian_free);
 
 #ifdef GKYL_HAVE_CUDA
@@ -64,6 +71,12 @@ gkyl_spectrum_maxwellian_new(double charge, double vt, bool use_gpu)
 #endif
 
   return &model->spectrum;
+}
+
+bool
+gkyl_spectrum_model_is_cu_dev(const struct gkyl_spectrum_model *model)
+{
+  return GKYL_IS_CU_ALLOC(model->flags);
 }
 
 struct gkyl_spectrum_model*

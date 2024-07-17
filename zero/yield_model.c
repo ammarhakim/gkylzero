@@ -1,10 +1,11 @@
 #include <gkyl_yield_model.h>
 #include <math.h>
 #include <gkyl_alloc.h>
+#include <gkyl_alloc_flags_priv.h>
 
 struct gkyl_yield_model*
-gkyl_yield_furman_pivi_new(double charge, double deltahat_ts, double Ehat_ts, double t1, double t2, double t3,
-  double t4, double s, bool use_gpu)
+gkyl_yield_furman_pivi_new(double charge, double deltahat_ts, double Ehat_ts, double t1,
+  double t2, double t3, double t4, double s, bool use_gpu)
 {
 #ifdef GKYL_HAVE_CUDA
   if(use_gpu) {
@@ -23,6 +24,8 @@ gkyl_yield_furman_pivi_new(double charge, double deltahat_ts, double Ehat_ts, do
   model->yield.charge = charge;
   model->yield.function = furman_pivi_yield;
 
+  model->yield.flags = 0;
+  GKYL_CLEAR_CU_ALLOC(model->yield.flags);
   model->yield.ref_count = gkyl_ref_count_init(furman_pivi_free);
 
   return &model->yield;
@@ -48,6 +51,8 @@ gkyl_yield_schou_new(double charge, double int_wall, double a2, double a3, doubl
   model->yield.charge = charge;
   model->yield.function = schou_yield;
 
+  model->yield.flags = 0;
+  GKYL_CLEAR_CU_ALLOC(model->yield.flags);
   model->yield.ref_count = gkyl_ref_count_init(schou_free);
 
   return &model->yield;
@@ -67,9 +72,17 @@ gkyl_yield_constant_new(double charge, double delta, bool use_gpu)
   model->yield.charge = charge;
   model->yield.function = constant_yield;
 
+  model->yield.flags = 0;
+  GKYL_CLEAR_CU_ALLOC(model->yield.flags);
   model->yield.ref_count = gkyl_ref_count_init(constant_free);
 
   return &model->yield;
+}
+
+bool
+gkyl_yield_model_is_cu_dev(const struct gkyl_yield_model *model)
+{
+  return GKYL_IS_CU_ALLOC(model->flags);
 }
 
 struct gkyl_yield_model*

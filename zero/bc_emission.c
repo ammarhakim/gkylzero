@@ -2,7 +2,9 @@
 #include <gkyl_bc_emission.h>
 
 struct gkyl_bc_emission_ctx*
-gkyl_bc_emission_new(int num_species, double t_bound, bool elastic, struct gkyl_spectrum_model *spectrum_model[], struct gkyl_yield_model *yield_model[], struct gkyl_elastic_model *elastic_model, char in_species[][128])
+gkyl_bc_emission_new(int num_species, double t_bound, bool elastic,
+  struct gkyl_spectrum_model *spectrum_model[], struct gkyl_yield_model *yield_model[],
+  struct gkyl_elastic_model *elastic_model, char in_species[][128])
 {
   struct gkyl_bc_emission_ctx *ctx = gkyl_malloc(sizeof(struct gkyl_bc_emission_ctx));
   
