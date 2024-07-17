@@ -284,13 +284,12 @@ static inline double eval_fpo_dhdv(double den,
 }
 
 static inline double eval_fpo_dgdv(double den, double rel_vel_in_dir,
-  double vtsq, double rel_speed) {
-  double rel_speedsq = pow(rel_speed,2);
+  double vtsq, double rel_speedsq) {
+  double rel_speed = sqrt(rel_speedsq);
   double vth = sqrt(2.0*vtsq);
   double dGdvi = den*rel_vel_in_dir/pow(rel_speed, 3)*(
       vth*exp(-rel_speedsq/pow(vth,2))*rel_speed/sqrt(GKYL_PI) +
-      (2.0*rel_speedsq - pow(vth,2))*erf(rel_speed/vth)/2.0
-      );
+      (2.0*rel_speedsq - pow(vth,2))*erf(rel_speed/vth)/2.0);
   return dGdvi;
 }
 
