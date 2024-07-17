@@ -134,8 +134,8 @@ GKYL_CU_DH double vlasov_pkpm_surfy_2x1v_tensor_p2(const double *w, const double
   const double *pkpm_max_b_l = &pkpm_max_b[6]; 
   const double *pkpm_max_b_r = &pkpm_max_b[9]; 
 
-  const double *pkpm_lax_dir_l = &pkpm_lax_l[9]; 
-  const double *pkpm_lax_dir_r = &pkpm_lax_r[9]; 
+  const double *pkpm_lax_dir_l = &pkpm_lax_l[3]; 
+  const double *pkpm_lax_dir_r = &pkpm_lax_r[3]; 
 
   if (wvpar>0) { 
 

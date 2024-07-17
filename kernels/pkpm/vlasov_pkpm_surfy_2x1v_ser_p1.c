@@ -110,8 +110,8 @@ GKYL_CU_DH double vlasov_pkpm_surfy_2x1v_ser_p1(const double *w, const double *d
   const double *pkpm_max_b_l = &pkpm_max_b[4]; 
   const double *pkpm_max_b_r = &pkpm_max_b[6]; 
 
-  const double *pkpm_lax_dir_l = &pkpm_lax_l[6]; 
-  const double *pkpm_lax_dir_r = &pkpm_lax_r[6]; 
+  const double *pkpm_lax_dir_l = &pkpm_lax_l[2]; 
+  const double *pkpm_lax_dir_r = &pkpm_lax_r[2]; 
 
   if (wvpar>0) { 
 

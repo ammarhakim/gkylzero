@@ -158,8 +158,8 @@ GKYL_CU_DH double vlasov_pkpm_surfz_3x1v_ser_p1(const double *w, const double *d
   const double *pkpm_max_b_l = &pkpm_max_b[16]; 
   const double *pkpm_max_b_r = &pkpm_max_b[20]; 
 
-  const double *pkpm_lax_dir_l = &pkpm_lax_l[24]; 
-  const double *pkpm_lax_dir_r = &pkpm_lax_r[24]; 
+  const double *pkpm_lax_dir_l = &pkpm_lax_l[8]; 
+  const double *pkpm_lax_dir_r = &pkpm_lax_r[8]; 
 
   if (wvpar>0) { 
 
