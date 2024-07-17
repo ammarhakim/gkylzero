@@ -68,13 +68,11 @@ gkyl_proj_maxwellian_pots_on_basis_new(const struct gkyl_rect_grid *grid,
   up->fpo_h_at_surf_ords = gkyl_array_new(GKYL_DOUBLE, 1, up->tot_surf_quad);
   up->fpo_g_at_surf_ords = gkyl_array_new(GKYL_DOUBLE, 1, up->tot_surf_quad);
   up->fpo_dhdv_at_surf_ords = gkyl_array_new(GKYL_DOUBLE, 1, up->tot_surf_quad);
-  up->fpo_dgdv_at_surf_ords = gkyl_array_new(GKYL_DOUBLE, 1, up->tot_surf_quad);
   up->fpo_d2gdv2_at_surf_ords = gkyl_array_new(GKYL_DOUBLE, 1, up->tot_surf_quad);
 
   // Nodes for nodal surface expansions
   up->surf_nodes = gkyl_array_new(GKYL_DOUBLE, grid->ndim-1, up->surf_basis.num_basis);
   up->surf_basis.node_list(gkyl_array_fetch(up->surf_nodes, 0));
-  up->fpo_g_at_surf_nodes = gkyl_array_new(GKYL_DOUBLE, 1, up->surf_basis.num_basis);
   up->fpo_dgdv_at_surf_nodes = gkyl_array_new(GKYL_DOUBLE, 1, up->surf_basis.num_basis);
 
   return up;
@@ -230,15 +228,9 @@ gkyl_proj_maxwellian_pots_on_basis_advance(const gkyl_proj_maxwellian_pots_on_ba
             }
             double rel_speed_n = sqrt(rel_speedsq_n);
 
-            if (d1 != d2) {
-              double *fpo_dgdv_surf_n = gkyl_array_fetch(up->fpo_dgdv_at_surf_nodes, i);
-              fpo_dgdv_surf_n[0] = eval_fpo_dgdv(den_n, rel_vel_in_dir2_n,
-                vtsq_n, rel_speedsq_n);
-            }
-            else {
-              double *fpo_g_surf_n = gkyl_array_fetch(up->fpo_g_at_surf_nodes, i);
-              fpo_g_surf_n[0] = eval_fpo_g(den_n, rel_speed_n, vtsq_n);
-            }
+            double *fpo_dgdv_surf_n = gkyl_array_fetch(up->fpo_dgdv_at_surf_nodes, i);
+            fpo_dgdv_surf_n[0] = eval_fpo_dgdv(den_n, rel_vel_in_dir2_n,
+              vtsq_n, rel_speedsq_n);
           } 
 
           double *fpo_g_surf_d = gkyl_array_fetch(fpo_g_surf, linp);
