@@ -406,10 +406,8 @@ vm_species_apply_ic(gkyl_vlasov_app *app, struct vm_species *species, double t0)
   
   // copy contents of initial conditions into buffer if specific BCs require them
   // *only works in x dimension for now*
-  /* gkyl_bc_basic_buffer_fixed_func(species->bc_lo[0], species->bc_buffer_lo_fixed, species->f); */
-  /* printf("4\n"); */
-  /* gkyl_bc_basic_buffer_fixed_func(species->bc_up[0], species->bc_buffer_up_fixed, species->f); */
-  /* printf("5\n"); */
+  // gkyl_bc_basic_buffer_fixed_func(species->bc_lo[0], species->bc_buffer_lo_fixed, species->f);
+  // gkyl_bc_basic_buffer_fixed_func(species->bc_up[0], species->bc_buffer_up_fixed, species->f);
 }
 
 void

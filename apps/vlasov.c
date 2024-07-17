@@ -305,8 +305,7 @@ gkyl_vlasov_app_new(struct gkyl_vm *vm)
       && app->species[i].lbo.num_cross_collisions)
       vm_species_lbo_cross_init(app, &app->species[i], &app->species[i].lbo);
 
-  // initialize each species source terms: this has to be done here
-  // as they may initialize a bflux updater for their source species
+  // initialize each species source terms
   for (int i=0; i<ns; ++i)
     if (app->species[i].source_id)
       vm_species_source_init(app, &app->species[i], &app->species[i].src);
@@ -564,11 +563,11 @@ gkyl_vlasov_app_write_species(gkyl_vlasov_app* app, int sidx, double tm, int fra
   if (app->use_gpu) {
     // copy data from device to host before writing it out
     gkyl_array_copy(app->species[sidx].f_host, app->species[sidx].f);
-    gkyl_comm_array_write(app->species[sidx].comm, &app->species[sidx].grid, &app->species[sidx].local,
+    gkyl_comm_array_write(app->species[sidx].comm, &app->species[sidx].grid, &app->species[sidx].local_ext,
       mt, app->species[sidx].f_host, fileNm);
   }
   else {
-    gkyl_comm_array_write(app->species[sidx].comm, &app->species[sidx].grid, &app->species[sidx].local,
+    gkyl_comm_array_write(app->species[sidx].comm, &app->species[sidx].grid, &app->species[sidx].local_ext,
       mt, app->species[sidx].f, fileNm);
   }
 

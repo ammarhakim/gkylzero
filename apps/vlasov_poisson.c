@@ -230,6 +230,15 @@ gkyl_vlasov_poisson_app_new(struct gkyl_vp *vp)
   for (int i=0; i<ns; ++i) 
     vp_species_init(vp, app, &app->species[i]);
 
+  // initialize species wall emission terms: these rely
+  // on other species which must be allocated in the previous step
+  for (int i=0; i<ns; ++i) {
+    if (app->species[i].emit_lo)
+      vp_species_emission_cross_init(app, &app->species[i], &app->species[i].bc_emission_lo);
+    if (app->species[i].emit_up)
+      vp_species_emission_cross_init(app, &app->species[i], &app->species[i].bc_emission_up);
+  }
+
   // Initialize each species cross-collisions terms: this has to be done here
   // as need pointers to colliding species' collision objects
   // allocated in vp_species_init.
@@ -241,8 +250,7 @@ gkyl_vlasov_poisson_app_new(struct gkyl_vp *vp)
     }
   }
 
-  // Initialize each species source terms: this has to be done here
-  // as they may initialize a bflux updater for their source species.
+  // Initialize each species source terms
   for (int i=0; i<ns; ++i) {
     if (app->species[i].source_id) {
       vp_species_source_init(app, &app->species[i], &app->species[i].src);
@@ -282,7 +290,7 @@ calc_field_and_apply_bc(gkyl_vlasov_poisson_app* app, double tcurr, struct gkyl_
 
   // Apply boundary conditions.
   for (int i=0; i<app->num_species; ++i) {
-    vp_species_apply_bc(app, &app->species[i], distf[i]);
+    vp_species_apply_bc(app, &app->species[i], distf[i], tcurr);
   }
 
 }
@@ -330,7 +338,7 @@ gkyl_vlasov_poisson_app_apply_ic_species(gkyl_vlasov_poisson_app* app, int sidx,
   vp_species_apply_ic(app, &app->species[sidx], t0);
   app->stat.init_species_tm += gkyl_time_diff_now_sec(wtm);
 
-  vp_species_apply_bc(app, &app->species[sidx], app->species[sidx].f);
+  vp_species_apply_bc(app, &app->species[sidx], app->species[sidx].f, t0);
 }
 
 void
@@ -457,7 +465,7 @@ gkyl_vlasov_poisson_app_write_species(gkyl_vlasov_poisson_app* app, int sidx, do
     gkyl_array_copy(vps->f_host, vps->f);
   }
 
-  gkyl_comm_array_write(vps->comm, &vps->grid, &vps->local, mt, vps->f_host, fileNm);
+  gkyl_comm_array_write(vps->comm, &vps->grid, &vps->local_ext, mt, vps->f_host, fileNm);
 
   vlasov_poisson_array_meta_release(mt);
 }
@@ -601,10 +609,6 @@ forward_euler(gkyl_vlasov_poisson_app* app, double tcurr, double dt,
     struct vp_species *vps = &app->species[i];
     double dt1 = vp_species_rhs(app, vps, fin[i], fout[i]);
     dtmin = fmin(dtmin, dt1);
-
-    // Compute and store (in the ghost cell of of out) the boundary fluxes.
-    // NOTE: this overwrites ghost cells that may be used for sourcing.
-    vp_species_bflux_rhs(app, vps, &vps->bflux, fin[i], fout[i]);
   }
 
   // Compute source term.

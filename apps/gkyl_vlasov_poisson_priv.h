@@ -18,6 +18,9 @@
 #include <gkyl_array_reduce.h>
 #include <gkyl_array_rio.h>
 #include <gkyl_bc_basic.h>
+#include <gkyl_bc_emission.h>
+#include <gkyl_bc_emission_spectrum.h>
+#include <gkyl_bc_emission_elastic.h>
 #include <gkyl_bgk_collisions.h>
 #include <gkyl_dg_advection.h>
 #include <gkyl_dg_bin_ops.h>
@@ -196,6 +199,47 @@ struct vp_boundary_fluxes {
   gkyl_ghost_surf_calc *flux_slvr; // boundary flux solver
 };
 
+struct vp_emitting_wall {
+  // emitting wall sheath boundary conditions
+  int num_species;
+  int dir;
+  enum gkyl_edge_loc edge;
+  double *scale_ptr;
+  double t_bound;
+  bool elastic;
+
+  struct gkyl_spectrum_model *spectrum_model[GKYL_MAX_SPECIES];
+  struct gkyl_yield_model *yield_model[GKYL_MAX_SPECIES];
+  struct gkyl_elastic_model *elastic_model;
+  struct gkyl_bc_emission_ctx *params;
+
+  struct gkyl_bc_emission_spectrum *update[GKYL_MAX_SPECIES];
+  struct gkyl_bc_emission_elastic *elastic_update;
+  struct gkyl_array *f_emit;
+  struct gkyl_array *buffer;
+  struct gkyl_array *elastic_yield;
+  struct gkyl_array *yield[GKYL_MAX_SPECIES]; // projected secondary electron yield
+  struct gkyl_array *spectrum[GKYL_MAX_SPECIES]; // projected secondary electron spectrum
+  struct gkyl_array *weight[GKYL_MAX_SPECIES];
+  struct gkyl_array *flux[GKYL_MAX_SPECIES];
+  struct gkyl_array *bflux_arr[GKYL_MAX_SPECIES];
+  struct gkyl_array *k[GKYL_MAX_SPECIES];
+  struct vp_species *impact_species[GKYL_MAX_SPECIES]; // pointers to impacting species
+  struct gkyl_range impact_normal_r[GKYL_MAX_SPECIES];
+  struct gkyl_dg_updater_moment *flux_slvr[GKYL_MAX_SPECIES]; // integrated moments
+
+  struct gkyl_rect_grid *impact_grid[GKYL_MAX_SPECIES];
+  struct gkyl_range *impact_ghost_r[GKYL_MAX_SPECIES];
+  struct gkyl_range *impact_skin_r[GKYL_MAX_SPECIES];
+  struct gkyl_range *impact_buff_r[GKYL_MAX_SPECIES];
+  struct gkyl_range *impact_cbuff_r[GKYL_MAX_SPECIES];
+  
+  struct gkyl_rect_grid *emit_grid;
+  struct gkyl_range *emit_buff_r;
+  struct gkyl_range *emit_ghost_r;
+  struct gkyl_range *emit_skin_r;
+};
+
 struct vp_proj {
   enum gkyl_projection_id proj_id; // type of projection
 
@@ -294,6 +338,11 @@ struct vp_species {
   
   // boundary conditions on lower/upper edges in each direction  
   struct gkyl_vlasov_poisson_bc lower_bc[3], upper_bc[3];
+  // emitting wall sheath boundary conditions
+  struct vp_emitting_wall bc_emission_lo;
+  struct vp_emitting_wall bc_emission_up;
+  bool emit_lo; // flag to indicate if there emission BCs
+  bool emit_up;
   // Pointers to updaters that apply BC.
   struct gkyl_bc_basic *bc_lo[3];
   struct gkyl_bc_basic *bc_up[3];
@@ -462,6 +511,19 @@ void vp_species_moment_calc(const struct vp_species_moment *sm,
  */
 void vp_species_moment_release(const struct gkyl_vlasov_poisson_app *app,
   const struct vp_species_moment *sm);
+
+/** vp_species_emission API */
+
+void vp_species_emission_init(struct gkyl_vlasov_poisson_app *app, struct vp_emitting_wall *emit,
+  int dir, enum gkyl_edge_loc edge, void *ctx, bool use_gpu);
+
+void vp_species_emission_cross_init(struct gkyl_vlasov_poisson_app *app, struct vp_species *s,
+  struct vp_emitting_wall *emit);
+
+void vp_species_emission_apply_bc(struct gkyl_vlasov_poisson_app *app, const struct vp_emitting_wall *emit,
+  struct gkyl_array *fout, double tcurr);
+
+void vp_species_emission_release(const struct vp_emitting_wall *emit);
 
 /** vp_species_lbo API */
 
@@ -729,7 +791,7 @@ double vp_species_rhs(gkyl_vlasov_poisson_app *app, struct vp_species *species,
  * @param species Pointer to species
  * @param f Field to apply BCs
  */
-void vp_species_apply_bc(gkyl_vlasov_poisson_app *app, const struct vp_species *species, struct gkyl_array *f);
+void vp_species_apply_bc(gkyl_vlasov_poisson_app *app, const struct vp_species *species, struct gkyl_array *f, double tcurr);
 
 /**
  * Fill stat object in app with collision timers.
