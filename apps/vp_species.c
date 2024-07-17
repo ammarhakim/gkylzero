@@ -384,6 +384,8 @@ vp_species_release(const gkyl_vlasov_poisson_app* app, const struct vp_species *
 
   vp_species_projection_release(app, &s->proj_init);
 
+  vp_species_bflux_release(app, &s->bflux);
+
   gkyl_comm_release(s->comm);
 
   if (app->use_gpu)
@@ -412,12 +414,17 @@ vp_species_release(const gkyl_vlasov_poisson_app* app, const struct vp_species *
 //  else if (s->collision_id == GKYL_BGK_COLLISIONS)
 //    vp_species_bgk_release(app, &s->bgk);
 
-  vp_species_bflux_release(app, &s->bflux);
-
   // Copy BCs are allocated by default. Need to free.
   for (int d=0; d<app->cdim; ++d) {
-    gkyl_bc_basic_release(s->bc_lo[d]);
-    gkyl_bc_basic_release(s->bc_up[d]);
+    if (s->lower_bc[d].type == GKYL_SPECIES_EMISSION)
+      vp_species_emission_release(&s->bc_emission_lo);
+    else 
+      gkyl_bc_basic_release(s->bc_lo[d]);
+    
+    if (s->upper_bc[d].type == GKYL_SPECIES_EMISSION)
+      vp_species_emission_release(&s->bc_emission_up);
+    else 
+      gkyl_bc_basic_release(s->bc_up[d]);
   }
   
   if (app->use_gpu) {
