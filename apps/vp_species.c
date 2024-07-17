@@ -171,9 +171,6 @@ vp_species_init(struct gkyl_vp *vp, struct gkyl_vlasov_poisson_app *app, struct 
     assert(false); // Not ready.
   }
 
-  // Initialize boundary fluxes for diagnostics and sources, for example.
-  vp_species_bflux_init(app, vps, &vps->bflux);
-
   // Create ranges and allocate buffers for applying periodic and non-periodic BCs.
   long buff_sz = 0;
   // Compute buffer size needed.
@@ -186,6 +183,10 @@ vp_species_init(struct gkyl_vp *vp, struct gkyl_vlasov_poisson_app *app, struct 
     long vol = GKYL_MAX2(vps->lower_skin[dir].volume, vps->upper_skin[dir].volume);
     buff_sz = buff_sz > vol ? buff_sz : vol;
   }
+
+  // Initialize boundary fluxes for diagnostics and sources, for example.
+  vp_species_bflux_init(app, vps, &vps->bflux);
+
   vps->bc_buffer = mkarr(app->use_gpu, app->basis.num_basis, buff_sz);
   // Buffer arrays for fixed function boundary conditions on distribution function.
   vps->bc_buffer_lo_fixed = mkarr(app->use_gpu, app->basis.num_basis, buff_sz);
