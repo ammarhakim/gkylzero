@@ -128,6 +128,7 @@ GKYL_CU_DH void pkpm_vars_penalization_x_1x_ser_p2(double tol, bool force_lax,
 
   if (q_l[0] < tol) use_lax = 1; 
   if (q_r[0] < tol) use_lax = 1; 
+  if (u_l + u_r < tol && u_max > vth_max) use_lax = 1; 
 
   gkyl_wv_eqn_rotate_to_local(wv_eqn, geom->tau1[0], geom->tau2[0], geom->norm[0], q_l, q_l_local); 
   gkyl_wv_eqn_rotate_to_local(wv_eqn, geom->tau1[0], geom->tau2[0], geom->norm[0], q_r, q_r_local); 
