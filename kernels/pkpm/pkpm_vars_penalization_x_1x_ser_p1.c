@@ -116,7 +116,7 @@ GKYL_CU_DH void pkpm_vars_penalization_x_1x_ser_p1(double tol,
   q_r[8] = ser_1x_p1_surfx1_eval_quad_node_0_l(Pyz_r) + q_r[2]*q_r[3]/q_r[0]; 
   q_r[9] = ser_1x_p1_surfx1_eval_quad_node_0_l(Pzz_r) + q_r[3]*q_r[3]/q_r[0]; 
 
-  T_l = ser_1x_p1_surfx1_eval_quad_node_0_l(Tii_l); 
+  T_l = ser_1x_p1_surfx1_eval_quad_node_0_r(Tii_l); 
   T_r = ser_1x_p1_surfx1_eval_quad_node_0_l(Tii_r); 
   u_max = fmax(fabs(u_l[0]), fabs(u_r[0])); 
   if (T_l > 0.0 && T_r > 0.0) vth_max = fmax(sqrt(fabs(T_l)), sqrt(fabs(T_r))); 
