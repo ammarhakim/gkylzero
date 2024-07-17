@@ -78,13 +78,10 @@ vp_species_source_release(const struct gkyl_vlasov_poisson_app *app, const struc
 {
   gkyl_array_release(src->source);
   vp_species_projection_release(app, &src->proj_source);
-  if (src->calc_bflux) {
-    if (app->use_gpu) {
-      gkyl_cu_free(src->scale_ptr);
-    } 
-    else {
-      gkyl_free(src->scale_ptr);
-    }    
-    vp_species_bflux_release(app, &src->bflux);
+  if (app->use_gpu) {
+    gkyl_cu_free(src->scale_ptr);
+  } 
+  else {
+    gkyl_free(src->scale_ptr);
   }
 }
