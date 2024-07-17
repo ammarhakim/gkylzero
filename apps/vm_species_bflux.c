@@ -50,8 +50,8 @@ vm_species_bflux_init(struct gkyl_vlasov_app *app, struct vm_species *s, struct 
 
     cells[i] = s->grid.cells[i];
 
-    bflux->mom_arr[2*i] = mkarr(app->use_gpu, app->confBasis.num_basis, bflux->conf_r[i].volume);
-    bflux->mom_arr[2*i+1] = mkarr(app->use_gpu, app->confBasis.num_basis, bflux->conf_r[i].volume);
+    bflux->mom_arr[2*i] = mkarr(app->use_gpu, app->confBasis.num_basis, bflux->conf_r[2*i].volume);
+    bflux->mom_arr[2*i+1] = mkarr(app->use_gpu, app->confBasis.num_basis, bflux->conf_r[2*i+1].volume);
   }
 }
 
