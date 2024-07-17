@@ -291,7 +291,8 @@ gkyl_dg_calc_pkpm_vars_accel_cu(struct gkyl_dg_calc_pkpm_vars *up, const struct 
 }
 
 __global__ void
-gkyl_dg_calc_pkpm_vars_penalization_cu_kernel(struct gkyl_dg_calc_pkpm_vars *up, struct gkyl_range conf_range, 
+gkyl_dg_calc_pkpm_vars_penalization_cu_kernel(struct gkyl_dg_calc_pkpm_vars *up, 
+  struct gkyl_range conf_range, struct gkyl_range conf_range_ext, 
   const struct gkyl_array* vlasov_pkpm_moms, const struct gkyl_array* p_ij, 
   const struct gkyl_array* prim, const struct gkyl_array* euler_pkpm, 
   struct gkyl_array* pkpm_lax, struct gkyl_array* pkpm_penalization)
@@ -348,7 +349,7 @@ gkyl_dg_calc_pkpm_vars_penalization_cu_kernel(struct gkyl_dg_calc_pkpm_vars *up,
       if (idxc[dir] == conf_range.upper[dir]) {
         gkyl_copy_int_arr(cdim, idxc, idxr);
         idxr[dir] = idxr[dir]+1; 
-        long linr = gkyl_range_idx(&conf_range, idxr);
+        long linr = gkyl_range_idx(&conf_range_ext, idxr);
 
         const struct gkyl_wave_cell_geom *geom_r = gkyl_wave_geom_get(up->geom, idxr);
 
@@ -371,14 +372,16 @@ gkyl_dg_calc_pkpm_vars_penalization_cu_kernel(struct gkyl_dg_calc_pkpm_vars *up,
 
 // Host-side wrapper for surface expansions of pkpm penalization variables calculation
 void
-gkyl_dg_calc_pkpm_vars_penalization_cu(struct gkyl_dg_calc_pkpm_vars *up, const struct gkyl_range *conf_range, 
+gkyl_dg_calc_pkpm_vars_penalization_cu(struct gkyl_dg_calc_pkpm_vars *up, 
+  const struct gkyl_range *conf_range, const struct gkyl_range *conf_range_ext, 
   const struct gkyl_array* vlasov_pkpm_moms, const struct gkyl_array* p_ij, 
   const struct gkyl_array* prim, const struct gkyl_array* euler_pkpm, 
   struct gkyl_array* pkpm_lax, struct gkyl_array* pkpm_penalization)
 {
   int nblocks = conf_range->nblocks;
   int nthreads = conf_range->nthreads;
-  gkyl_dg_calc_pkpm_vars_penalization_cu_kernel<<<nblocks, nthreads>>>(up->on_dev, *conf_range, 
+  gkyl_dg_calc_pkpm_vars_penalization_cu_kernel<<<nblocks, nthreads>>>(up->on_dev, 
+    *conf_range, *conf_range_ext, 
     vlasov_pkpm_moms->on_dev, p_ij->on_dev, prim->on_dev, euler_pkpm->on_dev, 
     pkpm_lax->on_dev, pkpm_penalization->on_dev);
 }

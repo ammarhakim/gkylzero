@@ -145,6 +145,7 @@ void gkyl_dg_calc_pkpm_vars_accel(struct gkyl_dg_calc_pkpm_vars *up, const struc
  * Note: Each cell stores the surface expansion on the *lower* edge of the cell
  * @param up                Updater for computing pkpm variables 
  * @param conf_range        Configuration-space range
+ * @param conf_range_ext    Extended Configuration-space range for indexing upper edge of surface expansions.
  * @param vlasov_pkpm_moms  Input array of pkpm kinetic moments [rho, p_parallel, p_perp]
  * @param p_ij              Input array of pressure tensor p_ij = (p_par - p_perp) b_i b_j + p_perp g_ij
  * @param prim              Input array of primitive moments [ux, uy, uz, 1/rho*div(p_par b), T_perp/m, m/T_perp, 3*Txx/m, 3*Tyy/m, 3*Tzz/m]
@@ -152,7 +153,8 @@ void gkyl_dg_calc_pkpm_vars_accel(struct gkyl_dg_calc_pkpm_vars *up, const struc
  * @param pkpm_lax          Output array of surface expansion of Lax penalization lambda_i = |u_i| + sqrt(3.0*T_ii/m)
  * @param pkpm_penalization Output array of surface expansion of total momentum penalization
  */
-void gkyl_dg_calc_pkpm_vars_penalization(struct gkyl_dg_calc_pkpm_vars *up, const struct gkyl_range *conf_range, 
+void gkyl_dg_calc_pkpm_vars_penalization(struct gkyl_dg_calc_pkpm_vars *up, 
+  const struct gkyl_range *conf_range, const struct gkyl_range *conf_range_ext,
   const struct gkyl_array* vlasov_pkpm_moms, const struct gkyl_array* p_ij, 
   const struct gkyl_array* prim, const struct gkyl_array* euler_pkpm, 
   struct gkyl_array* pkpm_lax, struct gkyl_array* pkpm_penalization);
@@ -256,7 +258,8 @@ void gkyl_dg_calc_pkpm_vars_accel_cu(struct gkyl_dg_calc_pkpm_vars *up, const st
   const struct gkyl_array* bvar, const struct gkyl_array* div_b, const struct gkyl_array* nu, 
   struct gkyl_array* pkpm_accel);
 
-void gkyl_dg_calc_pkpm_vars_penalization_cu(struct gkyl_dg_calc_pkpm_vars *up, const struct gkyl_range *conf_range, 
+void gkyl_dg_calc_pkpm_vars_penalization_cu(struct gkyl_dg_calc_pkpm_vars *up, 
+  const struct gkyl_range *conf_range, const struct gkyl_range *conf_range_ext, 
   const struct gkyl_array* vlasov_pkpm_moms, const struct gkyl_array* p_ij, 
   const struct gkyl_array* prim, const struct gkyl_array* euler_pkpm, 
   struct gkyl_array* pkpm_lax, struct gkyl_array* pkpm_penalization);

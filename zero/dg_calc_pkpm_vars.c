@@ -264,14 +264,16 @@ void gkyl_dg_calc_pkpm_vars_accel(struct gkyl_dg_calc_pkpm_vars *up, const struc
   }
 }
 
-void gkyl_dg_calc_pkpm_vars_penalization(struct gkyl_dg_calc_pkpm_vars *up, const struct gkyl_range *conf_range, 
+void gkyl_dg_calc_pkpm_vars_penalization(struct gkyl_dg_calc_pkpm_vars *up, 
+  const struct gkyl_range *conf_range, const struct gkyl_range *conf_range_ext, 
   const struct gkyl_array* vlasov_pkpm_moms, const struct gkyl_array* p_ij, 
   const struct gkyl_array* prim, const struct gkyl_array* euler_pkpm, 
   struct gkyl_array* pkpm_lax, struct gkyl_array* pkpm_penalization)
 {
 #ifdef GKYL_HAVE_CUDA
   if (gkyl_array_is_cu_dev(pkpm_penalization)) {
-    return gkyl_dg_calc_pkpm_vars_penalization_cu(up, conf_range, 
+    return gkyl_dg_calc_pkpm_vars_penalization_cu(up, 
+      conf_range, conf_range_ext
       vlasov_pkpm_moms, p_ij, prim, euler_pkpm, 
       pkpm_lax, pkpm_penalization);
   }
@@ -322,7 +324,7 @@ void gkyl_dg_calc_pkpm_vars_penalization(struct gkyl_dg_calc_pkpm_vars *up, cons
       if (idxc[dir] == conf_range->upper[dir]) {
         gkyl_copy_int_arr(cdim, idxc, idxr);
         idxr[dir] = idxr[dir]+1; 
-        long linr = gkyl_range_idx(conf_range, idxr);
+        long linr = gkyl_range_idx(conf_range_ext, idxr);
 
         const struct gkyl_wave_cell_geom *geom_r = gkyl_wave_geom_get(up->geom, idxr);
 

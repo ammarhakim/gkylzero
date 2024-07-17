@@ -467,7 +467,8 @@ pkpm_species_calc_pkpm_vars(gkyl_pkpm_app *app, struct pkpm_species *species,
   // and the total momentum penalization (either 10 moment Roe solve or Lax penalization)
   gkyl_array_clear(species->pkpm_lax, 0.0);
   gkyl_array_clear(species->pkpm_penalization, 0.0);
-  gkyl_dg_calc_pkpm_vars_penalization(species->calc_pkpm_vars, &app->local, 
+  gkyl_dg_calc_pkpm_vars_penalization(species->calc_pkpm_vars, 
+    &app->local, &app->local_ext, 
     species->pkpm_moms.marr, species->pkpm_p_ij, species->pkpm_prim, fluidin, 
     species->pkpm_lax, species->pkpm_penalization);
 
