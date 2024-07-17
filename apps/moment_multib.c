@@ -1,3 +1,5 @@
+#include <gkyl_array_rio_priv.h>
+#include <gkyl_elem_type_priv.h>
 #include <gkyl_moment_multib.h>
 #include <gkyl_moment_multib_priv.h>
 #include <gkyl_rrobin_decomp.h>
@@ -38,8 +40,72 @@ calc_max_cuts(const struct gkyl_block_geom *block_geom)
   return max_cuts;
 }
 
+// construct the mpack meta-data for multi-block data files
+static struct gkyl_array_meta *
+moment_multib_meta(struct moment_multib_output_meta meta)
+{
+  struct gkyl_array_meta *mt = gkyl_malloc(sizeof *mt);
+
+  mt->meta_sz = 0;
+  mpack_writer_t writer;
+  mpack_writer_init_growable(&writer, &mt->meta, &mt->meta_sz);
+
+  // add some data to mpack
+  mpack_build_map(&writer);
+  
+  mpack_write_cstr(&writer, "time");
+  mpack_write_double(&writer, meta.stime);
+
+  mpack_write_cstr(&writer, "frame");
+  mpack_write_i64(&writer, meta.frame);
+
+  mpack_write_cstr(&writer, "topo_file");
+  mpack_write_cstr(&writer, meta.topo_file_name);
+
+  mpack_complete_map(&writer);
+
+  int status = mpack_writer_destroy(&writer);
+
+  if (status != mpack_ok) {
+    free(mt->meta); // we need to use free here as mpack does its own malloc
+    gkyl_free(mt);
+    mt = 0;
+  }
+
+  return mt;  
+}
+
+// write out multi-block data files
+static int
+moment_multib_data_write(const char *fname, struct moment_multib_output_meta meta)
+{
+  enum gkyl_array_rio_status status = GKYL_ARRAY_RIO_FOPEN_FAILED;
+  FILE *fp = 0;
+  int err;
+  with_file (fp, fname, "w") {
+    struct gkyl_array_meta *amet = moment_multib_meta(meta);
+    if (amet) {
+      status = gkyl_header_meta_write_fp( &(struct gkyl_array_header_info) {
+          .file_type = gkyl_file_type_int[GKYL_MULTI_BLOCK_DATA_FILE],
+          .meta_size = amet->meta_sz,
+          .meta = amet->meta
+        },
+        fp
+      );
+      if (amet) {
+        MPACK_FREE(amet->meta);
+        gkyl_free(amet);
+      }
+    }
+    else {
+      status = GKYL_ARRAY_RIO_META_FAILED;
+    }
+  }
+  return status;
+}
+
 // construct single-block App for given block ID
-struct gkyl_moment_app *
+static struct gkyl_moment_app *
 singleb_app_new(const struct gkyl_moment_multib *mbinp, int bid,
   const struct gkyl_moment_multib_app *mbapp)
 {
@@ -416,6 +482,17 @@ gkyl_moment_multib_app_write_field(const gkyl_moment_multib_app *app, double tm,
 {
   for (int i=0; i<app->num_local_blocks; ++i)
     gkyl_moment_app_write_field(app->singleb_apps[i], tm, frame);
+
+  // write multi-block field meta-file
+  int rank;
+  gkyl_comm_get_rank(app->comm, &rank);
+  if (0 == rank) {
+    cstr file_name = cstr_from_fmt("%s-%s_%d.gkyl", app->name, "field", frame);
+    
+    gkyl_block_topo_write(app->block_topo, file_name.str);
+    cstr_drop(&file_name);
+  }  
+  
   gkyl_comm_barrier(app->comm);
 }
 

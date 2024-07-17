@@ -27,3 +27,10 @@ struct gkyl_moment_multib_app {
   
   struct gkyl_moment_stat stat; // statistics
 };
+
+// Meta-data for IO
+struct moment_multib_output_meta {
+  int frame; // frame number
+  double stime; // output time
+  const char *topo_file_name; // name of topology file
+};
