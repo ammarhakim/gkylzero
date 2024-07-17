@@ -26,6 +26,6 @@ void gkyl_bc_emission_release(struct gkyl_bc_emission_ctx *ctx)
     gkyl_yield_model_release(ctx->yield_model[i]);
   }
   gkyl_elastic_model_release(ctx->elastic_model);
-  // Release updater memory.
+  // Release ctx memory.
   gkyl_free(ctx);
 }

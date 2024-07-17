@@ -15,8 +15,6 @@ struct gkyl_bc_emission_elastic {
   enum gkyl_edge_loc edge;
   struct gkyl_array_copy_func *reflect_func;
   struct gkyl_elastic_model *elastic_model;
-  // struct gkyl_bc_emission_elastic_funcs *funcs;
-  // struct gkyl_bc_emission_elastic_funcs *funcs_cu;
   bool use_gpu;
 };
 
@@ -51,18 +49,12 @@ void gkyl_bc_emission_elastic_set_extern_params_cu(const struct gkyl_bc_emission
  * CUDA device function to set up function to apply boundary conditions.
  *
  * @param up BC updater
+ * @param emit_skin_r Range over the species skin cells
+ * @param buff_arr BC buffer array
  * @param f_skin Skin cell distribution
- * @param f_proj Projected spectrum distribution
- * @param f_buff Distribution buffer array
- * @param weight Weighting coefficients
- * @param k Normalization factor
- * @param flux Flux into boundary
- * @param grid Domain grid
- * @param gamma SE yield values on incoming ghost space
- * @param skin_r Incoming skin space range
- * @param ghost_r Incoming ghost space range
- * @param conf_r Configuration space range
- * @param buff_r Buffer array range
+ * @param f_emit Emitted distribution
+ * @param elastic_yield Projection of elastic yield model onto basis
+ * @param basis Pointer to basis functions on host
  */
 void gkyl_bc_emission_elastic_advance_cu(const struct gkyl_bc_emission_elastic *up,
   struct gkyl_range *emit_skin_r, struct gkyl_array *buff_arr, struct gkyl_array *f_skin,

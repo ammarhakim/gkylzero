@@ -11,6 +11,7 @@ struct gkyl_yield_model;
 typedef void (*emission_yield_func_t)(double *out, struct gkyl_yield_model *yield,
   double xc[GKYL_MAX_DIM]);
 
+// Base model type
 struct gkyl_yield_model {
   int cdim;
   int vdim;
@@ -22,6 +23,7 @@ struct gkyl_yield_model {
   struct gkyl_ref_count ref_count; // reference count
 };
 
+// Furman-Pivi model container
 struct gkyl_yield_furman_pivi {
   struct gkyl_yield_model yield;
   double deltahat_ts;
@@ -33,6 +35,7 @@ struct gkyl_yield_furman_pivi {
   double s;
 };
 
+// Schou model container
 struct gkyl_yield_schou {
   struct gkyl_yield_model yield;
   double int_wall;
@@ -43,10 +46,13 @@ struct gkyl_yield_schou {
   double nw;
 };
 
+// Constant yield model container
 struct gkyl_yield_constant {
   struct gkyl_yield_model yield;
   double delta;
 };
+
+// Free functions
 
 static void
 furman_pivi_free(const struct gkyl_ref_count *ref)
@@ -152,22 +158,104 @@ constant_yield(double *out, struct gkyl_yield_model *yield, double xc[GKYL_MAX_D
   out[0] = delta;
 }
 
-struct gkyl_yield_model* gkyl_yield_furman_pivi_new(double charge, double deltahat_ts, double Ehat_ts, double t1,
-  double t2, double t3, double t4, double s, bool use_gpu);
+/**
+ * Create the emission yield model using Furman-Pivi
+ *
+ * @param charge Elementary charge, used for eV units
+ * @param deltahat_ts Fitting parameter
+ * @param Ehat_ts Fitting parameter
+ * @param t1 Fitting parameter
+ * @param t2 Fitting parameter
+ * @param t3 Fitting parameter
+ * @param t4 Fitting parameter
+ * @param s Fitting parameter
+ * @param use_gpu bool to determine if on GPU
+ * @return New model
+ */
+struct gkyl_yield_model* gkyl_yield_furman_pivi_new(double charge, double deltahat_ts,
+  double Ehat_ts, double t1, double t2, double t3, double t4, double s, bool use_gpu);
 
-struct gkyl_yield_model* gkyl_yield_schou_new(double charge, double int_wall, double a2, double a3, double a4,
-  double a5, double nw, bool use_gpu);
+/**
+ * Create the emission yield model using Schou
+ *
+ * @param charge Elementary charge, used for eV units
+ * @param int_wall Fitting parameter
+ * @param a2 Fitting parameter
+ * @param a3 Fitting parameter
+ * @param a4 Fitting parameter
+ * @param a5 Fitting parameter
+ * @param nw Fitting parameter
+ * @param use_gpu bool to determine if on GPU
+ * @return New model
+ */
+struct gkyl_yield_model* gkyl_yield_schou_new(double charge, double int_wall, double a2,
+  double a3, double a4, double a5, double nw, bool use_gpu);
 
+/**
+ * Create the emission yield model using a constant yield
+ *
+ * @param charge Elementary charge, used for eV units
+ * @param delta Yield value
+ * @param use_gpu bool to determine if on GPU
+ * @return New model
+ */
 struct gkyl_yield_model* gkyl_yield_constant_new(double charge, double delta, bool use_gpu);
 
+/**
+ * Acquire pointer to model object. Delete using the release()
+ * method
+ *
+ * @param model Model object.
+ * @return Acquired model obj pointer
+ */
 struct gkyl_yield_model* gkyl_yield_model_acquire(const struct gkyl_yield_model* model);
 
+/**
+ * Delete model object
+ *
+ * @param model Model object to delete.
+ */
 void gkyl_yield_model_release(const struct gkyl_yield_model* model);
 
-struct gkyl_yield_model* gkyl_yield_furman_pivi_cu_dev_new(double charge, double deltahat_ts, double Ehat_ts,
-  double t1, double t2, double t3, double t4, double s);
+/**
+ * Create the emission yield model using Furman-Pivi on NV-GPU
+ *
+ * @param charge Elementary charge, used for eV units
+ * @param deltahat_ts Fitting parameter
+ * @param Ehat_ts Fitting parameter
+ * @param t1 Fitting parameter
+ * @param t2 Fitting parameter
+ * @param t3 Fitting parameter
+ * @param t4 Fitting parameter
+ * @param s Fitting parameter
+ * @return New model
+ */
+struct gkyl_yield_model* gkyl_yield_furman_pivi_cu_dev_new(double charge, double deltahat_ts,
+  double Ehat_ts, double t1, double t2, double t3, double t4, double s);
 
-struct gkyl_yield_model* gkyl_yield_schou_cu_dev_new(double charge, double int_wall, double a2, double a3,
-  double a4, double a5, double nw);
 
+/**
+ * Create the emission yield model using Schou on NV-GPU
+ *
+ * @param charge Elementary charge, used for eV units
+ * @param int_wall Fitting parameter
+ * @param a2 Fitting parameter
+ * @param a3 Fitting parameter
+ * @param a4 Fitting parameter
+ * @param a5 Fitting parameter
+ * @param nw Fitting parameter
+ * @param use_gpu bool to determine if on GPU
+ * @return New model
+ */
+struct gkyl_yield_model* gkyl_yield_schou_cu_dev_new(double charge, double int_wall, double a2,
+  double a3, double a4, double a5, double nw);
+
+/**
+ * Create the emission yield model using a constant yield on NV-GPU
+ *
+ * @param charge Elementary charge, used for eV units
+ * @param delta Yield value
+ * @param use_gpu bool to determine if on GPU
+ * @return New model
+ */
 struct gkyl_yield_model* gkyl_yield_constant_cu_dev_new(double charge, double delta);

@@ -34,8 +34,9 @@ gkyl_bc_emission_elastic_create_arr_copy_func(int dir, int cdim, const struct gk
 }
 
 struct gkyl_bc_emission_elastic*
-gkyl_bc_emission_elastic_new(struct gkyl_elastic_model *elastic_model, struct gkyl_array *elastic_yield, int dir, enum gkyl_edge_loc edge,
-  int cdim, int vdim, double mass, int ncomp, struct gkyl_rect_grid *grid, struct gkyl_range *emit_buff_r,
+gkyl_bc_emission_elastic_new(struct gkyl_elastic_model *elastic_model,
+  struct gkyl_array *elastic_yield, int dir, enum gkyl_edge_loc edge, int cdim,
+  int vdim, double mass, int ncomp, struct gkyl_rect_grid *grid, struct gkyl_range *emit_buff_r,
   int poly_order, const struct gkyl_basis *dev_basis, struct gkyl_basis *basis,
   struct gkyl_array *proj_buffer, bool use_gpu)
 {

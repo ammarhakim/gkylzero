@@ -14,16 +14,16 @@ typedef struct gkyl_bc_emission_spectrum gkyl_bc_emission_spectrum;
 /**
  * Create a new updater to apply emitting wall spectrum boundary conditions.
  *
- * @param norm_type Type of spectrum to use for calculation of normalization factor
- * @param yield_type Type of yield equation for SEY calculation
- * @param norm_param Parameters of normalization factor calculation
- * @param yield_param Parameters of yield calculation
+ * @param spectrum_model Spectrum model type
+ * @param yield_model Yield model type
  * @param yield Array of calculated yield values at cell centers
  * @param spectrum Emission spectrum projected onto basis
  * @param dir Direction in which to apply BC
  * @param edge Lower or upper edge at which to apply BC (emission_spectrum gkyl_edge_loc)
  * @param cdim Configuration space dimensions
  * @param vdim Velocity space dimensions
+ * @param mass_in Impacting species mass
+ * @param mass_out Emitted species mass
  * @param impact_buff_r Range over the impacting species buffer array
  * @param emit_buff_r Range over the emitting species buffer array
  * @param grid Impacting species boundary grid
@@ -35,9 +35,9 @@ typedef struct gkyl_bc_emission_spectrum gkyl_bc_emission_spectrum;
  */
 struct gkyl_bc_emission_spectrum* gkyl_bc_emission_spectrum_new(struct gkyl_spectrum_model *spectrum_model,
   struct gkyl_yield_model *yield_model, struct gkyl_array *yield, struct gkyl_array *spectrum,
-  int dir, enum gkyl_edge_loc edge, int cdim, int vdim, double mass_in, double mass_out, struct gkyl_range *impact_buff_r,
-  struct gkyl_range *emit_buff_r, struct gkyl_rect_grid *grid, int poly_order,
-  struct gkyl_basis *basis, struct gkyl_array *proj_buffer, bool use_gpu);
+  int dir, enum gkyl_edge_loc edge, int cdim, int vdim, double mass_in, double mass_out,
+  struct gkyl_range *impact_buff_r, struct gkyl_range *emit_buff_r, struct gkyl_rect_grid *grid,
+  int poly_order, struct gkyl_basis *basis, struct gkyl_array *proj_buffer, bool use_gpu);
 
 /**
  * @param up BC updater

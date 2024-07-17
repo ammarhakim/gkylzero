@@ -12,6 +12,7 @@ typedef void (*emission_spectrum_dist_func_t)(double t, const double *xn, double
 typedef void (*emission_spectrum_norm_func_t)(double *out, struct gkyl_spectrum_model *spectrum,
   const double *flux, double effective_delta);
 
+// Base model type
 struct gkyl_spectrum_model {
   int cdim;
   int vdim;
@@ -24,21 +25,26 @@ struct gkyl_spectrum_model {
   struct gkyl_ref_count ref_count; // reference count
 };
 
+// Chung-Everhart model container
 struct gkyl_spectrum_chung_everhart {
   struct gkyl_spectrum_model spectrum;
   double phi;
 };
 
+// Logarithmic Gaussian model container
 struct gkyl_spectrum_gaussian {
   struct gkyl_spectrum_model spectrum;
   double E_0;
   double tau;
 };
 
+// Maxwellian model container
 struct gkyl_spectrum_maxwellian {
   struct gkyl_spectrum_model spectrum;
   double vt;
 };
+
+// Free functions
 
 static void
 chung_everhart_free(const struct gkyl_ref_count *ref)
@@ -63,6 +69,8 @@ maxwellian_free(const struct gkyl_ref_count *ref)
   struct gkyl_spectrum_maxwellian *model = container_of(spectrum, struct gkyl_spectrum_maxwellian, spectrum);
   gkyl_free(model);
 }
+
+// Model distribution functions
 
 GKYL_CU_D
 static void
@@ -175,20 +183,80 @@ maxwellian_norm(double *out, struct gkyl_spectrum_model *spectrum, const double 
   out[0] = effective_delta*flux[0]/(pow(2.0*M_PI, (vdim - 1)/2.0)*pow(vt, vdim + 1));
 }
 
-struct gkyl_spectrum_model;
-
+/**
+ * Create the emission spectrum model using the Chung-Everhart distribution
+ *
+ * @param charge Elementary charge, used for eV units
+ * @param phi Work function of the emitting material
+ * @param use_gpu bool to determine if on GPU
+ * @return New model
+ */
 struct gkyl_spectrum_model* gkyl_spectrum_chung_everhart_new(double charge, double phi, bool use_gpu);
 
+/**
+ * Create the emission spectrum model using the logarithmic Gaussian distribution
+ *
+ * @param charge Elementary charge, used for eV units
+ * @param E_0 Fitting parameter, energy location of distribution peak
+ * @param tau Fitting parameter
+ * @param use_gpu bool to determine if on GPU
+ * @return New model
+ */
 struct gkyl_spectrum_model* gkyl_spectrum_gaussian_new(double charge, double E_0, double tau, bool use_gpu);
 
+/**
+ * Create the emission spectrum model using the Maxwellian distribution
+ *
+ * @param charge Elementary charge, used for eV units
+ * @param vt Thermal velocity of emitted distribution
+ * @param use_gpu bool to determine if on GPU
+ * @return New model
+ */
 struct gkyl_spectrum_model* gkyl_spectrum_maxwellian_new(double charge, double vt, bool use_gpu);
 
+/**
+ * Acquire pointer to model object. Delete using the release()
+ * method
+ *
+ * @param model Model object.
+ * @return Acquired model obj pointer
+ */
 struct gkyl_spectrum_model* gkyl_spectrum_model_acquire(const struct gkyl_spectrum_model* model);
 
+/**
+ * Delete model object
+ *
+ * @param model Model object to delete.
+ */
 void gkyl_spectrum_model_release(const struct gkyl_spectrum_model* model);
 
+/**
+ * Create the emission spectrum model using the Chung-Everhart distribution on NV-GPU
+ *
+ * @param charge Elementary charge, used for eV units
+ * @param phi Work function of the emitting material
+ * @param use_gpu bool to determine if on GPU
+ * @return New model
+ */
 struct gkyl_spectrum_model* gkyl_spectrum_chung_everhart_cu_dev_new(struct gkyl_spectrum_chung_everhart *model, double charge, double phi);
 
+/**
+ * Create the emission spectrum model using the logarithmic Gaussian distribution on NV-GPU
+ *
+ * @param charge Elementary charge, used for eV units
+ * @param E_0 Fitting parameter, energy location of distribution peak
+ * @param tau Fitting parameter
+ * @param use_gpu bool to determine if on GPU
+ * @return New model
+ */
 struct gkyl_spectrum_model* gkyl_spectrum_gaussian_cu_dev_new(struct gkyl_spectrum_gaussian *model, double charge, double E_0, double tau);
 
+/**
+ * Create the emission spectrum model using the Maxwellian distribution on NV-GPU
+ *
+ * @param charge Elementary charge, used for eV units
+ * @param vt Thermal velocity of emitted distribution
+ * @param use_gpu bool to determine if on GPU
+ * @return New model
+ */
 struct gkyl_spectrum_model* gkyl_spectrum_maxwellian_cu_dev_new(struct gkyl_spectrum_maxwellian *model, double charge, double vt);

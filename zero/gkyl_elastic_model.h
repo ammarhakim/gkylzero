@@ -6,6 +6,7 @@
 
 typedef void (*emission_elastic_func_t)(double t, const double *xn, double *fout, void *ctx);
 
+// Base model type
 struct gkyl_elastic_model {
   int cdim;
   int vdim;
@@ -17,6 +18,7 @@ struct gkyl_elastic_model {
   struct gkyl_ref_count ref_count; // reference count
 };
 
+// Furman-Pivi model container
 struct gkyl_elastic_furman_pivi {
   struct gkyl_elastic_model elastic;
   double P1_inf;
@@ -26,16 +28,20 @@ struct gkyl_elastic_furman_pivi {
   double p;
 };
 
+// Cazaux model container
 struct gkyl_elastic_cazaux {
   struct gkyl_elastic_model elastic;
   double E_f;
   double phi;
 };
 
+// Constant emission model container
 struct gkyl_elastic_constant {
   struct gkyl_elastic_model elastic;
   double delta;
 };
+
+// Free functions
 
 static void
 gkyl_elastic_furman_pivi_free(const struct gkyl_ref_count *ref)
@@ -129,13 +135,55 @@ gkyl_elastic_constant_yield(double t, const double *xn, double *fout, void *ctx)
   fout[0] = delta;
 }
 
-struct gkyl_elastic_model* gkyl_elastic_furman_pivi_new(double charge, double P1_inf, double P1_hat, double E_hat,
-  double W, double p, bool use_gpu);
+/**
+ * Create the elastic emission model using Furman-Pivi
+ *
+ * @param charge Elementary charge, used for eV units
+ * @param P1_inf Fitting parameter
+ * @param P1_hat Fitting parameter
+ * @param E_hat Fitting parameter
+ * @param W Fitting parameter
+ * @param p Fitting parameter
+ * @param use_gpu bool to determine if on GPU
+ * @return New model
+ */
+struct gkyl_elastic_model* gkyl_elastic_furman_pivi_new(double charge, double P1_inf, double P1_hat,
+  double E_hat, double W, double p, bool use_gpu);
 
-struct gkyl_elastic_model* gkyl_elastic_cazaux_new(double charge, double E_f, double phi, bool use_gpu);
+/**
+ * Create the elastic emission model using Cazaux
+ *
+ * @param charge Elementary charge, used for eV units
+ * @param E_f Fitting parameter
+ * @param phi Fitting parameter
+ * @param use_gpu bool to determine if on GPU
+ * @return New model
+ */
+struct gkyl_elastic_model* gkyl_elastic_cazaux_new(double charge, double E_f, double phi,
+  bool use_gpu);
 
+/**
+ * Create the elastic emission model using constant yield
+ *
+ * @param charge Elementary charge, used for eV units
+ * @param delta Yield value
+ * @param use_gpu bool to determine if on GPU
+ * @return New model
+ */
 struct gkyl_elastic_model* gkyl_elastic_constant_new(double charge, double delta, bool use_gpu);
 
+/**
+ * Acquire pointer to model object. Delete using the release()
+ * method
+ *
+ * @param model Model object.
+ * @return Acquired model obj pointer
+ */
 struct gkyl_elastic_model* gkyl_elastic_model_acquire(const struct gkyl_elastic_model* model);
 
+/**
+ * Delete model object
+ *
+ * @param model Model object to delete.
+ */
 void gkyl_elastic_model_release(const struct gkyl_elastic_model* model);
