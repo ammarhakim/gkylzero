@@ -136,8 +136,6 @@ create_block_geom(void)
         .geometry_id = GKYL_TOKAMAK,
         .tok_efit_info = efit_inp_outer,
         .tok_grid_info = (struct gkyl_tok_geo_grid_inp) {
-          .write_node_coord_array = true,
-          .node_file_nm = "b0_nodes.gkyl",
           .ftype = GKYL_PF_LO_R,
           .rright = 6.2,
           .rleft = 2.0,
@@ -170,8 +168,6 @@ create_block_geom(void)
         .geometry_id = GKYL_TOKAMAK,
         .tok_efit_info = efit_inp_outer,
         .tok_grid_info = (struct gkyl_tok_geo_grid_inp) {
-          .write_node_coord_array = true,
-          .node_file_nm = "b1_nodes.gkyl",
           .ftype = GKYL_SOL_DN_OUT_LO,
           .rright = 6.2,
           .rleft = 1.1,
@@ -204,8 +200,6 @@ create_block_geom(void)
         .geometry_id = GKYL_TOKAMAK,
         .tok_efit_info = efit_inp_outer,
         .tok_grid_info = (struct gkyl_tok_geo_grid_inp) {
-          .write_node_coord_array = true,
-          .node_file_nm = "b2_nodes.gkyl",
           .ftype = GKYL_SOL_DN_OUT_MID,
           .rright = 6.2,
           .rleft = 1.1,
@@ -238,8 +232,6 @@ create_block_geom(void)
         .geometry_id = GKYL_TOKAMAK,
         .tok_efit_info = efit_inp_outer,
         .tok_grid_info = (struct gkyl_tok_geo_grid_inp) {
-          .write_node_coord_array = true,
-          .node_file_nm = "b3_nodes.gkyl",
           .ftype = GKYL_SOL_DN_OUT_UP,
           .rright = 6.2,
           .rleft = 1.1,
@@ -272,8 +264,6 @@ create_block_geom(void)
         .geometry_id = GKYL_TOKAMAK,
         .tok_efit_info = efit_inp_outer,
         .tok_grid_info = (struct gkyl_tok_geo_grid_inp) {
-          .write_node_coord_array = true,
-          .node_file_nm = "b4_nodes.gkyl",
           .ftype = GKYL_PF_UP_R,
           .rright = 6.2,
           .rleft = 2.0,
@@ -306,8 +296,6 @@ create_block_geom(void)
         .geometry_id = GKYL_TOKAMAK,
         .tok_efit_info = efit_inp_inner,
         .tok_grid_info = (struct gkyl_tok_geo_grid_inp) {
-          .write_node_coord_array = true,
-          .node_file_nm = "b5_nodes.gkyl",
           .ftype = GKYL_PF_UP_L,
           .rright = 6.2,
           .rleft = 2.0,
@@ -340,8 +328,6 @@ create_block_geom(void)
         .geometry_id = GKYL_TOKAMAK,
         .tok_efit_info = efit_inp_inner,
         .tok_grid_info = (struct gkyl_tok_geo_grid_inp) {
-          .write_node_coord_array = true,
-          .node_file_nm = "b6_nodes.gkyl",
           .ftype = GKYL_SOL_DN_IN_UP,
           .rleft = 2.0,
           .rright= 6.2,
@@ -374,8 +360,6 @@ create_block_geom(void)
         .geometry_id = GKYL_TOKAMAK,
         .tok_efit_info = efit_inp_inner,
         .tok_grid_info = (struct gkyl_tok_geo_grid_inp) {
-          .write_node_coord_array = true,
-          .node_file_nm = "b7_nodes.gkyl",
           .ftype = GKYL_SOL_DN_IN_MID,
           .rleft = 2.0,
           .rright= 6.2,
@@ -408,8 +392,6 @@ create_block_geom(void)
         .geometry_id = GKYL_TOKAMAK,
         .tok_efit_info = efit_inp_inner,
         .tok_grid_info = (struct gkyl_tok_geo_grid_inp) {
-          .write_node_coord_array = true,
-          .node_file_nm = "b8_nodes.gkyl",
           .ftype = GKYL_SOL_DN_IN_LO,
           .rleft = 2.0,
           .rright= 6.2,
@@ -442,8 +424,6 @@ create_block_geom(void)
         .geometry_id = GKYL_TOKAMAK,
         .tok_efit_info = efit_inp_inner,
         .tok_grid_info = (struct gkyl_tok_geo_grid_inp) {
-          .write_node_coord_array = true,
-          .node_file_nm = "b9_nodes.gkyl",
           .ftype = GKYL_PF_LO_L,
           .rright = 6.2,
           .rleft = 2.0,
@@ -476,8 +456,6 @@ create_block_geom(void)
         .geometry_id = GKYL_TOKAMAK,
         .tok_efit_info = efit_inp,
         .tok_grid_info = (struct gkyl_tok_geo_grid_inp) {
-          .write_node_coord_array = true,
-          .node_file_nm = "b10_nodes.gkyl",
           .ftype = GKYL_CORE_R,
           .rclose = 6.2,
           .rleft= 1.1,
@@ -511,8 +489,6 @@ create_block_geom(void)
         .geometry_id = GKYL_TOKAMAK,
         .tok_efit_info = efit_inp,
         .tok_grid_info = (struct gkyl_tok_geo_grid_inp) {
-          .write_node_coord_array = true,
-          .node_file_nm = "b11_nodes.gkyl",
           .ftype = GKYL_CORE_L,
           .rclose = 1.1,
           .rleft= 1.1,

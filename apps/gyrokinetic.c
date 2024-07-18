@@ -1685,6 +1685,40 @@ gkyl_gyrokinetic_app_write_geometry(gkyl_gyrokinetic_app* app)
     gkyl_grid_sub_array_write(&app->grid, &app->global, 0,  gxzj_ho, fileNm);
     sprintf(fileNm, fmt, app->name, "eps2");
     gkyl_grid_sub_array_write(&app->grid, &app->global, 0, eps2_ho, fileNm);
+    // Create Nodal Range and Grid and Write Nodal Coordinates
+    struct gkyl_range nrange;
+    int poly_order = app->poly_order;
+    int nodes[GKYL_MAX_DIM];
+    if (poly_order == 1) {
+      for (int d=0; d<app->grid.ndim; ++d)
+        nodes[d] = gkyl_range_shape(&app->global, d) + 1;
+    }
+    if (poly_order == 2) {
+      for (int d=0; d<app->grid.ndim; ++d)
+        nodes[d] = 2*gkyl_range_shape(&app->global, d) + 1;
+    }
+    gkyl_range_init_from_shape(&nrange, app->grid.ndim, nodes);
+    struct gkyl_array* mc2p_nodal = mkarr(false, 3, nrange.volume);
+    struct gkyl_nodal_ops *n2m = gkyl_nodal_ops_new(&app->confBasis, &app->grid, false);
+    gkyl_nodal_ops_m2n(n2m, &app->confBasis, &app->grid, &nrange, &app->global, 3, mc2p_nodal, mc2p_ho);
+    gkyl_nodal_ops_release(n2m);
+
+    double lower[GKYL_MAX_DIM];
+    double upper[GKYL_MAX_DIM];
+    int cells[GKYL_MAX_DIM];
+    for (int i=0; i<nrange.ndim; ++i) {
+      lower[i] = app->grid.lower[i];
+      upper[i] = app->grid.upper[i];
+      cells[i] = gkyl_range_shape(&nrange, i);
+    }
+
+    struct gkyl_rect_grid ngrid;
+    gkyl_rect_grid_init(&ngrid, app->cdim, lower, upper, cells);
+
+    sprintf(fileNm, fmt, app->name, "nodes");
+    gkyl_grid_sub_array_write(&ngrid, &nrange, 0,  mc2p_nodal, fileNm);
+    gkyl_array_release(mc2p_nodal);
+
   }
 
   gkyl_array_release(mc2p);

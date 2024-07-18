@@ -98,8 +98,6 @@ struct gkyl_mirror_geo_grid_inp {
   double rright; // closest R to discrimate
   double zmin, zmax; // extents of Z for integration
 
-  bool write_node_coord_array; // set to true if nodal coordinates should be written
-  char node_file_nm[1024]; // name of nodal coordinate file
 };
 
 
