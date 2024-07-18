@@ -275,9 +275,9 @@ void gkyl_mirror_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, dou
               mc2p_fd_n[lidx+Z_IDX] = z_curr;
 
               if(ip_delta==0 && ia_delta==0 && it_delta==0){
-                mc2p_n[X_IDX] = r_curr*cos(phi_curr);
-                mc2p_n[Y_IDX] = r_curr*sin(phi_curr);
-                mc2p_n[Z_IDX] = z_curr;
+                mc2p_n[X_IDX] = r_curr;
+                mc2p_n[Y_IDX] = z_curr;
+                mc2p_n[Z_IDX] = phi_curr;
               }
             }
           }
