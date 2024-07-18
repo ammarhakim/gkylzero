@@ -679,8 +679,6 @@ main(int argc, char **argv)
       .rmax = 6.2,
       .zmin = -5.14213,
       .zmax = 5.14226,
-      .write_node_coord_array = true,
-      .node_file_nm = "step_outboard_fixed_z_nodes.gkyl"
   };
 
   // GK app
