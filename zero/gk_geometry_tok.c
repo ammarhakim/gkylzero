@@ -15,24 +15,6 @@
 #include <gkyl_calc_metric.h>
 #include <gkyl_calc_bmag.h>
 
-
-// write out nodal coordinates 
-static void
-write_nodal_coordinates(const char *nm, struct gkyl_range *nrange,
-  struct gkyl_array *nodes)
-{
-  double lower[3] = { 0.0, 0.0, 0.0 };
-  double upper[3] = { 1.0, 1.0, 1.0 };
-  int cells[3];
-  for (int i=0; i<nrange->ndim; ++i)
-    cells[i] = gkyl_range_shape(nrange, i);
-  
-  struct gkyl_rect_grid grid;
-  gkyl_rect_grid_init(&grid, 3, lower, upper, cells);
-
-  gkyl_grid_sub_array_write(&grid, nrange, 0, nodes, nm);
-}
-
 struct gk_geometry*
 gkyl_gk_geometry_tok_new(struct gkyl_gk_geometry_inp *geometry_inp)
 {
@@ -64,10 +46,6 @@ gkyl_gk_geometry_tok_new(struct gkyl_gk_geometry_inp *geometry_inp)
   struct gkyl_array* mc2p_nodal_fd = gkyl_array_new(GKYL_DOUBLE, up->grid.ndim*num_fd_nodes, nrange.volume);
   struct gkyl_array* mc2p_nodal = gkyl_array_new(GKYL_DOUBLE, up->grid.ndim, nrange.volume);
   up->mc2p = gkyl_array_new(GKYL_DOUBLE, up->grid.ndim*up->basis.num_basis, up->local_ext.volume);
-
-  struct gkyl_array* mc2prz_nodal_fd = gkyl_array_new(GKYL_DOUBLE, up->grid.ndim*num_fd_nodes, nrange.volume);
-  struct gkyl_array* mc2prz_nodal = gkyl_array_new(GKYL_DOUBLE, up->grid.ndim, nrange.volume);
-  struct gkyl_array* mc2prz = gkyl_array_new(GKYL_DOUBLE, up->grid.ndim*up->basis.num_basis, up->local_ext.volume);
 
   struct gkyl_array* dphidtheta_nodal = gkyl_array_new(GKYL_DOUBLE, 1, nrange.volume);
   struct gkyl_array* bmag_nodal = gkyl_array_new(GKYL_DOUBLE, 1, nrange.volume);
@@ -101,8 +79,7 @@ gkyl_gk_geometry_tok_new(struct gkyl_gk_geometry_inp *geometry_inp)
   ginp.cbasis = up->basis;
   struct gkyl_tok_geo *geo = gkyl_tok_geo_new(&inp);
   // calculate mapc2p and mapc2prz
-  gkyl_tok_geo_calc(up, &nrange, dzc, geo, &ginp,
-    mc2p_nodal_fd, mc2p_nodal, up->mc2p, mc2prz_nodal_fd, mc2prz_nodal, mc2prz, dphidtheta_nodal);
+  gkyl_tok_geo_calc(up, &nrange, dzc, geo, &ginp, mc2p_nodal_fd, mc2p_nodal, up->mc2p, dphidtheta_nodal);
   // calculate bmag
   gkyl_calc_bmag *bcalculator = gkyl_calc_bmag_new(&up->basis, &geo->rzbasis, &geo->fbasis, &up->grid, &geo->rzgrid, &geo->fgrid, geo->psisep, false);
   gkyl_calc_bmag_advance(bcalculator, &up->local, &up->local_ext, &up->global, &geo->rzlocal, &geo->rzlocal_ext, &geo->frange, &geo->frange_ext, geo->psiRZ, geo->psibyrRZ, geo->psibyr2RZ, up->bmag, geo->fpoldg, up->mc2p, true);
@@ -113,14 +90,10 @@ gkyl_gk_geometry_tok_new(struct gkyl_gk_geometry_inp *geometry_inp)
   gkyl_nodal_ops_m2n(n2m, &up->basis, &up->grid, &nrange, &up->local, 1, bmag_nodal, up->bmag);
   gkyl_nodal_ops_release(n2m);
 
-
-
-  // now calculate the metrics and tangent vectors using cartesian coordinates
+  // Now calculate the metrics
   struct gkyl_calc_metric* mcalc = gkyl_calc_metric_new(&up->basis, &up->grid, &up->global, &up->global_ext, &up->local, &up->local_ext, false);
-  //gkyl_calc_metric_advance(mcalc, &nrange, mc2p_nodal_fd, dzc, up->g_ij, up->dxdz, up->dzdx, &up->local);
-  // Recalculate the metrics and jacobian using cylindrical coordinates
-  gkyl_calc_metric_advance_rz(mcalc, &nrange, mc2prz_nodal_fd, dphidtheta_nodal, bmag_nodal, dzc, up->g_ij, up->dxdz, up->dzdx, up->normals, up->jacobgeo, up->bcart, &up->local);
-  //// calculate the derived geometric quantities
+  gkyl_calc_metric_advance_rz(mcalc, &nrange, mc2p_nodal_fd, dphidtheta_nodal, bmag_nodal, dzc, up->g_ij, up->dxdz, up->dzdx, up->normals, up->jacobgeo, up->bcart, &up->local);
+  // calculate the derived geometric quantities
   gkyl_tok_calc_derived_geo *jcalculator = gkyl_tok_calc_derived_geo_new(&up->basis, &up->grid, false);
   gkyl_tok_calc_derived_geo_advance(jcalculator, &up->local, up->g_ij, up->bmag, 
     up->jacobgeo, up->jacobgeo_inv, up->gij, up->b_i, up->cmag, up->jacobtot, up->jacobtot_inv, 
@@ -128,7 +101,6 @@ gkyl_gk_geometry_tok_new(struct gkyl_gk_geometry_inp *geometry_inp)
   gkyl_tok_calc_derived_geo_release(jcalculator);
   gkyl_calc_metric_release(mcalc);
 
-  
   up->flags = 0;
   GKYL_CLEAR_CU_ALLOC(up->flags);
   up->ref_count = gkyl_ref_count_init(gkyl_gk_geometry_free);
@@ -137,9 +109,6 @@ gkyl_gk_geometry_tok_new(struct gkyl_gk_geometry_inp *geometry_inp)
   gkyl_tok_geo_release(geo);
   gkyl_array_release(mc2p_nodal_fd);
   gkyl_array_release(mc2p_nodal);
-  gkyl_array_release(mc2prz_nodal_fd);
-  gkyl_array_release(mc2prz_nodal);
-  gkyl_array_release(mc2prz);
   gkyl_array_release(dphidtheta_nodal);
   gkyl_array_release(bmag_nodal);
 

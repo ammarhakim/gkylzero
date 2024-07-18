@@ -29,9 +29,11 @@ create_block_geom(void)
       Edges that coincide are physically connected.
   */  
 
-  double psisep = 1.4688; // This is a good dummy value to use until
-                          // the gap removal changes get merged in
-  double psi_lo_outer_sol = 0.9;
+  double psisep = 1.5093065418975686;
+  double Zxpt_lo = -6.1672666854902927;
+  double Zxpt_up = 6.1672666854902927;
+
+  double psi_lo_outer_sol = 0.934;
 
   int npsi_outer_sol = 4;
 
@@ -40,16 +42,15 @@ create_block_geom(void)
 
   double theta_lo = -M_PI + 1e-14, theta_up = M_PI - 1e-14;
 
-  double Zxpt_lo = -6.1672666854902927;
-  double Zxpt_up = 6.1672666854902927;
-
   struct gkyl_tok_geo_efit_inp efit_inp = {
     // psiRZ and related inputs
     .filepath = "./data/eqdsk/step.geqdsk",
     .rzpoly_order = 2,
+    .rz_basis_type = GKYL_BASIS_MODAL_TENSOR,
     .fluxpoly_order = 1,
     .plate_spec = false,
-    .quad_param = {  .eps = 1e-10 }
+    .quad_param = {  .eps = 1e-10 },
+    .reflect = true,
   };
 
   // block 0. Lower outer SOL.

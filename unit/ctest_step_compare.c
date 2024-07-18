@@ -237,13 +237,11 @@ test_core()
     .zxpt_lo = Zxpt_lo,
     .zxpt_up = Zxpt_up,
 
-    .write_node_coord_array = true,
-    .node_file_nm = "stepcore_nodes.gkyl"
   }; 
   struct gkyl_gk_geometry_inp geometry_inp = {
     .geometry_id  = GKYL_TOKAMAK,
-    .tok_efit_info = &inp_outer,
-    .tok_grid_info = &ginp,
+    .tok_efit_info = inp_outer,
+    .tok_grid_info = ginp,
     .grid = cgrid,
     .local = clocal,
     .local_ext = clocal_ext,
@@ -294,13 +292,11 @@ test_core_l()
     .zxpt_lo = Zxpt_lo,
     .zxpt_up = Zxpt_up,
 
-    .write_node_coord_array = true,
-    .node_file_nm = "stepcorel_nodes.gkyl"
   }; 
   struct gkyl_gk_geometry_inp geometry_inp = {
     .geometry_id  = GKYL_TOKAMAK,
-    .tok_efit_info = &inp,
-    .tok_grid_info = &ginp,
+    .tok_efit_info = inp,
+    .tok_grid_info = ginp,
     .grid = cgrid,
     .local = clocal,
     .local_ext = clocal_ext,
@@ -355,13 +351,11 @@ test_outer()
     //.zmax = Zxpt_up,
     .zxpt_lo = Zxpt_lo,
     .zxpt_up = Zxpt_up,
-    .write_node_coord_array = true,
-    .node_file_nm = "stepouter_nodes.gkyl"
   }; 
   struct gkyl_gk_geometry_inp geometry_inp = {
     .geometry_id  = GKYL_TOKAMAK,
-    .tok_efit_info = &inp_outer,
-    .tok_grid_info = &ginp,
+    .tok_efit_info = inp_outer,
+    .tok_grid_info = ginp,
     .grid = cgrid,
     .local = clocal,
     .local_ext = clocal_ext,
@@ -410,13 +404,11 @@ test_upper()
     .rmax = 6.2,
     .zxpt_up = Zxpt_up,
     .zmax = 8.29,
-    .write_node_coord_array = true,
-    .node_file_nm = "stepupper_nodes.gkyl"
   }; 
   struct gkyl_gk_geometry_inp geometry_inp = {
     .geometry_id  = GKYL_TOKAMAK,
-    .tok_efit_info = &inp_outer,
-    .tok_grid_info = &ginp,
+    .tok_efit_info = inp_outer,
+    .tok_grid_info = ginp,
     .grid = cgrid,
     .local = clocal,
     .local_ext = clocal_ext,
@@ -465,13 +457,11 @@ test_lower()
     .rmax = 6.2,
     .zxpt_lo = Zxpt_lo,
     .zmin = -8.29,
-    .write_node_coord_array = true,
-    .node_file_nm = "steplower_nodes.gkyl"
   }; 
   struct gkyl_gk_geometry_inp geometry_inp = {
     .geometry_id  = GKYL_TOKAMAK,
-    .tok_efit_info = &inp_outer,
-    .tok_grid_info = &ginp,
+    .tok_efit_info = inp_outer,
+    .tok_grid_info = ginp,
     .grid = cgrid,
     .local = clocal,
     .local_ext = clocal_ext,
@@ -518,13 +508,11 @@ test_pflo_r()
     .rmax = 6.2,
     .zxpt_lo = Zxpt_lo,
     .zmin = -8.29,
-    .write_node_coord_array = true,
-    .node_file_nm = "steppflor_nodes.gkyl"
   }; 
   struct gkyl_gk_geometry_inp geometry_inp = {
     .geometry_id  = GKYL_TOKAMAK,
-    .tok_efit_info = &inp_outer,
-    .tok_grid_info = &ginp,
+    .tok_efit_info = inp_outer,
+    .tok_grid_info = ginp,
     .grid = cgrid,
     .local = clocal,
     .local_ext = clocal_ext,
@@ -571,13 +559,11 @@ test_pflo_l()
     .rmax = 6.2,
     .zxpt_lo = Zxpt_lo,
     .zmin = -6.34,
-    .write_node_coord_array = true,
-    .node_file_nm = "steppflol_nodes.gkyl"
   }; 
   struct gkyl_gk_geometry_inp geometry_inp = {
     .geometry_id  = GKYL_TOKAMAK,
-    .tok_efit_info = &inp_inner,
-    .tok_grid_info = &ginp,
+    .tok_efit_info = inp_inner,
+    .tok_grid_info = ginp,
     .grid = cgrid,
     .local = clocal,
     .local_ext = clocal_ext,
@@ -624,13 +610,11 @@ test_pfup_r()
     .rmax = 6.2,
     .zxpt_up = Zxpt_up,
     .zmax = 8.29,
-    .write_node_coord_array = true,
-    .node_file_nm = "steppfupr_nodes.gkyl"
   }; 
   struct gkyl_gk_geometry_inp geometry_inp = {
     .geometry_id  = GKYL_TOKAMAK,
-    .tok_efit_info = &inp_outer,
-    .tok_grid_info = &ginp,
+    .tok_efit_info = inp_outer,
+    .tok_grid_info = ginp,
     .grid = cgrid,
     .local = clocal,
     .local_ext = clocal_ext,
@@ -677,13 +661,11 @@ test_pfup_l()
     .rmax = 6.2,
     .zxpt_up = Zxpt_up,
     .zmax = 6.34,
-    .write_node_coord_array = true,
-    .node_file_nm = "steppfupl_nodes.gkyl"
   }; 
   struct gkyl_gk_geometry_inp geometry_inp = {
     .geometry_id  = GKYL_TOKAMAK,
-    .tok_efit_info = &inp_inner,
-    .tok_grid_info = &ginp,
+    .tok_efit_info = inp_inner,
+    .tok_grid_info = ginp,
     .grid = cgrid,
     .local = clocal,
     .local_ext = clocal_ext,
@@ -731,13 +713,11 @@ test_inner_upper()
     .rmax = 6.2,
     .zxpt_up = Zxpt_up,
     .zmax = 6.34,  
-    .write_node_coord_array = true,
-    .node_file_nm = "stepinnerupper_nodes.gkyl"
   }; 
   struct gkyl_gk_geometry_inp geometry_inp = {
     .geometry_id  = GKYL_TOKAMAK,
-    .tok_efit_info = &inp_inner,
-    .tok_grid_info = &ginp,
+    .tok_efit_info = inp_inner,
+    .tok_grid_info = ginp,
     .grid = cgrid,
     .local = clocal,
     .local_ext = clocal_ext,
@@ -784,13 +764,11 @@ test_inner_middle()
     .rmax = 6.2,
     .zxpt_up = Zxpt_up,
     .zxpt_lo = Zxpt_lo,
-    .write_node_coord_array = true,
-    .node_file_nm = "stepinnermiddle_nodes.gkyl"
   }; 
   struct gkyl_gk_geometry_inp geometry_inp = {
     .geometry_id  = GKYL_TOKAMAK,
-    .tok_efit_info = &inp,
-    .tok_grid_info = &ginp,
+    .tok_efit_info = inp,
+    .tok_grid_info = ginp,
     .grid = cgrid,
     .local = clocal,
     .local_ext = clocal_ext,
@@ -837,13 +815,11 @@ test_inner_lower()
     .rmax = 6.2,
     .zmin = -6.34,
     .zxpt_lo = Zxpt_lo,
-    .write_node_coord_array = true,
-    .node_file_nm = "stepinnerlower_nodes.gkyl"
   }; 
   struct gkyl_gk_geometry_inp geometry_inp = {
     .geometry_id  = GKYL_TOKAMAK,
-    .tok_efit_info = &inp_inner,
-    .tok_grid_info = &ginp,
+    .tok_efit_info = inp_inner,
+    .tok_grid_info = ginp,
     .grid = cgrid,
     .local = clocal,
     .local_ext = clocal_ext,

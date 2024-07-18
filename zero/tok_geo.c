@@ -241,7 +241,7 @@ phi_func(double alpha_curr, double Z, void *ctx)
   return alpha_curr + ival + phi_ref;
 }
 
-double
+static double
 dphidtheta_func(double Z, void *ctx)
 {
   struct arc_length_ctx *actx = ctx;
@@ -349,27 +349,8 @@ gkyl_tok_geo_R_psiZ(const struct gkyl_tok_geo *geo, double psi, double Z, int nm
   return R_psiZ(geo, psi, Z, nmaxroots, R, dR);
 }
 
-// write out nodal coordinates 
-static void
-write_nodal_coordinates(const char *nm, struct gkyl_range *nrange,
-  struct gkyl_array *nodes, struct gkyl_rect_grid *mgrid)
-{
-  double lower[3] = { mgrid->lower[0], mgrid->lower[1], mgrid->lower[2] };
-  double upper[3] = { mgrid->upper[0], mgrid->upper[1], mgrid->upper[2] };
-  int cells[3];
-  for (int i=0; i<nrange->ndim; ++i)
-    cells[i] = gkyl_range_shape(nrange, i);
-  
-  struct gkyl_rect_grid grid;
-  gkyl_rect_grid_init(&grid, 3, lower, upper, cells);
-
-  gkyl_grid_sub_array_write(&grid, nrange, 0, nodes, nm);
-}
-
-
 void gkyl_tok_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, double dzc[3], struct gkyl_tok_geo *geo, 
-    struct gkyl_tok_geo_grid_inp *inp, struct gkyl_array *mc2p_nodal_fd, struct gkyl_array *mc2p_nodal, struct gkyl_array *mc2p,
-    struct gkyl_array *mc2prz_nodal_fd, struct gkyl_array *mc2prz_nodal, struct gkyl_array *mc2prz, struct gkyl_array *dphidtheta_nodal)
+    struct gkyl_tok_geo_grid_inp *inp, struct gkyl_array *mc2p_nodal_fd, struct gkyl_array *mc2p_nodal, struct gkyl_array *mc2p, struct gkyl_array *dphidtheta_nodal)
 {
 
   geo->rleft = inp->rleft;
@@ -601,24 +582,16 @@ void gkyl_tok_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, double
               double phi_curr = phi_func(alpha_curr, z_curr, &arc_ctx);
               double *mc2p_fd_n = gkyl_array_fetch(mc2p_nodal_fd, gkyl_range_idx(nrange, cidx));
               double *mc2p_n = gkyl_array_fetch(mc2p_nodal, gkyl_range_idx(nrange, cidx));
-              double *mc2prz_fd_n = gkyl_array_fetch(mc2prz_nodal_fd, gkyl_range_idx(nrange, cidx));
-              double *mc2prz_n = gkyl_array_fetch(mc2prz_nodal, gkyl_range_idx(nrange, cidx));
               double *dphidtheta_n = gkyl_array_fetch(dphidtheta_nodal, gkyl_range_idx(nrange, cidx));
 
-              mc2p_fd_n[lidx+X_IDX] = r_curr*cos(phi_curr);
-              mc2p_fd_n[lidx+Y_IDX] = r_curr*sin(phi_curr);
-              mc2p_fd_n[lidx+Z_IDX] = z_curr;
-              mc2prz_fd_n[lidx+X_IDX] = r_curr;
-              mc2prz_fd_n[lidx+Y_IDX] = z_curr;
-              mc2prz_fd_n[lidx+Z_IDX] = phi_curr;
+              mc2p_fd_n[lidx+X_IDX] = r_curr;
+              mc2p_fd_n[lidx+Y_IDX] = z_curr;
+              mc2p_fd_n[lidx+Z_IDX] = phi_curr;
 
               if(ip_delta==0 && ia_delta==0 && it_delta==0){
-                mc2p_n[X_IDX] = r_curr*cos(phi_curr);
-                mc2p_n[Y_IDX] = r_curr*sin(phi_curr);
-                mc2p_n[Z_IDX] = z_curr;
-                mc2prz_n[X_IDX] = r_curr;
-                mc2prz_n[Y_IDX] = z_curr;
-                mc2prz_n[Z_IDX] = phi_curr;
+                mc2p_n[X_IDX] = r_curr;
+                mc2p_n[Y_IDX] = z_curr;
+                mc2p_n[Z_IDX] = phi_curr;
                 dphidtheta_n[0] = dphidtheta_func(z_curr, &arc_ctx);
               }
             }
@@ -629,15 +602,8 @@ void gkyl_tok_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, double
   }
   struct gkyl_nodal_ops *n2m =  gkyl_nodal_ops_new(&inp->cbasis, &inp->cgrid, false);
   gkyl_nodal_ops_n2m(n2m, &inp->cbasis, &inp->cgrid, nrange, &up->local, 3, mc2p_nodal, mc2p);
-  gkyl_nodal_ops_n2m(n2m, &inp->cbasis, &inp->cgrid, nrange, &up->local, 3, mc2prz_nodal, mc2prz);
   gkyl_nodal_ops_release(n2m);
 
-  char str1[50] = "xyz";
-  char str2[50] = "allxyz";
-  if (inp->write_node_coord_array){
-    write_nodal_coordinates(strcat(str1, inp->node_file_nm), nrange, mc2p_nodal, &inp->cgrid);
-    write_nodal_coordinates(strcat(str2, inp->node_file_nm), nrange, mc2p_nodal_fd, &inp->cgrid);
-  }
   gkyl_free(arc_memo);
   gkyl_free(arc_memo_left);
   gkyl_free(arc_memo_right);

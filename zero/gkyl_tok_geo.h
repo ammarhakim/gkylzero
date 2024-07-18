@@ -146,8 +146,6 @@ struct gkyl_tok_geo_grid_inp {
   double zxpt_up; // z of the upper x point
 
   bool exact_roots; // If false we will allow approximate roots when no root is found
-  bool write_node_coord_array; // set to true if nodal coordinates should be written
-  char node_file_nm[1024]; // name of nodal coordinate file
 };
 
 
@@ -213,19 +211,13 @@ void gkyl_tok_geo_mapc2p(const struct gkyl_tok_geo *geo, const struct gkyl_tok_g
  * @param dzc grid spacing of nodal range
  * @param geo gkyl_tok_geo object with efit dats and root finder specs 
  * @param inp tok_geo_grid_inp Input structure for creating mapc2p
- * @param mc2p_nodal_fd output nodal field to be filled with X,Y,Z at grid nodes
+ * @param mc2p_nodal_fd output nodal field to be filled with R,Z,phi at grid nodes
  *  and nodes epsilon away to be used for FD
- * @param mc2p_nodal output nodal mapc2p field
- * @param mc2p On output, the DG representation of mapc2p
- * @param mc2prz_nodal_fd output nodal field to be filled with R,Z,phi at grid nodes
- *  and nodes epsilon away to be used for FD
- * @param mc2prz_nodal output nodal mapc2p field R,Z,phi)
- * @param mc2prz On output, the DG representation of mapc2p ((R,Z,phi)
+ * @param mc2p_nodal output nodal mapc2p field R,Z,phi)
+ * @param mc2p On output, the DG representation of mapc2p ((R,Z,phi)
  * @param dphidtheta_nodal output nodal field containing dphi/dtheta = s(psi)/R|grad(psi|
  */
-void gkyl_tok_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, double dzc[3], struct gkyl_tok_geo* geo, struct gkyl_tok_geo_grid_inp *inp, 
-  struct gkyl_array *mc2p_nodal_fd, struct gkyl_array *mc2p_nodal, struct gkyl_array *mc2p, struct gkyl_array *mc2prz_nodal_fd,
-  struct gkyl_array *mc2prz_nodal, struct gkyl_array *mc2prz, struct gkyl_array *dphidtheta_nodal);
+void gkyl_tok_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, double dzc[3], struct gkyl_tok_geo* geo, struct gkyl_tok_geo_grid_inp *inp, struct gkyl_array *mc2p_nodal_fd, struct gkyl_array *mc2p_nodal, struct gkyl_array *mc2p, struct gkyl_array *dphidtheta_nodal);
 
 /**
  * Return cumulative statistics from geometry computations

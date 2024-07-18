@@ -61,8 +61,6 @@ test_11()
     .zxpt_lo = -4.3,
     .zxpt_up = 4.3,
 
-    .write_node_coord_array = true,
-    .node_file_nm = "cerfon11_nodes.gkyl"
   }; 
 
   struct gkyl_gk_geometry_inp geometry_inp = {
@@ -125,8 +123,6 @@ test_12()
     .rleft= 0.25,
     .zxpt_lo = -4.3,
     .zxpt_up = 4.3,
-    .write_node_coord_array = true,
-    .node_file_nm = "cerfon12_nodes.gkyl"
   }; 
   struct gkyl_gk_geometry_inp geometry_inp = {
     .geometry_id  = GKYL_TOKAMAK,
@@ -187,8 +183,6 @@ test_1()
     .rright = 6.0,
     .zmin = -5.8,
     .zxpt_lo = -4.3,
-    .write_node_coord_array = true,
-    .node_file_nm = "cerfon1_nodes.gkyl"
   }; 
 
   struct gkyl_gk_geometry_inp geometry_inp = {
@@ -244,8 +238,6 @@ test_2()
     .rright = 6.0,
     .zmin = -5.8,
     .zxpt_lo = -4.3,
-    .write_node_coord_array = true,
-    .node_file_nm = "cerfon2_nodes.gkyl"
   }; 
   struct gkyl_gk_geometry_inp geometry_inp = {
     .geometry_id  = GKYL_TOKAMAK,
@@ -301,8 +293,6 @@ test_3()
     .rright = 6.0,
     .zxpt_lo = -4.3,
     .zxpt_up = 4.3,
-    .write_node_coord_array = true,
-    .node_file_nm = "cerfon3_nodes.gkyl"
   }; 
   struct gkyl_gk_geometry_inp geometry_inp = {
     .geometry_id  = GKYL_TOKAMAK,
@@ -358,8 +348,6 @@ test_4()
     .rright = 6.0,
     .zmax = 5.8,
     .zxpt_up = 4.3,
-    .write_node_coord_array = true,
-    .node_file_nm = "cerfon4_nodes.gkyl"
   }; 
   struct gkyl_gk_geometry_inp geometry_inp = {
     .geometry_id  = GKYL_TOKAMAK,
@@ -415,8 +403,6 @@ test_7()
     .rleft = 0.25,
     .zxpt_up = 4.3,
     .zmax = 5.8,
-    .write_node_coord_array = true,
-    .node_file_nm = "cerfon7_nodes.gkyl"
   }; 
   struct gkyl_gk_geometry_inp geometry_inp = {
     .geometry_id  = GKYL_TOKAMAK,
@@ -472,8 +458,6 @@ test_8()
     .rleft = 0.25,
     .zxpt_lo = -4.3,
     .zxpt_up = 4.3,
-    .write_node_coord_array = true,
-    .node_file_nm = "cerfon8_nodes.gkyl"
   }; 
   struct gkyl_gk_geometry_inp geometry_inp = {
     .geometry_id  = GKYL_TOKAMAK,
@@ -529,8 +513,6 @@ test_9()
     .rleft = 0.25,
     .zmin = -5.8,
     .zxpt_lo = -4.3,
-    .write_node_coord_array = true,
-    .node_file_nm = "cerfon9_nodes.gkyl"
   }; 
   struct gkyl_gk_geometry_inp geometry_inp = {
     .geometry_id  = GKYL_TOKAMAK,
@@ -586,8 +568,6 @@ test_10()
     .rleft= 0.25,
     .zmin = -5.8,
     .zxpt_lo = -4.3,
-    .write_node_coord_array = true,
-    .node_file_nm = "cerfon10_nodes.gkyl"
   }; 
   struct gkyl_gk_geometry_inp geometry_inp = {
     .geometry_id  = GKYL_TOKAMAK,
@@ -643,8 +623,6 @@ test_5()
     .rright = 6.0,
     .zmax = 5.8,
     .zxpt_up = 4.3,
-    .write_node_coord_array = true,
-    .node_file_nm = "cerfon5_nodes.gkyl"
   }; 
   struct gkyl_gk_geometry_inp geometry_inp = {
     .geometry_id  = GKYL_TOKAMAK,
@@ -700,8 +678,6 @@ test_6()
     .rleft = 0.25,
     .zmax = 5.8,
     .zxpt_up = 4.3,
-    .write_node_coord_array = true,
-    .node_file_nm = "cerfon6_nodes.gkyl"
   }; 
   struct gkyl_gk_geometry_inp geometry_inp = {
     .geometry_id  = GKYL_TOKAMAK,

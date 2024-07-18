@@ -29,7 +29,7 @@ gkyl_calc_bmag_new(const struct gkyl_basis *cbasis, const struct gkyl_basis *pba
 static inline void bmag_comp(double t, const double *xn, double *fout, void *ctx)
 {
   struct bmag_ctx *gc = (struct bmag_ctx*) ctx;
-  double XYZ[gc->cgrid->ndim];
+  double RZPHI[gc->cgrid->ndim];
 
   int cidx[GKYL_MAX_CDIM];
   for(int i = 0; i < gc->cgrid->ndim; i++){
@@ -48,11 +48,11 @@ static inline void bmag_comp(double t, const double *xn, double *fout, void *ctx
   for(int i = 0; i < gc->cgrid->ndim; i++)
     xyz[i] = (xn[i]-cxc[i])/(gc->cgrid->dx[i]*0.5);
   for(int i = 0; i < gc->cgrid->ndim; i++){
-    XYZ[i] = gc->cbasis->eval_expand(xyz, &mcoeffs[i*gc->cbasis->num_basis]);
+    RZPHI[i] = gc->cbasis->eval_expand(xyz, &mcoeffs[i*gc->cbasis->num_basis]);
   }
 
-  double R = sqrt(XYZ[0]*XYZ[0] + XYZ[1]*XYZ[1]);
-  double Z = XYZ[2];
+  double R = RZPHI[0];
+  double Z = RZPHI[1];
 
   int rzidx[2];
   int idxtemp = gc->range->lower[0] + (int) floor((R - gc->grid->lower[0])/gc->grid->dx[0]);
