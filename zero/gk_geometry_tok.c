@@ -90,13 +90,10 @@ gkyl_gk_geometry_tok_new(struct gkyl_gk_geometry_inp *geometry_inp)
   gkyl_nodal_ops_m2n(n2m, &up->basis, &up->grid, &nrange, &up->local, 1, bmag_nodal, up->bmag);
   gkyl_nodal_ops_release(n2m);
 
-
-
-  // now calculate the metrics and tangent vectors using cartesian coordinates
+  // Now calculate the metrics
   struct gkyl_calc_metric* mcalc = gkyl_calc_metric_new(&up->basis, &up->grid, &up->global, &up->global_ext, &up->local, &up->local_ext, false);
-  // Calculate the metrics and jacobian using cylindrical coordinates
   gkyl_calc_metric_advance_rz(mcalc, &nrange, mc2p_nodal_fd, dphidtheta_nodal, bmag_nodal, dzc, up->g_ij, up->dxdz, up->dzdx, up->normals, up->jacobgeo, up->bcart, &up->local);
-  //// calculate the derived geometric quantities
+  // calculate the derived geometric quantities
   gkyl_tok_calc_derived_geo *jcalculator = gkyl_tok_calc_derived_geo_new(&up->basis, &up->grid, false);
   gkyl_tok_calc_derived_geo_advance(jcalculator, &up->local, up->g_ij, up->bmag, 
     up->jacobgeo, up->jacobgeo_inv, up->gij, up->b_i, up->cmag, up->jacobtot, up->jacobtot_inv, 
@@ -104,7 +101,6 @@ gkyl_gk_geometry_tok_new(struct gkyl_gk_geometry_inp *geometry_inp)
   gkyl_tok_calc_derived_geo_release(jcalculator);
   gkyl_calc_metric_release(mcalc);
 
-  
   up->flags = 0;
   GKYL_CLEAR_CU_ALLOC(up->flags);
   up->ref_count = gkyl_ref_count_init(gkyl_gk_geometry_free);

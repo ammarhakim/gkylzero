@@ -42,7 +42,7 @@ gkyl_calc_bmag_new(const struct gkyl_basis *cbasis, const struct gkyl_basis *pba
  * @param fpol_dg DG rep of fpol = RB_phi on the poloidal flux grid
  * @param mapc2p DG rep of mapc2p on the computational grid
  * @param calc_bphi whether or not to calculate bphi. set false for mirrors
- * @param XYZ field containing DG rep of cartesian coordinates
+ * @param mapc2 field containing DG rep of cylindrical coordinates
  * @param gFld output field where metric coefficients will be placed
  */
 

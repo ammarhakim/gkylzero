@@ -241,7 +241,7 @@ phi_func(double alpha_curr, double Z, void *ctx)
   return alpha_curr + ival + phi_ref;
 }
 
-double
+static double
 dphidtheta_func(double Z, void *ctx)
 {
   struct arc_length_ctx *actx = ctx;
