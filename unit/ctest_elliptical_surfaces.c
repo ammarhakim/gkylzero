@@ -75,8 +75,6 @@ test_elliptical()
     .rclose = 6.0,
     .zmin = -3.0,
     .zmax = 3.0,
-    .write_node_coord_array = true,
-    .node_file_nm = "elliptical_nodes.gkyl"
   }; 
 
   struct gkyl_gk_geometry_inp geometry_inp = {

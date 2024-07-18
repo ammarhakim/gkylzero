@@ -68,8 +68,6 @@ test_deep_core()
     .rmin = 1.5,
     .rmax = 6.2,
 
-    .write_node_coord_array = true,
-    .node_file_nm = "stepcore_nodes.gkyl"
   }; 
 
   struct gkyl_gk_geometry_inp geometry_inp = {
@@ -154,8 +152,6 @@ test_boundary()
     .rmin = 1.5,
     .rmax = 6.2,
 
-    .write_node_coord_array = true,
-    .node_file_nm = "stepbry_nodes.gkyl"
   }; 
 
   struct gkyl_gk_geometry_inp geometry_inp = {
