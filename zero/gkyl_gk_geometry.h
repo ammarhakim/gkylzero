@@ -149,6 +149,25 @@ gkyl_gk_geometry_augment_local(const struct gkyl_range *inrange, const int *ngho
  */
 void gkyl_gk_geometry_bmag_mid(struct gk_geometry* up);
 
+
+/**
+ * Init nodal range from modal range
+ * @param nrange nodal range to be initialized
+ * @param range modal range
+ * @param poly_order polynomial order
+ */
+void
+gkyl_gk_geometry_init_nodal_range( struct gkyl_range *nrange, struct gkyl_range *range, int poly_order);
+
+/**
+ * Init nodal grid from modal grid
+ * @param ngrid nodal grid to be initialized
+ * @param grid modal grid
+ * @param nrange nodal range
+ */
+void
+gkyl_gk_geometry_init_nodal_grid(struct gkyl_rect_grid *ngrid, struct gkyl_rect_grid *grid, struct gkyl_range *nrange);
+
 /**
  * deflate geometry to lower dimensionality
  * param up_3d 3d geometry object to deflate
