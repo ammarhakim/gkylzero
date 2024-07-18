@@ -87,7 +87,15 @@
     and edge (in this order) for each block, in each direction and
     lower and upper edges (in this order). See struct gkyl_block_topo
     and btopo_create_mpack in file block_topo.c file for details.
-  
+
+  * For file_type = 5 is written out for multi-block simulations and
+    has no additional data. The information is all in the mpack format:
+
+    {
+      frame = fname number,
+      stime = simulation time,
+      topo_file_name = file in which topology is stored
+    }
 
  */
 

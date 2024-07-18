@@ -14,4 +14,4 @@
 # Errors are written to cppcheck-err.txt. Please ensure all code is
 # "cppcheck clean"
 
-$HOME/gkylsoft/cppcheck/bin/cppcheck -j8 --suppressions-list=cppcheck-suppress.txt -Izero -Iminus -Iapps  --enable=warning,performance,portability,information zero apps --output-file=cppcheck-err.txt
+$HOME/gkylsoft/cppcheck/bin/cppcheck -j8 --template='cppcheck1' --suppressions-list=cppcheck-suppress.txt -Izero -Iminus -Iapps  --enable=warning,performance,portability zero apps --output-file=cppcheck-err.txt

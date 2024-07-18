@@ -198,7 +198,7 @@ main(int argc, char **argv)
 
   struct gkyl_moment_multib_app *app = gkyl_moment_multib_app_new(&app_inp);
   if (app == 0) {
-    fprintf(stderr, "Unable to construct multiblock App! (Probably too few ranks)\n");
+    fprintf(stderr, "Unable to construct multiblock App! (Probably too few or too many ranks)\n");
     goto finish;
   }
   

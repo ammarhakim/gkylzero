@@ -36,6 +36,7 @@ static const uint64_t gkyl_file_type_int[] = {
   [GKYL_FIELD_DATA_FILE] = 1,
   [GKYL_DYNVEC_DATA_FILE] = 2,
   [GKYL_MULTI_RANGE_DATA_FILE] = 3,
-  [GKYL_BLOCK_TOPO_DATA_FILE] = 4,  
+  [GKYL_BLOCK_TOPO_DATA_FILE] = 4,
+  [GKYL_MULTI_BLOCK_DATA_FILE] = 5,
 };
 

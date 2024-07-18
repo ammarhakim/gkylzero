@@ -19,6 +19,9 @@ struct gkyl_moment_multib_app {
 
   struct gkyl_comm **block_comms; // list of block-communicators
 
+  bool has_field; // true if there is a field present
+  char species_name[GKYL_MAX_SPECIES][128]; // name of each species
+
   int num_local_blocks; // total number of blocks on current rank
   int *local_blocks; // local blocks IDs handled by current rank
   struct gkyl_moment_app **singleb_apps; // individual App objects, one per-block
@@ -26,4 +29,12 @@ struct gkyl_moment_multib_app {
   double tcurr; // current time
   
   struct gkyl_moment_stat stat; // statistics
+};
+
+// Meta-data for IO
+struct moment_multib_output_meta {
+  int frame; // frame number
+  double stime; // output time
+  const char *app_name; // name of App
+  const char *topo_file_name; // name of topology file
 };
