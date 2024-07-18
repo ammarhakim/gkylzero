@@ -25,19 +25,22 @@ has_int(int n, int val, const int *lst)
   return false;
 }
 
-static int
-calc_max_cuts(const struct gkyl_block_geom *block_geom)
+// compute total and maximum number of cuts
+static void
+calc_tot_and_max_cuts(const struct gkyl_block_geom *block_geom, int tot_max[2])
 {
   int ndim = gkyl_block_geom_ndim(block_geom);
   int num_blocks = gkyl_block_geom_num_blocks(block_geom);
 
-  int max_cuts = 0;
+  int max_cuts = 0, tot_cuts = 0;
   for (int i=0; i<num_blocks; ++i) {
     const struct gkyl_block_geom_info *bgi = gkyl_block_geom_get_block(block_geom, i);
     int ncuts = calc_cuts(ndim, bgi->cuts);
     max_cuts = ncuts > max_cuts ? ncuts : max_cuts;
+    tot_cuts += ncuts;
   }
-  return max_cuts;
+  tot_max[0] = tot_cuts;
+  tot_max[1] = max_cuts;
 }
 
 // construct the mpack meta-data for multi-block data files
@@ -61,6 +64,9 @@ moment_multib_meta(struct moment_multib_output_meta meta)
 
   mpack_write_cstr(&writer, "topo_file");
   mpack_write_cstr(&writer, meta.topo_file_name);
+
+  mpack_write_cstr(&writer, "app_name");
+  mpack_write_cstr(&writer, meta.app_name);
 
   mpack_complete_map(&writer);
 
@@ -92,10 +98,8 @@ moment_multib_data_write(const char *fname, struct moment_multib_output_meta met
         },
         fp
       );
-      if (amet) {
-        MPACK_FREE(amet->meta);
-        gkyl_free(amet);
-      }
+      MPACK_FREE(amet->meta);
+      gkyl_free(amet);
     }
     else {
       status = GKYL_ARRAY_RIO_META_FAILED;
@@ -306,7 +310,9 @@ gkyl_moment_multib_app_new(const struct gkyl_moment_multib *mbinp)
   int num_ranks;
   gkyl_comm_get_size(mbinp->comm, &num_ranks);
 
-  if (num_ranks < calc_max_cuts(mbinp->block_geom))
+  int tot_max[2];
+  calc_tot_and_max_cuts(mbinp->block_geom, tot_max);
+  if ((num_ranks > tot_max[0]) || (num_ranks < tot_max[1]))
     return 0;
 
   struct gkyl_moment_multib_app *mbapp = gkyl_malloc(sizeof(*mbapp));
@@ -374,6 +380,12 @@ gkyl_moment_multib_app_new(const struct gkyl_moment_multib *mbinp)
     mbapp->num_species = mbinp->num_species;
     mbapp->singleb_apps = gkyl_malloc(num_local_blocks*sizeof(struct gkyl_moment_app*));
   }
+
+  if (!mbinp->field.blocks)
+    mbapp->has_field = false;
+
+  for (int i=0; i<mbinp->num_species; ++i)
+    strcpy(mbapp->species_name[i], mbinp->species[i].name);
 
   for (int i=0; i<num_local_blocks; ++i)
     mbapp->singleb_apps[i] = singleb_app_new(mbinp, mbapp->local_blocks[i], mbapp);
@@ -483,15 +495,26 @@ gkyl_moment_multib_app_write_field(const gkyl_moment_multib_app *app, double tm,
   for (int i=0; i<app->num_local_blocks; ++i)
     gkyl_moment_app_write_field(app->singleb_apps[i], tm, frame);
 
-  // write multi-block field meta-file
-  int rank;
-  gkyl_comm_get_rank(app->comm, &rank);
-  if (0 == rank) {
-    cstr file_name = cstr_from_fmt("%s-%s_%d.gkyl", app->name, "field", frame);
-    
-    gkyl_block_topo_write(app->block_topo, file_name.str);
-    cstr_drop(&file_name);
-  }  
+    // write meta-file fo rfield
+  if (app->has_field) {
+    int rank;
+    gkyl_comm_get_rank(app->comm, &rank);
+    if (0 == rank) {
+      cstr file_name = cstr_from_fmt("%s-%s_%d.gkyl", app->name, "field", frame);
+      cstr topo_file_name = cstr_from_fmt("%s_btopo.gkyl", app->name);
+      
+      moment_multib_data_write(file_name.str, (struct moment_multib_output_meta) {
+          .frame = frame,
+          .stime = tm,
+          .topo_file_name = topo_file_name.str,
+          .app_name = app->name
+        }
+      );
+      
+      cstr_drop(&topo_file_name);
+      cstr_drop(&file_name);
+    }
+  }
   
   gkyl_comm_barrier(app->comm);
 }
@@ -501,13 +524,32 @@ gkyl_moment_multib_app_write_species(const gkyl_moment_multib_app* app, int sidx
 {
   for (int i=0; i<app->num_local_blocks; ++i)
     gkyl_moment_app_write_species(app->singleb_apps[i], sidx, tm, frame);
+
+  int rank;
+  gkyl_comm_get_rank(app->comm, &rank);
+  if (0 == rank) {
+    cstr file_name = cstr_from_fmt("%s-%s_%d.gkyl", app->name, app->species_name[sidx], frame);
+    cstr topo_file_name = cstr_from_fmt("%s_btopo.gkyl", app->name);
+      
+    moment_multib_data_write(file_name.str, (struct moment_multib_output_meta) {
+        .frame = frame,
+        .stime = tm,
+        .topo_file_name = topo_file_name.str,
+        .app_name = app->name
+      }
+    );
+    
+    cstr_drop(&topo_file_name);
+    cstr_drop(&file_name);
+  }  
+  
   gkyl_comm_barrier(app->comm);
 }
 
 void
 gkyl_moment_multib_app_write_field_energy(gkyl_moment_multib_app *app)
 {
-    // TODO
+  // TODO
 }
 
 void
