@@ -237,9 +237,10 @@ create_ctx(void)
 
   // Simulation box size (m).
   double lower_x = 0.934;
-  double upper_x = 1.4688;
+  //double upper_x = 1.4688;
+  double upper_x = 1.5093065418975686;
   double Lx = upper_x - lower_x;
-  double Lz = 3.14*2;
+  double Lz = (M_PI-1e-14)*2.0;
 
   double vpar_max_elc = 4.0*vtElc;
   double mu_max_elc = 18*me*vtElc*vtElc/(2.0*B0);
