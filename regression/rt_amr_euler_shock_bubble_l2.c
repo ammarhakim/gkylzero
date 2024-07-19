@@ -20,9 +20,12 @@ struct amr_euler_shock_bubble_ctx
   // Simulation parameters.
   int Nx; // Coarse cell count (x-direction).
   int Ny; // Coarse cell count (y-direction).
-  int ref_factor; // Refinement factor.
+  int ref_factor1; // First refinement factor (coarse-to-intermediate).
+  int ref_factor2; // Second refinement factor (intermediate-to-fine).
   double Lx; // Coarse domain size (x-direction).
   double Ly; // Coarse domain size (y-direction).
+  double intermediate_Lx; // Intermediate domain size (x-direction).
+  double intermediate_Ly; // Intermediate domain size (y-direction).
   double fine_Lx; // Fine domain size (x-direction).
   double fine_Ly; // Fine domain size (y-direction).
   double cfl_frac; // CFL coefficient.
@@ -56,11 +59,14 @@ create_ctx(void)
   double p_bub = 1.0; // Bubble fluid pressure.
 
   // Simulation parameters.
-  int Nx = 64; // Coarse cell count (x-direction).
-  int Ny = 64; // Coarse cell count (y-direction).
-  int ref_factor = 4; // Refinement factor.
+  int Nx = 16; // Coarse cell count (x-direction).
+  int Ny = 16; // Coarse cell count (y-direction).
+  int ref_factor1 = 4; // First refinement factor (coarse-to-intermediate).
+  int ref_factor2 = 4; // Second refinement factor (intermediate-to-fine).
   double Lx = 1.0; // Coarse domain size (x-direction).
   double Ly = 1.0; // Coarse domain size (y-direction).
+  double intermediate_Lx = 0.75; // Intermediate domain size (x-direction).
+  double intermediate_Ly = 0.75; // Intermediate domain size (y-direction).
   double fine_Lx = 0.5; // Fine domain size (x-direction).
   double fine_Ly = 0.5; // Fine domain size (y-direction).
   double cfl_frac = 0.85; // CFL coefficient.
@@ -87,9 +93,12 @@ create_ctx(void)
     .p_bub = p_bub,
     .Nx = Nx,
     .Ny = Ny,
-    .ref_factor = ref_factor,
+    .ref_factor1 = ref_factor1,
+    .ref_factor2 = ref_factor2,
     .Lx = Lx,
     .Ly = Ly,
+    .intermediate_Lx = intermediate_Lx,
+    .intermediate_Ly = intermediate_Ly,
     .fine_Lx = fine_Lx,
     .fine_Ly = fine_Ly,
     .cfl_frac = cfl_frac,
@@ -165,15 +174,21 @@ int main(int argc, char **argv)
 {
   struct amr_euler_shock_bubble_ctx ctx = create_ctx(); // Context for initialization functions.
 
-  struct euler2d_single_init init = {
+  struct euler2d_double_init init = {
     .base_Nx = ctx.Nx,
     .base_Ny = ctx.Ny,
-    .ref_factor = ctx.ref_factor,
+    .ref_factor1 = ctx.ref_factor1,
+    .ref_factor2 = ctx.ref_factor2,
 
     .coarse_x1 = 0.0,
     .coarse_y1 = -0.5 * ctx.Ly,
     .coarse_x2 = ctx.Lx,
     .coarse_y2 = 0.5 * ctx.Ly,
+
+    .intermediate_x1 = (0.5 * ctx.Lx) - (0.5 * ctx.intermediate_Lx),
+    .intermediate_y1 = -0.5 * ctx.intermediate_Ly,
+    .intermediate_x2 = (0.5 * ctx.Lx) + (0.5 * ctx.intermediate_Lx),
+    .intermediate_y2 = 0.5 * ctx.intermediate_Ly,
 
     .refined_x1 = (0.5 * ctx.Lx) - (0.5 * ctx.fine_Lx),
     .refined_y1 = -0.5 * ctx.fine_Ly,
@@ -183,7 +198,7 @@ int main(int argc, char **argv)
     .eval = evalEulerInit,
     .gas_gamma = ctx.gas_gamma,
 
-    .euler_output = "amr_euler_shock_bubble",
+    .euler_output = "amr_euler_shock_bubble_l2",
 
     .low_order_flux = true,
     .cfl_frac = ctx.cfl_frac,
@@ -194,5 +209,5 @@ int main(int argc, char **argv)
     .num_failures_max = ctx.num_failures_max,
   };
 
-  euler2d_run_single(argc, argv, &init);
+  euler2d_run_double(argc, argv, &init);
 }
