@@ -62,6 +62,37 @@ gkyl_bc_emission_secondary_electron_copper_new(int num_species, double t_bound,
   return ctx;
 }
 
+// Ion-impact SEE copper preset
+struct gkyl_bc_emission_ctx*
+gkyl_bc_emission_ion_impact_copper_new(int num_species, double t_bound,
+  char in_species[][128], bool use_gpu)
+{
+  struct gkyl_bc_emission_ctx *ctx = gkyl_malloc(sizeof(struct gkyl_bc_emission_ctx));
+  
+  double q0 = 1.602e-19;
+  double E_0 = 2.80670245635625;
+  double tau = 1.21017574095341;
+
+  double A2 = 4.194;  // a2-5 are empirical fits for ion stopping power
+  double A3 = 4.649e3;  // Starting at a2 to match source and prevent confusion
+  double A4 = 8.113e1;
+  double A5 = 2.242e-2;
+  double nw = 8.491231742083982e28;  // Number density of the wall material (m^-3). Calculated a priori using rho/m/u where rho is density in kg/m^3, m is mass in amu, and u is the unified atomic mass unit
+  double int_wall = 6.33665090954913e7;  // Integration of wall term (J/m).  See the paper for more info on this.
+
+  ctx->num_species = num_species;
+  ctx->t_bound = t_bound;
+  ctx->elastic = false;
+
+  for (int i=0; i<num_species; ++i) {
+    ctx->spectrum_model[i] = gkyl_spectrum_gaussian_new(q0, E_0, tau, use_gpu);
+    ctx->yield_model[i] = gkyl_yield_schou_new(q0, int_wall, A2, A3, A4, A5, nw, use_gpu);
+    strcpy(ctx->in_species[i], in_species[i]);
+  }
+
+  return ctx;
+}
+
 void gkyl_bc_emission_release(struct gkyl_bc_emission_ctx *ctx)
 {
   for (int i=0; i<ctx->num_species; ++i) {
