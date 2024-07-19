@@ -17,7 +17,7 @@ gkyl_bc_emission_new(int num_species, double t_bound, bool elastic,
     ctx->yield_model[i] = gkyl_yield_model_acquire(yield_model[i]);
     strcpy(ctx->in_species[i], in_species[i]);
   }
-  ctx->elastic_model = gkyl_elastic_model_acquire(elastic_model);
+  if (elastic) ctx->elastic_model = gkyl_elastic_model_acquire(elastic_model);
 
   return ctx;
 }
@@ -68,7 +68,7 @@ void gkyl_bc_emission_release(struct gkyl_bc_emission_ctx *ctx)
     gkyl_spectrum_model_release(ctx->spectrum_model[i]);
     gkyl_yield_model_release(ctx->yield_model[i]);
   }
-  gkyl_elastic_model_release(ctx->elastic_model);
+  if (ctx->elastic) gkyl_elastic_model_release(ctx->elastic_model);
   // Release ctx memory.
   gkyl_free(ctx);
 }
