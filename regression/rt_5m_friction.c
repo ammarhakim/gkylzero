@@ -230,7 +230,7 @@ main(int argc, char **argv)
     .ctx = &ctx,
 
     .has_friction = true,
-    .use_explicit_friction = true,
+    .use_explicit_friction = false,
     .friction_Z = ctx.friction_Z,
     .friction_T_elc = ctx.friction_T_elc,
     .friction_Lambda_ee = ctx.friction_Lambda_ee,
@@ -245,7 +245,7 @@ main(int argc, char **argv)
     .ctx = &ctx,  
 
     .has_friction = true,
-    .use_explicit_friction = true,
+    .use_explicit_friction = false,
     .friction_Z = ctx.friction_Z,
     .friction_T_elc = ctx.friction_T_elc,
     .friction_Lambda_ee = ctx.friction_Lambda_ee,

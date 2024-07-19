@@ -95,7 +95,6 @@ void
 explicit_frictional_source_update(const gkyl_moment_em_coupling* mom_em, double t_curr, const double dt, double* fluid_s[GKYL_MAX_SPECIES])
 {
   int nfluids = mom_em->nfluids;
-  double pi = M_PI;
 
   if (nfluids == 2) {
     double *f_elc = fluid_s[0];
