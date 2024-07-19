@@ -70,6 +70,10 @@ create_block_geom(void)
   double Zxpt_lo = -6.1672666854902927;
   double Zxpt_up = 6.1672666854902927;
 
+  psisep = 1.5093064812266526;
+  Zxpt_lo = -6.1832194507224534;
+  Zxpt_up = 6.1832194507224534;
+
 
   double psi_up_core = 1.8;
   double psi_up_pf = 1.8;

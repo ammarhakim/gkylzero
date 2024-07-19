@@ -14,6 +14,10 @@ struct gkyl_efit{
   double rdim, zdim, rcentr, rleft, zmid, rmaxis, zmaxis, simag, sibry, bcentr, current, xdum;
   double rmin, rmax, zmin, zmax;
 
+  double psisep; // Separatrix psi for our DG representation
+                 // Can differ from sibry, but we need to keep sibry
+                 // because fpol, q, etc. are defined based on it
+
   struct gkyl_basis *rzbasis;
   struct gkyl_rect_grid *rzgrid;
   struct gkyl_range *rzlocal;
@@ -28,6 +32,12 @@ struct gkyl_efit{
   struct gkyl_range *fluxlocal_ext;
   struct gkyl_array* fpolflux;
   struct gkyl_array* qflux;
+
+  int num_xpts; // Number of X-points
+  double *Rxpt; // R coordinates of X points
+  double *Zxpt; // Z coordinates of X-points
+
+  bool reflect;
   bool use_gpu;
 };
 
@@ -47,7 +57,6 @@ struct gkyl_efit{
  * @return New updater pointer.
  */
 gkyl_efit* gkyl_efit_new(const char *filepath, int rz_poly_order, enum gkyl_basis_type rz_basis_type, int flux_poly_order, bool reflect, bool use_gpu);
-
 
 
 void gkyl_efit_release(gkyl_efit* up);
