@@ -32,7 +32,10 @@ struct gkyl_moment_em_coupling {
   bool has_nT_sources; // Run with number density and temperature sources.
 
   bool has_frictional_sources; // Run with frictional sources.
+  bool use_explicit_friction; // Use an explicit (SSP-RK3) solver for integrating frictional sources.
   double friction_Z; // Ionization number for frictional sources.
   double friction_T_elc; // Electron temperature for frictional sources.
   double friction_Lambda_ee; // Electron-electron collisional terms for frictional sources.
+
+  bool has_volume_sources; // Run with volume-based geometrical sources.
 };

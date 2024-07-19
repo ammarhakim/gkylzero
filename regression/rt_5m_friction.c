@@ -71,7 +71,7 @@ create_ctx(void)
   double mu0 = 1.0; // Permeability of free space.
   double mass_ion = 1.0; // Ion mass.
   double charge_ion = 1.0; // Ion charge.
-  double mass_elc = 1.0 / 200.0; // Electron mass.
+  double mass_elc = 1.0 / 2000.0; // Electron mass.
   double charge_elc = -1.0; // Electron charge.
 
   double n_elc = 1.0; // Electron number density.
@@ -99,7 +99,7 @@ create_ctx(void)
   double Lx = 1.0; // Domain size (x-direction).
   double cfl_frac = 1.0; // CFL coefficient.
 
-  double t_end = 0.2; // Final simulation time.
+  double t_end = 5.0; // Final simulation time.
   int num_frames = 100; // Number of output frames.
   double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.
   int num_failures_max = 20; // Maximum allowable number of consecutive small time-steps.
@@ -229,9 +229,8 @@ main(int argc, char **argv)
     .init = evalElcInit,
     .ctx = &ctx,
 
-    .bcy = { GKYL_SPECIES_REFLECT, GKYL_SPECIES_REFLECT },
-
     .has_friction = true,
+    .use_explicit_friction = true,
     .friction_Z = ctx.friction_Z,
     .friction_T_elc = ctx.friction_T_elc,
     .friction_Lambda_ee = ctx.friction_Lambda_ee,
@@ -243,11 +242,10 @@ main(int argc, char **argv)
     .equation = ion_euler,
     .evolve = true,
     .init = evalIonInit,
-    .ctx = &ctx,
-
-    .bcy = { GKYL_SPECIES_REFLECT, GKYL_SPECIES_REFLECT },    
+    .ctx = &ctx,  
 
     .has_friction = true,
+    .use_explicit_friction = true,
     .friction_Z = ctx.friction_Z,
     .friction_T_elc = ctx.friction_T_elc,
     .friction_Lambda_ee = ctx.friction_Lambda_ee,
@@ -261,8 +259,6 @@ main(int argc, char **argv)
     .evolve = true,
     .init = evalFieldInit,
     .ctx = &ctx,
-    
-    .bcy = { GKYL_FIELD_PEC_WALL, GKYL_FIELD_PEC_WALL },
   };
 
   int nrank = 1; // Number of processes in simulation.

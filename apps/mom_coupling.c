@@ -41,6 +41,7 @@ moment_coupling_init(const struct gkyl_moment_app *app, struct moment_coupling *
     use_rel = use_rel || (app->species[n].eqn_type == GKYL_EQN_COLDFLUID_SR) || app->field.use_explicit_em_coupling;
 
   src_inp.has_frictional_sources = false;
+  src_inp.use_explicit_friction = false;
   for (int i = 0; i < app->num_species; i++) {
     if(app->species[i].has_friction) {
       src_inp.has_frictional_sources = true;
@@ -50,6 +51,17 @@ moment_coupling_init(const struct gkyl_moment_app *app, struct moment_coupling *
         src_inp.friction_T_elc = app->species[i].friction_T_elc;
         src_inp.friction_Lambda_ee = app->species[i].friction_Lambda_ee;
       }
+    }
+
+    if(app->species[i].use_explicit_friction) {
+      src_inp.use_explicit_friction = true;
+    }
+  }
+
+  src_inp.has_volume_sources = false;
+  for (int i = 0; i < app->num_species; i++) {
+    if (app->species[i].has_volume_sources) {
+      src_inp.has_volume_sources = true;
     }
   }
 

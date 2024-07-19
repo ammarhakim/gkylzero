@@ -175,7 +175,7 @@ implicit_collision_source_update(const gkyl_moment_em_coupling* mom_em, double d
   double lhs[nfluids][nfluids];
   double rhs[nfluids][3];
   for (int i = 0; i < nfluids; i++) {
-    for (int j =0 ; j < nfluids; j++) {
+    for (int j = 0; j < nfluids; j++) {
       lhs[i][j] = 0.0;
     }
 
@@ -317,6 +317,12 @@ implicit_collision_source_update(const gkyl_moment_em_coupling* mom_em, double d
 }
 
 void
+implicit_frictional_source_update(const gkyl_moment_em_coupling* mom_em, double t_curr, const double dt, double* fluid_s[GKYL_MAX_SPECIES])
+{
+  // TODO: Placeholder.
+}
+
+void
 implicit_source_coupling_update(const gkyl_moment_em_coupling* mom_em, double t_curr, double dt, double* fluid_s[GKYL_MAX_SPECIES],
   const double* app_accel_s[GKYL_MAX_SPECIES], const double* p_rhs_s[GKYL_MAX_SPECIES], double* em, const double* app_current,
   const double* ext_em, const double* nT_sources_s[GKYL_MAX_SPECIES])
@@ -415,11 +421,19 @@ implicit_source_coupling_update(const gkyl_moment_em_coupling* mom_em, double t_
     implicit_collision_source_update(mom_em, dt, fluid_s);
   }
 
-  // These terms are handled by their own specialized explicit forcing solver(s). To be revisited...
+  // These terms are currently handled by their own specialized forcing solver(s). To be revisited...
   if (mom_em->has_nT_sources) {
     explicit_nT_source_update(mom_em, dt, fluid_s, nT_sources_s);
   }
   if (mom_em->has_frictional_sources) {
-    explicit_frictional_source_update(mom_em, t_curr, dt, fluid_s);
+    if (mom_em->use_explicit_friction) {
+      explicit_frictional_source_update(mom_em, t_curr, dt, fluid_s);
+    }
+    else {
+      implicit_frictional_source_update(mom_em, t_curr, dt, fluid_s);
+    }
+  }
+  if (mom_em->has_volume_sources) {
+    explicit_volume_source_update(mom_em, t_curr, dt, fluid_s, em, ext_em);
   }
 }
