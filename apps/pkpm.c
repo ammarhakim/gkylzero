@@ -359,6 +359,34 @@ gkyl_pkpm_app_write_field(gkyl_pkpm_app* app, double tm, int frame)
   else {
     gkyl_comm_array_write(app->comm, &app->grid, &app->local, app->field->em, fileNm);
   }
+
+  if (app->field->has_ext_em) {
+    // Only write out external fields at t=0 or if they are time-dependent
+    if (frame == 0 || app->field->ext_em_evolve) {
+      const char *fmt_ext_em = "%s-field_ext_em_%d.gkyl";
+      int sz_ext_em = gkyl_calc_strlen(fmt_ext_em, app->name, frame);
+      char fileNm_ext_em[sz_ext_em+1]; // ensures no buffer overflow
+      snprintf(fileNm_ext_em, sizeof fileNm_ext_em, fmt_ext_em, app->name, frame);
+
+      // External EM field computed with project on basis, so just use host copy 
+      pkpm_field_calc_ext_em(app, app->field, tm);
+      gkyl_comm_array_write(app->comm, &app->grid, &app->local, app->field->ext_em_host, fileNm_ext_em);
+    }
+  }
+
+  if (app->field->has_app_current) {
+    // Only write out applied currents at t=0 or if they are time-dependent
+    if (frame == 0 || app->field->app_current_evolve) {
+      const char *fmt_app_current = "%s-field_app_current_%d.gkyl";
+      int sz_app_current = gkyl_calc_strlen(fmt_app_current, app->name, frame);
+      char fileNm_app_current[sz_app_current+1]; // ensures no buffer overflow
+      snprintf(fileNm_app_current, sizeof fileNm_app_current, fmt_app_current, app->name, frame);
+
+      // Applied currents computed with project on basis, so just use host copy 
+      pkpm_field_calc_app_current(app, app->field, tm);
+      gkyl_comm_array_write(app->comm, &app->grid, &app->local, app->field->app_current_host, fileNm_app_current);
+    }
+  }  
 }
 
 void
