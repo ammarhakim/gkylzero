@@ -1,6 +1,6 @@
 #include <acutest.h>
-#include <gkyl_moment_prim_ten_moment.h>
 #include <gkyl_wv_ten_moment.h>
+#include <gkyl_wv_ten_moment_priv.h>
 
 static const int dir_u_shuffle[][3] = {
   {1, 2, 3},
@@ -189,8 +189,37 @@ test_ten_moment_waves()
   gkyl_wv_eqn_release(ten_moment);
 }
 
+#ifdef GKYL_HAVE_CUDA
+
+int cu_wv_ten_moment_test(const struct gkyl_wv_eqn *eqn);
+
+void
+test_cu_wv_ten_moment()
+{
+  double k0 = 1.0;
+  struct gkyl_wv_eqn *eqn = gkyl_wv_ten_moment_new(k0, true);
+
+  // this is not possible from user code and should NOT be done. This
+  // is for testing only
+  struct wv_ten_moment *ten_moment = container_of(eqn, struct wv_ten_moment, eqn);
+
+  TEST_CHECK( ten_moment->k0 == 1.0 ); 
+  
+  // call CUDA test
+  int nfail = cu_wv_ten_moment_test(eqn->on_dev);
+
+  TEST_CHECK( nfail == 0 );
+
+  gkyl_wv_eqn_release(eqn);
+}
+
+#endif
+
 TEST_LIST = {
   { "ten_moment_basic", test_ten_moment_basic },
   { "ten_moment_waves", test_ten_moment_waves },
+#ifdef GKYL_HAVE_CUDA
+  { "cu_wv_ten_moment", test_cu_wv_ten_moment },
+#endif  
   { NULL, NULL },
 };

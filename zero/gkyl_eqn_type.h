@@ -77,6 +77,7 @@ enum gkyl_projection_id {
 enum gkyl_radiation_id {
   GKYL_NO_RADIATION = 0, // No radiation. This is default
   GKYL_GK_RADIATION, // Radiation in gyrokinetic equations.
+  GKYL_VM_COMPTON_RADIATION, // Vlasov simple Compton radiation model. 
 };
 
 // Identifiers for specific reaction object types
@@ -88,8 +89,7 @@ enum gkyl_react_id {
 };
 
 // Identifiers for different ion reaction types
-enum gkyl_ion_type
-{
+enum gkyl_ion_type {
   GKYL_ION_H = 0,  // Hydrogen ions
   GKYL_ION_HE = 1, // Helium ions
   GKYL_ION_LI = 2, // Lithium ions
@@ -102,8 +102,7 @@ enum gkyl_ion_type
 };
 
 // Identifiers for different self in reaction
-enum gkyl_react_self_type
-{
+enum gkyl_react_self_type {
   GKYL_SELF_ELC = 0, // Electron species in reaction
   GKYL_SELF_ION = 1, // Ion species in reaction 
   GKYL_SELF_DONOR = 2, // Donating species in reaction (giving up electron)

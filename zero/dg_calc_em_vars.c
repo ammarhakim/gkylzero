@@ -11,12 +11,14 @@
 
 gkyl_dg_calc_em_vars*
 gkyl_dg_calc_em_vars_new(const struct gkyl_rect_grid *conf_grid, 
-  const struct gkyl_basis* cbasis, const struct gkyl_range *mem_range, 
-  bool is_ExB, bool use_gpu)
+  const struct gkyl_basis *cbasis, const struct gkyl_range *mem_range, 
+  const struct gkyl_wv_eqn *wv_eqn, const struct gkyl_wave_geom *geom, 
+  double limiter_fac, bool is_ExB, bool use_gpu)
 {
 #ifdef GKYL_HAVE_CUDA
   if(use_gpu) {
-    return gkyl_dg_calc_em_vars_cu_dev_new(conf_grid, cbasis, mem_range, is_ExB);
+    return gkyl_dg_calc_em_vars_cu_dev_new(conf_grid, cbasis, 
+      mem_range, wv_eqn, geom, limiter_fac, is_ExB);
   } 
 #endif     
   gkyl_dg_calc_em_vars *up = gkyl_malloc(sizeof(gkyl_dg_calc_em_vars));
@@ -30,6 +32,9 @@ gkyl_dg_calc_em_vars_new(const struct gkyl_rect_grid *conf_grid,
   up->poly_order = poly_order;
   up->mem_range = *mem_range;
 
+  up->wv_eqn = gkyl_wv_eqn_acquire(wv_eqn);
+  up->geom = gkyl_wave_geom_acquire(geom);  
+
   if (is_ExB) {
     up->Ncomp = 3;
     up->em_calc_temp = choose_em_calc_num_ExB_kern(b_type, cdim, poly_order);
@@ -42,8 +47,23 @@ gkyl_dg_calc_em_vars_new(const struct gkyl_rect_grid *conf_grid,
     up->em_set = choose_em_set_bvar_kern(b_type, cdim, poly_order);
     up->em_copy = choose_em_copy_bvar_kern(b_type, cdim, poly_order);      
     // Fetch the kernels in each direction
-    for (int d=0; d<cdim; ++d) 
-      up->em_div_b[d] = choose_em_div_b_kern(d, b_type, cdim, poly_order);   
+    for (int d=0; d<cdim; ++d) {
+      up->em_div_b[d] = choose_em_div_b_kern(d, b_type, cdim, poly_order); 
+      up->em_limiter[d] = choose_em_limiter_kern(d, b_type, cdim, poly_order);
+    }
+  }
+
+  // Limiter factor for relationship between slopes and cell average differences
+  // By default, this factor is 1/sqrt(3) because cell_avg(f) = f0/sqrt(2^cdim)
+  // and a cell slope estimate from two adjacent cells is (for the x variation): 
+  // integral(psi_1 [cell_avg(f_{i+1}) - cell_avg(f_{i})]*x) = sqrt(2^cdim)/sqrt(3)*[cell_avg(f_{i+1}) - cell_avg(f_{i})]
+  // where psi_1 is the x cell slope basis in our orthonormal expansion psi_1 = sqrt(3)/sqrt(2^cdim)*x
+  // This factor can be made smaller (larger) to increase (decrease) the diffusion from the slope limiter
+  if (limiter_fac == 0.0) {
+    up->limiter_fac = 0.5773502691896258;
+  }
+  else {
+    up->limiter_fac = limiter_fac;
   }
 
   // There are Ncomp more linear systems to be solved 
@@ -152,8 +172,46 @@ void gkyl_dg_calc_em_vars_div_b(struct gkyl_dg_calc_em_vars *up, const struct gk
   }
 }
 
+void gkyl_dg_calc_em_vars_limiter(struct gkyl_dg_calc_em_vars *up, 
+  const struct gkyl_range *conf_range, struct gkyl_array* em)
+{
+#ifdef GKYL_HAVE_CUDA
+  if (gkyl_array_is_cu_dev(em)) {
+    return gkyl_dg_calc_em_vars_limiter_cu(up, conf_range, em);
+  }
+#endif
+  int cdim = up->cdim;
+  int idxl[GKYL_MAX_DIM], idxc[GKYL_MAX_DIM], idxr[GKYL_MAX_DIM];
+
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, conf_range);
+  while (gkyl_range_iter_next(&iter)) {
+    gkyl_copy_int_arr(cdim, iter.idx, idxc);
+    long linc = gkyl_range_idx(conf_range, idxc);
+    const struct gkyl_wave_cell_geom *geom = gkyl_wave_geom_get(up->geom, idxc);
+
+    double *em_c = gkyl_array_fetch(em, linc);
+    for (int dir=0; dir<cdim; ++dir) {
+      gkyl_copy_int_arr(cdim, iter.idx, idxl);
+      gkyl_copy_int_arr(cdim, iter.idx, idxr);
+
+      idxl[dir] = idxl[dir]-1; idxr[dir] = idxr[dir]+1;
+
+      long linl = gkyl_range_idx(conf_range, idxl); 
+      long linr = gkyl_range_idx(conf_range, idxr);
+
+      double *em_l = gkyl_array_fetch(em, linl);
+      double *em_r = gkyl_array_fetch(em, linr);
+
+      up->em_limiter[dir](up->limiter_fac, up->wv_eqn, geom, em_l, em_c, em_r);    
+    }
+  }
+}
+
 void gkyl_dg_calc_em_vars_release(gkyl_dg_calc_em_vars *up)
 {
+  gkyl_wv_eqn_release(up->wv_eqn);
+
   gkyl_nmat_release(up->As);
   gkyl_nmat_release(up->xs);
   gkyl_nmat_linsolve_lu_release(up->mem);

@@ -1,19 +1,17 @@
 #include <gkyl_vlasov_sr_kernels.h> 
 #include <gkyl_basis_ser_2x_p2_surfx2_eval_quad.h> 
 #include <gkyl_basis_ser_2x_p2_upwind_quad_to_modal.h> 
-GKYL_CU_DH double vlasov_sr_boundary_surfvx_1x1v_ser_p2(const double *w, const double *dxv, const double *p_over_gamma, const double *qmem, const int edge, const double *fEdge, const double *fSkin, double* GKYL_RESTRICT out) 
+GKYL_CU_DH double vlasov_sr_boundary_surfvx_1x1v_ser_p2(const double *w, const double *dxv, const double *gamma, const double *qmem, const int edge, const double *fEdge, const double *fSkin, double* GKYL_RESTRICT out) 
 { 
-  // w:           Cell-center coordinates.
+  // w[NDIM]:     Cell-center coordinates.
   // dxv[NDIM]:   Cell spacing.
-  // p_over_gamma: p/gamma (velocity).
+  // gamma:       Particle Lorentz boost factor sqrt(1 + p^2).
   // qmem:        q/m*EM fields.
   // edge:        Determines if the update is for the left edge (-1) or right edge (+1).
   // fSkin/fEdge: Input Distribution function in skin cell/last edge cell 
   // out:         Output distribution function in skin cell 
-  const double dv10 = 2/dxv[1]; 
-  const double dv1 = dxv[1], wv1 = w[1]; 
+  const double dv10 = 2.0/dxv[1]; 
   const double *E0 = &qmem[0]; 
-
   double alpha[3] = {0.0}; 
 
   double fUpwindQuad[3] = {0.0};

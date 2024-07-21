@@ -127,7 +127,7 @@ struct gkyl_basis {
  * @param linc2 Quadrature node being updated (allows for parallelization over quadrature points)
  */
   void (*modal_to_quad_nodal)(const double *fmodal, double *fquad, long linc2);   
-};
+}; 
 
 /**
  * Assign object members in modal serendipity basis object.
