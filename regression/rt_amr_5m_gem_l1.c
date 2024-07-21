@@ -1,4 +1,4 @@
-// Geospace Environmental Modeling (GEM) magnetic reconnection test, using static, block-structured mesh refinement with a single refinement block (2x refinement), for the 10-moment equations.
+// Geospace Environmental Modeling (GEM) magnetic reconnection test, using static, block-structured mesh refinement with a single refinement block (2x refinement), for the 5-moment equations.
 // Input parameters match the equilibrium and initial conditions in Section 2, from the article:
 // J. Birn et al. (2001), "Geospace Environmental Modeling (GEM) Magnetic Reconnection Challenge",
 // Journal of Geophysical Research: Space Physics, Volume 106 (A3): 3715-3719.
@@ -6,12 +6,13 @@
 
 #include <gkyl_amr_core.h>
 
-struct amr_10m_gem_ctx
+struct amr_5m_gem_ctx
 {
   // Mathematical constants (dimensionless).
   double pi;
   
   // Physical constants (using normalized code units).
+  double gas_gamma; // Adiabatic index.
   double epsilon0; // Permittivity of free space.
   double mu0; // Permeability of free space.
   double mass_ion; // Ion mass.
@@ -51,13 +52,14 @@ struct amr_10m_gem_ctx
   int num_failures_max; // Maximum allowable number of consecutive small time-steps.
 };
 
-struct amr_10m_gem_ctx
+struct amr_5m_gem_ctx
 create_ctx(void)
 {
   // Mathematical constants (dimensionless).
   double pi = M_PI;
 
   // Physical constants (using normalized code units).
+  double gas_gamma = 5.0 / 3.0; // Adiabatic index.
   double epsilon0 = 1.0; // Permittivity of free space.
   double mu0 = 1.0; // Permeability of free space.
   double mass_ion = 1.0; // Ion mass.
@@ -71,8 +73,8 @@ create_ctx(void)
   double B0 = 0.1; // Reference magnetic field strength.
   double beta = 1.0; // Plasma beta.
 
-  double k0_elc = 5.0; // Electron closure parameter.
-  double k0_ion = 5.0; // Ion closure parameter.
+  double k0_elc = 0.0; // Electron closure parameter.
+  double k0_ion = 0.0; // Ion closure parameter.
   
   // Derived physical quantities (using normalized code units).
   double psi0 = 0.1 * B0; // Reference magnetic scalar potential.
@@ -96,8 +98,9 @@ create_ctx(void)
   double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.
   int num_failures_max = 20; // Maximum allowable number of consecutive small time-steps.
 
-  struct amr_10m_gem_ctx ctx = {
+  struct amr_5m_gem_ctx ctx = {
     .pi = pi,
+    .gas_gamma = gas_gamma,
     .epsilon0 = epsilon0,
     .mu0 = mu0,
     .mass_ion = mass_ion,
@@ -137,9 +140,10 @@ void
 evalElcInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
 {
   double x = xn[0], y = xn[1];
-  struct amr_10m_gem_ctx new_ctx = create_ctx(); // Context for initialization functions.
-  struct amr_10m_gem_ctx *app = &new_ctx;
+  struct amr_5m_gem_ctx new_ctx = create_ctx(); // Context for initialization functions.
+  struct amr_5m_gem_ctx *app = &new_ctx;
 
+  double gas_gamma = app->gas_gamma;
   double mass_elc = app->mass_elc;
   double charge_elc = app->charge_elc;
   double lambda = app->lambda;
@@ -158,24 +162,24 @@ evalElcInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout
 
   double rhoe = n * mass_elc; // Electron mass density.
   double momze = (mass_elc / charge_elc) * Jz * Te_frac; // Electron momentum density (z-direction).
-  double pre = n * T_tot * Te_frac; // Electron pressure (scalar).
+  double Ee_tot = n * T_tot * Te_frac / (gas_gamma - 1.0) + 0.5 * momze * momze / rhoe; // Electron total energy density.
 
   // Set electron mass density.
   fout[0] = rhoe;
   // Set electron momentum density.
   fout[1] = 0.0; fout[2] = 0.0; fout[3] = momze;
-  // Set electron pressure tensor.
-  fout[4] = pre; fout[5] = 0.0; fout[6] = 0.0;
-  fout[7] = pre; fout[8] = 0.0; fout[9] = pre + momze * momze / rhoe;
+  // Set electron total energy density.
+  fout[4] = Ee_tot;
 }
 
 void
 evalIonInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
 {
   double x = xn[0], y = xn[1];
-  struct amr_10m_gem_ctx new_ctx = create_ctx(); // Context for initialization functions.
-  struct amr_10m_gem_ctx *app = &new_ctx;
+  struct amr_5m_gem_ctx new_ctx = create_ctx(); // Context for initialization functions.
+  struct amr_5m_gem_ctx *app = &new_ctx;
 
+  double gas_gamma = app->gas_gamma;
   double mass_ion = app->mass_ion;
   double charge_ion = app->charge_ion;
   double lambda = app->lambda;
@@ -194,23 +198,22 @@ evalIonInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout
 
   double rhoi = n * mass_ion; // Ion mass density.
   double momzi = (mass_ion / charge_ion) * Jz * Ti_frac; // Ion momentum density (z-direction).
-  double pri = n * T_tot * Ti_frac; // Ion pressure (scalar).
+  double Ei_tot = n * T_tot * Ti_frac / (gas_gamma - 1.0) + 0.5 * momzi * momzi / rhoi; // Ion total energy density.
 
   // Set ion mass density.
   fout[0] = rhoi;
   // Set ion momentum density.
   fout[1] = 0.0; fout[2] = 0.0; fout[3] = momzi;
-  // Set ion pressure tensor.
-  fout[4] = pri; fout[5] = 0.0; fout[6] = 0.0;
-  fout[7] = pri; fout[8] = 0.0; fout[9] = pri + momzi * momzi / rhoi;
+  // Set ion total energy density.
+  fout[4] = Ei_tot;
 }
 
 void
 evalFieldInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
 {
   double x = xn[0], y = xn[1];
-  struct amr_10m_gem_ctx new_ctx = create_ctx(); // Context for initialization functions.
-  struct amr_10m_gem_ctx *app = &new_ctx;
+  struct amr_5m_gem_ctx new_ctx = create_ctx(); // Context for initialization functions.
+  struct amr_5m_gem_ctx *app = &new_ctx;
 
   double pi = app->pi;
 
@@ -228,18 +231,18 @@ evalFieldInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fo
   double Bz = 0.0; // Total magnetic field (z-direction).
 
   // Set electric field.
-  fout[0] = 0.0, fout[1] = 0.0; fout[2] = 0.0;
+  fout[0] = 0.0; fout[1] = 0.0; fout[2] = 0.0;
   // Set magnetic field.
-  fout[3] = Bx, fout[4] = By; fout[5] = Bz;
+  fout[3] = Bx; fout[4] = By; fout[5] = Bz;
   // Set correction potentials.
   fout[6] = 0.0; fout[7] = 0.0;
 }
 
 int main(int argc, char **argv)
 {
-  struct amr_10m_gem_ctx ctx = create_ctx(); // Context for initialization functions.
+  struct amr_5m_gem_ctx ctx = create_ctx(); // Context for initialization functions.
 
-  struct ten_moment_2d_single_init init = {
+  struct five_moment_2d_single_init init = {
     .base_Nx = ctx.Nx,
     .base_Ny = ctx.Ny,
     .ref_factor = ctx.ref_factor,
@@ -258,6 +261,7 @@ int main(int argc, char **argv)
     .eval_ion = evalIonInit,
     .eval_field = evalFieldInit,
 
+    .gas_gamma = ctx.gas_gamma,
     .k0_elc = ctx.k0_elc,
     .k0_ion = ctx.k0_ion,
 
@@ -271,13 +275,13 @@ int main(int argc, char **argv)
     .mass_ion = ctx.mass_ion,
     .charge_ion = ctx.charge_ion,
 
-    .transmissive_x = true,
-    .transmissive_y = false,
+    .copy_x = true,
+    .copy_y = false,
 
     .wall_x = false,
     .wall_y = true,
 
-    .ten_moment_output = "amr_10m_gem",
+    .five_moment_output = "amr_5m_gem_l1",
 
     .low_order_flux = false,
     .cfl_frac = ctx.cfl_frac,
@@ -288,5 +292,5 @@ int main(int argc, char **argv)
     .num_failures_max = ctx.num_failures_max,
   };
 
-  ten_moment_2d_run_single(argc, argv, &init);
+  five_moment_2d_run_single(argc, argv, &init);
 }
