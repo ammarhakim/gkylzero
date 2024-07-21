@@ -2592,6 +2592,11 @@ gkyl_gyrokinetic_app_release(gkyl_gyrokinetic_app* app)
   if (app->num_species > 0)
     gkyl_free(app->species);
 
+  for (int i=0; i<app->num_neut_species; ++i)
+    gk_neut_species_release(app, &app->neut_species[i]);
+  if (app->num_neut_species > 0)
+    gkyl_free(app->neut_species);
+
   gkyl_comm_release(app->comm);
 
   if (app->use_gpu) {

@@ -285,6 +285,7 @@ gk_species_react_release(const struct gkyl_gyrokinetic_app *app, const struct gk
     gkyl_array_release(react->m0_elc[i]);
     gkyl_array_release(react->m0_ion[i]);
     gkyl_array_release(react->m0_donor[i]);
+    gkyl_array_release(react->m0_mod[i]);
     gkyl_array_release(react->prim_vars[i]); 
     gkyl_array_release(react->prim_vars_proj_inp[i]); 
 

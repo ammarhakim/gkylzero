@@ -666,7 +666,7 @@ gkyl_array_diff(const struct gkyl_array *arr1, const struct gkyl_array *arr2, co
     
     long loc = gkyl_range_idx(range, iter.idx);
     const double *a1 = gkyl_array_cfetch(arr1, loc);
-    const double *a2 = gkyl_array_cfetch(arr1, loc);
+    const double *a2 = gkyl_array_cfetch(arr2, loc);
 
     for (int c=0; c<arr1->ncomp; ++c) {
       max_abs_diff = fmax(max_abs_diff, a1[c]-a2[c]);

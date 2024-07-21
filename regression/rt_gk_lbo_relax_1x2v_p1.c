@@ -332,7 +332,7 @@ main(int argc, char **argv)
   struct gkyl_gk app_inp = {
     .name = "gk_lbo_relax_1x2v_p1",
 
-    .cdim = 1, .vdim = 2,
+    .cdim = ctx.cdim, .vdim = ctx.vdim,
     .lower = { 0.0 },
     .upper = { ctx.Lz },
     .cells = { cells_x[0] },
@@ -473,7 +473,7 @@ main(int argc, char **argv)
   freeresources:
   // Free resources after simulation completion.
   gkyl_gyrokinetic_app_release(app);
-  gyrokinetic_comms_release(decomp, comm);
+  gkyl_gyrokinetic_comms_release(decomp, comm);
 
 #ifdef GKYL_HAVE_MPI
   if (app_args.use_mpi) {
