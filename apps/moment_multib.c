@@ -278,15 +278,6 @@ singleb_app_new(const struct gkyl_moment_multib *mbinp, int bid,
     memcpy(&app_inp.field, &field_inp, sizeof(struct gkyl_moment_field));
   }
 
-  // Set decomp information: we are recreating the decomp here but
-  // this seems to be the cleanest way to do this without storing
-  // decomp for each block on each rank.
-  struct gkyl_range block_global_range;
-  gkyl_create_global_range(ndim, bgi->cells, &block_global_range);
-
-  struct gkyl_rect_decomp *decomp = gkyl_rect_decomp_new_from_cuts(
-    ndim, bgi->cuts, &block_global_range);
-
   struct gkyl_comm *comm = mbapp->block_comms[bid];
   int local_rank;
   gkyl_comm_get_rank(comm, &local_rank);
@@ -294,11 +285,9 @@ singleb_app_new(const struct gkyl_moment_multib *mbinp, int bid,
   app_inp.has_low_inp = true;
   app_inp.low_inp = (struct gkyl_app_comm_low_inp) {
     .comm = comm,
-    .local_range = decomp->ranges[local_rank]
+    .local_range = mbapp->decomp[bid]->ranges[local_rank]
   };
 
-  gkyl_rect_decomp_release(decomp);  
-  
   return gkyl_moment_app_new(&app_inp);
 }
 
@@ -338,7 +327,9 @@ gkyl_moment_multib_app_new(const struct gkyl_moment_multib *mbinp)
 
   int lidx = 0;
   int *rank_list = gkyl_malloc(sizeof(int[num_ranks])); // this is larger than needed
-  
+
+  mbapp->decomp = gkyl_malloc(num_blocks*sizeof(struct gkyl_rect_decomp*));
+    
   // construct list of block communicators: there are as many
   // communicators as blocks. Not all communicators are valid on each
   // rank. The total number of valid communictors is num_local_blocks.
@@ -357,14 +348,12 @@ gkyl_moment_multib_app_new(const struct gkyl_moment_multib *mbinp)
     struct gkyl_range block_global_range;
     gkyl_create_global_range(ndim, bgi->cells, &block_global_range);
 
-    struct gkyl_rect_decomp *decomp = gkyl_rect_decomp_new_from_cuts(
+    mbapp->decomp[i] = gkyl_rect_decomp_new_from_cuts(
       ndim, bgi->cuts, &block_global_range);
 
     bool status;
     mbapp->block_comms[i] = gkyl_comm_create_comm_from_ranks(mbinp->comm,
-      branks[i], rank_list, decomp, &status);
-
-    gkyl_rect_decomp_release(decomp);
+      branks[i], rank_list, mbapp->decomp[i], &status);
   }
   gkyl_free(rank_list);
   mbapp->num_local_blocks = num_local_blocks;  
@@ -605,6 +594,10 @@ gkyl_moment_multib_app_release(gkyl_moment_multib_app* mbapp)
   }  
 
   int num_blocks = gkyl_block_geom_num_blocks(mbapp->block_geom);
+
+  for (int i=0; i<num_blocks; ++i)
+    gkyl_rect_decomp_release(mbapp->decomp[i]);
+  gkyl_free(mbapp->decomp);
 
   for (int i=0; i<num_blocks; ++i)
     gkyl_comm_release(mbapp->block_comms[i]);
