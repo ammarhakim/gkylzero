@@ -493,15 +493,6 @@ implicit_source_coupling_update(const gkyl_moment_em_coupling* mom_em, double t_
       double mom_x = f[1], mom_y = f[2], mom_z = f[3];
 
       ke_old[i] = 0.5 * (((mom_x * mom_x) + (mom_y * mom_y) + (mom_z * mom_z)) / rho);
-
-      // TODO: For Braginksii
-      /*
-      double rhoux_rhs = p_rhs[1];
-      
-      fluid_rhs[0] = f[0];
-      fluid_rhs[1] = f[1] + (0.5 * dt * rhoux_rhs);
-      ...
-      */
     }
     else if (mom_em->param[i].type == GKYL_EQN_TEN_MOMENT) {
       double q_over_m = q / m;
@@ -547,7 +538,7 @@ implicit_source_coupling_update(const gkyl_moment_em_coupling* mom_em, double t_
   }
 
   if (mom_em->is_charged_species) {
-    implicit_em_source_update(mom_em, t_curr, dt, fluid_s, app_accel_s, em, app_current, ext_em);
+    //implicit_em_source_update(mom_em, t_curr, dt, fluid_s, app_accel_s, em, app_current, ext_em);
   }
   else {
     implicit_neut_source_update(mom_em, t_curr, dt, fluid_s, app_accel_s);
@@ -562,7 +553,7 @@ implicit_source_coupling_update(const gkyl_moment_em_coupling* mom_em, double t_
       
       f[4] += (0.5 * ((mom_x * mom_x) + (mom_y * mom_y) + (mom_z * mom_z)) / rho) - ke_old[i];
     }
-    else {
+    else if (mom_em->param[i].type == GKYL_EQN_TEN_MOMENT) {
       double rho = f[0];
       double mom_x = f[1], mom_y = f[2], mom_z = f[3];
 
@@ -593,5 +584,8 @@ implicit_source_coupling_update(const gkyl_moment_em_coupling* mom_em, double t_
   }
   if (mom_em->has_volume_sources) {
     explicit_volume_source_update(mom_em, t_curr, dt, fluid_s, em, ext_em);
+  }
+  if (mom_em->has_reactive_sources) {
+    explicit_reactive_source_update(mom_em, t_curr, dt, fluid_s);
   }
 }

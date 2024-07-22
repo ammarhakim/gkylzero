@@ -22,6 +22,7 @@ struct wv_reactive_euler {
 * Compute primitive variables given the conserved variables.
 *
 * @param gas_gamma Adiabatic index.
+* @param energy_of_formation Energy of formation.
 * @param q Conserved variable vector.
 * @param v Primitive variable vector (output).
 */
@@ -33,6 +34,7 @@ gkyl_reactive_euler_prim_vars(double gas_gamma, double energy_of_formation, cons
 * Compute maximum absolute wave speed.
 *
 * @param gas_gamma Adiabatic index.
+* @param energy_of_formation Energy of formation.
 * @param q Conserved variable vector.
 * @return Maximum absolute wave speed for a given q.
 */
@@ -44,6 +46,7 @@ gkyl_reactive_euler_max_abs_speed(double gas_gamma, double energy_of_formation, 
 * Compute flux vector. Assumes rotation to local coordinate system.
 *
 * @param gas_gamma Adiabatic index.
+* @param energy_of_formation Energy of formation.
 * @param q Conserved variable vector.
 * @param flux Flux vector in direction 'dir' (output).
 */

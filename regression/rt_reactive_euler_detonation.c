@@ -50,7 +50,7 @@ create_ctx(void)
 {
   // Physical constants (using normalized code units).
   double gas_gamma = 1.4; // Adiabatic index.
-  double specific_heat_capacity = 25.0; // Specific heat capacity.
+  double specific_heat_capacity = 2.5; // Specific heat capacity.
   double energy_of_formation = 1.0; // Energy of formation.
   double ignition_temperature = 0.25; // Ignition temperature.
   double reaction_rate = 250.0; // Reaction rate.
@@ -134,9 +134,20 @@ evalReactiveEulerInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RES
   // Set fluid momentum density.
   fout[1] = rho * u; fout[2] = 0.0; fout[3] = 0.0;
   // Set fluid total energy density.
-  fout[4] = (p / (gas_gamma - 1.0)) + (0.5 * rho * u * u) - energy_of_formation;
+  fout[4] = (p / (gas_gamma - 1.0)) + (0.5 * rho * u * u);
   // Set fluid reaction progress.
-  fout[5] = 0.0;
+  fout[5] = rho * 1.0;
+}
+
+void
+evalFieldInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
+{
+  // Set electric field.
+  fout[0] = 0.0, fout[1] = 0.0; fout[2] = 0.0;
+  // Set magnetic field.
+  fout[3] = 0.0, fout[4] = 0.0; fout[5] = 0.0;
+  // Set correction potentials.
+  fout[6] = 0.0; fout[7] = 0.0;
 }
 
 void
@@ -191,6 +202,16 @@ main(int argc, char **argv)
     .reactivity_reaction_rate = ctx.reaction_rate,
 
     .bcx = { GKYL_SPECIES_COPY, GKYL_SPECIES_COPY },
+  };
+
+  // Field.
+  struct gkyl_moment_field field = {
+    .epsilon0 = 1.0, .mu0 = 1.0,
+    .mag_error_speed_fact = 1.0,
+    
+    .evolve = false,
+    .init = evalFieldInit,
+    .ctx = &ctx,
   };
 
   int nrank = 1; // Number of processes in simulation.
@@ -280,6 +301,8 @@ main(int argc, char **argv)
 
     .num_species = 1,
     .species = { fluid },
+
+    .field = field,
 
     .has_low_inp = true,
     .low_inp = {

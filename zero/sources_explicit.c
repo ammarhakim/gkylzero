@@ -141,6 +141,70 @@ explicit_volume_source_update(const gkyl_moment_em_coupling* mom_em, double t_cu
 }
 
 void
+explicit_reactive_source_update_euler(const gkyl_moment_em_coupling* mom_em, const double gas_gamma, const double specific_heat_capacity,
+  const double energy_of_formation, const double ignition_temperature, const double reaction_rate, double t_curr, const double dt,
+  double* fluid_old, double* fluid_new)
+{
+  double rho = fluid_old[0];
+  double vx = fluid_old[1] / rho;
+  double vy = fluid_old[2] / rho;
+  double vz = fluid_old[3] / rho;
+  double reaction_progress = fluid_old[5] / rho;
+
+  double specific_internal_energy = (fluid_old[4] / rho) - (0.5 * ((vx * vx) + (vy * vy) + (vz * vz))) -
+    (energy_of_formation * (reaction_progress - 1.0));
+  double temperature = specific_internal_energy / specific_heat_capacity;
+
+  for (int i = 0; i < 6; i++) {
+    fluid_new[i] = fluid_old[i];
+  }
+
+  if (temperature > ignition_temperature) {
+    fluid_new[5] -= dt * (rho * reaction_progress * reaction_rate);
+  }
+}
+
+void
+explicit_reactive_source_update(const gkyl_moment_em_coupling* mom_em, double t_curr, const double dt, double* fluid_s[GKYL_MAX_SPECIES])
+{
+  int nfluids = mom_em->nfluids;
+
+  double gas_gamma = mom_em->reactivity_gas_gamma;
+  double specific_heat_capacity = mom_em->reactivity_specific_heat_capacity;
+  double energy_of_formation = mom_em->reactivity_energy_of_formation;
+  double ignition_temperature = mom_em->reactivity_ignition_temperature;
+  double reaction_rate = mom_em->reactivity_reaction_rate;
+
+  for (int i = 0; i < nfluids; i++) {
+    double *f = fluid_s[i];
+
+    double f_new[6], f_stage1[6], f_stage2[6], f_old[6];
+
+    for (int j = 0; j < 6; j++) {
+      f_old[j] = f[j];
+    }
+
+    explicit_reactive_source_update_euler(mom_em, gas_gamma, specific_heat_capacity, energy_of_formation, ignition_temperature, reaction_rate,
+      t_curr, dt, f_old, f_new);
+    for (int j = 0; j < 6; j++) {
+      f_stage1[j] = f_new[j];
+    }
+
+    explicit_reactive_source_update_euler(mom_em, gas_gamma, specific_heat_capacity, energy_of_formation, ignition_temperature, reaction_rate,
+      t_curr + dt, dt, f_stage1, f_new);
+    for (int j = 0; j < 6; j++) {
+      f_stage2[j] = (0.75 * f_old[j]) + (0.25 * f_new[j]);
+    }
+
+    explicit_reactive_source_update_euler(mom_em, gas_gamma, specific_heat_capacity, energy_of_formation, ignition_temperature, reaction_rate,
+      t_curr + (0.5 * dt), dt, f_stage2, f_new);
+    for (int j = 0; j < 6; j++) {
+      f[j] = ((1.0 / 3.0) * f_old[j]) + ((2.0 / 3.0) * f_new[j]);
+    }
+  }
+}
+
+void
 explicit_e_field_source_update_euler(const gkyl_moment_em_coupling* mom_em, double t_curr, double dt, double e_field_old[3], double* e_field_new,
   double* fluid_s[GKYL_MAX_SPECIES], const double* app_current)
 {

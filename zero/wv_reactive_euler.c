@@ -16,12 +16,15 @@ gkyl_reactive_euler_prim_vars(double gas_gamma, double energy_of_formation, cons
   double Etot = q[4];
   double reaction_density = q[5];
 
+  double specific_internal_energy = (Etot / rho) - (0.5 * ((momx * momx) + (momy * momy) + (momz * momz)) / (rho * rho)) - (energy_of_formation * ((reaction_density / rho) - 1.0));
+
   v[0] = rho;
   v[1] = momx / rho;
   v[2] = momy / rho;
   v[3] = momz / rho;
-  v[4] = (gas_gamma - 1.0) * (Etot - (0.5 * ((momx * momx) + (momy * momy) + (momz * momz)) / rho) - (rho * energy_of_formation * ((reaction_density / rho) - 1.0)));
-  v[6] = reaction_density / rho;
+  //[4] = (gas_gamma - 1.0) * (Etot - (0.5 * ((momx * momx) + (momy * momy) + (momz * momz)) / rho));
+  v[4] = specific_internal_energy * (gas_gamma - 1.0) * rho;
+  v[5] = reaction_density / rho;
 }
 
 static inline double
@@ -311,6 +314,7 @@ gkyl_wv_reactive_euler_inew(const struct gkyl_wv_reactive_euler_inp* inp)
 
   reactive_euler->gas_gamma = inp->gas_gamma;
   reactive_euler->specific_heat_capacity = inp->specific_heat_capacity;
+  reactive_euler->energy_of_formation = inp->energy_of_formation;
   reactive_euler->ignition_temperature = inp->ignition_temperature;
   reactive_euler->reaction_rate = inp->reaction_rate;
 

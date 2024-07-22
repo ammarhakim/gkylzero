@@ -87,6 +87,36 @@ void explicit_volume_source_update(const gkyl_moment_em_coupling* mom_em, double
   double* em, const double* ext_em);
 
 /**
+* Integrate the reactive source terms in the multi-fluid equation system within a single cell, using an explicit forcing solver (specifically a 
+* simple first-order forward-Euler method).
+*
+* @param mom_em Moment-EM coupling object.
+* @param gas_gamma Adiabatic index.
+* @param specific_heat_capacity Specific heat capacity.
+* @param energy_of_formation Energy of formation.
+* @param ignition_temperature Ignition temperature.
+* @param reaction_rate Reaction rate.
+* @param t_curr Current simulation time.
+* @param dt Current stable time-step.
+* @param fluid_old Array of old fluid variables (before source update).
+* @param fluid_new Array of new fluid variables (after source update).
+*/
+void explicit_reactive_source_update_euler(const gkyl_moment_em_coupling* mom_em, const double gas_gamma, const double specific_heat_capacity,
+  const double energy_of_formation, const double ignition_temperature, const double reaction_rate, double t_curr, const double dt,
+  double* fluid_old, double* fluid_new);
+
+/**
+* Integrate the reactive source terms in the multi-fluid equation system within a single cell, using an explicit forcing solver (specifically a
+* strong stability-preserving third-order Runge-Kutta method).
+*
+* @param mom_em Moment-EM coupling object.
+* @param t_curr Current simulation time.
+* @param dt Current stable time-step.
+* @param fluid_s Array of fluid variables (array size = nfluids).
+*/
+void explicit_reactive_source_update(const gkyl_moment_em_coupling* mom_em, double t_curr, const double dt, double* fluid_s[GKYL_MAX_SPECIES]);
+
+/**
 * Integrate the electric field source terms in the multi-field equation system within a single cell, using an explicit forcing solver (specifically
 * a simple first-order forward-Euler method), assuming a cold relativistic fluid.
 *
