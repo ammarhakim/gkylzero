@@ -55,9 +55,15 @@ void implicit_collision_source_update(const gkyl_moment_em_coupling* mom_em, dou
 * @param f_ion_old Array of old ion fluid variables (before source update).
 * @param f_elc_new Array of new electron fluid variables (after source update).
 * @param f_ion_new Array of new ion fluid variables (after source update).
+* @param app_accel_s Array of acceleration terms to be applied to the fluid equations (for external forces).
+* @param em_old Array of old electromagnetic variables (before source update).
+* @param em_new Array of new electromagnetic variables (after source update).
+* @param app_current Array of current terms to be applied to the fluid equations (for external current driving).
+* @param ext_em External electromagnetic variables (for EM fields coming from external sources, e.g. coils, capacitors, etc.).
 */
 void implicit_frictional_source_update_half(const gkyl_moment_em_coupling* mom_em, const double Z, const double T_elc, const double Lambda_ee,
-  double t_curr, const double dt, double* f_elc_old, double* f_ion_old, double* f_elc_new, double* f_ion_new);
+  double t_curr, const double dt, double* f_elc_old, double* f_ion_old, double* f_elc_new, double* f_ion_new,
+  const double* app_accel_s[GKYL_MAX_SPECIES], double* em_old, double* em_new, const double* app_current, const double* ext_em);
 
 /**
 * Integrate the frictional source terms in the multi-fluid equation system within a single cell, using an implicit forcing solver (specifically
@@ -67,8 +73,13 @@ void implicit_frictional_source_update_half(const gkyl_moment_em_coupling* mom_e
 * @param t_curr Current simulation time.
 * @param dt Current stable time-step.
 * @param fluid_s Array of fluid varaibles (array size = nfluids).
+* @param app_accel_s Array of acceleration terms to be applied to the fluid equations (for external forces).
+* @param em Array of electromagnetic variables
+* @param app_current Array of current terms to be applied to the fluid equations (for external current driving).
+* @param ext_em External electromagnetic variables (for EM fields coming from external sources, e.g. coils, capacitors, etc.).
 */
-void implicit_frictional_source_update(const gkyl_moment_em_coupling* mom_em, double t_curr, double dt, double* fluid_s[GKYL_MAX_SPECIES]);
+void implicit_frictional_source_update(const gkyl_moment_em_coupling* mom_em, double t_curr, double dt, double* fluid_s[GKYL_MAX_SPECIES],
+  const double* app_accel_s[GKYL_MAX_SPECIES], double* em, const double* app_current, const double* ext_em);
 
 /**
 * Integrate the electromagnetic source terms in the multi-fluid equation system within each cell, using an implicit forcing solver (specifically
