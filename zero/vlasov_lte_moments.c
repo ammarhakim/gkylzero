@@ -230,6 +230,7 @@ gkyl_vlasov_lte_moments_release(gkyl_vlasov_lte_moments *lte_moms)
   gkyl_array_release(lte_moms->temperature);
   gkyl_dg_bin_op_mem_release(lte_moms->mem);
   if (lte_moms->model_id == GKYL_MODEL_SR) {
+    gkyl_dg_calc_sr_vars_release(lte_moms->sr_vars);
     gkyl_array_release(lte_moms->V_drift_sq);
     gkyl_array_release(lte_moms->GammaV);
     gkyl_array_release(lte_moms->GammaV_sq);
