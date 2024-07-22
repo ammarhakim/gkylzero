@@ -86,7 +86,7 @@ test_fixed_z()
 
 
 
-  struct gkyl_tok_geo_efit_inp inp = {
+  struct gkyl_tok_geo_efit_inp efit_inp = {
       // psiRZ and related inputs
       .filepath = "./data/eqdsk/asdex.geqdsk",
       .rzpoly_order = 2,
@@ -122,13 +122,11 @@ test_fixed_z()
     .zmax = 1.0,
     .zmin_left = -1.3,
     .zmin_right = -1.3,
-    .write_node_coord_array = true,
-    .node_file_nm = "asdex_fixed_z_nodes.gkyl"
   }; 
   struct gkyl_gk_geometry_inp geometry_inp = {
     .geometry_id  = GKYL_TOKAMAK,
-    .tok_efit_info = &inp,
-    .tok_grid_info = &ginp,
+    .tok_efit_info = efit_inp,
+    .tok_grid_info = ginp,
     .grid = cgrid,
     .local = clocal,
     .local_ext = clocal_ext,
@@ -160,7 +158,7 @@ test_shaped_plate()
 
 
 
-  struct gkyl_tok_geo_efit_inp inp = {
+  struct gkyl_tok_geo_efit_inp efit_inp = {
       // psiRZ and related inputs
       .filepath = "./data/eqdsk/asdex.geqdsk",
       .rzpoly_order = 2,
@@ -198,13 +196,11 @@ test_shaped_plate()
     .zmax = 1.0,
     .zmin_left = -1.2,
     .zmin_right = -1.0,
-    .write_node_coord_array = true,
-    .node_file_nm = "asdex_shaped_plate_nodes.gkyl"
   }; 
   struct gkyl_gk_geometry_inp geometry_inp = {
     .geometry_id  = GKYL_TOKAMAK,
-    .tok_efit_info = &inp,
-    .tok_grid_info = &ginp,
+    .tok_efit_info = efit_inp,
+    .tok_grid_info = ginp,
     .grid = cgrid,
     .local = clocal,
     .local_ext = clocal_ext,

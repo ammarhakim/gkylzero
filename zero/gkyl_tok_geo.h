@@ -1,17 +1,18 @@
 #pragma once
 
+#include <math.h>
 #include <stdbool.h>
+#include <string.h>
 
+#include <gkyl_array.h>
+#include <gkyl_basis.h>
+#include <gkyl_evalf_def.h>
 #include <gkyl_math.h>
 #include <gkyl_range.h>
 #include <gkyl_rect_grid.h>
-#include <math.h>
-#include <string.h>
-#include <gkyl_evalf_def.h>
-#include <gkyl_gk_geometry.h>
 
-// Object type
-typedef struct gkyl_tok_geo gkyl_tok_geo;
+
+typedef struct gk_geometry gk_geometry;
 
 
 // Some cumulative statistics
@@ -87,7 +88,7 @@ struct gkyl_tok_geo {
   struct { int max_iter; double eps; } root_param;
   struct { int max_level; double eps; } quad_param;
 
-  bool tol_no_roots; // If true we will allow approximate roots when no root is found
+  bool exact_roots; // If true we will allow approximate roots when no root is found
   // pointer to root finder (depends on polyorder)
   struct RdRdZ_sol (*calc_roots)(const double *psi, double psi0, double Z,
     double xc[2], double dx[2]);
@@ -103,7 +104,7 @@ struct gkyl_tok_geo {
 // Inputs to create a new GK geometry creation object
 struct gkyl_tok_geo_efit_inp {
   // Inputs to get psiRZ and related inputs from efit
-  char* filepath;
+  char filepath[1024];
   int rzpoly_order;
   enum gkyl_basis_type rz_basis_type;
   int fluxpoly_order;
@@ -111,6 +112,8 @@ struct gkyl_tok_geo_efit_inp {
   bool plate_spec;
   plate_func plate_func_lower;
   plate_func plate_func_upper;
+
+  bool reflect; // whether to reflect across R axis to preserve symmetry
 
   // Parameters for root finder: leave unset to use defaults
   struct {
@@ -142,8 +145,7 @@ struct gkyl_tok_geo_grid_inp {
   double zxpt_lo; // z of the lower x point
   double zxpt_up; // z of the upper x point
 
-  bool write_node_coord_array; // set to true if nodal coordinates should be written
-  const char *node_file_nm; // name of nodal coordinate file
+  bool exact_roots; // If false we will allow approximate roots when no root is found
 };
 
 
@@ -154,7 +156,7 @@ struct gkyl_tok_geo_grid_inp {
  * @param inp Input parameters
  * @param New GK geometry updater
  */
-gkyl_tok_geo *gkyl_tok_geo_new(const struct gkyl_tok_geo_efit_inp *inp);
+struct gkyl_tok_geo *gkyl_tok_geo_new(const struct gkyl_tok_geo_efit_inp *inp);
 
 /**
  * Get R(psi,Z) for a specified psi and Z value. Multiple values may
@@ -168,7 +170,7 @@ gkyl_tok_geo *gkyl_tok_geo_new(const struct gkyl_tok_geo_efit_inp *inp);
  * @param R on output, R(psi,Z)
  * @param dR on output, dR/dZ
  */
-int gkyl_tok_geo_R_psiZ(const gkyl_tok_geo *geo, double psi, double Z, int nmaxroots,
+int gkyl_tok_geo_R_psiZ(const struct gkyl_tok_geo *geo, double psi, double Z, int nmaxroots,
   double *R, double *dR);
 
 /**
@@ -187,7 +189,7 @@ int gkyl_tok_geo_R_psiZ(const gkyl_tok_geo *geo, double psi, double Z, int nmaxr
  *    contours
  * @return Length of contour
  */
-double gkyl_tok_geo_integrate_psi_contour(const gkyl_tok_geo *geo, double psi,
+double gkyl_tok_geo_integrate_psi_contour(const struct gkyl_tok_geo *geo, double psi,
   double zmin, double zmax, double rclose);
 
 /**
@@ -197,7 +199,7 @@ double gkyl_tok_geo_integrate_psi_contour(const gkyl_tok_geo *geo, double psi,
  * @param xn computational coordinates
  * @param ret physical coordinates
  */
-void gkyl_tok_geo_mapc2p(const gkyl_tok_geo *geo, const struct gkyl_tok_geo_grid_inp *inp,
+void gkyl_tok_geo_mapc2p(const struct gkyl_tok_geo *geo, const struct gkyl_tok_geo_grid_inp *inp,
     const double *xn, double *ret);
 
 /**
@@ -209,19 +211,13 @@ void gkyl_tok_geo_mapc2p(const gkyl_tok_geo *geo, const struct gkyl_tok_geo_grid
  * @param dzc grid spacing of nodal range
  * @param geo gkyl_tok_geo object with efit dats and root finder specs 
  * @param inp tok_geo_grid_inp Input structure for creating mapc2p
- * @param mc2p_nodal_fd output nodal field to be filled with X,Y,Z at grid nodes
+ * @param mc2p_nodal_fd output nodal field to be filled with R,Z,phi at grid nodes
  *  and nodes epsilon away to be used for FD
- * @param mc2p_nodal output nodal mapc2p field
- * @param mc2p On output, the DG representation of mapc2p
- * @param mc2prz_nodal_fd output nodal field to be filled with R,Z,phi at grid nodes
- *  and nodes epsilon away to be used for FD
- * @param mc2prz_nodal output nodal mapc2p field R,Z,phi)
- * @param mc2prz On output, the DG representation of mapc2p ((R,Z,phi)
+ * @param mc2p_nodal output nodal mapc2p field R,Z,phi)
+ * @param mc2p On output, the DG representation of mapc2p ((R,Z,phi)
  * @param dphidtheta_nodal output nodal field containing dphi/dtheta = s(psi)/R|grad(psi|
  */
-void gkyl_tok_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, double dzc[3], struct gkyl_tok_geo* geo, struct gkyl_tok_geo_grid_inp *inp, 
-  struct gkyl_array *mc2p_nodal_fd, struct gkyl_array *mc2p_nodal, struct gkyl_array *mc2p, struct gkyl_array *mc2prz_nodal_fd,
-  struct gkyl_array *mc2prz_nodal, struct gkyl_array *mc2prz, struct gkyl_array *dphidtheta_nodal);
+void gkyl_tok_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, double dzc[3], struct gkyl_tok_geo* geo, struct gkyl_tok_geo_grid_inp *inp, struct gkyl_array *mc2p_nodal_fd, struct gkyl_array *mc2p_nodal, struct gkyl_array *mc2p, struct gkyl_array *dphidtheta_nodal);
 
 /**
  * Return cumulative statistics from geometry computations
@@ -229,15 +225,11 @@ void gkyl_tok_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, double
  * @param geo Geometry object
  * @return Cumulative statistics
  */
-struct gkyl_tok_geo_stat gkyl_tok_geo_get_stat(const gkyl_tok_geo *geo);
+struct gkyl_tok_geo_stat gkyl_tok_geo_get_stat(const struct gkyl_tok_geo *geo);
 
 /**
  * Delete updater.
  *
  * @param geo Geometry object to delete
  */
-void gkyl_tok_geo_release(gkyl_tok_geo *geo);
-
-struct gkyl_range* gkyl_tok_geo_get_nrange(gkyl_tok_geo* geo);
-struct gkyl_array* gkyl_tok_geo_get_mc2p_nodal_fd(gkyl_tok_geo* geo);
-double* gkyl_tok_geo_get_dzc(gkyl_tok_geo* geo);
+void gkyl_tok_geo_release(struct gkyl_tok_geo *geo);

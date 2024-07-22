@@ -13,15 +13,6 @@ struct gkyl_null_comm_inp {
 
 /**
  * Return a new "null" communicator, i.e. a communicator for a single
- * core calculation. The communicator returned by this function can't
- * be used to perform periodic sync operatons on arrays.
- *
- * @return New communicator
- */
-struct gkyl_comm *gkyl_null_comm_new(void);
-
-/**
- * Return a new "null" communicator, i.e. a communicator for a single
  * core calculation.
  *
  * @param inp Input struct to use for initialization

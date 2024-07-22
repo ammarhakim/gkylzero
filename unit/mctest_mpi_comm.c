@@ -7,11 +7,40 @@
 #include <stc/cstr.h>
 
 #include <gkyl_array_rio.h>
+#include <gkyl_comm_io.h>
 #include <gkyl_elem_type_priv.h>
 #include <gkyl_mpi_comm.h>
 #include <gkyl_range.h>
 #include <gkyl_rect_decomp.h>
+#include <gkyl_rrobin_decomp.h>
 #include <gkyl_util.h>
+
+static void
+mpi_0()
+{
+  int m_sz;
+  MPI_Comm_size(MPI_COMM_WORLD, &m_sz);
+
+  struct gkyl_comm *comm = gkyl_mpi_comm_new( &(struct gkyl_mpi_comm_inp) {
+      .mpi_comm = MPI_COMM_WORLD,
+    }
+  );
+
+  TEST_CHECK( strcmp(comm->id, "mpi_comm") == 0 );
+  TEST_CHECK( false == comm->has_decomp );
+
+  int rank;
+  gkyl_comm_get_rank(comm, &rank);
+  int m_rank;
+  MPI_Comm_rank(MPI_COMM_WORLD, &m_rank);
+  TEST_CHECK( rank == m_rank );
+
+  int sz;
+  gkyl_comm_get_size(comm, &sz);
+  TEST_CHECK( sz == m_sz );
+
+  gkyl_comm_release(comm);
+}
 
 static void
 mpi_1()
@@ -31,6 +60,8 @@ mpi_1()
     }
   );
 
+  TEST_CHECK( comm->has_decomp );
+
   int rank;
   gkyl_comm_get_rank(comm, &rank);
   int m_rank;
@@ -46,7 +77,7 @@ mpi_1()
 }
 
 static void
-mpi_allreduce()
+mpi_n2_allreduce()
 {
   int m_sz;
   MPI_Comm_size(MPI_COMM_WORLD, &m_sz);
@@ -772,235 +803,361 @@ mpi_n27_per_sync_corner_3d(void)
   mpi_per_sync_corner_3d(27, (int[]) { 3, 3, 3 });
 }
 
+/* static void */
+/* mpi_n2_array_send_irecv_1d() */
+/* { */
+/*   int m_sz; */
+/*   MPI_Comm_size(MPI_COMM_WORLD, &m_sz); */
+/*   if (m_sz != 2) return; */
+
+/*   int rank; */
+/*   MPI_Comm_rank(MPI_COMM_WORLD, &rank); */
+
+/*   struct gkyl_range range; */
+/*   gkyl_range_init(&range, 1, (int[]) { 1 }, (int[]) { 10 }); */
+
+/*   int cuts[] = { 2 }; */
+/*   struct gkyl_rect_decomp *decomp = gkyl_rect_decomp_new_from_cuts(range.ndim, cuts, &range); */
+
+/*   struct gkyl_comm *comm = gkyl_mpi_comm_new( &(struct gkyl_mpi_comm_inp) { */
+/*       .mpi_comm = MPI_COMM_WORLD, */
+/*       .decomp = decomp, */
+/*       .sync_corners = false, */
+/*     } */
+/*   ); */
+
+/*   double sendval = rank==0? 20005. : 30005.; */
+/*   double recvval = rank==0? 30005. : 20005.; */
+
+/*   // Assume the range is not decomposed.  */
+/*   struct gkyl_array *arrA = gkyl_array_new(GKYL_DOUBLE, 1, range.volume); */
+/*   struct gkyl_array *arrB = gkyl_array_new(GKYL_DOUBLE, 1, range.volume); */
+/*   gkyl_array_clear(arrA, sendval*(1-rank)); */
+/*   gkyl_array_clear(arrB, sendval*rank); */
+
+/*   struct gkyl_array *recvbuff = rank==0? arrB : arrA; */
+/*   struct gkyl_array *sendbuff = rank==0? arrA : arrB; */
+
+/*   struct gkyl_comm_state *cstate = gkyl_comm_state_new(comm); */
+/*   int tag = 13; */
+/*   // Post irecv before send. */
+/*   gkyl_comm_array_irecv(comm, recvbuff, (rank+1) % 2, tag, cstate); */
+/*   gkyl_comm_array_send(comm, sendbuff, (rank+1) % 2, tag); */
+/*   gkyl_comm_state_wait(comm, cstate); */
+
+/*   struct gkyl_range_iter iter; */
+/*   gkyl_range_iter_init(&iter, &range); */
+/*   while (gkyl_range_iter_next(&iter)) { */
+/*     long idx = gkyl_range_idx(&range, iter.idx); */
+/*     const double *f = gkyl_array_cfetch(recvbuff, idx); */
+/*     TEST_CHECK( f[0] == recvval ); */
+/*   } */
+
+/*   gkyl_comm_barrier(comm); */
+
+/*   gkyl_comm_state_release(comm, cstate); */
+/*   gkyl_array_release(arrA); */
+/*   gkyl_array_release(arrB); */
+/*   gkyl_rect_decomp_release(decomp); */
+/*   gkyl_comm_release(comm); */
+/* } */
+
+/* static void */
+/* mpi_n2_array_isend_irecv_2d() */
+/* { */
+/*   int m_sz; */
+/*   MPI_Comm_size(MPI_COMM_WORLD, &m_sz); */
+/*   if (m_sz != 2) return; */
+
+/*   int rank; */
+/*   MPI_Comm_rank(MPI_COMM_WORLD, &rank); */
+
+/*   struct gkyl_range range; */
+/*   gkyl_range_init(&range, 2, (int[]) { 1, 1 }, (int[]) { 10, 20 }); */
+
+/*   int cuts[] = { 1, m_sz }; */
+/*   struct gkyl_rect_decomp *decomp = gkyl_rect_decomp_new_from_cuts(range.ndim, cuts, &range); */
+
+/*   struct gkyl_comm *comm = gkyl_mpi_comm_new( &(struct gkyl_mpi_comm_inp) { */
+/*       .mpi_comm = MPI_COMM_WORLD, */
+/*       .decomp = decomp, */
+/*       .sync_corners = false, */
+/*     } */
+/*   ); */
+
+/*   double sendval = rank==0? 20005. : 30005.; */
+/*   double recvval = rank==0? 30005. : 20005.; */
+
+/*   // Assume the range is not decomposed.  */
+/*   struct gkyl_array *arrA = gkyl_array_new(GKYL_DOUBLE, 1, range.volume); */
+/*   struct gkyl_array *arrB = gkyl_array_new(GKYL_DOUBLE, 1, range.volume); */
+/*   gkyl_array_clear(arrA, sendval*(1-rank)); */
+/*   gkyl_array_clear(arrB, sendval*rank); */
+
+/*   struct gkyl_array *recvbuff = rank==0? arrB : arrA; */
+/*   struct gkyl_array *sendbuff = rank==0? arrA : arrB; */
+
+/*   struct gkyl_comm_state *cstate_s = gkyl_comm_state_new(comm); */
+/*   struct gkyl_comm_state *cstate_r = gkyl_comm_state_new(comm); */
+/*   int tag = 13; */
+/*   // Post irecv before send. */
+/*   gkyl_comm_array_irecv(comm, recvbuff, (rank+1) % 2, tag, cstate_r); */
+/*   gkyl_comm_array_isend(comm, sendbuff, (rank+1) % 2, tag, cstate_s); */
+
+/*   // Do some other unnecessary work. */
+/*   struct gkyl_array *tmp_arr = gkyl_array_new(GKYL_DOUBLE, 3, range.volume); */
+/*   gkyl_array_clear(tmp_arr, 13.); */
+
+/*   gkyl_comm_state_wait(comm, cstate_r); */
+
+/*   struct gkyl_range_iter iter; */
+/*   gkyl_range_iter_init(&iter, &range); */
+/*   while (gkyl_range_iter_next(&iter)) { */
+/*     long idx = gkyl_range_idx(&range, iter.idx); */
+/*     const double *f = gkyl_array_cfetch(recvbuff, idx); */
+/*     TEST_CHECK( f[0] == recvval ); */
+/*   } */
+
+/*   gkyl_comm_state_wait(comm, cstate_s); */
+
+/*   gkyl_comm_state_release(comm, cstate_s); */
+/*   gkyl_comm_state_release(comm, cstate_r); */
+/*   gkyl_array_release(arrA); */
+/*   gkyl_array_release(arrB); */
+/*   gkyl_rect_decomp_release(decomp); */
+/*   gkyl_comm_release(comm); */
+/* } */
+
+/* static void */
+/* mpi_n4_split_comm_2d() */
+/* { */
+/*   // Test the use of two gkyl_comm objects simultaneously, mimicing the case */
+/*   // where one is used to decompose space and the other species. */
+/*   // We sync across the conf communicator, and send/recv across the species */
+/*   // comm. */
+/*   int m_sz; */
+/*   MPI_Comm_size(MPI_COMM_WORLD, &m_sz); */
+/*   if (m_sz != 4) return; */
+
+/*   struct gkyl_comm *worldcomm = gkyl_mpi_comm_new( &(struct gkyl_mpi_comm_inp) { */
+/*       .mpi_comm = MPI_COMM_WORLD, */
+/*       .decomp = 0, */
+/*     } */
+/*   ); */
+
+/*   struct gkyl_range range; */
+/*   gkyl_range_init(&range, 2, (int[]) { 1, 1 }, (int[]) { 10, 20 }); */
+
+/*   int confcuts[] = { 2, 1 }; */
+/*   struct gkyl_rect_decomp *confdecomp = gkyl_rect_decomp_new_from_cuts(2, confcuts, &range); */
+  
+/*   int worldrank; */
+/*   gkyl_comm_get_rank(worldcomm, &worldrank); */
+
+/*   int confcolor = floor(1.0*worldrank/confdecomp->ndecomp); */
+/*   struct gkyl_comm *confcomm = gkyl_comm_split_comm(worldcomm, confcolor, confdecomp); */
+/*   int confrank; */
+/*   gkyl_comm_get_rank(confcomm, &confrank); */
+
+/*   int speciescolor = worldrank % confdecomp->ndecomp; */
+/*   struct gkyl_comm *speciescomm = gkyl_comm_split_comm(worldcomm, speciescolor, confdecomp); */
+/*   int speciesrank; */
+/*   gkyl_comm_get_rank(speciescomm, &speciesrank); */
+
+/*   int nghost[] = { 1, 1 }; */
+/*   struct gkyl_range local, local_ext; */
+/*   gkyl_create_ranges(&confdecomp->ranges[confrank], nghost, &local_ext, &local); */
+
+/*   struct gkyl_array *arrA = gkyl_array_new(GKYL_DOUBLE, 2, local_ext.volume); */
+/*   struct gkyl_array *arrB = gkyl_array_new(GKYL_DOUBLE, 2, local_ext.volume); */
+/*   gkyl_array_clear(arrA, 0.); */
+/*   gkyl_array_clear(arrB, 0.); */
+/*   struct gkyl_array *recvbuff = speciesrank==0? arrB : arrA; */
+/*   struct gkyl_array *sendbuff = speciesrank==0? arrA : arrB; */
+
+/*   gkyl_comm_barrier(worldcomm); */
+
+/*   struct gkyl_range_iter iter; */
+/*   gkyl_range_iter_init(&iter, &local); */
+/*   while (gkyl_range_iter_next(&iter)) { */
+/*     long idx = gkyl_range_idx(&local, iter.idx); */
+/*     double *f = gkyl_array_fetch(sendbuff, idx); */
+/*     f[0] = iter.idx[0]; f[1] = iter.idx[1]; */
+/*   } */
+
+/*   // Sync sendbuff array and check results. */
+/*   gkyl_comm_array_sync(confcomm, &local, &local_ext, sendbuff); */
+
+/*   struct gkyl_range in_range; // interior, including ghost cells */
+/*   gkyl_sub_range_intersect(&in_range, &local_ext, &range); */
+/*   struct gkyl_range local_x, local_ext_x, local_y, local_ext_y; */
+/*   gkyl_create_ranges(&confdecomp->ranges[confrank], (int[]) {1, 0}, &local_ext_x, &local_x); */
+/*   gkyl_create_ranges(&confdecomp->ranges[confrank], (int[]) { 0, 1 }, &local_ext_y, &local_y); */
+/*   gkyl_range_iter_init(&iter, &in_range); */
+/*   while (gkyl_range_iter_next(&iter)) { */
+/*     long idx = gkyl_range_idx(&in_range, iter.idx); */
+/*     const double *f = gkyl_array_cfetch(sendbuff, idx); */
+/*     // exclude corners */
+/*     if (gkyl_range_contains_idx(&local_ext_x, iter.idx) || gkyl_range_contains_idx(&local_ext_y, iter.idx)) { */
+/*       TEST_CHECK( iter.idx[0] == f[0] ); */
+/*       TEST_CHECK( iter.idx[1] == f[1] ); */
+/*     } */
+/*   } */
+
+/*   // Now send/recv across species communicator and check results. */
+/*   struct gkyl_comm_state *cstate = gkyl_comm_state_new(speciescomm); */
+/*   int tag = 13; */
+/*   // Post irecv before send. */
+/*   gkyl_comm_array_irecv(speciescomm, recvbuff, (speciesrank+1) % 2, tag, cstate); */
+/*   gkyl_comm_array_send(speciescomm, sendbuff, (speciesrank+1) % 2, tag); */
+/*   gkyl_comm_state_wait(speciescomm, cstate); */
+
+/*   gkyl_range_iter_init(&iter, &in_range); */
+/*   while (gkyl_range_iter_next(&iter)) { */
+/*     long idx = gkyl_range_idx(&in_range, iter.idx); */
+/*     const double *f = gkyl_array_cfetch(recvbuff, idx); */
+/*     // exclude corners */
+/*     if (gkyl_range_contains_idx(&local_ext_x, iter.idx) || gkyl_range_contains_idx(&local_ext_y, iter.idx)) { */
+/*       TEST_CHECK( iter.idx[0] == f[0] ); */
+/*       TEST_CHECK( iter.idx[1] == f[1] ); */
+/*     } */
+/*   } */
+
+/*   gkyl_comm_state_release(speciescomm, cstate); */
+/*   gkyl_array_release(arrA); */
+/*   gkyl_array_release(arrB); */
+/*   gkyl_comm_release(speciescomm); */
+/*   gkyl_comm_release(confcomm); */
+/*   gkyl_rect_decomp_release(confdecomp); */
+/*   gkyl_comm_release(worldcomm); */
+/* } */
+
 static void
-mpi_n2_array_send_irecv_1d()
+mpi_n4_create_comm_from_ranks_1()
 {
-  int m_sz;
-  MPI_Comm_size(MPI_COMM_WORLD, &m_sz);
-  if (m_sz != 2) return;
-
-  int rank;
-  MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-
-  struct gkyl_range range;
-  gkyl_range_init(&range, 1, (int[]) { 1 }, (int[]) { 10 });
-
-  int cuts[] = { 2 };
-  struct gkyl_rect_decomp *decomp = gkyl_rect_decomp_new_from_cuts(range.ndim, cuts, &range);
-
-  struct gkyl_comm *comm = gkyl_mpi_comm_new( &(struct gkyl_mpi_comm_inp) {
-      .mpi_comm = MPI_COMM_WORLD,
-      .decomp = decomp,
-      .sync_corners = false,
-    }
-  );
-
-  double sendval = rank==0? 20005. : 30005.;
-  double recvval = rank==0? 30005. : 20005.;
-
-  // Assume the range is not decomposed. 
-  struct gkyl_array *arrA = gkyl_array_new(GKYL_DOUBLE, 1, range.volume);
-  struct gkyl_array *arrB = gkyl_array_new(GKYL_DOUBLE, 1, range.volume);
-  gkyl_array_clear(arrA, sendval*(1-rank));
-  gkyl_array_clear(arrB, sendval*rank);
-
-  struct gkyl_array *recvbuff = rank==0? arrB : arrA;
-  struct gkyl_array *sendbuff = rank==0? arrA : arrB;
-
-  struct gkyl_comm_state *cstate = gkyl_comm_state_new(comm);
-  int tag = 13;
-  // Post irecv before send.
-  gkyl_comm_array_irecv(comm, recvbuff, (rank+1) % 2, tag, cstate);
-  gkyl_comm_array_send(comm, sendbuff, (rank+1) % 2, tag);
-  gkyl_comm_state_wait(comm, cstate);
-
-  struct gkyl_range_iter iter;
-  gkyl_range_iter_init(&iter, &range);
-  while (gkyl_range_iter_next(&iter)) {
-    long idx = gkyl_range_idx(&range, iter.idx);
-    const double *f = gkyl_array_cfetch(recvbuff, idx);
-    TEST_CHECK( f[0] == recvval );
-  }
-
-  gkyl_comm_barrier(comm);
-
-  gkyl_comm_state_release(comm, cstate);
-  gkyl_array_release(arrA);
-  gkyl_array_release(arrB);
-  gkyl_rect_decomp_release(decomp);
-  gkyl_comm_release(comm);
-}
-
-static void
-mpi_n2_array_isend_irecv_2d()
-{
-  int m_sz;
-  MPI_Comm_size(MPI_COMM_WORLD, &m_sz);
-  if (m_sz != 2) return;
-
-  int rank;
-  MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-
-  struct gkyl_range range;
-  gkyl_range_init(&range, 2, (int[]) { 1, 1 }, (int[]) { 10, 20 });
-
-  int cuts[] = { 1, m_sz };
-  struct gkyl_rect_decomp *decomp = gkyl_rect_decomp_new_from_cuts(range.ndim, cuts, &range);
-
-  struct gkyl_comm *comm = gkyl_mpi_comm_new( &(struct gkyl_mpi_comm_inp) {
-      .mpi_comm = MPI_COMM_WORLD,
-      .decomp = decomp,
-      .sync_corners = false,
-    }
-  );
-
-  double sendval = rank==0? 20005. : 30005.;
-  double recvval = rank==0? 30005. : 20005.;
-
-  // Assume the range is not decomposed. 
-  struct gkyl_array *arrA = gkyl_array_new(GKYL_DOUBLE, 1, range.volume);
-  struct gkyl_array *arrB = gkyl_array_new(GKYL_DOUBLE, 1, range.volume);
-  gkyl_array_clear(arrA, sendval*(1-rank));
-  gkyl_array_clear(arrB, sendval*rank);
-
-  struct gkyl_array *recvbuff = rank==0? arrB : arrA;
-  struct gkyl_array *sendbuff = rank==0? arrA : arrB;
-
-  struct gkyl_comm_state *cstate_s = gkyl_comm_state_new(comm);
-  struct gkyl_comm_state *cstate_r = gkyl_comm_state_new(comm);
-  int tag = 13;
-  // Post irecv before send.
-  gkyl_comm_array_irecv(comm, recvbuff, (rank+1) % 2, tag, cstate_r);
-  gkyl_comm_array_isend(comm, sendbuff, (rank+1) % 2, tag, cstate_s);
-
-  // Do some other unnecessary work.
-  struct gkyl_array *tmp_arr = gkyl_array_new(GKYL_DOUBLE, 3, range.volume);
-  gkyl_array_clear(tmp_arr, 13.);
-
-  gkyl_comm_state_wait(comm, cstate_r);
-
-  struct gkyl_range_iter iter;
-  gkyl_range_iter_init(&iter, &range);
-  while (gkyl_range_iter_next(&iter)) {
-    long idx = gkyl_range_idx(&range, iter.idx);
-    const double *f = gkyl_array_cfetch(recvbuff, idx);
-    TEST_CHECK( f[0] == recvval );
-  }
-
-  gkyl_comm_state_wait(comm, cstate_s);
-
-  gkyl_comm_state_release(comm, cstate_s);
-  gkyl_comm_state_release(comm, cstate_r);
-  gkyl_array_release(arrA);
-  gkyl_array_release(arrB);
-  gkyl_rect_decomp_release(decomp);
-  gkyl_comm_release(comm);
-}
-
-static void
-mpi_n4_multicomm_2d()
-{
-  // Test the use of two gkyl_comm objects simultaneously, mimicing the case
-  // where one is used to decompose space and the other species.
-  // We sync across the conf communicator, and send/recv across the species
-  // comm.
   int m_sz;
   MPI_Comm_size(MPI_COMM_WORLD, &m_sz);
   if (m_sz != 4) return;
 
-  struct gkyl_comm *worldcomm = gkyl_mpi_comm_new( &(struct gkyl_mpi_comm_inp) {
+  int rank;
+  MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+
+  struct gkyl_comm *comm = gkyl_mpi_comm_new( &(struct gkyl_mpi_comm_inp) {
       .mpi_comm = MPI_COMM_WORLD,
-      .decomp = 0,
     }
   );
 
-  struct gkyl_range range;
-  gkyl_range_init(&range, 2, (int[]) { 1, 1 }, (int[]) { 10, 20 });
-
-  int confcuts[] = { 2, 1 };
-  struct gkyl_rect_decomp *confdecomp = gkyl_rect_decomp_new_from_cuts(2, confcuts, &range);  
+  int branks[2] =  { 2, 2 };
+  bool status = false;
   
-  int worldrank;
-  gkyl_comm_get_rank(worldcomm, &worldrank);
+  const struct gkyl_rrobin_decomp *rrd =
+    gkyl_rrobin_decomp_new(m_sz, 2, branks);
 
-  int confcolor = floor(1.0*worldrank/confdecomp->ndecomp);
-  struct gkyl_comm *confcomm = gkyl_comm_split_comm(worldcomm, confcolor, confdecomp);
-  int confrank;
-  gkyl_comm_get_rank(confcomm, &confrank);
+  int rb1[4];
+  gkyl_rrobin_decomp_getranks(rrd, 0, rb1);
 
-  int speciescolor = worldrank % confdecomp->ndecomp;
-  struct gkyl_comm *speciescomm = gkyl_comm_split_comm(worldcomm, speciescolor, confdecomp);
-  int speciesrank;
-  gkyl_comm_get_rank(speciescomm, &speciesrank);
+  struct gkyl_comm *comm_b1 =
+    gkyl_comm_create_comm_from_ranks(comm, branks[0], rb1, 0, &status);
 
-  int nghost[] = { 1, 1 };
-  struct gkyl_range local, local_ext;
-  gkyl_create_ranges(&confdecomp->ranges[confrank], nghost, &local_ext, &local);
+  if (rank == rb1[0])
+    TEST_CHECK( status );
+  if (rank == rb1[1])
+    TEST_CHECK( status );
 
-  struct gkyl_array *arrA = gkyl_array_new(GKYL_DOUBLE, 2, local_ext.volume);
-  struct gkyl_array *arrB = gkyl_array_new(GKYL_DOUBLE, 2, local_ext.volume);
-  gkyl_array_clear(arrA, 0.);
-  gkyl_array_clear(arrB, 0.);
-  struct gkyl_array *recvbuff = speciesrank==0? arrB : arrA;
-  struct gkyl_array *sendbuff = speciesrank==0? arrA : arrB;
-
-  gkyl_comm_barrier(worldcomm);
-
-  struct gkyl_range_iter iter;
-  gkyl_range_iter_init(&iter, &local);
-  while (gkyl_range_iter_next(&iter)) {
-    long idx = gkyl_range_idx(&local, iter.idx);
-    double *f = gkyl_array_fetch(sendbuff, idx);
-    f[0] = iter.idx[0]; f[1] = iter.idx[1];
+  if (comm_b1) {
+    int sz_b1;
+    gkyl_comm_get_size(comm_b1, &sz_b1);
+    TEST_CHECK( branks[0] == sz_b1);
   }
 
-  // Sync sendbuff array and check results.
-  gkyl_comm_array_sync(confcomm, &local, &local_ext, sendbuff);
+  int rb2[4];
+  gkyl_rrobin_decomp_getranks(rrd, 1, rb2);
 
-  struct gkyl_range in_range; // interior, including ghost cells
-  gkyl_sub_range_intersect(&in_range, &local_ext, &range);
-  struct gkyl_range local_x, local_ext_x, local_y, local_ext_y;
-  gkyl_create_ranges(&confdecomp->ranges[confrank], (int[]) {1, 0}, &local_ext_x, &local_x);
-  gkyl_create_ranges(&confdecomp->ranges[confrank], (int[]) { 0, 1 }, &local_ext_y, &local_y);
-  gkyl_range_iter_init(&iter, &in_range);
-  while (gkyl_range_iter_next(&iter)) {
-    long idx = gkyl_range_idx(&in_range, iter.idx);
-    const double *f = gkyl_array_cfetch(sendbuff, idx);
-    // exclude corners
-    if (gkyl_range_contains_idx(&local_ext_x, iter.idx) || gkyl_range_contains_idx(&local_ext_y, iter.idx)) {
-      TEST_CHECK( iter.idx[0] == f[0] );
-      TEST_CHECK( iter.idx[1] == f[1] );
-    }
-  }
+  struct gkyl_comm *comm_b2 =
+    gkyl_comm_create_comm_from_ranks(comm, branks[1], rb2, 0, &status);
 
-  // Now send/recv across species communicator and check results.
-  struct gkyl_comm_state *cstate = gkyl_comm_state_new(speciescomm);
-  int tag = 13;
-  // Post irecv before send.
-  gkyl_comm_array_irecv(speciescomm, recvbuff, (speciesrank+1) % 2, tag, cstate);
-  gkyl_comm_array_send(speciescomm, sendbuff, (speciesrank+1) % 2, tag);
-  gkyl_comm_state_wait(speciescomm, cstate);
+  if (rank == rb2[0])
+    TEST_CHECK( status );
+  if (rank == rb2[1])
+    TEST_CHECK( status );
 
-  gkyl_range_iter_init(&iter, &in_range);
-  while (gkyl_range_iter_next(&iter)) {
-    long idx = gkyl_range_idx(&in_range, iter.idx);
-    const double *f = gkyl_array_cfetch(recvbuff, idx);
-    // exclude corners
-    if (gkyl_range_contains_idx(&local_ext_x, iter.idx) || gkyl_range_contains_idx(&local_ext_y, iter.idx)) {
-      TEST_CHECK( iter.idx[0] == f[0] );
-      TEST_CHECK( iter.idx[1] == f[1] );
-    }
-  }
+  if (comm_b2) {
+    int sz_b2;
+    gkyl_comm_get_size(comm_b2, &sz_b2);
+    TEST_CHECK( branks[1] == sz_b2);
+  }  
 
-  gkyl_comm_state_release(speciescomm, cstate);
-  gkyl_array_release(arrA);
-  gkyl_array_release(arrB);
-  gkyl_comm_release(speciescomm);
-  gkyl_comm_release(confcomm);
-  gkyl_rect_decomp_release(confdecomp);
-  gkyl_comm_release(worldcomm);
+  gkyl_rrobin_decomp_release(rrd);
+  gkyl_comm_release(comm);
+  gkyl_comm_release(comm_b1);
+  gkyl_comm_release(comm_b2);
 }
+
+static void
+mpi_n4_create_comm_from_ranks_2()
+{
+  int m_sz;
+  MPI_Comm_size(MPI_COMM_WORLD, &m_sz);
+  if (m_sz != 4) return;
+
+  int rank;
+  MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+
+  struct gkyl_comm *comm = gkyl_mpi_comm_new( &(struct gkyl_mpi_comm_inp) {
+      .mpi_comm = MPI_COMM_WORLD,
+    }
+  );
+
+  int branks[2] =  { 4, 2 };
+  bool status = false;
   
+  const struct gkyl_rrobin_decomp *rrd =
+    gkyl_rrobin_decomp_new(m_sz, 2, branks);
+
+  int rb1[4];
+  gkyl_rrobin_decomp_getranks(rrd, 0, rb1);
+
+  struct gkyl_comm *comm_b1 =
+    gkyl_comm_create_comm_from_ranks(comm, branks[0], rb1, 0, &status);
+
+  if (rank == rb1[0])
+    TEST_CHECK( status );
+  if (rank == rb1[1])
+    TEST_CHECK( status );
+  if (rank == rb1[2])
+    TEST_CHECK( status );
+  if (rank == rb1[3])
+    TEST_CHECK( status );
+
+  if (comm_b1) {
+    int sz_b1;
+    gkyl_comm_get_size(comm_b1, &sz_b1);
+    TEST_CHECK( branks[0] == sz_b1);
+  }
+
+  int rb2[4];
+  gkyl_rrobin_decomp_getranks(rrd, 1, rb2);
+
+  struct gkyl_comm *comm_b2 =
+    gkyl_comm_create_comm_from_ranks(comm, branks[1], rb2, 0, &status);
+
+  if (rank == rb2[0])
+    TEST_CHECK( status );
+  if (rank == rb2[1])
+    TEST_CHECK( status );
+
+  if (comm_b2) {
+    int sz_b2;
+    gkyl_comm_get_size(comm_b2, &sz_b2);
+    TEST_CHECK( branks[1] == sz_b2);
+  }
+
+  gkyl_rrobin_decomp_release(rrd);
+  gkyl_comm_release(comm);
+  gkyl_comm_release(comm_b1);
+  gkyl_comm_release(comm_b2);
+}
+
 static void
 mpi_bcast_1d()
 {
@@ -1280,8 +1437,9 @@ mpi_bcast_2d_host()
 
 
 TEST_LIST = {
+  {"mpi_0", mpi_0},  
   {"mpi_1", mpi_1},
-  {"mpi_allreduce", mpi_allreduce},
+  {"mpi_n2_allreduce", mpi_n2_allreduce},
   
   {"mpi_n2_allgather_1d", mpi_n2_allgather_1d},
   {"mpi_n4_allgather_2d", mpi_n4_allgather_2d},
@@ -1306,16 +1464,18 @@ TEST_LIST = {
   {"mpi_n27_per_sync_corner_3d", mpi_n27_per_sync_corner_3d },
 
   
-  {"mpi_n2_array_send_irecv_1d", mpi_n2_array_send_irecv_1d},
-  {"mpi_n2_array_isend_irecv_2d", mpi_n2_array_isend_irecv_2d},
+  /* {"mpi_n2_array_send_irecv_1d", mpi_n2_array_send_irecv_1d }, */
+  /* {"mpi_n2_array_isend_irecv_2d", mpi_n2_array_isend_irecv_2d }, */
   
-  {"mpi_n4_multicomm_2d", mpi_n4_multicomm_2d},
+  /* {"mpi_n4_split_comm_2d", mpi_n4_split_comm_2d }, */
+  {"mpi_n4_create_comm_from_ranks_1", mpi_n4_create_comm_from_ranks_1 },
+  {"mpi_n4_create_comm_from_ranks_2", mpi_n4_create_comm_from_ranks_2 },
   
   {"mpi_bcast_1d", mpi_bcast_1d},
   {"mpi_bcast_2d", mpi_bcast_2d},
 
-  {"mpi_bcast_1d_host", mpi_bcast_1d_host},
-  {"mpi_bcast_2d_host", mpi_bcast_2d_host},
+  {"mpi_bcast_1d_host", mpi_bcast_1d_host },
+  {"mpi_bcast_2d_host", mpi_bcast_2d_host },
   {NULL, NULL},
 };
 

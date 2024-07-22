@@ -7,6 +7,22 @@
 struct gkyl_array_header_info;
 
 /**
+ * Write out header and meta data to file.
+ *
+ * @param hrd Header data.
+ * @return Status flag
+ */
+int gkyl_header_meta_write_fp(const struct gkyl_array_header_info *hdr, FILE *fp);
+
+/**
+ * Read header and meta data from file.
+ *
+ * @param hrd On output, header data
+ * @return Status flag
+ */
+int gkyl_header_meta_read_fp(struct gkyl_array_header_info *hdr, FILE *fp);
+
+/**
  * Write out grid and array data header data to file. Note that only
  * HEADER is written and NOT the array data itself.
  *

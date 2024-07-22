@@ -22,6 +22,8 @@ void test_array_base()
 {
   struct gkyl_array *arr = gkyl_array_new(GKYL_DOUBLE, 1, 200);
 
+  TEST_CHECK( gkyl_array_is_using_buffer(arr) == false );
+
   TEST_CHECK( arr->type = GKYL_DOUBLE );
   TEST_CHECK( arr->elemsz == sizeof(double) );
   TEST_CHECK( arr->ncomp == 1 );
@@ -1397,7 +1399,77 @@ test_grid_array_read_p1(void)
   } while (0);
 
   gkyl_array_release(s_arr);
+}
 
+static void
+test_array_from_buff(void)
+{
+  double *buff = gkyl_malloc(sizeof(double[400]));
+  
+  struct gkyl_array *arr = gkyl_array_new_from_buff(GKYL_DOUBLE, 1, 200, buff);
+
+  TEST_CHECK( gkyl_array_is_using_buffer(arr) == true );
+
+  TEST_CHECK( arr->type = GKYL_DOUBLE );
+  TEST_CHECK( arr->elemsz == sizeof(double) );
+  TEST_CHECK( arr->ncomp == 1 );
+  TEST_CHECK( arr->size == 20*10 );
+  TEST_CHECK( arr->ref_count.count == 1 );
+
+  TEST_CHECK( arr->on_dev == arr );
+
+  TEST_CHECK( gkyl_array_is_cu_dev(arr) == false );
+
+  gkyl_array_clear(arr, 0.0);
+  
+  double *arrData  = arr->data;
+  for (unsigned i=0; i<arr->size; ++i){
+    TEST_CHECK( arrData[i] == 0. );
+    arrData[i] = (i+0.5)*0.1;
+  }
+
+  // clone array
+  struct gkyl_array *brr = gkyl_array_clone(arr);
+
+  TEST_CHECK( brr->elemsz == sizeof(double) );
+  TEST_CHECK( arr->ncomp == 1 );  
+  TEST_CHECK( brr->size == 20*10 );
+  TEST_CHECK( brr->ref_count.count == 1 );
+
+  double *brrData  = brr->data;
+  for (unsigned i=0; i<brr->size; ++i)
+    TEST_CHECK( brrData[i] == arrData[i] );
+
+  // reset values in brr
+  for (unsigned i=0; i<brr->size; ++i)
+    brrData[i] = (i-0.5)*0.5;
+
+  gkyl_array_copy(arr, brr);
+
+  for (unsigned i=0; i<arr->size; ++i)
+    TEST_CHECK( arrData[i] == brrData[i] );
+
+  // acquire pointer
+  struct gkyl_array *crr = gkyl_array_acquire(arr);
+
+  TEST_CHECK( crr->ref_count.count == 2 );
+  TEST_CHECK( arr->ref_count.count == 2 );
+
+  struct gkyl_array *drr = gkyl_array_acquire(crr);
+
+  TEST_CHECK( drr->ref_count.count == 3 );
+  TEST_CHECK( crr->ref_count.count == 3 );  
+  TEST_CHECK( arr->ref_count.count == 3 );
+  
+  gkyl_array_release(crr);
+  TEST_CHECK( arr->ref_count.count == 2 );
+  gkyl_array_release(drr);
+  TEST_CHECK( arr->ref_count.count == 1 );
+
+  gkyl_free(buff);
+  
+  gkyl_array_release(arr);
+  gkyl_array_release(brr);
 }
 
 // Cuda specific tests
@@ -2474,6 +2546,7 @@ TEST_LIST = {
   { "grid_sub_array_read_2", test_grid_sub_array_read_2 },  
   { "grid_array_new_from_file_1", test_grid_array_new_from_file_1 },
   { "grid_array_read_1", test_grid_array_read_p1 },
+  { "array_from_buff", test_array_from_buff },  
 #ifdef GKYL_HAVE_CUDA
   { "cu_array_base", test_cu_array_base },
   { "cu_array_clear", test_cu_array_clear},

@@ -108,7 +108,7 @@ gkyl_wave_prop_new(const struct gkyl_wave_prop_inp *winp)
   if (winp->comm)
     up->comm = gkyl_comm_acquire(winp->comm);
   else
-    up->comm = gkyl_null_comm_new();
+    up->comm = gkyl_null_comm_inew( &(struct gkyl_null_comm_inp) { } );
 
   up->force_low_order_flux = winp->force_low_order_flux;
   up->check_inv_domain = winp->check_inv_domain;

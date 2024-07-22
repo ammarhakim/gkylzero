@@ -1,5 +1,8 @@
 #pragma once
 
+#include <gkyl_util.h>
+#include <math.h>
+
 // Boundary condition types.
 enum gkyl_poisson_bc_type {
   GKYL_POISSON_PERIODIC = 0,

@@ -42,10 +42,11 @@ struct gkyl_efit{
  * @param rz_basis_type RZ basis to use for DG rep of psi, psi/R, and psi/R^2
  * @param rz_poly_order poly order for DG rep of psi, psi/R, and psi/R^2
  * @param flux_poly_order poly order to use for DG rep of F(psi)
+ * @param reflect boolean indicating whether to reflect psi across R-axis
  * @param use_gpu boolean indicating whether to use the GPU.
  * @return New updater pointer.
  */
-gkyl_efit* gkyl_efit_new(const char *filepath, int rz_poly_order, enum gkyl_basis_type rz_basis_type, int flux_poly_order, bool use_gpu);
+gkyl_efit* gkyl_efit_new(const char *filepath, int rz_poly_order, enum gkyl_basis_type rz_basis_type, int flux_poly_order, bool reflect, bool use_gpu);
 
 
 

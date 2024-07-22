@@ -143,7 +143,7 @@ test_fixed_z()
 
 
 
-  struct gkyl_tok_geo_efit_inp inp = {
+  struct gkyl_tok_geo_efit_inp efit_inp = {
       // psiRZ and related inputs
       .filepath = "./data/eqdsk/step.geqdsk",
       .rzpoly_order = 2,
@@ -180,13 +180,11 @@ test_fixed_z()
     .zmax = 8.3,
     .rmin = 1.1,
     .rmax = 6.2,
-    .write_node_coord_array = true,
-    .node_file_nm = "step_outboard_fixed_z_nodes.gkyl"
   }; 
   struct gkyl_gk_geometry_inp geometry_inp = {
     .geometry_id  = GKYL_TOKAMAK,
-    .tok_efit_info = &inp,
-    .tok_grid_info = &ginp,
+    .tok_efit_info = efit_inp,
+    .tok_grid_info = ginp,
     .grid = cgrid,
     .local = clocal,
     .local_ext = clocal_ext,
@@ -246,7 +244,7 @@ test_horizontal_plate()
 
 
 
-  struct gkyl_tok_geo_efit_inp inp = {
+  struct gkyl_tok_geo_efit_inp efit_inp = {
       // psiRZ and related inputs
       .filepath = "./data/eqdsk/step.geqdsk",
       .rzpoly_order = 2,
@@ -279,14 +277,12 @@ test_horizontal_plate()
     .rclose = 6.2,
     .zmin = -8.3,
     .zmax = 8.3,
-    .write_node_coord_array = true,
-    .node_file_nm = "step_outboard_horizontal_plate_nodes.gkyl"
   }; 
 
   struct gkyl_gk_geometry_inp geometry_inp = {
     .geometry_id  = GKYL_TOKAMAK,
-    .tok_efit_info = &inp,
-    .tok_grid_info = &ginp,
+    .tok_efit_info = efit_inp,
+    .tok_grid_info = ginp,
     .grid = cgrid,
     .local = clocal,
     .local_ext = clocal_ext,
@@ -321,7 +317,7 @@ test_vertical_plate()
 
 
 
-  struct gkyl_tok_geo_efit_inp inp = {
+  struct gkyl_tok_geo_efit_inp efit_inp = {
       // psiRZ and related inputs
       .filepath = "./data/eqdsk/step.geqdsk",
       .rzpoly_order = 2,
@@ -354,13 +350,11 @@ test_vertical_plate()
     .rclose = 6.2,
     .zmin = -8.3,
     .zmax = 8.3,
-    .write_node_coord_array = true,
-    .node_file_nm = "step_outboard_vertical_plate_nodes.gkyl"
   }; 
   struct gkyl_gk_geometry_inp geometry_inp = {
     .geometry_id  = GKYL_TOKAMAK,
-    .tok_efit_info = &inp,
-    .tok_grid_info = &ginp,
+    .tok_efit_info = efit_inp,
+    .tok_grid_info = ginp,
     .grid = cgrid,
     .local = clocal,
     .local_ext = clocal_ext,
@@ -394,7 +388,7 @@ test_shaped_plate()
 
 
 
-  struct gkyl_tok_geo_efit_inp inp = {
+  struct gkyl_tok_geo_efit_inp efit_inp = {
       // psiRZ and related inputs
       .filepath = "./data/eqdsk/step.geqdsk",
       .rzpoly_order = 2,
@@ -431,14 +425,12 @@ test_shaped_plate()
     .rclose = 6.2,
     .zmin = -8.3,
     .zmax = 8.3,
-    .write_node_coord_array = true,
-    .node_file_nm = "step_outboard_shaped_plate_nodes.gkyl"
   }; 
 
   struct gkyl_gk_geometry_inp geometry_inp = {
     .geometry_id  = GKYL_TOKAMAK,
-    .tok_efit_info = &inp,
-    .tok_grid_info = &ginp,
+    .tok_efit_info = efit_inp,
+    .tok_grid_info = ginp,
     .grid = cgrid,
     .local = clocal,
     .local_ext = clocal_ext,

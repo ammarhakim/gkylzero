@@ -3,10 +3,10 @@
 #include <gkyl_alloc.h>
 #include <gkyl_array_ops.h>
 #include <gkyl_basis.h>
+#include <gkyl_comm_io.h>
 #include <gkyl_dflt.h>
 #include <gkyl_dynvec.h>
 #include <gkyl_null_comm.h>
-
 #include <gkyl_pkpm_priv.h>
 
 gkyl_pkpm_app*
