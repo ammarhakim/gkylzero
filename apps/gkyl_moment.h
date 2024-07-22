@@ -2,6 +2,7 @@
 
 #include <gkyl_app.h>
 #include <gkyl_comm.h>
+#include <gkyl_moment_braginskii.h>
 #include <gkyl_mp_scheme.h>
 #include <gkyl_util.h>
 #include <gkyl_wave_prop.h>
@@ -18,6 +19,8 @@ struct gkyl_moment_species {
   enum gkyl_wave_limiter limiter; // limiter to use
   enum gkyl_wave_split_type split_type; // edge splitting to use
 
+  enum gkyl_braginskii_type type_brag; // which Braginskii equations
+  double coll_fac; // multiplicative collisionality factor for Braginskii  
   bool has_grad_closure; // has gradient-based closure (only for 10 moment) 
 
   bool has_friction; // Run with frictional sources.
