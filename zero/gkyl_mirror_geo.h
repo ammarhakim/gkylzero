@@ -41,7 +41,8 @@ struct gkyl_mirror_geo {
   const struct gkyl_array *fpoldg; // fpol(psi) dg rep
   const struct gkyl_array *qdg; // q(psi) dg rep
                                    
-  double psisep; // psi of separatrix
+  double sibry; // psi of separatrix given by EFIT
+  double psisep; // psi of separatrix as calculated from the DG psi(R,Z)
   double zmaxis; // z of magnetic axis
 
   bool plate_spec;

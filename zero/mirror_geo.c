@@ -89,7 +89,8 @@ gkyl_mirror_geo_new(const struct gkyl_mirror_geo_efit_inp *inp)
   geo->frange_ext = *geo->efit->fluxlocal_ext;
   geo->fpoldg= gkyl_array_acquire(geo->efit->fpolflux);
   geo->qdg= gkyl_array_acquire(geo->efit->qflux);
-  geo->psisep = geo->efit->sibry;
+  geo->sibry= geo->efit->sibry;
+  geo->psisep = geo->efit->psisep;
   geo->zmaxis = geo->efit->zmaxis;
 
   geo->root_param.eps =

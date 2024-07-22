@@ -39,7 +39,6 @@ void find_xpts(gkyl_efit* up)
           gkyl_rect_grid_cell_center(up->rzgrid, iter.idx, xc);
           double R0 = up->rzgrid->dx[0]*x0 + xc[0];
           double Z0 = up->rzgrid->dx[1]*y0 + xc[1];
-          //printf("R0 = %f, Z0 = %f | psi0 = %g\n", R0, Z0, psi0);
           if(fabs(psi0 - up->sibry) <= fabs(psisep - up->sibry)) {
               Rsep = R0;
               Zsep = Z0;

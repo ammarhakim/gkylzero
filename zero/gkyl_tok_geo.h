@@ -73,7 +73,8 @@ struct gkyl_tok_geo {
   const struct gkyl_array *qdg; // q(psi) dg rep
                                    
 
-  double psisep; // psi of separatrix
+  double sibry; // psi of separatrix as given by EFIT
+  double psisep; // psi of separatrix as calculated from the DG psi(R,Z)
   double zmaxis; // z of magnetic axis
   double rleft, rright;
   double rmin, rmax;

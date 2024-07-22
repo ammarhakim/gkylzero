@@ -220,9 +220,9 @@ phi_func(double alpha_curr, double Z, void *ctx)
   int nr = R_psiZ(actx->geo, psi, Z, 4, R, dR);
   double r_curr = nr == 1 ? R[0] : choose_closest(rclose, R, R, nr);
   double psi_fpol = psi;
-  //if (psi_fpol < actx->geo->psisep) // F = F(psi_sep) in the SOL. Convention of psi increases inward
+  //if (psi_fpol < actx->geo->sibry) // F = F(psi_sep) in the SOL. Convention of psi increases inward
   if ( (psi_fpol < actx->geo->fgrid.lower[0]) || (psi_fpol > actx->geo->fgrid.upper[0]) ) // F = F(psi_sep) in the SOL.
-    psi_fpol = actx->geo->psisep;
+    psi_fpol = actx->geo->sibry;
   int idx = fmin(actx->geo->frange.lower[0] + (int) floor((psi_fpol - actx->geo->fgrid.lower[0])/actx->geo->fgrid.dx[0]), actx->geo->frange.upper[0]);
   long loc = gkyl_range_idx(&actx->geo->frange, &idx);
   const double *coeffs = gkyl_array_cfetch(actx->geo->fpoldg,loc);
@@ -264,7 +264,7 @@ dphidtheta_func(double Z, void *ctx)
   double r_curr = nr == 1 ? R[0] : choose_closest(rclose, R, R, nr);
   double psi_fpol = psi;
   if ( (psi_fpol < actx->geo->fgrid.lower[0]) || (psi_fpol > actx->geo->fgrid.upper[0]) ) // F = F(psi_sep) in the SOL.
-    psi_fpol = actx->geo->psisep;
+    psi_fpol = actx->geo->sibry;
   int idx = fmin(actx->geo->frange.lower[0] + (int) floor((psi_fpol - actx->geo->fgrid.lower[0])/actx->geo->fgrid.dx[0]), actx->geo->frange.upper[0]);
   long loc = gkyl_range_idx(&actx->geo->frange, &idx);
   const double *coeffs = gkyl_array_cfetch(actx->geo->fpoldg,loc);
@@ -306,7 +306,8 @@ gkyl_tok_geo_new(const struct gkyl_tok_geo_efit_inp *inp)
   geo->frange_ext = *geo->efit->fluxlocal_ext;
   geo->fpoldg= gkyl_array_acquire(geo->efit->fpolflux);
   geo->qdg= gkyl_array_acquire(geo->efit->qflux);
-  geo->psisep = geo->efit->sibry;
+  geo->sibry = geo->efit->sibry;
+  geo->psisep = geo->efit->psisep;
   geo->zmaxis = geo->efit->zmaxis;
 
   geo->root_param.eps =
