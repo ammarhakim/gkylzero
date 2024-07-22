@@ -70,6 +70,15 @@ gkyl_moment_em_coupling_new(struct gkyl_moment_em_coupling_inp inp)
     mom_em->friction_Lambda_ee = inp.friction_Lambda_ee;
   }
 
+  mom_em->has_reactive_sources = inp.has_reactive_sources;
+  if (mom_em->has_reactive_sources) {
+    mom_em->reactivity_gas_gamma = inp.reactivity_gas_gamma;
+    mom_em->reactivity_specific_heat_capacity = inp.reactivity_specific_heat_capacity;
+    mom_em->reactivity_energy_of_formation = inp.reactivity_energy_of_formation;
+    mom_em->reactivity_ignition_temperature = inp.reactivity_ignition_temperature;
+    mom_em->reactivity_reaction_rate = inp.reactivity_reaction_rate;
+  }
+
   return mom_em;
 }
 

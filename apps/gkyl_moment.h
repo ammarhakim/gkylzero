@@ -28,6 +28,13 @@ struct gkyl_moment_species {
 
   bool has_volume_sources; // Run with volume-based geometrical sources.
 
+  bool has_reactivity; // Run with reactive sources.
+  double reactivity_gas_gamma; // Adiabatic index for reactive sources.
+  double reactivity_specific_heat_capacity; // Specific heat capacity for reactive sources.
+  double reactivity_energy_of_formation; // Energy of formation for reactive sources.
+  double reactivity_ignition_temperature; // Ignition temperature for reactive sources.
+  double reactivity_reaction_rate; // Reaction rate for reactive sources.
+
   int evolve; // evolve species? 1-yes, 0-no
   bool force_low_order_flux; // should  we force low-order flux?
 

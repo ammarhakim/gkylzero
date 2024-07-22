@@ -46,6 +46,13 @@ struct gkyl_moment_em_coupling_inp {
   double friction_Lambda_ee; // Electron-electron collisional term for frictional sources.
 
   bool has_volume_sources; // Run with volume-based geometrical sources.
+
+  bool has_reactive_sources; // Run with reactive sources.
+  double reactivity_gas_gamma; // Adiabatic index for reactive sources.
+  double reactivity_specific_heat_capacity; // Specific heat capacity for reactive sources.
+  double reactivity_energy_of_formation; // Energy of formation for reactive sources.
+  double reactivity_ignition_temperature; // Ignition temperature for reactive sources.
+  double reactivity_reaction_rate; // Reaction rate for reactive sources.
 };
 
 // Moment-EM coupling object.

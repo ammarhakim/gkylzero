@@ -40,6 +40,16 @@ moment_species_init(const struct gkyl_moment *mom, const struct gkyl_moment_spec
     sp->has_volume_sources = true;
   }
 
+  if (mom_sp->has_reactivity) {
+    sp->has_reactivity = true;
+
+    sp->reactivity_gas_gamma = mom_sp->reactivity_gas_gamma;
+    sp->reactivity_specific_heat_capacity = mom_sp->reactivity_specific_heat_capacity;
+    sp->reactivity_energy_of_formation = mom_sp->reactivity_energy_of_formation;
+    sp->reactivity_ignition_temperature = mom_sp->reactivity_ignition_temperature;
+    sp->reactivity_reaction_rate = mom_sp->reactivity_reaction_rate;
+  }
+
   sp->scheme_type = mom->scheme_type;
 
   // choose default limiter

@@ -46,7 +46,7 @@ moment_coupling_init(const struct gkyl_moment_app *app, struct moment_coupling *
     if(app->species[i].has_friction) {
       src_inp.has_frictional_sources = true;
 
-      if (app->species[i].friction_Z != 0.0 && app->species[i].friction_T_elc != 0.0 && app->species[i].friction_Lambda_ee != 0.0) {
+      if (app->species[i].friction_Z != 0.0 || app->species[i].friction_T_elc != 0.0 || app->species[i].friction_Lambda_ee != 0.0) {
         src_inp.friction_Z = app->species[i].friction_Z;
         src_inp.friction_T_elc = app->species[i].friction_T_elc;
         src_inp.friction_Lambda_ee = app->species[i].friction_Lambda_ee;
@@ -62,6 +62,21 @@ moment_coupling_init(const struct gkyl_moment_app *app, struct moment_coupling *
   for (int i = 0; i < app->num_species; i++) {
     if (app->species[i].has_volume_sources) {
       src_inp.has_volume_sources = true;
+    }
+  }
+
+  src_inp.has_reactive_sources = false;
+  for (int i = 0; i < app->num_species; i++) {
+    if (app->species[i].has_reactivity) {
+      src_inp.has_reactive_sources = true;
+
+      if (app->species[i].reactivity_gas_gamma != 0.0 || app->species[i].reactivity_specific_heat_capacity != 0.0 || app->species[i].reactivity_energy_of_formation != 0.0 || app->species[i].reactivity_ignition_temperature != 0.0 || app->species[i].reactivity_reaction_rate != 0.0) {
+        src_inp.reactivity_gas_gamma = app->species[i].reactivity_gas_gamma;
+        src_inp.reactivity_specific_heat_capacity = app->species[i].reactivity_specific_heat_capacity;
+        src_inp.reactivity_energy_of_formation = app->species[i].reactivity_energy_of_formation;
+        src_inp.reactivity_ignition_temperature = app->species[i].reactivity_ignition_temperature;
+        src_inp.reactivity_reaction_rate = app->species[i].reactivity_reaction_rate;
+      }
     }
   }
 

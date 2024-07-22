@@ -27,7 +27,7 @@ struct wv_reactive_euler {
 */
 GKYL_CU_D
 void
-gkyl_reactive_euler_prim_vars(double gas_gamma, const double q[6], double v[6]);
+gkyl_reactive_euler_prim_vars(double gas_gamma, double energy_of_formation, const double q[6], double v[6]);
 
 /**
 * Compute maximum absolute wave speed.
@@ -38,7 +38,7 @@ gkyl_reactive_euler_prim_vars(double gas_gamma, const double q[6], double v[6]);
 */
 GKYL_CU_D
 static inline double
-gkyl_reactive_euler_max_abs_speed(double gas_gamma, const double q[6]);
+gkyl_reactive_euler_max_abs_speed(double gas_gamma, double energy_of_formation, const double q[6]);
 
 /**
 * Compute flux vector. Assumes rotation to local coordinate system.
@@ -49,7 +49,7 @@ gkyl_reactive_euler_max_abs_speed(double gas_gamma, const double q[6]);
 */
 GKYL_CU_D
 static void
-gkyl_reactive_euler_flux(double gas_gamma, const double q[6], double flux[6]);
+gkyl_reactive_euler_flux(double gas_gamma, double energy_of_formation, const double q[6], double flux[6]);
 
 /**
 * Compute Riemann variables given the conserved variables.
