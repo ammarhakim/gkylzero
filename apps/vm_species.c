@@ -632,6 +632,7 @@ vm_species_release(const gkyl_vlasov_app* app, const struct vm_species *s)
 
   // Release arrays for different types of Vlasov equations
   if (s->model_id  == GKYL_MODEL_SR) {
+    gkyl_dg_calc_sr_vars_release(s->sr_vars);
     // release relativistic arrays data
     gkyl_array_release(s->gamma);
     gkyl_array_release(s->gamma_inv);
