@@ -94,6 +94,8 @@ struct gkyl_tok_geo {
   struct RdRdZ_sol (*calc_roots)(const double *psi, double psi0, double Z,
     double xc[2], double dx[2]);
 
+  double (*calc_grad_psi)(const double *psih, const double eta[2], const double dx[2]);
+
   struct gkyl_tok_geo_stat stat; 
   struct gkyl_array* mc2p_nodal_fd;
   struct gkyl_range* nrange;

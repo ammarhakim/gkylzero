@@ -339,6 +339,43 @@ R_psiZ(const struct gkyl_tok_geo *geo, double psi, double Z, int nmaxroots,
   return sidx;
 }
 
+static double
+calc_grad_psi_p1(const double *psih, const double eta[2], const double dx[2])
+{
+  double x = eta[0];
+  double y = eta[1];
+  double dpsidx = 1.5*psih[3]*y+0.8660254037844386*psih[1];
+  double dpsidy = 1.5*psih[3]*x+0.8660254037844386*psih[2];
+  dpsidx = dpsidx*2.0/dx[0];
+  dpsidy = dpsidy*2.0/dx[1];
+  return sqrt(dpsidx*dpsidx + dpsidy*dpsidy);
+}
+
+// In cylindrical coords, grad psi = dpsi/dR Rhat + dpsi/dZ zhat
+static double
+calc_grad_psi_p2(const double *psih, const double eta[2], const double dx[2])
+{
+  double x = eta[0];
+  double y = eta[1];
+  double dpsidx = 2.904737509655563*psih[7]*(y*y-0.3333333333333333)+5.809475019311126*psih[6]*x*y+1.5*psih[3]*y+3.354101966249684*psih[4]*x+0.8660254037844386*psih[1];
+  double dpsidy =	5.809475019311126*psih[7]*x*y+3.354101966249684*psih[5]*y+2.904737509655563*psih[6]*(x*x-0.3333333333333333)+1.5*psih[3]*x+0.8660254037844386*psih[2];
+  dpsidx = dpsidx*2.0/dx[0];
+  dpsidy = dpsidy*2.0/dx[1];
+  return sqrt(dpsidx*dpsidx + dpsidy*dpsidy);
+}
+
+static double
+calc_grad_psi_p2_tensor(const double *psih, const double eta[2], const double dx[2])
+{
+  double x = eta[0];
+  double y = eta[1];
+  double dpsidx = 5.625*psih[8]*(2.0*x*SQ(y)-0.6666666666666666*x)+2.904737509655563*psih[7]*(SQ(y)-0.3333333333333333)+5.809475019311126*psih[6]*x*y+1.5*psih[3]*y+3.354101966249684*psih[4]*x+0.8660254037844386*psih[1];
+  double dpsidy = 5.625*psih[8]*(2.0*SQ(x)*y-0.6666666666666666*y)+5.809475019311126*psih[7]*x*y+3.354101966249684*psih[5]*y+2.904737509655563*psih[6]*(SQ(x)-0.3333333333333333)+1.5*psih[3]*x+0.8660254037844386*psih[2];
+  dpsidx = dpsidx*2.0/dx[0];
+  dpsidy = dpsidy*2.0/dx[1];
+  return sqrt(dpsidx*dpsidx + dpsidy*dpsidy);
+}
+
 
 // Function context to pass to coutour integration function
 struct contour_ctx {
@@ -383,13 +420,9 @@ phi_contour_func(double Z, void *ctx)
   double x = (r_curr-xc[0])/(c->geo->rzgrid.dx[0]*0.5);
   double y = (Z-xc[1])/(c->geo->rzgrid.dx[1]*0.5);
 
-  // if psi is polyorder 2 we can get grad psi
-  // in cylindrical coords it is grad psi = dpsi/dR Rhat + dpsi/dZ zhat
-  double dpsidx = 2.904737509655563*psih[7]*(y*y-0.3333333333333333)+5.809475019311126*psih[6]*x*y+1.5*psih[3]*y+3.354101966249684*psih[4]*x+0.8660254037844386*psih[1]; 
-  double dpsidy =	5.809475019311126*psih[7]*x*y+3.354101966249684*psih[5]*y+2.904737509655563*psih[6]*(x*x-0.3333333333333333)+1.5*psih[3]*x+0.8660254037844386*psih[2];
-  dpsidx = dpsidx*2.0/c->geo->rzgrid.dx[0];
-  dpsidy = dpsidy*2.0/c->geo->rzgrid.dx[1];
-  double grad_psi_mag = sqrt(dpsidx*dpsidx + dpsidy*dpsidy);
+  double eta[2] = {x,y};
+  double grad_psi_mag = c->geo->calc_grad_psi(psih, eta, c->geo->rzgrid.dx);
+
   double result  = (1/r_curr/grad_psi_mag) *sqrt(1+dRdZ*dRdZ) ;
   return nr>0 ? result : 0.0;
 }
@@ -416,13 +449,8 @@ dphidtheta_integrand(double Z, void *ctx)
   double x = (r_curr-xc[0])/(c->geo->rzgrid.dx[0]*0.5);
   double y = (Z-xc[1])/(c->geo->rzgrid.dx[1]*0.5);
 
-  // if psi is polyorder 2 we can get grad psi
-  // in cylindrical coords it is grad psi = dpsi/dR Rhat + dpsi/dZ zhat
-  double dpsidx = 2.904737509655563*psih[7]*(y*y-0.3333333333333333)+5.809475019311126*psih[6]*x*y+1.5*psih[3]*y+3.354101966249684*psih[4]*x+0.8660254037844386*psih[1]; 
-  double dpsidy =	5.809475019311126*psih[7]*x*y+3.354101966249684*psih[5]*y+2.904737509655563*psih[6]*(x*x-0.3333333333333333)+1.5*psih[3]*x+0.8660254037844386*psih[2];
-  dpsidx = dpsidx*2.0/c->geo->rzgrid.dx[0];
-  dpsidy = dpsidy*2.0/c->geo->rzgrid.dx[1];
-  double grad_psi_mag = sqrt(dpsidx*dpsidx + dpsidy*dpsidy);
+  double eta[2] = {x,y};
+  double grad_psi_mag = c->geo->calc_grad_psi(psih, eta, c->geo->rzgrid.dx);
   double result  = (1/r_curr/grad_psi_mag);
   return nr>0 ? result : 0.0;
 }
