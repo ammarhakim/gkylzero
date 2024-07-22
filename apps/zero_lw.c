@@ -16,7 +16,7 @@
 /* Rect decomp methods */
 /* *********************/
 
-// Metatable name for decomp object
+// Metatable name for top-level Vlasov App
 #define RECT_DECOMP_METATABLE_NM "GkeyllZero.Zero.RectDecomp"
 
 // Lua userdata object for holding Vlasov app and run parameters

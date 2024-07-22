@@ -437,6 +437,7 @@ struct gk_species {
   struct gkyl_rect_grid grid;
   struct gkyl_range local, local_ext; // local, local-ext phase-space ranges
   struct gkyl_range global, global_ext; // global, global-ext conf-space ranges    
+  struct app_skin_ghost_ranges skin_ghost; // conf-space skin/ghost
 
   struct gkyl_comm *comm;   // communicator object for phase-space arrays
   int nghost[GKYL_MAX_DIM]; // number of ghost-cells in each direction
@@ -553,6 +554,7 @@ struct gk_neut_species {
   struct gkyl_rect_grid grid;
   struct gkyl_range local, local_ext; // local, local-ext phase-space ranges
   struct gkyl_range global, global_ext; // global, global-ext conf-space ranges    
+  struct app_skin_ghost_ranges skin_ghost; // conf-space skin/ghost
 
   struct gkyl_comm *comm;   // communicator object for phase-space arrays
   int nghost[GKYL_MAX_DIM]; // number of ghost-cells in each direction

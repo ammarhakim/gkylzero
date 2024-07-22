@@ -12,8 +12,7 @@ enum gkyl_array_rio_status {
   GKYL_ARRAY_RIO_BAD_VERSION,
   GKYL_ARRAY_RIO_FOPEN_FAILED,
   GKYL_ARRAY_RIO_FREAD_FAILED,
-  GKYL_ARRAY_RIO_DATA_MISMATCH,
-  GKYL_ARRAY_RIO_META_FAILED
+  GKYL_ARRAY_RIO_DATA_MISMATCH
 };
 
 /**
@@ -24,6 +23,7 @@ enum gkyl_array_rio_status {
  */
 const char* gkyl_array_rio_status_msg(enum gkyl_array_rio_status status);
 
+
 // Structure to pass meta-data to write methods
 struct gkyl_array_meta {
   size_t meta_sz; // size in bytes of meta-data
@@ -31,7 +31,7 @@ struct gkyl_array_meta {
 };
 
 // Array header data to write: this is for low-level control and is
-// typically not something most users would ever encounter
+// typically not something most users would every encounter
 struct gkyl_array_header_info {
   uint64_t file_type; // file type
   enum gkyl_elem_type etype; // element type
