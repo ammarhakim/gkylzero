@@ -320,7 +320,7 @@ gkyl_moment_multib_app_new(const struct gkyl_moment_multib *mbinp)
     const struct gkyl_block_geom_info *bgi = gkyl_block_geom_get_block(mbapp->block_geom, i);
     branks[i] = calc_cuts(ndim, bgi->cuts);
   }
-  const struct gkyl_rrobin_decomp *rrd = gkyl_rrobin_decomp_new(num_ranks, num_blocks, branks);
+  mbapp->round_robin = gkyl_rrobin_decomp_new(num_ranks, num_blocks, branks);
 
   int num_local_blocks = 0;
   mbapp->local_blocks = gkyl_malloc(sizeof(int[num_blocks]));
@@ -335,7 +335,7 @@ gkyl_moment_multib_app_new(const struct gkyl_moment_multib *mbinp)
   // rank. The total number of valid communictors is num_local_blocks.
   mbapp->block_comms = gkyl_malloc(num_blocks*sizeof(struct gkyl_comm *));
   for (int i=0; i<num_blocks; ++i) {
-    gkyl_rrobin_decomp_getranks(rrd, i, rank_list);
+    gkyl_rrobin_decomp_getranks(mbapp->round_robin, i, rank_list);
 
     bool is_my_rank_in_decomp = has_int(branks[i], my_rank, rank_list);
 
@@ -363,8 +363,8 @@ gkyl_moment_multib_app_new(const struct gkyl_moment_multib *mbinp)
     printf("  Rank %d handles block %d\n", my_rank, mbapp->local_blocks[i]);
 
   mbapp->num_species = 0;
-  // create individual single-block Apps
   mbapp->singleb_apps = 0;
+  
   if (num_local_blocks > 0) {
     mbapp->num_species = mbinp->num_species;
     mbapp->singleb_apps = gkyl_malloc(num_local_blocks*sizeof(struct gkyl_moment_app*));
@@ -383,7 +383,6 @@ gkyl_moment_multib_app_new(const struct gkyl_moment_multib *mbinp)
   };
 
   gkyl_free(branks);
-  gkyl_rrobin_decomp_release(rrd);
   
   return mbapp;
 }
@@ -484,7 +483,6 @@ gkyl_moment_multib_app_write_field(const gkyl_moment_multib_app *app, double tm,
   for (int i=0; i<app->num_local_blocks; ++i)
     gkyl_moment_app_write_field(app->singleb_apps[i], tm, frame);
 
-    // write meta-file fo rfield
   if (app->has_field) {
     int rank;
     gkyl_comm_get_rank(app->comm, &rank);
@@ -602,7 +600,9 @@ gkyl_moment_multib_app_release(gkyl_moment_multib_app* mbapp)
   for (int i=0; i<num_blocks; ++i)
     gkyl_comm_release(mbapp->block_comms[i]);
   gkyl_free(mbapp->block_comms);
-  gkyl_comm_release(mbapp->comm);  
+  gkyl_comm_release(mbapp->comm);
+
+  gkyl_rrobin_decomp_release(mbapp->round_robin);
   
   gkyl_block_geom_release(mbapp->block_geom);
   gkyl_block_topo_release(mbapp->block_topo);

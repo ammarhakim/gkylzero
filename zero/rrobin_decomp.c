@@ -25,6 +25,13 @@ gkyl_rrobin_decomp_new(int total_ranks, int nblocks, const int *branks)
   return &rr->rrobin;
 }
 
+int
+gkyl_rrobin_decomp_nranks(const struct gkyl_rrobin_decomp *rr, int bn)
+{
+  struct rrobin_decomp *rrd = container_of(rr, struct rrobin_decomp, rrobin);  
+  return rrd->branks[bn];
+}
+
 void
 gkyl_rrobin_decomp_getranks(const struct gkyl_rrobin_decomp *rr, int bn, int ranks[])
 {
