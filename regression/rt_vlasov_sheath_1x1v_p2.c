@@ -5,7 +5,6 @@
 #include <gkyl_alloc.h>
 #include <gkyl_vlasov.h>
 #include <rt_arg_parse.h>
-#include <gkyl_vlasov_priv.h>
 
 #include <gkyl_null_comm.h>
 
