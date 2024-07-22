@@ -493,6 +493,15 @@ implicit_source_coupling_update(const gkyl_moment_em_coupling* mom_em, double t_
       double mom_x = f[1], mom_y = f[2], mom_z = f[3];
 
       ke_old[i] = 0.5 * (((mom_x * mom_x) + (mom_y * mom_y) + (mom_z * mom_z)) / rho);
+
+      // TODO: For Braginksii
+      /*
+      double rhoux_rhs = p_rhs[1];
+      
+      fluid_rhs[0] = f[0];
+      fluid_rhs[1] = f[1] + (0.5 * dt * rhoux_rhs);
+      ...
+      */
     }
     else if (mom_em->param[i].type == GKYL_EQN_TEN_MOMENT) {
       double q_over_m = q / m;
