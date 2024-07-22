@@ -211,6 +211,7 @@ void gkyl_dg_calc_em_vars_limiter(struct gkyl_dg_calc_em_vars *up,
 void gkyl_dg_calc_em_vars_release(gkyl_dg_calc_em_vars *up)
 {
   gkyl_wv_eqn_release(up->wv_eqn);
+  gkyl_wave_geom_release(up->geom);
 
   gkyl_nmat_release(up->As);
   gkyl_nmat_release(up->xs);
