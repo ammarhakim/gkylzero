@@ -62,6 +62,74 @@ gkyl_bc_emission_secondary_electron_copper_new(int num_species, double t_bound,
   return ctx;
 }
 
+// SEE oxidized lithium preset
+struct gkyl_bc_emission_ctx*
+gkyl_bc_emission_secondary_electron_lithium_oxidized_new(int num_species, double t_bound,
+  char in_species[][128], bool use_gpu)
+{
+  struct gkyl_bc_emission_ctx *ctx = gkyl_malloc(sizeof(struct gkyl_bc_emission_ctx));
+  
+  double q0 = 1.602e-19;
+  double phi = 2.3;
+
+  double deltahat_ts = 4.208;
+  double Ehat_ts = 354.52;
+  double t1 = 0.66;
+  double t2 = 0.8;
+  double t3 = 0.7;
+  double t4 = 1.0;
+  double s = 1.79;
+
+  double E_f = 290.31;
+  double phi_r = 144.9;
+
+  ctx->num_species = num_species;
+  ctx->t_bound = t_bound;
+  ctx->elastic = true;
+
+  for (int i=0; i<num_species; ++i) {
+    ctx->spectrum_model[i] = gkyl_spectrum_chung_everhart_new(q0, phi, use_gpu);
+    ctx->yield_model[i] = gkyl_yield_furman_pivi_new(q0, deltahat_ts, Ehat_ts, t1, t2, t3,
+      t4, s, use_gpu);
+    strcpy(ctx->in_species[i], in_species[i]);
+  }
+  ctx->elastic_model = gkyl_elastic_cazaux_new(q0, E_f, phi_r, use_gpu);
+
+  return ctx;
+}
+
+// SEE oxidized lithium preset
+struct gkyl_bc_emission_ctx*
+gkyl_bc_emission_secondary_electron_lithium_clean_new(int num_species, double t_bound,
+  char in_species[][128], bool use_gpu)
+{
+  struct gkyl_bc_emission_ctx *ctx = gkyl_malloc(sizeof(struct gkyl_bc_emission_ctx));
+  
+  double q0 = 1.602e-19;
+  double phi = 2.3;
+
+  double deltahat_ts = 0.567;
+  double Ehat_ts = 97.18;
+  double t1 = 0.66;
+  double t2 = 0.8;
+  double t3 = 0.7;
+  double t4 = 1.0;
+  double s = 1.42;
+
+  ctx->num_species = num_species;
+  ctx->t_bound = t_bound;
+  ctx->elastic = false;
+
+  for (int i=0; i<num_species; ++i) {
+    ctx->spectrum_model[i] = gkyl_spectrum_chung_everhart_new(q0, phi, use_gpu);
+    ctx->yield_model[i] = gkyl_yield_furman_pivi_new(q0, deltahat_ts, Ehat_ts, t1, t2, t3,
+      t4, s, use_gpu);
+    strcpy(ctx->in_species[i], in_species[i]);
+  }
+
+  return ctx;
+}
+
 void gkyl_bc_emission_release(struct gkyl_bc_emission_ctx *ctx)
 {
   for (int i=0; i<ctx->num_species; ++i) {

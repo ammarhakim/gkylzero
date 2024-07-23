@@ -5,7 +5,6 @@
 #include <gkyl_alloc.h>
 #include <gkyl_vlasov.h>
 #include <rt_arg_parse.h>
-#include <gkyl_vlasov_priv.h>
 
 #include <gkyl_null_comm.h>
 
@@ -318,7 +317,7 @@ main(int argc, char **argv)
       .collision_id = GKYL_BGK_COLLISIONS,
       .self_nu = evalElcNu,
       .ctx = &ctx,
-      .fixed_temp_relax = true, 
+      .fixed_temp_relax = true,
     },
 
     .bcx = {
@@ -359,7 +358,7 @@ main(int argc, char **argv)
       .collision_id = GKYL_BGK_COLLISIONS,
       .self_nu = evalIonNu,
       .ctx = &ctx,
-      .fixed_temp_relax = true, 
+      .fixed_temp_relax = true,
     },
 
     .bcx = {
