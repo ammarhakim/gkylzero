@@ -30,7 +30,9 @@ typedef struct gkyl_bc_emission_elastic gkyl_bc_emission_elastic;
  * @param use_gpu Boolean to indicate whether to use the GPU
  * @return New updater pointer
  */
-struct gkyl_bc_emission_elastic* gkyl_bc_emission_elastic_new(struct gkyl_elastic_model *elastic_model, struct gkyl_array *elastic_yield, int dir, enum gkyl_edge_loc edge, int cdim, int vdim,
+struct gkyl_bc_emission_elastic*
+gkyl_bc_emission_elastic_new(struct gkyl_elastic_model *elastic_model,
+  struct gkyl_array *elastic_yield, int dir, enum gkyl_edge_loc edge, int cdim, int vdim,
   double mass, int ncomp, struct gkyl_rect_grid *grid, struct gkyl_range *emit_buff_r,
   int poly_order, const struct gkyl_basis *dev_basis, struct gkyl_basis *basis,
   struct gkyl_array *proj_buffer, bool use_gpu);
@@ -44,7 +46,8 @@ struct gkyl_bc_emission_elastic* gkyl_bc_emission_elastic_new(struct gkyl_elasti
  * @param elastic_yield Projection of elastic yield model onto basis
  * @param basis Pointer to basis functions on host
  */
-void gkyl_bc_emission_elastic_advance(const struct gkyl_bc_emission_elastic *up,
+void
+gkyl_bc_emission_elastic_advance(const struct gkyl_bc_emission_elastic *up,
   struct gkyl_range *emit_skin_r, struct gkyl_array *buff_arr, struct gkyl_array *f_skin,
   struct gkyl_array *f_emit, struct gkyl_array *elastic_yield, struct gkyl_basis *basis);
 
@@ -55,7 +58,8 @@ void gkyl_bc_emission_elastic_advance(const struct gkyl_bc_emission_elastic *up,
  * @param ncomp Number of components
  * @param use_gpu Boolean to indicate whether to use the GPU
  */
-struct gkyl_array_copy_func* gkyl_bc_emission_elastic_create_arr_copy_func(int dir, int cdim,
+struct gkyl_array_copy_func*
+gkyl_bc_emission_elastic_create_arr_copy_func(int dir, int cdim,
   const struct gkyl_basis *basis, int ncomp, bool use_gpu);
 
 /**
@@ -63,4 +67,5 @@ struct gkyl_array_copy_func* gkyl_bc_emission_elastic_create_arr_copy_func(int d
  *
  * @param up BC updater.
  */
-void gkyl_bc_emission_elastic_release(struct gkyl_bc_emission_elastic *up);
+void
+gkyl_bc_emission_elastic_release(struct gkyl_bc_emission_elastic *up);

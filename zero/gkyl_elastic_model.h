@@ -147,8 +147,9 @@ gkyl_elastic_constant_yield(double t, const double *xn, double *fout, void *ctx)
  * @param use_gpu bool to determine if on GPU
  * @return New model
  */
-struct gkyl_elastic_model* gkyl_elastic_furman_pivi_new(double charge, double P1_inf, double P1_hat,
-  double E_hat, double W, double p, bool use_gpu);
+struct gkyl_elastic_model*
+gkyl_elastic_furman_pivi_new(double charge, double P1_inf, double P1_hat, double E_hat,
+  double W, double p, bool use_gpu);
 
 /**
  * Create the elastic emission model using Cazaux
@@ -159,8 +160,8 @@ struct gkyl_elastic_model* gkyl_elastic_furman_pivi_new(double charge, double P1
  * @param use_gpu bool to determine if on GPU
  * @return New model
  */
-struct gkyl_elastic_model* gkyl_elastic_cazaux_new(double charge, double E_f, double phi,
-  bool use_gpu);
+struct gkyl_elastic_model*
+gkyl_elastic_cazaux_new(double charge, double E_f, double phi, bool use_gpu);
 
 /**
  * Create the elastic emission model using constant yield
@@ -170,7 +171,8 @@ struct gkyl_elastic_model* gkyl_elastic_cazaux_new(double charge, double E_f, do
  * @param use_gpu bool to determine if on GPU
  * @return New model
  */
-struct gkyl_elastic_model* gkyl_elastic_constant_new(double charge, double delta, bool use_gpu);
+struct gkyl_elastic_model*
+gkyl_elastic_constant_new(double charge, double delta, bool use_gpu);
 
 /**
  * Acquire pointer to model object. Delete using the release()
@@ -179,11 +181,13 @@ struct gkyl_elastic_model* gkyl_elastic_constant_new(double charge, double delta
  * @param model Model object.
  * @return Acquired model obj pointer
  */
-struct gkyl_elastic_model* gkyl_elastic_model_acquire(const struct gkyl_elastic_model* model);
+struct gkyl_elastic_model*
+gkyl_elastic_model_acquire(const struct gkyl_elastic_model* model);
 
 /**
  * Delete model object
  *
  * @param model Model object to delete.
  */
-void gkyl_elastic_model_release(const struct gkyl_elastic_model* model);
+void
+gkyl_elastic_model_release(const struct gkyl_elastic_model* model);

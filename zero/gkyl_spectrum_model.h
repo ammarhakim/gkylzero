@@ -52,7 +52,8 @@ struct gkyl_spectrum_maxwellian {
  * @param model Model to check
  * @return true if model on device, false otherwise
  */
-bool gkyl_spectrum_model_is_cu_dev(const struct gkyl_spectrum_model *model);
+bool
+gkyl_spectrum_model_is_cu_dev(const struct gkyl_spectrum_model *model);
 
 static void
 chung_everhart_free(const struct gkyl_ref_count *ref)
@@ -223,7 +224,8 @@ maxwellian_norm(double *out, struct gkyl_spectrum_model *spectrum, const double 
  * @param use_gpu bool to determine if on GPU
  * @return New model
  */
-struct gkyl_spectrum_model* gkyl_spectrum_chung_everhart_new(double charge, double phi, bool use_gpu);
+struct gkyl_spectrum_model*
+gkyl_spectrum_chung_everhart_new(double charge, double phi, bool use_gpu);
 
 /**
  * Create the emission spectrum model using the logarithmic Gaussian distribution
@@ -234,7 +236,8 @@ struct gkyl_spectrum_model* gkyl_spectrum_chung_everhart_new(double charge, doub
  * @param use_gpu bool to determine if on GPU
  * @return New model
  */
-struct gkyl_spectrum_model* gkyl_spectrum_gaussian_new(double charge, double E_0, double tau, bool use_gpu);
+struct gkyl_spectrum_model*
+gkyl_spectrum_gaussian_new(double charge, double E_0, double tau, bool use_gpu);
 
 /**
  * Create the emission spectrum model using the Maxwellian distribution
@@ -244,7 +247,8 @@ struct gkyl_spectrum_model* gkyl_spectrum_gaussian_new(double charge, double E_0
  * @param use_gpu bool to determine if on GPU
  * @return New model
  */
-struct gkyl_spectrum_model* gkyl_spectrum_maxwellian_new(double charge, double vt, bool use_gpu);
+struct gkyl_spectrum_model*
+gkyl_spectrum_maxwellian_new(double charge, double vt, bool use_gpu);
 
 /**
  * Acquire pointer to model object. Delete using the release()
@@ -253,14 +257,16 @@ struct gkyl_spectrum_model* gkyl_spectrum_maxwellian_new(double charge, double v
  * @param model Model object.
  * @return Acquired model obj pointer
  */
-struct gkyl_spectrum_model* gkyl_spectrum_model_acquire(const struct gkyl_spectrum_model* model);
+struct gkyl_spectrum_model*
+gkyl_spectrum_model_acquire(const struct gkyl_spectrum_model* model);
 
 /**
  * Delete model object
  *
  * @param model Model object to delete.
  */
-void gkyl_spectrum_model_release(const struct gkyl_spectrum_model* model);
+void
+gkyl_spectrum_model_release(const struct gkyl_spectrum_model* model);
 
 /**
  * Create the emission spectrum model using the Chung-Everhart distribution on NV-GPU
@@ -270,7 +276,9 @@ void gkyl_spectrum_model_release(const struct gkyl_spectrum_model* model);
  * @param use_gpu bool to determine if on GPU
  * @return New model
  */
-struct gkyl_spectrum_model* gkyl_spectrum_chung_everhart_cu_dev_new(struct gkyl_spectrum_chung_everhart *model, double charge, double phi);
+struct gkyl_spectrum_model*
+gkyl_spectrum_chung_everhart_cu_dev_new(struct gkyl_spectrum_chung_everhart *model, double charge,
+  double phi);
 
 /**
  * Create the emission spectrum model using the logarithmic Gaussian distribution on NV-GPU
@@ -281,7 +289,9 @@ struct gkyl_spectrum_model* gkyl_spectrum_chung_everhart_cu_dev_new(struct gkyl_
  * @param use_gpu bool to determine if on GPU
  * @return New model
  */
-struct gkyl_spectrum_model* gkyl_spectrum_gaussian_cu_dev_new(struct gkyl_spectrum_gaussian *model, double charge, double E_0, double tau);
+struct gkyl_spectrum_model*
+gkyl_spectrum_gaussian_cu_dev_new(struct gkyl_spectrum_gaussian *model, double charge, double E_0,
+  double tau);
 
 /**
  * Create the emission spectrum model using the Maxwellian distribution on NV-GPU
@@ -291,4 +301,6 @@ struct gkyl_spectrum_model* gkyl_spectrum_gaussian_cu_dev_new(struct gkyl_spectr
  * @param use_gpu bool to determine if on GPU
  * @return New model
  */
-struct gkyl_spectrum_model* gkyl_spectrum_maxwellian_cu_dev_new(struct gkyl_spectrum_maxwellian *model, double charge, double vt);
+struct gkyl_spectrum_model*
+gkyl_spectrum_maxwellian_cu_dev_new(struct gkyl_spectrum_maxwellian *model, double charge,
+  double vt);

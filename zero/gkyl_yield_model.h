@@ -55,15 +55,14 @@ struct gkyl_yield_constant {
 
 // Free functions
 
-// Free functions
-
 /**
  * Check if model is on device.
  *
  * @param model Model to check
  * @return true if model on device, false otherwise
  */
-bool gkyl_yield_model_is_cu_dev(const struct gkyl_yield_model *model);
+bool
+gkyl_yield_model_is_cu_dev(const struct gkyl_yield_model *model);
 
 static void
 furman_pivi_free(const struct gkyl_ref_count *ref)
@@ -204,8 +203,9 @@ constant_yield(double *out, struct gkyl_yield_model *yield, double xc[GKYL_MAX_D
  * @param use_gpu bool to determine if on GPU
  * @return New model
  */
-struct gkyl_yield_model* gkyl_yield_furman_pivi_new(double charge, double deltahat_ts,
-  double Ehat_ts, double t1, double t2, double t3, double t4, double s, bool use_gpu);
+struct gkyl_yield_model*
+gkyl_yield_furman_pivi_new(double charge, double deltahat_ts, double Ehat_ts, double t1,
+  double t2, double t3, double t4, double s, bool use_gpu);
 
 /**
  * Create the emission yield model using Schou
@@ -220,8 +220,9 @@ struct gkyl_yield_model* gkyl_yield_furman_pivi_new(double charge, double deltah
  * @param use_gpu bool to determine if on GPU
  * @return New model
  */
-struct gkyl_yield_model* gkyl_yield_schou_new(double charge, double int_wall, double a2,
-  double a3, double a4, double a5, double nw, bool use_gpu);
+struct gkyl_yield_model*
+gkyl_yield_schou_new(double charge, double int_wall, double a2, double a3, double a4,
+  double a5, double nw, bool use_gpu);
 
 /**
  * Create the emission yield model using a constant yield
@@ -231,7 +232,8 @@ struct gkyl_yield_model* gkyl_yield_schou_new(double charge, double int_wall, do
  * @param use_gpu bool to determine if on GPU
  * @return New model
  */
-struct gkyl_yield_model* gkyl_yield_constant_new(double charge, double delta, bool use_gpu);
+struct gkyl_yield_model*
+gkyl_yield_constant_new(double charge, double delta, bool use_gpu);
 
 /**
  * Acquire pointer to model object. Delete using the release()
@@ -240,14 +242,16 @@ struct gkyl_yield_model* gkyl_yield_constant_new(double charge, double delta, bo
  * @param model Model object.
  * @return Acquired model obj pointer
  */
-struct gkyl_yield_model* gkyl_yield_model_acquire(const struct gkyl_yield_model* model);
+struct gkyl_yield_model*
+gkyl_yield_model_acquire(const struct gkyl_yield_model* model);
 
 /**
  * Delete model object
  *
  * @param model Model object to delete.
  */
-void gkyl_yield_model_release(const struct gkyl_yield_model* model);
+void
+gkyl_yield_model_release(const struct gkyl_yield_model* model);
 
 /**
  * Create the emission yield model using Furman-Pivi on NV-GPU
@@ -262,8 +266,9 @@ void gkyl_yield_model_release(const struct gkyl_yield_model* model);
  * @param s Fitting parameter
  * @return New model
  */
-struct gkyl_yield_model* gkyl_yield_furman_pivi_cu_dev_new(double charge, double deltahat_ts,
-  double Ehat_ts, double t1, double t2, double t3, double t4, double s);
+struct gkyl_yield_model*
+gkyl_yield_furman_pivi_cu_dev_new(double charge, double deltahat_ts, double Ehat_ts,
+  double t1, double t2, double t3, double t4, double s);
 
 
 /**
@@ -279,8 +284,9 @@ struct gkyl_yield_model* gkyl_yield_furman_pivi_cu_dev_new(double charge, double
  * @param use_gpu bool to determine if on GPU
  * @return New model
  */
-struct gkyl_yield_model* gkyl_yield_schou_cu_dev_new(double charge, double int_wall, double a2,
-  double a3, double a4, double a5, double nw);
+struct gkyl_yield_model*
+gkyl_yield_schou_cu_dev_new(double charge, double int_wall, double a2, double a3, double a4,
+  double a5, double nw);
 
 /**
  * Create the emission yield model using a constant yield on NV-GPU
@@ -290,4 +296,5 @@ struct gkyl_yield_model* gkyl_yield_schou_cu_dev_new(double charge, double int_w
  * @param use_gpu bool to determine if on GPU
  * @return New model
  */
-struct gkyl_yield_model* gkyl_yield_constant_cu_dev_new(double charge, double delta);
+struct gkyl_yield_model*
+gkyl_yield_constant_cu_dev_new(double charge, double delta);
