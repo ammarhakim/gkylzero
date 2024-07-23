@@ -320,7 +320,8 @@ main(int argc, char **argv)
     .upper = { ctx.vx_max_neut1 }, 
     .cells = { NVX },
 
-    .projection = {
+    .num_init = 1, 
+    .projection[0] = {
       .proj_id = GKYL_PROJ_FUNC,
       .func = evalNeut1Init,
       .ctx_func = &ctx,
@@ -345,7 +346,8 @@ main(int argc, char **argv)
     .upper = { ctx.vx_max_neut2 }, 
     .cells = { NVX },
 
-    .projection = {
+    .num_init = 1, 
+    .projection[0] = {
       .proj_id = GKYL_PROJ_FUNC,
       .func = evalNeut2Init,
       .ctx_func = &ctx,

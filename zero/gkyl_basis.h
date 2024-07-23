@@ -92,9 +92,20 @@ struct gkyl_basis {
  *
  * @param fquad Coefficients of nodal expansion in quadrature node basis
  * @param fmodal On output, coefficients of modal expansion
+ * @param linc2 Modal component being updated (allows for parallelization over basis functions)
  */
-  void (*quad_nodal_to_modal)(const double *fquad, double *fmodal);  
-};
+  void (*quad_nodal_to_modal)(const double *fquad, double *fmodal, long linc2);  
+
+/**
+ * Given expansion coefficients of DG modal basis, evaluate basis at Gauss-Legendre
+ * quadrature points of order p+1 (the Gauss-Legendre nodal basis).
+ * 
+ * @param fmodal Coefficients of modal expansion
+ * @param fquad On output, evaluation of modal expansion at Gauss-Legendre quadrature nodal basis
+ * @param linc2 Quadrature node being updated (allows for parallelization over quadrature points)
+ */
+  void (*modal_to_quad_nodal)(const double *fmodal, double *fquad, long linc2);   
+}; 
 
 /**
  * Assign object members in modal serendipity basis object.
