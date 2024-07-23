@@ -99,7 +99,7 @@ gk_neut_species_react_cross_init(struct gkyl_gyrokinetic_app *app, struct gk_neu
 	.phase_rng = &s->local,
 	.mass_ion = react->react_type[i].ion_mass,
 	.mass_neut = react->react_type[i].partner_mass,
-	.type_ion = GKYL_ION_D,
+        .type_ion = react->react_type[i].ion_id,
       };
       react->cx[i] = gkyl_dg_cx_new(&cx_inp, app->use_gpu);
     }
