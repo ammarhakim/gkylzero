@@ -17,7 +17,6 @@ UNAME = $(shell uname)
 LAPACK_INC = $(PREFIX)/OpenBLAS/include
 LAPACK_LIB_DIR = $(PREFIX)/OpenBLAS/lib
 LAPACK_LIB = -lopenblas
-
 # SuperLU includes and librararies
 SUPERLU_INC = $(PREFIX)/superlu/include
 ifeq ($(UNAME_S),Linux)
@@ -79,6 +78,10 @@ ifeq (${USE_MPI}, 1)
 	MPI_LIBS = -lmpi
 	CFLAGS += -DGKYL_HAVE_MPI
 endif
+
+# Directory for storing shared data, like ADAS
+GKYL_SHARE_DIR ?= "${INSTALL_PREFIX}/gkylzero/share"
+CFLAGS += -DGKYL_SHARE_DIR=$(GKYL_SHARE_DIR)
 
 # Read NCCL paths and flags if needed (needs MPI and NVCC)
 USING_NCCL =

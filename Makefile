@@ -53,7 +53,7 @@ ifeq ($(CC), nvcc)
        CUDA_LIBS += -lcublas -lcusparse -lcusolver
 endif
 
-# Default radiation fit directory
+# Directory for storing shared data, like ADAS reaction rates and radiation fits
 GKYL_SHARE_DIR ?= "${INSTALL_PREFIX}/gkylzero/share"
 CFLAGS += -DGKYL_SHARE_DIR=$(GKYL_SHARE_DIR)
 
