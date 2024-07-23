@@ -538,7 +538,7 @@ implicit_source_coupling_update(const gkyl_moment_em_coupling* mom_em, double t_
   }
 
   if (mom_em->is_charged_species) {
-    //implicit_em_source_update(mom_em, t_curr, dt, fluid_s, app_accel_s, em, app_current, ext_em);
+    implicit_em_source_update(mom_em, t_curr, dt, fluid_s, app_accel_s, em, app_current, ext_em);
   }
   else {
     implicit_neut_source_update(mom_em, t_curr, dt, fluid_s, app_accel_s);

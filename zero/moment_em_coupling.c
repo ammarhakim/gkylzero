@@ -19,11 +19,12 @@ gkyl_moment_em_coupling_new(struct gkyl_moment_em_coupling_inp inp)
 
   mom_em->epsilon0 = inp.epsilon0;
   mom_em->mu0 = inp.mu0;
-  if (mom_em->epsilon0 != 0.0) {
-    mom_em->is_charged_species = true;
-  }
-  else {
-    mom_em->is_charged_species = false;
+
+  mom_em->is_charged_species = false;
+  for (int i = 0; i < mom_em->nfluids; i++) {
+    if (inp.param[i].charge != 0.0) {
+      mom_em->is_charged_species = true;
+    }
   }
 
   mom_em->t_ramp_E = inp.t_ramp_E;
@@ -65,6 +66,7 @@ gkyl_moment_em_coupling_new(struct gkyl_moment_em_coupling_inp inp)
 
   mom_em->has_frictional_sources = inp.has_frictional_sources;
   if (mom_em->has_frictional_sources) {
+    mom_em->use_explicit_friction = inp.use_explicit_friction;
     mom_em->friction_Z = inp.friction_Z;
     mom_em->friction_T_elc = inp.friction_T_elc;
     mom_em->friction_Lambda_ee = inp.friction_Lambda_ee;
