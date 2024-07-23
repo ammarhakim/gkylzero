@@ -46,6 +46,9 @@ struct gkyl_moment_em_coupling_inp {
   double friction_Lambda_ee; // Electron-electron collisional term for frictional sources.
 
   bool has_volume_sources; // Run with volume-based geometrical sources.
+  double volume_gas_gamma; // Adiabatic index for volume-based geometrical sources.
+  double volume_U0; // Initial comoving plasma velocity for volume-based geometrical sources.
+  double volume_R0; // Initial radial distance from expansion/contraction center for volume-based geometrical sources.
 
   bool has_reactive_sources; // Run with reactive sources.
   double reactivity_gas_gamma; // Adiabatic index for reactive sources.

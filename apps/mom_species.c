@@ -38,6 +38,10 @@ moment_species_init(const struct gkyl_moment *mom, const struct gkyl_moment_spec
 
   if (mom_sp->has_volume_sources) {
     sp->has_volume_sources = true;
+
+    sp->volume_gas_gamma = mom_sp->volume_gas_gamma;
+    sp->volume_U0 = mom_sp->volume_U0;
+    sp->volume_R0 = mom_sp->volume_R0;
   }
 
   if (mom_sp->has_reactivity) {

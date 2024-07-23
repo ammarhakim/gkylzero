@@ -62,6 +62,12 @@ moment_coupling_init(const struct gkyl_moment_app *app, struct moment_coupling *
   for (int i = 0; i < app->num_species; i++) {
     if (app->species[i].has_volume_sources) {
       src_inp.has_volume_sources = true;
+
+      if(app->species[i].volume_gas_gamma != 0.0 || app->species[i].volume_U0 != 0.0 || app->species[i].volume_R0 != 0.0) {
+        src_inp.volume_gas_gamma = app->species[i].volume_gas_gamma;
+        src_inp.volume_U0 = app->species[i].volume_U0;
+        src_inp.volume_R0 = app->species[i].volume_R0;
+      }
     }
   }
 
@@ -70,7 +76,10 @@ moment_coupling_init(const struct gkyl_moment_app *app, struct moment_coupling *
     if (app->species[i].has_reactivity) {
       src_inp.has_reactive_sources = true;
 
-      if (app->species[i].reactivity_gas_gamma != 0.0 || app->species[i].reactivity_specific_heat_capacity != 0.0 || app->species[i].reactivity_energy_of_formation != 0.0 || app->species[i].reactivity_ignition_temperature != 0.0 || app->species[i].reactivity_reaction_rate != 0.0) {
+      if (app->species[i].reactivity_gas_gamma != 0.0 || app->species[i].reactivity_specific_heat_capacity != 0.0 ||
+        app->species[i].reactivity_energy_of_formation != 0.0 || app->species[i].reactivity_ignition_temperature != 0.0 ||
+        app->species[i].reactivity_reaction_rate != 0.0) {
+          
         src_inp.reactivity_gas_gamma = app->species[i].reactivity_gas_gamma;
         src_inp.reactivity_specific_heat_capacity = app->species[i].reactivity_specific_heat_capacity;
         src_inp.reactivity_energy_of_formation = app->species[i].reactivity_energy_of_formation;

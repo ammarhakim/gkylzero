@@ -134,10 +134,66 @@ explicit_frictional_source_update(const gkyl_moment_em_coupling* mom_em, double 
 }
 
 void
+explicit_volume_source_update_euler(const gkyl_moment_em_coupling* mom_em, const double gas_gamma, const double U0, const double R0,
+  double t_curr, const double dt, double* fluid_old, double* fluid_new, double* em, const double* ext_em)
+{
+  double rho = fluid_old[0];
+  double vx = fluid_old[1] / rho;
+  double vy = fluid_old[2] / rho;
+  double vz = fluid_old[3] / rho;
+  double p = (gas_gamma - 1.0) * (fluid_old[4] - (0.5 * rho * ((vx * vx) + (vy * vy) + (vz * vz))));
+
+  double a = 1.0 + ((U0 * t_curr) / R0);
+
+  for (int i = 0; i < 5; i++) {
+    fluid_new[i] = fluid_old[i];
+  }
+
+  fluid_new[0] -= dt * ((2.0 * U0) / (a * R0)) * rho;
+
+  fluid_new[2] -= dt * (U0 / (a * R0)) * rho * vy;
+  fluid_new[3] -= dt * (U0 / (a * R0)) * rho * vz;
+
+  double p_new = p;
+  p_new -= dt * (gas_gamma * ((2.0 * U0) / (a * R0)) * p);
+
+  fluid_new[4] = (p_new / (gas_gamma - 1.0)) + (0.5 * rho * (vx * vx) + (vy * vy) + (vz * vz));
+}
+
+void
 explicit_volume_source_update(const gkyl_moment_em_coupling* mom_em, double t_curr, const double dt, double* fluid_s[GKYL_MAX_SPECIES],
   double* em, const double* ext_em)
 {
-  // TODO: Placeholder.
+  int nfluids = mom_em->nfluids;
+
+  double gas_gamma = mom_em->volume_gas_gamma;
+  double U0 = mom_em->volume_U0;
+  double R0 = mom_em->volume_R0;
+
+  for (int i = 0; i < nfluids; i++) {
+    double *f = fluid_s[i];
+
+    double f_new[5], f_stage1[5], f_stage2[5], f_old[5];
+
+    for (int j = 0; j < 5; j++) {
+      f_old[j] = f[j];
+    }
+
+    explicit_volume_source_update_euler(mom_em, gas_gamma, U0, R0, t_curr, dt, f_old, f_new, em, ext_em);
+    for (int j = 0; j < 5; j++) {
+      f_stage1[j] = f_new[j];
+    }
+
+    explicit_volume_source_update_euler(mom_em, gas_gamma, U0, R0, t_curr + dt, dt, f_stage1, f_new, em, ext_em);
+    for (int j = 0; j < 5; j++) {
+      f_stage2[j] = (0.75 * f_old[j]) + (0.25 * f_new[j]);
+    }
+
+    explicit_volume_source_update_euler(mom_em, gas_gamma, U0, R0, t_curr + (0.5 * dt), dt, f_stage2, f_new, em, ext_em);
+    for (int j = 0; j < 5; j++) {
+      f[j] = ((1.0 / 3.0) * f_old[j]) + ((2.0 / 3.0) * f_new[j]);
+    }
+  }
 }
 
 void

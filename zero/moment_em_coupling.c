@@ -72,6 +72,13 @@ gkyl_moment_em_coupling_new(struct gkyl_moment_em_coupling_inp inp)
     mom_em->friction_Lambda_ee = inp.friction_Lambda_ee;
   }
 
+  mom_em->has_volume_sources = inp.has_volume_sources;
+  if (mom_em->has_volume_sources) {
+    mom_em->volume_gas_gamma = inp.volume_gas_gamma;
+    mom_em->volume_U0 = inp.volume_U0;
+    mom_em->volume_R0 = inp.volume_R0;
+  }
+
   mom_em->has_reactive_sources = inp.has_reactive_sources;
   if (mom_em->has_reactive_sources) {
     mom_em->reactivity_gas_gamma = inp.reactivity_gas_gamma;
