@@ -84,6 +84,11 @@ struct gkyl_moment_field {
   double t_ramp_E; // linear ramp for turning on external E field
   bool use_explicit_em_coupling; // flag to indicate if using explicit em-coupling
 
+  bool has_volume_sources; // Run with volume-based geometrical sources.
+  double volume_gas_gamma; // Adiabatic index for volume-based geometrical sources.
+  double volume_U0; // Initial comoving plasma velocity for volume-based geometrical sources.
+  double volume_R0; // Initial radial distance from expansion/contraction center for volume-based geometrical sources.
+
   // boundary conditions
   enum gkyl_field_bc_type bcx[2], bcy[2], bcz[2];
   // pointer to boundary condition functions along x

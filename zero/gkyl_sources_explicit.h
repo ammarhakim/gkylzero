@@ -67,11 +67,25 @@ void explicit_frictional_source_update(const gkyl_moment_em_coupling* mom_em, do
 * @param dt Current stable time-step.
 * @param fluid_old Array of old single-species fluid variables (before source update).
 * @param fluid_new Array of new single-species fluid variables (after source update).
-* @param em Array of electromagnetic variables.
-* @param ext_em External electromagnetic variables (for EM fields coming from external sources, e.g. coils, capacitors, etc.).
 */
 void explicit_volume_source_update_euler(const gkyl_moment_em_coupling* mom_em, const double gas_gamma, const double U0, const double R0,
-  double t_curr, const double dt, double* fluid_old, double* fluid_new, double* em, const double* ext_em);
+  double t_curr, const double dt, double* fluid_old, double* fluid_new);
+
+/**
+* Integrate the volume-based geometrical source terms (e.g. for expanding/contracting box formalism) in the multi-fluid equation system for a
+* single fluid, within a single cell, using an explicit forcing solver (specifically a simple first-order forward-Euler method).
+*
+* @param mom_em Moment-EM coupling object.
+* @param U0 (Initial) comoving plasma velocity.
+* @param R0 (Initial) radial distance from expansion/contraction center.
+* @param t_curr Current simulation time.
+* @param dt Current stable time-step.
+* @param em_old Array of old electromagnetic variables (before source update).
+* @param em_new Array of new electromagnetic variables (after source update).
+* @param ext_em External electromagnetic variables (for EM fields coming from external sources, e.g. coils, capacitors, etc.).
+*/
+void explicit_volume_source_maxwell_update_euler(const gkyl_moment_em_coupling* mom_em, const double U0, const double R0, double t_curr,
+  const double dt, double* em_old, double* em_new, const double* ext_em);
 
 /**
 * Integrate the volume-based geometrical source terms (e.g. for expanding/contracting box formalism) in the multi-fluid equation system within
