@@ -66,7 +66,6 @@ gkyl_wv_maxwell_new(double c, double e_fact, double b_fact, bool use_gpu)
 
   maxwell->eqn.source_func = maxwell_source;
 
-  maxwell->eqn.ref_count = gkyl_ref_count_init(maxwell_free);
   maxwell->eqn.flags = 0;
   GKYL_CLEAR_CU_ALLOC(maxwell->eqn.flags);
   maxwell->eqn.ref_count = gkyl_ref_count_init(gkyl_wv_maxwell_free);
