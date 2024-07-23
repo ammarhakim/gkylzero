@@ -257,7 +257,6 @@ dphidtheta_func(double Z, void *ctx)
     .last_R = rclose
   };
   integrand = dphidtheta_integrand(Z, &cctx);
-  return integrand;
   // Now multiply by fpol
   double R[4] = {0};
   double dR[4] = {0};
