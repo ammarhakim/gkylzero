@@ -307,7 +307,12 @@ main(int argc, char **argv)
   }
 
   char in_species[1][128] = { "elc" };
+
+  // Copper preset for emission BC where models and parameters are chosen automatically
   struct gkyl_bc_emission_ctx *bc_ctx = gkyl_bc_emission_secondary_electron_copper_new(ctx.num_emission_species, 0.0, in_species, app_args.use_gpu);
+
+  // Full specification of the BC with user-defined models and parameters
+  // Uncomment and use this if no material preset is available
   /* struct gkyl_spectrum_model *spectrum_model[1]; */
   /* spectrum_model[0] = gkyl_spectrum_chung_everhart_new(ctx.q0, ctx.phi, app_args.use_gpu); */
   /* struct gkyl_yield_model *yield_model[1]; */
