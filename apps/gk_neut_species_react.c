@@ -255,7 +255,10 @@ gk_neut_species_react_release(const struct gkyl_gyrokinetic_app *app, const stru
   for (int i=0; i<react->num_react; ++i) {
     gk_species_moment_release(app, &react->moms_elc[i]);
     gk_species_moment_release(app, &react->moms_ion[i]);
-    gk_neut_species_moment_release(app, &react->moms_donor[i]);
+    if (gk_find_neut_species(app, react->react_type[i].donor_nm))
+      gk_neut_species_moment_release(app, &react->moms_donor[i]);
+    if (gk_find_neut_species(app, react->react_type[i].partner_nm))
+      gk_neut_species_moment_release(app, &react->moms_partner[i]);
 
     gkyl_array_release(react->coeff_react[i]);
     gkyl_array_release(react->vt_sq_iz1[i]);
@@ -270,5 +273,7 @@ gk_neut_species_react_release(const struct gkyl_gyrokinetic_app *app, const stru
       gkyl_dg_iz_release(react->iz[i]);
     else if (react->react_id[i] == GKYL_REACT_RECOMB)  
       gkyl_dg_recomb_release(react->recomb[i]);
+    else if (react->react_id[i] == GKYL_REACT_CX)
+      gkyl_dg_cx_release(react->cx[i]);
   }
 }
