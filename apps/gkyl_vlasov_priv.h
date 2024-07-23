@@ -671,15 +671,46 @@ void vm_species_moment_release(const struct gkyl_vlasov_app *app,
 
 /** vm_species_emission API */
 
+/**
+ * Initialize species emission object
+ *
+ * @param app Vlasov app object
+ * @param emit Species emission object
+ * @param dir Direction of BC
+ * @param edge Edge of configuration space
+ * @param ctx Emission context
+ * @param use_gpu bool to determine if on GPU
+ */
 void vm_species_emission_init(struct gkyl_vlasov_app *app, struct vm_emitting_wall *emit,
   int dir, enum gkyl_edge_loc edge, void *ctx, bool use_gpu);
 
+/**
+ * Initialize emission BC cross-species object.
+ *
+ * @param app Vlasov app object
+ * @param s Species object 
+ * @param emit Species emission object
+ */
 void vm_species_emission_cross_init(struct gkyl_vlasov_app *app, struct vm_species *s,
   struct vm_emitting_wall *emit);
 
+/**
+ * Apply emission BCs to species distribution function
+ *
+ * @param app Vlasov app object
+ * @param emit Pointer to emission object
+ * @param fout Field to apply BCs
+ * @param tcurr Current time
+ */
 void vm_species_emission_apply_bc(struct gkyl_vlasov_app *app, const struct vm_emitting_wall *emit,
   struct gkyl_array *fout, double tcurr);
 
+/**
+ * Release species emission object.
+ *
+ * @param app Vlasov app object
+ * @param emit Species emission object to release
+ */
 void vm_species_emission_release(const struct vm_emitting_wall *emit);
 
 /** vm_species_lbo API */
@@ -970,6 +1001,7 @@ double vm_species_rhs(gkyl_vlasov_app *app, struct vm_species *species,
  * @param app Vlasov app object
  * @param species Pointer to species
  * @param f Field to apply BCs
+ * @param tcurr Current time
  */
 void vm_species_apply_bc(gkyl_vlasov_app *app, const struct vm_species *species, struct gkyl_array *f, double tcurr);
 
