@@ -681,8 +681,6 @@ main(int argc, char **argv)
       .temp = evalTempD0Init,      
     },
 
-    .bcx = { GKYL_SPECIES_ABSORB, GKYL_SPECIES_ABSORB},
-    
     .num_diag_moments = 3,
     .diag_moments = { "M0", "M1i", "M2"}, //, "M2par", "M2perp" },
   };
@@ -690,7 +688,6 @@ main(int argc, char **argv)
 
   // Field.
   struct gkyl_gyrokinetic_field field = {
-    .bmag_fac = ctx.B0, 
     .fem_parbc = GKYL_FEM_PARPROJ_NONE, 
     .kperpSq = ctx.k_perp * ctx.k_perp,
   };
