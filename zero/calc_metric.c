@@ -41,9 +41,9 @@ static inline double calc_metric(double dxdz[3][3], int i, int j)
 static inline void
 calc_dual(double J, const double e_2[3], const double e_3[3], double e1[3])
 {
-  e1[0] = -(e_2[1]*e_3[2] - e_2[2]*e_3[1] )/J;
-  e1[1] = (e_2[0]*e_3[2] - e_2[2]*e_3[0] )/J;
-  e1[2] = -(e_2[0]*e_3[1] - e_2[1]*e_3[0] )/J;
+  e1[0] = (e_2[1]*e_3[2] - e_2[2]*e_3[1] )/J;
+  e1[1] = -(e_2[0]*e_3[2] - e_2[2]*e_3[0] )/J;
+  e1[2] = (e_2[0]*e_3[1] - e_2[1]*e_3[0] )/J;
 }
 
 void gkyl_calc_metric_advance_rz(
