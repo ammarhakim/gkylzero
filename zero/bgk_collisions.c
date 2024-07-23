@@ -35,12 +35,12 @@ void
 gkyl_bgk_collisions_advance(const gkyl_bgk_collisions *up,
   const struct gkyl_range *crange, const struct gkyl_range *prange,
   const struct gkyl_array *nu, const struct gkyl_array *nufM, const struct gkyl_array *fin,
-  struct gkyl_array *out, struct gkyl_array *cflfreq)
+  bool implicit_step, double dt, struct gkyl_array *out, struct gkyl_array *cflfreq)
 {
   // Compute nu*f_M - nu*f, and its contribution to the CFL rate.
 #ifdef GKYL_HAVE_CUDA
   if (up->use_gpu)
-    return gkyl_bgk_collisions_advance_cu(up, crange, prange, nu, nufM, fin, out, cflfreq);
+    return gkyl_bgk_collisions_advance_cu(up, crange, prange, nu, nufM, fin, implicit_step, dt, out, cflfreq);
 #endif
 
   struct gkyl_range_iter piter;
@@ -53,17 +53,33 @@ gkyl_bgk_collisions_advance(const gkyl_bgk_collisions *up,
     const double *nu_d = gkyl_array_cfetch(nu, cloc);
     double *out_d = gkyl_array_fetch(out, ploc);
 
-    // Add nu*f_M.
-    array_acc1(up->pnum_basis, out_d, 1., gkyl_array_cfetch(nufM, ploc));
-
-    // Calculate and add -nu*f.
-    double incr[160]; // mul_op assigns, but need increment, so use a buffer.
-    up->mul_op(nu_d, gkyl_array_cfetch(fin, ploc), incr);
-    array_acc1(up->pnum_basis, out_d, -1., incr);
 
     // Add contribution to CFL frequency.
-    double *cflfreq_d = gkyl_array_fetch(cflfreq, ploc);
-    cflfreq_d[0] += nu_d[0]*up->cellav_fac;
+    if(implicit_step){
+
+      // Add nu*f_M.
+      array_acc1(up->pnum_basis, out_d, 1./(1.0 + nu_d[0]*up->cellav_fac*dt), gkyl_array_cfetch(nufM, ploc));
+
+      // Calculate and add -nu*f.
+      double incr[160]; // mul_op assigns, but need increment, so use a buffer.
+      up->mul_op(nu_d, gkyl_array_cfetch(fin, ploc), incr);
+      array_acc1(up->pnum_basis, out_d, -1.0/(1.0 + nu_d[0]*up->cellav_fac*dt), incr);
+
+      // No CFL contribution in the implicit case
+    } 
+    else {
+
+      // Add nu*f_M.
+      array_acc1(up->pnum_basis, out_d, 1., gkyl_array_cfetch(nufM, ploc));
+
+      // Calculate and add -nu*f.
+      double incr[160]; // mul_op assigns, but need increment, so use a buffer.
+      up->mul_op(nu_d, gkyl_array_cfetch(fin, ploc), incr);
+      array_acc1(up->pnum_basis, out_d, -1., incr);
+
+      double *cflfreq_d = gkyl_array_fetch(cflfreq, ploc);
+      cflfreq_d[0] += nu_d[0]*up->cellav_fac;
+    }
   }
 }
 

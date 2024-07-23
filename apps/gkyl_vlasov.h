@@ -41,7 +41,10 @@ struct gkyl_vlasov_projection {
       void (*temp)(double t, const double *xn, double *fout, void *ctx);
 
       // boolean if we are correcting all the moments or only density
-      bool correct_all_moms;       
+      bool correct_all_moms;  
+      double iter_eps; // error tolerance for moment fixes (density is always exact)
+      int max_iter; // maximum number of iteration
+      bool use_last_converged; // use last iteration value regardless of convergence?
     };
   };
 };
@@ -59,11 +62,14 @@ struct gkyl_vlasov_collisions {
   double nuFrac; // Parameter for rescaling collision frequency from SI values
   double hbar; // Planck's constant/2 pi 
 
-  // boolean if we are correcting all the moments or only density:
-  // only used by BGK collisions
-  bool correct_all_moms;
+  // BGK collisions specific inputs
+  bool correct_all_moms; // boolean if we are correcting all the moments or only density
   double iter_eps; // error tolerance for moment fixes (density is always exact)
-  int max_iter; // maximum number of iteration
+  int max_iter; // maximum number of iterations
+  bool use_last_converged; // use last iteration value regardless of convergence?
+
+  // Boolean for using implicit BGK collisions (replaces rk3)   
+  bool has_implicit_coll_scheme; 
 
   int num_cross_collisions; // number of species to cross-collide with
   char collide_with[GKYL_MAX_SPECIES][128]; // names of species to cross collide with
@@ -71,15 +77,30 @@ struct gkyl_vlasov_collisions {
   char collide_with_fluid[128]; // name of fluid species to cross collide with
 };
 
+// Parameters for species radiation
+struct gkyl_vlasov_radiation {
+  enum gkyl_radiation_id radiation_id; // type of radiation (see gkyl_eqn_type.h)
+
+  void *ctx_nu; // context for collision frequency
+  // function for computing collision frequency
+  void (*nu)(double t, const double *xn, double *fout, void *ctx);
+
+  void *ctx_nu_rad_drag; // context for collision frequency * drag
+  // function for computing collision frequency * drag
+  void (*nu_rad_drag)(double t, const double *xn, double *fout, void *ctx);  
+};
+
 // Parameters for species source
 struct gkyl_vlasov_source {
   enum gkyl_source_id source_id; // type of source
+  bool write_source; // optional parameter to write out source
+  int num_sources;
 
   double source_length; // required for boundary flux source
   char source_species[128];
   
   // sources using projection routine
-  struct gkyl_vlasov_projection projection;
+  struct gkyl_vlasov_projection projection[GKYL_MAX_PROJ];
 };
 
 // Parameters for fluid species source
@@ -120,7 +141,8 @@ struct gkyl_vlasov_species {
   int cells[3]; // velocity-space cells
 
   // initial conditions using projection routine
-  struct gkyl_vlasov_projection projection;
+  int num_init; // number of initial condition functions
+  struct gkyl_vlasov_projection projection[GKYL_MAX_PROJ];
 
   int num_diag_moments; // number of diagnostic moments
   char diag_moments[16][16]; // list of diagnostic moments
@@ -128,13 +150,16 @@ struct gkyl_vlasov_species {
   // collisions to include
   struct gkyl_vlasov_collisions collisions;
 
+  // radiation to include
+  struct gkyl_vlasov_radiation radiation;
+
   // source to include
   struct gkyl_vlasov_source source;
 
-  void *accel_ctx; // context for applied acceleration function
+  void *app_accel_ctx; // context for applied acceleration function
   // pointer to applied acceleration function
-  void (*accel)(double t, const double *xn, double *aout, void *ctx);
-  bool accel_evolve; // set to true if applied acceleration function is time dependent
+  void (*app_accel)(double t, const double *xn, double *aout, void *ctx);
+  bool app_accel_evolve; // set to true if applied acceleration function is time dependent
 
   void *hamil_ctx; // context for hamiltonian function
   // pointer to hamilonian function
@@ -147,6 +172,11 @@ struct gkyl_vlasov_species {
   void *det_h_ctx; // context for determinant of the spatial metric
   // pointer to the determinant of the spatial metric
   void (*det_h)(double t, const double *xn, double *aout, void *ctx);
+
+  bool output_f_lte; // Boolean for writing out f_lte (used for calculating transport coeff.)
+  double iter_eps; // error tolerance for moment fixes of f_lte (density is always exact)
+  int max_iter; // maximum number of iterations for correction output f_lte
+  bool use_last_converged; // use last iteration value regardless of convergence for f_lte?
 
   // boundary conditions
   enum gkyl_species_bc_type bcx[2], bcy[2], bcz[2];
@@ -174,6 +204,9 @@ struct gkyl_vlasov_field {
   // pointer to external electromagnetic fields function
   void (*app_current)(double t, const double *xn, double *app_current_out, void *ctx);
   bool app_current_evolve; // set to true if applied current function is time dependent
+  
+  double limiter_fac; // Optional input parameter for adjusting diffusion in slope limiter
+  bool limit_em; // Optional input parameter for applying limiters to EM fields
   
   // boundary conditions
   enum gkyl_field_bc_type bcx[2], bcy[2], bcz[2];
@@ -204,6 +237,11 @@ struct gkyl_vlasov_fluid_species {
   
   // diffusion coupling to include
   struct gkyl_vlasov_fluid_diffusion diffusion;
+
+  void *app_accel_ctx; // context for applied acceleration function
+  // pointer to applied acceleration function
+  void (*app_accel)(double t, const double *xn, double *aout, void *ctx);
+  bool app_accel_evolve; // set to true if applied acceleration function is time dependent
   
   // boundary conditions
   enum gkyl_species_bc_type bcx[2], bcy[2], bcz[2];
@@ -261,6 +299,8 @@ struct gkyl_vlasov_stat {
   double stage_3_dt_diff[2]; // [min,max] rel-diff for stage-3 failure
     
   double total_tm; // time for simulation (not including ICs)
+  double rk3_tm; // time for SSP RK3 step
+  double fl_em_tm; // time for implicit fluid-EM coupling step
   double init_species_tm; // time to initialize all species
   double init_fluid_species_tm; // time to initialize all fluid species
   double init_field_tm; // time to initialize fields
@@ -273,6 +313,12 @@ struct gkyl_vlasov_stat {
   double species_lbo_coll_drag_tm[GKYL_MAX_SPECIES]; // time to compute LBO drag terms
   double species_lbo_coll_diff_tm[GKYL_MAX_SPECIES]; // time to compute LBO diffusion terms
   double species_coll_tm; // total time for collision updater (excluded moments)
+
+  double species_rad_tm; // total time for radiation updater 
+
+  double species_lte_tm; // time needed to compute the lte equilibrium
+
+  long niter_self_bgk_corr[GKYL_MAX_SPECIES]; // number of iterations used to correct self collisions in BGK
 
   double species_bc_tm; // time to compute species BCs
   double fluid_species_bc_tm; // time to compute fluid species BCs
@@ -409,14 +455,14 @@ void gkyl_vlasov_app_write_field(gkyl_vlasov_app* app, double tm, int frame);
 void gkyl_vlasov_app_write_species(gkyl_vlasov_app* app, int sidx, double tm, int frame);
 
 /**
- * Write species p/gamma to file.
+ * Write species data to file - for the local equilbrium.
  * 
  * @param app App object.
  * @param sidx Index of species to initialize.
  * @param tm Time-stamp
  * @param frame Frame number
  */
-void gkyl_vlasov_app_write_species_gamma(gkyl_vlasov_app* app, int sidx, double tm, int frame);
+void gkyl_vlasov_app_write_species_lte(gkyl_vlasov_app* app, int sidx, double tm, int frame);
 
 /**
  * Write fluid species data to file. 

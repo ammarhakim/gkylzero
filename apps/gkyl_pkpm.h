@@ -69,10 +69,13 @@ struct gkyl_pkpm_species {
   // diffusion coupling to include for momentum
   struct gkyl_pkpm_fluid_diffusion diffusion;
 
-  void *accel_ctx; // context for applied acceleration function
+  void *app_accel_ctx; // context for applied acceleration function
   // pointer to applied acceleration function
-  void (*accel)(double t, const double *xn, double *aout, void *ctx);
+  void (*app_accel)(double t, const double *xn, double *aout, void *ctx);
   bool app_accel_evolve; // set to true if applied acceleration function is time dependent
+
+  double limiter_fac; // Optional input parameter for adjusting diffusion in slope limiter
+  bool limit_fluid; // Optional input parameter for applying limiters to fluid variables
 
   // boundary conditions
   enum gkyl_species_bc_type bcx[2], bcy[2], bcz[2];
@@ -101,6 +104,9 @@ struct gkyl_pkpm_field {
   void (*app_current)(double t, const double *xn, double *app_current_out, void *ctx);
   bool app_current_evolve; // set to true if applied current function is time dependent
   
+  double limiter_fac; // Optional input parameter for adjusting diffusion in slope limiter
+  bool limit_em; // Optional input parameter for applying limiters to EM fields
+  
   // boundary conditions
   enum gkyl_field_bc_type bcx[2], bcy[2], bcz[2];
 };
@@ -115,6 +121,12 @@ struct gkyl_pkpm {
   int poly_order; // polynomial order
   enum gkyl_basis_type basis_type; // type of basis functions to use
 
+  void *c2p_ctx; // context for mapc2p function
+  // pointer to mapc2p function: xc are the computational space
+  // coordinates and on output xp are the corresponding physical space
+  // coordinates.
+  void (*mapc2p)(double t, const double *xc, double *xp, void *ctx);
+
   double cfl_frac; // CFL fraction to use (default 1.0)
 
   bool use_gpu; // Flag to indicate if solver should use GPUs
@@ -125,8 +137,11 @@ struct gkyl_pkpm {
   int num_species; // number of species
   struct gkyl_pkpm_species species[GKYL_MAX_SPECIES]; // species objects
   
-  bool skip_field; // Skip field update or no field specified
   struct gkyl_pkpm_field field; // field object
+
+  bool use_explicit_source; // Use fully explicit SSP RK3 scheme 
+                            // Default is a first-order operator split with 
+                            // implicit fluid-EM coupling.
 
   // this should not be set by typical user-facing code but only by
   // higher-level drivers
@@ -148,6 +163,8 @@ struct gkyl_pkpm_stat {
   double stage_3_dt_diff[2]; // [min,max] rel-diff for stage-3 failure
     
   double total_tm; // time for simulation (not including ICs)
+  double rk3_tm; // time for SSP RK3 step
+  double pkpm_em_tm; // time for implicit fluid-EM coupling step
   double init_species_tm; // time to initialize all species
   double init_fluid_species_tm; // time to initialize all fluid species
   double init_field_tm; // time to initialize fields

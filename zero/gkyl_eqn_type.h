@@ -59,6 +59,13 @@ enum gkyl_projection_id {
                         // (Maxwellian for non-relativistic, Maxwell-Juttner for relativistic)
 };
 
+// Identifiers for specific radiation object types
+enum gkyl_radiation_id {
+  GKYL_NO_RADIATION = 0, // No radiation. This is default
+  GKYL_GK_RADIATION, // Radiation in gyrokinetic equations.
+  GKYL_VM_COMPTON_RADIATION, // Vlasov simple Compton radiation model. 
+};
+
 // type of quadrature to use
 enum gkyl_quad_type {
   GKYL_GAUSS_QUAD = 0, // Gauss-Legendre quadrature

@@ -15,7 +15,8 @@ typedef double (*vlasov_pkpm_stream_surf_t)(const double *w, const double *dxv,
   const double *bvar_surf_l, const double *bvar_surf_c, const double *bvar_surf_r, 
   const double *pkpm_prim_surf_l, const double *pkpm_prim_surf_c, const double *pkpm_prim_surf_r, 
   const double *fl, const double *fc, const double *fr, 
-  const double *max_b, const double *pkpm_lax, double* GKYL_RESTRICT out);
+  const double *max_b, const double *pkpm_lax_l, const double *pkpm_lax_r, 
+  double* GKYL_RESTRICT out);
 
 typedef double (*vlasov_pkpm_accel_surf_t)(const double *w, const double *dxv, 
   const double *div_b, const double *pkpm_accel_vars, 
@@ -307,32 +308,33 @@ surf(const struct gkyl_dg_eqn *eqn,
   const double* qInL, const double*  qInC, const double*  qInR, double* GKYL_RESTRICT qRhsOut)
 {
   struct dg_vlasov_pkpm *vlasov_pkpm = container_of(eqn, struct dg_vlasov_pkpm, eqn);
-  long cidx = gkyl_range_idx(&vlasov_pkpm->conf_range, idxC);
-  long pidx = gkyl_range_idx(&vlasov_pkpm->phase_range, idxC);
+  long cidx_c = gkyl_range_idx(&vlasov_pkpm->conf_range, idxC);
+  long pidx_c = gkyl_range_idx(&vlasov_pkpm->phase_range, idxC);
   if (dir < vlasov_pkpm->cdim) {
     long cidx_l = gkyl_range_idx(&vlasov_pkpm->conf_range, idxL);
     long cidx_r = gkyl_range_idx(&vlasov_pkpm->conf_range, idxR);
     return vlasov_pkpm->stream_surf[dir]
       (xcC, dxC, 
       (const double*) gkyl_array_cfetch(vlasov_pkpm->auxfields.bvar_surf, cidx_l), 
-      (const double*) gkyl_array_cfetch(vlasov_pkpm->auxfields.bvar_surf, cidx), 
+      (const double*) gkyl_array_cfetch(vlasov_pkpm->auxfields.bvar_surf, cidx_c), 
       (const double*) gkyl_array_cfetch(vlasov_pkpm->auxfields.bvar_surf, cidx_r), 
       (const double*) gkyl_array_cfetch(vlasov_pkpm->auxfields.pkpm_prim_surf, cidx_l), 
-      (const double*) gkyl_array_cfetch(vlasov_pkpm->auxfields.pkpm_prim_surf, cidx), 
+      (const double*) gkyl_array_cfetch(vlasov_pkpm->auxfields.pkpm_prim_surf, cidx_c), 
       (const double*) gkyl_array_cfetch(vlasov_pkpm->auxfields.pkpm_prim_surf, cidx_r), 
       qInL, qInC, qInR, 
-      (const double*) gkyl_array_cfetch(vlasov_pkpm->auxfields.max_b, cidx),
-      (const double*) gkyl_array_cfetch(vlasov_pkpm->auxfields.pkpm_lax, cidx), 
+      (const double*) gkyl_array_cfetch(vlasov_pkpm->auxfields.max_b, cidx_c),
+      (const double*) gkyl_array_cfetch(vlasov_pkpm->auxfields.pkpm_lax, cidx_c), 
+      (const double*) gkyl_array_cfetch(vlasov_pkpm->auxfields.pkpm_lax, cidx_r), 
       qRhsOut);
   }
   else {
     long pidx_l = gkyl_range_idx(&vlasov_pkpm->phase_range, idxL);
     long pidx_r = gkyl_range_idx(&vlasov_pkpm->phase_range, idxR);
     return vlasov_pkpm->accel_surf(xcC, dxC,
-      (const double*) gkyl_array_cfetch(vlasov_pkpm->auxfields.div_b, cidx), 
-      (const double*) gkyl_array_cfetch(vlasov_pkpm->auxfields.pkpm_accel_vars, cidx), 
+      (const double*) gkyl_array_cfetch(vlasov_pkpm->auxfields.div_b, cidx_c), 
+      (const double*) gkyl_array_cfetch(vlasov_pkpm->auxfields.pkpm_accel_vars, cidx_c), 
       (const double*) gkyl_array_cfetch(vlasov_pkpm->auxfields.g_dist_source, pidx_l),
-      (const double*) gkyl_array_cfetch(vlasov_pkpm->auxfields.g_dist_source, pidx),
+      (const double*) gkyl_array_cfetch(vlasov_pkpm->auxfields.g_dist_source, pidx_c),
       (const double*) gkyl_array_cfetch(vlasov_pkpm->auxfields.g_dist_source, pidx_r),
       qInL, qInC, qInR, qRhsOut);
   }

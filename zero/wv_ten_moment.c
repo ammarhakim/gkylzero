@@ -1,52 +1,22 @@
+#include <assert.h>
 #include <math.h>
 
 #include <gkyl_alloc.h>
-#include <gkyl_moment_prim_ten_moment.h>
+#include <gkyl_alloc_flags_priv.h>
 #include <gkyl_wv_ten_moment.h>
+#include <gkyl_wv_ten_moment_priv.h>
 
-static inline double sq(double x) { return x * x; }
-
-static inline void
-cons_to_riem(const struct gkyl_wv_eqn *eqn,
-  const double *qstate, const double *qin, double *wout)
-{
-  // TODO: this should use proper L matrix
-  for (int i=0; i<10; ++i)
-    wout[i] = qin[i];
-}
-static inline void
-riem_to_cons(const struct gkyl_wv_eqn *eqn,
-  const double *qstate, const double *win, double *qout)
-{
-  // TODO: this should use proper L matrix
-  for (int i=0; i<10; ++i)
-    qout[i] = win[i];
-}
-
-/* Multiply by phi prime */
-static void mulByPhiPrime(double p0, double u1, double u2, double u3, const double w[10], double out[10]) 
-{ 
-  out[0] = w[0]; 
-  out[1] = w[0]*u1+w[1]*p0; 
-  out[2] = w[0]*u2+w[2]*p0; 
-  out[3] = w[0]*u3+w[3]*p0; 
-  out[4] = w[0]*sq(u1)+2*w[1]*p0*u1+w[4]; 
-  out[5] = w[0]*u1*u2+w[1]*p0*u2+w[2]*p0*u1+w[5]; 
-  out[6] = w[0]*u1*u3+w[1]*p0*u3+w[3]*p0*u1+w[6]; 
-  out[7] = w[0]*sq(u2)+2*w[2]*p0*u2+w[7]; 
-  out[8] = w[0]*u2*u3+w[2]*p0*u3+w[3]*p0*u2+w[8]; 
-  out[9] = w[0]*sq(u3)+2*w[3]*p0*u3+w[9]; 
-} 
-
-struct wv_ten_moment {
-  struct gkyl_wv_eqn eqn; // base object
-  double k0; // closure parameter
-};
-
-static void
-ten_moment_free(const struct gkyl_ref_count *ref)
+void
+gkyl_ten_moment_free(const struct gkyl_ref_count *ref)
 {
   struct gkyl_wv_eqn *base = container_of(ref, struct gkyl_wv_eqn, ref_count);
+
+  if (gkyl_wv_eqn_is_cu_dev(base)) {
+    // free inner on_dev object
+    struct wv_ten_moment *ten_moment = container_of(base->on_dev, struct wv_ten_moment, eqn);
+    gkyl_cu_free(ten_moment);
+  }
+
   struct wv_ten_moment *ten_moment = container_of(base, struct wv_ten_moment, eqn);
   gkyl_free(ten_moment);
 }
@@ -422,8 +392,13 @@ ten_moment_source(const struct gkyl_wv_eqn* eqn, const double* qin, double* sout
 }
 
 struct gkyl_wv_eqn*
-gkyl_wv_ten_moment_new(double k0)
+gkyl_wv_ten_moment_new(double k0, bool use_gpu)
 {
+#ifdef GKYL_HAVE_CUDA
+  if (use_gpu) {
+    return gkyl_wv_ten_moment_cu_dev_new(k0);
+  } 
+#endif    
   struct wv_ten_moment *ten_moment = gkyl_malloc(sizeof(struct wv_ten_moment));
 
   ten_moment->k0 = k0;
@@ -451,8 +426,12 @@ gkyl_wv_ten_moment_new(double k0)
   ten_moment->eqn.source_func = ten_moment_source;
 
   ten_moment->eqn.ref_count = gkyl_ref_count_init(ten_moment_free);
+  ten_moment->eqn.flags = 0;
+  GKYL_CLEAR_CU_ALLOC(ten_moment->eqn.flags);
+  ten_moment->eqn.ref_count = gkyl_ref_count_init(gkyl_ten_moment_free);
+  ten_moment->eqn.on_dev = &ten_moment->eqn; // CPU eqn obj points to itself
 
-  return &ten_moment->eqn;
+  return &ten_moment->eqn;  
 }
 
 double
