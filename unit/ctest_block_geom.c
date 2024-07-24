@@ -1,7 +1,7 @@
 #include <acutest.h>
 #include <gkyl_block_geom.h>
 
-void
+static void
 test_L_domain()
 {
   // 2D with 3 blocks
@@ -100,7 +100,7 @@ test_L_domain()
   gkyl_block_topo_release(btopo);
 }
 
-void
+static void
 test_mobius_domain()
 {
   // 2D with 1 block

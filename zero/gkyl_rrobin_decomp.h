@@ -19,6 +19,15 @@ const struct gkyl_rrobin_decomp* gkyl_rrobin_decomp_new(int total_ranks, int nbl
   const int *branks);
 
 /**
+ * Get number of ranks in block @a bn.
+ *
+ * @param rr Round-robin decomp
+ * @param bn Block nummber for which to fetch rank list
+ * @return Number of ranks in block @a bn
+ */
+int gkyl_rrobin_decomp_nranks(const struct gkyl_rrobin_decomp *rr, int bn);
+
+/**
  * Get the list of ranks in block @a bn. The ranks are returned in @a
  * ranks. This must be big enough to store the list.
  *

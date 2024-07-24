@@ -24,7 +24,10 @@ struct gkyl_moment_multib_app {
 
   int num_local_blocks; // total number of blocks on current rank
   int *local_blocks; // local blocks IDs handled by current rank
-  struct gkyl_moment_app **singleb_apps; // individual App objects, one per-block
+  struct gkyl_moment_app **singleb_apps; // App objects: one per local block
+
+  const struct gkyl_rrobin_decomp *round_robin; // round-robin decomp
+  struct gkyl_rect_decomp **decomp; // list of decomps (num_blocks)
 
   double tcurr; // current time
   
