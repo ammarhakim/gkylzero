@@ -134,7 +134,7 @@ explicit_frictional_source_update(const gkyl_moment_em_coupling* mom_em, double 
 }
 
 void
-explicit_volume_source_update_euler(const gkyl_moment_em_coupling* mom_em, const double gas_gamma, const double U0, const double R0,
+explicit_volume_source_5m_update_euler(const gkyl_moment_em_coupling* mom_em, const double gas_gamma, const double U0, const double R0,
   double t_curr, const double dt, double* fluid_old, double* fluid_new)
 {
   double rho = fluid_old[0];
@@ -158,6 +158,37 @@ explicit_volume_source_update_euler(const gkyl_moment_em_coupling* mom_em, const
   p_new -= dt * (gas_gamma * ((2.0 * U0) / (a * R0)) * p);
 
   fluid_new[4] = (p_new / (gas_gamma - 1.0)) + (0.5 * rho * (vx * vx) + (vy * vy) + (vz * vz));
+}
+
+void
+explicit_volume_source_10m_update_euler(const gkyl_moment_em_coupling* mom_em, const double U0, const double R0, double t_curr, const double dt,
+  double* fluid_old, double* fluid_new)
+{
+  double rho = fluid_old[0];
+  double vx = fluid_old[1] / rho;
+  double vy = fluid_old[2] / rho;
+  double vz = fluid_old[3] / rho;
+  
+  double Pxx = fluid_old[4], Pxy = fluid_old[5], Pxz = fluid_old[6];
+  double Pyy = fluid_old[7], Pyz = fluid_old[8], Pzz = fluid_old[9];
+
+  double a = 1.0 + ((U0 * t_curr) / R0);
+
+  for (int i = 0; i < 10; i++) {
+    fluid_new[i] = fluid_old[i];
+  }
+
+  fluid_new[0] -= dt * ((2.0 * U0) / (a * R0)) * rho;
+
+  fluid_new[2] -= dt * (U0 / (a * R0)) * rho * vy;
+  fluid_new[3] -= dt * (U0 / (a * R0)) * rho * vz;
+
+  fluid_new[4] -= dt * ((2.0 * U0) / (a * R0)) * Pxx;
+  fluid_new[5] -= dt * ((((2.0 * U0) / (a * R0)) * Pxy) + ((U0 / (a * R0)) * Pxy));
+  fluid_new[6] -= dt * ((((2.0 * U0) / (a * R0)) * Pxz) + ((U0 / (a * R0)) * Pxz));
+  fluid_new[7] -= dt * ((((2.0 * U0) / (a * R0)) * Pyy) + (((2.0 * U0) / (a * R0)) * Pyy));
+  fluid_new[8] -= dt * ((((2.0 * U0) / (a * R0)) * Pyz) + (((2.0 * U0) / (a * R0)) * Pyz));
+  fluid_new[9] -= dt * ((((2.0 * U0) / (a * R0)) * Pzz) + (((2.0 * U0) / (a * R0)) * Pzz));
 }
 
 void
@@ -200,25 +231,49 @@ explicit_volume_source_update(const gkyl_moment_em_coupling* mom_em, double t_cu
   for (int i = 0; i < nfluids; i++) {
     double *f = fluid_s[i];
 
-    double f_new[5], f_stage1[5], f_stage2[5], f_old[5];
+    if (mom_em->param[i].type == GKYL_EQN_EULER) {
+      double f_new[5], f_stage1[5], f_stage2[5], f_old[5];
 
-    for (int j = 0; j < 5; j++) {
-      f_old[j] = f[j];
+      for (int j = 0; j < 5; j++) {
+        f_old[j] = f[j];
+      }
+
+      explicit_volume_source_5m_update_euler(mom_em, gas_gamma, U0, R0, t_curr, dt, f_old, f_new);
+      for (int j = 0; j < 5; j++) {
+        f_stage1[j] = f_new[j];
+      }
+
+      explicit_volume_source_5m_update_euler(mom_em, gas_gamma, U0, R0, t_curr + dt, dt, f_stage1, f_new);
+      for (int j = 0; j < 5; j++) {
+        f_stage2[j] = (0.75 * f_old[j]) + (0.25 * f_new[j]);
+      }
+
+      explicit_volume_source_5m_update_euler(mom_em, gas_gamma, U0, R0, t_curr + (0.5 * dt), dt, f_stage2, f_new);
+      for (int j = 0; j < 5; j++) {
+        f[j] = ((1.0 / 3.0) * f_old[j]) + ((2.0 / 3.0) * f_new[j]);
+      }
     }
+    else if (mom_em->param[i].type == GKYL_EQN_TEN_MOMENT) {
+      double f_new[10], f_stage1[10], f_stage2[10], f_old[10];
 
-    explicit_volume_source_update_euler(mom_em, gas_gamma, U0, R0, t_curr, dt, f_old, f_new);
-    for (int j = 0; j < 5; j++) {
-      f_stage1[j] = f_new[j];
-    }
+      for (int j = 0; j < 10; j++) {
+        f_old[j] = f[j];
+      }
 
-    explicit_volume_source_update_euler(mom_em, gas_gamma, U0, R0, t_curr + dt, dt, f_stage1, f_new);
-    for (int j = 0; j < 5; j++) {
-      f_stage2[j] = (0.75 * f_old[j]) + (0.25 * f_new[j]);
-    }
+      explicit_volume_source_10m_update_euler(mom_em, U0, R0, t_curr, dt, f_old, f_new);
+      for (int j = 0; j < 10; j++) {
+        f_stage1[j] = f_new[j];
+      }
 
-    explicit_volume_source_update_euler(mom_em, gas_gamma, U0, R0, t_curr + (0.5 * dt), dt, f_stage2, f_new);
-    for (int j = 0; j < 5; j++) {
-      f[j] = ((1.0 / 3.0) * f_old[j]) + ((2.0 / 3.0) * f_new[j]);
+      explicit_volume_source_10m_update_euler(mom_em, U0, R0, t_curr + dt, dt, f_stage1, f_new);
+      for (int j = 0; j < 10; j++) {
+        f_stage2[j] = (0.75 * f_old[j]) + (0.25 * f_new[j]);
+      }
+
+      explicit_volume_source_10m_update_euler(mom_em, U0, R0, t_curr + (0.5 * dt), dt, f_stage2, f_new);
+      for (int j = 0; j < 10; j++) {
+        f[j] = ((1.0 / 3.0) * f_old[j]) + ((2.0 / 3.0) * f_new[j]);
+      }
     }
   }
 
