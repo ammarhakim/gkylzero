@@ -168,7 +168,7 @@ gkyl_bc_twistshift_new(const struct gkyl_bc_twistshift_inp *inp)
 
   // Create a ghost range, to clear it before adding contributions from TS BC.
   struct gkyl_range tmp_skin;
-  gkyl_skin_ghost_ranges(&tmp_skin, &up->ghost_r, up->bc_dir, up->edge, &up->local_bcdir_ext_r, inp->num_ghost);
+  gkyl_skin_ghost_ranges(&tmp_skin, &up->ghost_r, up->bc_dir, up->edge, &inp->local_ext_r, inp->num_ghost);
 
   return up;
 }

@@ -12,6 +12,10 @@
 #include <mpack.h>
 #include <gkyl_array_rio.h>
 #include <gkyl_bc_twistshift.h>
+#include <gkyl_velocity_map.h>
+#include <gkyl_gk_geometry.h>
+#include <gkyl_gk_geometry_mapc2p.h>
+#include <gkyl_dg_updater_moment_gyrokinetic.h>
 
 // Meta-data for IO
 struct test_bc_twistshift_output_meta {
@@ -92,19 +96,51 @@ apply_periodic_bc(struct gkyl_array *buff, struct gkyl_array *fld, const int dir
   gkyl_array_copy_from_buffer(fld, buff->data, &(sgr.lower_ghost[dir]));
 }
 
+static struct gkyl_array*
+mkarr(bool on_gpu, long nc, long size)
+{
+  struct gkyl_array* a;
+  if (on_gpu)
+    a = gkyl_array_cu_dev_new(GKYL_DOUBLE, nc, size);
+  else
+    a = gkyl_array_new(GKYL_DOUBLE, nc, size);
+  return a;
+}
+
 struct test_bc_twistshift_ctx {
   double lower[GKYL_MAX_DIM], upper[GKYL_MAX_DIM];
   int cells[GKYL_MAX_DIM];
+  double B0;
 };
+
+void
+mapc2p(double t, const double *xc, double* GKYL_RESTRICT xp, void *ctx)
+{
+  xp[0] = xc[0]; xp[1] = xc[1]; xp[2] = xc[2];
+}
+
+void eval_bmag_3x(double t, const double *xn, double* restrict fout, void *ctx)
+{
+  double x = xn[0], y = xn[1], z = xn[2];
+
+  struct test_bc_twistshift_ctx *pars = ctx;
+  double B0 = pars->B0;
+
+  fout[0] = B0;
+}
 
 void
 shift_3x2v_const(double t, const double *xn, double* restrict fout, void *ctx)
 {
+  double x = xn[0];
+
   struct test_bc_twistshift_ctx *pars = ctx;
   double Lx[2] = {pars->upper[0]-pars->lower[0], pars->upper[1]-pars->lower[1]};
   double dx[2] = {Lx[0]/pars->cells[0], Lx[1]/pars->cells[1]};
 
-  fout[0] = 2.5*dx[1];
+//  fout[0] = 2.5*dx[1];
+//  fout[0] = 0.4*x+2.5*dx[1];
+  fout[0] = 0.6*x+1.8;
 }
 
 void
@@ -116,13 +152,14 @@ init_donor_3x2v(double t, const double *xn, double* restrict fout, void *ctx)
   double Lx[2] = {pars->upper[0]-pars->lower[0], pars->upper[1]-pars->lower[1]};
 
   double beta[2] = {0.0, 0.0};
-  double sigma[2] = {Lx[0]/7.0, Lx[1]/10.0};
+//  double sigma[2] = {Lx[0]/7.0, Lx[1]/10.0};
+  double sigma[2] = {0.6, 0.2};
 
-//  fout[0] = exp( -pow(x-beta[0],2)/(2.0*pow(sigma[0],2))
-//                 -pow(y-beta[1],2)/(2.0*pow(sigma[1],2)) );  
-  fout[0] = 0.;
-  if (-1.6 < x && x < -1.2 && -0.3 < y && y < 0.)
-    fout[0] = 1.;
+  fout[0] = exp( -pow(x-beta[0],2)/(2.0*pow(sigma[0],2))
+                 -pow(y-beta[1],2)/(2.0*pow(sigma[1],2)) );  
+//  fout[0] = 0.;
+//  if (-1.6 < x && x < -1.2 && -0.3 < y && y < 0.)
+//    fout[0] = 1.;
 }
 
 void
@@ -139,7 +176,7 @@ test_bc_twistshift_3x2v(bool use_gpu)
   const int poly_order = 1;
   const double lower[] = {-2.0, -1.50, -3.0, -5.0*vt, 0.};
   const double upper[] = { 2.0,  1.50,  3.0,  5.0*vt, mass*(pow(5.0*vt,2))/(2.0*B0)};
-  const int cells[] = {10, 10, 4, 2, 1};
+  const int cells[] = {80, 40, 4, 2, 1};
   const int vdim = 2;
   const int ndim = sizeof(lower)/sizeof(lower[0]);
   const int cdim = ndim - vdim;
@@ -151,12 +188,21 @@ test_bc_twistshift_3x2v(bool use_gpu)
     upper_conf[d] = upper[d];
     cells_conf[d] = cells[d];
   }
+  double lower_vel[vdim], upper_vel[vdim];
+  int cells_vel[vdim];
+  for (int d=0; d<vdim; d++) {
+    lower_vel[d] = lower[cdim+d];
+    upper_vel[d] = upper[cdim+d];
+    cells_vel[d] = cells[cdim+d];
+  }
 
   // Grid.
   struct gkyl_rect_grid grid;
   gkyl_rect_grid_init(&grid, ndim, lower, upper, cells);
   struct gkyl_rect_grid grid_conf;
   gkyl_rect_grid_init(&grid_conf, cdim, lower_conf, upper_conf, cells_conf);
+  struct gkyl_rect_grid grid_vel;
+  gkyl_rect_grid_init(&grid_vel, vdim, lower_vel, upper_vel, cells_vel);
 
   // Basis functions.
   struct gkyl_basis basis;
@@ -172,23 +218,31 @@ test_bc_twistshift_3x2v(bool use_gpu)
   struct gkyl_range local_conf, local_ext_conf; // local, local-ext position-space ranges
   gkyl_create_grid_ranges(&grid_conf, ghost_conf, &local_ext_conf, &local_conf);
 
+  int ghost_vel[cdim];
+  for (int d=0; d<vdim; d++) ghost_vel[d] = 0;
+  struct gkyl_range local_vel, local_ext_vel; // local, local-ext position-space ranges
+  gkyl_create_grid_ranges(&grid_vel, ghost_vel, &local_ext_vel, &local_vel);
+
   int ghost[ndim];
   for (int d=0; d<cdim; d++) ghost[d] = ghost_conf[d];
-  for (int d=cdim; d<ndim; d++) ghost[d] = 0;
+  for (int d=cdim; d<ndim; d++) ghost[d] = ghost_vel[d-cdim];
   struct gkyl_range local, local_ext; // local, local-ext phase-space ranges
   gkyl_create_grid_ranges(&grid, ghost, &local_ext, &local);
 
   struct skin_ghost_ranges skin_ghost; // skin/ghost.
   skin_ghost_ranges_init(&skin_ghost, &local_ext, ghost);
+  struct skin_ghost_ranges skin_ghost_conf; // skin/ghost.
+  skin_ghost_ranges_init(&skin_ghost_conf, &local_ext_conf, ghost_conf);
 
   struct test_bc_twistshift_ctx proj_ctx = {
     .lower = {lower[0], lower[1], lower[2], lower[3], lower[4]},
     .upper = {upper[0], upper[1], upper[2], upper[3], upper[4]},
     .cells = {cells[0], cells[1], cells[2], cells[3], cells[4]},
+    .B0 = B0,
   };
 
   // Initialize the distribution
-  struct gkyl_array *distf = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, local_ext.volume);
+  struct gkyl_array *distf = mkarr(use_gpu, basis.num_basis, local_ext.volume);
   gkyl_proj_on_basis *projDistf = gkyl_proj_on_basis_inew( &(struct gkyl_proj_on_basis_inp) {
       .grid = &grid,
       .basis = &basis,
@@ -224,7 +278,7 @@ test_bc_twistshift_3x2v(bool use_gpu)
   struct gkyl_bc_twistshift *tsup = gkyl_bc_twistshift_new(&tsinp);
 
   // First apply periodicity in z.
-  struct gkyl_array *buff_per = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, skin_ghost.lower_skin[bc_dir].volume);
+  struct gkyl_array *buff_per = mkarr(use_gpu, basis.num_basis, skin_ghost.lower_skin[bc_dir].volume);
   apply_periodic_bc(buff_per, distf, bc_dir, skin_ghost);
 
   gkyl_bc_twistshift_advance(tsup, distf, distf);
@@ -242,6 +296,87 @@ test_bc_twistshift_3x2v(bool use_gpu)
   gkyl_rect_grid_init(&grid_ext, ndim, lower_ext, upper_ext, cells_ext);
   gkyl_grid_sub_array_write(&grid_ext, &local_ext, mt, distf, "ctest_bc_twistshift_3x2v_tar.gkyl");
 
+  // Compute the integrated moments of the skin cell and the ghost cell.
+  // Velocity space mapping.
+  struct gkyl_mapc2p_inp c2p_in = { };
+  struct gkyl_velocity_map *gvm = gkyl_velocity_map_new(c2p_in, grid, grid_vel,
+    local, local_ext, local_vel, local_ext_vel, use_gpu);
+
+  // Initialize geometry
+  struct gkyl_gk_geometry_inp geometry_inp = {
+    .geometry_id = GKYL_MAPC2P,
+    .c2p_ctx = 0,
+    .mapc2p = mapc2p,
+    .bmag_ctx = &proj_ctx,
+    .bmag_func = eval_bmag_3x,
+    .grid = grid_conf,
+    .local = local_conf,
+    .local_ext = local_ext_conf,
+    .global = local_conf,
+    .global_ext = local_ext_conf,
+    .basis = basis_conf,
+    .geo_grid = grid_conf,
+    .geo_local = local_conf,
+    .geo_local_ext = local_ext_conf,
+    .geo_global = local_conf,
+    .geo_global_ext = local_ext_conf,
+    .geo_basis = basis_conf,
+  };
+  struct gk_geometry* gk_geom_3d = gkyl_gk_geometry_mapc2p_new(&geometry_inp);
+  struct gk_geometry* gk_geom = gkyl_gk_geometry_acquire(gk_geom_3d);
+  gkyl_gk_geometry_release(gk_geom_3d); // release temporary 3d geometry
+  if (use_gpu) {  // If we are on the gpu, copy from host
+    struct gk_geometry* gk_geom_dev = gkyl_gk_geometry_new(gk_geom, &geometry_inp, use_gpu);
+    gkyl_gk_geometry_release(gk_geom);
+    gk_geom = gkyl_gk_geometry_acquire(gk_geom_dev);
+    gkyl_gk_geometry_release(gk_geom_dev);
+  }
+
+  struct gkyl_dg_updater_moment *mcalc = gkyl_dg_updater_moment_gyrokinetic_new(&grid, &basis_conf,
+    &basis, &local, mass, gvm, gk_geom, "ThreeMoments", true, use_gpu);
+  int num_mom = gkyl_dg_updater_moment_gyrokinetic_num_mom(mcalc);
+
+  struct gkyl_array *marr = mkarr(use_gpu, num_mom, local_ext.volume);
+  struct gkyl_array *marr_ho = marr;
+  if (use_gpu)
+    marr_ho = mkarr(false, num_mom, local_ext.volume);
+  double *red_integ_mom_skin, *red_integ_mom_ghost;
+  if (use_gpu) {
+    red_integ_mom_skin = gkyl_cu_malloc(sizeof(double[vdim+2]));
+    red_integ_mom_ghost = gkyl_cu_malloc(sizeof(double[vdim+2]));
+  }
+  else {
+    red_integ_mom_skin = gkyl_malloc(sizeof(double[vdim+2]));
+    red_integ_mom_ghost = gkyl_malloc(sizeof(double[vdim+2]));
+  }
+
+  gkyl_dg_updater_moment_gyrokinetic_advance(mcalc,
+      &skin_ghost.upper_skin[bc_dir], &skin_ghost_conf.upper_skin[bc_dir], distf, marr);
+  gkyl_array_reduce_range(red_integ_mom_skin, marr, GKYL_SUM, &skin_ghost_conf.upper_skin[bc_dir]);
+
+  gkyl_dg_updater_moment_gyrokinetic_advance(mcalc,
+      &skin_ghost.lower_ghost[bc_dir], &skin_ghost_conf.lower_ghost[bc_dir], distf, marr);
+  gkyl_array_reduce_range(red_integ_mom_ghost, marr, GKYL_SUM, &skin_ghost_conf.lower_ghost[bc_dir]);
+
+  for (int k=0; k<vdim+2; k++) {
+    TEST_CHECK( gkyl_compare(red_integ_mom_skin[k], red_integ_mom_ghost[k], 1e-12));
+    TEST_MSG( "integ_mom %d | Expected: %.14e | Got: %.14e\n",k,red_integ_mom_skin[k],red_integ_mom_ghost[k]);
+  }
+
+  if (use_gpu) {
+    gkyl_cu_free(red_integ_mom_skin);
+    gkyl_cu_free(red_integ_mom_ghost);
+  }
+  else {
+    gkyl_free(red_integ_mom_skin);
+    gkyl_free(red_integ_mom_ghost);
+  }
+  if (use_gpu)
+    gkyl_array_release(marr_ho);
+  gkyl_dg_updater_moment_gyrokinetic_release(mcalc);
+  gkyl_array_release(marr);
+  gkyl_gk_geometry_release(gk_geom);
+  gkyl_velocity_map_release(gvm);
   gkyl_array_release(buff_per);
   test_bc_twistshift_array_meta_release(mt);
   gkyl_bc_twistshift_release(tsup);
