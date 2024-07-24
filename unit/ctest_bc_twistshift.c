@@ -111,6 +111,8 @@ struct test_bc_twistshift_ctx {
   double lower[GKYL_MAX_DIM], upper[GKYL_MAX_DIM];
   int cells[GKYL_MAX_DIM];
   double B0;
+  double vt;
+  double mass;
 };
 
 void
@@ -150,16 +152,23 @@ init_donor_3x2v(double t, const double *xn, double* restrict fout, void *ctx)
 
   struct test_bc_twistshift_ctx *pars = ctx;
   double Lx[2] = {pars->upper[0]-pars->lower[0], pars->upper[1]-pars->lower[1]};
+  double B0 = pars->B0;
+  double vt = pars->vt;
+  double mass = pars->mass;
+  double vtsq = vt*vt;
 
   double beta[2] = {0.0, 0.0};
 //  double sigma[2] = {Lx[0]/7.0, Lx[1]/10.0};
   double sigma[2] = {0.6, 0.2};
 
-  fout[0] = exp( -pow(x-beta[0],2)/(2.0*pow(sigma[0],2))
-                 -pow(y-beta[1],2)/(2.0*pow(sigma[1],2)) );  
 //  fout[0] = 0.;
 //  if (-1.6 < x && x < -1.2 && -0.3 < y && y < 0.)
 //    fout[0] = 1.;
+//  fout[0] = exp( -pow(x-beta[0],2)/(2.0*pow(sigma[0],2))
+//                 -pow(y-beta[1],2)/(2.0*pow(sigma[1],2)) );
+  fout[0] = ( 1.0/pow(sqrt(2.0*M_PI*vtsq),3) )
+    * exp( -pow(x-beta[0],2)/(2.0*pow(sigma[0],2)) -pow(y-beta[1],2)/(2.0*pow(sigma[1],2)) )
+    * exp( -(pow(vpar,2)+2.0*mu*B0/mass)/(2.0*vtsq) );  
 }
 
 void
@@ -176,7 +185,7 @@ test_bc_twistshift_3x2v(bool use_gpu)
   const int poly_order = 1;
   const double lower[] = {-2.0, -1.50, -3.0, -5.0*vt, 0.};
   const double upper[] = { 2.0,  1.50,  3.0,  5.0*vt, mass*(pow(5.0*vt,2))/(2.0*B0)};
-  const int cells[] = {80, 40, 4, 2, 1};
+  const int cells[] = {80, 40, 4, 16, 12};
   const int vdim = 2;
   const int ndim = sizeof(lower)/sizeof(lower[0]);
   const int cdim = ndim - vdim;
@@ -239,6 +248,8 @@ test_bc_twistshift_3x2v(bool use_gpu)
     .upper = {upper[0], upper[1], upper[2], upper[3], upper[4]},
     .cells = {cells[0], cells[1], cells[2], cells[3], cells[4]},
     .B0 = B0,
+    .vt = vt,
+    .mass = mass,
   };
 
   // Initialize the distribution
@@ -331,15 +342,17 @@ test_bc_twistshift_3x2v(bool use_gpu)
     gk_geom = gkyl_gk_geometry_acquire(gk_geom_dev);
     gkyl_gk_geometry_release(gk_geom_dev);
   }
+  gkyl_array_clear(gk_geom->bmag, 0.0);
+  gkyl_array_shiftc(gk_geom->bmag, B0*pow(sqrt(2.0),cdim), 0);
 
   struct gkyl_dg_updater_moment *mcalc = gkyl_dg_updater_moment_gyrokinetic_new(&grid, &basis_conf,
-    &basis, &local, mass, gvm, gk_geom, "ThreeMoments", true, use_gpu);
+    &basis, &local_conf, mass, gvm, gk_geom, "ThreeMoments", true, use_gpu);
   int num_mom = gkyl_dg_updater_moment_gyrokinetic_num_mom(mcalc);
 
-  struct gkyl_array *marr = mkarr(use_gpu, num_mom, local_ext.volume);
+  struct gkyl_array *marr = mkarr(use_gpu, num_mom, local_ext_conf.volume);
   struct gkyl_array *marr_ho = marr;
   if (use_gpu)
-    marr_ho = mkarr(false, num_mom, local_ext.volume);
+    marr_ho = mkarr(false, num_mom, local_ext_conf.volume);
   double *red_integ_mom_skin, *red_integ_mom_ghost;
   if (use_gpu) {
     red_integ_mom_skin = gkyl_cu_malloc(sizeof(double[vdim+2]));
