@@ -677,8 +677,6 @@ main(int argc, char **argv)
       .rleft= 2.0,
       .rmin = 1.1,
       .rmax = 6.2,
-      .zxpt_lo = -6.1672666854902927,
-      .zxpt_up = 6.1672666854902927,
   };
 
   // GK app

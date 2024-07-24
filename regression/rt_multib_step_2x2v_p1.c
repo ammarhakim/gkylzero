@@ -142,7 +142,6 @@ create_block_geom(void)
           .rleft = 2.0,
           .rmin = 2.1,
           .rmax = 6.2,
-          .zxpt_lo = Zxpt_lo,
           .zmin = -8.29,
         }
       },
@@ -174,7 +173,6 @@ create_block_geom(void)
           .rleft = 1.1,
           .rmin = 2.1,
           .rmax = 6.2,
-          .zxpt_lo = Zxpt_lo,
           .zmin = -8.29,
         }
       },
@@ -206,8 +204,6 @@ create_block_geom(void)
           .rleft = 1.1,
           .rmin = 2.1,
           .rmax = 6.2,
-          .zxpt_lo = Zxpt_lo,
-          .zxpt_up = Zxpt_up,
         }
       },
       
@@ -238,7 +234,6 @@ create_block_geom(void)
           .rleft = 1.1,
           .rmin = 2.1,
           .rmax = 6.2,
-          .zxpt_up = Zxpt_up,
           .zmax = 8.29,
         }
       },
@@ -270,7 +265,6 @@ create_block_geom(void)
           .rleft = 2.0,
           .rmin = 2.1,
           .rmax = 6.2,
-          .zxpt_up = Zxpt_up,
           .zmax = 8.29,
         }
       },
@@ -302,7 +296,6 @@ create_block_geom(void)
           .rleft = 2.0,
           .rmin = 1.6,
           .rmax = 6.2,
-          .zxpt_up = Zxpt_up,
           .zmax = 6.34,
         }
       },
@@ -334,7 +327,6 @@ create_block_geom(void)
           .rright= 6.2,
           .rmin = 1.3,
           .rmax = 6.2,
-          .zxpt_up = Zxpt_up,
           .zmax = 6.34,  
         }
       },
@@ -366,8 +358,6 @@ create_block_geom(void)
           .rright= 6.2,
           .rmin = 1.3,
           .rmax = 6.2,
-          .zxpt_up = Zxpt_up,
-          .zxpt_lo = Zxpt_lo,
         }
       },
       
@@ -399,7 +389,6 @@ create_block_geom(void)
           .rmin = 1.3,
           .rmax = 6.2,
           .zmin = -6.34,
-          .zxpt_lo = Zxpt_lo,
         }
       },
       
@@ -430,7 +419,6 @@ create_block_geom(void)
           .rleft = 2.0,
           .rmin = 1.6,
           .rmax = 6.2,
-          .zxpt_lo = Zxpt_lo,
           .zmin = -6.34,
         }
       },
@@ -463,8 +451,6 @@ create_block_geom(void)
           .rright= 6.2,
           .rmin=1.5,
           .rmax=6.2,
-          .zxpt_lo = Zxpt_lo,
-          .zxpt_up = Zxpt_up,
         }
       },
       
@@ -496,8 +482,6 @@ create_block_geom(void)
           .rright= 6.2,
           .rmin=1.5,
           .rmax=6.2,
-          .zxpt_lo = Zxpt_lo,
-          .zxpt_up = Zxpt_up,
         }
       },
       

@@ -1,4 +1,5 @@
 #include <gkyl_tok_geo.h>
+#include <gkyl_efit.h>
 
 // Function context to pass to root finder
 struct arc_length_ctx {

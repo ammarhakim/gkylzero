@@ -80,8 +80,6 @@ write_geometry(gk_geometry *up, struct gkyl_rect_grid grid, struct gkyl_range lo
 //.zmax = 6.14226,
 //
 //Coords that worked for core
-//.zxpt_lo = -6.14214,
-//.zxpt_up = 6.1423,
 
 //double psisep = 1.5098198350000001;
 //double psisep = 1.5093121789263824;
@@ -232,10 +230,6 @@ test_core()
     .rright= 6.2,
     .rmin=1.5,
     .rmax=6.2,
-    //.zxpt_lo = -6.1,
-    //.zxpt_up = 6.1,
-    .zxpt_lo = Zxpt_lo,
-    .zxpt_up = Zxpt_up,
 
   }; 
   struct gkyl_gk_geometry_inp geometry_inp = {
@@ -287,10 +281,6 @@ test_core_l()
     .rright= 6.2,
     .rmin=1.5,
     .rmax=6.2,
-    //.zxpt_lo = -6.1,
-    //.zxpt_up = 6.1,
-    .zxpt_lo = Zxpt_lo,
-    .zxpt_up = Zxpt_up,
 
   }; 
   struct gkyl_gk_geometry_inp geometry_inp = {
@@ -349,8 +339,6 @@ test_outer()
     //.zmax = 6.1,
     //.zmin = Zxpt_lo,
     //.zmax = Zxpt_up,
-    .zxpt_lo = Zxpt_lo,
-    .zxpt_up = Zxpt_up,
   }; 
   struct gkyl_gk_geometry_inp geometry_inp = {
     .geometry_id  = GKYL_TOKAMAK,
@@ -402,7 +390,6 @@ test_upper()
     .rleft = 1.1,
     .rmin = 2.1,
     .rmax = 6.2,
-    .zxpt_up = Zxpt_up,
     .zmax = 8.29,
   }; 
   struct gkyl_gk_geometry_inp geometry_inp = {
@@ -455,7 +442,6 @@ test_lower()
     .rleft = 1.1,
     .rmin = 2.1,
     .rmax = 6.2,
-    .zxpt_lo = Zxpt_lo,
     .zmin = -8.29,
   }; 
   struct gkyl_gk_geometry_inp geometry_inp = {
@@ -506,7 +492,6 @@ test_pflo_r()
     .rleft = 2.0,
     .rmin = 2.1,
     .rmax = 6.2,
-    .zxpt_lo = Zxpt_lo,
     .zmin = -8.29,
   }; 
   struct gkyl_gk_geometry_inp geometry_inp = {
@@ -557,7 +542,6 @@ test_pflo_l()
     .rleft = 2.0,
     .rmin = 1.6,
     .rmax = 6.2,
-    .zxpt_lo = Zxpt_lo,
     .zmin = -6.34,
   }; 
   struct gkyl_gk_geometry_inp geometry_inp = {
@@ -608,7 +592,6 @@ test_pfup_r()
     .rleft = 2.0,
     .rmin = 2.1,
     .rmax = 6.2,
-    .zxpt_up = Zxpt_up,
     .zmax = 8.29,
   }; 
   struct gkyl_gk_geometry_inp geometry_inp = {
@@ -659,7 +642,6 @@ test_pfup_l()
     .rleft = 2.0,
     .rmin = 1.6,
     .rmax = 6.2,
-    .zxpt_up = Zxpt_up,
     .zmax = 6.34,
   }; 
   struct gkyl_gk_geometry_inp geometry_inp = {
@@ -711,7 +693,6 @@ test_inner_upper()
     .rright= 6.2,
     .rmin = 1.3,
     .rmax = 6.2,
-    .zxpt_up = Zxpt_up,
     .zmax = 6.34,  
   }; 
   struct gkyl_gk_geometry_inp geometry_inp = {
@@ -762,8 +743,6 @@ test_inner_middle()
     .rright= 6.2,
     .rmin = 1.3,
     .rmax = 6.2,
-    .zxpt_up = Zxpt_up,
-    .zxpt_lo = Zxpt_lo,
   }; 
   struct gkyl_gk_geometry_inp geometry_inp = {
     .geometry_id  = GKYL_TOKAMAK,
@@ -814,7 +793,6 @@ test_inner_lower()
     .rmin = 1.3,
     .rmax = 6.2,
     .zmin = -6.34,
-    .zxpt_lo = Zxpt_lo,
   }; 
   struct gkyl_gk_geometry_inp geometry_inp = {
     .geometry_id  = GKYL_TOKAMAK,

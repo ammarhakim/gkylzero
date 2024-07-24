@@ -7,7 +7,6 @@
 #include <gkyl_rect_grid.h>
 #include <gkyl_nodal_ops.h>
 #include <gkyl_gk_geometry.h>
-#include <gkyl_efit.h>
 #include <gkyl_tok_geo_priv.h>
 #include <assert.h>
 

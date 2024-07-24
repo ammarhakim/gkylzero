@@ -69,7 +69,6 @@ create_block_geom(void)
           .rleft = 1.1,
           .rmin = 2.1,
           .rmax = 6.2,
-          .zxpt_lo = Zxpt_lo,
           .zmin = -8.29,
         }
       },
@@ -101,8 +100,6 @@ create_block_geom(void)
           .rleft = 1.1,
           .rmin = 2.1,
           .rmax = 6.2,
-          .zxpt_lo = Zxpt_lo,
-          .zxpt_up = Zxpt_up,
         }
       },
       

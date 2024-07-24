@@ -145,9 +145,6 @@ struct gkyl_tok_geo_grid_inp {
   double zmin_left, zmin_right; // for lower single null and PF cases diff b/t in and outboard side
   double zmax_left, zmax_right; // for upper single null and PF cases diff b/t in and outboard side
 
-  double zxpt_lo; // z of the lower x point
-  double zxpt_up; // z of the upper x point
-
   bool exact_roots; // If false we will allow approximate roots when no root is found
 };
 
