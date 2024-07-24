@@ -237,7 +237,7 @@ create_ctx(void)
 
   // Simulation box size (m).
   double lower_x = 0.934;
-  double upper_x = 1.5093064812266526;
+  double upper_x = 1.5093065418975686;
   double Lx = upper_x - lower_x;
   double Lz = (M_PI-1e-14)*2.0;
 
@@ -677,8 +677,8 @@ main(int argc, char **argv)
       .rleft= 2.0,
       .rmin = 1.1,
       .rmax = 6.2,
-      .zxpt_lo = -6.1832194507224534,
-      .zxpt_up = 6.1832194507224534,
+      .zxpt_lo = -6.1672666854902927,
+      .zxpt_up = 6.1672666854902927,
   };
 
   // GK app

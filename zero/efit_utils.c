@@ -3,14 +3,6 @@
 
 static inline double sq(x) { return x*x; }
 
-static inline double dpsidx_tensor(double x, double y, const double *cell_coeffs) {
-    return 5.625*cell_coeffs[8]*(2.0*x*sq(y)-0.6666666666666666*x)+2.904737509655563*cell_coeffs[7]*(sq(y)-0.3333333333333333)+5.809475019311126*cell_coeffs[6]*x*y+1.5*cell_coeffs[3]*y+3.354101966249684*cell_coeffs[4]*x+0.8660254037844386*cell_coeffs[1];
-}
-
-static inline double dpsidy_tensor(double x, double y, const double *cell_coeffs) {
-    return 5.625*cell_coeffs[8]*(2.0*sq(x)*y-0.6666666666666666*y)+5.809475019311126*cell_coeffs[7]*x*y+3.354101966249684*cell_coeffs[5]*y+2.904737509655563*cell_coeffs[6]*(sq(x)-0.3333333333333333)+1.5*cell_coeffs[3]*x+0.8660254037844386*cell_coeffs[2];
-}
-
 static inline double d2psidx2_tensor(double x, double y, const double *cell_coeffs) {
     return 5.625*cell_coeffs[8]*(2.0*sq(y)-0.6666666666666666)+5.809475019311126*cell_coeffs[6]*y+3.354101966249684*cell_coeffs[4];
 }
@@ -21,13 +13,6 @@ static inline double d2psidy2_tensor(double x, double y, const double *cell_coef
 
 static inline double dpsidxdy_tensor(double x, double y, const double *cell_coeffs) {
     return 22.5*cell_coeffs[8]*x*y+5.809475019311126*cell_coeffs[7]*y+5.809475019311126*cell_coeffs[6]*x+1.5*cell_coeffs[3];
-}
-
-static void loss_func(double* x, double* f, const double* cell_coeffs) {
-    double x0 = x[0];
-    double y0 = x[1];
-    f[0] = dpsidx_tensor(x0, y0, cell_coeffs);
-    f[1] = dpsidy_tensor(x0, y0, cell_coeffs);
 }
 
 static void jac(double* x, double J[2][2], const double* cell_coeffs) {
@@ -57,7 +42,7 @@ static void print_result(int n, double x[], double dx[], double errx, double err
 }
 
 bool 
-newton_raphson(const double *coeffs, double *xsol)
+newton_raphson(struct gkyl_efit *up, const double *coeffs, double *xsol)
 {
   int n = 2;
   double x[2] = {0.0,0.0};
@@ -70,7 +55,7 @@ newton_raphson(const double *coeffs, double *xsol)
   double errx = 0.0;
   double errf = 0.0;
   for(int niter = 0; niter < ntrial; niter++) {
-    loss_func(x, fvec, coeffs);
+    for(int i=0; i<n; i++) fvec[i] = up->rzbasis->eval_grad_expand(i,x,coeffs);
     jac(x, fjac, coeffs);
     errf = 0.0;
     for (int i=0;i<n;i++) errf += fvec[i]*fvec[i];
@@ -118,7 +103,7 @@ find_xpts(gkyl_efit* up)
       if ((iter.idx[1] < gkyl_range_shape(up->rzlocal,1)/2 + 1) || (!up->reflect)) {
         const double* psi = gkyl_array_cfetch(up->psizr, gkyl_range_idx(up->rzlocal, iter.idx));
         double xsol[2];
-        bool status = newton_raphson(psi, xsol);
+        bool status = newton_raphson(up, psi, xsol);
         double x0 = xsol[0];
         double y0 = xsol[1];
         double psi0 = up->rzbasis->eval_expand(xsol, psi);
@@ -126,8 +111,8 @@ find_xpts(gkyl_efit* up)
           found_xpt = true;
           double xc[2];
           gkyl_rect_grid_cell_center(up->rzgrid, iter.idx, xc);
-          double R0 = up->rzgrid->dx[0]*x0 + xc[0];
-          double Z0 = up->rzgrid->dx[1]*y0 + xc[1];
+          double R0 = up->rzgrid->dx[0]*x0/2.0 + xc[0];
+          double Z0 = up->rzgrid->dx[1]*y0/2.0 + xc[1];
           if(fabs(psi0 - up->sibry) <= fabs(psisep - up->sibry)) {
               Rsep = R0;
               Zsep = Z0;
