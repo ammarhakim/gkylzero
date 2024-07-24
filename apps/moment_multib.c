@@ -291,6 +291,7 @@ singleb_app_new(const struct gkyl_moment_multib *mbinp, int bid,
   return gkyl_moment_app_new(&app_inp);
 }
 
+
 struct gkyl_moment_multib_app *
 gkyl_moment_multib_app_new(const struct gkyl_moment_multib *mbinp)
 {
