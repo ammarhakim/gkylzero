@@ -154,11 +154,14 @@ struct gkyl_gyrokinetic_multib {
   double cfl_frac; // CFL fraction to use
 
   int num_species; // number of species
-  int num_neut_species; // number of neutral species
   // species inputs
   struct gkyl_gyrokinetic_multib_species species[GKYL_MAX_SPECIES];
+
+  int num_neut_species; // number of neutral species  
   // neutral species inputs
   struct gkyl_gyrokinetic_multib_neut_species neut_species[GKYL_MAX_SPECIES];
+
+  bool skip_field; // Skip field update -> phi = 0 for all time  
   // field inputs
   struct gkyl_gyrokinetic_multib_field field;
 
