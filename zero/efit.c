@@ -1,76 +1,19 @@
 #include <stdio.h>
 #include <math.h>
-#include <float.h>
 #include <string.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
 #include <stdlib.h>
-#include <gkyl_alloc.h>
 #include <gkyl_rect_grid.h>
-#include<gkyl_rect_decomp.h>
+#include <gkyl_rect_decomp.h>
 #include <gkyl_efit.h>
+#include <gkyl_efit_priv.h>
 
 #include <gkyl_array.h>
 #include <gkyl_range.h>
 #include <gkyl_nodal_ops.h>
 #include <assert.h>
-
-#include <gkyl_efit_priv.h>
-
-void find_xpts(gkyl_efit* up)
-{
-    bool found_xpt = false;
-    double Rsep, Zsep;
-    double psisep = DBL_MAX;
-    struct gkyl_range_iter iter;
-    gkyl_range_iter_init(&iter, up->rzlocal);
-    while (gkyl_range_iter_next(&iter)) {
-      if ((iter.idx[1] < gkyl_range_shape(up->rzlocal,1)/2 + 1) || (!up->reflect)) {
-        const double* psi = gkyl_array_cfetch(up->psizr, gkyl_range_idx(up->rzlocal, iter.idx));
-        double xsol[2];
-        bool status = newton_raphson(psi, xsol);
-        double x0 = xsol[0];
-        double y0 = xsol[1];
-        double psi0 = up->rzbasis->eval_expand(xsol, psi);
-        if (x0 >= -1 && x0 <= 1 && y0 >= -1 && y0 <= 1 && status) {
-          found_xpt = true;
-          double xc[2];
-          gkyl_rect_grid_cell_center(up->rzgrid, iter.idx, xc);
-          double R0 = up->rzgrid->dx[0]*x0 + xc[0];
-          double Z0 = up->rzgrid->dx[1]*y0 + xc[1];
-          if(fabs(psi0 - up->sibry) <= fabs(psisep - up->sibry)) {
-              Rsep = R0;
-              Zsep = Z0;
-              psisep = psi0;
-          }
-        }
-      }
-    }
-
-    if (found_xpt) {
-      if (up->reflect) {
-        up->num_xpts = 2;
-        up->Rxpt = gkyl_malloc(sizeof(double)*up->num_xpts);
-        up->Zxpt = gkyl_malloc(sizeof(double)*up->num_xpts);
-        up->Rxpt[0] = Rsep;
-        up->Rxpt[1] = Rsep;
-        up->Zxpt[0] = Zsep;
-        up->Zxpt[1] = -Zsep;
-        up->psisep = psisep;
-      }
-      else {
-        up->num_xpts = 1;
-        up->Rxpt = gkyl_malloc(sizeof(double)*up->num_xpts);
-        up->Zxpt = gkyl_malloc(sizeof(double)*up->num_xpts);
-        up->Rxpt[0] = Rsep;
-        up->Zxpt[0] = Zsep;
-        up->psisep = psisep;
-      }
-    }
-}
-
-
 
 gkyl_efit* gkyl_efit_new(const char *filepath, int rz_poly_order, 
   enum gkyl_basis_type rz_basis_type, int flux_poly_order, bool reflect, bool use_gpu)
@@ -278,7 +221,7 @@ gkyl_efit* gkyl_efit_new(const char *filepath, int rz_poly_order,
   find_xpts(up);
   printf("num_xpts = %d\n", up->num_xpts);
   for (int i = 0; i < up->num_xpts; i++) {
-    printf("Rxpt[%d] = %f, Zxpt[%d] = %f | psisep = %g\n", i, up->Rxpt[i], i, up->Zxpt[i], up->psisep);
+    printf("Rxpt[%d] = %1.16f, Zxpt[%d] = %1.16f | psisep = %1.16f\n", i, up->Rxpt[i], i, up->Zxpt[i], up->psisep);
   }
 
 
