@@ -111,24 +111,7 @@ struct gkyl_tok_geo_efit_inp {
   int rzpoly_order;
   enum gkyl_basis_type rz_basis_type;
   int fluxpoly_order;
-  // Specifications for divertor plate
-  bool plate_spec;
-  plate_func plate_func_lower;
-  plate_func plate_func_upper;
-
   bool reflect; // whether to reflect across R axis to preserve symmetry
-
-  // Parameters for root finder: leave unset to use defaults
-  struct {
-    int max_iter; // typically 20
-    double eps; // typically 1e-10
-  } root_param;
-
-  // Parameters for nmumerical quadrature: leave unset to use default
-  struct {
-    int max_levels; // typically 6-7    
-    double eps; // typically 1e-10
-  } quad_param;
 };
 
 // Inputs to create geometry for a specific computational grid
@@ -145,7 +128,22 @@ struct gkyl_tok_geo_grid_inp {
   double zmin_left, zmin_right; // for lower single null and PF cases diff b/t in and outboard side
   double zmax_left, zmax_right; // for upper single null and PF cases diff b/t in and outboard side
 
+  // Specifications for divertor plate
+  bool plate_spec;
+  plate_func plate_func_lower;
+  plate_func plate_func_upper;
+
   bool exact_roots; // If false we will allow approximate roots when no root is found
+  // Parameters for root finder: leave unset to use defaults
+  struct {
+    int max_iter; // typically 20
+    double eps; // typically 1e-10
+  } root_param;
+  // Parameters for nmumerical quadrature: leave unset to use default
+  struct {
+    int max_levels; // typically 6-7    
+    double eps; // typically 1e-10
+  } quad_param;
 };
 
 
@@ -156,7 +154,7 @@ struct gkyl_tok_geo_grid_inp {
  * @param inp Input parameters
  * @param New GK geometry updater
  */
-struct gkyl_tok_geo *gkyl_tok_geo_new(const struct gkyl_tok_geo_efit_inp *inp);
+struct gkyl_tok_geo *gkyl_tok_geo_new(const struct gkyl_tok_geo_efit_inp *inp, const struct gkyl_tok_geo_grid_inp *grid_inp);
 
 /**
  * Get R(psi,Z) for a specified psi and Z value. Multiple values may

@@ -489,10 +489,6 @@ main(int argc, char **argv)
     .filepath = "./data/eqdsk/asdex.geqdsk",
     .rzpoly_order = 2,
     .fluxpoly_order = 1,
-    .plate_spec = true,
-    .plate_func_lower = shaped_pfunc_lower,
-    .plate_func_upper = shaped_pfunc_upper,
-    .quad_param = {  .eps = 1e-10 }
   };
 
   struct gkyl_tok_geo_grid_inp grid_inp = {
@@ -506,6 +502,9 @@ main(int argc, char **argv)
     .zmax = 1.0,
     .zmin_left = -1.3,
     .zmin_right = -1.3,
+    .plate_spec = true,
+    .plate_func_lower = shaped_pfunc_lower,
+    .plate_func_upper = shaped_pfunc_upper,
   };
 
   // GK app

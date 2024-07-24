@@ -23,8 +23,6 @@
       .filepath = "./data/eqdsk/cerfon.geqdsk",
       .rzpoly_order = 2,
       .fluxpoly_order = 1,
-      .plate_spec = false,
-      .quad_param = {  .eps = 1e-10 }
     };
 
 

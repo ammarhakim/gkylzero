@@ -148,8 +148,6 @@ test_fixed_z()
       .filepath = "./data/eqdsk/step.geqdsk",
       .rzpoly_order = 2,
       .fluxpoly_order = 1,
-      .plate_spec = false,
-      .quad_param = {  .eps = 1e-10 }
     };
 
   //double clower[] = { 0.934, -0.01, -3.14 };
@@ -249,11 +247,6 @@ test_horizontal_plate()
       .filepath = "./data/eqdsk/step.geqdsk",
       .rzpoly_order = 2,
       .fluxpoly_order = 1,
-      .plate_spec = true,
-      // can set plate func if you dont want a fixed zmin and zmax
-      .plate_func_lower = horizontal_pfunc_lower,
-      .plate_func_upper = horizontal_pfunc_upper,
-      .quad_param = {  .eps = 1e-10 }
     };
 
   double clower[] = { 0.934, -0.01, -3.14 };
@@ -277,6 +270,10 @@ test_horizontal_plate()
     .rclose = 6.2,
     .zmin = -8.3,
     .zmax = 8.3,
+    .plate_spec = true,
+    // can set plate func if you dont want a fixed zmin and zmax
+    .plate_func_lower = horizontal_pfunc_lower,
+    .plate_func_upper = horizontal_pfunc_upper,
   }; 
 
   struct gkyl_gk_geometry_inp geometry_inp = {
@@ -322,11 +319,6 @@ test_vertical_plate()
       .filepath = "./data/eqdsk/step.geqdsk",
       .rzpoly_order = 2,
       .fluxpoly_order = 1,
-      .plate_spec = true,
-      // can set plate func if you dont want a fixed zmin and zmax
-      .plate_func_lower = vertical_pfunc_lower,
-      .plate_func_upper = vertical_pfunc_upper,
-      .quad_param = {  .eps = 1e-10 }
     };
 
   double clower[] = { 0.934, -0.01, -3.14 };
@@ -350,6 +342,10 @@ test_vertical_plate()
     .rclose = 6.2,
     .zmin = -8.3,
     .zmax = 8.3,
+    .plate_spec = true,
+    // can set plate func if you dont want a fixed zmin and zmax
+    .plate_func_lower = vertical_pfunc_lower,
+    .plate_func_upper = vertical_pfunc_upper,
   }; 
   struct gkyl_gk_geometry_inp geometry_inp = {
     .geometry_id  = GKYL_TOKAMAK,
@@ -393,11 +389,6 @@ test_shaped_plate()
       .filepath = "./data/eqdsk/step.geqdsk",
       .rzpoly_order = 2,
       .fluxpoly_order = 1,
-      .plate_spec = true,
-      // can set plate func if you dont want a fixed zmin and zmax
-      .plate_func_lower = shaped_pfunc_lower,
-      .plate_func_upper = shaped_pfunc_upper,
-      .quad_param = {  .eps = 1e-10 }
     };
 
   //double clower[] = { 0.934, -0.01, -3.14 };
@@ -425,6 +416,10 @@ test_shaped_plate()
     .rclose = 6.2,
     .zmin = -8.3,
     .zmax = 8.3,
+    .plate_spec = true,
+    // can set plate func if you dont want a fixed zmin and zmax
+    .plate_func_lower = shaped_pfunc_lower,
+    .plate_func_upper = shaped_pfunc_upper,
   }; 
 
   struct gkyl_gk_geometry_inp geometry_inp = {

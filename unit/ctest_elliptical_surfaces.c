@@ -47,8 +47,6 @@ test_elliptical()
       .filepath = "./data/eqdsk/elliptical.geqdsk",
       .rzpoly_order = 2,
       .fluxpoly_order = 1,
-      .plate_spec = false,
-      .quad_param = {  .eps = 1e-10 }
     };
 
   double psisep = -4.0;

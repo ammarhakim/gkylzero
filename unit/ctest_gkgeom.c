@@ -64,7 +64,6 @@ ellip_unit(void)
       .psiRZ = psiRZ,
       .rzlocal = &rzlocal,
 
-      .quad_param = {  .eps = 1e-12 }
     }
   );
 

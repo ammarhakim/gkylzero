@@ -171,11 +171,7 @@ struct gkyl_tok_geo_efit_inp inp_inner= {
     .rzpoly_order = 2,
     .rz_basis_type = GKYL_BASIS_MODAL_TENSOR,
     .fluxpoly_order = 1,
-    .plate_spec = true,
-    .quad_param = {  .eps = 1e-10 },
     .reflect = true,
-    .plate_func_lower = shaped_pfunc_lower_inner,
-    .plate_func_upper = shaped_pfunc_upper_inner,
   };
 
 struct gkyl_tok_geo_efit_inp inp = {
@@ -184,8 +180,6 @@ struct gkyl_tok_geo_efit_inp inp = {
     .rzpoly_order = 2,
     .rz_basis_type = GKYL_BASIS_MODAL_TENSOR,
     .fluxpoly_order = 1,
-    .plate_spec = false,
-    .quad_param = {  .eps = 1e-10 },
     .reflect = true,
   };
 
@@ -195,11 +189,7 @@ struct gkyl_tok_geo_efit_inp inp_outer = {
     .rzpoly_order = 2,
     .rz_basis_type = GKYL_BASIS_MODAL_TENSOR,
     .fluxpoly_order = 1,
-    .plate_spec = true,
-    .quad_param = {  .eps = 1e-10 },
     .reflect = true,
-    .plate_func_lower = shaped_pfunc_lower_outer,
-    .plate_func_upper = shaped_pfunc_upper_outer,
   };
 
 int cpoly_order = 1;
@@ -230,6 +220,9 @@ test_core()
     .rright= 6.2,
     .rmin=1.5,
     .rmax=6.2,
+    .plate_spec = true,
+    .plate_func_lower = shaped_pfunc_lower_outer,
+    .plate_func_upper = shaped_pfunc_upper_outer,
 
   }; 
   struct gkyl_gk_geometry_inp geometry_inp = {
@@ -335,10 +328,9 @@ test_outer()
     .rleft = 1.1,
     .rmin = 2.1,
     .rmax = 6.2,
-    //.zmin = -6.1,
-    //.zmax = 6.1,
-    //.zmin = Zxpt_lo,
-    //.zmax = Zxpt_up,
+    .plate_spec = true,
+    .plate_func_lower = shaped_pfunc_lower_outer,
+    .plate_func_upper = shaped_pfunc_upper_outer,
   }; 
   struct gkyl_gk_geometry_inp geometry_inp = {
     .geometry_id  = GKYL_TOKAMAK,
@@ -391,6 +383,9 @@ test_upper()
     .rmin = 2.1,
     .rmax = 6.2,
     .zmax = 8.29,
+    .plate_spec = true,
+    .plate_func_lower = shaped_pfunc_lower_outer,
+    .plate_func_upper = shaped_pfunc_upper_outer,
   }; 
   struct gkyl_gk_geometry_inp geometry_inp = {
     .geometry_id  = GKYL_TOKAMAK,
@@ -443,6 +438,9 @@ test_lower()
     .rmin = 2.1,
     .rmax = 6.2,
     .zmin = -8.29,
+    .plate_spec = true,
+    .plate_func_lower = shaped_pfunc_lower_outer,
+    .plate_func_upper = shaped_pfunc_upper_outer,
   }; 
   struct gkyl_gk_geometry_inp geometry_inp = {
     .geometry_id  = GKYL_TOKAMAK,
@@ -493,6 +491,9 @@ test_pflo_r()
     .rmin = 2.1,
     .rmax = 6.2,
     .zmin = -8.29,
+    .plate_spec = true,
+    .plate_func_lower = shaped_pfunc_lower_outer,
+    .plate_func_upper = shaped_pfunc_upper_outer,
   }; 
   struct gkyl_gk_geometry_inp geometry_inp = {
     .geometry_id  = GKYL_TOKAMAK,
@@ -543,6 +544,9 @@ test_pflo_l()
     .rmin = 1.6,
     .rmax = 6.2,
     .zmin = -6.34,
+    .plate_spec = true,
+    .plate_func_lower = shaped_pfunc_lower_inner,
+    .plate_func_upper = shaped_pfunc_upper_inner,
   }; 
   struct gkyl_gk_geometry_inp geometry_inp = {
     .geometry_id  = GKYL_TOKAMAK,
@@ -593,6 +597,9 @@ test_pfup_r()
     .rmin = 2.1,
     .rmax = 6.2,
     .zmax = 8.29,
+    .plate_spec = true,
+    .plate_func_lower = shaped_pfunc_lower_outer,
+    .plate_func_upper = shaped_pfunc_upper_outer,
   }; 
   struct gkyl_gk_geometry_inp geometry_inp = {
     .geometry_id  = GKYL_TOKAMAK,
@@ -643,6 +650,9 @@ test_pfup_l()
     .rmin = 1.6,
     .rmax = 6.2,
     .zmax = 6.34,
+    .plate_spec = true,
+    .plate_func_lower = shaped_pfunc_lower_inner,
+    .plate_func_upper = shaped_pfunc_upper_inner,
   }; 
   struct gkyl_gk_geometry_inp geometry_inp = {
     .geometry_id  = GKYL_TOKAMAK,
@@ -694,6 +704,9 @@ test_inner_upper()
     .rmin = 1.3,
     .rmax = 6.2,
     .zmax = 6.34,  
+    .plate_spec = true,
+    .plate_func_lower = shaped_pfunc_lower_inner,
+    .plate_func_upper = shaped_pfunc_upper_inner,
   }; 
   struct gkyl_gk_geometry_inp geometry_inp = {
     .geometry_id  = GKYL_TOKAMAK,
@@ -793,6 +806,9 @@ test_inner_lower()
     .rmin = 1.3,
     .rmax = 6.2,
     .zmin = -6.34,
+    .plate_spec = true,
+    .plate_func_lower = shaped_pfunc_lower_inner,
+    .plate_func_upper = shaped_pfunc_upper_inner,
   }; 
   struct gkyl_gk_geometry_inp geometry_inp = {
     .geometry_id  = GKYL_TOKAMAK,

@@ -48,8 +48,6 @@ create_block_geom(void)
     .rzpoly_order = 2,
     .rz_basis_type = GKYL_BASIS_MODAL_TENSOR,
     .fluxpoly_order = 1,
-    .plate_spec = false,
-    .quad_param = {  .eps = 1e-10 },
     .reflect = true,
   };
 

@@ -477,8 +477,6 @@ main(int argc, char **argv)
     .filepath = "./data/eqdsk/solovev.geqdsk",
     .rzpoly_order = 2,
     .fluxpoly_order = 1,
-    .plate_spec = false,
-    .quad_param = {  .eps = 1e-10 }
   };
   
   struct gkyl_tok_geo_grid_inp grid_inp = {

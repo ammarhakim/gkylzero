@@ -32,8 +32,6 @@ test_deep_core()
       .filepath = "./data/eqdsk/step.geqdsk",
       .rzpoly_order = 2,
       .fluxpoly_order = 1,
-      .plate_spec = false,
-      .quad_param = {  .eps = 1e-10 }
     };
 
 
@@ -109,8 +107,6 @@ test_boundary()
       .filepath = "./data/eqdsk/step.geqdsk",
       .rzpoly_order = 2,
       .fluxpoly_order = 1,
-      .plate_spec = false,
-      .quad_param = {  .eps = 1e-10 }
     };
 
   double psisep = 1.5098198350000001;

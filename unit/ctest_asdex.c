@@ -91,8 +91,6 @@ test_fixed_z()
       .filepath = "./data/eqdsk/asdex.geqdsk",
       .rzpoly_order = 2,
       .fluxpoly_order = 1,
-      .plate_spec = false,
-      .quad_param = {  .eps = 1e-10 }
     };
 
   double clower[] = { 0.16, -0.01, -3.14 };
@@ -163,10 +161,6 @@ test_shaped_plate()
       .filepath = "./data/eqdsk/asdex.geqdsk",
       .rzpoly_order = 2,
       .fluxpoly_order = 1,
-      .plate_spec = false,
-      //.plate_func_lower = shaped_pfunc_lower,
-      //.plate_func_upper = shaped_pfunc_upper,
-      .quad_param = {  .eps = 1e-10 }
     };
 
   double clower[] = { 0.16, -0.01, -3.14 };
