@@ -143,6 +143,10 @@ gkyl_moment_app_new(struct gkyl_moment *mom)
     for (int r=0; r<app->num_species; ++r)
       app->nu_base[s][r] = mom->nu_base[s][r];
 
+  // Are we running with Braginskii transport?
+  app->has_braginskii = mom->has_braginskii;
+  app->coll_fac = mom->coll_fac;
+
   // check if we should update sources
   app->update_sources = 0;
   if (app->has_field && ns>0) {

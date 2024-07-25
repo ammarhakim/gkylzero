@@ -96,7 +96,6 @@ main(int argc, char **argv)
     .init = evalElcInit,
     .app_accel_func = evalAppAccel,
     .type_brag = GKYL_BRAG_MAG_FULL,
-    .coll_fac = 1.0,  
 
     .bcx = { GKYL_SPECIES_NO_SLIP, GKYL_SPECIES_NO_SLIP },
   };
@@ -109,7 +108,6 @@ main(int argc, char **argv)
     .init = evalIonInit,
     .app_accel_func = evalAppAccel,
     .type_brag = GKYL_BRAG_MAG_FULL,
-    .coll_fac = 1.0,
 
     .bcx = { GKYL_SPECIES_NO_SLIP, GKYL_SPECIES_NO_SLIP },    
   };  
@@ -126,6 +124,9 @@ main(int argc, char **argv)
     .num_periodic_dir = 0,
     .periodic_dirs = { },
     .cfl_frac = 1.0,
+
+    .has_braginskii = true, 
+    .coll_fac = 1.0,  
 
     .num_species = 2,
     .species = { elc, ion },

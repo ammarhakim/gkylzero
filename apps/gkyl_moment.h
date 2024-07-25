@@ -20,7 +20,6 @@ struct gkyl_moment_species {
   enum gkyl_wave_split_type split_type; // edge splitting to use
 
   enum gkyl_braginskii_type type_brag; // which Braginskii equations
-  double coll_fac; // multiplicative collisionality factor for Braginskii  
   bool has_grad_closure; // has gradient-based closure (only for 10 moment) 
 
   bool has_friction; // Run with frictional sources.
@@ -161,6 +160,9 @@ struct gkyl_moment {
   double nu_base[GKYL_MAX_SPECIES][GKYL_MAX_SPECIES];
 
   bool has_nT_sources;
+
+  bool has_braginskii; // has Braginskii transport
+  double coll_fac; // multiplicative collisionality factor for Braginskii  
 
   // this should not be set by typical user-facing code but only by
   // higher-level drivers
