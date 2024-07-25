@@ -1,5 +1,6 @@
 #include <gkyl_alloc.h>
 #include <gkyl_const.h>
+#include <gkyl_efit.h>
 #include <gkyl_gyrokinetic_multib.h>
 #include <gkyl_mpi_comm.h>
 #include <gkyl_null_comm.h>
@@ -66,12 +67,20 @@ create_block_geom(void)
       another edge are a physical boundary.
   */  
 
-  double psisep = 1.5093065418975686;
-  double Zxpt_lo = -6.1672666854902927;
-  double Zxpt_up = 6.1672666854902927;
 
 
+  struct gkyl_efit_inp efit_inp = {
+      // psiRZ and related inputs
+      .filepath = "./data/eqdsk/step.geqdsk",
+      .rz_poly_order = 2,
+      .rz_basis_type = GKYL_BASIS_MODAL_TENSOR,
+      .flux_poly_order = 1,
+      .reflect = true,
+    };
 
+  struct gkyl_efit *efit = gkyl_efit_new(&efit_inp);
+  double psisep = efit->psisep;
+  gkyl_efit_release(efit);
   double psi_up_core = 1.8;
   double psi_up_pf = 1.8;
   double psi_lo_outer_sol = 0.934;
@@ -88,15 +97,6 @@ create_block_geom(void)
   double ntheta_upper  = 8;
 
   double theta_lo = -M_PI + 1e-14, theta_up = M_PI - 1e-14;
-
-  struct gkyl_efit_inp efit_inp = {
-      // psiRZ and related inputs
-      .filepath = "./data/eqdsk/step.geqdsk",
-      .rz_poly_order = 2,
-      .rz_basis_type = GKYL_BASIS_MODAL_TENSOR,
-      .flux_poly_order = 1,
-      .reflect = true,
-    };
 
   // block 0. Lower outer PF region.
   gkyl_block_geom_set_block(bgeom, 0, &(struct gkyl_block_geom_info) {
