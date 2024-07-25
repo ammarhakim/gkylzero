@@ -129,6 +129,10 @@ gkyl_moment_app_new(struct gkyl_moment *mom)
     moment_field_init(mom, &mom->field, app, &app->field);
   }
 
+  // Are we running with Braginskii transport?
+  app->has_braginskii = mom->has_braginskii;
+  app->coll_fac = mom->coll_fac;
+
   int ns = app->num_species = mom->num_species;
   // allocate space to store species objects
   app->species = ns>0 ? gkyl_malloc(sizeof(struct moment_species[ns])) : 0;
@@ -142,10 +146,6 @@ gkyl_moment_app_new(struct gkyl_moment *mom)
   for (int s=0; s<app->num_species; ++s)
     for (int r=0; r<app->num_species; ++r)
       app->nu_base[s][r] = mom->nu_base[s][r];
-
-  // Are we running with Braginskii transport?
-  app->has_braginskii = mom->has_braginskii;
-  app->coll_fac = mom->coll_fac;
 
   // check if we should update sources
   app->update_sources = 0;
