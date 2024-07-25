@@ -17,7 +17,7 @@
 
 #include <rt_arg_parse.h>
 
-struct maxwell_expanding_ctx
+struct maxwell_expanding_2d_ctx
 {
   // Mathematical constants (dimensionless).
   double pi;
@@ -32,14 +32,18 @@ struct maxwell_expanding_ctx
 
   double E0; // Reference electric field strength.
   double k_wave_x; // Wave number (x-direction).
+  double k_wave_y; // Wave number (y-direction).
 
   // Derived physical quantities (using normalized code units).
   double k_norm; // Wave number normalization factor.
   double k_xn; // Normalized wave number (x-direction).
+  double k_yn; // Normalized wave number (y-direction).
 
   // Simulation parameters.
   int Nx; // Cell count (x-direction).
+  int Ny; // Cell count (y-direction).
   double Lx; // Domain size (x-direction).
+  double Ly; // Domain size (y-direction).
   double cfl_frac; // CFL coefficient.
 
   double t_end; // Final simulation time.
@@ -48,7 +52,7 @@ struct maxwell_expanding_ctx
   int num_failures_max; // Maximum allowable number of consecutive small time-steps.
 };
 
-struct maxwell_expanding_ctx
+struct maxwell_expanding_2d_ctx
 create_ctx(void)
 {
   // Mathematical constants (dimensionless).
@@ -59,19 +63,23 @@ create_ctx(void)
   double mu0 = 1.0; // Permeability of free space.
 
   double gas_gamma = 5.0 / 3.0; // Adiabatic index.
-  double U0 = 1.0; // (Initial) comoving plasma velocity.
+  double U0 = 2.0; // (Initial) comoving plasma velocity.
   double R0 = 1.0; // (Initial) radial distance from expansion/contraction center.
 
-  double E0 = 1.0 / sqrt(2.0); // Reference electric field strength.
+  double E0 = 1.0 / sqrt(3.0); // Reference electric field strength.
   double k_wave_x = 2.0; // Wave number (x-direction).
+  double k_wave_y = 2.0; // Wave number (y-direction).
 
   // Derived physical quantities (using normalized code units).
-  double k_norm = sqrt(k_wave_x * k_wave_x); // Wave number normalization factor.
+  double k_norm = sqrt((k_wave_x * k_wave_x) + (k_wave_y * k_wave_y)); // Wave number normalization factor.
   double k_xn = k_wave_x / k_norm; // Normalized wave number (x-direction).
+  double k_yn = k_wave_y / k_norm; // Normalized wave number (y-direction).
 
   // Simulation parameters.
-  int Nx = 512; // Cell count (x-direction).
+  int Nx = 256; // Cell count (x-direction).
+  int Ny = 256; // Cell count (y-direction).
   double Lx = 1.0; // Domain size (x-direction).
+  double Ly = 1.0; // Domain size (y-direction).
   double cfl_frac = 0.95; // CFL coefficient.
 
   double t_end = 2.0; // Final simulation time.
@@ -79,7 +87,7 @@ create_ctx(void)
   double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.
   int num_failures_max = 20; // Maximum allowable number of consecutive small time-steps.
 
-  struct maxwell_expanding_ctx ctx = {
+  struct maxwell_expanding_2d_ctx ctx = {
     .pi = pi,
     .epsilon0 = epsilon0,
     .mu0 = mu0,
@@ -88,10 +96,14 @@ create_ctx(void)
     .R0 = R0,
     .E0 = E0,
     .k_wave_x = k_wave_x,
+    .k_wave_y = k_wave_y,
     .k_norm = k_norm,
     .k_xn = k_xn,
+    .k_yn = k_yn,
     .Nx = Nx,
+    .Ny = Ny,
     .Lx = Lx,
+    .Ly = Ly,
     .cfl_frac = cfl_frac,
     .t_end = t_end,
     .num_frames = num_frames,
@@ -116,26 +128,29 @@ evalEulerInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fo
 void
 evalFieldInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
 {
-  double x = xn[0];
-  struct maxwell_expanding_ctx *app = ctx;
+  double x = xn[0], y = xn[1];
+  struct maxwell_expanding_2d_ctx *app = ctx;
 
   double pi = app->pi;
 
   double E0 = app->E0;
   double k_wave_x = app->k_wave_x;
+  double k_wave_y = app->k_wave_y;
   double k_xn = app->k_xn;
+  double k_yn = app->k_yn;
   
   double Lx = app->Lx;
+  double Ly = app->Ly;
 
-  double phi = ((2.0 * pi) / Lx) * (k_wave_x * x);
+  double phi = (((2.0 * pi) / Lx) * (k_wave_x * x)) + (((2.0 * pi) / Ly) * (k_wave_y * y));
 
-  double Ex = 0.0;
+  double Ex = -E0 * cos(phi);
   double Ey = E0 * cos(phi);
   double Ez = E0 * cos(phi);
 
-  double Bx = 0.0;
-  double By = -E0 * cos(phi) * k_xn;
-  double Bz = E0 * cos(phi) * k_xn;
+  double Bx = E0 * cos(phi) * ((2.0 * pi) / Ly) * k_yn;
+  double By = -E0 * cos(phi) * ((2.0 * pi) / Lx) * k_xn;
+  double Bz = E0 * cos(phi) * ((2.0 * pi) / Ly) * (-k_xn - k_yn);
 
   // Set electric field.
   fout[0] = Ex, fout[1] = Ey; fout[2] = Ez;
@@ -174,9 +189,10 @@ main(int argc, char **argv)
     gkyl_mem_debug_set(true);
   }
 
-  struct maxwell_expanding_ctx ctx = create_ctx(); // Context for initialization functions.
+  struct maxwell_expanding_2d_ctx ctx = create_ctx(); // Context for initialization functions.
 
   int NX = APP_ARGS_CHOOSE(app_args.xcells[0], ctx.Nx);
+  int NY = APP_ARGS_CHOOSE(app_args.xcells[1], ctx.Ny);
 
   // Fluid equations.
   struct gkyl_wv_eqn *euler = gkyl_wv_euler_new(ctx.gas_gamma, app_args.use_gpu);
@@ -194,6 +210,7 @@ main(int argc, char **argv)
     .volume_R0 = ctx.R0,
 
     .bcx = { GKYL_SPECIES_COPY, GKYL_SPECIES_COPY },
+    .bcy = { GKYL_SPECIES_COPY, GKYL_SPECIES_COPY },
   };
 
   // Field.
@@ -201,6 +218,7 @@ main(int argc, char **argv)
     .epsilon0 = ctx.epsilon0, .mu0 = ctx.mu0,
     
     .evolve = true,
+    .limiter = GKYL_NO_LIMITER,
     .init = evalFieldInit,
     .ctx = &ctx,
   };
@@ -213,7 +231,7 @@ main(int argc, char **argv)
 #endif
 
   // Create global range.
-  int cells[] = { NX };
+  int cells[] = { NX, NY };
   int dim = sizeof(cells) / sizeof(cells[0]);
   struct gkyl_range global_r;
   gkyl_create_global_range(dim, cells, &global_r);
@@ -281,15 +299,15 @@ main(int argc, char **argv)
 
   // Moment app.
   struct gkyl_moment app_inp = {
-    .name = "maxwell_expanding",
+    .name = "maxwell_expanding_2d",
 
-    .ndim = 1,
-    .lower = { 0.0 },
-    .upper = { ctx.Lx }, 
-    .cells = { NX },
+    .ndim = 2,
+    .lower = { 0.0, 0.0 },
+    .upper = { ctx.Lx, ctx.Ly }, 
+    .cells = { NX, NY },
 
-    .num_periodic_dir = 1,
-    .periodic_dirs = { 0 },
+    .num_periodic_dir = 2,
+    .periodic_dirs = { 0, 1 },
     .cfl_frac = ctx.cfl_frac,
 
     .num_species = 1,

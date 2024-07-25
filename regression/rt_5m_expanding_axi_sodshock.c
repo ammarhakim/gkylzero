@@ -17,132 +17,158 @@
 
 #include <rt_arg_parse.h>
 
-struct maxwell_expanding_ctx
+struct expanding_axi_sodshock_ctx
 {
   // Mathematical constants (dimensionless).
   double pi;
 
   // Physical constants (using normalized code units).
-  double epsilon0; // Permittivity of free space.
-  double mu0; // Permeability of free space.
-
   double gas_gamma; // Adiabatic index.
   double U0; // (Initial) comoving plasma velocity.
   double R0; // (Initial) radial distance from expansion/contraction center.
 
-  double E0; // Reference electric field strength.
-  double k_wave_x; // Wave number (x-direction).
+  double rhol; // Left/inner fluid mass density.
+  double ul; // Left/inner fluid velocity.
+  double pl; // Left/inner fluid pressure.
 
-  // Derived physical quantities (using normalized code units).
-  double k_norm; // Wave number normalization factor.
-  double k_xn; // Normalized wave number (x-direction).
+  double rhor; // Right/outer fluid mass density.
+  double ur; // Right/outer fluid velocity.
+  double pr; // Right/outer fluid pressure.
 
   // Simulation parameters.
-  int Nx; // Cell count (x-direction).
-  double Lx; // Domain size (x-direction).
+  int Nr; // Cell count (radial direction).
+  int Ntheta; // Cell count (angular direction).
+  double Lr; // Domain size (radial direction).
+  double Ltheta; // Domain size (angular direction).
   double cfl_frac; // CFL coefficient.
 
   double t_end; // Final simulation time.
   int num_frames; // Number of output frames.
   double dt_failure_tol; // Minimum allowable fraction of initial time-step.
   int num_failures_max; // Maximum allowable number of consecutive small time-steps.
+
+  double rloc; // Fluid boundary (radial coordinate).
 };
 
-struct maxwell_expanding_ctx
+struct expanding_axi_sodshock_ctx
 create_ctx(void)
 {
   // Mathematical constants (dimensionless).
   double pi = M_PI;
 
   // Physical constants (using normalized code units).
-  double epsilon0 = 1.0; // Permittivity of free space.
-  double mu0 = 1.0; // Permeability of free space.
-
   double gas_gamma = 5.0 / 3.0; // Adiabatic index.
   double U0 = 1.0; // (Initial) comoving plasma velocity.
   double R0 = 1.0; // (Initial) radial distance from expansion/contraction center.
 
-  double E0 = 1.0 / sqrt(2.0); // Reference electric field strength.
-  double k_wave_x = 2.0; // Wave number (x-direction).
+  double rhol = 3.0; // Left/inner fluid mass density.
+  double ul = 0.0; // Left/inner fluid velocity.
+  double pl = 3.0; // Left/inner fluid pressure.
 
-  // Derived physical quantities (using normalized code units).
-  double k_norm = sqrt(k_wave_x * k_wave_x); // Wave number normalization factor.
-  double k_xn = k_wave_x / k_norm; // Normalized wave number (x-direction).
+  double rhor = 1.0; // Right/outer fluid mass density.
+  double ur = 0.0; // Right/outer fluid velocity.
+  double pr = 1.0; // Right/outer fluid pressure.
 
   // Simulation parameters.
-  int Nx = 512; // Cell count (x-direction).
-  double Lx = 1.0; // Domain size (x-direction).
-  double cfl_frac = 0.95; // CFL coefficient.
+  int Nr = 128; // Cell count (radial direction).
+  int Ntheta = 128 * 6; // Cell count (angular direction).
+  double Lr = 1.0; // Domain size (radial direction).
+  double Ltheta = 2.0 * pi; // Domain size (angular direction).
+  double cfl_frac = 0.9; // CFL coefficient.
 
-  double t_end = 2.0; // Final simulation time.
-  int num_frames = 100; // Number of output frames.
+  double t_end = 0.12; // Final simulation time.
+  int num_frames = 50; // Number of output frames.
   double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.
   int num_failures_max = 20; // Maximum allowable number of consecutive small time-steps.
 
-  struct maxwell_expanding_ctx ctx = {
+  double rloc = 0.5 * (0.25 + 1.25); // Fluid boundary (radial coordinate).
+
+  struct expanding_axi_sodshock_ctx ctx = {
     .pi = pi,
-    .epsilon0 = epsilon0,
-    .mu0 = mu0,
     .gas_gamma = gas_gamma,
     .U0 = U0,
     .R0 = R0,
-    .E0 = E0,
-    .k_wave_x = k_wave_x,
-    .k_norm = k_norm,
-    .k_xn = k_xn,
-    .Nx = Nx,
-    .Lx = Lx,
+    .rhol = rhol,
+    .ul = ul,
+    .pl = pl,
+    .rhor = rhor,
+    .ur = ur,
+    .pr = pr,
+    .Nr = Nr,
+    .Ntheta = Ntheta,
+    .Lr = Lr,
+    .Ltheta = Ltheta,
     .cfl_frac = cfl_frac,
     .t_end = t_end,
     .num_frames = num_frames,
     .dt_failure_tol = dt_failure_tol,
     .num_failures_max = num_failures_max,
+    .rloc = rloc,
   };
 
   return ctx;
 }
 
 void
-evalEulerInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
+evalEulerInit(double t, const double* GKYL_RESTRICT zc, double* GKYL_RESTRICT fout, void* ctx)
 {
+  double r = zc[0];
+  struct expanding_axi_sodshock_ctx *app = ctx;
+
+  double gas_gamma = app->gas_gamma;
+
+  double rhol = app->rhol;
+  double ul = app->ul;
+  double pl = app->pl;
+
+  double rhor = app->rhor;
+  double ur = app->ur;
+  double pr = app->pr;
+
+  double rloc = app->rloc;
+
+  double rho = 0.0;
+  double u = 0.0;
+  double p = 0.0;
+
+  if (r < rloc) {
+    rho = rhol; // Fluid mass density (left/inner).
+    u = ul; // Fluid velocity (left/inner).
+    p = pl; // Fluid pressure (left/inner).
+  }
+  else {
+    rho = rhor; // Fluid mass density (right/outer).
+    u = ur; // Fluid velocity (right/outer).
+    p = pr; // Fluid pressure (right/outer).
+  }
+  
   // Set fluid mass density.
-  fout[0] = 1.0;
+  fout[0] = rho;
   // Set fluid momentum density.
   fout[1] = 0.0; fout[2] = 0.0; fout[3] = 0.0;
   // Set fluid total energy density.
-  fout[4] = 1.0;
+  fout[4] = p / (gas_gamma - 1.0) + 0.5 * rho * u * u;
 }
 
 void
 evalFieldInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
 {
-  double x = xn[0];
-  struct maxwell_expanding_ctx *app = ctx;
-
-  double pi = app->pi;
-
-  double E0 = app->E0;
-  double k_wave_x = app->k_wave_x;
-  double k_xn = app->k_xn;
-  
-  double Lx = app->Lx;
-
-  double phi = ((2.0 * pi) / Lx) * (k_wave_x * x);
-
-  double Ex = 0.0;
-  double Ey = E0 * cos(phi);
-  double Ez = E0 * cos(phi);
-
-  double Bx = 0.0;
-  double By = -E0 * cos(phi) * k_xn;
-  double Bz = E0 * cos(phi) * k_xn;
-
   // Set electric field.
-  fout[0] = Ex, fout[1] = Ey; fout[2] = Ez;
+  fout[0] = 0.0, fout[1] = 0.0; fout[2] = 0.0;
   // Set magnetic field.
-  fout[3] = Bx, fout[4] = By; fout[5] = Bz;
+  fout[3] = 0.0, fout[4] = 0.0; fout[5] = 0.0;
   // Set correction potentials.
   fout[6] = 0.0; fout[7] = 0.0;
+}
+
+static inline void
+mapc2p(double t, const double* GKYL_RESTRICT zc, double* GKYL_RESTRICT xp, void* ctx)
+{
+  double r = zc[0], theta = zc[1];
+
+  // Set physical coordinates (x, y) from computational coordinates (r, theta).
+  xp[0] = r * cos(theta);
+  xp[1] = r * sin(theta);
 }
 
 void
@@ -174,9 +200,10 @@ main(int argc, char **argv)
     gkyl_mem_debug_set(true);
   }
 
-  struct maxwell_expanding_ctx ctx = create_ctx(); // Context for initialization functions.
+  struct expanding_axi_sodshock_ctx ctx = create_ctx(); // Context for initialization functions.
 
-  int NX = APP_ARGS_CHOOSE(app_args.xcells[0], ctx.Nx);
+  int NR = APP_ARGS_CHOOSE(app_args.xcells[0], ctx.Nr);
+  int NTHETA = APP_ARGS_CHOOSE(app_args.xcells[1], ctx.Ntheta);
 
   // Fluid equations.
   struct gkyl_wv_eqn *euler = gkyl_wv_euler_new(ctx.gas_gamma, app_args.use_gpu);
@@ -198,9 +225,10 @@ main(int argc, char **argv)
 
   // Field.
   struct gkyl_moment_field field = {
-    .epsilon0 = ctx.epsilon0, .mu0 = ctx.mu0,
+    .epsilon0 = 1.0, .mu0 = 1.0,
+    .mag_error_speed_fact = 1.0,
     
-    .evolve = true,
+    .evolve = false,
     .init = evalFieldInit,
     .ctx = &ctx,
   };
@@ -213,7 +241,7 @@ main(int argc, char **argv)
 #endif
 
   // Create global range.
-  int cells[] = { NX };
+  int cells[] = { NR, NTHETA };
   int dim = sizeof(cells) / sizeof(cells[0]);
   struct gkyl_range global_r;
   gkyl_create_global_range(dim, cells, &global_r);
@@ -281,15 +309,18 @@ main(int argc, char **argv)
 
   // Moment app.
   struct gkyl_moment app_inp = {
-    .name = "maxwell_expanding",
+    .name = "5m_expanding_axi_sodshock",
 
-    .ndim = 1,
-    .lower = { 0.0 },
-    .upper = { ctx.Lx }, 
-    .cells = { NX },
+    .ndim = 2,
+    .lower = { 0.25, 0.0 },
+    .upper = { 0.25 + ctx.Lr, 0.0 + ctx.Ltheta },
+    .cells = { NR, NTHETA },
+
+    .mapc2p = mapc2p,
 
     .num_periodic_dir = 1,
-    .periodic_dirs = { 0 },
+    .periodic_dirs = { 1 },
+
     .cfl_frac = ctx.cfl_frac,
 
     .num_species = 1,
