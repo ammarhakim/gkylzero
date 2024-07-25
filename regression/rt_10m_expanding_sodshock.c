@@ -6,7 +6,7 @@
 #include <gkyl_alloc.h>
 #include <gkyl_moment.h>
 #include <gkyl_util.h>
-#include <gkyl_wv_euler.h>
+#include <gkyl_wv_ten_moment.h>
 
 #include <gkyl_null_comm.h>
 
@@ -35,6 +35,7 @@ struct expanding_sodshock_ctx
   // Simulation parameters.
   int Nx; // Cell count (x-direction).
   double Lx; // Domain size (x-direction).
+  double k0; // Closure parameter.
   double cfl_frac; // CFL coefficient.
 
   double t_end; // Final simulation time.
@@ -62,6 +63,7 @@ create_ctx(void)
   // Simulation parameters.
   int Nx = 512; // Cell count (x-direction).
   double Lx = 1.0; // Domain size (x-direction).
+  double k0 = 0.1; // Closure parameter.
   double cfl_frac = 0.95; // CFL coefficient.
 
   double t_end = 0.2; // Final simulation time.
@@ -81,6 +83,7 @@ create_ctx(void)
     .pr = pr,
     .Nx = Nx,
     .Lx = Lx,
+    .k0 = k0,
     .cfl_frac = cfl_frac,
     .t_end = t_end,
     .num_frames = num_frames,
@@ -92,12 +95,10 @@ create_ctx(void)
 }
 
 void
-evalEulerInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
+eval10mInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
 {
   double x = xn[0];
   struct expanding_sodshock_ctx *app = ctx;
-
-  double gas_gamma = app->gas_gamma;
 
   double rhol = app->rhol;
   double ul = app->ul;
@@ -126,8 +127,9 @@ evalEulerInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fo
   fout[0] = rho;
   // Set fluid momentum density.
   fout[1] = rho * u; fout[2] = 0.0; fout[3] = 0.0;
-  // Set fluid total energy density.
-  fout[4] = (p / (gas_gamma - 1.0)) + (0.5 * rho * u * u);
+  // Set fluid pressure tensor.
+  fout[4] = p + (0.5 * rho * u * u); fout[5] = 0.0; fout[6] = 0.0;
+  fout[7] = p; fout[8] = 0.0; fout[9] = p;
 }
 
 void
@@ -175,13 +177,13 @@ main(int argc, char **argv)
   int NX = APP_ARGS_CHOOSE(app_args.xcells[0], ctx.Nx);
 
   // Fluid equations.
-  struct gkyl_wv_eqn *euler = gkyl_wv_euler_new(ctx.gas_gamma, app_args.use_gpu);
+  struct gkyl_wv_eqn *ten_moment = gkyl_wv_ten_moment_new(ctx.k0, false);
 
   struct gkyl_moment_species fluid = {
-    .name = "euler",
-    .equation = euler,
+    .name = "10m",
+    .equation = ten_moment,
     .evolve = true,
-    .init = evalEulerInit,
+    .init = eval10mInit,
     .ctx = &ctx,
 
     .has_volume_sources = true,
@@ -278,7 +280,7 @@ main(int argc, char **argv)
 
   // Moment app.
   struct gkyl_moment app_inp = {
-    .name = "5m_expanding_sodshock",
+    .name = "10m_expanding_sodshock",
 
     .ndim = 1,
     .lower = { 0.25 },
@@ -372,7 +374,7 @@ main(int argc, char **argv)
   gkyl_moment_app_cout(app, stdout, "Total updates took %g secs\n", stat.total_tm);
 
   // Free resources after simulation completion.
-  gkyl_wv_eqn_release(euler);
+  gkyl_wv_eqn_release(ten_moment);
   gkyl_rect_decomp_release(decomp);
   gkyl_comm_release(comm);
   gkyl_moment_app_release(app);  

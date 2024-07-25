@@ -6,7 +6,7 @@
 #include <gkyl_alloc.h>
 #include <gkyl_moment.h>
 #include <gkyl_util.h>
-#include <gkyl_wv_euler.h>
+#include <gkyl_wv_ten_moment.h>
 
 #include <gkyl_null_comm.h>
 
@@ -17,59 +17,76 @@
 
 #include <rt_arg_parse.h>
 
-struct expanding_sodshock_ctx
+struct expanding_axi_sodshock_ctx
 {
+  // Mathematical constants (dimensionless).
+  double pi;
+
   // Physical constants (using normalized code units).
   double gas_gamma; // Adiabatic index.
   double U0; // (Initial) comoving plasma velocity.
   double R0; // (Initial) radial distance from expansion/contraction center.
 
-  double rhol; // Left fluid mass density.
-  double ul; // Left fluid velocity.
-  double pl; // Left fluid pressure.
+  double rhol; // Left/inner fluid mass density.
+  double ul; // Left/inner fluid velocity.
+  double pl; // Left/inner fluid pressure.
 
-  double rhor; // Right fluid mass density.
-  double ur; // Right fluid velocity.
-  double pr; // Right fluid pressure.
+  double rhor; // Right/outer fluid mass density.
+  double ur; // Right/outer fluid velocity.
+  double pr; // Right/outer fluid pressure.
 
   // Simulation parameters.
-  int Nx; // Cell count (x-direction).
-  double Lx; // Domain size (x-direction).
+  int Nr; // Cell count (radial direction).
+  int Ntheta; // Cell count (angular direction).
+  double Lr; // Domain size (radial direction).
+  double Ltheta; // Domain size (angular direction).
+  double k0; // Closure parameter.
   double cfl_frac; // CFL coefficient.
 
   double t_end; // Final simulation time.
   int num_frames; // Number of output frames.
   double dt_failure_tol; // Minimum allowable fraction of initial time-step.
   int num_failures_max; // Maximum allowable number of consecutive small time-steps.
+
+  double rloc; // Fluid boundary (radial coordinate).
 };
 
-struct expanding_sodshock_ctx
+struct expanding_axi_sodshock_ctx
 create_ctx(void)
 {
+  // Mathematical constants (dimensionless).
+  double pi = M_PI;
+
   // Physical constants (using normalized code units).
   double gas_gamma = 5.0 / 3.0; // Adiabatic index.
   double U0 = 1.0; // (Initial) comoving plasma velocity.
   double R0 = 1.0; // (Initial) radial distance from expansion/contraction center.
 
-  double rhol = 3.0; // Left fluid mass density.
-  double ul = 0.0; // Left fluid velocity.
-  double pl = 3.0; // Left fluid pressure.
+  double rhol = 3.0; // Left/inner fluid mass density.
+  double ul = 0.0; // Left/inner fluid velocity.
+  double pl = 3.0; // Left/inner fluid pressure.
 
-  double rhor = 1.0; // Right fluid mass density.
-  double ur = 0.0; // Right fluid velocity.
-  double pr = 1.0; // Right fluid pressure.
+  double rhor = 1.0; // Right/outer fluid mass density.
+  double ur = 0.0; // Right/outer fluid velocity.
+  double pr = 1.0; // Right/outer fluid pressure.
 
   // Simulation parameters.
-  int Nx = 512; // Cell count (x-direction).
-  double Lx = 1.0; // Domain size (x-direction).
-  double cfl_frac = 0.95; // CFL coefficient.
+  int Nr = 128; // Cell count (radial direction).
+  int Ntheta = 128 * 6; // Cell count (angular direction).
+  double Lr = 1.0; // Domain size (radial direction).
+  double Ltheta = 2.0 * pi; // Domain size (angular direction).
+  double k0 = 0.1; // Closure parameter.
+  double cfl_frac = 0.9; // CFL coefficient.
 
   double t_end = 0.2; // Final simulation time.
-  int num_frames = 100; // Number of output frames.
+  int num_frames = 50; // Number of output frames.
   double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.
   int num_failures_max = 20; // Maximum allowable number of consecutive small time-steps.
 
-  struct expanding_sodshock_ctx ctx = {
+  double rloc = 0.5 * (0.25 + 1.25); // Fluid boundary (radial coordinate).
+
+  struct expanding_axi_sodshock_ctx ctx = {
+    .pi = pi,
     .gas_gamma = gas_gamma,
     .U0 = U0,
     .R0 = R0,
@@ -79,23 +96,27 @@ create_ctx(void)
     .rhor = rhor,
     .ur = ur,
     .pr = pr,
-    .Nx = Nx,
-    .Lx = Lx,
+    .Nr = Nr,
+    .Ntheta = Ntheta,
+    .Lr = Lr,
+    .Ltheta = Ltheta,
+    .k0 = k0,
     .cfl_frac = cfl_frac,
     .t_end = t_end,
     .num_frames = num_frames,
     .dt_failure_tol = dt_failure_tol,
     .num_failures_max = num_failures_max,
+    .rloc = rloc,
   };
 
   return ctx;
 }
 
 void
-evalEulerInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
+eval10mInit(double t, const double* GKYL_RESTRICT zc, double* GKYL_RESTRICT fout, void* ctx)
 {
-  double x = xn[0];
-  struct expanding_sodshock_ctx *app = ctx;
+  double r = zc[0];
+  struct expanding_axi_sodshock_ctx *app = ctx;
 
   double gas_gamma = app->gas_gamma;
 
@@ -107,27 +128,30 @@ evalEulerInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fo
   double ur = app->ur;
   double pr = app->pr;
 
+  double rloc = app->rloc;
+
   double rho = 0.0;
   double u = 0.0;
   double p = 0.0;
 
-  if (x < 0.75) {
-    rho = rhol; // Fluid mass density (left).
-    u = ul; // Fluid velocity (left).
-    p = pl; // Fluid pressure (left).
+  if (r < rloc) {
+    rho = rhol; // Fluid mass density (left/inner).
+    u = ul; // Fluid velocity (left/inner).
+    p = pl; // Fluid pressure (left/inner).
   }
   else {
-    rho = rhor; // Fluid mass density (right).
-    u = ur; // Fluid velocity (right).
-    p = pr; // Fluid pressure (right).
+    rho = rhor; // Fluid mass density (right/outer).
+    u = ur; // Fluid velocity (right/outer).
+    p = pr; // Fluid pressure (right/outer).
   }
-
+  
   // Set fluid mass density.
   fout[0] = rho;
   // Set fluid momentum density.
-  fout[1] = rho * u; fout[2] = 0.0; fout[3] = 0.0;
-  // Set fluid total energy density.
-  fout[4] = (p / (gas_gamma - 1.0)) + (0.5 * rho * u * u);
+  fout[1] = 0.0; fout[2] = 0.0; fout[3] = 0.0;
+  // Set fluid pressure tensor.
+  fout[4] = p + (0.5 * rho * u * u); fout[5] = 0.0; fout[6] = 0.0;
+  fout[7] = p; fout[8] = 0.0; fout[9] = p;
 }
 
 void
@@ -139,6 +163,16 @@ evalFieldInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fo
   fout[3] = 0.0, fout[4] = 0.0; fout[5] = 0.0;
   // Set correction potentials.
   fout[6] = 0.0; fout[7] = 0.0;
+}
+
+static inline void
+mapc2p(double t, const double* GKYL_RESTRICT zc, double* GKYL_RESTRICT xp, void* ctx)
+{
+  double r = zc[0], theta = zc[1];
+
+  // Set physical coordinates (x, y) from computational coordinates (r, theta).
+  xp[0] = r * cos(theta);
+  xp[1] = r * sin(theta);
 }
 
 void
@@ -170,18 +204,19 @@ main(int argc, char **argv)
     gkyl_mem_debug_set(true);
   }
 
-  struct expanding_sodshock_ctx ctx = create_ctx(); // Context for initialization functions.
+  struct expanding_axi_sodshock_ctx ctx = create_ctx(); // Context for initialization functions.
 
-  int NX = APP_ARGS_CHOOSE(app_args.xcells[0], ctx.Nx);
+  int NR = APP_ARGS_CHOOSE(app_args.xcells[0], ctx.Nr);
+  int NTHETA = APP_ARGS_CHOOSE(app_args.xcells[1], ctx.Ntheta);
 
   // Fluid equations.
-  struct gkyl_wv_eqn *euler = gkyl_wv_euler_new(ctx.gas_gamma, app_args.use_gpu);
+  struct gkyl_wv_eqn *ten_moment = gkyl_wv_ten_moment_new(ctx.gas_gamma, false);
 
   struct gkyl_moment_species fluid = {
-    .name = "euler",
-    .equation = euler,
+    .name = "10m",
+    .equation = ten_moment,
     .evolve = true,
-    .init = evalEulerInit,
+    .init = eval10mInit,
     .ctx = &ctx,
 
     .has_volume_sources = true,
@@ -210,7 +245,7 @@ main(int argc, char **argv)
 #endif
 
   // Create global range.
-  int cells[] = { NX };
+  int cells[] = { NR, NTHETA };
   int dim = sizeof(cells) / sizeof(cells[0]);
   struct gkyl_range global_r;
   gkyl_create_global_range(dim, cells, &global_r);
@@ -278,12 +313,17 @@ main(int argc, char **argv)
 
   // Moment app.
   struct gkyl_moment app_inp = {
-    .name = "5m_expanding_sodshock",
+    .name = "10m_expanding_axi_sodshock",
 
-    .ndim = 1,
-    .lower = { 0.25 },
-    .upper = { 0.25 + ctx.Lx }, 
-    .cells = { NX },
+    .ndim = 2,
+    .lower = { 0.25, 0.0 },
+    .upper = { 0.25 + ctx.Lr, 0.0 + ctx.Ltheta },
+    .cells = { NR, NTHETA },
+
+    .mapc2p = mapc2p,
+
+    .num_periodic_dir = 1,
+    .periodic_dirs = { 1 },
 
     .cfl_frac = ctx.cfl_frac,
 
@@ -372,7 +412,7 @@ main(int argc, char **argv)
   gkyl_moment_app_cout(app, stdout, "Total updates took %g secs\n", stat.total_tm);
 
   // Free resources after simulation completion.
-  gkyl_wv_eqn_release(euler);
+  gkyl_wv_eqn_release(ten_moment);
   gkyl_rect_decomp_release(decomp);
   gkyl_comm_release(comm);
   gkyl_moment_app_release(app);  
