@@ -18,11 +18,11 @@
 #include <gkyl_gk_geometry_tok.h>
 
 
-  struct gkyl_tok_geo_efit_inp efit_inp = {
+  struct gkyl_efit_inp efit_inp = {
       // psiRZ and related inputs
       .filepath = "./data/eqdsk/cerfon.geqdsk",
-      .rzpoly_order = 2,
-      .fluxpoly_order = 1,
+      .rz_poly_order = 2,
+      .flux_poly_order = 1,
     };
 
 
@@ -61,7 +61,7 @@ test_11()
 
   struct gkyl_gk_geometry_inp geometry_inp = {
     .geometry_id  = GKYL_TOKAMAK,
-    .tok_efit_info = efit_inp,
+    .efit_info = efit_inp,
     .tok_grid_info = ginp,
     .grid = cgrid,
     .local = clocal,
@@ -120,7 +120,7 @@ test_12()
   }; 
   struct gkyl_gk_geometry_inp geometry_inp = {
     .geometry_id  = GKYL_TOKAMAK,
-    .tok_efit_info = efit_inp,
+    .efit_info = efit_inp,
     .tok_grid_info = ginp,
     .grid = cgrid,
     .local = clocal,
@@ -180,7 +180,7 @@ test_1()
 
   struct gkyl_gk_geometry_inp geometry_inp = {
     .geometry_id  = GKYL_TOKAMAK,
-    .tok_efit_info = efit_inp,
+    .efit_info = efit_inp,
     .tok_grid_info = ginp,
     .grid = cgrid,
     .local = clocal,
@@ -233,7 +233,7 @@ test_2()
   }; 
   struct gkyl_gk_geometry_inp geometry_inp = {
     .geometry_id  = GKYL_TOKAMAK,
-    .tok_efit_info = efit_inp,
+    .efit_info = efit_inp,
     .tok_grid_info = ginp,
     .grid = cgrid,
     .local = clocal,
@@ -286,7 +286,7 @@ test_3()
   }; 
   struct gkyl_gk_geometry_inp geometry_inp = {
     .geometry_id  = GKYL_TOKAMAK,
-    .tok_efit_info = efit_inp,
+    .efit_info = efit_inp,
     .tok_grid_info = ginp,
     .grid = cgrid,
     .local = clocal,
@@ -340,7 +340,7 @@ test_4()
   }; 
   struct gkyl_gk_geometry_inp geometry_inp = {
     .geometry_id  = GKYL_TOKAMAK,
-    .tok_efit_info = efit_inp,
+    .efit_info = efit_inp,
     .tok_grid_info = ginp,
     .grid = cgrid,
     .local = clocal,
@@ -394,7 +394,7 @@ test_7()
   }; 
   struct gkyl_gk_geometry_inp geometry_inp = {
     .geometry_id  = GKYL_TOKAMAK,
-    .tok_efit_info = efit_inp,
+    .efit_info = efit_inp,
     .tok_grid_info = ginp,
     .grid = cgrid,
     .local = clocal,
@@ -447,7 +447,7 @@ test_8()
   }; 
   struct gkyl_gk_geometry_inp geometry_inp = {
     .geometry_id  = GKYL_TOKAMAK,
-    .tok_efit_info = efit_inp,
+    .efit_info = efit_inp,
     .tok_grid_info = ginp,
     .grid = cgrid,
     .local = clocal,
@@ -501,7 +501,7 @@ test_9()
   }; 
   struct gkyl_gk_geometry_inp geometry_inp = {
     .geometry_id  = GKYL_TOKAMAK,
-    .tok_efit_info = efit_inp,
+    .efit_info = efit_inp,
     .tok_grid_info = ginp,
     .grid = cgrid,
     .local = clocal,
@@ -555,7 +555,7 @@ test_10()
   }; 
   struct gkyl_gk_geometry_inp geometry_inp = {
     .geometry_id  = GKYL_TOKAMAK,
-    .tok_efit_info = efit_inp,
+    .efit_info = efit_inp,
     .tok_grid_info = ginp,
     .grid = cgrid,
     .local = clocal,
@@ -609,7 +609,7 @@ test_5()
   }; 
   struct gkyl_gk_geometry_inp geometry_inp = {
     .geometry_id  = GKYL_TOKAMAK,
-    .tok_efit_info = efit_inp,
+    .efit_info = efit_inp,
     .tok_grid_info = ginp,
     .grid = cgrid,
     .local = clocal,
@@ -663,7 +663,7 @@ test_6()
   }; 
   struct gkyl_gk_geometry_inp geometry_inp = {
     .geometry_id  = GKYL_TOKAMAK,
-    .tok_efit_info = efit_inp,
+    .efit_info = efit_inp,
     .tok_grid_info = ginp,
     .grid = cgrid,
     .local = clocal,

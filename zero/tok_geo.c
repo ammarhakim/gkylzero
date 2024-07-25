@@ -280,11 +280,11 @@ dphidtheta_func(double Z, void *ctx)
 
 
 struct gkyl_tok_geo*
-gkyl_tok_geo_new(const struct gkyl_tok_geo_efit_inp *inp, const struct gkyl_tok_geo_grid_inp *ginp)
+gkyl_tok_geo_new(const struct gkyl_efit_inp *inp, const struct gkyl_tok_geo_grid_inp *ginp)
 {
   struct gkyl_tok_geo *geo = gkyl_malloc(sizeof(*geo));
 
-  geo->efit = gkyl_efit_new(inp->filepath, inp->rzpoly_order, inp->rz_basis_type, inp->fluxpoly_order, inp->reflect, false);
+  geo->efit = gkyl_efit_new(inp);
 
   geo->plate_spec = ginp->plate_spec;
   geo->plate_func_lower = ginp->plate_func_lower;

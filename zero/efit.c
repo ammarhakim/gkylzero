@@ -15,8 +15,7 @@
 #include <gkyl_nodal_ops.h>
 #include <assert.h>
 
-gkyl_efit* gkyl_efit_new(const char *filepath, int rz_poly_order, 
-  enum gkyl_basis_type rz_basis_type, int flux_poly_order, bool reflect, bool use_gpu)
+gkyl_efit* gkyl_efit_new(const struct gkyl_efit_inp *inp)
 {
   gkyl_efit *up = gkyl_malloc(sizeof(struct gkyl_efit));
   up->rzbasis = gkyl_malloc(sizeof(struct gkyl_basis));
@@ -30,17 +29,17 @@ gkyl_efit* gkyl_efit_new(const char *filepath, int rz_poly_order,
   up->fluxlocal = gkyl_malloc(sizeof(struct gkyl_range));
   up->fluxlocal_ext = gkyl_malloc(sizeof(struct gkyl_range));
 
-  up->reflect = reflect;
-  up->use_gpu = use_gpu;
-  up->filepath = filepath;
+  up->reflect = inp->reflect;
+  up->use_gpu = inp->use_gpu;
+  up->filepath = inp->filepath;
 
-  gkyl_cart_modal_serendip(up->fluxbasis, 1, flux_poly_order);
-  switch (rz_basis_type){
+  gkyl_cart_modal_serendip(up->fluxbasis, 1, inp->flux_poly_order);
+  switch (inp->rz_basis_type){
     case GKYL_BASIS_MODAL_SERENDIPITY:
-      gkyl_cart_modal_serendip(up->rzbasis, 2, rz_poly_order);
+      gkyl_cart_modal_serendip(up->rzbasis, 2, inp->rz_poly_order);
       break;
     case GKYL_BASIS_MODAL_TENSOR:
-      gkyl_cart_modal_tensor(up->rzbasis, 2, rz_poly_order);
+      gkyl_cart_modal_tensor(up->rzbasis, 2, inp->rz_poly_order);
       break;
     default:
       assert(false);

@@ -42,12 +42,12 @@ create_block_geom(void)
 
   double theta_lo = -M_PI + 1e-14, theta_up = M_PI - 1e-14;
 
-  struct gkyl_tok_geo_efit_inp efit_inp = {
+  struct gkyl_efit_inp efit_inp = {
     // psiRZ and related inputs
     .filepath = "./data/eqdsk/step.geqdsk",
-    .rzpoly_order = 2,
+    .rz_poly_order = 2,
     .rz_basis_type = GKYL_BASIS_MODAL_TENSOR,
-    .fluxpoly_order = 1,
+    .flux_poly_order = 1,
     .reflect = true,
   };
 
@@ -60,7 +60,7 @@ create_block_geom(void)
       .geometry = {
         .world = {0.0},
         .geometry_id = GKYL_TOKAMAK,
-        .tok_efit_info = efit_inp,
+        .efit_info = efit_inp,
         .tok_grid_info = (struct gkyl_tok_geo_grid_inp) {
           .ftype = GKYL_SOL_DN_OUT_LO,
           .rright = 6.2,
@@ -91,7 +91,7 @@ create_block_geom(void)
       .geometry = {
         .world = {0.0},
         .geometry_id = GKYL_TOKAMAK,
-        .tok_efit_info = efit_inp,
+        .efit_info = efit_inp,
         .tok_grid_info = (struct gkyl_tok_geo_grid_inp) {
           .ftype = GKYL_SOL_DN_OUT_MID,
           .rright = 6.2,

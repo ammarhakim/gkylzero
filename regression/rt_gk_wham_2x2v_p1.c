@@ -762,10 +762,10 @@ int main(int argc, char **argv)
     }
   };
 
-  struct gkyl_mirror_geo_efit_inp efit_inp = {
+  struct gkyl_efit_inp efit_inp = {
     .filepath = "./data/eqdsk/wham.geqdsk",
-    .rzpoly_order = 2,
-    .fluxpoly_order = 1,
+    .rz_poly_order = 2,
+    .flux_poly_order = 1,
   };
 
 
@@ -788,7 +788,7 @@ int main(int argc, char **argv)
     .geometry = {
       .geometry_id = GKYL_MIRROR,
       .world = {0.0},
-      .mirror_efit_info = efit_inp,
+      .efit_info = efit_inp,
       .mirror_grid_info = grid_inp,
     },
 

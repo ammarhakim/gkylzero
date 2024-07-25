@@ -165,30 +165,30 @@ void shaped_pfunc_lower_inner(double s, double* RZ){
 //    RZ[1] = -(8.516 + (8.434 - 8.516)*(2*s-1));
 //}
 
-struct gkyl_tok_geo_efit_inp inp_inner= {
+struct gkyl_efit_inp inp_inner= {
     // psiRZ and related inputs
     .filepath = "./data/eqdsk/step.geqdsk",
-    .rzpoly_order = 2,
+    .rz_poly_order = 2,
     .rz_basis_type = GKYL_BASIS_MODAL_TENSOR,
-    .fluxpoly_order = 1,
+    .flux_poly_order = 1,
     .reflect = true,
   };
 
-struct gkyl_tok_geo_efit_inp inp = {
+struct gkyl_efit_inp inp = {
     // psiRZ and related inputs
     .filepath = "./data/eqdsk/step.geqdsk",
-    .rzpoly_order = 2,
+    .rz_poly_order = 2,
     .rz_basis_type = GKYL_BASIS_MODAL_TENSOR,
-    .fluxpoly_order = 1,
+    .flux_poly_order = 1,
     .reflect = true,
   };
 
-struct gkyl_tok_geo_efit_inp inp_outer = {
+struct gkyl_efit_inp inp_outer = {
     // psiRZ and related inputs
     .filepath = "./data/eqdsk/step.geqdsk",
-    .rzpoly_order = 2,
+    .rz_poly_order = 2,
     .rz_basis_type = GKYL_BASIS_MODAL_TENSOR,
-    .fluxpoly_order = 1,
+    .flux_poly_order = 1,
     .reflect = true,
   };
 
@@ -227,7 +227,7 @@ test_core()
   }; 
   struct gkyl_gk_geometry_inp geometry_inp = {
     .geometry_id  = GKYL_TOKAMAK,
-    .tok_efit_info = inp_outer,
+    .efit_info = inp_outer,
     .tok_grid_info = ginp,
     .grid = cgrid,
     .local = clocal,
@@ -278,7 +278,7 @@ test_core_l()
   }; 
   struct gkyl_gk_geometry_inp geometry_inp = {
     .geometry_id  = GKYL_TOKAMAK,
-    .tok_efit_info = inp,
+    .efit_info = inp,
     .tok_grid_info = ginp,
     .grid = cgrid,
     .local = clocal,
@@ -334,7 +334,7 @@ test_outer()
   }; 
   struct gkyl_gk_geometry_inp geometry_inp = {
     .geometry_id  = GKYL_TOKAMAK,
-    .tok_efit_info = inp_outer,
+    .efit_info = inp_outer,
     .tok_grid_info = ginp,
     .grid = cgrid,
     .local = clocal,
@@ -389,7 +389,7 @@ test_upper()
   }; 
   struct gkyl_gk_geometry_inp geometry_inp = {
     .geometry_id  = GKYL_TOKAMAK,
-    .tok_efit_info = inp_outer,
+    .efit_info = inp_outer,
     .tok_grid_info = ginp,
     .grid = cgrid,
     .local = clocal,
@@ -444,7 +444,7 @@ test_lower()
   }; 
   struct gkyl_gk_geometry_inp geometry_inp = {
     .geometry_id  = GKYL_TOKAMAK,
-    .tok_efit_info = inp_outer,
+    .efit_info = inp_outer,
     .tok_grid_info = ginp,
     .grid = cgrid,
     .local = clocal,
@@ -497,7 +497,7 @@ test_pflo_r()
   }; 
   struct gkyl_gk_geometry_inp geometry_inp = {
     .geometry_id  = GKYL_TOKAMAK,
-    .tok_efit_info = inp_outer,
+    .efit_info = inp_outer,
     .tok_grid_info = ginp,
     .grid = cgrid,
     .local = clocal,
@@ -550,7 +550,7 @@ test_pflo_l()
   }; 
   struct gkyl_gk_geometry_inp geometry_inp = {
     .geometry_id  = GKYL_TOKAMAK,
-    .tok_efit_info = inp_inner,
+    .efit_info = inp_inner,
     .tok_grid_info = ginp,
     .grid = cgrid,
     .local = clocal,
@@ -603,7 +603,7 @@ test_pfup_r()
   }; 
   struct gkyl_gk_geometry_inp geometry_inp = {
     .geometry_id  = GKYL_TOKAMAK,
-    .tok_efit_info = inp_outer,
+    .efit_info = inp_outer,
     .tok_grid_info = ginp,
     .grid = cgrid,
     .local = clocal,
@@ -656,7 +656,7 @@ test_pfup_l()
   }; 
   struct gkyl_gk_geometry_inp geometry_inp = {
     .geometry_id  = GKYL_TOKAMAK,
-    .tok_efit_info = inp_inner,
+    .efit_info = inp_inner,
     .tok_grid_info = ginp,
     .grid = cgrid,
     .local = clocal,
@@ -710,7 +710,7 @@ test_inner_upper()
   }; 
   struct gkyl_gk_geometry_inp geometry_inp = {
     .geometry_id  = GKYL_TOKAMAK,
-    .tok_efit_info = inp_inner,
+    .efit_info = inp_inner,
     .tok_grid_info = ginp,
     .grid = cgrid,
     .local = clocal,
@@ -759,7 +759,7 @@ test_inner_middle()
   }; 
   struct gkyl_gk_geometry_inp geometry_inp = {
     .geometry_id  = GKYL_TOKAMAK,
-    .tok_efit_info = inp,
+    .efit_info = inp,
     .tok_grid_info = ginp,
     .grid = cgrid,
     .local = clocal,
@@ -812,7 +812,7 @@ test_inner_lower()
   }; 
   struct gkyl_gk_geometry_inp geometry_inp = {
     .geometry_id  = GKYL_TOKAMAK,
-    .tok_efit_info = inp_inner,
+    .efit_info = inp_inner,
     .tok_grid_info = ginp,
     .grid = cgrid,
     .local = clocal,

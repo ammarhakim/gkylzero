@@ -659,12 +659,12 @@ main(int argc, char **argv)
                     .lo_value = {0.0}, .up_value = {0.0}}, 
   };
 
-  struct gkyl_tok_geo_efit_inp efit_inp = {
+  struct gkyl_efit_inp efit_inp = {
     // psiRZ and related inputs
     .filepath = "./data/eqdsk/step.geqdsk",
-    .rzpoly_order = 2,
+    .rz_poly_order = 2,
     .rz_basis_type = GKYL_BASIS_MODAL_TENSOR,
-    .fluxpoly_order = 1,
+    .flux_poly_order = 1,
     .reflect = true,
   };
 
@@ -691,7 +691,7 @@ main(int argc, char **argv)
     .geometry = {
       .world = {0.0},
       .geometry_id = GKYL_TOKAMAK,
-      .tok_efit_info = efit_inp,
+      .efit_info = efit_inp,
       .tok_grid_info = grid_inp,
     },
 

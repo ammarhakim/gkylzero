@@ -6,6 +6,7 @@
 
 #include <gkyl_array.h>
 #include <gkyl_basis.h>
+#include <gkyl_efit.h>
 #include <gkyl_evalf_def.h>
 #include <gkyl_math.h>
 #include <gkyl_range.h>
@@ -65,13 +66,15 @@ struct gkyl_mirror_geo {
 
 
 
-// Inputs to create a new GK geometry creation object
-struct gkyl_mirror_geo_efit_inp {
-  // Inputs to get psiRZ and related inputs from efit
-  char filepath[1024];
-  int rzpoly_order;
-  enum gkyl_basis_type rz_basis_type;
-  int fluxpoly_order;
+// Inputs to create geometry for a specific computational grid
+struct gkyl_mirror_geo_grid_inp {
+  struct gkyl_rect_grid cgrid;
+  struct gkyl_basis cbasis;
+
+  double rclose; // closest R to discrimate
+  double rright; // closest R to discrimate
+  double zmin, zmax; // extents of Z for integration
+
   // Specifications for divertor plate
   bool plate_spec;
   plate_func plate_func_lower;
@@ -88,28 +91,18 @@ struct gkyl_mirror_geo_efit_inp {
     int max_levels; // typically 6-7    
     double eps; // typically 1e-10
   } quad_param;
-};
-
-// Inputs to create geometry for a specific computational grid
-struct gkyl_mirror_geo_grid_inp {
-  struct gkyl_rect_grid cgrid;
-  struct gkyl_basis cbasis;
-  
-  double rclose; // closest R to discrimate
-  double rright; // closest R to discrimate
-  double zmin, zmax; // extents of Z for integration
 
 };
 
 
 /**
- * Create new updater to compute the geometry (mapc2p) needed in GK
+ * Create new updater to compute the geometry needed in GK
  * simulations.
  *
- * @param inp Input parameters
- * @param New GK geometry updater
+ * @param efit_inp Input parameters related to EFIT data
+ * @param grid_inp Input parameters related to computational grid
  */
-struct gkyl_mirror_geo *gkyl_mirror_geo_new(const struct gkyl_mirror_geo_efit_inp *inp);
+struct gkyl_mirror_geo *gkyl_mirror_geo_new(const struct gkyl_efit_inp *inp, const struct gkyl_mirror_geo_grid_inp *grid_inp);
 
 /**
  * Get R(psi,Z) for a specified psi and Z value. Multiple values may

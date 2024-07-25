@@ -6,6 +6,7 @@
 
 #include <gkyl_array.h>
 #include <gkyl_basis.h>
+#include <gkyl_efit.h>
 #include <gkyl_evalf_def.h>
 #include <gkyl_math.h>
 #include <gkyl_range.h>
@@ -105,14 +106,7 @@ struct gkyl_tok_geo {
 
 
 // Inputs to create a new GK geometry creation object
-struct gkyl_tok_geo_efit_inp {
-  // Inputs to get psiRZ and related inputs from efit
-  char filepath[1024];
-  int rzpoly_order;
-  enum gkyl_basis_type rz_basis_type;
-  int fluxpoly_order;
-  bool reflect; // whether to reflect across R axis to preserve symmetry
-};
+
 
 // Inputs to create geometry for a specific computational grid
 struct gkyl_tok_geo_grid_inp {
@@ -148,13 +142,13 @@ struct gkyl_tok_geo_grid_inp {
 
 
 /**
- * Create new updater to compute the geometry (mapc2p) needed in GK
+ * Create new updater to compute the geometry needed in GK
  * simulations.
  *
- * @param inp Input parameters
- * @param New GK geometry updater
+ * @param efit_inp Input parameters related to EFIT data
+ * @param grid_inp Input parameters related to computational grid
  */
-struct gkyl_tok_geo *gkyl_tok_geo_new(const struct gkyl_tok_geo_efit_inp *inp, const struct gkyl_tok_geo_grid_inp *grid_inp);
+struct gkyl_tok_geo *gkyl_tok_geo_new(const struct gkyl_efit_inp *inp, const struct gkyl_tok_geo_grid_inp *grid_inp);
 
 /**
  * Get R(psi,Z) for a specified psi and Z value. Multiple values may

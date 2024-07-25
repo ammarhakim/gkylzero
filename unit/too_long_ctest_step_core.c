@@ -27,11 +27,11 @@ test_deep_core()
   start = clock();
 
 
-  struct gkyl_tok_geo_efit_inp efit_inp = {
+  struct gkyl_efit_inp efit_inp = {
       // psiRZ and related inputs
       .filepath = "./data/eqdsk/step.geqdsk",
-      .rzpoly_order = 2,
-      .fluxpoly_order = 1,
+      .rz_poly_order = 2,
+      .flux_poly_order = 1,
     };
 
 
@@ -68,7 +68,7 @@ test_deep_core()
 
   struct gkyl_gk_geometry_inp geometry_inp = {
     .geometry_id  = GKYL_TOKAMAK,
-    .tok_efit_info = efit_inp,
+    .efit_info = efit_inp,
     .tok_grid_info = ginp,
     .grid = cgrid,
     .local = clocal,
@@ -102,11 +102,11 @@ test_boundary()
   start = clock();
 
 
-  struct gkyl_tok_geo_efit_inp efit_inp = {
+  struct gkyl_efit_inp efit_inp = {
       // psiRZ and related inputs
       .filepath = "./data/eqdsk/step.geqdsk",
-      .rzpoly_order = 2,
-      .fluxpoly_order = 1,
+      .rz_poly_order = 2,
+      .flux_poly_order = 1,
     };
 
   double psisep = 1.5098198350000001;
@@ -148,7 +148,7 @@ test_boundary()
 
   struct gkyl_gk_geometry_inp geometry_inp = {
     .geometry_id  = GKYL_TOKAMAK,
-    .tok_efit_info = efit_inp,
+    .efit_info = efit_inp,
     .tok_grid_info = ginp,
     .grid = cgrid,
     .local = clocal,
