@@ -101,6 +101,7 @@ test_L_domain(void)
 
   int num_blocks = topo->num_blocks;
   int num_cuts[num_blocks];
+  int nghost[] = { 1, 1 };
   
   // construct decomp objects
   struct gkyl_rect_decomp **decomp =
@@ -120,7 +121,7 @@ test_L_domain(void)
   for (int bid=0; bid<num_blocks; ++bid) {
 
     for (int brank=0; brank<num_cuts[bid]; ++brank) {
-      struct gkyl_multib_comm_conn *mbcc = gkyl_multib_comm_conn_new_send(bid, brank,
+      struct gkyl_multib_comm_conn *mbcc = gkyl_multib_comm_conn_new_send(bid, brank, nghost,
         &topo->conn[bid], decomp);
 
       gkyl_multib_comm_conn_release(mbcc);

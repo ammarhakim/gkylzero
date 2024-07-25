@@ -6,7 +6,9 @@
 
 // Information for block send/recv
 struct gkyl_comm_conn {
-  int rank; // send/recv rank
+  int block_id; // send/recv block ID
+  int rank; // send/recv range ID in block
+  struct gkyl_range range; // send/recv range
 };
 
 // List of send/recv for a given rank
@@ -35,10 +37,12 @@ struct gkyl_multib_comm_conn *gkyl_multib_comm_conn_new(int num,
  * @param block_id ID of block
  * @param block_rank Local rank in block
  * @param block_conn Topological connections for block
+ * @param nghost Number of ghost cells in direction d is nghost[d]
  * @param decomp List of decomposition objects for each block
  * @return New communication connection object
  */
-struct gkyl_multib_comm_conn *gkyl_multib_comm_conn_new_send(int block_id, int block_rank,
+struct gkyl_multib_comm_conn *gkyl_multib_comm_conn_new_send(
+  int block_id, int block_rank, const int *nghost,
   const struct gkyl_block_connections *block_conn, struct gkyl_rect_decomp **decomp);
 
 /**

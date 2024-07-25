@@ -38,7 +38,8 @@ gkyl_multib_comm_conn_new(int num, const struct gkyl_comm_conn *comm_conn)
 }
 
 struct gkyl_multib_comm_conn *
-gkyl_multib_comm_conn_new_send(int block_id, int block_rank,
+gkyl_multib_comm_conn_new_send(
+  int block_id, int block_rank, const int *nghost,
   const struct gkyl_block_connections *block_conn, struct gkyl_rect_decomp **decomp)
 {
   int ndim = decomp[0]->ndim;
@@ -54,6 +55,7 @@ gkyl_multib_comm_conn_new_send(int block_id, int block_rank,
     }
   }
 
+  int comm_conn_idx = 0;
   struct gkyl_comm_conn *comm_conn
     = gkyl_malloc(sizeof(struct gkyl_comm_conn[max_send_ranks]));
 
@@ -67,13 +69,17 @@ gkyl_multib_comm_conn_new_send(int block_id, int block_rank,
 
       if (block_conn->connections[dir][e].edge != GKYL_PHYSICAL) {
 
-        const struct gkyl_range *tar_pr = &decomp[tar_bid]->parent_range;
+        const struct gkyl_rect_decomp *tar_decomp = decomp[tar_bid];
+        // to find intersection with the neighbor we first need to get
+        // the neigbor block into the index-space to source block: we
+        // do this by reseting the lower indices of the neigbor's
+        // parent
+        const struct gkyl_range *tar_pr = &tar_decomp->parent_range;
 
         int new_lower[GKYL_MAX_DIM];
         for (int d=0; d<ndim; ++d)
           new_lower[d] = src_pr->lower[d];
 
-        // we need to reset the lower based on edge location
         if (GKYL_UPPER_EDGE == e)
           new_lower[dir] += gkyl_range_shape(src_pr, dir);
         else
@@ -82,18 +88,47 @@ gkyl_multib_comm_conn_new_send(int block_id, int block_rank,
         struct gkyl_range reset_tar_pr;
         gkyl_range_reset_lower(&reset_tar_pr, tar_pr, new_lower);
 
+        int delta[GKYL_MAX_DIM] = { 0 };
+        for (int d=0; d<ndim; ++d)
+          delta[d] = reset_tar_pr.lower[d] - tar_pr->lower[d];
+
         struct gkyl_range_dir_edge dir_edge = gkyl_range_edge_match(&reset_tar_pr, src_br);
         if (dir_edge.eloc != GKYL_NO_EDGE) {
-          printf("Block %d Rank %d touched parent range of block %d\n", block_id,
-            block_rank, tar_bid);
+          // source block rank touched the parent of the neigbor
+          // block: find the appropriate sub-blocks it intersects
+
+          for (int nn=0; nn<tar_decomp->ndecomp; ++nn) {
+            struct gkyl_range srange;
+            gkyl_range_shift(&srange, &tar_decomp->ranges[nn], delta);
+
+            int elo[GKYL_MAX_DIM] = { 0 }, eup[GKYL_MAX_DIM] = { 0 };
+            elo[dir] = eup[dir] = 1; // only extend in 1 direction
+
+            struct gkyl_range srange_ext;
+            gkyl_range_extend(&srange_ext, &srange, elo, eup);
+
+            struct gkyl_range irng;
+            int is_inter = gkyl_range_intersect(&irng, &srange_ext, src_br);
+            if (is_inter) {
+              comm_conn[comm_conn_idx].rank = nn;
+              comm_conn[comm_conn_idx].block_id = tar_bid;
+              memcpy(&comm_conn[comm_conn_idx].range, &irng, sizeof(struct gkyl_range));
+
+              comm_conn_idx += 1;
+            }
+          }
+
         }
       }
     }
   }
 
+  struct gkyl_multib_comm_conn *mbcc =
+    gkyl_multib_comm_conn_new(comm_conn_idx, comm_conn);
+
   gkyl_free(comm_conn);
   
-  return 0;
+  return mbcc;
 }
 
 void
