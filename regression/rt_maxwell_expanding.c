@@ -31,11 +31,11 @@ struct maxwell_expanding_ctx
   double R0; // (Initial) radial distance from expansion/contraction center.
 
   double E0; // Reference electric field strength.
-  double k_wave; // Wave number.
+  double k_wave_x; // Wave number (x-direction).
 
   // Derived physical quantities (using normalized code units).
   double k_norm; // Wave number normalization factor.
-  double k_xn; // Normalized wave number.
+  double k_xn; // Normalized wave number (x-direction).
 
   // Simulation parameters.
   int Nx; // Cell count (x-direction).
@@ -63,11 +63,11 @@ create_ctx(void)
   double R0 = 1.0; // (Initial) radial distance from expansion/contraction center.
 
   double E0 = 1.0 / sqrt(2.0); // Reference electric field strength.
-  double k_wave = 2.0; // Wave number.
+  double k_wave_x = 2.0; // Wave number (x-direction).
 
   // Derived physical quantities (using normalized code units).
-  double k_norm = sqrt(k_wave * k_wave); // Wave number normalization factor.
-  double k_xn = k_wave / k_norm; // Normalized wave number.
+  double k_norm = sqrt(k_wave_x * k_wave_x); // Wave number normalization factor.
+  double k_xn = k_wave_x / k_norm; // Normalized wave number (x-direction).
 
   // Simulation parameters.
   int Nx = 512; // Cell count (x-direction).
@@ -87,7 +87,7 @@ create_ctx(void)
     .U0 = U0,
     .R0 = R0,
     .E0 = E0,
-    .k_wave = k_wave,
+    .k_wave_x = k_wave_x,
     .k_norm = k_norm,
     .k_xn = k_xn,
     .Nx = Nx,
@@ -122,23 +122,25 @@ evalFieldInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fo
   double pi = app->pi;
 
   double E0 = app->E0;
-  double k_wave = app->k_wave;
+  double k_wave_x = app->k_wave_x;
   double k_xn = app->k_xn;
   
   double Lx = app->Lx;
 
-  double phi = ((2.0 * pi) / Lx) * (k_wave * x);
+  double phi = ((2.0 * pi) / Lx) * (k_wave_x * x);
 
+  double Ex = 0.0;
   double Ey = E0 * cos(phi);
   double Ez = E0 * cos(phi);
 
+  double Bx = 0.0;
   double By = -E0 * cos(phi) * k_xn;
   double Bz = E0 * cos(phi) * k_xn;
 
   // Set electric field.
-  fout[0] = 0.0, fout[1] = Ey; fout[2] = Ez;
+  fout[0] = Ex, fout[1] = Ey; fout[2] = Ez;
   // Set magnetic field.
-  fout[3] = 0.0, fout[4] = By; fout[5] = Bz;
+  fout[3] = Bx, fout[4] = By; fout[5] = Bz;
   // Set correction potentials.
   fout[6] = 0.0; fout[7] = 0.0;
 }
