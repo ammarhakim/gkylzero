@@ -227,7 +227,7 @@ ${BUILD_DIR}/ci/%: ci/%.c ${BUILD_DIR}/libgkylzero.so
 	${CC} ${CFLAGS} ${LDFLAGS} -o $@ $< -I. $(INCLUDES) ${EXEC_LIB_DIRS} ${EXEC_RPATH} ${EXEC_LIBS}
 
 # Lua interpreter for testing Lua regression tests
-${BUILD_DIR}/xglua: regression/xglua.c ${BUILD_DIR}/libgkylzero.so
+${BUILD_DIR}/glua: regression/glua.c ${BUILD_DIR}/libgkylzero.so
 	$(MKDIR_P) ${BUILD_DIR}
 	${CC} ${CFLAGS} ${LDFLAGS} -o $@ $< -I. $(INCLUDES) ${EXEC_LIB_DIRS} ${EXEC_RPATH} ${EXEC_LIBS}
 
@@ -378,9 +378,9 @@ all: ${BUILD_DIR}/gkylzero.h ${ZERO_SH_LIB} ## Build libraries and amalgamated h
 
 # Explicit targets to build unit and regression tests
 unit: ${ZERO_SH_LIB} ${UNITS} ${MPI_UNITS} ${LUA_UNITS} ## Build unit tests
-regression: ${ZERO_SH_LIB} ${REGS} regression/rt_arg_parse.h ${BUILD_DIR}/xglua ## Build regression tests
+regression: ${ZERO_SH_LIB} ${REGS} regression/rt_arg_parse.h ${BUILD_DIR}/glua ## Build regression tests
 ci: ${ZERO_SH_LIB} ${CI} ## Build automated regression system
-xglua: ${BUILD_DIR}/xglua ## Build Lua interpreter
+glua: ${BUILD_DIR}/glua ## Build Lua interpreter
 
 .PHONY: check mpicheck
 # Run all unit tests
@@ -420,7 +420,7 @@ clean: ## Clean build output
 
 .PHONY: cleanur
 cleanur: ## Delete the unit and regression test executables
-	rm -rf ${BUILD_DIR}/unit ${BUILD_DIR}/regression ${BUILD_DIR}/ci ${BUILD_DIR}/xglua
+	rm -rf ${BUILD_DIR}/unit ${BUILD_DIR}/regression ${BUILD_DIR}/ci ${BUILD_DIR}/glua
 
 .PHONY: cleanr
 cleanr: ## Delete the regression test executables
