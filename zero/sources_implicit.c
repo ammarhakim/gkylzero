@@ -552,8 +552,8 @@ implicit_source_coupling_update(const gkyl_moment_em_coupling* mom_em, double t_
       double mom_x = f[1], mom_y = f[2], mom_z = f[3];
       
       f[4] += (0.5 * ((mom_x * mom_x) + (mom_y * mom_y) + (mom_z * mom_z)) / rho) - ke_old[i];
-    }/*
-    else if (mom_em->param[i].type == GKYL_EQN_TEN_MOMENT) {
+    }
+    else if (mom_em->param[i].type == GKYL_EQN_TEN_MOMENT && !mom_em->has_volume_sources) {
       double rho = f[0];
       double mom_x = f[1], mom_y = f[2], mom_z = f[3];
 
@@ -563,7 +563,7 @@ implicit_source_coupling_update(const gkyl_moment_em_coupling* mom_em, double t_
       f[7] = ((mom_y * mom_y) / rho) + p_tensor_new[i][3];
       f[8] = ((mom_y * mom_z) / rho) + p_tensor_new[i][4];
       f[9] = ((mom_z * mom_z) / rho) + p_tensor_new[i][5];
-    }*/
+    }
   }
 
   if (mom_em->has_collision) {
