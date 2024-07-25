@@ -57,6 +57,37 @@ void explicit_frictional_source_update(const gkyl_moment_em_coupling* mom_em, do
 
 /**
 * Integrate the volume-based geometrical source terms (e.g. for expanding/contracting box formalism) in the multi-fluid equation system for a
+* single 5-moment fluid, within a single cell, using an explicit forcing solver (specifically a simple first-order forward-Euler method).
+*
+* @param mom_em Moment-EM coupling object.
+* @param gas_gamma Adiabatic index.
+* @param U0 (Initial) comoving plasma velocity.
+* @param R0 (Initial) radial distance from expansion/contraction center.
+* @param t_curr Current simulation time.
+* @param dt Current stable time-step.
+* @param fluid_old Array of old single-species 5-moment fluid variables (before source update).
+* @param fluid_new Array of new single-species 5-moment fluid variables (after source update).
+*/
+void explicit_volume_source_5m_update_euler(const gkyl_moment_em_coupling* mom_em, const double gas_gamma, const double U0, const double R0,
+  double t_curr, const double dt, double* fluid_old, double* fluid_new);
+
+/**
+* Integrate the volume-based geometrical source terms (e.g. for expanding/contracting box formalism) in the multi-fluid equation system for a
+* single 10-moment fluid, within a single cell, using an explicit forcing solver (specifically a simple first-order forward-Euler method).
+*
+* @param mom_em Moment-EM coupling object.
+* @param U0 (Initial) comoving plasma velocity.
+* @param R0 (Initial) radial distance from expansion/contraction center.
+* @param t_curr Current simulation time.
+* @param dt Current stable time-step.
+* @param fluid_old Array of old single-species 10-moment fluid variables (before source update).
+* @param fluid_new Array of new single-species 10-moment fluid variables (after source update).
+*/
+void explicit_volume_source_10m_update_euler(const gkyl_moment_em_coupling* mom_em, const double U0, const double R0, double t_curr, const double dt,
+  double* fluid_old, double* fluid_new);
+
+/**
+* Integrate the volume-based geometrical source terms (e.g. for expanding/contracting box formalism) in the multi-fluid equation system for a
 * single fluid, within a single cell, using an explicit forcing solver (specifically a simple first-order forward-Euler method).
 *
 * @param mom_em Moment-EM coupling object.
@@ -64,13 +95,12 @@ void explicit_frictional_source_update(const gkyl_moment_em_coupling* mom_em, do
 * @param R0 (Initial) radial distance from expansion/contraction center.
 * @param t_curr Current simulation time.
 * @param dt Current stable time-step.
-* @param fluid_old Array of old single-species fluid variables (before source update).
-* @param fluid_new Array of new single-species fluid variables (after source update).
-* @param em Array of electromagnetic variables.
+* @param em_old Array of old electromagnetic variables (before source update).
+* @param em_new Array of new electromagnetic variables (after source update).
 * @param ext_em External electromagnetic variables (for EM fields coming from external sources, e.g. coils, capacitors, etc.).
 */
-void explicit_volume_source_update_euler(const gkyl_moment_em_coupling* mom_em, const double U0, const double R0, double t_curr, const double dt,
-  double *fluid_old, double *fluid_new, double *em);
+void explicit_volume_source_maxwell_update_euler(const gkyl_moment_em_coupling* mom_em, const double U0, const double R0, double t_curr,
+  const double dt, double* em_old, double* em_new, const double* ext_em);
 
 /**
 * Integrate the volume-based geometrical source terms (e.g. for expanding/contracting box formalism) in the multi-fluid equation system within
@@ -85,6 +115,36 @@ void explicit_volume_source_update_euler(const gkyl_moment_em_coupling* mom_em, 
 */
 void explicit_volume_source_update(const gkyl_moment_em_coupling* mom_em, double t_curr, const double dt, double* fluid_s[GKYL_MAX_SPECIES],
   double* em, const double* ext_em);
+
+/**
+* Integrate the reactive source terms in the multi-fluid equation system within a single cell, using an explicit forcing solver (specifically a 
+* simple first-order forward-Euler method).
+*
+* @param mom_em Moment-EM coupling object.
+* @param gas_gamma Adiabatic index.
+* @param specific_heat_capacity Specific heat capacity.
+* @param energy_of_formation Energy of formation.
+* @param ignition_temperature Ignition temperature.
+* @param reaction_rate Reaction rate.
+* @param t_curr Current simulation time.
+* @param dt Current stable time-step.
+* @param fluid_old Array of old fluid variables (before source update).
+* @param fluid_new Array of new fluid variables (after source update).
+*/
+void explicit_reactive_source_update_euler(const gkyl_moment_em_coupling* mom_em, const double gas_gamma, const double specific_heat_capacity,
+  const double energy_of_formation, const double ignition_temperature, const double reaction_rate, double t_curr, const double dt,
+  double* fluid_old, double* fluid_new);
+
+/**
+* Integrate the reactive source terms in the multi-fluid equation system within a single cell, using an explicit forcing solver (specifically a
+* strong stability-preserving third-order Runge-Kutta method).
+*
+* @param mom_em Moment-EM coupling object.
+* @param t_curr Current simulation time.
+* @param dt Current stable time-step.
+* @param fluid_s Array of fluid variables (array size = nfluids).
+*/
+void explicit_reactive_source_update(const gkyl_moment_em_coupling* mom_em, double t_curr, const double dt, double* fluid_s[GKYL_MAX_SPECIES]);
 
 /**
 * Integrate the electric field source terms in the multi-field equation system within a single cell, using an explicit forcing solver (specifically

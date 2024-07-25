@@ -19,11 +19,12 @@ gkyl_moment_em_coupling_new(struct gkyl_moment_em_coupling_inp inp)
 
   mom_em->epsilon0 = inp.epsilon0;
   mom_em->mu0 = inp.mu0;
-  if (mom_em->epsilon0 != 0.0) {
-    mom_em->is_charged_species = true;
-  }
-  else {
-    mom_em->is_charged_species = false;
+
+  mom_em->is_charged_species = false;
+  for (int i = 0; i < mom_em->nfluids; i++) {
+    if (inp.param[i].charge != 0.0) {
+      mom_em->is_charged_species = true;
+    }
   }
 
   mom_em->t_ramp_E = inp.t_ramp_E;
@@ -65,9 +66,26 @@ gkyl_moment_em_coupling_new(struct gkyl_moment_em_coupling_inp inp)
 
   mom_em->has_frictional_sources = inp.has_frictional_sources;
   if (mom_em->has_frictional_sources) {
+    mom_em->use_explicit_friction = inp.use_explicit_friction;
     mom_em->friction_Z = inp.friction_Z;
     mom_em->friction_T_elc = inp.friction_T_elc;
     mom_em->friction_Lambda_ee = inp.friction_Lambda_ee;
+  }
+
+  mom_em->has_volume_sources = inp.has_volume_sources;
+  if (mom_em->has_volume_sources) {
+    mom_em->volume_gas_gamma = inp.volume_gas_gamma;
+    mom_em->volume_U0 = inp.volume_U0;
+    mom_em->volume_R0 = inp.volume_R0;
+  }
+
+  mom_em->has_reactive_sources = inp.has_reactive_sources;
+  if (mom_em->has_reactive_sources) {
+    mom_em->reactivity_gas_gamma = inp.reactivity_gas_gamma;
+    mom_em->reactivity_specific_heat_capacity = inp.reactivity_specific_heat_capacity;
+    mom_em->reactivity_energy_of_formation = inp.reactivity_energy_of_formation;
+    mom_em->reactivity_ignition_temperature = inp.reactivity_ignition_temperature;
+    mom_em->reactivity_reaction_rate = inp.reactivity_reaction_rate;
   }
 
   return mom_em;

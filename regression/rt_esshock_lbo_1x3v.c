@@ -127,7 +127,8 @@ main(int argc, char **argv)
     .upper = { 6.0 * ctx.vte, 6.0 * ctx.vte, 6.0 * ctx.vte }, 
     .cells = { VX, VY, VZ },
 
-    .projection = {
+    .num_init = 1, 
+    .projection[0] = {
       .proj_id = GKYL_PROJ_FUNC,
       .func = evalDistFuncElc,
       .ctx_func = &ctx,
@@ -152,7 +153,8 @@ main(int argc, char **argv)
     .upper = { 16.0 * ctx.vti, 16.0 * ctx.vti, 16.0 * ctx.vti}, 
     .cells = { VX, VY, VZ },
 
-    .projection = {
+    .num_init = 1, 
+    .projection[0] = {
       .proj_id = GKYL_PROJ_FUNC,
       .func = evalDistFuncIon,
       .ctx_func = &ctx,
@@ -163,7 +165,6 @@ main(int argc, char **argv)
 
       .ctx = &ctx,
       .self_nu = evalNuIon,
-
     },
     
     .num_diag_moments = 3,

@@ -174,7 +174,8 @@ main(int argc, char **argv)
     .upper = { 6.0 * ctx.vte}, 
     .cells = { VX },
 
-    .projection = {
+    .num_init = 1, 
+    .projection[0] = {
       .proj_id = GKYL_PROJ_FUNC,
       .func = evalDistFuncElc,
       .ctx_func = &ctx,
@@ -192,7 +193,8 @@ main(int argc, char **argv)
     .upper = { 16.0 * ctx.vti}, 
     .cells = { VX },
 
-    .projection = {
+    .num_init = 1, 
+    .projection[0] = {
       .proj_id = GKYL_PROJ_FUNC,
       .func = evalDistFuncIon,
       .ctx_func = &ctx,

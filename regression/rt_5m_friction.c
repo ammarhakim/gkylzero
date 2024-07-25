@@ -71,7 +71,7 @@ create_ctx(void)
   double mu0 = 1.0; // Permeability of free space.
   double mass_ion = 1.0; // Ion mass.
   double charge_ion = 1.0; // Ion charge.
-  double mass_elc = 1.0 / 2000.0; // Electron mass.
+  double mass_elc = 1.0 / 200.0; // Electron mass.
   double charge_elc = -1.0; // Electron charge.
 
   double n_elc = 1.0; // Electron number density.
@@ -230,7 +230,7 @@ main(int argc, char **argv)
     .ctx = &ctx,
 
     .has_friction = true,
-    .use_explicit_friction = false,
+    .use_explicit_friction = true,
     .friction_Z = ctx.friction_Z,
     .friction_T_elc = ctx.friction_T_elc,
     .friction_Lambda_ee = ctx.friction_Lambda_ee,
@@ -245,7 +245,7 @@ main(int argc, char **argv)
     .ctx = &ctx,  
 
     .has_friction = true,
-    .use_explicit_friction = false,
+    .use_explicit_friction = true,
     .friction_Z = ctx.friction_Z,
     .friction_T_elc = ctx.friction_T_elc,
     .friction_Lambda_ee = ctx.friction_Lambda_ee,

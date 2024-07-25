@@ -76,9 +76,9 @@ ten_moment_1d_run_single(int argc, char **argv, struct ten_moment_1d_single_init
   }
 
   for (int i = 0; i < num_patches; i++) {
-    mesh_pdata[i].euler_elc = gkyl_wv_ten_moment_new(k0_elc);
-    mesh_pdata[i].euler_ion = gkyl_wv_ten_moment_new(k0_ion);
-    mesh_pdata[i].maxwell = gkyl_wv_maxwell_new(light_speed, e_fact, b_fact);
+    mesh_pdata[i].euler_elc = gkyl_wv_ten_moment_new(k0_elc, app_args.use_gpu);
+    mesh_pdata[i].euler_ion = gkyl_wv_ten_moment_new(k0_ion, app_args.use_gpu);
+    mesh_pdata[i].maxwell = gkyl_wv_maxwell_new(light_speed, e_fact, b_fact, app_args.use_gpu);
 
     mesh_pdata[i].slvr_elc[0] = gkyl_wave_prop_new(& (struct gkyl_wave_prop_inp) {
         .grid = &mesh_pdata[i].grid,
@@ -401,9 +401,9 @@ ten_moment_2d_run_single(int argc, char **argv, struct ten_moment_2d_single_init
   }
 
   for (int i = 0; i < num_blocks; i++) {
-    mesh_bdata[i].euler_elc = gkyl_wv_ten_moment_new(k0_elc);
-    mesh_bdata[i].euler_ion = gkyl_wv_ten_moment_new(k0_ion);
-    mesh_bdata[i].maxwell = gkyl_wv_maxwell_new(light_speed, e_fact, b_fact);
+    mesh_bdata[i].euler_elc = gkyl_wv_ten_moment_new(k0_elc, app_args.use_gpu);
+    mesh_bdata[i].euler_ion = gkyl_wv_ten_moment_new(k0_ion, app_args.use_gpu);
+    mesh_bdata[i].maxwell = gkyl_wv_maxwell_new(light_speed, e_fact, b_fact, app_args.use_gpu);
 
     for (int d = 0; d < ndim; d++) {
       mesh_bdata[i].slvr_elc[d] = gkyl_wave_prop_new(& (struct gkyl_wave_prop_inp) {
@@ -770,9 +770,9 @@ ten_moment_2d_run_double(int argc, char **argv, struct ten_moment_2d_double_init
   }
 
   for (int i = 0; i < num_blocks; i++) {
-    mesh_bdata[i].euler_elc = gkyl_wv_ten_moment_new(k0_elc);
-    mesh_bdata[i].euler_ion = gkyl_wv_ten_moment_new(k0_ion);
-    mesh_bdata[i].maxwell = gkyl_wv_maxwell_new(light_speed, e_fact, b_fact);
+    mesh_bdata[i].euler_elc = gkyl_wv_ten_moment_new(k0_elc, app_args.use_gpu);
+    mesh_bdata[i].euler_ion = gkyl_wv_ten_moment_new(k0_ion, app_args.use_gpu);
+    mesh_bdata[i].maxwell = gkyl_wv_maxwell_new(light_speed, e_fact, b_fact, app_args.use_gpu);
 
     for (int d = 0; d < ndim; d++) {
       mesh_bdata[i].slvr_elc[d] = gkyl_wave_prop_new(& (struct gkyl_wave_prop_inp) {

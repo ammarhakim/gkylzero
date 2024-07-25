@@ -318,7 +318,8 @@ implicit_collision_source_update(const gkyl_moment_em_coupling* mom_em, double d
 
 void
 implicit_frictional_source_update_half(const gkyl_moment_em_coupling* mom_em, const double Z, const double T_elc, const double Lambda_ee,
-  double t_curr, const double dt, double* f_elc_old, double* f_ion_old, double* f_elc_new, double* f_ion_new)
+  double t_curr, const double dt, double* f_elc_old, double* f_ion_old, double* f_elc_new, double* f_ion_new,
+  const double* app_accel_s[GKYL_MAX_SPECIES], double* em_old, double* em_new, const double* app_current, const double* ext_em)
 {
   int nfluids = mom_em->nfluids;
   double pi = M_PI;
@@ -329,6 +330,13 @@ implicit_frictional_source_update_half(const gkyl_moment_em_coupling* mom_em, co
     double charge_elc = mom_em->param[0].charge;
     double charge_ion = mom_em->param[1].charge;
     double epsilon0 = mom_em->epsilon0;
+
+    const double *app_accel_elc = app_accel_s[0];
+    const double *app_accel_ion = app_accel_s[1];
+
+    double Ex = em_old[0] + ext_em[0];
+    double Ey = em_old[1] + ext_em[1];
+    double Ez = em_old[2] + ext_em[2];
 
     double rho_elc = f_elc_old[0];
     double rho_ion = f_ion_old[0];
@@ -373,13 +381,43 @@ implicit_frictional_source_update_half(const gkyl_moment_em_coupling* mom_em, co
     double mat_32 = ((A_ei * D_e) - (A_ee * D_i)) / det;
     double mat_33 = (-(A_ei * A_ie) + (A_ee * A_ii)) / det;
 
-    f_elc_new[1] = (mat_11 * u_elc) + (mat_12 * u_ion) + (mat_13 * 0.0);
-    f_elc_new[2] = (mat_11 * v_elc) + (mat_12 * v_ion) + (mat_13 * 0.0);
-    f_elc_new[3] = (mat_11 * w_elc) + (mat_12 * w_ion) + (mat_13 * 0.0);
+    f_elc_new[1] = (mat_11 * (u_elc + (0.5 * dt * (1.0 / rho_elc) * app_accel_elc[0]))) +
+      (mat_12 * (u_ion + (0.5 * dt * (1.0 / rho_ion) * app_accel_ion[0]))) +
+      (mat_13 * (Ex - ((dt / (2.0 * epsilon0)) * app_current[0])));
+    f_elc_new[2] = (mat_11 * (v_elc + (0.5 * dt * (1.0 / rho_elc) * app_accel_elc[1]))) +
+      (mat_12 * (v_ion + (0.5 * dt * (1.0 / rho_ion) * app_accel_ion[1]))) +
+      (mat_13 * (Ey - ((dt / (2.0 * epsilon0)) * app_current[1])));
+    f_elc_new[3] = (mat_11 * (w_elc + (0.5 * dt * (1.0 / rho_elc) * app_accel_elc[2]))) +
+      (mat_12 * (w_ion + (0.5 * dt * (1.0 / rho_ion) * app_accel_ion[2]))) +
+      (mat_13 * (Ez - ((dt / (2.0 * epsilon0)) * app_current[2])));
 
-    f_ion_new[1] = (mat_21 * u_elc) + (mat_22 * u_ion) + (mat_23 * 0.0);
-    f_ion_new[2] = (mat_21 * v_elc) + (mat_22 * v_ion) + (mat_23 * 0.0);
-    f_ion_new[3] = (mat_21 * w_elc) + (mat_22 * w_ion) + (mat_23 * 0.0);
+    f_ion_new[1] = (mat_21 * (u_elc + (0.5 * dt * (1.0 / rho_elc) * app_accel_elc[0]))) +
+      (mat_22 * (u_ion + (0.5 * dt * (1.0 / rho_ion) * app_accel_ion[0]))) +
+      (mat_23 * (Ex - ((dt / (2.0 * epsilon0)) * app_current[0])));
+    f_ion_new[2] = (mat_21 * (v_elc + (0.5 * dt * (1.0 / rho_elc) * app_accel_elc[1]))) +
+      (mat_22 * (v_ion + (0.5 * dt * (1.0 / rho_ion) * app_accel_ion[1]))) +
+      (mat_23 * (Ey - ((dt / (2.0 * epsilon0)) * app_current[1])));
+    f_ion_new[3] = (mat_21 * (w_elc + (0.5 * dt * (1.0 / rho_elc) * app_accel_elc[2]))) +
+      (mat_22 * (w_ion + (0.5 * dt * (1.0 / rho_ion) * app_accel_ion[2]))) +
+      (mat_23 * (Ez - ((dt / (2.0 * epsilon0)) * app_current[2])));
+    
+    em_new[0] = (mat_31 * (u_elc + (0.5 * dt * (1.0 / rho_elc) * app_accel_elc[0]))) +
+      (mat_32 * (u_ion + (0.5 * dt * (1.0 / rho_ion) * app_accel_ion[0]))) +
+      (mat_33 * (Ex - ((dt / (2.0 * epsilon0)) * app_current[0])));
+    em_new[1] = (mat_31 * (v_elc + (0.5 * dt * (1.0 / rho_elc) * app_accel_elc[1]))) +
+      (mat_32 * (v_ion + (0.5 * dt * (1.0 / rho_ion) * app_accel_ion[1]))) +
+      (mat_33 * (Ey - ((dt / (2.0 * epsilon0)) * app_current[1])));
+    em_new[2] = (mat_31 * (w_elc + (0.5 * dt * (1.0 / rho_elc) * app_accel_elc[2]))) +
+      (mat_32 * (w_ion + (0.5 * dt * (1.0 / rho_ion) * app_accel_ion[2]))) +
+      (mat_33 * (Ez - ((dt / (2.0 * epsilon0)) * app_current[2])));
+    
+    em_new[0] -= ext_em[0];
+    em_new[1] -= ext_em[1];
+    em_new[2] -= ext_em[2];
+
+    for (int i = 3; i < 8; i++) {
+      em_new[i] = em_old[i];
+    }
 
     f_elc_new[4] = f_elc_old[4];
     f_ion_new[4] = f_ion_old[4];
@@ -390,7 +428,8 @@ implicit_frictional_source_update_half(const gkyl_moment_em_coupling* mom_em, co
 }
 
 void
-implicit_frictional_source_update(const gkyl_moment_em_coupling* mom_em, double t_curr, const double dt, double* fluid_s[GKYL_MAX_SPECIES])
+implicit_frictional_source_update(const gkyl_moment_em_coupling* mom_em, double t_curr, const double dt, double* fluid_s[GKYL_MAX_SPECIES],
+  const double* app_accel_s[GKYL_MAX_SPECIES], double* em, const double* app_current, const double* ext_em)
 {
   int nfluids = mom_em->nfluids;
 
@@ -405,14 +444,30 @@ implicit_frictional_source_update(const gkyl_moment_em_coupling* mom_em, double 
     double f_elc_stage1[5], f_elc_new[5];
     double f_ion_stage1[5], f_ion_new[5];
     double f_elc_old[5], f_ion_old[5];
+    double em_stage1[8], em_new[8], em_old[8];
 
     for (int i = 0; i < 5; i++) {
       f_elc_old[i] = f_elc[i];
       f_ion_old[i] = f_ion[i];
     }
+    
+    for (int i = 0; i < 8; i++) {
+      em_old[i] = em[i];
+    }
 
-    implicit_frictional_source_update_half(mom_em, Z, T_elc, Lambda_ee, t_curr, dt, f_elc_old, f_elc_stage1, f_ion_old, f_ion_stage1);
-    implicit_frictional_source_update_half(mom_em, Z, T_elc, Lambda_ee, t_curr + (0.5 * dt), dt, f_elc_stage1, f_elc_new, f_ion_stage1, f_ion_new);
+    implicit_frictional_source_update_half(mom_em, Z, T_elc, Lambda_ee, t_curr, dt, f_elc_old, f_ion_old, f_elc_stage1, f_ion_stage1,
+      app_accel_s, em_old, em_stage1, app_current, ext_em);
+    implicit_frictional_source_update_half(mom_em, Z, T_elc, Lambda_ee, t_curr + (0.5 * dt), dt, f_elc_stage1, f_ion_stage1, f_elc_new, f_ion_new,
+      app_accel_s, em_stage1, em_new, app_current, ext_em);
+
+    for (int i = 0; i < 5; i++) {
+      f_elc[i] = f_elc_new[i];
+      f_ion[i] = f_ion_new[i];
+    }
+
+    for (int i = 0; i < 8; i++) {
+      em[i] = em_new[i];
+    }
   }
 }
 
@@ -497,8 +552,8 @@ implicit_source_coupling_update(const gkyl_moment_em_coupling* mom_em, double t_
       double mom_x = f[1], mom_y = f[2], mom_z = f[3];
       
       f[4] += (0.5 * ((mom_x * mom_x) + (mom_y * mom_y) + (mom_z * mom_z)) / rho) - ke_old[i];
-    }
-    else {
+    }/*
+    else if (mom_em->param[i].type == GKYL_EQN_TEN_MOMENT) {
       double rho = f[0];
       double mom_x = f[1], mom_y = f[2], mom_z = f[3];
 
@@ -508,7 +563,7 @@ implicit_source_coupling_update(const gkyl_moment_em_coupling* mom_em, double t_
       f[7] = ((mom_y * mom_y) / rho) + p_tensor_new[i][3];
       f[8] = ((mom_y * mom_z) / rho) + p_tensor_new[i][4];
       f[9] = ((mom_z * mom_z) / rho) + p_tensor_new[i][5];
-    }
+    }*/
   }
 
   if (mom_em->has_collision) {
@@ -524,10 +579,13 @@ implicit_source_coupling_update(const gkyl_moment_em_coupling* mom_em, double t_
       explicit_frictional_source_update(mom_em, t_curr, dt, fluid_s);
     }
     else {
-      implicit_frictional_source_update(mom_em, t_curr, dt, fluid_s);
+      implicit_frictional_source_update(mom_em, t_curr, dt, fluid_s, app_accel_s, em, app_current, ext_em);
     }
   }
   if (mom_em->has_volume_sources) {
     explicit_volume_source_update(mom_em, t_curr, dt, fluid_s, em, ext_em);
+  }
+  if (mom_em->has_reactive_sources) {
+    explicit_reactive_source_update(mom_em, t_curr, dt, fluid_s);
   }
 }

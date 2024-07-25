@@ -3,7 +3,7 @@ GKYL_CU_DH double vlasov_pkpm_surfx_1x1v_ser_p1(const double *w, const double *d
     const double *bvar_surf_l, const double *bvar_surf_c, const double *bvar_surf_r, 
     const double *pkpm_prim_surf_l, const double *pkpm_prim_surf_c, const double *pkpm_prim_surf_r, 
     const double *fl, const double *fc, const double *fr, 
-    const double *pkpm_max_b, const double *pkpm_lax, double* GKYL_RESTRICT out) 
+    const double *pkpm_max_b, const double *pkpm_lax_l, const double *pkpm_lax_r, double* GKYL_RESTRICT out) 
 { 
   // w[NDIM]:              Cell-center coordinates.
   // dxv[NDIM]:            Cell spacing.
@@ -11,7 +11,7 @@ GKYL_CU_DH double vlasov_pkpm_surfx_1x1v_ser_p1(const double *w, const double *d
   // pkpm_prim_surf_l/c/r: Input surface primitive variables [u_i, 3*T_ii/m] in left/center/right cells in each direction.
   // fl/fc/fr:             Input distribution functions [F_0, T_perp/m G = T_perp/m (F_0 - F_1)] in left/center/right cells.
   // pkpm_max_b:           Surface expansion of max |b| for Lax penalization of streaming: lambda_i = |b_i|.
-  // pkpm_lax:             Surface expansion of pkpm Lax penalization: lambda_i = |u_i| + sqrt(3.0*T_ii/m).
+  // pkpm_lax_l/r:         Surface expansion of pkpm Lax penalization: lambda_i = |u_i| + sqrt(3.0*T_ii/m) on left/right surface.
   // out:                  Incremented output distribution functions in center cell.
   const double dx1 = 2.0/dxv[0]; 
   const double dvpar = dxv[1], wvpar = w[1]; 
@@ -86,8 +86,8 @@ GKYL_CU_DH double vlasov_pkpm_surfx_1x1v_ser_p1(const double *w, const double *d
   const double *pkpm_max_b_l = &pkpm_max_b[0]; 
   const double *pkpm_max_b_r = &pkpm_max_b[1]; 
 
-  const double *pkpm_lax_l = &pkpm_lax[0]; 
-  const double *pkpm_lax_r = &pkpm_lax[1]; 
+  const double *pkpm_lax_dir_l = &pkpm_lax_l[0]; 
+  const double *pkpm_lax_dir_r = &pkpm_lax_r[0]; 
 
   double bl_r = b_surf_lr[0]; 
   double bc_l = b_surf_cl[0]; 
@@ -139,8 +139,8 @@ GKYL_CU_DH double vlasov_pkpm_surfx_1x1v_ser_p1(const double *w, const double *d
   double avg_u_l = 0.5*(ul_r + uc_l); 
   double avg_u_r = 0.5*(uc_r + ur_l); 
 
-  double max_speed_l = pkpm_lax_l[0]; 
-  double max_speed_r = pkpm_lax_r[0]; 
+  double max_speed_l = pkpm_lax_dir_l[0]; 
+  double max_speed_r = pkpm_lax_dir_r[0]; 
 
   Ghat_F_0_u_l[0] = (0.5*F_0_lr[0]-0.5*F_0_cl[0])*max_speed_l+0.5*(F_0_lr[0]+F_0_cl[0])*avg_u_l; 
   Ghat_F_0_u_l[1] = (0.5*F_0_lr[1]-0.5*F_0_cl[1])*max_speed_l+0.5*(F_0_lr[1]+F_0_cl[1])*avg_u_l; 
