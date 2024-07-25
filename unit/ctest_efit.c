@@ -22,6 +22,7 @@ void test_solovev(){
     .rz_poly_order = 2,
     .rz_basis_type = GKYL_BASIS_MODAL_TENSOR,
     .flux_poly_order = 1,
+    .reflect =  true,
   };
   struct gkyl_efit* efit = gkyl_efit_new(&inp);
 
@@ -42,6 +43,7 @@ void test_step(){
     .rz_poly_order = 2,
     .rz_basis_type = GKYL_BASIS_MODAL_TENSOR,
     .flux_poly_order = 1,
+    .reflect =  true,
   };
   struct gkyl_efit* efit = gkyl_efit_new(&inp);
 
@@ -83,6 +85,7 @@ void test_cerfon(){
     .rz_poly_order = 2,
     .rz_basis_type = GKYL_BASIS_MODAL_TENSOR,
     .flux_poly_order = 1,
+    .reflect =  true,
   };
   struct gkyl_efit* efit = gkyl_efit_new(&inp);
 
@@ -103,6 +106,7 @@ void test_elliptical(){
     .rz_poly_order = 2,
     .rz_basis_type = GKYL_BASIS_MODAL_TENSOR,
     .flux_poly_order = 1,
+    .reflect =  true,
   };
   struct gkyl_efit* efit = gkyl_efit_new(&inp);
 
@@ -123,6 +127,7 @@ void test_wham(){
     .rz_poly_order = 2,
     .rz_basis_type = GKYL_BASIS_MODAL_TENSOR,
     .flux_poly_order = 1,
+    //.reflect =  true,
   };
   struct gkyl_efit* efit = gkyl_efit_new(&inp);
 
@@ -164,6 +169,7 @@ void test_mast(){
     .rz_poly_order = 2,
     .rz_basis_type = GKYL_BASIS_MODAL_TENSOR,
     .flux_poly_order = 1,
+    .reflect =  true,
   };
   struct gkyl_efit* efit = gkyl_efit_new(&inp);
 
