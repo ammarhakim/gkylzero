@@ -9,19 +9,19 @@ extern "C" {
 #include <cassert>  
 
 __global__ static void
-chung_everhart_set_cu_dev_ptrs(struct gkyl_spectrum_chung_everhart *model)
+chung_everhart_set_cu_dev_ptrs(struct gkyl_emission_spectrum_chung_everhart *model)
 {
   model->spectrum.normalization = gkyl_emission_spectrum_chung_everhart_norm;
 }
 
 __global__ static void
-gaussian_set_cu_dev_ptrs(struct gkyl_spectrum_gaussian *model)
+gaussian_set_cu_dev_ptrs(struct gkyl_emission_spectrum_gaussian *model)
 {
   model->spectrum.normalization = gkyl_emission_spectrum_gaussian_norm;
 }
 
 __global__ static void
-maxwellian_set_cu_dev_ptrs(struct gkyl_spectrum_maxwellian *model)
+maxwellian_set_cu_dev_ptrs(struct gkyl_emission_spectrum_maxwellian *model)
 {
   model->spectrum.normalization = gkyl_emission_spectrum_maxwellian_norm;
 }

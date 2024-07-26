@@ -11,19 +11,19 @@ extern "C" {
 __global__ static void
 furman_pivi_set_cu_dev_ptrs(struct gkyl_emission_yield_furman_pivi *model)
 {
-  model->yield.function = gkyl_emission_spectrum_furman_pivi_yield;
+  model->yield.function = gkyl_emission_yield_furman_pivi_yield;
 }
 
 __global__ static void
 schou_set_cu_dev_ptrs(struct gkyl_emission_yield_schou *model)
 {
-  model->yield.function = gkyl_emission_spectrum_schou_yield;
+  model->yield.function = gkyl_emission_yield_schou_yield;
 }
 
 __global__ static void
 constant_set_cu_dev_ptrs(struct gkyl_emission_yield_constant *model)
 {
-  model->yield.function = gkyl_emission_spectrum_constant_yield;
+  model->yield.function = gkyl_emission_yield_constant_yield;
 }
 
 struct gkyl_emission_yield_model*
@@ -44,7 +44,7 @@ gkyl_emission_yield_furman_pivi_cu_dev_new(double charge, double deltahat_ts, do
 
   model->yield.flags = 0;
   GKYL_SET_CU_ALLOC(model->yield.flags);
-  model->yield.ref_count = gkyl_ref_count_init(furman_pivi_free);
+  model->yield.ref_count = gkyl_ref_count_init(gkyl_emission_yield_furman_pivi_free);
 
   struct gkyl_emission_yield_furman_pivi *model_cu = (struct gkyl_emission_yield_furman_pivi*)
     gkyl_cu_malloc(sizeof(struct gkyl_emission_yield_furman_pivi));
@@ -75,7 +75,7 @@ gkyl_emission_yield_schou_cu_dev_new(double charge, double int_wall, double a2, 
 
   model->yield.flags = 0;
   GKYL_SET_CU_ALLOC(model->yield.flags);
-  model->yield.ref_count = gkyl_ref_count_init(schou_free);
+  model->yield.ref_count = gkyl_ref_count_init(gkyl_emission_yield_schou_free);
 
   struct gkyl_emission_yield_schou *model_cu = (struct gkyl_emission_yield_schou*)
     gkyl_cu_malloc(sizeof(struct gkyl_emission_yield_schou));
@@ -99,7 +99,7 @@ gkyl_emission_yield_constant_cu_dev_new(double charge, double delta)
 
   model->yield.flags = 0;
   GKYL_SET_CU_ALLOC(model->yield.flags);
-  model->yield.ref_count = gkyl_ref_count_init(constant_free);
+  model->yield.ref_count = gkyl_ref_count_init(gkyl_emission_yield_constant_free);
 
   struct gkyl_emission_yield_constant *model_cu = (struct gkyl_emission_yield_constant*)
     gkyl_cu_malloc(sizeof(struct gkyl_emission_yield_constant));
