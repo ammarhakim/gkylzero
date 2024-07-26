@@ -4,8 +4,9 @@
 // ctx with models specified by user
 struct gkyl_bc_emission_ctx*
 gkyl_bc_emission_new(int num_species, double t_bound, bool elastic,
-  struct gkyl_spectrum_model *spectrum_model[], struct gkyl_yield_model *yield_model[],
-  struct gkyl_elastic_model *elastic_model, char in_species[][128])
+  struct gkyl_emission_spectrum_model *spectrum_model[],
+  struct gkyl_emission_yield_model *yield_model[],
+  struct gkyl_emission_elastic_model *elastic_model, char in_species[][128])
 {
   struct gkyl_bc_emission_ctx *ctx = gkyl_malloc(sizeof(struct gkyl_bc_emission_ctx));
   
@@ -13,11 +14,11 @@ gkyl_bc_emission_new(int num_species, double t_bound, bool elastic,
   ctx->t_bound = t_bound;
   ctx->elastic = elastic;
   for (int i=0; i<num_species; ++i) {
-    ctx->spectrum_model[i] = gkyl_spectrum_model_acquire(spectrum_model[i]);
-    ctx->yield_model[i] = gkyl_yield_model_acquire(yield_model[i]);
+    ctx->spectrum_model[i] = gkyl_emission_spectrum_model_acquire(spectrum_model[i]);
+    ctx->yield_model[i] = gkyl_emission_yield_model_acquire(yield_model[i]);
     strcpy(ctx->in_species[i], in_species[i]);
   }
-  if (elastic) ctx->elastic_model = gkyl_elastic_model_acquire(elastic_model);
+  if (elastic) ctx->elastic_model = gkyl_emission_elastic_model_acquire(elastic_model);
 
   return ctx;
 }
@@ -52,12 +53,13 @@ gkyl_bc_emission_secondary_electron_copper_new(int num_species, double t_bound,
   ctx->elastic = true;
 
   for (int i=0; i<num_species; ++i) {
-    ctx->spectrum_model[i] = gkyl_spectrum_gaussian_new(q0, E_0, tau, use_gpu);
-    ctx->yield_model[i] = gkyl_yield_furman_pivi_new(q0, deltahat_ts, Ehat_ts, t1, t2, t3,
+    ctx->spectrum_model[i] = gkyl_emission_spectrum_gaussian_new(q0, E_0, tau, use_gpu);
+    ctx->yield_model[i] = gkyl_emission_yield_furman_pivi_new(q0, deltahat_ts, Ehat_ts, t1, t2, t3,
       t4, s, use_gpu);
     strcpy(ctx->in_species[i], in_species[i]);
   }
-  ctx->elastic_model = gkyl_elastic_furman_pivi_new(q0, P1_inf, P1_hat, E_hat, W, p, use_gpu);
+  ctx->elastic_model = gkyl_emission_elastic_furman_pivi_new(q0, P1_inf, P1_hat, E_hat,
+    W, p, use_gpu);
 
   return ctx;
 }
@@ -88,12 +90,12 @@ gkyl_bc_emission_secondary_electron_lithium_oxidized_new(int num_species, double
   ctx->elastic = true;
 
   for (int i=0; i<num_species; ++i) {
-    ctx->spectrum_model[i] = gkyl_spectrum_chung_everhart_new(q0, phi, use_gpu);
-    ctx->yield_model[i] = gkyl_yield_furman_pivi_new(q0, deltahat_ts, Ehat_ts, t1, t2, t3,
+    ctx->spectrum_model[i] = gkyl_emission_spectrum_chung_everhart_new(q0, phi, use_gpu);
+    ctx->yield_model[i] = gkyl_emission_yield_furman_pivi_new(q0, deltahat_ts, Ehat_ts, t1, t2, t3,
       t4, s, use_gpu);
     strcpy(ctx->in_species[i], in_species[i]);
   }
-  ctx->elastic_model = gkyl_elastic_cazaux_new(q0, E_f, phi_r, use_gpu);
+  ctx->elastic_model = gkyl_emission_elastic_cazaux_new(q0, E_f, phi_r, use_gpu);
 
   return ctx;
 }
@@ -121,8 +123,8 @@ gkyl_bc_emission_secondary_electron_lithium_clean_new(int num_species, double t_
   ctx->elastic = false;
 
   for (int i=0; i<num_species; ++i) {
-    ctx->spectrum_model[i] = gkyl_spectrum_chung_everhart_new(q0, phi, use_gpu);
-    ctx->yield_model[i] = gkyl_yield_furman_pivi_new(q0, deltahat_ts, Ehat_ts, t1, t2, t3,
+    ctx->spectrum_model[i] = gkyl_emission_spectrum_chung_everhart_new(q0, phi, use_gpu);
+    ctx->yield_model[i] = gkyl_emission_yield_furman_pivi_new(q0, deltahat_ts, Ehat_ts, t1, t2, t3,
       t4, s, use_gpu);
     strcpy(ctx->in_species[i], in_species[i]);
   }
@@ -133,10 +135,10 @@ gkyl_bc_emission_secondary_electron_lithium_clean_new(int num_species, double t_
 void gkyl_bc_emission_release(struct gkyl_bc_emission_ctx *ctx)
 {
   for (int i=0; i<ctx->num_species; ++i) {
-    gkyl_spectrum_model_release(ctx->spectrum_model[i]);
-    gkyl_yield_model_release(ctx->yield_model[i]);
+    gkyl_emission_spectrum_model_release(ctx->spectrum_model[i]);
+    gkyl_emission_yield_model_release(ctx->yield_model[i]);
   }
-  if (ctx->elastic) gkyl_elastic_model_release(ctx->elastic_model);
+  if (ctx->elastic) gkyl_emission_elastic_model_release(ctx->elastic_model);
   // Release ctx memory.
   gkyl_free(ctx);
 }

@@ -15,10 +15,8 @@ struct gkyl_bc_emission_spectrum {
   double charge;
   double mass;
   struct gkyl_rect_grid *grid;
-  struct gkyl_spectrum_model *spectrum_model;
-  struct gkyl_yield_model *yield_model;
-  struct gkyl_spectrum_model *spectrum_model_cu;
-  struct gkyl_yield_model *yield_model_cu;
+  struct gkyl_emission_spectrum_model *spectrum_model;
+  struct gkyl_emission_yield_model *yield_model;
   bool use_gpu;
 };
 

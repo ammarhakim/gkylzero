@@ -34,7 +34,7 @@ gkyl_bc_emission_elastic_create_arr_copy_func(int dir, int cdim, const struct gk
 }
 
 struct gkyl_bc_emission_elastic*
-gkyl_bc_emission_elastic_new(struct gkyl_elastic_model *elastic_model,
+gkyl_bc_emission_elastic_new(struct gkyl_emission_elastic_model *elastic_model,
   struct gkyl_array *elastic_yield, int dir, enum gkyl_edge_loc edge, int cdim,
   int vdim, double mass, int ncomp, struct gkyl_rect_grid *grid, struct gkyl_range *emit_buff_r,
   int poly_order, const struct gkyl_basis *dev_basis, struct gkyl_basis *basis,
@@ -56,7 +56,7 @@ gkyl_bc_emission_elastic_new(struct gkyl_elastic_model *elastic_model,
     use_gpu);
 
   
-  up->elastic_model = gkyl_elastic_model_acquire(elastic_model);
+  up->elastic_model = gkyl_emission_elastic_model_acquire(elastic_model);
   up->elastic_model->cdim = cdim;
   up->elastic_model->vdim = vdim;
   up->elastic_model->mass = mass;
@@ -102,7 +102,7 @@ gkyl_bc_emission_elastic_advance(const struct gkyl_bc_emission_elastic *up,
 
 void gkyl_bc_emission_elastic_release(struct gkyl_bc_emission_elastic *up)
 {
-  gkyl_elastic_model_release(up->elastic_model);
+  gkyl_emission_elastic_model_release(up->elastic_model);
   gkyl_free(up->reflect_func->ctx);
   gkyl_free(up->reflect_func);
   // Release updater memory.

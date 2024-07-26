@@ -14,7 +14,7 @@ struct gkyl_bc_emission_elastic {
   int dir, cdim, vdim;
   enum gkyl_edge_loc edge;
   struct gkyl_array_copy_func *reflect_func;
-  struct gkyl_elastic_model *elastic_model;
+  struct gkyl_emission_elastic_model *elastic_model;
   bool use_gpu;
 };
 

@@ -6,13 +6,13 @@
 #include <gkyl_ref_count.h>
 
 // Object type
-struct gkyl_yield_model;
+struct gkyl_emission_yield_model;
 
-typedef void (*emission_yield_func_t)(double *out, struct gkyl_yield_model *yield,
+typedef void (*emission_yield_func_t)(double *out, struct gkyl_emission_yield_model *yield,
   double xc[GKYL_MAX_DIM]);
 
 // Base model type
-struct gkyl_yield_model {
+struct gkyl_emission_yield_model {
   int cdim;
   int vdim;
   double mass;
@@ -20,13 +20,13 @@ struct gkyl_yield_model {
   emission_yield_func_t function;
 
   uint32_t flags;
-  struct gkyl_yield_model *on_dev;
+  struct gkyl_emission_yield_model *on_dev;
   struct gkyl_ref_count ref_count; // reference count
 };
 
 // Furman-Pivi model container
-struct gkyl_yield_furman_pivi {
-  struct gkyl_yield_model yield;
+struct gkyl_emission_yield_furman_pivi {
+  struct gkyl_emission_yield_model yield;
   double deltahat_ts;
   double Ehat_ts;
   double t1;
@@ -37,8 +37,8 @@ struct gkyl_yield_furman_pivi {
 };
 
 // Schou model container
-struct gkyl_yield_schou {
-  struct gkyl_yield_model yield;
+struct gkyl_emission_yield_schou {
+  struct gkyl_emission_yield_model yield;
   double int_wall;
   double a2;
   double a3;
@@ -48,8 +48,8 @@ struct gkyl_yield_schou {
 };
 
 // Constant yield model container
-struct gkyl_yield_constant {
-  struct gkyl_yield_model yield;
+struct gkyl_emission_yield_constant {
+  struct gkyl_emission_yield_model yield;
   double delta;
 };
 
@@ -62,61 +62,68 @@ struct gkyl_yield_constant {
  * @return true if model on device, false otherwise
  */
 bool
-gkyl_yield_model_is_cu_dev(const struct gkyl_yield_model *model);
+gkyl_emission_yield_model_is_cu_dev(const struct gkyl_emission_yield_model *model);
 
 static void
-furman_pivi_free(const struct gkyl_ref_count *ref)
+gkyl_emission_yield_furman_pivi_free(const struct gkyl_ref_count *ref)
 {
-  struct gkyl_yield_model *yield = container_of(ref, struct gkyl_yield_model, ref_count);
+  struct gkyl_emission_yield_model *yield =
+    container_of(ref, struct gkyl_emission_yield_model, ref_count);
 
-  if (gkyl_yield_model_is_cu_dev(yield)) {
-    struct gkyl_yield_furman_pivi *model = container_of(yield->on_dev,
-      struct gkyl_yield_furman_pivi, yield);
+  if (gkyl_emission_yield_model_is_cu_dev(yield)) {
+    struct gkyl_emission_yield_furman_pivi *model = container_of(yield->on_dev,
+      struct gkyl_emission_yield_furman_pivi, yield);
     gkyl_cu_free(model);
   }
 
-  struct gkyl_yield_furman_pivi *model = container_of(yield, struct gkyl_yield_furman_pivi, yield);
+  struct gkyl_emission_yield_furman_pivi *model = container_of(yield,
+    struct gkyl_emission_yield_furman_pivi, yield);
   gkyl_free(model);
 }
 
 static void
-schou_free(const struct gkyl_ref_count *ref)
+gkyl_emission_yield_schou_free(const struct gkyl_ref_count *ref)
 {
-  struct gkyl_yield_model *yield = container_of(ref, struct gkyl_yield_model, ref_count);
+  struct gkyl_emission_yield_model *yield =
+    container_of(ref, struct gkyl_emission_yield_model, ref_count);
 
-  if (gkyl_yield_model_is_cu_dev(yield)) {
-    struct gkyl_yield_schou *model = container_of(yield->on_dev,
-      struct gkyl_yield_schou, yield);
+  if (gkyl_emission_yield_model_is_cu_dev(yield)) {
+    struct gkyl_emission_yield_schou *model = container_of(yield->on_dev,
+      struct gkyl_emission_yield_schou, yield);
     gkyl_cu_free(model);
   }
 
-  struct gkyl_yield_schou *model = container_of(yield, struct gkyl_yield_schou, yield);
+  struct gkyl_emission_yield_schou *model = container_of(yield,
+    struct gkyl_emission_yield_schou, yield);
   gkyl_free(model);
 }
 
 static void
-constant_free(const struct gkyl_ref_count *ref)
+gkyl_emission_yield_constant_free(const struct gkyl_ref_count *ref)
 {
-  struct gkyl_yield_model *yield = container_of(ref, struct gkyl_yield_model, ref_count);
+  struct gkyl_emission_yield_model *yield =
+    container_of(ref, struct gkyl_emission_yield_model, ref_count);
 
-  if (gkyl_yield_model_is_cu_dev(yield)) {
-    struct gkyl_yield_constant *model = container_of(yield->on_dev,
-      struct gkyl_yield_constant, yield);
+  if (gkyl_emission_yield_model_is_cu_dev(yield)) {
+    struct gkyl_emission_yield_constant *model = container_of(yield->on_dev,
+      struct gkyl_emission_yield_constant, yield);
     gkyl_cu_free(model);
   }
 
-  struct gkyl_yield_constant *model = container_of(yield, struct gkyl_yield_constant, yield);
+  struct gkyl_emission_yield_constant *model = container_of(yield,
+    struct gkyl_emission_yield_constant, yield);
   gkyl_free(model);
 }
 
 // Furman-Pivi SEY calculation */
 GKYL_CU_D
 static void
-furman_pivi_yield(double *out, struct gkyl_yield_model *yield, double xc[GKYL_MAX_DIM])
+gkyl_emission_yield_furman_pivi_yield(double *out, struct gkyl_emission_yield_model *yield,
+  double xc[GKYL_MAX_DIM])
 // Electron impact model adapted from https://link.aps.org/doi/10.1103/PhysRevSTAB.5.124404
 {
-  const struct gkyl_yield_furman_pivi *model = container_of(yield,
-    struct gkyl_yield_furman_pivi, yield);
+  const struct gkyl_emission_yield_furman_pivi *model = container_of(yield,
+    struct gkyl_emission_yield_furman_pivi, yield);
   
   int cdim = yield->cdim;
   int vdim = yield->vdim;
@@ -145,11 +152,12 @@ furman_pivi_yield(double *out, struct gkyl_yield_model *yield, double xc[GKYL_MA
 // Schou SEY calculation
 GKYL_CU_D
 static void
-schou_yield(double *out, struct gkyl_yield_model *yield, double xc[GKYL_MAX_DIM])
+gkyl_emission_yield_schou_yield(double *out, struct gkyl_emission_yield_model *yield,
+  double xc[GKYL_MAX_DIM])
 // Ion impact model adapted from https://doi.org/10.1103/PhysRevB.22.2141
 { // No angular dependence atm. Will have to add later
-  const struct gkyl_yield_schou *model = container_of(yield,
-    struct gkyl_yield_schou, yield);
+  const struct gkyl_emission_yield_schou *model = container_of(yield,
+    struct gkyl_emission_yield_schou, yield);
   int cdim = yield->cdim;
   int vdim = yield->vdim;
   double mass = yield->mass;
@@ -180,10 +188,11 @@ schou_yield(double *out, struct gkyl_yield_model *yield, double xc[GKYL_MAX_DIM]
 // Fixed constant SEY
 GKYL_CU_D
 static void
-constant_yield(double *out, struct gkyl_yield_model *yield, double xc[GKYL_MAX_DIM])
+gkyl_emission_yield_constant_yield(double *out, struct gkyl_emission_yield_model *yield,
+  double xc[GKYL_MAX_DIM])
 {
-  const struct gkyl_yield_constant *model = container_of(yield,
-    struct gkyl_yield_constant, yield);
+  const struct gkyl_emission_yield_constant *model = container_of(yield,
+    struct gkyl_emission_yield_constant, yield);
   double delta = model->delta;
 
   out[0] = delta;
@@ -203,8 +212,8 @@ constant_yield(double *out, struct gkyl_yield_model *yield, double xc[GKYL_MAX_D
  * @param use_gpu bool to determine if on GPU
  * @return New model
  */
-struct gkyl_yield_model*
-gkyl_yield_furman_pivi_new(double charge, double deltahat_ts, double Ehat_ts, double t1,
+struct gkyl_emission_yield_model*
+gkyl_emission_yield_furman_pivi_new(double charge, double deltahat_ts, double Ehat_ts, double t1,
   double t2, double t3, double t4, double s, bool use_gpu);
 
 /**
@@ -220,8 +229,8 @@ gkyl_yield_furman_pivi_new(double charge, double deltahat_ts, double Ehat_ts, do
  * @param use_gpu bool to determine if on GPU
  * @return New model
  */
-struct gkyl_yield_model*
-gkyl_yield_schou_new(double charge, double int_wall, double a2, double a3, double a4,
+struct gkyl_emission_yield_model*
+gkyl_emission_yield_schou_new(double charge, double int_wall, double a2, double a3, double a4,
   double a5, double nw, bool use_gpu);
 
 /**
@@ -232,8 +241,8 @@ gkyl_yield_schou_new(double charge, double int_wall, double a2, double a3, doubl
  * @param use_gpu bool to determine if on GPU
  * @return New model
  */
-struct gkyl_yield_model*
-gkyl_yield_constant_new(double charge, double delta, bool use_gpu);
+struct gkyl_emission_yield_model*
+gkyl_emission_yield_constant_new(double charge, double delta, bool use_gpu);
 
 /**
  * Acquire pointer to model object. Delete using the release()
@@ -242,8 +251,8 @@ gkyl_yield_constant_new(double charge, double delta, bool use_gpu);
  * @param model Model object.
  * @return Acquired model obj pointer
  */
-struct gkyl_yield_model*
-gkyl_yield_model_acquire(const struct gkyl_yield_model* model);
+struct gkyl_emission_yield_model*
+gkyl_emission_yield_model_acquire(const struct gkyl_emission_yield_model* model);
 
 /**
  * Delete model object
@@ -251,7 +260,7 @@ gkyl_yield_model_acquire(const struct gkyl_yield_model* model);
  * @param model Model object to delete.
  */
 void
-gkyl_yield_model_release(const struct gkyl_yield_model* model);
+gkyl_emission_yield_model_release(const struct gkyl_emission_yield_model* model);
 
 /**
  * Create the emission yield model using Furman-Pivi on NV-GPU
@@ -266,8 +275,8 @@ gkyl_yield_model_release(const struct gkyl_yield_model* model);
  * @param s Fitting parameter
  * @return New model
  */
-struct gkyl_yield_model*
-gkyl_yield_furman_pivi_cu_dev_new(double charge, double deltahat_ts, double Ehat_ts,
+struct gkyl_emission_yield_model*
+gkyl_emission_yield_furman_pivi_cu_dev_new(double charge, double deltahat_ts, double Ehat_ts,
   double t1, double t2, double t3, double t4, double s);
 
 
@@ -284,9 +293,9 @@ gkyl_yield_furman_pivi_cu_dev_new(double charge, double deltahat_ts, double Ehat
  * @param use_gpu bool to determine if on GPU
  * @return New model
  */
-struct gkyl_yield_model*
-gkyl_yield_schou_cu_dev_new(double charge, double int_wall, double a2, double a3, double a4,
-  double a5, double nw);
+struct gkyl_emission_yield_model*
+gkyl_emission_yield_schou_cu_dev_new(double charge, double int_wall, double a2, double a3,
+  double a4, double a5, double nw);
 
 /**
  * Create the emission yield model using a constant yield on NV-GPU
@@ -296,5 +305,5 @@ gkyl_yield_schou_cu_dev_new(double charge, double int_wall, double a2, double a3
  * @param use_gpu bool to determine if on GPU
  * @return New model
  */
-struct gkyl_yield_model*
-gkyl_yield_constant_cu_dev_new(double charge, double delta);
+struct gkyl_emission_yield_model*
+gkyl_emission_yield_constant_cu_dev_new(double charge, double delta);

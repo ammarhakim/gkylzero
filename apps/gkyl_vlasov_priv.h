@@ -852,7 +852,7 @@ void vm_species_bgk_release(const struct gkyl_vlasov_app *app, const struct vm_b
  *
  * @param app Vlasov app object
  * @param s Species object 
- * @param bflu Sxpecies boundary flux object
+ * @param bflux Species boundary flux object
  */
 void vm_species_bflux_init(struct gkyl_vlasov_app *app, struct vm_species *s,
   struct vm_boundary_fluxes *bflux);

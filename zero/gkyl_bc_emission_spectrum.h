@@ -4,9 +4,9 @@
 #include <gkyl_basis.h>
 #include <gkyl_array.h>
 #include <gkyl_rect_grid.h>
-#include <gkyl_spectrum_model.h>
-#include <gkyl_yield_model.h>
-#include <gkyl_elastic_model.h>
+#include <gkyl_emission_spectrum_model.h>
+#include <gkyl_emission_yield_model.h>
+#include <gkyl_emission_elastic_model.h>
 
 // Object type
 typedef struct gkyl_bc_emission_spectrum gkyl_bc_emission_spectrum;
@@ -34,11 +34,12 @@ typedef struct gkyl_bc_emission_spectrum gkyl_bc_emission_spectrum;
  * @return New updater pointer
  */
 struct gkyl_bc_emission_spectrum*
-gkyl_bc_emission_spectrum_new(struct gkyl_spectrum_model *spectrum_model,
-  struct gkyl_yield_model *yield_model, struct gkyl_array *yield, struct gkyl_array *spectrum,
-  int dir, enum gkyl_edge_loc edge, int cdim, int vdim, double mass_in, double mass_out,
-  struct gkyl_range *impact_buff_r, struct gkyl_range *emit_buff_r, struct gkyl_rect_grid *grid,
-  int poly_order, struct gkyl_basis *basis, struct gkyl_array *proj_buffer, bool use_gpu);
+gkyl_bc_emission_spectrum_new(struct gkyl_emission_spectrum_model *spectrum_model,
+  struct gkyl_emission_yield_model *yield_model, struct gkyl_array *yield,
+  struct gkyl_array *spectrum, int dir, enum gkyl_edge_loc edge, int cdim, int vdim,
+  double mass_in, double mass_out, struct gkyl_range *impact_buff_r,
+  struct gkyl_range *emit_buff_r, struct gkyl_rect_grid *grid, int poly_order,
+  struct gkyl_basis *basis, struct gkyl_array *proj_buffer, bool use_gpu);
 
 /**
  * @param up BC updater

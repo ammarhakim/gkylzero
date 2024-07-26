@@ -7,20 +7,20 @@
 typedef void (*emission_elastic_func_t)(double t, const double *xn, double *fout, void *ctx);
 
 // Base model type
-struct gkyl_elastic_model {
+struct gkyl_emission_elastic_model {
   int cdim;
   int vdim;
   double mass;
   double charge;
   emission_elastic_func_t function;
 
-  struct gkyl_elastic_model *on_dev;
+  struct gkyl_emission_elastic_model *on_dev;
   struct gkyl_ref_count ref_count; // reference count
 };
 
 // Furman-Pivi model container
-struct gkyl_elastic_furman_pivi {
-  struct gkyl_elastic_model elastic;
+struct gkyl_emission_elastic_furman_pivi {
+  struct gkyl_emission_elastic_model elastic;
   double P1_inf;
   double P1_hat;
   double E_hat;
@@ -29,53 +29,59 @@ struct gkyl_elastic_furman_pivi {
 };
 
 // Cazaux model container
-struct gkyl_elastic_cazaux {
-  struct gkyl_elastic_model elastic;
+struct gkyl_emission_elastic_cazaux {
+  struct gkyl_emission_elastic_model elastic;
   double E_f;
   double phi;
 };
 
 // Constant emission model container
-struct gkyl_elastic_constant {
-  struct gkyl_elastic_model elastic;
+struct gkyl_emission_elastic_constant {
+  struct gkyl_emission_elastic_model elastic;
   double delta;
 };
 
 // Free functions
 
 static void
-gkyl_elastic_furman_pivi_free(const struct gkyl_ref_count *ref)
+gkyl_emission_elastic_furman_pivi_free(const struct gkyl_ref_count *ref)
 {
-  struct gkyl_elastic_model *elastic = container_of(ref, struct gkyl_elastic_model, ref_count);
-  struct gkyl_elastic_furman_pivi *model = container_of(elastic, struct gkyl_elastic_furman_pivi, elastic);
+  struct gkyl_emission_elastic_model *elastic =
+    container_of(ref, struct gkyl_emission_elastic_model, ref_count);
+  struct gkyl_emission_elastic_furman_pivi *model = container_of(elastic,
+    struct gkyl_emission_elastic_furman_pivi, elastic);
   gkyl_free(model);
 }
 
 static void
-gkyl_elastic_cazaux_free(const struct gkyl_ref_count *ref)
+gkyl_emission_elastic_cazaux_free(const struct gkyl_ref_count *ref)
 {
-  struct gkyl_elastic_model *elastic = container_of(ref, struct gkyl_elastic_model, ref_count);
-  struct gkyl_elastic_cazaux *model = container_of(elastic, struct gkyl_elastic_cazaux, elastic);
+  struct gkyl_emission_elastic_model *elastic =
+    container_of(ref, struct gkyl_emission_elastic_model, ref_count);
+  struct gkyl_emission_elastic_cazaux *model = container_of(elastic,
+    struct gkyl_emission_elastic_cazaux, elastic);
   gkyl_free(model);
 }
 
 static void
-gkyl_elastic_constant_free(const struct gkyl_ref_count *ref)
+gkyl_emission_elastic_constant_free(const struct gkyl_ref_count *ref)
 {
-  struct gkyl_elastic_model *elastic = container_of(ref, struct gkyl_elastic_model, ref_count);
-  struct gkyl_elastic_constant *model = container_of(elastic, struct gkyl_elastic_constant, elastic);
+  struct gkyl_emission_elastic_model *elastic =
+    container_of(ref, struct gkyl_emission_elastic_model, ref_count);
+  struct gkyl_emission_elastic_constant *model = container_of(elastic,
+    struct gkyl_emission_elastic_constant, elastic);
   gkyl_free(model);
 }
 
 // Furman-Pivi SEY calculation
 GKYL_CU_D
 static void
-gkyl_elastic_furman_pivi_yield(double t, const double *xn, double *fout, void *ctx)
+gkyl_emission_elastic_furman_pivi_yield(double t, const double *xn, double *fout, void *ctx)
 // Electron impact model adapted from https://link.aps.org/doi/10.1103/PhysRevSTAB.5.124404
 {
-  struct gkyl_elastic_model *elastic = (struct gkyl_elastic_model *) ctx;
-  const struct gkyl_elastic_furman_pivi *model = container_of(elastic,
-    struct gkyl_elastic_furman_pivi, elastic);
+  struct gkyl_emission_elastic_model *elastic = (struct gkyl_emission_elastic_model *) ctx;
+  const struct gkyl_emission_elastic_furman_pivi *model = container_of(elastic,
+    struct gkyl_emission_elastic_furman_pivi, elastic);
 
   int cdim = elastic->cdim;
   int vdim = elastic->vdim;
@@ -99,12 +105,12 @@ gkyl_elastic_furman_pivi_yield(double t, const double *xn, double *fout, void *c
 // Cazaux backscattering */
 GKYL_CU_D
 static void
-gkyl_elastic_cazaux_yield(double t, const double *xn, double *fout, void *ctx)
+gkyl_emission_elastic_cazaux_yield(double t, const double *xn, double *fout, void *ctx)
 // Low-energy backscattering model adapted from https://doi.org/10.1063/1.3691956
 {
-  struct gkyl_elastic_model *elastic = (struct gkyl_elastic_model *) ctx;
-  const struct gkyl_elastic_cazaux *model = container_of(elastic,
-    struct gkyl_elastic_cazaux, elastic);
+  struct gkyl_emission_elastic_model *elastic = (struct gkyl_emission_elastic_model *) ctx;
+  const struct gkyl_emission_elastic_cazaux *model = container_of(elastic,
+    struct gkyl_emission_elastic_cazaux, elastic);
   int cdim = elastic->cdim;
   int vdim = elastic->vdim;
   double mass = elastic->mass;
@@ -125,11 +131,11 @@ gkyl_elastic_cazaux_yield(double t, const double *xn, double *fout, void *ctx)
 // Fixed constant reflection */
 GKYL_CU_D
 static void
-gkyl_elastic_constant_yield(double t, const double *xn, double *fout, void *ctx)
+gkyl_emission_elastic_constant_yield(double t, const double *xn, double *fout, void *ctx)
 {
-  struct gkyl_elastic_model *elastic = (struct gkyl_elastic_model *) ctx;
-  const struct gkyl_elastic_constant *model = container_of(elastic,
-    struct gkyl_elastic_constant, elastic);
+  struct gkyl_emission_elastic_model *elastic = (struct gkyl_emission_elastic_model *) ctx;
+  const struct gkyl_emission_elastic_constant *model = container_of(elastic,
+    struct gkyl_emission_elastic_constant, elastic);
   double delta = model->delta;
 
   fout[0] = delta;
@@ -147,8 +153,8 @@ gkyl_elastic_constant_yield(double t, const double *xn, double *fout, void *ctx)
  * @param use_gpu bool to determine if on GPU
  * @return New model
  */
-struct gkyl_elastic_model*
-gkyl_elastic_furman_pivi_new(double charge, double P1_inf, double P1_hat, double E_hat,
+struct gkyl_emission_elastic_model*
+gkyl_emission_elastic_furman_pivi_new(double charge, double P1_inf, double P1_hat, double E_hat,
   double W, double p, bool use_gpu);
 
 /**
@@ -160,8 +166,8 @@ gkyl_elastic_furman_pivi_new(double charge, double P1_inf, double P1_hat, double
  * @param use_gpu bool to determine if on GPU
  * @return New model
  */
-struct gkyl_elastic_model*
-gkyl_elastic_cazaux_new(double charge, double E_f, double phi, bool use_gpu);
+struct gkyl_emission_elastic_model*
+gkyl_emission_elastic_cazaux_new(double charge, double E_f, double phi, bool use_gpu);
 
 /**
  * Create the elastic emission model using constant yield
@@ -171,8 +177,8 @@ gkyl_elastic_cazaux_new(double charge, double E_f, double phi, bool use_gpu);
  * @param use_gpu bool to determine if on GPU
  * @return New model
  */
-struct gkyl_elastic_model*
-gkyl_elastic_constant_new(double charge, double delta, bool use_gpu);
+struct gkyl_emission_elastic_model*
+gkyl_emission_elastic_constant_new(double charge, double delta, bool use_gpu);
 
 /**
  * Acquire pointer to model object. Delete using the release()
@@ -181,8 +187,8 @@ gkyl_elastic_constant_new(double charge, double delta, bool use_gpu);
  * @param model Model object.
  * @return Acquired model obj pointer
  */
-struct gkyl_elastic_model*
-gkyl_elastic_model_acquire(const struct gkyl_elastic_model* model);
+struct gkyl_emission_elastic_model*
+gkyl_emission_elastic_model_acquire(const struct gkyl_emission_elastic_model* model);
 
 /**
  * Delete model object
@@ -190,4 +196,4 @@ gkyl_elastic_model_acquire(const struct gkyl_elastic_model* model);
  * @param model Model object to delete.
  */
 void
-gkyl_elastic_model_release(const struct gkyl_elastic_model* model);
+gkyl_emission_elastic_model_release(const struct gkyl_emission_elastic_model* model);
