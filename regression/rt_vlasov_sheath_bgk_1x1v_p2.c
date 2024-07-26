@@ -1,12 +1,10 @@
 #include <math.h>
 #include <stdio.h>
-#include <stdlib.h>
 #include <time.h>
 
 #include <gkyl_alloc.h>
 #include <gkyl_vlasov.h>
-#include <gkyl_util.h>
-#include <gkyl_wv_euler.h>
+#include <rt_arg_parse.h>
 
 #include <gkyl_null_comm.h>
 
@@ -18,119 +16,158 @@
 #endif
 #endif
 
-#include <rt_arg_parse.h>
-
-struct neut_lbo_wall_ctx
-{
-  // Mathematical constants (dimensionless).
-  double pi;
-
-  // Physical constants (using normalized code units).
-  double mass; // Neutral mass.
-  double charge; // Neutral charge. 
-
-  double n0; // Reference number density.
-  double u0; // Reference velocity.
-  double vt; // Neutral thermal velocity.
-  double nu; // Collision frequency.
-
-  // Simulation parameters.
-  int Nx; // Cell count (configuration space: x-direction).
-  int Nvx; // Cell count (velocity space: vx-direction).
-  double Lx; // Domain size (configuration space: x-direction).
-  double vx_max; // Domain boundary (velocity space: vx-direction).
-  int poly_order; // Polynomial order.
-  double cfl_frac; // CFL coefficient.
-
-  double t_end; // Final simulation time.
-  int num_frames; // Number of output frames.
-  double dt_failure_tol; // Minimum allowable fraction of initial time-step.
-  int num_failures_max; // Maximum allowable number of consecutive small time-steps.
+struct sheath_ctx {
+  double epsilon0;
+  double mu0;
+  double chargeElc; // electron charge
+  double massElc; // electron mass
+  double chargeIon; // ion charge
+  double massIon; // ion mass
+  double n0;
+  double Te; // electron to ion temperature ratio
+  double Ti;
+  double vte; // electron thermal velocity
+  double vti; // ion thermal velocity
+  double lambda_D;
+  double nu_ee; // electron-electron collision frequency
+  double nu_ii; // ion-ion collision frequency
+  double Lx; // size of the box
+  double Ls;
+  double omega_pe;
+  int Nx;
+  int Nv;
+  double t_end;
+  int num_frames;
+  double dt_failure_tol;
+  int num_failures_max;
 };
 
-struct neut_lbo_wall_ctx
+static inline double sq(double x) { return x*x; }
+
+void
+evalDistFuncElc(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
+{
+  struct sheath_ctx *app = ctx;
+  double x = xn[0], v = xn[1];
+  double vt = app->vte;
+  double n = app->n0;
+  double fv = n/sqrt(2.0*M_PI*sq(vt))*(exp(-sq(v)/(2*sq(vt))));
+  fout[0] = fv;
+}
+
+void
+evalDistFuncElcSource(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
+{
+  struct sheath_ctx *app = ctx;
+  double x = xn[0], v = xn[1];
+  double vt = app->vte;
+  double Ls = app->Ls;
+  double fv = 1.0/sqrt(2.0*M_PI*sq(vt))*(exp(-sq(v)/(2*sq(vt))));
+  if(fabs(x) < Ls) {
+    fout[0] = 2*(Ls - fabs(x))/Ls*fv;
+  } else {
+    fout[0] = 0.0;
+  }
+}
+
+void
+evalDistFuncIon(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
+{
+  struct sheath_ctx *app = ctx;
+  double x = xn[0], v = xn[1];
+  double vt = app->vti;
+  double n = app->n0;
+  double fv = n/sqrt(2.0*M_PI*sq(vt))*(exp(-sq(v)/(2*sq(vt))));
+  fout[0] = fv;
+}
+
+void
+evalDistFuncIonSource(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
+{
+  struct sheath_ctx *app = ctx;
+  double x = xn[0], v = xn[1];
+  double vt = app->vti;
+  double Ls = app->Ls;
+  double fv = 1.0/sqrt(2.0*M_PI*sq(vt))*(exp(-sq(v)/(2*sq(vt))));
+  if(fabs(x) < Ls) {
+    fout[0] = 2*(Ls - fabs(x))/Ls*fv;
+  } else {
+    fout[0] = 0.0;
+  }
+}
+
+void
+evalFieldFunc(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
+{
+  struct sheath_ctx *app = ctx;
+  double x = xn[0];
+  
+  fout[0] = 0.0; fout[1] = 0.0, fout[2] = 0.0;
+  fout[3] = 0.0; fout[4] = 0.0; fout[5] = 0.0;
+  fout[6] = 0.0; fout[7] = 0.0;
+}
+
+void
+evalElcNu(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
+{
+  struct sheath_ctx *app = ctx;
+  double x = xn[0], v = xn[1];
+  double nu = app->nu_ee;
+  double lambda_D = app->lambda_D;
+
+  // Set collision frequency.                                                                                                                                                                               
+  fout[0] = nu/(1 + exp(fabs(x)/(6.0*lambda_D) - 8.0/1.5));
+}
+
+void
+evalIonNu(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
+{
+  struct sheath_ctx *app = ctx;
+  double x = xn[0], v = xn[1];
+  double nu = app->nu_ii;
+  double lambda_D = app->lambda_D;
+
+  // Set collision frequency.                                                                                                                                                                               
+  fout[0] = nu/(1 + exp(fabs(x)/(6.0*lambda_D) - 8.0/1.5));
+}
+
+struct sheath_ctx
 create_ctx(void)
 {
-  // Mathematical constants (dimensionless).
-  double pi = M_PI;
-
-  // Physical constants (using normalized code units).
-  double mass = 1.0; // Neutral mass.
-  double charge = 0.0; // Neutral charge.
-
-  double n0 = 1.0; // Reference number density.
-  double u0 = 1.0; // Reference velocity.
-  double vt = 0.5; // Neutral thermal velocity.
-  double nu = 10.0; // Collision frequency.
-
-  // Simulation parameters.
-  int Nx = 128; // Cell count (configuration space: x-direction).
-  int Nvx = 16; // Cell count (velocity space: vx-direction).
-  double Lx = 1.0; // Domain size (configuration space: x-direction).
-  double vx_max = 12.0 * vt; // Domain boundary (velocity space: vx-direction).
-  int poly_order = 2; // Polynomial order.
-  double cfl_frac = 1.0; // CFL coefficient.
-
-  double t_end = 0.3; // Final simulation time.
-  int num_frames = 1; // Number of output frames.
-  double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.
-  int num_failures_max = 20; // Maximum allowable number of consecutive small time-steps.
-  
-  struct neut_lbo_wall_ctx ctx = {
-    .pi = pi,
-    .mass = mass,
-    .charge = charge,
-    .n0 = n0,
-    .u0 = u0,
-    .vt = vt,
-    .nu = nu,
-    .Nx = Nx,
-    .Nvx = Nvx,
-    .Lx = Lx,
-    .vx_max = vx_max,
-    .poly_order = poly_order,
-    .cfl_frac = cfl_frac,
-    .t_end = t_end,
-    .num_frames = num_frames,
-    .dt_failure_tol = dt_failure_tol,
-    .num_failures_max = num_failures_max,
+  double massElc = 9.109e-31;
+  double q0 = 1.602e-19;
+  struct sheath_ctx ctx = {
+    .epsilon0 = 8.854e-12,
+    .mu0 = 1.257e-6,
+    .chargeElc = -q0,
+    .massElc = massElc,
+    .chargeIon = q0,
+    .massIon = 1836.153*massElc,
+    .n0 = 1.0e17,
+    .Te = 10.0*q0,
+    .Ti = 10.0*q0,
+    .vte = sqrt(ctx.Te/massElc),
+    .vti = sqrt(ctx.Ti/ctx.massIon),
+    .lambda_D = sqrt(ctx.epsilon0*ctx.Te/(ctx.n0*q0*q0)),
+    .nu_ee = ctx.vte/(50.0*ctx.lambda_D), 
+    .nu_ii = ctx.vti/(50.0*ctx.lambda_D), 
+    .Lx = 128.0*ctx.lambda_D,
+    .Ls = 100.0*ctx.lambda_D,
+    .omega_pe = sqrt(ctx.n0*q0*q0/(ctx.epsilon0*massElc)),
+    .Nx = 128,
+    .Nv = 32,
+    .t_end = 10.0/ctx.omega_pe,
+    .num_frames = 1,
+    .dt_failure_tol = 1.0e-4,
+    .num_failures_max = 20,
   };
-
   return ctx;
-}
-
-void
-evalNeutInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
-{
-  struct neut_lbo_wall_ctx *app = ctx;
-  double v = xn[1];
-
-  double pi = app->pi;
-
-  double n0 = app->n0;
-  double u0 = app->u0;
-  double vt = app->vt;
-
-  double v_sq = (v - u0) * (v - u0);
-
-  // Set distribution function.
-  fout[0] = (n0 / sqrt(2.0 * pi * vt * vt)) * exp(-v_sq / (2.0 * vt *  vt));
-}
-
-void
-evalNu(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
-{
-  struct neut_lbo_wall_ctx *app = ctx;
-
-  double nu = app->nu;
-
-  // Set collision frequency.
-  fout[0] = nu;
 }
 
 void
 write_data(struct gkyl_tm_trigger* iot, gkyl_vlasov_app* app, double t_curr, bool force_write)
 {
+  gkyl_vlasov_app_calc_integrated_mom(app, t_curr);
   if (gkyl_tm_trigger_check_and_bump(iot, t_curr)) {
     int frame = iot->curr - 1;
     if (force_write) {
@@ -149,7 +186,7 @@ main(int argc, char **argv)
 {
   struct gkyl_app_args app_args = parse_app_args(argc, argv);
 
-#ifdef GKYL_HAVE_MPI
+  #ifdef GKYL_HAVE_MPI
   if (app_args.use_mpi) {
     MPI_Init(&argc, &argv);
   }
@@ -160,19 +197,19 @@ main(int argc, char **argv)
     gkyl_mem_debug_set(true);
   }
 
-  struct neut_lbo_wall_ctx ctx = create_ctx(); // Context for initialization functions.
+  struct sheath_ctx ctx = create_ctx(); // Context for initialization functions.
 
   int NX = APP_ARGS_CHOOSE(app_args.xcells[0], ctx.Nx);
-  int NVX = APP_ARGS_CHOOSE(app_args.vcells[0], ctx.Nvx);
+  int NV = APP_ARGS_CHOOSE(app_args.vcells[0], ctx.Nv);
 
   int nrank = 1; // Number of processors in simulation.
 #ifdef GKYL_HAVE_MPI
   if (app_args.use_mpi) {
     MPI_Comm_size(MPI_COMM_WORLD, &nrank);
   }
-#endif  
+#endif
 
-  // Create global range.
+// Create global range.
   int ccells[] = { NX };
   int cdim = sizeof(ccells) / sizeof(ccells[0]);
   struct gkyl_range cglobal_r;
@@ -193,8 +230,8 @@ main(int argc, char **argv)
   for (int d = 0; d < cdim; d++) {
     cuts[d] = 1;
   }
-#endif  
-    
+#endif
+
   struct gkyl_rect_decomp *decomp = gkyl_rect_decomp_new_from_cuts(cdim, cuts, &cglobal_r);
 
   // Construct communicator for use in app.
@@ -251,63 +288,125 @@ main(int argc, char **argv)
     goto mpifinalize;
   }
 
-  // Neutral species.
-  struct gkyl_vlasov_species neut = {
-    .name = "neut",
-    .charge = ctx.charge, .mass = ctx.mass,
-    .lower = { -ctx.vx_max },
-    .upper = { ctx.vx_max }, 
-    .cells = { NVX },
+  // electrons
+  struct gkyl_vlasov_species elc = {
+    .name = "elc",
+    .charge = ctx.chargeElc, .mass = ctx.massElc,
+    .lower = { -4.0*ctx.vte},
+    .upper = { 4.0*ctx.vte}, 
+    .cells = { NV },
 
     .projection = {
       .proj_id = GKYL_PROJ_FUNC,
-      .func = evalNeutInit,
+      .func = evalDistFuncElc,
       .ctx_func = &ctx,
+    },
+
+    .source = {
+      .source_id = GKYL_BFLUX_SOURCE,
+      .source_length = ctx.Ls,
+      .source_species = "ion",
+      .projection = {
+        .proj_id = GKYL_PROJ_FUNC,
+        .func = evalDistFuncElcSource,
+        .ctx_func = &ctx,
+      },
+    },
+
+    .collisions =  {
+      .collision_id = GKYL_BGK_COLLISIONS,
+      .self_nu = evalElcNu,
+      .ctx = &ctx,
+      .fixed_temp_relax = true,
     },
 
     .bcx = {
       .lower = { .type = GKYL_SPECIES_REFLECT, },
-      .upper = { .type = GKYL_SPECIES_REFLECT, },
+      .upper = { .type = GKYL_SPECIES_ABSORB, },
     },
-
-    .collisions =  {
-      .collision_id = GKYL_LBO_COLLISIONS,
-      .self_nu = evalNu,
-      .ctx = &ctx,
-    },
-
+    
     .num_diag_moments = 3,
     .diag_moments = { "M0", "M1i", "M2" },
   };
 
-  // Vlasov-Maxwell app.
+  // ions
+  struct gkyl_vlasov_species ion = {
+    .name = "ion",
+    .charge = ctx.chargeIon, .mass = ctx.massIon,
+    .lower = { -4.0*ctx.vti},
+    .upper = { 4.0*ctx.vti}, 
+    .cells = { NV },
+
+    .projection = {
+      .proj_id = GKYL_PROJ_FUNC,
+      .func = evalDistFuncIon,
+      .ctx_func = &ctx,
+    },
+
+    .source = {
+      .source_id = GKYL_BFLUX_SOURCE,
+      .source_length = ctx.Ls,
+      .source_species = "ion",
+      .projection = {
+        .proj_id = GKYL_PROJ_FUNC,
+        .func = evalDistFuncIonSource,
+        .ctx_func = &ctx,
+      },
+    },
+
+    .collisions =  {
+      .collision_id = GKYL_BGK_COLLISIONS,
+      .self_nu = evalIonNu,
+      .ctx = &ctx,
+      .fixed_temp_relax = true,
+    },
+
+    .bcx = {
+      .lower = { .type = GKYL_SPECIES_REFLECT, },
+      .upper = { .type = GKYL_SPECIES_ABSORB, },
+    },
+    
+    .num_diag_moments = 3,
+    .diag_moments = { "M0", "M1i", "M2" },
+  };
+
+  // field
+  struct gkyl_vlasov_field field = {
+    .epsilon0 = ctx.epsilon0, .mu0 = ctx.mu0,
+    .elcErrorSpeedFactor = 0.0,
+    .mgnErrorSpeedFactor = 0.0,
+
+    .ctx = &ctx,
+    .init = evalFieldFunc,
+
+    .bcx = { GKYL_FIELD_SYM_WALL, GKYL_FIELD_PEC_WALL }
+  };
+
+  // VM app
   struct gkyl_vm app_inp = {
-   .name = "vlasov_neut_lbo_wall",
+    .name = "vlasov_sheath_bgk_1x1v_p2",
 
-   .cdim = 1, .vdim = 1, 
-   .lower = { 0.0 },
-   .upper = { ctx.Lx },
-   .cells = { NX },
+    .cdim = 1, .vdim = 1,
+    .lower = { 0.0 },
+    .upper = { ctx.Lx },
+    .cells = { NX },
+    .poly_order = 2,
+    .basis_type = app_args.basis_type,
 
-   .poly_order = ctx.poly_order,
-   .basis_type = app_args.basis_type,
-   .cfl_frac = ctx.cfl_frac,
+    .num_periodic_dir = 0,
+    .periodic_dirs = { },
 
-   .num_periodic_dir = 0,
-   .periodic_dirs = { },
+    .num_species = 2,
+    .species = { elc, ion },
+    .field = field,
 
-   .num_species = 1,
-   .species = { neut },
+    .use_gpu = app_args.use_gpu,
 
-   .skip_field = true,
-
-   .use_gpu = app_args.use_gpu,
-
-   .has_low_inp = true,
-   .low_inp = {
-     .local_range = decomp->ranges[my_rank],
-     .comm = comm
-   }
+    .has_low_inp = true,
+    .low_inp = {
+      .local_range = decomp->ranges[my_rank],
+      .comm = comm
+    }
   };
 
   // Create app object.
@@ -370,6 +469,7 @@ main(int argc, char **argv)
   }
 
   write_data(&io_trig, app, t_curr, false);
+  gkyl_vlasov_app_write_integrated_mom(app);
   gkyl_vlasov_app_stat_write(app);
 
   struct gkyl_vlasov_stat stat = gkyl_vlasov_app_stat(app);
