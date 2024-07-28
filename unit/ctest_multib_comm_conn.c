@@ -94,7 +94,7 @@ test_0(void)
 }
 
 static void
-test_L_domain(void)
+test_L_domain_c1(void)
 {
   struct gkyl_block_geom *geom = create_L_domain((int[]) { 1, 1 } );
   struct gkyl_block_topo *topo = gkyl_block_geom_topo(geom);
@@ -121,6 +121,8 @@ test_L_domain(void)
   // for testing
   int num_send_neigh[] = { 1, 2, 1 };
 
+  // for testing (these hard-coded values depend on how the algorithm
+  // is implemented)  
   struct gkyl_comm_conn conn_0[] = {
     { .block_id = 1, .rank = 0 }
   };
@@ -165,8 +167,67 @@ test_L_domain(void)
   gkyl_block_geom_release(geom);
 }
 
+static void
+test_L_domain_c3(void)
+{
+  // THIS IS ONLY A PARTIAL TEST: checks send volume is correct and
+  // total sends are correct
+  
+  struct gkyl_block_geom *geom = create_L_domain((int[]) { 3, 3 } );
+  struct gkyl_block_topo *topo = gkyl_block_geom_topo(geom);
+
+  int num_blocks = topo->num_blocks;
+  int num_cuts[num_blocks];
+  int nghost[] = { 1, 1 };
+
+  int elo[2], eup[2];
+  for (int d=0; d<2; ++d)
+    elo[d] = eup[d] = nghost[d];
+  
+  // construct decomp objects
+  struct gkyl_rect_decomp **decomp =
+    gkyl_malloc(sizeof(struct gkyl_rect_decomp*[num_blocks]));
+  for (int i=0; i<num_blocks; ++i) {
+    const struct gkyl_block_geom_info *ginfo = gkyl_block_geom_get_block(geom, i);
+
+    num_cuts[i] = 1;
+    for (int d=0; d<topo->ndim; ++d)
+      num_cuts[i] *= ginfo->cuts[d];
+    
+    struct gkyl_range range;
+    gkyl_range_init_from_shape(&range, 2, ginfo->cells);
+    decomp[i] = gkyl_rect_decomp_new_from_cuts(2, ginfo->cuts, &range);
+  }
+
+  int nsend_tot = 0;
+  for (int bid=0; bid<num_blocks; ++bid) {
+
+    for (int brank=0; brank<num_cuts[bid]; ++brank) {
+      struct gkyl_multib_comm_conn *mbcc = gkyl_multib_comm_conn_new_send(bid, brank, nghost,
+        &topo->conn[bid], decomp);
+
+      for (int ns=0; ns<mbcc->num_comm_conn; ++ns) {
+        nsend_tot +=1 ;
+        TEST_CHECK( mbcc->comm_conn[ns].range.volume == 100 );
+      }
+
+      gkyl_multib_comm_conn_release(mbcc);
+    }
+  }
+
+  TEST_CHECK( nsend_tot == 12 );
+  
+  for (int i=0; i<num_blocks; ++i)
+    gkyl_rect_decomp_release(decomp[i]);
+  gkyl_free(decomp);
+  
+  gkyl_block_topo_release(topo);
+  gkyl_block_geom_release(geom);
+}
+
 TEST_LIST = {
   { "test_0", test_0 },
-  { "test_L_domain", test_L_domain },
+  { "test_L_domain_c1", test_L_domain_c1 },
+  { "test_L_domain_c3", test_L_domain_c3 },
   { NULL, NULL },
 };
