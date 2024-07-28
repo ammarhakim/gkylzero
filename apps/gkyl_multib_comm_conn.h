@@ -38,9 +38,24 @@ struct gkyl_multib_comm_conn *gkyl_multib_comm_conn_new(int num,
  * @param block_conn Topological connections for block
  * @param nghost Number of ghost cells in direction d is nghost[d]
  * @param decomp List of decomposition objects for each block
- * @return New communication connection object
+ * @return New communication connection object for sends
  */
 struct gkyl_multib_comm_conn *gkyl_multib_comm_conn_new_send(
+  int block_id, int block_rank, const int *nghost,
+  const struct gkyl_block_connections *block_conn, struct gkyl_rect_decomp **decomp);
+
+/**
+ * Construct the received communication connections for a rank from
+ * its local block rank and topology connection.
+ *
+ * @param block_id ID of block
+ * @param block_rank Local rank in block
+ * @param block_conn Topological connections for block
+ * @param nghost Number of ghost cells in direction d is nghost[d]
+ * @param decomp List of decomposition objects for each block
+ * @return New communication connection object receives
+ */
+struct gkyl_multib_comm_conn *gkyl_multib_comm_conn_new_recv(
   int block_id, int block_rank, const int *nghost,
   const struct gkyl_block_connections *block_conn, struct gkyl_rect_decomp **decomp);
 

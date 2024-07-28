@@ -4,6 +4,8 @@
 
 #include <string.h>
 
+enum multib_send_recv { GKYL_COMM_CONN_SEND, GKYL_COMM_CONN_RECV };
+
 struct multib_comm_conn {
   struct gkyl_multib_comm_conn mcc;
 };
@@ -37,27 +39,29 @@ gkyl_multib_comm_conn_new(int num, const struct gkyl_comm_conn *comm_conn)
   return &cconn->mcc;
 }
 
-struct gkyl_multib_comm_conn *
-gkyl_multib_comm_conn_new_send(
+
+// private method to compute send/recv connections
+static struct gkyl_multib_comm_conn *
+multib_comm_conn_new_sr(enum multib_send_recv sr,
   int block_id, int block_rank, const int *nghost,
   const struct gkyl_block_connections *block_conn, struct gkyl_rect_decomp **decomp)
 {
   int ndim = decomp[0]->ndim;
-  // determine maximum number of ranks we can send data to
-  int max_send_ranks = 0;
+  // determine maximum number of ranks we can send/recv data 
+  int max_sr_ranks = 0;
   for (int d=0; d<ndim; ++d) {
     for (int e=0; e<2; ++e) {
     
       if (block_conn->connections[d][e].edge != GKYL_PHYSICAL) {
         int nranks = decomp[block_conn->connections[d][e].bid]->ndecomp;
-        max_send_ranks += nranks;
+        max_sr_ranks += nranks;
       }
     }
   }
 
   int comm_conn_idx = 0;
   struct gkyl_comm_conn *comm_conn
-    = gkyl_malloc(sizeof(struct gkyl_comm_conn[max_send_ranks]));
+    = gkyl_malloc(sizeof(struct gkyl_comm_conn[max_sr_ranks]));
 
   const struct gkyl_range *src_pr = &decomp[block_id]->parent_range;
   const struct gkyl_range *src_br = &decomp[block_id]->ranges[block_rank];
@@ -92,23 +96,35 @@ gkyl_multib_comm_conn_new_send(
         for (int d=0; d<ndim; ++d)
           delta[d] = reset_tar_pr.lower[d] - tar_pr->lower[d];
 
+        int minus_delta[GKYL_MAX_DIM] = { 0 };
+        for (int d=0; d<ndim; ++d)
+          minus_delta[d] = -delta[d];
+
         struct gkyl_range_dir_edge dir_edge = gkyl_range_edge_match(&reset_tar_pr, src_br);
         if (dir_edge.eloc != GKYL_NO_EDGE) {
           // source block range touches the parent of the neigbor
           // block: find the appropriate sub-blocks it intersects
 
           for (int nn=0; nn<tar_decomp->ndecomp; ++nn) {
-            struct gkyl_range srange;
-            gkyl_range_shift(&srange, &tar_decomp->ranges[nn], delta);
+            struct gkyl_range sub_range;
+            gkyl_range_shift(&sub_range, &tar_decomp->ranges[nn], delta);
 
             int elo[GKYL_MAX_DIM] = { 0 }, eup[GKYL_MAX_DIM] = { 0 };
-            elo[dir] = eup[dir] = 1; // only extend in 1 direction
+            elo[dir] = eup[dir] = nghost[dir];  // only extend in 1 direction
 
-            struct gkyl_range srange_ext;
-            gkyl_range_extend(&srange_ext, &srange, elo, eup);
+            struct gkyl_range range_ext;
+            if (GKYL_COMM_CONN_SEND == sr)
+              gkyl_range_extend(&range_ext, &sub_range, elo, eup);
+            else
+              gkyl_range_extend(&range_ext, src_br, elo, eup);
 
+            int is_inter;
             struct gkyl_range irng;
-            int is_inter = gkyl_range_intersect(&irng, &srange_ext, src_br);
+            if (GKYL_COMM_CONN_SEND == sr)
+              is_inter = gkyl_range_intersect(&irng, &range_ext, src_br);
+            else
+              is_inter = gkyl_range_intersect(&irng, &range_ext, &sub_range);
+            
             if (is_inter) {
               comm_conn[comm_conn_idx].rank = nn;
               comm_conn[comm_conn_idx].block_id = tar_bid;
@@ -129,6 +145,22 @@ gkyl_multib_comm_conn_new_send(
   gkyl_free(comm_conn);
   
   return mbcc;
+}
+
+struct gkyl_multib_comm_conn *
+gkyl_multib_comm_conn_new_send(
+  int block_id, int block_rank, const int *nghost,
+  const struct gkyl_block_connections *block_conn, struct gkyl_rect_decomp **decomp)
+{
+  return multib_comm_conn_new_sr(GKYL_COMM_CONN_SEND, block_id, block_rank, nghost, block_conn, decomp);
+}
+
+struct gkyl_multib_comm_conn *
+gkyl_multib_comm_conn_new_recv(
+  int block_id, int block_rank, const int *nghost,
+  const struct gkyl_block_connections *block_conn, struct gkyl_rect_decomp **decomp)
+{
+  return multib_comm_conn_new_sr(GKYL_COMM_CONN_RECV, block_id, block_rank, nghost, block_conn, decomp);
 }
 
 void
