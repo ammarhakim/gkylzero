@@ -14,8 +14,7 @@ struct gkyl_comm_conn {
 // List of send/recv for a given rank
 struct gkyl_multib_comm_conn {
   int num_comm_conn; // number of send/recv
-  struct gkyl_comm_conn *comm_conn; // communication connections
-
+  struct gkyl_comm_conn *comm_conn; // communication connections (size num_comm_conn)
   struct gkyl_ref_count ref_count;  
 };
 

@@ -4,7 +4,7 @@
 #include <gkyl_multib_comm_conn.h>
 
 static struct gkyl_block_geom *
-create_L_domain(void)
+create_L_domain(const int *cuts)
 {
     // 2D with 3 blocks
   struct gkyl_block_geom *bgeom = gkyl_block_geom_new(2, 3);
@@ -26,7 +26,7 @@ create_L_domain(void)
       .lower = { 0, 0 },
       .upper = { 1, 1 },
       .cells = { 300, 300 },
-      .cuts = { 1, 1 },
+      .cuts = { cuts[0], cuts[1] },
       
       .connections[0] = { // x-direction connections
         { .bid = 0, .dir = 0, .edge = GKYL_PHYSICAL }, // physical boundary
@@ -44,7 +44,7 @@ create_L_domain(void)
       .lower = { 0, 0 },
       .upper = { 1, 1 },
       .cells = { 300, 300 },
-      .cuts = { 1, 1 },
+      .cuts = { cuts[0], cuts[1] },
       
       .connections[0] = { // x-direction connections
         { .bid = 0, .dir = 0, .edge = GKYL_PHYSICAL }, // physical boundary
@@ -62,7 +62,7 @@ create_L_domain(void)
       .lower = { 0, 0 },
       .upper = { 1, 1 },
       .cells = { 300, 300 },
-      .cuts = { 1, 1 },
+      .cuts = { cuts[0], cuts[1] },
       
       .connections[0] = { // x-direction connections
         { .bid = 1, .dir = 0, .edge = GKYL_UPPER_POSITIVE },
@@ -96,7 +96,7 @@ test_0(void)
 static void
 test_L_domain(void)
 {
-  struct gkyl_block_geom *geom = create_L_domain();
+  struct gkyl_block_geom *geom = create_L_domain((int[]) { 1, 1 } );
   struct gkyl_block_topo *topo = gkyl_block_geom_topo(geom);
 
   int num_blocks = topo->num_blocks;
@@ -118,14 +118,42 @@ test_L_domain(void)
     decomp[i] = gkyl_rect_decomp_new_from_cuts(2, ginfo->cuts, &range);
   }
 
+  // for testing
+  int num_send_neigh[] = { 1, 2, 1 };
+
+  struct gkyl_comm_conn conn_0[] = {
+    { .block_id = 1, .rank = 0 }
+  };
+  gkyl_range_init(&conn_0[0].range, 2, (int[]) { 0, 0 }, (int[]) { 299, 0 });
+
+  struct gkyl_comm_conn conn_1[] = {
+    { .block_id = 2, .rank = 0 },    
+    { .block_id = 0, .rank = 0 },
+  };
+  gkyl_range_init(&conn_1[0].range, 2, (int[]) { 299, 0 }, (int[]) { 299, 299 });
+  gkyl_range_init(&conn_1[1].range, 2, (int[]) { 0, 299 }, (int[]) { 299, 299 });
+  
+  struct gkyl_comm_conn conn_2[] = {
+    { .block_id = 1, .rank = 0 },
+  };
+  gkyl_range_init(&conn_2[0].range, 2, (int[]) { 0, 0 }, (int[]) { 0, 299 });
+  
+  struct gkyl_comm_conn *block_conn[] = { conn_0, conn_1, conn_2 };
+  
   for (int bid=0; bid<num_blocks; ++bid) {
 
     for (int brank=0; brank<num_cuts[bid]; ++brank) {
       struct gkyl_multib_comm_conn *mbcc = gkyl_multib_comm_conn_new_send(bid, brank, nghost,
         &topo->conn[bid], decomp);
 
-      gkyl_multib_comm_conn_release(mbcc);
+      TEST_CHECK( num_send_neigh[bid] == mbcc->num_comm_conn );
+      for (int ns=0; ns<mbcc->num_comm_conn; ++ns) {
+        TEST_CHECK( block_conn[bid][ns].block_id == mbcc->comm_conn[ns].block_id);
+        TEST_CHECK( block_conn[bid][ns].rank == mbcc->comm_conn[ns].rank);
+        TEST_CHECK( gkyl_range_compare(&block_conn[bid][ns].range, &mbcc->comm_conn[ns].range) );
+      }
 
+      gkyl_multib_comm_conn_release(mbcc);
     }
   }
 

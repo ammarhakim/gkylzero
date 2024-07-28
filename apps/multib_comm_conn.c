@@ -94,7 +94,7 @@ gkyl_multib_comm_conn_new_send(
 
         struct gkyl_range_dir_edge dir_edge = gkyl_range_edge_match(&reset_tar_pr, src_br);
         if (dir_edge.eloc != GKYL_NO_EDGE) {
-          // source block rank touched the parent of the neigbor
+          // source block range touches the parent of the neigbor
           // block: find the appropriate sub-blocks it intersects
 
           for (int nn=0; nn<tar_decomp->ndecomp; ++nn) {
