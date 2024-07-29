@@ -51,7 +51,7 @@ gkyl_reactive_euler_max_abs_speed(double gas_gamma, double energy_of_formation, 
 * @param flux Flux vector in direction 'dir' (output).
 */
 GKYL_CU_D
-static void
+void
 gkyl_reactive_euler_flux(double gas_gamma, double energy_of_formation, const double q[6], double flux[6]);
 
 /**

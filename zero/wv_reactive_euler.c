@@ -16,7 +16,8 @@ gkyl_reactive_euler_prim_vars(double gas_gamma, double energy_of_formation, cons
   double Etot = q[4];
   double reaction_density = q[5];
 
-  double specific_internal_energy = (Etot / rho) - (0.5 * ((momx * momx) + (momy * momy) + (momz * momz)) / (rho * rho)) - (energy_of_formation * ((reaction_density / rho) - 1.0));
+  double specific_internal_energy = (Etot / rho) - (0.5 * ((momx * momx) + (momy * momy) + (momz * momz)) / (rho * rho)) -
+    (energy_of_formation * ((reaction_density / rho) - 1.0));
 
   v[0] = rho;
   v[1] = momx / rho;
@@ -44,7 +45,7 @@ gkyl_reactive_euler_max_abs_speed(double gas_gamma, double energy_of_formation, 
   return fabs(v_mag) + sqrt(gas_gamma * (p / rho));
 }
 
-static void
+void
 gkyl_reactive_euler_flux(double gas_gamma, double energy_of_formation, const double q[6], double flux[6])
 {
   double v[6] = { 0.0 };
