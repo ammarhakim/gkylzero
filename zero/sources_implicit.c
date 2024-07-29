@@ -492,26 +492,22 @@ implicit_source_coupling_update(const gkyl_moment_em_coupling* mom_em, double t_
     double k0 = mom_em->param[i].k0;
 
     // Setup RHS of implicit solve with fluid variables at known time-step
+    // includes potential contributions from transport terms/density & momentum sources
     double rho = f[0];
     double mom_x = f[1], mom_y = f[2], mom_z = f[3];
-    fluid_rhs[i][0] = rho;
-    fluid_rhs[i][1] = mom_x;
-    fluid_rhs[i][2] = mom_y;
-    fluid_rhs[i][3] = mom_z;
+    double rho_rhs = p_rhs[0];
+    double mom_x_rhs = p_rhs[1], mom_y_rhs = p_rhs[2], mom_z_rhs = p_rhs[3];
+
+    fluid_rhs[i][0] = rho + (0.5 * dt * rho_rhs);
+    fluid_rhs[i][1] = mom_x + (0.5 * dt * mom_x_rhs);
+    fluid_rhs[i][2] = mom_y + (0.5 * dt * mom_y_rhs);
+    fluid_rhs[i][3] = mom_z + (0.5 * dt * mom_x_rhs);
 
     if (mom_em->param[i].type == GKYL_EQN_EULER) {
       double energy = f[4];
 
-      // Include potential contributions from transport terms
-      double rho_rhs = p_rhs[0];
-      double mom_x_rhs = p_rhs[1];
-      double mom_y_rhs = p_rhs[2];
-      double mom_z_rhs = p_rhs[3];
+      // Include potential contributions from transport terms to energy
       double energy_rhs = p_rhs[4];
-      fluid_rhs[i][0] += (0.5 * dt * rho_rhs);
-      fluid_rhs[i][1] += (0.5 * dt * mom_x_rhs);
-      fluid_rhs[i][2] += (0.5 * dt * mom_y_rhs);
-      fluid_rhs[i][3] += (0.5 * dt * mom_z_rhs);
 
       // kinetic energy at known time (including potential transport terms)
       ke_old[i] = 0.5 * (((fluid_rhs[i][1] * fluid_rhs[i][1]) 
