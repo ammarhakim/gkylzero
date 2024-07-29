@@ -10,20 +10,24 @@
 #include <gkyl_dg_recomb.h>
 #include <read_adas.h>
 
+#define XSTR(x) #x
+#define STR(x) XSTR(x)
+
 void
-read_adas_field_iz(enum gkyl_ion_type type_ion, struct adas_field *data, const char *base) {
+read_adas_field_iz(enum gkyl_ion_type type_ion, struct adas_field *data) {
   char fname[4000];
+  char *base = STR(GKYL_SHARE_DIR);    
   if (type_ion == GKYL_ION_H) {
     strcpy(fname, base);
     data->NT = 29, data->NN = 24;
     strcpy(fname, base);  
-    strcat(fname, "/data/adas/ioniz_h.npy");
+    strcat(fname, "/adas/ioniz_h.npy");
     data->logData = fopen(fname,"rb");
     strcpy(fname, base);
-    strcat(fname, "/data/adas/logT_h.npy");
+    strcat(fname, "/adas/logT_h.npy");
     data->logT = fopen(fname, "rb");
     strcpy(fname, base);  
-    strcat(fname, "/data/adas/logN_h.npy");
+    strcat(fname, "/adas/logN_h.npy");
     data->logN = fopen(fname, "rb");    
     data->Zmax = 1;
     data->Eiz[0] = 13.6; 
@@ -32,13 +36,13 @@ read_adas_field_iz(enum gkyl_ion_type type_ion, struct adas_field *data, const c
     data->NT = 30;
     data->NN = 24;
     strcpy(fname, base);  
-    strcat(fname, "/data/adas/ioniz_he.npy");
+    strcat(fname, "/adas/ioniz_he.npy");
     data->logData = fopen(fname,"rb");
     strcpy(fname, base);  
-    strcat(fname, "/data/adas/logT_he.npy");
+    strcat(fname, "/adas/logT_he.npy");
     data->logT = fopen(fname, "rb");
     strcpy(fname, base);  
-    strcat(fname, "/data/adas/logN_he.npy");
+    strcat(fname, "/adas/logN_he.npy");
     data->logN = fopen(fname, "rb"); 
     data->Zmax = 2;
     data->Eiz[0] = 24.6;
@@ -47,14 +51,14 @@ read_adas_field_iz(enum gkyl_ion_type type_ion, struct adas_field *data, const c
   else if (type_ion == GKYL_ION_LI) {
     data->NT = 25;
     data->NN = 16;
-    strcpy(fname, base);  
-    strcat(fname, "/data/adas/ioniz_li.npy");
+    strcpy(fname, base);
+    strcat(fname, "/adas/ioniz_li.npy");
     data->logData = fopen(fname,"rb");
     strcpy(fname, base);  
-    strcat(fname, "/data/adas/logT_li.npy");
+    strcat(fname, "/adas/logT_li.npy");
     data->logT = fopen(fname, "rb");
     strcpy(fname, base);  
-    strcat(fname, "/data/adas/logN_li.npy");
+    strcat(fname, "/adas/logN_li.npy");
     data->logN = fopen(fname, "rb"); 
     data->Zmax = 3;
     data->Eiz[0] = 5.4;
@@ -65,13 +69,13 @@ read_adas_field_iz(enum gkyl_ion_type type_ion, struct adas_field *data, const c
     data->NT = 25;
     data->NN = 24;
     strcpy(fname, base);  
-    strcat(fname, "/data/adas/ioniz_be.npy");
+    strcat(fname, "/adas/ioniz_be.npy");
     data->logData = fopen(fname,"rb");
     strcpy(fname, base);  
-    strcat(fname, "/data/adas/logT_be.npy");
+    strcat(fname, "/adas/logT_be.npy");
     data->logT = fopen(fname, "rb");
     strcpy(fname, base);  
-    strcat(fname, "/data/adas/logN_be.npy");
+    strcat(fname, "/adas/logN_be.npy");
     data->logN = fopen(fname, "rb"); 
     data->Zmax = 4;
     data->Eiz[0] = 9.3;
@@ -83,13 +87,13 @@ read_adas_field_iz(enum gkyl_ion_type type_ion, struct adas_field *data, const c
     data->NT = 48;
     data->NN = 26;
     strcpy(fname, base);  
-    strcat(fname, "/data/adas/ioniz_b.npy");
+    strcat(fname, "/adas/ioniz_b.npy");
     data->logData = fopen(fname,"rb");
     strcpy(fname, base);  
-    strcat(fname, "/data/adas/logT_b.npy");
+    strcat(fname, "/adas/logT_b.npy");
     data->logT = fopen(fname, "rb");
     strcpy(fname, base);  
-    strcat(fname, "/data/adas/logN_b.npy");
+    strcat(fname, "/adas/logN_b.npy");
     data->logN = fopen(fname, "rb"); 
     data->Zmax = 5;
     data->Eiz[0] = 8.3;
@@ -102,13 +106,13 @@ read_adas_field_iz(enum gkyl_ion_type type_ion, struct adas_field *data, const c
     data->NT = 30;
     data->NN = 24;
     strcpy(fname, base);  
-    strcat(fname, "/data/adas/ioniz_c.npy");
+    strcat(fname, "/adas/ioniz_c.npy");
     data->logData = fopen(fname,"rb");
     strcpy(fname, base);  
-    strcat(fname, "/data/adas/logT_c.npy");
+    strcat(fname, "/adas/logT_c.npy");
     data->logT = fopen(fname, "rb");
     strcpy(fname, base);  
-    strcat(fname, "/data/adas/logN_c.npy");
+    strcat(fname, "/adas/logN_c.npy");
     data->logN = fopen(fname, "rb"); 
     data->Zmax = 6;
     data->Eiz[0] = 11.3;
@@ -122,13 +126,13 @@ read_adas_field_iz(enum gkyl_ion_type type_ion, struct adas_field *data, const c
     data->NT = 30;
     data->NN = 24;
     strcpy(fname, base);  
-    strcat(fname, "/data/adas/ioniz_n.npy");
+    strcat(fname, "/adas/ioniz_n.npy");
     data->logData = fopen(fname,"rb");
     strcpy(fname, base);  
-    strcat(fname, "/data/adas/logT_n.npy");
+    strcat(fname, "/adas/logT_n.npy");
     data->logT = fopen(fname, "rb");
     strcpy(fname, base);  
-    strcat(fname, "/data/adas/logN_n.npy");
+    strcat(fname, "/adas/logN_n.npy");
     data->logN = fopen(fname, "rb"); 
     data->Zmax = 7;
     data->Eiz[0] = 14.5;
@@ -143,13 +147,13 @@ read_adas_field_iz(enum gkyl_ion_type type_ion, struct adas_field *data, const c
     data->NT = 30;
     data->NN = 24;
     strcpy(fname, base);  
-    strcat(fname, "/data/adas/ioniz_o.npy");
+    strcat(fname, "/adas/ioniz_o.npy");
     data->logData = fopen(fname,"rb");
     strcpy(fname, base);  
-    strcat(fname, "/data/adas/logT_o.npy");
+    strcat(fname, "/adas/logT_o.npy");
     data->logT = fopen(fname, "rb");
     strcpy(fname, base);  
-    strcat(fname, "/data/adas/logN_o.npy");
+    strcat(fname, "/adas/logN_o.npy");
     data->logN = fopen(fname, "rb"); 
     data->Zmax = 8;
     data->Eiz[0] = 13.6;
@@ -165,13 +169,13 @@ read_adas_field_iz(enum gkyl_ion_type type_ion, struct adas_field *data, const c
     data->NT = 48;
     data->NN = 26;
     strcpy(fname, base);  
-    strcat(fname, "/data/adas/ioniz_ar.npy");
+    strcat(fname, "/adas/ioniz_ar.npy");
     data->logData = fopen(fname,"rb");
     strcpy(fname, base);  
-    strcat(fname, "/data/adas/logT_ar.npy");
+    strcat(fname, "/adas/logT_ar.npy");
     data->logT = fopen(fname, "rb");
     strcpy(fname, base);  
-    strcat(fname, "/data/adas/logN_ar.npy");
+    strcat(fname, "/adas/logN_ar.npy");
     data->logN = fopen(fname, "rb"); 
     data->Zmax = 18;
     data->Eiz[0] = 15.8;
@@ -197,19 +201,20 @@ read_adas_field_iz(enum gkyl_ion_type type_ion, struct adas_field *data, const c
 }
  
 void
-read_adas_field_recomb(enum gkyl_ion_type type_ion, struct adas_field *data, const char *base) {
+read_adas_field_recomb(enum gkyl_ion_type type_ion, struct adas_field *data) {
   char fname[4000];
+  char *base = STR(GKYL_SHARE_DIR);
   if (type_ion == GKYL_ION_H) {
     strcpy(fname, base);
     data->NT = 29, data->NN = 24;
     strcpy(fname, base);  
-    strcat(fname, "/data/adas/recomb_h.npy");
+    strcat(fname, "/adas/recomb_h.npy");
     data->logData = fopen(fname,"rb");
     strcpy(fname, base);  
-    strcat(fname, "/data/adas/logT_h.npy");
+    strcat(fname, "/adas/logT_h.npy");
     data->logT = fopen(fname, "rb");
     strcpy(fname, base);  
-    strcat(fname, "/data/adas/logN_h.npy");
+    strcat(fname, "/adas/logN_h.npy");
     data->logN = fopen(fname, "rb");    
     data->Zmax = 1;
    }
@@ -217,13 +222,13 @@ read_adas_field_recomb(enum gkyl_ion_type type_ion, struct adas_field *data, con
     data->NT = 30;
     data->NN = 24;
     strcpy(fname, base);  
-    strcat(fname, "/data/adas/recomb_he.npy");
+    strcat(fname, "/adas/recomb_he.npy");
     data->logData = fopen(fname,"rb");
     strcpy(fname, base);  
-    strcat(fname, "/data/adas/logT_he.npy");
+    strcat(fname, "/adas/logT_he.npy");
     data->logT = fopen(fname, "rb");
     strcpy(fname, base);  
-    strcat(fname, "/data/adas/logN_he.npy");
+    strcat(fname, "/adas/logN_he.npy");
     data->logN = fopen(fname, "rb"); 
     data->Zmax = 2;
    }
@@ -231,13 +236,13 @@ read_adas_field_recomb(enum gkyl_ion_type type_ion, struct adas_field *data, con
     data->NT = 25;
     data->NN = 16;
     strcpy(fname, base);  
-    strcat(fname, "/data/adas/recomb_li.npy");
+    strcat(fname, "/adas/recomb_li.npy");
     data->logData = fopen(fname,"rb");
     strcpy(fname, base);  
-    strcat(fname, "/data/adas/logT_li.npy");
+    strcat(fname, "/adas/logT_li.npy");
     data->logT = fopen(fname, "rb");
     strcpy(fname, base);  
-    strcat(fname, "/data/adas/logN_li.npy");
+    strcat(fname, "/adas/logN_li.npy");
     data->logN = fopen(fname, "rb"); 
     data->Zmax = 3;
   }
@@ -245,13 +250,13 @@ read_adas_field_recomb(enum gkyl_ion_type type_ion, struct adas_field *data, con
     data->NT = 25;
     data->NN = 24;
     strcpy(fname, base);  
-    strcat(fname, "/data/adas/recomb_be.npy");
+    strcat(fname, "/adas/recomb_be.npy");
     data->logData = fopen(fname,"rb");
     strcpy(fname, base);  
-    strcat(fname, "/data/adas/logT_be.npy");
+    strcat(fname, "/adas/logT_be.npy");
     data->logT = fopen(fname, "rb");
     strcpy(fname, base);  
-    strcat(fname, "/data/adas/logN_be.npy");
+    strcat(fname, "/adas/logN_be.npy");
     data->logN = fopen(fname, "rb"); 
     data->Zmax = 4;
   }
@@ -259,13 +264,13 @@ read_adas_field_recomb(enum gkyl_ion_type type_ion, struct adas_field *data, con
     data->NT = 48;
     data->NN = 26;
     strcpy(fname, base);  
-    strcat(fname, "/data/adas/recomb_b.npy");
+    strcat(fname, "/adas/recomb_b.npy");
     data->logData = fopen(fname,"rb");
     strcpy(fname, base);  
-    strcat(fname, "/data/adas/logT_b.npy");
+    strcat(fname, "/adas/logT_b.npy");
     data->logT = fopen(fname, "rb");
     strcpy(fname, base);  
-    strcat(fname, "/data/adas/logN_b.npy");
+    strcat(fname, "/adas/logN_b.npy");
     data->logN = fopen(fname, "rb"); 
     data->Zmax = 5;
   }
@@ -273,13 +278,13 @@ read_adas_field_recomb(enum gkyl_ion_type type_ion, struct adas_field *data, con
     data->NT = 30;
     data->NN = 24;
     strcpy(fname, base);  
-    strcat(fname, "/data/adas/recomb_c.npy");
+    strcat(fname, "/adas/recomb_c.npy");
     data->logData = fopen(fname,"rb");
     strcpy(fname, base);  
-    strcat(fname, "/data/adas/logT_c.npy");
+    strcat(fname, "/adas/logT_c.npy");
     data->logT = fopen(fname, "rb");
     strcpy(fname, base);  
-    strcat(fname, "/data/adas/logN_c.npy");
+    strcat(fname, "/adas/logN_c.npy");
     data->logN = fopen(fname, "rb"); 
     data->Zmax = 6;
   }
@@ -287,13 +292,13 @@ read_adas_field_recomb(enum gkyl_ion_type type_ion, struct adas_field *data, con
     data->NT = 30;
     data->NN = 24;
     strcpy(fname, base);  
-    strcat(fname, "/data/adas/recomb_n.npy");
+    strcat(fname, "/adas/recomb_n.npy");
     data->logData = fopen(fname,"rb");
     strcpy(fname, base);  
-    strcat(fname, "/data/adas/logT_n.npy");
+    strcat(fname, "/adas/logT_n.npy");
     data->logT = fopen(fname, "rb");
     strcpy(fname, base);  
-    strcat(fname, "/data/adas/logN_n.npy");
+    strcat(fname, "/adas/logN_n.npy");
     data->logN = fopen(fname, "rb"); 
     data->Zmax = 7;
   }
@@ -301,13 +306,13 @@ read_adas_field_recomb(enum gkyl_ion_type type_ion, struct adas_field *data, con
     data->NT = 30;
     data->NN = 24;
     strcpy(fname, base);  
-    strcat(fname, "/data/adas/recomb_o.npy");
+    strcat(fname, "/adas/recomb_o.npy");
     data->logData = fopen(fname,"rb");
     strcpy(fname, base);  
-    strcat(fname, "/data/adas/logT_o.npy");
+    strcat(fname, "/adas/logT_o.npy");
     data->logT = fopen(fname, "rb");
     strcpy(fname, base);  
-    strcat(fname, "/data/adas/logN_o.npy");
+    strcat(fname, "/adas/logN_o.npy");
     data->logN = fopen(fname, "rb"); 
     data->Zmax = 8;
   }
@@ -315,13 +320,13 @@ read_adas_field_recomb(enum gkyl_ion_type type_ion, struct adas_field *data, con
     data->NT = 48;
     data->NN = 26;
     strcpy(fname, base);  
-    strcat(fname, "/data/adas/recomb_ar.npy");
+    strcat(fname, "/adas/recomb_ar.npy");
     data->logData = fopen(fname,"rb");
     strcpy(fname, base);  
-    strcat(fname, "/data/adas/logT_ar.npy");
+    strcat(fname, "/adas/logT_ar.npy");
     data->logT = fopen(fname, "rb");
     strcpy(fname, base);  
-    strcat(fname, "/data/adas/logN_ar.npy");
+    strcat(fname, "/adas/logN_ar.npy");
     data->logN = fopen(fname, "rb"); 
     data->Zmax = 18;
   }

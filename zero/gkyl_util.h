@@ -49,6 +49,11 @@
 # define GKYL_MAX_SPECIES 16
 #endif
 
+// Maximum number of supported species
+#ifndef GKYL_MAX_REACT
+# define GKYL_MAX_REACT 3*GKYL_MAX_SPECIES
+#endif
+
 // Maximum number of supported sources
 #ifndef GKYL_MAX_SOURCES
 # define GKYL_MAX_SOURCES 4

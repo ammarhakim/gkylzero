@@ -15,7 +15,7 @@ typedef int (*vlasov_gen_geo_alpha_surf_t)(const double *w, const double *dxv,
   double* GKYL_RESTRICT alpha_surf, double* GKYL_RESTRICT sgn_alpha_surf); 
 
 typedef void (*vlasov_gen_geo_cot_vec_t)(const double *tvComp, const double *gij, 
-  double* GKYL_RESTRICT cot_vec); 
+  double* GKYL_RESTRICT cot_vec);
 
 // for use in kernel tables
 typedef struct { vlasov_gen_geo_alpha_surf_t kernels[3]; } gkyl_dg_vlasov_gen_geo_alpha_surf_kern_list;
@@ -29,7 +29,7 @@ struct gkyl_dg_calc_vlasov_gen_geo_vars {
   vlasov_gen_geo_alpha_surf_t alpha_edge_surf[3]; // kernel for computing surface expansion of phase space flux alpha
                                                // at upper configuration space edge
   vlasov_gen_geo_cot_vec_t calc_cot_vec; // kernel for computing volume expansion of cotangent vectors e^i
-
+  
   const struct gk_geometry *gk_geom; // Pointer to geometry struct
 
   uint32_t flags;
@@ -100,11 +100,11 @@ static vlasov_gen_geo_alpha_surf_t
 choose_vlasov_gen_geo_alpha_surf_kern(int dir, int cdim, int poly_order)
 {
   if (dir == 0)
-    return ser_vlasov_gen_geo_alpha_surfx_kernels[cdim].kernels[poly_order];
+    return ser_vlasov_gen_geo_alpha_surfx_kernels[cdim-1].kernels[poly_order];
   else if (dir == 1)
-    return ser_vlasov_gen_geo_alpha_surfy_kernels[cdim].kernels[poly_order];
+    return ser_vlasov_gen_geo_alpha_surfy_kernels[cdim-1].kernels[poly_order];
   else if (dir == 2)
-    return ser_vlasov_gen_geo_alpha_surfz_kernels[cdim].kernels[poly_order];
+    return ser_vlasov_gen_geo_alpha_surfz_kernels[cdim-1].kernels[poly_order];
   else
     return NULL;
 }
@@ -114,11 +114,11 @@ static vlasov_gen_geo_alpha_surf_t
 choose_vlasov_gen_geo_alpha_edge_surf_kern(int dir, int cdim, int poly_order)
 {
   if (dir == 0)
-    return ser_vlasov_gen_geo_alpha_edge_surfx_kernels[cdim].kernels[poly_order];
+    return ser_vlasov_gen_geo_alpha_edge_surfx_kernels[cdim-1].kernels[poly_order];
   else if (dir == 1)
-    return ser_vlasov_gen_geo_alpha_edge_surfy_kernels[cdim].kernels[poly_order];
+    return ser_vlasov_gen_geo_alpha_edge_surfy_kernels[cdim-1].kernels[poly_order];
   else if (dir == 2)
-    return ser_vlasov_gen_geo_alpha_edge_surfz_kernels[cdim].kernels[poly_order];
+    return ser_vlasov_gen_geo_alpha_edge_surfz_kernels[cdim-1].kernels[poly_order];
   else
     return NULL;
 }
@@ -127,5 +127,5 @@ GKYL_CU_D
 static vlasov_gen_geo_cot_vec_t
 choose_vlasov_gen_geo_cot_vec_kern(int cdim, int poly_order)
 {
-  return ser_vlasov_gen_geo_cot_vec_kernels[cdim].kernels[poly_order];
+  return ser_vlasov_gen_geo_cot_vec_kernels[cdim-1].kernels[poly_order];
 }

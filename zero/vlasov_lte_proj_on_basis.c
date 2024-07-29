@@ -186,11 +186,6 @@ gkyl_vlasov_lte_proj_on_basis_inew(const struct gkyl_vlasov_lte_proj_on_basis_in
     up->is_canonical_pb = true;
   }
 
-  // JJ 2024/03/23: device kernel has arrays hard-coded to 3x, vdim=3, p=2 for now.
-  if (up->use_gpu) {
-    assert(up->cdim<3 && up->conf_basis.poly_order<3);
-  }
-
   int num_quad = up->conf_basis.poly_order+1;
   // initialize data needed for conf-space quadrature 
   up->tot_conf_quad = init_quad_values(up->cdim, &up->conf_basis,

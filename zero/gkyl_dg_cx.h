@@ -6,36 +6,39 @@
 #include <gkyl_basis.h>
 #include <gkyl_range.h>
 #include <gkyl_rect_grid.h>
+#include <gkyl_eqn_type.h>
 
-// Identifiers for different charge exchange types
-enum gkyl_dg_cx_type
-{
-  GKYL_CX_H, // Hydrogen plasma
-  GKYL_CX_D, // Deuterium plasma
-  GKYL_CX_NE, // Neon plasma
-  GKYL_CX_HE, // Helium plasma
+struct gkyl_dg_cx_inp {
+  const struct gkyl_rect_grid* grid; // Grid object needed for fmax
+  struct gkyl_basis* cbasis; // Configuration-space basis-functions
+  struct gkyl_basis* pbasis_gk; // Phase-space basis-functions for ion (GK)`
+  struct gkyl_basis* pbasis_vl; // Phase-space basis-functions for neut (Vlasov)
+  const struct gkyl_range *conf_rng; // Configuration-space range
+  const struct gkyl_range *conf_rng_ext; // Configuration-space extended range
+  const struct gkyl_range *phase_rng; // Phase-space range
+  double mass_ion; // Mass of the ion
+  double mass_neut; // Mass of the neutral
+  double vt_sq_ion_min; // Min vtSq that can be represented on ion grid
+  double vt_sq_neut_min; // Min vtSq that can be represented on neut grid
+  enum gkyl_ion_type type_ion; // Enum for type of ion for CX (H,D,HE,NE)
 };
 
 // Object type
 typedef struct gkyl_dg_cx gkyl_dg_cx;
 
 /**
- * Create new updater to calculate charge exchange reaction rate
- * @param grid Phase space grid
- * @param cbasis Configuration-space basis-functions
- * @param pbasis Phase-space basis-functions
- * @param conf_rng Configuration-space range
- * @param phase_rng Phase
- * @param mass_ion Ion mass
- * @param is_gk Boolen for whether gk or vlasov
- * @param type_ion Enum for type of ion for charge exchange (support H^+, D^+, Ar^+, Ne^+)
+ * Create new updater to calculate ionization temperature or reaction rate
+ * @param gkyl_dg_cx_inp
  * @param use_gpu Boolean for whether struct is on host or device
  */
-struct gkyl_dg_cx* gkyl_dg_cx_new(const struct gkyl_rect_grid *grid,
-  struct gkyl_basis *cbasis, struct gkyl_basis *pbasis,
-  const struct gkyl_range *conf_rng, const struct gkyl_range *phase_rng,
-  double mass_ion, enum gkyl_dg_cx_type type_ion, 
-  bool is_gk, bool use_gpu);
+struct gkyl_dg_cx* gkyl_dg_cx_new(struct gkyl_dg_cx_inp *inp, bool use_gpu); 
+
+/**
+ * Create new ionization updater type object on NV-GPU: 
+ * see new() method above for documentation.
+ */
+struct gkyl_dg_cx* gkyl_dg_cx_cu_dev_new(struct gkyl_dg_cx_inp *inp);
+
 
 /**
  * Compute CX reaction rate coefficient for use in neutral reactions. 
@@ -47,14 +50,24 @@ struct gkyl_dg_cx* gkyl_dg_cx_new(const struct gkyl_rect_grid *grid,
  * @param cx charge exchange object.
  * @param moms_neut Input neutral moments 
  * @param moms_ion Input ion moments
- * @param b_hat Input unit B vector
+ * @param b_i Input unit B vector
+ * @param prim_vars_ion
+ * @param prim_vars_neut
  * @param cflrate CFL scalar rate (frequency) array (units of 1/[T])
  * @param coef_cx Output reaction rate coefficient
  */
 
-void gkyl_dg_cx_react_rate(const struct gkyl_dg_cx *cx, const struct gkyl_array *moms_ion,
-  const struct gkyl_array *moms_neut, const struct gkyl_array *b_hat,
-  struct gkyl_array *cflrate, struct gkyl_array *coef_cx);
+void gkyl_dg_cx_coll(const struct gkyl_dg_cx *up, const double vtsq_min_ion,
+  const double vtsq_min_neut, const struct gkyl_array *moms_ion,
+  const struct gkyl_array *moms_neut, const struct gkyl_array *b_i,
+  struct gkyl_array *prim_vars_ion, struct gkyl_array *prim_vars_neut,
+  struct gkyl_array *prim_vars_neut_gk, struct gkyl_array *coef_cx, struct gkyl_array *cflrate);
+
+void gkyl_dg_cx_coll_cu(const struct gkyl_dg_cx *up, const double vtsq_min_ion,
+  const double vtsq_min_neut, const struct gkyl_array *moms_ion,
+  const struct gkyl_array *moms_neut, const struct gkyl_array *b_i,
+  struct gkyl_array *prim_vars_ion, struct gkyl_array *prim_vars_neut,
+  struct gkyl_array *prim_vars_neut_gk, struct gkyl_array *coef_cx, struct gkyl_array *cflrate);
 
 /**
  * Delete updater.

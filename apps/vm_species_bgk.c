@@ -47,6 +47,12 @@ vm_species_bgk_init(struct gkyl_vlasov_app *app, struct vm_species *s, struct vm
   // allocate moments needed for BGK collisions update
   vm_species_moment_init(app, s, &bgk->moms, "LTEMoments");
 
+  // Is the temperature being relaxed to fixed in time?
+  bgk->fixed_temp_relax = s->info.collisions.fixed_temp_relax;
+  if (bgk->fixed_temp_relax) {
+    bgk->fixed_temp = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
+  }
+
   struct gkyl_vlasov_lte_proj_on_basis_inp inp_proj = {
     .phase_grid = &s->grid,
     .conf_basis = &app->confBasis,
@@ -110,8 +116,26 @@ vm_species_bgk_moms(gkyl_vlasov_app *app, const struct vm_species *species,
   struct timespec wst = gkyl_wall_clock();
 
   vm_species_moment_calc(&bgk->moms, species->local, app->local, fin);
+
+  if (bgk->fixed_temp_relax) { 
+    // Set the temperature in the moment array to the pre-computed fixed value
+    gkyl_array_set_offset_range(bgk->moms.marr, 1.0, bgk->fixed_temp, 
+      (app->vdim+1)*app->confBasis.num_basis, &app->local);
+  }
   
   app->stat.species_coll_mom_tm += gkyl_time_diff_now_sec(wst);    
+}
+
+// Compute a fixed temperature for BGK relaxation 
+void
+vm_species_bgk_moms_fixed_temp(gkyl_vlasov_app *app, const struct vm_species *species,
+  struct vm_bgk_collisions *bgk, const struct gkyl_array *fin)
+{
+  vm_species_moment_calc(&bgk->moms, species->local, app->local, fin);
+
+  // Set the temperature to the fixed value 
+  gkyl_array_set_offset_range(bgk->fixed_temp, 1.0, bgk->moms.marr, 
+    (app->vdim+1)*app->confBasis.num_basis, &app->local);
 }
 
 // updates the collision terms in the rhs
@@ -176,6 +200,9 @@ vm_species_bgk_release(const struct gkyl_vlasov_app *app, const struct vm_bgk_co
   }
 
   vm_species_moment_release(app, &bgk->moms);
+  if (bgk->fixed_temp_relax) {
+    gkyl_array_release(bgk->fixed_temp);
+  }
 
   gkyl_vlasov_lte_proj_on_basis_release(bgk->proj_lte);
   if (bgk->correct_all_moms) {

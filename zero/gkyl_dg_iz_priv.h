@@ -35,13 +35,12 @@ struct gkyl_dg_iz {
   struct gkyl_basis *pbasis;
 
   struct gkyl_array *ioniz_data;
-  struct gkyl_array *vtSq_elc;
   struct gkyl_range adas_rng;
   struct gkyl_basis adas_basis;
   struct gkyl_basis *basis_on_dev;
   
   struct gkyl_dg_prim_vars_type *calc_prim_vars_donor;
-  struct gkyl_dg_prim_vars_type *calc_prim_vars_elc_vtSq;
+  struct gkyl_dg_prim_vars_type *calc_prim_vars_elc;
 
   struct gkyl_dg_iz *on_dev; // pointer to itself or device data
 };
