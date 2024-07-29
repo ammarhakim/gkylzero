@@ -7,7 +7,8 @@
 #include <gkyl_mat.h>
 
 void
-implicit_em_source_update(const gkyl_moment_em_coupling* mom_em, double t_curr, double dt, double* fluid_s[GKYL_MAX_SPECIES],
+implicit_em_source_update(const gkyl_moment_em_coupling* mom_em, double t_curr, double dt, 
+  double fluid_rhs_s[GKYL_MAX_SPECIES][4], double* fluid_s[GKYL_MAX_SPECIES],
   const double *app_accel_s[GKYL_MAX_SPECIES], double* em, const double* app_current, const double* ext_em)
 {
   int nfluids = mom_em->nfluids;
@@ -46,11 +47,10 @@ implicit_em_source_update(const gkyl_moment_em_coupling* mom_em, double t_curr, 
     double m = mom_em->param[i].mass;
     q_over_m[i] = q / m;
 
-    const double *f = fluid_s[i];
     const double *app_accel = app_accel_s[i];
 
-    double rho = f[0];
-    double mom_x = f[1], mom_y = f[2], mom_z = f[3];
+    double rho = fluid_rhs_s[i][0];
+    double mom_x = fluid_rhs_s[i][1], mom_y = fluid_rhs_s[i][2], mom_z = fluid_rhs_s[i][3];
 
     J_old[i][0] = mom_x * q_over_m[i];
     J_old[i][1] = mom_y * q_over_m[i];
@@ -133,7 +133,8 @@ implicit_em_source_update(const gkyl_moment_em_coupling* mom_em, double t_curr, 
 }
 
 void
-implicit_neut_source_update(const gkyl_moment_em_coupling* mom_em, double t_curr, double dt, double* fluid_s[GKYL_MAX_SPECIES],
+implicit_neut_source_update(const gkyl_moment_em_coupling* mom_em, double t_curr, double dt, 
+  double fluid_rhs_s[GKYL_MAX_SPECIES][4], double* fluid_s[GKYL_MAX_SPECIES],
   const double* app_accel_s[GKYL_MAX_SPECIES])
 {
   int nfluids = mom_em->nfluids;
@@ -142,7 +143,7 @@ implicit_neut_source_update(const gkyl_moment_em_coupling* mom_em, double t_curr
     double *f = fluid_s[i];
     const double *app_accel = app_accel_s[i];
 
-    double rho = f[0];
+    double rho = fluid_rhs_s[i][0];
 
     f[1] += dt * rho * app_accel[0];
     f[2] += dt * rho * app_accel[1];
@@ -478,6 +479,8 @@ implicit_source_coupling_update(const gkyl_moment_em_coupling* mom_em, double t_
 {
   int nfluids = mom_em->nfluids;
   double ke_old[GKYL_MAX_SPECIES];
+  double energy_old[GKYL_MAX_SPECIES];
+  double fluid_rhs[GKYL_MAX_SPECIES][4];
   double p_tensor_old[6], p_tensor_rhs[6], p_tensor_new[GKYL_MAX_SPECIES][6];
 
   for (int i = 0; i < nfluids; i++) {
@@ -488,17 +491,35 @@ implicit_source_coupling_update(const gkyl_moment_em_coupling* mom_em, double t_
     double m = mom_em->param[i].mass;
     double k0 = mom_em->param[i].k0;
 
-    if (mom_em->param[i].type == GKYL_EQN_EULER) {
-      double rho = f[0];
-      double mom_x = f[1], mom_y = f[2], mom_z = f[3];
+    // Setup RHS of implicit solve with fluid variables at known time-step
+    // includes potential contributions from transport terms/density & momentum sources
+    double rho = f[0];
+    double mom_x = f[1], mom_y = f[2], mom_z = f[3];
+    double rho_rhs = p_rhs[0];
+    double mom_x_rhs = p_rhs[1], mom_y_rhs = p_rhs[2], mom_z_rhs = p_rhs[3];
 
-      ke_old[i] = 0.5 * (((mom_x * mom_x) + (mom_y * mom_y) + (mom_z * mom_z)) / rho);
+    fluid_rhs[i][0] = rho + (0.5 * dt * rho_rhs);
+    fluid_rhs[i][1] = mom_x + (0.5 * dt * mom_x_rhs);
+    fluid_rhs[i][2] = mom_y + (0.5 * dt * mom_y_rhs);
+    fluid_rhs[i][3] = mom_z + (0.5 * dt * mom_x_rhs);
+
+    if (mom_em->param[i].type == GKYL_EQN_EULER) {
+      double energy = f[4];
+
+      // Include potential contributions from transport terms to energy
+      double energy_rhs = p_rhs[4];
+
+      // kinetic energy at known time (including potential transport terms)
+      ke_old[i] = 0.5 * (((fluid_rhs[i][1] * fluid_rhs[i][1]) 
+        + (fluid_rhs[i][2] * fluid_rhs[i][2]) 
+        + (fluid_rhs[i][3] * fluid_rhs[i][3])) / fluid_rhs[i][0]);
+
+      // total energy at known time (including potential transport terms)
+      energy_old[i] = energy + (0.5 * dt * energy_rhs);
     }
     else if (mom_em->param[i].type == GKYL_EQN_TEN_MOMENT) {
       double q_over_m = q / m;
 
-      double rho = f[0];
-      double mom_x = f[1], mom_y = f[2], mom_z = f[3];
       double p11 = f[4], p12 = f[5], p13 = f[6];
       double p22 = f[7], p23 = f[8], p33 = f[9];
 
@@ -538,10 +559,10 @@ implicit_source_coupling_update(const gkyl_moment_em_coupling* mom_em, double t_
   }
 
   if (mom_em->is_charged_species) {
-    implicit_em_source_update(mom_em, t_curr, dt, fluid_s, app_accel_s, em, app_current, ext_em);
+    implicit_em_source_update(mom_em, t_curr, dt, fluid_rhs, fluid_s, app_accel_s, em, app_current, ext_em);
   }
   else {
-    implicit_neut_source_update(mom_em, t_curr, dt, fluid_s, app_accel_s);
+    implicit_neut_source_update(mom_em, t_curr, dt, fluid_rhs, fluid_s, app_accel_s);
   }
 
   for (int i = 0; i < nfluids; i++) {
@@ -550,8 +571,13 @@ implicit_source_coupling_update(const gkyl_moment_em_coupling* mom_em, double t_
     if (mom_em->param[i].type == GKYL_EQN_EULER) {
       double rho = f[0];
       double mom_x = f[1], mom_y = f[2], mom_z = f[3];
+      double energy = f[4];
       
-      f[4] += (0.5 * ((mom_x * mom_x) + (mom_y * mom_y) + (mom_z * mom_z)) / rho) - ke_old[i];
+      // Energy at new time is new kinetic energy plus potential contribution from
+      // transport terms. We use a time-centered approach even though the update
+      // from the transport terms is a simple forward Euler.
+      f[4] = (0.5 * ((mom_x * mom_x) + (mom_y * mom_y) + (mom_z * mom_z)) / rho) 
+              + 2.0*energy_old[i] - energy - ke_old[i];
     }
     // As I do not understand how the source terms for gradient-based closure interact with the source terms for the expanding-box
     // model, I'm disabling the former whenever the latter are present, pro tem. This should be updated! -JG 07/25/24

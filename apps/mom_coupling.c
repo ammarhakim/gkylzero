@@ -134,6 +134,36 @@ moment_coupling_init(const struct gkyl_moment_app *app, struct moment_coupling *
       src->grad_closure_slvr[i] = gkyl_ten_moment_grad_closure_new(grad_closure_inp);
     }
   }
+
+  // check if braginskii terms are present
+  if (app->has_braginskii) {
+    struct gkyl_moment_braginskii_inp brag_inp = {
+      .grid = &app->grid,
+      .nfluids = app->num_species,
+      .epsilon0 = app->field.epsilon0,
+      // Check for multiplicative collisionality factor, default is 1.0
+      .coll_fac = app->coll_fac == 0 ? 1.0 : app->coll_fac,
+    };
+    for (int i=0; i<app->num_species; ++i) {
+      // Braginskii coefficients depend on pressure and coefficient to obtain
+      // pressure is different for different equation systems (gasGamma, vt, Tr(P))
+      double p_fac = 1.0;
+      if (app->species[i].eqn_type == GKYL_EQN_EULER) {
+        p_fac =  gkyl_wv_euler_gas_gamma(app->species[i].equation);
+      }
+      else if (app->species[i].eqn_type == GKYL_EQN_ISO_EULER) {
+        p_fac =  gkyl_wv_iso_euler_vt(app->species[i].equation);
+      }
+      brag_inp.param[i] = (struct gkyl_moment_braginskii_data) {
+        .type_eqn = app->species[i].eqn_type,
+        .type_brag = app->species[i].type_brag,
+        .charge = app->species[i].charge,
+        .mass = app->species[i].mass,
+        .p_fac = p_fac,
+      };
+    }
+    src->brag_slvr = gkyl_moment_braginskii_new(brag_inp);
+  }
 }
 
 // update sources: 'nstrang' is 0 for the first Strang step and 1 for
@@ -163,6 +193,13 @@ moment_coupling_update(gkyl_moment_app *app, struct moment_coupling *src,
         app->species[i].f[sidx[nstrang]], app->field.f[sidx[nstrang]],
         src->non_ideal_cflrate[i], src->non_ideal_vars[i], src->pr_rhs[i]);
     }
+  }
+
+  if (app->has_braginskii) {
+    gkyl_moment_braginskii_advance(src->brag_slvr,
+      src->non_ideal_local_ext, app->local,
+      fluids, app->field.f[sidx[nstrang]],
+      src->non_ideal_cflrate, src->non_ideal_vars, src->pr_rhs);
   }
 
   if (app->field.proj_app_current)
