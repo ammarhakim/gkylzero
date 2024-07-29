@@ -271,10 +271,3 @@ gkyl_wv_iso_euler_new(double vt)
 
   return &iso_euler->eqn;
 }
-
-double
-gkyl_wv_iso_euler_vt(const struct gkyl_wv_eqn* eqn)
-{
-  const struct wv_iso_euler *iso_euler = container_of(eqn, struct wv_iso_euler, eqn);
-  return iso_euler->vt;
-}

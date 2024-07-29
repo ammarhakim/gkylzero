@@ -9,15 +9,13 @@
 * @param mom_em Moment-EM coupling object.
 * @param t_curr Current simulation time.
 * @param dt Current stable time-step.
-* @param fluid_rhs_s Array of input (rhs) fluid variables (array size = nfluids x 4). 
-* @param fluid_s Array of output fluid variables (array size = nfluids).
+* @param fluid_s Array of fluid variables (array size = nfluids).
 * @param app_accel_s Array of acceleration terms to be applied to the fluid equations (for external forces).
 * @param em Array of electromagnetic variables.
 * @param app_current Array of current terms to be applied to the fluid equations (for external current driving).
 * @param ext_em External electromagnetic variables (for EM fields coming from external sources, e.g. coils, capacitors, etc.).
 */
-void implicit_em_source_update(const gkyl_moment_em_coupling* mom_em, double t_curr, double dt, 
-  double fluid_rhs_s[GKYL_MAX_SPECIES][4], double* fluid_s[GKYL_MAX_SPECIES],
+void implicit_em_source_update(const gkyl_moment_em_coupling* mom_em, double t_curr, double dt, double* fluid_s[GKYL_MAX_SPECIES],
   const double *app_accel_s[GKYL_MAX_SPECIES], double* em, const double* app_current, const double* ext_em);
 
 /**
@@ -27,12 +25,10 @@ void implicit_em_source_update(const gkyl_moment_em_coupling* mom_em, double t_c
 * @param mom_em Moment-EM coupling object.
 * @param t_curr Current simulation time.
 * @param dt Current stable time-step.
-* @param fluid_rhs_s Array of input (rhs) fluid variables (array size = nfluids x 4).  
-* @param fluid_s Array of output fluid variables (array size = nfluids).
+* @param fluid_s Array of fluid variables (array size = nfluids).
 * @param app_accel_s Array of acceleration terms to be applied to the fluid equations (for external forces).
 */
-void implicit_neut_source_update(const gkyl_moment_em_coupling* mom_em, double t_curr, double dt, 
-  double fluid_rhs_s[GKYL_MAX_SPECIES][4], double* fluid_s[GKYL_MAX_SPECIES],
+void implicit_neut_source_update(const gkyl_moment_em_coupling* mom_em, double t_curr, double dt, double* fluid_s[GKYL_MAX_SPECIES],
   const double* app_accel_s[GKYL_MAX_SPECIES]);
 
 /**

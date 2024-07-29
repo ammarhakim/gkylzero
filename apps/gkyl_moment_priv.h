@@ -24,7 +24,6 @@
 #include <gkyl_kep_scheme.h>
 #include <gkyl_mhd_src.h>
 #include <gkyl_moment.h>
-#include <gkyl_moment_braginskii.h>
 #include <gkyl_moment_em_coupling.h>
 #include <gkyl_mp_scheme.h>
 #include <gkyl_range.h>
@@ -35,8 +34,6 @@
 #include <gkyl_wave_geom.h>
 #include <gkyl_wave_prop.h>
 #include <gkyl_wv_apply_bc.h>
-#include <gkyl_wv_euler.h>
-#include <gkyl_wv_iso_euler.h>
 #include <gkyl_wv_maxwell.h>
 #include <gkyl_wv_mhd.h>
 #include <gkyl_wv_ten_moment.h>
@@ -49,7 +46,6 @@ struct moment_species {
 
   double k0; // closure parameter (default is 0.0, used by 10 moment)
   bool has_grad_closure; // has gradient-based closure (only for 10 moment)
-  enum gkyl_braginskii_type type_brag; // which Braginskii equations
 
   bool has_friction; // Run with frictional sources.
   bool use_explicit_friction; // Use an explicit (SSP-RK3) solver for integrating frictional sources.
@@ -182,19 +178,16 @@ struct moment_field {
 
 // Source data
 struct moment_coupling {
-  // grid for braginskii variables (braginskii variables located at cell nodes)  
+// grid for braginskii variables (braginskii variables located at cell nodes)  
   struct gkyl_rect_grid non_ideal_grid;
-  // local, local-ext ranges for braginskii variables (loop over nodes)  
+ // local, local-ext ranges for braginskii variables (loop over nodes)  
   struct gkyl_range non_ideal_local, non_ideal_local_ext;
 
-  // Gradient-based closure solver (if present)  
-  struct gkyl_ten_moment_grad_closure *grad_closure_slvr[GKYL_MAX_SPECIES];
-  // Braginskii solver (if present)
-  struct gkyl_moment_braginskii *brag_slvr; 
-
-  // array for stable time-step from non-ideal terms  
+ // Gradient-based closure solver (if present)  
+  gkyl_ten_moment_grad_closure *grad_closure_slvr[GKYL_MAX_SPECIES];
+ // array for stable time-step from non-ideal terms  
   struct gkyl_array *non_ideal_cflrate[GKYL_MAX_SPECIES];
-  // array for non-ideal variables (heat-flux tensor)  
+ // array for non-ideal variables (heat-flux tensor)  
   struct gkyl_array *non_ideal_vars[GKYL_MAX_SPECIES];
   // array for storing RHS of each species from non-ideal term updates (gradient-based closure)
   struct gkyl_array  *pr_rhs[GKYL_MAX_SPECIES];
@@ -221,9 +214,6 @@ struct gkyl_moment_app {
   enum gkyl_mp_recon mp_recon; // reconstruction scheme to use
  // should shock-hybrid scheme be used when using KEP?  
   bool use_hybrid_flux_kep;
-
-  bool has_braginskii; // has Braginskii transport
-  double coll_fac; // multiplicative collisionality factor for Braginskii  
 
   int num_periodic_dir; // number of periodic directions
   int periodic_dirs[3]; // list of periodic directions

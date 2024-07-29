@@ -22,10 +22,6 @@ moment_species_init(const struct gkyl_moment *mom, const struct gkyl_moment_spec
   sp->k0 = mom_sp->equation->type == GKYL_EQN_TEN_MOMENT ? gkyl_wv_ten_moment_k0(mom_sp->equation) : 0.0;
   // check if we are running with gradient-based closure
   sp->has_grad_closure = mom_sp->has_grad_closure == 0 ? 0 : mom_sp->has_grad_closure;
-  // check if we are running with Braginskii transport and fetch Braginskii type
-  if (app->has_braginskii) {
-    sp->type_brag = mom_sp->type_brag;
-  }
 
   if (mom_sp->has_friction) {
     sp->has_friction = true;
