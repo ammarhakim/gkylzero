@@ -114,7 +114,7 @@ test_L_domain_send_c1(void)
       num_cuts[i] *= ginfo->cuts[d];
     
     struct gkyl_range range;
-    gkyl_range_init_from_shape(&range, 2, ginfo->cells);
+    gkyl_create_global_range(2, ginfo->cells, &range);
     decomp[i] = gkyl_rect_decomp_new_from_cuts(2, ginfo->cuts, &range);
   }
 
@@ -126,19 +126,19 @@ test_L_domain_send_c1(void)
   struct gkyl_comm_conn conn_0[] = {
     { .block_id = 1, .rank = 0 }
   };
-  gkyl_range_init(&conn_0[0].range, 2, (int[]) { 0, 0 }, (int[]) { 299, 0 });
+  gkyl_range_init(&conn_0[0].range, 2, (int[]) { 1, 1 }, (int[]) { 300, 1 });
 
   struct gkyl_comm_conn conn_1[] = {
     { .block_id = 2, .rank = 0 },    
     { .block_id = 0, .rank = 0 },
   };
-  gkyl_range_init(&conn_1[0].range, 2, (int[]) { 299, 0 }, (int[]) { 299, 299 });
-  gkyl_range_init(&conn_1[1].range, 2, (int[]) { 0, 299 }, (int[]) { 299, 299 });
+  gkyl_range_init(&conn_1[0].range, 2, (int[]) { 300, 1 }, (int[]) { 300, 300 });
+  gkyl_range_init(&conn_1[1].range, 2, (int[]) { 1, 300 }, (int[]) { 300, 300 });
   
   struct gkyl_comm_conn conn_2[] = {
     { .block_id = 1, .rank = 0 },
   };
-  gkyl_range_init(&conn_2[0].range, 2, (int[]) { 0, 0 }, (int[]) { 0, 299 });
+  gkyl_range_init(&conn_2[0].range, 2, (int[]) { 1, 1 }, (int[]) { 1, 300 });
   
   struct gkyl_comm_conn *block_conn[] = { conn_0, conn_1, conn_2 };
   
@@ -195,7 +195,7 @@ test_L_domain_send_c3(void)
       num_cuts[i] *= ginfo->cuts[d];
     
     struct gkyl_range range;
-    gkyl_range_init_from_shape(&range, 2, ginfo->cells);
+    gkyl_create_global_range(2, ginfo->cells, &range);
     decomp[i] = gkyl_rect_decomp_new_from_cuts(2, ginfo->cuts, &range);
   }
 
@@ -246,7 +246,7 @@ test_L_domain_recv_c1(void)
       num_cuts[i] *= ginfo->cuts[d];
     
     struct gkyl_range range;
-    gkyl_range_init_from_shape(&range, 2, ginfo->cells);
+    gkyl_create_global_range(2, ginfo->cells, &range);
     decomp[i] = gkyl_rect_decomp_new_from_cuts(2, ginfo->cuts, &range);
   }
 
@@ -258,19 +258,19 @@ test_L_domain_recv_c1(void)
   struct gkyl_comm_conn conn_0[] = {
     { .block_id = 1, .rank = 0 }
   };
-  gkyl_range_init(&conn_0[0].range, 2, (int[]) { 0, -1 }, (int[]) { 299, -1 });
+  gkyl_range_init(&conn_0[0].range, 2, (int[]) { 1, 0 }, (int[]) { 300, 0 });
 
   struct gkyl_comm_conn conn_1[] = {
     { .block_id = 2, .rank = 0 },    
     { .block_id = 0, .rank = 0 },
   };
-  gkyl_range_init(&conn_1[0].range, 2, (int[]) { 300, 0 }, (int[]) { 300, 299 });
-  gkyl_range_init(&conn_1[1].range, 2, (int[]) { 0, 300 }, (int[]) { 299, 300 });
+  gkyl_range_init(&conn_1[0].range, 2, (int[]) { 301, 1 }, (int[]) { 301, 300 });
+  gkyl_range_init(&conn_1[1].range, 2, (int[]) { 1, 301 }, (int[]) { 300, 301 });
   
   struct gkyl_comm_conn conn_2[] = {
     { .block_id = 1, .rank = 0 },
   };
-  gkyl_range_init(&conn_2[0].range, 2, (int[]) { -1, 0 }, (int[]) { -1, 299 });
+  gkyl_range_init(&conn_2[0].range, 2, (int[]) { 0, 1 }, (int[]) { 0, 300 });
   
   struct gkyl_comm_conn *block_conn[] = { conn_0, conn_1, conn_2 };
   
@@ -327,7 +327,7 @@ test_L_domain_recv_c3(void)
       num_cuts[i] *= ginfo->cuts[d];
     
     struct gkyl_range range;
-    gkyl_range_init_from_shape(&range, 2, ginfo->cells);
+    gkyl_create_global_range(2, ginfo->cells, &range);
     decomp[i] = gkyl_rect_decomp_new_from_cuts(2, ginfo->cuts, &range);
   }
 
