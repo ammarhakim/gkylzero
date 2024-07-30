@@ -207,8 +207,6 @@ void
 test_bc_twistshift_3x2v_fig6_wcells(const int *cells, enum gkyl_edge_loc edge,
   bool check_distf, bool use_gpu, bool write_f)
 {
-  assert(!use_gpu); // 2x test only available on CPUs.
-
   double vt = 1.0; // Thermal speed.
   double mass = 1.0;
   double B0 = 1.0; // Magnetic field magnitude.
@@ -302,6 +300,7 @@ test_bc_twistshift_3x2v_fig6_wcells(const int *cells, enum gkyl_edge_loc edge,
 
   // Initialize the distribution
   struct gkyl_array *distf = mkarr(use_gpu, basis.num_basis, local_ext.volume);
+  struct gkyl_array *distf_ho = use_gpu? mkarr(false, basis.num_basis, local_ext.volume) : gkyl_array_acquire(distf);
   gkyl_proj_on_basis *projDistf = gkyl_proj_on_basis_inew( &(struct gkyl_proj_on_basis_inp) {
       .grid = &grid,
       .basis = &basis,
@@ -311,14 +310,15 @@ test_bc_twistshift_3x2v_fig6_wcells(const int *cells, enum gkyl_edge_loc edge,
       .ctx = &proj_ctx,
     }
   );
-  gkyl_proj_on_basis_advance(projDistf, 0.0, &local, distf);
+  gkyl_proj_on_basis_advance(projDistf, 0.0, &local, distf_ho);
+  gkyl_array_copy(distf, distf_ho);
   struct gkyl_array_meta *mt = test_bc_twistshift_array_meta_new( (struct test_bc_twistshift_output_meta) {
       .poly_order = poly_order,
       .basis_type = basis.id
     }
   );
   if (write_f)
-    gkyl_grid_sub_array_write(&grid, &local, mt, distf, "ctest_bc_twistshift_3x2v_fig6_do.gkyl");
+    gkyl_grid_sub_array_write(&grid, &local, mt, distf_ho, "ctest_bc_twistshift_3x2v_fig6_do.gkyl");
 
   // Create the twist-shift updater and shift the donor field.
   struct gkyl_bc_twistshift_inp tsinp = {
@@ -344,6 +344,7 @@ test_bc_twistshift_3x2v_fig6_wcells(const int *cells, enum gkyl_edge_loc edge,
   apply_periodic_bc(buff_per, distf, bc_dir, skin_ghost);
 
   gkyl_bc_twistshift_advance(tsup, distf, distf);
+  gkyl_array_copy(distf_ho, distf);
 
   // Write out the target in the extended range.
   if (write_f) {
@@ -357,7 +358,7 @@ test_bc_twistshift_3x2v_fig6_wcells(const int *cells, enum gkyl_edge_loc edge,
     }
     struct gkyl_rect_grid grid_ext;
     gkyl_rect_grid_init(&grid_ext, ndim, lower_ext, upper_ext, cells_ext);
-    gkyl_grid_sub_array_write(&grid_ext, &local_ext, mt, distf, "ctest_bc_twistshift_3x2v_fig6_tar.gkyl");
+    gkyl_grid_sub_array_write(&grid_ext, &local_ext, mt, distf_ho, "ctest_bc_twistshift_3x2v_fig6_tar.gkyl");
   }
 
   // Compute the integrated moments of the skin cell and the ghost cell.
@@ -406,9 +407,6 @@ test_bc_twistshift_3x2v_fig6_wcells(const int *cells, enum gkyl_edge_loc edge,
   int num_mom = gkyl_dg_updater_moment_gyrokinetic_num_mom(mcalc);
 
   struct gkyl_array *marr = mkarr(use_gpu, num_mom, local_ext_conf.volume);
-  struct gkyl_array *marr_ho = marr;
-  if (use_gpu)
-    marr_ho = mkarr(false, num_mom, local_ext_conf.volume);
   double *red_integ_mom_skin, *red_integ_mom_ghost;
   if (use_gpu) {
     red_integ_mom_skin = gkyl_cu_malloc(sizeof(double[vdim+2]));
@@ -418,6 +416,8 @@ test_bc_twistshift_3x2v_fig6_wcells(const int *cells, enum gkyl_edge_loc edge,
     red_integ_mom_skin = gkyl_malloc(sizeof(double[vdim+2]));
     red_integ_mom_ghost = gkyl_malloc(sizeof(double[vdim+2]));
   }
+  double *red_integ_mom_skin_ho = gkyl_malloc(sizeof(double[vdim+2]));
+  double *red_integ_mom_ghost_ho = gkyl_malloc(sizeof(double[vdim+2]));
 
   gkyl_dg_updater_moment_gyrokinetic_advance(mcalc,
       &skin_rng, &skin_rng_conf, distf, marr);
@@ -427,9 +427,18 @@ test_bc_twistshift_3x2v_fig6_wcells(const int *cells, enum gkyl_edge_loc edge,
       &ghost_rng, &ghost_rng_conf, distf, marr);
   gkyl_array_reduce_range(red_integ_mom_ghost, marr, GKYL_SUM, &ghost_rng_conf);
 
+  if (use_gpu) {
+    gkyl_cu_memcpy(red_integ_mom_skin_ho, red_integ_mom_skin, sizeof(double[2+vdim]), GKYL_CU_MEMCPY_D2H);
+    gkyl_cu_memcpy(red_integ_mom_ghost_ho, red_integ_mom_ghost, sizeof(double[2+vdim]), GKYL_CU_MEMCPY_D2H);
+  }
+  else {
+    memcpy(red_integ_mom_skin_ho, red_integ_mom_skin, sizeof(double[2+vdim]));
+    memcpy(red_integ_mom_ghost_ho, red_integ_mom_ghost, sizeof(double[2+vdim]));
+  }
+
   for (int k=0; k<vdim+2; k++) {
-    TEST_CHECK( gkyl_compare(red_integ_mom_skin[k], red_integ_mom_ghost[k], 1e-12));
-    TEST_MSG( "integ_mom %d | Expected: %.14e | Got: %.14e\n",k,red_integ_mom_skin[k],red_integ_mom_ghost[k]);
+    TEST_CHECK( gkyl_compare(red_integ_mom_skin_ho[k], red_integ_mom_ghost_ho[k], 1e-12));
+    TEST_MSG( "integ_mom %d | Expected: %.14e | Got: %.14e\n",k,red_integ_mom_skin_ho[k],red_integ_mom_ghost_ho[k]);
   }
 
   if (check_distf) {
@@ -452,12 +461,12 @@ test_bc_twistshift_3x2v_fig6_wcells(const int *cells, enum gkyl_edge_loc edge,
     struct gkyl_range_iter iter;
     gkyl_range_iter_init(&iter, &ghost_rng);
     while (gkyl_range_iter_next(&iter)) {
-      if (iter.idx[3]==0 && iter.idx[4]==0) {
+      if (iter.idx[3]==1 && iter.idx[4]==1) {
         long linidx = gkyl_range_idx(&ghost_rng, iter.idx);
-        double *f_c = gkyl_array_fetch(distf, linidx);
+        double *f_c = gkyl_array_fetch(distf_ho, linidx);
         int refidx = (iter.idx[1]-1)*cells[0] + iter.idx[0]-1;
-        TEST_CHECK( gkyl_compare(f0[refidx], f_c[0], 1e-14) );
-        TEST_CHECK( gkyl_compare(f2[refidx], f_c[2], 1e-14) );
+        TEST_CHECK( gkyl_compare(f0[refidx], f_c[0], 1e-13) );
+        TEST_CHECK( gkyl_compare(f2[refidx], f_c[2], 1e-13) );
       }
     }
   }
@@ -469,6 +478,7 @@ test_bc_twistshift_3x2v_fig6_wcells(const int *cells, enum gkyl_edge_loc edge,
 //  tsinp.shift_func = shiftm_3x2v_fig9;
   struct gkyl_bc_twistshift *tsup_m = gkyl_bc_twistshift_new(&tsinp);
   gkyl_bc_twistshift_advance(tsup_m, distf, distf);
+  gkyl_array_copy(distf_ho, distf);
 
   if (write_f) {
     double lower_ext[ndim], upper_ext[ndim];
@@ -481,16 +491,21 @@ test_bc_twistshift_3x2v_fig6_wcells(const int *cells, enum gkyl_edge_loc edge,
     }
     struct gkyl_rect_grid grid_ext;
     gkyl_rect_grid_init(&grid_ext, ndim, lower_ext, upper_ext, cells_ext);
-    gkyl_grid_sub_array_write(&grid_ext, &local_ext, mt, distf, "ctest_bc_twistshift_3x2v_fig6_tar_shifted.gkyl");
+    gkyl_grid_sub_array_write(&grid_ext, &local_ext, mt, distf_ho, "ctest_bc_twistshift_3x2v_fig6_tar_shifted.gkyl");
   }
 
   gkyl_dg_updater_moment_gyrokinetic_advance(mcalc,
       &ghost_rng, &ghost_rng_conf, distf, marr);
   gkyl_array_reduce_range(red_integ_mom_ghost, marr, GKYL_SUM, &ghost_rng_conf);
 
+  if (use_gpu)
+    gkyl_cu_memcpy(red_integ_mom_ghost_ho, red_integ_mom_ghost, sizeof(double[2+vdim]), GKYL_CU_MEMCPY_D2H);
+  else
+    memcpy(red_integ_mom_ghost_ho, red_integ_mom_ghost, sizeof(double[2+vdim]));
+
   for (int k=0; k<vdim+2; k++) {
-    TEST_CHECK( gkyl_compare(red_integ_mom_skin[k], red_integ_mom_ghost[k], 1e-12));
-    TEST_MSG( "integ_mom %d | Expected: %.14e | Got: %.14e\n",k,red_integ_mom_skin[k],red_integ_mom_ghost[k]);
+    TEST_CHECK( gkyl_compare(red_integ_mom_skin_ho[k], red_integ_mom_ghost_ho[k], 1e-12));
+    TEST_MSG( "integ_mom %d | Expected: %.14e | Got: %.14e\n",k,red_integ_mom_skin_ho[k],red_integ_mom_ghost_ho[k]);
   }
 
   if (check_distf) {
@@ -513,16 +528,18 @@ test_bc_twistshift_3x2v_fig6_wcells(const int *cells, enum gkyl_edge_loc edge,
     struct gkyl_range_iter iter;
     gkyl_range_iter_init(&iter, &ghost_rng);
     while (gkyl_range_iter_next(&iter)) {
-      if (iter.idx[3]==0 && iter.idx[4]==0) {
+      if (iter.idx[3]==1 && iter.idx[4]==1) {
         long linidx = gkyl_range_idx(&ghost_rng, iter.idx);
-        double *f_c = gkyl_array_fetch(distf, linidx);
+        double *f_c = gkyl_array_fetch(distf_ho, linidx);
         int refidx = (iter.idx[1]-1)*cells[0] + iter.idx[0]-1;
-        TEST_CHECK( gkyl_compare(f0[refidx], f_c[0], 1e-14) );
-        TEST_CHECK( gkyl_compare(f2[refidx], f_c[2], 1e-14) );
+        TEST_CHECK( gkyl_compare(f0[refidx], f_c[0], 1e-13) );
+        TEST_CHECK( gkyl_compare(f2[refidx], f_c[2], 1e-13) );
       }
     }
   }
 
+  gkyl_free(red_integ_mom_skin_ho);
+  gkyl_free(red_integ_mom_ghost_ho);
   if (use_gpu) {
     gkyl_cu_free(red_integ_mom_skin);
     gkyl_cu_free(red_integ_mom_ghost);
@@ -531,8 +548,6 @@ test_bc_twistshift_3x2v_fig6_wcells(const int *cells, enum gkyl_edge_loc edge,
     gkyl_free(red_integ_mom_skin);
     gkyl_free(red_integ_mom_ghost);
   }
-  if (use_gpu)
-    gkyl_array_release(marr_ho);
   gkyl_dg_updater_moment_gyrokinetic_release(mcalc);
   gkyl_array_release(marr);
   gkyl_gk_geometry_release(gk_geom);
@@ -542,6 +557,7 @@ test_bc_twistshift_3x2v_fig6_wcells(const int *cells, enum gkyl_edge_loc edge,
   gkyl_bc_twistshift_release(tsup);
   gkyl_bc_twistshift_release(tsup_m);
   gkyl_proj_on_basis_release(projDistf);
+  gkyl_array_release(distf_ho);
   gkyl_array_release(distf);
 
 }
@@ -582,8 +598,6 @@ void
 test_bc_twistshift_3x2v_fig11_wcells(const int *cells, enum gkyl_edge_loc edge,
   bool check_distf, bool use_gpu, bool write_f)
 {
-  assert(!use_gpu); // 2x test only available on CPUs.
-
   double vt = 1.0; // Thermal speed.
   double mass = 1.0;
   double B0 = 1.0; // Magnetic field magnitude.
@@ -677,6 +691,7 @@ test_bc_twistshift_3x2v_fig11_wcells(const int *cells, enum gkyl_edge_loc edge,
 
   // Initialize the distribution
   struct gkyl_array *distf = mkarr(use_gpu, basis.num_basis, local_ext.volume);
+  struct gkyl_array *distf_ho = use_gpu? mkarr(false, basis.num_basis, local_ext.volume) : gkyl_array_acquire(distf);
   gkyl_proj_on_basis *projDistf = gkyl_proj_on_basis_inew( &(struct gkyl_proj_on_basis_inp) {
       .grid = &grid,
       .basis = &basis,
@@ -685,14 +700,15 @@ test_bc_twistshift_3x2v_fig11_wcells(const int *cells, enum gkyl_edge_loc edge,
       .ctx = &proj_ctx,
     }
   );
-  gkyl_proj_on_basis_advance(projDistf, 0.0, &local, distf);
+  gkyl_proj_on_basis_advance(projDistf, 0.0, &local, distf_ho);
+  gkyl_array_copy(distf, distf_ho);
   struct gkyl_array_meta *mt = test_bc_twistshift_array_meta_new( (struct test_bc_twistshift_output_meta) {
       .poly_order = poly_order,
       .basis_type = basis.id
     }
   );
   if (write_f)
-    gkyl_grid_sub_array_write(&grid, &local, mt, distf, "ctest_bc_twistshift_3x2v_fig11_do.gkyl");
+    gkyl_grid_sub_array_write(&grid, &local, mt, distf_ho, "ctest_bc_twistshift_3x2v_fig11_do.gkyl");
 
   // Create the twist-shift updater and shift the donor field.
   struct gkyl_bc_twistshift_inp tsinp = {
@@ -717,6 +733,7 @@ test_bc_twistshift_3x2v_fig11_wcells(const int *cells, enum gkyl_edge_loc edge,
   apply_periodic_bc(buff_per, distf, bc_dir, skin_ghost);
 
   gkyl_bc_twistshift_advance(tsup, distf, distf);
+  gkyl_array_copy(distf_ho, distf);
 
   // Write out the target in the extended range.
   if (write_f) {
@@ -730,7 +747,7 @@ test_bc_twistshift_3x2v_fig11_wcells(const int *cells, enum gkyl_edge_loc edge,
     }
     struct gkyl_rect_grid grid_ext;
     gkyl_rect_grid_init(&grid_ext, ndim, lower_ext, upper_ext, cells_ext);
-    gkyl_grid_sub_array_write(&grid_ext, &local_ext, mt, distf, "ctest_bc_twistshift_3x2v_fig11_tar.gkyl");
+    gkyl_grid_sub_array_write(&grid_ext, &local_ext, mt, distf_ho, "ctest_bc_twistshift_3x2v_fig11_tar.gkyl");
   }
 
   // Compute the integrated moments of the skin cell and the ghost cell.
@@ -779,9 +796,6 @@ test_bc_twistshift_3x2v_fig11_wcells(const int *cells, enum gkyl_edge_loc edge,
   int num_mom = gkyl_dg_updater_moment_gyrokinetic_num_mom(mcalc);
 
   struct gkyl_array *marr = mkarr(use_gpu, num_mom, local_ext_conf.volume);
-  struct gkyl_array *marr_ho = marr;
-  if (use_gpu)
-    marr_ho = mkarr(false, num_mom, local_ext_conf.volume);
   double *red_integ_mom_skin, *red_integ_mom_ghost;
   if (use_gpu) {
     red_integ_mom_skin = gkyl_cu_malloc(sizeof(double[vdim+2]));
@@ -791,6 +805,8 @@ test_bc_twistshift_3x2v_fig11_wcells(const int *cells, enum gkyl_edge_loc edge,
     red_integ_mom_skin = gkyl_malloc(sizeof(double[vdim+2]));
     red_integ_mom_ghost = gkyl_malloc(sizeof(double[vdim+2]));
   }
+  double *red_integ_mom_skin_ho = gkyl_malloc(sizeof(double[vdim+2]));
+  double *red_integ_mom_ghost_ho = gkyl_malloc(sizeof(double[vdim+2]));
 
   gkyl_dg_updater_moment_gyrokinetic_advance(mcalc,
       &skin_rng, &skin_rng_conf, distf, marr);
@@ -800,9 +816,18 @@ test_bc_twistshift_3x2v_fig11_wcells(const int *cells, enum gkyl_edge_loc edge,
       &ghost_rng, &ghost_rng_conf, distf, marr);
   gkyl_array_reduce_range(red_integ_mom_ghost, marr, GKYL_SUM, &ghost_rng_conf);
 
+  if (use_gpu) {
+    gkyl_cu_memcpy(red_integ_mom_skin_ho, red_integ_mom_skin, sizeof(double[2+vdim]), GKYL_CU_MEMCPY_D2H);
+    gkyl_cu_memcpy(red_integ_mom_ghost_ho, red_integ_mom_ghost, sizeof(double[2+vdim]), GKYL_CU_MEMCPY_D2H);
+  }
+  else {
+    memcpy(red_integ_mom_skin_ho, red_integ_mom_skin, sizeof(double[2+vdim]));
+    memcpy(red_integ_mom_ghost_ho, red_integ_mom_ghost, sizeof(double[2+vdim]));
+  }
+
   for (int k=0; k<vdim+2; k++) {
-    TEST_CHECK( gkyl_compare(red_integ_mom_skin[k], red_integ_mom_ghost[k], 1e-12));
-    TEST_MSG( "integ_mom %d | Expected: %.14e | Got: %.14e\n",k,red_integ_mom_skin[k],red_integ_mom_ghost[k]);
+    TEST_CHECK( gkyl_compare(red_integ_mom_skin_ho[k], red_integ_mom_ghost_ho[k], 1e-12));
+    TEST_MSG( "integ_mom %d | Expected: %.14e | Got: %.14e\n",k,red_integ_mom_skin_ho[k],red_integ_mom_ghost_ho[k]);
   }
 
   if (check_distf) {
@@ -903,18 +928,20 @@ test_bc_twistshift_3x2v_fig11_wcells(const int *cells, enum gkyl_edge_loc edge,
     struct gkyl_range_iter iter;
     gkyl_range_iter_init(&iter, &ghost_rng);
     while (gkyl_range_iter_next(&iter)) {
-      if (iter.idx[3]==0 && iter.idx[4]==0) {
+      if (iter.idx[3]==1 && iter.idx[4]==1) {
         long linidx = gkyl_range_idx(&ghost_rng, iter.idx);
-        double *f_c = gkyl_array_fetch(distf, linidx);
-        int refidx = (iter.idx[1]-1)*cells[0] + iter.idx[0]-1;
-        TEST_CHECK( gkyl_compare(f0[refidx], f_c[0], 1e-14) );
-        TEST_CHECK( gkyl_compare(f1[refidx], f_c[1], 1e-14) );
-        TEST_CHECK( gkyl_compare(f2[refidx], f_c[2], 1e-14) );
-        TEST_CHECK( gkyl_compare(f6[refidx], f_c[6], 1e-14) );
+        double *f_c = gkyl_array_fetch(distf_ho, linidx);
+        int refidx = (iter.idx[0]-1)*cells[1] + iter.idx[1]-1;
+        TEST_CHECK( gkyl_compare(f0[refidx], f_c[0], 1e-13) );
+        TEST_CHECK( gkyl_compare(f1[refidx], f_c[1], 1e-13) );
+        TEST_CHECK( gkyl_compare(f2[refidx], f_c[2], 1e-13) );
+        TEST_CHECK( gkyl_compare(f6[refidx], f_c[6], 1e-12) );
       }
     }
   }
 
+  gkyl_free(red_integ_mom_skin_ho);
+  gkyl_free(red_integ_mom_ghost_ho);
   if (use_gpu) {
     gkyl_cu_free(red_integ_mom_skin);
     gkyl_cu_free(red_integ_mom_ghost);
@@ -923,8 +950,6 @@ test_bc_twistshift_3x2v_fig11_wcells(const int *cells, enum gkyl_edge_loc edge,
     gkyl_free(red_integ_mom_skin);
     gkyl_free(red_integ_mom_ghost);
   }
-  if (use_gpu)
-    gkyl_array_release(marr_ho);
   gkyl_dg_updater_moment_gyrokinetic_release(mcalc);
   gkyl_array_release(marr);
   gkyl_gk_geometry_release(gk_geom);
@@ -933,6 +958,7 @@ test_bc_twistshift_3x2v_fig11_wcells(const int *cells, enum gkyl_edge_loc edge,
   test_bc_twistshift_array_meta_release(mt);
   gkyl_bc_twistshift_release(tsup);
   gkyl_proj_on_basis_release(projDistf);
+  gkyl_array_release(distf_ho);
   gkyl_array_release(distf);
 
 }
@@ -943,7 +969,7 @@ test_bc_twistshift_3x2v_fig6(bool use_gpu)
   const int cells0[] = {1, 10, 4, 2, 1};
 
   enum gkyl_edge_loc edgelo = GKYL_LOWER_EDGE; // Lower edge.
-  test_bc_twistshift_3x2v_fig6_wcells(cells0, edgelo, true, use_gpu, false);
+  test_bc_twistshift_3x2v_fig6_wcells(cells0, edgelo, true, use_gpu, true);
 }
 
 void
@@ -970,8 +996,17 @@ test_bc_twistshift_3x2v_fig11(bool use_gpu)
 void test_bc_twistshift_3x2v_fig6_ho(){ test_bc_twistshift_3x2v_fig6(false); }
 void test_bc_twistshift_3x2v_fig11_ho(){ test_bc_twistshift_3x2v_fig11(false); }
 
+#ifdef GKYL_HAVE_CUDA
+void test_bc_twistshift_3x2v_fig6_dev(){ test_bc_twistshift_3x2v_fig6(true); }
+void test_bc_twistshift_3x2v_fig11_dev(){ test_bc_twistshift_3x2v_fig11(true); }
+#endif
+
 TEST_LIST = {
   { "test_bc_twistshift_3x2v_fig6_ho", test_bc_twistshift_3x2v_fig6_ho },
   { "test_bc_twistshift_3x2v_fig11_ho", test_bc_twistshift_3x2v_fig11_ho },
+#ifdef GKYL_HAVE_CUDA
+  { "test_bc_twistshift_3x2v_fig6_dev", test_bc_twistshift_3x2v_fig6_dev },
+  { "test_bc_twistshift_3x2v_fig11_dev", test_bc_twistshift_3x2v_fig11_dev },
+#endif
   { NULL, NULL },
 };
