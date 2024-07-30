@@ -100,7 +100,7 @@ create_ctx(void)
   double cfl_frac = 1.0; // CFL coefficient.
 
   double t_end = 5.0; // Final simulation time.
-  int num_frames = 100; // Number of output frames.
+  int num_frames = 1; // Number of output frames.
   double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.
   int num_failures_max = 20; // Maximum allowable number of consecutive small time-steps.
 
@@ -256,7 +256,7 @@ main(int argc, char **argv)
     .epsilon0 = ctx.epsilon0, .mu0 = ctx.mu0,
     .mag_error_speed_fact = 1.0,
     
-    .evolve = true,
+    .evolve = false,
     .init = evalFieldInit,
     .ctx = &ctx,
   };

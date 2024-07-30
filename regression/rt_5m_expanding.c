@@ -57,7 +57,7 @@ create_ctx(void)
   double cfl_frac = 0.95; // CFL coefficient.
 
   double t_end = 0.5; // Final simulation time.
-  int num_frames = 100; // Number of output frames.
+  int num_frames = 1; // Number of output frames.
   double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.
   int num_failures_max = 20; // Maximum allowable number of consecutive small time-steps.
 
