@@ -445,6 +445,54 @@ gk_species_apply_ic_cross(gkyl_gyrokinetic_app *app, struct gk_species *gks_self
     gkyl_dg_mul_conf_phase_op_range(&app->confBasis, &app->basis, gks_self->f,
       den_mod, gks_self->f, &app->local_ext, &gks_self->local_ext);
 
+          
+    const char *fmt = "%s-%s.gkyl";
+    int sz = gkyl_calc_strlen(fmt, app->name, "den_mod"); 
+    char fileNm[sz+1];
+    int rank;
+    gkyl_comm_get_rank(app->comm, &rank);
+
+
+    struct gkyl_array *den_mod_global = mkarr(app->use_gpu, app->confBasis.num_basis, app->global_ext.volume);
+    struct gkyl_array *npol_global = mkarr(app->use_gpu, app->confBasis.num_basis, app->global_ext.volume);
+    struct gkyl_array *m0_global = mkarr(app->use_gpu, app->confBasis.num_basis, app->global_ext.volume);
+
+    gkyl_comm_array_allgather(app->comm, &app->local, &app->global, npol, npol_global);
+    gkyl_comm_array_allgather(app->comm, &app->local, &app->global, den_mod, den_mod_global);
+    gkyl_comm_array_allgather(app->comm, &app->local, &app->global, gks_self->m0.marr, m0_global);
+    struct gkyl_array *den_mod_ho, *npol_ho, *m0_ho;
+    if (app->use_gpu) {
+      den_mod_ho = mkarr(false, app->confBasis.num_basis, app->global_ext.volume);
+      npol_ho = mkarr(false, app->confBasis.num_basis, app->global_ext.volume);
+      m0_ho = mkarr(false, app->confBasis.num_basis, app->global_ext.volume);
+      gkyl_array_copy(den_mod_ho, den_mod_global);
+      gkyl_array_copy(npol_ho, npol_global);
+      gkyl_array_copy(m0_ho, m0_global);
+    } else {
+      den_mod_ho = den_mod;
+      npol_ho = npol;
+      m0_ho = gks_self->m0.marr;
+    }
+    
+    if (rank == 0) {
+      sprintf(fileNm, fmt, app->name, "den_mod");
+      gkyl_grid_sub_array_write(&app->grid, &app->global, 0,  den_mod_ho, fileNm);
+      sprintf(fileNm, fmt, app->name, "npol");
+      gkyl_grid_sub_array_write(&app->grid, &app->global, 0,  npol_ho, fileNm);
+      sprintf(fileNm, fmt, app->name, "m0");
+      gkyl_grid_sub_array_write(&app->grid, &app->global, 0,  m0_ho, fileNm);
+    }
+
+    gkyl_array_release(den_mod_global);
+    gkyl_array_release(npol_global);
+    gkyl_array_release(m0_global);
+    if (app->use_gpu) {
+      gkyl_array_release(den_mod_ho);
+      gkyl_array_release(npol_ho);
+      gkyl_array_release(m0_ho);
+    }
+
+
     gkyl_array_release(den_mod);
     gkyl_dg_bin_op_mem_release(div_mem);
     gkyl_array_release(npol);
