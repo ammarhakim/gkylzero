@@ -6,7 +6,7 @@
 #include <gkyl_alloc.h>
 #include <gkyl_moment.h>
 #include <gkyl_util.h>
-#include <gkyl_wv_euler.h>
+#include <gkyl_wv_reactive_euler.h>
 
 #include <gkyl_null_comm.h>
 
@@ -17,21 +17,22 @@
 
 #include <rt_arg_parse.h>
 
-struct plane_wave_1d_ctx
+struct reactive_detonation_ctx
 {
-  // Mathematical constants (dimensionless).
-  double pi;
-
   // Physical constants (using normalized code units).
-  double epsilon0; // Permittivity of free space.
-  double mu0; // Permeability of free space.
+  double gas_gamma; // Adiabatic index.
+  double specific_heat_capacity; // Specific heat capacity.
+  double energy_of_formation; // Energy of formation.
+  double ignition_temperature; // Ignition temperature.
+  double reaction_rate; // Reaction rate.
 
-  double E0; // Reference electric field strength.
-  double k_wave_x; // Wave number (x-direction).
+  double rhol; // Left fluid mass density.
+  double ul; // Left fluid velocity.
+  double pl; // Left fluid pressure.
 
-  // Derived physical quantities (using normalized code units).
-  double k_norm; // Wave number normalization factor.
-  double k_xn; // Normalized wave number (x-direction).
+  double rhor; // Right fluid mass density.
+  double ur; // Right fluid velocity.
+  double pr; // Right fluid pressure.
 
   // Simulation parameters.
   int Nx; // Cell count (x-direction).
@@ -44,41 +45,46 @@ struct plane_wave_1d_ctx
   int num_failures_max; // Maximum allowable number of consecutive small time-steps.
 };
 
-struct plane_wave_1d_ctx
+struct reactive_detonation_ctx
 create_ctx(void)
 {
-  // Mathematical constants (dimensionless).
-  double pi = M_PI;
-
   // Physical constants (using normalized code units).
-  double epsilon0 = 1.0; // Permittivity of free space.
-  double mu0 = 1.0; // Permeability of free space.
+  double gas_gamma = 1.4; // Adiabatic index.
+  double specific_heat_capacity = 2.5; // Specific heat capacity.
+  double energy_of_formation = 1.0; // Energy of formation.
+  double ignition_temperature = 0.25; // Ignition temperature.
+  double reaction_rate = 250.0; // Reaction rate.
 
-  double E0 = 1.0 / sqrt(2.0); // Reference electric field strength.
-  double k_wave_x = 2.0; // Wave number (x-direction).
+  double rhol = 1.4; // Left fluid mass density.
+  double ul = 0.0; // Left fluid velocity.
+  double pl = 1.0; // Left fluid pressure.
 
-  // Derived physical quantities (using normalized code units).
-  double k_norm = sqrt(k_wave_x * k_wave_x); // Wave number normalization factor.
-  double k_xn = k_wave_x / k_norm; // Normalized wave number (x-direction).
+  double rhor = 0.8887565; // Right fluid mass density.
+  double ur = -0.577350; // Right fluid velocity.
+  double pr = 0.191709; // Right fluid pressure.
 
   // Simulation parameters.
-  int Nx = 128; // Cell count (x-direction).
+  int Nx = 512; // Cell count (x-direction).
   double Lx = 1.0; // Domain size (x-direction).
-  double cfl_frac = 0.8; // CFL coefficient.
+  double cfl_frac = 0.9; // CFL coefficient.
 
-  double t_end = 2.0; // Final simulation time.
+  double t_end = 0.5; // Final simulation time.
   int num_frames = 1; // Number of output frames.
   double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.
   int num_failures_max = 20; // Maximum allowable number of consecutive small time-steps.
 
-  struct plane_wave_1d_ctx ctx = {
-    .pi = pi,
-    .epsilon0 = epsilon0,
-    .mu0 = mu0,
-    .E0 = E0,
-    .k_wave_x = k_wave_x,
-    .k_norm = k_norm,
-    .k_xn = k_xn,
+  struct reactive_detonation_ctx ctx = {
+    .gas_gamma = gas_gamma,
+    .specific_heat_capacity = specific_heat_capacity,
+    .energy_of_formation = energy_of_formation,
+    .ignition_temperature = ignition_temperature,
+    .reaction_rate = reaction_rate,
+    .rhol = rhol,
+    .ul = ul,
+    .pl = pl,
+    .rhor = rhor,
+    .ur = ur,
+    .pr = pr,
     .Nx = Nx,
     .Lx = Lx,
     .cfl_frac = cfl_frac,
@@ -92,33 +98,54 @@ create_ctx(void)
 }
 
 void
-evalFieldInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
+evalReactiveEulerInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
 {
   double x = xn[0];
-  struct plane_wave_1d_ctx *app = ctx;
+  struct reactive_detonation_ctx *app = ctx;
 
-  double pi = app->pi;
+  double gas_gamma = app->gas_gamma;
+  double energy_of_formation = app->energy_of_formation;
 
-  double E0 = app->E0;
-  double k_wave_x = app->k_wave_x;
-  double k_xn = app->k_xn;
-  
-  double Lx = app->Lx;
+  double rhol = app->rhol;
+  double ul = app->ul;
+  double pl = app->pl;
 
-  double phi = ((2.0 * pi) / Lx) * (k_wave_x * x);
+  double rhor = app->rhor;
+  double ur = app->ur;
+  double pr = app->pr;
 
-  double Ex = 0.0;
-  double Ey = E0 * cos(phi);
-  double Ez = E0 * cos(phi);
+  double rho = 0.0;
+  double u = 0.0;
+  double p = 0.0;
 
-  double Bx = 0.0;
-  double By = -E0 * cos(phi) * k_xn;
-  double Bz = E0 * cos(phi) * k_xn;
+  if (x < 0.25) {
+    rho = rhol; // Fluid mass density (left).
+    u = ul; // Fluid velocity (left).
+    p = pl; // Fluid pressure (left).
+  }
+  else {
+    rho = rhor; // Fluid mass density (right).
+    u = ur; // Fluid velocity (right).
+    p = pr; // Fluid pressure (right).
+  }
 
+  // Set fluid mass density.
+  fout[0] = rho;
+  // Set fluid momentum density.
+  fout[1] = rho * u; fout[2] = 0.0; fout[3] = 0.0;
+  // Set fluid total energy density.
+  fout[4] = (p / (gas_gamma - 1.0)) + (0.5 * rho * u * u);
+  // Set fluid reaction progress.
+  fout[5] = rho * 1.0;
+}
+
+void
+evalFieldInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
+{
   // Set electric field.
-  fout[0] = Ex, fout[1] = Ey; fout[2] = Ez;
+  fout[0] = 0.0, fout[1] = 0.0; fout[2] = 0.0;
   // Set magnetic field.
-  fout[3] = Bx, fout[4] = By; fout[5] = Bz;
+  fout[3] = 0.0, fout[4] = 0.0; fout[5] = 0.0;
   // Set correction potentials.
   fout[6] = 0.0; fout[7] = 0.0;
 }
@@ -152,15 +179,37 @@ main(int argc, char **argv)
     gkyl_mem_debug_set(true);
   }
 
-  struct plane_wave_1d_ctx ctx = create_ctx(); // Context for initialization functions.
+  struct reactive_detonation_ctx ctx = create_ctx(); // Context for initialization functions.
 
   int NX = APP_ARGS_CHOOSE(app_args.xcells[0], ctx.Nx);
 
+  // Fluid equations.
+  struct gkyl_wv_eqn *reactive_euler = gkyl_wv_reactive_euler_new(ctx.gas_gamma, ctx.specific_heat_capacity, ctx.energy_of_formation,
+    ctx.ignition_temperature, ctx.reaction_rate, app_args.use_gpu);
+
+  struct gkyl_moment_species fluid = {
+    .name = "reactive_euler",
+    .equation = reactive_euler,
+    .evolve = true,
+    .init = evalReactiveEulerInit,
+    .ctx = &ctx,
+
+    .has_reactivity = true,
+    .reactivity_gas_gamma = ctx.gas_gamma,
+    .reactivity_specific_heat_capacity = ctx.specific_heat_capacity,
+    .reactivity_energy_of_formation = ctx.energy_of_formation,
+    .reactivity_ignition_temperature = ctx.ignition_temperature,
+    .reactivity_reaction_rate = ctx.reaction_rate,
+
+    .bcx = { GKYL_SPECIES_COPY, GKYL_SPECIES_COPY },
+  };
+
   // Field.
   struct gkyl_moment_field field = {
-    .epsilon0 = ctx.epsilon0, .mu0 = ctx.mu0,
+    .epsilon0 = 1.0, .mu0 = 1.0,
+    .mag_error_speed_fact = 1.0,
     
-    .evolve = true,
+    .evolve = false,
     .init = evalFieldInit,
     .ctx = &ctx,
   };
@@ -238,18 +287,20 @@ main(int argc, char **argv)
     }
     goto mpifinalize;
   }
+
   // Moment app.
   struct gkyl_moment app_inp = {
-    .name = "maxwell_plane_wave_1d",
+    .name = "reactive_euler_detonation",
 
     .ndim = 1,
     .lower = { 0.0 },
     .upper = { ctx.Lx }, 
     .cells = { NX },
 
-    .num_periodic_dir = 1,
-    .periodic_dirs = { 0 },
     .cfl_frac = ctx.cfl_frac,
+
+    .num_species = 1,
+    .species = { fluid },
 
     .field = field,
 
@@ -333,6 +384,7 @@ main(int argc, char **argv)
   gkyl_moment_app_cout(app, stdout, "Total updates took %g secs\n", stat.total_tm);
 
   // Free resources after simulation completion.
+  gkyl_wv_eqn_release(reactive_euler);
   gkyl_rect_decomp_release(decomp);
   gkyl_comm_release(comm);
   gkyl_moment_app_release(app);  

@@ -17,21 +17,36 @@
 
 #include <rt_arg_parse.h>
 
-struct plane_wave_1d_ctx
+struct friction_ctx
 {
-  // Mathematical constants (dimensionless).
-  double pi;
-
   // Physical constants (using normalized code units).
+  double gas_gamma; // Adiabatic index.
   double epsilon0; // Permittivity of free space.
   double mu0; // Permeability of free space.
+  double mass_ion; // Ion mass.
+  double charge_ion; // Ion charge.
+  double mass_elc; // Electron mass.
+  double charge_elc; // Electron charge.
 
-  double E0; // Reference electric field strength.
-  double k_wave_x; // Wave number (x-direction).
+  double n_elc; // Electron number density.
+  double n_ion; // Ion number density.
+
+  double u_elc; // Electron velocity (x-direction).
+  double u_ion; // Ion velocity (x-direction).
+
+  double friction_Z; // Ionization number for frictional sources.
+  double friction_T_elc; // Electron temperature for frictional sources.
+  double friction_Lambda_ee; // Electron-electron collisional term for frictional sources.
 
   // Derived physical quantities (using normalized code units).
-  double k_norm; // Wave number normalization factor.
-  double k_xn; // Normalized wave number (x-direction).
+  double rho_elc; // Electron mass density.
+  double rho_ion; // Ion mass density.
+
+  double mom_elc; // Electron momentum (x-direction).
+  double mom_ion; // Ion momentum (x-direction).
+
+  double E_elc; // Electron total energy.
+  double E_ion; // Ion total energy;
 
   // Simulation parameters.
   int Nx; // Cell count (x-direction).
@@ -44,41 +59,72 @@ struct plane_wave_1d_ctx
   int num_failures_max; // Maximum allowable number of consecutive small time-steps.
 };
 
-struct plane_wave_1d_ctx
+struct friction_ctx
 create_ctx(void)
 {
   // Mathematical constants (dimensionless).
   double pi = M_PI;
 
   // Physical constants (using normalized code units).
+  double gas_gamma = 5.0 / 3.0; // Adiabatic index.
   double epsilon0 = 1.0; // Permittivity of free space.
   double mu0 = 1.0; // Permeability of free space.
+  double mass_ion = 1.0; // Ion mass.
+  double charge_ion = 1.0; // Ion charge.
+  double mass_elc = 1.0 / 200.0; // Electron mass.
+  double charge_elc = -1.0; // Electron charge.
 
-  double E0 = 1.0 / sqrt(2.0); // Reference electric field strength.
-  double k_wave_x = 2.0; // Wave number (x-direction).
+  double n_elc = 1.0; // Electron number density.
+  double n_ion = 1.0; // Ion number density.
+
+  double u_elc = 0.1; // Electron velocity (x-direction).
+  double u_ion = -0.1; // Ion velocity (x-direction).
+
+  double friction_Z = 1.0; // Ionization number for frictional sources.
+  double friction_T_elc = 1.0; // Electron temperature for frictional sources.
+  double friction_Lambda_ee = exp(1.0); // Electron-electron collisional term for frictional sources.
 
   // Derived physical quantities (using normalized code units).
-  double k_norm = sqrt(k_wave_x * k_wave_x); // Wave number normalization factor.
-  double k_xn = k_wave_x / k_norm; // Normalized wave number (x-direction).
+  double rho_elc = n_elc * mass_elc; // Electron mass density.
+  double rho_ion = n_ion * mass_ion; // Ion mass density;
+
+  double mom_elc = (n_elc * mass_elc) * u_elc; // Electron momentum (x-direction).
+  double mom_ion = (n_ion * mass_ion) * u_ion; // Ion momenutm (x-direction).
+
+  double E_elc = ((n_elc * mass_elc) / (gas_gamma - 1.0)) + (0.5 * (n_elc * mass_elc) * (u_elc * u_elc)); // Electron total energy density.
+  double E_ion = ((n_ion * mass_ion) / (gas_gamma - 1.0)) + (0.5 * (n_ion * mass_ion) * (u_ion * u_ion)); // Ion total energy density.
 
   // Simulation parameters.
   int Nx = 128; // Cell count (x-direction).
   double Lx = 1.0; // Domain size (x-direction).
-  double cfl_frac = 0.8; // CFL coefficient.
+  double cfl_frac = 1.0; // CFL coefficient.
 
-  double t_end = 2.0; // Final simulation time.
+  double t_end = 5.0; // Final simulation time.
   int num_frames = 1; // Number of output frames.
   double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.
   int num_failures_max = 20; // Maximum allowable number of consecutive small time-steps.
 
-  struct plane_wave_1d_ctx ctx = {
-    .pi = pi,
+  struct friction_ctx ctx = {
+    .gas_gamma = gas_gamma,
     .epsilon0 = epsilon0,
     .mu0 = mu0,
-    .E0 = E0,
-    .k_wave_x = k_wave_x,
-    .k_norm = k_norm,
-    .k_xn = k_xn,
+    .mass_ion = mass_ion,
+    .charge_ion = charge_ion,
+    .mass_elc = mass_elc,
+    .charge_elc = charge_elc,
+    .n_elc = n_elc,
+    .n_ion = n_ion,
+    .u_elc = u_elc,
+    .u_ion = u_ion,
+    .friction_Z = friction_Z,
+    .friction_T_elc = friction_T_elc,
+    .friction_Lambda_ee = friction_Lambda_ee,
+    .rho_elc = rho_elc,
+    .rho_ion = rho_ion,
+    .mom_elc = mom_elc,
+    .mom_ion = mom_ion,
+    .E_elc = E_elc,
+    .E_ion = E_ion,
     .Nx = Nx,
     .Lx = Lx,
     .cfl_frac = cfl_frac,
@@ -92,33 +138,48 @@ create_ctx(void)
 }
 
 void
-evalFieldInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
+evalElcInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
 {
   double x = xn[0];
-  struct plane_wave_1d_ctx *app = ctx;
+  struct friction_ctx *app = ctx;
 
-  double pi = app->pi;
+  double rho_elc = app->rho_elc;
+  double mom_elc = app->mom_elc;
+  double E_elc = app->E_elc;
 
-  double E0 = app->E0;
-  double k_wave_x = app->k_wave_x;
-  double k_xn = app->k_xn;
-  
-  double Lx = app->Lx;
+  // Set electron mass density.
+  fout[0] = rho_elc;
+  // Set electron momentum density.
+  fout[1] = mom_elc; fout[2] = 0.0; fout[3] = 0.0;
+  // Set electron total energy density.
+  fout[4] = E_elc;
+}
 
-  double phi = ((2.0 * pi) / Lx) * (k_wave_x * x);
+void
+evalIonInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
+{
+  double x = xn[0];
+  struct friction_ctx *app = ctx;
 
-  double Ex = 0.0;
-  double Ey = E0 * cos(phi);
-  double Ez = E0 * cos(phi);
+  double rho_ion = app->rho_ion;
+  double mom_ion = app->mom_ion;
+  double E_ion = app->E_ion;
 
-  double Bx = 0.0;
-  double By = -E0 * cos(phi) * k_xn;
-  double Bz = E0 * cos(phi) * k_xn;
+  // Set ion mass density.
+  fout[0] = rho_ion;
+  // Set ion momentum density.
+  fout[1] = mom_ion; fout[2] = 0.0; fout[3] = 0.0;
+  // Set ion total energy density.
+  fout[4] = E_ion;
+}
 
+void
+evalFieldInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
+{
   // Set electric field.
-  fout[0] = Ex, fout[1] = Ey; fout[2] = Ez;
+  fout[0] = 0.0, fout[1] = 0.0; fout[2] = 0.0;
   // Set magnetic field.
-  fout[3] = Bx, fout[4] = By; fout[5] = Bz;
+  fout[3] = 0.0, fout[4] = 0.0; fout[5] = 0.0;
   // Set correction potentials.
   fout[6] = 0.0; fout[7] = 0.0;
 }
@@ -152,15 +213,50 @@ main(int argc, char **argv)
     gkyl_mem_debug_set(true);
   }
 
-  struct plane_wave_1d_ctx ctx = create_ctx(); // Context for initialization functions.
+  struct friction_ctx ctx = create_ctx(); // Context for initialization functions.
 
   int NX = APP_ARGS_CHOOSE(app_args.xcells[0], ctx.Nx);
+
+  // Electron/ion equations.
+  struct gkyl_wv_eqn *elc_euler = gkyl_wv_euler_new(ctx.gas_gamma, app_args.use_gpu);
+  struct gkyl_wv_eqn *ion_euler = gkyl_wv_euler_new(ctx.gas_gamma, app_args.use_gpu);
+
+  struct gkyl_moment_species elc = {
+    .name = "elc",
+    .charge = ctx.charge_elc, .mass = ctx.mass_elc,
+    .equation = elc_euler,
+    .evolve = true,
+    .init = evalElcInit,
+    .ctx = &ctx,
+
+    .has_friction = true,
+    .use_explicit_friction = true,
+    .friction_Z = ctx.friction_Z,
+    .friction_T_elc = ctx.friction_T_elc,
+    .friction_Lambda_ee = ctx.friction_Lambda_ee,
+  };
+
+  struct gkyl_moment_species ion = {
+    .name = "ion",
+    .charge = ctx.charge_ion, .mass = ctx.mass_ion,
+    .equation = ion_euler,
+    .evolve = true,
+    .init = evalIonInit,
+    .ctx = &ctx,  
+
+    .has_friction = true,
+    .use_explicit_friction = true,
+    .friction_Z = ctx.friction_Z,
+    .friction_T_elc = ctx.friction_T_elc,
+    .friction_Lambda_ee = ctx.friction_Lambda_ee,
+  };
 
   // Field.
   struct gkyl_moment_field field = {
     .epsilon0 = ctx.epsilon0, .mu0 = ctx.mu0,
+    .mag_error_speed_fact = 1.0,
     
-    .evolve = true,
+    .evolve = false,
     .init = evalFieldInit,
     .ctx = &ctx,
   };
@@ -238,18 +334,22 @@ main(int argc, char **argv)
     }
     goto mpifinalize;
   }
+
   // Moment app.
   struct gkyl_moment app_inp = {
-    .name = "maxwell_plane_wave_1d",
+    .name = "5m_friction",
 
     .ndim = 1,
-    .lower = { 0.0 },
-    .upper = { ctx.Lx }, 
+    .lower = { -0.5 * ctx.Lx },
+    .upper = { 0.5 * ctx.Lx },
     .cells = { NX },
 
     .num_periodic_dir = 1,
     .periodic_dirs = { 0 },
     .cfl_frac = ctx.cfl_frac,
+
+    .num_species = 2,
+    .species = { elc, ion },
 
     .field = field,
 
@@ -333,6 +433,8 @@ main(int argc, char **argv)
   gkyl_moment_app_cout(app, stdout, "Total updates took %g secs\n", stat.total_tm);
 
   // Free resources after simulation completion.
+  gkyl_wv_eqn_release(elc_euler);
+  gkyl_wv_eqn_release(ion_euler);
   gkyl_rect_decomp_release(decomp);
   gkyl_comm_release(comm);
   gkyl_moment_app_release(app);  

@@ -17,7 +17,7 @@
 
 #include <rt_arg_parse.h>
 
-struct plane_wave_1d_ctx
+struct annular_wg_ctx
 {
   // Mathematical constants (dimensionless).
   double pi;
@@ -26,16 +26,19 @@ struct plane_wave_1d_ctx
   double epsilon0; // Permittivity of free space.
   double mu0; // Permeability of free space.
 
-  double E0; // Reference electric field strength.
-  double k_wave_x; // Wave number (x-direction).
+  double w_mode; // Frequency of wave mode.
+  int bessel_order; // Spherical Bessel function order.
+  double a_coeff; // Spherical Bessel function coefficient (first kind).
+  double b_coeff; // Spherical Bessel function coefficient (second kind).
 
   // Derived physical quantities (using normalized code units).
-  double k_norm; // Wave number normalization factor.
-  double k_xn; // Normalized wave number (x-direction).
+  double t_period; // Time period of wave mode.
 
   // Simulation parameters.
-  int Nx; // Cell count (x-direction).
-  double Lx; // Domain size (x-direction).
+  int Nr; // Cell count (radial direction).
+  int Ntheta; // Cell count (angular direction).
+  double Lr; // Domain size (radial direction).
+  double Ltheta; // Domain size (angular direction).
   double cfl_frac; // CFL coefficient.
 
   double t_end; // Final simulation time.
@@ -44,7 +47,7 @@ struct plane_wave_1d_ctx
   int num_failures_max; // Maximum allowable number of consecutive small time-steps.
 };
 
-struct plane_wave_1d_ctx
+struct annular_wg_ctx
 create_ctx(void)
 {
   // Mathematical constants (dimensionless).
@@ -54,33 +57,39 @@ create_ctx(void)
   double epsilon0 = 1.0; // Permittivity of free space.
   double mu0 = 1.0; // Permeability of free space.
 
-  double E0 = 1.0 / sqrt(2.0); // Reference electric field strength.
-  double k_wave_x = 2.0; // Wave number (x-direction).
+  double w_mode = 1.19318673737701; // Frequency of wave mode.
+  int bessel_order = 2; // Spherical Bessel function order.
+  double a_coeff = 1.0; // Spherical Bessel function coefficient (first kind).
+  double b_coeff = 0.9904672582498093; // Spherical Bessel function coefficient (second kind).
 
   // Derived physical quantities (using normalized code units).
-  double k_norm = sqrt(k_wave_x * k_wave_x); // Wave number normalization factor.
-  double k_xn = k_wave_x / k_norm; // Normalized wave number (x-direction).
+  double t_period = 2.0 * pi / w_mode; // Time period of wave mode.
 
   // Simulation parameters.
-  int Nx = 128; // Cell count (x-direction).
-  double Lx = 1.0; // Domain size (x-direction).
-  double cfl_frac = 0.8; // CFL coefficient.
+  int Nr = 32; // Cell count (radial direction).
+  int Ntheta = 32 * 6; // Cell count (angular direction).
+  double Lr = 3.0; // Domain size (radial direction).
+  double Ltheta = 2.0 * pi; // Domain size (angular direction).
+  double cfl_frac = 1.0; // CFL coefficient.
 
-  double t_end = 2.0; // Final simulation time.
+  double t_end = 2.0 * t_period; // Final simulation time.
   int num_frames = 1; // Number of output frames.
   double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.
   int num_failures_max = 20; // Maximum allowable number of consecutive small time-steps.
 
-  struct plane_wave_1d_ctx ctx = {
+  struct annular_wg_ctx ctx = {
     .pi = pi,
     .epsilon0 = epsilon0,
     .mu0 = mu0,
-    .E0 = E0,
-    .k_wave_x = k_wave_x,
-    .k_norm = k_norm,
-    .k_xn = k_xn,
-    .Nx = Nx,
-    .Lx = Lx,
+    .w_mode = w_mode,
+    .bessel_order = bessel_order,
+    .a_coeff = a_coeff,
+    .b_coeff = b_coeff,
+    .t_period = t_period,
+    .Nr = Nr,
+    .Ntheta = Ntheta,
+    .Lr = Lr,
+    .Ltheta = Ltheta,
     .cfl_frac = cfl_frac,
     .t_end = t_end,
     .num_frames = num_frames,
@@ -92,28 +101,25 @@ create_ctx(void)
 }
 
 void
-evalFieldInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
+evalFieldInit(double t, const double* GKYL_RESTRICT zc, double* GKYL_RESTRICT fout, void *ctx)
 {
-  double x = xn[0];
-  struct plane_wave_1d_ctx *app = ctx;
+  double r = zc[0], theta = zc[1];
+  struct annular_wg_ctx *app = ctx;
 
-  double pi = app->pi;
+  double w_mode = app->w_mode;
+  int bessel_order = app->bessel_order;
+  double a_coeff = app->a_coeff;
+  double b_coeff = app->b_coeff;
 
-  double E0 = app->E0;
-  double k_wave_x = app->k_wave_x;
-  double k_xn = app->k_xn;
-  
-  double Lx = app->Lx;
-
-  double phi = ((2.0 * pi) / Lx) * (k_wave_x * x);
+  double Ez_radial = (a_coeff * jn(bessel_order, r * w_mode)) + (b_coeff * yn(bessel_order, r * w_mode));
 
   double Ex = 0.0;
-  double Ey = E0 * cos(phi);
-  double Ez = E0 * cos(phi);
-
+  double Ey = 0.0;
+  double Ez = Ez_radial * cos(2.0 * theta);
+  
   double Bx = 0.0;
-  double By = -E0 * cos(phi) * k_xn;
-  double Bz = E0 * cos(phi) * k_xn;
+  double By = 0.0;
+  double Bz = 0.0;
 
   // Set electric field.
   fout[0] = Ex, fout[1] = Ey; fout[2] = Ez;
@@ -121,6 +127,16 @@ evalFieldInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fo
   fout[3] = Bx, fout[4] = By; fout[5] = Bz;
   // Set correction potentials.
   fout[6] = 0.0; fout[7] = 0.0;
+}
+
+static inline void
+mapc2p(double t, const double* GKYL_RESTRICT zc, double* GKYL_RESTRICT xp, void* ctx)
+{
+  double r = zc[0], theta = zc[1];
+
+  // Set physical coordinates (x, y) from computational coordinates (r, theta).
+  xp[0] = r * cos(theta);
+  xp[1] = r * sin(theta);
 }
 
 void
@@ -152,17 +168,21 @@ main(int argc, char **argv)
     gkyl_mem_debug_set(true);
   }
 
-  struct plane_wave_1d_ctx ctx = create_ctx(); // Context for initialization functions.
+  struct annular_wg_ctx ctx = create_ctx(); // Context for initialization functions.
 
-  int NX = APP_ARGS_CHOOSE(app_args.xcells[0], ctx.Nx);
+  int NR = APP_ARGS_CHOOSE(app_args.xcells[0], ctx.Nr);
+  int NTHETA = APP_ARGS_CHOOSE(app_args.xcells[1], ctx.Ntheta);
 
   // Field.
   struct gkyl_moment_field field = {
     .epsilon0 = ctx.epsilon0, .mu0 = ctx.mu0,
     
     .evolve = true,
+    .limiter = GKYL_NO_LIMITER,
     .init = evalFieldInit,
     .ctx = &ctx,
+
+    .bcx = { GKYL_FIELD_PEC_WALL, GKYL_FIELD_PEC_WALL },
   };
 
   int nrank = 1; // Number of processes in simulation.
@@ -173,7 +193,7 @@ main(int argc, char **argv)
 #endif
 
   // Create global range.
-  int cells[] = { NX };
+  int cells[] = { NR, NTHETA };
   int dim = sizeof(cells) / sizeof(cells[0]);
   struct gkyl_range global_r;
   gkyl_create_global_range(dim, cells, &global_r);
@@ -238,17 +258,21 @@ main(int argc, char **argv)
     }
     goto mpifinalize;
   }
+
   // Moment app.
   struct gkyl_moment app_inp = {
-    .name = "maxwell_plane_wave_1d",
+    .name = "maxwell_annular_wg",
 
-    .ndim = 1,
-    .lower = { 0.0 },
-    .upper = { ctx.Lx }, 
-    .cells = { NX },
+    .ndim = 2,
+    .lower = { 2.0, 0.0 },
+    .upper = { 2.0 + ctx.Lr, ctx.Ltheta },
+    .cells = { NR, NTHETA },
+
+    .mapc2p = mapc2p,
 
     .num_periodic_dir = 1,
-    .periodic_dirs = { 0 },
+    .periodic_dirs = { 1 },
+
     .cfl_frac = ctx.cfl_frac,
 
     .field = field,

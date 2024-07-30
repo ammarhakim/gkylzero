@@ -17,7 +17,7 @@
 
 #include <rt_arg_parse.h>
 
-struct plane_wave_1d_ctx
+struct maxwell_expanding_ctx
 {
   // Mathematical constants (dimensionless).
   double pi;
@@ -25,6 +25,10 @@ struct plane_wave_1d_ctx
   // Physical constants (using normalized code units).
   double epsilon0; // Permittivity of free space.
   double mu0; // Permeability of free space.
+
+  double gas_gamma; // Adiabatic index.
+  double U0; // (Initial) comoving plasma velocity.
+  double R0; // (Initial) radial distance from expansion/contraction center.
 
   double E0; // Reference electric field strength.
   double k_wave_x; // Wave number (x-direction).
@@ -44,7 +48,7 @@ struct plane_wave_1d_ctx
   int num_failures_max; // Maximum allowable number of consecutive small time-steps.
 };
 
-struct plane_wave_1d_ctx
+struct maxwell_expanding_ctx
 create_ctx(void)
 {
   // Mathematical constants (dimensionless).
@@ -54,6 +58,10 @@ create_ctx(void)
   double epsilon0 = 1.0; // Permittivity of free space.
   double mu0 = 1.0; // Permeability of free space.
 
+  double gas_gamma = 5.0 / 3.0; // Adiabatic index.
+  double U0 = 1.0; // (Initial) comoving plasma velocity.
+  double R0 = 1.0; // (Initial) radial distance from expansion/contraction center.
+
   double E0 = 1.0 / sqrt(2.0); // Reference electric field strength.
   double k_wave_x = 2.0; // Wave number (x-direction).
 
@@ -62,19 +70,22 @@ create_ctx(void)
   double k_xn = k_wave_x / k_norm; // Normalized wave number (x-direction).
 
   // Simulation parameters.
-  int Nx = 128; // Cell count (x-direction).
+  int Nx = 512; // Cell count (x-direction).
   double Lx = 1.0; // Domain size (x-direction).
-  double cfl_frac = 0.8; // CFL coefficient.
+  double cfl_frac = 0.95; // CFL coefficient.
 
   double t_end = 2.0; // Final simulation time.
-  int num_frames = 1; // Number of output frames.
+  int num_frames = 100; // Number of output frames.
   double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.
   int num_failures_max = 20; // Maximum allowable number of consecutive small time-steps.
 
-  struct plane_wave_1d_ctx ctx = {
+  struct maxwell_expanding_ctx ctx = {
     .pi = pi,
     .epsilon0 = epsilon0,
     .mu0 = mu0,
+    .gas_gamma = gas_gamma,
+    .U0 = U0,
+    .R0 = R0,
     .E0 = E0,
     .k_wave_x = k_wave_x,
     .k_norm = k_norm,
@@ -92,10 +103,21 @@ create_ctx(void)
 }
 
 void
+evalEulerInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
+{
+  // Set fluid mass density.
+  fout[0] = 1.0;
+  // Set fluid momentum density.
+  fout[1] = 0.0; fout[2] = 0.0; fout[3] = 0.0;
+  // Set fluid total energy density.
+  fout[4] = 1.0;
+}
+
+void
 evalFieldInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
 {
   double x = xn[0];
-  struct plane_wave_1d_ctx *app = ctx;
+  struct maxwell_expanding_ctx *app = ctx;
 
   double pi = app->pi;
 
@@ -152,9 +174,27 @@ main(int argc, char **argv)
     gkyl_mem_debug_set(true);
   }
 
-  struct plane_wave_1d_ctx ctx = create_ctx(); // Context for initialization functions.
+  struct maxwell_expanding_ctx ctx = create_ctx(); // Context for initialization functions.
 
   int NX = APP_ARGS_CHOOSE(app_args.xcells[0], ctx.Nx);
+
+  // Fluid equations.
+  struct gkyl_wv_eqn *euler = gkyl_wv_euler_new(ctx.gas_gamma, app_args.use_gpu);
+
+  struct gkyl_moment_species fluid = {
+    .name = "euler",
+    .equation = euler,
+    .evolve = true,
+    .init = evalEulerInit,
+    .ctx = &ctx,
+
+    .has_volume_sources = true,
+    .volume_gas_gamma = ctx.gas_gamma,
+    .volume_U0 = ctx.U0,
+    .volume_R0 = ctx.R0,
+
+    .bcx = { GKYL_SPECIES_COPY, GKYL_SPECIES_COPY },
+  };
 
   // Field.
   struct gkyl_moment_field field = {
@@ -238,9 +278,10 @@ main(int argc, char **argv)
     }
     goto mpifinalize;
   }
+
   // Moment app.
   struct gkyl_moment app_inp = {
-    .name = "maxwell_plane_wave_1d",
+    .name = "maxwell_expanding",
 
     .ndim = 1,
     .lower = { 0.0 },
@@ -250,6 +291,9 @@ main(int argc, char **argv)
     .num_periodic_dir = 1,
     .periodic_dirs = { 0 },
     .cfl_frac = ctx.cfl_frac,
+
+    .num_species = 1,
+    .species = { fluid },
 
     .field = field,
 
@@ -333,6 +377,7 @@ main(int argc, char **argv)
   gkyl_moment_app_cout(app, stdout, "Total updates took %g secs\n", stat.total_tm);
 
   // Free resources after simulation completion.
+  gkyl_wv_eqn_release(euler);
   gkyl_rect_decomp_release(decomp);
   gkyl_comm_release(comm);
   gkyl_moment_app_release(app);  

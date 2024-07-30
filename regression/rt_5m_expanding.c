@@ -17,21 +17,16 @@
 
 #include <rt_arg_parse.h>
 
-struct plane_wave_1d_ctx
+struct expanding_ctx
 {
-  // Mathematical constants (dimensionless).
-  double pi;
-
   // Physical constants (using normalized code units).
-  double epsilon0; // Permittivity of free space.
-  double mu0; // Permeability of free space.
+  double gas_gamma; // Adiabatic index.
+  double U0; // (Initial) comoving plasma velocity.
+  double R0; // (Initial) radial distance from expansion/contraction center.
 
-  double E0; // Reference electric field strength.
-  double k_wave_x; // Wave number (x-direction).
-
-  // Derived physical quantities (using normalized code units).
-  double k_norm; // Wave number normalization factor.
-  double k_xn; // Normalized wave number (x-direction).
+  double rho; // Fluid mass density.
+  double u; // Fluid velocity.
+  double p; // Fluid pressure.
 
   // Simulation parameters.
   int Nx; // Cell count (x-direction).
@@ -44,41 +39,35 @@ struct plane_wave_1d_ctx
   int num_failures_max; // Maximum allowable number of consecutive small time-steps.
 };
 
-struct plane_wave_1d_ctx
+struct expanding_ctx
 create_ctx(void)
 {
-  // Mathematical constants (dimensionless).
-  double pi = M_PI;
-
   // Physical constants (using normalized code units).
-  double epsilon0 = 1.0; // Permittivity of free space.
-  double mu0 = 1.0; // Permeability of free space.
+  double gas_gamma = 5.0 / 3.0; // Adiabatic index.
+  double U0 = 1.0; // (Initial) comoving plasma velocity.
+  double R0 = 1.0; // (Initial) radial distance from expansion/contraction center.
 
-  double E0 = 1.0 / sqrt(2.0); // Reference electric field strength.
-  double k_wave_x = 2.0; // Wave number (x-direction).
-
-  // Derived physical quantities (using normalized code units).
-  double k_norm = sqrt(k_wave_x * k_wave_x); // Wave number normalization factor.
-  double k_xn = k_wave_x / k_norm; // Normalized wave number (x-direction).
+  double rho = 1.0; // Fluid mass density.
+  double u = 0.0; // Fluid velocity.
+  double p = 1.0; // Fluid pressure.
 
   // Simulation parameters.
-  int Nx = 128; // Cell count (x-direction).
+  int Nx = 512; // Cell count (x-direction).
   double Lx = 1.0; // Domain size (x-direction).
-  double cfl_frac = 0.8; // CFL coefficient.
+  double cfl_frac = 0.95; // CFL coefficient.
 
-  double t_end = 2.0; // Final simulation time.
+  double t_end = 0.5; // Final simulation time.
   int num_frames = 1; // Number of output frames.
   double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.
   int num_failures_max = 20; // Maximum allowable number of consecutive small time-steps.
 
-  struct plane_wave_1d_ctx ctx = {
-    .pi = pi,
-    .epsilon0 = epsilon0,
-    .mu0 = mu0,
-    .E0 = E0,
-    .k_wave_x = k_wave_x,
-    .k_norm = k_norm,
-    .k_xn = k_xn,
+  struct expanding_ctx ctx = {
+    .gas_gamma = gas_gamma,
+    .U0 = U0,
+    .R0 = R0,
+    .rho = rho,
+    .u = u,
+    .p = p,
     .Nx = Nx,
     .Lx = Lx,
     .cfl_frac = cfl_frac,
@@ -92,33 +81,32 @@ create_ctx(void)
 }
 
 void
-evalFieldInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
+evalEulerInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
 {
   double x = xn[0];
-  struct plane_wave_1d_ctx *app = ctx;
+  struct expanding_ctx *app = ctx;
 
-  double pi = app->pi;
+  double gas_gamma = app->gas_gamma;
 
-  double E0 = app->E0;
-  double k_wave_x = app->k_wave_x;
-  double k_xn = app->k_xn;
-  
-  double Lx = app->Lx;
+  double rho = app->rho;
+  double u = app->u;
+  double p = app->p;
 
-  double phi = ((2.0 * pi) / Lx) * (k_wave_x * x);
+  // Set fluid mass density.
+  fout[0] = rho;
+  // Set fluid momentum density.
+  fout[1] = rho * u; fout[2] = 0.0; fout[3] = 0.0;
+  // Set fluid total energy density.
+  fout[4] = (p / (gas_gamma - 1.0)) + (0.5 * rho * u * u);
+}
 
-  double Ex = 0.0;
-  double Ey = E0 * cos(phi);
-  double Ez = E0 * cos(phi);
-
-  double Bx = 0.0;
-  double By = -E0 * cos(phi) * k_xn;
-  double Bz = E0 * cos(phi) * k_xn;
-
+void
+evalFieldInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
+{
   // Set electric field.
-  fout[0] = Ex, fout[1] = Ey; fout[2] = Ez;
+  fout[0] = 0.0, fout[1] = 0.0; fout[2] = 0.0;
   // Set magnetic field.
-  fout[3] = Bx, fout[4] = By; fout[5] = Bz;
+  fout[3] = 0.0, fout[4] = 0.0; fout[5] = 0.0;
   // Set correction potentials.
   fout[6] = 0.0; fout[7] = 0.0;
 }
@@ -152,15 +140,34 @@ main(int argc, char **argv)
     gkyl_mem_debug_set(true);
   }
 
-  struct plane_wave_1d_ctx ctx = create_ctx(); // Context for initialization functions.
+  struct expanding_ctx ctx = create_ctx(); // Context for initialization functions.
 
   int NX = APP_ARGS_CHOOSE(app_args.xcells[0], ctx.Nx);
 
+  // Fluid equations.
+  struct gkyl_wv_eqn *euler = gkyl_wv_euler_new(ctx.gas_gamma, app_args.use_gpu);
+
+  struct gkyl_moment_species fluid = {
+    .name = "euler",
+    .equation = euler,
+    .evolve = true,
+    .init = evalEulerInit,
+    .ctx = &ctx,
+
+    .has_volume_sources = true,
+    .volume_gas_gamma = ctx.gas_gamma,
+    .volume_U0 = ctx.U0,
+    .volume_R0 = ctx.R0,
+
+    .bcx = { GKYL_SPECIES_COPY, GKYL_SPECIES_COPY },
+  };
+
   // Field.
   struct gkyl_moment_field field = {
-    .epsilon0 = ctx.epsilon0, .mu0 = ctx.mu0,
+    .epsilon0 = 1.0, .mu0 = 1.0,
+    .mag_error_speed_fact = 1.0,
     
-    .evolve = true,
+    .evolve = false,
     .init = evalFieldInit,
     .ctx = &ctx,
   };
@@ -238,18 +245,20 @@ main(int argc, char **argv)
     }
     goto mpifinalize;
   }
+
   // Moment app.
   struct gkyl_moment app_inp = {
-    .name = "maxwell_plane_wave_1d",
+    .name = "5m_expanding",
 
     .ndim = 1,
     .lower = { 0.0 },
     .upper = { ctx.Lx }, 
     .cells = { NX },
 
-    .num_periodic_dir = 1,
-    .periodic_dirs = { 0 },
     .cfl_frac = ctx.cfl_frac,
+
+    .num_species = 1,
+    .species = { fluid },
 
     .field = field,
 
@@ -333,6 +342,7 @@ main(int argc, char **argv)
   gkyl_moment_app_cout(app, stdout, "Total updates took %g secs\n", stat.total_tm);
 
   // Free resources after simulation completion.
+  gkyl_wv_eqn_release(euler);
   gkyl_rect_decomp_release(decomp);
   gkyl_comm_release(comm);
   gkyl_moment_app_release(app);  

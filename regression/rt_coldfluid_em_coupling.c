@@ -6,7 +6,7 @@
 #include <gkyl_alloc.h>
 #include <gkyl_moment.h>
 #include <gkyl_util.h>
-#include <gkyl_wv_euler.h>
+#include <gkyl_wv_coldfluid.h>
 
 #include <gkyl_null_comm.h>
 
@@ -17,25 +17,32 @@
 
 #include <rt_arg_parse.h>
 
-struct plane_wave_1d_ctx
+struct coldfluid_em_coupling_ctx
 {
   // Mathematical constants (dimensionless).
   double pi;
 
-  // Physical constants (using normalized code units).
+  // Physical constants (using non-normalized physical units).
   double epsilon0; // Permittivity of free space.
   double mu0; // Permeability of free space.
+  double mass_elc; // Electron mass.
+  double charge_elc; // Electron charge.
 
-  double E0; // Reference electric field strength.
-  double k_wave_x; // Wave number (x-direction).
+  double rho; // Fluid mass density.
 
-  // Derived physical quantities (using normalized code units).
-  double k_norm; // Wave number normalization factor.
-  double k_xn; // Normalized wave number (x-direction).
+  double laser_position; // Position of the laser profile (on the laser plane).
+  double laser_E_max; // Maximum amplitude of the laser field (in V/m).
+  double laser_profile_duration; // Duration of the laser pulse (in s).
+  double laser_profile_t_peak; // Time at which the laser reaches peak intensity (in s).
+  double laser_wavelength; // Wavelength of the laser (in m).
+  
+  // Derived physical quantities (using non-normalized physical units).
+  double light_speed; // Speed of light.
 
   // Simulation parameters.
   int Nx; // Cell count (x-direction).
   double Lx; // Domain size (x-direction).
+  double x_last_edge; // Location of center of last cell.
   double cfl_frac; // CFL coefficient.
 
   double t_end; // Final simulation time.
@@ -44,43 +51,56 @@ struct plane_wave_1d_ctx
   int num_failures_max; // Maximum allowable number of consecutive small time-steps.
 };
 
-struct plane_wave_1d_ctx
+struct coldfluid_em_coupling_ctx
 create_ctx(void)
 {
   // Mathematical constants (dimensionless).
   double pi = M_PI;
 
-  // Physical constants (using normalized code units).
-  double epsilon0 = 1.0; // Permittivity of free space.
-  double mu0 = 1.0; // Permeability of free space.
+  // Physical constants (using non-normalized physical units).
+  double epsilon0 = 8.854187817620389850536563031710750260608e-12; // Permittivity of free space.
+  double mu0 = 12.56637061435917295385057353311801153679e-7; // Permeability of free space.
+  double mass_elc = 9.10938215e-31; // Electron mass.
+  double charge_elc = -1.602176487e-19; // Electron charge.
 
-  double E0 = 1.0 / sqrt(2.0); // Reference electric field strength.
-  double k_wave_x = 2.0; // Wave number (x-direction).
+  double rho = 20.0e23; // Fluid mass density.
 
-  // Derived physical quantities (using normalized code units).
-  double k_norm = sqrt(k_wave_x * k_wave_x); // Wave number normalization factor.
-  double k_xn = k_wave_x / k_norm; // Normalized wave number (x-direction).
+  double laser_position = -1.0e-6; // Position of the laser profile (on the laser plane).
+  double laser_E_max = 1.0e10; // Maximum amplitude of the laser field (in V/m).
+  double laser_profile_duration = 15.0e-15; // Duration of the laser pulse (in s).
+  double laser_profile_t_peak = 30.0e-15; // Time at which the laser reaches peak intensity (in s).
+  double laser_wavelength = 0.8e-6; // Wavelength of the laser (in m).
+  
+  // Derived physical quantities (using non-normalized physical units).
+  double light_speed = 1.0 / sqrt(mu0 * epsilon0); // Speed of light.
 
   // Simulation parameters.
-  int Nx = 128; // Cell count (x-direction).
-  double Lx = 1.0; // Domain size (x-direction).
-  double cfl_frac = 0.8; // CFL coefficient.
+  int Nx = 2800; // Cell count (x-direction).
+  double Lx = 70.0e-6; // Domain size (x-direction).
+  double x_last_edge = Lx / Nx; // Location of center of last cell.
+  double cfl_frac = 0.9; // CFL coefficient.
 
-  double t_end = 2.0; // Final simulation time.
+  double t_end = 1.0e-13; // Final simulation time.
   int num_frames = 1; // Number of output frames.
   double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.
   int num_failures_max = 20; // Maximum allowable number of consecutive small time-steps.
 
-  struct plane_wave_1d_ctx ctx = {
+  struct coldfluid_em_coupling_ctx ctx = {
     .pi = pi,
     .epsilon0 = epsilon0,
     .mu0 = mu0,
-    .E0 = E0,
-    .k_wave_x = k_wave_x,
-    .k_norm = k_norm,
-    .k_xn = k_xn,
+    .mass_elc = mass_elc,
+    .charge_elc = charge_elc,
+    .rho = rho,
+    .laser_position = laser_position,
+    .laser_E_max = laser_E_max,
+    .laser_profile_duration = laser_profile_duration,
+    .laser_profile_t_peak = laser_profile_t_peak,
+    .laser_wavelength = laser_wavelength,
+    .light_speed = light_speed,
     .Nx = Nx,
     .Lx = Lx,
+    .x_last_edge = x_last_edge,
     .cfl_frac = cfl_frac,
     .t_end = t_end,
     .num_frames = num_frames,
@@ -92,35 +112,61 @@ create_ctx(void)
 }
 
 void
+evalElcInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
+{
+  struct coldfluid_em_coupling_ctx *app = ctx;
+
+  double rho = app->rho;
+
+  // Set electron mass density.
+  fout[0] = rho;
+  // Set electron moment density.
+  fout[1] = 0.0; fout[2] = 0.0; fout[3] = 0.0;
+}
+
+void
 evalFieldInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
 {
-  double x = xn[0];
-  struct plane_wave_1d_ctx *app = ctx;
-
-  double pi = app->pi;
-
-  double E0 = app->E0;
-  double k_wave_x = app->k_wave_x;
-  double k_xn = app->k_xn;
-  
-  double Lx = app->Lx;
-
-  double phi = ((2.0 * pi) / Lx) * (k_wave_x * x);
-
-  double Ex = 0.0;
-  double Ey = E0 * cos(phi);
-  double Ez = E0 * cos(phi);
-
-  double Bx = 0.0;
-  double By = -E0 * cos(phi) * k_xn;
-  double Bz = E0 * cos(phi) * k_xn;
-
   // Set electric field.
-  fout[0] = Ex, fout[1] = Ey; fout[2] = Ez;
+  fout[0] = 0.0, fout[1] = 0.0; fout[2] = 0.0;
   // Set magnetic field.
-  fout[3] = Bx, fout[4] = By; fout[5] = Bz;
+  fout[3] = 0.0, fout[4] = 0.0; fout[5] = 0.0;
   // Set correction potentials.
   fout[6] = 0.0; fout[7] = 0.0;
+}
+
+void
+evalAppCurrent(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
+{
+  double x = xn[0];
+  struct coldfluid_em_coupling_ctx *app = ctx;
+
+  double pi = app->pi;
+  double mu0 = app->mu0;
+
+  double laser_position = app->laser_position;
+  double laser_E_max = app->laser_E_max;
+  double laser_profile_duration = app->laser_profile_duration;
+  double laser_profile_t_peak = app->laser_profile_t_peak;
+  double laser_wavelength = app->laser_wavelength;
+
+  double light_speed = app->light_speed;
+
+  double x_last_edge = app->x_last_edge;
+
+  double amplitude = (2.0 * laser_E_max) / (mu0 * light_speed * x_last_edge);
+  double current = 0.0;
+
+  if (x > 0.0 && x <= x_last_edge) {
+    current = amplitude * sin((2.0 * pi * light_speed * t) / laser_wavelength) * exp(-((t - laser_profile_t_peak) *
+      (t - laser_profile_t_peak)) / ((laser_profile_duration * laser_profile_duration)));
+  }
+  else {
+    current = 0.0;
+  }
+
+  // Set applied current.
+  fout[1] = current;
 }
 
 void
@@ -147,22 +193,41 @@ main(int argc, char **argv)
   }
 #endif
 
-  if (app_args.trace_mem) {
+  if (app_args.trace_mem)  {
     gkyl_cu_dev_mem_debug_set(true);
     gkyl_mem_debug_set(true);
   }
 
-  struct plane_wave_1d_ctx ctx = create_ctx(); // Context for initialization functions.
+  struct coldfluid_em_coupling_ctx ctx = create_ctx(); // Context for initialization functions.
 
   int NX = APP_ARGS_CHOOSE(app_args.xcells[0], ctx.Nx);
+
+  // Electron equations.
+  struct gkyl_wv_eqn *elc_cold = gkyl_wv_coldfluid_new();
+
+  struct gkyl_moment_species elc = {
+    .name = "elc",
+    .charge = ctx.charge_elc, .mass = ctx.mass_elc,
+    .equation = elc_cold,
+    .split_type = GKYL_WAVE_FWAVE,
+    .evolve = true,
+    .init = evalElcInit,
+    .ctx = &ctx,
+
+    .bcx = { GKYL_SPECIES_COPY, GKYL_SPECIES_COPY },
+  };
 
   // Field.
   struct gkyl_moment_field field = {
     .epsilon0 = ctx.epsilon0, .mu0 = ctx.mu0,
+    .use_explicit_em_coupling = true,
     
     .evolve = true,
     .init = evalFieldInit,
+    .app_current_func = evalAppCurrent,
     .ctx = &ctx,
+
+    .bcx = { GKYL_FIELD_COPY, GKYL_FIELD_COPY },
   };
 
   int nrank = 1; // Number of processes in simulation.
@@ -238,18 +303,20 @@ main(int argc, char **argv)
     }
     goto mpifinalize;
   }
+
   // Moment app.
   struct gkyl_moment app_inp = {
-    .name = "maxwell_plane_wave_1d",
+    .name = "coldfluid_em_coupling",
 
     .ndim = 1,
-    .lower = { 0.0 },
-    .upper = { ctx.Lx }, 
-    .cells = { NX },
+    .lower = { -0.5 * ctx.Lx },
+    .upper = { 0.5 * ctx.Lx }, 
+    .cells = { NX  },
 
-    .num_periodic_dir = 1,
-    .periodic_dirs = { 0 },
     .cfl_frac = ctx.cfl_frac,
+
+    .num_species = 1,
+    .species = { elc },
 
     .field = field,
 
@@ -333,10 +400,11 @@ main(int argc, char **argv)
   gkyl_moment_app_cout(app, stdout, "Total updates took %g secs\n", stat.total_tm);
 
   // Free resources after simulation completion.
+  gkyl_wv_eqn_release(elc_cold);
   gkyl_rect_decomp_release(decomp);
   gkyl_comm_release(comm);
-  gkyl_moment_app_release(app);  
-  
+  gkyl_moment_app_release(app);
+
 mpifinalize:
 #ifdef GKYL_HAVE_MPI
   if (app_args.use_mpi) {
