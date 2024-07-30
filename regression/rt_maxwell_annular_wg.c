@@ -17,7 +17,7 @@
 
 #include <rt_arg_parse.h>
 
-struct annulus_ctx
+struct annular_wg_ctx
 {
   // Mathematical constants (dimensionless).
   double pi;
@@ -26,10 +26,13 @@ struct annulus_ctx
   double epsilon0; // Permittivity of free space.
   double mu0; // Permeability of free space.
 
-  double E0; // Reference electric field strength.
+  double w_mode; // Frequency of wave mode.
+  int bessel_order; // Spherical Bessel function order.
+  double a_coeff; // Spherical Bessel function coefficient (first kind).
+  double b_coeff; // Spherical Bessel function coefficient (second kind).
 
   // Derived physical quantities (using normalized code units).
-  double light_speed; // Speed of light.
+  double t_period; // Time period of wave mode.
 
   // Simulation parameters.
   int Nr; // Cell count (radial direction).
@@ -44,7 +47,7 @@ struct annulus_ctx
   int num_failures_max; // Maximum allowable number of consecutive small time-steps.
 };
 
-struct annulus_ctx
+struct annular_wg_ctx
 create_ctx(void)
 {
   // Mathematical constants (dimensionless).
@@ -54,29 +57,35 @@ create_ctx(void)
   double epsilon0 = 1.0; // Permittivity of free space.
   double mu0 = 1.0; // Permeability of free space.
 
-  double E0 = 1.0; // Reference electric field strength.
+  double w_mode = 1.19318673737701; // Frequency of wave mode.
+  int bessel_order = 2; // Spherical Bessel function order.
+  double a_coeff = 1.0; // Spherical Bessel function coefficient (first kind).
+  double b_coeff = 0.9904672582498093; // Spherical Bessel function coefficient (second kind).
 
   // Derived physical quantities (using normalized code units).
-  double light_speed = 1.0 / sqrt(mu0 * epsilon0); // Speed of light.
+  double t_period = 2.0 * pi / w_mode; // Time period of wave mode.
 
   // Simulation parameters.
-  int Nr = 80; // Cell count (radial direction).
-  int Ntheta = 360; // Cell count (angular direction).
-  double Lr = 1.0; // Domain size (radial direction).
+  int Nr = 32; // Cell count (radial direction).
+  int Ntheta = 32 * 6; // Cell count (angular direction).
+  double Lr = 3.0; // Domain size (radial direction).
   double Ltheta = 2.0 * pi; // Domain size (angular direction).
   double cfl_frac = 1.0; // CFL coefficient.
 
-  double t_end = 0.25; // Final simulation time.
+  double t_end = 2.0 * t_period; // Final simulation time.
   int num_frames = 1; // Number of output frames.
   double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.
   int num_failures_max = 20; // Maximum allowable number of consecutive small time-steps.
 
-  struct annulus_ctx ctx = {
+  struct annular_wg_ctx ctx = {
     .pi = pi,
     .epsilon0 = epsilon0,
     .mu0 = mu0,
-    .E0 = E0,
-    .light_speed = light_speed,
+    .w_mode = w_mode,
+    .bessel_order = bessel_order,
+    .a_coeff = a_coeff,
+    .b_coeff = b_coeff,
+    .t_period = t_period,
     .Nr = Nr,
     .Ntheta = Ntheta,
     .Lr = Lr,
@@ -95,20 +104,21 @@ void
 evalFieldInit(double t, const double* GKYL_RESTRICT zc, double* GKYL_RESTRICT fout, void *ctx)
 {
   double r = zc[0], theta = zc[1];
-  struct annulus_ctx *app = ctx;
+  struct annular_wg_ctx *app = ctx;
 
-  double E0 = app->E0;
-  double light_speed = app->light_speed;
+  double w_mode = app->w_mode;
+  int bessel_order = app->bessel_order;
+  double a_coeff = app->a_coeff;
+  double b_coeff = app->b_coeff;
 
-  double E_over_r = E0 / r;
-  double B_over_r = E0 / light_speed / r;
+  double Ez_radial = (a_coeff * jn(bessel_order, r * w_mode)) + (b_coeff * yn(bessel_order, r * w_mode));
 
-  double Ex = E_over_r * cos(theta);
-  double Ey = E_over_r * sin(theta);
-  double Ez = 0.0;
+  double Ex = 0.0;
+  double Ey = 0.0;
+  double Ez = Ez_radial * cos(2.0 * theta);
   
-  double Bx = -B_over_r * sin(theta);
-  double By = B_over_r * cos(theta);
+  double Bx = 0.0;
+  double By = 0.0;
   double Bz = 0.0;
 
   // Set electric field.
@@ -158,7 +168,7 @@ main(int argc, char **argv)
     gkyl_mem_debug_set(true);
   }
 
-  struct annulus_ctx ctx = create_ctx(); // Context for initialization functions.
+  struct annular_wg_ctx ctx = create_ctx(); // Context for initialization functions.
 
   int NR = APP_ARGS_CHOOSE(app_args.xcells[0], ctx.Nr);
   int NTHETA = APP_ARGS_CHOOSE(app_args.xcells[1], ctx.Ntheta);
@@ -251,11 +261,11 @@ main(int argc, char **argv)
 
   // Moment app.
   struct gkyl_moment app_inp = {
-    .name = "maxwell_annulus",
+    .name = "maxwell_annular_wg",
 
     .ndim = 2,
-    .lower = { 0.25, 0.0 },
-    .upper = { 0.25 + ctx.Lr, ctx.Ltheta },
+    .lower = { 2.0, 0.0 },
+    .upper = { 2.0 + ctx.Lr, ctx.Ltheta },
     .cells = { NR, NTHETA },
 
     .mapc2p = mapc2p,
