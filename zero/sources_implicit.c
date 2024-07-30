@@ -4,6 +4,7 @@
 #include <gkyl_sources_implicit.h>
 #include <gkyl_sources_explicit.h>
 #include <gkyl_source_utils.h>
+#include <gkyl_moment_em_coupling_priv.h>
 #include <gkyl_mat.h>
 
 void

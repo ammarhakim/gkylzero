@@ -2,6 +2,7 @@
 #include <gkyl_array_ops.h>
 #include <gkyl_fv_proj.h>
 #include <gkyl_sources_explicit.h>
+#include <gkyl_moment_em_coupling_priv.h>
 #include <gkyl_mat.h>
 
 void

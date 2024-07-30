@@ -1,6 +1,7 @@
 #pragma once
 
-#include <gkyl_moment_em_coupling_priv.h>
+// Forward-declaration of the private gkyl_moment_em_coupling object type.
+typedef struct gkyl_moment_em_coupling gkyl_moment_em_coupling;
 
 /**
 * Integrate the number density and temperature source terms for a single fluid species within a single cell, using an explicit forcing solver
@@ -117,7 +118,7 @@ void explicit_volume_source_update(const gkyl_moment_em_coupling* mom_em, double
   double* em, const double* ext_em);
 
 /**
-* Integrate the reactive source terms in the multi-fluid equation system within a single cell, using an explicit forcing solver (specifically a 
+* Integrate the reactive source terms in the multi-fluid equation system within a single cell, using an explicit forcing solver (specifically a 
 * simple first-order forward-Euler method).
 *
 * @param mom_em Moment-EM coupling object.

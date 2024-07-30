@@ -1,6 +1,7 @@
 #pragma once
 
-#include <gkyl_moment_em_coupling_priv.h>
+// Forward-declaration of the private gkyl_moment_em_coupling object type.
+typedef struct gkyl_moment_em_coupling gkyl_moment_em_coupling;
 
 /**
 * Integrate the electromagnetic source terms of a charged multi-fluid equation system within a single cell, using an implicit forcing solver
