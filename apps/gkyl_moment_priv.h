@@ -194,12 +194,16 @@ struct moment_coupling {
 
   // array for stable time-step from non-ideal terms  
   struct gkyl_array *non_ideal_cflrate[GKYL_MAX_SPECIES];
-  // array for non-ideal variables (heat-flux tensor)  
+  // array for non-ideal variables 
+  // Braginskii variables, viscous stress tensor and heat-flux vector for Euler/Isothermal Euler
+  // heat-flux tensor for ten-moment  
   struct gkyl_array *non_ideal_vars[GKYL_MAX_SPECIES];
-  // array for storing RHS of each species from non-ideal term updates (gradient-based closure)
-  struct gkyl_array  *pr_rhs[GKYL_MAX_SPECIES];
+  // array for storing RHS of each species from non-ideal term updates 
+  // Braginskii tranport for Euler/Isothermal Euler
+  // Gradient-based closure for ten-moment
+  struct gkyl_array *pr_rhs[GKYL_MAX_SPECIES];
   // array for storing RHS of number density and temperature source terms
-  struct gkyl_array  *nT_sources[GKYL_MAX_SPECIES];
+  struct gkyl_array *nT_sources[GKYL_MAX_SPECIES];
 
   gkyl_moment_em_coupling *slvr; // source solver function
 };

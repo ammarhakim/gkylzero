@@ -81,7 +81,8 @@ gkyl_moment_em_coupling* gkyl_moment_em_coupling_new(struct gkyl_moment_em_coupl
 * @param update_range Range object over which to integrate the electromagnetic sources using an implicit time-centered method.
 * @param fluid Array of fluid variables (array size = nfluids).
 * @param app_accel Array of acceleration terms to be applied to the fluid equations (for external forces).
-* @param p_rhs Array of RHS/source terms to be applied to the pressure tensor (for the case of 10-moment gradient-based closure only).
+* @param p_rhs Array of RHS/source terms to be applied to the fluid variables  
+*              (e.g., Braginskii transport for Euler/Isothermal Euler; gradient-based closure for ten-moment).
 * @param em Array of electromagnetic variables.
 * @param app_current Array of current terms to be applied to the fluid equations (for external current driving).
 * @param ext_em External electromagnetic variables (for EM fields coming from external sources, e.g. coils, capacitors, etc.).
