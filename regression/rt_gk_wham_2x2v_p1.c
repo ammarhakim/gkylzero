@@ -96,6 +96,8 @@ struct gk_mirror_ctx
   int int_diag_calc_num; // Number of integrated diagnostics computations (=INT_MAX for every step).
   double dt_failure_tol; // Minimum allowable fraction of initial time-step.
   int num_failures_max; // Maximum allowable number of consecutive small time-steps.
+  double mapping_frac;
+  void *mirror_geo_c2fa_ctx;
 };
 
 
@@ -114,7 +116,6 @@ struct gkyl_mirror_geo_grid_inp ginp = {
   .zmax =  2.48,
   .write_node_coord_array = true,
   .node_file_nm = "wham_nodes.gkyl",
-  // .nonuniform_mapping_fraction = 0.7,
 };
 
 // -- Source functions.
@@ -122,8 +123,10 @@ void
 eval_density_elc_source(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   struct gk_mirror_ctx *app = ctx;
-  double psi = xn[0]; // Magnetic flux function psi of field line.
-  double z = xn[1];
+  double x_fa[2];
+  gkyl_mirror_geo_comp2fieldalligned_advance(t, xn, x_fa, app->mirror_geo_c2fa_ctx);
+  double psi = x_fa[0];
+  double z = x_fa[1];
   double NSrc = app->NSrcElc;
   double zSrc = app->lineLengthSrcElc;
   double sigSrc = app->sigSrcElc;
@@ -149,8 +152,10 @@ void
 eval_temp_elc_source(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   struct gk_mirror_ctx *app = ctx;
-  double psi = xn[0]; // Magnetic flux function psi of field line.
-  double z = xn[1];
+  double x_fa[2];
+  gkyl_mirror_geo_comp2fieldalligned_advance(t, xn, x_fa, app->mirror_geo_c2fa_ctx);
+  double psi = x_fa[0];
+  double z = x_fa[1];
   double sigSrc = app->sigSrcElc;
   double TSrc0 = app->TSrc0Elc;
   double Tfloor = app->TSrcFloorElc;
@@ -168,8 +173,10 @@ void
 eval_density_ion_source(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   struct gk_mirror_ctx *app = ctx;
-  double psi = xn[0]; // Magnetic flux function psi of field line.
-  double z = xn[1];
+  double x_fa[2];
+  gkyl_mirror_geo_comp2fieldalligned_advance(t, xn, x_fa, app->mirror_geo_c2fa_ctx);
+  double psi = x_fa[0];
+  double z = x_fa[1]; 
   double NSrc = app->NSrcIon;
   double zSrc = app->lineLengthSrcIon;
   double sigSrc = app->sigSrcIon;
@@ -195,8 +202,10 @@ void
 eval_temp_ion_source(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   struct gk_mirror_ctx *app = ctx;
-  double psi = xn[0]; // Magnetic flux function psi of field line.
-  double z = xn[1];
+  double x_fa[2];
+  gkyl_mirror_geo_comp2fieldalligned_advance(t, xn, x_fa, app->mirror_geo_c2fa_ctx);
+  double psi = x_fa[0];
+  double z = x_fa[1];
   double sigSrc = app->sigSrcIon;
   double TSrc0 = app->TSrc0Ion;
   double Tfloor = app->TSrcFloorIon;
@@ -215,8 +224,10 @@ void
 eval_density_elc(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   struct gk_mirror_ctx *app = ctx;
-  double psi = xn[0]; // Magnetic flux function psi of field line.
-  double z = xn[1];
+  double x_fa[2];
+  gkyl_mirror_geo_comp2fieldalligned_advance(t, xn, x_fa, app->mirror_geo_c2fa_ctx);
+  double psi = x_fa[0];
+  double z = x_fa[1];
   double z_m = app->z_m;
   double sigma = 0.9*z_m;
   if (fabs(z) <= sigma)
@@ -233,8 +244,10 @@ void
 eval_upar_elc(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   struct gk_mirror_ctx *app = ctx;
-  double psi = xn[0]; // Magnetic flux function psi of field line.
-  double z = xn[1];
+  double x_fa[2];
+  gkyl_mirror_geo_comp2fieldalligned_advance(t, xn, x_fa, app->mirror_geo_c2fa_ctx);
+  double psi = x_fa[0];
+  double z = x_fa[1];
   double cs_m = app->cs_m;
   double z_m = app->z_m;
   double z_max = app->z_max;
@@ -252,8 +265,10 @@ void
 eval_temp_par_elc(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   struct gk_mirror_ctx *app = ctx;
-  double psi = xn[0]; // Magnetic flux function psi of field line.
-  double z = xn[1];
+  double x_fa[2];
+  gkyl_mirror_geo_comp2fieldalligned_advance(t, xn, x_fa, app->mirror_geo_c2fa_ctx);
+  double psi = x_fa[0];
+  double z = x_fa[1];
   double z_m = app->z_m;
   double Te_par0 = app->Te_par0;
   double Te_par_m = app->Te_par_m;
@@ -271,8 +286,10 @@ void
 eval_temp_perp_elc(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   struct gk_mirror_ctx *app = ctx;
-  double psi = xn[0]; // Magnetic flux function psi of field line.
-  double z = xn[1];
+  double x_fa[2];
+  gkyl_mirror_geo_comp2fieldalligned_advance(t, xn, x_fa, app->mirror_geo_c2fa_ctx);
+  double psi = x_fa[0];
+  double z = x_fa[1];
   double z_m = app->z_m;
   double Te_perp0 = app->Te_perp0;
   double Te_perp_m = app->Te_perp_m;
@@ -302,9 +319,10 @@ void
 eval_density_ion(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   struct gk_mirror_ctx *app = ctx;
-  double psi = xn[0]; // Magnetic flux function psi of field line.
-  double z = xn[1];
-  double z_m = app->z_m;
+  double x_fa[2];
+  gkyl_mirror_geo_comp2fieldalligned_advance(t, xn, x_fa, app->mirror_geo_c2fa_ctx);
+  double psi = x_fa[0];
+  double z = x_fa[1];  double z_m = app->z_m;
   double sigma = 0.9*z_m;
   if (fabs(z) <= sigma)
   {
@@ -320,8 +338,10 @@ void
 eval_upar_ion(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   struct gk_mirror_ctx *app = ctx;
-  double psi = xn[0]; // Magnetic flux function psi of field line.
-  double z = xn[1];
+  double x_fa[2];
+  gkyl_mirror_geo_comp2fieldalligned_advance(t, xn, x_fa, app->mirror_geo_c2fa_ctx);
+  double psi = x_fa[0];
+  double z = x_fa[1];
   double cs_m = app->cs_m;
   double z_m = app->z_m;
   double z_max = app->z_max;
@@ -339,8 +359,10 @@ void
 eval_temp_par_ion(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   struct gk_mirror_ctx *app = ctx;
-  double psi = xn[0]; // Magnetic flux function psi of field line.
-  double z = xn[1];
+  double x_fa[2];
+  gkyl_mirror_geo_comp2fieldalligned_advance(t, xn, x_fa, app->mirror_geo_c2fa_ctx);
+  double psi = x_fa[0];
+  double z = x_fa[1];
   double z_m = app->z_m;
   double Ti_par0 = app->Ti_par0;
   double Ti_par_m = app->Ti_par_m;
@@ -358,8 +380,10 @@ void
 eval_temp_perp_ion(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   struct gk_mirror_ctx *app = ctx;
-  double psi = xn[0]; // Magnetic flux function psi of field line.
-  double z = xn[1];
+  double x_fa[2];
+  gkyl_mirror_geo_comp2fieldalligned_advance(t, xn, x_fa, app->mirror_geo_c2fa_ctx);
+  double psi = x_fa[0];
+  double z = x_fa[1];
   double z_m = app->z_m;
   double Ti_perp0 = app->Ti_perp0;
   double Ti_perp_m = app->Ti_perp_m;
@@ -454,7 +478,6 @@ create_ctx(void)
   double z_max = M_PI - 1e-1;
   double psi_min = 1e-3;
   double psi_max = 1e-2;
-  printf("psi_min = %g, psi_max = %g\n", psi_min, psi_max);
 
   // Source parameters
   double NSrcIon = 3.1715e23 / 8.0;
@@ -475,13 +498,13 @@ create_ctx(void)
   double mu_max_elc = me * pow(3. * vte, 2.) / (2. * B_p);
   double vpar_max_ion = 20 * vti;
   double mu_max_ion = mi * pow(3. * vti, 2.) / (2. * B_p);
-  int Nx = 4;
-  int Nz = 32;
-  int Nvpar = 32; // Number of cells in the paralell velocity direction 96
-  int Nmu = 48;  // Number of cells in the mu direction 192
+  int Nvpar = 10; // Number of cells in the paralell velocity direction 96
+  int Nmu = 10;  // Number of cells in the mu direction 192
+  int Nx = 2;
+  int Nz = 30;
   int poly_order = 1;
 
-  double t_end = 1.5e-10;
+  double t_end = 3e-9;
   int num_frames = 1;
   int int_diag_calc_num = num_frames*100;
   double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.
@@ -489,8 +512,7 @@ create_ctx(void)
 
   // Physics parameters at mirror throat
   double cs_m = 4.037740e5;
-
-  // Initial conditions parameters
+// Initial conditions parameters
   double Ti_perp0 = 10000 * eV;
   double Ti_perp_m = 15000 * eV;
   double Ti_par0 = 7500 * eV;
@@ -500,7 +522,7 @@ create_ctx(void)
   double Te_perp0 = 2000 * eV;
   double Te_perp_m = 3000 * eV;
   // Non-uniform z mapping
-  double mapping_frac = 0.7; // 1 is full mapping, 0 is no mapping
+  double mapping_frac = 0.0; // 1 is full mapping, 0 is no mapping
 
   struct gk_mirror_ctx ctx = {
     .cdim = cdim,
@@ -571,7 +593,8 @@ create_ctx(void)
     .dt_failure_tol = dt_failure_tol,
     .num_failures_max = num_failures_max,
   };
-  ctx.z_m = 0.98;
+  ctx.z_m = 1;
+  ctx.mirror_geo_c2fa_ctx = gkyl_malloc(sizeof(struct gkyl_mirror_geo_c2fa_ctx));
   return ctx;
 }
 
@@ -610,9 +633,8 @@ int main(int argc, char **argv)
   struct gkyl_app_args app_args = parse_app_args(argc, argv);
 
 #ifdef GKYL_HAVE_MPI
-  if (app_args.use_mpi) {
+  if (app_args.use_mpi)
     MPI_Init(&argc, &argv);
-  }
 #endif
 
   if (app_args.trace_mem)
@@ -652,7 +674,7 @@ int main(int argc, char **argv)
     .ctx_tempperp = &ctx,
     .tempperp = eval_temp_perp_elc,   
   };
-
+  
   struct gkyl_gyrokinetic_species elc = {
     .name = "elc",
     .charge = ctx.qe,
@@ -662,9 +684,7 @@ int main(int argc, char **argv)
     .cells = { cells_v[0], cells_v[1] },
 
     .polarization_density = ctx.n0,
-
     .projection = elc_ic,
-
     .collisions = {
       .collision_id = GKYL_LBO_COLLISIONS,
       .ctx = &ctx,
@@ -672,7 +692,6 @@ int main(int argc, char **argv)
       .num_cross_collisions = 1, // Not sure
       .collide_with = {"ion"},
     },
-
     .source = {
       .source_id = GKYL_PROJ_SOURCE,
       .write_source = true,
@@ -686,7 +705,6 @@ int main(int argc, char **argv)
         .temp = eval_temp_elc_source,      
       }, 
     },
-
     .bcx = {
       .lower = {
         .type = GKYL_SPECIES_FIXED_FUNC,
@@ -727,15 +745,12 @@ int main(int argc, char **argv)
     .cells = { cells_v[0], cells_v[1] },
 
     .polarization_density = ctx.n0,
-
     .projection = ion_ic,
-
     .collisions = {
       .collision_id = GKYL_LBO_COLLISIONS,
       .ctx = &ctx,
       .self_nu = evalNuIon,
     },
-
     .source = {
       .source_id = GKYL_PROJ_SOURCE,
       .write_source = true,
@@ -749,14 +764,13 @@ int main(int argc, char **argv)
         .temp = eval_temp_ion_source,      
       }, 
     },
-
     .bcx = {
       .lower = {
-        .type = GKYL_SPECIES_FIXED_FUNC,
+        .type = GKYL_SPECIES_REFLECT,
         .projection = ion_ic,
       },
       .upper = {
-        .type = GKYL_SPECIES_FIXED_FUNC,
+        .type = GKYL_SPECIES_ZERO_FLUX  ,
         .projection = ion_ic,
       },
     },
@@ -764,7 +778,6 @@ int main(int argc, char **argv)
       .lower={.type = GKYL_SPECIES_GK_SHEATH,},
       .upper={.type = GKYL_SPECIES_GK_SHEATH,},
     },    
-
     .num_diag_moments = 7,
     .diag_moments = {"M0", "M1", "M2", "M2par", "M2perp", "M3par", "M3perp"},
   };
@@ -795,6 +808,8 @@ int main(int argc, char **argv)
       .world = {0.0},
       .mirror_efit_info = &inp,
       .mirror_grid_info = &ginp,
+      .mirror_geo_c2fa_ctx = ctx.mirror_geo_c2fa_ctx,
+      .nonuniform_mapping_fraction = ctx.mapping_frac
     },
 
     .num_periodic_dir = 0,
@@ -805,7 +820,6 @@ int main(int argc, char **argv)
 
     .field = field,
     .use_gpu = app_args.use_gpu,
-
     .has_low_inp = true,
     .low_inp = {
       .local_range = decomp->ranges[my_rank],
@@ -853,7 +867,6 @@ int main(int argc, char **argv)
   // Initialize small time-step check.
   double dt_init = -1.0, dt_failure_tol = ctx.dt_failure_tol;
   int num_failures = 0, num_failures_max = ctx.num_failures_max;
-
   long step = 1;
   while ((t_curr < t_end) && (step <= app_args.num_steps)) {
     gkyl_gyrokinetic_app_cout(app, stdout, "Taking time-step %ld at t = %g ...", step, t_curr);
@@ -894,6 +907,7 @@ int main(int argc, char **argv)
 
     step += 1;
   }
+  if (my_rank==0) printf(" ... finished\n");
 
   gkyl_gyrokinetic_app_stat_write(app);
 
@@ -915,16 +929,19 @@ int main(int argc, char **argv)
   gkyl_gyrokinetic_app_cout(app, stdout, "Updates took %g secs\n", stat.total_tm);
   gkyl_gyrokinetic_app_cout(app, stdout, "Number of write calls %ld,\n", stat.nio);
   gkyl_gyrokinetic_app_cout(app, stdout, "IO time took %g secs \n", stat.io_tm);
-
+  
   freeresources:
-  // Free resources after simulation completion.
+  // simulation complete, free app
   gkyl_gyrokinetic_app_release(app);
+  struct gkyl_mirror_geo_c2fa_ctx *c2fa_release = ctx.mirror_geo_c2fa_ctx;
+  gkyl_array_release(c2fa_release->c2fa);
+  gkyl_array_release(c2fa_release->c2fa_deflate);
+  gkyl_free(c2fa_release);
   gkyl_gyrokinetic_comms_release(decomp, comm);
-
-#ifdef GKYL_HAVE_MPI
-  if (app_args.use_mpi) {
-    MPI_Finalize();
-  }
-#endif
+  
+  #ifdef GKYL_HAVE_MPI
+    if (app_args.use_mpi)
+      MPI_Finalize();
+  #endif
   return 0;
 }
