@@ -120,8 +120,8 @@ test_hires()
 
 struct gkyl_mirror_geo_grid_inp ginp = {
   .rclose = 0.2,
-  .zmin = -2.48,
-  .zmax =  2.48,
+  .zmin = -2.0,
+  .zmax =  2.0,
 };
 
   struct gkyl_gk_geometry_inp geometry_inp = {
@@ -153,7 +153,7 @@ struct gkyl_mirror_geo_grid_inp ginp = {
 }
 
 TEST_LIST = {
-  // { "test_lores", test_lores },
+  { "test_lores", test_lores },
   { "test_hires", test_hires },
   { NULL, NULL },
 };
