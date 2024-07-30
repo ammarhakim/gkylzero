@@ -317,7 +317,7 @@ main(int argc, char **argv)
 
     .ndim = 2,
     .lower = { 0.25, 0.0 },
-    .upper = { 0.25 + ctx.Lr, 0.0 + ctx.Ltheta },
+    .upper = { 0.25 + ctx.Lr, ctx.Ltheta },
     .cells = { NR, NTHETA },
 
     .mapc2p = mapc2p,
