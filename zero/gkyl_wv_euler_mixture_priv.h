@@ -40,6 +40,18 @@ static inline double
 gkyl_euler_mixture_max_abs_speed(int num_species, double* gas_gamma_s, const double* q);
 
 /**
+* Compute flux vector. Assumes rotation to local coordinate system.
+*
+* @param num_species Number of distinct species in mixture.
+* @param gas_gamma_s Adiabatic indicese for each species in mixture.
+* @param q Conserved variable vector.
+* @param flux Flux vector in direction 'dir' (output).
+*/
+GKYL_CU_D
+void
+gkyl_euler_mixture_flux(int num_species, double* gas_gamma_s, const double* q, double* flux);
+
+/**
 * Compute Riemann variables given the conserved variables.
 *
 * @param eqn Base equation object.

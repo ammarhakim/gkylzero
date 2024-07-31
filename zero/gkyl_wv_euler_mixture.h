@@ -36,3 +36,21 @@ gkyl_wv_euler_mixture_new(int num_species, double* gas_gamma_s, bool use_gpu);
 */
 struct gkyl_wv_eqn*
 gkyl_wv_euler_mixture_inew(const struct gkyl_wv_euler_mixture_inp* inp);
+
+/**
+* Get number of distinct species in mixture.
+*
+* @param wv Euler mixture equations object.
+* @return Number of distinct species in mixture.
+*/
+int
+gkyl_wv_euler_mixture_num_species(const struct gkyl_wv_eqn* wv);
+
+/**
+* Get adiabatic indices for each species in mixture.
+*
+* @param wv Euler mixture equations object.
+* @return Adiabatic indices for each species in mixture.
+*/
+double*
+gkyl_wv_euler_mixture_gas_gamma_s(const struct gkyl_wv_eqn* wv);

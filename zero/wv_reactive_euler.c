@@ -187,17 +187,19 @@ static double
 flux_jump(const struct gkyl_wv_eqn* eqn, const double* ql, const double* qr, double* flux_jump)
 {
   const struct wv_reactive_euler *reactive_euler = container_of(eqn, struct wv_reactive_euler, eqn);
+  double gas_gamma = reactive_euler->gas_gamma;
+  double energy_of_formation = reactive_euler->energy_of_formation;
 
   double fr[6], fl[6];
-  gkyl_reactive_euler_flux(reactive_euler->gas_gamma, reactive_euler->energy_of_formation, ql, fl);
-  gkyl_reactive_euler_flux(reactive_euler->gas_gamma, reactive_euler->energy_of_formation, qr, fr);
+  gkyl_reactive_euler_flux(gas_gamma, energy_of_formation, ql, fl);
+  gkyl_reactive_euler_flux(gas_gamma, energy_of_formation, qr, fr);
 
   for (int m = 0; m < 6; m++) {
     flux_jump[m] = fr[m] - fl[m];
   }
 
-  double amaxl = gkyl_reactive_euler_max_abs_speed(reactive_euler->gas_gamma, reactive_euler->energy_of_formation, ql);
-  double amaxr = gkyl_reactive_euler_max_abs_speed(reactive_euler->gas_gamma, reactive_euler->energy_of_formation, qr);
+  double amaxl = gkyl_reactive_euler_max_abs_speed(gas_gamma, energy_of_formation, ql);
+  double amaxr = gkyl_reactive_euler_max_abs_speed(gas_gamma, energy_of_formation, qr);
 
   return fmax(amaxl, amaxr);
 }
