@@ -250,6 +250,11 @@ gk_species_init(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *app, st
   // ambipolar potential solve
   gk_species_bflux_init(app, gks, &gks->bflux); 
 
+  // vtsq_min
+  double tpar_min = (gks->info.mass/6.0)*gks->grid.dx[cdim]*gks->grid.dx[cdim];
+  double tperp_min = vdim>1 ? (gks->info.collisions.bmag_mid/3.0)*gks->grid.dx[cdim+1] : tpar_min;
+  gks->vtsq_min = (tpar_min + 2*tperp_min)/(3*gks->info.mass);
+  
   // initialize diffusion if present
   gks->has_diffusion = false;  
   if (gks->info.diffusion.num_diff_dir) {

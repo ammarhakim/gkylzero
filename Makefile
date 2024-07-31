@@ -53,7 +53,7 @@ ifeq ($(CC), nvcc)
        CUDA_LIBS += -lcublas -lcusparse -lcusolver
 endif
 
-# Default radiation fit directory
+# Directory for storing shared data, like ADAS reaction rates and radiation fits
 GKYL_SHARE_DIR ?= "${INSTALL_PREFIX}/gkylzero/share"
 CFLAGS += -DGKYL_SHARE_DIR=$(GKYL_SHARE_DIR)
 
@@ -66,7 +66,11 @@ ifeq (${USE_MPI}, 1)
 	USING_MPI = yes
 	MPI_INC_DIR = ${CONF_MPI_INC_DIR}
 	MPI_LIB_DIR = ${CONF_MPI_LIB_DIR}
+ifdef USING_NVCC
+	MPI_RPATH = -Xlinker "-rpath,${CONF_MPI_LIB_DIR}"
+else
 	MPI_RPATH = -Wl,-rpath,${CONF_MPI_LIB_DIR}
+endif
 	MPI_LIBS = -lmpi
 	CFLAGS += -DGKYL_HAVE_MPI
 endif
@@ -84,6 +88,26 @@ ifdef USING_NVCC
 	NCCL_LIBS = -lnccl
 	CFLAGS += -DGKYL_HAVE_NCCL
 endif
+endif
+endif
+
+# Read CUDSS paths and flags if needed (needs MPI and NVCC)
+USING_CUDSS =
+CUDSS_INC_DIR = zero # dummy
+CUDSS_LIB_DIR = .
+CUDSS_RPATH =
+ifeq (${USE_CUDSS}, 1)
+ifdef USING_NVCC
+	USING_CUDSS = yes
+	CUDSS_INC_DIR = ${CONF_CUDSS_INC_DIR}
+	CUDSS_LIB_DIR = ${CONF_CUDSS_LIB_DIR}
+ifdef USING_NVCC
+	CUDSS_RPATH = -Xlinker "-rpath,${CONF_CUDSS_LIB_DIR}"
+else
+	CUDSS_RPATH = -Wl,-rpath,${CONF_CUDSS_LIB_DIR}
+endif
+	CUDSS_LIBS = -lcudss
+	CFLAGS += -DGKYL_HAVE_CUDSS
 endif
 endif
 
@@ -142,7 +166,7 @@ INSTALL_HEADERS := $(shell ls apps/gkyl_*.h zero/gkyl_*.h  amr/gkyl_*.h | grep -
 INSTALL_HEADERS += $(shell ls minus/*.h)
 
 # all includes
-INCLUDES = -Iminus -Iminus/STC/include -Izero -Iapps -Iamr -Iregression -I${BUILD_DIR} ${KERN_INCLUDES} -I${LAPACK_INC} -I${SUPERLU_INC} -I${MPI_INC_DIR} -I${NCCL_INC_DIR} -I${LUA_INC_DIR}
+INCLUDES = -Iminus -Iminus/STC/include -Izero -Iapps -Iamr -Iregression -I${BUILD_DIR} ${KERN_INCLUDES} -I${LAPACK_INC} -I${SUPERLU_INC} -I${MPI_INC_DIR} -I${NCCL_INC_DIR} -I${CUDSS_INC_DIR} -I${LUA_INC_DIR}
 
 # Directories containing source code
 SRC_DIRS := minus zero apps amr kernels data/adas
@@ -165,14 +189,22 @@ UNIT_CU_OBJS =
 ifdef USING_NVCC
 #	UNIT_CU_SRCS = $(shell find unit -name *.cu)
 	UNIT_CU_SRCS = unit/ctest_cusolver.cu unit/ctest_alloc_cu.cu unit/ctest_basis_cu.cu unit/ctest_array_cu.cu unit/ctest_mom_vlasov_cu.cu unit/ctest_range_cu.cu unit/ctest_rect_grid_cu.cu unit/ctest_wave_geom_cu.cu unit/ctest_wv_euler_cu.cu
+ifdef USING_CUDSS
+	UNIT_CU_SRCS += unit/ctest_cudss.cu
+endif
 	UNIT_CU_OBJS = $(UNIT_CU_SRCS:%=$(BUILD_DIR)/%.o)
 endif
 
 # List of link directories and libraries for unit and regression tests
-EXEC_LIB_DIRS = -L${SUPERLU_LIB_DIR} -L${LAPACK_LIB_DIR} -L${BUILD_DIR} -L${MPI_LIB_DIR} -L${NCCL_LIB_DIR} -L${LUA_LIB_DIR}
-EXEC_EXT_LIBS = -lsuperlu ${LAPACK_LIB} ${CUDA_LIBS} ${MPI_RPATH} ${MPI_LIBS} ${NCCL_LIBS} ${LUA_RPATH} ${LUA_LIBS} -lm -lpthread -ldl
+EXEC_LIB_DIRS = -L${SUPERLU_LIB_DIR} -L${LAPACK_LIB_DIR} -L${BUILD_DIR} -L${MPI_LIB_DIR} -L${NCCL_LIB_DIR} -L${CUDSS_LIB_DIR} -L${LUA_LIB_DIR}
+EXEC_EXT_LIBS = -lsuperlu ${LAPACK_LIB} ${CUDA_LIBS} ${MPI_RPATH} ${MPI_LIBS} ${NCCL_LIBS} ${CUDSS_RPATH} ${CUDSS_LIBS} ${LUA_RPATH} ${LUA_LIBS} -lm -lpthread -ldl
 EXEC_LIBS = ${BUILD_DIR}/libgkylzero.so ${EXEC_EXT_LIBS}
+EXEC_INSTALLED_LIBS = ${G0_RPATH} -lgkylzero ${EXEC_EXT_LIBS}
 EXEC_RPATH = 
+
+# Rpath for use in glua exectuable
+G0_LIB_DIR = ${INSTALL_PREFIX}/gkylzero/lib
+G0_RPATH = -Wl,-rpath,${G0_LIB_DIR}
 
 # Build commands for C source
 $(BUILD_DIR)/%.c.o: %.c
@@ -200,9 +232,14 @@ ${BUILD_DIR}/ci/%: ci/%.c ${BUILD_DIR}/libgkylzero.so
 	${CC} ${CFLAGS} ${LDFLAGS} -o $@ $< -I. $(INCLUDES) ${EXEC_LIB_DIRS} ${EXEC_RPATH} ${EXEC_LIBS}
 
 # Lua interpreter for testing Lua regression tests
-${BUILD_DIR}/xglua: regression/xglua.c ${BUILD_DIR}/libgkylzero.so
+${BUILD_DIR}/glua: regression/glua.c ${BUILD_DIR}/libgkylzero.so
 	$(MKDIR_P) ${BUILD_DIR}
 	${CC} ${CFLAGS} ${LDFLAGS} -o $@ $< -I. $(INCLUDES) ${EXEC_LIB_DIRS} ${EXEC_RPATH} ${EXEC_LIBS}
+
+# Lua interpreter for testing Lua regression tests
+${BUILD_DIR}/glua-install: regression/glua.c ${BUILD_DIR}/libgkylzero.so
+	$(MKDIR_P) ${BUILD_DIR}
+	${CC} ${CFLAGS} ${LDFLAGS} -o $@ $< -I. $(INCLUDES) ${EXEC_LIB_DIRS} ${EXEC_INSTALLED_LIBS} 
 
 # Amalgamated header file
 ${BUILD_DIR}/gkylzero.h:
@@ -351,9 +388,9 @@ all: ${BUILD_DIR}/gkylzero.h ${ZERO_SH_LIB} ## Build libraries and amalgamated h
 
 # Explicit targets to build unit and regression tests
 unit: ${ZERO_SH_LIB} ${UNITS} ${MPI_UNITS} ${LUA_UNITS} ## Build unit tests
-regression: ${ZERO_SH_LIB} ${REGS} regression/rt_arg_parse.h ${BUILD_DIR}/xglua ## Build regression tests
+regression: ${ZERO_SH_LIB} ${REGS} regression/rt_arg_parse.h ${BUILD_DIR}/glua ## Build regression tests
 ci: ${ZERO_SH_LIB} ${CI} ## Build automated regression system
-xglua: ${BUILD_DIR}/xglua ## Build Lua interpreter
+glua: ${BUILD_DIR}/glua ## Build Lua interpreter
 
 .PHONY: check mpicheck
 # Run all unit tests
@@ -368,7 +405,7 @@ mpicheck: ${MPI_UNITS} ## Build (if needed) and run all unit tests needing MPI
 G0_SHARE_INSTALL_PREFIX=${INSTALL_PREFIX}/gkylzero/share
 SED_REPS_STR=s,G0_SHARE_INSTALL_PREFIX_TAG,${G0_SHARE_INSTALL_PREFIX},g
 
-install: all $(ZERO_SH_INSTALL_LIB) ## Install library and headers
+install: all $(ZERO_SH_INSTALL_LIB) ${BUILD_DIR}/glua ## Install library and headers
 # Construct install directories
 	$(MKDIR_P) ${INSTALL_PREFIX}/gkylzero/include
 	${MKDIR_P} ${INSTALL_PREFIX}/gkylzero/lib
@@ -387,13 +424,18 @@ install: all $(ZERO_SH_INSTALL_LIB) ## Install library and headers
 	cp -f regression/rt_arg_parse.h ${INSTALL_PREFIX}/gkylzero/include/rt_arg_parse.h
 	cp -f regression/rt_vlasov_twostream_p2.c ${INSTALL_PREFIX}/gkylzero/share/rt_vlasov_twostream_p2.c
 
+install-glua: install ${BUILD_DIR}/glua-install ## Install the glua exectuable
+# glua executable
+	cp -f ${BUILD_DIR}/glua-install ${INSTALL_PREFIX}/gkylzero/bin/glua
+
+
 .PHONY: clean
 clean: ## Clean build output
 	rm -rf ${BUILD_DIR}
 
 .PHONY: cleanur
 cleanur: ## Delete the unit and regression test executables
-	rm -rf ${BUILD_DIR}/unit ${BUILD_DIR}/regression ${BUILD_DIR}/ci ${BUILD_DIR}/xglua
+	rm -rf ${BUILD_DIR}/unit ${BUILD_DIR}/regression ${BUILD_DIR}/ci ${BUILD_DIR}/glua
 
 .PHONY: cleanr
 cleanr: ## Delete the regression test executables

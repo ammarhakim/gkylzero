@@ -87,7 +87,7 @@ struct gkyl_tok_geo {
   struct { int max_iter; double eps; } root_param;
   struct { int max_level; double eps; } quad_param;
 
-  bool tol_no_roots; // If true we will allow approximate roots when no root is found
+  bool exact_roots; // If true we will allow approximate roots when no root is found
   // pointer to root finder (depends on polyorder)
   struct RdRdZ_sol (*calc_roots)(const double *psi, double psi0, double Z,
     double xc[2], double dx[2]);
@@ -111,6 +111,8 @@ struct gkyl_tok_geo_efit_inp {
   bool plate_spec;
   plate_func plate_func_lower;
   plate_func plate_func_upper;
+
+  bool reflect; // whether to reflect across R axis to preserve symmetry
 
   // Parameters for root finder: leave unset to use defaults
   struct {
@@ -142,6 +144,7 @@ struct gkyl_tok_geo_grid_inp {
   double zxpt_lo; // z of the lower x point
   double zxpt_up; // z of the upper x point
 
+  bool exact_roots; // If false we will allow approximate roots when no root is found
   bool write_node_coord_array; // set to true if nodal coordinates should be written
   const char *node_file_nm; // name of nodal coordinate file
 };

@@ -135,7 +135,8 @@ void check_continuity_2x(struct gkyl_rect_grid grid, struct gkyl_range range, st
 }
 
 // Check that two fields have the same boundary values in 2nd dimension in 2x
-void check_bc_2x(struct gkyl_rect_grid grid, struct gkyl_range range, struct gkyl_basis basis, struct gkyl_array *field1, struct gkyl_array *field2)
+void check_bc_2x(struct gkyl_rect_grid grid, struct gkyl_range range,
+  struct gkyl_basis basis, struct gkyl_array *field1, struct gkyl_array *field2)
 {
   struct gkyl_array *nodes = gkyl_array_new(GKYL_DOUBLE, grid.ndim, basis.num_basis);
   basis.node_list(gkyl_array_fetch(nodes, 0));
@@ -764,13 +765,14 @@ test_2x_dirichlet(int poly_order, bool use_gpu){
 
   // Smooth it
   struct gkyl_array *weight = 0;
-  struct gkyl_fem_parproj *parproj = gkyl_fem_parproj_new(&local, &local_ext, &basis, GKYL_FEM_PARPROJ_DIRICHLET, weight, use_gpu);
+  struct gkyl_fem_parproj *parproj = gkyl_fem_parproj_new(&local, &local_ext, &basis,
+    GKYL_FEM_PARPROJ_DIRICHLET, weight, use_gpu);
   gkyl_fem_parproj_set_rhs(parproj, field_discont, field_discont);
   gkyl_fem_parproj_solve(parproj, field);
 
   gkyl_array_copy(field_ho, field);
   check_continuity_2x(grid, local, basis, field_ho);
-  check_bc_2x(grid, local, basis, field, field_discont_ho);
+  check_bc_2x(grid, local, basis, field_ho, field_discont_ho);
 
   if (use_gpu) {
     gkyl_array_release(field);
