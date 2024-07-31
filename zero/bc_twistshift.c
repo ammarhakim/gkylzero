@@ -15,39 +15,58 @@
 //     - calc_mats: shift_dir_idx_tar.
 //     - tol_xi: Minimum allowed spacing between the lower and
 //               upper xi (logical x) limits of subcell integral.
+//   b) Unlike the procedures described in M. Francisquez, et al. CPC 298
+//   (2024) 109109, all subcell integrals are now done with variable y limits.
+//   This is possible once we realize that figure 4 is not drawn accurately;
+//   the blue lines should be separated by Delta y at all points.
+//   c) This updater only works on 5D distributions. Likely only minor changes
+//   are needed to make it work in other dimensions.
+//   d) 99% of the code is written to support a BC, a shift and shear in any
+//   direction. Maybe the only thing that needs to change is the permutted
+//   range and its use.
 //
-// Module functions (called in bc_twistshift.c):
-//   - ts_find_donors.
-//   - ts_calc_mats.
-//
-// Helper functions (all have ts_ prefix):
-//   - grid_cell_boundary_in_dir: cell boundary coordinate in given dir.
-//   - grid_cell_boundaries: get all cell boundary coords.
-//   - p2l: physical to logical transform.
-//   - interval_dx_and_xc: compute length and center of an interval.
-//   - grid_length_in_dir: length of the grid in given dir.
-//   - wrap_to_range: wrap a number to a range assuming periodicity.
-//   - shift_dir_idx_do_linidx: linear index to first donor of a given target
-//                              cell in shift_dir_idx_do.
-//   - check_shifted_test_point: evaluate a shifted point's cell as a
-//                               potential donor cell.
-//   - root_find: Finds the root of a given function.
-//   - shifted_coord_loss_func: Loss function used to find where yTar-S
-//                              intersects yDo.
-//   - sign: return the sign of a double.
-//   - ts_donor_target_offset: offset between donor and target cells.
-//   - find_intersect: finds the intersection of yTar-S and yDo.
-//   - comp_to_phys: transform a computational to a physical coord.
-//   - nod2mod_proj_1d: evaluate a 1D function at nodes and do a n2m transform
-//                      to get the coefficients of the DG representation.
+// List of functions used in computing sub-cell integrals (scimat).
+//   - ts_grid_cell_boundary_in_dir: cell boundary coordinate in given dir.
+//   - ts_grid_cell_boundaries: get all cell boundary coords.
+//   - ts_p2l: physical to logical transform.
+//   - ts_interval_dx_and_xc: compute length and center of an interval.
+//   - ts_grid_length_in_dir: length of the grid in given dir.
+//   - ts_wrap_to_range: wrap a number to a range assuming periodicity.
+//   - ts_shift_dir_idx_do_linidx: linear index to first donor of a given target
+//                                cell in shift_dir_idx_do.
+//   - ts_check_shifted_test_point: evaluate a shifted point's cell as a
+//                                  potential donor cell.
+//   - ts_find_donors: find and record the donor cells for each target.
+//   - ts_root_find: Finds the root of a given function.
+//   - ts_shifted_coord_loss_func: Loss function used to find where yTar-S
+//                                intersects yDo.
+//   - ts_sign: return the sign of a double.
+//   - ts_ts_donor_target_offset: offset between donor and target cells.
+//   - ts_find_intersect: finds the intersection of yTar-S and yDo.
+//   - ts_comp_to_phys: transform a computational to a physical coord.
+//   - ts_nod2mod_proj_1d: evaluate a 1D function at nodes and do a n2m transform
+//                         to get the coefficients of the DG representation.
 //   - ts_integral_xlimdg: subcell integral with variable x limits.
 //   - ts_integral_ylimdg: subcell integral with variable y limits.
 //   - ts_integral_fullcelllimdg: integral over the whole cell.
-//   - one: return 1 (for projections).
-//   - minus_one: return -1 (for projections).
-//   - shift_coord_shifted_log: coordinate in shift_dir shifted and transformed
-//                              to logical space.
-//   
+//   - ts_one: return 1 (for projections).
+//   - ts_minus_one: return -1 (for projections).
+//   - ts_shift_coord_shifted_log: coordinate in shift_dir shifted and transformed
+//                                 to logical space.
+//   - ts_subcellint_sNi_sNii: subcell integral sNi or sNii.
+//   - ts_subcellint_si_sii: subcell integral si or sii.
+//   - ts_subcellint_siii_siv: subcell integral siii or siv.
+//   - ts_subcellint_sv_svi: subcell integral sv or svi.
+//   - ts_subcellint_svii_sviii: subcell integral svii or sviii.
+//   - ts_subcellint_six_sx: subcell integral six or sx.
+//   - ts_subcellint_sxi_sxii: subcell integral sxi or sxii.
+//   - ts_subcellint_sxiii_sxiv: subcell integral sxiii or sxiv.
+//   - ts_subcellint_sxv_sxvi: subcell integral sxv or sxvi.
+//   - ts_calc_mats: create scimat with the result of the subcell integrals.
+//
+//  Two additional helper functions:
+//   - ts_calc_num_numcol_fidx_do: index map to populate fmat with donors.
+//   - ts_calc_num_numcol_fidx_tar: index map to get mat-mat mult results.
 
 // Minimum allowed spacing between the lower and
 // upper xi (logical x) limits of subcell integral.
@@ -531,13 +550,13 @@ ts_integral_fullcelllimdg(struct gkyl_bc_twistshift *up, double dyDo, double yOf
   up->kernels->fullcell(dyDo, yOff, ySh, mat_do);
 }
 
-void
+static inline void
 ts_one(double t, const double *xn, double *fout, void *ctx)
 {
   fout[0] = 1.0;
 }
 
-void
+static inline void
 ts_minus_one(double t, const double *xn, double *fout, void *ctx)
 {
   fout[0] = -1.0;
