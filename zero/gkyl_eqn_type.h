@@ -14,6 +14,7 @@ enum gkyl_eqn_type {
   GKYL_EQN_ADVECTION, // Scalar advection equation
   GKYL_EQN_GR_EULER, // General relativistic Euler equations.
   GKYL_EQN_REACTIVE_EULER, // Reactive Euler equations.
+  GKYL_EQN_EULER_MIXTURE, // Euler mixture equations.
 };
 
 // Identifiers for specific field object types
