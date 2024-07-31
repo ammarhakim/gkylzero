@@ -29,12 +29,12 @@ gkyl_euler_mixture_prim_vars(int num_species, double* gas_gamma_s, const double*
 
   double *p_s = gkyl_malloc(sizeof(double[num_species]));
   for (int i = 0; i < num_species; i++) {
-    p_s[i] = (gas_gamma_s[i] - 1.0) * (Etot - (0.5 * rho_total * ((vx * vx) + (vy * vy) + (vz * vz))));
+    p_s[i] = (gas_gamma_s[i] - 1.0) * ((rho_s[i] * (Etot / rho_total)) - (0.5 * rho_s[i] * ((vx * vx) + (vy * vy) + (vz * vz))));
   }
 
   double p_total = 0.0;
   for (int i = 0; i < num_species; i++) {
-    p_total += (rho_s[i] / rho_total) * p_s[i];
+    p_total += p_s[i];
   }
 
   for (int i = 0; i < num_species; i++) {
@@ -95,7 +95,7 @@ gkyl_euler_mixture_flux(int num_species, double* gas_gamma_s, const double* q, d
   double vz = v[num_species + 2];
   double p_total = v[num_species + 3];
 
-  double Etot = q[4];
+  double Etot = q[num_species + 3];
 
   for (int i = 0; i < num_species; i++) {
     flux[i] = rho_s[i] * vx;
@@ -133,7 +133,7 @@ riem_to_cons(const struct gkyl_wv_eqn* eqn, const double* qstate, const double* 
 static void
 euler_mixture_wall(double t, int nc, const double* skin, double* GKYL_RESTRICT ghost, void* ctx)
 {
-  long num_species = (sizeof(ghost) / sizeof(double)) - 4;
+  long num_species = 2;
 
   for (int i = 0; i < 4 + num_species; i++) {
     ghost[i] = skin[i];
@@ -145,7 +145,7 @@ euler_mixture_wall(double t, int nc, const double* skin, double* GKYL_RESTRICT g
 static void
 euler_mixture_no_slip(double t, int nc, const double* skin, double* GKYL_RESTRICT ghost, void* ctx)
 {
-  long num_species = (sizeof(ghost) / sizeof(double)) - 4;
+  long num_species = 2;
 
   for (int i = 0; i < num_species; i++) {
     ghost[i] = skin[i];
@@ -161,7 +161,7 @@ euler_mixture_no_slip(double t, int nc, const double* skin, double* GKYL_RESTRIC
 static inline void
 rot_to_local(const double* tau1, const double* tau2, const double* norm, const double* GKYL_RESTRICT qglobal, double* GKYL_RESTRICT qlocal)
 {
-  long num_species = (sizeof(qglobal) / sizeof(double)) - 4;
+  long num_species = 2;
 
   for (int i = 0; i < num_species; i++) {
     qlocal[i] = qglobal[i];
@@ -170,13 +170,13 @@ rot_to_local(const double* tau1, const double* tau2, const double* norm, const d
   qlocal[num_species] = (qglobal[num_species] * norm[0]) + (qglobal[num_species + 1] * norm[1]) + (qglobal[num_species + 2] * norm[2]);
   qlocal[num_species + 1] = (qglobal[num_species] * tau1[0]) + (qglobal[num_species + 1] * tau1[1]) + (qglobal[num_species + 2] * tau1[2]);
   qlocal[num_species + 2] = (qglobal[num_species] * tau2[0]) + (qglobal[num_species + 1] * tau2[1]) + (qglobal[num_species + 2] * tau2[2]);
-  qlocal[num_species + 3] = qglobal[num_species + 4];
+  qlocal[num_species + 3] = qglobal[num_species + 3];
 }
 
 static inline void
 rot_to_global(const double* tau1, const double* tau2, const double* norm, const double* GKYL_RESTRICT qlocal, double* GKYL_RESTRICT qglobal)
 {
-  long num_species = (sizeof(qlocal) / sizeof(double)) - 4;
+  long num_species = 2;
 
   for (int i = 0; i < num_species; i++) {
     qglobal[i] = qlocal[i];
