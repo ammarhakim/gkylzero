@@ -86,7 +86,7 @@ gkyl_bc_twistshift_advance_cu(struct gkyl_bc_twistshift *up, struct gkyl_array *
   gkyl_array_clear_range(ftar, 0.0, &up->ghost_r);
 
   // Add the contributions of mat-vec multiplications.
-  int num_cells_skin = up->grid.cells[up->shear_dir] * up->fmat->nc;
+  int num_cells_skin = (up->shear_r.upper[0]-up->shear_r.lower[0]+1) * up->fmat->nc;
   int num_blocks_add = (ftar->ncomp * num_cells_skin+GKYL_DEFAULT_NUM_THREADS-1)/GKYL_DEFAULT_NUM_THREADS;
   gkyl_bc_twistshift_add_contr_cu_ker<<<num_blocks_add,GKYL_DEFAULT_NUM_THREADS>>>
     (ftar->on_dev, up->num_numcol_fidx_tar, num_cells_skin, up->mm_contr->on_dev,

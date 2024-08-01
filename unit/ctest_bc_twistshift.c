@@ -320,6 +320,17 @@ test_bc_twistshift_3x2v_fig6_wcells(const int *cells, enum gkyl_edge_loc edge,
   if (write_f)
     gkyl_grid_sub_array_write(&grid, &local, mt, distf_ho, "ctest_bc_twistshift_3x2v_fig6_do.gkyl");
 
+  // Create a range only extended in bc_dir.
+  struct gkyl_range update_rng;
+  int lower_bcdir_ext[ndim], upper_bcdir_ext[ndim];
+  for (int d=0; d<ndim; d++) {
+    lower_bcdir_ext[d] = local.lower[d];
+    upper_bcdir_ext[d] = local.upper[d];
+  }
+  lower_bcdir_ext[bc_dir] = local.lower[bc_dir] - ghost[bc_dir];
+  upper_bcdir_ext[bc_dir] = local.upper[bc_dir] + ghost[bc_dir];
+  gkyl_sub_range_init(&update_rng, &local_ext, lower_bcdir_ext, upper_bcdir_ext);
+
   // Create the twist-shift updater and shift the donor field.
   struct gkyl_bc_twistshift_inp tsinp = {
     .bc_dir = bc_dir,
@@ -327,7 +338,7 @@ test_bc_twistshift_3x2v_fig6_wcells(const int *cells, enum gkyl_edge_loc edge,
     .shear_dir = 0, // shift varies with x.
     .edge = edge,
     .cdim = cdim,
-    .local_ext_r = local_ext,
+    .bcdir_ext_update_r = update_rng,
     .num_ghost = ghost,
     .basis = basis,
     .grid = grid,
@@ -596,7 +607,7 @@ init_donor_3x2v_fig11(double t, const double *xn, double* restrict fout, void *c
 
 void
 test_bc_twistshift_3x2v_fig11_wcells(const int *cells, enum gkyl_edge_loc edge,
-  bool check_distf, bool use_gpu, bool write_f)
+  int apply_in_half_x, bool check_distf, bool use_gpu, bool write_f)
 {
   double vt = 1.0; // Thermal speed.
   double mass = 1.0;
@@ -710,6 +721,28 @@ test_bc_twistshift_3x2v_fig11_wcells(const int *cells, enum gkyl_edge_loc edge,
   if (write_f)
     gkyl_grid_sub_array_write(&grid, &local, mt, distf_ho, "ctest_bc_twistshift_3x2v_fig11_do.gkyl");
 
+  // Create a range only extended in bc_dir.
+  struct gkyl_range update_rng;
+  int lower_bcdir_ext[ndim], upper_bcdir_ext[ndim];
+  for (int d=0; d<ndim; d++) {
+    lower_bcdir_ext[d] = local.lower[d];
+    upper_bcdir_ext[d] = local.upper[d];
+  }
+  lower_bcdir_ext[bc_dir] = local.lower[bc_dir] - ghost[bc_dir];
+  upper_bcdir_ext[bc_dir] = local.upper[bc_dir] + ghost[bc_dir];
+  gkyl_sub_range_init(&update_rng, &local_ext, lower_bcdir_ext, upper_bcdir_ext);
+
+  if (apply_in_half_x < 0) {
+    // Apply the BC only on the lower half of the domain.
+    int x_half_len = (update_rng.upper[0] - update_rng.lower[0] + 1)/2;
+    gkyl_range_shorten_from_above(&update_rng, &update_rng, 0, x_half_len);
+  }
+  else if (apply_in_half_x > 0) {
+    // Apply the BC only on the upper half of the domain.
+    int x_half_len = (update_rng.upper[0] - update_rng.lower[0] + 1)/2;
+    gkyl_range_shorten_from_below(&update_rng, &update_rng, 0, x_half_len);
+  }
+
   // Create the twist-shift updater and shift the donor field.
   struct gkyl_bc_twistshift_inp tsinp = {
     .bc_dir = bc_dir,
@@ -717,7 +750,7 @@ test_bc_twistshift_3x2v_fig11_wcells(const int *cells, enum gkyl_edge_loc edge,
     .shear_dir = 0, // shift varies with x.
     .edge = edge,
     .cdim = cdim,
-    .local_ext_r = local_ext,
+    .bcdir_ext_update_r = update_rng,
     .num_ghost = ghost,
     .basis = basis,
     .grid = grid,
@@ -925,17 +958,56 @@ test_bc_twistshift_3x2v_fig11_wcells(const int *cells, enum gkyl_edge_loc edge,
        3.9141599258816127e-07,  6.9405324157907182e-12,
     };
 
+    struct gkyl_range check_ghost_rng, check_other_ghost_rng;
+    if (apply_in_half_x < 0) {
+      // Applied the BC only on the lower half of the domain.
+      int x_half_len = (ghost_rng.upper[0] - ghost_rng.lower[0] + 1)/2;
+      gkyl_range_shorten_from_above(&check_ghost_rng, &ghost_rng, 0, x_half_len);
+      gkyl_range_shorten_from_below(&check_other_ghost_rng, &ghost_rng, 0, x_half_len);
+    }
+    else if (apply_in_half_x > 0) {
+      // Applied the BC only on the upper half of the domain.
+      int x_half_len = (ghost_rng.upper[0] - ghost_rng.lower[0] + 1)/2;
+      gkyl_range_shorten_from_below(&check_ghost_rng, &ghost_rng, 0, x_half_len);
+      gkyl_range_shorten_from_above(&check_other_ghost_rng, &ghost_rng, 0, x_half_len);
+    }
+    else
+      check_ghost_rng = ghost_rng;
+
     struct gkyl_range_iter iter;
-    gkyl_range_iter_init(&iter, &ghost_rng);
+    gkyl_range_iter_init(&iter, &check_ghost_rng);
     while (gkyl_range_iter_next(&iter)) {
       if (iter.idx[3]==1 && iter.idx[4]==1) {
-        long linidx = gkyl_range_idx(&ghost_rng, iter.idx);
+        long linidx = gkyl_range_idx(&check_ghost_rng, iter.idx);
         double *f_c = gkyl_array_fetch(distf_ho, linidx);
         int refidx = (iter.idx[0]-1)*cells[1] + iter.idx[1]-1;
         TEST_CHECK( gkyl_compare(f0[refidx], f_c[0], 1e-13) );
         TEST_CHECK( gkyl_compare(f1[refidx], f_c[1], 1e-13) );
         TEST_CHECK( gkyl_compare(f2[refidx], f_c[2], 1e-13) );
         TEST_CHECK( gkyl_compare(f6[refidx], f_c[6], 1e-12) );
+      }
+    }
+
+    if (apply_in_half_x != 0) {
+      // Check that the other half is1untouched. 
+      int skin_idx[GKYL_MAX_DIM];
+      gkyl_range_iter_init(&iter, &check_other_ghost_rng);
+      while (gkyl_range_iter_next(&iter)) {
+        long linidx = gkyl_range_idx(&check_other_ghost_rng, iter.idx);
+        double *f_c = gkyl_array_fetch(distf_ho, linidx);
+  
+        for (int d=0; d<check_other_ghost_rng.ndim; d++)
+          skin_idx[d] = iter.idx[d];
+        if (edge == GKYL_LOWER_EDGE)
+          skin_idx[bc_dir] = local.upper[bc_dir];
+        else
+          skin_idx[bc_dir] = local.lower[bc_dir];
+  
+        linidx = gkyl_range_idx(&local_ext, skin_idx);
+        double *fskin_c = gkyl_array_fetch(distf_ho, linidx);
+  
+        for (int k=0; k<distf_ho->ncomp; k++)
+          TEST_CHECK( gkyl_compare(fskin_c[k], f_c[k], 1e-15) );
       }
     }
   }
@@ -981,16 +1053,26 @@ test_bc_twistshift_3x2v_fig11(bool use_gpu)
   const int cells3[] = {80, 40, 4, 2, 1};
 
   enum gkyl_edge_loc edgelo = GKYL_LOWER_EDGE; // Lower edge.
-  test_bc_twistshift_3x2v_fig11_wcells(cells0, edgelo, true, use_gpu, false);
-  test_bc_twistshift_3x2v_fig11_wcells(cells1, edgelo, false, use_gpu, false);
-  test_bc_twistshift_3x2v_fig11_wcells(cells2, edgelo, false, use_gpu, false);
-  test_bc_twistshift_3x2v_fig11_wcells(cells3, edgelo, false, use_gpu, false);
+  test_bc_twistshift_3x2v_fig11_wcells(cells0, edgelo, 0, true, use_gpu, false);
+  test_bc_twistshift_3x2v_fig11_wcells(cells1, edgelo, 0, false, use_gpu, false);
+  test_bc_twistshift_3x2v_fig11_wcells(cells2, edgelo, 0, false, use_gpu, false);
+  test_bc_twistshift_3x2v_fig11_wcells(cells3, edgelo, 0, false, use_gpu, false);
 
   enum gkyl_edge_loc edgeup = GKYL_UPPER_EDGE; // Upper edge.
-  test_bc_twistshift_3x2v_fig11_wcells(cells0, edgeup, true, use_gpu, false);
-  test_bc_twistshift_3x2v_fig11_wcells(cells1, edgeup, false, use_gpu, false);
-  test_bc_twistshift_3x2v_fig11_wcells(cells2, edgeup, false, use_gpu, false);
-  test_bc_twistshift_3x2v_fig11_wcells(cells3, edgeup, false, use_gpu, false);
+  test_bc_twistshift_3x2v_fig11_wcells(cells0, edgeup, 0, true, use_gpu, false);
+  test_bc_twistshift_3x2v_fig11_wcells(cells1, edgeup, 0, false, use_gpu, false);
+  test_bc_twistshift_3x2v_fig11_wcells(cells2, edgeup, 0, false, use_gpu, false);
+  test_bc_twistshift_3x2v_fig11_wcells(cells3, edgeup, 0, false, use_gpu, false);
+
+  // Apply the TS BC on the lower half of the x domain.
+  test_bc_twistshift_3x2v_fig11_wcells(cells0, edgelo, -1, true, use_gpu, false);
+  test_bc_twistshift_3x2v_fig11_wcells(cells1, edgelo, -1, false, use_gpu, false);
+  test_bc_twistshift_3x2v_fig11_wcells(cells2, edgeup, -1, false, use_gpu, false);
+
+  // Apply the TS BC on the upper half of the x domain.
+  test_bc_twistshift_3x2v_fig11_wcells(cells0, edgelo, 1, true, use_gpu, false);
+  test_bc_twistshift_3x2v_fig11_wcells(cells1, edgelo, 1, false, use_gpu, false);
+  test_bc_twistshift_3x2v_fig11_wcells(cells2, edgeup, 1, false, use_gpu, false);
 }
 
 void test_bc_twistshift_3x2v_fig6_ho(){ test_bc_twistshift_3x2v_fig6(false); }

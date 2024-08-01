@@ -140,8 +140,8 @@ ts_wrap_to_range(double val, double lower, double upper, bool pick_upper)
 }
 
 long
-ts_shift_dir_idx_do_linidx(const int *num_do,
-  int shear_dir_idx, int shift_dir_idx, int shift_dir_num_cells)
+ts_shift_dir_idx_do_linidx(const int *num_do, int shear_dir_idx, int shift_dir_idx,
+  int shift_dir_num_cells, int shear_r_lower)
 {
   // Return the linear index to the first donor for the idx=(i,j) target cell,
   // in the shift_dir_idx_do array. We assume shift_dir_idx_do (whose dimensions
@@ -152,14 +152,14 @@ ts_shift_dir_idx_do_linidx(const int *num_do,
   // than this one. NOTE: the -1 here is because the idx is often 1-index
   // (since ghost cells are the 0th index) but num_do is only defined on the
   // local range. 
-  for (int i=0; i<shear_dir_idx-1; i++)
+  for (int i=0; i<shear_dir_idx-shear_r_lower; i++)
     linc += num_do[i] * shift_dir_num_cells;
 
   // Count the number of donors in cells with the same idx in the shear dir.
   // NOTE: the -1 here is because the idx is often 1-index
   // (since ghost cells are the 0th index) but num_do is only defined on the
   // local range.
-  linc += num_do[shear_dir_idx-1] * (shift_dir_idx-1);
+  linc += num_do[shear_dir_idx-shear_r_lower] * (shift_dir_idx-1);
 
   return linc;
 }
@@ -194,7 +194,7 @@ ts_check_shifted_test_point(struct gkyl_bc_twistshift *up, const double *test_pt
 
   // Get the linear index to the list of donors for this target.
   long linidx = ts_shift_dir_idx_do_linidx(up->num_do,
-    shear_idx[0], shift_idx[0], up->ts_grid.cells[up->shift_dir_in_ts_grid]);
+    shear_idx[0], shift_idx[0], up->ts_grid.cells[up->shift_dir_in_ts_grid], up->shear_r.lower[0]);
   // If this donor is not in our list of donors, include it.
   bool donor_not_found = true;
   for (int k=0; k<num_do_curr[0]; k++) {
@@ -237,12 +237,14 @@ ts_find_donors(struct gkyl_bc_twistshift *up)
   // Number of donors at each cell of the shear direction.
   up->num_do = (int*) gkyl_malloc(up->shear_r.volume * sizeof(int));
   for (int i=0; i<up->shear_r.volume; i++)
-    up->num_do[i] = 0;
+    up->num_do[i] = -1;
 
   // Temporary buffer to store donors at (resized below).
   size_t curr_buff_sz = up->ts_r.volume * sizeof(int);
   gkyl_mem_buff shift_dir_idx_do_buff = gkyl_mem_buff_new(curr_buff_sz);
 
+  int idx[] = {up->shear_r.lower[0]};
+  long linidx = gkyl_range_idx(&up->shear_r, idx);
   struct gkyl_range_iter iter;
   gkyl_range_iter_init(&iter, &up->ts_r);
   while (gkyl_range_iter_next(&iter)) {
@@ -290,7 +292,7 @@ ts_find_donors(struct gkyl_bc_twistshift *up)
       }
     }
 
-    up->num_do[shear_idx[0]-1] = num_do_curr;
+    up->num_do[shear_idx[0]-up->shear_r.lower[0]] = num_do_curr;
   }
 
   // Copy the donor list to the persistent object and release the buffer.
@@ -1362,15 +1364,15 @@ ts_calc_mats(struct gkyl_bc_twistshift *up)
     long shift_loc = gkyl_range_idx(&up->shear_r, iter.idx);
     double *shift_c = (double *) gkyl_array_fetch(up->shift, shift_loc);
 
-    long linidx_do = ts_shift_dir_idx_do_linidx(up->num_do,
-      iter.idx[0], shift_dir_idx_tar, up->ts_grid.cells[up->shift_dir_in_ts_grid]);
+    long linidx_do = ts_shift_dir_idx_do_linidx(up->num_do, iter.idx[0], shift_dir_idx_tar,
+      up->ts_grid.cells[up->shift_dir_in_ts_grid], up->shear_r.lower[0]);
     int *shift_dir_idx_do_ptr = &up->shift_dir_idx_do[linidx_do];
 
     long linidx_mats_do = 0;
-    for (int i=0; i<iter.idx[0]-1; i++)
+    for (int i=0; i<iter.idx[0]-up->shear_r.lower[0]; i++)
       linidx_mats_do += up->num_do[i];
 
-    for (int iC=0; iC<up->num_do[iter.idx[0]-1]; iC++){
+    for (int iC=0; iC<up->num_do[iter.idx[0]-up->shear_r.lower[0]]; iC++){
       int idx_do[2]; // Target index.
       idx_do[up->shift_dir_in_ts_grid] = shift_dir_idx_do_ptr[iC];
       idx_do[up->shear_dir_in_ts_grid] = iter.idx[0];
@@ -1534,9 +1536,9 @@ ts_calc_num_numcol_fidx_do(struct gkyl_bc_twistshift *up)
       int shear_dir_idx = shear_dir_iter.idx[0];
 
       long linidx_do = ts_shift_dir_idx_do_linidx(up->num_do, shear_dir_idx,
-        iter.idx[shift_dir_in_shearbc_perp_r], up->ts_grid.cells[up->shift_dir_in_ts_grid]);
+        iter.idx[shift_dir_in_shearbc_perp_r], up->ts_grid.cells[up->shift_dir_in_ts_grid], up->shear_r.lower[0]);
 
-      for (int i = 0; i < up->num_do[shear_dir_idx-1]; i++) {
+      for (int i = 0; i < up->num_do[shear_dir_idx-up->shear_r.lower[0]]; i++) {
         do_idx[up->shear_dir] = shear_dir_idx;
         do_idx[up->shift_dir] = up->shift_dir_idx_do[linidx_do+i];
 
@@ -1670,6 +1672,7 @@ gkyl_bc_twistshift_new(const struct gkyl_bc_twistshift_inp *inp)
   up->shift_func     = inp->shift_func; // Function defining the shift.
   up->shift_func_ctx = inp->shift_func_ctx; // Context for shift_func.
   up->use_gpu = inp->use_gpu;
+  up->local_bcdir_ext_r = inp->bcdir_ext_update_r;
 
   // Assume the poly order of the DG shift is the same as that of the field,
   // unless requested otherwise.
@@ -1677,19 +1680,7 @@ gkyl_bc_twistshift_new(const struct gkyl_bc_twistshift_inp *inp)
   if (inp->shift_poly_order)
     up->shift_poly_order = inp->shift_poly_order;
 
-  up->local_ext_r = inp->local_ext_r;
-  const int ndim = inp->local_ext_r.ndim;
-
-  // Create a range only extended in bc_dir.
-  int lower_bcdir_ext[ndim], upper_bcdir_ext[ndim];
-  for (int d=0; d<ndim; d++) {
-    lower_bcdir_ext[d] = inp->local_ext_r.lower[d] + inp->num_ghost[d];
-    upper_bcdir_ext[d] = inp->local_ext_r.upper[d] - inp->num_ghost[d];
-  }
-  lower_bcdir_ext[up->bc_dir] = inp->local_ext_r.lower[up->bc_dir];
-  upper_bcdir_ext[up->bc_dir] = inp->local_ext_r.upper[up->bc_dir];
-  gkyl_sub_range_init(&up->local_bcdir_ext_r, &inp->local_ext_r, lower_bcdir_ext, upper_bcdir_ext);
-
+  const int ndim = inp->bcdir_ext_update_r.ndim;
   double lo1d[1], up1d[1];  int cells1d[1];
 
   // Create 1D grid and range in the diretion of the shear.
@@ -1699,6 +1690,8 @@ gkyl_bc_twistshift_new(const struct gkyl_bc_twistshift_inp *inp)
   up1d[0] = inp->grid.upper[up->shear_dir];
   cells1d[0] = inp->grid.cells[up->shear_dir];
   gkyl_rect_grid_init(&up->shear_grid, 1, lo1d, up1d, cells1d);
+  int idx[] = {up->shear_r.lower[0]};
+  long linidx = gkyl_range_idx(&up->shear_r, idx);
 
   // Create 1D grid and range in the diretion of the shift.
   gkyl_range_init(&up->shift_r, 1, (int[]) {up->local_bcdir_ext_r.lower[inp->shift_dir]},
@@ -1745,9 +1738,10 @@ gkyl_bc_twistshift_new(const struct gkyl_bc_twistshift_inp *inp)
   // Array of cummulative number of donors at given shear_dir cell.
   const int num_do_cum_sz = up->grid.cells[up->shear_dir]+1;
   int num_do_cum_ho[num_do_cum_sz];
-  num_do_cum_ho[0] = 0;
-  for (int i=1; i<num_do_cum_sz; i++)
-    num_do_cum_ho[i] = num_do_cum_ho[i-1] + up->num_do[i-1];
+  for (int i=0; i<num_do_cum_sz; i++)
+    num_do_cum_ho[i] = 0;
+  for (int i=up->shear_r.lower[0]; i<num_do_cum_sz; i++)
+    num_do_cum_ho[i] = num_do_cum_ho[i-1] + up->num_do[i-up->shear_r.lower[0]];
 
   if (!up->use_gpu) {
     up->num_do_cum = gkyl_malloc(num_do_cum_sz * sizeof(int));
@@ -1784,7 +1778,7 @@ gkyl_bc_twistshift_new(const struct gkyl_bc_twistshift_inp *inp)
   int fmat_num_col = 1;
   for (int d=0; d<ndim; d++) {
     if (d != up->bc_dir && d != up->shear_dir)
-      fmat_num_col *= up->grid.cells[d];
+      fmat_num_col *= up->local_bcdir_ext_r.upper[d] - up->local_bcdir_ext_r.lower[d] + 1;
   }
 
   if (!up->use_gpu) {
@@ -1814,8 +1808,10 @@ gkyl_bc_twistshift_new(const struct gkyl_bc_twistshift_inp *inp)
   gkyl_range_init(&up->permutted_ghost_r, ndim-1, lo4D, up4D);
 
   // Create a ghost range, to clear it before adding contributions from TS BC.
-  struct gkyl_range tmp_skin;
-  gkyl_skin_ghost_ranges(&tmp_skin, &up->ghost_r, up->bc_dir, up->edge, &inp->local_ext_r, inp->num_ghost);
+  if (inp->edge == GKYL_LOWER_EDGE)
+    gkyl_range_shorten_from_above(&up->ghost_r, &up->local_bcdir_ext_r, inp->bc_dir, inp->num_ghost[inp->bc_dir]);
+  else
+    gkyl_range_shorten_from_below(&up->ghost_r, &up->local_bcdir_ext_r, inp->bc_dir, inp->num_ghost[inp->bc_dir]);
 
   return up;
 }
@@ -1858,7 +1854,7 @@ gkyl_bc_twistshift_advance(struct gkyl_bc_twistshift *up, struct gkyl_array *fdo
   gkyl_array_clear_range(ftar, 0.0, &up->ghost_r);
 
   // Perform reduction over num_do contributions from mat-mat mults (mm_contr).
-  int num_cells_skin = up->grid.cells[up->shear_dir] * up->fmat->nc;
+  int num_cells_skin = (up->shear_r.upper[0]-up->shear_r.lower[0]+1) * up->fmat->nc;
   for (size_t i=0; i<ftar->ncomp * num_cells_skin; i++) {
 
     long linidx_tar = i / ftar->ncomp;
