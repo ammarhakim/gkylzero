@@ -63,6 +63,12 @@ gkyl_euler_mixture_prim_vars(int num_species, double* gas_gamma_s, const double*
   for (int i = 0; i < num_species; i++) {
     v[4 + num_species + i] = rho_s[i];
   }
+
+  gkyl_free(vol_frac_cons_s);
+  gkyl_free(rho_cons_s);
+  gkyl_free(vol_frac_s);
+  gkyl_free(rho_s);
+  gkyl_free(p_s);
 }
 
 static inline double
@@ -89,6 +95,9 @@ gkyl_euler_mixture_max_abs_speed(int num_species, double* gas_gamma_s, const dou
       max_abs_speed = fabs(v_mag) + sqrt(gas_gamma_s[i] * (p_total / rho_s[i]));
     }
   }
+
+  gkyl_free(v);
+  gkyl_free(rho_s);
 
   return max_abs_speed;
 }
@@ -131,6 +140,10 @@ gkyl_euler_mixture_flux(int num_species, double* gas_gamma_s, const double* q, d
   for (int i = 0; i < num_species; i++) {
     flux[4 + num_species + i] = vol_frac_s[i] * (vx_total * rho_s[i]);
   }
+
+  gkyl_free(v);
+  gkyl_free(vol_frac_s);
+  gkyl_free(rho_s);
 }
 
 static inline void
@@ -237,6 +250,9 @@ wave_lax(const struct gkyl_wv_eqn* eqn, const double* delta, const double* ql, c
   s[0] = -amax;
   s[1] = amax;
 
+  gkyl_free(fl);
+  gkyl_free(fr);
+
   return s[1];
 }
 
@@ -287,6 +303,9 @@ flux_jump(const struct gkyl_wv_eqn* eqn, const double* ql, const double* qr, dou
 
   double amaxl = gkyl_euler_mixture_max_abs_speed(num_species, gas_gamma_s, ql);
   double amaxr = gkyl_euler_mixture_max_abs_speed(num_species, gas_gamma_s, qr);
+  
+  gkyl_free(fr);
+  gkyl_free(fl);
 
   return fmax(amaxl, amaxr);
 }
@@ -303,6 +322,7 @@ check_inv(const struct gkyl_wv_eqn* eqn, const double* q)
 
   for (int i = 0; i < num_species; i++) {
     if (v[4 + num_species + i] < 0.0) {
+      gkyl_free(v);
       return false;
     }
   }
@@ -312,13 +332,16 @@ check_inv(const struct gkyl_wv_eqn* eqn, const double* q)
     vol_frac_total += v[5 + i];
   }
   if (vol_frac_total > 1.0) {
+    gkyl_free(v);
     return false;
   }
 
   if (v[0] < 0.0 || v[4] < 0.0) {
+    gkyl_free(v);
     return false;
   }
   else {
+    gkyl_free(v);
     return true;
   }
 }
