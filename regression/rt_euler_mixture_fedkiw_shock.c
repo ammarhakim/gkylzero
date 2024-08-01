@@ -26,10 +26,17 @@ struct fedkiw_shock_ctx
   double rhol; // Left fluid mass density.
   double ul; // Left fluid velocity.
   double pl; // Left fluid pressure.
+  double alpha1_l; // Left fluid volume fraction (first species).
+
+  double rhoc; // Central fluid mass density.
+  double uc; // Central fluid velocity.
+  double pc; // Central fluid pressure.
+  double alpha1_c; // Central fluid volume fraction (first species).
 
   double rhor; // Right fluid mass density.
   double ur; // Right fluid velocity.
   double pr; // Right fluid pressure.
+  double alpha1_r; // Central fluid volume fraction (first species).
 
   // Simulation parameters.
   int Nx; // Cell count (x-direction).
@@ -52,10 +59,17 @@ create_ctx(void)
   double rhol = 1.3333; // Left fluid mass density.
   double ul = 0.3535 * sqrt(pow(10.0, 5.0)); // Left fluid velocity.
   double pl = 1.5 * pow(10.0, 5.0); // Left fluid pressure.
+  double alpha1_l = 0.99999; // Left fluid volume fraction (first species).
+
+  double rhoc = 1.0; // Central fluid mass density.
+  double uc = 0.0; // Central fluid velocity.
+  double pc = 1.0 * pow(10.0, 5.0); // Central fluid pressure.
+  double alpha1_c = 0.99999; // Central fluid volume fraction (first species).
 
   double rhor = 0.1379; // Right fluid mass density.
   double ur = 0.0; // Right fluid velocity.
-  double pr = pow(10.0, 5.0); // Right fluid pressure.
+  double pr = 1.0 * pow(10.0, 5.0); // Right fluid pressure.
+  double alpha1_r = 0.00001; // Right fluid volume fraction (first species).
 
   // Simulation parameters.
   int Nx = 2048; // Cell count (x-direction).
@@ -63,7 +77,7 @@ create_ctx(void)
   double cfl_frac = 0.95; // CFL coefficient.
 
   double t_end = 0.0012; // Final simulation time.
-  int num_frames = 100; // Number of output frames.
+  int num_frames = 1; // Number of output frames.
   double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.
   int num_failures_max = 20; // Maximum allowable number of consecutive small time-steps.
 
@@ -73,9 +87,15 @@ create_ctx(void)
     .rhol = rhol,
     .ul = ul,
     .pl = pl,
+    .alpha1_l = alpha1_l,
+    .rhoc = rhoc,
+    .uc = uc,
+    .pc = pc,
+    .alpha1_c = alpha1_c,
     .rhor = rhor,
     .ur = ur,
     .pr = pr,
+    .alpha1_r = alpha1_r,
     .Nx = Nx,
     .Lx = Lx,
     .cfl_frac = cfl_frac,
@@ -100,41 +120,67 @@ evalEulerMixtureInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_REST
   double rhol = app->rhol;
   double ul = app->ul;
   double pl = app->pl;
+  double alpha1_l = app->alpha1_l;
+
+  double rhoc = app->rhoc;
+  double uc = app->uc;
+  double pc = app->pc;
+  double alpha1_c = app->alpha1_c;
 
   double rhor = app->rhor;
   double ur = app->ur;
   double pr = app->pr;
+  double alpha1_r = app->alpha1_r;
 
   double rho1 = 0.0;
   double rho2 = 0.0;
-  double u = 0.0;
-  double p = 0.0;
-  double Etot1 = 0.0;
-  double Etot2 = 0.0;
+  double alpha1 = 0.0;
 
-  if (x < 0.5) {
-    rho1 = 0.999 * rhol; // First species fluid mass density (left).
-    rho2 = 0.001 * rhor; // Second species fluid mass density (right).
-    u = ul; // Fluid velocity (left).
-    p = pl; // Fluid pressure (left).
-    Etot1 = (0.999 * p / (gas_gamma1 - 1.0)) + (0.5 * rho1 * u * u);
-    Etot2 = (0.001 * p / (gas_gamma2 - 1.0)) + (0.5 * rho2 * u * u);
+  double vx_total = 0.0;
+  double vy_total = 0.0;
+  double vz_total = 0.0;
+  double p_total = 0.0;
+
+  if (x < 0.05) {
+    rho1 = rhol; // First species fluid mass density (left).
+    rho2 = rhor; // Second species fluid mass density (right).
+    alpha1 = alpha1_l; // First species volume fraction (left).
+
+    vx_total = ul; // Total mixture velocity (left).
+    p_total = pl; // Total mixture pressure (left).
+  }
+  else if (x < 0.5) {
+    rho1 = rhoc; // First species fluid mass density (central).
+    rho2 = rhor; // Second species fluid mass density (right).
+    alpha1 = alpha1_c; // First species volume fraction (central).
+
+    vx_total = uc; // Total mixture velocity (central).
+    p_total = pc; // Total mixture pressure (central).
   }
   else {
-    rho1 = 0.001 * rhol; // First species fluid mass density (left).
-    rho2 = 0.999 * rhor; // Second species fluid mass density (right).
-    u = ur; // Fluid velocity (right).
-    p = pr; // Fluid pressure (right).
-    Etot1 = (0.999 * p / (gas_gamma1 - 1.0)) + (0.5 * rho1 * u * u);
-    Etot2 = (0.001 * p / (gas_gamma2 - 1.0)) + (0.5 * rho2 * u * u);
-  }
+    rho1 = rhoc; // First species fluid mass density (central).
+    rho2 = rhor; // Second species fluid mass density (right).
+    alpha1 = alpha1_r; // First species volume fraction (right).
 
-  // Set fluid mass densities.
-  fout[0] = rho1; fout[1] = rho2;
-  // Set fluid momentum density.
-  fout[2] = (rho1 + rho2) * u; fout[3] = 0.0; fout[4] = 0.0;
-  // Set fluid total energy density.
-  fout[5] = Etot1 + Etot2;
+    vx_total = ur; // Total mixture velocity (right).
+    p_total = pr; // Total mixture pressure (right).
+  }
+  double rho_total = (alpha1 * rho1) + ((1.0 - alpha1) * rho2); // Total mixture density.
+
+  double E1 = (p_total / (gas_gamma1 - 1.0)) + (0.5 * rho1 * (vx_total * vx_total)); // First species total energy.
+  double E2 = (p_total / (gas_gamma2 - 1.0)) + (0.5 * rho2 * (vx_total * vx_total)); // Second species total energy.
+  double E_total = (alpha1 * E1) + ((1.0 - alpha1) * E2); // Total mixture energy.
+
+  // Set fluid mixture total mass density.
+  fout[0] = rho_total;
+  // Set fluid mixture total momentum density.
+  fout[1] = rho_total * vx_total; fout[2] = rho_total * vy_total; fout[3] = rho_total * vz_total;
+  // Set fluid mixture total energy density.
+  fout[4] = E_total;
+  // Set fluid mixture weighted volume fraction (first species).
+  fout[5] = rho_total * alpha1;
+  // Set fluid mixture volume-weighted mass densities (first and second species).
+  fout[6] = alpha1 * rho1; fout[7] = (1.0 - alpha1) * rho2;
 }
 
 void

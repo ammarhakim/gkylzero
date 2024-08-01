@@ -9,65 +9,84 @@
 void
 gkyl_euler_mixture_prim_vars(int num_species, double* gas_gamma_s, const double* q, double* v)
 {
+  double rho_total = q[0];
+  double momx_total = q[1];
+  double momy_total = q[2];
+  double momz_total = q[3];
+  double E_total = q[4];
+
+  double *vol_frac_cons_s = gkyl_malloc(sizeof(double[num_species - 1]));
+  for (int i = 0; i < num_species - 1; i++) {
+    vol_frac_cons_s[i] = q[5 + i];
+  }
+
+  double *rho_cons_s = gkyl_malloc(sizeof(double[num_species]));
+  for (int i = 0; i < num_species; i++) {
+    rho_cons_s[i] = q[4 + num_species + i];
+  }
+
+  double vx_total = momx_total / rho_total;
+  double vy_total = momy_total / rho_total;
+  double vz_total = momz_total / rho_total;
+
+  double *vol_frac_s = gkyl_malloc(sizeof(double[num_species]));
+  double vol_frac_total = 0.0;
+  for (int i = 0; i < num_species - 1; i++) {
+    vol_frac_s[i] = vol_frac_cons_s[i] / rho_total;
+    vol_frac_total += vol_frac_s[i];
+  }
+  vol_frac_s[num_species - 1] = 1.0 - vol_frac_total;
+
   double *rho_s = gkyl_malloc(sizeof(double[num_species]));
   for (int i = 0; i < num_species; i++) {
-    rho_s[i] = q[i];
+    rho_s[i] = rho_cons_s[i] / vol_frac_s[i];
   }
-  double momx = q[num_species];
-  double momy = q[num_species + 1];
-  double momz = q[num_species + 2];
-  double Etot = q[num_species + 3];
-
-  double rho_total = 0.0;
-  for (int i = 0; i < num_species; i++) {
-    rho_total += rho_s[i];
-  }
-
-  double vx = momx / rho_total;
-  double vy = momy / rho_total;
-  double vz = momz / rho_total;
 
   double *p_s = gkyl_malloc(sizeof(double[num_species]));
   for (int i = 0; i < num_species; i++) {
-    p_s[i] = (gas_gamma_s[i] - 1.0) * ((rho_s[i] * (Etot / rho_total)) - (0.5 * rho_s[i] * ((vx * vx) + (vy * vy) + (vz * vz))));
+    p_s[i] = (gas_gamma_s[i] - 1.0) * (E_total - (0.5 * rho_total * ((vx_total * vx_total) + (vy_total * vy_total) + (vz_total * vz_total))));
   }
 
   double p_total = 0.0;
   for (int i = 0; i < num_species; i++) {
-    p_total += p_s[i];
+    p_total += vol_frac_s[i] * p_s[i];
   }
 
-  for (int i = 0; i < num_species; i++) {
-    v[i] = rho_s[i];
+  v[0] = rho_total;
+  v[1] = vx_total;
+  v[2] = vy_total;
+  v[3] = vz_total;
+  v[4] = p_total;
+  for (int i = 0; i < num_species - 1; i++) {
+    v[5 + i] = vol_frac_s[i];
   }
-  v[num_species] = vx;
-  v[num_species + 1] = vy;
-  v[num_species + 2] = vz;
-  v[num_species + 3] = p_total;
+  for (int i = 0; i < num_species; i++) {
+    v[4 + num_species + i] = rho_s[i];
+  }
 }
 
 static inline double
 gkyl_euler_mixture_max_abs_speed(int num_species, double* gas_gamma_s, const double* q)
 {
-  double *v = gkyl_malloc(sizeof(double[4 + num_species]));
+  double *v = gkyl_malloc(sizeof(double[4 + (2 * num_species)]));
   gkyl_euler_mixture_prim_vars(num_species, gas_gamma_s, q, v);
 
-  double rho_total = 0.0;
+  double vx_total = v[1];
+  double vy_total = v[2];
+  double vz_total = v[3];
+  double p_total = v[4];
+
+  double *rho_s = gkyl_malloc(sizeof(double[num_species]));
   for (int i = 0; i < num_species; i++) {
-    rho_total += v[i];
+    rho_s[i] = v[4 + num_species + i];
   }
 
-  double vx = v[num_species];
-  double vy = v[num_species + 1];
-  double vz = v[num_species + 2];
-  double p_total = v[num_species + 3];
-
-  double v_mag = sqrt((vx * vx) + (vy * vy) + (vz * vz));
+  double v_mag = sqrt((vx_total * vx_total) + (vy_total * vy_total) + (vz_total * vz_total));
 
   double max_abs_speed = 0.0;
   for (int i = 0; i < num_species; i++) {
-    if (fabs(v_mag) + sqrt(gas_gamma_s[i] * (p_total / rho_total)) > max_abs_speed) {
-      max_abs_speed = fabs(v_mag) + sqrt(gas_gamma_s[i] * (p_total / rho_total));
+    if (fabs(v_mag) + sqrt(gas_gamma_s[i] * (p_total / rho_s[i])) > max_abs_speed) {
+      max_abs_speed = fabs(v_mag) + sqrt(gas_gamma_s[i] * (p_total / rho_s[i]));
     }
   }
 
@@ -77,33 +96,41 @@ gkyl_euler_mixture_max_abs_speed(int num_species, double* gas_gamma_s, const dou
 void
 gkyl_euler_mixture_flux(int num_species, double* gas_gamma_s, const double* q, double* flux)
 {
-  double *v = gkyl_malloc(sizeof(double[4 + num_species]));
+  double *v = gkyl_malloc(sizeof(double[4 + (2 * num_species)]));
   gkyl_euler_mixture_prim_vars(num_species, gas_gamma_s, q, v);
+
+  double rho_total = v[0];
+  double vx_total = v[1];
+  double vy_total = v[2];
+  double vz_total = v[3];
+  double p_total = v[4];
+  double E_total = q[4];
+
+  double *vol_frac_s = gkyl_malloc(sizeof(double[num_species]));
+  double vol_frac_total = 0.0;
+  for (int i = 0; i < num_species - 1; i++) {
+    vol_frac_s[i] = v[5 + i];
+    vol_frac_total += vol_frac_s[i];
+  }
+  vol_frac_s[num_species - 1] = 1.0 - vol_frac_total;
 
   double *rho_s = gkyl_malloc(sizeof(double[num_species]));
   for (int i = 0; i < num_species; i++) {
-    rho_s[i] = v[i];
+    rho_s[i] = v[4 + num_species + i];
   }
 
-  double rho_total = 0.0;
+  flux[0] = rho_total * vx_total;
+  flux[1] = (rho_total * (vx_total * vx_total)) + p_total;
+  flux[2] = rho_total * (vx_total * vy_total);
+  flux[3] = rho_total * (vx_total * vz_total);
+  flux[4] = (E_total * vx_total) + (vx_total * p_total);
+  
+  for (int i = 0; i < num_species - 1; i++) {
+    flux[5 + i] = rho_total * (vx_total * vol_frac_s[i]);
+  }
   for (int i = 0; i < num_species; i++) {
-    rho_total += rho_s[i];
+    flux[4 + num_species + i] = vol_frac_s[i] * (vx_total * rho_s[i]);
   }
-
-  double vx = v[num_species];
-  double vy = v[num_species + 1];
-  double vz = v[num_species + 2];
-  double p_total = v[num_species + 3];
-
-  double Etot = q[num_species + 3];
-
-  for (int i = 0; i < num_species; i++) {
-    flux[i] = rho_s[i] * vx;
-  }
-  flux[num_species] = (rho_total * (vx * vx)) + p_total;
-  flux[num_species + 1] = rho_total * (vx * vy);
-  flux[num_species + 2] = rho_total * (vx * vz);
-  flux[num_species + 3] = (Etot + p_total) * vx;
 }
 
 static inline void
@@ -113,7 +140,7 @@ cons_to_riem(const struct gkyl_wv_eqn* eqn, const double* qstate, const double* 
   int num_species = euler_mixture->num_species;
 
   // TODO: This should use a proper L matrix.
-  for (int i = 0; i < 4 + num_species; i++) {
+  for (int i = 0; i < 4 + (2 * num_species); i++) {
     wout[i] = qin[i];
   }
 }
@@ -125,7 +152,7 @@ riem_to_cons(const struct gkyl_wv_eqn* eqn, const double* qstate, const double* 
   int num_species = euler_mixture->num_species;
 
   // TODO: This should use a proper L matrix.
-  for (int i = 0; i < 4 + num_species; i++) {
+  for (int i = 0; i < 4 + (2 * num_species); i++) {
     qout[i] = win[i];
   }
 }
@@ -135,11 +162,11 @@ euler_mixture_wall(double t, int nc, const double* skin, double* GKYL_RESTRICT g
 {
   long num_species = 2;
 
-  for (int i = 0; i < 4 + num_species; i++) {
+  for (int i = 0; i < 4 + (2 * num_species); i++) {
     ghost[i] = skin[i];
   }
 
-  ghost[num_species] = -ghost[num_species];
+  ghost[1] = -ghost[1];
 }
 
 static void
@@ -147,15 +174,14 @@ euler_mixture_no_slip(double t, int nc, const double* skin, double* GKYL_RESTRIC
 {
   long num_species = 2;
 
-  for (int i = 0; i < num_species; i++) {
-    ghost[i] = skin[i];
+  for (int i = 0; i < 4 + (2 * num_species); i++) {
+    if (i > 0 && i < 4) {
+      ghost[i] = -skin[i];
+    }
+    else {
+      ghost[i] = skin[i];
+    }
   }
-
-  for (int i = num_species; i < 3 + num_species; i++) {
-    ghost[i] = -skin[i];
-  }
-
-  ghost[3 + num_species] = skin[3 + num_species];
 }
 
 static inline void
@@ -163,14 +189,13 @@ rot_to_local(const double* tau1, const double* tau2, const double* norm, const d
 {
   long num_species = 2;
 
-  for (int i = 0; i < num_species; i++) {
+  for (int i = 0; i < 4 + (2 * num_species); i++) {
     qlocal[i] = qglobal[i];
   }
 
-  qlocal[num_species] = (qglobal[num_species] * norm[0]) + (qglobal[num_species + 1] * norm[1]) + (qglobal[num_species + 2] * norm[2]);
-  qlocal[num_species + 1] = (qglobal[num_species] * tau1[0]) + (qglobal[num_species + 1] * tau1[1]) + (qglobal[num_species + 2] * tau1[2]);
-  qlocal[num_species + 2] = (qglobal[num_species] * tau2[0]) + (qglobal[num_species + 1] * tau2[1]) + (qglobal[num_species + 2] * tau2[2]);
-  qlocal[num_species + 3] = qglobal[num_species + 3];
+  qlocal[1] = (qglobal[1] * norm[0]) + (qglobal[2] * norm[1]) + (qglobal[3] * norm[2]);
+  qlocal[2] = (qglobal[1] * tau1[0]) + (qglobal[2] * tau1[1]) + (qglobal[3] * tau1[2]);
+  qlocal[3] = (qglobal[1] * tau2[0]) + (qglobal[2] * tau2[1]) + (qglobal[3] * tau2[2]);
 }
 
 static inline void
@@ -178,14 +203,13 @@ rot_to_global(const double* tau1, const double* tau2, const double* norm, const 
 {
   long num_species = 2;
 
-  for (int i = 0; i < num_species; i++) {
+  for (int i = 0; i < 4 + (2 * num_species); i++) {
     qglobal[i] = qlocal[i];
   }
 
-  qglobal[num_species] = (qlocal[num_species] * norm[0]) + (qlocal[num_species + 1] * tau1[0]) + (qlocal[num_species + 2] * tau2[0]);
-  qglobal[num_species + 1] = (qlocal[num_species] * norm[1]) + (qlocal[num_species + 1] * tau1[1]) + (qlocal[num_species + 2] * tau2[1]);
-  qglobal[num_species + 2] = (qlocal[num_species] * norm[2]) + (qlocal[num_species + 1] * tau1[2]) + (qlocal[num_species + 2] * tau2[2]);
-  qglobal[num_species + 3] = qlocal[num_species + 3];
+  qglobal[1] = (qlocal[1] * norm[0]) + (qlocal[2] * tau1[0]) + (qlocal[3] * tau2[0]);
+  qglobal[2] = (qlocal[1] * norm[1]) + (qlocal[2] * tau1[1]) + (qlocal[3] * tau2[1]);
+  qglobal[3] = (qlocal[1] * norm[2]) + (qlocal[2] * tau1[2]) + (qlocal[3] * tau2[2]);
 }
 
 static double
@@ -199,13 +223,13 @@ wave_lax(const struct gkyl_wv_eqn* eqn, const double* delta, const double* ql, c
   double sr = gkyl_euler_mixture_max_abs_speed(num_species, gas_gamma_s, qr);
   double amax = fmax(sl, sr);
 
-  double *fl = gkyl_malloc(sizeof(double[4 + num_species]));
-  double *fr = gkyl_malloc(sizeof(double[4 + num_species]));
+  double *fl = gkyl_malloc(sizeof(double[4 + (2 * num_species)]));
+  double *fr = gkyl_malloc(sizeof(double[4 + (2 * num_species)]));
   gkyl_euler_mixture_flux(num_species, gas_gamma_s, ql, fl);
   gkyl_euler_mixture_flux(num_species, gas_gamma_s, qr, fr);
 
-  double *w0 = &waves[0], *w1 = &waves[4 + num_species];
-  for (int i = 0; i < 4 + num_species; i++) {
+  double *w0 = &waves[0], *w1 = &waves[4 + (2 * num_species)];
+  for (int i = 0; i < 4 + (2 * num_species); i++) {
     w0[i] = 0.5 * ((qr[i] - ql[i]) - (fr[i] - fl[i]) / amax);
     w1[i] = 0.5 * ((qr[i] - ql[i]) + (fr[i] - fl[i]) / amax);
   }
@@ -222,11 +246,11 @@ qfluct_lax(const struct gkyl_wv_eqn* eqn, const double* ql, const double* qr, co
   const struct wv_euler_mixture *euler_mixture = container_of(eqn, struct wv_euler_mixture, eqn);
   int num_species = euler_mixture->num_species;
 
-  const double *w0 = &waves[0], *w1 = &waves[4 + num_species];
+  const double *w0 = &waves[0], *w1 = &waves[4 + (2 * num_species)];
   double s0m = fmin(0.0, s[0]), s1m = fmin(0.0, s[1]);
   double s0p = fmax(0.0, s[0]), s1p = fmax(0.0, s[1]);
 
-  for (int i = 0; i < 4 + num_species; i++) {
+  for (int i = 0; i < 4 + (2 * num_species); i++) {
     amdq[i] = (s0m * w0[i]) + (s1m * w1[i]);
     apdq[i] = (s0p * w0[i]) + (s1p * w1[i]);
   }
@@ -252,12 +276,12 @@ flux_jump(const struct gkyl_wv_eqn* eqn, const double* ql, const double* qr, dou
   int num_species = euler_mixture->num_species;
   double *gas_gamma_s = euler_mixture->gas_gamma_s;
 
-  double *fr = gkyl_malloc(sizeof(double[4 + num_species]));
-  double *fl = gkyl_malloc(sizeof(double[4 + num_species]));
+  double *fr = gkyl_malloc(sizeof(double[4 + (2 * num_species)]));
+  double *fl = gkyl_malloc(sizeof(double[4 + (2 * num_species)]));
   gkyl_euler_mixture_flux(num_species, gas_gamma_s, ql, fl);
   gkyl_euler_mixture_flux(num_species, gas_gamma_s, qr, fr);
 
-  for (int m = 0; m < 4 + num_species; m++) {
+  for (int m = 0; m < 4 + (2 * num_species); m++) {
     flux_jump[m] = fr[m] - fl[m];
   }
 
@@ -274,16 +298,24 @@ check_inv(const struct gkyl_wv_eqn* eqn, const double* q)
   int num_species = euler_mixture->num_species;
   double *gas_gamma_s = euler_mixture->gas_gamma_s;
 
-  double *v = gkyl_malloc(sizeof(double[4 + num_species]));
+  double *v = gkyl_malloc(sizeof(double[4 + (2 * num_species)]));
   gkyl_euler_mixture_prim_vars(num_species, gas_gamma_s, q, v);
 
   for (int i = 0; i < num_species; i++) {
-    if (v[i] < 0.0) {
+    if (v[4 + num_species + i] < 0.0) {
       return false;
     }
   }
+  
+  double vol_frac_total = 0.0;
+  for (int i = 0; i < num_species - 1; i++) {
+    vol_frac_total += v[5 + i];
+  }
+  if (vol_frac_total > 1.0) {
+    return false;
+  }
 
-  if (v[num_species + 3] < 0.0) {
+  if (v[0] < 0.0 || v[4] < 0.0) {
     return false;
   }
   else {
@@ -307,7 +339,7 @@ euler_mixture_cons_to_diag(const struct gkyl_wv_eqn* eqn, const double* qin, dou
   const struct wv_euler_mixture *euler_mixture = container_of(eqn, struct wv_euler_mixture, eqn);
   int num_species = euler_mixture->num_species;
 
-  for (int i = 0; i < 4 + num_species; i++) {
+  for (int i = 0; i < 4 + (2 * num_species); i++) {
     diag[i] = qin[i];
   }
 }
@@ -318,7 +350,7 @@ euler_mixture_source(const struct gkyl_wv_eqn* eqn, const double* qin, double* s
   const struct wv_euler_mixture *euler_mixture = container_of(eqn, struct wv_euler_mixture, eqn);
   int num_species = euler_mixture->num_species;
 
-  for (int i = 0; i < 4 + num_species; i++) {
+  for (int i = 0; i < 4 + (2 * num_species); i++) {
     sout[i] = 0.0;
   }
 }
@@ -356,8 +388,8 @@ gkyl_wv_euler_mixture_inew(const struct gkyl_wv_euler_mixture_inp* inp)
   struct wv_euler_mixture *euler_mixture = gkyl_malloc(sizeof(struct wv_euler_mixture));
 
   euler_mixture->eqn.type = GKYL_EQN_EULER_MIXTURE;
-  euler_mixture->eqn.num_equations = 4 + inp->num_species;
-  euler_mixture->eqn.num_diag = 4 + inp->num_species;
+  euler_mixture->eqn.num_equations = 4 + (2 * inp->num_species);
+  euler_mixture->eqn.num_diag = 4 + (2 * inp->num_species);
 
   euler_mixture->num_species = inp->num_species;
   euler_mixture->gas_gamma_s = inp->gas_gamma_s;
