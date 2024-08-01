@@ -255,7 +255,7 @@ ts_find_donors(struct gkyl_bc_twistshift *up)
 
     int shear_idx[] = {iter.idx[up->shear_dir_in_ts_grid]};
     int shift_idx[] = {iter.idx[up->shift_dir_in_ts_grid]};
-    long shift_loc = gkyl_range_idx(&up->shift_r, shear_idx);
+    long shift_loc = gkyl_range_idx(&up->shear_r, shear_idx);
     double *shift_c = (double *) gkyl_array_fetch(up->shift, shift_loc);
 
     int num_do_curr = 0;
@@ -1359,7 +1359,7 @@ ts_calc_mats(struct gkyl_bc_twistshift *up)
     ts_grid_cell_boundaries(&up->ts_grid, idx_tar, cellb_tar);
     gkyl_rect_grid_cell_center(&up->ts_grid, idx_tar, xc_tar);
 
-    long shift_loc = gkyl_range_idx(&up->shift_r, iter.idx);
+    long shift_loc = gkyl_range_idx(&up->shear_r, iter.idx);
     double *shift_c = (double *) gkyl_array_fetch(up->shift, shift_loc);
 
     long linidx_do = ts_shift_dir_idx_do_linidx(up->num_do,
