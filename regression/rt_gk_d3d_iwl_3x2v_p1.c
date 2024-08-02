@@ -389,7 +389,7 @@ void bc_shift_func_lo(double t, const double *xc, double* GKYL_RESTRICT fout, vo
   double Lz = app->Lz;
   double r = r_x(x,a_mid);
 
-  return -r0/q0*qprofile(r,R_axis)*Lz;
+  fout[0] = -r0/q0*qprofile(r,R_axis)*Lz;
 }
 
 void bc_shift_func_up(double t, const double *xc, double* GKYL_RESTRICT fout, void *ctx)
@@ -409,24 +409,10 @@ create_ctx(void)
   double qi = eV; // ion charge
   double qe = -eV; // electron charge
 
-  // Plasma parameters. Chosen based on the value of a cubic sline
-  // between the last TS data inside the LCFS and the probe data in
-  // in the far SOL, near R=0.475 m.
-  double AMU = 2.01410177811;
-  double mi  = mp*AMU;   // Deuterium ions.
-  double Te0 = 100*eV;
-  double Ti0 = 100*eV;
-  double n0  = 2.0e19;   // [1/m^3]
-
-  double vte = sqrt(Te0/me), vti = sqrt(Ti0/mi); // Thermal speeds.
-  double c_s = sqrt(Te0/mi); // Sound speed.
-  double omega_ci = fabs(qi*B0/mi); // Ion cyclotron frequency.
-  double rho_s = c_s/omega_ci; // Ion sound gyroradius.
-
   // Geometry and magnetic field.
   double a_shift   = 0.0;                // Parameter in Shafranov shift.
   double Z_axis    = 0.013055028;        // Magnetic axis height [m].
-  double R_axisTrue = 1.6486461          // Change R_axis to fit geometry better.
+  double R_axisTrue = 1.6486461;         // Change R_axis to fit geometry better.
   double R_axis    = 1.6;                // Magnetic axis major radius [m].
   double B_axis    = 2.0*R_axisTrue/R_axis; // Magnetic field at the magnetic axis [T].
   double R_LCFSmid = 2.17;               // Major radius of the LCFS at the outboard midplane [m].
@@ -442,19 +428,34 @@ create_ctx(void)
   double B0        = B_axis*(R_axis/R0); // Magnetic field magnitude in the simulation box [T].
   double kappa     = 1.35;               // Elongation (=1 for no elongation).
   double delta     = 0.4;                // Triangularity (=0 for no triangularity).
-  double Lx        = Rmid_max-Rmid_min;  // Domain size along x.
-  double Ly        = 150*rho_s;          // Domain size along y.
-  double Lz        = 2.*M_PI-1e-10;      // Domain size along magnetic field.
-  double x_min     = 0.;
-  double x_max     = Lx;
-  double y_min     = -Ly/2.;
-  double y_max     =  Ly/2.;
-  double z_min     = -Lz/2.;
-  double z_max     =  Lz/2.;
 
   double x_LCFS    = R_LCFSmid - Rmid_min; // Radial location of the last closed flux surface.
 
-  double q0        = qprofile(r_x(0.5*(x_min+x_max),a_mid),R_axis);    // Magnetic safety factor in the center of domain.
+  // Plasma parameters. Chosen based on the value of a cubic sline
+  // between the last TS data inside the LCFS and the probe data in
+  // in the far SOL, near R=0.475 m.
+  double AMU = 2.01410177811;
+  double mi  = mp*AMU;   // Deuterium ions.
+  double Te0 = 100*eV;
+  double Ti0 = 100*eV;
+  double n0  = 2.0e19;   // [1/m^3]
+
+  double vte = sqrt(Te0/me), vti = sqrt(Ti0/mi); // Thermal speeds.
+  double c_s = sqrt(Te0/mi); // Sound speed.
+  double omega_ci = fabs(qi*B0/mi); // Ion cyclotron frequency.
+  double rho_s = c_s/omega_ci; // Ion sound gyroradius.
+
+  double Lx    = Rmid_max-Rmid_min;  // Domain size along x.
+  double Ly    = 150*rho_s;          // Domain size along y.
+  double Lz    = 2.*M_PI-1e-10;      // Domain size along magnetic field.
+  double x_min = 0.;
+  double x_max = Lx;
+  double y_min = -Ly/2.;
+  double y_max =  Ly/2.;
+  double z_min = -Lz/2.;
+  double z_max =  Lz/2.;
+
+  double q0 = qprofile(r_x(0.5*(x_min+x_max),a_mid),R_axis);    // Magnetic safety factor in the center of domain.
 
   double nuFrac = 0.1;
   // Electron-electron collision freq.
@@ -482,7 +483,7 @@ create_ctx(void)
 
   // Grid parameters
   int Nx = 96;
-  int Nx = 96;
+  int Ny = 96;
   int Nz = 16;
   int Nvpar = 12;
   int Nmu = 6;
@@ -515,7 +516,7 @@ create_ctx(void)
     .Ly     = Ly    ,
     .Lz     = Lz    ,
     .x_min = x_min,  .x_max = x_max,
-    .y_min = y_min,  .y_may = y_may,
+    .y_min = y_min,  .y_max = y_max,
     .z_min = z_min,  .z_max = z_max,
 
     .x_LCFS = x_LCFS,
