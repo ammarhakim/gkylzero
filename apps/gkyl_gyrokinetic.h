@@ -137,6 +137,8 @@ struct gkyl_gyrokinetic_radiation {
   int z[GKYL_MAX_SPECIES];
   int charge_state[GKYL_MAX_SPECIES];
   int num_of_densities[GKYL_MAX_SPECIES]; // Max number of densities to use per charge state
+
+  int factor; // How conservative turning off the radiation is (1=most conservative, 5=least conservative
 };
 
 struct gkyl_gyrokinetic_react_type {

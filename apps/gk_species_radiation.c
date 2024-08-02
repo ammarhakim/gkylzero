@@ -6,10 +6,6 @@ gk_species_radiation_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s
 {
   int cdim = app->cdim, vdim = app->vdim;
   int pdim = cdim+vdim;
-  // Cutoff below which radiation is set to 0. Set to 1eV. Keep the radiation from driving Te negative.
-  // Very little radiation below 1eV for most elements.
-  double T_min_eV = 1.0;
-  rad->vtsq_min = T_min_eV*fabs(s->info.charge)/s->info.mass;
   // make appropriate reduced bases and surface bases for radiation variables
   struct gkyl_basis rad_basis, surf_rad_vpar_basis, surf_rad_mu_basis, surf_vpar_basis, surf_mu_basis;
   if (app->poly_order > 1) {
@@ -50,6 +46,9 @@ gk_species_radiation_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s
   struct all_radiation_states *rad_data=gkyl_read_rad_fit_params();
 
   rad->num_cross_collisions = s->info.radiation.num_cross_collisions;
+  // Make array for cutoff below which radiation is set to 0. Set to 1eV. Keep the radiation from driving Te negative.
+  rad->vtsq_min = mkarr(app->use_gpu, 1, rad->num_cross_collisions);
+  
   // initialize drag coefficients
   for (int i=0; i<rad->num_cross_collisions; ++i) {
     // allocate drag coefficients in vparallel and mu for each collision, both surface and volume expansions
@@ -77,6 +76,22 @@ gk_species_radiation_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s
     }
 
     int status = gkyl_get_fit_params(*rad_data, s->info.radiation.z[i], s->info.radiation.charge_state[i], a, alpha, beta, gamma, v0, s->info.radiation.num_of_densities[i]);
+    double *vtsq = gkyl_array_fetch(rad->vtsq_min, i);
+    double T_min_eV = 0.1372 * pow(v0[0], 1.867);
+    // Very little radiation below Te_min = a*v0^b
+    if (s->info.radiation.factor == 1) { // radiation below 10^-4*max(Lz)
+      T_min_eV = 0.1372 * pow(v0[0], 1.867);
+    } else if (s->info.radiation.factor == 2) {
+      T_min_eV = 0.1674 * pow(v0[0], 1.841);
+    } else if (s->info.radiation.factor == 3) { // radiation below 10^-3*max(Lz)
+      T_min_eV = 0.2118 * pow(v0[0], 1.809);
+    } else if (s->info.radiation.factor == 4) {
+      T_min_eV = 0.2815 * pow(v0[0], 1.768);
+    } else if (s->info.radiation.factor == 5) { // radiation below 10^-2*max(Lz)
+      T_min_eV = 0.4018 * pow(v0[0], 1.714);      
+    }
+    vtsq[0] = T_min_eV * fabs(s->info.charge)/s->info.mass;
+    
     if (status == 1) {
       printf("No radiation fits exist for z=%d, charge state=%d\n",s->info.radiation.z[i], s->info.radiation.charge_state[i]);
     }
@@ -164,6 +179,17 @@ void
 gk_species_radiation_moms(gkyl_gyrokinetic_app *app, const struct gk_species *species,
   struct gk_rad_drag *rad, const struct gkyl_array *fin[], const struct gkyl_array *fin_neut[])
 {
+  // compute needed moments
+  gk_species_moment_calc(&rad->lab_moms, species->local, app->local, species->f);
+  if (app->use_gpu) {
+    gkyl_mom_calc_bcorr_advance_cu(rad->bcorr_calc, &species->local, &app->local, species->f, rad->boundary_corrections);
+    gkyl_prim_lbo_calc_advance_cu(rad->coll_pcalc, &app->local, rad->lab_moms.marr, rad->boundary_corrections, rad->prim_moms);
+  } else {
+    gkyl_mom_calc_bcorr_advance(rad->bcorr_calc, &species->local, &app->local, species->f, rad->boundary_corrections);
+    gkyl_prim_lbo_calc_advance(rad->coll_pcalc, &app->local, rad->lab_moms.marr, rad->boundary_corrections, rad->prim_moms);
+  }
+  gkyl_array_set_offset(rad->vtsq, 1.0, rad->prim_moms, 1*app->confBasis.num_basis);
+
   gkyl_array_clear(rad->nvnu_surf, 0.0);
   gkyl_array_clear(rad->nvnu, 0.0);
   gkyl_array_clear(rad->nvsqnu_surf, 0.0);
@@ -178,26 +204,17 @@ gk_species_radiation_moms(gkyl_gyrokinetic_app *app, const struct gk_species *sp
     // divide out Jacobian from ion density before computation of final drag coefficient
     gkyl_dg_div_op_range(rad->moms[i].mem_geo, app->confBasis, 0, rad->moms[i].marr, 0,
       rad->moms[i].marr, 0, app->gk_geom->jacobgeo, &app->local);
-    
+
+    const double* vtsq_min_d = gkyl_array_cfetch(rad->vtsq_min, i);    
     gkyl_dg_calc_gk_rad_vars_nI_nu_advance(rad->calc_gk_rad_vars[i], 
       &app->local, &species->local, 
       rad->vnu_surf[i], rad->vnu[i], 
       rad->vsqnu_surf[i], rad->vsqnu[i], 
       rad->moms[i].marr, 
       rad->nvnu_surf, rad->nvnu, 
-      rad->nvsqnu_surf, rad->nvsqnu);
+      rad->nvsqnu_surf, rad->nvsqnu,
+      vtsq_min_d[0], rad->vtsq);
   }
-
-  // compute needed moments
-  gk_species_moment_calc(&rad->lab_moms, species->local, app->local, species->f);
-  if (app->use_gpu) {
-    gkyl_mom_calc_bcorr_advance_cu(rad->bcorr_calc, &species->local, &app->local, species->f, rad->boundary_corrections);
-    gkyl_prim_lbo_calc_advance_cu(rad->coll_pcalc, &app->local, rad->lab_moms.marr, rad->boundary_corrections, rad->prim_moms);
-  } else {
-    gkyl_mom_calc_bcorr_advance(rad->bcorr_calc, &species->local, &app->local, species->f, rad->boundary_corrections);
-    gkyl_prim_lbo_calc_advance(rad->coll_pcalc, &app->local, rad->lab_moms.marr, rad->boundary_corrections, rad->prim_moms);
-  }
-  gkyl_array_set_offset(rad->vtsq, 1.0, rad->prim_moms, 1*app->confBasis.num_basis);
 }
 
 // computes emissivity
@@ -223,13 +240,15 @@ gk_species_radiation_emissivity(gkyl_gyrokinetic_app *app, struct gk_species *sp
     // divide out Jacobian from ion density before computation of final drag coefficient
     gkyl_dg_div_op_range(rad->moms[i].mem_geo, app->confBasis, 0, rad->moms[i].marr, 0,
       rad->moms[i].marr, 0, app->gk_geom->jacobgeo, &app->local);
+    const double* vtsq_min_d = gkyl_array_cfetch(rad->vtsq_min, i);    
     gkyl_dg_calc_gk_rad_vars_nI_nu_advance(rad->calc_gk_rad_vars[i], 
       &app->local, &species->local, 
       rad->vnu_surf[i], rad->vnu[i], 
       rad->vsqnu_surf[i], rad->vsqnu[i], 
       rad->moms[i].marr, 
       rad->nvnu_surf, rad->nvnu, 
-      rad->nvsqnu_surf, rad->nvsqnu);
+      rad->nvsqnu_surf, rad->nvsqnu,
+      vtsq_min_d[0], rad->vtsq);
     
     gkyl_dg_updater_rad_gyrokinetic_advance(rad->drag_slvr, &species->local,
       species->f, species->cflrate, rad->emissivity_rhs);
