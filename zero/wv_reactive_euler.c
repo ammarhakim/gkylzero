@@ -23,7 +23,6 @@ gkyl_reactive_euler_prim_vars(double gas_gamma, double energy_of_formation, cons
   v[1] = momx / rho;
   v[2] = momy / rho;
   v[3] = momz / rho;
-  //[4] = (gas_gamma - 1.0) * (Etot - (0.5 * ((momx * momx) + (momy * momy) + (momz * momz)) / rho));
   v[4] = specific_internal_energy * (gas_gamma - 1.0) * rho;
   v[5] = reaction_density / rho;
 }
@@ -184,6 +183,117 @@ qfluct_lax_l(const struct gkyl_wv_eqn* eqn, enum gkyl_wv_flux_type type, const d
 }
 
 static double
+wave_roe(const struct gkyl_wv_eqn* eqn, const double* delta, const double* ql, const double* qr, double* waves, double* s)
+{
+  const struct wv_reactive_euler *reactive_euler = container_of(eqn, struct wv_reactive_euler, eqn);
+  double gas_gamma = reactive_euler->gas_gamma;
+  double energy_of_formation = reactive_euler->energy_of_formation;
+
+  double rho_l = ql[0];
+  double rho_r = qr[0];
+
+  double vl[6] = { 0.0 };
+  double vr[6] = { 0.0 };
+  gkyl_reactive_euler_prim_vars(gas_gamma, energy_of_formation, ql, vl);
+  gkyl_reactive_euler_prim_vars(gas_gamma, energy_of_formation, qr, vr);
+  double p_l = vl[4];
+  double p_r = vr[4];
+
+  double sqrt_rho_l = sqrt(rho_l);
+  double sqrt_rho_r = sqrt(rho_r);
+  double roe_avg_l = 1.0 / sqrt_rho_l;
+  double roe_avg_r = 1.0 / sqrt_rho_r;
+  double roe_avg_sq = 1.0 / (sqrt_rho_l + sqrt_rho_r);
+
+  double vx = ((ql[1] * roe_avg_l) + (qr[1] * roe_avg_r)) * roe_avg_sq;
+  double vy = ((ql[2] * roe_avg_l) + (qr[2] * roe_avg_r)) * roe_avg_sq;
+  double vz = ((ql[3] * roe_avg_l) + (qr[3] * roe_avg_r)) * roe_avg_sq;
+  double enth = (((ql[4] + p_l) * roe_avg_l) + ((qr[4] + p_r) * roe_avg_r)) * roe_avg_sq;
+  double reaction_progress = ((ql[5] * roe_avg_l) + (qr[5] * roe_avg_r)) * roe_avg_sq;
+
+  double vel_sq = ((vx * vx) + (vy * vy) + (vz * vz));
+  double a_sq = (gas_gamma - 1.0) * (enth - (0.5 * vel_sq));
+  double a = sqrt(a_sq);
+  double gamma1_over_a_sq = (gas_gamma - 1.0) / a_sq;
+  double internal_enth = enth - vel_sq;
+
+  double a4 = gamma1_over_a_sq * ((internal_enth * delta[0]) + (vx * delta[1]) + (vy * delta[2]) + (vz * delta[3]) - delta[4]);
+  double a2 = delta[2] - (vy * delta[0]);
+  double a3 = delta[3] - (vz * delta[0]);
+  double a5 = 0.5 * (delta[1] + (((a - vx) * delta[0]) - (a * a4))) / a;
+  double a1 = delta[0] - a4 - a5;
+  double a6 = delta[5] - (reaction_progress * delta[0]);
+
+  double *wv;
+  wv = &waves[0];
+  wv[0] = a1;
+  wv[1] = a1 * (vx - a);
+  wv[2] = a1 * vy;
+  wv[3] = a1 * vz;
+  wv[4] = a1 * (enth - (vx * a));
+  wv[5] = a1 * reaction_progress;
+  s[0] = vx - a;
+
+  wv = &waves[6];
+  wv[0] = a4;
+  wv[1] = a4 * vx;
+  wv[2] = (a4 * vy) + a2;
+  wv[3] = (a4 * vz) + a3;
+  wv[4] = (0.5 * a4 * vel_sq) + (a2 * vy) + (a3 * vz);
+  wv[5] = (a4 * reaction_progress) + a6;
+  s[1] = vx;
+
+  wv = &waves[12];
+  wv[0] = a5;
+  wv[1] = a5 * (vx + a);
+  wv[2] = a5 * vy;
+  wv[3] = a5 * vz;
+  wv[4] = a5 * (enth + (vx * a));
+  wv[5] = a5 * reaction_progress;
+  s[2] = vx + a;
+
+  return fabs(vx) + a;
+}
+
+static void
+qfluct_roe(const struct gkyl_wv_eqn* eqn, const double* ql, const double* qr, const double* waves, const double* s, double* amdq, double* apdq)
+{
+  const double *w0 = &waves[0], *w1 = &waves[6], *w2 = &waves[12];
+  double s0m = fmin(0.0, s[0]), s1m = fmin(0.0, s[1]), s2m = fmin(0.0, s[2]);
+  double s0p = fmax(0.0, s[0]), s1p = fmax(0.0, s[1]), s2p = fmax(0.0, s[2]);
+
+  for (int i = 0; i < 6; i++) {
+    amdq[i] = (s0m * w0[i]) + (s1m * w1[i]) + (s2m * w2[i]);
+    apdq[i] = (s0p * w0[i]) + (s1p * w1[i]) + (s2p * w2[i]);
+  }
+}
+
+static double
+wave_roe_l(const struct gkyl_wv_eqn* eqn, enum gkyl_wv_flux_type type, const double* delta, const double* ql, const double* qr, double* waves, double* s)
+{
+  if (type == GKYL_WV_HIGH_ORDER_FLUX) {
+    return wave_roe(eqn, delta, ql, qr, waves, s);
+  }
+  else {
+    return wave_lax(eqn, delta, ql, qr, waves, s);
+  }
+
+  return 0.0; // Unreachable code.
+}
+
+static void
+qfluct_roe_l(const struct gkyl_wv_eqn* eqn, enum gkyl_wv_flux_type type, const double* ql, const double* qr, const double* waves, const double* s,
+  double* amdq, double* apdq)
+{
+  if (type == GKYL_WV_HIGH_ORDER_FLUX) {
+    return qfluct_roe(eqn, ql, qr, waves, s, amdq, apdq);
+  }
+  else {
+    return qfluct_lax(eqn, ql, qr, waves, s, amdq, apdq);
+  }
+}
+
+static double
 flux_jump(const struct gkyl_wv_eqn* eqn, const double* ql, const double* qr, double* flux_jump)
 {
   const struct wv_reactive_euler *reactive_euler = container_of(eqn, struct wv_reactive_euler, eqn);
@@ -300,7 +410,7 @@ gkyl_wv_reactive_euler_new(double gas_gamma, double specific_heat_capacity, doub
       .energy_of_formation = energy_of_formation,
       .ignition_temperature = ignition_temperature,
       .reaction_rate = reaction_rate,
-      .rp_type = WV_REACTIVE_EULER_RP_LAX,
+      .rp_type = WV_REACTIVE_EULER_RP_ROE,
       .use_gpu = use_gpu,
     }
   );
@@ -325,6 +435,11 @@ gkyl_wv_reactive_euler_inew(const struct gkyl_wv_reactive_euler_inp* inp)
     reactive_euler->eqn.num_waves = 2;
     reactive_euler->eqn.waves_func = wave_lax_l;
     reactive_euler->eqn.qfluct_func = qfluct_lax_l;
+  }
+  else if (inp->rp_type == WV_REACTIVE_EULER_RP_ROE) {
+    reactive_euler->eqn.num_waves = 3;
+    reactive_euler->eqn.waves_func = wave_roe_l;
+    reactive_euler->eqn.qfluct_func = qfluct_roe_l;
   }
 
   reactive_euler->eqn.flux_jump = flux_jump;
