@@ -29,6 +29,17 @@ static const unsigned BZ = 5;
 static const unsigned PHIE = 6;
 static const unsigned PHIM = 7;
 
+// Indexing for Braginskii terms
+static const unsigned PIXX = 0;
+static const unsigned PIXY = 1;
+static const unsigned PIXZ = 2;
+static const unsigned PIYY = 3;
+static const unsigned PIYZ = 4;
+static const unsigned PIZZ = 5;
+static const unsigned QX = 6;
+static const unsigned QY = 7;
+static const unsigned QZ = 8;
+
 // lower case l/u denote lower/upper with respect to edge
 
 // Calculate symmetrized gradient 1D
@@ -240,4 +251,59 @@ static inline double
 calc_tau(double coulomb_log, double coll_fac, double epsilon0, double charge1, double charge2, double mass1, double mass2, double rho, double temp)
 {
   return coll_fac*6.0*sqrt(2.0*M_PI*mass1*temp*M_PI*mass2*temp*M_PI*mass2*temp)*epsilon0*epsilon0/(coulomb_log*charge1*charge1*charge2*charge2*rho);
+}
+
+// Calculate magnetized parallel viscous stress tensor
+static void
+calc_pi_par(double eta_par, double b_avg[3], double w[6], double pi_par[6])
+{ 
+  // parallel rate of strain = (bb - 1/3 I) : W
+  double par_ros = (b_avg[0]*b_avg[0] - 1.0/3.0)*w[0] + 2.0*b_avg[0]*b_avg[1]*w[1] + 2.0*b_avg[0]*b_avg[2]*w[2] 
+                  + (b_avg[1]*b_avg[1] - 1.0/3.0)*w[3] + 2.0*b_avg[1]*b_avg[2]*w[4] 
+                  + (b_avg[2]*b_avg[2] - 1.0/3.0)*w[5];
+
+  // pi_par = -eta_par * (bb - 1/3 I) (bb - 1/3 I) : W
+  pi_par[0] = -eta_par*(b_avg[0]*b_avg[0] - 1.0/3.0)*par_ros;
+  pi_par[1] = -eta_par*b_avg[0]*b_avg[1]*par_ros;
+  pi_par[2] = -eta_par*b_avg[0]*b_avg[2]*par_ros;
+  pi_par[3] = -eta_par*(b_avg[1]*b_avg[1] - 1.0/3.0)*par_ros;
+  pi_par[4] = -eta_par*b_avg[1]*b_avg[2]*par_ros;
+  pi_par[5] = -eta_par*(b_avg[2]*b_avg[2] - 1.0/3.0)*par_ros;
+}
+
+// Calculate magnetized perpendicular viscous stress tensor
+static void
+calc_pi_perp(double eta_perp, double b_avg[3], double w[6], double pi_perp[6])
+{   
+  // (b . W . I)_x = b_x W_xx + b_y W_xy + b_z W_xz
+  double bWIx = w[0]*b_avg[0] + w[1]*b_avg[1] + w[2]*b_avg[2];
+  // (b . W . I)_y = b_x W_xy + b_y W_yy + b_z W_yz  
+  double bWIy = w[1]*b_avg[0] + w[3]*b_avg[1] + w[4]*b_avg[2];
+  // (b . W . I)_z = b_x W_xz + b_y W_yz + b_z W_zz
+  double bWIz = w[0]*b_avg[2] + w[4]*b_avg[1] + w[5]*b_avg[2];
+
+  // b . W . b
+  double bWb = b_avg[0]*b_avg[0]*w[0] + 2.0*b_avg[0]*b_avg[1]*w[1] + 2.0*b_avg[0]*b_avg[2]*w[2] 
+              + b_avg[1]*b_avg[1]*w[3] + 2.0*b_avg[1]*b_avg[2]*w[4] 
+              + b_avg[2]*b_avg[2]*w[5];
+
+  // pi_perp = -eta_perp * ((I - bb) . W . (I + 3bb) + (I + 3bb) . W . (I - bb))
+  pi_perp[0] = -eta_perp*(2.0*(w[0] + 2.0*b_avg[0]*bWIx - 3.0*b_avg[0]*b_avg[0]*bWb));
+  pi_perp[1] = -eta_perp*(2.0*w[1] + 2.0*(b_avg[1]*bWIx + b_avg[0]*bWIy) - 6.0*b_avg[0]*b_avg[1]*bWb);
+  pi_perp[2] = -eta_perp*(2.0*w[2] + 2.0*(b_avg[2]*bWIx + b_avg[0]*bWIz) - 6.0*b_avg[0]*b_avg[2]*bWb);
+  pi_perp[3] = -eta_perp*(2.0*(w[3] + 2.0*b_avg[1]*bWIy - 3.0*b_avg[1]*b_avg[1]*bWb));
+  pi_perp[4] = -eta_perp*(2.0*w[4] + 2.0*(b_avg[2]*bWIy + b_avg[1]*bWIz) - 6.0*b_avg[1]*b_avg[2]*bWb);
+  pi_perp[5] = -eta_perp*(2.0*(w[5] + 2.0*b_avg[2]*bWIz - 3.0*b_avg[2]*b_avg[2]*bWb));
+}
+
+// Calculate magnetized gyroviscous viscous stress tensor
+static void
+calc_pi_cross(double eta_cross, double b_avg[3], double w[6], double pi_cross[6])
+{
+  pi_cross[0] = 0.0;
+  pi_cross[1] = 0.0;
+  pi_cross[2] = 0.0;
+  pi_cross[3] = 0.0;
+  pi_cross[4] = 0.0;
+  pi_cross[5] = 0.0;
 }

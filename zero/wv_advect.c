@@ -100,6 +100,12 @@ max_speed(const struct gkyl_wv_eqn *eqn, const double *q)
   return fabs(advect->c);
 }
 
+static inline void
+advect_source(const struct gkyl_wv_eqn* eqn, const double* qin, double* sout)
+{
+  sout[0] = 0.0;
+}
+
 struct gkyl_wv_eqn *gkyl_wv_advect_new(double c) {
   struct wv_advect *advect = gkyl_malloc(sizeof(struct wv_advect));
 
@@ -123,6 +129,8 @@ struct gkyl_wv_eqn *gkyl_wv_advect_new(double c) {
   advect->eqn.riem_to_cons = riem_to_cons;
 
   advect->eqn.cons_to_diag = gkyl_default_cons_to_diag;
+
+  advect->eqn.source_func = advect_source;
 
   advect->eqn.ref_count = gkyl_ref_count_init(advect_free);
 

@@ -188,7 +188,7 @@ UNIT_CU_OBJS =
 # There is some problem with the Vlasov and Maxwell kernels that is causing some unit builds to fail
 ifdef USING_NVCC
 #	UNIT_CU_SRCS = $(shell find unit -name *.cu)
-	UNIT_CU_SRCS = unit/ctest_cusolver.cu unit/ctest_alloc_cu.cu unit/ctest_basis_cu.cu unit/ctest_array_cu.cu unit/ctest_mom_vlasov_cu.cu unit/ctest_range_cu.cu unit/ctest_rect_grid_cu.cu unit/ctest_wave_geom_cu.cu unit/ctest_wv_euler_cu.cu
+	UNIT_CU_SRCS = unit/ctest_cusolver.cu unit/ctest_alloc_cu.cu unit/ctest_basis_cu.cu unit/ctest_array_cu.cu unit/ctest_mom_vlasov_cu.cu unit/ctest_range_cu.cu unit/ctest_rect_grid_cu.cu unit/ctest_wave_geom_cu.cu unit/ctest_wv_euler_cu.cu unit/ctest_wv_maxwell_cu.cu unit/ctest_wv_ten_moment_cu.cu
 ifdef USING_CUDSS
 	UNIT_CU_SRCS += unit/ctest_cudss.cu
 endif
