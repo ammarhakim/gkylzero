@@ -668,7 +668,10 @@ main(int argc, char **argv)
       .temp = evalTempD0Init,      
     },
 
-    .bcx = { GKYL_SPECIES_ABSORB, GKYL_SPECIES_ABSORB},
+    .bcx = {
+      .lower = { .type = GKYL_SPECIES_ABSORB },
+      .upper = { .type = GKYL_SPECIES_ABSORB },
+    },
     
     .num_diag_moments = 3,
     .diag_moments = { "M0", "M1i", "M2"}, //, "M2par", "M2perp" },
