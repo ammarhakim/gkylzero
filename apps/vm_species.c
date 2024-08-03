@@ -609,7 +609,7 @@ vm_species_calc_L2(gkyl_vlasov_app *app, double tm, const struct vm_species *spe
     gkyl_array_reduce_range(L2, species->L2_f, GKYL_SUM, &species->local);
   }
   double L2_global[1] = { 0.0 };
-  gkyl_comm_allreduce(app->comm, GKYL_DOUBLE, GKYL_SUM, 1, L2, L2_global);
+  gkyl_comm_allreduce_host(app->comm, GKYL_DOUBLE, GKYL_SUM, 1, L2, L2_global);
   
   gkyl_dynvec_append(species->integ_L2_f, tm, L2_global);  
 }
