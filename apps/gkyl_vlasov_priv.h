@@ -424,6 +424,7 @@ struct vm_species {
   struct gkyl_array *app_accel_host; // host copy for use in IO and projecting
   gkyl_proj_on_basis *app_accel_proj; // projector for acceleration
 
+  bool calc_bflux; // are we computing boundary fluxes?
   struct vm_boundary_fluxes bflux; // boundary flux object
 
   int num_init; // Number of initial condition functions.
