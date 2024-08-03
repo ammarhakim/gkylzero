@@ -436,7 +436,7 @@ gkyl_vlasov_poisson_app_write_field(gkyl_vlasov_poisson_app* app, double tm, int
     char fileNm[sz+1]; // ensures no buffer overflow
     snprintf(fileNm, sizeof fileNm, fmt, app->name, frame);
   
-    gkyl_comm_array_write(app->comm, &app->grid, &app->local, mt, app->field->phi_host, fileNm);
+    gkyl_comm_array_write(app->comm, &app->grid, &app->local_ext, mt, app->field->phi_host, fileNm);
   
     vlasov_poisson_array_meta_release(mt);
   }
