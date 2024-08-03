@@ -1,11 +1,14 @@
 #include <gkyl_alloc.h>
 #include <gkyl_moment_multib.h>
-#include <gkyl_mpi_comm.h>
 #include <gkyl_null_comm.h>
 #include <gkyl_wv_euler.h>
 
 #include <rt_arg_parse.h>
+
+#ifdef GKYL_HAVE_MPI
 #include <mpi.h>
+#include <gkyl_mpi_comm.h>
+#endif
 
 // Gas constant
 static const double gas_gamma = 1.4;

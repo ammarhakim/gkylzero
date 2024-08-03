@@ -4,7 +4,11 @@
 #include <gkyl_tok_geo.h>
 
 #include <rt_arg_parse.h>
+
+#ifdef GKYL_HAVE_MPI
 #include <mpi.h>
+#include <gkyl_mpi_comm.h>
+#endif
 
 struct gkyl_block_geom*
 create_block_geom(void)
