@@ -408,7 +408,7 @@ pkpm_field_calc_energy(gkyl_pkpm_app *app, double tm, const struct pkpm_field *f
   }
 
   double energy_global[6] = { 0.0 };
-  gkyl_comm_allreduce(app->comm, GKYL_DOUBLE, GKYL_SUM, 6, energy, energy_global);
+  gkyl_comm_allreduce_host(app->comm, GKYL_DOUBLE, GKYL_SUM, 6, energy, energy_global);
   
   gkyl_dynvec_append(field->integ_energy, tm, energy_global);
 }

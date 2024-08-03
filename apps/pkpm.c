@@ -380,7 +380,7 @@ gkyl_pkpm_app_calc_integrated_mom(gkyl_pkpm_app* app, double tm)
       gkyl_array_reduce_range(avals, s->integ_pkpm_mom, GKYL_SUM, &(app->local));
     }
 
-    gkyl_comm_allreduce(app->comm, GKYL_DOUBLE, GKYL_SUM, 9, avals, avals_global);
+    gkyl_comm_allreduce_host(app->comm, GKYL_DOUBLE, GKYL_SUM, 9, avals, avals_global);
     gkyl_dynvec_append(s->integ_diag, tm, avals_global);
   }
 
@@ -703,7 +703,7 @@ comm_reduce_app_stat(const gkyl_pkpm_app* app,
   };
 
   int64_t l_red_global[L_END];
-  gkyl_comm_allreduce(app->comm, GKYL_INT_64, GKYL_MAX, L_END, l_red, l_red_global);
+  gkyl_comm_allreduce_host(app->comm, GKYL_INT_64, GKYL_MAX, L_END, l_red, l_red_global);
 
   global->nup = l_red_global[NUP];
   global->nfeuler = l_red_global[NFEULER];
@@ -744,7 +744,7 @@ comm_reduce_app_stat(const gkyl_pkpm_app* app,
   };
 
   double d_red_global[D_END];
-  gkyl_comm_allreduce(app->comm, GKYL_DOUBLE, GKYL_MAX, D_END, d_red, d_red_global);
+  gkyl_comm_allreduce_host(app->comm, GKYL_DOUBLE, GKYL_MAX, D_END, d_red, d_red_global);
   
   global->total_tm = d_red_global[TOTAL_TM];
   global->rk3_tm = d_red_global[RK3_TM];
@@ -770,14 +770,14 @@ comm_reduce_app_stat(const gkyl_pkpm_app* app,
 
   // misc data needing reduction
 
-  gkyl_comm_allreduce(app->comm, GKYL_DOUBLE, GKYL_MAX, 2, local->stage_2_dt_diff,
+  gkyl_comm_allreduce_host(app->comm, GKYL_DOUBLE, GKYL_MAX, 2, local->stage_2_dt_diff,
     global->stage_2_dt_diff);
-  gkyl_comm_allreduce(app->comm, GKYL_DOUBLE, GKYL_MAX, 2, local->stage_3_dt_diff,
+  gkyl_comm_allreduce_host(app->comm, GKYL_DOUBLE, GKYL_MAX, 2, local->stage_3_dt_diff,
     global->stage_3_dt_diff);
 
-  gkyl_comm_allreduce(app->comm, GKYL_DOUBLE, GKYL_MAX, GKYL_MAX_SPECIES, local->species_lbo_coll_drag_tm,
+  gkyl_comm_allreduce_host(app->comm, GKYL_DOUBLE, GKYL_MAX, GKYL_MAX_SPECIES, local->species_lbo_coll_drag_tm,
     global->species_lbo_coll_drag_tm);
-  gkyl_comm_allreduce(app->comm, GKYL_DOUBLE, GKYL_MAX, GKYL_MAX_SPECIES, local->species_lbo_coll_diff_tm,
+  gkyl_comm_allreduce_host(app->comm, GKYL_DOUBLE, GKYL_MAX, GKYL_MAX_SPECIES, local->species_lbo_coll_diff_tm,
     global->species_lbo_coll_diff_tm);
 }
 
