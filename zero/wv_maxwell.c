@@ -21,6 +21,14 @@ gkyl_wv_maxwell_free(const struct gkyl_ref_count *ref)
   gkyl_free(maxwell);  
 }
 
+static inline void
+maxwell_source(const struct gkyl_wv_eqn* eqn, const double* qin, double* sout)
+{
+  for (int i = 0; i < 8; i++) {
+    sout[i] = 0.0;
+  }
+}
+
 struct gkyl_wv_eqn*
 gkyl_wv_maxwell_new(double c, double e_fact, double b_fact, bool use_gpu)
 {
@@ -55,6 +63,8 @@ gkyl_wv_maxwell_new(double c, double e_fact, double b_fact, bool use_gpu)
   maxwell->eqn.wall_bc_func = maxwell_wall;
 
   maxwell->eqn.cons_to_diag = maxwell_cons_to_diag;
+
+  maxwell->eqn.source_func = maxwell_source;
 
   maxwell->eqn.flags = 0;
   GKYL_CLEAR_CU_ALLOC(maxwell->eqn.flags);

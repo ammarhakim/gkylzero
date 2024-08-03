@@ -21,6 +21,14 @@ gkyl_ten_moment_free(const struct gkyl_ref_count *ref)
   gkyl_free(ten_moment);
 }
 
+static inline void
+ten_moment_source(const struct gkyl_wv_eqn* eqn, const double* qin, double* sout)
+{
+  for (int i = 0; i < 10; i++) {
+    sout[i] = 0.0;
+  }
+}
+
 struct gkyl_wv_eqn*
 gkyl_wv_ten_moment_new(double k0, bool use_grad_closure, bool use_gpu)
 {
@@ -53,6 +61,8 @@ gkyl_wv_ten_moment_new(double k0, bool use_grad_closure, bool use_gpu)
   ten_moment->eqn.wall_bc_func = ten_moment_wall;
 
   ten_moment->eqn.cons_to_diag = gkyl_default_cons_to_diag;
+
+  ten_moment->eqn.source_func = ten_moment_source;
 
   ten_moment->eqn.flags = 0;
   GKYL_CLEAR_CU_ALLOC(ten_moment->eqn.flags);

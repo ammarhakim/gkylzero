@@ -30,6 +30,8 @@ extern inline void gkyl_wv_eqn_rotate_to_global(const struct gkyl_wv_eqn *eqn,
   const double *tau1, const double *tau2, const double *norm,
   const double *GKYL_RESTRICT qlocal, double *GKYL_RESTRICT qglobal);
 
+extern inline void gkyl_wv_eqn_source(const struct gkyl_wv_eqn* eqn, const double* qin, double* sout);
+
 bool
 gkyl_wv_eqn_is_cu_dev(const struct gkyl_wv_eqn *eqn)
 {
