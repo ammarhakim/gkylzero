@@ -613,10 +613,10 @@ main(int argc, char **argv)
         { .react_id = GKYL_REACT_RECOMB,
           .type_self = GKYL_SELF_ELC,
           .ion_id = GKYL_ION_H,
-    	  .elc_nm = "elc", // gets called for other rxn. fix this?
+          .elc_nm = "elc", // gets called for other rxn. fix this?
           .ion_nm = "ion",
           .recvr_nm = "neut",
-	  .charge_state = 0,
+          .charge_state = 0,
           .ion_mass = ctx.mass_ion,
           .elc_mass = ctx.mass_elc,
         },
@@ -681,17 +681,17 @@ main(int argc, char **argv)
         { .react_id = GKYL_REACT_RECOMB,
           .type_self = GKYL_SELF_ION,
           .ion_id = GKYL_ION_H,
-    	  .elc_nm = "elc", // gets called for other rxn. fix this?
+          .elc_nm = "elc", // gets called for other rxn. fix this?
           .ion_nm = "ion",
           .recvr_nm = "neut",
-	  .charge_state = 0,
+          .charge_state = 0,
           .ion_mass = ctx.mass_ion,
           .elc_mass = ctx.mass_elc,
         },
         { .react_id = GKYL_REACT_CX,
           .type_self = GKYL_SELF_ION,
           .ion_id = GKYL_ION_D,
-    	  .elc_nm = "elc", // gets called for other rxn. fix this?
+          .elc_nm = "elc", // gets called for other rxn. fix this?
           .ion_nm = "ion",
           .partner_nm = "neut",
           .ion_mass = ctx.mass_ion,
@@ -750,17 +750,17 @@ main(int argc, char **argv)
         { .react_id = GKYL_REACT_RECOMB,
           .type_self = GKYL_SELF_RECVR,
           .ion_id = GKYL_ION_H,
-    	  .elc_nm = "elc",
+          .elc_nm = "elc",
           .ion_nm = "ion",
           .recvr_nm = "neut",
-	  .charge_state = 0,
+          .charge_state = 0,
           .ion_mass = ctx.mass_ion,
           .elc_mass = ctx.mass_elc,
         },
-	{ .react_id = GKYL_REACT_CX,
+        { .react_id = GKYL_REACT_CX,
           .type_self = GKYL_SELF_PARTNER,
           .ion_id = GKYL_ION_D,
-    	  .elc_nm = "elc", // gets called for other rxn. fix this?
+          .elc_nm = "elc", // gets called for other rxn. fix this?
           .ion_nm = "ion",
           .partner_nm = "neut",
           .ion_mass = ctx.mass_ion,
@@ -769,8 +769,15 @@ main(int argc, char **argv)
       },
     },
 
-    .bcx = { GKYL_SPECIES_ABSORB, GKYL_SPECIES_ABSORB },
-    .bcz = { GKYL_SPECIES_REFLECT, GKYL_SPECIES_REFLECT },
+    .bcx = {
+      .lower = { .type = GKYL_SPECIES_ABSORB, },
+      .upper = { .type = GKYL_SPECIES_ABSORB, },
+    },
+
+    .bcz = {
+      .lower = { .type = GKYL_SPECIES_REFLECT, },
+      .upper = { .type = GKYL_SPECIES_REFLECT, },
+    },
     
     .num_diag_moments = 3,
     .diag_moments = { "M0", "M1i", "M2"},
