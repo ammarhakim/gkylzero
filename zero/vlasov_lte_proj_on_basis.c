@@ -304,11 +304,13 @@ gkyl_vlasov_lte_proj_on_basis_inew(const struct gkyl_vlasov_lte_proj_on_basis_in
     gkyl_mat_mm_array_mem_release(phase_nodal_to_modal_mem_ho);
 
     // initialize data needed for conf-space quadrature on device 
-    up->tot_conf_quad = init_quad_values(up->cdim, &up->conf_basis, num_quad,
+    up->tot_conf_quad = init_quad_values(up->cdim, &up->conf_basis, 
+      inp->quad_type, num_quad,
       &up->conf_ordinates, &up->conf_weights, &up->conf_basis_at_ords, up->use_gpu);
 
     // initialize data needed for phase-space quadrature on device 
-    up->tot_quad = init_quad_values(up->cdim, &up->phase_basis, num_quad,
+    up->tot_quad = init_quad_values(up->cdim, &up->phase_basis, 
+      inp->quad_type, num_quad,
       &up->ordinates, &up->weights, &up->basis_at_ords, up->use_gpu);
 
     int pidx[GKYL_MAX_DIM];
