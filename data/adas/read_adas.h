@@ -46,7 +46,7 @@ minmax_from_numpy(FILE *fp, long sz, double minmax[2])
 }
 
 void
-read_adas_field_iz(enum gkyl_ion_type type_ion, struct adas_field *data, const char *base);
+read_adas_field_iz(enum gkyl_ion_type type_ion, struct adas_field *data);
  
 void
-read_adas_field_recomb(enum gkyl_ion_type type_ion, struct adas_field *data, const char *base);
+read_adas_field_recomb(enum gkyl_ion_type type_ion, struct adas_field *data);

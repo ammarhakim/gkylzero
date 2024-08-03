@@ -95,7 +95,7 @@ vlasov_forward_euler(gkyl_vlasov_app* app, double tcurr, double dt,
 
   // compute minimum time-step across all processors
   double dtmin_local = dtmin, dtmin_global;
-  gkyl_comm_allreduce(app->comm, GKYL_DOUBLE, GKYL_MIN, 1, &dtmin_local, &dtmin_global);
+  gkyl_comm_allreduce_host(app->comm, GKYL_DOUBLE, GKYL_MIN, 1, &dtmin_local, &dtmin_global);
   dtmin = dtmin_global;
   
   // don't take a time-step larger that input dt
@@ -105,7 +105,7 @@ vlasov_forward_euler(gkyl_vlasov_app* app, double tcurr, double dt,
   // complete update of distribution function
   for (int i=0; i<app->num_species; ++i) {
     gkyl_array_accumulate(gkyl_array_scale(fout[i], dta), 1.0, fin[i]);
-    vm_species_apply_bc(app, &app->species[i], fout[i]);
+    vm_species_apply_bc(app, &app->species[i], fout[i], tcurr);
   }
 
   // complete update of fluid species

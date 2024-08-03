@@ -288,14 +288,22 @@ gkyl_vlasov_app_new(struct gkyl_vm *vm)
   for (int i=0; i<ns; ++i) 
     vm_species_init(vm, app, &app->species[i]);
 
+  // initialize species wall emission terms: these rely
+  // on other species which must be allocated in the previous step
+  for (int i=0; i<ns; ++i) {
+    if (app->species[i].emit_lo)
+      vm_species_emission_cross_init(app, &app->species[i], &app->species[i].bc_emission_lo);
+    if (app->species[i].emit_up)
+      vm_species_emission_cross_init(app, &app->species[i], &app->species[i].bc_emission_up);
+  }
+  
   // initialize each species cross-species terms: this has to be done here
   // as need pointers to colliding species' collision objects
   // allocated in the previous step
   for (int i=0; i<ns; ++i)
     if (app->species[i].collision_id == GKYL_LBO_COLLISIONS
-      && app->species[i].lbo.num_cross_collisions) {
+      && app->species[i].lbo.num_cross_collisions)
       vm_species_lbo_cross_init(app, &app->species[i], &app->species[i].lbo);
-    }
 
   // initialize each species source terms: this has to be done here
   // as they may initialize a bflux updater for their source species
@@ -395,6 +403,9 @@ gkyl_vlasov_app_apply_ic(gkyl_vlasov_app* app, double t0)
     gkyl_vlasov_app_apply_ic_field(app, t0);
   for (int i=0; i<app->num_species; ++i)
     gkyl_vlasov_app_apply_ic_species(app, i, t0);
+  // BCs must be done after all species initialize for emission BCs to work 
+  for (int i=0; i<app->num_species; ++i)
+    vm_species_apply_bc(app, &app->species[i], app->species[i].f, t0);
   for (int i=0; i<app->num_fluid_species; ++i)
     gkyl_vlasov_app_apply_ic_fluid_species(app, i, t0);
 }
@@ -420,8 +431,6 @@ gkyl_vlasov_app_apply_ic_species(gkyl_vlasov_app* app, int sidx, double t0)
   struct timespec wtm = gkyl_wall_clock();
   vm_species_apply_ic(app, &app->species[sidx], t0);
   app->stat.init_species_tm += gkyl_time_diff_now_sec(wtm);
-
-  vm_species_apply_bc(app, &app->species[sidx], app->species[sidx].f);
 }
 
 void
@@ -475,7 +484,7 @@ gkyl_vlasov_app_calc_integrated_mom(gkyl_vlasov_app* app, double tm)
       gkyl_array_reduce_range(avals, vm_s->integ_moms.marr_host, GKYL_SUM, &app->local);
     }
 
-    gkyl_comm_allreduce(app->comm, GKYL_DOUBLE, GKYL_SUM, 2+vdim, avals, avals_global);
+    gkyl_comm_allreduce_host(app->comm, GKYL_DOUBLE, GKYL_SUM, 2+vdim, avals, avals_global);
     gkyl_dynvec_append(vm_s->integ_diag, tm, avals_global);
 
     if (vm_s->source_id) {
@@ -488,7 +497,7 @@ gkyl_vlasov_app_calc_integrated_mom(gkyl_vlasov_app* app, double tm)
       else {
         gkyl_array_reduce_range(avals, vm_s->integ_moms.marr_host, GKYL_SUM, &app->local);
       }
-      gkyl_comm_allreduce(app->comm, GKYL_DOUBLE, GKYL_SUM, 2+vdim, avals, avals_global);
+      gkyl_comm_allreduce_host(app->comm, GKYL_DOUBLE, GKYL_SUM, 2+vdim, avals, avals_global);
       gkyl_dynvec_append(vm_s->src.integ_diag, tm, avals_global);
     }
 
@@ -514,7 +523,7 @@ gkyl_vlasov_app_calc_integrated_mom(gkyl_vlasov_app* app, double tm)
       gkyl_array_reduce_range(avals_fluid, f->integ_mom, GKYL_SUM, &app->local);
     }
 
-    gkyl_comm_allreduce(app->comm, GKYL_DOUBLE, GKYL_SUM, 5, avals_fluid, avals_fluid_global);
+    gkyl_comm_allreduce_host(app->comm, GKYL_DOUBLE, GKYL_SUM, 5, avals_fluid, avals_fluid_global);
     gkyl_dynvec_append(f->integ_diag, tm, avals_fluid_global);
   }
 
@@ -966,7 +975,7 @@ comm_reduce_app_stat(const gkyl_vlasov_app* app,
   };
 
   int64_t l_red_global[L_END];
-  gkyl_comm_allreduce(app->comm, GKYL_INT_64, GKYL_MAX, L_END, l_red, l_red_global);
+  gkyl_comm_allreduce_host(app->comm, GKYL_INT_64, GKYL_MAX, L_END, l_red, l_red_global);
 
   global->nup = l_red_global[NUP];
   global->nfeuler = l_red_global[NFEULER];
@@ -979,7 +988,7 @@ comm_reduce_app_stat(const gkyl_vlasov_app* app,
   }
 
   int64_t l_red_global_bgk_corr[app->num_species];
-  gkyl_comm_allreduce(app->comm, GKYL_INT_64, GKYL_MAX, app->num_species, 
+  gkyl_comm_allreduce_host(app->comm, GKYL_INT_64, GKYL_MAX, app->num_species, 
     l_red_bgk_corr, l_red_global_bgk_corr);
 
   for (int s=0; s<app->num_species; ++s) {
@@ -1025,7 +1034,7 @@ comm_reduce_app_stat(const gkyl_vlasov_app* app,
   };
 
   double d_red_global[D_END];
-  gkyl_comm_allreduce(app->comm, GKYL_DOUBLE, GKYL_MAX, D_END, d_red, d_red_global);
+  gkyl_comm_allreduce_host(app->comm, GKYL_DOUBLE, GKYL_MAX, D_END, d_red, d_red_global);
   
   global->total_tm = d_red_global[TOTAL_TM];
   global->rk3_tm = d_red_global[RK3_TM];
@@ -1053,14 +1062,14 @@ comm_reduce_app_stat(const gkyl_vlasov_app* app,
 
   // misc data needing reduction
 
-  gkyl_comm_allreduce(app->comm, GKYL_DOUBLE, GKYL_MAX, 2, local->stage_2_dt_diff,
+  gkyl_comm_allreduce_host(app->comm, GKYL_DOUBLE, GKYL_MAX, 2, local->stage_2_dt_diff,
     global->stage_2_dt_diff);
-  gkyl_comm_allreduce(app->comm, GKYL_DOUBLE, GKYL_MAX, 2, local->stage_3_dt_diff,
+  gkyl_comm_allreduce_host(app->comm, GKYL_DOUBLE, GKYL_MAX, 2, local->stage_3_dt_diff,
     global->stage_3_dt_diff);
 
-  gkyl_comm_allreduce(app->comm, GKYL_DOUBLE, GKYL_MAX, GKYL_MAX_SPECIES, local->species_lbo_coll_drag_tm,
+  gkyl_comm_allreduce_host(app->comm, GKYL_DOUBLE, GKYL_MAX, GKYL_MAX_SPECIES, local->species_lbo_coll_drag_tm,
     global->species_lbo_coll_drag_tm);
-  gkyl_comm_allreduce(app->comm, GKYL_DOUBLE, GKYL_MAX, GKYL_MAX_SPECIES, local->species_lbo_coll_diff_tm,
+  gkyl_comm_allreduce_host(app->comm, GKYL_DOUBLE, GKYL_MAX, GKYL_MAX_SPECIES, local->species_lbo_coll_diff_tm,
     global->species_lbo_coll_diff_tm);
 }
 
@@ -1243,7 +1252,7 @@ gkyl_vlasov_app_from_file_species(gkyl_vlasov_app *app, int sidx,
     if (app->use_gpu)
       gkyl_array_copy(vm_s->f, vm_s->f_host);
     if (GKYL_ARRAY_RIO_SUCCESS == rstat.io_status) {
-      vm_species_apply_bc(app, vm_s, vm_s->f);
+      vm_species_apply_bc(app, vm_s, vm_s->f, rstat.stime);
       if (vm_s->source_id)
         vm_species_source_calc(app, vm_s, &vm_s->src, 0.0);
     }

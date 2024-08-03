@@ -266,7 +266,10 @@ main(int argc, char **argv)
       .ctx_func = &ctx,
     },
 
-    .bcx = { GKYL_SPECIES_REFLECT, GKYL_SPECIES_REFLECT },
+    .bcx = {
+      .lower = { .type = GKYL_SPECIES_REFLECT, },
+      .upper = { .type = GKYL_SPECIES_REFLECT, },
+    },
 
     .collisions =  {
       .collision_id = GKYL_LBO_COLLISIONS,
