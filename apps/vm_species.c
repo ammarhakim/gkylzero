@@ -506,7 +506,9 @@ vm_species_rhs_implicit(gkyl_vlasov_app *app, struct vm_species *species,
     vm_species_bgk_rhs(app, species, &species->bgk, fin, rhs);
   }
 
-  vm_species_bflux_rhs(app, species, &species->bflux, fin, rhs);
+  if (species->calc_bflux) {
+    vm_species_bflux_rhs(app, species, &species->bflux, fin, rhs);
+  }
   
   app->stat.nspecies_omega_cfl +=1;
   struct timespec tm = gkyl_wall_clock();
