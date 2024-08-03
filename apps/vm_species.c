@@ -459,6 +459,8 @@ vm_species_rhs(gkyl_vlasov_app *app, struct vm_species *species,
     vm_species_bgk_rhs(app, species, &species->bgk, fin, rhs);
   }
 
+  vm_species_bflux_rhs(app, species, &species->bflux, fin, rhs);
+
   if (species->radiation_id == GKYL_VM_COMPTON_RADIATION) {
     vm_species_radiation_rhs(app, species, &species->rad, fin, rhs);
   }
