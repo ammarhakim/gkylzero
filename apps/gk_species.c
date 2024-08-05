@@ -536,7 +536,8 @@ gk_species_apply_bc(gkyl_gyrokinetic_app *app, const struct gk_species *species,
         case GKYL_SPECIES_GK_IWL:
           gkyl_bc_sheath_gyrokinetic_advance(species->bc_sheath_lo, app->field->phi_smooth, 
             app->field->phi_wall_lo, f, &app->local);
-          gkyl_bc_twistshift_advance(species->bc_ts_lo, f, f);
+	  if (cdim == 3)
+            gkyl_bc_twistshift_advance(species->bc_ts_lo, f, f);
           break;
         case GKYL_SPECIES_COPY:
         case GKYL_SPECIES_REFLECT:
@@ -560,7 +561,8 @@ gk_species_apply_bc(gkyl_gyrokinetic_app *app, const struct gk_species *species,
         case GKYL_SPECIES_GK_IWL:
           gkyl_bc_sheath_gyrokinetic_advance(species->bc_sheath_up, app->field->phi_smooth, 
             app->field->phi_wall_up, f, &app->local);
-          gkyl_bc_twistshift_advance(species->bc_ts_up, f, f);
+	  if (cdim == 3)
+            gkyl_bc_twistshift_advance(species->bc_ts_up, f, f);
           break;
         case GKYL_SPECIES_COPY:
         case GKYL_SPECIES_REFLECT:
