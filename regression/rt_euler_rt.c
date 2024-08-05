@@ -74,6 +74,7 @@ create_ctx(void)
   int num_failures_max = 20; // Maximum allowable number of consecutive small time-steps.
 
   struct rt_ctx ctx = {
+    .pi = pi,
     .gas_gamma = gas_gamma,
     .grav = grav,
     .rho_top = rho_top,
@@ -204,7 +205,9 @@ main(int argc, char **argv)
     .init = evalEulerInit,
     .ctx = &ctx,
 
+    .is_app_accel_static = true,
     .app_accel_func = evalAppAccel,
+    .app_accel_ctx = &ctx,
 
     .bcx = { GKYL_SPECIES_REFLECT, GKYL_SPECIES_REFLECT },
     .bcy = { GKYL_SPECIES_REFLECT, GKYL_SPECIES_REFLECT },
@@ -302,6 +305,8 @@ main(int argc, char **argv)
     .lower = { 0.0, 0.0 },
     .upper = { ctx.Lx, ctx.Ly },
     .cells = { NX, NY },
+
+    .scheme_type = GKYL_MOMENT_WAVE_PROP,
 
     .cfl_frac = ctx.cfl_frac,
 
