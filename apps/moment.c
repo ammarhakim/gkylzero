@@ -128,6 +128,9 @@ gkyl_moment_app_new(struct gkyl_moment *mom)
     app->has_field = 1;
     moment_field_init(mom, &mom->field, app, &app->field);
   }
+  else {
+    moment_field_init(mom, &mom->field, app, &app->field);
+  }
 
   // Are we running with Braginskii transport?
   app->has_braginskii = mom->has_braginskii;
@@ -149,10 +152,10 @@ gkyl_moment_app_new(struct gkyl_moment *mom)
 
   // check if we should update sources
   app->update_sources = 0;
-  if (app->has_field && ns>0) {
+  //if (app->has_field && ns>0) {
     app->update_sources = 1; // only update if field and species are present
     moment_coupling_init(app, &app->sources);
-  }
+  //}
 
   app->update_mhd_source = false;
   if (ns==1 && mom->species[0].equation->type==GKYL_EQN_MHD) {
