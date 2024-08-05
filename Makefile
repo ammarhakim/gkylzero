@@ -136,7 +136,7 @@ endif
 
 # Build directory
 ifdef USING_NVCC
-	BUILD_DIR ?= cuda-build
+	BUILD_DIR ?= cubld
 else	
 	BUILD_DIR ?= build
 endif
