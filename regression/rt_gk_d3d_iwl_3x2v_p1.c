@@ -422,7 +422,7 @@ create_ctx(void)
 
   double a_mid     = R_LCFSmid-R_axis;   // Minor radius at outboard midplane [m].
   // Redefine a_mid with Shafranov shift, to ensure LCFS radial location.
-  a_mid = R_axis/a_shift - sqrt(R_axis*(R_axis - 2*a_shift*R_LCFSmid + 2*a_shift*R_axis))/a_shift;
+//  a_mid = R_axis/a_shift - sqrt(R_axis*(R_axis - 2*a_shift*R_LCFSmid + 2*a_shift*R_axis))/a_shift;
 
   double r0        = R0-R_axis;          // Minor radius of the simulation box [m].
   double B0        = B_axis*(R_axis/R0); // Magnetic field magnitude in the simulation box [T].
