@@ -29,7 +29,8 @@ gkyl_vlasov_set_auxfields_cu_kernel(const struct gkyl_dg_eqn *eqn,
 void
 gkyl_vlasov_set_auxfields_cu(const struct gkyl_dg_eqn *eqn, struct gkyl_dg_vlasov_auxfields auxin)
 {
-  gkyl_vlasov_set_auxfields_cu_kernel<<<1,1>>>(eqn, auxin.field->on_dev,
+  gkyl_vlasov_set_auxfields_cu_kernel<<<1,1>>>(eqn,
+    auxin.field ? auxin.field->on_dev : 0,
     auxin.cot_vec ? auxin.cot_vec->on_dev : 0,
     auxin.alpha_surf ? auxin.alpha_surf->on_dev : 0,
     auxin.sgn_alpha_surf ? auxin.sgn_alpha_surf->on_dev : 0,

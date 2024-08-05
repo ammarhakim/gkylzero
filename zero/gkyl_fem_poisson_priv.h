@@ -3,7 +3,9 @@
 #include <gkyl_fem_poisson_kernels.h>
 #include <gkyl_basis.h>
 #include <gkyl_superlu_ops.h>
-#include <gkyl_cusolver_ops.h>
+#ifdef GKYL_HAVE_CUDA
+#include <gkyl_culinsolver_ops.h>
+#endif
 
 #ifndef GKYL_IPOW
 # define GKYL_IPOW(a,e) (int)(pow(a,e)+0.5)
@@ -669,7 +671,7 @@ struct gkyl_fem_poisson {
   struct gkyl_array *brhs;
 
 #ifdef GKYL_HAVE_CUDA
-  struct gkyl_cusolver_prob *prob_cu;
+  struct gkyl_culinsolver_prob *prob_cu;
   struct gkyl_array *brhs_cu;
 #endif
 
@@ -859,6 +861,7 @@ fem_poisson_choose_sol_kernels(const struct gkyl_basis* basis)
       assert(false);
       break;
   }
+  return 0;
 }
 
 #ifdef GKYL_HAVE_CUDA
