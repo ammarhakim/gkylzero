@@ -280,14 +280,17 @@ TEST_LIST = {
   { "superlu_ops_separateLU", test_superlu_ops_separateLU },
   { "superlu_ops_multiple_prob", test_superlu_ops_multiple_prob },
 #ifdef GKYL_HAVE_CUDA
+#ifdef GKYL_HAVE_CUDSS
+  { "cudss_simple", test_cudss_simple },
+  { "cudss_ops", test_cudss_ops },
+  { "cudss_ops_multiple_rhs", test_cudss_ops_multiple_rhs },
+#else
   { "cusolver_qr", test_cusolver_qr },
   { "cusolver_rf", test_cusolver_rf },
   { "cusolver_ops", test_cusolver_ops },
   { "cusolver_ops_multiple_rhs", test_cusolver_ops_multiple_rhs },
   { "cusolver_ops_multiple_prob", test_cusolver_ops_multiple_prob },
-  { "cudss_simple", test_cudss_simple },
-  { "cudss_ops", test_cudss_ops },
-  { "cudss_ops_multiple_rhs", test_cudss_ops_multiple_rhs },
+#endif
 #endif
   { NULL, NULL }
 };

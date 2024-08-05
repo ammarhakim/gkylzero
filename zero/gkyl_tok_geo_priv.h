@@ -234,10 +234,9 @@ calc_RdR_p2_tensor_nrc(const double *psi, double psi0, double Z, double xc[2], d
   return sol;
 }
 
-// Compute roots R(psi,Z) and dR/dZ(psi,Z) in a p=2 DG cell with tensor basis if delta2 is negative byt very small
-// Use more accurate roots from numerical recipes in C 2007 section 5.6
+// Compute roots R(psi,Z) and dR/dZ(psi,Z) in a p=2 DG cell with tensor basis if delta2 is negative but very small
 static inline struct RdRdZ_sol
-calc_RdR_p2_tensor_nrc_none(const double *psi, double psi0, double Z, double xc[2], double dx[2])
+calc_RdR_p2_tensor_with_tolerance(const double *psi, double psi0, double Z, double xc[2], double dx[2])
 {
   struct RdRdZ_sol sol = { .nsol = 0 };
   double y = (Z-xc[1])/(dx[1]*0.5);
@@ -250,33 +249,18 @@ calc_RdR_p2_tensor_nrc_none(const double *psi, double psi0, double Z, double xc[
   if(delta2 > 0)
     return sol;
 
-  if (fabs(delta2) < 1e-8) {
-    double r1, r2;
-    double delta = 0.0;
-    //// compute both roots
-    double qq = -0.5*bq;
-    r1 = qq/aq;
-    r2 = cq/qq;
-    // The two roots should really both be equal to -sqrt(c/a) but numerically they are quite different
-    // It seems that only the expression for r2 = cq/aq is robust when both c and a are very small
+
+  if (fabs(delta2) < 1.0e-20) {
+    // x = [-b +/- sqrt(b^2 - 4ac)] / 2a
+    // If b^2-4ac = 0 then we have one root x = -b/2a
+    double r = -bq/2.0/aq;
 
     int sidx = 0;
-    //if ((-1<=r1) && (r1 < 1)) {
-    //  sol.nsol += 1;
-    //  sol.R[sidx] = r1*dx[0]*0.5 + xc[0];
-
-    //  double x = r1;
-    //  double C = 0.125*(SQ(x)*(90.0*psi[8]*y+23.2379000772445*psi[6])+x*(46.47580015448901*psi[7]*y+12.0*psi[3])+2* (13.41640786499874*psi[5]-15.0*psi[8])*y-7.745966692414834*psi[6]+6.928203230275509*psi[2]) ;
-    //  double A = 0.125*(2*x*(45.0*psi[8]*SQ(y)+23.2379000772445*psi[6]*y-15.0*psi[8]+13.41640786499874*psi[4])+23.2379000772445*psi[7]*SQ(y)+12.0*psi[3]*y-7.745966692414834*psi[7]+6.928203230275509*psi[1]); 
-    //  sol.dRdZ[sidx] = -C/A*dx[0]/dx[1];
-    //  
-    //  sidx += 1;
-    //}
-    if ((-1<=r2) && (r2 < 1)) {
+    if ((-1<=r) && (r < 1)) {
       sol.nsol += 1;
-      sol.R[sidx] = r2*dx[0]*0.5 + xc[0];
+      sol.R[sidx] = r*dx[0]*0.5 + xc[0];
 
-      double x = r2;
+      double x = r;
       double C = 0.125*(SQ(x)*(90.0*psi[8]*y+23.2379000772445*psi[6])+x*(46.47580015448901*psi[7]*y+12.0*psi[3])+2* (13.41640786499874*psi[5]-15.0*psi[8])*y-7.745966692414834*psi[6]+6.928203230275509*psi[2]) ;
       double A = 0.125*(2*x*(45.0*psi[8]*SQ(y)+23.2379000772445*psi[6]*y-15.0*psi[8]+13.41640786499874*psi[4])+23.2379000772445*psi[7]*SQ(y)+12.0*psi[3]*y-7.745966692414834*psi[7]+6.928203230275509*psi[1]); 
       sol.dRdZ[sidx] = -C/A*dx[0]/dx[1];
@@ -329,8 +313,7 @@ R_psiZ(const gkyl_tok_geo *geo, double psi, double Z, int nmaxroots,
   }
 
   // Try again if we didn't find any
-  //if (sidx==0 && geo->tol_no_roots) {
-  if (sidx==0 && geo->tol_no_roots) {
+  if (sidx==0 && !geo->exact_roots) {
     gkyl_range_iter_init(&riter, &rangeR);
     while (gkyl_range_iter_next(&riter) && sidx<=nmaxroots) {
       long loc = gkyl_range_idx(&rangeR, riter.idx);
@@ -340,7 +323,7 @@ R_psiZ(const gkyl_tok_geo *geo, double psi, double Z, int nmaxroots,
       idx[0] = riter.idx[0];
       gkyl_rect_grid_cell_center(&geo->rzgrid, idx, xc);
 
-      struct RdRdZ_sol sol = calc_RdR_p2_tensor_nrc_none(psih, psi, Z, xc, dx);
+      struct RdRdZ_sol sol = calc_RdR_p2_tensor_with_tolerance(psih, psi, Z, xc, dx);
       
       if (sol.nsol > 0)
         for (int s=0; s<sol.nsol; ++s) {
