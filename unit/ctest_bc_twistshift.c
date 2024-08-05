@@ -1067,12 +1067,12 @@ test_bc_twistshift_3x2v_fig11(bool use_gpu)
   // Apply the TS BC on the lower half of the x domain.
   test_bc_twistshift_3x2v_fig11_wcells(cells0, edgelo, -1, true, use_gpu, false);
   test_bc_twistshift_3x2v_fig11_wcells(cells1, edgelo, -1, false, use_gpu, false);
-  test_bc_twistshift_3x2v_fig11_wcells(cells2, edgeup, -1, false, use_gpu, false);
+  test_bc_twistshift_3x2v_fig11_wcells(cells2, edgelo, -1, false, use_gpu, false);
 
   // Apply the TS BC on the upper half of the x domain.
   test_bc_twistshift_3x2v_fig11_wcells(cells0, edgelo, 1, true, use_gpu, false);
   test_bc_twistshift_3x2v_fig11_wcells(cells1, edgelo, 1, false, use_gpu, false);
-  test_bc_twistshift_3x2v_fig11_wcells(cells2, edgeup, 1, false, use_gpu, false);
+  test_bc_twistshift_3x2v_fig11_wcells(cells2, edgelo, 1, false, use_gpu, false);
 }
 
 void test_bc_twistshift_3x2v_fig6_ho(){ test_bc_twistshift_3x2v_fig6(false); }

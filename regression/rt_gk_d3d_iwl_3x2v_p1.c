@@ -772,7 +772,7 @@ main(int argc, char **argv)
   struct gkyl_gyrokinetic_field field = {
     .gkfield_id = GKYL_GK_FIELD_ES_IWL,
     .xLCFS = ctx.x_LCFS,
-    .fem_parbc = GKYL_FEM_PARPROJ_NONE,
+    .fem_parbc = GKYL_FEM_PARPROJ_DIRICHLET,
     .poisson_bcs = {.lo_type = {GKYL_POISSON_DIRICHLET},
                     .up_type = {GKYL_POISSON_DIRICHLET},
                     .lo_value = {0.0}, .up_value = {0.0}},

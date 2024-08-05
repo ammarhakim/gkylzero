@@ -8,6 +8,7 @@ config.mak
 *.sw*
 */.nfs*
 cuda-build/*
+cubld/*
 build/*
 build-*/*
 *.gkyl
