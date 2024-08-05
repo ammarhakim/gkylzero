@@ -26,18 +26,21 @@ typedef struct gkyl_bc_emission_spectrum gkyl_bc_emission_spectrum;
  * @param mass_out Emitted species mass
  * @param impact_buff_r Range over the impacting species buffer array
  * @param emit_buff_r Range over the emitting species buffer array
- * @param grid Impacting species boundary grid
+ * @param impact_grid Impacting species boundary grid
+ * @param emit_grid Emitted species boundary grid
  * @param poly_order Polynomial order of basis functions.
  * @param basis Basis functions
  * @param proj_buffer Host array to temporarily store projection of emission spectrum
  * @param use_gpu Boolean to indicate whether to use the GPU
  * @return New updater pointer
  */
-struct gkyl_bc_emission_spectrum* gkyl_bc_emission_spectrum_new(struct gkyl_spectrum_model *spectrum_model,
+struct gkyl_bc_emission_spectrum*
+gkyl_bc_emission_spectrum_new(struct gkyl_spectrum_model *spectrum_model,
   struct gkyl_yield_model *yield_model, struct gkyl_array *yield, struct gkyl_array *spectrum,
   int dir, enum gkyl_edge_loc edge, int cdim, int vdim, double mass_in, double mass_out,
-  struct gkyl_range *impact_buff_r, struct gkyl_range *emit_buff_r, struct gkyl_rect_grid *grid,
-  int poly_order, struct gkyl_basis *basis, struct gkyl_array *proj_buffer, bool use_gpu);
+  struct gkyl_range *impact_buff_r, struct gkyl_range *emit_buff_r,
+  struct gkyl_rect_grid *impact_grid, struct gkyl_rect_grid *emit_grid, int poly_order,
+  struct gkyl_basis *basis, struct gkyl_array *proj_buffer, bool use_gpu);
 
 /**
  * @param up BC updater

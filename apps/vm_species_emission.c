@@ -74,8 +74,9 @@ vm_species_emission_cross_init(struct gkyl_vlasov_app *app, struct vm_species *s
     
     emit->update[i] = gkyl_bc_emission_spectrum_new(emit->params->spectrum_model[i],
       emit->params->yield_model[i], emit->yield[i], emit->spectrum[i], emit->dir, emit->edge,
-      cdim, vdim, emit->impact_species[i]->info.mass, s->info.mass, emit->impact_buff_r[i], emit->emit_buff_r, emit->impact_grid[i], app->poly_order,
-      &app->basis,  proj_buffer, app->use_gpu);
+      cdim, vdim, emit->impact_species[i]->info.mass, s->info.mass, emit->impact_buff_r[i],
+      emit->emit_buff_r, emit->impact_grid[i], emit->impact_grid, app->poly_order,
+      &app->basis, proj_buffer, app->use_gpu);
   }
   gkyl_array_release(proj_buffer);
 }
