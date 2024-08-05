@@ -212,7 +212,7 @@ wave_roe(const struct gkyl_wv_eqn* eqn, const double* delta, const double* ql, c
   double reaction_progress = ((ql[5] * roe_avg_l) + (qr[5] * roe_avg_r)) * roe_avg_sq;
 
   double vel_sq = ((vx * vx) + (vy * vy) + (vz * vz));
-  double a_sq = (gas_gamma - 1.0) * (enth - (0.5 * vel_sq));
+  double a_sq = (gas_gamma - 1.0) * (enth - (0.5 * vel_sq) - (energy_of_formation * (reaction_progress - 1.0)));
   double a = sqrt(a_sq);
   double gamma1_over_a_sq = (gas_gamma - 1.0) / a_sq;
   double internal_enth = enth - vel_sq;
@@ -410,7 +410,7 @@ gkyl_wv_reactive_euler_new(double gas_gamma, double specific_heat_capacity, doub
       .energy_of_formation = energy_of_formation,
       .ignition_temperature = ignition_temperature,
       .reaction_rate = reaction_rate,
-      .rp_type = WV_REACTIVE_EULER_RP_ROE,
+      .rp_type = WV_REACTIVE_EULER_RP_LAX,
       .use_gpu = use_gpu,
     }
   );
