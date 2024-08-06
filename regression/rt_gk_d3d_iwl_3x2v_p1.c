@@ -364,6 +364,44 @@ void mapc2p(double t, const double *xc, double* GKYL_RESTRICT xp, void *ctx)
   xp[0] = X; xp[1] = Y; xp[2] = Z;
 }
 
+void mapc2p_vel_elc(double t, const double *vc, double* GKYL_RESTRICT vp, void *ctx)
+{
+  struct gk_app_ctx *app = ctx;
+  double vpar_max_elc = app->vpar_max_elc;
+  double mu_max_elc = app->mu_max_elc;
+
+  double cvpar = vc[0], cmu = vc[1];
+  // Linear map up to vpar_max/2, then quadratic.
+  if (fabs(cvpar) <= 0.5)
+    vp[0] = vpar_max_elc*cvpar;
+  else if (cvpar < -0.5)
+    vp[0] = -vpar_max_elc*2.0*pow(cvpar,2);
+  else
+    vp[0] =  vpar_max_elc*2.0*pow(cvpar,2);
+
+  // Quadratic map in mu.
+  vp[1] = mu_max_elc*pow(cmu,2);
+}
+
+void mapc2p_vel_ion(double t, const double *vc, double* GKYL_RESTRICT vp, void *ctx)
+{
+  struct gk_app_ctx *app = ctx;
+  double vpar_max_ion = app->vpar_max_ion;
+  double mu_max_ion = app->mu_max_ion;
+
+  double cvpar = vc[0], cmu = vc[1];
+  // Linear map up to vpar_max/2, then quadratic.
+  if (fabs(cvpar) <= 0.5)
+    vp[0] = vpar_max_ion*cvpar;
+  else if (cvpar < -0.5)
+    vp[0] = -vpar_max_ion*2.0*pow(cvpar,2);
+  else
+    vp[0] =  vpar_max_ion*2.0*pow(cvpar,2);
+
+  // Quadratic map in mu.
+  vp[1] = mu_max_ion*pow(cmu,2);
+}
+
 void bmag_func(double t, const double *xc, double* GKYL_RESTRICT fout, void *ctx)
 {
   double x = xc[0], y = xc[1], z = xc[2];
@@ -420,9 +458,10 @@ create_ctx(void)
   double Rmid_max  = R_LCFSmid + 0.05;   // Maximum midplane major radius of simulation box [m].
   double R0        = 0.5*(Rmid_min+Rmid_max);  // Major radius of the simulation box [m].
 
-  double a_mid     = R_LCFSmid-R_axis;   // Minor radius at outboard midplane [m].
-  // Redefine a_mid with Shafranov shift, to ensure LCFS radial location.
-//  a_mid = R_axis/a_shift - sqrt(R_axis*(R_axis - 2*a_shift*R_LCFSmid + 2*a_shift*R_axis))/a_shift;
+  // Minor radius at outboard midplane [m]. Redefine it with
+  // Shafranov shift, to ensure LCFS radial location.
+  double a_mid = a_shift<1e-13? R_LCFSmid-R_axis :
+    R_axis/a_shift - sqrt(R_axis*(R_axis - 2*a_shift*R_LCFSmid + 2*a_shift*R_axis))/a_shift;
 
   double r0        = R0-R_axis;          // Minor radius of the simulation box [m].
   double B0        = B_axis*(R_axis/R0); // Magnetic field magnitude in the simulation box [T].
@@ -628,10 +667,15 @@ main(int argc, char **argv)
   struct gkyl_gyrokinetic_species elc = {
     .name = "elc",
     .charge = ctx.qe, .mass = ctx.me,
-    .lower = { -ctx.vpar_max_elc, 0.0},
-    .upper = {  ctx.vpar_max_elc, ctx.mu_max_elc}, 
+    .lower = { -1.0/sqrt(2.0), 0.0},
+    .upper = {  1.0/sqrt(2.0), 1.0},
     .cells = { cells_v[0], cells_v[1] },
     .polarization_density = ctx.n0,
+
+    .mapc2p = {
+      .mapping = mapc2p_vel_elc,
+      .ctx = &ctx,
+    },
 
     .projection = {
       .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM,
@@ -693,17 +737,22 @@ main(int argc, char **argv)
     },
 
     .num_diag_moments = 5,
-    .diag_moments = { "M0", "M1", "M2", "M2par", "M2perp" },
+    .diag_moments = { "MaxwellianMoments" },
   };
 
   // ions
   struct gkyl_gyrokinetic_species ion = {
     .name = "ion",
     .charge = ctx.qi, .mass = ctx.mi,
-    .lower = { -ctx.vpar_max_ion, 0.0},
-    .upper = {  ctx.vpar_max_ion, ctx.mu_max_ion}, 
+    .lower = { -1.0/sqrt(2.0), 0.0},
+    .upper = {  1.0/sqrt(2.0), 1.0},
     .cells = { cells_v[0], cells_v[1] },
     .polarization_density = ctx.n0,
+
+    .mapc2p = {
+      .mapping = mapc2p_vel_ion,
+      .ctx = &ctx,
+    },
 
     .projection = {
       .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM,
@@ -765,7 +814,7 @@ main(int argc, char **argv)
     },
 
     .num_diag_moments = 5,
-    .diag_moments = { "M0", "M1", "M2", "M2par", "M2perp" },
+    .diag_moments = { "MaxwellianMoments" },
   };
 
   // field
