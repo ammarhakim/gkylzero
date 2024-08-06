@@ -1,5 +1,6 @@
 #include <gkyl_alloc.h>
 #include <gkyl_const.h>
+#include <gkyl_efit.h>
 #include <gkyl_gyrokinetic_multib.h>
 #include <gkyl_mpi_comm.h>
 #include <gkyl_null_comm.h>
@@ -66,11 +67,20 @@ create_block_geom(void)
       another edge are a physical boundary.
   */  
 
-  double psisep = 1.5093065418975686;
-  double Zxpt_lo = -6.1672666854902927;
-  double Zxpt_up = 6.1672666854902927;
 
 
+  struct gkyl_efit_inp efit_inp = {
+      // psiRZ and related inputs
+      .filepath = "./data/eqdsk/step.geqdsk",
+      .rz_poly_order = 2,
+      .rz_basis_type = GKYL_BASIS_MODAL_TENSOR,
+      .flux_poly_order = 1,
+      .reflect = true,
+    };
+
+  struct gkyl_efit *efit = gkyl_efit_new(&efit_inp);
+  double psisep = efit->psisep;
+  gkyl_efit_release(efit);
   double psi_up_core = 1.8;
   double psi_up_pf = 1.8;
   double psi_lo_outer_sol = 0.934;
@@ -88,43 +98,6 @@ create_block_geom(void)
 
   double theta_lo = -M_PI + 1e-14, theta_up = M_PI - 1e-14;
 
-  struct gkyl_tok_geo_efit_inp efit_inp_inner= {
-      // psiRZ and related inputs
-      .filepath = "./data/eqdsk/step.geqdsk",
-      .rzpoly_order = 2,
-      .rz_basis_type = GKYL_BASIS_MODAL_TENSOR,
-      .fluxpoly_order = 1,
-      .plate_spec = true,
-      .quad_param = {  .eps = 1e-10 },
-      .reflect = true,
-      .plate_func_lower = shaped_pfunc_lower_inner,
-      .plate_func_upper = shaped_pfunc_upper_inner,
-    };
-  
-  struct gkyl_tok_geo_efit_inp efit_inp = {
-      // psiRZ and related inputs
-      .filepath = "./data/eqdsk/step.geqdsk",
-      .rzpoly_order = 2,
-      .rz_basis_type = GKYL_BASIS_MODAL_TENSOR,
-      .fluxpoly_order = 1,
-      .plate_spec = false,
-      .quad_param = {  .eps = 1e-10 },
-      .reflect = true,
-    };
-  
-  struct gkyl_tok_geo_efit_inp efit_inp_outer = {
-      // psiRZ and related inputs
-      .filepath = "./data/eqdsk/step.geqdsk",
-      .rzpoly_order = 2,
-      .rz_basis_type = GKYL_BASIS_MODAL_TENSOR,
-      .fluxpoly_order = 1,
-      .plate_spec = true,
-      .quad_param = {  .eps = 1e-10 },
-      .reflect = true,
-      .plate_func_lower = shaped_pfunc_lower_outer,
-      .plate_func_upper = shaped_pfunc_upper_outer,
-    };
-
   // block 0. Lower outer PF region.
   gkyl_block_geom_set_block(bgeom, 0, &(struct gkyl_block_geom_info) {
       .lower = { psisep, theta_lo},
@@ -134,15 +107,16 @@ create_block_geom(void)
       .geometry = {
         .world = {0.0},
         .geometry_id = GKYL_TOKAMAK,
-        .tok_efit_info = efit_inp_outer,
+        .efit_info = efit_inp,
         .tok_grid_info = (struct gkyl_tok_geo_grid_inp) {
           .ftype = GKYL_PF_LO_R,
           .rright = 6.2,
           .rleft = 2.0,
           .rmin = 2.1,
           .rmax = 6.2,
-          .zxpt_lo = Zxpt_lo,
           .zmin = -8.29,
+          .plate_spec = true,
+          .plate_func_lower = shaped_pfunc_lower_outer,
         }
       },
       
@@ -166,15 +140,16 @@ create_block_geom(void)
       .geometry = {
         .world = {0.0},
         .geometry_id = GKYL_TOKAMAK,
-        .tok_efit_info = efit_inp_outer,
+        .efit_info = efit_inp,
         .tok_grid_info = (struct gkyl_tok_geo_grid_inp) {
           .ftype = GKYL_SOL_DN_OUT_LO,
           .rright = 6.2,
           .rleft = 1.1,
           .rmin = 2.1,
           .rmax = 6.2,
-          .zxpt_lo = Zxpt_lo,
           .zmin = -8.29,
+          .plate_spec = true,
+          .plate_func_lower = shaped_pfunc_lower_outer,
         }
       },
       
@@ -198,15 +173,16 @@ create_block_geom(void)
       .geometry = {
         .world = {0.0},
         .geometry_id = GKYL_TOKAMAK,
-        .tok_efit_info = efit_inp_outer,
+        .efit_info = efit_inp,
         .tok_grid_info = (struct gkyl_tok_geo_grid_inp) {
           .ftype = GKYL_SOL_DN_OUT_MID,
           .rright = 6.2,
           .rleft = 1.1,
           .rmin = 2.1,
           .rmax = 6.2,
-          .zxpt_lo = Zxpt_lo,
-          .zxpt_up = Zxpt_up,
+          .plate_spec = true,
+          .plate_func_lower = shaped_pfunc_lower_outer,
+          .plate_func_upper = shaped_pfunc_upper_outer,
         }
       },
       
@@ -230,15 +206,16 @@ create_block_geom(void)
       .geometry = {
         .world = {0.0},
         .geometry_id = GKYL_TOKAMAK,
-        .tok_efit_info = efit_inp_outer,
+        .efit_info = efit_inp,
         .tok_grid_info = (struct gkyl_tok_geo_grid_inp) {
           .ftype = GKYL_SOL_DN_OUT_UP,
           .rright = 6.2,
           .rleft = 1.1,
           .rmin = 2.1,
           .rmax = 6.2,
-          .zxpt_up = Zxpt_up,
           .zmax = 8.29,
+          .plate_spec = true,
+          .plate_func_upper = shaped_pfunc_upper_outer,
         }
       },
       
@@ -262,15 +239,16 @@ create_block_geom(void)
       .geometry = {
         .world = {0.0},
         .geometry_id = GKYL_TOKAMAK,
-        .tok_efit_info = efit_inp_outer,
+        .efit_info = efit_inp,
         .tok_grid_info = (struct gkyl_tok_geo_grid_inp) {
           .ftype = GKYL_PF_UP_R,
           .rright = 6.2,
           .rleft = 2.0,
           .rmin = 2.1,
           .rmax = 6.2,
-          .zxpt_up = Zxpt_up,
           .zmax = 8.29,
+          .plate_spec = true,
+          .plate_func_upper = shaped_pfunc_upper_outer,
         }
       },
       
@@ -294,15 +272,16 @@ create_block_geom(void)
       .geometry = {
         .world = {0.0},
         .geometry_id = GKYL_TOKAMAK,
-        .tok_efit_info = efit_inp_inner,
+        .efit_info = efit_inp,
         .tok_grid_info = (struct gkyl_tok_geo_grid_inp) {
           .ftype = GKYL_PF_UP_L,
           .rright = 6.2,
           .rleft = 2.0,
           .rmin = 1.6,
           .rmax = 6.2,
-          .zxpt_up = Zxpt_up,
           .zmax = 6.34,
+          .plate_spec = true,
+          .plate_func_upper = shaped_pfunc_upper_inner,
         }
       },
       
@@ -326,15 +305,16 @@ create_block_geom(void)
       .geometry = {
         .world = {0.0},
         .geometry_id = GKYL_TOKAMAK,
-        .tok_efit_info = efit_inp_inner,
+        .efit_info = efit_inp,
         .tok_grid_info = (struct gkyl_tok_geo_grid_inp) {
           .ftype = GKYL_SOL_DN_IN_UP,
           .rleft = 2.0,
           .rright= 6.2,
           .rmin = 1.3,
           .rmax = 6.2,
-          .zxpt_up = Zxpt_up,
           .zmax = 6.34,  
+          .plate_spec = true,
+          .plate_func_upper = shaped_pfunc_upper_inner,
         }
       },
       
@@ -358,15 +338,16 @@ create_block_geom(void)
       .geometry = {
         .world = {0.0},
         .geometry_id = GKYL_TOKAMAK,
-        .tok_efit_info = efit_inp_inner,
+        .efit_info = efit_inp,
         .tok_grid_info = (struct gkyl_tok_geo_grid_inp) {
           .ftype = GKYL_SOL_DN_IN_MID,
           .rleft = 2.0,
           .rright= 6.2,
           .rmin = 1.3,
           .rmax = 6.2,
-          .zxpt_up = Zxpt_up,
-          .zxpt_lo = Zxpt_lo,
+          .plate_spec = true,
+          .plate_func_lower = shaped_pfunc_lower_inner,
+          .plate_func_upper = shaped_pfunc_upper_inner,
         }
       },
       
@@ -390,7 +371,7 @@ create_block_geom(void)
       .geometry = {
         .world = {0.0},
         .geometry_id = GKYL_TOKAMAK,
-        .tok_efit_info = efit_inp_inner,
+        .efit_info = efit_inp,
         .tok_grid_info = (struct gkyl_tok_geo_grid_inp) {
           .ftype = GKYL_SOL_DN_IN_LO,
           .rleft = 2.0,
@@ -398,7 +379,8 @@ create_block_geom(void)
           .rmin = 1.3,
           .rmax = 6.2,
           .zmin = -6.34,
-          .zxpt_lo = Zxpt_lo,
+          .plate_spec = true,
+          .plate_func_lower = shaped_pfunc_lower_inner,
         }
       },
       
@@ -422,15 +404,16 @@ create_block_geom(void)
       .geometry = {
         .world = {0.0},
         .geometry_id = GKYL_TOKAMAK,
-        .tok_efit_info = efit_inp_inner,
+        .efit_info = efit_inp,
         .tok_grid_info = (struct gkyl_tok_geo_grid_inp) {
           .ftype = GKYL_PF_LO_L,
           .rright = 6.2,
           .rleft = 2.0,
           .rmin = 1.6,
           .rmax = 6.2,
-          .zxpt_lo = Zxpt_lo,
           .zmin = -6.34,
+          .plate_spec = true,
+          .plate_func_lower = shaped_pfunc_lower_inner,
         }
       },
       
@@ -454,7 +437,7 @@ create_block_geom(void)
       .geometry = {
         .world = {0.0},
         .geometry_id = GKYL_TOKAMAK,
-        .tok_efit_info = efit_inp,
+        .efit_info = efit_inp,
         .tok_grid_info = (struct gkyl_tok_geo_grid_inp) {
           .ftype = GKYL_CORE_R,
           .rclose = 6.2,
@@ -462,8 +445,6 @@ create_block_geom(void)
           .rright= 6.2,
           .rmin=1.5,
           .rmax=6.2,
-          .zxpt_lo = Zxpt_lo,
-          .zxpt_up = Zxpt_up,
         }
       },
       
@@ -487,7 +468,7 @@ create_block_geom(void)
       .geometry = {
         .world = {0.0},
         .geometry_id = GKYL_TOKAMAK,
-        .tok_efit_info = efit_inp,
+        .efit_info = efit_inp,
         .tok_grid_info = (struct gkyl_tok_geo_grid_inp) {
           .ftype = GKYL_CORE_L,
           .rclose = 1.1,
@@ -495,8 +476,6 @@ create_block_geom(void)
           .rright= 6.2,
           .rmin=1.5,
           .rmax=6.2,
-          .zxpt_lo = Zxpt_lo,
-          .zxpt_up = Zxpt_up,
         }
       },
       

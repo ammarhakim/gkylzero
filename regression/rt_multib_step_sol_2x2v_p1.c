@@ -1,5 +1,6 @@
 #include <gkyl_alloc.h>
 #include <gkyl_const.h>
+#include <gkyl_efit.h>
 #include <gkyl_gyrokinetic_multib.h>
 #include <gkyl_mpi_comm.h>
 #include <gkyl_null_comm.h>
@@ -29,10 +30,18 @@ create_block_geom(void)
       Edges that coincide are physically connected.
   */  
 
-  double psisep = 1.5093065418975686;
-  double Zxpt_lo = -6.1672666854902927;
-  double Zxpt_up = 6.1672666854902927;
+  struct gkyl_efit_inp efit_inp = {
+    // psiRZ and related inputs
+    .filepath = "./data/eqdsk/step.geqdsk",
+    .rz_poly_order = 2,
+    .rz_basis_type = GKYL_BASIS_MODAL_TENSOR,
+    .flux_poly_order = 1,
+    .reflect = true,
+  };
 
+  struct gkyl_efit *efit = gkyl_efit_new(&efit_inp);
+  double psisep = efit->psisep;
+  gkyl_efit_release(efit);
   double psi_lo_outer_sol = 0.934;
 
   int npsi_outer_sol = 4;
@@ -41,17 +50,6 @@ create_block_geom(void)
   double ntheta_middle = 8;
 
   double theta_lo = -M_PI + 1e-14, theta_up = M_PI - 1e-14;
-
-  struct gkyl_tok_geo_efit_inp efit_inp = {
-    // psiRZ and related inputs
-    .filepath = "./data/eqdsk/step.geqdsk",
-    .rzpoly_order = 2,
-    .rz_basis_type = GKYL_BASIS_MODAL_TENSOR,
-    .fluxpoly_order = 1,
-    .plate_spec = false,
-    .quad_param = {  .eps = 1e-10 },
-    .reflect = true,
-  };
 
   // block 0. Lower outer SOL.
   gkyl_block_geom_set_block(bgeom, 0, &(struct gkyl_block_geom_info) {
@@ -62,14 +60,13 @@ create_block_geom(void)
       .geometry = {
         .world = {0.0},
         .geometry_id = GKYL_TOKAMAK,
-        .tok_efit_info = efit_inp,
+        .efit_info = efit_inp,
         .tok_grid_info = (struct gkyl_tok_geo_grid_inp) {
           .ftype = GKYL_SOL_DN_OUT_LO,
           .rright = 6.2,
           .rleft = 1.1,
           .rmin = 2.1,
           .rmax = 6.2,
-          .zxpt_lo = Zxpt_lo,
           .zmin = -8.29,
         }
       },
@@ -94,15 +91,13 @@ create_block_geom(void)
       .geometry = {
         .world = {0.0},
         .geometry_id = GKYL_TOKAMAK,
-        .tok_efit_info = efit_inp,
+        .efit_info = efit_inp,
         .tok_grid_info = (struct gkyl_tok_geo_grid_inp) {
           .ftype = GKYL_SOL_DN_OUT_MID,
           .rright = 6.2,
           .rleft = 1.1,
           .rmin = 2.1,
           .rmax = 6.2,
-          .zxpt_lo = Zxpt_lo,
-          .zxpt_up = Zxpt_up,
         }
       },
       

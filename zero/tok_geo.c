@@ -7,7 +7,6 @@
 #include <gkyl_rect_grid.h>
 #include <gkyl_nodal_ops.h>
 #include <gkyl_gk_geometry.h>
-#include <gkyl_efit.h>
 #include <gkyl_tok_geo_priv.h>
 #include <assert.h>
 
@@ -220,9 +219,9 @@ phi_func(double alpha_curr, double Z, void *ctx)
   int nr = R_psiZ(actx->geo, psi, Z, 4, R, dR);
   double r_curr = nr == 1 ? R[0] : choose_closest(rclose, R, R, nr);
   double psi_fpol = psi;
-  //if (psi_fpol < actx->geo->psisep) // F = F(psi_sep) in the SOL. Convention of psi increases inward
+  //if (psi_fpol < actx->geo->sibry) // F = F(psi_sep) in the SOL. Convention of psi increases inward
   if ( (psi_fpol < actx->geo->fgrid.lower[0]) || (psi_fpol > actx->geo->fgrid.upper[0]) ) // F = F(psi_sep) in the SOL.
-    psi_fpol = actx->geo->psisep;
+    psi_fpol = actx->geo->sibry;
   int idx = fmin(actx->geo->frange.lower[0] + (int) floor((psi_fpol - actx->geo->fgrid.lower[0])/actx->geo->fgrid.dx[0]), actx->geo->frange.upper[0]);
   long loc = gkyl_range_idx(&actx->geo->frange, &idx);
   const double *coeffs = gkyl_array_cfetch(actx->geo->fpoldg,loc);
@@ -264,7 +263,7 @@ dphidtheta_func(double Z, void *ctx)
   double r_curr = nr == 1 ? R[0] : choose_closest(rclose, R, R, nr);
   double psi_fpol = psi;
   if ( (psi_fpol < actx->geo->fgrid.lower[0]) || (psi_fpol > actx->geo->fgrid.upper[0]) ) // F = F(psi_sep) in the SOL.
-    psi_fpol = actx->geo->psisep;
+    psi_fpol = actx->geo->sibry;
   int idx = fmin(actx->geo->frange.lower[0] + (int) floor((psi_fpol - actx->geo->fgrid.lower[0])/actx->geo->fgrid.dx[0]), actx->geo->frange.upper[0]);
   long loc = gkyl_range_idx(&actx->geo->frange, &idx);
   const double *coeffs = gkyl_array_cfetch(actx->geo->fpoldg,loc);
@@ -281,15 +280,15 @@ dphidtheta_func(double Z, void *ctx)
 
 
 struct gkyl_tok_geo*
-gkyl_tok_geo_new(const struct gkyl_tok_geo_efit_inp *inp)
+gkyl_tok_geo_new(const struct gkyl_efit_inp *inp, const struct gkyl_tok_geo_grid_inp *ginp)
 {
   struct gkyl_tok_geo *geo = gkyl_malloc(sizeof(*geo));
 
-  geo->efit = gkyl_efit_new(inp->filepath, inp->rzpoly_order, inp->rz_basis_type, inp->fluxpoly_order, inp->reflect, false);
+  geo->efit = gkyl_efit_new(inp);
 
-  geo->plate_spec = inp->plate_spec;
-  geo->plate_func_lower = inp->plate_func_lower;
-  geo->plate_func_upper = inp->plate_func_upper;
+  geo->plate_spec = ginp->plate_spec;
+  geo->plate_func_lower = ginp->plate_func_lower;
+  geo->plate_func_upper = ginp->plate_func_upper;
 
   geo->rzbasis= *geo->efit->rzbasis;
   geo->rzgrid = *geo->efit->rzgrid;
@@ -306,26 +305,33 @@ gkyl_tok_geo_new(const struct gkyl_tok_geo_efit_inp *inp)
   geo->frange_ext = *geo->efit->fluxlocal_ext;
   geo->fpoldg= gkyl_array_acquire(geo->efit->fpolflux);
   geo->qdg= gkyl_array_acquire(geo->efit->qflux);
-  geo->psisep = geo->efit->sibry;
+  geo->sibry = geo->efit->sibry;
+  geo->psisep = geo->efit->psisep;
   geo->zmaxis = geo->efit->zmaxis;
 
   geo->root_param.eps =
-    inp->root_param.eps > 0 ? inp->root_param.eps : 1e-10;
+    ginp->root_param.eps > 0 ? ginp->root_param.eps : 1e-10;
   geo->root_param.max_iter =
-    inp->root_param.max_iter > 0 ? inp->root_param.max_iter : 100;
+    ginp->root_param.max_iter > 0 ? ginp->root_param.max_iter : 100;
 
   geo->quad_param.max_level =
-    inp->quad_param.max_levels > 0 ? inp->quad_param.max_levels : 10;
+    ginp->quad_param.max_levels > 0 ? ginp->quad_param.max_levels : 10;
   geo->quad_param.eps =
-    inp->quad_param.eps > 0 ? inp->quad_param.eps : 1e-10;
+    ginp->quad_param.eps > 0 ? ginp->quad_param.eps : 1e-10;
 
-  if (geo->efit->rzbasis->poly_order == 1)
+  if (geo->efit->rzbasis->poly_order == 1) {
     geo->calc_roots = calc_RdR_p1;
+    geo->calc_grad_psi = calc_grad_psi_p1;
+  }
   else if (geo->efit->rzbasis->poly_order == 2){
-    if(inp->rz_basis_type == GKYL_BASIS_MODAL_SERENDIPITY)
+    if(inp->rz_basis_type == GKYL_BASIS_MODAL_SERENDIPITY) {
       geo->calc_roots = calc_RdR_p2;
-    else if(inp->rz_basis_type == GKYL_BASIS_MODAL_TENSOR)
+      geo->calc_grad_psi = calc_grad_psi_p2;
+    }
+    else if(inp->rz_basis_type == GKYL_BASIS_MODAL_TENSOR) {
       geo->calc_roots = calc_RdR_p2_tensor_nrc;
+      geo->calc_grad_psi = calc_grad_psi_p2_tensor;
+    }
   }
 
   geo->stat = (struct gkyl_tok_geo_stat) { };

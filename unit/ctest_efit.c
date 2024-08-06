@@ -16,10 +16,15 @@
 
 
 void test_solovev(){
-  char* filepath = "./data/eqdsk/solovev.geqdsk";
-  int rzpoly_order = 2;
-  int fluxpoly_order = 1;
-  struct gkyl_efit* efit = gkyl_efit_new(filepath,rzpoly_order, GKYL_BASIS_MODAL_SERENDIPITY, fluxpoly_order, false, false);
+
+  struct gkyl_efit_inp inp  = {
+    .filepath = "./data/eqdsk/solovev.geqdsk",
+    .rz_poly_order = 2,
+    .rz_basis_type = GKYL_BASIS_MODAL_TENSOR,
+    .flux_poly_order = 1,
+    .reflect =  true,
+  };
+  struct gkyl_efit* efit = gkyl_efit_new(&inp);
 
   printf( "rdim=%g zdim=%g rcentr=%g rleft=%g zmid=%g  rmaxis=%g zmaxis=%g simag=%1.16e sibry=%1.16e bcentr=%g  current=%g simag=%g rmaxis=%g   zmaxis=%g sibry=%g \n", efit->rdim, efit->zdim, efit->rcentr, efit->rleft, efit->zmid, efit->rmaxis, efit->zmaxis, efit->simag, efit->sibry, efit->bcentr, efit-> current, efit->simag, efit->rmaxis, efit-> zmaxis, efit->sibry);
   gkyl_grid_sub_array_write(efit->rzgrid, efit->rzlocal, 0, efit->psizr, "solovev_psi.gkyl");
@@ -33,10 +38,14 @@ void test_solovev(){
 }
 
 void test_step(){
-  char* filepath = "./data/eqdsk/step.geqdsk";
-  int rzpoly_order = 2;
-  int fluxpoly_order = 1;
-  struct gkyl_efit* efit = gkyl_efit_new(filepath,rzpoly_order,  GKYL_BASIS_MODAL_TENSOR, fluxpoly_order, true, false);
+  struct gkyl_efit_inp inp  = {
+    .filepath = "./data/eqdsk/step.geqdsk",
+    .rz_poly_order = 2,
+    .rz_basis_type = GKYL_BASIS_MODAL_TENSOR,
+    .flux_poly_order = 1,
+    .reflect =  true,
+  };
+  struct gkyl_efit* efit = gkyl_efit_new(&inp);
 
   printf( "rdim=%g zdim=%g rcentr=%g rleft=%g zmid=%g  rmaxis=%g zmaxis=%g simag=%1.16e sibry=%1.16e bcentr=%g  current=%g simag=%g rmaxis=%g   zmaxis=%g sibry=%g \n", efit->rdim, efit->zdim, efit->rcentr, efit->rleft, efit->zmid, efit->rmaxis, efit->zmaxis, efit->simag, efit->sibry, efit->bcentr, efit-> current, efit->simag, efit->rmaxis, efit-> zmaxis, efit->sibry);
   gkyl_grid_sub_array_write(efit->rzgrid, efit->rzlocal, 0, efit->psizr, "step_psi.gkyl");
@@ -50,10 +59,13 @@ void test_step(){
 }
 
 void test_asdex(){
-  char* filepath = "./data/eqdsk/asdex.geqdsk";
-  int rzpoly_order = 2;
-  int fluxpoly_order = 1;
-  struct gkyl_efit* efit = gkyl_efit_new(filepath,rzpoly_order,  GKYL_BASIS_MODAL_SERENDIPITY, fluxpoly_order, false, false);
+  struct gkyl_efit_inp inp  = {
+    .filepath = "./data/eqdsk/asdex.geqdsk",
+    .rz_poly_order = 2,
+    .rz_basis_type = GKYL_BASIS_MODAL_TENSOR,
+    .flux_poly_order = 1,
+  };
+  struct gkyl_efit* efit = gkyl_efit_new(&inp);
 
   printf( "rdim=%g zdim=%g rcentr=%g rleft=%g zmid=%g  rmaxis=%g zmaxis=%g simag=%1.16e sibry=%1.16e bcentr=%g  current=%g simag=%g rmaxis=%g   zmaxis=%g sibry=%g \n", efit->rdim, efit->zdim, efit->rcentr, efit->rleft, efit->zmid, efit->rmaxis, efit->zmaxis, efit->simag, efit->sibry, efit->bcentr, efit-> current, efit->simag, efit->rmaxis, efit-> zmaxis, efit->sibry);
   gkyl_grid_sub_array_write(efit->rzgrid, efit->rzlocal, 0, efit->psizr, "asdex_psi.gkyl");
@@ -67,10 +79,15 @@ void test_asdex(){
 }
 
 void test_cerfon(){
-  char* filepath = "./data/eqdsk/cerfon.geqdsk";
-  int rzpoly_order = 2;
-  int fluxpoly_order = 1;
-  struct gkyl_efit* efit = gkyl_efit_new(filepath,rzpoly_order,  GKYL_BASIS_MODAL_SERENDIPITY, fluxpoly_order, false, false);
+  
+  struct gkyl_efit_inp inp  = {
+    .filepath = "./data/eqdsk/cerfon.geqdsk",
+    .rz_poly_order = 2,
+    .rz_basis_type = GKYL_BASIS_MODAL_TENSOR,
+    .flux_poly_order = 1,
+    .reflect =  true,
+  };
+  struct gkyl_efit* efit = gkyl_efit_new(&inp);
 
   printf( "rdim=%g zdim=%g rcentr=%g rleft=%g zmid=%g  rmaxis=%g zmaxis=%g simag=%1.16e sibry=%1.16e bcentr=%g  current=%g simag=%g rmaxis=%g   zmaxis=%g sibry=%g \n", efit->rdim, efit->zdim, efit->rcentr, efit->rleft, efit->zmid, efit->rmaxis, efit->zmaxis, efit->simag, efit->sibry, efit->bcentr, efit-> current, efit->simag, efit->rmaxis, efit-> zmaxis, efit->sibry);
   gkyl_grid_sub_array_write(efit->rzgrid, efit->rzlocal, 0, efit->psizr, "cerfon_psi.gkyl");
@@ -84,10 +101,14 @@ void test_cerfon(){
 }
 
 void test_elliptical(){
-  char* filepath = "./data/eqdsk/elliptical.geqdsk";
-  int rzpoly_order = 2;
-  int fluxpoly_order = 1;
-  struct gkyl_efit* efit = gkyl_efit_new(filepath,rzpoly_order,  GKYL_BASIS_MODAL_SERENDIPITY, fluxpoly_order, false, false);
+  struct gkyl_efit_inp inp  = {
+    .filepath = "./data/eqdsk/elliptical.geqdsk",
+    .rz_poly_order = 2,
+    .rz_basis_type = GKYL_BASIS_MODAL_TENSOR,
+    .flux_poly_order = 1,
+    .reflect =  true,
+  };
+  struct gkyl_efit* efit = gkyl_efit_new(&inp);
 
   printf( "rdim=%g zdim=%g rcentr=%g rleft=%g zmid=%g  rmaxis=%g zmaxis=%g simag=%1.16e sibry=%1.16e bcentr=%g  current=%g simag=%g rmaxis=%g   zmaxis=%g sibry=%g \n", efit->rdim, efit->zdim, efit->rcentr, efit->rleft, efit->zmid, efit->rmaxis, efit->zmaxis, efit->simag, efit->sibry, efit->bcentr, efit-> current, efit->simag, efit->rmaxis, efit-> zmaxis, efit->sibry);
   gkyl_grid_sub_array_write(efit->rzgrid, efit->rzlocal, 0, efit->psizr, "elliptical_psi.gkyl");
@@ -101,10 +122,14 @@ void test_elliptical(){
 }
 
 void test_wham(){
-  char* filepath = "./data/eqdsk/wham.geqdsk";
-  int rzpoly_order = 2;
-  int fluxpoly_order = 1;
-  struct gkyl_efit* efit = gkyl_efit_new(filepath,rzpoly_order,  GKYL_BASIS_MODAL_SERENDIPITY, fluxpoly_order, false, false);
+  struct gkyl_efit_inp inp  = {
+    .filepath = "./data/eqdsk/wham.geqdsk",
+    .rz_poly_order = 2,
+    .rz_basis_type = GKYL_BASIS_MODAL_TENSOR,
+    .flux_poly_order = 1,
+    //.reflect =  true,
+  };
+  struct gkyl_efit* efit = gkyl_efit_new(&inp);
 
   printf( "rdim=%g zdim=%g rcentr=%g rleft=%g zmid=%g  rmaxis=%g zmaxis=%g simag=%1.16e sibry=%1.16e bcentr=%g  current=%g simag=%g rmaxis=%g   zmaxis=%g sibry=%g \n", efit->rdim, efit->zdim, efit->rcentr, efit->rleft, efit->zmid, efit->rmaxis, efit->zmaxis, efit->simag, efit->sibry, efit->bcentr, efit-> current, efit->simag, efit->rmaxis, efit-> zmaxis, efit->sibry);
   gkyl_grid_sub_array_write(efit->rzgrid, efit->rzlocal, 0, efit->psizr, "wham_psi.gkyl");
@@ -119,10 +144,13 @@ void test_wham(){
 
 
 void test_tcv(){
-  char* filepath = "./data/eqdsk/tcv.geqdsk";
-  int rzpoly_order = 2;
-  int fluxpoly_order = 1;
-  struct gkyl_efit* efit = gkyl_efit_new(filepath,rzpoly_order,  GKYL_BASIS_MODAL_SERENDIPITY, fluxpoly_order, false, false);
+  struct gkyl_efit_inp inp  = {
+    .filepath = "./data/eqdsk/tcv.geqdsk",
+    .rz_poly_order = 2,
+    .rz_basis_type = GKYL_BASIS_MODAL_TENSOR,
+    .flux_poly_order = 1,
+  };
+  struct gkyl_efit* efit = gkyl_efit_new(&inp);
 
   printf( "rdim=%g zdim=%g rcentr=%g rleft=%g zmid=%g  rmaxis=%g zmaxis=%g simag=%1.16e sibry=%1.16e bcentr=%g  current=%g simag=%g rmaxis=%g   zmaxis=%g sibry=%g \n", efit->rdim, efit->zdim, efit->rcentr, efit->rleft, efit->zmid, efit->rmaxis, efit->zmaxis, efit->simag, efit->sibry, efit->bcentr, efit-> current, efit->simag, efit->rmaxis, efit-> zmaxis, efit->sibry);
   gkyl_grid_sub_array_write(efit->rzgrid, efit->rzlocal, 0, efit->psizr, "tcv_psi.gkyl");
@@ -136,10 +164,14 @@ void test_tcv(){
 }
 
 void test_mast(){
-  char* filepath = "./data/eqdsk/mast.geqdsk";
-  int rzpoly_order = 2;
-  int fluxpoly_order = 1;
-  struct gkyl_efit* efit = gkyl_efit_new(filepath,rzpoly_order,  GKYL_BASIS_MODAL_SERENDIPITY, fluxpoly_order, false, false);
+  struct gkyl_efit_inp inp  = {
+    .filepath = "./data/eqdsk/mast.geqdsk",
+    .rz_poly_order = 2,
+    .rz_basis_type = GKYL_BASIS_MODAL_TENSOR,
+    .flux_poly_order = 1,
+    .reflect =  true,
+  };
+  struct gkyl_efit* efit = gkyl_efit_new(&inp);
 
   printf( "rdim=%g zdim=%g rcentr=%g rleft=%g zmid=%g  rmaxis=%g zmaxis=%g simag=%1.16e sibry=%1.16e bcentr=%g  current=%g simag=%g rmaxis=%g   zmaxis=%g sibry=%g \n", efit->rdim, efit->zdim, efit->rcentr, efit->rleft, efit->zmid, efit->rmaxis, efit->zmaxis, efit->simag, efit->sibry, efit->bcentr, efit-> current, efit->simag, efit->rmaxis, efit-> zmaxis, efit->sibry);
   gkyl_grid_sub_array_write(efit->rzgrid, efit->rzlocal, 0, efit->psizr, "mast_psi.gkyl");

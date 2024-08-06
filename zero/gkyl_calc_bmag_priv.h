@@ -44,7 +44,7 @@ struct fpol_ctx{
    const struct gkyl_basis* rzbasis;
    const struct gkyl_array* fpoldg;
    const struct gkyl_array* psidg;
-   double psisep;
+   double sibry;
 };
 
 
@@ -62,7 +62,7 @@ struct gkyl_calc_bmag {
   bmag_ctx* bmag_ctx;
   const struct gkyl_basis* fbasis; //flux basis
   const struct gkyl_rect_grid* fgrid; // flux grid
-  double psisep;
+  double sibry; // psi at separatrix given by EFIT
 };
 
 GKYL_CU_DH

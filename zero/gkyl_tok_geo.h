@@ -6,6 +6,7 @@
 
 #include <gkyl_array.h>
 #include <gkyl_basis.h>
+#include <gkyl_efit.h>
 #include <gkyl_evalf_def.h>
 #include <gkyl_math.h>
 #include <gkyl_range.h>
@@ -73,7 +74,8 @@ struct gkyl_tok_geo {
   const struct gkyl_array *qdg; // q(psi) dg rep
                                    
 
-  double psisep; // psi of separatrix
+  double sibry; // psi of separatrix as given by EFIT
+  double psisep; // psi of separatrix as calculated from the DG psi(R,Z)
   double zmaxis; // z of magnetic axis
   double rleft, rright;
   double rmin, rmax;
@@ -93,6 +95,8 @@ struct gkyl_tok_geo {
   struct RdRdZ_sol (*calc_roots)(const double *psi, double psi0, double Z,
     double xc[2], double dx[2]);
 
+  double (*calc_grad_psi)(const double *psih, const double eta[2], const double dx[2]);
+
   struct gkyl_tok_geo_stat stat; 
   struct gkyl_array* mc2p_nodal_fd;
   struct gkyl_range* nrange;
@@ -102,31 +106,7 @@ struct gkyl_tok_geo {
 
 
 // Inputs to create a new GK geometry creation object
-struct gkyl_tok_geo_efit_inp {
-  // Inputs to get psiRZ and related inputs from efit
-  char filepath[1024];
-  int rzpoly_order;
-  enum gkyl_basis_type rz_basis_type;
-  int fluxpoly_order;
-  // Specifications for divertor plate
-  bool plate_spec;
-  plate_func plate_func_lower;
-  plate_func plate_func_upper;
 
-  bool reflect; // whether to reflect across R axis to preserve symmetry
-
-  // Parameters for root finder: leave unset to use defaults
-  struct {
-    int max_iter; // typically 20
-    double eps; // typically 1e-10
-  } root_param;
-
-  // Parameters for nmumerical quadrature: leave unset to use default
-  struct {
-    int max_levels; // typically 6-7    
-    double eps; // typically 1e-10
-  } quad_param;
-};
 
 // Inputs to create geometry for a specific computational grid
 struct gkyl_tok_geo_grid_inp {
@@ -142,21 +122,33 @@ struct gkyl_tok_geo_grid_inp {
   double zmin_left, zmin_right; // for lower single null and PF cases diff b/t in and outboard side
   double zmax_left, zmax_right; // for upper single null and PF cases diff b/t in and outboard side
 
-  double zxpt_lo; // z of the lower x point
-  double zxpt_up; // z of the upper x point
+  // Specifications for divertor plate
+  bool plate_spec;
+  plate_func plate_func_lower;
+  plate_func plate_func_upper;
 
   bool exact_roots; // If false we will allow approximate roots when no root is found
+  // Parameters for root finder: leave unset to use defaults
+  struct {
+    int max_iter; // typically 20
+    double eps; // typically 1e-10
+  } root_param;
+  // Parameters for nmumerical quadrature: leave unset to use default
+  struct {
+    int max_levels; // typically 6-7    
+    double eps; // typically 1e-10
+  } quad_param;
 };
 
 
 /**
- * Create new updater to compute the geometry (mapc2p) needed in GK
+ * Create new updater to compute the geometry needed in GK
  * simulations.
  *
- * @param inp Input parameters
- * @param New GK geometry updater
+ * @param efit_inp Input parameters related to EFIT data
+ * @param grid_inp Input parameters related to computational grid
  */
-struct gkyl_tok_geo *gkyl_tok_geo_new(const struct gkyl_tok_geo_efit_inp *inp);
+struct gkyl_tok_geo *gkyl_tok_geo_new(const struct gkyl_efit_inp *inp, const struct gkyl_tok_geo_grid_inp *grid_inp);
 
 /**
  * Get R(psi,Z) for a specified psi and Z value. Multiple values may

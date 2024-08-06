@@ -73,15 +73,15 @@ gkyl_gk_geometry_tok_new(struct gkyl_gk_geometry_inp *geometry_inp)
   up->eps2= gkyl_array_new(GKYL_DOUBLE, up->basis.num_basis, up->local_ext.volume);
   up->bmag_mid = gkyl_array_new(GKYL_DOUBLE, 1, 1);
 
-  const struct gkyl_tok_geo_efit_inp inp = geometry_inp->tok_efit_info;
+  const struct gkyl_efit_inp inp = geometry_inp->efit_info;
   struct gkyl_tok_geo_grid_inp ginp = geometry_inp->tok_grid_info;
   ginp.cgrid = up->grid;
   ginp.cbasis = up->basis;
-  struct gkyl_tok_geo *geo = gkyl_tok_geo_new(&inp);
+  struct gkyl_tok_geo *geo = gkyl_tok_geo_new(&inp, &ginp);
   // calculate mapc2p and mapc2prz
   gkyl_tok_geo_calc(up, &nrange, dzc, geo, &ginp, mc2p_nodal_fd, mc2p_nodal, up->mc2p, dphidtheta_nodal);
   // calculate bmag
-  gkyl_calc_bmag *bcalculator = gkyl_calc_bmag_new(&up->basis, &geo->rzbasis, &geo->fbasis, &up->grid, &geo->rzgrid, &geo->fgrid, geo->psisep, false);
+  gkyl_calc_bmag *bcalculator = gkyl_calc_bmag_new(&up->basis, &geo->rzbasis, &geo->fbasis, &up->grid, &geo->rzgrid, &geo->fgrid, geo->sibry, false);
   gkyl_calc_bmag_advance(bcalculator, &up->local, &up->local_ext, &up->global, &geo->rzlocal, &geo->rzlocal_ext, &geo->frange, &geo->frange_ext, geo->psiRZ, geo->psibyrRZ, geo->psibyr2RZ, up->bmag, geo->fpoldg, up->mc2p, true);
   gkyl_calc_bmag_release(bcalculator);
 
