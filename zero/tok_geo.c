@@ -7,7 +7,6 @@
 #include <gkyl_rect_grid.h>
 #include <gkyl_nodal_ops.h>
 #include <gkyl_gk_geometry.h>
-#include <gkyl_efit.h>
 #include <gkyl_tok_geo_priv.h>
 #include <assert.h>
 
@@ -149,10 +148,13 @@ phi_func(double alpha_curr, double Z, void *ctx)
     }
   }
   else if (actx->ftype==GKYL_CORE_L){ 
-    if (Z<actx->zmaxis)
-      ival = integrate_phi_along_psi_contour_memo(actx->geo, psi, Z, actx->zmaxis, rclose, false, false, arc_memo);
-    else
-      ival = -integrate_phi_along_psi_contour_memo(actx->geo, psi, actx->zmaxis, Z, rclose, false, false, arc_memo);
+    //if (Z<actx->zmaxis)
+    //  ival = integrate_phi_along_psi_contour_memo(actx->geo, psi, Z, actx->zmaxis, rclose, false, false, arc_memo);
+    //else
+    //  ival = -integrate_phi_along_psi_contour_memo(actx->geo, psi, actx->zmaxis, Z, rclose, false, false, arc_memo);
+    ival = integrate_phi_along_psi_contour_memo(actx->geo, psi, Z, actx->zmax, rclose, false, false, arc_memo);
+    phi_ref = actx->phi_right;
+    //printf("Z = %g, adding %g\n", actx->phi_right, ival = %g);
   }
 
   else if (actx->ftype==GKYL_CORE_R){ 
@@ -217,9 +219,9 @@ phi_func(double alpha_curr, double Z, void *ctx)
   int nr = R_psiZ(actx->geo, psi, Z, 4, R, dR);
   double r_curr = nr == 1 ? R[0] : choose_closest(rclose, R, R, nr);
   double psi_fpol = psi;
-  //if (psi_fpol < actx->geo->psisep) // F = F(psi_sep) in the SOL. Convention of psi increases inward
+  //if (psi_fpol < actx->geo->sibry) // F = F(psi_sep) in the SOL. Convention of psi increases inward
   if ( (psi_fpol < actx->geo->fgrid.lower[0]) || (psi_fpol > actx->geo->fgrid.upper[0]) ) // F = F(psi_sep) in the SOL.
-    psi_fpol = actx->geo->psisep;
+    psi_fpol = actx->geo->sibry;
   int idx = fmin(actx->geo->frange.lower[0] + (int) floor((psi_fpol - actx->geo->fgrid.lower[0])/actx->geo->fgrid.dx[0]), actx->geo->frange.upper[0]);
   long loc = gkyl_range_idx(&actx->geo->frange, &idx);
   const double *coeffs = gkyl_array_cfetch(actx->geo->fpoldg,loc);
@@ -238,7 +240,7 @@ phi_func(double alpha_curr, double Z, void *ctx)
   return alpha_curr + ival + phi_ref;
 }
 
-double
+static double
 dphidtheta_func(double Z, void *ctx)
 {
   struct arc_length_ctx *actx = ctx;
@@ -261,7 +263,7 @@ dphidtheta_func(double Z, void *ctx)
   double r_curr = nr == 1 ? R[0] : choose_closest(rclose, R, R, nr);
   double psi_fpol = psi;
   if ( (psi_fpol < actx->geo->fgrid.lower[0]) || (psi_fpol > actx->geo->fgrid.upper[0]) ) // F = F(psi_sep) in the SOL.
-    psi_fpol = actx->geo->psisep;
+    psi_fpol = actx->geo->sibry;
   int idx = fmin(actx->geo->frange.lower[0] + (int) floor((psi_fpol - actx->geo->fgrid.lower[0])/actx->geo->fgrid.dx[0]), actx->geo->frange.upper[0]);
   long loc = gkyl_range_idx(&actx->geo->frange, &idx);
   const double *coeffs = gkyl_array_cfetch(actx->geo->fpoldg,loc);
@@ -278,15 +280,15 @@ dphidtheta_func(double Z, void *ctx)
 
 
 struct gkyl_tok_geo*
-gkyl_tok_geo_new(const struct gkyl_tok_geo_efit_inp *inp)
+gkyl_tok_geo_new(const struct gkyl_efit_inp *inp, const struct gkyl_tok_geo_grid_inp *ginp)
 {
   struct gkyl_tok_geo *geo = gkyl_malloc(sizeof(*geo));
 
-  geo->efit = gkyl_efit_new(inp->filepath, inp->rzpoly_order, inp->rz_basis_type, inp->fluxpoly_order, false);
+  geo->efit = gkyl_efit_new(inp);
 
-  geo->plate_spec = inp->plate_spec;
-  geo->plate_func_lower = inp->plate_func_lower;
-  geo->plate_func_upper = inp->plate_func_upper;
+  geo->plate_spec = ginp->plate_spec;
+  geo->plate_func_lower = ginp->plate_func_lower;
+  geo->plate_func_upper = ginp->plate_func_upper;
 
   geo->rzbasis= *geo->efit->rzbasis;
   geo->rzgrid = *geo->efit->rzgrid;
@@ -303,26 +305,33 @@ gkyl_tok_geo_new(const struct gkyl_tok_geo_efit_inp *inp)
   geo->frange_ext = *geo->efit->fluxlocal_ext;
   geo->fpoldg= gkyl_array_acquire(geo->efit->fpolflux);
   geo->qdg= gkyl_array_acquire(geo->efit->qflux);
-  geo->psisep = geo->efit->sibry;
+  geo->sibry = geo->efit->sibry;
+  geo->psisep = geo->efit->psisep;
   geo->zmaxis = geo->efit->zmaxis;
 
   geo->root_param.eps =
-    inp->root_param.eps > 0 ? inp->root_param.eps : 1e-10;
+    ginp->root_param.eps > 0 ? ginp->root_param.eps : 1e-10;
   geo->root_param.max_iter =
-    inp->root_param.max_iter > 0 ? inp->root_param.max_iter : 100;
+    ginp->root_param.max_iter > 0 ? ginp->root_param.max_iter : 100;
 
   geo->quad_param.max_level =
-    inp->quad_param.max_levels > 0 ? inp->quad_param.max_levels : 10;
+    ginp->quad_param.max_levels > 0 ? ginp->quad_param.max_levels : 10;
   geo->quad_param.eps =
-    inp->quad_param.eps > 0 ? inp->quad_param.eps : 1e-10;
+    ginp->quad_param.eps > 0 ? ginp->quad_param.eps : 1e-10;
 
-  if (geo->efit->rzbasis->poly_order == 1)
+  if (geo->efit->rzbasis->poly_order == 1) {
     geo->calc_roots = calc_RdR_p1;
+    geo->calc_grad_psi = calc_grad_psi_p1;
+  }
   else if (geo->efit->rzbasis->poly_order == 2){
-    if(inp->rz_basis_type == GKYL_BASIS_MODAL_SERENDIPITY)
+    if(inp->rz_basis_type == GKYL_BASIS_MODAL_SERENDIPITY) {
       geo->calc_roots = calc_RdR_p2;
-    else if(inp->rz_basis_type == GKYL_BASIS_MODAL_TENSOR)
+      geo->calc_grad_psi = calc_grad_psi_p2;
+    }
+    else if(inp->rz_basis_type == GKYL_BASIS_MODAL_TENSOR) {
       geo->calc_roots = calc_RdR_p2_tensor_nrc;
+      geo->calc_grad_psi = calc_grad_psi_p2_tensor;
+    }
   }
 
   geo->stat = (struct gkyl_tok_geo_stat) { };
@@ -346,42 +355,14 @@ gkyl_tok_geo_R_psiZ(const struct gkyl_tok_geo *geo, double psi, double Z, int nm
   return R_psiZ(geo, psi, Z, nmaxroots, R, dR);
 }
 
-// write out nodal coordinates 
-static void
-write_nodal_coordinates(const char *nm, struct gkyl_range *nrange,
-  struct gkyl_array *nodes)
-{
-  double lower[3] = { 0.0, 0.0, 0.0 };
-  double upper[3] = { 1.0, 1.0, 1.0 };
-  int cells[3];
-  for (int i=0; i<nrange->ndim; ++i)
-    cells[i] = gkyl_range_shape(nrange, i);
-  
-  struct gkyl_rect_grid grid;
-  gkyl_rect_grid_init(&grid, 3, lower, upper, cells);
-
-  gkyl_grid_sub_array_write(&grid, nrange, 0, nodes, nm);
-}
-
-
 void gkyl_tok_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, double dzc[3], struct gkyl_tok_geo *geo, 
-    struct gkyl_tok_geo_grid_inp *inp, struct gkyl_array *mc2p_nodal_fd, struct gkyl_array *mc2p_nodal, struct gkyl_array *mc2p,
-    struct gkyl_array *mc2prz_nodal_fd, struct gkyl_array *mc2prz_nodal, struct gkyl_array *mc2prz, struct gkyl_array *dphidtheta_nodal)
+    struct gkyl_tok_geo_grid_inp *inp, struct gkyl_array *mc2p_nodal_fd, struct gkyl_array *mc2p_nodal, struct gkyl_array *mc2p, struct gkyl_array *dphidtheta_nodal)
 {
 
   geo->rleft = inp->rleft;
   geo->rright = inp->rright;
 
-  geo->tol_no_roots = false;
-  // The block below can be used if one wishes to tolerate approximate roots
-  //if( (inp->ftype == GKYL_SOL_DN_OUT_LO) || (inp->ftype == GKYL_SOL_DN_OUT_UP) 
-  //    || (inp->ftype == GKYL_SOL_DN_IN_LO) || (inp->ftype == GKYL_SOL_DN_IN_UP)
-  //    || (inp->ftype == GKYL_PF_LO_L) || (inp->ftype == GKYL_PF_LO_R)
-  //    || (inp->ftype == GKYL_PF_UP_L) || (inp->ftype == GKYL_PF_UP_R) )
-  //  geo->tol_no_roots = true;
-  //else
-  //  geo->tol_no_roots = false;
-
+  geo->exact_roots = inp->exact_roots;
 
   geo->rmax = inp->rmax;
   geo->rmin = inp->rmin;
@@ -523,12 +504,72 @@ void gkyl_tok_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, double
                 geo->root_param.max_iter, 1e-10);
               double z_curr = res.res;
               ((struct gkyl_tok_geo *)geo)->stat.nroot_cont_calls += res.nevals;
+              
+              if( inp->ftype == GKYL_PF_UP_L ||inp->ftype == GKYL_PF_LO_L || inp->ftype == GKYL_CORE_L || inp->ftype == GKYL_SOL_DN_IN|| inp->ftype == GKYL_SOL_DN_IN_UP || inp->ftype == GKYL_SOL_DN_IN_MID || inp->ftype == GKYL_SOL_DN_IN_LO) {
+                if(it == nrange->upper[TH_IDX] && (up->local.upper[TH_IDX]== up->global.upper[TH_IDX]) && it_delta == 0) z_curr = arc_ctx.zmin;
+                if(it == nrange->lower[TH_IDX] && (up->local.lower[TH_IDX]== up->global.lower[TH_IDX]) && it_delta == 0) z_curr = arc_ctx.zmax;
+              }
+              else {
+                if(it == nrange->upper[TH_IDX] && (up->local.upper[TH_IDX]== up->global.upper[TH_IDX]) && it_delta == 0) z_curr = arc_ctx.zmax;
+                if(it == nrange->lower[TH_IDX] && (up->local.lower[TH_IDX]== up->global.lower[TH_IDX]) && it_delta == 0) z_curr = arc_ctx.zmin;
+              }
+
+
               double R[4] = { 0 }, dR[4] = { 0 };
               int nr = R_psiZ(geo, psi_curr, z_curr, 4, R, dR);
               double r_curr = choose_closest(rclose, R, R, nr);
 
+              // For all blocks on the inner edge with z boundaries we will need to match the entire outer edge
+              if(inp->ftype == GKYL_CORE_L){ // Match the core right boundary at upper and lower theta ends
+                if ((it == nrange->lower[TH_IDX]) && (up->local.lower[TH_IDX]== up->global.lower[TH_IDX]))
+                  r_curr = choose_closest(inp->rright, R, R, nr);
+                if((it == nrange->upper[TH_IDX]) && (up->local.upper[TH_IDX]== up->global.upper[TH_IDX]))
+                  r_curr = choose_closest(inp->rright, R, R, nr);
+              }
+
+              if(inp->ftype == GKYL_PF_LO_L){ // Match the right pf lo boundary at lower theta end
+                if ((it == nrange->lower[TH_IDX]) && (up->local.lower[TH_IDX]== up->global.lower[TH_IDX])) {
+                  r_curr = choose_closest(inp->rright, R, R, nr);
+                }
+              }
+
+              if(inp->ftype == GKYL_PF_UP_L){ // Match the right pf lo boundary at lower theta end
+                if ((it == nrange->upper[TH_IDX]) && (up->local.upper[TH_IDX]== up->global.upper[TH_IDX])) {
+                  r_curr = choose_closest(inp->rright, R, R, nr);
+                }
+              }
+
+              // For all blocks on the inner edge with x boundaries we will need to match the X-point
+              if(inp->ftype == GKYL_SOL_DN_IN_UP){ // Match the right side
+                if((ip == nrange->upper[PSI_IDX]) && (up->local.upper[PSI_IDX]== up->global.upper[PSI_IDX])) {
+                  if ((it == nrange->upper[TH_IDX]) && (up->local.upper[TH_IDX]== up->global.upper[TH_IDX])) {
+                    r_curr = choose_closest(inp->rright, R, R, nr);
+                  }
+                }
+              }
+
+              if(inp->ftype == GKYL_SOL_DN_IN_MID){ // Match the right side
+                if((ip == nrange->upper[PSI_IDX]) && (up->local.upper[PSI_IDX]== up->global.upper[PSI_IDX])) {
+                  if ((it == nrange->lower[TH_IDX]) && (up->local.lower[TH_IDX]== up->global.lower[TH_IDX])) {
+                    r_curr = choose_closest(inp->rright, R, R, nr);
+                  }
+                  if ((it == nrange->upper[TH_IDX]) && (up->local.upper[TH_IDX]== up->global.upper[TH_IDX])) {
+                    r_curr = choose_closest(inp->rright, R, R, nr);
+                  }
+                }
+              }
+
+              if(inp->ftype == GKYL_SOL_DN_IN_LO){ // Match the right side
+                if((ip == nrange->upper[PSI_IDX]) && (up->local.upper[PSI_IDX]== up->global.upper[PSI_IDX])) {
+                  if ((it == nrange->lower[TH_IDX]) && (up->local.lower[TH_IDX]== up->global.lower[TH_IDX])) {
+                    r_curr = choose_closest(inp->rright, R, R, nr);
+                  }
+                }
+              }
+
               if(nr==0){
-                printf("Failed to find a root at psi = %g, Z = %g\n", psi_curr, z_curr);
+                printf(" ip = %d, it = %d, ia = %d, ip_delta = %d, it_delta = %d, ia_delta = %d\n", ip, it, ia, ip_delta, it_delta, ia_delta);
+                printf("Failed to find a root at psi = %g, Z = %1.16f\n", psi_curr, z_curr);
                 assert(false);
               }
 
@@ -547,24 +588,16 @@ void gkyl_tok_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, double
               double phi_curr = phi_func(alpha_curr, z_curr, &arc_ctx);
               double *mc2p_fd_n = gkyl_array_fetch(mc2p_nodal_fd, gkyl_range_idx(nrange, cidx));
               double *mc2p_n = gkyl_array_fetch(mc2p_nodal, gkyl_range_idx(nrange, cidx));
-              double *mc2prz_fd_n = gkyl_array_fetch(mc2prz_nodal_fd, gkyl_range_idx(nrange, cidx));
-              double *mc2prz_n = gkyl_array_fetch(mc2prz_nodal, gkyl_range_idx(nrange, cidx));
               double *dphidtheta_n = gkyl_array_fetch(dphidtheta_nodal, gkyl_range_idx(nrange, cidx));
 
-              mc2p_fd_n[lidx+X_IDX] = r_curr*cos(phi_curr);
-              mc2p_fd_n[lidx+Y_IDX] = r_curr*sin(phi_curr);
-              mc2p_fd_n[lidx+Z_IDX] = z_curr;
-              mc2prz_fd_n[lidx+X_IDX] = r_curr;
-              mc2prz_fd_n[lidx+Y_IDX] = z_curr;
-              mc2prz_fd_n[lidx+Z_IDX] = phi_curr;
+              mc2p_fd_n[lidx+X_IDX] = r_curr;
+              mc2p_fd_n[lidx+Y_IDX] = z_curr;
+              mc2p_fd_n[lidx+Z_IDX] = phi_curr;
 
               if(ip_delta==0 && ia_delta==0 && it_delta==0){
-                mc2p_n[X_IDX] = r_curr*cos(phi_curr);
-                mc2p_n[Y_IDX] = r_curr*sin(phi_curr);
-                mc2p_n[Z_IDX] = z_curr;
-                mc2prz_n[X_IDX] = r_curr;
-                mc2prz_n[Y_IDX] = z_curr;
-                mc2prz_n[Z_IDX] = phi_curr;
+                mc2p_n[X_IDX] = r_curr;
+                mc2p_n[Y_IDX] = z_curr;
+                mc2p_n[Z_IDX] = phi_curr;
                 dphidtheta_n[0] = dphidtheta_func(z_curr, &arc_ctx);
               }
             }
@@ -575,15 +608,8 @@ void gkyl_tok_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, double
   }
   struct gkyl_nodal_ops *n2m =  gkyl_nodal_ops_new(&inp->cbasis, &inp->cgrid, false);
   gkyl_nodal_ops_n2m(n2m, &inp->cbasis, &inp->cgrid, nrange, &up->local, 3, mc2p_nodal, mc2p);
-  gkyl_nodal_ops_n2m(n2m, &inp->cbasis, &inp->cgrid, nrange, &up->local, 3, mc2prz_nodal, mc2prz);
   gkyl_nodal_ops_release(n2m);
 
-  char str1[50] = "xyz";
-  char str2[50] = "allxyz";
-  if (inp->write_node_coord_array){
-    write_nodal_coordinates(strcat(str1, inp->node_file_nm), nrange, mc2p_nodal);
-    write_nodal_coordinates(strcat(str2, inp->node_file_nm), nrange, mc2p_nodal_fd);
-  }
   gkyl_free(arc_memo);
   gkyl_free(arc_memo_left);
   gkyl_free(arc_memo_right);

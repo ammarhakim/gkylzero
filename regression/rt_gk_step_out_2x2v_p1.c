@@ -237,9 +237,9 @@ create_ctx(void)
 
   // Simulation box size (m).
   double lower_x = 0.934;
-  double upper_x = 1.4688;
+  double upper_x = 1.5093065418975686;
   double Lx = upper_x - lower_x;
-  double Lz = 3.14*2;
+  double Lz = (M_PI-1e-14)*2.0;
 
   double vpar_max_elc = 4.0*vtElc;
   double mu_max_elc = 18*me*vtElc*vtElc/(2.0*B0);
@@ -659,27 +659,22 @@ main(int argc, char **argv)
                     .lo_value = {0.0}, .up_value = {0.0}}, 
   };
 
-  struct gkyl_tok_geo_efit_inp efit_inp = {
+  struct gkyl_efit_inp efit_inp = {
     // psiRZ and related inputs
     .filepath = "./data/eqdsk/step.geqdsk",
-    .rzpoly_order = 2,
-    .fluxpoly_order = 1,
-    .plate_spec = false,
-    .quad_param = {  .eps = 1e-10 }
+    .rz_poly_order = 2,
+    .rz_basis_type = GKYL_BASIS_MODAL_TENSOR,
+    .flux_poly_order = 1,
+    .reflect = true,
   };
 
-
   struct gkyl_tok_geo_grid_inp grid_inp = {
-      .ftype = GKYL_SOL_DN_OUT,
+      .ftype = GKYL_SOL_DN_OUT_MID,
       .rclose = 6.2,
       .rright= 6.2,
       .rleft= 2.0,
       .rmin = 1.1,
       .rmax = 6.2,
-      .zmin = -5.14213,
-      .zmax = 5.14226,
-      .write_node_coord_array = true,
-      .node_file_nm = "step_outboard_fixed_z_nodes.gkyl"
   };
 
   // GK app
@@ -696,7 +691,7 @@ main(int argc, char **argv)
     .geometry = {
       .world = {0.0},
       .geometry_id = GKYL_TOKAMAK,
-      .tok_efit_info = efit_inp,
+      .efit_info = efit_inp,
       .tok_grid_info = grid_inp,
     },
 

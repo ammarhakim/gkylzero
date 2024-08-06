@@ -24,18 +24,14 @@
 //.zmax = 6.14226,
 //
 //Coords that worked for core
-//.zxpt_lo = -6.14214,
-//.zxpt_up = 6.1423,
 
 double psisep = 1.5098198350000001;
-struct gkyl_tok_geo_efit_inp efit_inp = {
+struct gkyl_efit_inp efit_inp = {
     // psiRZ and related inputs
     .filepath = "./data/eqdsk/step.geqdsk",
-    .rzpoly_order = 2,
+    .rz_poly_order = 2,
     .rz_basis_type = GKYL_BASIS_MODAL_TENSOR,
-    .fluxpoly_order = 1,
-    .plate_spec = false,
-    .quad_param = {  .eps = 1e-10 }
+    .flux_poly_order = 1,
   };
 
 int cpoly_order = 1;
@@ -64,19 +60,10 @@ test_core()
     .rclose = 6.2,
     .rleft= 1.1,
     .rright= 6.2,
-    //.zxpt_lo = -6.2,
-    //.zxpt_up = 6.2,
-    //.zxpt_lo = -6.14214,
-    //.zxpt_up = 6.1423,
-    .zxpt_lo = -6.142,
-    .zxpt_up = 6.142,
-
-    .write_node_coord_array = true,
-    .node_file_nm = "stepcore_nodes.gkyl"
   }; 
   struct gkyl_gk_geometry_inp geometry_inp = {
     .geometry_id  = GKYL_TOKAMAK,
-    .tok_efit_info = efit_inp,
+    .efit_info = efit_inp,
     .tok_grid_info = ginp,
     .grid = cgrid,
     .local = clocal,
@@ -122,15 +109,11 @@ test_11()
     .rright= 6.2,
     .rmin = 1.4,
     .rmax = 6.2,
-    .zxpt_lo = -6.18,
-    .zxpt_up = 6.18,
 
-    .write_node_coord_array = true,
-    .node_file_nm = "step11_nodes.gkyl"
   }; 
   struct gkyl_gk_geometry_inp geometry_inp = {
     .geometry_id  = GKYL_TOKAMAK,
-    .tok_efit_info = efit_inp,
+    .efit_info = efit_inp,
     .tok_grid_info = ginp,
     .grid = cgrid,
     .local = clocal,
@@ -176,15 +159,11 @@ test_12()
     .rright= 6.2,
     .rmin = 1.2,
     .rmax = 6.2,
-    .zxpt_lo = -6.18,
-    .zxpt_up = 6.18,
 
-    .write_node_coord_array = true,
-    .node_file_nm = "step12_nodes.gkyl"
   }; 
   struct gkyl_gk_geometry_inp geometry_inp = {
     .geometry_id  = GKYL_TOKAMAK,
-    .tok_efit_info = efit_inp,
+    .efit_info = efit_inp,
     .tok_grid_info = ginp,
     .grid = cgrid,
     .local = clocal,
@@ -232,12 +211,10 @@ test_outer()
     .rmax = 6.2,
     .zmin = -8.3,
     .zmax = 8.3,
-    .write_node_coord_array = true,
-    .node_file_nm = "stepouter_nodes.gkyl"
   }; 
   struct gkyl_gk_geometry_inp geometry_inp = {
     .geometry_id  = GKYL_TOKAMAK,
-    .tok_efit_info = efit_inp,
+    .efit_info = efit_inp,
     .tok_grid_info = ginp,
     .grid = cgrid,
     .local = clocal,
@@ -285,14 +262,10 @@ test_2()
     .rmin = 1.1,
     .rmax = 6.2,
     .zmin = -8.3,
-    //.zxpt_lo = -6.14213,
-    .zxpt_lo = -6.2,
-    .write_node_coord_array = true,
-    .node_file_nm = "step2_nodes.gkyl"
   }; 
   struct gkyl_gk_geometry_inp geometry_inp = {
     .geometry_id  = GKYL_TOKAMAK,
-    .tok_efit_info = efit_inp,
+    .efit_info = efit_inp,
     .tok_grid_info = ginp,
     .grid = cgrid,
     .local = clocal,
@@ -339,14 +312,10 @@ test_3()
     .rleft = 1.1,
     .rmin = 1.1,
     .rmax = 6.2,
-    .zxpt_lo = -6.1419,
-    .zxpt_up = 6.1421,
-    .write_node_coord_array = true,
-    .node_file_nm = "step3_nodes.gkyl"
   }; 
   struct gkyl_gk_geometry_inp geometry_inp = {
     .geometry_id  = GKYL_TOKAMAK,
-    .tok_efit_info = efit_inp,
+    .efit_info = efit_inp,
     .tok_grid_info = ginp,
     .grid = cgrid,
     .local = clocal,
@@ -393,15 +362,11 @@ test_4()
     .rleft = 1.1,
     .rmin = 1.1,
     .rmax = 6.2,
-    //.zxpt_up = 6.2,
-    .zxpt_up = 6.2,
     .zmax = 8.3,
-    .write_node_coord_array = true,
-    .node_file_nm = "step4_nodes.gkyl"
   }; 
   struct gkyl_gk_geometry_inp geometry_inp = {
     .geometry_id  = GKYL_TOKAMAK,
-    .tok_efit_info = efit_inp,
+    .efit_info = efit_inp,
     .tok_grid_info = ginp,
     .grid = cgrid,
     .local = clocal,
@@ -448,14 +413,10 @@ test_8()
     .rright= 6.2,
     .rmin = 1.1,
     .rmax = 6.2,
-    .zxpt_lo = -6.1419,
-    .zxpt_up = 6.1421,
-    .write_node_coord_array = true,
-    .node_file_nm = "step8_nodes.gkyl"
   }; 
   struct gkyl_gk_geometry_inp geometry_inp = {
     .geometry_id  = GKYL_TOKAMAK,
-    .tok_efit_info = efit_inp,
+    .efit_info = efit_inp,
     .tok_grid_info = ginp,
     .grid = cgrid,
     .local = clocal,
@@ -500,14 +461,11 @@ test_5()
     .rleft = 2.0,
     .rmin = 1.1,
     .rmax = 6.2,
-    .zxpt_up = 6.2,
     .zmax = 8.3,
-    .write_node_coord_array = true,
-    .node_file_nm = "step5_nodes.gkyl"
   }; 
   struct gkyl_gk_geometry_inp geometry_inp = {
     .geometry_id  = GKYL_TOKAMAK,
-    .tok_efit_info = efit_inp,
+    .efit_info = efit_inp,
     .tok_grid_info = ginp,
     .grid = cgrid,
     .local = clocal,
@@ -552,14 +510,11 @@ test_6()
     .rmin = 1.5,
     .rmax = 6.2,
     .rright = 6.2,
-    .zxpt_up = 6.2,
     .zmax = 6.34,
-    .write_node_coord_array = true,
-    .node_file_nm = "step6_nodes.gkyl"
   }; 
   struct gkyl_gk_geometry_inp geometry_inp = {
     .geometry_id  = GKYL_TOKAMAK,
-    .tok_efit_info = efit_inp,
+    .efit_info = efit_inp,
     .tok_grid_info = ginp,
     .grid = cgrid,
     .local = clocal,
@@ -605,14 +560,11 @@ test_7()
     .rright= 6.2,
     .rmin = 1.1,
     .rmax = 6.2,
-    .zxpt_up = 6.2,
     .zmax = 6.34,
-    .write_node_coord_array = true,
-    .node_file_nm = "step7_nodes.gkyl"
   }; 
   struct gkyl_gk_geometry_inp geometry_inp = {
     .geometry_id  = GKYL_TOKAMAK,
-    .tok_efit_info = efit_inp,
+    .efit_info = efit_inp,
     .tok_grid_info = ginp,
     .grid = cgrid,
     .local = clocal,
@@ -657,14 +609,11 @@ test_9()
     .rright= 6.2,
     .rmin = 1.1,
     .rmax = 6.2,
-    .zxpt_lo = -6.2,
     .zmin = -6.34,
-    .write_node_coord_array = true,
-    .node_file_nm = "step9_nodes.gkyl"
   }; 
   struct gkyl_gk_geometry_inp geometry_inp = {
     .geometry_id  = GKYL_TOKAMAK,
-    .tok_efit_info = efit_inp,
+    .efit_info = efit_inp,
     .tok_grid_info = ginp,
     .grid = cgrid,
     .local = clocal,
@@ -709,14 +658,11 @@ test_1()
     .rleft = 2.0,
     .rmin = 1.1,
     .rmax = 6.2,
-    .zxpt_lo = -6.2,
     .zmin = -8.3,
-    .write_node_coord_array = true,
-    .node_file_nm = "step1_nodes.gkyl"
   }; 
   struct gkyl_gk_geometry_inp geometry_inp = {
     .geometry_id  = GKYL_TOKAMAK,
-    .tok_efit_info = efit_inp,
+    .efit_info = efit_inp,
     .tok_grid_info = ginp,
     .grid = cgrid,
     .local = clocal,
@@ -761,15 +707,12 @@ test_10()
     .rright = 6.2,
     .rmin = 1.6,
     .rmax = 6.2,
-    .zxpt_lo = -6.2,
     .zmin = -6.34,
-    .write_node_coord_array = true,
-    .node_file_nm = "step10_nodes.gkyl"
   }; 
 
   struct gkyl_gk_geometry_inp geometry_inp = {
     .geometry_id  = GKYL_TOKAMAK,
-    .tok_efit_info = efit_inp,
+    .efit_info = efit_inp,
     .tok_grid_info = ginp,
     .grid = cgrid,
     .local = clocal,

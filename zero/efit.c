@@ -5,18 +5,17 @@
 #include <sys/stat.h>
 #include <unistd.h>
 #include <stdlib.h>
-#include <gkyl_alloc.h>
 #include <gkyl_rect_grid.h>
-#include<gkyl_rect_decomp.h>
+#include <gkyl_rect_decomp.h>
 #include <gkyl_efit.h>
+#include <gkyl_efit_priv.h>
 
 #include <gkyl_array.h>
 #include <gkyl_range.h>
 #include <gkyl_nodal_ops.h>
 #include <assert.h>
 
-gkyl_efit* gkyl_efit_new(const char *filepath, int rz_poly_order, 
-  enum gkyl_basis_type rz_basis_type, int flux_poly_order, bool use_gpu)
+gkyl_efit* gkyl_efit_new(const struct gkyl_efit_inp *inp)
 {
   gkyl_efit *up = gkyl_malloc(sizeof(struct gkyl_efit));
   up->rzbasis = gkyl_malloc(sizeof(struct gkyl_basis));
@@ -30,16 +29,17 @@ gkyl_efit* gkyl_efit_new(const char *filepath, int rz_poly_order,
   up->fluxlocal = gkyl_malloc(sizeof(struct gkyl_range));
   up->fluxlocal_ext = gkyl_malloc(sizeof(struct gkyl_range));
 
-  up->use_gpu = use_gpu;
-  up->filepath = filepath;
+  up->reflect = inp->reflect;
+  up->use_gpu = inp->use_gpu;
+  up->filepath = inp->filepath;
 
-  gkyl_cart_modal_serendip(up->fluxbasis, 1, flux_poly_order);
-  switch (rz_basis_type){
+  gkyl_cart_modal_serendip(up->fluxbasis, 1, inp->flux_poly_order);
+  switch (inp->rz_basis_type){
     case GKYL_BASIS_MODAL_SERENDIPITY:
-      gkyl_cart_modal_serendip(up->rzbasis, 2, rz_poly_order);
+      gkyl_cart_modal_serendip(up->rzbasis, 2, inp->rz_poly_order);
       break;
     case GKYL_BASIS_MODAL_TENSOR:
-      gkyl_cart_modal_tensor(up->rzbasis, 2, rz_poly_order);
+      gkyl_cart_modal_tensor(up->rzbasis, 2, inp->rz_poly_order);
       break;
     default:
       assert(false);
@@ -64,6 +64,13 @@ gkyl_efit* gkyl_efit_new(const char *filepath, int rz_poly_order,
     &up->rdim, &up->zdim, &up->rcentr, &up->rleft, &up->zmid, &up-> rmaxis, &up->zmaxis, 
     &up->simag, &up->sibry, &up->bcentr, &up-> current, &up->simag, &up->xdum, &up->rmaxis, 
     &up->xdum, &up-> zmaxis, &up->xdum, &up->sibry, &up->xdum, &up->xdum);
+
+
+  // Set zmid to 0 for double null
+  if (up->reflect) {
+    up->zmid = 0.0;
+    up->zmaxis = 0.0;
+  }
 
 
   // Now we need to make the grid
@@ -160,12 +167,34 @@ gkyl_efit* gkyl_efit_new(const char *filepath, int rz_poly_order,
       psibyr2_n[0] = psi_n[0]/R/R;
     }
   }
+
   // We filled psizr_nodal
   struct gkyl_nodal_ops *n2m_rz = gkyl_nodal_ops_new(up->rzbasis, up->rzgrid, false);
   gkyl_nodal_ops_n2m(n2m_rz, up->rzbasis, up->rzgrid, &nrange, up->rzlocal, 1, psizr_n, up->psizr);
   gkyl_nodal_ops_n2m(n2m_rz, up->rzbasis, up->rzgrid, &nrange, up->rzlocal, 1, psibyrzr_n, up->psibyrzr);
   gkyl_nodal_ops_n2m(n2m_rz, up->rzbasis, up->rzgrid, &nrange, up->rzlocal, 1, psibyr2zr_n, up->psibyr2zr);
   gkyl_nodal_ops_release(n2m_rz);
+
+  // Reflect psi psi/R and psi/R^2 for double null
+  // Reflect DG coeffs rather than nodal data to avoid symmetry errors in n2m conversion
+  if (up->reflect) {
+    struct gkyl_range_iter iter;
+    gkyl_range_iter_init(&iter, up->rzlocal);
+    while (gkyl_range_iter_next(&iter)) {
+      if (iter.idx[1] < gkyl_range_shape(up->rzlocal,1)/2 +1 ) {
+        int idx_change[2] = {iter.idx[0], gkyl_range_shape(up->rzlocal, 1) - iter.idx[1]+1};
+        const double *coeffs_ref = gkyl_array_cfetch(up->psizr, gkyl_range_idx(up->rzlocal, iter.idx));
+        double *coeffs  = gkyl_array_fetch(up->psizr, gkyl_range_idx(up->rzlocal, idx_change));
+        up->rzbasis->flip_odd_sign( 1, coeffs_ref, coeffs);
+        coeffs_ref = gkyl_array_cfetch(up->psibyrzr, gkyl_range_idx(up->rzlocal, iter.idx));
+        coeffs  = gkyl_array_fetch(up->psibyrzr, gkyl_range_idx(up->rzlocal, idx_change));
+        up->rzbasis->flip_odd_sign( 1, coeffs_ref, coeffs);
+        coeffs_ref = gkyl_array_cfetch(up->psibyr2zr, gkyl_range_idx(up->rzlocal, iter.idx));
+        coeffs  = gkyl_array_fetch(up->psibyr2zr, gkyl_range_idx(up->rzlocal, idx_change));
+        up->rzbasis->flip_odd_sign( 1, coeffs_ref, coeffs);
+      }
+    }
+  }
  
   // Now lets read the q profile
   struct gkyl_array *qflux_n = gkyl_array_new(GKYL_DOUBLE, 1, flux_nrange.volume);
@@ -187,10 +216,20 @@ gkyl_efit* gkyl_efit_new(const char *filepath, int rz_poly_order,
   // Done, don't care about the rest
   
   fclose(ptr);
+
+  find_xpts(up);
+  printf("num_xpts = %d\n", up->num_xpts);
+  for (int i = 0; i < up->num_xpts; i++) {
+    printf("Rxpt[%d] = %1.16f, Zxpt[%d] = %1.16f | psisep = %1.16f\n", i, up->Rxpt[i], i, up->Zxpt[i], up->psisep);
+  }
+
+
   return up;
 }
 
 void gkyl_efit_release(gkyl_efit* up){
+  gkyl_free(up->Rxpt);
+  gkyl_free(up->Zxpt);
   gkyl_free(up->rzbasis);
   gkyl_free(up->rzgrid);
   gkyl_free(up->rzlocal);

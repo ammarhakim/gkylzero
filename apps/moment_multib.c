@@ -274,7 +274,7 @@ singleb_app_new(const struct gkyl_moment_multib *mbinp, int bid,
       }
     }    
 
-    // copy species input into app input
+    // copy field input into app input
     memcpy(&app_inp.field, &field_inp, sizeof(struct gkyl_moment_field));
   }
 

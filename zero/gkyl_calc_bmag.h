@@ -19,13 +19,13 @@ typedef struct bmag_ctx bmag_ctx;
  * @param cgrid computational grid
  * @param pgrid physical RZ grid
  * @param fgrid poloidal flux grid from psi_min to psi_max. Usually from EFIT.
- * @param psisep poloidal flux at separatrix
+ * @param sibry poloidal flux at separatrix - as given by EFIT
  * @param use_gpu boolean indicating whether to use the GPU.
  * @return New updater pointer.
  */
 gkyl_calc_bmag* 
 gkyl_calc_bmag_new(const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis, const struct gkyl_basis *fbasis,
-  const struct gkyl_rect_grid *cgrid, const struct gkyl_rect_grid *pgrid, const struct gkyl_rect_grid *fgrid, double psisep, bool use_gpu);
+  const struct gkyl_rect_grid *cgrid, const struct gkyl_rect_grid *pgrid, const struct gkyl_rect_grid *fgrid, double sibry, bool use_gpu);
 
 
 /**
@@ -42,7 +42,7 @@ gkyl_calc_bmag_new(const struct gkyl_basis *cbasis, const struct gkyl_basis *pba
  * @param fpol_dg DG rep of fpol = RB_phi on the poloidal flux grid
  * @param mapc2p DG rep of mapc2p on the computational grid
  * @param calc_bphi whether or not to calculate bphi. set false for mirrors
- * @param XYZ field containing DG rep of cartesian coordinates
+ * @param mapc2 field containing DG rep of cylindrical coordinates
  * @param gFld output field where metric coefficients will be placed
  */
 

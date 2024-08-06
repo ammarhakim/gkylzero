@@ -223,9 +223,8 @@ gkyl_gyrokinetic_app_new(struct gkyl_gk *gk)
     .mapc2p = gk->geometry.mapc2p,
     .bmag_ctx = gk->geometry.bmag_ctx,
     .bmag_func = gk->geometry.bmag_func,
-    .tok_efit_info = gk->geometry.tok_efit_info,
+    .efit_info = gk->geometry.efit_info,
     .tok_grid_info = gk->geometry.tok_grid_info,
-    .mirror_efit_info = gk->geometry.mirror_efit_info,
     .mirror_grid_info = gk->geometry.mirror_grid_info,
     .grid = app->grid,
     .local = app->local,
@@ -1529,6 +1528,7 @@ gkyl_gyrokinetic_app_write_geometry(gkyl_gyrokinetic_app* app)
   struct gkyl_array *g_ij = mkarr(app->use_gpu, 6*app->confBasis.num_basis, app->global_ext.volume);
   struct gkyl_array *dxdz = mkarr(app->use_gpu, 9*app->confBasis.num_basis, app->global_ext.volume);
   struct gkyl_array *dzdx = mkarr(app->use_gpu, 9*app->confBasis.num_basis, app->global_ext.volume);
+  struct gkyl_array *normals = mkarr(app->use_gpu, 9*app->confBasis.num_basis, app->global_ext.volume);
   struct gkyl_array *jacobgeo = mkarr(app->use_gpu, app->confBasis.num_basis, app->global_ext.volume);
   struct gkyl_array *jacobgeo_inv = mkarr(app->use_gpu, app->confBasis.num_basis, app->global_ext.volume);
   struct gkyl_array *gij = mkarr(app->use_gpu, 6*app->confBasis.num_basis, app->global_ext.volume);
@@ -1550,6 +1550,7 @@ gkyl_gyrokinetic_app_write_geometry(gkyl_gyrokinetic_app* app)
   gkyl_comm_array_allgather(app->comm, &app->local, &app->global, app->gk_geom->g_ij, g_ij);
   gkyl_comm_array_allgather(app->comm, &app->local, &app->global, app->gk_geom->dxdz, dxdz);
   gkyl_comm_array_allgather(app->comm, &app->local, &app->global, app->gk_geom->dzdx, dzdx);
+  gkyl_comm_array_allgather(app->comm, &app->local, &app->global, app->gk_geom->normals, normals);
   gkyl_comm_array_allgather(app->comm, &app->local, &app->global, app->gk_geom->jacobgeo, jacobgeo);
   gkyl_comm_array_allgather(app->comm, &app->local, &app->global, app->gk_geom->jacobgeo_inv, jacobgeo_inv);
   gkyl_comm_array_allgather(app->comm, &app->local, &app->global, app->gk_geom->gij, gij);
@@ -1566,7 +1567,7 @@ gkyl_gyrokinetic_app_write_geometry(gkyl_gyrokinetic_app* app)
   gkyl_comm_array_allgather(app->comm, &app->local, &app->global, app->gk_geom->gxzj, gxzj);
   gkyl_comm_array_allgather(app->comm, &app->local, &app->global, app->gk_geom->eps2, eps2);
 
-  struct gkyl_array *mc2p_ho, *bmag_ho, *g_ij_ho, *dxdz_ho, *dzdx_ho, *jacobgeo_ho, *jacobgeo_inv_ho,
+  struct gkyl_array *mc2p_ho, *bmag_ho, *g_ij_ho, *dxdz_ho, *dzdx_ho, *normals_ho, *jacobgeo_ho, *jacobgeo_inv_ho,
      *gij_ho, *b_i_ho, *bcart_ho, *cmag_ho, *jacobtot_ho, *jacobtot_inv_ho, *bmag_inv_ho, *bmag_inv_sq_ho,
      *gxxj_ho, *gxyj_ho, *gyyj_ho, *gxzj_ho, *eps2_ho;
   if (app->use_gpu) {
@@ -1575,6 +1576,7 @@ gkyl_gyrokinetic_app_write_geometry(gkyl_gyrokinetic_app* app)
     g_ij_ho         = mkarr(false, 6*app->confBasis.num_basis, app->global_ext.volume);
     dxdz_ho         = mkarr(false, 9*app->confBasis.num_basis, app->global_ext.volume);
     dzdx_ho         = mkarr(false, 9*app->confBasis.num_basis, app->global_ext.volume);
+    normals_ho         = mkarr(false, 9*app->confBasis.num_basis, app->global_ext.volume);
     jacobgeo_ho     = mkarr(false, app->confBasis.num_basis, app->global_ext.volume);
     jacobgeo_inv_ho = mkarr(false, app->confBasis.num_basis, app->global_ext.volume);
     gij_ho          = mkarr(false, 6*app->confBasis.num_basis, app->global_ext.volume);
@@ -1596,6 +1598,7 @@ gkyl_gyrokinetic_app_write_geometry(gkyl_gyrokinetic_app* app)
     gkyl_array_copy(g_ij_ho,         g_ij        );
     gkyl_array_copy(dxdz_ho,         dxdz        );
     gkyl_array_copy(dzdx_ho,         dzdx        );
+    gkyl_array_copy(normals_ho,         normals        );
     gkyl_array_copy(jacobgeo_ho,     jacobgeo    );
     gkyl_array_copy(jacobgeo_inv_ho, jacobgeo_inv);
     gkyl_array_copy(gij_ho,          gij         );
@@ -1617,6 +1620,7 @@ gkyl_gyrokinetic_app_write_geometry(gkyl_gyrokinetic_app* app)
     g_ij_ho         = g_ij        ;
     dxdz_ho         = dxdz        ;
     dzdx_ho         = dzdx        ;
+    normals_ho         = normals        ;
     jacobgeo_ho     = jacobgeo    ;
     jacobgeo_inv_ho = jacobgeo_inv;
     gij_ho          = gij         ;
@@ -1648,6 +1652,8 @@ gkyl_gyrokinetic_app_write_geometry(gkyl_gyrokinetic_app* app)
     gkyl_grid_sub_array_write(&app->grid, &app->global, 0,  dxdz_ho, fileNm);
     sprintf(fileNm, fmt, app->name, "dzdx");
     gkyl_grid_sub_array_write(&app->grid, &app->global, 0,  dzdx_ho, fileNm);
+    sprintf(fileNm, fmt, app->name, "normals");
+    gkyl_grid_sub_array_write(&app->grid, &app->global, 0,  normals_ho, fileNm);
     sprintf(fileNm, fmt, app->name, "jacobgeo");
     gkyl_grid_sub_array_write(&app->grid, &app->global, 0,  jacobgeo_ho, fileNm);
     sprintf(fileNm, fmt, app->name, "jacobgeo_inv");
@@ -1678,6 +1684,18 @@ gkyl_gyrokinetic_app_write_geometry(gkyl_gyrokinetic_app* app)
     gkyl_grid_sub_array_write(&app->grid, &app->global, 0,  gxzj_ho, fileNm);
     sprintf(fileNm, fmt, app->name, "eps2");
     gkyl_grid_sub_array_write(&app->grid, &app->global, 0, eps2_ho, fileNm);
+    // Create Nodal Range and Grid and Write Nodal Coordinates
+    struct gkyl_range nrange;
+    gkyl_gk_geometry_init_nodal_range(&nrange, &app->global, app->poly_order);
+    struct gkyl_array* mc2p_nodal = mkarr(false, 3, nrange.volume);
+    struct gkyl_nodal_ops *n2m = gkyl_nodal_ops_new(&app->confBasis, &app->grid, false);
+    gkyl_nodal_ops_m2n(n2m, &app->confBasis, &app->grid, &nrange, &app->global, 3, mc2p_nodal, mc2p_ho);
+    gkyl_nodal_ops_release(n2m);
+    struct gkyl_rect_grid ngrid;
+    gkyl_gk_geometry_init_nodal_grid(&ngrid, &app->grid, &nrange);
+    sprintf(fileNm, fmt, app->name, "nodes");
+    gkyl_grid_sub_array_write(&ngrid, &nrange, 0,  mc2p_nodal, fileNm);
+    gkyl_array_release(mc2p_nodal);
   }
 
   gkyl_array_release(mc2p);
@@ -1685,6 +1703,7 @@ gkyl_gyrokinetic_app_write_geometry(gkyl_gyrokinetic_app* app)
   gkyl_array_release(g_ij);
   gkyl_array_release(dxdz);
   gkyl_array_release(dzdx);
+  gkyl_array_release(normals);
   gkyl_array_release(jacobgeo);
   gkyl_array_release(jacobgeo_inv);
   gkyl_array_release(gij);
@@ -1706,6 +1725,7 @@ gkyl_gyrokinetic_app_write_geometry(gkyl_gyrokinetic_app* app)
     gkyl_array_release(g_ij_ho);
     gkyl_array_release(dxdz_ho);
     gkyl_array_release(dzdx_ho);
+    gkyl_array_release(normals_ho);
     gkyl_array_release(jacobgeo_ho);
     gkyl_array_release(jacobgeo_inv_ho);
     gkyl_array_release(gij_ho);
@@ -1737,6 +1757,7 @@ gkyl_gyrokinetic_app_read_geometry(gkyl_gyrokinetic_app* app)
   struct gkyl_array *g_ij = gkyl_array_new(GKYL_DOUBLE, 6*app->confBasis.num_basis, app->global_ext.volume);
   struct gkyl_array *dxdz = gkyl_array_new(GKYL_DOUBLE, 9*app->confBasis.num_basis, app->global_ext.volume);
   struct gkyl_array *dzdx = gkyl_array_new(GKYL_DOUBLE, 9*app->confBasis.num_basis, app->global_ext.volume);
+  struct gkyl_array *normals = gkyl_array_new(GKYL_DOUBLE, 9*app->confBasis.num_basis, app->global_ext.volume);
   struct gkyl_array *jacobgeo = gkyl_array_new(GKYL_DOUBLE, app->confBasis.num_basis, app->global_ext.volume);
   struct gkyl_array *jacobgeo_inv = gkyl_array_new(GKYL_DOUBLE, app->confBasis.num_basis, app->global_ext.volume);
   struct gkyl_array *gij = gkyl_array_new(GKYL_DOUBLE, 6*app->confBasis.num_basis, app->global_ext.volume);
@@ -1763,6 +1784,8 @@ gkyl_gyrokinetic_app_read_geometry(gkyl_gyrokinetic_app* app)
   gkyl_grid_sub_array_read(&app->grid, &app->global, dxdz, fileNm);
   sprintf(fileNm, fmt, app->name, "dzdx");
   gkyl_grid_sub_array_read(&app->grid, &app->global, dzdx, fileNm);
+  sprintf(fileNm, fmt, app->name, "normals");
+  gkyl_grid_sub_array_read(&app->grid, &app->global, normals, fileNm);
   sprintf(fileNm, fmt, app->name, "jacobgeo");
   gkyl_grid_sub_array_read(&app->grid, &app->global, jacobgeo, fileNm);
   sprintf(fileNm, fmt, app->name, "jacobgeo_inv");
@@ -1803,6 +1826,7 @@ gkyl_gyrokinetic_app_read_geometry(gkyl_gyrokinetic_app* app)
   gkyl_array_copy_range_to_range(app->gk_geom->g_ij, g_ij, &app->local, &global_sub_range);
   gkyl_array_copy_range_to_range(app->gk_geom->dxdz, dxdz, &app->local, &global_sub_range);
   gkyl_array_copy_range_to_range(app->gk_geom->dzdx, dzdx, &app->local, &global_sub_range);
+  gkyl_array_copy_range_to_range(app->gk_geom->normals, normals, &app->local, &global_sub_range);
   gkyl_array_copy_range_to_range(app->gk_geom->jacobgeo, jacobgeo, &app->local, &global_sub_range);
   gkyl_array_copy_range_to_range(app->gk_geom->jacobgeo_inv, jacobgeo_inv, &app->local, &global_sub_range);
   gkyl_array_copy_range_to_range(app->gk_geom->gij, gij, &app->local, &global_sub_range);
@@ -1825,6 +1849,7 @@ gkyl_gyrokinetic_app_read_geometry(gkyl_gyrokinetic_app* app)
   gkyl_array_release(g_ij);
   gkyl_array_release(dxdz);
   gkyl_array_release(dzdx);
+  gkyl_array_release(normals);
   gkyl_array_release(jacobgeo);
   gkyl_array_release(jacobgeo_inv);
   gkyl_array_release(gij);

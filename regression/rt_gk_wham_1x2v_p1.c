@@ -884,13 +884,11 @@ int main(int argc, char **argv)
     .kperpSq = pow(ctx.kperp, 2.),
   };
 
-  struct gkyl_mirror_geo_efit_inp efit_inp = {
+  struct gkyl_efit_inp efit_inp = {
     // psiRZ and related inputs
     .filepath = "./data/eqdsk/wham.geqdsk",
-    .rzpoly_order = 2,
-    .fluxpoly_order = 1,
-    .plate_spec = false,
-    .quad_param = {  .eps = 1e-10 }
+    .rz_poly_order = 2,
+    .flux_poly_order = 1,
   };
 
 
@@ -898,8 +896,6 @@ int main(int argc, char **argv)
     .rclose = 0.2,
     .zmin = -2.48,
     .zmax =  2.48,
-    .write_node_coord_array = true,
-    .node_file_nm = "wham_nodes.gkyl"
   };
 
 
@@ -916,7 +912,7 @@ int main(int argc, char **argv)
     .geometry = {
       .geometry_id = GKYL_MIRROR,
       .world = {ctx.psi_eval, 0.0},
-      .mirror_efit_info = efit_inp,
+      .efit_info = efit_inp,
       .mirror_grid_info = grid_inp,
     },
 

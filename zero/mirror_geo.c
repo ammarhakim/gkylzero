@@ -64,15 +64,15 @@ arc_length_func(double Z, void *ctx)
 }
 
 struct gkyl_mirror_geo*
-gkyl_mirror_geo_new(const struct gkyl_mirror_geo_efit_inp *inp)
+gkyl_mirror_geo_new(const struct gkyl_efit_inp *inp, const struct gkyl_mirror_geo_grid_inp *ginp)
 {
   struct gkyl_mirror_geo *geo = gkyl_malloc(sizeof(*geo));
 
-  geo->efit = gkyl_efit_new(inp->filepath, inp->rzpoly_order, inp->rz_basis_type, inp->fluxpoly_order, false);
+  geo->efit = gkyl_efit_new(inp);
 
-  geo->plate_spec = inp->plate_spec;
-  geo->plate_func_lower = inp->plate_func_lower;
-  geo->plate_func_upper = inp->plate_func_upper;
+  geo->plate_spec = ginp->plate_spec;
+  geo->plate_func_lower = ginp->plate_func_lower;
+  geo->plate_func_upper = ginp->plate_func_upper;
 
   geo->rzbasis= *geo->efit->rzbasis;
   geo->rzgrid = *geo->efit->rzgrid;
@@ -89,18 +89,19 @@ gkyl_mirror_geo_new(const struct gkyl_mirror_geo_efit_inp *inp)
   geo->frange_ext = *geo->efit->fluxlocal_ext;
   geo->fpoldg= gkyl_array_acquire(geo->efit->fpolflux);
   geo->qdg= gkyl_array_acquire(geo->efit->qflux);
-  geo->psisep = geo->efit->sibry;
+  geo->sibry= geo->efit->sibry;
+  geo->psisep = geo->efit->psisep;
   geo->zmaxis = geo->efit->zmaxis;
 
   geo->root_param.eps =
-    inp->root_param.eps > 0 ? inp->root_param.eps : 1e-10;
+    ginp->root_param.eps > 0 ? ginp->root_param.eps : 1e-10;
   geo->root_param.max_iter =
-    inp->root_param.max_iter > 0 ? inp->root_param.max_iter : 100;
+    ginp->root_param.max_iter > 0 ? ginp->root_param.max_iter : 100;
 
   geo->quad_param.max_level =
-    inp->quad_param.max_levels > 0 ? inp->quad_param.max_levels : 10;
+    ginp->quad_param.max_levels > 0 ? ginp->quad_param.max_levels : 10;
   geo->quad_param.eps =
-    inp->quad_param.eps > 0 ? inp->quad_param.eps : 1e-10;
+    ginp->quad_param.eps > 0 ? ginp->quad_param.eps : 1e-10;
 
   if (geo->efit->rzbasis->poly_order == 1)
     geo->calc_roots = calc_RdR_p1;
@@ -127,24 +128,6 @@ gkyl_mirror_geo_R_psiZ(const struct gkyl_mirror_geo *geo, double psi, double Z, 
 {
   return R_psiZ(geo, psi, Z, nmaxroots, R, dR);
 }
-
-// write out nodal coordinates 
-static void
-write_nodal_coordinates(const char *nm, struct gkyl_range *nrange,
-  struct gkyl_array *nodes)
-{
-  double lower[3] = { 0.0, 0.0, 0.0 };
-  double upper[3] = { 1.0, 1.0, 1.0 };
-  int cells[3];
-  for (int i=0; i<nrange->ndim; ++i)
-    cells[i] = gkyl_range_shape(nrange, i);
-  
-  struct gkyl_rect_grid grid;
-  gkyl_rect_grid_init(&grid, 3, lower, upper, cells);
-
-  gkyl_grid_sub_array_write(&grid, nrange, 0, nodes, nm);
-}
-
 
 void gkyl_mirror_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, double dzc[3], 
   struct gkyl_mirror_geo *geo, struct gkyl_mirror_geo_grid_inp *inp, 
@@ -293,9 +276,9 @@ void gkyl_mirror_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, dou
               mc2p_fd_n[lidx+Z_IDX] = z_curr;
 
               if(ip_delta==0 && ia_delta==0 && it_delta==0){
-                mc2p_n[X_IDX] = r_curr*cos(phi_curr);
-                mc2p_n[Y_IDX] = r_curr*sin(phi_curr);
-                mc2p_n[Z_IDX] = z_curr;
+                mc2p_n[X_IDX] = r_curr;
+                mc2p_n[Y_IDX] = z_curr;
+                mc2p_n[Z_IDX] = phi_curr;
               }
             }
           }
@@ -308,12 +291,6 @@ void gkyl_mirror_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, dou
   gkyl_nodal_ops_n2m(n2m, &inp->cbasis, &inp->cgrid, nrange, &up->local, 3, mc2p_nodal, mc2p);
   gkyl_nodal_ops_release(n2m);
 
-  char str1[50] = "xyz";
-  char str2[50] = "allxyz";
-  if (inp->write_node_coord_array){
-    write_nodal_coordinates(strcat(str1, inp->node_file_nm), nrange, mc2p_nodal);
-    write_nodal_coordinates(strcat(str2, inp->node_file_nm), nrange, mc2p_nodal_fd);
-  }
   gkyl_free(arc_memo);
 }
 

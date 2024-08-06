@@ -6,6 +6,7 @@
 
 #include <gkyl_array.h>
 #include <gkyl_basis.h>
+#include <gkyl_efit.h>
 #include <gkyl_evalf_def.h>
 #include <gkyl_math.h>
 #include <gkyl_range.h>
@@ -73,7 +74,8 @@ struct gkyl_tok_geo {
   const struct gkyl_array *qdg; // q(psi) dg rep
                                    
 
-  double psisep; // psi of separatrix
+  double sibry; // psi of separatrix as given by EFIT
+  double psisep; // psi of separatrix as calculated from the DG psi(R,Z)
   double zmaxis; // z of magnetic axis
   double rleft, rright;
   double rmin, rmax;
@@ -88,10 +90,12 @@ struct gkyl_tok_geo {
   struct { int max_iter; double eps; } root_param;
   struct { int max_level; double eps; } quad_param;
 
-  bool tol_no_roots; // If true we will allow approximate roots when no root is found
+  bool exact_roots; // If true we will allow approximate roots when no root is found
   // pointer to root finder (depends on polyorder)
   struct RdRdZ_sol (*calc_roots)(const double *psi, double psi0, double Z,
     double xc[2], double dx[2]);
+
+  double (*calc_grad_psi)(const double *psih, const double eta[2], const double dx[2]);
 
   struct gkyl_tok_geo_stat stat; 
   struct gkyl_array* mc2p_nodal_fd;
@@ -102,29 +106,7 @@ struct gkyl_tok_geo {
 
 
 // Inputs to create a new GK geometry creation object
-struct gkyl_tok_geo_efit_inp {
-  // Inputs to get psiRZ and related inputs from efit
-  char filepath[1024];
-  int rzpoly_order;
-  enum gkyl_basis_type rz_basis_type;
-  int fluxpoly_order;
-  // Specifications for divertor plate
-  bool plate_spec;
-  plate_func plate_func_lower;
-  plate_func plate_func_upper;
 
-  // Parameters for root finder: leave unset to use defaults
-  struct {
-    int max_iter; // typically 20
-    double eps; // typically 1e-10
-  } root_param;
-
-  // Parameters for nmumerical quadrature: leave unset to use default
-  struct {
-    int max_levels; // typically 6-7    
-    double eps; // typically 1e-10
-  } quad_param;
-};
 
 // Inputs to create geometry for a specific computational grid
 struct gkyl_tok_geo_grid_inp {
@@ -140,22 +122,33 @@ struct gkyl_tok_geo_grid_inp {
   double zmin_left, zmin_right; // for lower single null and PF cases diff b/t in and outboard side
   double zmax_left, zmax_right; // for upper single null and PF cases diff b/t in and outboard side
 
-  double zxpt_lo; // z of the lower x point
-  double zxpt_up; // z of the upper x point
+  // Specifications for divertor plate
+  bool plate_spec;
+  plate_func plate_func_lower;
+  plate_func plate_func_upper;
 
-  bool write_node_coord_array; // set to true if nodal coordinates should be written
-  char node_file_nm[1024]; // name of nodal coordinate file
+  bool exact_roots; // If false we will allow approximate roots when no root is found
+  // Parameters for root finder: leave unset to use defaults
+  struct {
+    int max_iter; // typically 20
+    double eps; // typically 1e-10
+  } root_param;
+  // Parameters for nmumerical quadrature: leave unset to use default
+  struct {
+    int max_levels; // typically 6-7    
+    double eps; // typically 1e-10
+  } quad_param;
 };
 
 
 /**
- * Create new updater to compute the geometry (mapc2p) needed in GK
+ * Create new updater to compute the geometry needed in GK
  * simulations.
  *
- * @param inp Input parameters
- * @param New GK geometry updater
+ * @param efit_inp Input parameters related to EFIT data
+ * @param grid_inp Input parameters related to computational grid
  */
-struct gkyl_tok_geo *gkyl_tok_geo_new(const struct gkyl_tok_geo_efit_inp *inp);
+struct gkyl_tok_geo *gkyl_tok_geo_new(const struct gkyl_efit_inp *inp, const struct gkyl_tok_geo_grid_inp *grid_inp);
 
 /**
  * Get R(psi,Z) for a specified psi and Z value. Multiple values may
@@ -210,19 +203,13 @@ void gkyl_tok_geo_mapc2p(const struct gkyl_tok_geo *geo, const struct gkyl_tok_g
  * @param dzc grid spacing of nodal range
  * @param geo gkyl_tok_geo object with efit dats and root finder specs 
  * @param inp tok_geo_grid_inp Input structure for creating mapc2p
- * @param mc2p_nodal_fd output nodal field to be filled with X,Y,Z at grid nodes
+ * @param mc2p_nodal_fd output nodal field to be filled with R,Z,phi at grid nodes
  *  and nodes epsilon away to be used for FD
- * @param mc2p_nodal output nodal mapc2p field
- * @param mc2p On output, the DG representation of mapc2p
- * @param mc2prz_nodal_fd output nodal field to be filled with R,Z,phi at grid nodes
- *  and nodes epsilon away to be used for FD
- * @param mc2prz_nodal output nodal mapc2p field R,Z,phi)
- * @param mc2prz On output, the DG representation of mapc2p ((R,Z,phi)
+ * @param mc2p_nodal output nodal mapc2p field R,Z,phi)
+ * @param mc2p On output, the DG representation of mapc2p ((R,Z,phi)
  * @param dphidtheta_nodal output nodal field containing dphi/dtheta = s(psi)/R|grad(psi|
  */
-void gkyl_tok_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, double dzc[3], struct gkyl_tok_geo* geo, struct gkyl_tok_geo_grid_inp *inp, 
-  struct gkyl_array *mc2p_nodal_fd, struct gkyl_array *mc2p_nodal, struct gkyl_array *mc2p, struct gkyl_array *mc2prz_nodal_fd,
-  struct gkyl_array *mc2prz_nodal, struct gkyl_array *mc2prz, struct gkyl_array *dphidtheta_nodal);
+void gkyl_tok_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, double dzc[3], struct gkyl_tok_geo* geo, struct gkyl_tok_geo_grid_inp *inp, struct gkyl_array *mc2p_nodal_fd, struct gkyl_array *mc2p_nodal, struct gkyl_array *mc2p, struct gkyl_array *dphidtheta_nodal);
 
 /**
  * Return cumulative statistics from geometry computations

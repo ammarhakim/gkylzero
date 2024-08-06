@@ -11,7 +11,7 @@
 gkyl_calc_bmag*
 gkyl_calc_bmag_new(const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis, const struct gkyl_basis *fbasis,
   const struct gkyl_rect_grid *cgrid, const struct gkyl_rect_grid *pgrid, const struct gkyl_rect_grid *fgrid, 
-  double psisep, bool use_gpu)
+  double sibry, bool use_gpu)
 {
   gkyl_calc_bmag *up = gkyl_malloc(sizeof(gkyl_calc_bmag));
   up->cbasis = cbasis;
@@ -22,14 +22,14 @@ gkyl_calc_bmag_new(const struct gkyl_basis *cbasis, const struct gkyl_basis *pba
   up->kernel = bmag_choose_kernel(up->pbasis->ndim, up->pbasis->b_type, up->pbasis->poly_order);
   up->fbasis = fbasis;
   up->fgrid = fgrid;
-  up->psisep = psisep;
+  up->sibry = sibry;
   return up;
 }
 
 static inline void bmag_comp(double t, const double *xn, double *fout, void *ctx)
 {
   struct bmag_ctx *gc = (struct bmag_ctx*) ctx;
-  double XYZ[gc->cgrid->ndim];
+  double RZPHI[gc->cgrid->ndim];
 
   int cidx[GKYL_MAX_CDIM];
   for(int i = 0; i < gc->cgrid->ndim; i++){
@@ -48,11 +48,11 @@ static inline void bmag_comp(double t, const double *xn, double *fout, void *ctx
   for(int i = 0; i < gc->cgrid->ndim; i++)
     xyz[i] = (xn[i]-cxc[i])/(gc->cgrid->dx[i]*0.5);
   for(int i = 0; i < gc->cgrid->ndim; i++){
-    XYZ[i] = gc->cbasis->eval_expand(xyz, &mcoeffs[i*gc->cbasis->num_basis]);
+    RZPHI[i] = gc->cbasis->eval_expand(xyz, &mcoeffs[i*gc->cbasis->num_basis]);
   }
 
-  double R = sqrt(XYZ[0]*XYZ[0] + XYZ[1]*XYZ[1]);
-  double Z = XYZ[2];
+  double R = RZPHI[0];
+  double Z = RZPHI[1];
 
   int rzidx[2];
   int idxtemp = gc->range->lower[0] + (int) floor((R - gc->grid->lower[0])/gc->grid->dx[0]);
@@ -102,7 +102,7 @@ static inline void bphi_RZ(double t, const double *xn, double *fout, void *ctx){
   psi = gc->rzbasis->eval_expand(rz, &psicoeffs[gc->rzbasis->num_basis]);
 
   if ( (psi < gc->grid->lower[0]) || (psi > gc->grid->upper[0]) ) // F = F(psi_sep) in the SOL. Works regardless of psi convention
-    psi = gc->psisep;
+    psi = gc->sibry;
 
   // now find psi cell this lies in and get coeffs for fpol
   gkyl_range_iter_init(&iter, gc->range);
@@ -141,7 +141,7 @@ void gkyl_calc_bmag_advance(const gkyl_calc_bmag *up,
   fctx->psidg = psidg;
   fctx->basis = up->fbasis;
   fctx->rzbasis = up->pbasis;
-  fctx->psisep = up->psisep;
+  fctx->sibry = up->sibry;
 
   struct gkyl_array *bphirz = gkyl_array_new(GKYL_DOUBLE, up->pbasis->num_basis, prange_ext->volume);
   if (calc_bphi){

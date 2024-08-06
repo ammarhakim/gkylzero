@@ -94,6 +94,8 @@ gkyl_dg_rad_gyrokinetic_drag_cu_dev_new(const struct gkyl_basis* conf_basis,
   grad->phase_range = *phase_range;
   grad->conf_range = *conf_range;
 
+  grad->cellav_norm_conf = 1.0/pow(sqrt(2.0),cdim);
+
   // Acquire pointers to on_dev objects so memcpy below copies those too.
   struct gkyl_velocity_map *vel_map_ho = gkyl_velocity_map_acquire(vel_map);
   grad->vel_map = vel_map_ho->on_dev;

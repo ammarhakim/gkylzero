@@ -7,6 +7,8 @@ typedef struct gkyl_gyrokinetic_multib_app gkyl_gyrokinetic_multib_app;
 
 // Species input per block
 struct gkyl_gyrokinetic_multib_species_pb {
+  int block_id; // block ID
+
   // Initial conditions using projection routine.
   struct gkyl_gyrokinetic_projection projection;
 
@@ -63,6 +65,8 @@ struct gkyl_gyrokinetic_multib_species {
 
 // Neutral species input per block
 struct gkyl_gyrokinetic_multib_neut_species_pb {
+  int block_id; // block ID
+
   // Initial conditions using projection routine.
   struct gkyl_gyrokinetic_projection projection;
 
@@ -99,6 +103,8 @@ struct gkyl_gyrokinetic_multib_neut_species {
 
 // Field input per block 
 struct gkyl_gyrokinetic_multib_field_pb {
+  int block_id; // block ID
+
   double polarization_bmag; 
 
   void *phi_wall_lo_ctx; // context for biased wall potential on lower wall
@@ -124,6 +130,10 @@ struct gkyl_gyrokinetic_multib_field {
   //enum gkyl_fem_parproj_bc_type fem_parbc;
   //struct gkyl_poisson_bc poisson_bcs;
 
+  bool duplicate_across_blocks; // set to true if all blocks are identical  
+  // field inputs per-block: only one is needed if duplicate_across_blocks = true
+  const struct gkyl_gyrokinetic_multib_field_pb *blocks;
+
   // Physical boundary conditions
   int num_physical_bcs;
   const struct gkyl_block_physical_bcs *bcs;
@@ -144,13 +154,19 @@ struct gkyl_gyrokinetic_multib {
   double cfl_frac; // CFL fraction to use
 
   int num_species; // number of species
-  int num_neut_species; // number of neutral species
   // species inputs
   struct gkyl_gyrokinetic_multib_species species[GKYL_MAX_SPECIES];
+
+  int num_neut_species; // number of neutral species  
   // neutral species inputs
   struct gkyl_gyrokinetic_multib_neut_species neut_species[GKYL_MAX_SPECIES];
+
+  bool skip_field; // Skip field update -> phi = 0 for all time  
   // field inputs
   struct gkyl_gyrokinetic_multib_field field;
+
+ // communicator to used  
+  struct gkyl_comm *comm;  
 };
 
 
@@ -161,7 +177,7 @@ struct gkyl_gyrokinetic_multib {
  *     initialized
  * @return New multi-block gk app object.
  */
-gkyl_gyrokinetic_multib_app* gkyl_gyrokinetic_multib_app_new(struct gkyl_gyrokinetic_multib *mbinp);
+gkyl_gyrokinetic_multib_app* gkyl_gyrokinetic_multib_app_new(const struct gkyl_gyrokinetic_multib *mbinp);
 
 /**
  * Initialize species and field by projecting initial conditions on
@@ -264,6 +280,24 @@ gkyl_gyrokinetic_multib_app_from_frame_species(gkyl_gyrokinetic_multib_app *app,
 struct gkyl_app_restart_status
 gkyl_gyrokinetic_multib_app_from_frame_neut_species(gkyl_gyrokinetic_multib_app *app, int sidx, int frame);
 
+/**
+ * Write output to console: this is mainly for diagnostic messages the
+ * driver code wants to write to console. It accounts for parallel
+ * output by not messing up the console with messages from each rank.
+ *
+ * @param app App object
+ * @param fp File pointer for open file for output
+ * @param fmt Format string for console output
+ * @param argp Objects to write
+ */
+void gkyl_gyrokinetic_multib_app_cout(const gkyl_gyrokinetic_multib_app* app, FILE *fp, const char *fmt, ...);
+
+/**
+ * Write block topology to file.
+ * 
+ * @param app App object.
+ */
+void gkyl_gyrokinetic_multib_app_write_topo(const gkyl_gyrokinetic_multib_app* app);
 
 /**
  * Calculate diagnostic moments.
@@ -303,7 +337,7 @@ void gkyl_gyrokinetic_multib_app_calc_field_energy(gkyl_gyrokinetic_multib_app* 
  * @param tm Time-stamp
  * @param frame Frame number
  */
-void gkyl_gyrokinetic_multib_app_write(gkyl_gyrokinetic_multib_app* app, double tm, int frame);
+void gkyl_gyrokinetic_multib_app_write(const gkyl_gyrokinetic_multib_app* app, double tm, int frame);
 
 /**
  * Write field data to file.
@@ -312,7 +346,7 @@ void gkyl_gyrokinetic_multib_app_write(gkyl_gyrokinetic_multib_app* app, double 
  * @param tm Time-stamp
  * @param frame Frame number
  */
-void gkyl_gyrokinetic_multib_app_write_field(gkyl_gyrokinetic_multib_app* app, double tm, int frame);
+void gkyl_gyrokinetic_multib_app_write_field(const gkyl_gyrokinetic_multib_app* app, double tm, int frame);
 
 /**
  * Write species data to file.
@@ -322,7 +356,7 @@ void gkyl_gyrokinetic_multib_app_write_field(gkyl_gyrokinetic_multib_app* app, d
  * @param tm Time-stamp
  * @param frame Frame number
  */
-void gkyl_gyrokinetic_multib_app_write_species(gkyl_gyrokinetic_multib_app* app, int sidx, double tm, int frame);
+void gkyl_gyrokinetic_multib_app_write_species(const gkyl_gyrokinetic_multib_app* app, int sidx, double tm, int frame);
 
 
 /**
@@ -333,7 +367,7 @@ void gkyl_gyrokinetic_multib_app_write_species(gkyl_gyrokinetic_multib_app* app,
  * @param tm Time-stamp
  * @param frame Frame number
  */
-void gkyl_gyrokinetic_multib_app_write_neut_species(gkyl_gyrokinetic_multib_app* app, int sidx, double tm, int frame);
+void gkyl_gyrokinetic_multib_app_write_neut_species(const gkyl_gyrokinetic_multib_app* app, int sidx, double tm, int frame);
 
 /**
  * Write source species data to file.
