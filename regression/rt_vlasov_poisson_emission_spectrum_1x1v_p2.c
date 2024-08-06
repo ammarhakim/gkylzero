@@ -376,7 +376,7 @@ main(int argc, char **argv)
     },
 
     .bcx = {
-      .lower = { .type = GKYL_SPECIES_ABSORB, },
+      .lower = { .type = GKYL_SPECIES_REFLECT, },
       .upper = { .type = GKYL_SPECIES_ABSORB, },
     },
     
@@ -388,7 +388,7 @@ main(int argc, char **argv)
   struct gkyl_vlasov_poisson_field field = {
     .permittivity = ctx.epsilon0,
     .poisson_bcs = {
-      .lo_type = { GKYL_POISSON_DIRICHLET },
+      .lo_type = { GKYL_POISSON_NEUMANN },
       .up_type = { GKYL_POISSON_DIRICHLET },
       .lo_value = { 0.0 }, .up_value = { 0.0 }
     },

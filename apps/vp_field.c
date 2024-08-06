@@ -37,7 +37,7 @@ vp_field_new(struct gkyl_vp *vp, struct gkyl_vlasov_poisson_app *app)
   gkyl_array_shiftc(vpf->epsilon, vpf->info.permittivity*pow(sqrt(2.0),app->cdim), 0);
 
   // Create Poisson solver.
-  vpf->fem_poisson = gkyl_fem_poisson_new(&vpf->global_sub_range, &app->grid, app->confBasis,
+  vpf->fem_poisson = gkyl_fem_poisson_new(&app->global, &app->grid, app->confBasis,
     &vpf->info.poisson_bcs, vpf->epsilon, NULL, true, app->use_gpu);
 
   vpf->phi_host = vpf->phi;
