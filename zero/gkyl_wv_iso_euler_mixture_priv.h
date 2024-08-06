@@ -9,47 +9,47 @@
 #include <gkyl_range.h>
 #include <gkyl_util.h>
 
-struct wv_euler_mixture {
+struct wv_iso_euler_mixture {
   struct gkyl_wv_eqn eqn; // Base equation object.
   int num_species; // Number of distinct species in mixture.
-  double* gas_gamma_s; // Adiabatic indices for each species in mixture.
+  double* vt_s; // Thermal velocities for each species in mixture.
 };
 
 /**
 * Compute primitive variables given the conserved variables.
 *
 * @param num_species Number of distinct species in mixture.
-* @param gas_gamma_s Adiabatic indices for each species in mixture.
+* @param vt_s Thermal velocities for each species in mixture.
 * @param q Conserved variable vector.
 * @param v Primitive variable vector (output).
 */
 GKYL_CU_D
 void
-gkyl_euler_mixture_prim_vars(int num_species, double* gas_gamma_s, const double* q, double* v);
+gkyl_iso_euler_mixture_prim_vars(int num_species, double* vt_s, const double* q, double* v);
 
 /**
 * Compute maximum absolute wave speed.
 *
 * @param num_species Number of distinct species in mixture.
-* @param gas_gamma_s Adiabatic indices for each species in mixture.
+* @param vt_s Thermal velocities for each species in mixture.
 * @param q Conserved variable vector.
 * @return Maximum absolute wave speed for a given q.
 */
 GKYL_CU_D
 static inline double
-gkyl_euler_mixture_max_abs_speed(int num_species, double* gas_gamma_s, const double* q);
+gkyl_iso_euler_mixture_max_abs_speed(int num_species, double* vt_s, const double* q);
 
 /**
 * Compute flux vector. Assumes rotation to local coordinate system.
 *
 * @param num_species Number of distinct species in mixture.
-* @param gas_gamma_s Adiabatic indices for each species in mixture.
+* @param vt_s Thermal velocities for each species in mixture.
 * @param q Conserved variable vector.
 * @param flux Flux vector in direction 'dir' (output).
 */
 GKYL_CU_D
 void
-gkyl_euler_mixture_flux(int num_species, double* gas_gamma_s, const double* q, double* flux);
+gkyl_iso_euler_mixture_flux(int num_species, double* vt_s, const double* q, double* flux);
 
 /**
 * Compute Riemann variables given the conserved variables.
@@ -76,7 +76,7 @@ static inline void
 riem_to_cons(const struct gkyl_wv_eqn* eqn, const double* qstate, const double* win, double *qout);
 
 /**
-* Boundary condition function for applying wall boundary conditions for the Euler mixture equations.
+* Boundary condition function for applying wall boundary conditions for the isothermal Euler mixture equations.
 *
 * @param t Current simulation time.
 * @param nc Number of boundary cells to which to apply wall boundary conditions.
@@ -86,10 +86,10 @@ riem_to_cons(const struct gkyl_wv_eqn* eqn, const double* qstate, const double* 
 */
 GKYL_CU_D
 static void
-euler_mixture_wall(double t, int nc, const double* skin, double* GKYL_RESTRICT ghost, void* ctx);
+iso_euler_mixture_wall(double t, int nc, const double* skin, double* GKYL_RESTRICT ghost, void* ctx);
 
 /**
-* Boundary condition function for applying no-slip boundary conditions for the Euler mixture equations.
+* Boundary condition function for applying no-slip boundary conditions for the isothermal Euler mixture equations.
 *
 * @param t Current simulation time.
 * @param nc Number of boundary cells to which to apply no-slip boundary conditions.
@@ -99,7 +99,7 @@ euler_mixture_wall(double t, int nc, const double* skin, double* GKYL_RESTRICT g
 */
 GKYL_CU_D
 static void
-euler_mixture_no_slip(double t, int nc, const double* skin, double* GKYL_RESTRICT ghost, void* ctx);
+iso_euler_mixture_no_slip(double t, int nc, const double* skin, double* GKYL_RESTRICT ghost, void* ctx);
 
 /**
 * Rotate state vector from global to local coordinate frame.
@@ -204,7 +204,7 @@ static double
 flux_jump(const struct gkyl_wv_eqn* eqn, const double* ql, const double* qr, double* flux_jump);
 
 /**
-* Determine whether invariant domain of the Euler mixture equations is satisfied.
+* Determine whether invariant domain of the isothermal Euler mixture equations is satisfied.
 *
 * @param eqn Base equation object.
 * @param q Conserved variable vector.
@@ -234,7 +234,7 @@ max_speed(const struct gkyl_wv_eqn* eqn, const double* q);
 */
 GKYL_CU_D
 static inline void
-euler_mixture_cons_to_diag(const struct gkyl_wv_eqn* eqn, const double* qin, double* diag);
+iso_euler_mixture_cons_to_diag(const struct gkyl_wv_eqn* eqn, const double* qin, double* diag);
 
 /**
 * Compute forcing/source term vector from conserved variable vector.
@@ -245,11 +245,11 @@ euler_mixture_cons_to_diag(const struct gkyl_wv_eqn* eqn, const double* qin, dou
 */
 GKYL_CU_DH
 static inline void
-euler_mixture_source(const struct gkyl_wv_eqn* eqn, const double* qin, double* sout);
+iso_euler_mixture_source(const struct gkyl_wv_eqn* eqn, const double* qin, double* sout);
 
 /**
-* Free Euler mixture equations object.
+* Free isothermal Euler mixture equations object.
 *
-* @param ref Reference counter for Euler mixture equations.
+* @param ref Reference counter for isothermal Euler mixture equations.
 */
-void gkyl_euler_mixture_free(const struct gkyl_ref_count* ref);
+void gkyl_iso_euler_mixture_free(const struct gkyl_ref_count* ref);
