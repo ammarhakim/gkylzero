@@ -123,9 +123,9 @@ struct all_radiation_states* gkyl_radiation_read_rad_fit_params(){
   return rad_data;
 }
 
-int gkyl_radiation_read_get_fit_params(const struct all_radiation_states rad_data, int atomic_z, int charge_state, double *a, double *alpha, double *beta, double *gamma, double *V0, int *num_densities, double electron_densities[GKYL_MAX_RAD_DENSITIES]){
+int gkyl_radiation_read_get_fit_params(const struct all_radiation_states rad_data, int atomic_z, int charge_state, double *a, double *alpha, double *beta, double *gamma, double *V0, int *num_densities, double electron_densities[GKYL_MAX_RAD_DENSITIES], double ref_dens){
   int location = 0;
-  double ref_dens = 19;
+  double log_ref_dens = log10(ref_dens);
   atomic_z = atomic_z-1;
   int index = atomic_z*rad_data.max_atomic_number+charge_state;
   if (rad_data.all_states[index].number_of_densities<num_densities[0])
@@ -134,8 +134,8 @@ int gkyl_radiation_read_get_fit_params(const struct all_radiation_states rad_dat
     return 1;
   if (num_densities[0]==1 || rad_data.all_states[index].number_of_densities==1) {
     for (int i = 0; i<rad_data.all_states[index].number_of_densities; i++){
-      if ( fabs(rad_data.all_states[index].electron_densities[i]-ref_dens)<
-	   fabs(rad_data.all_states[index].electron_densities[location]-ref_dens)) {
+      if ( fabs(rad_data.all_states[index].electron_densities[i]-log_ref_dens)<
+	   fabs(rad_data.all_states[index].electron_densities[location]-log_ref_dens)) {
 	location = i;
       }
     }

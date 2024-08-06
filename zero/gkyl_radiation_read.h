@@ -56,10 +56,11 @@ struct all_radiation_states* gkyl_radiation_read_rad_fit_params();
  * @param a, alpha, beta, gamma, V0: fit parameters to be returned 
  * @param num_densities: maximum number of densities to return fit parameters for
  * @param electron densities: Array of electron densities
+ * @param ref_dens: Reference electron density - choose closest fit density to this
  * @return 1 if fit doesn't exist
  */
 int gkyl_radiation_read_get_fit_params(const struct all_radiation_states rad_data, int atomic_z,
-  int charge_state, double *a, double *alpha, double *beta, double *gamma, double *V0, int *num_densities, double *electron_densities);
+				       int charge_state, double *a, double *alpha, double *beta, double *gamma, double *V0, int *num_densities, double *electron_densities, double ref_dens);
 
 /* Function to return the fit emissivity (Lz) and temperature closest to a given input temperature
  * @param all_radiation_states rad data: Struct containing radiation fit data

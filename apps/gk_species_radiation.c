@@ -49,14 +49,14 @@ gk_species_radiation_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s
 
   // Fitting parameters
   double a[GKYL_MAX_RAD_DENSITIES], alpha[GKYL_MAX_RAD_DENSITIES], beta[GKYL_MAX_RAD_DENSITIES], gamma[GKYL_MAX_RAD_DENSITIES], v0[GKYL_MAX_RAD_DENSITIES], ne[GKYL_MAX_RAD_DENSITIES];
-  struct all_radiation_states *rad_data=gkyl_read_rad_fit_params();
+  struct all_radiation_states *rad_data=gkyl_radiation_read_rad_fit_params();
 
   rad->num_cross_collisions = s->info.radiation.num_cross_collisions;
   // initialize drag coefficients
   for (int i=0; i<rad->num_cross_collisions; ++i) {
     int num_of_densities[1] = {0};
     num_of_densities[0] = s->info.radiation.num_of_densities[i];
-    int status = gkyl_get_fit_params(*rad_data, s->info.radiation.z[i], s->info.radiation.charge_state[i], a, alpha, beta, gamma, v0, num_of_densities, ne);
+    int status = gkyl_radiation_read_get_fit_params(*rad_data, s->info.radiation.z[i], s->info.radiation.charge_state[i], a, alpha, beta, gamma, v0, num_of_densities, ne, s->info.polarization_density);
     rad->rad_fit_ne[i] = mkarr(app->use_gpu, 1, num_of_densities[0]);
     
     // Fetch the species we are colliding with and the fitting parameters for that species
