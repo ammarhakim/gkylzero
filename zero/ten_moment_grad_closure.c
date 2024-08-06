@@ -2,8 +2,10 @@
 
 #include <gkyl_alloc.h>
 #include <gkyl_array_ops.h>
+#include <gkyl_mat.h>
 #include <gkyl_null_comm.h>
 #include <gkyl_ten_moment_grad_closure.h>
+#include <gkyl_ten_moment_grad_closure_priv.h>
 #include <gkyl_moment_non_ideal_priv.h>
 
 // Makes indexing cleaner
@@ -13,17 +15,6 @@ static const unsigned T13 = 2;
 static const unsigned T22 = 3;
 static const unsigned T23 = 4;
 static const unsigned T33 = 5;
-
-static const unsigned Q111 = 0;
-static const unsigned Q112 = 1;
-static const unsigned Q113 = 2;
-static const unsigned Q122 = 3;
-static const unsigned Q123 = 4;
-static const unsigned Q133 = 5;
-static const unsigned Q222 = 6;
-static const unsigned Q223 = 7;
-static const unsigned Q233 = 8;
-static const unsigned Q333 = 9;
 
 // 1D stencil locations (L: lower, U: upper)
 enum loc_1d {
@@ -54,7 +45,7 @@ struct gkyl_ten_moment_grad_closure {
   struct gkyl_comm *comm;
 };
 
-static void
+void
 create_offsets_vertices(const struct gkyl_range *range, long offsets[])
 {
   // box spanning stencil
@@ -70,7 +61,7 @@ create_offsets_vertices(const struct gkyl_range *range, long offsets[])
     offsets[count++] = gkyl_range_offset(range, iter3.idx);
 }
 
-static void
+void
 create_offsets_centers(const struct gkyl_range *range, long offsets[])
 {
   // box spanning stencil
@@ -86,7 +77,68 @@ create_offsets_centers(const struct gkyl_range *range, long offsets[])
     offsets[count++] = gkyl_range_offset(range, iter3.idx);
 }
 
-static void
+void
+inv_setup(double w, double Bx, double By, double Bz, struct gkyl_mat *qinv)
+{
+  double bx = 0.0;
+  double by = 0.0;
+  double bz = 0.0;
+  double Bmag = sqrt(Bx*Bx + By*By + Bz*Bz);
+  if (Bmag > 0.0) {
+    bx = w*Bx/Bmag;
+    by = w*By/Bmag;
+    bz = w*Bz/Bmag;
+  }
+
+  gkyl_mat_set(qinv, 0, 0, 1.0);
+  gkyl_mat_set(qinv, 0, 1, -3.0*bz);
+  gkyl_mat_set(qinv, 0, 2, 3.0*by);
+  gkyl_mat_set(qinv, 1, 0, bz);
+  gkyl_mat_set(qinv, 1, 1, 1.0);
+  gkyl_mat_set(qinv, 1, 2, -bx);
+  gkyl_mat_set(qinv, 1, 3, -2.0*bz);
+  gkyl_mat_set(qinv, 1, 4, 2.0*by);
+  gkyl_mat_set(qinv, 2, 0, -by);
+  gkyl_mat_set(qinv, 2, 1, bx);
+  gkyl_mat_set(qinv, 2, 2, 1.0);
+  gkyl_mat_set(qinv, 2, 4, -2.0*bz);
+  gkyl_mat_set(qinv, 2, 5, 2.0*by);
+  gkyl_mat_set(qinv, 3, 1, 2.0*bz);
+  gkyl_mat_set(qinv, 3, 3, 1.0);
+  gkyl_mat_set(qinv, 3, 4, -2.0*bx);
+  gkyl_mat_set(qinv, 3, 6, -bz);
+  gkyl_mat_set(qinv, 3, 7, by);
+  gkyl_mat_set(qinv, 4, 1, -by);
+  gkyl_mat_set(qinv, 4, 2, bz);
+  gkyl_mat_set(qinv, 4, 3, bx);
+  gkyl_mat_set(qinv, 4, 4, 1.0);
+  gkyl_mat_set(qinv, 4, 5, -bx);
+  gkyl_mat_set(qinv, 4, 7, -bz);
+  gkyl_mat_set(qinv, 4, 8, by);
+  gkyl_mat_set(qinv, 5, 2, -2.0*by);
+  gkyl_mat_set(qinv, 5, 4, 2.0*bx);
+  gkyl_mat_set(qinv, 5, 5, 1.0);
+  gkyl_mat_set(qinv, 5, 8, -bz);
+  gkyl_mat_set(qinv, 5, 9, by);
+  gkyl_mat_set(qinv, 6, 3, 3.0*bz);
+  gkyl_mat_set(qinv, 6, 6, 1.0);
+  gkyl_mat_set(qinv, 6, 7, -3.0*bx);
+  gkyl_mat_set(qinv, 7, 3, -by);
+  gkyl_mat_set(qinv, 7, 4, 2.0*bz);
+  gkyl_mat_set(qinv, 7, 6, bx);
+  gkyl_mat_set(qinv, 7, 7, 1.0);
+  gkyl_mat_set(qinv, 7, 8, -2.0*bx);
+  gkyl_mat_set(qinv, 8, 4, -2.0*by);
+  gkyl_mat_set(qinv, 8, 5, bz);
+  gkyl_mat_set(qinv, 8, 7, 2.0*bx);
+  gkyl_mat_set(qinv, 8, 8, 1.0);
+  gkyl_mat_set(qinv, 8, 9, -bx);
+  gkyl_mat_set(qinv, 9, 5, -3.0*by);
+  gkyl_mat_set(qinv, 9, 8, 3.0*bx);
+  gkyl_mat_set(qinv, 9, 9, 1.0);
+}
+
+void
 var_setup(const gkyl_ten_moment_grad_closure *gces,
   int start, int end,
   const double *fluid_d[],
@@ -143,7 +195,7 @@ calc_unmag_heat_flux(const gkyl_ten_moment_grad_closure *gces,
     q[Q122] = alpha*n_avg*vth_avg*dTdx[T22]/3.0;
     q[Q123] = alpha*n_avg*vth_avg*dTdx[T23]/3.0;
     q[Q133] = alpha*n_avg*vth_avg*dTdx[T33]/3.0;
-    
+
     int signx[2] = { -1.0, 1.0 };
     for (int j = L_1D; j <= U_1D; ++j) {
       rhs_d[j][P11] += signx[j]*q[Q111]/dx;
@@ -186,25 +238,27 @@ calc_unmag_heat_flux(const gkyl_ten_moment_grad_closure *gces,
       dTdy[L_1D][k] = calc_sym_grad_limiter_2D(limit, dTy[L_1D][k], dTy[U_1D][k]);
       dTdy[U_1D][k] = calc_sym_grad_limiter_2D(limit, dTy[U_1D][k], dTy[L_1D][k]);
     }
-    
+
     int compx[4] = { L_1D, U_1D, L_1D, U_1D };
     int compy[4] = { L_1D, L_1D, U_1D, U_1D };
 
     int signx[4] = { 1.0, 1.0, -1.0, -1.0 };
     int signy[4] = { 1.0, -1.0, 1.0, -1.0 };
 
-    for (int j = LL_2D; j <= UU_2D; ++j) {
-      q[j][Q111] = alpha*n_avg*vth_avg*dTdx[compx[j]][T11];
-      q[j][Q112] = alpha*n_avg*vth_avg*(2.0*dTdx[compx[j]][T12] + dTdy[compy[j]][T11])/3.0;
-      q[j][Q113] = alpha*n_avg*vth_avg*2.0*dTdx[compx[j]][T13]/3.0;
-      q[j][Q122] = alpha*n_avg*vth_avg*(dTdx[compx[j]][T22] + 2.0*dTdy[compy[j]][T12])/3.0;
-      q[j][Q123] = alpha*n_avg*vth_avg*(dTdx[compx[j]][T23] + dTdy[compy[j]][T13])/3.0;
-      q[j][Q133] = alpha*n_avg*vth_avg*dTdx[compx[j]][T33]/3.0;
-      q[j][Q222] = alpha*n_avg*vth_avg*dTdy[compy[j]][T22];
-      q[j][Q223] = alpha*n_avg*vth_avg*2.0*dTdy[compy[j]][T23]/3.0;
-      q[j][Q233] = alpha*n_avg*vth_avg*dTdy[compy[j]][T33]/3.0;
+    double chi = alpha*n_avg*vth_avg;
 
-      rhs_d[j][P11] += signx[j]*q[j][Q111]/(2.0*dx) + signy[j]*q[LL_2D][Q112]/(2.0*dy);
+    for (int j = LL_2D; j <= UU_2D; ++j) {
+      q[j][Q111] = chi*dTdx[compx[j]][T11];
+      q[j][Q112] = chi*(2.0*dTdx[compx[j]][T12] + dTdy[compy[j]][T11])/3.0;
+      q[j][Q113] = chi*2.0*dTdx[compx[j]][T13]/3.0;
+      q[j][Q122] = chi*(dTdx[compx[j]][T22] + 2.0*dTdy[compy[j]][T12])/3.0;
+      q[j][Q123] = chi*(dTdx[compx[j]][T23] + dTdy[compy[j]][T13])/3.0;
+      q[j][Q133] = chi*dTdx[compx[j]][T33]/3.0;
+      q[j][Q222] = chi*dTdy[compy[j]][T22];
+      q[j][Q223] = chi*2.0*dTdy[compy[j]][T23]/3.0;
+      q[j][Q233] = chi*dTdy[compy[j]][T33]/3.0;
+
+      rhs_d[j][P11] += signx[j]*q[j][Q111]/(2.0*dx) + signy[j]*q[j][Q112]/(2.0*dy);
       rhs_d[j][P12] += signx[j]*q[j][Q112]/(2.0*dx) + signy[j]*q[j][Q122]/(2.0*dy);
       rhs_d[j][P13] += signx[j]*q[j][Q113]/(2.0*dx) + signy[j]*q[j][Q123]/(2.0*dy);
       rhs_d[j][P22] += signx[j]*q[j][Q122]/(2.0*dx) + signy[j]*q[j][Q222]/(2.0*dy);
@@ -277,17 +331,19 @@ calc_unmag_heat_flux(const gkyl_ten_moment_grad_closure *gces,
     int signy[8] = { 1.0, 1.0, -1.0, -1.0, 1.0, 1.0, -1.0, -1.0 };
     int signz[8] = { 1.0, -1.0, 1.0, -1.0, 1.0, -1.0, 1.0, -1.0 };
 
+    double chi = alpha*n_avg*vth_avg;
+
     for (int j = LLL_3D; j <= UUU_3D; ++j) {
-      q[j][Q111] = alpha*n_avg*vth_avg*(dTdx[compx[j]][T11] + dTdx[compx[j]][T11] + dTdx[compx[j]][T11])/3.0;
-      q[j][Q112] = alpha*n_avg*vth_avg*(dTdx[compx[j]][T12] + dTdx[compx[j]][T12] + dTdy[compy[j]][T11])/3.0;
-      q[j][Q113] = alpha*n_avg*vth_avg*(dTdx[compx[j]][T13] + dTdx[compx[j]][T13] + dTdz[compz[j]][T11])/3.0;
-      q[j][Q122] = alpha*n_avg*vth_avg*(dTdx[compx[j]][T22] + dTdy[compy[j]][T12] + dTdy[compy[j]][T12])/3.0;
-      q[j][Q123] = alpha*n_avg*vth_avg*(dTdx[compx[j]][T23] + dTdy[compy[j]][T13] + dTdz[compz[j]][T12])/3.0;
-      q[j][Q133] = alpha*n_avg*vth_avg*(dTdx[compx[j]][T33] + dTdz[compz[j]][T13] + dTdz[compz[j]][T13])/3.0;
-      q[j][Q222] = alpha*n_avg*vth_avg*(dTdy[compy[j]][T22] + dTdy[compy[j]][T22] + dTdy[compy[j]][T22])/3.0;
-      q[j][Q223] = alpha*n_avg*vth_avg*(dTdy[compy[j]][T23] + dTdy[compy[j]][T23] + dTdz[compz[j]][T22])/3.0;
-      q[j][Q233] = alpha*n_avg*vth_avg*(dTdy[compy[j]][T33] + dTdz[compz[j]][T23] + dTdz[compz[j]][T23])/3.0;
-      q[j][Q333] = alpha*n_avg*vth_avg*(dTdz[compz[j]][T33] + dTdz[compz[j]][T33] + dTdz[compz[j]][T33])/3.0;
+      q[j][Q111] = chi*(dTdx[compx[j]][T11] + dTdx[compx[j]][T11] + dTdx[compx[j]][T11])/3.0;
+      q[j][Q112] = chi*(dTdx[compx[j]][T12] + dTdx[compx[j]][T12] + dTdy[compy[j]][T11])/3.0;
+      q[j][Q113] = chi*(dTdx[compx[j]][T13] + dTdx[compx[j]][T13] + dTdz[compz[j]][T11])/3.0;
+      q[j][Q122] = chi*(dTdx[compx[j]][T22] + dTdy[compy[j]][T12] + dTdy[compy[j]][T12])/3.0;
+      q[j][Q123] = chi*(dTdx[compx[j]][T23] + dTdy[compy[j]][T13] + dTdz[compz[j]][T12])/3.0;
+      q[j][Q133] = chi*(dTdx[compx[j]][T33] + dTdz[compz[j]][T13] + dTdz[compz[j]][T13])/3.0;
+      q[j][Q222] = chi*(dTdy[compy[j]][T22] + dTdy[compy[j]][T22] + dTdy[compy[j]][T22])/3.0;
+      q[j][Q223] = chi*(dTdy[compy[j]][T23] + dTdy[compy[j]][T23] + dTdz[compz[j]][T22])/3.0;
+      q[j][Q233] = chi*(dTdy[compy[j]][T33] + dTdz[compz[j]][T23] + dTdz[compz[j]][T23])/3.0;
+      q[j][Q333] = chi*(dTdz[compz[j]][T33] + dTdz[compz[j]][T33] + dTdz[compz[j]][T33])/3.0;
 
       rhs_d[j][P11] += signx[j]*q[j][Q111]/(4.0*dx) + signy[j]*q[j][Q112]/(4.0*dy) + signz[j]*q[j][Q113]/(4.0*dz);
       rhs_d[j][P12] += signx[j]*q[j][Q112]/(4.0*dx) + signy[j]*q[j][Q122]/(4.0*dy) + signz[j]*q[j][Q123]/(4.0*dz);
@@ -301,6 +357,574 @@ calc_unmag_heat_flux(const gkyl_ten_moment_grad_closure *gces,
     cfla = dt/(dmin*dmin);
   }
 
+  return fmax(alpha*vth_avg*cfla, cfl);
+}
+
+double
+calc_mag_heat_flux_linsolve(const gkyl_ten_moment_grad_closure *gces,
+  const double *fluid_d[], const double *em_tot_d[], double *cflrate,
+  double cfl, double dt, double *rhs_d[])
+{
+  const int ndim = gces->ndim;
+  double alpha = 1.0/gces->k0;
+  double rho_avg = 0.0;
+  double p_avg = 0.0;
+  double vth_avg = 0.0;
+  double n_avg = 0.0;
+  double limit = 0.75;
+  double cfla = 0.0;
+  double Bx = 0.0;
+  double By = 0.0;
+  double Bz = 0.0;
+  double w = 10.0;
+  if (ndim == 2) {
+    const double dx = gces->grid.dx[0];
+    const double dy = gces->grid.dx[1];
+    double dTx[2][6] = {0.0}; 
+    double dTy[2][6] = {0.0};
+    double dTdx[2][6] = {0.0};
+    double dTdy[2][6] = {0.0};
+    double Tij[4][6] = {0.0};
+    double rho[4] = {0.0};
+    double p[4] = {0.0};
+    struct gkyl_mat *q = gkyl_mat_new(10, 4, 0.0);
+    struct gkyl_mat *q_inv = gkyl_mat_new(10, 10, 0.0);
+    var_setup(gces, LL_2D, UU_2D, fluid_d, rho, p, Tij);
+
+    rho_avg = calc_harmonic_avg_2D(rho[LL_2D], rho[LU_2D], rho[UL_2D], rho[UU_2D]);
+    p_avg = calc_harmonic_avg_2D(p[LL_2D], p[LU_2D], p[UL_2D], p[UU_2D]);
+    vth_avg = sqrt(p_avg/rho_avg);
+    n_avg = rho_avg;
+
+    for (int k = T11; k <= T33; ++k) {
+      dTx[L_1D][k] = calc_sym_grad_1D(dx, Tij[LL_2D][k], Tij[UL_2D][k]);
+      dTx[U_1D][k] = calc_sym_grad_1D(dx, Tij[LU_2D][k], Tij[UU_2D][k]);
+      dTdx[L_1D][k] = calc_sym_grad_limiter_2D(limit, dTx[L_1D][k], dTx[U_1D][k]);
+      dTdx[U_1D][k] = calc_sym_grad_limiter_2D(limit, dTx[U_1D][k], dTx[L_1D][k]);
+
+      dTy[L_1D][k] = calc_sym_grad_1D(dy, Tij[LL_2D][k], Tij[LU_2D][k]);
+      dTy[U_1D][k] = calc_sym_grad_1D(dy, Tij[UL_2D][k], Tij[UU_2D][k]);
+      dTdy[L_1D][k] = calc_sym_grad_limiter_2D(limit, dTy[L_1D][k], dTy[U_1D][k]);
+      dTdy[U_1D][k] = calc_sym_grad_limiter_2D(limit, dTy[U_1D][k], dTy[L_1D][k]);
+    }
+    
+    int compx[4] = { L_1D, U_1D, L_1D, U_1D };
+    int compy[4] = { L_1D, L_1D, U_1D, U_1D };
+
+    int signx[4] = { 1.0, 1.0, -1.0, -1.0 };
+    int signy[4] = { 1.0, -1.0, 1.0, -1.0 };
+
+    for (int j = LL_2D; j <= UU_2D; ++j) {
+      Bx += em_tot_d[j][BX]/4.0;
+      By += em_tot_d[j][BY]/4.0;
+      Bz += em_tot_d[j][BZ]/4.0;
+    }
+
+    inv_setup(w, Bx, By, Bz, q_inv);
+
+    double chi = alpha*n_avg*vth_avg;
+
+    gkyl_mat_set(q, Q111, LL_2D, chi*dTdx[compx[LL_2D]][T11]);
+    gkyl_mat_set(q, Q112, LL_2D, chi*(2.0*dTdx[compx[LL_2D]][T12]
+      + dTdy[compy[LL_2D]][T11])/3.0);
+    gkyl_mat_set(q, Q113, LL_2D, chi*2.0*dTdx[compx[LL_2D]][T13]/3.0);
+    gkyl_mat_set(q, Q122, LL_2D, chi*(dTdx[compx[LL_2D]][T22]
+      + 2.0*dTdy[compy[LL_2D]][T12])/3.0);
+    gkyl_mat_set(q, Q123, LL_2D, chi*(dTdx[compx[LL_2D]][T23]
+      + dTdy[compy[LL_2D]][T13])/3.0);
+    gkyl_mat_set(q, Q133, LL_2D, chi*dTdx[compx[LL_2D]][T33]/3.0);
+    gkyl_mat_set(q, Q222, LL_2D, chi*dTdy[compy[LL_2D]][T22]);
+    gkyl_mat_set(q, Q223, LL_2D, chi*2.0*dTdy[compy[LL_2D]][T23]/3.0);
+    gkyl_mat_set(q, Q233, LL_2D, chi*dTdy[compy[LL_2D]][T33]/3.0);
+    gkyl_mat_set(q, Q333, LL_2D, 0.0);
+
+    gkyl_mat_set(q, Q111, LU_2D, chi*dTdx[compx[LU_2D]][T11]);
+    gkyl_mat_set(q, Q112, LU_2D, chi*(2.0*dTdx[compx[LU_2D]][T12]
+      + dTdy[compy[LU_2D]][T11])/3.0);
+    gkyl_mat_set(q, Q113, LU_2D, chi*2.0*dTdx[compx[LU_2D]][T13]/3.0);
+    gkyl_mat_set(q, Q122, LU_2D, chi*(dTdx[compx[LU_2D]][T22]
+      + 2.0*dTdy[compy[LU_2D]][T12])/3.0);
+    gkyl_mat_set(q, Q123, LU_2D, chi*(dTdx[compx[LU_2D]][T23]
+      + dTdy[compy[LU_2D]][T13])/3.0);
+    gkyl_mat_set(q, Q133, LU_2D, chi*dTdx[compx[LU_2D]][T33]/3.0);
+    gkyl_mat_set(q, Q222, LU_2D, chi*dTdy[compy[LU_2D]][T22]);
+    gkyl_mat_set(q, Q223, LU_2D, chi*2.0*dTdy[compy[LU_2D]][T23]/3.0);
+    gkyl_mat_set(q, Q233, LU_2D, chi*dTdy[compy[LU_2D]][T33]/3.0);
+    gkyl_mat_set(q, Q333, LU_2D, 0.0);
+
+    gkyl_mat_set(q, Q111, UL_2D, chi*dTdx[compx[UL_2D]][T11]);
+    gkyl_mat_set(q, Q112, UL_2D, chi*(2.0*dTdx[compx[UL_2D]][T12]
+      + dTdy[compy[UL_2D]][T11])/3.0);
+    gkyl_mat_set(q, Q113, UL_2D, chi*2.0*dTdx[compx[UL_2D]][T13]/3.0);
+    gkyl_mat_set(q, Q122, UL_2D, chi*(dTdx[compx[UL_2D]][T22]
+      + 2.0*dTdy[compy[UL_2D]][T12])/3.0);
+    gkyl_mat_set(q, Q123, UL_2D, chi*(dTdx[compx[UL_2D]][T23]
+      + dTdy[compy[UL_2D]][T13])/3.0);
+    gkyl_mat_set(q, Q133, UL_2D, chi*dTdx[compx[UL_2D]][T33]/3.0);
+    gkyl_mat_set(q, Q222, UL_2D, chi*dTdy[compy[UL_2D]][T22]);
+    gkyl_mat_set(q, Q223, UL_2D, chi*2.0*dTdy[compy[UL_2D]][T23]/3.0);
+    gkyl_mat_set(q, Q233, UL_2D, chi*dTdy[compy[UL_2D]][T33]/3.0);
+    gkyl_mat_set(q, Q333, UL_2D, 0.0);
+
+    gkyl_mat_set(q, Q111, UU_2D, chi*dTdx[compx[UU_2D]][T11]);
+    gkyl_mat_set(q, Q112, UU_2D, chi*(2.0*dTdx[compx[UU_2D]][T12]
+      + dTdy[compy[UU_2D]][T11])/3.0);
+    gkyl_mat_set(q, Q113, UU_2D, chi*2.0*dTdx[compx[UU_2D]][T13]/3.0);
+    gkyl_mat_set(q, Q122, UU_2D, chi*(dTdx[compx[UU_2D]][T22]
+      + 2.0*dTdy[compy[UU_2D]][T12])/3.0);
+    gkyl_mat_set(q, Q123, UU_2D, chi*(dTdx[compx[UU_2D]][T23]
+      + dTdy[compy[UU_2D]][T13])/3.0);
+    gkyl_mat_set(q, Q133, UU_2D, chi*dTdx[compx[UU_2D]][T33]/3.0);
+    gkyl_mat_set(q, Q222, UU_2D, chi*dTdy[compy[UU_2D]][T22]);
+    gkyl_mat_set(q, Q223, UU_2D, chi*2.0*dTdy[compy[UU_2D]][T23]/3.0);
+    gkyl_mat_set(q, Q233, UU_2D, chi*dTdy[compy[UU_2D]][T33]/3.0);
+    gkyl_mat_set(q, Q333, UU_2D, 0.0);
+
+    gkyl_mem_buff ipiv = gkyl_mem_buff_new(sizeof(long[10]));
+    gkyl_mat_linsolve_lu(q_inv, q, gkyl_mem_buff_data(ipiv));
+      
+    rhs_d[LL_2D][P11] += signx[LL_2D]*gkyl_mat_get(q, Q111, LL_2D)/(2.0*dx)
+      + signy[LL_2D]*gkyl_mat_get(q, Q112, LL_2D)/(2.0*dy);
+    rhs_d[LL_2D][P12] += signx[LL_2D]*gkyl_mat_get(q, Q112, LL_2D)/(2.0*dx)
+      + signy[LL_2D]*gkyl_mat_get(q, Q122, LL_2D)/(2.0*dy);
+    rhs_d[LL_2D][P13] += signx[LL_2D]*gkyl_mat_get(q, Q113, LL_2D)/(2.0*dx)
+      + signy[LL_2D]*gkyl_mat_get(q, Q123, LL_2D)/(2.0*dy);
+    rhs_d[LL_2D][P22] += signx[LL_2D]*gkyl_mat_get(q, Q122, LL_2D)/(2.0*dx)
+      + signy[LL_2D]*gkyl_mat_get(q, Q222, LL_2D)/(2.0*dy);
+    rhs_d[LL_2D][P23] += signx[LL_2D]*gkyl_mat_get(q, Q123, LL_2D)/(2.0*dx)
+      + signy[LL_2D]*gkyl_mat_get(q, Q223, LL_2D)/(2.0*dy);
+    rhs_d[LL_2D][P33] += signx[LL_2D]*gkyl_mat_get(q, Q133, LL_2D)/(2.0*dx)
+      + signy[LL_2D]*gkyl_mat_get(q, Q233, LL_2D)/(2.0*dy);
+
+    rhs_d[LU_2D][P11] += signx[LU_2D]*gkyl_mat_get(q, Q111, LU_2D)/(2.0*dx)
+      + signy[LU_2D]*gkyl_mat_get(q, Q112, LU_2D)/(2.0*dy);
+    rhs_d[LU_2D][P12] += signx[LU_2D]*gkyl_mat_get(q, Q112, LU_2D)/(2.0*dx)
+      + signy[LU_2D]*gkyl_mat_get(q, Q122, LU_2D)/(2.0*dy);
+    rhs_d[LU_2D][P13] += signx[LU_2D]*gkyl_mat_get(q, Q113, LU_2D)/(2.0*dx)
+      + signy[LU_2D]*gkyl_mat_get(q, Q123, LU_2D)/(2.0*dy);
+    rhs_d[LU_2D][P22] += signx[LU_2D]*gkyl_mat_get(q, Q122, LU_2D)/(2.0*dx)
+      + signy[LU_2D]*gkyl_mat_get(q, Q222, LU_2D)/(2.0*dy);
+    rhs_d[LU_2D][P23] += signx[LU_2D]*gkyl_mat_get(q, Q123, LU_2D)/(2.0*dx)
+      + signy[LU_2D]*gkyl_mat_get(q, Q223, LU_2D)/(2.0*dy);
+    rhs_d[LU_2D][P33] += signx[LU_2D]*gkyl_mat_get(q, Q133, LU_2D)/(2.0*dx)
+      + signy[LU_2D]*gkyl_mat_get(q, Q233, LU_2D)/(2.0*dy);
+
+    rhs_d[UL_2D][P11] += signx[UL_2D]*gkyl_mat_get(q, Q111, UL_2D)/(2.0*dx)
+      + signy[UL_2D]*gkyl_mat_get(q, Q112, UL_2D)/(2.0*dy);
+    rhs_d[UL_2D][P12] += signx[UL_2D]*gkyl_mat_get(q, Q112, UL_2D)/(2.0*dx)
+      + signy[UL_2D]*gkyl_mat_get(q, Q122, UL_2D)/(2.0*dy);
+    rhs_d[UL_2D][P13] += signx[UL_2D]*gkyl_mat_get(q, Q113, UL_2D)/(2.0*dx)
+      + signy[UL_2D]*gkyl_mat_get(q, Q123, UL_2D)/(2.0*dy);
+    rhs_d[UL_2D][P22] += signx[UL_2D]*gkyl_mat_get(q, Q122, UL_2D)/(2.0*dx)
+      + signy[UL_2D]*gkyl_mat_get(q, Q222, UL_2D)/(2.0*dy);
+    rhs_d[UL_2D][P23] += signx[UL_2D]*gkyl_mat_get(q, Q123, UL_2D)/(2.0*dx)
+      + signy[UL_2D]*gkyl_mat_get(q, Q223, UL_2D)/(2.0*dy);
+    rhs_d[UL_2D][P33] += signx[UL_2D]*gkyl_mat_get(q, Q133, UL_2D)/(2.0*dx)
+      + signy[UL_2D]*gkyl_mat_get(q, Q233, UL_2D)/(2.0*dy);
+
+    rhs_d[UU_2D][P11] += signx[UU_2D]*gkyl_mat_get(q, Q111, UU_2D)/(2.0*dx)
+      + signy[UU_2D]*gkyl_mat_get(q, Q112, UU_2D)/(2.0*dy);
+    rhs_d[UU_2D][P12] += signx[UU_2D]*gkyl_mat_get(q, Q112, UU_2D)/(2.0*dx)
+      + signy[UU_2D]*gkyl_mat_get(q, Q122, UU_2D)/(2.0*dy);
+    rhs_d[UU_2D][P13] += signx[UU_2D]*gkyl_mat_get(q, Q113, UU_2D)/(2.0*dx)
+      + signy[UU_2D]*gkyl_mat_get(q, Q123, UU_2D)/(2.0*dy);
+    rhs_d[UU_2D][P22] += signx[UU_2D]*gkyl_mat_get(q, Q122, UU_2D)/(2.0*dx)
+      + signy[UU_2D]*gkyl_mat_get(q, Q222, UU_2D)/(2.0*dy);
+    rhs_d[UU_2D][P23] += signx[UU_2D]*gkyl_mat_get(q, Q123, UU_2D)/(2.0*dx)
+      + signy[UU_2D]*gkyl_mat_get(q, Q223, UU_2D)/(2.0*dy);
+    rhs_d[UU_2D][P33] += signx[UU_2D]*gkyl_mat_get(q, Q133, UU_2D)/(2.0*dx)
+      + signy[UU_2D]*gkyl_mat_get(q, Q233, UU_2D)/(2.0*dy);
+   
+    double dmin = fmin(dx, dy);
+    cfla = dt/(dmin*dmin);
+    gkyl_mem_buff_release(ipiv);
+    gkyl_mat_release(q);
+    gkyl_mat_release(q_inv);
+  }
+    
+  return fmax(alpha*vth_avg*cfla, cfl);
+}
+
+double
+calc_mag_heat_flux_kernel(const gkyl_ten_moment_grad_closure *gces,
+  const double *fluid_d[], const double *em_tot_d[], double *cflrate,
+  double cfl, double dt, double *rhs_d[])
+{
+  const int ndim = gces->ndim;
+  double alpha = 1.0/gces->k0;
+  double rho_avg = 0.0;
+  double p_avg = 0.0;
+  double vth_avg = 0.0;
+  double n_avg = 0.0;
+  double limit = 0.75;
+  double cfla = 0.0;
+  double Bx = 0.0;
+  double By = 0.0;
+  double Bz = 0.0;
+  double w = 10.0;
+  if (ndim == 2) {
+    const double dx = gces->grid.dx[0];
+    const double dy = gces->grid.dx[1];
+    double dTx[2][6] = {0.0}; 
+    double dTy[2][6] = {0.0};
+    double dTdx[2][6] = {0.0};
+    double dTdy[2][6] = {0.0};
+    double Tij[4][6] = {0.0};
+    double rho[4] = {0.0};
+    double p[4] = {0.0};
+    double q[4][10] = {0.0};
+    double q_src[4][10] = {0.0};
+    double q_out[4][10] = {0.0};
+    struct gkyl_mat *qsrc = gkyl_mat_new(10, 4, 0.0);
+    var_setup(gces, LL_2D, UU_2D, fluid_d, rho, p, Tij);
+
+    rho_avg = calc_harmonic_avg_2D(rho[LL_2D], rho[LU_2D], rho[UL_2D], rho[UU_2D]);
+    p_avg = calc_harmonic_avg_2D(p[LL_2D], p[LU_2D], p[UL_2D], p[UU_2D]);
+    vth_avg = sqrt(p_avg/rho_avg);
+    // n_avg = rho_avg/gces->mass;
+    n_avg = rho_avg;
+
+    for (int k = T11; k <= T33; ++k) {
+      dTx[L_1D][k] = calc_sym_grad_1D(dx, Tij[LL_2D][k], Tij[UL_2D][k]);
+      dTx[U_1D][k] = calc_sym_grad_1D(dx, Tij[LU_2D][k], Tij[UU_2D][k]);
+      dTdx[L_1D][k] = calc_sym_grad_limiter_2D(limit, dTx[L_1D][k], dTx[U_1D][k]);
+      dTdx[U_1D][k] = calc_sym_grad_limiter_2D(limit, dTx[U_1D][k], dTx[L_1D][k]);
+
+      dTy[L_1D][k] = calc_sym_grad_1D(dy, Tij[LL_2D][k], Tij[LU_2D][k]);
+      dTy[U_1D][k] = calc_sym_grad_1D(dy, Tij[UL_2D][k], Tij[UU_2D][k]);
+      dTdy[L_1D][k] = calc_sym_grad_limiter_2D(limit, dTy[L_1D][k], dTy[U_1D][k]);
+      dTdy[U_1D][k] = calc_sym_grad_limiter_2D(limit, dTy[U_1D][k], dTy[L_1D][k]);
+    }
+    
+    int compx[4] = { L_1D, U_1D, L_1D, U_1D };
+    int compy[4] = { L_1D, L_1D, U_1D, U_1D };
+
+    int signx[4] = { 1.0, 1.0, -1.0, -1.0 };
+    int signy[4] = { 1.0, -1.0, 1.0, -1.0 };
+
+    for (int j = LL_2D; j <= UU_2D; ++j) {
+      Bx += em_tot_d[j][BX]/4.0;
+      By += em_tot_d[j][BY]/4.0;
+      Bz += em_tot_d[j][BZ]/4.0;
+    }
+
+    double chi = alpha*n_avg*vth_avg;
+
+    q[LL_2D][Q111] = chi*dTdx[compx[LL_2D]][T11];
+    q[LL_2D][Q112] = chi*(2.0*dTdx[compx[LL_2D]][T12]
+      + dTdy[compy[LL_2D]][T11])/3.0;
+    q[LL_2D][Q113] = chi*2.0*dTdx[compx[LL_2D]][T13]/3.0;
+    q[LL_2D][Q122] = chi*(dTdx[compx[LL_2D]][T22]
+      + 2.0*dTdy[compy[LL_2D]][T12])/3.0;
+    q[LL_2D][Q123] = chi*(dTdx[compx[LL_2D]][T23] + dTdy[compy[LL_2D]][T13])/3.0;
+    q[LL_2D][Q133] = chi*dTdx[compx[LL_2D]][T33]/3.0;
+    q[LL_2D][Q222] = chi*dTdy[compy[LL_2D]][T22];
+    q[LL_2D][Q223] = chi*2.0*dTdy[compy[LL_2D]][T23]/3.0;
+    q[LL_2D][Q233] = chi*dTdy[compy[LL_2D]][T33]/3.0;
+    q[LL_2D][Q333] = 0.0;
+    
+    q[LU_2D][Q111] = chi*dTdx[compx[LU_2D]][T11];
+    q[LU_2D][Q112] = chi*(2.0*dTdx[compx[LU_2D]][T12]
+      + dTdy[compy[LU_2D]][T11])/3.0;
+    q[LU_2D][Q113] = chi*2.0*dTdx[compx[LU_2D]][T13]/3.0;
+    q[LU_2D][Q122] = chi*(dTdx[compx[LU_2D]][T22]
+      + 2.0*dTdy[compy[LU_2D]][T12])/3.0;
+    q[LU_2D][Q123] = chi*(dTdx[compx[LU_2D]][T23] + dTdy[compy[LU_2D]][T13])/3.0;
+    q[LU_2D][Q133] = chi*dTdx[compx[LU_2D]][T33]/3.0;
+    q[LU_2D][Q222] = chi*dTdy[compy[LU_2D]][T22];
+    q[LU_2D][Q223] = chi*2.0*dTdy[compy[LU_2D]][T23]/3.0;
+    q[LU_2D][Q233] = chi*dTdy[compy[LU_2D]][T33]/3.0;
+    q[LU_2D][Q333] = 0.0;
+
+    q[UL_2D][Q111] = chi*dTdx[compx[UL_2D]][T11];
+    q[UL_2D][Q112] = chi*(2.0*dTdx[compx[UL_2D]][T12]
+      + dTdy[compy[UL_2D]][T11])/3.0;
+    q[UL_2D][Q113] = chi*2.0*dTdx[compx[UL_2D]][T13]/3.0;
+    q[UL_2D][Q122] = chi*(dTdx[compx[UL_2D]][T22]
+      + 2.0*dTdy[compy[UL_2D]][T12])/3.0;
+    q[UL_2D][Q123] = chi*(dTdx[compx[UL_2D]][T23] + dTdy[compy[UL_2D]][T13])/3.0;
+    q[UL_2D][Q133] = chi*dTdx[compx[UL_2D]][T33]/3.0;
+    q[UL_2D][Q222] = chi*dTdy[compy[UL_2D]][T22];
+    q[UL_2D][Q223] = chi*2.0*dTdy[compy[UL_2D]][T23]/3.0;
+    q[UL_2D][Q233] = chi*dTdy[compy[UL_2D]][T33]/3.0;
+    q[UL_2D][Q333] = 0.0;
+
+    q[UU_2D][Q111] = chi*dTdx[compx[UU_2D]][T11];
+    q[UU_2D][Q112] = chi*(2.0*dTdx[compx[UU_2D]][T12]
+      + dTdy[compy[UU_2D]][T11])/3.0;
+    q[UU_2D][Q113] = chi*2.0*dTdx[compx[UU_2D]][T13]/3.0;
+    q[UU_2D][Q122] = chi*(dTdx[compx[UU_2D]][T22]
+      + 2.0*dTdy[compy[UU_2D]][T12])/3.0;
+    q[UU_2D][Q123] = chi*(dTdx[compx[UU_2D]][T23] + dTdy[compy[UU_2D]][T13])/3.0;
+    q[UU_2D][Q133] = chi*dTdx[compx[UU_2D]][T33]/3.0;
+    q[UU_2D][Q222] = chi*dTdy[compy[UU_2D]][T22];
+    q[UU_2D][Q223] = chi*2.0*dTdy[compy[UU_2D]][T23]/3.0;
+    q[UU_2D][Q233] = chi*dTdy[compy[UU_2D]][T33]/3.0;
+    q[UU_2D][Q333] = 0.0;
+
+    anisotropic_diffusion_kernel(w, Bx, By, Bz, q[LL_2D], q_out[LL_2D]);
+    anisotropic_diffusion_kernel(w, Bx, By, Bz, q[LU_2D], q_out[LU_2D]);
+    anisotropic_diffusion_kernel(w, Bx, By, Bz, q[UL_2D], q_out[UL_2D]);
+    anisotropic_diffusion_kernel(w, Bx, By, Bz, q[UU_2D], q_out[UU_2D]);
+    
+    rhs_d[LL_2D][P11] += signx[LL_2D]*q_out[LL_2D][Q111]/(2.0*dx)
+      + signy[LL_2D]*q_out[LL_2D][Q112]/(2.0*dy);
+    rhs_d[LL_2D][P12] += signx[LL_2D]*q_out[LL_2D][Q112]/(2.0*dx)
+      + signy[LL_2D]*q_out[LL_2D][Q122]/(2.0*dy);
+    rhs_d[LL_2D][P13] += signx[LL_2D]*q_out[LL_2D][Q113]/(2.0*dx)
+      + signy[LL_2D]*q_out[LL_2D][Q123]/(2.0*dy);
+    rhs_d[LL_2D][P22] += signx[LL_2D]*q_out[LL_2D][Q122]/(2.0*dx)
+      + signy[LL_2D]*q_out[LL_2D][Q222]/(2.0*dy);
+    rhs_d[LL_2D][P23] += signx[LL_2D]*q_out[LL_2D][Q123]/(2.0*dx)
+      + signy[LL_2D]*q_out[LL_2D][Q223]/(2.0*dy);
+    rhs_d[LL_2D][P33] += signx[LL_2D]*q_out[LL_2D][Q133]/(2.0*dx)
+      + signy[LL_2D]*q_out[LL_2D][Q233]/(2.0*dy);
+
+    rhs_d[LU_2D][P11] += signx[LU_2D]*q_out[LU_2D][Q111]/(2.0*dx)
+      + signy[LU_2D]*q_out[LU_2D][Q112]/(2.0*dy);
+    rhs_d[LU_2D][P12] += signx[LU_2D]*q_out[LU_2D][Q112]/(2.0*dx)
+      + signy[LU_2D]*q_out[LU_2D][Q122]/(2.0*dy);
+    rhs_d[LU_2D][P13] += signx[LU_2D]*q_out[LU_2D][Q113]/(2.0*dx)
+      + signy[LU_2D]*q_out[LU_2D][Q123]/(2.0*dy);
+    rhs_d[LU_2D][P22] += signx[LU_2D]*q_out[LU_2D][Q122]/(2.0*dx)
+      + signy[LU_2D]*q_out[LU_2D][Q222]/(2.0*dy);
+    rhs_d[LU_2D][P23] += signx[LU_2D]*q_out[LU_2D][Q123]/(2.0*dx)
+      + signy[LU_2D]*q_out[LU_2D][Q223]/(2.0*dy);
+    rhs_d[LU_2D][P33] += signx[LU_2D]*q_out[LU_2D][Q133]/(2.0*dx)
+      + signy[LU_2D]*q_out[LU_2D][Q233]/(2.0*dy);
+
+    rhs_d[UL_2D][P11] += signx[UL_2D]*q_out[UL_2D][Q111]/(2.0*dx)
+      + signy[UL_2D]*q_out[UL_2D][Q112]/(2.0*dy);
+    rhs_d[UL_2D][P12] += signx[UL_2D]*q_out[UL_2D][Q112]/(2.0*dx)
+      + signy[UL_2D]*q_out[UL_2D][Q122]/(2.0*dy);
+    rhs_d[UL_2D][P13] += signx[UL_2D]*q_out[UL_2D][Q113]/(2.0*dx)
+      + signy[UL_2D]*q_out[UL_2D][Q123]/(2.0*dy);
+    rhs_d[UL_2D][P22] += signx[UL_2D]*q_out[UL_2D][Q122]/(2.0*dx)
+      + signy[UL_2D]*q_out[UL_2D][Q222]/(2.0*dy);
+    rhs_d[UL_2D][P23] += signx[UL_2D]*q_out[UL_2D][Q123]/(2.0*dx)
+      + signy[UL_2D]*q_out[UL_2D][Q223]/(2.0*dy);
+    rhs_d[UL_2D][P33] += signx[UL_2D]*q_out[UL_2D][Q133]/(2.0*dx)
+      + signy[UL_2D]*q_out[UL_2D][Q233]/(2.0*dy);
+
+    rhs_d[UU_2D][P11] += signx[UU_2D]*q_out[UU_2D][Q111]/(2.0*dx)
+      + signy[UU_2D]*q_out[UU_2D][Q112]/(2.0*dy);
+    rhs_d[UU_2D][P12] += signx[UU_2D]*q_out[UU_2D][Q112]/(2.0*dx)
+      + signy[UU_2D]*q_out[UU_2D][Q122]/(2.0*dy);
+    rhs_d[UU_2D][P13] += signx[UU_2D]*q_out[UU_2D][Q113]/(2.0*dx)
+      + signy[UU_2D]*q_out[UU_2D][Q123]/(2.0*dy);
+    rhs_d[UU_2D][P22] += signx[UU_2D]*q_out[UU_2D][Q122]/(2.0*dx)
+      + signy[UU_2D]*q_out[UU_2D][Q222]/(2.0*dy);
+    rhs_d[UU_2D][P23] += signx[UU_2D]*q_out[UU_2D][Q123]/(2.0*dx)
+      + signy[UU_2D]*q_out[UU_2D][Q223]/(2.0*dy);
+    rhs_d[UU_2D][P33] += signx[UU_2D]*q_out[UU_2D][Q133]/(2.0*dx)
+      + signy[UU_2D]*q_out[UU_2D][Q233]/(2.0*dy);
+   
+    double dmin = fmin(dx, dy);
+    cfla = dt/(dmin*dmin);
+  }
+}
+
+double
+calc_mag_heat_flux_rotate(const gkyl_ten_moment_grad_closure *gces,
+  const double *fluid_d[], const double *em_tot_d[], double *cflrate,
+  double cfl, double dt, double *rhs_d[])
+{
+  const int ndim = gces->ndim;
+  double alpha = 1.0/gces->k0;
+  double rho_avg = 0.0;
+  double p_avg = 0.0;
+  double vth_avg = 0.0;
+  double n_avg = 0.0;
+  double limit = 0.75;
+  double cfla = 0.0;
+  double Bx = 0.0;
+  double By = 0.0;
+  double Bz = 0.0;
+  double w = 10.0;
+  if (ndim == 2) {
+    const double dx = gces->grid.dx[0];
+    const double dy = gces->grid.dx[1];
+    double dTx[2][6] = {0.0}; 
+    double dTy[2][6] = {0.0};
+    double dTdx[2][6] = {0.0};
+    double dTdy[2][6] = {0.0};
+    double Tij[4][6] = {0.0};
+    double rho[4] = {0.0};
+    double p[4] = {0.0};
+    double q[4][10] = {0.0};
+    double q_src[4][10] = {0.0};
+    double q_out[4][10] = {0.0};
+    struct gkyl_mat *qsrc = gkyl_mat_new(10, 4, 0.0);
+    var_setup(gces, LL_2D, UU_2D, fluid_d, rho, p, Tij);
+
+    rho_avg = calc_harmonic_avg_2D(rho[LL_2D], rho[LU_2D], rho[UL_2D], rho[UU_2D]);
+    p_avg = calc_harmonic_avg_2D(p[LL_2D], p[LU_2D], p[UL_2D], p[UU_2D]);
+    vth_avg = sqrt(p_avg/rho_avg);
+    // n_avg = rho_avg/gces->mass;
+    n_avg = rho_avg;
+
+    for (int k = T11; k <= T33; ++k) {
+      dTx[L_1D][k] = calc_sym_grad_1D(dx, Tij[LL_2D][k], Tij[UL_2D][k]);
+      dTx[U_1D][k] = calc_sym_grad_1D(dx, Tij[LU_2D][k], Tij[UU_2D][k]);
+      dTdx[L_1D][k] = calc_sym_grad_limiter_2D(limit, dTx[L_1D][k], dTx[U_1D][k]);
+      dTdx[U_1D][k] = calc_sym_grad_limiter_2D(limit, dTx[U_1D][k], dTx[L_1D][k]);
+
+      dTy[L_1D][k] = calc_sym_grad_1D(dy, Tij[LL_2D][k], Tij[LU_2D][k]);
+      dTy[U_1D][k] = calc_sym_grad_1D(dy, Tij[UL_2D][k], Tij[UU_2D][k]);
+      dTdy[L_1D][k] = calc_sym_grad_limiter_2D(limit, dTy[L_1D][k], dTy[U_1D][k]);
+      dTdy[U_1D][k] = calc_sym_grad_limiter_2D(limit, dTy[U_1D][k], dTy[L_1D][k]);
+    }
+    
+    int compx[4] = { L_1D, U_1D, L_1D, U_1D };
+    int compy[4] = { L_1D, L_1D, U_1D, U_1D };
+
+    int signx[4] = { 1.0, 1.0, -1.0, -1.0 };
+    int signy[4] = { 1.0, -1.0, 1.0, -1.0 };
+
+    for (int j = LL_2D; j <= UU_2D; ++j) {
+      Bx += em_tot_d[j][BX]/4.0;
+      By += em_tot_d[j][BY]/4.0;
+      Bz += em_tot_d[j][BZ]/4.0;
+    }
+
+    double chi = alpha*n_avg*vth_avg;
+
+    q[LL_2D][Q111] = chi*dTdx[compx[LL_2D]][T11];
+    q[LL_2D][Q112] = chi*(2.0*dTdx[compx[LL_2D]][T12]
+      + dTdy[compy[LL_2D]][T11])/3.0;
+    q[LL_2D][Q113] = chi*2.0*dTdx[compx[LL_2D]][T13]/3.0;
+    q[LL_2D][Q122] = chi*(dTdx[compx[LL_2D]][T22]
+      + 2.0*dTdy[compy[LL_2D]][T12])/3.0;
+    q[LL_2D][Q123] = chi*(dTdx[compx[LL_2D]][T23] + dTdy[compy[LL_2D]][T13])/3.0;
+    q[LL_2D][Q133] = chi*dTdx[compx[LL_2D]][T33]/3.0;
+    q[LL_2D][Q222] = chi*dTdy[compy[LL_2D]][T22];
+    q[LL_2D][Q223] = chi*2.0*dTdy[compy[LL_2D]][T23]/3.0;
+    q[LL_2D][Q233] = chi*dTdy[compy[LL_2D]][T33]/3.0;
+    q[LL_2D][Q333] = 0.0;
+
+    q[LU_2D][Q111] = chi*dTdx[compx[LU_2D]][T11];
+    q[LU_2D][Q112] = chi*(2.0*dTdx[compx[LU_2D]][T12]
+      + dTdy[compy[LU_2D]][T11])/3.0;
+    q[LU_2D][Q113] = chi*2.0*dTdx[compx[LU_2D]][T13]/3.0;
+    q[LU_2D][Q122] = chi*(dTdx[compx[LU_2D]][T22]
+      + 2.0*dTdy[compy[LU_2D]][T12])/3.0;
+    q[LU_2D][Q123] = chi*(dTdx[compx[LU_2D]][T23] + dTdy[compy[LU_2D]][T13])/3.0;
+    q[LU_2D][Q133] = chi*dTdx[compx[LU_2D]][T33]/3.0;
+    q[LU_2D][Q222] = chi*dTdy[compy[LU_2D]][T22];
+    q[LU_2D][Q223] = chi*2.0*dTdy[compy[LU_2D]][T23]/3.0;
+    q[LU_2D][Q233] = chi*dTdy[compy[LU_2D]][T33]/3.0;
+    q[LU_2D][Q333] = 0.0;
+
+    q[UL_2D][Q111] = chi*dTdx[compx[UL_2D]][T11];
+    q[UL_2D][Q112] = chi*(2.0*dTdx[compx[UL_2D]][T12]
+      + dTdy[compy[UL_2D]][T11])/3.0;
+    q[UL_2D][Q113] = chi*2.0*dTdx[compx[UL_2D]][T13]/3.0;
+    q[UL_2D][Q122] = chi*(dTdx[compx[UL_2D]][T22]
+      + 2.0*dTdy[compy[UL_2D]][T12])/3.0;
+    q[UL_2D][Q123] = chi*(dTdx[compx[UL_2D]][T23] + dTdy[compy[UL_2D]][T13])/3.0;
+    q[UL_2D][Q133] = chi*dTdx[compx[UL_2D]][T33]/3.0;
+    q[UL_2D][Q222] = chi*dTdy[compy[UL_2D]][T22];
+    q[UL_2D][Q223] = chi*2.0*dTdy[compy[UL_2D]][T23]/3.0;
+    q[UL_2D][Q233] = chi*dTdy[compy[UL_2D]][T33]/3.0;
+    q[UL_2D][Q333] = 0.0;
+
+    q[UU_2D][Q111] = chi*dTdx[compx[UU_2D]][T11];
+    q[UU_2D][Q112] = chi*(2.0*dTdx[compx[UU_2D]][T12]
+      + dTdy[compy[UU_2D]][T11])/3.0;
+    q[UU_2D][Q113] = chi*2.0*dTdx[compx[UU_2D]][T13]/3.0;
+    q[UU_2D][Q122] = chi*(dTdx[compx[UU_2D]][T22]
+      + 2.0*dTdy[compy[UU_2D]][T12])/3.0;
+    q[UU_2D][Q123] = chi*(dTdx[compx[UU_2D]][T23] + dTdy[compy[UU_2D]][T13])/3.0;
+    q[UU_2D][Q133] = chi*dTdx[compx[UU_2D]][T33]/3.0;
+    q[UU_2D][Q222] = chi*dTdy[compy[UU_2D]][T22];
+    q[UU_2D][Q223] = chi*2.0*dTdy[compy[UU_2D]][T23]/3.0;
+    q[UU_2D][Q233] = chi*dTdy[compy[UU_2D]][T33]/3.0;
+    q[UU_2D][Q333] = 0.0;
+    
+    double e1[3] = { 1.0, 0.0, 0.0 };
+    double e2[3] = { 0.0, 1.0, 0.0 };
+    double e3[3] = { 0.0, 0.0, 1.0 };
+     
+    double tau1[3] = { 0.0 };
+    double tau2[3] = { 0.0 };
+    double b[3] = { 0.0 };
+
+    b_unit_vec(Bx, By, Bz, 1.0e-15, tau1, tau2, b);
+    rotate_source(q[LL_2D], q_src[LL_2D], e1, e2, e3, tau1, tau2, b);
+    anisotropic_diffusion(w, q_src[LL_2D], q[LL_2D]);
+    rotate_source(q[LL_2D], q_out[LL_2D], tau1, tau2, b, e1, e2, e3);
+
+    b_unit_vec(Bx, By, Bz, 1.0e-15, tau1, tau2, b);
+    rotate_source(q[LU_2D], q_src[LU_2D], e1, e2, e3, tau1, tau2, b);
+    anisotropic_diffusion(w, q_src[LU_2D], q[LU_2D]);
+    rotate_source(q[LU_2D], q_out[LU_2D], tau1, tau2, b, e1, e2, e3);
+
+    b_unit_vec(Bx, By, Bz, 1.0e-15, tau1, tau2, b);
+    rotate_source(q[UL_2D], q_src[UL_2D], e1, e2, e3, tau1, tau2, b);
+    anisotropic_diffusion(w, q_src[UL_2D], q[UL_2D]);
+    rotate_source(q[UL_2D], q_out[UL_2D], tau1, tau2, b, e1, e2, e3);
+
+    b_unit_vec(Bx, By, Bz, 1.0e-15, tau1, tau2, b);
+    rotate_source(q[UU_2D], q_src[UU_2D], e1, e2, e3, tau1, tau2, b);
+    anisotropic_diffusion(w, q_src[UU_2D], q[UU_2D]);
+    rotate_source(q[UU_2D], q_out[UU_2D], tau1, tau2, b, e1, e2, e3);
+
+    rhs_d[LL_2D][P11] += signx[LL_2D]*q_out[LL_2D][Q111]/(2.0*dx)
+      + signy[LL_2D]*q_out[LL_2D][Q112]/(2.0*dy);
+    rhs_d[LL_2D][P12] += signx[LL_2D]*q_out[LL_2D][Q112]/(2.0*dx)
+      + signy[LL_2D]*q_out[LL_2D][Q122]/(2.0*dy);
+    rhs_d[LL_2D][P13] += signx[LL_2D]*q_out[LL_2D][Q113]/(2.0*dx)
+      + signy[LL_2D]*q_out[LL_2D][Q123]/(2.0*dy);
+    rhs_d[LL_2D][P22] += signx[LL_2D]*q_out[LL_2D][Q122]/(2.0*dx)
+      + signy[LL_2D]*q_out[LL_2D][Q222]/(2.0*dy);
+    rhs_d[LL_2D][P23] += signx[LL_2D]*q_out[LL_2D][Q123]/(2.0*dx)
+      + signy[LL_2D]*q_out[LL_2D][Q223]/(2.0*dy);
+    rhs_d[LL_2D][P33] += signx[LL_2D]*q_out[LL_2D][Q133]/(2.0*dx)
+      + signy[LL_2D]*q_out[LL_2D][Q233]/(2.0*dy);
+
+    rhs_d[LU_2D][P11] += signx[LU_2D]*q_out[LU_2D][Q111]/(2.0*dx)
+      + signy[LU_2D]*q_out[LU_2D][Q112]/(2.0*dy);
+    rhs_d[LU_2D][P12] += signx[LU_2D]*q_out[LU_2D][Q112]/(2.0*dx)
+      + signy[LU_2D]*q_out[LU_2D][Q122]/(2.0*dy);
+    rhs_d[LU_2D][P13] += signx[LU_2D]*q_out[LU_2D][Q113]/(2.0*dx)
+      + signy[LU_2D]*q_out[LU_2D][Q123]/(2.0*dy);
+    rhs_d[LU_2D][P22] += signx[LU_2D]*q_out[LU_2D][Q122]/(2.0*dx)
+      + signy[LU_2D]*q_out[LU_2D][Q222]/(2.0*dy);
+    rhs_d[LU_2D][P23] += signx[LU_2D]*q_out[LU_2D][Q123]/(2.0*dx)
+      + signy[LU_2D]*q_out[LU_2D][Q223]/(2.0*dy);
+    rhs_d[LU_2D][P33] += signx[LU_2D]*q_out[LU_2D][Q133]/(2.0*dx)
+      + signy[LU_2D]*q_out[LU_2D][Q233]/(2.0*dy);
+
+    rhs_d[UL_2D][P11] += signx[UL_2D]*q_out[UL_2D][Q111]/(2.0*dx)
+      + signy[UL_2D]*q_out[UL_2D][Q112]/(2.0*dy);
+    rhs_d[UL_2D][P12] += signx[UL_2D]*q_out[UL_2D][Q112]/(2.0*dx)
+      + signy[UL_2D]*q_out[UL_2D][Q122]/(2.0*dy);
+    rhs_d[UL_2D][P13] += signx[UL_2D]*q_out[UL_2D][Q113]/(2.0*dx)
+      + signy[UL_2D]*q_out[UL_2D][Q123]/(2.0*dy);
+    rhs_d[UL_2D][P22] += signx[UL_2D]*q_out[UL_2D][Q122]/(2.0*dx)
+      + signy[UL_2D]*q_out[UL_2D][Q222]/(2.0*dy);
+    rhs_d[UL_2D][P23] += signx[UL_2D]*q_out[UL_2D][Q123]/(2.0*dx)
+      + signy[UL_2D]*q_out[UL_2D][Q223]/(2.0*dy);
+    rhs_d[UL_2D][P33] += signx[UL_2D]*q_out[UL_2D][Q133]/(2.0*dx)
+      + signy[UL_2D]*q_out[UL_2D][Q233]/(2.0*dy);
+
+    rhs_d[UU_2D][P11] += signx[UU_2D]*q_out[UU_2D][Q111]/(2.0*dx)
+      + signy[UU_2D]*q_out[UU_2D][Q112]/(2.0*dy);
+    rhs_d[UU_2D][P12] += signx[UU_2D]*q_out[UU_2D][Q112]/(2.0*dx)
+      + signy[UU_2D]*q_out[UU_2D][Q122]/(2.0*dy);
+    rhs_d[UU_2D][P13] += signx[UU_2D]*q_out[UU_2D][Q113]/(2.0*dx)
+      + signy[UU_2D]*q_out[UU_2D][Q123]/(2.0*dy);
+    rhs_d[UU_2D][P22] += signx[UU_2D]*q_out[UU_2D][Q122]/(2.0*dx)
+      + signy[UU_2D]*q_out[UU_2D][Q222]/(2.0*dy);
+    rhs_d[UU_2D][P23] += signx[UU_2D]*q_out[UU_2D][Q123]/(2.0*dx)
+      + signy[UU_2D]*q_out[UU_2D][Q223]/(2.0*dy);
+    rhs_d[UU_2D][P33] += signx[UU_2D]*q_out[UU_2D][Q133]/(2.0*dx)
+      + signy[UU_2D]*q_out[UU_2D][Q233]/(2.0*dy);
+   
+    double dmin = fmin(dx, dy);
+    cfla = dt/(dmin*dmin);
+  }
+    
   return fmax(alpha*vth_avg*cfla, cfl);
 }
 
@@ -361,8 +985,14 @@ gkyl_ten_moment_grad_closure_advance(const gkyl_ten_moment_grad_closure *gces,
       rhs_d[i] = gkyl_array_fetch(rhs, linc_center + offsets_vertices[i]);
     }
 
-    cfla = calc_unmag_heat_flux(gces, fluid_d, gkyl_array_fetch(cflrate, linc_center),
-      cfla, dt, rhs_d);
+    /* cfla = calc_unmag_heat_flux(gces, fluid_d, gkyl_array_fetch(cflrate, linc_center), */
+    /*   cfla, dt, rhs_d); */
+    cfla = calc_mag_heat_flux_rotate(gces, fluid_d, em_tot_d,
+      gkyl_array_fetch(cflrate, linc_center), cfla, dt, rhs_d);
+    /* cfla = calc_mag_heat_flux_linsolve(gces, fluid_d, em_tot_d, */
+    /*   gkyl_array_fetch(cflrate, linc_center), cfla, dt, rhs_d); */
+    /* cfla = calc_mag_heat_flux_kernel(gces, fluid_d, em_tot_d, */
+    /*   gkyl_array_fetch(cflrate, linc_center), cfla, dt, rhs_d); */
     counter = counter + 1;
   }
 
