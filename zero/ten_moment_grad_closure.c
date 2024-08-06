@@ -754,7 +754,6 @@ calc_mag_heat_flux_rotate(const gkyl_ten_moment_grad_closure *gces,
     double q[4][10] = {0.0};
     double q_src[4][10] = {0.0};
     double q_out[4][10] = {0.0};
-    struct gkyl_mat *qsrc = gkyl_mat_new(10, 4, 0.0);
     var_setup(gces, LL_2D, UU_2D, fluid_d, rho, p, Tij);
 
     rho_avg = calc_harmonic_avg_2D(rho[LL_2D], rho[LU_2D], rho[UL_2D], rho[UU_2D]);
