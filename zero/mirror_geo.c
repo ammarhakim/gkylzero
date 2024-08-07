@@ -1,6 +1,7 @@
 #include <gkyl_alloc.h>
 #include <gkyl_array.h>
 #include <gkyl_array_rio.h>
+#include <assert.h>
 #include <gkyl_basis.h>
 #include <gkyl_math.h>
 #include <gkyl_range.h>
@@ -253,6 +254,13 @@ void gkyl_mirror_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, dou
               double R[4] = { 0 }, dR[4] = { 0 };
               int nr = R_psiZ(geo, psi_curr, z_curr, 4, R, dR);
               double r_curr = choose_closest(rclose, R, R, nr);
+
+
+              if(nr==0){
+                printf(" ip = %d, it = %d, ia = %d, ip_delta = %d, it_delta = %d, ia_delta = %d\n", ip, it, ia, ip_delta, it_delta, ia_delta);
+                printf("Failed to find a root at psi = %g, Z = %1.16f\n", psi_curr, z_curr);
+                assert(false);
+              }
 
               cidx[TH_IDX] = it;
               int lidx = 0;
