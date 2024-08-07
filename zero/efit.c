@@ -165,7 +165,7 @@ gkyl_efit* gkyl_efit_new(const struct gkyl_efit_inp *inp)
   struct gkyl_nodal_ops *n2m_rz = gkyl_nodal_ops_new(up->rzbasis, up->rzgrid, false);
   gkyl_nodal_ops_n2m(n2m_rz, up->rzbasis, up->rzgrid, &nrange, up->rzlocal, 1, psizr_n, up->psizr);
 
-  // Reflect psi psi/R and psi/R^2 for double null
+  // Reflect psi for double null
   // Reflect DG coeffs rather than nodal data to avoid symmetry errors in n2m conversion
   if (up->reflect) {
     struct gkyl_range_iter iter;
@@ -242,6 +242,21 @@ gkyl_efit* gkyl_efit_new(const struct gkyl_efit_inp *inp)
     }
   }
   gkyl_nodal_ops_n2m(n2m_rz, up->rzbasis, up->rzgrid, &nrange, up->rzlocal, 1, bmagzr_n, up->bmagzr);
+
+  // Reflect B for double null
+  // Reflect DG coeffs rather than nodal data to avoid symmetry errors in n2m conversion
+  if (up->reflect) {
+    struct gkyl_range_iter iter;
+    gkyl_range_iter_init(&iter, up->rzlocal);
+    while (gkyl_range_iter_next(&iter)) {
+      if (iter.idx[1] < gkyl_range_shape(up->rzlocal,1)/2 +1 ) {
+        int idx_change[2] = {iter.idx[0], gkyl_range_shape(up->rzlocal, 1) - iter.idx[1]+1};
+        const double *coeffs_ref = gkyl_array_cfetch(up->bmagzr, gkyl_range_idx(up->rzlocal, iter.idx));
+        double *coeffs  = gkyl_array_fetch(up->bmagzr, gkyl_range_idx(up->rzlocal, idx_change));
+        up->rzbasis->flip_odd_sign( 1, coeffs_ref, coeffs);
+      }
+    }
+  }
   
   // Free n2m operators
   gkyl_nodal_ops_release(n2m_flux);
