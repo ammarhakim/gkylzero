@@ -15,7 +15,7 @@
 #.Request wall time
 #SBATCH -t 00:30:00
 
-#.Specify GPU needs:
+#.Specify GPUs per node (stellar-amd has 2):
 #SBATCH --gres=gpu:2
 
 #.Mail is sent to you when the job starts and when it terminates or aborts.
@@ -26,7 +26,7 @@
 #SBATCH -o slurm-%j.out
 
 #.Load modules (this must match those in the machines/configure script).
-module load cudatoolkit/12.0
+module load cudatoolkit/12.4
 module load openmpi/cuda-11.1/gcc/4.1.1
 
 #.Run the rt_gk_sheath_2x2v_p1 executable using 1 GPU along x (-c 1) and 2
