@@ -63,8 +63,6 @@ struct gkyl_tok_geo {
   struct gkyl_basis rzbasis; // basis functions for R,Z grid
   int num_rzbasis; // number of basis functions in RZ
   const struct gkyl_array *psiRZ; // psi(R,Z) DG representation
-  const struct gkyl_array *psibyrRZ; // psi(R,Z)/R DG representation
-  const struct gkyl_array *psibyr2RZ; // psi(R,Z)/R^2 DG representation
                    
   struct gkyl_rect_grid fgrid; // flux grid for fpol
   struct gkyl_range frange; // flux range

@@ -11,6 +11,7 @@
 #include <gkyl_efit_priv.h>
 
 #include <gkyl_array.h>
+#include <gkyl_dg_basis_ops.h>
 #include <gkyl_range.h>
 #include <gkyl_nodal_ops.h>
 #include <assert.h>
@@ -111,8 +112,7 @@ gkyl_efit* gkyl_efit_new(const struct gkyl_efit_inp *inp)
 
   // allocate the necessary arrays
   up->psizr = gkyl_array_new(GKYL_DOUBLE, up->rzbasis->num_basis, up->rzlocal_ext->volume);
-  up->psibyrzr = gkyl_array_new(GKYL_DOUBLE, up->rzbasis->num_basis, up->rzlocal_ext->volume);
-  up->psibyr2zr = gkyl_array_new(GKYL_DOUBLE, up->rzbasis->num_basis, up->rzlocal_ext->volume);
+  up->bmagzr = gkyl_array_new(GKYL_DOUBLE, up->rzbasis->num_basis, up->rzlocal_ext->volume);
   up->fpolflux = gkyl_array_new(GKYL_DOUBLE, up->fluxbasis->num_basis, up->fluxlocal_ext->volume);
   up->qflux = gkyl_array_new(GKYL_DOUBLE, up->fluxbasis->num_basis, up->fluxlocal_ext->volume);
 
@@ -144,8 +144,6 @@ gkyl_efit* gkyl_efit_new(const struct gkyl_efit_inp *inp)
   struct gkyl_range nrange;
   gkyl_range_init_from_shape(&nrange, up->rzgrid->ndim, node_nums);
   struct gkyl_array *psizr_n = gkyl_array_new(GKYL_DOUBLE, 1, nrange.volume);
-  struct gkyl_array *psibyrzr_n = gkyl_array_new(GKYL_DOUBLE, 1, nrange.volume);
-  struct gkyl_array *psibyr2zr_n = gkyl_array_new(GKYL_DOUBLE, 1, nrange.volume);
 
   // Now lets loop through
   // Not only do we want psi at the nodes, we also want psi/R and psi/R^2 so we can use them for the magnetc field
@@ -160,20 +158,12 @@ gkyl_efit* gkyl_efit_new(const struct gkyl_efit_inp *inp)
       // set psi
       double *psi_n = gkyl_array_fetch(psizr_n, gkyl_range_idx(&nrange, idx));
       status = fscanf(ptr,"%lf", psi_n);
-      // set psibyr and psibyr2
-      double *psibyr_n = gkyl_array_fetch(psibyrzr_n, gkyl_range_idx(&nrange, idx));
-      double *psibyr2_n = gkyl_array_fetch(psibyr2zr_n, gkyl_range_idx(&nrange, idx));
-      psibyr_n[0] = psi_n[0]/R;
-      psibyr2_n[0] = psi_n[0]/R/R;
     }
   }
 
   // We filled psizr_nodal
   struct gkyl_nodal_ops *n2m_rz = gkyl_nodal_ops_new(up->rzbasis, up->rzgrid, false);
   gkyl_nodal_ops_n2m(n2m_rz, up->rzbasis, up->rzgrid, &nrange, up->rzlocal, 1, psizr_n, up->psizr);
-  gkyl_nodal_ops_n2m(n2m_rz, up->rzbasis, up->rzgrid, &nrange, up->rzlocal, 1, psibyrzr_n, up->psibyrzr);
-  gkyl_nodal_ops_n2m(n2m_rz, up->rzbasis, up->rzgrid, &nrange, up->rzlocal, 1, psibyr2zr_n, up->psibyr2zr);
-  gkyl_nodal_ops_release(n2m_rz);
 
   // Reflect psi psi/R and psi/R^2 for double null
   // Reflect DG coeffs rather than nodal data to avoid symmetry errors in n2m conversion
@@ -185,12 +175,6 @@ gkyl_efit* gkyl_efit_new(const struct gkyl_efit_inp *inp)
         int idx_change[2] = {iter.idx[0], gkyl_range_shape(up->rzlocal, 1) - iter.idx[1]+1};
         const double *coeffs_ref = gkyl_array_cfetch(up->psizr, gkyl_range_idx(up->rzlocal, iter.idx));
         double *coeffs  = gkyl_array_fetch(up->psizr, gkyl_range_idx(up->rzlocal, idx_change));
-        up->rzbasis->flip_odd_sign( 1, coeffs_ref, coeffs);
-        coeffs_ref = gkyl_array_cfetch(up->psibyrzr, gkyl_range_idx(up->rzlocal, iter.idx));
-        coeffs  = gkyl_array_fetch(up->psibyrzr, gkyl_range_idx(up->rzlocal, idx_change));
-        up->rzbasis->flip_odd_sign( 1, coeffs_ref, coeffs);
-        coeffs_ref = gkyl_array_cfetch(up->psibyr2zr, gkyl_range_idx(up->rzlocal, iter.idx));
-        coeffs  = gkyl_array_fetch(up->psibyr2zr, gkyl_range_idx(up->rzlocal, idx_change));
         up->rzbasis->flip_odd_sign( 1, coeffs_ref, coeffs);
       }
     }
@@ -205,14 +189,70 @@ gkyl_efit* gkyl_efit_new(const struct gkyl_efit_inp *inp)
   }
   gkyl_nodal_ops_n2m(n2m_flux, up->fluxbasis, up->fluxgrid, 
     &flux_nrange, up->fluxlocal, 1, qflux_n, up->qflux);
-  gkyl_nodal_ops_release(n2m_flux);
+
+
+  // Make the cubic interpolator
+  int evf_cells[2] = {up->nr-1, up->nz-1};
+  struct gkyl_rect_grid evf_grid;
+  gkyl_rect_grid_init(&evf_grid, 2, rzlower, rzupper, evf_cells);
+  up->evf  = gkyl_dg_basis_ops_evalf_new(&evf_grid, psizr_n);
+
+  // Calculate B
+  struct gkyl_array *bpolzr_n = gkyl_array_new(GKYL_DOUBLE, 1, nrange.volume);
+  struct gkyl_array *bphizr_n = gkyl_array_new(GKYL_DOUBLE, 1, nrange.volume);
+  struct gkyl_array *bmagzr_n = gkyl_array_new(GKYL_DOUBLE, 1, nrange.volume);
+  double dZ = up->zdim/(up->nz-1);
+  double scale_factorR = 2.0/(evf_grid.dx[0]);
+  double scale_factorZ = 2.0/(evf_grid.dx[1]);
+  for(int iz = 0; iz < up->nz; iz++){
+    idx[1] = iz;
+    double Z = up->zmin+iz*dZ;
+    for(int ir = 0; ir < up->nr; ir++){
+      R = up->rmin+ir*dR;
+      idx[0] = ir;
+      // Calculate Bpol
+      double xn[2] = {R, Z};
+      double fout[3];
+      up->evf->eval_cubic_wgrad(0.0, xn, fout, up->evf->ctx);
+      double psi_curr = fout[0];
+      double br = 1.0/R*fout[2]*scale_factorZ;
+      double bz = -1.0/R*fout[1]*scale_factorR;
+      double *bpol_n = gkyl_array_fetch(bpolzr_n, gkyl_range_idx(&nrange, idx));
+      bpol_n[0] = sqrt(br*br + bz*bz);
+
+      //Calculate Bphi
+      if(psi_curr < up->fluxgrid->lower[0] || psi_curr > up->fluxgrid->upper[0]){
+        psi_curr = up->sibry;
+      }
+      int fidx = up->fluxlocal->lower[0] + (int) floor((psi_curr - up->fluxgrid->lower[0])/up->fluxgrid->dx[0]);
+      fidx = GKYL_MIN2(fidx, up->fluxlocal->upper[0]);
+      fidx = GKYL_MAX2(fidx, up->fluxlocal->lower[0]);
+      long flux_loc = gkyl_range_idx(up->fluxlocal, &fidx);
+      const double *coeffs = gkyl_array_cfetch(up->fpolflux, flux_loc);
+      double fxc;
+      gkyl_rect_grid_cell_center(up->fluxgrid, &fidx, &fxc);
+      double fx = (psi_curr - fxc)/(up->fluxgrid->dx[0]*0.5);
+      double bphi = up->fluxbasis->eval_expand(&fx, coeffs)/R;
+      double *bphi_n = gkyl_array_fetch(bphizr_n, gkyl_range_idx(&nrange, idx));
+      bphi_n[0] = bphi;
+
+      // Calculate Bmag
+      double *bmag_n = gkyl_array_fetch(bmagzr_n, gkyl_range_idx(&nrange, idx));
+      bmag_n[0] = sqrt(bpol_n[0]*bpol_n[0] + bphi_n[0]*bphi_n[0]);
+    }
+  }
+  gkyl_nodal_ops_n2m(n2m_rz, up->rzbasis, up->rzgrid, &nrange, up->rzlocal, 1, bmagzr_n, up->bmagzr);
   
+  // Free n2m operators
+  gkyl_nodal_ops_release(n2m_flux);
+  gkyl_nodal_ops_release(n2m_rz);
   // Free nodal arrays
   gkyl_array_release(fpolflux_n);
   gkyl_array_release(psizr_n);
-  gkyl_array_release(psibyrzr_n);
-  gkyl_array_release(psibyr2zr_n);
   gkyl_array_release(qflux_n);
+  gkyl_array_release(bpolzr_n);
+  gkyl_array_release(bphizr_n);
+  gkyl_array_release(bmagzr_n);
   // Done, don't care about the rest
   
   fclose(ptr);
@@ -239,8 +279,8 @@ void gkyl_efit_release(gkyl_efit* up){
   gkyl_free(up->fluxlocal);
   gkyl_free(up->fluxlocal_ext);
   gkyl_array_release(up->psizr);
-  gkyl_array_release(up->psibyrzr);
-  gkyl_array_release(up->psibyr2zr);
+  gkyl_array_release(up->bmagzr);
+  gkyl_dg_basis_ops_evalf_release(up->evf);
   gkyl_array_release(up->fpolflux);
   gkyl_array_release(up->qflux);
   gkyl_free(up);

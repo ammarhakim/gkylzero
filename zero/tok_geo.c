@@ -293,8 +293,6 @@ gkyl_tok_geo_new(const struct gkyl_efit_inp *inp, const struct gkyl_tok_geo_grid
   geo->rzbasis= *geo->efit->rzbasis;
   geo->rzgrid = *geo->efit->rzgrid;
   geo->psiRZ = gkyl_array_acquire(geo->efit->psizr);
-  geo->psibyrRZ = gkyl_array_acquire(geo->efit->psibyrzr);
-  geo->psibyr2RZ = gkyl_array_acquire(geo->efit->psibyr2zr);
 
   geo->num_rzbasis = geo->efit->rzbasis->num_basis;
   geo->rzlocal = *geo->efit->rzlocal;
@@ -626,8 +624,6 @@ void
 gkyl_tok_geo_release(struct gkyl_tok_geo *geo)
 {
   gkyl_array_release(geo->psiRZ);
-  gkyl_array_release(geo->psibyrRZ);
-  gkyl_array_release(geo->psibyr2RZ);
   gkyl_array_release(geo->fpoldg);
   gkyl_array_release(geo->qdg);
   gkyl_efit_release(geo->efit);

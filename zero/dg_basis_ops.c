@@ -525,6 +525,10 @@ eval_cubic(double t, const double *xn, double *fout, void *ctx)
   
   int idx[GKYL_MAX_DIM];  
   gkyl_rect_grid_coord_idx(&ectx->grid, xn, idx);
+  for (int d=0; d<ectx->ndim; ++d) {
+    idx[d] = GKYL_MIN2(ectx->local.upper[d], idx[d]);
+    idx[d] = GKYL_MAX2(ectx->local.lower[d], idx[d]);
+  }
 
   double xc[GKYL_MAX_DIM];
   gkyl_rect_grid_cell_center(&ectx->grid, idx, xc);
@@ -547,6 +551,10 @@ eval_cubic_wgrad(double t, const double *xn, double *fout, void *ctx)
   
   int idx[GKYL_MAX_DIM];  
   gkyl_rect_grid_coord_idx(&ectx->grid, xn, idx);
+  for (int d=0; d<ectx->ndim; ++d) {
+    idx[d] = GKYL_MIN2(ectx->local.upper[d], idx[d]);
+    idx[d] = GKYL_MAX2(ectx->local.lower[d], idx[d]);
+  }
 
   double xc[GKYL_MAX_DIM];
   gkyl_rect_grid_cell_center(&ectx->grid, idx, xc);

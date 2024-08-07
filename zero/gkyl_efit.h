@@ -34,8 +34,8 @@ struct gkyl_efit{
   struct gkyl_range *rzlocal;
   struct gkyl_range *rzlocal_ext;
   struct gkyl_array *psizr;
-  struct gkyl_array *psibyrzr;
-  struct gkyl_array *psibyr2zr;
+  struct gkyl_array *bmagzr;
+  struct gkyl_basis_ops_evalf *evf ;
 
   struct gkyl_basis *fluxbasis;
   struct gkyl_rect_grid *fluxgrid;
