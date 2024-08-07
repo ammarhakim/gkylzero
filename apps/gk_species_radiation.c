@@ -56,7 +56,7 @@ gk_species_radiation_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s
   for (int i=0; i<rad->num_cross_collisions; ++i) {
     int num_of_densities[1] = {0};
     num_of_densities[0] = s->info.radiation.num_of_densities[i];
-    int status = gkyl_radiation_read_get_fit_params(*rad_data, s->info.radiation.z[i], s->info.radiation.charge_state[i], a, alpha, beta, gamma, v0, num_of_densities, ne, s->info.polarization_density);
+    int status = gkyl_radiation_read_get_fit_params(*rad_data, s->info.radiation.z[i], s->info.radiation.charge_state[i], a, alpha, beta, gamma, v0, num_of_densities, ne, s->info.radiation.reference_ne);
     rad->rad_fit_ne[i] = mkarr(app->use_gpu, 1, num_of_densities[0]);
     
     // Fetch the species we are colliding with and the fitting parameters for that species
@@ -105,7 +105,7 @@ gk_species_radiation_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s
     if (app->use_gpu)
       rad->emissivity_host[i] = mkarr(false, app->confBasis.num_basis, app->local_ext.volume);
   }
-  gkyl_release_fit_params(rad_data);
+  gkyl_radiation_read_release_fit_params(rad_data);
   
   // Total vparallel and mu radiation drag including density scaling
   rad->nvnu_surf = mkarr(app->use_gpu, surf_vpar_basis.num_basis, s->local_ext.volume);

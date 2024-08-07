@@ -132,6 +132,11 @@ struct gkyl_gyrokinetic_radiation {
   int z[2*GKYL_MAX_SPECIES];
   int charge_state[2*GKYL_MAX_SPECIES];
   int num_of_densities[2*GKYL_MAX_SPECIES]; // Max number of densities to use per charge state
+
+  // reference, Max and min electron densities to specify range of density fits (when more than 1 density)
+  double reference_ne;
+  double max_ne;
+  double min_ne;
 };
 
 struct gkyl_gyrokinetic_react_type {
