@@ -436,7 +436,7 @@ gkyl_vlasov_poisson_app_write_field(gkyl_vlasov_poisson_app* app, double tm, int
     char fileNm[sz+1]; // ensures no buffer overflow
     snprintf(fileNm, sizeof fileNm, fmt, app->name, frame);
   
-    gkyl_comm_array_write(app->comm, &app->grid, &app->local_ext, mt, app->field->phi_host, fileNm);
+    gkyl_comm_array_write(app->comm, &app->grid, &app->local, mt, app->field->phi_host, fileNm);
   
     vlasov_poisson_array_meta_release(mt);
   }
@@ -465,7 +465,12 @@ gkyl_vlasov_poisson_app_write_species(gkyl_vlasov_poisson_app* app, int sidx, do
     gkyl_array_copy(vps->f_host, vps->f);
   }
 
-  gkyl_comm_array_write(vps->comm, &vps->grid, &vps->local_ext, mt, vps->f_host, fileNm);
+  gkyl_comm_array_write(vps->comm, &vps->grid, &vps->local, mt, vps->f_host, fileNm);
+
+  if (vps->emit_lo)
+    vp_species_emission_write(app, vps, &vps->bc_emission_lo, mt, frame);
+  if (app->species[sidx].emit_up)
+    vp_species_emission_write(app, vps, &vps->bc_emission_up, mt, frame);
 
   vlasov_poisson_array_meta_release(mt);
 }

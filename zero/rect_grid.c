@@ -141,7 +141,6 @@ gkyl_rect_grid_write(const struct gkyl_rect_grid *grid, FILE *fp)
   for (int d=0; d<grid->ndim; ++d)
     cells[d] = grid->cells[d];
 
-  cells[0] += 2;
   fwrite(&ndim, sizeof(uint64_t), 1, fp);
   fwrite(cells, sizeof(uint64_t), grid->ndim, fp);
   fwrite(grid->lower, sizeof(double), grid->ndim, fp);

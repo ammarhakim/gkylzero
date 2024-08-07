@@ -30,6 +30,12 @@ vp_species_emission_cross_init(struct gkyl_vlasov_poisson_app *app, struct vp_sp
     ghost[cdim+d] = 0;
   }
 
+  if (emit->edge == GKYL_LOWER_EDGE) {
+    emit->write = gkyl_range_is_on_lower_edge(emit->dir, &s->lower_skin[emit->dir], &s->global);
+  } else {
+    emit->write = gkyl_range_is_on_upper_edge(emit->dir, &s->upper_skin[emit->dir], &s->global);
+  }
+
   emit->emit_grid = &s->bflux.boundary_grid[bdir];
   emit->emit_buff_r = &s->bflux.flux_r[bdir];
   emit->emit_ghost_r = (emit->edge == GKYL_LOWER_EDGE) ? &s->lower_ghost[emit->dir] : &s->upper_ghost[emit->dir];
@@ -111,6 +117,21 @@ vp_species_emission_apply_bc(struct gkyl_vlasov_poisson_app *app, const struct v
   }
   gkyl_array_set_range_to_range(fout, t_scale, emit->f_emit, emit->emit_ghost_r,
     emit->emit_buff_r);
+}
+
+// KB - The write function only works in 1x at the moment.
+// It expects a single rank to own the whole emit range.
+void
+vp_species_emission_write(struct gkyl_vlasov_poisson_app *app, struct vp_species *s, struct vp_emitting_wall *emit, struct gkyl_array_meta *mt, int frame)
+{
+  const char *fmt = (emit->edge == GKYL_LOWER_EDGE) ? "%s-%s_bc_lo_%d.gkyl" : "%s-%s_bc_up_%d.gkyl";
+  int sz = gkyl_calc_strlen(fmt, app->name, s->info.name, frame);
+  char fileNm[sz+1]; // ensures no buffer overflow
+  snprintf(fileNm, sizeof fileNm, fmt, app->name, s->info.name, frame);
+
+  if (emit->write) {
+    gkyl_grid_sub_array_write(emit->emit_grid, emit->emit_buff_r, mt, emit->f_emit, fileNm);
+  }
 }
 
 void

@@ -535,10 +535,10 @@ gkyl_vlasov_app_write_field(gkyl_vlasov_app* app, double tm, int frame)
   if (app->use_gpu) {
     // copy data from device to host before writing it out
     gkyl_array_copy(app->field->em_host, app->field->em);
-    gkyl_comm_array_write(app->comm, &app->grid, &app->local_ext, mt, app->field->em_host, fileNm);
+    gkyl_comm_array_write(app->comm, &app->grid, &app->local, mt, app->field->em_host, fileNm);
   }
   else {
-    gkyl_comm_array_write(app->comm, &app->grid, &app->local_ext, mt, app->field->em, fileNm);
+    gkyl_comm_array_write(app->comm, &app->grid, &app->local, mt, app->field->em, fileNm);
   }
 
   vlasov_array_meta_release(mt);
@@ -563,13 +563,18 @@ gkyl_vlasov_app_write_species(gkyl_vlasov_app* app, int sidx, double tm, int fra
   if (app->use_gpu) {
     // copy data from device to host before writing it out
     gkyl_array_copy(app->species[sidx].f_host, app->species[sidx].f);
-    gkyl_comm_array_write(app->species[sidx].comm, &app->species[sidx].grid, &app->species[sidx].local_ext,
+    gkyl_comm_array_write(app->species[sidx].comm, &app->species[sidx].grid, &app->species[sidx].local,
       mt, app->species[sidx].f_host, fileNm);
   }
   else {
-    gkyl_comm_array_write(app->species[sidx].comm, &app->species[sidx].grid, &app->species[sidx].local_ext,
+    gkyl_comm_array_write(app->species[sidx].comm, &app->species[sidx].grid, &app->species[sidx].local,
       mt, app->species[sidx].f, fileNm);
   }
+
+  if (app->species[sidx].emit_lo)
+    vm_species_emission_write(app, &app->species[sidx], &app->species[sidx].bc_emission_lo, mt, frame);
+  if (app->species[sidx].emit_up)
+    vm_species_emission_write(app, &app->species[sidx], &app->species[sidx].bc_emission_up, mt, frame);
 
   vlasov_array_meta_release(mt);  
 }

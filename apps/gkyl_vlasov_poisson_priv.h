@@ -207,6 +207,7 @@ struct vp_emitting_wall {
   double *scale_ptr;
   double t_bound;
   bool elastic;
+  bool write;
 
   struct gkyl_spectrum_model *spectrum_model[GKYL_MAX_SPECIES];
   struct gkyl_yield_model *yield_model[GKYL_MAX_SPECIES];
@@ -522,6 +523,8 @@ void vp_species_emission_cross_init(struct gkyl_vlasov_poisson_app *app, struct 
 
 void vp_species_emission_apply_bc(struct gkyl_vlasov_poisson_app *app, const struct vp_emitting_wall *emit,
   struct gkyl_array *fout, double tcurr);
+
+void vp_species_emission_write(struct gkyl_vlasov_poisson_app *app, struct vp_species *s, struct vp_emitting_wall *emit, struct gkyl_array_meta *mt, int frame);
 
 void vp_species_emission_release(const struct vp_emitting_wall *emit);
 
