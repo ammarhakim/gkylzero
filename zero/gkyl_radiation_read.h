@@ -3,6 +3,7 @@
 #include <math.h>
 #include <string.h>
 #include <stdbool.h>
+#include <gkyl_array.h>
 
 #define BUFFER_LEN 100
 /* Data for a single radiation fit
@@ -31,7 +32,7 @@ struct radiating_state{
   int atomic_number;
   int charge_state;
   int number_of_densities;
-  double *electron_densities; // The different densities for this charge state
+  struct gkyl_array *electron_densities; // The different densities for this charge state
   struct rad_fit_parameters *rad_fits; // 1 fit per density for this charge state
 };
 
@@ -57,10 +58,12 @@ struct all_radiation_states* gkyl_radiation_read_rad_fit_params();
  * @param num_densities: maximum number of densities to return fit parameters for
  * @param electron densities: Array of electron densities
  * @param ref_dens: Reference electron density - choose closest fit density to this
+ * @param min_ne: Desired minimum density (closest density is used)
+ * @param max_ne: Desired maximum density (closest density is used)
  * @return 1 if fit doesn't exist
  */
 int gkyl_radiation_read_get_fit_params(const struct all_radiation_states rad_data, int atomic_z,
-				       int charge_state, double *a, double *alpha, double *beta, double *gamma, double *V0, int *num_densities, double *electron_densities, double ref_dens);
+				       int charge_state, double *a, double *alpha, double *beta, double *gamma, double *V0, int *num_densities, double *electron_densities, double ref_dens, double min_ne, double max_ne);
 
 /* Function to return the fit emissivity (Lz) and temperature closest to a given input temperature
  * @param all_radiation_states rad data: Struct containing radiation fit data

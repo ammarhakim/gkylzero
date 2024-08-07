@@ -348,6 +348,8 @@ main(int argc, char **argv)
       .charge_state = 0,
       .num_of_densities = 10,
       .reference_ne = ctx.n0,
+      .min_ne = ctx.n0/100,
+      .max_ne = ctx.n0*100,
     },
     
     .num_diag_moments = 7,
