@@ -92,6 +92,32 @@ eval_grad_expand_2d_tensor_p3(int dir, const double *z, const double *f )
 }
 
 GKYL_CU_DH
+double
+eval_laplacian_expand_2d_tensor_p3(int dir, const double *z, const double *f )
+{
+  const double z0 = z[0];
+  const double z1 = z[1];
+  if (dir == 0)
+    return 131.25*f[15]*z0*z1*z1*z1+22.18529918662356*f[14]*z1*z1*z1+66.55589755987069*f[13]*z0*z1*z1+11.25*f[10]*z1*z1-78.75*f[15]*z0*z1+ 34.3693177121688*f[11]*z0*z1-13.31117951197414*f[14]*z1+5.809475019311125*f[6]*z1-22.18529918662356*f[13]*z0+ 19.84313483298443*f[8]*z0-3.75*f[10]+3.354101966249685*f[4];
+
+  if (dir == 1)
+    return 131.25*f[15]*z0*z0*z0*z1+66.55589755987069*f[14]*z0*z0*z1-78.75*f[15]*z0*z1+34.3693177121688*f[12]*z0*z1-22.18529918662356*f[14]*z1+19.84313483298443*f[9]*z1+22.18529918662356*f[13]*z0*z0*z0+11.25*f[10]*z0*z0-13.31117951197414*f[13]*z0+5.809475019311125*f[7]*z0-3.75*f[10]+3.354101966249685*f[5];
+
+  return 0.0; // can't happen, suppresses warning
+
+}
+
+GKYL_CU_DH
+double
+eval_mixedpartial_expand_2d_tensor_p3(const double *z, const double *f )
+{
+  const double z0 = z[0];
+  const double z1 = z[1];
+  return 196.875*f[15]*z0*z0*z1*z1+66.55589755987069*f[14]*z0*z1*z1-39.375*f[15]*z1*z1+17.1846588560844*f[12]*z1*z1+66.55589755987069*f[13]*z0*z0*z1+22.5*f[10]*z0*z1-13.31117951197414*f[13]*z1+5.809475019311125*f[7]*z1-39.375*f[15]*z0*z0+17.1846588560844*f[11]*z0*z0-13.31117951197414*f[14]*z0+5.809475019311125*f[6]*z0+7.875*f[15]-3.43693177121688*f[12]-3.43693177121688*f[11]+1.5*f[3];
+
+}
+
+GKYL_CU_DH
 void
 eval_3d_tensor_p2(const double *z, double *b )
 {
