@@ -1,4 +1,5 @@
 #include <gkyl_bc_emission_elastic.h>
+#include <gkyl_bc_emission_elastic_priv.h>
 #include <gkyl_dg_bin_ops.h>
 #include <gkyl_proj_on_basis.h>
 #include <gkyl_alloc.h>
