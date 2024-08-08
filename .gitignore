@@ -10,6 +10,7 @@ config.mak
 cuda-build/*
 cubld/*
 build/*
+bld/*
 build-*/*
 *.gkyl
 .waf*

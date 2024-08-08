@@ -138,7 +138,7 @@ endif
 ifdef USING_NVCC
 	BUILD_DIR ?= cubld
 else	
-	BUILD_DIR ?= build
+	BUILD_DIR ?= bld
 endif
 
 # On OSX we should use Accelerate framework
