@@ -289,10 +289,12 @@ gkyl_efit* gkyl_efit_new(const struct gkyl_efit_inp *inp)
   
   fclose(ptr);
 
-  find_xpts(up);
-  printf("num_xpts = %d\n", up->num_xpts);
-  for (int i = 0; i < up->num_xpts; i++) {
-    printf("Rxpt[%d] = %1.16f, Zxpt[%d] = %1.16f | psisep = %1.16f\n", i, up->Rxpt[i], i, up->Zxpt[i], up->psisep);
+  if (inp->rz_basis_type == GKYL_BASIS_MODAL_TENSOR) {
+    find_xpts(up);
+    printf("num_xpts = %d\n", up->num_xpts);
+    for (int i = 0; i < up->num_xpts; i++) {
+      printf("Rxpt[%d] = %1.16f, Zxpt[%d] = %1.16f | psisep = %1.16f\n", i, up->Rxpt[i], i, up->Zxpt[i], up->psisep);
+    }
   }
 
   find_xpts_cubic(up);
