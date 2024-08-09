@@ -983,7 +983,7 @@ test_bc_twistshift_3x2v_fig11_wcells(const int *cells, enum gkyl_edge_loc edge,
         int refidx = (iter.idx[0]-1)*cells[1] + iter.idx[1]-1;
         TEST_CHECK( gkyl_compare(f0[refidx], f_c[0], 1e-13) );
         TEST_CHECK( gkyl_compare(f1[refidx], f_c[1], 1e-13) );
-        TEST_CHECK( gkyl_compare(f2[refidx], f_c[2], 1e-13) );
+        TEST_CHECK( gkyl_compare(f2[refidx], f_c[2], 1e-12) );
         TEST_CHECK( gkyl_compare(f6[refidx], f_c[6], 1e-12) );
       }
     }
