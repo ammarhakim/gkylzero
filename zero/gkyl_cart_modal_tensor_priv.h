@@ -44,7 +44,7 @@ GKYL_CU_D
 static struct { double (*ev[4])(int dir, const double *z, const double *f); } evel_list[] = {
   { NULL, NULL, NULL, NULL }, // No 0D basis functions
   { NULL, NULL, NULL, NULL },
-  { NULL, NULL, NULL, eval_laplacian_expand_2d_tensor_p3},
+  { NULL, NULL, eval_laplacian_expand_2d_tensor_p2, eval_laplacian_expand_2d_tensor_p3},
   { NULL, NULL, NULL, NULL },
   { NULL, NULL, NULL, NULL },
   { NULL, NULL, NULL, NULL },
@@ -56,7 +56,7 @@ GKYL_CU_D
 static struct { double (*ev[4])(const double *z, const double *f); } evem_list[] = {
   { NULL, NULL, NULL, NULL }, // No 0D basis functions
   { NULL, NULL, NULL, NULL },
-  { NULL, NULL, NULL, eval_mixedpartial_expand_2d_tensor_p3},
+  { NULL, NULL, eval_mixedpartial_expand_2d_tensor_p2, eval_mixedpartial_expand_2d_tensor_p3},
   { NULL, NULL, NULL, NULL },
   { NULL, NULL, NULL, NULL },
   { NULL, NULL, NULL, NULL },
