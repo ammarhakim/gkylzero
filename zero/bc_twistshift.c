@@ -1646,9 +1646,12 @@ gkyl_bc_twistshift_choose_kernels(struct gkyl_basis basis, int cdim,
   switch (basis_type) {
     case GKYL_BASIS_MODAL_GKHYBRID:
     case GKYL_BASIS_MODAL_SERENDIPITY:
-      kers->xlimdg   = vdim==0?   ser_twistshift_xlimdg_list_0v[cdim-2].kernels[poly_order] :   ser_twistshift_xlimdg_list_2v[cdim-2].kernels[poly_order];
-      kers->ylimdg   = vdim==0?   ser_twistshift_ylimdg_list_0v[cdim-2].kernels[poly_order] :   ser_twistshift_ylimdg_list_2v[cdim-2].kernels[poly_order];
-      kers->fullcell = vdim==0? ser_twistshift_fullcell_list_0v[cdim-2].kernels[poly_order] : ser_twistshift_fullcell_list_2v[cdim-2].kernels[poly_order];
+      kers->xlimdg   = vdim==0? ser_twistshift_xlimdg_list_0v[cdim-2].kernels[poly_order]
+                              : ser_twistshift_xlimdg_list_2v[cdim-2].kernels[poly_order];
+      kers->ylimdg   = vdim==0? ser_twistshift_ylimdg_list_0v[cdim-2].kernels[poly_order]
+                              : ser_twistshift_ylimdg_list_2v[cdim-2].kernels[poly_order];
+      kers->fullcell = vdim==0? ser_twistshift_fullcell_list_0v[cdim-2].kernels[poly_order]
+                              : ser_twistshift_fullcell_list_2v[cdim-2].kernels[poly_order];
       return;
     default:
       assert(false);
@@ -1681,6 +1684,10 @@ gkyl_bc_twistshift_new(const struct gkyl_bc_twistshift_inp *inp)
     up->shift_poly_order = inp->shift_poly_order;
 
   const int ndim = inp->bcdir_ext_update_r.ndim;
+  // Check that it is being used for 3D or 5D. Likely only small changes are
+  // needed to make it work in other dimensions.
+  assert(ndim == 3 || ndim == 5); 
+
   double lo1d[1], up1d[1];  int cells1d[1];
 
   // Create 1D grid and range in the diretion of the shear.
@@ -1801,10 +1808,20 @@ gkyl_bc_twistshift_new(const struct gkyl_bc_twistshift_inp *inp)
   up->num_numcol_fidx_tar = ts_calc_num_numcol_fidx_tar(up);
 
   // Permutted ghost range, for indexing into the target field.
-  int lo4D[4] = { up->local_bcdir_ext_r.lower[1], up->local_bcdir_ext_r.lower[3],
-                  up->local_bcdir_ext_r.lower[4], up->local_bcdir_ext_r.lower[0] };
-  int up4D[4] = { up->local_bcdir_ext_r.upper[1], up->local_bcdir_ext_r.upper[3],
-                  up->local_bcdir_ext_r.upper[4], up->local_bcdir_ext_r.upper[0] };
+  // Order: Shift direction, redundant directions, shear direction.
+  int lo4D[ndim-1], up4D[ndim-1];
+  lo4D[0] = up->local_bcdir_ext_r.lower[up->shift_dir];
+  up4D[0] = up->local_bcdir_ext_r.upper[up->shift_dir];
+  int ic = 1;
+  for (int d=0; d<ndim; d++) {
+    if (d != up->bc_dir && d != up->shear_dir && d != up->shift_dir) {
+      lo4D[ic] = up->local_bcdir_ext_r.lower[d];
+      up4D[ic] = up->local_bcdir_ext_r.upper[d];
+      ic++;
+    }
+  }
+  lo4D[ndim-2] = up->local_bcdir_ext_r.lower[up->shear_dir];
+  up4D[ndim-2] = up->local_bcdir_ext_r.upper[up->shear_dir];
   gkyl_range_init(&up->permutted_ghost_r, ndim-1, lo4D, up4D);
 
   // Create a ghost range, to clear it before adding contributions from TS BC.
@@ -1860,25 +1877,28 @@ gkyl_bc_twistshift_advance(struct gkyl_bc_twistshift *up, struct gkyl_array *fdo
     long linidx_tar = i / ftar->ncomp;
     int row_idx = i % ftar->ncomp;
 
-    int idx[GKYL_MAX_DIM];
-    gkyl_sub_range_inv_idx(&up->permutted_ghost_r, linidx_tar, idx);
-    int y_idx    = idx[0];
-    int vpar_idx = idx[1];
-    int mu_idx   = idx[2];
-    int x_idx    = idx[3];
-
     // This if-statement may only be needed in GPU kernel, not for CPUs.
     if ((linidx_tar < num_cells_skin) && (row_idx < ftar->ncomp)) {
       double *ftar_c = (double*) gkyl_array_fetch(ftar, up->num_numcol_fidx_tar[linidx_tar]);
-      int Nvpar = up->grid.cells[3], Nmu = up->grid.cells[4];
-      int start = (mu_idx-1) * up->mm_contr->num
-        + (vpar_idx-1) * Nmu * up->mm_contr->num
-        + (y_idx-1) * Nvpar * Nmu * up->mm_contr->num;
 
-      int do_start = up->num_do_cum[x_idx-1];
-      int do_end   = up->num_do_cum[x_idx-1+1];
+      int idx[GKYL_MAX_DIM] = {1};
+      gkyl_sub_range_inv_idx(&up->permutted_ghost_r, linidx_tar, idx);
+
+      int ac[GKYL_MAX_DIM] = {1};
+      for (int d=2; d<up->grid.ndim-1; d++)
+        ac[d-2] = up->grid.cells[d+1];
+      ac[up->permutted_ghost_r.ndim-2] = up->mm_contr->num;
+  
+      int start = 0;
+      for (int d=0; d<up->permutted_ghost_r.ndim-1; d++)
+        start = (start + (idx[d]-1)) * ac[d];
+
+      int shear_idx = idx[up->permutted_ghost_r.ndim-1];
+
+      int do_start = up->num_do_cum[shear_idx-1];
+      int do_end   = up->num_do_cum[shear_idx-1+1];
       for (int j=do_start; j<do_end; j++) { // Only loop over num_do[i] elements.
-        int linidx_mm_contr = start + j;
+        long linidx_mm_contr = start + j;
         struct gkyl_mat mat = gkyl_nmat_get(up->mm_contr, linidx_mm_contr % up->mm_contr->num);
         ftar_c[row_idx] += gkyl_mat_get(&mat, row_idx, linidx_mm_contr / up->mm_contr->num);
       }
