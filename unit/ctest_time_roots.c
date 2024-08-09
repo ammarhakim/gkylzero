@@ -187,7 +187,7 @@ compare_quad_and_cub(void)
   double cpu_time_used;
 
   struct gkyl_efit_inp inp  = {
-    .filepath = "./data/eqdsk/step.geqdsk",
+    .filepath = "./data/eqdsk/wham.geqdsk",
     .rz_poly_order = 2,
     .rz_basis_type = GKYL_BASIS_MODAL_TENSOR,
     .flux_poly_order = 1,
@@ -222,8 +222,8 @@ compare_quad_and_cub(void)
 
   // Now pick a value of Z. Let's choose Z = 0.0
   // We want to see how long each one takes to find the roots
-  double psi0 = 0.934;
-  double Z = -6.1;
+  double psi0 = 1e-10;
+  double Z = 0.0;
   int nmaxroots = 4;
   double R[nmaxroots], dR[nmaxroots];
   int nr = 0;

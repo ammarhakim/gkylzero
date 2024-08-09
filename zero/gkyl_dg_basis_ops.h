@@ -17,6 +17,7 @@ struct gkyl_basis_ops_evalf {
   void *ctx; // function context
   evalf_t eval_cubic; // function pointer to evaluate the cubic
   evalf_t eval_cubic_wgrad; // function pointer to evaluate the cubic & its gradient
+  evalf_t eval_cubic_wgrad2; // function pointer to evaluate the cubic & its 2nd derivatives
   struct gkyl_ref_count ref_count;   
 };  
 

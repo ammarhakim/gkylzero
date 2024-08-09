@@ -85,10 +85,10 @@ test_lores()
   double cpu_time_used;
   start = clock();
 
-  double clower[] = { 0.0, -0.01, -M_PI+1e-14 };
-  double cupper[] = { 1e-3,  0.01,  M_PI-1e-14 };
+  double clower[] = { 1e-10, -0.01, -M_PI+1e-14 };
+  double cupper[] = { 2e-3,  0.01,  M_PI-1e-14 };
 
-  int ccells[] = { 24, 1, 8 };
+  int ccells[] = { 4, 1, 8 };
 
   struct gkyl_rect_grid cgrid;
   gkyl_rect_grid_init(&cgrid, 3, clower, cupper, ccells);

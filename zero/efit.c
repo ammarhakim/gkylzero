@@ -209,15 +209,29 @@ gkyl_efit* gkyl_efit_new(const struct gkyl_efit_inp *inp)
     for(int ir = 0; ir < up->nr; ir++){
       R = up->rmin+ir*dR;
       idx[0] = ir;
+
       // Calculate Bpol
       double xn[2] = {R, Z};
-      double fout[3];
-      up->evf->eval_cubic_wgrad(0.0, xn, fout, up->evf->ctx);
-      double psi_curr = fout[0];
-      double br = 1.0/R*fout[2]*scale_factorZ;
-      double bz = -1.0/R*fout[1]*scale_factorR;
-      double *bpol_n = gkyl_array_fetch(bpolzr_n, gkyl_range_idx(&nrange, idx));
-      bpol_n[0] = sqrt(br*br + bz*bz);
+      double psi_curr, br, bz;
+      double *bpol_n ;
+      if (R == 0.0) {
+        double fout[4];
+        up->evf->eval_cubic_wgrad2(0.0, xn, fout, up->evf->ctx);
+        psi_curr = fout[0];
+        br = fout[3]*scale_factorZ*scale_factorR;
+        bz = fout[1]*scale_factorR*scale_factorR;
+        double *bpol_n = gkyl_array_fetch(bpolzr_n, gkyl_range_idx(&nrange, idx));
+        bpol_n[0] = sqrt(br*br + bz*bz);
+      }
+      else {
+        double fout[3];
+        up->evf->eval_cubic_wgrad(0.0, xn, fout, up->evf->ctx);
+        psi_curr = fout[0];
+        br = 1.0/R*fout[2]*scale_factorZ;
+        bz = -1.0/R*fout[1]*scale_factorR;
+        bpol_n = gkyl_array_fetch(bpolzr_n, gkyl_range_idx(&nrange, idx));
+        bpol_n[0] = sqrt(br*br + bz*bz);
+      }
 
       //Calculate Bphi
       if(psi_curr < up->fluxgrid.lower[0] || psi_curr > up->fluxgrid.upper[0]){
@@ -231,9 +245,13 @@ gkyl_efit* gkyl_efit_new(const struct gkyl_efit_inp *inp)
       double fxc;
       gkyl_rect_grid_cell_center(&up->fluxgrid, &fidx, &fxc);
       double fx = (psi_curr - fxc)/(up->fluxgrid.dx[0]*0.5);
-      double bphi = up->fluxbasis.eval_expand(&fx, coeffs)/R;
+      double fpol = up->fluxbasis.eval_expand(&fx, coeffs);
+      double bphi = fpol/R;
       double *bphi_n = gkyl_array_fetch(bphizr_n, gkyl_range_idx(&nrange, idx));
-      bphi_n[0] = bphi;
+      if (fpol == 0.0 && R == 0.0)
+        bphi_n[0] = 0.0;
+      else 
+        bphi_n[0] = bphi;
 
       // Calculate Bmag
       double *bmag_n = gkyl_array_fetch(bmagzr_n, gkyl_range_idx(&nrange, idx));
@@ -279,7 +297,7 @@ gkyl_efit* gkyl_efit_new(const struct gkyl_efit_inp *inp)
 
   find_xpts_cubic(up);
   printf("cubic: num_xpts = %d\n", up->num_xpts_cubic);
-  for (int i = 0; i < up->num_xpts; i++) {
+  for (int i = 0; i < up->num_xpts_cubic; i++) {
     printf("cubic: Rxpt[%d] = %1.16f, Zxpt[%d] = %1.16f | psisep = %1.16f\n", i, up->Rxpt_cubic[i], i, up->Zxpt_cubic[i], up->psisep_cubic);
   }
 
