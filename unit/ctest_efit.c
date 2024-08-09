@@ -27,9 +27,9 @@ void test_solovev(){
   struct gkyl_efit* efit = gkyl_efit_new(&inp);
 
   printf( "rdim=%g zdim=%g rcentr=%g rleft=%g zmid=%g  rmaxis=%g zmaxis=%g simag=%1.16e sibry=%1.16e bcentr=%g  current=%g simag=%g rmaxis=%g   zmaxis=%g sibry=%g \n", efit->rdim, efit->zdim, efit->rcentr, efit->rleft, efit->zmid, efit->rmaxis, efit->zmaxis, efit->simag, efit->sibry, efit->bcentr, efit-> current, efit->simag, efit->rmaxis, efit-> zmaxis, efit->sibry);
-  gkyl_grid_sub_array_write(efit->rzgrid, efit->rzlocal, 0, efit->psizr, "solovev_psi.gkyl");
-  gkyl_grid_sub_array_write(efit->fluxgrid, efit->fluxlocal, 0, efit->fpolflux, "solovev_fpol.gkyl");
-  gkyl_grid_sub_array_write(efit->fluxgrid, efit->fluxlocal, 0, efit->qflux, "solovev_q.gkyl");
+  gkyl_grid_sub_array_write(&efit->rzgrid, &efit->rzlocal, 0, efit->psizr, "solovev_psi.gkyl");
+  gkyl_grid_sub_array_write(&efit->fluxgrid, &efit->fluxlocal, 0, efit->fpolflux, "solovev_fpol.gkyl");
+  gkyl_grid_sub_array_write(&efit->fluxgrid, &efit->fluxlocal, 0, efit->qflux, "solovev_q.gkyl");
 
   gkyl_efit_release(efit);
 
@@ -46,9 +46,9 @@ void test_step(){
   struct gkyl_efit* efit = gkyl_efit_new(&inp);
 
   printf( "rdim=%g zdim=%g rcentr=%g rleft=%g zmid=%g  rmaxis=%g zmaxis=%g simag=%1.16e sibry=%1.16e bcentr=%g  current=%g simag=%g rmaxis=%g   zmaxis=%g sibry=%g \n", efit->rdim, efit->zdim, efit->rcentr, efit->rleft, efit->zmid, efit->rmaxis, efit->zmaxis, efit->simag, efit->sibry, efit->bcentr, efit-> current, efit->simag, efit->rmaxis, efit-> zmaxis, efit->sibry);
-  gkyl_grid_sub_array_write(efit->rzgrid, efit->rzlocal, 0, efit->psizr, "step_psi.gkyl");
-  gkyl_grid_sub_array_write(efit->fluxgrid, efit->fluxlocal, 0, efit->fpolflux, "step_fpol.gkyl");
-  gkyl_grid_sub_array_write(efit->fluxgrid, efit->fluxlocal, 0, efit->qflux, "step_q.gkyl");
+  gkyl_grid_sub_array_write(&efit->rzgrid, &efit->rzlocal, 0, efit->psizr, "step_psi.gkyl");
+  gkyl_grid_sub_array_write(&efit->fluxgrid, &efit->fluxlocal, 0, efit->fpolflux, "step_fpol.gkyl");
+  gkyl_grid_sub_array_write(&efit->fluxgrid, &efit->fluxlocal, 0, efit->qflux, "step_q.gkyl");
 
   gkyl_efit_release(efit);
 
@@ -64,9 +64,9 @@ void test_asdex(){
   struct gkyl_efit* efit = gkyl_efit_new(&inp);
 
   printf( "rdim=%g zdim=%g rcentr=%g rleft=%g zmid=%g  rmaxis=%g zmaxis=%g simag=%1.16e sibry=%1.16e bcentr=%g  current=%g simag=%g rmaxis=%g   zmaxis=%g sibry=%g \n", efit->rdim, efit->zdim, efit->rcentr, efit->rleft, efit->zmid, efit->rmaxis, efit->zmaxis, efit->simag, efit->sibry, efit->bcentr, efit-> current, efit->simag, efit->rmaxis, efit-> zmaxis, efit->sibry);
-  gkyl_grid_sub_array_write(efit->rzgrid, efit->rzlocal, 0, efit->psizr, "asdex_psi.gkyl");
-  gkyl_grid_sub_array_write(efit->fluxgrid, efit->fluxlocal, 0, efit->fpolflux, "asdex_fpol.gkyl");
-  gkyl_grid_sub_array_write(efit->fluxgrid, efit->fluxlocal, 0, efit->qflux, "asdex_q.gkyl");
+  gkyl_grid_sub_array_write(&efit->rzgrid, &efit->rzlocal, 0, efit->psizr, "asdex_psi.gkyl");
+  gkyl_grid_sub_array_write(&efit->fluxgrid, &efit->fluxlocal, 0, efit->fpolflux, "asdex_fpol.gkyl");
+  gkyl_grid_sub_array_write(&efit->fluxgrid, &efit->fluxlocal, 0, efit->qflux, "asdex_q.gkyl");
 
   gkyl_efit_release(efit);
 
@@ -84,9 +84,9 @@ void test_cerfon(){
   struct gkyl_efit* efit = gkyl_efit_new(&inp);
 
   printf( "rdim=%g zdim=%g rcentr=%g rleft=%g zmid=%g  rmaxis=%g zmaxis=%g simag=%1.16e sibry=%1.16e bcentr=%g  current=%g simag=%g rmaxis=%g   zmaxis=%g sibry=%g \n", efit->rdim, efit->zdim, efit->rcentr, efit->rleft, efit->zmid, efit->rmaxis, efit->zmaxis, efit->simag, efit->sibry, efit->bcentr, efit-> current, efit->simag, efit->rmaxis, efit-> zmaxis, efit->sibry);
-  gkyl_grid_sub_array_write(efit->rzgrid, efit->rzlocal, 0, efit->psizr, "cerfon_psi.gkyl");
-  gkyl_grid_sub_array_write(efit->fluxgrid, efit->fluxlocal, 0, efit->fpolflux, "cerfon_fpol.gkyl");
-  gkyl_grid_sub_array_write(efit->fluxgrid, efit->fluxlocal, 0, efit->qflux, "cerfon_q.gkyl");
+  gkyl_grid_sub_array_write(&efit->rzgrid, &efit->rzlocal, 0, efit->psizr, "cerfon_psi.gkyl");
+  gkyl_grid_sub_array_write(&efit->fluxgrid, &efit->fluxlocal, 0, efit->fpolflux, "cerfon_fpol.gkyl");
+  gkyl_grid_sub_array_write(&efit->fluxgrid, &efit->fluxlocal, 0, efit->qflux, "cerfon_q.gkyl");
 
   gkyl_efit_release(efit);
 
@@ -103,9 +103,9 @@ void test_elliptical(){
   struct gkyl_efit* efit = gkyl_efit_new(&inp);
 
   printf( "rdim=%g zdim=%g rcentr=%g rleft=%g zmid=%g  rmaxis=%g zmaxis=%g simag=%1.16e sibry=%1.16e bcentr=%g  current=%g simag=%g rmaxis=%g   zmaxis=%g sibry=%g \n", efit->rdim, efit->zdim, efit->rcentr, efit->rleft, efit->zmid, efit->rmaxis, efit->zmaxis, efit->simag, efit->sibry, efit->bcentr, efit-> current, efit->simag, efit->rmaxis, efit-> zmaxis, efit->sibry);
-  gkyl_grid_sub_array_write(efit->rzgrid, efit->rzlocal, 0, efit->psizr, "elliptical_psi.gkyl");
-  gkyl_grid_sub_array_write(efit->fluxgrid, efit->fluxlocal, 0, efit->fpolflux, "elliptical_fpol.gkyl");
-  gkyl_grid_sub_array_write(efit->fluxgrid, efit->fluxlocal, 0, efit->qflux, "elliptical_q.gkyl");
+  gkyl_grid_sub_array_write(&efit->rzgrid, &efit->rzlocal, 0, efit->psizr, "elliptical_psi.gkyl");
+  gkyl_grid_sub_array_write(&efit->fluxgrid, &efit->fluxlocal, 0, efit->fpolflux, "elliptical_fpol.gkyl");
+  gkyl_grid_sub_array_write(&efit->fluxgrid, &efit->fluxlocal, 0, efit->qflux, "elliptical_q.gkyl");
 
   gkyl_efit_release(efit);
 
@@ -122,9 +122,9 @@ void test_wham(){
   struct gkyl_efit* efit = gkyl_efit_new(&inp);
 
   printf( "rdim=%g zdim=%g rcentr=%g rleft=%g zmid=%g  rmaxis=%g zmaxis=%g simag=%1.16e sibry=%1.16e bcentr=%g  current=%g simag=%g rmaxis=%g   zmaxis=%g sibry=%g \n", efit->rdim, efit->zdim, efit->rcentr, efit->rleft, efit->zmid, efit->rmaxis, efit->zmaxis, efit->simag, efit->sibry, efit->bcentr, efit-> current, efit->simag, efit->rmaxis, efit-> zmaxis, efit->sibry);
-  gkyl_grid_sub_array_write(efit->rzgrid, efit->rzlocal, 0, efit->psizr, "wham_psi.gkyl");
-  gkyl_grid_sub_array_write(efit->fluxgrid, efit->fluxlocal, 0, efit->fpolflux, "wham_fpol.gkyl");
-  gkyl_grid_sub_array_write(efit->fluxgrid, efit->fluxlocal, 0, efit->qflux, "wham_q.gkyl");
+  gkyl_grid_sub_array_write(&efit->rzgrid, &efit->rzlocal, 0, efit->psizr, "wham_psi.gkyl");
+  gkyl_grid_sub_array_write(&efit->fluxgrid, &efit->fluxlocal, 0, efit->fpolflux, "wham_fpol.gkyl");
+  gkyl_grid_sub_array_write(&efit->fluxgrid, &efit->fluxlocal, 0, efit->qflux, "wham_q.gkyl");
 
   gkyl_efit_release(efit);
 
@@ -141,9 +141,9 @@ void test_tcv(){
   struct gkyl_efit* efit = gkyl_efit_new(&inp);
 
   printf( "rdim=%g zdim=%g rcentr=%g rleft=%g zmid=%g  rmaxis=%g zmaxis=%g simag=%1.16e sibry=%1.16e bcentr=%g  current=%g simag=%g rmaxis=%g   zmaxis=%g sibry=%g \n", efit->rdim, efit->zdim, efit->rcentr, efit->rleft, efit->zmid, efit->rmaxis, efit->zmaxis, efit->simag, efit->sibry, efit->bcentr, efit-> current, efit->simag, efit->rmaxis, efit-> zmaxis, efit->sibry);
-  gkyl_grid_sub_array_write(efit->rzgrid, efit->rzlocal, 0, efit->psizr, "tcv_psi.gkyl");
-  gkyl_grid_sub_array_write(efit->fluxgrid, efit->fluxlocal, 0, efit->fpolflux, "tcv_fpol.gkyl");
-  gkyl_grid_sub_array_write(efit->fluxgrid, efit->fluxlocal, 0, efit->qflux, "tcv_q.gkyl");
+  gkyl_grid_sub_array_write(&efit->rzgrid, &efit->rzlocal, 0, efit->psizr, "tcv_psi.gkyl");
+  gkyl_grid_sub_array_write(&efit->fluxgrid, &efit->fluxlocal, 0, efit->fpolflux, "tcv_fpol.gkyl");
+  gkyl_grid_sub_array_write(&efit->fluxgrid, &efit->fluxlocal, 0, efit->qflux, "tcv_q.gkyl");
 
   gkyl_efit_release(efit);
 
@@ -160,9 +160,9 @@ void test_mast(){
   struct gkyl_efit* efit = gkyl_efit_new(&inp);
 
   printf( "rdim=%g zdim=%g rcentr=%g rleft=%g zmid=%g  rmaxis=%g zmaxis=%g simag=%1.16e sibry=%1.16e bcentr=%g  current=%g simag=%g rmaxis=%g   zmaxis=%g sibry=%g \n", efit->rdim, efit->zdim, efit->rcentr, efit->rleft, efit->zmid, efit->rmaxis, efit->zmaxis, efit->simag, efit->sibry, efit->bcentr, efit-> current, efit->simag, efit->rmaxis, efit-> zmaxis, efit->sibry);
-  gkyl_grid_sub_array_write(efit->rzgrid, efit->rzlocal, 0, efit->psizr, "mast_psi.gkyl");
-  gkyl_grid_sub_array_write(efit->fluxgrid, efit->fluxlocal, 0, efit->fpolflux, "mast_fpol.gkyl");
-  gkyl_grid_sub_array_write(efit->fluxgrid, efit->fluxlocal, 0, efit->qflux, "mast_q.gkyl");
+  gkyl_grid_sub_array_write(&efit->rzgrid, &efit->rzlocal, 0, efit->psizr, "mast_psi.gkyl");
+  gkyl_grid_sub_array_write(&efit->fluxgrid, &efit->fluxlocal, 0, efit->fpolflux, "mast_fpol.gkyl");
+  gkyl_grid_sub_array_write(&efit->fluxgrid, &efit->fluxlocal, 0, efit->qflux, "mast_q.gkyl");
 
   gkyl_efit_release(efit);
 

@@ -201,11 +201,13 @@ tok_find_endpoints(struct gkyl_tok_geo_grid_inp* inp, struct gkyl_tok_geo *geo, 
     arc_ctx->rright = inp->rright;
     arc_ctx->rleft = inp->rleft;
 
-    arc_ctx->zmax = inp->zmax ? inp->zmax : geo->efit->Zxpt[1]; // Initial guess.
-                                                                // zmax is specified for single null full core
+    double zxpt_up = geo->use_cubics ? geo->efit->Zxpt_cubic[1] : geo->efit->Zxpt[1];
+    double zxpt_lo = geo->use_cubics ? geo->efit->Zxpt_cubic[0] : geo->efit->Zxpt[0];
+    arc_ctx->zmax = inp->zmax ? inp->zmax : zxpt_up; // Initial guess.
+                                                  // zmax is specified for single null full core
     double zlo = geo->zmaxis;
     find_upper_turning_point(geo, psi_curr, zlo, &arc_ctx->zmax, 0);
-    arc_ctx->zmin = geo->efit->Zxpt[0]; // Initial guess
+    arc_ctx->zmin = zxpt_lo; // Initial guess
     double zup = geo->zmaxis;
     find_lower_turning_point(geo, psi_curr, zup, &arc_ctx->zmin, 0);
     // Done finding turning points
@@ -226,10 +228,12 @@ tok_find_endpoints(struct gkyl_tok_geo_grid_inp* inp, struct gkyl_tok_geo *geo, 
     // Immediately set rclose
     arc_ctx->rclose = inp->rleft;
     // Find turning points to set zmin and zmax
-    arc_ctx->zmax = geo->efit->Zxpt[1];// + 1e-1; // Initial guess
+    double zxpt_up = geo->use_cubics ? geo->efit->Zxpt_cubic[1] : geo->efit->Zxpt[1];
+    double zxpt_lo = geo->use_cubics ? geo->efit->Zxpt_cubic[0] : geo->efit->Zxpt[0];
+    arc_ctx->zmax = zxpt_up;// + 1e-1; // Initial guess
     double zlo = geo->zmaxis;
     find_upper_turning_point(geo, psi_curr, zlo, &arc_ctx->zmax, 1e-14);
-    arc_ctx->zmin = geo->efit->Zxpt[0];// - 1e-1; // Initial guess
+    arc_ctx->zmin = zxpt_lo;// - 1e-1; // Initial guess
     double zup = geo->zmaxis;
     find_lower_turning_point(geo, psi_curr, zup, &arc_ctx->zmin, 0);
     // Set arc length
@@ -250,10 +254,12 @@ tok_find_endpoints(struct gkyl_tok_geo_grid_inp* inp, struct gkyl_tok_geo *geo, 
     // Immediately set rclose
     arc_ctx->rclose = inp->rright;
     // Find turning points to set zmin and zmax
-    arc_ctx->zmax = geo->efit->Zxpt[1];// + 1e-1; // Initial guess
+    double zxpt_up = geo->use_cubics ? geo->efit->Zxpt_cubic[1] : geo->efit->Zxpt[1];
+    double zxpt_lo = geo->use_cubics ? geo->efit->Zxpt_cubic[0] : geo->efit->Zxpt[0];
+    arc_ctx->zmax = zxpt_up;// + 1e-1; // Initial guess
     double zlo = geo->zmaxis;
     find_upper_turning_point(geo, psi_curr, zlo, &arc_ctx->zmax, 1e-14);
-    arc_ctx->zmin = geo->efit->Zxpt[0];// - 1e-1; // Initial guess
+    arc_ctx->zmin = zxpt_lo;// - 1e-1; // Initial guess
     double zup = geo->zmaxis;
     find_lower_turning_point(geo, psi_curr, zup, &arc_ctx->zmin, 0);
     // Set arc length
@@ -272,7 +278,8 @@ tok_find_endpoints(struct gkyl_tok_geo_grid_inp* inp, struct gkyl_tok_geo *geo, 
       arc_ctx->zmin = inp->zmin;
     }
     //Find the  upper turning point to set zmax
-    arc_ctx->zmax = geo->efit->Zxpt[0]; // Initial guess
+    double zxpt_lo = geo->use_cubics ? geo->efit->Zxpt_cubic[0] : geo->efit->Zxpt[0];
+    arc_ctx->zmax = zxpt_lo; // Initial guess
     double zlo = arc_ctx->zmin;
     find_upper_turning_point(geo, psi_curr, zlo, &arc_ctx->zmax, 1e-15);
     // Set arc length
@@ -291,7 +298,8 @@ tok_find_endpoints(struct gkyl_tok_geo_grid_inp* inp, struct gkyl_tok_geo *geo, 
       arc_ctx->zmin = inp->zmin;
     }
     //Find the  upper turning point to set zmax
-    arc_ctx->zmax = geo->efit->Zxpt[0]; // Initial guess
+    double zxpt_lo = geo->use_cubics ? geo->efit->Zxpt_cubic[0] : geo->efit->Zxpt[0];
+    arc_ctx->zmax = zxpt_lo; // Initial guess
     double zlo = arc_ctx->zmin;
     find_upper_turning_point(geo, psi_curr, zlo, &arc_ctx->zmax, 1e-15);
     // Set arc length
@@ -310,7 +318,8 @@ tok_find_endpoints(struct gkyl_tok_geo_grid_inp* inp, struct gkyl_tok_geo *geo, 
       arc_ctx->zmax = inp->zmax;
     }
     //Find the lower turning point to set zmin
-    arc_ctx->zmin = geo->efit->Zxpt[1]; // Initial guess
+    double zxpt_up = geo->use_cubics ? geo->efit->Zxpt_cubic[1] : geo->efit->Zxpt[1];
+    arc_ctx->zmin = zxpt_up; // Initial guess
     double zup = arc_ctx->zmax;
     find_lower_turning_point(geo, psi_curr, zup, &arc_ctx->zmin, 1e-15);
     // Done finding turning point
@@ -329,7 +338,8 @@ tok_find_endpoints(struct gkyl_tok_geo_grid_inp* inp, struct gkyl_tok_geo *geo, 
       arc_ctx->zmax = inp->zmax;
     }
     //Find the lower turning point to set zmin
-    arc_ctx->zmin = geo->efit->Zxpt[1]; // Initial guess
+    double zxpt_up = geo->use_cubics ? geo->efit->Zxpt_cubic[1] : geo->efit->Zxpt[1];
+    arc_ctx->zmin = zxpt_up; // Initial guess
     double zup = arc_ctx->zmax;
     find_lower_turning_point(geo, psi_curr, zup, &arc_ctx->zmin, 1e-15);
     // Done finding turning point
@@ -357,7 +367,8 @@ tok_find_endpoints(struct gkyl_tok_geo_grid_inp* inp, struct gkyl_tok_geo *geo, 
     // Immediately set rclose
     arc_ctx->rclose = inp->rright;
     // Set zmax to be the lower x-point
-    arc_ctx->zmax = geo->efit->Zxpt[0];
+    double zxpt_lo = geo->use_cubics ? geo->efit->Zxpt_cubic[0] : geo->efit->Zxpt[0];
+    arc_ctx->zmax = zxpt_lo;
     // Set zmin either fixed or with plate
     if (geo->plate_spec){
       set_lower_plate(geo, arc_ctx, pctx, arc_ctx->psi);
@@ -373,8 +384,10 @@ tok_find_endpoints(struct gkyl_tok_geo_grid_inp* inp, struct gkyl_tok_geo *geo, 
     // Immediately set rclose
     arc_ctx->rclose = inp->rright;
     // Set zmin and zmax to be the x-points
-    arc_ctx->zmax = geo->efit->Zxpt[1];
-    arc_ctx->zmin = geo->efit->Zxpt[0];
+    double zxpt_up = geo->use_cubics ? geo->efit->Zxpt_cubic[1] : geo->efit->Zxpt[1];
+    double zxpt_lo = geo->use_cubics ? geo->efit->Zxpt_cubic[0] : geo->efit->Zxpt[0];
+    arc_ctx->zmax = zxpt_up;
+    arc_ctx->zmin = zxpt_lo;
     // Set the arc length
     arc_ctx->arcL_tot = integrate_psi_contour_memo(geo, psi_curr, arc_ctx->zmin, arc_ctx->zmax, arc_ctx->rclose, true, true, arc_memo);
   }
@@ -383,7 +396,8 @@ tok_find_endpoints(struct gkyl_tok_geo_grid_inp* inp, struct gkyl_tok_geo *geo, 
     // Immediately set rclose
     arc_ctx->rclose = inp->rright;
     // Set zmin to be the upper x-point
-    arc_ctx->zmin = geo->efit->Zxpt[1];
+    double zxpt_up = geo->use_cubics ? geo->efit->Zxpt_cubic[1] : geo->efit->Zxpt[1];
+    arc_ctx->zmin = zxpt_up;
     // Set zmax either fixed or with plate
     if (geo->plate_spec){
       set_upper_plate(geo, arc_ctx, pctx, arc_ctx->psi);
@@ -415,7 +429,8 @@ tok_find_endpoints(struct gkyl_tok_geo_grid_inp* inp, struct gkyl_tok_geo *geo, 
     // Immediately set rclose
     arc_ctx->rclose = inp->rleft;
     // Set zmax to be the lower x-point
-    arc_ctx->zmax = geo->efit->Zxpt[0];
+    double zxpt_lo = geo->use_cubics ? geo->efit->Zxpt_cubic[0] : geo->efit->Zxpt[0];
+    arc_ctx->zmax = zxpt_lo;
     // Set zmin either fixed or with plate
     if (geo->plate_spec){
       set_lower_plate(geo, arc_ctx, pctx, arc_ctx->psi);
@@ -431,8 +446,10 @@ tok_find_endpoints(struct gkyl_tok_geo_grid_inp* inp, struct gkyl_tok_geo *geo, 
     // Immediately set rclose
     arc_ctx->rclose = inp->rleft;
     // Set zmin and zmax to be the x-points
-    arc_ctx->zmax = geo->efit->Zxpt[1];
-    arc_ctx->zmin = geo->efit->Zxpt[0];
+    double zxpt_up = geo->use_cubics ? geo->efit->Zxpt_cubic[1] : geo->efit->Zxpt[1];
+    double zxpt_lo = geo->use_cubics ? geo->efit->Zxpt_cubic[0] : geo->efit->Zxpt[0];
+    arc_ctx->zmax = zxpt_up;
+    arc_ctx->zmin = zxpt_lo;
     // Set the arc Length
     arc_ctx->arcL_tot = integrate_psi_contour_memo(geo, psi_curr, arc_ctx->zmin, arc_ctx->zmax, arc_ctx->rclose, true, true, arc_memo);
   }
@@ -441,7 +458,8 @@ tok_find_endpoints(struct gkyl_tok_geo_grid_inp* inp, struct gkyl_tok_geo *geo, 
     // Immediately set rclose
     arc_ctx->rclose = inp->rleft;
     // Set zmin to be the upper x-point
-    arc_ctx->zmin = geo->efit->Zxpt[1];
+    double zxpt_up = geo->use_cubics ? geo->efit->Zxpt_cubic[1] : geo->efit->Zxpt[1];
+    arc_ctx->zmin = zxpt_up;
     // Set zmax either fixed or with plate
     if (geo->plate_spec){
       set_upper_plate(geo, arc_ctx, pctx, arc_ctx->psi);

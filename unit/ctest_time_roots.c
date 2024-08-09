@@ -218,18 +218,18 @@ compare_quad_and_cub(void)
   struct gkyl_array *psi_cubic_DG = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, local_ext.volume);
   gkyl_proj_on_basis_advance(projCub, 0.0, &local, psi_cubic_DG);
   gkyl_grid_sub_array_write(&grid, &local, 0, psi_cubic_DG, "psi_cubic.gkyl");
-  gkyl_grid_sub_array_write(efit->rzgrid, efit->rzlocal, 0, efit->psizr, "psi_quad.gkyl");
+  gkyl_grid_sub_array_write(&efit->rzgrid, &efit->rzlocal, 0, efit->psizr, "psi_quad.gkyl");
 
   // Now pick a value of Z. Let's choose Z = 0.0
   // We want to see how long each one takes to find the roots
-  double psi0 = 1.51;
-  double Z = 6.0;
+  double psi0 = 0.934;
+  double Z = -6.1;
   int nmaxroots = 4;
   double R[nmaxroots], dR[nmaxroots];
   int nr = 0;
 
   start = clock();
-  nr = getR(*efit->rzlocal, *efit->rzgrid, efit->psizr, psi0, Z, nmaxroots, R, dR);
+  nr = getR(efit->rzlocal, efit->rzgrid, efit->psizr, psi0, Z, nmaxroots, R, dR);
   end = clock();
   cpu_time_used = ((double) (end - start)) / CLOCKS_PER_SEC;
   printf("Quadratic total time = %g\n", cpu_time_used);

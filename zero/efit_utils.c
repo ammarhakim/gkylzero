@@ -1,29 +1,6 @@
 #include <gkyl_efit_priv.h>
 #include <float.h>
 
-static inline double sq(x) { return x*x; }
-
-static inline double d2psidx2_tensor(double x, double y, const double *cell_coeffs) {
-    return 5.625*cell_coeffs[8]*(2.0*sq(y)-0.6666666666666666)+5.809475019311126*cell_coeffs[6]*y+3.354101966249684*cell_coeffs[4];
-}
-
-static inline double d2psidy2_tensor(double x, double y, const double *cell_coeffs) {
-    return 5.625*cell_coeffs[8]*(2.0*sq(x)-0.6666666666666666)+5.809475019311126*cell_coeffs[7]*x+3.354101966249684*cell_coeffs[5];
-}
-
-static inline double dpsidxdy_tensor(double x, double y, const double *cell_coeffs) {
-    return 22.5*cell_coeffs[8]*x*y+5.809475019311126*cell_coeffs[7]*y+5.809475019311126*cell_coeffs[6]*x+1.5*cell_coeffs[3];
-}
-
-static void jac(double* x, double J[2][2], const double* cell_coeffs) {
-    double x0 = x[0];
-    double y0 = x[1];
-    J[0][0] = d2psidx2_tensor(x0, y0, cell_coeffs);
-    J[0][1] = dpsidxdy_tensor(x0, y0, cell_coeffs);
-    J[1][0] = dpsidxdy_tensor(x0, y0, cell_coeffs);
-    J[1][1] = d2psidy2_tensor(x0, y0, cell_coeffs);
-}
-
 static void print_result(int n, double x[], double dx[], double errx, double errf, int niter)
 {
   double x0 = x[0];
@@ -42,7 +19,7 @@ static void print_result(int n, double x[], double dx[], double errx, double err
 }
 
 bool 
-newton_raphson(struct gkyl_efit *up, const double *coeffs, double *xsol)
+newton_raphson(struct gkyl_efit *up, const double *coeffs, double *xsol, bool cubics)
 {
   int n = 2;
   double x[2] = {0.0,0.0};
@@ -55,8 +32,20 @@ newton_raphson(struct gkyl_efit *up, const double *coeffs, double *xsol)
   double errx = 0.0;
   double errf = 0.0;
   for(int niter = 0; niter < ntrial; niter++) {
-    for(int i=0; i<n; i++) fvec[i] = up->rzbasis->eval_grad_expand(i,x,coeffs);
-    jac(x, fjac, coeffs);
+    if (cubics) {
+      for(int i=0; i<n; i++) fvec[i] = up->rzbasis_cubic.eval_grad_expand(i,x,coeffs);
+      fjac[0][0] = up->rzbasis_cubic.eval_laplacian_expand(0,x,coeffs);
+      fjac[0][1] = up->rzbasis_cubic.eval_mixedpartial_expand(x,coeffs);
+      fjac[1][0] = up->rzbasis_cubic.eval_mixedpartial_expand(x,coeffs);
+      fjac[1][1] = up->rzbasis_cubic.eval_laplacian_expand(1,x,coeffs);
+    }
+    else {
+      for(int i=0; i<n; i++) fvec[i] = up->rzbasis.eval_grad_expand(i,x,coeffs);
+      fjac[0][0] = up->rzbasis.eval_laplacian_expand(0,x,coeffs);
+      fjac[0][1] = up->rzbasis.eval_mixedpartial_expand(x,coeffs);
+      fjac[1][0] = up->rzbasis.eval_mixedpartial_expand(x,coeffs);
+      fjac[1][1] = up->rzbasis.eval_laplacian_expand(1,x,coeffs);
+    }
     errf = 0.0;
     for (int i=0;i<n;i++) errf += fvec[i]*fvec[i];
     errf = sqrt(errf);
@@ -98,21 +87,21 @@ find_xpts(gkyl_efit* up)
     double Rsep, Zsep;
     double psisep = DBL_MAX;
     struct gkyl_range_iter iter;
-    gkyl_range_iter_init(&iter, up->rzlocal);
+    gkyl_range_iter_init(&iter, &up->rzlocal);
     while (gkyl_range_iter_next(&iter)) {
-      if ((iter.idx[1] < gkyl_range_shape(up->rzlocal,1)/2 + 1) || (!up->reflect)) {
-        const double* psi = gkyl_array_cfetch(up->psizr, gkyl_range_idx(up->rzlocal, iter.idx));
+      if ((iter.idx[1] < gkyl_range_shape(&up->rzlocal,1)/2 + 1) || (!up->reflect)) {
+        const double* psi = gkyl_array_cfetch(up->psizr, gkyl_range_idx(&up->rzlocal, iter.idx));
         double xsol[2];
-        bool status = newton_raphson(up, psi, xsol);
+        bool status = newton_raphson(up, psi, xsol, false);
         double x0 = xsol[0];
         double y0 = xsol[1];
-        double psi0 = up->rzbasis->eval_expand(xsol, psi);
+        double psi0 = up->rzbasis.eval_expand(xsol, psi);
         if (x0 >= -1 && x0 <= 1 && y0 >= -1 && y0 <= 1 && status) {
           found_xpt = true;
           double xc[2];
-          gkyl_rect_grid_cell_center(up->rzgrid, iter.idx, xc);
-          double R0 = up->rzgrid->dx[0]*x0/2.0 + xc[0];
-          double Z0 = up->rzgrid->dx[1]*y0/2.0 + xc[1];
+          gkyl_rect_grid_cell_center(&up->rzgrid, iter.idx, xc);
+          double R0 = up->rzgrid.dx[0]*x0/2.0 + xc[0];
+          double Z0 = up->rzgrid.dx[1]*y0/2.0 + xc[1];
           if(fabs(psi0 - up->sibry) <= fabs(psisep - up->sibry)) {
               Rsep = R0;
               Zsep = Z0;
@@ -140,6 +129,59 @@ find_xpts(gkyl_efit* up)
         up->Rxpt[0] = Rsep;
         up->Zxpt[0] = Zsep;
         up->psisep = psisep;
+      }
+    }
+}
+
+void
+find_xpts_cubic(gkyl_efit* up)
+{
+    bool found_xpt = false;
+    double Rsep, Zsep;
+    double psisep = DBL_MAX;
+    struct gkyl_range_iter iter;
+    gkyl_range_iter_init(&iter, &up->rzlocal_cubic);
+    while (gkyl_range_iter_next(&iter)) {
+      if ((iter.idx[1] < gkyl_range_shape(&up->rzlocal_cubic,1)/2 + 1) || (!up->reflect)) {
+        const double* psi = gkyl_array_cfetch(up->psizr_cubic, gkyl_range_idx(&up->rzlocal_cubic, iter.idx));
+        double xsol[2];
+        bool status = newton_raphson(up, psi, xsol, true);
+        double x0 = xsol[0];
+        double y0 = xsol[1];
+        double psi0 = up->rzbasis_cubic.eval_expand(xsol, psi);
+        if (x0 >= -1 && x0 <= 1 && y0 >= -1 && y0 <= 1 && status) {
+          found_xpt = true;
+          double xc[2];
+          gkyl_rect_grid_cell_center(&up->rzgrid_cubic, iter.idx, xc);
+          double R0 = up->rzgrid_cubic.dx[0]*x0/2.0 + xc[0];
+          double Z0 = up->rzgrid_cubic.dx[1]*y0/2.0 + xc[1];
+          if(fabs(psi0 - up->sibry) <= fabs(psisep - up->sibry)) {
+              Rsep = R0;
+              Zsep = Z0;
+              psisep = psi0;
+          }
+        }
+      }
+    }
+
+    if (found_xpt) {
+      if (up->reflect) {
+        up->num_xpts_cubic = 2;
+        up->Rxpt_cubic = gkyl_malloc(sizeof(double)*up->num_xpts_cubic);
+        up->Zxpt_cubic = gkyl_malloc(sizeof(double)*up->num_xpts_cubic);
+        up->Rxpt_cubic[0] = Rsep;
+        up->Rxpt_cubic[1] = Rsep;
+        up->Zxpt_cubic[0] = Zsep;
+        up->Zxpt_cubic[1] = -Zsep;
+        up->psisep_cubic = psisep;
+      }
+      else {
+        up->num_xpts_cubic = 1;
+        up->Rxpt_cubic = gkyl_malloc(sizeof(double)*up->num_xpts_cubic);
+        up->Zxpt_cubic = gkyl_malloc(sizeof(double)*up->num_xpts_cubic);
+        up->Rxpt_cubic[0] = Rsep;
+        up->Zxpt_cubic[0] = Zsep;
+        up->psisep_cubic = psisep;
       }
     }
 }

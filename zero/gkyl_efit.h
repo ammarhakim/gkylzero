@@ -26,27 +26,37 @@ struct gkyl_efit{
   double rmin, rmax, zmin, zmax;
 
   double psisep; // Separatrix psi for our DG representation
+  double psisep_cubic; // Separatrix psi for our cubic DG representation
                  // Can differ from sibry, but we need to keep sibry
                  // because fpol, q, etc. are defined based on it
 
-  struct gkyl_basis *rzbasis;
-  struct gkyl_rect_grid *rzgrid;
-  struct gkyl_range *rzlocal;
-  struct gkyl_range *rzlocal_ext;
+  struct gkyl_basis rzbasis;
+  struct gkyl_basis rzbasis_cubic;
+  struct gkyl_rect_grid rzgrid;
+  struct gkyl_range rzlocal;
+  struct gkyl_range rzlocal_ext;
+  struct gkyl_rect_grid rzgrid_cubic;
+  struct gkyl_range rzlocal_cubic;
+  struct gkyl_range rzlocal_cubic_ext;
   struct gkyl_array *psizr;
+  struct gkyl_array *psizr_cubic;
   struct gkyl_array *bmagzr;
   struct gkyl_basis_ops_evalf *evf ;
 
-  struct gkyl_basis *fluxbasis;
-  struct gkyl_rect_grid *fluxgrid;
-  struct gkyl_range *fluxlocal;
-  struct gkyl_range *fluxlocal_ext;
+  struct gkyl_basis fluxbasis;
+  struct gkyl_rect_grid fluxgrid;
+  struct gkyl_range fluxlocal;
+  struct gkyl_range fluxlocal_ext;
   struct gkyl_array* fpolflux;
   struct gkyl_array* qflux;
 
   int num_xpts; // Number of X-points
   double *Rxpt; // R coordinates of X points
   double *Zxpt; // Z coordinates of X-points
+
+  int num_xpts_cubic; // Number of X-points of cubic rep
+  double *Rxpt_cubic; // R coordinates of X points of cubic rep
+  double *Zxpt_cubic; // Z coordinates of X-points of cubic rep
 
   bool reflect;
   bool use_gpu;

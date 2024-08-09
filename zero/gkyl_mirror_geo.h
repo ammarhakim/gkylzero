@@ -29,9 +29,15 @@ struct gkyl_mirror_geo {
   struct gkyl_rect_grid rzgrid; // RZ grid on which psi(R,Z) is defined
   struct gkyl_range rzlocal; // local range over which psiRZ is defined
   struct gkyl_range rzlocal_ext; // extended range
+  struct gkyl_rect_grid rzgrid_cubic; // RZ grid on which the cubic rep of psi(R,Z) is defined
+  struct gkyl_range rzlocal_cubic; // local range over which the cubic rep of psiRZ is defined
+  struct gkyl_range rzlocal_cubic_ext; // extended range
   struct gkyl_basis rzbasis; // basis functions for R,Z grid
+  struct gkyl_basis rzbasis_cubic; // cubic basis functions for R,Z grid
   int num_rzbasis; // number of basis functions in RZ
   const struct gkyl_array *psiRZ; // psi(R,Z) DG representation
+  const struct gkyl_array *psiRZ_cubic; // cubic psi(R,Z) DG representation
+  struct gkyl_basis_ops_evalf *evf ; // wrapper for cubic evaluation
                    
   struct gkyl_rect_grid fgrid; // flux grid for fpol
   struct gkyl_range frange; // flux range
@@ -51,9 +57,14 @@ struct gkyl_mirror_geo {
   struct { int max_iter; double eps; } root_param;
   struct { int max_level; double eps; } quad_param;
 
+  bool exact_roots; // If true we will allow approximate roots when no root is found
+  bool use_cubics; // If true will use the cubic rep of psi rather than the quadratic representation
+
   // pointer to root finder (depends on polyorder)
   struct RdRdZ_sol (*calc_roots)(const double *psi, double psi0, double Z,
     double xc[2], double dx[2]);
+
+  double (*calc_grad_psi)(const double *psih, const double eta[2], const double dx[2]);
 
   struct gkyl_mirror_geo_stat stat; 
   struct gkyl_array* mc2p_nodal_fd;
@@ -77,6 +88,9 @@ struct gkyl_mirror_geo_grid_inp {
   bool plate_spec;
   plate_func plate_func_lower;
   plate_func plate_func_upper;
+
+  bool exact_roots; // If true we will allow approximate roots when no root is found
+  bool use_cubics; // If true will use the cubic rep of psi rather than the quadratic representation
 
   // Parameters for root finder: leave unset to use defaults
   struct {
