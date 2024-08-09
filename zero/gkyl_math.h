@@ -206,7 +206,7 @@ struct gkyl_qr_res gkyl_dbl_exp(double (*func)(double, void *), void *ctx,
  * Compute single real root of a function using Ridders' method. See
  * IEEE Tran. Circuit and Systems, vol CAS-26 No 11, Pg 976 1976. The
  * root must be inside the interval specified, and there must only be
- * * one such root in the interval.
+ * one such root in the interval.
  *
  * @param func Function to integrate
  * @param ctx Context to pass to function
