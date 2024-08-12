@@ -148,7 +148,6 @@ int gkyl_radiation_read_get_fit_params(const struct all_radiation_states rad_dat
     int idxmin = gkyl_find_nearest_idx(rad_data.all_states[index].electron_densities, log10(min_ne));
     int idxmax = gkyl_find_nearest_idx(rad_data.all_states[index].electron_densities, log10(max_ne));
     int increment = fmax((int)((idxmax-idxmin)/(num_densities[0]-1)+0.5), 1);
-    printf("num_densities[0]=%d, idxmin=%d, idxmax=%d, increment=%d\n",num_densities[0], idxmin, idxmax, increment);
     for (int i=idxmin; i<=idxmax && count<num_densities[0]; i=i+increment) {
       a[count] = rad_data.all_states[index].rad_fits[i].A;
       alpha[count] = rad_data.all_states[index].rad_fits[i].alpha;
@@ -157,7 +156,6 @@ int gkyl_radiation_read_get_fit_params(const struct all_radiation_states rad_dat
       V0[count] = rad_data.all_states[index].rad_fits[i].V0;
       const double *ne_ptr = gkyl_array_cfetch(rad_data.all_states[index].electron_densities, i);
       electron_densities[count] = pow(10.0, ne_ptr[0]);
-      printf("electron_densities(%d)=%e\n",count,electron_densities[count]);
       count = count + 1;
     }    
     num_densities[0]=count;
