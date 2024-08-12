@@ -113,6 +113,7 @@ gr_euler_no_slip(double t, int nc, const double* skin, double* GKYL_RESTRICT gho
 /**
 * Rotate state vector from global to local coordinate frame.
 *
+* @param eqn Base equation object.
 * @param tau1 First tangent vector of the coordinate frame.
 * @param tau2 Second tangent vector of the coordinate frame.
 * @param norm Normal vector of the coordinate frame.
@@ -121,11 +122,13 @@ gr_euler_no_slip(double t, int nc, const double* skin, double* GKYL_RESTRICT gho
 */
 GKYL_CU_D
 static inline void
-rot_to_local(const double* tau1, const double* tau2, const double* norm, const double* GKYL_RESTRICT qglobal, double* GKYL_RESTRICT qlocal);
+rot_to_local(const struct gkyl_wv_eqn* eqn, const double* tau1, const double* tau2, const double* norm, const double* GKYL_RESTRICT qglobal,
+  double* GKYL_RESTRICT qlocal);
 
 /**
 * Rotate state vector from local to global coordinate frame.
 *
+* @param eqn Base equation object.
 * @param tau1 First tangent vector of the coordinate frame.
 * @param tau2 Second tangent vector of the coordinate frame.
 * @param norm Normal vector of the coordinate frame.
@@ -134,7 +137,8 @@ rot_to_local(const double* tau1, const double* tau2, const double* norm, const d
 */
 GKYL_CU_D
 static inline void
-rot_to_global(const double* tau1, const double* tau2, const double* norm, const double* GKYL_RESTRICT qlocal, double* GKYL_RESTRICT qglobal);
+rot_to_global(const struct gkyl_wv_eqn* eqn, const double* tau1, const double* tau2, const double* norm, const double* GKYL_RESTRICT qlocal,
+  double* GKYL_RESTRICT qglobal);
 
 /**
 * Compute waves and speeds using Lax fluxes.

@@ -60,9 +60,9 @@ test_reactive_euler_basic()
 
   double q_local[6], flux_local[6], flux[6];
   for (int d = 0; d < 3; d++) {
-    reactive_euler->rotate_to_local_func(tau1[d], tau2[d], norm[d], q, q_local);
+    reactive_euler->rotate_to_local_func(reactive_euler, tau1[d], tau2[d], norm[d], q, q_local);
     gkyl_reactive_euler_flux(gas_gamma, energy_of_formation, q_local, flux_local);
-    reactive_euler->rotate_to_global_func(tau1[d], tau2[d], norm[d], flux_local, flux);
+    reactive_euler->rotate_to_global_func(reactive_euler, tau1[d], tau2[d], norm[d], flux_local, flux);
 
     for (int i = 0; i < 6; i++) {
       TEST_CHECK( gkyl_compare(flux[i], fluxes[d][i], 1e-16) );

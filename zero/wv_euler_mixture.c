@@ -198,9 +198,11 @@ euler_mixture_no_slip(double t, int nc, const double* skin, double* GKYL_RESTRIC
 }
 
 static inline void
-rot_to_local(const double* tau1, const double* tau2, const double* norm, const double* GKYL_RESTRICT qglobal, double* GKYL_RESTRICT qlocal)
+rot_to_local(const struct gkyl_wv_eqn* eqn, const double* tau1, const double* tau2, const double* norm, const double* GKYL_RESTRICT qglobal,
+  double* GKYL_RESTRICT qlocal)
 {
-  long num_species = 2;
+  const struct wv_euler_mixture *euler_mixture = container_of(eqn, struct wv_euler_mixture, eqn);
+  int num_species = euler_mixture->num_species;
 
   for (int i = 0; i < 4 + (2 * num_species); i++) {
     qlocal[i] = qglobal[i];
@@ -212,9 +214,11 @@ rot_to_local(const double* tau1, const double* tau2, const double* norm, const d
 }
 
 static inline void
-rot_to_global(const double* tau1, const double* tau2, const double* norm, const double* GKYL_RESTRICT qlocal, double* GKYL_RESTRICT qglobal)
+rot_to_global(const struct gkyl_wv_eqn* eqn, const double* tau1, const double* tau2, const double* norm, const double* GKYL_RESTRICT qlocal,
+  double* GKYL_RESTRICT qglobal)
 {
-  long num_species = 2;
+  const struct wv_euler_mixture *euler_mixture = container_of(eqn, struct wv_euler_mixture, eqn);
+  int num_species = euler_mixture->num_species;
 
   for (int i = 0; i < 4 + (2 * num_species); i++) {
     qglobal[i] = qlocal[i];
