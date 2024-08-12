@@ -107,16 +107,15 @@ create_ctx(void)
   double k_perp = k_perp_rho_s / rho_s; // Perpendicular wavenumber (for Poisson solver).
 
   // Simulation parameters.
-  int Nz = 2; // Cell count (configuration space: z-direction).
-  int Nvpar = 16; // Cell count (velocity space: parallel velocity direction).
-  int Nmu = 8; // Cell count (velocity space: magnetic moment direction).
-  double Lz = 100.0 * rho_s; // Domain size (configuration space: z-direction).
-  double vpar_max_elc = 4.0 * vte; // Domain boundary (electron velocity space: parallel velocity direction).
-  double mu_max_elc = 0.75 * mass_elc * pow(4.0 * vte,2) / (2.0 * B0); // Domain boundary (electron velocity space: magnetic moment direction).
-  double vpar_max_ion = 4.0 * vti; // Domain boundary (ion velocity space: parallel velocity direction).
-  double mu_max_ion = 0.75 * mass_ion * pow(4.0 * vti,2) / (2.0 * B0); // Domain boundary (ion velocity space: magnetic moment direction).
-
-  double t_end = 1.0e-7; // Final simulation time.
+  int Nz = 4; // Cell count (configuration space: z-direction).
+  int Nv = 64; // Cell count (velocity space: parallel velocity direction).
+  int Nmu = 32; // Cell count (velocity space: magnetic moment direction).
+  double Lz = 200.0 * rho_si; // Domain size (configuration space: z-direction).
+  double Lv_elc = 8.0 * vte; // Domain size (electron velocity space: parallel velocity direction).
+  double Lmu_elc = 0.75 * mass_elc * (4.0 * vte) * (4.0 * vte) / (2.0 * B0); // Domain size (electron velocity space: magnetic moment direction).
+  double Lv_ion = 8.0 * vti; // Domain size (ion velocity space: parallel velocity direction).
+  double Lmu_ion = 0.75 * mass_ion * (4.0 * vti) * (4.0 * vti) / (2.0 * B0); // Domain size (ion velocity space: magnetic moment direction).
+  double t_end = 1.0e-10; // Final simulation time.
   int num_frames = 1; // Number of output frames.
   int int_diag_calc_num = num_frames*100;
   double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.
@@ -171,10 +170,25 @@ evalDensityInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT 
 {
   struct rad_ctx *app = ctx;
 
-  double n0 = app->n0;
+  double n0 = app -> n0;
+  double x = xn[0];
+  double Lz = app -> Lz;
 
   // Set number density.
-  fout[0] = n0;
+  fout[0] = fmax( n0 *  pow(x+1.0,120.0), n0*1e-6);
+}
+
+void
+evalElcDensityInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
+{
+  struct rad_ctx *app = ctx;
+
+  double n0 = app -> n0;
+  double x = xn[0];
+  double Lz = app -> Lz;
+
+  // Set number density.
+  fout[0] = fmax( n0 *  pow(x+1.0,120.0), n0*1e-6);
 }
 
 void
@@ -303,14 +317,14 @@ main(int argc, char **argv)
   struct gkyl_gyrokinetic_species elc = {
     .name = "elc",
     .charge = ctx.charge_elc, .mass = ctx.mass_elc,
-    .lower = { -ctx.vpar_max_elc, 0.0 },
-    .upper = { ctx.vpar_max_elc, ctx.mu_max_elc },
-    .cells = { cells_v[0], cells_v[1] },
-    .polarization_density = ctx.n0,
+    .lower = { -0.5 * ctx.Lv_elc, 0.0 },
+    .upper = { 0.5 * ctx.Lv_elc, ctx.Lmu_elc },
+    .cells = { NV, NMU },
+    .polarization_density = ctx.n0/2,
 
     .projection = {
       .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM,
-      .density = evalDensityInit,
+      .density = evalElcDensityInit,
       .ctx_density = &ctx,
       .upar = evalUparInit,
       .ctx_upar = &ctx,
@@ -323,7 +337,7 @@ main(int argc, char **argv)
       .self_nu = evalNuElcInit,
       .ctx = &ctx,
       .num_cross_collisions = 1,
-      .collide_with = { "ion" },
+      .collide_with = { "ion", "elc2"},
     },
 
     .source = {
@@ -341,21 +355,76 @@ main(int argc, char **argv)
     },
 
     .radiation = {
-      .radiation_id = GKYL_GK_RADIATION, 
-      .num_cross_collisions = 1, 
-      .collide_with = { "ion" },
-      .z = 1,
-      .charge_state = 0,
-      .num_of_densities = 10,
-      .reference_ne = ctx.n0,
+      .radiation_id = GKYL_GK_RADIATION,
+      .num_cross_collisions = 5, 
+      .collide_with = { "ion", "test_sp_1", "test_sp_2", "test_sp_3", "test_sp_4"},
+      .z = {1, 3, 3, 3, 3},
+      .charge_state = {0, 0, 0, 0, 0},
+      .num_of_densities = {1, 1, 3, 8, 15},
+      .reference_ne = ctx.n0/10,
       .min_ne = ctx.n0/100,
-      .max_ne = ctx.n0*100,
+      .max_ne = ctx.n0,
     },
     
     .num_diag_moments = 7,
     .diag_moments = { "M0", "M1", "M2", "M2par", "M2perp", "M3par", "M3perp" },
   };
 
+  // 2nd Electron species.
+  struct gkyl_gyrokinetic_species elc2 = {
+    .name = "elc2",
+    .charge = ctx.charge_elc, .mass = ctx.mass_elc,
+    .lower = { -0.5 * ctx.Lv_elc, 0.0 },
+    .upper = { 0.5 * ctx.Lv_elc, ctx.Lmu_elc },
+    .cells = { NV, NMU },
+    .polarization_density = ctx.n0/2,
+
+    .projection = {
+      .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM,
+      .density = evalElcDensityInit,
+      .ctx_density = &ctx,
+      .upar = evalUparInit,
+      .ctx_upar = &ctx,
+      .temp = evalTempElcInit,
+      .ctx_temp = &ctx,
+    },
+    .collisions =  {
+      .collision_id = GKYL_LBO_COLLISIONS,
+      .self_nu = evalNuElcInit,
+      .ctx = &ctx,
+      .num_cross_collisions = 2,
+      .collide_with = { "ion", "elc" },
+    },
+    .source = {
+      .source_id = GKYL_PROJ_SOURCE,
+      .num_sources = 0,
+    },
+    
+    .bcx = {
+      .lower = { .type = GKYL_SPECIES_ZERO_FLUX, },
+      .upper = { .type = GKYL_SPECIES_ZERO_FLUX, },
+    },
+    .bcy = {
+      .lower = { .type = GKYL_SPECIES_ZERO_FLUX, },
+      .upper = { .type = GKYL_SPECIES_ZERO_FLUX, },
+    },
+
+    .radiation = {
+      .radiation_id = GKYL_GK_RADIATION, 
+      .num_cross_collisions = 5, 
+      .collide_with = { "ion", "test_sp_1", "test_sp_2", "test_sp_3", "test_sp_4"},
+      .z = {1, 3, 3, 3, 3},
+      .charge_state = {0, 0, 0, 0, 0},
+      .num_of_densities = {1, 1, 3, 8, 15},
+      .reference_ne = ctx.n0,
+      .min_ne = ctx.n0*1.01,
+      .max_ne = ctx.n0*10000,
+    },
+    
+    .num_diag_moments = 7,
+    .diag_moments = { "M0", "M1", "M2", "M2par", "M2perp", "M3par", "M3perp" },
+  };
+  
   // Ion species.
   struct gkyl_gyrokinetic_species ion = {
     .name = "ion",
@@ -380,7 +449,7 @@ main(int argc, char **argv)
       .self_nu = evalNuIonInit,
       .ctx = &ctx,
       .num_cross_collisions = 1,
-      .collide_with = { "elc" },
+      .collide_with = { "elc", "elc2" },
     },
 
     .source = {
@@ -401,6 +470,92 @@ main(int argc, char **argv)
     .diag_moments = { "M0", "M1", "M2", "M2par", "M2perp", "M3par", "M3perp" },
   };
 
+  // D0
+  struct gkyl_gyrokinetic_neut_species test_sp_1 = {
+    .name = "test_sp_1", .mass = ctx.mass_ion,
+    .lower = { -ctx.Lv_ion, -ctx.Lv_ion, -ctx.Lv_ion},
+    .upper = { ctx.Lv_ion, ctx.Lv_ion, ctx.Lv_ion },
+    .cells = { NV, NV, NV},
+    .is_static = true,
+
+    .projection = {
+      .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM,
+      .ctx_density = &ctx,
+      .density = evalDensityInit,
+      .ctx_upar = &ctx,
+      .udrift = evalUparInit,
+      .ctx_temp = &ctx,
+      .temp = evalTempIonInit,
+    },
+
+    .num_diag_moments = 3,
+    .diag_moments = { "M0", "M1i", "M2"},
+  };
+
+  // Second D0
+  struct gkyl_gyrokinetic_neut_species test_sp_2 = {
+    .name = "test_sp_2", .mass = ctx.mass_ion,
+    .lower = { -ctx.Lv_ion, -ctx.Lv_ion, -ctx.Lv_ion},
+    .upper = { ctx.Lv_ion, ctx.Lv_ion, ctx.Lv_ion },
+    .cells = { NV, NV, NV},
+    .is_static = true,
+
+    .projection = {
+      .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM,
+      .ctx_density = &ctx,
+      .density = evalDensityInit,
+      .ctx_upar = &ctx,
+      .udrift = evalUparInit,
+      .ctx_temp = &ctx,
+      .temp = evalTempIonInit,
+    },
+
+    .num_diag_moments = 3,
+    .diag_moments = { "M0", "M1i", "M2"},
+  };
+  // Third D0
+  struct gkyl_gyrokinetic_neut_species test_sp_3 = {
+    .name = "test_sp_3", .mass = ctx.mass_ion,
+    .lower = { -ctx.Lv_ion, -ctx.Lv_ion, -ctx.Lv_ion},
+    .upper = { ctx.Lv_ion, ctx.Lv_ion, ctx.Lv_ion },
+    .cells = { NV, NV, NV},
+    .is_static = true,
+
+    .projection = {
+      .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM,
+      .ctx_density = &ctx,
+      .density = evalDensityInit,
+      .ctx_upar = &ctx,
+      .udrift = evalUparInit,
+      .ctx_temp = &ctx,
+      .temp = evalTempIonInit,
+    },
+
+    .num_diag_moments = 3,
+    .diag_moments = { "M0", "M1i", "M2"},
+  };
+  // Fourth D0
+  struct gkyl_gyrokinetic_neut_species test_sp_4 = {
+    .name = "test_sp_4", .mass = ctx.mass_ion,
+    .lower = { -ctx.Lv_ion, -ctx.Lv_ion, -ctx.Lv_ion},
+    .upper = { ctx.Lv_ion, ctx.Lv_ion, ctx.Lv_ion },
+    .cells = { NV, NV, NV},
+    .is_static = true,
+
+    .projection = {
+      .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM,
+      .ctx_density = &ctx,
+      .density = evalDensityInit,
+      .ctx_upar = &ctx,
+      .udrift = evalUparInit,
+      .ctx_temp = &ctx,
+      .temp = evalTempIonInit,
+    },
+
+    .num_diag_moments = 3,
+    .diag_moments = { "M0", "M1i", "M2"},
+  };
+  
   // Field.
   struct gkyl_gyrokinetic_field field = {
     .fem_parbc = GKYL_FEM_PARPROJ_PERIODIC, 
@@ -430,8 +585,10 @@ main(int argc, char **argv)
     .num_periodic_dir = 1,
     .periodic_dirs = { 0 },
 
-    .num_species = 2,
-    .species = { elc, ion },
+    .num_species = 3,
+    .species = { elc, elc2, ion },
+    .num_neut_species = 4,
+    .neut_species = {test_sp_1, test_sp_2, test_sp_3, test_sp_4},
     .skip_field = true, 
     .field = field,
 

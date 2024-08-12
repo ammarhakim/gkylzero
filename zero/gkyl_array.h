@@ -7,6 +7,7 @@
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
+#include <math.h>
 
 /**
  * Array object. This is an untype, undimensioned, reference counted
@@ -129,21 +130,14 @@ struct gkyl_array* gkyl_array_copy_async(struct gkyl_array* dest,
  */
 struct gkyl_array* gkyl_array_clone(const struct gkyl_array* arr);
 
-/**
- * Fetches a pointer to the element stored at the index 'loc'.
- *
- * @param arr Array to fetch from
- * @param loc Element to fetch
- * @return Element at location 'loc'
- */
 
 static inline int gkyl_find_nearest_idx(const struct gkyl_array* arr, double target){
   int left = 0;
   int right = arr->size - 1;
   double *data = (double*)arr->data;
   while (left < right) {
-    if (abs(data[left] - target)
-	<= abs(data[right] - target)) {
+    if (fabs(data[left] - target)
+	<= fabs(data[right] - target)) {
       right--;
     }
     else {
@@ -152,6 +146,14 @@ static inline int gkyl_find_nearest_idx(const struct gkyl_array* arr, double tar
   }
   return left;
 }
+
+/**
+ * Fetches a pointer to the element stored at the index 'loc'.
+ *
+ * @param arr Array to fetch from
+ * @param loc Element to fetch
+ * @return Element at location 'loc'
+ */
 
 GKYL_CU_DH
 static inline void*
