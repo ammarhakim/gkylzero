@@ -88,6 +88,23 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
   else
     s->qmem = mkarr(app->use_gpu, 4*app->confBasis.num_basis, app->local_ext.volume);
 
+  s->use_vmap = false;
+  // velocity map is always C^1 cubic representation in up to 3V (3*4=12 components)
+  // inverse Jacobian in each direction is derivative of velocity map so uses quadratic representation
+  s->vmap = mkarr(app->use_gpu, 12, s->local_vel.volume);
+  s->jacob_vel_inv = mkarr(app->use_gpu, 9, s->local_vel.volume);
+
+  struct gkyl_basis jacob_vel_basis;
+  gkyl_cart_modal_tensor(&jacob_vel_basis, vdim, 2);
+  s->jacob_vel_gauss = mkarr(app->use_gpu, jacob_vel_basis.num_basis, s->local_vel.volume);
+
+  if (s->info.mapc2p_vel) {
+    s->use_vmap = true; 
+    gkyl_velocity_map_cubic_new(&s->grid_vel, &s->local_vel, 
+      s->info.mapc2p_vel, s->info.mapc2p_vel_ctx, 
+      s->vmap, s->jacob_vel_inv, s->jacob_vel_gauss);
+  }
+
   if (s->model_id  == GKYL_MODEL_SR) {
     // Allocate special relativistic variables gamma and its inverse
     s->gamma = mkarr(app->use_gpu, app->velBasis.num_basis, s->local_vel.volume);
@@ -101,16 +118,19 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
     }
 
     s->sr_vars = gkyl_dg_calc_sr_vars_new(&s->grid, &s->grid_vel,
-      &app->confBasis,  &app->velBasis, &app->local, &s->local_vel, app->use_gpu);
+      &app->confBasis,  &app->velBasis, &app->local, &s->local_vel, 
+      s->vmap, s->use_vmap, app->use_gpu);
     // Project gamma and its inverse
     gkyl_calc_sr_vars_init_p_vars(s->sr_vars, s->gamma, s->gamma_inv);
 
     // by default, we do not have zero-flux boundary conditions in any direction
     bool is_zero_flux[GKYL_MAX_DIM] = {false};
-    struct gkyl_dg_vlasov_sr_auxfields aux_inp = {.qmem = s->qmem, .gamma = s->gamma};
+    struct gkyl_dg_vlasov_sr_auxfields aux_inp = {.qmem = s->qmem, 
+      .gamma = s->gamma, .jacob_vel_inv = s->jacob_vel_inv};
     // create solver
     s->slvr = gkyl_dg_updater_vlasov_new(&s->grid, &app->confBasis, &app->basis, 
-      &app->local, &s->local_vel, &s->local, is_zero_flux, s->model_id, s->field_id, &aux_inp, app->use_gpu);
+      &app->local, &s->local_vel, &s->local, is_zero_flux, 
+      s->model_id, s->field_id, s->use_vmap, &aux_inp, app->use_gpu);
   }
   else if (s->model_id == GKYL_MODEL_CANONICAL_PB) {
     // Allocate arrays for specified hamiltonian
@@ -190,7 +210,8 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
 
     //create solver
     s->slvr = gkyl_dg_updater_vlasov_new(&s->grid, &app->confBasis, &app->basis, 
-      &app->local, &s->local_vel, &s->local, is_zero_flux, s->model_id, s->field_id, &aux_inp, app->use_gpu);
+      &app->local, &s->local_vel, &s->local, is_zero_flux, 
+      s->model_id, s->field_id, s->use_vmap, &aux_inp, app->use_gpu);
   }
   else {
     // by default, we do not have zero-flux boundary conditions in any direction
@@ -199,7 +220,8 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
     struct gkyl_dg_vlasov_auxfields aux_inp = {.field = s->qmem, .cot_vec = 0, .alpha_geo = 0};
     // create solver
     s->slvr = gkyl_dg_updater_vlasov_new(&s->grid, &app->confBasis, &app->basis, 
-      &app->local, &s->local_vel, &s->local, is_zero_flux, s->model_id, s->field_id, &aux_inp, app->use_gpu);
+      &app->local, &s->local_vel, &s->local, is_zero_flux, 
+      s->model_id, s->field_id, s->use_vmap, &aux_inp, app->use_gpu);
   }
 
   // acquire equation object
@@ -629,6 +651,9 @@ vm_species_release(const gkyl_vlasov_app* app, const struct vm_species *s)
     gkyl_array_release(s->f_host);
 
   gkyl_array_release(s->qmem);
+  gkyl_array_release(s->vmap);
+  gkyl_array_release(s->jacob_vel_inv);
+  gkyl_array_release(s->jacob_vel_gauss);
 
   // Release arrays for different types of Vlasov equations
   if (s->model_id  == GKYL_MODEL_SR) {

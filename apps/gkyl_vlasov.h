@@ -140,6 +140,12 @@ struct gkyl_vlasov_species {
   double lower[3], upper[3]; // lower, upper bounds of velocity-space
   int cells[3]; // velocity-space cells
 
+  void *mapc2p_vel_ctx; // context for mapc2p function for velocity space
+  // pointer to mapc2p function for velocity space: 
+  // xc are the computational space coordinates and on output 
+  // xp are the corresponding physical space coordinates.
+  void (*mapc2p_vel)(double t, const double *xc, double *xp, void *ctx);
+
   // initial conditions using projection routine
   int num_init; // number of initial condition functions
   struct gkyl_vlasov_projection projection[GKYL_MAX_PROJ];

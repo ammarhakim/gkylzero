@@ -1,10 +1,11 @@
 #include <gkyl_vlasov_sr_kernels.h> 
 #include <gkyl_basis_hyb_3x3v_p1_surfx5_eval_quad.h> 
 #include <gkyl_basis_hyb_3x3v_p1_upwind_quad_to_modal.h> 
-GKYL_CU_DH double vlasov_sr_boundary_surfvy_3x3v_ser_p1(const double *w, const double *dxv, const double *gamma, const double *qmem, const int edge, const double *fEdge, const double *fSkin, double* GKYL_RESTRICT out) 
+GKYL_CU_DH double vlasov_sr_boundary_surfvy_3x3v_ser_p1(const double *w, const double *dxv, const double *jacob_vel_inv, const double *gamma, const double *qmem, const int edge, const double *fEdge, const double *fSkin, double* GKYL_RESTRICT out) 
 { 
   // w[NDIM]:     Cell-center coordinates.
   // dxv[NDIM]:   Cell spacing.
+  // jacob_vel_inv[VDIM]: Inverse velocity space Jacobian in each direction (unused in uniform grid simulations).
   // gamma:       Particle Lorentz boost factor sqrt(1 + p^2).
   // qmem:        q/m*EM fields.
   // edge:        Determines if the update is for the left edge (-1) or right edge (+1).

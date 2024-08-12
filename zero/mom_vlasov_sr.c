@@ -29,12 +29,14 @@ gkyl_mom_vlasov_sr_set_auxfields(const struct gkyl_mom_type *momt, struct gkyl_m
 
   struct mom_type_vlasov_sr *mom_vm_sr = container_of(momt, struct mom_type_vlasov_sr, momt);
   mom_vm_sr->auxfields.gamma = auxin.gamma;
+  mom_vm_sr->auxfields.vmap = auxin.vmap;
+  mom_vm_sr->auxfields.jacob_vel_inv = auxin.jacob_vel_inv;
 }
 
 struct gkyl_mom_type*
 gkyl_mom_vlasov_sr_new(const struct gkyl_basis* cbasis, const struct gkyl_basis* pbasis, 
   const struct gkyl_range* conf_range, const struct gkyl_range* vel_range, 
-  const char *mom, bool use_gpu)
+  bool use_vmap, const char *mom, bool use_gpu)
 {
   assert(cbasis->poly_order == pbasis->poly_order);
 
@@ -60,11 +62,17 @@ gkyl_mom_vlasov_sr_new(const struct gkyl_basis* cbasis, const struct gkyl_basis*
   switch (cbasis->b_type) {
     case GKYL_BASIS_MODAL_SERENDIPITY:
       m0_kernels = ser_m0_kernels;
-      m1i_kernels = ser_m1i_kernels;
       m2_kernels = ser_m2_kernels;
-      m3i_kernels = ser_m3i_kernels;
       Ni_kernels = ser_Ni_kernels;
       Tij_kernels = ser_Tij_kernels;
+      if (use_vmap) {
+        m1i_kernels = ser_vmap_m1i_kernels;
+        m3i_kernels = ser_vmap_m3i_kernels;
+      }
+      else {
+        m1i_kernels = ser_m1i_kernels;
+        m3i_kernels = ser_m3i_kernels;
+      }
       break;
 
     default:
@@ -123,6 +131,8 @@ gkyl_mom_vlasov_sr_new(const struct gkyl_basis* cbasis, const struct gkyl_basis*
   mom_vm_sr->vel_range = *vel_range;
 
   mom_vm_sr->auxfields.gamma = 0;
+  mom_vm_sr->auxfields.vmap = 0;
+  mom_vm_sr->auxfields.jacob_vel_inv = 0;
 
   mom_vm_sr->momt.flags = 0;
   GKYL_CLEAR_CU_ALLOC(mom_vm_sr->momt.flags);
@@ -135,7 +145,8 @@ gkyl_mom_vlasov_sr_new(const struct gkyl_basis* cbasis, const struct gkyl_basis*
 
 struct gkyl_mom_type*
 gkyl_int_mom_vlasov_sr_new(const struct gkyl_basis* cbasis, const struct gkyl_basis* pbasis, 
-  const struct gkyl_range* conf_range, const struct gkyl_range* vel_range, bool use_gpu)
+  const struct gkyl_range* conf_range, const struct gkyl_range* vel_range, 
+  bool use_vmap, bool use_gpu)
 {
   assert(cbasis->poly_order == pbasis->poly_order);
 
@@ -160,7 +171,12 @@ gkyl_int_mom_vlasov_sr_new(const struct gkyl_basis* cbasis, const struct gkyl_ba
   // set kernel pointer
   switch (cbasis->b_type) {
     case GKYL_BASIS_MODAL_SERENDIPITY:
-      int_mom_kernels = ser_int_mom_kernels;
+      if (use_vmap) {
+        int_mom_kernels = ser_vmap_int_mom_kernels;
+      }
+      else {
+        int_mom_kernels = ser_int_mom_kernels;
+      }
       break;
 
     default:
@@ -177,6 +193,8 @@ gkyl_int_mom_vlasov_sr_new(const struct gkyl_basis* cbasis, const struct gkyl_ba
   mom_vm_sr->vel_range = *vel_range;
 
   mom_vm_sr->auxfields.gamma = 0;
+  mom_vm_sr->auxfields.vmap = 0;
+  mom_vm_sr->auxfields.jacob_vel_inv = 0;
 
   mom_vm_sr->momt.flags = 0;
   GKYL_CLEAR_CU_ALLOC(mom_vm_sr->momt.flags);
@@ -191,7 +209,8 @@ gkyl_int_mom_vlasov_sr_new(const struct gkyl_basis* cbasis, const struct gkyl_ba
 
 struct gkyl_mom_type*
 gkyl_mom_vlasov_sr_cu_dev_new(const struct gkyl_basis* cbasis, const struct gkyl_basis* pbasis, 
-  const struct gkyl_range* conf_range, const struct gkyl_range* vel_range, const char *mom)
+  const struct gkyl_range* conf_range, const struct gkyl_range* vel_range, 
+  bool use_vmap, const char *mom)
 {
   assert(false);
   return 0;
@@ -199,7 +218,8 @@ gkyl_mom_vlasov_sr_cu_dev_new(const struct gkyl_basis* cbasis, const struct gkyl
 
 struct gkyl_mom_type *
 gkyl_int_mom_vlasov_sr_cu_dev_new(const struct gkyl_basis* cbasis, const struct gkyl_basis* pbasis, 
-  const struct gkyl_range* conf_range, const struct gkyl_range* vel_range)
+  const struct gkyl_range* conf_range, const struct gkyl_range* vel_range, 
+  bool use_vmap)
 {
   assert(false);
   return 0;

@@ -39,6 +39,7 @@ struct gkyl_vlasov_lte_proj_on_basis {
   int vdim; // Velocity-space dimension
 
   struct gkyl_basis conf_basis; // Configuration-space basis
+  struct gkyl_basis vmap_basis;
   struct gkyl_basis phase_basis; // Phase-space basis
   int num_conf_basis; // number of Configuration-space basis functions
   int num_phase_basis; // number of Phase-space basis functions
@@ -49,7 +50,10 @@ struct gkyl_vlasov_lte_proj_on_basis {
   bool use_gpu; // Boolean if we are performing projection on device.
 
   struct gkyl_range conf_qrange; // Range of Configuration-space ordinates.
+  struct gkyl_range vel_qrange;
   struct gkyl_range phase_qrange; // Range of Phase-space ordinates.
+
+  struct gkyl_range vel_range;
 
   // for quadrature in Phase-space
   int tot_quad; // total number of Phase-space quadrature points
@@ -74,6 +78,10 @@ struct gkyl_vlasov_lte_proj_on_basis {
                                   // at configuration-space quadrature nodes
   struct gkyl_array *h_ij_inv_quad; // metric inverse at configuration-space quadrature nodes
   struct gkyl_array *det_h_quad; // metric determinant at configuration-space quadrature nodes
+
+  bool use_vmap;
+  struct gkyl_array *vmap; 
+  struct gkyl_array *jacob_vel_gauss; 
 
   struct gkyl_vlasov_lte_moments *moments_up; // LTE moment calculation routine for computing density
   struct gkyl_array *num_ratio; // Number density ratio: num_ratio = n_target/n0

@@ -60,6 +60,7 @@
 #include <gkyl_rect_grid.h>
 #include <gkyl_spitzer_coll_freq.h>
 #include <gkyl_util.h>
+#include <gkyl_velocity_map_cubic.h>
 #include <gkyl_vlasov.h>
 #include <gkyl_vlasov_lte_correct.h>
 #include <gkyl_vlasov_lte_moments.h>
@@ -81,10 +82,11 @@ static const char *const valid_moment_names[] = {
   "M2ij", // non-relativistic stress tensor
   "M3ijk", // non-relativistic heat flux tensor
   "Ni", // relativistic four-flux (M0, M1i)
-  "Tij", // relativistic stress-energy tensor
+  "Tij", // relativistic stress-energy tensor 
   "LTEMoments", // this is an internal flag for computing moments (n, V_drift, T/m)
                 // of the LTE (local thermodynamic equilibrium) distribution
-                // Note: in relativity V_drift is the bulk four-velocity (GammaV, GammaV*V_drift)
+                // Note: in relativity V_drift is the spatial component 
+                // of the bulk four-velocity (GammaV*V_drift)
   "Integrated", // this is an internal flag, not for passing to moment type
 };
 
@@ -303,6 +305,10 @@ struct vm_species {
   enum gkyl_field_id field_id; // type of field equation 
   struct gkyl_array *qmem; // array for q/m*(E,B) or q/m(phi,A)
   enum gkyl_model_id model_id; // type of Vlasov equation (e.g., Vlasov vs. SR)
+  bool use_vmap; // bool to determine if we are using mapped velocity-space grids
+  struct gkyl_array *vmap; // mapping for mapped velocity-space grids
+  struct gkyl_array *jacob_vel_inv; // inverse Jacobian in each direction for mapped velocity-space grids
+  struct gkyl_array *jacob_vel_gauss; // total Jacobian for mapped velocity-space grids at Gauss-Legendre quadrature points.
   // organization of the different equation objects and the required data and solvers
   union {
     // Special relativistic Vlasov-Maxwell model

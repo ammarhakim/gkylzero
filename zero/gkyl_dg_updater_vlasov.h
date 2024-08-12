@@ -28,6 +28,7 @@ struct gkyl_dg_updater_vlasov_tm {
  * @param is_zero_flux_dir True in directions with (lower and upper) zero flux BCs.
  * @param model_id Enum identifier for model type (e.g., SR, General Geometry, see gkyl_eqn_type.h)
  * @param field_id Enum identifier for field type (e.g., Maxwell's, Poisson, see gkyl_eqn_type.h)
+ * @param use_vmap bool to determine if we are using mapped velocity grid kernels
  * @param aux_inp Void pointer to auxiliary fields. Void to be flexible to different auxfields structs
  * @param use_gpu Boolean to determine whether struct objects are on host or device
  * 
@@ -36,7 +37,8 @@ struct gkyl_dg_updater_vlasov_tm {
 gkyl_dg_updater_vlasov* gkyl_dg_updater_vlasov_new(const struct gkyl_rect_grid *grid, 
   const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis, 
   const struct gkyl_range *conf_range, const struct gkyl_range *vel_range, const struct gkyl_range *phase_range,
-  const bool *is_zero_flux_dir, enum gkyl_model_id model_id, enum gkyl_field_id field_id, void *aux_inp, bool use_gpu);
+  const bool *is_zero_flux_dir, enum gkyl_model_id model_id, enum gkyl_field_id field_id, 
+  bool use_vmap, void *aux_inp, bool use_gpu);
 
 /**
  * Acquire Vlasov equation object

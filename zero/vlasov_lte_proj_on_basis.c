@@ -196,6 +196,13 @@ gkyl_vlasov_lte_proj_on_basis_inew(const struct gkyl_vlasov_lte_proj_on_basis_in
   up->tot_conf_quad = init_quad_values(up->cdim, &up->conf_basis, num_quad,
     &up->conf_ordinates, &up->conf_weights, &up->conf_basis_at_ords, false);
 
+  if (inp->use_vmap) {
+    up->use_vmap = true;
+    gkyl_cart_modal_tensor(&up->vmap_basis, 1, 3);
+    up->vmap = gkyl_array_acquire(inp->vmap);
+    up->jacob_vel_gauss = gkyl_array_acquire(inp->jacob_vel_gauss);
+  }
+
   // initialize data needed for phase-space quadrature 
   up->tot_quad = init_quad_values(up->cdim, &up->phase_basis, num_quad,
     &up->ordinates, &up->weights, &up->basis_at_ords, false);
@@ -214,7 +221,10 @@ gkyl_vlasov_lte_proj_on_basis_inew(const struct gkyl_vlasov_lte_proj_on_basis_in
     }
   }
   up->conf_qrange = get_qrange(up->cdim, up->cdim, num_quad, num_quad_v, is_vdim_p2);
+  up->vel_qrange = get_qrange(up->vdim, up->vdim, num_quad_v, num_quad_v, is_vdim_p2);
   up->phase_qrange = get_qrange(up->cdim, up->pdim, num_quad, num_quad_v, is_vdim_p2);
+
+  up->vel_range = *inp->vel_range;
 
   long conf_local_ncells = inp->conf_range->volume;
   long conf_local_ext_ncells = inp->conf_range_ext->volume;
@@ -322,6 +332,9 @@ gkyl_vlasov_lte_proj_on_basis_inew(const struct gkyl_vlasov_lte_proj_on_basis_in
     .conf_range =  inp->conf_range,
     .conf_range_ext = inp->conf_range_ext,
     .vel_range = inp->vel_range,
+    .use_vmap = inp->use_vmap, 
+    .vmap = inp->vmap, 
+    .jacob_vel_inv = inp->jacob_vel_inv, 
     .gamma = inp->gamma,
     .gamma_inv = inp->gamma_inv,
     .h_ij_inv = inp->h_ij_inv,
@@ -433,6 +446,8 @@ gkyl_vlasov_lte_proj_on_basis_advance(gkyl_vlasov_lte_proj_on_basis *up,
     }
 
     // inner loop over velocity space
+    double jacob_vel_qidx;
+    int qidx_vel[GKYL_MAX_DIM];
     gkyl_range_deflate(&vel_rng, phase_range, rem_dir, conf_iter.idx);
     gkyl_range_iter_no_split_init(&vel_iter, &vel_rng);
     while (gkyl_range_iter_next(&vel_iter)) {
@@ -448,8 +463,30 @@ gkyl_vlasov_lte_proj_on_basis_advance(gkyl_vlasov_lte_proj_on_basis *up,
         int cqidx = gkyl_range_idx(&up->conf_qrange, qiter.idx);
         int pqidx = gkyl_range_idx(&up->phase_qrange, qiter.idx);
 
-        comp_to_phys(pdim, gkyl_array_cfetch(up->ordinates, pqidx),
-          up->phase_grid.dx, xc, xmu);
+        if (up->use_vmap) {
+          const double *xcomp_d = gkyl_array_cfetch(up->ordinates, pqidx);
+          long loc_vel = gkyl_range_idx(&up->vel_range, vel_iter.idx);
+          const double *vmap_d = gkyl_array_cfetch(up->vmap, loc_vel);
+          const double *jacob_vel_quad_d = gkyl_array_cfetch(up->jacob_vel_gauss, loc_vel);
+          double xcomp[1];
+          for (int vd=0; vd<vdim; vd++) {
+            xcomp[0] = xcomp_d[cdim+vd];
+            xmu[cdim+vd] = up->vmap_basis.eval_expand(xcomp, vmap_d+vd*up->vmap_basis.num_basis);
+          }
+          for (int i=0; i<vdim; ++i) {
+            qidx_vel[i] = qiter.idx[cdim+i];          
+          }
+          int vqidx = gkyl_range_idx(&up->vel_qrange, qidx_vel);
+          jacob_vel_qidx = jacob_vel_quad_d[qidx_vel[0]];
+          // printf("v = %g, jacob_vel_qidx = %g\n", xmu[cdim], jacob_vel_qidx);
+          // printf("qiter 0,1 = %d %d\n", qiter.idx[0], qiter.idx[1]);
+          // printf("loc_vel = %ld, vqidx = %d\n", loc_vel, vqidx);
+        }
+        else {
+          comp_to_phys(pdim, gkyl_array_cfetch(up->ordinates, pqidx),
+            up->phase_grid.dx, xc, xmu);
+          jacob_vel_qidx = 1.0;
+        }
 
         double *fq = gkyl_array_fetch(up->fun_at_ords, pqidx);
         fq[0] = f_floor;
@@ -465,7 +502,7 @@ gkyl_vlasov_lte_proj_on_basis_advance(gkyl_vlasov_lte_proj_on_basis *up,
               uu += (xmu[cdim+d]*xmu[cdim+d]);
             }
             double GammaV_quad = sqrt(1.0 + vv);
-            fq[0] += expamp_quad[cqidx]*exp((1.0/T_over_m_quad[cqidx]) 
+            fq[0] += jacob_vel_qidx*expamp_quad[cqidx]*exp((1.0/T_over_m_quad[cqidx]) 
               - (1.0/T_over_m_quad[cqidx])*(GammaV_quad*sqrt(1.0 + uu) - vu));
           }
           else if (up->is_canonical_pb) {

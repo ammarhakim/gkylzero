@@ -22,6 +22,9 @@ vm_species_moment_init(struct gkyl_vlasov_app *app, struct vm_species *s,
       .conf_range =  &app->local,
       .conf_range_ext = &app->local_ext,
       .vel_range = &s->local_vel,
+      .use_vmap = s->use_vmap, 
+      .vmap = s->vmap, 
+      .jacob_vel_inv = s->jacob_vel_inv, 
       .gamma = s->gamma,
       .gamma_inv = s->gamma_inv,
       .h_ij_inv = s->h_ij_inv,
@@ -35,16 +38,19 @@ vm_species_moment_init(struct gkyl_vlasov_app *app, struct vm_species *s,
   }
   else {
     if (s->model_id == GKYL_MODEL_SR) {
-      struct gkyl_mom_vlasov_sr_auxfields sr_inp = {.gamma = s->gamma};
+      struct gkyl_mom_vlasov_sr_auxfields sr_inp = { .gamma = s->gamma, 
+        .vmap = s->vmap, .jacob_vel_inv = s->jacob_vel_inv };
       sm->mcalc = gkyl_dg_updater_moment_new(&s->grid, &app->confBasis, 
-        &app->basis, &app->local, &s->local_vel, s->model_id, &sr_inp, 
+        &app->basis, &app->local, &s->local_vel, 
+        s->model_id, s->use_vmap, &sr_inp, 
         nm, is_integrated, app->use_gpu);
       num_mom = gkyl_dg_updater_moment_num_mom(sm->mcalc);
     }
     else {
       // No auxiliary fields for moments if not SR 
       sm->mcalc = gkyl_dg_updater_moment_new(&s->grid, &app->confBasis, 
-        &app->basis, &app->local, &s->local_vel, s->model_id, 0, 
+        &app->basis, &app->local, &s->local_vel, 
+        s->model_id, s->use_vmap, 0, 
         nm, is_integrated, app->use_gpu);   
       num_mom = gkyl_dg_updater_moment_num_mom(sm->mcalc); 
     }

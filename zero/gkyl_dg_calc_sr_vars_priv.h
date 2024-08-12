@@ -11,7 +11,7 @@
 #include <gkyl_util.h>
 #include <assert.h>
 
-typedef void (*p_vars_t)(const double *w, const double *dv, 
+typedef void (*p_vars_t)(const double *w, const double *dv, const double* vmap, 
   double* GKYL_RESTRICT gamma, double* GKYL_RESTRICT gamma_inv);
 
 typedef void (*sr_n_set_t)(int count, struct gkyl_nmat *A, struct gkyl_nmat *rhs, 
@@ -23,7 +23,7 @@ typedef void (*sr_n_copy_t)(int count, struct gkyl_nmat *x,
 typedef void (*sr_GammaV_t)(const double *u_i, double* GKYL_RESTRICT u_i_sq, 
   double* GKYL_RESTRICT GammaV, double* GKYL_RESTRICT GammaV_sq);
 
-typedef void (*sr_pressure_t)(const double *w, const double *dxv, 
+typedef void (*sr_pressure_t)(const double *w, const double *dxv, const double* vmap, 
   const double *gamma, const double *gamma_inv, 
   const double *u_i, const double *u_i_sq, 
   const double *GammaV, const double *GammaV_sq, 
@@ -52,6 +52,10 @@ struct gkyl_dg_calc_sr_vars {
   struct gkyl_rect_grid vel_grid; // Momentum (four-velocity)-space grid for cell spacing and cell center 
                                   // in gamma and 1/gamma computation.
   struct gkyl_range vel_range; // Momentum (four-velocity)-space range.
+
+  bool use_vmap; // bool to determine if we are using a mapped Momentum (four-velocity)-space grid
+  const struct gkyl_array* vmap; // mapping for Momentum (four-velocity)-space
+
   int poly_order; // polynomial order (determines whether we solve linear system or use basis_inv method).
   struct gkyl_range mem_range; // Configuration-space range for linear solve.
 
@@ -76,6 +80,16 @@ static const gkyl_dg_sr_p_vars_kern_list ser_sr_p_vars_kernels[] = {
   { NULL, NULL, sr_vars_lorentz_1v_ser_p2 }, // 0
   { NULL, NULL, sr_vars_lorentz_2v_ser_p2 }, // 1
   { NULL, NULL, sr_vars_lorentz_3v_ser_p2 }, // 2
+};
+
+// Particle Lorentz boost factor gamma = sqrt(1 + p^2) (also 1/gamma) 
+// mapped momentum (four-velocity)-space grid kernel list (Serendipity kernels).
+GKYL_CU_D
+static const gkyl_dg_sr_p_vars_kern_list ser_sr_p_vars_vmap_kernels[] = {
+  // 1x kernels
+  { NULL, NULL, sr_vars_lorentz_vmap_1v_ser_p2 }, // 0
+  { NULL, NULL, sr_vars_lorentz_vmap_2v_ser_p2 }, // 1
+  { NULL, NULL, sr_vars_lorentz_vmap_3v_ser_p2 }, // 2
 };
 
 // Set matrices for computing rest-frame density kernel list (Serendipity kernels).
@@ -134,6 +148,21 @@ static const gkyl_dg_sr_vars_pressure_kern_list ser_sr_vars_pressure_kernels[] =
   { NULL, sr_vars_pressure_3x3v_ser_p1, NULL }, // 5
 };
 
+// Compute rest-frame pressure 
+// mapped momentum (four-velocity)-space grid kernel list (Serendipity kernels).
+GKYL_CU_D
+static const gkyl_dg_sr_vars_pressure_kern_list ser_sr_vars_pressure_vmap_kernels[] = {
+  // 1x kernels
+  { NULL, sr_vars_pressure_vmap_1x1v_ser_p1, sr_vars_pressure_vmap_1x1v_ser_p2 }, // 0
+  { NULL, sr_vars_pressure_vmap_1x2v_ser_p1, sr_vars_pressure_vmap_1x2v_ser_p2 }, // 1
+  { NULL, sr_vars_pressure_vmap_1x3v_ser_p1, sr_vars_pressure_vmap_1x3v_ser_p2 }, // 2
+  // 2x kernels
+  { NULL, sr_vars_pressure_vmap_2x2v_ser_p1, sr_vars_pressure_vmap_2x2v_ser_p2 }, // 3
+  { NULL, sr_vars_pressure_vmap_2x3v_ser_p1, sr_vars_pressure_vmap_2x3v_ser_p2 }, // 4
+  // 3x kernels
+  { NULL, sr_vars_pressure_vmap_3x3v_ser_p1, NULL }, // 5
+};
+
 GKYL_CU_D
 static p_vars_t
 choose_sr_p_vars_kern(enum gkyl_basis_type b_type, int vdim, int poly_order)
@@ -141,6 +170,20 @@ choose_sr_p_vars_kern(enum gkyl_basis_type b_type, int vdim, int poly_order)
   switch (b_type) {
     case GKYL_BASIS_MODAL_SERENDIPITY:  
       return ser_sr_p_vars_kernels[vdim-1].kernels[poly_order];
+      break;
+    default:
+      assert(false);
+      break;  
+  }
+}
+
+GKYL_CU_D
+static p_vars_t
+choose_sr_p_vars_vmap_kern(enum gkyl_basis_type b_type, int vdim, int poly_order)
+{
+  switch (b_type) {
+    case GKYL_BASIS_MODAL_SERENDIPITY:  
+      return ser_sr_p_vars_vmap_kernels[vdim-1].kernels[poly_order];
       break;
     default:
       assert(false);
@@ -197,6 +240,20 @@ choose_sr_vars_pressure_kern(enum gkyl_basis_type b_type, int cdim, int vdim, in
   switch (b_type) {
     case GKYL_BASIS_MODAL_SERENDIPITY:    
       return ser_sr_vars_pressure_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
+      break;
+    default:
+      assert(false);
+      break;  
+  }
+}
+
+GKYL_CU_D
+static sr_pressure_t
+choose_sr_vars_pressure_vmap_kern(enum gkyl_basis_type b_type, int cdim, int vdim, int poly_order)
+{
+  switch (b_type) {
+    case GKYL_BASIS_MODAL_SERENDIPITY:    
+      return ser_sr_vars_pressure_vmap_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
       break;
     default:
       assert(false);

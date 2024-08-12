@@ -11,7 +11,8 @@
 gkyl_dg_calc_sr_vars*
 gkyl_dg_calc_sr_vars_new(const struct gkyl_rect_grid *phase_grid, const struct gkyl_rect_grid *vel_grid, 
   const struct gkyl_basis *conf_basis, const struct gkyl_basis *vel_basis, 
-  const struct gkyl_range *mem_range, const struct gkyl_range *vel_range, bool use_gpu)
+  const struct gkyl_range *mem_range, const struct gkyl_range *vel_range, 
+  const struct gkyl_array *vmap, bool use_vmap, bool use_gpu)
 {
 #ifdef GKYL_HAVE_CUDA
   if(use_gpu) {
@@ -37,11 +38,20 @@ gkyl_dg_calc_sr_vars_new(const struct gkyl_rect_grid *phase_grid, const struct g
   int poly_order_v = vel_basis->poly_order;
   enum gkyl_basis_type b_type_v = vel_basis->b_type;
 
-  up->sr_p_vars = choose_sr_p_vars_kern(b_type_v, vdim, poly_order_v);
+  up->use_vmap = use_vmap;
+  up->vmap = 0; 
+  if (up->use_vmap) {
+    up->vmap = gkyl_array_acquire(vmap);
+    up->sr_p_vars = choose_sr_p_vars_vmap_kern(b_type_v, vdim, poly_order_v);
+    up->sr_pressure = choose_sr_vars_pressure_vmap_kern(b_type, cdim, vdim, poly_order);
+  }
+  else {
+    up->sr_p_vars = choose_sr_p_vars_kern(b_type_v, vdim, poly_order_v);
+    up->sr_pressure = choose_sr_vars_pressure_kern(b_type, cdim, vdim, poly_order);    
+  }
   up->sr_n_set = choose_sr_vars_n_set_kern(b_type, cdim, vdim, poly_order);
   up->sr_n_copy = choose_sr_vars_n_copy_kern(b_type, cdim, vdim, poly_order);
   up->sr_GammaV = choose_sr_vars_GammaV_kern(b_type, cdim, vdim, poly_order);
-  up->sr_pressure = choose_sr_vars_pressure_kern(b_type, cdim, vdim, poly_order);
 
   // Linear system for solving for the drift velocity V_drift = M1i/M0 
   // and then computing the rest-frame density n = GammaV_inv*M0 
@@ -77,7 +87,9 @@ void gkyl_calc_sr_vars_init_p_vars(struct gkyl_dg_calc_sr_vars *up,
 
     double *gamma_d = gkyl_array_fetch(gamma, loc);
     double *gamma_inv_d = gkyl_array_fetch(gamma_inv, loc);
-    up->sr_p_vars(xc, up->vel_grid.dx, gamma_d, gamma_inv_d);
+    up->sr_p_vars(xc, up->vel_grid.dx, 
+      up->use_vmap ? gkyl_array_cfetch(up->vmap, loc) : 0, 
+      gamma_d, gamma_inv_d);
   }
 }
 
@@ -198,6 +210,7 @@ void gkyl_dg_calc_sr_vars_pressure(struct gkyl_dg_calc_sr_vars *up,
     double *sr_pressure_d = gkyl_array_fetch(sr_pressure, loc_conf);
 
     up->sr_pressure(xc, up->phase_grid.dx, 
+      up->use_vmap ? gkyl_array_cfetch(up->vmap, loc_vel) : 0, 
       gamma_d, gamma_inv_d, u_i_d, u_i_sq_d, GammaV_d, GammaV_sq_d, 
       f_d, sr_pressure_d);   
   }  
@@ -208,6 +221,10 @@ void gkyl_dg_calc_sr_vars_release(gkyl_dg_calc_sr_vars *up)
   gkyl_nmat_release(up->As);
   gkyl_nmat_release(up->xs);
   gkyl_nmat_linsolve_lu_release(up->mem);
+
+  if (up->use_vmap) {
+    gkyl_array_release(up->vmap);
+  }
 
   if (GKYL_IS_CU_ALLOC(up->flags))
     gkyl_cu_free(up->on_dev);

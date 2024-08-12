@@ -22,14 +22,15 @@ gkyl_dg_updater_vlasov*
 gkyl_dg_updater_vlasov_new(const struct gkyl_rect_grid *grid, 
   const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis, 
   const struct gkyl_range *conf_range, const struct gkyl_range *vel_range, const struct gkyl_range *phase_range,
-  const bool *is_zero_flux_dir, enum gkyl_model_id model_id, enum gkyl_field_id field_id, void *aux_inp, bool use_gpu)
+  const bool *is_zero_flux_dir, enum gkyl_model_id model_id, enum gkyl_field_id field_id, 
+  bool use_vmap, void *aux_inp, bool use_gpu)
 {
   gkyl_dg_updater_vlasov *up = gkyl_malloc(sizeof(gkyl_dg_updater_vlasov));
   up->model_id = model_id;
   up->field_id = field_id;
   up->use_gpu = use_gpu;
   if (up->model_id == GKYL_MODEL_SR) {
-    up->eqn_vlasov = gkyl_dg_vlasov_sr_new(cbasis, pbasis, conf_range, vel_range, up->field_id, up->use_gpu);
+    up->eqn_vlasov = gkyl_dg_vlasov_sr_new(cbasis, pbasis, conf_range, vel_range, up->field_id, use_vmap, up->use_gpu);
     struct gkyl_dg_vlasov_sr_auxfields *sr_inp = aux_inp;
     gkyl_vlasov_sr_set_auxfields(up->eqn_vlasov, *sr_inp);
   } 

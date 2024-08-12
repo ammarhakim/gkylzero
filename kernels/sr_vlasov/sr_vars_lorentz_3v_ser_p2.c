@@ -1,8 +1,9 @@
 #include <gkyl_sr_Gamma_kernels.h> 
-GKYL_CU_DH void sr_vars_lorentz_3v_ser_p2(const double *w, const double *dxv, double* GKYL_RESTRICT gamma, double* GKYL_RESTRICT gamma_inv) 
+GKYL_CU_DH void sr_vars_lorentz_3v_ser_p2(const double *w, const double *dxv, const double *vmap, double* GKYL_RESTRICT gamma, double* GKYL_RESTRICT gamma_inv) 
 { 
   // w:   Cell-center coordinates.
   // dxv: Cell spacing.
+  // vmap: Momentum-space nonuniform mapping (unused in uniform grid simulations).
   // gamma:  Particle Lorentz boost factor sqrt(1 + p^2).
   // gamma_inv: Inverse particle Lorentz boost factor 1/sqrt(1 + p^2).
  

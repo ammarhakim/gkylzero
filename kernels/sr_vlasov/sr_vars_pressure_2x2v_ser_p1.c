@@ -1,6 +1,7 @@
 #include <gkyl_sr_Gamma_kernels.h> 
-GKYL_CU_DH void sr_vars_pressure_2x2v_ser_p1(const double *w, const double *dxv, const double *gamma, const double *gamma_inv, const double *u_i, const double *u_i_sq, const double *GammaV, const double *GammaV_sq, const double *f, double* GKYL_RESTRICT sr_pressure) 
+GKYL_CU_DH void sr_vars_pressure_2x2v_ser_p1(const double *w, const double *dxv, const double *vmap, const double *gamma, const double *gamma_inv, const double *u_i, const double *u_i_sq, const double *GammaV, const double *GammaV_sq, const double *f, double* GKYL_RESTRICT sr_pressure) 
 { 
+  // vmap:        Momentum-space nonuniform mapping (unused in uniform grid simulations).
   // gamma:       Particle Lorentz boost factor sqrt(1 + p^2).
   // gamma_inv:   Inverse particle Lorentz boost factor 1/sqrt(1 + p^2).
   // u_i:         Spatial components of bulk four-velocity = GammaV*V_drift. 
