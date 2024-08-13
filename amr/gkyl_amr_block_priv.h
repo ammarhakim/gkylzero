@@ -28,6 +28,7 @@
 #include <gkyl_wv_gr_euler.h>
 #include <gkyl_wv_ten_moment.h>
 #include <gkyl_wv_maxwell.h>
+#include <gkyl_wv_euler_mixture.h>
 #include <rt_arg_parse.h>
 
 #include <thpool.h>
@@ -123,36 +124,70 @@ void euler_copy_bc(const struct gkyl_wv_eqn* eqn, double t, int nc, const double
 void gr_euler_copy_bc(const struct gkyl_wv_eqn* eqn, double t, int nc, const double* GKYL_RESTRICT skin, double* GKYL_RESTRICT ghost, void* ctx);
 
 /**
+* Boundary condition function for applying copy boundary conditions for the Euler mixture equations.
+*
+* @param eqn Base equation object.
+* @param t Current simulation time.
+* @param nc Number of boundary cells to which to apply copy boundary conditions.
+* @param skin Skin cells in boundary region (from which values are copied).
+* @param ghost Ghost cells in boundary region (to which values are copied).
+* @param ctx Context to pass to the function.
+*/
+void euler_mixture_copy_bc(const struct gkyl_wv_eqn* eqn, double t, int nc, const double* GKYL_RESTRICT skin, double* GKYL_RESTRICT ghost, void* ctx);
+
+/**
 * Initialize block AMR updaters for both physical (outer-block) and non-physical (inter-block) boundary conditions for the Euler equations.
 *
+* @param eqn Base equation object.
 * @param bdata Block-structured data for the Euler equations.
 * @param conn Topology/connectivity data for the block hierarchy.
 */
-void euler_block_bc_updaters_init(struct euler_block_data* bdata, const struct gkyl_block_connections* conn);
+void euler_block_bc_updaters_init(const struct gkyl_wv_eqn* eqn, struct euler_block_data* bdata, const struct gkyl_block_connections* conn);
 
 /**
 * Initialize nested block AMR updaters for both physical (outer-block) and non-physical (inter-block) boundary conditions for the Euler equations.
 *
+* @param eqn Base equation object.
 * @param bdata Block-structured data for the Euler equations.
 * @param conn Topology/connectivity data for the block hierarchy.
 */
-void euler_nested_block_bc_updaters_init(struct euler_block_data* bdata, const struct gkyl_block_connections* conn);
+void euler_nested_block_bc_updaters_init(const struct gkyl_wv_eqn* eqn, struct euler_block_data* bdata, const struct gkyl_block_connections* conn);
 
 /**
 * Initialize block AMR updaters for both physical (outer-block) and non-physical (inter-block) boundary conditions for the general relativistic Euler equations.
 *
+* @param eqn Base equation object.
 * @param bdata Block-structured data for the general relativistic Euler equations.
 * @param conn Topology/connectivity data for the block hierarchy.
 */
-void gr_euler_block_bc_updaters_init(struct euler_block_data* bdata, const struct gkyl_block_connections* conn);
+void gr_euler_block_bc_updaters_init(const struct gkyl_wv_eqn* eqn, struct euler_block_data* bdata, const struct gkyl_block_connections* conn);
 
 /**
 * Initialize nested block AMR updaters for both physical (outer-block) and non-physical (inter-block) boundary conditions for the general relativistic Euler equations.
 *
+* @param eqn Base equation object.
 * @param bdata Block-structured data for the general relativistic Euler equations.
 * @param conn Topology/connectivity data for the block hierarchy.
 */
-void gr_euler_nested_block_bc_updaters_init(struct euler_block_data* bdata, const struct gkyl_block_connections* conn);
+void gr_euler_nested_block_bc_updaters_init(const struct gkyl_wv_eqn* eqn, struct euler_block_data* bdata, const struct gkyl_block_connections* conn);
+
+/**
+* Initialize block AMR updaters for both physical (outer-block) and non-physical (inter-block) boundary conditions for the Euler mixture equations.
+*
+* @param eqn Base equation object.
+* @param bdata Block-structured data for the Euler mixture equations.
+* @param conn Topology/connectivity data for the block hierarchy.
+*/
+void euler_mixture_block_bc_updaters_init(const struct gkyl_wv_eqn* eqn, struct euler_block_data* bdata, const struct gkyl_block_connections* conn);
+
+/**
+* Initialize nested block AMR updaters for both physical (outer-block) and non-physical (inter-block) boundary conditions for the Euler mixture equations.
+*
+* @param eqn Base equation object.
+* @param bdata Block-structured data for the Euler mixture equations.
+* @param conn Topology/connectivity data for the block hierarchy.
+*/
+void euler_mixture_nested_block_bc_updaters_init(const struct gkyl_wv_eqn* eqn, struct euler_block_data* bdata, const struct gkyl_block_connections* conn);
 
 /**
 * Release block AMR updaters for both physical (outer-block) and non-physical (inter-block) boundary conditions for the Euler equations.

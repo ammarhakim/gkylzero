@@ -228,6 +228,46 @@ struct gr_euler2d_single_init {
 */
 void gr_euler2d_run_single(int argc, char **argv, struct gr_euler2d_single_init* init);
 
+// Initialization data for a 2D simulation using the Euler mixture equations, run with static, block-structured mesh refinement with a single refinement patch.
+struct euler_mixture2d_single_init {
+  int base_Nx;
+  int base_Ny;
+  int ref_factor;
+
+  double coarse_x1;
+  double coarse_y1;
+  double coarse_x2;
+  double coarse_y2;
+
+  double refined_x1;
+  double refined_y1;
+  double refined_x2;
+  double refined_y2;
+
+  evalf_t eval;
+  int num_species;
+  double* gas_gamma_s;
+
+  char euler_mixture_output[64];
+
+  bool low_order_flux;
+  double cfl_frac;
+
+  double t_end;
+  int num_frames;
+  double dt_failure_tol;
+  int num_failures_max;
+};
+
+/**
+* Run a 2D simulation using the Euler mixture equations, with static, block-structured mesh refinement with a single refinement patch.
+*
+* @param argc Number of command line arguments passed to the function.
+* @param argv Array of command line arguments passed to the function.
+* @param init Initialization data for the 2D general relativistic Euler equations.
+*/
+void euler_mixture2d_run_single(int argc, char **argv, struct euler_mixture2d_single_init* init);
+
 // Initialization data for a 2D simulation using the Euler equations, run with static, block-structured mesh refinement with a doubly-nested refinement patch.
 struct euler2d_double_init {
   int base_Nx;

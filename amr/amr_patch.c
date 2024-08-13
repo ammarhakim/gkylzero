@@ -8,7 +8,7 @@ skin_ghost_ranges_init_patch(struct skin_ghost_ranges_patch* sgr, const struct g
 }
 
 void
-euler_patch_bc_updaters_init(struct euler_patch_data* pdata, const struct gkyl_block_connections* conn)
+euler_patch_bc_updaters_init(const struct gkyl_wv_eqn* eqn, struct euler_patch_data* pdata, const struct gkyl_block_connections* conn)
 {
   int nghost[3];
   for (int i = 0; i < 3; i++) {
@@ -40,7 +40,7 @@ euler_patch_bc_updaters_init(struct euler_patch_data* pdata, const struct gkyl_b
 }
 
 void
-euler_nested_patch_bc_updaters_init(struct euler_patch_data* pdata, const struct gkyl_block_connections* conn)
+euler_nested_patch_bc_updaters_init(const struct gkyl_wv_eqn* eqn, struct euler_patch_data* pdata, const struct gkyl_block_connections* conn)
 {
   int nghost[5];
   for (int i = 0; i < 5; i++) {
@@ -72,7 +72,7 @@ euler_nested_patch_bc_updaters_init(struct euler_patch_data* pdata, const struct
 }
 
 void
-gr_euler_patch_bc_updaters_init(struct euler_patch_data* pdata, const struct gkyl_block_connections* conn)
+gr_euler_patch_bc_updaters_init(const struct gkyl_wv_eqn* eqn, struct euler_patch_data* pdata, const struct gkyl_block_connections* conn)
 {
   int nghost[3];
   for (int i = 0; i < 3; i++) {
@@ -104,7 +104,7 @@ gr_euler_patch_bc_updaters_init(struct euler_patch_data* pdata, const struct gky
 }
 
 void
-gr_euler_nested_patch_bc_updaters_init(struct euler_patch_data* pdata, const struct gkyl_block_connections* conn)
+gr_euler_nested_patch_bc_updaters_init(const struct gkyl_wv_eqn* eqn, struct euler_patch_data* pdata, const struct gkyl_block_connections* conn)
 {
   int nghost[5];
   for (int i = 0; i < 5; i++) {

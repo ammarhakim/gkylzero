@@ -77,7 +77,7 @@ gr_euler1d_run_single(int argc, char **argv, struct gr_euler1d_single_init* init
   struct gkyl_block_topo *ptopo = create_patch_topo();
 
   for (int i = 0; i < num_patches; i++) {
-    gr_euler_patch_bc_updaters_init(&mesh_pdata[i], &ptopo->conn[i]);
+    gr_euler_patch_bc_updaters_init(mesh_pdata[i].euler, &mesh_pdata[i], &ptopo->conn[i]);
   }
 
   for (int i = 0; i < num_patches; i++) {
@@ -281,7 +281,7 @@ gr_euler1d_run_double(int argc, char **argv, struct gr_euler1d_double_init* init
   struct gkyl_block_topo *ptopo = create_nested_patch_topo();
 
   for (int i = 0; i < num_patches; i++) {
-    gr_euler_nested_patch_bc_updaters_init(&mesh_pdata[i], &ptopo->conn[i]);
+    gr_euler_nested_patch_bc_updaters_init(mesh_pdata[i].euler, &mesh_pdata[i], &ptopo->conn[i]);
   }
 
   for (int i = 0; i < num_patches; i++) {
@@ -511,7 +511,7 @@ gr_euler2d_run_single(int argc, char **argv, struct gr_euler2d_single_init* init
   struct gkyl_block_topo *btopo = create_block_topo();
 
   for (int i = 0; i < num_blocks; i++) {
-    gr_euler_block_bc_updaters_init(&mesh_bdata[i], &btopo->conn[i]);
+    gr_euler_block_bc_updaters_init(mesh_bdata[i].euler, &mesh_bdata[i], &btopo->conn[i]);
   }
 
   for (int i = 0; i < num_blocks; i++) {
@@ -776,7 +776,7 @@ gr_euler2d_run_double(int argc, char **argv, struct gr_euler2d_double_init* init
   struct gkyl_block_topo *btopo = create_nested_block_topo();
 
   for (int i = 0; i < num_blocks; i++) {
-    gr_euler_nested_block_bc_updaters_init(&mesh_bdata[i], &btopo->conn[i]);
+    gr_euler_nested_block_bc_updaters_init(mesh_bdata[i].euler, &mesh_bdata[i], &btopo->conn[i]);
   }
 
   for (int i = 0; i < num_blocks; i++) {
