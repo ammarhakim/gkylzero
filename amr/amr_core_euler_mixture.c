@@ -32,6 +32,12 @@ euler_mixture2d_run_single(int argc, char **argv, struct euler_mixture2d_single_
   int num_species = init->num_species;
   double *gas_gamma_s = init->gas_gamma_s;
 
+  bool copy_x = init->copy_x;
+  bool copy_y = init->copy_y;
+  
+  bool wall_x = init->wall_x;
+  bool wall_y = init->wall_y;
+
   char euler_mixture_output[64];
   strcpy(euler_mixture_output, init->euler_mixture_output);
   
@@ -78,6 +84,12 @@ euler_mixture2d_run_single(int argc, char **argv, struct euler_mixture2d_single_
   for (int i = 0; i < num_blocks; i++) {
     gkyl_create_grid_ranges(&mesh_bdata[i].grid, (int []) { 2, 2 }, &mesh_bdata[i].ext_range, &mesh_bdata[i].range);
     mesh_bdata[i].geom = gkyl_wave_geom_new(&mesh_bdata[i].grid, &mesh_bdata[i].ext_range, 0, 0, false);
+
+    mesh_bdata[i].copy_x = copy_x;
+    mesh_bdata[i].copy_y = copy_y;
+
+    mesh_bdata[i].wall_x = wall_x;
+    mesh_bdata[i].wall_y = wall_y;
   }
 
   for (int i = 0; i < num_blocks; i++) {

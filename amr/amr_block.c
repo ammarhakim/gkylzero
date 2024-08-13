@@ -13,6 +13,19 @@ skin_ghost_ranges_init_block(struct skin_ghost_ranges_block* sgr, const struct g
 }
 
 void
+euler_mixture_wall_bc(const struct gkyl_wv_eqn* eqn, double t, int nc, const double* GKYL_RESTRICT skin, double* GKYL_RESTRICT ghost, void* ctx)
+{
+  const struct wv_euler_mixture *euler_mixture = container_of(eqn, struct wv_euler_mixture, eqn);
+  int num_species = euler_mixture->num_species;
+
+  for (int i = 0; i < 4 + (2 * num_species); i++) {
+    ghost[i] = skin[i];
+  }
+
+  ghost[1] = -ghost[1];
+}
+
+void
 euler_copy_bc(const struct gkyl_wv_eqn* eqn, double t, int nc, const double* GKYL_RESTRICT skin, double* GKYL_RESTRICT ghost, void* ctx)
 {
   for (int i = 0; i < 5; i++) {
@@ -194,17 +207,36 @@ euler_mixture_block_bc_updaters_init(const struct gkyl_wv_eqn* eqn, struct euler
     nghost[i] = 2;
   }
 
+  bool wall_x = bdata->wall_x;
+  bool wall_y = bdata->wall_y;
+
+  bool copy_x = bdata->copy_x;
+  bool copy_y = bdata->copy_y;
+
   for (int d = 0; d < 2; d++) {
     bdata->lower_bc[d] = bdata->upper_bc[d] = 0;
 
-    if (conn->connections[d][0].edge == GKYL_PHYSICAL) {
-      bdata->lower_bc[d] = gkyl_wv_apply_bc_new(&bdata->grid, bdata->euler, bdata->geom, d, GKYL_LOWER_EDGE, nghost,
-        euler_mixture_copy_bc, 0);
-    }
+    if ((d == 0 && wall_x) || (d == 1 && wall_y)) {
+      if (conn->connections[d][0].edge == GKYL_PHYSICAL) {
+        bdata->lower_bc[d] = gkyl_wv_apply_bc_new(&bdata->grid, bdata->euler, bdata->geom, d, GKYL_LOWER_EDGE, nghost,
+          euler_mixture_wall_bc, 0);
+      }
 
-    if (conn->connections[d][1].edge == GKYL_PHYSICAL) {
-      bdata->upper_bc[d] = gkyl_wv_apply_bc_new(&bdata->grid, bdata->euler, bdata->geom, d, GKYL_UPPER_EDGE, nghost,
-        euler_mixture_copy_bc, 0);
+      if (conn->connections[d][1].edge == GKYL_PHYSICAL) {
+        bdata->upper_bc[d] = gkyl_wv_apply_bc_new(&bdata->grid, bdata->euler, bdata->geom, d, GKYL_UPPER_EDGE, nghost,
+          euler_mixture_wall_bc, 0);
+      }
+    }
+    else if ((d == 0 && copy_x) || (d == 1 && copy_y)) {
+      if (conn->connections[d][0].edge == GKYL_PHYSICAL) {
+        bdata->lower_bc[d] = gkyl_wv_apply_bc_new(&bdata->grid, bdata->euler, bdata->geom, d, GKYL_LOWER_EDGE, nghost,
+          euler_mixture_copy_bc, 0);
+      }
+
+      if (conn->connections[d][1].edge == GKYL_PHYSICAL) {
+        bdata->upper_bc[d] = gkyl_wv_apply_bc_new(&bdata->grid, bdata->euler, bdata->geom, d, GKYL_UPPER_EDGE, nghost,
+          euler_mixture_copy_bc, 0);
+      }
     }
   }
 

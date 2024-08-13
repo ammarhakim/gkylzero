@@ -66,6 +66,12 @@ struct euler_block_data {
 
   struct gkyl_wv_apply_bc *lower_bc[2];
   struct gkyl_wv_apply_bc *upper_bc[2];
+
+  bool copy_x;
+  bool copy_y;
+  
+  bool wall_x;
+  bool wall_y;
 };
 
 // Job pool information context for updating block-structured data for the Euler equations using threads.
@@ -98,6 +104,18 @@ struct sim_stats {
 * @param ghost Number of ghost (and therefore skin) cells.
 */
 void skin_ghost_ranges_init_block(struct skin_ghost_ranges_block* sgr, const struct gkyl_range* parent, const int* ghost);
+
+/**
+* Boundary condition function for applying wall boundary conditions for the Euler mixture equations.
+*
+* @param eqn Base equation object.
+* @param t Current simulation time.
+* @param nc Number of boundary cells to which to apply wall boundary conditions.
+* @param skin Skin cells in boundary region (from which values are copied).
+* @param ghost Ghost cells in boundary region (to which values are copied).
+* @param ctx Context to pass to the function.
+*/
+void euler_mixture_wall_bc(const struct gkyl_wv_eqn* eqn, double t, int nc, const double* GKYL_RESTRICT skin, double* GKYL_RESTRICT ghost, void* ctx);
 
 /**
 * Boundary condition function for applying copy boundary conditions for the Euler equations.

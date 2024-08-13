@@ -70,12 +70,12 @@ create_ctx(void)
   double p_bub = 1.0 / gas_gamma1; // Bubble fluid pressure.
 
   // Simulation parameters.
-  int Nx = 16; // Coarse cell count (x-direction).
-  int Ny = 4; // Coarse cell count (y-direction).
+  int Nx = 32; // Coarse cell count (x-direction).
+  int Ny = 8; // Coarse cell count (y-direction).
   int ref_factor = 4; // Refinement factor.
   double Lx = 0.325; // Coarse domain size (x-direction).
   double Ly = 0.089; // Coarse domain size (y-direction).
-  double fine_Lx = 0.18; // Fine domain size (x-direction).
+  double fine_Lx = 0.24; // Fine domain size (x-direction).
   double fine_Ly = 0.06; // Fine domain size (y-direction).
   double cfl_frac = 0.95; // CFL coefficient.
 
@@ -229,14 +229,20 @@ int main(int argc, char **argv)
     .coarse_x2 = ctx.Lx,
     .coarse_y2 = ctx.Ly,
 
-    .refined_x1 = (0.35 * ctx.Lx) - (0.5 * ctx.fine_Lx),
+    .refined_x1 = (0.5 * ctx.Lx) - (0.5 * ctx.fine_Lx),
     .refined_y1 = (0.5 * ctx.Ly) - (0.5 * ctx.fine_Ly),
-    .refined_x2 = (0.35 * ctx.Lx) + (0.5 * ctx.fine_Lx),
+    .refined_x2 = (0.5 * ctx.Lx) + (0.5 * ctx.fine_Lx),
     .refined_y2 = (0.5 * ctx.Ly) + (0.5 * ctx.fine_Ly),
 
     .eval = evalEulerMixtureInit,
     .num_species = 2,
     .gas_gamma_s = gas_gamma_s,
+
+    .copy_x = true,
+    .copy_y = false,
+
+    .wall_x = false,
+    .wall_y = true,
 
     .euler_mixture_output = "amr_euler_mixture_shock_bubble_l1",
 

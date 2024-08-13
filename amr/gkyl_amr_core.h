@@ -248,6 +248,12 @@ struct euler_mixture2d_single_init {
   int num_species;
   double* gas_gamma_s;
 
+  bool copy_x;
+  bool copy_y;
+  
+  bool wall_x;
+  bool wall_y;
+
   char euler_mixture_output[64];
 
   bool low_order_flux;
