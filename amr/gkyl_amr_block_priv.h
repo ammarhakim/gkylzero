@@ -101,24 +101,26 @@ void skin_ghost_ranges_init_block(struct skin_ghost_ranges_block* sgr, const str
 /**
 * Boundary condition function for applying copy boundary conditions for the Euler equations.
 *
+* @param eqn Base equation object.
 * @param t Current simulation time.
 * @param nc Number of boundary cells to which to apply copy boundary conditions.
 * @param skin Skin cells in boundary region (from which values are copied).
 * @param ghost Ghost cells in boundary region (to which values are copied).
 * @param ctx Context to pass to the function.
 */
-void euler_copy_bc(double t, int nc, const double* GKYL_RESTRICT skin, double* GKYL_RESTRICT ghost, void* ctx);
+void euler_copy_bc(const struct gkyl_wv_eqn* eqn, double t, int nc, const double* GKYL_RESTRICT skin, double* GKYL_RESTRICT ghost, void* ctx);
 
 /**
 * Boundary condition function for applying copy boundary conditions for the general relativistic Euler equations.
 *
+* @param eqn Base equation object.
 * @param t Current simulation time.
 * @param nc Number of boundary cells to which to apply copy boundary conditions.
 * @param skin Skin cells in boundary region (from which values are copied).
 * @param ghost Ghost cells in boundary region (to which values are copied).
 * @param ctx Context to pass to the function.
 */
-void gr_euler_copy_bc(double t, int nc, const double* GKYL_RESTRICT skin, double* GKYL_RESTRICT ghost, void* ctx);
+void gr_euler_copy_bc(const struct gkyl_wv_eqn* eqn, double t, int nc, const double* GKYL_RESTRICT skin, double* GKYL_RESTRICT ghost, void* ctx);
 
 /**
 * Initialize block AMR updaters for both physical (outer-block) and non-physical (inter-block) boundary conditions for the Euler equations.

@@ -12,7 +12,7 @@ skin_ghost_ranges_init_block(struct skin_ghost_ranges_block* sgr, const struct g
 }
 
 void
-euler_copy_bc(double t, int nc, const double* GKYL_RESTRICT skin, double* GKYL_RESTRICT ghost, void* ctx)
+euler_copy_bc(const struct gkyl_wv_eqn* eqn, double t, int nc, const double* GKYL_RESTRICT skin, double* GKYL_RESTRICT ghost, void* ctx)
 {
   for (int i = 0; i < 5; i++) {
     ghost[i] = skin[i];
@@ -20,7 +20,7 @@ euler_copy_bc(double t, int nc, const double* GKYL_RESTRICT skin, double* GKYL_R
 }
 
 void
-gr_euler_copy_bc(double t, int nc, const double* GKYL_RESTRICT skin, double* GKYL_RESTRICT ghost, void* ctx)
+gr_euler_copy_bc(const struct gkyl_wv_eqn* eqn, double t, int nc, const double* GKYL_RESTRICT skin, double* GKYL_RESTRICT ghost, void* ctx)
 {
   for (int i = 0; i < 29; i++) {
     ghost[i] = skin[i];

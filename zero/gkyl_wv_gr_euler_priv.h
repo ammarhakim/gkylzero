@@ -87,6 +87,7 @@ riem_to_cons(const struct gkyl_wv_eqn* eqn, const double* qstate, const double* 
 /**
 * Boundary condition function for applying wall boundary conditions for the general relativistic Euler equations.
 *
+* @param eqn Base equation object.
 * @param t Current simulation time.
 * @param nc Number of boundary cells to which to apply wall boundary conditions.
 * @param skin Skin cells in boundary region (from which values are copied).
@@ -95,11 +96,12 @@ riem_to_cons(const struct gkyl_wv_eqn* eqn, const double* qstate, const double* 
 */
 GKYL_CU_D
 static void
-gr_euler_wall(double t, int nc, const double* skin, double* GKYL_RESTRICT ghost, void* ctx);
+gr_euler_wall(const struct gkyl_wv_eqn* eqn, double t, int nc, const double* skin, double* GKYL_RESTRICT ghost, void* ctx);
 
 /**
 * Boundary condition function for applying no-slip boundary conditions for the general relativistic Euler equations.
 *
+* @param eqn Base equation object.
 * @param t Current simulation time.
 * @param nc Number of boundary cells to which to apply no-slip boundary conditions.
 * @param skin Skin cells in boundary region (from which values are copied).
@@ -108,7 +110,7 @@ gr_euler_wall(double t, int nc, const double* skin, double* GKYL_RESTRICT ghost,
 */
 GKYL_CU_D
 static void
-gr_euler_no_slip(double t, int nc, const double* skin, double* GKYL_RESTRICT ghost, void* ctx);
+gr_euler_no_slip(const struct gkyl_wv_eqn* eqn, double t, int nc, const double* skin, double* GKYL_RESTRICT ghost, void* ctx);
 
 /**
 * Rotate state vector from global to local coordinate frame.

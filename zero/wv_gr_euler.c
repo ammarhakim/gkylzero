@@ -471,7 +471,7 @@ riem_to_cons(const struct gkyl_wv_eqn* eqn, const double* qstate, const double* 
 }
 
 static void
-gr_euler_wall(double t, int nc, const double* skin, double* GKYL_RESTRICT ghost, void* ctx)
+gr_euler_wall(const struct gkyl_wv_eqn* eqn, double t, int nc, const double* skin, double* GKYL_RESTRICT ghost, void* ctx)
 {
   for (int i = 0; i < 29; i++) {
     ghost[i] = skin[i];
@@ -481,7 +481,7 @@ gr_euler_wall(double t, int nc, const double* skin, double* GKYL_RESTRICT ghost,
 }
 
 static void
-gr_euler_no_slip(double t, int nc, const double* skin, double* GKYL_RESTRICT ghost, void* ctx)
+gr_euler_no_slip(const struct gkyl_wv_eqn* eqn, double t, int nc, const double* skin, double* GKYL_RESTRICT ghost, void* ctx)
 {
   for (int i = 1; i < 4; i++) {
     ghost[i] = -skin[i];

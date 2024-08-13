@@ -147,7 +147,7 @@ gkyl_ten_moment_flux(const double q[10], double flux[10])
 // Ten moment perfectly reflecting wall
 GKYL_CU_D
 static void
-ten_moment_wall(double t, int nc, const double *skin, double * GKYL_RESTRICT ghost, void *ctx)
+ten_moment_wall(const struct gkyl_wv_eqn* eqn, double t, int nc, const double *skin, double * GKYL_RESTRICT ghost, void *ctx)
 {
   // copy density and Pxx, Pyy, and Pzz
   ghost[0] = skin[0];

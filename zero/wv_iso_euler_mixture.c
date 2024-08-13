@@ -153,9 +153,10 @@ riem_to_cons(const struct gkyl_wv_eqn* eqn, const double* qstate, const double* 
 }
 
 static void
-iso_euler_mixture_wall(double t, int nc, const double* skin, double* GKYL_RESTRICT ghost, void* ctx)
+iso_euler_mixture_wall(const struct gkyl_wv_eqn* eqn, double t, int nc, const double* skin, double* GKYL_RESTRICT ghost, void* ctx)
 {
-  long num_species = 2;
+  const struct wv_iso_euler_mixture *iso_euler_mixture = container_of(eqn, struct wv_iso_euler_mixture, eqn);
+  int num_species = iso_euler_mixture->num_species;
 
   for (int i = 0; i < 3 + (2 * num_species); i++) {
     ghost[i] = skin[i];
@@ -165,9 +166,10 @@ iso_euler_mixture_wall(double t, int nc, const double* skin, double* GKYL_RESTRI
 }
 
 static void
-iso_euler_mixture_no_slip(double t, int nc, const double* skin, double* GKYL_RESTRICT ghost, void* ctx)
+iso_euler_mixture_no_slip(const struct gkyl_wv_eqn* eqn, double t, int nc, const double* skin, double* GKYL_RESTRICT ghost, void* ctx)
 {
-  long num_species = 2;
+  const struct wv_iso_euler_mixture *iso_euler_mixture = container_of(eqn, struct wv_iso_euler_mixture, eqn);
+  int num_species = iso_euler_mixture->num_species;
 
   for (int i = 0; i < 3 + (2 * num_species); i++) {
     if (i > 0 && i < 4) {
