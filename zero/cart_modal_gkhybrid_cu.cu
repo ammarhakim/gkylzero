@@ -28,8 +28,6 @@ gkyl_cart_modal_gkhybrid_cu_dev_kern(struct gkyl_basis *basis, int cdim, int vdi
   basis->eval = ev_list[ndim].ev[1];
   basis->eval_expand = eve_list[ndim].ev[1];
   basis->eval_grad_expand = eveg_list[ndim].ev[1];
-  basis->eval_laplacian_expand = evel_list[ndim].ev[1];
-  basis->eval_mixedpartial_expand = evem_list[ndim].ev[1];
   basis->flip_odd_sign = fos_list[ndim].fs[1];
   basis->flip_even_sign = fes_list[ndim].fs[1];
   basis->node_list = nl_list[ndim].nl[1];

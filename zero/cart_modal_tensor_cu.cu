@@ -24,8 +24,6 @@ gkyl_cart_modal_tensor_cu_dev_kern(struct gkyl_basis *basis, int ndim, int poly_
   basis->eval = ev_list[ndim].ev[poly_order];
   basis->eval_expand = eve_list[ndim].ev[poly_order];
   basis->eval_grad_expand = eveg_list[ndim].ev[poly_order];
-  basis->eval_laplacian_expand = evel_list[ndim].ev[poly_order];
-  basis->eval_mixedpartial_expand = evem_list[ndim].ev[poly_order];
   basis->flip_odd_sign = fos_list[ndim].fs[poly_order];
   basis->flip_even_sign = fes_list[ndim].fs[poly_order];
   basis->node_list = nl_list[ndim].nl[poly_order];

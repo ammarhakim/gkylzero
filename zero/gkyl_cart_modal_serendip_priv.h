@@ -38,30 +38,6 @@ static struct { double (*ev[4])(int dir, const double *z, const double *f); } ev
   { eval_grad_expand_6d_ser_p0, eval_grad_expand_6d_ser_p1, NULL, NULL },
 };
 
-// Expansion eval_laplacian for each dimension: evel_list[ndim].ev[poly_order]
-GKYL_CU_D
-static struct { double (*ev[4])(int dir, const double *z, const double *f); } evel_list[] = {
-  { NULL, NULL, NULL, NULL }, // No 0D basis functions
-  { NULL, NULL, NULL, NULL },
-  { NULL, NULL, NULL, NULL},
-  { NULL, NULL, NULL, NULL },
-  { NULL, NULL, NULL, NULL },
-  { NULL, NULL, NULL, NULL },
-  { NULL, NULL, NULL, NULL },
-};
-
-// Expansion eval_laplacian for each dimension: evel_list[ndim].ev[poly_order]
-GKYL_CU_D
-static struct { double (*ev[4])(const double *z, const double *f); } evem_list[] = {
-  { NULL, NULL, NULL, NULL }, // No 0D basis functions
-  { NULL, NULL, NULL, NULL },
-  { NULL, NULL, NULL, NULL},
-  { NULL, NULL, NULL, NULL },
-  { NULL, NULL, NULL, NULL },
-  { NULL, NULL, NULL, NULL },
-  { NULL, NULL, NULL, NULL },
-};
-
 // Flip-sign functions: ev_list[ndim].ev[poly_order]
 GKYL_CU_D
 static struct { void (*fs[4])(int dir, const double *f, double *fout); } fos_list[] = {

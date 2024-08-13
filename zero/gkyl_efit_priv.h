@@ -1,4 +1,5 @@
 #include <gkyl_efit.h>
+#include <gkyl_dg_basis_ops.h>
 
 bool 
 newton_raphson(struct gkyl_efit *up, const double *coeffs, double *xsol, bool cubics);

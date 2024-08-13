@@ -5,8 +5,6 @@ EXTERN_C_BEG
 GKYL_CU_DH void eval_2d_tensor_p2(const double *z, double *b);
 GKYL_CU_DH double eval_expand_2d_tensor_p2(const double *z, const double *f);
 GKYL_CU_DH double eval_grad_expand_2d_tensor_p2(int dir, const double *z, const double *f);
-GKYL_CU_DH double eval_laplacian_expand_2d_tensor_p2(int dir, const double *z, const double *f);
-GKYL_CU_DH double eval_mixedpartial_expand_2d_tensor_p2(const double *z, const double *f);
 GKYL_CU_DH void flip_odd_sign_2d_tensor_p2(int dir, const double *f, double *fout );
 GKYL_CU_DH void flip_even_sign_2d_tensor_p2(int dir, const double *f, double *fout );
 GKYL_CU_DH void node_coords_2d_tensor_p2(double *node_coords);
@@ -15,8 +13,6 @@ GKYL_CU_DH void quad_to_modal_2d_tensor_p2(const double *fquad, double *fmodal);
 GKYL_CU_DH void eval_2d_tensor_p3(const double *z, double *b);
 GKYL_CU_DH double eval_expand_2d_tensor_p3(const double *z, const double *f);
 GKYL_CU_DH double eval_grad_expand_2d_tensor_p3(int dir, const double *z, const double *f);
-GKYL_CU_DH double eval_laplacian_expand_2d_tensor_p3(int dir, const double *z, const double *f);
-GKYL_CU_DH double eval_mixedpartial_expand_2d_tensor_p3(const double *z, const double *f);
 GKYL_CU_DH void flip_odd_sign_2d_tensor_p3(int dir, const double *f, double *fout );
 GKYL_CU_DH void flip_even_sign_2d_tensor_p3(int dir, const double *f, double *fout );
 GKYL_CU_DH void node_coords_2d_tensor_p3(double *node_coords);

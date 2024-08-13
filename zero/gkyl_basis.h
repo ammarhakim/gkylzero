@@ -49,27 +49,6 @@ struct gkyl_basis {
   double (*eval_grad_expand)(int dir, const double *z, const double *f);
 
 /**
- * Evaluate laplacian, given expansion at point in the logical cell
- * (hypercube)
- *
- * @param dir Direction to compute gradient
- * @param z Location to evaluate exansion. z \in [-1,1]^n
- * @param f Expansion coefficients
- * @return Expansion evaluated at z
- */
-  double (*eval_laplacian_expand)(int dir, const double *z, const double *f);
-
-/**
- * Evaluate mixed partial derivative, given expansion at point in the logical cell
- * (hypercube)
- *
- * @param z Location to evaluate exansion. z \in [-1,1]^n
- * @param f Expansion coefficients
- * @return Expansion evaluated at z
- */
-  double (*eval_mixedpartial_expand)(const double *z, const double *f);
-
-/**
  * Flip-sign function: changes signs of input expansion cofficients by
  * changing sign of odd monomial powers in specified direction. So if
  * dir=0, all odd powers of x appearing in the expansion will have

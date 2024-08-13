@@ -1,6 +1,29 @@
 #include <gkyl_efit_priv.h>
 #include <float.h>
 
+static double
+eval_laplacian_expand_2d_tensor_p2(int dir, const double *z, const double *f )
+{
+  const double z0 = z[0];
+  const double z1 = z[1];
+  if (dir == 0)
+    return 11.25*f[8]*z1*z1+5.809475019311125*f[6]*z1-3.75*f[8]+3.354101966249685*f[4];
+  if (dir == 1)
+    return 11.25*f[8]*z0*z0+5.809475019311125*f[7]*z0-3.75*f[8]+3.354101966249685*f[5];
+
+  return 0.0; // can't happen, suppresses warning
+
+}
+
+static double
+eval_mixedpartial_expand_2d_tensor_p2(const double *z, const double *f )
+{
+  const double z0 = z[0];
+  const double z1 = z[1];
+  return 22.5*f[8]*z0*z1+5.809475019311125*f[7]*z1+5.809475019311125*f[6]*z0+1.5*f[3]; 
+
+}
+
 static void print_result(int n, double x[], double dx[], double errx, double errf, int niter)
 {
   double x0 = x[0];
@@ -34,17 +57,17 @@ newton_raphson(struct gkyl_efit *up, const double *coeffs, double *xsol, bool cu
   for(int niter = 0; niter < ntrial; niter++) {
     if (cubics) {
       for(int i=0; i<n; i++) fvec[i] = up->rzbasis_cubic.eval_grad_expand(i,x,coeffs);
-      fjac[0][0] = up->rzbasis_cubic.eval_laplacian_expand(0,x,coeffs);
-      fjac[0][1] = up->rzbasis_cubic.eval_mixedpartial_expand(x,coeffs);
-      fjac[1][0] = up->rzbasis_cubic.eval_mixedpartial_expand(x,coeffs);
-      fjac[1][1] = up->rzbasis_cubic.eval_laplacian_expand(1,x,coeffs);
+      fjac[0][0] = up->evf->eval_cubic_laplacian(0,x,coeffs);
+      fjac[0][1] = up->evf->eval_cubic_mixedpartial(x,coeffs);
+      fjac[1][0] = up->evf->eval_cubic_mixedpartial(x,coeffs);
+      fjac[1][1] = up->evf->eval_cubic_laplacian(1,x,coeffs);
     }
     else {
       for(int i=0; i<n; i++) fvec[i] = up->rzbasis.eval_grad_expand(i,x,coeffs);
-      fjac[0][0] = up->rzbasis.eval_laplacian_expand(0,x,coeffs);
-      fjac[0][1] = up->rzbasis.eval_mixedpartial_expand(x,coeffs);
-      fjac[1][0] = up->rzbasis.eval_mixedpartial_expand(x,coeffs);
-      fjac[1][1] = up->rzbasis.eval_laplacian_expand(1,x,coeffs);
+      fjac[0][0] = eval_laplacian_expand_2d_tensor_p2(0,x,coeffs);
+      fjac[0][1] = eval_mixedpartial_expand_2d_tensor_p2(x,coeffs);
+      fjac[1][0] = eval_mixedpartial_expand_2d_tensor_p2(x,coeffs);
+      fjac[1][1] = eval_laplacian_expand_2d_tensor_p2(1,x,coeffs);
     }
     errf = 0.0;
     for (int i=0;i<n;i++) errf += fvec[i]*fvec[i];

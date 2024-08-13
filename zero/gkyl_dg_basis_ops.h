@@ -10,6 +10,27 @@
 // Type for storing preallocating memory needed in various operations
 typedef struct gkyl_dg_basis_op_mem gkyl_dg_basis_op_mem;
 
+/**
+ * Evaluate laplacian, given expansion at point in the logical cell
+ * (hypercube)
+ *
+ * @param dir Direction to compute gradient
+ * @param z Location to evaluate exansion. z \in [-1,1]^n
+ * @param f Expansion coefficients
+ * @return Expansion evaluated at z
+ */
+typedef double (*eval_laplacian_expand)(int dir, const double *z, const double *f);
+
+/**
+ * Evaluate mixed partial derivative, given expansion at point in the logical cell
+ * (hypercube)
+ *
+ * @param z Location to evaluate exansion. z \in [-1,1]^n
+ * @param f Expansion coefficients
+ * @return Expansion evaluated at z
+ */
+typedef double (*eval_mixedpartial_expand)(const double *z, const double *f);
+
 // Function pointer and context for use in updater that expect evalf_t
 // function pointers. This struct essentially wraps the cubic
 // interpolation in 1D and 2D.
@@ -18,6 +39,8 @@ struct gkyl_basis_ops_evalf {
   evalf_t eval_cubic; // function pointer to evaluate the cubic
   evalf_t eval_cubic_wgrad; // function pointer to evaluate the cubic & its gradient
   evalf_t eval_cubic_wgrad2; // function pointer to evaluate the cubic & its 2nd derivatives
+  eval_laplacian_expand eval_cubic_laplacian; // function pointer to evaluate the laplacian
+  eval_mixedpartial_expand eval_cubic_mixedpartial; // function pointer to evaluate the mixed partial
   struct gkyl_ref_count ref_count;   
 };  
 

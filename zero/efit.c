@@ -11,7 +11,6 @@
 #include <gkyl_efit_priv.h>
 
 #include <gkyl_array.h>
-#include <gkyl_dg_basis_ops.h>
 #include <gkyl_range.h>
 #include <gkyl_nodal_ops.h>
 #include <assert.h>
