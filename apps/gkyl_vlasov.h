@@ -94,6 +94,7 @@ struct gkyl_vlasov_radiation {
 struct gkyl_vlasov_source {
   enum gkyl_source_id source_id; // type of source
   bool write_source; // optional parameter to write out source
+  bool source_evolve; 
   int num_sources;
 
   double source_length; // required for boundary flux source

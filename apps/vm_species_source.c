@@ -31,6 +31,7 @@ vm_species_source_init(struct gkyl_vlasov_app *app, struct vm_species *s, struct
   src->scale_factor = 1.0;
   
   src->write_source = s->info.source.write_source; // optional flag to write out source
+  src->source_evolve = s->info.source.source_evolve; // are the sources time-dependent?
 
   src->num_sources = s->info.source.num_sources;
   for (int k=0; k<s->info.source.num_sources; k++) {

@@ -255,6 +255,7 @@ struct vm_proj {
 
 struct vm_source {
   bool write_source; // optional parameter to write out source distribution
+  bool source_evolve; // flag to indicate sources are time dependent
 
   bool calc_bflux; // flag for calculating boundary fluxes
   struct vm_boundary_fluxes bflux; // boundary flux object
