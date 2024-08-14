@@ -696,9 +696,8 @@ int main(int argc, char **argv)
       .lower={.type = GKYL_SPECIES_GK_SHEATH,},
       .upper={.type = GKYL_SPECIES_GK_SHEATH,},
     },
-
-    .num_diag_moments = 7, // Copied from GKsoloviev, but
-    .diag_moments = {"M0", "M1", "M2", "M2par", "M2perp", "M3par", "M3perp"},
+    .num_diag_moments = 1,
+    .diag_moments = {"BiMaxwellianMoments"},
   };
 
   struct gkyl_gyrokinetic_projection ion_ic = {
@@ -758,10 +757,9 @@ int main(int argc, char **argv)
     .bcy = {
       .lower={.type = GKYL_SPECIES_GK_SHEATH,},
       .upper={.type = GKYL_SPECIES_GK_SHEATH,},
-    },    
-
-    .num_diag_moments = 7,
-    .diag_moments = {"M0", "M1", "M2", "M2par", "M2perp", "M3par", "M3perp"},
+    },
+    .num_diag_moments = 1,
+    .diag_moments = {"BiMaxwellianMoments"},
   };
 
   struct gkyl_gyrokinetic_field field =
