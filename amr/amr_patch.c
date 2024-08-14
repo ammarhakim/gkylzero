@@ -1,4 +1,5 @@
 #include <gkyl_amr_patch_priv.h>
+#include <gkyl_wv_euler_mixture_priv.h>
 
 void
 skin_ghost_ranges_init_patch(struct skin_ghost_ranges_patch* sgr, const struct gkyl_range* parent, const int* ghost)
@@ -133,6 +134,76 @@ gr_euler_nested_patch_bc_updaters_init(const struct gkyl_wv_eqn* eqn, struct eul
   }
 
   pdata->bc_buffer = gkyl_array_new(GKYL_DOUBLE, 29, buff_sz);
+}
+
+void
+euler_mixture_patch_bc_updaters_init(const struct gkyl_wv_eqn* eqn, struct euler_patch_data* pdata, const struct gkyl_block_connections* conn)
+{
+  const struct wv_euler_mixture *euler_mixture = container_of(eqn, struct wv_euler_mixture, eqn);
+  int num_species = euler_mixture->num_species;
+
+  int nghost[3];
+  for (int i = 0; i < 3; i++) {
+    nghost[i] = 2;
+  }
+
+  pdata->lower_bc[0] = pdata->upper_bc[0] = 0;
+
+  if (conn->connections[0][0].edge == GKYL_PHYSICAL) {
+    pdata->lower_bc[0] = gkyl_wv_apply_bc_new(&pdata->grid, pdata->euler, pdata->geom, 0, GKYL_LOWER_EDGE, nghost,
+      euler_mixture_copy_bc, 0);
+  }
+
+  if (conn->connections[0][1].edge == GKYL_PHYSICAL) {
+    pdata->upper_bc[0] = gkyl_wv_apply_bc_new(&pdata->grid, pdata->euler, pdata->geom, 0, GKYL_UPPER_EDGE, nghost,
+      euler_mixture_copy_bc, 0);
+  }
+
+  skin_ghost_ranges_init_patch(&pdata->skin_ghost, &pdata->ext_range, nghost);
+  long buff_sz = 0;
+
+  long vol = pdata->skin_ghost.lower_skin[0].volume;
+  
+  if (buff_sz <= vol) {
+    buff_sz = vol;
+  }
+
+  pdata->bc_buffer = gkyl_array_new(GKYL_DOUBLE, 4 + (2 * num_species), buff_sz);
+}
+
+void
+euler_mixture_nested_patch_bc_updaters_init(const struct gkyl_wv_eqn* eqn, struct euler_patch_data* pdata, const struct gkyl_block_connections* conn)
+{
+  const struct wv_euler_mixture *euler_mixture = container_of(eqn, struct wv_euler_mixture, eqn);
+  int num_species = euler_mixture->num_species;
+
+  int nghost[5];
+  for (int i = 0; i < 5; i++) {
+    nghost[i] = 2;
+  }
+
+  pdata->lower_bc[0] = pdata->upper_bc[0] = 0;
+
+  if (conn->connections[0][0].edge == GKYL_PHYSICAL) {
+    pdata->lower_bc[0] = gkyl_wv_apply_bc_new(&pdata->grid, pdata->euler, pdata->geom, 0, GKYL_LOWER_EDGE, nghost,
+      euler_mixture_copy_bc, 0);
+  }
+
+  if (conn->connections[0][1].edge == GKYL_PHYSICAL) {
+    pdata->upper_bc[0] = gkyl_wv_apply_bc_new(&pdata->grid, pdata->euler, pdata->geom, 0, GKYL_UPPER_EDGE, nghost,
+      euler_mixture_copy_bc, 0);
+  }
+
+  skin_ghost_ranges_init_patch(&pdata->skin_ghost, &pdata->ext_range, nghost);
+  long buff_sz = 0;
+
+  long vol = pdata->skin_ghost.lower_skin[0].volume;
+  
+  if (buff_sz <= vol) {
+    buff_sz = vol;
+  }
+
+  pdata->bc_buffer = gkyl_array_new(GKYL_DOUBLE, 4 + (2 * num_species), buff_sz);
 }
 
 void
