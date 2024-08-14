@@ -183,6 +183,12 @@ int main(int argc, char **argv)
     .eval = evalEulerInit,
     .gas_gamma = ctx.gas_gamma,
 
+    .copy_x = true,
+    .copy_y = true,
+
+    .wall_x = false,
+    .wall_y = false,
+
     .euler_output = "amr_euler_shock_bubble_l1",
 
     .low_order_flux = true,

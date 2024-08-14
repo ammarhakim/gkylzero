@@ -306,6 +306,12 @@ int main(int argc, char **argv)
     .gas_gamma = ctx.gas_gamma,
     .spacetime = ctx.spacetime,
 
+    .copy_x = true,
+    .copy_y = true,
+
+    .wall_x = false,
+    .wall_y = false,
+
     .gr_euler_output = "amr_gr_blackhole_static_l1",
 
     .low_order_flux = true,

@@ -17,7 +17,7 @@ struct euler1d_single_init {
   evalf_t eval;
   double gas_gamma;
 
-  char euler_output[32];
+  char euler_output[64];
 
   bool low_order_flux;
   double cfl_frac;
@@ -52,7 +52,7 @@ struct gr_euler1d_single_init {
   double gas_gamma;
   struct gkyl_gr_spacetime *spacetime;
 
-  char gr_euler_output[32];
+  char gr_euler_output[64];
 
   bool low_order_flux;
   double cfl_frac;
@@ -90,7 +90,7 @@ struct euler1d_double_init {
   evalf_t eval;
   double gas_gamma;
 
-  char euler_output[32];
+  char euler_output[64];
 
   bool low_order_flux;
   double cfl_frac;
@@ -129,7 +129,7 @@ struct gr_euler1d_double_init {
   double gas_gamma;
   struct gkyl_gr_spacetime *spacetime;
 
-  char gr_euler_output[32];
+  char gr_euler_output[64];
 
   bool low_order_flux;
   double cfl_frac;
@@ -168,7 +168,13 @@ struct euler2d_single_init {
   evalf_t eval;
   double gas_gamma;
 
-  char euler_output[32];
+  bool copy_x;
+  bool copy_y;
+
+  bool wall_x;
+  bool wall_y;
+
+  char euler_output[64];
 
   bool low_order_flux;
   double cfl_frac;
@@ -208,7 +214,13 @@ struct gr_euler2d_single_init {
   double gas_gamma;
   struct gkyl_gr_spacetime *spacetime;
 
-  char gr_euler_output[32];
+  bool copy_x;
+  bool copy_y;
+
+  bool wall_x;
+  bool wall_y;
+
+  char gr_euler_output[64];
 
   bool low_order_flux;
   double cfl_frac;
@@ -299,7 +311,13 @@ struct euler2d_double_init {
   evalf_t eval;
   double gas_gamma;
 
-  char euler_output[32];
+  bool copy_x;
+  bool copy_y;
+
+  bool wall_x;
+  bool wall_y;
+
+  char euler_output[64];
 
   bool low_order_flux;
   double cfl_frac;
@@ -345,7 +363,13 @@ struct gr_euler2d_double_init {
   double gas_gamma;
   struct gkyl_gr_spacetime *spacetime;
 
-  char gr_euler_output[32];
+  bool copy_x;
+  bool copy_y;
+
+  bool wall_x;
+  bool wall_y;
+
+  char gr_euler_output[64];
 
   bool low_order_flux;
   double cfl_frac;
@@ -446,7 +470,7 @@ struct five_moment_1d_single_init {
   double mass_ion;
   double charge_ion;
 
-  char five_moment_output[32];
+  char five_moment_output[64];
 
   bool low_order_flux;
   double cfl_frac;
@@ -494,7 +518,7 @@ struct ten_moment_1d_single_init {
   double mass_ion;
   double charge_ion;
 
-  char ten_moment_output[32];
+  char ten_moment_output[64];
 
   bool low_order_flux;
   double cfl_frac;
@@ -547,7 +571,7 @@ struct five_moment_1d_double_init {
   double mass_ion;
   double charge_ion;
 
-  char five_moment_output[32];
+  char five_moment_output[64];
 
   bool low_order_flux;
   double cfl_frac;
@@ -607,7 +631,7 @@ struct five_moment_2d_single_init {
   bool wall_x;
   bool wall_y;
 
-  char five_moment_output[32];
+  char five_moment_output[64];
 
   bool low_order_flux;
   double cfl_frac;
@@ -666,7 +690,7 @@ struct ten_moment_2d_single_init {
   bool wall_x;
   bool wall_y;
 
-  char ten_moment_output[32];
+  char ten_moment_output[64];
 
   bool low_order_flux;
   double cfl_frac;
@@ -732,7 +756,7 @@ struct five_moment_2d_double_init {
   bool wall_x;
   bool wall_y;
 
-  char five_moment_output[32];
+  char five_moment_output[64];
 
   bool low_order_flux;
   double cfl_frac;
@@ -798,7 +822,7 @@ struct ten_moment_2d_double_init {
   bool wall_x;
   bool wall_y;
 
-  char ten_moment_output[32];
+  char ten_moment_output[64];
 
   bool low_order_flux;
   double cfl_frac;

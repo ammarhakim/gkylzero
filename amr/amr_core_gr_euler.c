@@ -27,7 +27,7 @@ gr_euler1d_run_single(int argc, char **argv, struct gr_euler1d_single_init* init
   double gas_gamma = init->gas_gamma;
   struct gkyl_gr_spacetime *spacetime = init->spacetime;
 
-  char gr_euler_output[32];
+  char gr_euler_output[64];
   strcpy(gr_euler_output, init->gr_euler_output);
 
   bool low_order_flux = init->low_order_flux;
@@ -228,7 +228,7 @@ gr_euler1d_run_double(int argc, char **argv, struct gr_euler1d_double_init* init
   double gas_gamma = init->gas_gamma;
   struct gkyl_gr_spacetime *spacetime = init->spacetime;
 
-  char gr_euler_output[32];
+  char gr_euler_output[64];
   strcpy(gr_euler_output, init->gr_euler_output);
 
   bool low_order_flux = init->low_order_flux;
@@ -443,7 +443,13 @@ gr_euler2d_run_single(int argc, char **argv, struct gr_euler2d_single_init* init
   double gas_gamma = init->gas_gamma;
   struct gkyl_gr_spacetime *spacetime = init->spacetime;
 
-  char gr_euler_output[32];
+  bool copy_x = init->copy_x;
+  bool copy_y = init->copy_y;
+  
+  bool wall_x = init->wall_x;
+  bool wall_y = init->wall_y;
+
+  char gr_euler_output[64];
   strcpy(gr_euler_output, init->gr_euler_output);
   
   bool low_order_flux = init->low_order_flux;
@@ -489,6 +495,12 @@ gr_euler2d_run_single(int argc, char **argv, struct gr_euler2d_single_init* init
   for (int i = 0; i < num_blocks; i++) {
     gkyl_create_grid_ranges(&mesh_bdata[i].grid, (int []) { 2, 2 }, &mesh_bdata[i].ext_range, &mesh_bdata[i].range);
     mesh_bdata[i].geom = gkyl_wave_geom_new(&mesh_bdata[i].grid, &mesh_bdata[i].ext_range, 0, 0, false);
+
+    mesh_bdata[i].copy_x = copy_x;
+    mesh_bdata[i].copy_y = copy_y;
+
+    mesh_bdata[i].wall_x = wall_x;
+    mesh_bdata[i].wall_y = wall_y;
   }
 
   for (int i = 0; i < num_blocks; i++) {
@@ -675,7 +687,13 @@ gr_euler2d_run_double(int argc, char **argv, struct gr_euler2d_double_init* init
   double gas_gamma = init->gas_gamma;
   struct gkyl_gr_spacetime *spacetime = init->spacetime;
 
-  char gr_euler_output[32];
+  bool copy_x = init->copy_x;
+  bool copy_y = init->copy_y;
+  
+  bool wall_x = init->wall_x;
+  bool wall_y = init->wall_y;
+
+  char gr_euler_output[64];
   strcpy(gr_euler_output, init->gr_euler_output);
   
   bool low_order_flux = init->low_order_flux;
@@ -754,6 +772,12 @@ gr_euler2d_run_double(int argc, char **argv, struct gr_euler2d_double_init* init
   for (int i = 0; i < num_blocks; i++) {
     gkyl_create_grid_ranges(&mesh_bdata[i].grid, (int []) { 2, 2 }, &mesh_bdata[i].ext_range, &mesh_bdata[i].range);
     mesh_bdata[i].geom = gkyl_wave_geom_new(&mesh_bdata[i].grid, &mesh_bdata[i].ext_range, 0, 0, false);
+  
+    mesh_bdata[i].copy_x = copy_x;
+    mesh_bdata[i].copy_y = copy_y;
+
+    mesh_bdata[i].wall_x = wall_x;
+    mesh_bdata[i].wall_y = wall_y;
   }
 
   for (int i = 0; i < num_blocks; i++) {
