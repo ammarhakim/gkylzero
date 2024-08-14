@@ -86,6 +86,7 @@ struct gk_mirror_ctx
   double mu_max_ion;
   double mu_max_elc;
   int Nx;
+  int Ny;
   int Nz;
   int Nvpar;
   int Nmu;
@@ -120,7 +121,7 @@ eval_density_elc_source(double t, const double *GKYL_RESTRICT xn, double *GKYL_R
 {
   struct gk_mirror_ctx *app = ctx;
   double psi = xn[0]; // Magnetic flux function psi of field line.
-  double z = xn[1];
+  double z = xn[2];
   double NSrc = app->NSrcElc;
   double zSrc = app->lineLengthSrcElc;
   double sigSrc = app->sigSrcElc;
@@ -147,7 +148,7 @@ eval_temp_elc_source(double t, const double *GKYL_RESTRICT xn, double *GKYL_REST
 {
   struct gk_mirror_ctx *app = ctx;
   double psi = xn[0]; // Magnetic flux function psi of field line.
-  double z = xn[1];
+  double z = xn[2];
   double sigSrc = app->sigSrcElc;
   double TSrc0 = app->TSrc0Elc;
   double Tfloor = app->TSrcFloorElc;
@@ -166,7 +167,7 @@ eval_density_ion_source(double t, const double *GKYL_RESTRICT xn, double *GKYL_R
 {
   struct gk_mirror_ctx *app = ctx;
   double psi = xn[0]; // Magnetic flux function psi of field line.
-  double z = xn[1];
+  double z = xn[2];
   double NSrc = app->NSrcIon;
   double zSrc = app->lineLengthSrcIon;
   double sigSrc = app->sigSrcIon;
@@ -193,7 +194,7 @@ eval_temp_ion_source(double t, const double *GKYL_RESTRICT xn, double *GKYL_REST
 {
   struct gk_mirror_ctx *app = ctx;
   double psi = xn[0]; // Magnetic flux function psi of field line.
-  double z = xn[1];
+  double z = xn[2];
   double sigSrc = app->sigSrcIon;
   double TSrc0 = app->TSrc0Ion;
   double Tfloor = app->TSrcFloorIon;
@@ -213,7 +214,7 @@ eval_density_elc(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT
 {
   struct gk_mirror_ctx *app = ctx;
   double psi = xn[0]; // Magnetic flux function psi of field line.
-  double z = xn[1];
+  double z = xn[2];
   double z_m = app->z_m;
   double sigma = 0.9*z_m;
   if (fabs(z) <= sigma)
@@ -231,7 +232,7 @@ eval_upar_elc(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fo
 {
   struct gk_mirror_ctx *app = ctx;
   double psi = xn[0]; // Magnetic flux function psi of field line.
-  double z = xn[1];
+  double z = xn[2];
   double cs_m = app->cs_m;
   double z_m = app->z_m;
   double z_max = app->z_max;
@@ -250,7 +251,7 @@ eval_temp_par_elc(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRIC
 {
   struct gk_mirror_ctx *app = ctx;
   double psi = xn[0]; // Magnetic flux function psi of field line.
-  double z = xn[1];
+  double z = xn[2];
   double z_m = app->z_m;
   double Te_par0 = app->Te_par0;
   double Te_par_m = app->Te_par_m;
@@ -269,7 +270,7 @@ eval_temp_perp_elc(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRI
 {
   struct gk_mirror_ctx *app = ctx;
   double psi = xn[0]; // Magnetic flux function psi of field line.
-  double z = xn[1];
+  double z = xn[2];
   double z_m = app->z_m;
   double Te_perp0 = app->Te_perp0;
   double Te_perp_m = app->Te_perp_m;
@@ -300,7 +301,7 @@ eval_density_ion(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT
 {
   struct gk_mirror_ctx *app = ctx;
   double psi = xn[0]; // Magnetic flux function psi of field line.
-  double z = xn[1];
+  double z = xn[2];
   double z_m = app->z_m;
   double sigma = 0.9*z_m;
   if (fabs(z) <= sigma)
@@ -318,7 +319,7 @@ eval_upar_ion(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fo
 {
   struct gk_mirror_ctx *app = ctx;
   double psi = xn[0]; // Magnetic flux function psi of field line.
-  double z = xn[1];
+  double z = xn[2];
   double cs_m = app->cs_m;
   double z_m = app->z_m;
   double z_max = app->z_max;
@@ -337,7 +338,7 @@ eval_temp_par_ion(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRIC
 {
   struct gk_mirror_ctx *app = ctx;
   double psi = xn[0]; // Magnetic flux function psi of field line.
-  double z = xn[1];
+  double z = xn[2];
   double z_m = app->z_m;
   double Ti_par0 = app->Ti_par0;
   double Ti_par_m = app->Ti_par_m;
@@ -356,7 +357,7 @@ eval_temp_perp_ion(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRI
 {
   struct gk_mirror_ctx *app = ctx;
   double psi = xn[0]; // Magnetic flux function psi of field line.
-  double z = xn[1];
+  double z = xn[2];
   double z_m = app->z_m;
   double Ti_perp0 = app->Ti_perp0;
   double Ti_perp_m = app->Ti_perp_m;
@@ -398,7 +399,7 @@ evalNuIon(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, 
 struct gk_mirror_ctx
 create_ctx(void)
 {
-  int cdim = 2, vdim = 2; // Dimensionality.
+  int cdim = 3, vdim = 2; // Dimensionality.
 
   // Universal constant parameters.
   double eps0 = GKYL_EPSILON0;
@@ -451,7 +452,6 @@ create_ctx(void)
   double z_max = M_PI - 1e-1;
   double psi_min = 1e-3;
   double psi_max = 1e-2;
-  printf("psi_min = %g, psi_max = %g\n", psi_min, psi_max);
 
   // Source parameters
   double NSrcIon = 3.1715e23 / 8.0;
@@ -472,13 +472,14 @@ create_ctx(void)
   double mu_max_elc = me * pow(3. * vte, 2.) / (2. * B_p);
   double vpar_max_ion = 20 * vti;
   double mu_max_ion = mi * pow(3. * vti, 2.) / (2. * B_p);
-  int Nx = 4;
+  int Nx = 2;
+  int Ny = 2;
   int Nz = 32;
-  int Nvpar = 32; // Number of cells in the paralell velocity direction 96
-  int Nmu = 48;  // Number of cells in the mu direction 192
+  int Nvpar = 10; // Number of cells in the paralell velocity direction 96
+  int Nmu = 10;  // Number of cells in the mu direction 192
   int poly_order = 1;
 
-  double t_end = 1.5e-10;
+  double t_end = 1e-9;
   int num_frames = 1;
   int int_diag_calc_num = num_frames*100;
   double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.
@@ -555,10 +556,11 @@ create_ctx(void)
     .mu_max_ion = mu_max_ion,
     .mu_max_elc = mu_max_elc,
     .Nx = Nx,
+    .Ny = Ny,
     .Nz = Nz,
     .Nvpar = Nvpar,
     .Nmu = Nmu,
-    .cells = {Nx, Nz, Nvpar, Nmu},
+    .cells = {Nx, Ny, Nz, Nvpar, Nmu},
     .poly_order = poly_order,
     .t_end = t_end,
     .num_frames = num_frames,
@@ -692,7 +694,7 @@ int main(int argc, char **argv)
         .projection = elc_ic,
       },
     },
-    .bcy = {
+    .bcz = {
       .lower={.type = GKYL_SPECIES_GK_SHEATH,},
       .upper={.type = GKYL_SPECIES_GK_SHEATH,},
     },
@@ -755,7 +757,7 @@ int main(int argc, char **argv)
         .projection = ion_ic,
       },
     },
-    .bcy = {
+    .bcz = {
       .lower={.type = GKYL_SPECIES_GK_SHEATH,},
       .upper={.type = GKYL_SPECIES_GK_SHEATH,},
     },    
@@ -769,31 +771,30 @@ int main(int argc, char **argv)
     .polarization_bmag = ctx.B_p,
     .fem_parbc = GKYL_FEM_PARPROJ_NONE,
     .poisson_bcs = {
-      .lo_type = {GKYL_POISSON_NEUMANN, GKYL_POISSON_NEUMANN},
-      .up_type = {GKYL_POISSON_DIRICHLET, GKYL_POISSON_NEUMANN},
+      .lo_type = {GKYL_POISSON_NEUMANN, GKYL_POISSON_PERIODIC},
+      .up_type = {GKYL_POISSON_DIRICHLET, GKYL_POISSON_PERIODIC},
       .lo_value = {0.0, 0.0},
       .up_value = {0.0, 0.0},
     }
   };
 
   struct gkyl_gk app_inp = {
-    .name = "gk_wham_2x2v_p1",
-    .cdim = 2,  .vdim = 2,
-    .lower = {ctx.psi_min, ctx.z_min},
-    .upper = {ctx.psi_max, ctx.z_max},
-    .cells = { cells_x[0], cells_x[1] },
+    .name = "gk_wham_3x2v_p1",
+    .cdim = 3,  .vdim = 2,
+    .lower = {ctx.psi_min, 0, ctx.z_min},
+    .upper = {ctx.psi_max, 2 * M_PI, ctx.z_max},
+    .cells = { cells_x[0], cells_x[1], cells_x[2] },
     .poly_order = ctx.poly_order,
     .basis_type = app_args.basis_type,
 
     .geometry = {
       .geometry_id = GKYL_MIRROR,
-      .world = {0.0},
       .mirror_efit_info = &inp,
       .mirror_grid_info = &ginp,
     },
 
-    .num_periodic_dir = 0,
-    .periodic_dirs = {},
+    .num_periodic_dir = 1,
+    .periodic_dirs = {1},
 
     .num_species = 2,
     .species = {elc, ion},
@@ -807,6 +808,7 @@ int main(int argc, char **argv)
       .comm = comm
     }
   };
+  printf("Basis type: %d\n", app_args.basis_type);
 
   // Create app object.
   gkyl_gyrokinetic_app *app = gkyl_gyrokinetic_app_new(&app_inp);
