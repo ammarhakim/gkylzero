@@ -266,13 +266,15 @@ test_1x(int poly_order, bool use_gpu, double te)
     &confBasis, &basis, poly_order+1, gvm, use_gpu);
 
   // If on GPUs, need to copy n, udrift, and vt^2 onto device
-  struct gkyl_array *prim_moms_dev, *m0_dev;
+  struct gkyl_array *prim_moms_dev, *m0_dev, *vtsq_dev;
   if (use_gpu) {
     prim_moms_dev = mkarr(use_gpu, 3*confBasis.num_basis, confLocal_ext.volume);
     m0_dev = mkarr(use_gpu, confBasis.num_basis, confLocal_ext.volume);
+    vtsq_dev = mkarr(use_gpu, confBasis.num_basis, confLocal_ext.volume);
     
     gkyl_array_copy(prim_moms_dev, prim_moms);
     gkyl_array_copy(m0_dev, m0);
+    gkyl_array_copy(vtsq_dev, vtsq);
     gkyl_proj_gkmaxwellian_on_basis_prim_mom(proj_max, &local_ext, &confLocal_ext, prim_moms_dev,
       gk_geom->bmag, gk_geom->bmag, mass, f);
   }
@@ -284,7 +286,7 @@ test_1x(int poly_order, bool use_gpu, double te)
   // initialize solver 
   struct gkyl_dg_updater_collisions *slvr;
   struct gkyl_dg_rad_gyrokinetic_auxfields drag_inp = { .nvnu_surf = nvnu_surf, .nvnu = nvnu, 
-    .nvsqnu_surf = nvsqnu_surf, .nvsqnu = nvsqnu, .vtsq = vtsq_imp, .vtsq_min = vtsq_min};
+    .nvsqnu_surf = nvsqnu_surf, .nvsqnu = nvsqnu};
   slvr = gkyl_dg_updater_rad_gyrokinetic_new(&grid, &confBasis, &basis, &local, &confLocal, gvm, &drag_inp, use_gpu);
 
   struct gkyl_array *cflrate, *rhs, *fmax;
@@ -303,12 +305,12 @@ test_1x(int poly_order, bool use_gpu, double te)
   if (use_gpu) {
     gkyl_dg_calc_gk_rad_vars_nI_nu_advance(calc_gk_rad_vars, 
       &confLocal, &local, vnu_surf, vnu, vsqnu_surf, vsqnu, 
-      m0_dev, nvnu_surf, nvnu, nvsqnu_surf, nvsqnu);
+      m0_dev, nvnu_surf, nvnu, nvsqnu_surf, nvsqnu, vtsq_min, vtsq_dev);
   }
   else {
     gkyl_dg_calc_gk_rad_vars_nI_nu_advance(calc_gk_rad_vars, 
       &confLocal, &local, vnu_surf, vnu, vsqnu_surf, vsqnu, 
-      m0, nvnu_surf, nvnu, nvsqnu_surf, nvsqnu);
+      m0, nvnu_surf, nvnu, nvsqnu_surf, nvsqnu, vtsq_min, vtsq);
   }
 
   gkyl_dg_updater_rad_gyrokinetic_advance(slvr, &local, f, cflrate, rhs);
@@ -559,13 +561,15 @@ test_2x(int poly_order, bool use_gpu, double te)
     &confBasis, &basis, poly_order+1, gvm, use_gpu);
 
   // If on GPUs, need to copy n, udrift, and vt^2 onto device
-  struct gkyl_array *prim_moms_dev, *m0_dev;
+  struct gkyl_array *prim_moms_dev, *m0_dev, *vtsq_dev;
   if (use_gpu) {
     prim_moms_dev = mkarr(use_gpu, 3*confBasis.num_basis, confLocal_ext.volume);
     m0_dev = mkarr(use_gpu, confBasis.num_basis, confLocal_ext.volume);
+    vtsq_dev = mkarr(use_gpu, confBasis.num_basis, confLocal_ext.volume);
     
     gkyl_array_copy(prim_moms_dev, prim_moms);
     gkyl_array_copy(m0_dev, m0);
+    gkyl_array_copy(vtsq_dev, vtsq);
     gkyl_proj_gkmaxwellian_on_basis_prim_mom(proj_max, &local_ext, &confLocal_ext, prim_moms_dev,
       gk_geom->bmag, gk_geom->bmag, mass, f);
   }
@@ -577,7 +581,7 @@ test_2x(int poly_order, bool use_gpu, double te)
   // initialize solver 
   struct gkyl_dg_updater_collisions *slvr;
   struct gkyl_dg_rad_gyrokinetic_auxfields drag_inp = { .nvnu_surf = nvnu_surf, .nvnu = nvnu, 
-    .nvsqnu_surf = nvsqnu_surf, .nvsqnu = nvsqnu, .vtsq = vtsq_imp, .vtsq_min = vtsq_min};
+    .nvsqnu_surf = nvsqnu_surf, .nvsqnu = nvsqnu};
   slvr = gkyl_dg_updater_rad_gyrokinetic_new(&grid, &confBasis, &basis, &local, &confLocal, gvm, &drag_inp, use_gpu);
 
   struct gkyl_array *cflrate, *rhs, *fmax;
@@ -596,12 +600,12 @@ test_2x(int poly_order, bool use_gpu, double te)
   if (use_gpu) {
     gkyl_dg_calc_gk_rad_vars_nI_nu_advance(calc_gk_rad_vars, 
       &confLocal, &local, vnu_surf, vnu, vsqnu_surf, vsqnu, 
-      m0_dev, nvnu_surf, nvnu, nvsqnu_surf, nvsqnu);
+      m0_dev, nvnu_surf, nvnu, nvsqnu_surf, nvsqnu, vtsq_min, vtsq_dev);
   }
   else {
     gkyl_dg_calc_gk_rad_vars_nI_nu_advance(calc_gk_rad_vars, 
       &confLocal, &local, vnu_surf, vnu, vsqnu_surf, vsqnu, 
-      m0, nvnu_surf, nvnu, nvsqnu_surf, nvsqnu);
+      m0, nvnu_surf, nvnu, nvsqnu_surf, nvsqnu, vtsq_min, vtsq);
   }
 
   gkyl_dg_updater_rad_gyrokinetic_advance(slvr, &local, f, cflrate, rhs);

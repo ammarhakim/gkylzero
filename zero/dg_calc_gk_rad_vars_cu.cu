@@ -79,10 +79,13 @@ gkyl_dg_calc_gk_rad_vars_nI_nu_advance_cu_kernel(struct gkyl_dg_calc_gk_rad_vars
   const struct gkyl_array* vsqnu_surf, const struct gkyl_array* vsqnu, 
   const struct gkyl_array *nI, 
   struct gkyl_array* nvnu_surf, struct gkyl_array* nvnu, 
-  struct gkyl_array* nvsqnu_surf, struct gkyl_array* nvsqnu)
+  struct gkyl_array* nvsqnu_surf, struct gkyl_array* nvsqnu,
+  double vtsq_min, struct gkyl_array* vtsq)
 {
   double xc[GKYL_MAX_DIM] = {0.0};
   int idx[GKYL_MAX_DIM];
+  ind cdim = up->cdim;
+  
   for (unsigned long linc1 = threadIdx.x + blockIdx.x*blockDim.x;
       linc1 < phase_range.volume;
       linc1 += gridDim.x*blockDim.x)
@@ -98,20 +101,23 @@ gkyl_dg_calc_gk_rad_vars_nI_nu_advance_cu_kernel(struct gkyl_dg_calc_gk_rad_vars
     long loc_conf = gkyl_range_idx(&conf_range, idx);
     long loc_phase = gkyl_range_idx(&phase_range, idx);
 
-    const double* vnu_surf_d = (const double*) gkyl_array_cfetch(vnu_surf, loc_phase);
-    const double* vnu_d = (const double*) gkyl_array_cfetch(vnu, loc_phase);
-    const double* vsqnu_surf_d = (const double*) gkyl_array_cfetch(vsqnu_surf, loc_phase);  
-    const double* vsqnu_d = (const double*) gkyl_array_cfetch(vsqnu, loc_phase);   
+    const double* vtsq_d = gkyl_array_cfetch(vtsq, loc_conf);
+    if ( vtsq_d[0] * up->cellav_norm_conf > vtsq_min ) {      
+      const double* vnu_surf_d = (const double*) gkyl_array_cfetch(vnu_surf, loc_phase);
+      const double* vnu_d = (const double*) gkyl_array_cfetch(vnu, loc_phase);
+      const double* vsqnu_surf_d = (const double*) gkyl_array_cfetch(vsqnu_surf, loc_phase);  
+      const double* vsqnu_d = (const double*) gkyl_array_cfetch(vsqnu, loc_phase);   
+      
+      const double *nI_d = (const double*) gkyl_array_cfetch(nI, loc_conf);
 
-    const double *nI_d = (const double*) gkyl_array_cfetch(nI, loc_conf);
+      double* nvnu_surf_d = (double*) gkyl_array_fetch(nvnu_surf, loc_phase);
+      double* nvnu_d = (double*) gkyl_array_fetch(nvnu, loc_phase);
+      double* nvsqnu_surf_d = (double*) gkyl_array_fetch(nvsqnu_surf, loc_phase);  
+      double* nvsqnu_d = (double*) gkyl_array_fetch(nvsqnu, loc_phase);   
 
-    double* nvnu_surf_d = (double*) gkyl_array_fetch(nvnu_surf, loc_phase);
-    double* nvnu_d = (double*) gkyl_array_fetch(nvnu, loc_phase);
-    double* nvsqnu_surf_d = (double*) gkyl_array_fetch(nvsqnu_surf, loc_phase);  
-    double* nvsqnu_d = (double*) gkyl_array_fetch(nvsqnu, loc_phase);   
-
-    up->rad_nI_nu(vnu_surf_d, vnu_d, vsqnu_surf_d, vsqnu_d, nI_d, 
-      nvnu_surf_d, nvnu_d, nvsqnu_surf_d, nvsqnu_d);
+      up->rad_nI_nu(vnu_surf_d, vnu_d, vsqnu_surf_d, vsqnu_d, nI_d, 
+		    nvnu_surf_d, nvnu_d, nvsqnu_surf_d, nvsqnu_d);
+    }
   }  
 }
 
@@ -123,15 +129,16 @@ gkyl_dg_calc_gk_rad_vars_nI_nu_advance_cu(const struct gkyl_dg_calc_gk_rad_vars 
   const struct gkyl_array* vsqnu_surf, const struct gkyl_array* vsqnu, 
   const struct gkyl_array *nI, 
   struct gkyl_array* nvnu_surf, struct gkyl_array* nvnu, 
-  struct gkyl_array* nvsqnu_surf, struct gkyl_array* nvsqnu)
+  struct gkyl_array* nvsqnu_surf, struct gkyl_array* nvsqnu,
+  double vtsq_min, struct gkyl_array* vtsq)
 {
   int nblocks = phase_range->nblocks;
   int nthreads = phase_range->nthreads;
   gkyl_dg_calc_gk_rad_vars_nI_nu_advance_cu_kernel<<<nblocks, nthreads>>>(up->on_dev, 
     *conf_range, *phase_range, 
     vnu_surf->on_dev, vnu->on_dev, vsqnu_surf->on_dev, vsqnu->on_dev, 
-    nI->on_dev, 
-    nvnu_surf->on_dev, nvnu->on_dev, nvsqnu_surf->on_dev, nvsqnu->on_dev);
+    nI->on_dev, nvnu_surf->on_dev, nvnu->on_dev, nvsqnu_surf->on_dev, nvsqnu->on_dev,
+    vtsq_min, vtsq->on_dev);
 }
 
 // CUDA kernel to set device pointers to gyrokinetic radiation vars kernel functions
@@ -164,6 +171,7 @@ gkyl_dg_calc_gk_rad_vars_cu_dev_new(const struct gkyl_rect_grid *phase_grid,
   up->charge = charge;
   up->mass = mass;
 
+  up-cellav_norm_conf = 1.0/pow(sqrt(2.0), cdim);
   // Fitting parameters for a given collision type
   up->a = a;
   up->alpha = alpha;
