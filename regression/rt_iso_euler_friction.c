@@ -59,9 +59,6 @@ struct friction_ctx
 struct friction_ctx
 create_ctx(void)
 {
-  // Mathematical constants (dimensionless).
-  double pi = M_PI;
-
   // Physical constants (using normalized code units).
   double vt = 1.0; // Thermal velocity.
   double epsilon0 = 1.0; // Permittivity of free space.

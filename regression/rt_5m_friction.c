@@ -62,9 +62,6 @@ struct friction_ctx
 struct friction_ctx
 create_ctx(void)
 {
-  // Mathematical constants (dimensionless).
-  double pi = M_PI;
-
   // Physical constants (using normalized code units).
   double gas_gamma = 5.0 / 3.0; // Adiabatic index.
   double epsilon0 = 1.0; // Permittivity of free space.
