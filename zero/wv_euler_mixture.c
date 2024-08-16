@@ -292,6 +292,168 @@ qfluct_lax_l(const struct gkyl_wv_eqn* eqn, enum gkyl_wv_flux_type type, const d
 }
 
 static double
+wave_roe(const struct gkyl_wv_eqn* eqn, const double* delta, const double* ql, const double* qr, double* waves, double* s)
+{
+  const struct wv_euler_mixture *euler_mixture = container_of(eqn, struct wv_euler_mixture, eqn);
+  int num_species = euler_mixture->num_species;
+  double *gas_gamma_s = euler_mixture->gas_gamma_s;
+
+  double rho_l = ql[0];
+  double rho_r = qr[0];
+
+  double *vl = gkyl_malloc(sizeof(double[4 + (2 * num_species)]));
+  double *vr = gkyl_malloc(sizeof(double[4 + (2 * num_species)]));
+  gkyl_euler_mixture_prim_vars(num_species, gas_gamma_s, ql, vl);
+  gkyl_euler_mixture_prim_vars(num_species, gas_gamma_s, qr, vr);
+  double p_l = vl[4];
+  double p_r = vr[4];
+
+  double sqrt_rho_l = sqrt(rho_l);
+  double sqrt_rho_r = sqrt(rho_r);
+  double roe_avg_l = 1.0 / sqrt_rho_l;
+  double roe_avg_r = 1.0 / sqrt_rho_r;
+  double roe_avg_sq = 1.0 / (sqrt_rho_l + sqrt_rho_r);
+
+  double vx = ((ql[1] * roe_avg_l) + (qr[1] * roe_avg_r)) * roe_avg_sq;
+  double vy = ((ql[2] * roe_avg_l) + (qr[2] * roe_avg_r)) * roe_avg_sq;
+  double vz = ((ql[3] * roe_avg_l) + (qr[3] * roe_avg_r)) * roe_avg_sq;
+  double enth = (((ql[4] + p_l) * roe_avg_l) + ((qr[4] + p_r) * roe_avg_r)) * roe_avg_sq;
+
+  double *vol_frac_s = gkyl_malloc(sizeof(double[num_species]));
+  double vol_frac_total = 0.0;
+  for (int i = 0; i < num_species - 1; i++) {
+    vol_frac_s[i] = ((ql[5 + i] * roe_avg_l) + (qr[5 + i] * roe_avg_r)) * roe_avg_sq;
+    vol_frac_total += vol_frac_s[i];
+  }
+  vol_frac_s[num_species - 1] = 1.0 - vol_frac_total;
+
+  double gas_gamma_total = 0.0;
+  for (int i = 0; i < num_species; i++) {
+    gas_gamma_total += vol_frac_s[i] * gas_gamma_s[i];
+  }
+
+  double vel_sq = ((vx * vx) + (vy * vy) + (vz * vz));
+  double a_sq = (gas_gamma_total - 1.0) * (enth - (0.5 * vel_sq));
+  double a = sqrt(a_sq);
+  double gamma1_over_a_sq = (gas_gamma_total - 1.0) / a_sq;
+  double internal_enth = enth - vel_sq;
+
+  double a4 = gamma1_over_a_sq * ((internal_enth * delta[0]) + (vx * delta[1]) + (vy * delta[2]) + (vz * delta[3]) - delta[4]);
+  double a2 = delta[2] - (vy * delta[0]);
+  double a3 = delta[3] - (vz * delta[0]);
+  double a5 = 0.5 * (delta[1] + (((a - vx) * delta[0]) - (a * a4))) / a;
+  double a1 = delta[0] - a4 - a5;
+
+  double *a_vol = gkyl_malloc(sizeof(double[num_species - 1]));
+  for (int i = 0; i < num_species; i++) {
+    a_vol[i] = delta[5 + i] - (vol_frac_s[i] * delta[0]);
+  }
+
+  double *a_rho1 = gkyl_malloc(sizeof(double[num_species]));
+  double *a_rho2 = gkyl_malloc(sizeof(double[num_species]));
+  double *a_rho3 = gkyl_malloc(sizeof(double[num_species]));
+  for (int i = 0; i < num_species; i++) {
+    a_rho2[i] = gamma1_over_a_sq *  -((internal_enth * delta[4 + num_species + i]) + (vx * delta[1]) + (vy * delta[2]) + (vz * delta[3]) - delta[4]);
+    a_rho3[i] = 0.5 * (delta[1] + (((a - vx) * delta[4 + num_species + i]) - (a * a_rho2[i]))) / a;
+    a_rho1[i] = delta[4 + num_species + i] - a_rho2[i] - a_rho3[i];
+  }
+
+  double *wv;
+  wv = &waves[0];
+  wv[0] = a1;
+  wv[1] = a1 * (vx - a);
+  wv[2] = a1 * vy;
+  wv[3] = a1 * vz;
+  wv[4] = a1 * (enth - (vx * a));
+  for (int i = 0; i < num_species - 1; i++) {
+    wv[5 + i] = a1 * vol_frac_s[i];
+  }
+  for (int i = 0; i < num_species; i++) {
+    wv[4 + num_species + i] = a_rho1[i];
+  }
+  s[0] = vx - a;
+
+  wv = &waves[4 + (2 * num_species)];
+  wv[0] = a4;
+  wv[1] = a4 * vx;
+  wv[2] = (a4 * vy) + a2;
+  wv[3] = (a4 * vz) + a3;
+  wv[4] = (0.5 * a4 * vel_sq) + (a2 * vy) + (a3 * vz);
+  for (int i = 0; i < num_species - 1; i++) {
+    wv[5 + i] = (a4 * vol_frac_s[i]) + a_vol[i];
+  }
+  for (int i = 0; i < num_species; i++) {
+    wv[4 + num_species + i] = a_rho2[i];
+  }
+  s[1] = vx;
+
+  wv = &waves[8 + (4 * num_species)];
+  wv[0] = a5;
+  wv[1] = a5 * (vx + a);
+  wv[2] = a5 * vy;
+  wv[3] = a5 * vz;
+  wv[4] = a5 * (enth + (vx * a));
+  for (int i = 0; i < num_species - 1; i++) {
+    wv[5 + i] = a5 * vol_frac_s[i];
+  }
+  for (int i = 0; i < num_species; i++) {
+    wv[4 + num_species + i] = a_rho3[i];
+  }
+  s[2] = vx + a;
+
+  gkyl_free(vl);
+  gkyl_free(vr);
+  gkyl_free(vol_frac_s);
+  gkyl_free(a_vol);
+  gkyl_free(a_rho1);
+  gkyl_free(a_rho2);
+  gkyl_free(a_rho3);
+
+  return fabs(vx) + a;
+}
+
+static void
+qfluct_roe(const struct gkyl_wv_eqn* eqn, const double* ql, const double* qr, const double* waves, const double* s, double* amdq, double* apdq)
+{
+  const struct wv_euler_mixture *euler_mixture = container_of(eqn, struct wv_euler_mixture, eqn);
+  int num_species = euler_mixture->num_species;
+  
+  const double *w0 = &waves[0], *w1 = &waves[4 + (2 * num_species)], *w2 = &waves[8 + (4 * num_species)];
+  double s0m = fmin(0.0, s[0]), s1m = fmin(0.0, s[1]), s2m = fmin(0.0, s[2]);
+  double s0p = fmax(0.0, s[0]), s1p = fmax(0.0, s[1]), s2p = fmax(0.0, s[2]);
+
+  for (int i = 0; i < 4 + (2 * num_species); i++) {
+    amdq[i] = (s0m * w0[i]) + (s1m * w1[i]) + (s2m * w2[i]);
+    apdq[i] = (s0p * w0[i]) + (s1p * w1[i]) + (s2p * w2[i]);
+  }
+}
+
+static double
+wave_roe_l(const struct gkyl_wv_eqn* eqn, enum gkyl_wv_flux_type type, const double* delta, const double* ql, const double* qr, double* waves, double* s)
+{
+  if (type == GKYL_WV_HIGH_ORDER_FLUX) {
+    return wave_roe(eqn, delta, ql, qr, waves, s);
+  }
+  else {
+    return wave_lax(eqn, delta, ql, qr, waves, s);
+  }
+
+  return 0.0; // Unreachable code.
+}
+
+static void
+qfluct_roe_l(const struct gkyl_wv_eqn* eqn, enum gkyl_wv_flux_type type, const double* ql, const double* qr, const double* waves, const double* s,
+  double* amdq, double* apdq)
+{
+  if (type == GKYL_WV_HIGH_ORDER_FLUX) {
+    return qfluct_roe(eqn, ql, qr, waves, s, amdq, apdq);
+  }
+  else {
+    return qfluct_lax(eqn, ql, qr, waves, s, amdq, apdq);
+  }
+}
+
+static double
 flux_jump(const struct gkyl_wv_eqn* eqn, const double* ql, const double* qr, double* flux_jump)
 {
   const struct wv_euler_mixture *euler_mixture = container_of(eqn, struct wv_euler_mixture, eqn);
@@ -427,6 +589,11 @@ gkyl_wv_euler_mixture_inew(const struct gkyl_wv_euler_mixture_inp* inp)
     euler_mixture->eqn.num_waves = 2;
     euler_mixture->eqn.waves_func = wave_lax_l;
     euler_mixture->eqn.qfluct_func = qfluct_lax_l;
+  }
+  else if (inp->rp_type == WV_EULER_MIXTURE_RP_ROE) {
+    euler_mixture->eqn.num_waves = 3;
+    euler_mixture->eqn.waves_func = wave_roe_l;
+    euler_mixture->eqn.qfluct_func = qfluct_roe_l;
   }
 
   euler_mixture->eqn.flux_jump = flux_jump;

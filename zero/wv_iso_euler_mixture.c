@@ -363,6 +363,11 @@ wave_roe(const struct gkyl_wv_eqn* eqn, const double* delta, const double* ql, c
   }
   s[2] = vx + vt_total;
 
+  gkyl_free(vol_frac_s);
+  gkyl_free(a_vol);
+  gkyl_free(a_rho1);
+  gkyl_free(a_rho2);
+
   return fabs(vx) + vt_total;
 }
 
