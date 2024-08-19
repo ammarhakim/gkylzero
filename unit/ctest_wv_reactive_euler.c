@@ -168,8 +168,87 @@ test_reactive_euler_waves()
   gkyl_wv_eqn_release(reactive_euler);
 }
 
+void
+test_reactive_euler_waves_2()
+{
+  double gas_gamma = 1.4;
+  double specific_heat_capacity = 25.0;
+  double energy_of_formation = 10.0;
+  double ignition_temperature = 0.025;
+  double reaction_rate = 2500.0;
+  struct gkyl_wv_eqn *reactive_euler = gkyl_wv_reactive_euler_new(gas_gamma, specific_heat_capacity, energy_of_formation, ignition_temperature,
+    reaction_rate, false);
+  
+  double rhol = 1.0, ul = 0.1, vl = 0.2, wl = 0.3, pl = 1.5, reacl = 0.9;
+  double rhor = 0.01, ur = 1.0, vr = 2.0, wr = 3.0, pr = 15.0, reacr = 0.1;
+
+  double ql[6] = { rhol, rhol * ul, rhol * vl, rhol * wl, pl / (gas_gamma - 1.0) + (0.5 * rhol * ((ul * ul) + (vl * vl) + (wl * wl))) +
+    (energy_of_formation * (reacl - 1.0)), rhol * reacl };
+  double qr[6] = { rhor, rhor * ur, rhor * vr, rhor * wr, pr / (gas_gamma - 1.0) + (0.5 * rhor * ((ur * ur) + (vr * vr) + (wr * wr))) +
+    (energy_of_formation * (reacr - 1.0)), rhor * reacr };
+  
+  double norm[3][3] = {
+    { 1.0, 0.0, 0.0 },
+    { 0.0, -1.0, 0.0 },
+    { 0.0, 0.0, 1.0 },
+  };
+
+  double tau1[3][3] = {
+    { 0.0, 1.0, 0.0 },
+    { 1.0, 0.0, 0.0 },
+    { 1.0, 0.0, 0.0 },
+  };
+
+  double tau2[3][3] = {
+    { 0.0, 0.0, 1.0 },
+    { 0.0, 0.0, 1.0 },
+    { 0.0, 1.0, 0.0 }
+  };
+  
+  for (int d = 0; d < 3; d++) {
+    double speeds[2], waves[2 * 6], waves_local[2 * 6];
+
+    double ql_local[6], qr_local[6];
+    gkyl_wv_eqn_rotate_to_local(reactive_euler, tau1[d], tau2[d], norm[d], ql, ql_local);
+    gkyl_wv_eqn_rotate_to_local(reactive_euler, tau1[d], tau2[d], norm[d], qr, qr_local);
+
+    double delta[6];
+    for (int i = 0; i < 6; i++) {
+      delta[i] = qr_local[i] - ql_local[i];
+    }
+
+    gkyl_wv_eqn_waves(reactive_euler, GKYL_WV_HIGH_ORDER_FLUX, delta, ql_local, qr_local, waves_local, speeds);
+
+    double apdq_local[6], amdq_local[6];
+    gkyl_wv_eqn_qfluct(reactive_euler, GKYL_WV_HIGH_ORDER_FLUX, ql_local, qr_local, waves_local, speeds, amdq_local, apdq_local);
+
+    for (int i = 0; i < 2; i++) {
+      gkyl_wv_eqn_rotate_to_global(reactive_euler, tau1[d], tau2[d], norm[d], &waves_local[i * 6], &waves[i * 6]);
+    }
+
+    double apdq[6], amdq[6];
+    gkyl_wv_eqn_rotate_to_global(reactive_euler, tau1[d], tau2[d], norm[d], apdq_local, apdq);
+    gkyl_wv_eqn_rotate_to_global(reactive_euler, tau1[d], tau2[d], norm[d], amdq_local, amdq);
+
+    double fl_local[6], fr_local[6];
+    gkyl_reactive_euler_flux(gas_gamma, energy_of_formation, ql_local, fl_local);
+    gkyl_reactive_euler_flux(gas_gamma, energy_of_formation, qr_local, fr_local);
+
+    double fl[6], fr[6];
+    gkyl_wv_eqn_rotate_to_global(reactive_euler, tau1[d], tau2[d], norm[d], fl_local, fl);
+    gkyl_wv_eqn_rotate_to_global(reactive_euler, tau1[d], tau2[d], norm[d], fr_local, fr);
+
+    for (int i = 0; i < 6; i++) {
+      TEST_CHECK( gkyl_compare(fr[i] - fl[i], amdq[i] + apdq[i], 1e-14) );
+    }
+  }
+
+  gkyl_wv_eqn_release(reactive_euler);
+}
+
 TEST_LIST = {
   { "reactive_euler_basic", test_reactive_euler_basic },
   { "reactive_euler_waves", test_reactive_euler_waves },
+  { "reactive_euler_waves_2", test_reactive_euler_waves_2 },
   { NULL, NULL },
 };
