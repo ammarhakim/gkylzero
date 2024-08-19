@@ -5,7 +5,6 @@
 #include <gkyl_array.h>
 #include <gkyl_rect_grid.h>
 #include <gkyl_emission_elastic_model.h>
-#include <gkyl_bc_emission_elastic_priv.h>
 
 // Object type
 typedef struct gkyl_bc_emission_elastic gkyl_bc_emission_elastic;
