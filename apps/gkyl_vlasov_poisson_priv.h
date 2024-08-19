@@ -176,6 +176,9 @@ struct vp_bgk_collisions {
   enum gkyl_model_id model_id;
   struct vp_species_moment moms; // moments needed in BGK (n, V_drift, T/m) for LTE distribution
 
+  bool fixed_temp_relax;
+  struct gkyl_array *fixed_temp;
+  
   // LTE distribution function projection object
   // also corrects the density of projected distribution function
   struct gkyl_vlasov_lte_proj_on_basis *proj_lte; 
@@ -621,6 +624,11 @@ void vp_species_bgk_init(struct gkyl_vlasov_poisson_app *app, struct vp_species 
  * @param fin Input distribution function
  */
 void vp_species_bgk_moms(gkyl_vlasov_poisson_app *app,
+  const struct vp_species *species,
+  struct vp_bgk_collisions *bgk,
+  const struct gkyl_array *fin);
+
+void vp_species_bgk_moms_fixed_temp(gkyl_vlasov_poisson_app *app,
   const struct vp_species *species,
   struct vp_bgk_collisions *bgk,
   const struct gkyl_array *fin);

@@ -166,9 +166,9 @@ vp_species_init(struct gkyl_vp *vp, struct gkyl_vlasov_poisson_app *app, struct 
   if (vps->collision_id == GKYL_LBO_COLLISIONS) {
     vp_species_lbo_init(app, vps, &vps->lbo);
   } 
-  else if (vps->collision_id == GKYL_LBO_COLLISIONS) {
-//    vp_species_bgk_init(app, vps, &vps->bgk);
-    assert(false); // Not ready.
+  else if (vps->collision_id == GKYL_BGK_COLLISIONS) {
+    vp_species_bgk_init(app, vps, &vps->bgk);
+    // assert(false); // Not ready.
   }
 
   // Create ranges and allocate buffers for applying periodic and non-periodic BCs.
@@ -244,7 +244,13 @@ vp_species_apply_ic(gkyl_vlasov_poisson_app *app, struct vp_species *species, do
   // we are pre-computing source for now as it is time-independent
   vp_species_source_calc(app, species, &species->src, t0);
 
-  vp_species_bflux_rhs(app, species, &species->bflux, species->f, species->f1);
+  vp_species_bflux_rhs(app, species, &species->bflux, species->f, species->f);
+
+    // Optional runtime configuration to use BGK collisions but with fixed input 
+  // temperature relaxation based on the initial temperature value. 
+  if (species->bgk.fixed_temp_relax) {
+    vp_species_bgk_moms_fixed_temp(app, species, &species->bgk, species->f);
+  }
 
   // copy contents of initial conditions into buffer if specific BCs require them
   // *only works in x dimension for now for cdim > 1*
@@ -271,8 +277,8 @@ vp_species_rhs(gkyl_vlasov_poisson_app *app, struct vp_species *species,
 
   if (species->collision_id == GKYL_LBO_COLLISIONS)
     vp_species_lbo_rhs(app, species, &species->lbo, fin, rhs);
-//  else if (species->collision_id == GKYL_BGK_COLLISIONS)
-//    vp_species_bgk_rhs(app, species, &species->bgk, fin, rhs);
+   else if (species->collision_id == GKYL_BGK_COLLISIONS)
+     vp_species_bgk_rhs(app, species, &species->bgk, fin, rhs);
   
   vp_species_bflux_rhs(app, species, &species->bflux, fin, rhs);
 
@@ -411,8 +417,8 @@ vp_species_release(const gkyl_vlasov_poisson_app* app, const struct vp_species *
 
   if (s->collision_id == GKYL_LBO_COLLISIONS)
     vp_species_lbo_release(app, &s->lbo);
-//  else if (s->collision_id == GKYL_BGK_COLLISIONS)
-//    vp_species_bgk_release(app, &s->bgk);
+   else if (s->collision_id == GKYL_BGK_COLLISIONS)
+     vp_species_bgk_release(app, &s->bgk);
 
   // Copy BCs are allocated by default. Need to free.
   for (int d=0; d<app->cdim; ++d) {

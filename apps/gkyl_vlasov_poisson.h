@@ -30,8 +30,8 @@ struct gkyl_vlasov_poisson_projection {
       void *ctx_temp;
       void (*temp)(double t, const double *xn, double *fout, void *ctx);
 
-      // boolean if we are correcting all the moments or only density
-      bool correct_all_moms;       
+      // BGK collisions specific inputs
+      bool correct_all_moms; // boolean if we are correcting all the moments or only density
     };
   };
 };
@@ -51,9 +51,9 @@ struct gkyl_vlasov_poisson_collisions {
   double nuFrac; // Parameter for rescaling collision frequency from SI values
   double hbar, eps0, eV; // Planck's constant/2 pi, vacuum permittivity, elementary charge
 
-  // boolean if we are correcting all the moments or only density:
-  // only used by BGK collisions
-  bool correct_all_moms;
+  // BGK collisions specific inputs
+  bool correct_all_moms; // boolean if we are correcting all the moments or only density
+  bool fixed_temp_relax; // Are BGK collisions relaxing to a fixed input temperature?
   double iter_eps; // error tolerance for moment fixes (density is always exact)
   int max_iter; // maximum number of iteration
 

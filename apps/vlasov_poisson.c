@@ -337,8 +337,6 @@ gkyl_vlasov_poisson_app_apply_ic_species(gkyl_vlasov_poisson_app* app, int sidx,
   struct timespec wtm = gkyl_wall_clock();
   vp_species_apply_ic(app, &app->species[sidx], t0);
   app->stat.init_species_tm += gkyl_time_diff_now_sec(wtm);
-
-  vp_species_apply_bc(app, &app->species[sidx], app->species[sidx].f, t0);
 }
 
 void
@@ -560,6 +558,40 @@ gkyl_vlasov_poisson_app_write_field_energy(gkyl_vlasov_poisson_app* app)
   }
 }
 
+void
+gkyl_vlasov_poisson_app_write_lte_corr_status(gkyl_vlasov_poisson_app* app)
+{
+  for (int i=0; i<app->num_species; ++i) {
+    struct vp_species *s = &app->species[i];
+
+    if (s->collision_id == GKYL_BGK_COLLISIONS) {
+       // write out diagnostic moments
+      const char *fmt = "%s-%s-%s.gkyl";
+      int sz = gkyl_calc_strlen(fmt, app->name, app->species[i].info.name,
+        "corr-lte-stat");
+      char fileNm[sz+1]; // ensures no buffer overflow
+      snprintf(fileNm, sizeof fileNm, fmt, app->name, app->species[i].info.name,
+        "corr-lte-stat");
+
+      int rank;
+      gkyl_comm_get_rank(app->comm, &rank);
+
+      if (rank == 0) {
+        if (s->bgk.is_first_corr_status_write_call) {
+          // write to a new file (this ensure previous output is removed)
+          gkyl_dynvec_write(s->bgk.corr_stat, fileNm);
+          s->bgk.is_first_corr_status_write_call = false;
+        }
+        else {
+          // append to existing file
+          gkyl_dynvec_awrite(s->bgk.corr_stat, fileNm);
+        }
+      }
+      gkyl_dynvec_clear(s->bgk.corr_stat);
+    }
+  } 
+}
+
 // Take a forward Euler step with the suggested time-step dt. This may
 // not be the actual time-step taken. However, the function will never
 // take a time-step larger than dt even if it is allowed by
@@ -587,10 +619,10 @@ forward_euler(gkyl_vlasov_poisson_app* app, double tcurr, double dt,
     if (app->species[i].collision_id == GKYL_LBO_COLLISIONS) {
       vp_species_lbo_moms(app, &app->species[i], &app->species[i].lbo, fin[i]);
     }
-//    else if (app->species[i].collision_id == GKYL_BGK_COLLISIONS) {
-//      vp_species_bgk_moms(app, &app->species[i],
-//        &app->species[i].bgk, fin[i]);
-//    }
+    else if (app->species[i].collision_id == GKYL_BGK_COLLISIONS) {
+      vp_species_bgk_moms(app, &app->species[i], 
+        &app->species[i].bgk, fin[i]);
+    }
   }
 
   // Compute necessary moments for cross-species collisions.
@@ -601,12 +633,6 @@ forward_euler(gkyl_vlasov_poisson_app* app, double tcurr, double dt,
         vp_species_lbo_cross_moms(app, &app->species[i], &app->species[i].lbo, fin[i]);
       }
     }
-//    else if (app->species[i].collision_id == GKYL_BGK_COLLISIONS) {
-//      if (app->species[i].bgk.num_cross_collisions) {
-//        vp_species_bgk_cross_moms(app, &app->species[i],
-//          &app->species[i].bgk, fin[i]);
-//      }
-//    }
   }
 
   // Compute RHS of Vlasov-Poisson equation.
@@ -1065,6 +1091,9 @@ gkyl_vlasov_poisson_app_from_frame_species(gkyl_vlasov_poisson_app *app, int sid
   struct gkyl_app_restart_status rstat = gkyl_vlasov_poisson_app_from_file_species(app, sidx, fileNm.str);
   app->species[sidx].is_first_integ_write_call = false; // append to existing diagnostic
   cstr_drop(&fileNm);
+
+  vp_species_bflux_rhs(app, &app->species[sidx], &app->species[sidx].bflux, app->species[sidx].f,
+    app->species[sidx].f);
 
   return rstat;
 }

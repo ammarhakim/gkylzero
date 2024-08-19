@@ -4,7 +4,6 @@
 
 #include <gkyl_alloc.h>
 #include <gkyl_vlasov_poisson.h>
-#include <gkyl_bc_emission.h>
 #include <rt_arg_parse.h>
 
 #include <gkyl_null_comm.h>
@@ -20,7 +19,6 @@
 struct sheath_ctx {
   double epsilon0;
   double mu0;
-  double q0;
   double chargeElc; // electron charge
   double massElc; // electron mass
   double chargeIon; // ion charge
@@ -31,25 +29,13 @@ struct sheath_ctx {
   double vte; // electron thermal velocity
   double vti; // ion thermal velocity
   double lambda_D;
+  double nu_ee;
+  double nu_ii;
   double Lx; // size of the box
   double Ls;
   double omega_pe;
-  double phi;
-  double deltahat_ts;
-  double Ehat_ts;
-  double t1;
-  double t2;
-  double t3;
-  double t4;
-  double s;
-  double P1_inf;
-  double P1_hat;
-  double E_hat;
-  double W;
-  double p;
   int Nx;
   int Nv;
-  int num_emission_species;
   double t_end;
   int num_frames;
   double dt_failure_tol;
@@ -111,14 +97,27 @@ evalDistFuncIonSource(double t, const double * GKYL_RESTRICT xn, double* GKYL_RE
 }
 
 void
-evalFieldFunc(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
+evalElcNu(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
 {
   struct sheath_ctx *app = ctx;
-  double x = xn[0];
-  
-  fout[0] = 0.0; fout[1] = 0.0, fout[2] = 0.0;
-  fout[3] = 0.0; fout[4] = 0.0; fout[5] = 0.0;
-  fout[6] = 0.0; fout[7] = 0.0;
+  double x = xn[0], v = xn[1];
+  double nu = app->nu_ee;
+  double lambda_D = app->lambda_D;
+
+  // Set collision frequency.                                                                                                                                                                               
+  fout[0] = nu/(1 + exp(fabs(x)/(6.0*lambda_D) - 8.0/1.5));
+}
+
+void
+evalIonNu(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
+{
+  struct sheath_ctx *app = ctx;
+  double x = xn[0], v = xn[1];
+  double nu = app->nu_ii;
+  double lambda_D = app->lambda_D;
+
+  // Set collision frequency.                                                                                                                                                                               
+  fout[0] = nu/(1 + exp(fabs(x)/(6.0*lambda_D) - 8.0/1.5));
 }
 
 struct sheath_ctx
@@ -126,25 +125,9 @@ create_ctx(void)
 {
   double massElc = 9.109e-31;
   double q0 = 1.602e-19;
-
-  // SEE parameters
-  double phi = 4.68;
-  double deltahat_ts = 1.885;
-  double Ehat_ts = 276.8;
-  double t1 = 0.66;
-  double t2 = 0.8;
-  double t3 = 0.7;
-  double t4 = 1.0;
-  double s = 1.54;
-  double P1_inf = 0.02;
-  double P1_hat = 0.496;
-  double E_hat = 1.0e-6;
-  double W = 60.86;
-  double p = 1.0;
   struct sheath_ctx ctx = {
     .epsilon0 = 8.854e-12,
     .mu0 = 1.257e-6,
-    .q0 = q0,
     .chargeElc = -q0,
     .massElc = massElc,
     .chargeIon = q0,
@@ -155,25 +138,13 @@ create_ctx(void)
     .vte = sqrt(ctx.Te/massElc),
     .vti = sqrt(ctx.Ti/ctx.massIon),
     .lambda_D = sqrt(ctx.epsilon0*ctx.Te/(ctx.n0*q0*q0)),
+    .nu_ee = ctx.vte/(50.0*ctx.lambda_D), 
+    .nu_ii = ctx.vti/(50.0*ctx.lambda_D), 
     .Lx = 128.0*ctx.lambda_D,
     .Ls = 100.0*ctx.lambda_D,
     .omega_pe = sqrt(ctx.n0*q0*q0/(ctx.epsilon0*massElc)),
-    .phi = phi,
-    .deltahat_ts = deltahat_ts,
-    .Ehat_ts = Ehat_ts,
-    .t1 = t1,
-    .t2 = t2,
-    .t3 = t3,
-    .t4 = t4,
-    .s = s,
-    .P1_inf = P1_inf,
-    .P1_hat = P1_hat,
-    .E_hat = E_hat,
-    .W = W,
-    .p = p,
-    .Nx = 128,
+    .Nx = 256,
     .Nv = 32,
-    .num_emission_species = 1,
     .t_end = 10.0/ctx.omega_pe,
     .num_frames = 1,
     .dt_failure_tol = 1.0e-4,
@@ -306,15 +277,6 @@ main(int argc, char **argv)
     goto mpifinalize;
   }
 
-  char in_species[1][128] = { "elc" };
-  struct gkyl_bc_emission_ctx *bc_ctx = gkyl_bc_emission_secondary_electron_copper_new(ctx.num_emission_species, 0.0, in_species, app_args.use_gpu);
-  /* struct gkyl_spectrum_model *spectrum_model[1]; */
-  /* spectrum_model[0] = gkyl_spectrum_chung_everhart_new(ctx.q0, ctx.phi, app_args.use_gpu); */
-  /* struct gkyl_yield_model *yield_model[1]; */
-  /* yield_model[0] = gkyl_yield_furman_pivi_new(ctx.q0, ctx.deltahat_ts, ctx.Ehat_ts, ctx.t1, ctx.t2, ctx.t3, ctx.t4, ctx.s, app_args.use_gpu); */
-  /* struct gkyl_elastic_model *elastic_model = gkyl_elastic_furman_pivi_new(ctx.q0, ctx.P1_inf, ctx.P1_hat, ctx.E_hat, ctx.W, ctx.p, app_args.use_gpu); */
-  /* struct gkyl_bc_emission_ctx *bc_ctx = gkyl_bc_emission_new(ctx.num_emission_species, 0.0, true, spectrum_model, yield_model, elastic_model, in_species); */
-
   // electrons
   struct gkyl_vlasov_poisson_species elc = {
     .name = "elc",
@@ -340,10 +302,16 @@ main(int argc, char **argv)
       },
     },
 
+    .collisions =  {
+      .collision_id = GKYL_BGK_COLLISIONS,
+      .self_nu = evalElcNu,
+      .ctx = &ctx,
+      .fixed_temp_relax = true, 
+    },
+
     .bcx = {
-      .lower = { .type = GKYL_SPECIES_REFLECT, },
-      .upper = { .type = GKYL_SPECIES_EMISSION,
-                 .aux_ctx = bc_ctx, },
+      .lower = { .type = GKYL_SPECIES_ABSORB, },
+      .upper = { .type = GKYL_SPECIES_ABSORB, },
     },
     
     .num_diag_moments = 3,
@@ -375,8 +343,15 @@ main(int argc, char **argv)
       },
     },
 
+    .collisions =  {
+      .collision_id = GKYL_BGK_COLLISIONS,
+      .self_nu = evalIonNu,
+      .ctx = &ctx,
+      .fixed_temp_relax = true, 
+    },
+
     .bcx = {
-      .lower = { .type = GKYL_SPECIES_REFLECT, },
+      .lower = { .type = GKYL_SPECIES_ABSORB, },
       .upper = { .type = GKYL_SPECIES_ABSORB, },
     },
     
@@ -388,7 +363,7 @@ main(int argc, char **argv)
   struct gkyl_vlasov_poisson_field field = {
     .permittivity = ctx.epsilon0,
     .poisson_bcs = {
-      .lo_type = { GKYL_POISSON_NEUMANN },
+      .lo_type = { GKYL_POISSON_DIRICHLET },
       .up_type = { GKYL_POISSON_DIRICHLET },
       .lo_value = { 0.0 }, .up_value = { 0.0 }
     },
@@ -396,7 +371,7 @@ main(int argc, char **argv)
 
   // VM app
   struct gkyl_vp app_inp = {
-    .name = "vlasov_poisson_emission_spectrum_1x1v_p2",
+    .name = "vlasov_poisson_sheath_bgk_1x1v_p2",
 
     .cdim = 1, .vdim = 1,
     .lower = { -ctx.Lx },
@@ -424,35 +399,16 @@ main(int argc, char **argv)
   // Create app object.
   gkyl_vlasov_poisson_app *app = gkyl_vlasov_poisson_app_new(&app_inp);
 
-  // Initial & final simulation times.
-  int frame_curr = 0;
+  // Initial and final simulation times.
   double t_curr = 0.0, t_end = ctx.t_end;
-  // Initialize simulation.
-  if (app_args.is_restart) {
-    struct gkyl_app_restart_status status = gkyl_vlasov_poisson_app_read_from_frame(app, app_args.restart_frame);
 
-    if (status.io_status != GKYL_ARRAY_RIO_SUCCESS) {
-      gkyl_vlasov_poisson_app_cout(app, stderr, "*** Failed to read restart file! (%s)\n",
-        gkyl_array_rio_status_msg(status.io_status));
-      goto freeresources;
-    }
-
-    frame_curr = status.frame;
-    t_curr = status.stime;
-
-    gkyl_vlasov_poisson_app_cout(app, stdout, "Restarting from frame %d", frame_curr);
-    gkyl_vlasov_poisson_app_cout(app, stdout, " at time = %g\n", t_curr);
-  }
-  else {
-    gkyl_vlasov_poisson_app_apply_ic(app, t_curr);
-  }
-
-  // Create triggers for IO.
+  // Create trigger for IO.
   int num_frames = ctx.num_frames;
-  struct gkyl_tm_trigger trig_write = { .dt = t_end/num_frames, .tcurr = t_curr, .curr = frame_curr };
+  struct gkyl_tm_trigger io_trig = { .dt = t_end / num_frames };
 
-  // Write out ICs (if restart, it overwrites the restart frame).
-  write_data(&trig_write, app, t_curr, false);
+  // Initialize simulation.
+  gkyl_vlasov_poisson_app_apply_ic(app, t_curr);
+  write_data(&io_trig, app, t_curr, false);
 
   // Compute initial guess of maximum stable time-step.
   double dt = t_end - t_curr;
@@ -475,7 +431,7 @@ main(int argc, char **argv)
     t_curr += status.dt_actual;
     dt = status.dt_suggested;
 
-    write_data(&trig_write, app, t_curr, false);
+    write_data(&io_trig, app, t_curr, false);
 
     if (dt_init < 0.0) {
       dt_init = status.dt_actual;
@@ -499,7 +455,7 @@ main(int argc, char **argv)
     step += 1;
   }
 
-  write_data(&trig_write, app, t_curr, false);
+  write_data(&io_trig, app, t_curr, false);
   gkyl_vlasov_poisson_app_write_integrated_mom(app);
   gkyl_vlasov_poisson_app_stat_write(app);
 
@@ -523,17 +479,10 @@ main(int argc, char **argv)
   gkyl_vlasov_poisson_app_cout(app, stdout, "Number of write calls %ld\n", stat.nio);
   gkyl_vlasov_poisson_app_cout(app, stdout, "IO time took %g secs \n", stat.io_tm);
 
-  freeresources:
   // Free resources after simulation completion.
   gkyl_rect_decomp_release(decomp);
   gkyl_comm_release(comm);
   gkyl_vlasov_poisson_app_release(app);
-  /* for (int i=0; i<ctx.num_emission_species; ++i) { */
-  /*   gkyl_spectrum_model_release(spectrum_model[i]); */
-  /*   gkyl_yield_model_release(yield_model[i]); */
-  /* } */
-  /* gkyl_elastic_model_release(elastic_model); */
-  gkyl_bc_emission_release(bc_ctx);
 
 mpifinalize:
 #ifdef GKYL_HAVE_MPI
