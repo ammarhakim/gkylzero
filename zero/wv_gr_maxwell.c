@@ -9,8 +9,8 @@
 static void
 gkyl_gr_maxwell_flux(double light_speed, double e_fact, double b_fact, const double q[22], double flux[22])
 {
-  double Bx = q[0], By = q[1], Bz = q[2];
-  double Dx = q[3], Dy = q[4], Dz = q[5];
+  double Dx = q[0], Dy = q[1], Dz = q[2];
+  double Bx = q[3], By = q[4], Bz = q[5];
 
   double phi = q[6];
   double psi = q[7];
@@ -41,7 +41,7 @@ gkyl_gr_maxwell_flux(double light_speed, double e_fact, double b_fact, const dou
     flux[4] = -Ez;
     flux[5] = Ey;
     flux[6] = e_fact * Dx;
-    flux[7] = b_fact * (light_speed * light_speed) * Bx;
+    flux[7] = b_fact * (light_speed * light_speed) * Hx;
 
     for (int i = 8; i < 22; i++) {
       flux[i] = 0.0;
@@ -185,7 +185,7 @@ rot_to_global(const struct gkyl_wv_eqn* eqn, const double* tau1, const double* t
   // Rotate magnetic field vector to global coordinates.
   qglobal[3] = (qlocal[3] * norm[0]) + (qlocal[4] * tau1[0]) + (qlocal[5] * tau2[0]);
   qglobal[4] = (qlocal[3] * norm[1]) + (qlocal[4] * tau1[1]) + (qlocal[5] * tau2[1]);
-  qglobal[5] = (qlocal[3] * norm[2]) + (qlocal[4] * tau2[2]) + (qlocal[5] * tau2[2]);
+  qglobal[5] = (qlocal[3] * norm[2]) + (qlocal[4] * tau1[2]) + (qlocal[5] * tau2[2]);
 
   // Correction potentials are scalars (so remain unchanged).
   qglobal[6] = qlocal[6];
@@ -412,7 +412,7 @@ gkyl_wv_gr_maxwell_inew(const struct gkyl_wv_gr_maxwell_inp* inp)
 
   gr_maxwell->eqn.type = GKYL_EQN_GR_MAXWELL;
   gr_maxwell->eqn.num_equations = 22;
-  gr_maxwell->eqn.num_diag = 6;
+  gr_maxwell->eqn.num_diag = 22;
 
   gr_maxwell->light_speed = inp->light_speed;
   gr_maxwell->e_fact = inp->e_fact;
