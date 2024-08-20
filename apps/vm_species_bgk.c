@@ -48,6 +48,12 @@ vm_species_bgk_init(struct gkyl_vlasov_app *app, struct vm_species *s, struct vm
     .max_iter = s->info.collisions.max_iter, .iter_eps = s->info.collisions.iter_eps, 
     .use_last_converged = s->info.collisions.use_last_converged };
   vm_species_lte_init(app, s, &bgk->lte, corr_inp);
+
+  // Is the temperature being relaxed to fixed in time?
+  bgk->fixed_temp_relax = s->info.collisions.fixed_temp_relax;
+  if (bgk->fixed_temp_relax) {
+    bgk->fixed_temp = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
+  }  
   
   bgk->nu_f_lte = mkarr(app->use_gpu, app->basis.num_basis, s->local_ext.volume);
   // BGK updater (also computes stable timestep)
@@ -124,6 +130,10 @@ vm_species_bgk_release(const struct gkyl_vlasov_app *app, const struct vm_bgk_co
   }
 
   vm_species_lte_release(app, &bgk->lte);
+
+  if (bgk->fixed_temp_relax) {
+    gkyl_array_release(bgk->fixed_temp);
+  }
 
   gkyl_bgk_collisions_release(bgk->up_bgk);
 }

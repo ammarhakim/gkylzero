@@ -82,5 +82,5 @@ struct gkyl_vlasov_lte_proj_on_basis {
   struct gkyl_velocity_map *vel_map; // Velocity space mapping object.
   struct gkyl_mat_mm_array_mem *phase_nodal_to_modal_mem; // structure of data which converts  
                                                           // stores the info to convert phase
-                                                          // space nodal to modal gkyl arrays   
+                                                          // space nodal to modal gkyl arrays
 };

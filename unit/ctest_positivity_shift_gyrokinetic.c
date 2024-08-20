@@ -96,15 +96,15 @@ test_1x2v(int poly_order, bool use_gpu)
     .mu_max = mu_max, // Maximum mu of the grid.
   };
 
-  double confLower[cdim] = {0.0}, confUpper[cdim] = {0.0};
-  int confCells[cdim] = {0};
+  double confLower[GKYL_MAX_CDIM] = {0.0}, confUpper[GKYL_MAX_CDIM] = {0.0};
+  int confCells[GKYL_MAX_CDIM] = {0};
   for (int d=0; d<cdim; d++) {
     confLower[d] = lower[d];
     confUpper[d] = upper[d];
     confCells[d] = cells[d];
   }
-  double velLower[vdim] = {0.0}, velUpper[vdim] = {0.0};
-  int velCells[vdim] = {0};
+  double velLower[3] = {0.0}, velUpper[3] = {0.0};
+  int velCells[3] = {0};
   for (int d=0; d<vdim; d++) {
     velLower[d] = lower[cdim+d];
     velUpper[d] = upper[cdim+d];
@@ -128,15 +128,15 @@ test_1x2v(int poly_order, bool use_gpu)
   gkyl_cart_modal_serendip(&confBasis, cdim, poly_order);
 
   // Ranges
-  int confGhost[] = { 1, 1, 1 }; // 3 elements because it's used by geo.
+  int confGhost[GKYL_MAX_CDIM] = { 1 };
   struct gkyl_range confLocal, confLocal_ext; // local, local-ext conf-space ranges
   gkyl_create_grid_ranges(&confGrid, confGhost, &confLocal_ext, &confLocal);
 
-  int velGhost[] = { 0, 0 };
+  int velGhost[3] = { 0 };
   struct gkyl_range velLocal, velLocal_ext; // local, local-ext vel-space ranges
   gkyl_create_grid_ranges(&velGrid, velGhost, &velLocal_ext, &velLocal);
 
-  int ghost[ndim] = {0};
+  int ghost[GKYL_MAX_DIM] = {0};
   for (int d=0; d<cdim; d++) ghost[d] = confGhost[d];
   struct gkyl_range local, local_ext; // local, local-ext phase-space ranges
   gkyl_create_grid_ranges(&grid, ghost, &local_ext, &local);

@@ -71,8 +71,8 @@ test_mom_gyrokinetic()
     confUpper[d] = upper[d];
     confCells[d] = cells[d];
   }
-  double velLower[vdim], velUpper[vdim];
-  int velCells[vdim];
+  double velLower[3], velUpper[3];
+  int velCells[3];
   for (int d=0; d<vdim; d++) {
     velLower[d] = lower[cdim+d];
     velUpper[d] = upper[cdim+d];
@@ -95,10 +95,11 @@ test_mom_gyrokinetic()
   int confGhost[] = { 1, 1, 1 }; // 3 elements because it's used by geo.
   struct gkyl_range confLocal, confLocal_ext; // local, local-ext conf-space ranges
   gkyl_create_grid_ranges(&confGrid, confGhost, &confLocal_ext, &confLocal);
-  int velGhost[] = { 0, 0 };
+
+  int velGhost[3] = { 0 };
   struct gkyl_range velLocal, velLocal_ext; // local, local-ext vel-space ranges
   gkyl_create_grid_ranges(&velGrid, velGhost, &velLocal_ext, &velLocal);
-  int ghost[ndim] = { 0 };
+  int ghost[GKYL_MAX_DIM] = { 0 };
   for (int d=0; d<cdim; d++) ghost[d] = confGhost[d];
   struct gkyl_range local, local_ext; // local, local-ext phase-space ranges
   gkyl_create_grid_ranges(&grid, ghost, &local_ext, &local);
@@ -191,8 +192,8 @@ test_1x1v(int polyOrder, bool use_gpu)
     confUpper[d] = upper[d];
     confCells[d] = cells[d];
   }
-  double velLower[vdim], velUpper[vdim];
-  int velCells[vdim];
+  double velLower[3], velUpper[3];
+  int velCells[3];
   for (int d=0; d<vdim; d++) {
     velLower[d] = lower[cdim+d];
     velUpper[d] = upper[cdim+d];
@@ -221,11 +222,11 @@ test_1x1v(int polyOrder, bool use_gpu)
   struct gkyl_range confLocal, confLocal_ext; // local, local-ext conf-space ranges
   gkyl_create_grid_ranges(&confGrid, confGhost, &confLocal_ext, &confLocal);
 
-  int velGhost[] = { 0, 0 };
+  int velGhost[3] = { 0 };
   struct gkyl_range velLocal, velLocal_ext; // local, local-ext vel-space ranges
   gkyl_create_grid_ranges(&velGrid, velGhost, &velLocal_ext, &velLocal);
 
-  int ghost[ndim] = { 0 };
+  int ghost[GKYL_MAX_DIM] = { 0 };
   for (int d=0; d<cdim; d++) ghost[d] = confGhost[d];
   struct gkyl_range local, local_ext; // local, local-ext phase-space ranges
   gkyl_create_grid_ranges(&grid, ghost, &local_ext, &local);
@@ -428,8 +429,8 @@ test_1x2v(int poly_order, bool use_gpu)
     confUpper[d] = upper[d];
     confCells[d] = cells[d];
   }
-  double velLower[vdim], velUpper[vdim];
-  int velCells[vdim];
+  double velLower[3], velUpper[3];
+  int velCells[3];
   for (int d=0; d<vdim; d++) {
     velLower[d] = lower[cdim+d];
     velUpper[d] = upper[cdim+d];
@@ -458,11 +459,11 @@ test_1x2v(int poly_order, bool use_gpu)
   struct gkyl_range confLocal, confLocal_ext; // local, local-ext conf-space ranges
   gkyl_create_grid_ranges(&confGrid, confGhost, &confLocal_ext, &confLocal);
 
-  int velGhost[] = { 0, 0 };
+  int velGhost[3] = { 0 };
   struct gkyl_range velLocal, velLocal_ext; // local, local-ext vel-space ranges
   gkyl_create_grid_ranges(&velGrid, velGhost, &velLocal_ext, &velLocal);
 
-  int ghost[ndim] = { 0 };
+  int ghost[GKYL_MAX_DIM] = { 0 };
   for (int d=0; d<cdim; d++) ghost[d] = confGhost[d];
   struct gkyl_range local, local_ext; // local, local-ext phase-space ranges
   gkyl_create_grid_ranges(&grid, ghost, &local_ext, &local);
@@ -647,8 +648,8 @@ test_2x2v(int poly_order, bool use_gpu)
     confUpper[d] = upper[d];
     confCells[d] = cells[d];
   }
-  double velLower[vdim], velUpper[vdim];
-  int velCells[vdim];
+  double velLower[3], velUpper[3];
+  int velCells[3];
   for (int d=0; d<vdim; d++) {
     velLower[d] = lower[cdim+d];
     velUpper[d] = upper[cdim+d];
@@ -677,11 +678,11 @@ test_2x2v(int poly_order, bool use_gpu)
   struct gkyl_range confLocal, confLocal_ext; // local, local-ext conf-space ranges
   gkyl_create_grid_ranges(&confGrid, confGhost, &confLocal_ext, &confLocal);
 
-  int velGhost[] = { 0, 0 };
+  int velGhost[3] = { 0 };
   struct gkyl_range velLocal, velLocal_ext; // local, local-ext vel-space ranges
   gkyl_create_grid_ranges(&velGrid, velGhost, &velLocal_ext, &velLocal);
 
-  int ghost[ndim] = { 0 };
+  int ghost[GKYL_MAX_DIM] = { 0 };
   for (int d=0; d<cdim; d++) ghost[d] = confGhost[d];
   struct gkyl_range local, local_ext; // local, local-ext phase-space ranges
   gkyl_create_grid_ranges(&grid, ghost, &local_ext, &local);

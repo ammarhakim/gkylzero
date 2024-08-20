@@ -56,7 +56,7 @@ vm_species_lte_init(struct gkyl_vlasov_app *app, struct vm_species *s, struct vm
     lte->niter = 0;
     lte->corr_lte = gkyl_vlasov_lte_correct_inew( &inp_corr );
 
-    lte->corr_stat = gkyl_dynvec_new(GKYL_DOUBLE, app->vdim+4);
+    lte->corr_stat = gkyl_dynvec_new(GKYL_DOUBLE, 7);
     lte->is_first_corr_status_write_call = true;
   }
 
@@ -80,15 +80,18 @@ vm_species_lte_from_moms(gkyl_vlasov_app *app, const struct vm_species *species,
 
   // Correct all the moments of the projected LTE distribution function.
   if (lte->correct_all_moms) {
-    struct gkyl_vlasov_lte_correct_status status_corr = gkyl_vlasov_lte_correct_all_moments(lte->corr_lte, lte->f_lte, moms_lte,
+    struct gkyl_vlasov_lte_correct_status status_corr;
+    status_corr = gkyl_vlasov_lte_correct_all_moments(lte->corr_lte, lte->f_lte, moms_lte,
       &species->local, &app->local);
-    double corr_vec[app->vdim+4];
+    double corr_vec[7] = { 0.0 };
     corr_vec[0] = status_corr.num_iter;
     corr_vec[1] = status_corr.iter_converged;
     for (int i=0; i<app->vdim+2; ++i) {
       corr_vec[2+i] = status_corr.error[i];
     }
-    gkyl_dynvec_append(lte->corr_stat, app->tcurr, corr_vec);
+    double corr_vec_global[7] = { 0.0 };
+    gkyl_comm_allreduce_host(app->comm, GKYL_DOUBLE, GKYL_MAX, 7, corr_vec, corr_vec_global);    
+    gkyl_dynvec_append(lte->corr_stat, app->tcurr, corr_vec_global);
 
     lte->niter += status_corr.num_iter;
   } 

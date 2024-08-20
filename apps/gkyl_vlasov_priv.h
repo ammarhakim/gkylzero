@@ -315,13 +315,12 @@ struct vm_proj {
 struct vm_source {
   bool write_source; // optional parameter to write out source distribution
 
-  struct vm_species *source_species; // species to use for the source
-  int source_species_idx; // index of source species
-  
-  bool calc_bflux;
+  bool calc_bflux; // boolean for if we are using boundary fluxes to rescale sources
   double scale_factor; // factor to scale source function
   double source_length; // length used to scale the source function
   double *scale_ptr;
+  struct vm_species *source_species; // species to use for the source
+  int source_species_idx; // index of source species
 
   struct gkyl_array *source; // applied source
   struct gkyl_array *source_host; // host copy for use in IO 
@@ -429,6 +428,7 @@ struct vm_species {
   struct vm_proj proj_init[GKYL_MAX_PROJ]; // projectors for initial conditions
   struct gkyl_array *f_tmp; // temporary array for accumulating initial conditions
   
+  bool calc_bflux; // are we computing boundary fluxes?
   struct vm_boundary_fluxes bflux; // boundary flux object
 
   enum gkyl_source_id source_id; // type of source

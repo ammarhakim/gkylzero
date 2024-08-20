@@ -169,8 +169,7 @@ main(int argc, char **argv)
     .type_brag = GKYL_BRAG_UNMAG_FULL,
 
     .bcx = { GKYL_SPECIES_FUNC, GKYL_SPECIES_FUNC },  
-    .bcx_lower_func = evalIonBcLower, 
-    .bcx_upper_func = evalIonBcUpper, 
+    .bcx_func = { evalIonBcLower, evalIonBcUpper}, 
   };  
 
   // Field.

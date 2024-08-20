@@ -58,6 +58,15 @@
 // Definitions of private structs and APIs attached to these objects
 // for use in PKPM app.
 
+// Meta-data for IO
+struct pkpm_output_meta {
+  int frame; // frame number
+  double stime; // output time
+  int poly_order; // polynomial order
+  const char *basis_type; // name of basis functions
+  char basis_type_nm[64]; // used during read
+};
+
 // data for moments
 struct pkpm_species_moment {
   struct gkyl_dg_updater_moment *mcalc; // moment update

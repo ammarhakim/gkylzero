@@ -105,7 +105,7 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
     // Project gamma and its inverse
     gkyl_calc_sr_vars_init_p_vars(s->sr_vars, s->gamma, s->gamma_inv);
 
-    // by default, we do not have zero-flux boundary conditions in any direction
+    // by default, we do not have zero-flux boundary conditions in any direction.
     bool is_zero_flux[2*GKYL_MAX_DIM] = {false};
     struct gkyl_dg_vlasov_sr_auxfields aux_inp = {.qmem = s->qmem, .gamma = s->gamma};
 
@@ -264,6 +264,9 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
 
   // set species source id
   s->source_id = s->info.source.source_id;
+  if (s->source_id == GKYL_BFLUX_SOURCE) {
+    s->calc_bflux = true;
+  }
   
   // determine collision type to use in vlasov update
   s->collision_id = s->info.collisions.collision_id;
@@ -317,9 +320,6 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
     gkyl_skin_ghost_ranges(&s->upper_skin[dir], &s->upper_ghost[dir], dir, GKYL_UPPER_EDGE, &s->local_ext, ghost);
   }
 
-  // intitalize boundary flux updater, needs to be done after skin and ghost ranges
-  vm_species_bflux_init(app, s, &s->bflux);
-
   // allocate buffer for applying periodic BCs
   long buff_sz = 0;
   // compute buffer size needed
@@ -338,6 +338,7 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
     enum gkyl_bc_basic_type bctype = GKYL_BC_COPY;
     if (s->lower_bc[d].type == GKYL_SPECIES_EMISSION) {
       s->emit_lo = true;
+      s->calc_bflux = true;
       vm_species_emission_init(app, &s->bc_emission_lo, d, GKYL_LOWER_EDGE, s->lower_bc[d].aux_ctx,
         app->use_gpu);
     }
@@ -358,6 +359,7 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
     // Upper BC updater. Copy BCs by default.
     if (s->upper_bc[d].type == GKYL_SPECIES_EMISSION) {
       s->emit_up = true;
+      s->calc_bflux = true;
       vm_species_emission_init(app, &s->bc_emission_up, d, GKYL_UPPER_EDGE, s->upper_bc[d].aux_ctx,
         app->use_gpu);
     }
@@ -374,6 +376,10 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
       s->bc_up[d] = gkyl_bc_basic_new(d, GKYL_UPPER_EDGE, bctype, app->basis_on_dev.basis,
         &s->upper_skin[d], &s->upper_ghost[d], s->f->ncomp, app->cdim, app->use_gpu);
     }
+  }
+  if (s->calc_bflux) {
+    // intitalize boundary flux updater if we need boundary fluxes
+    vm_species_bflux_init(app, s, &s->bflux);
   }
 }
 
@@ -399,7 +405,9 @@ vm_species_apply_ic(gkyl_vlasov_app *app, struct vm_species *species, double t0)
   // we are pre-computing source for now as it is time-independent
   vm_species_source_calc(app, species, &species->src, t0);
 
-  vm_species_bflux_rhs(app, species, &species->bflux, species->f, species->f1);
+  if (species->calc_bflux) {
+    vm_species_bflux_rhs(app, species, &species->bflux, species->f, species->f1);
+  }
 
   // Optional runtime configuration to use BGK collisions but with fixed input 
   // temperature relaxation based on the initial temperature value. 
@@ -459,6 +467,10 @@ vm_species_rhs(gkyl_vlasov_app *app, struct vm_species *species,
     vm_species_bgk_rhs(app, species, &species->bgk, fin, rhs);
   }
 
+  if (species->calc_bflux) {
+    vm_species_bflux_rhs(app, species, &species->bflux, fin, rhs);
+  }
+
   if (species->radiation_id == GKYL_VM_COMPTON_RADIATION) {
     vm_species_radiation_rhs(app, species, &species->rad, fin, rhs);
   }
@@ -494,7 +506,9 @@ vm_species_rhs_implicit(gkyl_vlasov_app *app, struct vm_species *species,
     vm_species_bgk_rhs(app, species, &species->bgk, fin, rhs);
   }
 
-  vm_species_bflux_rhs(app, species, &species->bflux, fin, rhs);
+  if (species->calc_bflux) {
+    vm_species_bflux_rhs(app, species, &species->bflux, fin, rhs);
+  }
   
   app->stat.nspecies_omega_cfl +=1;
   struct timespec tm = gkyl_wall_clock();
@@ -595,7 +609,7 @@ vm_species_calc_L2(gkyl_vlasov_app *app, double tm, const struct vm_species *spe
     gkyl_array_reduce_range(L2, species->L2_f, GKYL_SUM, &species->local);
   }
   double L2_global[1] = { 0.0 };
-  gkyl_comm_allreduce(app->comm, GKYL_DOUBLE, GKYL_SUM, 1, L2, L2_global);
+  gkyl_comm_allreduce_host(app->comm, GKYL_DOUBLE, GKYL_SUM, 1, L2, L2_global);
   
   gkyl_dynvec_append(species->integ_L2_f, tm, L2_global);  
 }
@@ -664,7 +678,9 @@ vm_species_release(const gkyl_vlasov_app* app, const struct vm_species *s)
     vm_species_projection_release(app, &s->proj_init[k]);
   }
 
-  vm_species_bflux_release(app, &s->bflux);
+  if (s->calc_bflux) {
+    vm_species_bflux_release(app, &s->bflux);
+  }
 
   gkyl_comm_release(s->comm);
 

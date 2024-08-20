@@ -90,7 +90,7 @@ vm_species_source_rhs(gkyl_vlasov_app *app, const struct vm_species *species,
   species_idx = vm_find_species_idx(app, species->info.name);
   // use boundary fluxes to scale source profile
   if (src->calc_bflux) {
-    src->scale_factor = 0;
+    src->scale_factor = 0.0;
     double z[app->confBasis.num_basis];
     double red_mom[1] = { 0.0 };
 
@@ -135,7 +135,7 @@ vm_species_source_release(const struct gkyl_vlasov_app *app, const struct vm_sou
     } 
     else {
       gkyl_free(src->scale_ptr);
-    }    
+    }
   }
 
   for (int k=0; k<src->num_sources; k++) {

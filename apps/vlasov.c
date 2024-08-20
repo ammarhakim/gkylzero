@@ -1,7 +1,5 @@
 #include <stdarg.h>
 
-#include <mpack.h>
-
 #include <gkyl_alloc.h>
 #include <gkyl_array_ops.h>
 #include <gkyl_array_rio_priv.h>
@@ -593,9 +591,10 @@ gkyl_vlasov_app_write_field(gkyl_vlasov_app* app, double tm, int frame)
   if (app->use_gpu) {
     gkyl_array_copy(app->field->em_host, app->field->em);
   }
-  gkyl_comm_array_write(app->comm, &app->grid, &app->local, mt, app->field->em_host, fileNm);
+  gkyl_comm_array_write(app->comm, &app->grid, &app->local, 
+    mt, app->field->em_host, fileNm);
 
-  vlasov_array_meta_release(mt);
+  vlasov_array_meta_release(mt); 
 }
 
 void
@@ -630,6 +629,7 @@ gkyl_vlasov_app_write_species(gkyl_vlasov_app* app, int sidx, double tm, int fra
       int sz_source = gkyl_calc_strlen(fmt_source, app->name, vm_s->info.name, frame);
       char fileNm_source[sz_source+1]; // ensures no buffer overflow
       snprintf(fileNm_source, sizeof fileNm_source, fmt_source, app->name, vm_s->info.name, frame);
+
       // copy data from device to host before writing it out
       if (app->use_gpu) {
         gkyl_array_copy(vm_s->src.source_host, vm_s->src.source);
@@ -638,7 +638,8 @@ gkyl_vlasov_app_write_species(gkyl_vlasov_app* app, int sidx, double tm, int fra
         mt, vm_s->src.source_host, fileNm); 
     }
   }
-  vlasov_array_meta_release(mt);   
+
+  vlasov_array_meta_release(mt); 
 }
 
 void
@@ -665,16 +666,17 @@ gkyl_vlasov_app_write_species_lte(gkyl_vlasov_app* app, int sidx, double tm, int
   // Just re-use f_host host-side array to avoid allocating 
   // more distribution function-size arrays. 
   if (app->use_gpu) {
-    gkyl_array_copy(app->species[sidx].f_host, app->species[sidx].lte.f_lte);
-    gkyl_comm_array_write(app->species[sidx].comm, &vm_s->grid, &vm_s->local,
-      mt, app->species[sidx].f_host, fileNm);
+    // copy data from device to host before writing it out
+    gkyl_array_copy(vm_s->f_host, vm_s->lte.f_lte);
+    gkyl_comm_array_write(vm_s->comm, &vm_s->grid, &vm_s->local,
+      mt, vm_s->f_host, fileNm);
   }
   else {
-    gkyl_comm_array_write(app->species[sidx].comm, &vm_s->grid, &vm_s->local,
-      mt, app->species[sidx].lte.f_lte, fileNm);
+    gkyl_comm_array_write(vm_s->comm, &vm_s->grid, &vm_s->local,
+      mt, vm_s->lte.f_lte, fileNm);
   }
 
-  vlasov_array_meta_release(mt);  
+  vlasov_array_meta_release(mt); 
 }
 
 void
@@ -694,6 +696,7 @@ gkyl_vlasov_app_write_fluid_species(gkyl_vlasov_app* app, int sidx, double tm, i
   int sz = gkyl_calc_strlen(fmt, app->name, vm_fs->info.name, frame);
   char fileNm[sz+1]; // ensures no buffer overflow
   snprintf(fileNm, sizeof fileNm, fmt, app->name, vm_fs->info.name, frame);
+
   // copy data from device to host before writing it out
   if (app->use_gpu) {
     gkyl_array_copy(vm_fs->fluid_host, vm_fs->fluid);
@@ -701,7 +704,7 @@ gkyl_vlasov_app_write_fluid_species(gkyl_vlasov_app* app, int sidx, double tm, i
   gkyl_comm_array_write(app->comm, &app->grid, &app->local, 
     mt, vm_fs->fluid_host, fileNm);
 
-  vlasov_array_meta_release(mt);   
+  vlasov_array_meta_release(mt); 
 }
 
 void
@@ -748,7 +751,7 @@ gkyl_vlasov_app_write_mom(gkyl_vlasov_app* app, double tm, int frame)
           gkyl_comm_array_write(app->comm, &app->grid, &app->local, 
             mt, vm_s->src.moms[m].marr_host, fileNm_source); 
         }
-      }      
+      }
     }
   }
 
