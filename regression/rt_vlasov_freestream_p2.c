@@ -233,8 +233,9 @@ main(int argc, char **argv)
     .lower = { -ctx.vx_max },
     .upper = { ctx.vx_max }, 
     .cells = { NVX },
-
-    .projection = {
+    
+    .num_init = 1, 
+    .projection[0] = {
       .proj_id = GKYL_PROJ_FUNC,
       .func = evalNeutInit,
       .ctx_func = &ctx,

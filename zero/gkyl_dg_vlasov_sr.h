@@ -10,7 +10,7 @@
 // Struct containing the pointers to auxiliary fields.
 struct gkyl_dg_vlasov_sr_auxfields { 
   const struct gkyl_array *qmem; // q/m * EM
-  const struct gkyl_array *p_over_gamma; // p/gamma (velocity)
+  const struct gkyl_array *gamma; // gamma = sqrt(1 + p^2), particle Lorentz factor
 };
 
 /**
