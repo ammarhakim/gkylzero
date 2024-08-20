@@ -116,10 +116,11 @@ explicit_frictional_source_update(const gkyl_moment_em_coupling* mom_em, double 
       elc_num_equations = 4;
     }
 
-    double *f_elc_new = gkyl_malloc(sizeof(double[elc_num_equations]));
-    double *f_elc_stage1 = gkyl_malloc(sizeof(double[elc_num_equations]));
-    double *f_elc_stage2 = gkyl_malloc(sizeof(double[elc_num_equations]));
-    double *f_elc_old = gkyl_malloc(sizeof(double[elc_num_equations]));
+    // Right now, we allocate these arrays on the stack with size 5 (current maximum supported number of equations).
+    double f_elc_new[5];
+    double f_elc_stage1[5];
+    double f_elc_stage2[5];
+    double f_elc_old[5];
 
     if (mom_em->param[1].type == GKYL_EQN_EULER) {
       ion_num_equations = 5;
@@ -128,10 +129,11 @@ explicit_frictional_source_update(const gkyl_moment_em_coupling* mom_em, double 
       ion_num_equations = 4;
     }
 
-    double *f_ion_new = gkyl_malloc(sizeof(double[ion_num_equations]));
-    double *f_ion_stage1 = gkyl_malloc(sizeof(double[ion_num_equations]));
-    double *f_ion_stage2 = gkyl_malloc(sizeof(double[ion_num_equations]));
-    double *f_ion_old = gkyl_malloc(sizeof(double[ion_num_equations]));
+    // Right now, we allocate these arrays on the stack with size 5 (current maximum supported number of equations).
+    double f_ion_new[5];
+    double f_ion_stage1[5];
+    double f_ion_stage2[5];
+    double f_ion_old[5];
 
     for (int i = 0; i < elc_num_equations; i++) {
       f_elc_old[i] = f_elc[i];
@@ -163,16 +165,6 @@ explicit_frictional_source_update(const gkyl_moment_em_coupling* mom_em, double 
     for (int i = 0; i < ion_num_equations; i++) {
       f_ion[i] = ((1.0 / 3.0) * f_ion_old[i]) + ((2.0 / 3.0) * f_ion_new[i]);
     }
-
-    gkyl_free(f_elc_new);
-    gkyl_free(f_elc_stage1);
-    gkyl_free(f_elc_stage2);
-    gkyl_free(f_elc_old);
-
-    gkyl_free(f_ion_new);
-    gkyl_free(f_ion_stage1);
-    gkyl_free(f_ion_stage2);
-    gkyl_free(f_ion_old);
   }
 }
 
