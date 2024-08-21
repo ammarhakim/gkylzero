@@ -439,6 +439,8 @@ gk_neut_species_release(const gkyl_gyrokinetic_app* app, const struct gk_neut_sp
     // release equation object and solver
     gkyl_dg_eqn_release(s->eqn_vlasov);
     gkyl_dg_updater_vlasov_release(s->slvr);
+
+    gk_neut_species_bflux_release(app, &s->bflux);
   }
 
   // release moment data
@@ -454,8 +456,6 @@ gk_neut_species_release(const gkyl_gyrokinetic_app* app, const struct gk_neut_sp
 
   if (s->has_neutral_reactions)
     gk_neut_species_react_release(app, &s->react_neut);
-
-  gk_neut_species_bflux_release(app, &s->bflux);
 
   // Copy BCs are allocated by default. Need to free.
   for (int d=0; d<app->cdim; ++d) {
