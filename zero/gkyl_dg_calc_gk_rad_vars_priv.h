@@ -129,6 +129,6 @@ void gkyl_dg_calc_gk_rad_vars_nI_nu_advance_cu(const struct gkyl_dg_calc_gk_rad_
   const struct gkyl_array* vsqnu_surf, const struct gkyl_array* vsqnu, 
   const struct gkyl_array* nI, 
   struct gkyl_array* nvnu_surf, struct gkyl_array* nvnu, 
-  struct gkyl_array* nvsqnu_surf, struct gkyl_array* nvsqnu
+  struct gkyl_array* nvsqnu_surf, struct gkyl_array* nvsqnu,
   double vtsq_min, struct gkyl_array* vtsq);
 #endif

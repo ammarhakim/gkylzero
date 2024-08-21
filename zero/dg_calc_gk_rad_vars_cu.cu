@@ -84,7 +84,7 @@ gkyl_dg_calc_gk_rad_vars_nI_nu_advance_cu_kernel(struct gkyl_dg_calc_gk_rad_vars
 {
   double xc[GKYL_MAX_DIM] = {0.0};
   int idx[GKYL_MAX_DIM];
-  ind cdim = up->cdim;
+  int cdim = up->cdim;
   
   for (unsigned long linc1 = threadIdx.x + blockIdx.x*blockDim.x;
       linc1 < phase_range.volume;
@@ -101,7 +101,7 @@ gkyl_dg_calc_gk_rad_vars_nI_nu_advance_cu_kernel(struct gkyl_dg_calc_gk_rad_vars
     long loc_conf = gkyl_range_idx(&conf_range, idx);
     long loc_phase = gkyl_range_idx(&phase_range, idx);
 
-    const double* vtsq_d = gkyl_array_cfetch(vtsq, loc_conf);
+    const double* vtsq_d = (const double*) gkyl_array_cfetch(vtsq, loc_conf);
     if ( vtsq_d[0] * up->cellav_norm_conf > vtsq_min ) {      
       const double* vnu_surf_d = (const double*) gkyl_array_cfetch(vnu_surf, loc_phase);
       const double* vnu_d = (const double*) gkyl_array_cfetch(vnu, loc_phase);
@@ -171,7 +171,7 @@ gkyl_dg_calc_gk_rad_vars_cu_dev_new(const struct gkyl_rect_grid *phase_grid,
   up->charge = charge;
   up->mass = mass;
 
-  up-cellav_norm_conf = 1.0/pow(sqrt(2.0), cdim);
+  up->cellav_norm_conf = 1.0/pow(sqrt(2.0), cdim);
   // Fitting parameters for a given collision type
   up->a = a;
   up->alpha = alpha;
