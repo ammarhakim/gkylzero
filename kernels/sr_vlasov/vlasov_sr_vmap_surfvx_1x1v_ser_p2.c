@@ -10,7 +10,7 @@ GKYL_CU_DH double vlasov_sr_vmap_surfvx_1x1v_ser_p2(const double *w, const doubl
   // qmem:                q/m*EM fields.
   // fl/fc/fr:            Input Distribution function in left/center/right cells 
   // out:                 Output distribution function in center cell 
-  if (fl[0] < 1.0e-30 && fc[0] < 1.0e-30 && fr[0] < 1.0e-30) {
+  if (fabs(fl[0]) < 1.0e-30 && fabs(fc[0]) < 1.0e-30 && fabs(fr[0]) < 1.0e-30) {
     return 0.0;
   }
   const double dv10 = 2.0/dxv[1]; 

@@ -8,7 +8,7 @@ GKYL_CU_DH double vlasov_sr_vmap_vol_1x1v_ser_p2(const double *w, const double *
   // qmem:                q/m*EM fields.
   // f:                   Input distribution function.
   // out:                 Incremented output.
-  if (f[0] < 1.0e-30) {
+  if (fabs(f[0]) < 1.0e-30) {
     return 0.0;
   }
   const double dx10 = 2.0/dxv[0]; 

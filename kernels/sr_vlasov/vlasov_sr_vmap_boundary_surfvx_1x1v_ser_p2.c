@@ -11,7 +11,7 @@ GKYL_CU_DH double vlasov_sr_vmap_boundary_surfvx_1x1v_ser_p2(const double *w, co
   // edge:                Determines if the update is for the left edge (-1) or right edge (+1).
   // fSkin/fEdge:         Input Distribution function in skin cell/last edge cell 
   // out:                 Output distribution function in skin cell 
-  if (fEdge[0] < 1.0e-30 && fSkin[0] < 1.0e-30) {
+  if (fabs(fEdge[0]) < 1.0e-30 && fabs(fSkin[0]) < 1.0e-30) {
     return 0.0;
   }
   const double dv10 = 2.0/dxv[1]; 
