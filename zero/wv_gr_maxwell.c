@@ -76,6 +76,11 @@ gkyl_gr_maxwell_max_abs_speed(double light_speed, const double q[22])
       (spatial_metric[0][1] * ((spatial_metric[1][0] * spatial_metric[2][2]) - (spatial_metric[1][2] * spatial_metric[2][0]))) +
       (spatial_metric[0][2] * ((spatial_metric[1][0] * spatial_metric[2][1]) - (spatial_metric[1][1] * spatial_metric[2][0])));
 
+    for (int i = 0; i < 3; i++) {
+      gkyl_free(spatial_metric[i]);
+    }
+    gkyl_free(spatial_metric);
+
     return light_speed * sqrt(spatial_metric_det);
   }
   else {
