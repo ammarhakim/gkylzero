@@ -360,7 +360,8 @@ main(int argc, char **argv)
       .z = 1,
       .charge_state = 0,
       .num_of_densities = 1, // Must be 1 for now.
-      .factor = 1,
+      .te_min = GKYL_CONST_TE,
+      .T_min_eV = 12.0,
     },
     
     .num_diag_moments = 7,

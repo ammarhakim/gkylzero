@@ -77,19 +77,13 @@ gk_species_radiation_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s
 
     int status = gkyl_get_fit_params(*rad_data, s->info.radiation.z[i], s->info.radiation.charge_state[i], a, alpha, beta, gamma, v0, s->info.radiation.num_of_densities[i]);
     double *vtsq = gkyl_array_fetch(rad->vtsq_min, i);
-    double T_min_eV = 0.1372 * pow(v0[0], 1.867);
-    // Very little radiation below Te_min = a*v0^b
-    if (s->info.radiation.factor == 1) { // radiation below 10^-4*max(Lz)
+    double T_min_eV;
+    if (s->info.radiation.te_min == GKYL_CONST_TE) //
+      T_min_eV = s->info.radiation.T_min_eV;
+    else if (s->info.radiation.te_min == GKYL_VARY_TE_AGGRESSIVE)  // radiation below 10^-4*max(Lz)
       T_min_eV = 0.1372 * pow(v0[0], 1.867);
-    } else if (s->info.radiation.factor == 2) {
-      T_min_eV = 0.1674 * pow(v0[0], 1.841);
-    } else if (s->info.radiation.factor == 3) { // radiation below 10^-3*max(Lz)
-      T_min_eV = 0.2118 * pow(v0[0], 1.809);
-    } else if (s->info.radiation.factor == 4) {
+    else  // (s->info.radiation.te_min == GKYL_VARY_TE_CONSERVATIVE) i.e. radiation below 3.16*10^-2*max(Lz)
       T_min_eV = 0.2815 * pow(v0[0], 1.768);
-    } else if (s->info.radiation.factor == 5) { // radiation below 10^-2*max(Lz)
-      T_min_eV = 0.4018 * pow(v0[0], 1.714);      
-    }
     vtsq[0] = T_min_eV * fabs(s->info.charge)/s->info.mass;
     
     if (status == 1) {
