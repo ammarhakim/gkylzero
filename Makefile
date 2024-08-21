@@ -8,25 +8,24 @@ CUDA_ARCH ?= 70
 CFLAGS ?= -O3 -g -ffast-math -fPIC -MMD -MP 
 LDFLAGS = 
 PREFIX ?= ${HOME}/gkylsoft
-DEP_PREFIX ?= ${HOME}/gkyl_gpu_dependencies
 INSTALL_PREFIX ?= ${PREFIX}
 
 # determine OS we are running on
 UNAME = $(shell uname)
 
 # Default lapack include and libraries: we prefer linking to static library
-LAPACK_INC = $(DEP_PREFIX)/OpenBLAS/include
-LAPACK_LIB_DIR = $(DEP_PREFIX)/OpenBLAS/lib
+LAPACK_INC = $(PREFIX)/OpenBLAS/include
+LAPACK_LIB_DIR = $(PREFIX)/OpenBLAS/lib
 LAPACK_LIB = -lopenblas
 
 # SuperLU includes and librararies
-SUPERLU_INC = $(DEP_PREFIX)/superlu/include
+SUPERLU_INC = $(PREFIX)/superlu/include
 ifeq ($(UNAME_S),Linux)
-	SUPERLU_LIB_DIR = $(DEP_PREFIX)/superlu/lib64
-	SUPERLU_LIB = $(DEP_PREFIX)/superlu/lib64/libsuperlu.a
+	SUPERLU_LIB_DIR = $(PREFIX)/superlu/lib64
+	SUPERLU_LIB = $(PREFIX)/superlu/lib64/libsuperlu.a
 else
-	SUPERLU_LIB_DIR = $(DEP_PREFIX)/superlu/lib
-	SUPERLU_LIB = $(DEP_PREFIX)/superlu/lib/libsuperlu.a
+	SUPERLU_LIB_DIR = $(PREFIX)/superlu/lib
+	SUPERLU_LIB = $(PREFIX)/superlu/lib/libsuperlu.a
 endif
 
 # Include config.mak file (if it exists) to overide defaults above
