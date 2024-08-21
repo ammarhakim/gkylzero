@@ -36,7 +36,7 @@ gkyl_vlasov_sr_set_auxfields(const struct gkyl_dg_eqn *eqn, struct gkyl_dg_vlaso
 
   struct dg_vlasov_sr *vlasov_sr = container_of(eqn, struct dg_vlasov_sr, eqn);
   vlasov_sr->auxfields.qmem = auxin.qmem;
-  vlasov_sr->auxfields.p_over_gamma = auxin.p_over_gamma;
+  vlasov_sr->auxfields.gamma = auxin.gamma;
 }
 
 struct gkyl_dg_eqn*
@@ -121,7 +121,7 @@ gkyl_dg_vlasov_sr_new(const struct gkyl_basis* cbasis, const struct gkyl_basis* 
   vlasov_sr->conf_range = *conf_range;
   vlasov_sr->vel_range = *vel_range;
 
-  vlasov_sr->auxfields.p_over_gamma = 0;
+  vlasov_sr->auxfields.gamma = 0;
 
   vlasov_sr->eqn.flags = 0;
   GKYL_CLEAR_CU_ALLOC(vlasov_sr->eqn.flags);

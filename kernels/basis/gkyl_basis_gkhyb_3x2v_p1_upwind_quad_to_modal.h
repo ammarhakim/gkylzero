@@ -1,4 +1,4 @@
-GKYL_CU_DH static inline void 
+GKYL_CU_DH static void 
 gkhyb_3x2v_p1_xdir_upwind_quad_to_modal(const double* fUpwindQuad, double* GKYL_RESTRICT fUpwind) { 
   fUpwind[0] = 0.1388888888888889*fUpwindQuad[23]+0.2222222222222222*fUpwindQuad[22]+0.1388888888888889*fUpwindQuad[21]+0.1388888888888889*fUpwindQuad[20]+0.2222222222222222*fUpwindQuad[19]+0.1388888888888889*fUpwindQuad[18]+0.1388888888888889*fUpwindQuad[17]+0.2222222222222222*fUpwindQuad[16]+0.1388888888888889*fUpwindQuad[15]+0.1388888888888889*fUpwindQuad[14]+0.2222222222222222*fUpwindQuad[13]+0.1388888888888889*fUpwindQuad[12]+0.1388888888888889*fUpwindQuad[11]+0.2222222222222222*fUpwindQuad[10]+0.1388888888888889*fUpwindQuad[9]+0.1388888888888889*fUpwindQuad[8]+0.2222222222222222*fUpwindQuad[7]+0.1388888888888889*fUpwindQuad[6]+0.1388888888888889*fUpwindQuad[5]+0.2222222222222222*fUpwindQuad[4]+0.1388888888888889*fUpwindQuad[3]+0.1388888888888889*fUpwindQuad[2]+0.2222222222222222*fUpwindQuad[1]+0.1388888888888889*fUpwindQuad[0]; 
   fUpwind[1] = 0.1388888888888889*fUpwindQuad[23]+0.2222222222222222*fUpwindQuad[22]+0.1388888888888889*fUpwindQuad[21]+0.1388888888888889*fUpwindQuad[20]+0.2222222222222222*fUpwindQuad[19]+0.1388888888888889*fUpwindQuad[18]+0.1388888888888889*fUpwindQuad[17]+0.2222222222222222*fUpwindQuad[16]+0.1388888888888889*fUpwindQuad[15]+0.1388888888888889*fUpwindQuad[14]+0.2222222222222222*fUpwindQuad[13]+0.1388888888888889*fUpwindQuad[12]-0.1388888888888889*fUpwindQuad[11]-0.2222222222222222*fUpwindQuad[10]-0.1388888888888889*fUpwindQuad[9]-0.1388888888888889*fUpwindQuad[8]-0.2222222222222222*fUpwindQuad[7]-0.1388888888888889*fUpwindQuad[6]-0.1388888888888889*fUpwindQuad[5]-0.2222222222222222*fUpwindQuad[4]-0.1388888888888889*fUpwindQuad[3]-0.1388888888888889*fUpwindQuad[2]-0.2222222222222222*fUpwindQuad[1]-0.1388888888888889*fUpwindQuad[0]; 
@@ -27,7 +27,7 @@ gkhyb_3x2v_p1_xdir_upwind_quad_to_modal(const double* fUpwindQuad, double* GKYL_
 
 } 
 
-GKYL_CU_DH static inline void 
+GKYL_CU_DH static void 
 gkhyb_3x2v_p1_vpardir_upwind_quad_to_modal(const double* fUpwindQuad, double* GKYL_RESTRICT fUpwind) { 
   fUpwind[0] = 0.25*fUpwindQuad[15]+0.25*fUpwindQuad[14]+0.25*fUpwindQuad[13]+0.25*fUpwindQuad[12]+0.25*fUpwindQuad[11]+0.25*fUpwindQuad[10]+0.25*fUpwindQuad[9]+0.25*fUpwindQuad[8]+0.25*fUpwindQuad[7]+0.25*fUpwindQuad[6]+0.25*fUpwindQuad[5]+0.25*fUpwindQuad[4]+0.25*fUpwindQuad[3]+0.25*fUpwindQuad[2]+0.25*fUpwindQuad[1]+0.25*fUpwindQuad[0]; 
   fUpwind[1] = 0.25*fUpwindQuad[15]+0.25*fUpwindQuad[14]+0.25*fUpwindQuad[13]+0.25*fUpwindQuad[12]+0.25*fUpwindQuad[11]+0.25*fUpwindQuad[10]+0.25*fUpwindQuad[9]+0.25*fUpwindQuad[8]-0.25*fUpwindQuad[7]-0.25*fUpwindQuad[6]-0.25*fUpwindQuad[5]-0.25*fUpwindQuad[4]-0.25*fUpwindQuad[3]-0.25*fUpwindQuad[2]-0.25*fUpwindQuad[1]-0.25*fUpwindQuad[0]; 
@@ -48,7 +48,7 @@ gkhyb_3x2v_p1_vpardir_upwind_quad_to_modal(const double* fUpwindQuad, double* GK
 
 } 
 
-GKYL_CU_DH static inline void 
+GKYL_CU_DH static void 
 gkhyb_3x2v_p1_mudir_upwind_quad_to_modal(const double* fUpwindQuad, double* GKYL_RESTRICT fUpwind) { 
   fUpwind[0] = 0.1388888888888889*fUpwindQuad[23]+0.2222222222222222*fUpwindQuad[22]+0.1388888888888889*fUpwindQuad[21]+0.1388888888888889*fUpwindQuad[20]+0.2222222222222222*fUpwindQuad[19]+0.1388888888888889*fUpwindQuad[18]+0.1388888888888889*fUpwindQuad[17]+0.2222222222222222*fUpwindQuad[16]+0.1388888888888889*fUpwindQuad[15]+0.1388888888888889*fUpwindQuad[14]+0.2222222222222222*fUpwindQuad[13]+0.1388888888888889*fUpwindQuad[12]+0.1388888888888889*fUpwindQuad[11]+0.2222222222222222*fUpwindQuad[10]+0.1388888888888889*fUpwindQuad[9]+0.1388888888888889*fUpwindQuad[8]+0.2222222222222222*fUpwindQuad[7]+0.1388888888888889*fUpwindQuad[6]+0.1388888888888889*fUpwindQuad[5]+0.2222222222222222*fUpwindQuad[4]+0.1388888888888889*fUpwindQuad[3]+0.1388888888888889*fUpwindQuad[2]+0.2222222222222222*fUpwindQuad[1]+0.1388888888888889*fUpwindQuad[0]; 
   fUpwind[1] = 0.1388888888888889*fUpwindQuad[23]+0.2222222222222222*fUpwindQuad[22]+0.1388888888888889*fUpwindQuad[21]+0.1388888888888889*fUpwindQuad[20]+0.2222222222222222*fUpwindQuad[19]+0.1388888888888889*fUpwindQuad[18]+0.1388888888888889*fUpwindQuad[17]+0.2222222222222222*fUpwindQuad[16]+0.1388888888888889*fUpwindQuad[15]+0.1388888888888889*fUpwindQuad[14]+0.2222222222222222*fUpwindQuad[13]+0.1388888888888889*fUpwindQuad[12]-0.1388888888888889*fUpwindQuad[11]-0.2222222222222222*fUpwindQuad[10]-0.1388888888888889*fUpwindQuad[9]-0.1388888888888889*fUpwindQuad[8]-0.2222222222222222*fUpwindQuad[7]-0.1388888888888889*fUpwindQuad[6]-0.1388888888888889*fUpwindQuad[5]-0.2222222222222222*fUpwindQuad[4]-0.1388888888888889*fUpwindQuad[3]-0.1388888888888889*fUpwindQuad[2]-0.2222222222222222*fUpwindQuad[1]-0.1388888888888889*fUpwindQuad[0]; 

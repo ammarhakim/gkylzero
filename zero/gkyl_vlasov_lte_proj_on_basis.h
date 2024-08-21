@@ -13,12 +13,13 @@ typedef struct gkyl_vlasov_lte_proj_on_basis gkyl_vlasov_lte_proj_on_basis;
 // input packaged as a struct
 struct gkyl_vlasov_lte_proj_on_basis_inp {
   const struct gkyl_rect_grid *phase_grid; // Phase-space grid on which to compute moments
+  const struct gkyl_rect_grid *vel_grid; // Velocity-space grid
   const struct gkyl_basis *conf_basis; // Configuration-space basis functions
+  const struct gkyl_basis *vel_basis; // Velocity-space basis functions
   const struct gkyl_basis *phase_basis; // Phase-space basis functions
   const struct gkyl_range *conf_range; // Configuration-space range
   const struct gkyl_range *conf_range_ext; // Extended configuration-space range (for internal memory allocations)
   const struct gkyl_range *vel_range; // velocity space range
-  const struct gkyl_array *p_over_gamma; // SR quantitiy: velocity
   const struct gkyl_array *gamma; // SR quantitiy: gamma = sqrt(1 + p^2)
   const struct gkyl_array *gamma_inv; // SR quantitiy: 1/gamma = 1/sqrt(1 + p^2)
   const struct gkyl_velocity_map *vel_map; // Velocity space mapping object.
@@ -62,6 +63,13 @@ gkyl_vlasov_lte_proj_on_basis_inew(const struct gkyl_vlasov_lte_proj_on_basis_in
 void gkyl_vlasov_lte_proj_on_basis_advance(gkyl_vlasov_lte_proj_on_basis *up,
   const struct gkyl_range *phase_range, const struct gkyl_range *conf_range,
   const struct gkyl_array *moms_lte, struct gkyl_array *f_lte);
+
+/**
+ * Host-side wrapper for initial canonical-pb vars
+ */
+void gkyl_vlasov_lte_proj_on_basis_geom_quad_vars_cu(gkyl_vlasov_lte_proj_on_basis *up, 
+  const struct gkyl_range *conf_range, 
+  const struct gkyl_array *h_ij_inv, const struct gkyl_array *det_h);
 
 /**
  * Host-side wrapper for projection of LTE distribution function on device

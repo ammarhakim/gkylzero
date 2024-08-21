@@ -56,6 +56,9 @@ typedef void (*wv_riem_to_cons)(const struct gkyl_wv_eqn *eqn,
 // variables
 typedef void (*wv_cons_to_diag)(const struct gkyl_wv_eqn *eqn,
     const double *qin, double *diag);
+  
+// Function pointer to compute the forcing/source term vector.
+typedef void (*wv_source_func_t)(const struct gkyl_wv_eqn* eqn, const double* qin, double* sout);
 
 struct gkyl_wv_eqn {
   enum gkyl_eqn_type type; // Equation type
@@ -81,6 +84,8 @@ struct gkyl_wv_eqn {
   wv_bc_func_t no_slip_bc_func; // function to apply no-slip BC
 
   wv_cons_to_diag cons_to_diag; // function for diagnostic variables
+
+  wv_source_func_t source_func; // function for computing the forcing/source term vector.
 
   uint32_t flags;  
   struct gkyl_ref_count ref_count; // reference count
@@ -115,6 +120,23 @@ gkyl_default_cons_to_diag(const struct gkyl_wv_eqn *eqn,
   const double *qin, double *diag)
 {
   for (int i=0; i<eqn->num_equations; ++i) diag[i] = qin[i];
+}
+
+/**
+* Default function to compute forcing/source term vector: assumes that the system of equations being solved is strictly homogeneous
+* (i.e. source-free).
+*
+* @param eqn Base equation object.
+* @param qin Conserved variable vector (input).
+* @param sout Forcing/source term vector (output).
+*/
+GKYL_CU_DH
+static inline void
+gkyl_default_source_func(const struct gkyl_wv_eqn *eqn, const double *qin, double *sout)
+{
+  for (int i = 0; i < eqn->num_equations; i++) {
+    sout[i] = 0.0;
+  }
 }
 
 /**
@@ -260,6 +282,20 @@ gkyl_wv_eqn_rotate_to_global(const struct gkyl_wv_eqn* eqn,
   const double *GKYL_RESTRICT qlocal, double *GKYL_RESTRICT qglobal)
 {
   eqn->rotate_to_global_func(tau1, tau2, norm, qlocal, qglobal);
+}
+
+/**
+* Compute forcing/source term vector from conserved variables.
+*
+* @param eqn Base equation object.
+* @param qin Conserved variable vector (input).
+* @param sout Forcing/source term vector (output).
+*/
+GKYL_CU_DH
+static inline void
+gkyl_wv_eqn_source(const struct gkyl_wv_eqn* eqn, const double* qin, double* sout)
+{
+  eqn->source_func(eqn, qin, sout);
 }
 
 /**

@@ -149,9 +149,13 @@ main(int argc, char **argv)
     .det_h_ctx = &ctx,
     
     // Reflective boundary condition
-    .bcx = {GKYL_SPECIES_REFLECT, GKYL_SPECIES_REFLECT},
+    .bcx = {
+      .lower = { .type = GKYL_SPECIES_REFLECT },
+      .upper = { .type = GKYL_SPECIES_REFLECT },
+    },
 
-    .projection = {
+    .num_init = 1, 
+    .projection[0] = {
       .proj_id = GKYL_PROJ_VLASOV_LTE,
       .density = evalDensityInit,
       .ctx_density = &ctx,

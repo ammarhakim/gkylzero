@@ -28,12 +28,7 @@ gkyl_mom_vlasov_sr_set_auxfields(const struct gkyl_mom_type *momt, struct gkyl_m
 #endif
 
   struct mom_type_vlasov_sr *mom_vm_sr = container_of(momt, struct mom_type_vlasov_sr, momt);
-  mom_vm_sr->auxfields.p_over_gamma = auxin.p_over_gamma;
   mom_vm_sr->auxfields.gamma = auxin.gamma;
-  mom_vm_sr->auxfields.gamma_inv = auxin.gamma_inv;
-  mom_vm_sr->auxfields.V_drift = auxin.V_drift;
-  mom_vm_sr->auxfields.GammaV2 = auxin.GammaV2;
-  mom_vm_sr->auxfields.GammaV_inv = auxin.GammaV_inv;
 }
 
 struct gkyl_mom_type*
@@ -60,15 +55,15 @@ gkyl_mom_vlasov_sr_new(const struct gkyl_basis* cbasis, const struct gkyl_basis*
 
   // choose kernel tables based on basis-function type
   const gkyl_vlasov_sr_mom_kern_list *m0_kernels, *m1i_kernels, 
-    *Ni_kernels, *Energy_kernels, *Pressure_kernels, *Tij_kernels;
+    *m2_kernels, *m3i_kernels, *Ni_kernels, *Tij_kernels;
 
   switch (cbasis->b_type) {
     case GKYL_BASIS_MODAL_SERENDIPITY:
       m0_kernels = ser_m0_kernels;
       m1i_kernels = ser_m1i_kernels;
+      m2_kernels = ser_m2_kernels;
+      m3i_kernels = ser_m3i_kernels;
       Ni_kernels = ser_Ni_kernels;
-      Energy_kernels = ser_Energy_kernels;
-      Pressure_kernels = ser_Pressure_kernels;
       Tij_kernels = ser_Tij_kernels;
       break;
 
@@ -84,35 +79,35 @@ gkyl_mom_vlasov_sr_new(const struct gkyl_basis* cbasis, const struct gkyl_basis*
     mom_vm_sr->momt.kernel = m0_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
     mom_vm_sr->momt.num_mom = 1;
   }
-  else if (strcmp(mom, "M1i") == 0) { // momentum (GammaV*n*V)
+  else if (strcmp(mom, "M1i") == 0) { // mass flux (GammaV*n*V_drift)
     assert(cv_index[cdim].vdim[vdim] != -1);
     assert(NULL != m1i_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order]);
     
     mom_vm_sr->momt.kernel = m1i_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
     mom_vm_sr->momt.num_mom = vdim;
   }
-  else if (strcmp(mom, "Ni") == 0) { // 4-momentum (GammaV*n, GammaV*n*V)
+  else if (strcmp(mom, "M2") == 0) { // total energy = integral(gamma*f) velocity moment
+    assert(cv_index[cdim].vdim[vdim] != -1);
+    assert(NULL != m2_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order]);
+    
+    mom_vm_sr->momt.kernel = m2_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
+    mom_vm_sr->momt.num_mom = 1;
+  }
+  else if (strcmp(mom, "M3i") == 0) { // energy flux = integral(p*f) velocity moment
+    assert(cv_index[cdim].vdim[vdim] != -1);
+    assert(NULL != m3i_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order]);
+    
+    mom_vm_sr->momt.kernel = m3i_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
+    mom_vm_sr->momt.num_mom = vdim;
+  }
+  else if (strcmp(mom, "Ni") == 0) { // 4-momentum (M0, M1i)
     assert(cv_index[cdim].vdim[vdim] != -1);
     assert(NULL != Ni_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order]);
     
     mom_vm_sr->momt.kernel = Ni_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
     mom_vm_sr->momt.num_mom = 1+vdim;
   }
-  else if (strcmp(mom, "Energy") == 0) { // total energy = gamma*mc^2 moment
-    assert(cv_index[cdim].vdim[vdim] != -1);
-    assert(NULL != Energy_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order]);
-    
-    mom_vm_sr->momt.kernel = Energy_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
-    mom_vm_sr->momt.num_mom = 1;
-  }
-  else if (strcmp(mom, "Pressure") == 0) { // total fluid-frame pressure = n*T where n is the fluid-frame density
-    assert(cv_index[cdim].vdim[vdim] != -1);
-    assert(NULL != Pressure_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order]);
-    
-    mom_vm_sr->momt.kernel = Pressure_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
-    mom_vm_sr->momt.num_mom = 1;
-  }
-  else if (strcmp(mom, "Tij") == 0) { // Stress-energy tensor (Energy, Energy flux (vdim components), Stress tensor (vdim*(vdim+1))/2 components))
+  else if (strcmp(mom, "Tij") == 0) { // Stress-energy tensor (M2, M3i (vdim components), Stress tensor (vdim*(vdim+1))/2 components))
     assert(cv_index[cdim].vdim[vdim] != -1);
     assert(NULL != Tij_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order]);
     
@@ -127,12 +122,7 @@ gkyl_mom_vlasov_sr_new(const struct gkyl_basis* cbasis, const struct gkyl_basis*
   mom_vm_sr->conf_range = *conf_range;
   mom_vm_sr->vel_range = *vel_range;
 
-  mom_vm_sr->auxfields.p_over_gamma = 0;
   mom_vm_sr->auxfields.gamma = 0;
-  mom_vm_sr->auxfields.gamma_inv = 0;
-  mom_vm_sr->auxfields.V_drift = 0;
-  mom_vm_sr->auxfields.GammaV2 = 0;
-  mom_vm_sr->auxfields.GammaV_inv = 0;
 
   mom_vm_sr->momt.flags = 0;
   GKYL_CLEAR_CU_ALLOC(mom_vm_sr->momt.flags);
@@ -186,12 +176,7 @@ gkyl_int_mom_vlasov_sr_new(const struct gkyl_basis* cbasis, const struct gkyl_ba
   mom_vm_sr->conf_range = *conf_range;
   mom_vm_sr->vel_range = *vel_range;
 
-  mom_vm_sr->auxfields.p_over_gamma = 0;
   mom_vm_sr->auxfields.gamma = 0;
-  mom_vm_sr->auxfields.gamma_inv = 0;
-  mom_vm_sr->auxfields.V_drift = 0;
-  mom_vm_sr->auxfields.GammaV2 = 0;
-  mom_vm_sr->auxfields.GammaV_inv = 0;
 
   mom_vm_sr->momt.flags = 0;
   GKYL_CLEAR_CU_ALLOC(mom_vm_sr->momt.flags);

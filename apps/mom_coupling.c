@@ -12,7 +12,7 @@ moment_coupling_init(const struct gkyl_moment_app *app, struct moment_coupling *
     .epsilon0 = app->field.epsilon0 ? app->field.epsilon0 : 0.0, 
     .mu0 = app->field.mu0 ? app->field.mu0 : 0.0, 
     // linear ramping function for slowing turning on applied accelerations, E fields, or currents
-    .t_ramp_E = app->field.t_ramp_ext_em ? app->field.t_ramp_ext_em : 0.0,
+    .t_ramp_E = app->field.t_ramp_E ? app->field.t_ramp_E : 0.0,
     .t_ramp_curr = app->field.t_ramp_curr ? app->field.t_ramp_curr : 0.0,
   };
 
@@ -39,6 +39,64 @@ moment_coupling_init(const struct gkyl_moment_app *app, struct moment_coupling *
   bool use_rel = 0;
   for (int n=0;  n<app->num_species; ++n) 
     use_rel = use_rel || (app->species[n].eqn_type == GKYL_EQN_COLDFLUID_SR) || app->field.use_explicit_em_coupling;
+
+  src_inp.has_frictional_sources = false;
+  src_inp.use_explicit_friction = false;
+  for (int i = 0; i < app->num_species; i++) {
+    if(app->species[i].has_friction) {
+      src_inp.has_frictional_sources = true;
+
+      if (app->species[i].friction_Z != 0.0 || app->species[i].friction_T_elc != 0.0 || app->species[i].friction_Lambda_ee != 0.0) {
+        src_inp.friction_Z = app->species[i].friction_Z;
+        src_inp.friction_T_elc = app->species[i].friction_T_elc;
+        src_inp.friction_Lambda_ee = app->species[i].friction_Lambda_ee;
+      }
+    }
+
+    if(app->species[i].use_explicit_friction) {
+      src_inp.use_explicit_friction = true;
+    }
+  }
+
+  src_inp.has_volume_sources = false;
+  for (int i = 0; i < app->num_species; i++) {
+    if (app->species[i].has_volume_sources) {
+      src_inp.has_volume_sources = true;
+
+      if(app->species[i].volume_gas_gamma != 0.0 || app->species[i].volume_U0 != 0.0 || app->species[i].volume_R0 != 0.0) {
+        src_inp.volume_gas_gamma = app->species[i].volume_gas_gamma;
+        src_inp.volume_U0 = app->species[i].volume_U0;
+        src_inp.volume_R0 = app->species[i].volume_R0;
+      }
+    }
+  }
+  if(app->field.has_volume_sources) {
+    src_inp.has_volume_sources = true;
+
+    if(app->field.volume_gas_gamma != 0.0 || app->field.volume_U0 != 0.0 || app->field.volume_R0 != 0.0) {
+      src_inp.volume_gas_gamma = app->field.volume_gas_gamma;
+      src_inp.volume_U0 = app->field.volume_U0;
+      src_inp.volume_R0 = app->field.volume_R0;
+    }
+  }
+
+  src_inp.has_reactive_sources = false;
+  for (int i = 0; i < app->num_species; i++) {
+    if (app->species[i].has_reactivity) {
+      src_inp.has_reactive_sources = true;
+
+      if (app->species[i].reactivity_gas_gamma != 0.0 || app->species[i].reactivity_specific_heat_capacity != 0.0 ||
+        app->species[i].reactivity_energy_of_formation != 0.0 || app->species[i].reactivity_ignition_temperature != 0.0 ||
+        app->species[i].reactivity_reaction_rate != 0.0) {
+
+        src_inp.reactivity_gas_gamma = app->species[i].reactivity_gas_gamma;
+        src_inp.reactivity_specific_heat_capacity = app->species[i].reactivity_specific_heat_capacity;
+        src_inp.reactivity_energy_of_formation = app->species[i].reactivity_energy_of_formation;
+        src_inp.reactivity_ignition_temperature = app->species[i].reactivity_ignition_temperature;
+        src_inp.reactivity_reaction_rate = app->species[i].reactivity_reaction_rate;
+      }
+    }
+  }
 
   // save the use-rel bool
   src_inp.use_rel = use_rel;
@@ -75,6 +133,36 @@ moment_coupling_init(const struct gkyl_moment_app *app, struct moment_coupling *
       };
       src->grad_closure_slvr[i] = gkyl_ten_moment_grad_closure_new(grad_closure_inp);
     }
+  }
+
+  // check if braginskii terms are present
+  if (app->has_braginskii) {
+    struct gkyl_moment_braginskii_inp brag_inp = {
+      .grid = &app->grid,
+      .nfluids = app->num_species,
+      .epsilon0 = app->field.epsilon0,
+      // Check for multiplicative collisionality factor, default is 1.0
+      .coll_fac = app->coll_fac == 0 ? 1.0 : app->coll_fac,
+    };
+    for (int i=0; i<app->num_species; ++i) {
+      // Braginskii coefficients depend on pressure and coefficient to obtain
+      // pressure is different for different equation systems (gasGamma, vt, Tr(P))
+      double p_fac = 1.0;
+      if (app->species[i].eqn_type == GKYL_EQN_EULER) {
+        p_fac =  gkyl_wv_euler_gas_gamma(app->species[i].equation);
+      }
+      else if (app->species[i].eqn_type == GKYL_EQN_ISO_EULER) {
+        p_fac =  gkyl_wv_iso_euler_vt(app->species[i].equation);
+      }
+      brag_inp.param[i] = (struct gkyl_moment_braginskii_data) {
+        .type_eqn = app->species[i].eqn_type,
+        .type_brag = app->species[i].type_brag,
+        .charge = app->species[i].charge,
+        .mass = app->species[i].mass,
+        .p_fac = p_fac,
+      };
+    }
+    src->brag_slvr = gkyl_moment_braginskii_new(brag_inp);
   }
 }
 
@@ -113,6 +201,13 @@ moment_coupling_update(gkyl_moment_app *app, struct moment_coupling *src,
         app->species[i].f[sidx[nstrang]], app->field.f[sidx[nstrang]],
         src->non_ideal_cflrate[i], src->non_ideal_vars[i], src->pr_rhs[i]);
     }
+  }
+
+  if (app->has_braginskii) {
+    gkyl_moment_braginskii_advance(src->brag_slvr,
+      src->non_ideal_local_ext, app->local,
+      fluids, app->field.f[sidx[nstrang]],
+      src->non_ideal_cflrate, src->non_ideal_vars, src->pr_rhs);
   }
 
   if (app->field.proj_app_current)

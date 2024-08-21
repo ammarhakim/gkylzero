@@ -43,10 +43,10 @@ gk_neut_species_bflux_init(struct gkyl_gyrokinetic_app *app, struct gk_neut_spec
 
     bflux->integ_moms[2*i] = gkyl_dg_updater_moment_new(&bflux->boundary_grid[2*i],
       &app->confBasis, &app->neut_basis, NULL, NULL, s->model_id, 0, "Integrated", 1,
-      s->info.mass, app->use_gpu);
+      app->use_gpu);
     bflux->integ_moms[2*i+1] = gkyl_dg_updater_moment_new(&bflux->boundary_grid[2*i+1],
       &app->confBasis, &app->neut_basis, NULL, NULL, s->model_id, 0, "Integrated", 1,
-      s->info.mass, app->use_gpu);
+      app->use_gpu);
 
     cells[i] = s->grid.cells[i];
 

@@ -441,6 +441,7 @@ GKYL_CU_DH void em_copy_bvar_3x_tensor_p2(int count, struct gkyl_nmat *x, const 
   tensor_3x_p2_sqrt_with_sign(B_x, bxbx, bx); 
   tensor_3x_p2_sqrt_with_sign(B_y, byby, by); 
   tensor_3x_p2_sqrt_with_sign(B_z, bzbz, bz); 
+ 
   double *bx_xl = &bvar_surf[0]; 
   double *bx_xr = &bvar_surf[9]; 
   double *bxbx_xl = &bvar_surf[18]; 

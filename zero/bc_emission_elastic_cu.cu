@@ -9,7 +9,7 @@ extern "C" {
 }
 
 __global__ static void
-gkyl_bc_emission_elastic_set_extern_params_cu_ker(struct gkyl_elastic_model *elastic_model,
+gkyl_bc_emission_elastic_set_extern_params_cu_ker(struct gkyl_emission_elastic_model *elastic_model,
   int cdim, int vdim, double mass)
 {
   elastic_model->cdim = cdim;
@@ -18,7 +18,8 @@ gkyl_bc_emission_elastic_set_extern_params_cu_ker(struct gkyl_elastic_model *ela
 }
 
 __global__ static void
-gkyl_bc_emission_elastic_create_set_cu_dev_ptrs(int dir, int cdim, const struct gkyl_basis* basis, int ncomp, struct bc_elastic_ctx *ctx, struct gkyl_array_copy_func *fout)
+gkyl_bc_emission_elastic_create_set_cu_dev_ptrs(int dir, int cdim, const struct gkyl_basis* basis,
+  int ncomp, struct bc_elastic_ctx *ctx, struct gkyl_array_copy_func *fout)
 {
   ctx->dir = dir;
   ctx->cdim = cdim;

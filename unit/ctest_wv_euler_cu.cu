@@ -74,7 +74,7 @@ void ker_cu_wv_euler_test(const struct gkyl_wv_eqn *eqn, int *nfail)
     eqn->rotate_to_local_func(tau1[d], tau2[d], norm[d], q, q_l);
     eqn->rotate_to_global_func(tau1[d], tau2[d], norm[d], q_l, q_g);
 
-    for (int m=0; m<5; ++m) GKYL_CU_CHECK( q[m] == q_g[m] , nfail );
+    for (int m=0; m<5; ++m) GKYL_CU_CHECK( q[m] == q_g[m], nfail );
   }
 }
 

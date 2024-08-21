@@ -15,14 +15,13 @@ void
 gkyl_euler_pkpm_free(const struct gkyl_ref_count *ref)
 {
   struct gkyl_dg_eqn *base = container_of(ref, struct gkyl_dg_eqn, ref_count);
+  struct dg_euler_pkpm *euler_pkpm = container_of(base, struct dg_euler_pkpm, eqn);
 
   if (gkyl_dg_eqn_is_cu_dev(base)) {
     // free inner on_dev object
     struct dg_euler_pkpm *euler_pkpm = container_of(base->on_dev, struct dg_euler_pkpm, eqn);
     gkyl_cu_free(euler_pkpm);
   }  
-  
-  struct dg_euler_pkpm *euler_pkpm = container_of(base, struct dg_euler_pkpm, eqn);
   gkyl_free(euler_pkpm);
 }
 
@@ -41,12 +40,13 @@ gkyl_euler_pkpm_set_auxfields(const struct gkyl_dg_eqn *eqn, struct gkyl_dg_eule
   euler_pkpm->auxfields.pkpm_prim = auxin.pkpm_prim;
   euler_pkpm->auxfields.pkpm_prim_surf = auxin.pkpm_prim_surf;
   euler_pkpm->auxfields.pkpm_p_ij = auxin.pkpm_p_ij;
-  euler_pkpm->auxfields.pkpm_p_ij_surf = auxin.pkpm_p_ij_surf;
   euler_pkpm->auxfields.pkpm_lax = auxin.pkpm_lax;
+  euler_pkpm->auxfields.pkpm_penalization = auxin.pkpm_penalization;
 }
 
 struct gkyl_dg_eqn*
-gkyl_dg_euler_pkpm_new(const struct gkyl_basis* cbasis, const struct gkyl_range* conf_range, bool use_gpu)
+gkyl_dg_euler_pkpm_new(const struct gkyl_basis* cbasis, 
+  const struct gkyl_range* conf_range, bool use_gpu)
 {
 #ifdef GKYL_HAVE_CUDA
   if(use_gpu) {
@@ -102,8 +102,8 @@ gkyl_dg_euler_pkpm_new(const struct gkyl_basis* cbasis, const struct gkyl_range*
   euler_pkpm->auxfields.pkpm_prim = 0;
   euler_pkpm->auxfields.pkpm_prim_surf = 0;    
   euler_pkpm->auxfields.pkpm_p_ij = 0;
-  euler_pkpm->auxfields.pkpm_p_ij_surf = 0;
   euler_pkpm->auxfields.pkpm_lax = 0;  
+  euler_pkpm->auxfields.pkpm_penalization = 0;  
   euler_pkpm->conf_range = *conf_range;
   
   euler_pkpm->eqn.flags = 0;
@@ -117,7 +117,8 @@ gkyl_dg_euler_pkpm_new(const struct gkyl_basis* cbasis, const struct gkyl_range*
 #ifndef GKYL_HAVE_CUDA
 
 struct gkyl_dg_eqn*
-gkyl_dg_euler_pkpm_cu_dev_new(const struct gkyl_basis* cbasis, const struct gkyl_range* conf_range)
+gkyl_dg_euler_pkpm_cu_dev_new(const struct gkyl_basis* cbasis, 
+  const struct gkyl_range* conf_range)
 {
   assert(false);
   return 0;

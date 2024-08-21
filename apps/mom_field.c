@@ -20,7 +20,7 @@ moment_field_init(const struct gkyl_moment *mom, const struct gkyl_moment_field 
 
   double c = 1/sqrt(epsilon0*mu0);
   struct gkyl_wv_eqn *maxwell = gkyl_wv_maxwell_new(c,
-    mom_fld->elc_error_speed_fact, mom_fld->mag_error_speed_fact);
+    mom_fld->elc_error_speed_fact, mom_fld->mag_error_speed_fact, false);
 
   fld->maxwell = gkyl_wv_eqn_acquire(maxwell);
   
@@ -197,7 +197,12 @@ moment_field_init(const struct gkyl_moment *mom, const struct gkyl_moment_field 
     fld->app_current2 = mkarr(false, 3, app->local_ext.volume);
   }
 
-  fld->t_ramp_ext_em = mom_fld->t_ramp_ext_em ? mom_fld->t_ramp_ext_em : 0.0;
+  fld->has_volume_sources = mom_fld->has_volume_sources;
+  fld->volume_gas_gamma = mom_fld->volume_gas_gamma;
+  fld->volume_U0 = mom_fld->volume_U0;
+  fld->volume_R0 = mom_fld->volume_R0;
+
+  fld->t_ramp_E = mom_fld->t_ramp_E ? mom_fld->t_ramp_E : 0.0;
   fld->proj_ext_em = 0;
   if (mom_fld->ext_em_func) {
     void *ctx = fld->ctx;

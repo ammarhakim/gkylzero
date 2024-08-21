@@ -4,6 +4,7 @@
 #include <gkyl_basis.h>
 #include <gkyl_range.h>
 #include <gkyl_rect_grid.h>
+#include <gkyl_wave_geom.h>
 #include <gkyl_wv_eqn.h>
 
 // Object type
@@ -21,7 +22,8 @@ typedef struct gkyl_dg_calc_fluid_vars gkyl_dg_calc_fluid_vars;
  * 
  * Updater also stores the kernels to compute fluid source terms and fluid integrated moments.
  * 
- * @param wv_eqn      Wave equation (stores function pointers for computing waves)
+ * @param wv_eqn      Wave equation (stores function pointers for computing waves and limiting solution)
+ * @param geom        Wave geometry object for computing waves in local coordinate system
  * @param cbasis      Configuration space basis functions
  * @param mem_range   Configuration space range that sets the size of the bin_op memory
  *                    for computing primitive moments. Note range is stored so 
@@ -37,7 +39,7 @@ typedef struct gkyl_dg_calc_fluid_vars gkyl_dg_calc_fluid_vars;
  * @return New updater pointer.
  */
 struct gkyl_dg_calc_fluid_vars* 
-gkyl_dg_calc_fluid_vars_new(const struct gkyl_wv_eqn *wv_eqn, 
+gkyl_dg_calc_fluid_vars_new(const struct gkyl_wv_eqn *wv_eqn, const struct gkyl_wave_geom *geom, 
   const struct gkyl_basis* cbasis, const struct gkyl_range *mem_range, 
   double limiter_fac, bool use_gpu);
 
@@ -46,7 +48,7 @@ gkyl_dg_calc_fluid_vars_new(const struct gkyl_wv_eqn *wv_eqn,
  * NV-GPU. See new() method for documentation.
  */
 struct gkyl_dg_calc_fluid_vars* 
-gkyl_dg_calc_fluid_vars_cu_dev_new(const struct gkyl_wv_eqn *wv_eqn, 
+gkyl_dg_calc_fluid_vars_cu_dev_new(const struct gkyl_wv_eqn *wv_eqn, const struct gkyl_wave_geom *geom, 
   const struct gkyl_basis* cbasis, const struct gkyl_range *mem_range, 
   double limiter_fac);
 
@@ -70,7 +72,6 @@ void gkyl_dg_calc_fluid_vars_advance(struct gkyl_dg_calc_fluid_vars *up, const s
  * Compute pressure from fluid variables in the volume and at needed surfaces
  *
  * @param up Updater for computing fluid variables 
- * @param param      Input parameter needed for computing pressure (vth for isothermal Euler, gas_gamma for Euler)
  * @param conf_range Configuration space range
  * @param fluid      Input array of fluid variables [rho, rho ux, rho uy, rho uz, ...]
  * @param u          Input array of volume expansion of flow velocity [ux, uy, uz]
@@ -83,15 +84,61 @@ void gkyl_dg_calc_fluid_vars_pressure(struct gkyl_dg_calc_fluid_vars *up,
   struct gkyl_array* p, struct gkyl_array* p_surf);
 
 /**
+ * Compute kinetic energy from fluid variables in the volume 
+ *
+ * @param up Updater for computing fluid variables 
+ * @param conf_range Configuration space range
+ * @param fluid      Input array of fluid variables [rho, rho ux, rho uy, rho uz, ...]
+ * @param u          Input array of volume expansion of flow velocity [ux, uy, uz]
+ * @param ke         Output array of volume expansion of kinetic energy
+ */
+void gkyl_dg_calc_fluid_vars_ke(struct gkyl_dg_calc_fluid_vars *up, 
+  const struct gkyl_range *conf_range, 
+  const struct gkyl_array* fluid, const struct gkyl_array* u, 
+  struct gkyl_array* ke);
+
+/**
  * Limit slopes for fluid variables
  *
  * @param up         Updater for computing fluid variables 
  * @param conf_range Configuration space range
  * @param fluid      Input (and Output after limiting) array of fluid variables [rho, rho ux, rho uy, rho uz, ...]
-
  */
 void gkyl_dg_calc_fluid_vars_limiter(struct gkyl_dg_calc_fluid_vars *up, 
   const struct gkyl_range *conf_range, struct gkyl_array* fluid);
+
+/**
+ * Compute integrated fluid variables (rho, rhoux, rhouy, rhouz, rhou^2, ...).
+ * For isothermal Euler, integrated internal energy is just weighted integrated density (rho*vth)
+ * For Euler, computes integrated internal energy p (without the 1/(gas_gamma - 1) factor) 
+ * For 10 moment, computes integrated internal energy from sum over directions (Pxx + Pyy + Pzz)
+ * Note: post-processing requires the addition of the needed factors (such as 1/2 in rhou^2)
+ *
+ * @param up Updater for computing fluid variables 
+ * @param conf_range Configuration space range
+ * @param fluid Input array of fluid variables [rho, rhoux, rhouy, rhouz, ...]
+ * @param u_i Input array of flow velocity [ux, uy, uz]
+ * @param p_ij Input array of pressure 
+ * @param int_fluid_vars Output array of integrated variables (6 components)
+ */
+void gkyl_dg_calc_fluid_integrated_vars(struct gkyl_dg_calc_fluid_vars *up, 
+  const struct gkyl_range *conf_range, const struct gkyl_array* fluid, 
+  const struct gkyl_array* u_i, const struct gkyl_array* p_ij, 
+  struct gkyl_array* fluid_int_vars);
+
+/**
+ * Compute fluid model source terms.
+ *
+ * @param up         Updater for computing fluid variables 
+ * @param conf_range Configuration space range
+ * @param app_accel  Input array of applied acceleration (external forces)
+ * @param fluid      Input array of fluid variables [rho, rhoux, rhouy, rhouz, ...]
+ * @param rhs        Output increment to fluid variables
+ */
+void gkyl_dg_calc_fluid_vars_source(struct gkyl_dg_calc_fluid_vars *up, 
+  const struct gkyl_range *conf_range, 
+  const struct gkyl_array* app_accel, const struct gkyl_array* fluid, 
+  struct gkyl_array* rhs);
 
 /**
  * Delete pointer to updater to compute fluid variables.
@@ -112,5 +159,20 @@ void gkyl_dg_calc_fluid_vars_pressure_cu(struct gkyl_dg_calc_fluid_vars *up,
   const struct gkyl_array* fluid, const struct gkyl_array* u, 
   struct gkyl_array* p, struct gkyl_array* p_surf);
 
+void gkyl_dg_calc_fluid_vars_ke_cu(struct gkyl_dg_calc_fluid_vars *up, 
+  const struct gkyl_range *conf_range, 
+  const struct gkyl_array* fluid, const struct gkyl_array* u, 
+  struct gkyl_array* ke);
+
 void gkyl_dg_calc_fluid_vars_limiter_cu(struct gkyl_dg_calc_fluid_vars *up, 
   const struct gkyl_range *conf_range, struct gkyl_array* fluid);
+
+void gkyl_dg_calc_fluid_integrated_vars_cu(struct gkyl_dg_calc_fluid_vars *up, 
+  const struct gkyl_range *conf_range, const struct gkyl_array* fluid, 
+  const struct gkyl_array* u_i, const struct gkyl_array* p_ij, 
+  struct gkyl_array* fluid_int_vars);
+
+void gkyl_dg_calc_fluid_vars_source_cu(struct gkyl_dg_calc_fluid_vars *up, 
+  const struct gkyl_range *conf_range, 
+  const struct gkyl_array* app_accel, const struct gkyl_array* fluid, 
+  struct gkyl_array* rhs);

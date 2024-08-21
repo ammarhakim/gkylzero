@@ -53,6 +53,8 @@ wv_euler_set_cu_dev_ptrs(enum gkyl_wv_euler_rp rp_type, struct wv_euler *euler)
   euler->eqn.riem_to_cons = riem_to_cons;
 
   euler->eqn.cons_to_diag = euler_cons_to_diag;
+
+  euler->eqn.source_func = euler_source;
 }
 
 struct gkyl_wv_eqn*

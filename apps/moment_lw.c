@@ -258,7 +258,7 @@ eqn_tenmoment_lw_new(lua_State *L)
   bool has_grad_closure = glua_tbl_get_bool(L, "has_grad_closure", false);
 
   tenm_lw->magic = MOMENT_EQN_DEFAULT;
-  tenm_lw->eqn = gkyl_wv_ten_moment_new(k0, has_grad_closure);
+  tenm_lw->eqn = gkyl_wv_ten_moment_new(k0, has_grad_closure, false);
 
   // create Lua userdata ...
   struct wv_eqn_lw **l_tenm_lw = lua_newuserdata(L, sizeof(struct wv_eqn_lw*));
@@ -570,7 +570,7 @@ moment_field_lw_new(lua_State *L)
     has_ext_em = true;
     ext_em_ref = luaL_ref(L, LUA_REGISTRYINDEX);
   }
-  mom_field.t_ramp_ext_em = glua_tbl_get_number(L, "externalEmRampTime", 0.0);
+  mom_field.t_ramp_E = glua_tbl_get_number(L, "externalEmRampTime", 0.0);
   mom_field.is_ext_em_static = glua_tbl_get_bool(L, "isExternalEmStatic", false);
 
   mom_field.use_explicit_em_coupling = glua_tbl_get_bool(L, "useExplicitEmCoupling", false);

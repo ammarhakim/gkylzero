@@ -169,6 +169,14 @@ max_speed(const struct gkyl_wv_eqn *eqn, const double *q)
   return gkyl_sr_euler_max_abs_speed(sr_euler->gas_gamma, q);
 }
 
+static inline void
+sr_euler_source(const struct gkyl_wv_eqn* eqn, const double* qin, double* sout)
+{
+  for (int i = 0; i < 5; i++) {
+    sout[i] = 0.0;
+  }
+}
+
 struct gkyl_wv_eqn*
 gkyl_wv_sr_euler_new(double gas_gamma)
 {
@@ -192,6 +200,8 @@ gkyl_wv_sr_euler_new(double gas_gamma)
   sr_euler->eqn.riem_to_cons = riem_to_cons;
 
   sr_euler->eqn.cons_to_diag = gkyl_default_cons_to_diag;
+
+  sr_euler->eqn.source_func = sr_euler_source;
 
   sr_euler->eqn.ref_count = gkyl_ref_count_init(sr_euler_free);
 

@@ -17,7 +17,7 @@ GKYL_CU_DH double vlasov_pkpm_surfx_1x1v_ser_p1(const double *w, const double *d
     const double *bvar_surf_l, const double *bvar_surf_c, const double *bvar_surf_r, 
     const double *pkpm_prim_surf_l, const double *pkpm_prim_surf_c, const double *pkpm_prim_surf_r, 
     const double *fl, const double *fc, const double *fr, 
-    const double *pkpm_max_b, const double *pkpm_lax, double* GKYL_RESTRICT out); 
+    const double *pkpm_max_b, const double *pkpm_lax_l, const double *pkpm_lax_r, double* GKYL_RESTRICT out); 
 GKYL_CU_DH void pkpm_dist_div_ppar_x_1x1v_ser_p1(const double *w, const double *dxv, 
      const double *bvar_surf_l, const double *bvar_surf_c, const double *bvar_surf_r, 
      const double *fl, const double *fc, const double *fr, 
@@ -45,7 +45,7 @@ GKYL_CU_DH double vlasov_pkpm_surfx_1x1v_ser_p2(const double *w, const double *d
     const double *bvar_surf_l, const double *bvar_surf_c, const double *bvar_surf_r, 
     const double *pkpm_prim_surf_l, const double *pkpm_prim_surf_c, const double *pkpm_prim_surf_r, 
     const double *fl, const double *fc, const double *fr, 
-    const double *pkpm_max_b, const double *pkpm_lax, double* GKYL_RESTRICT out); 
+    const double *pkpm_max_b, const double *pkpm_lax_l, const double *pkpm_lax_r, double* GKYL_RESTRICT out); 
 GKYL_CU_DH void pkpm_dist_div_ppar_x_1x1v_ser_p2(const double *w, const double *dxv, 
      const double *bvar_surf_l, const double *bvar_surf_c, const double *bvar_surf_r, 
      const double *fl, const double *fc, const double *fr, 
@@ -73,7 +73,7 @@ GKYL_CU_DH double vlasov_pkpm_surfx_2x1v_ser_p1(const double *w, const double *d
     const double *bvar_surf_l, const double *bvar_surf_c, const double *bvar_surf_r, 
     const double *pkpm_prim_surf_l, const double *pkpm_prim_surf_c, const double *pkpm_prim_surf_r, 
     const double *fl, const double *fc, const double *fr, 
-    const double *pkpm_max_b, const double *pkpm_lax, double* GKYL_RESTRICT out); 
+    const double *pkpm_max_b, const double *pkpm_lax_l, const double *pkpm_lax_r, double* GKYL_RESTRICT out); 
 GKYL_CU_DH void pkpm_dist_div_ppar_x_2x1v_ser_p1(const double *w, const double *dxv, 
      const double *bvar_surf_l, const double *bvar_surf_c, const double *bvar_surf_r, 
      const double *fl, const double *fc, const double *fr, 
@@ -82,7 +82,7 @@ GKYL_CU_DH double vlasov_pkpm_surfy_2x1v_ser_p1(const double *w, const double *d
     const double *bvar_surf_l, const double *bvar_surf_c, const double *bvar_surf_r, 
     const double *pkpm_prim_surf_l, const double *pkpm_prim_surf_c, const double *pkpm_prim_surf_r, 
     const double *fl, const double *fc, const double *fr, 
-    const double *pkpm_max_b, const double *pkpm_lax, double* GKYL_RESTRICT out); 
+    const double *pkpm_max_b, const double *pkpm_lax_l, const double *pkpm_lax_r, double* GKYL_RESTRICT out); 
 GKYL_CU_DH void pkpm_dist_div_ppar_y_2x1v_ser_p1(const double *w, const double *dxv, 
      const double *bvar_surf_l, const double *bvar_surf_c, const double *bvar_surf_r, 
      const double *fl, const double *fc, const double *fr, 
@@ -110,7 +110,7 @@ GKYL_CU_DH double vlasov_pkpm_surfx_2x1v_ser_p2(const double *w, const double *d
     const double *bvar_surf_l, const double *bvar_surf_c, const double *bvar_surf_r, 
     const double *pkpm_prim_surf_l, const double *pkpm_prim_surf_c, const double *pkpm_prim_surf_r, 
     const double *fl, const double *fc, const double *fr, 
-    const double *pkpm_max_b, const double *pkpm_lax, double* GKYL_RESTRICT out); 
+    const double *pkpm_max_b, const double *pkpm_lax_l, const double *pkpm_lax_r, double* GKYL_RESTRICT out); 
 GKYL_CU_DH void pkpm_dist_div_ppar_x_2x1v_ser_p2(const double *w, const double *dxv, 
      const double *bvar_surf_l, const double *bvar_surf_c, const double *bvar_surf_r, 
      const double *fl, const double *fc, const double *fr, 
@@ -119,7 +119,7 @@ GKYL_CU_DH double vlasov_pkpm_surfy_2x1v_ser_p2(const double *w, const double *d
     const double *bvar_surf_l, const double *bvar_surf_c, const double *bvar_surf_r, 
     const double *pkpm_prim_surf_l, const double *pkpm_prim_surf_c, const double *pkpm_prim_surf_r, 
     const double *fl, const double *fc, const double *fr, 
-    const double *pkpm_max_b, const double *pkpm_lax, double* GKYL_RESTRICT out); 
+    const double *pkpm_max_b, const double *pkpm_lax_l, const double *pkpm_lax_r, double* GKYL_RESTRICT out); 
 GKYL_CU_DH void pkpm_dist_div_ppar_y_2x1v_ser_p2(const double *w, const double *dxv, 
      const double *bvar_surf_l, const double *bvar_surf_c, const double *bvar_surf_r, 
      const double *fl, const double *fc, const double *fr, 
@@ -147,7 +147,7 @@ GKYL_CU_DH double vlasov_pkpm_surfx_3x1v_ser_p1(const double *w, const double *d
     const double *bvar_surf_l, const double *bvar_surf_c, const double *bvar_surf_r, 
     const double *pkpm_prim_surf_l, const double *pkpm_prim_surf_c, const double *pkpm_prim_surf_r, 
     const double *fl, const double *fc, const double *fr, 
-    const double *pkpm_max_b, const double *pkpm_lax, double* GKYL_RESTRICT out); 
+    const double *pkpm_max_b, const double *pkpm_lax_l, const double *pkpm_lax_r, double* GKYL_RESTRICT out); 
 GKYL_CU_DH void pkpm_dist_div_ppar_x_3x1v_ser_p1(const double *w, const double *dxv, 
      const double *bvar_surf_l, const double *bvar_surf_c, const double *bvar_surf_r, 
      const double *fl, const double *fc, const double *fr, 
@@ -156,7 +156,7 @@ GKYL_CU_DH double vlasov_pkpm_surfy_3x1v_ser_p1(const double *w, const double *d
     const double *bvar_surf_l, const double *bvar_surf_c, const double *bvar_surf_r, 
     const double *pkpm_prim_surf_l, const double *pkpm_prim_surf_c, const double *pkpm_prim_surf_r, 
     const double *fl, const double *fc, const double *fr, 
-    const double *pkpm_max_b, const double *pkpm_lax, double* GKYL_RESTRICT out); 
+    const double *pkpm_max_b, const double *pkpm_lax_l, const double *pkpm_lax_r, double* GKYL_RESTRICT out); 
 GKYL_CU_DH void pkpm_dist_div_ppar_y_3x1v_ser_p1(const double *w, const double *dxv, 
      const double *bvar_surf_l, const double *bvar_surf_c, const double *bvar_surf_r, 
      const double *fl, const double *fc, const double *fr, 
@@ -165,7 +165,7 @@ GKYL_CU_DH double vlasov_pkpm_surfz_3x1v_ser_p1(const double *w, const double *d
     const double *bvar_surf_l, const double *bvar_surf_c, const double *bvar_surf_r, 
     const double *pkpm_prim_surf_l, const double *pkpm_prim_surf_c, const double *pkpm_prim_surf_r, 
     const double *fl, const double *fc, const double *fr, 
-    const double *pkpm_max_b, const double *pkpm_lax, double* GKYL_RESTRICT out); 
+    const double *pkpm_max_b, const double *pkpm_lax_l, const double *pkpm_lax_r, double* GKYL_RESTRICT out); 
 GKYL_CU_DH void pkpm_dist_div_ppar_z_3x1v_ser_p1(const double *w, const double *dxv, 
      const double *bvar_surf_l, const double *bvar_surf_c, const double *bvar_surf_r, 
      const double *fl, const double *fc, const double *fr, 
@@ -193,7 +193,7 @@ GKYL_CU_DH double vlasov_pkpm_surfx_3x1v_ser_p2(const double *w, const double *d
     const double *bvar_surf_l, const double *bvar_surf_c, const double *bvar_surf_r, 
     const double *pkpm_prim_surf_l, const double *pkpm_prim_surf_c, const double *pkpm_prim_surf_r, 
     const double *fl, const double *fc, const double *fr, 
-    const double *pkpm_max_b, const double *pkpm_lax, double* GKYL_RESTRICT out); 
+    const double *pkpm_max_b, const double *pkpm_lax_l, const double *pkpm_lax_r, double* GKYL_RESTRICT out); 
 GKYL_CU_DH void pkpm_dist_div_ppar_x_3x1v_ser_p2(const double *w, const double *dxv, 
      const double *bvar_surf_l, const double *bvar_surf_c, const double *bvar_surf_r, 
      const double *fl, const double *fc, const double *fr, 
@@ -202,7 +202,7 @@ GKYL_CU_DH double vlasov_pkpm_surfy_3x1v_ser_p2(const double *w, const double *d
     const double *bvar_surf_l, const double *bvar_surf_c, const double *bvar_surf_r, 
     const double *pkpm_prim_surf_l, const double *pkpm_prim_surf_c, const double *pkpm_prim_surf_r, 
     const double *fl, const double *fc, const double *fr, 
-    const double *pkpm_max_b, const double *pkpm_lax, double* GKYL_RESTRICT out); 
+    const double *pkpm_max_b, const double *pkpm_lax_l, const double *pkpm_lax_r, double* GKYL_RESTRICT out); 
 GKYL_CU_DH void pkpm_dist_div_ppar_y_3x1v_ser_p2(const double *w, const double *dxv, 
      const double *bvar_surf_l, const double *bvar_surf_c, const double *bvar_surf_r, 
      const double *fl, const double *fc, const double *fr, 
@@ -211,7 +211,7 @@ GKYL_CU_DH double vlasov_pkpm_surfz_3x1v_ser_p2(const double *w, const double *d
     const double *bvar_surf_l, const double *bvar_surf_c, const double *bvar_surf_r, 
     const double *pkpm_prim_surf_l, const double *pkpm_prim_surf_c, const double *pkpm_prim_surf_r, 
     const double *fl, const double *fc, const double *fr, 
-    const double *pkpm_max_b, const double *pkpm_lax, double* GKYL_RESTRICT out); 
+    const double *pkpm_max_b, const double *pkpm_lax_l, const double *pkpm_lax_r, double* GKYL_RESTRICT out); 
 GKYL_CU_DH void pkpm_dist_div_ppar_z_3x1v_ser_p2(const double *w, const double *dxv, 
      const double *bvar_surf_l, const double *bvar_surf_c, const double *bvar_surf_r, 
      const double *fl, const double *fc, const double *fr, 
@@ -239,7 +239,7 @@ GKYL_CU_DH double vlasov_pkpm_surfx_1x1v_tensor_p2(const double *w, const double
     const double *bvar_surf_l, const double *bvar_surf_c, const double *bvar_surf_r, 
     const double *pkpm_prim_surf_l, const double *pkpm_prim_surf_c, const double *pkpm_prim_surf_r, 
     const double *fl, const double *fc, const double *fr, 
-    const double *pkpm_max_b, const double *pkpm_lax, double* GKYL_RESTRICT out); 
+    const double *pkpm_max_b, const double *pkpm_lax_l, const double *pkpm_lax_r, double* GKYL_RESTRICT out); 
 GKYL_CU_DH void pkpm_dist_div_ppar_x_1x1v_tensor_p2(const double *w, const double *dxv, 
      const double *bvar_surf_l, const double *bvar_surf_c, const double *bvar_surf_r, 
      const double *fl, const double *fc, const double *fr, 
@@ -267,7 +267,7 @@ GKYL_CU_DH double vlasov_pkpm_surfx_2x1v_tensor_p2(const double *w, const double
     const double *bvar_surf_l, const double *bvar_surf_c, const double *bvar_surf_r, 
     const double *pkpm_prim_surf_l, const double *pkpm_prim_surf_c, const double *pkpm_prim_surf_r, 
     const double *fl, const double *fc, const double *fr, 
-    const double *pkpm_max_b, const double *pkpm_lax, double* GKYL_RESTRICT out); 
+    const double *pkpm_max_b, const double *pkpm_lax_l, const double *pkpm_lax_r, double* GKYL_RESTRICT out); 
 GKYL_CU_DH void pkpm_dist_div_ppar_x_2x1v_tensor_p2(const double *w, const double *dxv, 
      const double *bvar_surf_l, const double *bvar_surf_c, const double *bvar_surf_r, 
      const double *fl, const double *fc, const double *fr, 
@@ -276,7 +276,7 @@ GKYL_CU_DH double vlasov_pkpm_surfy_2x1v_tensor_p2(const double *w, const double
     const double *bvar_surf_l, const double *bvar_surf_c, const double *bvar_surf_r, 
     const double *pkpm_prim_surf_l, const double *pkpm_prim_surf_c, const double *pkpm_prim_surf_r, 
     const double *fl, const double *fc, const double *fr, 
-    const double *pkpm_max_b, const double *pkpm_lax, double* GKYL_RESTRICT out); 
+    const double *pkpm_max_b, const double *pkpm_lax_l, const double *pkpm_lax_r, double* GKYL_RESTRICT out); 
 GKYL_CU_DH void pkpm_dist_div_ppar_y_2x1v_tensor_p2(const double *w, const double *dxv, 
      const double *bvar_surf_l, const double *bvar_surf_c, const double *bvar_surf_r, 
      const double *fl, const double *fc, const double *fr, 

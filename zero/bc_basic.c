@@ -67,6 +67,16 @@ gkyl_bc_basic_create_arr_copy_func(int dir, int cdim, enum gkyl_bc_basic_type bc
       fout->func = pkpm_mom_no_slip_bc;
       break;   
 
+    // Euler Reflecting wall 
+    case GKYL_BC_EULER_REFLECT:
+      fout->func = euler_reflect_bc;
+      break;    
+
+    // Euler No-slip wall 
+    case GKYL_BC_EULER_NO_SLIP:
+      fout->func = euler_no_slip_bc;
+      break;  
+
     default:
       assert(false);
       break;
@@ -124,6 +134,8 @@ gkyl_bc_basic_advance(const struct gkyl_bc_basic *up, struct gkyl_array *buff_ar
     case GKYL_BC_MAXWELL_RESERVOIR:
     case GKYL_BC_PKPM_MOM_REFLECT:
     case GKYL_BC_PKPM_MOM_NO_SLIP:
+    case GKYL_BC_EULER_REFLECT:
+    case GKYL_BC_EULER_NO_SLIP:
       gkyl_array_copy_to_buffer_fn(buff_arr->data, f_arr,
                                    up->skin_r, up->array_copy_func->on_dev);
       break;

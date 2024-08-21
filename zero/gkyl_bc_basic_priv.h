@@ -220,3 +220,56 @@ pkpm_species_reflect_bc(size_t nc, double *out, const double *inp, void *ctx)
   mc->basis->flip_odd_sign(dir, &inp[g_loc], &out[g_loc]);
   mc->basis->flip_odd_sign(dir+cdim, &out[g_loc], &out[g_loc]);
 }
+
+// Reflecting wall BCs for Euler equations
+GKYL_CU_D
+static void
+euler_reflect_bc(size_t nc, double *out, const double *inp, void *ctx)
+{
+  struct dg_bc_ctx *mc = (struct dg_bc_ctx*) ctx;
+  int dir = mc->dir;
+  int nbasis = mc->basis->num_basis;
+
+  // Copy BCs for density and energy
+  for (int c=0; c<nbasis; ++c) {
+    out[c] = inp[c];
+  }
+  for (int c=4*nbasis; c<5*nbasis; ++c) {
+    out[c] = inp[c];
+  }
+
+  // reflect normal component (zero normal) and zero gradient in other components
+  for (int i=1; i<4; ++i) {
+    int loc = nbasis*i;
+    if (i == dir) {
+      mc->basis->flip_even_sign(dir, &inp[loc], &out[loc]);
+    }
+    else {
+      mc->basis->flip_odd_sign(dir, &inp[loc], &out[loc]);
+    }
+  }
+}
+
+// No-slip wall BCs for Euler equations
+GKYL_CU_D
+static void
+euler_no_slip_bc(size_t nc, double *out, const double *inp, void *ctx)
+{
+  struct dg_bc_ctx *mc = (struct dg_bc_ctx*) ctx;
+  int dir = mc->dir;
+  int nbasis = mc->basis->num_basis;
+
+  // Copy BCs for density and energy
+  for (int c=0; c<nbasis; ++c) {
+    out[c] = inp[c];
+  }
+  for (int c=4*nbasis; c<5*nbasis; ++c) {
+    out[c] = inp[c];
+  }
+
+  // zero normal and zero tangent
+  for (int i=1; i<4; ++i) {
+    int loc = nbasis*i;
+    mc->basis->flip_even_sign(dir, &inp[loc], &out[loc]);
+  }  
+}

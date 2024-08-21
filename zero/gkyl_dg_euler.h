@@ -18,17 +18,22 @@ struct gkyl_dg_euler_auxfields {
 };
 
 /**
- * Create a new euler equation object.
+ * Create a new Euler equation object.
  *
  * @param cbasis Configuration space basis functions
- * @param conf_range Configuration space range for use in indexing velocity
+ * @param conf_range Configuration space range for use in indexing auxiliary variables
  * @param wv_eqn Wave equation object which contains information and functions for the specific fluid equation
+ * @param geom Wave geometry object for computing fluctuations local to surfaces
  * @param use_gpu Boolean to determine whether equation object is on host or device
  * @return Pointer to euler equation object
  */
 struct gkyl_dg_eqn* gkyl_dg_euler_new(const struct gkyl_basis* cbasis, const struct gkyl_range* conf_range,
   const struct gkyl_wv_eqn *wv_eqn, const struct gkyl_wave_geom *geom, bool use_gpu);
 
+/**
+ * Create new Euler equation object on NV-GPU: 
+ * see new() method above for documentation.
+ */
 struct gkyl_dg_eqn* gkyl_dg_euler_cu_dev_new(const struct gkyl_basis* cbasis, const struct gkyl_range* conf_range,
   const struct gkyl_wv_eqn *wv_eqn, const struct gkyl_wave_geom *geom);
 

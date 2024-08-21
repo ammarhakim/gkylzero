@@ -775,6 +775,14 @@ max_speed(const struct gkyl_wv_eqn *eqn, const double *q)
   return gkyl_mhd_max_abs_speed(mhd->gas_gamma, q);
 }
 
+static inline void
+mhd_source(const struct gkyl_wv_eqn* eqn, const double* qin, double* sout)
+{
+  for (int i = 0; i < 8; i++) {
+    sout[i] = 0.0;
+  }
+}
+
 struct gkyl_wv_eqn*
 gkyl_wv_mhd_new(const struct gkyl_wv_mhd_inp *inp)
 {
@@ -840,6 +848,8 @@ gkyl_wv_mhd_new(const struct gkyl_wv_mhd_inp *inp)
   mhd->eqn.num_diag = mhd->eqn.num_equations;
   // probably want to change this to store magnetic, internal and KE 
   mhd->eqn.cons_to_diag = gkyl_default_cons_to_diag;
+
+  mhd->eqn.source_func = mhd_source;
 
   mhd->eqn.ref_count = gkyl_ref_count_init(mhd_free);
 

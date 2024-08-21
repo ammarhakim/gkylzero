@@ -27,6 +27,7 @@ gkyl_cart_modal_tensor(struct gkyl_basis *basis, int ndim, int poly_order)
   basis->node_list = nl_list[ndim].nl[poly_order];
   basis->nodal_to_modal = n2m_list[ndim].n2m[poly_order];
   basis->quad_nodal_to_modal = qn2m_list[ndim].n2m[poly_order];
+  basis->modal_to_quad_nodal = m2qn_list[ndim].n2m[poly_order];
 }
 
 struct gkyl_basis *

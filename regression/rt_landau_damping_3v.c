@@ -88,7 +88,8 @@ main(int argc, char **argv)
     .upper = { 6.0*ctx.vt, 6.0*ctx.vt, 6.0*ctx.vt }, 
     .cells = { 32, 32, 32 },
 
-    .projection = {
+    .num_init = 1, 
+    .projection[0] = {
       .proj_id = GKYL_PROJ_FUNC,
       .func = evalDistFunc,
       .ctx_func = &ctx,

@@ -317,6 +317,9 @@ struct gk_bgk_collisions {
 
   struct gkyl_proj_maxwellian_on_basis *proj_max; // Maxwellian projection object
   struct gkyl_bgk_collisions *up_bgk; // BGK updater (also computes stable timestep)
+
+  bool implicit_step; // whether or not to take an implcit bgk step
+  double dt_implicit; // timestep used by the implicit collisions  
 };
 
 struct gk_boundary_fluxes {
@@ -339,9 +342,9 @@ struct gk_recycle_wall {
   double t_bound;
   bool elastic;
 
-  struct gkyl_spectrum_model *spectrum_model[GKYL_MAX_SPECIES];
-  struct gkyl_yield_model *yield_model[GKYL_MAX_SPECIES];
-  struct gkyl_elastic_model *elastic_model;
+  struct gkyl_emission_spectrum_model *spectrum_model[GKYL_MAX_SPECIES];
+  struct gkyl_emission_yield_model *yield_model[GKYL_MAX_SPECIES];
+  struct gkyl_emission_elastic_model *elastic_model;
   struct gkyl_bc_emission_ctx *params;
 
   struct gkyl_bc_emission_spectrum *update[GKYL_MAX_SPECIES];

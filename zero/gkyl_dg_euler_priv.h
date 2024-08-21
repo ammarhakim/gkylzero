@@ -20,15 +20,15 @@ typedef double (*euler_surf_t)(const double *w, const double *dxv, const struct 
   double* GKYL_RESTRICT out);
 
 // for use in kernel tables
-typedef struct { vol_termf_t kernels[3]; } gkyl_dg_euler_vol_kern_list;
-typedef struct { euler_surf_t kernels[3]; } gkyl_dg_euler_surf_kern_list;
+typedef struct { vol_termf_t kernels[4]; } gkyl_dg_euler_vol_kern_list;
+typedef struct { euler_surf_t kernels[4]; } gkyl_dg_euler_surf_kern_list;
 
 struct dg_euler {
   struct gkyl_dg_eqn eqn; // Base object  
   euler_surf_t surf[3]; // pointers to surface kernels
   enum gkyl_eqn_type eqn_type; // Equation type
   const struct gkyl_wv_eqn *wv_eqn; // wave equation object for Roe solve
-  const struct gkyl_wave_geom *geom; // geometry
+  const struct gkyl_wave_geom *geom; // wave geometry
   double gas_gamma; // adiabatic index
   struct gkyl_range conf_range; // configuration space range
   struct gkyl_dg_euler_auxfields auxfields; // Auxiliary fields.
@@ -64,6 +64,20 @@ kernel_euler_vol_1x_ser_p2(const struct gkyl_dg_eqn *eqn, const double* xc, cons
 
 GKYL_CU_DH
 static double
+kernel_euler_vol_1x_ser_p3(const struct gkyl_dg_eqn *eqn, const double* xc, const double* dx, 
+  const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
+{
+  struct dg_euler *euler = container_of(eqn, struct dg_euler, eqn);
+  long cidx = gkyl_range_idx(&euler->conf_range, idx);
+
+  return euler_vol_1x_ser_p3(xc, dx, euler->gas_gamma, 
+    (const double*) gkyl_array_cfetch(euler->auxfields.u, cidx),
+    (const double*) gkyl_array_cfetch(euler->auxfields.p, cidx),
+    qIn, qRhsOut);
+}
+
+GKYL_CU_DH
+static double
 kernel_euler_vol_2x_ser_p1(const struct gkyl_dg_eqn *eqn, const double* xc, const double* dx, 
   const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
 {
@@ -71,6 +85,20 @@ kernel_euler_vol_2x_ser_p1(const struct gkyl_dg_eqn *eqn, const double* xc, cons
   long cidx = gkyl_range_idx(&euler->conf_range, idx);
 
   return euler_vol_2x_ser_p1(xc, dx, euler->gas_gamma, 
+    (const double*) gkyl_array_cfetch(euler->auxfields.u, cidx),
+    (const double*) gkyl_array_cfetch(euler->auxfields.p, cidx),
+    qIn, qRhsOut);
+}
+
+GKYL_CU_DH
+static double
+kernel_euler_vol_2x_tensor_p2(const struct gkyl_dg_eqn *eqn, const double* xc, const double* dx, 
+  const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
+{
+  struct dg_euler *euler = container_of(eqn, struct dg_euler, eqn);
+  long cidx = gkyl_range_idx(&euler->conf_range, idx);
+
+  return euler_vol_2x_tensor_p2(xc, dx, euler->gas_gamma, 
     (const double*) gkyl_array_cfetch(euler->auxfields.u, cidx),
     (const double*) gkyl_array_cfetch(euler->auxfields.p, cidx),
     qIn, qRhsOut);
@@ -90,36 +118,68 @@ kernel_euler_vol_3x_ser_p1(const struct gkyl_dg_eqn *eqn, const double* xc, cons
     qIn, qRhsOut);
 }
 
-// Volume kernel list
+// Volume kernel list (Serendipity basis)
 GKYL_CU_D
 static const gkyl_dg_euler_vol_kern_list ser_vol_kernels[] = {
-  { NULL, kernel_euler_vol_1x_ser_p1, kernel_euler_vol_1x_ser_p2 }, // 0
-  { NULL, kernel_euler_vol_2x_ser_p1, NULL }, // 1
-  { NULL, kernel_euler_vol_3x_ser_p1, NULL }, // 2
+  { NULL, kernel_euler_vol_1x_ser_p1, kernel_euler_vol_1x_ser_p2, kernel_euler_vol_1x_ser_p3 }, // 0
+  { NULL, kernel_euler_vol_2x_ser_p1, NULL, NULL }, // 1
+  { NULL, kernel_euler_vol_3x_ser_p1, NULL, NULL }, // 2
 };
 
-// Surface kernel list: x-direction
+// Surface kernel list: x-direction (Serendipity basis)
 GKYL_CU_D
 static const gkyl_dg_euler_surf_kern_list ser_surf_x_kernels[] = {
-  { NULL, euler_surfx_1x_ser_p1, euler_surfx_1x_ser_p2 }, // 0
-  { NULL, euler_surfx_2x_ser_p1, NULL }, // 1
-  { NULL, euler_surfx_3x_ser_p1, NULL }, // 2
+  { NULL, euler_surfx_1x_ser_p1, euler_surfx_1x_ser_p2, euler_surfx_1x_ser_p3 }, // 0
+  { NULL, euler_surfx_2x_ser_p1, NULL, NULL }, // 1
+  { NULL, euler_surfx_3x_ser_p1, NULL, NULL }, // 2
 };
 
-// Surface kernel list: y-direction
+// Surface kernel list: y-direction (Serendipity basis)
 GKYL_CU_D
 static const gkyl_dg_euler_surf_kern_list ser_surf_y_kernels[] = {
-  { NULL, NULL, NULL }, // 0
-  { NULL, euler_surfy_2x_ser_p1, NULL }, // 1
-  { NULL, euler_surfy_3x_ser_p1, NULL }, // 2
+  { NULL, NULL, NULL, NULL }, // 0
+  { NULL, euler_surfy_2x_ser_p1, NULL, NULL }, // 1
+  { NULL, euler_surfy_3x_ser_p1, NULL, NULL }, // 2
 };
 
-// Surface kernel list: z-direction
+// Surface kernel list: z-direction (Serendipity basis)
 GKYL_CU_D
 static const gkyl_dg_euler_surf_kern_list ser_surf_z_kernels[] = {
-  { NULL, NULL, NULL }, // 0
-  { NULL, NULL, NULL }, // 1
-  { NULL, euler_surfz_3x_ser_p1, NULL }, // 2
+  { NULL, NULL, NULL, NULL }, // 0
+  { NULL, NULL, NULL, NULL }, // 1
+  { NULL, euler_surfz_3x_ser_p1, NULL, NULL }, // 2
+};
+
+// Volume kernel list (Tensor basis)
+GKYL_CU_D
+static const gkyl_dg_euler_vol_kern_list ten_vol_kernels[] = {
+  { NULL, kernel_euler_vol_1x_ser_p1, kernel_euler_vol_1x_ser_p2, kernel_euler_vol_1x_ser_p3 }, // 0
+  { NULL, kernel_euler_vol_2x_ser_p1, kernel_euler_vol_2x_tensor_p2, NULL }, // 1
+  { NULL, kernel_euler_vol_3x_ser_p1, NULL, NULL }, // 2
+};
+
+// Surface kernel list: x-direction (Tensor basis)
+GKYL_CU_D
+static const gkyl_dg_euler_surf_kern_list ten_surf_x_kernels[] = {
+  { NULL, euler_surfx_1x_ser_p1, euler_surfx_1x_ser_p2, euler_surfx_1x_ser_p3 }, // 0
+  { NULL, euler_surfx_2x_ser_p1, euler_surfx_2x_tensor_p2, NULL }, // 1
+  { NULL, euler_surfx_3x_ser_p1, NULL, NULL }, // 2
+};
+
+// Surface kernel list: y-direction (Tensor basis)
+GKYL_CU_D
+static const gkyl_dg_euler_surf_kern_list ten_surf_y_kernels[] = {
+  { NULL, NULL, NULL, NULL }, // 0
+  { NULL, euler_surfy_2x_ser_p1, euler_surfy_2x_tensor_p2, NULL }, // 1
+  { NULL, euler_surfy_3x_ser_p1, NULL, NULL }, // 2
+};
+
+// Surface kernel list: z-direction (Tensor basis)
+GKYL_CU_D
+static const gkyl_dg_euler_surf_kern_list ten_surf_z_kernels[] = {
+  { NULL, NULL, NULL, NULL }, // 0
+  { NULL, NULL, NULL, NULL }, // 1
+  { NULL, euler_surfz_3x_ser_p1, NULL, NULL }, // 2
 };
 
 /**

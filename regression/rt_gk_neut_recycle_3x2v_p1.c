@@ -419,10 +419,10 @@ main(int argc, char **argv)
 #endif
 
   char in_species[1][128] = { "ion" };
-  struct gkyl_spectrum_model *spectrum_model[1];
-  spectrum_model[0] = gkyl_spectrum_maxwellian_new(0.0, ctx.vtn, app_args.use_gpu);
-  struct gkyl_yield_model *yield_model[1];
-  yield_model[0] = gkyl_yield_constant_new(0.0, ctx.rec_frac, app_args.use_gpu);
+  struct gkyl_emission_spectrum_model *spectrum_model[1];
+  spectrum_model[0] = gkyl_emission_spectrum_maxwellian_new(0.0, ctx.vtn, app_args.use_gpu);
+  struct gkyl_emission_yield_model *yield_model[1];
+  yield_model[0] = gkyl_emission_yield_constant_new(0.0, ctx.rec_frac, app_args.use_gpu);
   struct gkyl_bc_emission_ctx *bc_ctx = gkyl_bc_emission_new(1, 0.0, false, spectrum_model, yield_model, NULL, in_species);
 
   // Electron species.

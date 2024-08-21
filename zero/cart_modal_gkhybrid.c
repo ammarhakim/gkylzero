@@ -27,6 +27,7 @@ gkyl_cart_modal_gkhybrid(struct gkyl_basis *basis, int cdim, int vdim)
   basis->node_list = nl_list[ndim].nl[1];
   basis->nodal_to_modal = n2m_list[ndim].n2m[1];
   basis->quad_nodal_to_modal = qn2m_list[ndim].n2m[1];
+  basis->modal_to_quad_nodal = m2qn_list[ndim].n2m[1];
 }
 
 struct gkyl_basis *

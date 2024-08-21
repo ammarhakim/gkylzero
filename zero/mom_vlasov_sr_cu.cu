@@ -12,7 +12,7 @@ extern "C" {
 #include <gkyl_util.h>
 }
 
-enum { M0, M1i, Ni, Energy, Pressure, Tij, BAD };
+enum { M0, M1i, M2, M3i, Ni, Tij, BAD };
 
 static int
 get_mom_id(const char *mom)
@@ -22,21 +22,20 @@ get_mom_id(const char *mom)
   if (strcmp(mom, "M0") == 0) { // density (GammaV*n)
     mom_idx = M0;
   }
-  else if (strcmp(mom, "M1i") == 0) { // momentum (GammaV*n*V)
+  else if (strcmp(mom, "M1i") == 0) { // mass flux (GammaV*n*V)
     mom_idx = M1i;
   }
-  else if (strcmp(mom, "Ni") == 0) { // 4-momentum (GammaV*n, GammaV*n*V)
+  else if (strcmp(mom, "M2") == 0) { // total energy = integral(gamma*f) velocity moment
+    mom_idx = M2;
+  }
+  else if (strcmp(mom, "M3i") == 0) { // tenergy flux = integral(p*f) velocity moment
+    mom_idx = M3i;
+  }
+  else if (strcmp(mom, "Ni") == 0) { // 4-momentum (M0, M1i)
     mom_idx = Ni;
   }
-  else if (strcmp(mom, "Energy") == 0) { // total energy = gamma*mc^2 moment
-    mom_idx = Energy;
-  }
-  else if (strcmp(mom, "Pressure") == 0) { // total fluid-frame pressure
-                                           // P = n*T where n is the fluid-frame density
-    mom_idx = Pressure;
-  }
   else if (strcmp(mom, "Tij") == 0) { // Stress-energy tensor 
-                                      // (Energy, Energy flux (vdim components), Stress tensor (vdim*(vdim+1))/2 components))
+                                      // (M2, M3i (vdim components), Stress tensor (vdim*(vdim+1))/2 components))
     mom_idx = Tij;
   }
   else {
@@ -60,18 +59,18 @@ v_num_mom(int vdim, int mom_id)
       num_mom = vdim;
       break;   
 
+    case M2:
+      num_mom = 1;
+      break;   
+
+    case M3i:
+      num_mom = vdim;
+      break;  
+
     case Ni:
       num_mom = vdim+1;
       break;   
-
-    case Energy:
-      num_mom = 1;
-      break;   
-      
-    case Pressure:
-      num_mom = 1;
-      break;   
-
+    
     case Tij:
       num_mom = 1+vdim+(vdim*(vdim+1))/2;
       break;   
@@ -88,24 +87,17 @@ v_num_mom(int vdim, int mom_id)
 // and so its members cannot be modified without a full __global__ kernel on device.
 __global__ static void
 gkyl_mom_vlasov_sr_set_auxfields_cu_kernel(const struct gkyl_mom_type *momt, 
-  const struct gkyl_array *p_over_gamma, const struct gkyl_array *gamma, const struct gkyl_array *gamma_inv, 
-  const struct gkyl_array *V_drift, const struct gkyl_array *GammaV2, const struct gkyl_array *GammaV_inv)
+  const struct gkyl_array *gamma)
 {
   struct mom_type_vlasov_sr *mom_vm_sr = container_of(momt, struct mom_type_vlasov_sr, momt);
-  mom_vm_sr->auxfields.p_over_gamma = p_over_gamma;
   mom_vm_sr->auxfields.gamma = gamma;
-  mom_vm_sr->auxfields.gamma_inv = gamma_inv;
-  mom_vm_sr->auxfields.V_drift = V_drift;
-  mom_vm_sr->auxfields.GammaV2 = GammaV2;
-  mom_vm_sr->auxfields.GammaV_inv = GammaV_inv;
 }
 
 // Host-side wrapper for set_auxfields_cu_kernel
 void
 gkyl_mom_vlasov_sr_set_auxfields_cu(const struct gkyl_mom_type *momt, struct gkyl_mom_vlasov_sr_auxfields auxin)
 {
-  gkyl_mom_vlasov_sr_set_auxfields_cu_kernel<<<1,1>>>(momt, auxin.p_over_gamma->on_dev, auxin.gamma->on_dev, auxin.gamma_inv->on_dev, 
-    auxin.V_drift->on_dev, auxin.GammaV2->on_dev, auxin.GammaV_inv->on_dev);
+  gkyl_mom_vlasov_sr_set_auxfields_cu_kernel<<<1,1>>>(momt, auxin.gamma->on_dev);
 }
 
 
@@ -114,24 +106,19 @@ static void
 set_cu_ptrs(struct mom_type_vlasov_sr* mom_vm_sr, int mom_id, enum gkyl_basis_type b_type, int vdim,
   int poly_order, int tblidx)
 {
-  mom_vm_sr->auxfields.p_over_gamma = 0;
   mom_vm_sr->auxfields.gamma = 0;
-  mom_vm_sr->auxfields.gamma_inv = 0;
-  mom_vm_sr->auxfields.V_drift = 0;
-  mom_vm_sr->auxfields.GammaV2 = 0;
-  mom_vm_sr->auxfields.GammaV_inv = 0; 
   
   // choose kernel tables based on basis-function type
   const gkyl_vlasov_sr_mom_kern_list *m0_kernels, *m1i_kernels, 
-    *Ni_kernels, *Energy_kernels, *Pressure_kernels, *Tij_kernels;
+    *m2_kernels, *m3i_kernels, *Ni_kernels, *Tij_kernels;
 
   switch (b_type) {
     case GKYL_BASIS_MODAL_SERENDIPITY:
       m0_kernels = ser_m0_kernels;
       m1i_kernels = ser_m1i_kernels;
+      m2_kernels = ser_m2_kernels;
+      m3i_kernels = ser_m3i_kernels;
       Ni_kernels = ser_Ni_kernels;
-      Energy_kernels = ser_Energy_kernels;
-      Pressure_kernels = ser_Pressure_kernels;
       Tij_kernels = ser_Tij_kernels;
       break;
 
@@ -151,19 +138,19 @@ set_cu_ptrs(struct mom_type_vlasov_sr* mom_vm_sr, int mom_id, enum gkyl_basis_ty
       mom_vm_sr->momt.num_mom = vdim;
       break;
 
+    case M2:
+      mom_vm_sr->momt.kernel = m2_kernels[tblidx].kernels[poly_order];
+      mom_vm_sr->momt.num_mom = 1;
+      break;
+
+    case M3i:
+      mom_vm_sr->momt.kernel = m3i_kernels[tblidx].kernels[poly_order];
+      mom_vm_sr->momt.num_mom = vdim;
+      break;
+
     case Ni:
       mom_vm_sr->momt.kernel = Ni_kernels[tblidx].kernels[poly_order];
       mom_vm_sr->momt.num_mom = 1+vdim;
-      break;
-
-    case Energy:
-      mom_vm_sr->momt.kernel = Energy_kernels[tblidx].kernels[poly_order];
-      mom_vm_sr->momt.num_mom = 1;
-      break;
-
-    case Pressure:
-      mom_vm_sr->momt.kernel = Pressure_kernels[tblidx].kernels[poly_order];
-      mom_vm_sr->momt.num_mom = 1;
       break;
 
     case Tij:
@@ -226,12 +213,7 @@ static void
 set_int_cu_ptrs(struct mom_type_vlasov_sr* mom_vm_sr, enum gkyl_basis_type b_type, int vdim,
   int poly_order, int tblidx)
 {
-  mom_vm_sr->auxfields.p_over_gamma = 0;
   mom_vm_sr->auxfields.gamma = 0;
-  mom_vm_sr->auxfields.gamma_inv = 0;
-  mom_vm_sr->auxfields.V_drift = 0;
-  mom_vm_sr->auxfields.GammaV2 = 0;
-  mom_vm_sr->auxfields.GammaV_inv = 0; 
 
   // choose kernel tables based on basis-function type
   const gkyl_vlasov_sr_mom_kern_list *int_mom_kernels;  

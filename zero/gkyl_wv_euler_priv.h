@@ -680,3 +680,12 @@ euler_cons_to_diag(const struct gkyl_wv_eqn *eqn,
   diag[4] = ke; 
   diag[5] = qin[4]-ke;
 }
+
+GKYL_CU_D
+static inline void
+euler_source(const struct gkyl_wv_eqn* eqn, const double* qin, double* sout)
+{
+  for (int i = 0; i < 5; i++) {
+    sout[i] = 0.0;
+  }
+}

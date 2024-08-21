@@ -11,6 +11,8 @@
 #include <gkyl_range.h>
 #include <gkyl_rect_decomp.h>
 #include <gkyl_rect_grid.h>
+#include <gkyl_wv_eqn.h>
+#include <gkyl_wv_maxwell.h>
 #include <gkyl_util.h>
 #include <time.h>
 
@@ -562,10 +564,18 @@ test(int ndim, int Nx, int poly_order, double eps, bool use_tensor, bool check_a
   }
 
   // Create bvar and ExB updaters
+  struct gkyl_wv_eqn *maxwell = gkyl_wv_maxwell_new(1.0, 0.0, 0.0, use_gpu);
+  // create geometry object
+  struct gkyl_wave_geom *geom = gkyl_wave_geom_new(&grid, &local_ext, 0, 0, use_gpu);
+  double limiter_fac = 0.0;
   struct gkyl_dg_calc_em_vars *calc_bvar;
   struct gkyl_dg_calc_em_vars *calc_ExB;
-  calc_bvar = gkyl_dg_calc_em_vars_new(&grid, &basis, &local_ext, 0, use_gpu);
-  calc_ExB = gkyl_dg_calc_em_vars_new(&grid, &basis, &local_ext, 1, use_gpu);
+  calc_bvar = gkyl_dg_calc_em_vars_new(&grid, &basis, &local_ext, 
+    maxwell, geom, limiter_fac, 0, use_gpu);
+  calc_ExB = gkyl_dg_calc_em_vars_new(&grid, &basis, &local_ext, 
+    maxwell, geom, limiter_fac, 1, use_gpu);
+  gkyl_wv_eqn_release(maxwell);
+  gkyl_wave_geom_release(geom);
 
   struct timespec tm = gkyl_wall_clock();
 

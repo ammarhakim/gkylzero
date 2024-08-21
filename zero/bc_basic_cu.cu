@@ -62,6 +62,16 @@ gkyl_bc_basic_create_set_cu_dev_ptrs(int dir, int cdim, enum gkyl_bc_basic_type 
       fout->func = pkpm_mom_no_slip_bc;
       break; 
 
+    // Euler Reflecting wall 
+    case GKYL_BC_EULER_REFLECT:
+      fout->func = euler_reflect_bc;
+      break;    
+
+    // Euler No-slip wall 
+    case GKYL_BC_EULER_NO_SLIP:
+      fout->func = euler_no_slip_bc;
+      break;  
+
     default:
       assert(false);
       break;

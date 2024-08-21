@@ -28,7 +28,7 @@ evalDistFunc(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fo
   struct pkpm_wall_ctx *app = ctx;
   double x = xn[0], v = xn[1];
   fout[0] = maxwellian(1.0, v, 0.0, 0.5);
-  fout[1] = 0.5*maxwellian(1.0, v, 0.0, 0.5);
+  fout[1] = 0.5*0.5*maxwellian(1.0, v, 0.0, 0.5);
 }
 
 void 

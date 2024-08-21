@@ -208,6 +208,14 @@ max_speed(const struct gkyl_wv_eqn *eqn, const double *q)
   return fabs(q[RHOU]/q[0]);
 }
 
+static inline void
+coldfluid_source(const struct gkyl_wv_eqn* eqn, const double* qin, double* sout)
+{
+  for (int i = 0; i < 4; i++) {
+    sout[i] = 0.0;
+  }
+}
+
 struct gkyl_wv_eqn*
 gkyl_wv_coldfluid_new(void)
 {
@@ -232,6 +240,8 @@ gkyl_wv_coldfluid_new(void)
   coldfluid->eqn.riem_to_cons = riem_to_cons;
 
   coldfluid->eqn.cons_to_diag = coldfluid_cons_to_diag;
+
+  coldfluid->eqn.source_func = coldfluid_source;
 
   coldfluid->eqn.ref_count = gkyl_ref_count_init(coldfluid_free);
 

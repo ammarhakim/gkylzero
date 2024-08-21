@@ -10,9 +10,12 @@ struct langmuir_ctx {
   double charge; // charge
   double mass; // mass
   double vt; // thermal velocity
-  double Lx; // size of the box
-  double k0; // wave number
   double perturb; // perturbation amplitude
+  double k0; // wave number
+  double Lx; // Domain size (x-direction).
+  int Nx; // Cell count (x-direction).
+  double t_end; // Final simulation time.
+  double init_dt; // Initial time step guess so first step does not generate NaN
 };
 
 static inline double sq(double x) { return x*x; }
@@ -62,7 +65,7 @@ evalFieldFunc(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fo
 void
 evalExtEmFunc(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
 {
-  struct pkpm_sheath_ctx *app = ctx;
+  struct langmuir_ctx *app = ctx;
   double x = xn[0];
   double B_x = 1.0;
   
@@ -81,13 +84,24 @@ evalNu(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, vo
 struct langmuir_ctx
 create_ctx(void)
 {
+  double k0 = 0.5;
+  double Lx = M_PI/k0; 
+  int Nx = 32; 
+  double dx = Lx/Nx;
+  double t_end = 20.0;
+  // initial dt guess so first step does not generate NaN
+  double init_dt = (Lx/Nx)/(3.0);
+
   struct langmuir_ctx ctx = {
     .mass = 1.0,
     .charge = -1.0,
     .vt = 1.0,
-    .Lx = M_PI/0.5,
-    .k0 = 0.5,
-    .perturb = 1.e-1
+    .perturb = 1.e-1, 
+    .k0 = k0,
+    .Lx = Lx,
+    .Nx = Nx, 
+    .t_end = t_end, 
+    .init_dt = init_dt, 
   };
   return ctx;
 }
@@ -104,14 +118,15 @@ main(int argc, char **argv)
 {
   struct gkyl_app_args app_args = parse_app_args(argc, argv);
 
-  int NX = APP_ARGS_CHOOSE(app_args.xcells[0], 32);
+  struct langmuir_ctx ctx = create_ctx(); // context for init functions
+
+  int NX = APP_ARGS_CHOOSE(app_args.xcells[0], ctx.Nx);
   int NV = APP_ARGS_CHOOSE(app_args.vcells[0], 32);
 
   if (app_args.trace_mem) {
     gkyl_cu_dev_mem_debug_set(true);
     gkyl_mem_debug_set(true);
   }
-  struct langmuir_ctx ctx = create_ctx(); // context for init functions
 
   // electrons
   struct gkyl_pkpm_species elc = {
@@ -158,6 +173,8 @@ main(int argc, char **argv)
     .poly_order = 1,
     .basis_type = app_args.basis_type,
 
+    .use_explicit_source = true, 
+
     .num_periodic_dir = 1,
     .periodic_dirs = { 0 },
 
@@ -172,9 +189,9 @@ main(int argc, char **argv)
   gkyl_pkpm_app *app = gkyl_pkpm_app_new(&pkpm);
 
   // start, end and initial time-step
-  double tcurr = 0.0, tend = 20.;
-  double dt = tend-tcurr;
-  int nframe = 100;
+  double tcurr = 0.0, tend = ctx.t_end;
+  double dt = ctx.init_dt;
+  int nframe = 1;
   // create trigger for IO
   struct gkyl_tm_trigger io_trig = { .dt = tend/nframe };
 

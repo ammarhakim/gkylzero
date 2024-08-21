@@ -81,7 +81,6 @@ create_ctx(void)
   double Lx100 = Lx / 100.0; // Domain size over 100 (x-direction).
   double x_last_edge = Lx - Lx / Nx; // Location of center of last upper cell (low density side).
   double cfl_frac = 0.95; // CFL coefficient.
-
   double t_end = 5.0e-9; // Final simulation time.
   int num_frames = 1; // Number of output frames.
   double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.
@@ -174,7 +173,8 @@ evalAppCurrent(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT f
   double x_last_edge = app->x_last_edge;
 
   double omega_drive = app->omega_drive;
-
+  fout[0] = 0.0;
+  fout[2] = 0.0;
   if (x > x_last_edge) {
     // Set applied current.
     fout[1] = -J0 * sin(omega_drive * t);

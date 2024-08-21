@@ -228,6 +228,7 @@ main(int argc, char **argv)
   // Field.
   struct gkyl_moment_field field = {
     .epsilon0 = ctx.epsilon0, .mu0 = ctx.mu0,
+    .use_explicit_em_coupling = true,
     
     .evolve = true,
     .init = evalFieldInit,

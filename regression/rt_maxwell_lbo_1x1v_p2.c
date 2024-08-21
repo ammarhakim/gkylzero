@@ -64,7 +64,8 @@ main(int argc, char **argv)
     .upper = { 4.0 * ctx.vt}, 
     .cells = { 4 },
 
-    .projection = {
+    .num_init = 1, 
+    .projection[0] = {
       .proj_id = GKYL_PROJ_FUNC,
       .func = evalDistFunc,
       .ctx_func = &ctx,
