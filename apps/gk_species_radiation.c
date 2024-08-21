@@ -82,7 +82,7 @@ gk_species_radiation_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s
       T_min_eV = s->info.radiation.T_min_eV;
     else if (s->info.radiation.te_min == GKYL_VARY_TE_AGGRESSIVE)  // radiation below 10^-4*max(Lz)
       T_min_eV = 0.1372 * pow(v0[0], 1.867);
-    else  // (s->info.radiation.te_min == GKYL_VARY_TE_CONSERVATIVE) i.e. radiation below 3.16*10^-2*max(Lz)
+    else  // (s->info.radiation.te_min == GKYL_VARY_TE_CONSERVATIVE) i.e. radiation below 3.16*10^-3*max(Lz)
       T_min_eV = 0.2815 * pow(v0[0], 1.768);
     vtsq[0] = T_min_eV * fabs(s->info.charge)/s->info.mass;
     
