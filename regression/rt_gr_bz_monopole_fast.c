@@ -8,6 +8,7 @@
 #include <gkyl_util.h>
 #include <gkyl_wv_gr_maxwell.h>
 #include <gkyl_gr_minkowski.h>
+#include <gkyl_gr_blackhole.h>
 
 #include <gkyl_null_comm.h>
 
@@ -18,7 +19,7 @@
 
 #include <rt_arg_parse.h>
 
-struct alfven_wave_ctx
+struct bz_monopole_fast_ctx
 {
   // Mathematical constants (dimensionless).
   double pi;
@@ -28,32 +29,36 @@ struct alfven_wave_ctx
   double e_fact; // Factor of speed of light for electric field correction.
   double b_fact; // Factor of speed of light for magnetic field correction.
 
-  double Bx; // Magnetic field strength (x-direction).
-  double By; // Magnetic field strength (y-direction).
-  double Dy; // Electric field strength (y-direction).
-  double Dz; // Electric field strength (z-direction).
+  double B0; // Reference magnetic field strength.
 
-  double Bz_l; // Left magnetic field strength (z-direction).
-  double Dx_l; // Left electric field strength (x-direction).
+  // Spacetime parameters (using geometric units).
+  double mass; // Mass of the black hole.
+  double spin; // Spin of the black hole.
 
-  double Bz_r; // Right magnetic field strength (z-direction).
-  double Dx_r; // Right electric field strength (x-direction).
+  double pos_x; // Position of the black hole (x-direction).
+  double pos_y; // Position of the black hole (y-direction).
+  double pos_z; // Position of the black hole (z-direction).
 
   // Pointer to spacetime metric.
   struct gkyl_gr_spacetime *spacetime;
 
   // Simulation parameters.
   int Nx; // Cell count (x-direction).
+  int Ny; // Cell count (y-direction).
   double Lx; // Domain size (x-direction).
+  double Ly; // Domain size (y-direction).
   double cfl_frac; // CFL coefficient.
 
   double t_end; // Final simulation time.
   int num_frames; // Number of output frames.
   double dt_failure_tol; // Minimum allowable fraction of initial time-step.
   int num_failures_max; // Maximum allowable number of consecutive small time-steps.
+
+  double r_inner; // Ring inner radius.
+  double r_outer; // Ring outer radius.
 };
 
-struct alfven_wave_ctx
+struct bz_monopole_fast_ctx
 create_ctx(void)
 {
   // Mathematical constants (dimensionless).
@@ -64,46 +69,47 @@ create_ctx(void)
   double e_fact = 1.0; // Factor of speed of light for electric field correction.
   double b_fact = 1.0; // Factor of speed of light for magnetic field correction.
 
-  double Bx = 1.0; // Magnetic field strength (x-direction).
-  double By = 1.0; // Magnetic field strength (y-direction).
-  double Dy = 0.0; // Electric field strength (y-direction).
-  double Dz = 1.0; // Electric field strength (z-direction).
+  double B0 = 1.0; // Reference magnetic field strength.
 
-  double Bz_l = 1.0; // Left magnetic field strength (z-direction).
-  double Dx_l = -1.0; // Left electric field strength (x-direction).
+  // Spacetime parameters (using geometric units).
+  double mass = 1.0; // Mass of the black hole.
+  double spin = -0.999; // Spin of the black hole.
 
-  double Bz_r = 1.3; // Right magnetic field strength (z-direction).
-  double Dx_r = -1.3; // Right electric field strength (x-direction).
+  double pos_x = 0.0; // Position of the black hole (x-direction).
+  double pos_y = 0.0; // Position of the black hole (y-direction).
+  double pos_z = 0.0; // Position of the black hole (z-direction).
 
   // Pointer to spacetime metric.
-  struct gkyl_gr_spacetime *spacetime = gkyl_gr_minkowski_new(false);
+  struct gkyl_gr_spacetime *spacetime = gkyl_gr_blackhole_new(false, mass, spin, pos_x, pos_y, pos_z);
 
   // Simulation parameters.
-  int Nx = 1024; // Cell count (x-direction).
-  double Lx = 3.0; // Domain size (x-direction).
+  int Nx = 256; // Cell count (x-direction).
+  int Ny = 256; // Cell count (y-direction).
+  double Lx = 10.0; // Domain size (x-direction).
+  double Ly = 10.0; // Domain size (y-direction).
   double cfl_frac = 1.0; // CFL coefficient.
 
-  double t_end = 2.0; // Final simulation time.
-  int num_frames = 100; // Number of output frames.
+  double t_end = 50.0; // Final simulation time.
+  int num_frames = 1; // Number of output frames.
   double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.
   int num_failures_max = 20; // Maximum allowable number of consecutive small time-steps.
 
-  struct alfven_wave_ctx ctx = {
+  struct bz_monopole_fast_ctx ctx = {
     .pi = pi,
     .light_speed = light_speed,
     .e_fact = e_fact,
     .b_fact = b_fact,
-    .Bx = Bx,
-    .By = By,
-    .Dy = Dy,
-    .Dz = Dz,
-    .Bz_l = Bz_l,
-    .Dx_l = Dx_l,
-    .Bz_r = Bz_r,
-    .Dx_r = Dx_r,
+    .B0 = B0,
+    .mass = mass,
+    .spin = spin,
+    .pos_x = pos_x,
+    .pos_y = pos_y,
+    .pos_z = pos_z,
     .spacetime = spacetime,
     .Nx = Nx,
+    .Ny = Ny,
     .Lx = Lx,
+    .Ly = Ly,
     .cfl_frac = cfl_frac,
     .t_end = t_end,
     .num_frames = num_frames,
@@ -117,41 +123,28 @@ create_ctx(void)
 void
 evalGRMaxwellInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
 {
-  double x = xn[0];
-  struct alfven_wave_ctx *app = ctx;
-
-  double pi = app->pi;
-
-  double Bx = app->Bx;
-  double By = app->By;
-  double Dy = app->Dy;
-  double Dz = app->Dz;
-
-  double Bz_l = app->Bz_l;
-  double Dx_l = app->Dx_l;
-
-  double Bz_r = app->Bz_r;
-  double Dx_r = app->Dx_r;
-
-  double Bz = 0.0;
-  double Dx = 0.0;
+  double x = xn[0], y = xn[1];
+  struct bz_monopole_fast_ctx *app = ctx;
 
   struct gkyl_gr_spacetime *spacetime = app->spacetime;
 
-  if (x < 0.0) {
-    Bz = Bz_l; // Left magnetic field strength (z-direction).
-    Dx = Dx_l; // Left electric field strength (x-direction).
+  double pi = app->pi;
+  double B0 = app->B0;
+
+  double r = sqrt((x * x) + (y * y));
+  double phi = 0.5 * pi;
+
+  double theta = 0.0;
+  if (fabs(x) < pow(10.0, -6.0)) {
+    theta = 0.5 * pi;
   }
-  else if (x >= 0.0 && x < 0.2) {
-    Bz = 1.0 + (0.15 * (1.0 + sin(5.0 * pi * (x - 0.1)))); // Middle magnetic field strength (z-direction).
-    Dx = -(1.0 + (0.15 * (1.0 + sin(5.0 * pi * (x - 0.1))))); // Middle electric field strength (x-direction).
-  }
-  else if (x >= 0.2) {
-    Bz = Bz_r; // Right magnetic field strength (z-direction).
-    Dx = Dx_r; // Right electric field strength (x-direction).
+  else {
+    theta = atan(y / x);
   }
 
-  double lapse;
+  double Br = B0 * sin(theta);
+  
+  double spatial_det, lapse;
   double *shift = gkyl_malloc(sizeof(double[3]));
   bool in_excision_region;
 
@@ -160,14 +153,21 @@ evalGRMaxwellInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRIC
     spatial_metric[i] = gkyl_malloc(sizeof(double[3]));
   }
 
-  spacetime->lapse_function_func(spacetime, 0.0, x, 0.0, 0.0, &lapse);
-  spacetime->shift_vector_func(spacetime, 0.0, x, 0.0, 0.0, &shift);
-  spacetime->excision_region_func(spacetime, 0.0, x, 0.0, 0.0, &in_excision_region);
+  spacetime->spatial_metric_det_func(spacetime, 0.0, x, y, 0.0, &spatial_det);
+  spacetime->lapse_function_func(spacetime, 0.0, x, y, 0.0, &lapse);
+  spacetime->shift_vector_func(spacetime, 0.0, x, y, 0.0, &shift);
+  spacetime->excision_region_func(spacetime, 0.0, x, y, 0.0, &in_excision_region);
   
-  spacetime->spatial_metric_tensor_func(spacetime, 0.0, x, 0.0, 0.0, &spatial_metric);
+  spacetime->spatial_metric_tensor_func(spacetime, 0.0, x, y, 0.0, &spatial_metric);
+  
+  double B_r = B0 * sin(theta) / sqrt(spatial_det);
 
+  double Bx = sin(theta) * cos(phi) * B_r;
+  double By = sin(theta) * sin(phi) * B_r;
+  double Bz = cos(theta) * B_r;
+  
   // Set electric field.
-  fout[0] = Dx; fout[1] = Dy; fout[2] = Dz;
+  fout[0] = 0.0; fout[1] = 0.0; fout[2] = 0.0;
   // Set magnetic field.
   fout[3] = Bx; fout[4] = By; fout[5] = Bz;
   // Set correction potentials.
@@ -232,11 +232,12 @@ main(int argc, char **argv)
     gkyl_mem_debug_set(true);
   }
 
-  struct alfven_wave_ctx ctx = create_ctx(); // Context for initialization functions.
+  struct bz_monopole_fast_ctx ctx = create_ctx(); // Context for initialization functions.
 
   int NX = APP_ARGS_CHOOSE(app_args.xcells[0], ctx.Nx);
+  int NY = APP_ARGS_CHOOSE(app_args.xcells[1], ctx.Ny);
 
-  // Field.
+  // Field
   struct gkyl_wv_eqn *gr_maxwell = gkyl_wv_gr_maxwell_new(ctx.light_speed, ctx.e_fact, ctx.b_fact, ctx.spacetime, app_args.use_gpu);
 
   struct gkyl_moment_species field = {
@@ -248,6 +249,7 @@ main(int argc, char **argv)
     .ctx = &ctx,
 
     .bcx = { GKYL_SPECIES_COPY, GKYL_SPECIES_COPY },
+    .bcy = { GKYL_SPECIES_COPY, GKYL_SPECIES_COPY },
   };
 
   int nrank = 1; // Number of processes in simulation.
@@ -258,7 +260,7 @@ main(int argc, char **argv)
 #endif
 
   // Create global range.
-  int cells[] = { NX };
+  int cells[] = { NX, NY };
   int dim = sizeof(cells) / sizeof(cells[0]);
   struct gkyl_range global_r;
   gkyl_create_global_range(dim, cells, &global_r);
@@ -326,12 +328,12 @@ main(int argc, char **argv)
 
   // Moment app.
   struct gkyl_moment app_inp = {
-    .name = "gr_alfven_wave",
+    .name = "gr_bz_monopole_fast",
 
-    .ndim = 1,
-    .lower = { -0.5 * ctx.Lx },
-    .upper = { 0.5 * ctx.Lx }, 
-    .cells = { NX },
+    .ndim = 2,
+    .lower = { -0.5 * ctx.Lx, -0.5 * ctx.Ly },
+    .upper = { 0.5 * ctx.Lx, 0.5 * ctx.Ly },
+    .cells = { NX, NY },
 
     .cfl_frac = ctx.cfl_frac,
 

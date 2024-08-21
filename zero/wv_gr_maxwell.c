@@ -63,7 +63,20 @@ gkyl_gr_maxwell_max_abs_speed(double light_speed, const double q[22])
   }
 
   if (!in_excision_region) {
-    return light_speed;
+    double **spatial_metric = gkyl_malloc(sizeof(double*[3]));
+    for (int i = 0; i < 3; i++) {
+      spatial_metric[i] = gkyl_malloc(sizeof(double[3]));
+    }
+
+    spatial_metric[0][0] = q[12]; spatial_metric[0][1] = q[13]; spatial_metric[0][2] = q[14];
+    spatial_metric[1][0] = q[15]; spatial_metric[1][1] = q[16]; spatial_metric[1][2] = q[17];
+    spatial_metric[2][0] = q[18]; spatial_metric[2][1] = q[19]; spatial_metric[2][2] = q[20];
+
+    double spatial_metric_det = (spatial_metric[0][0] * ((spatial_metric[1][1] * spatial_metric[2][2]) - (spatial_metric[2][1] * spatial_metric[1][2]))) -
+      (spatial_metric[0][1] * ((spatial_metric[1][0] * spatial_metric[2][2]) - (spatial_metric[1][2] * spatial_metric[2][0]))) +
+      (spatial_metric[0][2] * ((spatial_metric[1][0] * spatial_metric[2][1]) - (spatial_metric[1][1] * spatial_metric[2][0])));
+
+    return light_speed * sqrt(spatial_metric_det);
   }
   else {
     return pow(10.0, -8.0);
