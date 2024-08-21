@@ -221,7 +221,7 @@ gkyl_vlasov_lte_proj_on_basis_inew(const struct gkyl_vlasov_lte_proj_on_basis_in
     }
   }
   up->conf_qrange = get_qrange(up->cdim, up->cdim, num_quad, num_quad_v, is_vdim_p2);
-  up->vel_qrange = get_qrange(up->vdim, up->vdim, num_quad_v, num_quad_v, is_vdim_p2);
+  up->vel_qrange = get_qrange(vdim, vdim, num_quad_v, num_quad_v, is_vdim_p2);
   up->phase_qrange = get_qrange(up->cdim, up->pdim, num_quad, num_quad_v, is_vdim_p2);
 
   up->vel_range = *inp->vel_range;
