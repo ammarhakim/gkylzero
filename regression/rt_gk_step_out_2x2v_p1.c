@@ -675,6 +675,7 @@ main(int argc, char **argv)
       .rleft= 2.0,
       .rmin = 1.1,
       .rmax = 6.2,
+      .use_cubics = false,
   };
 
   // GK app

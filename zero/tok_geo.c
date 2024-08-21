@@ -1,6 +1,7 @@
 #include <gkyl_alloc.h>
 #include <gkyl_array.h>
 #include <gkyl_array_rio.h>
+#include <assert.h>
 #include <gkyl_basis.h>
 #include <gkyl_math.h>
 #include <gkyl_range.h>
@@ -8,7 +9,6 @@
 #include <gkyl_nodal_ops.h>
 #include <gkyl_gk_geometry.h>
 #include <gkyl_tok_geo_priv.h>
-#include <assert.h>
 
 #include <math.h>
 #include <string.h>
@@ -33,19 +33,27 @@ tok_plate_psi_func(double s, void *ctx){
   double Z = RZ[1];
 
   // Now find the cell where this R and Z is
-  int rzidx[2];
-  rzidx[0] = fmin(gc->geo->rzlocal.lower[0] + (int) floor((R - gc->geo->rzgrid.lower[0])/gc->geo->rzgrid.dx[0]), gc->geo->rzlocal.upper[0]);
-  rzidx[1] = fmin(gc->geo->rzlocal.lower[1] + (int) floor((Z - gc->geo->rzgrid.lower[1])/gc->geo->rzgrid.dx[1]), gc->geo->rzlocal.upper[1]);
-  long loc = gkyl_range_idx(&gc->geo->rzlocal, rzidx);
-  const double *coeffs = gkyl_array_cfetch(gc->geo->psiRZ,loc);
+  if (gc->geo->use_cubics) {
+    double xn[2] = {R, Z};
+    double psi;
+    gc->geo->efit->evf->eval_cubic(0.0, xn, &psi, gc->geo->efit->evf->ctx);
+    return psi - gc->psi_curr;
+  }
+  else {
+    int rzidx[2];
+    rzidx[0] = fmin(gc->geo->rzlocal.lower[0] + (int) floor((R - gc->geo->rzgrid.lower[0])/gc->geo->rzgrid.dx[0]), gc->geo->rzlocal.upper[0]);
+    rzidx[1] = fmin(gc->geo->rzlocal.lower[1] + (int) floor((Z - gc->geo->rzgrid.lower[1])/gc->geo->rzgrid.dx[1]), gc->geo->rzlocal.upper[1]);
+    long loc = gkyl_range_idx(&gc->geo->rzlocal, rzidx);
+    const double *coeffs = gkyl_array_cfetch(gc->geo->psiRZ,loc);
 
-  double xc[2];
-  gkyl_rect_grid_cell_center(&gc->geo->rzgrid, rzidx, xc);
-  double xy[2];
-  xy[0] = (R-xc[0])/(gc->geo->rzgrid.dx[0]*0.5);
-  xy[1] = (Z-xc[1])/(gc->geo->rzgrid.dx[1]*0.5);
-  double psi = gc->geo->rzbasis.eval_expand(xy, coeffs);
-  return psi - gc->psi_curr;
+    double xc[2];
+    gkyl_rect_grid_cell_center(&gc->geo->rzgrid, rzidx, xc);
+    double xy[2];
+    xy[0] = (R-xc[0])/(gc->geo->rzgrid.dx[0]*0.5);
+    xy[1] = (Z-xc[1])/(gc->geo->rzgrid.dx[1]*0.5);
+    double psi = gc->geo->rzbasis.eval_expand(xy, coeffs);
+    return psi - gc->psi_curr;
+  }
 }
 
 
@@ -216,7 +224,7 @@ phi_func(double alpha_curr, double Z, void *ctx)
   // Now multiply by fpol
   double R[4] = {0};
   double dR[4] = {0};
-  int nr = R_psiZ(actx->geo, psi, Z, 4, R, dR);
+  int nr = gkyl_tok_geo_R_psiZ(actx->geo, psi, Z, 4, R, dR);
   double r_curr = nr == 1 ? R[0] : choose_closest(rclose, R, R, nr);
   double psi_fpol = psi;
   //if (psi_fpol < actx->geo->sibry) // F = F(psi_sep) in the SOL. Convention of psi increases inward
@@ -259,7 +267,7 @@ dphidtheta_func(double Z, void *ctx)
   // Now multiply by fpol
   double R[4] = {0};
   double dR[4] = {0};
-  int nr = R_psiZ(actx->geo, psi, Z, 4, R, dR);
+  int nr = gkyl_tok_geo_R_psiZ(actx->geo, psi, Z, 4, R, dR);
   double r_curr = nr == 1 ? R[0] : choose_closest(rclose, R, R, nr);
   double psi_fpol = psi;
   if ( (psi_fpol < actx->geo->fgrid.lower[0]) || (psi_fpol > actx->geo->fgrid.upper[0]) ) // F = F(psi_sep) in the SOL.
@@ -290,25 +298,29 @@ gkyl_tok_geo_new(const struct gkyl_efit_inp *inp, const struct gkyl_tok_geo_grid
   geo->plate_func_lower = ginp->plate_func_lower;
   geo->plate_func_upper = ginp->plate_func_upper;
 
-  geo->rzbasis= *geo->efit->rzbasis;
-  geo->rzgrid = *geo->efit->rzgrid;
+  geo->rzbasis = geo->efit->rzbasis;
+  geo->rzbasis_cubic = geo->efit->rzbasis_cubic;
+  geo->rzgrid = geo->efit->rzgrid;
+  geo->rzgrid_cubic = geo->efit->rzgrid_cubic;
   geo->psiRZ = gkyl_array_acquire(geo->efit->psizr);
-  geo->psibyrRZ = gkyl_array_acquire(geo->efit->psibyrzr);
-  geo->psibyr2RZ = gkyl_array_acquire(geo->efit->psibyr2zr);
+  geo->psiRZ_cubic = gkyl_array_acquire(geo->efit->psizr_cubic);
 
-  geo->num_rzbasis = geo->efit->rzbasis->num_basis;
-  geo->rzlocal = *geo->efit->rzlocal;
-  geo->rzlocal_ext = *geo->efit->rzlocal_ext;
-  geo->fgrid = *geo->efit->fluxgrid;
-  geo->fbasis = *geo->efit->fluxbasis;
-  geo->frange = *geo->efit->fluxlocal;
-  geo->frange_ext = *geo->efit->fluxlocal_ext;
+  geo->num_rzbasis = geo->rzbasis.num_basis;
+  geo->rzlocal = geo->efit->rzlocal;
+  geo->rzlocal_ext = geo->efit->rzlocal_ext;
+  geo->rzlocal_cubic = geo->efit->rzlocal_cubic;
+  geo->rzlocal_cubic_ext = geo->efit->rzlocal_cubic_ext;
+  geo->fgrid = geo->efit->fluxgrid;
+  geo->fbasis = geo->efit->fluxbasis;
+  geo->frange = geo->efit->fluxlocal;
+  geo->frange_ext = geo->efit->fluxlocal_ext;
   geo->fpoldg= gkyl_array_acquire(geo->efit->fpolflux);
   geo->qdg= gkyl_array_acquire(geo->efit->qflux);
   geo->sibry = geo->efit->sibry;
   geo->psisep = geo->efit->psisep;
   geo->zmaxis = geo->efit->zmaxis;
 
+  geo->use_cubics = ginp->use_cubics;
   geo->root_param.eps =
     ginp->root_param.eps > 0 ? ginp->root_param.eps : 1e-10;
   geo->root_param.max_iter =
@@ -319,11 +331,15 @@ gkyl_tok_geo_new(const struct gkyl_efit_inp *inp, const struct gkyl_tok_geo_grid
   geo->quad_param.eps =
     ginp->quad_param.eps > 0 ? ginp->quad_param.eps : 1e-10;
 
-  if (geo->efit->rzbasis->poly_order == 1) {
+  if (geo->use_cubics) {
+    geo->calc_roots = calc_RdR_p3;
+    geo->calc_grad_psi = calc_grad_psi_p3;
+  }
+  else if (geo->efit->rzbasis.poly_order == 1) {
     geo->calc_roots = calc_RdR_p1;
     geo->calc_grad_psi = calc_grad_psi_p1;
   }
-  else if (geo->efit->rzbasis->poly_order == 2){
+  else if (geo->efit->rzbasis.poly_order == 2){
     if(inp->rz_basis_type == GKYL_BASIS_MODAL_SERENDIPITY) {
       geo->calc_roots = calc_RdR_p2;
       geo->calc_grad_psi = calc_grad_psi_p2;
@@ -352,7 +368,10 @@ int
 gkyl_tok_geo_R_psiZ(const struct gkyl_tok_geo *geo, double psi, double Z, int nmaxroots,
   double *R, double *dR)
 {
-  return R_psiZ(geo, psi, Z, nmaxroots, R, dR);
+  if(geo->use_cubics)
+    return R_psiZ_cubic(geo, psi, Z, nmaxroots, R, dR);
+  else
+    return R_psiZ(geo, psi, Z, nmaxroots, R, dR);
 }
 
 void gkyl_tok_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, double dzc[3], struct gkyl_tok_geo *geo, 
@@ -395,7 +414,11 @@ void gkyl_tok_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, double
   double rleft = inp->rleft;
 
 
-  int nzcells = geo->rzgrid.cells[1];
+  int nzcells;
+  if(geo->use_cubics)
+    nzcells = geo->rzgrid_cubic.cells[1];
+  else
+    nzcells = geo->rzgrid.cells[1];
   double *arc_memo = gkyl_malloc(sizeof(double[nzcells]));
   double *arc_memo_left = gkyl_malloc(sizeof(double[nzcells]));
   double *arc_memo_right = gkyl_malloc(sizeof(double[nzcells]));
@@ -516,7 +539,7 @@ void gkyl_tok_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, double
 
 
               double R[4] = { 0 }, dR[4] = { 0 };
-              int nr = R_psiZ(geo, psi_curr, z_curr, 4, R, dR);
+              int nr = gkyl_tok_geo_R_psiZ(geo, psi_curr, z_curr, 4, R, dR);
               double r_curr = choose_closest(rclose, R, R, nr);
 
               // For all blocks on the inner edge with z boundaries we will need to match the entire outer edge
@@ -626,8 +649,7 @@ void
 gkyl_tok_geo_release(struct gkyl_tok_geo *geo)
 {
   gkyl_array_release(geo->psiRZ);
-  gkyl_array_release(geo->psibyrRZ);
-  gkyl_array_release(geo->psibyr2RZ);
+  gkyl_array_release(geo->psiRZ_cubic);
   gkyl_array_release(geo->fpoldg);
   gkyl_array_release(geo->qdg);
   gkyl_efit_release(geo->efit);
