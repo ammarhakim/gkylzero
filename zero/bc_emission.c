@@ -155,8 +155,8 @@ gkyl_bc_emission_ion_impact_copper_new(int num_species, double t_bound,
   ctx->elastic = false;
 
   for (int i=0; i<num_species; ++i) {
-    ctx->spectrum_model[i] = gkyl_spectrum_gaussian_new(q0, E_0, tau, use_gpu);
-    ctx->yield_model[i] = gkyl_yield_schou_new(q0, int_wall, A2, A3, A4, A5, nw, use_gpu);
+    ctx->spectrum_model[i] = gkyl_emission_spectrum_gaussian_new(q0, E_0, tau, use_gpu);
+    ctx->yield_model[i] = gkyl_emission_yield_schou_new(q0, int_wall, A2, A3, A4, A5, nw, use_gpu);
     strcpy(ctx->in_species[i], in_species[i]);
   }
 

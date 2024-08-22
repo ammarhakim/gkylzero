@@ -73,7 +73,17 @@ struct gkyl_bc_emission_ctx*
 gkyl_bc_emission_secondary_electron_lithium_clean_new(int num_species, double t_bound,
   char in_species[][128], bool use_gpu);
 
-struct gkyl_bc_emission_ctx* gkyl_bc_emission_ion_impact_copper_new(int num_species, double t_bound,
+/**
+ * Copper preset for ion-impact secondary electron emission
+ *
+ * @param num_species Number of impacting species causing emission
+ * @param t_bound Time scaling factor for the emission
+ * @param in_species Table of impacting species names
+ * @param use_gpu bool to determine if on GPU
+ * @return New ctx structure
+ */
+struct gkyl_bc_emission_ctx*
+gkyl_bc_emission_ion_impact_copper_new(int num_species, double t_bound,
   char in_species[][128], bool use_gpu);
 
 /**
