@@ -162,7 +162,7 @@ moment_species_init(const struct gkyl_moment *mom, const struct gkyl_moment_spec
       else
         bc = mom_sp->bcz;
 
-      void (*bc_lower_func)(double t, int nc, const double *skin, double * GKYL_RESTRICT ghost, void *ctx);
+      void (*bc_lower_func)(const struct gkyl_wv_eqn* eqn, double t, int nc, const double *skin, double * GKYL_RESTRICT ghost, void *ctx);
       if (dir == 0)
         bc_lower_func = mom_sp->bcx_lower_func;
       else if (dir == 1)
@@ -170,7 +170,7 @@ moment_species_init(const struct gkyl_moment *mom, const struct gkyl_moment_spec
       else
         bc_lower_func = mom_sp->bcz_lower_func;
 
-      void (*bc_upper_func)(double t, int nc, const double *skin, double * GKYL_RESTRICT ghost, void *ctx);
+      void (*bc_upper_func)(const struct gkyl_wv_eqn* eqn, double t, int nc, const double *skin, double * GKYL_RESTRICT ghost, void *ctx);
       if (dir == 0)
         bc_upper_func = mom_sp->bcx_upper_func;
       else if (dir == 1)
@@ -248,8 +248,15 @@ moment_species_init(const struct gkyl_moment *mom, const struct gkyl_moment_spec
   // allocate array for applied acceleration/forces for each species
   sp->app_accel = mkarr(false, 3, app->local_ext.volume);
   sp->proj_app_accel = 0;
-  if (mom_sp->app_accel_func)
-    sp->proj_app_accel = gkyl_fv_proj_new(&app->grid, 2, 3, mom_sp->app_accel_func, sp->ctx);
+  if (mom_sp->app_accel_func) {
+    void *ctx = sp->ctx;
+
+    if (mom_sp->app_accel_ctx) {
+      ctx = mom_sp->app_accel_ctx;
+    }
+
+    sp->proj_app_accel = gkyl_fv_proj_new(&app->grid, 2, GKYL_MOM_APP_NUM_APPLIED_ACCELERATION, mom_sp->app_accel_func, ctx);
+  }
 
   sp->nT_source = mkarr(false, 2, app->local_ext.volume);
   sp->nT_source_is_set = false;

@@ -61,9 +61,6 @@ explicit_frictional_source_update_euler(const gkyl_moment_em_coupling* mom_em, c
     double u_elc = f_elc_old[1], v_elc = f_elc_old[2], w_elc = f_elc_old[3];
     double u_ion = f_ion_old[1], v_ion = f_ion_old[2], w_ion = f_ion_old[3];
 
-    double E_elc = f_elc_old[4];
-    double E_ion = f_ion_old[4];
-
     double n_elc = rho_elc / mass_elc;
 
     double tau_ei = (1.0 / Z) * ((3.0 * sqrt(mass_elc) * ((4.0 * pi * epsilon0) * (4.0 * pi * epsilon0)) * pow(T_elc, 3.0 / 2.0)) /
@@ -84,8 +81,12 @@ explicit_frictional_source_update_euler(const gkyl_moment_em_coupling* mom_em, c
     f_ion_new[2] = f_ion_old[2] - (dt * mom_src_y);
     f_ion_new[3] = f_ion_old[3] - (dt * mom_src_z);
 
-    f_elc_new[4] = f_elc_old[4] + (dt * E_src);
-    f_ion_new[4] = f_ion_old[4] - (dt * E_src);
+    if (mom_em->param[0].type == GKYL_EQN_EULER) {
+      f_elc_new[4] = f_elc_old[4] + (dt * E_src);
+    }
+    if (mom_em->param[1].type == GKYL_EQN_EULER) {
+      f_ion_new[4] = f_ion_old[4] - (dt * E_src);
+    }
 
     f_elc_new[0] = f_elc_old[0];
     f_ion_new[0] = f_ion_old[0];
@@ -105,30 +106,63 @@ explicit_frictional_source_update(const gkyl_moment_em_coupling* mom_em, double 
     double T_elc = mom_em->friction_T_elc;
     double Lambda_ee = mom_em->friction_Lambda_ee;
 
-    double f_elc_new[5], f_elc_stage1[5], f_elc_stage2[5];
-    double f_ion_new[5], f_ion_stage1[5], f_ion_stage2[5];
-    double f_elc_old[5], f_ion_old[5];
+    int elc_num_equations = 0;
+    int ion_num_equations = 0;
 
-    for (int i = 0; i < 5; i++) {
+    if (mom_em->param[0].type == GKYL_EQN_EULER) {
+      elc_num_equations = 5;
+    }
+    else if (mom_em->param[0].type == GKYL_EQN_ISO_EULER) {
+      elc_num_equations = 4;
+    }
+
+    // Right now, we allocate these arrays on the stack with size 5 (current maximum supported number of equations).
+    double f_elc_new[5];
+    double f_elc_stage1[5];
+    double f_elc_stage2[5];
+    double f_elc_old[5];
+
+    if (mom_em->param[1].type == GKYL_EQN_EULER) {
+      ion_num_equations = 5;
+    }
+    else if (mom_em->param[1].type == GKYL_EQN_ISO_EULER) {
+      ion_num_equations = 4;
+    }
+
+    // Right now, we allocate these arrays on the stack with size 5 (current maximum supported number of equations).
+    double f_ion_new[5];
+    double f_ion_stage1[5];
+    double f_ion_stage2[5];
+    double f_ion_old[5];
+
+    for (int i = 0; i < elc_num_equations; i++) {
       f_elc_old[i] = f_elc[i];
+    }
+    for (int i = 0; i < ion_num_equations; i++) {
       f_ion_old[i] = f_ion[i];
     }
 
     explicit_frictional_source_update_euler(mom_em, Z, T_elc, Lambda_ee, t_curr, dt, f_elc_old, f_ion_old, f_elc_new, f_ion_new);
-    for (int i = 0; i < 5; i++) {
+    for (int i = 0; i < elc_num_equations; i++) {
       f_elc_stage1[i] = f_elc_new[i];
+    }
+    for (int i = 0; i < ion_num_equations; i++) {
       f_ion_stage1[i] = f_ion_new[i];
     }
 
     explicit_frictional_source_update_euler(mom_em, Z, T_elc, Lambda_ee, t_curr + dt, dt, f_elc_stage1, f_ion_stage1, f_elc_new, f_ion_new);
-    for (int i = 0; i < 5; i++) {
+    for (int i = 0; i < elc_num_equations; i++) {
       f_elc_stage2[i] = (0.75 * f_elc_old[i]) + (0.25 * f_elc_new[i]);
+    }
+    for (int i = 0; i < ion_num_equations; i++) {
       f_ion_stage2[i] = (0.75 * f_ion_old[i]) + (0.25 * f_ion_new[i]);
     }
 
     explicit_frictional_source_update_euler(mom_em, Z, T_elc, Lambda_ee, t_curr + (0.5 * dt), dt, f_elc_stage2, f_ion_stage2, f_elc_new, f_ion_new);
-    for (int i = 0; i < 5; i++) {
+    for (int i = 0; i < elc_num_equations; i++) {
       f_elc[i] = ((1.0 / 3.0) * f_elc_old[i]) + ((2.0 / 3.0) * f_elc_new[i]);
+    }
+    for (int i = 0; i < ion_num_equations; i++) {
       f_ion[i] = ((1.0 / 3.0) * f_ion_old[i]) + ((2.0 / 3.0) * f_ion_new[i]);
     }
   }

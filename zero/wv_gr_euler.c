@@ -471,7 +471,7 @@ riem_to_cons(const struct gkyl_wv_eqn* eqn, const double* qstate, const double* 
 }
 
 static void
-gr_euler_wall(double t, int nc, const double* skin, double* GKYL_RESTRICT ghost, void* ctx)
+gr_euler_wall(const struct gkyl_wv_eqn* eqn, double t, int nc, const double* skin, double* GKYL_RESTRICT ghost, void* ctx)
 {
   for (int i = 0; i < 29; i++) {
     ghost[i] = skin[i];
@@ -481,7 +481,7 @@ gr_euler_wall(double t, int nc, const double* skin, double* GKYL_RESTRICT ghost,
 }
 
 static void
-gr_euler_no_slip(double t, int nc, const double* skin, double* GKYL_RESTRICT ghost, void* ctx)
+gr_euler_no_slip(const struct gkyl_wv_eqn* eqn, double t, int nc, const double* skin, double* GKYL_RESTRICT ghost, void* ctx)
 {
   for (int i = 1; i < 4; i++) {
     ghost[i] = -skin[i];
@@ -496,7 +496,8 @@ gr_euler_no_slip(double t, int nc, const double* skin, double* GKYL_RESTRICT gho
 }
 
 static inline void
-rot_to_local(const double* tau1, const double* tau2, const double* norm, const double* GKYL_RESTRICT qglobal, double* GKYL_RESTRICT qlocal)
+rot_to_local(const struct gkyl_wv_eqn* eqn, const double* tau1, const double* tau2, const double* norm, const double* GKYL_RESTRICT qglobal,
+  double* GKYL_RESTRICT qlocal)
 {
   qlocal[0] = qglobal[0];
   qlocal[1] = (qglobal[1] * norm[0]) + (qglobal[2] * norm[1]) + (qglobal[3] * norm[2]);
@@ -580,7 +581,8 @@ rot_to_local(const double* tau1, const double* tau2, const double* norm, const d
 }
 
 static inline void
-rot_to_global(const double* tau1, const double* tau2, const double* norm, const double* GKYL_RESTRICT qlocal, double* GKYL_RESTRICT qglobal)
+rot_to_global(const struct gkyl_wv_eqn* eqn, const double* tau1, const double* tau2, const double* norm, const double* GKYL_RESTRICT qlocal,
+  double* GKYL_RESTRICT qglobal)
 {
   qglobal[0] = qlocal[0];
   qglobal[1] = (qlocal[1] * norm[0]) + (qlocal[2] * tau1[0]) + (qlocal[3] * tau2[0]);

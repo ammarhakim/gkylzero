@@ -73,8 +73,8 @@ void ker_cu_wv_ten_moment_test(const struct gkyl_wv_eqn *eqn, int *nfail)
   for (int d=0; d<3; ++d) {
     double speeds[5], waves[5*10], waves_local[5*10];
     // rotate to local tangent-normal frame
-    eqn->rotate_to_local_func(tau1[d], tau2[d], norm[d], ql, ql_local);
-    eqn->rotate_to_local_func(tau1[d], tau2[d], norm[d], qr, qr_local);
+    eqn->rotate_to_local_func(eqn, tau1[d], tau2[d], norm[d], ql, ql_local);
+    eqn->rotate_to_local_func(eqn, tau1[d], tau2[d], norm[d], qr, qr_local);
 
     double delta[10];
     for (int i=0; i<10; ++i) delta[i] = qr_local[i]-ql_local[i];
@@ -83,7 +83,7 @@ void ker_cu_wv_ten_moment_test(const struct gkyl_wv_eqn *eqn, int *nfail)
 
     // rotate waves back to global frame
     for (int mw=0; mw<5; ++mw)
-      eqn->rotate_to_global_func(tau1[d], tau2[d], norm[d], &waves_local[mw*10], &waves[mw*10]);
+      eqn->rotate_to_global_func(eqn, tau1[d], tau2[d], norm[d], &waves_local[mw*10], &waves[mw*10]);
 
     double apdq[10], amdq[10];
     eqn->qfluct_func(eqn, GKYL_WV_HIGH_ORDER_FLUX, ql, qr, waves, speeds, amdq, apdq);
@@ -94,8 +94,8 @@ void ker_cu_wv_ten_moment_test(const struct gkyl_wv_eqn *eqn, int *nfail)
     gkyl_ten_moment_flux(qr_local, fr_local);
 
     double fl[10], fr[10];
-    eqn->rotate_to_global_func(tau1[d], tau2[d], norm[d], fl_local, fl);
-    eqn->rotate_to_global_func(tau1[d], tau2[d], norm[d], fr_local, fr);
+    eqn->rotate_to_global_func(eqn, tau1[d], tau2[d], norm[d], fl_local, fl);
+    eqn->rotate_to_global_func(eqn, tau1[d], tau2[d], norm[d], fr_local, fr);
     
     for (int i=0; i<10; ++i)
       GKYL_CU_CHECK( fr[i]-fl[i] == amdq[i]+apdq[i], nfail );

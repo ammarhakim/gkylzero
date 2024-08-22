@@ -54,8 +54,8 @@ riem_to_cons_9(const struct gkyl_wv_eqn *eqn,
 }
 
 static inline void
-rot_to_local_rect(const double *tau1, const double *tau2, const double *norm,
-  const double *GKYL_RESTRICT qglobal, double *GKYL_RESTRICT qlocal)
+rot_to_local_rect(const struct gkyl_wv_eqn* eqn, const double* tau1, const double* tau2, const double* norm,
+  const double* GKYL_RESTRICT qglobal, double* GKYL_RESTRICT qlocal)
 {
   // Mass density is a scalar
   qlocal[0] = qglobal[0];
@@ -72,8 +72,8 @@ rot_to_local_rect(const double *tau1, const double *tau2, const double *norm,
 }
 
 static inline void
-rot_to_global_rect(const double *tau1, const double *tau2, const double *norm,
-  const double *GKYL_RESTRICT qlocal, double *GKYL_RESTRICT qglobal)
+rot_to_global_rect(const struct gkyl_wv_eqn* eqn, const double* tau1, const double* tau2, const double* norm,
+  const double* GKYL_RESTRICT qlocal, double* GKYL_RESTRICT qglobal)
 {
   // Mass density is a scalar
   qglobal[0] = qlocal[0];
@@ -90,18 +90,18 @@ rot_to_global_rect(const double *tau1, const double *tau2, const double *norm,
 }
 
 static inline void
-rot_to_local_rect_glm(const double *tau1, const double *tau2, const double *norm,
-  const double *GKYL_RESTRICT qglobal, double *GKYL_RESTRICT qlocal)
+rot_to_local_rect_glm(const struct gkyl_wv_eqn* eqn, const double* tau1, const double* tau2, const double* norm,
+  const double* GKYL_RESTRICT qglobal, double* GKYL_RESTRICT qlocal)
 {
-  rot_to_local_rect(tau1, tau2, norm, qglobal, qlocal);
+  rot_to_local_rect(eqn, tau1, tau2, norm, qglobal, qlocal);
   qlocal[8] = qglobal[8];
 }
 
 static inline void
-rot_to_global_rect_glm(const double *tau1, const double *tau2, const double *norm,
-  const double *GKYL_RESTRICT qlocal, double *GKYL_RESTRICT qglobal)
+rot_to_global_rect_glm(const struct gkyl_wv_eqn* eqn, const double* tau1, const double* tau2, const double* norm,
+  const double* GKYL_RESTRICT qlocal, double* GKYL_RESTRICT qglobal)
 {
-  rot_to_global_rect(tau1, tau2, norm, qlocal, qglobal);
+  rot_to_global_rect(eqn, tau1, tau2, norm, qlocal, qglobal);
   qglobal[8] = qlocal[8];
 }
 

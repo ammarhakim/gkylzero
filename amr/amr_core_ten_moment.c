@@ -40,7 +40,7 @@ ten_moment_1d_run_single(int argc, char **argv, struct ten_moment_1d_single_init
   double mass_ion = init->mass_ion;
   double charge_ion = init->charge_ion;
 
-  char ten_moment_output[32];
+  char ten_moment_output[64];
   strcpy(ten_moment_output, init->ten_moment_output);
 
   bool low_order_flux = init->low_order_flux;
@@ -344,7 +344,7 @@ ten_moment_2d_run_single(int argc, char **argv, struct ten_moment_2d_single_init
   bool wall_x = init->wall_x;
   bool wall_y = init->wall_y;
 
-  char ten_moment_output[32];
+  char ten_moment_output[64];
   strcpy(ten_moment_output, init->ten_moment_output);
 
   bool low_order_flux = init->low_order_flux;
@@ -680,7 +680,7 @@ ten_moment_2d_run_double(int argc, char **argv, struct ten_moment_2d_double_init
   bool wall_x = init->wall_x;
   bool wall_y = init->wall_y;
 
-  char ten_moment_output[32];
+  char ten_moment_output[64];
   strcpy(ten_moment_output, init->ten_moment_output);
 
   bool low_order_flux = init->low_order_flux;
