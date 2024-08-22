@@ -86,7 +86,7 @@ vm_species_emission_apply_bc(struct gkyl_vlasov_app *app, const struct vm_emitti
 {
   // Optional scaling of emission with time
   double t_scale = 1.0;
-  if (emit->t_bound)
+  if (tcurr < emit->t_bound)
     t_scale = sin(M_PI*tcurr/(2.0*emit->t_bound));
 
   gkyl_array_clear(emit->f_emit, 0.0); // Zero emitted distribution before beginning accumulate
