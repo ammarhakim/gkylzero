@@ -67,6 +67,10 @@ gkyl_gr_maxwell_tetrad_flux_correction(double light_speed, double e_fact, double
     flux_gr[5] = (lapse * flux_sr[5]) - ((shift_x * (flux_sr[1] / (light_speed * light_speed))) - (shift_z * Bx));
     flux_gr[6] = flux_sr[6];
     flux_gr[7] = flux_sr[7];
+
+    for (int i = 8; i < 22; i++) {
+      flux_gr[i] = 0.0;
+    }
   }
   else {
     for (int i = 0; i < 22; i++) {
