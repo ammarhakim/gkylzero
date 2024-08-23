@@ -14,6 +14,7 @@ enum gkyl_eqn_type {
   GKYL_EQN_ADVECTION, // Scalar advection equation
   GKYL_EQN_GR_EULER, // General relativistic Euler equations.
   GKYL_EQN_GR_MAXWELL, // General relativistic Maxwell equations.
+  GKYL_EQN_GR_MAXWELL_TETRAD, // General relativistic Maxwell equations in the tetrad basis.
   GKYL_EQN_REACTIVE_EULER, // Reactive Euler equations.
   GKYL_EQN_EULER_MIXTURE, // Euler mixture equations.
   GKYL_EQN_ISO_EULER_MIXTURE, // Isothermal Euler mixture equations.

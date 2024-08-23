@@ -66,8 +66,8 @@ create_ctx(void)
 
   // Physical constants (using normalized code units).
   double light_speed = 1.0; // Speed of light.
-  double e_fact = 1.0; // Factor of speed of light for electric field correction.
-  double b_fact = 1.0; // Factor of speed of light for magnetic field correction.
+  double e_fact = 0.0; // Factor of speed of light for electric field correction.
+  double b_fact = 0.0; // Factor of speed of light for magnetic field correction.
 
   double B0 = 1.0; // Reference magnetic field strength.
 
@@ -87,7 +87,7 @@ create_ctx(void)
   int Ny = 256; // Cell count (y-direction).
   double Lx = 10.0; // Domain size (x-direction).
   double Ly = 10.0; // Domain size (y-direction).
-  double cfl_frac = 1.0; // CFL coefficient.
+  double cfl_frac = 0.95; // CFL coefficient.
 
   double t_end = 50.0; // Final simulation time.
   int num_frames = 1; // Number of output frames.
