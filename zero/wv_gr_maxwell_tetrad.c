@@ -6,7 +6,7 @@
 #include <gkyl_wv_gr_maxwell_tetrad.h>
 #include <gkyl_wv_gr_maxwell_tetrad_priv.h>
 
-static void
+void
 gkyl_gr_maxwell_tetrad_flux(double light_speed, double e_fact, double b_fact, const double q[22], double flux[22])
 {
   double Ex = q[0], Ey = q[1], Ez = q[2];
@@ -41,7 +41,7 @@ gkyl_gr_maxwell_tetrad_flux(double light_speed, double e_fact, double b_fact, co
   }
 }
 
-static void
+void
 gkyl_gr_maxwell_tetrad_flux_correction(double light_speed, double e_fact, double b_fact, const double q[22], const double flux_sr[22], double flux_gr[22])
 {
   // The flux transformation is _almost_ purely geometrical, but requires knowledge of Ex and Bx for hyperbolic divergence cleaning.
@@ -61,9 +61,9 @@ gkyl_gr_maxwell_tetrad_flux_correction(double light_speed, double e_fact, double
   if (!in_excision_region) {
     flux_gr[0] = flux_sr[0];
     flux_gr[1] = (lapse * flux_sr[1]) - (light_speed * light_speed) * ((shift_x * flux_sr[5]) - (shift_y * Ex));
-    flux_gr[2] = (lapse * flux_sr[2]) - (light_speed * light_speed) * ((shift_x * flux_sr[4]) + (shift_z * Ex));
+    flux_gr[2] = (lapse * flux_sr[2]) + (light_speed * light_speed) * ((shift_x * flux_sr[4]) + (shift_z * Ex));
     flux_gr[3] = flux_sr[3];
-    flux_gr[4] = (lapse * flux_sr[4]) - ((shift_x * (flux_sr[2] / (light_speed * light_speed))) + (shift_y * Bx));
+    flux_gr[4] = (lapse * flux_sr[4]) + ((shift_x * (flux_sr[2] / (light_speed * light_speed))) + (shift_y * Bx));
     flux_gr[5] = (lapse * flux_sr[5]) - ((shift_x * (flux_sr[1] / (light_speed * light_speed))) - (shift_z * Bx));
     flux_gr[6] = flux_sr[6];
     flux_gr[7] = flux_sr[7];

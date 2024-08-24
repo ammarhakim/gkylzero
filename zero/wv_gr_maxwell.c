@@ -6,7 +6,7 @@
 #include <gkyl_wv_gr_maxwell.h>
 #include <gkyl_wv_gr_maxwell_priv.h>
 
-static void
+void
 gkyl_gr_maxwell_flux(double light_speed, double e_fact, double b_fact, const double q[22], double flux[22])
 {
   double Dx = q[0], Dy = q[1], Dz = q[2];

@@ -48,7 +48,7 @@ gkyl_maxwell_max_abs_speed(double c, double e_fact, double b_fact, const double 
  * @param flux On output, the flux in direction 'dir'
  */
 GKYL_CU_D
-static inline void
+static void
 gkyl_maxwell_flux(double c, double e_fact, double b_fact, const double q[8], double flux[8])
 {
   double c2 = c*c;

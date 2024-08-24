@@ -40,7 +40,7 @@ gkyl_gr_maxwell_tetrad_max_abs_speed(double light_speed, const double q[22]);
 * @param flux Flux vector in direction 'dir' (output).
 */
 GKYL_CU_D
-static void
+void
 gkyl_gr_maxwell_tetrad_flux(double light_speed, double e_fact, double b_fact, const double q[22], double flux[22]);
 
 /**
@@ -53,7 +53,7 @@ gkyl_gr_maxwell_tetrad_flux(double light_speed, double e_fact, double b_fact, co
 * @param flux Flux vector in direction 'dir' (output).
 */
 GKYL_CU_D
-static void
+void
 gkyl_gr_maxwell_tetrad_flux_correction(double light_speed, double e_fact, double b_fact, const double q[22], const double flux_sr[22], double flux_gr[22]);
 
 /**

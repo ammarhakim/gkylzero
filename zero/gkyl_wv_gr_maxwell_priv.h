@@ -40,7 +40,7 @@ gkyl_gr_maxwell_max_abs_speed(double light_speed, const double q[22]);
 * @param flux Flux vector in direction 'dir' (output).
 */
 GKYL_CU_D
-static void
+void
 gkyl_gr_maxwell_flux(double light_speed, double e_fact, double b_fact, const double q[22], double flux[22]);
 
 /**
