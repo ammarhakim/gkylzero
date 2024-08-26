@@ -53,9 +53,6 @@ struct bz_monopole_slow_ctx
   int num_frames; // Number of output frames.
   double dt_failure_tol; // Minimum allowable fraction of initial time-step.
   int num_failures_max; // Maximum allowable number of consecutive small time-steps.
-
-  double r_inner; // Ring inner radius.
-  double r_outer; // Ring outer radius.
 };
 
 struct bz_monopole_slow_ctx
@@ -135,11 +132,11 @@ evalGRMaxwellInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRIC
   double phi = 0.5 * pi;
 
   double theta = 0.0;
-  if (fabs(x) < pow(10.0, -6.0)) {
+  if (fabs(y) < pow(10.0, -6.0)) {
     theta = 0.5 * pi;
   }
   else {
-    theta = atan(y / x);
+    theta = atan(x / y);
   }
 
   double Br = B0 * sin(theta);
@@ -162,8 +159,8 @@ evalGRMaxwellInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRIC
   
   double B_r = B0 * sin(theta) / sqrt(spatial_det);
 
-  double Bx = sin(theta) * cos(phi) * B_r;
-  double By = sin(theta) * sin(phi) * B_r;
+  double Bx = sin(theta) * sin(phi) * B_r;
+  double By = sin(theta) * cos(phi) * B_r;
   double Bz = cos(theta) * B_r;
   
   // Set electric field.

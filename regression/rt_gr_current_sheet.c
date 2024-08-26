@@ -56,8 +56,8 @@ create_ctx(void)
 {
   // Physical constants (using normalized code units).
   double light_speed = 1.0; // Speed of light.
-  double e_fact = 1.0; // Factor of speed of light for electric field correction.
-  double b_fact = 1.0; // Factor of speed of light for magnetic field correction.
+  double e_fact = 0.0; // Factor of speed of light for electric field correction.
+  double b_fact = 0.0; // Factor of speed of light for magnetic field correction.
 
   double Bx = 1.0; // Magnetic field strength (x-direction).
   double Bz = 0.0; // Magnetic field strength (z-direction).
@@ -228,7 +228,7 @@ main(int argc, char **argv)
     .equation = gr_maxwell,
     .evolve = true,
     .init = evalGRMaxwellInit,
-    .force_low_order_flux = true, // Use Lax fluxes.
+    .force_low_order_flux = false, // Use Roe fluxes.
     .ctx = &ctx,
 
     .bcx = { GKYL_SPECIES_COPY, GKYL_SPECIES_COPY },

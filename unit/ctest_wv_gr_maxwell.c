@@ -16,7 +16,7 @@ test_gr_maxwell_basic_minkowski()
   struct gkyl_wv_eqn *gr_maxwell = gkyl_wv_gr_maxwell_new(light_speed, e_fact, b_fact, spacetime, false);
 
   TEST_CHECK( gr_maxwell->num_equations == 22 );
-  TEST_CHECK( gr_maxwell->num_waves == 2 );
+  TEST_CHECK( gr_maxwell->num_waves == 6 );
 
   for (int x_ind = -10; x_ind < 11; x_ind++) {
     for (int y_ind = -10; y_ind < 11; y_ind++) {
@@ -140,7 +140,7 @@ test_gr_maxwell_basic_schwarzschild()
   struct gkyl_wv_eqn *gr_maxwell = gkyl_wv_gr_maxwell_new(light_speed, e_fact, b_fact, spacetime, false);
 
   TEST_CHECK( gr_maxwell->num_equations == 22 );
-  TEST_CHECK( gr_maxwell->num_waves == 2 );
+  TEST_CHECK( gr_maxwell->num_waves == 6 );
 
   for (int x_ind = -10; x_ind < 11; x_ind++) {
     for (int y_ind = -10; y_ind < 11; y_ind++) {
@@ -268,7 +268,7 @@ test_gr_maxwell_basic_kerr()
   struct gkyl_wv_eqn *gr_maxwell = gkyl_wv_gr_maxwell_new(light_speed, e_fact, b_fact, spacetime, false);
 
   TEST_CHECK( gr_maxwell->num_equations == 22 );
-  TEST_CHECK( gr_maxwell->num_waves == 2 );
+  TEST_CHECK( gr_maxwell->num_waves == 6 );
 
   for (int x_ind = -10; x_ind < 11; x_ind++) {
     for (int y_ind = -10; y_ind < 11; y_ind++) {
@@ -473,7 +473,7 @@ test_gr_maxwell_waves_minkowski()
       };
 
       for (int d = 0; d < 3; d++) {
-        double speeds[2], waves[2 * 22], waves_local[2 * 22];
+        double speeds[6], waves[6 * 22], waves_local[6 * 22];
 
         double ql_local[22], qr_local[22];
         gkyl_wv_eqn_rotate_to_local(gr_maxwell, tau1[d], tau2[d], norm[d], ql, ql_local);
@@ -484,10 +484,10 @@ test_gr_maxwell_waves_minkowski()
           delta[i] = qr_local[i] - ql_local[i];
         }
 
-        gkyl_wv_eqn_waves(gr_maxwell, GKYL_WV_HIGH_ORDER_FLUX, delta, ql_local, qr_local, waves_local, speeds);
+        gkyl_wv_eqn_waves(gr_maxwell, GKYL_WV_LOW_ORDER_FLUX, delta, ql_local, qr_local, waves_local, speeds);
 
         double apdq_local[22], amdq_local[22];
-        gkyl_wv_eqn_qfluct(gr_maxwell, GKYL_WV_HIGH_ORDER_FLUX, ql_local, qr_local, waves_local, speeds, amdq_local, apdq_local);
+        gkyl_wv_eqn_qfluct(gr_maxwell, GKYL_WV_LOW_ORDER_FLUX, ql_local, qr_local, waves_local, speeds, amdq_local, apdq_local);
 
         for (int i = 0; i < 2; i++) {
           gkyl_wv_eqn_rotate_to_global(gr_maxwell, tau1[d], tau2[d], norm[d], &waves_local[i * 22], &waves[i * 22]);
@@ -616,7 +616,7 @@ test_gr_maxwell_waves_schwarzschild()
         };
 
         for (int d = 0; d < 3; d++) {
-          double speeds[2], waves[2 * 22], waves_local[2 * 22];
+          double speeds[6], waves[6 * 22], waves_local[6 * 22];
 
           double ql_local[22], qr_local[22];
           gkyl_wv_eqn_rotate_to_local(gr_maxwell, tau1[d], tau2[d], norm[d], ql, ql_local);
@@ -627,10 +627,10 @@ test_gr_maxwell_waves_schwarzschild()
             delta[i] = qr_local[i] - ql_local[i];
           }
 
-          gkyl_wv_eqn_waves(gr_maxwell, GKYL_WV_HIGH_ORDER_FLUX, delta, ql_local, qr_local, waves_local, speeds);
+          gkyl_wv_eqn_waves(gr_maxwell, GKYL_WV_LOW_ORDER_FLUX, delta, ql_local, qr_local, waves_local, speeds);
 
           double apdq_local[22], amdq_local[22];
-          gkyl_wv_eqn_qfluct(gr_maxwell, GKYL_WV_HIGH_ORDER_FLUX, ql_local, qr_local, waves_local, speeds, amdq_local, apdq_local);
+          gkyl_wv_eqn_qfluct(gr_maxwell, GKYL_WV_LOW_ORDER_FLUX, ql_local, qr_local, waves_local, speeds, amdq_local, apdq_local);
 
           for (int i = 0; i < 2; i++) {
             gkyl_wv_eqn_rotate_to_global(gr_maxwell, tau1[d], tau2[d], norm[d], &waves_local[i * 22], &waves[i * 22]);
@@ -760,7 +760,7 @@ test_gr_maxwell_waves_kerr()
         };
 
         for (int d = 0; d < 3; d++) {
-          double speeds[2], waves[2 * 22], waves_local[2 * 22];
+          double speeds[6], waves[6 * 22], waves_local[6 * 22];
 
           double ql_local[22], qr_local[22];
           gkyl_wv_eqn_rotate_to_local(gr_maxwell, tau1[d], tau2[d], norm[d], ql, ql_local);
@@ -771,10 +771,10 @@ test_gr_maxwell_waves_kerr()
             delta[i] = qr_local[i] - ql_local[i];
           }
 
-          gkyl_wv_eqn_waves(gr_maxwell, GKYL_WV_HIGH_ORDER_FLUX, delta, ql_local, qr_local, waves_local, speeds);
+          gkyl_wv_eqn_waves(gr_maxwell, GKYL_WV_LOW_ORDER_FLUX, delta, ql_local, qr_local, waves_local, speeds);
 
           double apdq_local[22], amdq_local[22];
-          gkyl_wv_eqn_qfluct(gr_maxwell, GKYL_WV_HIGH_ORDER_FLUX, ql_local, qr_local, waves_local, speeds, amdq_local, apdq_local);
+          gkyl_wv_eqn_qfluct(gr_maxwell, GKYL_WV_LOW_ORDER_FLUX, ql_local, qr_local, waves_local, speeds, amdq_local, apdq_local);
 
           for (int i = 0; i < 2; i++) {
             gkyl_wv_eqn_rotate_to_global(gr_maxwell, tau1[d], tau2[d], norm[d], &waves_local[i * 22], &waves[i * 22]);
