@@ -88,6 +88,8 @@ gkyl_gr_maxwell_tetrad_max_abs_speed(double light_speed, const double q[22])
   }
 
   if (!in_excision_region) {
+    double lapse = q[8];
+
     double **spatial_metric = gkyl_malloc(sizeof(double*[3]));
     for (int i = 0; i < 3; i++) {
       spatial_metric[i] = gkyl_malloc(sizeof(double[3]));
@@ -106,7 +108,7 @@ gkyl_gr_maxwell_tetrad_max_abs_speed(double light_speed, const double q[22])
     }
     gkyl_free(spatial_metric);
 
-    return light_speed * sqrt(spatial_metric_det);
+    return light_speed * sqrt(spatial_metric_det) * lapse;
   }
   else {
     return pow(10.0, -8.0);
@@ -356,17 +358,122 @@ qfluct_lax_l(const struct gkyl_wv_eqn* eqn, enum gkyl_wv_flux_type type, const d
 }
 
 static double
+wave_roe(const struct gkyl_wv_eqn* eqn, const double* delta, const double* ql, const double* qr, double* waves, double* s)
+{
+  const struct wv_gr_maxwell_tetrad *gr_maxwell_tetrad = container_of(eqn, struct wv_gr_maxwell_tetrad, eqn);
+  double light_speed = gr_maxwell_tetrad->light_speed;
+  double e_fact = gr_maxwell_tetrad->e_fact;
+  double b_fact = gr_maxwell_tetrad->b_fact;
+
+  double a1 = 0.5 * (delta[3] - ((1.0 / light_speed) * delta[7]));
+  double a2 = 0.5 * (delta[3] + ((1.0 / light_speed) * delta[7]));
+  double a3 = 0.5 * (delta[0] - (light_speed * delta[6]));
+  double a4 = 0.5 * (delta[0] + (light_speed * delta[6]));
+  double a5 = 0.5 * (delta[1] - (light_speed * delta[5]));
+  double a6 = 0.5 * ((light_speed * delta[4]) + delta[2]);
+  double a7 = 0.5 * ((light_speed * delta[5]) + delta[1]);
+  double a8 = 0.5 * (delta[2] - (light_speed * delta[4]));
+
+  for (int i = 0; i < 22 * 6; i++) {
+    waves[i] = 0.0;
+  }
+
+  double *wv ;
+  wv = &waves[0 * 22];
+  wv[3] = a1;
+  wv[7] = -a1 * light_speed;
+  s[0] = -light_speed * b_fact;
+
+  wv = &waves[1 * 22];
+  wv[3] = a2;
+  wv[7] = a2 * light_speed;
+  s[1] = light_speed * b_fact;
+
+  wv = &waves[2 * 22];
+  wv[0] = a3;
+  wv[6] = -a3 * (1.0 / light_speed);
+  s[2] = -light_speed * e_fact;
+
+  wv = &waves[3 * 22];
+  wv[0] = a4;
+  wv[6] = a4 * (1.0 / light_speed);
+  s[3] = light_speed * e_fact;
+
+  wv = &waves[4 * 22];
+  wv[1] = a5;
+  wv[2] = a6;
+  wv[4] = a6 * (1.0 / light_speed);
+  wv[5] = -a5 * (1.0 / light_speed);
+  s[4] = -light_speed;
+
+  wv = &waves[5 * 22];
+  wv[1] = a7;
+  wv[2] = a8;
+  wv[4] = -a8 * (1.0 / light_speed);
+  wv[5] = a7 * (1.0 / light_speed);
+  s[5] = light_speed;
+
+  return light_speed;
+}
+
+static void
+qfluct_roe(const struct gkyl_wv_eqn* eqn, const double* ql, const double* qr, const double* waves, const double* s, double* amdq, double* apdq)
+{
+  const double *w0 = &waves[0 * 22], *w1 = &waves[1 * 22], *w2 = &waves[2 * 22];
+  const double *w3 = &waves[3 * 22], *w4 = &waves[4 * 22], *w5 = &waves[5 * 22];
+
+  double s0m = fmin(0.0, s[0]), s1m = fmin(0.0, s[1]), s2m = fmin(0.0, s[2]);
+  double s3m = fmin(0.0, s[3]), s4m = fmin(0.0, s[4]), s5m = fmin(0.0, s[5]);
+
+  double s0p = fmax(0.0, s[0]), s1p = fmax(0.0, s[1]), s2p = fmax(0.0, s[2]);
+  double s3p = fmax(0.0, s[3]), s4p = fmax(0.0, s[4]), s5p = fmax(0.0, s[5]);
+
+  for (int i = 0; i < 22; i++) {
+    amdq[i] = (s0m * w0[i]) + (s1m * w1[i]) + (s2m * w2[i]) + (s3m * w3[i]) + (s4m * w4[i]) + (s5m * w5[i]);
+    apdq[i] = (s0p * w0[i]) + (s1p * w1[i]) + (s2p * w2[i]) + (s3p * w3[i]) + (s4p * w4[i]) + (s5p * w5[i]);
+  }
+}
+
+static double
+wave_roe_l(const struct gkyl_wv_eqn* eqn, enum gkyl_wv_flux_type type, const double* delta, const double* ql, const double* qr, double* waves, double* s)
+{
+  if (type == GKYL_WV_HIGH_ORDER_FLUX) {
+    return wave_roe(eqn, delta, ql, qr, waves, s);
+  }
+  else {
+    return wave_lax(eqn, delta, ql, qr, waves, s);
+  }
+
+  return 0.0; // Unreachable code.
+}
+
+static void
+qfluct_roe_l(const struct gkyl_wv_eqn* eqn, enum gkyl_wv_flux_type type, const double* ql, const double* qr, const double* waves, const double* s,
+  double* amdq, double* apdq)
+{
+  if (type == GKYL_WV_HIGH_ORDER_FLUX) {
+    return qfluct_roe(eqn, ql, qr, waves, s, amdq, apdq);
+  }
+  else {
+    return qfluct_lax(eqn, ql, qr, waves, s, amdq, apdq);
+  }
+}
+
+static double
 flux_jump(const struct gkyl_wv_eqn* eqn, const double* ql, const double* qr, double* flux_jump)
 {
   const struct wv_gr_maxwell_tetrad *gr_maxwell_tetrad = container_of(eqn, struct wv_gr_maxwell_tetrad, eqn);
+  const double light_speed = gr_maxwell_tetrad->light_speed;
+  const double e_fact = gr_maxwell_tetrad->e_fact;
+  const double b_fact = gr_maxwell_tetrad->b_fact;
 
   double fr_sr[22], fl_sr[22];
-  gkyl_gr_maxwell_tetrad_flux(gr_maxwell_tetrad->light_speed, gr_maxwell_tetrad->e_fact, gr_maxwell_tetrad->b_fact, ql, fl_sr);
-  gkyl_gr_maxwell_tetrad_flux(gr_maxwell_tetrad->light_speed, gr_maxwell_tetrad->e_fact, gr_maxwell_tetrad->b_fact, qr, fr_sr);
+  gkyl_gr_maxwell_tetrad_flux(light_speed, e_fact, b_fact, ql, fl_sr);
+  gkyl_gr_maxwell_tetrad_flux(light_speed, e_fact, b_fact, qr, fr_sr);
 
   double fr_gr[22], fl_gr[22];
-  gkyl_gr_maxwell_tetrad_flux_correction(gr_maxwell_tetrad->light_speed, gr_maxwell_tetrad->e_fact, gr_maxwell_tetrad->b_fact, ql, fl_sr, fl_gr);
-  gkyl_gr_maxwell_tetrad_flux_correction(gr_maxwell_tetrad->light_speed, gr_maxwell_tetrad->e_fact, gr_maxwell_tetrad->b_fact, qr, fr_sr, fr_gr);
+  gkyl_gr_maxwell_tetrad_flux_correction(light_speed, e_fact, b_fact, ql, fl_sr, fl_gr);
+  gkyl_gr_maxwell_tetrad_flux_correction(light_speed, e_fact, b_fact, qr, fr_sr, fr_gr);
 
   bool in_excision_region_l = false;
   if (ql[21] < pow(10.0, -8.0)) {
@@ -389,8 +496,8 @@ flux_jump(const struct gkyl_wv_eqn* eqn, const double* ql, const double* qr, dou
     }
   }
 
-  double amaxl = gkyl_gr_maxwell_tetrad_max_abs_speed(gr_maxwell_tetrad->light_speed, ql);
-  double amaxr = gkyl_gr_maxwell_tetrad_max_abs_speed(gr_maxwell_tetrad->light_speed, qr);
+  double amaxl = gkyl_gr_maxwell_tetrad_max_abs_speed(light_speed, ql);
+  double amaxr = gkyl_gr_maxwell_tetrad_max_abs_speed(light_speed, qr);
 
   return fmax(amaxl, amaxr);
 }
@@ -450,7 +557,7 @@ gkyl_wv_gr_maxwell_tetrad_new(double light_speed, double e_fact, double b_fact, 
       .e_fact = e_fact,
       .b_fact = b_fact,
       .spacetime = spacetime,
-      .rp_type = WV_GR_MAXWELL_TETRAD_RP_LAX,
+      .rp_type = WV_GR_MAXWELL_TETRAD_RP_ROE,
       .use_gpu = use_gpu,
     }
   );
@@ -474,6 +581,11 @@ gkyl_wv_gr_maxwell_tetrad_inew(const struct gkyl_wv_gr_maxwell_tetrad_inp* inp)
     gr_maxwell_tetrad->eqn.num_waves = 2;
     gr_maxwell_tetrad->eqn.waves_func = wave_lax_l;
     gr_maxwell_tetrad->eqn.qfluct_func = qfluct_lax_l;
+  }
+  else if (inp->rp_type == WV_GR_MAXWELL_TETRAD_RP_ROE) {
+    gr_maxwell_tetrad->eqn.num_waves = 6;
+    gr_maxwell_tetrad->eqn.waves_func = wave_roe_l;
+    gr_maxwell_tetrad->eqn.qfluct_func = qfluct_roe_l;
   }
 
   gr_maxwell_tetrad->eqn.flux_jump = flux_jump;
