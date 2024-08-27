@@ -233,6 +233,6 @@ def write_files(elem_array, file_num):
         ioniz.logNe.tofile("logN_%s.npy"%name)
 
 file_num = ['12','96','89']
-elem = [['h',0,1],['he',1,2],['li',1,3],['be',1,4],['b',2,5],['c',1,6],['n',1,7],['o',1,8],['ar',2,18]]
+elem = [['h',0,1],['he',1,2],['li',1,3],['be',1,4],['b',2,5],['c',1,6],['n',1,7],['o',1,8],['al',2,13],['ar',2,18]]
 
 write_files(elem, file_num)

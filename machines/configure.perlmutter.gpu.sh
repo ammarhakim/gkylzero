@@ -12,6 +12,7 @@ module load cray-mpich/8.1.28
 module load cudatoolkit/12.0
 module load nccl/2.18.3-cu12
 
+
 : "${PREFIX:=$HOME/gkylsoft}"
 : "${GKYL_DEP:=$HOME/gkylsoft}"
 
