@@ -25,7 +25,7 @@ gk_species_bgk_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s, stru
   bgk->normNu = false;
   if (s->info.collisions.normNu) {
     bgk->normNu = true;
-    double nuFrac = s->info.collisions.nuFrac ? s->info.collisions.nuFrac : 1.0;
+    double nuFrac = s->info.collisions.nuFrac ? s->info.collisions.nuFrac[0] : 1.0;
     double eps0 = s->info.collisions.eps0 ? s->info.collisions.eps0: GKYL_EPSILON0;
     double hbar = s->info.collisions.hbar ? s->info.collisions.hbar: GKYL_PLANCKS_CONSTANT_H/2/M_PI;
     double eV = s->info.collisions.eV ? s->info.collisions.eV: GKYL_ELEMENTARY_CHARGE;
@@ -118,7 +118,7 @@ gk_species_bgk_cross_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s
   for (int i=0; i<bgk->num_cross_collisions; ++i) {
     bgk->collide_with[i] = gk_find_species(app, s->info.collisions.collide_with[i]);
     if (s->info.collisions.normNu) {
-      double nuFrac = s->info.collisions.nuFrac ? s->info.collisions.nuFrac : 1.0;
+      double nuFrac = s->info.collisions.nuFrac ? s->info.collisions.nuFrac[i+1] : 1.0;
       double eps0 = s->info.collisions.eps0 ? s->info.collisions.eps0: GKYL_EPSILON0;
       double hbar = s->info.collisions.hbar ? s->info.collisions.hbar: GKYL_PLANCKS_CONSTANT_H/2/M_PI;
       double eV = s->info.collisions.eV ? s->info.collisions.eV: GKYL_ELEMENTARY_CHARGE;

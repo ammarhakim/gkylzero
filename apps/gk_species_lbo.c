@@ -26,7 +26,7 @@ gk_species_lbo_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s, stru
   lbo->normNu = false;
   if (s->info.collisions.normNu) {
     lbo->normNu = true;
-    double nuFrac = s->info.collisions.nuFrac ? s->info.collisions.nuFrac : 1.0;
+    double nuFrac = s->info.collisions.nuFrac[0]>DBL_MIN ? s->info.collisions.nuFrac[0] : 1.0;
     double eps0 = s->info.collisions.eps0 ? s->info.collisions.eps0: GKYL_EPSILON0;
     double hbar = s->info.collisions.hbar ? s->info.collisions.hbar: GKYL_PLANCKS_CONSTANT_H/2/M_PI;
     double eV = s->info.collisions.eV ? s->info.collisions.eV: GKYL_ELEMENTARY_CHARGE;
@@ -47,6 +47,7 @@ gk_species_lbo_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s, stru
 
     lbo->spitzer_calc = gkyl_spitzer_coll_freq_new(&app->confBasis, app->poly_order+1,
       nuFrac, 1.0, 1.0, app->use_gpu);
+    printf("nuFrac for %s self-collisions is %e\n",s->info.name, nuFrac);
     lbo->self_nu_fac = nuFrac*gkyl_calc_norm_nu(s->info.collisions.n_ref, s->info.collisions.n_ref,
       s->info.mass, s->info.mass, s->info.charge, s->info.charge, s->info.collisions.T_ref,
       s->info.collisions.T_ref, bmag_mid, eps0, hbar, eV);
@@ -120,7 +121,7 @@ gk_species_lbo_cross_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s
   for (int i=0; i<lbo->num_cross_collisions; ++i) {
     lbo->collide_with[i] = gk_find_species(app, s->info.collisions.collide_with[i]);
     if (s->info.collisions.normNu) {
-      double nuFrac = s->info.collisions.nuFrac ? s->info.collisions.nuFrac : 1.0;
+      double nuFrac = s->info.collisions.nuFrac[i+1]>DBL_MIN ? s->info.collisions.nuFrac[i+1] : 1.0;
       double eps0 = s->info.collisions.eps0 ? s->info.collisions.eps0: GKYL_EPSILON0;
       double hbar = s->info.collisions.hbar ? s->info.collisions.hbar: GKYL_PLANCKS_CONSTANT_H/2/M_PI;
       double eV = s->info.collisions.eV ? s->info.collisions.eV: GKYL_ELEMENTARY_CHARGE;
@@ -133,7 +134,7 @@ gk_species_lbo_cross_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s
       double bmag_mid = s->info.collisions.bmag_mid ? s->info.collisions.bmag_mid : bmag_mid_ptr[0];
       if (app->use_gpu)
         gkyl_array_release(bmag_mid_host);
-
+      printf("nuFrac for %s collisions with %s is %e\n",s->info.name, lbo->collide_with[i]->info.name, nuFrac);
       lbo->cross_nu_fac[i] = nuFrac*gkyl_calc_norm_nu(s->info.collisions.n_ref, lbo->collide_with[i]->info.collisions.n_ref,
         s->info.mass, lbo->collide_with[i]->info.mass, s->info.charge, lbo->collide_with[i]->info.charge,
        	s->info.collisions.T_ref, lbo->collide_with[i]->info.collisions.T_ref, bmag_mid, eps0, hbar, eV);
