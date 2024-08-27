@@ -99,6 +99,7 @@ enum gkyl_ion_type
   GKYL_ION_N = 6,  // Nitrogen ions
   GKYL_ION_O = 7,  // Oxygen ions
   GKYL_ION_AR = 8,  // Argon ions
+  GKYL_ION_AL = 9, // Aluminium ions
 };
 
 // Identifiers for different self in reaction
