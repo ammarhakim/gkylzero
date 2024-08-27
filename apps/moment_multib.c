@@ -291,6 +291,7 @@ singleb_app_new(const struct gkyl_moment_multib *mbinp, int bid,
   return gkyl_moment_app_new(&app_inp);
 }
 
+
 struct gkyl_moment_multib_app *
 gkyl_moment_multib_app_new(const struct gkyl_moment_multib *mbinp)
 {
@@ -377,8 +378,13 @@ gkyl_moment_multib_app_new(const struct gkyl_moment_multib *mbinp)
   for (int i=0; i<mbinp->num_species; ++i)
     strcpy(mbapp->species_name[i], mbinp->species[i].name);
 
+  // create single-block App for all local blocks this rank handles
   for (int i=0; i<num_local_blocks; ++i)
     mbapp->singleb_apps[i] = singleb_app_new(mbinp, mbapp->local_blocks[i], mbapp);
+
+  // construct send/recv lists for each block this rank handles
+  mbapp->send_conn = gkyl_malloc(sizeof(struct gkyl_multib_comm_conn *[num_local_blocks]));
+  mbapp->recv_conn = gkyl_malloc(sizeof(struct gkyl_multib_comm_conn *[num_local_blocks]));
 
   mbapp->stat = (struct gkyl_moment_stat) {
   };
@@ -590,7 +596,16 @@ gkyl_moment_multib_app_release(gkyl_moment_multib_app* mbapp)
     for (int i=0; i<mbapp->num_local_blocks; ++i)
       gkyl_moment_app_release(mbapp->singleb_apps[i]);
     gkyl_free(mbapp->singleb_apps);
-  }  
+
+    for (int i=0; i<mbapp->num_local_blocks; ++i) {
+      //gkyl_multib_comm_conn_release(mbapp->send_conn[i]);
+      //gkyl_multib_comm_conn_release(mbapp->recv_conn[i]);
+    }
+
+    gkyl_free(mbapp->send_conn);
+    gkyl_free(mbapp->recv_conn);
+  }
+
 
   int num_blocks = gkyl_block_geom_num_blocks(mbapp->block_geom);
 

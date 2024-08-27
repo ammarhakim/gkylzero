@@ -7,7 +7,11 @@
 #include <gkyl_tok_geo.h>
 
 #include <rt_arg_parse.h>
+
+#ifdef GKYL_HAVE_MPI
 #include <mpi.h>
+#include <gkyl_mpi_comm.h>
+#endif
 
 void shaped_pfunc_lower_outer(double s, double* RZ){
   RZ[0] = 3.5+2.0*s;
