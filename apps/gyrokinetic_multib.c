@@ -467,8 +467,31 @@ gkyl_gyrokinetic_multib_app* gkyl_gyrokinetic_multib_app_new(const struct gkyl_g
   for (int i=0; i<mbinp->num_neut_species; ++i)
     strcpy(mbapp->neut_species_name[i], mbinp->neut_species[i].name);  
 
+  // create single-block App for all local blocks this rank handles
   for (int i=0; i<num_local_blocks; ++i)
     mbapp->singleb_apps[i] = singleb_app_new(mbinp, mbapp->local_blocks[i], mbapp);
+
+  // construct send/recv lists for each block this rank handles
+  mbapp->send_conn = gkyl_malloc(sizeof(struct gkyl_multib_comm_conn *[num_local_blocks]));
+  mbapp->recv_conn = gkyl_malloc(sizeof(struct gkyl_multib_comm_conn *[num_local_blocks]));
+
+  int nghost[] = {1,1};
+  int num_cuts[num_local_blocks];
+  for (int i=0; i<num_local_blocks; ++i) {
+    int bid = mbapp->local_blocks[i];
+    const struct gkyl_block_geom_info *bgi = gkyl_block_geom_get_block(mbapp->block_geom, bid);
+    num_cuts[i] = calc_cuts(cdim, bgi->cuts);
+  }
+
+  for (int i=0; i<num_local_blocks; ++i) {
+    int bid = mbapp->local_blocks[i];
+    for (int brank=0; brank<num_cuts[i]; ++brank) {
+      mbapp->recv_conn[i] = gkyl_multib_comm_conn_new_recv(bid, brank, nghost,
+        &mbapp->block_topo->conn[bid], mbapp->decomp);
+      mbapp->send_conn[i] = gkyl_multib_comm_conn_new_send(bid, brank, nghost,
+        &mbapp->block_topo->conn[bid], mbapp->decomp);
+    }
+  }
 
   mbapp->stat = (struct gkyl_gyrokinetic_stat) {
   };
@@ -839,7 +862,15 @@ void gkyl_gyrokinetic_multib_app_release(gkyl_gyrokinetic_multib_app* mbapp)
     for (int i=0; i<mbapp->num_local_blocks; ++i)
       gkyl_gyrokinetic_app_release(mbapp->singleb_apps[i]);
     gkyl_free(mbapp->singleb_apps);
-  }  
+
+    for (int i=0; i<mbapp->num_local_blocks; ++i) {
+      gkyl_multib_comm_conn_release(mbapp->send_conn[i]);
+      gkyl_multib_comm_conn_release(mbapp->recv_conn[i]);
+    }
+
+    gkyl_free(mbapp->send_conn);
+    gkyl_free(mbapp->recv_conn);
+  }
 
   int num_blocks = gkyl_block_geom_num_blocks(mbapp->block_geom);
 

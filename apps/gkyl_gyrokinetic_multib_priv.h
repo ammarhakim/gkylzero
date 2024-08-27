@@ -2,7 +2,9 @@
 // user-facing header files!
 #pragma once
 
+#include <gkyl_comm.h>
 #include <gkyl_gyrokinetic_priv.h>
+#include <gkyl_multib_comm_conn.h>
 
 // top-level internal App
 struct gkyl_gyrokinetic_multib_app {
@@ -26,6 +28,10 @@ struct gkyl_gyrokinetic_multib_app {
   int num_local_blocks; // total number of blocks on current rank
   int *local_blocks; // local blocks IDs handled by current rank
   struct gkyl_gyrokinetic_app **singleb_apps; // App objects: one per local block
+
+  // one per local block:
+  struct gkyl_multib_comm_conn **send_conn; // conn for inter-block send
+  struct gkyl_multib_comm_conn **recv_conn; // conn for inter-block recv
 
   const struct gkyl_rrobin_decomp *round_robin; // round-robin decomp
   struct gkyl_rect_decomp **decomp; // list of decomps (num_blocks)
