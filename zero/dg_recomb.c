@@ -46,14 +46,13 @@ gkyl_dg_recomb_new(struct gkyl_dg_recomb_inp *inp, bool use_gpu)
   up->elem_charge = GKYL_ELEMENTARY_CHARGE;
   up->mass_elc = GKYL_ELECTRON_MASS;
 
-  const char *base = inp->base;
   int charge_state = inp->charge_state;
   enum gkyl_ion_type type_ion = inp->type_ion;
   
   // Project ADAS data
   struct adas_field data;
 
-  read_adas_field_recomb(type_ion, &data, base);
+  read_adas_field_recomb(type_ion, &data);
   
   long sz = data.NT*data.NN;
   double minmax[2];
@@ -62,7 +61,6 @@ gkyl_dg_recomb_new(struct gkyl_dg_recomb_inp *inp, bool use_gpu)
   if (data.logN == NULL) fprintf(stderr, "Unable to load ADAS 'logN_<elem>.npy' file.");
   if (data.logData == NULL) fprintf(stderr, "Unable to load ADAS 'recomb_<elem>.npy' file.");
 
-  // "duplicate symbol" error
   minmax_from_numpy(data.logT, data.NT, minmax);
   fclose(data.logT);
   double logTmin = minmax[0], logTmax = minmax[1];
@@ -70,7 +68,6 @@ gkyl_dg_recomb_new(struct gkyl_dg_recomb_inp *inp, bool use_gpu)
   fclose(data.logN);
   double logNmin = minmax[0]+6., logNmax = minmax[1]+6.; //adjust for 1/cm^3 to 1/m^3 conversion
 
-  // "duplicate symbol" error
   struct gkyl_array *adas_nodal = gkyl_array_new(GKYL_DOUBLE, 1, sz);
   array_from_numpy(data.logData, sz, data.Zmax, charge_state, adas_nodal);
   fclose(data.logData);
@@ -108,9 +105,6 @@ gkyl_dg_recomb_new(struct gkyl_dg_recomb_inp *inp, bool use_gpu)
   gkyl_create_grid_ranges(&tn_grid, ghost, &modal_range_ext, &modal_range);
 
   struct gkyl_array *adas_dg = gkyl_array_new(GKYL_DOUBLE, up->adas_basis.num_basis, modal_range_ext.volume);
-  
-  /* struct gkyl_array *adas_dg = */
-  /*   gkyl_array_new(GKYL_DOUBLE, up->adas_basis.num_basis, (data.NT-1)*(data.NN-1)); */
 
   //create_dg_from_nodal(&tn_grid, &range_node, adas_nodal, adas_dg, charge_state);
 
@@ -199,14 +193,26 @@ void gkyl_dg_recomb_coll(const struct gkyl_dg_recomb *up,
     double cell_vals_2d[2];
     double cell_center; 
 
-    if (log_Te_av < up->minLogTe) t_idx=1;
-    else if (log_Te_av > up->maxLogTe) t_idx=up->resTe;
+    if (log_Te_av < up->minLogTe) {
+      t_idx=1;
+      log_Te_av = up->minLogTe;
+    }
+    else if (log_Te_av > up->maxLogTe) {
+      t_idx=up->resTe;
+      log_Te_av = up->maxLogTe;
+    }
     else t_idx = (log_Te_av - up->minLogTe)/(up->dlogTe)+1;
     cell_center = (t_idx - 0.5)*up->dlogTe + up->minLogTe;
     cell_vals_2d[0] = 2.0*(log_Te_av - cell_center)/up->dlogTe; // Te value on cell interval
       
-    if (log_m0_av < up->minLogM0) m0_idx=1;
-    else if (log_m0_av > up->maxLogM0) m0_idx=up->resM0;
+    if (log_m0_av < up->minLogM0) {
+      m0_idx=1;
+      log_m0_av = up->minLogM0;
+    }
+    else if (log_m0_av > up->maxLogM0) {
+      m0_idx=up->resM0;
+      log_m0_av = up->maxLogM0;
+    }
     else m0_idx = (log_m0_av - up->minLogM0)/(up->dlogM0)+1;
     cell_center = (m0_idx - 0.5)*up->dlogM0 + up->minLogM0;
     cell_vals_2d[1] = 2.0*(log_m0_av - cell_center)/up->dlogM0; // M0 value on cell interval
@@ -224,12 +230,10 @@ void gkyl_dg_recomb_coll(const struct gkyl_dg_recomb *up,
       const double *moms_ion_d = gkyl_array_cfetch(moms_ion, loc);
       double *prim_vars_ion_d = gkyl_array_fetch(prim_vars_ion, loc);
       
-      // condense the following 2 kernels...
       up->calc_prim_vars_ion->kernel(up->calc_prim_vars_ion, conf_iter.idx,
 					    moms_ion_d, prim_vars_ion_d);
     }
   }
-
   //gkyl_grid_sub_array_write(&s->grid, &s->local, react->coef_react[i], "coef_recomb.gkyl");
 
   // cfl calculation
@@ -253,12 +257,6 @@ gkyl_dg_recomb_release(struct gkyl_dg_recomb* up)
   gkyl_array_release(up->recomb_data);
   gkyl_array_release(up->vtSq_elc);
   gkyl_dg_prim_vars_type_release(up->calc_prim_vars_elc_vtSq);
-
-  // only used for Vlasov neut coll.
-  //gkyl_array_release(up->udrift_ion);
-  //gkyl_array_release(up->vtSq_ion);
-  //gkyl_proj_maxwellian_on_basis_release(up->proj_max);
-  //gkyl_dg_prim_vars_type_release(up->calc_prim_vars_ion_udrift);
   gkyl_dg_prim_vars_type_release(up->calc_prim_vars_ion);
   free(up);
 }

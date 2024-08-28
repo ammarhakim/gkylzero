@@ -138,11 +138,11 @@ evalElcInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout
 
   double gas_gamma = app->gas_gamma;
 
-  double pl = app->pl;
-  double pr = app->pr;
-
   double rhol_elc = app->rhol_elc;
   double rhor_elc = app->rhor_elc;
+
+  double pl = app->pl;
+  double pr = app->pr;
 
   double rho = 0.0;
   double p = 0.0;
@@ -174,6 +174,7 @@ evalIonInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout
 
   double rhol_ion = app->rhol_ion;
   double rhor_ion = app->rhor_ion;
+  
   double pl = app->pl;
   double pr = app->pr;
 

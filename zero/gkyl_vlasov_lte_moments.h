@@ -11,12 +11,13 @@ typedef struct gkyl_vlasov_lte_moments gkyl_vlasov_lte_moments;
 // input packaged as a struct
 struct gkyl_vlasov_lte_moments_inp {
   const struct gkyl_rect_grid *phase_grid; // Phase-space grid on which to compute moments
+  const struct gkyl_rect_grid *vel_grid; // Velocity-space grid
   const struct gkyl_basis *conf_basis; // Configuration-space basis functions
+  const struct gkyl_basis *vel_basis; // Velocity-space basis functions
   const struct gkyl_basis *phase_basis; // Phase-space basis functions
   const struct gkyl_range *conf_range; // Configuration-space range
   const struct gkyl_range *conf_range_ext; // Extended configuration-space range (for internal memory allocations)
-  const struct gkyl_range *vel_range; // velocity space range
-  const struct gkyl_array *p_over_gamma; // SR quantitiy: velocity
+  const struct gkyl_range *vel_range; // Velocity-space range
   const struct gkyl_array *gamma; // SR quantitiy: gamma = sqrt(1 + p^2)
   const struct gkyl_array *gamma_inv; // SR quantitiy: 1/gamma = 1/sqrt(1 + p^2)
   const struct gkyl_array *h_ij_inv; // Can-pb quantity: Inverse metric tensor

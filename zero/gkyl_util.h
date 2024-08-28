@@ -49,6 +49,11 @@
 # define GKYL_MAX_SPECIES 16
 #endif
 
+// Maximum number of supported species
+#ifndef GKYL_MAX_REACT
+# define GKYL_MAX_REACT 3*GKYL_MAX_SPECIES
+#endif
+
 // Maximum number of supported sources
 #ifndef GKYL_MAX_SOURCES
 # define GKYL_MAX_SOURCES 4
@@ -57,6 +62,11 @@
 // Maximum number of supported charge states
 #ifndef GKYL_MAX_CHARGE_STATE
 # define GKYL_MAX_CHARGE_STATE 18
+#endif
+
+// Maximum number of supported projection objects
+#ifndef GKYL_MAX_PROJ
+# define GKYL_MAX_PROJ 4
 #endif
 
 // Maximum number of ghost cells in each direction
@@ -291,6 +301,27 @@ static inline int
 gkyl_int_div_up(int a, int b)
 {
   return (a%b != 0) ? (a/b+1) : (a/b);
+}
+
+/**
+ *   Minmod limiter for choosing the minimal modification between 3 values (usually slopes)
+ */
+GKYL_CU_DH
+static inline double 
+gkyl_minmod(double a, double b, double c)
+{
+  double sa = GKYL_SGN(a);
+  double sb = GKYL_SGN(b);
+  double sc = GKYL_SGN(c);
+  if( (sa==sb) && (sb==sc) ) {
+    if (sa<0)
+      return GKYL_MAX2(GKYL_MAX2(a,b),c);
+    else
+      return GKYL_MIN2(GKYL_MIN2(a,b),c);
+  }
+  else {
+     return 0;
+  }
 }
 
 /**
