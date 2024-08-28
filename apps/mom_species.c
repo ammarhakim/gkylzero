@@ -22,6 +22,41 @@ moment_species_init(const struct gkyl_moment *mom, const struct gkyl_moment_spec
   sp->k0 = mom_sp->equation->type == GKYL_EQN_TEN_MOMENT ? gkyl_wv_ten_moment_k0(mom_sp->equation) : 0.0;
   // check if we are running with gradient-based closure
   sp->has_grad_closure = mom_sp->has_grad_closure == 0 ? 0 : mom_sp->has_grad_closure;
+  // check if we are running with Braginskii transport and fetch Braginskii type
+  if (app->has_braginskii) {
+    sp->type_brag = mom_sp->type_brag;
+  }
+
+  if (mom_sp->has_friction) {
+    sp->has_friction = true;
+    sp->use_explicit_friction = mom_sp->use_explicit_friction;
+
+    sp->friction_Z = mom_sp->friction_Z;
+    sp->friction_T_elc = mom_sp->friction_T_elc;
+    sp->friction_Lambda_ee = mom_sp->friction_Lambda_ee;
+  }
+  else {
+    sp->has_friction = false;
+    sp->use_explicit_friction = false;
+  }
+
+  if (mom_sp->has_volume_sources) {
+    sp->has_volume_sources = true;
+
+    sp->volume_gas_gamma = mom_sp->volume_gas_gamma;
+    sp->volume_U0 = mom_sp->volume_U0;
+    sp->volume_R0 = mom_sp->volume_R0;
+  }
+
+  if (mom_sp->has_reactivity) {
+    sp->has_reactivity = true;
+
+    sp->reactivity_gas_gamma = mom_sp->reactivity_gas_gamma;
+    sp->reactivity_specific_heat_capacity = mom_sp->reactivity_specific_heat_capacity;
+    sp->reactivity_energy_of_formation = mom_sp->reactivity_energy_of_formation;
+    sp->reactivity_ignition_temperature = mom_sp->reactivity_ignition_temperature;
+    sp->reactivity_reaction_rate = mom_sp->reactivity_reaction_rate;
+  }
 
   sp->scheme_type = mom->scheme_type;
 
@@ -127,7 +162,7 @@ moment_species_init(const struct gkyl_moment *mom, const struct gkyl_moment_spec
       else
         bc = mom_sp->bcz;
 
-      void (*bc_lower_func)(double t, int nc, const double *skin, double * GKYL_RESTRICT ghost, void *ctx);
+      void (*bc_lower_func)(const struct gkyl_wv_eqn* eqn, double t, int nc, const double *skin, double * GKYL_RESTRICT ghost, void *ctx);
       if (dir == 0)
         bc_lower_func = mom_sp->bcx_lower_func;
       else if (dir == 1)
@@ -135,7 +170,7 @@ moment_species_init(const struct gkyl_moment *mom, const struct gkyl_moment_spec
       else
         bc_lower_func = mom_sp->bcz_lower_func;
 
-      void (*bc_upper_func)(double t, int nc, const double *skin, double * GKYL_RESTRICT ghost, void *ctx);
+      void (*bc_upper_func)(const struct gkyl_wv_eqn* eqn, double t, int nc, const double *skin, double * GKYL_RESTRICT ghost, void *ctx);
       if (dir == 0)
         bc_upper_func = mom_sp->bcx_upper_func;
       else if (dir == 1)
@@ -213,8 +248,15 @@ moment_species_init(const struct gkyl_moment *mom, const struct gkyl_moment_spec
   // allocate array for applied acceleration/forces for each species
   sp->app_accel = mkarr(false, 3, app->local_ext.volume);
   sp->proj_app_accel = 0;
-  if (mom_sp->app_accel_func)
-    sp->proj_app_accel = gkyl_fv_proj_new(&app->grid, 2, 3, mom_sp->app_accel_func, sp->ctx);
+  if (mom_sp->app_accel_func) {
+    void *ctx = sp->ctx;
+
+    if (mom_sp->app_accel_ctx) {
+      ctx = mom_sp->app_accel_ctx;
+    }
+
+    sp->proj_app_accel = gkyl_fv_proj_new(&app->grid, 2, GKYL_MOM_APP_NUM_APPLIED_ACCELERATION, mom_sp->app_accel_func, ctx);
+  }
 
   sp->nT_source = mkarr(false, 2, app->local_ext.volume);
   sp->nT_source_is_set = false;

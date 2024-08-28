@@ -35,8 +35,8 @@ riem_to_cons(const struct gkyl_wv_eqn *eqn,
 }
 
 static inline void
-rot_to_local(const double *tau1, const double *tau2, const double *norm,
-  const double *GKYL_RESTRICT qglobal, double *GKYL_RESTRICT qlocal)
+rot_to_local(const struct gkyl_wv_eqn* eqn, const double* tau1, const double* tau2, const double* norm,
+  const double* GKYL_RESTRICT qglobal, double* GKYL_RESTRICT qlocal)
 {
   // Mass density and energy are scalars
   qlocal[0] = qglobal[0];
@@ -48,8 +48,8 @@ rot_to_local(const double *tau1, const double *tau2, const double *norm,
 }
 
 static inline void
-rot_to_global(const double *tau1, const double *tau2, const double *norm,
-  const double *GKYL_RESTRICT qlocal, double *GKYL_RESTRICT qglobal)
+rot_to_global(const struct gkyl_wv_eqn* eqn, const double* tau1, const double* tau2, const double* norm,
+  const double* GKYL_RESTRICT qlocal, double* GKYL_RESTRICT qglobal)
 {
   // Mass density and energy are scalars
   qglobal[0] = qlocal[0];
@@ -169,6 +169,14 @@ max_speed(const struct gkyl_wv_eqn *eqn, const double *q)
   return gkyl_sr_euler_max_abs_speed(sr_euler->gas_gamma, q);
 }
 
+static inline void
+sr_euler_source(const struct gkyl_wv_eqn* eqn, const double* qin, double* sout)
+{
+  for (int i = 0; i < 5; i++) {
+    sout[i] = 0.0;
+  }
+}
+
 struct gkyl_wv_eqn*
 gkyl_wv_sr_euler_new(double gas_gamma)
 {
@@ -192,6 +200,8 @@ gkyl_wv_sr_euler_new(double gas_gamma)
   sr_euler->eqn.riem_to_cons = riem_to_cons;
 
   sr_euler->eqn.cons_to_diag = gkyl_default_cons_to_diag;
+
+  sr_euler->eqn.source_func = sr_euler_source;
 
   sr_euler->eqn.ref_count = gkyl_ref_count_init(sr_euler_free);
 

@@ -29,15 +29,15 @@ riem_to_cons(const struct gkyl_wv_eqn *eqn,
 }
 
 static inline void
-rot_to_local(const double *tau1, const double *tau2, const double *norm,
-  const double *GKYL_RESTRICT qglobal, double *GKYL_RESTRICT qlocal)
+rot_to_local(const struct gkyl_wv_eqn* eqn, const double* tau1, const double* tau2, const double* norm,
+  const double* GKYL_RESTRICT qglobal, double* GKYL_RESTRICT qlocal)
 {
   qlocal[0] = qglobal[0];
 }
 
 static inline void
-rot_to_global(const double *tau1, const double *tau2, const double *norm,
-  const double *GKYL_RESTRICT qlocal, double *GKYL_RESTRICT qglobal)
+rot_to_global(const struct gkyl_wv_eqn* eqn, const double* tau1, const double* tau2, const double* norm,
+  const double* GKYL_RESTRICT qlocal, double* GKYL_RESTRICT qglobal)
 {
   qglobal[0] = qlocal[0];
 }
@@ -115,6 +115,12 @@ max_speed(const struct gkyl_wv_eqn *eqn, const double *q)
   return fabs(q[0]);
 }
 
+static inline void
+burgers_source(const struct gkyl_wv_eqn* eqn, const double* qin, double* sout)
+{
+  sout[0] = 0.0;
+}
+
 struct gkyl_wv_eqn*
 gkyl_wv_burgers_new(void)
 {
@@ -139,6 +145,8 @@ gkyl_wv_burgers_new(void)
   burgers->eqn.riem_to_cons = riem_to_cons;
 
   burgers->eqn.cons_to_diag = gkyl_default_cons_to_diag;
+
+  burgers->eqn.source_func = burgers_source;
 
   burgers->eqn.ref_count = gkyl_ref_count_init(burgers_free);
 

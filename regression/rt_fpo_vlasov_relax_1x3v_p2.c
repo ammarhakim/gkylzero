@@ -100,7 +100,8 @@ main(int argc, char **argv)
     .upper = { 8.0*ctx.vt, 8.0*ctx.vt, 8.0*ctx.vt }, 
     .cells = { NV, NV, NV },
 
-    .projection = {
+    .num_init = 1,
+    .projection[0] = {
       .proj_id = GKYL_PROJ_FUNC,
       .func = evalDistFuncSquare,
       .ctx_func = &ctx,
@@ -123,7 +124,8 @@ main(int argc, char **argv)
     .upper = { 5.0*ctx.vt, 5.0*ctx.vt, 5.0*ctx.vt }, 
     .cells = { NV, NV, NV },
 
-    .projection = {
+    .num_init = 1,
+    .projection[0] = {
       .proj_id = GKYL_PROJ_FUNC,
       .func = evalDistFuncBump,
       .ctx_func = &ctx,

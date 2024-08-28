@@ -13,6 +13,9 @@ enum gkyl_eqn_type {
   GKYL_EQN_BURGERS, // Burgers equations
   GKYL_EQN_ADVECTION, // Scalar advection equation
   GKYL_EQN_GR_EULER, // General relativistic Euler equations.
+  GKYL_EQN_REACTIVE_EULER, // Reactive Euler equations.
+  GKYL_EQN_EULER_MIXTURE, // Euler mixture equations.
+  GKYL_EQN_ISO_EULER_MIXTURE, // Isothermal Euler mixture equations.
 };
 
 // Identifiers for specific field object types
@@ -56,6 +59,13 @@ enum gkyl_projection_id {
   GKYL_PROJ_BIMAXWELLIAN, // Bi-Maxwellian projection
   GKYL_PROJ_VLASOV_LTE, // LTE (Local thermodynamic equilibrium) projection for Vlasov
                         // (Maxwellian for non-relativistic, Maxwell-Juttner for relativistic)
+};
+
+// Identifiers for specific radiation object types
+enum gkyl_radiation_id {
+  GKYL_NO_RADIATION = 0, // No radiation. This is default
+  GKYL_GK_RADIATION, // Radiation in gyrokinetic equations.
+  GKYL_VM_COMPTON_RADIATION, // Vlasov simple Compton radiation model. 
 };
 
 // type of quadrature to use

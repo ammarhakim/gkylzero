@@ -54,8 +54,8 @@ riem_to_cons_9(const struct gkyl_wv_eqn *eqn,
 }
 
 static inline void
-rot_to_local_rect(const double *tau1, const double *tau2, const double *norm,
-  const double *GKYL_RESTRICT qglobal, double *GKYL_RESTRICT qlocal)
+rot_to_local_rect(const struct gkyl_wv_eqn* eqn, const double* tau1, const double* tau2, const double* norm,
+  const double* GKYL_RESTRICT qglobal, double* GKYL_RESTRICT qlocal)
 {
   // Mass density is a scalar
   qlocal[0] = qglobal[0];
@@ -72,8 +72,8 @@ rot_to_local_rect(const double *tau1, const double *tau2, const double *norm,
 }
 
 static inline void
-rot_to_global_rect(const double *tau1, const double *tau2, const double *norm,
-  const double *GKYL_RESTRICT qlocal, double *GKYL_RESTRICT qglobal)
+rot_to_global_rect(const struct gkyl_wv_eqn* eqn, const double* tau1, const double* tau2, const double* norm,
+  const double* GKYL_RESTRICT qlocal, double* GKYL_RESTRICT qglobal)
 {
   // Mass density is a scalar
   qglobal[0] = qlocal[0];
@@ -90,18 +90,18 @@ rot_to_global_rect(const double *tau1, const double *tau2, const double *norm,
 }
 
 static inline void
-rot_to_local_rect_glm(const double *tau1, const double *tau2, const double *norm,
-  const double *GKYL_RESTRICT qglobal, double *GKYL_RESTRICT qlocal)
+rot_to_local_rect_glm(const struct gkyl_wv_eqn* eqn, const double* tau1, const double* tau2, const double* norm,
+  const double* GKYL_RESTRICT qglobal, double* GKYL_RESTRICT qlocal)
 {
-  rot_to_local_rect(tau1, tau2, norm, qglobal, qlocal);
+  rot_to_local_rect(eqn, tau1, tau2, norm, qglobal, qlocal);
   qlocal[8] = qglobal[8];
 }
 
 static inline void
-rot_to_global_rect_glm(const double *tau1, const double *tau2, const double *norm,
-  const double *GKYL_RESTRICT qlocal, double *GKYL_RESTRICT qglobal)
+rot_to_global_rect_glm(const struct gkyl_wv_eqn* eqn, const double* tau1, const double* tau2, const double* norm,
+  const double* GKYL_RESTRICT qlocal, double* GKYL_RESTRICT qglobal)
 {
-  rot_to_global_rect(tau1, tau2, norm, qlocal, qglobal);
+  rot_to_global_rect(eqn, tau1, tau2, norm, qlocal, qglobal);
   qglobal[8] = qlocal[8];
 }
 
@@ -775,6 +775,14 @@ max_speed(const struct gkyl_wv_eqn *eqn, const double *q)
   return gkyl_mhd_max_abs_speed(mhd->gas_gamma, q);
 }
 
+static inline void
+mhd_source(const struct gkyl_wv_eqn* eqn, const double* qin, double* sout)
+{
+  for (int i = 0; i < 8; i++) {
+    sout[i] = 0.0;
+  }
+}
+
 struct gkyl_wv_eqn*
 gkyl_wv_mhd_new(const struct gkyl_wv_mhd_inp *inp)
 {
@@ -840,6 +848,8 @@ gkyl_wv_mhd_new(const struct gkyl_wv_mhd_inp *inp)
   mhd->eqn.num_diag = mhd->eqn.num_equations;
   // probably want to change this to store magnetic, internal and KE 
   mhd->eqn.cons_to_diag = gkyl_default_cons_to_diag;
+
+  mhd->eqn.source_func = mhd_source;
 
   mhd->eqn.ref_count = gkyl_ref_count_init(mhd_free);
 

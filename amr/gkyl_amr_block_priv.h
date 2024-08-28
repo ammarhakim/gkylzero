@@ -28,11 +28,11 @@
 #include <gkyl_wv_gr_euler.h>
 #include <gkyl_wv_ten_moment.h>
 #include <gkyl_wv_maxwell.h>
+#include <gkyl_wv_euler_mixture.h>
 #include <rt_arg_parse.h>
 
 #include <thpool.h>
 
-//#define AMR_DEBUG
 #define AMR_USETHREADS
 
 // Definitions of private structs and APIs attached to these objects, for use in the block AMR subsystem.
@@ -66,6 +66,12 @@ struct euler_block_data {
 
   struct gkyl_wv_apply_bc *lower_bc[2];
   struct gkyl_wv_apply_bc *upper_bc[2];
+
+  bool copy_x;
+  bool copy_y;
+  
+  bool wall_x;
+  bool wall_y;
 };
 
 // Job pool information context for updating block-structured data for the Euler equations using threads.
@@ -100,42 +106,130 @@ struct sim_stats {
 void skin_ghost_ranges_init_block(struct skin_ghost_ranges_block* sgr, const struct gkyl_range* parent, const int* ghost);
 
 /**
-* Boundary condition function for applying transmissive boundary conditions for the Euler equations.
+* Boundary condition function for applying wall boundary conditions for the Euler equations.
 *
+* @param eqn Base equation object.
 * @param t Current simulation time.
-* @param nc Number of boundary cells to which to apply transmissive boundary conditions.
+* @param nc Number of boundary cells to which to apply wall boundary conditions.
 * @param skin Skin cells in boundary region (from which values are copied).
 * @param ghost Ghost cells in boundary region (to which values are copied).
 * @param ctx Context to pass to the function.
 */
-void euler_transmissive_bc(double t, int nc, const double* GKYL_RESTRICT skin, double* GKYL_RESTRICT ghost, void* ctx);
+void euler_wall_bc(const struct gkyl_wv_eqn* eqn, double t, int nc, const double* GKYL_RESTRICT skin, double* GKYL_RESTRICT ghost, void* ctx);
 
 /**
-* Boundary condition function for applying transmissive boundary conditions for the general relativistic Euler equations.
+* Boundary condition function for applying wall boundary conditions for the general relativistic Euler equations.
 *
+* @param eqn Base equation object.
 * @param t Current simulation time.
-* @param nc Number of boundary cells to which to apply transmissive boundary conditions.
+* @param nc Number of boundary cells to which to apply wall boundary conditions.
 * @param skin Skin cells in boundary region (from which values are copied).
 * @param ghost Ghost cells in boundary region (to which values are copied).
 * @param ctx Context to pass to the function.
 */
-void gr_euler_transmissive_bc(double t, int nc, const double* GKYL_RESTRICT skin, double* GKYL_RESTRICT ghost, void* ctx);
+void gr_euler_wall_bc(const struct gkyl_wv_eqn* eqn, double t, int nc, const double* GKYL_RESTRICT skin, double* GKYL_RESTRICT ghost, void* ctx);
+
+/**
+* Boundary condition function for applying wall boundary conditions for the Euler mixture equations.
+*
+* @param eqn Base equation object.
+* @param t Current simulation time.
+* @param nc Number of boundary cells to which to apply wall boundary conditions.
+* @param skin Skin cells in boundary region (from which values are copied).
+* @param ghost Ghost cells in boundary region (to which values are copied).
+* @param ctx Context to pass to the function.
+*/
+void euler_mixture_wall_bc(const struct gkyl_wv_eqn* eqn, double t, int nc, const double* GKYL_RESTRICT skin, double* GKYL_RESTRICT ghost, void* ctx);
+
+/**
+* Boundary condition function for applying copy boundary conditions for the Euler equations.
+*
+* @param eqn Base equation object.
+* @param t Current simulation time.
+* @param nc Number of boundary cells to which to apply copy boundary conditions.
+* @param skin Skin cells in boundary region (from which values are copied).
+* @param ghost Ghost cells in boundary region (to which values are copied).
+* @param ctx Context to pass to the function.
+*/
+void euler_copy_bc(const struct gkyl_wv_eqn* eqn, double t, int nc, const double* GKYL_RESTRICT skin, double* GKYL_RESTRICT ghost, void* ctx);
+
+/**
+* Boundary condition function for applying copy boundary conditions for the general relativistic Euler equations.
+*
+* @param eqn Base equation object.
+* @param t Current simulation time.
+* @param nc Number of boundary cells to which to apply copy boundary conditions.
+* @param skin Skin cells in boundary region (from which values are copied).
+* @param ghost Ghost cells in boundary region (to which values are copied).
+* @param ctx Context to pass to the function.
+*/
+void gr_euler_copy_bc(const struct gkyl_wv_eqn* eqn, double t, int nc, const double* GKYL_RESTRICT skin, double* GKYL_RESTRICT ghost, void* ctx);
+
+/**
+* Boundary condition function for applying copy boundary conditions for the Euler mixture equations.
+*
+* @param eqn Base equation object.
+* @param t Current simulation time.
+* @param nc Number of boundary cells to which to apply copy boundary conditions.
+* @param skin Skin cells in boundary region (from which values are copied).
+* @param ghost Ghost cells in boundary region (to which values are copied).
+* @param ctx Context to pass to the function.
+*/
+void euler_mixture_copy_bc(const struct gkyl_wv_eqn* eqn, double t, int nc, const double* GKYL_RESTRICT skin, double* GKYL_RESTRICT ghost, void* ctx);
 
 /**
 * Initialize block AMR updaters for both physical (outer-block) and non-physical (inter-block) boundary conditions for the Euler equations.
 *
+* @param eqn Base equation object.
 * @param bdata Block-structured data for the Euler equations.
 * @param conn Topology/connectivity data for the block hierarchy.
 */
-void euler_block_bc_updaters_init(struct euler_block_data* bdata, const struct gkyl_block_connections* conn);
+void euler_block_bc_updaters_init(const struct gkyl_wv_eqn* eqn, struct euler_block_data* bdata, const struct gkyl_block_connections* conn);
+
+/**
+* Initialize nested block AMR updaters for both physical (outer-block) and non-physical (inter-block) boundary conditions for the Euler equations.
+*
+* @param eqn Base equation object.
+* @param bdata Block-structured data for the Euler equations.
+* @param conn Topology/connectivity data for the block hierarchy.
+*/
+void euler_nested_block_bc_updaters_init(const struct gkyl_wv_eqn* eqn, struct euler_block_data* bdata, const struct gkyl_block_connections* conn);
 
 /**
 * Initialize block AMR updaters for both physical (outer-block) and non-physical (inter-block) boundary conditions for the general relativistic Euler equations.
 *
+* @param eqn Base equation object.
 * @param bdata Block-structured data for the general relativistic Euler equations.
 * @param conn Topology/connectivity data for the block hierarchy.
 */
-void gr_euler_block_bc_updaters_init(struct euler_block_data* bdata, const struct gkyl_block_connections* conn);
+void gr_euler_block_bc_updaters_init(const struct gkyl_wv_eqn* eqn, struct euler_block_data* bdata, const struct gkyl_block_connections* conn);
+
+/**
+* Initialize nested block AMR updaters for both physical (outer-block) and non-physical (inter-block) boundary conditions for the general relativistic Euler equations.
+*
+* @param eqn Base equation object.
+* @param bdata Block-structured data for the general relativistic Euler equations.
+* @param conn Topology/connectivity data for the block hierarchy.
+*/
+void gr_euler_nested_block_bc_updaters_init(const struct gkyl_wv_eqn* eqn, struct euler_block_data* bdata, const struct gkyl_block_connections* conn);
+
+/**
+* Initialize block AMR updaters for both physical (outer-block) and non-physical (inter-block) boundary conditions for the Euler mixture equations.
+*
+* @param eqn Base equation object.
+* @param bdata Block-structured data for the Euler mixture equations.
+* @param conn Topology/connectivity data for the block hierarchy.
+*/
+void euler_mixture_block_bc_updaters_init(const struct gkyl_wv_eqn* eqn, struct euler_block_data* bdata, const struct gkyl_block_connections* conn);
+
+/**
+* Initialize nested block AMR updaters for both physical (outer-block) and non-physical (inter-block) boundary conditions for the Euler mixture equations.
+*
+* @param eqn Base equation object.
+* @param bdata Block-structured data for the Euler mixture equations.
+* @param conn Topology/connectivity data for the block hierarchy.
+*/
+void euler_mixture_nested_block_bc_updaters_init(const struct gkyl_wv_eqn* eqn, struct euler_block_data* bdata, const struct gkyl_block_connections* conn);
 
 /**
 * Release block AMR updaters for both physical (outer-block) and non-physical (inter-block) boundary conditions for the Euler equations.
@@ -152,6 +246,118 @@ void euler_block_bc_updaters_release(struct euler_block_data* bdata);
 * @param fld Output array.
 */
 void euler_block_bc_updaters_apply(const struct euler_block_data* bdata, double tm, struct gkyl_array* fld);
+
+/**
+* Coarse-to-fine projection operator for block-structured AMR, assuming a lower coarse block and a lower fine block.
+*
+* @param tbid Target (fine) block ID.
+* @param tdir Target (fine) block direction.
+* @param i Reference (coarse) block ID.
+* @param d Reference (coarse) block direction.
+* @param bdata Block-structured data for the Euler equations.
+* @param bc_buffer Buffer for applying boundary conditions.
+* @param fld Output array.
+*/
+void block_ll_projection_op(const int tbid, const int tdir, const int i, const int d, const struct euler_block_data bdata[],
+  const struct gkyl_array* bc_buffer, struct gkyl_array* fld[]);
+
+/**
+* Fine-to-coarse restriction operator for block-structured AMR, assuming a lower fine block and a lower coarse block.
+*
+* @param tbid Target (coarse) block ID.
+* @param tdir Target (coarse) block direction.
+* @param i Reference (fine) block ID.
+* @param d Reference (fine) block direction.
+* @param bdata Block-structured data for the Euler equations.
+* @param bc_buffer Buffer for applying boundary conditions.
+* @param fld Output array.
+*/
+void block_ll_restriction_op(const int tbid, const int tdir, const int i, const int d, const struct euler_block_data bdata[],
+  const struct gkyl_array* bc_buffer, struct gkyl_array* fld[]);
+
+/**
+* Coarse-to-fine projection operator for block-structured AMR, assuming a lower coarse block and an upper fine block.
+*
+* @param tbid Target (fine) block ID.
+* @param tdir Target (fine) block direction.
+* @param i Reference (coarse) block ID.
+* @param d Reference (coarse) block direction.
+* @param bdata Block-structured data for the Euler equations.
+* @param bc_buffer Buffer for applying boundary conditions.
+* @param fld Output array.
+*/
+void block_lu_projection_op(const int tbid, const int tdir, const int i, const int d, const struct euler_block_data bdata[],
+  const struct gkyl_array* bc_buffer, struct gkyl_array* fld[]);
+
+/**
+* Fine-to-coarse restriction operator for block-structured AMR, assuming a lower fine block and an upper coarse block.
+*
+* @param tbid Target (coarse) block ID.
+* @param tdir Target (coarse) block direction.
+* @param i Reference (fine) block ID.
+* @param d Reference (fine) block direction.
+* @param bdata Block-structured data for the Euler equations.
+* @param bc_buffer Buffer for applying boundary conditions.
+* @param fld Output array.
+*/
+void block_lu_restriction_op(const int tbid, const int tdir, const int i, const int d, const struct euler_block_data bdata[],
+  const struct gkyl_array* bc_buffer, struct gkyl_array* fld[]);
+
+  /**
+* Coarse-to-fine projection operator for block-structured AMR, assuming an upper coarse block and a lower fine block.
+*
+* @param tbid Target (fine) block ID.
+* @param tdir Target (fine) block direction.
+* @param i Reference (coarse) block ID.
+* @param d Reference (coarse) block direction.
+* @param bdata Block-structured data for the Euler equations.
+* @param bc_buffer Buffer for applying boundary conditions.
+* @param fld Output array.
+*/
+void block_ul_projection_op(const int tbid, const int tdir, const int i, const int d, const struct euler_block_data bdata[],
+  const struct gkyl_array* bc_buffer, struct gkyl_array* fld[]);
+
+/**
+* Fine-to-coarse restriction operator for block-structured AMR, assuming an upper fine block and a lower coarse block.
+*
+* @param tbid Target (coarse) block ID.
+* @param tdir Target (coarse) block direction.
+* @param i Reference (fine) block ID.
+* @param d Reference (fine) block direction.
+* @param bdata Block-structured data for the Euler equations.
+* @param bc_buffer Buffer for applying boundary conditions.
+* @param fld Output array.
+*/
+void block_ul_restriction_op(const int tbid, const int tdir, const int i, const int d, const struct euler_block_data bdata[],
+  const struct gkyl_array* bc_buffer, struct gkyl_array* fld[]);
+
+/**
+* Coarse-to-fine projection operator for block-structured AMR, assuming an upper coarse block and an upper fine block.
+*
+* @param tbid Target (fine) block ID.
+* @param tdir Target (fine) block direction.
+* @param i Reference (coarse) block ID.
+* @param d Reference (coarse) block direction.
+* @param bdata Block-structured data for the Euler equations.
+* @param bc_buffer Buffer for applying boundary conditions.
+* @param fld Output array.
+*/
+void block_uu_projection_op(const int tbid, const int tdir, const int i, const int d, const struct euler_block_data bdata[],
+  const struct gkyl_array* bc_buffer, struct gkyl_array* fld[]);
+
+/**
+* Fine-to-coarse restriction operator for block-structured AMR, assuming an upper fine block and an upper coarse block.
+*
+* @param tbid Target (coarse) block ID.
+* @param tdir Target (coarse) block direction.
+* @param i Reference (fine) block ID.
+* @param d Reference (fine) block direction.
+* @param bdata Block-structured data for the Euler equations.
+* @param bc_buffer Buffer for applying boundary conditions.
+* @param fld Output array.
+*/
+void block_uu_restriction_op(const int tbid, const int tdir, const int i, const int d, const struct euler_block_data bdata[],
+  const struct gkyl_array* bc_buffer, struct gkyl_array* fld[]);
 
 /**
 * Synchronize all blocks in the block AMR hierarchy by applying all appropriate physical (outer-block) and non-physical (inter-block)
@@ -249,3 +455,8 @@ double euler_max_dt_block(int num_blocks, const struct euler_block_data bdata[])
 * Set up the topology/connectivity information for the block AMR hierarchy for a mesh containing a single refinement patch.
 */
 struct gkyl_block_topo* create_block_topo();
+
+/**
+* Set up the topology/connectivity information for the block AMR hierarchy for a mesh containing a doubly-nested refinement patch.
+*/
+struct gkyl_block_topo* create_nested_block_topo();

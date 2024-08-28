@@ -2,12 +2,21 @@
 
 #include <gkyl_app.h>
 #include <gkyl_comm.h>
+#include <gkyl_moment_braginskii.h>
 #include <gkyl_mp_scheme.h>
 #include <gkyl_util.h>
 #include <gkyl_wave_prop.h>
 #include <gkyl_wv_eqn.h>
 
 #include <time.h>
+
+// number of components that various applied functions should return
+enum {
+  GKYL_MOM_APP_NUM_APPLIED_CURRENT = 3,
+  GKYL_MOM_APP_NUM_EXT_EM = 6,
+  GKYL_MOM_APP_NUM_APPLIED_ACCELERATION = 3,
+  GKYL_MOM_APP_NUM_NT_SOURCE = 2
+};
 
 // Parameters for moment species
 struct gkyl_moment_species {
@@ -18,7 +27,26 @@ struct gkyl_moment_species {
   enum gkyl_wave_limiter limiter; // limiter to use
   enum gkyl_wave_split_type split_type; // edge splitting to use
 
-  bool has_grad_closure; // has gradient-based closure (only for 10 moment)  
+  enum gkyl_braginskii_type type_brag; // which Braginskii equations
+  bool has_grad_closure; // has gradient-based closure (only for 10 moment) 
+
+  bool has_friction; // Run with frictional sources.
+  bool use_explicit_friction; // Use an explicit (SSP-RK3) solver for integrating frictional sources.
+  double friction_Z; // Ionization number for frictional sources.
+  double friction_T_elc; // Electron temperature for frictional sources.
+  double friction_Lambda_ee; // Electron-electron collisional term for frictional sources.
+
+  bool has_volume_sources; // Run with volume-based geometrical sources.
+  double volume_gas_gamma; // Adiabatic index for volume-based geometrical sources.
+  double volume_U0; // Initial comoving plasma velocity for volume-based geometrical sources.
+  double volume_R0; // Initial radial distance from expansion/contraction center for volume-based geometrical sources.
+
+  bool has_reactivity; // Run with reactive sources.
+  double reactivity_gas_gamma; // Adiabatic index for reactive sources.
+  double reactivity_specific_heat_capacity; // Specific heat capacity for reactive sources.
+  double reactivity_energy_of_formation; // Energy of formation for reactive sources.
+  double reactivity_ignition_temperature; // Ignition temperature for reactive sources.
+  double reactivity_reaction_rate; // Reaction rate for reactive sources.
 
   int evolve; // evolve species? 1-yes, 0-no
   bool force_low_order_flux; // should  we force low-order flux?
@@ -26,6 +54,8 @@ struct gkyl_moment_species {
   void *ctx; // context for initial condition init function (and potentially other functions)
   // pointer to initialization function
   void (*init)(double t, const double *xn, double *fout, void *ctx);
+  bool is_app_accel_static; // flag to indicate if applied acceleration is static
+  void *app_accel_ctx; // context for applied acceleration
   // pointer to applied acceleration/forces function
   void (*app_accel_func)(double t, const double *xn, double *fout, void *ctx);
   // pointer to user-defined number density and temperature sources
@@ -34,14 +64,14 @@ struct gkyl_moment_species {
   // boundary conditions
   enum gkyl_species_bc_type bcx[2], bcy[2], bcz[2];
   // pointer to boundary condition functions along x
-  void (*bcx_lower_func)(double t, int nc, const double *skin, double * GKYL_RESTRICT ghost, void *ctx);
-  void (*bcx_upper_func)(double t, int nc, const double *skin, double * GKYL_RESTRICT ghost, void *ctx);
+  void (*bcx_lower_func)(const struct gkyl_wv_eqn* eqn, double t, int nc, const double *skin, double * GKYL_RESTRICT ghost, void *ctx);
+  void (*bcx_upper_func)(const struct gkyl_wv_eqn* eqn, double t, int nc, const double *skin, double * GKYL_RESTRICT ghost, void *ctx);
   // pointer to boundary condition functions along y
-  void (*bcy_lower_func)(double t, int nc, const double *skin, double * GKYL_RESTRICT ghost, void *ctx);
-  void (*bcy_upper_func)(double t, int nc, const double *skin, double * GKYL_RESTRICT ghost, void *ctx);
+  void (*bcy_lower_func)(const struct gkyl_wv_eqn* eqn, double t, int nc, const double *skin, double * GKYL_RESTRICT ghost, void *ctx);
+  void (*bcy_upper_func)(const struct gkyl_wv_eqn* eqn, double t, int nc, const double *skin, double * GKYL_RESTRICT ghost, void *ctx);
   // pointer to boundary condition functions along z
-  void (*bcz_lower_func)(double t, int nc, const double *skin, double * GKYL_RESTRICT ghost, void *ctx);
-  void (*bcz_upper_func)(double t, int nc, const double *skin, double * GKYL_RESTRICT ghost, void *ctx);
+  void (*bcz_lower_func)(const struct gkyl_wv_eqn* eqn, double t, int nc, const double *skin, double * GKYL_RESTRICT ghost, void *ctx);
+  void (*bcz_upper_func)(const struct gkyl_wv_eqn* eqn, double t, int nc, const double *skin, double * GKYL_RESTRICT ghost, void *ctx);
 };
 
 // Parameter for EM field
@@ -66,17 +96,22 @@ struct gkyl_moment_field {
   double t_ramp_E; // linear ramp for turning on external E field
   bool use_explicit_em_coupling; // flag to indicate if using explicit em-coupling
 
+  bool has_volume_sources; // Run with volume-based geometrical sources.
+  double volume_gas_gamma; // Adiabatic index for volume-based geometrical sources.
+  double volume_U0; // Initial comoving plasma velocity for volume-based geometrical sources.
+  double volume_R0; // Initial radial distance from expansion/contraction center for volume-based geometrical sources.
+
   // boundary conditions
   enum gkyl_field_bc_type bcx[2], bcy[2], bcz[2];
   // pointer to boundary condition functions along x
-  void (*bcx_lower_func)(double t, int nc, const double *skin, double * GKYL_RESTRICT ghost, void *ctx);
-  void (*bcx_upper_func)(double t, int nc, const double *skin, double * GKYL_RESTRICT ghost, void *ctx);
+  void (*bcx_lower_func)(const struct gkyl_wv_eqn* eqn, double t, int nc, const double* skin, double* GKYL_RESTRICT ghost, void* ctx);
+  void (*bcx_upper_func)(const struct gkyl_wv_eqn* eqn, double t, int nc, const double* skin, double* GKYL_RESTRICT ghost, void* ctx);
   // pointer to boundary condition functions along y
-  void (*bcy_lower_func)(double t, int nc, const double *skin, double * GKYL_RESTRICT ghost, void *ctx);
-  void (*bcy_upper_func)(double t, int nc, const double *skin, double * GKYL_RESTRICT ghost, void *ctx);
+  void (*bcy_lower_func)(const struct gkyl_wv_eqn* eqn, double t, int nc, const double* skin, double* GKYL_RESTRICT ghost, void* ctx);
+  void (*bcy_upper_func)(const struct gkyl_wv_eqn* eqn, double t, int nc, const double* skin, double* GKYL_RESTRICT ghost, void* ctx);
   // pointer to boundary condition functions along z
-  void (*bcz_lower_func)(double t, int nc, const double *skin, double * GKYL_RESTRICT ghost, void *ctx);
-  void (*bcz_upper_func)(double t, int nc, const double *skin, double * GKYL_RESTRICT ghost, void *ctx);
+  void (*bcz_lower_func)(const struct gkyl_wv_eqn* eqn, double t, int nc, const double* skin, double* GKYL_RESTRICT ghost, void* ctx);
+  void (*bcz_upper_func)(const struct gkyl_wv_eqn* eqn, double t, int nc, const double* skin, double* GKYL_RESTRICT ghost, void* ctx);
 };
 
 // Choices of schemes to use in the fluid solver
@@ -135,6 +170,9 @@ struct gkyl_moment {
   double nu_base[GKYL_MAX_SPECIES][GKYL_MAX_SPECIES];
 
   bool has_nT_sources;
+
+  bool has_braginskii; // has Braginskii transport
+  double coll_fac; // multiplicative collisionality factor for Braginskii  
 
   // this should not be set by typical user-facing code but only by
   // higher-level drivers

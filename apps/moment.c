@@ -123,11 +123,16 @@ gkyl_moment_app_new(struct gkyl_moment *mom)
     app->is_dir_skipped[mom->skip_dirs[i]] = 1;
 
   app->has_field = 0;
-  // initialize field if we have one
+  // Are we running with a field?
   if (mom->field.init) {
     app->has_field = 1;
-    moment_field_init(mom, &mom->field, app, &app->field);
   }
+  // Initialize a (potentially null) field object for safety.
+  moment_field_init(mom, &mom->field, app, &app->field);
+
+  // Are we running with Braginskii transport?
+  app->has_braginskii = mom->has_braginskii;
+  app->coll_fac = mom->coll_fac;
 
   int ns = app->num_species = mom->num_species;
   // allocate space to store species objects
@@ -143,12 +148,12 @@ gkyl_moment_app_new(struct gkyl_moment *mom)
     for (int r=0; r<app->num_species; ++r)
       app->nu_base[s][r] = mom->nu_base[s][r];
 
-  // check if we should update sources
-  app->update_sources = 0;
-  if (app->has_field && ns>0) {
-    app->update_sources = 1; // only update if field and species are present
-    moment_coupling_init(app, &app->sources);
-  }
+  // Right now we integrate sources by default, since there are so many scenarios in which the source solver is required
+  // (e.g. applied acceleration, geometric sources, multi-species transport, electromagnetic coupling, etc.).
+  // moment_em_coupling explicitly checks for each of these cases individually, so the performance hit of initializing by
+  // default is negligible, although we may wish to streamline this in the future. --JG 08/20/24.
+  app->update_sources = 1;
+  moment_coupling_init(app, &app->sources);
 
   app->update_mhd_source = false;
   if (ns==1 && mom->species[0].equation->type==GKYL_EQN_MHD) {

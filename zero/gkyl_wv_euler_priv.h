@@ -111,7 +111,7 @@ riem_to_cons(const struct gkyl_wv_eqn *eqn,
 // Euler perfectly reflecting wall
 GKYL_CU_D
 static void
-euler_wall(double t, int nc, const double *skin, double * GKYL_RESTRICT ghost, void *ctx)
+euler_wall(const struct gkyl_wv_eqn* eqn, double t, int nc, const double *skin, double * GKYL_RESTRICT ghost, void *ctx)
 {
   // copy density and pressure
   ghost[0] = skin[0];
@@ -126,7 +126,7 @@ euler_wall(double t, int nc, const double *skin, double * GKYL_RESTRICT ghost, v
 // Euler no-slip wall
 GKYL_CU_D
 static void
-euler_no_slip(double t, int nc, const double *skin, double * GKYL_RESTRICT ghost, void *ctx)
+euler_no_slip(const struct gkyl_wv_eqn* eqn, double t, int nc, const double *skin, double * GKYL_RESTRICT ghost, void *ctx)
 {
   // copy density and pressure
   ghost[0] = skin[0];
@@ -140,8 +140,8 @@ euler_no_slip(double t, int nc, const double *skin, double * GKYL_RESTRICT ghost
 
 GKYL_CU_D
 static inline void
-rot_to_local(const double *tau1, const double *tau2, const double *norm,
-  const double *GKYL_RESTRICT qglobal, double *GKYL_RESTRICT qlocal)
+rot_to_local(const struct gkyl_wv_eqn* eqn, const double* tau1, const double* tau2, const double* norm,
+  const double* GKYL_RESTRICT qglobal, double* GKYL_RESTRICT qlocal)
 {
   qlocal[0] = qglobal[0];
   qlocal[1] = qglobal[1]*norm[0] + qglobal[2]*norm[1] + qglobal[3]*norm[2];
@@ -152,8 +152,8 @@ rot_to_local(const double *tau1, const double *tau2, const double *norm,
 
 GKYL_CU_D
 static inline void
-rot_to_global(const double *tau1, const double *tau2, const double *norm,
-  const double *GKYL_RESTRICT qlocal, double *GKYL_RESTRICT qglobal)
+rot_to_global(const struct gkyl_wv_eqn* eqn, const double* tau1, const double* tau2, const double* norm,
+  const double* GKYL_RESTRICT qlocal, double* GKYL_RESTRICT qglobal)
 {
   qglobal[0] = qlocal[0];
   qglobal[1] = qlocal[1]*norm[0] + qlocal[2]*tau1[0] + qlocal[3]*tau2[0];
@@ -679,4 +679,13 @@ euler_cons_to_diag(const struct gkyl_wv_eqn *eqn,
   double ke = 0.5*(qin[1]*qin[1] + qin[2]*qin[2] + qin[3]*qin[3])/qin[0];
   diag[4] = ke; 
   diag[5] = qin[4]-ke;
+}
+
+GKYL_CU_D
+static inline void
+euler_source(const struct gkyl_wv_eqn* eqn, const double* qin, double* sout)
+{
+  for (int i = 0; i < 5; i++) {
+    sout[i] = 0.0;
+  }
 }

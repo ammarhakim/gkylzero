@@ -59,9 +59,9 @@ void test_mhd_basic() {
 
   double q_local[8], flux_local[8], flux[8];
   for (int d = 1; d < 2; ++d) {
-    mhd->rotate_to_local_func(tau1[d], tau2[d], norm[d], q, q_local);
+    mhd->rotate_to_local_func(mhd, tau1[d], tau2[d], norm[d], q, q_local);
     gkyl_mhd_flux(gas_gamma, q_local, flux_local);
-    mhd->rotate_to_global_func(tau1[d], tau2[d], norm[d], flux_local, flux);
+    mhd->rotate_to_global_func(mhd, tau1[d], tau2[d], norm[d], flux_local, flux);
 
     for (int m = 0; m < 8; ++m)
       TEST_CHECK(gkyl_compare(flux[m], fluxes[d][m], 1e-14));

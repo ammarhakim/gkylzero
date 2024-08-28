@@ -66,6 +66,7 @@ GKYL_CU_DH void em_copy_bvar_1x_ser_p1(int count, struct gkyl_nmat *x, const dou
   ser_1x_p1_sqrt_with_sign(B_x, bxbx, bx); 
   ser_1x_p1_sqrt_with_sign(B_y, byby, by); 
   ser_1x_p1_sqrt_with_sign(B_z, bzbz, bz); 
+ 
   double *bx_xl = &bvar_surf[0]; 
   double *bx_xr = &bvar_surf[1]; 
   double *bxbx_xl = &bvar_surf[2]; 
