@@ -758,6 +758,16 @@ struct gkyl_gyrokinetic_app {
   struct gkyl_gyrokinetic_stat stat; // statistics
 };
 
+// Take a forward Euler step with the suggested time-step dt. This may
+// not be the actual time-step taken. However, the function will never
+// take a time-step larger than dt even if it is allowed by
+// stability. The actual time-step and dt_suggested are returned in
+// the status object.
+void gyrokinetic_forward_euler(gkyl_gyrokinetic_app* app, double tcurr, double dt,
+  const struct gkyl_array *fin[], struct gkyl_array *fout[], 
+  const struct gkyl_array *fin_neut[], struct gkyl_array *fout_neut[], 
+  struct gkyl_update_status *st);
+
 /** gkyl_gyrokinetic_app private API */
 
 /**
