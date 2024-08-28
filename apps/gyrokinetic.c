@@ -346,7 +346,15 @@ gkyl_gyrokinetic_app_new(struct gkyl_gk *gk)
   // allocated in gk_species_init and gk_neut_species_init
   for (int i=0; i<ns; ++i) {
     // initialize cross-species collisions (e.g, LBO or BGK)
-    if (app->species[i].collision_id == GKYL_LBO_COLLISIONS) {
+    if (app->species[i].collision_id == GKYL_DUO_COLLISIONS) {
+      if (app->species[i].lbo.num_cross_collisions) {
+        gk_species_lbo_cross_init(app, &app->species[i], &app->species[i].lbo);
+      }
+      if (app->species[i].bgk.num_cross_collisions) {
+        gk_species_bgk_cross_init(app, &app->species[i], &app->species[i].bgk);
+      }
+    }
+    else if (app->species[i].collision_id == GKYL_LBO_COLLISIONS) {
       if (app->species[i].lbo.num_cross_collisions) {
         gk_species_lbo_cross_init(app, &app->species[i], &app->species[i].lbo);
       }
@@ -720,7 +728,8 @@ gkyl_gyrokinetic_app_write(gkyl_gyrokinetic_app* app, double tm, int frame)
         gkyl_gyrokinetic_app_write_source_species(app, i, tm, frame);
       }
     }
-    if (app->species[i].collision_id == GKYL_LBO_COLLISIONS) {
+    if (app->species[i].collision_id == GKYL_LBO_COLLISIONS
+	|| app->species[i].collision_id == GKYL_DUO_COLLISIONS) {
       gkyl_gyrokinetic_app_write_coll_mom(app, i, tm, frame);
     }
     if (app->species[i].radiation_id == GKYL_GK_RADIATION){
@@ -1855,10 +1864,15 @@ forward_euler(gkyl_gyrokinetic_app* app, double tcurr, double dt,
   app->stat.nfeuler += 1;
 
   double dtmin = DBL_MAX;
-
   // Compute necessary moments and boundary corrections for collisions.
   for (int i=0; i<app->num_species; ++i) {
-    if (app->species[i].collision_id == GKYL_LBO_COLLISIONS) {
+    if (app->species[i].collision_id == GKYL_DUO_COLLISIONS) {
+      gk_species_lbo_moms(app, &app->species[i], 
+        &app->species[i].lbo, fin[i]);
+      gk_species_bgk_moms(app, &app->species[i], 
+        &app->species[i].bgk, fin[i]);
+    }
+    else if (app->species[i].collision_id == GKYL_LBO_COLLISIONS) {
       gk_species_lbo_moms(app, &app->species[i], 
         &app->species[i].lbo, fin[i]);
     }
@@ -1871,7 +1885,17 @@ forward_euler(gkyl_gyrokinetic_app* app, double tcurr, double dt,
   // Compute necessary moments for cross-species collisions.
   // Needs to be done after self-collisions moments, so separate loop over species.
   for (int i=0; i<app->num_species; ++i) {
-    if (app->species[i].collision_id == GKYL_LBO_COLLISIONS) { 
+    if (app->species[i].collision_id == GKYL_DUO_COLLISIONS) {
+      if (app->species[i].lbo.num_cross_collisions) {
+        gk_species_lbo_cross_moms(app, &app->species[i], 
+          &app->species[i].lbo, fin[i]);        
+      }
+      if (app->species[i].bgk.num_cross_collisions) {
+        gk_species_bgk_cross_moms(app, &app->species[i], 
+          &app->species[i].bgk, fin[i]);        
+      }
+    }
+    else if (app->species[i].collision_id == GKYL_LBO_COLLISIONS) { 
       if (app->species[i].lbo.num_cross_collisions) {
         gk_species_lbo_cross_moms(app, &app->species[i], 
           &app->species[i].lbo, fin[i]);        

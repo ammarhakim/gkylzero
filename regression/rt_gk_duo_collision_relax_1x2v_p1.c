@@ -358,17 +358,33 @@ main(int argc, char **argv)
       .correct_all_moms = true,
     },
     .collisions =  {
-      .collision_id = GKYL_LBO_COLLISIONS,
-      .normNu = true,
-      .n_ref = ctx.n0, // Density used to calculate coulomb logarithm
-      .T_ref = ctx.TeIC, // Temperature used to calculate coulomb logarithm
-      .self_nu = evalNuElcInit,
-      .ctx = &ctx,
-      .num_cross_collisions = 1,
-      .collide_with = { "ion" },
-      .nuFrac = { 1.0e-3},
+      .num_collision_types = 2,
+      .collision_type = {
+	{ .collision_id = GKYL_LBO_COLLISIONS,
+	  .normNu = true,
+	  .n_ref = ctx.n0, // Density used to calculate coulomb logarithm
+	  .T_ref = ctx.TeIC, // Temperature used to calculate coulomb logarithm
+	  .self_nu = evalNuElcInit,
+	  .ctx = &ctx,
+	  .num_cross_collisions = 1,
+	  .collide_with = { "ion" },
+	  .nuFrac = { 1.0e-20, 1.0},
+	},
+	{ .collision_id = GKYL_BGK_COLLISIONS,
+	  .normNu = true,
+	  .n_ref = ctx.n0, // Density used to calculate coulomb logarithm
+	  .T_ref = ctx.TeIC, // Temperature used to calculate coulomb logarithm
+	  .self_nu = evalNuElcInit,
+	  .ctx = &ctx,
+	  .num_cross_collisions = 0,
+	  .nuFrac = { 1.0 },
+	  .correct_all_moms = true,
+	  .use_last_converged = true,
+	  .iter_eps = 1e-12,
+	  .max_iter = 10,
+	},
+      },
     },
-    
     .num_diag_moments = 6,
     .diag_moments = { "M0", "M1", "M2", "M2par", "M2perp", "BiMaxwellianMoments" },
   };
@@ -396,15 +412,20 @@ main(int argc, char **argv)
       .correct_all_moms = true,
     },
     .collisions =  {
-      .collision_id = GKYL_LBO_COLLISIONS,
-      .normNu = true,
-      .n_ref = ctx.n0, // Density used to calculate coulomb logarithm
-      .T_ref = ctx.TiIC, // Temperature used to calculate coulomb logarithm
-      .self_nu = evalNuIonInit,
-      .ctx = &ctx,
-      .num_cross_collisions = 1,
-      .collide_with = { "elc" },
-      .nuFrac = { 1.0e-3},
+      .num_collision_types = 1,
+      .collision_type = {
+	{
+	  .collision_id = GKYL_LBO_COLLISIONS,
+	  .normNu = true,
+	  .n_ref = ctx.n0, // Density used to calculate coulomb logarithm
+	  .T_ref = ctx.TiIC, // Temperature used to calculate coulomb logarithm
+	  .self_nu = evalNuIonInit,
+	  .ctx = &ctx,
+	  .num_cross_collisions = 1,
+	  .collide_with = { "elc" },
+	  .nuFrac = { 1.0, 1.0},
+	},
+      },
     },
 
     .num_diag_moments = 6,
@@ -418,7 +439,7 @@ main(int argc, char **argv)
 
   // GK app.
   struct gkyl_gk app_inp = {
-    .name = "gk_lbo_cross_relax_1x2v_p1",
+    .name = "gk_duo_collision_relax_1x2v_p1",
 
     .cdim = 1, .vdim = 2,
     .lower = { -2.0 }, 

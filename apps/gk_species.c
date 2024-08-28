@@ -219,16 +219,24 @@ gk_species_init(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *app, st
   gks->source_id = gks->info.source.source_id;
   
   // Determine collision type and initialize it.
-  gks->collision_id = gks->info.collisions.collision_id;
+  if ( gks->info.collisions.num_collision_types == 2) {
+    gks->collision_id = GKYL_DUO_COLLISIONS;
+  } else
+    gks->collision_id = gks->info.collisions.collision_type[0].collision_id;
+  
   gks->lbo = (struct gk_lbo_collisions) { };
   gks->bgk = (struct gk_bgk_collisions) { };
-  if (gks->collision_id == GKYL_LBO_COLLISIONS) {
-    gk_species_lbo_init(app, gks, &gks->lbo);
+  for (int i=0; i<gks->info.collisions.num_collision_types; i++) {
+    if (gks->info.collisions.collision_type[i].collision_id == GKYL_LBO_COLLISIONS) {
+      gks->lbo_idx = i;
+      gk_species_lbo_init(app, gks, &gks->lbo);
+    }
+    else if (gks->info.collisions.collision_type[i].collision_id == GKYL_BGK_COLLISIONS) {
+      gks->bgk_idx = i;
+      gk_species_bgk_init(app, gks, &gks->bgk);
+    }
   }
-  else if (gks->collision_id == GKYL_BGK_COLLISIONS) {
-    gk_species_bgk_init(app, gks, &gks->bgk);
-  }
-
+  
   gks->has_reactions = false;
   gks->has_neutral_reactions = false;
   gks->react = (struct gk_react) { };
@@ -426,7 +434,10 @@ gk_species_rhs(gkyl_gyrokinetic_app *app, struct gk_species *species,
   gkyl_dg_updater_gyrokinetic_advance(species->slvr, &species->local, 
     fin, species->cflrate, rhs);
 
-  if (species->collision_id == GKYL_LBO_COLLISIONS)
+  if (species->collision_id == GKYL_DUO_COLLISIONS) {
+    gk_species_lbo_rhs(app, species, &species->lbo, fin, rhs);
+    gk_species_bgk_rhs(app, species, &species->bgk, fin, rhs);
+  } else if (species->collision_id == GKYL_LBO_COLLISIONS)
     gk_species_lbo_rhs(app, species, &species->lbo, fin, rhs);
   else if (species->collision_id == GKYL_BGK_COLLISIONS)
     gk_species_bgk_rhs(app, species, &species->bgk, fin, rhs);
@@ -589,7 +600,10 @@ gk_species_release(const gkyl_gyrokinetic_app* app, const struct gk_species *s)
     gk_species_source_release(app, &s->src);
   }
 
-  if (s->collision_id == GKYL_LBO_COLLISIONS)
+  if (s->collision_id == GKYL_DUO_COLLISIONS) {
+    gk_species_lbo_release(app, &s->lbo);
+    gk_species_bgk_release(app, &s->bgk);
+  }else if (s->collision_id == GKYL_LBO_COLLISIONS)
     gk_species_lbo_release(app, &s->lbo);
   else if (s->collision_id == GKYL_BGK_COLLISIONS)
     gk_species_bgk_release(app, &s->bgk);

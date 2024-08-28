@@ -41,7 +41,7 @@ struct gkyl_gyrokinetic_projection {
 };
 
 // Parameters for species collisions
-struct gkyl_gyrokinetic_collisions {
+struct gkyl_gyrokinetic_collision_type {
   enum gkyl_collision_id collision_id; // type of collisions (see gkyl_eqn_type.h)
 
   void *ctx; // context for collision function
@@ -65,6 +65,13 @@ struct gkyl_gyrokinetic_collisions {
 
   int num_cross_collisions; // number of species to cross-collide with
   char collide_with[GKYL_MAX_SPECIES][128]; // names of species to cross collide with
+};
+
+// Parameters for top level collisions
+struct gkyl_gyrokinetic_collisions {
+  int num_collision_types;
+  // Allow for both LBO and BGK collisions
+  struct gkyl_gyrokinetic_collision_type collision_type[2];
 };
 
 // Parameters for species diffusion

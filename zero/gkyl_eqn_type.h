@@ -52,6 +52,7 @@ enum gkyl_collision_id {
   GKYL_NO_COLLISIONS = 0, // No collisions. This is default
   GKYL_BGK_COLLISIONS, // BGK Collision operator
   GKYL_LBO_COLLISIONS, // LBO Collision operator
+  GKYL_DUO_COLLISIONS, // Both LBO and BGK Collision operators used
   GKYL_FPO_COLLISIONS, // FPO Collision operator
 };
 

@@ -527,10 +527,10 @@ struct gk_species {
   // collisions
   struct {
     enum gkyl_collision_id collision_id; // type of collisions
-    union {
-      struct gk_lbo_collisions lbo; // LBO collisions object
-      struct gk_bgk_collisions bgk; // BGK collisions object
-    };      
+    struct gk_lbo_collisions lbo; // LBO collisions object
+    struct gk_bgk_collisions bgk; // BGK collisions object
+    int lbo_idx;
+    int bgk_idx;
   };
 
   bool has_reactions; 
