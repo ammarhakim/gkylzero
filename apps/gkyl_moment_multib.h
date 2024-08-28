@@ -61,7 +61,7 @@ struct gkyl_moment_multib_field_pb {
   void *ext_em_ctx; // context for applied current
   // pointer to external fields
   void (*ext_em_func)(double t, const double *xn, double *fout, void *ctx);
-  double t_ramp_ext_em; // linear ramp for turning on external E field
+  double t_ramp_E; // linear ramp for turning on external E field
 
   bool use_explicit_em_coupling; // flag to indicate if using explicit em-coupling  
 };

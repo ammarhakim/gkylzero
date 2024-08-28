@@ -247,7 +247,7 @@ singleb_app_new(const struct gkyl_moment_multib *mbinp, int bid,
     field_inp.is_ext_em_static = fld_pb->is_ext_em_static;
     field_inp.ext_em_ctx = fld_pb->ext_em_ctx;
     field_inp.ext_em_func = fld_pb->ext_em_func;
-    field_inp.t_ramp_ext_em = fld_pb->t_ramp_ext_em;
+    field_inp.t_ramp_E = fld_pb->t_ramp_E;
 
     field_inp.use_explicit_em_coupling = fld_pb->use_explicit_em_coupling;
 
