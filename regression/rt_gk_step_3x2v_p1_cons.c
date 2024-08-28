@@ -88,13 +88,11 @@ struct sheath_ctx
   int num_failures_max; // Maximum allowable number of consecutive small time-steps.
 };
 
-struct gkyl_tok_geo_efit_inp inp = {
+struct gkyl_efit_inp inp = {
   // psiRZ and related inputs
   .filepath = "./data/eqdsk/step.geqdsk",
-  .rzpoly_order = 2,
-  .fluxpoly_order = 1,
-  .plate_spec = false,
-  .quad_param = {  .eps = 1e-10 }
+  .rz_poly_order = 2,
+  .flux_poly_order = 1,
 };
 
 
@@ -107,8 +105,6 @@ struct gkyl_tok_geo_grid_inp ginp = {
     .rmax = 6.2,
     .zmin = -5.14213,
     .zmax = 5.14226,
-    .write_node_coord_array = true,
-    .node_file_nm = "step_outboard_fixed_z_nodes.gkyl"
   };
 
 
@@ -756,8 +752,8 @@ main(int argc, char **argv)
     .geometry = {
       //.geometry_id = GKYL_GEOMETRY_FROMFILE,
       .geometry_id = GKYL_TOKAMAK,
-      .tok_efit_info = &inp,
-      .tok_grid_info = &ginp,
+      .efit_info = inp,
+      .tok_grid_info = ginp,
     },
 
     .num_periodic_dir = 3,
