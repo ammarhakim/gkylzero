@@ -226,6 +226,7 @@ gk_species_react_rhs(gkyl_gyrokinetic_app *app, const struct gk_species *s,
 
 	// primary elc
         gkyl_array_set_offset(react->prim_vars_proj_inp[i], 1.0, react->m0_elc[i], 0*app->confBasis.num_basis);
+        gkyl_array_set_offset(react->prim_vars_proj_inp[i], 1.0, react->prim_vars[i], 1*app->confBasis.num_basis);        
         gkyl_array_set_offset(react->prim_vars_proj_inp[i], 1.0, react->vt_sq_iz1[i], 2*app->confBasis.num_basis);
 
         gkyl_proj_gkmaxwellian_on_basis_prim_mom(react->proj_max, &s->local, &app->local,
