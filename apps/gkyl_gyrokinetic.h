@@ -146,9 +146,13 @@ struct gkyl_gyrokinetic_react_type {
   char ion_nm[128]; // name of ion species in reaction
   char donor_nm[128]; // name of donor species in reaction
   char recvr_nm[128]; // name of receiver species in reaction
+  char partner_nm[128]; // name of neut species in cx reaction
   int charge_state; // charge state of species in reaction
   double ion_mass; // mass of ion in reaction
   double elc_mass; // mass of electron in reaction
+  double partner_mass; // mass of neutral in cx reaction
+  double vt_sq_ion_min;
+  double vt_sq_partner_min; 
 };
 
 // Parameters for species radiation
@@ -157,7 +161,7 @@ struct gkyl_gyrokinetic_react {
   // 3 types of reactions supported currently
   // Ionization, Charge exchange, and Recombination
   // GKYL_MAX_SPECIES number of reactions supported per species (8 different reactions)
-  struct gkyl_gyrokinetic_react_type react_type[GKYL_MAX_SPECIES];
+  struct gkyl_gyrokinetic_react_type react_type[GKYL_MAX_REACT];
 };
 
 // Parameters for gk species.
@@ -624,6 +628,17 @@ void gkyl_gyrokinetic_app_write_iz_react_neut(gkyl_gyrokinetic_app* app, int sid
  * @param frame Frame number
  */
 void gkyl_gyrokinetic_app_write_recomb_react_neut(gkyl_gyrokinetic_app* app, int sidx, int ridx, double tm, int frame);
+
+/**
+ * Write cx react rate coefficients for species to file.
+ * 
+ * @param app App object.
+ * @param sidx Index of species to initialize.
+ * @param ridx Index of reaction to initialize.
+ * @param tm Time-stamp
+ * @param frame Frame number
+ */
+void gkyl_gyrokinetic_app_write_cx_react_neut(gkyl_gyrokinetic_app* app, int sidx, int ridx, double tm, int frame);
 
 /**
  * Write diagnostic moments for species to file.
