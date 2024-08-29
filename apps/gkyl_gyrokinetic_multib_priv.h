@@ -48,3 +48,17 @@ struct gyrokinetic_multib_output_meta {
   const char *app_name; // name of App
   const char *topo_file_name; // name of topology file
 };
+
+
+// Take a single time-step using a SSP-RK3 stepper
+static struct gkyl_update_status gyrokinetic_multib_update_ssp_rk3(struct gkyl_gyrokinetic_multib_app* mbapp, double dt0);
+
+// Take a forward Euler step with the suggested time-step dt. This may
+// not be the actual time-step taken. However, the function will never
+// take a time-step larger than dt even if it is allowed by
+// stability. The actual time-step and dt_suggested are returned in
+// the status object.
+void gyrokinetic_multib_forward_euler(struct gkyl_gyrokinetic_multib_app* mbapp, double tcurr, double dt,
+  const struct gkyl_array **fin[], struct gkyl_array **fout[],
+  const struct gkyl_array **fin_neut[], struct gkyl_array **fout_neut[],
+  struct gkyl_update_status *st, struct gkyl_update_status *sb_st);
