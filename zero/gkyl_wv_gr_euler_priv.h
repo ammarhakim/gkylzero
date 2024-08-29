@@ -67,7 +67,7 @@ gkyl_gr_euler_max_abs_speed(double gas_gamma, const double q[28]);
 * @param flux Flux vector in direction 'dir' (output).
 */
 GKYL_CU_D
-static void
+void
 gkyl_gr_euler_flux(double gas_gamma, const double q[28], double flux[28]);
 
 /**

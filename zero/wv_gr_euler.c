@@ -64,7 +64,7 @@ gkyl_gr_euler_prim_vars(double gas_gamma, const double q[28], double v[28])
     double guess = 1.0;
     int iter = 0;
 
-    while (iter < 10) {
+    while (iter < 100) {
       double poly = (alpha4 * (guess * guess * guess) * (guess - eta)) + (alpha2 * (guess * guess)) + (alpha1 * guess) + alpha0;
       double poly_der = alpha1 + (2.0 * alpha2 * guess) + (4.0 * alpha4 * (guess * guess * guess)) - (3.0 * eta * alpha4 * (guess * guess));
 
@@ -457,7 +457,7 @@ gkyl_gr_euler_max_abs_speed(double gas_gamma, const double q[28])
   }
 }
 
-static void
+void
 gkyl_gr_euler_flux(double gas_gamma, const double q[28], double flux[28])
 {
   double v[28] = { 0.0 };
@@ -483,7 +483,7 @@ gkyl_gr_euler_flux(double gas_gamma, const double q[28], double flux[28])
   double spatial_det = (spatial_metric[0][0] * ((spatial_metric[1][1] * spatial_metric[2][2]) - (spatial_metric[2][1] * spatial_metric[1][2]))) -
     (spatial_metric[0][1] * ((spatial_metric[1][0] * spatial_metric[2][2]) - (spatial_metric[1][2] * spatial_metric[2][0]))) +
     (spatial_metric[0][2] * ((spatial_metric[1][0] * spatial_metric[2][1]) - (spatial_metric[1][1] * spatial_metric[2][0])));
-
+  
   bool in_excision_region = false;
   if (v[27] < pow(10.0, -8.0)) {
     in_excision_region = true;
@@ -815,8 +815,87 @@ qfluct_lax_l(const struct gkyl_wv_eqn* eqn, enum gkyl_wv_flux_type type, const d
 static double
 wave_roe(const struct gkyl_wv_eqn* eqn, const double* delta, const double* ql, const double* qr, double* waves, double* s)
 {
-  // TODO: Rewrite Roe solver(s).
-  return 0.0;
+  const struct wv_gr_euler *gr_euler = container_of(eqn, struct wv_gr_euler, eqn);
+  double vl[28], vr[28];
+  double gas_gamma = gr_euler->gas_gamma;
+  
+  gkyl_gr_euler_prim_vars(gas_gamma, ql, vl);
+  gkyl_gr_euler_prim_vars(gas_gamma, qr, vr);
+
+  double rho_l = vl[0];
+  double vx_l = vl[1];
+  double vy_l = vl[2];
+  double vz_l = vl[3];
+  double p_l = vl[4];
+
+  double rho_r = vr[0];
+  double vx_r = vr[1];
+  double vy_r = vr[2];
+  double vz_r = vr[3];
+  double p_r = vr[4];
+
+  double Etot_l = ql[4];
+  double Etot_r = qr[4];
+
+  double W_l = 1.0 / sqrt(1.0 - ((vx_l * vx_l) + (vy_l * vy_l) + (vz_l * vz_l)));
+  double W_r = 1.0 / sqrt(1.0 - ((vx_r * vx_r) + (vy_r * vy_r) + (vz_r * vz_r)));
+
+  double K_l = sqrt(Etot_l + p_l) / W_l;
+  double K_r = sqrt(Etot_r + p_r) / W_r;
+  double K_avg = 1.0 / (K_l + K_r);
+
+  double v0 = ((K_l * W_l) + (K_r * W_r)) * K_avg;
+  double v1 = ((K_l * W_l * vx_l) + (K_r * W_r * vx_r)) * K_avg;
+  double v2 = ((K_l * W_l * vy_l) + (K_r * W_r * vy_r)) * K_avg;
+  double v3 = ((K_l * W_l * vz_l) + (K_r * W_r * vz_r)) * K_avg;
+  double v4 = ((p_l / K_l) + (p_r / K_r)) * K_avg;
+
+  double c_minus = 1.0 - ((gas_gamma / (gas_gamma - 1.0)) * v4);
+  double c_plus = 1.0 + ((gas_gamma / (gas_gamma - 1.0)) * v4);
+
+  double v_alpha_sq = -(v0 * v0) + (v1 * v1) + (v2 * v2) + (v3 * v3);
+  double s_sq = (0.5 * gas_gamma * v4 * (1.0 - v_alpha_sq)) - (0.5 * (gas_gamma - 1.0) * (1.0 + v_alpha_sq));
+  double energy = (v0 * v0) - (v1 * v1);
+  double y = sqrt(((1.0 - (gas_gamma * v4)) * energy) + s_sq);
+
+  double k = (v0 * delta[4]) - (v1 * delta[1]);
+  double v_delta = (-v0 * delta[4]) + (v1 * delta[1]) + (v2 * delta[2]) + (v3 * delta[3]);
+  double a1 = -((s_sq * k) + (sqrt(s_sq) * y * ((v0 * delta[1]) - (v1 * delta[4])) + ((gas_gamma - 1.0) * energy * (delta[0] + (c_plus * v_delta))))) / (2.0 * energy * s_sq);
+  double a2 = -((s_sq * k) - (sqrt(s_sq) * y * ((v0 * delta[1]) - (v1 * delta[4])) + ((gas_gamma - 1.0) * energy * (delta[0] + (c_plus * v_delta))))) / (2.0 * energy * s_sq);
+  double a3 = ((2.0 * s_sq * k) + ((gas_gamma - 1.0) * energy * (delta[0] + (c_plus * v_delta)))) / (energy * s_sq);
+  double a4 = delta[2] - ((k * v2) / energy);
+  double a5 = delta[3] - ((k * v3) / energy);
+
+  for (int i = 0; i < 28 * 3; i++) {
+    waves[i] = 0;
+  }
+
+  double *wv;
+  wv = &waves[0 * 28];
+  wv[0] = a1 * c_minus;
+  wv[1] = a1 * (v1 - ((sqrt(s_sq) * v0) / y));
+  wv[2] = a1 * v2;
+  wv[3] = a1 * v3;
+  wv[4] = a1 * (v0 - ((sqrt(s_sq) * v1) / y));
+  s[0] = (((1.0 - (gas_gamma * v4)) * v0 * v1) - (sqrt(s_sq) * y)) / (((1.0 - (gas_gamma * v4)) * v0 * v0) + s_sq);
+
+  wv = &waves[1 * 28];
+  wv[0] = (a3 * (c_minus + (s_sq / (gas_gamma - 1.0)))) - (a4 * c_plus * v2) - (a5 * c_plus * v3);
+  wv[1] = a3 * v1;
+  wv[2] = (a3 * v2) + a4;
+  wv[3] = (a3 * v3) + a5;
+  wv[4] = a3 * v0;
+  s[1] = v1 / v0;
+
+  wv = &waves[2 * 28];
+  wv[0] = a2 * c_minus;
+  wv[1] = a2 * (v1 + ((sqrt(s_sq) * v0) / y));
+  wv[2] = a2 * v2;
+  wv[3] = a2 * v3;
+  wv[4] = a2 * (v0 + ((sqrt(s_sq) * v1) / y));
+  s[2] = (((1.0 - (gas_gamma * v4)) * v0 * v1) + (sqrt(s_sq) * y)) / (((1.0 - (gas_gamma * v4)) * v0 * v0) + s_sq);
+
+  return (((1.0 - (gas_gamma * v4)) * v0 * fabs(v1)) + (sqrt(s_sq) * y)) / (((1.0 - (gas_gamma * v4)) * v0 * v0) + s_sq);
 }
 
 static void
@@ -962,7 +1041,7 @@ gkyl_wv_gr_euler_new(double gas_gamma, struct gkyl_gr_spacetime* spacetime, bool
   return gkyl_wv_gr_euler_inew(&(struct gkyl_wv_gr_euler_inp) {
       .gas_gamma = gas_gamma,
       .spacetime = spacetime,
-      .rp_type = WV_GR_EULER_RP_LAX,
+      .rp_type = WV_GR_EULER_RP_ROE,
       .use_gpu = use_gpu,
     }
   );
@@ -1021,4 +1100,13 @@ gkyl_wv_gr_euler_gas_gamma(const struct gkyl_wv_eqn* eqn)
   double gas_gamma = gr_euler->gas_gamma;
 
   return gas_gamma;
+}
+
+struct gkyl_gr_spacetime*
+gkyl_wv_gr_euler_spacetime(const struct gkyl_wv_eqn* eqn)
+{
+  const struct wv_gr_euler *gr_euler = container_of(eqn, struct wv_gr_euler, eqn);
+  struct gkyl_gr_spacetime *spacetime = gr_euler->spacetime;
+
+  return spacetime;
 }

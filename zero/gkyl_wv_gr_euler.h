@@ -5,8 +5,8 @@
 
 // Type of Riemann-solver to use:
 enum gkyl_wv_gr_euler_rp {
-  WV_GR_EULER_RP_LAX = 0, // Default (Lax fluxes).
-  WV_GR_EULER_RP_ROE,
+  WV_GR_EULER_RP_ROE = 0, // Default (Roe fluxes).
+  WV_GR_EULER_RP_LAX,
 };
 
 // Input context, packaged as a struct.
@@ -40,17 +40,17 @@ gkyl_wv_gr_euler_inew(const struct gkyl_wv_gr_euler_inp* inp);
 /**
 * Get adiabatic index.
 *
-* @param wv General relativistic Euler equations object.
+* @param eqn General relativistic Euler equations object.
 * @return Adiabatic index.
 */
 double
-gkyl_wv_gr_euler_gas_gamma(const struct gkyl_wv_eqn* wv);
+gkyl_wv_gr_euler_gas_gamma(const struct gkyl_wv_eqn* eqn);
 
 /**
 * Get base spacetime object.
 *
-* @param wv General relativistic Euler equations object.
+* @param eqn General relativistic Euler equations object.
 * @return Pointer to the base spacetime object.
 */
 struct gkyl_gr_spacetime*
-gkyl_wv_gr_euler_spacetime(const struct gkyl_wv_eqn* wv);
+gkyl_wv_gr_euler_spacetime(const struct gkyl_wv_eqn* eqn);
