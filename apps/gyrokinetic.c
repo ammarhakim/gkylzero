@@ -333,14 +333,34 @@ gkyl_gyrokinetic_app_new(struct gkyl_gk *gk)
   app->update_field = !gk->skip_field; // note inversion of truth value (default: update field)
   app->field = gk_field_new(gk, app); // initialize field, even if we are skipping field updates
 
-  // initialize each species
-  for (int i=0; i<ns; ++i) 
-    gk_species_init(gk, app, &app->species[i]);
+  // initialize each species and set function pointers
+  for (int i=0; i<ns; ++i) {
+    if (!app->species[i].info.is_static) {
+      gk_species_init(gk, app, &app->species[i]);
+      app->apply_bc_func = gk_species_apply_bc;
+      app->rhs_func = gk_species_rhs;
+    }
+    else {
+      //gk_species_static_init(gk, app, &app->species[i]);
+      //app->apply_bc_func = gk_species_apply_bc;
+      //app->rhs_func = gk_species_rhs;
+    }
+  }
 
-  // initialize each neutral species
-  for (int i=0; i<neuts; ++i) 
-    gk_neut_species_init(gk, app, &app->neut_species[i]);
-
+  // initialize each neutral species and set function pointers
+  for (int i=0; i<neuts; ++i) {
+    if (!app->neut_species[i].info.is_static) {
+      gk_neut_species_init(gk, app, &app->neut_species[i]);
+      app->neut_apply_bc_func = gk_neut_species_apply_bc;
+      app->neut_rhs_func = gk_neut_species_rhs;
+    }
+    else {
+      gk_neut_species_static_init(gk, app, &app->neut_species[i]);
+      app->neut_apply_bc_func = gk_neut_species_static_apply_bc;
+      app->neut_rhs_func = gk_neut_species_static_rhs;
+    }
+  }
+  
   // initialize each species cross-collisions terms: this has to be done here
   // as need pointers to colliding species' collision objects
   // allocated in gk_species_init and gk_neut_species_init
@@ -442,14 +462,10 @@ calc_field_and_apply_bc(gkyl_gyrokinetic_app* app, double tcurr, struct gkyl_arr
 
   // Apply boundary conditions.
   for (int i=0; i<app->num_species; ++i) {
-    if (!app->species[i].info.is_static) {
-      gk_species_apply_bc(app, &app->species[i], distf[i]);
-    }
+    app->apply_bc_func(app, &app->species[i], distf[i]);
   }
   for (int i=0; i<app->num_neut_species; ++i) {
-    if (!app->neut_species[i].info.is_static) {
-      gk_neut_species_apply_bc(app, &app->neut_species[i], distf_neut[i]);
-    }
+    app->neut_apply_bc_func(app, &app->neut_species[i], distf_neut[i]);
   }
 }
 
@@ -1962,7 +1978,7 @@ forward_euler(gkyl_gyrokinetic_app* app, double tcurr, double dt,
   // Compute RHS of Gyrokinetic equation.
   for (int i=0; i<app->num_species; ++i) {
     struct gk_species *s = &app->species[i];
-    double dt1 = gk_species_rhs(app, s, fin[i], fout[i]);
+    double dt1 = app->rhs_func(app, s, fin[i], fout[i]);
     dtmin = fmin(dtmin, dt1);
 
     if (!app->species[i].info.is_static) {
@@ -1975,7 +1991,7 @@ forward_euler(gkyl_gyrokinetic_app* app, double tcurr, double dt,
 
   // Compute RHS of neutrals.
   for (int i=0; i<app->num_neut_species; ++i) {
-    double dt1 = gk_neut_species_rhs(app, &app->neut_species[i], fin_neut[i], fout_neut[i]);
+    double dt1 = app->neut_rhs_func(app, &app->neut_species[i], fin_neut[i], fout_neut[i]);
     dtmin = fmin(dtmin, dt1);
 
     // compute bflux here? 
@@ -2052,15 +2068,11 @@ rk3(gkyl_gyrokinetic_app* app, double dt0)
       case RK_STAGE_1:
         for (int i=0; i<app->num_species; ++i) {
           fin[i] = app->species[i].f;
-          if (!app->species[i].info.is_static) {	  
-	    fout[i] = app->species[i].f1;
-	  }
+	  fout[i] = app->species[i].f1;
         }
         for (int i=0; i<app->num_neut_species; ++i) {
           fin_neut[i] = app->neut_species[i].f;
-          if (!app->neut_species[i].info.is_static) {
-            fout_neut[i] = app->neut_species[i].f1;
-          }
+	  fout_neut[i] = app->neut_species[i].f1;
         }
 
         forward_euler(app, tcurr, dt, fin, fout, fin_neut, fout_neut, &st);
@@ -2073,19 +2085,12 @@ rk3(gkyl_gyrokinetic_app* app, double dt0)
 
       case RK_STAGE_2:
         for (int i=0; i<app->num_species; ++i) {
-          if (!app->species[i].info.is_static) {	  
-	    fin[i] = app->species[i].f1;
-	    fout[i] = app->species[i].fnew;
-	  }
+	  fin[i] = app->species[i].f1;
+	  fout[i] = app->species[i].fnew;
         }
         for (int i=0; i<app->num_neut_species; ++i) {
-          if (!app->neut_species[i].info.is_static) {
-            fin_neut[i] = app->neut_species[i].f1;
-            fout_neut[i] = app->neut_species[i].fnew;
-          }
-          else {
-            fin_neut[i] = app->neut_species[i].f;
-          }
+	  fin_neut[i] = app->neut_species[i].f1;
+	  fout_neut[i] = app->neut_species[i].fnew;
         }
 
         forward_euler(app, tcurr+dt, dt, fin, fout, fin_neut, fout_neut, &st);
@@ -2111,17 +2116,12 @@ rk3(gkyl_gyrokinetic_app* app, double dt0)
         } 
         else {
           for (int i=0; i<app->num_species; ++i) {
-	    if (!app->species[i].info.is_static) {	  
 	      array_combine(app->species[i].f1,
                 3.0/4.0, app->species[i].f, 1.0/4.0, app->species[i].fnew, &app->species[i].local_ext);
-
-	    }
 	  }
           for (int i=0; i<app->num_neut_species; ++i) {
-            if (!app->neut_species[i].info.is_static) {
               array_combine(app->neut_species[i].f1,
                 3.0/4.0, app->neut_species[i].f, 1.0/4.0, app->neut_species[i].fnew, &app->neut_species[i].local_ext);
-            }
           }
 
           // Compute the fields and apply BCs.
@@ -2139,20 +2139,13 @@ rk3(gkyl_gyrokinetic_app* app, double dt0)
 
       case RK_STAGE_3:
         for (int i=0; i<app->num_species; ++i) {
-	  if (!app->species[i].info.is_static) {	  
-	    fin[i] = app->species[i].f1;
-	    fout[i] = app->species[i].fnew;
-	  }
+	  fin[i] = app->species[i].f1;
+	  fout[i] = app->species[i].fnew;
         }
         for (int i=0; i<app->num_neut_species; ++i) {
-          if (!app->neut_species[i].info.is_static) {
-            fin_neut[i] = app->neut_species[i].f1;
-            fout_neut[i] = app->neut_species[i].fnew;
-          }
-          else {
-            fin_neut[i] = app->neut_species[i].f;
-          }          
-        }
+	  fin_neut[i] = app->neut_species[i].f1;
+	  fout_neut[i] = app->neut_species[i].fnew;
+	}
 
         forward_euler(app, tcurr+dt/2, dt, fin, fout, fin_neut, fout_neut, &st);
 
