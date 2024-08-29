@@ -1,9 +1,5 @@
 #include <gkyl_gyrokinetic_priv.h>
-// Take a forward Euler step with the suggested time-step dt. This may
-// not be the actual time-step taken. However, the function will never
-// take a time-step larger than dt even if it is allowed by
-// stability. The actual time-step and dt_suggested are returned in
-// the status object.
+// Compute the rhs of the gyrokinetic equation
 void
 gyrokinetic_rhs(gkyl_gyrokinetic_app* app, double tcurr, double dt,
   const struct gkyl_array *fin[], struct gkyl_array *fout[], 
