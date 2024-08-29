@@ -25,7 +25,17 @@ struct wv_gr_euler {
 */
 GKYL_CU_D
 void
-gkyl_gr_euler_prim_vars(double gas_gamma, const double q[29], double v[29]);
+gkyl_gr_euler_prim_vars(double gas_gamma, const double q[28], double v[28]);
+
+/**
+* Compute inverse spatial metric tensor (in covariant component form) given the conserved variables.
+*
+* @param q Conserved variable vector.
+* @param inv_spatial_metric Inverse spatial metric tensor (output).
+*/
+GKYL_CU_D
+void
+gkyl_gr_euler_inv_spatial_metric(const double q[28], double ***inv_spatial_metric);
 
 /**
 * Compute perfect fluid stress-energy tensor (in contravariant component form) given the conserved variables.
@@ -36,7 +46,7 @@ gkyl_gr_euler_prim_vars(double gas_gamma, const double q[29], double v[29]);
 */
 GKYL_CU_D
 void
-gkyl_gr_euler_stress_energy_tensor(double gas_gamma, const double q[29], double stress_energy[4][4]);
+gkyl_gr_euler_stress_energy_tensor(double gas_gamma, const double q[28], double ***stress_energy);
 
 /**
 * Compute maximum absolute wave speed.
@@ -47,7 +57,7 @@ gkyl_gr_euler_stress_energy_tensor(double gas_gamma, const double q[29], double 
 */
 GKYL_CU_D
 static inline double
-gkyl_gr_euler_max_abs_speed(double gas_gamma, const double q[29]);
+gkyl_gr_euler_max_abs_speed(double gas_gamma, const double q[28]);
 
 /**
 * Compute flux vector. Assumes rotation to local coordinate system.
@@ -58,7 +68,7 @@ gkyl_gr_euler_max_abs_speed(double gas_gamma, const double q[29]);
 */
 GKYL_CU_D
 static void
-gkyl_gr_euler_flux(double gas_gamma, const double q[29], double flux[29]);
+gkyl_gr_euler_flux(double gas_gamma, const double q[28], double flux[28]);
 
 /**
 * Compute Riemann variables given the conserved variables.
