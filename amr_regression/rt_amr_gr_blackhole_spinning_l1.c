@@ -1,11 +1,11 @@
-// 2D ring-accretion problem onto a static (Schwarzschild) black hole, using static, block-structured mesh refinement with a single refinement block (4x refinement), for the general relativistic Euler equations.
-// Input parameters describe an asymmetrical ring of cold relativistic gas accreting onto a non-rotating black hole.
+// 2D ring-accretion problem onto a non-static (Kerr) black hole, using static, block-structured mesh refinement with a single refinement block (4x refinement), for the general relativistic Euler equations.
+// Input parameters describe an asymmetrical ring of cold relativistic gas accreting onto a spinning black hole.
 
 #include <gkyl_amr_core.h>
 #include <gkyl_gr_blackhole.h>
 #include <gkyl_alloc.h>
 
-struct amr_gr_blackhole_static_ctx
+struct amr_gr_blackhole_spinning_ctx
 {
   // Mathematical constants (dimensionless).
   double pi;
@@ -55,7 +55,7 @@ struct amr_gr_blackhole_static_ctx
   double r_outer; // Ring outer radius.
 };
 
-struct amr_gr_blackhole_static_ctx
+struct amr_gr_blackhole_spinning_ctx
 create_ctx(void)
 {
   // Mathematical constants (dimensionless).
@@ -78,7 +78,7 @@ create_ctx(void)
 
   // Spacetime parameters (using geometric units).
   double mass = 0.3; // Mass of the black hole.
-  double spin = 0.0; // Spin of the black hole.
+  double spin = -0.99; // Spin of the black hole.
 
   double pos_x = 2.5; // Position of the black hole (x-direction).
   double pos_y = 2.5; // Position of the black hole (y-direction).
@@ -105,7 +105,7 @@ create_ctx(void)
   double r_inner = 1.2; // Ring inner radius.
   double r_outer = 2.4; // Ring outer radius.
 
-  struct amr_gr_blackhole_static_ctx ctx = {
+  struct amr_gr_blackhole_spinning_ctx ctx = {
     .pi = pi,
     .gas_gamma = gas_gamma,
     .rhob = rhob,
@@ -146,8 +146,8 @@ void
 evalGREulerInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
 {
   double x = xn[0], y = xn[1];
-  struct amr_gr_blackhole_static_ctx new_ctx = create_ctx(); // Context for initialization functions.
-  struct amr_gr_blackhole_static_ctx *app = &new_ctx;
+  struct amr_gr_blackhole_spinning_ctx new_ctx = create_ctx(); // Context for initialization functions.
+  struct amr_gr_blackhole_spinning_ctx *app = &new_ctx;
 
   double gas_gamma = app->gas_gamma;
 
@@ -285,7 +285,7 @@ evalGREulerInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT 
 
 int main(int argc, char **argv)
 {
-  struct amr_gr_blackhole_static_ctx ctx = create_ctx(); // Context for initialization functions.
+  struct amr_gr_blackhole_spinning_ctx ctx = create_ctx(); // Context for initialization functions.
 
   struct gr_euler2d_single_init init = {
     .base_Nx = ctx.Nx,
@@ -306,7 +306,13 @@ int main(int argc, char **argv)
     .gas_gamma = ctx.gas_gamma,
     .spacetime = ctx.spacetime,
 
-    .gr_euler_output = "amr_gr_blackhole_static_l1",
+    .copy_x = true,
+    .copy_y = true,
+
+    .wall_x = false,
+    .wall_y = false,
+
+    .gr_euler_output = "amr_gr_blackhole_spinning_l1",
 
     .low_order_flux = true,
     .cfl_frac = ctx.cfl_frac,

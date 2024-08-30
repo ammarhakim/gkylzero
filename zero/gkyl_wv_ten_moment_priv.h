@@ -148,7 +148,7 @@ gkyl_ten_moment_flux(const double q[10], double flux[10])
 // Ten moment perfectly reflecting wall
 GKYL_CU_D
 static void
-ten_moment_wall(double t, int nc, const double *skin, double * GKYL_RESTRICT ghost, void *ctx)
+ten_moment_wall(const struct gkyl_wv_eqn* eqn, double t, int nc, const double *skin, double * GKYL_RESTRICT ghost, void *ctx)
 {
   // copy density and Pxx, Pyy, and Pzz
   ghost[0] = skin[0];
@@ -169,8 +169,8 @@ ten_moment_wall(double t, int nc, const double *skin, double * GKYL_RESTRICT gho
 
 GKYL_CU_D
 static inline void
-rot_to_local(const double *tau1, const double *tau2, const double *norm,
-  const double *GKYL_RESTRICT qglobal, double *GKYL_RESTRICT qlocal)
+rot_to_local(const struct gkyl_wv_eqn* eqn, const double* tau1, const double* tau2, const double* norm,
+  const double* GKYL_RESTRICT qglobal, double* GKYL_RESTRICT qlocal)
 {
   // Mass density is a scalar
   qlocal[0] = qglobal[0];
@@ -217,8 +217,8 @@ rot_to_local(const double *tau1, const double *tau2, const double *norm,
 
 GKYL_CU_D
 static inline void
-rot_to_global(const double *tau1, const double *tau2, const double *norm,
-  const double *GKYL_RESTRICT qlocal, double *GKYL_RESTRICT qglobal)
+rot_to_global(const struct gkyl_wv_eqn* eqn, const double* tau1, const double* tau2, const double* norm,
+  const double* GKYL_RESTRICT qlocal, double* GKYL_RESTRICT qglobal)
 {
  
   // Mass density is a scalar

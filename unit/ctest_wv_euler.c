@@ -56,9 +56,9 @@ test_euler_basic()
 
   double q_local[5], flux_local[5], flux[5];
   for (int d=0; d<3; ++d) {
-    euler->rotate_to_local_func(tau1[d], tau2[d], norm[d], q, q_local);
+    euler->rotate_to_local_func(euler, tau1[d], tau2[d], norm[d], q, q_local);
     gkyl_euler_flux(gas_gamma, q_local, flux_local);
-    euler->rotate_to_global_func(tau1[d], tau2[d], norm[d], flux_local, flux);
+    euler->rotate_to_global_func(euler, tau1[d], tau2[d], norm[d], flux_local, flux);
     
     for (int m=0; m<5; ++m)
       TEST_CHECK( gkyl_compare(flux[m], fluxes[d][m], 1e-15) );

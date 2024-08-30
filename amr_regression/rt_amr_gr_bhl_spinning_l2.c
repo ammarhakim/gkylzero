@@ -1,37 +1,37 @@
-// 2D quadrants test, using static, block-structured mesh refinement with doubly-nested refinement blocks (4x4x refinement), for the general relativistic Euler equations.
-// Input parameters taken from the initial conditions in Section 4.2 (Riemann 2-D), from the article:
-// L. Del Zanna and N. Bucciantini (2002), "An efficient shock-capturing central-type scheme for multdimensional flows. I. Hydrodynamics",
-// Astronomy and Astrophysics, Volume 390 (3): 1177-1186.
-// https://arxiv.org/abs/astro-ph/0205290
+// 2D Bondi-Hoyle-Lyttleton accretion problem onto a non-static (Kerr) black hole, using static, block-structured mesh refinement with doubly-nested refinement blocks (4x4x refinement), for the general relativistic Euler equations.
+// Input parameters describe wind accretion of a cold relativistic gas onto a spinning black hole.
+// Based on the analytical solution for stiff relativistic fluids presented in the article:
+// L. I. Petrich, S. L. Shapiro and S. A. Teukolsky (1988), "Accretion onto a moving black hole: An exact solution",
+// Physical Review Letters, Volume 60 (18): 1781-1784.
+// https://journals.aps.org/prl/abstract/10.1103/PhysRevLett.60.1781
 
 #include <gkyl_amr_core.h>
-#include <gkyl_gr_minkowski.h>
+#include <gkyl_gr_blackhole.h>
 #include <gkyl_alloc.h>
 
-struct amr_gr_quadrants_2d_ctx
+struct amr_gr_bhl_spinning_ctx
 {
+  // Mathematical constants (dimensionless).
+  double pi;
+
   // Physical constants (using normalized code units).
   double gas_gamma; // Adiabatic index.
 
-  double rho_ul; // Upper left fluid mass density.
-  double u_ul; // Upper left fluid x-velocity.
-  double v_ul; // Upper left fluid y-velocity.
-  double p_ul; // Upper left fluid pressure.
+  double rhol; // Left fluid mass density.
+  double ul; // Left fluid velocity.
+  double pl; // Left fluid pressure.
 
-  double rho_ur; // Upper right fluid mass density.
-  double u_ur; // Upper right fluid x-velocity.
-  double v_ur; // Upper right fluid y-velocity.
-  double p_ur; // Upper left fluid pressure.
-  
-  double rho_ll; // Lower left fluid mass density.
-  double u_ll; // Lower left fluid x-velocity.
-  double v_ll; // Lower left fluid y-velocity.
-  double p_ll; // Lower left fluid pressure.
+  double rhor; // Right fluid mass density.
+  double ur; // Right fluid velocity.
+  double pr; // Right fluid pressure.
 
-  double rho_lr; // Lower right fluid mass density.
-  double u_lr; // Lower right fluid x-velocity.
-  double v_lr; // Lower right fluid y-velocity.
-  double p_lr; // Lower right fluid pressure.
+  // Spacetime parameters (using geometric units).
+  double mass; // Mass of the black hole.
+  double spin; // Spin of the black hole.
+
+  double pos_x; // Position of the black hole (x-direction).
+  double pos_y; // Position of the black hole (y-direction).
+  double pos_z; // Position of the black hole (z-direction).
 
   // Pointer to spacetime metric.
   struct gkyl_gr_spacetime *spacetime;
@@ -54,75 +54,71 @@ struct amr_gr_quadrants_2d_ctx
   double dt_failure_tol; // Minimum allowable fraction of initial time-step.
   int num_failures_max; // Maximum allowable number of consecutive small time-steps.
 
-  double loc; // Fluid boundaries (both x and y coordinates).
+  double x_loc; // Shock location (x-direction).
 };
 
-struct amr_gr_quadrants_2d_ctx
+struct amr_gr_bhl_spinning_ctx
 create_ctx(void)
 {
+  // Mathematical constants (dimensionless).
+  double pi = M_PI;
+
   // Physical constants (using normalized code units).
   double gas_gamma = 5.0 / 3.0; // Adiabatic index.
 
-  double rho_ul = 0.1; // Upper-left fluid mass density.
-  double u_ul = 0.99; // Upper-left fluid x-velocity.
-  double v_ul = 0.0; // Upper-left fluid y-velocity.
-  double p_ul = 1.0; // Upper-left fluid pressure.
+  double rhol = 3.0; // Left fluid mass density.
+  double ul = 0.3; // Left fluid velocity.
+  double pl = 0.05; // Left fluid pressure.
 
-  double rho_ur = 0.1; // Upper-right fluid mass density.
-  double u_ur = 0.0; // Upper-right fluid x-velocity.
-  double v_ur = 0.0; // Upper-right fluid y-velocity.
-  double p_ur = 0.01; // Upper-right fluid pressure.
-  
-  double rho_ll = 0.5; // Lower-left fluid mass density.
-  double u_ll = 0.0; // Lower-left fluid x-velocity.
-  double v_ll = 0.0; // Lower-left fluid y-velocity.
-  double p_ll = 1.0; // Lower-left fluid pressure.
+  double rhor = 0.01; // Right fluid mass density.
+  double ur = 0.0; // Right fluid velocity.
+  double pr = 0.01; // Right fluid pressure.
 
-  double rho_lr = 0.1; // Lower-right fluid mass density.
-  double u_lr = 0.0; // Lower-right fluid x-velocity.
-  double v_lr = 0.99; // Lower-right fluid y-velocity.
-  double p_lr = 1.0; // Lower-right fluid pressure.
+  // Spacetime parameters (using geometric units).
+  double mass = 0.3; // Mass of the black hole.
+  double spin = -0.5; // Spin of the black hole.
+
+  double pos_x = 2.5; // Position of the black hole (x-direction).
+  double pos_y = 2.5; // Position of the black hole (y-direction).
+  double pos_z = 0.0; // Position of the black hole (z-direction).
 
   // Pointer to spacetime metric.
-  struct gkyl_gr_spacetime *spacetime = gkyl_gr_minkowski_new(false);
+  struct gkyl_gr_spacetime *spacetime = gkyl_gr_blackhole_new(false, mass, spin, pos_x, pos_y, pos_z);
 
   // Simulation parameters.
   int Nx = 8; // Coarse cell count (x-direction).
   int Ny = 8; // Coarse cell count (y-direction).
   int ref_factor1 = 4; // First refinement factor (coarse-to-intermediate).
   int ref_factor2 = 4; // Second refinement factor (intermediate-to-fine).
-  double Lx = 1.0; // Coarse domain size (x-direction).
-  double Ly = 1.0; // Coarse domain size (y-direction).
-  double intermediate_Lx = 0.75; // Intermediate domain size (x-direction).
-  double intermediate_Ly = 0.75; // Intermediate domain size (y-direction).
-  double fine_Lx = 0.5; // Fine domain size (x-direction).
-  double fine_Ly = 0.5; // Fine domain size (y-direction).
+  double Lx = 5.0; // Coarse domain size (x-direction).
+  double Ly = 5.0; // Coarse domain size (y-direction).
+  double intermediate_Lx = 4.0; // Intermediate domain size (x-direction).
+  double intermediate_Ly = 3.75; // Intermediate domain size (y-direction).
+  double fine_Lx = 2.5; // Fine domain size (x-direction).
+  double fine_Ly = 2.25; // Fine domain size (y-direction).
   double cfl_frac = 0.95; // CFL coefficient.
-  double t_end = 0.3; // Final simulation time.
+
+  double t_end = 15.0; // Final simulation time.
   int num_frames = 1; // Number of output frames.
   double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.
   int num_failures_max = 20; // Maximum allowable number of consecutive small time-steps.
 
-  double loc = 0.5; // Fluid boundaries (both x and y coordinates).
+  double x_loc = 1.0; // Shock location (x-direction).
 
-  struct amr_gr_quadrants_2d_ctx ctx = {
+  struct amr_gr_bhl_spinning_ctx ctx = {
+    .pi = pi,
     .gas_gamma = gas_gamma,
-    .rho_ul = rho_ul,
-    .u_ul = u_ul,
-    .v_ul = v_ul,
-    .p_ul = p_ul,
-    .rho_ur = rho_ur,
-    .u_ur = u_ur,
-    .v_ur = v_ur,
-    .p_ur = p_ur,
-    .rho_ll = rho_ll,
-    .u_ll = u_ll,
-    .v_ll = v_ll,
-    .p_ll = p_ll,
-    .rho_lr = rho_lr,
-    .u_lr = u_lr,
-    .v_lr = v_lr,
-    .p_lr = p_lr,
+    .rhol = rhol,
+    .ul = ul,
+    .pl = pl,
+    .rhor = rhor,
+    .ur = ur,
+    .pr = pr,
+    .mass = mass,
+    .spin = spin,
+    .pos_x = pos_x,
+    .pos_y = pos_y,
+    .pos_z = pos_z,
     .spacetime = spacetime,
     .Nx = Nx,
     .Ny = Ny,
@@ -139,7 +135,7 @@ create_ctx(void)
     .num_frames = num_frames,
     .dt_failure_tol = dt_failure_tol,
     .num_failures_max = num_failures_max,
-    .loc = loc,
+    .x_loc = x_loc,
   };
 
   return ctx;
@@ -149,69 +145,41 @@ void
 evalGREulerInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
 {
   double x = xn[0], y = xn[1];
-  struct amr_gr_quadrants_2d_ctx new_ctx = create_ctx(); // Context for initialization functions.
-  struct amr_gr_quadrants_2d_ctx *app = &new_ctx;
+  struct amr_gr_bhl_spinning_ctx new_ctx = create_ctx(); // Context for initialization functions.
+  struct amr_gr_bhl_spinning_ctx *app = &new_ctx;
 
   double gas_gamma = app->gas_gamma;
 
-  double rho_ul = app->rho_ul;
-  double u_ul = app->u_ul;
-  double v_ul = app->v_ul;
-  double p_ul = app->p_ul;
+  double rhol = app->rhol;
+  double ul = app->ul;
+  double pl = app->pl;
 
-  double rho_ur = app->rho_ur;
-  double u_ur = app->u_ur;
-  double v_ur = app->v_ur;
-  double p_ur = app->p_ur;
-
-  double rho_ll = app->rho_ll;
-  double u_ll = app->u_ll;
-  double v_ll = app->v_ll;
-  double p_ll = app->p_ll;
-
-  double rho_lr = app->rho_lr;
-  double u_lr = app->u_lr;
-  double v_lr = app->v_lr;
-  double p_lr = app->p_lr;
+  double rhor = app->rhor;
+  double ur = app->ur;
+  double pr = app->pr;
 
   struct gkyl_gr_spacetime *spacetime = app->spacetime;
 
-  double loc = app->loc;
+  double x_loc = app->x_loc;
+
+  double Lx = app->Lx;
+  double Ly = app->Ly;
 
   double rho = 0.0;
   double u = 0.0;
-  double v = 0.0;
   double p = 0.0;
 
-  if (y > loc) {
-    if (x < loc) {
-      rho = rho_ul; // Fluid mass density (upper-left).
-      u = u_ul; // Fluid x-velocity (upper-left).
-      v = v_ul; // Fluid y-velocity (upper-left).
-      p = p_ul; // Fluid pressure (upper-left).
-    }
-    else {
-      rho = rho_ur; // Fluid mass density (upper-right).
-      u = u_ur; // Fluid x-velocity (upper-right).
-      v = v_ur; // Fluid y-velocity (upper-right).
-      p = p_ur; // Fluid pressure (upper-right).
-    }
+  if (x < x_loc) {
+    rho = rhol; // Fluid mass density (left).
+    u = ul; // Fluid velocity (left).
+    p = pl; // Fluid pressure (left).
   }
   else {
-    if (x < loc) {
-      rho = rho_ll; // Fluid mass density (lower-left).
-      u = u_ll; // Fluid x-velocity (lower-left).
-      v = v_ll; // Fluid y-velocity (lower-left).
-      p = p_ll; // Fluid pressure (lower-left).
-    }
-    else {
-      rho = rho_lr; // Fluid mass density (lower-right).
-      u = u_lr; // Fluid x-velocity (lower-right).
-      v = v_lr; // Fluid y-velocity (lower-right).
-      p = p_lr; // Fluid pressure (lower-right).
-    }
+    rho = rhor; // Fluid mass density (right).
+    u = ur; // Fluid velocity (right).
+    p = pr; // Fluid pressure (right).
   }
-
+  
   double spatial_det, lapse;
   double *shift = gkyl_malloc(sizeof(double[3]));
   bool in_excision_region;
@@ -236,7 +204,7 @@ evalGREulerInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT 
 
   double *vel = gkyl_malloc(sizeof(double[3]));
   double v_sq = 0.0;
-  vel[0] = u; vel[1] = v; vel[2] = 0.0;
+  vel[0] = u; vel[1] = 0.0; vel[2] = 0.0;
 
   for (int i = 0; i < 3; i++) {
     for (int j = 0; j < 3; j++) {
@@ -255,7 +223,7 @@ evalGREulerInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT 
   fout[0] = sqrt(spatial_det) * rho * W;
   // Set fluid momentum density.
   fout[1] = sqrt(spatial_det) * rho * h * (W * W) * u;
-  fout[2] = sqrt(spatial_det) * rho * h * (W * W) * v;
+  fout[2] = 0.0;
   fout[3] = 0.0;
   // Set fluid total energy density.
   fout[4] = sqrt(spatial_det) * ((rho * h * (W * W)) - p - (rho * W));
@@ -302,7 +270,7 @@ evalGREulerInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT 
 
 int main(int argc, char **argv)
 {
-  struct amr_gr_quadrants_2d_ctx ctx = create_ctx(); // Context for initialization functions.
+  struct amr_gr_bhl_spinning_ctx ctx = create_ctx(); // Context for initialization functions.
 
   struct gr_euler2d_double_init init = {
     .base_Nx = ctx.Nx,
@@ -315,21 +283,27 @@ int main(int argc, char **argv)
     .coarse_x2 = ctx.Lx,
     .coarse_y2 = ctx.Ly,
 
-    .intermediate_x1 = (0.5 * ctx.Lx) - (0.5 * ctx.intermediate_Lx),
-    .intermediate_y1 = (0.5 * ctx.Ly) - (0.5 * ctx.intermediate_Ly),
-    .intermediate_x2 = (0.5 * ctx.Lx) + (0.5 * ctx.intermediate_Lx),
-    .intermediate_y2 = (0.5 * ctx.Ly) + (0.5 * ctx.intermediate_Ly),
+    .intermediate_x1 = (0.55 * ctx.Lx) - (0.5 * ctx.intermediate_Lx),
+    .intermediate_y1 = (0.475 * ctx.Ly) - (0.5 * ctx.intermediate_Ly),
+    .intermediate_x2 = (0.55 * ctx.Lx) + (0.5 * ctx.intermediate_Lx),
+    .intermediate_y2 = (0.475 * ctx.Ly) + (0.5 * ctx.intermediate_Ly),
 
-    .refined_x1 = (0.5 * ctx.Lx) - (0.5 * ctx.fine_Lx),
-    .refined_y1 = (0.5 * ctx.Ly) - (0.5 * ctx.fine_Ly),
-    .refined_x2 = (0.5 * ctx.Lx) + (0.5 * ctx.fine_Lx),
-    .refined_y2 = (0.5 * ctx.Ly) + (0.5 * ctx.fine_Ly),
+    .refined_x1 = (0.6 * ctx.Lx) - (0.5 * ctx.fine_Lx),
+    .refined_y1 = (0.45 * ctx.Ly) - (0.5 * ctx.fine_Ly),
+    .refined_x2 = (0.6 * ctx.Lx) + (0.5 * ctx.fine_Lx),
+    .refined_y2 = (0.45 * ctx.Ly) + (0.5 * ctx.fine_Ly),
 
     .eval = evalGREulerInit,
     .gas_gamma = ctx.gas_gamma,
     .spacetime = ctx.spacetime,
 
-    .gr_euler_output = "amr_gr_quadrants_2d_l2",
+    .copy_x = true,
+    .copy_y = true,
+
+    .wall_x = false,
+    .wall_y = false,
+
+    .gr_euler_output = "amr_gr_bhl_spinning_l2",
 
     .low_order_flux = true,
     .cfl_frac = ctx.cfl_frac,

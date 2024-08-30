@@ -169,6 +169,7 @@ SRC_DIRS := minus zero apps amr kernels data/adas
 
 # List of regression and unit test
 REGS := $(patsubst %.c,${BUILD_DIR}/%,$(wildcard regression/rt_*.c))
+AMR_REGS := $(patsubst %.c,${BUILD_DIR}/%,$(wildcard amr_regression/rt_*.c))
 UNITS := $(patsubst %.c,${BUILD_DIR}/%,$(wildcard unit/ctest_*.c))
 MPI_UNITS := $(patsubst %.c,${BUILD_DIR}/%,$(wildcard unit/mctest_*.c))
 LUA_UNITS := $(patsubst %.c,${BUILD_DIR}/%,$(wildcard unit/lctest_*.c))
@@ -220,6 +221,11 @@ ${BUILD_DIR}/unit/%: unit/%.c ${BUILD_DIR}/libgkylzero.so ${UNIT_CU_OBJS}
 # Regression tests
 ${BUILD_DIR}/regression/%: regression/%.c ${BUILD_DIR}/libgkylzero.so
 	$(MKDIR_P) ${BUILD_DIR}/regression
+	${CC} ${CFLAGS} ${LDFLAGS} -o $@ $< -I. $(INCLUDES) ${EXEC_LIB_DIRS} ${EXEC_RPATH} ${EXEC_LIBS}
+
+# AMR regression tests
+${BUILD_DIR}/amr_regression/%: amr_regression/%.c ${BUILD_DIR}/libgkylzero.so$
+	${MKDIR_P} ${BUILD_DIR}/amr_regression
 	${CC} ${CFLAGS} ${LDFLAGS} -o $@ $< -I. $(INCLUDES) ${EXEC_LIB_DIRS} ${EXEC_RPATH} ${EXEC_LIBS}
 
 # Automated regression system
@@ -385,6 +391,7 @@ all: ${BUILD_DIR}/gkylzero.h ${ZERO_SH_LIB} ## Build libraries and amalgamated h
 # Explicit targets to build unit and regression tests
 unit: ${ZERO_SH_LIB} ${UNITS} ${MPI_UNITS} ${LUA_UNITS} ## Build unit tests
 regression: ${ZERO_SH_LIB} ${REGS} regression/rt_arg_parse.h ${BUILD_DIR}/glua ## Build regression tests
+amr_regression: ${ZERO_SH_LIB} ${AMR_REGS} ## Build AMR regression tests
 ci: ${ZERO_SH_LIB} ${CI} ## Build automated regression system
 glua: ${BUILD_DIR}/glua ## Build Lua interpreter
 
@@ -440,6 +447,10 @@ cleanr: ## Delete the regression test executables
 .PHONY: cleanu
 cleanu: ## Delete the unit test executables
 	rm -rf ${BUILD_DIR}/unit
+
+.PHONY: cleana
+cleana: ## Delete the AMR regression test executables
+	rm -rf ${BUILD_DIR}/amr_regression
 
 .PHONY: cleanc
 cleanc: ## Delete the automated regression test executables

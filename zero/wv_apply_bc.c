@@ -113,7 +113,7 @@ gkyl_wv_apply_bc_advance(const gkyl_wv_apply_bc *bc, double tm,
       gkyl_array_fetch(out, sloc), skin_local);
       
     // apply boundary condition in local coordinates
-    bc->bcfunc(tm, ncomp, skin_local, ghost_local, bc->ctx);
+    bc->bcfunc(bc->eqn, tm, ncomp, skin_local, ghost_local, bc->ctx);
 
     // rotate back to global
     gkyl_wv_eqn_rotate_to_global(bc->eqn, wg->tau1[dir], wg->tau2[dir], wg->norm[dir],
@@ -181,7 +181,7 @@ gkyl_wv_apply_bc_to_buff(const gkyl_wv_apply_bc *bc, double tm,
       gkyl_array_cfetch(inp, sloc), skin_local);
       
     // apply boundary condition in local coordinates
-    bc->bcfunc(tm, ncomp, skin_local, ghost_local, bc->ctx);
+    bc->bcfunc(bc->eqn, tm, ncomp, skin_local, ghost_local, bc->ctx);
 
     // rotate back to global coordinates as defined on ghost cell edge
     const struct gkyl_wave_cell_geom *wgg = gkyl_wave_geom_get(bc->geom, gidx);

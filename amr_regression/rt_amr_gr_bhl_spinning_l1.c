@@ -1,11 +1,15 @@
-// 2D ring-accretion problem onto a non-static (Kerr) black hole, using static, block-structured mesh refinement with a single refinement block (4x refinement), for the general relativistic Euler equations.
-// Input parameters describe an asymmetrical ring of cold relativistic gas accreting onto a spinning black hole.
+// 2D Bondi-Hoyle-Lyttleton accretion problem onto a non-static (Kerr) black hole, using static, block-structured mesh refinement with a single refinement block (4x refinement), for the general relativistic Euler equations.
+// Input parameters describe wind accretion of a cold relativistic gas onto a spinning black hole.
+// Based on the analytical solution for stiff relativistic fluids presented in the article:
+// L. I. Petrich, S. L. Shapiro and S. A. Teukolsky (1988), "Accretion onto a moving black hole: An exact solution",
+// Physical Review Letters, Volume 60 (18): 1781-1784.
+// https://journals.aps.org/prl/abstract/10.1103/PhysRevLett.60.1781
 
 #include <gkyl_amr_core.h>
 #include <gkyl_gr_blackhole.h>
 #include <gkyl_alloc.h>
 
-struct amr_gr_blackhole_spinning_ctx
+struct amr_gr_bhl_spinning_ctx
 {
   // Mathematical constants (dimensionless).
   double pi;
@@ -13,17 +17,13 @@ struct amr_gr_blackhole_spinning_ctx
   // Physical constants (using normalized code units).
   double gas_gamma; // Adiabatic index.
 
-  double rhob; // Background fluid mass density.
-  double ub; // Background fluid velocity.
-  double pb; // Background fluid pressure.
+  double rhol; // Left fluid mass density.
+  double ul; // Left fluid velocity.
+  double pl; // Left fluid pressure.
 
-  double rhol; // Left ring fluid mass density.
-  double ul; // Left ring fluid velocity.
-  double pl; // Left ring fluid pressure.
-
-  double rhor; // Right ring fluid mass density.
-  double ur; // Right ring fluid velocity.
-  double pr; // Right ring fluid pressure.
+  double rhor; // Right fluid mass density.
+  double ur; // Right fluid velocity.
+  double pr; // Right fluid pressure.
 
   // Spacetime parameters (using geometric units).
   double mass; // Mass of the black hole.
@@ -51,11 +51,10 @@ struct amr_gr_blackhole_spinning_ctx
   double dt_failure_tol; // Minimum allowable fraction of initial time-step.
   int num_failures_max; // Maximum allowable number of consecutive small time-steps.
 
-  double r_inner; // Ring inner radius.
-  double r_outer; // Ring outer radius.
+  double x_loc; // Shock location (x-direction).
 };
 
-struct amr_gr_blackhole_spinning_ctx
+struct amr_gr_bhl_spinning_ctx
 create_ctx(void)
 {
   // Mathematical constants (dimensionless).
@@ -64,21 +63,17 @@ create_ctx(void)
   // Physical constants (using normalized code units).
   double gas_gamma = 5.0 / 3.0; // Adiabatic index.
 
-  double rhob = 0.01; // Background fluid mass density.
-  double ub = 0.0; // Background fluid velocity.
-  double pb = 0.01; // Background fluid pressure.
+  double rhol = 3.0; // Left fluid mass density.
+  double ul = 0.3; // Left fluid velocity.
+  double pl = 0.05; // Left fluid pressure.
 
-  double rhol = 1.0; // Left ring fluid mass density.
-  double ul = 0.0; // Left ring fluid velocity.
-  double pl = 0.1; // Left ring fluid pressure.
-
-  double rhor = 2.0; // Right ring fluid mass density.
-  double ur = 0.0; // Right ring fluid velocity.
-  double pr = 0.1; // Right ring fluid pressure.
+  double rhor = 0.01; // Right fluid mass density.
+  double ur = 0.0; // Right fluid velocity.
+  double pr = 0.01; // Right fluid pressure.
 
   // Spacetime parameters (using geometric units).
   double mass = 0.3; // Mass of the black hole.
-  double spin = -0.99; // Spin of the black hole.
+  double spin = -0.5; // Spin of the black hole.
 
   double pos_x = 2.5; // Position of the black hole (x-direction).
   double pos_y = 2.5; // Position of the black hole (y-direction).
@@ -97,20 +92,16 @@ create_ctx(void)
   double fine_Ly = 2.5; // Fine domain size (y-direction).
   double cfl_frac = 0.95; // CFL coefficient.
 
-  double t_end = 5.0; // Final simulation time.
+  double t_end = 15.0; // Final simulation time.
   int num_frames = 1; // Number of output frames.
   double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.
   int num_failures_max = 20; // Maximum allowable number of consecutive small time-steps.
 
-  double r_inner = 1.2; // Ring inner radius.
-  double r_outer = 2.4; // Ring outer radius.
+  double x_loc = 1.0; // Shock location (x-direction).
 
-  struct amr_gr_blackhole_spinning_ctx ctx = {
+  struct amr_gr_bhl_spinning_ctx ctx = {
     .pi = pi,
     .gas_gamma = gas_gamma,
-    .rhob = rhob,
-    .ub = ub,
-    .pb = pb,
     .rhol = rhol,
     .ul = ul,
     .pl = pl,
@@ -135,8 +126,7 @@ create_ctx(void)
     .num_frames = num_frames,
     .dt_failure_tol = dt_failure_tol,
     .num_failures_max = num_failures_max,
-    .r_inner = r_inner,
-    .r_outer = r_outer,
+    .x_loc = x_loc,
   };
 
   return ctx;
@@ -146,14 +136,10 @@ void
 evalGREulerInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
 {
   double x = xn[0], y = xn[1];
-  struct amr_gr_blackhole_spinning_ctx new_ctx = create_ctx(); // Context for initialization functions.
-  struct amr_gr_blackhole_spinning_ctx *app = &new_ctx;
+  struct amr_gr_bhl_spinning_ctx new_ctx = create_ctx(); // Context for initialization functions.
+  struct amr_gr_bhl_spinning_ctx *app = &new_ctx;
 
   double gas_gamma = app->gas_gamma;
-
-  double rhob = app->rhob;
-  double ub = app->ub;
-  double pb = app->pb;
 
   double rhol = app->rhol;
   double ul = app->ul;
@@ -165,8 +151,7 @@ evalGREulerInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT 
 
   struct gkyl_gr_spacetime *spacetime = app->spacetime;
 
-  double r_inner = app->r_inner;
-  double r_outer = app->r_outer;
+  double x_loc = app->x_loc;
 
   double Lx = app->Lx;
   double Ly = app->Ly;
@@ -175,24 +160,15 @@ evalGREulerInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT 
   double u = 0.0;
   double p = 0.0;
 
-  double r = sqrt((x - (0.5 * Lx)) * (x - (0.5 * Lx)) + (y - (0.5 * Ly)) * (y - (0.5 * Ly)));
-
-  if (r > r_inner && r < r_outer) {
-    if (x < (0.5 * Lx)) {
-      rho = rhol; // Fluid mass density (left ring).
-      u = ul; // Fluid velocity (left ring).
-      p = pl; // Fluid pressure (left ring).
-    }
-    else {
-      rho = rhor; // Fluid mass density (right ring).
-      u = ur; // Fluid velocity (right ring).
-      p = pr; // Fluid pressure (right ring).
-    }
+  if (x < x_loc) {
+    rho = rhol; // Fluid mass density (left).
+    u = ul; // Fluid velocity (left).
+    p = pl; // Fluid pressure (left).
   }
   else {
-    rho = rhob; // Fluid mass density (background).
-    u = ub; // Fluid velocity (background).
-    p = pb; // Fluid pressure (background).
+    rho = rhor; // Fluid mass density (right).
+    u = ur; // Fluid velocity (right).
+    p = pr; // Fluid pressure (right).
   }
   
   double spatial_det, lapse;
@@ -285,7 +261,7 @@ evalGREulerInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT 
 
 int main(int argc, char **argv)
 {
-  struct amr_gr_blackhole_spinning_ctx ctx = create_ctx(); // Context for initialization functions.
+  struct amr_gr_bhl_spinning_ctx ctx = create_ctx(); // Context for initialization functions.
 
   struct gr_euler2d_single_init init = {
     .base_Nx = ctx.Nx,
@@ -306,7 +282,13 @@ int main(int argc, char **argv)
     .gas_gamma = ctx.gas_gamma,
     .spacetime = ctx.spacetime,
 
-    .gr_euler_output = "amr_gr_blackhole_spinning_l1",
+    .copy_x = true,
+    .copy_y = true,
+
+    .wall_x = false,
+    .wall_y = false,
+
+    .gr_euler_output = "amr_gr_bhl_spinning_l1",
 
     .low_order_flux = true,
     .cfl_frac = ctx.cfl_frac,

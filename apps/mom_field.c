@@ -109,7 +109,7 @@ moment_field_init(const struct gkyl_moment *mom, const struct gkyl_moment_field 
         bc = mom_fld->bcy;
       else
         bc = mom_fld->bcz;
-      
+
       wv_bc_func_t bc_lower_func;
       if (dir == 0)
         bc_lower_func = mom_fld->bcx_func[0];

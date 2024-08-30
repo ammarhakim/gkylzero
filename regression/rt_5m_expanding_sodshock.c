@@ -131,17 +131,6 @@ evalEulerInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fo
 }
 
 void
-evalFieldInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
-{
-  // Set electric field.
-  fout[0] = 0.0, fout[1] = 0.0; fout[2] = 0.0;
-  // Set magnetic field.
-  fout[3] = 0.0, fout[4] = 0.0; fout[5] = 0.0;
-  // Set correction potentials.
-  fout[6] = 0.0; fout[7] = 0.0;
-}
-
-void
 write_data(struct gkyl_tm_trigger* iot, gkyl_moment_app* app, double t_curr, bool force_write)
 {
   if (gkyl_tm_trigger_check_and_bump(iot, t_curr)) {
@@ -190,16 +179,6 @@ main(int argc, char **argv)
     .volume_R0 = ctx.R0,
 
     .bcx = { GKYL_SPECIES_COPY, GKYL_SPECIES_COPY },
-  };
-
-  // Field.
-  struct gkyl_moment_field field = {
-    .epsilon0 = 1.0, .mu0 = 1.0,
-    .mag_error_speed_fact = 1.0,
-    
-    .evolve = false,
-    .init = evalFieldInit,
-    .ctx = &ctx,
   };
 
   int nrank = 1; // Number of processes in simulation.
@@ -289,8 +268,6 @@ main(int argc, char **argv)
 
     .num_species = 1,
     .species = { fluid },
-
-    .field = field,
 
     .has_low_inp = true,
     .low_inp = {

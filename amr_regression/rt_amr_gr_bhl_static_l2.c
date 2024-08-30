@@ -1,4 +1,4 @@
-// 2D Bondi-Hoyle-Lyttleton accretion problem onto a static (Schwarzschild) black hole, using static, block-structured mesh refinement with a single refinement block (4x refinement), for the general relativistic Euler equations.
+// 2D Bondi-Hoyle-Lyttleton accretion problem onto a static (Schwarzschild) black hole, using static, block-structured mesh refinement with doubly-nested refinement blocks (4x4x refinement), for the general relativistic Euler equations.
 // Input parameters describe wind accretion of a cold relativistic gas onto a non-rotating black hole.
 // Based on the analytical solution for stiff relativistic fluids presented in the article:
 // L. I. Petrich, S. L. Shapiro and S. A. Teukolsky (1988), "Accretion onto a moving black hole: An exact solution",
@@ -39,9 +39,12 @@ struct amr_gr_bhl_static_ctx
   // Simulation parameters.
   int Nx; // Coarse cell count (x-direction).
   int Ny; // Coarse cell count (y-direction).
-  int ref_factor; // Refinement factor.
+  int ref_factor1; // First refinement factor (coarse-to-intermediate).
+  int ref_factor2; // Second refinement factor (intermediate-to-fine).
   double Lx; // Coarse domain size (x-direction).
   double Ly; // Coarse domain size (y-direction).
+  double intermediate_Lx; // Intermediate domain size (x-direction).
+  double intermediate_Ly; // Intermediate domain size (y-direction).
   double fine_Lx; // Fine domain size (x-direction).
   double fine_Ly; // Fine domain size (y-direction).
   double cfl_frac; // CFL coefficient.
@@ -83,13 +86,16 @@ create_ctx(void)
   struct gkyl_gr_spacetime *spacetime = gkyl_gr_blackhole_new(false, mass, spin, pos_x, pos_y, pos_z);
 
   // Simulation parameters.
-  int Nx = 32; // Coarse cell count (x-direction).
-  int Ny = 32; // Coarse cell count (y-direction).
-  int ref_factor = 4; // Refinement factor.
+  int Nx = 8; // Coarse cell count (x-direction).
+  int Ny = 8; // Coarse cell count (y-direction).
+  int ref_factor1 = 4; // First refinement factor (coarse-to-intermediate).
+  int ref_factor2 = 4; // Second refinement factor (intermediate-to-fine).
   double Lx = 5.0; // Coarse domain size (x-direction).
   double Ly = 5.0; // Coarse domain size (y-direction).
+  double intermediate_Lx = 4.0; // Intermediate domain size (x-direction).
+  double intermediate_Ly = 3.5; // Intermediate domain size (y-direction).
   double fine_Lx = 2.5; // Fine domain size (x-direction).
-  double fine_Ly = 2.5; // Fine domain size (y-direction).
+  double fine_Ly = 2.0; // Fine domain size (y-direction).
   double cfl_frac = 0.95; // CFL coefficient.
   
   double t_end = 15.0; // Final simulation time.
@@ -116,9 +122,12 @@ create_ctx(void)
     .spacetime = spacetime,
     .Nx = Nx,
     .Ny = Ny,
-    .ref_factor = ref_factor,
+    .ref_factor1 = ref_factor1,
+    .ref_factor2 = ref_factor2,
     .Lx = Lx,
     .Ly = Ly,
+    .intermediate_Lx = intermediate_Lx,
+    .intermediate_Ly = intermediate_Ly,
     .fine_Lx = fine_Lx,
     .fine_Ly = fine_Ly,
     .cfl_frac = cfl_frac,
@@ -263,26 +272,38 @@ int main(int argc, char **argv)
 {
   struct amr_gr_bhl_static_ctx ctx = create_ctx(); // Context for initialization functions.
 
-  struct gr_euler2d_single_init init = {
+  struct gr_euler2d_double_init init = {
     .base_Nx = ctx.Nx,
     .base_Ny = ctx.Ny,
-    .ref_factor = ctx.ref_factor,
+    .ref_factor1 = ctx.ref_factor1,
+    .ref_factor2 = ctx.ref_factor2,
 
     .coarse_x1 = 0.0,
     .coarse_y1 = 0.0,
     .coarse_x2 = ctx.Lx,
     .coarse_y2 = ctx.Ly,
 
-    .refined_x1 = (0.5 * ctx.Lx) - (0.5 * ctx.fine_Lx),
+    .intermediate_x1 = (0.55 * ctx.Lx) - (0.5 * ctx.intermediate_Lx),
+    .intermediate_y1 = (0.5 * ctx.Ly) - (0.5 * ctx.intermediate_Ly),
+    .intermediate_x2 = (0.55 * ctx.Lx) + (0.5 * ctx.intermediate_Lx),
+    .intermediate_y2 = (0.5 * ctx.Ly) + (0.5 * ctx.intermediate_Ly),
+
+    .refined_x1 = (0.6 * ctx.Lx) - (0.5 * ctx.fine_Lx),
     .refined_y1 = (0.5 * ctx.Ly) - (0.5 * ctx.fine_Ly),
-    .refined_x2 = (0.5 * ctx.Lx) + (0.5 * ctx.fine_Lx),
+    .refined_x2 = (0.6 * ctx.Lx) + (0.5 * ctx.fine_Lx),
     .refined_y2 = (0.5 * ctx.Ly) + (0.5 * ctx.fine_Ly),
 
     .eval = evalGREulerInit,
     .gas_gamma = ctx.gas_gamma,
     .spacetime = ctx.spacetime,
 
-    .gr_euler_output = "amr_gr_bhl_static_l1",
+    .copy_x = true,
+    .copy_y = true,
+
+    .wall_x = false,
+    .wall_y = false,
+
+    .gr_euler_output = "amr_gr_bhl_static_l2",
 
     .low_order_flux = true,
     .cfl_frac = ctx.cfl_frac,
@@ -293,5 +314,5 @@ int main(int argc, char **argv)
     .num_failures_max = ctx.num_failures_max,
   };
 
-  gr_euler2d_run_single(argc, argv, &init);
+  gr_euler2d_run_double(argc, argv, &init);
 }

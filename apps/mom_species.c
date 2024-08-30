@@ -255,10 +255,12 @@ moment_species_init(const struct gkyl_moment *mom, const struct gkyl_moment_spec
   sp->proj_app_accel = 0;
   if (mom_sp->app_accel_func) {
     void *ctx = sp->ctx;
-    if (mom_sp->app_accel_ctx)
+
+    if (mom_sp->app_accel_ctx) {
       ctx = mom_sp->app_accel_ctx;
-    sp->proj_app_accel = gkyl_fv_proj_new(&app->grid, 2, GKYL_MOM_APP_NUM_APPLIED_ACCELERATION,
-      mom_sp->app_accel_func, ctx);
+    }
+
+    sp->proj_app_accel = gkyl_fv_proj_new(&app->grid, 2, GKYL_MOM_APP_NUM_APPLIED_ACCELERATION, mom_sp->app_accel_func, ctx);
   }
 
   sp->nT_source = mkarr(false, 2, app->local_ext.volume);

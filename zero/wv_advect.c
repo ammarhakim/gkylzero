@@ -29,15 +29,15 @@ riem_to_cons(const struct gkyl_wv_eqn *eqn,
 }
 
 static inline void
-rot_to_local(const double *tau1, const double *tau2, const double *norm,
-  const double *GKYL_RESTRICT qglobal, double *GKYL_RESTRICT qlocal)
+rot_to_local(const struct gkyl_wv_eqn* eqn, const double* tau1, const double* tau2, const double* norm,
+  const double* GKYL_RESTRICT qglobal, double* GKYL_RESTRICT qlocal)
 {
   qlocal[0] = qglobal[0];
 }
 
 static inline void
-rot_to_global(const double *tau1, const double *tau2, const double *norm,
-  const double *GKYL_RESTRICT qlocal, double *GKYL_RESTRICT qglobal)
+rot_to_global(const struct gkyl_wv_eqn* eqn, const double* tau1, const double* tau2, const double* norm,
+  const double* GKYL_RESTRICT qlocal, double* GKYL_RESTRICT qglobal)
 {
   qglobal[0] = qlocal[0];
 }

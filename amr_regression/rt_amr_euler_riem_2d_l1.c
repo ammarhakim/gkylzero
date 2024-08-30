@@ -1,4 +1,4 @@
-// 2D Riemann (quadrant) problem, using static, block-structured mesh refinement with doubly-nested refinement blocks (4x4x refinement), for the 5-moment (Euler) equations.
+// 2D Riemann (quadrant) problem, using static, block-structured mesh refinement with a single refinement block (4x refinement), for the 5-moment (Euler) equations.
 // Input parameters match the initial conditions in Section 4.3, Case 3, with final time set to t = 0.8 rather than t = 0.3, from the article:
 // R. Liska and B. Wendroff (2003), "Comparison of Several Difference Schemes on 1D and 2D Test Problems for the Euler Equations",
 // SIAM Journal on Scientific Computing, Volume 25 (3): 995-1017.
@@ -34,12 +34,9 @@ struct amr_euler_riem_2d_ctx
   // Simulation parameters.
   int Nx; // Coarse cell count (x-direction).
   int Ny; // Coarse cell count (y-direction).
-  int ref_factor1; // First refinement factor (coarse-to-intermediate).
-  int ref_factor2; // Second refinement factor (intermediate-to-fine).
+  int ref_factor; // Refinement factor.
   double Lx; // Coarse domain size (x-direction).
   double Ly; // Coarse domain size (y-direction).
-  double intermediate_Lx; // Intermediate domain size (x-direction).
-  double intermediate_Ly; // Intermediate domain size (y-direction).
   double fine_Lx; // Fine domain size (x-direction).
   double fine_Ly; // Fine domain size (y-direction).
   double cfl_frac; // CFL coefficient.
@@ -79,16 +76,13 @@ create_ctx(void)
   double p_lr = 0.3; // Lower-right fluid pressure.
 
   // Simulation parameters.
-  int Nx = 8; // Coarse cell count (x-direction).
-  int Ny = 8; // Coarse cell count (y-direction).
-  int ref_factor1 = 4; // First refinement factor (coarse-to-intermediate).
-  int ref_factor2 = 4; // Second refinement factor (intermediate-to-fine).
+  int Nx = 32; // Coarse cell count (x-direction).
+  int Ny = 32; // Coarse cell count (y-direction).
+  int ref_factor = 4; // Refinement factor.
   double Lx = 1.0; // Coarse domain size (x-direction).
   double Ly = 1.0; // Coarse domain size (y-direction).
-  double intermediate_Lx = 0.75; // Intermediate domain size (x-direction).
-  double intermediate_Ly = 0.75; // Intermediate domain size (y-direction).
-  double fine_Lx = 0.25; // Fine domain size (x-direction).
-  double fine_Ly = 0.25; // Fine domain size (y-direction).
+  double fine_Lx = 0.6; // Fine domain size (x-direction).
+  double fine_Ly = 0.6; // Fine domain size (y-direction).
   double cfl_frac = 0.95; // CFL coefficient.
 
   double t_end = 0.8; // Final simulation time.
@@ -118,12 +112,9 @@ create_ctx(void)
     .p_lr = p_lr,
     .Nx = Nx,
     .Ny = Ny,
-    .ref_factor1 = ref_factor1,
-    .ref_factor2 = ref_factor2,
+    .ref_factor = ref_factor,
     .Lx = Lx,
     .Ly = Ly,
-    .intermediate_Lx = intermediate_Lx,
-    .intermediate_Ly = intermediate_Ly,
     .fine_Lx = fine_Lx,
     .fine_Ly = fine_Ly,
     .cfl_frac = cfl_frac,
@@ -214,21 +205,15 @@ int main(int argc, char **argv)
 {
   struct amr_euler_riem_2d_ctx ctx = create_ctx(); // Context for initialization functions.
 
-  struct euler2d_double_init init = {
+  struct euler2d_single_init init = {
     .base_Nx = ctx.Nx,
     .base_Ny = ctx.Ny,
-    .ref_factor1 = ctx.ref_factor1,
-    .ref_factor2 = ctx.ref_factor2,
+    .ref_factor = ctx.ref_factor,
 
     .coarse_x1 = 0.0,
     .coarse_y1 = 0.0,
     .coarse_x2 = ctx.Lx,
     .coarse_y2 = ctx.Ly,
-
-    .intermediate_x1 = (0.5 * ctx.Lx) - (0.5 * ctx.intermediate_Lx),
-    .intermediate_y1 = (0.5 * ctx.Ly) - (0.5 * ctx.intermediate_Ly),
-    .intermediate_x2 = (0.5 * ctx.Lx) + (0.5 * ctx.intermediate_Lx),
-    .intermediate_y2 = (0.5 * ctx.Ly) + (0.5 * ctx.intermediate_Ly),
 
     .refined_x1 = (0.5 * ctx.Lx) - (0.5 * ctx.fine_Lx),
     .refined_y1 = (0.5 * ctx.Ly) - (0.5 * ctx.fine_Ly),
@@ -238,7 +223,13 @@ int main(int argc, char **argv)
     .eval = evalEulerInit,
     .gas_gamma = ctx.gas_gamma,
 
-    .euler_output = "amr_euler_riem_2d_l2",
+    .copy_x = true,
+    .copy_y = true,
+
+    .wall_x = false,
+    .wall_y = false,
+
+    .euler_output = "amr_euler_riem_2d_l1",
 
     .low_order_flux = false,
     .cfl_frac = ctx.cfl_frac,
@@ -249,5 +240,5 @@ int main(int argc, char **argv)
     .num_failures_max = ctx.num_failures_max,
   };
 
-  euler2d_run_double(argc, argv, &init);
+  euler2d_run_single(argc, argv, &init);
 }

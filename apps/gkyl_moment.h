@@ -67,9 +67,8 @@ struct gkyl_moment_species {
 
   // boundary conditions
   enum gkyl_species_bc_type bcx[2], bcy[2], bcz[2];
-
   // for function BCs these should be set
-  wv_bc_func_t bcx_func[2], bcy_func[2], bcz_func[2];  
+  wv_bc_func_t bcx_func[2], bcy_func[2], bcz_func[2];
 };
 
 // Parameter for EM field
