@@ -386,14 +386,16 @@ gk_species_init(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *app, st
   }
 
   // Positivity enforcing by shifting f.
-  gks->enforce_positivity = false;
-  if (gks->info.enforce_positivity) {
-    gks->enforce_positivity = true;
-    gks->pos_shift_op = gkyl_positivity_shift_gyrokinetic_new(app->basis, gks->grid,
-      gks->info.mass, app->gk_geom, gks->vel_map, app->use_gpu);
-    gks->ps_intmom_grid = mkarr(app->use_gpu, vdim+2, app->local_ext.volume);
-    gks->ps_integ_diag = gkyl_dynvec_new(GKYL_DOUBLE, vdim+2);
-    gks->is_first_ps_integ_write_call = true;
+  if (app->enforce_positivity) {
+    gks->ps_delta_m0 = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
+    gks->pos_shift_op = gkyl_positivity_shift_gyrokinetic_new(app->confBasis, app->basis,
+      gks->grid, gks->info.mass, app->gk_geom, gks->vel_map, app->use_gpu);
+
+    // allocate data for diagnostic moments
+    int ndm = gks->info.num_diag_moments;
+    gks->ps_moms = gkyl_malloc(sizeof(struct gk_species_moment[ndm]));
+    for (int m=0; m<ndm; ++m)
+      gk_species_moment_init(app, gks, &gks->ps_moms[m], gks->info.diag_moments[m]);
   }
 }
 
@@ -640,9 +642,11 @@ gk_species_release(const gkyl_gyrokinetic_app* app, const struct gk_species *s)
     gkyl_free(s->red_integ_diag_global);
   }
 
-  if (s->enforce_positivity) {
+  if (app->enforce_positivity) {
+    gkyl_array_release(s->ps_delta_m0);
     gkyl_positivity_shift_gyrokinetic_release(s->pos_shift_op);
-    gkyl_array_release(s->ps_intmom_grid);
-    gkyl_dynvec_release(s->ps_integ_diag);
+    for (int i=0; i<s->info.num_diag_moments; ++i)
+      gk_species_moment_release(app, &s->ps_moms[i]);
+    gkyl_free(s->ps_moms);
   }
 }

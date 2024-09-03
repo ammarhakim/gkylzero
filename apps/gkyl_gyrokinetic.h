@@ -207,9 +207,6 @@ struct gkyl_gyrokinetic_species {
 
   // Boundary conditions.
   struct gkyl_gyrokinetic_bcs bcx, bcy, bcz;
-
-  // Positivity enforcement via shift in f.
-  bool enforce_positivity;
 };
 
 // Parameters for neutral species
@@ -279,6 +276,8 @@ struct gkyl_gk {
   double cfl_frac; // CFL fraction to use (default 1.0)
 
   bool use_gpu; // Flag to indicate if solver should use GPUs
+
+  bool enforce_positivity; // Positivity enforcement via shift in f.
 
   int num_periodic_dir; // number of periodic directions
   int periodic_dirs[3]; // list of periodic directions
