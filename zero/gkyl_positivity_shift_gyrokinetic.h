@@ -16,20 +16,20 @@ typedef struct gkyl_positivity_shift_gyrokinetic gkyl_positivity_shift_gyrokinet
  * final reduction needs to be performed outside of this updater, as it may
  * involve a communicator).
  *
- * @param cdim Configuration-space dimensions.
  * @param cbasis Conf-space basis.
  * @param pbasis Phase-space basis.
  * @param pgrid Phase-space grid.
  * @param mass Mass of species.
  * @param gk_geom Geometry object.
  * @param vel_map Veloity mapping object.
+ * @param conf_rng Configuration space range.
  * @param use_gpu bool to determine if on GPU.
  * @return New positivity shift updater pointer.
  */
 struct gkyl_positivity_shift_gyrokinetic*
 gkyl_positivity_shift_gyrokinetic_new(struct gkyl_basis cbasis, struct gkyl_basis pbasis,
   struct gkyl_rect_grid pgrid, double mass, const struct gk_geometry *gk_geom,
-  const struct gkyl_velocity_map *vel_map, bool use_gpu);
+  const struct gkyl_velocity_map *vel_map, const struct gkyl_range *conf_rng, bool use_gpu);
 
 /**
  * Run the positivity shift updater in the indicated range.
@@ -63,7 +63,7 @@ gkyl_positivity_shift_gyrokinetic_advance(gkyl_positivity_shift_gyrokinetic* up,
  * @param fs Distribution function of the species we wish to scale.
  */
 void
-gkyl_positivity_shift_gyrokinetic_quasineutrily_scale(gkyl_positivity_shift_gyrokinetic* up,
+gkyl_positivity_shift_gyrokinetic_quasineutrality_scale(gkyl_positivity_shift_gyrokinetic* up,
   const struct gkyl_range *conf_rng, const struct gkyl_range *phase_rng,
   const struct gkyl_array *GKYL_RESTRICT delta_m0s, const struct gkyl_array *GKYL_RESTRICT delta_m0s_tot,
   const struct gkyl_array *GKYL_RESTRICT delta_m0r, const struct gkyl_array *GKYL_RESTRICT m0s,

@@ -65,17 +65,28 @@ struct gkyl_positivity_shift_gyrokinetic {
   const struct gkyl_velocity_map *vel_map; // Pointer to velocity mapping object.
   bool use_gpu;
   struct gkyl_positivity_shift_gyrokinetic_kernels *kernels;
+  struct gkyl_array *shiftedf; // Marks if a shift occured at a given conf-cell.
 };
 
 #ifdef GKYL_HAVE_CUDA
 // Declaration of cuda device functions.
 
-void pos_shift_gk_choose_shift_kernel_cu(struct gkyl_positivity_shift_gyrokinetic_kernels *kernels,
-  struct gkyl_basis pbasis);
+void
+pos_shift_gk_choose_shift_kernel_cu(struct gkyl_positivity_shift_gyrokinetic_kernels *kernels,
+  struct gkyl_basis cbasis, struct gkyl_basis pbasis);
 
-void gkyl_positivity_shift_gyrokinetic_advance_cu(gkyl_positivity_shift_gyrokinetic* up,
-  const struct gkyl_range *phase_rng, const struct gkyl_range *conf_rng,
-  struct gkyl_array *GKYL_RESTRICT distf, struct gkyl_array *GKYL_RESTRICT mom);
+void
+gkyl_positivity_shift_gyrokinetic_advance_cu(gkyl_positivity_shift_gyrokinetic* up,
+  const struct gkyl_range *conf_rng, const struct gkyl_range *phase_rng,
+  struct gkyl_array *GKYL_RESTRICT distf, struct gkyl_array *GKYL_RESTRICT m0,
+  struct gkyl_array *GKYL_RESTRICT delta_m0);
+
+void
+gkyl_positivity_shift_gyrokinetic_quasineutrality_scale_cu(gkyl_positivity_shift_gyrokinetic* up,
+  const struct gkyl_range *conf_rng, const struct gkyl_range *phase_rng,
+  const struct gkyl_array *GKYL_RESTRICT delta_m0s, const struct gkyl_array *GKYL_RESTRICT delta_m0s_tot,
+  const struct gkyl_array *GKYL_RESTRICT delta_m0r, const struct gkyl_array *GKYL_RESTRICT m0s,
+  struct gkyl_array *GKYL_RESTRICT fs);
 #endif
 
 GKYL_CU_D
@@ -99,15 +110,21 @@ static void pos_shift_gk_choose_shift_kernel(struct gkyl_positivity_shift_gyroki
       kernels->is_m0_positive = pos_shift_gk_kern_list_m0_pos_check_ser[cdim-1].kernels[poly_order-1];
       kernels->shift = pos_shift_gk_kern_list_shift_ser[pdim-2].kernels[poly_order-1];
       kernels->m0 = pos_shift_gk_kern_list_m0_ser[pdim-2].kernels[poly_order-1];
+      kernels->conf_phase_mul_op = choose_mul_conf_phase_kern(pbasis_type, cdim, pdim-cdim, poly_order);
       break;
     default:
       assert(false);
       break;
   }
 
-  // Select kernels used for multiplication and division.
-  kernels->conf_inv_op = choose_ser_inv_kern(cdim, poly_order);
-  kernels->conf_mul_op = choose_ser_mul_kern(cdim, poly_order);
-  kernels->conf_phase_mul_op = choose_mul_conf_phase_kern(cbasis_type, cdim, pdim-cdim, poly_order);
+  switch (cbasis_type) {
+    case GKYL_BASIS_MODAL_SERENDIPITY:
+      kernels->conf_inv_op = choose_ser_inv_kern(cdim, poly_order);
+      kernels->conf_mul_op = choose_ser_mul_kern(cdim, poly_order);
+      break;
+    default:
+      assert(false);
+      break;
+  }
 
 }

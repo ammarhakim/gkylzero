@@ -7,7 +7,7 @@
 struct gkyl_positivity_shift_gyrokinetic*
 gkyl_positivity_shift_gyrokinetic_new(struct gkyl_basis cbasis, struct gkyl_basis pbasis,
   struct gkyl_rect_grid grid, double mass, const struct gk_geometry *gk_geom,
-  const struct gkyl_velocity_map *vel_map, bool use_gpu)
+  const struct gkyl_velocity_map *vel_map, const struct gkyl_range *conf_rng, bool use_gpu)
 {
   // Allocate space for new updater.
   struct gkyl_positivity_shift_gyrokinetic *up = gkyl_malloc(sizeof(*up));
@@ -37,6 +37,8 @@ gkyl_positivity_shift_gyrokinetic_new(struct gkyl_basis cbasis, struct gkyl_basi
     up->ffloor = gkyl_cu_malloc(sizeof(double[1]));
     double ffloor_zero[] = {0.};  // Gets updated after 1st call to _advance.
     gkyl_cu_memcpy(up->ffloor, ffloor_zero, sizeof(double[1]), GKYL_CU_MEMCPY_H2D);
+
+    up->shiftedf = gkyl_array_cu_dev_new(GKYL_INT, 1, conf_rng->volume);
   }
 #endif
 
@@ -54,7 +56,8 @@ gkyl_positivity_shift_gyrokinetic_advance(gkyl_positivity_shift_gyrokinetic* up,
 {
 #ifdef GKYL_HAVE_CUDA
   if (up->use_gpu) {
-    gkyl_positivity_shift_gyrokinetic_advance_cu(up, phase_rng, conf_rng, distf, int_mom);
+    gkyl_positivity_shift_gyrokinetic_advance_cu(up, conf_rng, phase_rng,
+      distf, m0, delta_m0);
     return;
   }
 #endif
@@ -62,9 +65,6 @@ gkyl_positivity_shift_gyrokinetic_advance(gkyl_positivity_shift_gyrokinetic* up,
   double distf_max = -DBL_MAX;
 
   int num_cbasis = up->num_cbasis;
-
-  gkyl_array_clear_range(m0, 0.0, conf_rng);
-  gkyl_array_clear_range(delta_m0, 0.0, conf_rng);
 
   struct gkyl_range vel_rng;
   struct gkyl_range_iter conf_iter, vel_iter;
@@ -75,6 +75,8 @@ gkyl_positivity_shift_gyrokinetic_advance(gkyl_positivity_shift_gyrokinetic* up,
   gkyl_range_iter_init(&conf_iter, conf_rng);
   while (gkyl_range_iter_next(&conf_iter)) {
     long clinidx = gkyl_range_idx(conf_rng, conf_iter.idx);
+
+    const double *bmag_c = gkyl_array_cfetch(up->gk_geom->bmag, clinidx);
 
     double *m0_c = gkyl_array_fetch(m0, clinidx);
     double *delta_m0_c = gkyl_array_fetch(delta_m0, clinidx);
@@ -99,17 +101,17 @@ gkyl_positivity_shift_gyrokinetic_advance(gkyl_positivity_shift_gyrokinetic* up,
 
       long vlinidx = gkyl_range_idx(&up->vel_map->local_vel, idx_vel);
 
+      const double *vmap_c = gkyl_array_cfetch(up->vel_map->vmap, vlinidx);
+
       // Compute the original number density.
-      up->kernels->m0(up->grid.dx, gkyl_array_cfetch(up->vel_map->vmap, vlinidx), up->mass,
-        gkyl_array_cfetch(up->gk_geom->bmag, clinidx), distf_c, m0in_c);
+      up->kernels->m0(up->grid.dx, vmap_c, up->mass, bmag_c, distf_c, m0in_c);
 
       // Shift f if needed.
       bool shifted_node = up->kernels->shift(up->ffloor[0], distf_c);
       shiftedf = shiftedf || shifted_node;
 
       // Compute the new number density.
-      up->kernels->m0(up->grid.dx, gkyl_array_cfetch(up->vel_map->vmap, vlinidx), up->mass,
-        gkyl_array_cfetch(up->gk_geom->bmag, clinidx), distf_c, m0_c);
+      up->kernels->m0(up->grid.dx, vmap_c, up->mass, bmag_c, distf_c, m0_c);
 
       distf_max = GKYL_MAX2(distf_max, distf_c[0]);
     }
@@ -142,12 +144,20 @@ gkyl_positivity_shift_gyrokinetic_advance(gkyl_positivity_shift_gyrokinetic* up,
 }
 
 void
-gkyl_positivity_shift_gyrokinetic_quasineutrily_scale(gkyl_positivity_shift_gyrokinetic* up,
+gkyl_positivity_shift_gyrokinetic_quasineutrality_scale(gkyl_positivity_shift_gyrokinetic* up,
   const struct gkyl_range *conf_rng, const struct gkyl_range *phase_rng,
   const struct gkyl_array *GKYL_RESTRICT delta_m0s, const struct gkyl_array *GKYL_RESTRICT delta_m0s_tot,
   const struct gkyl_array *GKYL_RESTRICT delta_m0r, const struct gkyl_array *GKYL_RESTRICT m0s,
   struct gkyl_array *GKYL_RESTRICT fs)
 {
+#ifdef GKYL_HAVE_CUDA
+  if (up->use_gpu) {
+    gkyl_positivity_shift_gyrokinetic_quasineutrality_scale_cu(up, conf_rng, phase_rng,
+      delta_m0s, delta_m0s_tot, delta_m0r, m0s, fs);
+    return;
+  }
+#endif
+
   struct gkyl_range vel_rng;
   struct gkyl_range_iter conf_iter, vel_iter;
 
@@ -223,6 +233,7 @@ gkyl_positivity_shift_gyrokinetic_release(gkyl_positivity_shift_gyrokinetic* up)
   if (up->use_gpu) {
     gkyl_cu_free(up->ffloor);
     gkyl_cu_free(up->kernels);
+    gkyl_array_release(up->shiftedf);
   }
 #endif
   gkyl_free(up);

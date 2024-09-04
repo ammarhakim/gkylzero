@@ -221,10 +221,6 @@ test_1x2v(int poly_order, bool use_gpu)
 //  sprintf(fname0, "ctest_positivity_shift_gyrokinetic_1x2v_p%d_pre.gkyl", poly_order);
 //  gkyl_grid_sub_array_write(&grid, &local, NULL, distf, fname0);
 
-  int pidx[] = {1,1,1};
-      long plinidx = gkyl_range_idx(&local, pidx);
-      double *distf_c = gkyl_array_fetch(distf, plinidx);
-      printf("f = %g\n ", distf_c[0]);
   // Run the positivity shift. First time it sets ffloor in the pos_shift updater.
   struct gkyl_array *m0 = mkarr(use_gpu, confBasis.num_basis, confLocal_ext.volume);
   struct gkyl_array *ps_delta_m0 = mkarr(use_gpu, confBasis.num_basis, confLocal_ext.volume);
@@ -233,7 +229,7 @@ test_1x2v(int poly_order, bool use_gpu)
   gkyl_array_set(deltaf, -1.0, distf);
 
   struct gkyl_positivity_shift_gyrokinetic* pos_shift = gkyl_positivity_shift_gyrokinetic_new(confBasis,
-    basis, grid, proj_ctx.mass, gk_geom, gvm, use_gpu);
+    basis, grid, proj_ctx.mass, gk_geom, gvm, &confLocal, use_gpu);
   gkyl_positivity_shift_gyrokinetic_advance(pos_shift, &confLocal, &local, distf, m0, ps_delta_m0);
 
   // Project distf and apply the positivity shift again (using new ffloor).
