@@ -2207,11 +2207,11 @@ rk3(gkyl_gyrokinetic_app* app, double dt0)
               struct gk_species *gks = &app->species[i];
               if (gks->info.charge > 0.0) {
                 struct gk_species *gkelc = &app->species[elc_idx];
-                gkyl_positivity_shift_gyrokinetic_quasineutrality_scale(gks->pos_shift_op, &gks->local, &app->local,
+                gkyl_positivity_shift_gyrokinetic_quasineutrality_scale(gks->pos_shift_op, &app->local, &gks->local,
                   gks->ps_delta_m0, app->ps_delta_m0_ions, gkelc->ps_delta_m0, gks->m0.marr, gks->f);
               }
               else {
-                gkyl_positivity_shift_gyrokinetic_quasineutrality_scale(gks->pos_shift_op, &gks->local, &app->local,
+                gkyl_positivity_shift_gyrokinetic_quasineutrality_scale(gks->pos_shift_op, &app->local, &gks->local,
                   gks->ps_delta_m0, gks->ps_delta_m0, app->ps_delta_m0_ions, gks->m0.marr, gks->f);
               }
 

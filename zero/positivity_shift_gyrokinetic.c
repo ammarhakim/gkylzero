@@ -7,7 +7,7 @@
 struct gkyl_positivity_shift_gyrokinetic*
 gkyl_positivity_shift_gyrokinetic_new(struct gkyl_basis cbasis, struct gkyl_basis pbasis,
   struct gkyl_rect_grid grid, double mass, const struct gk_geometry *gk_geom,
-  const struct gkyl_velocity_map *vel_map, const struct gkyl_range *conf_rng, bool use_gpu)
+  const struct gkyl_velocity_map *vel_map, const struct gkyl_range *conf_rng_ext, bool use_gpu)
 {
   // Allocate space for new updater.
   struct gkyl_positivity_shift_gyrokinetic *up = gkyl_malloc(sizeof(*up));
@@ -38,7 +38,7 @@ gkyl_positivity_shift_gyrokinetic_new(struct gkyl_basis cbasis, struct gkyl_basi
     double ffloor_zero[] = {0.};  // Gets updated after 1st call to _advance.
     gkyl_cu_memcpy(up->ffloor, ffloor_zero, sizeof(double[1]), GKYL_CU_MEMCPY_H2D);
 
-    up->shiftedf = gkyl_array_cu_dev_new(GKYL_INT, 1, conf_rng->volume);
+    up->shiftedf = gkyl_array_cu_dev_new(GKYL_INT, 1, conf_rng_ext->volume);
   }
 #endif
 

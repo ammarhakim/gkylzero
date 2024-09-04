@@ -61,6 +61,16 @@ pos_shift_atomicMax_double(double *address, double val)
   return __longlong_as_double(ret);
 }
 
+__global__ void
+gkyl_positivity_shift_gyrokinetic_advance_int_array_clear_cu_ker(struct gkyl_array* out, int val)
+{
+  int *out_d = (int*) out->data;
+  unsigned long start_id = threadIdx.x + blockIdx.x*blockDim.x;
+  unsigned long nelm = out->size*out->ncomp;
+  for (unsigned long linc = start_id; linc < nelm; linc += blockDim.x*gridDim.x)
+    out_d[linc] = val;
+}
+
 __global__ static void
 gkyl_positivity_shift_gyrokinetic_advance_shift_cu_ker(
   struct gkyl_positivity_shift_gyrokinetic_kernels *kers, const struct gkyl_rect_grid grid,
@@ -96,8 +106,8 @@ gkyl_positivity_shift_gyrokinetic_advance_shift_cu_ker(
     // Compute the original number density.
     for (unsigned int k=0; k<delta_m0->ncomp; ++k)
       m0Local[k] = 0.0;
-    double *delta_m0_c = (double*) gkyl_array_fetch(delta_m0, clinidx);
     kers->m0(grid.dx, vmap_c, mass, bmag_c, distf_c, m0Local);
+    double *delta_m0_c = (double*) gkyl_array_fetch(delta_m0, clinidx);
     for (unsigned int k = 0; k < delta_m0->ncomp; ++k) {
        if (tid < phase_range.volume)
          atomicAdd(&delta_m0_c[k], m0Local[k]);
@@ -153,7 +163,7 @@ gkyl_positivity_shift_gyrokinetic_advance_scalef_cu_ker(
 
         long plinidx = gkyl_range_idx(&phase_range, pidx);
         double *distf_c = (double*) gkyl_array_fetch(distf, plinidx);
-	kers->conf_phase_mul_op(m0ratio_c, distf_c, distf_c);
+        kers->conf_phase_mul_op(m0ratio_c, distf_c, distf_c);
       }
     }
   }
@@ -174,9 +184,9 @@ gkyl_positivity_shift_gyrokinetic_advance_m0fix_cu_ker(
     long clinidx = gkyl_range_idx(&conf_range, cidx);
 
     const int *shiftedf_c = (const int*) gkyl_array_cfetch(shiftedf, clinidx);
+    double *delta_m0_c = (double*) gkyl_array_fetch(delta_m0, clinidx);
 
     if (shiftedf_c[0]) {
-      double *delta_m0_c = (double*) gkyl_array_fetch(delta_m0, clinidx);
       double *m0_c = (double*) gkyl_array_fetch(m0, clinidx);
       if (kers->is_m0_positive(delta_m0_c)) {
 	for (int k=0; k<m0->ncomp; k++) {
@@ -189,6 +199,10 @@ gkyl_positivity_shift_gyrokinetic_advance_m0fix_cu_ker(
           delta_m0_c[k] = m0_c[k] - delta_m0_c[k];
       }
     }
+    else {
+      for (int k=0; k<m0->ncomp; k++)
+        delta_m0_c[k] = 0.0;
+    }
   }
 }
 
@@ -198,10 +212,15 @@ gkyl_positivity_shift_gyrokinetic_advance_cu(gkyl_positivity_shift_gyrokinetic* 
   struct gkyl_array *GKYL_RESTRICT distf, struct gkyl_array *GKYL_RESTRICT m0,
   struct gkyl_array *GKYL_RESTRICT delta_m0)
 {
+  int nblocks_phase = phase_rng->nblocks, nthreads_phase = phase_rng->nthreads;
+  int nblocks_conf = conf_rng->nblocks, nthreads_conf = conf_rng->nthreads;
+
   gkyl_array_clear_range(m0, 0.0, conf_rng);
   gkyl_array_clear_range(delta_m0, 0.0, conf_rng);
 
-  int nblocks_phase = phase_rng->nblocks, nthreads_phase = phase_rng->nthreads;
+  gkyl_positivity_shift_gyrokinetic_advance_int_array_clear_cu_ker<<<nblocks_conf, nthreads_conf>>>
+    (up->shiftedf->on_dev, 0);
+
   gkyl_positivity_shift_gyrokinetic_advance_shift_cu_ker<<<nblocks_phase, nthreads_phase>>>
     (up->kernels, up->grid, *conf_rng, up->vel_map->local_vel, *phase_rng, up->ffloor, up->ffloor_fac,
      up->cellav_fac, up->mass, up->gk_geom->bmag->on_dev, up->vel_map->vmap->on_dev, up->shiftedf->on_dev,
@@ -210,7 +229,6 @@ gkyl_positivity_shift_gyrokinetic_advance_cu(gkyl_positivity_shift_gyrokinetic* 
   gkyl_positivity_shift_gyrokinetic_advance_scalef_cu_ker<<<nblocks_phase, nthreads_phase>>>
     (up->kernels, *conf_rng, *phase_rng, up->shiftedf->on_dev, m0->on_dev, delta_m0->on_dev, distf->on_dev);
 
-  int nblocks_conf = conf_rng->nblocks, nthreads_conf = conf_rng->nthreads;
   gkyl_positivity_shift_gyrokinetic_advance_m0fix_cu_ker<<<nblocks_conf, nthreads_conf>>>
     (up->kernels, *conf_rng, up->shiftedf->on_dev, m0->on_dev, delta_m0->on_dev);
 }
@@ -248,7 +266,7 @@ gkyl_positivity_shift_gyrokinetic_quasineutrily_scale_cu_ker(
       //   - Delta n_r = Delta n_e
       //   - Delta n_s,tot = Delta n_i,tot
       double delta_m0fac_c[num_cbasis];
-      for (int k=0; k<m0s->ncomp; k++)
+      for (int k=0; k<delta_m0r->ncomp; k++)
         delta_m0fac_c[k] = delta_m0r_c[k] - delta_m0s_tot_c[k];
 
       kers->conf_mul_op(delta_m0fac_c, delta_m0s_c, delta_m0fac_c);
@@ -280,7 +298,7 @@ gkyl_positivity_shift_gyrokinetic_quasineutrality_scale_cu(gkyl_positivity_shift
   const struct gkyl_array *GKYL_RESTRICT delta_m0r, const struct gkyl_array *GKYL_RESTRICT m0s,
   struct gkyl_array *GKYL_RESTRICT fs)
 {
-  int nblocks = conf_rng->nblocks, nthreads = conf_rng->nthreads;
+  int nblocks = phase_rng->nblocks, nthreads = phase_rng->nthreads;
   gkyl_positivity_shift_gyrokinetic_quasineutrily_scale_cu_ker<<<nblocks, nthreads>>>(
     up->kernels, *conf_rng, *phase_rng, delta_m0s->on_dev, delta_m0s_tot->on_dev,
     delta_m0r->on_dev, m0s->on_dev, fs->on_dev);

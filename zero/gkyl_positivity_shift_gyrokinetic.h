@@ -22,14 +22,14 @@ typedef struct gkyl_positivity_shift_gyrokinetic gkyl_positivity_shift_gyrokinet
  * @param mass Mass of species.
  * @param gk_geom Geometry object.
  * @param vel_map Veloity mapping object.
- * @param conf_rng Configuration space range.
+ * @param conf_rng_ext Extended configuration space range.
  * @param use_gpu bool to determine if on GPU.
  * @return New positivity shift updater pointer.
  */
 struct gkyl_positivity_shift_gyrokinetic*
 gkyl_positivity_shift_gyrokinetic_new(struct gkyl_basis cbasis, struct gkyl_basis pbasis,
   struct gkyl_rect_grid pgrid, double mass, const struct gk_geometry *gk_geom,
-  const struct gkyl_velocity_map *vel_map, const struct gkyl_range *conf_rng, bool use_gpu);
+  const struct gkyl_velocity_map *vel_map, const struct gkyl_range *conf_rng_ext, bool use_gpu);
 
 /**
  * Run the positivity shift updater in the indicated range.
