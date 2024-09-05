@@ -73,27 +73,10 @@ void gkyl_gr_ultra_rel_euler_prim_vars(double gas_gamma, const double q[27], dou
     double cov_vy = momy / (Etot + p);
     double cov_vz = momz / (Etot + p);
 
-    double *cov_vel = gkyl_malloc(sizeof(double[3]));
-    double *vel = gkyl_malloc(sizeof(double[3]));
-    cov_vel[0] = cov_vx; cov_vel[1] = cov_vy; cov_vel[2] = cov_vz;
-
-    for (int i = 0; i < 3; i++) {
-      for (int j = 0; j < 3; j++) {
-        vel[i] += inv_spatial_metric[i][j] * cov_vel[j];
-      }
-    }
-
-    double vx = vel[0];
-    double vy = vel[1];
-    double vz = vel[2];
-
-    gkyl_free(cov_vel);
-    gkyl_free(vel);
-
     v[0] = rho;
-    v[1] = vx;
-    v[2] = vy;
-    v[3] = vz;
+    v[1] = cov_vx;
+    v[2] = cov_vy;
+    v[3] = cov_vz;
 
     v[4] = lapse;
     v[5] = shift_x;
