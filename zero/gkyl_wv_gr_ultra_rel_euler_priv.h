@@ -10,7 +10,7 @@
 #include <gkyl_range.h>
 #include <gkyl_util.h>
 
-struct wv_gr_euler {
+struct wv_gr_ultra_rel_euler {
   struct gkyl_wv_eqn eqn; // Base equation object.
   struct gkyl_gr_spacetime *spacetime; // Pointer to base spacetime object.
   double gas_gamma; // Adiabatic index.
@@ -25,7 +25,7 @@ struct wv_gr_euler {
 */
 GKYL_CU_D
 void
-gkyl_gr_euler_prim_vars(double gas_gamma, const double q[28], double v[28]);
+gkyl_gr_ultra_rel_euler_prim_vars(double gas_gamma, const double q[27], double v[27]);
 
 /**
 * Compute inverse spatial metric tensor (in covariant component form) given the conserved variables.
@@ -35,7 +35,7 @@ gkyl_gr_euler_prim_vars(double gas_gamma, const double q[28], double v[28]);
 */
 GKYL_CU_D
 void
-gkyl_gr_euler_inv_spatial_metric(const double q[28], double ***inv_spatial_metric);
+gkyl_gr_ultra_rel_euler_inv_spatial_metric(const double q[27], double ***inv_spatial_metric);
 
 /**
 * Compute perfect fluid stress-energy tensor (in contravariant component form) given the conserved variables.
@@ -46,7 +46,7 @@ gkyl_gr_euler_inv_spatial_metric(const double q[28], double ***inv_spatial_metri
 */
 GKYL_CU_D
 void
-gkyl_gr_euler_stress_energy_tensor(double gas_gamma, const double q[28], double ***stress_energy);
+gkyl_gr_ultra_rel_euler_stress_energy_tensor(double gas_gamma, const double q[27], double ***stress_energy);
 
 /**
 * Compute maximum absolute wave speed.
@@ -57,7 +57,7 @@ gkyl_gr_euler_stress_energy_tensor(double gas_gamma, const double q[28], double 
 */
 GKYL_CU_D
 static inline double
-gkyl_gr_euler_max_abs_speed(double gas_gamma, const double q[28]);
+gkyl_gr_ultra_rel_euler_max_abs_speed(double gas_gamma, const double q[27]);
 
 /**
 * Compute flux vector. Assumes rotation to local coordinate system.
@@ -68,7 +68,7 @@ gkyl_gr_euler_max_abs_speed(double gas_gamma, const double q[28]);
 */
 GKYL_CU_D
 void
-gkyl_gr_euler_flux(double gas_gamma, const double q[28], double flux[28]);
+gkyl_gr_ultra_rel_euler_flux(double gas_gamma, const double q[27], double flux[27]);
 
 /**
 * Compute Riemann variables given the conserved variables.
@@ -95,7 +95,7 @@ static inline void
 riem_to_cons(const struct gkyl_wv_eqn* eqn, const double* qstate, const double* win, double *qout);
 
 /**
-* Boundary condition function for applying wall boundary conditions for the general relativistic Euler equations with ideal gas equation of state.
+* Boundary condition function for applying wall boundary conditions for the general relativistic Euler equations with ultra-relativistic equation of state.
 *
 * @param eqn Base equation object.
 * @param t Current simulation time.
@@ -106,10 +106,10 @@ riem_to_cons(const struct gkyl_wv_eqn* eqn, const double* qstate, const double* 
 */
 GKYL_CU_D
 static void
-gr_euler_wall(const struct gkyl_wv_eqn* eqn, double t, int nc, const double* skin, double* GKYL_RESTRICT ghost, void* ctx);
+gr_ultra_rel_euler_wall(const struct gkyl_wv_eqn* eqn, double t, int nc, const double* skin, double* GKYL_RESTRICT ghost, void* ctx);
 
 /**
-* Boundary condition function for applying no-slip boundary conditions for the general relativistic Euler equations with ideal gas equation of state.
+* Boundary condition function for applying no-slip boundary conditions for the general relativistic Euler equations with ultra-relativistic equation of state.
 *
 * @param eqn Base equation object.
 * @param t Current simulation time.
@@ -120,7 +120,7 @@ gr_euler_wall(const struct gkyl_wv_eqn* eqn, double t, int nc, const double* ski
 */
 GKYL_CU_D
 static void
-gr_euler_no_slip(const struct gkyl_wv_eqn* eqn, double t, int nc, const double* skin, double* GKYL_RESTRICT ghost, void* ctx);
+gr_ultra_rel_euler_no_slip(const struct gkyl_wv_eqn* eqn, double t, int nc, const double* skin, double* GKYL_RESTRICT ghost, void* ctx);
 
 /**
 * Rotate state vector from global to local coordinate frame.
@@ -216,69 +216,6 @@ qfluct_lax_l(const struct gkyl_wv_eqn* eqn, enum gkyl_wv_flux_type type, const d
   double* amdq, double* apdq);
 
 /**
-* Compute waves and speeds using Roe fluxes.
-*
-* @param eqn Base equation object.
-* @param delta Jump across interface to split.
-* @param ql Conserved variables on the left of the interface.
-* @param qr Conserved variables on the right of the interface.
-* @param waves Waves (output).
-* @param s Wave speeds (output).
-* @return Maximum wave speed.
-*/
-GKYL_CU_D
-static double
-wave_roe(const struct gkyl_wv_eqn* eqn, const double* delta, const double* ql, const double* qr, double* waves, double* s);
-
-/**
-* Compute flucuations using Roe fluxes.
-*
-* @param eqn Base equation object.
-* @param ql Conserved variable vector on the left of the interface.
-* @param qr Conserved variable vector on the right of the interface.
-* @param waves Waves (input).
-* @param s Wave speeds (input).
-* @param amdq Left-moving fluctuations (output).
-* @param apdq Right-moving fluctuations (output).
-*/
-GKYL_CU_D
-static void
-qfluct_roe(const struct gkyl_wv_eqn* eqn, const double* ql, const double* qr, const double* waves, const double* s, double* amdq, double* apdq);
-
-/**
-* Compute waves and speeds using Roe fluxes (with potential fallback).
-*
-* @param eqn Base equation object.
-* @param type Type of Riemann-solver flux to use.
-* @param delta Jump across interface to split.
-* @param ql Conserved variables on the left of the interface.
-* @param qr Conserved variables on the right of the interface.
-* @param waves Waves (output).
-* @param s Wave speeds (output).
-* @return Maximum wave speed.
-*/
-GKYL_CU_D
-static double
-wave_roe_l(const struct gkyl_wv_eqn* eqn, enum gkyl_wv_flux_type type, const double* delta, const double* ql, const double* qr, double* waves, double* s);
-
-/**
-* Compute fluctuations using Roe fluxes (with potential fallback).
-*
-* @param eqn Base equation object.
-* @param type Type of Riemann-solver flux to use.
-* @param ql Conserved variable vector on the left of the interface.
-* @param qr Conserved variable vector on the right of the interface.
-* @param waves Waves (input).
-* @param s Wave speeds (input).
-* @param amdq Left-moving fluctuations (output).
-* @param qpdq Right-moving fluctuations (output).
-*/
-GKYL_CU_D
-static void
-qfluct_roe_l(const struct gkyl_wv_eqn* eqn, enum gkyl_wv_flux_type type, const double* ql, const double* qr, const double* waves, const double* s,
-  double* amdq, double* apdq);
-
-/**
 * Compute jump in flux given two conserved variable states.
 *
 * @param eqn Base equation object.
@@ -292,7 +229,7 @@ static double
 flux_jump(const struct gkyl_wv_eqn* eqn, const double* ql, const double* qr, double* flux_jump);
 
 /**
-* Determine whether invariant domain of the general relativistic Euler equations with ideal gas equation of state is satisfied.
+* Determine whether invariant domain of the general relativistic Euler equations with ultra-relativistic equation of state is satisfied.
 *
 * @param eqn Base equation object.
 * @param q Conserved variable vector.
@@ -322,7 +259,7 @@ max_speed(const struct gkyl_wv_eqn* eqn, const double* q);
 */
 GKYL_CU_D
 static inline void
-gr_euler_cons_to_diag(const struct gkyl_wv_eqn* eqn, const double* qin, double* diag);
+gr_ultra_rel_euler_cons_to_diag(const struct gkyl_wv_eqn* eqn, const double* qin, double* diag);
 
 /**
 * Compute forcing/source term vector from conserved variable.
@@ -333,11 +270,11 @@ gr_euler_cons_to_diag(const struct gkyl_wv_eqn* eqn, const double* qin, double* 
 */
 GKYL_CU_DH
 static inline void
-gr_euler_source(const struct gkyl_wv_eqn* eqn, const double* qin, double* sout);
+gr_ultra_rel_euler_source(const struct gkyl_wv_eqn* eqn, const double* qin, double* sout);
 
 /**
-* Free general relativistic Euler equations object with ideal gas equation of state.
+* Free general relativistic Euler equations object with ultra-relativistic equation of state.
 *
-* @param ref Reference counter for general relativistic Euler equations with ideal gas equation of state.
+* @param ref Reference counter for general relativistic Euler equations with ultra-relativistic equation of state.
 */
-void gkyl_gr_euler_free(const struct gkyl_ref_count* ref);
+void gkyl_gr_ultra_rel_euler_free(const struct gkyl_ref_count* ref);

@@ -18,21 +18,21 @@ struct gkyl_wv_gr_euler_inp {
 };
 
 /**
-* Create a new general relativistic Euler equations object.
+* Create a new general relativistic Euler equations object with ideal gas equation of state.
 *
 * @param gas_gamma Adiabatic index.
 * @param spacetime Pointer to base spacetime object.
 * @param use_gpu Whether the wave equation object is on the host (false) or the device (true).
-* @return Pointer to the general relativistic Euler equations object.
+* @return Pointer to the general relativistic Euler equations object with ideal gas equation of state.
 */
 struct gkyl_wv_eqn*
 gkyl_wv_gr_euler_new(double gas_gamma, struct gkyl_gr_spacetime* spacetime, bool use_gpu);
 
 /**
-* Create a new general relativistic Euler equations object, from an input context struct.
+* Create a new general relativistic Euler equations object with ideal gas equation of state, from an input context struct.
 *
 * @param inp Input context struct.
-* @return Pointer to the general relativistic Euler equations object.
+* @return Pointer to the general relativistic Euler equations object with ideal gas equation of state.
 */
 struct gkyl_wv_eqn*
 gkyl_wv_gr_euler_inew(const struct gkyl_wv_gr_euler_inp* inp);
@@ -40,7 +40,7 @@ gkyl_wv_gr_euler_inew(const struct gkyl_wv_gr_euler_inp* inp);
 /**
 * Get adiabatic index.
 *
-* @param eqn General relativistic Euler equations object.
+* @param eqn General relativistic Euler equations object with ideal gas equation of state.
 * @return Adiabatic index.
 */
 double
@@ -49,7 +49,7 @@ gkyl_wv_gr_euler_gas_gamma(const struct gkyl_wv_eqn* eqn);
 /**
 * Get base spacetime object.
 *
-* @param eqn General relativistic Euler equations object.
+* @param eqn General relativistic Euler equations object with ideal gas equation of state.
 * @return Pointer to the base spacetime object.
 */
 struct gkyl_gr_spacetime*
