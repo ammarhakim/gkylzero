@@ -5,8 +5,8 @@
 
 // Type of Riemann-solver to use:
 enum gkyl_wv_gr_ultra_rel_euler_rp {
-  WV_GR_ULTRA_REL_EULER_RP_ROE = 0, // Default (Roe fluxes).
-  WV_GR_ULTRA_REL_EULER_RP_LAX,
+  WV_GR_ULTRA_REL_EULER_RP_LAX = 0, // Default (Lax fluxes).
+  WV_GR_ULTRA_REL_EULER_RP_ROE,
 };
 
 // Input context, packaged as a struct.
