@@ -185,7 +185,7 @@ evalGREulerInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT 
   spacetime->excision_region_func(spacetime, 0.0, x, y, 0.0, &in_excision_region);
   
   spacetime->spatial_metric_tensor_func(spacetime, 0.0, x, y, 0.0, &spatial_metric);
-  spacetime->extrinsic_curvature_tensor_func(spacetime, 0.0, x, 0.0, 0.0, 1.0, 1.0, 1.0, &extrinsic_curvature);
+  spacetime->extrinsic_curvature_tensor_func(spacetime, 0.0, x, y, 0.0, 1.0, 1.0, 1.0, &extrinsic_curvature);
 
   double *vel = gkyl_malloc(sizeof(double[3]));
   double v_sq = 0.0;
