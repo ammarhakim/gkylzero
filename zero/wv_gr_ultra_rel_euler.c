@@ -194,11 +194,9 @@ gkyl_gr_ultra_rel_euler_max_abs_speed(double gas_gamma, const double q[27])
 {
   double v[27] = { 0.0 };
   gkyl_gr_ultra_rel_euler_prim_vars(gas_gamma, q, v);
-  double rho = v[0];
   double vx = v[1];
   double vy = v[2];
   double vz = v[3];
-  double p = (gas_gamma - 1.0) * rho;
 
   double lapse = v[4];
   double shift_x = v[5];
@@ -221,9 +219,7 @@ gkyl_gr_ultra_rel_euler_max_abs_speed(double gas_gamma, const double q[27])
 
   gkyl_gr_ultra_rel_euler_inv_spatial_metric(q, &inv_spatial_metric);
 
-  double num = (gas_gamma * p) / rho;
-  double den = 1.0 + ((p / rho) * (gas_gamma) / (gas_gamma - 1.0));
-  double c_s = sqrt(num / den);
+  double c_s = gas_gamma - 1.0;
 
   bool in_excision_region = false;
   if (v[26] < pow(10.0, -8.0)) {
