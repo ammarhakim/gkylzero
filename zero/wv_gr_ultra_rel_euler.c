@@ -67,11 +67,30 @@ void gkyl_gr_ultra_rel_euler_prim_vars(double gas_gamma, const double q[27], dou
 
     double beta = 0.25 * (2.0 - gas_gamma);
     double p = -(2.0 * beta * Etot) + sqrt((4.0 * (beta * beta) * (Etot * Etot)) + ((gas_gamma - 1.0) * ((Etot * Etot) - mom_sq)));
+    if (p < pow(10.0, -8.0)) {
+      p = pow(10.0, -8.0);
+    }
     double rho = p / (gas_gamma - 1.0);
 
     double cov_vx = momx / (Etot + p);
     double cov_vy = momy / (Etot + p);
     double cov_vz = momz / (Etot + p);
+
+    if (Etot + p < pow(10.0, -8.0)) {
+      cov_vx = momx / pow(10.0, -8.0);
+      cov_vy = momy / pow(10.0, -8.0);
+      cov_vz = momz / pow(10.0, -8.0);
+    }
+
+    if (cov_vx > 1.0 - pow(10.0, -8.0)) {
+      cov_vx = 1.0 - pow(10.0, -8.0);
+    }
+    if (cov_vy > 1.0 - pow(10.0, -8.0)) {
+      cov_vy = 1.0 - pow(10.0, -8.0);
+    }
+    if (cov_vz > 1.0 - pow(10.0, -8.0)) {
+      cov_vz = 1.0 - pow(10.0, -8.0);
+    }
 
     v[0] = rho;
     v[1] = cov_vx;
