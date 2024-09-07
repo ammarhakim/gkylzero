@@ -59,6 +59,6 @@ static struct gkyl_update_status gyrokinetic_multib_update_ssp_rk3(struct gkyl_g
 // stability. The actual time-step and dt_suggested are returned in
 // the status object.
 void gyrokinetic_multib_forward_euler(struct gkyl_gyrokinetic_multib_app* mbapp, double tcurr, double dt,
-  const struct gkyl_array **fin[], struct gkyl_array **fout[],
-  const struct gkyl_array **fin_neut[], struct gkyl_array **fout_neut[],
+  const struct gkyl_array *fin[], struct gkyl_array *fout[],
+  const struct gkyl_array *fin_neut[], struct gkyl_array *fout_neut[],
   struct gkyl_update_status *st, struct gkyl_update_status *sb_st);

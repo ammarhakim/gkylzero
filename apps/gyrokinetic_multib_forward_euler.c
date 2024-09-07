@@ -6,8 +6,8 @@
 // the status object.
 void
 gyrokinetic_multib_forward_euler(struct gkyl_gyrokinetic_multib_app* mbapp, double tcurr, double dt,
-  const struct gkyl_array **fin[], struct gkyl_array **fout[], 
-  const struct gkyl_array **fin_neut[], struct gkyl_array **fout_neut[], 
+  const struct gkyl_array *fin[], struct gkyl_array *fout[], 
+  const struct gkyl_array *fin_neut[], struct gkyl_array *fout_neut[], 
   struct gkyl_update_status *st, struct gkyl_update_status *sb_st)
 {
   mbapp->stat.nfeuler += 1;
@@ -15,7 +15,8 @@ gyrokinetic_multib_forward_euler(struct gkyl_gyrokinetic_multib_app* mbapp, doub
   double dtmin = DBL_MAX;
   for (int lbidx = 0; lbidx < mbapp->num_local_blocks; lbidx++) {
     gkyl_gyrokinetic_app *app = mbapp->singleb_apps[lbidx];
-    gyrokinetic_rhs(app, tcurr, dt, fin[lbidx], fout[lbidx], fin_neut[lbidx], fout_neut[lbidx], &sb_st[lbidx]);
+    int lin_idx = lbidx*mbapp->num_species;
+    gyrokinetic_rhs(app, tcurr, dt, &fin[lin_idx], &fout[lin_idx], &fin_neut[lin_idx], &fout_neut[lin_idx], &sb_st[lbidx]);
     dtmin = fmin(dtmin, sb_st[lbidx].dt_actual);
   }
 
@@ -40,12 +41,13 @@ gyrokinetic_multib_forward_euler(struct gkyl_gyrokinetic_multib_app* mbapp, doub
   // Complete update of distribution functions.
   for (int lbidx = 0; lbidx < mbapp->num_local_blocks; lbidx++) {
     gkyl_gyrokinetic_app *app = mbapp->singleb_apps[lbidx];
+    int lin_idx = lbidx*mbapp->num_species;
     for (int i=0; i<app->num_species; ++i) {
-      gkyl_array_accumulate(gkyl_array_scale(fout[lbidx][i], dta), 1.0, fin[lbidx][i]);
+      gkyl_array_accumulate(gkyl_array_scale(fout[lin_idx+i], dta), 1.0, fin[lin_idx+i]);
     }
     for (int i=0; i<app->num_neut_species; ++i) {
       if (!app->neut_species[i].info.is_static) {
-        gkyl_array_accumulate(gkyl_array_scale(fout_neut[lbidx][i], dta), 1.0, fin_neut[lbidx][i]);
+        gkyl_array_accumulate(gkyl_array_scale(fout_neut[lin_idx+i], dta), 1.0, fin_neut[lin_idx+i]);
       }
     }
   }

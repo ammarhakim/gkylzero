@@ -5,20 +5,15 @@
 static struct gkyl_update_status
 gyrokinetic_multib_update_ssp_rk3(struct gkyl_gyrokinetic_multib_app* mbapp, double dt0)
 {
-  const struct gkyl_array **fin[mbapp->num_local_blocks];
-  struct gkyl_array **fout[mbapp->num_local_blocks];
-  const struct gkyl_array **fin_neut[mbapp->num_local_blocks];
-  struct gkyl_array **fout_neut[mbapp->num_local_blocks];
+  const struct gkyl_array *fin[mbapp->num_local_blocks*mbapp->num_species];
+  struct gkyl_array *fout[mbapp->num_local_blocks*mbapp->num_species];
+  const struct gkyl_array *fin_neut[mbapp->num_local_blocks*mbapp->num_species];
+  struct gkyl_array *fout_neut[mbapp->num_local_blocks*mbapp->num_species];
   struct gkyl_update_status st = { .success = true };
   struct gkyl_update_status sb_st[mbapp->num_local_blocks];
 
-  for (int i =0; i<mbapp->num_local_blocks; i++) {
-    fin[i] = gkyl_malloc(sizeof(struct gkyl_array*)*mbapp->num_species);
-    fout[i] = gkyl_malloc(sizeof(struct gkyl_array*)*mbapp->num_species);
-    fin_neut[i] = gkyl_malloc(sizeof(struct gkyl_array*)*mbapp->num_neut_species);
-    fout_neut[i] = gkyl_malloc(sizeof(struct gkyl_array*)*mbapp->num_neut_species);
+  for (int i =0; i<mbapp->num_local_blocks; i++)
     sb_st[i].success = true;
-  }
 
   // time-stepper state
   enum { RK_STAGE_1, RK_STAGE_2, RK_STAGE_3, RK_COMPLETE } state = RK_STAGE_1;
@@ -29,14 +24,15 @@ gyrokinetic_multib_update_ssp_rk3(struct gkyl_gyrokinetic_multib_app* mbapp, dou
       case RK_STAGE_1:
         for (int lbidx = 0; lbidx < mbapp->num_local_blocks; lbidx++) {
           struct gkyl_gyrokinetic_app *app = mbapp->singleb_apps[lbidx];
+          int lin_idx = lbidx*mbapp->num_species;
           for (int i=0; i<app->num_species; ++i) {
-            fin[lbidx][i] = app->species[i].f;
-            fout[lbidx][i] = app->species[i].f1;
+            fin[lin_idx+i] = app->species[i].f;
+            fout[lin_idx+i] = app->species[i].f1;
           }
           for (int i=0; i<app->num_neut_species; ++i) {
-            fin_neut[lbidx][i] = app->neut_species[i].f;
+            fin_neut[lin_idx+i] = app->neut_species[i].f;
             if (!app->neut_species[i].info.is_static) {
-              fout_neut[lbidx][i] = app->neut_species[i].f1;
+              fout_neut[lin_idx+i] = app->neut_species[i].f1;
             }
           }
         }
@@ -55,17 +51,18 @@ gyrokinetic_multib_update_ssp_rk3(struct gkyl_gyrokinetic_multib_app* mbapp, dou
       case RK_STAGE_2:
         for (int lbidx = 0; lbidx < mbapp->num_local_blocks; lbidx++) {
           struct gkyl_gyrokinetic_app *app = mbapp->singleb_apps[lbidx];
+          int lin_idx = lbidx*mbapp->num_species;
           for (int i=0; i<app->num_species; ++i) {
-            fin[lbidx][i] = app->species[i].f1;
-            fout[lbidx][i] = app->species[i].fnew;
+            fin[lin_idx+i] = app->species[i].f1;
+            fout[lin_idx+i] = app->species[i].fnew;
           }
           for (int i=0; i<app->num_neut_species; ++i) {
             if (!app->neut_species[i].info.is_static) {
-              fin_neut[lbidx][i] = app->neut_species[i].f1;
-              fout_neut[lbidx][i] = app->neut_species[i].fnew;
+              fin_neut[lin_idx+i] = app->neut_species[i].f1;
+              fout_neut[lin_idx+i] = app->neut_species[i].fnew;
             }
             else {
-              fin_neut[lbidx][i] = app->neut_species[i].f;
+              fin_neut[lin_idx+i] = app->neut_species[i].f;
             }
           }
         }
@@ -77,8 +74,9 @@ gyrokinetic_multib_update_ssp_rk3(struct gkyl_gyrokinetic_multib_app* mbapp, dou
           // TO DO: Recalculate the field.
           for (int lbidx = 0; lbidx < mbapp->num_local_blocks; lbidx++) {
             struct gkyl_gyrokinetic_app *app = mbapp->singleb_apps[lbidx];
+            int lin_idx = lbidx*mbapp->num_species;
             for (int i=0; i<app->num_species; ++i)
-              fin[lbidx][i] = app->species[i].f;
+              fin[lin_idx+i] = app->species[i].f;
           }
           //calc_field(app, tcurr, fin);
 
@@ -112,11 +110,12 @@ gyrokinetic_multib_update_ssp_rk3(struct gkyl_gyrokinetic_multib_app* mbapp, dou
           // TO DO: Compute the fields and apply BCs.
           for (int lbidx = 0; lbidx < mbapp->num_local_blocks; lbidx++) {
             struct gkyl_gyrokinetic_app *app = mbapp->singleb_apps[lbidx];
+            int lin_idx = lbidx*mbapp->num_species;
             for (int i=0; i<app->num_species; ++i) {
-              fout[lbidx][i] = app->species[i].f1;
+              fout[lin_idx+i] = app->species[i].f1;
             }
             for (int i=0; i<app->num_neut_species; ++i) {
-              fout_neut[lbidx][i] = app->neut_species[i].f1;
+              fout_neut[lin_idx+i] = app->neut_species[i].f1;
             }
           }
           //calc_field_and_apply_bc(mbapp, tcurr, fout, fout_neut);
@@ -128,17 +127,18 @@ gyrokinetic_multib_update_ssp_rk3(struct gkyl_gyrokinetic_multib_app* mbapp, dou
       case RK_STAGE_3:
         for (int lbidx = 0; lbidx < mbapp->num_local_blocks; lbidx++) {
           struct gkyl_gyrokinetic_app *app = mbapp->singleb_apps[lbidx];
+          int lin_idx = lbidx*mbapp->num_species;
           for (int i=0; i<app->num_species; ++i) {
-            fin[lbidx][i] = app->species[i].f1;
-            fout[lbidx][i] = app->species[i].fnew;
+            fin[lin_idx+i] = app->species[i].f1;
+            fout[lin_idx+i] = app->species[i].fnew;
           }
           for (int i=0; i<app->num_neut_species; ++i) {
             if (!app->neut_species[i].info.is_static) {
-              fin_neut[lbidx][i] = app->neut_species[i].f1;
-              fout_neut[lbidx][i] = app->neut_species[i].fnew;
+              fin_neut[lin_idx+i] = app->neut_species[i].f1;
+              fout_neut[lin_idx+i] = app->neut_species[i].fnew;
             }
             else {
-              fin_neut[lbidx][i] = app->neut_species[i].f;
+              fin_neut[lin_idx+i] = app->neut_species[i].f;
             }          
           }
         }
@@ -149,8 +149,9 @@ gyrokinetic_multib_update_ssp_rk3(struct gkyl_gyrokinetic_multib_app* mbapp, dou
           // TO DO: Recalculate the field.
           for (int lbidx = 0; lbidx < mbapp->num_local_blocks; lbidx++) {
             struct gkyl_gyrokinetic_app *app = mbapp->singleb_apps[lbidx];
+            int lin_idx = lbidx*mbapp->num_species;
             for (int i=0; i<app->num_species; ++i)
-              fin[lbidx][i] = app->species[i].f;
+              fin[lin_idx+i] = app->species[i].f;
           }
           //calc_field(mbapp, tcurr, fin);
 
@@ -197,11 +198,12 @@ gyrokinetic_multib_update_ssp_rk3(struct gkyl_gyrokinetic_multib_app* mbapp, dou
           // TO DO: Compute the fields and apply BCs
           for (int lbidx = 0; lbidx < mbapp->num_local_blocks; lbidx++) {
             struct gkyl_gyrokinetic_app *app = mbapp->singleb_apps[lbidx];
+            int lin_idx = lbidx*mbapp->num_species;
             for (int i=0; i<app->num_species; ++i) {
-              fout[lbidx][i] = app->species[i].f;
+              fout[lin_idx+i] = app->species[i].f;
             }
             for (int i=0; i<app->num_neut_species; ++i) {
-              fout_neut[lbidx][i] = app->neut_species[i].f;
+              fout_neut[lin_idx+i] = app->neut_species[i].f;
             }
           }
           //calc_field_and_apply_bc(mbapp, tcurr, fout, fout_neut);
