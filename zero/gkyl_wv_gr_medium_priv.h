@@ -17,6 +17,17 @@ struct wv_gr_medium {
 };
 
 /**
+* Compute primitive variables given the conserved variables.
+*
+* @param gas_gamma Adiabatic index.
+* @param q Conserved variable vector.
+* @param v Primitive variable vector (output).
+*/
+GKYL_CU_D
+void
+gkyl_gr_medium_prim_vars(double gas_gamma, const double q[15], double v[15]);
+
+/**
 * Compute maximum absolute wave speed.
 *
 * @param gas_gamma Adiabatic index.
