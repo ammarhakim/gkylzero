@@ -10,7 +10,7 @@ extern "C" {
 // CUDA kernel to set device pointers to kernels.
 __global__ static void
 gkyl_pos_shift_gk_set_cu_ker_ptrs(struct gkyl_positivity_shift_gyrokinetic_kernels *kernels,
-  struct gkyl_basis cbasis, struct gkyl_basis pbasis)
+  struct gkyl_basis cbasis, struct gkyl_basis pbasis, enum gkyl_positivity_shift_type stype)
 {
   int cdim = cbasis.ndim, pdim = pbasis.ndim;
   enum gkyl_basis_type cbasis_type = cbasis.b_type, pbasis_type = pbasis.b_type;
@@ -20,7 +20,9 @@ gkyl_pos_shift_gk_set_cu_ker_ptrs(struct gkyl_positivity_shift_gyrokinetic_kerne
     case GKYL_BASIS_MODAL_GKHYBRID:
     case GKYL_BASIS_MODAL_SERENDIPITY:
       kernels->is_m0_positive = pos_shift_gk_kern_list_m0_pos_check_ser[cdim-1].kernels[poly_order-1];
-      kernels->shift = pos_shift_gk_kern_list_shift_ser[pdim-2].kernels[poly_order-1];
+      kernels->shift = stype == GKYL_POSITIVITY_SHIFT_TYPE_SHIFT_ONLY?
+        pos_shift_gk_kern_list_shift_ser[pdim-2].kernels[poly_order-1] :
+        pos_shift_gk_kern_list_MRSlimiter_ser[pdim-2].kernels[poly_order-1];
       kernels->m0 = pos_shift_gk_kern_list_m0_ser[pdim-2].kernels[poly_order-1];
       kernels->conf_phase_mul_op = choose_mul_conf_phase_kern(pbasis_type, cdim, pdim-cdim, poly_order);
       break;
@@ -42,9 +44,9 @@ gkyl_pos_shift_gk_set_cu_ker_ptrs(struct gkyl_positivity_shift_gyrokinetic_kerne
 
 void
 pos_shift_gk_choose_shift_kernel_cu(struct gkyl_positivity_shift_gyrokinetic_kernels *kernels,
-  struct gkyl_basis cbasis, struct gkyl_basis pbasis)
+  struct gkyl_basis cbasis, struct gkyl_basis pbasis, enum gkyl_positivity_shift_type stype)
 {
-  gkyl_pos_shift_gk_set_cu_ker_ptrs<<<1,1>>>(kernels, cbasis, pbasis);
+  gkyl_pos_shift_gk_set_cu_ker_ptrs<<<1,1>>>(kernels, cbasis, pbasis, stype);
 }
 
 // Function borrowed from array_reduce_cu.cu.

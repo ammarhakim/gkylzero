@@ -10,6 +10,11 @@
 #include <gkyl_util.h>
 #include <assert.h>
 
+enum gkyl_positivity_shift_type {
+  GKYL_POSITIVITY_SHIFT_TYPE_SHIFT_ONLY = 0,
+  GKYL_POSITIVITY_SHIFT_TYPE_MRS_LIMITER,
+};
+
 // Function pointer type for sheath reflection kernels.
 typedef bool (*m0_pos_check_t)(const double *m0);
 typedef bool (*shift_t)(double ffloor, double *distf);
@@ -30,10 +35,18 @@ static const pos_shift_gk_kern_list_m0_pos_check pos_shift_gk_kern_list_m0_pos_c
 
 GKYL_CU_D
 static const pos_shift_gk_kern_list_shift pos_shift_gk_kern_list_shift_ser[] = {
-  { positivity_shift_gyrokinetic_1x1v_ser_p1, NULL, NULL },
-  { positivity_shift_gyrokinetic_1x2v_ser_p1, NULL, NULL },
-  { positivity_shift_gyrokinetic_2x2v_ser_p1, NULL, NULL },
-  { positivity_shift_gyrokinetic_3x2v_ser_p1, NULL, NULL },
+  { positivity_shift_gyrokinetic_shift_only_1x1v_ser_p1, NULL, NULL },
+  { positivity_shift_gyrokinetic_shift_only_1x2v_ser_p1, NULL, NULL },
+  { positivity_shift_gyrokinetic_shift_only_2x2v_ser_p1, NULL, NULL },
+  { positivity_shift_gyrokinetic_shift_only_3x2v_ser_p1, NULL, NULL },
+};
+
+GKYL_CU_D
+static const pos_shift_gk_kern_list_shift pos_shift_gk_kern_list_MRSlimiter_ser[] = {
+  { positivity_shift_gyrokinetic_MRS_limiter_1x1v_ser_p1, NULL, NULL },
+  { positivity_shift_gyrokinetic_MRS_limiter_1x2v_ser_p1, NULL, NULL },
+  { positivity_shift_gyrokinetic_MRS_limiter_2x2v_ser_p1, NULL, NULL },
+  { positivity_shift_gyrokinetic_MRS_limiter_3x2v_ser_p1, NULL, NULL },
 };
 
 GKYL_CU_D
@@ -73,7 +86,7 @@ struct gkyl_positivity_shift_gyrokinetic {
 
 void
 pos_shift_gk_choose_shift_kernel_cu(struct gkyl_positivity_shift_gyrokinetic_kernels *kernels,
-  struct gkyl_basis cbasis, struct gkyl_basis pbasis);
+  struct gkyl_basis cbasis, struct gkyl_basis pbasis, enum gkyl_positivity_shift_type stype);
 
 void
 gkyl_positivity_shift_gyrokinetic_advance_cu(gkyl_positivity_shift_gyrokinetic* up,
@@ -91,11 +104,12 @@ gkyl_positivity_shift_gyrokinetic_quasineutrality_scale_cu(gkyl_positivity_shift
 
 GKYL_CU_D
 static void pos_shift_gk_choose_shift_kernel(struct gkyl_positivity_shift_gyrokinetic_kernels *kernels,
-  struct gkyl_basis cbasis, struct gkyl_basis pbasis, bool use_gpu)
+  struct gkyl_basis cbasis, struct gkyl_basis pbasis, enum gkyl_positivity_shift_type stype,
+  bool use_gpu)
 {
 #ifdef GKYL_HAVE_CUDA
   if (use_gpu) {
-    pos_shift_gk_choose_shift_kernel_cu(kernels, cbasis, pbasis);
+    pos_shift_gk_choose_shift_kernel_cu(kernels, cbasis, pbasis, stype);
     return;
   }
 #endif
@@ -108,7 +122,9 @@ static void pos_shift_gk_choose_shift_kernel(struct gkyl_positivity_shift_gyroki
     case GKYL_BASIS_MODAL_GKHYBRID:
     case GKYL_BASIS_MODAL_SERENDIPITY:
       kernels->is_m0_positive = pos_shift_gk_kern_list_m0_pos_check_ser[cdim-1].kernels[poly_order-1];
-      kernels->shift = pos_shift_gk_kern_list_shift_ser[pdim-2].kernels[poly_order-1];
+      kernels->shift = stype == GKYL_POSITIVITY_SHIFT_TYPE_SHIFT_ONLY?
+        pos_shift_gk_kern_list_shift_ser[pdim-2].kernels[poly_order-1] :
+        pos_shift_gk_kern_list_MRSlimiter_ser[pdim-2].kernels[poly_order-1];
       kernels->m0 = pos_shift_gk_kern_list_m0_ser[pdim-2].kernels[poly_order-1];
       kernels->conf_phase_mul_op = choose_mul_conf_phase_kern(pbasis_type, cdim, pdim-cdim, poly_order);
       break;
