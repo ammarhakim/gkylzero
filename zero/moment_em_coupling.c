@@ -88,6 +88,12 @@ gkyl_moment_em_coupling_new(struct gkyl_moment_em_coupling_inp inp)
     mom_em->reactivity_reaction_rate = inp.reactivity_reaction_rate;
   }
 
+  mom_em->has_einstein_medium_sources = inp.has_einstein_medium_sources;
+  if (mom_em->has_einstein_medium_sources) {
+    mom_em->medium_gas_gamma = inp.medium_gas_gamma;
+    mom_em->medium_kappa = inp.medium_kappa;
+  }
+
   return mom_em;
 }
 

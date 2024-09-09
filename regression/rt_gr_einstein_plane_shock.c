@@ -120,6 +120,7 @@ evalGRMediumInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT
   }
 
   double b_dx = -sqrt((kappa * exp_2a * Etot) / 3.0) * tan((0.5 * x * sqrt(3.0 * kappa * exp_2a * Etot)) + sqrt(3.0 * kappa * exp_2a * Etot));
+  printf("%f\n", b_dx);
 
   // Set exponential appearing in dt and dx metric terms.
   fout[0] = exp_2a;
@@ -179,6 +180,10 @@ main(int argc, char **argv)
     .evolve = true,
     .init = evalGRMediumInit,
     .ctx = &ctx,
+
+    .has_einstein_medium = true,
+    .medium_gas_gamma = ctx.gas_gamma,
+    .medium_kappa = ctx.kappa,
 
     .bcx = { GKYL_SPECIES_COPY, GKYL_SPECIES_COPY },
   };
@@ -262,8 +267,8 @@ main(int argc, char **argv)
     .name = "gr_einstein_plane_shock",
 
     .ndim = 1,
-    .lower = { 0.0 },
-    .upper = { ctx.Lx }, 
+    .lower = { -0.5 * ctx.Lx },
+    .upper = { 0.5 * ctx.Lx }, 
     .cells = { NX },
 
     .cfl_frac = ctx.cfl_frac,

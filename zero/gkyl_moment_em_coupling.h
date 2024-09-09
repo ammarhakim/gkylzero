@@ -56,6 +56,10 @@ struct gkyl_moment_em_coupling_inp {
   double reactivity_energy_of_formation; // Energy of formation for reactive sources.
   double reactivity_ignition_temperature; // Ignition temperature for reactive sources.
   double reactivity_reaction_rate; // Reaction rate for reactive sources.
+
+  bool has_einstein_medium_sources; // Run with coupled fluid-Einstein sources in plane-symmetric spacetimes.
+  double medium_gas_gamma; // Adiabatic index for coupled fluid-Einstein sources in plane-symmetric spacetimes.
+  double medium_kappa; // Stress-energy prefactor for coupled fluid-Einstein sources in plane-symmetric spacetimes.
 };
 
 // Moment-EM coupling object.
