@@ -53,10 +53,6 @@ gkyl_dg_cx_new(struct gkyl_dg_cx_inp *inp, bool use_gpu)
     up->a = 7.95e-19;
     up->b = 5.65e-20;
   }
-
-  up->calc_prim_vars_ion = gkyl_dg_prim_vars_transform_new(up->cbasis, up->pbasis_vl, up->conf_rng, "prim_vlasov", use_gpu);
-  up->calc_prim_vars_neut = gkyl_dg_prim_vars_vlasov_new(up->cbasis, up->pbasis_vl, "prim", use_gpu);
-  up->calc_prim_vars_neut_gk = gkyl_dg_prim_vars_transform_new(up->cbasis, up->pbasis_gk, up->conf_rng, "prim_gk", use_gpu);
   
   //up->on_dev = up; // CPU eqn obj points to itself
   
@@ -77,22 +73,16 @@ gkyl_dg_cx_new(struct gkyl_dg_cx_inp *inp, bool use_gpu)
   return up;
 }
 
-void gkyl_dg_cx_coll(const struct gkyl_dg_cx *up, const double vtsq_min_ion,
-  const double vtsq_min_neut, const struct gkyl_array *moms_ion,
-  const struct gkyl_array *moms_neut, const struct gkyl_array *b_i,
+void gkyl_dg_cx_coll(const struct gkyl_dg_cx *up, 
   struct gkyl_array *prim_vars_ion, struct gkyl_array *prim_vars_neut,
-  struct gkyl_array *prim_vars_neut_gk, struct gkyl_array *coef_cx, struct gkyl_array *cflrate)
+  struct gkyl_array *upar_b_i, struct gkyl_array *coef_cx, struct gkyl_array *cflrate)
 {
-  #ifdef GKYL_HAVE_CUDA
+#ifdef GKYL_HAVE_CUDA
   if(gkyl_array_is_cu_dev(coef_cx)) {
-    return gkyl_dg_cx_coll_cu(up, vtsq_min_ion, vtsq_min_neut, moms_ion, moms_neut, b_i,
-      prim_vars_ion, prim_vars_neut, prim_vars_neut_gk, coef_cx, cflrate);
+    return gkyl_dg_cx_coll_cu(up, prim_vars_ion, prim_vars_neut, 
+      upar_b_i, coef_cx, cflrate);
   }
 #endif
-  gkyl_dg_prim_vars_transform_set_auxfields(up->calc_prim_vars_ion, 
-      (struct gkyl_dg_prim_vars_auxfields) {.b_i = b_i});
-  gkyl_dg_prim_vars_transform_set_auxfields(up->calc_prim_vars_neut_gk, 
-      (struct gkyl_dg_prim_vars_auxfields) {.b_i = b_i});
   
   struct gkyl_range vel_rng;
   struct gkyl_range_iter conf_iter, vel_iter;
@@ -101,24 +91,14 @@ void gkyl_dg_cx_coll(const struct gkyl_dg_cx *up, const double vtsq_min_ion,
   while (gkyl_range_iter_next(&conf_iter)) {
     long loc = gkyl_range_idx(up->conf_rng, conf_iter.idx);
 
-    const double *moms_ion_d = gkyl_array_cfetch(moms_ion, loc);
-    const double *moms_neut_d = gkyl_array_cfetch(moms_neut, loc);
-    const double *m0_neut_d = &moms_neut_d[0];
+    const double *prim_vars_ion_d = gkyl_array_fetch(prim_vars_ion, loc);
+    const double *prim_vars_neut_d = gkyl_array_fetch(prim_vars_neut, loc);
+    const double *upar_b_i_d = gkyl_array_fetch(upar_b_i, loc);
 
-    double *prim_vars_ion_d = gkyl_array_fetch(prim_vars_ion, loc);
-    double *prim_vars_neut_d = gkyl_array_fetch(prim_vars_neut, loc);
-    double *prim_vars_neut_gk_d = gkyl_array_fetch(prim_vars_neut_gk, loc);
     double *coef_cx_d = gkyl_array_fetch(coef_cx, loc);
-
-    up->calc_prim_vars_ion->kernel(up->calc_prim_vars_ion, conf_iter.idx,
-				   moms_ion_d, prim_vars_ion_d);
-    up->calc_prim_vars_neut->kernel(up->calc_prim_vars_neut, conf_iter.idx,
-				    moms_neut_d, prim_vars_neut_d);
-    up->calc_prim_vars_neut_gk->kernel(up->calc_prim_vars_neut_gk, conf_iter.idx,
-				    moms_neut_d, prim_vars_neut_gk_d);
     
-    double cflr = up->kernels->react_rate(up->a, up->b, vtsq_min_ion, vtsq_min_neut,
-      m0_neut_d, prim_vars_ion_d, prim_vars_neut_d, coef_cx_d);
+    double cflr = up->kernels->react_rate(up->a, up->b, up->vt_sq_ion_min, up->vt_sq_neut_min,
+      prim_vars_neut_d, prim_vars_ion_d, upar_b_i_d, coef_cx_d);
     
     /* gkyl_range_deflate(&vel_rng, up->phase_rng, rem_dir, conf_iter.idx); */
     /* gkyl_range_iter_no_split_init(&vel_iter, &vel_rng); */

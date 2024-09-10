@@ -249,15 +249,15 @@ main(int argc, char **argv)
       .correct_all_moms = true, 
     },
 
+    .correct_all_moms = true, 
+    .use_last_converged = true, 
+    .iter_eps = 1e-12,
+    .max_iter = 10,
     .collisions =  {
       .collision_id = GKYL_BGK_COLLISIONS,
       .normNu = false,
       .self_nu = evalNuInit,
       .ctx = &ctx, 
-      .correct_all_moms = true, 
-      .use_last_converged = true, 
-      .iter_eps = 1e-12,
-      .max_iter = 10,
     },
 
     .num_diag_moments = 6,

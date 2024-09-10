@@ -15,29 +15,38 @@
 // Parameters for projection
 struct gkyl_gyrokinetic_projection {
   enum gkyl_projection_id proj_id; // type of projection (see gkyl_eqn_type.h)
+  enum gkyl_quad_type quad_type; // quadrature scheme to use: defaults to Gaussian
 
-  // pointer and context to initialization function 
-  void *ctx_func; 
-  void (*func)(double t, const double *xn, double *fout, void *ctx); 
+  union {
+    struct {
+      // pointer and context to initialization function 
+      void *ctx_func; 
+      void (*func)(double t, const double *xn, double *fout, void *ctx); 
+    };
+    struct {
+      // pointers and contexts to initialization functions for gk maxwellian projection
+      void *ctx_density;
+      void (*density)(double t, const double *xn, double *fout, void *ctx);
+      void *ctx_upar;
+      void (*upar)(double t, const double *xn, double *fout, void *ctx);
+      void *ctx_udrift;
+      void (*udrift)(double t, const double *xn, double *fout, void *ctx);
+      // if projection is Maxwellian
+      void *ctx_temp;
+      void (*temp)(double t, const double *xn, double *fout, void *ctx);
+      // if projection is bi-Maxwellian
+      void *ctx_temppar;
+      void (*temppar)(double t, const double *xn, double *fout, void *ctx);
+      void *ctx_tempperp;
+      void (*tempperp)(double t, const double *xn, double *fout, void *ctx);
 
-  // pointers and contexts to initialization functions for gk maxwellian projection
-  void *ctx_density;
-  void (*density)(double t, const double *xn, double *fout, void *ctx);
-  void *ctx_upar;
-  void (*upar)(double t, const double *xn, double *fout, void *ctx);
-  void *ctx_udrift;
-  void (*udrift)(double t, const double *xn, double *fout, void *ctx);
-  // if projection is Maxwellian
-  void *ctx_temp;
-  void (*temp)(double t, const double *xn, double *fout, void *ctx);
-  // if projection is bi-Maxwellian
-  void *ctx_temppar;
-  void (*temppar)(double t, const double *xn, double *fout, void *ctx);
-  void *ctx_tempperp;
-  void (*tempperp)(double t, const double *xn, double *fout, void *ctx);
-
-  // boolean if we are correcting all the moments or only density
-  bool correct_all_moms;   
+      // boolean if we are correcting all the moments or only density
+      bool correct_all_moms; 
+      double iter_eps; // error tolerance for moment fixes (density is always exact)
+      int max_iter; // maximum number of iteration
+      bool use_last_converged; // use last iteration value regardless of convergence?
+    };
+  };
 };
 
 // Parameters for species collisions
@@ -55,13 +64,6 @@ struct gkyl_gyrokinetic_collisions {
   double bmag_mid; // bmag at the middle of the domain
   double nuFrac; // Parameter for rescaling collision frequency from SI values
   double hbar, eps0, eV; // Planck's constant/2 pi, vacuum permittivity, elementary charge
-
-  // Input quantities used by BGK collisions
-  bool correct_all_moms; // boolean if we are correcting all the moments or only density
-  double iter_eps; // error tolerance for moment fixes (density is always exact)
-  int max_iter; // maximum number of iteration
-  bool use_last_converged; // Boolean for if we are using the results of the iterative scheme
-                           // *even if* the scheme fails to converge.   
 
   int num_cross_collisions; // number of species to cross-collide with
   char collide_with[GKYL_MAX_SPECIES][128]; // names of species to cross collide with
@@ -188,6 +190,14 @@ struct gkyl_gyrokinetic_species {
   int num_diag_moments; // number of diagnostic moments
   char diag_moments[24][24]; // list of diagnostic moments
 
+  // Input quantities used by LTE (local thermodynamic equilibrium, or Maxwellian) projection
+  // This projection operator is used by BGK collisions and all reactions.
+  bool correct_all_moms; // boolean if we are correcting all the moments or only density
+  double iter_eps; // error tolerance for moment fixes (density is always exact)
+  int max_iter; // maximum number of iteration
+  bool use_last_converged; // Boolean for if we are using the results of the iterative scheme
+                           // *even if* the scheme fails to converge.   
+
   // Collisions to include.
   struct gkyl_gyrokinetic_collisions collisions;
 
@@ -229,6 +239,17 @@ struct gkyl_gyrokinetic_neut_species {
 
   int num_diag_moments; // Number of diagnostic moments.
   char diag_moments[16][16]; // List of diagnostic moments.
+
+  // Input quantities used by LTE (local thermodynamic equilibrium, or Maxwellian) projection
+  // This projection operator is used by BGK collisions and all reactions.
+  bool correct_all_moms; // boolean if we are correcting all the moments or only density
+  double iter_eps; // error tolerance for moment fixes (density is always exact)
+  int max_iter; // maximum number of iteration
+  bool use_last_converged; // Boolean for if we are using the results of the iterative scheme
+                           // *even if* the scheme fails to converge.   
+
+  // Collisions to include.
+  struct gkyl_gyrokinetic_collisions collisions;
 
   // Source to include.
   struct gkyl_gyrokinetic_source source;
@@ -313,36 +334,49 @@ struct gkyl_gyrokinetic_stat {
     
   double total_tm; // time for simulation (not including ICs)
   double init_species_tm; // time to initialize all species
-  double init_field_tm; // time to initialize fields
-
   double species_rhs_tm; // time to compute species collisionless RHS
+  double init_neut_species_tm; // time to initialize all neutral species
+  double neut_species_rhs_tm; // time to compute neutral species collisionless RHS  
   double field_rhs_tm; // time to compute field RHS
 
-  double species_coll_mom_tm; // time needed to compute various moments needed in LBO
   double species_lbo_coll_drag_tm[GKYL_MAX_SPECIES]; // time to compute LBO drag terms
   double species_lbo_coll_diff_tm[GKYL_MAX_SPECIES]; // time to compute LBO diffusion terms
+  double species_coll_mom_tm; // time needed to compute various moments needed in collisions
   double species_coll_tm; // total time for collision updater (excluded moments)
+  double species_lte_tm; // total time for species LTE (local thermodynamic equilibrium) projection updater
+  double species_rad_tm; // total time for radiation operator
+  double species_react_tm; // total time for reactions updaters
 
-  long niter_self_bgk_corr[GKYL_MAX_SPECIES]; // number of iterations used to correct self collisions in BGK
-  long niter_cross_bgk_corr[GKYL_MAX_SPECIES]; // number of iterations used to correct self collisions in BGK
+  double neut_species_coll_mom_tm; // time needed to compute various moments needed in neutral self-collisions
+  double neut_species_coll_tm; // total time for neutral self-collisions updater (excluded moments)
+  double neut_species_lte_tm; // total time for neutral species LTE (local thermodynamic equilibrium) projection updater
+  double neut_species_react_tm; // total time for neutral reactions updaters
+
+  long niter_corr[GKYL_MAX_SPECIES]; // total number of iterations used to correct species LTE projection
+  long num_corr[GKYL_MAX_SPECIES]; // total number of times correction updater for species LTE projection is called
+  long neut_niter_corr[GKYL_MAX_SPECIES]; // total number of iterations used to correct neutral species LTE projection
+  long neut_num_corr[GKYL_MAX_SPECIES]; // total number of times correction updater for neutral species LTE projection is called
 
   double species_bc_tm; // time to compute species BCs
-  double field_bc_tm; // time to compute field
-
   long nspecies_omega_cfl; // number of times CFL-omega all-reduce is called
   double species_omega_cfl_tm; // time spent in all-reduce for omega-cfl
-
-  long nfield_omega_cfl; // number of times CFL-omega for field all-reduce is called
-  double field_omega_cfl_tm; // time spent in all-reduce for omega-cfl for field
-
-  long nmom; // calls to moment calculation
-  double mom_tm; // time to compute moments
-
-  long ndiag; // calls to diagnostics
-  double diag_tm; // time to compute diagnostics
-
+  long ndiag; // total number of calls to diagnostics
+  double diag_tm; // total time to compute diagnostics
   long nio; // number of calls to IO
   double io_tm; // time to perform IO
+
+  double neut_species_bc_tm; // time to compute neutral species BCs
+  long nneut_species_omega_cfl; // number of times CFL-omega all-reduce is called for neutrals
+  double neut_species_omega_cfl_tm; // time spent in all-reduce for omega-cfl for neutrals
+  long nneut_diag; // total number of calls to diagnostics for neutral species
+  double neut_diag_tm; // total time to compute diagnostics for neutral species
+  long nneut_io; // number of calls to IO neutral species
+  double neut_io_tm; // time to perform IO for neutral species
+
+  long nfield_diag; // total number of calls to diagnostics for field
+  double field_diag_tm; // total time to compute diagnostics for field 
+  long nfield_io; // number of calls to IO for field
+  double field_io_tm; // time to perform IO for field
 };
 
 // Object representing gk app

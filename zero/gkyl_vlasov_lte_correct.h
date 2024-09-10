@@ -2,7 +2,6 @@
 
 #include <gkyl_array.h>
 #include <gkyl_basis.h>
-#include <gkyl_dg_bin_ops.h>
 #include <gkyl_eqn_type.h>
 #include <gkyl_range.h>
 #include <gkyl_rect_grid.h>
@@ -39,7 +38,7 @@ struct gkyl_vlasov_lte_correct_inp {
 struct gkyl_vlasov_lte_correct_status {
   bool iter_converged; // true if iterations converged
   int num_iter; // number of iterations for the correction
-  double error[6]; // error in each moment, up to 6 components
+  double error[5]; // error in each moment, up to 5 (vdim+2) components
 };  
 
 /**

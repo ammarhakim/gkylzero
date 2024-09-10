@@ -7,7 +7,6 @@
 #include <gkyl_elem_type.h>
 #include <gkyl_eqn_type.h>
 #include <gkyl_gyrokinetic_priv.h>
-//#include <gkyl_eval_on_nodes.h>
 
 #include <assert.h>
 #include <time.h>
@@ -217,7 +216,20 @@ gk_species_init(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *app, st
   // set species source id
   gks->src = (struct gk_source) { };
   gks->source_id = gks->info.source.source_id;
-  
+
+  // Initialize a Maxwellian/LTE (local thermodynamic equilibrium) projection routine
+  // Projection routine optionally corrects all the Maxwellian/LTE moments
+  // This routine is utilized by both reactions and BGK collisions
+  gks->lte = (struct gk_lte) { };
+  bool correct_all_moms = gks->info.correct_all_moms;
+  int max_iter = gks->info.max_iter > 0 ? gks->info.max_iter : 50;
+  double iter_eps = gks->info.iter_eps > 0 ? gks->info.iter_eps  : 1e-10;
+  bool use_last_converged = gks->info.use_last_converged;
+  struct correct_all_moms_inp corr_inp = { .correct_all_moms = correct_all_moms, 
+    .max_iter = max_iter, .iter_eps = iter_eps, 
+    .use_last_converged = use_last_converged };
+  gk_species_lte_init(app, gks, &gks->lte, corr_inp);
+
   // Determine collision type and initialize it.
   gks->collision_id = gks->info.collisions.collision_id;
   gks->lbo = (struct gk_lbo_collisions) { };
@@ -229,6 +241,7 @@ gk_species_init(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *app, st
     gk_species_bgk_init(app, gks, &gks->bgk);
   }
 
+  // Initialize reactions with other GK species and neutral species
   gks->has_reactions = false;
   gks->has_neutral_reactions = false;
   gks->react = (struct gk_react) { };
@@ -537,13 +550,11 @@ gk_species_coll_tm(gkyl_gyrokinetic_app *app)
 }
 
 void
-gk_species_bgk_niter(gkyl_gyrokinetic_app *app)
+gk_species_niter_corr(gkyl_gyrokinetic_app *app)
 {
   for (int i=0; i<app->num_species; ++i) {
-    if (app->species[i].collision_id == GKYL_BGK_COLLISIONS) {
-      app->stat.niter_self_bgk_corr[i] = app->species[i].bgk.self_niter;
-      app->stat.niter_cross_bgk_corr[i] = app->species[i].bgk.cross_niter;
-    }
+    app->stat.num_corr[i] = app->species[i].lte.num_corr;
+    app->stat.niter_corr[i] = app->species[i].lte.niter;
   }
 }
 
@@ -605,6 +616,7 @@ gk_species_release(const gkyl_gyrokinetic_app* app, const struct gk_species *s)
     gk_species_source_release(app, &s->src);
   }
 
+  gk_species_lte_release(app, &s->lte);
   if (s->collision_id == GKYL_LBO_COLLISIONS)
     gk_species_lbo_release(app, &s->lbo);
   else if (s->collision_id == GKYL_BGK_COLLISIONS)

@@ -163,6 +163,27 @@ gk_neut_species_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app, struc
     // acquire equation object
     s->eqn_vlasov = gkyl_dg_updater_vlasov_acquire_eqn(s->slvr);
 
+    // Initialize a Maxwellian/LTE (local thermodynamic equilibrium) projection routine
+    // Projection routine optionally corrects all the Maxwellian/LTE moments
+    // This routine is utilized by both reactions and BGK collisions
+    s->lte = (struct gk_lte) { };
+    bool correct_all_moms = s->info.correct_all_moms;
+    int max_iter = s->info.max_iter > 0 ? s->info.max_iter : 50;
+    double iter_eps = s->info.iter_eps > 0 ? s->info.iter_eps  : 1e-10;
+    bool use_last_converged = s->info.use_last_converged;
+    struct correct_all_moms_inp corr_inp = { .correct_all_moms = correct_all_moms, 
+      .max_iter = max_iter, .iter_eps = iter_eps, 
+      .use_last_converged = use_last_converged };
+    gk_neut_species_lte_init(app, s, &s->lte, corr_inp);
+
+    // Determine collision type and initialize it.
+    s->collision_id = s->info.collisions.collision_id;
+    s->bgk = (struct gk_bgk_collisions) { };
+    if (s->collision_id == GKYL_BGK_COLLISIONS) {
+      gk_neut_species_bgk_init(app, s, &s->bgk);
+    }
+
+    s->react_neut = (struct gk_react) { };
     if (s->info.react_neut.num_react) {
       s->has_neutral_reactions = true;
       gk_neut_species_react_init(app, s, s->info.react_neut, &s->react_neut);
@@ -346,7 +367,7 @@ gk_neut_species_apply_bc(gkyl_gyrokinetic_app *app, const struct gk_neut_species
         case GKYL_SPECIES_ABSORB:
           gkyl_bc_basic_advance(species->bc_lo[d], species->bc_buffer, f);
           break;
-	case GKYL_SPECIES_FIXED_FUNC:
+        case GKYL_SPECIES_FIXED_FUNC:
           gkyl_bc_basic_advance(species->bc_lo[d], species->bc_buffer_lo_fixed, f);
           break;
         case GKYL_SPECIES_ZERO_FLUX:
@@ -378,6 +399,15 @@ gk_neut_species_apply_bc(gkyl_gyrokinetic_app *app, const struct gk_neut_species
   gkyl_comm_array_sync(species->comm, &species->local, &species->local_ext, f);
 
   app->stat.species_bc_tm += gkyl_time_diff_now_sec(wst);
+}
+
+void
+gk_neut_species_niter_corr(gkyl_gyrokinetic_app *app)
+{
+  for (int i=0; i<app->num_neut_species; ++i) {
+    app->stat.neut_num_corr[i] = app->neut_species[i].lte.num_corr;
+    app->stat.neut_niter_corr[i] = app->neut_species[i].lte.niter;
+  }
 }
 
 void
@@ -435,6 +465,10 @@ gk_neut_species_release(const gkyl_gyrokinetic_app* app, const struct gk_neut_sp
 
   if (s->source_id) 
     gk_neut_species_source_release(app, &s->src);
+
+  gk_species_lte_release(app, &s->lte);
+  if (s->collision_id == GKYL_BGK_COLLISIONS)
+    gk_species_bgk_release(app, &s->bgk);
 
   if (s->has_neutral_reactions)
     gk_neut_species_react_release(app, &s->react_neut);
