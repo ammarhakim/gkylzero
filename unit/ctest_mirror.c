@@ -271,7 +271,7 @@ test_geom_2x() {
   double cpu_time_used;
   start = clock();
   struct gkyl_mirror_geo_efit_inp inp = {
-    .filepath = "./data/eqdsk/wham_hires.geqdsk",
+    .filepath = "./data/eqdsk/wham.geqdsk",
     .rzpoly_order = 2,
     .fluxpoly_order = 1,
     .plate_spec = false,
@@ -309,8 +309,8 @@ test_geom_2x() {
 
 
 TEST_LIST = {
-  // { "test_lores", test_lores },
-  // { "test_hires", test_hires },
+  { "test_lores", test_lores },
+  { "test_hires", test_hires },
   { "test_geom_2x", test_geom_2x },
   { NULL, NULL },
 };
