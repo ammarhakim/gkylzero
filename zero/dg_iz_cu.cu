@@ -23,9 +23,10 @@ gkyl_iz_react_rate_cu_ker(const struct gkyl_dg_iz *up,
   const struct gkyl_range conf_rng, const struct gkyl_range adas_rng,
   const struct gkyl_basis *adas_basis, const struct gkyl_array* prim_vars_elc, 
   struct gkyl_array *vtSq_iz1, struct gkyl_array *vtSq_iz2, struct gkyl_array* coef_iz,
-  struct gkyl_array* ioniz_data, 
-  double mass_elc, double elem_charge, double E, double maxLogTe, double minLogTe, double dlogTe,
-  double maxLogM0, double minLogM0, double dlogM0, int resTe, int resM0)
+  struct gkyl_array* ioniz_data, enum gkyl_react_self_type type_self, 
+  double mass_elc, double elem_charge, double E, 
+  double maxLogTe, double minLogTe, double dlogTe, int resTe, 
+  double maxLogM0, double minLogM0, double dlogM0, int resM0)
 {
   int cidx[GKYL_MAX_CDIM];
   for(unsigned long tid = threadIdx.x + blockIdx.x*blockDim.x;
@@ -122,8 +123,9 @@ void gkyl_dg_iz_coll_cu(const struct gkyl_dg_iz *up,
   gkyl_iz_react_rate_cu_ker<<<up->conf_rng->nblocks, up->conf_rng->nthreads>>>(up->on_dev, 
     *up->conf_rng, up->adas_rng, up->basis_on_dev, prim_vars_elc->on_dev, 
     vtSq_iz1->on_dev, vtSq_iz2->on_dev, coef_iz->on_dev, 
-    up->ioniz_data->on_dev, up->mass_elc, up->elem_charge, up->E, up->maxLogTe, up->minLogTe,
-    up->dlogTe, up->maxLogM0, up->minLogM0, up->dlogM0, up->resTe, up->resM0);
+    up->ioniz_data->on_dev, up->type_self, up->mass_elc, up->elem_charge, up->E, 
+    up->maxLogTe, up->minLogTe, up->dlogTe, up->resTe, 
+    up->maxLogM0, up->minLogM0, up->dlogM0, up->resM0);
   
   // cfl calculation
   //struct gkyl_range vel_rng;

@@ -51,7 +51,7 @@ dg_cx_choose_kernel_cu(struct gkyl_dg_cx_kernels *kernels,
 __global__ static void
 gkyl_cx_react_rate_cu_ker(struct gkyl_dg_cx_kernels *kernels, const struct gkyl_range conf_rng, 
   const struct gkyl_array *prim_vars_ion, const struct gkyl_array *prim_vars_neut, const struct gkyl_array *upar_b_i, 
-  double vtsq_min_ion, double vtsq_min_neut, struct gkyl_array *coef_cx,
+  double vt_sq_min_ion, double vt_sq_min_neut, struct gkyl_array *coef_cx,
   double a, double b)
 {
   int cidx[GKYL_MAX_CDIM];
@@ -67,7 +67,7 @@ gkyl_cx_react_rate_cu_ker(struct gkyl_dg_cx_kernels *kernels, const struct gkyl_
     double *coef_cx_d = (double*) gkyl_array_fetch(coef_cx, loc);
 
     // call the cx kernel
-    double cflr = kernels->react_rate(a, b, vtsq_min_ion, vtsq_min_neut, 
+    double cflr = kernels->react_rate(a, b, vt_sq_min_ion, vt_sq_min_neut, 
       prim_vars_ion_d, prim_vars_neut_d, upar_b_i_d, coef_cx_d);
   }
 }
@@ -78,5 +78,5 @@ void gkyl_dg_cx_coll_cu(const struct gkyl_dg_cx *up,
 {  
   gkyl_cx_react_rate_cu_ker<<<up->conf_rng->nblocks, up->conf_rng->nthreads>>>(up->kernels, *up->conf_rng,
     prim_vars_ion->on_dev, prim_vars_neut->on_dev, upar_b_i->on_dev, 
-    up->vtsq_min_ion, up->vtsq_min_neut, coef_cx->on_dev, up->a, up->b);
+    up->vt_sq_min_ion, up->vt_sq_min_neut, coef_cx->on_dev, up->a, up->b);
 }

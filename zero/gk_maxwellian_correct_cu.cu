@@ -1,8 +1,8 @@
 /* -*- c++ -*- */
 
 extern "C" {
-#include <gkyl_gk_lte_correct.h>
-#include <gkyl_gk_lte_correct_priv.h>
+#include <gkyl_gk_maxwellian_correct.h>
+#include <gkyl_gk_maxwellian_correct_priv.h>
 #include <gkyl_range.h>
 }
 
