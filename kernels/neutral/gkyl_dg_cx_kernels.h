@@ -5,7 +5,7 @@
 GKYL_CU_DH static inline 
 double sigma_cx_1x1v_ser_p1(const double a, const double b, 
   double vt_sq_ion_min, double vt_sq_neut_min, 
-  const double *prim_vars_neut, const double *prim_vars_ion, const double *u_ion, 
+  const double *prim_vars_ion, const double *prim_vars_neut, const double *u_ion, 
   double* GKYL_RESTRICT v_sigma_cx) 
 { 
   // a               constant in fitting function. 
@@ -41,7 +41,7 @@ double sigma_cx_1x1v_ser_p1(const double a, const double b,
 GKYL_CU_DH static inline 
 double sigma_cx_1x1v_ser_p2(const double a, const double b, 
   double vt_sq_ion_min, double vt_sq_neut_min, 
-  const double *prim_vars_neut, const double *prim_vars_ion, const double *u_ion, 
+  const double *prim_vars_ion, const double *prim_vars_neut, const double *u_ion, 
   double* GKYL_RESTRICT v_sigma_cx) 
 { 
   // a               constant in fitting function. 
@@ -76,7 +76,7 @@ double sigma_cx_1x1v_ser_p2(const double a, const double b,
 GKYL_CU_DH static inline 
 double sigma_cx_1x2v_ser_p1(const double a, const double b, 
   double vt_sq_ion_min, double vt_sq_neut_min, 
-  const double *prim_vars_neut, const double *prim_vars_ion, const double *u_ion, 
+  const double *prim_vars_ion, const double *prim_vars_neut, const double *u_ion, 
   double* GKYL_RESTRICT v_sigma_cx) 
 { 
   // a               constant in fitting function. 
@@ -111,7 +111,7 @@ double sigma_cx_1x2v_ser_p1(const double a, const double b,
 GKYL_CU_DH static inline 
 double sigma_cx_1x2v_ser_p2(const double a, const double b, 
   double vt_sq_ion_min, double vt_sq_neut_min, 
-  const double *prim_vars_neut, const double *prim_vars_ion, const double *u_ion, 
+  const double *prim_vars_ion, const double *prim_vars_neut, const double *u_ion, 
   double* GKYL_RESTRICT v_sigma_cx) 
 { 
   // a               constant in fitting function. 
@@ -146,7 +146,7 @@ double sigma_cx_1x2v_ser_p2(const double a, const double b,
 GKYL_CU_DH static inline 
 double sigma_cx_1x3v_ser_p1(const double a, const double b, 
   double vt_sq_ion_min, double vt_sq_neut_min, 
-  const double *prim_vars_neut, const double *prim_vars_ion, const double *u_ion, 
+  const double *prim_vars_ion, const double *prim_vars_neut, const double *u_ion, 
   double* GKYL_RESTRICT v_sigma_cx) 
 { 
   // a               constant in fitting function. 
@@ -181,7 +181,7 @@ double sigma_cx_1x3v_ser_p1(const double a, const double b,
 GKYL_CU_DH static inline 
 double sigma_cx_1x3v_ser_p2(const double a, const double b, 
   double vt_sq_ion_min, double vt_sq_neut_min, 
-  const double *prim_vars_neut, const double *prim_vars_ion, const double *u_ion, 
+  const double *prim_vars_ion, const double *prim_vars_neut, const double *u_ion, 
   double* GKYL_RESTRICT v_sigma_cx) 
 { 
   // a               constant in fitting function. 
@@ -216,7 +216,7 @@ double sigma_cx_1x3v_ser_p2(const double a, const double b,
 GKYL_CU_DH static inline 
 double sigma_cx_2x2v_ser_p1(const double a, const double b, 
   double vt_sq_ion_min, double vt_sq_neut_min, 
-  const double *prim_vars_neut, const double *prim_vars_ion, const double *u_ion, 
+  const double *prim_vars_ion, const double *prim_vars_neut, const double *u_ion, 
   double* GKYL_RESTRICT v_sigma_cx) 
 { 
   // a               constant in fitting function. 
@@ -251,7 +251,7 @@ double sigma_cx_2x2v_ser_p1(const double a, const double b,
 GKYL_CU_DH static inline 
 double sigma_cx_2x2v_ser_p2(const double a, const double b, 
   double vt_sq_ion_min, double vt_sq_neut_min, 
-  const double *prim_vars_neut, const double *prim_vars_ion, const double *u_ion, 
+  const double *prim_vars_ion, const double *prim_vars_neut, const double *u_ion, 
   double* GKYL_RESTRICT v_sigma_cx) 
 { 
   // a               constant in fitting function. 
@@ -286,7 +286,7 @@ double sigma_cx_2x2v_ser_p2(const double a, const double b,
 GKYL_CU_DH static inline 
 double sigma_cx_2x3v_ser_p1(const double a, const double b, 
   double vt_sq_ion_min, double vt_sq_neut_min, 
-  const double *prim_vars_neut, const double *prim_vars_ion, const double *u_ion, 
+  const double *prim_vars_ion, const double *prim_vars_neut, const double *u_ion, 
   double* GKYL_RESTRICT v_sigma_cx) 
 { 
   // a               constant in fitting function. 
@@ -321,7 +321,7 @@ double sigma_cx_2x3v_ser_p1(const double a, const double b,
 GKYL_CU_DH static inline 
 double sigma_cx_2x3v_ser_p2(const double a, const double b, 
   double vt_sq_ion_min, double vt_sq_neut_min, 
-  const double *prim_vars_neut, const double *prim_vars_ion, const double *u_ion, 
+  const double *prim_vars_ion, const double *prim_vars_neut, const double *u_ion, 
   double* GKYL_RESTRICT v_sigma_cx) 
 { 
   // a               constant in fitting function. 
@@ -356,7 +356,7 @@ double sigma_cx_2x3v_ser_p2(const double a, const double b,
 GKYL_CU_DH static inline 
 double sigma_cx_3x3v_ser_p1(const double a, const double b, 
   double vt_sq_ion_min, double vt_sq_neut_min, 
-  const double *prim_vars_neut, const double *prim_vars_ion, const double *u_ion, 
+  const double *prim_vars_ion, const double *prim_vars_neut, const double *u_ion, 
   double* GKYL_RESTRICT v_sigma_cx) 
 { 
   // a               constant in fitting function. 
