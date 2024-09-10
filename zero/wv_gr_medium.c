@@ -81,21 +81,24 @@ gkyl_gr_medium_flux(double gas_gamma, double kappa, const double q[15], double f
     W = 1.0 / sqrt(pow(10.0, -8.0));
   }
 
+  double Etot = ((rho + p) * (W * W)) - p;
+  double mom = (rho + p) * vel * (W * W);
+
   flux[0] = 0.0;
 
   flux[1] = 0.0; flux[2] = 0.0;
   flux[3] = 0.0; flux[4] = 0.0;
   flux[5] = 0.0; flux[6] = 0.0;
 
-  flux[7] = -a_dx_dx + (0.5 * kappa * exp_2a * ((((rho + p) * (W * W)) - p) - ((((rho + p) * vel * (W * W)) * vel) + p)));
+  flux[7] = -a_dx_dx + (0.5 * kappa * exp_2a * (Etot - ((mom * vel) + p)));
   flux[8] = -a_dt_dx;
-  flux[9] = -b_dx_dx - (0.5 * kappa * exp_2a * ((((rho + p) * (W * W)) - p) - ((((rho + p) * vel * (W * W)) * vel) + p)));
+  flux[9] = -b_dx_dx - (0.5 * kappa * exp_2a * (Etot - ((mom * vel) + p)));
   flux[10] = -b_dt_dx;
   flux[11] = -c_dx_dx;
   flux[12] = -c_dt_dx;
 
-  flux[13] = (rho + p) * vel * (W * W);
-  flux[14] = (((rho + p) * vel * (W * W)) * vel) + p;
+  flux[13] = mom;
+  flux[14] = (mom * vel) + p;
 }
 
 static inline void
@@ -278,13 +281,14 @@ gr_medium_source(const struct gkyl_wv_eqn* eqn, const double* qin, double* sout)
     W = 1.0 / sqrt(pow(1.0, -8.0));
   }
 
+  double Etot = ((rho + p) * (W * W)) - p;
+  double mom = (rho + p) * vel * (W * W);
+
   sout[0] = 2.0 * a_dt * exp_2a;
 
-  sout[1] = a_dx_dx + (b_dt * b_dt) - (b_dx * b_dx) - (c_dt * c_dt) + (c_dx * c_dx) - (0.5 * kappa * exp_2a * ((((rho + p) * (W * W)) - p) -
-    ((((rho + p) * vel * (W * W) * vel) + p))));
+  sout[1] = a_dx_dx + (b_dt * b_dt) - (b_dx * b_dx) - (c_dt * c_dt) + (c_dx * c_dx) - (0.5 * kappa * exp_2a * (Etot - ((mom * vel) + p)));
   sout[2] = a_dt_dx;
-  sout[3] = b_dx_dx - (2.0 * (b_dt * b_dt)) + (2.0 * (b_dx * b_dx)) + (0.5 * kappa * exp_2a * ((((rho + p) * (W * W)) - p) -
-    ((((rho + p) * vel * (W * W) * vel) + p))));
+  sout[3] = b_dx_dx - (2.0 * (b_dt * b_dt)) + (2.0 * (b_dx * b_dx)) + (0.5 * kappa * exp_2a * (Etot - ((mom * vel) + p)));
   sout[4] = b_dt_dx;
   sout[5] = c_dx_dx - (2.0 * ((b_dt * c_dt) - (b_dx * c_dx)));
   sout[6] = c_dt_dx;
@@ -296,10 +300,8 @@ gr_medium_source(const struct gkyl_wv_eqn* eqn, const double* qin, double* sout)
   sout[11] = -2.0 * ((b_dt * c_dt_dx) - (b_dx * c_dx_dx) + (b_dt_dx * c_dt) - (b_dx_dx * c_dx));
   sout[12] = 0.0;
 
-  sout[13] = -((((rho + p) * (W * W)) - p) * (a_dt + (2.0 * b_dt))) - (2.0 * ((rho + p) * vel * (W * W)) * (a_dx + b_dx)) -
-    ((((rho + p) * vel * (W * W) * vel) + p) * a_dt) - (2.0 * p * b_dt);
-  sout[14] = -((((rho + p) * (W * W)) - p) * a_dx) - (2.0 * ((rho + p) * vel * (W * W)) * (a_dt + b_dt)) -
-    ((((rho + p) * vel * (W * W) * vel) + p) * (a_dx + (2.0 * b_dx))) + (2.0 * p * b_dx);
+  sout[13] = (-Etot * (a_dt + (2.0 * b_dt))) - (2.0 * mom * (a_dx + b_dx)) - (((mom * vel) + p) * a_dt) - (2.0 * p * b_dt);
+  sout[14] = (-Etot * a_dx) - (2.0 * mom * (a_dt + b_dt)) - (((mom * vel) + p) * (a_dx + (2.0 * b_dx))) + (2.0 * p * b_dx);
 }
 
 void

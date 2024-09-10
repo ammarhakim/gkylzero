@@ -436,11 +436,9 @@ explicit_medium_source_update_euler(const gkyl_moment_em_coupling* mom_em, const
 
   fluid_new[0] += dt * (2.0 * a_dt * exp_2a);
 
-  fluid_new[1] += dt * (a_dx_dx + (b_dt * b_dt) - (b_dx * b_dx) - (c_dt * c_dt) + (c_dx * c_dx) - (0.5 * kappa * exp_2a * ((((rho + p) * (W * W)) - p) -
-    ((((rho + p) * vel * (W * W) * vel) + p)))));
+  fluid_new[1] += dt * (a_dx_dx + (b_dt * b_dt) - (b_dx * b_dx) - (c_dt * c_dt) + (c_dx * c_dx) - (0.5 * kappa * exp_2a * (Etot - ((mom * vel) + p))));
   fluid_new[2] += dt * (a_dt_dx);
-  fluid_new[3] += dt * (b_dx_dx - (2.0 * (b_dt * b_dt)) + (2.0 * (b_dx * b_dx)) + (0.5 * kappa * exp_2a * ((((rho + p) * (W * W)) - p) -
-    ((((rho + p) * vel * (W * W) * vel) + p)))));
+  fluid_new[3] += dt * (b_dx_dx - (2.0 * (b_dt * b_dt)) + (2.0 * (b_dx * b_dx)) + (0.5 * kappa * exp_2a * (Etot - ((mom * vel) + p))));
   fluid_new[4] += dt * (b_dt_dx);
   fluid_new[5] += dt * (c_dx_dx - (2.0 * ((b_dt * c_dt) - (b_dx * c_dx))));
   fluid_new[6] += dt * (c_dt_dx);
@@ -452,10 +450,8 @@ explicit_medium_source_update_euler(const gkyl_moment_em_coupling* mom_em, const
   fluid_new[11] += dt * (-2.0 * ((b_dt * c_dt_dx) - (b_dx * c_dx_dx) + (b_dt_dx * c_dt) - (b_dx_dx * c_dx)));
   fluid_new[12] += 0.0;
 
-  fluid_new[13] += dt * (-((((rho + p) * (W * W)) - p) * (a_dt + (2.0 * b_dt))) - (2.0 * ((rho + p) * vel * (W * W)) * (a_dx + b_dx)) -
-    ((((rho + p) * vel * (W * W) * vel) + p) * a_dt) - (2.0 * p * b_dt));
-  fluid_new[14] += dt * (-((((rho + p) * (W * W)) - p) * a_dx) - (2.0 * ((rho + p) * vel * (W * W)) * (a_dt + b_dt)) -
-    ((((rho + p) * vel * (W * W) * vel) + p) * (a_dx + (2.0 * b_dx))) + (2.0 * p * b_dx));
+  fluid_new[13] += dt * ((-Etot * (a_dt + (2.0 * b_dt))) - (2.0 * mom * (a_dx + b_dx)) - (((mom * vel) + p) * a_dt) - (2.0 * p * b_dt));
+  fluid_new[14] += dt * ((-Etot * a_dx) - (2.0 * mom * (a_dt + b_dt)) - (((mom * vel) + p) * (a_dx + (2.0 * b_dx))) + (2.0 * p * b_dx));
 }
 
 void

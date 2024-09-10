@@ -66,8 +66,8 @@ create_ctx(void)
   double Etot_r = rhor; // Right fluid total energy density.
 
   // Simulation parameters.
-  int Nx = 1024; // Cell count (x-direction).
-  double Lx = 1.2; // Domain size (x-direction).
+  int Nx = 4096; // Cell count (x-direction).
+  double Lx = 2.0; // Domain size (x-direction).
   double cfl_frac = 0.95; // CFL coefficient.
 
   double t_end = 0.5; // Final simulation time.
@@ -119,8 +119,12 @@ evalGRMediumInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT
     Etot = Etot_r; // Fluid total energy density (right).
   }
 
-  double b_dx = -sqrt((kappa * exp_2a * Etot) / 3.0) * tan((0.5 * x * sqrt(3.0 * kappa * exp_2a * Etot)) + sqrt(3.0 * kappa * exp_2a * Etot));
-  printf("%f\n", b_dx);
+  double b_dx = -sqrt((kappa * exp_2a * Etot) / 3.0) * tan((0.5 * x * sqrt(3.0 * kappa * exp_2a * Etot)));
+
+  double b_dx_plus = -sqrt((kappa * exp_2a * Etot) / 3.0) * tan((0.5 * (x + (0.5 * pow(10.0, -8.0))) * sqrt(3.0 * kappa * exp_2a * Etot)));
+  double b_dx_minus = -sqrt((kappa * exp_2a * Etot) / 3.0) * tan((0.5 * (x - (0.5 * pow(10.0, -8.0))) * sqrt(3.0 * kappa * exp_2a * Etot)));
+
+  double b_dx_dx = (b_dx_plus - b_dx_minus) / pow(10.0, -8.0);
 
   // Set exponential appearing in dt and dx metric terms.
   fout[0] = exp_2a;
@@ -130,7 +134,7 @@ evalGRMediumInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT
   fout[5] = 0.0; fout[6] = 0.0;
   // Set second time and space derivatives of metric terms.
   fout[7] = 0.0; fout[8] = 0.0;
-  fout[9] = 0.0; fout[10] = 0.0;
+  fout[9] = 0.0; fout[10] = b_dx_dx;
   fout[11] = 0.0; fout[12] = 0.0;
   // Set fluid total energy density.
   fout[13] = Etot;
