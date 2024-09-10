@@ -113,6 +113,8 @@ struct gkyl_mirror_geo_grid_inp ginp = {
   .rclose = 0.2,
   .zmin = -2.0,
   .zmax =  2.0,
+  .write_node_coord_array = true,
+  .node_file_nm = "wham_nodes.gkyl",
 };
 
 // -- Source functions.
@@ -673,6 +675,7 @@ int main(int argc, char **argv)
     .source = {
       .source_id = GKYL_PROJ_SOURCE,
       .write_source = true,
+      .num_sources = 1,
       .projection[0] = {
         .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM, 
         .ctx_density = &ctx,
@@ -735,6 +738,7 @@ int main(int argc, char **argv)
     .source = {
       .source_id = GKYL_PROJ_SOURCE,
       .write_source = true,
+      .num_sources = 1,
       .projection[0] = {
         .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM, 
         .ctx_density = &ctx,
@@ -806,7 +810,6 @@ int main(int argc, char **argv)
       .comm = comm
     }
   };
-  printf("Basis type: %d\n", app_args.basis_type);
 
   // Create app object.
   gkyl_gyrokinetic_app *app = gkyl_gyrokinetic_app_new(&app_inp);

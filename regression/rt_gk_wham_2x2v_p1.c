@@ -112,6 +112,8 @@ struct gkyl_mirror_geo_grid_inp ginp = {
   .rclose = 0.2,
   .zmin = -2.0,
   .zmax =  2.0,
+  .write_node_coord_array = true,
+  .node_file_nm = "wham_nodes.gkyl",
 };
 
 // -- Source functions.
@@ -451,7 +453,6 @@ create_ctx(void)
   double z_max = M_PI - 1e-1;
   double psi_min = 1e-3;
   double psi_max = 1e-2;
-  printf("psi_min = %g, psi_max = %g\n", psi_min, psi_max);
 
   // Source parameters
   double NSrcIon = 3.1715e23 / 8.0;
@@ -671,6 +672,7 @@ int main(int argc, char **argv)
     .source = {
       .source_id = GKYL_PROJ_SOURCE,
       .write_source = true,
+      .num_sources = 1,
       .projection[0] = {
         .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM, 
         .ctx_density = &ctx,
@@ -733,6 +735,7 @@ int main(int argc, char **argv)
     .source = {
       .source_id = GKYL_PROJ_SOURCE,
       .write_source = true,
+      .num_sources = 1,
       .projection[0] = {
         .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM, 
         .ctx_density = &ctx,
