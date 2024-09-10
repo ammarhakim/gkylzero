@@ -13,6 +13,7 @@ enum gkyl_eqn_type {
   GKYL_EQN_BURGERS, // Burgers equations
   GKYL_EQN_ADVECTION, // Scalar advection equation
   GKYL_EQN_GR_EULER, // General relativistic Euler equations.
+  GKYL_EQN_REACTIVE_EULER, // Reactive Euler equations.
 };
 
 // Identifiers for specific gyrokinetic model types
@@ -89,6 +90,7 @@ enum gkyl_projection_id {
 enum gkyl_radiation_id {
   GKYL_NO_RADIATION = 0, // No radiation. This is default
   GKYL_GK_RADIATION, // Radiation in gyrokinetic equations.
+  GKYL_VM_COMPTON_RADIATION, // Vlasov simple Compton radiation model. 
 };
 
 // Identifiers for specific reaction object types

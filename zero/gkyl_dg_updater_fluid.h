@@ -5,6 +5,7 @@
 #include <gkyl_eqn_type.h>
 #include <gkyl_range.h>
 #include <gkyl_rect_grid.h>
+#include <gkyl_wave_geom.h>
 #include <gkyl_wv_eqn.h>
 
 // Object type
@@ -22,9 +23,8 @@ struct gkyl_dg_updater_fluid_tm {
  * @param grid Grid object
  * @param cbasis Configuration space basis functions
  * @param conf_range Config space range
- * @param eqn_id Enum identifier for equation type (see gkyl_eqn_type.h)
- * @param param parameter for fluid equation specification 
- * (e.g. vt for isothermal Euler, gas_gammas for Euler)
+ * @param wv_eqn Wave equation object which contains information and functions for the specific fluid equation
+ * @param geom Wave geometry object for computing fluctuations local to surfaces
  * @param aux_inp Void pointer to auxiliary fields. Void to be flexible to different auxfields structs
  * @param use_gpu Boolean to determine whether struct objects are on host or device
  * 

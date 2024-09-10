@@ -309,6 +309,9 @@ struct gk_bgk_collisions {
 
   struct gkyl_proj_maxwellian_on_basis *proj_max; // Maxwellian projection object
   struct gkyl_bgk_collisions *up_bgk; // BGK updater (also computes stable timestep)
+
+  bool implicit_step; // whether or not to take an implcit bgk step
+  double dt_implicit; // timestep used by the implicit collisions  
 };
 
 struct gk_boundary_fluxes {
