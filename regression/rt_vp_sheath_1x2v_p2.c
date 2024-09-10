@@ -96,6 +96,25 @@ eval_temp_ion(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT f
   fout[0] = temp;
 }
 
+void
+external_potentials(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
+{
+  double x = xn[0];
+  struct vp_sheath_ctx *app = ctx;
+
+  double B0 = 0.001;
+
+  double phi = 0.0;
+  double Ax = 0.0;
+  double Ay = B0*x;
+  double Az = 0.0;
+
+  fout[0] = phi;
+  fout[1] = Ax;
+  fout[2] = Ay;
+  fout[3] = Az;
+}
+
 struct vp_sheath_ctx
 create_ctx(void)
 {

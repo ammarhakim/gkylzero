@@ -82,7 +82,7 @@ gkyl_dg_vlasov_poisson_new(const struct gkyl_basis* cbasis, const struct gkyl_ba
       stream_boundary_surf_y_kernels = ser_poisson_stream_boundary_surf_y_kernels;
       stream_boundary_surf_z_kernels = ser_poisson_stream_boundary_surf_z_kernels;
 
-      if (field_id == GKYL_FIELD_PHI) {
+      if (field_id == GKYL_VP_FIELD_PHI) {
         vol_kernels = ser_poisson_vol_kernels;
         accel_surf_vx_kernels = ser_poisson_accel_surf_vx_kernels;
         accel_surf_vy_kernels = ser_poisson_accel_surf_vy_kernels;

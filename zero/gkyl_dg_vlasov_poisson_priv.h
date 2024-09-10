@@ -470,7 +470,7 @@ static const gkyl_dg_vlasov_poisson_accel_surf_kern_list ser_poisson_extem_accel
   { NULL, vlasov_poisson_extem_surfvx_1x3v_ser_p1, vlasov_poisson_extem_surfvx_1x3v_ser_p2 }, // 2
   // 2x kernels
   { NULL, vlasov_poisson_extem_surfvx_2x2v_ser_p1, vlasov_poisson_extem_surfvx_2x2v_ser_p2 }, // 3
-  { NULL, vlasov_poisson_extem_surfvx_2x3v_ser_p1, NULL                   }, // 4
+  { NULL, vlasov_poisson_extem_surfvx_2x3v_ser_p1, vlasov_poisson_extem_surfvx_2x3v_ser_p2 }, // 4
   // 3x kernels
   { NULL, vlasov_poisson_extem_surfvx_3x3v_ser_p1, NULL                   }, // 5
 };
@@ -480,11 +480,11 @@ GKYL_CU_D
 static const gkyl_dg_vlasov_poisson_accel_surf_kern_list ser_poisson_extem_accel_surf_vy_kernels[] = {
   // 1x kernels
   { NULL, NULL, NULL }, // 0
-  { NULL, NULL, NULL }, // 1
-  { NULL, NULL, NULL }, // 2
+  { NULL, vlasov_poisson_extem_surfvy_1x2v_ser_p1, vlasov_poisson_extem_surfvy_1x2v_ser_p2 }, // 1
+  { NULL, vlasov_poisson_extem_surfvy_1x3v_ser_p1, vlasov_poisson_extem_surfvy_1x3v_ser_p2 }, // 2
   // 2x kernels
   { NULL, vlasov_poisson_extem_surfvy_2x2v_ser_p1, vlasov_poisson_extem_surfvy_2x2v_ser_p2 }, // 3
-  { NULL, vlasov_poisson_extem_surfvy_2x3v_ser_p1, NULL                   }, // 4
+  { NULL, vlasov_poisson_extem_surfvy_2x3v_ser_p1, vlasov_poisson_extem_surfvy_2x3v_ser_p2 }, // 4
   // 3x kernels
   { NULL, vlasov_poisson_extem_surfvy_3x3v_ser_p1, NULL                   }, // 5
 };
@@ -495,10 +495,10 @@ static const gkyl_dg_vlasov_poisson_accel_surf_kern_list ser_poisson_extem_accel
   // 1x kernels
   { NULL, NULL, NULL }, // 0
   { NULL, NULL, NULL }, // 1
-  { NULL, NULL, NULL }, // 2
+  { NULL, vlasov_poisson_extem_surfvz_1x3v_ser_p1, vlasov_poisson_extem_surfvz_1x3v_ser_p2 }, // 2
   // 2x kernels
   { NULL, NULL, NULL }, // 3
-  { NULL, NULL, NULL }, // 4
+  { NULL, vlasov_poisson_extem_surfvz_2x3v_ser_p1, vlasov_poisson_extem_surfvz_2x3v_ser_p2 }, // 4
   // 3x kernels
   { NULL, vlasov_poisson_extem_surfvz_3x3v_ser_p1, NULL }, // 5
 };
@@ -606,8 +606,8 @@ GKYL_CU_D
 static const gkyl_dg_vlasov_poisson_accel_boundary_surf_kern_list ser_poisson_extem_accel_boundary_surf_vy_kernels[] = {
   // 1x kernels
   { NULL, NULL, NULL }, // 0
-  { NULL, NULL, NULL }, // 1
-  { NULL, NULL, NULL }, // 2
+  { NULL, vlasov_poisson_extem_boundary_surfvy_1x2v_ser_p1, vlasov_poisson_extem_boundary_surfvy_1x2v_ser_p2 }, // 1
+  { NULL, vlasov_poisson_extem_boundary_surfvy_1x3v_ser_p1, NULL                   }, // 2
   // 2x kernels
   { NULL, vlasov_poisson_extem_boundary_surfvy_2x2v_ser_p1, vlasov_poisson_extem_boundary_surfvy_2x2v_ser_p2 }, // 3
   { NULL, vlasov_poisson_extem_boundary_surfvy_2x3v_ser_p1, NULL                   }, // 4
@@ -620,10 +620,10 @@ static const gkyl_dg_vlasov_poisson_accel_boundary_surf_kern_list ser_poisson_ex
   // 1x kernels
   { NULL, NULL, NULL }, // 0
   { NULL, NULL, NULL }, // 1
-  { NULL, NULL, NULL }, // 2
+  { NULL, vlasov_poisson_extem_boundary_surfvz_1x3v_ser_p1, vlasov_poisson_extem_boundary_surfvz_1x3v_ser_p2 }, // 2
   // 2x kernels
   { NULL, NULL, NULL }, // 3
-  { NULL, NULL, NULL }, // 4
+  { NULL, vlasov_poisson_extem_boundary_surfvz_2x3v_ser_p1, vlasov_poisson_extem_boundary_surfvz_2x3v_ser_p2 }, // 4
   // 3x kernels
   { NULL, vlasov_poisson_extem_boundary_surfvz_3x3v_ser_p1, NULL }, // 5
 };

@@ -1074,8 +1074,10 @@ gkyl_vlasov_poisson_app_read_from_frame(gkyl_vlasov_poisson_app *app, int frame)
     }
     calc_field_and_apply_bc(app, rstat.stime, distf);
 
-    // Compute the external fields.
-    vp_field_calc_ext_em(app, app->field, rstat.stime);
+    if (app->field->has_ext_em) {
+      // Compute the external fields.
+      vp_field_calc_ext_em(app, app->field, rstat.stime);
+    }
   }
 
   return rstat;

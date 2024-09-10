@@ -12,11 +12,9 @@
 void
 vp_field_calc_ext_em(gkyl_vlasov_poisson_app *app, struct vp_field *field, double tm)
 {
-  if (field->has_ext_em) {
-    gkyl_eval_on_nodes_advance(field->ext_em_proj, tm, &app->local_ext, field->ext_em_host);
-    if (app->use_gpu) {
-      gkyl_array_copy(field->ext_em, field->ext_em_host);
-    }
+  gkyl_eval_on_nodes_advance(field->ext_em_proj, tm, &app->local, field->ext_em_host);
+  if (app->use_gpu) {
+    gkyl_array_copy(field->ext_em, field->ext_em_host);
   }
 }
 
@@ -53,19 +51,16 @@ vp_field_new(struct gkyl_vp *vp, struct gkyl_vlasov_poisson_app *app)
 
   // Initialize external potentials (always used by implicit fluid sources, so always initialize) 
   vpf->ext_em = mkarr(app->use_gpu, 4*app->confBasis.num_basis, app->local_ext.volume);
-  gkyl_array_clear(vpf->ext_em, 0.0);
-  vpf->has_ext_em = false;
-  vpf->ext_em_evolve = false;
+  vpf->has_ext_em = vpf->ext_em_evolve = false;
   if (vpf->info.ext_em) {
     vpf->has_ext_em = true;
     if (vpf->info.ext_em_evolve) {
       vpf->ext_em_evolve = vpf->info.ext_em_evolve;
     }
 
-    vpf->ext_em_host = vpf->ext_em;
-    if (app->use_gpu) {
-      vpf->ext_em_host = mkarr(false, 4*app->confBasis.num_basis, app->local_ext.volume);
-    }
+    vpf->ext_em_host = app->use_gpu? mkarr(false, 4*app->confBasis.num_basis, app->local_ext.volume)
+                                   : gkyl_array_acquire(vpf->ext_em);
+
     vpf->ext_em_proj = gkyl_eval_on_nodes_new(&app->grid, &app->confBasis,
       4, vpf->info.ext_em, vpf->info.ext_em_ctx);
 
@@ -172,9 +167,7 @@ vp_field_release(const gkyl_vlasov_poisson_app* app, struct vp_field *vpf)
 
   gkyl_array_release(vpf->ext_em);
   if (vpf->has_ext_em) {
-    if (app->use_gpu) {
-      gkyl_array_release(vpf->ext_em_host);
-    }
+    gkyl_array_release(vpf->ext_em_host);
     gkyl_eval_on_nodes_release(vpf->ext_em_proj);
   }
   gkyl_array_release(vpf->phi);
