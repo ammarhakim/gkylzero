@@ -327,7 +327,7 @@ gk_neut_species_rhs(gkyl_gyrokinetic_app *app, struct gk_neut_species *species,
     if (species->has_neutral_reactions)
       gk_neut_species_react_rhs(app, species, &species->react_neut, fin, rhs);
 
-    app->stat.nspecies_omega_cfl +=1;
+    app->stat.nneut_species_omega_cfl +=1;
     struct timespec tm = gkyl_wall_clock();
     gkyl_array_reduce_range(species->omega_cfl, species->cflrate, GKYL_MAX, &species->local);
 
@@ -338,7 +338,7 @@ gk_neut_species_rhs(gkyl_gyrokinetic_app *app, struct gk_neut_species *species,
       omega_cfl_ho[0] = species->omega_cfl[0];
     omega_cfl = omega_cfl_ho[0];
 
-    app->stat.species_omega_cfl_tm += gkyl_time_diff_now_sec(tm);
+    app->stat.neut_species_omega_cfl_tm += gkyl_time_diff_now_sec(tm);
   }
 
   return app->cfl/omega_cfl;
@@ -398,7 +398,7 @@ gk_neut_species_apply_bc(gkyl_gyrokinetic_app *app, const struct gk_neut_species
 
   gkyl_comm_array_sync(species->comm, &species->local, &species->local_ext, f);
 
-  app->stat.species_bc_tm += gkyl_time_diff_now_sec(wst);
+  app->stat.neut_species_bc_tm += gkyl_time_diff_now_sec(wst);
 }
 
 void
@@ -417,7 +417,7 @@ gk_neut_species_tm(gkyl_gyrokinetic_app *app)
   for (int i=0; i<app->num_neut_species; ++i) {
     struct gkyl_dg_updater_vlasov_tm tm =
       gkyl_dg_updater_vlasov_get_tm(app->neut_species[i].slvr);
-    app->stat.species_rhs_tm += tm.vlasov_tm;
+    app->stat.neut_species_rhs_tm += tm.vlasov_tm;
   }
 }
 

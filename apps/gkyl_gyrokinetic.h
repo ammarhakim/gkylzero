@@ -339,17 +339,20 @@ struct gkyl_gyrokinetic_stat {
   double neut_species_rhs_tm; // time to compute neutral species collisionless RHS  
   double field_rhs_tm; // time to compute field RHS
 
+  double species_lte_tm; // total time for species LTE (local thermodynamic equilibrium) projection updater
   double species_lbo_coll_drag_tm[GKYL_MAX_SPECIES]; // time to compute LBO drag terms
   double species_lbo_coll_diff_tm[GKYL_MAX_SPECIES]; // time to compute LBO diffusion terms
   double species_coll_mom_tm; // time needed to compute various moments needed in collisions
   double species_coll_tm; // total time for collision updater (excluded moments)
-  double species_lte_tm; // total time for species LTE (local thermodynamic equilibrium) projection updater
+  double species_rad_mom_tm; // total time to compute various moments needed in radiation operator
   double species_rad_tm; // total time for radiation operator
+  double species_react_mom_tm; // total time to compute various moments needed in reactions 
   double species_react_tm; // total time for reactions updaters
 
+  double neut_species_lte_tm; // total time for neutral species LTE (local thermodynamic equilibrium) projection updater
   double neut_species_coll_mom_tm; // time needed to compute various moments needed in neutral self-collisions
   double neut_species_coll_tm; // total time for neutral self-collisions updater (excluded moments)
-  double neut_species_lte_tm; // total time for neutral species LTE (local thermodynamic equilibrium) projection updater
+  double neut_species_react_mom_tm; // total time to compute various moments needed in neutral reactions
   double neut_species_react_tm; // total time for neutral reactions updaters
 
   long niter_corr[GKYL_MAX_SPECIES]; // total number of iterations used to correct species LTE projection

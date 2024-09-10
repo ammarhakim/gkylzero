@@ -91,14 +91,14 @@ void gkyl_dg_cx_coll(const struct gkyl_dg_cx *up,
   while (gkyl_range_iter_next(&conf_iter)) {
     long loc = gkyl_range_idx(up->conf_rng, conf_iter.idx);
 
-    const double *prim_vars_ion_d = gkyl_array_fetch(prim_vars_ion, loc);
-    const double *prim_vars_neut_d = gkyl_array_fetch(prim_vars_neut, loc);
-    const double *upar_b_i_d = gkyl_array_fetch(upar_b_i, loc);
+    const double *prim_vars_ion_d = gkyl_array_cfetch(prim_vars_ion, loc);
+    const double *prim_vars_neut_d = gkyl_array_cfetch(prim_vars_neut, loc);
+    const double *upar_b_i_d = gkyl_array_cfetch(upar_b_i, loc);
 
     double *coef_cx_d = gkyl_array_fetch(coef_cx, loc);
     
     double cflr = up->kernels->react_rate(up->a, up->b, up->vt_sq_ion_min, up->vt_sq_neut_min,
-      prim_vars_neut_d, prim_vars_ion_d, upar_b_i_d, coef_cx_d);
+      prim_vars_ion_d, prim_vars_neut_d, upar_b_i_d, coef_cx_d);
     
     /* gkyl_range_deflate(&vel_rng, up->phase_rng, rem_dir, conf_iter.idx); */
     /* gkyl_range_iter_no_split_init(&vel_iter, &vel_rng); */

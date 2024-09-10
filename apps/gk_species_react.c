@@ -128,6 +128,7 @@ void
 gk_species_react_cross_moms(gkyl_gyrokinetic_app *app, const struct gk_species *species,
   struct gk_react *react, const struct gkyl_array *f_self, const struct gkyl_array *fin[], const struct gkyl_array *fin_neut[])
 {
+  struct timespec wst = gkyl_wall_clock();  
   for (int i=0; i<react->num_react; ++i) {
     struct gk_species *gks_elc = &app->species[react->elc_idx[i]]; 
     struct gk_species *gks_ion = &app->species[react->ion_idx[i]]; 
@@ -258,6 +259,7 @@ gk_species_react_cross_moms(gkyl_gyrokinetic_app *app, const struct gk_species *
         react->upar_partner[i], react->coeff_react[i], 0);
     }
   }
+  app->stat.species_react_mom_tm += gkyl_time_diff_now_sec(wst);
 }
 
 // updates the reaction terms in the rhs
@@ -388,7 +390,7 @@ gk_species_react_rhs(gkyl_gyrokinetic_app *app, struct gk_species *s,
     gkyl_dg_mul_conf_phase_op_accumulate_range(&app->confBasis, &app->basis, rhs,
       1.0, react->coeff_react[i], react->f_react, &app->local, &s->local);  
   }
-  app->stat.species_coll_tm += gkyl_time_diff_now_sec(wst);
+  app->stat.species_react_tm += gkyl_time_diff_now_sec(wst);
 }
 
 void 

@@ -83,7 +83,7 @@ gk_neut_species_lte_from_moms(gkyl_gyrokinetic_app *app, const struct gk_neut_sp
     lte->niter += status_corr.num_iter;
   } 
 
-  app->stat.species_lte_tm += gkyl_time_diff_now_sec(wst);   
+  app->stat.neut_species_lte_tm += gkyl_time_diff_now_sec(wst);   
 }
 
 // Compute equivalent f_lte from fin

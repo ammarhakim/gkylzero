@@ -2362,8 +2362,10 @@ comm_reduce_app_stat(const gkyl_gyrokinetic_app* app,
     TOTAL_TM, INIT_SPECIES_TM, SPECIES_RHS_TM, 
     INIT_NEUT_SPECIES_TM, NEUT_SPECIES_RHS_TM, 
     FIELD_RHS_TM, 
-    SPECIES_COLL_MOM_TM, SPECIES_COL_TM, SPECIES_LTE_TM, SPECIES_RAD_TM, SPECIES_REACT_TM, 
-    NEUT_SPECIES_COLL_MOM_TM, NEUT_SPECIES_COL_TM, NEUT_SPECIES_LTE_TM,  NEUT_SPECIES_REACT_TM,  
+    SPECIES_LTE_TM, SPECIES_COLL_MOM_TM, SPECIES_COL_TM, 
+    SPECIES_RAD_MOM_TM, SPECIES_RAD_TM, SPECIES_REACT_MOM_TM, SPECIES_REACT_TM, 
+    NEUT_SPECIES_LTE_TM, NEUT_SPECIES_COLL_MOM_TM, NEUT_SPECIES_COL_TM, 
+    NEUT_SPECIES_REACT_MOM_TM,  NEUT_SPECIES_REACT_TM,  
     SPECIES_BC_TM, SPECIES_OMEGA_CFL_TM, DIAG_TM, IO_TM, 
     NEUT_SPECIES_BC_TM, NEUT_SPECIES_OMEGA_CFL_TM, NEUT_DIAG_TM, NEUT_IO_TM, 
     FIELD_DIAG_TM, FIELD_IO_TM, 
@@ -2377,14 +2379,17 @@ comm_reduce_app_stat(const gkyl_gyrokinetic_app* app,
     [INIT_NEUT_SPECIES_TM] = local->init_neut_species_tm,
     [NEUT_SPECIES_RHS_TM] = local->neut_species_rhs_tm,
     [FIELD_RHS_TM] = local->field_rhs_tm,
+    [SPECIES_LTE_TM] = local->species_lte_tm,
     [SPECIES_COLL_MOM_TM] = local->species_coll_mom_tm,
     [SPECIES_COL_TM] = local->species_coll_tm,
-    [SPECIES_LTE_TM] = local->species_lte_tm,
+    [SPECIES_RAD_MOM_TM] = local->species_rad_mom_tm,
     [SPECIES_RAD_TM] = local->species_rad_tm,
+    [SPECIES_REACT_MOM_TM] = local->species_react_mom_tm,
     [SPECIES_REACT_TM] = local->species_react_tm,
+    [NEUT_SPECIES_LTE_TM] = local->neut_species_lte_tm,
     [NEUT_SPECIES_COLL_MOM_TM] = local->neut_species_coll_mom_tm,
     [NEUT_SPECIES_COL_TM] = local->neut_species_coll_tm,
-    [NEUT_SPECIES_LTE_TM] = local->neut_species_lte_tm,
+    [NEUT_SPECIES_REACT_MOM_TM] = local->neut_species_react_mom_tm,
     [NEUT_SPECIES_REACT_TM] = local->neut_species_react_tm,
     [SPECIES_BC_TM] = local->species_bc_tm,
     [SPECIES_OMEGA_CFL_TM] = local->species_omega_cfl_tm,
@@ -2407,15 +2412,18 @@ comm_reduce_app_stat(const gkyl_gyrokinetic_app* app,
   global->init_neut_species_tm = d_red_global[INIT_NEUT_SPECIES_TM];
   global->neut_species_rhs_tm = d_red_global[NEUT_SPECIES_RHS_TM];
 
+  global->species_lte_tm = d_red_global[SPECIES_LTE_TM];
   global->species_coll_mom_tm = d_red_global[SPECIES_COLL_MOM_TM];
   global->species_coll_tm = d_red_global[SPECIES_COL_TM];
-  global->species_lte_tm = d_red_global[SPECIES_LTE_TM];
+  global->species_rad_mom_tm = d_red_global[SPECIES_RAD_MOM_TM];
   global->species_rad_tm = d_red_global[SPECIES_RAD_TM];
+  global->species_react_mom_tm = d_red_global[SPECIES_REACT_MOM_TM];
   global->species_react_tm = d_red_global[SPECIES_REACT_TM];
 
+  global->neut_species_lte_tm = d_red_global[NEUT_SPECIES_LTE_TM];
   global->neut_species_coll_mom_tm = d_red_global[NEUT_SPECIES_COLL_MOM_TM];
   global->neut_species_coll_tm = d_red_global[NEUT_SPECIES_COL_TM];
-  global->neut_species_lte_tm = d_red_global[NEUT_SPECIES_LTE_TM];
+  global->neut_species_react_mom_tm = d_red_global[NEUT_SPECIES_REACT_MOM_TM];
   global->neut_species_react_tm = d_red_global[NEUT_SPECIES_REACT_TM];
 
   global->field_rhs_tm = d_red_global[FIELD_RHS_TM];
@@ -2522,15 +2530,18 @@ gkyl_gyrokinetic_app_stat_write(gkyl_gyrokinetic_app* app)
       stat.neut_num_corr[s]);    
   }
 
+  gkyl_gyrokinetic_app_cout(app, fp, " species_lte_tm : %lg,\n", stat.species_lte_tm);
   gkyl_gyrokinetic_app_cout(app, fp, " species_coll_mom_tm : %lg,\n", stat.species_coll_mom_tm);
   gkyl_gyrokinetic_app_cout(app, fp, " species_coll_tm : %lg,\n", stat.species_coll_tm);
-  gkyl_gyrokinetic_app_cout(app, fp, " species_lte_tm : %lg,\n", stat.species_lte_tm);
+  gkyl_gyrokinetic_app_cout(app, fp, " species_rad_mom_tm : %lg,\n", stat.species_rad_mom_tm);
   gkyl_gyrokinetic_app_cout(app, fp, " species_rad_tm : %lg,\n", stat.species_rad_tm);
+  gkyl_gyrokinetic_app_cout(app, fp, " species_react_mom_tm : %lg,\n", stat.species_react_mom_tm);
   gkyl_gyrokinetic_app_cout(app, fp, " species_react_tm : %lg,\n", stat.species_react_tm);
 
+  gkyl_gyrokinetic_app_cout(app, fp, " neut_species_lte_tm : %lg,\n", stat.neut_species_lte_tm);
   gkyl_gyrokinetic_app_cout(app, fp, " neut_species_coll_mom_tm : %lg,\n", stat.neut_species_coll_mom_tm);
   gkyl_gyrokinetic_app_cout(app, fp, " neut_species_coll_tm : %lg,\n", stat.neut_species_coll_tm);
-  gkyl_gyrokinetic_app_cout(app, fp, " neut_species_lte_tm : %lg,\n", stat.neut_species_lte_tm);
+  gkyl_gyrokinetic_app_cout(app, fp, " neut_species_react_mom_tm : %lg,\n", stat.neut_species_react_mom_tm);
   gkyl_gyrokinetic_app_cout(app, fp, " neut_species_react_tm : %lg,\n", stat.neut_species_react_tm);
 
   gkyl_gyrokinetic_app_cout(app, fp, " species_bc_tm : %lg,\n", stat.species_bc_tm);

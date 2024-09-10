@@ -42,7 +42,7 @@ gk_neut_species_bgk_moms(gkyl_gyrokinetic_app *app, const struct gk_neut_species
     0, species->lte.moms.marr, 0, species->lte.moms.marr, 0, 
     app->gk_geom->jacobgeo, &app->local);  
 
-  app->stat.species_coll_mom_tm += gkyl_time_diff_now_sec(wst);    
+  app->stat.neut_species_coll_mom_tm += gkyl_time_diff_now_sec(wst);    
 }
 
 // updates the collision terms in the rhs
@@ -66,7 +66,7 @@ gk_neut_species_bgk_rhs(gkyl_gyrokinetic_app *app, struct gk_neut_species *speci
   gkyl_bgk_collisions_advance(bgk->up_bgk, &app->local, &species->local, 
     bgk->nu_sum, bgk->nu_fmax, fin, bgk->implicit_step, bgk->dt_implicit, rhs, species->cflrate);
 
-  app->stat.species_coll_tm += gkyl_time_diff_now_sec(wst);
+  app->stat.neut_species_coll_tm += gkyl_time_diff_now_sec(wst);
 }
 
 void 
