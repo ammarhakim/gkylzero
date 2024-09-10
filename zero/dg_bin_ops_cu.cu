@@ -204,8 +204,8 @@ gkyl_dg_mul_conf_phase_op_accumulate_range_cu(struct gkyl_basis *cbasis,
   const struct gkyl_range *crange, const struct gkyl_range *prange)
 {
   dim3 dimGrid, dimBlock;
-  int tot_phase_quad = up->basis_at_ords->size;
-  gkyl_parallelize_components_kernel_launch_dims(&dimGrid, &dimBlock, *phase_range, tot_phase_quad);
+  int num_phase_basis = pbasis->num_basis;
+  gkyl_parallelize_components_kernel_launch_dims(&dimGrid, &dimBlock, *prange, num_phase_basis);
   gkyl_dg_mul_conf_phase_op_accumulate_range_cu_kernel<<<dimGrid, dimBlock>>>(*cbasis, *pbasis,
     pout->on_dev, a, cop->on_dev, pop->on_dev, *crange, *prange);
 }

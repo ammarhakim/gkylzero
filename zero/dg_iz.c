@@ -167,8 +167,6 @@ void gkyl_dg_iz_coll(const struct gkyl_dg_iz *up,
     double temp_elc_av = prim_vars_elc_d[2*nc]*cell_av_fac*up->mass_elc/up->elem_charge;
     double log_Te_av = log10(temp_elc_av);
     double log_m0_av = log10(m0_elc_av);
-    double cell_val_t;
-    double cell_val_m0;
     int m0_idx, t_idx;
     double cell_vals_2d[2];
     double cell_center;
