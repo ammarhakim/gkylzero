@@ -639,7 +639,12 @@ gkyl_vlasov_app_write_species(gkyl_vlasov_app* app, int sidx, double tm, int fra
     }
   }
 
-  vlasov_array_meta_release(mt); 
+  if (app->species[sidx].emit_lo)
+    vm_species_emission_write(app, vm_s, &vm_s->bc_emission_lo, mt, frame);
+  if (app->species[sidx].emit_up)
+    vm_species_emission_write(app, vm_s, &vm_s->bc_emission_up, mt, frame);
+
+  vlasov_array_meta_release(mt);  
 }
 
 void
