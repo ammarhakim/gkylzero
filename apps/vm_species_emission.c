@@ -30,6 +30,12 @@ vm_species_emission_cross_init(struct gkyl_vlasov_app *app, struct vm_species *s
     ghost[cdim+d] = 0;
   }
 
+  if (emit->edge == GKYL_LOWER_EDGE) {
+    emit->write = gkyl_range_is_on_lower_edge(emit->dir, &s->lower_skin[emit->dir], &s->global);
+  } else {
+    emit->write = gkyl_range_is_on_upper_edge(emit->dir, &s->upper_skin[emit->dir], &s->global);
+  }
+
   emit->emit_grid = &s->bflux.boundary_grid[bdir];
   emit->emit_buff_r = &s->bflux.flux_r[bdir];
   emit->emit_ghost_r = (emit->edge == GKYL_LOWER_EDGE) ? &s->lower_ghost[emit->dir] : &s->upper_ghost[emit->dir];
@@ -54,7 +60,7 @@ vm_species_emission_cross_init(struct gkyl_vlasov_app *app, struct vm_species *s
 
     emit->flux_slvr[i] = gkyl_dg_updater_moment_new(emit->impact_grid[i], &app->confBasis,
       &app->basis, NULL, NULL, emit->impact_species[i]->model_id, 0, "Integrated", 1,
-      emit->impact_species[i]->info.mass, app->use_gpu);
+      app->use_gpu);
 
     emit->impact_skin_r[i] = (emit->edge == GKYL_LOWER_EDGE) ? &emit->impact_species[i]->lower_skin[emit->dir] : &emit->impact_species[i]->upper_skin[emit->dir];
     emit->impact_ghost_r[i] = (emit->edge == GKYL_LOWER_EDGE) ? &emit->impact_species[i]->lower_ghost[emit->dir] : &emit->impact_species[i]->upper_ghost[emit->dir];
@@ -74,8 +80,9 @@ vm_species_emission_cross_init(struct gkyl_vlasov_app *app, struct vm_species *s
     
     emit->update[i] = gkyl_bc_emission_spectrum_new(emit->params->spectrum_model[i],
       emit->params->yield_model[i], emit->yield[i], emit->spectrum[i], emit->dir, emit->edge,
-      cdim, vdim, emit->impact_species[i]->info.mass, s->info.mass, emit->impact_buff_r[i], emit->emit_buff_r, emit->impact_grid[i], app->poly_order,
-      &app->basis,  proj_buffer, app->use_gpu);
+      cdim, vdim, emit->impact_species[i]->info.mass, s->info.mass, emit->impact_buff_r[i],
+      emit->emit_buff_r, emit->impact_grid[i], emit->emit_grid, app->poly_order,
+      &app->basis, proj_buffer, app->use_gpu);
   }
   gkyl_array_release(proj_buffer);
 }
@@ -86,7 +93,7 @@ vm_species_emission_apply_bc(struct gkyl_vlasov_app *app, const struct vm_emitti
 {
   // Optional scaling of emission with time
   double t_scale = 1.0;
-  if (emit->t_bound)
+  if (tcurr < emit->t_bound)
     t_scale = sin(M_PI*tcurr/(2.0*emit->t_bound));
 
   gkyl_array_clear(emit->f_emit, 0.0); // Zero emitted distribution before beginning accumulate
@@ -110,6 +117,22 @@ vm_species_emission_apply_bc(struct gkyl_vlasov_app *app, const struct vm_emitti
   }
   gkyl_array_set_range_to_range(fout, t_scale, emit->f_emit, emit->emit_ghost_r,
     emit->emit_buff_r);
+}
+
+
+// KB - The write function only works in 1x at the moment.
+// It expects a single rank to own the whole emit range.
+void
+vm_species_emission_write(struct gkyl_vlasov_app *app, struct vm_species *s, struct vm_emitting_wall *emit, struct gkyl_array_meta *mt, int frame)
+{
+  const char *fmt = (emit->edge == GKYL_LOWER_EDGE) ? "%s-%s_bc_lo_%d.gkyl" : "%s-%s_bc_up_%d.gkyl";
+  int sz = gkyl_calc_strlen(fmt, app->name, s->info.name, frame);
+  char fileNm[sz+1]; // ensures no buffer overflow
+  snprintf(fileNm, sizeof fileNm, fmt, app->name, s->info.name, frame);
+
+  if (emit->write) {
+    gkyl_grid_sub_array_write(emit->emit_grid, emit->emit_buff_r, mt, emit->f_emit, fileNm);
+  }
 }
 
 void

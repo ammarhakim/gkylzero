@@ -167,14 +167,15 @@ main(int argc, char **argv)
     .upper = { 0.5 * ctx.Lvx }, 
     .cells = { NVX },
 
-    .projection = {
+    .num_init = 1, 
+    .projection[0] = {
       .proj_id = GKYL_PROJ_FUNC,
       .func = evalElcInit,
       .ctx_func = &ctx,
     },
 
-    .accel = evalAppAccel,
-    .accel_ctx = &ctx,
+    .app_accel = evalAppAccel,
+    .app_accel_ctx = &ctx,
 
     .num_diag_moments = 3,
     .diag_moments = { "M0", "M1i", "M2" },

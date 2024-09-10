@@ -101,11 +101,7 @@ ifdef USING_NVCC
 	USING_CUDSS = yes
 	CUDSS_INC_DIR = ${CONF_CUDSS_INC_DIR}
 	CUDSS_LIB_DIR = ${CONF_CUDSS_LIB_DIR}
-ifdef USING_NVCC
 	CUDSS_RPATH = -Xlinker "-rpath,${CONF_CUDSS_LIB_DIR}"
-else
-	CUDSS_RPATH = -Wl,-rpath,${CONF_CUDSS_LIB_DIR}
-endif
 	CUDSS_LIBS = -lcudss
 	CFLAGS += -DGKYL_HAVE_CUDSS
 endif
@@ -136,9 +132,9 @@ endif
 
 # Build directory
 ifdef USING_NVCC
-	BUILD_DIR ?= cuda-build
+	BUILD_DIR ?= cubld
 else	
-	BUILD_DIR ?= build
+	BUILD_DIR ?= bld
 endif
 
 # On OSX we should use Accelerate framework
@@ -188,7 +184,7 @@ UNIT_CU_OBJS =
 # There is some problem with the Vlasov and Maxwell kernels that is causing some unit builds to fail
 ifdef USING_NVCC
 #	UNIT_CU_SRCS = $(shell find unit -name *.cu)
-	UNIT_CU_SRCS = unit/ctest_cusolver.cu unit/ctest_alloc_cu.cu unit/ctest_basis_cu.cu unit/ctest_array_cu.cu unit/ctest_mom_vlasov_cu.cu unit/ctest_range_cu.cu unit/ctest_rect_grid_cu.cu unit/ctest_wave_geom_cu.cu unit/ctest_wv_euler_cu.cu
+	UNIT_CU_SRCS = unit/ctest_cusolver.cu unit/ctest_alloc_cu.cu unit/ctest_basis_cu.cu unit/ctest_array_cu.cu unit/ctest_mom_vlasov_cu.cu unit/ctest_range_cu.cu unit/ctest_rect_grid_cu.cu unit/ctest_wave_geom_cu.cu unit/ctest_wv_euler_cu.cu unit/ctest_wv_maxwell_cu.cu unit/ctest_wv_ten_moment_cu.cu
 ifdef USING_CUDSS
 	UNIT_CU_SRCS += unit/ctest_cudss.cu
 endif

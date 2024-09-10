@@ -109,7 +109,8 @@ main(int argc, char **argv)
     .lower = { -6.0, -6.0, -6.0 },
     .upper = { 6.0, 6.0, 6.0 }, 
     .cells = { inp.vcells[0], inp.vcells[1], inp.vcells[2] },
-    .projection = {
+    .num_init = 1, 
+    .projection[0] = {
       .proj_id = GKYL_PROJ_FUNC,
       .func = evalDistFunc,
       .ctx_func = 0,

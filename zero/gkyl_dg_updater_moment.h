@@ -35,7 +35,7 @@ gkyl_dg_updater_moment_new(const struct gkyl_rect_grid *grid,
   const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis, 
   const struct gkyl_range *conf_range, const struct gkyl_range *vel_range,
   enum gkyl_model_id model_id, void *aux_inp, 
-  const char *mom, bool is_integrated, double mass, bool use_gpu);
+  const char *mom, bool is_integrated, bool use_gpu);
 
 /**
  * Acquire moment object
