@@ -637,6 +637,22 @@ gkyl_gyrokinetic_app_calc_integrated_mom(gkyl_gyrokinetic_app* app, double tm)
       gkyl_dynvec_append(gk_s->src.integ_diag, tm, avals_global);
     }
 
+    if (app->enforce_positivity) {
+      // The change in f from the positivity shift is in fnew.
+      gk_species_moment_calc(&gk_s->integ_moms, gk_s->local, app->local, gk_s->fnew); 
+      // Reduce (sum) over whole domain, append to diagnostics.
+      gkyl_array_reduce_range(gk_s->red_integ_diag, gk_s->integ_moms.marr, GKYL_SUM, &app->local);
+      gkyl_comm_allreduce(app->comm, GKYL_DOUBLE, GKYL_SUM, 2+vdim, 
+        gk_s->red_integ_diag, gk_s->red_integ_diag_global);
+      if (app->use_gpu) {
+        gkyl_cu_memcpy(avals_global, gk_s->red_integ_diag_global, sizeof(double[2+vdim]), GKYL_CU_MEMCPY_D2H);
+      }
+      else {
+        memcpy(avals_global, gk_s->red_integ_diag_global, sizeof(double[2+vdim]));
+      }
+      gkyl_dynvec_append(gk_s->ps_integ_diag, tm, avals_global);
+    }
+
     app->stat.mom_tm += gkyl_time_diff_now_sec(wst);
     app->stat.nmom += 1;
   }
@@ -1448,6 +1464,7 @@ gkyl_gyrokinetic_app_write_integrated_mom(gkyl_gyrokinetic_app *app)
     struct gk_species *gks = &app->species[i];
     int rank;
     gkyl_comm_get_rank(app->comm, &rank);
+
     if (rank == 0) {
       // Write integrated diagnostic moments.
       const char *fmt = "%s-%s_%s.gkyl";
@@ -1466,6 +1483,27 @@ gkyl_gyrokinetic_app_write_integrated_mom(gkyl_gyrokinetic_app *app)
       }
     }
     gkyl_dynvec_clear(gks->integ_diag);
+
+    if (app->enforce_positivity) {
+      if (rank == 0) {
+        // Write integrated diagnostic moments.
+        const char *fmt = "%s-%s_positivity_shift_%s.gkyl";
+        int sz = gkyl_calc_strlen(fmt, app->name, gks->info.name,
+          "integrated_moms");
+        char fileNm[sz+1]; // ensures no buffer overflow
+        snprintf(fileNm, sizeof fileNm, fmt, app->name, gks->info.name,
+          "integrated_moms");
+
+        if (gks->is_first_ps_integ_write_call) {
+          gkyl_dynvec_write(gks->ps_integ_diag, fileNm);
+          gks->is_first_ps_integ_write_call = false;
+        }
+        else {
+          gkyl_dynvec_awrite(gks->ps_integ_diag, fileNm);
+        }
+      }
+      gkyl_dynvec_clear(gks->ps_integ_diag);
+    }
 
   }
 }
@@ -2567,8 +2605,10 @@ gkyl_gyrokinetic_app_from_frame_species(gkyl_gyrokinetic_app *app, int sidx, int
 {
   cstr fileNm = cstr_from_fmt("%s-%s_%d.gkyl", app->name, app->species[sidx].info.name, frame);
   struct gkyl_app_restart_status rstat = gkyl_gyrokinetic_app_from_file_species(app, sidx, fileNm.str);
-  app->species[sidx].is_first_integ_write_call = false; // Append to existing diagnostic.
   cstr_drop(&fileNm);
+  app->species[sidx].is_first_integ_write_call = false; // Append to existing diagnostic.
+  if (app->enforce_positivity)
+    app->species[sidx].is_first_ps_integ_write_call = false; // Append to existing diagnostic.
   
   return rstat;
 }

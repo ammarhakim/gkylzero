@@ -396,6 +396,9 @@ gk_species_init(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *app, st
     gks->ps_moms = gkyl_malloc(sizeof(struct gk_species_moment[ndm]));
     for (int m=0; m<ndm; ++m)
       gk_species_moment_init(app, gks, &gks->ps_moms[m], gks->info.diag_moments[m]);
+
+    gks->ps_integ_diag = gkyl_dynvec_new(GKYL_DOUBLE, vdim+2);
+    gks->is_first_ps_integ_write_call = true;
   }
 }
 
@@ -648,5 +651,6 @@ gk_species_release(const gkyl_gyrokinetic_app* app, const struct gk_species *s)
     for (int i=0; i<s->info.num_diag_moments; ++i)
       gk_species_moment_release(app, &s->ps_moms[i]);
     gkyl_free(s->ps_moms);
+    gkyl_dynvec_release(s->ps_integ_diag);
   }
 }
