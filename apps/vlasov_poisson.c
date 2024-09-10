@@ -269,6 +269,12 @@ calc_field(gkyl_vlasov_poisson_app* app, double tcurr, const struct gkyl_array *
   
     // Solve the field equation.
     vp_field_rhs(app, app->field);
+
+    if (app->field->ext_em_evolve) {
+      // Compute the external potentials.
+      vp_field_calc_ext_em(app, app->field, tcurr);
+    }
+
   }
 }
 
@@ -317,7 +323,7 @@ gkyl_vlasov_poisson_app_apply_ic(gkyl_vlasov_poisson_app* app, double t0)
   for (int i=0; i<app->num_species; ++i) {
     distf[i] = app->species[i].f;
   }
-  calc_field_and_apply_bc(app, 0., distf);
+  calc_field_and_apply_bc(app, t0, distf);
 }
 
 void
@@ -560,14 +566,6 @@ forward_euler(gkyl_vlasov_poisson_app* app, double tcurr, double dt,
   app->stat.nfeuler += 1;
 
   double dtmin = DBL_MAX;
-
-  // Compute external EM field or applied currents if present and time-dependent.
-  // Note: external EM field and  applied currents use proj_on_basis 
-  // so does copy to GPU every call if app->use_gpu = true.
-//  if (app->has_field) {
-//    if (app->field->ext_em_evolve)
-//      vp_field_calc_ext_em(app, app->field, tcurr);
-//  }
 
   // Compute necessary moments and boundary corrections for collisions.
   for (int i=0; i<app->num_species; ++i) {
@@ -1075,6 +1073,9 @@ gkyl_vlasov_poisson_app_read_from_frame(gkyl_vlasov_poisson_app *app, int frame)
       distf[i] = app->species[i].f;
     }
     calc_field_and_apply_bc(app, rstat.stime, distf);
+
+    // Compute the external fields.
+    vp_field_calc_ext_em(app, app->field, rstat.stime);
   }
 
   return rstat;

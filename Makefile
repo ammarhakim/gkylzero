@@ -374,10 +374,11 @@ $(ZERO_SH_LIB): $(OBJS)
 # hard-coded into the library itself, so external execs, like gkyl,
 # can link to the library properly. Perhaps there is a another way to
 # do this, don't know. -- AH, Feb 4th 2023.
-ZERO_SH_INSTALL_LIB := $(BUILD_DIR)/$(ZERO)-install.so
+ZERO_SH_INSTALL_LIB := $(BUILD_DIR)/$(ZERO).so
 $(ZERO_SH_INSTALL_LIB): $(OBJS)
 	$(MKDIR_P) $(dir $@)
-	${CC} ${SHFLAGS_INSTALL} ${LDFLAGS} ${OBJS} ${EXEC_LIB_DIRS} ${EXEC_EXT_LIBS} -o $@
+#	${CC} ${SHFLAGS_INSTALL} ${LDFLAGS} ${OBJS} ${EXEC_LIB_DIRS} ${EXEC_EXT_LIBS} -o $@
+	./link_command.sh
 
 ## All libraries build targets completed at this point
 

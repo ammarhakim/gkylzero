@@ -247,8 +247,12 @@ vp_species_rhs(gkyl_vlasov_poisson_app *app, struct vp_species *species,
   gkyl_array_clear(species->cflrate, 0.0);
   gkyl_array_clear(rhs, 0.0);
 
-  if (app->has_field)
+  if (app->has_field) {
     gkyl_array_set_offset(species->qmem, species->qbym, app->field->phi, 0);
+    if (app->field->has_ext_em) {
+      gkyl_array_accumulate_range(species->qmem, species->qbym, app->field->ext_em, &app->local);
+    }
+  }
 
   gkyl_dg_updater_vlasov_poisson_advance(species->slvr, &species->local, 
     fin, species->cflrate, rhs);

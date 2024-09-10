@@ -318,9 +318,6 @@ struct vp_species {
   double *omega_cfl;
 };
 
-// context for use in computing external electromagnetic fields
-struct vp_eval_ext_em_ctx { evalf_t ext_em_func; void *ext_em_ctx; };
-
 // context for use in computing applied current
 struct vp_eval_app_current_ctx { evalf_t app_current_func; void *app_current_ctx; };
 
@@ -348,9 +345,7 @@ struct vp_field {
   bool ext_em_evolve; // flag to indicate external electromagnetic field is time dependent
   struct gkyl_array *ext_em; // external electromagnetic field
   struct gkyl_array *ext_em_host; // host copy for use in IO and projecting
-  struct gkyl_array *tot_em; // total electromagnetic field
   gkyl_eval_on_nodes *ext_em_proj; // projector for external electromagnetic field 
-  struct vp_eval_ext_em_ctx ext_em_ctx; // context for external electromagnetic field 
 
   struct gkyl_array *es_energy_fac; // Factor in calculation of ES energy diagnostic.
   struct gkyl_array_integrate *calc_es_energy;
@@ -760,6 +755,15 @@ void vp_species_release(const gkyl_vlasov_poisson_app* app, const struct vp_spec
 struct vp_field* vp_field_new(struct gkyl_vp *vp, struct gkyl_vlasov_poisson_app *app);
 
 /**
+ * Compute external electromagnetic fields
+ *
+ * @param app Vlasov poisson app object
+ * @param field Field object
+ * @param tm Time for use in external fields computation.
+ */
+void vp_field_calc_ext_em(gkyl_vlasov_poisson_app *app, struct vp_field *field, double tm);
+
+/**
  * Compute field initial conditions.
  *
  * @param app Vlasov app object
@@ -767,15 +771,6 @@ struct vp_field* vp_field_new(struct gkyl_vp *vp, struct gkyl_vlasov_poisson_app
  * @param t0 Time for use in ICs
  */
 void vp_field_apply_ic(gkyl_vlasov_poisson_app *app, struct vp_field *field, double t0);
-
-/**
- * Compute external electromagnetic fields
- *
- * @param app Vlasov app object
- * @param field Field object
- * @param tm Time for use in external electromagnetic fields computation
- */
-void vp_field_calc_ext_em(gkyl_vlasov_poisson_app *app, struct vp_field *field, double tm);
 
 /**
  * Accumulate charge density for Poisson solve.
@@ -792,9 +787,6 @@ void vp_field_accumulate_rho_c(gkyl_vlasov_poisson_app *app, struct vp_field *fi
  *
  * @param app Vlasov app object
  * @param field Pointer to field
- * @param em Input field
- * @param rhs On output, the RHS from the field solver
- * @return Maximum stable time-step
  */
 void vp_field_rhs(gkyl_vlasov_poisson_app *app, struct vp_field *field);
 

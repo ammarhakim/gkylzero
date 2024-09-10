@@ -32,6 +32,9 @@ struct gkyl_vlasov_poisson_projection {
 
       // boolean if we are correcting all the moments or only density
       bool correct_all_moms;       
+      double iter_eps; // error tolerance for moment fixes (density is always exact)
+      int max_iter; // maximum number of iteration
+      bool use_last_converged; // use last iteration value regardless of convergence?
     };
   };
 };
@@ -120,11 +123,10 @@ struct gkyl_vlasov_poisson_field {
 
   struct gkyl_poisson_bc poisson_bcs;
 
-  void *external_potentials_ctx; // Context for external electromagnetic fields function
-  // Function definiting external potentials.
-  void (*external_potentials)(double t, const double *xn, double *ext_em_out, void *ctx);
-
-  bool external_potentials_evolve; // Set to true if external potentials are time dependent.
+  void *ext_em_ctx; // context for external electromagnetic fields function
+  // pointer to external electromagnetic fields function
+  void (*ext_em)(double t, const double *xn, double *ext_em_out, void *ctx);
+  bool ext_em_evolve; // set to true if external electromagnetic field function is time dependent
 };
 
 // Top-level app parameters
