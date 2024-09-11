@@ -479,6 +479,7 @@ gkyl_gk_maxwellian_proj_on_basis_advance(gkyl_gk_maxwellian_proj_on_basis *up,
       
       copy_idx_arrays(conf_range->ndim, phase_range->ndim, conf_iter.idx, vel_iter.idx, pidx);
       gkyl_rect_grid_cell_center(&up->phase_grid, pidx, xc);
+      long lidx = gkyl_range_idx(&vel_rng, vel_iter.idx);
 
       struct gkyl_range_iter qiter;
       // compute Maxwellian distribution function at phase-space quadrature nodes
@@ -500,7 +501,7 @@ gkyl_gk_maxwellian_proj_on_basis_advance(gkyl_gk_maxwellian_proj_on_basis *up,
           xmu[cdim+vd] = gvm->vmap_basis->eval_expand(xcomp, vmap_d+vd*gvm->vmap_basis->num_basis);
         }
         // Fetch velocity space Jacobian for scaling distribution function
-        const double *jacobvel_d = gkyl_array_cfetch(gvm->jacobvel, vlinidx);
+        const double *jacobvel_d = gkyl_array_cfetch(gvm->jacobvel, lidx);
 
         double efact = 0.0;        
         // vpar term.
@@ -517,7 +518,6 @@ gkyl_gk_maxwellian_proj_on_basis_advance(gkyl_gk_maxwellian_proj_on_basis *up,
         fq[0] = f_floor + jacobvel_d[0]*expamp_quad[cqidx]*exp(-efact);
       }
       // compute expansion coefficients of Maxwellian distribution function on basis
-      long lidx = gkyl_range_idx(&vel_rng, vel_iter.idx);
       proj_on_basis(up, up->fun_at_ords, gkyl_array_fetch(f_maxwellian, lidx));
     }
   }

@@ -24,7 +24,6 @@ gkyl_gk_maxwellian_correct_inew(const struct gkyl_gk_maxwellian_correct_inp *inp
   up->use_gpu = inp->use_gpu;
 
   up->num_conf_basis = inp->conf_basis->num_basis;
-  up->vel_map = gkyl_velocity_map_acquire(inp->vel_map);
   
   long conf_range_ncells = inp->conf_range->volume;
   long conf_range_ext_ncells = inp->conf_range_ext->volume;
@@ -64,7 +63,7 @@ gkyl_gk_maxwellian_correct_inew(const struct gkyl_gk_maxwellian_correct_inp *inp
     .conf_range_ext = inp->conf_range_ext,
     .mass = inp->mass, 
     .gk_geom = inp->gk_geom, 
-    .vel_map = up->vel_map,
+    .vel_map = inp->vel_map,
     .divide_jacobgeo = inp->divide_jacobgeo, 
     .use_gpu = inp->use_gpu,
   };
@@ -79,7 +78,7 @@ gkyl_gk_maxwellian_correct_inew(const struct gkyl_gk_maxwellian_correct_inp *inp
     .conf_range_ext = inp->conf_range_ext,
     .vel_range = inp->vel_range,
     .gk_geom = inp->gk_geom, 
-    .vel_map = up->vel_map,
+    .vel_map = inp->vel_map,
     .mass = inp->mass, 
     .bimaxwellian = inp->bimaxwellian, 
     .divide_jacobgeo = inp->divide_jacobgeo, 
@@ -289,7 +288,6 @@ gkyl_gk_maxwellian_correct_all_moments(gkyl_gk_maxwellian_correct *up,
 void 
 gkyl_gk_maxwellian_correct_release(gkyl_gk_maxwellian_correct *up)
 {
-  gkyl_velocity_map_release(up->vel_map);
   gkyl_array_release(up->moms_iter);
   gkyl_array_release(up->d_moms);
   gkyl_array_release(up->dd_moms);

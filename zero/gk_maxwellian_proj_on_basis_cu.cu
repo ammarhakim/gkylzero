@@ -54,7 +54,6 @@ gkyl_gk_maxwellian_proj_on_basis_geom_quad_vars_cu(gkyl_gk_maxwellian_proj_on_ba
   const struct gkyl_range *conf_range, 
   const struct gkyl_array *bmag, const struct gkyl_array *jacobtot)
 {
-  int vdim = up->pdim - up->cdim;
   int nblocks = conf_range->nblocks, nthreads = conf_range->nthreads;
   gkyl_gk_maxwellian_proj_on_basis_geom_quad_vars_cu_ker<<<nblocks, nthreads>>>(*conf_range, 
     up->conf_basis_at_ords->on_dev, 
@@ -199,7 +198,7 @@ gkyl_gk_maxwellian_proj_on_basis_f_quad_ker(struct gkyl_rect_grid phase_grid,
       xmu[cdim+vd] = vmap_basis->eval_expand(xcomp, vmap_d+vd*vmap_basis->num_basis);
     }
     // Fetch velocity space Jacobian for scaling distribution function
-    const double *jacobvel_d = (const double*) gkyl_array_cfetch(jacobvel, vlinidx);
+    const double *jacobvel_d = (const double*) gkyl_array_cfetch(jacobvel, lidx);
 
     double efact = 0.0;
     // vpar term.
