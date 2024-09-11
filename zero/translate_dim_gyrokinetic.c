@@ -39,18 +39,23 @@ gkyl_translate_dim_gyrokinetic_advance(gkyl_translate_dim_gyrokinetic* up,
   const struct gkyl_range *phase_rng_do, const struct gkyl_range *phase_rng_tar,
   const struct gkyl_array *GKYL_RESTRICT fdo, struct gkyl_array *GKYL_RESTRICT ftar)
 {
+  // Perform some basic checks:
+  for (int d=0; d<up->cdim_do-1; d++) {
+    assert(phase_rng_do->lower[d] == phase_rng_tar->lower[d]);
+    assert(phase_rng_do->upper[d] == phase_rng_tar->upper[d]);
+  }
+  assert(phase_rng_do->lower[up->cdim_do-1] == phase_rng_tar->lower[up->cdim_tar-1]);
+  for (int d=0; d<up->vdim_do; d++) {
+    assert(phase_rng_do->lower[up->cdim_do+d] == phase_rng_tar->lower[up->cdim_tar+d]);
+    assert(phase_rng_do->upper[up->cdim_do+d] == phase_rng_tar->upper[up->cdim_tar+d]);
+  };
+
 #ifdef GKYL_HAVE_CUDA
   if (up->use_gpu) {
     gkyl_translate_dim_gyrokinetic_advance_cu(up, phase_rng_do, phase_rng_tar, fdo, ftar);
     return;
   }
 #endif
-
-  // Perform some basic checks:
-  for (int d=0; d<up->cdim_do; d++)
-    assert(phase_rng_do->lower[d] == phase_rng_tar->lower[d]);
-  for (int d=0; d<up->vdim_do; d++)
-    assert(phase_rng_do->lower[up->cdim_do+d] == phase_rng_tar->lower[up->cdim_tar+d]);
 
   int pidx_do[GKYL_MAX_DIM] = {-1};
 
@@ -59,7 +64,8 @@ gkyl_translate_dim_gyrokinetic_advance(gkyl_translate_dim_gyrokinetic* up,
   while (gkyl_range_iter_next(&phase_iter)) {
 
     // Translate the target idx to the donor idx:
-    for (int d=0; d<up->cdim_do; d++) pidx_do[d] = phase_iter.idx[d]; 
+    for (int d=0; d<up->cdim_do-1; d++) pidx_do[d] = phase_iter.idx[d]; 
+    pidx_do[up->cdim_do-1] = phase_iter.idx[up->cdim_tar-1]; 
     for (int d=0; d<up->vdim_do; d++) pidx_do[up->cdim_do+d] = phase_iter.idx[up->cdim_tar+d]; 
 
     long plinidx_tar = gkyl_range_idx(phase_rng_tar, phase_iter.idx);

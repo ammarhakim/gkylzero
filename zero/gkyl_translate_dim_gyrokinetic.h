@@ -13,9 +13,9 @@ typedef struct gkyl_translate_dim_gyrokinetic gkyl_translate_dim_gyrokinetic;
  * field (for gyrokinetics).
  *
  * For now this is meant for translating:
- *   x,vpar,mu -> x,y,vpar,mu
- *   x,vpar,mu -> x,y,z,vpar,mu
- *   x,y,vpar,mu -> x,y,z,vpar,mu
+ *   - 1x2v z,vpar,mu -> 2x2v x,z,vpar,mu
+ *   - 1x2v z,vpar,mu -> 3x2v x,y,z,vpar,mu
+ *   - 2x2v x,z,vpar,mu -> 3x2v x,y,z,vpar,mu
  *
  * @param cdim_do Configuration space dimension of the donor field.
  * @param pbasis_do Phase basis of the donor field.

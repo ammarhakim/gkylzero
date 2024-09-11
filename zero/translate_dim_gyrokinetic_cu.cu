@@ -46,8 +46,9 @@ gkyl_translate_dim_gyrokinetic_advance_cu_ker(int cdim_do, int cdim_tar, int vdi
     gkyl_sub_range_inv_idx(&phase_rng_tar, tid, pidx_tar);
 
     // Translate the target idx to the donor idx:
-    for (int d=0; d<cdim_do; d++) pidx_do[d] = pidx_tar[d];
-    for (int d=0; d<vdim_do; d++) pidx_do[cdim_do+d] = pidx_tar[cdim_tar+d];
+    for (int d=0; d<cdim_do-1; d++) pidx_do[d] = pidx_tar[d]; 
+    pidx_do[cdim_do-1] = pidx_tar[cdim_tar-1]; 
+    for (int d=0; d<vdim_do; d++) pidx_do[cdim_do+d] = pidx_tar[cdim_tar+d]; 
 
     long plinidx_do = gkyl_range_idx(&phase_rng_do, pidx_do);
     long plinidx_tar = gkyl_range_idx(&phase_rng_tar, pidx_tar);
