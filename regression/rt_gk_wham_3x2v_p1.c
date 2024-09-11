@@ -210,6 +210,26 @@ eval_temp_ion_source(double t, const double *GKYL_RESTRICT xn, double *GKYL_REST
   }
 }
 
+// Potential initial condition
+void
+eval_potential(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+{
+  struct gk_mirror_ctx *app = ctx;
+  double psi = xn[0]; // Magnetic flux function psi of field line.
+  double z = xn[2];
+  double z_m = app->z_m;
+  double sigma = 0.9*z_m;
+  double center_potential = 5.0 * app->Te0 / app->qi;
+  if (fabs(z) <= sigma)
+  {
+    fout[0] = 0.5*center_potential*(1. + tanh(10. * sigma * fabs(sigma - fabs(z))));
+  }
+  else
+  {
+    fout[0] = 0.0;
+  }
+}
+
 // Electrons initial conditions
 void
 eval_density_elc(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
@@ -727,6 +747,8 @@ int main(int argc, char **argv)
 
     .polarization_density = ctx.n0,
 
+    .nG_from_npol = true,
+
     .projection = ion_ic,
 
     .collisions = {
@@ -777,7 +799,9 @@ int main(int argc, char **argv)
       .up_type = {GKYL_POISSON_DIRICHLET, GKYL_POISSON_PERIODIC},
       .lo_value = {0.0, 0.0},
       .up_value = {0.0, 0.0},
-    }
+    },
+    .polarization_phi = eval_potential,
+    .polarization_phi_ctx = &ctx,
   };
 
   struct gkyl_gk app_inp = {
