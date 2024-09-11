@@ -18,7 +18,7 @@ gkyl_parallelize_components_kernel_launch_dims(dim3* dimGrid, dim3* dimBlock, gk
 }
 
 __global__ static void
-gkyl_gk_lte_correct_all_moments_abs_diff_cu_ker(struct gkyl_range conf_range, 
+gkyl_gk_maxwellian_correct_all_moments_abs_diff_cu_ker(struct gkyl_range conf_range, 
   int num_comp, int nc, 
   const struct gkyl_array *moms_target, const struct gkyl_array *moms_iter, 
   struct gkyl_array *abs_diff_moms)
@@ -63,13 +63,13 @@ gkyl_gk_lte_correct_all_moments_abs_diff_cu_ker(struct gkyl_range conf_range,
 }
 
 void
-gkyl_gk_lte_correct_all_moments_abs_diff_cu(const struct gkyl_range *conf_range, 
+gkyl_gk_maxwellian_correct_all_moments_abs_diff_cu(const struct gkyl_range *conf_range, 
   int num_comp, int nc, 
   const struct gkyl_array *moms_target, const struct gkyl_array *moms_iter, 
   struct gkyl_array *moms_abs_diff)
 {
   dim3 dimGrid, dimBlock;
   gkyl_parallelize_components_kernel_launch_dims(&dimGrid, &dimBlock, *conf_range, num_comp);
-  gkyl_gk_lte_correct_all_moments_abs_diff_cu_ker<<<dimGrid, dimBlock>>>(*conf_range, 
+  gkyl_gk_maxwellian_correct_all_moments_abs_diff_cu_ker<<<dimGrid, dimBlock>>>(*conf_range, 
     num_comp, nc, moms_target->on_dev, moms_iter->on_dev, moms_abs_diff->on_dev);
 }
