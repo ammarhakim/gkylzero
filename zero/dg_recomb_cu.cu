@@ -30,6 +30,7 @@ gkyl_recomb_react_rate_cu_ker(const struct gkyl_dg_recomb *up,
       tid < conf_rng.volume; tid += blockDim.x*gridDim.x) {
     gkyl_sub_range_inv_idx(&conf_rng, tid, cidx);
     long loc = gkyl_range_idx(&conf_rng, cidx);
+    long nc = coef_recomb->ncomp;
 
     int cdim = conf_rng.ndim;
     const double *prim_vars_elc_d = (const double*) gkyl_array_cfetch(prim_vars_elc, loc);

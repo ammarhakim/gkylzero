@@ -57,7 +57,7 @@ gkyl_gk_maxwellian_proj_on_basis_geom_quad_vars_cu(gkyl_gk_maxwellian_proj_on_ba
   int vdim = up->pdim - up->cdim;
   int nblocks = conf_range->nblocks, nthreads = conf_range->nthreads;
   gkyl_gk_maxwellian_proj_on_basis_geom_quad_vars_cu_ker<<<nblocks, nthreads>>>(*conf_range, 
-    up->conf_basis_at_ords->on_dev, vdim,
+    up->conf_basis_at_ords->on_dev, 
     bmag->on_dev, jacobtot->on_dev, 
     up->bmag_quad->on_dev, up->jacobtot_quad->on_dev);
 }
@@ -115,7 +115,7 @@ gkyl_gk_maxwellian_proj_on_basis_moms_quad_ker(struct gkyl_range conf_range,
     const double *T_over_m_quad = &moms_maxwellian_quad_d[tot_conf_quad*2]; 
     double *expamp_quad_d = (double*) gkyl_array_fetch(expamp_quad, lincC);
     if ((n_quad[linc2] > 0.0) && (T_over_m_quad[linc2] > 0.0)) {
-      if (up->bimaxwellian) {
+      if (bimaxwellian) {
         const double *Tperp_over_m_quad = &moms_maxwellian_quad_d[tot_conf_quad*3];
         expamp_quad_d[linc2] = n_quad[linc2]/(sqrt(pow(2.0*GKYL_PI, 3.0)*T_over_m_quad[linc2])*Tperp_over_m_quad[linc2]);
       }
@@ -140,7 +140,7 @@ gkyl_gk_maxwellian_proj_on_basis_moms_quad_ker(struct gkyl_range conf_range,
 
 __global__ static void
 gkyl_gk_maxwellian_proj_on_basis_f_quad_ker(struct gkyl_rect_grid phase_grid,
-  struct gkyl_range phase_range, struct gkyl_range conf_range, 
+  struct gkyl_range phase_range, struct gkyl_range conf_range, struct gkyl_range vel_range,
   bool bimaxwellian, double mass, 
   const struct gkyl_array* conf_basis_at_ords, const struct gkyl_array* phase_ordinates, 
   const struct gkyl_array* moms_maxwellian_quad, const struct gkyl_array* expamp_quad, 
@@ -189,9 +189,9 @@ gkyl_gk_maxwellian_proj_on_basis_f_quad_ker(struct gkyl_rect_grid phase_grid,
     for (int d = cdim; d < pdim; d++) {
       vidx[d-cdim] = pidx[d];
     }
-    long vlinidx = gkyl_range_idx(&vel_r, vidx);
+    long vlinidx = gkyl_range_idx(&vel_range, vidx);
     const double *vmap_d = (const double*) gkyl_array_cfetch(vmap, vlinidx);
-    const double *xcomp_d = (const double*) gkyl_array_cfetch(phase_ordinates, n);
+    const double *xcomp_d = (const double*) gkyl_array_cfetch(phase_ordinates, linc2);
     // Convert comp velocity coordinate to phys velocity coord.
     double xcomp[1];
     for (int vd = 0; vd < vdim; vd++) {
@@ -199,7 +199,7 @@ gkyl_gk_maxwellian_proj_on_basis_f_quad_ker(struct gkyl_rect_grid phase_grid,
       xmu[cdim+vd] = vmap_basis->eval_expand(xcomp, vmap_d+vd*vmap_basis->num_basis);
     }
     // Fetch velocity space Jacobian for scaling distribution function
-    const double *jacobvel_d = gkyl_array_cfetch(jacobvel, vlinidx);
+    const double *jacobvel_d = (const double*) gkyl_array_cfetch(jacobvel, vlinidx);
 
     double efact = 0.0;
     // vpar term.
@@ -241,7 +241,7 @@ gkyl_gk_maxwellian_proj_on_basis_advance_cu(gkyl_gk_maxwellian_proj_on_basis *up
   int tot_phase_quad = up->basis_at_ords->size;
   gkyl_parallelize_components_kernel_launch_dims(&dimGrid, &dimBlock, *phase_range, tot_phase_quad);
   gkyl_gk_maxwellian_proj_on_basis_f_quad_ker<<<dimGrid, dimBlock>>>(up->phase_grid, 
-    *phase_range, *conf_range, 
+    *phase_range, *conf_range, gvm->local_ext_vel, 
     up->bimaxwellian, up->mass, 
     up->conf_basis_at_ords->on_dev, up->ordinates->on_dev,
     up->moms_maxwellian_quad->on_dev, up->expamp_quad->on_dev, 
@@ -254,7 +254,7 @@ gkyl_gk_maxwellian_proj_on_basis_advance_cu(gkyl_gk_maxwellian_proj_on_basis *up
 
   // Correct the density of the projected Maxwellian (or bi-Maxwellian) 
   // distribution function through rescaling.  
-  gkyl_gyrokinetic_maxwellian_density_moment_advance(up->moments_up, phase_range, conf_range, 
+  gkyl_gk_maxwellian_density_moment_advance(up->moments_up, phase_range, conf_range, 
     f_maxwellian, up->num_ratio);
 
   // compute number density ratio: num_ratio = n/n0
