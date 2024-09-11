@@ -37,7 +37,7 @@ struct gkyl_translate_dim_gyrokinetic {
 #ifdef GKYL_HAVE_CUDA
 // Declaration of cuda device functions.
 void trans_dim_gk_choose_shift_kernel_cu(struct gkyl_translate_dim_gyrokinetic_kernels *kernels,
-  struct gkyl_basis pbasis);
+  int cdim_do, struct gkyl_basis pbasis_do, int cdim_tar, struct gkyl_basis pbasis_tar);
 
 void gkyl_translate_dim_gyrokinetic_advance_cu(gkyl_translate_dim_gyrokinetic* up,
   const struct gkyl_range *phase_rng_do, const struct gkyl_range *phase_rng_tar,

@@ -15,10 +15,10 @@ gkyl_trans_dim_gk_set_cu_ker_ptrs(struct gkyl_translate_dim_gyrokinetic_kernels 
   enum gkyl_basis_type basis_type = pbasis_tar.b_type;
   int poly_order = pbasis_tar.poly_order;
 
-  switch (b_type) {
+  switch (basis_type) {
     case GKYL_BASIS_MODAL_GKHYBRID:
     case GKYL_BASIS_MODAL_SERENDIPITY:
-      kernels->translate = trans_dim_gk_kern_list_shift_ser[cdim_do+cdim_tar-2].kernels[poly_order-1];
+      kernels->translate = trans_dim_gk_kern_list_shift_ser[cdim_do+cdim_tar-3].kernels[poly_order-1];
       break;
     default:
       assert(false);
@@ -34,7 +34,7 @@ trans_dim_gk_choose_shift_kernel_cu(struct gkyl_translate_dim_gyrokinetic_kernel
 
 __global__ static void
 gkyl_translate_dim_gyrokinetic_advance_cu_ker(int cdim_do, int cdim_tar, int vdim_do, int vdim_tar,
-  struct gkyl_translate_dim_gyrokinetic_kernels *kers,
+  struct gkyl_translate_dim_gyrokinetic_kernels *kernels,
   const struct gkyl_range phase_rng_do, const struct gkyl_range phase_rng_tar,
   const struct gkyl_array *GKYL_RESTRICT fdo, struct gkyl_array *GKYL_RESTRICT ftar)
 {
@@ -53,8 +53,8 @@ gkyl_translate_dim_gyrokinetic_advance_cu_ker(int cdim_do, int cdim_tar, int vdi
     long plinidx_do = gkyl_range_idx(&phase_rng_do, pidx_do);
     long plinidx_tar = gkyl_range_idx(&phase_rng_tar, pidx_tar);
 
-    const double *fdo_c = gkyl_array_cfetch(fdo, plinidx_do);
-    double *ftar_c = gkyl_array_fetch(ftar, plinidx_tar);
+    const double *fdo_c = (const double *) gkyl_array_cfetch(fdo, plinidx_do);
+    double *ftar_c = (double *) gkyl_array_fetch(ftar, plinidx_tar);
 
     kernels->translate(fdo_c, ftar_c);
 
@@ -69,5 +69,6 @@ gkyl_translate_dim_gyrokinetic_advance_cu(gkyl_translate_dim_gyrokinetic* up,
   int nblocks = phase_rng_tar->nblocks, nthreads = phase_rng_tar->nthreads;
 
   gkyl_translate_dim_gyrokinetic_advance_cu_ker<<<nblocks, nthreads>>>
-    (up->kernels, *phase_rng_do, *phase_rng_tar, fdo->on_dev, ftar->on_dev);
+    (up->cdim_do, up->cdim_tar, up->vdim_do, up->vdim_tar, up->kernels,
+     *phase_rng_do, *phase_rng_tar, fdo->on_dev, ftar->on_dev);
 }

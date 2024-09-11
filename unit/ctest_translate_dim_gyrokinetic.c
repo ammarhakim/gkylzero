@@ -203,7 +203,7 @@ test_2x2v(int poly_order, bool use_gpu)
   int cdim_do = confGrid_low.ndim;
   int vdim_do = grid_low.ndim - cdim_do;
   struct gkyl_translate_dim_gyrokinetic* trans_dim_upd = gkyl_translate_dim_gyrokinetic_new(cdim_do,
-      basis_low, cdim, basis, use_gpu);
+    basis_low, cdim, basis, use_gpu);
   gkyl_translate_dim_gyrokinetic_advance(trans_dim_upd, &local_low, &local, distf_low, distf);
   gkyl_array_copy(distf_ho, distf);
 
@@ -279,7 +279,7 @@ test_3x2v(int poly_order, bool use_gpu)
   double vpar_max = 6.0;
   double mu_max = 36.0;
   double lower[] = {0.1, -0.3, -M_PI, -vpar_max, 0.0}, upper[] = {1.0, 0.3, M_PI, vpar_max, mu_max};
-  int cells[] = {2, 4, 6, 6, 4};
+  int cells[] = {2, 2, 4, 6, 4};
 
   const int ndim = sizeof(cells)/sizeof(cells[0]);
   const int vdim = ndim-cdim;
@@ -362,7 +362,7 @@ test_3x2v(int poly_order, bool use_gpu)
   int cdim_do = confGrid_low.ndim;
   int vdim_do = grid_low.ndim - cdim_do;
   struct gkyl_translate_dim_gyrokinetic* trans_dim_upd = gkyl_translate_dim_gyrokinetic_new(cdim_do,
-      basis_low, cdim, basis, use_gpu);
+    basis_low, cdim, basis, use_gpu);
   gkyl_translate_dim_gyrokinetic_advance(trans_dim_upd, &local_low, &local, distf_low, distf);
   gkyl_array_copy(distf_ho, distf);
 
