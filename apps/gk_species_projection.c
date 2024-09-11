@@ -124,11 +124,11 @@ gk_species_projection_calc(gkyl_gyrokinetic_app *app, const struct gk_species *s
 {
   if (proj->proj_id == GKYL_PROJ_FUNC) {
     if (app->use_gpu) {
-      gkyl_proj_on_basis_advance(proj->proj_func, tm, &s->local_ext, proj->proj_host);
+      gkyl_proj_on_basis_advance(proj->proj_func, tm, &s->local, proj->proj_host);
       gkyl_array_copy(f, proj->proj_host);
     }
     else {
-      gkyl_proj_on_basis_advance(proj->proj_func, tm, &s->local_ext, f);
+      gkyl_proj_on_basis_advance(proj->proj_func, tm, &s->local, f);
     }
 
     // Multiply by the gyrocenter coord jacobian (bmag).
@@ -138,9 +138,9 @@ gk_species_projection_calc(gkyl_gyrokinetic_app *app, const struct gk_species *s
     gkyl_array_scale_by_cell(f, s->vel_map->jacobvel);     
   }
   else if (proj->proj_id == GKYL_PROJ_MAXWELLIAN_PRIM) { 
-    gkyl_proj_on_basis_advance(proj->proj_dens, tm, &app->local_ext, proj->dens); 
-    gkyl_proj_on_basis_advance(proj->proj_upar, tm, &app->local_ext, proj->upar);
-    gkyl_proj_on_basis_advance(proj->proj_temp, tm, &app->local_ext, proj->vtsq);
+    gkyl_proj_on_basis_advance(proj->proj_dens, tm, &app->local, proj->dens); 
+    gkyl_proj_on_basis_advance(proj->proj_upar, tm, &app->local, proj->upar);
+    gkyl_proj_on_basis_advance(proj->proj_temp, tm, &app->local, proj->vtsq);
     gkyl_array_scale(proj->vtsq, 1.0/s->info.mass);
 
     // proj_maxwellian expects the primitive moments as a single array.
@@ -151,13 +151,13 @@ gk_species_projection_calc(gkyl_gyrokinetic_app *app, const struct gk_species *s
     // Copy the contents into the array we will use (potentially on GPUs).
     gkyl_array_copy(proj->prim_moms, proj->prim_moms_host);
     gkyl_gk_maxwellian_proj_on_basis_advance(proj->proj_max,
-      &s->local_ext, &app->local_ext, proj->prim_moms, false, f);
+      &s->local, &app->local, proj->prim_moms, false, f);
   }
   else if (proj->proj_id == GKYL_PROJ_BIMAXWELLIAN) {
-    gkyl_proj_on_basis_advance(proj->proj_dens, tm, &app->local_ext, proj->dens); 
-    gkyl_proj_on_basis_advance(proj->proj_upar, tm, &app->local_ext, proj->upar);
-    gkyl_proj_on_basis_advance(proj->proj_temppar, tm, &app->local_ext, proj->vtsqpar);
-    gkyl_proj_on_basis_advance(proj->proj_tempperp, tm, &app->local_ext, proj->vtsqperp);
+    gkyl_proj_on_basis_advance(proj->proj_dens, tm, &app->local, proj->dens); 
+    gkyl_proj_on_basis_advance(proj->proj_upar, tm, &app->local, proj->upar);
+    gkyl_proj_on_basis_advance(proj->proj_temppar, tm, &app->local, proj->vtsqpar);
+    gkyl_proj_on_basis_advance(proj->proj_tempperp, tm, &app->local, proj->vtsqperp);
     gkyl_array_scale(proj->vtsqpar, 1.0/s->info.mass);
     gkyl_array_scale(proj->vtsqperp, 1.0/s->info.mass);
 
@@ -170,7 +170,7 @@ gk_species_projection_calc(gkyl_gyrokinetic_app *app, const struct gk_species *s
     // Copy the contents into the array we will use (potentially on GPUs).
     gkyl_array_copy(proj->prim_moms, proj->prim_moms_host);
     gkyl_gk_maxwellian_proj_on_basis_advance(proj->proj_max,
-      &s->local_ext, &app->local_ext, proj->prim_moms, false, f);
+      &s->local, &app->local, proj->prim_moms, false, f);
   }
   
   if (proj->proj_id == GKYL_PROJ_MAXWELLIAN_PRIM || proj->proj_id == GKYL_PROJ_BIMAXWELLIAN) {
