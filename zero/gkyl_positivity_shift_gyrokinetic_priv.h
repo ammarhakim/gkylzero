@@ -1,89 +1,67 @@
 #pragma once
 
-// Private header for positivity_shift_gyrokinetic updater, not for direct use in user code.
+// Private header for translate_dim_gyrokinetic updater, not for direct use in user code.
 
-#include <gkyl_positivity_shift_gyrokinetic.h>
-#include <gkyl_positivity_shift_gyrokinetic_kernels.h>
-#include <gkyl_mom_gyrokinetic_kernels.h>
-#include <gkyl_mom_gyrokinetic_priv.h>
+#include <gkyl_translate_dim_gyrokinetic.h>
+#include <gkyl_translate_dim_gyrokinetic_kernels.h>
 #include <gkyl_util.h>
 #include <assert.h>
 
 // Function pointer type for sheath reflection kernels.
-typedef bool (*shift_t)(double ffloor, double *distf, double *Deltaf);
-typedef void (*intmom_t)(const double *dxv, const double *vmap,
-  double m_, const double *bmag, const double *f, double* GKYL_RESTRICT out);
+typedef bool (*translate_dim_t)(const double *fdo, double *ftar);
 
-typedef struct { shift_t kernels[3]; } pos_shift_gk_kern_list_shift;  // For use in kernel tables.
-typedef struct { intmom_t kernels[3]; } pos_shift_gk_kern_list_intmom;  // For use in kernel tables.
+typedef struct { translate_dim_t kernels[3]; } trans_dim_gk_kern_list_shift;  // For use in kernel tables.
 
 // Serendipity  kernels.
 GKYL_CU_D
-static const pos_shift_gk_kern_list_shift pos_shift_gk_kern_list_shift_ser[] = {
-  { positivity_shift_gyrokinetic_1x1v_ser_p1, NULL, NULL },
-  { positivity_shift_gyrokinetic_1x2v_ser_p1, NULL, NULL },
-  { positivity_shift_gyrokinetic_2x2v_ser_p1, NULL, NULL },
-  { positivity_shift_gyrokinetic_3x2v_ser_p1, NULL, NULL },
+static const trans_dim_gk_kern_list_shift trans_dim_gk_kern_list_shift_ser[] = {
+  { translate_dim_gyrokinetic_2x2v_ser_p1_from_1x2v_p1, NULL, NULL },
+  { translate_dim_gyrokinetic_3x2v_ser_p1_from_1x2v_p1, NULL, NULL },
+  { translate_dim_gyrokinetic_3x2v_ser_p1_from_2x2v_p1, NULL, NULL },
 };
 
-GKYL_CU_D
-static const pos_shift_gk_kern_list_intmom pos_shift_gk_kern_list_intmom_ser[] = {
-  { gyrokinetic_int_mom_1x1v_ser_p1, NULL, NULL },
-  { gyrokinetic_int_mom_1x2v_ser_p1, NULL, NULL },
-  { gyrokinetic_int_mom_2x2v_ser_p1, NULL, NULL },
-  { gyrokinetic_int_mom_3x2v_ser_p1, NULL, NULL },
-};
-
-struct gkyl_positivity_shift_gyrokinetic_kernels {
-  shift_t shift;  // Kernel that reflects f and computes Deltaf.
-  intmom_t int_mom;  // Kernel that computes integrated moments.
+struct gkyl_translate_dim_gyrokinetic_kernels {
+  translate_dim_t translate;  // Kernel that translate the DG coefficients.
 };
 
 // Primary struct in this updater.
-struct gkyl_positivity_shift_gyrokinetic {
-  int num_basis;  // Number of phase-space basis monomials.
-  struct gkyl_rect_grid grid;  // Phase-space grid.
-  double mass;  // Species mass.
-  double *ffloor;  // Minimum f to shift distribution to when it's <0.
-  double ffloor_fac;  // ffloor = max(f)*ffloor_fac.
-  double cellav_fac; // Factor multiplying 0th DG coefficient to give cellav.
-  const struct gk_geometry *gk_geom; // Pointer to geometry object.
-  const struct gkyl_velocity_map *vel_map; // Pointer to velocity mapping object.
+struct gkyl_translate_dim_gyrokinetic {
+  int cdim_do; // Configuration space dimension of donor field.
+  int vdim_do; // Velocity space dimension of donor field.
+  int cdim_tar; // Configuration space dimension of target field.
+  int vdim_tar; // Velocity space dimension of target field.
   bool use_gpu;
-  struct gkyl_positivity_shift_gyrokinetic_kernels *kernels;
+  struct gkyl_translate_dim_gyrokinetic_kernels *kernels;
 };
 
 #ifdef GKYL_HAVE_CUDA
 // Declaration of cuda device functions.
-
-void pos_shift_gk_choose_shift_kernel_cu(struct gkyl_positivity_shift_gyrokinetic_kernels *kernels,
+void trans_dim_gk_choose_shift_kernel_cu(struct gkyl_translate_dim_gyrokinetic_kernels *kernels,
   struct gkyl_basis pbasis);
 
-void gkyl_positivity_shift_gyrokinetic_advance_cu(gkyl_positivity_shift_gyrokinetic* up,
-  const struct gkyl_range *phase_rng, const struct gkyl_range *conf_rng,
-  struct gkyl_array *GKYL_RESTRICT distf, struct gkyl_array *GKYL_RESTRICT mom);
+void gkyl_translate_dim_gyrokinetic_advance_cu(gkyl_translate_dim_gyrokinetic* up,
+  const struct gkyl_range *phase_rng_do, const struct gkyl_range *phase_rng_tar,
+  const struct gkyl_array *GKYL_RESTRICT fdo, struct gkyl_array *GKYL_RESTRICT ftar);
 #endif
 
 GKYL_CU_D
-static void pos_shift_gk_choose_shift_kernel(struct gkyl_positivity_shift_gyrokinetic_kernels *kernels,
-  struct gkyl_basis pbasis, bool use_gpu)
+static void trans_dim_gk_choose_shift_kernel(struct gkyl_translate_dim_gyrokinetic_kernels *kernels,
+  int cdim_do, struct gkyl_basis pbasis_do, int cdim_tar, struct gkyl_basis pbasis_tar, bool use_gpu)
 {
 #ifdef GKYL_HAVE_CUDA
   if (use_gpu) {
-    pos_shift_gk_choose_shift_kernel_cu(kernels, pbasis);
+    trans_dim_gk_choose_shift_kernel_cu(kernels, cdim_do, pbasis_do, cdim_tar, pbasis_tar);
     return;
   }
 #endif
 
-  enum gkyl_basis_type basis_type = pbasis.b_type;
-  int pdim = pbasis.ndim;
-  int poly_order = pbasis.poly_order;
+  enum gkyl_basis_type basis_type = pbasis_tar.b_type;
+  int poly_order = pbasis_tar.poly_order;
 
   switch (basis_type) {
     case GKYL_BASIS_MODAL_GKHYBRID:
     case GKYL_BASIS_MODAL_SERENDIPITY:
-      kernels->shift = pos_shift_gk_kern_list_shift_ser[pdim-2].kernels[poly_order-1];
-      kernels->int_mom = pos_shift_gk_kern_list_intmom_ser[pdim-2].kernels[poly_order-1];
+      kernels->translate = trans_dim_gk_kern_list_shift_ser[cdim_tar+cdim_do-3].kernels[poly_order-1];
       break;
     default:
       assert(false);
