@@ -15,7 +15,7 @@
 
 struct gkyl_proj_maxwellian_pots_on_basis* 
 gkyl_proj_maxwellian_pots_on_basis_new(const struct gkyl_rect_grid *grid, 
-  const struct gkyl_basis *conf_basis, const struct gkyl_basis *phase_basis, int num_quad) 
+  const struct gkyl_basis *conf_basis, const struct gkyl_basis *phase_basis, int num_quad, bool use_gpu) 
 {
   gkyl_proj_maxwellian_pots_on_basis *up = gkyl_malloc(sizeof(gkyl_proj_maxwellian_pots_on_basis));
   up->grid = *grid;
@@ -25,6 +25,8 @@ gkyl_proj_maxwellian_pots_on_basis_new(const struct gkyl_rect_grid *grid,
 
   up->phase_basis = phase_basis;
   up->conf_basis = conf_basis;
+
+  up->use_gpu = use_gpu;
 
   if (phase_basis->poly_order == 1) {  
     gkyl_cart_modal_hybrid(&up->surf_basis, up->cdim, up->pdim-up->cdim-1);
@@ -36,8 +38,6 @@ gkyl_proj_maxwellian_pots_on_basis_new(const struct gkyl_rect_grid *grid,
   up->num_conf_basis = conf_basis->num_basis;
   up->num_phase_basis = phase_basis->num_basis;
   up->num_surf_basis = up->surf_basis.num_basis;
-
-  bool use_gpu = false;
   
   // Quadrature points for phase space expansion
   up->tot_quad = init_quad_values(up->cdim, phase_basis, num_quad,
@@ -57,7 +57,8 @@ gkyl_proj_maxwellian_pots_on_basis_new(const struct gkyl_rect_grid *grid,
     is_vdim_p2[0] = true, is_vdim_p2[1] = true, is_vdim_p2[2] = true;
   }
 
-  up->phase_qrange = get_qrange(up->cdim, up->pdim, num_quad, num_quad_v, is_vdim_p2);
+  up->conf_qrange = get_qrange(up->cdim, up->pdim, num_quad, num_quad_v, is_vdim_p2);
+  up->phase_qrange = get_qrange(up->cdim, up->cdim, num_quad, num_quad_v, is_vdim_p2);
   up->surf_qrange = get_qrange(up->cdim, up->pdim-1, num_quad, num_quad_v, is_vdim_p2);
 
   up->fpo_h_at_ords = gkyl_array_new(GKYL_DOUBLE, 1, up->tot_quad);
@@ -75,6 +76,22 @@ gkyl_proj_maxwellian_pots_on_basis_new(const struct gkyl_rect_grid *grid,
   up->surf_basis.node_list(gkyl_array_fetch(up->surf_nodes, 0));
   up->fpo_dgdv_at_surf_nodes = gkyl_array_new(GKYL_DOUBLE, 1, up->surf_basis.num_basis);
 
+#ifdef GKYL_HAVE_CUDA
+  if (up->use_gpu) {
+    // Allocate device copies of arrays needed for quadrature.
+    int p2c_qidx_ho[up->phase_qrange.volume];
+    up->p2c_qidx = (int *) gkyl_cu_malloc(sizeof(int)*up->phase_qrange.volume);
+
+    int pidx[GKYL_MAX_DIM];
+    for (int n=0; n<up->tot_quad; ++n) {
+      gkyl_range_inv_idx(&up->phase_qrange, n, pidx);
+      int cqidx = gkyl_range_idx(&up->conf_qrange, pidx);
+      p2c_qidx_ho[n] = cqidx;
+    }
+    gkyl_cu_memcpy(up->p2c_qidx, p2c_qidx_ho, sizeof(int)*up->phase_qrange.volume, GKYL_CU_MEMCPY_H2D);
+  }
+#endif
+
   return up;
 }
 
@@ -87,6 +104,12 @@ gkyl_proj_maxwellian_pots_on_basis_advance(const gkyl_proj_maxwellian_pots_on_ba
   struct gkyl_array *fpo_dhdv_surf, struct gkyl_array *fpo_dgdv_surf,
   struct gkyl_array *fpo_d2gdv2_surf)
 {
+#ifdef GKYL_HAVE_CUDA
+  if (up->use_gpu)
+    return gkyl_proj_maxwellian_pots_on_basis_advance_cu(up, phase_range, conf_range, prim_moms,
+      fpo_h, fpo_g, fpo_h_surf, fpo_g_surf, fpo_dhdv_surf, fpo_dgdv_surf, fpo_d2gdv2_surf);
+#endif
+
   // Calculate Maxwellian potentials using primitive moments
   int cdim = up->cdim, pdim = up->pdim;
   int vdim = pdim-cdim;
@@ -164,6 +187,8 @@ gkyl_proj_maxwellian_pots_on_basis_advance(const gkyl_proj_maxwellian_pots_on_ba
         while (gkyl_range_iter_next(&surf_qiter)) {
           int surf_qidx = gkyl_range_idx(&up->surf_qrange, surf_qiter.idx);
           const double* surf_ord = gkyl_array_cfetch(up->surf_ordinates, surf_qidx);
+          surf_comp_to_phys(dir1, pdim, surf_ord, up->grid.dx, xc, xmu);
+          xmu[dir1] = vbound;
 
           // Have to map pdim-1 surface quadrature index to pdim phase quadrature index
           // to get correct phase space variables.
@@ -233,7 +258,6 @@ gkyl_proj_maxwellian_pots_on_basis_advance(const gkyl_proj_maxwellian_pots_on_ba
               vtsq_n, rel_speedsq_n);
           } 
 
-          double *fpo_g_surf_d = gkyl_array_fetch(fpo_g_surf, linp);
           double *fpo_dgdv_surf_d = gkyl_array_fetch(fpo_dgdv_surf, linp);
 
           int num_ret_vals = 1;

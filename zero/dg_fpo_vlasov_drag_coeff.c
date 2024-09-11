@@ -8,12 +8,18 @@
 #include <gkyl_util.h>
 
 
-void gkyl_calc_fpo_drag_coeff_recovery(const struct gkyl_rect_grid *grid, 
+void gkyl_calc_fpo_drag_coeff_recovery(bool use_gpu, const struct gkyl_rect_grid *grid, 
   struct gkyl_basis pbasis, const struct gkyl_range *phase_range, const struct gkyl_range *conf_range,
+  const struct gkyl_array* offsets,
   const struct gkyl_array* gamma, const struct gkyl_array* fpo_h, 
   const struct gkyl_array* fpo_dhdv_surf, struct gkyl_array* fpo_drag_coeff,
   struct gkyl_array* fpo_drag_coeff_surf)
 {
+#ifdef GKYL_HAVE_CUDA
+  if (use_gpu)
+    return gkyl_calc_fpo_drag_coeff_recovery_cu(grid, pbasis, phase_range, conf_range, offsets, gamma, fpo_h, fpo_dhdv_surf, fpo_drag_coeff, fpo_drag_coeff_surf);
+#endif
+
   int pdim = pbasis.ndim;
   int vdim = 3;
   int cdim = pdim - vdim;
@@ -21,7 +27,7 @@ void gkyl_calc_fpo_drag_coeff_recovery(const struct gkyl_rect_grid *grid,
   int poly_order = pbasis.poly_order; 
  
   fpo_drag_coeff_t drag_coeff_recovery_stencil[3][3];
- 
+
   // Fetch kernels in each direction
   for (int d=0; d<vdim; ++d) {
     for (int idx=0; idx<3; ++idx) {
@@ -29,7 +35,7 @@ void gkyl_calc_fpo_drag_coeff_recovery(const struct gkyl_rect_grid *grid,
        choose_ser_fpo_drag_coeff_recovery_kern(d, cdim, poly_order, idx);
     }
   }
- 
+
   // Indices in each direction
   int idxl[GKYL_MAX_DIM], idxc[GKYL_MAX_DIM], idxr[GKYL_MAX_DIM], conf_idxc[GKYL_MAX_DIM];
  

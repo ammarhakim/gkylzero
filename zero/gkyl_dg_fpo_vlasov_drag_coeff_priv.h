@@ -8,7 +8,6 @@
 #include <gkyl_util.h>
 #include <gkyl_fpo_vlasov_kernels.h>
 
-GKYL_CU_DH
 static void
 create_offsets(const int num_up_dirs, const int update_dirs[2], 
   const struct gkyl_range *range, const int idxc[GKYL_MAX_DIM], long offsets[9])
@@ -40,9 +39,9 @@ create_offsets(const int num_up_dirs, const int update_dirs[2],
   int count = 0;
   while (gkyl_range_iter_next(&iter3))
     offsets[count++] = gkyl_range_offset(range, iter3.idx);
-
 }
 
+GKYL_CU_DH
 static int idx_to_inloup_ker(int dim, const int *idx, const int *dirs, const int *num_cells) {
   int iout = 0;
 

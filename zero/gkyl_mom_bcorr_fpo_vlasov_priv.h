@@ -8,6 +8,8 @@
 #include <gkyl_ref_count.h>
 #include <gkyl_mom_fpo_vlasov_kernels.h>
 
+#include <assert.h>
+
 struct mom_type_bcorr_fpo_vlasov {
   struct gkyl_mom_type momt;
   double vBoundary[6];

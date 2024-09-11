@@ -19,10 +19,20 @@
  * @param fpo_drag_coeff Output array of drag coefficient
  * @param fpo_drag_coeff_surf Output array for surface expansion of recovered drag coefficient
 */
-void gkyl_calc_fpo_drag_coeff_recovery(const struct gkyl_rect_grid *grid, 
-  struct gkyl_basis pbasis, const struct gkyl_range *range, const struct gkyl_range *conf_range, 
-  const struct gkyl_array *gamma, const struct gkyl_array *fpo_h, const struct gkyl_array* fpo_dhdv_surf, struct gkyl_array *fpo_drag_coeff, struct gkyl_array *fpo_drag_coeff_surf);
+void gkyl_calc_fpo_drag_coeff_recovery(bool use_gpu, const struct gkyl_rect_grid *grid, 
+  struct gkyl_basis pbasis, const struct gkyl_range *range, const struct gkyl_range *conf_range,
+  const struct gkyl_array *offsets, const struct gkyl_array *gamma, 
+  const struct gkyl_array *fpo_h, const struct gkyl_array* fpo_dhdv_surf, 
+  struct gkyl_array *fpo_drag_coeff, struct gkyl_array *fpo_drag_coeff_surf);
 
+/**
+ *  Host-side wrapper for drag coefficient computation.
+ */
+void gkyl_calc_fpo_drag_coeff_recovery_cu(const struct gkyl_rect_grid *grid, 
+  struct gkyl_basis pbasis, const struct gkyl_range *range, const struct gkyl_range *conf_range,
+  const struct gkyl_array *offsets, const struct gkyl_array *gamma,
+  const struct gkyl_array *fpo_h, const struct gkyl_array* fpo_dhdv_surf, 
+  struct gkyl_array *fpo_drag_coeff, struct gkyl_array *fpo_drag_coeff_surf);
 
 /**
  * Compute the sign of the surface expansion of the drag coefficient

@@ -3,6 +3,39 @@
 
 #include <gkyl_array_rio.h>
 
+static void
+create_offsets(const int num_up_dirs, const int update_dirs[2], 
+  const struct gkyl_range *range, const int idxc[GKYL_MAX_DIM], long offsets[9])
+{
+  
+  // Check if we're at an upper or lower edge in each direction
+  bool is_edge_upper[2], is_edge_lower[2];
+  for (int i=0; i<num_up_dirs; ++i) {
+    is_edge_lower[i] = idxc[update_dirs[i]] == range->lower[update_dirs[i]];
+    is_edge_upper[i] = idxc[update_dirs[i]] == range->upper[update_dirs[i]];
+  }
+
+  // Construct the offsets *only* in the directions being updated.
+  // No need to load the neighbors that are not needed for the update.
+  int lower_offset[GKYL_MAX_DIM] = {0};
+  int upper_offset[GKYL_MAX_DIM] = {0};
+  for (int d=0; d<num_up_dirs; ++d) {
+    int dir = update_dirs[d];
+    lower_offset[dir] = -1 + is_edge_lower[d];
+    upper_offset[dir] = 1 - is_edge_upper[d];
+  }  
+
+  // box spanning stencil
+  struct gkyl_range box3;
+  gkyl_range_init(&box3, range->ndim, lower_offset, upper_offset);
+  struct gkyl_range_iter iter3;
+  gkyl_range_iter_init(&iter3, &box3);
+  // construct list of offsets
+  int count = 0;
+  while (gkyl_range_iter_next(&iter3))
+    offsets[count++] = gkyl_range_offset(range, iter3.idx);
+}
+
 void 
 vm_species_fpo_init(struct gkyl_vlasov_app *app, struct vm_species *s, struct vm_fpo_collisions *fpo)
 {
@@ -34,7 +67,7 @@ vm_species_fpo_init(struct gkyl_vlasov_app *app, struct vm_species *s, struct vm
   fpo->dgdv_surf = mkarr(app->use_gpu, 2*vdim*surf_basis.num_basis, s->local_ext.volume); 
   fpo->d2gdv2_surf = mkarr(app->use_gpu, vdim*surf_basis.num_basis, s->local_ext.volume); 
 
-  fpo->pot_slvr = gkyl_proj_maxwellian_pots_on_basis_new(&s->grid, &app->confBasis, &app->basis, app->poly_order+1);
+  fpo->pot_slvr = gkyl_proj_maxwellian_pots_on_basis_new(&s->grid, &app->confBasis, &app->basis, app->poly_order+1, app->use_gpu);
 
   // allocate moments needed for FPO update
   vm_species_moment_init(app, s, &fpo->lte_moms, "LTEMoments");
@@ -60,6 +93,48 @@ vm_species_fpo_init(struct gkyl_vlasov_app *app, struct vm_species *s, struct vm
   fpo->fpo_moms = mkarr(app->use_gpu, (vdim+1)*app->confBasis.num_basis, app->local_ext.volume);
   fpo->boundary_corrections = mkarr(app->use_gpu, 2*(vdim+1)*app->confBasis.num_basis, app->local_ext.volume);
   fpo->drag_diff_coeff_corrs = mkarr(app->use_gpu, (vdim+1)*app->confBasis.num_basis, app->local_ext.volume);
+
+  // Array of offsets for each phase space cell. Stored as:
+  // 3-cell: (vx), (vy), (vx)
+  // 9-cell: (vx-vy), (vx-vz), (vy-vz) 
+  struct gkyl_array *offsets_ho = mk_int_arr(0, (vdim*3 + vdim*9), s->local_ext.volume);
+  fpo->offsets = mk_int_arr(app->use_gpu, (vdim*3 + vdim*9), s->local_ext.volume);
+
+  // Initializing the offset array here, need to find a better place to put this.
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, &s->local);
+  int idxc[GKYL_MAX_DIM];
+  while (gkyl_range_iter_next(&iter)) {
+    gkyl_copy_int_arr(pdim, iter.idx, idxc);
+    long linp = gkyl_range_idx(&s->local_ext, iter.idx);
+
+    int *offsets_d = (int *)gkyl_array_fetch(offsets_ho, linp);
+
+    long offsets_arr[9];
+    for (int d1=0; d1<vdim; ++d1) {
+      int dir1 = d1 + cdim;
+      int update_dir[] = {dir1};
+      create_offsets(1, update_dir, &s->local, idxc, offsets_arr);
+
+      int idx[3][GKYL_MAX_DIM];
+      for (int i=0; i<3; ++i) {
+        offsets_d[d1*3 + i] = (int)offsets_arr[i];
+        gkyl_range_inv_idx(&s->local, linp+offsets_arr[i], idx[i]);
+      }
+
+      long offsets_arr[9];
+      for (int d2=d1+1; d2<vdim; ++d2) {
+        int dir2 = d2 + cdim;
+        int update_dirs[] = {dir1, dir2};
+        create_offsets(2, update_dirs, &s->local, idxc, offsets_arr);
+
+        for (int i=0; i<9; ++i) {
+          offsets_d[3*vdim + (d1+d2-1) + i] = (int)offsets_arr[i];
+        }
+      }
+    }
+  }
+  gkyl_array_copy(fpo->offsets, offsets_ho);
 
   const struct gkyl_mom_type* fpo_mom_type = gkyl_mom_fpo_vlasov_new(&app->confBasis, 
     &app->basis, &s->local, app->use_gpu);
@@ -95,8 +170,10 @@ vm_species_fpo_drag_diff_coeffs(gkyl_vlasov_app *app, const struct vm_species *s
     fpo->dhdv_surf, fpo->dgdv_surf, fpo->d2gdv2_surf);
 
   // calculate drag and diffusion coefficients
-  gkyl_calc_fpo_drag_coeff_recovery(&s->grid, app->basis, &s->local, &app->local, fpo->gamma,
+  gkyl_calc_fpo_drag_coeff_recovery(app->use_gpu, &s->grid, app->basis, &s->local, &app->local, 
+    fpo->offsets, fpo->gamma,
     fpo->h, fpo->dhdv_surf, fpo->drag_coeff, fpo->drag_coeff_surf); 
+
   gkyl_calc_fpo_diff_coeff_recovery(&s->grid, app->basis, &s->local, &app->local, fpo->gamma,
     fpo->g, fpo->g_surf, fpo->dgdv_surf, fpo->d2gdv2_surf, 
     fpo->diff_coeff, fpo->diff_coeff_surf); 
@@ -125,7 +202,6 @@ vm_species_fpo_drag_diff_coeffs(gkyl_vlasov_app *app, const struct vm_species *s
     fpo->moms.marr, fpo->drag_diff_coeff_corrs, 
     fpo->drag_coeff, fpo->drag_coeff_surf, 
     fpo->diff_coeff, fpo->diff_coeff_surf);
-
 
   gkyl_mom_calc_advance(fpo->fpo_mom_calc, &s->local, &app->local, fin, fpo->fpo_moms);
   gkyl_mom_calc_bcorr_advance(fpo->bcorr_calc,&s->local, &app->local, fin, fpo->boundary_corrections);

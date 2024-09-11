@@ -15,6 +15,8 @@ struct gkyl_proj_maxwellian_pots_on_basis {
   int cdim; // Configuration space dimension
   int pdim; // Phase space dimension
   int num_quad; // Number of 1D quadrature points
+  
+  bool use_gpu;
 
   const struct gkyl_basis *phase_basis;
   const struct gkyl_basis *conf_basis;
@@ -25,6 +27,7 @@ struct gkyl_proj_maxwellian_pots_on_basis {
   int num_surf_basis; // Number of surface basis functions
  
   int tot_quad;
+  struct gkyl_range conf_qrange;
   struct gkyl_range phase_qrange;
   struct gkyl_array *ordinates;
   struct gkyl_array *weights;
@@ -50,6 +53,8 @@ struct gkyl_proj_maxwellian_pots_on_basis {
    
   struct gkyl_array *surf_nodes;
   struct gkyl_array *fpo_dgdv_at_surf_nodes;
+
+  int *p2c_qidx;  // Mapping between conf-space and phase-space ordinates.
 };
 
 GKYL_CU_DH
@@ -103,9 +108,9 @@ proj_on_basis(const gkyl_proj_maxwellian_pots_on_basis *up, const struct gkyl_ar
   int num_basis = up->num_phase_basis;
   int tot_quad = up->tot_quad;
 
-  const double* GKYL_RESTRICT weights = up->weights->data;
-  const double* GKYL_RESTRICT basis_at_ords = up->basis_at_ords->data;
-  const double* GKYL_RESTRICT func_at_ords = fun_at_ords->data;
+  const double* GKYL_RESTRICT weights = (const double*)up->weights->data;
+  const double* GKYL_RESTRICT basis_at_ords = (const double*)up->basis_at_ords->data;
+  const double* GKYL_RESTRICT func_at_ords = (const double*)fun_at_ords->data;
 
   for (int k=0; k<num_basis; ++k) f[k] = 0.0;
   
@@ -122,9 +127,9 @@ proj_on_surf_basis(const gkyl_proj_maxwellian_pots_on_basis *up, int offset, con
   int num_surf_basis = up->num_surf_basis;
   int tot_surf_quad = up->tot_surf_quad;
 
-  const double* GKYL_RESTRICT weights = up->surf_weights->data;
-  const double* GKYL_RESTRICT surf_basis_at_ords = up->surf_basis_at_ords->data;
-  const double* GKYL_RESTRICT func_at_ords = fun_at_ords->data;
+  const double* GKYL_RESTRICT weights = (const double*)up->surf_weights->data;
+  const double* GKYL_RESTRICT surf_basis_at_ords = (const double*)up->surf_basis_at_ords->data;
+  const double* GKYL_RESTRICT func_at_ords = (const double*)fun_at_ords->data;
 
   for (int k=0; k<num_surf_basis; ++k) f[offset*num_surf_basis+k] = 0.0;
   
@@ -137,7 +142,7 @@ proj_on_surf_basis(const gkyl_proj_maxwellian_pots_on_basis *up, int offset, con
 
 static void
 nod2mod(int num_ret_vals, const struct gkyl_basis *basis, const struct gkyl_array *fun_at_nodes, double *f) {
-  const double *fao = gkyl_array_cfetch(fun_at_nodes, 0);
+  const double *fao = (const double*)gkyl_array_cfetch(fun_at_nodes, 0);
 
   int num_basis = basis->num_basis;
   double fnodal[num_basis];
@@ -215,7 +220,7 @@ init_quad_values(int cdim, const struct gkyl_basis *basis, int num_quad, struct 
     int node = gkyl_range_idx(&qrange, iter.idx);
     
     // set ordinates
-    double *ord = gkyl_array_fetch(ordinates_ho, node);
+    double *ord = (double *)gkyl_array_fetch(ordinates_ho, node);
     for (int i=0; i<cdim; ++i)
       ord[i] = ordinates1[iter.idx[i]-qrange.lower[i]];
     for (int i=cdim; i<ndim; ++i)
@@ -223,7 +228,7 @@ init_quad_values(int cdim, const struct gkyl_basis *basis, int num_quad, struct 
                                    ordinates1[iter.idx[i]-qrange.lower[i]];
     
     // set weights
-    double *wgt = gkyl_array_fetch(weights_ho, node);
+    double *wgt = (double *)gkyl_array_fetch(weights_ho, node);
     wgt[0] = 1.0;
     for (int i=0; i<cdim; ++i)
       wgt[0] *= weights1[iter.idx[i]-qrange.lower[i]];
@@ -239,7 +244,7 @@ init_quad_values(int cdim, const struct gkyl_basis *basis, int num_quad, struct 
   else
     *basis_at_ords = gkyl_array_new(GKYL_DOUBLE, basis->num_basis, tot_quad);
   for (int n=0; n<tot_quad; ++n)
-    basis->eval(gkyl_array_fetch(ordinates_ho, n), gkyl_array_fetch(basis_at_ords_ho, n));
+    basis->eval((double *)gkyl_array_fetch(ordinates_ho, n), (double *)gkyl_array_fetch(basis_at_ords_ho, n));
 
   // copy host array to device array
   gkyl_array_copy(*ordinates, ordinates_ho);
@@ -254,6 +259,7 @@ init_quad_values(int cdim, const struct gkyl_basis *basis, int num_quad, struct 
 }
 
 // Note we're multiplying the input vtsq=T/m by sqrt(2)
+__device__
 static inline double eval_fpo_h(double den,
   double rel_speed, double vtsq) 
 {
@@ -261,6 +267,7 @@ static inline double eval_fpo_h(double den,
   return den/rel_speed * erf(rel_speed/vth);
 }
 
+__device__
 static inline double eval_fpo_g(double den, double rel_speed,
   double vtsq) 
 {
@@ -272,6 +279,7 @@ static inline double eval_fpo_g(double den, double rel_speed,
     rel_speed/vth));
 }
 
+__device__
 static inline double eval_fpo_dhdv(double den,
   double rel_vel_in_dir, double vtsq, double rel_speed) 
 {
@@ -283,6 +291,7 @@ static inline double eval_fpo_dhdv(double den,
   return dHdvi;
 }
 
+__device__
 static inline double eval_fpo_dgdv(double den, double rel_vel_in_dir,
   double vtsq, double rel_speedsq) {
   double rel_speed = sqrt(rel_speedsq);
@@ -293,6 +302,7 @@ static inline double eval_fpo_dgdv(double den, double rel_vel_in_dir,
   return dGdvi;
 }
 
+__device__
 static inline double eval_fpo_d2gdv2(double den,
   double rel_vel_in_dir, double vtsq, double rel_speed) {
   double rel_speedsq = pow(rel_speed,2);
@@ -308,6 +318,7 @@ static inline double eval_fpo_d2gdv2(double den,
   return d2Gdvi2;
 }
 
+__device__
 static inline double eval_fpo_d2gdv2_cross(double den,
   double rel_vel_in_dir1, double rel_vel_in_dir2, double rel_speed,
   double vtsq) {
@@ -324,3 +335,11 @@ static inline double eval_fpo_d2gdv2_cross(double den,
   return d2Gdvidvj;
 }
 
+void 
+gkyl_proj_maxwellian_pots_on_basis_advance_cu(const gkyl_proj_maxwellian_pots_on_basis *up,
+  const struct gkyl_range *phase_range, const struct gkyl_range *conf_range,
+  const struct gkyl_array* prim_moms,
+  struct gkyl_array *fpo_h, struct gkyl_array *fpo_g,
+  struct gkyl_array *fpo_h_surf, struct gkyl_array *fpo_g_surf,
+  struct gkyl_array *fpo_dhdv_surf, struct gkyl_array *fpo_dgdv_surf,
+  struct gkyl_array *fpo_d2gdv2_surf);

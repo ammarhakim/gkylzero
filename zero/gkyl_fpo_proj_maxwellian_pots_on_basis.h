@@ -22,7 +22,7 @@ typedef struct gkyl_proj_maxwellian_pots_on_basis gkyl_proj_maxwellian_pots_on_b
 struct gkyl_proj_maxwellian_pots_on_basis* 
 gkyl_proj_maxwellian_pots_on_basis_new(const struct gkyl_rect_grid *grid,
   const struct gkyl_basis *conf_basis, const struct gkyl_basis *phase_basis,
-  int num_quad);
+  int num_quad, bool use_gpu);
 
 /**
  * Compute the Rosenbluth potentials from the analytic solution for the equivalent

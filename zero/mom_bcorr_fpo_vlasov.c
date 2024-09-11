@@ -90,7 +90,7 @@ gkyl_mom_bcorr_fpo_vlasov_new(const struct gkyl_basis* cbasis, const struct gkyl
   mom_bcorr->momt.ref_count = gkyl_ref_count_init(gkyl_mom_bcorr_fpo_vlasov_free);
 
   mom_bcorr->momt.on_dev = &mom_bcorr->momt;
-    
+ 
   return &mom_bcorr->momt;
 }
 
