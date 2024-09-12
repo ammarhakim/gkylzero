@@ -2486,6 +2486,75 @@ gkyl_gyrokinetic_app_from_frame_species(gkyl_gyrokinetic_app *app, int sidx, int
 }
 
 struct gkyl_app_restart_status
+gkyl_gyrokinetic_app_from_moments_species(gkyl_gyrokinetic_app *app, int sidx, int frame)
+{
+  cstr M0fileNm = cstr_from_fmt("%s-%s_M0_%d.gkyl", app->name, app->species[sidx].info.name, frame);
+  cstr M1fileNm = cstr_from_fmt("%s-%s_M1_%d.gkyl", app->name, app->species[sidx].info.name, frame);
+  cstr M2fileNm = cstr_from_fmt("%s-%s_M2_%d.gkyl", app->name, app->species[sidx].info.name, frame);
+
+  struct gkyl_app_restart_status rstat0 = header_from_file(app, M0fileNm.str);
+  struct gkyl_app_restart_status rstat1 = header_from_file(app, M1fileNm.str);  // Must be on the same grid
+  struct gkyl_app_restart_status rstat2 = header_from_file(app, M2fileNm.str);
+  
+
+  const struct gk_species *gk_s = &app->species[sidx];
+  struct gkyl_array *m0, *m1, *m2;
+  //struct gkyl_range local;
+
+  //gkyl_range_init(local, grid->ndim, grid->lower, grid->upper);
+  //int cdim = app->cdim;
+   
+  if (rstat0.io_status != GKYL_ARRAY_RIO_SUCCESS)
+    return rstat0;
+  if (rstat1.io_status != GKYL_ARRAY_RIO_SUCCESS)
+    return rstat1;
+  if (rstat2.io_status != GKYL_ARRAY_RIO_SUCCESS)
+    return rstat2;
+  rstat0.io_status =
+    gkyl_comm_array_read(app->comm, &app->grid, &app->local, m0, M0fileNm.str);
+  if (rstat0.io_status != GKYL_ARRAY_RIO_SUCCESS)
+    return rstat0;
+  rstat1.io_status =
+    gkyl_comm_array_read(app->comm, &app->grid, &app->local, m1, M1fileNm.str);
+  if (rstat1.io_status != GKYL_ARRAY_RIO_SUCCESS)
+    return rstat1;
+  rstat2.io_status =
+    gkyl_comm_array_read(app->comm, &app->grid, &app->local, m2, M2fileNm.str);
+  if (rstat2.io_status != GKYL_ARRAY_RIO_SUCCESS)
+    return rstat2;
+
+  struct gkyl_proj_maxwellian_on_basis *proj = gkyl_proj_maxwellian_on_basis_new(&gk_s->grid,
+    &app->confBasis, &app->basis, app->basis.poly_order+1, gk_s->vel_map, app->use_gpu);
+
+  struct gkyl_array *lab_moms = mkarr(app->use_gpu, 3*app->confBasis.num_basis, gk_s->global.volume);
+  gkyl_array_set_offset(lab_moms, 1.0, m0, 0*app->confBasis.num_basis);
+  gkyl_array_set_offset(lab_moms, 1.0, m1, 1*app->confBasis.num_basis);
+  gkyl_array_set_offset(lab_moms, 1.0, m2, 2*app->confBasis.num_basis);
+  
+  gkyl_proj_maxwellian_on_basis_lab_mom(proj, &gk_s->local, &gk_s->global, lab_moms, gk_s->f_host);
+  
+  if (app->use_gpu)
+    gkyl_array_copy(gk_s->f, gk_s->f_host);
+  if (gk_s->source_id)
+    gk_species_source_calc(app, gk_s, &gk_s->src, 0.0);
+
+  app->species[sidx].is_first_integ_write_call = false; // Append to existing diagnostic.
+  if (app->species[sidx].enforce_positivity)
+    app->species[sidx].is_first_ps_integ_write_call = false; // Append to existing diagnostic.
+  
+  cstr_drop(&M0fileNm);
+  cstr_drop(&M1fileNm);
+  cstr_drop(&M2fileNm);
+  gkyl_array_release(m0);
+  gkyl_array_release(m1);
+  gkyl_array_release(m2);
+  gkyl_array_release(lab_moms);
+  gkyl_proj_maxwellian_on_basis_release(proj);
+  
+  return rstat0; 
+}
+
+struct gkyl_app_restart_status
 gkyl_gyrokinetic_app_from_frame_neut_species(gkyl_gyrokinetic_app *app, int sidx, int frame)
 {
   cstr fileNm = cstr_from_fmt("%s-%s_%d.gkyl", app->name, app->neut_species[sidx].info.name, frame);
