@@ -97,6 +97,15 @@ gkyl_gr_ultra_rel_euler_tetrad_flux_correction(double gas_gamma, const double q[
       W_curved = 1.0 / sqrt(pow(10.0, -8.0));
     }
 
+    if (fabs(vx) < pow(10.0, -8.0)) {
+      if (vx > 0.0) {
+        vx = pow(10.0, -8.0);
+      }
+      else {
+        vx = -pow(10.0, -8.0);
+      }
+    }
+
     flux_gr[0] = (lapse * sqrt(spatial_det)) * ((flux_sr[0] * ((W_curved * W_curved) / (W_flat * W_flat))) +
       ((shift_x * (p - ((flux_sr[0] * (W_curved * W_curved)) / (vx * (W_flat * W_flat))))) / lapse));
     flux_gr[1] = (lapse * sqrt(spatial_det)) * ((((flux_sr[1] - p) * (vx - (shift_x / lapse)) * (W_curved * W_curved)) / (vx * (W_flat * W_flat))) + p);
