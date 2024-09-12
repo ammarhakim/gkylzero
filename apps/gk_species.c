@@ -7,10 +7,148 @@
 #include <gkyl_elem_type.h>
 #include <gkyl_eqn_type.h>
 #include <gkyl_gyrokinetic_priv.h>
-//#include <gkyl_eval_on_nodes.h>
+#include <gkyl_array_rio.h>
+#include <gkyl_array_rio_priv.h>
+#include <gkyl_translate_dim_gyrokinetic.h>
 
 #include <assert.h>
 #include <time.h>
+
+void
+gk_species_file_import_init(struct gkyl_gyrokinetic_app *app, struct gk_species *gks, 
+  struct gkyl_gyrokinetic_ic_import inp)
+{
+  // Import initial condition from a file. Intended options include importing:
+  //   1) ICs with same grid.
+  //   2) ICs one dimensionality lower (e.g. 2x2v for 3x2v sim).
+  //   3) ICs with same grid extents but different resolution (NYI).
+
+  struct gkyl_rect_grid grid = gks->grid;
+  int pdim = grid.ndim;
+  int cdim = app->cdim;
+  int vdim = pdim - cdim;
+  int poly_order = app->basis.poly_order;
+
+  struct gkyl_rect_grid grid_do; // Donor grid.
+  struct gkyl_array_header_info hdr;
+  int pdim_do, vdim_do, cdim_do;
+
+  // Read the header of the input file, extract needed info an create a grid
+  // and other things needed.
+  FILE *fp;
+  with_file(fp, inp.file_name, "r") {
+
+    int status = gkyl_grid_sub_array_header_read_fp(&grid_do, &hdr, fp);
+
+    pdim_do = grid_do.ndim;
+    vdim_do = vdim; // Assume velocity space dimensionality is the same.
+    cdim_do = pdim_do - vdim_do;
+
+    // Perform some basic checks.
+    if (pdim_do == pdim) {
+      for (int d=0; d<pdim; d++) {
+        assert(grid_do.lower[d] == grid.lower[d]);
+        assert(grid_do.upper[d] == grid.upper[d]);
+      }
+    }
+    else {
+      // Assume the loaded file has one lower conf-space dimension.
+      // Primarily meant for loading:
+      //   - 1x2v for a 2x2v sim.
+      //   - 2x2v for a 3x2v sim.
+      assert(pdim_do == pdim-1);
+      for (int d=0; d<cdim_do-1; d++) {
+        assert(grid_do.lower[d] == grid.lower[d]);
+        assert(grid_do.upper[d] == grid.upper[d]);
+        assert(grid_do.cells[d] == grid.cells[d]);
+        assert(grid_do.dx[d] == grid.dx[d]);
+      }
+      assert(grid_do.lower[cdim_do-1] == grid.lower[cdim-1]);
+      assert(grid_do.upper[cdim_do-1] == grid.upper[cdim-1]);
+      assert(grid_do.cells[cdim_do-1] == grid.cells[cdim-1]);
+      assert(grid_do.dx[cdim_do-1] == grid.dx[cdim-1]);
+      for (int d=0; d<vdim; d++) {
+        assert(grid_do.lower[cdim_do+d] == grid.lower[cdim+d]);
+        assert(grid_do.upper[cdim_do+d] == grid.upper[cdim+d]);
+        assert(grid_do.cells[cdim_do+d] == grid.cells[cdim+d]);
+        assert(grid_do.dx[cdim_do+d] == grid.dx[cdim+d]);
+      }
+    }
+
+    struct gyrokinetic_output_meta meta =
+      gk_meta_from_mpack( &(struct gkyl_array_meta) {
+          .meta = hdr.meta,
+          .meta_sz = hdr.meta_size
+        }
+      );
+    assert(strcmp(app->basis.id, meta.basis_type) == 0);
+    assert(poly_order == meta.poly_order);
+  }
+
+  // Donor basis.
+  struct gkyl_basis basis_do;
+  switch (app->basis.b_type) {
+    case GKYL_BASIS_MODAL_GKHYBRID:
+    case GKYL_BASIS_MODAL_SERENDIPITY:
+      if (poly_order > 1)
+        gkyl_cart_modal_serendip(&basis_do, pdim_do, poly_order);
+      else if (poly_order == 1)
+        gkyl_cart_modal_gkhybrid(&basis_do, cdim_do, vdim_do); // p=2 in vparallel
+      break;
+    default:
+      assert(false);
+      break;
+  }
+
+  // Donor ranges.
+  int ghost[pdim_do];
+  for (int d=0; d<cdim_do; d++) ghost[d] = 1;
+  for (int d=0; d<vdim_do; d++) ghost[cdim_do+d] = 0;
+  struct gkyl_range global_ext_do, global_do;
+  gkyl_create_grid_ranges(&grid_do, ghost, &global_ext_do, &global_do);
+
+  struct gkyl_range conf_global;
+  gkyl_create_global_range(cdim_do, grid_do.cells, &conf_global);
+
+  // MF 2024/09/11: For now don't bother with the complexities of parallelism.
+  struct gkyl_range local_ext_do, local_do;
+  memcpy(&local_do, &global_do, sizeof(struct gkyl_range));
+  memcpy(&local_ext_do, &global_ext_do, sizeof(struct gkyl_range));
+
+  // Donor array.
+  struct gkyl_array *fdo = mkarr(app->use_gpu, basis_do.num_basis, local_ext_do.volume);
+  struct gkyl_array *fdo_host = app->use_gpu? mkarr(false, basis_do.num_basis, local_ext_do.volume)
+                                            : gkyl_array_acquire(fdo);
+
+  int cuts_do[] = {1, 1, 1};
+  struct gkyl_rect_decomp *decomp_do = gkyl_rect_decomp_new_from_cuts(cdim_do, cuts_do, &conf_global);
+  struct gkyl_comm *comm_do = gkyl_null_comm_inew( &(struct gkyl_null_comm_inp) {
+      .decomp = decomp_do,
+      .use_gpu = app->use_gpu
+    }
+  );
+
+  // Read donor field.
+  struct gkyl_app_restart_status rstat;
+  rstat.io_status = gkyl_comm_array_read(comm_do, &grid_do, &local_do, fdo_host, inp.file_name);
+  if (app->use_gpu)
+    gkyl_array_copy(fdo, fdo_host);
+
+  if (pdim_do == pdim-1) {
+    struct gkyl_translate_dim_gyrokinetic* transdim = gkyl_translate_dim_gyrokinetic_new(cdim_do,
+      basis_do, cdim, app->basis, app->use_gpu);
+    gkyl_translate_dim_gyrokinetic_advance(transdim, &local_do, &gks->local, fdo, gks->f);
+    gkyl_translate_dim_gyrokinetic_release(transdim);
+  }
+  else {
+    gkyl_array_copy(gks->f, fdo);
+  }
+
+  gkyl_rect_decomp_release(decomp_do);
+  gkyl_comm_release(comm_do);
+  gkyl_array_release(fdo);
+  gkyl_array_release(fdo_host);
+}
 
 // initialize species object
 void
@@ -212,7 +350,11 @@ gk_species_init(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *app, st
   gks->is_first_integ_write_call = true;
 
   // initialize projection routine for initial conditions
-  gk_species_projection_init(app, gks, gks->info.projection, &gks->proj_init);
+  gks->info.init_from_file.use_file_ic = !(gks->info.init_from_file.file_name[0] == '\0');
+  if (gks->info.init_from_file.use_file_ic)
+    gk_species_file_import_init(app, gks, gks->info.init_from_file);
+  else
+    gk_species_projection_init(app, gks, gks->info.projection, &gks->proj_init);
 
   // set species source id
   gks->src = (struct gk_source) { };
@@ -400,7 +542,8 @@ gk_species_init(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *app, st
 void
 gk_species_apply_ic(gkyl_gyrokinetic_app *app, struct gk_species *gks, double t0)
 {
-  gk_species_projection_calc(app, gks, &gks->proj_init, gks->f, t0);
+  if (!gks->info.init_from_file.use_file_ic)
+    gk_species_projection_calc(app, gks, &gks->proj_init, gks->f, t0);
 
   // We are pre-computing source for now as it is time-independent.
   if (gks->source_id)
@@ -560,7 +703,8 @@ gk_species_release(const gkyl_gyrokinetic_app* app, const struct gk_species *s)
   gkyl_array_release(s->bc_buffer_lo_fixed);
   gkyl_array_release(s->bc_buffer_up_fixed);
 
-  gk_species_projection_release(app, &s->proj_init);
+  if (!s->info.init_from_file.use_file_ic)
+    gk_species_projection_release(app, &s->proj_init);
 
   gkyl_comm_release(s->comm);
 
