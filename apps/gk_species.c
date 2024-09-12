@@ -100,33 +100,39 @@ gk_species_file_import_init(struct gkyl_gyrokinetic_app *app, struct gk_species 
       break;
   }
 
-  // Donor ranges.
-  int ghost[pdim_do];
-  for (int d=0; d<cdim_do; d++) ghost[d] = 1;
-  for (int d=0; d<vdim_do; d++) ghost[cdim_do+d] = 0;
+  // Donor global range.
+  int ghost_do[pdim_do];
+  for (int d=0; d<cdim_do; d++) ghost_do[d] = 1;
+  for (int d=0; d<vdim_do; d++) ghost_do[cdim_do+d] = 0;
   struct gkyl_range global_ext_do, global_do;
-  gkyl_create_grid_ranges(&grid_do, ghost, &global_ext_do, &global_do);
+  gkyl_create_grid_ranges(&grid_do, ghost_do, &global_ext_do, &global_do);
 
-  struct gkyl_range conf_global;
-  gkyl_create_global_range(cdim_do, grid_do.cells, &conf_global);
+  // Create a donor communicator.
+  int cuts_tar[GKYL_MAX_DIM] = {-1}, cuts_do[GKYL_MAX_DIM] = {-1};
+  gkyl_comm_get_cuts(gks->comm, cuts_tar);
+  if (pdim_do == pdim-1) {
+    for (int d=0; d<cdim_do-1; d++) cuts_do[d] = cuts_tar[d];
+    cuts_do[cdim_do-1] = cuts_tar[cdim-1];
+    for (int d=0; d<vdim; d++) cuts_do[cdim_do+d] = cuts_tar[cdim+d];
+  }
+  else {
+    for (int d=0; d<pdim; d++) cuts_do[d] = cuts_tar[d];
+  }
 
-  // MF 2024/09/11: For now don't bother with the complexities of parallelism.
+  struct gkyl_rect_decomp *decomp_do = gkyl_rect_decomp_new_from_cuts(pdim_do, cuts_do, &global_do);
+  struct gkyl_comm* comm_do = gkyl_comm_split_comm(gks->comm, 0, decomp_do);
+
+  // Donor local range.
+  int my_rank = 0;
+  gkyl_comm_get_rank(comm_do, &my_rank);
+
   struct gkyl_range local_ext_do, local_do;
-  memcpy(&local_do, &global_do, sizeof(struct gkyl_range));
-  memcpy(&local_ext_do, &global_ext_do, sizeof(struct gkyl_range));
+  gkyl_create_ranges(&decomp_do->ranges[my_rank], ghost_do, &local_ext_do, &local_do);
 
   // Donor array.
   struct gkyl_array *fdo = mkarr(app->use_gpu, basis_do.num_basis, local_ext_do.volume);
   struct gkyl_array *fdo_host = app->use_gpu? mkarr(false, basis_do.num_basis, local_ext_do.volume)
                                             : gkyl_array_acquire(fdo);
-
-  int cuts_do[] = {1, 1, 1};
-  struct gkyl_rect_decomp *decomp_do = gkyl_rect_decomp_new_from_cuts(cdim_do, cuts_do, &conf_global);
-  struct gkyl_comm *comm_do = gkyl_null_comm_inew( &(struct gkyl_null_comm_inp) {
-      .decomp = decomp_do,
-      .use_gpu = app->use_gpu
-    }
-  );
 
   // Read donor field.
   struct gkyl_app_restart_status rstat;

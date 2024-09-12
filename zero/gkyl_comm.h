@@ -22,6 +22,9 @@ typedef int (*get_rank_t)(struct gkyl_comm *comm, int *rank);
 // Get number of ranks
 typedef int (*get_size_t)(struct gkyl_comm *comm, int *sz);
 
+// Get cuts.
+typedef int (*get_cuts_t)(struct gkyl_comm *comm, int *cuts);
+
 // Blocking send @a array to @a dest process using @a tag.
 typedef int (*gkyl_array_send_t)(struct gkyl_array *array, int dest, int tag,
   struct gkyl_comm *comm);
@@ -109,6 +112,7 @@ struct gkyl_comm {
 
   get_rank_t get_rank; // get local rank function.
   get_size_t get_size; // get number of ranks.
+  get_cuts_t get_cuts; // get number of cuts in each direction.
   gkyl_array_send_t gkyl_array_send; // blocking send array.
   gkyl_array_isend_t gkyl_array_isend; // nonblocking send array.
   gkyl_array_recv_t gkyl_array_recv; // blocking recv array.
@@ -163,6 +167,19 @@ static int
 gkyl_comm_get_size(struct gkyl_comm *comm, int *sz)
 {
   return comm->get_size(comm, sz);
+}
+
+/**
+ * If the comm has a decomp associated with it, return the cuts in each
+ * direction that were used to create that decomp.
+ *
+ * @param comm Communicator.
+ * @param cuts Output cuts in each direction.
+ */
+static int
+gkyl_comm_get_cuts(struct gkyl_comm *comm, int *cuts)
+{
+  return comm->get_cuts(comm, cuts);
 }
 
 /**
@@ -466,10 +483,9 @@ gkyl_comm_extend_comm(const struct gkyl_comm *comm,
 }
 
 /**
- * Create a new communicator that extends the communicator to work on a
- * extended domain specified by erange. (Each range handled by the
- * communicator is extended by a tensor-product with erange). The
- * returned communicator must be freed by calling gkyl_comm_release.
+ * Create a new communicator by splitting the existing comm according to the
+ * color passed by each process. That is, all the processes that pass the
+ * same color will be placed on a common communicator.
  *
  * @param comm Communicator.
  * @param color All ranks of same color will share a communicator.

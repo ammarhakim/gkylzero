@@ -119,6 +119,15 @@ get_size(struct gkyl_comm *comm, int *sz)
 }
 
 static int
+get_cuts(struct gkyl_comm *comm, int *cuts)
+{
+  struct mpi_comm *mpi = container_of(comm, struct mpi_comm, base);
+
+  gkyl_rect_decomp_get_cuts(mpi->decomp, cuts);
+  return 0;
+}
+
+static int
 array_send(struct gkyl_array *array, int dest, int tag, struct gkyl_comm *comm)
 {
   size_t vol = array->esznc*array->size;
@@ -759,6 +768,7 @@ gkyl_mpi_comm_new(const struct gkyl_mpi_comm_inp *inp)
   
   mpi->base.get_rank = get_rank;
   mpi->base.get_size = get_size;
+  mpi->base.get_cuts = get_cuts;
   mpi->base.barrier = barrier;
   mpi->base.gkyl_array_send = array_send;
   mpi->base.gkyl_array_isend = array_isend;

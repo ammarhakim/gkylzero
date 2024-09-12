@@ -52,6 +52,15 @@ get_size(struct gkyl_comm *comm, int *sz)
 }
 
 static int
+get_cuts(struct gkyl_comm *comm, int *cuts)
+{
+  struct null_comm *null_comm = container_of(comm, struct null_comm, base);
+
+  for (int d=0; d<null_comm->decomp->ndim; d++) cuts[d] = 1;
+  return 0;
+}
+
+static int
 allreduce(struct gkyl_comm *comm, enum gkyl_elem_type type,
   enum gkyl_array_op op, int nelem, const void *inp,
   void *out)
@@ -236,6 +245,20 @@ extend_comm(const struct gkyl_comm *comm, const struct gkyl_range *erange)
   return ext_comm;
 }
 
+static struct gkyl_comm*
+split_comm(const struct gkyl_comm *comm, int color, struct gkyl_rect_decomp *new_decomp)
+{
+  struct null_comm *null_comm = container_of(comm, struct null_comm, base);
+
+  struct gkyl_comm *newcomm = gkyl_null_comm_inew( &(struct gkyl_null_comm_inp) {
+      .decomp = new_decomp,
+      .use_gpu = null_comm->use_gpu,
+      .sync_corners = null_comm->sync_corners,
+    }
+  );
+  return newcomm;
+}
+
 struct gkyl_comm*
 gkyl_null_comm_inew(const struct gkyl_null_comm_inp *inp)
 {
@@ -260,6 +283,7 @@ gkyl_null_comm_inew(const struct gkyl_null_comm_inp *inp)
 
   comm->base.get_rank = get_rank;
   comm->base.get_size = get_size;
+  comm->base.get_cuts = get_cuts;
   comm->base.allreduce = allreduce;
   comm->base.allreduce_host = allreduce_host;
   comm->base.gkyl_array_allgather = array_allgather;
@@ -271,6 +295,7 @@ gkyl_null_comm_inew(const struct gkyl_null_comm_inp *inp)
   comm->base.gkyl_array_write = array_write;
   comm->base.gkyl_array_read = array_read;
   comm->base.extend_comm = extend_comm;
+  comm->base.split_comm = split_comm;
 
   comm->base.ref_count = gkyl_ref_count_init(comm_free);
 

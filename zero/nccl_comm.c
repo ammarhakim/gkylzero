@@ -190,6 +190,15 @@ get_size(struct gkyl_comm *comm, int *sz)
 }
 
 static int
+get_cuts(struct gkyl_comm *comm, int *cuts)
+{
+  struct nccl_comm *nccl = container_of(comm, struct nccl_comm, base);
+
+  gkyl_rect_decomp_get_cuts(nccl->decomp, cuts);
+  return 0;
+}
+
+static int
 barrier(struct gkyl_comm *comm)
 {
   struct nccl_comm *nccl = container_of(comm, struct nccl_comm, base);
@@ -710,6 +719,7 @@ gkyl_nccl_comm_new(const struct gkyl_nccl_comm_inp *inp)
   
   nccl->base.get_rank = get_rank;
   nccl->base.get_size = get_size;
+  nccl->base.get_cuts = get_cuts;
   nccl->base.barrier = barrier;
   nccl->base.allreduce = allreduce;
   nccl->base.allreduce_host = allreduce_host;
