@@ -77,7 +77,8 @@ gkyl_gr_ultra_rel_euler_flux(double gas_gamma, const double q[27], double flux[2
   gkyl_free(spatial_metric);
 }
 
-void gkyl_gr_ultra_rel_euler_prim_vars(double gas_gamma, const double q[27], double v[27])
+void
+gkyl_gr_ultra_rel_euler_prim_vars(double gas_gamma, const double q[27], double v[27])
 {
   double lapse = q[4];
   double shift_x = q[5];
