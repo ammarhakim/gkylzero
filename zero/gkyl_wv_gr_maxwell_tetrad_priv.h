@@ -20,17 +20,6 @@ struct wv_gr_maxwell_tetrad {
 };
 
 /**
-* Compute maximum absolute wave speed.
-*
-* @param light_speed Speed of light.
-* @param q Conserved variable vector.
-* @return Maximum absolute wave speed for a given q.
-*/
-GKYL_CU_D
-static inline double
-gkyl_gr_maxwell_tetrad_max_abs_speed(double light_speed, const double q[22]);
-
-/**
 * Compute flux vector. Assumes rotation to local coordinate system.
 *
 * @param gas_gamma Speed of light.
@@ -50,11 +39,23 @@ gkyl_gr_maxwell_tetrad_flux(double light_speed, double e_fact, double b_fact, co
 * @param e_fact Factor of speed of light for electric field correction.
 * @param b_fact Factor of speed of light for magnetic field correction.
 * @param q Conserved variable vector.
-* @param flux Flux vector in direction 'dir' (output).
+* @param flux_sr Special relativistic flux vector in direction 'dir'.
+* @param flux_gr General relativistic flux vector in direction 'dir' (output).
 */
 GKYL_CU_D
 void
 gkyl_gr_maxwell_tetrad_flux_correction(double light_speed, double e_fact, double b_fact, const double q[22], const double flux_sr[22], double flux_gr[22]);
+
+/**
+* Compute maximum absolute wave speed.
+*
+* @param light_speed Speed of light.
+* @param q Conserved variable vector.
+* @return Maximum absolute wave speed for a given q.
+*/
+GKYL_CU_D
+static inline double
+gkyl_gr_maxwell_tetrad_max_abs_speed(double light_speed, const double q[22]);
 
 /**
 * Compute Riemann variables given the conserved variables.
