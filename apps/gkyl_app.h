@@ -48,3 +48,12 @@ enum gkyl_field_bc_type {
   GKYL_FIELD_WEDGE, // specialized "wedge" BCs for RZ-theta
   GKYL_FIELD_FUNC, // Function boundary conditions
 };
+
+// Type of file import for initial conditions
+enum gkyl_ic_import_type {
+  GKYL_IC_IMPORT_NONE = 0,
+  GKYL_IC_IMPORT_F, // Import f only.
+  GKYL_IC_IMPORT_AF, // Import f and scale by alpha(x).
+  GKYL_IC_IMPORT_F_B, // Import f and add beta(x,v).
+  GKYL_IC_IMPORT_AF_B, // Import f, scale by alpha(x) and add beta(x,v).
+};

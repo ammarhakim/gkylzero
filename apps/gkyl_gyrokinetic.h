@@ -168,9 +168,10 @@ struct gkyl_gyrokinetic_react {
 struct gkyl_gyrokinetic_ic_import {
   // Inputs to initialize the species with the distribution from a file (f_in)
   // and to modify that distribution such that f = alpha(x)*f_in+beta(x,v).
-  bool use_file_ic;
+  enum gkyl_ic_import_type type;
   char file_name[128]; // Name of file that contains IC, f_in.
-  struct gkyl_gyrokinetic_projection conf_scale; // alpha(x).
+  void *conf_scale_ctx;
+  void (*conf_scale)(double t, const double *xn, double *fout, void *ctx); // alpha(x).
   struct gkyl_gyrokinetic_projection phase_add; // beta(x,v).
 };
 

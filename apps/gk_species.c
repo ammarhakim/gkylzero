@@ -10,6 +10,7 @@
 #include <gkyl_array_rio.h>
 #include <gkyl_array_rio_priv.h>
 #include <gkyl_translate_dim_gyrokinetic.h>
+#include <gkyl_proj_on_basis.h>
 
 #include <assert.h>
 #include <time.h>
@@ -27,7 +28,7 @@ gk_species_file_import_init(struct gkyl_gyrokinetic_app *app, struct gk_species 
   int pdim = grid.ndim;
   int cdim = app->cdim;
   int vdim = pdim - cdim;
-  int poly_order = app->basis.poly_order;
+  int poly_order = app->poly_order;
 
   struct gkyl_rect_grid grid_do; // Donor grid.
   struct gkyl_array_header_info hdr;
@@ -148,6 +149,29 @@ gk_species_file_import_init(struct gkyl_gyrokinetic_app *app, struct gk_species 
   }
   else {
     gkyl_array_copy(gks->f, fdo);
+  }
+
+  if (inp.type == GKYL_IC_IMPORT_AF || inp.type == GKYL_IC_IMPORT_AF_B) {
+    // Scale f by a conf-space factor.
+    gkyl_proj_on_basis *proj_conf_scale = gkyl_proj_on_basis_new(&app->grid, &app->confBasis,
+      poly_order+1, 1, inp.conf_scale, inp.conf_scale_ctx);
+    struct gkyl_array *xfac = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
+    struct gkyl_array *xfac_ho = app->use_gpu? mkarr(false, app->confBasis.num_basis, app->local_ext.volume)
+                                             : gkyl_array_acquire(xfac_ho);
+    gkyl_proj_on_basis_advance(proj_conf_scale, 0.0, &app->local, xfac_ho);
+    gkyl_array_copy(xfac, xfac_ho);
+    gkyl_dg_mul_conf_phase_op_range(&app->confBasis, &app->basis, gks->f, xfac, gks->f, &app->local, &gks->local);
+    gkyl_proj_on_basis_release(proj_conf_scale);
+    gkyl_array_release(xfac_ho);
+    gkyl_array_release(xfac);
+  }
+  if (inp.type == GKYL_IC_IMPORT_F_B || inp.type == GKYL_IC_IMPORT_AF_B) {
+    // Add a phase factor to f.
+    struct gk_proj proj_phase_add;
+    gk_species_projection_init(app, gks, inp.phase_add, &proj_phase_add);
+    gk_species_projection_calc(app, gks, &proj_phase_add, gks->fnew, 0.0);
+    gkyl_array_accumulate_range(gks->f, 1.0, gks->fnew, &gks->local);
+    gk_species_projection_release(app, &proj_phase_add);
   }
 
   gkyl_rect_decomp_release(decomp_do);
@@ -356,11 +380,10 @@ gk_species_init(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *app, st
   gks->is_first_integ_write_call = true;
 
   // initialize projection routine for initial conditions
-  gks->info.init_from_file.use_file_ic = !(gks->info.init_from_file.file_name[0] == '\0');
-  if (gks->info.init_from_file.use_file_ic)
-    gk_species_file_import_init(app, gks, gks->info.init_from_file);
-  else
+  if (gks->info.init_from_file.type == 0)
     gk_species_projection_init(app, gks, gks->info.projection, &gks->proj_init);
+  else
+    gk_species_file_import_init(app, gks, gks->info.init_from_file);
 
   // set species source id
   gks->src = (struct gk_source) { };
@@ -548,7 +571,7 @@ gk_species_init(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *app, st
 void
 gk_species_apply_ic(gkyl_gyrokinetic_app *app, struct gk_species *gks, double t0)
 {
-  if (!gks->info.init_from_file.use_file_ic)
+  if (gks->info.init_from_file.type == 0)
     gk_species_projection_calc(app, gks, &gks->proj_init, gks->f, t0);
 
   // We are pre-computing source for now as it is time-independent.
@@ -709,7 +732,7 @@ gk_species_release(const gkyl_gyrokinetic_app* app, const struct gk_species *s)
   gkyl_array_release(s->bc_buffer_lo_fixed);
   gkyl_array_release(s->bc_buffer_up_fixed);
 
-  if (!s->info.init_from_file.use_file_ic)
+  if (s->info.init_from_file.type == 0)
     gk_species_projection_release(app, &s->proj_init);
 
   gkyl_comm_release(s->comm);
