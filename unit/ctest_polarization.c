@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <gkyl_proj_on_basis.h>
+#include <gkyl_eval_on_nodes.h>
 #include <gkyl_range.h>
 #include <gkyl_rect_decomp.h>
 #include <gkyl_rect_grid.h>
@@ -17,7 +18,7 @@ void evalFunc1x_1(double t, const double *xn, double* restrict fout, void *ctx)
   fout[0] = 1.0;
 }
 
-void test1x() 
+void test1x_flat() 
 {  
   int cells[] = {8};
   int poly_order = 1;
@@ -38,27 +39,32 @@ void test1x()
   struct gkyl_gyrokinetic_pol_density* npol_op = gkyl_gyrokinetic_pol_density_new(basis, grid, false);
   struct gkyl_array *npol = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, localRange_ext.volume);
   struct gkyl_array *epsilon = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, localRange_ext.volume);
-  struct gkyl_array *phi_pol = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, localRange_ext.volume);
-  
-  gkyl_proj_on_basis *proj1 = gkyl_proj_on_basis_new(&grid, &basis, poly_order+1, 1, evalFunc1x_1, NULL);
-  gkyl_proj_on_basis_advance(proj1, 0.0, &localRange, epsilon);
-  gkyl_proj_on_basis_advance(proj1, 0.0, &localRange, phi_pol);
-  gkyl_proj_on_basis_release(proj1);
+
+  struct gkyl_eval_on_nodes *epsilon_proj = gkyl_eval_on_nodes_new(&grid, &basis,
+    1, evalFunc1x_1, NULL);
+  gkyl_eval_on_nodes_advance(epsilon_proj, 0.0, &localRange, epsilon);
+  gkyl_eval_on_nodes_release(epsilon_proj);
+
+  struct gkyl_basis phi_pol_basis;
+  gkyl_cart_modal_tensor(&phi_pol_basis, 1, poly_order+1);
+  struct gkyl_array *phi_pol = gkyl_array_new(GKYL_DOUBLE, phi_pol_basis.num_basis, localRange_ext.volume);
+  struct gkyl_eval_on_nodes *phi_pol_proj = gkyl_eval_on_nodes_new(&grid, &phi_pol_basis,
+    1, evalFunc1x_1, NULL);
+  gkyl_eval_on_nodes_advance(phi_pol_proj, 0.0, &localRange, phi_pol);
+  gkyl_eval_on_nodes_release(phi_pol_proj);
 
   gkyl_gyrokinetic_pol_density_advance(npol_op, &localRange, epsilon, phi_pol, npol);
 
-  // Save the arrays to look at
-  const char *fmt = "%s-%s.gkyl";
-  char name[32] = "pol";
-  int sz = gkyl_calc_strlen(fmt, name, "jacobtot_inv");
-  char fileNm[sz+1]; // ensure no buffer overflow
-  sprintf(fileNm, fmt, name, "epsilon");
-  gkyl_grid_sub_array_write(&grid, &localRange, 0, epsilon, fileNm);
-  sprintf(fileNm, fmt, name, "phi");
-  gkyl_grid_sub_array_write(&grid, &localRange, 0, phi_pol, fileNm);
-  sprintf(fileNm, fmt, name, "npol");
-  gkyl_grid_sub_array_write(&grid, &localRange, 0, npol, fileNm);
-
+  // read the components of npol
+  struct gkyl_range_iter conf_iter;
+  gkyl_range_iter_init(&conf_iter, &localRange);
+  while (gkyl_range_iter_next(&conf_iter)) {
+    long linidx = gkyl_range_idx(&localRange, conf_iter.idx);
+    double *npol_d = gkyl_array_fetch(npol, linidx);
+    for (int i=0; i<basis.num_basis; ++i) {
+      TEST_CHECK( npol_d[i] == 0.0 );
+    }
+  }
   gkyl_array_release(npol);
   gkyl_array_release(epsilon);
   gkyl_array_release(phi_pol);
@@ -69,7 +75,10 @@ void test2() {
 }
 
 TEST_LIST = {
-  { "test1x", test1x }, 
+  { "test1x_flat", test1x_flat }, 
+  // { "test1x_quadratic", test1x_quadratic },
   { "test2", test2 }, 
   { NULL, NULL },
 };
+
+
