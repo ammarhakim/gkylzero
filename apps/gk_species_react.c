@@ -230,9 +230,9 @@ gk_species_react_cross_moms(gkyl_gyrokinetic_app *app, const struct gk_species *
         app->gk_geom->jacobgeo, &app->local); 
 
       // Construct partner vector velocity upar b_i
-      for (i = 0; i < 3; ++i) {
+      for (int j = 0; j < 3; ++j) {
         gkyl_dg_mul_op_range(app->confBasis, 
-          i, react->upar_partner[i], 1, gks_ion->lte.moms.marr, i, 
+          j, react->upar_partner[i], 1, gks_ion->lte.moms.marr, j, 
           app->gk_geom->bcart, &app->local); 
       } 
 

@@ -8,8 +8,7 @@ gk_neut_species_moment_init(struct gkyl_gyrokinetic_app *app, struct gk_neut_spe
 {
   assert(is_neut_moment_name_valid(nm));
 
-  bool is_integrated = strcmp(nm, "Integrated") == 0;
-  int num_mom;
+  sm->is_integrated = strcmp(nm, "Integrated") == 0;
 
   sm->is_maxwellian_moms = strcmp("LTEMoments", nm) == 0;
   if (sm->is_maxwellian_moms) {
@@ -25,7 +24,7 @@ gk_neut_species_moment_init(struct gkyl_gyrokinetic_app *app, struct gk_neut_spe
     };
     // Compute (n, ux, uy, uz, T/m)
     sm->vlasov_lte_moms = gkyl_vlasov_lte_moments_inew(&inp_mom);
-    num_mom = 5; 
+    sm->num_mom = 5; 
   }
   else {
     sm->mcalc = gkyl_dg_updater_moment_new(&s->grid, &app->confBasis, 

@@ -163,19 +163,6 @@ gk_neut_species_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app, struc
     // acquire equation object
     s->eqn_vlasov = gkyl_dg_updater_vlasov_acquire_eqn(s->slvr);
 
-    // Initialize a Maxwellian/LTE (local thermodynamic equilibrium) projection routine
-    // Projection routine optionally corrects all the Maxwellian/LTE moments
-    // This routine is utilized by both reactions and BGK collisions
-    s->lte = (struct gk_lte) { };
-    bool correct_all_moms = s->info.correct_all_moms;
-    int max_iter = s->info.max_iter > 0 ? s->info.max_iter : 50;
-    double iter_eps = s->info.iter_eps > 0 ? s->info.iter_eps  : 1e-10;
-    bool use_last_converged = s->info.use_last_converged;
-    struct correct_all_moms_inp corr_inp = { .correct_all_moms = correct_all_moms, 
-      .max_iter = max_iter, .iter_eps = iter_eps, 
-      .use_last_converged = use_last_converged };
-    gk_neut_species_lte_init(app, s, &s->lte, corr_inp);
-
     // Determine collision type and initialize it.
     s->collision_id = s->info.collisions.collision_id;
     s->bgk = (struct gk_bgk_collisions) { };
@@ -189,6 +176,19 @@ gk_neut_species_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app, struc
       gk_neut_species_react_init(app, s, s->info.react_neut, &s->react_neut);
     }
   }
+
+  // Initialize a Maxwellian/LTE (local thermodynamic equilibrium) projection routine
+  // Projection routine optionally corrects all the Maxwellian/LTE moments
+  // This routine is utilized by both reactions and BGK collisions
+  s->lte = (struct gk_lte) { };
+  bool correct_all_moms = s->info.correct_all_moms;
+  int max_iter = s->info.max_iter > 0 ? s->info.max_iter : 50;
+  double iter_eps = s->info.iter_eps > 0 ? s->info.iter_eps  : 1e-10;
+  bool use_last_converged = s->info.use_last_converged;
+  struct correct_all_moms_inp corr_inp = { .correct_all_moms = correct_all_moms, 
+    .max_iter = max_iter, .iter_eps = iter_eps, 
+    .use_last_converged = use_last_converged };
+  gk_neut_species_lte_init(app, s, &s->lte, corr_inp);
 
   // allocate date for density 
   gk_neut_species_moment_init(app, s, &s->m0, "M0");
@@ -453,7 +453,15 @@ gk_neut_species_release(const gkyl_gyrokinetic_app* app, const struct gk_neut_sp
     // release equation object and solver
     gkyl_dg_eqn_release(s->eqn_vlasov);
     gkyl_dg_updater_vlasov_release(s->slvr);
+
+    if (s->collision_id == GKYL_BGK_COLLISIONS) {
+      gk_species_bgk_release(app, &s->bgk);
+    }
+    if (s->has_neutral_reactions) {
+      gk_neut_species_react_release(app, &s->react_neut);
+    }
   }
+  gk_neut_species_lte_release(app, &s->lte);
 
   // release moment data
   gk_neut_species_moment_release(app, &s->m0);
@@ -465,13 +473,6 @@ gk_neut_species_release(const gkyl_gyrokinetic_app* app, const struct gk_neut_sp
 
   if (s->source_id) 
     gk_neut_species_source_release(app, &s->src);
-
-  gk_species_lte_release(app, &s->lte);
-  if (s->collision_id == GKYL_BGK_COLLISIONS)
-    gk_species_bgk_release(app, &s->bgk);
-
-  if (s->has_neutral_reactions)
-    gk_neut_species_react_release(app, &s->react_neut);
 
   // Copy BCs are allocated by default. Need to free.
   for (int d=0; d<app->cdim; ++d) {

@@ -214,6 +214,8 @@ gk_species_projection_release(const struct gkyl_gyrokinetic_app *app, const stru
       gkyl_proj_on_basis_release(proj->proj_tempperp);
     }
     gkyl_gk_maxwellian_proj_on_basis_release(proj->proj_max);
-    gkyl_gk_maxwellian_correct_release(proj->corr_max);    
+    if (proj->correct_all_moms) {
+      gkyl_gk_maxwellian_correct_release(proj->corr_max);    
+    }
   }
 }
