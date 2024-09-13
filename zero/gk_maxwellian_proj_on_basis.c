@@ -246,33 +246,6 @@ gkyl_gk_maxwellian_proj_on_basis_inew(const struct gkyl_gk_maxwellian_proj_on_ba
   long conf_local_ncells = inp->conf_range->volume;
   long conf_local_ext_ncells = inp->conf_range_ext->volume;
 
-  // Allocate and obtain geometric variables at quadrature points
-  // since these quantities are time-independent.
-  // Also allocate number density ratio: num_ratio = n_target/n0 
-  // and bin_op memory to compute ratio for fixing the density with simple rescaling.
-  if (up->use_gpu) { 
-    up->bmag_quad = gkyl_array_cu_dev_new(GKYL_DOUBLE, 
-      up->tot_conf_quad, inp->conf_range_ext->volume);
-    up->jacobtot_quad = gkyl_array_cu_dev_new(GKYL_DOUBLE, 
-      up->tot_conf_quad, inp->conf_range_ext->volume);
-    up->num_ratio = gkyl_array_cu_dev_new(GKYL_DOUBLE, 
-      up->conf_basis.num_basis, conf_local_ext_ncells);
-    up->mem = gkyl_dg_bin_op_mem_cu_dev_new(conf_local_ncells, up->conf_basis.num_basis);
-  }
-  else {
-    up->bmag_quad = gkyl_array_new(GKYL_DOUBLE, 
-      up->tot_conf_quad, inp->conf_range_ext->volume);
-    up->jacobtot_quad = gkyl_array_new(GKYL_DOUBLE, 
-      up->tot_conf_quad, inp->conf_range_ext->volume);
-    up->num_ratio = gkyl_array_new(GKYL_DOUBLE, 
-      up->conf_basis.num_basis, conf_local_ext_ncells);
-    up->mem = gkyl_dg_bin_op_mem_new(conf_local_ncells, up->conf_basis.num_basis);
-  }
-  gkyl_array_clear(up->bmag_quad, 0.0); 
-  gkyl_array_clear(up->jacobtot_quad, 0.0); 
-  gkyl_gk_maxwellian_proj_on_basis_geom_quad_vars(up, inp->conf_range, 
-    inp->gk_geom->bmag, inp->gk_geom->jacobtot);
-
   up->mass = inp->mass;
   up->bimaxwellian = false;
   if (inp->bimaxwellian) {
@@ -339,7 +312,33 @@ gkyl_gk_maxwellian_proj_on_basis_inew(const struct gkyl_gk_maxwellian_proj_on_ba
     gkyl_cu_memcpy(up->p2c_qidx, p2c_qidx_ho, sizeof(int)*up->phase_qrange.volume, GKYL_CU_MEMCPY_H2D);
   }
 #endif
-
+  // Allocate and obtain geometric variables at quadrature points
+  // since these quantities are time-independent.
+  // Also allocate number density ratio: num_ratio = n_target/n0 
+  // and bin_op memory to compute ratio for fixing the density with simple rescaling.
+  if (up->use_gpu) { 
+    up->bmag_quad = gkyl_array_cu_dev_new(GKYL_DOUBLE, 
+      up->tot_conf_quad, inp->conf_range_ext->volume);
+    up->jacobtot_quad = gkyl_array_cu_dev_new(GKYL_DOUBLE, 
+      up->tot_conf_quad, inp->conf_range_ext->volume);
+    up->num_ratio = gkyl_array_cu_dev_new(GKYL_DOUBLE, 
+      up->conf_basis.num_basis, conf_local_ext_ncells);
+    up->mem = gkyl_dg_bin_op_mem_cu_dev_new(conf_local_ncells, up->conf_basis.num_basis);
+  }
+  else {
+    up->bmag_quad = gkyl_array_new(GKYL_DOUBLE, 
+      up->tot_conf_quad, inp->conf_range_ext->volume);
+    up->jacobtot_quad = gkyl_array_new(GKYL_DOUBLE, 
+      up->tot_conf_quad, inp->conf_range_ext->volume);
+    up->num_ratio = gkyl_array_new(GKYL_DOUBLE, 
+      up->conf_basis.num_basis, conf_local_ext_ncells);
+    up->mem = gkyl_dg_bin_op_mem_new(conf_local_ncells, up->conf_basis.num_basis);
+  }
+  gkyl_array_clear(up->bmag_quad, 0.0); 
+  gkyl_array_clear(up->jacobtot_quad, 0.0); 
+  gkyl_gk_maxwellian_proj_on_basis_geom_quad_vars(up, inp->conf_range, 
+    inp->gk_geom->bmag, inp->gk_geom->jacobtot);
+    
   // Store a Maxwellian moment calculation updater to compute and correct the density
   struct gkyl_gk_maxwellian_moments_inp inp_mom = {
     .phase_grid = inp->phase_grid,
