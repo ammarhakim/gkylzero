@@ -736,7 +736,8 @@ struct gkyl_gyrokinetic_app {
   struct gkyl_basis basis, neut_basis; // phase-space and phase-space basis for neutrals
   struct gkyl_basis confBasis; // conf-space basis
   
-  struct gkyl_comm *comm;   // communicator object for conf-space arrays
+  struct gkyl_rect_decomp *decomp; // Decomposition object.
+  struct gkyl_comm *comm; // communicator object for conf-space arrays
 
   // pointers to basis on device (these point to host structs if not
   // on GPU)

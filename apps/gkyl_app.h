@@ -23,6 +23,14 @@ struct gkyl_app_comm_low_inp {
   struct gkyl_comm *comm; // communicator to used
 };
 
+// Parallelization-related inputs.
+struct gkyl_app_parallelism_inp {
+  bool use_gpu; // Run on the GPU(s).
+  bool use_mpi; // Use MPI to parallelize accross CPUs (or GPUs).
+  int *cuts; // Number of subdomain in each dimension.
+  struct gkyl_comm *comm; // Communicator to use.
+};
+
 // Boundary conditions on particles
 enum gkyl_species_bc_type {
   GKYL_SPECIES_COPY = 0, // copy BCs

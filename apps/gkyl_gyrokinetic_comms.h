@@ -33,7 +33,7 @@ gkyl_gyrokinetic_comms_decomp_new(int cdim, const int *cells_conf, const int *cu
  * @return New gkyl_comm communicator object.
  */
 struct gkyl_comm* 
-gkyl_gyrokinetic_comms_new(bool use_mpi, bool use_gpu, struct gkyl_rect_decomp *decomp, FILE *iostream);
+gkyl_gyrokinetic_comms_new(bool use_mpi, bool use_gpu, FILE *iostream);
 
 /**
  * Free gyrokinetic app decomp and comm objects.
@@ -42,4 +42,4 @@ gkyl_gyrokinetic_comms_new(bool use_mpi, bool use_gpu, struct gkyl_rect_decomp *
  * @param comm Communicator object.
  */
 void
-gkyl_gyrokinetic_comms_release(struct gkyl_rect_decomp *decomp, struct gkyl_comm *comm);
+gkyl_gyrokinetic_comms_release(struct gkyl_comm *comm);

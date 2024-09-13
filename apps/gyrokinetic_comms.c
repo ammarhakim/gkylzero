@@ -56,17 +56,16 @@ gkyl_gyrokinetic_comms_decomp_new(int cdim, const int *cells_conf, const int *cu
 }
 
 struct gkyl_comm* 
-gkyl_gyrokinetic_comms_new(bool use_mpi, bool use_gpu, struct gkyl_rect_decomp *decomp, FILE *iostream)
+gkyl_gyrokinetic_comms_new(bool use_mpi, bool use_gpu, FILE *iostream)
 {
   // Construct communicator for use in app.
-  struct gkyl_comm *comm;
+  struct gkyl_comm *comm = 0;
 
 #ifdef GKYL_HAVE_MPI
   if (use_gpu && use_mpi) {
 #ifdef GKYL_HAVE_NCCL
     comm = gkyl_nccl_comm_new( &(struct gkyl_nccl_comm_inp) {
         .mpi_comm = MPI_COMM_WORLD,
-        .decomp = decomp
       }
     );
 #else
@@ -77,20 +76,17 @@ gkyl_gyrokinetic_comms_new(bool use_mpi, bool use_gpu, struct gkyl_rect_decomp *
   else if (use_mpi) {
     comm = gkyl_mpi_comm_new( &(struct gkyl_mpi_comm_inp) {
         .mpi_comm = MPI_COMM_WORLD,
-        .decomp = decomp
       }
     );
   }
   else {
     comm = gkyl_null_comm_inew( &(struct gkyl_null_comm_inp) {
-        .decomp = decomp,
         .use_gpu = use_gpu
       }
     );
   }
 #else
   comm = gkyl_null_comm_inew( &(struct gkyl_null_comm_inp) {
-      .decomp = decomp,
       .use_gpu = use_gpu
     }
   );
@@ -100,8 +96,8 @@ gkyl_gyrokinetic_comms_new(bool use_mpi, bool use_gpu, struct gkyl_rect_decomp *
 }
 
 void
-gkyl_gyrokinetic_comms_release(struct gkyl_rect_decomp *decomp, struct gkyl_comm *comm)
+gkyl_gyrokinetic_comms_release(struct gkyl_comm *comm)
 {
-  gkyl_rect_decomp_release(decomp);
-  gkyl_comm_release(comm);
+  if (comm != 0)
+    gkyl_comm_release(comm);
 }

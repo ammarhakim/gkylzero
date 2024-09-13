@@ -110,7 +110,7 @@ gkyl_gyrokinetic_app_new(struct gkyl_gk *gk)
   app->cfl = cfl_frac;
 
 #ifdef GKYL_HAVE_CUDA
-  app->use_gpu = gk->use_gpu;
+  app->use_gpu = gk->parallelism.use_gpu;
 #else
   app->use_gpu = false; // can't use GPUs if we don't have them!
 #endif
@@ -169,43 +169,34 @@ gkyl_gyrokinetic_app_new(struct gkyl_gk *gk)
   int ghost[] = { 1, 1, 1 };
   gkyl_create_grid_ranges(&app->grid, ghost, &app->global_ext, &app->global);
 
-  if (gk->has_low_inp) {
-    // create local and local_ext from user-supplied local range
-    gkyl_create_ranges(&gk->low_inp.local_range, ghost, &app->local_ext, &app->local);
-    
-    if (gk->low_inp.comm)
-      app->comm = gkyl_comm_acquire(gk->low_inp.comm);
-    else {
-      int cuts[3] = { 1, 1, 1 };
-      struct gkyl_rect_decomp *rect_decomp =
-        gkyl_rect_decomp_new_from_cuts(cdim, cuts, &app->global);
-      
-      app->comm = gkyl_null_comm_inew( &(struct gkyl_null_comm_inp) {
-          .decomp = rect_decomp,
-          .use_gpu = app->use_gpu
-        }
-      );
-
-      gkyl_rect_decomp_release(rect_decomp);
-    }
-  }
-  else {
-    // global and local ranges are same, and so just copy
-    memcpy(&app->local, &app->global, sizeof(struct gkyl_range));
-    memcpy(&app->local_ext, &app->global_ext, sizeof(struct gkyl_range));
-
+  if (gk->parallelism.comm == 0) {
     int cuts[3] = { 1, 1, 1 };
-    struct gkyl_rect_decomp *rect_decomp =
-      gkyl_rect_decomp_new_from_cuts(cdim, cuts, &app->global);
+    app->decomp = gkyl_rect_decomp_new_from_cuts(cdim, cuts, &app->global);
     
     app->comm = gkyl_null_comm_inew( &(struct gkyl_null_comm_inp) {
-        .decomp = rect_decomp,
+        .decomp = app->decomp,
         .use_gpu = app->use_gpu
       }
     );
     
-    gkyl_rect_decomp_release(rect_decomp);
+    // Global and local ranges are same, and so just copy them.
+    memcpy(&app->local, &app->global, sizeof(struct gkyl_range));
+    memcpy(&app->local_ext, &app->global_ext, sizeof(struct gkyl_range));
   }
+  else {
+    // Create decomp.
+    app->decomp = gkyl_gyrokinetic_comms_decomp_new(cdim, app->grid.cells,
+      gk->parallelism.cuts, gk->parallelism.use_mpi, stderr);
+
+    // Create a new communicator with the decomposition in it.
+    app->comm = gkyl_comm_split_comm(gk->parallelism.comm, 0, app->decomp);
+
+    // Create local and local_ext.
+    int rank;
+    gkyl_comm_get_rank(app->comm, &rank);
+    gkyl_create_ranges(&app->decomp->ranges[rank], ghost, &app->local_ext, &app->local);
+  }
+
   // local skin and ghost ranges for configuration space fields
   for (int dir=0; dir<cdim; ++dir) {
     gkyl_skin_ghost_ranges(&app->lower_skin[dir], &app->lower_ghost[dir], dir, GKYL_LOWER_EDGE, &app->local_ext, ghost); 
@@ -249,9 +240,9 @@ gkyl_gyrokinetic_app_new(struct gkyl_gk *gk)
 
     int ghost[] = { 1, 1, 1 };
     gkyl_create_grid_ranges(&geometry_inp.geo_grid, ghost, &geometry_inp.geo_global_ext, &geometry_inp.geo_global);
-    if (gk->has_low_inp) {
+    if (gk->parallelism.use_mpi) {
       // create local and local_ext from user-supplied local range
-      gkyl_gk_geometry_augment_local(&gk->low_inp.local_range, ghost, &geometry_inp.geo_local_ext, &geometry_inp.geo_local);
+      gkyl_gk_geometry_augment_local(&app->local, ghost, &geometry_inp.geo_local_ext, &geometry_inp.geo_local);
     }
     else {
       // global and local ranges are same, and so just copy
@@ -2633,6 +2624,7 @@ gkyl_gyrokinetic_app_release(gkyl_gyrokinetic_app* app)
     gkyl_free(app->neut_species);
 
   gkyl_comm_release(app->comm);
+  gkyl_rect_decomp_release(app->decomp);
 
   if (app->use_gpu) {
     gkyl_cu_free(app->basis_on_dev.basis);
