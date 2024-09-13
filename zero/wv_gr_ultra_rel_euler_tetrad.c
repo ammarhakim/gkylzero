@@ -758,14 +758,15 @@ static double
 flux_jump(const struct gkyl_wv_eqn* eqn, const double* ql, const double* qr, double* flux_jump)
 {
   const struct wv_gr_ultra_rel_euler_tetrad *gr_ultra_rel_euler_tetrad = container_of(eqn, struct wv_gr_ultra_rel_euler_tetrad, eqn);
+  double gas_gamma = gr_ultra_rel_euler_tetrad->gas_gamma;
 
   double fr_sr[27], fl_sr[27];
-  gkyl_gr_ultra_rel_euler_tetrad_flux(gr_ultra_rel_euler_tetrad->gas_gamma, ql, fl_sr);
-  gkyl_gr_ultra_rel_euler_tetrad_flux(gr_ultra_rel_euler_tetrad->gas_gamma, qr, fr_sr);
+  gkyl_gr_ultra_rel_euler_tetrad_flux(gas_gamma, ql, fl_sr);
+  gkyl_gr_ultra_rel_euler_tetrad_flux(gas_gamma, qr, fr_sr);
 
   double fr_gr[27], fl_gr[27];
-  gkyl_gr_ultra_rel_euler_tetrad_flux_correction(gr_ultra_rel_euler_tetrad->gas_gamma, ql, fl_sr, fl_gr);
-  gkyl_gr_ultra_rel_euler_tetrad_flux_correction(gr_ultra_rel_euler_tetrad->gas_gamma, qr, fr_sr, fr_gr);
+  gkyl_gr_ultra_rel_euler_tetrad_flux_correction(gas_gamma, ql, fl_sr, fl_gr);
+  gkyl_gr_ultra_rel_euler_tetrad_flux_correction(gas_gamma, qr, fr_sr, fr_gr);
 
   bool in_excision_region_l = false;
   if (ql[26] < pow(10.0, -8.0)) {

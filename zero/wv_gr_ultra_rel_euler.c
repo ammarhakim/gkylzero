@@ -701,10 +701,11 @@ static double
 flux_jump(const struct gkyl_wv_eqn* eqn, const double* ql, const double* qr, double* flux_jump)
 {
   const struct wv_gr_ultra_rel_euler *gr_ultra_rel_euler = container_of(eqn, struct wv_gr_ultra_rel_euler, eqn);
+  double gas_gamma = gr_ultra_rel_euler->gas_gamma;
 
   double fr[27], fl[27];
-  gkyl_gr_ultra_rel_euler_flux(gr_ultra_rel_euler->gas_gamma, ql, fl);
-  gkyl_gr_ultra_rel_euler_flux(gr_ultra_rel_euler->gas_gamma, qr, fr);
+  gkyl_gr_ultra_rel_euler_flux(gas_gamma, ql, fl);
+  gkyl_gr_ultra_rel_euler_flux(gas_gamma, qr, fr);
 
   bool in_excision_region_l = false;
   if (ql[26] < pow(10.0, -8.0)) {
@@ -727,8 +728,8 @@ flux_jump(const struct gkyl_wv_eqn* eqn, const double* ql, const double* qr, dou
     }
   }
 
-  double amaxl = gkyl_gr_ultra_rel_euler_max_abs_speed(gr_ultra_rel_euler->gas_gamma, ql);
-  double amaxr = gkyl_gr_ultra_rel_euler_max_abs_speed(gr_ultra_rel_euler->gas_gamma, qr);
+  double amaxl = gkyl_gr_ultra_rel_euler_max_abs_speed(gas_gamma, ql);
+  double amaxr = gkyl_gr_ultra_rel_euler_max_abs_speed(gas_gamma, qr);
 
   return fmax(amaxl, amaxr);
 }

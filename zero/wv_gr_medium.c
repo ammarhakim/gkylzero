@@ -204,17 +204,19 @@ static double
 flux_jump(const struct gkyl_wv_eqn* eqn, const double* ql, const double* qr, double* flux_jump)
 {
   const struct wv_gr_medium *gr_medium = container_of(eqn, struct wv_gr_medium, eqn);
+  double gas_gamma = gr_medium->gas_gamma;
+  double kappa = gr_medium->kappa;
 
   double fr[15], fl[15];
-  gkyl_gr_medium_flux(gr_medium->gas_gamma, gr_medium->kappa, ql, fl);
-  gkyl_gr_medium_flux(gr_medium->gas_gamma, gr_medium->kappa, qr, fr);
+  gkyl_gr_medium_flux(gas_gamma, kappa, ql, fl);
+  gkyl_gr_medium_flux(gas_gamma, kappa, qr, fr);
 
   for (int m = 0; m < 15; m++) {
     flux_jump[m] = fr[m] - fl[m];
   }
 
-  double amaxl = gkyl_gr_medium_max_abs_speed(gr_medium->gas_gamma, ql);
-  double amaxr = gkyl_gr_medium_max_abs_speed(gr_medium->gas_gamma, qr);
+  double amaxl = gkyl_gr_medium_max_abs_speed(gas_gamma, ql);
+  double amaxr = gkyl_gr_medium_max_abs_speed(gas_gamma, qr);
 
   return fmax(amaxl, amaxr);
 }
