@@ -1,0 +1,75 @@
+#include "gkyl_array.h"
+#include <stdio.h>
+#include <stdlib.h>
+#include <gkyl_proj_on_basis.h>
+#include <gkyl_range.h>
+#include <gkyl_rect_decomp.h>
+#include <gkyl_rect_grid.h>
+#include <gkyl_array_ops.h>
+#include <gkyl_gk_geometry.h>
+#include <gkyl_util.h>
+#include <gkyl_array_rio.h>
+#include <acutest.h>
+#include <gkyl_gyrokinetic_pol_density.h>
+
+void evalFunc1x_1(double t, const double *xn, double* restrict fout, void *ctx)
+{
+  fout[0] = 1.0;
+}
+
+void test1x() 
+{  
+  int cells[] = {8};
+  int poly_order = 1;
+  double lower[] = {0.0}, upper[] = {1.0};
+  int dim = sizeof(lower)/sizeof(lower[0]);
+  // Grids.
+  struct gkyl_rect_grid grid;
+  gkyl_rect_grid_init(&grid, dim, lower, upper, cells);
+
+  // Basis functions.
+  struct gkyl_basis basis;
+  gkyl_cart_modal_serendip(&basis, dim, poly_order);
+
+  int ghost[] = { 1, 1 };
+  struct gkyl_range localRange, localRange_ext; // local, local-ext ranges.
+  gkyl_create_grid_ranges(&grid, ghost, &localRange_ext, &localRange);
+
+  struct gkyl_gyrokinetic_pol_density* npol_op = gkyl_gyrokinetic_pol_density_new(basis, grid, false);
+  struct gkyl_array *npol = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, localRange_ext.volume);
+  struct gkyl_array *epsilon = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, localRange_ext.volume);
+  struct gkyl_array *phi_pol = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, localRange_ext.volume);
+  
+  gkyl_proj_on_basis *proj1 = gkyl_proj_on_basis_new(&grid, &basis, poly_order+1, 1, evalFunc1x_1, NULL);
+  gkyl_proj_on_basis_advance(proj1, 0.0, &localRange, epsilon);
+  gkyl_proj_on_basis_advance(proj1, 0.0, &localRange, phi_pol);
+  gkyl_proj_on_basis_release(proj1);
+
+  gkyl_gyrokinetic_pol_density_advance(npol_op, &localRange, epsilon, phi_pol, npol);
+
+  // Save the arrays to look at
+  const char *fmt = "%s-%s.gkyl";
+  char name[32] = "pol";
+  int sz = gkyl_calc_strlen(fmt, name, "jacobtot_inv");
+  char fileNm[sz+1]; // ensure no buffer overflow
+  sprintf(fileNm, fmt, name, "epsilon");
+  gkyl_grid_sub_array_write(&grid, &localRange, 0, epsilon, fileNm);
+  sprintf(fileNm, fmt, name, "phi");
+  gkyl_grid_sub_array_write(&grid, &localRange, 0, phi_pol, fileNm);
+  sprintf(fileNm, fmt, name, "npol");
+  gkyl_grid_sub_array_write(&grid, &localRange, 0, npol, fileNm);
+
+  gkyl_array_release(npol);
+  gkyl_array_release(epsilon);
+  gkyl_array_release(phi_pol);
+  gkyl_gyrokinetic_pol_density_release(npol_op);
+}
+
+void test2() {
+}
+
+TEST_LIST = {
+  { "test1x", test1x }, 
+  { "test2", test2 }, 
+  { NULL, NULL },
+};
