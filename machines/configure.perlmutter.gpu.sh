@@ -13,7 +13,8 @@ module load cudatoolkit/12.0
 module load nccl/2.18.3-cu12
 
 : "${PREFIX:=$HOME/gkylsoft}"
+: "${GKYL_DEP:=$HOME/gkylsoft}"
 
-./configure CC=nvcc ARCH_FLAGS="-march=native" CUDA_ARCH=80 --prefix=$PREFIX --lapack-inc=$PREFIX/OpenBLAS/include --lapack-lib=$PREFIX/OpenBLAS/lib/libopenblas.a --superlu-inc=$PREFIX/superlu/include --superlu-lib=$PREFIX/superlu/lib/libsuperlu.a --cudamath-libdir=/opt/nvidia/hpc_sdk/Linux_x86_64/23.1/math_libs/12.0/lib64 --use-mpi=yes --mpi-inc=$CRAY_MPICH_DIR/include --mpi-lib=$CRAY_MPICH_DIR/lib --use-nccl=yes --nccl-inc=$NCCL_DIR/include --nccl-lib=$NCCL_DIR/lib;
+./configure CC=nvcc ARCH_FLAGS="-march=native" CUDA_ARCH=80 --prefix=$PREFIX --lapack-inc=$GKYL_DEP/OpenBLAS/include --lapack-lib=$GKYL_DEP/OpenBLAS/lib/libopenblas.a --superlu-inc=$GKYL_DEP/superlu/include --superlu-lib=$GKYL_DEP/superlu/lib/libsuperlu.a --cudamath-libdir=/opt/nvidia/hpc_sdk/Linux_x86_64/23.1/math_libs/12.0/lib64 --use-mpi=yes --mpi-inc=$CRAY_MPICH_DIR/include --mpi-lib=$CRAY_MPICH_DIR/lib --use-nccl=yes --nccl-inc=$NCCL_DIR/include --nccl-lib=$NCCL_DIR/lib --use-adas=yes;
 
 

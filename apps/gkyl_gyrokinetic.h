@@ -442,6 +442,16 @@ struct gkyl_app_restart_status
 gkyl_gyrokinetic_app_from_frame_species(gkyl_gyrokinetic_app *app, int sidx, int frame);
 
 /**
+ * Initialize gyrokinetic species from moments file
+ *
+ * @param app App object
+ * @param sidx gk species index
+ * @param frame frame to read moments (M0, M1, and M2) from 
+ */
+struct gkyl_app_restart_status
+gkyl_gyrokinetic_app_from_moments_species(gkyl_gyrokinetic_app *app, int sidx, int frame);
+
+/**
  * Initialize neutral species from file
  *
  * @param app App object

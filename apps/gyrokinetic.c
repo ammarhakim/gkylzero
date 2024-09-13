@@ -2497,7 +2497,7 @@ gkyl_gyrokinetic_app_from_moments_species(gkyl_gyrokinetic_app *app, int sidx, i
   struct gkyl_app_restart_status rstat2 = header_from_file(app, M2fileNm.str);
   
 
-  const struct gk_species *gk_s = &app->species[sidx];
+  struct gk_species *gk_s = &app->species[sidx];
   struct gkyl_array *m0, *m1, *m2;
   //struct gkyl_range local;
 
