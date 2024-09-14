@@ -4,10 +4,12 @@
 #include <gkyl_array_ops.h>
 #include <gkyl_array_rio.h>
 #include <gkyl_array_rio_format_desc.h>
+#include <gkyl_array_rio_priv.h>
 #include <gkyl_comm_priv.h>
 #include <gkyl_elem_type_priv.h>
 #include <gkyl_mpi_comm.h>
 #include <gkyl_nccl_comm.h>
+#include <gkyl_comm_io.h>
 #include <gkyl_util.h>
 
 #include <assert.h>
@@ -119,7 +121,7 @@ comm_state_new(struct gkyl_comm *comm)
 {
   struct gkyl_comm_state *state = gkyl_malloc(sizeof *state);
 
-  struct nccl_comm *nccl = container_of(comm, struct nccl_comm, base);
+  struct nccl_comm *nccl = container_of(comm, struct nccl_comm, priv_comm.pub_comm);
   state->ncomm = &nccl->ncomm;
   state->custream = &nccl->custream;
 
@@ -622,7 +624,7 @@ struct gkyl_comm*
 gkyl_nccl_comm_new(const struct gkyl_nccl_comm_inp *inp)
 {
   struct nccl_comm *nccl = gkyl_malloc(sizeof *nccl);
-  strcpy(mpi->priv_comm.pub_comm.id, "nccl_comm");
+  strcpy(nccl->priv_comm.pub_comm.id, "nccl_comm");
   
   nccl->mcomm = inp->mpi_comm;
 
@@ -671,7 +673,6 @@ gkyl_nccl_comm_new(const struct gkyl_nccl_comm_inp *inp)
   nccl->priv_comm.pub_comm.has_decomp = true;
   if (0 == inp->decomp) {
     nccl->priv_comm.pub_comm.has_decomp = false;
-    nccl->priv_comm.pub_comm.decomp = 0;
 
     // Construct a dummy decomposition.
     nccl->decomp = gkyl_rect_decomp_new_from_cuts_and_cells(1,
@@ -722,15 +723,16 @@ gkyl_nccl_comm_new(const struct gkyl_nccl_comm_inp *inp)
   nccl->priv_comm.barrier = barrier;
   nccl->priv_comm.allreduce = allreduce;
   nccl->priv_comm.allreduce_host = allreduce_host;
-  nccl->priv_comm.gkyl_array_send = array_send;
-  nccl->priv_comm.gkyl_array_isend = array_isend;
-  nccl->priv_comm.gkyl_array_recv = array_recv;
-  nccl->priv_comm.gkyl_array_irecv = array_irecv;
+// MF 2024/09/12: disable these for now per 498b7d1569eaa9285ae59581bd22dab124672f7b.
+//  nccl->priv_comm.gkyl_array_send = array_send;
+//  nccl->priv_comm.gkyl_array_isend = array_isend;
+//  nccl->priv_comm.gkyl_array_recv = array_recv;
+//  nccl->priv_comm.gkyl_array_irecv = array_irecv;
+//  nccl->priv_comm.comm_state_new = comm_state_new;
+//  nccl->priv_comm.comm_state_release = comm_state_release;
+//  nccl->priv_comm.comm_state_wait = comm_state_wait;
   nccl->priv_comm.gkyl_array_bcast = array_bcast;
   nccl->priv_comm.gkyl_array_bcast_host = array_bcast_host;
-  nccl->priv_comm.comm_state_new = comm_state_new;
-  nccl->priv_comm.comm_state_release = comm_state_release;
-  nccl->priv_comm.comm_state_wait = comm_state_wait;
   nccl->priv_comm.comm_group_call_start = group_call_start;
   nccl->priv_comm.comm_group_call_end = group_call_end;
   nccl->priv_comm.extend_comm = extend_comm;
