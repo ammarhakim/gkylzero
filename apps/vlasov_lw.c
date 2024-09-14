@@ -448,6 +448,23 @@ vm_app_calc_integrated_mom(lua_State *L)
   return 1;
 }
 
+// Compute integrated energy of distribution function. (tm) -> bool
+static int
+gkyl_vlasov_app_calc_integrated_total_energy_f(lua_State *L)
+{
+  bool status = true;
+
+  struct vlasov_app_lw **l_app_lw = GKYL_CHECK_UDATA(L, VLASOV_APP_METATABLE_NM);
+  struct vlasov_app_lw *app_lw = *l_app_lw;
+
+  double tm = luaL_checknumber(L, 2);
+  gkyl_vlasov_app_calc_integrated_energy_f(app_lw->app, tm);
+
+  lua_pushboolean(L, status);  
+  return 1;
+}
+
+
 // Compute integrated L2 norm of distribution function. (tm) -> bool
 static int
 vm_app_calc_integrated_L2_f(lua_State *L)
@@ -560,6 +577,21 @@ vm_app_write_integrated_mom(lua_State *L)
   struct vlasov_app_lw *app_lw = *l_app_lw;
 
   gkyl_vlasov_app_write_integrated_mom(app_lw->app);
+
+  lua_pushboolean(L, status);  
+  return 1;
+}
+
+// Write integrated energy norm of f to file () -> bool
+static int
+vm_app_write_integrated_energy_f(lua_State *L)
+{
+  bool status = true;
+
+  struct vlasov_app_lw **l_app_lw = GKYL_CHECK_UDATA(L, VLASOV_APP_METATABLE_NM);
+  struct vlasov_app_lw *app_lw = *l_app_lw;
+
+  gkyl_vlasov_app_write_integrated_energy_f(app_lw->app);
 
   lua_pushboolean(L, status);  
   return 1;
@@ -701,6 +733,7 @@ static struct luaL_Reg vm_app_funcs[] = {
   { "apply_ic_species", vm_app_apply_ic_species },
   { "calc_mom", vm_app_calc_mom },
   { "calc_integrated_mom", vm_app_calc_integrated_mom },
+  { "calc_integrated_energy_f", vm_app_calc_integrated_energy_f },
   { "calc_integrated_L2_f", vm_app_calc_integrated_L2_f },
   { "calc_field_energy", vm_app_calc_field_energy },
   { "write", vm_app_write },
@@ -708,6 +741,7 @@ static struct luaL_Reg vm_app_funcs[] = {
   { "write_species", vm_app_write_species },
   { "write_mom", vm_app_write_mom },
   { "write_integrated_mom", vm_app_write_integrated_mom },
+  { "write_integrated_energy_f", vm_app_write_integrated_energy_f },
   { "write_integrated_L2_f", vm_app_write_integrated_L2_f },
   { "write_field_energy", vm_app_write_field_energy },
   { "stat_write", vm_app_stat_write },

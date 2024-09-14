@@ -333,11 +333,15 @@ struct vm_species {
   struct vm_species_moment integ_moms; // integrated moments
   struct vm_species_moment *moms; // diagnostic moments
   struct gkyl_array *L2_f; // L2 norm f^2
+  struct gkyl_array *energy_f; // total_energy 
   double *red_L2_f; // for reduction of integrated L^2 norm on GPU
+  double *red_energy_f; // for reduction of integrated total_energy norm on GPU
   double *red_integ_diag; // for reduction of integrated moments on GPU
   gkyl_dynvec integ_L2_f; // integrated L^2 norm reduced across grid
+  gkyl_dynvec integ_energy_f; // integrated total_energy norm reduced across grid
   gkyl_dynvec integ_diag; // integrated moments reduced across grid
   bool is_first_integ_L2_write_call; // flag for integrated L^2 norm dynvec written first time
+  bool is_first_integ_energy_write_call; // flag for integrated L^2 norm dynvec written first time
   bool is_first_integ_write_call; // flag for integrated moments dynvec written first time
 
   gkyl_dg_updater_vlasov *slvr; // Vlasov solver 
@@ -1061,6 +1065,16 @@ double vm_species_rhs_implicit(gkyl_vlasov_app *app, struct vm_species *species,
  * @param f Field to apply BCs
  */
 void vm_species_apply_bc(gkyl_vlasov_app *app, const struct vm_species *species, struct gkyl_array *f);
+
+/**
+ * Compute the total energy of the distribution function diagnostic
+ *
+ * @param app Vlasov app object
+ * @param tm Time at which diagnostic is computed
+ * @param species Pointer to species
+ */
+void vm_species_calc_total_energy(gkyl_vlasov_app *app, double tm, const struct vm_species *species);
+
 
 /**
  * Compute L2 norm (f^2) of the distribution function diagnostic
