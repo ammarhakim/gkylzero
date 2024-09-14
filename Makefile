@@ -127,7 +127,7 @@ ifeq (${USE_LUA}, 1)
 endif
 
 # Read ADAS paths and flags if needed 
-USING_ADAS =
+USING_ADAS = 1
 ADAS_INC_DIR = zero # dummy
 ADAS_LIB_DIR = .
 ifeq (${USE_ADAS}, 1)

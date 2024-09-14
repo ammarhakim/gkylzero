@@ -2503,6 +2503,9 @@ gkyl_gyrokinetic_app_from_moments_species(gkyl_gyrokinetic_app *app, int sidx, i
 
   struct gk_species *gk_s = &app->species[sidx];
   struct gkyl_array *m0, *m1, *m2;
+  m0 = mkarr(false, app->confBasis.num_basis, gk_s->global.volume);
+  m1 = mkarr(false, app->confBasis.num_basis, gk_s->global.volume);
+  m2 = mkarr(false, app->confBasis.num_basis, gk_s->global.volume);
   //struct gkyl_range local;
 
   //gkyl_range_init(local, grid->ndim, grid->lower, grid->upper);
@@ -2527,16 +2530,21 @@ gkyl_gyrokinetic_app_from_moments_species(gkyl_gyrokinetic_app *app, int sidx, i
   if (rstat2.io_status != GKYL_ARRAY_RIO_SUCCESS)
     return rstat2;
 
+  printf("Writing moments\n");
+  gkyl_comm_array_write(app->comm, &app->grid, &app->local, NULL, m0, "elc_M0_load");
+  gkyl_comm_array_write(app->comm, &app->grid, &app->local, NULL, m1, "elc_M1_load");
+  gkyl_comm_array_write(app->comm, &app->grid, &app->local, NULL, m2, "elc_M2_load");
   struct gkyl_proj_maxwellian_on_basis *proj = gkyl_proj_maxwellian_on_basis_new(&gk_s->grid,
     &app->confBasis, &app->basis, app->basis.poly_order+1, gk_s->vel_map, app->use_gpu);
 
-  struct gkyl_array *lab_moms = mkarr(app->use_gpu, 3*app->confBasis.num_basis, gk_s->global.volume);
+  struct gkyl_array *lab_moms = mkarr(false, 3*app->confBasis.num_basis, gk_s->global.volume);
   gkyl_array_set_offset(lab_moms, 1.0, m0, 0*app->confBasis.num_basis);
   gkyl_array_set_offset(lab_moms, 1.0, m1, 1*app->confBasis.num_basis);
   gkyl_array_set_offset(lab_moms, 1.0, m2, 2*app->confBasis.num_basis);
   
-  gkyl_proj_maxwellian_on_basis_lab_mom(proj, &gk_s->local, &gk_s->global, lab_moms, gk_s->f_host);
-  
+  gkyl_proj_gkmaxwellian_on_basis_lab_mom(proj, &gk_s->local, &app->local, lab_moms, app->gk_geom->bmag, app->gk_geom->jacobtot, gk_s->info.mass, gk_s->f_host);
+  printf("Writing f\n");
+  gkyl_comm_array_write(gk_s->comm, &gk_s->grid, &gk_s->local, NULL, gk_s->f_host, "elc_f_proj");
   if (app->use_gpu)
     gkyl_array_copy(gk_s->f, gk_s->f_host);
   if (gk_s->source_id)
