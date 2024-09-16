@@ -13,6 +13,46 @@
 
 #include <mpack.h>
 
+void
+gyrokinetic_cuts_check(struct gkyl_gyrokinetic_app* app, struct gkyl_comm *comm, const int *cuts, FILE *iostream)
+{
+  // A temporary function that checks the consistency of the communicator and
+  // cuts provided for a simulation (e.g at the moment we only decompose along
+  // z, and we need to check that cuts meets that requirement).
+  int cdim = app->cdim;
+
+  // Create decomposition.
+  int cuts_used[cdim];
+#ifdef GKYL_HAVE_MPI
+  for (int d = 0; d < cdim; d++)
+    cuts_used[d] = cuts[d];
+#else
+  for (int d = 0; d < cdim; d++) cuts_used[d] = 1;
+#endif
+
+  int comm_rank, comm_size;
+  gkyl_comm_get_rank(comm, &comm_rank);
+  gkyl_comm_get_size(comm, &comm_size);
+
+  int ncuts = 1;
+  for (int d = 0; d < cdim; d++) ncuts *= cuts_used[d];
+
+  if (ncuts != comm_size) {
+    if (comm_rank == 0)
+      fprintf(iostream, "\n*** Number of ranks, %d, does not match total cuts, %d!\n\n", comm_size, ncuts);
+    assert(false);
+  }
+
+  for (int d = 0; d < cdim - 1; d++) {
+    if (cuts_used[d] > 1) {
+      if (comm_rank == 0)
+        fprintf(iostream,
+          "\n*** Parallelization only allowed in z. Number of ranks, %d, in direction %d cannot be > 1!\n\n", cuts_used[d], d);
+      assert(false);
+    }
+  }
+}
+
 // returned gkyl_array_meta must be freed using gyrokinetic_array_meta_release
 static struct gkyl_array_meta*
 gyrokinetic_array_meta_new(struct gyrokinetic_output_meta meta)
@@ -184,9 +224,10 @@ gkyl_gyrokinetic_app_new(struct gkyl_gk *gk)
     memcpy(&app->local_ext, &app->global_ext, sizeof(struct gkyl_range));
   }
   else {
+    gyrokinetic_cuts_check(app, gk->parallelism.comm, gk->parallelism.cuts, stdout);
+
     // Create decomp.
-    app->decomp = gkyl_gyrokinetic_comms_decomp_new(cdim, app->grid.cells,
-      gk->parallelism.cuts, gk->parallelism.use_mpi, stderr);
+    app->decomp = gkyl_rect_decomp_new_from_cuts(app->cdim, gk->parallelism.cuts, &app->global);
 
     // Create a new communicator with the decomposition in it.
     app->comm = gkyl_comm_split_comm(gk->parallelism.comm, 0, app->decomp);
@@ -203,6 +244,8 @@ gkyl_gyrokinetic_app_new(struct gkyl_gk *gk)
     gkyl_skin_ghost_ranges(&app->upper_skin[dir], &app->upper_ghost[dir], dir, GKYL_UPPER_EDGE, &app->local_ext, ghost);
   }
 
+  int comm_sz;
+  gkyl_comm_get_size(app->comm, &comm_sz);
 
   // Configuration space geometry initialization
 
@@ -240,7 +283,7 @@ gkyl_gyrokinetic_app_new(struct gkyl_gk *gk)
 
     int ghost[] = { 1, 1, 1 };
     gkyl_create_grid_ranges(&geometry_inp.geo_grid, ghost, &geometry_inp.geo_global_ext, &geometry_inp.geo_global);
-    if (gk->parallelism.use_mpi) {
+    if (comm_sz > 1) {
       // create local and local_ext from user-supplied local range
       gkyl_gk_geometry_augment_local(&app->local, ghost, &geometry_inp.geo_local_ext, &geometry_inp.geo_local);
     }
@@ -291,8 +334,6 @@ gkyl_gyrokinetic_app_new(struct gkyl_gk *gk)
   gkyl_gk_geometry_release(gk_geom_3d); // release temporary 3d geometry
 
   gkyl_gk_geometry_bmag_mid(app->gk_geom); // set bmag mid
-  int comm_sz;
-  gkyl_comm_get_size(app->comm, &comm_sz);
   int bcast_rank = comm_sz/2;
   gkyl_comm_array_bcast_host(app->comm, app->gk_geom->bmag_mid, app->gk_geom->bmag_mid, bcast_rank);
   

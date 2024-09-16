@@ -617,7 +617,6 @@ main(int argc, char **argv)
 
     .parallelism = {
       .use_gpu = app_args.use_gpu,
-      .use_mpi = app_args.use_mpi,
       .cuts = app_args.cuts,
       .comm = comm,
     }
