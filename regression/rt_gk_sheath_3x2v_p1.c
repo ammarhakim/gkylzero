@@ -467,12 +467,6 @@ main(int argc, char **argv)
   // Construct communicator for use in app.
   struct gkyl_comm *comm = gkyl_gyrokinetic_comms_new(app_args.use_mpi, app_args.use_gpu, stderr);
 
-  int my_rank = 0;
-#ifdef GKYL_HAVE_MPI
-  if (app_args.use_mpi)
-    gkyl_comm_get_rank(comm, &my_rank);
-#endif
-
   // Electron species.
   struct gkyl_gyrokinetic_species elc = {
     .name = "elc",
@@ -593,7 +587,7 @@ main(int argc, char **argv)
   struct gkyl_gk app_inp = {
     .name = "gk_sheath_3x2v_p1",
 
-    .cdim = 3, .vdim = 2,
+    .cdim = ctx.cdim, .vdim = ctx.cdim,
     .lower = { ctx.R - (0.5 * ctx.Lx), -0.5 * ctx.Ly, -0.5 * ctx.Lz },
     .upper = { ctx.R + (0.5 * ctx.Lx), 0.5 * ctx.Ly, 0.5 * ctx.Lz },
     .cells = { cells_x[0], cells_x[1], cells_x[2] },
@@ -619,7 +613,7 @@ main(int argc, char **argv)
       .use_gpu = app_args.use_gpu,
       .cuts = app_args.cuts,
       .comm = comm,
-    }
+    },
   };
 
   // Create app object.
