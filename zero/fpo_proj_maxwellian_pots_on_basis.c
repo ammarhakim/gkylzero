@@ -57,8 +57,8 @@ gkyl_proj_maxwellian_pots_on_basis_new(const struct gkyl_rect_grid *grid,
     is_vdim_p2[0] = true, is_vdim_p2[1] = true, is_vdim_p2[2] = true;
   }
 
-  up->conf_qrange = get_qrange(up->cdim, up->pdim, num_quad, num_quad_v, is_vdim_p2);
-  up->phase_qrange = get_qrange(up->cdim, up->cdim, num_quad, num_quad_v, is_vdim_p2);
+  up->conf_qrange = get_qrange(up->cdim, up->cdim, num_quad, num_quad_v, is_vdim_p2);
+  up->phase_qrange = get_qrange(up->cdim, up->pdim, num_quad, num_quad_v, is_vdim_p2);
   up->surf_qrange = get_qrange(up->cdim, up->pdim-1, num_quad, num_quad_v, is_vdim_p2);
 
   up->fpo_h_at_ords = gkyl_array_new(GKYL_DOUBLE, 1, up->tot_quad);
@@ -104,11 +104,12 @@ gkyl_proj_maxwellian_pots_on_basis_advance(const gkyl_proj_maxwellian_pots_on_ba
   struct gkyl_array *fpo_dhdv_surf, struct gkyl_array *fpo_dgdv_surf,
   struct gkyl_array *fpo_d2gdv2_surf)
 {
-#ifdef GKYL_HAVE_CUDA
-  if (up->use_gpu)
-    return gkyl_proj_maxwellian_pots_on_basis_advance_cu(up, phase_range, conf_range, prim_moms,
-      fpo_h, fpo_g, fpo_h_surf, fpo_g_surf, fpo_dhdv_surf, fpo_dgdv_surf, fpo_d2gdv2_surf);
-#endif
+// #ifdef GKYL_HAVE_CUDA
+//   if (up->use_gpu) {
+//     return gkyl_proj_maxwellian_pots_on_basis_advance_cu(up, phase_range, conf_range, prim_moms,
+//       fpo_h, fpo_g, fpo_h_surf, fpo_g_surf, fpo_dhdv_surf, fpo_dgdv_surf, fpo_d2gdv2_surf);
+//   }
+// #endif
 
   // Calculate Maxwellian potentials using primitive moments
   int cdim = up->cdim, pdim = up->pdim;

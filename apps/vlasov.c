@@ -472,6 +472,9 @@ gkyl_vlasov_app_write(gkyl_vlasov_app* app, double tm, int frame)
     if(app->species[i].info.output_f_lte) {
       gkyl_vlasov_app_write_species_lte(app, i, tm, frame);
     }
+    if (app->species[i].collision_id == GKYL_FPO_COLLISIONS) {
+      gkyl_vlasov_app_write_species_fpo(app, i, tm, frame);
+    }
   }
   for (int i=0; i<app->num_fluid_species; ++i) {
     gkyl_vlasov_app_write_fluid_species(app, i, tm, frame);
@@ -554,6 +557,67 @@ gkyl_vlasov_app_write_species_lte(gkyl_vlasov_app* app, int sidx, double tm, int
   else {
     gkyl_comm_array_write(app->species[sidx].comm, &app->species[sidx].grid, &app->species[sidx].local,
       app->species[sidx].lte.f_lte, fileNm);
+  }
+}
+
+void
+gkyl_vlasov_app_write_species_fpo(gkyl_vlasov_app* app, int sidx, double tm, int frame)
+{
+  const char *fmt_h = "%s-%s_H_%d.gkyl";
+  const char *fmt_g = "%s-%s_G_%d.gkyl";
+  const char *fmt_drag = "%s-%s_drag_coeff_%d.gkyl";
+  const char *fmt_diff = "%s-%s_diff_coeff_%d.gkyl";
+  int sz = gkyl_calc_strlen(fmt_drag, app->name, app->species[sidx].info.name, frame);
+  char fileNm[sz+1]; // ensures no buffer overflow
+
+  if (app->species[sidx].collision_id == GKYL_FPO_COLLISIONS) {
+    vm_species_fpo_drag_diff_coeffs(app, &app->species[sidx], 
+      &app->species[sidx].fpo, app->species[sidx].f);
+  }
+  
+  if (app->use_gpu) {
+    // copy data from device to host before writing it out
+    gkyl_array_copy(app->species[sidx].fpo.h_host, app->species[sidx].fpo.h);
+    gkyl_array_copy(app->species[sidx].fpo.g_host, app->species[sidx].fpo.g);
+    gkyl_array_copy(app->species[sidx].fpo.drag_coeff_host, app->species[sidx].fpo.drag_coeff);
+    gkyl_array_copy(app->species[sidx].fpo.diff_coeff_host, app->species[sidx].fpo.diff_coeff);
+
+    // Write H
+    snprintf(fileNm, sizeof fileNm, fmt_h, app->name, app->species[sidx].info.name, frame);
+    gkyl_comm_array_write(app->species[sidx].comm, &app->species[sidx].grid, 
+      &app->species[sidx].local, app->species[sidx].fpo.h_host, fileNm);
+
+    // Write G
+    snprintf(fileNm, sizeof fileNm, fmt_g, app->name, app->species[sidx].info.name, frame);
+    gkyl_comm_array_write(app->species[sidx].comm, &app->species[sidx].grid, 
+      &app->species[sidx].local, app->species[sidx].fpo.g_host, fileNm);
+
+    // Write drag coefficient
+    snprintf(fileNm, sizeof fileNm, fmt_drag, app->name, app->species[sidx].info.name, frame);
+    gkyl_comm_array_write(app->species[sidx].comm, &app->species[sidx].grid, 
+      &app->species[sidx].local, app->species[sidx].fpo.drag_coeff_host, fileNm);
+
+    // Write diffusion tensor
+    snprintf(fileNm, sizeof fileNm, fmt_diff, app->name, app->species[sidx].info.name, frame);
+    gkyl_comm_array_write(app->species[sidx].comm, &app->species[sidx].grid, 
+      &app->species[sidx].local, app->species[sidx].fpo.diff_coeff_host, fileNm);
+  }
+  else {
+    snprintf(fileNm, sizeof fileNm, fmt_h, app->name, app->species[sidx].info.name, frame);
+    gkyl_comm_array_write(app->species[sidx].comm, &app->species[sidx].grid, 
+      &app->species[sidx].local, app->species[sidx].fpo.h, fileNm);
+
+    snprintf(fileNm, sizeof fileNm, fmt_g, app->name, app->species[sidx].info.name, frame);
+    gkyl_comm_array_write(app->species[sidx].comm, &app->species[sidx].grid, 
+      &app->species[sidx].local, app->species[sidx].fpo.g, fileNm);
+
+    snprintf(fileNm, sizeof fileNm, fmt_drag, app->name, app->species[sidx].info.name, frame);
+    gkyl_comm_array_write(app->species[sidx].comm, &app->species[sidx].grid, 
+      &app->species[sidx].local, app->species[sidx].fpo.drag_coeff, fileNm);
+
+    snprintf(fileNm, sizeof fileNm, fmt_diff, app->name, app->species[sidx].info.name, frame);
+    gkyl_comm_array_write(app->species[sidx].comm, &app->species[sidx].grid, 
+      &app->species[sidx].local, app->species[sidx].fpo.diff_coeff, fileNm);
   }
 }
 

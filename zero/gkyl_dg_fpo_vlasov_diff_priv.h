@@ -224,7 +224,7 @@ fpo_diff_gen_surf_term(const struct gkyl_dg_eqn* eqn, int dir1, int dir2,
   const double* diff_coeff_surf_stencil[9];
   for (int i=0; i<9; ++i) {
     long lin_offset = gkyl_range_idx(&fpo_vlasov_diff->phase_range, idx[i]);
-    diff_coeff_surf_stencil[i] = gkyl_array_cfetch(
+    diff_coeff_surf_stencil[i] = (const double*)gkyl_array_cfetch(
       fpo_vlasov_diff->auxfields.diff_coeff_surf,
       lin_offset
     );

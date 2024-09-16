@@ -71,6 +71,6 @@ gkyl_proj_maxwellian_pots_deriv_on_basis_advance(const gkyl_proj_maxwellian_pots
 /**
  * Delete updater.
  *
- *@param mpob Updater to delete.
+ *@param up Updater to delete.
 */
 void gkyl_proj_maxwellian_pots_on_basis_release(gkyl_proj_maxwellian_pots_on_basis *up);

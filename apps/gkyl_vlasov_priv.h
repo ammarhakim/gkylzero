@@ -45,6 +45,7 @@
 #include <gkyl_elem_type.h>
 #include <gkyl_eqn_type.h>
 #include <gkyl_fpo_vlasov_coeffs_correct.h>
+#include <gkyl_fpo_vlasov_coeff_recovery.h>
 #include <gkyl_fpo_proj_maxwellian_pots_on_basis.h>
 #include <gkyl_eval_on_nodes.h>
 #include <gkyl_ghost_surf_calc.h>
@@ -220,6 +221,7 @@ struct vm_rad_drag {
 struct vm_fpo_collisions {
   struct gkyl_array *gamma, *gamma_host; // FPO Gamma factor
   struct gkyl_array *h, *g; // Rosenbluth potentials
+  struct gkyl_array *h_host, *g_host;
 
   // Maxwellian potentials and derivatives on velocity space edges for boundary conditions
   struct gkyl_array *h_surf, *g_surf;
@@ -231,6 +233,7 @@ struct vm_fpo_collisions {
   struct vm_species_moment moms; // calculator for moments (M0, M1i, M2)
 
   struct gkyl_array *drag_coeff, *diff_coeff; // Drag and diffusion coefficients
+  struct gkyl_array *drag_coeff_host, *diff_coeff_host; // Drag and diffusion coefficients
   struct gkyl_array *drag_coeff_surf, *diff_coeff_surf; // Drag and diffusion coefficient surface expansions at lower cell boundary
   struct gkyl_array *sgn_drag_coeff_surf, *const_sgn_drag_coeff_surf; // Sign of drag coefficient at lower boundary of cell, and boolean for checking if sign(drag_coeff) is constant along boundary
 
@@ -242,9 +245,9 @@ struct vm_fpo_collisions {
   struct gkyl_mom_calc_bcorr *bcorr_calc; // FPO boundary corrections calculator
   struct gkyl_fpo_coeffs_correct *coeffs_correct_calc; // FPO drag and diffusion coeff correction calculator
 
+  struct gkyl_fpo_vlasov_coeff_recovery *coeff_recovery; // Struct for drag and diffusion coeff calculation
+  
   gkyl_dg_updater_collisions *coll_slvr; // collision solver
-
-  // gkyl_prim_lbo_calc *coll_pcalc; // primitive moment calculator
 };
 
 struct vm_boundary_fluxes {

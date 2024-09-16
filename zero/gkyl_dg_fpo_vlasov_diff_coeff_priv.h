@@ -7,55 +7,6 @@
 #include <gkyl_util.h>
 #include <gkyl_fpo_vlasov_kernels.h>
 
-GKYL_CU_DH
-static void
-create_offsets(const int num_up_dirs, const int update_dirs[2], 
-  const struct gkyl_range *range, const int idxc[GKYL_MAX_DIM], long offsets[9])
-{
-  
-  // Check if we're at an upper or lower edge in each direction
-  bool is_edge_upper[2], is_edge_lower[2];
-  for (int i=0; i<num_up_dirs; ++i) {
-    is_edge_lower[i] = idxc[update_dirs[i]] == range->lower[update_dirs[i]];
-    is_edge_upper[i] = idxc[update_dirs[i]] == range->upper[update_dirs[i]];
-  }
-
-  // Construct the offsets *only* in the directions being updated.
-  // No need to load the neighbors that are not needed for the update.
-  int lower_offset[GKYL_MAX_DIM] = {0};
-  int upper_offset[GKYL_MAX_DIM] = {0};
-  for (int d=0; d<num_up_dirs; ++d) {
-    int dir = update_dirs[d];
-    lower_offset[dir] = -1 + is_edge_lower[d];
-    upper_offset[dir] = 1 - is_edge_upper[d];
-  }  
-
-  // box spanning stencil
-  struct gkyl_range box3;
-  gkyl_range_init(&box3, range->ndim, lower_offset, upper_offset);
-  struct gkyl_range_iter iter3;
-  gkyl_range_iter_init(&iter3, &box3);
-  // construct list of offsets
-  int count = 0;
-  while (gkyl_range_iter_next(&iter3))
-    offsets[count++] = gkyl_range_offset(range, iter3.idx);
-
-}
-
-GKYL_CU_DH
-static int 
-idx_to_inloup_ker(int dim, const int *idx, const int *dirs, const int *num_cells) {
-  int iout = 0;
-
-  for (int d=0; d<dim; ++d) {
-    if (idx[dirs[d]] == 1) {
-      iout = 2*iout+(int)(pow(3,d)+0.5);
-    } else if (idx[dirs[d]] == num_cells[dirs[d]]) {
-      iout = 2*iout+(int)(pow(3,d)+0.5)+1;
-    }
-  }
-  return iout;
-}
 // Kernel function pointers
 typedef void (*fpo_diff_coeff_diag_t)(const double *dxv, const double *gamma,
     const double* fpo_g_stencil[3], const double* fpo_d2gdv2_surf,
@@ -67,7 +18,6 @@ typedef void (*fpo_diff_coeff_cross_t)(const double *dxv, const double *gamma,
 
 typedef void (*fpo_diff_coeff_surf_t)(const double *diff_coeff_L, 
     const double *diff_coeff_R, double *diff_coeff_surf_R);
-
 
 // For use in kernel tables
 typedef struct { fpo_diff_coeff_diag_t kernels[3]; } gkyl_dg_diff_coeff_diag_kern_list;
@@ -177,7 +127,7 @@ static const gkyl_dg_fpo_diff_coeff_surf_kern_list ser_fpo_diff_coeff_surf_1x3v_
 
 
 GKYL_CU_D
-static const fpo_diff_coeff_cross_t
+static fpo_diff_coeff_cross_t
 choose_ser_fpo_diff_coeff_cross_recovery_kern(int d1, int d2, int cdim, int poly_order, int stencil_idx)
 {
   int lin_idx = d1*3 + d2;
@@ -200,7 +150,7 @@ choose_ser_fpo_diff_coeff_cross_recovery_kern(int d1, int d2, int cdim, int poly
 };
 
 GKYL_CU_D
-static const fpo_diff_coeff_diag_t
+static fpo_diff_coeff_diag_t
 choose_ser_fpo_diff_coeff_diag_recovery_kern(int d, int cdim, int poly_order, int stencil_idx)
 {
   switch (d){
@@ -216,7 +166,7 @@ choose_ser_fpo_diff_coeff_diag_recovery_kern(int d, int cdim, int poly_order, in
 };
 
 GKYL_CU_D
-static const fpo_diff_coeff_surf_t
+static fpo_diff_coeff_surf_t
 choose_ser_fpo_diff_coeff_surf_recovery_kern(int d, int cdim, int poly_order)
 {
   switch (d){
