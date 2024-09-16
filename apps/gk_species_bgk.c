@@ -99,7 +99,7 @@ gk_species_bgk_cross_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s
         s->info.collisions.T_ref, bgk->collide_with[i]->info.collisions.T_ref, bmag_mid, eps0, hbar, eV);
     }    
     bgk->other_m[i] = bgk->collide_with[i]->info.mass;
-    bgk->other_moms[i] = bgk->collide_with[i]->bgk.moms.marr;
+    bgk->other_moms[i] = bgk->collide_with[i]->lte.moms.marr; // other species LTE moment array
     bgk->other_nu[i] = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
     bgk->cross_nu[i] = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
     
