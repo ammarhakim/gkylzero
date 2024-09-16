@@ -259,7 +259,7 @@ init_quad_values(int cdim, const struct gkyl_basis *basis, int num_quad, struct 
 }
 
 // Note we're multiplying the input vtsq=T/m by sqrt(2)
-__device__
+GKYL_CU_D
 static inline double eval_fpo_h(double den,
   double rel_speed, double vtsq) 
 {
@@ -267,7 +267,7 @@ static inline double eval_fpo_h(double den,
   return den/rel_speed * erf(rel_speed/vth);
 }
 
-__device__
+GKYL_CU_D
 static inline double eval_fpo_g(double den, double rel_speed,
   double vtsq) 
 {
@@ -279,7 +279,7 @@ static inline double eval_fpo_g(double den, double rel_speed,
     rel_speed/vth));
 }
 
-__device__
+GKYL_CU_D
 static inline double eval_fpo_dhdv(double den,
   double rel_vel_in_dir, double vtsq, double rel_speed) 
 {
@@ -291,7 +291,7 @@ static inline double eval_fpo_dhdv(double den,
   return dHdvi;
 }
 
-__device__
+GKYL_CU_D
 static inline double eval_fpo_dgdv(double den, double rel_vel_in_dir,
   double vtsq, double rel_speedsq) {
   double rel_speed = sqrt(rel_speedsq);
@@ -302,7 +302,7 @@ static inline double eval_fpo_dgdv(double den, double rel_vel_in_dir,
   return dGdvi;
 }
 
-__device__
+GKYL_CU_D
 static inline double eval_fpo_d2gdv2(double den,
   double rel_vel_in_dir, double vtsq, double rel_speed) {
   double rel_speedsq = pow(rel_speed,2);
@@ -318,7 +318,7 @@ static inline double eval_fpo_d2gdv2(double den,
   return d2Gdvi2;
 }
 
-__device__
+GKYL_CU_D
 static inline double eval_fpo_d2gdv2_cross(double den,
   double rel_vel_in_dir1, double rel_vel_in_dir2, double rel_speed,
   double vtsq) {
