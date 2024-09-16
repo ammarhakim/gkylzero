@@ -46,23 +46,26 @@ gkyl_bc_twistshift_add_contr_cu_ker(struct gkyl_array *ftar, long *num_numcol_fi
   long linidx_tar = START_ID / ftar->ncomp;
   int row_idx = START_ID % ftar->ncomp;
 
-  int idx[GKYL_MAX_DIM];
-  gkyl_sub_range_inv_idx(&permutted_ghost_r, linidx_tar, idx);
-  int y_idx    = idx[0];
-  int vpar_idx = idx[1];
-  int mu_idx   = idx[2];
-  int x_idx    = idx[3];
-
   // This if-statement may only be needed in GPU kernel, not for CPUs.
   if ((linidx_tar < num_cells_skin) && (row_idx < ftar->ncomp)) {
     double *ftar_c = (double*) gkyl_array_fetch(ftar, num_numcol_fidx_tar[linidx_tar]);
-    int Nvpar = grid.cells[3], Nmu = grid.cells[4];
-    int start = (mu_idx-1) * mm_contr->num
-      + (vpar_idx-1) * Nmu * mm_contr->num
-      + (y_idx-1) * Nvpar * Nmu * mm_contr->num;
 
-    int do_start = num_do_cum[x_idx-1];
-    int do_end   = num_do_cum[x_idx-1+1];
+    int idx[GKYL_MAX_DIM] = {1};
+    gkyl_sub_range_inv_idx(&permutted_ghost_r, linidx_tar, idx);
+
+    int ac[GKYL_MAX_DIM] = {1};
+    for (int d=2; d<grid.ndim-1; d++)
+      ac[d-2] = grid.cells[d+1];
+    ac[permutted_ghost_r.ndim-2] = mm_contr->num;
+
+    int start = 0;
+    for (int d=0; d<permutted_ghost_r.ndim-1; d++)
+      start = (start + (idx[d]-1)) * ac[d];
+
+    int shear_idx = idx[permutted_ghost_r.ndim-1];
+
+    int do_start = num_do_cum[shear_idx-1];
+    int do_end   = num_do_cum[shear_idx-1+1];
     for (int j=do_start; j<do_end; j++) { // Only loop over num_do[i] elements.
       int linidx_mm_contr = start + j;
       struct gkyl_mat mat = gkyl_nmat_get(mm_contr, linidx_mm_contr % mm_contr->num);
