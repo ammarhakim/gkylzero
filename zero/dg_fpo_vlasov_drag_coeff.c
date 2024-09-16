@@ -122,8 +122,8 @@ void gkyl_calc_fpo_sgn_drag_coeff(struct gkyl_basis pbasis,
 
       int keri = idx_to_inloup_ker(1, idxp, update_dir, phase_range->upper);
 
-      const_sgn_drag_coeff_surf_c[d] = sgn_drag_coeff_stencil[d][keri](
-        fpo_drag_coeff_surf_c, sgn_drag_coeff_surf_c);
+      sgn_drag_coeff_stencil[d][keri](
+        fpo_drag_coeff_surf_c, sgn_drag_coeff_surf_c, &const_sgn_drag_coeff_surf_c[d]);
     }
   }
 }

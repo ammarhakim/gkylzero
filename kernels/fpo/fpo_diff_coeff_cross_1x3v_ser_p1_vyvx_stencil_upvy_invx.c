@@ -23,12 +23,15 @@ GKYL_CU_DH void fpo_diff_coeff_cross_1x3v_vyvx_ser_p1_upvy_invx(const double *dx
 
   const double* GBL = fpo_g_stencil[0]; 
   const double* GCL = fpo_g_stencil[1]; 
-  const double* GBC = fpo_g_stencil[2]; 
-  const double* GCC = fpo_g_stencil[3]; 
-  const double* G_surf_CC_vx = &fpo_g_surf_stencil[3][0]; 
-  const double* GBR = fpo_g_stencil[4]; 
-  const double* GCR = fpo_g_stencil[5]; 
-  const double* dGdvx_surf_CC_vy = &fpo_dgdv_surf[24]; 
+  const double* GTL = fpo_g_stencil[2]; 
+  const double* GBC = fpo_g_stencil[3]; 
+  const double* GCC = fpo_g_stencil[4]; 
+  const double* G_surf_CC_vx = &fpo_g_surf_stencil[4][0]; 
+  const double* GTC = fpo_g_stencil[5]; 
+  const double* GBR = fpo_g_stencil[6]; 
+  const double* GCR = fpo_g_stencil[7]; 
+  const double* GTR = fpo_g_stencil[8]; 
+  const double* dGdvx_surf_CC_vy = &fpo_dgdv_surf[16]; 
 
   surft1_lo[0] = 0.11785113019775789*GCR[7]+0.11785113019775789*GCL[7]-0.2357022603955158*GCC[7]-0.11785113019775789*GBR[7]-0.11785113019775789*GBL[7]+0.2357022603955158*GBC[7]-0.10206207261596573*GCR[3]+0.10206207261596573*GCL[3]+0.10206207261596573*GBR[3]-0.10206207261596573*GBL[3]-0.10206207261596573*GCR[2]-0.10206207261596573*GCL[2]+0.20412414523193148*GCC[2]-0.10206207261596573*GBR[2]-0.10206207261596573*GBL[2]+0.20412414523193148*GBC[2]+0.0883883476483184*GCR[0]-0.0883883476483184*GCL[0]+0.0883883476483184*GBR[0]-0.0883883476483184*GBL[0]; 
   surft1_lo[1] = 0.11785113019775789*GCR[11]+0.11785113019775789*GCL[11]-0.2357022603955158*GCC[11]-0.11785113019775789*GBR[11]-0.11785113019775789*GBL[11]+0.2357022603955158*GBC[11]-0.10206207261596573*GCR[6]+0.10206207261596573*GCL[6]+0.10206207261596573*GBR[6]-0.10206207261596573*GBL[6]-0.10206207261596573*GCR[5]-0.10206207261596573*GCL[5]+0.20412414523193148*GCC[5]-0.10206207261596573*GBR[5]-0.10206207261596573*GBL[5]+0.20412414523193148*GBC[5]+0.0883883476483184*GCR[1]-0.0883883476483184*GCL[1]+0.0883883476483184*GBR[1]-0.0883883476483184*GBL[1]; 

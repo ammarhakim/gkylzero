@@ -14,14 +14,14 @@ GKYL_CU_DH void fpo_drag_coeff_1x3v_vy_ser_p2_lovy(const double *dxv, const doub
   double gamma_avg = gamma[0]/sqrt(pow(2, 1)); 
   double dv1 = 2.0/dxv[2]; 
 
-  const double* H_C = fpo_h_stencil[0]; 
-  const double* H_R = fpo_h_stencil[1]; 
+  const double* H_L = fpo_h_stencil[0]; 
+  const double* H_C = fpo_h_stencil[1]; 
+  const double* H_R = fpo_h_stencil[2]; 
   
   const double *dHdv_surf_C = &fpo_dhdv_surf[20]; 
   
   double *out = &drag_coeff[48]; 
   double *out_surf = &drag_coeff_surf[20]; 
-  // double *sgn_alpha_surf = &sgn_drag_coeff_surf[8]; 
   
   out[0] = (0.8441156615061707*H_R[13]-2.01805134969356*H_C[13]-1.1691342951089918*H_R[3]+1.6454482671904334*H_C[3]+0.8125*H_R[0]-0.8125*H_C[0])*dv1*gamma_avg+0.1414213562373096*dHdv_surf_C[0]*gamma_avg; 
   out[1] = (0.8441156615061707*H_R[23]-2.0180513496935606*H_C[23]-1.1691342951089916*H_R[6]+1.6454482671904334*H_C[6]+0.8125*H_R[1]-0.8125*H_C[1])*dv1*gamma_avg+0.1414213562373096*dHdv_surf_C[1]*gamma_avg; 
@@ -92,6 +92,5 @@ GKYL_CU_DH void fpo_drag_coeff_1x3v_vy_ser_p2_lovy(const double *dxv, const doub
   out_surf[17] = 0.0; 
   out_surf[18] = 0.0; 
   out_surf[19] = 0.0; 
-
-} 
+}
 

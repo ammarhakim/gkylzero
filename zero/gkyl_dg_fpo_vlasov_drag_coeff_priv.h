@@ -13,7 +13,7 @@ typedef void (*fpo_drag_coeff_t)(const double *dxv, const double *gamma,
     const double* fpo_h_stencil[3], const double* fpo_dhdv_surf, double *drag_coeff, 
     double *drag_coeff_surf);
 
-typedef int (*fpo_sgn_drag_coeff_t)(const double *drag_coeff_surf, double *sgn_drag_coeff_surf);
+typedef void (*fpo_sgn_drag_coeff_t)(const double *drag_coeff_surf, double *sgn_drag_coeff_surf, int *const_sgn_drag_coeff_surf);
 
 // For use in kernel tables
 typedef struct { fpo_drag_coeff_t kernels[3]; } gkyl_dg_fpo_drag_coeff_kern_list;

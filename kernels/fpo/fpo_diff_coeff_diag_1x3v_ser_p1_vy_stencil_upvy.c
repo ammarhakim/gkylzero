@@ -13,8 +13,9 @@ GKYL_CU_DH void fpo_diff_coeff_diag_1x3v_vy_ser_p1_upvy(const double *dxv, const
 
   const double* G_L = fpo_g_stencil[0]; 
   const double* G_C = fpo_g_stencil[1]; 
+  const double* G_R = fpo_g_stencil[2]; 
   
-  const double* d2G_surf_C = &fpo_d2gdv2_surf[32]; 
+  const double* d2G_surf_C = &fpo_d2gdv2_surf[8]; 
   
   double *out = &diff_coeff[160]; 
   

@@ -11,8 +11,9 @@ GKYL_CU_DH void fpo_diff_coeff_diag_1x3v_vx_ser_p1_lovx(const double *dxv, const
   double gamma_avg = gamma[0]/sqrt(pow(2, 1)); 
   double dv1_sq = 4.0/dxv[1]/dxv[1]; 
 
-  const double* G_C = fpo_g_stencil[0]; 
-  const double* G_R = fpo_g_stencil[1]; 
+  const double* G_L = fpo_g_stencil[0]; 
+  const double* G_C = fpo_g_stencil[1]; 
+  const double* G_R = fpo_g_stencil[2]; 
   
   const double* d2G_surf_C = &fpo_d2gdv2_surf[0]; 
   

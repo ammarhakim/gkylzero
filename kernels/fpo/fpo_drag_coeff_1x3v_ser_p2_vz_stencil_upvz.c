@@ -16,12 +16,12 @@ GKYL_CU_DH void fpo_drag_coeff_1x3v_vz_ser_p2_upvz(const double *dxv, const doub
 
   const double* H_L = fpo_h_stencil[0]; 
   const double* H_C = fpo_h_stencil[1]; 
+  const double* H_R = fpo_h_stencil[2]; 
   
   const double *dHdv_surf_C = &fpo_dhdv_surf[40]; 
   
   double *out = &drag_coeff[96]; 
   double *out_surf = &drag_coeff_surf[40]; 
-  // double *sgn_alpha_surf = &sgn_drag_coeff_surf[16]; 
   
   out[0] = (-(0.8441156615061707*H_L[14])+2.01805134969356*H_C[14]-1.1691342951089918*H_L[4]+1.6454482671904334*H_C[4]-0.8125*H_L[0]+0.8125*H_C[0])*dv1*gamma_avg+0.1414213562373096*dHdv_surf_C[0]*gamma_avg; 
   out[1] = (-(0.8441156615061707*H_L[28])+2.0180513496935606*H_C[28]-1.1691342951089916*H_L[8]+1.6454482671904334*H_C[8]-0.8125*H_L[1]+0.8125*H_C[1])*dv1*gamma_avg+0.1414213562373096*dHdv_surf_C[1]*gamma_avg; 
@@ -92,6 +92,5 @@ GKYL_CU_DH void fpo_drag_coeff_1x3v_vz_ser_p2_upvz(const double *dxv, const doub
   out_surf[17] = -(0.03535533905932736*(95.26279441628826*H_L[44]+95.26279441628826*H_C[44]+75.0*H_L[32]-75.0*H_C[32])*dv1*gamma_avg); 
   out_surf[18] = -(0.03535533905932736*(95.26279441628826*H_L[45]+95.26279441628826*H_C[45]+75.0*H_L[33]-75.0*H_C[33])*dv1*gamma_avg); 
   out_surf[19] = -(0.03535533905932736*(95.26279441628826*H_L[46]+95.26279441628826*H_C[46]+75.0*H_L[34]-75.0*H_C[34])*dv1*gamma_avg); 
-
-} 
+}
 
