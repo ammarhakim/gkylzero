@@ -746,9 +746,7 @@ int main(int argc, char **argv)
     .cells = { cells_v[0], cells_v[1] },
 
     .polarization_density = ctx.n0,
-
-    .nG_from_npol = true,
-
+    
     .projection = ion_ic,
 
     .collisions = {
@@ -800,8 +798,8 @@ int main(int argc, char **argv)
       .lo_value = {0.0, 0.0},
       .up_value = {0.0, 0.0},
     },
-    .polarization_phi = eval_potential,
-    .polarization_phi_ctx = &ctx,
+    .polarization_potential = eval_potential,
+    .polarization_potential_ctx = &ctx,
   };
 
   struct gkyl_gk app_inp = {

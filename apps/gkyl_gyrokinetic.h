@@ -180,9 +180,6 @@ struct gkyl_gyrokinetic_species {
   struct gkyl_gyrokinetic_projection projection;
 
   double polarization_density;
-  bool nG_from_npol; // Use this for a species whose guiding center density,
-                     // nG, should be computed from the polarization density
-                     // minus the density of other species.
 
   bool no_by; // Boolean for whether we are using specialized GK kernels with no b_y.
               // These more computationally efficient kernels are for slab or mirror 
@@ -257,8 +254,8 @@ struct gkyl_gyrokinetic_field {
   struct gkyl_poisson_bc poisson_bcs;
 
   // Initial potential used to compute the total polarization density.
-  void (*polarization_phi)(double t, const double *xn, double *out, void *ctx);
-  void *polarization_phi_ctx;
+  void (*polarization_potential)(double t, const double *xn, double *out, void *ctx);
+  void *polarization_potential_ctx;
 
   void *phi_wall_lo_ctx; // context for biased wall potential on lower wall
   // pointer to biased wall potential on lower wall function
