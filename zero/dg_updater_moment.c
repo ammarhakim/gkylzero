@@ -37,8 +37,6 @@ gkyl_dg_updater_moment_new(const struct gkyl_rect_grid *grid,
   gkyl_dg_updater_moment *up = gkyl_malloc(sizeof(gkyl_dg_updater_moment));
   up->model_id = model_id;
   up->use_gpu = use_gpu;
-  printf("up->model_id == GKYL_MODEL_CANONICAL_PB: %d, strcmp(mom, MEnergy) == 0: %d\n",up->model_id == GKYL_MODEL_CANONICAL_PB, strcmp(mom, "MEnergy") == 0);
-  printf("Value of mom: '%s'\n", mom);
   if (up->model_id == GKYL_MODEL_SR) {
     if (is_integrated) {
       up->type = gkyl_int_mom_vlasov_sr_new(cbasis, pbasis, conf_range, vel_range, use_gpu);
@@ -50,8 +48,7 @@ gkyl_dg_updater_moment_new(const struct gkyl_rect_grid *grid,
     struct gkyl_mom_vlasov_sr_auxfields *sr_inp = aux_inp;
     gkyl_mom_vlasov_sr_set_auxfields(up->type, *sr_inp);
 
-  } else if (up->model_id == GKYL_MODEL_CANONICAL_PB && strcmp(mom, "MEnergy") == 0) {
-    printf("Using the energy moment (dg_updater_moment line 54)\n");
+  } else if (up->model_id == GKYL_MODEL_CANONICAL_PB && (strcmp(mom, "MEnergy") == 0 || strcmp(mom, "Integrated") == 0)) {
     if (is_integrated) {
       up->type = gkyl_int_mom_canonical_pb_new(cbasis, pbasis, phase_range, use_gpu);
     }

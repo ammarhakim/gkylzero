@@ -224,12 +224,22 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
   if (app->use_gpu) {
     s->red_L2_f = gkyl_cu_malloc(sizeof(double));
     s->red_energy_f = gkyl_cu_malloc(sizeof(double));
-    s->red_integ_diag = gkyl_cu_malloc(sizeof(double[vdim+2]));
+    if (s->model_id == GKYL_MODEL_CANONICAL_PB){
+      s->red_integ_diag = gkyl_cu_malloc(sizeof(double[1]));
+    } 
+    else {
+      s->red_integ_diag = gkyl_cu_malloc(sizeof(double[vdim+2]));
+    }
   }
   // allocate dynamic-vector to store all-reduced integrated moments and f^2
   s->integ_L2_f = gkyl_dynvec_new(GKYL_DOUBLE, 1);
   s->integ_energy_f = gkyl_dynvec_new(GKYL_DOUBLE, 1);
-  s->integ_diag = gkyl_dynvec_new(GKYL_DOUBLE, vdim+2);
+  if (s->model_id == GKYL_MODEL_CANONICAL_PB){
+    s->integ_diag = gkyl_dynvec_new(GKYL_DOUBLE, 1);
+  }
+  else {
+    s->integ_diag = gkyl_dynvec_new(GKYL_DOUBLE, vdim+2);
+  }
   s->is_first_integ_L2_write_call = true;
   s->is_first_integ_energy_write_call = true;
   s->is_first_integ_write_call = true;

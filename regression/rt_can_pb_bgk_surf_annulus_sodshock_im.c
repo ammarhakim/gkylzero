@@ -70,7 +70,7 @@ create_ctx(void)
   double Rmax = 1.5; // Domain size (configuration space: r-direction, max value).
   double theta_min = 0.0; // Domain size (configuration space: theta-direction, min value).
   double theta_max = 2*pi; // Domain size (configuration space: theta-direction, max value).
-  int poly_order = 1; // Polynomial order.
+  int poly_order = 2; // Polynomial order.
   double cfl_frac = 0.9; // CFL coefficient.
 
   double t_end = 0.1; // Final simulation time.
@@ -352,6 +352,7 @@ main(int argc, char **argv)
     struct gkyl_update_status status = gkyl_vlasov_update(app, dt);
     printf(" dt = %g\n", status.dt_actual);
     gkyl_vlasov_app_write_integrated_energy_f(app);
+    gkyl_vlasov_app_calc_integrated_mom(app, tcurr);
     
     if (!status.success) {
       printf("** Update method failed! Aborting simulation ....\n");
