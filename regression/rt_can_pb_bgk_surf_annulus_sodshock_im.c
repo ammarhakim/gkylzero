@@ -63,14 +63,14 @@ create_ctx(void)
   double tempr = sqrt(0.1 / 0.125); // Right/outer temperature.
 
   // Simulation parameters.
-  int Nr = 64; // Cell count (configuration space: x-direction).
+  int Nr = 32; // Cell count (configuration space: x-direction).
   int Ntheta = 1; // Cell count (configuration space: y-direction).
   int Nv = 12; // Cell count (velocity space: all directions).
   double Rmin = 0.5; // Domain size (configuration space: r-direction, min value).
   double Rmax = 1.5; // Domain size (configuration space: r-direction, max value).
   double theta_min = 0.0; // Domain size (configuration space: theta-direction, min value).
   double theta_max = 2*pi; // Domain size (configuration space: theta-direction, max value).
-  int poly_order = 2; // Polynomial order.
+  int poly_order = 1; // Polynomial order.
   double cfl_frac = 0.9; // CFL coefficient.
 
   double t_end = 0.1; // Final simulation time.
@@ -249,6 +249,7 @@ write_data(struct gkyl_tm_trigger *iot, gkyl_vlasov_app *app, double tcurr)
   if (gkyl_tm_trigger_check_and_bump(iot, tcurr)) {
     gkyl_vlasov_app_write(app, tcurr, iot->curr-1);
     gkyl_vlasov_app_calc_mom(app); gkyl_vlasov_app_write_mom(app, tcurr, iot->curr-1);
+    gkyl_vlasov_app_write_integrated_mom(app);
   }
 }
 
@@ -305,8 +306,8 @@ main(int argc, char **argv)
       .correct_all_moms = true, 
     },
 
-    .num_diag_moments = 3,
-    .diag_moments = { "M0", "M1i", "LTEMoments" },
+    .num_diag_moments = 4,
+    .diag_moments = { "M0", "M1i", "LTEMoments", "MEnergy" },
   };
 
   // VM app

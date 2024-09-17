@@ -86,6 +86,7 @@ static const char *const valid_moment_names[] = {
                 // of the LTE (local thermodynamic equilibrium) distribution
                 // Note: in relativity V_drift is the bulk four-velocity (GammaV, GammaV*V_drift)
   "Integrated", // this is an internal flag, not for passing to moment type
+  "MEnergy", // this is for the canonical-pb species only**
 };
 
 // check if name of moment is valid or not
