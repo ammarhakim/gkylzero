@@ -252,6 +252,10 @@ struct gkyl_gyrokinetic_field {
   enum gkyl_fem_parproj_bc_type fem_parbc;
   struct gkyl_poisson_bc poisson_bcs;
 
+  // Initial potential used to compute the total polarization density.
+  void (*polarization_potential)(double t, const double *xn, double *out, void *ctx);
+  void *polarization_potential_ctx;
+
   void *phi_wall_lo_ctx; // context for biased wall potential on lower wall
   // pointer to biased wall potential on lower wall function
   void (*phi_wall_lo)(double t, const double *xn, double *phi_wall_lo_out, void *ctx);
@@ -384,6 +388,15 @@ void gkyl_gyrokinetic_app_apply_ic_species(gkyl_gyrokinetic_app* app, int sidx, 
  */
 void gkyl_gyrokinetic_app_apply_ic_neut_species(gkyl_gyrokinetic_app* app, int sidx, double t0);
 
+/**
+ * Perform part of initialization that depends on the other species being
+ * (partially) initialized.
+ *
+ * @param app App object.
+ * @param sidx Index of species to initialize.
+ * @param t0 Time for initial conditions
+ */
+void gkyl_gyrokinetic_app_apply_ic_cross_species(gkyl_gyrokinetic_app* app, int sidx, double t0);
 
 /**
  * Initialize field from file

@@ -35,6 +35,27 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
     f->apardot_fem = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
   }
 
+  f->init_phi_pol = false;
+  if (f->info.polarization_potential) {
+    // Project the initial potential onto a p+1 tensor basis and compute the polarization
+    // density to use use by species in calculating the initial ion density.
+    f->init_phi_pol = true;
+    struct gkyl_basis phi_pol_basis;
+    gkyl_cart_modal_tensor(&phi_pol_basis, app->cdim, app->poly_order+1);
+
+    f->phi_pol = mkarr(app->use_gpu, phi_pol_basis.num_basis, app->local_ext.volume);
+    struct gkyl_array *phi_pol_ho = app->use_gpu? mkarr(false, f->phi_pol->ncomp, f->phi_pol->size)
+                                            : gkyl_array_acquire(f->phi_pol);
+
+    struct gkyl_eval_on_nodes *phi_pol_proj = gkyl_eval_on_nodes_new(&app->grid, &phi_pol_basis,
+      1, f->info.polarization_potential, f->info.polarization_potential_ctx);
+    gkyl_eval_on_nodes_advance(phi_pol_proj, 0.0, &app->local, phi_pol_ho);
+    gkyl_array_copy(f->phi_pol, phi_pol_ho);
+    
+    gkyl_eval_on_nodes_release(phi_pol_proj);
+    gkyl_array_release(phi_pol_ho);
+  }
+
   // Create global subrange we'll copy the field solver solution from (into local).
   int intersect = gkyl_sub_range_intersect(&f->global_sub_range, &app->global, &app->local);
 
@@ -360,6 +381,10 @@ gk_field_release(const gkyl_gyrokinetic_app* app, struct gk_field *f)
   if (f->gkfield_id == GKYL_GK_FIELD_EM) {
     gkyl_array_release(f->apar_fem);
     gkyl_array_release(f->apardot_fem);
+  }
+
+  if (f->init_phi_pol) {
+    gkyl_array_release(f->phi_pol);
   }
 
   gkyl_array_release(f->es_energy_fac);

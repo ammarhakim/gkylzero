@@ -822,9 +822,8 @@ int main(int argc, char **argv)
       .lower={.type = GKYL_SPECIES_GK_SHEATH,},
       .upper={.type = GKYL_SPECIES_GK_SHEATH,},
     },
-
-    .num_diag_moments = 7, // Copied from GKsoloviev, but
-    .diag_moments = {"M0", "M1", "M2", "M2par", "M2perp", "M3par", "M3perp"},
+    .num_diag_moments = 1,
+    .diag_moments = {"BiMaxwellianMoments"},
   };
 
   struct gkyl_gyrokinetic_species ion = {
@@ -873,9 +872,8 @@ int main(int argc, char **argv)
       .lower={.type = GKYL_SPECIES_GK_SHEATH,},
       .upper={.type = GKYL_SPECIES_GK_SHEATH,},
     },
-
-    .num_diag_moments = 7,
-    .diag_moments = {"M0", "M1", "M2", "M2par", "M2perp", "M3par", "M3perp"},
+    .num_diag_moments = 1,
+    .diag_moments = {"BiMaxwellianMoments"},
   };
 
   struct gkyl_gyrokinetic_field field = {
@@ -891,13 +889,11 @@ int main(int argc, char **argv)
     .flux_poly_order = 1,
   };
 
-
   struct gkyl_mirror_geo_grid_inp grid_inp = {
     .rclose = 0.2,
-    .zmin = -2.48,
-    .zmax =  2.48,
+    .zmin = -2.0,
+    .zmax =  2.0,
   };
-
 
   struct gkyl_gk app_inp = {
     .name = "gk_wham_1x2v_p1",
