@@ -296,14 +296,14 @@ main(int argc, char **argv)
       .correct_all_moms = true, 
     },
 
-    // .collisions =  {
-    //   .collision_id = GKYL_BGK_COLLISIONS,
+    .collisions =  {
+      .collision_id = GKYL_BGK_COLLISIONS,
 
-    //   .ctx = &ctx,
-    //   .self_nu = evalNu,
-    //   .has_implicit_coll_scheme = true,
-    //   .correct_all_moms = true, 
-    // },
+      .ctx = &ctx,
+      .self_nu = evalNu,
+      .has_implicit_coll_scheme = true,
+      .correct_all_moms = true, 
+    },
 
     .num_diag_moments = 3,
     .diag_moments = { "M0", "M1i", "LTEMoments" },

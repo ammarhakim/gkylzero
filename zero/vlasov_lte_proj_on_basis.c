@@ -192,7 +192,7 @@ gkyl_vlasov_lte_proj_on_basis_inew(const struct gkyl_vlasov_lte_proj_on_basis_in
   up->use_gpu = inp->use_gpu;
 
   int num_quad = up->conf_basis.poly_order+1;
-  // initialize data needed for conf-space quadrature 
+  // initialize data needed for conf-space quadrature  
   up->tot_conf_quad = init_quad_values(up->cdim, &up->conf_basis, num_quad,
     &up->conf_ordinates, &up->conf_weights, &up->conf_basis_at_ords, false);
 
@@ -322,6 +322,7 @@ gkyl_vlasov_lte_proj_on_basis_inew(const struct gkyl_vlasov_lte_proj_on_basis_in
     .conf_range =  inp->conf_range,
     .conf_range_ext = inp->conf_range_ext,
     .vel_range = inp->vel_range,
+    .phase_range = inp->phase_range,
     .gamma = inp->gamma,
     .gamma_inv = inp->gamma_inv,
     .h_ij_inv = inp->h_ij_inv,

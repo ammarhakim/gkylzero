@@ -67,9 +67,9 @@ gkyl_vlasov_lte_moments_inew(const struct gkyl_vlasov_lte_moments_inp *inp)
     struct gkyl_mom_vlasov_sr_auxfields sr_inp = {.gamma = inp->gamma};  
     // Moment calculator for needed moments (M0, M1i)
     up->M0_calc = gkyl_dg_updater_moment_new(inp->phase_grid, inp->conf_basis,
-      inp->phase_basis, inp->conf_range, inp->vel_range, up->model_id, &sr_inp, "M0", false, inp->use_gpu);
+      inp->phase_basis, inp->conf_range, inp->vel_range, inp->phase_range, up->model_id, &sr_inp, "M0", false, inp->use_gpu);
     up->M1i_calc = gkyl_dg_updater_moment_new(inp->phase_grid, inp->conf_basis,
-      inp->phase_basis, inp->conf_range, inp->vel_range, up->model_id, &sr_inp, "M1i", false, inp->use_gpu);
+      inp->phase_basis, inp->conf_range, inp->vel_range, inp->phase_range, up->model_id, &sr_inp, "M1i", false, inp->use_gpu);
   }
   else if (up->model_id == GKYL_MODEL_CANONICAL_PB) {
     int num_pij_comps = up->vdim*(up->vdim+1)/2;
@@ -87,21 +87,21 @@ gkyl_vlasov_lte_moments_inew(const struct gkyl_vlasov_lte_moments_inp *inp)
     // Temperature moment is modified by can-pb, requires computing g^{ij}w_iw_j kernel
     // Note: auxiliary field input is NULL (not used by non-relativistic simulations)
     up->M0_calc = gkyl_dg_updater_moment_new(inp->phase_grid, inp->conf_basis,
-      inp->phase_basis, inp->conf_range, inp->vel_range, up->model_id, 0, "M0", false, inp->use_gpu);
+      inp->phase_basis, inp->conf_range, inp->vel_range, inp->phase_range, up->model_id, 0, "M0", false, inp->use_gpu);
     up->M1i_calc = gkyl_dg_updater_moment_new(inp->phase_grid, inp->conf_basis,
-      inp->phase_basis, inp->conf_range, inp->vel_range, up->model_id, 0, "M1i", false, inp->use_gpu);
+      inp->phase_basis, inp->conf_range, inp->vel_range, inp->phase_range, up->model_id, 0, "M1i", false, inp->use_gpu);
     up->Pcalc = gkyl_dg_updater_moment_new(inp->phase_grid, inp->conf_basis,
-      inp->phase_basis, inp->conf_range, inp->vel_range, up->model_id, 0, "M2ij", false, inp->use_gpu);   
+      inp->phase_basis, inp->conf_range, inp->vel_range, inp->phase_range, up->model_id, 0, "M2ij", false, inp->use_gpu);   
   }
   else {
     // Moment calculator for needed moments (M0, M1i, and M2 for non-relativistic)
     // Note: auxiliary field input is NULL (not used by non-relativistic simulations)
     up->M0_calc = gkyl_dg_updater_moment_new(inp->phase_grid, inp->conf_basis,
-      inp->phase_basis, inp->conf_range, inp->vel_range, up->model_id, 0, "M0", false, inp->use_gpu);
+      inp->phase_basis, inp->conf_range, inp->vel_range, inp->phase_range, up->model_id, 0, "M0", false, inp->use_gpu);
     up->M1i_calc = gkyl_dg_updater_moment_new(inp->phase_grid, inp->conf_basis,
-      inp->phase_basis, inp->conf_range, inp->vel_range, up->model_id, 0, "M1i", false, inp->use_gpu);
+      inp->phase_basis, inp->conf_range, inp->vel_range, inp->phase_range, up->model_id, 0, "M1i", false, inp->use_gpu);
     up->Pcalc = gkyl_dg_updater_moment_new(inp->phase_grid, inp->conf_basis,
-      inp->phase_basis, inp->conf_range, inp->vel_range, up->model_id, 0, "M2", false, inp->use_gpu);    
+      inp->phase_basis, inp->conf_range, inp->vel_range, inp->phase_range, up->model_id, 0, "M2", false, inp->use_gpu);    
   }
   return up;
 }

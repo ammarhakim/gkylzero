@@ -1,9 +1,11 @@
 #include <assert.h>
 #include <math.h>
+#include <string.h>
 #include <time.h>
 
 #include <gkyl_alloc.h>
 #include <gkyl_mom_type.h>
+#include <gkyl_mom_canonical_pb.h>
 #include <gkyl_mom_gyrokinetic.h>
 #include <gkyl_mom_vlasov.h>
 #include <gkyl_mom_vlasov_sr.h>
@@ -28,6 +30,7 @@ struct gkyl_dg_updater_moment*
 gkyl_dg_updater_moment_new(const struct gkyl_rect_grid *grid, 
   const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis, 
   const struct gkyl_range *conf_range, const struct gkyl_range *vel_range,
+  const struct gkyl_range *phase_range,
   enum gkyl_model_id model_id, void *aux_inp, 
   const char *mom, bool is_integrated, bool use_gpu)
 {
@@ -44,8 +47,12 @@ gkyl_dg_updater_moment_new(const struct gkyl_rect_grid *grid,
 
     struct gkyl_mom_vlasov_sr_auxfields *sr_inp = aux_inp;
     gkyl_mom_vlasov_sr_set_auxfields(up->type, *sr_inp);
-  }
-  else {
+
+  } else if (up->model_id == GKYL_MODEL_CANONICAL_PB && strcmp(mom, "MEnergy") == 0) {
+    printf("Using the energy moment (dg_updater_moment line 49)\n");
+    up->type = gkyl_mom_canonical_pb_new(cbasis, pbasis, phase_range, mom, use_gpu);
+
+  } else {
     if (is_integrated) {
       up->type = gkyl_int_mom_vlasov_new(cbasis, pbasis, use_gpu);
     }

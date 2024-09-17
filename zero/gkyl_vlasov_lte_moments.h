@@ -18,6 +18,7 @@ struct gkyl_vlasov_lte_moments_inp {
   const struct gkyl_range *conf_range; // Configuration-space range
   const struct gkyl_range *conf_range_ext; // Extended configuration-space range (for internal memory allocations)
   const struct gkyl_range *vel_range; // Velocity-space range
+  const struct gkyl_range *phase_range; // Phase-space range
   const struct gkyl_array *gamma; // SR quantitiy: gamma = sqrt(1 + p^2)
   const struct gkyl_array *gamma_inv; // SR quantitiy: 1/gamma = 1/sqrt(1 + p^2)
   const struct gkyl_array *h_ij_inv; // Can-pb quantity: Inverse metric tensor

@@ -37,14 +37,14 @@ vm_species_moment_init(struct gkyl_vlasov_app *app, struct vm_species *s,
     if (s->model_id == GKYL_MODEL_SR) {
       struct gkyl_mom_vlasov_sr_auxfields sr_inp = {.gamma = s->gamma};
       sm->mcalc = gkyl_dg_updater_moment_new(&s->grid, &app->confBasis, 
-        &app->basis, &app->local, &s->local_vel, s->model_id, &sr_inp, 
+        &app->basis, &app->local, &s->local_vel, &s->local, s->model_id, &sr_inp, 
         nm, is_integrated, app->use_gpu);
       num_mom = gkyl_dg_updater_moment_num_mom(sm->mcalc);
     }
     else {
       // No auxiliary fields for moments if not SR 
       sm->mcalc = gkyl_dg_updater_moment_new(&s->grid, &app->confBasis, 
-        &app->basis, &app->local, &s->local_vel, s->model_id, 0, 
+        &app->basis, &app->local, &s->local_vel, &s->local, s->model_id, 0, 
         nm, is_integrated, app->use_gpu);   
       num_mom = gkyl_dg_updater_moment_num_mom(sm->mcalc); 
     }
