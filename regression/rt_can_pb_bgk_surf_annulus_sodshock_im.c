@@ -351,7 +351,6 @@ main(int argc, char **argv)
     printf("Taking time-step at t = %g ...", tcurr);
     struct gkyl_update_status status = gkyl_vlasov_update(app, dt);
     printf(" dt = %g\n", status.dt_actual);
-    gkyl_vlasov_app_write_integrated_energy_f(app);
     gkyl_vlasov_app_calc_integrated_mom(app, tcurr);
     
     if (!status.success) {

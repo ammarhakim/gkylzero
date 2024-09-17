@@ -409,7 +409,6 @@ main(int argc, char **argv)
     gkyl_vlasov_app_cout(app, stdout, "Taking time-step %ld at t = %g ...", step, t_curr);
     struct gkyl_update_status status = gkyl_vlasov_update(app, dt);
     gkyl_vlasov_app_cout(app, stdout, " dt = %g\n", status.dt_actual);
-    gkyl_vlasov_app_write_integrated_energy_f(app);
     
     if (!status.success) {
       gkyl_vlasov_app_cout(app, stdout, "** Update method failed! Aborting simulation ....\n");

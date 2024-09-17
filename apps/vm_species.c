@@ -218,12 +218,10 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
   for (int m=0; m<ndm; ++m)
     vm_species_moment_init(app, s, &s->moms[m], s->info.diag_moments[m]);
 
-  // array for storing f^2 and energy in each cell
+  // array for storing f^2 in each cell
   s->L2_f = mkarr(app->use_gpu, 1, s->local_ext.volume);
-  s->energy_f = mkarr(app->use_gpu, 1, s->local_ext.volume);
   if (app->use_gpu) {
     s->red_L2_f = gkyl_cu_malloc(sizeof(double));
-    s->red_energy_f = gkyl_cu_malloc(sizeof(double));
     if (s->model_id == GKYL_MODEL_CANONICAL_PB){
       s->red_integ_diag = gkyl_cu_malloc(sizeof(double[1]));
     } 
@@ -233,7 +231,6 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
   }
   // allocate dynamic-vector to store all-reduced integrated moments and f^2
   s->integ_L2_f = gkyl_dynvec_new(GKYL_DOUBLE, 1);
-  s->integ_energy_f = gkyl_dynvec_new(GKYL_DOUBLE, 1);
   if (s->model_id == GKYL_MODEL_CANONICAL_PB){
     s->integ_diag = gkyl_dynvec_new(GKYL_DOUBLE, 1);
   }
@@ -241,7 +238,6 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
     s->integ_diag = gkyl_dynvec_new(GKYL_DOUBLE, vdim+2);
   }
   s->is_first_integ_L2_write_call = true;
-  s->is_first_integ_energy_write_call = true;
   s->is_first_integ_write_call = true;
 
   // Initialize applied acceleration for use in force update. 
@@ -554,67 +550,6 @@ vm_species_apply_bc(gkyl_vlasov_app *app, const struct vm_species *species, stru
 }
 
 
-
-static void
-calc_op_range(struct gkyl_basis basis, struct gkyl_array *out,
-  const struct gkyl_array *distf, const struct gkyl_array *hamil,
-  struct gkyl_range range)
-{
-#ifdef GKYL_HAVE_CUDA
-  // if (gkyl_array_is_cu_dev(out)) {
-  //   return gkyl_dg_calc_op_range_cu(basis, c_oop, out, c_distf, distf, range, op);
-  // }
-#endif
-  
-  int num_basis = basis.num_basis;
-
-  struct gkyl_range_iter iter;
-  gkyl_range_iter_init(&iter, &range);
-
-  while (gkyl_range_iter_next(&iter)) {
-    long loc = gkyl_range_idx(&range, iter.idx);
-
-    const double *distf_d = gkyl_array_cfetch(distf, loc);
-    const double *hamil_d = gkyl_array_cfetch(hamil, loc);
-    double *out_d = gkyl_array_fetch(out, loc);
-
-    out_d[0] = 0.0;
-    for (int i=0; i<num_basis; ++i)
-      out_d[0] += distf_d[i]*hamil_d[i];
-  }  
-}
-
-
-static void
-calc_energy_range(struct gkyl_basis basis,
-  struct gkyl_array* out, const struct gkyl_array* f, const struct gkyl_array* H, struct gkyl_range range)
-{
-  calc_op_range(basis, out, f, H, range);
-}
-
-
-void
-vm_species_calc_total_energy(gkyl_vlasov_app *app, double tm, const struct vm_species *species)
-{
-  if (species->model_id == GKYL_MODEL_CANONICAL_PB){
-    calc_energy_range(app->basis, species->energy_f, species->f, species->hamil, species->local);
-    gkyl_array_scale_range(species->energy_f, species->grid.cellVolume, &species->local);
-    
-    double energy[1] = { 0.0 };
-    if (app->use_gpu) {
-      gkyl_array_reduce_range(species->red_energy_f, species->energy_f, GKYL_SUM, &species->local);
-      gkyl_cu_memcpy(energy, species->red_energy_f, sizeof(double), GKYL_CU_MEMCPY_D2H);
-    }
-    else { 
-      gkyl_array_reduce_range(energy, species->energy_f, GKYL_SUM, &species->local);
-    }
-    double energy_global[1] = { 0.0 };
-    gkyl_comm_all_reduce(app->comm, GKYL_DOUBLE, GKYL_SUM, 1, energy, energy_global);
-    
-    gkyl_dynvec_append(species->integ_energy_f, tm, energy_global);
-  }
-}
-
 void
 vm_species_calc_L2(gkyl_vlasov_app *app, double tm, const struct vm_species *species)
 {
@@ -743,8 +678,6 @@ vm_species_release(const gkyl_vlasov_app* app, const struct vm_species *s)
   gkyl_free(s->moms);
   vm_species_moment_release(app, &s->integ_moms); 
 
-  gkyl_array_release(s->energy_f);
-  gkyl_dynvec_release(s->integ_energy_f);
   gkyl_array_release(s->L2_f);
   gkyl_dynvec_release(s->integ_L2_f);
   gkyl_dynvec_release(s->integ_diag);
@@ -782,7 +715,6 @@ vm_species_release(const gkyl_vlasov_app* app, const struct vm_species *s)
   
   if (app->use_gpu) {
     gkyl_cu_free(s->omegaCfl_ptr);
-    gkyl_cu_free(s->red_energy_f);
     gkyl_cu_free(s->red_L2_f);
     gkyl_cu_free(s->red_integ_diag);
   }

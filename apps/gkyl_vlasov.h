@@ -411,14 +411,6 @@ void gkyl_vlasov_app_calc_mom(gkyl_vlasov_app *app);
 void gkyl_vlasov_app_calc_integrated_mom(gkyl_vlasov_app* app, double tm);
 
 /**
- * Calculate integrated energy of the distribution function.
- *
- * @param tm Time at which integrated diagnostic are to be computed
- * @param app App object.
- */
-void gkyl_vlasov_app_calc_integrated_total_energy_f(gkyl_vlasov_app* app, double tm);
-
-/**
  * Calculate integrated L2 norm of the distribution function, f^2.
  *
  * @param tm Time at which integrated diagnostic are to be computed
@@ -498,14 +490,6 @@ void gkyl_vlasov_app_write_mom(gkyl_vlasov_app *app, double tm, int frame);
  * @param app App object.
  */
 void gkyl_vlasov_app_write_integrated_mom(gkyl_vlasov_app *app);
-
-/**
- * Write integrated energy of the species distribution function to file. Integrated
- * energy is appended to the same file.
- * 
- * @param app App object.
- */
-void gkyl_vlasov_app_write_integrated_energy_f(gkyl_vlasov_app *app);
 
 /**
  * Write integrated L2 norm of the species distribution function to file. Integrated
