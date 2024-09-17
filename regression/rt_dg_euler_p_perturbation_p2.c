@@ -152,13 +152,9 @@ int nrank = 1; // Number of processors in simulation.
   }
 #endif  
 
-  // Create global range.
   int ccells[] = { NX };
   int cdim = sizeof(ccells) / sizeof(ccells[0]);
-  struct gkyl_range cglobal_r;
-  gkyl_create_global_range(cdim, ccells, &cglobal_r);
 
-  // Create decomposition.
   int cuts[cdim];
 #ifdef GKYL_HAVE_MPI  
   for (int d = 0; d < cdim; d++) {
@@ -175,8 +171,6 @@ int nrank = 1; // Number of processors in simulation.
   }
 #endif  
     
-  struct gkyl_rect_decomp *decomp = gkyl_rect_decomp_new_from_cuts(cdim, cuts, &cglobal_r);
-
   // Construct communicator for use in app.
   struct gkyl_comm *comm;
 #ifdef GKYL_HAVE_MPI
@@ -184,7 +178,6 @@ int nrank = 1; // Number of processors in simulation.
 #ifdef GKYL_HAVE_NCCL
     comm = gkyl_nccl_comm_new( &(struct gkyl_nccl_comm_inp) {
         .mpi_comm = MPI_COMM_WORLD,
-        .decomp = decomp
       }
     );
 #else
@@ -195,20 +188,17 @@ int nrank = 1; // Number of processors in simulation.
   else if (app_args.use_mpi) {
     comm = gkyl_mpi_comm_new( &(struct gkyl_mpi_comm_inp) {
         .mpi_comm = MPI_COMM_WORLD,
-        .decomp = decomp
       }
     );
   }
   else {
     comm = gkyl_null_comm_inew( &(struct gkyl_null_comm_inp) {
-        .decomp = decomp,
         .use_gpu = app_args.use_gpu
       }
     );
   }
 #else
   comm = gkyl_null_comm_inew( &(struct gkyl_null_comm_inp) {
-      .decomp = decomp,
       .use_gpu = app_args.use_gpu
     }
   );
@@ -255,13 +245,11 @@ int nrank = 1; // Number of processors in simulation.
 
    .skip_field = true,
 
-   .use_gpu = app_args.use_gpu,
-
-   .has_low_inp = true,
-   .low_inp = {
-     .local_range = decomp->ranges[my_rank],
-     .comm = comm
-   }
+   .parallelism = {
+      .use_gpu = app_args.use_gpu,
+      .cuts = app_args.cuts,
+      .comm = comm,
+    },
   };
 
   // Create app object.
@@ -348,7 +336,6 @@ int nrank = 1; // Number of processors in simulation.
 
   // Free resources after simulation completion.
   gkyl_wv_eqn_release(euler);
-  gkyl_rect_decomp_release(decomp);
   gkyl_comm_release(comm);
   gkyl_vlasov_app_release(app);
 

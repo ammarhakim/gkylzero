@@ -262,13 +262,11 @@ main(int argc, char **argv)
 
     .skip_field = true,
 
-    .use_gpu = app_args.use_gpu,
-
-    .has_low_inp = true,
-    .low_inp = {
-      .local_range = decomp->ranges[my_rank],
-      .comm = comm
-    }
+    .parallelism = {
+      .use_gpu = app_args.use_gpu,
+      .cuts = app_args.cuts,
+      .comm = comm,
+    },
   };
   
   // Create app object.
