@@ -204,6 +204,7 @@ write_data(struct gkyl_tm_trigger* iot, gkyl_vlasov_app* app, double t_curr, boo
 
     gkyl_vlasov_app_calc_mom(app);
     gkyl_vlasov_app_write_mom(app, t_curr, iot->curr - 1);
+    gkyl_vlasov_app_write_integrated_mom(app);
   }
 }
 
@@ -349,8 +350,8 @@ main(int argc, char **argv)
       .correct_all_moms = true,
     },
     
-    .num_diag_moments = 3,
-    .diag_moments = { "M0", "M1i", "LTEMoments" },
+    .num_diag_moments = 4,
+    .diag_moments = { "M0", "M1i", "LTEMoments", "MEnergy" },
   };
 
   // Vlasov-Maxwell app.
@@ -409,6 +410,7 @@ main(int argc, char **argv)
     gkyl_vlasov_app_cout(app, stdout, "Taking time-step %ld at t = %g ...", step, t_curr);
     struct gkyl_update_status status = gkyl_vlasov_update(app, dt);
     gkyl_vlasov_app_cout(app, stdout, " dt = %g\n", status.dt_actual);
+    gkyl_vlasov_app_calc_integrated_mom(app, t_curr);
     
     if (!status.success) {
       gkyl_vlasov_app_cout(app, stdout, "** Update method failed! Aborting simulation ....\n");
