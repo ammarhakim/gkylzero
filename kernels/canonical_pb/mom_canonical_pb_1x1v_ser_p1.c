@@ -11,5 +11,9 @@ GKYL_CU_DH void canonical_pb_int_mom_1x1v_ser_p1(const double *dxv, const double
 { 
   const double volFact = dxv[0]*dxv[1]*0.25; 
   const double dv1 = dxv[1]; 
-  out[0] += (f[5]*hamil[5]+f[4]*hamil[4]+f[3]*hamil[3]+f[2]*hamil[2]+f[1]*hamil[1]+f[0]*hamil[0])*volFact; 
+  const double rdvx2 = 2.0/dxv[1];
+
+  out[0] += 2.0*f[0]*volFact; 
+  out[1] += (3.872983346207417*f[3]*hamil[5]*rdvx2+3.872983346207417*f[2]*hamil[4]*rdvx2+1.732050807568877*f[1]*hamil[3]*rdvx2+1.732050807568877*f[0]*hamil[2]*rdvx2)*volFact; 
+  out[2] += (f[5]*hamil[5]+f[4]*hamil[4]+f[3]*hamil[3]+f[2]*hamil[2]+f[1]*hamil[1]+f[0]*hamil[0])*volFact; 
 } 
