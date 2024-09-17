@@ -322,43 +322,24 @@ vm_app_new(lua_State *L)
     }
   }
 
-  // create decomp and communicator
-  struct gkyl_rect_decomp *decomp
-    = gkyl_rect_decomp_new_from_cuts_and_cells(cdim, cuts, vm.cells);
-
-  struct gkyl_comm *comm = 0;
-
-  vm.has_low_inp = false;
+  // create parallelism 
+  vm.parallelism.cuts = cuts; 
   
 #ifdef GKYL_HAVE_MPI
   with_lua_global(L, "GKYL_MPI_COMM") {
 
     if (lua_islightuserdata(L, -1)) {
       MPI_Comm mpi_comm = lua_touserdata(L, -1);
-      //printf("%p %p\n", mpi_comm_p, MPI_COMM_WORLD);
       
-     comm = gkyl_mpi_comm_new( &(struct gkyl_mpi_comm_inp) {
-         .mpi_comm = mpi_comm,
-         .decomp = decomp
-       }
-     );
-
-     int rank;
-     MPI_Comm_rank(mpi_comm, &rank);
-
-     vm.has_low_inp = true;
-     vm.low_inp = (struct gkyl_app_comm_low_inp) {
-       .comm = comm,
-       .local_range = decomp->ranges[rank]
-     };
+      vm.parallelism.comm = gkyl_mpi_comm_new( &(struct gkyl_mpi_comm_inp) {
+          .mpi_comm = mpi_comm
+        }
+      );
     }
   }
 #endif
   
   app_lw->app = gkyl_vlasov_app_new(&vm);
-
-  gkyl_rect_decomp_release(decomp);
-  if (comm) gkyl_comm_release(comm);
   
   // create Lua userdata ...
   struct vlasov_app_lw **l_app_lw = lua_newuserdata(L, sizeof(struct vlasov_app_lw*));
