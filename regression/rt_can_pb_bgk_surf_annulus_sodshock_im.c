@@ -63,7 +63,7 @@ create_ctx(void)
   double tempr = sqrt(0.1 / 0.125); // Right/outer temperature.
 
   // Simulation parameters.
-  int Nr = 32; // Cell count (configuration space: x-direction).
+  int Nr = 128; // Cell count (configuration space: x-direction).
   int Ntheta = 1; // Cell count (configuration space: y-direction).
   int Nv = 12; // Cell count (velocity space: all directions).
   double Rmin = 0.5; // Domain size (configuration space: r-direction, min value).

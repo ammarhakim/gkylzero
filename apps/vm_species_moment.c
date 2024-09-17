@@ -28,6 +28,7 @@ vm_species_moment_init(struct gkyl_vlasov_app *app, struct vm_species *s,
       .gamma_inv = s->gamma_inv,
       .h_ij_inv = s->h_ij_inv,
       .det_h = s->det_h,
+      .hamil = s->hamil,
       .model_id = s->model_id,
       .use_gpu = app->use_gpu,
     };

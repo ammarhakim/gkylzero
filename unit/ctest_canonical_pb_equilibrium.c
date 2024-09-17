@@ -77,6 +77,21 @@ info_det_h(double t, const double* xn, double* fout, void* ctx)
   fout[0] = pow(R, 2)*sin(q[0]);
 }
 
+void 
+info_hamil(double t, const double* xn, double* fout, void* ctx)
+{
+  // Canonical coordinates:
+  double w0 = xn[2], w1 = xn[3];
+  const double w[2] = {w0, w1};
+  struct kh_2d_ctx *app = (struct kh_2d_ctx *)ctx;
+  double *h_inv = malloc(3 * sizeof(double));
+  info_h_ij_inv(t, xn, h_inv, ctx); 
+  fout[0] = 0.5 * h_inv[0] * w[0] * w[0] + 
+            0.5 * (2.0* h_inv[1] * w[1] * w[0]) + 
+            0.5 * h_inv[2] * w[1] * w[1];
+  free(h_inv);
+}
+
 
 void 
 test_2x2v(int poly_order)
@@ -138,16 +153,19 @@ test_2x2v(int poly_order)
   gkyl_proj_on_basis *proj_m2 = gkyl_proj_on_basis_new(&confGrid, &confBasis,
     poly_order + 1, 1, eval_M2, NULL);
 
-  // Allocate arrays for specified metric inverse and metric determinant
-  struct gkyl_array *h_ij_inv, *det_h;
+  // Allocate arrays for specified metric inverse, hamiltonian and metric determinant
+  struct gkyl_array *h_ij_inv, *det_h, *hamil;
   h_ij_inv = mkarr(confBasis.num_basis*cdim*(cdim+1)/2, local_ext.volume);
   det_h = mkarr(confBasis.num_basis, local_ext.volume);
+  hamil = mkarr(confBasis.num_basis, local_ext.volume);
 
   // Evaluate specified inverse metric function and det. at nodes to insure continuity
   struct gkyl_eval_on_nodes* h_ij_inv_proj = gkyl_eval_on_nodes_new(&confGrid, &confBasis, cdim*(cdim+1)/2, info_h_ij_inv, 0);
   struct gkyl_eval_on_nodes* det_h_proj = gkyl_eval_on_nodes_new(&confGrid, &confBasis, 1, info_det_h, 0);
+  struct gkyl_eval_on_nodes* hamil_proj = gkyl_eval_on_nodes_new(&confGrid, &confBasis, 1, info_hamil, 0);
   gkyl_eval_on_nodes_advance(h_ij_inv_proj, 0.0, &confLocal, h_ij_inv);
   gkyl_eval_on_nodes_advance(det_h_proj, 0.0, &confLocal, det_h);
+  gkyl_eval_on_nodes_advance(hamil_proj, 0.0, &confLocal, hamil);
 
   // create a copy for the correct intial value
   gkyl_proj_on_basis_advance(proj_m0, 0.0, &confLocal, m0_corr);
@@ -178,6 +196,7 @@ test_2x2v(int poly_order)
     .phase_range = &local,
     .h_ij_inv = h_ij_inv,
     .det_h = det_h,
+    .hamil = hamil,
     .model_id = GKYL_MODEL_CANONICAL_PB,
     .use_gpu = false,
   };  
@@ -198,6 +217,7 @@ test_2x2v(int poly_order)
     .phase_range = &local,
     .h_ij_inv = h_ij_inv,
     .det_h = det_h,
+    .hamil = hamil,
     .model_id = GKYL_MODEL_CANONICAL_PB,
     .use_gpu = false,
     .max_iter = 100,
@@ -222,6 +242,7 @@ test_2x2v(int poly_order)
     .phase_range = &local,
     .h_ij_inv = h_ij_inv,
     .det_h = det_h,
+    .hamil = hamil,
     .model_id = GKYL_MODEL_CANONICAL_PB,
     .use_gpu = false,
   };
@@ -260,26 +281,30 @@ test_2x2v(int poly_order)
 
   // values to compare  at index (1, 17) [remember, lower-left index is (1,1)]
   // values to compare  at index (1, 17) [remember, lower-left index is (1,1)]
-  double p2_vals[] = {7.4389783023265099e-02, 1.7499522696968448e-04, -4.2253321330719359e-19, 
-    1.7197294780095105e-02, 3.2822459503714825e-02, 2.5019571528486421e-18, 4.0454999945222635e-05, 
-    -1.4125092864553862e-19, 1.0658244792175303e-05, 1.2473860074977937e-18, 7.5878365087018252e-03, 
-    -2.2391870772442790e-07, -2.9476470181933414e-17, 7.5085044225038134e-04, 4.7554188865154331e-03, 
-    6.8211378278042107e-20, 3.6488980398970576e-19, 2.4639190426544169e-06, 2.1187655380656761e-19, 
-    -1.0822008203450965e-18, 2.2436585915908228e-19, -5.1766346251881247e-08, -5.7607055675577576e-18, 
-    1.7662957597715743e-06, 1.2741938646251673e-19, -1.2308148750860714e-07, -7.3700404590506013e-18, 
-    3.3129224516213740e-04, -1.3065999155266542e-05, 1.5220440662220617e-19, 1.0993490916697980e-03, 
-    5.6930059089810877e-20, 6.5660342100681117e-19, 1.1924007741276491e-18, 1.1562481358434618e-19, 
-    1.1807705433814598e-19, -7.7501645322254508e-19, -2.8454232897884123e-08, -3.0955134127490682e-18, 
-    1.0757333751268221e-07, 3.1980914272308032e-19, -2.3836099228861867e-19, -3.0205789415989519e-06, 
-    -1.0961395618448674e-19, -5.9124212021315998e-19, -1.1278486261518147e-19, -2.0462557199015695e-19, 
-    2.4387684529816235e-19 };
+  double p2_vals[] = {7.4375205660623764e-02, 1.7502197646465149e-04, 
+    5.1094379072269073e-19, 1.7196663881036155e-02, 3.2823939815277384e-02, 
+    1.9095742813612671e-18, 4.0467707945451574e-05, -1.2193251617523399e-18, 
+    1.0688988222497508e-05, 1.0430430692729768e-18, 7.5893875551799181e-03, 
+    -2.2385893900551390e-07, -3.2456911333379994e-17, 7.5101204021213246e-04, 
+    4.7573706725506440e-03, 2.1246392245945747e-19, 3.3851391014577862e-19, 
+    2.4714545130704096e-06, -3.2130900226042711e-19, 1.9001628988953240e-18, 
+    4.4692284022917053e-18, -5.1759546703890748e-08, -8.7646888322434962e-18, 
+    1.7673041769548388e-06, 1.2766139686089529e-19, -1.2313454577087634e-07, 
+    -1.0559775696066436e-17, 3.3144343991404806e-04, -1.3064935169987437e-05, 
+    3.7101538691845707e-19, 1.0999755050985389e-03, -1.9925087386218194e-19, 
+    2.1498701757639759e-18, 1.1074385582705253e-18, 1.1143514926488228e-19, 
+    -8.1911466330328986e-19, 1.4840074476861625e-18, -2.8470555165622034e-08, 
+    -1.1253012634920306e-18, 1.0793326594515037e-07, 1.0706453651527448e-19, 
+    -2.8632875454162582e-19, -3.0208091090346236e-06, 1.1166823777084870e-19, 
+    9.9107783923514388e-20, 1.1310712903906065e-18, 3.9889112700602783e-19, 
+    -2.8395875891910364e-20 };
 
   const double *fv = gkyl_array_cfetch(distf, gkyl_range_idx(&local_ext, (int[4]){1, 1, 8, 8}));
 
   if (poly_order == 2) {
     for (int i = 0; i < basis.num_basis; ++i) {
       TEST_CHECK(gkyl_compare_double(p2_vals[i], fv[i], 1e-10));
-      // printf("p2_vals = %1.16e fv = %1.16e\n", p2_vals[i], fv[i]);
+      //printf("p2_vals = %1.16e fv = %1.16e\n", p2_vals[i], fv[i]);
     }
   }
 
@@ -295,13 +320,14 @@ test_2x2v(int poly_order)
   gkyl_array_release(distf);
   gkyl_array_release(h_ij_inv);
   gkyl_array_release(det_h);
+  gkyl_array_release(hamil);
   gkyl_vlasov_lte_moments_release(lte_moms);
   gkyl_vlasov_lte_proj_on_basis_release(proj_lte);
   gkyl_proj_on_basis_release(proj_m0);
   gkyl_proj_on_basis_release(proj_m1i);
   gkyl_proj_on_basis_release(proj_m2);
   gkyl_eval_on_nodes_release(h_ij_inv_proj);
-  gkyl_eval_on_nodes_release(det_h_proj);
+  gkyl_eval_on_nodes_release(hamil_proj);
 }
 
 

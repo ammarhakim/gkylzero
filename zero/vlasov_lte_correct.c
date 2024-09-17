@@ -66,6 +66,7 @@ gkyl_vlasov_lte_correct_inew(const struct gkyl_vlasov_lte_correct_inp *inp)
     .gamma_inv = inp->gamma_inv,
     .h_ij_inv = inp->h_ij_inv,
     .det_h = inp->det_h,
+    .hamil = inp->hamil,
     .model_id = inp->model_id,
     .use_gpu = inp->use_gpu,
   };
@@ -88,6 +89,7 @@ gkyl_vlasov_lte_correct_inew(const struct gkyl_vlasov_lte_correct_inp *inp)
     .gamma_inv = inp->gamma_inv,
     .h_ij_inv = inp->h_ij_inv,  
     .det_h = inp->det_h,
+    .hamil = inp->hamil,
     .model_id = inp->model_id,
     .use_gpu = inp->use_gpu,
   };

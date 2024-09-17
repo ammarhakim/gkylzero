@@ -23,8 +23,9 @@ struct gkyl_vlasov_lte_correct_inp {
   const struct gkyl_range *phase_range; // phase space range
   const struct gkyl_array *gamma; // SR quantitiy: gamma = sqrt(1 + p^2)
   const struct gkyl_array *gamma_inv; // SR quantitiy: 1/gamma = 1/sqrt(1 + p^2)
-  const struct gkyl_array *h_ij_inv; // inverse metric tensor 
-  const struct gkyl_array *det_h; // determinant of the metric tensor 
+  const struct gkyl_array *h_ij_inv; // (Can-pb quantitiy) inverse metric tensor 
+  const struct gkyl_array *det_h; // (Can-pb quantitiy) determinant of the metric tensor 
+  const struct gkyl_array *hamil; // (Can-pb quantitiy) Hamiltonian
   enum gkyl_model_id model_id; // Enum identifier for model type (e.g., SR, see gkyl_eqn_type.h)
   bool use_last_converged; // Boolean for if we are using the results of the iterative scheme
                            // *even if* the scheme fails to converge. 
