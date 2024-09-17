@@ -323,6 +323,7 @@ vm_app_new(lua_State *L)
   }
 
   // create parallelism 
+  struct gkyl_comm *comm = 0;
   vm.parallelism.cuts = cuts; 
   
 #ifdef GKYL_HAVE_MPI
@@ -330,17 +331,20 @@ vm_app_new(lua_State *L)
 
     if (lua_islightuserdata(L, -1)) {
       MPI_Comm mpi_comm = lua_touserdata(L, -1);
-      
-      vm.parallelism.comm = gkyl_mpi_comm_new( &(struct gkyl_mpi_comm_inp) {
-          .mpi_comm = mpi_comm
+
+      comm = gkyl_mpi_comm_new( &(struct gkyl_mpi_comm_inp) {
+          .mpi_comm = mpi_comm,
         }
       );
+      vm.parallelism.comm = comm;
     }
   }
 #endif
   
   app_lw->app = gkyl_vlasov_app_new(&vm);
-  
+
+  if (comm) gkyl_comm_release(comm);
+
   // create Lua userdata ...
   struct vlasov_app_lw **l_app_lw = lua_newuserdata(L, sizeof(struct vlasov_app_lw*));
   *l_app_lw = app_lw; // ... point it to the Lua app pointer
