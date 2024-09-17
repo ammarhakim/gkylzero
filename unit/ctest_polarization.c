@@ -73,12 +73,12 @@ void test_1x_flat( bool use_gpu )
   gkyl_eval_on_nodes_advance(epsilon_proj, 0.0, &localRange, epsilon_ho);
   gkyl_eval_on_nodes_release(epsilon_proj);
 
-  struct gkyl_array *npol_dev = use_gpu? mkarr(true, basis.num_basis, localRange_ext.volume)
+  struct gkyl_array *npol = use_gpu? mkarr(use_gpu, basis.num_basis, localRange_ext.volume)
                                       : gkyl_array_acquire(npol_ho);
-  gkyl_array_copy(npol_dev, npol_ho);
-  struct gkyl_array *epsilon_dev = use_gpu? mkarr(true, basis.num_basis, localRange_ext.volume)
+  gkyl_array_copy(npol, npol_ho);
+  struct gkyl_array *epsilon = use_gpu? mkarr(use_gpu, basis.num_basis, localRange_ext.volume)
                                           : gkyl_array_acquire(epsilon_ho);
-  gkyl_array_copy(epsilon_dev, epsilon_ho);
+  gkyl_array_copy(epsilon, epsilon_ho);
 
   struct gkyl_basis phi_pol_basis;
   gkyl_cart_modal_tensor(&phi_pol_basis, 1, poly_order+1);
@@ -88,13 +88,13 @@ void test_1x_flat( bool use_gpu )
   gkyl_eval_on_nodes_advance(phi_pol_proj, 0.0, &localRange, phi_pol_ho);
   gkyl_eval_on_nodes_release(phi_pol_proj);
 
-  struct gkyl_array *phi_pol_dev = use_gpu? mkarr(true, phi_pol_basis.num_basis, localRange_ext.volume)
+  struct gkyl_array *phi_pol = use_gpu? mkarr(use_gpu, phi_pol_basis.num_basis, localRange_ext.volume)
                                           : gkyl_array_acquire(phi_pol_ho);
-  gkyl_array_copy(phi_pol_dev, phi_pol_ho);
+  gkyl_array_copy(phi_pol, phi_pol_ho);
 
-  gkyl_gyrokinetic_pol_density_advance(npol_op, &localRange, epsilon_dev, phi_pol_dev, npol_dev);
+  gkyl_gyrokinetic_pol_density_advance(npol_op, &localRange, epsilon, phi_pol, npol);
 
-  gkyl_array_copy(npol_ho, npol_dev);
+  gkyl_array_copy(npol_ho, npol);
 
   // read the components of npol
   struct gkyl_range_iter conf_iter;
@@ -107,11 +107,11 @@ void test_1x_flat( bool use_gpu )
     }
   }
   gkyl_array_release(npol_ho);
-  gkyl_array_release(npol_dev);
+  gkyl_array_release(npol);
   gkyl_array_release(epsilon_ho);
-  gkyl_array_release(epsilon_dev);
+  gkyl_array_release(epsilon);
   gkyl_array_release(phi_pol_ho);
-  gkyl_array_release(phi_pol_dev);
+  gkyl_array_release(phi_pol);
   gkyl_gyrokinetic_pol_density_release(npol_op);
 }
 
@@ -152,12 +152,12 @@ void test_1x_quad( bool use_gpu )
   gkyl_eval_on_nodes_advance(epsilon_proj, 0.0, &localRange, epsilon_ho);
   gkyl_eval_on_nodes_release(epsilon_proj);
 
-  struct gkyl_array *npol_dev = use_gpu? mkarr(true, basis.num_basis, localRange_ext.volume)
+  struct gkyl_array *npol = use_gpu? mkarr(use_gpu, basis.num_basis, localRange_ext.volume)
                                       : gkyl_array_acquire(npol_ho);
-  gkyl_array_copy(npol_dev, npol_ho);
-  struct gkyl_array *epsilon_dev = use_gpu? mkarr(true, basis.num_basis, localRange_ext.volume)
+  gkyl_array_copy(npol, npol_ho);
+  struct gkyl_array *epsilon = use_gpu? mkarr(use_gpu, basis.num_basis, localRange_ext.volume)
                                           : gkyl_array_acquire(epsilon_ho);
-  gkyl_array_copy(epsilon_dev, epsilon_ho);
+  gkyl_array_copy(epsilon, epsilon_ho);
 
   struct gkyl_basis phi_pol_basis;
   gkyl_cart_modal_tensor(&phi_pol_basis, 1, poly_order+1);
@@ -167,13 +167,13 @@ void test_1x_quad( bool use_gpu )
   gkyl_eval_on_nodes_advance(phi_pol_proj, 0.0, &localRange, phi_pol_ho);
   gkyl_eval_on_nodes_release(phi_pol_proj);
 
-  struct gkyl_array *phi_pol_dev = use_gpu? mkarr(true, phi_pol_basis.num_basis, localRange_ext.volume)
+  struct gkyl_array *phi_pol = use_gpu? mkarr(use_gpu, phi_pol_basis.num_basis, localRange_ext.volume)
                                           : gkyl_array_acquire(phi_pol_ho);
-  gkyl_array_copy(phi_pol_dev, phi_pol_ho);
+  gkyl_array_copy(phi_pol, phi_pol_ho);
 
-  gkyl_gyrokinetic_pol_density_advance(npol_op, &localRange, epsilon_dev, phi_pol_dev, npol_dev);
+  gkyl_gyrokinetic_pol_density_advance(npol_op, &localRange, epsilon, phi_pol, npol);
 
-  gkyl_array_copy(npol_ho, npol_dev);
+  gkyl_array_copy(npol_ho, npol);
 
   // read the components of npol
   struct gkyl_range_iter conf_iter;
@@ -186,11 +186,11 @@ void test_1x_quad( bool use_gpu )
   }
 
   gkyl_array_release(npol_ho);
-  gkyl_array_release(npol_dev);
+  gkyl_array_release(npol);
   gkyl_array_release(epsilon_ho);
-  gkyl_array_release(epsilon_dev);
+  gkyl_array_release(epsilon);
   gkyl_array_release(phi_pol_ho);
-  gkyl_array_release(phi_pol_dev);
+  gkyl_array_release(phi_pol);
   gkyl_gyrokinetic_pol_density_release(npol_op);
 }
 
@@ -233,12 +233,12 @@ test_2x_quad( bool use_gpu )
   gkyl_eval_on_nodes_advance(epsilon_proj, time, &localRange, epsilon_ho);
   gkyl_eval_on_nodes_release(epsilon_proj);
 
-  struct gkyl_array *npol_dev = use_gpu? mkarr(true, basis.num_basis, localRange_ext.volume)
+  struct gkyl_array *npol = use_gpu? mkarr(use_gpu, basis.num_basis, localRange_ext.volume)
                                       : gkyl_array_acquire(npol_ho);
-  gkyl_array_copy(npol_dev, npol_ho);
-  struct gkyl_array *epsilon_dev = use_gpu? mkarr(true, basis.num_basis, localRange_ext.volume)
+  gkyl_array_copy(npol, npol_ho);
+  struct gkyl_array *epsilon = use_gpu? mkarr(use_gpu, basis.num_basis, localRange_ext.volume)
                                           : gkyl_array_acquire(epsilon_ho);
-  gkyl_array_copy(epsilon_dev, epsilon_ho);
+  gkyl_array_copy(epsilon, epsilon_ho);
 
   struct gkyl_basis phi_pol_basis;
   gkyl_cart_modal_tensor(&phi_pol_basis, dim, poly_order+1);
@@ -248,13 +248,13 @@ test_2x_quad( bool use_gpu )
   gkyl_eval_on_nodes_advance(phi_pol_proj, time, &localRange, phi_pol_ho);
   gkyl_eval_on_nodes_release(phi_pol_proj);
 
-  struct gkyl_array *phi_pol_dev = use_gpu? mkarr(true, phi_pol_basis.num_basis, localRange_ext.volume)
+  struct gkyl_array *phi_pol = use_gpu? mkarr(use_gpu, phi_pol_basis.num_basis, localRange_ext.volume)
                                           : gkyl_array_acquire(phi_pol_ho);
-  gkyl_array_copy(phi_pol_dev, phi_pol_ho);
+  gkyl_array_copy(phi_pol, phi_pol_ho);
 
-  gkyl_gyrokinetic_pol_density_advance(npol_op, &localRange, epsilon_dev, phi_pol_dev, npol_dev);
+  gkyl_gyrokinetic_pol_density_advance(npol_op, &localRange, epsilon, phi_pol, npol);
 
-  gkyl_array_copy(npol_ho, npol_dev);
+  gkyl_array_copy(npol_ho, npol);
 
   // read the components of npol
   struct gkyl_range_iter conf_iter;
@@ -302,11 +302,11 @@ test_2x_quad( bool use_gpu )
   }
 
   gkyl_array_release(npol_ho);
-  gkyl_array_release(npol_dev);
+  gkyl_array_release(npol);
   gkyl_array_release(epsilon_ho);
-  gkyl_array_release(epsilon_dev);
+  gkyl_array_release(epsilon);
   gkyl_array_release(phi_pol_ho);
-  gkyl_array_release(phi_pol_dev);
+  gkyl_array_release(phi_pol);
   gkyl_gyrokinetic_pol_density_release(npol_op);
 }
 
@@ -350,12 +350,12 @@ test_3x_flat( bool use_gpu )
   gkyl_eval_on_nodes_advance(epsilon_proj, time, &localRange, epsilon_ho);
   gkyl_eval_on_nodes_release(epsilon_proj);
 
-  struct gkyl_array *npol_dev = use_gpu? mkarr(true, basis.num_basis, localRange_ext.volume)
+  struct gkyl_array *npol = use_gpu? mkarr(use_gpu, basis.num_basis, localRange_ext.volume)
                                       : gkyl_array_acquire(npol_ho);
-  gkyl_array_copy(npol_dev, npol_ho);
-  struct gkyl_array *epsilon_dev = use_gpu? mkarr(true, basis.num_basis, localRange_ext.volume)
+  gkyl_array_copy(npol, npol_ho);
+  struct gkyl_array *epsilon = use_gpu? mkarr(use_gpu, basis.num_basis, localRange_ext.volume)
                                           : gkyl_array_acquire(epsilon_ho);
-  gkyl_array_copy(epsilon_dev, epsilon_ho);
+  gkyl_array_copy(epsilon, epsilon_ho);
 
   struct gkyl_basis phi_pol_basis;
   gkyl_cart_modal_tensor(&phi_pol_basis, dim, poly_order+1);
@@ -365,13 +365,13 @@ test_3x_flat( bool use_gpu )
   gkyl_eval_on_nodes_advance(phi_pol_proj, time, &localRange, phi_pol_ho);
   gkyl_eval_on_nodes_release(phi_pol_proj);
 
-  struct gkyl_array *phi_pol_dev = use_gpu? mkarr(true, phi_pol_basis.num_basis, localRange_ext.volume)
+  struct gkyl_array *phi_pol = use_gpu? mkarr(use_gpu, phi_pol_basis.num_basis, localRange_ext.volume)
                                           : gkyl_array_acquire(phi_pol_ho);
-  gkyl_array_copy(phi_pol_dev, phi_pol_ho);
+  gkyl_array_copy(phi_pol, phi_pol_ho);
 
-  gkyl_gyrokinetic_pol_density_advance(npol_op, &localRange, epsilon_dev, phi_pol_dev, npol_dev);
+  gkyl_gyrokinetic_pol_density_advance(npol_op, &localRange, epsilon, phi_pol, npol);
 
-  gkyl_array_copy(npol_ho, npol_dev);
+  gkyl_array_copy(npol_ho, npol);
 
   // read the components of npol
   struct gkyl_range_iter conf_iter;
@@ -391,11 +391,11 @@ test_3x_flat( bool use_gpu )
   }
 
   gkyl_array_release(npol_ho);
-  gkyl_array_release(npol_dev);
+  gkyl_array_release(npol);
   gkyl_array_release(epsilon_ho);
-  gkyl_array_release(epsilon_dev);
+  gkyl_array_release(epsilon);
   gkyl_array_release(phi_pol_ho);
-  gkyl_array_release(phi_pol_dev);
+  gkyl_array_release(phi_pol);
   gkyl_gyrokinetic_pol_density_release(npol_op);
 }
 
@@ -416,9 +416,11 @@ TEST_LIST = {
   { "test_1x_quad_cpu", test_1x_quad_cpu },
   { "test_2x_quad_cpu", test_2x_quad_cpu },
   { "test_3x_flat_cpu", test_3x_flat_cpu },
+#ifdef GKYL_HAVE_CUDA
   { "test_1x_flat_gpu", test_1x_flat_gpu },
   { "test_1x_quad_gpu", test_1x_quad_gpu },
   { "test_2x_quad_gpu", test_2x_quad_gpu },
   { "test_3x_flat_gpu", test_3x_flat_gpu },
+#endif
   { NULL, NULL },
 };
