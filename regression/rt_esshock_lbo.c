@@ -126,12 +126,8 @@ main(int argc, char **argv)
     MPI_Comm_size(MPI_COMM_WORLD, &nrank);
 #endif  
 
-  // create global range
   int cells[] = { NX };
-  struct gkyl_range globalr;
-  gkyl_create_global_range(1, cells, &globalr);
 
-  // create decomposition
   int cuts[] = { 1 };
 #ifdef GKYL_HAVE_MPI  
   if (app_args.use_mpi) {
@@ -139,28 +135,22 @@ main(int argc, char **argv)
   }
 #endif  
     
-  struct gkyl_rect_decomp *decomp =
-    gkyl_rect_decomp_new_from_cuts(1, cuts, &globalr);
-
   // construct communcator for use in app
   struct gkyl_comm *comm;
 #ifdef GKYL_HAVE_MPI
   if (app_args.use_mpi) {
     comm = gkyl_mpi_comm_new( &(struct gkyl_mpi_comm_inp) {
         .mpi_comm = MPI_COMM_WORLD,
-        .decomp = decomp
       }
     );
   }
   else
     comm = gkyl_null_comm_inew( &(struct gkyl_null_comm_inp) {
-        .decomp = decomp,
         .use_gpu = app_args.use_gpu        
       }
     );
 #else
   comm = gkyl_null_comm_inew( &(struct gkyl_null_comm_inp) {
-      .decomp = decomp,
       .use_gpu = app_args.use_gpu      
     }
   );
@@ -266,13 +256,11 @@ main(int argc, char **argv)
     .species = { elc, ion },
     .field = field,
 
-    .use_gpu = app_args.use_gpu,
-
-    .has_low_inp = true,
-    .low_inp = {
-      .local_range = decomp->ranges[my_rank],
-      .comm = comm
-    }
+    .parallelism = {
+      .use_gpu = app_args.use_gpu,
+      .cuts = app_args.cuts,
+      .comm = comm,
+    },
   };
 
   // create app object
@@ -326,9 +314,7 @@ main(int argc, char **argv)
 
   // simulation complete, free app
   gkyl_vlasov_app_release(app);
-
   gkyl_comm_release(comm);
-  gkyl_rect_decomp_release(decomp);
   
   mpifinalize:
   ;

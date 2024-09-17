@@ -269,13 +269,9 @@ main(int argc, char **argv)
   }
 #endif  
 
-  // Create global range.
   int ccells[] = { NX, NY };
   int cdim = sizeof(ccells) / sizeof(ccells[0]);
-  struct gkyl_range cglobal_r;
-  gkyl_create_global_range(cdim, ccells, &cglobal_r);
 
-  // Create decomposition.
   int cuts[cdim];
 #ifdef GKYL_HAVE_MPI  
   for (int d = 0; d < cdim; d++) {
