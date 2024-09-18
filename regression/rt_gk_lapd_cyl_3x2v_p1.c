@@ -541,7 +541,7 @@ main(int argc, char **argv)
   struct gkyl_gk app_inp = {
     .name = "gk_lapd_cyl_3x2v_p1",
 
-    .cdim = ctx.cdim, .vdim = ctx.cdim,
+    .cdim = ctx.cdim, .vdim = ctx.vdim,
     .lower = { (2.5 * ctx.rho_s), -0.5 * ctx.Ltheta, -0.5 * ctx.Lz },
     .upper = { (2.5 * ctx.rho_s) + ctx.Lr, 0.5 * ctx.Ltheta, 0.5 * ctx.Lz },
     .cells = { cells_x[0], cells_x[1], cells_x[2] },

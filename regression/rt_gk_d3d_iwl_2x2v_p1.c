@@ -741,7 +741,7 @@ main(int argc, char **argv)
   struct gkyl_gk gk = {
     .name = "gk_d3d_iwl_2x2v_p1",
 
-    .cdim = ctx.cdim, .vdim = ctx.cdim,
+    .cdim = ctx.cdim, .vdim = ctx.vdim,
     .lower = { ctx.x_min, ctx.z_min },
     .upper = { ctx.x_max, ctx.z_max },
     .cells = { cells_x[0], cells_x[1] },

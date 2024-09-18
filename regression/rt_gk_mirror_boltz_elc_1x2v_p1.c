@@ -811,9 +811,11 @@ int main(int argc, char **argv)
     .fem_parbc = GKYL_FEM_PARPROJ_NONE,
   };
 
-  struct gkyl_gk app_inp = {  // GK app
+  // GK app
+  struct gkyl_gk app_inp = {  
     .name = "gk_mirror_boltz_elc_1x2v_p1",
-    .cdim = ctx.cdim, .vdim = ctx.cdim,
+
+    .cdim = ctx.cdim, .vdim = ctx.vdim,
     .lower = {ctx.z_min},
     .upper = {ctx.z_max},
     .cells = { cells_x[0] },

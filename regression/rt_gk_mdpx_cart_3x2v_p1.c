@@ -517,7 +517,7 @@ main(int argc, char **argv)
   struct gkyl_gk app_inp = {
     .name = "gk_mdpx_cart_3x2v_p1",
 
-    .cdim = ctx.cdim, .vdim = ctx.cdim,
+    .cdim = ctx.cdim, .vdim = ctx.vdim,
     .lower = { -0.5 * ctx.Lx, -0.5 * ctx.Ly, -0.5 * ctx.Lz },
     .upper = { 0.5 * ctx.Lx, 0.5 * ctx.Ly, 0.5 * ctx.Lz },
     .cells = { cells_x[0], cells_x[1], cells_x[2] },

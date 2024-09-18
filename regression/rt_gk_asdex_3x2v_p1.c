@@ -505,7 +505,7 @@ main(int argc, char **argv)
   struct gkyl_gk gk = {
     .name = "gk_asdex_3x2v_p1",
 
-    .cdim = ctx.cdim, .vdim = ctx.cdim,
+    .cdim = ctx.cdim, .vdim = ctx.vdim,
     .lower = { 0.16, -ctx.Ly/2.0, -ctx.Lz/2.0 },
     .upper = { 0.17501, ctx.Ly/2.0, ctx.Lz/2.0 },
     .cells = { cells_x[0], cells_x[1], cells_x[2] },

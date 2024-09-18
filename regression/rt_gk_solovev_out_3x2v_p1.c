@@ -489,7 +489,7 @@ main(int argc, char **argv)
   struct gkyl_gk app_inp = {
     .name = "gk_solovev_out_3x2v_p1",
 
-    .cdim = ctx.cdim, .vdim = ctx.cdim,
+    .cdim = ctx.cdim, .vdim = ctx.vdim,
     .lower = { -0.08, -ctx.Ly/2.0, -ctx.Lz/2.0 },
     .upper = { -0.06, ctx.Ly/2.0, ctx.Lz/2.0 },
     .cells = { cells_x[0], cells_x[1], cells_x[2] },

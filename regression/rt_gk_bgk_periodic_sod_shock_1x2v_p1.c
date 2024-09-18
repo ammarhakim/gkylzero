@@ -268,7 +268,7 @@ main(int argc, char **argv)
   struct gkyl_gk app_inp = {
     .name = "gk_bgk_periodic_sod_shock_1x2v_p1",
 
-    .cdim = ctx.cdim, .vdim = ctx.cdim,
+    .cdim = ctx.cdim, .vdim = ctx.vdim,
     .lower = { -ctx.Lz },
     .upper = { ctx.Lz },
     .cells = { cells_x[0] },

@@ -679,7 +679,7 @@ main(int argc, char **argv)
   struct gkyl_gk gk = {
     .name = "gk_step_out_2x2v_p1",
 
-    .cdim = ctx.cdim, .vdim = ctx.cdim,
+    .cdim = ctx.cdim, .vdim = ctx.vdim,
     .lower = { ctx.lower_x, -ctx.Lz/2.0 },
     .upper = { ctx.upper_x,  ctx.Lz/2.0 },
     .cells = { cells_x[0], cells_x[1] },

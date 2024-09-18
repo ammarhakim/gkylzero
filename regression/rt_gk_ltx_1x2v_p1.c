@@ -596,7 +596,7 @@ int main(int argc, char **argv)
   struct gkyl_gk gk = {
     .name = "gk_ltx_1x2v_p1",
 
-    .cdim = ctx.cdim, .vdim = ctx.cdim,
+    .cdim = ctx.cdim, .vdim = ctx.vdim,
     .lower = { ctx.z_min },
     .upper = { ctx.z_max },
     .cells = { cells_x[0] },
