@@ -88,21 +88,21 @@ struct sheath_ctx
 
 struct gkyl_efit_inp inp = {
   // psiRZ and related inputs
-  .filepath = "./data/eqdsk/step.geqdsk",
-  .rz_poly_order = 2,
-  .flux_poly_order = 1,
+  .filepath = "./data/eqdsk/step.geqdsk", // equilibrium to use
+  .rz_poly_order = 2,                     // polynomial order for psi(R,Z) used for field line tracing
+  .flux_poly_order = 1,                   // polynomial order for fpol(psi)
 };
 
 
 struct gkyl_tok_geo_grid_inp ginp = {
-    .ftype = GKYL_SOL_DN_OUT,
-    .rclose = 6.2,
-    .rright= 6.2,
-    .rleft= 2.0,
-    .rmin = 1.1,
-    .rmax = 6.2,
-    .zmin = -5.14213,
-    .zmax = 5.14226,
+    .ftype = GKYL_SOL_DN_OUT,  // type of geometry
+    .rclose = 6.2,             // closest R to region of interest
+    .rright= 6.2,              // Closest R to outboard SOL
+    .rleft= 2.0,               // closest R to inboard SOL
+    .rmin = 1.1,               // smallest R in machine
+    .rmax = 6.2,               // largest R in machine
+    .zmin = -5.14213,          // Z of lower divertor plate
+    .zmax = 5.14226,           // Z of upper divertor plate
   };
 
 

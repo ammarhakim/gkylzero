@@ -120,18 +120,20 @@ struct gkyl_tok_geo_grid_inp {
   struct gkyl_basis cbasis;
   enum gkyl_tok_geo_type ftype; // type of geometry
   
-  double rclose; // closest R to discrimate
-  double rleft; // closest R to discrimate
-  double rright; // closest R to discrimate
-  double rmin, rmax;
+  double rclose; // closest R to region of interest to discriminate
+  double rleft; // closest R to inboard SOL
+  double rright; // closest R to outboard SOL
+  double rmin, rmax; // Minimum and Maximum R of the machine
   double zmin, zmax; // extents of Z for integration
   double zmin_left, zmin_right; // for lower single null and PF cases diff b/t in and outboard side
   double zmax_left, zmax_right; // for upper single null and PF cases diff b/t in and outboard side
 
   // Specifications for divertor plate
-  bool plate_spec;
-  plate_func plate_func_lower;
-  plate_func plate_func_upper;
+  bool plate_spec; // whether a shape function is provided for divertor plates
+  plate_func plate_func_lower; // lower plate specification. Gives R,Z in terms of s \in [0,1]
+  plate_func plate_func_upper; // upper plate specification. Gives R,Z in terms of s \in [0,1]
+                               // In a lower single null "lower" is the outer divertor and
+                               // "upper" is the inner divertor
 
   bool exact_roots; // If false we will allow approximate roots when no root is found
   bool use_cubics; // If true will use the cubic rep of psi rather than the quadratic representation

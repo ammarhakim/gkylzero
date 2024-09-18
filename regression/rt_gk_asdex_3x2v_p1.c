@@ -486,25 +486,25 @@ main(int argc, char **argv)
 
   struct gkyl_efit_inp efit_inp = {
     // psiRZ and related inputs
-    .filepath = "./data/eqdsk/asdex.geqdsk",
-    .rz_poly_order = 2,
-    .flux_poly_order = 1,
+    .filepath = "./data/eqdsk/asdex.geqdsk", // equilibrium to use
+    .rz_poly_order = 2,                      // polynomial order for psi(R,Z) used for field line tracing
+    .flux_poly_order = 1,                    // polynomial order for fpol(psi)
   };
 
   struct gkyl_tok_geo_grid_inp grid_inp = {
-    .ftype = GKYL_SOL_SN_LO,
-    .rclose = 2.5,
-    .rright = 2.5,
-    .rleft = 0.7,
-    .rmax = 2.5,
-    .rmin = 0.7,
-    .zmin = -1.3,
-    .zmax = 1.0,
-    .zmin_left = -1.3,
-    .zmin_right = -1.3,
-    .plate_spec = true,
-    .plate_func_lower = shaped_pfunc_lower,
-    .plate_func_upper = shaped_pfunc_upper,
+    .ftype = GKYL_SOL_SN_LO,                   // type of geometry
+    .rclose = 2.5,                             // closest R to region of interest
+    .rright = 2.5,                             // Closest R to outboard SOL
+    .rleft = 0.7,                              // closest R to inboard SOL
+    .rmax = 2.5,                               // largest R in machine
+    .rmin = 0.7,                               // smallest R in machine
+    .zmin = -1.3,                              // Lower Z boundary 
+    .zmax = 1.0,                               // Upper Z boundary
+    .zmin_left = -1.3,                         // Z of inboard divertor plate
+    .zmin_right = -1.3,                        // Z of outboard divertor plate
+    .plate_spec = true,                        // Whether we have specified shape function for plates
+    .plate_func_lower = shaped_pfunc_lower,    // function of s \in [0,1] which gives R and Z on lower divertor plate
+    .plate_func_upper = shaped_pfunc_upper,     // function of s \in [0,1] which gives R and Z on lower divertor plate
   };
 
   // GK app
