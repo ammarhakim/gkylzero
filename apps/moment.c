@@ -97,40 +97,30 @@ gkyl_moment_app_new(struct gkyl_moment *mom)
   gkyl_rect_grid_init(&app->grid, ndim, mom->lower, mom->upper, mom->cells);
   gkyl_create_grid_ranges(&app->grid, ghost, &app->global_ext, &app->global);
 
-  if (mom->has_low_inp) {
-    // create local and local_ext from user-supplied local range
-    gkyl_create_ranges(&mom->low_inp.local_range, ghost, &app->local_ext, &app->local);
-    
-    if (mom->low_inp.comm)
-      app->comm = gkyl_comm_acquire(mom->low_inp.comm);
-    else {
-      int cuts[] = { 1, 1, 1 };
-      struct gkyl_rect_decomp *rect_decomp =
-        gkyl_rect_decomp_new_from_cuts(ndim, cuts, &app->global);
-      
-      app->comm = gkyl_null_comm_inew( &(struct gkyl_null_comm_inp) {
-          .decomp = rect_decomp
-        }
-      );
-
-      gkyl_rect_decomp_release(rect_decomp);
-    }
-  }
-  else {
-    // global and local ranges are same, and so just copy
-    memcpy(&app->local, &app->global, sizeof(struct gkyl_range));
-    memcpy(&app->local_ext, &app->global_ext, sizeof(struct gkyl_range));
-
-    int cuts[] = { 1, 1, 1 };
-    struct gkyl_rect_decomp *rect_decomp =
-      gkyl_rect_decomp_new_from_cuts(ndim, cuts, &app->global);
+  if (mom->parallelism.comm == 0) {
+    int cuts[3] = { 1, 1, 1 };
+    app->decomp = gkyl_rect_decomp_new_from_cuts(app->ndim, cuts, &app->global);
     
     app->comm = gkyl_null_comm_inew( &(struct gkyl_null_comm_inp) {
-        .decomp = rect_decomp
+        .decomp = app->decomp,
       }
     );
     
-    gkyl_rect_decomp_release(rect_decomp);
+    // Clobal and local ranges are same, and so just copy them.
+    memcpy(&app->local, &app->global, sizeof(struct gkyl_range));
+    memcpy(&app->local_ext, &app->global_ext, sizeof(struct gkyl_range));
+  }
+  else {
+    // Create decomp.
+    app->decomp = gkyl_rect_decomp_new_from_cuts(app->ndim, mom->parallelism.cuts, &app->global);
+
+    // Create a new communicator with the decomposition in it.
+    app->comm = gkyl_comm_split_comm(mom->parallelism.comm, 0, app->decomp);
+
+    // Create local and local_ext.
+    int rank;
+    gkyl_comm_get_rank(app->comm, &rank);
+    gkyl_create_ranges(&app->decomp->ranges[rank], ghost, &app->local_ext, &app->local);
   }
 
   skin_ghost_ranges_init(&app->skin_ghost, &app->global_ext, ghost);  
@@ -819,6 +809,7 @@ gkyl_moment_app_release(gkyl_moment_app* app)
     moment_coupling_release(app, &app->sources);
 
   gkyl_comm_release(app->comm);
+  gkyl_rect_decomp_release(app->decomp);
   
   for (int i=0; i<app->num_species; ++i)
     moment_species_release(&app->species[i]);

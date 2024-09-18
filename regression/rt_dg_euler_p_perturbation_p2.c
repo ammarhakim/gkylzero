@@ -247,7 +247,7 @@ int nrank = 1; // Number of processors in simulation.
 
    .parallelism = {
       .use_gpu = app_args.use_gpu,
-      .cuts = app_args.cuts,
+      .cuts = { app_args.cuts[0] },
       .comm = comm,
     },
   };

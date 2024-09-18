@@ -391,7 +391,7 @@ main(int argc, char **argv)
  
     .parallelism = {
       .use_gpu = app_args.use_gpu,
-      .cuts = app_args.cuts,
+      .cuts = { app_args.cuts[0], app_args.cuts[1] },
       .comm = comm,
     },
   };

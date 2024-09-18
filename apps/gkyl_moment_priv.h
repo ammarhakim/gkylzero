@@ -242,6 +242,7 @@ struct gkyl_moment_app {
   struct gkyl_range local, local_ext; // local, local-ext ranges
   struct gkyl_range global, global_ext; // global, global-ext ranges
 
+  struct gkyl_rect_decomp *decomp; // decomposition object
   struct gkyl_comm *comm;   // communicator object
 
   bool has_mapc2p; // flag to indicate if we have mapc2p

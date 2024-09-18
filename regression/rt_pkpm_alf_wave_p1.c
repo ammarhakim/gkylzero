@@ -1,12 +1,23 @@
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <time.h>
 
 #include <gkyl_alloc.h>
 #include <gkyl_pkpm.h>
+
+#include <gkyl_null_comm.h>
+
+#ifdef GKYL_HAVE_MPI
+#include <mpi.h>
+#include <gkyl_mpi_comm.h>
+#ifdef GKYL_HAVE_NCCL
+#include <gkyl_nccl_comm.h>
+#endif
+#endif
 #include <rt_arg_parse.h>
 
-struct pkpm_alf_2x_ctx {
+struct pkpm_kalf_ctx {
   double epsilon0;
   double mu0;
   double chargeElc; // electron charge
@@ -22,12 +33,28 @@ struct pkpm_alf_2x_ctx {
   double vtIon;
   double nuElc;
   double nuIon;
-  double delta_u0;
-  double delta_B0;
-  double Lperp;
-  double Lpar;
-  double kperp;
+  double Bx;    
+  double By;
+  double Bz;
+  double uxi;
+  double uyi;
+  double uzi;
+  double uxe;
+  double uye;
+  double uze;
+  double BxPhi;
+  double ByPhi;
+  double BzPhi;
+  double uxiPhi;
+  double uyiPhi;
+  double uziPhi;
+  double uxePhi;
+  double uyePhi;
+  double uzePhi;   
   double kpar;
+  double kperp;
+  double Lpar;
+  double Lperp;
   double tend;
   double min_dt;
   bool use_gpu;
@@ -43,16 +70,12 @@ maxwellian(double n, double v, double vth)
 void
 evalDistFuncElc(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
 {
-  struct pkpm_alf_2x_ctx *app = ctx;
+  struct pkpm_kalf_ctx *app = ctx;
   
   double x = xn[0], y = xn[1], vx = xn[2];
 
   double qe = app->chargeElc;
   double qi = app->chargeIon;
-  double Lperp = app->Lperp;
-  double Lpar = app->Lpar;
-  double u0perp = app->delta_u0;
-  double B0perp = app->delta_B0;
   
   double fv = maxwellian(app->n0, vx, app->vtElc);
     
@@ -62,16 +85,12 @@ evalDistFuncElc(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT 
 void
 evalDistFuncIon(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
 {
-  struct pkpm_alf_2x_ctx *app = ctx;
+  struct pkpm_kalf_ctx *app = ctx;
   
   double x = xn[0], y = xn[1], vx = xn[2];
 
   double qe = app->chargeElc;
   double qi = app->chargeIon;
-  double Lperp = app->Lperp;
-  double Lpar = app->Lpar;
-  double u0perp = app->delta_u0;
-  double B0perp = app->delta_B0;
 
   double fv = maxwellian(app->n0, vx, app->vtIon);
     
@@ -82,87 +101,90 @@ evalDistFuncIon(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT 
 void
 evalFluidElc(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
 {
-  struct pkpm_alf_2x_ctx *app = ctx;
+  struct pkpm_kalf_ctx *app = ctx;
   
   double x = xn[0], y = xn[1];
 
-  double qe = app->chargeElc;
-  double qi = app->chargeIon;
   double me = app->massElc;
-  double mi = app->massIon;
-  double Lperp = app->Lperp;
-  double Lpar = app->Lpar;
-  double kperp = app->kperp;
   double kpar = app->kpar;
-  double u0perp = app->delta_u0;
-  double B0perp = app->delta_B0;
+  double kperp = app->kperp;  
+  double uxe = app->uxe;
+  double uye = app->uye;
+  double uze = app->uze;
+  double uxePhi = app->uxePhi;
+  double uyePhi = app->uyePhi;
+  double uzePhi = app->uzePhi;   
 
-  double Jx = B0perp*kpar*sin(kperp*x + kpar*y) / app->mu0;
-  double Jy = -B0perp*kperp*sin(kperp*x + kpar*y) / app->mu0;
+  // rotate PLUME data about x by -90 degrees 
+  double u_xe = uxe*cos(kperp*x + kpar*y + uxePhi);
+  double u_ye = uze*cos(kperp*x + kpar*y + uzePhi);
+  double u_ze = -uye*cos(kperp*x + kpar*y + uyePhi); 
 
-  double vdrift_x = -Jx / qi;
-  double vdrift_y = -Jy / qi;
-  double vdrift_z = -u0perp*cos(kperp*x + kpar*y);;
-
-  fout[0] = me*vdrift_x;
-  fout[1] = me*vdrift_y;
-  fout[2] = me*vdrift_z;
+  // n0 = 1, so initially uniform density
+  fout[0] = me*u_xe;
+  fout[1] = me*u_ye;
+  fout[2] = me*u_ze; 
 }
 
 void
 evalFluidIon(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
 {
-  struct pkpm_alf_2x_ctx *app = ctx;
+  struct pkpm_kalf_ctx *app = ctx;
   
   double x = xn[0], y = xn[1];
 
-  double qe = app->chargeElc;
-  double qi = app->chargeIon;
-  double me = app->massElc;
   double mi = app->massIon;
-  double Lpar = app->Lperp;
-  double Lperp = app->Lpar;
-  double kperp = app->kperp;
   double kpar = app->kpar;
-  double u0perp = app->delta_u0;
-  double B0perp = app->delta_B0;
+  double kperp = app->kperp;
+  double uxi = app->uxi;
+  double uyi = app->uyi;
+  double uzi = app->uzi;
+  double uxiPhi = app->uxiPhi;
+  double uyiPhi = app->uyiPhi;
+  double uziPhi = app->uziPhi;
 
-  double vdrift_x = 0.0;
-  double vdrift_y = 0.0;
-  double vdrift_z = -u0perp*cos(kperp*x + kpar*y);
+  // rotate PLUME data about x by -90 degrees 
+  double u_xi = uxi*cos(kperp*x + kpar*y + uxiPhi);
+  double u_yi = uzi*cos(kperp*x + kpar*y + uziPhi);
+  double u_zi = -uyi*cos(kperp*x + kpar*y + uyiPhi); 
 
-  fout[0] = mi*vdrift_x;
-  fout[1] = mi*vdrift_y;
-  fout[2] = mi*vdrift_z;
+  // n0 = 1, so initially uniform density
+  fout[0] = mi*u_xi;
+  fout[1] = mi*u_yi;
+  fout[2] = mi*u_zi; 
 }
 
 void
 evalFieldFunc(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
 {
-  struct pkpm_alf_2x_ctx *app = ctx;
+  struct pkpm_kalf_ctx *app = ctx;
 
   double x = xn[0], y = xn[1];
 
-  double qe = app->chargeElc;
-  double qi = app->chargeIon;
-  double Lperp = app->Lperp;
-  double Lpar = app->Lpar;
-  double kperp = app->kperp;
   double kpar = app->kpar;
-  double u0perp = app->delta_u0;
-  double B0perp = app->delta_B0;
+  double kperp = app->kperp;
+  double B0 = app->B0;
+  double Bx = app->Bx;
+  double By = app->By;
+  double Bz = app->Bz;
+  double BxPhi = app->BxPhi;
+  double ByPhi = app->ByPhi;
+  double BzPhi = app->BzPhi;
+  double uxe = app->uxe;
+  double uye = app->uye;
+  double uze = app->uze;
+  double uxePhi = app->uxePhi;
+  double uyePhi = app->uyePhi;
+  double uzePhi = app->uzePhi;
 
-  double Jx = B0perp*kpar*sin(kperp*x + kpar*y) / app->mu0;
-  double Jy = -B0perp*kperp*sin(kperp*x + kpar*y) / app->mu0;
+  // rotate PLUME data about x by -90 degrees 
+  double B_x = Bx*cos(kperp*x+kpar*y+BxPhi);
+  double B_y = (B0+Bz*cos(kperp*x+kpar*y+BzPhi));
+  double B_z = -By*cos(kperp*x+kpar*y+ByPhi);
 
-  double B_x = 0.;
-  double B_y = -app->B0;
-  double B_z = -B0perp*cos(kperp*x + kpar*y);
-
-  // Assumes qi = abs(qe)
-  double u_xe = -Jx / qi;
-  double u_ye = -Jy / qi;
-  double u_ze = -u0perp*cos(kperp*x + kpar*y);;
+  double u_xe = uxe*cos(kperp*x + kpar*y + uxePhi);
+  double u_ye = uze*cos(kperp*x + kpar*y + uzePhi);
+  double u_ze = -uye*cos(kperp*x + kpar*y + uyePhi); 
 
   // E = - v_e x B ~  (J - u) x B
   double E_x = - (u_ye*B_z - u_ze*B_y);
@@ -177,18 +199,18 @@ evalFieldFunc(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fo
 void
 evalNuElc(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
 {
-  struct pkpm_alf_2x_ctx *app = ctx;
+  struct pkpm_kalf_ctx *app = ctx;
   fout[0] = app->nuElc;
 }
 
 void
 evalNuIon(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
 {
-  struct pkpm_alf_2x_ctx *app = ctx;
+  struct pkpm_kalf_ctx *app = ctx;
   fout[0] = app->nuIon;
 }
 
-struct pkpm_alf_2x_ctx
+struct pkpm_kalf_ctx
 create_ctx(void)
 {
   double epsilon0 = 1.0; // permittivity of free space
@@ -201,8 +223,8 @@ create_ctx(void)
 
   double Te_Ti = 1.0; // ratio of electron to ion temperature
   double n0 = 1.0; // initial number density
-  double vAe = 0.1;
-  double beta = 0.1;
+  double vAe = 0.045;
+  double beta = 1.0;
 
   double B0 = vAe*sqrt(mu0*n0*massElc);
   double vtElc = vAe*sqrt(beta/2.0);
@@ -216,21 +238,65 @@ create_ctx(void)
   double rhoi = sqrt(2.)*vtIon/omegaCi;
 
   // collision frequencies
-  double nuElc = 0.01*omegaCi;
-  double nuIon = 0.01*omegaCi/sqrt(massIon);
+  double nuElc = 1.0e-4*omegaCi;
+  double nuIon = 1.0e-4*omegaCi/sqrt(massIon);
 
   // initial conditions
-  double delta_B0 = 1.e-6*B0;
-  double delta_u0 = 1.e-6*vAi;
-  double kperp = 1.005412 / rhoi; 
-  double kpar = 0.087627 / rhoi; // Theta = 85 degrees
+  double a = 1.e-2; // modified from 1./3.
+  double delta_B0 = a*B0;
+  double delta_u0 = a*vAi;
+  // kperp rhoi = 0.1
+  //double kperp = 0.1 / rhoi; 
+  //double kpar = 0.00872 / rhoi; // Theta = 85 degrees
+  
+  // kperp rhoi = 0.2
+  //double kperp = 0.201 / rhoi; 
+  //double kpar = 0.0175 / rhoi; // Theta = 85 degrees
+
+  // kperp rhoi = 0.5
+  //double kperp = 0.5 / rhoi; 
+  //double kpar = 0.0436 / rhoi; // Theta = 85 degrees
+
+  // kperp rhoi = 1
+  //double kperp = 1.005412 / rhoi; 
+  //double kpar = 0.087627 / rhoi; // Theta = 85 degrees
+
+  // kpar rhoi = 1
+  //double kperp = 0.01 / rhoi; 
+  //double kpar = 1. / rhoi; // Theta_kB = 0.6 degrees
+
+  // kperp rhoi = 2.09
+  double kperp = 2.0908 / rhoi; 
+  double kpar = 0.095 / rhoi; // Theta = 87.4 degrees
+
+  double Bx = 0.031191*delta_B0;  // new
+  double By = 1.035059*delta_B0;
+  double Bz = 0.686470*delta_B0;
+  double BxPhi = -1.504895;
+  double ByPhi = -0.133840;
+  double BzPhi = 1.636697;
+
+  double uxi = 0.047635*delta_u0;
+  double uyi = 0.228177*delta_u0;
+  double uzi = 0.135527*delta_u0;
+  double uxiPhi = -1.745406;
+  double uyiPhi = -3.053345;
+  double uziPhi = 0.135527;
+
+  double uxe = 0.050772*delta_u0;
+  double uye = 1.666362*delta_u0;
+  double uze = 2.208089*delta_u0;
+  double uxePhi = 1.475205;
+  double uyePhi = -3.072632;
+  double uzePhi = -1.7021012;   // end new
 
   // domain size and simulation time
-  double Lperp = 2.*M_PI/kperp;
-  double Lpar = 2.*M_PI/kpar;
-  double tend = 100.0/omegaCi;
-  
-  struct pkpm_alf_2x_ctx ctx = {
+  double Lpar = 2.0*M_PI/kpar;
+  double Lperp = 2.0*M_PI/kperp;
+
+  double tend = 1.0/omegaCi;    
+
+  struct pkpm_kalf_ctx ctx = {
     .epsilon0 = epsilon0,
     .mu0 = mu0,
     .chargeElc = chargeElc,
@@ -246,12 +312,28 @@ create_ctx(void)
     .vtIon = vtIon,
     .nuElc = nuElc,
     .nuIon = nuIon,
-    .delta_u0 = delta_u0,
-    .delta_B0 = delta_B0,
-    .Lperp = Lperp,
-    .Lpar = Lpar,
-    .kperp = kperp,
-    .kpar = kpar,
+    .Bx = Bx,   // new
+    .By = By,
+    .Bz = Bz,
+    .uxi = uxi,
+    .uyi = uyi,
+    .uzi = uzi,
+    .uxe = uxe,
+    .uye = uye,
+    .uze = uze,
+    .BxPhi = BxPhi,
+    .ByPhi = ByPhi,
+    .BzPhi = BzPhi,
+    .uxiPhi = uxiPhi,
+    .uyiPhi = uyiPhi,
+    .uziPhi = uziPhi,
+    .uxePhi = uxePhi,
+    .uyePhi = uyePhi,
+    .uzePhi = uzePhi,  
+    .kpar = kpar, 
+    .kperp = kperp, 
+    .Lpar = Lpar, 
+    .Lperp = Lperp, 
     .tend = tend,
     .min_dt = 1.0e-2, 
   };
@@ -270,17 +352,22 @@ main(int argc, char **argv)
 {
   struct gkyl_app_args app_args = parse_app_args(argc, argv);
 
-  int NX = APP_ARGS_CHOOSE(app_args.xcells[0], 16);
-  int NY = APP_ARGS_CHOOSE(app_args.xcells[1], 16);
-  int VX = APP_ARGS_CHOOSE(app_args.vcells[0], 32);
+#ifdef GKYL_HAVE_MPI
+  if (app_args.use_mpi)
+    MPI_Init(&argc, &argv);
+#endif
+
+  int NX = APP_ARGS_CHOOSE(app_args.xcells[0], 32);
+  int NY = APP_ARGS_CHOOSE(app_args.xcells[1], 32);
+  int VX = APP_ARGS_CHOOSE(app_args.vcells[0], 128);
 
   if (app_args.trace_mem) {
     gkyl_cu_dev_mem_debug_set(true);
     gkyl_mem_debug_set(true);
   }
      
-  struct pkpm_alf_2x_ctx ctx = create_ctx(); // context for init functions
-  
+  struct pkpm_kalf_ctx ctx = create_ctx(); // context for init functions
+
   // electrons
   struct gkyl_pkpm_species elc = {
     .name = "elc",
@@ -300,8 +387,6 @@ main(int argc, char **argv)
       .ctx = &ctx,
       .self_nu = evalNuElc,
     },    
-
-    //.diffusion = {.D = 1.0e-4, .order=4},
   };
   
   // ions
@@ -323,8 +408,6 @@ main(int argc, char **argv)
       .ctx = &ctx,
       .self_nu = evalNuIon,
     },    
-
-    //.diffusion = {.D = 1.0e-4, .order=4},
   };
 
   // field
@@ -337,9 +420,67 @@ main(int argc, char **argv)
     .init = evalFieldFunc
   };
 
+  int nrank = 1; // number of processors in simulation
+#ifdef GKYL_HAVE_MPI
+  if (app_args.use_mpi)
+    MPI_Comm_size(MPI_COMM_WORLD, &nrank);
+#endif  
+
+  // Construct communicator for use in app.
+  struct gkyl_comm *comm;
+#ifdef GKYL_HAVE_MPI
+  if (app_args.use_gpu && app_args.use_mpi) {
+#ifdef GKYL_HAVE_NCCL
+    comm = gkyl_nccl_comm_new( &(struct gkyl_nccl_comm_inp) {
+        .mpi_comm = MPI_COMM_WORLD,
+      }
+    );
+#else
+    printf(" Using -g and -M together requires NCCL.\n");
+    assert(0 == 1);
+#endif
+  }
+  else if (app_args.use_mpi) {
+    comm = gkyl_mpi_comm_new( &(struct gkyl_mpi_comm_inp) {
+        .mpi_comm = MPI_COMM_WORLD,
+      }
+    );
+  }
+  else {
+    comm = gkyl_null_comm_inew( &(struct gkyl_null_comm_inp) {
+        .use_gpu = app_args.use_gpu
+      }
+    );
+  }
+#else
+  comm = gkyl_null_comm_inew( &(struct gkyl_null_comm_inp) {
+      .use_gpu = app_args.use_gpu
+    }
+  );
+#endif
+
+  int my_rank;
+  gkyl_comm_get_rank(comm, &my_rank);
+  int comm_size;
+  gkyl_comm_get_size(comm, &comm_size);
+
+  int ccells[] = { NX, NY };
+  int cdim = sizeof(ccells) / sizeof(ccells[0]);
+  int ncuts = 1;
+  for (int d = 0; d < cdim; d++) {
+    ncuts *= app_args.cuts[d];
+  }
+
+  if (ncuts != comm_size) {
+    if (my_rank == 0) {
+      fprintf(stderr, "*** Number of ranks, %d, does not match total cuts, %d!\n", comm_size, ncuts);
+    }
+    goto mpifinalize;
+  }
+
   // pkpm app
   struct gkyl_pkpm pkpm = {
-    .name = "pkpm_alf_wave_p1",
+    .name = "pkpm_kaw_2x_p1",
 
     .cdim = 2, .vdim = 1,
     .lower = { 0.0, 0.0 },
@@ -356,6 +497,12 @@ main(int argc, char **argv)
     .field = field,
 
     .use_gpu = app_args.use_gpu,
+
+    .parallelism = {
+      .use_gpu = app_args.use_gpu,
+      .cuts = { app_args.cuts[0], app_args.cuts[1] },
+      .comm = comm,
+    },
   };
 
   // create app object
@@ -372,21 +519,25 @@ main(int argc, char **argv)
   gkyl_pkpm_app_apply_ic(app, tcurr);
   write_data(&io_trig, app, tcurr);
   gkyl_pkpm_app_calc_field_energy(app, tcurr);
+  gkyl_pkpm_app_calc_integrated_L2_f(app, tcurr);
+  gkyl_pkpm_app_calc_integrated_mom(app, tcurr);
 
   long step = 1, num_steps = app_args.num_steps;
   while ((tcurr < tend) && (step <= num_steps)) {
-    printf("Taking time-step at t = %g ...", tcurr);
+    gkyl_pkpm_app_cout(app, stdout, "Taking time-step at t = %g ...", tcurr);
     struct gkyl_update_status status = gkyl_pkpm_update(app, dt);
-    printf(" dt = %g\n", status.dt_actual);
-    
-    gkyl_pkpm_app_calc_field_energy(app, tcurr);
-
+    gkyl_pkpm_app_cout(app, stdout, " dt = %g\n", status.dt_actual);
+    if (step % 100 == 0) {
+      gkyl_pkpm_app_calc_field_energy(app, tcurr);
+      gkyl_pkpm_app_calc_integrated_L2_f(app, tcurr);
+      gkyl_pkpm_app_calc_integrated_mom(app, tcurr);
+    }
     if (!status.success) {
-      printf("** Update method failed! Aborting simulation ....\n");
+      gkyl_pkpm_app_cout(app, stdout, "** Update method failed! Aborting simulation ....\n");
       break;
     }
     if (status.dt_actual < ctx.min_dt) {
-      printf("** Time step crashing! Aborting simulation and writing out last output ....\n");
+      gkyl_pkpm_app_cout(app, stdout, "** Time step crashing! Aborting simulation and writing out last output ....\n");
       gkyl_pkpm_app_write(app, tcurr, 1000);
       break;
     }
@@ -397,8 +548,12 @@ main(int argc, char **argv)
 
     step += 1;
   }
-
+  gkyl_pkpm_app_calc_field_energy(app, tcurr);
+  gkyl_pkpm_app_calc_integrated_L2_f(app, tcurr);
+  gkyl_pkpm_app_calc_integrated_mom(app, tcurr);
   gkyl_pkpm_app_write_field_energy(app);
+  gkyl_pkpm_app_write_integrated_L2_f(app);
+  gkyl_pkpm_app_write_integrated_mom(app);
   gkyl_pkpm_app_stat_write(app);
 
   // fetch simulation statistics
@@ -421,13 +576,27 @@ main(int argc, char **argv)
   gkyl_pkpm_app_cout(app, stdout, "Species collisional moments took %g secs\n", stat.species_coll_mom_tm);
   gkyl_pkpm_app_cout(app, stdout, "EM Variables (bvar) calculation took %g secs\n", stat.field_em_vars_tm);
   gkyl_pkpm_app_cout(app, stdout, "Current evaluation and accumulate took %g secs\n", stat.current_tm);
-  gkyl_pkpm_app_cout(app, stdout, "Updates took %g secs\n", stat.total_tm);
 
+  gkyl_pkpm_app_cout(app, stdout, "Species BCs took %g secs\n", stat.species_bc_tm);
+  gkyl_pkpm_app_cout(app, stdout, "Fluid Species BCs took %g secs\n", stat.fluid_species_bc_tm);
+  gkyl_pkpm_app_cout(app, stdout, "Field BCs took %g secs\n", stat.field_bc_tm);
+  
+  gkyl_pkpm_app_cout(app, stdout, "Updates took %g secs\n", stat.total_tm);
+  
   gkyl_pkpm_app_cout(app, stdout, "Number of write calls %ld,\n", stat.nio);
   gkyl_pkpm_app_cout(app, stdout, "IO time took %g secs \n", stat.io_tm);
 
+  gkyl_comm_release(comm);
+
   // simulation complete, free app
   gkyl_pkpm_app_release(app);
+
+  mpifinalize:
+  ;
+#ifdef GKYL_HAVE_MPI
+  if (app_args.use_mpi)
+    MPI_Finalize();
+#endif  
   
   return 0;
 }

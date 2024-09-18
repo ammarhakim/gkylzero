@@ -157,10 +157,7 @@ struct gkyl_moment {
   bool has_braginskii; // has Braginskii transport
   double coll_fac; // multiplicative collisionality factor for Braginskii  
 
-  // this should not be set by typical user-facing code but only by
-  // higher-level drivers
-  bool has_low_inp; // should one use low-level inputs?
-  struct gkyl_app_comm_low_inp low_inp; // low-level inputs
+  struct gkyl_app_parallelism_inp parallelism; // Parallelism-related inputs.
 };
 
 // Simulation statistics

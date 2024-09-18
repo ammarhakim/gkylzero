@@ -26,7 +26,7 @@ struct gkyl_app_comm_low_inp {
 // Parallelization-related inputs.
 struct gkyl_app_parallelism_inp {
   bool use_gpu; // Run on the GPU(s).
-  int *cuts; // Number of subdomain in each dimension.
+  int cuts[3]; // Number of subdomain in each dimension.
   struct gkyl_comm *comm; // Communicator to use.
 };
 
