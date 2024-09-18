@@ -20,7 +20,15 @@ struct gkyl_app_restart_status {
 // inputs from user for specifying range and communicator to use
 struct gkyl_app_comm_low_inp {
   struct gkyl_range local_range; // local range over which App operates
-  struct gkyl_comm *comm; // communicator to used
+  struct gkyl_comm *comm; // communicator to use
+};
+
+// BC for blocks
+struct gkyl_block_physical_bcs {
+  int bidx; // block index
+  int dir;  // direction in which BC is specified
+  enum gkyl_edge_loc edge; // which edge this BC is for
+  int bc_type; // BC code
 };
 
 // Parallelization-related inputs.
@@ -33,6 +41,7 @@ struct gkyl_app_parallelism_inp {
 // Boundary conditions on particles
 enum gkyl_species_bc_type {
   GKYL_SPECIES_COPY = 0, // copy BCs
+  GKYL_SPECIES_SKIP, // Do not apply any BCs to field
   GKYL_SPECIES_REFLECT, // perfect reflector
   GKYL_SPECIES_ABSORB, // Absorbing BCs
   GKYL_SPECIES_NO_SLIP, // no-slip boundary conditions
@@ -49,9 +58,13 @@ enum gkyl_species_bc_type {
 // Boundary conditions on fields
 enum gkyl_field_bc_type {
   GKYL_FIELD_COPY = 0, // copy BCs
+  GKYL_FIELD_SKIP, // Do not apply any BCs to field
   GKYL_FIELD_PEC_WALL, // Maxwell's perfect electrical conductor (zero normal B and zero tangent E)
   GKYL_FIELD_SYM_WALL, // Maxwell's symmetry BC (zero normal E and zero tangent B)
   GKYL_FIELD_RESERVOIR, // Reservoir Maxwell's BCs for heat flux problem
   GKYL_FIELD_WEDGE, // specialized "wedge" BCs for RZ-theta
   GKYL_FIELD_FUNC, // Function boundary conditions
+  GKYL_FIELD_DIRICHLET, // Dirichlet boundary conditions
+  GKYL_FIELD_NEUMANN, // Nemann boundary conditions
+  GKYL_FIELD_NONE, // Do not apply any boundary conditions
 };

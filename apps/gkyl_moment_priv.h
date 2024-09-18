@@ -16,6 +16,7 @@
 #include <gkyl_array_ops.h>
 #include <gkyl_array_rio.h>
 #include <gkyl_comm.h>
+#include <gkyl_comm_io.h>
 #include <gkyl_dflt.h>
 #include <gkyl_dynvec.h>
 #include <gkyl_elem_type.h>
@@ -40,6 +41,14 @@
 #include <gkyl_wv_maxwell.h>
 #include <gkyl_wv_mhd.h>
 #include <gkyl_wv_ten_moment.h>
+
+// number of components that various applied functions should return
+enum {
+  GKYL_MOM_APP_NUM_APPLIED_CURRENT = 3,
+  GKYL_MOM_APP_NUM_EXT_EM = 6,
+  GKYL_MOM_APP_NUM_APPLIED_ACCELERATION = 3,
+  GKYL_MOM_APP_NUM_NT_SOURCE = 2
+};
 
 // Species data
 struct moment_species {
@@ -318,6 +327,13 @@ bc_copy(double t, int nc, const double *skin,
     ghost[c] = skin[c];
 }
 
+// function for skip BCs
+static inline void
+bc_skip(double t, int nc, const double *skin,
+  double *GKYL_RESTRICT ghost, void *ctx)
+{
+}
+
 // Compute integrated quantities specified by i_func
 void calc_integ_quant(const struct gkyl_wv_eqn *eqn, double vol,
   const struct gkyl_array *q,
@@ -338,6 +354,15 @@ void moment_apply_wedge_bc(const gkyl_moment_app *app, double tcurr,
   const struct gkyl_wv_apply_bc *lo,
   const struct gkyl_wv_apply_bc *up,
   struct gkyl_array *f);
+
+/**
+ * Return ghost cell layout for grid.
+ *
+ * @param app App object.
+ * @param nghost On output, ghost-cells used for grid.
+ *
+ */
+void gkyl_moment_app_nghost(gkyl_moment_app *app, int nghost[3]);
 
 /** moment_species API */
 

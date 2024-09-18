@@ -506,6 +506,31 @@ gkyl_dg_calc_cubic_2d_from_nodal_vals(gkyl_dg_basis_op_mem *mem, int cells[2], d
   }
 }
 
+
+static double
+eval_laplacian_expand_2d_tensor_p3(int dir, const double *z, const double *f )
+{
+  const double z0 = z[0];
+  const double z1 = z[1];
+  if (dir == 0)
+    return 131.25*f[15]*z0*z1*z1*z1+22.18529918662356*f[14]*z1*z1*z1+66.55589755987069*f[13]*z0*z1*z1+11.25*f[10]*z1*z1-78.75*f[15]*z0*z1+ 34.3693177121688*f[11]*z0*z1-13.31117951197414*f[14]*z1+5.809475019311125*f[6]*z1-22.18529918662356*f[13]*z0+ 19.84313483298443*f[8]*z0-3.75*f[10]+3.354101966249685*f[4];
+
+  if (dir == 1)
+    return 131.25*f[15]*z0*z0*z0*z1+66.55589755987069*f[14]*z0*z0*z1-78.75*f[15]*z0*z1+34.3693177121688*f[12]*z0*z1-22.18529918662356*f[14]*z1+19.84313483298443*f[9]*z1+22.18529918662356*f[13]*z0*z0*z0+11.25*f[10]*z0*z0-13.31117951197414*f[13]*z0+5.809475019311125*f[7]*z0-3.75*f[10]+3.354101966249685*f[5];
+
+  return 0.0; // can't happen, suppresses warning
+
+}
+
+static double
+eval_mixedpartial_expand_2d_tensor_p3(const double *z, const double *f )
+{
+  const double z0 = z[0];
+  const double z1 = z[1];
+  return 196.875*f[15]*z0*z0*z1*z1+66.55589755987069*f[14]*z0*z1*z1-39.375*f[15]*z1*z1+17.1846588560844*f[12]*z1*z1+66.55589755987069*f[13]*z0*z0*z1+22.5*f[10]*z0*z1-13.31117951197414*f[13]*z1+5.809475019311125*f[7]*z1-39.375*f[15]*z0*z0+17.1846588560844*f[11]*z0*z0-13.31117951197414*f[14]*z0+5.809475019311125*f[6]*z0+7.875*f[15]-3.43693177121688*f[12]-3.43693177121688*f[11]+1.5*f[3];
+
+}
+
 static void
 evalf_free(const struct gkyl_ref_count* rc)
 {
@@ -525,6 +550,10 @@ eval_cubic(double t, const double *xn, double *fout, void *ctx)
   
   int idx[GKYL_MAX_DIM];  
   gkyl_rect_grid_coord_idx(&ectx->grid, xn, idx);
+  for (int d=0; d<ectx->ndim; ++d) {
+    idx[d] = GKYL_MIN2(ectx->local.upper[d], idx[d]);
+    idx[d] = GKYL_MAX2(ectx->local.lower[d], idx[d]);
+  }
 
   double xc[GKYL_MAX_DIM];
   gkyl_rect_grid_cell_center(&ectx->grid, idx, xc);
@@ -547,6 +576,10 @@ eval_cubic_wgrad(double t, const double *xn, double *fout, void *ctx)
   
   int idx[GKYL_MAX_DIM];  
   gkyl_rect_grid_coord_idx(&ectx->grid, xn, idx);
+  for (int d=0; d<ectx->ndim; ++d) {
+    idx[d] = GKYL_MIN2(ectx->local.upper[d], idx[d]);
+    idx[d] = GKYL_MAX2(ectx->local.lower[d], idx[d]);
+  }
 
   double xc[GKYL_MAX_DIM];
   gkyl_rect_grid_cell_center(&ectx->grid, idx, xc);
@@ -563,6 +596,37 @@ eval_cubic_wgrad(double t, const double *xn, double *fout, void *ctx)
   if (ectx->ndim > 1)
     fout[2] = ectx->basis.eval_grad_expand(1, eta, fdg);
 }
+
+// function for computing cubic at a specified coordinate
+static void
+eval_cubic_wgrad2(double t, const double *xn, double *fout, void *ctx)
+{
+  struct dg_basis_ops_evalf_ctx *ectx = ctx;
+
+  int idx[GKYL_MAX_DIM];
+  gkyl_rect_grid_coord_idx(&ectx->grid, xn, idx);
+  for (int d=0; d<ectx->ndim; ++d) {
+    idx[d] = GKYL_MIN2(ectx->local.upper[d], idx[d]);
+    idx[d] = GKYL_MAX2(ectx->local.lower[d], idx[d]);
+  }
+
+  double xc[GKYL_MAX_DIM];
+  gkyl_rect_grid_cell_center(&ectx->grid, idx, xc);
+
+  double eta[GKYL_MAX_DIM];
+  for (int d=0; d<ectx->ndim; ++d)
+    eta[d] = 2.0*(xn[d]-xc[d])/ectx->grid.dx[d];
+
+  long lidx = gkyl_range_idx(&ectx->local, idx);
+  const double *fdg = gkyl_array_cfetch(ectx->cubic, lidx);
+
+  fout[0] = ectx->basis.eval_expand(eta, fdg);
+  if (ectx->ndim > 1) {
+    fout[2] = eval_laplacian_expand_2d_tensor_p3(1, eta, fdg);
+    fout[3] = eval_mixedpartial_expand_2d_tensor_p3(eta, fdg);
+  }
+}
+
 
 struct gkyl_basis_ops_evalf*
 gkyl_dg_basis_ops_evalf_new(const struct gkyl_rect_grid *grid,
@@ -604,6 +668,9 @@ gkyl_dg_basis_ops_evalf_new(const struct gkyl_rect_grid *grid,
   evf->ctx = ctx;
   evf->eval_cubic = eval_cubic;
   evf->eval_cubic_wgrad = eval_cubic_wgrad;
+  evf->eval_cubic_wgrad2 = eval_cubic_wgrad2;
+  evf->eval_cubic_laplacian = eval_laplacian_expand_2d_tensor_p3;
+  evf->eval_cubic_mixedpartial = eval_mixedpartial_expand_2d_tensor_p3;
   evf->ref_count = (struct gkyl_ref_count) { evalf_free, 1 };
   
   return evf;
