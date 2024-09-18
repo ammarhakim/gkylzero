@@ -384,7 +384,7 @@ struct gkyl_vlasov_poisson_app {
   struct gkyl_range upper_skin[GKYL_MAX_DIM];
   struct gkyl_range upper_ghost[GKYL_MAX_DIM];
 
-  struct gkyl_basis basis, confBasis; // phase-space, conf-space basis, vel-space basis
+  struct gkyl_basis basis, confBasis, velBasis; // phase-space, conf-space basis, vel-space basis
 
   struct gkyl_comm *comm;   // communicator object for conf-space arrays
 

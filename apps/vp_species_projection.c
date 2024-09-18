@@ -40,15 +40,16 @@ vp_species_projection_init(struct gkyl_vlasov_poisson_app *app, struct vp_specie
 
     struct gkyl_vlasov_lte_proj_on_basis_inp inp_proj = {
       .phase_grid = &s->grid,
+      .vel_grid = &s->grid_vel, 
       .conf_basis = &app->confBasis,
+      .vel_basis = &app->velBasis, 
       .phase_basis = &app->basis,
       .conf_range =  &app->local,
       .conf_range_ext = &app->local_ext,
       .vel_range = &s->local_vel,
       .model_id = s->model_id,
-      .mass = s->info.mass,
-      .quad_type = inp.quad_type,
       .use_gpu = app->use_gpu,
+      .quad_type = inp.quad_type
     };
     proj->proj_lte = gkyl_vlasov_lte_proj_on_basis_inew( &inp_proj );
 
@@ -56,19 +57,25 @@ vp_species_projection_init(struct gkyl_vlasov_poisson_app *app, struct vp_specie
     if (inp.correct_all_moms) {
       proj->correct_all_moms = true;
 
+      int max_iter = inp.max_iter > 0 ? inp.max_iter : 100;
+      double iter_eps = inp.iter_eps > 0 ? inp.iter_eps  : 1e-12;
+      bool use_last_converged = inp.use_last_converged;
+
       struct gkyl_vlasov_lte_correct_inp inp_corr = {
         .phase_grid = &s->grid,
+        .vel_grid = &s->grid_vel, 
         .conf_basis = &app->confBasis,
+        .vel_basis = &app->velBasis, 
         .phase_basis = &app->basis,
         .conf_range =  &app->local,
         .conf_range_ext = &app->local_ext,
         .vel_range = &s->local_vel,
         .model_id = s->model_id,
-        .mass = s->info.mass,
-        .max_iter = 100,
-        .eps = 1e-12,
-        .quad_type = inp.quad_type,
         .use_gpu = app->use_gpu,
+        .max_iter = max_iter,
+        .quad_type = inp.quad_type,
+        .eps = iter_eps,
+        .use_last_converged = use_last_converged, 
       };
       proj->corr_lte = gkyl_vlasov_lte_correct_inew( &inp_corr );
     }
