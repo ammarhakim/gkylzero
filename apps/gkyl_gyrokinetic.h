@@ -5,6 +5,7 @@
 #include <gkyl_eqn_type.h>
 #include <gkyl_fem_parproj.h>
 #include <gkyl_fem_poisson_bctype.h>
+#include <gkyl_gk_geometry.h>
 #include <gkyl_range.h>
 #include <gkyl_util.h>
 #include <gkyl_velocity_map.h>
@@ -111,11 +112,9 @@ struct gkyl_gyrokinetic_geometry {
   // pointer to bmag function
   void (*bmag_func)(double t, const double *xc, double *xp, void *ctx);
 
-  struct gkyl_tok_geo_efit_inp *tok_efit_info; // context with RZ data such as efit file for a tokamak
-  struct gkyl_tok_geo_grid_inp *tok_grid_info; // context for tokamak geometry with computational domain info
-
-  struct gkyl_mirror_geo_efit_inp *mirror_efit_info; // context with RZ data such as efit file for a mirror
-  struct gkyl_mirror_geo_grid_inp *mirror_grid_info; // context for mirror geometry with computational domain info
+  struct gkyl_efit_inp efit_info; // context with RZ data such as efit file for a tokamak or mirror
+  struct gkyl_tok_geo_grid_inp tok_grid_info; // context for tokamak geometry with computational domain info
+  struct gkyl_mirror_geo_grid_inp mirror_grid_info; // context for mirror geometry with computational domain info
 
   double world[3]; // extra computational coordinates for cases with reduced dimensionality
 };

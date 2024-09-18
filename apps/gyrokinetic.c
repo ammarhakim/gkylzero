@@ -4,6 +4,7 @@
 #include <gkyl_array_ops.h>
 #include <gkyl_array_rio_priv.h>
 #include <gkyl_basis.h>
+#include <gkyl_comm_io.h>
 #include <gkyl_dflt.h>
 #include <gkyl_dynvec.h>
 #include <gkyl_null_comm.h>
@@ -222,9 +223,8 @@ gkyl_gyrokinetic_app_new(struct gkyl_gk *gk)
     .mapc2p = gk->geometry.mapc2p,
     .bmag_ctx = gk->geometry.bmag_ctx,
     .bmag_func = gk->geometry.bmag_func,
-    .tok_efit_info = gk->geometry.tok_efit_info,
+    .efit_info = gk->geometry.efit_info,
     .tok_grid_info = gk->geometry.tok_grid_info,
-    .mirror_efit_info = gk->geometry.mirror_efit_info,
     .mirror_grid_info = gk->geometry.mirror_grid_info,
     .grid = app->grid,
     .local = app->local,
@@ -1741,6 +1741,18 @@ gkyl_gyrokinetic_app_write_geometry(gkyl_gyrokinetic_app* app)
     gkyl_grid_sub_array_write(&app->grid, &app->global, 0,  gxzj_ho, fileNm);
     sprintf(fileNm, fmt, app->name, "eps2");
     gkyl_grid_sub_array_write(&app->grid, &app->global, 0, eps2_ho, fileNm);
+    // Create Nodal Range and Grid and Write Nodal Coordinates
+    struct gkyl_range nrange;
+    gkyl_gk_geometry_init_nodal_range(&nrange, &app->global, app->poly_order);
+    struct gkyl_array* mc2p_nodal = mkarr(false, 3, nrange.volume);
+    struct gkyl_nodal_ops *n2m = gkyl_nodal_ops_new(&app->confBasis, &app->grid, false);
+    gkyl_nodal_ops_m2n(n2m, &app->confBasis, &app->grid, &nrange, &app->global, 3, mc2p_nodal, mc2p_ho);
+    gkyl_nodal_ops_release(n2m);
+    struct gkyl_rect_grid ngrid;
+    gkyl_gk_geometry_init_nodal_grid(&ngrid, &app->grid, &nrange);
+    sprintf(fileNm, fmt, app->name, "nodes");
+    gkyl_grid_sub_array_write(&ngrid, &nrange, 0,  mc2p_nodal, fileNm);
+    gkyl_array_release(mc2p_nodal);
   }
 
   gkyl_array_release(mc2p);
