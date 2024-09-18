@@ -884,15 +884,15 @@ int main(int argc, char **argv)
 
   struct gkyl_efit_inp efit_inp = {
     // psiRZ and related inputs
-    .filepath = "./data/eqdsk/wham.geqdsk",
-    .rz_poly_order = 2,
-    .flux_poly_order = 1,
+    .filepath = "./data/eqdsk/wham.geqdsk", // equilibrium to use
+    .rz_poly_order = 2,                     // polynomial order for psi(R,Z) used for field line tracing
+    .flux_poly_order = 1,                   // polynomial order for fpol(psi)
   };
 
   struct gkyl_mirror_geo_grid_inp grid_inp = {
-    .rclose = 0.2,
-    .zmin = -2.0,
-    .zmax =  2.0,
+    .rclose = 0.2, // closest R to region of interest
+    .zmin = -2.0,  // Z of lower boundary
+    .zmax =  2.0,  // Z of upper boundary 
   };
 
   struct gkyl_gk app_inp = {

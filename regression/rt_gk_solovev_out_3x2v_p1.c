@@ -474,20 +474,20 @@ main(int argc, char **argv)
 
   struct gkyl_efit_inp efit_inp = {
     // psiRZ and related inputs
-    .filepath = "./data/eqdsk/solovev.geqdsk",
-    .rz_poly_order = 2,
-    .flux_poly_order = 1,
+    .filepath = "./data/eqdsk/solovev.geqdsk", // equilibrium to use
+    .rz_poly_order = 2,                        // polynomial order for psi(R,Z) used for field line tracing
+    .flux_poly_order = 1,                      // polynomial order for fpol(psi)
   };
   
   struct gkyl_tok_geo_grid_inp grid_inp = {
-    .ftype = GKYL_SOL_DN_OUT,
-    .rclose = 3.0, // any number larger than ~2 will do
-    .rright = 3.0,
-    .rleft = 0.1,
-    .rmin = 0.1,
-    .rmax = 3.5,
-    .zmin = -1.5,
-    .zmax = 1.5,
+    .ftype = GKYL_SOL_DN_OUT,    // type of geometry
+    .rclose = 3.0,               // closest R to region of interest
+    .rright = 3.0,               // Closest R to outboard SOL
+    .rleft = 0.1,                // closest R to inboard SOL
+    .rmin = 0.1,                 // smallest R in machine
+    .rmax = 3.5,                 // largest R in machine
+    .zmin = -1.5,                // Z of lower divertor plate
+    .zmax = 1.5,                 // Z of upper divertor plate
   }; 
 
 

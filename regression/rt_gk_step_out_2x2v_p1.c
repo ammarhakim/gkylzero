@@ -661,21 +661,21 @@ main(int argc, char **argv)
 
   struct gkyl_efit_inp efit_inp = {
     // psiRZ and related inputs
-    .filepath = "./data/eqdsk/step.geqdsk",
-    .rz_poly_order = 2,
-    .rz_basis_type = GKYL_BASIS_MODAL_TENSOR,
-    .flux_poly_order = 1,
-    .reflect = true,
+    .filepath = "./data/eqdsk/step.geqdsk",   // equilibrium to use
+    .rz_poly_order = 2,                       // polynomial order for psi(R,Z) used for field line tracing
+    .rz_basis_type = GKYL_BASIS_MODAL_TENSOR, // Basis to use for psi(R,Z)
+    .flux_poly_order = 1,                     // polynomial order for fpol(psi)
+    .reflect = true,                          // Reflect lower half of psi(R,Z) for up-down symmetry
   };
 
   struct gkyl_tok_geo_grid_inp grid_inp = {
-      .ftype = GKYL_SOL_DN_OUT_MID,
-      .rclose = 6.2,
-      .rright= 6.2,
-      .rleft= 2.0,
-      .rmin = 1.1,
-      .rmax = 6.2,
-      .use_cubics = false,
+      .ftype = GKYL_SOL_DN_OUT_MID, // type of geometry
+      .rclose = 6.2,                // closest R to region of interest
+      .rright= 6.2,                 // Closest R to outboard SOL
+      .rleft= 2.0,                  // closest R to inboard SOL
+      .rmin = 1.1,                  // smallest R in machine
+      .rmax = 6.2,                  // largest R in machine
+      .use_cubics = false,          // Whether to use cubic representation of psi(R,Z) for field line tracing
   };
 
   // GK app
