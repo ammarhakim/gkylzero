@@ -8,6 +8,8 @@
 #include <gkyl_eqn_type.h>
 #include <gkyl_gyrokinetic_priv.h>
 //#include <gkyl_eval_on_nodes.h>
+#include <gkyl_proj_on_basis.h>
+#include <gkyl_gyrokinetic_pol_density.h>
 
 #include <assert.h>
 #include <time.h>
@@ -405,6 +407,49 @@ gk_species_apply_ic(gkyl_gyrokinetic_app *app, struct gk_species *gks, double t0
   // We are pre-computing source for now as it is time-independent.
   if (gks->source_id)
     gk_species_source_calc(app, gks, &gks->src, t0);
+}
+
+void
+gk_species_apply_ic_cross(gkyl_gyrokinetic_app *app, struct gk_species *gks_self, double t0)
+{
+  // IC setup step that depends on the IC of other species.
+
+  if (app->field->init_phi_pol && gks_self->info.charge > 0.0) {
+    // Scale the distribution function so its guiding center density is computed
+    // given the polarization density and the guiding center density of other species.
+
+    // Compute the polarization density.
+    struct gkyl_array *npol = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
+
+    struct gkyl_gyrokinetic_pol_density* npol_op = gkyl_gyrokinetic_pol_density_new(app->confBasis, app->grid, app->use_gpu);
+    gkyl_gyrokinetic_pol_density_advance(npol_op, &app->local, app->field->epsilon, app->field->phi_pol, npol);
+    gkyl_gyrokinetic_pol_density_release(npol_op);
+
+    // Calculate the guiding center density of this species: (npol - q_other*n^G_other)/q_self.
+    for (int i=0; i<app->num_species; ++i) {
+      struct gk_species *gks = &app->species[i];
+      gk_species_moment_calc(&gks->m0, gks->local, app->local, gks->f);
+      if (strcmp(gks->info.name, gks_self->info.name)) {
+        gkyl_array_accumulate(npol, -gks->info.charge, gks->m0.marr);
+      }
+    }
+    gkyl_array_scale(npol, 1./gks_self->info.charge);
+
+    // Scale the distribution function so it has this guiding center density.
+    struct gkyl_dg_bin_op_mem *div_mem = app->use_gpu? gkyl_dg_bin_op_mem_cu_dev_new(app->local.volume, app->confBasis.num_basis)
+                                                     : gkyl_dg_bin_op_mem_new(app->local.volume, app->confBasis.num_basis);
+    struct gkyl_array *den_mod = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
+
+    gkyl_dg_div_op_range(div_mem, app->confBasis,
+      0, den_mod, 0, npol, 0, gks_self->m0.marr, &app->local);
+    gkyl_dg_mul_conf_phase_op_range(&app->confBasis, &app->basis, gks_self->f,
+      den_mod, gks_self->f, &app->local_ext, &gks_self->local_ext);
+
+    gkyl_array_release(den_mod);
+    gkyl_dg_bin_op_mem_release(div_mem);
+    gkyl_array_release(npol);
+  }
+
 }
 
 // Compute the RHS for species update, returning maximum stable

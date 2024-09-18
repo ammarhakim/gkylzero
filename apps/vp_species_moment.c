@@ -28,7 +28,7 @@ vp_species_moment_init(struct gkyl_vlasov_poisson_app *app, struct vp_species *v
   else {
     sm->mcalc = gkyl_dg_updater_moment_new(&vps->grid, &app->confBasis, 
       &app->basis, &app->local, &vps->local_vel, vps->model_id, 0, 
-      nm, sm->is_integrated, vps->info.mass, app->use_gpu);   
+      nm, sm->is_integrated, app->use_gpu);   
     sm->num_mom = gkyl_dg_updater_moment_num_mom(sm->mcalc); 
   }
 

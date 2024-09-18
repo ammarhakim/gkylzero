@@ -30,8 +30,11 @@ struct gkyl_vlasov_poisson_projection {
       void *ctx_temp;
       void (*temp)(double t, const double *xn, double *fout, void *ctx);
 
-      // BGK collisions specific inputs
-      bool correct_all_moms; // boolean if we are correcting all the moments or only density
+      // boolean if we are correcting all the moments or only density
+      bool correct_all_moms;       
+      double iter_eps; // error tolerance for moment fixes (density is always exact)
+      int max_iter; // maximum number of iteration
+      bool use_last_converged; // use last iteration value regardless of convergence?
     };
   };
 };

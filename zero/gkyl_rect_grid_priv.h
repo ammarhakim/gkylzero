@@ -11,14 +11,16 @@
  * @params upper_boundaries: upper sides of given cell (output)
  */
 GKYL_CU_DH
-void in_dir(const struct gkyl_rect_grid *grid, int *cell_in, int *dim_trans[1], const int *known_index, double lower_boundaries[], double upper_boundaries[]){
+void in_dir(const struct gkyl_rect_grid *grid, int *cell_in, const int *dim_trans,
+  const int *known_index, double lower_boundaries[], double upper_boundaries[])
+{
   int ndim, check_index;
   const double *dx, *lower;
   ndim = grid -> ndim;
   dx = grid -> dx;
   lower = grid -> lower;
   for (int d=0; d<ndim; d++) {
-    check_index = known_index[d] < 0 ? cell_in[*dim_trans[d]] : known_index[d];
+    check_index = known_index[d] < 0 ? cell_in[dim_trans[d]] : known_index[d];
     lower_boundaries[d] = lower[d]+(check_index-1)*dx[d];
     upper_boundaries[d] = lower[d]+(check_index)*dx[d];
   }
@@ -33,7 +35,9 @@ void in_dir(const struct gkyl_rect_grid *grid, int *cell_in, int *dim_trans[1], 
  * @returns bool: true if point is in given cell
  */
 GKYL_CU_DH
-bool is_in_cell(const struct gkyl_rect_grid *grid, const double *point, int *cell_in, int *dim_trans[1], const int *known_index){
+bool is_in_cell(const struct gkyl_rect_grid *grid, const double *point,
+  int *cell_in, const int *dim_trans, const int *known_index)
+{
   int ndim;
   ndim = grid -> ndim;
   double lower_boundaries[ndim], upper_boundaries[ndim];

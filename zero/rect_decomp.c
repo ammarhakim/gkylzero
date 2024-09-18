@@ -409,7 +409,8 @@ gkyl_create_grid_ranges(const struct gkyl_rect_grid *grid,
   gkyl_sub_range_init(range, ext_range, lower, upper);
 }
 
-void gkyl_create_ranges(const struct gkyl_range *inrange,
+void
+gkyl_create_ranges(const struct gkyl_range *inrange,
   const int *nghost, struct gkyl_range *ext_range, struct gkyl_range *range)
 {
   int lower_ext[GKYL_MAX_DIM], upper_ext[GKYL_MAX_DIM];

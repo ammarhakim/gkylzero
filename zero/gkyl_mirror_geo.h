@@ -1,18 +1,19 @@
 #pragma once
 
+#include <math.h>
+#include <string.h>
 #include <stdbool.h>
 
+#include <gkyl_array.h>
+#include <gkyl_basis.h>
+#include <gkyl_efit.h>
+#include <gkyl_evalf_def.h>
 #include <gkyl_math.h>
 #include <gkyl_range.h>
 #include <gkyl_rect_grid.h>
-#include <math.h>
-#include <string.h>
-#include <gkyl_evalf_def.h>
-#include <gkyl_gk_geometry.h>
 
-// Object type
-typedef struct gkyl_mirror_geo gkyl_mirror_geo;
 
+typedef struct gk_geometry gk_geometry;
 
 // Some cumulative statistics
 struct gkyl_mirror_geo_stat {
@@ -28,11 +29,15 @@ struct gkyl_mirror_geo {
   struct gkyl_rect_grid rzgrid; // RZ grid on which psi(R,Z) is defined
   struct gkyl_range rzlocal; // local range over which psiRZ is defined
   struct gkyl_range rzlocal_ext; // extended range
+  struct gkyl_rect_grid rzgrid_cubic; // RZ grid on which the cubic rep of psi(R,Z) is defined
+  struct gkyl_range rzlocal_cubic; // local range over which the cubic rep of psiRZ is defined
+  struct gkyl_range rzlocal_cubic_ext; // extended range
   struct gkyl_basis rzbasis; // basis functions for R,Z grid
+  struct gkyl_basis rzbasis_cubic; // cubic basis functions for R,Z grid
   int num_rzbasis; // number of basis functions in RZ
   const struct gkyl_array *psiRZ; // psi(R,Z) DG representation
-  const struct gkyl_array *psibyrRZ; // psi(R,Z)/R DG representation
-  const struct gkyl_array *psibyr2RZ; // psi(R,Z)/R^2 DG representation
+  const struct gkyl_array *psiRZ_cubic; // cubic psi(R,Z) DG representation
+  struct gkyl_basis_ops_evalf *evf ; // wrapper for cubic evaluation
                    
   struct gkyl_rect_grid fgrid; // flux grid for fpol
   struct gkyl_range frange; // flux range
@@ -41,7 +46,8 @@ struct gkyl_mirror_geo {
   const struct gkyl_array *fpoldg; // fpol(psi) dg rep
   const struct gkyl_array *qdg; // q(psi) dg rep
                                    
-  double psisep; // psi of separatrix
+  double sibry; // psi of separatrix given by EFIT
+  double psisep; // psi of separatrix as calculated from the DG psi(R,Z)
   double zmaxis; // z of magnetic axis
 
   bool plate_spec;
@@ -51,9 +57,14 @@ struct gkyl_mirror_geo {
   struct { int max_iter; double eps; } root_param;
   struct { int max_level; double eps; } quad_param;
 
+  bool exact_roots; // If false we will allow approximate roots when no root is found
+  bool use_cubics; // If true will use the cubic rep of psi rather than the quadratic representation
+
   // pointer to root finder (depends on polyorder)
   struct RdRdZ_sol (*calc_roots)(const double *psi, double psi0, double Z,
     double xc[2], double dx[2]);
+
+  double (*calc_grad_psi)(const double *psih, const double eta[2], const double dx[2]);
 
   struct gkyl_mirror_geo_stat stat; 
   struct gkyl_array* mc2p_nodal_fd;
@@ -64,17 +75,22 @@ struct gkyl_mirror_geo {
 
 
 
-// Inputs to create a new GK geometry creation object
-struct gkyl_mirror_geo_efit_inp {
-  // Inputs to get psiRZ and related inputs from efit
-  char* filepath;
-  int rzpoly_order;
-  enum gkyl_basis_type rz_basis_type;
-  int fluxpoly_order;
+// Inputs to create geometry for a specific computational grid
+struct gkyl_mirror_geo_grid_inp {
+  struct gkyl_rect_grid cgrid;
+  struct gkyl_basis cbasis;
+
+  double rclose; // closest R to discrimate
+  double rright; // closest R to discrimate
+  double zmin, zmax; // extents of Z for integration
+
   // Specifications for divertor plate
   bool plate_spec;
   plate_func plate_func_lower;
   plate_func plate_func_upper;
+
+  bool exact_roots; // If false we will allow approximate roots when no root is found
+  bool use_cubics; // If true will use the cubic rep of psi rather than the quadratic representation
 
   // Parameters for root finder: leave unset to use defaults
   struct {
@@ -87,30 +103,18 @@ struct gkyl_mirror_geo_efit_inp {
     int max_levels; // typically 6-7    
     double eps; // typically 1e-10
   } quad_param;
-};
 
-// Inputs to create geometry for a specific computational grid
-struct gkyl_mirror_geo_grid_inp {
-  struct gkyl_rect_grid cgrid;
-  struct gkyl_basis cbasis;
-  
-  double rclose; // closest R to discrimate
-  double rright; // closest R to discrimate
-  double zmin, zmax; // extents of Z for integration
-
-  bool write_node_coord_array; // set to true if nodal coordinates should be written
-  const char *node_file_nm; // name of nodal coordinate file
 };
 
 
 /**
- * Create new updater to compute the geometry (mapc2p) needed in GK
+ * Create new updater to compute the geometry needed in GK
  * simulations.
  *
- * @param inp Input parameters
- * @param New GK geometry updater
+ * @param efit_inp Input parameters related to EFIT data
+ * @param grid_inp Input parameters related to computational grid
  */
-gkyl_mirror_geo *gkyl_mirror_geo_new(const struct gkyl_mirror_geo_efit_inp *inp);
+struct gkyl_mirror_geo *gkyl_mirror_geo_new(const struct gkyl_efit_inp *inp, const struct gkyl_mirror_geo_grid_inp *grid_inp);
 
 /**
  * Get R(psi,Z) for a specified psi and Z value. Multiple values may
@@ -124,7 +128,7 @@ gkyl_mirror_geo *gkyl_mirror_geo_new(const struct gkyl_mirror_geo_efit_inp *inp)
  * @param R on output, R(psi,Z)
  * @param dR on output, dR/dZ
  */
-int gkyl_mirror_geo_R_psiZ(const gkyl_mirror_geo *geo, double psi, double Z, int nmaxroots,
+int gkyl_mirror_geo_R_psiZ(const struct gkyl_mirror_geo *geo, double psi, double Z, int nmaxroots,
   double *R, double *dR);
 
 /**
@@ -143,7 +147,7 @@ int gkyl_mirror_geo_R_psiZ(const gkyl_mirror_geo *geo, double psi, double Z, int
  *    contours
  * @return Length of contour
  */
-double gkyl_mirror_geo_integrate_psi_contour(const gkyl_mirror_geo *geo, double psi,
+double gkyl_mirror_geo_integrate_psi_contour(const struct gkyl_mirror_geo *geo, double psi,
   double zmin, double zmax, double rclose);
 
 /**
@@ -153,7 +157,7 @@ double gkyl_mirror_geo_integrate_psi_contour(const gkyl_mirror_geo *geo, double 
  * @param xn computational coordinates
  * @param ret physical coordinates
  */
-void gkyl_mirror_geo_mapc2p(const gkyl_mirror_geo *geo, const struct gkyl_mirror_geo_grid_inp *inp,
+void gkyl_mirror_geo_mapc2p(const struct gkyl_mirror_geo *geo, const struct gkyl_mirror_geo_grid_inp *inp,
     const double *xn, double *ret);
 
 /**
@@ -165,7 +169,7 @@ void gkyl_mirror_geo_mapc2p(const gkyl_mirror_geo *geo, const struct gkyl_mirror
  * @param mapc2p On output, the DG representation of mapc2p
  */
 void gkyl_mirror_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, double dzc[3], 
-  evalf_t mapc2p_func, void* mapc2p_ctx, evalf_t bmag_func, void *bmag_ctx, 
+  struct gkyl_mirror_geo *geo, struct gkyl_mirror_geo_grid_inp *inp, 
   struct gkyl_array *mc2p_nodal_fd, struct gkyl_array *mc2p_nodal, struct gkyl_array *mc2p);
 
 /**
@@ -174,15 +178,11 @@ void gkyl_mirror_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, dou
  * @param geo Geometry object
  * @return Cumulative statistics
  */
-struct gkyl_mirror_geo_stat gkyl_mirror_geo_get_stat(const gkyl_mirror_geo *geo);
+struct gkyl_mirror_geo_stat gkyl_mirror_geo_get_stat(const struct gkyl_mirror_geo *geo);
 
 /**
  * Delete updater.
  *
  * @param geo Geometry object to delete
  */
-void gkyl_mirror_geo_release(gkyl_mirror_geo *geo);
-
-struct gkyl_range* gkyl_mirror_geo_get_nrange(gkyl_mirror_geo* geo);
-struct gkyl_array* gkyl_mirror_geo_get_mc2p_nodal_fd(gkyl_mirror_geo* geo);
-double* gkyl_mirror_geo_get_dzc(gkyl_mirror_geo* geo);
+void gkyl_mirror_geo_release(struct gkyl_mirror_geo *geo);

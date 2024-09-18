@@ -5,6 +5,7 @@
 #include <gkyl_basis.h>
 #include <gkyl_array.h>
 #include <gkyl_comm.h>
+#include <gkyl_comm_io.h>
 
 typedef void (*mapc2p_t)(double t, const double *zc, double *vp, void *ctx);
 

@@ -137,8 +137,10 @@ gkyl_vlasov_poisson_app_new(struct gkyl_vp *vp)
       if (poly_order == 1) {
         /* Force hybrid basis (p=2 in velocity space). */
         gkyl_cart_modal_hybrid(&app->basis, cdim, vdim);
+        gkyl_cart_modal_serendip(&app->velBasis, vdim, 2);
       } else {
         gkyl_cart_modal_serendip(&app->basis, pdim, poly_order);
+        gkyl_cart_modal_serendip(&app->velBasis, vdim, poly_order);
       } 
 
       if (app->use_gpu) {
@@ -154,6 +156,7 @@ gkyl_vlasov_poisson_app_new(struct gkyl_vp *vp)
 
     case GKYL_BASIS_MODAL_TENSOR:
       gkyl_cart_modal_tensor(&app->confBasis, cdim, poly_order);
+      gkyl_cart_modal_tensor(&app->velBasis, vdim, poly_order);
       gkyl_cart_modal_tensor(&app->basis, pdim, poly_order);
       break;
 

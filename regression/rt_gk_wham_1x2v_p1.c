@@ -109,25 +109,6 @@ struct gk_mirror_ctx
   double mapping_frac;
 };
 
-
-struct gkyl_mirror_geo_efit_inp inp = {
-  // psiRZ and related inputs
-  .filepath = "./data/eqdsk/wham.geqdsk",
-  .rzpoly_order = 2,
-  .fluxpoly_order = 1,
-  .plate_spec = false,
-  .quad_param = {  .eps = 1e-10 }
-};
-
-
-struct gkyl_mirror_geo_grid_inp ginp = {
-  .rclose = 0.2,
-  .zmin = -2.48,
-  .zmax =  2.48,
-  .write_node_coord_array = true,
-  .node_file_nm = "wham_nodes.gkyl"
-};
-
 double
 psi_RZ(double RIn, double ZIn, void *ctx)
 {
@@ -841,9 +822,8 @@ int main(int argc, char **argv)
       .lower={.type = GKYL_SPECIES_GK_SHEATH,},
       .upper={.type = GKYL_SPECIES_GK_SHEATH,},
     },
-
-    .num_diag_moments = 7, // Copied from GKsoloviev, but
-    .diag_moments = {"M0", "M1", "M2", "M2par", "M2perp", "M3par", "M3perp"},
+    .num_diag_moments = 1,
+    .diag_moments = {"BiMaxwellianMoments"},
   };
 
   struct gkyl_gyrokinetic_species ion = {
@@ -892,15 +872,27 @@ int main(int argc, char **argv)
       .lower={.type = GKYL_SPECIES_GK_SHEATH,},
       .upper={.type = GKYL_SPECIES_GK_SHEATH,},
     },
-
-    .num_diag_moments = 7,
-    .diag_moments = {"M0", "M1", "M2", "M2par", "M2perp", "M3par", "M3perp"},
+    .num_diag_moments = 1,
+    .diag_moments = {"BiMaxwellianMoments"},
   };
 
   struct gkyl_gyrokinetic_field field = {
     .polarization_bmag = ctx.B_p, 
     .fem_parbc = GKYL_FEM_PARPROJ_NONE,
     .kperpSq = pow(ctx.kperp, 2.),
+  };
+
+  struct gkyl_efit_inp efit_inp = {
+    // psiRZ and related inputs
+    .filepath = "./data/eqdsk/wham.geqdsk", // equilibrium to use
+    .rz_poly_order = 2,                     // polynomial order for psi(R,Z) used for field line tracing
+    .flux_poly_order = 1,                   // polynomial order for fpol(psi)
+  };
+
+  struct gkyl_mirror_geo_grid_inp grid_inp = {
+    .rclose = 0.2, // closest R to region of interest
+    .zmin = -2.0,  // Z of lower boundary
+    .zmax =  2.0,  // Z of upper boundary 
   };
 
   struct gkyl_gk app_inp = {
@@ -916,9 +908,8 @@ int main(int argc, char **argv)
     .geometry = {
       .geometry_id = GKYL_MIRROR,
       .world = {ctx.psi_eval, 0.0},
-      .mirror_efit_info = &inp,
-      .mirror_grid_info = &ginp,
-      // .geometry_id = GKYL_GEOMETRY_FROMFILE,
+      .efit_info = efit_inp,
+      .mirror_grid_info = grid_inp,
     },
 
     .num_periodic_dir = 0,

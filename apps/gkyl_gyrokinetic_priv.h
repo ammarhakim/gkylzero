@@ -453,7 +453,6 @@ struct gk_species {
   struct gkyl_rect_grid grid;
   struct gkyl_range local, local_ext; // local, local-ext phase-space ranges
   struct gkyl_range global, global_ext; // global, global-ext conf-space ranges    
-  struct app_skin_ghost_ranges skin_ghost; // conf-space skin/ghost
 
   struct gkyl_comm *comm;   // communicator object for phase-space arrays
   int nghost[GKYL_MAX_DIM]; // number of ghost-cells in each direction
@@ -573,7 +572,6 @@ struct gk_neut_species {
   struct gkyl_rect_grid grid;
   struct gkyl_range local, local_ext; // local, local-ext phase-space ranges
   struct gkyl_range global, global_ext; // global, global-ext conf-space ranges    
-  struct app_skin_ghost_ranges skin_ghost; // conf-space skin/ghost
 
   struct gkyl_comm *comm;   // communicator object for phase-space arrays
   int nghost[GKYL_MAX_DIM]; // number of ghost-cells in each direction
@@ -656,6 +654,9 @@ struct gk_field {
   struct gkyl_array *phi_fem, *phi_smooth; // arrays for updates
 
   struct gkyl_array *phi_host;  // host copy for use IO and initialization
+
+  bool init_phi_pol; // Whether to use the initial user polarization phi.
+  struct gkyl_array *phi_pol; // Initial polarization density potential.
 
   struct gkyl_range global_sub_range; // sub range of intersection of global range and local range
                                       // for solving subset of Poisson solves with parallelization in z
@@ -1237,6 +1238,16 @@ void gk_species_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app, struc
  * @param t0 Time for use in ICs
  */
 void gk_species_apply_ic(gkyl_gyrokinetic_app *app, struct gk_species *species, double t0);
+
+/**
+ * Compute the part of the species initial conditions that depends on other
+ * species.
+ *
+ * @param app gyrokinetic app object
+ * @param species Species object
+ * @param t0 Time for use in ICs
+ */
+void gk_species_apply_ic_cross(gkyl_gyrokinetic_app *app, struct gk_species *species, double t0);
 
 /**
  * Compute RHS from species distribution function
