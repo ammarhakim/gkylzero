@@ -109,7 +109,7 @@ gkyl_pkpm_app_new(struct gkyl_pkpm *pkpm)
   app->cfl = cfl_frac;
 
 #ifdef GKYL_HAVE_CUDA
-  app->use_gpu = pkpm->use_gpu;
+  app->use_gpu = pkpm->parallelism.use_gpu;
 #else
   app->use_gpu = false; // can't use GPUs if we don't have them!
 #endif
