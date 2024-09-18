@@ -696,15 +696,15 @@ int main(int argc, char **argv)
   };
 
   struct gkyl_gyrokinetic_projection ion_ic = {
-      .proj_id = GKYL_PROJ_BIMAXWELLIAN, 
-      .ctx_density = &ctx,
-      .density = eval_density_ion,
-      .ctx_upar = &ctx,
-      .upar= eval_upar_ion,
-      .ctx_temppar = &ctx,
-      .temppar = eval_temp_par_ion,      
-      .ctx_tempperp = &ctx,
-      .tempperp = eval_temp_perp_ion,   
+    .proj_id = GKYL_PROJ_BIMAXWELLIAN, 
+    .ctx_density = &ctx,
+    .density = eval_density_ion,
+    .ctx_upar = &ctx,
+    .upar= eval_upar_ion,
+    .ctx_temppar = &ctx,
+    .temppar = eval_temp_par_ion,      
+    .ctx_tempperp = &ctx,
+    .tempperp = eval_temp_perp_ion,   
   };
 
   struct gkyl_gyrokinetic_species ion = {
