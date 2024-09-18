@@ -369,8 +369,8 @@ create_ctx(void)
   int Nx = 4;
   int Ny = 1;
   int Nz = 8;
-  int Nvpar = 6;
-  int Nmu = 4;
+  int Nvpar = 12;
+  int Nmu = 8;
 
   double t_end = 1.0e-7; 
   double num_frames = 1;
@@ -776,7 +776,7 @@ main(int argc, char **argv)
 
   // GK app
   struct gkyl_gk app_inp = {
-    .name = "gk_li_react_3x2v_p1_linear",
+    .name = "gk_li_react_3x2v_p1_12Nv_linear",
 
     .cdim = 3, .vdim = 2,
     .lower = { ctx.R-ctx.Lx/2.0, -ctx.Ly/2.0, -ctx.Lz/2.0 },
