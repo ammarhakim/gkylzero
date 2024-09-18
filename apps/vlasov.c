@@ -540,6 +540,20 @@ gkyl_vlasov_app_write_field(gkyl_vlasov_app* app, double tm, int frame)
   else {
     gkyl_comm_array_write(app->comm, &app->grid, &app->local, mt, app->field->em, fileNm);
   }
+  if (app->field->has_ext_em) {
+    // Only write out external fields at t=0 or if they are time-dependent
+    if (frame == 0 || app->field->ext_em_evolve) {
+      const char *fmt_ext_em = "%s-field_ext_em_%d.gkyl";
+      int sz_ext_em = gkyl_calc_strlen(fmt_ext_em, app->name, frame);
+      char fileNm_ext_em[sz_ext_em+1]; // ensures no buffer overflow
+      snprintf(fileNm_ext_em, sizeof fileNm_ext_em, fmt_ext_em, app->name, frame);
+
+      // External EM field computed with project on basis, so just use host copy 
+      vm_field_calc_ext_em(app, app->field, tm);
+      gkyl_comm_array_write(app->comm, &app->grid, &app->local, 
+        mt, app->field->ext_em_host, fileNm_ext_em);
+    }
+  }
 
   vlasov_array_meta_release(mt);
 }
