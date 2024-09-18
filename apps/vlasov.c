@@ -4,6 +4,7 @@
 #include <gkyl_array_ops.h>
 #include <gkyl_array_rio_priv.h>
 #include <gkyl_basis.h>
+#include <gkyl_comm_io.h>
 #include <gkyl_dflt.h>
 #include <gkyl_dynvec.h>
 #include <gkyl_null_comm.h>
@@ -303,8 +304,7 @@ gkyl_vlasov_app_new(struct gkyl_vm *vm)
       && app->species[i].lbo.num_cross_collisions)
       vm_species_lbo_cross_init(app, &app->species[i], &app->species[i].lbo);
 
-  // initialize each species source terms: this has to be done here
-  // as they may initialize a bflux updater for their source species
+  // initialize each species source terms
   for (int i=0; i<ns; ++i)
     if (app->species[i].source_id)
       vm_species_source_init(app, &app->species[i], &app->species[i].src);
@@ -590,6 +590,20 @@ gkyl_vlasov_app_write_field(gkyl_vlasov_app* app, double tm, int frame)
     // copy data from device to host before writing it out
     gkyl_array_copy(app->field->em_host, app->field->em);
   }
+  if (app->field->has_ext_em) {
+    // Only write out external fields at t=0 or if they are time-dependent
+    if (frame == 0 || app->field->ext_em_evolve) {
+      const char *fmt_ext_em = "%s-field_ext_em_%d.gkyl";
+      int sz_ext_em = gkyl_calc_strlen(fmt_ext_em, app->name, frame);
+      char fileNm_ext_em[sz_ext_em+1]; // ensures no buffer overflow
+      snprintf(fileNm_ext_em, sizeof fileNm_ext_em, fmt_ext_em, app->name, frame);
+
+      // External EM field computed with project on basis, so just use host copy 
+      vm_field_calc_ext_em(app, app->field, tm);
+      gkyl_comm_array_write(app->comm, &app->grid, &app->local, 
+        mt, app->field->ext_em_host, fileNm_ext_em);
+    }
+  }
   gkyl_comm_array_write(app->comm, &app->grid, &app->local, 
     mt, app->field->em_host, fileNm);
 
@@ -678,6 +692,11 @@ gkyl_vlasov_app_write_species_lte(gkyl_vlasov_app* app, int sidx, double tm, int
     gkyl_comm_array_write(vm_s->comm, &vm_s->grid, &vm_s->local,
       mt, vm_s->lte.f_lte, fileNm);
   }
+
+  if (app->species[sidx].emit_lo)
+    vm_species_emission_write(app, &app->species[sidx], &app->species[sidx].bc_emission_lo, mt, frame);
+  if (app->species[sidx].emit_up)
+    vm_species_emission_write(app, &app->species[sidx], &app->species[sidx].bc_emission_up, mt, frame);
 
   vlasov_array_meta_release(mt);  
 }

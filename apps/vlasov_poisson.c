@@ -137,8 +137,10 @@ gkyl_vlasov_poisson_app_new(struct gkyl_vp *vp)
       if (poly_order == 1) {
         /* Force hybrid basis (p=2 in velocity space). */
         gkyl_cart_modal_hybrid(&app->basis, cdim, vdim);
+        gkyl_cart_modal_serendip(&app->velBasis, vdim, 2);
       } else {
         gkyl_cart_modal_serendip(&app->basis, pdim, poly_order);
+        gkyl_cart_modal_serendip(&app->velBasis, vdim, poly_order);
       } 
 
       if (app->use_gpu) {
@@ -154,6 +156,7 @@ gkyl_vlasov_poisson_app_new(struct gkyl_vp *vp)
 
     case GKYL_BASIS_MODAL_TENSOR:
       gkyl_cart_modal_tensor(&app->confBasis, cdim, poly_order);
+      gkyl_cart_modal_tensor(&app->velBasis, vdim, poly_order);
       gkyl_cart_modal_tensor(&app->basis, pdim, poly_order);
       break;
 
@@ -230,6 +233,15 @@ gkyl_vlasov_poisson_app_new(struct gkyl_vp *vp)
   for (int i=0; i<ns; ++i) 
     vp_species_init(vp, app, &app->species[i]);
 
+  // initialize species wall emission terms: these rely
+  // on other species which must be allocated in the previous step
+  for (int i=0; i<ns; ++i) {
+    if (app->species[i].emit_lo)
+      vp_species_emission_cross_init(app, &app->species[i], &app->species[i].bc_emission_lo);
+    if (app->species[i].emit_up)
+      vp_species_emission_cross_init(app, &app->species[i], &app->species[i].bc_emission_up);
+  }
+
   // Initialize each species cross-collisions terms: this has to be done here
   // as need pointers to colliding species' collision objects
   // allocated in vp_species_init.
@@ -241,8 +253,7 @@ gkyl_vlasov_poisson_app_new(struct gkyl_vp *vp)
     }
   }
 
-  // Initialize each species source terms: this has to be done here
-  // as they may initialize a bflux updater for their source species.
+  // Initialize each species source terms
   for (int i=0; i<ns; ++i) {
     if (app->species[i].source_id) {
       vp_species_source_init(app, &app->species[i], &app->species[i].src);
@@ -288,7 +299,7 @@ calc_field_and_apply_bc(gkyl_vlasov_poisson_app* app, double tcurr, struct gkyl_
 
   // Apply boundary conditions.
   for (int i=0; i<app->num_species; ++i) {
-    vp_species_apply_bc(app, &app->species[i], distf[i]);
+    vp_species_apply_bc(app, &app->species[i], distf[i], tcurr);
   }
 
 }
@@ -335,8 +346,6 @@ gkyl_vlasov_poisson_app_apply_ic_species(gkyl_vlasov_poisson_app* app, int sidx,
   struct timespec wtm = gkyl_wall_clock();
   vp_species_apply_ic(app, &app->species[sidx], t0);
   app->stat.init_species_tm += gkyl_time_diff_now_sec(wtm);
-
-  vp_species_apply_bc(app, &app->species[sidx], app->species[sidx].f);
 }
 
 void
@@ -465,6 +474,11 @@ gkyl_vlasov_poisson_app_write_species(gkyl_vlasov_poisson_app* app, int sidx, do
 
   gkyl_comm_array_write(vps->comm, &vps->grid, &vps->local, mt, vps->f_host, fileNm);
 
+  if (vps->emit_lo)
+    vp_species_emission_write(app, vps, &vps->bc_emission_lo, mt, frame);
+  if (app->species[sidx].emit_up)
+    vp_species_emission_write(app, vps, &vps->bc_emission_up, mt, frame);
+
   vlasov_poisson_array_meta_release(mt);
 }
 
@@ -553,6 +567,40 @@ gkyl_vlasov_poisson_app_write_field_energy(gkyl_vlasov_poisson_app* app)
   }
 }
 
+void
+gkyl_vlasov_poisson_app_write_lte_corr_status(gkyl_vlasov_poisson_app* app)
+{
+  for (int i=0; i<app->num_species; ++i) {
+    struct vp_species *s = &app->species[i];
+
+    if (s->collision_id == GKYL_BGK_COLLISIONS) {
+       // write out diagnostic moments
+      const char *fmt = "%s-%s-%s.gkyl";
+      int sz = gkyl_calc_strlen(fmt, app->name, app->species[i].info.name,
+        "corr-lte-stat");
+      char fileNm[sz+1]; // ensures no buffer overflow
+      snprintf(fileNm, sizeof fileNm, fmt, app->name, app->species[i].info.name,
+        "corr-lte-stat");
+
+      int rank;
+      gkyl_comm_get_rank(app->comm, &rank);
+
+      if (rank == 0) {
+        if (s->bgk.is_first_corr_status_write_call) {
+          // write to a new file (this ensure previous output is removed)
+          gkyl_dynvec_write(s->bgk.corr_stat, fileNm);
+          s->bgk.is_first_corr_status_write_call = false;
+        }
+        else {
+          // append to existing file
+          gkyl_dynvec_awrite(s->bgk.corr_stat, fileNm);
+        }
+      }
+      gkyl_dynvec_clear(s->bgk.corr_stat);
+    }
+  } 
+}
+
 // Take a forward Euler step with the suggested time-step dt. This may
 // not be the actual time-step taken. However, the function will never
 // take a time-step larger than dt even if it is allowed by
@@ -572,10 +620,10 @@ forward_euler(gkyl_vlasov_poisson_app* app, double tcurr, double dt,
     if (app->species[i].collision_id == GKYL_LBO_COLLISIONS) {
       vp_species_lbo_moms(app, &app->species[i], &app->species[i].lbo, fin[i]);
     }
-//    else if (app->species[i].collision_id == GKYL_BGK_COLLISIONS) {
-//      vp_species_bgk_moms(app, &app->species[i],
-//        &app->species[i].bgk, fin[i]);
-//    }
+    else if (app->species[i].collision_id == GKYL_BGK_COLLISIONS) {
+      vp_species_bgk_moms(app, &app->species[i], 
+        &app->species[i].bgk, fin[i]);
+    }
   }
 
   // Compute necessary moments for cross-species collisions.
@@ -586,12 +634,6 @@ forward_euler(gkyl_vlasov_poisson_app* app, double tcurr, double dt,
         vp_species_lbo_cross_moms(app, &app->species[i], &app->species[i].lbo, fin[i]);
       }
     }
-//    else if (app->species[i].collision_id == GKYL_BGK_COLLISIONS) {
-//      if (app->species[i].bgk.num_cross_collisions) {
-//        vp_species_bgk_cross_moms(app, &app->species[i],
-//          &app->species[i].bgk, fin[i]);
-//      }
-//    }
   }
 
   // Compute RHS of Vlasov-Poisson equation.
@@ -599,10 +641,6 @@ forward_euler(gkyl_vlasov_poisson_app* app, double tcurr, double dt,
     struct vp_species *vps = &app->species[i];
     double dt1 = vp_species_rhs(app, vps, fin[i], fout[i]);
     dtmin = fmin(dtmin, dt1);
-
-    // Compute and store (in the ghost cell of of out) the boundary fluxes.
-    // NOTE: this overwrites ghost cells that may be used for sourcing.
-    vp_species_bflux_rhs(app, vps, &vps->bflux, fin[i], fout[i]);
   }
 
   // Compute source term.
@@ -1054,6 +1092,9 @@ gkyl_vlasov_poisson_app_from_frame_species(gkyl_vlasov_poisson_app *app, int sid
   struct gkyl_app_restart_status rstat = gkyl_vlasov_poisson_app_from_file_species(app, sidx, fileNm.str);
   app->species[sidx].is_first_integ_write_call = false; // append to existing diagnostic
   cstr_drop(&fileNm);
+
+  vp_species_bflux_rhs(app, &app->species[sidx], &app->species[sidx].bflux, app->species[sidx].f,
+    app->species[sidx].f);
 
   return rstat;
 }

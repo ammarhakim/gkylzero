@@ -166,13 +166,10 @@ vp_species_init(struct gkyl_vp *vp, struct gkyl_vlasov_poisson_app *app, struct 
   if (vps->collision_id == GKYL_LBO_COLLISIONS) {
     vp_species_lbo_init(app, vps, &vps->lbo);
   } 
-  else if (vps->collision_id == GKYL_LBO_COLLISIONS) {
-//    vp_species_bgk_init(app, vps, &vps->bgk);
-    assert(false); // Not ready.
+  else if (vps->collision_id == GKYL_BGK_COLLISIONS) {
+    vp_species_bgk_init(app, vps, &vps->bgk);
+    // assert(false); // Not ready.
   }
-
-  // Initialize boundary fluxes for diagnostics and sources, for example.
-  vp_species_bflux_init(app, vps, &vps->bflux);
 
   // Create ranges and allocate buffers for applying periodic and non-periodic BCs.
   long buff_sz = 0;
@@ -186,6 +183,10 @@ vp_species_init(struct gkyl_vp *vp, struct gkyl_vlasov_poisson_app *app, struct 
     long vol = GKYL_MAX2(vps->lower_skin[dir].volume, vps->upper_skin[dir].volume);
     buff_sz = buff_sz > vol ? buff_sz : vol;
   }
+
+  // Initialize boundary fluxes for diagnostics and sources, for example.
+  vp_species_bflux_init(app, vps, &vps->bflux);
+
   vps->bc_buffer = mkarr(app->use_gpu, app->basis.num_basis, buff_sz);
   // Buffer arrays for fixed function boundary conditions on distribution function.
   vps->bc_buffer_lo_fixed = mkarr(app->use_gpu, app->basis.num_basis, buff_sz);
@@ -194,30 +195,44 @@ vp_species_init(struct gkyl_vp *vp, struct gkyl_vlasov_poisson_app *app, struct 
   for (int d=0; d<cdim; ++d) {
     // Lower BC updater. Copy BCs by default.
     enum gkyl_bc_basic_type bctype = GKYL_BC_COPY;
-    if (vps->lower_bc[d].type == GKYL_SPECIES_COPY)
-      bctype = GKYL_BC_COPY;
-    else if (vps->lower_bc[d].type == GKYL_SPECIES_ABSORB)
-      bctype = GKYL_BC_ABSORB;
-    else if (vps->lower_bc[d].type == GKYL_SPECIES_REFLECT)
-      bctype = GKYL_BC_REFLECT;
-    else if (vps->lower_bc[d].type == GKYL_SPECIES_FIXED_FUNC)
-      bctype = GKYL_BC_FIXED_FUNC;
+    if (vps->lower_bc[d].type == GKYL_SPECIES_EMISSION) {
+      vps->emit_lo = true;
+      vp_species_emission_init(app, &vps->bc_emission_lo, d, GKYL_LOWER_EDGE, vps->lower_bc[d].aux_ctx,
+        app->use_gpu);
+    }
+    else {  
+      if (vps->lower_bc[d].type == GKYL_SPECIES_COPY)
+        bctype = GKYL_BC_COPY;
+      else if (vps->lower_bc[d].type == GKYL_SPECIES_ABSORB)
+        bctype = GKYL_BC_ABSORB;
+      else if (vps->lower_bc[d].type == GKYL_SPECIES_REFLECT)
+        bctype = GKYL_BC_REFLECT;
+      else if (vps->lower_bc[d].type == GKYL_SPECIES_FIXED_FUNC)
+        bctype = GKYL_BC_FIXED_FUNC;
 
-    vps->bc_lo[d] = gkyl_bc_basic_new(d, GKYL_LOWER_EDGE, bctype, app->basis_on_dev.basis,
-      &vps->lower_skin[d], &vps->lower_ghost[d], vps->f->ncomp, app->cdim, app->use_gpu);
+      vps->bc_lo[d] = gkyl_bc_basic_new(d, GKYL_LOWER_EDGE, bctype, app->basis_on_dev.basis,
+        &vps->lower_skin[d], &vps->lower_ghost[d], vps->f->ncomp, app->cdim, app->use_gpu);
+    }
 
     // Upper BC updater. Copy BCs by default.
-    if (vps->upper_bc[d].type == GKYL_SPECIES_COPY)
-      bctype = GKYL_BC_COPY;
-    else if (vps->upper_bc[d].type == GKYL_SPECIES_ABSORB)
-      bctype = GKYL_BC_ABSORB;
-    else if (vps->upper_bc[d].type == GKYL_SPECIES_REFLECT)
-      bctype = GKYL_BC_REFLECT;
-    else if (vps->upper_bc[d].type == GKYL_SPECIES_FIXED_FUNC)
-      bctype = GKYL_BC_FIXED_FUNC;
+    if (vps->upper_bc[d].type == GKYL_SPECIES_EMISSION) {
+      vps->emit_up = true;
+      vp_species_emission_init(app, &vps->bc_emission_up, d, GKYL_UPPER_EDGE, vps->upper_bc[d].aux_ctx,
+        app->use_gpu);
+    }
+    else {
+      if (vps->upper_bc[d].type == GKYL_SPECIES_COPY)
+        bctype = GKYL_BC_COPY;
+      else if (vps->upper_bc[d].type == GKYL_SPECIES_ABSORB)
+        bctype = GKYL_BC_ABSORB;
+      else if (vps->upper_bc[d].type == GKYL_SPECIES_REFLECT)
+        bctype = GKYL_BC_REFLECT;
+      else if (vps->upper_bc[d].type == GKYL_SPECIES_FIXED_FUNC)
+        bctype = GKYL_BC_FIXED_FUNC;
 
-    vps->bc_up[d] = gkyl_bc_basic_new(d, GKYL_UPPER_EDGE, bctype, app->basis_on_dev.basis,
-      &vps->upper_skin[d], &vps->upper_ghost[d], vps->f->ncomp, app->cdim, app->use_gpu);
+      vps->bc_up[d] = gkyl_bc_basic_new(d, GKYL_UPPER_EDGE, bctype, app->basis_on_dev.basis,
+        &vps->upper_skin[d], &vps->upper_ghost[d], vps->f->ncomp, app->cdim, app->use_gpu);
+    }
   }
 }
 
@@ -227,8 +242,15 @@ vp_species_apply_ic(gkyl_vlasov_poisson_app *app, struct vp_species *species, do
   vp_species_projection_calc(app, species, &species->proj_init, species->f, t0);
 
   // we are pre-computing source for now as it is time-independent
-  if (species->source_id)
-    vp_species_source_calc(app, species, &species->src, t0);
+  vp_species_source_calc(app, species, &species->src, t0);
+
+  vp_species_bflux_rhs(app, species, &species->bflux, species->f, species->f);
+
+    // Optional runtime configuration to use BGK collisions but with fixed input 
+  // temperature relaxation based on the initial temperature value. 
+  if (species->bgk.fixed_temp_relax) {
+    vp_species_bgk_moms_fixed_temp(app, species, &species->bgk, species->f);
+  }
 
   // copy contents of initial conditions into buffer if specific BCs require them
   // *only works in x dimension for now for cdim > 1*
@@ -259,9 +281,11 @@ vp_species_rhs(gkyl_vlasov_poisson_app *app, struct vp_species *species,
 
   if (species->collision_id == GKYL_LBO_COLLISIONS)
     vp_species_lbo_rhs(app, species, &species->lbo, fin, rhs);
-//  else if (species->collision_id == GKYL_BGK_COLLISIONS)
-//    vp_species_bgk_rhs(app, species, &species->bgk, fin, rhs);
+   else if (species->collision_id == GKYL_BGK_COLLISIONS)
+     vp_species_bgk_rhs(app, species, &species->bgk, fin, rhs);
   
+  vp_species_bflux_rhs(app, species, &species->bflux, fin, rhs);
+
   app->stat.nspecies_omega_cfl +=1;
   struct timespec tm = gkyl_wall_clock();
   gkyl_array_reduce_range(species->omega_cfl, species->cflrate, GKYL_MAX, &species->local);
@@ -281,7 +305,7 @@ vp_species_rhs(gkyl_vlasov_poisson_app *app, struct vp_species *species,
 // Determine which directions are periodic and which directions are not periodic,
 // and then apply boundary conditions for distribution function
 void
-vp_species_apply_bc(gkyl_vlasov_poisson_app *app, const struct vp_species *species, struct gkyl_array *f)
+vp_species_apply_bc(gkyl_vlasov_poisson_app *app, const struct vp_species *species, struct gkyl_array *f, double tcurr)
 {
   struct timespec wst = gkyl_wall_clock();
   
@@ -293,6 +317,9 @@ vp_species_apply_bc(gkyl_vlasov_poisson_app *app, const struct vp_species *speci
     if (species->bc_is_np[d]) {
 
       switch (species->lower_bc[d].type) {
+        case GKYL_SPECIES_EMISSION:
+          vp_species_emission_apply_bc(app, &species->bc_emission_lo, f, tcurr);
+          break;
         case GKYL_SPECIES_COPY:
         case GKYL_SPECIES_REFLECT:
         case GKYL_SPECIES_ABSORB:
@@ -306,6 +333,9 @@ vp_species_apply_bc(gkyl_vlasov_poisson_app *app, const struct vp_species *speci
       }
 
       switch (species->upper_bc[d].type) {
+        case GKYL_SPECIES_EMISSION:
+          vp_species_emission_apply_bc(app, &species->bc_emission_up, f, tcurr);
+          break;
         case GKYL_SPECIES_COPY:
         case GKYL_SPECIES_REFLECT:
         case GKYL_SPECIES_ABSORB:
@@ -364,6 +394,8 @@ vp_species_release(const gkyl_vlasov_poisson_app* app, const struct vp_species *
 
   vp_species_projection_release(app, &s->proj_init);
 
+  vp_species_bflux_release(app, &s->bflux);
+
   gkyl_comm_release(s->comm);
 
   if (app->use_gpu)
@@ -389,15 +421,20 @@ vp_species_release(const gkyl_vlasov_poisson_app* app, const struct vp_species *
 
   if (s->collision_id == GKYL_LBO_COLLISIONS)
     vp_species_lbo_release(app, &s->lbo);
-//  else if (s->collision_id == GKYL_BGK_COLLISIONS)
-//    vp_species_bgk_release(app, &s->bgk);
-
-  vp_species_bflux_release(app, &s->bflux);
+   else if (s->collision_id == GKYL_BGK_COLLISIONS)
+     vp_species_bgk_release(app, &s->bgk);
 
   // Copy BCs are allocated by default. Need to free.
   for (int d=0; d<app->cdim; ++d) {
-    gkyl_bc_basic_release(s->bc_lo[d]);
-    gkyl_bc_basic_release(s->bc_up[d]);
+    if (s->lower_bc[d].type == GKYL_SPECIES_EMISSION)
+      vp_species_emission_release(&s->bc_emission_lo);
+    else 
+      gkyl_bc_basic_release(s->bc_lo[d]);
+    
+    if (s->upper_bc[d].type == GKYL_SPECIES_EMISSION)
+      vp_species_emission_release(&s->bc_emission_up);
+    else 
+      gkyl_bc_basic_release(s->bc_up[d]);
   }
   
   if (app->use_gpu) {

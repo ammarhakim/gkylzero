@@ -96,15 +96,15 @@ test_1x2v(int poly_order, bool use_gpu)
     .mu_max = mu_max, // Maximum mu of the grid.
   };
 
-  double confLower[GKYL_MAX_CDIM] = {0.0}, confUpper[GKYL_MAX_CDIM] = {0.0};
-  int confCells[GKYL_MAX_CDIM] = {0};
+  double confLower[cdim], confUpper[cdim];
+  int confCells[cdim];
   for (int d=0; d<cdim; d++) {
     confLower[d] = lower[d];
     confUpper[d] = upper[d];
     confCells[d] = cells[d];
   }
-  double velLower[3] = {0.0}, velUpper[3] = {0.0};
-  int velCells[3] = {0};
+  double velLower[vdim], velUpper[vdim];
+  int velCells[vdim];
   for (int d=0; d<vdim; d++) {
     velLower[d] = lower[cdim+d];
     velUpper[d] = upper[cdim+d];

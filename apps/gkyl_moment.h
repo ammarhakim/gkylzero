@@ -11,14 +11,6 @@
 
 #include <time.h>
 
-// number of components that various applied functions should return
-enum {
-  GKYL_MOM_APP_NUM_APPLIED_CURRENT = 3,
-  GKYL_MOM_APP_NUM_EXT_EM = 6,
-  GKYL_MOM_APP_NUM_APPLIED_ACCELERATION = 3,
-  GKYL_MOM_APP_NUM_NT_SOURCE = 2
-};
-
 // Parameters for moment species
 struct gkyl_moment_species {
   char name[128]; // species name
@@ -394,15 +386,6 @@ void gkyl_moment_app_calc_integrated_mom(gkyl_moment_app *app, double tm);
  * @param vals On output, value of the integrate moments for species
  */
 void gkyl_moment_app_get_integrated_mom(gkyl_moment_app *app, double *vals);
-
-/**
- * Return ghost cell layout for grid.
- *
- * @param app App object.
- * @param nghost On output, ghost-cells used for grid.
- *
- */
-void gkyl_moment_app_nghost(gkyl_moment_app *app, int nghost[3]);
 
 /**
  * Get a pointer to the species array that needs to be written out. If

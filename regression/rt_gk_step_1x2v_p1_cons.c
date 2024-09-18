@@ -86,27 +86,23 @@ struct sheath_ctx
   int num_failures_max; // Maximum allowable number of consecutive small time-steps.
 };
 
-struct gkyl_tok_geo_efit_inp inp = {
+struct gkyl_efit_inp inp = {
   // psiRZ and related inputs
-  .filepath = "./data/eqdsk/step.geqdsk",
-  .rzpoly_order = 2,
-  .fluxpoly_order = 1,
-  .plate_spec = false,
-  .quad_param = {  .eps = 1e-10 }
+  .filepath = "./data/eqdsk/step.geqdsk", // equilibrium to use
+  .rz_poly_order = 2,                     // polynomial order for psi(R,Z) used for field line tracing
+  .flux_poly_order = 1,                   // polynomial order for fpol(psi)
 };
 
 
 struct gkyl_tok_geo_grid_inp ginp = {
-    .ftype = GKYL_SOL_DN_OUT,
-    .rclose = 6.2,
-    .rright= 6.2,
-    .rleft= 2.0,
-    .rmin = 1.1,
-    .rmax = 6.2,
-    .zmin = -5.14213,
-    .zmax = 5.14226,
-    .write_node_coord_array = true,
-    .node_file_nm = "step_outboard_fixed_z_nodes.gkyl"
+    .ftype = GKYL_SOL_DN_OUT,  // type of geometry
+    .rclose = 6.2,             // closest R to region of interest
+    .rright= 6.2,              // Closest R to outboard SOL
+    .rleft= 2.0,               // closest R to inboard SOL
+    .rmin = 1.1,               // smallest R in machine
+    .rmax = 6.2,               // largest R in machine
+    .zmin = -5.14213,          // Z of lower divertor plate
+    .zmax = 5.14226,           // Z of upper divertor plate
   };
 
 
@@ -707,8 +703,8 @@ main(int argc, char **argv)
       //.geometry_id = GKYL_GEOMETRY_FROMFILE,
       .world = {1.2014, 0.0},
       .geometry_id = GKYL_TOKAMAK,
-      .tok_efit_info = &inp,
-      .tok_grid_info = &ginp,
+      .efit_info = inp,
+      .tok_grid_info = ginp,
     },
 
     .num_periodic_dir = 1,
