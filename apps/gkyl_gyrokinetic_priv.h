@@ -552,9 +552,9 @@ struct gk_species {
   struct gkyl_dg_updater_diffusion_gyrokinetic *diff_slvr; // Gyrokinetic diffusion equation solver.
 
   // Updater that enforces positivity by shifting f.
-  bool enforce_positivity; // Flag indicating whether to apply positivity_shift.
   struct gkyl_positivity_shift_gyrokinetic *pos_shift_op;
-  struct gkyl_array *ps_intmom_grid; // Grid contribution to the integrated moments of the positivity shift.
+  struct gkyl_array *ps_delta_m0; // Number density of the positivity shift.
+  struct gk_species_moment *ps_moms; // Positivity shift diagnostic moments.
   gkyl_dynvec ps_integ_diag; // Integrated moments of the positivity shift.
   bool is_first_ps_integ_write_call; // Flag first time writing ps_integ_diag.
 
@@ -722,6 +722,8 @@ struct gkyl_gyrokinetic_app {
 
   bool use_gpu; // should we use GPU (if present)
 
+  bool enforce_positivity; // Whether to enforce f>0.
+
   int num_periodic_dir; // number of periodic directions
   int periodic_dirs[3]; // list of periodic directions
     
@@ -753,6 +755,7 @@ struct gkyl_gyrokinetic_app {
   // species data
   int num_species;
   struct gk_species *species; // data for each species
+  struct gkyl_array *ps_delta_m0_ions; // Number density of the total ion positivity shift.
   
   // neutral species data
   int num_neut_species;

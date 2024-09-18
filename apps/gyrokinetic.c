@@ -116,6 +116,8 @@ gkyl_gyrokinetic_app_new(struct gkyl_gk *gk)
   app->use_gpu = false; // can't use GPUs if we don't have them!
 #endif
 
+  app->enforce_positivity = gk->enforce_positivity;
+
   app->num_periodic_dir = gk->num_periodic_dir;
   for (int d=0; d<cdim; ++d)
     app->periodic_dirs[d] = gk->periodic_dirs[d];
@@ -390,6 +392,11 @@ gkyl_gyrokinetic_app_new(struct gkyl_gk *gk)
     }
   }
 
+  if (app->enforce_positivity) {
+    // Number of density of the positivity shift added over all the ions.
+    app->ps_delta_m0_ions = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
+  }
+
   // initialize stat object
   app->stat = (struct gkyl_gyrokinetic_stat) {
     .use_gpu = app->use_gpu,
@@ -575,7 +582,15 @@ gkyl_gyrokinetic_app_calc_mom(gkyl_gyrokinetic_app* app)
         gk_species_moment_calc(&gk_s->src.moms[m], gk_s->local, app->local, gk_s->src.source);
         app->stat.nmom += 1;
       }
-    }    
+    }
+
+    if (app->enforce_positivity) {
+      for (int m=0; m<gk_s->info.num_diag_moments; ++m) {
+        // We placed the change in f from the positivity shift in fnew.
+        gk_species_moment_calc(&gk_s->ps_moms[m], gk_s->local, app->local, gk_s->fnew);
+        app->stat.nmom += 1;
+      }
+    }
   }
 
   for (int i=0; i<app->num_neut_species; ++i) {
@@ -638,9 +653,11 @@ gkyl_gyrokinetic_app_calc_integrated_mom(gkyl_gyrokinetic_app* app, double tm)
       gkyl_dynvec_append(gk_s->src.integ_diag, tm, avals_global);
     }
 
-    if (gk_s->enforce_positivity) {
+    if (app->enforce_positivity) {
+      // The change in f from the positivity shift is in fnew.
+      gk_species_moment_calc(&gk_s->integ_moms, gk_s->local, app->local, gk_s->fnew); 
       // Reduce (sum) over whole domain, append to diagnostics.
-      gkyl_array_reduce_range(gk_s->red_integ_diag, gk_s->ps_intmom_grid, GKYL_SUM, &app->local);
+      gkyl_array_reduce_range(gk_s->red_integ_diag, gk_s->integ_moms.marr, GKYL_SUM, &app->local);
       gkyl_comm_allreduce(app->comm, GKYL_DOUBLE, GKYL_SUM, 2+vdim, 
         gk_s->red_integ_diag, gk_s->red_integ_diag_global);
       if (app->use_gpu) {
@@ -1362,6 +1379,29 @@ gkyl_gyrokinetic_app_write_mom(gkyl_gyrokinetic_app* app, double tm, int frame)
 
       gkyl_comm_array_write(app->comm, &app->grid, &app->local, mt,
         app->species[i].moms[m].marr_host, fileNm);
+
+      if (app->enforce_positivity) {
+        const char *fmt = "%s-%s_positivity_shift_%s_%d.gkyl";
+        int sz = gkyl_calc_strlen(fmt, app->name, app->species[i].info.name,
+          app->species[i].info.diag_moments[m], frame);
+        char fileNm[sz+1]; // ensures no buffer overflow
+        snprintf(fileNm, sizeof fileNm, fmt, app->name, app->species[i].info.name,
+          app->species[i].info.diag_moments[m], frame);
+
+        // Rescale moment by inverse of Jacobian if not already re-scaled 
+        if (!app->species[i].ps_moms[m].is_bimaxwellian_moms && !app->species[i].ps_moms[m].is_maxwellian_moms) {
+          gkyl_dg_div_op_range(app->species[i].ps_moms[m].mem_geo, app->confBasis, 
+            0, app->species[i].ps_moms[m].marr, 0, app->species[i].ps_moms[m].marr, 0, 
+            app->gk_geom->jacobgeo, &app->local);  
+        }    
+
+        if (app->use_gpu) {
+          gkyl_array_copy(app->species[i].ps_moms[m].marr_host, app->species[i].ps_moms[m].marr);
+        }
+
+        gkyl_comm_array_write(app->comm, &app->grid, &app->local, mt,
+          app->species[i].ps_moms[m].marr_host, fileNm);
+      }
     }
   }
 
@@ -1440,6 +1480,7 @@ gkyl_gyrokinetic_app_write_integrated_mom(gkyl_gyrokinetic_app *app)
     struct gk_species *gks = &app->species[i];
     int rank;
     gkyl_comm_get_rank(app->comm, &rank);
+
     if (rank == 0) {
       // Write integrated diagnostic moments.
       const char *fmt = "%s-%s_%s.gkyl";
@@ -1459,15 +1500,15 @@ gkyl_gyrokinetic_app_write_integrated_mom(gkyl_gyrokinetic_app *app)
     }
     gkyl_dynvec_clear(gks->integ_diag);
 
-    if (gks->enforce_positivity) {
+    if (app->enforce_positivity) {
       if (rank == 0) {
-        // Write positivity shift integrated moments.
-        const char *fmt = "%s-%s_%s.gkyl";
+        // Write integrated diagnostic moments.
+        const char *fmt = "%s-%s_positivity_shift_%s.gkyl";
         int sz = gkyl_calc_strlen(fmt, app->name, gks->info.name,
-          "positivity_shift_integrated_moms");
+          "integrated_moms");
         char fileNm[sz+1]; // ensures no buffer overflow
         snprintf(fileNm, sizeof fileNm, fmt, app->name, gks->info.name,
-          "positivity_shift_integrated_moms");
+          "integrated_moms");
 
         if (gks->is_first_ps_integ_write_call) {
           gkyl_dynvec_write(gks->ps_integ_diag, fileNm);
@@ -1479,6 +1520,7 @@ gkyl_gyrokinetic_app_write_integrated_mom(gkyl_gyrokinetic_app *app)
       }
       gkyl_dynvec_clear(gks->ps_integ_diag);
     }
+
   }
 }
 
@@ -2205,11 +2247,42 @@ rk3(gkyl_gyrokinetic_app* app, double dt0)
             }
           }
 
-          // Implement positivity shift if requested.
-          for (int i=0; i<app->num_species; ++i) {
-            struct gk_species *gks = &app->species[i];
-            if (gks->enforce_positivity)
-              gkyl_positivity_shift_gyrokinetic_advance(gks->pos_shift_op, &gks->local, &app->local, gks->f, gks->ps_intmom_grid);
+          if (app->enforce_positivity) {
+            // Apply positivity shift if requested.
+            int elc_idx = -1;
+            gkyl_array_clear(app->ps_delta_m0_ions, 0.0);
+            for (int i=0; i<app->num_species; ++i) {
+              struct gk_species *gks = &app->species[i];
+
+              // Copy f so we can calculate the moments of the change later. 
+              gkyl_array_set(gks->fnew, -1.0, gks->f);
+
+              // Shift each species.
+              gkyl_positivity_shift_gyrokinetic_advance(gks->pos_shift_op, &app->local, &gks->local,
+                gks->f, gks->m0.marr, gks->ps_delta_m0);
+
+              // Accumulate the shift density of all ions:
+              if (gks->info.charge > 0.0)
+                gkyl_array_accumulate(app->ps_delta_m0_ions, 1.0, gks->ps_delta_m0);
+              else if (gks->info.charge < 0.0) 
+                elc_idx = i;
+            }
+
+            // Rescale each species to enforce quasineutrality.
+            for (int i=0; i<app->num_species; ++i) {
+              struct gk_species *gks = &app->species[i];
+              if (gks->info.charge > 0.0) {
+                struct gk_species *gkelc = &app->species[elc_idx];
+                gkyl_positivity_shift_gyrokinetic_quasineutrality_scale(gks->pos_shift_op, &app->local, &gks->local,
+                  gks->ps_delta_m0, app->ps_delta_m0_ions, gkelc->ps_delta_m0, gks->m0.marr, gks->f);
+              }
+              else {
+                gkyl_positivity_shift_gyrokinetic_quasineutrality_scale(gks->pos_shift_op, &app->local, &gks->local,
+                  gks->ps_delta_m0, gks->ps_delta_m0, app->ps_delta_m0_ions, gks->m0.marr, gks->f);
+              }
+
+              gkyl_array_accumulate(gks->fnew, 1.0, gks->f);
+            }
           }
 
           // Compute the fields and apply BCs
@@ -2560,10 +2633,10 @@ gkyl_gyrokinetic_app_from_frame_species(gkyl_gyrokinetic_app *app, int sidx, int
 {
   cstr fileNm = cstr_from_fmt("%s-%s_%d.gkyl", app->name, app->species[sidx].info.name, frame);
   struct gkyl_app_restart_status rstat = gkyl_gyrokinetic_app_from_file_species(app, sidx, fileNm.str);
-  app->species[sidx].is_first_integ_write_call = false; // Append to existing diagnostic.
-  if (app->species[sidx].enforce_positivity)
-    app->species[sidx].is_first_ps_integ_write_call = false; // Append to existing diagnostic.
   cstr_drop(&fileNm);
+  app->species[sidx].is_first_integ_write_call = false; // Append to existing diagnostic.
+  if (app->enforce_positivity)
+    app->species[sidx].is_first_ps_integ_write_call = false; // Append to existing diagnostic.
   
   return rstat;
 }
@@ -2646,6 +2719,10 @@ gkyl_gyrokinetic_app_cout(const gkyl_gyrokinetic_app* app, FILE *fp, const char 
 void
 gkyl_gyrokinetic_app_release(gkyl_gyrokinetic_app* app)
 {
+  if (app->enforce_positivity) {
+    gkyl_array_release(app->ps_delta_m0_ions);
+  }
+
   gkyl_gk_geometry_release(app->gk_geom);
 
   gk_field_release(app, app->field);
