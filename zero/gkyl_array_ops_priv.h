@@ -33,3 +33,12 @@ array_set1(long n,
   for (int c=0; c<n; ++c)
     out[c] = a*inp[c];
 }
+
+GKYL_CU_DH
+static inline void
+array_set2(long n, long m,
+  double * GKYL_RESTRICT out, double a, const double * GKYL_RESTRICT inp)
+{
+  for (int c=0; c<n; ++c)
+    out[c] = a*inp[m+c];
+}

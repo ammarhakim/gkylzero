@@ -1,8 +1,10 @@
+#ifdef GKYL_HAVE_CUDSS
+
 #include <cuDSS.h>
 
 extern "C" {
 #include <gkyl_alloc.h>
-#include <gkyl_cudss_ops.h>
+#include <gkyl_culinsolver_ops.h>
 #include <assert.h>
 }
 
@@ -229,10 +231,10 @@ void test_cudss_ops()
   gkyl_mat_triples_insert(tri, 4, 4, r);
 
   // Create the cuSolver linear problem setup.
-  gkyl_cudss_prob *prob = gkyl_cudss_prob_new(1, m, n, nrhs);
+  gkyl_culinsolver_prob *prob = gkyl_culinsolver_prob_new(1, m, n, nrhs);
 
   // Allocate the A matrix from triples.
-  gkyl_cudss_amat_from_triples(prob, tri_arr);
+  gkyl_culinsolver_amat_from_triples(prob, tri_arr);
   gkyl_mat_triples_release(tri);
   gkyl_free(tri_arr);
 
@@ -243,25 +245,25 @@ void test_cudss_ops()
   gkyl_mat_triples_insert(triRHS, 2, 0, 1.0);
   gkyl_mat_triples_insert(triRHS, 3, 0, 1.0);
   gkyl_mat_triples_insert(triRHS, 4, 0, 1.0);
-  gkyl_cudss_brhs_from_triples(prob, triRHS);
+  gkyl_culinsolver_brhs_from_triples(prob, triRHS);
   gkyl_mat_triples_release(triRHS);
 
-  gkyl_cudss_solve(prob);
-  gkyl_cudss_finish_host(prob);
+  gkyl_culinsolver_solve(prob);
+  gkyl_culinsolver_finish_host(prob);
 
   // Solution is: [-1/32, 11/168, 3/224, 1/16, 11/336].
-  TEST_CHECK( gkyl_compare_double(-1.0/32.0,   gkyl_cudss_get_sol_lin(prob,0), 1e-14) );
-  TEST_MSG( "Expected: %g | Got: %g\n", -1.0/32.0,   gkyl_cudss_get_sol_lin(prob,0) );
-  TEST_CHECK( gkyl_compare_double( 11.0/168.0, gkyl_cudss_get_sol_lin(prob,1), 1e-14) );
-  TEST_MSG( "Expected: %g | Got: %g\n",  11.0/168.0, gkyl_cudss_get_sol_lin(prob,1) );
-  TEST_CHECK( gkyl_compare_double( 3.0/224.0,  gkyl_cudss_get_sol_lin(prob,2), 1e-14) );
-  TEST_MSG( "Expected: %g | Got: %g\n",  3.0/224.0,  gkyl_cudss_get_sol_lin(prob,2) );
-  TEST_CHECK( gkyl_compare_double( 1.0/16.0,   gkyl_cudss_get_sol_lin(prob,3), 1e-14) );
-  TEST_MSG( "Expected: %g | Got: %g\n",  1.0/16.0,   gkyl_cudss_get_sol_lin(prob,3) );
-  TEST_CHECK( gkyl_compare_double( 11.0/336.0, gkyl_cudss_get_sol_lin(prob,4), 1e-14) );
-  TEST_MSG( "Expected: %g | Got: %g\n",  11.0/336.0, gkyl_cudss_get_sol_lin(prob,4) );
+  TEST_CHECK( gkyl_compare_double(-1.0/32.0,   gkyl_culinsolver_get_sol_lin(prob,0), 1e-14) );
+  TEST_MSG( "Expected: %g | Got: %g\n", -1.0/32.0,   gkyl_culinsolver_get_sol_lin(prob,0) );
+  TEST_CHECK( gkyl_compare_double( 11.0/168.0, gkyl_culinsolver_get_sol_lin(prob,1), 1e-14) );
+  TEST_MSG( "Expected: %g | Got: %g\n",  11.0/168.0, gkyl_culinsolver_get_sol_lin(prob,1) );
+  TEST_CHECK( gkyl_compare_double( 3.0/224.0,  gkyl_culinsolver_get_sol_lin(prob,2), 1e-14) );
+  TEST_MSG( "Expected: %g | Got: %g\n",  3.0/224.0,  gkyl_culinsolver_get_sol_lin(prob,2) );
+  TEST_CHECK( gkyl_compare_double( 1.0/16.0,   gkyl_culinsolver_get_sol_lin(prob,3), 1e-14) );
+  TEST_MSG( "Expected: %g | Got: %g\n",  1.0/16.0,   gkyl_culinsolver_get_sol_lin(prob,3) );
+  TEST_CHECK( gkyl_compare_double( 11.0/336.0, gkyl_culinsolver_get_sol_lin(prob,4), 1e-14) );
+  TEST_MSG( "Expected: %g | Got: %g\n",  11.0/336.0, gkyl_culinsolver_get_sol_lin(prob,4) );
 
-  gkyl_cudss_prob_release(prob);
+  gkyl_culinsolver_prob_release(prob);
 }
 
 void test_cudss_ops_multiple_rhs()
@@ -299,10 +301,10 @@ void test_cudss_ops_multiple_rhs()
   gkyl_mat_triples_insert(tri, 4, 4, r);
 
   // Create the cuSolver linear problem setup.
-  gkyl_cudss_prob *prob = gkyl_cudss_prob_new(1, m, n, nrhs);
+  gkyl_culinsolver_prob *prob = gkyl_culinsolver_prob_new(1, m, n, nrhs);
 
   // Allocate the A matrix from triples.
-  gkyl_cudss_amat_from_triples(prob, tri_arr);
+  gkyl_culinsolver_amat_from_triples(prob, tri_arr);
   gkyl_mat_triples_release(tri);
   gkyl_free(tri_arr);
 
@@ -315,32 +317,34 @@ void test_cudss_ops_multiple_rhs()
     gkyl_mat_triples_insert(triRHS, 3, k, 1.0);
     gkyl_mat_triples_insert(triRHS, 4, k, 1.0);
   }
-  gkyl_cudss_brhs_from_triples(prob, triRHS);
+  gkyl_culinsolver_brhs_from_triples(prob, triRHS);
   gkyl_mat_triples_release(triRHS);
 
-  gkyl_cudss_solve(prob);
-  gkyl_cudss_finish_host(prob);
+  gkyl_culinsolver_solve(prob);
+  gkyl_culinsolver_finish_host(prob);
 
   // Solution is: [-1/32, 11/168, 3/224, 1/16, 11/336].
   // 1st problem
-  TEST_CHECK( gkyl_compare_double(-1.0/32.0,   gkyl_cudss_get_sol_lin(prob,0), 1e-14) );
-  TEST_CHECK( gkyl_compare_double( 11.0/168.0, gkyl_cudss_get_sol_lin(prob,1), 1e-14) );
-  TEST_CHECK( gkyl_compare_double( 3.0/224.0,  gkyl_cudss_get_sol_lin(prob,2), 1e-14) );
-  TEST_CHECK( gkyl_compare_double( 1.0/16.0,   gkyl_cudss_get_sol_lin(prob,3), 1e-14) );
-  TEST_CHECK( gkyl_compare_double( 11.0/336.0, gkyl_cudss_get_sol_lin(prob,4), 1e-14) );
+  TEST_CHECK( gkyl_compare_double(-1.0/32.0,   gkyl_culinsolver_get_sol_lin(prob,0), 1e-14) );
+  TEST_CHECK( gkyl_compare_double( 11.0/168.0, gkyl_culinsolver_get_sol_lin(prob,1), 1e-14) );
+  TEST_CHECK( gkyl_compare_double( 3.0/224.0,  gkyl_culinsolver_get_sol_lin(prob,2), 1e-14) );
+  TEST_CHECK( gkyl_compare_double( 1.0/16.0,   gkyl_culinsolver_get_sol_lin(prob,3), 1e-14) );
+  TEST_CHECK( gkyl_compare_double( 11.0/336.0, gkyl_culinsolver_get_sol_lin(prob,4), 1e-14) );
   // 2nd problem
-  TEST_CHECK( gkyl_compare_double(-1.0/32.0,   gkyl_cudss_get_sol_lin(prob,5), 1e-14) );
-  TEST_CHECK( gkyl_compare_double( 11.0/168.0, gkyl_cudss_get_sol_lin(prob,6), 1e-14) );
-  TEST_CHECK( gkyl_compare_double( 3.0/224.0,  gkyl_cudss_get_sol_lin(prob,7), 1e-14) );
-  TEST_CHECK( gkyl_compare_double( 1.0/16.0,   gkyl_cudss_get_sol_lin(prob,8), 1e-14) );
-  TEST_CHECK( gkyl_compare_double( 11.0/336.0, gkyl_cudss_get_sol_lin(prob,9), 1e-14) );
+  TEST_CHECK( gkyl_compare_double(-1.0/32.0,   gkyl_culinsolver_get_sol_lin(prob,5), 1e-14) );
+  TEST_CHECK( gkyl_compare_double( 11.0/168.0, gkyl_culinsolver_get_sol_lin(prob,6), 1e-14) );
+  TEST_CHECK( gkyl_compare_double( 3.0/224.0,  gkyl_culinsolver_get_sol_lin(prob,7), 1e-14) );
+  TEST_CHECK( gkyl_compare_double( 1.0/16.0,   gkyl_culinsolver_get_sol_lin(prob,8), 1e-14) );
+  TEST_CHECK( gkyl_compare_double( 11.0/336.0, gkyl_culinsolver_get_sol_lin(prob,9), 1e-14) );
   // 3rd problem
-  TEST_CHECK( gkyl_compare_double(-1.0/32.0,   gkyl_cudss_get_sol_lin(prob,10), 1e-14) );
-  TEST_CHECK( gkyl_compare_double( 11.0/168.0, gkyl_cudss_get_sol_lin(prob,11), 1e-14) );
-  TEST_CHECK( gkyl_compare_double( 3.0/224.0,  gkyl_cudss_get_sol_lin(prob,12), 1e-14) );
-  TEST_CHECK( gkyl_compare_double( 1.0/16.0,   gkyl_cudss_get_sol_lin(prob,13), 1e-14) );
-  TEST_CHECK( gkyl_compare_double( 11.0/336.0, gkyl_cudss_get_sol_lin(prob,14), 1e-14) );
+  TEST_CHECK( gkyl_compare_double(-1.0/32.0,   gkyl_culinsolver_get_sol_lin(prob,10), 1e-14) );
+  TEST_CHECK( gkyl_compare_double( 11.0/168.0, gkyl_culinsolver_get_sol_lin(prob,11), 1e-14) );
+  TEST_CHECK( gkyl_compare_double( 3.0/224.0,  gkyl_culinsolver_get_sol_lin(prob,12), 1e-14) );
+  TEST_CHECK( gkyl_compare_double( 1.0/16.0,   gkyl_culinsolver_get_sol_lin(prob,13), 1e-14) );
+  TEST_CHECK( gkyl_compare_double( 11.0/336.0, gkyl_culinsolver_get_sol_lin(prob,14), 1e-14) );
 
-  gkyl_cudss_prob_release(prob);
+  gkyl_culinsolver_prob_release(prob);
 }
 
+// End ifdef GKYL_HAVE_CUDSS statement.
+#endif

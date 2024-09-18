@@ -60,7 +60,7 @@ vm_species_emission_cross_init(struct gkyl_vlasov_app *app, struct vm_species *s
 
     emit->flux_slvr[i] = gkyl_dg_updater_moment_new(emit->impact_grid[i], &app->confBasis,
       &app->basis, NULL, NULL, emit->impact_species[i]->model_id, 0, "Integrated", 1,
-      emit->impact_species[i]->info.mass, app->use_gpu);
+      app->use_gpu);
 
     emit->impact_skin_r[i] = (emit->edge == GKYL_LOWER_EDGE) ? &emit->impact_species[i]->lower_skin[emit->dir] : &emit->impact_species[i]->upper_skin[emit->dir];
     emit->impact_ghost_r[i] = (emit->edge == GKYL_LOWER_EDGE) ? &emit->impact_species[i]->lower_ghost[emit->dir] : &emit->impact_species[i]->upper_ghost[emit->dir];
@@ -93,7 +93,7 @@ vm_species_emission_apply_bc(struct gkyl_vlasov_app *app, const struct vm_emitti
 {
   // Optional scaling of emission with time
   double t_scale = 1.0;
-  if (emit->t_bound)
+  if (tcurr < emit->t_bound)
     t_scale = sin(M_PI*tcurr/(2.0*emit->t_bound));
 
   gkyl_array_clear(emit->f_emit, 0.0); // Zero emitted distribution before beginning accumulate

@@ -3,10 +3,9 @@
 #include <time.h>
 
 #include <gkyl_alloc.h>
+#include <gkyl_bc_emission.h>
 #include <gkyl_vlasov.h>
 #include <rt_arg_parse.h>
-#include <gkyl_vlasov_priv.h>
-#include <gkyl_bc_emission.h>
 
 #include <gkyl_null_comm.h>
 
@@ -308,13 +307,24 @@ main(int argc, char **argv)
   }
 
   char in_species[1][128] = { "elc" };
-  struct gkyl_bc_emission_ctx *bc_ctx = gkyl_bc_emission_secondary_electron_copper_new(ctx.num_emission_species, 0.0, in_species, app_args.use_gpu);
-  /* struct gkyl_spectrum_model *spectrum_model[1]; */
-  /* spectrum_model[0] = gkyl_spectrum_chung_everhart_new(ctx.q0, ctx.phi, app_args.use_gpu); */
-  /* struct gkyl_yield_model *yield_model[1]; */
-  /* yield_model[0] = gkyl_yield_furman_pivi_new(ctx.q0, ctx.deltahat_ts, ctx.Ehat_ts, ctx.t1, ctx.t2, ctx.t3, ctx.t4, ctx.s, app_args.use_gpu); */
-  /* struct gkyl_elastic_model *elastic_model = gkyl_elastic_furman_pivi_new(ctx.q0, ctx.P1_inf, ctx.P1_hat, ctx.E_hat, ctx.W, ctx.p, app_args.use_gpu); */
-  /* struct gkyl_bc_emission_ctx *bc_ctx = gkyl_bc_emission_new(ctx.num_emission_species, 0.0, true, spectrum_model, yield_model, elastic_model, in_species); */
+
+  // Copper preset for emission BC where models and parameters are chosen automatically
+  struct gkyl_bc_emission_ctx *bc_ctx =
+    gkyl_bc_emission_secondary_electron_copper_new(ctx.num_emission_species, 0.0,
+    in_species, app_args.use_gpu);
+
+  // Full specification of the BC with user-defined models and parameters
+  // Uncomment and use this if no material preset is available
+  /* struct gkyl_emission_spectrum_model *spectrum_model[1]; */
+  /* spectrum_model[0] = gkyl_emission_spectrum_chung_everhart_new(ctx.q0, ctx.phi, app_args.use_gpu); */
+  /* struct gkyl_emission_yield_model *yield_model[1]; */
+  /* yield_model[0] = gkyl_emission_yield_furman_pivi_new(ctx.q0, ctx.deltahat_ts, */
+  /*   ctx.Ehat_ts, ctx.t1, ctx.t2, ctx.t3, ctx.t4, ctx.s, app_args.use_gpu); */
+  /* struct gkyl_emission_elastic_model *elastic_model = */
+  /*   gkyl_emission_elastic_furman_pivi_new(ctx.q0, ctx.P1_inf, ctx.P1_hat, ctx.E_hat, */
+  /*   ctx.W, ctx.p, app_args.use_gpu); */
+  /* struct gkyl_bc_emission_ctx *bc_ctx = gkyl_bc_emission_new(ctx.num_emission_species, */
+  /*   0.0, true, spectrum_model, yield_model, elastic_model, in_species); */
 
   // electrons
   struct gkyl_vlasov_species elc = {
@@ -324,7 +334,8 @@ main(int argc, char **argv)
     .upper = { 4.0*ctx.vte}, 
     .cells = { NV },
 
-    .projection = {
+    .num_init = 1, 
+    .projection[0] = {
       .proj_id = GKYL_PROJ_FUNC,
       .func = evalDistFuncElc,
       .ctx_func = &ctx,
@@ -334,7 +345,8 @@ main(int argc, char **argv)
       .source_id = GKYL_BFLUX_SOURCE,
       .source_length = ctx.Ls,
       .source_species = "ion",
-      .projection = {
+      .num_sources = 1, 
+      .projection[0] = {
         .proj_id = GKYL_PROJ_FUNC,
         .func = evalDistFuncElcSource,
         .ctx_func = &ctx,
@@ -359,7 +371,8 @@ main(int argc, char **argv)
     .upper = { 4.0*ctx.vti}, 
     .cells = { NV },
 
-    .projection = {
+    .num_init = 1, 
+    .projection[0] = {
       .proj_id = GKYL_PROJ_FUNC,
       .func = evalDistFuncIon,
       .ctx_func = &ctx,
@@ -369,7 +382,8 @@ main(int argc, char **argv)
       .source_id = GKYL_BFLUX_SOURCE,
       .source_length = ctx.Ls,
       .source_species = "ion",
-      .projection = {
+      .num_sources = 1, 
+      .projection[0] = {
         .proj_id = GKYL_PROJ_FUNC,
         .func = evalDistFuncIonSource,
         .ctx_func = &ctx,

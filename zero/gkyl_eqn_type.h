@@ -13,6 +13,7 @@ enum gkyl_eqn_type {
   GKYL_EQN_BURGERS, // Burgers equations
   GKYL_EQN_ADVECTION, // Scalar advection equation
   GKYL_EQN_GR_EULER, // General relativistic Euler equations.
+  GKYL_EQN_REACTIVE_EULER, // Reactive Euler equations.
 };
 
 // Identifiers for specific gyrokinetic model types
@@ -89,6 +90,7 @@ enum gkyl_projection_id {
 enum gkyl_radiation_id {
   GKYL_NO_RADIATION = 0, // No radiation. This is default
   GKYL_GK_RADIATION, // Radiation in gyrokinetic equations.
+  GKYL_VM_COMPTON_RADIATION, // Vlasov simple Compton radiation model. 
 };
 
 // Identifiers for specific reaction object types
@@ -103,14 +105,16 @@ enum gkyl_react_id {
 enum gkyl_ion_type
 {
   GKYL_ION_H = 0,  // Hydrogen ions
-  GKYL_ION_HE = 1, // Helium ions
-  GKYL_ION_LI = 2, // Lithium ions
-  GKYL_ION_BE = 3, // Beryllium ions
-  GKYL_ION_B = 4,  // Boron ions
-  GKYL_ION_C = 5,  // Carbon ions
-  GKYL_ION_N = 6,  // Nitrogen ions
-  GKYL_ION_O = 7,  // Oxygen ions
-  GKYL_ION_AR = 8,  // Argon ions
+  GKYL_ION_D = 1,  // Deuterium ions (for CX)
+  GKYL_ION_HE = 2, // Helium ions
+  GKYL_ION_LI = 3, // Lithium ions
+  GKYL_ION_BE = 4, // Beryllium ions
+  GKYL_ION_B = 5,  // Boron ions
+  GKYL_ION_C = 6,  // Carbon ions
+  GKYL_ION_N = 7,  // Nitrogen ions
+  GKYL_ION_O = 8,  // Oxygen ions
+  GKYL_ION_NE = 9, // Neon ions
+  GKYL_ION_AR = 10,  // Argon ions
 };
 
 // Identifiers for different self in reaction
@@ -120,6 +124,7 @@ enum gkyl_react_self_type
   GKYL_SELF_ION = 1, // Ion species in reaction 
   GKYL_SELF_DONOR = 2, // Donating species in reaction (giving up electron)
   GKYL_SELF_RECVR = 3, // Receiving species in reaction (receiving electron)
+  GKYL_SELF_PARTNER = 4, // Neutral species in CX
 };
 
 // Identifiers for specific geometry types

@@ -37,7 +37,6 @@ struct sheath_ctx
   // Derived physical quantities (using non-normalized physical units).
   double R; // Radial coordinate (simple toroidal coordinates).
   double B0; // Reference magnetic field strength (Tesla).
-
   double log_lambda_elc; // Electron Coulomb logarithm.
   double log_lambda_ion; // Ion Coulomb logarithm.
   double nu_elc; // Electron collision frequency.

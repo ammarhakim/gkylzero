@@ -12,15 +12,8 @@ extern "C" {
 #include <gkyl_range.h>
 #include <gkyl_rect_grid.h>
 #include <gkyl_util.h>
-#include <gkyl_cusolver_ops.h>
+#include <gkyl_culinsolver_ops.h>
 }
-
-#ifdef GKYL_HAVE_CUDA
-#include <cusparse.h>
-#include <cusolverSp.h>
-#include <cusolverRf.h>
-#include <cusolverSp_LOWLEVEL_PREVIEW.h>
-#endif
 
 // ..................................
 // MF 2022/06/24: unfortunately cusolverRf doesn't work for multiple RHS columns.
@@ -29,7 +22,7 @@ extern "C" {
 //                better parallelism.
 //
 
-struct gkyl_cusolver_prob {
+struct gkyl_culinsolver_prob {
   double *rhs, *rhs_cu; // right-hand side vector (reused to store the answer x). 
   double *x;
   double *csrvalA_cu;
@@ -63,12 +56,12 @@ struct gkyl_cusolver_prob {
   double **csrvalApointers_cu; // array of pointers to LHS A matrices.
 };
 
-gkyl_cusolver_prob*
-gkyl_cusolver_prob_new(int nprob, int mrow, int ncol, int nrhs)
+gkyl_culinsolver_prob*
+gkyl_culinsolver_prob_new(int nprob, int mrow, int ncol, int nrhs)
 {
   assert((nprob==1) || (nrhs==1));
 
-  struct gkyl_cusolver_prob *prob = (struct gkyl_cusolver_prob*) gkyl_malloc(sizeof(*prob));
+  struct gkyl_culinsolver_prob *prob = (struct gkyl_culinsolver_prob*) gkyl_malloc(sizeof(*prob));
 
   prob->nprob = nprob;
   prob->mrow = mrow;
@@ -125,7 +118,7 @@ gkyl_cusolver_prob_new(int nprob, int mrow, int ncol, int nrhs)
 }
 
 void
-gkyl_cusolver_amat_from_triples(struct gkyl_cusolver_prob *prob, struct gkyl_mat_triples **tri)
+gkyl_culinsolver_amat_from_triples(struct gkyl_culinsolver_prob *prob, struct gkyl_mat_triples **tri)
 {
   prob->nnz = gkyl_mat_triples_size(tri[0]);
   for (size_t k=0; k<prob->nprob; k++) {
@@ -404,7 +397,7 @@ gkyl_cusolver_amat_from_triples(struct gkyl_cusolver_prob *prob, struct gkyl_mat
 }
 
 void
-gkyl_cusolver_brhs_from_triples(struct gkyl_cusolver_prob *prob, gkyl_mat_triples *tri)
+gkyl_culinsolver_brhs_from_triples(struct gkyl_culinsolver_prob *prob, gkyl_mat_triples *tri)
 {
   long nnz_rhs = gkyl_mat_triples_size(tri);  // number of non-zero entries in RHS matrix B
   
@@ -421,7 +414,7 @@ gkyl_cusolver_brhs_from_triples(struct gkyl_cusolver_prob *prob, gkyl_mat_triple
 }
 
 void
-gkyl_cusolver_solve(struct gkyl_cusolver_prob *prob)
+gkyl_culinsolver_solve(struct gkyl_culinsolver_prob *prob)
 {
   // MF 2023/05/25: the 1 below is nrhs, and cuSolver docs say only 1 is supported. To me it is not
   // clear whether this means one can only solve 1 system, or whether we can solve multiple systems
@@ -433,50 +426,44 @@ gkyl_cusolver_solve(struct gkyl_cusolver_prob *prob)
 }
 
 void
-gkyl_cusolver_sync(struct gkyl_cusolver_prob *prob)
-{
-  cudaStreamSynchronize(prob->stream);
-}
-
-void
-gkyl_cusolver_finish_host(struct gkyl_cusolver_prob *prob)
+gkyl_culinsolver_finish_host(struct gkyl_culinsolver_prob *prob)
 {
   //cudaStreamSynchronize(prob->stream); // not needed when using blocking stream
   gkyl_cu_memcpy(prob->rhs, prob->rhs_cu, sizeof(double)*prob->mrow*prob->nrhs, GKYL_CU_MEMCPY_D2H);
 }
 
 void
-gkyl_cusolver_clear_rhs(struct gkyl_cusolver_prob *prob, double val)
+gkyl_culinsolver_clear_rhs(struct gkyl_culinsolver_prob *prob, double val)
 {
   gkyl_cu_memset(prob->rhs_cu, val, prob->mrow*prob->nrhs*sizeof(double));
 }
 
 double*
-gkyl_cusolver_get_rhs_ptr(struct gkyl_cusolver_prob *prob, long loc)
+gkyl_culinsolver_get_rhs_ptr(struct gkyl_culinsolver_prob *prob, long loc)
 {
   return prob->rhs_cu+loc;
 }
 
 double*
-gkyl_cusolver_get_sol_ptr(struct gkyl_cusolver_prob *prob, long loc)
+gkyl_culinsolver_get_sol_ptr(struct gkyl_culinsolver_prob *prob, long loc)
 {
   return prob->rhs_cu+loc;
 }
 
 double
-gkyl_cusolver_get_sol_ij(struct gkyl_cusolver_prob *prob, long ielement, long jprob)
+gkyl_culinsolver_get_sol_ij(struct gkyl_culinsolver_prob *prob, long ielement, long jprob)
 {
   return prob->rhs[jprob*prob->mrow+ielement];
 }
 
 double
-gkyl_cusolver_get_sol_lin(struct gkyl_cusolver_prob *prob, long loc)
+gkyl_culinsolver_get_sol_lin(struct gkyl_culinsolver_prob *prob, long loc)
 {
   return prob->rhs[loc];
 }
 
 void
-gkyl_cusolver_prob_release(struct gkyl_cusolver_prob *prob)
+gkyl_culinsolver_prob_release(struct gkyl_culinsolver_prob *prob)
 {
   gkyl_cu_free(prob->rhs_cu);
   gkyl_cu_free(prob->csrcolindA_cu);

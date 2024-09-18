@@ -4,9 +4,9 @@
 #include <gkyl_basis.h>
 #include <gkyl_array.h>
 #include <gkyl_rect_grid.h>
-#include <gkyl_spectrum_model.h>
-#include <gkyl_yield_model.h>
-#include <gkyl_elastic_model.h>
+#include <gkyl_emission_spectrum_model.h>
+#include <gkyl_emission_yield_model.h>
+#include <gkyl_emission_elastic_model.h>
 
 // Object type
 typedef struct gkyl_bc_emission_spectrum gkyl_bc_emission_spectrum;
@@ -35,10 +35,10 @@ typedef struct gkyl_bc_emission_spectrum gkyl_bc_emission_spectrum;
  * @return New updater pointer
  */
 struct gkyl_bc_emission_spectrum*
-gkyl_bc_emission_spectrum_new(struct gkyl_spectrum_model *spectrum_model,
-  struct gkyl_yield_model *yield_model, struct gkyl_array *yield, struct gkyl_array *spectrum,
-  int dir, enum gkyl_edge_loc edge, int cdim, int vdim, double mass_in, double mass_out,
-  struct gkyl_range *impact_buff_r, struct gkyl_range *emit_buff_r,
+gkyl_bc_emission_spectrum_new(struct gkyl_emission_spectrum_model *spectrum_model,
+  struct gkyl_emission_yield_model *yield_model, struct gkyl_array *yield,
+  struct gkyl_array *spectrum, int dir, enum gkyl_edge_loc edge, int cdim, int vdim,
+  double mass_in, double mass_out, struct gkyl_range *impact_buff_r, struct gkyl_range *emit_buff_r,
   struct gkyl_rect_grid *impact_grid, struct gkyl_rect_grid *emit_grid, int poly_order,
   struct gkyl_basis *basis, struct gkyl_array *proj_buffer, bool use_gpu);
 
@@ -55,7 +55,8 @@ gkyl_bc_emission_spectrum_new(struct gkyl_spectrum_model *spectrum_model,
  * @param flux Flux into boundary
  * @param k Normalization factor
  */
-void gkyl_bc_emission_spectrum_advance(const struct gkyl_bc_emission_spectrum *up,
+void
+gkyl_bc_emission_spectrum_advance(const struct gkyl_bc_emission_spectrum *up,
   struct gkyl_range *impact_buff_r, struct gkyl_range *impact_cbuff_r,
   struct gkyl_range *emit_buff_r, struct gkyl_array *bflux, struct gkyl_array *f_emit,
   struct gkyl_array *yield, struct gkyl_array *spectrum, struct gkyl_array *weight,
@@ -69,7 +70,8 @@ void gkyl_bc_emission_spectrum_advance(const struct gkyl_bc_emission_spectrum *u
  * @param grid Impacting species boundary grid
  * @param impact_buff_r Range over the impacting species buffer array
  */
-void gkyl_bc_emission_spectrum_sey_calc(const struct gkyl_bc_emission_spectrum *up,
+void
+gkyl_bc_emission_spectrum_sey_calc(const struct gkyl_bc_emission_spectrum *up,
   struct gkyl_array *yield, struct gkyl_rect_grid *grid, const struct gkyl_range *impact_buffer_r);
 
 /**
@@ -81,7 +83,8 @@ void gkyl_bc_emission_spectrum_sey_calc(const struct gkyl_bc_emission_spectrum *
  * @param nghost Number of ghost cells
  * @param edge Lower or upper edge at which to apply BC (emission_spectrum gkyl_edge_loc)
  */
-void gkyl_bc_emission_flux_ranges(struct gkyl_range *impact_buff_r, int dir,
+void
+gkyl_bc_emission_flux_ranges(struct gkyl_range *impact_buff_r, int dir,
   const struct gkyl_range *parent, const int *nghost, enum gkyl_edge_loc edge);
 
 /**
@@ -89,4 +92,5 @@ void gkyl_bc_emission_flux_ranges(struct gkyl_range *impact_buff_r, int dir,
  *
  * @param up BC updater.
  */
-void gkyl_bc_emission_spectrum_release(struct gkyl_bc_emission_spectrum *up);
+void
+gkyl_bc_emission_spectrum_release(struct gkyl_bc_emission_spectrum *up);

@@ -5,7 +5,6 @@
 #include <gkyl_alloc.h>
 #include <gkyl_vlasov.h>
 #include <rt_arg_parse.h>
-#include <gkyl_vlasov_priv.h>
 
 #include <gkyl_null_comm.h>
 
@@ -269,7 +268,8 @@ main(int argc, char **argv)
     .upper = { 4.0*ctx.vte}, 
     .cells = { NV },
 
-    .projection = {
+    .num_init = 1, 
+    .projection[0] = {
       .proj_id = GKYL_PROJ_FUNC,
       .func = evalDistFuncElc,
       .ctx_func = &ctx,
@@ -279,7 +279,8 @@ main(int argc, char **argv)
       .source_id = GKYL_BFLUX_SOURCE,
       .source_length = ctx.Ls,
       .source_species = "ion",
-      .projection = {
+      .num_sources = 1, 
+      .projection[0] = {
         .proj_id = GKYL_PROJ_FUNC,
         .func = evalDistFuncElcSource,
         .ctx_func = &ctx,
@@ -303,7 +304,8 @@ main(int argc, char **argv)
     .upper = { 4.0*ctx.vti}, 
     .cells = { NV },
 
-    .projection = {
+    .num_init = 1, 
+    .projection[0] = {
       .proj_id = GKYL_PROJ_FUNC,
       .func = evalDistFuncIon,
       .ctx_func = &ctx,
@@ -313,7 +315,8 @@ main(int argc, char **argv)
       .source_id = GKYL_BFLUX_SOURCE,
       .source_length = ctx.Ls,
       .source_species = "ion",
-      .projection = {
+      .num_sources = 1, 
+      .projection[0] = {
         .proj_id = GKYL_PROJ_FUNC,
         .func = evalDistFuncIonSource,
         .ctx_func = &ctx,

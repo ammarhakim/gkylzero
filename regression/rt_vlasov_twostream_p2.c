@@ -31,6 +31,7 @@ struct twostream_ctx
   double mass_elc; // Electron mass.
   double charge_elc; // Electron charge.
 
+  double n0; // Reference density.
   double vt; // Thermal velocity.
   double Vx_drift; // Drift velocity (x-direction).
 
@@ -63,6 +64,7 @@ create_ctx(void)
   double mass_elc = 1.0; // Electron mass.
   double charge_elc = -1.0; // Electron charge.
 
+  double n0 = 1.0; // Reference density.
   double vt = 0.2; // Thermal velocity.
   double Vx_drift = 1.0; // Drift velocity (x-direction).
 
@@ -75,7 +77,7 @@ create_ctx(void)
   double Lx = 2.0 * pi / kx; // Domain size (configuration space: x-direction).
   double vx_max = 6.0; // Domain boundary (velocity space: vx-direction).
   int poly_order = 2; // Polynomial order.
-  double cfl_frac = 1.0; // CFL coefficient.
+  double cfl_frac = 0.6; // CFL coefficient.
 
   double t_end = 40.0; // Final simulation time.
   int num_frames = 1; // Number of output frames.
@@ -88,6 +90,7 @@ create_ctx(void)
     .mu0 = mu0,
     .mass_elc = mass_elc,
     .charge_elc = charge_elc,
+    .n0 = n0, 
     .vt = vt,
     .Vx_drift = Vx_drift,
     .alpha = alpha,
@@ -108,26 +111,51 @@ create_ctx(void)
 }
 
 void
-evalElcInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
+evalDensityInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
 {
   struct twostream_ctx *app = ctx;
-  double x = xn[0], v = xn[1];
-
-  double pi = app->pi;
-
-  double vt = app->vt;
-  double Vx_drift = app->Vx_drift;
+  double x = xn[0];
 
   double alpha = app->alpha;
   double kx = app->kx;
+  double n = 0.5*app->n0;
 
-  double v_sq_m = (v - Vx_drift) * (v - Vx_drift);
-  double v_sq_p = (v + Vx_drift) * (v + Vx_drift);
+  // Set density.
+  fout[0] = (1.0 + alpha * cos(kx * x))*n;
+}
 
-  double dist = (1.0 / sqrt(8.0 * pi * vt * vt)) * (exp(-v_sq_m / (2.0 * vt * vt)) + exp(-v_sq_p / (2.0 * vt * vt)));
+void
+evalTempInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
+{
+  struct twostream_ctx *app = ctx;
 
-  // Set electron distribution function.
-  fout[0] = (1.0 + alpha * cos(kx * x)) * dist;
+  double mass_elc = app->mass_elc;
+  double vt = app->vt;
+
+  // Set temperature.
+  fout[0] = vt*vt*mass_elc;
+}
+
+void
+evalVDriftLInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
+{
+  struct twostream_ctx *app = ctx;
+
+  double Vx_drift = app->Vx_drift;
+
+  // Set left-going drift velocity.
+  fout[0] = Vx_drift;
+}
+
+void
+evalVDriftRInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
+{
+  struct twostream_ctx *app = ctx;
+
+  double Vx_drift = app->Vx_drift;
+
+  // Set right-going drift velocity.
+  fout[0] = -Vx_drift;
 }
 
 void
@@ -280,10 +308,27 @@ main(int argc, char **argv)
     .upper = { ctx.vx_max }, 
     .cells = { NVX },
 
-    .projection = {
-      .proj_id = GKYL_PROJ_FUNC,
-      .func = evalElcInit,
-      .ctx_func = &ctx,
+    .num_init = 2, 
+    // Two counter-streaming Maxwellians.
+    .projection[0] = {
+      .proj_id = GKYL_PROJ_VLASOV_LTE,
+      .density = evalDensityInit,
+      .ctx_density = &ctx,
+      .temp = evalTempInit,
+      .ctx_temp = &ctx,
+      .V_drift = evalVDriftLInit,
+      .ctx_V_drift = &ctx,
+      .correct_all_moms = true,
+    },
+    .projection[1] = {
+      .proj_id = GKYL_PROJ_VLASOV_LTE,
+      .density = evalDensityInit,
+      .ctx_density = &ctx,
+      .temp = evalTempInit,
+      .ctx_temp = &ctx,
+      .V_drift = evalVDriftRInit,
+      .ctx_V_drift = &ctx,
+      .correct_all_moms = true,
     },
 
     .num_diag_moments = 3,

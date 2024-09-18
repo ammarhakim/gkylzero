@@ -3,10 +3,8 @@
 #include <gkyl_fem_poisson_kernels.h>
 #include <gkyl_basis.h>
 #include <gkyl_superlu_ops.h>
-#ifdef GKYL_HAVE_CUDSS
-#include <gkyl_cudss_ops.h>
-#else
-#include <gkyl_cusolver_ops.h>
+#ifdef GKYL_HAVE_CUDA
+#include <gkyl_culinsolver_ops.h>
 #endif
 
 #ifndef GKYL_IPOW
@@ -673,11 +671,7 @@ struct gkyl_fem_poisson {
   struct gkyl_array *brhs;
 
 #ifdef GKYL_HAVE_CUDA
-#ifdef GKYL_HAVE_CUDSS
-  struct gkyl_cudss_prob *prob_cu;
-#else
-  struct gkyl_cusolver_prob *prob_cu;
-#endif
+  struct gkyl_culinsolver_prob *prob_cu;
   struct gkyl_array *brhs_cu;
 #endif
 

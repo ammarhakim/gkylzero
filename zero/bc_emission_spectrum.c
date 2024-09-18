@@ -67,10 +67,10 @@ gkyl_bc_emission_spectrum_sey_calc(const struct gkyl_bc_emission_spectrum *up,
 }
 
 struct gkyl_bc_emission_spectrum*
-gkyl_bc_emission_spectrum_new(struct gkyl_spectrum_model *spectrum_model,
-  struct gkyl_yield_model *yield_model, struct gkyl_array *yield, struct gkyl_array *spectrum,
-  int dir, enum gkyl_edge_loc edge, int cdim, int vdim, double mass_in, double mass_out,
-  struct gkyl_range *impact_buff_r, struct gkyl_range *emit_buff_r,
+gkyl_bc_emission_spectrum_new(struct gkyl_emission_spectrum_model *spectrum_model,
+  struct gkyl_emission_yield_model *yield_model, struct gkyl_array *yield,
+  struct gkyl_array *spectrum, int dir, enum gkyl_edge_loc edge, int cdim, int vdim,
+  double mass_in, double mass_out, struct gkyl_range *impact_buff_r, struct gkyl_range *emit_buff_r,
   struct gkyl_rect_grid *impact_grid, struct gkyl_rect_grid *emit_grid, int poly_order,
   struct gkyl_basis *basis, struct gkyl_array *proj_buffer, bool use_gpu)
 {
@@ -92,11 +92,11 @@ gkyl_bc_emission_spectrum_new(struct gkyl_spectrum_model *spectrum_model,
     ghost[cdim+d] = 0;
   }
 
-  up->spectrum_model = gkyl_spectrum_model_acquire(spectrum_model);
+  up->spectrum_model = gkyl_emission_spectrum_model_acquire(spectrum_model);
   up->spectrum_model->cdim = cdim;
   up->spectrum_model->vdim = vdim;
   up->spectrum_model->mass = mass_out;
-  up->yield_model = gkyl_yield_model_acquire(yield_model);
+  up->yield_model = gkyl_emission_yield_model_acquire(yield_model);
   up->yield_model->cdim = cdim;
   up->yield_model->vdim = vdim;
   up->yield_model->mass = mass_in;
@@ -184,8 +184,8 @@ gkyl_bc_emission_spectrum_advance(const struct gkyl_bc_emission_spectrum *up,
 
 void gkyl_bc_emission_spectrum_release(struct gkyl_bc_emission_spectrum *up)
 {
-  gkyl_spectrum_model_release(up->spectrum_model);
-  gkyl_yield_model_release(up->yield_model);
+  gkyl_emission_spectrum_model_release(up->spectrum_model);
+  gkyl_emission_yield_model_release(up->yield_model);
   // Release updater memory.
   gkyl_free(up);
 }

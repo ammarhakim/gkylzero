@@ -15,10 +15,8 @@ struct gkyl_bc_emission_spectrum {
   double charge;
   double mass;
   struct gkyl_rect_grid *grid;
-  struct gkyl_spectrum_model *spectrum_model;
-  struct gkyl_yield_model *yield_model;
-  struct gkyl_spectrum_model *spectrum_model_cu;
-  struct gkyl_yield_model *yield_model_cu;
+  struct gkyl_emission_spectrum_model *spectrum_model;
+  struct gkyl_emission_yield_model *yield_model;
   bool use_gpu;
 };
 
@@ -35,7 +33,8 @@ bc_weighted_delta(const double *inp, int cdim, int dir, enum gkyl_edge_loc edge,
 
 #ifdef GKYL_HAVE_CUDA
 
-void gkyl_bc_emission_spectrum_set_extern_params_cu(const struct gkyl_bc_emission_spectrum *up,
+void
+gkyl_bc_emission_spectrum_set_extern_params_cu(const struct gkyl_bc_emission_spectrum *up,
   int cdim, int vdim, double mass_in, double mass_out);
 
 /**
@@ -55,7 +54,8 @@ void gkyl_bc_emission_spectrum_set_extern_params_cu(const struct gkyl_bc_emissio
  * @param conf_r Configuration space range
  * @param buff_r Buffer array range
  */
-void gkyl_bc_emission_spectrum_advance_cu(const struct gkyl_bc_emission_spectrum *up,
+void
+gkyl_bc_emission_spectrum_advance_cu(const struct gkyl_bc_emission_spectrum *up,
   struct gkyl_range *impact_buff_r, struct gkyl_range *impact_cbuff_r,
   struct gkyl_range *emit_buff_r, struct gkyl_array *bflux, struct gkyl_array *f_emit,
   struct gkyl_array *yield, struct gkyl_array *spectrum, struct gkyl_array *weight,
@@ -69,6 +69,8 @@ void gkyl_bc_emission_spectrum_advance_cu(const struct gkyl_bc_emission_spectrum
  * @param gamma SE yield values on incoming ghost space
  * @param ghost_r Incoming ghost space range
  */
-void gkyl_bc_emission_spectrum_sey_calc_cu(const struct gkyl_bc_emission_spectrum *up, struct gkyl_array *yield, struct gkyl_rect_grid *grid, const struct gkyl_range *gamma_r);
+void
+gkyl_bc_emission_spectrum_sey_calc_cu(const struct gkyl_bc_emission_spectrum *up,
+  struct gkyl_array *yield, struct gkyl_rect_grid *grid, const struct gkyl_range *gamma_r);
 
 #endif
