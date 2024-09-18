@@ -60,7 +60,7 @@ vp_species_emission_cross_init(struct gkyl_vlasov_poisson_app *app, struct vp_sp
 
     emit->flux_slvr[i] = gkyl_dg_updater_moment_new(emit->impact_grid[i], &app->confBasis,
       &app->basis, NULL, NULL, emit->impact_species[i]->model_id, 0, "Integrated", 1,
-      emit->impact_species[i]->info.mass, app->use_gpu);
+      app->use_gpu);
 
     emit->impact_skin_r[i] = (emit->edge == GKYL_LOWER_EDGE) ? &emit->impact_species[i]->lower_skin[emit->dir] : &emit->impact_species[i]->upper_skin[emit->dir];
     emit->impact_ghost_r[i] = (emit->edge == GKYL_LOWER_EDGE) ? &emit->impact_species[i]->lower_ghost[emit->dir] : &emit->impact_species[i]->upper_ghost[emit->dir];

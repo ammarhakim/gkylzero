@@ -60,7 +60,6 @@ vp_species_bgk_init(struct gkyl_vlasov_poisson_app *app, struct vp_species *s, s
     .conf_range =  &app->local,
     .conf_range_ext = &app->local_ext,
     .vel_range = &s->local_vel,
-    .p_over_gamma = NULL,
     .gamma = NULL,
     .gamma_inv = NULL,
     .h_ij_inv = NULL,
@@ -85,13 +84,11 @@ vp_species_bgk_init(struct gkyl_vlasov_poisson_app *app, struct vp_species *s, s
       .conf_range =  &app->local,
       .conf_range_ext = &app->local_ext,
       .vel_range = &s->local_vel,
-      .p_over_gamma = NULL,
       .gamma = NULL,
       .gamma_inv = NULL,
       .h_ij_inv = NULL,
       .det_h = NULL,
       .model_id = s->model_id,
-      .mass = s->info.mass,
       .use_gpu = app->use_gpu,
       .max_iter = max_iter,
       .eps = iter_eps,
@@ -175,7 +172,8 @@ vp_species_bgk_rhs(gkyl_vlasov_poisson_app *app, const struct vp_species *specie
   gkyl_array_accumulate(bgk->nu_f_lte, 1.0, bgk->f_lte);
 
   gkyl_bgk_collisions_advance(bgk->up_bgk, &app->local, &species->local, 
-    bgk->nu_sum, bgk->nu_f_lte, fin, rhs, species->cflrate);
+    bgk->nu_sum, bgk->nu_f_lte, fin, NULL, 0.0,
+    rhs, species->cflrate);
 
   app->stat.species_coll_tm += gkyl_time_diff_now_sec(wst);
 }
