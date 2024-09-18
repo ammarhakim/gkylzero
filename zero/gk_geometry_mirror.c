@@ -11,27 +11,9 @@
 #include <gkyl_nodal_ops.h>
 
 #include <gkyl_mirror_geo.h>
-#include <gkyl_calc_derived_geo.h>
+#include <gkyl_tok_calc_derived_geo.h>
 #include <gkyl_calc_metric.h>
 #include <gkyl_calc_bmag.h>
-
-
-// write out nodal coordinates 
-static void
-write_nodal_coordinates(const char *nm, struct gkyl_range *nrange,
-  struct gkyl_array *nodes)
-{
-  double lower[3] = { 0.0, 0.0, 0.0 };
-  double upper[3] = { 1.0, 1.0, 1.0 };
-  int cells[3];
-  for (int i=0; i<nrange->ndim; ++i)
-    cells[i] = gkyl_range_shape(nrange, i);
-  
-  struct gkyl_rect_grid grid;
-  gkyl_rect_grid_init(&grid, 3, lower, upper, cells);
-
-  gkyl_grid_sub_array_write(&grid, nrange, 0, nodes, nm);
-}
 
 struct gk_geometry*
 gkyl_gk_geometry_mirror_new(struct gkyl_gk_geometry_inp *geometry_inp)
@@ -65,6 +47,8 @@ gkyl_gk_geometry_mirror_new(struct gkyl_gk_geometry_inp *geometry_inp)
   struct gkyl_array* mc2p_nodal = gkyl_array_new(GKYL_DOUBLE, up->grid.ndim, nrange.volume);
   up->mc2p = gkyl_array_new(GKYL_DOUBLE, up->grid.ndim*up->basis.num_basis, up->local_ext.volume);
 
+  struct gkyl_array* bmag_nodal = gkyl_array_new(GKYL_DOUBLE, 1, nrange.volume);
+
   // bmag, metrics and derived geo quantities
   up->bmag = gkyl_array_new(GKYL_DOUBLE, up->basis.num_basis, up->local_ext.volume);
   up->g_ij = gkyl_array_new(GKYL_DOUBLE, 6*up->basis.num_basis, up->local_ext.volume);
@@ -88,29 +72,33 @@ gkyl_gk_geometry_mirror_new(struct gkyl_gk_geometry_inp *geometry_inp)
   up->eps2= gkyl_array_new(GKYL_DOUBLE, up->basis.num_basis, up->local_ext.volume);
   up->bmag_mid = gkyl_array_new(GKYL_DOUBLE, 1, 1);
 
-  const struct gkyl_mirror_geo_efit_inp *inp = geometry_inp->mirror_efit_info;
-  struct gkyl_mirror_geo_grid_inp *ginp = geometry_inp->mirror_grid_info;
-  ginp->cgrid = up->grid;
-  ginp->cbasis = up->basis;
-  struct gkyl_mirror_geo *geo = gkyl_mirror_geo_new(inp);
+  const struct gkyl_efit_inp inp = geometry_inp->efit_info;
+  struct gkyl_mirror_geo_grid_inp ginp = geometry_inp->mirror_grid_info;
+  ginp.cgrid = up->grid;
+  ginp.cbasis = up->basis;
+  struct gkyl_mirror_geo *geo = gkyl_mirror_geo_new(&inp, &ginp);
   // calculate mapc2p
-  gkyl_mirror_geo_calc(up, &nrange, dzc, NULL, geo, NULL, ginp, 
+  gkyl_mirror_geo_calc(up, &nrange, dzc, geo, &ginp,
     mc2p_nodal_fd, mc2p_nodal, up->mc2p);
   // calculate bmag
-  gkyl_calc_bmag *bcalculator = gkyl_calc_bmag_new(&up->basis, &geo->rzbasis, &geo->fbasis, &up->grid, &geo->rzgrid, &geo->fgrid, geo->psisep, false);
-  gkyl_calc_bmag_advance(bcalculator, &up->local, &up->local_ext, &up->global, &geo->rzlocal, &geo->rzlocal_ext, &geo->frange, &geo->frange_ext, geo->psiRZ, geo->psibyrRZ, geo->psibyr2RZ, up->bmag, geo->fpoldg, up->mc2p, false);
+  gkyl_calc_bmag *bcalculator = gkyl_calc_bmag_new(&up->basis, &geo->rzbasis, &up->grid, &geo->rzgrid, false);
+  gkyl_calc_bmag_advance(bcalculator, &up->local, &up->local_ext, &up->global, &geo->rzlocal, &geo->rzlocal_ext, geo->efit->bmagzr, up->bmag, up->mc2p);
   gkyl_calc_bmag_release(bcalculator);
-  // now calculate the metrics
-  struct gkyl_calc_metric* mcalc = gkyl_calc_metric_new(&up->basis, &up->grid, &up->global, &up->global_ext, &up->local, &up->local_ext, false);
-  gkyl_calc_metric_advance(mcalc, &nrange, mc2p_nodal_fd, dzc, up->g_ij, up->dxdz, up->dzdx, up->normals, &up->local);
 
+  // Convert bmag to nodal so we can use it to calculate dphidtheta
+  struct gkyl_nodal_ops *n2m = gkyl_nodal_ops_new(&up->basis, &up->grid, false);
+  gkyl_nodal_ops_m2n(n2m, &up->basis, &up->grid, &nrange, &up->local, 1, bmag_nodal, up->bmag);
+  gkyl_nodal_ops_release(n2m);
+
+  // Now calculate the metrics
+  struct gkyl_calc_metric* mcalc = gkyl_calc_metric_new(&up->basis, &up->grid, &up->global, &up->global_ext, &up->local, &up->local_ext, false);
+  gkyl_calc_metric_advance_mirror(mcalc, &nrange, mc2p_nodal_fd, bmag_nodal, dzc, up->g_ij, up->dxdz, up->dzdx, up->normals, up->jacobgeo, up->bcart, &up->local);
   // calculate the derived geometric quantities
-  struct gkyl_calc_derived_geo *jcalculator = gkyl_calc_derived_geo_new(&up->basis, &up->grid, false);
-  gkyl_calc_derived_geo_advance(jcalculator, &up->local, up->g_ij, up->bmag, 
+  gkyl_tok_calc_derived_geo *jcalculator = gkyl_tok_calc_derived_geo_new(&up->basis, &up->grid, false);
+  gkyl_tok_calc_derived_geo_advance(jcalculator, &up->local, up->g_ij, up->bmag, 
     up->jacobgeo, up->jacobgeo_inv, up->gij, up->b_i, up->cmag, up->jacobtot, up->jacobtot_inv, 
     up->bmag_inv, up->bmag_inv_sq, up->gxxj, up->gxyj, up->gyyj, up->gxzj, up->eps2);
-  gkyl_calc_derived_geo_release(jcalculator);
-  gkyl_calc_metric_advance_bcart(mcalc, &nrange, up->b_i, up->dzdx, up->bcart, &up->local);
+  gkyl_tok_calc_derived_geo_release(jcalculator);
   gkyl_calc_metric_release(mcalc);
 
   up->flags = 0;
@@ -121,6 +109,7 @@ gkyl_gk_geometry_mirror_new(struct gkyl_gk_geometry_inp *geometry_inp)
   gkyl_mirror_geo_release(geo);
   gkyl_array_release(mc2p_nodal_fd);
   gkyl_array_release(mc2p_nodal);
+  gkyl_array_release(bmag_nodal);
 
   return up;
 }

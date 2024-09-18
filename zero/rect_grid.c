@@ -49,17 +49,16 @@ gkyl_rect_grid_find_cell(const struct gkyl_rect_grid *grid, const double *point,
   int nDim = grid->ndim;
   int search_num = 0;
   int search_dim[GKYL_MAX_DIM];
-  int *dim_trans[GKYL_MAX_DIM];
+  int dim_trans[GKYL_MAX_DIM];
   double low, high;
   
   for (int d=0; d<nDim; d++) {
-    dim_trans[d] = (int*)malloc(1*sizeof(int));
-    if (known_index[d]<0) {
+    if (known_index[d] < 0) {
       search_dim[search_num] = d;
-      *dim_trans[d] = search_num;
+      dim_trans[d] = search_num;
       search_num = search_num + 1;
     } else {
-      dim_trans[d] = NULL;      
+      dim_trans[d] = -1;
       cell_index[d] = known_index[d];
       low = grid->lower[d]+(known_index[d]-1)*grid->dx[d];
       high = grid->lower[d]+(known_index[d])*grid->dx[d];

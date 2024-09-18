@@ -98,25 +98,6 @@ struct gk_mirror_ctx
   int num_failures_max; // Maximum allowable number of consecutive small time-steps.
 };
 
-
-struct gkyl_mirror_geo_efit_inp inp = {
-  .filepath = "./data/eqdsk/wham.geqdsk",
-  .rzpoly_order = 2,
-  .fluxpoly_order = 1,
-  .plate_spec = false,
-  .quad_param = {  .eps = 1e-10 }
-};
-
-
-struct gkyl_mirror_geo_grid_inp ginp = {
-  .rclose = 0.2,
-  .zmin = -2.48,
-  .zmax =  2.48,
-  .write_node_coord_array = true,
-  .node_file_nm = "wham_nodes.gkyl",
-  // .nonuniform_mapping_fraction = 0.7,
-};
-
 // -- Source functions.
 void
 eval_density_elc_source(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
@@ -207,6 +188,26 @@ eval_temp_ion_source(double t, const double *GKYL_RESTRICT xn, double *GKYL_REST
   else
   {
     fout[0] = Tfloor;
+  }
+}
+
+// Potential initial condition
+void
+eval_potential(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+{
+  struct gk_mirror_ctx *app = ctx;
+  double psi = xn[0]; // Magnetic flux function psi of field line.
+  double z = xn[1];
+  double z_m = app->z_m;
+  double sigma = 0.9*z_m;
+  double center_potential = 5.0 * app->Te0 / app->qi;
+  if (fabs(z) <= sigma)
+  {
+    fout[0] = 0.5*center_potential*(1. + tanh(10. * sigma * fabs(sigma - fabs(z))));
+  }
+  else
+  {
+    fout[0] = 0.0;
   }
 }
 
@@ -454,7 +455,6 @@ create_ctx(void)
   double z_max = M_PI - 1e-1;
   double psi_min = 1e-3;
   double psi_max = 1e-2;
-  printf("psi_min = %g, psi_max = %g\n", psi_min, psi_max);
 
   // Source parameters
   double NSrcIon = 3.1715e23 / 8.0;
@@ -499,8 +499,6 @@ create_ctx(void)
   double Te_par_m = 300 * eV;
   double Te_perp0 = 2000 * eV;
   double Te_perp_m = 3000 * eV;
-  // Non-uniform z mapping
-  double mapping_frac = 0.7; // 1 is full mapping, 0 is no mapping
 
   struct gk_mirror_ctx ctx = {
     .cdim = cdim,
@@ -676,6 +674,7 @@ int main(int argc, char **argv)
     .source = {
       .source_id = GKYL_PROJ_SOURCE,
       .write_source = true,
+      .num_sources = 1,
       .projection[0] = {
         .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM, 
         .ctx_density = &ctx,
@@ -701,9 +700,8 @@ int main(int argc, char **argv)
       .lower={.type = GKYL_SPECIES_GK_SHEATH,},
       .upper={.type = GKYL_SPECIES_GK_SHEATH,},
     },
-
-    .num_diag_moments = 7, // Copied from GKsoloviev, but
-    .diag_moments = {"M0", "M1", "M2", "M2par", "M2perp", "M3par", "M3perp"},
+    .num_diag_moments = 1,
+    .diag_moments = {"BiMaxwellianMoments"},
   };
 
   struct gkyl_gyrokinetic_projection ion_ic = {
@@ -739,6 +737,7 @@ int main(int argc, char **argv)
     .source = {
       .source_id = GKYL_PROJ_SOURCE,
       .write_source = true,
+      .num_sources = 1,
       .projection[0] = {
         .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM, 
         .ctx_density = &ctx,
@@ -763,10 +762,9 @@ int main(int argc, char **argv)
     .bcy = {
       .lower={.type = GKYL_SPECIES_GK_SHEATH,},
       .upper={.type = GKYL_SPECIES_GK_SHEATH,},
-    },    
-
-    .num_diag_moments = 7,
-    .diag_moments = {"M0", "M1", "M2", "M2par", "M2perp", "M3par", "M3perp"},
+    },
+    .num_diag_moments = 1,
+    .diag_moments = {"BiMaxwellianMoments"},
   };
 
   struct gkyl_gyrokinetic_field field =
@@ -778,7 +776,21 @@ int main(int argc, char **argv)
       .up_type = {GKYL_POISSON_DIRICHLET, GKYL_POISSON_NEUMANN},
       .lo_value = {0.0, 0.0},
       .up_value = {0.0, 0.0},
-    }
+    },
+    .polarization_potential = eval_potential,
+    .polarization_potential_ctx = &ctx,
+  };
+
+  struct gkyl_efit_inp efit_inp = {
+    .filepath = "./data/eqdsk/wham.geqdsk", // equilibrium to use
+    .rz_poly_order = 2,                     // polynomial order for psi(R,Z) used for field line tracing
+    .flux_poly_order = 1,                   // polynomial order for fpol(psi)
+  };
+
+  struct gkyl_mirror_geo_grid_inp grid_inp = {
+    .rclose = 0.2, // closest R to region of interest
+    .zmin = -2.0,  // Z of lower boundary
+    .zmax =  2.0,  // Z of upper boundary 
   };
 
   struct gkyl_gk app_inp = {
@@ -793,8 +805,8 @@ int main(int argc, char **argv)
     .geometry = {
       .geometry_id = GKYL_MIRROR,
       .world = {0.0},
-      .mirror_efit_info = &inp,
-      .mirror_grid_info = &ginp,
+      .efit_info = efit_inp,
+      .mirror_grid_info = grid_inp,
     },
 
     .num_periodic_dir = 0,

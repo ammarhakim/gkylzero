@@ -4,10 +4,10 @@
 #include <gkyl_array_ops.h>
 #include <gkyl_array_rio_priv.h>
 #include <gkyl_basis.h>
+#include <gkyl_comm_io.h>
 #include <gkyl_dflt.h>
 #include <gkyl_dynvec.h>
 #include <gkyl_null_comm.h>
-
 #include <gkyl_pkpm_priv.h>
 #include <gkyl_app_priv.h>
 
