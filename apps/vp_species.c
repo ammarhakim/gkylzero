@@ -62,6 +62,8 @@ vp_species_init(struct gkyl_vp *vp, struct gkyl_vlasov_poisson_app *app, struct 
   gkyl_range_ten_prod(&local, &app->local, &vps->local_vel);
   gkyl_create_ranges(&local, ghost, &vps->local_ext, &vps->local);
 
+  vps->model_id = 0; // Vlasov.
+
   // Determine field-type.
   if (app->has_field)
     vps->field_id = app->field->info.field_id;
@@ -91,38 +93,6 @@ vp_species_init(struct gkyl_vp *vp, struct gkyl_vlasov_poisson_app *app, struct 
 
   // By default, we do not have zero-flux boundary conditions in any direction.
   bool is_zero_flux[2*GKYL_MAX_DIM] = {false};
-
-  // Determine which directions are not periodic, if any directions are zero-flux,
-  // need to set is_zero_flux.
-  vps->num_periodic_dir = app->num_periodic_dir;
-  for (int d=0; d<vps->num_periodic_dir; ++d)
-    vps->periodic_dirs[d] = app->periodic_dirs[d];
-
-  for (int d=0; d<app->cdim; ++d) vps->bc_is_np[d] = true;
-  for (int d=0; d<vps->num_periodic_dir; ++d)
-    vps->bc_is_np[vps->periodic_dirs[d]] = false;
-
-  for (int dir=0; dir<app->cdim; ++dir) {
-    vps->lower_bc[dir].type = vps->upper_bc[dir].type = GKYL_SPECIES_COPY;
-    if (vps->bc_is_np[dir]) {
-      const struct gkyl_vlasov_poisson_bcs *bc;
-      if (dir == 0)
-        bc = &vps->info.bcx;
-      else if (dir == 1)
-        bc = &vps->info.bcy;
-      else
-        bc = &vps->info.bcz;
-
-      vps->lower_bc[dir] = bc->lower;
-      vps->upper_bc[dir] = bc->upper;
-      if (vps->lower_bc[dir].type == GKYL_SPECIES_ZERO_FLUX) {
-        is_zero_flux[dir] = true;
-      }
-      if (vps->upper_bc[dir].type == GKYL_SPECIES_ZERO_FLUX) {
-        is_zero_flux[dir+pdim] = true;
-      }
-    }
-  }
 
   struct gkyl_dg_vlasov_poisson_auxfields aux_inp = {.field = vps->qmem, };
   // Create collisionless solver.
@@ -160,15 +130,52 @@ vp_species_init(struct gkyl_vp *vp, struct gkyl_vlasov_poisson_app *app, struct 
 
   // Set species source id.
   vps->source_id = vps->info.source.source_id;
+  if (vps->source_id == GKYL_BFLUX_SOURCE) {
+    vps->calc_bflux = true;
+  }
   
   // Determine collision type to use in Vlasov update.
   vps->collision_id = vps->info.collisions.collision_id;
+  // initialize empty collision structs so inputs of structs are set to 0
+  vps->lbo = (struct vp_lbo_collisions) { };
+  vps->bgk = (struct vp_bgk_collisions) { };
   if (vps->collision_id == GKYL_LBO_COLLISIONS) {
     vp_species_lbo_init(app, vps, &vps->lbo);
   } 
   else if (vps->collision_id == GKYL_BGK_COLLISIONS) {
     vp_species_bgk_init(app, vps, &vps->bgk);
-    // assert(false); // Not ready.
+  }
+
+  // Determine which directions are not periodic, if any directions are zero-flux,
+  // need to set is_zero_flux.
+  vps->num_periodic_dir = app->num_periodic_dir;
+  for (int d=0; d<vps->num_periodic_dir; ++d)
+    vps->periodic_dirs[d] = app->periodic_dirs[d];
+
+  for (int d=0; d<app->cdim; ++d) vps->bc_is_np[d] = true;
+  for (int d=0; d<vps->num_periodic_dir; ++d)
+    vps->bc_is_np[vps->periodic_dirs[d]] = false;
+
+  for (int dir=0; dir<app->cdim; ++dir) {
+    vps->lower_bc[dir].type = vps->upper_bc[dir].type = GKYL_SPECIES_COPY;
+    if (vps->bc_is_np[dir]) {
+      const struct gkyl_vlasov_poisson_bcs *bc;
+      if (dir == 0)
+        bc = &vps->info.bcx;
+      else if (dir == 1)
+        bc = &vps->info.bcy;
+      else
+        bc = &vps->info.bcz;
+
+      vps->lower_bc[dir] = bc->lower;
+      vps->upper_bc[dir] = bc->upper;
+      if (vps->lower_bc[dir].type == GKYL_SPECIES_ZERO_FLUX) {
+        is_zero_flux[dir] = true;
+      }
+      if (vps->upper_bc[dir].type == GKYL_SPECIES_ZERO_FLUX) {
+        is_zero_flux[dir+pdim] = true;
+      }
+    }
   }
 
   // Create ranges and allocate buffers for applying periodic and non-periodic BCs.
@@ -184,9 +191,6 @@ vp_species_init(struct gkyl_vp *vp, struct gkyl_vlasov_poisson_app *app, struct 
     buff_sz = buff_sz > vol ? buff_sz : vol;
   }
 
-  // Initialize boundary fluxes for diagnostics and sources, for example.
-  vp_species_bflux_init(app, vps, &vps->bflux);
-
   vps->bc_buffer = mkarr(app->use_gpu, app->basis.num_basis, buff_sz);
   // Buffer arrays for fixed function boundary conditions on distribution function.
   vps->bc_buffer_lo_fixed = mkarr(app->use_gpu, app->basis.num_basis, buff_sz);
@@ -197,6 +201,7 @@ vp_species_init(struct gkyl_vp *vp, struct gkyl_vlasov_poisson_app *app, struct 
     enum gkyl_bc_basic_type bctype = GKYL_BC_COPY;
     if (vps->lower_bc[d].type == GKYL_SPECIES_EMISSION) {
       vps->emit_lo = true;
+      vps->calc_bflux = true;
       vp_species_emission_init(app, &vps->bc_emission_lo, d, GKYL_LOWER_EDGE, vps->lower_bc[d].aux_ctx,
         app->use_gpu);
     }
@@ -217,6 +222,7 @@ vp_species_init(struct gkyl_vp *vp, struct gkyl_vlasov_poisson_app *app, struct 
     // Upper BC updater. Copy BCs by default.
     if (vps->upper_bc[d].type == GKYL_SPECIES_EMISSION) {
       vps->emit_up = true;
+      vps->calc_bflux = true;
       vp_species_emission_init(app, &vps->bc_emission_up, d, GKYL_UPPER_EDGE, vps->upper_bc[d].aux_ctx,
         app->use_gpu);
     }
@@ -234,6 +240,11 @@ vp_species_init(struct gkyl_vp *vp, struct gkyl_vlasov_poisson_app *app, struct 
         &vps->upper_skin[d], &vps->upper_ghost[d], vps->f->ncomp, app->cdim, app->use_gpu);
     }
   }
+
+  if (vps->calc_bflux) {
+    // Initialize boundary fluxes for diagnostics and sources, for example.
+    vp_species_bflux_init(app, vps, &vps->bflux);
+  }
 }
 
 void
@@ -244,7 +255,9 @@ vp_species_apply_ic(gkyl_vlasov_poisson_app *app, struct vp_species *species, do
   // we are pre-computing source for now as it is time-independent
   vp_species_source_calc(app, species, &species->src, t0);
 
-  vp_species_bflux_rhs(app, species, &species->bflux, species->f, species->f);
+  if (species->calc_bflux) {
+    vp_species_bflux_rhs(app, species, &species->bflux, species->f, species->f);
+  }
 
     // Optional runtime configuration to use BGK collisions but with fixed input 
   // temperature relaxation based on the initial temperature value. 
@@ -254,10 +267,10 @@ vp_species_apply_ic(gkyl_vlasov_poisson_app *app, struct vp_species *species, do
 
   // copy contents of initial conditions into buffer if specific BCs require them
   // *only works in x dimension for now for cdim > 1*
-  if (app->cdim>1) {
+  if (species->lower_bc[0].type == GKYL_SPECIES_FIXED_FUNC)
     gkyl_bc_basic_buffer_fixed_func(species->bc_lo[0], species->bc_buffer_lo_fixed, species->f);
+  if (species->upper_bc[0].type == GKYL_SPECIES_FIXED_FUNC)
     gkyl_bc_basic_buffer_fixed_func(species->bc_up[0], species->bc_buffer_up_fixed, species->f);
-  }
 }
 
 // Compute the RHS for species update, returning maximum stable
@@ -268,6 +281,7 @@ vp_species_rhs(gkyl_vlasov_poisson_app *app, struct vp_species *species,
 {
   gkyl_array_clear(species->cflrate, 0.0);
   gkyl_array_clear(rhs, 0.0);
+  gkyl_array_clear(species->qmem, 0.0);
 
   if (app->has_field) {
     gkyl_array_set_offset(species->qmem, species->qbym, app->field->phi, 0);
@@ -281,10 +295,12 @@ vp_species_rhs(gkyl_vlasov_poisson_app *app, struct vp_species *species,
 
   if (species->collision_id == GKYL_LBO_COLLISIONS)
     vp_species_lbo_rhs(app, species, &species->lbo, fin, rhs);
-   else if (species->collision_id == GKYL_BGK_COLLISIONS)
-     vp_species_bgk_rhs(app, species, &species->bgk, fin, rhs);
+  else if (species->collision_id == GKYL_BGK_COLLISIONS)
+    vp_species_bgk_rhs(app, species, &species->bgk, fin, rhs);
   
-  vp_species_bflux_rhs(app, species, &species->bflux, fin, rhs);
+  if (species->calc_bflux) {
+    vp_species_bflux_rhs(app, species, &species->bflux, fin, rhs);
+  }
 
   app->stat.nspecies_omega_cfl +=1;
   struct timespec tm = gkyl_wall_clock();
@@ -394,7 +410,9 @@ vp_species_release(const gkyl_vlasov_poisson_app* app, const struct vp_species *
 
   vp_species_projection_release(app, &s->proj_init);
 
-  vp_species_bflux_release(app, &s->bflux);
+  if (s->calc_bflux) {
+    vp_species_bflux_release(app, &s->bflux);
+  }
 
   gkyl_comm_release(s->comm);
 

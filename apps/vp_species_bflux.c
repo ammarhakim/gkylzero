@@ -1,5 +1,6 @@
 #include <assert.h>
 #include <gkyl_vlasov_poisson_priv.h>
+#include <gkyl_dg_updater_moment.h>
 
 void 
 vp_species_bflux_init(struct gkyl_vlasov_poisson_app *app, struct vp_species *s, struct vp_boundary_fluxes *bflux)
@@ -41,15 +42,15 @@ vp_species_bflux_init(struct gkyl_vlasov_poisson_app *app, struct vp_species *s,
     gkyl_rect_grid_init(&bflux->boundary_grid[2*i+1], ndim, lower, upper, cells);
     
     bflux->integ_moms[2*i] = gkyl_dg_updater_moment_new(&bflux->boundary_grid[2*i],
-      &app->confBasis, &app->basis, NULL, NULL, s->model_id, 0, "Integrated", 1,
+      &app->confBasis, &app->basis, &bflux->conf_r[2*i], &s->local_vel, s->model_id, 0, "Integrated", 1,
       app->use_gpu);
     bflux->integ_moms[2*i+1] = gkyl_dg_updater_moment_new(&bflux->boundary_grid[2*i+1],
-      &app->confBasis, &app->basis, NULL, NULL, s->model_id, 0, "Integrated", 1,
+      &app->confBasis, &app->basis, &bflux->conf_r[2*i+1], &s->local_vel, s->model_id, 0, "Integrated", 1,
       app->use_gpu);
 
     cells[i] = s->grid.cells[i];
 
-    bflux->mom_arr[2*i] = mkarr(app->use_gpu, app->confBasis.num_basis, bflux->conf_r[i].volume);
+    bflux->mom_arr[2*i] = mkarr(app->use_gpu, app->confBasis.num_basis, bflux->conf_r[2*i].volume);
     bflux->mom_arr[2*i+1] = mkarr(app->use_gpu, app->confBasis.num_basis, bflux->conf_r[2*i+1].volume);
   }
 }

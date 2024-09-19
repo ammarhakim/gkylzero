@@ -300,10 +300,10 @@ main(int argc, char **argv)
       .up_type = { GKYL_POISSON_NEUMANN },
       .lo_value = { 0.0 }, .up_value = { 0.0 }
     },
-//    .field_id = GKYL_VP_FIELD_PHI_EXT,
-//    .ext_em = external_potentials,
-//    .ext_em_ctx = &ctx,
-//    .ext_em_evolve = false,
+    .field_id = GKYL_VP_FIELD_PHI_EXT,
+    .ext_em = external_potentials,
+    .ext_em_ctx = &ctx,
+    .ext_em_evolve = false,
   };
 
   // VP app

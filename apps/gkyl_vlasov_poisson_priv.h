@@ -246,7 +246,7 @@ struct vp_emitting_wall {
 
 struct vp_proj {
   enum gkyl_projection_id proj_id; // type of projection
-
+  enum gkyl_model_id model_id;
   // organization of the different projection objects and the required data and solvers
   union {
     // function projection
@@ -362,6 +362,7 @@ struct vp_species {
   struct vp_source src; // applied source
 
   // Boundary fluxes.
+  bool calc_bflux; // are we computing boundary fluxes?
   struct vp_boundary_fluxes bflux;
 
   // collisions
