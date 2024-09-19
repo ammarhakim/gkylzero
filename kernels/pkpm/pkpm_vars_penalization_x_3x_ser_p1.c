@@ -131,8 +131,8 @@ GKYL_CU_DH void pkpm_vars_penalization_x_3x_ser_p1(double tol, bool force_lax,
   if (q_r[0] < tol) use_lax = 1; 
   if (u_l + u_r < tol && u_max > vth_max) use_lax = 1; 
 
-  gkyl_wv_eqn_rotate_to_local(wv_eqn, geom->tau1[0], geom->tau2[0], geom->norm[0], q_l, q_l_local); 
-  gkyl_wv_eqn_rotate_to_local(wv_eqn, geom->tau1[0], geom->tau2[0], geom->norm[0], q_r, q_r_local); 
+  wv_eqn->rotate_to_local_func(wv_eqn, geom->tau1[0], geom->tau2[0], geom->norm[0], q_l, q_l_local); 
+  wv_eqn->rotate_to_local_func(wv_eqn, geom->tau1[0], geom->tau2[0], geom->norm[0], q_r, q_r_local); 
 
   delta[0] = q_r_local[0] - q_l_local[0]; 
   delta[1] = q_r_local[1] - q_l_local[1]; 
@@ -144,16 +144,16 @@ GKYL_CU_DH void pkpm_vars_penalization_x_3x_ser_p1(double tol, bool force_lax,
   delta[7] = q_r_local[7] - q_l_local[7]; 
   delta[8] = q_r_local[8] - q_l_local[8]; 
   delta[9] = q_r_local[9] - q_l_local[9]; 
-  my_max_speed = gkyl_wv_eqn_waves(wv_eqn, GKYL_WV_HIGH_ORDER_FLUX, delta, q_l_local, q_r_local, waves, speeds); 
+  my_max_speed = wv_eqn->waves_func(wv_eqn, GKYL_WV_HIGH_ORDER_FLUX, delta, q_l_local, q_r_local, waves, speeds); 
   lenr = geom->lenr[0]; 
   speeds[0] *= lenr; 
   speeds[1] *= lenr; 
   speeds[2] *= lenr; 
   speeds[3] *= lenr; 
   speeds[4] *= lenr; 
-  gkyl_wv_eqn_qfluct(wv_eqn, GKYL_WV_HIGH_ORDER_FLUX, q_l_local, q_r_local, waves, speeds, amdq_local, apdq_local); 
-  gkyl_wv_eqn_rotate_to_global(wv_eqn, geom->tau1[0], geom->tau2[0], geom->norm[0], amdq_local, amdq); 
-  gkyl_wv_eqn_rotate_to_global(wv_eqn, geom->tau1[0], geom->tau2[0], geom->norm[0], apdq_local, apdq); 
+  wv_eqn->qfluct_func(wv_eqn, GKYL_WV_HIGH_ORDER_FLUX, q_l_local, q_r_local, waves, speeds, amdq_local, apdq_local); 
+  wv_eqn->rotate_to_global_func(wv_eqn, geom->tau1[0], geom->tau2[0], geom->norm[0], amdq_local, amdq); 
+  wv_eqn->rotate_to_global_func(wv_eqn, geom->tau1[0], geom->tau2[0], geom->norm[0], apdq_local, apdq); 
 
   amdq_rhoux_quad[0] = amdq[1]; 
   apdq_rhoux_quad[0] = apdq[1]; 
@@ -206,8 +206,8 @@ GKYL_CU_DH void pkpm_vars_penalization_x_3x_ser_p1(double tol, bool force_lax,
   if (q_r[0] < tol) use_lax = 1; 
   if (u_l + u_r < tol && u_max > vth_max) use_lax = 1; 
 
-  gkyl_wv_eqn_rotate_to_local(wv_eqn, geom->tau1[0], geom->tau2[0], geom->norm[0], q_l, q_l_local); 
-  gkyl_wv_eqn_rotate_to_local(wv_eqn, geom->tau1[0], geom->tau2[0], geom->norm[0], q_r, q_r_local); 
+  wv_eqn->rotate_to_local_func(wv_eqn, geom->tau1[0], geom->tau2[0], geom->norm[0], q_l, q_l_local); 
+  wv_eqn->rotate_to_local_func(wv_eqn, geom->tau1[0], geom->tau2[0], geom->norm[0], q_r, q_r_local); 
 
   delta[0] = q_r_local[0] - q_l_local[0]; 
   delta[1] = q_r_local[1] - q_l_local[1]; 
@@ -219,16 +219,16 @@ GKYL_CU_DH void pkpm_vars_penalization_x_3x_ser_p1(double tol, bool force_lax,
   delta[7] = q_r_local[7] - q_l_local[7]; 
   delta[8] = q_r_local[8] - q_l_local[8]; 
   delta[9] = q_r_local[9] - q_l_local[9]; 
-  my_max_speed = gkyl_wv_eqn_waves(wv_eqn, GKYL_WV_HIGH_ORDER_FLUX, delta, q_l_local, q_r_local, waves, speeds); 
+  my_max_speed = wv_eqn->waves_func(wv_eqn, GKYL_WV_HIGH_ORDER_FLUX, delta, q_l_local, q_r_local, waves, speeds); 
   lenr = geom->lenr[0]; 
   speeds[0] *= lenr; 
   speeds[1] *= lenr; 
   speeds[2] *= lenr; 
   speeds[3] *= lenr; 
   speeds[4] *= lenr; 
-  gkyl_wv_eqn_qfluct(wv_eqn, GKYL_WV_HIGH_ORDER_FLUX, q_l_local, q_r_local, waves, speeds, amdq_local, apdq_local); 
-  gkyl_wv_eqn_rotate_to_global(wv_eqn, geom->tau1[0], geom->tau2[0], geom->norm[0], amdq_local, amdq); 
-  gkyl_wv_eqn_rotate_to_global(wv_eqn, geom->tau1[0], geom->tau2[0], geom->norm[0], apdq_local, apdq); 
+  wv_eqn->qfluct_func(wv_eqn, GKYL_WV_HIGH_ORDER_FLUX, q_l_local, q_r_local, waves, speeds, amdq_local, apdq_local); 
+  wv_eqn->rotate_to_global_func(wv_eqn, geom->tau1[0], geom->tau2[0], geom->norm[0], amdq_local, amdq); 
+  wv_eqn->rotate_to_global_func(wv_eqn, geom->tau1[0], geom->tau2[0], geom->norm[0], apdq_local, apdq); 
 
   amdq_rhoux_quad[1] = amdq[1]; 
   apdq_rhoux_quad[1] = apdq[1]; 
@@ -281,8 +281,8 @@ GKYL_CU_DH void pkpm_vars_penalization_x_3x_ser_p1(double tol, bool force_lax,
   if (q_r[0] < tol) use_lax = 1; 
   if (u_l + u_r < tol && u_max > vth_max) use_lax = 1; 
 
-  gkyl_wv_eqn_rotate_to_local(wv_eqn, geom->tau1[0], geom->tau2[0], geom->norm[0], q_l, q_l_local); 
-  gkyl_wv_eqn_rotate_to_local(wv_eqn, geom->tau1[0], geom->tau2[0], geom->norm[0], q_r, q_r_local); 
+  wv_eqn->rotate_to_local_func(wv_eqn, geom->tau1[0], geom->tau2[0], geom->norm[0], q_l, q_l_local); 
+  wv_eqn->rotate_to_local_func(wv_eqn, geom->tau1[0], geom->tau2[0], geom->norm[0], q_r, q_r_local); 
 
   delta[0] = q_r_local[0] - q_l_local[0]; 
   delta[1] = q_r_local[1] - q_l_local[1]; 
@@ -294,16 +294,16 @@ GKYL_CU_DH void pkpm_vars_penalization_x_3x_ser_p1(double tol, bool force_lax,
   delta[7] = q_r_local[7] - q_l_local[7]; 
   delta[8] = q_r_local[8] - q_l_local[8]; 
   delta[9] = q_r_local[9] - q_l_local[9]; 
-  my_max_speed = gkyl_wv_eqn_waves(wv_eqn, GKYL_WV_HIGH_ORDER_FLUX, delta, q_l_local, q_r_local, waves, speeds); 
+  my_max_speed = wv_eqn->waves_func(wv_eqn, GKYL_WV_HIGH_ORDER_FLUX, delta, q_l_local, q_r_local, waves, speeds); 
   lenr = geom->lenr[0]; 
   speeds[0] *= lenr; 
   speeds[1] *= lenr; 
   speeds[2] *= lenr; 
   speeds[3] *= lenr; 
   speeds[4] *= lenr; 
-  gkyl_wv_eqn_qfluct(wv_eqn, GKYL_WV_HIGH_ORDER_FLUX, q_l_local, q_r_local, waves, speeds, amdq_local, apdq_local); 
-  gkyl_wv_eqn_rotate_to_global(wv_eqn, geom->tau1[0], geom->tau2[0], geom->norm[0], amdq_local, amdq); 
-  gkyl_wv_eqn_rotate_to_global(wv_eqn, geom->tau1[0], geom->tau2[0], geom->norm[0], apdq_local, apdq); 
+  wv_eqn->qfluct_func(wv_eqn, GKYL_WV_HIGH_ORDER_FLUX, q_l_local, q_r_local, waves, speeds, amdq_local, apdq_local); 
+  wv_eqn->rotate_to_global_func(wv_eqn, geom->tau1[0], geom->tau2[0], geom->norm[0], amdq_local, amdq); 
+  wv_eqn->rotate_to_global_func(wv_eqn, geom->tau1[0], geom->tau2[0], geom->norm[0], apdq_local, apdq); 
 
   amdq_rhoux_quad[2] = amdq[1]; 
   apdq_rhoux_quad[2] = apdq[1]; 
@@ -356,8 +356,8 @@ GKYL_CU_DH void pkpm_vars_penalization_x_3x_ser_p1(double tol, bool force_lax,
   if (q_r[0] < tol) use_lax = 1; 
   if (u_l + u_r < tol && u_max > vth_max) use_lax = 1; 
 
-  gkyl_wv_eqn_rotate_to_local(wv_eqn, geom->tau1[0], geom->tau2[0], geom->norm[0], q_l, q_l_local); 
-  gkyl_wv_eqn_rotate_to_local(wv_eqn, geom->tau1[0], geom->tau2[0], geom->norm[0], q_r, q_r_local); 
+  wv_eqn->rotate_to_local_func(wv_eqn, geom->tau1[0], geom->tau2[0], geom->norm[0], q_l, q_l_local); 
+  wv_eqn->rotate_to_local_func(wv_eqn, geom->tau1[0], geom->tau2[0], geom->norm[0], q_r, q_r_local); 
 
   delta[0] = q_r_local[0] - q_l_local[0]; 
   delta[1] = q_r_local[1] - q_l_local[1]; 
@@ -369,16 +369,16 @@ GKYL_CU_DH void pkpm_vars_penalization_x_3x_ser_p1(double tol, bool force_lax,
   delta[7] = q_r_local[7] - q_l_local[7]; 
   delta[8] = q_r_local[8] - q_l_local[8]; 
   delta[9] = q_r_local[9] - q_l_local[9]; 
-  my_max_speed = gkyl_wv_eqn_waves(wv_eqn, GKYL_WV_HIGH_ORDER_FLUX, delta, q_l_local, q_r_local, waves, speeds); 
+  my_max_speed = wv_eqn->waves_func(wv_eqn, GKYL_WV_HIGH_ORDER_FLUX, delta, q_l_local, q_r_local, waves, speeds); 
   lenr = geom->lenr[0]; 
   speeds[0] *= lenr; 
   speeds[1] *= lenr; 
   speeds[2] *= lenr; 
   speeds[3] *= lenr; 
   speeds[4] *= lenr; 
-  gkyl_wv_eqn_qfluct(wv_eqn, GKYL_WV_HIGH_ORDER_FLUX, q_l_local, q_r_local, waves, speeds, amdq_local, apdq_local); 
-  gkyl_wv_eqn_rotate_to_global(wv_eqn, geom->tau1[0], geom->tau2[0], geom->norm[0], amdq_local, amdq); 
-  gkyl_wv_eqn_rotate_to_global(wv_eqn, geom->tau1[0], geom->tau2[0], geom->norm[0], apdq_local, apdq); 
+  wv_eqn->qfluct_func(wv_eqn, GKYL_WV_HIGH_ORDER_FLUX, q_l_local, q_r_local, waves, speeds, amdq_local, apdq_local); 
+  wv_eqn->rotate_to_global_func(wv_eqn, geom->tau1[0], geom->tau2[0], geom->norm[0], amdq_local, amdq); 
+  wv_eqn->rotate_to_global_func(wv_eqn, geom->tau1[0], geom->tau2[0], geom->norm[0], apdq_local, apdq); 
 
   amdq_rhoux_quad[3] = amdq[1]; 
   apdq_rhoux_quad[3] = apdq[1]; 

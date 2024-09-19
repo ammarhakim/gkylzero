@@ -129,10 +129,10 @@ GKYL_CU_DH double euler_surfx_1x_ser_p2(const double *w, const double *dxv, cons
   double q_cl_local[5] = {0.0}; 
   double q_cr_local[5] = {0.0}; 
   double q_rl_local[5] = {0.0}; 
-  gkyl_wv_eqn_rotate_to_local(wv_eqn, geom_l->tau1[0], geom_l->tau2[0], geom_l->norm[0], q_lr, q_lr_local); 
-  gkyl_wv_eqn_rotate_to_local(wv_eqn, geom_l->tau1[0], geom_l->tau2[0], geom_l->norm[0], q_cl, q_cl_local); 
-  gkyl_wv_eqn_rotate_to_local(wv_eqn, geom_r->tau1[0], geom_r->tau2[0], geom_r->norm[0], q_cr, q_cr_local); 
-  gkyl_wv_eqn_rotate_to_local(wv_eqn, geom_r->tau1[0], geom_r->tau2[0], geom_r->norm[0], q_rl, q_rl_local); 
+  wv_eqn->rotate_to_local_func(wv_eqn, geom_l->tau1[0], geom_l->tau2[0], geom_l->norm[0], q_lr, q_lr_local); 
+  wv_eqn->rotate_to_local_func(wv_eqn, geom_l->tau1[0], geom_l->tau2[0], geom_l->norm[0], q_cl, q_cl_local); 
+  wv_eqn->rotate_to_local_func(wv_eqn, geom_r->tau1[0], geom_r->tau2[0], geom_r->norm[0], q_cr, q_cr_local); 
+  wv_eqn->rotate_to_local_func(wv_eqn, geom_r->tau1[0], geom_r->tau2[0], geom_r->norm[0], q_rl, q_rl_local); 
 
   double delta_l[5] = {0.0}; 
   double delta_r[5] = {0.0}; 
@@ -151,8 +151,8 @@ GKYL_CU_DH double euler_surfx_1x_ser_p2(const double *w, const double *dxv, cons
   double waves_r[15] = {0.0}; 
   double speeds_l[3] = {0.0}; 
   double speeds_r[3] = {0.0}; 
-  double my_max_speed_l = gkyl_wv_eqn_waves(wv_eqn, GKYL_WV_HIGH_ORDER_FLUX, delta_l, q_lr_local, q_cl_local, waves_l, speeds_l); 
-  double my_max_speed_r = gkyl_wv_eqn_waves(wv_eqn, GKYL_WV_HIGH_ORDER_FLUX, delta_r, q_cr_local, q_rl_local, waves_r, speeds_r); 
+  double my_max_speed_l = wv_eqn->waves_func(wv_eqn, GKYL_WV_HIGH_ORDER_FLUX, delta_l, q_lr_local, q_cl_local, waves_l, speeds_l); 
+  double my_max_speed_r = wv_eqn->waves_func(wv_eqn, GKYL_WV_HIGH_ORDER_FLUX, delta_r, q_cr_local, q_rl_local, waves_r, speeds_r); 
 
   double lenr_l = geom_l->lenr[0]; 
   speeds_l[0] *= lenr_l; 
@@ -167,17 +167,17 @@ GKYL_CU_DH double euler_surfx_1x_ser_p2(const double *w, const double *dxv, cons
   double apdq_l_local[5] = {0.0}; 
   double amdq_r_local[5] = {0.0}; 
   double apdq_r_local[5] = {0.0}; 
-  gkyl_wv_eqn_qfluct(wv_eqn, GKYL_WV_HIGH_ORDER_FLUX, q_lr_local, q_cl_local, waves_l, speeds_l, amdq_l_local, apdq_l_local); 
-  gkyl_wv_eqn_qfluct(wv_eqn, GKYL_WV_HIGH_ORDER_FLUX, q_cr_local, q_rl_local, waves_r, speeds_r, amdq_r_local, apdq_r_local); 
+  wv_eqn->qfluct_func(wv_eqn, GKYL_WV_HIGH_ORDER_FLUX, q_lr_local, q_cl_local, waves_l, speeds_l, amdq_l_local, apdq_l_local); 
+  wv_eqn->qfluct_func(wv_eqn, GKYL_WV_HIGH_ORDER_FLUX, q_cr_local, q_rl_local, waves_r, speeds_r, amdq_r_local, apdq_r_local); 
 
   double amdq_l[5] = {0.0}; 
   double apdq_l[5] = {0.0}; 
   double amdq_r[5] = {0.0}; 
   double apdq_r[5] = {0.0}; 
-  gkyl_wv_eqn_rotate_to_global(wv_eqn, geom_l->tau1[0], geom_l->tau2[0], geom_l->norm[0], amdq_l_local, amdq_l); 
-  gkyl_wv_eqn_rotate_to_global(wv_eqn, geom_l->tau1[0], geom_l->tau2[0], geom_l->norm[0], apdq_l_local, apdq_l); 
-  gkyl_wv_eqn_rotate_to_global(wv_eqn, geom_r->tau1[0], geom_r->tau2[0], geom_r->norm[0], amdq_r_local, amdq_r); 
-  gkyl_wv_eqn_rotate_to_global(wv_eqn, geom_r->tau1[0], geom_r->tau2[0], geom_r->norm[0], apdq_r_local, apdq_r); 
+  wv_eqn->rotate_to_global_func(wv_eqn, geom_l->tau1[0], geom_l->tau2[0], geom_l->norm[0], amdq_l_local, amdq_l); 
+  wv_eqn->rotate_to_global_func(wv_eqn, geom_l->tau1[0], geom_l->tau2[0], geom_l->norm[0], apdq_l_local, apdq_l); 
+  wv_eqn->rotate_to_global_func(wv_eqn, geom_r->tau1[0], geom_r->tau2[0], geom_r->norm[0], amdq_r_local, amdq_r); 
+  wv_eqn->rotate_to_global_func(wv_eqn, geom_r->tau1[0], geom_r->tau2[0], geom_r->norm[0], apdq_r_local, apdq_r); 
 
   Ghat_rho_l = 0.3952847075210474*rho_l[2]*uxl_r+0.3952847075210474*rho_c[2]*uxl_r+0.3061862178478972*rho_l[1]*uxl_r-0.3061862178478972*rho_c[1]*uxl_r+0.1767766952966369*rho_l[0]*uxl_r+0.1767766952966369*rho_c[0]*uxl_r+0.3952847075210474*rho_l[2]*uxc_l+0.3952847075210474*rho_c[2]*uxc_l+0.3061862178478972*rho_l[1]*uxc_l-0.3061862178478972*rho_c[1]*uxc_l+0.1767766952966369*rho_l[0]*uxc_l+0.1767766952966369*rho_c[0]*uxc_l-0.5*apdq_l[0]+0.5*amdq_l[0]; 
   Ghat_rhoux_l = 0.5*Ghat_rho_l*uxl_r+0.5*Ghat_rho_l*uxc_l+0.5*pl_r+0.5*pc_l-0.5*apdq_l[1]+0.5*amdq_l[1]; 
