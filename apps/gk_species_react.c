@@ -232,9 +232,7 @@ gk_species_react_rhs(gkyl_gyrokinetic_app *app, const struct gk_species *s,
         gkyl_proj_gkmaxwellian_on_basis_prim_mom(react->proj_max, &s->local, &app->local,
           react->prim_vars_proj_inp[i],
           app->gk_geom->bmag, app->gk_geom->jacobtot, s->info.mass, react->f_react);
-	//printf("Project f in elc");
 	gkyl_array_scale_by_cell(react->f_react, s->vel_map->jacobvel);
-	//gkyl_comm_array_write(s->comm, &s->grid, &s->local, NULL, s->vel_map->jacobvel, "jacobvel.gkyl");
 				 
         // scale to correct m0
         gk_species_moment_calc(&s->m0, s->local_ext, app->local_ext, react->f_react);
