@@ -24,13 +24,13 @@ GKYL_CU_DH double vlasov_poisson_vol_1x2v_ser_p1(const double *w, const double *
   double alpha_vdim[32] = {0.0}; 
 
   alpha_cdim[0] = 5.656854249492382*w0dx0; 
-  alpha_cdim[2] = 1.632993161855453*dv0dx0; 
+  alpha_cdim[2] = 1.6329931618554527*dv0dx0; 
 
   cflFreq_mid += 3.0*(fabs(w0dx0)+0.5*dv0dx0); 
 
-  alpha_vdim[0] = -3.464101615137754*phi[1]*dv10*dx10; 
+  alpha_vdim[0] = -(3.4641016151377544*phi[1]*dv10*dx10); 
 
-  cflFreq_mid += 5.0*fabs(0.1767766952966368*alpha_vdim[0]); 
+  cflFreq_mid += 5.0*fabs(0.17677669529663684*alpha_vdim[0]); 
 
 
   out[1] += 0.6123724356957944*(alpha_cdim[2]*f[2]+alpha_cdim[0]*f[0]); 

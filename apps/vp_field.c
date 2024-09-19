@@ -58,7 +58,7 @@ vp_field_new(struct gkyl_vp *vp, struct gkyl_vlasov_poisson_app *app)
       vpf->ext_em_evolve = vpf->info.ext_em_evolve;
     }
 
-    vpf->ext_em_host = app->use_gpu? mkarr(false, 4*app->confBasis.num_basis, app->local_ext.volume)
+    vpf->ext_em_host = app->use_gpu? mkarr(false, vpf->ext_em->ncomp, vpf->ext_em->size)
                                    : gkyl_array_acquire(vpf->ext_em);
 
     vpf->ext_em_proj = gkyl_eval_on_nodes_new(&app->grid, &app->confBasis,
