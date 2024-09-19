@@ -66,7 +66,6 @@ vp_field_new(struct gkyl_vp *vp, struct gkyl_vlasov_poisson_app *app)
 
     // Compute the external potentials.
     vp_field_calc_ext_em(app, vpf, 0.0);
-    gkyl_grid_sub_array_write(&app->grid, &app->local, NULL,  vpf->ext_em_host, "field_ext.gkyl");
   }
 
   vpf->phi_host = vpf->phi;
