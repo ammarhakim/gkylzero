@@ -56,6 +56,10 @@ vm_species_fpo_init(struct gkyl_vlasov_app *app, struct vm_species *s, struct vm
   fpo->diff_coeff = mkarr(app->use_gpu, vdim*vdim*app->basis.num_basis, s->local_ext.volume);
   fpo->diff_coeff_surf = mkarr(app->use_gpu, 2*vdim*vdim*surf_basis.num_basis, s->local_ext.volume);
 
+  fpo->h_host = fpo->h;
+  fpo->g_host = fpo->g;
+  fpo->drag_coeff_host = fpo->drag_coeff;
+  fpo->diff_coeff_host = fpo->diff_coeff;
   if (app->use_gpu) {
     fpo->h_host = mkarr(false, app->basis.num_basis, s->local_ext.volume);
     fpo->g_host = mkarr(false, app->basis.num_basis, s->local_ext.volume);
@@ -79,7 +83,7 @@ vm_species_fpo_init(struct gkyl_vlasov_app *app, struct vm_species *s, struct vm
   fpo->bcorr_calc = gkyl_mom_calc_bcorr_fpo_vlasov_new(&s->grid,
     &app->confBasis, &app->basis, &s->local, v_bounds, fpo->diff_coeff, app->use_gpu);
 
-  fpo->coeffs_correct_calc = gkyl_fpo_coeffs_correct_new(app->use_gpu, &s->grid, &app->confBasis, &app->local);
+  fpo->coeffs_correct_calc = gkyl_fpo_coeffs_correct_new(&s->grid, &app->confBasis, &app->local, app->use_gpu);
 
   fpo->coeff_recovery = gkyl_fpo_vlasov_coeff_recovery_new(&s->grid, &app->basis, &s->local, app->use_gpu);
 
@@ -102,13 +106,11 @@ vm_species_fpo_drag_diff_coeffs(gkyl_vlasov_app *app, const struct vm_species *s
   gkyl_proj_maxwellian_pots_on_basis_advance(fpo->pot_slvr, &s->local, &app->local, 
     fpo->lte_moms.marr, fpo->h, fpo->g, fpo->h_surf, fpo->g_surf,
     fpo->dhdv_surf, fpo->dgdv_surf, fpo->d2gdv2_surf);
-  // printf("Potentials calculated\n");
 
   // calculate drag and diffusion coefficients
   gkyl_calc_fpo_drag_coeff_recovery(fpo->coeff_recovery, &s->grid, app->basis, 
     &s->local, &app->local, fpo->gamma,
     fpo->h, fpo->dhdv_surf, fpo->drag_coeff, fpo->drag_coeff_surf, app->use_gpu); 
-  // printf("Drag coeff calculated\n");
 
   gkyl_calc_fpo_diff_coeff_recovery(fpo->coeff_recovery, &s->grid, app->basis, 
     &s->local, &app->local, fpo->gamma,
@@ -138,14 +140,11 @@ vm_species_fpo_drag_diff_coeffs(gkyl_vlasov_app *app, const struct vm_species *s
     &app->local, &s->local, fpo->fpo_moms, fpo->boundary_corrections, 
     fpo->moms.marr, fpo->drag_diff_coeff_corrs, 
     fpo->drag_coeff, fpo->drag_coeff_surf, 
-    fpo->diff_coeff, fpo->diff_coeff_surf);
-
-  gkyl_mom_calc_advance(fpo->fpo_mom_calc, &s->local, &app->local, fin, fpo->fpo_moms);
-  gkyl_mom_calc_bcorr_advance(fpo->bcorr_calc,&s->local, &app->local, fin, fpo->boundary_corrections);
+    fpo->diff_coeff, fpo->diff_coeff_surf, app->use_gpu);
 
   // compute sign information at interfaces with corrected drag coefficient
-  gkyl_calc_fpo_sgn_drag_coeff(app->basis, &s->local, fpo->drag_coeff_surf, 
-    fpo->sgn_drag_coeff_surf, fpo->const_sgn_drag_coeff_surf);
+  gkyl_calc_fpo_sgn_drag_coeff(fpo->coeff_recovery, app->basis, &s->local, 
+    fpo->drag_coeff_surf, fpo->sgn_drag_coeff_surf, fpo->const_sgn_drag_coeff_surf, app->use_gpu);
 
   app->stat.species_coll_mom_tm += gkyl_time_diff_now_sec(wst);
 }

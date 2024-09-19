@@ -35,16 +35,13 @@ void gkyl_calc_fpo_diff_coeff_recovery(const struct gkyl_fpo_vlasov_coeff_recove
     return gkyl_calc_fpo_diff_coeff_recovery_cu(coeff_recovery, grid, pbasis, phase_range, conf_range, gamma, fpo_g, fpo_g_surf, fpo_dgdv_surf, fpo_d2gdv2_surf, fpo_diff_coeff, fpo_diff_coeff_surf);
 #endif
 
-  int pdim = pbasis.ndim;
-  int vdim = 3;
-  int cdim = pdim - vdim; 
+  int cdim = coeff_recovery->cdim;
+  int pdim = coeff_recovery->pdim; 
+  int vdim = pdim - cdim;
 
   int poly_order = pbasis.poly_order;
 
-  // Indices in each direction
-  int idxl[GKYL_MAX_DIM], idxc[GKYL_MAX_DIM], idxr[GKYL_MAX_DIM], conf_idxc[GKYL_MAX_DIM];
-  int idx_edge[GKYL_MAX_DIM], idx_skin[GKYL_MAX_DIM];
-  int edge;
+  int idxl[GKYL_MAX_DIM], idxc[GKYL_MAX_DIM], conf_idxc[GKYL_MAX_DIM];
 
   struct gkyl_range_iter iter;
   gkyl_range_iter_init(&iter, phase_range);
@@ -61,15 +58,6 @@ void gkyl_calc_fpo_diff_coeff_recovery(const struct gkyl_fpo_vlasov_coeff_recove
     double *fpo_diff_coeff_c = gkyl_array_fetch(fpo_diff_coeff, linc);
 
     const double *gamma_c = gkyl_array_cfetch(gamma, conf_linc);
-
-    // Check if we are at in edge in each direction since we need to handle
-    // edges differently for diagonal and off-diagonal terms.
-    bool is_edge_in_dir[3];
-    bool is_edge = false;
-    for (int p=cdim; p<pdim; ++p) {
-      is_edge_in_dir[p-cdim] =  (idxc[p] == phase_range->lower[p] || idxc[p] == phase_range->upper[p]);
-      is_edge = is_edge || is_edge_in_dir[p-cdim];
-    }
 
     // Iterate over velocity space directions
     for (int d1=0; d1<vdim; ++d1) {
@@ -111,8 +99,6 @@ void gkyl_calc_fpo_diff_coeff_recovery(const struct gkyl_fpo_vlasov_coeff_recove
         int keri = idx_to_inloup_ker(2, idxc, update_dirs, phase_range->upper);
 
         const double *fpo_g_stencil[9], *fpo_g_surf_stencil[9];
-        int idx[9][GKYL_MAX_DIM];
-        int in_grid = 1;
         for (int i=0; i<9; ++i) {
           fpo_g_stencil[i] = gkyl_array_cfetch(fpo_g, linc+offsets[i]);
           fpo_g_surf_stencil[i] = gkyl_array_cfetch(fpo_g_surf, linc+offsets[i]);           
@@ -138,7 +124,7 @@ void gkyl_calc_fpo_diff_coeff_recovery(const struct gkyl_fpo_vlasov_coeff_recove
       int dir1 = d1 + cdim;
 
       // Do nothing if we're at a lower boundary; this surface expansion won't be used 
-      if (idxc [dir1] == 1) {
+      if (idxc[dir1] == 1) {
         continue; 
       }
       

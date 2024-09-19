@@ -3,21 +3,16 @@
 #include <gkyl_fpo_vlasov_coeffs_correct.h>
 #include <gkyl_fpo_vlasov_coeffs_correct_priv.h>
 
-static struct gkyl_array*
-mkarr(bool on_gpu, long nc, long size)
+gkyl_fpo_coeffs_correct*
+gkyl_fpo_coeffs_correct_new(const struct gkyl_rect_grid *grid,
+  const struct gkyl_basis *conf_basis, const struct gkyl_range *conf_range, bool use_gpu)
 {
-  struct gkyl_array* a;
-  if (on_gpu)
-    a = gkyl_array_cu_dev_new(GKYL_DOUBLE, nc, size);
-  else
-    a = gkyl_array_new(GKYL_DOUBLE, nc, size);
-  return a;
-}
+#ifdef GKYL_HAVE_CUDA
+  if (use_gpu) {
+    return gkyl_fpo_coeffs_correct_cu_dev_new(grid, conf_basis, conf_range);
+  }
+#endif
 
-struct gkyl_fpo_coeffs_correct*
-gkyl_fpo_coeffs_correct_new(bool use_gpu, const struct gkyl_rect_grid *grid,
-  const struct gkyl_basis *conf_basis, const struct gkyl_range *conf_rng)
-{
   struct gkyl_fpo_coeffs_correct *up = gkyl_malloc(sizeof(struct gkyl_fpo_coeffs_correct)); 
 
   int cdim = conf_basis->ndim;
@@ -54,13 +49,21 @@ gkyl_fpo_coeffs_correct_new(bool use_gpu, const struct gkyl_rect_grid *grid,
   return up;
 }
 
-void gkyl_fpo_coeffs_correct_advance(struct gkyl_fpo_coeffs_correct *up,
-  const struct gkyl_range *conf_rng, const struct gkyl_range *phase_rng,
+void gkyl_fpo_coeffs_correct_advance(gkyl_fpo_coeffs_correct *up,
+  const struct gkyl_range *conf_range, const struct gkyl_range *phase_range,
   const struct gkyl_array *fpo_moms, const struct gkyl_array *boundary_corrections,
   const struct gkyl_array *moms, struct gkyl_array *drag_diff_coeff_corrs,
   struct gkyl_array *drag_coeff, struct gkyl_array *drag_coeff_surf,
-  struct gkyl_array *diff_coeff, struct gkyl_array *diff_coeff_surf)
+  struct gkyl_array *diff_coeff, struct gkyl_array *diff_coeff_surf, bool use_gpu)
 {
+#ifdef GKYL_HAVE_CUDA
+  if (use_gpu) {
+    return gkyl_fpo_coeffs_correct_advance_cu(up, conf_range, phase_range, 
+      fpo_moms, boundary_corrections, moms, drag_diff_coeff_corrs, 
+      drag_coeff, drag_coeff_surf, diff_coeff, diff_coeff_surf);
+  }
+#endif
+
   struct gkyl_range vel_rng;
   struct gkyl_range_iter conf_iter, vel_iter;
 
@@ -71,17 +74,17 @@ void gkyl_fpo_coeffs_correct_advance(struct gkyl_fpo_coeffs_correct *up,
 
   // Initialize matrices if this is the first call to advance
   if (up->is_first) {
-    up->As = gkyl_nmat_new(conf_rng->volume, N, N);
-    up->xs = gkyl_nmat_new(conf_rng->volume, N, 1);
+    up->As = gkyl_nmat_new(conf_range->volume, N, N);
+    up->xs = gkyl_nmat_new(conf_range->volume, N, 1);
     up->mem = gkyl_nmat_linsolve_lu_new(up->As->num, up->As->nr);
     up->is_first = false;
   }
 
   // Loop over configuration space cells
-  gkyl_range_iter_init(&conf_iter, conf_rng);
+  gkyl_range_iter_init(&conf_iter, conf_range);
   long count = 0;
   while (gkyl_range_iter_next(&conf_iter)) {
-    long linc = gkyl_range_idx(conf_rng, conf_iter.idx);
+    long linc = gkyl_range_idx(conf_range, conf_iter.idx);
 
     struct gkyl_mat lhs = gkyl_nmat_get(up->As, count);
     struct gkyl_mat rhs = gkyl_nmat_get(up->xs, count);
@@ -104,12 +107,12 @@ void gkyl_fpo_coeffs_correct_advance(struct gkyl_fpo_coeffs_correct *up,
   // Loop over configuration space cells, retrieve solutions,
   // and accumulate corrections onto drag/diffusion coefficients
   int rem_dir[GKYL_MAX_DIM] = { 0 };
-  for (int d=0; d<conf_rng->ndim; ++d) rem_dir[d] = 1;
+  for (int d=0; d<conf_range->ndim; ++d) rem_dir[d] = 1;
 
-  gkyl_range_iter_init(&conf_iter, conf_rng);
+  gkyl_range_iter_init(&conf_iter, conf_range);
   count = 0;
   while (gkyl_range_iter_next(&conf_iter)) {
-    long linc = gkyl_range_idx(conf_rng, conf_iter.idx);
+    long linc = gkyl_range_idx(conf_range, conf_iter.idx);
 
     const struct gkyl_mat out = gkyl_nmat_get(up->xs, count);
     double *drag_diff_coeff_corrs_d = gkyl_array_fetch(drag_diff_coeff_corrs, linc);
@@ -119,7 +122,7 @@ void gkyl_fpo_coeffs_correct_advance(struct gkyl_fpo_coeffs_correct *up,
     count += 1;
 
     // Inner loop over velocity space to accumulate corrections onto drag and diff coeffs
-    gkyl_range_deflate(&vel_rng, phase_rng, rem_dir, conf_iter.idx);
+    gkyl_range_deflate(&vel_rng, phase_range, rem_dir, conf_iter.idx);
     gkyl_range_iter_no_split_init(&vel_iter, &vel_rng);
     while (gkyl_range_iter_next(&vel_iter)) {
       long linp = gkyl_range_idx(&vel_rng, vel_iter.idx);

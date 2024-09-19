@@ -22,7 +22,7 @@
 */
 void gkyl_calc_fpo_drag_coeff_recovery(const struct gkyl_fpo_vlasov_coeff_recovery* coeff_recovery, 
   const struct gkyl_rect_grid *grid, 
-  struct gkyl_basis pbasis, const struct gkyl_range *range, const struct gkyl_range *conf_range,
+  struct gkyl_basis pbasis, const struct gkyl_range *phase_range, const struct gkyl_range *conf_range,
   const struct gkyl_array *gamma, 
   const struct gkyl_array *fpo_h, const struct gkyl_array* fpo_dhdv_surf, 
   struct gkyl_array *fpo_drag_coeff, struct gkyl_array *fpo_drag_coeff_surf, bool use_gpu);
@@ -32,7 +32,7 @@ void gkyl_calc_fpo_drag_coeff_recovery(const struct gkyl_fpo_vlasov_coeff_recove
  */
 void gkyl_calc_fpo_drag_coeff_recovery_cu(const struct gkyl_fpo_vlasov_coeff_recovery* coeff_recovery,
   const struct gkyl_rect_grid *grid, 
-  struct gkyl_basis pbasis, const struct gkyl_range *range, const struct gkyl_range *conf_range,
+  struct gkyl_basis pbasis, const struct gkyl_range *phase_range, const struct gkyl_range *conf_range,
   const struct gkyl_array *gamma,
   const struct gkyl_array *fpo_h, const struct gkyl_array* fpo_dhdv_surf, 
   struct gkyl_array *fpo_drag_coeff, struct gkyl_array *fpo_drag_coeff_surf);
@@ -47,7 +47,12 @@ void gkyl_calc_fpo_drag_coeff_recovery_cu(const struct gkyl_fpo_vlasov_coeff_rec
  * @param sgn_drag_coeff_surf Sign of drag coefficient at quadrature points
  * @param const_sgn_drag_coeff_surf Flag that is true if the sign of the drag coefficient is constant at all quadrature points on a given surface
 */
-void gkyl_calc_fpo_sgn_drag_coeff(struct gkyl_basis pbasis, 
-  const struct gkyl_range *phase_range, struct gkyl_array* fpo_drag_coeff_surf, 
-  struct gkyl_array* sgn_drag_coeff_surf, struct gkyl_array* const_sgn_drag_coeff_surf);
+void gkyl_calc_fpo_sgn_drag_coeff(const struct gkyl_fpo_vlasov_coeff_recovery *coeff_recovery,
+  struct gkyl_basis pbasis, const struct gkyl_range *phase_range, 
+  struct gkyl_array* fpo_drag_coeff_surf, 
+  struct gkyl_array* sgn_drag_coeff_surf, struct gkyl_array* const_sgn_drag_coeff_surf, bool use_gpu);
 
+void gkyl_calc_fpo_sgn_drag_coeff_cu(const struct gkyl_fpo_vlasov_coeff_recovery *coeff_recovery,
+  struct gkyl_basis pbasis, const struct gkyl_range *phase_range,
+  struct gkyl_array* fpo_drag_coeff_surf, 
+  struct gkyl_array* sgn_drag_coeff_surf, struct gkyl_array* const_sgn_drag_coeff_surf);

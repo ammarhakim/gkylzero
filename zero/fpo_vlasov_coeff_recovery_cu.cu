@@ -42,7 +42,7 @@ __global__ static void fpo_vlasov_coeff_recovery_set_cu_dev_ptrs(gkyl_fpo_vlasov
 
 }
 
-struct gkyl_fpo_vlasov_coeff_recovery*
+gkyl_fpo_vlasov_coeff_recovery*
 gkyl_fpo_vlasov_coeff_recovery_cu_dev_new(const struct gkyl_rect_grid *grid, 
     const struct gkyl_basis *phase_basis, const struct gkyl_range *phase_range, bool use_gpu)
 {

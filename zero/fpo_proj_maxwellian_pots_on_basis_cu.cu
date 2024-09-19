@@ -38,15 +38,16 @@ gkyl_proj_maxwellian_pots_on_basis_advance_cu_ker(const struct gkyl_rect_grid gr
 
   double xc[GKYL_MAX_DIM], xmu[GKYL_MAX_DIM];
 
-  int pidx[GKYL_MAX_DIM];
+  int idxc[GKYL_MAX_DIM], idxp[GKYL_MAX_DIM];
 
   for(unsigned long tid = threadIdx.x + blockIdx.x*blockDim.x;
       tid < phase_range.volume; tid += blockDim.x*gridDim.x) {
-    gkyl_sub_range_inv_idx(&phase_range, tid, pidx);
+    gkyl_sub_range_inv_idx(&phase_range, tid, idxp);
+    for (int i=0; i<cdim; ++i) idxc[i] = idxp[i];
 
     // Configuration and phase space linear indices
-    long linc = gkyl_range_idx(&conf_range, pidx);
-    long linp = gkyl_range_idx(&phase_range, pidx);
+    long linc = gkyl_range_idx(&conf_range, idxc);
+    long linp = gkyl_range_idx(&phase_range, idxp);
 
     // Index into moment arrays
     const double *prim_moms_d = (const double*)gkyl_array_cfetch(prim_moms, linc);
@@ -109,8 +110,8 @@ gkyl_proj_maxwellian_pots_on_basis_advance_cu_ker(const struct gkyl_rect_grid gr
   for (int d1=0; d1<vdim; ++d1) {
       int dir1 = d1 + cdim;
       bool is_edge_in_dir1 = 0;
-      is_edge_in_dir1 = is_edge_in_dir1 || (pidx[dir1] == phase_range.lower[dir1]);
-      is_edge_in_dir1 = is_edge_in_dir1 || (pidx[dir1] == phase_range.upper[dir1]);
+      is_edge_in_dir1 = is_edge_in_dir1 || (idxp[dir1] == phase_range.lower[dir1]);
+      is_edge_in_dir1 = is_edge_in_dir1 || (idxp[dir1] == phase_range.upper[dir1]);
 
       // Compute H, dH/dv, G, d2G/dv2 at dir1 boundaries. 
       if (is_edge_in_dir1) {
@@ -123,7 +124,7 @@ gkyl_proj_maxwellian_pots_on_basis_advance_cu_ker(const struct gkyl_rect_grid gr
         }
 
         // Velocity value at dir1 boundary
-        double vbound = pidx[dir1] == phase_range.lower[dir1] ? 
+        double vbound = idxp[dir1] == phase_range.lower[dir1] ? 
           grid.lower[dir1] : grid.upper[dir1];
 
         for (int n=0; n<tot_surf_quad; ++n) {
@@ -216,6 +217,7 @@ gkyl_proj_maxwellian_pots_on_basis_advance_cu(const gkyl_proj_maxwellian_pots_on
   struct gkyl_array *fpo_d2gdv2_surf)
 {
   int nblocks = phase_range->nblocks, nthreads = phase_range->nthreads;
+
   gkyl_proj_maxwellian_pots_on_basis_advance_cu_ker<<<nblocks, nthreads>>>
     (up->grid, *phase_range, *conf_range, *(up->conf_basis), *(up->phase_basis), 
      up->basis_at_ords->on_dev, up->ordinates->on_dev, up->weights->on_dev,

@@ -81,10 +81,17 @@ void gkyl_calc_fpo_drag_coeff_recovery(const struct gkyl_fpo_vlasov_coeff_recove
 }
 
 GKYL_CU_DH
-void gkyl_calc_fpo_sgn_drag_coeff(struct gkyl_basis pbasis, 
-  const struct gkyl_range *phase_range, struct gkyl_array* fpo_drag_coeff_surf, 
-  struct gkyl_array* sgn_drag_coeff_surf, struct gkyl_array* const_sgn_drag_coeff_surf) 
+void gkyl_calc_fpo_sgn_drag_coeff(const struct gkyl_fpo_vlasov_coeff_recovery *coeff_recovery, 
+  struct gkyl_basis pbasis, const struct gkyl_range *phase_range, 
+  struct gkyl_array* fpo_drag_coeff_surf, struct gkyl_array* sgn_drag_coeff_surf, 
+  struct gkyl_array* const_sgn_drag_coeff_surf, bool use_gpu) 
 {
+#ifdef GKYL_HAVE_CUDA
+  if (use_gpu) {
+    return gkyl_calc_fpo_sgn_drag_coeff_cu(coeff_recovery, pbasis, phase_range, fpo_drag_coeff_surf, sgn_drag_coeff_surf, const_sgn_drag_coeff_surf);
+  }
+#endif
+
   int pdim = pbasis.ndim;
   int vdim = 3;
   int cdim = pdim - vdim;
