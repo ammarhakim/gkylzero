@@ -87,7 +87,7 @@ gkyl_hyper_dg_advance(struct gkyl_hyper_dg *hdg, const struct gkyl_range *update
 }
 
 void
-gkyl_hyper_dg_gen_stencil_advance(gkyl_hyper_dg *hdg, const struct gkyl_range *update_range,
+gkyl_hyper_dg_gen_stencil_advance(gkyl_hyper_dg *hdg, long offsets[36], const struct gkyl_range *update_range,
   const struct gkyl_array *fIn, struct gkyl_array *cflrate, struct gkyl_array *rhs)
 {
   int ndim = hdg->ndim;
@@ -99,9 +99,6 @@ gkyl_hyper_dg_gen_stencil_advance(gkyl_hyper_dg *hdg, const struct gkyl_range *u
   // idx for generic surface update
   int idx[9][GKYL_MAX_DIM] = {0};
   const double* fIn_d[9] = {0};
-
-  // bool for checking if index is in the domain
-  int in_grid = 1;
 
   struct gkyl_range_iter iter;
   gkyl_range_iter_init(&iter, update_range);
@@ -128,42 +125,21 @@ gkyl_hyper_dg_gen_stencil_advance(gkyl_hyper_dg *hdg, const struct gkyl_range *u
         update_dirs[0] = dir1 < dir2 ? dir1 : dir2;
         update_dirs[1] = dir1 < dir2 ? dir2 : dir1;
 
-        long offsets[9] = {0};
-        int keri = 0;
-
         // If dir1=dir2, only need in/lo/up domain stencil,
         // otherwise, need a 9-region domain stencil for cross terms
-        int num_up_dirs = (dir1 == dir2) ? 1 : 2;
+        int num_up_dirs = (d1 == d2) ? 1 : 2;
+        int num_stencil = (d1 == d2) ? 3 : 9;
+        int offsets_idx = (d1 == d2) ? d1*3 : (d1+d2)*9;
 
-        // Index into kernel list
-        keri = idx_to_inloup_ker(num_up_dirs, idxc, update_dirs, update_range->upper);
+        // Index into relative offsets and kernel list
+        long offsets_arr[9] = {0};
+        gkyl_copy_long_arr(num_stencil, &offsets[offsets_idx], offsets_arr);
+        int keri = idx_to_inloup_ker(num_up_dirs, idxc, update_dirs, update_range->upper);
 
-        // Create offset array for stencil required for update
-        create_offsets(num_up_dirs, update_dirs, update_range, idxc, offsets);
-       
         // Get pointers to all neighbor values
         for (int i=0; i<9; ++i) {
-          gkyl_range_inv_idx(update_range, linc+offsets[i], idx[i]);
-    
-          // Check if index is in the domain
-          // Assumes update_range owns lower and upper edges of the domain
-          for (int d=0; d<hdg->num_up_dirs; ++d) {
-            int dir = hdg->update_dirs[d];
-            if (idx[i][dir] < update_range->lower[dir] || idx[i][dir] > update_range->upper[dir]) {
-              in_grid = 0;
-            }
-          }
-
-          // If the index is in the domain, fetch the pointer
-          // otherwise, point to the central cell
-          if (in_grid) {
-            fIn_d[i] = gkyl_array_cfetch(fIn, linc + offsets[i]);
-          }
-          else {
-            fIn_d[i] = gkyl_array_cfetch(fIn, linc);
-          }
-          // reset in_grid for next neighbor value check
-          in_grid = 1;
+          gkyl_range_inv_idx(update_range, linc+offsets_arr[i], idx[i]);
+          fIn_d[i] = gkyl_array_cfetch(fIn, linc + offsets_arr[i]);
         }
 
         // Domain stencil location is handled by the kernel selectors
@@ -240,7 +216,7 @@ void gkyl_hyper_dg_advance_cu(gkyl_hyper_dg* hdg, const struct gkyl_range *updat
   assert(false);
 }
 
-void gkyl_hyper_dg_gen_stencil_advance_cu(gkyl_hyper_dg* hdg, const struct gkyl_range *update_range,
+void gkyl_hyper_dg_gen_stencil_advance_cu(gkyl_hyper_dg* hdg, long offsets[36], const struct gkyl_range *update_range,
   const struct gkyl_array* GKYL_RESTRICT fIn, struct gkyl_array* GKYL_RESTRICT cflrate,
   struct gkyl_array* GKYL_RESTRICT rhs)
 {

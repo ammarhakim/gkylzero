@@ -95,7 +95,7 @@ void gkyl_calc_fpo_diff_coeff_recovery(const struct gkyl_fpo_vlasov_coeff_recove
         update_dirs[1] = dir1 < dir2 ? dir2 : dir1;
 
         // Index into kernel list
-        const long *offsets = &(coeff_recovery->offsets[3*vdim + (d1+d2-1)*9]);
+        const long *offsets = &(coeff_recovery->offsets[(d1+d2)*9]);
         int keri = idx_to_inloup_ker(2, idxc, update_dirs, phase_range->upper);
 
         const double *fpo_g_stencil[9], *fpo_g_surf_stencil[9];

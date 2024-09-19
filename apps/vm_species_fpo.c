@@ -159,7 +159,8 @@ vm_species_fpo_rhs(gkyl_vlasov_app *app, const struct vm_species *s,
   wst = gkyl_wall_clock();
  
   // accumulate update due to collisions onto rhs
-  gkyl_dg_updater_fpo_vlasov_advance(fpo->coll_slvr, &s->local,
+  gkyl_dg_updater_fpo_vlasov_advance(fpo->coll_slvr,
+     fpo->coeff_recovery->offsets, &s->local,
     fpo->drag_coeff, fpo->drag_coeff_surf, 
     fpo->sgn_drag_coeff_surf, fpo->const_sgn_drag_coeff_surf,
     fpo->diff_coeff, fpo->diff_coeff_surf, fin, s->cflrate, rhs);

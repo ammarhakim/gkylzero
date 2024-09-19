@@ -43,6 +43,7 @@ gkyl_dg_updater_fpo_vlasov_new(const struct gkyl_rect_grid *grid,
  * @param rhs RHS output
  */
 void gkyl_dg_updater_fpo_vlasov_advance(struct gkyl_dg_updater_collisions *fpo,
+  long offsets[36],
   const struct gkyl_range *update_rng,
   const struct gkyl_array *drag_coeff, 
   const struct gkyl_array *drag_coeff_surf,

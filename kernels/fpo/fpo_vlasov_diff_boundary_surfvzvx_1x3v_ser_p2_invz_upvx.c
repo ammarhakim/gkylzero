@@ -31,6 +31,10 @@ GKYL_CU_DH double fpo_vlasov_diff_boundary_surfvzvx_1x3v_ser_p2_invz_upvx(const 
   const double *Dsurf_CC_vx = &diff_coeff_surf_stencil[4][260]; 
   const double *fTC = f_stencil[5]; 
   const double* Dsurf_TC_vz = &diff_coeff_surf_stencil[5][240]; 
+  const double *fBR = f_stencil[6]; 
+  const double *fCR = f_stencil[7]; 
+  const double* Dsurf_CR_vx = &diff_coeff_surf_stencil[7][260]; 
+  const double *fTR = f_stencil[8]; 
 
   f_rec_lo[0] = 0.34587411908091625*fCL[12]+0.34587411908091625*fCC[12]+0.49755260400283263*fCL[2]-0.49755260400283263*fCC[2]+0.3535533905932737*fCL[0]+0.3535533905932737*fCC[0]; 
   f_rec_lo[1] = 0.34587411908091625*fCL[20]+0.34587411908091625*fCC[20]+0.49755260400283263*fCL[5]-0.49755260400283263*fCC[5]+0.3535533905932737*fCL[1]+0.3535533905932737*fCC[1]; 

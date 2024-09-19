@@ -24,16 +24,19 @@ GKYL_CU_DH double fpo_vlasov_diff_boundary_surfvxvy_1x3v_ser_p2_invx_lovy(const 
 
   // Index into D and f stencils. 
   const double *DCC = &diff_coeff_C[48]; 
-  const double *fCL = f_stencil[0]; 
-  const double *fTL = f_stencil[1]; 
-  const double *fCC = f_stencil[2]; 
-  const double *Dsurf_CC_vx = &diff_coeff_surf_stencil[2][40]; 
-  const double *Dsurf_CC_vy = &diff_coeff_surf_stencil[2][60]; 
-  const double *fTC = f_stencil[3]; 
-  const double* Dsurf_TC_vy = &diff_coeff_surf_stencil[3][60]; 
-  const double *fCR = f_stencil[4]; 
-  const double* Dsurf_CR_vx = &diff_coeff_surf_stencil[4][40]; 
-  const double *fTR = f_stencil[5]; 
+  const double *fBL = f_stencil[0]; 
+  const double *fCL = f_stencil[1]; 
+  const double *fTL = f_stencil[2]; 
+  const double *fBC = f_stencil[3]; 
+  const double *fCC = f_stencil[4]; 
+  const double *Dsurf_CC_vx = &diff_coeff_surf_stencil[4][40]; 
+  const double *Dsurf_CC_vy = &diff_coeff_surf_stencil[4][60]; 
+  const double *fTC = f_stencil[5]; 
+  const double* Dsurf_TC_vy = &diff_coeff_surf_stencil[5][60]; 
+  const double *fBR = f_stencil[6]; 
+  const double *fCR = f_stencil[7]; 
+  const double* Dsurf_CR_vx = &diff_coeff_surf_stencil[7][40]; 
+  const double *fTR = f_stencil[8]; 
 
   f_rec_lo[0] = 1.5811388300841895*fCC[13]-1.224744871391589*fCC[3]+0.7071067811865475*fCC[0]; 
   f_rec_lo[1] = 1.5811388300841898*fCC[23]-1.224744871391589*fCC[6]+0.7071067811865475*fCC[1]; 
