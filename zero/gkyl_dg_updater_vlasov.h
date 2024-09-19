@@ -5,14 +5,10 @@
 #include <gkyl_eqn_type.h>
 #include <gkyl_range.h>
 #include <gkyl_rect_grid.h>
+#include <gkyl_dg_updater_vlasov_timers.h>
 
 // Object type
 typedef struct gkyl_dg_updater_vlasov gkyl_dg_updater_vlasov;
-
-// return type for vlasov timers
-struct gkyl_dg_updater_vlasov_tm {
-  double vlasov_tm; // time for vlasov updates
-};
 
 /**
  * Create new updater to update vlasov equations using hyper dg.

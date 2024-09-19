@@ -711,7 +711,7 @@ boundary_surf(const struct gkyl_dg_eqn *eqn,
  */
 struct gkyl_dg_eqn* gkyl_dg_vlasov_poisson_cu_dev_new(const struct gkyl_basis* cbasis,
   const struct gkyl_basis* pbasis, const struct gkyl_range* conf_range, const struct gkyl_range* phase_range,
-  enum gkyl_vpmodel_id model_id, enum gkyl_vpfield_id field_id);
+  enum gkyl_model_id model_id, enum gkyl_field_id field_id);
 
 /**
  * CUDA device function to set auxiliary fields (e.g. q/m*EM) needed in updating the force terms.

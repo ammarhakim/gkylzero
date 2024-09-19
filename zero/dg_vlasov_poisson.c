@@ -41,7 +41,7 @@ gkyl_vlasov_poisson_set_auxfields(const struct gkyl_dg_eqn *eqn, struct gkyl_dg_
 struct gkyl_dg_eqn*
 gkyl_dg_vlasov_poisson_new(const struct gkyl_basis* cbasis, const struct gkyl_basis* pbasis,
   const struct gkyl_range* conf_range, const struct gkyl_range* phase_range,
-  enum gkyl_vpmodel_id model_id, enum gkyl_vpfield_id field_id, bool use_gpu)
+  enum gkyl_model_id model_id, enum gkyl_field_id field_id, bool use_gpu)
 {
 #ifdef GKYL_HAVE_CUDA
   if (use_gpu) {
@@ -82,7 +82,7 @@ gkyl_dg_vlasov_poisson_new(const struct gkyl_basis* cbasis, const struct gkyl_ba
       stream_boundary_surf_y_kernels = ser_poisson_stream_boundary_surf_y_kernels;
       stream_boundary_surf_z_kernels = ser_poisson_stream_boundary_surf_z_kernels;
 
-      if (field_id == GKYL_VP_FIELD_PHI) {
+      if (field_id == GKYL_FIELD_PHI) {
         vol_kernels = ser_poisson_vol_kernels;
         accel_surf_vx_kernels = ser_poisson_accel_surf_vx_kernels;
         accel_surf_vy_kernels = ser_poisson_accel_surf_vy_kernels;

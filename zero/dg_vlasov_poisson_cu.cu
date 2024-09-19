@@ -31,7 +31,7 @@ gkyl_vlasov_poisson_set_auxfields_cu(const struct gkyl_dg_eqn *eqn, struct gkyl_
 __global__ static void 
 dg_vlasov_poisson_set_cu_dev_ptrs(struct dg_vlasov_poisson *vlasov, enum gkyl_basis_type b_type,
   int cv_index, int cdim, int vdim, int poly_order, 
-  enum gkyl_vpmodel_id model_id, enum gkyl_vpfield_id field_id)
+  enum gkyl_model_id model_id, enum gkyl_field_id field_id)
 {
   vlasov->auxfields.field = 0;
 
@@ -114,7 +114,7 @@ dg_vlasov_poisson_set_cu_dev_ptrs(struct dg_vlasov_poisson *vlasov, enum gkyl_ba
 struct gkyl_dg_eqn*
 gkyl_dg_vlasov_poisson_cu_dev_new(const struct gkyl_basis* cbasis, const struct gkyl_basis* pbasis,
   const struct gkyl_range* conf_range, const struct gkyl_range* phase_range,
-  enum gkyl_vpmodel_id model_id, enum gkyl_vpfield_id field_id)
+  enum gkyl_model_id model_id, enum gkyl_field_id field_id)
 {
   struct dg_vlasov_poisson *vlasov = (struct dg_vlasov_poisson*) gkyl_malloc(sizeof(struct dg_vlasov_poisson));
 

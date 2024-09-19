@@ -5,7 +5,6 @@
 #include <gkyl_alloc.h>
 #include <gkyl_dg_eqn.h>
 #include <gkyl_dg_vlasov.h>
-#include <gkyl_dg_vlasov_poisson.h>
 #include <gkyl_dg_vlasov_sr.h>
 #include <gkyl_dg_canonical_pb.h>
 #include <gkyl_dg_updater_vlasov.h>
@@ -17,6 +16,14 @@ struct gkyl_dg_eqn*
 gkyl_dg_updater_vlasov_acquire_eqn(const gkyl_dg_updater_vlasov* vlasov)
 {
   return gkyl_dg_eqn_acquire(vlasov->eqn_vlasov);
+}
+
+struct gkyl_dg_updater_vlasov_tm
+gkyl_dg_updater_vlasov_get_tm(const gkyl_dg_updater_vlasov *vlasov)
+{
+  return (struct gkyl_dg_updater_vlasov_tm) {
+    .vlasov_tm = vlasov->vlasov_tm,
+  };
 }
 
 gkyl_dg_updater_vlasov*
@@ -63,7 +70,7 @@ gkyl_dg_updater_vlasov_new(const struct gkyl_rect_grid *grid,
     }
     num_up_dirs = pdim;
   }
-  up->up_vlasov = gkyl_hyper_dg_new(grid, pbasis, up->eqn_vlasov, num_up_dirs, up_dirs, zero_flux_flags, 1, up->use_gpu);
+  up->hdg_vlasov = gkyl_hyper_dg_new(grid, pbasis, up->eqn_vlasov, num_up_dirs, up_dirs, zero_flux_flags, 1, up->use_gpu);
 
   up->vlasov_tm = 0.0;
   
@@ -76,22 +83,14 @@ gkyl_dg_updater_vlasov_advance(gkyl_dg_updater_vlasov *vlasov,
   struct gkyl_array* GKYL_RESTRICT cflrate, struct gkyl_array* GKYL_RESTRICT rhs)
 {
   struct timespec wst = gkyl_wall_clock();
-  gkyl_hyper_dg_advance(vlasov->up_vlasov, update_rng, fIn, cflrate, rhs);
+  gkyl_hyper_dg_advance(vlasov->hdg_vlasov, update_rng, fIn, cflrate, rhs);
   vlasov->vlasov_tm += gkyl_time_diff_now_sec(wst);
-}
-
-struct gkyl_dg_updater_vlasov_tm
-gkyl_dg_updater_vlasov_get_tm(const gkyl_dg_updater_vlasov *vlasov)
-{
-  return (struct gkyl_dg_updater_vlasov_tm) {
-    .vlasov_tm = vlasov->vlasov_tm,
-  };
 }
 
 void
 gkyl_dg_updater_vlasov_release(gkyl_dg_updater_vlasov* vlasov)
 {
   gkyl_dg_eqn_release(vlasov->eqn_vlasov);
-  gkyl_hyper_dg_release(vlasov->up_vlasov);
+  gkyl_hyper_dg_release(vlasov->hdg_vlasov);
   gkyl_free(vlasov);
 }
