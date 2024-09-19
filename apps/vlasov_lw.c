@@ -337,7 +337,6 @@ vm_app_new(lua_State *L)
       MPI_Comm mpi_comm = lua_touserdata(L, -1);
       comm = gkyl_mpi_comm_new( &(struct gkyl_mpi_comm_inp) {
           .mpi_comm = mpi_comm,
-          .sync_corners = true
         }
       );
 

@@ -103,10 +103,11 @@ gkyl_moment_app_new(struct gkyl_moment *mom)
     
     app->comm = gkyl_null_comm_inew( &(struct gkyl_null_comm_inp) {
         .decomp = app->decomp,
+        .sync_corners = true, // If no communicator, since some moment apps need corner syncs, turn on corner syncs. 
       }
     );
     
-    // Clobal and local ranges are same, and so just copy them.
+    // Global and local ranges are same, and so just copy them.
     memcpy(&app->local, &app->global, sizeof(struct gkyl_range));
     memcpy(&app->local_ext, &app->global_ext, sizeof(struct gkyl_range));
   }

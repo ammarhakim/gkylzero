@@ -196,7 +196,7 @@ gkyl_vlasov_app_new(struct gkyl_vm *vm)
       }
     );
     
-    // Clobal and local ranges are same, and so just copy them.
+    // Global and local ranges are same, and so just copy them.
     memcpy(&app->local, &app->global, sizeof(struct gkyl_range));
     memcpy(&app->local_ext, &app->global_ext, sizeof(struct gkyl_range));
   }
