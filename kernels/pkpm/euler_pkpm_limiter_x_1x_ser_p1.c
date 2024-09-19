@@ -94,9 +94,9 @@ GKYL_CU_DH void euler_pkpm_limiter_x_1x_ser_p1(double limiter_fac, const struct 
   double q_l_local[10] = {0.0}; 
   double q_c_local[10] = {0.0}; 
   double q_r_local[10] = {0.0}; 
-  wv_eqn->rotate_to_local_func(wv_eqn, tau1, tau2, norm, q_avg_l, q_l_local); 
-  wv_eqn->rotate_to_local_func(wv_eqn, tau1, tau2, norm, q_avg_c, q_c_local); 
-  wv_eqn->rotate_to_local_func(wv_eqn, tau1, tau2, norm, q_avg_r, q_r_local); 
+  rot_to_local(wv_eqn, tau1, tau2, norm, q_avg_l, q_l_local); 
+  rot_to_local(wv_eqn, tau1, tau2, norm, q_avg_c, q_c_local); 
+  rot_to_local(wv_eqn, tau1, tau2, norm, q_avg_r, q_r_local); 
 
   double delta_l[10] = {0.0}; 
   double delta_r[10] = {0.0}; 
@@ -133,15 +133,15 @@ GKYL_CU_DH void euler_pkpm_limiter_x_1x_ser_p1(double limiter_fac, const struct 
   delta_c[8] = 0.7071067811865475*rhouy_c[0]*uz_c[1]+0.7071067811865475*uz_c[0]*rhouy_c[1]+Pyz_c[1]; 
   delta_c[9] = 0.7071067811865475*rhouz_c[0]*uz_c[1]+0.7071067811865475*uz_c[0]*rhouz_c[1]+Pzz_c[1]; 
   double delta_c_local[10] = {0.0}; 
-  wv_eqn->rotate_to_local_func(wv_eqn, tau1, tau2, norm, delta_c, delta_c_local); 
+  rot_to_local(wv_eqn, tau1, tau2, norm, delta_c, delta_c_local); 
 
   double waves_slope_l[50] = {0.0}; 
   double waves_slope_c[50] = {0.0}; 
   double waves_slope_r[50] = {0.0}; 
   double speeds[5] = {0.0}; 
-  double my_max_speed_l = wv_eqn->waves_func(wv_eqn, GKYL_WV_HIGH_ORDER_FLUX, delta_l, q_c_local, q_c_local, waves_slope_l, speeds); 
-  double my_max_speed_c = wv_eqn->waves_func(wv_eqn, GKYL_WV_HIGH_ORDER_FLUX, delta_c_local, q_c_local, q_c_local, waves_slope_c, speeds); 
-  double my_max_speed_r = wv_eqn->waves_func(wv_eqn, GKYL_WV_HIGH_ORDER_FLUX, delta_r, q_c_local, q_c_local, waves_slope_r, speeds); 
+  double my_max_speed_l = wave_roe(wv_eqn, delta_l, q_c_local, q_c_local, waves_slope_l, speeds); 
+  double my_max_speed_c = wave_roe(wv_eqn, delta_c_local, q_c_local, q_c_local, waves_slope_c, speeds); 
+  double my_max_speed_r = wave_roe(wv_eqn, delta_r, q_c_local, q_c_local, waves_slope_r, speeds); 
 
   double mm[15] = {0.0}; 
   double slope[3] = {0.0}; 
