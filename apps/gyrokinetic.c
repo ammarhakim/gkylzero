@@ -8,6 +8,7 @@
 #include <gkyl_dynvec.h>
 #include <gkyl_null_comm.h>
 
+#include <gkyl_gyrokinetic_maxwellian_correct.h>
 #include <gkyl_gyrokinetic_priv.h>
 #include <gkyl_app_priv.h>
 
@@ -2494,18 +2495,21 @@ gkyl_gyrokinetic_app_from_moments_species(gkyl_gyrokinetic_app *app, int sidx, i
 {
   cstr M0fileNm = cstr_from_fmt("%s-%s_M0_%d.gkyl", app->name, app->species[sidx].info.name, frame);
   cstr M1fileNm = cstr_from_fmt("%s-%s_M1_%d.gkyl", app->name, app->species[sidx].info.name, frame);
-  cstr M2fileNm = cstr_from_fmt("%s-%s_M2_%d.gkyl", app->name, app->species[sidx].info.name, frame);
+  cstr M2parfileNm = cstr_from_fmt("%s-%s_M2par_%d.gkyl", app->name, app->species[sidx].info.name, frame);
+  cstr M2perpfileNm = cstr_from_fmt("%s-%s_M2perp_%d.gkyl", app->name, app->species[sidx].info.name, frame);
 
   struct gkyl_app_restart_status rstat0 = header_from_file(app, M0fileNm.str);
   struct gkyl_app_restart_status rstat1 = header_from_file(app, M1fileNm.str);  // Must be on the same grid
-  struct gkyl_app_restart_status rstat2 = header_from_file(app, M2fileNm.str);
+  struct gkyl_app_restart_status rstat2 = header_from_file(app, M2parfileNm.str);
+  struct gkyl_app_restart_status rstat3 = header_from_file(app, M2perpfileNm.str);
   
 
   struct gk_species *gk_s = &app->species[sidx];
-  struct gkyl_array *m0, *m1, *m2;
+  struct gkyl_array *m0, *m1, *m2par, *m2perp;
   m0 = mkarr(false, app->confBasis.num_basis, gk_s->global.volume);
   m1 = mkarr(false, app->confBasis.num_basis, gk_s->global.volume);
-  m2 = mkarr(false, app->confBasis.num_basis, gk_s->global.volume);
+  m2par = mkarr(false, app->confBasis.num_basis, gk_s->global.volume);
+  m2perp = mkarr(false, app->confBasis.num_basis, gk_s->global.volume);
   //struct gkyl_range local;
 
   //gkyl_range_init(local, grid->ndim, grid->lower, grid->upper);
@@ -2517,6 +2521,9 @@ gkyl_gyrokinetic_app_from_moments_species(gkyl_gyrokinetic_app *app, int sidx, i
     return rstat1;
   if (rstat2.io_status != GKYL_ARRAY_RIO_SUCCESS)
     return rstat2;
+  if (rstat3.io_status != GKYL_ARRAY_RIO_SUCCESS)
+    return rstat3;
+
   rstat0.io_status =
     gkyl_comm_array_read(app->comm, &app->grid, &app->local, m0, M0fileNm.str);
   if (rstat0.io_status != GKYL_ARRAY_RIO_SUCCESS)
@@ -2526,23 +2533,94 @@ gkyl_gyrokinetic_app_from_moments_species(gkyl_gyrokinetic_app *app, int sidx, i
   if (rstat1.io_status != GKYL_ARRAY_RIO_SUCCESS)
     return rstat1;
   rstat2.io_status =
-    gkyl_comm_array_read(app->comm, &app->grid, &app->local, m2, M2fileNm.str);
+    gkyl_comm_array_read(app->comm, &app->grid, &app->local, m2par, M2parfileNm.str);
   if (rstat2.io_status != GKYL_ARRAY_RIO_SUCCESS)
     return rstat2;
+  rstat3.io_status =
+    gkyl_comm_array_read(app->comm, &app->grid, &app->local, m2perp, M2perpfileNm.str);
+  if (rstat3.io_status != GKYL_ARRAY_RIO_SUCCESS)
+    return rstat3;
 
   printf("Writing moments\n");
   gkyl_comm_array_write(app->comm, &app->grid, &app->local, NULL, m0, "elc_M0_load");
   gkyl_comm_array_write(app->comm, &app->grid, &app->local, NULL, m1, "elc_M1_load");
-  gkyl_comm_array_write(app->comm, &app->grid, &app->local, NULL, m2, "elc_M2_load");
-  struct gkyl_proj_maxwellian_on_basis *proj = gkyl_proj_maxwellian_on_basis_new(&gk_s->grid,
+  gkyl_comm_array_write(app->comm, &app->grid, &app->local, NULL, m2par, "elc_M2par_load");
+  gkyl_comm_array_write(app->comm, &app->grid, &app->local, NULL, m2perp, "elc_M2perp_load");
+  struct gkyl_proj_bimaxwellian_on_basis *proj = gkyl_proj_bimaxwellian_on_basis_new(&gk_s->grid,
     &app->confBasis, &app->basis, app->basis.poly_order+1, gk_s->vel_map, app->use_gpu);
 
-  struct gkyl_array *lab_moms = mkarr(false, 3*app->confBasis.num_basis, gk_s->global.volume);
+  gkyl_array_scale(m2perp, 1.0/2.0);
+  struct gkyl_array *lab_moms = mkarr(false, 4*app->confBasis.num_basis, gk_s->global.volume);
   gkyl_array_set_offset(lab_moms, 1.0, m0, 0*app->confBasis.num_basis);
   gkyl_array_set_offset(lab_moms, 1.0, m1, 1*app->confBasis.num_basis);
-  gkyl_array_set_offset(lab_moms, 1.0, m2, 2*app->confBasis.num_basis);
+  gkyl_array_set_offset(lab_moms, 1.0, m2par, 2*app->confBasis.num_basis);
+  gkyl_array_set_offset(lab_moms, 1.0, m2perp, 3*app->confBasis.num_basis);
+
+  printf("Mass=%e\n",gk_s->info.mass);
+  gkyl_proj_bimaxwellian_on_basis_gyrokinetic_lab_mom(proj, &gk_s->local, &app->local, lab_moms, app->gk_geom->bmag, app->gk_geom->jacobtot, gk_s->info.mass, gk_s->f_host);
+  // Multiply by the velocity space jacobian.
+  gkyl_array_scale_by_cell(gk_s->f_host, gk_s->vel_map->jacobvel);
+
+  struct gkyl_array *upar, *vtparsq, *vtperpsq, *temp, *prim_moms, *m1upar;
+  upar = mkarr(false, app->confBasis.num_basis, gk_s->global.volume);  
+  vtparsq = mkarr(false, app->confBasis.num_basis, gk_s->global.volume);
+  vtperpsq = mkarr(false, app->confBasis.num_basis, gk_s->global.volume);
+  temp = mkarr(false, app->confBasis.num_basis, gk_s->global.volume);
+  /*  struct gkyl_dg_bin_op_mem *mem = gkyl_dg_bin_op_mem_new(gk_s->global.volume, app->confBasis.num_basis);
   
-  gkyl_proj_gkmaxwellian_on_basis_lab_mom(proj, &gk_s->local, &app->local, lab_moms, app->gk_geom->bmag, app->gk_geom->jacobtot, gk_s->info.mass, gk_s->f_host);
+  gkyl_dg_div_op(mem, app->confBasis, 0, upar, 0, m1, 0, m0); // compute upar
+  //gkyl_dg_div_op(gk_s->m0.mem_geo, app->confBasis, 0, upar, 0, m1, 0, m0); // compute upar  
+  // Compute Tpar/m
+  gkyl_dg_mul_op(app->confBasis, 0, temp, 0, m1, 0, upar);
+  gkyl_array_accumulate(temp, -1.0, m2par);  // temp = M1*upar - M2par
+  gkyl_dg_div_op(mem, app->confBasis, 0, vtparsq, 0, temp, 0, m0);  // vtparsq = -(M2par-M1*upar)/n
+  gkyl_array_scale(vtparsq, -1.0);
+  printf("Computing Tperp\n");
+  // Compute Tperp/m
+  gkyl_dg_mul_op(app->confBasis, 0, temp, 0, m1, 0, upar);
+  gkyl_array_accumulate(temp, -1.0, m2perp);  // temp = M1*upar - M2perp
+  gkyl_dg_div_op(mem, app->confBasis, 0, vtperpsq, 0, temp, 0, m0);  // vtperpsq = -(M2perp-M1*upar)/n
+  gkyl_array_scale(vtperpsq, -1.0);
+
+  */
+  // Maxwellian correction updater
+  struct gkyl_gyrokinetic_maxwellian_correct_inp inp_corr = {
+    .phase_grid = &gk_s->grid,
+    .conf_basis = &app->confBasis,
+    .phase_basis = &app->basis,
+    .conf_range =  &app->local,
+    .conf_range_ext = &app->local_ext,
+    .gk_geom = app->gk_geom,
+    .vel_map = gk_s->vel_map,
+    .mass = gk_s->info.mass,
+    .divide_jacobgeo = false, 
+    .use_last_converged = false, // do not use the unconverged moments if the scheme fails to converge
+    .use_gpu = app->use_gpu,
+    .max_iter = 50,
+    .eps = 1e-10,
+  };
+  struct gkyl_gyrokinetic_maxwellian_correct *corr_max = gkyl_gyrokinetic_maxwellian_correct_inew( &inp_corr );
+
+  prim_moms = mkarr(false, 4*app->confBasis.num_basis, gk_s->global.volume);
+  gkyl_array_set_offset(prim_moms, 1.0, m0, 0*app->confBasis.num_basis);
+  gkyl_array_set_offset(prim_moms, 1.0, upar, 1*app->confBasis.num_basis);
+  gkyl_array_set_offset(prim_moms, 1.0, vtparsq, 2*app->confBasis.num_basis);
+  gkyl_array_set_offset(prim_moms, 1.0, vtperpsq, 3*app->confBasis.num_basis);
+  
+  struct gkyl_gyrokinetic_maxwellian_correct_status status_corr;
+  printf("Correcting density moment...\n");
+  gkyl_gyrokinetic_maxwellian_correct_density_moment(corr_max, gk_s->f_host, m0, &gk_s->local, &app->local);
+  /* printf("Correcting other moments...\n");
+  status_corr = gkyl_gyrokinetic_bimaxwellian_correct_all_moments(corr_max, gk_s->f_host, prim_moms, &gk_s->local, &app->local);
+  if (status_corr.iter_converged)
+    printf("Maxwellian correction converged after %d iter\n", status_corr.num_iter);
+  else
+  printf("Maxwellian correction failed. Iter= %d, error= %e, %e, %e, %e\n",status_corr.num_iter, status_corr.error[0], status_corr.error[1], status_corr.error[2], status_corr.error[3]);*/
+  // Multiply by the configuration space jacobian.
+  gkyl_dg_mul_conf_phase_op_range(&app->confBasis, &app->basis, gk_s->f_host, 
+    app->gk_geom->jacobgeo, gk_s->f_host, &app->local, &gk_s->local);      
+
+
   printf("Writing f\n");
   gkyl_comm_array_write(gk_s->comm, &gk_s->grid, &gk_s->local, NULL, gk_s->f_host, "elc_f_proj");
   if (app->use_gpu)
@@ -2556,13 +2634,15 @@ gkyl_gyrokinetic_app_from_moments_species(gkyl_gyrokinetic_app *app, int sidx, i
   
   cstr_drop(&M0fileNm);
   cstr_drop(&M1fileNm);
-  cstr_drop(&M2fileNm);
+  cstr_drop(&M2parfileNm);
+  cstr_drop(&M2perpfileNm);
   gkyl_array_release(m0);
   gkyl_array_release(m1);
-  gkyl_array_release(m2);
+  gkyl_array_release(m2par);
+  gkyl_array_release(m2perp);
   gkyl_array_release(lab_moms);
-  gkyl_proj_maxwellian_on_basis_release(proj);
-  
+  gkyl_proj_bimaxwellian_on_basis_release(proj);
+  gkyl_gyrokinetic_maxwellian_correct_release(corr_max);
   return rstat0; 
 }
 
