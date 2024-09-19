@@ -90,6 +90,7 @@ test_fixed_z()
       // psiRZ and related inputs
       .filepath = "./data/eqdsk/asdex.geqdsk",
       .rz_poly_order = 2,
+      .rz_basis_type = GKYL_BASIS_MODAL_TENSOR,
       .flux_poly_order = 1,
     };
 
@@ -159,6 +160,7 @@ test_shaped_plate()
   struct gkyl_efit_inp efit_inp = {
       // psiRZ and related inputs
       .filepath = "./data/eqdsk/asdex.geqdsk",
+      .rz_basis_type = GKYL_BASIS_MODAL_TENSOR,
       .rz_poly_order = 2,
       .flux_poly_order = 1,
     };
