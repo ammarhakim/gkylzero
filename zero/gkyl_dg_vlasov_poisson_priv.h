@@ -22,6 +22,18 @@ typedef double (*vlasov_poisson_accel_surf_t)(const double *w, const double *dxv
 typedef double (*vlasov_poisson_accel_boundary_surf_t)(const double *w, const double *dxv,
   const double *field, const int edge, const double *fEdge, const double *fSkin, double* GKYL_RESTRICT out);
 
+// Null kernels used for vxB term in case without external fields.
+double kernel_vlasov_poisson_zero_accel_surf(const double *w, const double *dxv,
+  const double *field, const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out)
+{
+  return 0.0;
+}
+double kernel_vlasov_poisson_zero_accel_boundary_surf(const double *w, const double *dxv,
+  const double *field, const int edge, const double *fEdge, const double *fSkin, double* GKYL_RESTRICT out)
+{
+  return 0.0;
+}
+
 // The cv_index[cd].vdim[vd] is used to index the various list of
 // kernels below
 static struct { int vdim[4]; } cv_index[] = {
@@ -438,8 +450,8 @@ GKYL_CU_D
 static const gkyl_dg_vlasov_poisson_accel_surf_kern_list ser_poisson_accel_surf_vy_kernels[] = {
   // 1x kernels
   { NULL, NULL, NULL }, // 0
-  { NULL, NULL, NULL }, // 1
-  { NULL, NULL, NULL }, // 2
+  { NULL, kernel_vlasov_poisson_zero_accel_surf, kernel_vlasov_poisson_zero_accel_surf }, // 1
+  { NULL, kernel_vlasov_poisson_zero_accel_surf, kernel_vlasov_poisson_zero_accel_surf }, // 2
   // 2x kernels
   { NULL, vlasov_poisson_surfvy_2x2v_ser_p1, vlasov_poisson_surfvy_2x2v_ser_p2 }, // 3
   { NULL, vlasov_poisson_surfvy_2x3v_ser_p1, vlasov_poisson_surfvy_2x3v_ser_p2 }, // 4
@@ -453,10 +465,10 @@ static const gkyl_dg_vlasov_poisson_accel_surf_kern_list ser_poisson_accel_surf_
   // 1x kernels
   { NULL, NULL, NULL }, // 0
   { NULL, NULL, NULL }, // 1
-  { NULL, NULL, NULL }, // 2
+  { NULL, kernel_vlasov_poisson_zero_accel_surf, kernel_vlasov_poisson_zero_accel_surf }, // 2
   // 2x kernels
   { NULL, NULL, NULL }, // 3
-  { NULL, NULL, NULL }, // 4
+  { NULL, kernel_vlasov_poisson_zero_accel_surf, kernel_vlasov_poisson_zero_accel_surf }, // 4
   // 3x kernels
   { NULL, vlasov_poisson_surfvz_3x3v_ser_p1, NULL }, // 5
 };
@@ -564,8 +576,8 @@ GKYL_CU_D
 static const gkyl_dg_vlasov_poisson_accel_boundary_surf_kern_list ser_poisson_accel_boundary_surf_vy_kernels[] = {
   // 1x kernels
   { NULL, NULL, NULL }, // 0
-  { NULL, NULL, NULL }, // 1
-  { NULL, NULL, NULL }, // 2
+  { NULL, kernel_vlasov_poisson_zero_accel_boundary_surf, kernel_vlasov_poisson_zero_accel_boundary_surf }, // 1
+  { NULL, kernel_vlasov_poisson_zero_accel_boundary_surf, kernel_vlasov_poisson_zero_accel_boundary_surf }, // 2
   // 2x kernels
   { NULL, vlasov_poisson_boundary_surfvy_2x2v_ser_p1, vlasov_poisson_boundary_surfvy_2x2v_ser_p2 }, // 3
   { NULL, vlasov_poisson_boundary_surfvy_2x3v_ser_p1, vlasov_poisson_boundary_surfvy_2x3v_ser_p2 }, // 4
@@ -579,10 +591,10 @@ static const gkyl_dg_vlasov_poisson_accel_boundary_surf_kern_list ser_poisson_ac
   // 1x kernels
   { NULL, NULL, NULL }, // 0
   { NULL, NULL, NULL }, // 1
-  { NULL, NULL, NULL }, // 2
+  { NULL, kernel_vlasov_poisson_zero_accel_boundary_surf, kernel_vlasov_poisson_zero_accel_boundary_surf }, // 2
   // 2x kernels
   { NULL, NULL, NULL }, // 3
-  { NULL, NULL, NULL }, // 4
+  { NULL, kernel_vlasov_poisson_zero_accel_boundary_surf, kernel_vlasov_poisson_zero_accel_boundary_surf }, // 4
   // 3x kernels
   { NULL, vlasov_poisson_boundary_surfvz_3x3v_ser_p1, NULL }, // 5
 };
