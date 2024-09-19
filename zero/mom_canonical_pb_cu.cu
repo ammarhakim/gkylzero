@@ -98,8 +98,7 @@ set_cu_ptrs(struct mom_type_canonical_pb* mom_can_pb, int mom_id, enum gkyl_basi
 
 struct gkyl_mom_type*
 gkyl_mom_canonical_pb_cu_dev_new(const struct gkyl_basis* cbasis, const struct gkyl_basis* pbasis, 
-  const struct gkyl_range* conf_range, const struct gkyl_range* vel_range, 
-  const char *mom)
+  const struct gkyl_range* phase_range, const char *mom)
 {
   assert(cbasis->poly_order == pbasis->poly_order);
 
@@ -115,8 +114,7 @@ gkyl_mom_canonical_pb_cu_dev_new(const struct gkyl_basis* cbasis, const struct g
   mom_can_pb->momt.num_config = cbasis->num_basis;
   mom_can_pb->momt.num_phase = pbasis->num_basis;
 
-  mom_can_pb->conf_range = *conf_range;
-  mom_can_pb->vel_range = *vel_range;
+  mom_can_pb->phase_range = *phase_range;
 
   int mom_id = get_mom_id(mom);
   assert(mom_id != BAD);
@@ -168,7 +166,7 @@ set_int_cu_ptrs(struct mom_type_canonical_pb* mom_can_pb, enum gkyl_basis_type b
 
 struct gkyl_mom_type *
 gkyl_int_mom_canonical_pb_cu_dev_new(const struct gkyl_basis* cbasis, const struct gkyl_basis* pbasis, 
-  const struct gkyl_range* conf_range, const struct gkyl_range* vel_range)
+  const struct gkyl_range* phase_range)
 {
   assert(cbasis->poly_order == pbasis->poly_order);
 
@@ -186,8 +184,7 @@ gkyl_int_mom_canonical_pb_cu_dev_new(const struct gkyl_basis* cbasis, const stru
 
   mom_can_pb->momt.num_mom = vdim+2;
 
-  mom_can_pb->conf_range = *conf_range;
-  mom_can_pb->vel_range = *vel_range;
+  mom_can_pb->phase_range = *phase_range;
 
   mom_can_pb->momt.flags = 0;
   GKYL_SET_CU_ALLOC(mom_can_pb->momt.flags);
