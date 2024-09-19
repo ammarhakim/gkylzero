@@ -3,7 +3,7 @@
 #include <time.h>
 
 #include <gkyl_alloc.h>
-#include <gkyl_vlasov_poisson.h>
+#include <gkyl_vlasov.h>
 #include <rt_arg_parse.h>
 
 struct vp_lbo_relax_ctx {
@@ -74,14 +74,15 @@ main(int argc, char **argv)
   struct vp_lbo_relax_ctx ctx = create_ctx(); // context for init functions
 
   // electrons
-  struct gkyl_vlasov_poisson_species square = {
+  struct gkyl_vlasov_species square = {
     .name = "square",
     .charge = ctx.charge, .mass = ctx.mass,
     .lower = { -8.0 * ctx.vt},
     .upper = { 8.0 * ctx.vt}, 
     .cells = { 48 },
 
-    .projection = {
+    .num_init = 1,
+    .projection[0] = {
       .proj_id = GKYL_PROJ_FUNC,
       .func = eval_distf_square,
       .ctx_func = &ctx,
@@ -96,14 +97,15 @@ main(int argc, char **argv)
     .diag_moments = { "M0", "M1i", "M2" },
   };
 
-  struct gkyl_vlasov_poisson_species bump = {
+  struct gkyl_vlasov_species bump = {
     .name = "bump",
     .charge = ctx.charge, .mass = ctx.mass,
     .lower = { -8.0 * ctx.vt},
     .upper = {  8.0 * ctx.vt}, 
     .cells = { 48 },
 
-    .projection = {
+    .num_init = 1,
+    .projection[0] = {
       .proj_id = GKYL_PROJ_FUNC,
       .func = eval_distf_bump,
       .ctx_func = &ctx,
@@ -119,7 +121,7 @@ main(int argc, char **argv)
   };
 
   // VP app
-  struct gkyl_vp vp = {
+  struct gkyl_vm vm = {
     .name = "vp_lbo_relax_1x1v_p2",
 
     .cdim = 1, .vdim = 1,
@@ -135,27 +137,28 @@ main(int argc, char **argv)
     .num_species = 2,
     .species = { square, bump },
     .skip_field = true,
+    .is_electrostatic = true,
 
     .use_gpu = app_args.use_gpu,
   };
 
   // create app object
-  gkyl_vlasov_poisson_app *app = gkyl_vlasov_poisson_app_new(&vp);
+  gkyl_vlasov_app *app = gkyl_vlasov_app_new(&vm);
 
   // start, end and initial time-step
   double tcurr = 0.0, tend = 100.0;
   double dt = tend-tcurr;
 
   // initialize simulation
-  gkyl_vlasov_poisson_app_apply_ic(app, tcurr);
+  gkyl_vlasov_app_apply_ic(app, tcurr);
   
-  gkyl_vlasov_poisson_app_write(app, tcurr, 0);
-  gkyl_vlasov_poisson_app_calc_mom(app); gkyl_vlasov_poisson_app_write_mom(app, tcurr, 0);
+  gkyl_vlasov_app_write(app, tcurr, 0);
+  gkyl_vlasov_app_calc_mom(app); gkyl_vlasov_app_write_mom(app, tcurr, 0);
 
   long step = 1;
   while ((tcurr < tend) && (step <= app_args.num_steps)) {
     printf("Taking time-step at t = %g ...", tcurr);
-    struct gkyl_update_status status = gkyl_vlasov_poisson_update(app, dt);
+    struct gkyl_update_status status = gkyl_vlasov_update(app, dt);
     printf(" dt = %g\n", status.dt_actual);
     
     if (!status.success) {
@@ -167,15 +170,15 @@ main(int argc, char **argv)
     step += 1;
   }
 
-  gkyl_vlasov_poisson_app_write(app, tcurr, 1);
-  gkyl_vlasov_poisson_app_calc_mom(app); gkyl_vlasov_poisson_app_write_mom(app, tcurr, 1);
-  gkyl_vlasov_poisson_app_stat_write(app);
+  gkyl_vlasov_app_write(app, tcurr, 1);
+  gkyl_vlasov_app_calc_mom(app); gkyl_vlasov_app_write_mom(app, tcurr, 1);
+  gkyl_vlasov_app_stat_write(app);
 
   // fetch simulation statistics
-  struct gkyl_vlasov_poisson_stat stat = gkyl_vlasov_poisson_app_stat(app);
+  struct gkyl_vlasov_stat stat = gkyl_vlasov_app_stat(app);
 
   // simulation complete, free app
-  gkyl_vlasov_poisson_app_release(app);
+  gkyl_vlasov_app_release(app);
 
   printf("\n");
   printf("Number of update calls %ld\n", stat.nup);

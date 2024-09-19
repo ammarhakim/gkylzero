@@ -3,7 +3,7 @@
 #include <time.h>
 
 #include <gkyl_alloc.h>
-#include <gkyl_vlasov_poisson.h>
+#include <gkyl_vlasov.h>
 #include <rt_arg_parse.h>
 
 #include <gkyl_null_comm.h>
@@ -154,19 +154,19 @@ create_ctx(void)
 }
 
 void
-write_data(struct gkyl_tm_trigger* iot, gkyl_vlasov_poisson_app* app, double t_curr, bool force_write)
+write_data(struct gkyl_tm_trigger* iot, gkyl_vlasov_app* app, double t_curr, bool force_write)
 {
-  gkyl_vlasov_poisson_app_calc_integrated_mom(app, t_curr);
+  gkyl_vlasov_app_calc_integrated_mom(app, t_curr);
   if (gkyl_tm_trigger_check_and_bump(iot, t_curr)) {
     int frame = iot->curr - 1;
     if (force_write) {
       frame = iot->curr;
     }
 
-    gkyl_vlasov_poisson_app_write(app, t_curr, iot->curr - 1);
+    gkyl_vlasov_app_write(app, t_curr, iot->curr - 1);
 
-    gkyl_vlasov_poisson_app_calc_mom(app);
-    gkyl_vlasov_poisson_app_write_mom(app, t_curr, iot->curr - 1);
+    gkyl_vlasov_app_calc_mom(app);
+    gkyl_vlasov_app_write_mom(app, t_curr, iot->curr - 1);
   }
 }
 
@@ -278,14 +278,15 @@ main(int argc, char **argv)
   }
 
   // electrons
-  struct gkyl_vlasov_poisson_species elc = {
+  struct gkyl_vlasov_species elc = {
     .name = "elc",
     .charge = ctx.chargeElc, .mass = ctx.massElc,
     .lower = { -4.0*ctx.vte},
     .upper = { 4.0*ctx.vte}, 
     .cells = { NV },
 
-    .projection = {
+    .num_init = 1,
+    .projection[0] = {
       .proj_id = GKYL_PROJ_FUNC,
       .func = evalDistFuncElc,
       .ctx_func = &ctx,
@@ -295,7 +296,8 @@ main(int argc, char **argv)
       .source_id = GKYL_BFLUX_SOURCE,
       .source_length = ctx.Ls,
       .source_species = "ion",
-      .projection = {
+      .num_sources = 1,
+      .projection[0] = {
         .proj_id = GKYL_PROJ_FUNC,
         .func = evalDistFuncElcSource,
         .ctx_func = &ctx,
@@ -319,14 +321,15 @@ main(int argc, char **argv)
   };
 
   // ions
-  struct gkyl_vlasov_poisson_species ion = {
+  struct gkyl_vlasov_species ion = {
     .name = "ion",
     .charge = ctx.chargeIon, .mass = ctx.massIon,
     .lower = { -4.0*ctx.vti},
     .upper = { 4.0*ctx.vti}, 
     .cells = { NV },
 
-    .projection = {
+    .num_init = 1,
+    .projection[0] = {
       .proj_id = GKYL_PROJ_FUNC,
       .func = evalDistFuncIon,
       .ctx_func = &ctx,
@@ -336,7 +339,8 @@ main(int argc, char **argv)
       .source_id = GKYL_BFLUX_SOURCE,
       .source_length = ctx.Ls,
       .source_species = "ion",
-      .projection = {
+      .num_sources = 1,
+      .projection[0] = {
         .proj_id = GKYL_PROJ_FUNC,
         .func = evalDistFuncIonSource,
         .ctx_func = &ctx,
@@ -360,8 +364,8 @@ main(int argc, char **argv)
   };
 
   // Field.
-  struct gkyl_vlasov_poisson_field field = {
-    .permittivity = ctx.epsilon0,
+  struct gkyl_vlasov_field field = {
+    .epsilon0 = ctx.epsilon0,
     .poisson_bcs = {
       .lo_type = { GKYL_POISSON_DIRICHLET },
       .up_type = { GKYL_POISSON_DIRICHLET },
@@ -370,8 +374,8 @@ main(int argc, char **argv)
   };
 
   // VM app
-  struct gkyl_vp app_inp = {
-    .name = "vlasov_poisson_sheath_bgk_1x1v_p2",
+  struct gkyl_vm app_inp = {
+    .name = "vp_sheath_bgk_1x1v_p2",
 
     .cdim = 1, .vdim = 1,
     .lower = { -ctx.Lx },
@@ -386,6 +390,7 @@ main(int argc, char **argv)
     .num_species = 2,
     .species = { elc, ion },
     .field = field,
+    .is_electrostatic = true,
 
     .use_gpu = app_args.use_gpu,
 
@@ -397,7 +402,7 @@ main(int argc, char **argv)
   };
 
   // Create app object.
-  gkyl_vlasov_poisson_app *app = gkyl_vlasov_poisson_app_new(&app_inp);
+  gkyl_vlasov_app *app = gkyl_vlasov_app_new(&app_inp);
 
   // Initial and final simulation times.
   double t_curr = 0.0, t_end = ctx.t_end;
@@ -407,7 +412,7 @@ main(int argc, char **argv)
   struct gkyl_tm_trigger io_trig = { .dt = t_end / num_frames };
 
   // Initialize simulation.
-  gkyl_vlasov_poisson_app_apply_ic(app, t_curr);
+  gkyl_vlasov_app_apply_ic(app, t_curr);
   write_data(&io_trig, app, t_curr, false);
 
   // Compute initial guess of maximum stable time-step.
@@ -419,12 +424,12 @@ main(int argc, char **argv)
 
   long step = 1;
   while ((t_curr < t_end) && (step <= app_args.num_steps)) {
-    gkyl_vlasov_poisson_app_cout(app, stdout, "Taking time-step %ld at t = %g ...", step, t_curr);
-    struct gkyl_update_status status = gkyl_vlasov_poisson_update(app, dt);
-    gkyl_vlasov_poisson_app_cout(app, stdout, " dt = %g\n", status.dt_actual);
+    gkyl_vlasov_app_cout(app, stdout, "Taking time-step %ld at t = %g ...", step, t_curr);
+    struct gkyl_update_status status = gkyl_vlasov_update(app, dt);
+    gkyl_vlasov_app_cout(app, stdout, " dt = %g\n", status.dt_actual);
     
     if (!status.success) {
-      gkyl_vlasov_poisson_app_cout(app, stdout, "** Update method failed! Aborting simulation ....\n");
+      gkyl_vlasov_app_cout(app, stdout, "** Update method failed! Aborting simulation ....\n");
       break;
     }
 
@@ -439,12 +444,12 @@ main(int argc, char **argv)
     else if (status.dt_actual < dt_failure_tol * dt_init) {
       num_failures += 1;
 
-      gkyl_vlasov_poisson_app_cout(app, stdout, "WARNING: Time-step dt = %g", status.dt_actual);
-      gkyl_vlasov_poisson_app_cout(app, stdout, " is below %g*dt_init ...", dt_failure_tol);
-      gkyl_vlasov_poisson_app_cout(app, stdout, " num_failures = %d\n", num_failures);
+      gkyl_vlasov_app_cout(app, stdout, "WARNING: Time-step dt = %g", status.dt_actual);
+      gkyl_vlasov_app_cout(app, stdout, " is below %g*dt_init ...", dt_failure_tol);
+      gkyl_vlasov_app_cout(app, stdout, " num_failures = %d\n", num_failures);
       if (num_failures >= num_failures_max) {
-        gkyl_vlasov_poisson_app_cout(app, stdout, "ERROR: Time-step was below %g*dt_init ", dt_failure_tol);
-        gkyl_vlasov_poisson_app_cout(app, stdout, "%d consecutive times. Aborting simulation ....\n", num_failures_max);
+        gkyl_vlasov_app_cout(app, stdout, "ERROR: Time-step was below %g*dt_init ", dt_failure_tol);
+        gkyl_vlasov_app_cout(app, stdout, "%d consecutive times. Aborting simulation ....\n", num_failures_max);
         break;
       }
     }
@@ -456,33 +461,33 @@ main(int argc, char **argv)
   }
 
   write_data(&io_trig, app, t_curr, false);
-  gkyl_vlasov_poisson_app_write_integrated_mom(app);
-  gkyl_vlasov_poisson_app_stat_write(app);
+  gkyl_vlasov_app_write_integrated_mom(app);
+  gkyl_vlasov_app_stat_write(app);
 
-  struct gkyl_vlasov_poisson_stat stat = gkyl_vlasov_poisson_app_stat(app);
+  struct gkyl_vlasov_stat stat = gkyl_vlasov_app_stat(app);
 
-  gkyl_vlasov_poisson_app_cout(app, stdout, "\n");
-  gkyl_vlasov_poisson_app_cout(app, stdout, "Number of update calls %ld\n", stat.nup);
-  gkyl_vlasov_poisson_app_cout(app, stdout, "Number of forward-Euler calls %ld\n", stat.nfeuler);
-  gkyl_vlasov_poisson_app_cout(app, stdout, "Number of RK stage-2 failures %ld\n", stat.nstage_2_fail);
+  gkyl_vlasov_app_cout(app, stdout, "\n");
+  gkyl_vlasov_app_cout(app, stdout, "Number of update calls %ld\n", stat.nup);
+  gkyl_vlasov_app_cout(app, stdout, "Number of forward-Euler calls %ld\n", stat.nfeuler);
+  gkyl_vlasov_app_cout(app, stdout, "Number of RK stage-2 failures %ld\n", stat.nstage_2_fail);
   if (stat.nstage_2_fail > 0) {
-    gkyl_vlasov_poisson_app_cout(app, stdout, "  Max rel dt diff for RK stage-2 failures %g\n", stat.stage_2_dt_diff[1]);
-    gkyl_vlasov_poisson_app_cout(app, stdout, "  Min rel dt diff for RK stage-2 failures %g\n", stat.stage_2_dt_diff[0]);
+    gkyl_vlasov_app_cout(app, stdout, "  Max rel dt diff for RK stage-2 failures %g\n", stat.stage_2_dt_diff[1]);
+    gkyl_vlasov_app_cout(app, stdout, "  Min rel dt diff for RK stage-2 failures %g\n", stat.stage_2_dt_diff[0]);
   }  
-  gkyl_vlasov_poisson_app_cout(app, stdout, "Number of RK stage-3 failures %ld\n", stat.nstage_3_fail);
-  gkyl_vlasov_poisson_app_cout(app, stdout, "Species RHS calc took %g secs\n", stat.species_rhs_tm);
-  gkyl_vlasov_poisson_app_cout(app, stdout, "Species collisions RHS calc took %g secs\n", stat.species_coll_tm);
-  gkyl_vlasov_poisson_app_cout(app, stdout, "Field RHS calc took %g secs\n", stat.field_rhs_tm);
-  gkyl_vlasov_poisson_app_cout(app, stdout, "Species collisional moments took %g secs\n", stat.species_coll_mom_tm);
-  gkyl_vlasov_poisson_app_cout(app, stdout, "Total updates took %g secs\n", stat.total_tm);
+  gkyl_vlasov_app_cout(app, stdout, "Number of RK stage-3 failures %ld\n", stat.nstage_3_fail);
+  gkyl_vlasov_app_cout(app, stdout, "Species RHS calc took %g secs\n", stat.species_rhs_tm);
+  gkyl_vlasov_app_cout(app, stdout, "Species collisions RHS calc took %g secs\n", stat.species_coll_tm);
+  gkyl_vlasov_app_cout(app, stdout, "Field RHS calc took %g secs\n", stat.field_rhs_tm);
+  gkyl_vlasov_app_cout(app, stdout, "Species collisional moments took %g secs\n", stat.species_coll_mom_tm);
+  gkyl_vlasov_app_cout(app, stdout, "Total updates took %g secs\n", stat.total_tm);
 
-  gkyl_vlasov_poisson_app_cout(app, stdout, "Number of write calls %ld\n", stat.nio);
-  gkyl_vlasov_poisson_app_cout(app, stdout, "IO time took %g secs \n", stat.io_tm);
+  gkyl_vlasov_app_cout(app, stdout, "Number of write calls %ld\n", stat.nio);
+  gkyl_vlasov_app_cout(app, stdout, "IO time took %g secs \n", stat.io_tm);
 
   // Free resources after simulation completion.
   gkyl_rect_decomp_release(decomp);
   gkyl_comm_release(comm);
-  gkyl_vlasov_poisson_app_release(app);
+  gkyl_vlasov_app_release(app);
 
 mpifinalize:
 #ifdef GKYL_HAVE_MPI
