@@ -495,9 +495,7 @@ main(int argc, char **argv)
     .num_species = 2,
     .species = { elc, ion },
     .field = field,
-
-    .use_gpu = app_args.use_gpu,
-
+    
     .parallelism = {
       .use_gpu = app_args.use_gpu,
       .cuts = { app_args.cuts[0], app_args.cuts[1] },

@@ -33,8 +33,6 @@ struct gkyl_gyrokinetic_multib_species {
   bool no_by; // Boolean for whether we are using specialized GK kernels with no b_y.
               // These more computationally efficient kernels are for slab or mirror 
               // calculations where there is no toroidal field. 
-  // Positivity enforcement via shift in f.
-  bool enforce_positivity;
 
   int num_diag_moments; // number of diagnostic moments
   char diag_moments[24][24]; // list of diagnostic moments
@@ -151,7 +149,9 @@ struct gkyl_gyrokinetic_multib {
  // geometry and topology of all blocks in simulation
   struct gkyl_block_geom *block_geom;
 
-  double cfl_frac; // CFL fraction to use
+  double cfl_frac; // CFL fraction to use (default 1.0)
+
+  bool enforce_positivity; // Positivity enforcement via shift in f.
 
   int num_species; // number of species
   // species inputs

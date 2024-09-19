@@ -275,10 +275,8 @@ struct gkyl_gk {
   enum gkyl_basis_type basis_type; // type of basis functions to use
 
   struct gkyl_gyrokinetic_geometry geometry; // geometry input struct
-                                             //
-  double cfl_frac; // CFL fraction to use (default 1.0)
 
-  bool use_gpu; // Flag to indicate if solver should use GPUs
+  double cfl_frac; // CFL fraction to use (default 1.0)
 
   bool enforce_positivity; // Positivity enforcement via shift in f.
 
