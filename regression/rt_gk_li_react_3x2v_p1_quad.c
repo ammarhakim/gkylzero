@@ -89,7 +89,7 @@ void eval_source_density_ion(double t, const double * GKYL_RESTRICT xn, double* 
   } else {
     fout[0] = 1.e-40;
   }
-  fout[0] = 0.9*n_src*fout[0];
+  fout[0] = 0.85*n_src*fout[0];
 }
 void eval_source_density_li(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
 {
@@ -193,7 +193,7 @@ void eval_density_ion(double t, const double * GKYL_RESTRICT xn, double* GKYL_RE
   eval_source_temp(t, xnCenterZ, T_src, ctx);
 
   double c_ss = sqrt((5./3.)*T_src[0]/mi);
-  double nPeak = 0.9*4.*sqrt(5)/3./c_ss*Ls/2.*n_src[0];
+  double nPeak = 0.85*4.*sqrt(5)/3./c_ss*Ls/2.*n_src[0];
   if (fabs(z) <= Ls) {
     fout[0] = nPeak*(1.+sqrt(1.-pow(z/Ls,2)))/2;
   } else {
@@ -369,8 +369,8 @@ create_ctx(void)
   int Nx = 4;
   int Ny = 1;
   int Nz = 8;
-  int Nvpar = 6;
-  int Nmu = 4;
+  int Nvpar = 12;
+  int Nmu = 8;
 
   double t_end = 1.0e-7; 
   double num_frames = 1;
@@ -707,7 +707,7 @@ main(int argc, char **argv)
     .projection = { 
       .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM, 
       .ctx_density = &ctx,
-      .density = eval_density,
+      .density = eval_density_li,
       .ctx_upar = &ctx,
       .upar= eval_upar,
       .ctx_temp = &ctx,
@@ -776,7 +776,7 @@ main(int argc, char **argv)
 
   // GK app
   struct gkyl_gk app_inp = {
-    .name = "gk_li_react_3x2v_p1_quad",
+    .name = "gk_li_react_3x2v_p1_12Nv_quad",
 
     .cdim = 3, .vdim = 2,
     .lower = { ctx.R-ctx.Lx/2.0, -ctx.Ly/2.0, -ctx.Lz/2.0 },
