@@ -18,19 +18,19 @@ struct langmuir_ctx {
 static inline double sq(double x) { return x*x; }
 
 static inline double
-maxwellian(double n, double v, double u, double vth)
+maxwellian(double n, double vx, double ux, double vy, double uy, double vz, double uz, double vth)
 {
-  double v2 = (v - u)*(v - u);
-  return n/sqrt(2*M_PI*vth*vth)*exp(-v2/(2*vth*vth));
+  double v2 = (vx - ux)*(vx - ux) + (vy - uy)*(vy - uy) + (vz - uz)*(vz - uz);
+  return n/pow(sqrt(2*M_PI*vth*vth), 3)*exp(-v2/(2*vth*vth));
 }
 
 void
 evalDistFunc(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
 {
   struct langmuir_ctx *app = ctx;
-  double x = xn[0], v = xn[1];
+  double x = xn[0], vx = xn[1], vy = xn[2], vz = xn[3];
   double k = app->k0, alpha = app->perturb;
-  fout[0] = (1 + alpha*cos(k*x))*maxwellian(1.0, v, 0.0, 1.0);
+  fout[0] = (1 + alpha*cos(k*x))*maxwellian(1.0, vx, 0.0, vy, 0.0, vz, 0.0, 1.0);
 }
 
 void
@@ -51,7 +51,7 @@ void
 evalNu(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
 {
   struct langmuir_ctx *app = ctx;
-  double x = xn[0], v = xn[1];
+  double x = xn[0], vx = xn[1], vy = xn[2], vz = xn[3];
   fout[0] = 0.1;
 }
 
@@ -63,7 +63,7 @@ create_ctx(void)
     .charge = -1.0,
     .vt = 1.0,
     .Lx = M_PI/0.5,
-    .k0 = 0.5,
+    .k0 = 0.3,
     .perturb = 1e-4
   };
   return ctx;
@@ -84,9 +84,9 @@ main(int argc, char **argv)
   struct gkyl_vlasov_species elc = {
     .name = "elc",
     .charge = ctx.charge, .mass = ctx.mass,
-    .lower = { -6.0*ctx.vt},
-    .upper = { 6.0*ctx.vt}, 
-    .cells = { 32 },
+    .lower = { -6.0*ctx.vt, -6.0*ctx.vt, -6.0*ctx.vt },
+    .upper = { 6.0*ctx.vt, 6.0*ctx.vt, 6.0*ctx.vt }, 
+    .cells = { 32, 32, 32 },
 
     .num_init = 1, 
     .projection[0] = {
@@ -116,12 +116,12 @@ main(int argc, char **argv)
 
   // VM app
   struct gkyl_vm vm = {
-    .name = "landau_damping_1v",
+    .name = "vlasov_landau_damping_1x3v_p2",
 
-    .cdim = 1, .vdim = 1,
+    .cdim = 1, .vdim = 3,
     .lower = { -ctx.Lx },
     .upper = { ctx.Lx },
-    .cells = { 32 },
+    .cells = { 16 },
     .poly_order = 2,
     .basis_type = app_args.basis_type,
 

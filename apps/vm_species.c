@@ -347,8 +347,7 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
     if (s->lower_bc[d].type == GKYL_SPECIES_EMISSION) {
       s->emit_lo = true;
       s->calc_bflux = true;
-      vm_species_emission_init(app, &s->bc_emission_lo, d, GKYL_LOWER_EDGE, s->lower_bc[d].aux_ctx,
-        app->use_gpu);
+      vm_species_emission_init(app, &s->bc_emission_lo, d, GKYL_LOWER_EDGE, s->lower_bc[d].aux_ctx);
     }
     else {
       if (s->lower_bc[d].type == GKYL_SPECIES_COPY)
@@ -368,8 +367,7 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
     if (s->upper_bc[d].type == GKYL_SPECIES_EMISSION) {
       s->emit_up = true;
       s->calc_bflux = true;
-      vm_species_emission_init(app, &s->bc_emission_up, d, GKYL_UPPER_EDGE, s->upper_bc[d].aux_ctx,
-        app->use_gpu);
+      vm_species_emission_init(app, &s->bc_emission_up, d, GKYL_UPPER_EDGE, s->upper_bc[d].aux_ctx);
     }
     else {
       if (s->upper_bc[d].type == GKYL_SPECIES_COPY)

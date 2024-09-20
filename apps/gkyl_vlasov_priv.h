@@ -258,6 +258,7 @@ struct vm_emitting_wall {
   struct gkyl_bc_emission_spectrum *update[GKYL_MAX_SPECIES];
   struct gkyl_bc_emission_elastic *elastic_update;
   struct gkyl_array *f_emit;
+  struct gkyl_array *f_emit_host;
   struct gkyl_array *buffer;
   struct gkyl_array *elastic_yield;
   struct gkyl_array *yield[GKYL_MAX_SPECIES]; // projected secondary electron yield
@@ -819,10 +820,9 @@ void vm_species_moment_release(const struct gkyl_vlasov_app *app,
  * @param dir Direction of BC
  * @param edge Edge of configuration space
  * @param ctx Emission context
- * @param use_gpu bool to determine if on GPU
  */
 void vm_species_emission_init(struct gkyl_vlasov_app *app, struct vm_emitting_wall *emit,
-  int dir, enum gkyl_edge_loc edge, void *ctx, bool use_gpu);
+  int dir, enum gkyl_edge_loc edge, void *ctx);
 
 /**
  * Initialize emission BC cross-species object.
