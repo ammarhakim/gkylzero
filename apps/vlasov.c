@@ -415,8 +415,10 @@ vm_apply_bc(gkyl_vlasov_app* app, double tcurr,
   for (int i=0; i<app->num_fluid_species; ++i) {
     vm_fluid_species_apply_bc(app, &app->fluid_species[i], fluid[i]);
   }
-  if (!(app->field->field_id == GKYL_FIELD_PHI || app->field->field_id == GKYL_FIELD_PHI_EXT))
-    vm_field_apply_bc(app, app->field, emfield);
+  if (app->has_field) {
+    if (!(app->field->field_id == GKYL_FIELD_PHI || app->field->field_id == GKYL_FIELD_PHI_EXT))
+      vm_field_apply_bc(app, app->field, emfield);
+  }
 }
 
 void
