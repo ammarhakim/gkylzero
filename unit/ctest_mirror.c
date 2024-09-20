@@ -102,11 +102,11 @@ test_lores()
   gkyl_cart_modal_serendip(&cbasis, 3, cpoly_order);
 
 
-struct gkyl_mirror_geo_grid_inp ginp = {
-  .rclose = 0.2,
-  .zmin = -2.4,
-  .zmax =  2.4,
-};
+  struct gkyl_mirror_geo_grid_inp ginp = {
+    .rclose = 0.2,
+    .zmin = -2.0,
+    .zmax =  2.0,
+  };
 
   struct gkyl_gk_geometry_inp geometry_inp = {
     .geometry_id  = GKYL_MIRROR,
@@ -129,17 +129,17 @@ struct gkyl_mirror_geo_grid_inp ginp = {
   struct gk_geometry* up = gkyl_gk_geometry_mirror_new(&geometry_inp); 
 
   write_geometry(up, cgrid, clocal, "whamlores");
-    // Create Nodal Range and Grid and Write Nodal Coordinates
-    struct gkyl_range nrange;
-    gkyl_gk_geometry_init_nodal_range(&nrange, &clocal, cpoly_order);
-    struct gkyl_array* mc2p_nodal = gkyl_array_new(GKYL_DOUBLE, 3, nrange.volume);
-    struct gkyl_nodal_ops *n2m = gkyl_nodal_ops_new(&cbasis, &cgrid, false);
-    gkyl_nodal_ops_m2n(n2m, &cbasis, &cgrid, &nrange, &clocal, 3, mc2p_nodal, up->mc2p);
-    gkyl_nodal_ops_release(n2m);
-    struct gkyl_rect_grid ngrid;
-    gkyl_gk_geometry_init_nodal_grid(&ngrid, &cgrid, &nrange);
-    gkyl_grid_sub_array_write(&ngrid, &nrange, 0,  mc2p_nodal, "whamlores_nodes.gkyl");
-    gkyl_array_release(mc2p_nodal);
+  // Create Nodal Range and Grid and Write Nodal Coordinates
+  struct gkyl_range nrange;
+  gkyl_gk_geometry_init_nodal_range(&nrange, &clocal, cpoly_order);
+  struct gkyl_array* mc2p_nodal = gkyl_array_new(GKYL_DOUBLE, 3, nrange.volume);
+  struct gkyl_nodal_ops *n2m = gkyl_nodal_ops_new(&cbasis, &cgrid, false);
+  gkyl_nodal_ops_m2n(n2m, &cbasis, &cgrid, &nrange, &clocal, 3, mc2p_nodal, up->mc2p);
+  gkyl_nodal_ops_release(n2m);
+  struct gkyl_rect_grid ngrid;
+  gkyl_gk_geometry_init_nodal_grid(&ngrid, &cgrid, &nrange);
+  gkyl_grid_sub_array_write(&ngrid, &nrange, 0,  mc2p_nodal, "whamlores_nodes.gkyl");
+  gkyl_array_release(mc2p_nodal);
 
 
   gkyl_gk_geometry_release(up);
@@ -180,11 +180,11 @@ test_hires()
   gkyl_cart_modal_serendip(&cbasis, 3, cpoly_order);
 
 
-struct gkyl_mirror_geo_grid_inp ginp = {
-  .rclose = 0.2,
-  .zmin = -2.0,
-  .zmax =  2.0,
-};
+  struct gkyl_mirror_geo_grid_inp ginp = {
+    .rclose = 0.2,
+    .zmin = -2.0,
+    .zmax =  2.0,
+  };
 
   struct gkyl_gk_geometry_inp geometry_inp = {
     .geometry_id  = GKYL_MIRROR,

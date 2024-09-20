@@ -35,13 +35,12 @@
 void
 test_lores()
 {
-  struct gkyl_mirror_geo_efit_inp inp = {
+
+  struct gkyl_efit_inp inp = {
     // psiRZ and related inputs
     .filepath = "./data/eqdsk/wham.geqdsk",
-    .rzpoly_order = 2,
-    .fluxpoly_order = 1,
-    .plate_spec = false,
-    .quad_param = {  .eps = 1e-10 }
+    .rz_poly_order = 2,
+    .flux_poly_order = 1,
   };
 
   clock_t start, end;
@@ -72,8 +71,8 @@ test_lores()
 
   struct gkyl_gk_geometry_inp geometry_inp = {
     .geometry_id  = GKYL_MIRROR,
-    .mirror_efit_info = &inp,
-    .mirror_grid_info = &ginp,
+    .efit_info = inp,
+    .mirror_grid_info = ginp,
     .grid = cgrid,
     .local = clocal,
     .local_ext = clocal_ext,
@@ -101,13 +100,11 @@ test_lores()
 void
 test_hires()
 {
-  struct gkyl_mirror_geo_efit_inp inp = {
+  struct gkyl_efit_inp inp = {
     // psiRZ and related inputs
     .filepath = "./data/eqdsk/wham_hires.geqdsk",
-    .rzpoly_order = 2,
-    .fluxpoly_order = 1,
-    .plate_spec = false,
-    .quad_param = {  .eps = 1e-10 }
+    .rz_poly_order = 2,
+    .flux_poly_order = 1,
   };
 
   clock_t start, end;
@@ -139,8 +136,8 @@ struct gkyl_mirror_geo_grid_inp ginp = {
 
   struct gkyl_gk_geometry_inp geometry_inp = {
     .geometry_id  = GKYL_MIRROR,
-    .mirror_efit_info = &inp,
-    .mirror_grid_info = &ginp,
+    .efit_info = inp,
+    .mirror_grid_info = ginp,
     .grid = cgrid,
     .local = clocal,
     .local_ext = clocal_ext,
@@ -213,9 +210,8 @@ gyrokinetic_geom_new(struct gkyl_gk *gk)
     .mapc2p = gk->geometry.mapc2p,
     .bmag_ctx = gk->geometry.bmag_ctx,
     .bmag_func = gk->geometry.bmag_func,
-    .tok_efit_info = gk->geometry.tok_efit_info,
+    .efit_info = gk->geometry.efit_info,
     .tok_grid_info = gk->geometry.tok_grid_info,
-    .mirror_efit_info = gk->geometry.mirror_efit_info,
     .mirror_grid_info = gk->geometry.mirror_grid_info,
     .grid = app->grid,
     .local = app->local,
@@ -270,12 +266,10 @@ test_geom_2x() {
   clock_t start, end;
   double cpu_time_used;
   start = clock();
-  struct gkyl_mirror_geo_efit_inp inp = {
+  struct gkyl_efit_inp inp = {
     .filepath = "./data/eqdsk/wham.geqdsk",
-    .rzpoly_order = 2,
-    .fluxpoly_order = 1,
-    .plate_spec = false,
-    .quad_param = {  .eps = 1e-10 }
+    .rz_poly_order = 2,
+    .flux_poly_order = 1,
   };
   struct gkyl_mirror_geo_grid_inp ginp = {
     .rclose = 0.2,
@@ -295,8 +289,8 @@ test_geom_2x() {
     .geometry = {
       .geometry_id = GKYL_MIRROR,
       .world = {0.0},
-      .mirror_efit_info = &inp,
-      .mirror_grid_info = &ginp,
+      .efit_info = inp,
+      .mirror_grid_info = ginp,
     },
     .num_periodic_dir = 0,
     .periodic_dirs = {},
