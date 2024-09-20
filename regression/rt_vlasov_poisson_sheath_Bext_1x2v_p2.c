@@ -309,7 +309,7 @@ main(int argc, char **argv)
 
   // VP app
   struct gkyl_vm vm = {
-    .name = "vp_sheath_1x2v_p2",
+    .name = "vp_sheath_Bext_1x2v_p2",
 
     .cdim = ctx.cdim, .vdim = ctx.vdim,
     .lower = { ctx.x_min },
