@@ -291,7 +291,6 @@ roe_avg(const struct gkyl_wv_eqn *eqn, const double *ql,
 {
   const struct wv_euler *euler = container_of(eqn, struct wv_euler, eqn);
   double gas_gamma = euler->gas_gamma;
-  double g1 = gas_gamma - 1;
 
   double rhol = ql[0], rhor = qr[0];
   double pl = gkyl_euler_pressure(gas_gamma, ql), pr = gkyl_euler_pressure(gas_gamma, qr);
@@ -411,13 +410,11 @@ static void
 states_hll(const struct gkyl_wv_eqn *eqn, const double *ql, const double *qr,
   double *speeds, double *qm)
 {
-  const struct wv_euler *euler = container_of(eqn, struct wv_euler, eqn);
-
   // STEP 1. compute min and max wave speeds
   double state[8];
   states_hll_common(eqn, ql, qr, state);
-  double rl = state[0], ul = state[1], pl = state[2];
-  double rr = state[3], ur = state[4], pr = state[5];
+  double ul = state[1], pl = state[2];
+  double ur = state[4], pr = state[5];
   double sl = state[6], sr = state[7];
 
   // STEP 2. compute left and right fluxes
@@ -512,8 +509,6 @@ static void
 states_hllc(const struct gkyl_wv_eqn *eqn, const double *ql, const double *qr,
   double *speeds, double *qml, double *qmr)
 {
-  const struct wv_euler *euler = container_of(eqn, struct wv_euler, eqn);
-
   // STEP 1. compute min and max wave speeds
   double state[8];
   states_hll_common(eqn, ql, qr, state);
@@ -673,7 +668,6 @@ static inline void
 euler_cons_to_diag(const struct gkyl_wv_eqn *eqn,
   const double *qin, double *diag)
 {
-  const struct wv_euler *euler = container_of(eqn, struct wv_euler, eqn);
   // density and moment as copied as-is
   for (int i=0; i<4; ++i) diag[i] = qin[i];
   double ke = 0.5*(qin[1]*qin[1] + qin[2]*qin[2] + qin[3]*qin[3])/qin[0];
