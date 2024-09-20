@@ -150,7 +150,7 @@ main(int argc, char **argv)
 
   long step = 1, num_steps = app_args.num_steps;
   while ((tcurr < tend) && (step <= num_steps)) {
-    printf("Taking time-step at t = %g ...", tcurr);
+    printf("Taking time-step %ld at t = %g ...", step, tcurr);
     struct gkyl_update_status status = gkyl_vlasov_update(app, dt);
     printf(" dt = %g\n", status.dt_actual);
     
