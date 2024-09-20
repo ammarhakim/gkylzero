@@ -147,6 +147,7 @@ singleb_app_new(const struct gkyl_gyrokinetic_multib *mbinp, int bid,
   app_inp.basis_type = mbinp->basis_type;
   app_inp.use_gpu = mbinp->use_gpu;
   app_inp.cfl_frac = mbinp->cfl_frac;  
+  app_inp.enforce_positivity = mbinp->enforce_positivity;
 
   for (int i=0; i<num_species; ++i) {
     const struct gkyl_gyrokinetic_multib_species *sp = &mbinp->species[i];
@@ -158,7 +159,6 @@ singleb_app_new(const struct gkyl_gyrokinetic_multib *mbinp, int bid,
     species_inp.mass = sp->mass;
     species_inp.gkmodel_id = sp->gkmodel_id;
     species_inp.no_by = sp->no_by;
-    species_inp.enforce_positivity = sp->enforce_positivity;
 
     // Velocity-space information
     for (int v=0; v<vdim; ++v) {
