@@ -324,6 +324,7 @@ main(int argc, char **argv)
     .num_species = 2,
     .species = { elc, ion },
     .field = field,
+    .is_electrostatic = true,
 
     .use_gpu = app_args.use_gpu,
   };
