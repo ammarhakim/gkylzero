@@ -1381,7 +1381,7 @@ gkyl_gyrokinetic_app_write_mom(gkyl_gyrokinetic_app* app, double tm, int frame)
     }
 
     if (app->enforce_positivity) {
-      const char *fmt = "%s-%s_positivity_shift_ThreeMoments_%d.gkyl";
+      const char *fmt = "%s-%s_positivity_shift_FourMoments_%d.gkyl";
       int sz = gkyl_calc_strlen(fmt, app->name, app->species[i].info.name, frame);
       char fileNm[sz+1]; // ensures no buffer overflow
       snprintf(fileNm, sizeof fileNm, fmt, app->name, app->species[i].info.name, frame);

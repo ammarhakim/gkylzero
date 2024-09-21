@@ -394,7 +394,7 @@ gk_species_init(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *app, st
       gks->grid, gks->info.mass, app->gk_geom, gks->vel_map, &app->local_ext, app->use_gpu);
 
     // Allocate data for diagnostic moments
-    gk_species_moment_init(app, gks, &gks->ps_moms, "ThreeMoments");
+    gk_species_moment_init(app, gks, &gks->ps_moms, "FourMoments");
 
     gks->ps_integ_diag = gkyl_dynvec_new(GKYL_DOUBLE, gks->ps_moms.num_mom);
     gks->is_first_ps_integ_write_call = true;
