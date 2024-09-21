@@ -109,25 +109,6 @@ struct gk_mirror_ctx
   double mapping_frac;
 };
 
-
-struct gkyl_mirror_geo_efit_inp inp = {
-  // psiRZ and related inputs
-  .filepath = "./data/eqdsk/wham.geqdsk",
-  .rzpoly_order = 2,
-  .fluxpoly_order = 1,
-  .plate_spec = false,
-  .quad_param = {  .eps = 1e-10 }
-};
-
-
-struct gkyl_mirror_geo_grid_inp ginp = {
-  .rclose = 0.2,
-  .zmin = -2.0,
-  .zmax =  2.0,
-  .write_node_coord_array = true,
-  .node_file_nm = "wham_nodes.gkyl",
-};
-
 double
 psi_RZ(double RIn, double ZIn, void *ctx)
 {
@@ -783,18 +764,9 @@ int main(int argc, char **argv)
   for (int d=0; d<ctx.vdim; d++)
     cells_v[d] = APP_ARGS_CHOOSE(app_args.vcells[d], ctx.cells[ctx.cdim+d]);
 
-  // Create decomposition.
-  struct gkyl_rect_decomp *decomp = gkyl_gyrokinetic_comms_decomp_new(ctx.cdim, cells_x, app_args.cuts, app_args.use_mpi, stderr);
-
   // Construct communicator for use in app.
-  struct gkyl_comm *comm = gkyl_gyrokinetic_comms_new(app_args.use_mpi, app_args.use_gpu, decomp, stderr);
+  struct gkyl_comm *comm = gkyl_gyrokinetic_comms_new(app_args.use_mpi, app_args.use_gpu, stderr);
 
-  int my_rank = 0;
-#ifdef GKYL_HAVE_MPI
-  if (app_args.use_mpi)
-    gkyl_comm_get_rank(comm, &my_rank);
-#endif
-  
   struct gkyl_gyrokinetic_species elc = {
     .name = "elc",
     .charge = ctx.qe,
@@ -901,10 +873,24 @@ int main(int argc, char **argv)
     .kperpSq = pow(ctx.kperp, 2.),
   };
 
+  struct gkyl_efit_inp efit_inp = {
+    // psiRZ and related inputs
+    .filepath = "./data/eqdsk/wham.geqdsk", // equilibrium to use
+    .rz_poly_order = 2,                     // polynomial order for psi(R,Z) used for field line tracing
+    .flux_poly_order = 1,                   // polynomial order for fpol(psi)
+  };
+
+  struct gkyl_mirror_geo_grid_inp grid_inp = {
+    .rclose = 0.2, // closest R to region of interest
+    .zmin = -2.0,  // Z of lower boundary
+    .zmax =  2.0,  // Z of upper boundary 
+  };
+
+  // GK app
   struct gkyl_gk app_inp = {
     .name = "gk_wham_1x2v_p1",
-    .cdim = 1,
-    .vdim = 2,
+
+    .cdim = ctx.cdim, .vdim = ctx.vdim,
     .lower = {ctx.z_min},
     .upper = {ctx.z_max},
     .cells = { cells_x[0] },
@@ -914,9 +900,8 @@ int main(int argc, char **argv)
     .geometry = {
       .geometry_id = GKYL_MIRROR,
       .world = {ctx.psi_eval, 0.0},
-      .mirror_efit_info = &inp,
-      .mirror_grid_info = &ginp,
-      // .geometry_id = GKYL_GEOMETRY_FROMFILE,
+      .efit_info = efit_inp,
+      .mirror_grid_info = grid_inp,
     },
 
     .num_periodic_dir = 0,
@@ -927,13 +912,11 @@ int main(int argc, char **argv)
 
     .field = field,
 
-    .use_gpu = app_args.use_gpu,
-
-    .has_low_inp = true,
-    .low_inp = {
-      .local_range = decomp->ranges[my_rank],
-      .comm = comm
-    }
+    .parallelism = {
+      .use_gpu = app_args.use_gpu,
+      .cuts = { app_args.cuts[0] },
+      .comm = comm,
+    },
   };
 
   // Create app object.
@@ -978,7 +961,6 @@ int main(int argc, char **argv)
   double dt_init = -1.0, dt_failure_tol = ctx.dt_failure_tol;
   int num_failures = 0, num_failures_max = ctx.num_failures_max;
 
-  if (my_rank==0) printf("Starting main loop ...\n");
   long step = 1, num_steps = app_args.num_steps;
   while ((t_curr < t_end) && (step <= num_steps))
   {
@@ -1020,7 +1002,6 @@ int main(int argc, char **argv)
 
     step += 1;
   }
-  if (my_rank==0) printf(" ... finished\n");
 
   gkyl_gyrokinetic_app_stat_write(app);
 
@@ -1046,7 +1027,7 @@ int main(int argc, char **argv)
   freeresources:
   // simulation complete, free app
   gkyl_gyrokinetic_app_release(app);
-  gkyl_gyrokinetic_comms_release(decomp, comm);
+  gkyl_gyrokinetic_comms_release(comm);
   
 #ifdef GKYL_HAVE_MPI
   if (app_args.use_mpi)

@@ -25,6 +25,8 @@
 
 struct sheath_ctx
 {
+  int cdim, vdim; // Dimensionality.
+
   // Mathematical constants (dimensionless).
   double pi;
 
@@ -72,6 +74,7 @@ struct sheath_ctx
   int Nz; // Cell count (configuration space: z-direction).
   int Nvpar; // Cell count (velocity space: parallel velocity direction).
   int Nmu; // Cell count (velocity space: magnetic moment direction).
+  int cells[GKYL_MAX_DIM]; // Number of cells in all directions.
   double Lz; // Domain size (configuration space: z-direction).
   double vpar_max_elc; // Domain boundary (electron velocity space: parallel velocity direction).
   double mu_max_elc; // Domain boundary (electron velocity space: magnetic moment direction).
@@ -86,27 +89,23 @@ struct sheath_ctx
   int num_failures_max; // Maximum allowable number of consecutive small time-steps.
 };
 
-struct gkyl_tok_geo_efit_inp inp = {
+struct gkyl_efit_inp inp = {
   // psiRZ and related inputs
-  .filepath = "./data/eqdsk/step.geqdsk",
-  .rzpoly_order = 2,
-  .fluxpoly_order = 1,
-  .plate_spec = false,
-  .quad_param = {  .eps = 1e-10 }
+  .filepath = "./data/eqdsk/step.geqdsk", // equilibrium to use
+  .rz_poly_order = 2,                     // polynomial order for psi(R,Z) used for field line tracing
+  .flux_poly_order = 1,                   // polynomial order for fpol(psi)
 };
 
 
 struct gkyl_tok_geo_grid_inp ginp = {
-    .ftype = GKYL_SOL_DN_OUT,
-    .rclose = 6.2,
-    .rright= 6.2,
-    .rleft= 2.0,
-    .rmin = 1.1,
-    .rmax = 6.2,
-    .zmin = -5.14213,
-    .zmax = 5.14226,
-    .write_node_coord_array = true,
-    .node_file_nm = "step_outboard_fixed_z_nodes.gkyl"
+    .ftype = GKYL_SOL_DN_OUT,  // type of geometry
+    .rclose = 6.2,             // closest R to region of interest
+    .rright= 6.2,              // Closest R to outboard SOL
+    .rleft= 2.0,               // closest R to inboard SOL
+    .rmin = 1.1,               // smallest R in machine
+    .rmax = 6.2,               // largest R in machine
+    .zmin = -5.14213,          // Z of lower divertor plate
+    .zmax = 5.14226,           // Z of upper divertor plate
   };
 
 
@@ -114,6 +113,8 @@ struct gkyl_tok_geo_grid_inp ginp = {
 struct sheath_ctx
 create_ctx(void)
 {
+  int cdim = 1, vdim = 2; // Dimensionality.
+
   // Mathematical constants (dimensionless).
   double pi = M_PI;
 
@@ -183,6 +184,8 @@ create_ctx(void)
   int num_failures_max = 20; // Maximum allowable number of consecutive small time-steps.
   
   struct sheath_ctx ctx = {
+    .cdim = cdim,
+    .vdim = vdim,
     .pi = pi,
     .epsilon0 = epsilon0,
     .mass_elc = mass_elc,
@@ -215,6 +218,7 @@ create_ctx(void)
     .Nz = Nz,
     .Nvpar = Nvpar,
     .Nmu = Nmu,
+    .cells = {Nz, Nvpar, Nmu},
     .Lz = Lz,
     .vpar_max_elc = vpar_max_elc,
     .mu_max_elc = mu_max_elc,
@@ -413,104 +417,14 @@ main(int argc, char **argv)
 
   struct sheath_ctx ctx = create_ctx(); // Context for initialization functions.
 
-  int NZ = APP_ARGS_CHOOSE(app_args.xcells[0], ctx.Nz);
-  int NVPAR = APP_ARGS_CHOOSE(app_args.vcells[0], ctx.Nvpar);
-  int NMU = APP_ARGS_CHOOSE(app_args.vcells[1], ctx.Nmu);
-
-  int nrank = 1; // Number of processors in simulation.
-#ifdef GKYL_HAVE_MPI
-  if (app_args.use_mpi) {
-    MPI_Comm_size(MPI_COMM_WORLD, &nrank);
-  }
-#endif  
-
-  // Create global range.
-  int ccells[] = { NZ };
-  int cdim = sizeof(ccells) / sizeof(ccells[0]);
-  struct gkyl_range cglobal_r;
-  gkyl_create_global_range(cdim, ccells, &cglobal_r);
-
-  // Create decomposition.
-  int cuts[cdim];
-#ifdef GKYL_HAVE_MPI  
-  for (int d = 0; d < cdim; d++) {
-    if (app_args.use_mpi) {
-      cuts[d] = app_args.cuts[d];
-    }
-    else {
-      cuts[d] = 1;
-    }
-  }
-#else
-  for (int d = 0; d < cdim; d++) {
-    cuts[d] = 1;
-  }
-#endif  
-    
-  struct gkyl_rect_decomp *decomp = gkyl_rect_decomp_new_from_cuts(cdim, cuts, &cglobal_r);
+  int cells_x[ctx.cdim], cells_v[ctx.vdim];
+  for (int d=0; d<ctx.cdim; d++)
+    cells_x[d] = APP_ARGS_CHOOSE(app_args.xcells[d], ctx.cells[d]);
+  for (int d=0; d<ctx.vdim; d++)
+    cells_v[d] = APP_ARGS_CHOOSE(app_args.vcells[d], ctx.cells[ctx.cdim+d]);
 
   // Construct communicator for use in app.
-  struct gkyl_comm *comm;
-#ifdef GKYL_HAVE_MPI
-  if (app_args.use_gpu && app_args.use_mpi) {
-#ifdef GKYL_HAVE_NCCL
-    comm = gkyl_nccl_comm_new( &(struct gkyl_nccl_comm_inp) {
-        .mpi_comm = MPI_COMM_WORLD,
-        .decomp = decomp
-      }
-    );
-#else
-    printf(" Using -g and -M together requires NCCL.\n");
-    assert(0 == 1);
-#endif
-  }
-  else if (app_args.use_mpi) {
-    comm = gkyl_mpi_comm_new( &(struct gkyl_mpi_comm_inp) {
-        .mpi_comm = MPI_COMM_WORLD,
-        .decomp = decomp
-      }
-    );
-  }
-  else {
-    comm = gkyl_null_comm_inew( &(struct gkyl_null_comm_inp) {
-        .decomp = decomp,
-        .use_gpu = app_args.use_gpu
-      }
-    );
-  }
-#else
-  comm = gkyl_null_comm_inew( &(struct gkyl_null_comm_inp) {
-      .decomp = decomp,
-      .use_gpu = app_args.use_gpu
-    }
-  );
-#endif
-
-  int my_rank;
-  gkyl_comm_get_rank(comm, &my_rank);
-  int comm_size;
-  gkyl_comm_get_size(comm, &comm_size);
-
-  int ncuts = 1;
-  for (int d = 0; d < cdim; d++) {
-    ncuts *= cuts[d];
-  }
-
-  if (ncuts != comm_size) {
-    if (my_rank == 0) {
-      fprintf(stderr, "*** Number of ranks, %d, does not match total cuts, %d!\n", comm_size, ncuts);
-    }
-    goto mpifinalize;
-  }
-
-  for (int d = 0; d < cdim - 1; d++) {
-    if (cuts[d] > 1) {
-      if (my_rank == 0) {
-        fprintf(stderr, "*** Parallelization only allowed in z. Number of ranks, %d, in direction %d cannot be > 1!\n", cuts[d], d);
-      }
-      goto mpifinalize;
-    }
-  }
+  struct gkyl_comm *comm = gkyl_gyrokinetic_comms_new(app_args.use_mpi, app_args.use_gpu, stderr);
 
   // Electron species.
   struct gkyl_gyrokinetic_species elc = {
@@ -518,7 +432,7 @@ main(int argc, char **argv)
     .charge = ctx.charge_elc, .mass = ctx.mass_elc,
     .lower = { -ctx.vpar_max_elc, 0.0 },
     .upper = { ctx.vpar_max_elc, ctx.mu_max_elc },
-    .cells = { NVPAR, NMU },
+    .cells = { cells_v[0], cells_v[1] },
     .polarization_density = ctx.n0,
 
     .projection = {
@@ -589,7 +503,7 @@ main(int argc, char **argv)
     .charge = ctx.charge_ion, .mass = ctx.mass_ion,
     .lower = { -ctx.vpar_max_ion, 0.0 },
     .upper = { ctx.vpar_max_ion, ctx.mu_max_ion },
-    .cells = { NVPAR, NMU },
+    .cells = { cells_v[0], cells_v[1] },
     .polarization_density = ctx.n0,
 
     .projection = {
@@ -668,7 +582,7 @@ main(int argc, char **argv)
     .name = "D0", .mass = ctx.mass_ion,
     .lower = { -ctx.vpar_max_D0, -ctx.vpar_max_D0, -ctx.vpar_max_D0},
     .upper = { ctx.vpar_max_D0, ctx.vpar_max_D0, ctx.vpar_max_D0 },
-    .cells = { NVPAR, NVPAR, NVPAR},
+    .cells = { cells_v[0], cells_v[0], cells_v[0] },
     .is_static = true,
 
     .projection = {
@@ -696,10 +610,10 @@ main(int argc, char **argv)
   struct gkyl_gk app_inp = {
     .name = "gk_step_1x2v_p1_cons",
 
-    .cdim = 1, .vdim = 2,
+    .cdim = ctx.cdim, .vdim = ctx.vdim,
     .lower = { -0.5 * ctx.Lz},
     .upper = { 0.5 * ctx.Lz},
-    .cells = { NZ },
+    .cells = { cells_x[0] },
     .poly_order = 1,
     .basis_type = app_args.basis_type,
 
@@ -707,8 +621,8 @@ main(int argc, char **argv)
       //.geometry_id = GKYL_GEOMETRY_FROMFILE,
       .world = {1.2014, 0.0},
       .geometry_id = GKYL_TOKAMAK,
-      .tok_efit_info = &inp,
-      .tok_grid_info = &ginp,
+      .efit_info = inp,
+      .tok_grid_info = ginp,
     },
 
     .num_periodic_dir = 1,
@@ -722,15 +636,13 @@ main(int argc, char **argv)
     .num_neut_species = 1,
     .neut_species = { D0 },
 
-    .use_gpu = app_args.use_gpu,
-
-    .has_low_inp = true,
-    .low_inp = {
-      .local_range = decomp->ranges[my_rank],
-      .comm = comm
-    }
+    .parallelism = {
+      .use_gpu = app_args.use_gpu,
+      .cuts = { app_args.cuts[0] },
+      .comm = comm,
+    },
   };
-  //
+
   // Create app object.
   gkyl_gyrokinetic_app *app = gkyl_gyrokinetic_app_new(&app_inp);
 
@@ -840,8 +752,7 @@ main(int argc, char **argv)
   freeresources:
   // Free resources after simulation completion.
   gkyl_gyrokinetic_app_release(app);
-  gkyl_rect_decomp_release(decomp);
-  gkyl_comm_release(comm);
+  gkyl_gyrokinetic_comms_release(comm);
 
   mpifinalize:
 #ifdef GKYL_HAVE_MPI

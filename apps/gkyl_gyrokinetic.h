@@ -5,6 +5,7 @@
 #include <gkyl_eqn_type.h>
 #include <gkyl_fem_parproj.h>
 #include <gkyl_fem_poisson_bctype.h>
+#include <gkyl_gk_geometry.h>
 #include <gkyl_range.h>
 #include <gkyl_util.h>
 #include <gkyl_velocity_map.h>
@@ -111,11 +112,9 @@ struct gkyl_gyrokinetic_geometry {
   // pointer to bmag function
   void (*bmag_func)(double t, const double *xc, double *xp, void *ctx);
 
-  struct gkyl_tok_geo_efit_inp *tok_efit_info; // context with RZ data such as efit file for a tokamak
-  struct gkyl_tok_geo_grid_inp *tok_grid_info; // context for tokamak geometry with computational domain info
-
-  struct gkyl_mirror_geo_efit_inp *mirror_efit_info; // context with RZ data such as efit file for a mirror
-  struct gkyl_mirror_geo_grid_inp *mirror_grid_info; // context for mirror geometry with computational domain info
+  struct gkyl_efit_inp efit_info; // context with RZ data such as efit file for a tokamak or mirror
+  struct gkyl_tok_geo_grid_inp tok_grid_info; // context for tokamak geometry with computational domain info
+  struct gkyl_mirror_geo_grid_inp mirror_grid_info; // context for mirror geometry with computational domain info
 
   double world[3]; // extra computational coordinates for cases with reduced dimensionality
 };
@@ -207,9 +206,6 @@ struct gkyl_gyrokinetic_species {
 
   // Boundary conditions.
   struct gkyl_gyrokinetic_bcs bcx, bcy, bcz;
-
-  // Positivity enforcement via shift in f.
-  bool enforce_positivity;
 };
 
 // Parameters for neutral species
@@ -279,10 +275,10 @@ struct gkyl_gk {
   enum gkyl_basis_type basis_type; // type of basis functions to use
 
   struct gkyl_gyrokinetic_geometry geometry; // geometry input struct
-                                             //
+
   double cfl_frac; // CFL fraction to use (default 1.0)
 
-  bool use_gpu; // Flag to indicate if solver should use GPUs
+  bool enforce_positivity; // Positivity enforcement via shift in f.
 
   int num_periodic_dir; // number of periodic directions
   int periodic_dirs[3]; // list of periodic directions
@@ -296,10 +292,7 @@ struct gkyl_gk {
   bool skip_field; // Skip field update -> phi = 0 for all time
   struct gkyl_gyrokinetic_field field; // field object
 
-  // this should not be set by typical user-facing code but only by
-  // higher-level drivers
-  bool has_low_inp; // should one use low-level inputs?
-  struct gkyl_app_comm_low_inp low_inp; // low-level inputs  
+  struct gkyl_app_parallelism_inp parallelism; // Parallelism-related inputs.
 };
 
 // Simulation statistics
