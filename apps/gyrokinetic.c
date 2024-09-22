@@ -2700,7 +2700,7 @@ gkyl_gyrokinetic_app_from_moments_species(gkyl_gyrokinetic_app *app, int sidx, i
   struct gkyl_proj_bimaxwellian_on_basis *proj = gkyl_proj_bimaxwellian_on_basis_new(&gk_s->grid,
     &app->confBasis, &app->basis, app->basis.poly_order+1, gk_s->vel_map, app->use_gpu);
 
-  gkyl_array_scale(m2perp, 1.0/2.0);
+  //gkyl_array_scale(m2perp, 1.0/2.0);
   struct gkyl_array *lab_moms = mkarr(false, 4*app->confBasis.num_basis, gk_s->global.volume);
   gkyl_array_set_offset(lab_moms, 1.0, m0, 0*app->confBasis.num_basis);
   gkyl_array_set_offset(lab_moms, 1.0, m1, 1*app->confBasis.num_basis);
@@ -2780,7 +2780,7 @@ gkyl_gyrokinetic_app_from_moments_species(gkyl_gyrokinetic_app *app, int sidx, i
     gk_species_source_calc(app, gk_s, &gk_s->src, 0.0);
 
   app->species[sidx].is_first_integ_write_call = false; // Append to existing diagnostic.
-  if (app->species[sidx].enforce_positivity)
+  if (app->enforce_positivity)
     app->species[sidx].is_first_ps_integ_write_call = false; // Append to existing diagnostic.
   
   cstr_drop(&M0fileNm);
