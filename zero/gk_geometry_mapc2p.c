@@ -12,23 +12,6 @@
 #include <gkyl_math.h>
 #include <gkyl_nodal_ops.h>
 
-// write out nodal coordinates 
-static void
-write_nodal_coordinates(const char *nm, struct gkyl_range *nrange,
-  struct gkyl_array *nodes)
-{
-  double lower[3] = { 0.0, 0.0, 0.0 };
-  double upper[3] = { 1.0, 1.0, 1.0 };
-  int cells[3];
-  for (int i=0; i<nrange->ndim; ++i)
-    cells[i] = gkyl_range_shape(nrange, i);
-  
-  struct gkyl_rect_grid grid;
-  gkyl_rect_grid_init(&grid, 3, lower, upper, cells);
-
-  gkyl_grid_sub_array_write(&grid, nrange, 0, nodes, nm);
-}
-
 static
 void gkyl_gk_geometry_mapc2p_advance(struct gk_geometry* up, struct gkyl_range *nrange, double dzc[3], 
   evalf_t mapc2p_func, void* mapc2p_ctx, evalf_t bmag_func, void *bmag_ctx, 
@@ -156,14 +139,9 @@ void gkyl_gk_geometry_mapc2p_advance(struct gk_geometry* up, struct gkyl_range *
   gkyl_nodal_ops_n2m(n2m, &up->basis, &up->grid, nrange, &up->local, 3, mc2p_nodal, mc2p);
   gkyl_nodal_ops_release(n2m);
 
-  char str1[50] = "xyz.gkyl";
-  char str2[50] = "allxyz.gkyl";
-  write_nodal_coordinates(str1, nrange, mc2p_nodal);
-  write_nodal_coordinates(str2, nrange, mc2p_nodal_fd);
-
   // now calculate the metrics
   struct gkyl_calc_metric* mcalc = gkyl_calc_metric_new(&up->basis, &up->grid, &up->global, &up->global_ext, &up->local, &up->local_ext, false);
-  gkyl_calc_metric_advance(mcalc, nrange, mc2p_nodal_fd, dzc, up->g_ij, up->dxdz, up->dzdx, &up->local);
+  gkyl_calc_metric_advance(mcalc, nrange, mc2p_nodal_fd, dzc, up->g_ij, up->dxdz, up->dzdx, up->normals, &up->local);
   
   // calculate the derived geometric quantities
   struct gkyl_calc_derived_geo *jcalculator = gkyl_calc_derived_geo_new(&up->basis, &up->grid, false);
@@ -213,6 +191,7 @@ gkyl_gk_geometry_mapc2p_new(struct gkyl_gk_geometry_inp *geometry_inp)
   up->g_ij = gkyl_array_new(GKYL_DOUBLE, 6*up->basis.num_basis, up->local_ext.volume);
   up->dxdz = gkyl_array_new(GKYL_DOUBLE, 9*up->basis.num_basis, up->local_ext.volume);
   up->dzdx = gkyl_array_new(GKYL_DOUBLE, 9*up->basis.num_basis, up->local_ext.volume);
+  up->normals = gkyl_array_new(GKYL_DOUBLE, 9*up->basis.num_basis, up->local_ext.volume);
   up->jacobgeo = gkyl_array_new(GKYL_DOUBLE, up->basis.num_basis, up->local_ext.volume);
   up->jacobgeo_inv = gkyl_array_new(GKYL_DOUBLE, up->basis.num_basis, up->local_ext.volume);
   up->gij = gkyl_array_new(GKYL_DOUBLE, 6*up->basis.num_basis, up->local_ext.volume);

@@ -7,6 +7,8 @@
 #include <gkyl_rect_grid.h>
 #include <gkyl_util.h>
 #include <gkyl_eqn_type.h>
+#include <gkyl_tok_geo.h>
+#include <gkyl_mirror_geo.h>
 
 
 typedef struct gk_geometry gk_geometry;
@@ -31,6 +33,8 @@ struct gk_geometry {
                            // Cartesian components of tangent Vectors stored in order e_1, e_2, e_3
   struct gkyl_array* dzdx; // 9 components.
                            // Cartesian components of dual vectors stroed in order e^1, e^2, e^3
+  struct gkyl_array* normals; // 9 components
+                              // Cartesian components of normal vectors in order n^1,, n^2, n^3
   struct gkyl_array* jacobgeo; // 1 component. Configuration space jacobian J
   struct gkyl_array* jacobgeo_inv; // 1 component. 1/J
   struct gkyl_array* gij; // Matric coefficients g^{ij}. See g_ij for order.
@@ -54,7 +58,7 @@ struct gk_geometry {
 };
 
 
-// Input struct gor geometry creation
+// Input struct for geometry creation
 struct gkyl_gk_geometry_inp {
   enum gkyl_geometry_id geometry_id;
 
@@ -68,11 +72,9 @@ struct gkyl_gk_geometry_inp {
   // pointer to bmag function
   void (*bmag_func)(double t, const double *xc, double *xp, void *ctx);
 
-  struct gkyl_tok_geo_efit_inp *tok_efit_info; // context with RZ data such as efit file for a tokamak
-  struct gkyl_tok_geo_grid_inp *tok_grid_info; // context for tokamak geometry with computational domain info
-
-  struct gkyl_mirror_geo_efit_inp *mirror_efit_info; // context with RZ data such as efit file for a mirror
-  struct gkyl_mirror_geo_grid_inp *mirror_grid_info; // context for mirror geometry with computational domain info
+  struct gkyl_efit_inp efit_info; // context with RZ data such as efit file for a tokamak or mirror
+  struct gkyl_tok_geo_grid_inp tok_grid_info; // context for tokamak geometry with computational domain info
+  struct gkyl_mirror_geo_grid_inp mirror_grid_info; // context for mirror geometry with computational domain info
 
   double world[3]; // extra computational coordinates for cases with reduced dimensionality
 
@@ -144,6 +146,25 @@ gkyl_gk_geometry_augment_local(const struct gkyl_range *inrange, const int *ngho
  * Evaluate and set bmag at the center of the domain
  */
 void gkyl_gk_geometry_bmag_mid(struct gk_geometry* up);
+
+
+/**
+ * Init nodal range from modal range
+ * @param nrange nodal range to be initialized
+ * @param range modal range
+ * @param poly_order polynomial order
+ */
+void
+gkyl_gk_geometry_init_nodal_range( struct gkyl_range *nrange, struct gkyl_range *range, int poly_order);
+
+/**
+ * Init nodal grid from modal grid
+ * @param ngrid nodal grid to be initialized
+ * @param grid modal grid
+ * @param nrange nodal range
+ */
+void
+gkyl_gk_geometry_init_nodal_grid(struct gkyl_rect_grid *ngrid, struct gkyl_rect_grid *grid, struct gkyl_range *nrange);
 
 /**
  * deflate geometry to lower dimensionality

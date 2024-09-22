@@ -187,6 +187,10 @@ gkyl_moment_app_new(struct gkyl_moment *mom)
     moment_field_init(mom, &mom->field, app, &app->field);
   }
 
+  // Are we running with Braginskii transport?
+  app->has_braginskii = mom->has_braginskii;
+  app->coll_fac = mom->coll_fac;
+
   int ns = app->num_species = mom->num_species;
   // allocate space to store species objects
   app->species = ns>0 ? gkyl_malloc(sizeof(struct moment_species[ns])) : 0;
@@ -507,7 +511,8 @@ gkyl_moment_app_stat(gkyl_moment_app* app)
 
 // ensure stats across processors are made consistent
 static void
-comm_reduce_app_stat(const gkyl_moment_app* app, const struct gkyl_moment_stat *local, struct gkyl_moment_stat *global)
+comm_reduce_app_stat(const gkyl_moment_app* app, const struct gkyl_moment_stat *local,
+  struct gkyl_moment_stat *global)
 {
   int comm_sz;
   gkyl_comm_get_size(app->comm, &comm_sz);
@@ -793,7 +798,7 @@ gkyl_moment_app_from_frame_species(gkyl_moment_app *app, int sidx, int frame)
 static void
 v_moment_app_cout(const gkyl_moment_app* app, FILE *fp, const char *fmt, va_list argp)
 {
-  int rank, r = 0;
+  int rank;
   gkyl_comm_get_rank(app->comm, &rank);
   if ((rank == 0) && fp)
     vfprintf(fp, fmt, argp);

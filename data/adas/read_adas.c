@@ -10,9 +10,13 @@
 #include <gkyl_dg_recomb.h>
 #include <read_adas.h>
 
+#define XSTR(x) #x
+#define STR(x) XSTR(x)
+
 void
-read_adas_field_iz(enum gkyl_ion_type type_ion, struct adas_field *data, const char *base) {
+read_adas_field_iz(enum gkyl_ion_type type_ion, struct adas_field *data) {
   char fname[4000];
+  char *base = STR(GKYL_SHARE_DIR);    
   if (type_ion == GKYL_ION_H) {
     strcpy(fname, base);
     data->NT = 29, data->NN = 24;
@@ -224,8 +228,9 @@ read_adas_field_iz(enum gkyl_ion_type type_ion, struct adas_field *data, const c
 }
  
 void
-read_adas_field_recomb(enum gkyl_ion_type type_ion, struct adas_field *data, const char *base) {
+read_adas_field_recomb(enum gkyl_ion_type type_ion, struct adas_field *data) {
   char fname[4000];
+  char *base = STR(GKYL_SHARE_DIR);
   if (type_ion == GKYL_ION_H) {
     strcpy(fname, base);
     data->NT = 29, data->NN = 24;

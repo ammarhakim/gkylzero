@@ -24,6 +24,42 @@ moment_species_init(const struct gkyl_moment *mom, const struct gkyl_moment_spec
     sp->k0 = gkyl_wv_ten_moment_k0(mom_sp->equation);
     sp->has_grad_closure = gkyl_wv_ten_moment_use_grad_closure(mom_sp->equation);
   }
+
+  // check if we are running with Braginskii transport and fetch Braginskii type
+  if (app->has_braginskii) {
+    sp->type_brag = mom_sp->type_brag;
+  }
+
+  if (mom_sp->has_friction) {
+    sp->has_friction = true;
+    sp->use_explicit_friction = mom_sp->use_explicit_friction;
+
+    sp->friction_Z = mom_sp->friction_Z;
+    sp->friction_T_elc = mom_sp->friction_T_elc;
+    sp->friction_Lambda_ee = mom_sp->friction_Lambda_ee;
+  }
+  else {
+    sp->has_friction = false;
+    sp->use_explicit_friction = false;
+  }
+
+  if (mom_sp->has_volume_sources) {
+    sp->has_volume_sources = true;
+
+    sp->volume_gas_gamma = mom_sp->volume_gas_gamma;
+    sp->volume_U0 = mom_sp->volume_U0;
+    sp->volume_R0 = mom_sp->volume_R0;
+  }
+
+  if (mom_sp->has_reactivity) {
+    sp->has_reactivity = true;
+
+    sp->reactivity_gas_gamma = mom_sp->reactivity_gas_gamma;
+    sp->reactivity_specific_heat_capacity = mom_sp->reactivity_specific_heat_capacity;
+    sp->reactivity_energy_of_formation = mom_sp->reactivity_energy_of_formation;
+    sp->reactivity_ignition_temperature = mom_sp->reactivity_ignition_temperature;
+    sp->reactivity_reaction_rate = mom_sp->reactivity_reaction_rate;
+  }
     
   sp->scheme_type = mom->scheme_type;
 
@@ -171,7 +207,14 @@ moment_species_init(const struct gkyl_moment *mom, const struct gkyl_moment_spec
         case GKYL_SPECIES_COPY:
         case GKYL_SPECIES_WEDGE: // wedge also uses bc_copy
           sp->lower_bc[dir] = gkyl_wv_apply_bc_new(
-            &app->grid, mom_sp->equation, app->geom, dir, GKYL_LOWER_EDGE, nghost, bc_copy, 0);
+            &app->grid, mom_sp->equation, app->geom, dir, GKYL_LOWER_EDGE, nghost,
+            bc_copy, 0);
+          break;
+
+        case GKYL_SPECIES_SKIP:
+          sp->lower_bc[dir] = gkyl_wv_apply_bc_new(
+            &app->grid, mom_sp->equation, app->geom, dir, GKYL_LOWER_EDGE, nghost,
+            bc_skip, 0);
           break;
 
         default:
@@ -202,7 +245,14 @@ moment_species_init(const struct gkyl_moment *mom, const struct gkyl_moment_spec
         case GKYL_SPECIES_COPY:
         case GKYL_SPECIES_WEDGE:
           sp->upper_bc[dir] = gkyl_wv_apply_bc_new(
-            &app->grid, mom_sp->equation, app->geom, dir, GKYL_UPPER_EDGE, nghost, bc_copy, 0);
+            &app->grid, mom_sp->equation, app->geom, dir, GKYL_UPPER_EDGE, nghost,
+            bc_copy, 0);
+          break;
+
+        case GKYL_SPECIES_SKIP:
+          sp->upper_bc[dir] = gkyl_wv_apply_bc_new(
+            &app->grid, mom_sp->equation, app->geom, dir, GKYL_UPPER_EDGE, nghost,
+            bc_skip, 0);
           break;
 
         default:

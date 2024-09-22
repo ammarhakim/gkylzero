@@ -1,16 +1,14 @@
 #include <gkyl_euler_pkpm_kernels.h> 
-#include <gkyl_basis_ser_3x_p1_upwind_quad_to_modal.h> 
 GKYL_CU_DH void pkpm_vars_accel_y_3x_ser_p1(const double *dxv, 
   const double *prim_surf_l, const double *prim_surf_c, const double *prim_surf_r, 
   const double *prim_c, const double *bvar_c, const double *nu_c, 
-  double* GKYL_RESTRICT pkpm_lax, double* GKYL_RESTRICT pkpm_accel) 
+  double* GKYL_RESTRICT pkpm_accel) 
 { 
   // dxv[NDIM]:       Cell spacing.
   // prim_surf_l/c/r: Input surface primitive variables [u_i, 3*T_ii/m] in left/center/right cells in each direction.
   // prim_c:          Input volume expansion of primitive variables [ux, uy, uz, 1/rho div(p_par b), T_perp/m, m/T_perp] in center cell.
   // bvar_c:          Input volume expansion of magnetic field unit vector and tensor in center cell.
   // nu_c:            Input volume expansion of collisionality in center cell.
-  // pkpm_lax:        Surface expansion of pkpm Lax penalization: lambda_i = |u_i| + sqrt(3.0*T_ii/m).
   // pkpm_accel:      Volume expansion of pkpm acceleration variables.
 
   const double dx1 = 2.0/dxv[1]; 
@@ -41,94 +39,9 @@ GKYL_CU_DH void pkpm_vars_accel_y_3x_ser_p1(const double *dxv,
   const double *uy_surf_rl = &prim_surf_r[40]; 
   const double *uz_surf_rl = &prim_surf_r[48]; 
 
-  const double *Tii_surf_lr = &prim_surf_l[60]; 
-  const double *Tii_surf_cl = &prim_surf_c[56]; 
-  const double *Tii_surf_cr = &prim_surf_c[60]; 
-  const double *Tii_surf_rl = &prim_surf_r[56]; 
-
-  double *pkpm_lax_l = &pkpm_lax[8]; 
-  double *pkpm_lax_r = &pkpm_lax[12]; 
-
   double *bb_grad_u = &pkpm_accel[8]; 
   double *p_perp_source = &pkpm_accel[24]; 
 
-  double ul_r = 0.0; 
-  double uc_l = 0.0; 
-  double uc_r = 0.0; 
-  double ur_l = 0.0; 
-  double uQuad_l = 0.0; 
-  double uQuad_r = 0.0; 
-  double Tiil_r = 0.0; 
-  double Tiic_l = 0.0; 
-  double Tiic_r = 0.0; 
-  double Tiir_l = 0.0; 
-  double TiiQuad_l = 0.0; 
-  double TiiQuad_r = 0.0; 
-  double pkpm_lax_quad_l[4] = {0.0}; 
-  double pkpm_lax_quad_r[4] = {0.0}; 
-
-  ul_r = 0.5*uy_surf_lr[3]-0.5*uy_surf_lr[2]-0.5*uy_surf_lr[1]+0.5*uy_surf_lr[0]; 
-  uc_l = 0.5*uy_surf_cl[3]-0.5*uy_surf_cl[2]-0.5*uy_surf_cl[1]+0.5*uy_surf_cl[0]; 
-  uc_r = 0.5*uy_surf_cr[3]-0.5*uy_surf_cr[2]-0.5*uy_surf_cr[1]+0.5*uy_surf_cr[0]; 
-  ur_l = 0.5*uy_surf_rl[3]-0.5*uy_surf_rl[2]-0.5*uy_surf_rl[1]+0.5*uy_surf_rl[0]; 
-  uQuad_l = fmax(fabs(ul_r), fabs(uc_l)); 
-  uQuad_r = fmax(fabs(uc_r), fabs(ur_l)); 
-  Tiil_r = 0.5*Tii_surf_lr[3]-0.5*Tii_surf_lr[2]-0.5*Tii_surf_lr[1]+0.5*Tii_surf_lr[0]; 
-  Tiic_l = 0.5*Tii_surf_cl[3]-0.5*Tii_surf_cl[2]-0.5*Tii_surf_cl[1]+0.5*Tii_surf_cl[0]; 
-  Tiic_r = 0.5*Tii_surf_cr[3]-0.5*Tii_surf_cr[2]-0.5*Tii_surf_cr[1]+0.5*Tii_surf_cr[0]; 
-  Tiir_l = 0.5*Tii_surf_rl[3]-0.5*Tii_surf_rl[2]-0.5*Tii_surf_rl[1]+0.5*Tii_surf_rl[0]; 
-  TiiQuad_l = fmax(sqrt(fabs(Tiil_r)), sqrt(fabs(Tiic_l))); 
-  TiiQuad_r = fmax(sqrt(fabs(Tiic_r)), sqrt(fabs(Tiir_l))); 
-  pkpm_lax_quad_l[0] = uQuad_l + TiiQuad_l; 
-  pkpm_lax_quad_r[0] = uQuad_r + TiiQuad_r; 
-
-  ul_r = (-0.5*uy_surf_lr[3])+0.5*uy_surf_lr[2]-0.5*uy_surf_lr[1]+0.5*uy_surf_lr[0]; 
-  uc_l = (-0.5*uy_surf_cl[3])+0.5*uy_surf_cl[2]-0.5*uy_surf_cl[1]+0.5*uy_surf_cl[0]; 
-  uc_r = (-0.5*uy_surf_cr[3])+0.5*uy_surf_cr[2]-0.5*uy_surf_cr[1]+0.5*uy_surf_cr[0]; 
-  ur_l = (-0.5*uy_surf_rl[3])+0.5*uy_surf_rl[2]-0.5*uy_surf_rl[1]+0.5*uy_surf_rl[0]; 
-  uQuad_l = fmax(fabs(ul_r), fabs(uc_l)); 
-  uQuad_r = fmax(fabs(uc_r), fabs(ur_l)); 
-  Tiil_r = (-0.5*Tii_surf_lr[3])+0.5*Tii_surf_lr[2]-0.5*Tii_surf_lr[1]+0.5*Tii_surf_lr[0]; 
-  Tiic_l = (-0.5*Tii_surf_cl[3])+0.5*Tii_surf_cl[2]-0.5*Tii_surf_cl[1]+0.5*Tii_surf_cl[0]; 
-  Tiic_r = (-0.5*Tii_surf_cr[3])+0.5*Tii_surf_cr[2]-0.5*Tii_surf_cr[1]+0.5*Tii_surf_cr[0]; 
-  Tiir_l = (-0.5*Tii_surf_rl[3])+0.5*Tii_surf_rl[2]-0.5*Tii_surf_rl[1]+0.5*Tii_surf_rl[0]; 
-  TiiQuad_l = fmax(sqrt(fabs(Tiil_r)), sqrt(fabs(Tiic_l))); 
-  TiiQuad_r = fmax(sqrt(fabs(Tiic_r)), sqrt(fabs(Tiir_l))); 
-  pkpm_lax_quad_l[1] = uQuad_l + TiiQuad_l; 
-  pkpm_lax_quad_r[1] = uQuad_r + TiiQuad_r; 
-
-  ul_r = (-0.5*uy_surf_lr[3])-0.5*uy_surf_lr[2]+0.5*uy_surf_lr[1]+0.5*uy_surf_lr[0]; 
-  uc_l = (-0.5*uy_surf_cl[3])-0.5*uy_surf_cl[2]+0.5*uy_surf_cl[1]+0.5*uy_surf_cl[0]; 
-  uc_r = (-0.5*uy_surf_cr[3])-0.5*uy_surf_cr[2]+0.5*uy_surf_cr[1]+0.5*uy_surf_cr[0]; 
-  ur_l = (-0.5*uy_surf_rl[3])-0.5*uy_surf_rl[2]+0.5*uy_surf_rl[1]+0.5*uy_surf_rl[0]; 
-  uQuad_l = fmax(fabs(ul_r), fabs(uc_l)); 
-  uQuad_r = fmax(fabs(uc_r), fabs(ur_l)); 
-  Tiil_r = (-0.5*Tii_surf_lr[3])-0.5*Tii_surf_lr[2]+0.5*Tii_surf_lr[1]+0.5*Tii_surf_lr[0]; 
-  Tiic_l = (-0.5*Tii_surf_cl[3])-0.5*Tii_surf_cl[2]+0.5*Tii_surf_cl[1]+0.5*Tii_surf_cl[0]; 
-  Tiic_r = (-0.5*Tii_surf_cr[3])-0.5*Tii_surf_cr[2]+0.5*Tii_surf_cr[1]+0.5*Tii_surf_cr[0]; 
-  Tiir_l = (-0.5*Tii_surf_rl[3])-0.5*Tii_surf_rl[2]+0.5*Tii_surf_rl[1]+0.5*Tii_surf_rl[0]; 
-  TiiQuad_l = fmax(sqrt(fabs(Tiil_r)), sqrt(fabs(Tiic_l))); 
-  TiiQuad_r = fmax(sqrt(fabs(Tiic_r)), sqrt(fabs(Tiir_l))); 
-  pkpm_lax_quad_l[2] = uQuad_l + TiiQuad_l; 
-  pkpm_lax_quad_r[2] = uQuad_r + TiiQuad_r; 
-
-  ul_r = 0.5*uy_surf_lr[3]+0.5*uy_surf_lr[2]+0.5*uy_surf_lr[1]+0.5*uy_surf_lr[0]; 
-  uc_l = 0.5*uy_surf_cl[3]+0.5*uy_surf_cl[2]+0.5*uy_surf_cl[1]+0.5*uy_surf_cl[0]; 
-  uc_r = 0.5*uy_surf_cr[3]+0.5*uy_surf_cr[2]+0.5*uy_surf_cr[1]+0.5*uy_surf_cr[0]; 
-  ur_l = 0.5*uy_surf_rl[3]+0.5*uy_surf_rl[2]+0.5*uy_surf_rl[1]+0.5*uy_surf_rl[0]; 
-  uQuad_l = fmax(fabs(ul_r), fabs(uc_l)); 
-  uQuad_r = fmax(fabs(uc_r), fabs(ur_l)); 
-  Tiil_r = 0.5*Tii_surf_lr[3]+0.5*Tii_surf_lr[2]+0.5*Tii_surf_lr[1]+0.5*Tii_surf_lr[0]; 
-  Tiic_l = 0.5*Tii_surf_cl[3]+0.5*Tii_surf_cl[2]+0.5*Tii_surf_cl[1]+0.5*Tii_surf_cl[0]; 
-  Tiic_r = 0.5*Tii_surf_cr[3]+0.5*Tii_surf_cr[2]+0.5*Tii_surf_cr[1]+0.5*Tii_surf_cr[0]; 
-  Tiir_l = 0.5*Tii_surf_rl[3]+0.5*Tii_surf_rl[2]+0.5*Tii_surf_rl[1]+0.5*Tii_surf_rl[0]; 
-  TiiQuad_l = fmax(sqrt(fabs(Tiil_r)), sqrt(fabs(Tiic_l))); 
-  TiiQuad_r = fmax(sqrt(fabs(Tiic_r)), sqrt(fabs(Tiir_l))); 
-  pkpm_lax_quad_l[3] = uQuad_l + TiiQuad_l; 
-  pkpm_lax_quad_r[3] = uQuad_r + TiiQuad_r; 
-
-  ser_3x_p1_upwind_quad_to_modal(pkpm_lax_quad_l, pkpm_lax_l); 
-  ser_3x_p1_upwind_quad_to_modal(pkpm_lax_quad_r, pkpm_lax_r); 
 
   double grad_u_x[8] = {0.0}; 
   double grad_u_y[8] = {0.0}; 

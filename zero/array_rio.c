@@ -17,7 +17,8 @@ static const char *array_rio_status_msg[] = {
   [GKYL_ARRAY_RIO_BAD_VERSION] = "Incorrect header version",
   [GKYL_ARRAY_RIO_FOPEN_FAILED] = "File open failed",
   [GKYL_ARRAY_RIO_FREAD_FAILED] = "Data read failed",
-  [GKYL_ARRAY_RIO_DATA_MISMATCH] = "Data mismatch"
+  [GKYL_ARRAY_RIO_DATA_MISMATCH] = "Data mismatch",
+  [GKYL_ARRAY_RIO_META_FAILED] = "Metadata output failed"
 };
 
 const char*
@@ -48,8 +49,7 @@ sub_array_write_priv(const struct gkyl_range *range,
 }
 
 int
-gkyl_grid_sub_array_header_write_fp(const struct gkyl_rect_grid *grid,
-  const struct gkyl_array_header_info *hdr, FILE *fp)
+gkyl_header_meta_write_fp(const struct gkyl_array_header_info *hdr, FILE *fp)
 {
   const char g0[5] = "gkyl0";
 
@@ -62,6 +62,15 @@ gkyl_grid_sub_array_header_write_fp(const struct gkyl_rect_grid *grid,
   fwrite(&meta_size, sizeof(uint64_t), 1, fp);
   if (meta_size > 0)
     fwrite(hdr->meta, meta_size, 1, fp);
+
+  return GKYL_ARRAY_RIO_SUCCESS;
+}
+
+int
+gkyl_grid_sub_array_header_write_fp(const struct gkyl_rect_grid *grid,
+  const struct gkyl_array_header_info *hdr, FILE *fp)
+{
+  gkyl_header_meta_write_fp(hdr, fp);  
   
   // Version 0 format is used for rest of the header
   uint64_t real_type = gkyl_array_data_type[hdr->etype];
@@ -74,13 +83,53 @@ gkyl_grid_sub_array_header_write_fp(const struct gkyl_rect_grid *grid,
   return GKYL_ARRAY_RIO_SUCCESS;
 }
 
+int
+gkyl_header_meta_read_fp(struct gkyl_array_header_info *hdr, FILE *fp)
+{
+  size_t frr;
+  hdr->meta_size = 0;
+
+  char g0[6];
+  frr = fread(g0, sizeof(char[5]), 1, fp); // no trailing '\0'
+  g0[5] = '\0';                            // add the NULL
+  if (strcmp(g0, "gkyl0") != 0)
+    return GKYL_ARRAY_RIO_BAD_VERSION;
+  
+  uint64_t version;
+  frr = fread(&version, sizeof(uint64_t), 1, fp);
+  if (version != 1)
+    return GKYL_ARRAY_RIO_BAD_VERSION;
+
+  uint64_t file_type;
+  frr = fread(&file_type, sizeof(uint64_t), 1, fp);
+
+  uint64_t meta_size;
+  frr = fread(&meta_size, sizeof(uint64_t), 1, fp);
+  if (1 != frr)
+    return GKYL_ARRAY_RIO_FREAD_FAILED;
+
+  hdr->meta = 0;
+  if (meta_size > 0) {
+    hdr->meta = gkyl_malloc(meta_size);
+    if (1 != fread(hdr->meta, meta_size, 1, fp)) {
+      gkyl_free(hdr->meta);
+      return GKYL_ARRAY_RIO_FREAD_FAILED;
+    }
+  }
+
+  hdr->file_type = file_type;
+  hdr->esznc = 0;
+  hdr->tot_cells = 0;
+  hdr->meta_size = meta_size;
+
+  return GKYL_ARRAY_RIO_SUCCESS;  
+}
+
 static int
 grid_sub_array_header_read_fp(struct gkyl_rect_grid *grid,
   struct gkyl_array_header_info *hdr, bool read_meta, FILE *fp)
 {
   size_t frr;
-
-  
   hdr->meta_size = 0;
 
   char g0[6];
@@ -179,7 +228,7 @@ gkyl_grid_sub_array_write(const struct gkyl_rect_grid *grid, const struct gkyl_r
   const struct gkyl_array_meta *meta,
   const struct gkyl_array *arr, const char *fname)
 {
-  enum gkyl_array_rio_status status = GKYL_ARRAY_RIO_FREAD_FAILED;
+  enum gkyl_array_rio_status status = GKYL_ARRAY_RIO_FOPEN_FAILED;
   FILE *fp = 0;
   int err;
   with_file (fp, fname, "w") {

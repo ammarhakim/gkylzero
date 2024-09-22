@@ -20,7 +20,7 @@ moment_field_init(const struct gkyl_moment *mom, const struct gkyl_moment_field 
 
   double c = 1/sqrt(epsilon0*mu0);
   struct gkyl_wv_eqn *maxwell = gkyl_wv_maxwell_new(c,
-    mom_fld->elc_error_speed_fact, mom_fld->mag_error_speed_fact);
+    mom_fld->elc_error_speed_fact, mom_fld->mag_error_speed_fact, false);
 
   fld->maxwell = gkyl_wv_eqn_acquire(maxwell);
   
@@ -132,7 +132,8 @@ moment_field_init(const struct gkyl_moment *mom, const struct gkyl_moment_field 
       switch (bc[0]) {
         case GKYL_FIELD_PEC_WALL:
           fld->lower_bc[dir] = gkyl_wv_apply_bc_new(
-            &app->grid, maxwell, app->geom, dir, GKYL_LOWER_EDGE, nghost, maxwell->wall_bc_func, 0);
+            &app->grid, maxwell, app->geom, dir, GKYL_LOWER_EDGE, nghost,
+            maxwell->wall_bc_func, 0);
           break;
 
         case GKYL_FIELD_FUNC:
@@ -143,7 +144,14 @@ moment_field_init(const struct gkyl_moment *mom, const struct gkyl_moment_field 
         case GKYL_FIELD_COPY:
         case GKYL_FIELD_WEDGE:
           fld->lower_bc[dir] = gkyl_wv_apply_bc_new(
-            &app->grid, maxwell, app->geom, dir, GKYL_LOWER_EDGE, nghost, bc_copy, 0);
+            &app->grid, maxwell, app->geom, dir, GKYL_LOWER_EDGE, nghost,
+            bc_copy, 0);
+          break;
+
+        case GKYL_FIELD_SKIP:
+          fld->lower_bc[dir] = gkyl_wv_apply_bc_new(
+            &app->grid, maxwell, app->geom, dir, GKYL_LOWER_EDGE, nghost,
+            bc_skip, 0);
           break;
 
         default:
@@ -154,7 +162,8 @@ moment_field_init(const struct gkyl_moment *mom, const struct gkyl_moment_field 
       switch (bc[1]) {
         case GKYL_FIELD_PEC_WALL:
           fld->upper_bc[dir] = gkyl_wv_apply_bc_new(
-            &app->grid, maxwell, app->geom, dir, GKYL_UPPER_EDGE, nghost, maxwell->wall_bc_func, 0);
+            &app->grid, maxwell, app->geom, dir, GKYL_UPPER_EDGE, nghost,
+            maxwell->wall_bc_func, 0);
           break;
 
         case GKYL_FIELD_FUNC:
@@ -166,8 +175,15 @@ moment_field_init(const struct gkyl_moment *mom, const struct gkyl_moment_field 
         case GKYL_FIELD_COPY:
         case GKYL_FIELD_WEDGE:
           fld->upper_bc[dir] = gkyl_wv_apply_bc_new(
-            &app->grid, maxwell, app->geom, dir, GKYL_UPPER_EDGE, nghost, bc_copy, 0);
+            &app->grid, maxwell, app->geom, dir, GKYL_UPPER_EDGE,
+            nghost, bc_copy, 0);
           break;
+
+        case GKYL_FIELD_SKIP:
+          fld->upper_bc[dir] = gkyl_wv_apply_bc_new(
+            &app->grid, maxwell, app->geom, dir, GKYL_UPPER_EDGE,
+            nghost, bc_skip, 0);
+          break;          
           
         default:
           assert(false);
@@ -197,7 +213,12 @@ moment_field_init(const struct gkyl_moment *mom, const struct gkyl_moment_field 
     fld->app_current2 = mkarr(false, 3, app->local_ext.volume);
   }
 
-  fld->t_ramp_ext_em = mom_fld->t_ramp_ext_em ? mom_fld->t_ramp_ext_em : 0.0;
+  fld->has_volume_sources = mom_fld->has_volume_sources;
+  fld->volume_gas_gamma = mom_fld->volume_gas_gamma;
+  fld->volume_U0 = mom_fld->volume_U0;
+  fld->volume_R0 = mom_fld->volume_R0;
+
+  fld->t_ramp_E = mom_fld->t_ramp_E ? mom_fld->t_ramp_E : 0.0;
   fld->proj_ext_em = 0;
   if (mom_fld->ext_em_func) {
     void *ctx = fld->ctx;

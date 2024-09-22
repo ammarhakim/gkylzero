@@ -3,20 +3,13 @@
 #include <gkyl_app.h>
 #include <gkyl_comm.h>
 #include <gkyl_evalf_def.h>
+#include <gkyl_moment_braginskii.h>
 #include <gkyl_mp_scheme.h>
 #include <gkyl_util.h>
 #include <gkyl_wave_prop.h>
 #include <gkyl_wv_eqn.h>
 
 #include <time.h>
-
-// number of components that various applied functions should return
-enum {
-  GKYL_MOM_APP_NUM_APPLIED_CURRENT = 3,
-  GKYL_MOM_APP_NUM_EXT_EM = 6,
-  GKYL_MOM_APP_NUM_APPLIED_ACCELERATION = 3,
-  GKYL_MOM_APP_NUM_NT_SOURCE = 2
-};
 
 // Parameters for moment species
 struct gkyl_moment_species {
@@ -26,6 +19,26 @@ struct gkyl_moment_species {
   struct gkyl_wv_eqn *equation; // equation object
   enum gkyl_wave_limiter limiter; // limiter to use
   enum gkyl_wave_split_type split_type; // edge splitting to use
+
+  enum gkyl_braginskii_type type_brag; // which Braginskii equations
+
+  bool has_friction; // Run with frictional sources.
+  bool use_explicit_friction; // Use an explicit (SSP-RK3) solver for integrating frictional sources.
+  double friction_Z; // Ionization number for frictional sources.
+  double friction_T_elc; // Electron temperature for frictional sources.
+  double friction_Lambda_ee; // Electron-electron collisional term for frictional sources.
+
+  bool has_volume_sources; // Run with volume-based geometrical sources.
+  double volume_gas_gamma; // Adiabatic index for volume-based geometrical sources.
+  double volume_U0; // Initial comoving plasma velocity for volume-based geometrical sources.
+  double volume_R0; // Initial radial distance from expansion/contraction center for volume-based geometrical sources.
+
+  bool has_reactivity; // Run with reactive sources.
+  double reactivity_gas_gamma; // Adiabatic index for reactive sources.
+  double reactivity_specific_heat_capacity; // Specific heat capacity for reactive sources.
+  double reactivity_energy_of_formation; // Energy of formation for reactive sources.
+  double reactivity_ignition_temperature; // Ignition temperature for reactive sources.
+  double reactivity_reaction_rate; // Reaction rate for reactive sources.
 
   int evolve; // evolve species? 1-yes, 0-no
   bool force_low_order_flux; // should  we force low-order flux?
@@ -73,9 +86,13 @@ struct gkyl_moment_field {
   void *ext_em_ctx; // context for applied current
   // pointer to external fields
   void (*ext_em_func)(double t, const double *xn, double *fout, void *ctx);
-  double t_ramp_ext_em; // linear ramp for turning on external E field
-
+  double t_ramp_E; // linear ramp for turning on external E field
   bool use_explicit_em_coupling; // flag to indicate if using explicit em-coupling
+
+  bool has_volume_sources; // Run with volume-based geometrical sources.
+  double volume_gas_gamma; // Adiabatic index for volume-based geometrical sources.
+  double volume_U0; // Initial comoving plasma velocity for volume-based geometrical sources.
+  double volume_R0; // Initial radial distance from expansion/contraction center for volume-based geometrical sources.
 
   // boundary conditions
   enum gkyl_field_bc_type bcx[2], bcy[2], bcz[2];
@@ -128,6 +145,9 @@ struct gkyl_moment {
   double nu_base[GKYL_MAX_SPECIES][GKYL_MAX_SPECIES];
 
   bool has_nT_sources;
+
+  bool has_braginskii; // has Braginskii transport
+  double coll_fac; // multiplicative collisionality factor for Braginskii  
 
   // this should not be set by typical user-facing code but only by
   // higher-level drivers
@@ -366,15 +386,6 @@ void gkyl_moment_app_calc_integrated_mom(gkyl_moment_app *app, double tm);
  * @param vals On output, value of the integrate moments for species
  */
 void gkyl_moment_app_get_integrated_mom(gkyl_moment_app *app, double *vals);
-
-/**
- * Return ghost cell layout for grid.
- *
- * @param app App object.
- * @param nghost On output, ghost-cells used for grid.
- *
- */
-void gkyl_moment_app_nghost(gkyl_moment_app *app, int nghost[3]);
 
 /**
  * Get a pointer to the species array that needs to be written out. If

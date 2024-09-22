@@ -5,6 +5,7 @@
 #include <gkyl_eqn_type.h>
 #include <gkyl_fem_parproj.h>
 #include <gkyl_fem_poisson_bctype.h>
+#include <gkyl_gk_geometry.h>
 #include <gkyl_range.h>
 #include <gkyl_util.h>
 #include <gkyl_velocity_map.h>
@@ -111,11 +112,9 @@ struct gkyl_gyrokinetic_geometry {
   // pointer to bmag function
   void (*bmag_func)(double t, const double *xc, double *xp, void *ctx);
 
-  struct gkyl_tok_geo_efit_inp *tok_efit_info; // context with RZ data such as efit file for a tokamak
-  struct gkyl_tok_geo_grid_inp *tok_grid_info; // context for tokamak geometry with computational domain info
-
-  struct gkyl_mirror_geo_efit_inp *mirror_efit_info; // context with RZ data such as efit file for a mirror
-  struct gkyl_mirror_geo_grid_inp *mirror_grid_info; // context for mirror geometry with computational domain info
+  struct gkyl_efit_inp efit_info; // context with RZ data such as efit file for a tokamak or mirror
+  struct gkyl_tok_geo_grid_inp tok_grid_info; // context for tokamak geometry with computational domain info
+  struct gkyl_mirror_geo_grid_inp mirror_grid_info; // context for mirror geometry with computational domain info
 
   double world[3]; // extra computational coordinates for cases with reduced dimensionality
 };
@@ -147,9 +146,13 @@ struct gkyl_gyrokinetic_react_type {
   char ion_nm[128]; // name of ion species in reaction
   char donor_nm[128]; // name of donor species in reaction
   char recvr_nm[128]; // name of receiver species in reaction
+  char partner_nm[128]; // name of neut species in cx reaction
   int charge_state; // charge state of species in reaction
   double ion_mass; // mass of ion in reaction
   double elc_mass; // mass of electron in reaction
+  double partner_mass; // mass of neutral in cx reaction
+  double vt_sq_ion_min;
+  double vt_sq_partner_min; 
 };
 
 // Parameters for species radiation
@@ -158,7 +161,7 @@ struct gkyl_gyrokinetic_react {
   // 3 types of reactions supported currently
   // Ionization, Charge exchange, and Recombination
   // GKYL_MAX_SPECIES number of reactions supported per species (8 different reactions)
-  struct gkyl_gyrokinetic_react_type react_type[GKYL_MAX_SPECIES];
+  struct gkyl_gyrokinetic_react_type react_type[GKYL_MAX_REACT];
 };
 
 // Parameters for gk species.
@@ -203,9 +206,6 @@ struct gkyl_gyrokinetic_species {
 
   // Boundary conditions.
   struct gkyl_gyrokinetic_bcs bcx, bcy, bcz;
-
-  // Positivity enforcement via shift in f.
-  bool enforce_positivity;
 };
 
 // Parameters for neutral species
@@ -249,6 +249,10 @@ struct gkyl_gyrokinetic_field {
   enum gkyl_fem_parproj_bc_type fem_parbc;
   struct gkyl_poisson_bc poisson_bcs;
 
+  // Initial potential used to compute the total polarization density.
+  void (*polarization_potential)(double t, const double *xn, double *out, void *ctx);
+  void *polarization_potential_ctx;
+
   void *phi_wall_lo_ctx; // context for biased wall potential on lower wall
   // pointer to biased wall potential on lower wall function
   void (*phi_wall_lo)(double t, const double *xn, double *phi_wall_lo_out, void *ctx);
@@ -275,6 +279,8 @@ struct gkyl_gk {
   double cfl_frac; // CFL fraction to use (default 1.0)
 
   bool use_gpu; // Flag to indicate if solver should use GPUs
+
+  bool enforce_positivity; // Positivity enforcement via shift in f.
 
   int num_periodic_dir; // number of periodic directions
   int periodic_dirs[3]; // list of periodic directions
@@ -381,6 +387,15 @@ void gkyl_gyrokinetic_app_apply_ic_species(gkyl_gyrokinetic_app* app, int sidx, 
  */
 void gkyl_gyrokinetic_app_apply_ic_neut_species(gkyl_gyrokinetic_app* app, int sidx, double t0);
 
+/**
+ * Perform part of initialization that depends on the other species being
+ * (partially) initialized.
+ *
+ * @param app App object.
+ * @param sidx Index of species to initialize.
+ * @param t0 Time for initial conditions
+ */
+void gkyl_gyrokinetic_app_apply_ic_cross_species(gkyl_gyrokinetic_app* app, int sidx, double t0);
 
 /**
  * Initialize field from file
@@ -635,6 +650,17 @@ void gkyl_gyrokinetic_app_write_iz_react_neut(gkyl_gyrokinetic_app* app, int sid
  * @param frame Frame number
  */
 void gkyl_gyrokinetic_app_write_recomb_react_neut(gkyl_gyrokinetic_app* app, int sidx, int ridx, double tm, int frame);
+
+/**
+ * Write cx react rate coefficients for species to file.
+ * 
+ * @param app App object.
+ * @param sidx Index of species to initialize.
+ * @param ridx Index of reaction to initialize.
+ * @param tm Time-stamp
+ * @param frame Frame number
+ */
+void gkyl_gyrokinetic_app_write_cx_react_neut(gkyl_gyrokinetic_app* app, int sidx, int ridx, double tm, int frame);
 
 /**
  * Write diagnostic moments for species to file.
