@@ -585,11 +585,9 @@ gkyl_gyrokinetic_app_calc_mom(gkyl_gyrokinetic_app* app)
     }
 
     if (app->enforce_positivity) {
-      for (int m=0; m<gk_s->info.num_diag_moments; ++m) {
-        // We placed the change in f from the positivity shift in fnew.
-        gk_species_moment_calc(&gk_s->ps_moms[m], gk_s->local, app->local, gk_s->fnew);
-        app->stat.nmom += 1;
-      }
+      // We placed the change in f from the positivity shift in fnew.
+      gk_species_moment_calc(&gk_s->ps_moms, gk_s->local, app->local, gk_s->fnew);
+      app->stat.nmom += 1;
     }
   }
 
@@ -1380,28 +1378,25 @@ gkyl_gyrokinetic_app_write_mom(gkyl_gyrokinetic_app* app, double tm, int frame)
       gkyl_comm_array_write(app->comm, &app->grid, &app->local, mt,
         app->species[i].moms[m].marr_host, fileNm);
 
-      if (app->enforce_positivity) {
-        const char *fmt = "%s-%s_positivity_shift_%s_%d.gkyl";
-        int sz = gkyl_calc_strlen(fmt, app->name, app->species[i].info.name,
-          app->species[i].info.diag_moments[m], frame);
-        char fileNm[sz+1]; // ensures no buffer overflow
-        snprintf(fileNm, sizeof fileNm, fmt, app->name, app->species[i].info.name,
-          app->species[i].info.diag_moments[m], frame);
+    }
 
-        // Rescale moment by inverse of Jacobian if not already re-scaled 
-        if (!app->species[i].ps_moms[m].is_bimaxwellian_moms && !app->species[i].ps_moms[m].is_maxwellian_moms) {
-          gkyl_dg_div_op_range(app->species[i].ps_moms[m].mem_geo, app->confBasis, 
-            0, app->species[i].ps_moms[m].marr, 0, app->species[i].ps_moms[m].marr, 0, 
-            app->gk_geom->jacobgeo, &app->local);  
-        }    
+    if (app->enforce_positivity) {
+      const char *fmt = "%s-%s_positivity_shift_FourMoments_%d.gkyl";
+      int sz = gkyl_calc_strlen(fmt, app->name, app->species[i].info.name, frame);
+      char fileNm[sz+1]; // ensures no buffer overflow
+      snprintf(fileNm, sizeof fileNm, fmt, app->name, app->species[i].info.name, frame);
 
-        if (app->use_gpu) {
-          gkyl_array_copy(app->species[i].ps_moms[m].marr_host, app->species[i].ps_moms[m].marr);
-        }
+      // Rescale moment by inverse of Jacobian.
+      gkyl_dg_div_op_range(app->species[i].ps_moms.mem_geo, app->confBasis, 
+        0, app->species[i].ps_moms.marr, 0, app->species[i].ps_moms.marr, 0, 
+        app->gk_geom->jacobgeo, &app->local);  
 
-        gkyl_comm_array_write(app->comm, &app->grid, &app->local, mt,
-          app->species[i].ps_moms[m].marr_host, fileNm);
+      if (app->use_gpu) {
+        gkyl_array_copy(app->species[i].ps_moms.marr_host, app->species[i].ps_moms.marr);
       }
+
+      gkyl_comm_array_write(app->comm, &app->grid, &app->local, mt,
+        app->species[i].ps_moms.marr_host, fileNm);
     }
   }
 

@@ -578,8 +578,8 @@ main(int argc, char **argv)
       .upper = { .type = GKYL_SPECIES_GK_SHEATH, },
     },
     
-    .num_diag_moments = 5,
-    .diag_moments = { "M0", "M1", "M2", "M2par", "M2perp" },
+    .num_diag_moments = 1,
+    .diag_moments = { "FourMoments" },
   };
 
   // Field.
