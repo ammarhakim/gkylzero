@@ -15,11 +15,11 @@ gkyl_gyrokinetic_maxwellian_moments_inew(const struct gkyl_gyrokinetic_maxwellia
 {
   gkyl_gyrokinetic_maxwellian_moments *up = gkyl_malloc(sizeof(*up));
 
-  int vdim = up->phase_basis.ndim - up->conf_basis.ndim;
-
   up->conf_basis = *inp->conf_basis;
   up->phase_basis = *inp->phase_basis;
   up->num_conf_basis = inp->conf_basis->num_basis;
+  int vdim = up->phase_basis.ndim - up->conf_basis.ndim;
+
   // Determine factor to divide out of temperature computation
   // If 1x1v, up->vdim_phys = 1, otherwise up->vdim_phys = 3.
   up->vdim_phys = 2*vdim-1;
