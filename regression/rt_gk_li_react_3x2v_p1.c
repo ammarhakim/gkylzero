@@ -23,6 +23,7 @@ struct gk_app_ctx {
   double nuIon; // ion collision frequency
   double B0; // reference magnetic field
   double n0; // reference density
+  double n0Li1, n0Li2; // reference density for Li ions.
   double Lx; // Box size in x.
   double Ly; // Box size in y.
   double Lz; // Box size in z.
@@ -298,6 +299,8 @@ create_ctx(void)
   double Te = 100.0*eV;
   double Ti = 100.0*eV;
   double n0 = 7.0e18;
+  double n0Li1 = 0.05*n0;
+  double n0Li2 = 0.05*n0;
 
   // Geometry and magnetic field.
   double B_axis = 0.5;
@@ -370,6 +373,8 @@ create_ctx(void)
     .nuIon = nuIon, 
     .B0 = B0, 
     .n0 = n0, 
+    .n0Li1 = n0Li1, 
+    .n0Li2 = n0Li2, 
     .Lx = Lx,
     .Ly = Ly,
     .Lz = Lz,
@@ -542,7 +547,7 @@ main(int argc, char **argv)
     .lower = { -ctx.vpar_max_ion, 0.0},
     .upper = { ctx.vpar_max_ion, ctx.mu_max_ion}, 
     .cells = { cells_v[0], cells_v[1] },
-    .polarization_density = ctx.n0,
+    .polarization_density = ctx.n0 - ctx.n0Li1 - 2.0*ctx.n0Li2,
 
     .projection = {
       .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM, 
@@ -594,7 +599,7 @@ main(int argc, char **argv)
     .lower = { -ctx.vpar_max_Li, 0.0},
     .upper = { ctx.vpar_max_Li, ctx.mu_max_Li}, 
     .cells = { cells_v[0], cells_v[1] },
-    .polarization_density = 0.05*ctx.n0,
+    .polarization_density = ctx.n0Li1,
 
     .projection = {
       .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM, 
@@ -665,7 +670,7 @@ main(int argc, char **argv)
     .lower = { -ctx.vpar_max_Li, 0.0},
     .upper = { ctx.vpar_max_Li, ctx.mu_max_Li}, 
     .cells = { cells_v[0], cells_v[1] },
-    .polarization_density = 0.05*ctx.n0,
+    .polarization_density = ctx.n0Li2,
 
     .projection = { 
       .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM, 
