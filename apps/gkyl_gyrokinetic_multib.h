@@ -146,12 +146,10 @@ struct gkyl_gyrokinetic_multib {
   enum gkyl_basis_type basis_type; // type of basis functions to use
   bool use_gpu; // Flag to indicate if solver should use GPUs
 
- // geometry and topology of all blocks in simulation
+  // geometry and topology of all blocks in simulation
   struct gkyl_block_geom *block_geom;
 
   double cfl_frac; // CFL fraction to use (default 1.0)
-
-  bool enforce_positivity; // Positivity enforcement via shift in f.
 
   bool enforce_positivity; // Positivity enforcement via shift in f.
 
