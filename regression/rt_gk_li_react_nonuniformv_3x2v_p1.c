@@ -117,6 +117,29 @@ void eval_source_upar(double t, const double * GKYL_RESTRICT xn, double* GKYL_RE
   fout[0] = 0.0;
 }
 
+void
+mapc2p_vel_power(const double* vc, double* GKYL_RESTRICT vp, double vmax, double mumax, double vpow, double mupow)
+{
+  double cvpar = vc[0];
+  double cmu = vc[1];
+
+  if ( cvpar < 0.0 )
+    vp[0] = -fabs(vmax * pow(fabs(cvpar), vpow));
+  else
+    vp[0] = fabs(vmax * pow(cvpar, vpow));
+  
+  vp[1] = mumax * pow(cmu, mupow);
+}
+
+void
+mapc2p_vel_elc(double t, const double* vc, double* GKYL_RESTRICT vp, void* ctx)
+{
+  struct gk_app_ctx *app = ctx;
+  double vmax = app->vpar_max_elc;
+  double mumax = app->mu_max_elc;
+  mapc2p_vel_power(vc, vp, vmax, mumax, 2.0, 2.0);
+}
+
 void eval_source_temp(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
 {
   double x = xn[0], y = xn[1], z = xn[2];
@@ -349,8 +372,8 @@ create_ctx(void)
   int Nx = 4;
   int Ny = 1;
   int Nz = 8;
-  int Nvpar = 6;
-  int Nmu = 4;
+  int Nvpar = 12;
+  int Nmu = 8;
 
   double t_end = 1.0e-7; 
   double num_frames = 1;
@@ -467,10 +490,15 @@ main(int argc, char **argv)
   struct gkyl_gyrokinetic_species elc = {
     .name = "elc",
     .charge = ctx.chargeElc, .mass = ctx.massElc,
-    .lower = { -ctx.vpar_max_elc, 0.0},
-    .upper = {  ctx.vpar_max_elc, ctx.mu_max_elc}, 
+    .lower = { -1.0, 0.0},
+    .upper = {  1.0, 1.0}, 
     .cells = { cells_v[0], cells_v[1] },
     .polarization_density = ctx.n0,
+
+    .mapc2p = {
+      .mapping = mapc2p_vel_elc,
+      .ctx = &ctx,
+    },
 
     .projection = {
       .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM, 
@@ -744,9 +772,9 @@ main(int argc, char **argv)
 
   // GK app
   struct gkyl_gk app_inp = {
-    .name = "gk_li_react_3x2v_p1",
+    .name = "gk_li_react_3x2v_p1_12Nv_quad",
 
-    .cdim = ctx.cdim, .vdim = ctx.vdim,
+    .cdim = 3, .vdim = 2,
     .lower = { ctx.R-ctx.Lx/2.0, -ctx.Ly/2.0, -ctx.Lz/2.0 },
     .upper = { ctx.R+ctx.Lx/2.0,  ctx.Ly/2.0,  ctx.Lz/2.0 },
     .cells = { cells_x[0], cells_x[1], cells_x[2] },
