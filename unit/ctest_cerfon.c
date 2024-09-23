@@ -23,6 +23,8 @@
       .filepath = "./data/eqdsk/cerfon.geqdsk",
       .rz_poly_order = 2,
       .flux_poly_order = 1,
+      .rz_basis_type = GKYL_BASIS_MODAL_TENSOR,
+      .reflect = true,
     };
 
 
@@ -56,6 +58,7 @@ test_11()
     .ftype = GKYL_CORE_R,
     .rclose = 6.0,
     .rright= 6.0,
+    .rleft = 0.25,
 
   }; 
 
@@ -117,6 +120,7 @@ test_12()
     .ftype = GKYL_CORE_L,
     .rclose = 6.0,
     .rleft= 0.25,
+    .rright= 6.0,
   }; 
   struct gkyl_gk_geometry_inp geometry_inp = {
     .geometry_id  = GKYL_TOKAMAK,
@@ -175,6 +179,7 @@ test_1()
     .rmax = 10.0,
     .ftype = GKYL_PF_LO_R,
     .rright = 6.0,
+    .rleft = 0.25,
     .zmin = -5.8,
   }; 
 
@@ -229,6 +234,7 @@ test_2()
     .rmax = 10.0,
     .ftype = GKYL_SOL_DN_OUT_LO,
     .rright = 6.0,
+    .rleft = 0.25,
     .zmin = -5.8,
   }; 
   struct gkyl_gk_geometry_inp geometry_inp = {
@@ -283,6 +289,7 @@ test_3()
     .rmax = 10.0,
     .ftype = GKYL_SOL_DN_OUT_MID,
     .rright = 6.0,
+    .rleft = 0.25,
   }; 
   struct gkyl_gk_geometry_inp geometry_inp = {
     .geometry_id  = GKYL_TOKAMAK,
@@ -336,6 +343,7 @@ test_4()
     .rmax = 10.0,
     .ftype = GKYL_SOL_DN_OUT_UP,
     .rright = 6.0,
+    .rleft = 0.25,
     .zmax = 5.8,
   }; 
   struct gkyl_gk_geometry_inp geometry_inp = {
@@ -390,6 +398,7 @@ test_7()
     .rmax = 10.0,
     .ftype = GKYL_SOL_DN_IN_UP,
     .rleft = 0.25,
+    .rright= 6.0,
     .zmax = 5.8,
   }; 
   struct gkyl_gk_geometry_inp geometry_inp = {
@@ -444,6 +453,7 @@ test_8()
     .rmax = 10.0,
     .ftype = GKYL_SOL_DN_IN_MID,
     .rleft = 0.25,
+    .rright= 6.0,
   }; 
   struct gkyl_gk_geometry_inp geometry_inp = {
     .geometry_id  = GKYL_TOKAMAK,
@@ -497,6 +507,7 @@ test_9()
     .rmax = 10.0,
     .ftype = GKYL_SOL_DN_IN_LO,
     .rleft = 0.25,
+    .rright= 6.0,
     .zmin = -5.8,
   }; 
   struct gkyl_gk_geometry_inp geometry_inp = {
@@ -552,6 +563,7 @@ test_10()
     .ftype = GKYL_PF_LO_L,
     .rleft= 0.25,
     .zmin = -5.8,
+    .rright= 6.0,
   }; 
   struct gkyl_gk_geometry_inp geometry_inp = {
     .geometry_id  = GKYL_TOKAMAK,
@@ -605,6 +617,7 @@ test_5()
     .rmax = 10.0,
     .ftype = GKYL_PF_UP_R,
     .rright = 6.0,
+    .rleft = 0.25,
     .zmax = 5.8,
   }; 
   struct gkyl_gk_geometry_inp geometry_inp = {
@@ -659,6 +672,7 @@ test_6()
     .rmax = 10.0,
     .ftype = GKYL_PF_UP_L,
     .rleft = 0.25,
+    .rright= 6.0,
     .zmax = 5.8,
   }; 
   struct gkyl_gk_geometry_inp geometry_inp = {

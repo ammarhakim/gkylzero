@@ -521,8 +521,15 @@ phi_contour_func(double Z, void *ctx)
   }
   else {
     int rzidx[2];
-    rzidx[0] = fmin(c->geo->rzlocal.lower[0] + (int) floor((r_curr - c->geo->rzgrid.lower[0])/c->geo->rzgrid.dx[0]), c->geo->rzlocal.upper[0]);
-    rzidx[1] = fmin(c->geo->rzlocal.lower[1] + (int) floor((Z - c->geo->rzgrid.lower[1])/c->geo->rzgrid.dx[1]), c->geo->rzlocal.upper[1]);
+    int idxtemp = c->geo->rzlocal.lower[0] + (int) floor((r_curr - c->geo->rzgrid.lower[0])/c->geo->rzgrid.dx[0]);
+    idxtemp = GKYL_MIN2(idxtemp, c->geo->rzlocal.upper[0]);
+    idxtemp = GKYL_MAX2(idxtemp, c->geo->rzlocal.lower[0]);
+    rzidx[0] = idxtemp;
+    idxtemp = c->geo->rzlocal.lower[1] + (int) floor((Z - c->geo->rzgrid.lower[1])/c->geo->rzgrid.dx[1]);
+    idxtemp = GKYL_MIN2(idxtemp, c->geo->rzlocal.upper[1]);
+    idxtemp = GKYL_MAX2(idxtemp, c->geo->rzlocal.lower[1]);
+    rzidx[1] = idxtemp;
+
     long loc = gkyl_range_idx((&c->geo->rzlocal), rzidx);
     const double *psih = gkyl_array_cfetch(c->geo->psiRZ, loc);
 
@@ -563,8 +570,15 @@ dphidtheta_integrand(double Z, void *ctx)
   }
   else {
     int rzidx[2];
-    rzidx[0] = fmin(c->geo->rzlocal.lower[0] + (int) floor((r_curr - c->geo->rzgrid.lower[0])/c->geo->rzgrid.dx[0]), c->geo->rzlocal.upper[0]);
-    rzidx[1] = fmin(c->geo->rzlocal.lower[1] + (int) floor((Z - c->geo->rzgrid.lower[1])/c->geo->rzgrid.dx[1]), c->geo->rzlocal.upper[1]);
+    int idxtemp = c->geo->rzlocal.lower[0] + (int) floor((r_curr - c->geo->rzgrid.lower[0])/c->geo->rzgrid.dx[0]);
+    idxtemp = GKYL_MIN2(idxtemp, c->geo->rzlocal.upper[0]);
+    idxtemp = GKYL_MAX2(idxtemp, c->geo->rzlocal.lower[0]);
+    rzidx[0] = idxtemp;
+    idxtemp = c->geo->rzlocal.lower[1] + (int) floor((Z - c->geo->rzgrid.lower[1])/c->geo->rzgrid.dx[1]);
+    idxtemp = GKYL_MIN2(idxtemp, c->geo->rzlocal.upper[1]);
+    idxtemp = GKYL_MAX2(idxtemp, c->geo->rzlocal.lower[1]);
+    rzidx[1] = idxtemp;
+
     long loc = gkyl_range_idx((&c->geo->rzlocal), rzidx);
     const double *psih = gkyl_array_cfetch(c->geo->psiRZ, loc);
 

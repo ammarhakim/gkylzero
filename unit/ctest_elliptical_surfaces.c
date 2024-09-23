@@ -47,6 +47,8 @@ test_elliptical()
       .filepath = "./data/eqdsk/elliptical.geqdsk",
       .rz_poly_order = 2,
       .flux_poly_order = 1,
+      .rz_basis_type = GKYL_BASIS_MODAL_TENSOR,
+      .reflect = true,
     };
 
   double psisep = -4.0;
@@ -71,6 +73,8 @@ test_elliptical()
     .rmax = 5.0,
     .ftype = GKYL_SOL_DN_OUT,
     .rclose = 6.0,
+    .rright = 6.0,
+    .rleft = 0.0,
     .zmin = -3.0,
     .zmax = 3.0,
   }; 

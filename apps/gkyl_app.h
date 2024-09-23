@@ -31,6 +31,13 @@ struct gkyl_block_physical_bcs {
   int bc_type; // BC code
 };
 
+// Parallelization-related inputs.
+struct gkyl_app_parallelism_inp {
+  bool use_gpu; // Run on the GPU(s).
+  int cuts[3]; // Number of subdomain in each dimension.
+  struct gkyl_comm *comm; // Communicator to use.
+};
+
 // Boundary conditions on particles
 enum gkyl_species_bc_type {
   GKYL_SPECIES_COPY = 0, // copy BCs

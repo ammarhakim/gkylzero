@@ -149,7 +149,9 @@ struct gkyl_gyrokinetic_multib {
  // geometry and topology of all blocks in simulation
   struct gkyl_block_geom *block_geom;
 
-  double cfl_frac; // CFL fraction to use
+  double cfl_frac; // CFL fraction to use (default 1.0)
+
+  bool enforce_positivity; // Positivity enforcement via shift in f.
 
   bool enforce_positivity; // Positivity enforcement via shift in f.
 
