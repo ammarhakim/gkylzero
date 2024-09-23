@@ -635,7 +635,7 @@ main(int argc, char **argv)
 
   // GK app
   struct gkyl_gk gk = {
-    .name = "ar_react_1x2v_quadraticV",
+    .name = "gk_ar_react_quadratic_vpar_1x2v_p1",
 
     .cdim = ctx.cdim, .vdim = ctx.vdim,
     .lower = { -ctx.Lz/2.0 },
