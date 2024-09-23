@@ -153,6 +153,8 @@ struct gkyl_gyrokinetic_multib {
 
   bool enforce_positivity; // Positivity enforcement via shift in f.
 
+  bool enforce_positivity; // Positivity enforcement via shift in f.
+
   int num_species; // number of species
   // species inputs
   struct gkyl_gyrokinetic_multib_species species[GKYL_MAX_SPECIES];

@@ -146,6 +146,7 @@ singleb_app_new(const struct gkyl_gyrokinetic_multib *mbinp, int bid,
   app_inp.poly_order = mbinp->poly_order;
   app_inp.basis_type = mbinp->basis_type;
   app_inp.cfl_frac = mbinp->cfl_frac; 
+
   app_inp.enforce_positivity = mbinp->enforce_positivity;
 
   for (int i=0; i<num_species; ++i) {
