@@ -13,6 +13,8 @@
 
 struct sheath_ctx
 {
+  int cdim, vdim; // Dimensionality.
+
   // Mathematical constants (dimensionless).
   double pi;
 
@@ -60,6 +62,7 @@ struct sheath_ctx
   int Nz; // Cell count (configuration space: z-direction).
   int Nvpar; // Cell count (velocity space: parallel velocity direction).
   int Nmu; // Cell count (velocity space: magnetic moment direction).
+  int cells[GKYL_MAX_DIM]; // Number of cells in all directions.
   double Lx; // Domain size (configuration space: x-direction).
   double Lz; // Domain size (configuration space: z-direction).
   double vpar_max_elc; // Domain boundary (electron velocity space: parallel velocity direction).
@@ -77,6 +80,8 @@ struct sheath_ctx
 struct sheath_ctx
 create_ctx(void)
 {
+  int cdim = 2, vdim = 2; // Dimensionality.
+
   // Mathematical constants (dimensionless).
   double pi = M_PI;
 
@@ -143,6 +148,8 @@ create_ctx(void)
   int num_failures_max = 20; // Maximum allowable number of consecutive small time-steps.
   
   struct sheath_ctx ctx = {
+    .cdim = cdim,
+    .vdim = vdim,
     .pi = pi,
     .epsilon0 = epsilon0,
     .mass_elc = mass_elc,
@@ -177,6 +184,7 @@ create_ctx(void)
     .Nz = Nz,
     .Nvpar = Nvpar,
     .Nmu = Nmu,
+    .cells = {Nx, Nz, Nvpar, Nmu},
     .Lx = Lx,
     .Lz = Lz,
     .vpar_max_elc = vpar_max_elc,
@@ -474,105 +482,14 @@ main(int argc, char **argv)
 
   struct sheath_ctx ctx = create_ctx(); // Context for initialization functions.
 
-  int NX = APP_ARGS_CHOOSE(app_args.xcells[0], ctx.Nx);
-  int NZ = APP_ARGS_CHOOSE(app_args.xcells[1], ctx.Nz);
-  int NVPAR = APP_ARGS_CHOOSE(app_args.vcells[0], ctx.Nvpar);
-  int NMU = APP_ARGS_CHOOSE(app_args.vcells[1], ctx.Nmu);
-
-  int nrank = 1; // Number of processors in simulation.
-#ifdef GKYL_HAVE_MPI
-  if (app_args.use_mpi) {
-    MPI_Comm_size(MPI_COMM_WORLD, &nrank);
-  }
-#endif  
-
-  // Create global range.
-  int ccells[] = { NX, NZ };
-  int cdim = sizeof(ccells) / sizeof(ccells[0]);
-  struct gkyl_range cglobal_r;
-  gkyl_create_global_range(cdim, ccells, &cglobal_r);
-
-  // Create decomposition.
-  int cuts[cdim];
-#ifdef GKYL_HAVE_MPI  
-  for (int d = 0; d < cdim; d++) {
-    if (app_args.use_mpi) {
-      cuts[d] = app_args.cuts[d];
-    }
-    else {
-      cuts[d] = 1;
-    }
-  }
-#else
-  for (int d = 0; d < cdim; d++) {
-    cuts[d] = 1;
-  }
-#endif  
-    
-  struct gkyl_rect_decomp *decomp = gkyl_rect_decomp_new_from_cuts(cdim, cuts, &cglobal_r);
+  int cells_x[ctx.cdim], cells_v[ctx.vdim];
+  for (int d=0; d<ctx.cdim; d++)
+    cells_x[d] = APP_ARGS_CHOOSE(app_args.xcells[d], ctx.cells[d]);
+  for (int d=0; d<ctx.vdim; d++)
+    cells_v[d] = APP_ARGS_CHOOSE(app_args.vcells[d], ctx.cells[ctx.cdim+d]);
 
   // Construct communicator for use in app.
-  struct gkyl_comm *comm;
-#ifdef GKYL_HAVE_MPI
-  if (app_args.use_gpu && app_args.use_mpi) {
-#ifdef GKYL_HAVE_NCCL
-    comm = gkyl_nccl_comm_new( &(struct gkyl_nccl_comm_inp) {
-        .mpi_comm = MPI_COMM_WORLD,
-        .decomp = decomp
-      }
-    );
-#else
-    printf(" Using -g and -M together requires NCCL.\n");
-    assert(0 == 1);
-#endif
-  }
-  else if (app_args.use_mpi) {
-    comm = gkyl_mpi_comm_new( &(struct gkyl_mpi_comm_inp) {
-        .mpi_comm = MPI_COMM_WORLD,
-        .decomp = decomp
-      }
-    );
-  }
-  else {
-    comm = gkyl_null_comm_inew( &(struct gkyl_null_comm_inp) {
-        .decomp = decomp,
-        .use_gpu = app_args.use_gpu
-      }
-    );
-  }
-#else
-  comm = gkyl_null_comm_inew( &(struct gkyl_null_comm_inp) {
-      .decomp = decomp,
-      .use_gpu = app_args.use_gpu
-    }
-  );
-#endif
-
-  int my_rank;
-  gkyl_comm_get_rank(comm, &my_rank);
-  int comm_size;
-  gkyl_comm_get_size(comm, &comm_size);
-
-  int ncuts = 1;
-  for (int d = 0; d < cdim; d++) {
-    ncuts *= cuts[d];
-  }
-
-  if (ncuts != comm_size) {
-    if (my_rank == 0) {
-      fprintf(stderr, "*** Number of ranks, %d, does not match total cuts, %d!\n", comm_size, ncuts);
-    }
-    goto mpifinalize;
-  }
-
-  for (int d = 0; d < cdim - 1; d++) {
-    if (cuts[d] > 1) {
-      if (my_rank == 0) {
-        fprintf(stderr, "*** Parallelization only allowed in z. Number of ranks, %d, in direction %d cannot be > 1!\n", cuts[d], d);
-      }
-      goto mpifinalize;
-    }
-  }
+  struct gkyl_comm *comm = gkyl_gyrokinetic_comms_new(app_args.use_mpi, app_args.use_gpu, stderr);
 
   // Electron species.
   struct gkyl_gyrokinetic_species elc = {
@@ -580,7 +497,7 @@ main(int argc, char **argv)
     .charge = ctx.charge_elc, .mass = ctx.mass_elc,
     .lower = { -ctx.vpar_max_elc, 0.0},
     .upper = { ctx.vpar_max_elc, ctx.mu_max_elc},
-    .cells = { NVPAR, NMU },
+    .cells = { cells_v[0], cells_v[1] },
     .polarization_density = ctx.n0,
     .no_by = true, 
 
@@ -634,7 +551,7 @@ main(int argc, char **argv)
     .charge = ctx.charge_ion, .mass = ctx.mass_ion,
     .lower = { -ctx.vpar_max_ion, 0.0},
     .upper = { ctx.vpar_max_ion, ctx.mu_max_ion},
-    .cells = { NVPAR, NMU },
+    .cells = { cells_v[0], cells_v[1] },
     .polarization_density = ctx.n0, 
     .no_by = true, 
 
@@ -720,7 +637,7 @@ main(int argc, char **argv)
     .name = "neut", .mass = ctx.mass_ion,
     .lower = { -ctx.vpar_max_ion, -ctx.vpar_max_ion, -ctx.vpar_max_ion},
     .upper = { ctx.vpar_max_ion, ctx.vpar_max_ion, ctx.vpar_max_ion },
-    .cells = { NVPAR, NVPAR, NVPAR},
+    .cells = { cells_v[0], cells_v[0], cells_v[0] },
     .is_static = true,
 
     .projection = {
@@ -754,10 +671,10 @@ main(int argc, char **argv)
   struct gkyl_gk app_inp = {
     .name = "gk_sheath_cx_2x2v_p1",
 
-    .cdim = 2, .vdim = 2,
+    .cdim = ctx.cdim, .vdim = ctx.vdim,
     .lower = { ctx.R - (0.5 * ctx.Lx), -0.5 * ctx.Lz },
     .upper = { ctx.R + (0.5 * ctx.Lx),  0.5 * ctx.Lz },
-    .cells = { NX, NZ },
+    .cells = { cells_x[0], cells_x[1] },
     .poly_order = 1,
     .basis_type = app_args.basis_type,
     .cfl_frac = 0.4,
@@ -779,13 +696,11 @@ main(int argc, char **argv)
     .neut_species = { neut },
     .field = field,
 
-    .use_gpu = app_args.use_gpu,
-
-    .has_low_inp = true,
-    .low_inp = {
-      .local_range = decomp->ranges[my_rank],
-      .comm = comm
-    }
+    .parallelism = {
+      .use_gpu = app_args.use_gpu,
+      .cuts = { app_args.cuts[0], app_args.cuts[1] },
+      .comm = comm,
+    },
   };
 
   // Create app object.
@@ -895,8 +810,7 @@ main(int argc, char **argv)
   freeresources:
   // Free resources after simulation completion.
   gkyl_gyrokinetic_app_release(app);
-  gkyl_rect_decomp_release(decomp);
-  gkyl_comm_release(comm);
+  gkyl_gyrokinetic_comms_release(comm);
 
   mpifinalize:
 #ifdef GKYL_HAVE_MPI

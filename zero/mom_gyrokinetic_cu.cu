@@ -12,7 +12,7 @@ extern "C" {
 #include <gkyl_util.h>
 }
 
-enum { M0, M1, M2, M2par, M2perp, M3par, M3perp, ThreeMoments, BAD };
+enum { M0, M1, M2, M2par, M2perp, M3par, M3perp, ThreeMoments, FourMoments, BAD };
 
 static int
 get_gk_mom_id(const char *mom)
@@ -40,8 +40,15 @@ get_gk_mom_id(const char *mom)
   else if (strcmp(mom, "M3perp") == 0) { // perpendicular heat flux
     mom_idx = M3perp;
   }
-  else if (strcmp(mom, "ThreeMoments") == 0) { // Zeroth (density), First (parallel momentum), 
-    mom_idx = ThreeMoments;                    // and Second (total energy) computed together
+  else if (strcmp(mom, "ThreeMoments") == 0) {
+    // Zeroth (density), First (parallel momentum), 
+    // and Second (total energy) computed together
+    mom_idx = ThreeMoments;                    
+  }
+  else if (strcmp(mom, "FourMoments") == 0) {
+    // Density, parallel momentum, parallel and
+    // perpendicular kinetic energy.
+    mom_idx = FourMoments;
   }
   else {
     mom_idx = BAD;
@@ -88,6 +95,10 @@ gk_num_mom(int vdim, int mom_id)
       num_mom = 3;
       break;      
       
+    case FourMoments:
+      num_mom = vdim>1? 4 : 3;
+      break;      
+      
     default: // can't happen
       break;
   }
@@ -102,7 +113,8 @@ set_cu_ptrs(struct mom_type_gyrokinetic *mom_gk,
 {
   // choose kernel tables based on basis-function type
   const gkyl_gyrokinetic_mom_kern_list *m0_kernels, *m1_kernels, *m2_kernels, 
-    *m2_par_kernels, *m2_perp_kernels, *m3_par_kernels, *m3_perp_kernels, *three_moments_kernels;
+    *m2_par_kernels, *m2_perp_kernels, *m3_par_kernels, *m3_perp_kernels,
+    *three_moments_kernels, *four_moments_kernels;
   
   switch (b_type) {
     case GKYL_BASIS_MODAL_SERENDIPITY:
@@ -114,6 +126,7 @@ set_cu_ptrs(struct mom_type_gyrokinetic *mom_gk,
       m3_par_kernels = ser_m3_par_kernels;
       m3_perp_kernels = ser_m3_perp_kernels;
       three_moments_kernels = ser_three_moments_kernels;
+      four_moments_kernels = ser_four_moments_kernels;
       break;
 
     default:
@@ -160,6 +173,11 @@ set_cu_ptrs(struct mom_type_gyrokinetic *mom_gk,
     case ThreeMoments:
       mom_gk->momt.kernel = three_moments_kernels[tblidx].kernels[poly_order];
       mom_gk->momt.num_mom = 3;
+      break;
+      
+    case FourMoments:
+      mom_gk->momt.kernel = four_moments_kernels[tblidx].kernels[poly_order];
+      mom_gk->momt.num_mom = vdim>1? 4 : 3;
       break;
       
     default: // can't happen

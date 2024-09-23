@@ -104,6 +104,7 @@ static const char *const valid_moment_names[] = {
   "M3par",
   "M3perp",
   "ThreeMoments",
+  "FourMoments",
   "MaxwellianMoments", // internal flag for whether we are computing (n, u_par, T/m)
   "BiMaxwellianMoments", // internal flag for whether we are computing (n, u_par, T_par/m, T_perp/m)
   "Integrated", // this is an internal flag, not for passing to moment type
@@ -554,7 +555,7 @@ struct gk_species {
   // Updater that enforces positivity by shifting f.
   struct gkyl_positivity_shift_gyrokinetic *pos_shift_op;
   struct gkyl_array *ps_delta_m0; // Number density of the positivity shift.
-  struct gk_species_moment *ps_moms; // Positivity shift diagnostic moments.
+  struct gk_species_moment ps_moms; // Positivity shift diagnostic moments.
   gkyl_dynvec ps_integ_diag; // Integrated moments of the positivity shift.
   bool is_first_ps_integ_write_call; // Flag first time writing ps_integ_diag.
 
@@ -739,7 +740,8 @@ struct gkyl_gyrokinetic_app {
   struct gkyl_basis basis, neut_basis; // phase-space and phase-space basis for neutrals
   struct gkyl_basis confBasis; // conf-space basis
   
-  struct gkyl_comm *comm;   // communicator object for conf-space arrays
+  struct gkyl_rect_decomp *decomp; // Decomposition object.
+  struct gkyl_comm *comm; // communicator object for conf-space arrays
 
   // pointers to basis on device (these point to host structs if not
   // on GPU)

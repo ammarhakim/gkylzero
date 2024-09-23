@@ -147,7 +147,9 @@ test_fixed_z()
       // psiRZ and related inputs
       .filepath = "./data/eqdsk/step.geqdsk",
       .rz_poly_order = 2,
+      .rz_basis_type = GKYL_BASIS_MODAL_TENSOR,
       .flux_poly_order = 1,
+      .reflect = true,
     };
 
   //double clower[] = { 0.934, -0.01, -3.14 };
@@ -246,6 +248,7 @@ test_horizontal_plate()
       // psiRZ and related inputs
       .filepath = "./data/eqdsk/step.geqdsk",
       .rz_poly_order = 2,
+      .rz_basis_type = GKYL_BASIS_MODAL_TENSOR,
       .flux_poly_order = 1,
     };
 
@@ -318,6 +321,7 @@ test_vertical_plate()
       // psiRZ and related inputs
       .filepath = "./data/eqdsk/step.geqdsk",
       .rz_poly_order = 2,
+      .rz_basis_type = GKYL_BASIS_MODAL_TENSOR,
       .flux_poly_order = 1,
     };
 
@@ -388,6 +392,7 @@ test_shaped_plate()
       // psiRZ and related inputs
       .filepath = "./data/eqdsk/step.geqdsk",
       .rz_poly_order = 2,
+      .rz_basis_type = GKYL_BASIS_MODAL_TENSOR,
       .flux_poly_order = 1,
     };
 

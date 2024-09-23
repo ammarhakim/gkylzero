@@ -145,8 +145,8 @@ singleb_app_new(const struct gkyl_gyrokinetic_multib *mbinp, int bid,
 
   app_inp.poly_order = mbinp->poly_order;
   app_inp.basis_type = mbinp->basis_type;
-  app_inp.use_gpu = mbinp->use_gpu;
-  app_inp.cfl_frac = mbinp->cfl_frac;  
+  app_inp.cfl_frac = mbinp->cfl_frac; 
+
   app_inp.enforce_positivity = mbinp->enforce_positivity;
 
   for (int i=0; i<num_species; ++i) {
@@ -360,18 +360,17 @@ singleb_app_new(const struct gkyl_gyrokinetic_multib *mbinp, int bid,
   field_inp.phi_wall_up = fld_pb->phi_wall_up; 
   field_inp.phi_wall_up_evolve = fld_pb->phi_wall_up_evolve;   
 
-  // copy field input into app input
+  // Copy field input into app input
   memcpy(&app_inp.field, &field_inp, sizeof(struct gkyl_gyrokinetic_field));  
 
   struct gkyl_comm *comm = mbapp->block_comms[bid];
-  int local_rank;
-  gkyl_comm_get_rank(comm, &local_rank);
 
-  app_inp.has_low_inp = true;
-  app_inp.low_inp = (struct gkyl_app_comm_low_inp) {
-    .comm = comm,
-    .local_range = mbapp->decomp[bid]->ranges[local_rank]
-  };
+  struct gkyl_app_parallelism_inp parallel_inp = {};
+  parallel_inp.use_gpu = mbinp->use_gpu;
+  for (int d=0; d<cdim; ++d) parallel_inp.cuts[d] = bgi->cuts[d];
+  parallel_inp.comm = comm;
+  // Copy parallelism input into app input.
+  memcpy(&app_inp.parallelism, &parallel_inp, sizeof(struct gkyl_app_parallelism_inp));
   
   return gkyl_gyrokinetic_app_new(&app_inp);    
 }

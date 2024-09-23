@@ -118,8 +118,6 @@ struct gkyl_pkpm {
 
   double cfl_frac; // CFL fraction to use (default 1.0)
 
-  bool use_gpu; // Flag to indicate if solver should use GPUs
-
   int num_periodic_dir; // number of periodic directions
   int periodic_dirs[3]; // list of periodic directions
 
@@ -132,10 +130,7 @@ struct gkyl_pkpm {
                             // Default is a first-order operator split with 
                             // implicit fluid-EM coupling.
 
-  // this should not be set by typical user-facing code but only by
-  // higher-level drivers
-  bool has_low_inp; // should one use low-level inputs?
-  struct gkyl_app_comm_low_inp low_inp; // low-level inputs  
+  struct gkyl_app_parallelism_inp parallelism; // Parallelism-related inputs.
 };
 
 // Simulation statistics

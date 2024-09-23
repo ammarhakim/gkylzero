@@ -268,8 +268,6 @@ struct gkyl_vm {
 
   double cfl_frac; // CFL fraction to use (default 1.0)
 
-  bool use_gpu; // Flag to indicate if solver should use GPUs
-
   int num_periodic_dir; // number of periodic directions
   int periodic_dirs[3]; // list of periodic directions
 
@@ -282,10 +280,7 @@ struct gkyl_vm {
   bool skip_field; // Skip field update or no field specified
   struct gkyl_vlasov_field field; // field object
 
-  // this should not be set by typical user-facing code but only by
-  // higher-level drivers
-  bool has_low_inp; // should one use low-level inputs?
-  struct gkyl_app_comm_low_inp low_inp; // low-level inputs  
+  struct gkyl_app_parallelism_inp parallelism; // Parallelism-related inputs.
 };
 
 // Simulation statistics

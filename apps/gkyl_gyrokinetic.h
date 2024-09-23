@@ -275,10 +275,8 @@ struct gkyl_gk {
   enum gkyl_basis_type basis_type; // type of basis functions to use
 
   struct gkyl_gyrokinetic_geometry geometry; // geometry input struct
-                                             //
-  double cfl_frac; // CFL fraction to use (default 1.0)
 
-  bool use_gpu; // Flag to indicate if solver should use GPUs
+  double cfl_frac; // CFL fraction to use (default 1.0)
 
   bool enforce_positivity; // Positivity enforcement via shift in f.
 
@@ -294,10 +292,7 @@ struct gkyl_gk {
   bool skip_field; // Skip field update -> phi = 0 for all time
   struct gkyl_gyrokinetic_field field; // field object
 
-  // this should not be set by typical user-facing code but only by
-  // higher-level drivers
-  bool has_low_inp; // should one use low-level inputs?
-  struct gkyl_app_comm_low_inp low_inp; // low-level inputs  
+  struct gkyl_app_parallelism_inp parallelism; // Parallelism-related inputs.
 };
 
 // Simulation statistics

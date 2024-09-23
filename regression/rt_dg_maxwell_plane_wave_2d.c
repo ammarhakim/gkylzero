@@ -70,7 +70,9 @@ main(int argc, char **argv)
     .species = {  },
     .field = field,
  
-    .use_gpu = app_args.use_gpu,
+    .parallelism = {
+      .use_gpu = app_args.use_gpu,
+    },
   };
 
   // create app object
