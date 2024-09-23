@@ -50,9 +50,9 @@ cerforn_rt(void)
   gkyl_create_grid_ranges(&rzgrid, nghost, &rzlocal_ext, &rzlocal);
 
   // RZ basis function
-  int rzpoly_order = 2;
+  int rz_poly_order = 2;
   struct gkyl_basis rzbasis;
-  gkyl_cart_modal_serendip(&rzbasis, 2, rzpoly_order);
+  gkyl_cart_modal_serendip(&rzbasis, 2, rz_poly_order);
 
   // allocate psiRZ array, initialize and write it to file
   struct gkyl_array *psiRZ = gkyl_array_new(GKYL_DOUBLE, rzbasis.num_basis, rzlocal_ext.volume);
@@ -260,9 +260,9 @@ wham_2l_rt(void)
   gkyl_create_grid_ranges(&rzgrid, nghost, &rzlocal_ext, &rzlocal);
 
   // RZ basis function
-  int rzpoly_order = 2;
+  int rz_poly_order = 2;
   struct gkyl_basis rzbasis;
-  gkyl_cart_modal_serendip(&rzbasis, 2, rzpoly_order);
+  gkyl_cart_modal_serendip(&rzbasis, 2, rz_poly_order);
 
   // allocate psiRZ array, initialize and write it to file
   struct gkyl_array *psiRZ = gkyl_array_new(GKYL_DOUBLE, rzbasis.num_basis, rzlocal_ext.volume);
@@ -350,9 +350,9 @@ wham_beta0_rt(void)
   gkyl_create_grid_ranges(&rzgrid, nghost, &rzlocal_ext, &rzlocal);  
   
   // RZ basis function
-  int rzpoly_order = 2;
+  int rz_poly_order = 2;
   struct gkyl_basis rzbasis;
-  gkyl_cart_modal_serendip(&rzbasis, 2, rzpoly_order);  
+  gkyl_cart_modal_serendip(&rzbasis, 2, rz_poly_order);  
   
   gkyl_gkgeom *geo = gkyl_gkgeom_new(&(struct gkyl_gkgeom_inp) {
       // psiRZ and related inputs

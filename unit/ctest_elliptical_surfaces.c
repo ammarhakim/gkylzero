@@ -42,13 +42,13 @@ test_elliptical()
 
 
 
-  struct gkyl_tok_geo_efit_inp inp = {
+  struct gkyl_efit_inp efit_inp = {
       // psiRZ and related inputs
       .filepath = "./data/eqdsk/elliptical.geqdsk",
-      .rzpoly_order = 2,
-      .fluxpoly_order = 1,
-      .plate_spec = false,
-      .quad_param = {  .eps = 1e-10 }
+      .rz_poly_order = 2,
+      .flux_poly_order = 1,
+      .rz_basis_type = GKYL_BASIS_MODAL_TENSOR,
+      .reflect = true,
     };
 
   double psisep = -4.0;
@@ -73,16 +73,16 @@ test_elliptical()
     .rmax = 5.0,
     .ftype = GKYL_SOL_DN_OUT,
     .rclose = 6.0,
+    .rright = 6.0,
+    .rleft = 0.0,
     .zmin = -3.0,
     .zmax = 3.0,
-    .write_node_coord_array = true,
-    .node_file_nm = "elliptical_nodes.gkyl"
   }; 
 
   struct gkyl_gk_geometry_inp geometry_inp = {
     .geometry_id  = GKYL_TOKAMAK,
-    .tok_efit_info = &inp,
-    .tok_grid_info = &ginp,
+    .efit_info = efit_inp,
+    .tok_grid_info = ginp,
     .grid = cgrid,
     .local = clocal,
     .local_ext = clocal_ext,

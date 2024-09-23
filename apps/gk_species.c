@@ -7,6 +7,7 @@
 #include <gkyl_elem_type.h>
 #include <gkyl_eqn_type.h>
 #include <gkyl_gyrokinetic_priv.h>
+#include <gkyl_gyrokinetic_pol_density.h>
 #include <gkyl_array_rio.h>
 #include <gkyl_array_rio_priv.h>
 #include <gkyl_translate_dim_gyrokinetic.h>
@@ -39,6 +40,7 @@ gk_species_file_import_init(struct gkyl_gyrokinetic_app *app, struct gk_species 
   FILE *fp;
   with_file(fp, inp.file_name, "r") {
 
+    printf("here 0\n");
     int status = gkyl_grid_sub_array_header_read_fp(&grid_do, &hdr, fp);
 
     pdim_do = grid_do.ndim;
@@ -109,16 +111,17 @@ gk_species_file_import_init(struct gkyl_gyrokinetic_app *app, struct gk_species 
   gkyl_create_grid_ranges(&grid_do, ghost_do, &global_ext_do, &global_do);
 
   // Create a donor communicator.
-  int cuts_tar[GKYL_MAX_DIM] = {-1}, cuts_do[GKYL_MAX_DIM] = {-1};
-  gkyl_comm_get_cuts(gks->comm, cuts_tar);
-  if (pdim_do == pdim-1) {
+  int cuts_tar[GKYL_MAX_DIM] = {-1}, cuts_do[GKYL_MAX_CDIM] = {-1};
+  gkyl_rect_decomp_get_cuts(app->decomp, cuts_tar);
+  if (cdim_do == cdim-1) {
     for (int d=0; d<cdim_do-1; d++) cuts_do[d] = cuts_tar[d];
     cuts_do[cdim_do-1] = cuts_tar[cdim-1];
-    for (int d=0; d<vdim; d++) cuts_do[cdim_do+d] = cuts_tar[cdim+d];
   }
   else {
-    for (int d=0; d<pdim; d++) cuts_do[d] = cuts_tar[d];
+    for (int d=0; d<cdim; d++) cuts_do[d] = cuts_tar[d];
   }
+  // Set velocity space cuts to 1 as we do not use MPI in vel-space.
+  for (int d=0; d<vdim; d++) cuts_do[cdim_do+d] = 1;
 
   struct gkyl_rect_decomp *decomp_do = gkyl_rect_decomp_new_from_cuts(pdim_do, cuts_do, &global_do);
   struct gkyl_comm* comm_do = gkyl_comm_split_comm(gks->comm, 0, decomp_do);
@@ -557,13 +560,15 @@ gk_species_init(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *app, st
   }
 
   // Positivity enforcing by shifting f.
-  gks->enforce_positivity = false;
-  if (gks->info.enforce_positivity) {
-    gks->enforce_positivity = true;
-    gks->pos_shift_op = gkyl_positivity_shift_gyrokinetic_new(app->basis, gks->grid,
-      gks->info.mass, app->gk_geom, gks->vel_map, app->use_gpu);
-    gks->ps_intmom_grid = mkarr(app->use_gpu, vdim+2, app->local_ext.volume);
-    gks->ps_integ_diag = gkyl_dynvec_new(GKYL_DOUBLE, vdim+2);
+  if (app->enforce_positivity) {
+    gks->ps_delta_m0 = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
+    gks->pos_shift_op = gkyl_positivity_shift_gyrokinetic_new(app->confBasis, app->basis,
+      gks->grid, gks->info.mass, app->gk_geom, gks->vel_map, &app->local_ext, app->use_gpu);
+
+    // Allocate data for diagnostic moments
+    gk_species_moment_init(app, gks, &gks->ps_moms, "FourMoments");
+
+    gks->ps_integ_diag = gkyl_dynvec_new(GKYL_DOUBLE, gks->ps_moms.num_mom);
     gks->is_first_ps_integ_write_call = true;
   }
 }
@@ -577,6 +582,49 @@ gk_species_apply_ic(gkyl_gyrokinetic_app *app, struct gk_species *gks, double t0
   // We are pre-computing source for now as it is time-independent.
   if (gks->source_id)
     gk_species_source_calc(app, gks, &gks->src, t0);
+}
+
+void
+gk_species_apply_ic_cross(gkyl_gyrokinetic_app *app, struct gk_species *gks_self, double t0)
+{
+  // IC setup step that depends on the IC of other species.
+
+  if (app->field->init_phi_pol && gks_self->info.charge > 0.0) {
+    // Scale the distribution function so its guiding center density is computed
+    // given the polarization density and the guiding center density of other species.
+
+    // Compute the polarization density.
+    struct gkyl_array *npol = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
+
+    struct gkyl_gyrokinetic_pol_density* npol_op = gkyl_gyrokinetic_pol_density_new(app->confBasis, app->grid, app->use_gpu);
+    gkyl_gyrokinetic_pol_density_advance(npol_op, &app->local, app->field->epsilon, app->field->phi_pol, npol);
+    gkyl_gyrokinetic_pol_density_release(npol_op);
+
+    // Calculate the guiding center density of this species: (npol - q_other*n^G_other)/q_self.
+    for (int i=0; i<app->num_species; ++i) {
+      struct gk_species *gks = &app->species[i];
+      gk_species_moment_calc(&gks->m0, gks->local, app->local, gks->f);
+      if (strcmp(gks->info.name, gks_self->info.name)) {
+        gkyl_array_accumulate(npol, -gks->info.charge, gks->m0.marr);
+      }
+    }
+    gkyl_array_scale(npol, 1./gks_self->info.charge);
+
+    // Scale the distribution function so it has this guiding center density.
+    struct gkyl_dg_bin_op_mem *div_mem = app->use_gpu? gkyl_dg_bin_op_mem_cu_dev_new(app->local.volume, app->confBasis.num_basis)
+                                                     : gkyl_dg_bin_op_mem_new(app->local.volume, app->confBasis.num_basis);
+    struct gkyl_array *den_mod = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
+
+    gkyl_dg_div_op_range(div_mem, app->confBasis,
+      0, den_mod, 0, npol, 0, gks_self->m0.marr, &app->local);
+    gkyl_dg_mul_conf_phase_op_range(&app->confBasis, &app->basis, gks_self->f,
+      den_mod, gks_self->f, &app->local_ext, &gks_self->local_ext);
+
+    gkyl_array_release(den_mod);
+    gkyl_dg_bin_op_mem_release(div_mem);
+    gkyl_array_release(npol);
+  }
+
 }
 
 // Compute the RHS for species update, returning maximum stable
@@ -813,9 +861,10 @@ gk_species_release(const gkyl_gyrokinetic_app* app, const struct gk_species *s)
     gkyl_free(s->red_integ_diag_global);
   }
 
-  if (s->enforce_positivity) {
+  if (app->enforce_positivity) {
+    gkyl_array_release(s->ps_delta_m0);
     gkyl_positivity_shift_gyrokinetic_release(s->pos_shift_op);
-    gkyl_array_release(s->ps_intmom_grid);
+    gk_species_moment_release(app, &s->ps_moms);
     gkyl_dynvec_release(s->ps_integ_diag);
   }
 }

@@ -207,7 +207,14 @@ moment_species_init(const struct gkyl_moment *mom, const struct gkyl_moment_spec
         case GKYL_SPECIES_COPY:
         case GKYL_SPECIES_WEDGE: // wedge also uses bc_copy
           sp->lower_bc[dir] = gkyl_wv_apply_bc_new(
-            &app->grid, mom_sp->equation, app->geom, dir, GKYL_LOWER_EDGE, nghost, bc_copy, 0);
+            &app->grid, mom_sp->equation, app->geom, dir, GKYL_LOWER_EDGE, nghost,
+            bc_copy, 0);
+          break;
+
+        case GKYL_SPECIES_SKIP:
+          sp->lower_bc[dir] = gkyl_wv_apply_bc_new(
+            &app->grid, mom_sp->equation, app->geom, dir, GKYL_LOWER_EDGE, nghost,
+            bc_skip, 0);
           break;
 
         default:
@@ -238,7 +245,14 @@ moment_species_init(const struct gkyl_moment *mom, const struct gkyl_moment_spec
         case GKYL_SPECIES_COPY:
         case GKYL_SPECIES_WEDGE:
           sp->upper_bc[dir] = gkyl_wv_apply_bc_new(
-            &app->grid, mom_sp->equation, app->geom, dir, GKYL_UPPER_EDGE, nghost, bc_copy, 0);
+            &app->grid, mom_sp->equation, app->geom, dir, GKYL_UPPER_EDGE, nghost,
+            bc_copy, 0);
+          break;
+
+        case GKYL_SPECIES_SKIP:
+          sp->upper_bc[dir] = gkyl_wv_apply_bc_new(
+            &app->grid, mom_sp->equation, app->geom, dir, GKYL_UPPER_EDGE, nghost,
+            bc_skip, 0);
           break;
 
         default:

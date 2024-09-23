@@ -4,13 +4,17 @@
 #include <gkyl_array_ops.h>
 #include <gkyl_array_rio.h>
 #include <gkyl_array_rio_format_desc.h>
+#include <gkyl_array_rio_priv.h>
 #include <gkyl_comm_priv.h>
 #include <gkyl_elem_type_priv.h>
 #include <gkyl_mpi_comm.h>
 #include <gkyl_nccl_comm.h>
+#include <gkyl_comm_io.h>
 #include <gkyl_util.h>
 
+#include <assert.h>
 #include <errno.h>
+#include <string.h>
 
 // Maximum number of recv neighbors: not sure hard-coding this is a
 // good idea.
@@ -80,7 +84,7 @@ struct comm_buff_stat {
 
 // Private struct wrapping NCCL-specific code
 struct nccl_comm {
-  struct gkyl_comm base; // base communicator.
+  struct gkyl_comm_priv priv_comm; // base communicator.
 
   int rank; // Process ID in this communicator.
   int size; // Size of this communicator.
@@ -117,7 +121,7 @@ comm_state_new(struct gkyl_comm *comm)
 {
   struct gkyl_comm_state *state = gkyl_malloc(sizeof *state);
 
-  struct nccl_comm *nccl = container_of(comm, struct nccl_comm, base);
+  struct nccl_comm *nccl = container_of(comm, struct nccl_comm, priv_comm.pub_comm);
   state->ncomm = &nccl->ncomm;
   state->custream = &nccl->custream;
 
@@ -144,7 +148,7 @@ static void
 comm_free(const struct gkyl_ref_count *ref)
 {
   struct gkyl_comm *comm = container_of(ref, struct gkyl_comm, ref_count);
-  struct nccl_comm *nccl = container_of(comm, struct nccl_comm, base);
+  struct nccl_comm *nccl = container_of(comm, struct nccl_comm, priv_comm.pub_comm);
 
   if (nccl->has_decomp) {
     int ndim = nccl->decomp->ndim;
@@ -176,7 +180,7 @@ comm_free(const struct gkyl_ref_count *ref)
 static int
 get_rank(struct gkyl_comm *comm, int *rank)
 {
-  struct nccl_comm *nccl = container_of(comm, struct nccl_comm, base);
+  struct nccl_comm *nccl = container_of(comm, struct nccl_comm, priv_comm.pub_comm);
   *rank = nccl->rank;
   return 0;
 }
@@ -184,24 +188,15 @@ get_rank(struct gkyl_comm *comm, int *rank)
 static int
 get_size(struct gkyl_comm *comm, int *sz)
 {
-  struct nccl_comm *nccl = container_of(comm, struct nccl_comm, base);
+  struct nccl_comm *nccl = container_of(comm, struct nccl_comm, priv_comm.pub_comm);
   *sz = nccl->size;
-  return 0;
-}
-
-static int
-get_cuts(struct gkyl_comm *comm, int *cuts)
-{
-  struct nccl_comm *nccl = container_of(comm, struct nccl_comm, base);
-
-  gkyl_rect_decomp_get_cuts(nccl->decomp, cuts);
   return 0;
 }
 
 static int
 barrier(struct gkyl_comm *comm)
 {
-  struct nccl_comm *nccl = container_of(comm, struct nccl_comm, base);
+  struct nccl_comm *nccl = container_of(comm, struct nccl_comm, priv_comm.pub_comm);
   ncclResult_t nstat;
   do {
     checkNCCL(ncclCommGetAsyncError(nccl->ncomm, &nstat));
@@ -217,7 +212,7 @@ array_write(struct gkyl_comm *comm,
   const struct gkyl_array_meta *meta,
   const struct gkyl_array *arr, const char *fname)
 {
-  struct nccl_comm *nccl = container_of(comm, struct nccl_comm, base);
+  struct nccl_comm *nccl = container_of(comm, struct nccl_comm, priv_comm.pub_comm);
   return gkyl_comm_array_write(nccl->mpi_comm, grid, range, meta, arr, fname);
 }
 
@@ -226,7 +221,7 @@ array_read(struct gkyl_comm *comm,
   const struct gkyl_rect_grid *grid, const struct gkyl_range *range,
   struct gkyl_array *arr, const char *fname)
 {
-  struct nccl_comm *nccl = container_of(comm, struct nccl_comm, base);
+  struct nccl_comm *nccl = container_of(comm, struct nccl_comm, priv_comm.pub_comm);
   return gkyl_comm_array_read(nccl->mpi_comm, grid, range, arr, fname);
 }
 
@@ -234,7 +229,7 @@ static int
 array_send(struct gkyl_array *array, int dest, int tag, struct gkyl_comm *comm)
 {
   size_t vol = array->ncomp*array->size;
-  struct nccl_comm *nccl = container_of(comm, struct nccl_comm, base);
+  struct nccl_comm *nccl = container_of(comm, struct nccl_comm, priv_comm.pub_comm);
   ncclResult_t nstat = ncclSend(array->data, vol, g2_nccl_datatype[array->type], dest, nccl->ncomm, nccl->custream);
   do {
     checkNCCL(ncclCommGetAsyncError(nccl->ncomm, &nstat));
@@ -247,7 +242,7 @@ static int
 array_recv(struct gkyl_array *array, int src, int tag, struct gkyl_comm *comm)
 {
   size_t vol = array->ncomp*array->size;
-  struct nccl_comm *nccl = container_of(comm, struct nccl_comm, base);
+  struct nccl_comm *nccl = container_of(comm, struct nccl_comm, priv_comm.pub_comm);
   ncclResult_t nstat = ncclRecv(array->data, vol, g2_nccl_datatype[array->type], src, nccl->ncomm, nccl->custream);
   do {
     checkNCCL(ncclCommGetAsyncError(nccl->ncomm, &nstat));
@@ -260,7 +255,7 @@ static int
 array_isend(struct gkyl_array *array, int dest, int tag, struct gkyl_comm *comm, struct gkyl_comm_state *state)
 {
   size_t vol = array->ncomp*array->size;
-  struct nccl_comm *nccl = container_of(comm, struct nccl_comm, base);
+  struct nccl_comm *nccl = container_of(comm, struct nccl_comm, priv_comm.pub_comm);
   checkNCCL(ncclSend(array->data, vol, g2_nccl_datatype[array->type], dest, nccl->ncomm, nccl->custream));
   state->tag = tag;
   state->peer = dest;
@@ -271,7 +266,7 @@ static int
 array_irecv(struct gkyl_array *array, int src, int tag, struct gkyl_comm *comm, struct gkyl_comm_state *state)
 {
   size_t vol = array->ncomp*array->size;
-  struct nccl_comm *nccl = container_of(comm, struct nccl_comm, base);
+  struct nccl_comm *nccl = container_of(comm, struct nccl_comm, priv_comm.pub_comm);
   checkNCCL(ncclRecv(array->data, vol, g2_nccl_datatype[array->type], src, nccl->ncomm, nccl->custream));
   state->tag = tag;
   state->peer = src;
@@ -283,7 +278,7 @@ allreduce(struct gkyl_comm *comm, enum gkyl_elem_type type,
   enum gkyl_array_op op, int nelem, const void *inp,
   void *out)
 {
-  struct nccl_comm *nccl = container_of(comm, struct nccl_comm, base);
+  struct nccl_comm *nccl = container_of(comm, struct nccl_comm, priv_comm.pub_comm);
   checkNCCL(ncclAllReduce(inp, out, nelem, g2_nccl_datatype[type], g2_nccl_op[op], nccl->ncomm, nccl->custream));
   return 0;
 }
@@ -293,7 +288,7 @@ allreduce_host(struct gkyl_comm *comm, enum gkyl_elem_type type,
   enum gkyl_array_op op, int nelem, const void *inp,
   void *out)
 {
-  struct nccl_comm *nccl = container_of(comm, struct nccl_comm, base);  
+  struct nccl_comm *nccl = container_of(comm, struct nccl_comm, priv_comm.pub_comm);  
   return gkyl_comm_allreduce(nccl->mpi_comm, type, op, nelem, inp, out);
 }
 
@@ -304,7 +299,7 @@ array_allgather(struct gkyl_comm *comm,
 {
   assert(array_global->esznc == array_local->esznc);
 
-  struct nccl_comm *nccl = container_of(comm, struct nccl_comm, base);
+  struct nccl_comm *nccl = container_of(comm, struct nccl_comm, priv_comm.pub_comm);
 
   struct gkyl_range gather_range;
 
@@ -353,7 +348,7 @@ array_bcast(struct gkyl_comm *comm, const struct gkyl_array *asend,
   assert(asend->esznc == arecv->esznc);
   assert(asend->size == arecv->size);
 
-  struct nccl_comm *nccl = container_of(comm, struct nccl_comm, base);
+  struct nccl_comm *nccl = container_of(comm, struct nccl_comm, priv_comm.pub_comm);
 
   size_t nelem = asend->ncomp*asend->size;
 
@@ -367,7 +362,7 @@ static int
 array_bcast_host(struct gkyl_comm *comm, const struct gkyl_array *asend,
   struct gkyl_array *arecv, int root)
 {
-  struct nccl_comm *nccl = container_of(comm, struct nccl_comm, base);
+  struct nccl_comm *nccl = container_of(comm, struct nccl_comm, priv_comm.pub_comm);
   return gkyl_comm_array_bcast_host(nccl->mpi_comm, asend, arecv, root);
 }
 
@@ -387,7 +382,7 @@ static int
 array_sync(struct gkyl_comm *comm, const struct gkyl_range *local,
   const struct gkyl_range *local_ext, struct gkyl_array *array)
 {
-  struct nccl_comm *nccl = container_of(comm, struct nccl_comm, base);
+  struct nccl_comm *nccl = container_of(comm, struct nccl_comm, priv_comm.pub_comm);
 
   int elo[GKYL_MAX_DIM], eup[GKYL_MAX_DIM];
   for (int i=0; i<nccl->decomp->ndim; ++i)
@@ -468,7 +463,7 @@ array_per_sync(struct gkyl_comm *comm, const struct gkyl_range *local,
   const struct gkyl_range *local_ext,
   int nper_dirs, const int *per_dirs, struct gkyl_array *array)
 {
-  struct nccl_comm *nccl = container_of(comm, struct nccl_comm, base);
+  struct nccl_comm *nccl = container_of(comm, struct nccl_comm, priv_comm.pub_comm);
 
   if (!nccl->touches_any_edge) return 0; // nothing to sync
 
@@ -591,7 +586,7 @@ array_per_sync(struct gkyl_comm *comm, const struct gkyl_range *local,
 static struct gkyl_comm*
 extend_comm(const struct gkyl_comm *comm, const struct gkyl_range *erange)
 {
-  struct nccl_comm *nccl = container_of(comm, struct nccl_comm, base);
+  struct nccl_comm *nccl = container_of(comm, struct nccl_comm, priv_comm.pub_comm);
 
   // extend internal decomp object and create a new communicator
   struct gkyl_rect_decomp *ext_decomp = gkyl_rect_decomp_extended_new(erange, nccl->decomp);
@@ -610,7 +605,7 @@ extend_comm(const struct gkyl_comm *comm, const struct gkyl_range *erange)
 static struct gkyl_comm*
 split_comm(const struct gkyl_comm *comm, int color, struct gkyl_rect_decomp *new_decomp)
 {
-  struct nccl_comm *nccl = container_of(comm, struct nccl_comm, base);
+  struct nccl_comm *nccl = container_of(comm, struct nccl_comm, priv_comm.pub_comm);
   MPI_Comm new_mcomm;
   int ret = MPI_Comm_split(nccl->mcomm, color, nccl->rank, &new_mcomm);
   assert(ret == MPI_SUCCESS);
@@ -629,6 +624,8 @@ struct gkyl_comm*
 gkyl_nccl_comm_new(const struct gkyl_nccl_comm_inp *inp)
 {
   struct nccl_comm *nccl = gkyl_malloc(sizeof *nccl);
+  strcpy(nccl->priv_comm.pub_comm.id, "nccl_comm");
+  
   nccl->mcomm = inp->mpi_comm;
 
   nccl->mpi_comm = gkyl_mpi_comm_new( &(struct gkyl_mpi_comm_inp)
@@ -673,72 +670,76 @@ gkyl_nccl_comm_new(const struct gkyl_nccl_comm_inp *inp)
 
   nccl->sync_corners = inp->sync_corners;
 
-  nccl->has_decomp = false;
-  // In case this nccl_comm purely an object holding an ncclComm,
-  // not associated with any range nor decomposition of it.
-  if (inp->decomp != 0) { 
-    nccl->has_decomp = true;
+  nccl->priv_comm.pub_comm.has_decomp = true;
+  if (0 == inp->decomp) {
+    nccl->priv_comm.pub_comm.has_decomp = false;
 
-    nccl->decomp = gkyl_rect_decomp_acquire(inp->decomp);
-    nccl->neigh = gkyl_rect_decomp_calc_neigh(nccl->decomp, inp->sync_corners, nccl->rank);
-    for (int d=0; d<nccl->decomp->ndim; ++d)
-      nccl->per_neigh[d] =
-        gkyl_rect_decomp_calc_periodic_neigh(nccl->decomp, d, false, nccl->rank);
-  
-    nccl->nrecv = 0;
-    for (int i=0; i<MAX_RECV_NEIGH; ++i)
-      nccl->recv[i].buff = gkyl_mem_buff_cu_new(16);
-  
-    nccl->nsend = 0;
-    for (int i=0; i<MAX_RECV_NEIGH; ++i)
-      nccl->send[i].buff = gkyl_mem_buff_cu_new(16);
-
-    nccl->allgather_buff_local.buff = gkyl_mem_buff_cu_new(16);
-    nccl->allgather_buff_global.buff = gkyl_mem_buff_cu_new(16);
-
-    gkyl_range_init(&nccl->dir_edge, 2, (int[]) { 0, 0 }, (int[]) { GKYL_MAX_DIM, 2 });
-
-    int num_touches = 0;
-    for (int d=0; d<nccl->decomp->ndim; ++d) {
-      nccl->is_on_edge[0][d] = gkyl_range_is_on_lower_edge(
-        d, &nccl->decomp->ranges[nccl->rank], &nccl->decomp->parent_range);
-      nccl->is_on_edge[1][d] = gkyl_range_is_on_upper_edge(
-        d, &nccl->decomp->ranges[nccl->rank], &nccl->decomp->parent_range);
-      num_touches += nccl->is_on_edge[0][d] + nccl->is_on_edge[1][d];
-    }
-    nccl->touches_any_edge = num_touches > 0 ? true : false;
-  
-    nccl->local_range_offset = gkyl_rect_decomp_calc_offset(nccl->decomp, nccl->rank);
-
-    nccl->base.gkyl_array_allgather = array_allgather;
-    nccl->base.gkyl_array_sync = array_sync;
-    nccl->base.gkyl_array_per_sync = array_per_sync;
-    nccl->base.gkyl_array_write = array_write;
-    nccl->base.gkyl_array_read = array_read;
+    // Construct a dummy decomposition.
+    nccl->decomp = gkyl_rect_decomp_new_from_cuts_and_cells(1,
+      (int[]) { nccl->size }, (int[]) { nccl->size });
   }
-  
-  nccl->base.get_rank = get_rank;
-  nccl->base.get_size = get_size;
-  nccl->base.get_cuts = get_cuts;
-  nccl->base.barrier = barrier;
-  nccl->base.allreduce = allreduce;
-  nccl->base.allreduce_host = allreduce_host;
-  nccl->base.gkyl_array_send = array_send;
-  nccl->base.gkyl_array_isend = array_isend;
-  nccl->base.gkyl_array_recv = array_recv;
-  nccl->base.gkyl_array_irecv = array_irecv;
-  nccl->base.gkyl_array_bcast = array_bcast;
-  nccl->base.gkyl_array_bcast_host = array_bcast_host;
-  nccl->base.comm_state_new = comm_state_new;
-  nccl->base.comm_state_release = comm_state_release;
-  nccl->base.comm_state_wait = comm_state_wait;
-  nccl->base.comm_group_call_start = group_call_start;
-  nccl->base.comm_group_call_end = group_call_end;
-  nccl->base.extend_comm = extend_comm;
-  nccl->base.split_comm = split_comm;
-  nccl->base.ref_count = gkyl_ref_count_init(comm_free);
+  else {
+    nccl->decomp = gkyl_rect_decomp_acquire(inp->decomp);
+  }
 
-  return &nccl->base;
+  nccl->neigh = gkyl_rect_decomp_calc_neigh(nccl->decomp, inp->sync_corners, nccl->rank);
+  for (int d=0; d<nccl->decomp->ndim; ++d)
+    nccl->per_neigh[d] =
+      gkyl_rect_decomp_calc_periodic_neigh(nccl->decomp, d, false, nccl->rank);
+  
+  nccl->nrecv = 0;
+  for (int i=0; i<MAX_RECV_NEIGH; ++i)
+    nccl->recv[i].buff = gkyl_mem_buff_cu_new(16);
+  
+  nccl->nsend = 0;
+  for (int i=0; i<MAX_RECV_NEIGH; ++i)
+    nccl->send[i].buff = gkyl_mem_buff_cu_new(16);
+
+  nccl->allgather_buff_local.buff = gkyl_mem_buff_cu_new(16);
+  nccl->allgather_buff_global.buff = gkyl_mem_buff_cu_new(16);
+
+  gkyl_range_init(&nccl->dir_edge, 2, (int[]) { 0, 0 }, (int[]) { GKYL_MAX_DIM, 2 });
+
+  int num_touches = 0;
+  for (int d=0; d<nccl->decomp->ndim; ++d) {
+    nccl->is_on_edge[0][d] = gkyl_range_is_on_lower_edge(
+      d, &nccl->decomp->ranges[nccl->rank], &nccl->decomp->parent_range);
+    nccl->is_on_edge[1][d] = gkyl_range_is_on_upper_edge(
+      d, &nccl->decomp->ranges[nccl->rank], &nccl->decomp->parent_range);
+    num_touches += nccl->is_on_edge[0][d] + nccl->is_on_edge[1][d];
+  }
+  nccl->touches_any_edge = num_touches > 0 ? true : false;
+  
+  nccl->local_range_offset = gkyl_rect_decomp_calc_offset(nccl->decomp, nccl->rank);
+
+  nccl->priv_comm.gkyl_array_allgather = array_allgather;
+  nccl->priv_comm.gkyl_array_sync = array_sync;
+  nccl->priv_comm.gkyl_array_per_sync = array_per_sync;
+  nccl->priv_comm.gkyl_array_write = array_write;
+  nccl->priv_comm.gkyl_array_read = array_read;
+  
+  nccl->priv_comm.get_rank = get_rank;
+  nccl->priv_comm.get_size = get_size;
+  nccl->priv_comm.barrier = barrier;
+  nccl->priv_comm.allreduce = allreduce;
+  nccl->priv_comm.allreduce_host = allreduce_host;
+// MF 2024/09/12: disable these for now per 498b7d1569eaa9285ae59581bd22dab124672f7b.
+//  nccl->priv_comm.gkyl_array_send = array_send;
+//  nccl->priv_comm.gkyl_array_isend = array_isend;
+//  nccl->priv_comm.gkyl_array_recv = array_recv;
+//  nccl->priv_comm.gkyl_array_irecv = array_irecv;
+//  nccl->priv_comm.comm_state_new = comm_state_new;
+//  nccl->priv_comm.comm_state_release = comm_state_release;
+//  nccl->priv_comm.comm_state_wait = comm_state_wait;
+  nccl->priv_comm.gkyl_array_bcast = array_bcast;
+  nccl->priv_comm.gkyl_array_bcast_host = array_bcast_host;
+  nccl->priv_comm.comm_group_call_start = group_call_start;
+  nccl->priv_comm.comm_group_call_end = group_call_end;
+  nccl->priv_comm.extend_comm = extend_comm;
+  nccl->priv_comm.split_comm = split_comm;
+  nccl->priv_comm.pub_comm.ref_count = gkyl_ref_count_init(comm_free);
+
+  return &nccl->priv_comm.pub_comm;
 }
 
 #endif

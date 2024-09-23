@@ -170,7 +170,9 @@ main(int argc, char **argv)
     .species = { neut },
     .skip_field = true,
 
-    .use_gpu = app_args.use_gpu,
+    .parallelism = {
+      .use_gpu = app_args.use_gpu,
+    },
   };
 
   // create app object

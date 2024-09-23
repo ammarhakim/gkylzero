@@ -43,6 +43,20 @@ struct gkyl_array {
 struct gkyl_array* gkyl_array_new(enum gkyl_elem_type type, size_t ncomp, size_t size);
 
 /**
+ * Create new array from per-allocated memory. You must ensure that
+ * the memory is sufficiently large for use in the array. Delete using
+ * gkyl_array_release method.
+ *
+ * @param type Type of data in array
+ * @param ncomp Number of components at each index
+ * @param size Number of indices
+ * @param buff Buffer to use for array data
+ * @return Pointer to newly allocated array.
+ */
+struct gkyl_array *gkyl_array_new_from_buff(
+  enum gkyl_elem_type type, size_t ncomp, size_t size, void *buff);
+
+/**
  * Create new array with data on NV-GPU. Delete using
  * gkyl_array_release method.
  *
@@ -76,6 +90,14 @@ struct gkyl_array* gkyl_array_cu_host_new(enum gkyl_elem_type type, size_t ncomp
  * @return true of array lives on NV-GPU, false otherwise
  */
 bool gkyl_array_is_cu_dev(const struct gkyl_array *arr);
+
+/**
+ * Returns true if array uses external buffer for storage.
+ *
+ * @param arr Array to check
+ * @return true if array uses external buffer for storage
+ */
+bool gkyl_array_is_using_buffer(const struct gkyl_array *arr);
 
 /**
  * Copy into array: pointer to dest array is returned. 'dest' and

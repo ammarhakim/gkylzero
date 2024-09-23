@@ -4,6 +4,18 @@
 
 #include <gkyl_alloc.h>
 #include <gkyl_pkpm.h>
+#include <gkyl_util.h>
+
+#include <gkyl_null_comm.h>
+
+#ifdef GKYL_HAVE_MPI
+#include <mpi.h>
+#include <gkyl_mpi_comm.h>
+#ifdef GKYL_HAVE_NCCL
+#include <gkyl_nccl_comm.h>
+#endif
+#endif
+
 #include <rt_arg_parse.h>
 
 struct pkpm_sheath_ctx {
@@ -129,6 +141,12 @@ main(int argc, char **argv)
 {
   struct gkyl_app_args app_args = parse_app_args(argc, argv);
 
+#ifdef GKYL_HAVE_MPI
+  if (app_args.use_mpi) {
+    MPI_Init(&argc, &argv);
+  }
+#endif
+
   if (app_args.trace_mem) {
     gkyl_cu_dev_mem_debug_set(true);
     gkyl_mem_debug_set(true);
@@ -158,7 +176,6 @@ main(int argc, char **argv)
       .self_nu = evalNuElc,
     },    
 
-    //.diffusion = {.D = 1.0e-5, .order=4},
     .bcx = { GKYL_SPECIES_ABSORB, GKYL_SPECIES_ABSORB },
   };
   
@@ -182,7 +199,6 @@ main(int argc, char **argv)
       .self_nu = evalNuIon,
     },    
 
-    //.diffusion = {.D = 1.0e-5, .order=4},
     .bcx = { GKYL_SPECIES_ABSORB, GKYL_SPECIES_ABSORB },
   };
 
@@ -199,6 +215,65 @@ main(int argc, char **argv)
     .ext_em = evalExtEmFunc,
     .ext_em_ctx = &ctx,
   };
+
+  int nrank = 1; // Number of processes in simulation.
+#ifdef GKYL_HAVE_MPI
+  if (app_args.use_mpi) {
+    MPI_Comm_size(MPI_COMM_WORLD, &nrank);
+  }
+#endif
+
+  // Construct communicator for use in app.
+  struct gkyl_comm *comm;
+#ifdef GKYL_HAVE_MPI
+  if (app_args.use_gpu && app_args.use_mpi) {
+#ifdef GKYL_HAVE_NCCL
+    comm = gkyl_nccl_comm_new( &(struct gkyl_nccl_comm_inp) {
+        .mpi_comm = MPI_COMM_WORLD,
+      }
+    );
+#else
+    printf(" Using -g and -M together requires NCCL.\n");
+    assert(0 == 1);
+#endif
+  }
+  else if (app_args.use_mpi) {
+    comm = gkyl_mpi_comm_new( &(struct gkyl_mpi_comm_inp) {
+        .mpi_comm = MPI_COMM_WORLD,
+      }
+    );
+  }
+  else {
+    comm = gkyl_null_comm_inew( &(struct gkyl_null_comm_inp) {
+        .use_gpu = app_args.use_gpu
+      }
+    );
+  }
+#else
+  comm = gkyl_null_comm_inew( &(struct gkyl_null_comm_inp) {
+      .use_gpu = app_args.use_gpu
+    }
+  );
+#endif
+
+  int my_rank;
+  gkyl_comm_get_rank(comm, &my_rank);
+  int comm_size;
+  gkyl_comm_get_size(comm, &comm_size);
+
+  int ccells[] = { NX };
+  int cdim = sizeof(ccells) / sizeof(ccells[0]);
+  int ncuts = 1;
+  for (int d = 0; d < cdim; d++) {
+    ncuts *= app_args.cuts[d];
+  }
+
+  if (ncuts != comm_size) {
+    if (my_rank == 0) {
+      fprintf(stderr, "*** Number of ranks, %d, does not match total cuts, %d!\n", comm_size, ncuts);
+    }
+    goto mpifinalize;
+  }
 
   // pkpm app
   struct gkyl_pkpm pkpm = {
@@ -218,7 +293,11 @@ main(int argc, char **argv)
     .species = { elc, ion },
     .field = field,
 
-    .use_gpu = app_args.use_gpu,
+    .parallelism = {
+      .use_gpu = app_args.use_gpu,
+      .cuts = { app_args.cuts[0] },
+      .comm = comm,
+    },
   };
 
   // create app object
@@ -297,8 +376,17 @@ main(int argc, char **argv)
   gkyl_pkpm_app_cout(app, stdout, "Number of write calls %ld,\n", stat.nio);
   gkyl_pkpm_app_cout(app, stdout, "IO time took %g secs \n", stat.io_tm);
 
+  gkyl_comm_release(comm);
+
   // simulation complete, free app
   gkyl_pkpm_app_release(app);
+
+  mpifinalize:
+  ;
+#ifdef GKYL_HAVE_MPI
+  if (app_args.use_mpi)
+    MPI_Finalize();
+#endif  
   
   return 0;
 }
