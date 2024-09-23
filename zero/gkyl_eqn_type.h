@@ -106,6 +106,9 @@ enum gkyl_ion_type
 };
 
 // Identifiers for different self in reaction
+//  - For IZ: GKYL_SELF_ELC, GKYL_SELF_ION, GKYL_SELF_DONOR.
+//  - For CX: GKYL_SELF_ION, GKYL_SELF_PARTNER.
+//  - For RECOMB: GKYL_SELF_ELC, GKYL_SELF_ION, GKYL_SELF_RECVR.
 enum gkyl_react_self_type
 {
   GKYL_SELF_ELC = 0, // Electron species in reaction
