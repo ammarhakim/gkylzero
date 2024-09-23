@@ -465,7 +465,7 @@ main(int argc, char **argv)
     .lower = { -ctx.vpar_max_ion, 0.0},
     .upper = { ctx.vpar_max_ion, ctx.mu_max_ion}, 
     .cells = { cells_v[0], cells_v[1] },
-    .polarization_density = ctx.n0,
+    .polarization_density = ctx.n0 - ctx.n0Ar1 - 2*ctx.n0Ar2,
 
     .projection = {
       .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM, 
