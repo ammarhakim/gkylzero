@@ -305,8 +305,8 @@ gkyl_efit* gkyl_efit_new(const struct gkyl_efit_inp *inp)
   }
 
   up->num_xpts_cubic = find_xpts_cubic(up, Rxpt, Zxpt);
-  up->Rxpt_cubic = gkyl_malloc(sizeof(double)*up->num_xpts);
-  up->Zxpt_cubic = gkyl_malloc(sizeof(double)*up->num_xpts);
+  up->Rxpt_cubic = gkyl_malloc(sizeof(double)*up->num_xpts_cubic);
+  up->Zxpt_cubic = gkyl_malloc(sizeof(double)*up->num_xpts_cubic);
   for (int i = 0; i < up->num_xpts_cubic; i++) {
     up->Rxpt_cubic[i] = Rxpt[i];
     up->Zxpt_cubic[i] = Zxpt[i];
