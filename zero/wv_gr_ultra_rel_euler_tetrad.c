@@ -942,10 +942,153 @@ gr_ultra_rel_euler_tetrad_cons_to_diag(const struct gkyl_wv_eqn* eqn, const doub
 static inline void
 gr_ultra_rel_euler_tetrad_source(const struct gkyl_wv_eqn* eqn, const double* qin, double* sout)
 {
-  // TODO: Rewrite source solver(s).
-  for (int i = 0; i < 27; i++) {
-    sout[i] = 0.0;
+  const struct wv_gr_ultra_rel_euler_tetrad *gr_ultra_rel_euler_tetrad = container_of(eqn, struct wv_gr_ultra_rel_euler_tetrad, eqn);
+  double gas_gamma = gr_ultra_rel_euler_tetrad->gas_gamma;
+
+  double v[28] = { 0.0 };
+  gkyl_gr_ultra_rel_euler_tetrad_prim_vars(gas_gamma, qin, v);
+  double rho = v[0];
+  double vx = v[1];
+  double vy = v[2];
+  double vz = v[3];
+  double p = (gas_gamma - 1.0) * rho;
+
+  double lapse = v[4];
+  double shift_x = v[5];
+  double shift_y = v[6];
+  double shift_z = v[7];
+
+  double **spatial_metric = gkyl_malloc(sizeof(double*[3]));
+  for (int i = 0; i < 3; i++) {
+    spatial_metric[i] = gkyl_malloc(sizeof(double[3]));
   }
+
+  spatial_metric[0][0] = v[8]; spatial_metric[0][1] = v[9]; spatial_metric[0][2] = v[10];
+  spatial_metric[1][0] = v[11]; spatial_metric[1][1] = v[12]; spatial_metric[1][2] = v[13];
+  spatial_metric[2][0] = v[14]; spatial_metric[2][1] = v[15]; spatial_metric[2][2] = v[16];
+
+  double **extrinsic_curvature = gkyl_malloc(sizeof(double*[3]));
+  for (int i = 0; i < 3; i++) {
+    extrinsic_curvature[i] = gkyl_malloc(sizeof(double[3]));
+  }
+
+  extrinsic_curvature[0][0] = v[17]; extrinsic_curvature[0][1] = v[18]; extrinsic_curvature[0][2] = v[19];
+  extrinsic_curvature[1][0] = v[20]; extrinsic_curvature[1][1] = v[21]; extrinsic_curvature[1][2] = v[22];
+  extrinsic_curvature[2][0] = v[23]; extrinsic_curvature[2][1] = v[24]; extrinsic_curvature[2][2] = v[25];
+
+  double **stress_energy = gkyl_malloc(sizeof(double*[4]));
+  for (int i = 0; i < 4; i++) {
+    stress_energy[i] = gkyl_malloc(sizeof(double[4]));
+  }
+
+  gkyl_gr_ultra_rel_euler_tetrad_stress_energy_tensor(gas_gamma, qin, &stress_energy);
+
+  bool in_excision_region = false;
+  if (v[26] < pow(10.0, -8.0)) {
+    in_excision_region = true;
+  }
+
+  if (!in_excision_region) {
+    double *lapse_der = gkyl_malloc(sizeof(double[3]));
+    double *shift = gkyl_malloc(sizeof(double[3]));
+    double **shift_der = gkyl_malloc(sizeof(double*[3]));
+    for (int i = 0; i < 3; i++) {
+      shift_der[i] = gkyl_malloc(sizeof(double[3]));
+    }
+
+    double ***spatial_metric_der = gkyl_malloc(sizeof(double**[3]));
+    for (int i = 0; i < 3; i++) {
+      for (int j = 0; j < 3; j++) {
+        spatial_metric_der[i][j] = gkyl_malloc(sizeof(double[3]));
+      }
+
+      spatial_metric_der[i] = gkyl_malloc(sizeof(double*[3]));
+    }
+
+    shift[0] = shift_x; shift[1] = shift_y; shift[2] = shift_z;
+
+    double *vel = gkyl_malloc(sizeof(double[3]));
+    double v_sq = 0.0;
+    vel[0] = vx; vel[1] = vy; vel[2] = vz;
+
+    for (int i = 0; i < 3; i++) {
+      for (int j = 0; j < 3; j++) {
+        v_sq += spatial_metric[i][j] * vel[i] * vel[j];
+      }
+    }
+
+    double W = 1.0 / (sqrt(1.0 - v_sq));
+    if (v_sq > 1.0 - pow(10.0, -8.0)) {
+      W = 1.0 / sqrt(1.0 - pow(10.0, -8.0));
+    }
+    
+    double *mom = gkyl_malloc(sizeof(double[3]));
+    mom[0] = (rho + p) * (W * W) * vx;
+    mom[1] = (rho + p) * (W * W) * vy;
+    mom[2] = (rho + p) * (W * W) * vz;
+
+    // Energy density source.
+    for (int i = 0; i < 3; i++) {
+      for (int j = 0; j < 3; j++) {
+        sout[0] += stress_energy[0][0] * shift[i] * shift[j] * extrinsic_curvature[i][j];
+        sout[0] += 2.0 * stress_energy[0][i] * shift[j] * extrinsic_curvature[i][j];
+        sout[0] += stress_energy[i][j] * extrinsic_curvature[i][j];
+      }
+
+      sout[0] += stress_energy[0][0] * shift[i] * lapse_der[i];
+      sout[0] -= stress_energy[0][i] * lapse_der[i];
+    }
+
+    // Momentum density sources.
+    for (int j = 0; j < 3; j++) {
+      sout[1 + j] = stress_energy[0][0] * lapse * lapse_der[j];
+
+      for (int k = 0; k < 3; k++) {
+        for (int l = 0; l < 3; l++) {
+          sout[1 + j] += 0.5 * stress_energy[0][0] * shift[k] * shift[l] * spatial_metric_der[j][k][l];
+        }
+
+        sout[1 + j] += (mom[k] / lapse) * shift_der[j][k];
+
+        for (int i = 0; i < 3; i++) {
+          sout[1 + j] += stress_energy[0][i] * shift[k] * spatial_metric_der[j][i][k];
+        }
+      }
+    }
+
+    for (int i = 0; i < 3; i++) {
+      for (int j = 0; j < 3; j++) {
+        gkyl_free(spatial_metric_der[i][j]);
+      }
+
+      gkyl_free(spatial_metric_der[i]);
+      gkyl_free(shift_der[i]);
+    }
+
+    gkyl_free(spatial_metric_der);
+    gkyl_free(shift_der);
+    gkyl_free(vel);
+    gkyl_free(mom);
+    gkyl_free(lapse_der);
+    gkyl_free(shift);
+  }
+  else {
+    for (int i = 0; i < 27; i++) {
+      sout[i] = 0.0;
+    }
+  }
+
+  for (int i = 0; i < 3; i++) {
+    gkyl_free(spatial_metric[i]);
+    gkyl_free(extrinsic_curvature[i]);
+  }
+  gkyl_free(spatial_metric);
+  gkyl_free(extrinsic_curvature);
+
+  for (int i = 0; i < 4; i++) {
+    gkyl_free(stress_energy[i]);
+  }
+  gkyl_free(stress_energy);
 }
 
 void
