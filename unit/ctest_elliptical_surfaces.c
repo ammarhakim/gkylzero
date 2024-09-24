@@ -47,7 +47,6 @@ test_elliptical()
       .filepath = "./data/eqdsk/elliptical.geqdsk",
       .rz_poly_order = 2,
       .flux_poly_order = 1,
-      .rz_basis_type = GKYL_BASIS_MODAL_TENSOR,
       .reflect = true,
     };
 

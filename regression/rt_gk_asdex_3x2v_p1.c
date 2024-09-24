@@ -244,7 +244,7 @@ create_ctx(void)
   double r0 = 0.5;   
   double Lx = 0.02;
   double Ly = 50 * rho_s * q0/r0 ; 
-  double Lz = 3.14*2;
+  double Lz = (M_PI-1e-14)*2.0 ; // Domain size (configuration space: z-direction).
 
   // Source parameters.
   double x_source = 0.16167;

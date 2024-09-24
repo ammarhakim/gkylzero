@@ -654,7 +654,6 @@ main(int argc, char **argv)
     // psiRZ and related inputs
     .filepath = "./data/eqdsk/step.geqdsk",   // equilibrium to use
     .rz_poly_order = 2,                       // polynomial order for psi(R,Z) used for field line tracing
-    .rz_basis_type = GKYL_BASIS_MODAL_TENSOR, // Basis to use for psi(R,Z)
     .flux_poly_order = 1,                     // polynomial order for fpol(psi)
     .reflect = true,                          // Reflect lower half of psi(R,Z) for up-down symmetry
   };

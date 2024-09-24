@@ -25,17 +25,7 @@ gkyl_efit* gkyl_efit_new(const struct gkyl_efit_inp *inp)
 
   gkyl_cart_modal_tensor(&up->rzbasis_cubic, 2, 3);
   gkyl_cart_modal_serendip(&up->fluxbasis, 1, inp->flux_poly_order);
-  switch (inp->rz_basis_type){
-    case GKYL_BASIS_MODAL_SERENDIPITY:
-      gkyl_cart_modal_serendip(&up->rzbasis, 2, inp->rz_poly_order);
-      break;
-    case GKYL_BASIS_MODAL_TENSOR:
-      gkyl_cart_modal_tensor(&up->rzbasis, 2, inp->rz_poly_order);
-      break;
-    default:
-      assert(false);
-      break;
-  }
+  gkyl_cart_modal_tensor(&up->rzbasis, 2, inp->rz_poly_order);
 
   FILE *ptr = fopen(up->filepath,"r");
   size_t status;
@@ -292,16 +282,14 @@ gkyl_efit* gkyl_efit_new(const struct gkyl_efit_inp *inp)
   double Rxpt[num_max_xpts];
   double Zxpt[num_max_xpts];
 
-  if (inp->rz_basis_type == GKYL_BASIS_MODAL_TENSOR) {
-    up->num_xpts = find_xpts(up, Rxpt, Zxpt);
-    up->Rxpt = gkyl_malloc(sizeof(double)*up->num_xpts);
-    up->Zxpt = gkyl_malloc(sizeof(double)*up->num_xpts);
-    for (int i = 0; i < up->num_xpts; i++) {
-      up->Rxpt[i] = Rxpt[i];
-      up->Zxpt[i] = Zxpt[i];
-      // AS 9/24/24 This commented print statement is useful for checking the X-point Locations
-      //  printf("Rxpt[%d] = %1.16f, Zxpt[%d] = %1.16f | psisep = %1.16f\n", i, up->Rxpt[i], i, up->Zxpt[i], up->psisep);
-    }
+  up->num_xpts = find_xpts(up, Rxpt, Zxpt);
+  up->Rxpt = gkyl_malloc(sizeof(double)*up->num_xpts);
+  up->Zxpt = gkyl_malloc(sizeof(double)*up->num_xpts);
+  for (int i = 0; i < up->num_xpts; i++) {
+    up->Rxpt[i] = Rxpt[i];
+    up->Zxpt[i] = Zxpt[i];
+    // AS 9/24/24 This commented print statement is useful for checking the X-point Locations
+    //  printf("Rxpt[%d] = %1.16f, Zxpt[%d] = %1.16f | psisep = %1.16f\n", i, up->Rxpt[i], i, up->Zxpt[i], up->psisep);
   }
 
   up->num_xpts_cubic = find_xpts_cubic(up, Rxpt, Zxpt);
@@ -319,10 +307,8 @@ gkyl_efit* gkyl_efit_new(const struct gkyl_efit_inp *inp)
 }
 
 void gkyl_efit_release(gkyl_efit* up){
-  if (up->rzbasis.b_type == GKYL_BASIS_MODAL_TENSOR) {
-    gkyl_free(up->Rxpt);
-    gkyl_free(up->Zxpt);
-  }
+  gkyl_free(up->Rxpt);
+  gkyl_free(up->Zxpt);
   gkyl_free(up->Rxpt_cubic);
   gkyl_free(up->Zxpt_cubic);
   gkyl_array_release(up->psizr);
