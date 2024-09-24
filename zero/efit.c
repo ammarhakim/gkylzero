@@ -288,18 +288,30 @@ gkyl_efit* gkyl_efit_new(const struct gkyl_efit_inp *inp)
   
   fclose(ptr);
 
+  int num_max_xpts = 10;
+  double Rxpt[num_max_xpts];
+  double Zxpt[num_max_xpts];
+
   if (inp->rz_basis_type == GKYL_BASIS_MODAL_TENSOR) {
-    find_xpts(up);
-    printf("num_xpts = %d\n", up->num_xpts);
+    up->num_xpts = find_xpts(up, Rxpt, Zxpt);
+    up->Rxpt = gkyl_malloc(sizeof(double)*up->num_xpts);
+    up->Zxpt = gkyl_malloc(sizeof(double)*up->num_xpts);
     for (int i = 0; i < up->num_xpts; i++) {
-      printf("Rxpt[%d] = %1.16f, Zxpt[%d] = %1.16f | psisep = %1.16f\n", i, up->Rxpt[i], i, up->Zxpt[i], up->psisep);
+      up->Rxpt[i] = Rxpt[i];
+      up->Zxpt[i] = Zxpt[i];
+      // AS 9/24/24 This commented print statement is useful for checking the X-point Locations
+      //  printf("Rxpt[%d] = %1.16f, Zxpt[%d] = %1.16f | psisep = %1.16f\n", i, up->Rxpt[i], i, up->Zxpt[i], up->psisep);
     }
   }
 
-  find_xpts_cubic(up);
-  printf("cubic: num_xpts = %d\n", up->num_xpts_cubic);
+  up->num_xpts_cubic = find_xpts_cubic(up, Rxpt, Zxpt);
+  up->Rxpt_cubic = gkyl_malloc(sizeof(double)*up->num_xpts);
+  up->Zxpt_cubic = gkyl_malloc(sizeof(double)*up->num_xpts);
   for (int i = 0; i < up->num_xpts_cubic; i++) {
-    printf("cubic: Rxpt[%d] = %1.16f, Zxpt[%d] = %1.16f | psisep = %1.16f\n", i, up->Rxpt_cubic[i], i, up->Zxpt_cubic[i], up->psisep_cubic);
+    up->Rxpt_cubic[i] = Rxpt[i];
+    up->Zxpt_cubic[i] = Zxpt[i];
+    // AS 9/24/24 This commented print statement is useful for checking the X-point Locations
+    //  printf("cubic: Rxpt[%d] = %1.16f, Zxpt[%d] = %1.16f | psisep = %1.16f\n", i, up->Rxpt_cubic[i], i, up->Zxpt_cubic[i], up->psisep_cubic);
   }
 
 
@@ -307,8 +319,12 @@ gkyl_efit* gkyl_efit_new(const struct gkyl_efit_inp *inp)
 }
 
 void gkyl_efit_release(gkyl_efit* up){
-  gkyl_free(up->Rxpt);
-  gkyl_free(up->Zxpt);
+  if (up->rzbasis.b_type == GKYL_BASIS_MODAL_TENSOR) {
+    gkyl_free(up->Rxpt);
+    gkyl_free(up->Zxpt);
+  }
+  gkyl_free(up->Rxpt_cubic);
+  gkyl_free(up->Zxpt_cubic);
   gkyl_array_release(up->psizr);
   gkyl_array_release(up->psizr_cubic);
   gkyl_array_release(up->bmagzr);
