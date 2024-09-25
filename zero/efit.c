@@ -230,7 +230,7 @@ gkyl_efit* gkyl_efit_new(const struct gkyl_efit_inp *inp)
         psi_curr = fout[0];
         br = fout[3]*scale_factorZ*scale_factorR;
         bz = fout[1]*scale_factorR*scale_factorR;
-        double *bpol_n = gkyl_array_fetch(bpolzr_n, gkyl_range_idx(&nrange, idx));
+        bpol_n = gkyl_array_fetch(bpolzr_n, gkyl_range_idx(&nrange, idx));
         bpol_n[0] = sqrt(br*br + bz*bz);
       }
       else {
