@@ -13,7 +13,6 @@ struct gkyl_efit_inp {
   // Inputs to get psiRZ and related inputs from efit
   char filepath[1024]; // filepath path to eqdsk file
   int rz_poly_order; // poly order for DG rep of psi, psi/R, and psi/R^2
-  enum gkyl_basis_type rz_basis_type; // rz_basis_type RZ basis to use for DG rep of psi, psi/R, and psi/R^2
   int flux_poly_order; // poly order to use for DG rep of F(psi)
   bool reflect; // whether to reflect across R axis to preserve symmetry
   bool use_gpu; // whether to use the GPU
