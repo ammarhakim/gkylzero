@@ -23,12 +23,12 @@ typedef double (*vlasov_poisson_accel_boundary_surf_t)(const double *w, const do
   const double *field, const int edge, const double *fEdge, const double *fSkin, double* GKYL_RESTRICT out);
 
 // Null kernels used for vxB term in case without external fields.
-double kernel_vlasov_poisson_zero_accel_surf(const double *w, const double *dxv,
+GKYL_CU_DH static double kernel_vlasov_poisson_zero_accel_surf(const double *w, const double *dxv,
   const double *field, const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out)
 {
   return 0.0;
 }
-double kernel_vlasov_poisson_zero_accel_boundary_surf(const double *w, const double *dxv,
+GKYL_CU_DH static double kernel_vlasov_poisson_zero_accel_boundary_surf(const double *w, const double *dxv,
   const double *field, const int edge, const double *fEdge, const double *fSkin, double* GKYL_RESTRICT out)
 {
   return 0.0;
