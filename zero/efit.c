@@ -247,13 +247,13 @@ gkyl_efit* gkyl_efit_new(const struct gkyl_efit_inp *inp)
       if(psi_curr < up->fluxgrid.lower[0] || psi_curr > up->fluxgrid.upper[0]){
         psi_curr = up->sibry;
       }
-      int fidx = up->fluxlocal.lower[0] + (int) floor((psi_curr - up->fluxgrid.lower[0])/up->fluxgrid.dx[0]);
-      fidx = GKYL_MIN2(fidx, up->fluxlocal.upper[0]);
-      fidx = GKYL_MAX2(fidx, up->fluxlocal.lower[0]);
-      long flux_loc = gkyl_range_idx(&up->fluxlocal, &fidx);
+      fidx[0] = up->fluxlocal.lower[0] + (int) floor((psi_curr - up->fluxgrid.lower[0])/up->fluxgrid.dx[0]);
+      fidx[0] = GKYL_MIN2(fidx[0], up->fluxlocal.upper[0]);
+      fidx[0] = GKYL_MAX2(fidx[0], up->fluxlocal.lower[0]);
+      long flux_loc = gkyl_range_idx(&up->fluxlocal, fidx);
       const double *coeffs = gkyl_array_cfetch(up->fpolflux, flux_loc);
       double fxc;
-      gkyl_rect_grid_cell_center(&up->fluxgrid, &fidx, &fxc);
+      gkyl_rect_grid_cell_center(&up->fluxgrid, fidx, &fxc);
       double fx = (psi_curr - fxc)/(up->fluxgrid.dx[0]*0.5);
       double fpol = up->fluxbasis.eval_expand(&fx, coeffs);
       double bphi = fpol/R;
