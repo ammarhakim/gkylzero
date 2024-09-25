@@ -222,7 +222,6 @@ gkyl_efit* gkyl_efit_new(const struct gkyl_efit_inp *inp)
       // Calculate Bpol.
       double xn[2] = {R, Z};
       double psi_curr, br, bz;
-      double *bpol_n;
       if (R == 0.0) {
         double fout[4];
         up->evf->eval_cubic_wgrad2(0.0, xn, fout, up->evf->ctx);
@@ -237,7 +236,7 @@ gkyl_efit* gkyl_efit_new(const struct gkyl_efit_inp *inp)
         br = 1.0/R*fout[2]*scale_factorZ;
         bz = -1.0/R*fout[1]*scale_factorR;
       }
-      bpol_n = gkyl_array_fetch(bpolzr_n, gkyl_range_idx(&nrange, idx));
+      double *bpol_n = gkyl_array_fetch(bpolzr_n, gkyl_range_idx(&nrange, idx));
       bpol_n[0] = sqrt(br*br + bz*bz);
 
       // Calculate Bphi.
