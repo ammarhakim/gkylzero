@@ -132,9 +132,9 @@ endif
 
 # Build directory
 ifdef USING_NVCC
-	BUILD_DIR ?= cubld
+	BUILD_DIR ?= cuda-build
 else	
-	BUILD_DIR ?= bld
+	BUILD_DIR ?= build
 endif
 
 # On OSX we should use Accelerate framework
@@ -378,6 +378,7 @@ $(ZERO_SH_LIB): $(OBJS)
 	@echo ${CC} ${SHFLAGS} ${LDFLAGS} $(OBJS) ${EXEC_LIB_DIRS} ${EXEC_EXT_LIBS} -o $@ > ./link_command.sh
 	chmod +x ./link_command.sh
 	./link_command.sh
+	rm ./link_command.sh
 
 # Due to an issue with shared-lib linking on the Mac, we need to build
 # a separate shared lib to install. This one has the install path
@@ -390,6 +391,7 @@ $(ZERO_SH_INSTALL_LIB): $(OBJS)
 	@echo ${CC} ${SHFLAGS_INSTALL} ${LDFLAGS} ${OBJS} ${EXEC_LIB_DIRS} ${EXEC_EXT_LIBS} -o $@ > ./link_command-install.sh
 	chmod +x ./link_command-install.sh
 	./link_command-install.sh
+	rm ./link_command-install.sh
 
 ## All libraries build targets completed at this point
 
