@@ -75,7 +75,6 @@ gkyl_efit* gkyl_efit_new(const struct gkyl_efit_inp *inp)
   gkyl_rect_grid_init(&up->rzgrid, 2, rzlower, rzupper, rzcells);
   gkyl_create_grid_ranges(&up->rzgrid, rzghost, &up->rzlocal_ext, &up->rzlocal);
 
-
   int cells_cubic[2] = {up->nr-1, up->nz-1};
   int rzghost_cubic[2] = {0,0};
   gkyl_rect_grid_init(&up->rzgrid_cubic, 2, rzlower, rzupper, cells_cubic);
@@ -97,10 +96,10 @@ gkyl_efit* gkyl_efit_new(const struct gkyl_efit_inp *inp)
 
   int fluxcells[1] = {0};
   int fluxghost[2] = {1,1};
-  if(up->fluxbasis.poly_order==1){
+  if (up->fluxbasis.poly_order==1){
     fluxcells[0] = up->nr-1;
   }
-  if(up->fluxbasis.poly_order==2){
+  if (up->fluxbasis.poly_order==2){
     fluxcells[0] = (up->nr-1)/2;
   }
 
@@ -122,17 +121,17 @@ gkyl_efit* gkyl_efit_new(const struct gkyl_efit_inp *inp)
   int fidx[1];
   // fpol is given on a uniform flux grid from the magnetic axis to plasma boundary
   if (step_convention) {
-    for(int i = up->nr-1; i>=0; i--){
-        fidx[0] = i;
-        double *fpol_n= gkyl_array_fetch(fpolflux_n, gkyl_range_idx(&flux_nrange, fidx));
-        status = fscanf(ptr,"%lf", fpol_n);
+    for (int i = up->nr-1; i>=0; i--){
+      fidx[0] = i;
+      double *fpol_n= gkyl_array_fetch(fpolflux_n, gkyl_range_idx(&flux_nrange, fidx));
+      status = fscanf(ptr,"%lf", fpol_n);
     }
   }
   else {
     for(int i = 0; i<up->nr; i++){
-        fidx[0] = i;
-        double *fpol_n= gkyl_array_fetch(fpolflux_n, gkyl_range_idx(&flux_nrange, fidx));
-        status = fscanf(ptr,"%lf", fpol_n);
+      fidx[0] = i;
+      double *fpol_n= gkyl_array_fetch(fpolflux_n, gkyl_range_idx(&flux_nrange, fidx));
+      status = fscanf(ptr,"%lf", fpol_n);
     }
   }
 
@@ -190,10 +189,10 @@ gkyl_efit* gkyl_efit_new(const struct gkyl_efit_inp *inp)
  
   // Now lets read the q profile
   struct gkyl_array *qflux_n = gkyl_array_new(GKYL_DOUBLE, 1, flux_nrange.volume);
-  for(int i = up->nr-1; i>=0; i--){
-      fidx[0] = i;
-      double *q_n= gkyl_array_fetch(qflux_n, gkyl_range_idx(&flux_nrange, fidx));
-      status = fscanf(ptr,"%lf", q_n);
+  for (int i = up->nr-1; i>=0; i--){
+    fidx[0] = i;
+    double *q_n= gkyl_array_fetch(qflux_n, gkyl_range_idx(&flux_nrange, fidx));
+    status = fscanf(ptr,"%lf", q_n);
   }
   gkyl_nodal_ops_n2m(n2m_flux, &up->fluxbasis, &up->fluxgrid, 
     &flux_nrange, &up->fluxlocal, 1, qflux_n, up->qflux);
@@ -206,21 +205,21 @@ gkyl_efit* gkyl_efit_new(const struct gkyl_efit_inp *inp)
   gkyl_dg_calc_cubic_2d_from_nodal_vals(mem, cells_cubic, up->rzgrid_cubic.dx, psizr_n, up->psizr_cubic);
   gkyl_dg_basis_op_mem_release(mem);
 
-  // Calculate B
+  // Calculate B.
   struct gkyl_array *bpolzr_n = gkyl_array_new(GKYL_DOUBLE, 1, nrange.volume);
   struct gkyl_array *bphizr_n = gkyl_array_new(GKYL_DOUBLE, 1, nrange.volume);
   struct gkyl_array *bmagzr_n = gkyl_array_new(GKYL_DOUBLE, 1, nrange.volume);
   double dZ = up->zdim/(up->nz-1);
   double scale_factorR = 2.0/(up->rzgrid_cubic.dx[0]);
   double scale_factorZ = 2.0/(up->rzgrid_cubic.dx[1]);
-  for(int iz = 0; iz < up->nz; iz++){
+  for (int iz = 0; iz < up->nz; iz++){
     idx[1] = iz;
     double Z = up->zmin+iz*dZ;
-    for(int ir = 0; ir < up->nr; ir++){
+    for (int ir = 0; ir < up->nr; ir++){
       R = up->rmin+ir*dR;
       idx[0] = ir;
 
-      // Calculate Bpol
+      // Calculate Bpol.
       double xn[2] = {R, Z};
       double psi_curr, br, bz;
       double *bpol_n ;
@@ -243,8 +242,8 @@ gkyl_efit* gkyl_efit_new(const struct gkyl_efit_inp *inp)
         bpol_n[0] = sqrt(br*br + bz*bz);
       }
 
-      //Calculate Bphi
-      if(psi_curr < up->fluxgrid.lower[0] || psi_curr > up->fluxgrid.upper[0]){
+      // Calculate Bphi.
+      if (psi_curr < up->fluxgrid.lower[0] || psi_curr > up->fluxgrid.upper[0]){
         psi_curr = up->sibry;
       }
       int fidx = up->fluxlocal.lower[0] + (int) floor((psi_curr - up->fluxgrid.lower[0])/up->fluxgrid.dx[0]);
@@ -256,22 +255,21 @@ gkyl_efit* gkyl_efit_new(const struct gkyl_efit_inp *inp)
       gkyl_rect_grid_cell_center(&up->fluxgrid, &fidx, &fxc);
       double fx = (psi_curr - fxc)/(up->fluxgrid.dx[0]*0.5);
       double fpol = up->fluxbasis.eval_expand(&fx, coeffs);
-      double bphi = fpol/R;
       double *bphi_n = gkyl_array_fetch(bphizr_n, gkyl_range_idx(&nrange, idx));
       if (fpol == 0.0 && R == 0.0)
         bphi_n[0] = 0.0;
       else 
-        bphi_n[0] = bphi;
+        bphi_n[0] = fpol/R;
 
-      // Calculate Bmag
+      // Calculate Bmag.
       double *bmag_n = gkyl_array_fetch(bmagzr_n, gkyl_range_idx(&nrange, idx));
       bmag_n[0] = sqrt(bpol_n[0]*bpol_n[0] + bphi_n[0]*bphi_n[0]);
     }
   }
   gkyl_nodal_ops_n2m(n2m_rz, &up->rzbasis, &up->rzgrid, &nrange, &up->rzlocal, 1, bmagzr_n, up->bmagzr);
 
-  // Reflect B for double null
-  // Reflect DG coeffs rather than nodal data to avoid symmetry errors in n2m conversion
+  // Reflect B for double null.
+  // Reflect DG coeffs rather than nodal data to avoid symmetry errors in n2m conversion.
   if (up->reflect) {
     struct gkyl_range_iter iter;
     gkyl_range_iter_init(&iter, &up->rzlocal);
