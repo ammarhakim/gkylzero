@@ -81,8 +81,20 @@ gkyl_efit* gkyl_efit_new(const struct gkyl_efit_inp *inp)
   gkyl_rect_grid_init(&up->rzgrid_cubic, 2, rzlower, rzupper, cells_cubic);
   gkyl_create_grid_ranges(&up->rzgrid_cubic, rzghost_cubic, &up->rzlocal_cubic_ext, &up->rzlocal_cubic);
 
-  double fluxlower[1] = {up->sibry};
-  double fluxupper[1] = {up->simag};
+  double fluxlower[1];
+  double fluxupper[1];
+  bool step_convention; // True if psi increases toward magnetic axis
+  if (up->simag > up->sibry) {
+    step_convention = true;
+    fluxlower[0] = up->sibry;
+    fluxupper[0] = up->simag;
+  }
+  else {
+    step_convention = false;
+    fluxlower[0] = up->simag;
+    fluxupper[0] = up->sibry;
+  }
+
   int fluxcells[1] = {0};
   int fluxghost[2] = {1,1};
   if(up->fluxbasis.poly_order==1){
@@ -94,7 +106,6 @@ gkyl_efit* gkyl_efit_new(const struct gkyl_efit_inp *inp)
 
   gkyl_rect_grid_init(&up->fluxgrid, 1, fluxlower, fluxupper, fluxcells);
   gkyl_create_grid_ranges(&up->fluxgrid, fluxghost, &up->fluxlocal_ext, &up->fluxlocal);
-
 
   // allocate the necessary arrays
   up->psizr = gkyl_array_new(GKYL_DOUBLE, up->rzbasis.num_basis, up->rzlocal_ext.volume);
@@ -109,10 +120,20 @@ gkyl_efit* gkyl_efit_new(const struct gkyl_efit_inp *inp)
   gkyl_range_init_from_shape(&flux_nrange, 1, flux_node_nums);
   struct gkyl_array *fpolflux_n = gkyl_array_new(GKYL_DOUBLE, 1, flux_nrange.volume);
   int fidx[1];
-  for(int i = up->nr-1; i>=0; i--){
-      fidx[0] = i;
-      double *fpol_n= gkyl_array_fetch(fpolflux_n, gkyl_range_idx(&flux_nrange, fidx));
-      status = fscanf(ptr,"%lf", fpol_n);
+  // fpol is given on a uniform flux grid from the magnetic axis to plasma boundary
+  if (step_convention) {
+    for(int i = up->nr-1; i>=0; i--){
+        fidx[0] = i;
+        double *fpol_n= gkyl_array_fetch(fpolflux_n, gkyl_range_idx(&flux_nrange, fidx));
+        status = fscanf(ptr,"%lf", fpol_n);
+    }
+  }
+  else {
+    for(int i = 0; i<up->nr; i++){
+        fidx[0] = i;
+        double *fpol_n= gkyl_array_fetch(fpolflux_n, gkyl_range_idx(&flux_nrange, fidx));
+        status = fscanf(ptr,"%lf", fpol_n);
+    }
   }
 
   struct gkyl_nodal_ops *n2m_flux = gkyl_nodal_ops_new(&up->fluxbasis, &up->fluxgrid, false);
