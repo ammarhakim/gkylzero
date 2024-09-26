@@ -215,7 +215,9 @@ main(int argc, char **argv)
     .field = field,
     .is_electrostatic = true,
 
-    .use_gpu = app_args.use_gpu,
+    .parallelism = {
+      .use_gpu = app_args.use_gpu,
+    }
   };
 
   // Create app object.
