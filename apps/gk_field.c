@@ -49,7 +49,8 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
     double lower[] = { app->grid.lower[0], app->grid.lower[1] };
     double upper[] = { app->grid.upper[0], app->grid.upper[1] };
     int cells[] = { app->grid.cells[0], app->grid.cells[1] };
-    struct gkyl_rect_grid grid = app->grid;
+    struct gkyl_rect_grid grid;
+    gkyl_rect_grid_init(&grid, 2, lower, upper, cells);
 
     // nodal grid used in IO so we can plot things
     double nc_lower[] = { lower[0] - 0.5*grid.dx[0], lower[1] - 0.5*grid.dx[1] };
@@ -59,9 +60,9 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
     struct gkyl_rect_grid nc_grid;
     gkyl_rect_grid_init(&nc_grid, 2, nc_lower, nc_upper, nc_cells);
 
-    struct gkyl_range local = app->local;
-    struct gkyl_range local_ext = app->local_ext;
-    int nghost[GKYL_MAX_CDIM] = { 1, 1 };  
+    struct gkyl_range local, local_ext;
+    int nghost[GKYL_MAX_CDIM] = { 0, 0 };  
+    gkyl_create_grid_ranges(&grid, nghost, &local_ext, &local);
 
     struct gkyl_range nc_local, nc_local_ext;
     gkyl_create_grid_ranges(&nc_grid, nghost, &nc_local_ext, &nc_local);
@@ -80,7 +81,7 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
     while (gkyl_range_iter_next(&iter)) {
       long nidx = gkyl_range_idx(&nc_local, iter.idx);
       
-      gkyl_rect_grid_ll_node(&grid, iter.idx, xn);
+      gkyl_rect_grid_ll_node(&app->grid, iter.idx, xn);
       
       double *pn = gkyl_array_fetch(phi_nodal, nidx);
       f->info.polarization_potential(0.0, xn, pn, f->info.polarization_potential_ctx);
@@ -90,18 +91,20 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
       phi_nodal, phi_cubic);
 
     f->phi_pol = mkarr(app->use_gpu, basis.num_basis, app->local_ext.volume);
-    gkyl_array_copy(f->phi_pol, phi_cubic);
+    gkyl_array_set_range_to_range(f->phi_pol, 1.0, phi_cubic, &app->local, &local);
     // Print out the array to make sure it makes sense
     const char *fmt = "%s-%s.gkyl";
-    int sz = gkyl_calc_strlen(fmt, app->name, "jacobtot_inv");
+    int sz = gkyl_calc_strlen(fmt, app->name, "phi_pol_projection");
     char fileNm[sz+1]; // ensure no buffer overflow
     int rank;
     gkyl_comm_get_rank(app->comm, &rank);
     if (rank == 0) {
       sprintf(fileNm, fmt, app->name, "phi_pol_projection");
-      gkyl_grid_sub_array_write(&app->grid, &app->global, 0, phi_cubic, fileNm);
+      gkyl_grid_sub_array_write(&app->grid, &app->local, 0, f->phi_pol, fileNm);
+      sprintf(fileNm, fmt, app->name, "phi_pol_cubic");
+      gkyl_grid_sub_array_write(&grid, &local, 0, phi_cubic, fileNm);
       sprintf(fileNm, fmt, app->name, "phi_pol_nm");
-      gkyl_grid_sub_array_write(&app->grid, &app->global, 0, phi_nodal, fileNm);
+      gkyl_grid_sub_array_write(&nc_grid, &nc_local, 0, phi_nodal, fileNm);
     }
     printf("Polarization potential projection done\n");
     printf("Freeing phi_nodal\n");
