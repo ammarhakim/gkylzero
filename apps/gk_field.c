@@ -58,7 +58,7 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
 
     int nc_cells[] = { cells[0] + 1, cells[1] + 1 };
     struct gkyl_rect_grid nc_grid;
-    gkyl_rect_grid_init(&nc_grid, 2, nc_lower, nc_upper, nc_cells);
+    gkyl_rect_grid_init(&nc_grid, app->cdim, nc_lower, nc_upper, nc_cells);
 
     struct gkyl_range local, local_ext;
     int nghost[GKYL_MAX_CDIM] = { 0, 0 };  
@@ -68,7 +68,7 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
     gkyl_create_grid_ranges(&nc_grid, nghost, &nc_local_ext, &nc_local);
 
     struct gkyl_basis basis;
-    gkyl_cart_modal_tensor(&basis, 2, 3);
+    gkyl_cart_modal_tensor(&basis, app->cdim, 3);
 
     struct gkyl_array *phi_nodal = gkyl_array_new(GKYL_DOUBLE, 1, (cells[0]+1)*(cells[1]+1));
     struct gkyl_array *phi_cubic = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, local_ext.volume);
@@ -80,7 +80,6 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
     gkyl_range_iter_init(&iter, &nc_local);
     while (gkyl_range_iter_next(&iter)) {
       long nidx = gkyl_range_idx(&nc_local, iter.idx);
-      
       gkyl_rect_grid_ll_node(&app->grid, iter.idx, xn);
       
       double *pn = gkyl_array_fetch(phi_nodal, nidx);
@@ -106,14 +105,10 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
       sprintf(fileNm, fmt, app->name, "phi_pol_nm");
       gkyl_grid_sub_array_write(&nc_grid, &nc_local, 0, phi_nodal, fileNm);
     }
-    printf("Polarization potential projection done\n");
-    printf("Freeing phi_nodal\n");
+    
     gkyl_array_release(phi_nodal);
-    printf("Freeing phi_cubic\n");
     gkyl_array_release(phi_cubic);
-    printf("Freeing mem\n");
     gkyl_dg_basis_op_mem_release(mem);
-    printf("Polarization potential projection done\n");
   }
 
   // Create global subrange we'll copy the field solver solution from (into local).
