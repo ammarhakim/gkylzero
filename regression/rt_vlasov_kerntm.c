@@ -133,7 +133,9 @@ main(int argc, char **argv)
     .cells = { inp.ccells[0], inp.ccells[1], inp.ccells[2] },
     .poly_order = inp.poly_order,
 
-    .use_gpu = inp.use_gpu,
+    .parallelism = {
+      .use_gpu = inp.use_gpu,
+    },
 
     .num_species = 1,
     .species = { elc },

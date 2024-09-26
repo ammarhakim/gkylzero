@@ -630,17 +630,8 @@ int main(int argc, char **argv)
   for (int d=0; d<ctx.vdim; d++)
     cells_v[d] = APP_ARGS_CHOOSE(app_args.vcells[d], ctx.cells[ctx.cdim+d]);
 
-  // Create decomposition.
-  struct gkyl_rect_decomp *decomp = gkyl_gyrokinetic_comms_decomp_new(ctx.cdim, cells_x, app_args.cuts, app_args.use_mpi, stderr);
-
   // Construct communicator for use in app.
-  struct gkyl_comm *comm = gkyl_gyrokinetic_comms_new(app_args.use_mpi, app_args.use_gpu, decomp, stderr);
-
-  int my_rank = 0;
-#ifdef GKYL_HAVE_MPI
-  if (app_args.use_mpi)
-    gkyl_comm_get_rank(comm, &my_rank);
-#endif
+  struct gkyl_comm *comm = gkyl_gyrokinetic_comms_new(app_args.use_mpi, app_args.use_gpu, stderr);
 
   struct gkyl_gyrokinetic_projection elc_ic = {
     .proj_id = GKYL_PROJ_BIMAXWELLIAN, 
@@ -708,15 +699,15 @@ int main(int argc, char **argv)
   };
 
   struct gkyl_gyrokinetic_projection ion_ic = {
-      .proj_id = GKYL_PROJ_BIMAXWELLIAN, 
-      .ctx_density = &ctx,
-      .density = eval_density_ion,
-      .ctx_upar = &ctx,
-      .upar= eval_upar_ion,
-      .ctx_temppar = &ctx,
-      .temppar = eval_temp_par_ion,      
-      .ctx_tempperp = &ctx,
-      .tempperp = eval_temp_perp_ion,   
+    .proj_id = GKYL_PROJ_BIMAXWELLIAN, 
+    .ctx_density = &ctx,
+    .density = eval_density_ion,
+    .ctx_upar = &ctx,
+    .upar= eval_upar_ion,
+    .ctx_temppar = &ctx,
+    .temppar = eval_temp_par_ion,      
+    .ctx_tempperp = &ctx,
+    .tempperp = eval_temp_perp_ion,   
   };
 
   struct gkyl_gyrokinetic_species ion = {
@@ -798,7 +789,7 @@ int main(int argc, char **argv)
 
   struct gkyl_gk app_inp = {
     .name = "gk_wham_3x2v_p1",
-    .cdim = 3,  .vdim = 2,
+    .cdim = ctx.cdim,  .vdim = ctx.vdim,
     .lower = {ctx.psi_min, 0, ctx.z_min},
     .upper = {ctx.psi_max, 2 * M_PI, ctx.z_max},
     .cells = { cells_x[0], cells_x[1], cells_x[2] },
@@ -818,12 +809,11 @@ int main(int argc, char **argv)
     .species = {elc, ion},
 
     .field = field,
-    .use_gpu = app_args.use_gpu,
 
-    .has_low_inp = true,
-    .low_inp = {
-      .local_range = decomp->ranges[my_rank],
-      .comm = comm
+    .parallelism = {
+      .use_gpu = app_args.use_gpu,
+      .cuts = { app_args.cuts[0], app_args.cuts[1], app_args.cuts[2] },
+      .comm = comm,
     }
   };
 
@@ -933,7 +923,7 @@ int main(int argc, char **argv)
   freeresources:
   // Free resources after simulation completion.
   gkyl_gyrokinetic_app_release(app);
-  gkyl_gyrokinetic_comms_release(decomp, comm);
+  gkyl_gyrokinetic_comms_release(comm);
 
 #ifdef GKYL_HAVE_MPI
   if (app_args.use_mpi) {

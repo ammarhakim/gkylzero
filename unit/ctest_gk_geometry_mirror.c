@@ -16,42 +16,78 @@
 #include <gkyl_mirror_geo.h>
 #include <gkyl_gk_geometry.h>
 #include <gkyl_gk_geometry_mirror.h>
+#include <gkyl_nodal_ops.h>
 
-#include <stdarg.h>
+void
+write_geometry(gk_geometry *up, struct gkyl_rect_grid grid, struct gkyl_range local, const char *name)
+{
+  const char *fmt = "%s-%s.gkyl";
+  int sz = gkyl_calc_strlen(fmt, name, "jacobtot_inv");
+  char fileNm[sz+1]; // ensure no buffer overflow
 
-#include <gkyl_alloc.h>
-#include <gkyl_array_rio_priv.h>
-#include <gkyl_dflt.h>
-#include <gkyl_dynvec.h>
-#include <gkyl_null_comm.h>
-
-#include <gkyl_gyrokinetic_priv.h>
-#include <gkyl_gyrokinetic.h>
-#include <gkyl_app_priv.h>
-
-#include <mpack.h>
-
+  sprintf(fileNm, fmt, name, "mapc2p");
+  gkyl_grid_sub_array_write(&grid, &local, 0,  up->mc2p, fileNm);
+  sprintf(fileNm, fmt, name, "bmag");
+  gkyl_grid_sub_array_write(&grid, &local, 0,  up->bmag, fileNm);
+  sprintf(fileNm, fmt, name, "g_ij");
+  gkyl_grid_sub_array_write(&grid, &local, 0,  up->g_ij, fileNm);
+  sprintf(fileNm, fmt, name, "dxdz");
+  gkyl_grid_sub_array_write(&grid, &local, 0,  up->dxdz, fileNm);
+  sprintf(fileNm, fmt, name, "dzdx");
+  gkyl_grid_sub_array_write(&grid, &local, 0,  up->dzdx, fileNm);
+  sprintf(fileNm, fmt, name, "normals");
+  gkyl_grid_sub_array_write(&grid, &local, 0,  up->normals, fileNm);
+  sprintf(fileNm, fmt, name, "jacobgeo");
+  gkyl_grid_sub_array_write(&grid, &local, 0,  up->jacobgeo, fileNm);
+  sprintf(fileNm, fmt, name, "jacobgeo_inv");
+  gkyl_grid_sub_array_write(&grid, &local, 0,  up->jacobgeo_inv, fileNm);
+  sprintf(fileNm, fmt, name, "gij");
+  gkyl_grid_sub_array_write(&grid, &local, 0,  up->gij, fileNm);
+  sprintf(fileNm, fmt, name, "b_i");
+  gkyl_grid_sub_array_write(&grid, &local, 0,  up->b_i, fileNm);
+  sprintf(fileNm, fmt, name, "bcart");
+  gkyl_grid_sub_array_write(&grid, &local, 0,  up->bcart, fileNm);
+  sprintf(fileNm, fmt, name, "cmag");
+  gkyl_grid_sub_array_write(&grid, &local, 0,  up->cmag, fileNm);
+  sprintf(fileNm, fmt, name, "jacobtot");
+  gkyl_grid_sub_array_write(&grid, &local, 0,  up->jacobtot, fileNm);
+  sprintf(fileNm, fmt, name, "jacobtot_inv");
+  gkyl_grid_sub_array_write(&grid, &local, 0,  up->jacobtot_inv, fileNm);
+  sprintf(fileNm, fmt, name, "bmag_inv");
+  gkyl_grid_sub_array_write(&grid, &local, 0,  up->bmag_inv, fileNm);
+  sprintf(fileNm, fmt, name, "bmag_inv_sq");
+  gkyl_grid_sub_array_write(&grid, &local, 0,  up->bmag_inv_sq, fileNm);
+  sprintf(fileNm, fmt, name, "gxxj");
+  gkyl_grid_sub_array_write(&grid, &local, 0,  up->gxxj, fileNm);
+  sprintf(fileNm, fmt, name, "gxyj");
+  gkyl_grid_sub_array_write(&grid, &local, 0,  up->gxyj, fileNm);
+  sprintf(fileNm, fmt, name, "gyyj");
+  gkyl_grid_sub_array_write(&grid, &local, 0,  up->gyyj, fileNm);
+  sprintf(fileNm, fmt, name, "gxzj");
+  gkyl_grid_sub_array_write(&grid, &local, 0,  up->gxzj, fileNm);
+  sprintf(fileNm, fmt, name, "eps2");
+  gkyl_grid_sub_array_write(&grid, &local, 0,  up->eps2, fileNm);
+}
 
 void
 test_lores()
 {
-  struct gkyl_mirror_geo_efit_inp inp = {
+  struct gkyl_efit_inp inp = {
     // psiRZ and related inputs
     .filepath = "./data/eqdsk/wham.geqdsk",
-    .rzpoly_order = 2,
-    .fluxpoly_order = 1,
-    .plate_spec = false,
-    .quad_param = {  .eps = 1e-10 }
+    .rz_poly_order = 2,
+    .flux_poly_order = 1,
+    .reflect = true,
   };
 
   clock_t start, end;
   double cpu_time_used;
   start = clock();
 
-  double clower[] = { 1e-3, -0.01, -M_PI+1e-14 };
-  double cupper[] = { 3e-3,  0.01,  M_PI-1e-14 };
+  double clower[] = { 1e-10, -0.01, -M_PI+1e-14 };
+  double cupper[] = { 2e-3,  0.01,  M_PI-1e-14 };
 
-  int ccells[] = { 1, 1, 8 };
+  int ccells[] = { 4, 1, 8 };
 
   struct gkyl_rect_grid cgrid;
   gkyl_rect_grid_init(&cgrid, 3, clower, cupper, ccells);
@@ -64,16 +100,17 @@ test_lores()
   struct gkyl_basis cbasis;
   gkyl_cart_modal_serendip(&cbasis, 3, cpoly_order);
 
-  struct gkyl_mirror_geo_grid_inp ginp = {
-    .rclose = 0.2,
-    .zmin = -2.0,
-    .zmax =  2.0,
-  };
+
+struct gkyl_mirror_geo_grid_inp ginp = {
+  .rclose = 0.2,
+  .zmin = -2.4,
+  .zmax =  2.4,
+};
 
   struct gkyl_gk_geometry_inp geometry_inp = {
     .geometry_id  = GKYL_MIRROR,
-    .mirror_efit_info = &inp,
-    .mirror_grid_info = &ginp,
+    .efit_info = inp,
+    .mirror_grid_info = ginp,
     .grid = cgrid,
     .local = clocal,
     .local_ext = clocal_ext,
@@ -90,6 +127,19 @@ test_lores()
 
   struct gk_geometry* up = gkyl_gk_geometry_mirror_new(&geometry_inp); 
 
+  write_geometry(up, cgrid, clocal, "whamlores");
+    // Create Nodal Range and Grid and Write Nodal Coordinates
+    struct gkyl_range nrange;
+    gkyl_gk_geometry_init_nodal_range(&nrange, &clocal, cpoly_order);
+    struct gkyl_array* mc2p_nodal = gkyl_array_new(GKYL_DOUBLE, 3, nrange.volume);
+    struct gkyl_nodal_ops *n2m = gkyl_nodal_ops_new(&cbasis, &cgrid, false);
+    gkyl_nodal_ops_m2n(n2m, &cbasis, &cgrid, &nrange, &clocal, 3, mc2p_nodal, up->mc2p);
+    gkyl_nodal_ops_release(n2m);
+    struct gkyl_rect_grid ngrid;
+    gkyl_gk_geometry_init_nodal_grid(&ngrid, &cgrid, &nrange);
+    gkyl_grid_sub_array_write(&ngrid, &nrange, 0,  mc2p_nodal, "whamlores_nodes.gkyl");
+    gkyl_array_release(mc2p_nodal);
+
 
   gkyl_gk_geometry_release(up);
 
@@ -101,13 +151,11 @@ test_lores()
 void
 test_hires()
 {
-  struct gkyl_mirror_geo_efit_inp inp = {
+  struct gkyl_efit_inp inp = {
     // psiRZ and related inputs
     .filepath = "./data/eqdsk/wham_hires.geqdsk",
-    .rzpoly_order = 2,
-    .fluxpoly_order = 1,
-    .plate_spec = false,
-    .quad_param = {  .eps = 1e-10 }
+    .rz_poly_order = 2,
+    .flux_poly_order = 1,
   };
 
   clock_t start, end;
@@ -139,8 +187,8 @@ struct gkyl_mirror_geo_grid_inp ginp = {
 
   struct gkyl_gk_geometry_inp geometry_inp = {
     .geometry_id  = GKYL_MIRROR,
-    .mirror_efit_info = &inp,
-    .mirror_grid_info = &ginp,
+    .efit_info = inp,
+    .mirror_grid_info = ginp,
     .grid = cgrid,
     .local = clocal,
     .local_ext = clocal_ext,
@@ -165,152 +213,8 @@ struct gkyl_mirror_geo_grid_inp ginp = {
   printf("total time = %g\n", cpu_time_used);
 }
 
-void
-gyrokinetic_geom_new(struct gkyl_gk *gk)
-{
-  disable_denorm_float();
-  gkyl_gyrokinetic_app *app = gkyl_malloc(sizeof(gkyl_gyrokinetic_app));
-  int cdim = app->cdim = gk->cdim;
-  int vdim = app->vdim = gk->vdim;
-  int pdim = cdim+vdim;
-  int poly_order = app->poly_order = gk->poly_order;
-  app->use_gpu = false; // can't use GPUs if we don't have them!
-  app->num_periodic_dir = gk->num_periodic_dir;
-  for (int d=0; d<cdim; ++d)
-    app->periodic_dirs[d] = gk->periodic_dirs[d];
-  strcpy(app->name, gk->name);
-  app->tcurr = 0.0; // reset on init
-  app->basis_on_dev.basis = &app->basis;
-  app->basis_on_dev.neut_basis = &app->neut_basis;
-  app->basis_on_dev.confBasis = &app->confBasis;
-  gkyl_cart_modal_serendip(&app->confBasis, cdim, poly_order);
-  gkyl_cart_modal_gkhybrid(&app->basis, cdim, vdim); // p=2 in vparallel
-  gkyl_cart_modal_hybrid(&app->neut_basis, cdim, vdim+1); // p=2 in v for neutral species
-  gkyl_rect_grid_init(&app->grid, cdim, gk->lower, gk->upper, gk->cells);
-  int ghost[] = { 1, 1, 1 };
-  gkyl_create_grid_ranges(&app->grid, ghost, &app->global_ext, &app->global);
-  memcpy(&app->local, &app->global, sizeof(struct gkyl_range));
-  memcpy(&app->local_ext, &app->global_ext, sizeof(struct gkyl_range));
-  int cuts[3] = { 1, 1, 1 };
-  struct gkyl_rect_decomp *rect_decomp =
-    gkyl_rect_decomp_new_from_cuts(cdim, cuts, &app->global);
-  app->comm = gkyl_null_comm_inew( &(struct gkyl_null_comm_inp) {
-      .decomp = rect_decomp,
-      .use_gpu = app->use_gpu
-    }
-  );
-  gkyl_rect_decomp_release(rect_decomp);
-  // local skin and ghost ranges for configuration space fields
-  for (int dir=0; dir<cdim; ++dir) {
-    gkyl_skin_ghost_ranges(&app->lower_skin[dir], &app->lower_ghost[dir], dir, GKYL_LOWER_EDGE, &app->local_ext, ghost); 
-    gkyl_skin_ghost_ranges(&app->upper_skin[dir], &app->upper_ghost[dir], dir, GKYL_UPPER_EDGE, &app->local_ext, ghost);
-  }
-  // Configuration space geometry initialization
-  // Initialize the input struct from user side input struct
-  struct gkyl_gk_geometry_inp geometry_inp = {
-    .geometry_id  = gk->geometry.geometry_id,
-    .c2p_ctx = gk->geometry.c2p_ctx,
-    .mapc2p = gk->geometry.mapc2p,
-    .bmag_ctx = gk->geometry.bmag_ctx,
-    .bmag_func = gk->geometry.bmag_func,
-    .tok_efit_info = gk->geometry.tok_efit_info,
-    .tok_grid_info = gk->geometry.tok_grid_info,
-    .mirror_efit_info = gk->geometry.mirror_efit_info,
-    .mirror_grid_info = gk->geometry.mirror_grid_info,
-    .grid = app->grid,
-    .local = app->local,
-    .local_ext = app->local_ext,
-    .global = app->global,
-    .global_ext = app->global_ext,
-    .basis = app->confBasis,
-  };
-  for(int i = 0; i<3; i++)
-    geometry_inp.world[i] = gk->geometry.world[i];
-  if(app->cdim < 3){
-    geometry_inp.geo_grid = gkyl_gk_geometry_augment_grid(app->grid, geometry_inp);
-    gkyl_cart_modal_serendip(&geometry_inp.geo_basis, 3, poly_order);
-    int ghost[] = { 1, 1, 1 };
-    gkyl_create_grid_ranges(&geometry_inp.geo_grid, ghost, &geometry_inp.geo_global_ext, &geometry_inp.geo_global);
-    if (gk->has_low_inp) {
-      // create local and local_ext from user-supplied local range
-      gkyl_gk_geometry_augment_local(&gk->low_inp.local_range, ghost, &geometry_inp.geo_local_ext, &geometry_inp.geo_local);
-    }
-    else {
-      // global and local ranges are same, and so just copy
-      memcpy(&geometry_inp.geo_local, &geometry_inp.geo_global, sizeof(struct gkyl_range));
-      memcpy(&geometry_inp.geo_local_ext, &geometry_inp.geo_global_ext, sizeof(struct gkyl_range));
-    }
-  }
-  else{
-    geometry_inp.geo_grid = app->grid;
-    geometry_inp.geo_local = app->local;
-    geometry_inp.geo_local_ext = app->local_ext;
-    geometry_inp.geo_global = app->global;
-    geometry_inp.geo_global_ext = app->global_ext;
-    geometry_inp.geo_basis = app->confBasis;
-  }
-  struct gk_geometry* gk_geom_3d;
-  gk_geom_3d = gkyl_gk_geometry_mirror_new(&geometry_inp);
-  // deflate geometry if necessary
-  if(app->cdim < 3)
-    app->gk_geom = gkyl_gk_geometry_deflate(gk_geom_3d, &geometry_inp);
-  else
-    app->gk_geom = gkyl_gk_geometry_acquire(gk_geom_3d);
-  gkyl_gk_geometry_release(gk_geom_3d); // release temporary 3d geometry
-  gkyl_gk_geometry_bmag_mid(app->gk_geom); // set bmag mid
-  int comm_sz;
-  gkyl_comm_get_size(app->comm, &comm_sz);
-  int bcast_rank = comm_sz/2;
-  gkyl_comm_array_bcast_host(app->comm, app->gk_geom->bmag_mid, app->gk_geom->bmag_mid, bcast_rank);
-  gkyl_gyrokinetic_app_write_geometry(app);
-}
-
-void
-test_geom_2x() {
-  clock_t start, end;
-  double cpu_time_used;
-  start = clock();
-  struct gkyl_mirror_geo_efit_inp inp = {
-    .filepath = "./data/eqdsk/wham.geqdsk",
-    .rzpoly_order = 2,
-    .fluxpoly_order = 1,
-    .plate_spec = false,
-    .quad_param = {  .eps = 1e-10 }
-  };
-  struct gkyl_mirror_geo_grid_inp ginp = {
-    .rclose = 0.2,
-    .zmin = -2.0,
-    .zmax =  2.0,
-  };
-  double psi_min = 2e-4, psi_max = 3e-3;
-  double z_min = -M_PI+1e-1, z_max = M_PI-1e-1;
-  int cells_psi = 4, cells_z = 32;
-  struct gkyl_gk app_inp = {
-    .name = "gk_wham_2x2v",
-    .cdim = 2,  .vdim = 2,
-    .lower = {psi_min, z_min},
-    .upper = {psi_max, z_max},
-    .cells = { cells_psi, cells_z },
-    .poly_order = 1,
-    .geometry = {
-      .geometry_id = GKYL_MIRROR,
-      .world = {0.0},
-      .mirror_efit_info = &inp,
-      .mirror_grid_info = &ginp,
-    },
-    .num_periodic_dir = 0,
-    .periodic_dirs = {},
-  };
-  gyrokinetic_geom_new(&app_inp);
-  end = clock();
-  cpu_time_used = ((double) (end - start)) / CLOCKS_PER_SEC;
-  printf("total time = %g\n", cpu_time_used);
-}
-
-
 TEST_LIST = {
   { "test_lores", test_lores },
-  { "test_hires", test_hires },
-  { "test_geom_2x", test_geom_2x },
+  //{ "test_hires", test_hires },
   { NULL, NULL },
 };

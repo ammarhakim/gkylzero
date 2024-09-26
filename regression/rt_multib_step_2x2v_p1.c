@@ -77,7 +77,6 @@ create_block_geom(void)
       // psiRZ and related inputs
       .filepath = "./data/eqdsk/step.geqdsk",
       .rz_poly_order = 2,
-      .rz_basis_type = GKYL_BASIS_MODAL_TENSOR,
       .flux_poly_order = 1,
       .reflect = true,
     };
@@ -874,7 +873,6 @@ struct gkyl_comm *comm = 0;
     .upper = {  ctx.vpar_max_elc, ctx.mu_max_elc}, 
     .cells = { cells_v[0], cells_v[1] },
     .no_by = true,
-    .enforce_positivity = false,
     .num_diag_moments = 7,
     .diag_moments = { "M0", "M1", "M2", "M2par", "M2perp", "M3par", "M3perp" },
 
@@ -1017,7 +1015,6 @@ struct gkyl_comm *comm = 0;
     .upper = {  ctx.vpar_max_ion, ctx.mu_max_ion}, 
     .cells = { cells_v[0], cells_v[1] },
     .no_by = true,
-    .enforce_positivity = false,
     .num_diag_moments = 7,
     .diag_moments = { "M0", "M1", "M2", "M2par", "M2perp", "M3par", "M3perp" },
 
@@ -1109,7 +1106,6 @@ struct gkyl_comm *comm = 0;
     .upper = {  ctx.vpar_max_Ar, ctx.mu_max_Ar}, 
     .cells = { cells_v[0], cells_v[1] },
     .no_by = true,
-    .enforce_positivity = false,
     .num_diag_moments = 7,
     .diag_moments = { "M0", "M1", "M2", "M2par", "M2perp", "M3par", "M3perp" },
 
@@ -1295,6 +1291,8 @@ struct gkyl_comm *comm = 0;
 
     .block_geom = bgeom,
     .cfl_frac = 0.9,
+    
+    .enforce_positivity = false,
 
     .num_species = 3,
     .species = { elc, ion, Ar1},

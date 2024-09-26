@@ -279,14 +279,13 @@ singleb_app_new(const struct gkyl_moment_multib *mbinp, int bid,
   }
 
   struct gkyl_comm *comm = mbapp->block_comms[bid];
-  int local_rank;
-  gkyl_comm_get_rank(comm, &local_rank);
 
-  app_inp.has_low_inp = true;
-  app_inp.low_inp = (struct gkyl_app_comm_low_inp) {
-    .comm = comm,
-    .local_range = mbapp->decomp[bid]->ranges[local_rank]
-  };
+  struct gkyl_app_parallelism_inp parallel_inp = {};
+//  parallel_inp.use_gpu = mbinp->use_gpu; // MF 2024/09/18: moments don't have use_gpu.
+  for (int d=0; d<ndim; ++d) parallel_inp.cuts[d] = bgi->cuts[d];
+  parallel_inp.comm = comm;
+  // copy parallelism input into app input.
+  memcpy(&app_inp.parallelism, &parallel_inp, sizeof(struct gkyl_app_parallelism_inp));
 
   return gkyl_moment_app_new(&app_inp);
 }

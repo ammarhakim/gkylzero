@@ -83,58 +83,6 @@ calc_RdR_p1(const double *psi, double psi0, double Z, double xc[2], double dx[2]
   return sol;
 }
 
-// Compute roots R(psi,Z) and dR/dZ(psi,Z) in a p=2 DG cell
-static inline struct RdRdZ_sol
-calc_RdR_p2(const double *psi, double psi0, double Z, double xc[2], double dx[2])
-{
-  struct RdRdZ_sol sol = { .nsol = 0 };
-  double y = (Z-xc[1])/(dx[1]*0.5);
-
-  double aq = 2.904737509655563*psi[6]*y+1.677050983124842*psi[4]; 
-  double bq = 2.904737509655563*psi[7]*SQ(y)+1.5*psi[3]*y-0.9682458365518543*psi[7]+0.8660254037844386*psi[1]; 
-  double cq = 1.677050983124842*psi[5]*SQ(y)-0.9682458365518543*psi[6]*y+0.8660254037844386*psi[2]*y-1.0*psi0-0.5590169943749475*psi[5]-0.5590169943749475*psi[4]+0.5*psi[0]; 
-  double delta2 = bq*bq - 4*aq*cq;
-
-  if (delta2 > 0) {
-    double r1, r2;
-    double delta = sqrt(delta2);
-    // compute both roots
-    if (bq>=0) {
-      r1 = (-bq-delta)/(2*aq);
-      r2 = 2*cq/(-bq-delta);
-    }
-    else {
-      r1 = 2*cq/(-bq+delta);
-      r2 = (-bq+delta)/(2*aq);
-    }
-
-    int sidx = 0;
-    if ((-1<=r1) && (r1 < 1)) {
-      sol.nsol += 1;
-      sol.R[sidx] = r1*dx[0]*0.5 + xc[0];
-
-      double x = r1;
-      double C = 5.809475019311126*psi[7]*x*y+3.354101966249685*psi[5]*y+2.904737509655563*psi[6]*SQ(x)+1.5*psi[3]*x-0.9682458365518543*psi[6]+0.8660254037844386*psi[2]; 
-      double A = 2.904737509655563*psi[7]*SQ(y)+5.809475019311126*psi[6]*x*y+1.5*psi[3]*y+3.354101966249685*psi[4]*x-0.9682458365518543*psi[7]+0.8660254037844386*psi[1];
-      sol.dRdZ[sidx] = -C/A*dx[0]/dx[1];
-      
-      sidx += 1;
-    }
-    if ((-1<=r2) && (r2 < 1)) {
-      sol.nsol += 1;
-      sol.R[sidx] = r2*dx[0]*0.5 + xc[0];
-
-      double x = r2;
-      double C = 5.809475019311126*psi[7]*x*y+3.354101966249685*psi[5]*y+2.904737509655563*psi[6]*SQ(x)+1.5*psi[3]*x-0.9682458365518543*psi[6]+0.8660254037844386*psi[2]; 
-      double A = 2.904737509655563*psi[7]*SQ(y)+5.809475019311126*psi[6]*x*y+1.5*psi[3]*y+3.354101966249685*psi[4]*x-0.9682458365518543*psi[7]+0.8660254037844386*psi[1];
-      sol.dRdZ[sidx] = -C/A*dx[0]/dx[1];
-      
-      sidx += 1;
-    }
-  }
-  return sol;
-}
-
 // Compute roots R(psi,Z) and dR/dZ(psi,Z) in a p=2 DG cell with tensor basis
 static inline struct RdRdZ_sol
 calc_RdR_p2_tensor(const double *psi, double psi0, double Z, double xc[2], double dx[2])
@@ -438,19 +386,6 @@ calc_grad_psi_p1(const double *psih, const double eta[2], const double dx[2])
   return sqrt(dpsidx*dpsidx + dpsidy*dpsidy);
 }
 
-// In cylindrical coords, grad psi = dpsi/dR Rhat + dpsi/dZ zhat
-static double
-calc_grad_psi_p2(const double *psih, const double eta[2], const double dx[2])
-{
-  double x = eta[0];
-  double y = eta[1];
-  double dpsidx = 2.904737509655563*psih[7]*(y*y-0.3333333333333333)+5.809475019311126*psih[6]*x*y+1.5*psih[3]*y+3.354101966249684*psih[4]*x+0.8660254037844386*psih[1];
-  double dpsidy =	5.809475019311126*psih[7]*x*y+3.354101966249684*psih[5]*y+2.904737509655563*psih[6]*(x*x-0.3333333333333333)+1.5*psih[3]*x+0.8660254037844386*psih[2];
-  dpsidx = dpsidx*2.0/dx[0];
-  dpsidy = dpsidy*2.0/dx[1];
-  return sqrt(dpsidx*dpsidx + dpsidy*dpsidy);
-}
-
 static double
 calc_grad_psi_p2_tensor(const double *psih, const double eta[2], const double dx[2])
 {
@@ -521,8 +456,15 @@ phi_contour_func(double Z, void *ctx)
   }
   else {
     int rzidx[2];
-    rzidx[0] = fmin(c->geo->rzlocal.lower[0] + (int) floor((r_curr - c->geo->rzgrid.lower[0])/c->geo->rzgrid.dx[0]), c->geo->rzlocal.upper[0]);
-    rzidx[1] = fmin(c->geo->rzlocal.lower[1] + (int) floor((Z - c->geo->rzgrid.lower[1])/c->geo->rzgrid.dx[1]), c->geo->rzlocal.upper[1]);
+    int idxtemp = c->geo->rzlocal.lower[0] + (int) floor((r_curr - c->geo->rzgrid.lower[0])/c->geo->rzgrid.dx[0]);
+    idxtemp = GKYL_MIN2(idxtemp, c->geo->rzlocal.upper[0]);
+    idxtemp = GKYL_MAX2(idxtemp, c->geo->rzlocal.lower[0]);
+    rzidx[0] = idxtemp;
+    idxtemp = c->geo->rzlocal.lower[1] + (int) floor((Z - c->geo->rzgrid.lower[1])/c->geo->rzgrid.dx[1]);
+    idxtemp = GKYL_MIN2(idxtemp, c->geo->rzlocal.upper[1]);
+    idxtemp = GKYL_MAX2(idxtemp, c->geo->rzlocal.lower[1]);
+    rzidx[1] = idxtemp;
+
     long loc = gkyl_range_idx((&c->geo->rzlocal), rzidx);
     const double *psih = gkyl_array_cfetch(c->geo->psiRZ, loc);
 
@@ -563,8 +505,15 @@ dphidtheta_integrand(double Z, void *ctx)
   }
   else {
     int rzidx[2];
-    rzidx[0] = fmin(c->geo->rzlocal.lower[0] + (int) floor((r_curr - c->geo->rzgrid.lower[0])/c->geo->rzgrid.dx[0]), c->geo->rzlocal.upper[0]);
-    rzidx[1] = fmin(c->geo->rzlocal.lower[1] + (int) floor((Z - c->geo->rzgrid.lower[1])/c->geo->rzgrid.dx[1]), c->geo->rzlocal.upper[1]);
+    int idxtemp = c->geo->rzlocal.lower[0] + (int) floor((r_curr - c->geo->rzgrid.lower[0])/c->geo->rzgrid.dx[0]);
+    idxtemp = GKYL_MIN2(idxtemp, c->geo->rzlocal.upper[0]);
+    idxtemp = GKYL_MAX2(idxtemp, c->geo->rzlocal.lower[0]);
+    rzidx[0] = idxtemp;
+    idxtemp = c->geo->rzlocal.lower[1] + (int) floor((Z - c->geo->rzgrid.lower[1])/c->geo->rzgrid.dx[1]);
+    idxtemp = GKYL_MIN2(idxtemp, c->geo->rzlocal.upper[1]);
+    idxtemp = GKYL_MAX2(idxtemp, c->geo->rzlocal.lower[1]);
+    rzidx[1] = idxtemp;
+
     long loc = gkyl_range_idx((&c->geo->rzlocal), rzidx);
     const double *psih = gkyl_array_cfetch(c->geo->psiRZ, loc);
 

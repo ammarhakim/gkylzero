@@ -93,8 +93,8 @@ test_fixed_z()
       .flux_poly_order = 1,
     };
 
-  double clower[] = { 0.16, -0.01, -3.14 };
-  double cupper[] = {0.17501, 0.01, 3.14 };
+  double clower[] = { 0.16, -0.01, -M_PI+1e-14 };
+  double cupper[] = {0.17501, 0.01, M_PI-1e-14 };
 
   int ccells[] = { 1, 1, 32 };
 
@@ -163,8 +163,8 @@ test_shaped_plate()
       .flux_poly_order = 1,
     };
 
-  double clower[] = { 0.16, -0.01, -3.14 };
-  double cupper[] = {0.17501, 0.01, 3.14 };
+  double clower[] = { 0.16, -0.01, -M_PI+1e-14 };
+  double cupper[] = {0.17501, 0.01, M_PI-1e-14 };
 
   int ccells[] = { 1, 1, 32 };
 

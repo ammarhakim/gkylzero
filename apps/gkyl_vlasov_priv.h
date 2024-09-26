@@ -664,6 +664,7 @@ struct gkyl_vlasov_app {
 
   struct gkyl_basis basis, confBasis, velBasis; // phase-space, conf-space basis, vel-space basis
 
+  struct gkyl_rect_decomp *decomp; // decomposition object
   struct gkyl_comm *comm;   // communicator object for conf-space arrays
 
   bool has_mapc2p; // flag to indicate if we have mapc2p

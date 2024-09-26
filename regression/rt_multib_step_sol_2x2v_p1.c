@@ -34,7 +34,6 @@ create_block_geom(void)
     // psiRZ and related inputs
     .filepath = "./data/eqdsk/step.geqdsk",
     .rz_poly_order = 2,
-    .rz_basis_type = GKYL_BASIS_MODAL_TENSOR,
     .flux_poly_order = 1,
     .reflect = true,
   };
@@ -206,7 +205,7 @@ create_ctx(void)
   double lower_x = 0.934;
   double upper_x = 1.4688;
   double Lx = upper_x - lower_x;
-  double Lz = 3.14*2;
+  double Lz = (M_PI-1e-14)*2.0 ; // Domain size (configuration space: z-direction).
 
   double vpar_max_elc = 4.0*vtElc;
   double mu_max_elc = 18*me*vtElc*vtElc/(2.0*B0);
@@ -476,7 +475,6 @@ main(int argc, char **argv)
     .upper = {  ctx.vpar_max_elc, ctx.mu_max_elc}, 
     .cells = { cells_v[0], cells_v[1] },
     .no_by = true,
-    .enforce_positivity = false,
     .num_diag_moments = 7,
     .diag_moments = { "M0", "M1", "M2", "M2par", "M2perp", "M3par", "M3perp" },
 
@@ -593,7 +591,6 @@ main(int argc, char **argv)
     .upper = {  ctx.vpar_max_ion, ctx.mu_max_ion}, 
     .cells = { cells_v[0], cells_v[1] },
     .no_by = true,
-    .enforce_positivity = false,
     .num_diag_moments = 7,
     .diag_moments = { "M0", "M1", "M2", "M2par", "M2perp", "M3par", "M3perp" },
 
@@ -659,7 +656,6 @@ main(int argc, char **argv)
     .upper = {  ctx.vpar_max_Ar, ctx.mu_max_Ar}, 
     .cells = { cells_v[0], cells_v[1] },
     .no_by = true,
-    .enforce_positivity = false,
     .num_diag_moments = 7,
     .diag_moments = { "M0", "M1", "M2", "M2par", "M2perp", "M3par", "M3perp" },
 
@@ -792,6 +788,8 @@ main(int argc, char **argv)
 
     .block_geom = bgeom,
     .cfl_frac = 0.9,
+
+    .enforce_positivity = false,
 
     .num_species = 3,
     .species = { elc, ion, Ar1},

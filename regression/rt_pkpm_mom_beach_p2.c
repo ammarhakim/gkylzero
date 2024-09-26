@@ -12,13 +12,15 @@
 #include <gkyl_alloc.h>
 #include <gkyl_pkpm.h>
 #include <gkyl_util.h>
-#include <gkyl_wv_euler.h>
 
 #include <gkyl_null_comm.h>
 
 #ifdef GKYL_HAVE_MPI
 #include <mpi.h>
 #include <gkyl_mpi_comm.h>
+#ifdef GKYL_HAVE_NCCL
+#include <gkyl_nccl_comm.h>
+#endif
 #endif
 
 #include <rt_arg_parse.h>
@@ -310,51 +312,34 @@ main(int argc, char **argv)
   }
 #endif
 
-  // Create global range.
-  int cells[] = { NX };
-  int dim = sizeof(cells) / sizeof(cells[0]);
-  struct gkyl_range global_r;
-  gkyl_create_global_range(dim, cells, &global_r);
-
-  // Create decomposition.
-  int cuts[dim];
-#ifdef GKYL_HAVE_MPI
-  for (int d = 0; d < dim; d++) {
-    if (app_args.use_mpi) {
-      cuts[d] = app_args.cuts[d];
-    }
-    else {
-      cuts[d] = 1;
-    }
-  }
-#else
-  for (int d = 0; d < dim; d++) {
-    cuts[d] = 1;
-  }
-#endif
-
-  struct gkyl_rect_decomp *decomp = gkyl_rect_decomp_new_from_cuts(dim, cuts, &global_r);
-
   // Construct communicator for use in app.
   struct gkyl_comm *comm;
 #ifdef GKYL_HAVE_MPI
-  if (app_args.use_mpi) {
+  if (app_args.use_gpu && app_args.use_mpi) {
+#ifdef GKYL_HAVE_NCCL
+    comm = gkyl_nccl_comm_new( &(struct gkyl_nccl_comm_inp) {
+        .mpi_comm = MPI_COMM_WORLD,
+      }
+    );
+#else
+    printf(" Using -g and -M together requires NCCL.\n");
+    assert(0 == 1);
+#endif
+  }
+  else if (app_args.use_mpi) {
     comm = gkyl_mpi_comm_new( &(struct gkyl_mpi_comm_inp) {
         .mpi_comm = MPI_COMM_WORLD,
-        .decomp = decomp
       }
     );
   }
   else {
     comm = gkyl_null_comm_inew( &(struct gkyl_null_comm_inp) {
-        .decomp = decomp,
         .use_gpu = app_args.use_gpu
       }
     );
   }
 #else
   comm = gkyl_null_comm_inew( &(struct gkyl_null_comm_inp) {
-      .decomp = decomp,
       .use_gpu = app_args.use_gpu
     }
   );
@@ -365,9 +350,11 @@ main(int argc, char **argv)
   int comm_size;
   gkyl_comm_get_size(comm, &comm_size);
 
+  int ccells[] = { NX };
+  int cdim = sizeof(ccells) / sizeof(ccells[0]);
   int ncuts = 1;
-  for (int d = 0; d < dim; d++) {
-    ncuts *= cuts[d];
+  for (int d = 0; d < cdim; d++) {
+    ncuts *= app_args.cuts[d];
   }
 
   if (ncuts != comm_size) {
@@ -396,13 +383,11 @@ main(int argc, char **argv)
     .species = { elc },
     .field = field,
 
-    .use_gpu = app_args.use_gpu,
-
-    .has_low_inp = true,
-    .low_inp = {
-      .local_range = decomp -> ranges[my_rank],
-      .comm = comm
-    }
+    .parallelism = {
+      .use_gpu = app_args.use_gpu,
+      .cuts = { app_args.cuts[0] },
+      .comm = comm,
+    },
   };
 
   // create app object
@@ -494,7 +479,6 @@ main(int argc, char **argv)
   gkyl_pkpm_app_cout(app, stdout, "Number of write calls %ld,\n", stat.nio);
   gkyl_pkpm_app_cout(app, stdout, "IO time took %g secs \n", stat.io_tm);
 
-  gkyl_rect_decomp_release(decomp);
   gkyl_comm_release(comm);
 
   // simulation complete, free app

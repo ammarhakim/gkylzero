@@ -108,8 +108,7 @@ comm_free(const struct gkyl_ref_count *ref)
 
   cmap_l2sgr_drop(&null_comm->l2sgr);
   cmap_l2sgr_drop(&null_comm->l2sgr_wc);
-  if (null_comm->decomp)
-    gkyl_rect_decomp_release(null_comm->decomp);
+  gkyl_rect_decomp_release(null_comm->decomp);
   gkyl_mem_buff_release(null_comm->pbuff);
   gkyl_free(null_comm);
 }

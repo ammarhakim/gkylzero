@@ -103,8 +103,8 @@ newton_raphson(struct gkyl_efit *up, const double *coeffs, double *xsol, bool cu
 
 }
 
-void
-find_xpts(gkyl_efit* up)
+int
+find_xpts(gkyl_efit* up, double *Rxpt, double *Zxpt)
 {
     bool found_xpt = false;
     double Rsep, Zsep;
@@ -134,30 +134,28 @@ find_xpts(gkyl_efit* up)
       }
     }
 
+    int num_xpts = 0;
     if (found_xpt) {
       if (up->reflect) {
-        up->num_xpts = 2;
-        up->Rxpt = gkyl_malloc(sizeof(double)*up->num_xpts);
-        up->Zxpt = gkyl_malloc(sizeof(double)*up->num_xpts);
-        up->Rxpt[0] = Rsep;
-        up->Rxpt[1] = Rsep;
-        up->Zxpt[0] = Zsep;
-        up->Zxpt[1] = -Zsep;
+        num_xpts = 2;
+        Rxpt[0] = Rsep;
+        Rxpt[1] = Rsep;
+        Zxpt[0] = Zsep;
+        Zxpt[1] = -Zsep;
         up->psisep = psisep;
       }
       else {
-        up->num_xpts = 1;
-        up->Rxpt = gkyl_malloc(sizeof(double)*up->num_xpts);
-        up->Zxpt = gkyl_malloc(sizeof(double)*up->num_xpts);
-        up->Rxpt[0] = Rsep;
-        up->Zxpt[0] = Zsep;
+        num_xpts = 1;
+        Rxpt[0] = Rsep;
+        Zxpt[0] = Zsep;
         up->psisep = psisep;
       }
     }
+  return num_xpts;
 }
 
-void
-find_xpts_cubic(gkyl_efit* up)
+int
+find_xpts_cubic(gkyl_efit* up, double *Rxpt, double *Zxpt)
 {
     bool found_xpt = false;
     double Rsep, Zsep;
@@ -187,25 +185,23 @@ find_xpts_cubic(gkyl_efit* up)
       }
     }
 
+    int num_xpts = 0;
     if (found_xpt) {
       if (up->reflect) {
-        up->num_xpts_cubic = 2;
-        up->Rxpt_cubic = gkyl_malloc(sizeof(double)*up->num_xpts_cubic);
-        up->Zxpt_cubic = gkyl_malloc(sizeof(double)*up->num_xpts_cubic);
-        up->Rxpt_cubic[0] = Rsep;
-        up->Rxpt_cubic[1] = Rsep;
-        up->Zxpt_cubic[0] = Zsep;
-        up->Zxpt_cubic[1] = -Zsep;
+        num_xpts = 2;
+        Rxpt[0] = Rsep;
+        Rxpt[1] = Rsep;
+        Zxpt[0] = Zsep;
+        Zxpt[1] = -Zsep;
         up->psisep_cubic = psisep;
       }
       else {
-        up->num_xpts_cubic = 1;
-        up->Rxpt_cubic = gkyl_malloc(sizeof(double)*up->num_xpts_cubic);
-        up->Zxpt_cubic = gkyl_malloc(sizeof(double)*up->num_xpts_cubic);
-        up->Rxpt_cubic[0] = Rsep;
-        up->Zxpt_cubic[0] = Zsep;
+        num_xpts = 1;
+        Rxpt[0] = Rsep;
+        Zxpt[0] = Zsep;
         up->psisep_cubic = psisep;
       }
     }
+  return num_xpts;
 }
 

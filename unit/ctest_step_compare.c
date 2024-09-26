@@ -169,7 +169,6 @@ struct gkyl_efit_inp inp_inner= {
     // psiRZ and related inputs
     .filepath = "./data/eqdsk/step.geqdsk",
     .rz_poly_order = 2,
-    .rz_basis_type = GKYL_BASIS_MODAL_TENSOR,
     .flux_poly_order = 1,
     .reflect = true,
   };
@@ -178,7 +177,6 @@ struct gkyl_efit_inp inp = {
     // psiRZ and related inputs
     .filepath = "./data/eqdsk/step.geqdsk",
     .rz_poly_order = 2,
-    .rz_basis_type = GKYL_BASIS_MODAL_TENSOR,
     .flux_poly_order = 1,
     .reflect = true,
   };
@@ -187,7 +185,6 @@ struct gkyl_efit_inp inp_outer = {
     // psiRZ and related inputs
     .filepath = "./data/eqdsk/step.geqdsk",
     .rz_poly_order = 2,
-    .rz_basis_type = GKYL_BASIS_MODAL_TENSOR,
     .flux_poly_order = 1,
     .reflect = true,
   };
