@@ -583,14 +583,21 @@ void gkyl_gyrokinetic_app_write_rad_drag(gkyl_gyrokinetic_app *app, int sidx, do
 void gkyl_gyrokinetic_app_write_rad_emissivity(gkyl_gyrokinetic_app *app, int sidx, double tm, int frame);
 
 /**
+ * Calculate integrated diagnostic moments of the radiation model.
+ *
+ * @param tm Time at which integrated diagnostics are to be computed
+ * @param app App object.
+ */
+void gkyl_gyrokinetic_app_calc_rad_integrated_mom(gkyl_gyrokinetic_app *app, double tm);
+
+/**
  * Write integrated moments of radiation rhs for radiating species 
  * 
  * @param app App object.
  * @param sidx Index of species from which to write radiation.
  * @param tm Time-stamp
  */
-void gkyl_gyrokinetic_app_write_rad_integrated_moms(gkyl_gyrokinetic_app *app, int sidx, double tm);
-
+void gkyl_gyrokinetic_app_write_rad_integrated_mom(gkyl_gyrokinetic_app *app);
 
 /**
  * Write iz react rate coefficients for species to file.
