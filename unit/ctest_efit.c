@@ -20,7 +20,6 @@ void test_solovev(){
   struct gkyl_efit_inp inp  = {
     .filepath = "./data/eqdsk/solovev.geqdsk",
     .rz_poly_order = 2,
-    .rz_basis_type = GKYL_BASIS_MODAL_TENSOR,
     .flux_poly_order = 1,
     .reflect =  true,
   };
@@ -39,7 +38,6 @@ void test_step(){
   struct gkyl_efit_inp inp  = {
     .filepath = "./data/eqdsk/step.geqdsk",
     .rz_poly_order = 2,
-    .rz_basis_type = GKYL_BASIS_MODAL_TENSOR,
     .flux_poly_order = 1,
     .reflect =  true,
   };
@@ -58,7 +56,6 @@ void test_asdex(){
   struct gkyl_efit_inp inp  = {
     .filepath = "./data/eqdsk/asdex.geqdsk",
     .rz_poly_order = 2,
-    .rz_basis_type = GKYL_BASIS_MODAL_TENSOR,
     .flux_poly_order = 1,
   };
   struct gkyl_efit* efit = gkyl_efit_new(&inp);
@@ -77,7 +74,6 @@ void test_cerfon(){
   struct gkyl_efit_inp inp  = {
     .filepath = "./data/eqdsk/cerfon.geqdsk",
     .rz_poly_order = 2,
-    .rz_basis_type = GKYL_BASIS_MODAL_TENSOR,
     .flux_poly_order = 1,
     .reflect =  true,
   };
@@ -96,7 +92,6 @@ void test_elliptical(){
   struct gkyl_efit_inp inp  = {
     .filepath = "./data/eqdsk/elliptical.geqdsk",
     .rz_poly_order = 2,
-    .rz_basis_type = GKYL_BASIS_MODAL_TENSOR,
     .flux_poly_order = 1,
     .reflect =  true,
   };
@@ -115,7 +110,6 @@ void test_wham(){
   struct gkyl_efit_inp inp  = {
     .filepath = "./data/eqdsk/wham.geqdsk",
     .rz_poly_order = 2,
-    .rz_basis_type = GKYL_BASIS_MODAL_TENSOR,
     .flux_poly_order = 1,
     //.reflect =  true,
   };
@@ -135,7 +129,6 @@ void test_tcv(){
   struct gkyl_efit_inp inp  = {
     .filepath = "./data/eqdsk/tcv.geqdsk",
     .rz_poly_order = 2,
-    .rz_basis_type = GKYL_BASIS_MODAL_TENSOR,
     .flux_poly_order = 1,
   };
   struct gkyl_efit* efit = gkyl_efit_new(&inp);
@@ -153,7 +146,6 @@ void test_mast(){
   struct gkyl_efit_inp inp  = {
     .filepath = "./data/eqdsk/mast.geqdsk",
     .rz_poly_order = 2,
-    .rz_basis_type = GKYL_BASIS_MODAL_TENSOR,
     .flux_poly_order = 1,
     .reflect =  true,
   };

@@ -4,9 +4,9 @@
 bool 
 newton_raphson(struct gkyl_efit *up, const double *coeffs, double *xsol, bool cubics);
 
-void
-find_xpts(gkyl_efit* up);
+int 
+find_xpts(gkyl_efit* up, double *Rxpt, double *Zxpt);
 
-void
-find_xpts_cubic(gkyl_efit* up);
+int 
+find_xpts_cubic(gkyl_efit* up, double *Rxpt, double *Zxpt);
 

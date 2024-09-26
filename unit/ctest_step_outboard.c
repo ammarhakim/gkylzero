@@ -148,10 +148,9 @@ test_fixed_z()
       .filepath = "./data/eqdsk/step.geqdsk",
       .rz_poly_order = 2,
       .flux_poly_order = 1,
+      .reflect = true,
     };
 
-  //double clower[] = { 0.934, -0.01, -3.14 };
-  //double cupper[] = {1.0, 0.01, 3.14 };
 
   double psisep = 1.5098198350000001;
   double clower[] = { 0.934, -0.01, -M_PI+1e-14 };
@@ -249,8 +248,8 @@ test_horizontal_plate()
       .flux_poly_order = 1,
     };
 
-  double clower[] = { 0.934, -0.01, -3.14 };
-  double cupper[] = {1.3, 0.01, 3.14 };
+  double clower[] = { 0.934, -0.01, -M_PI+1e-14 };
+  double cupper[] = {1.3, 0.01, M_PI-1e-14 };
 
   int ccells[] = { 2, 1, 32 };
 
@@ -321,8 +320,8 @@ test_vertical_plate()
       .flux_poly_order = 1,
     };
 
-  double clower[] = { 0.934, -0.01, -3.14 };
-  double cupper[] = {1.4688, 0.01, 3.14 };
+  double clower[] = { 0.934, -0.01, -M_PI+1e-14 };
+  double cupper[] = {1.4688, 0.01, M_PI-1e-14 };
 
   int ccells[] = { 2, 1, 32 };
 
@@ -391,8 +390,6 @@ test_shaped_plate()
       .flux_poly_order = 1,
     };
 
-  //double clower[] = { 0.934, -0.01, -3.14 };
-  //double cupper[] = {1.4688, 0.01, 3.14 };
 
   double psisep = 1.5098198350000001;
   double clower[] = { 0.934, -0.01, -M_PI+1e-14 };
