@@ -7,16 +7,6 @@
 #include <gkyl_vlasov.h>
 #include <rt_arg_parse.h>
 
-#include <gkyl_null_comm.h>
-
-#ifdef GKYL_HAVE_MPI
-#include <mpi.h>
-#include <gkyl_mpi_comm.h>
-#ifdef GKYL_HAVE_NCCL
-#include <gkyl_nccl_comm.h>
-#endif
-#endif
-
 struct vp_sheath_ctx {
   int cdim, vdim; // Dimensionality.
 
@@ -39,6 +29,7 @@ struct vp_sheath_ctx {
   double vx_min_ion, vx_max_ion; // Extents of the ion vx grid.
   int Nx; // Number of cells along x.
   int Nvx; // Number of cells along vx.
+  int cells[GKYL_MAX_DIM]; // Number of cells in all directions.
   int poly_order; // Polynomial order of the basis.
   double Lx; // Length of the domain along x.
 
@@ -264,6 +255,7 @@ create_ctx(void)
     .vx_max_ion        = vx_max_ion        ,
     .Nx                = Nx                ,
     .Nvx               = Nvx               ,
+    .cells             = {Nx, Nvx}         ,
     .poly_order        = poly_order        ,
 
     .L_src             = L_src             , 
@@ -324,85 +316,13 @@ main(int argc, char **argv)
 
   struct vp_sheath_ctx ctx = create_ctx(); // Simulation context.
 
-  int NX = APP_ARGS_CHOOSE(app_args.xcells[0], ctx.Nx);
-  int NVX = APP_ARGS_CHOOSE(app_args.vcells[0], ctx.Nvx);
+  int cells_x[ctx.cdim], cells_v[ctx.vdim];
+  for (int d=0; d<ctx.cdim; d++)
+    cells_x[d] = APP_ARGS_CHOOSE(app_args.xcells[d], ctx.cells[d]);
+  for (int d=0; d<ctx.vdim; d++)
+    cells_v[d] = APP_ARGS_CHOOSE(app_args.vcells[d], ctx.cells[ctx.cdim+d]);
 
-  int nrank = 1; // Number of processors in simulation.
-#ifdef GKYL_HAVE_MPI
-  if (app_args.use_mpi) {
-    MPI_Comm_size(MPI_COMM_WORLD, &nrank);
-  }
-#endif
-
-  // Create global range.
-  int ccells[] = { NX };
-  int cdim = sizeof(ccells) / sizeof(ccells[0]);
-
-  // Create decomposition.
-  int cuts[cdim];
-#ifdef GKYL_HAVE_MPI
-  for (int d = 0; d < cdim; d++) {
-    if (app_args.use_mpi) {
-      cuts[d] = app_args.cuts[d];
-    }
-    else {
-      cuts[d] = 1;
-    }
-  }
-#else
-  for (int d = 0; d < cdim; d++) {
-    cuts[d] = 1;
-  }
-#endif
-
-  // Construct communicator for use in app.
-  struct gkyl_comm *comm;
-#ifdef GKYL_HAVE_MPI
-  if (app_args.use_gpu && app_args.use_mpi) {
-#ifdef GKYL_HAVE_NCCL
-    comm = gkyl_nccl_comm_new( &(struct gkyl_nccl_comm_inp) {
-        .mpi_comm = MPI_COMM_WORLD,
-      }
-    );
-#else
-    printf(" Using -g and -M together requires NCCL.\n");
-    assert(0 == 1);
-#endif
-  }
-  else if (app_args.use_mpi) {
-    comm = gkyl_mpi_comm_new( &(struct gkyl_mpi_comm_inp) {
-        .mpi_comm = MPI_COMM_WORLD,
-      }
-    );
-  }
-  else {
-    comm = gkyl_null_comm_inew( &(struct gkyl_null_comm_inp) {
-        .use_gpu = app_args.use_gpu
-      }
-    );
-  }
-#else
-  comm = gkyl_null_comm_inew( &(struct gkyl_null_comm_inp) {
-      .use_gpu = app_args.use_gpu
-    }
-  );
-#endif
-
-  int my_rank, comm_size;;
-  gkyl_comm_get_rank(comm, &my_rank);
-  gkyl_comm_get_size(comm, &comm_size);
-
-  int ncuts = 1;
-  for (int d = 0; d < cdim; d++) {
-    ncuts *= cuts[d];
-  }
-
-  if (ncuts != comm_size) {
-    if (my_rank == 0) {
-      fprintf(stderr, "*** Number of ranks, %d, does not match total cuts, %d!\n", comm_size, ncuts);
-    }
-    goto freeresources;
-  }
+  struct gkyl_comm *comm = gkyl_vlasov_comms_new(app_args.use_mpi, app_args.use_gpu, stderr);
 
   // Electrons
   struct gkyl_vlasov_species elc = {
@@ -410,7 +330,7 @@ main(int argc, char **argv)
     .charge = ctx.charge_elc, .mass = ctx.mass_elc,
     .lower = { ctx.vx_min_elc},
     .upper = { ctx.vx_max_elc}, 
-    .cells = { NVX },
+    .cells = { cells_v[0] },
 
     .num_init = 1,
     .projection[0] = {
@@ -461,7 +381,7 @@ main(int argc, char **argv)
     .charge = ctx.charge_ion, .mass = ctx.mass_ion,
     .lower = { ctx.vx_min_ion},
     .upper = { ctx.vx_max_ion}, 
-    .cells = { NVX },
+    .cells = { cells_v[0] },
 
     .num_init = 1,
     .projection[0] = {
@@ -523,7 +443,7 @@ main(int argc, char **argv)
     .cdim = ctx.cdim, .vdim = ctx.vdim,
     .lower = { ctx.x_min },
     .upper = { ctx.x_max },
-    .cells = { NX },
+    .cells = { cells_x[0] },
     .poly_order = ctx.poly_order,
     .basis_type = app_args.basis_type,
 
@@ -650,8 +570,8 @@ main(int argc, char **argv)
 
   freeresources:
   // Free resources after simulation completion.
-  gkyl_comm_release(comm);
   gkyl_vlasov_app_release(app);
+  gkyl_vlasov_comms_release(comm);
 
 #ifdef GKYL_HAVE_MPI
   if (app_args.use_mpi) {

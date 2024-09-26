@@ -7,17 +7,8 @@
 #include <gkyl_bc_emission.h>
 #include <rt_arg_parse.h>
 
-#include <gkyl_null_comm.h>
-
-#ifdef GKYL_HAVE_MPI
-#include <mpi.h>
-#include <gkyl_mpi_comm.h>
-#ifdef GKYL_HAVE_NCCL
-#include <gkyl_nccl_comm.h>
-#endif
-#endif
-
 struct sheath_ctx {
+  int cdim, vdim; // Dimensionality.
   double epsilon0;
   double mu0;
   double q0;
@@ -48,7 +39,8 @@ struct sheath_ctx {
   double W;
   double p;
   int Nx;
-  int Nv;
+  int Nvx;
+  int cells[GKYL_MAX_DIM]; // Number of cells in all directions.
   int num_emission_species;
   double t_end; // Final simulation time.
   int num_frames; // Number of output frames.
@@ -125,9 +117,31 @@ evalFieldFunc(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fo
 struct sheath_ctx
 create_ctx(void)
 {
+  int cdim = 1, vdim = 1; // Dimensionality.
+
+  double epsilon0 = 8.854e-12;
+  double mu0 = 1.257e-6;
+
   double massElc = 9.109e-31;
+  double massIon = 1836.153*massElc;
   double q0 = 1.602e-19;
 
+  double n0 = 1.0e17;
+  double Te0 = 10.0*q0;
+  double Ti0 = 10.0*q0;
+
+  double vte0 = sqrt(Te0/massElc);
+  double vti0 = sqrt(Ti0/massIon);
+
+  double omega_pe = sqrt(n0*q0*q0/(epsilon0*massElc));
+  double lambda_D = sqrt(epsilon0*Te0/(n0*q0*q0));
+
+  double Lx = 128.0*lambda_D;
+  double Ls = 100.0*lambda_D;
+
+  int Nx = 128;
+  int Nvx = 32;
+  
   // SEE parameters
   double phi = 4.68;
   double deltahat_ts = 1.885;
@@ -142,23 +156,31 @@ create_ctx(void)
   double E_hat = 1.0e-6;
   double W = 60.86;
   double p = 1.0;
+
+  double t_end = 10.0/omega_pe; // Final simulation time.
+  int num_frames = 1; // Number of output frames.
+  int int_diag_calc_num = num_frames*100;
+  double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.
+  int num_failures_max = 20; // Maximum allowable number of consecutive small time-steps.
+
   struct sheath_ctx ctx = {
-    .epsilon0 = 8.854e-12,
-    .mu0 = 1.257e-6,
+    .cdim = cdim,  .vdim = vdim,
+    .epsilon0 = epsilon0,
+    .mu0 = mu0,
     .q0 = q0,
     .chargeElc = -q0,
     .massElc = massElc,
     .chargeIon = q0,
-    .massIon = 1836.153*massElc,
-    .n0 = 1.0e17,
-    .Te = 10.0*q0,
-    .Ti = 10.0*q0,
-    .vte = sqrt(ctx.Te/massElc),
-    .vti = sqrt(ctx.Ti/ctx.massIon),
-    .lambda_D = sqrt(ctx.epsilon0*ctx.Te/(ctx.n0*q0*q0)),
-    .Lx = 128.0*ctx.lambda_D,
-    .Ls = 100.0*ctx.lambda_D,
-    .omega_pe = sqrt(ctx.n0*q0*q0/(ctx.epsilon0*massElc)),
+    .massIon = massIon,
+    .n0 = n0,
+    .Te = Te0,
+    .Ti = Ti0,
+    .vte = vte0,
+    .vti = vti0,
+    .lambda_D = lambda_D,
+    .Lx = Lx,
+    .Ls = Ls,
+    .omega_pe = omega_pe,
     .phi = phi,
     .deltahat_ts = deltahat_ts,
     .Ehat_ts = Ehat_ts,
@@ -172,13 +194,15 @@ create_ctx(void)
     .E_hat = E_hat,
     .W = W,
     .p = p,
-    .Nx = 128,
-    .Nv = 32,
+    .Nx = Nx,
+    .Nvx = Nvx, 
+    .cells = {Nx, Nvx},
     .num_emission_species = 1,
-    .t_end = 10.0/ctx.omega_pe,
-    .num_frames = 1,
-    .dt_failure_tol = 1.0e-4,
-    .num_failures_max = 20,
+    .t_end = t_end,
+    .num_frames = num_frames,
+    .int_diag_calc_num = int_diag_calc_num,
+    .dt_failure_tol = dt_failure_tol,
+    .num_failures_max = num_failures_max,
   };
   return ctx;
 }
@@ -217,7 +241,7 @@ main(int argc, char **argv)
 {
   struct gkyl_app_args app_args = parse_app_args(argc, argv);
 
-  #ifdef GKYL_HAVE_MPI
+#ifdef GKYL_HAVE_MPI
   if (app_args.use_mpi) {
     MPI_Init(&argc, &argv);
   }
@@ -230,85 +254,14 @@ main(int argc, char **argv)
 
   struct sheath_ctx ctx = create_ctx(); // Context for initialization functions.
 
-  int NX = APP_ARGS_CHOOSE(app_args.xcells[0], ctx.Nx);
-  int NVX = APP_ARGS_CHOOSE(app_args.vcells[0], ctx.Nv);
-
-  int nrank = 1; // Number of processors in simulation.
-#ifdef GKYL_HAVE_MPI
-  if (app_args.use_mpi) {
-    MPI_Comm_size(MPI_COMM_WORLD, &nrank);
-  }
-#endif
-
-  // Create global range.
-  int ccells[] = { NX };
-  int cdim = sizeof(ccells) / sizeof(ccells[0]);
-
-  // Create decomposition.
-  int cuts[cdim];
-#ifdef GKYL_HAVE_MPI  
-  for (int d = 0; d < cdim; d++) {
-    if (app_args.use_mpi) {
-      cuts[d] = app_args.cuts[d];
-    }
-    else {
-      cuts[d] = 1;
-    }
-  }
-#else
-  for (int d = 0; d < cdim; d++) {
-    cuts[d] = 1;
-  }
-#endif
+  int cells_x[ctx.cdim], cells_v[ctx.vdim];
+  for (int d=0; d<ctx.cdim; d++)
+    cells_x[d] = APP_ARGS_CHOOSE(app_args.xcells[d], ctx.cells[d]);
+  for (int d=0; d<ctx.vdim; d++)
+    cells_v[d] = APP_ARGS_CHOOSE(app_args.vcells[d], ctx.cells[ctx.cdim+d]);
 
   // Construct communicator for use in app.
-  struct gkyl_comm *comm;
-#ifdef GKYL_HAVE_MPI
-  if (app_args.use_gpu && app_args.use_mpi) {
-#ifdef GKYL_HAVE_NCCL
-    comm = gkyl_nccl_comm_new( &(struct gkyl_nccl_comm_inp) {
-        .mpi_comm = MPI_COMM_WORLD,
-      }
-    );
-#else
-    printf(" Using -g and -M together requires NCCL.\n");
-    assert(0 == 1);
-#endif
-  }
-  else if (app_args.use_mpi) {
-    comm = gkyl_mpi_comm_new( &(struct gkyl_mpi_comm_inp) {
-        .mpi_comm = MPI_COMM_WORLD,
-      }
-    );
-  }
-  else {
-    comm = gkyl_null_comm_inew( &(struct gkyl_null_comm_inp) {
-        .use_gpu = app_args.use_gpu
-      }
-    );
-  }
-#else
-  comm = gkyl_null_comm_inew( &(struct gkyl_null_comm_inp) {
-      .use_gpu = app_args.use_gpu
-    }
-  );
-#endif
-
-  int my_rank, comm_size;
-  gkyl_comm_get_rank(comm, &my_rank);
-  gkyl_comm_get_size(comm, &comm_size);
-
-  int ncuts = 1;
-  for (int d = 0; d < cdim; d++) {
-    ncuts *= cuts[d];
-  }
-
-  if (ncuts != comm_size) {
-    if (my_rank == 0) {
-      fprintf(stderr, "*** Number of ranks, %d, does not match total cuts, %d!\n", comm_size, ncuts);
-    }
-    goto freeresources;
-  }
+  struct gkyl_comm *comm = gkyl_vlasov_comms_new(app_args.use_mpi, app_args.use_gpu, stderr);
 
   char in_species[1][128] = { "elc" };
   struct gkyl_bc_emission_ctx *bc_ctx = gkyl_bc_emission_secondary_electron_copper_new(ctx.num_emission_species, 0.0, in_species, app_args.use_gpu);
@@ -325,7 +278,7 @@ main(int argc, char **argv)
     .charge = ctx.chargeElc, .mass = ctx.massElc,
     .lower = { -4.0*ctx.vte},
     .upper = { 4.0*ctx.vte}, 
-    .cells = { NVX },
+    .cells = { cells_v[0] },
 
     .num_init = 1,
     .projection[0] = {
@@ -362,7 +315,7 @@ main(int argc, char **argv)
     .charge = ctx.chargeIon, .mass = ctx.massIon,
     .lower = { -4.0*ctx.vti},
     .upper = { 4.0*ctx.vti}, 
-    .cells = { NVX },
+    .cells = { cells_v[0] },
 
     .num_init = 1,
     .projection[0] = {
@@ -406,10 +359,10 @@ main(int argc, char **argv)
   struct gkyl_vm app_inp = {
     .name = "vp_emission_spectrum_1x1v_p2",
 
-    .cdim = 1, .vdim = 1,
+    .cdim = ctx.cdim, .vdim = ctx.vdim,
     .lower = { -ctx.Lx },
     .upper = { ctx.Lx },
-    .cells = { NX },
+    .cells = { cells_x[0] },
     .poly_order = 2,
     .basis_type = app_args.basis_type,
 
@@ -426,6 +379,7 @@ main(int argc, char **argv)
       .cuts = { app_args.cuts[0] },
       .comm = comm,
     }
+
   };
 
   // Create app object.
@@ -536,8 +490,8 @@ main(int argc, char **argv)
 
   freeresources:
   // Free resources after simulation completion.
-  gkyl_comm_release(comm);
   gkyl_vlasov_app_release(app);
+  gkyl_vlasov_comms_release(comm);
   /* for (int i=0; i<ctx.num_emission_species; ++i) { */
   /*   gkyl_spectrum_model_release(spectrum_model[i]); */
   /*   gkyl_yield_model_release(yield_model[i]); */

@@ -7,6 +7,7 @@
 #include <gkyl_util.h>
 #include <gkyl_wv_eqn.h>
 #include <gkyl_fem_poisson_bctype.h>
+#include <gkyl_vlasov_comms.h>
 
 #include <stdbool.h>
 

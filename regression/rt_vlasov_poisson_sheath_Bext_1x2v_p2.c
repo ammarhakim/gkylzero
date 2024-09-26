@@ -28,6 +28,7 @@ struct vp_sheath_ctx {
   int Nx; // Number of cells along x.
   int Nvx; // Number of cells along vx.
   int Nvy; // Number of cells along vy.
+  int cells[GKYL_MAX_DIM]; // Number of cells in all directions.
   int poly_order; // Polynomial order of the basis.
   double Lx; // Length of the domain along x (m).
 
@@ -185,6 +186,8 @@ create_ctx(void)
     .Nx                = Nx                ,
     .Nvx               = Nvx               ,
     .Nvy               = Nvy               ,
+    .cells             = {Nx, Nvx, Nvy}    ,
+
     .poly_order        = poly_order        ,
     .Lx                = Lx                ,
                                            
@@ -231,6 +234,12 @@ main(int argc, char **argv)
 {
   struct gkyl_app_args app_args = parse_app_args(argc, argv);
 
+#ifdef GKYL_HAVE_MPI
+  if (app_args.use_mpi) {
+    MPI_Init(&argc, &argv);
+  }
+#endif
+
   if (app_args.trace_mem) {
     gkyl_cu_dev_mem_debug_set(true);
     gkyl_mem_debug_set(true);
@@ -238,13 +247,21 @@ main(int argc, char **argv)
 
   struct vp_sheath_ctx ctx = create_ctx(); // Simulation context.
 
+  int cells_x[ctx.cdim], cells_v[ctx.vdim];
+  for (int d=0; d<ctx.cdim; d++)
+    cells_x[d] = APP_ARGS_CHOOSE(app_args.xcells[d], ctx.cells[d]);
+  for (int d=0; d<ctx.vdim; d++)
+    cells_v[d] = APP_ARGS_CHOOSE(app_args.vcells[d], ctx.cells[ctx.cdim+d]);
+
+  struct gkyl_comm *comm = gkyl_vlasov_comms_new(app_args.use_mpi, app_args.use_gpu, stderr);
+
   // Electrons.
   struct gkyl_vlasov_species elc = {
     .name = "elc",
     .charge = ctx.charge_elc, .mass = ctx.mass_elc,
     .lower = { ctx.vx_min_elc, ctx.vy_min_elc},
     .upper = { ctx.vx_max_elc, ctx.vy_max_elc}, 
-    .cells = { ctx.Nvx, ctx.Nvy },
+    .cells = { cells_v[0], cells_v[1] },
 
     .num_init = 1,
     .projection[0] = {
@@ -272,7 +289,7 @@ main(int argc, char **argv)
     .charge = ctx.charge_ion, .mass = ctx.mass_ion,
     .lower = { ctx.vx_min_ion, ctx.vy_min_ion},
     .upper = { ctx.vx_max_ion, ctx.vy_max_ion}, 
-    .cells = { ctx.Nvx, ctx.Nvy },
+    .cells = { cells_v[0], cells_v[1] },
 
     .num_init = 1,
     .projection[0] = {
@@ -314,7 +331,7 @@ main(int argc, char **argv)
     .cdim = ctx.cdim, .vdim = ctx.vdim,
     .lower = { ctx.x_min },
     .upper = { ctx.x_max },
-    .cells = { ctx.Nx },
+    .cells = { cells_x[0] },
     .poly_order = ctx.poly_order,
     .basis_type = app_args.basis_type,
 
@@ -328,6 +345,8 @@ main(int argc, char **argv)
 
     .parallelism = {
       .use_gpu = app_args.use_gpu,
+      .cuts = { app_args.cuts[0] },
+      .comm = comm,
     }
   };
 
@@ -439,6 +458,13 @@ main(int argc, char **argv)
   freeresources:
   // Free resources after simulation completion.
   gkyl_vlasov_app_release(app);
-  
+  gkyl_vlasov_comms_release(comm);
+
+#ifdef GKYL_HAVE_MPI
+  if (app_args.use_mpi) {
+    MPI_Finalize();
+  }
+#endif
+
   return 0;
 }
