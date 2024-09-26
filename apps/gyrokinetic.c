@@ -1548,11 +1548,9 @@ gkyl_gyrokinetic_app_write_integrated_mom(gkyl_gyrokinetic_app *app)
     if (rank == 0) {
       // Write integrated diagnostic moments.
       const char *fmt = "%s-%s_%s.gkyl";
-      int sz = gkyl_calc_strlen(fmt, app->name, gks->info.name,
-        "integrated_moms");
+      int sz = gkyl_calc_strlen(fmt, app->name, gks->info.name, "integrated_moms");
       char fileNm[sz+1]; // ensures no buffer overflow
-      snprintf(fileNm, sizeof fileNm, fmt, app->name, gks->info.name,
-        "integrated_moms");
+      snprintf(fileNm, sizeof fileNm, fmt, app->name, gks->info.name, "integrated_moms");
 
       if (gks->is_first_integ_write_call) {
         gkyl_dynvec_write(gks->integ_diag, fileNm);
@@ -1568,11 +1566,9 @@ gkyl_gyrokinetic_app_write_integrated_mom(gkyl_gyrokinetic_app *app)
       if (rank == 0) {
         // Write integrated diagnostic moments.
         const char *fmt = "%s-%s_positivity_shift_%s.gkyl";
-        int sz = gkyl_calc_strlen(fmt, app->name, gks->info.name,
-          "integrated_moms");
+        int sz = gkyl_calc_strlen(fmt, app->name, gks->info.name, "integrated_moms");
         char fileNm[sz+1]; // ensures no buffer overflow
-        snprintf(fileNm, sizeof fileNm, fmt, app->name, gks->info.name,
-          "integrated_moms");
+        snprintf(fileNm, sizeof fileNm, fmt, app->name, gks->info.name, "integrated_moms");
 
         if (gks->is_first_ps_integ_write_call) {
           gkyl_dynvec_write(gks->ps_integ_diag, fileNm);
@@ -1599,11 +1595,9 @@ gkyl_gyrokinetic_app_write_integrated_source_mom(gkyl_gyrokinetic_app *app)
       if (rank == 0) {
         // write out integrated diagnostic moments
         const char *fmt = "%s-%s_source_%s.gkyl";
-        int sz = gkyl_calc_strlen(fmt, app->name, app->species[i].info.name,
-          "integrated_moms");
+        int sz = gkyl_calc_strlen(fmt, app->name, app->species[i].info.name, "integrated_moms");
         char fileNm[sz+1]; // ensures no buffer overflow
-        snprintf(fileNm, sizeof fileNm, fmt, app->name, app->species[i].info.name,
-          "integrated_moms");
+        snprintf(fileNm, sizeof fileNm, fmt, app->name, app->species[i].info.name, "integrated_moms");
 
         if (app->species[i].src.is_first_integ_write_call) {
           gkyl_dynvec_write(app->species[i].src.integ_diag, fileNm);
@@ -1653,11 +1647,9 @@ gkyl_gyrokinetic_app_write_max_corr_status(gkyl_gyrokinetic_app* app)
     if (gks->collision_id == GKYL_BGK_COLLISIONS) {
        // write out diagnostic moments
       const char *fmt = "%s-%s-%s.gkyl";
-      int sz = gkyl_calc_strlen(fmt, app->name, app->species[i].info.name,
-        "corr-max-stat");
+      int sz = gkyl_calc_strlen(fmt, app->name, app->species[i].info.name, "corr-max-stat");
       char fileNm[sz+1]; // ensures no buffer overflow
-      snprintf(fileNm, sizeof fileNm, fmt, app->name, app->species[i].info.name,
-        "corr-max-stat");
+      snprintf(fileNm, sizeof fileNm, fmt, app->name, app->species[i].info.name, "corr-max-stat");
 
       int rank;
       gkyl_comm_get_rank(app->comm, &rank);
@@ -2695,13 +2687,21 @@ gkyl_gyrokinetic_app_from_frame_field(gkyl_gyrokinetic_app *app, int frame)
 struct gkyl_app_restart_status
 gkyl_gyrokinetic_app_from_frame_species(gkyl_gyrokinetic_app *app, int sidx, int frame)
 {
-  cstr fileNm = cstr_from_fmt("%s-%s_%d.gkyl", app->name, app->species[sidx].info.name, frame);
+  struct gk_species *gk_s = &app->species[sidx];
+  cstr fileNm = cstr_from_fmt("%s-%s_%d.gkyl", app->name, gk_s->info.name, frame);
   struct gkyl_app_restart_status rstat = gkyl_gyrokinetic_app_from_file_species(app, sidx, fileNm.str);
   cstr_drop(&fileNm);
-  app->species[sidx].is_first_integ_write_call = false; // Append to existing diagnostic.
+  // Append to existing integrated diagnostics.
+  gk_s->is_first_integ_write_call = false;
   if (app->enforce_positivity)
-    app->species[sidx].is_first_ps_integ_write_call = false; // Append to existing diagnostic.
-  
+    gk_s->is_first_ps_integ_write_call = false;
+  if (gk_s->radiation_id == GKYL_GK_RADIATION)
+    gk_s->rad.is_first_integ_write_call = false;
+  if (gk_s->source_id)
+    gk_s->src.is_first_integ_write_call = false;
+  if (gk_s->collision_id == GKYL_BGK_COLLISIONS)
+    gk_s->bgk.is_first_corr_status_write_call = false;
+
   return rstat;
 }
 
@@ -2757,6 +2757,8 @@ gkyl_gyrokinetic_app_read_from_frame(gkyl_gyrokinetic_app *app, int frame)
     }
     calc_field_and_apply_bc(app, rstat.stime, distf, distf_neut);
   }
+
+  app->field->is_first_energy_write_call = false; // Append to existing diagnostic.
 
   return rstat;
 }

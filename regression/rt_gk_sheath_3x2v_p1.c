@@ -631,11 +631,12 @@ main(int argc, char **argv)
   gkyl_gyrokinetic_app *app = gkyl_gyrokinetic_app_new(&app_inp);
 
   // Initial and final simulation times.
-  int frame_curr = 0;
+  int frame_curr_conf = 0, frame_curr_phase = 0;;
   double t_curr = 0.0, t_end = ctx.t_end;
   // Initialize simulation.
   if (app_args.is_restart) {
-    struct gkyl_app_restart_status status = gkyl_gyrokinetic_app_read_from_frame(app, app_args.restart_frame);
+    int distf_restart_frame = round(ctx.write_phase_freq*app_args.restart_frame);
+    struct gkyl_app_restart_status status = gkyl_gyrokinetic_app_read_from_frame(app, distf_restart_frame);
 
     if (status.io_status != GKYL_ARRAY_RIO_SUCCESS) {
       gkyl_gyrokinetic_app_cout(app, stderr, "*** Failed to read restart file! (%s)\n",
@@ -643,10 +644,11 @@ main(int argc, char **argv)
       goto freeresources;
     }
 
-    frame_curr = status.frame;
+    frame_curr_conf = app_args.restart_frame;
+    frame_curr_phase = status.frame;
     t_curr = status.stime;
 
-    gkyl_gyrokinetic_app_cout(app, stdout, "Restarting from frame %d", frame_curr);
+    gkyl_gyrokinetic_app_cout(app, stdout, "Restarting from frame %d", frame_curr_conf);
     gkyl_gyrokinetic_app_cout(app, stdout, " at time = %g\n", t_curr);
   }
   else {
@@ -655,10 +657,10 @@ main(int argc, char **argv)
 
   // Create triggers for IO.
   int num_frames = ctx.num_frames, num_int_diag_calc = ctx.int_diag_calc_num;
-  struct gkyl_tm_trigger trig_write_conf = { .dt = t_end/num_frames, .tcurr = t_curr, .curr = frame_curr };
-  struct gkyl_tm_trigger trig_write_phase = { .dt = t_end/(ctx.write_phase_freq*num_frames), .tcurr = t_curr, .curr = frame_curr };
+  struct gkyl_tm_trigger trig_write_conf = { .dt = t_end/num_frames, .tcurr = t_curr, .curr = frame_curr_conf };
+  struct gkyl_tm_trigger trig_write_phase = { .dt = t_end/(ctx.write_phase_freq*num_frames), .tcurr = t_curr, .curr = frame_curr_phase };
   struct gkyl_tm_trigger trig_calc_intdiag = { .dt = t_end/GKYL_MAX2(num_frames, num_int_diag_calc),
-    .tcurr = t_curr, .curr = frame_curr };
+    .tcurr = t_curr, .curr = frame_curr_conf };
 
   // Write out ICs (if restart, it overwrites the restart frame).
   calc_integrated_diagnostics(&trig_calc_intdiag, app, t_curr, false);
