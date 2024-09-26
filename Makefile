@@ -132,9 +132,9 @@ endif
 
 # Build directory
 ifdef USING_NVCC
-	BUILD_DIR ?= cubld
+	BUILD_DIR ?= cuda-build
 else	
-	BUILD_DIR ?= bld
+	BUILD_DIR ?= build
 endif
 
 # On OSX we should use Accelerate framework
@@ -369,9 +369,35 @@ OBJS := $(SRCS:%=$(BUILD_DIR)/%.o)
 DEPS := $(OBJS:.o=.d)
 
 ZERO_SH_LIB := $(BUILD_DIR)/$(ZERO).so
-$(ZERO_SH_LIB): $(OBJS)
+# MF 2024/09/29: below we dump the list of object files into a file, then
+# incorporate the file in the link command. This is because that command
+# is too long for make to execute it directly. We use a convoluted way of
+# writing to file with the NL definition below to avoid running into long
+# line limits. When make version 4.0+ becomes the norm, we'll be able to
+# use the file function instead.
+
+# Just a single newline!  Note 2 blank lines are needed.
+define NL
+
+
+endef
+
+OPT_FROM_FILE :=
+ifdef USING_NVCC
+	# Note there should be a blank space following --options-file.
+        OPT_FROM_FILE += --options-file 
+else
+	# There should be no blank space follow @.
+        OPT_FROM_FILE += @
+endif
+
+$(ZERO_SH_LIB).in: $(OBJS)
+	$(foreach f,$(OBJS),echo $(f) >> $@$(NL))
+
+$(ZERO_SH_LIB): $(ZERO_SH_LIB).in $(OBJS)
 	$(MKDIR_P) $(dir $@)
-	${CC} ${SHFLAGS} ${LDFLAGS} ${OBJS} ${EXEC_LIB_DIRS} ${EXEC_EXT_LIBS} -o $@
+	${CC} ${SHFLAGS} ${LDFLAGS} ${OPT_FROM_FILE}$@.in ${EXEC_LIB_DIRS} ${EXEC_EXT_LIBS} -o $@
+	rm $@.in
 
 # Due to an issue with shared-lib linking on the Mac, we need to build
 # a separate shared lib to install. This one has the install path
@@ -379,9 +405,13 @@ $(ZERO_SH_LIB): $(OBJS)
 # can link to the library properly. Perhaps there is a another way to
 # do this, don't know. -- AH, Feb 4th 2023.
 ZERO_SH_INSTALL_LIB := $(BUILD_DIR)/$(ZERO)-install.so
-$(ZERO_SH_INSTALL_LIB): $(OBJS)
+$(ZERO_SH_INSTALL_LIB).in: $(OBJS)
+	$(foreach f,$(OBJS),echo $(f) >> $@$(NL))
+
+$(ZERO_SH_INSTALL_LIB): $(ZERO_SH_INSTALL_LIB).in $(OBJS)
 	$(MKDIR_P) $(dir $@)
-	${CC} ${SHFLAGS_INSTALL} ${LDFLAGS} ${OBJS} ${EXEC_LIB_DIRS} ${EXEC_EXT_LIBS} -o $@
+	${CC} ${SHFLAGS_INSTALL} ${LDFLAGS} ${OPT_FROM_FILE}$@.in ${EXEC_LIB_DIRS} ${EXEC_EXT_LIBS} -o $@
+	rm $@.in
 
 ## All libraries build targets completed at this point
 
