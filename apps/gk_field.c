@@ -4,6 +4,8 @@
 #include <gkyl_dg_eqn.h>
 #include <gkyl_util.h>
 #include <gkyl_gyrokinetic_priv.h>
+#include <gkyl_nodal_ops.h>
+#include <gkyl_dg_basis_ops.h>
 
 #include <assert.h>
 #include <float.h>
@@ -40,20 +42,75 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
     // Project the initial potential onto a p+1 tensor basis and compute the polarization
     // density to use use by species in calculating the initial ion density.
     f->init_phi_pol = true;
-    struct gkyl_basis phi_pol_basis;
-    gkyl_cart_modal_tensor(&phi_pol_basis, app->cdim, app->poly_order+1);
+    printf("Projecting polarization potential\n");
 
-    f->phi_pol = mkarr(app->use_gpu, phi_pol_basis.num_basis, app->local_ext.volume);
-    struct gkyl_array *phi_pol_ho = app->use_gpu? mkarr(false, f->phi_pol->ncomp, f->phi_pol->size)
-                                            : gkyl_array_acquire(f->phi_pol);
+    assert(app->cdim == 2); // Only implemented for cdim=2
 
-    struct gkyl_eval_on_nodes *phi_pol_proj = gkyl_eval_on_nodes_new(&app->grid, &phi_pol_basis,
-      1, f->info.polarization_potential, f->info.polarization_potential_ctx);
-    gkyl_eval_on_nodes_advance(phi_pol_proj, 0.0, &app->local, phi_pol_ho);
-    gkyl_array_copy(f->phi_pol, phi_pol_ho);
+    double lower[] = { app->grid.lower[0], app->grid.lower[1] };
+    double upper[] = { app->grid.upper[0], app->grid.upper[1] };
+    int cells[] = { app->grid.cells[0], app->grid.cells[1] };
+    struct gkyl_rect_grid grid = app->grid;
+
+    // nodal grid used in IO so we can plot things
+    double nc_lower[] = { lower[0] - 0.5*grid.dx[0], lower[1] - 0.5*grid.dx[1] };
+    double nc_upper[] = { upper[0] + 0.5*grid.dx[0], upper[1] + 0.5*grid.dx[1] };
+
+    int nc_cells[] = { cells[0] + 1, cells[1] + 1 };
+    struct gkyl_rect_grid nc_grid;
+    gkyl_rect_grid_init(&nc_grid, 2, nc_lower, nc_upper, nc_cells);
+
+    struct gkyl_range local = app->local;
+    struct gkyl_range local_ext = app->local_ext;
+    int nghost[GKYL_MAX_CDIM] = { 1, 1 };  
+
+    struct gkyl_range nc_local, nc_local_ext;
+    gkyl_create_grid_ranges(&nc_grid, nghost, &nc_local_ext, &nc_local);
+
+    struct gkyl_basis basis;
+    gkyl_cart_modal_tensor(&basis, 2, 3);
+
+    struct gkyl_array *phi_nodal = gkyl_array_new(GKYL_DOUBLE, 1, (cells[0]+1)*(cells[1]+1));
+    struct gkyl_array *phi_cubic = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, local_ext.volume);
+    gkyl_dg_basis_op_mem *mem = gkyl_dg_alloc_cubic_2d(cells);
+    double xn[2];
     
-    gkyl_eval_on_nodes_release(phi_pol_proj);
-    gkyl_array_release(phi_pol_ho);
+    // initialize 2D nodal values
+    struct gkyl_range_iter iter;
+    gkyl_range_iter_init(&iter, &nc_local);
+    while (gkyl_range_iter_next(&iter)) {
+      long nidx = gkyl_range_idx(&nc_local, iter.idx);
+      
+      gkyl_rect_grid_ll_node(&grid, iter.idx, xn);
+      
+      double *pn = gkyl_array_fetch(phi_nodal, nidx);
+      f->info.polarization_potential(0.0, xn, pn, f->info.polarization_potential_ctx);
+    }
+    // compute cubic expansion
+    gkyl_dg_calc_cubic_2d_from_nodal_vals(mem, cells, grid.dx,
+      phi_nodal, phi_cubic);
+
+    f->phi_pol = mkarr(app->use_gpu, basis.num_basis, app->local_ext.volume);
+    gkyl_array_copy(f->phi_pol, phi_cubic);
+    // Print out the array to make sure it makes sense
+    const char *fmt = "%s-%s.gkyl";
+    int sz = gkyl_calc_strlen(fmt, app->name, "jacobtot_inv");
+    char fileNm[sz+1]; // ensure no buffer overflow
+    int rank;
+    gkyl_comm_get_rank(app->comm, &rank);
+    if (rank == 0) {
+      sprintf(fileNm, fmt, app->name, "phi_pol_projection");
+      gkyl_grid_sub_array_write(&app->grid, &app->global, 0, phi_cubic, fileNm);
+      sprintf(fileNm, fmt, app->name, "phi_pol_nm");
+      gkyl_grid_sub_array_write(&app->grid, &app->global, 0, phi_nodal, fileNm);
+    }
+    printf("Polarization potential projection done\n");
+    printf("Freeing phi_nodal\n");
+    gkyl_array_release(phi_nodal);
+    printf("Freeing phi_cubic\n");
+    gkyl_array_release(phi_cubic);
+    printf("Freeing mem\n");
+    gkyl_dg_basis_op_mem_release(mem);
+    printf("Polarization potential projection done\n");
   }
 
   // Create global subrange we'll copy the field solver solution from (into local).
