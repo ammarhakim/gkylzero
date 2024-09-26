@@ -90,12 +90,11 @@ test_fixed_z()
       // psiRZ and related inputs
       .filepath = "./data/eqdsk/asdex.geqdsk",
       .rz_poly_order = 2,
-      .rz_basis_type = GKYL_BASIS_MODAL_TENSOR,
       .flux_poly_order = 1,
     };
 
-  double clower[] = { 0.16, -0.01, -3.14 };
-  double cupper[] = {0.17501, 0.01, 3.14 };
+  double clower[] = { 0.16, -0.01, -M_PI+1e-14 };
+  double cupper[] = {0.17501, 0.01, M_PI-1e-14 };
 
   int ccells[] = { 1, 1, 32 };
 
@@ -160,13 +159,12 @@ test_shaped_plate()
   struct gkyl_efit_inp efit_inp = {
       // psiRZ and related inputs
       .filepath = "./data/eqdsk/asdex.geqdsk",
-      .rz_basis_type = GKYL_BASIS_MODAL_TENSOR,
       .rz_poly_order = 2,
       .flux_poly_order = 1,
     };
 
-  double clower[] = { 0.16, -0.01, -3.14 };
-  double cupper[] = {0.17501, 0.01, 3.14 };
+  double clower[] = { 0.16, -0.01, -M_PI+1e-14 };
+  double cupper[] = {0.17501, 0.01, M_PI-1e-14 };
 
   int ccells[] = { 1, 1, 32 };
 

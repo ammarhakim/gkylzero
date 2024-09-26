@@ -340,14 +340,8 @@ gkyl_tok_geo_new(const struct gkyl_efit_inp *inp, const struct gkyl_tok_geo_grid
     geo->calc_grad_psi = calc_grad_psi_p1;
   }
   else if (geo->efit->rzbasis.poly_order == 2){
-    if(inp->rz_basis_type == GKYL_BASIS_MODAL_SERENDIPITY) {
-      geo->calc_roots = calc_RdR_p2;
-      geo->calc_grad_psi = calc_grad_psi_p2;
-    }
-    else if(inp->rz_basis_type == GKYL_BASIS_MODAL_TENSOR) {
-      geo->calc_roots = calc_RdR_p2_tensor_nrc;
-      geo->calc_grad_psi = calc_grad_psi_p2_tensor;
-    }
+    geo->calc_roots = calc_RdR_p2_tensor_nrc;
+    geo->calc_grad_psi = calc_grad_psi_p2_tensor;
   }
 
   geo->stat = (struct gkyl_tok_geo_stat) { };

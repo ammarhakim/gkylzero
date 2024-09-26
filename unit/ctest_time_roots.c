@@ -189,7 +189,6 @@ compare_quad_and_cub(void)
   struct gkyl_efit_inp inp  = {
     .filepath = "./data/eqdsk/wham.geqdsk",
     .rz_poly_order = 2,
-    .rz_basis_type = GKYL_BASIS_MODAL_TENSOR,
     .flux_poly_order = 1,
     .reflect =  true,
   };
