@@ -471,6 +471,8 @@ calc_field_and_apply_bc(gkyl_gyrokinetic_app* app, double tcurr, struct gkyl_arr
 {
 
   // Compute the field.
+  // MF 2024/09/27/: Need the cast here for consistency. Fixing
+  // this may require removing 'const' from a lot of places.
   calc_field(app, tcurr, (const struct gkyl_array **) distf);
 
   // Apply boundary conditions.

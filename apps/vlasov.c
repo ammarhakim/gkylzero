@@ -428,6 +428,8 @@ void
 vp_calc_field_and_apply_bc(gkyl_vlasov_app* app, double tcurr, struct gkyl_array *distf[])
 {
   // Compute the field.
+  // MF 2024/09/27/: Need the cast here for consistency. Fixing
+  // this may require removing 'const' from a lot of places.
   vp_calc_field(app, tcurr, (const struct gkyl_array **) distf);
 
   // Apply boundary conditions.
@@ -466,6 +468,8 @@ gkyl_vlasov_app_apply_ic_field(gkyl_vlasov_app* app, double t0)
     struct gkyl_array *distf[app->num_species];
     for (int i=0; i<app->num_species; ++i)
       distf[i] = app->species[i].f;
+    // MF 2024/09/27/: Need the cast here for consistency. Fixing
+    // this may require removing 'const' from a lot of places.
     vp_calc_field(app, t0, (const struct gkyl_array **) distf);
   }
   else
