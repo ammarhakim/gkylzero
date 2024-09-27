@@ -79,6 +79,9 @@ gyrokinetic_array_meta_new(struct gyrokinetic_output_meta meta)
   mpack_write_cstr(&writer, "basisType");
   mpack_write_cstr(&writer, meta.basis_type);
 
+  mpack_write_cstr(&writer, "Git_commit_hash");
+  mpack_write_cstr(&writer, GIT_COMMIT_ID);
+
   mpack_complete_map(&writer);
 
   int status = mpack_writer_destroy(&writer);
