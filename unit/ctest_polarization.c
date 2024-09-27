@@ -450,7 +450,8 @@ test_2x_quad( bool use_gpu )
   gkyl_create_grid_ranges(&nc_grid, nc_ghost, &nc_local_ext, &nc_local);
 
   struct gkyl_basis basis_phi;
-  gkyl_cart_modal_tensor(&basis_phi, dim, 3);
+  int basis_phi_poly_order = 3;
+  gkyl_cart_modal_tensor(&basis_phi, dim, basis_phi_poly_order);
 
   struct gkyl_array *phi_nodal = gkyl_array_new(GKYL_DOUBLE, 1, nc_cells[0]*nc_cells[1]);
   struct gkyl_array *phi_cubic = gkyl_array_new(GKYL_DOUBLE, basis_phi.num_basis, localRange_ext.volume);
