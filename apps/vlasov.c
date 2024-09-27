@@ -302,6 +302,9 @@ gkyl_vlasov_app_new(struct gkyl_vm *vm)
         app->species[i].lbo.num_cross_collisions)
       vm_species_lbo_cross_init(app, &app->species[i], &app->species[i].lbo);
 
+  // initialize each species source terms: this has to be done here
+  // as they may initialize a bflux updater for their source species.
+
   // initialize each species source terms
   for (int i=0; i<ns; ++i)
     if (app->species[i].source_id)
