@@ -409,7 +409,7 @@ gk_species_react_release(const struct gkyl_gyrokinetic_app *app, const struct gk
     gkyl_array_release(react->prim_vars_proj_inp[i]); 
     gkyl_array_release(react->prim_vars_se_proj_inp[i]); 
 
-    if(app->use_gpu)
+    if (app->use_gpu)
       gkyl_array_release(react->coeff_react_host[i]);
 
     if (react->react_id[i] == GKYL_REACT_IZ) 

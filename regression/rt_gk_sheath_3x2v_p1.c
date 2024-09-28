@@ -432,10 +432,6 @@ write_data(struct gkyl_tm_trigger* iot_conf, struct gkyl_tm_trigger* iot_phase,
 
     gkyl_gyrokinetic_app_write_conf(app, t_curr, frame);
 
-    gkyl_gyrokinetic_app_calc_mom(app);
-    gkyl_gyrokinetic_app_write_mom(app, t_curr, frame);
-    gkyl_gyrokinetic_app_write_source_mom(app, t_curr, frame);
-
     gkyl_gyrokinetic_app_calc_field_energy(app, t_curr);
     gkyl_gyrokinetic_app_write_field_energy(app);
 

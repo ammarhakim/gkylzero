@@ -4,6 +4,8 @@
 void 
 gk_species_radiation_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s, struct gk_rad_drag *rad)
 {
+  rad->radiation_id = s->info.radiation.radiation_id;
+
   int cdim = app->cdim, vdim = app->vdim;
   int pdim = cdim+vdim;
   // Cutoff below which radiation is set to 0. Set to 1eV. Keep the radiation from driving Te negative.
