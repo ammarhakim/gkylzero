@@ -98,26 +98,22 @@ eval_temp_ion(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT f
 }
 
 void
-external_fields(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
+external_potentials(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
 {
   double x = xn[0];
   struct vp_sheath_ctx *app = ctx;
 
   double B0 = 0.001;
 
-  double Ex = 0.0;
-  double Ey = 0.0;
-  double Ez = 0.0;
-  double Bx = 0.0;
-  double By = 0.0;
-  double Bz = B0;
+  double phi = 0.0;
+  double Ax = 0.0;
+  double Ay = B0*x;
+  double Az = 0.0;
 
-  fout[0] = Ex;
-  fout[1] = Ey;
-  fout[2] = Ez;
-  fout[3] = Bx;
-  fout[4] = By;
-  fout[5] = Bz;
+  fout[0] = phi;
+  fout[1] = Ax;
+  fout[2] = Ay;
+  fout[3] = Az;
 }
 
 struct vp_sheath_ctx
@@ -323,9 +319,9 @@ main(int argc, char **argv)
       .up_type = { GKYL_POISSON_NEUMANN },
       .lo_value = { 0.0 }, .up_value = { 0.0 }
     },
-    .ext_em = external_fields,
-    .ext_em_ctx = &ctx,
-    .ext_em_evolve = false,
+    .external_potentials = external_potentials,
+    .external_potentials_ctx = &ctx,
+    .external_potentials_evolve = false,
   };
 
   // VP app
