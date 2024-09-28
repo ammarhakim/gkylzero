@@ -222,10 +222,10 @@ gk_species_init(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *app, st
   // Determine collision type and initialize it.
   gks->lbo = (struct gk_lbo_collisions) { };
   gks->bgk = (struct gk_bgk_collisions) { };
-  if (gks->lbo.collision_id == GKYL_LBO_COLLISIONS) {
+  if (gks->info.collisions.collision_id == GKYL_LBO_COLLISIONS) {
     gk_species_lbo_init(app, gks, &gks->lbo);
   }
-  if (gks->bgk.collision_id == GKYL_BGK_COLLISIONS) {
+  if (gks->info.collisions.collision_id == GKYL_BGK_COLLISIONS) {
     gk_species_bgk_init(app, gks, &gks->bgk);
   }
 

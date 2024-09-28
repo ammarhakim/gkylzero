@@ -82,7 +82,6 @@ struct gkyl_gyrokinetic_diffusion {
 struct gkyl_gyrokinetic_source {
   enum gkyl_source_id source_id; // type of source
   int num_sources;
-  bool write_source; // optional parameter to write out source distribution
   bool evolve; // Whether the source is time dependent.
 
   // sources using projection routine

@@ -403,7 +403,7 @@ gkyl_gyrokinetic_app_new(struct gkyl_gk *gk)
       gk_species_react_cross_init(app, &app->species[i], &gk_s->react_neut);
     }
     // initial radiation (e.g., line radiation from cross-collisions of electrons with ions)
-    if (gk_s->rad.radiation_id == GKYL_GK_RADIATION) {
+    if (gk_s->info.radiation.radiation_id == GKYL_GK_RADIATION) {
       gk_species_radiation_init(app, &app->species[i], &gk_s->rad);
     }
   }
@@ -1972,31 +1972,33 @@ forward_euler(gkyl_gyrokinetic_app* app, double tcurr, double dt,
   // Compute necessary moments for cross-species collisions.
   // Needs to be done after self-collisions moments, so separate loop over species.
   for (int i=0; i<app->num_species; ++i) {
-    if (app->species[i].lbo.collision_id == GKYL_LBO_COLLISIONS) { 
-      if (app->species[i].lbo.num_cross_collisions) {
+    struct gk_species *gk_s = &app->species[i];
+
+    if (gk_s->lbo.collision_id == GKYL_LBO_COLLISIONS) { 
+      if (gk_s->lbo.num_cross_collisions) {
         gk_species_lbo_cross_moms(app, &app->species[i], 
-          &app->species[i].lbo, fin[i]);        
+          &gk_s->lbo, fin[i]);        
       }
     }
-    if (app->species[i].bgk.collision_id == GKYL_BGK_COLLISIONS) {
-      if (app->species[i].bgk.num_cross_collisions) {
+    if (gk_s->bgk.collision_id == GKYL_BGK_COLLISIONS) {
+      if (gk_s->bgk.num_cross_collisions) {
         gk_species_bgk_cross_moms(app, &app->species[i], 
-          &app->species[i].bgk, fin[i]);        
+          &gk_s->bgk, fin[i]);        
       }
     }
     // Compute reaction rates (e.g., ionization, recombination, or charge exchange).
-    if (app->species[i].react.num_react) {
+    if (gk_s->react.num_react) {
       gk_species_react_cross_moms(app, &app->species[i], 
-        &app->species[i].react, fin[i], fin, fin_neut);
+        &gk_s->react, fin[i], fin, fin_neut);
     }
-    if (app->species[i].react_neut.num_react) {
+    if (gk_s->react_neut.num_react) {
       gk_species_react_cross_moms(app, &app->species[i], 
-        &app->species[i].react_neut, fin[i], fin, fin_neut);
+        &gk_s->react_neut, fin[i], fin, fin_neut);
     }
     // Compute necessary drag coefficients for radiation operator.
-    if (app->species[i].rad.radiation_id == GKYL_GK_RADIATION) {
+    if (gk_s->rad.radiation_id == GKYL_GK_RADIATION) {
       gk_species_radiation_moms(app, &app->species[i], 
-        &app->species[i].rad, fin, fin_neut);
+        &gk_s->rad, fin, fin_neut);
     }
   }
 

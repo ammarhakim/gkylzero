@@ -434,7 +434,6 @@ struct gk_proj {
 
 struct gk_source {
   enum gkyl_source_id source_id; // type of source
-  bool write_source; // optional parameter to write out source distribution
   bool evolve; // Whether the source is time dependent.
   struct gkyl_array *source; // applied source
   struct gkyl_array *source_host; // host copy for use in IO and projecting

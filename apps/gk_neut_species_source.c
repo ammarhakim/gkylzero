@@ -16,7 +16,6 @@ gk_neut_species_source_init(struct gkyl_gyrokinetic_app *app, struct gk_neut_spe
       src->source_host = mkarr(false, app->neut_basis.num_basis, s->local_ext.volume);
     }
 
-    src->write_source = s->info.source.write_source; // optional flag to write out source
     src->evolve = s->info.source.evolve; // Whether the source is time dependent.
 
     src->num_sources = s->info.source.num_sources;
