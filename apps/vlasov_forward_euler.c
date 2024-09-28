@@ -20,11 +20,11 @@ vlasov_forward_euler(gkyl_vlasov_app* app, double tcurr, double dt,
   // Note: external EM field and  applied currents use proj_on_basis 
   // so does copy to GPU every call if app->use_gpu = true.
   if (app->has_field) {
-    if (app->field->ext_em_evolve) {
-      vm_field_calc_ext_em(app, app->field, tcurr);
-    }
     if (app->field->app_current_evolve && !app->has_fluid_em_coupling) {
       vm_field_calc_app_current(app, app->field, tcurr); 
+    }
+    if (app->field->ext_em_evolve) {
+      app->field_calc_ext_em(app, app->field, tcurr);
     }
     if (app->field->ext_pot_evolve) {
       vp_field_calc_ext_pot(app, app->field, tcurr);

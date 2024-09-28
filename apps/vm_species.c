@@ -85,8 +85,10 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
   s->qbym = s->info.charge/s->info.mass;
   if (s->field_id == GKYL_FIELD_E_B)
     s->qmem = mkarr(app->use_gpu, 8*app->confBasis.num_basis, app->local_ext.volume);
-  else
+  else if (s->field_id != GKYL_FIELD_NULL) {
     s->qmem = mkarr(app->use_gpu, 4*app->confBasis.num_basis, app->local_ext.volume);
+    s->qmem_ext = mkarr(app->use_gpu, 6*app->confBasis.num_basis, app->local_ext.volume);
+  }
 
   // Determine which directions are not periodic.
   int num_periodic_dir = app->num_periodic_dir, is_np[3] = {1, 1, 1};
@@ -216,24 +218,24 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
       &app->local, &s->local_vel, &s->local, is_zero_flux, s->model_id, s->field_id, &aux_inp, app->use_gpu);
   }
   else {
-    if (s->field_id == GKYL_FIELD_PHI || s->field_id == GKYL_FIELD_PHI_EXT) {
-      struct gkyl_dg_vlasov_poisson_auxfields aux_inp = {.field = s->qmem, };
-      s->slvr = gkyl_dg_updater_vlasov_poisson_new(&s->grid, &app->confBasis, &app->basis,
-        &app->local, &s->local_vel, &s->local, is_zero_flux, s->model_id, s->field_id, &aux_inp, app->use_gpu);
-    }
-    else {
+    if (s->field_id == GKYL_FIELD_NULL || s->field_id == GKYL_FIELD_E_B) {
       struct gkyl_dg_vlasov_auxfields aux_inp = {.field = s->qmem, .cot_vec = 0, 
         .alpha_surf = 0, .sgn_alpha_surf = 0, .const_sgn_alpha = 0 };
       s->slvr = gkyl_dg_updater_vlasov_new(&s->grid, &app->confBasis, &app->basis, 
         &app->local, &s->local_vel, &s->local, is_zero_flux, s->model_id, s->field_id, &aux_inp, app->use_gpu);
     }
+    else {
+      struct gkyl_dg_vlasov_poisson_auxfields aux_inp = {.potentials = s->qmem, .fields_ext = s->qmem_ext};
+      s->slvr = gkyl_dg_updater_vlasov_poisson_new(&s->grid, &app->confBasis, &app->basis,
+        &app->local, &s->local_vel, &s->local, is_zero_flux, s->model_id, s->field_id, &aux_inp, app->use_gpu);
+    }
   }
 
   // acquire equation object
-  if (s->field_id == GKYL_FIELD_PHI || s->field_id == GKYL_FIELD_PHI_EXT)
-    s->eqn_vlasov = gkyl_dg_updater_vlasov_poisson_acquire_eqn(s->slvr);
-  else
+  if (s->field_id == GKYL_FIELD_NULL || s->field_id == GKYL_FIELD_E_B)
     s->eqn_vlasov = gkyl_dg_updater_vlasov_acquire_eqn(s->slvr);
+  else
+    s->eqn_vlasov = gkyl_dg_updater_vlasov_poisson_acquire_eqn(s->slvr);
 
   // allocate data for momentum (for use in current accumulation)
   vm_species_moment_init(app, s, &s->m1i, "M1i");
@@ -448,19 +450,7 @@ vm_species_rhs(gkyl_vlasov_app *app, struct vm_species *species,
   gkyl_array_clear(species->cflrate, 0.0);
   gkyl_array_clear(rhs, 0.0);
 
-  if (species->field_id  == GKYL_FIELD_PHI || species->field_id  == GKYL_FIELD_PHI_EXT) {
-    if (app->field->has_ext_pot) {
-      gkyl_array_set_range(species->qmem, species->qbym, app->field->ext_pot, &app->local);
-      gkyl_array_accumulate_offset(species->qmem, species->qbym, app->field->phi, 0);
-    }
-    else {
-      gkyl_array_set_offset(species->qmem, species->qbym, app->field->phi, 0);
-    }
-
-    gkyl_dg_updater_vlasov_poisson_advance(species->slvr, &species->local,
-      fin, species->cflrate, rhs);
-  }
-  else {
+  if (species->field_id  == GKYL_FIELD_NULL || species->field_id  == GKYL_FIELD_E_B) {
     if (species->field_id  == GKYL_FIELD_E_B) {
       gkyl_array_set(species->qmem, species->qbym, em);
 
@@ -475,6 +465,21 @@ vm_species_rhs(gkyl_vlasov_app *app, struct vm_species *species,
     }
 
     gkyl_dg_updater_vlasov_advance(species->slvr, &species->local, 
+      fin, species->cflrate, rhs);
+  }
+  else {
+    if (app->field->has_ext_pot) {
+      gkyl_array_set_range(species->qmem, species->qbym, app->field->ext_pot, &app->local);
+      gkyl_array_accumulate_offset(species->qmem, species->qbym, app->field->phi, 0);
+    }
+    else {
+      gkyl_array_set_offset(species->qmem, species->qbym, app->field->phi, 0);
+      if (app->field->ext_em_evolve) {
+        gkyl_array_set_range(species->qmem_ext, species->qbym, app->field->ext_em, &app->local);
+      }
+    }
+
+    gkyl_dg_updater_vlasov_poisson_advance(species->slvr, &species->local,
       fin, species->cflrate, rhs);
   }
 
@@ -664,10 +669,10 @@ vm_species_tm(gkyl_vlasov_app *app)
   for (int i=0; i<app->num_species; ++i) {
     struct vm_species *s = &app->species[i];
     struct gkyl_dg_updater_vlasov_tm tm;
-    if (s->field_id == GKYL_FIELD_PHI || s->field_id == GKYL_FIELD_PHI_EXT)
-      tm = gkyl_dg_updater_vlasov_poisson_get_tm(s->slvr);
-    else
+    if (s->field_id == GKYL_FIELD_NULL || s->field_id == GKYL_FIELD_E_B)
       tm = gkyl_dg_updater_vlasov_get_tm(s->slvr);
+    else
+      tm = gkyl_dg_updater_vlasov_poisson_get_tm(s->slvr);
     app->stat.species_rhs_tm += tm.vlasov_tm;
   }
 }
@@ -710,8 +715,6 @@ vm_species_release(const gkyl_vlasov_app* app, const struct vm_species *s)
   if (app->use_gpu)
     gkyl_array_release(s->f_host);
 
-  gkyl_array_release(s->qmem);
-
   // Release arrays for different types of Vlasov equations
   if (s->model_id  == GKYL_MODEL_SR) {
     gkyl_dg_calc_sr_vars_release(s->sr_vars);
@@ -737,12 +740,16 @@ vm_species_release(const gkyl_vlasov_app* app, const struct vm_species *s)
     }
   }
 
+  gkyl_array_release(s->qmem);
+
   // release equation object and solver
   gkyl_dg_eqn_release(s->eqn_vlasov);
-  if (s->field_id == GKYL_FIELD_PHI || s->field_id == GKYL_FIELD_PHI_EXT)
-    gkyl_dg_updater_vlasov_poisson_release(s->slvr);
-  else
+  if (s->field_id == GKYL_FIELD_NULL || s->field_id == GKYL_FIELD_E_B)
     gkyl_dg_updater_vlasov_release(s->slvr);
+  else {
+    gkyl_array_release(s->qmem_ext);
+    gkyl_dg_updater_vlasov_poisson_release(s->slvr);
+  }
 
   // release moment data
   vm_species_moment_release(app, &s->m1i);

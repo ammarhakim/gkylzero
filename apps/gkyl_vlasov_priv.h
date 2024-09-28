@@ -367,6 +367,7 @@ struct vm_species {
   enum gkyl_field_id field_id; // Type of field equation.
   double qbym; // Charge (q) divided by mass (m).
   struct gkyl_array *qmem; // array for q/m*(E,B) or q/m(phi,A)
+  struct gkyl_array *qmem_ext; // array for external fields (q/m)*(E_ext,B_ext)
   enum gkyl_model_id model_id; // type of Vlasov equation (e.g., Vlasov vs. SR)
   // organization of the different equation objects and the required data and solvers
   union {
@@ -701,6 +702,9 @@ struct gkyl_vlasov_app {
   // Function used to compute the field energy. 
   void (*field_energy_calc)(gkyl_vlasov_app *app, double tm, const struct vm_field *field);
   struct gkyl_vlasov_stat stat; // statistics
+ 
+  // Pointer to function that calculates the external E and B.
+  void (*field_calc_ext_em)(gkyl_vlasov_app *app, struct vm_field *field, double tm);
 };
 
 // Take a single forward Euler step of the Vlasov-Maxwell system 
@@ -1405,7 +1409,7 @@ void vm_field_release(const gkyl_vlasov_app* app, struct vm_field *f);
 struct vm_field* vp_field_new(struct gkyl_vm *vm, struct gkyl_vlasov_app *app);
 
 /**
- * Compute external electromagnetic fields
+ * Compute external potentials.
  *
  * @param app Vlasov app object.
  * @param field Field object.
@@ -1414,13 +1418,24 @@ struct vm_field* vp_field_new(struct gkyl_vm *vm, struct gkyl_vlasov_app *app);
 void vp_field_calc_ext_pot(gkyl_vlasov_app *app, struct vm_field *field, double tm);
 
 /**
+ * Compute external electromagnetic fields.
+ *
+ * @param app Vlasov app object.
+ * @param field Field object.
+ * @param tm Time for use in external fields computation.
+ */
+void vp_field_calc_ext_em(gkyl_vlasov_app *app, struct vm_field *field, double tm);
+
+/**
  * Compute field initial conditions.
  *
  * @param app Vlasov app object.
  * @param field Field object.
+ * @param fin[] Input distribution function (num_species size).
  * @param t0 Time for use in ICs.
  */
-void vp_field_apply_ic(gkyl_vlasov_app *app, struct vm_field *field, double t0);
+void vp_field_apply_ic(gkyl_vlasov_app *app, struct vm_field *field,
+  const struct gkyl_array *fin[], double t0);
 
 /**
  * Accumulate charge density for Poisson solve.

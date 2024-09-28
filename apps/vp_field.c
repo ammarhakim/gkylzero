@@ -17,6 +17,14 @@ vp_field_calc_ext_pot(gkyl_vlasov_app *app, struct vm_field *field, double tm)
     gkyl_array_copy(field->ext_pot, field->ext_pot_host);
 }
 
+void
+vp_field_calc_ext_em(gkyl_vlasov_app *app, struct vm_field *field, double tm)
+{
+  gkyl_proj_on_basis_advance(field->ext_em_proj, tm, &app->local, field->ext_em_host);
+  if (app->use_gpu)
+    gkyl_array_copy(field->ext_em, field->ext_em_host);
+}
+
 struct vm_field*
 vp_field_new(struct gkyl_vm *vm, struct gkyl_vlasov_app *app)
 {
@@ -47,11 +55,11 @@ vp_field_new(struct gkyl_vm *vm, struct gkyl_vlasov_app *app)
 
   vpf->field_id = GKYL_FIELD_PHI;
 
-  // Initialize external potentials (always used by implicit fluid sources, so always initialize) 
+  // Initialize external potentials.
   vpf->has_ext_pot = vpf->ext_pot_evolve = false;
   if (vpf->info.external_potentials) {
     vpf->has_ext_pot = true;
-    vpf->field_id = GKYL_FIELD_PHI_EXT;
+    vpf->field_id = GKYL_FIELD_PHI_EXT_POTENTIALS;
     if (vpf->info.external_potentials_evolve)
       vpf->ext_pot_evolve = vpf->info.external_potentials_evolve;
 
@@ -61,9 +69,21 @@ vp_field_new(struct gkyl_vm *vm, struct gkyl_vlasov_app *app)
 
     vpf->ext_pot_proj = gkyl_eval_on_nodes_new(&app->grid, &app->confBasis,
       4, vpf->info.external_potentials, vpf->info.external_potentials_ctx);
+  }
 
-    // Compute the external potentials.
-    vp_field_calc_ext_pot(app, vpf, 0.0);
+  // Initialize external E and B fields.
+  vpf->ext_em = mkarr(app->use_gpu, 6*app->confBasis.num_basis, app->local_ext.volume);
+  vpf->has_ext_em = vpf->ext_em_evolve = false;
+  if (vpf->info.ext_em) {
+    vpf->has_ext_em = true;
+    vpf->field_id = GKYL_FIELD_PHI_EXT_FIELDS;
+    if (vpf->info.ext_em_evolve)
+      vpf->ext_em_evolve = vpf->info.ext_em_evolve;
+
+    vpf->ext_em_host = app->use_gpu? mkarr(false, 6*app->confBasis.num_basis, app->local_ext.volume)
+                                   : gkyl_array_acquire(vpf->ext_em);
+    vpf->ext_em_proj = gkyl_proj_on_basis_new(&app->grid, &app->confBasis, app->confBasis.poly_order+1,
+      6, vpf->info.ext_em, vpf->info.ext_em_ctx);
   }
 
   vpf->phi_host = app->use_gpu? mkarr(false, app->confBasis.num_basis, app->local_ext.volume)
@@ -126,6 +146,31 @@ vp_field_solve(gkyl_vlasov_app *app, struct vm_field *field)
 }
 
 void
+vp_field_apply_ic(gkyl_vlasov_app *app, struct vm_field *field,
+  const struct gkyl_array *fin[], double t0)
+{
+  if (!app->has_field) return;
+  
+  // Compute electrostatic potential from Poisson's equation.
+  vp_field_accumulate_charge_dens(app, field, fin);
+
+  // Solve the field equation.
+  vp_field_solve(app, field);
+
+  // Pre-compute external potentials and/or fields.
+  if (field->has_ext_pot)
+    vp_field_calc_ext_pot(app, field, t0);
+  if (field->has_ext_em) {
+    vp_field_calc_ext_em(app, field, t0);
+    // Pass ext_em to the species now in case is time independent.
+    for (int i=0; i<app->num_species; ++i) {
+      struct vm_species *s = &app->species[i];
+      gkyl_array_set_range(s->qmem_ext, s->qbym, field->ext_em, &app->local);
+    }
+  }
+}
+
+void
 vp_field_calc_energy(gkyl_vlasov_app *app, double tm, const struct vm_field *field)
 {
   gkyl_array_integrate_advance(field->calc_es_energy, field->phi,
@@ -169,6 +214,12 @@ vp_field_release(const gkyl_vlasov_app* app, struct vm_field *vpf)
     gkyl_array_release(vpf->ext_pot_host);
     gkyl_eval_on_nodes_release(vpf->ext_pot_proj);
   }
+  if (vpf->has_ext_em) {
+    gkyl_array_release(vpf->ext_em_host);
+    gkyl_proj_on_basis_release(vpf->ext_em_proj);
+  }
+  gkyl_array_release(vpf->ext_em);
+
   gkyl_array_release(vpf->phi);
   gkyl_array_release(vpf->phi_global);
 

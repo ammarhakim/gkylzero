@@ -1,10 +1,11 @@
 #include <gkyl_vlasov_poisson_kernels.h> 
 
-GKYL_CU_DH double vlasov_poisson_vol_2x2v_ser_p2(const double *w, const double *dxv, const double *field, const double *f, double* GKYL_RESTRICT out) 
+GKYL_CU_DH double vlasov_poisson_vol_2x2v_ser_p2(const double *w, const double *dxv, const double *pots, const double *EBext, const double *f, double* GKYL_RESTRICT out) 
 { 
   // w[NDIM]:   Cell-center coordinates.
   // dxv[NDIM]: Cell spacing.
-  // field:     potential (scaled by appropriate factors).
+  // pots:      potentials phi_tot=phi+phi_ext and A_ext (scaled by q/m).
+  // EBext:     external E and B fields (scaled by q/m).
   // f:         Input distribution function.
   // out:       Incremented output.
 
@@ -19,7 +20,7 @@ GKYL_CU_DH double vlasov_poisson_vol_2x2v_ser_p2(const double *w, const double *
   double w1dx1 = w[3]/dxv[1]; 
   const double dx11 = 2/dxv[1]; 
 
-  const double *phi = &field[0]; 
+  const double *phi = &pots[0]; 
 
   double cflFreq_mid = 0.0; 
 

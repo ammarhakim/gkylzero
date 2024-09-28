@@ -342,6 +342,7 @@ gkyl_vlasov_app_new(struct gkyl_vm *vm)
   // Otherwise, we default to an SSP-RK3 method. 
   if (vm->is_electrostatic) {
     app->update_func = vlasov_poisson_update_ssp_rk3;
+    app->field_calc_ext_em = vp_field_calc_ext_em;
   }
   else {
     if (app->has_implicit_coll_scheme || app->has_fluid_em_coupling) {
@@ -350,6 +351,7 @@ gkyl_vlasov_app_new(struct gkyl_vm *vm)
     else {
       app->update_func = vlasov_update_ssp_rk3;
     }
+    app->field_calc_ext_em = vm_field_calc_ext_em;
   }
 
   // initialize stat object
@@ -409,7 +411,7 @@ vm_apply_bc(gkyl_vlasov_app* app, double tcurr,
     vm_fluid_species_apply_bc(app, &app->fluid_species[i], fluid[i]);
   }
   if (app->has_field) {
-    if (!(app->field->field_id == GKYL_FIELD_PHI || app->field->field_id == GKYL_FIELD_PHI_EXT))
+    if (app->field->field_id == GKYL_FIELD_E_B)
       vm_field_apply_bc(app, app->field, emfield);
   }
 }
@@ -464,16 +466,17 @@ gkyl_vlasov_app_apply_ic_field(gkyl_vlasov_app* app, double t0)
   app->tcurr = t0;
   struct timespec wtm = gkyl_wall_clock();
 
-  if (app->field->field_id == GKYL_FIELD_PHI || app->field->field_id == GKYL_FIELD_PHI_EXT) {
+  if (app->field->field_id == GKYL_FIELD_E_B)
+    vm_field_apply_ic(app, app->field, t0);
+  else if (app->field->field_id != GKYL_FIELD_NULL) {
     struct gkyl_array *distf[app->num_species];
     for (int i=0; i<app->num_species; ++i)
       distf[i] = app->species[i].f;
+
     // MF 2024/09/27/: Need the cast here for consistency. Fixing
     // this may require removing 'const' from a lot of places.
-    vp_calc_field(app, t0, (const struct gkyl_array **) distf);
+    vp_field_apply_ic(app, app->field, (const struct gkyl_array **) distf, t0);
   }
-  else
-    vm_field_apply_ic(app, app->field, t0);
 
   app->stat.init_field_tm += gkyl_time_diff_now_sec(wtm);
 }
@@ -643,13 +646,13 @@ gkyl_vlasov_app_write_field(gkyl_vlasov_app* app, double tm, int frame)
   snprintf(fileNm, sizeof fileNm, fmt, app->name, frame);
 
   struct gkyl_array *fld, *fld_host;
-  if (app->field->field_id == GKYL_FIELD_PHI || app->field->field_id == GKYL_FIELD_PHI_EXT) {
-    fld = app->field->phi;
-    fld_host = app->field->phi_host;
-  }
-  else {
+  if (app->field->field_id == GKYL_FIELD_E_B) {
     fld = app->field->em;
     fld_host = app->field->em_host;
+  }
+  else {
+    fld = app->field->phi;
+    fld_host = app->field->phi_host;
   }
   if (app->use_gpu)
     gkyl_array_copy(fld_host, fld); // copy data from device before writing it.
@@ -664,7 +667,8 @@ gkyl_vlasov_app_write_field(gkyl_vlasov_app* app, double tm, int frame)
       snprintf(fileNm_ext_em, sizeof fileNm_ext_em, fmt_ext_em, app->name, frame);
 
       // External EM field computed with project on basis, so just use host copy 
-      vm_field_calc_ext_em(app, app->field, tm);
+      app->field_calc_ext_em(app, app->field, tm);
+
       gkyl_comm_array_write(app->comm, &app->grid, &app->local, 
         mt, app->field->ext_em_host, fileNm_ext_em);
     }
@@ -1467,10 +1471,10 @@ gkyl_vlasov_app_release(gkyl_vlasov_app* app)
   if (app->num_fluid_species > 0)
     gkyl_free(app->fluid_species);
   if (app->has_field) {
-    if (app->field->field_id == GKYL_FIELD_PHI || app->field->field_id == GKYL_FIELD_PHI_EXT)
-      vp_field_release(app, app->field);
-    else
+    if (app->field->field_id == GKYL_FIELD_E_B)
       vm_field_release(app, app->field);
+    else
+      vp_field_release(app, app->field);
   }
   if (app->has_fluid_em_coupling)
     vm_fluid_em_coupling_release(app, app->fl_em);

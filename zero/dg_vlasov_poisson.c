@@ -35,7 +35,8 @@ gkyl_vlasov_poisson_set_auxfields(const struct gkyl_dg_eqn *eqn, struct gkyl_dg_
 #endif
 
   struct dg_vlasov_poisson *vlasov = container_of(eqn, struct dg_vlasov_poisson, eqn);
-  vlasov->auxfields.field = auxin.field; 
+  vlasov->auxfields.potentials = auxin.potentials; 
+  vlasov->auxfields.fields_ext = auxin.fields_ext; 
 }
 
 struct gkyl_dg_eqn*
@@ -90,14 +91,22 @@ gkyl_dg_vlasov_poisson_new(const struct gkyl_basis* cbasis, const struct gkyl_ba
         accel_boundary_surf_vx_kernels = ser_poisson_accel_boundary_surf_vx_kernels;
         accel_boundary_surf_vy_kernels = ser_poisson_accel_boundary_surf_vy_kernels;
         accel_boundary_surf_vz_kernels = ser_poisson_accel_boundary_surf_vz_kernels;
-      } else {
-        vol_kernels = ser_poisson_extem_vol_kernels;
-        accel_surf_vx_kernels = ser_poisson_extem_accel_surf_vx_kernels;
-        accel_surf_vy_kernels = ser_poisson_extem_accel_surf_vy_kernels;
-        accel_surf_vz_kernels = ser_poisson_extem_accel_surf_vz_kernels;
-        accel_boundary_surf_vx_kernels = ser_poisson_extem_accel_boundary_surf_vx_kernels;
-        accel_boundary_surf_vy_kernels = ser_poisson_extem_accel_boundary_surf_vy_kernels;
-        accel_boundary_surf_vz_kernels = ser_poisson_extem_accel_boundary_surf_vz_kernels;
+      } else if (field_id == GKYL_FIELD_PHI_EXT_POTENTIALS) {
+        vol_kernels = ser_poisson_ext_phiA_vol_kernels;
+        accel_surf_vx_kernels = ser_poisson_ext_phiA_accel_surf_vx_kernels;
+        accel_surf_vy_kernels = ser_poisson_ext_phiA_accel_surf_vy_kernels;
+        accel_surf_vz_kernels = ser_poisson_ext_phiA_accel_surf_vz_kernels;
+        accel_boundary_surf_vx_kernels = ser_poisson_ext_phiA_accel_boundary_surf_vx_kernels;
+        accel_boundary_surf_vy_kernels = ser_poisson_ext_phiA_accel_boundary_surf_vy_kernels;
+        accel_boundary_surf_vz_kernels = ser_poisson_ext_phiA_accel_boundary_surf_vz_kernels;
+      } else if (field_id == GKYL_FIELD_PHI_EXT_FIELDS) {
+        vol_kernels = ser_poisson_ext_EB_vol_kernels;
+        accel_surf_vx_kernels = ser_poisson_ext_EB_accel_surf_vx_kernels;
+        accel_surf_vy_kernels = ser_poisson_ext_EB_accel_surf_vy_kernels;
+        accel_surf_vz_kernels = ser_poisson_ext_EB_accel_surf_vz_kernels;
+        accel_boundary_surf_vx_kernels = ser_poisson_ext_EB_accel_boundary_surf_vx_kernels;
+        accel_boundary_surf_vy_kernels = ser_poisson_ext_EB_accel_boundary_surf_vy_kernels;
+        accel_boundary_surf_vz_kernels = ser_poisson_ext_EB_accel_boundary_surf_vz_kernels;
       }
       
       break;
@@ -138,7 +147,8 @@ gkyl_dg_vlasov_poisson_new(const struct gkyl_basis* cbasis, const struct gkyl_ba
   for (int i=0; i<vdim; ++i) assert(vlasov->accel_surf[i]);
   for (int i=0; i<vdim; ++i) assert(vlasov->accel_boundary_surf[i]);
 
-  vlasov->auxfields.field = 0;
+  vlasov->auxfields.potentials = 0;
+  vlasov->auxfields.fields_ext = 0;
   vlasov->conf_range = *conf_range;
   vlasov->phase_range = *phase_range;
   

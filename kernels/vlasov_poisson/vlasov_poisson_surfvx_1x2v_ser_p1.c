@@ -1,11 +1,12 @@
 #include <gkyl_vlasov_poisson_kernels.h> 
 #include <gkyl_basis_hyb_1x2v_p1_surfx2_eval_quad.h> 
 #include <gkyl_basis_hyb_1x2v_p1_upwind_quad_to_modal.h> 
-GKYL_CU_DH double vlasov_poisson_surfvx_1x2v_ser_p1(const double *w, const double *dxv, const double *field, const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out) 
+GKYL_CU_DH double vlasov_poisson_surfvx_1x2v_ser_p1(const double *w, const double *dxv, const double *pots, const double *EBext, const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out) 
 { 
   // w:         Cell-center coordinates.
   // dxv[NDIM]: Cell spacing.
-  // field:     potential (scaled by appropriate factors).
+  // pots:      potentials phi_tot=phi+phi_ext and A_ext (scaled by q/m).
+  // EBext:     external E and B fields (scaled by q/m).
   // fl/fc/fr:  Input Distribution function in left/center/right cells 
   // out:       Output distribution function in center cell 
 
@@ -14,11 +15,11 @@ GKYL_CU_DH double vlasov_poisson_surfvx_1x2v_ser_p1(const double *w, const doubl
   const double dv1 = dxv[1], wv1 = w[1]; 
   const double dv2 = dxv[2], wv2 = w[2]; 
 
-  const double *phi = &field[0]; 
+  const double *phi = &pots[0]; 
 
   double alpha[6] = {0.0}; 
 
-  alpha[0] = -2.449489742783178*phi[1]*dx10; 
+  alpha[0] = -(2.4494897427831783*phi[1]*dx10); 
 
   double fUpwindQuad_l[6] = {0.0};
   double fUpwindQuad_r[6] = {0.0};
@@ -78,20 +79,20 @@ GKYL_CU_DH double vlasov_poisson_surfvx_1x2v_ser_p1(const double *w, const doubl
 
   out[0] += (0.7071067811865475*Ghat_l[0]-0.7071067811865475*Ghat_r[0])*dv10; 
   out[1] += (0.7071067811865475*Ghat_l[1]-0.7071067811865475*Ghat_r[1])*dv10; 
-  out[2] += -1.224744871391589*(Ghat_r[0]+Ghat_l[0])*dv10; 
+  out[2] += -(1.224744871391589*(Ghat_r[0]+Ghat_l[0])*dv10); 
   out[3] += (0.7071067811865475*Ghat_l[2]-0.7071067811865475*Ghat_r[2])*dv10; 
-  out[4] += -1.224744871391589*(Ghat_r[1]+Ghat_l[1])*dv10; 
+  out[4] += -(1.224744871391589*(Ghat_r[1]+Ghat_l[1])*dv10); 
   out[5] += (0.7071067811865475*Ghat_l[3]-0.7071067811865475*Ghat_r[3])*dv10; 
-  out[6] += -1.224744871391589*(Ghat_r[2]+Ghat_l[2])*dv10; 
-  out[7] += -1.224744871391589*(Ghat_r[3]+Ghat_l[3])*dv10; 
-  out[8] += (1.58113883008419*Ghat_l[0]-1.58113883008419*Ghat_r[0])*dv10; 
-  out[9] += (1.58113883008419*Ghat_l[1]-1.58113883008419*Ghat_r[1])*dv10; 
-  out[10] += (1.58113883008419*Ghat_l[2]-1.58113883008419*Ghat_r[2])*dv10; 
-  out[11] += (1.58113883008419*Ghat_l[3]-1.58113883008419*Ghat_r[3])*dv10; 
+  out[6] += -(1.224744871391589*(Ghat_r[2]+Ghat_l[2])*dv10); 
+  out[7] += -(1.224744871391589*(Ghat_r[3]+Ghat_l[3])*dv10); 
+  out[8] += (1.5811388300841895*Ghat_l[0]-1.5811388300841895*Ghat_r[0])*dv10; 
+  out[9] += (1.5811388300841898*Ghat_l[1]-1.5811388300841898*Ghat_r[1])*dv10; 
+  out[10] += (1.5811388300841898*Ghat_l[2]-1.5811388300841898*Ghat_r[2])*dv10; 
+  out[11] += (1.5811388300841895*Ghat_l[3]-1.5811388300841895*Ghat_r[3])*dv10; 
   out[12] += (0.7071067811865475*Ghat_l[4]-0.7071067811865475*Ghat_r[4])*dv10; 
   out[13] += (0.7071067811865475*Ghat_l[5]-0.7071067811865475*Ghat_r[5])*dv10; 
-  out[14] += -1.224744871391589*(Ghat_r[4]+Ghat_l[4])*dv10; 
-  out[15] += -1.224744871391589*(Ghat_r[5]+Ghat_l[5])*dv10; 
+  out[14] += -(1.224744871391589*(Ghat_r[4]+Ghat_l[4])*dv10); 
+  out[15] += -(1.224744871391589*(Ghat_r[5]+Ghat_l[5])*dv10); 
 
   return 0.;
 

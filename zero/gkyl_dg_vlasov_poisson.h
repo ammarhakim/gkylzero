@@ -9,7 +9,8 @@
 
 // Struct containing the pointers to auxiliary fields.
 struct gkyl_dg_vlasov_poisson_auxfields { 
-  const struct gkyl_array *field; // (q/m)*(phi,A_ext).
+  const struct gkyl_array *potentials; // (q/m)*(phi+phi_ext,A_ext).
+  const struct gkyl_array *fields_ext; // (q/m)*(E,B).
 };
 
 /**
@@ -29,7 +30,8 @@ struct gkyl_dg_eqn* gkyl_dg_vlasov_poisson_new(const struct gkyl_basis* cbasis,
   enum gkyl_model_id model_id, enum gkyl_field_id field_id, bool use_gpu);
 
 /**
- * Set the auxiliary fields (e.g. q/m*EM) needed in updating the force terms.
+ * Set the auxiliary fields (e.g. (q/m)*(phi+phi_ext,A_ext) or
+ * (q/m)*(E_ext,B_ext) needed in updating the force terms.
  * 
  * @param eqn Equation pointer.
  * @param auxfields Pointer to struct of aux fields.
