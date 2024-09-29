@@ -437,7 +437,29 @@ int main(int argc, char **argv)
   gkyl_grid_sub_array_write(&app->grid, &app->local, 0, phi, fileNm);
 
   gkyl_proj_on_basis_release(proj_phi);
+
+
+    // read the components of npol
+  struct gkyl_range_iter conf_iter;
+  gkyl_range_iter_init(&conf_iter, &app->local);
+  while (gkyl_range_iter_next(&conf_iter)) {
+    long linidx = gkyl_range_idx(&app->local, conf_iter.idx);
+    double *phi_d = gkyl_array_fetch(phi, linidx);
+    double *field_d  = gkyl_array_fetch(app->field->phi_host, linidx);
+    for (int i=0; i<app->confBasis.num_basis; ++i) {
+      if (i == 0) {
+        assert( fabs(phi_d[i] - field_d[i])/fabs(phi_d[i]) < 1e-1 );
+      } else  if (i == 1) {
+        assert( fabs(phi_d[i] - 3*field_d[i])/fabs(phi_d[i]) < 1e-1 );
+      } else if (i == 2) {
+        assert( fabs(phi_d[i] - 3*field_d[i])/fabs(phi_d[i]) < 1e-1 );
+      } else if (i == 3) {
+        assert( fabs(phi_d[i] - 9*field_d[i])/fabs(phi_d[i]) < 1e-1 );
+      }
+    }
+  }
   gkyl_array_release(phi);
+
 
   freeresources:
   // Free resources after simulation completion.
