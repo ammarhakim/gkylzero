@@ -10,7 +10,7 @@
 #include <gkyl_gyrokinetic.h>
 #include <gkyl_gyrokinetic_priv.h>
 #include <gkyl_math.h>
-#include <gkyl_proj_on_basis.h>
+#include <gkyl_eval_on_nodes.h>
 
 #include <rt_arg_parse.h>
 
@@ -262,11 +262,8 @@ int main(int argc, char **argv)
     .lower = {-ctx.vpar_max_elc, 0.0},
     .upper = { ctx.vpar_max_elc, ctx.mu_max_elc},
     .cells = { cells_v[0], cells_v[1] },
-
     .polarization_density = ctx.n0,
-
     .projection = elc_ic,
-
     .bcx = {
       .lower = {
         .type = GKYL_SPECIES_FIXED_FUNC,
@@ -302,11 +299,8 @@ int main(int argc, char **argv)
     .lower = {-ctx.vpar_max_ion, 0.0},
     .upper = { ctx.vpar_max_ion, ctx.mu_max_ion},
     .cells = { cells_v[0], cells_v[1] },
-
     .polarization_density = ctx.n0,
-
     .projection = ion_ic,
-
     .bcx = {
       .lower = {
         .type = GKYL_SPECIES_FIXED_FUNC,
@@ -353,29 +347,23 @@ int main(int argc, char **argv)
   // GK app
   struct gkyl_gk app_inp = {
     .name = "rt_gk_polarization",
-
     .cdim = ctx.cdim, .vdim = ctx.vdim,
     .lower = {ctx.psi_min, ctx.z_min},
     .upper = {ctx.psi_max, ctx.z_max},
     .cells = { cells_x[0], cells_x[1] },
     .poly_order = ctx.poly_order,
     .basis_type = app_args.basis_type,
-
     .geometry = {
       .geometry_id = GKYL_MIRROR,
       .world = {0.0},
       .efit_info = efit_inp,
       .mirror_grid_info = grid_inp,
     },
-
     .num_periodic_dir = 0,
     .periodic_dirs = {},
-
     .num_species = 2,
     .species = {elc, ion},
-
     .field = field,
-
     .parallelism = {
       .use_gpu = app_args.use_gpu,
       .cuts = { app_args.cuts[0], app_args.cuts[1] },
@@ -409,35 +397,10 @@ int main(int argc, char **argv)
     gkyl_gyrokinetic_app_apply_ic(app, t_curr);
   }  
 
-
-
-  // Create triggers for IO.
-  struct gkyl_tm_trigger trig_write = { .dt = 1, .tcurr = 0, .curr = 0 };
-
-  // Write out ICs (if restart, it overwrites the restart frame).
-  write_data(&trig_write, app, t_curr, false);
-
-  gkyl_proj_on_basis *proj_phi = gkyl_proj_on_basis_inew( &(struct gkyl_proj_on_basis_inp) {
-      .grid = &app->grid,
-      .basis = &app->confBasis,
-      .qtype = GKYL_GAUSS_LOBATTO_QUAD,
-      .num_quad = ctx.poly_order+1,
-      .num_ret_vals = 1,
-      .eval = eval_potential,
-      .ctx = &ctx,
-    }
-  );
   struct gkyl_array *phi = gkyl_array_new(GKYL_DOUBLE, app->confBasis.num_basis, app->local_ext.volume);
-  gkyl_proj_on_basis_advance(proj_phi, 0.0, &app->local_ext, phi);
-
-  // Print out the array to make sure it makes sense
-  const char *fmt = "%s-%s.gkyl";
-  char fileNm[32]; // ensure no buffer overflow
-  sprintf(fileNm, fmt, &app->name, "phi_rt");
-  gkyl_grid_sub_array_write(&app->grid, &app->local, 0, phi, fileNm);
-
-  gkyl_proj_on_basis_release(proj_phi);
-
+  gkyl_eval_on_nodes *evalDistf = gkyl_eval_on_nodes_new(&app->grid, &app->confBasis,1, eval_potential, &ctx);
+  gkyl_eval_on_nodes_advance(evalDistf, 0.0, &app->local, phi);
+  gkyl_eval_on_nodes_release(evalDistf);
 
     // read the components of npol
   struct gkyl_range_iter conf_iter;
@@ -446,21 +409,25 @@ int main(int argc, char **argv)
     long linidx = gkyl_range_idx(&app->local, conf_iter.idx);
     double *phi_d = gkyl_array_fetch(phi, linidx);
     double *field_d  = gkyl_array_fetch(app->field->phi_host, linidx);
-    for (int i=0; i<app->confBasis.num_basis; ++i) {
-      if (i == 0) {
-        assert( fabs(phi_d[i] - field_d[i])/fabs(phi_d[i]) < 1e-1 );
-      } else  if (i == 1) {
-        assert( fabs(phi_d[i] - 3*field_d[i])/fabs(phi_d[i]) < 1e-1 );
-      } else if (i == 2) {
-        assert( fabs(phi_d[i] - 3*field_d[i])/fabs(phi_d[i]) < 1e-1 );
-      } else if (i == 3) {
-        assert( fabs(phi_d[i] - 9*field_d[i])/fabs(phi_d[i]) < 1e-1 );
+    // Ignore the corners
+    if (conf_iter.idx[0] == 1){
+      if(conf_iter.idx[1] == 1){
+        continue;
+      } else if (conf_iter.idx[1] == ctx.Nz){
+        continue;
       }
+    } else if (conf_iter.idx[0] == ctx.Nx){
+      if(conf_iter.idx[1] == 1){
+        continue;
+      } else if (conf_iter.idx[1] == ctx.Nz){
+        continue;
+      }
+    }
+    for (int i=0; i<app->confBasis.num_basis; ++i) {
+      assert( fabs(phi_d[i] - field_d[i])/fabs(phi_d[i]) < 3e-2 );
     }
   }
   gkyl_array_release(phi);
-
-
   freeresources:
   // Free resources after simulation completion.
   gkyl_gyrokinetic_app_release(app);

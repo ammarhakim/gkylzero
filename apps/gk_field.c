@@ -42,7 +42,6 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
     // Project the initial potential onto a p+1 tensor basis and compute the polarization
     // density to use use by species in calculating the initial ion density.
     f->init_phi_pol = true;
-    printf("Projecting polarization potential\n");
 
     assert(app->cdim == 2); // Only implemented for cdim=2
 
