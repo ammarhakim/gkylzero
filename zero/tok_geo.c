@@ -6,6 +6,7 @@
 #include <gkyl_math.h>
 #include <gkyl_range.h>
 #include <gkyl_rect_grid.h>
+#include <gkyl_rect_decomp.h>
 #include <gkyl_nodal_ops.h>
 #include <gkyl_gk_geometry.h>
 #include <gkyl_tok_geo_priv.h>
@@ -248,6 +249,60 @@ phi_func(double alpha_curr, double Z, void *ctx)
   return alpha_curr + ival + phi_ref;
 }
 
+// Function to calculate phi given alpha
+double
+q_func(void *ctx)
+{
+  struct arc_length_ctx *actx = ctx;
+  double *arc_memo = actx->arc_memo;
+  double psi = actx->psi, rclose = actx->rclose, zmin = actx->zmin, arcL = actx->arcL, zmax = actx->zmax;
+  double rleft =  actx->rleft, rright = actx->rright;
+
+  // Calculate q(psi) = -F(psi)/2pi * integral_zmin^zmax 1/Rgrad(psi)
+
+  double ival = 0;
+  double phi_ref = 0.0;
+  if (actx->ftype==GKYL_CORE){ 
+    double ival1 = integrate_phi_along_psi_contour_memo(actx->geo, psi, actx->zmin, actx->zmax, rright, false, false, arc_memo);
+    double ival2 = -integrate_phi_along_psi_contour_memo(actx->geo, psi, actx->zmin, actx->zmax, rleft, false, false, arc_memo);
+    ival = ival1 + ival2;
+    printf("core ival1 = %1.2f, ival2 = %1.2f\n", ival1, ival2);
+  }
+
+  if (actx->ftype==GKYL_SOL_SN_LO){ 
+    double ival1 = integrate_phi_along_psi_contour_memo(actx->geo, psi, actx->zmin_right, actx->zmax, rright, false, false, arc_memo);
+    double ival2 = -integrate_phi_along_psi_contour_memo(actx->geo, psi, actx->zmin_left, actx->zmax, rleft, false, false, arc_memo);
+    ival = ival1 + ival2;
+  }
+
+  if (actx->ftype==GKYL_SOL_DN_OUT){ 
+    ival = integrate_phi_along_psi_contour_memo(actx->geo, psi, actx->zmin, actx->zmax, rclose, false, false, arc_memo);
+    printf("sol ival = %1.2f\n", ival);
+  }
+  // Now multiply by fpol/2pi
+  double R[4] = {0};
+  double dR[4] = {0};
+  double psi_fpol = psi;
+  if ( (psi_fpol < actx->geo->fgrid.lower[0]) || (psi_fpol > actx->geo->fgrid.upper[0]) ) // F = F(psi_sep) in the SOL.
+    psi_fpol = actx->geo->sibry;
+  int idx = fmin(actx->geo->frange.lower[0] + (int) floor((psi_fpol - actx->geo->fgrid.lower[0])/actx->geo->fgrid.dx[0]), actx->geo->frange.upper[0]);
+  long loc = gkyl_range_idx(&actx->geo->frange, &idx);
+  const double *coeffs = gkyl_array_cfetch(actx->geo->fpoldg,loc);
+  double fxc;
+  gkyl_rect_grid_cell_center(&actx->geo->fgrid, &idx, &fxc);
+  double fx = (psi_fpol-fxc)/(actx->geo->fgrid.dx[0]*0.5);
+  double fpol = actx->geo->fbasis.eval_expand(&fx, coeffs);
+  double q = -ival*fpol/M_PI;
+
+  // calculate q from  efit as a reference
+  coeffs = gkyl_array_cfetch(actx->geo->qdg,loc);
+  double q_efit = actx->geo->fbasis.eval_expand(&fx, coeffs);
+
+  //printf("psi_curr = %g, my q = %g, efit q = %g\n", psi_fpol, q, q_efit);
+  return q;
+}
+
+
 static double
 dphidtheta_func(double Z, void *ctx)
 {
@@ -429,6 +484,17 @@ void gkyl_tok_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, double
     .geo = geo
   };
 
+  // Set up q profile grid, array
+  struct gkyl_rect_grid qgrid;
+  struct gkyl_range qlocal, qlocal_ext;
+  int fluxghost[2] = {1,1};
+  gkyl_rect_grid_init(&qgrid, 1, up->grid.lower, up->grid.upper, up->grid.cells);
+  gkyl_create_grid_ranges(&qgrid, fluxghost, &qlocal_ext, &qlocal);
+  int q_nodenums[1] = {qgrid.cells[0] + 1};
+  struct gkyl_range q_nrange;
+  gkyl_range_init_from_shape(&q_nrange, 1, q_nodenums);
+  struct gkyl_array *qnodal = gkyl_array_new(GKYL_DOUBLE, 1, q_nrange.volume);
+
   int cidx[3] = { 0 };
   for(int ia=nrange->lower[AL_IDX]; ia<=nrange->upper[AL_IDX]; ++ia){
     cidx[AL_IDX] = ia;
@@ -487,6 +553,18 @@ void gkyl_tok_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, double
               printf("In left core block, bottom xpt at z = %1.16f, top at z = %1.16f\n", arc_ctx.zmin, arc_ctx.zmax);
           }
 
+          // Try doing the q profile
+          // qhat = - F(psi) * s(psi) / (R * grad(psi))
+          // q = integral_0^2pi qhat dtheta
+          //   = F(psi)*s(psi) * integral 1/(R*grad(psi)) dl
+          //   = 1/s(psi) * integral (dphidtheta) ; dphidtheta = F(psi)/(R*grad(psi))
+          double q = q_func(&arc_ctx);
+          if ( ia_delta  ==  0 && ip_delta == 0 && ia ==0) {
+            printf("psi_curr = %1.2f,  q = %1.2f, ip = %d\n", psi_curr, q, ip); 
+            double *q_n = gkyl_array_fetch(qnodal, gkyl_range_idx(&q_nrange, &ip));
+            q_n[0] = q;
+          }
+
           darcL = arc_ctx.arcL_tot/(up->basis.poly_order*inp->cgrid.cells[TH_IDX]) * (inp->cgrid.upper[TH_IDX] - inp->cgrid.lower[TH_IDX])/2/M_PI;
           // at the beginning of each theta loop we need to reset things
           cidx[PSI_IDX] = ip;
@@ -529,6 +607,10 @@ void gkyl_tok_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, double
               else if (inp->ftype == GKYL_SOL_SN_LO) {
                 if(it == nrange->upper[TH_IDX] && (up->local.upper[TH_IDX]== up->global.upper[TH_IDX]) && it_delta == 0) z_curr = arc_ctx.zmin_left;
                 if(it == nrange->lower[TH_IDX] && (up->local.lower[TH_IDX]== up->global.lower[TH_IDX]) && it_delta == 0) z_curr = arc_ctx.zmin_right;
+              }
+              else if (inp->ftype == GKYL_CORE) {
+                if(it == nrange->upper[TH_IDX] && (up->local.upper[TH_IDX]== up->global.upper[TH_IDX]) && it_delta == 0) z_curr = arc_ctx.zmin;
+                if(it == nrange->lower[TH_IDX] && (up->local.lower[TH_IDX]== up->global.lower[TH_IDX]) && it_delta == 0) z_curr = arc_ctx.zmin;
               }
               else {
                 if(it == nrange->upper[TH_IDX] && (up->local.upper[TH_IDX]== up->global.upper[TH_IDX]) && it_delta == 0) z_curr = arc_ctx.zmax;
@@ -630,6 +712,15 @@ void gkyl_tok_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, double
   struct gkyl_nodal_ops *n2m =  gkyl_nodal_ops_new(&inp->cbasis, &inp->cgrid, false);
   gkyl_nodal_ops_n2m(n2m, &inp->cbasis, &inp->cgrid, nrange, &up->local, 3, mc2p_nodal, mc2p);
   gkyl_nodal_ops_release(n2m);
+
+
+  struct gkyl_array *qmodal = gkyl_array_new(GKYL_DOUBLE, geo->fbasis.num_basis, q_nrange.volume);
+  struct gkyl_nodal_ops *n2m_flux =  gkyl_nodal_ops_new(&geo->fbasis, &qgrid, false);
+  gkyl_nodal_ops_n2m(n2m_flux, &geo->fbasis, &qgrid, &q_nrange, &qlocal, 1, qnodal, qmodal);
+  gkyl_nodal_ops_release(n2m_flux);
+  gkyl_grid_sub_array_write(&qgrid, &qlocal, NULL, qmodal, inp->qname);
+  gkyl_array_release(qnodal);
+  gkyl_array_release(qmodal);
 
   gkyl_free(arc_memo);
   gkyl_free(arc_memo_left);

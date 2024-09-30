@@ -148,6 +148,8 @@ struct gkyl_tok_geo_grid_inp {
     int max_levels; // typically 6-7    
     double eps; // typically 1e-10
   } quad_param;
+
+  const char* qname;
 };
 
 
