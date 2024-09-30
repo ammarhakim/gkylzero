@@ -41,6 +41,10 @@ vp_field_new(struct gkyl_vm *vm, struct gkyl_vlasov_app *app)
   vpf->phi        = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
   vpf->phi_global = mkarr(app->use_gpu, app->confBasis.num_basis, app->global_ext.volume);
 
+  // Host potential for  I/O.
+  vpf->phi_host = app->use_gpu? mkarr(false, app->confBasis.num_basis, app->local_ext.volume)
+                              : gkyl_array_acquire(vpf->phi);
+
   // Create global subrange we'll copy the field solver solution from (into local).
   int intersect = gkyl_sub_range_intersect(&vpf->global_sub_range, &app->global, &app->local);
 
@@ -86,8 +90,9 @@ vp_field_new(struct gkyl_vm *vm, struct gkyl_vlasov_app *app)
       6, vpf->info.ext_em, vpf->info.ext_em_ctx);
   }
 
-  vpf->phi_host = app->use_gpu? mkarr(false, app->confBasis.num_basis, app->local_ext.volume)
-                              : gkyl_array_acquire(vpf->phi);
+  // Vlasov-Poisson doesn't presently use external currents or limiters.
+  vpf->has_app_current = vpf->app_current_evolve = false;
+  vpf->limit_em = false;
 
   if (app->use_gpu) {
     vpf->es_energy_red = gkyl_cu_malloc(sizeof(double[1]));
@@ -197,7 +202,6 @@ vp_field_release(const gkyl_vlasov_app* app, struct vm_field *vpf)
   gkyl_array_release(vpf->es_energy_fac);
 
   if (app->use_gpu) {
-    gkyl_array_release(vpf->phi_host);
     gkyl_cu_free(vpf->es_energy_red);
     gkyl_cu_free(vpf->es_energy_red_global);
   } else {
@@ -219,6 +223,8 @@ vp_field_release(const gkyl_vlasov_app* app, struct vm_field *vpf)
     gkyl_proj_on_basis_release(vpf->ext_em_proj);
   }
   gkyl_array_release(vpf->ext_em);
+
+  gkyl_array_release(vpf->phi_host);
 
   gkyl_array_release(vpf->phi);
   gkyl_array_release(vpf->phi_global);
