@@ -1846,10 +1846,12 @@ struct gkyl_fem_poisson {
 };
 
 void
-fem_poisson_choose_kernels_cu(const struct gkyl_basis* basis, const struct gkyl_poisson_bc* bcs, bool isvareps, const bool *isdirperiodic, struct gkyl_fem_poisson_kernels *kers);
+fem_poisson_choose_kernels_cu(const struct gkyl_basis* basis, const struct gkyl_poisson_bc* bcs,
+  bool isvareps, const bool *isdirperiodic, struct gkyl_fem_poisson_kernels *kers);
 
 static long
-gkyl_fem_poisson_global_num_nodes(const int dim, const int poly_order, const int basis_type, const int *num_cells, bool *isdirperiodic)
+gkyl_fem_poisson_global_num_nodes(const int dim, const int poly_order,
+  const int basis_type, const int *num_cells, bool *isdirperiodic)
 {
   if (dim==1) {
     if (poly_order == 1) {
@@ -1896,7 +1898,8 @@ gkyl_fem_poisson_global_num_nodes(const int dim, const int poly_order, const int
 
 GKYL_CU_D
 static void
-fem_poisson_choose_local2global_kernels(const struct gkyl_basis* basis, const bool *isdirperiodic, local2global_t *l2gout)
+fem_poisson_choose_local2global_kernels(const struct gkyl_basis* basis,
+  const bool *isdirperiodic, local2global_t *l2gout)
 {
   int dim = basis->ndim;
   int poly_order = basis->poly_order;
@@ -1926,7 +1929,8 @@ fem_poisson_choose_local2global_kernels(const struct gkyl_basis* basis, const bo
 
 GKYL_CU_D
 static void
-fem_poisson_choose_lhs_kernels(const struct gkyl_basis* basis, const struct gkyl_poisson_bc *bcs, bool isvareps, lhsstencil_t *lhsout)
+fem_poisson_choose_lhs_kernels(const struct gkyl_basis* basis, const struct gkyl_poisson_bc *bcs,
+  bool isvareps, lhsstencil_t *lhsout)
 {
   int dim = basis->ndim;
   int poly_order = basis->poly_order;
@@ -1946,10 +1950,7 @@ fem_poisson_choose_lhs_kernels(const struct gkyl_basis* basis, const struct gkyl
     else if (bcs->lo_type[d]==GKYL_POISSON_NEUMANN           && bcs->up_type[d]==GKYL_POISSON_DIRICHLET_VARYING) { bckey[d] = 3; }
     else if (bcs->lo_type[d]==GKYL_POISSON_DIRICHLET_VARYING && bcs->up_type[d]==GKYL_POISSON_ROBIN            ) { bckey[d] = 4; }
     else if (bcs->lo_type[d]==GKYL_POISSON_ROBIN             && bcs->up_type[d]==GKYL_POISSON_DIRICHLET_VARYING) { bckey[d] = 5; }
-    else {
-      printf("\nbcs->lo_type[d]=%d | bcs->up_type[d]=%d\n",bcs->lo_type[d],bcs->up_type[d]);
-      assert(false);
-    }
+    else { assert(false); }
   };
 
   switch (basis->b_type) {
@@ -1977,7 +1978,8 @@ fem_poisson_choose_lhs_kernels(const struct gkyl_basis* basis, const struct gkyl
 
 GKYL_CU_D
 static void
-fem_poisson_choose_src_kernels(const struct gkyl_basis* basis, const struct gkyl_poisson_bc *bcs, bool isvareps, srcstencil_t *srcout)
+fem_poisson_choose_src_kernels(const struct gkyl_basis* basis, const struct gkyl_poisson_bc *bcs,
+  bool isvareps, srcstencil_t *srcout)
 {
   int dim = basis->ndim;
   int poly_order = basis->poly_order;
@@ -2051,8 +2053,10 @@ fem_poisson_choose_sol_kernels(const struct gkyl_basis* basis)
  *
  * @param up FEM poisson updater to run.
  * @param rhsin DG field to set as RHS source.
+ * @param phibc Spatially varying BC as a DG (volume) field, defined in the whole
+                domain but really only applicable to and used in the skin cell.
  */
-void gkyl_fem_poisson_set_rhs_cu(gkyl_fem_poisson* up, struct gkyl_array *rhsin);
+void gkyl_fem_poisson_set_rhs_cu(gkyl_fem_poisson* up, struct gkyl_array *rhsin, const struct gkyl_array *phibc);
 
 /**
  * Solve the linear problem on the device.

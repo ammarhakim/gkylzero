@@ -103,7 +103,8 @@ fem_poisson_set_cu_ker_ptrs(struct gkyl_fem_poisson_kernels* kers, enum gkyl_bas
 }
 
 void
-fem_poisson_choose_kernels_cu(const struct gkyl_basis* basis, const struct gkyl_poisson_bc *bcs, bool isvareps, const bool *isdirperiodic, struct gkyl_fem_poisson_kernels *kers)
+fem_poisson_choose_kernels_cu(const struct gkyl_basis* basis, const struct gkyl_poisson_bc *bcs,
+  bool isvareps, const bool *isdirperiodic, struct gkyl_fem_poisson_kernels *kers)
 {
 
   int dim = basis->ndim;
@@ -117,12 +118,20 @@ fem_poisson_choose_kernels_cu(const struct gkyl_basis* basis, const struct gkyl_
   fem_poisson_set_cu_l2gker_ptrs<<<1,1>>>(kers, basis->b_type, dim, poly_order, bckey_d);
   
   for (int d=0; d<basis->ndim; d++) {
-    if (bcs->lo_type[d]==GKYL_POISSON_PERIODIC && bcs->up_type[d]==GKYL_POISSON_PERIODIC) { bckey[d] = 0; }
-    else if (bcs->lo_type[d]==GKYL_POISSON_DIRICHLET && bcs->up_type[d]==GKYL_POISSON_DIRICHLET) { bckey[d] = 1; }
-    else if (bcs->lo_type[d]==GKYL_POISSON_DIRICHLET && bcs->up_type[d]==GKYL_POISSON_NEUMANN) { bckey[d] = 2; }
-    else if (bcs->lo_type[d]==GKYL_POISSON_NEUMANN && bcs->up_type[d]==GKYL_POISSON_DIRICHLET) { bckey[d] = 3; }
-    else if (bcs->lo_type[d]==GKYL_POISSON_DIRICHLET && bcs->up_type[d]==GKYL_POISSON_ROBIN) { bckey[d] = 4; }
-    else if (bcs->lo_type[d]==GKYL_POISSON_ROBIN && bcs->up_type[d]==GKYL_POISSON_DIRICHLET) { bckey[d] = 5; }
+         if (bcs->lo_type[d]==GKYL_POISSON_PERIODIC          && bcs->up_type[d]==GKYL_POISSON_PERIODIC         ) { bckey[d] = 0; }
+    else if (bcs->lo_type[d]==GKYL_POISSON_DIRICHLET         && bcs->up_type[d]==GKYL_POISSON_DIRICHLET        ) { bckey[d] = 1; }
+    else if (bcs->lo_type[d]==GKYL_POISSON_DIRICHLET         && bcs->up_type[d]==GKYL_POISSON_NEUMANN          ) { bckey[d] = 2; }
+    else if (bcs->lo_type[d]==GKYL_POISSON_NEUMANN           && bcs->up_type[d]==GKYL_POISSON_DIRICHLET        ) { bckey[d] = 3; }
+    else if (bcs->lo_type[d]==GKYL_POISSON_DIRICHLET         && bcs->up_type[d]==GKYL_POISSON_ROBIN            ) { bckey[d] = 4; }
+    else if (bcs->lo_type[d]==GKYL_POISSON_ROBIN             && bcs->up_type[d]==GKYL_POISSON_DIRICHLET        ) { bckey[d] = 5; }
+    else if (bcs->lo_type[d]==GKYL_POISSON_DIRICHLET         && bcs->up_type[d]==GKYL_POISSON_DIRICHLET_VARYING) { bckey[d] = 6; }
+    else if (bcs->lo_type[d]==GKYL_POISSON_DIRICHLET_VARYING && bcs->up_type[d]==GKYL_POISSON_DIRICHLET        ) { bckey[d] = 7; }
+    else if (bcs->lo_type[d]==GKYL_POISSON_DIRICHLET_VARYING && bcs->up_type[d]==GKYL_POISSON_DIRICHLET_VARYING) { bckey[d] = 8; }
+    else if (bcs->lo_type[d]==GKYL_POISSON_DIRICHLET_VARYING && bcs->up_type[d]==GKYL_POISSON_NEUMANN          ) { bckey[d] = 9; }
+    else if (bcs->lo_type[d]==GKYL_POISSON_NEUMANN           && bcs->up_type[d]==GKYL_POISSON_DIRICHLET_VARYING) { bckey[d] = 10; }
+    // MF 2024/10/01: kernels for these two are not yet plugged into the big lists above.
+    else if (bcs->lo_type[d]==GKYL_POISSON_DIRICHLET_VARYING && bcs->up_type[d]==GKYL_POISSON_ROBIN            ) { bckey[d] = 11; }
+    else if (bcs->lo_type[d]==GKYL_POISSON_ROBIN             && bcs->up_type[d]==GKYL_POISSON_DIRICHLET_VARYING) { bckey[d] = 12; }
     else { assert(false); }
   };
   gkyl_cu_memcpy(bckey_d, bckey, sizeof(int[GKYL_MAX_CDIM]), GKYL_CU_MEMCPY_H2D);
@@ -133,7 +142,9 @@ fem_poisson_choose_kernels_cu(const struct gkyl_basis* basis, const struct gkyl_
 }
 
 __global__ void
-gkyl_fem_poisson_set_rhs_kernel(struct gkyl_array *epsilon, bool isvareps, const double *dx, double *rhs_global, struct gkyl_array *rhs_local, struct gkyl_range range, const double *bcvals, struct gkyl_fem_poisson_kernels *kers)
+gkyl_fem_poisson_set_rhs_kernel(struct gkyl_array *epsilon, bool isvareps, const double *dx, double *rhs_global,
+  struct gkyl_array *rhs_local, struct gkyl_range range, const double *bcvals, const struct gkyl_array *phibc,
+  struct gkyl_fem_poisson_kernels *kers)
 {
   int idx[GKYL_MAX_CDIM];  int idx0[GKYL_MAX_CDIM];  int num_cells[GKYL_MAX_CDIM];
   long globalidx[32];
@@ -155,6 +166,7 @@ gkyl_fem_poisson_set_rhs_kernel(struct gkyl_array *epsilon, bool isvareps, const
     const double *local_d = (const double*) gkyl_array_cfetch(rhs_local, start);
     const double *epsilon_d = isvareps? (const double*) gkyl_array_cfetch(epsilon, start)
                                       : (const double*) gkyl_array_cfetch(epsilon, 0);
+    const double *phibc_d = phibc? (const double *) gkyl_array_cfetch(phibc, start) : NULL;
 
     int keri = idx_to_inup_ker(range.ndim, num_cells, idx);
     for (size_t d=0; d<range.ndim; d++) idx0[d] = idx[d]-1;
@@ -163,12 +175,13 @@ gkyl_fem_poisson_set_rhs_kernel(struct gkyl_array *epsilon, bool isvareps, const
     // Apply the RHS source stencil. It's mostly the mass matrix times a
     // modal-to-nodal operator times the source, modified by BCs in skin cells.
     keri = idx_to_inloup_ker(range.ndim, num_cells, idx);
-    kers->srcker[keri](epsilon_d, dx, local_d, bcvals, globalidx, rhs_global);
+    kers->srcker[keri](epsilon_d, dx, local_d, bcvals, phibc_d, globalidx, rhs_global);
   }
 }
 
 __global__ void
-gkyl_fem_poisson_get_sol_kernel(struct gkyl_array *x_local, const double *x_global, struct gkyl_range range, struct gkyl_fem_poisson_kernels *kers)
+gkyl_fem_poisson_get_sol_kernel(struct gkyl_array *x_local, const double *x_global,
+  struct gkyl_range range, struct gkyl_fem_poisson_kernels *kers)
 {
   int idx[GKYL_MAX_CDIM];  int idx0[GKYL_MAX_CDIM];  int num_cells[GKYL_MAX_CDIM];
   long globalidx[32];
@@ -200,11 +213,14 @@ gkyl_fem_poisson_get_sol_kernel(struct gkyl_array *x_local, const double *x_glob
 }
 
 void 
-gkyl_fem_poisson_set_rhs_cu(gkyl_fem_poisson *up, struct gkyl_array *rhsin)
+gkyl_fem_poisson_set_rhs_cu(gkyl_fem_poisson *up, struct gkyl_array *rhsin, const struct gkyl_array *phibc)
 {
   gkyl_culinsolver_clear_rhs(up->prob_cu, 0);
   double *rhs_cu = gkyl_culinsolver_get_rhs_ptr(up->prob_cu, 0);
-  gkyl_fem_poisson_set_rhs_kernel<<<rhsin->nblocks, rhsin->nthreads>>>(up->epsilon->on_dev, up->isvareps, up->dx_cu, rhs_cu, rhsin->on_dev, *up->solve_range, up->bcvals_cu, up->kernels_cu); 
+  const struct gkyl_array *phibc_cu = phibc? phibc->on_dev : NULL;
+  gkyl_fem_poisson_set_rhs_kernel<<<rhsin->nblocks, rhsin->nthreads>>>(up->epsilon->on_dev,
+    up->isvareps, up->dx_cu, rhs_cu, rhsin->on_dev, *up->solve_range, up->bcvals_cu,
+    phibc_cu, up->kernels_cu); 
 }	
 
 void
@@ -214,6 +230,7 @@ gkyl_fem_poisson_solve_cu(gkyl_fem_poisson *up, struct gkyl_array *phiout)
   gkyl_culinsolver_solve(up->prob_cu);
   double *x_cu = gkyl_culinsolver_get_sol_ptr(up->prob_cu, 0);
 
-  gkyl_fem_poisson_get_sol_kernel<<<phiout->nblocks, phiout->nthreads>>>(phiout->on_dev, x_cu, *up->solve_range, up->kernels_cu); 
+  gkyl_fem_poisson_get_sol_kernel<<<phiout->nblocks, phiout->nthreads>>>(phiout->on_dev,
+    x_cu, *up->solve_range, up->kernels_cu); 
 }
 

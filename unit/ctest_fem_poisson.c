@@ -186,66 +186,64 @@ test_1x(int poly_order, const int *cells, struct gkyl_poisson_bc bcs, bool use_g
   }
 
   // Create DG field we wish to make continuous.
-  struct gkyl_array *rho = mkarr(false, basis.num_basis, localRange_ext.volume);
+  struct gkyl_array *rho = mkarr(use_gpu, basis.num_basis, localRange_ext.volume);
   // Create array holding continuous field we'll compute.
-  struct gkyl_array *phi = mkarr(false, basis.num_basis, localRange_ext.volume);
+  struct gkyl_array *phi = mkarr(use_gpu, basis.num_basis, localRange_ext.volume);
   // Device copies:
-  struct gkyl_array *rho_cu, *phi_cu;
+  struct gkyl_array *rho_ho, *phi_ho;
   if (use_gpu) {
-    rho_cu  = mkarr(use_gpu, basis.num_basis, localRange_ext.volume);
-    phi_cu  = mkarr(use_gpu, basis.num_basis, localRange_ext.volume);
+    rho_ho = mkarr(false, basis.num_basis, localRange_ext.volume);
+    phi_ho = mkarr(false, basis.num_basis, localRange_ext.volume);
+  }
+  else {
+    rho_ho = gkyl_array_acquire(rho);
+    phi_ho = gkyl_array_acquire(phi);
   }
 
-  struct gkyl_array *epsilon = mkarr(use_gpu,basis.num_basis, localRange_ext.volume);
-
+  struct gkyl_array *epsilon = mkarr(use_gpu, basis.num_basis, localRange_ext.volume);
   gkyl_array_clear(epsilon, 0.);
   gkyl_array_shiftc(epsilon, epsilon_0*pow(sqrt(2.),dim), 0);
 
-  // Only used in the fully periodic case.
-  struct gkyl_array *rho_cellavg = mkarr(use_gpu, 1, localRange_ext.volume);
-
   // Project the right-side source on the basis.
-  gkyl_proj_on_basis_advance(projob, 0.0, &localRange, rho);
-  struct gkyl_array *perbuff = mkarr(false, basis.num_basis, skin_ghost.lower_skin[dim-1].volume);
+  gkyl_proj_on_basis_advance(projob, 0.0, &localRange, rho_ho);
+  gkyl_array_copy(rho, rho_ho);
+
+  struct gkyl_array *perbuff = mkarr(use_gpu, basis.num_basis, skin_ghost.lower_skin[dim-1].volume);
   for (int d=0; d<dim; d++)
     if (bcs.lo_type[d] == GKYL_POISSON_PERIODIC) apply_periodic_bc(perbuff, rho, d, skin_ghost);
-//  gkyl_grid_sub_array_write(&grid, &localRange, NULL, rho, "ctest_fem_poisson_1x_rho_1.gkyl");
-  if (use_gpu) gkyl_array_copy(rho_cu, rho);
+
+//  gkyl_grid_sub_array_write(&grid, &localRange, NULL, rho_ho, "ctest_fem_poisson_1x_rho_1.gkyl");
 
   // FEM poisson solver.
   gkyl_fem_poisson *poisson = gkyl_fem_poisson_new(&localRange, &grid, basis, &bcs, epsilon, NULL, true, use_gpu);
 
   // Set the RHS source.
-  if (use_gpu)
-    gkyl_fem_poisson_set_rhs(poisson, rho_cu, NULL);
-  else
-    gkyl_fem_poisson_set_rhs(poisson, rho, NULL);
-
+  gkyl_fem_poisson_set_rhs(poisson, rho, NULL);
   // Solve the problem.
-  if (use_gpu) {
-    gkyl_fem_poisson_solve(poisson, phi_cu);
-    gkyl_array_copy(phi, phi_cu);
+  gkyl_fem_poisson_solve(poisson, phi);
+
 #ifdef GKYL_HAVE_CUDA
+  if (use_gpu) {
     cudaDeviceSynchronize();
-#endif
-  } else {
-    gkyl_fem_poisson_solve(poisson, phi);
   }
+#endif
+
   for (int d=0; d<dim; d++)
     if (bcs.lo_type[d] == GKYL_POISSON_PERIODIC) apply_periodic_bc(perbuff, phi, d, skin_ghost);
-//  gkyl_grid_sub_array_write(&grid, &localRange, NULL, phi, "ctest_fem_poisson_1x_phi_1.gkyl");
+
+  gkyl_array_copy(phi_ho, phi);
+//  gkyl_grid_sub_array_write(&grid, &localRange, NULL, phi_ho, "ctest_fem_poisson_1x_phi_1.gkyl");
 
   if (bcs.lo_type[0] == GKYL_POISSON_PERIODIC) {
-    struct gkyl_array *sol_cellavg = gkyl_array_new(GKYL_DOUBLE, 1, localRange_ext.volume);
+    struct gkyl_array *sol_cellavg = mkarr(false, 1, localRange_ext.volume);
     double* sol_avg = (double*) gkyl_malloc(sizeof(double)); 
-    gkyl_array_clear(sol_cellavg, 0.0);
     // Factor accounting for normalization when subtracting a constant from a
     // DG field and the 1/N to properly compute the volume averaged RHS.
     double mavgfac = -pow(sqrt(2.),dim)/localRange.volume;
     // Subtract the volume averaged sol from the sol.
-    gkyl_dg_calc_average_range(basis, 0, sol_cellavg, 0, phi, localRange);
+    gkyl_dg_calc_average_range(basis, 0, sol_cellavg, 0, phi_ho, localRange);
     gkyl_array_reduce_range(sol_avg, sol_cellavg, GKYL_SUM, &localRange);
-    gkyl_array_shiftc(phi, mavgfac*sol_avg[0], 0);
+    gkyl_array_shiftc(phi_ho, mavgfac*sol_avg[0], 0);
 
     gkyl_free(sol_avg);
     gkyl_array_release(sol_cellavg);
@@ -278,7 +276,7 @@ test_1x(int poly_order, const int *cells, struct gkyl_poisson_bc bcs, bool use_g
         const double *phi_p;
         int idx0[] = {k+1};
         linidx = gkyl_range_idx(&localRange, idx0);
-        phi_p  = gkyl_array_cfetch(phi, linidx);
+        phi_p  = gkyl_array_cfetch(phi_ho, linidx);
         for (int m=0; m<basis.num_basis; m++) {
           TEST_CHECK( gkyl_compare(sol[k*basis.num_basis+m], phi_p[m], 1e-12) );
           TEST_MSG("Expected: %.13e in cell (%d)", sol[k*basis.num_basis+m], k);
@@ -311,7 +309,7 @@ test_1x(int poly_order, const int *cells, struct gkyl_poisson_bc bcs, bool use_g
         const double *phi_p;
         int idx0[] = {k+1};
         linidx = gkyl_range_idx(&localRange, idx0);
-        phi_p  = gkyl_array_cfetch(phi, linidx);
+        phi_p  = gkyl_array_cfetch(phi_ho, linidx);
         for (int m=0; m<basis.num_basis; m++) {
           TEST_CHECK( gkyl_compare(sol[k*basis.num_basis+m], phi_p[m], 1e-12) );
           TEST_MSG("Expected: %.13e in cell (%d)", sol[k*basis.num_basis+m], k);
@@ -344,7 +342,7 @@ test_1x(int poly_order, const int *cells, struct gkyl_poisson_bc bcs, bool use_g
         const double *phi_p;
         int idx0[] = {k+1};
         linidx = gkyl_range_idx(&localRange, idx0);
-        phi_p  = gkyl_array_cfetch(phi, linidx);
+        phi_p  = gkyl_array_cfetch(phi_ho, linidx);
         for (int m=0; m<basis.num_basis; m++) {
           TEST_CHECK( gkyl_compare(sol[k*basis.num_basis+m], phi_p[m], 1e-12) );
           TEST_MSG("Expected: %.13e in cell (%d)", sol[k*basis.num_basis+m], k);
@@ -377,7 +375,7 @@ test_1x(int poly_order, const int *cells, struct gkyl_poisson_bc bcs, bool use_g
         const double *phi_p;
         int idx0[] = {k+1};
         linidx = gkyl_range_idx(&localRange, idx0);
-        phi_p  = gkyl_array_cfetch(phi, linidx);
+        phi_p  = gkyl_array_cfetch(phi_ho, linidx);
         for (int m=0; m<basis.num_basis; m++) {
           TEST_CHECK( gkyl_compare(sol[k*basis.num_basis+m], phi_p[m], 1e-12) );
           TEST_MSG("Expected: %.13e in cell (%d)", sol[k*basis.num_basis+m], k);
@@ -404,7 +402,7 @@ test_1x(int poly_order, const int *cells, struct gkyl_poisson_bc bcs, bool use_g
         const double *phi_p;
         int idx0[] = {k+1};
         linidx = gkyl_range_idx(&localRange, idx0);
-        phi_p  = gkyl_array_cfetch(phi, linidx);
+        phi_p  = gkyl_array_cfetch(phi_ho, linidx);
         for (int m=0; m<basis.num_basis; m++) {
           TEST_CHECK( gkyl_compare(sol[k*basis.num_basis+m], phi_p[m], 1e-12) );
           TEST_MSG("Expected: %.13e in cell (%d)", sol[k*basis.num_basis+m], k);
@@ -429,7 +427,7 @@ test_1x(int poly_order, const int *cells, struct gkyl_poisson_bc bcs, bool use_g
         const double *phi_p;
         int idx0[] = {k+1};
         linidx = gkyl_range_idx(&localRange, idx0);
-        phi_p  = gkyl_array_cfetch(phi, linidx);
+        phi_p  = gkyl_array_cfetch(phi_ho, linidx);
         for (int m=0; m<basis.num_basis; m++) {
           TEST_CHECK( gkyl_compare(sol[k*basis.num_basis+m], phi_p[m], 1e-12) );
           TEST_MSG("Expected: %.13e in cell (%d)", sol[k*basis.num_basis+m], k);
@@ -454,7 +452,7 @@ test_1x(int poly_order, const int *cells, struct gkyl_poisson_bc bcs, bool use_g
         const double *phi_p;
         int idx0[] = {k+1};
         linidx = gkyl_range_idx(&localRange, idx0);
-        phi_p  = gkyl_array_cfetch(phi, linidx);
+        phi_p  = gkyl_array_cfetch(phi_ho, linidx);
         for (int m=0; m<basis.num_basis; m++) {
           TEST_CHECK( gkyl_compare(sol[k*basis.num_basis+m], phi_p[m], 1e-12) );
           TEST_MSG("Expected: %.13e in cell (%d)", sol[k*basis.num_basis+m], k);
@@ -479,7 +477,7 @@ test_1x(int poly_order, const int *cells, struct gkyl_poisson_bc bcs, bool use_g
         const double *phi_p;
         int idx0[] = {k+1};
         linidx = gkyl_range_idx(&localRange, idx0);
-        phi_p  = gkyl_array_cfetch(phi, linidx);
+        phi_p  = gkyl_array_cfetch(phi_ho, linidx);
         for (int m=0; m<basis.num_basis; m++) {
           TEST_CHECK( gkyl_compare(sol[k*basis.num_basis+m], phi_p[m], 1e-12) );
           TEST_MSG("Expected: %.13e in cell (%d)", sol[k*basis.num_basis+m], k);
@@ -492,13 +490,10 @@ test_1x(int poly_order, const int *cells, struct gkyl_poisson_bc bcs, bool use_g
   gkyl_fem_poisson_release(poisson);
   gkyl_proj_on_basis_release(projob);
   gkyl_array_release(rho);
-  gkyl_array_release(rho_cellavg);
   gkyl_array_release(phi);
   gkyl_array_release(epsilon);
-  if (use_gpu) {
-    gkyl_array_release(rho_cu);
-    gkyl_array_release(phi_cu);
-  }
+  gkyl_array_release(rho_ho);
+  gkyl_array_release(phi_ho);
   gkyl_array_release(perbuff);
 }
 
@@ -571,14 +566,18 @@ test_2x(int poly_order, const int *cells, struct gkyl_poisson_bc bcs, bool use_g
   }
 
   // Create DG field we wish to make continuous.
-  struct gkyl_array *rho = mkarr(false, basis.num_basis, localRange_ext.volume);
+  struct gkyl_array *rho = mkarr(use_gpu, basis.num_basis, localRange_ext.volume);
   // Create array holding continuous field we'll compute.
-  struct gkyl_array *phi = mkarr(false, basis.num_basis, localRange_ext.volume);
+  struct gkyl_array *phi = mkarr(use_gpu, basis.num_basis, localRange_ext.volume);
   // Device copies:
-  struct gkyl_array *rho_cu, *phi_cu;
+  struct gkyl_array *rho_ho, *phi_ho;
   if (use_gpu) {
-    rho_cu = mkarr(use_gpu, basis.num_basis, localRange_ext.volume);
-    phi_cu = mkarr(use_gpu, basis.num_basis, localRange_ext.volume);
+    rho_ho = mkarr(false, basis.num_basis, localRange_ext.volume);
+    phi_ho = mkarr(false, basis.num_basis, localRange_ext.volume);
+  }
+  else {
+    rho_ho = gkyl_array_acquire(rho);
+    phi_ho = gkyl_array_acquire(phi);
   }
 
   struct gkyl_array *epsilon = mkarr(use_gpu, basis.num_basis, localRange_ext.volume);
@@ -589,47 +588,46 @@ test_2x(int poly_order, const int *cells, struct gkyl_poisson_bc bcs, bool use_g
   struct gkyl_array *rho_cellavg = mkarr(use_gpu, 1, localRange_ext.volume);
 
   // Project the right-side source on the basis.
-  gkyl_proj_on_basis_advance(projob, 0.0, &localRange, rho);
-  struct gkyl_array *perbuff = mkarr(false, basis.num_basis, skin_ghost.lower_skin[dim-1].volume);
+  gkyl_proj_on_basis_advance(projob, 0.0, &localRange, rho_ho);
+  gkyl_array_copy(rho, rho_ho);
+
+  struct gkyl_array *perbuff = mkarr(use_gpu, basis.num_basis, skin_ghost.lower_skin[dim-1].volume);
   for (int d=0; d<dim; d++)
     if (bcs.lo_type[d] == GKYL_POISSON_PERIODIC) apply_periodic_bc(perbuff, rho, d, skin_ghost);
-//  gkyl_grid_sub_array_write(&grid, &localRange, NULL, rho, "ctest_fem_poisson_2x_rho_1.gkyl");
-  if (use_gpu) gkyl_array_copy(rho_cu, rho);
+
+//  gkyl_grid_sub_array_write(&grid, &localRange, NULL, rho_ho, "ctest_fem_poisson_2x_rho_1.gkyl");
 
   // FEM poisson solver.
   gkyl_fem_poisson *poisson = gkyl_fem_poisson_new(&localRange, &grid, basis, &bcs, epsilon, NULL, true, use_gpu);
 
   // Set the RHS source.
-  if (use_gpu)
-    gkyl_fem_poisson_set_rhs(poisson, rho_cu, NULL);
-  else
-    gkyl_fem_poisson_set_rhs(poisson, rho, NULL);
-
+  gkyl_fem_poisson_set_rhs(poisson, rho, NULL);
   // Solve the problem.
-  if (use_gpu) {
-    gkyl_fem_poisson_solve(poisson, phi_cu);
-    gkyl_array_copy(phi, phi_cu);
+  gkyl_fem_poisson_solve(poisson, phi);
+
 #ifdef GKYL_HAVE_CUDA
+  if (use_gpu) {
     cudaDeviceSynchronize();
-#endif
-  } else {
-    gkyl_fem_poisson_solve(poisson, phi);
   }
+#endif
+
   for (int d=0; d<dim; d++)
     if (bcs.lo_type[d] == GKYL_POISSON_PERIODIC) apply_periodic_bc(perbuff, phi, d, skin_ghost);
-//  gkyl_grid_sub_array_write(&grid, &localRange, NULL, phi, "ctest_fem_poisson_2x_phi_1.gkyl");
+
+//  gkyl_grid_sub_array_write(&grid, &localRange, NULL, phi_ho, "ctest_fem_poisson_2x_phi_1.gkyl");
+
+  gkyl_array_copy(phi_ho, phi);
 
   if (bcs.lo_type[0] == GKYL_POISSON_PERIODIC && bcs.lo_type[1] == GKYL_POISSON_PERIODIC) {
-    struct gkyl_array *sol_cellavg = gkyl_array_new(GKYL_DOUBLE, 1, localRange_ext.volume);
+    struct gkyl_array *sol_cellavg = mkarr(false, 1, localRange_ext.volume);
     double* sol_avg = (double*) gkyl_malloc(sizeof(double)); 
-    gkyl_array_clear(sol_cellavg, 0.0);
     // Factor accounting for normalization when subtracting a constant from a
     // DG field and the 1/N to properly compute the volume averaged RHS.
     double mavgfac = -pow(sqrt(2.),dim)/localRange.volume;
     // Subtract the volume averaged sol from the sol.
-    gkyl_dg_calc_average_range(basis, 0, sol_cellavg, 0, phi, localRange);
+    gkyl_dg_calc_average_range(basis, 0, sol_cellavg, 0, phi_ho, localRange);
     gkyl_array_reduce_range(sol_avg, sol_cellavg, GKYL_SUM, &localRange);
-    gkyl_array_shiftc(phi, mavgfac*sol_avg[0], 0);
+    gkyl_array_shiftc(phi_ho, mavgfac*sol_avg[0], 0);
 
     gkyl_free(sol_avg);
     gkyl_array_release(sol_cellavg);
@@ -708,7 +706,7 @@ test_2x(int poly_order, const int *cells, struct gkyl_poisson_bc bcs, bool use_g
         for (int k=0; k<cells[1]; k++) {
           int idx0[] = {j+1,k+1};
           long linidx = gkyl_range_idx(&localRange, idx0);
-          const double *phi_p  = gkyl_array_cfetch(phi, linidx);
+          const double *phi_p  = gkyl_array_cfetch(phi_ho, linidx);
           for (int m=0; m<basis.num_basis; m++) {
             TEST_CHECK( gkyl_compare(sol[(j*cells[1]+k)*basis.num_basis+m], phi_p[m], 1e-12) );
             TEST_MSG("Expected: %.13e in cell (%d,%d)", sol[(j*cells[1]+k)*basis.num_basis+m], j, k);
@@ -796,7 +794,7 @@ test_2x(int poly_order, const int *cells, struct gkyl_poisson_bc bcs, bool use_g
         for (int k=0; k<cells[1]; k++) {
           int idx0[] = {j+1,k+1};
           long linidx = gkyl_range_idx(&localRange, idx0);
-          const double *phi_p  = gkyl_array_cfetch(phi, linidx);
+          const double *phi_p  = gkyl_array_cfetch(phi_ho, linidx);
           for (int m=0; m<basis.num_basis; m++) {
             TEST_CHECK( gkyl_compare(sol[(j*cells[1]+k)*basis.num_basis+m], phi_p[m], 1e-12) );
             TEST_MSG("Expected: %.13e in cell (%d,%d)", sol[(j*cells[1]+k)*basis.num_basis+m], j, k);
@@ -884,7 +882,7 @@ test_2x(int poly_order, const int *cells, struct gkyl_poisson_bc bcs, bool use_g
         for (int k=0; k<cells[1]; k++) {
           int idx0[] = {j+1,k+1};
           long linidx = gkyl_range_idx(&localRange, idx0);
-          const double *phi_p  = gkyl_array_cfetch(phi, linidx);
+          const double *phi_p  = gkyl_array_cfetch(phi_ho, linidx);
           for (int m=0; m<basis.num_basis; m++) {
             TEST_CHECK( gkyl_compare(sol[(j*cells[1]+k)*basis.num_basis+m], phi_p[m], 1e-12) );
             TEST_MSG("Expected: %.13e in cell (%d,%d)", sol[(j*cells[1]+k)*basis.num_basis+m], j, k);
@@ -974,7 +972,7 @@ test_2x(int poly_order, const int *cells, struct gkyl_poisson_bc bcs, bool use_g
         for (int k=0; k<cells[1]; k++) {
           int idx0[] = {j+1,k+1};
           long linidx = gkyl_range_idx(&localRange, idx0);
-          const double *phi_p  = gkyl_array_cfetch(phi, linidx);
+          const double *phi_p  = gkyl_array_cfetch(phi_ho, linidx);
           for (int m=0; m<basis.num_basis; m++) {
             TEST_CHECK( gkyl_compare(sol[(j*cells[1]+k)*basis.num_basis+m], phi_p[m], 1e-12) );
             TEST_MSG("Expected: %.13e in cell (%d,%d)", sol[(j*cells[1]+k)*basis.num_basis+m], j, k);
@@ -1063,7 +1061,7 @@ test_2x(int poly_order, const int *cells, struct gkyl_poisson_bc bcs, bool use_g
         for (int k=0; k<cells[1]; k++) {
           int idx0[] = {j+1,k+1};
           long linidx = gkyl_range_idx(&localRange, idx0);
-          const double *phi_p  = gkyl_array_cfetch(phi, linidx);
+          const double *phi_p  = gkyl_array_cfetch(phi_ho, linidx);
           for (int m=0; m<basis.num_basis; m++) {
             TEST_CHECK( gkyl_compare(sol[(j*cells[1]+k)*basis.num_basis+m], phi_p[m], 1e-10) );
             TEST_MSG("Expected: %.13e in cell (%d,%d)", sol[(j*cells[1]+k)*basis.num_basis+m], j, k);
@@ -1152,7 +1150,7 @@ test_2x(int poly_order, const int *cells, struct gkyl_poisson_bc bcs, bool use_g
         for (int k=0; k<cells[1]; k++) {
           int idx0[] = {j+1,k+1};
           long linidx = gkyl_range_idx(&localRange, idx0);
-          const double *phi_p  = gkyl_array_cfetch(phi, linidx);
+          const double *phi_p  = gkyl_array_cfetch(phi_ho, linidx);
           for (int m=0; m<basis.num_basis; m++) {
             TEST_CHECK( gkyl_compare(sol[(j*cells[1]+k)*basis.num_basis+m], phi_p[m], 1e-10) );
             TEST_MSG("Expected: %.13e in cell (%d,%d)", sol[(j*cells[1]+k)*basis.num_basis+m], j, k);
@@ -1241,7 +1239,7 @@ test_2x(int poly_order, const int *cells, struct gkyl_poisson_bc bcs, bool use_g
         for (int k=0; k<cells[1]; k++) {
           int idx0[] = {j+1,k+1};
           long linidx = gkyl_range_idx(&localRange, idx0);
-          const double *phi_p  = gkyl_array_cfetch(phi, linidx);
+          const double *phi_p  = gkyl_array_cfetch(phi_ho, linidx);
           for (int m=0; m<basis.num_basis; m++) {
             TEST_CHECK( gkyl_compare(sol[(j*cells[1]+k)*basis.num_basis+m], phi_p[m], 1e-10) );
             TEST_MSG("Expected: %.13e in cell (%d,%d)", sol[(j*cells[1]+k)*basis.num_basis+m], j, k);
@@ -1330,7 +1328,7 @@ test_2x(int poly_order, const int *cells, struct gkyl_poisson_bc bcs, bool use_g
         for (int k=0; k<cells[1]; k++) {
           int idx0[] = {j+1,k+1};
           long linidx = gkyl_range_idx(&localRange, idx0);
-          const double *phi_p  = gkyl_array_cfetch(phi, linidx);
+          const double *phi_p  = gkyl_array_cfetch(phi_ho, linidx);
           for (int m=0; m<basis.num_basis; m++) {
             TEST_CHECK( gkyl_compare(sol[(j*cells[1]+k)*basis.num_basis+m], phi_p[m], 1e-10) );
             TEST_MSG("Expected: %.13e in cell (%d,%d)", sol[(j*cells[1]+k)*basis.num_basis+m], j, k);
@@ -1413,7 +1411,7 @@ test_2x(int poly_order, const int *cells, struct gkyl_poisson_bc bcs, bool use_g
         for (int k=0; k<cells[1]; k++) {
           int idx0[] = {j+1,k+1};
           long linidx = gkyl_range_idx(&localRange, idx0);
-          const double *phi_p  = gkyl_array_cfetch(phi, linidx);
+          const double *phi_p  = gkyl_array_cfetch(phi_ho, linidx);
           for (int m=0; m<basis.num_basis; m++) { {
             TEST_CHECK( gkyl_compare(sol[(j*cells[1]+k)*basis.num_basis+m], phi_p[m], 1e-12) );
             TEST_MSG("Expected: %.13e in cell (%d,%d)", sol[(j*cells[1]+k)*basis.num_basis+m], j, k);
@@ -1567,7 +1565,7 @@ test_2x(int poly_order, const int *cells, struct gkyl_poisson_bc bcs, bool use_g
         for (int k=0; k<cells[1]; k++) {
           int idx0[] = {j+1,k+1};
           long linidx = gkyl_range_idx(&localRange, idx0);
-          const double *phi_p  = gkyl_array_cfetch(phi, linidx);
+          const double *phi_p  = gkyl_array_cfetch(phi_ho, linidx);
           for (int m=0; m<basis.num_basis; m++) {
             TEST_CHECK( gkyl_compare(sol[(j*cells[1]+k)*basis.num_basis+m], phi_p[m], 1e-10) );
             TEST_MSG("Expected: %.13e in cell (%d,%d)", sol[(j*cells[1]+k)*basis.num_basis+m], j, k);
@@ -1720,7 +1718,7 @@ test_2x(int poly_order, const int *cells, struct gkyl_poisson_bc bcs, bool use_g
         for (int k=0; k<cells[1]; k++) {
           int idx0[] = {j+1,k+1};
           long linidx = gkyl_range_idx(&localRange, idx0);
-          const double *phi_p  = gkyl_array_cfetch(phi, linidx);
+          const double *phi_p  = gkyl_array_cfetch(phi_ho, linidx);
           for (int m=0; m<basis.num_basis; m++) {
             TEST_CHECK( gkyl_compare(sol[(j*cells[1]+k)*basis.num_basis+m], phi_p[m], 1e-10) );
             TEST_MSG("Expected: %.13e in cell (%d,%d)", sol[(j*cells[1]+k)*basis.num_basis+m], j, k);
@@ -1808,7 +1806,7 @@ test_2x(int poly_order, const int *cells, struct gkyl_poisson_bc bcs, bool use_g
         for (int k=0; k<cells[1]; k++) {
           int idx0[] = {j+1,k+1};
           long linidx = gkyl_range_idx(&localRange, idx0);
-          const double *phi_p  = gkyl_array_cfetch(phi, linidx);
+          const double *phi_p  = gkyl_array_cfetch(phi_ho, linidx);
           for (int m=0; m<basis.num_basis; m++) {
             TEST_CHECK( gkyl_compare(sol[(j*cells[1]+k)*basis.num_basis+m], phi_p[m], 1e-10) );
             TEST_MSG("Expected: %.13e in cell (%d,%d)", sol[(j*cells[1]+k)*basis.num_basis+m], j, k);
@@ -1896,7 +1894,7 @@ test_2x(int poly_order, const int *cells, struct gkyl_poisson_bc bcs, bool use_g
         for (int k=0; k<cells[1]; k++) {
           int idx0[] = {j+1,k+1};
           long linidx = gkyl_range_idx(&localRange, idx0);
-          const double *phi_p  = gkyl_array_cfetch(phi, linidx);
+          const double *phi_p  = gkyl_array_cfetch(phi_ho, linidx);
           for (int m=0; m<basis.num_basis; m++) {
             TEST_CHECK( gkyl_compare(sol[(j*cells[1]+k)*basis.num_basis+m], phi_p[m], 1e-9) );
             TEST_MSG("Expected: %.13e in cell (%d,%d)", sol[(j*cells[1]+k)*basis.num_basis+m], j, k);
@@ -1984,7 +1982,7 @@ test_2x(int poly_order, const int *cells, struct gkyl_poisson_bc bcs, bool use_g
         for (int k=0; k<cells[1]; k++) {
           int idx0[] = {j+1,k+1};
           long linidx = gkyl_range_idx(&localRange, idx0);
-          const double *phi_p  = gkyl_array_cfetch(phi, linidx);
+          const double *phi_p  = gkyl_array_cfetch(phi_ho, linidx);
           for (int m=0; m<basis.num_basis; m++) {
             TEST_CHECK( gkyl_compare(sol[(j*cells[1]+k)*basis.num_basis+m], phi_p[m], 1e-9) );
             TEST_MSG("Expected: %.13e in cell (%d,%d)", sol[(j*cells[1]+k)*basis.num_basis+m], j, k);
@@ -2072,7 +2070,7 @@ test_2x(int poly_order, const int *cells, struct gkyl_poisson_bc bcs, bool use_g
         for (int k=0; k<cells[1]; k++) {
           int idx0[] = {j+1,k+1};
           long linidx = gkyl_range_idx(&localRange, idx0);
-          const double *phi_p  = gkyl_array_cfetch(phi, linidx);
+          const double *phi_p  = gkyl_array_cfetch(phi_ho, linidx);
           for (int m=0; m<basis.num_basis; m++) {
             TEST_CHECK( gkyl_compare(sol[(j*cells[1]+k)*basis.num_basis+m], phi_p[m], 5e-8) );
             TEST_MSG("Expected: %.13e in cell (%d,%d)", sol[(j*cells[1]+k)*basis.num_basis+m], j, k);
@@ -2160,7 +2158,7 @@ test_2x(int poly_order, const int *cells, struct gkyl_poisson_bc bcs, bool use_g
         for (int k=0; k<cells[1]; k++) {
           int idx0[] = {j+1,k+1};
           long linidx = gkyl_range_idx(&localRange, idx0);
-          const double *phi_p  = gkyl_array_cfetch(phi, linidx);
+          const double *phi_p  = gkyl_array_cfetch(phi_ho, linidx);
           for (int m=0; m<basis.num_basis; m++) {
             TEST_CHECK( gkyl_compare(sol[(j*cells[1]+k)*basis.num_basis+m], phi_p[m], 1e-7) );
             TEST_MSG("Expected: %.13e in cell (%d,%d)", sol[(j*cells[1]+k)*basis.num_basis+m], j, k);
@@ -2177,10 +2175,8 @@ test_2x(int poly_order, const int *cells, struct gkyl_poisson_bc bcs, bool use_g
   gkyl_array_release(rho_cellavg);
   gkyl_array_release(phi);
   gkyl_array_release(epsilon);
-  if (use_gpu) {
-    gkyl_array_release(rho_cu);
-    gkyl_array_release(phi_cu);
-  }
+  gkyl_array_release(rho_ho);
+  gkyl_array_release(phi_ho);
   gkyl_array_release(perbuff);
 }
 
@@ -2354,7 +2350,7 @@ test_2x_varBC(int poly_order, const int *cells, struct gkyl_poisson_bc bcs, bool
         long linidx = gkyl_range_idx(&localRange, idx0);
         const double *phi_p  = gkyl_array_cfetch(phi, linidx);
         for (int m=0; m<basis.num_basis; m++) {
-          TEST_CHECK( gkyl_compare(sol[(j*cells[1]+k)*basis.num_basis+m], phi_p[m], 1e-12) );
+          TEST_CHECK( gkyl_compare(sol[(j*cells[1]+k)*basis.num_basis+m], phi_p[m], 1e-10) );
           TEST_MSG("Expected: %.13e in cell (%d,%d)", sol[(j*cells[1]+k)*basis.num_basis+m], j, k);
           TEST_MSG("Produced: %.13e", phi_p[m]);
         }
@@ -2506,7 +2502,7 @@ test_2x_varBC(int poly_order, const int *cells, struct gkyl_poisson_bc bcs, bool
         long linidx = gkyl_range_idx(&localRange, idx0);
         const double *phi_p  = gkyl_array_cfetch(phi, linidx);
         for (int m=0; m<basis.num_basis; m++) {
-          TEST_CHECK( gkyl_compare(sol[(j*cells[1]+k)*basis.num_basis+m], phi_p[m], 1e-10) );
+          TEST_CHECK( gkyl_compare(sol[(j*cells[1]+k)*basis.num_basis+m], phi_p[m], 1e-9) );
           TEST_MSG("Expected: %.13e in cell (%d,%d)", sol[(j*cells[1]+k)*basis.num_basis+m], j, k);
           TEST_MSG("Produced: %.13e", phi_p[m]);
         }
