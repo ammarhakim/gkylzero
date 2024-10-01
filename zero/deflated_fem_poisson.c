@@ -3,6 +3,15 @@
 #include <gkyl_deflated_fem_poisson.h>
 #include <gkyl_deflated_fem_poisson_priv.h>
 
+// allocate array (filled with zeros)
+static inline struct gkyl_array*
+mkarr(bool use_gpu, long nc, long size)
+{
+  struct gkyl_array* a = use_gpu? gkyl_array_cu_dev_new(GKYL_DOUBLE, nc, size)
+                                : gkyl_array_new(GKYL_DOUBLE, nc, size);
+  return a;
+}
+
 struct gkyl_deflated_fem_poisson* 
 gkyl_deflated_fem_poisson_new(struct gkyl_rect_grid grid, struct gkyl_basis *basis_on_dev, struct gkyl_basis basis, 
   struct gkyl_range local, struct gkyl_range global_sub_range, struct gkyl_array *epsilon, struct gkyl_array *kSq,
@@ -57,12 +66,11 @@ gkyl_deflated_fem_poisson_new(struct gkyl_rect_grid grid, struct gkyl_basis *bas
   if (up->use_gpu) {
     up->deflated_basis_on_dev = gkyl_cu_malloc(sizeof(struct gkyl_basis));
     gkyl_cart_modal_serendip_cu_dev(up->deflated_basis_on_dev, up->cdim-1, poly_order);
-    up->nodal_fld = gkyl_array_cu_dev_new(GKYL_DOUBLE, up->cdim, up->nrange.volume);
   }
   else {
     up->deflated_basis_on_dev = &up->deflated_basis;
-    up->nodal_fld = gkyl_array_new(GKYL_DOUBLE, up->cdim, up->nrange.volume);
   }
+  up->nodal_fld = mkarr(up->use_gpu, up->cdim, up->nrange.volume);
 
   int deflated_nodes[up->deflated_grid.ndim];
   if (poly_order == 1){
@@ -92,33 +100,32 @@ gkyl_deflated_fem_poisson_new(struct gkyl_rect_grid grid, struct gkyl_basis *bas
   // Allocate necessary fields and solvers for each z slice
   int ctr = 0;
   for (int zidx = up->local.lower[up->cdim-1]; zidx <= up->local.upper[up->cdim-1]+1; zidx++) {
-    if (use_gpu) {
-      up->d_fem_data[ctr].deflated_field = gkyl_array_cu_dev_new(GKYL_DOUBLE, up->deflated_basis.num_basis, up->deflated_local_ext.volume);
-      up->d_fem_data[ctr].deflated_phi = gkyl_array_cu_dev_new(GKYL_DOUBLE, up->deflated_basis.num_basis, up->deflated_local_ext.volume);
-      up->d_fem_data[ctr].deflated_epsilon = gkyl_array_cu_dev_new(GKYL_DOUBLE, (2*up->deflated_grid.ndim - 1)*up->deflated_basis.num_basis, up->deflated_local_ext.volume);
-      up->d_fem_data[ctr].deflated_kSq = up->ishelmholtz? gkyl_array_cu_dev_new(GKYL_DOUBLE, (2*up->deflated_grid.ndim - 1)*up->deflated_basis.num_basis, up->deflated_local_ext.volume) : 0;
-      up->d_fem_data[ctr].deflated_nodal_fld = gkyl_array_cu_dev_new(GKYL_DOUBLE, up->deflated_grid.ndim, up->deflated_nrange.volume);
-    }
-    else {
-      up->d_fem_data[ctr].deflated_field = gkyl_array_new(GKYL_DOUBLE, up->deflated_basis.num_basis, up->deflated_local_ext.volume);
-      up->d_fem_data[ctr].deflated_phi = gkyl_array_new(GKYL_DOUBLE, up->deflated_basis.num_basis, up->deflated_local_ext.volume);
-      up->d_fem_data[ctr].deflated_epsilon = gkyl_array_new(GKYL_DOUBLE, (2*up->deflated_grid.ndim - 1)*up->deflated_basis.num_basis, up->deflated_local_ext.volume);
-      up->d_fem_data[ctr].deflated_kSq = up->ishelmholtz? gkyl_array_new(GKYL_DOUBLE, (2*up->deflated_grid.ndim - 1)*up->deflated_basis.num_basis, up->deflated_local_ext.volume) : 0;
-      up->d_fem_data[ctr].deflated_nodal_fld = gkyl_array_new(GKYL_DOUBLE, up->deflated_grid.ndim, up->deflated_nrange.volume);
-    }
+    int defl_num_basis = up->deflated_basis.num_basis;
+    up->d_fem_data[ctr].deflated_field   = mkarr(up->use_gpu, defl_num_basis, up->deflated_local_ext.volume);
+    up->d_fem_data[ctr].deflated_phi     = mkarr(up->use_gpu, defl_num_basis, up->deflated_local_ext.volume);
+    up->d_fem_data[ctr].deflated_epsilon = mkarr(up->use_gpu, (2*up->deflated_grid.ndim - 1)*defl_num_basis, up->deflated_local_ext.volume);
+    up->d_fem_data[ctr].deflated_nodal_fld = mkarr(up->use_gpu, up->deflated_grid.ndim, up->deflated_nrange.volume);
+    up->d_fem_data[ctr].deflated_kSq = up->ishelmholtz?
+      mkarr(up->use_gpu, (2*up->deflated_grid.ndim - 1)*defl_num_basis, up->deflated_local_ext.volume) : 0;
 
     if (zidx == up->local.upper[up->cdim-1] + 1 ) {
-      gkyl_deflate_zsurf_advance(up->deflator_up, zidx-1, &up->local, &up->deflated_local, epsilon, up->d_fem_data[ctr].deflated_epsilon,  2*up->deflated_grid.ndim-1);
+      gkyl_deflate_zsurf_advance(up->deflator_up, zidx-1, &up->local, &up->deflated_local,
+        epsilon, up->d_fem_data[ctr].deflated_epsilon,  2*up->deflated_grid.ndim-1);
       if (up->ishelmholtz)
-        gkyl_deflate_zsurf_advance(up->deflator_up, zidx-1, &up->local, &up->deflated_local, kSq, up->d_fem_data[ctr].deflated_kSq,  2*up->deflated_grid.ndim-1);
+        gkyl_deflate_zsurf_advance(up->deflator_up, zidx-1, &up->local, &up->deflated_local,
+          kSq, up->d_fem_data[ctr].deflated_kSq,  2*up->deflated_grid.ndim-1);
     }
     else {
-      gkyl_deflate_zsurf_advance(up->deflator_lo, zidx, &up->local, &up->deflated_local, epsilon, up->d_fem_data[ctr].deflated_epsilon, 2*up->deflated_grid.ndim-1);
+      gkyl_deflate_zsurf_advance(up->deflator_lo, zidx, &up->local, &up->deflated_local,
+        epsilon, up->d_fem_data[ctr].deflated_epsilon, 2*up->deflated_grid.ndim-1);
       if (up->ishelmholtz)
-        gkyl_deflate_zsurf_advance(up->deflator_lo, zidx, &up->local, &up->deflated_local, kSq, up->d_fem_data[ctr].deflated_kSq, 2*up->deflated_grid.ndim-1);
+        gkyl_deflate_zsurf_advance(up->deflator_lo, zidx, &up->local, &up->deflated_local,
+          kSq, up->d_fem_data[ctr].deflated_kSq, 2*up->deflated_grid.ndim-1);
     }
 
-    up->d_fem_data[ctr].fem_poisson = gkyl_fem_poisson_new(&up->deflated_local, &up->deflated_grid, up->deflated_basis, &up->poisson_bc, up->d_fem_data[ctr].deflated_epsilon, up->d_fem_data[ctr].deflated_kSq, false, use_gpu);
+    up->d_fem_data[ctr].fem_poisson = gkyl_fem_poisson_new(&up->deflated_local, &up->deflated_grid,
+      up->deflated_basis, &up->poisson_bc, up->d_fem_data[ctr].deflated_epsilon,
+      up->d_fem_data[ctr].deflated_kSq, false, use_gpu);
     ctr += 1;
   }
 
