@@ -70,7 +70,7 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
     gkyl_cart_modal_tensor(&basis, app->cdim, 3);
 
     struct gkyl_array *phi_nodal = gkyl_array_new(GKYL_DOUBLE, 1, (cells[0]+1)*(cells[1]+1));
-    struct gkyl_array *phi_cubic = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, local_ext.volume);
+    struct gkyl_array *phi_cubic_ho = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, local_ext.volume);
     gkyl_dg_basis_op_mem *mem = gkyl_dg_alloc_cubic_2d(cells);
     double xn[2];
     
@@ -86,10 +86,20 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
     }
     // compute cubic expansion
     gkyl_dg_calc_cubic_2d_from_nodal_vals(mem, cells, grid.dx,
-      phi_nodal, phi_cubic);
+      phi_nodal, phi_cubic_ho);
 
     f->phi_pol = mkarr(app->use_gpu, basis.num_basis, app->local_ext.volume);
-    gkyl_array_set_range_to_range(f->phi_pol, 1.0, phi_cubic, &app->local, &local);
+
+    // phi_cubic is on an un-parallized range which is really global, so we need to translate it to an app->local range
+    struct gkyl_array* phi_cubic_ho_global = mkarr(false, basis.num_basis, app->global_ext.volume);
+    struct gkyl_array* phi_cubic_global = mkarr(app->use_gpu, basis.num_basis, app->global_ext.volume);
+    gkyl_array_set_range_to_range(phi_cubic_ho_global, 1.0, phi_cubic_ho, &app->global, &local);
+    gkyl_array_copy(phi_cubic_global, phi_cubic_ho_global);
+
+    struct gkyl_range global_sub_range;
+    gkyl_sub_range_init(&global_sub_range, &app->global, app->local.lower, app->local.upper);
+
+    gkyl_array_set_range_to_range(f->phi_pol, 1.0, phi_cubic_global, &app->local, &global_sub_range);
     // Print out the array to make sure it makes sense
     const char *fmt = "%s-%s.gkyl";
     int sz = gkyl_calc_strlen(fmt, app->name, "phi_pol_projection");
@@ -97,16 +107,16 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
     int rank;
     gkyl_comm_get_rank(app->comm, &rank);
     if (rank == 0) {
-      sprintf(fileNm, fmt, app->name, "phi_pol_projection");
-      gkyl_grid_sub_array_write(&app->grid, &app->local, 0, f->phi_pol, fileNm);
       sprintf(fileNm, fmt, app->name, "phi_pol_cubic");
-      gkyl_grid_sub_array_write(&grid, &local, 0, phi_cubic, fileNm);
+      gkyl_grid_sub_array_write(&grid, &local, 0, phi_cubic_ho, fileNm);
       sprintf(fileNm, fmt, app->name, "phi_pol_nm");
       gkyl_grid_sub_array_write(&nc_grid, &nc_local, 0, phi_nodal, fileNm);
     }
     
     gkyl_array_release(phi_nodal);
-    gkyl_array_release(phi_cubic);
+    gkyl_array_release(phi_cubic_ho);
+    gkyl_array_release(phi_cubic_ho_global);
+    gkyl_array_release(phi_cubic_global);
     gkyl_dg_basis_op_mem_release(mem);
   }
 

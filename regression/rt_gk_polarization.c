@@ -397,17 +397,24 @@ int main(int argc, char **argv)
     gkyl_gyrokinetic_app_apply_ic(app, t_curr);
   }  
 
+  // Create triggers for IO.
+  struct gkyl_tm_trigger trig_write = { .dt = 1, .tcurr = 0, .curr = 0 };
+
+  // Write out ICs (if restart, it overwrites the restart frame).
+  write_data(&trig_write, app, t_curr, false);
+
   struct gkyl_array *phi = gkyl_array_new(GKYL_DOUBLE, app->confBasis.num_basis, app->local_ext.volume);
   gkyl_eval_on_nodes *evalDistf = gkyl_eval_on_nodes_new(&app->grid, &app->confBasis,1, eval_potential, &ctx);
   gkyl_eval_on_nodes_advance(evalDistf, 0.0, &app->local, phi);
   gkyl_eval_on_nodes_release(evalDistf);
+
 
     // read the components of npol
   struct gkyl_range_iter conf_iter;
   gkyl_range_iter_init(&conf_iter, &app->local);
   while (gkyl_range_iter_next(&conf_iter)) {
     long linidx = gkyl_range_idx(&app->local, conf_iter.idx);
-    double *phi_d = gkyl_array_fetch(phi, linidx);
+    double *phi_d = gkyl_array_fetch(phi, linidx);\
     double *field_d  = gkyl_array_fetch(app->field->phi_host, linidx);
     // Ignore the corners
     if (conf_iter.idx[0] == 1){
@@ -427,6 +434,7 @@ int main(int argc, char **argv)
       assert( fabs(phi_d[i] - field_d[i])/fabs(phi_d[i]) < 3e-2 );
     }
   }
+  gkyl_gyrokinetic_app_cout(app, stdout, "Passed \n", NULL);
   gkyl_array_release(phi);
   freeresources:
   // Free resources after simulation completion.
