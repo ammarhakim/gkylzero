@@ -4,6 +4,7 @@
 
 #include <math.h>
 #include <gkyl_proj_on_basis.h>
+#include <gkyl_eval_on_nodes.h>
 #include <gkyl_range.h>
 #include <gkyl_rect_decomp.h>
 #include <gkyl_rect_grid.h>
@@ -2251,9 +2252,9 @@ test_2x_varBC(int poly_order, const int *cells, struct gkyl_poisson_bc bcs, bool
   struct gkyl_array *phibc = mkarr(use_gpu, basis.num_basis, localRange_ext.volume);
   struct gkyl_array *phibc_ho = use_gpu? mkarr(false, basis.num_basis, localRange_ext.volume)
                                        : gkyl_array_acquire(phibc);
-  gkyl_proj_on_basis *projob_bc = gkyl_proj_on_basis_new(&grid, &basis,
-    poly_order+1, 1, evalFunc2x_dirichletvarx_dirichletvary_bc, NULL);
-  gkyl_proj_on_basis_advance(projob_bc, 0.0, &localRange, phibc_ho);
+  gkyl_eval_on_nodes *projob_bc = gkyl_eval_on_nodes_new(&grid, &basis,
+    1, evalFunc2x_dirichletvarx_dirichletvary_bc, NULL);
+  gkyl_eval_on_nodes_advance(projob_bc, 0.0, &localRange, phibc_ho);
   gkyl_array_copy(phibc, phibc_ho);
 
   // FEM poisson solver.
@@ -2264,7 +2265,7 @@ test_2x_varBC(int poly_order, const int *cells, struct gkyl_poisson_bc bcs, bool
   // Solve the problem.
   gkyl_fem_poisson_solve(poisson, phi);
   gkyl_array_copy(phi_ho, phi);
-  gkyl_grid_sub_array_write(&grid, &localRange, NULL, phi_ho, "ctest_fem_poisson_2x_phi_1.gkyl");
+//  gkyl_grid_sub_array_write(&grid, &localRange, NULL, phi_ho, "ctest_fem_poisson_2x_phi_1.gkyl");
 
 #ifdef GKYL_HAVE_CUDA
   if (use_gpu) {
@@ -2515,7 +2516,7 @@ test_2x_varBC(int poly_order, const int *cells, struct gkyl_poisson_bc bcs, bool
 
   gkyl_fem_poisson_release(poisson);
   gkyl_proj_on_basis_release(projob);
-  gkyl_proj_on_basis_release(projob_bc);
+  gkyl_eval_on_nodes_release(projob_bc);
   gkyl_array_release(rho_ho);
   gkyl_array_release(phi_ho);
   gkyl_array_release(phibc_ho);
