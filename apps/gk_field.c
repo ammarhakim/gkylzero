@@ -100,19 +100,7 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
     gkyl_sub_range_init(&global_sub_range, &app->global, app->local.lower, app->local.upper);
 
     gkyl_array_set_range_to_range(f->phi_pol, 1.0, phi_cubic_global, &app->local, &global_sub_range);
-    // Print out the array to make sure it makes sense
-    const char *fmt = "%s-%s.gkyl";
-    int sz = gkyl_calc_strlen(fmt, app->name, "phi_pol_projection");
-    char fileNm[sz+1]; // ensure no buffer overflow
-    int rank;
-    gkyl_comm_get_rank(app->comm, &rank);
-    if (rank == 0) {
-      sprintf(fileNm, fmt, app->name, "phi_pol_cubic");
-      gkyl_grid_sub_array_write(&grid, &local, 0, phi_cubic_ho, fileNm);
-      sprintf(fileNm, fmt, app->name, "phi_pol_nm");
-      gkyl_grid_sub_array_write(&nc_grid, &nc_local, 0, phi_nodal, fileNm);
-    }
-    
+
     gkyl_array_release(phi_nodal);
     gkyl_array_release(phi_cubic_ho);
     gkyl_array_release(phi_cubic_ho_global);
