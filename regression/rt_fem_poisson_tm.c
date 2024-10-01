@@ -199,7 +199,7 @@ main(int argc, char **argv)
   struct timespec tm_start = gkyl_wall_clock();
   for(int n=0; n<nrep; n++) {
     // Set the RHS source.
-    gkyl_fem_poisson_set_rhs(poisson, rho);
+    gkyl_fem_poisson_set_rhs(poisson, rho, NULL);
   }
 #ifdef GKYL_HAVE_CUDA
   cudaDeviceSynchronize();

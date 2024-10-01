@@ -45,8 +45,10 @@ struct gkyl_fem_poisson* gkyl_fem_poisson_new(
  *
  * @param up FEM poisson updater to run.
  * @param rhsin DG field to set as RHS source.
+ * @param phibc Spatially varying BC as a DG (volume) field, defined in the whole
+                domain but really only applicable to and used in the skin cell.
  */
-void gkyl_fem_poisson_set_rhs(gkyl_fem_poisson* up, struct gkyl_array *rhsin);
+void gkyl_fem_poisson_set_rhs(gkyl_fem_poisson* up, struct gkyl_array *rhsin, const struct gkyl_array *phibc);
 
 /**
  * Solve the linear problem.

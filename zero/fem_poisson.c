@@ -127,6 +127,11 @@ gkyl_fem_poisson_new(const struct gkyl_range *solve_range, const struct gkyl_rec
     gkyl_cu_memcpy(up->bcvals_cu, up->bcvals, sizeof(double[GKYL_MAX_CDIM*3*2]), GKYL_CU_MEMCPY_H2D);
   }
 #endif
+  
+  // Check if one of the boundaries needs a spatially varying Dirichlet BC.
+  up->isdirichletvar = false;
+  for (int d=0; d<up->ndim; d++) up->isdirichletvar = up->isdirichletvar ||
+    (bcs->lo_type[d] == GKYL_POISSON_DIRICHLET_VARYING || bcs->up_type[d] == GKYL_POISSON_DIRICHLET_VARYING);
 
   // Compute the number of local and global nodes.
   up->numnodes_local = up->num_basis;
@@ -211,7 +216,7 @@ gkyl_fem_poisson_new(const struct gkyl_range *solve_range, const struct gkyl_rec
 }
 
 void
-gkyl_fem_poisson_set_rhs(gkyl_fem_poisson* up, struct gkyl_array *rhsin)
+gkyl_fem_poisson_set_rhs(gkyl_fem_poisson* up, struct gkyl_array *rhsin, const struct gkyl_array *phibc)
 {
 
   if (up->isdomperiodic && !(up->ishelmholtz)) {
@@ -235,8 +240,10 @@ gkyl_fem_poisson_set_rhs(gkyl_fem_poisson* up, struct gkyl_array *rhsin)
 #ifdef GKYL_HAVE_CUDA
   if (up->use_gpu) {
     assert(gkyl_array_is_cu_dev(rhsin));
+    if (phibc)
+      assert(gkyl_array_is_cu_dev(phibc));
 
-    gkyl_fem_poisson_set_rhs_cu(up, rhsin);
+    gkyl_fem_poisson_set_rhs_cu(up, rhsin, phibc);
     return;
   }
 #endif
@@ -251,6 +258,7 @@ gkyl_fem_poisson_set_rhs(gkyl_fem_poisson* up, struct gkyl_array *rhsin)
 
     double *eps_p = up->isvareps? gkyl_array_fetch(up->epsilon, linidx) : gkyl_array_fetch(up->epsilon,0);
     double *rhsin_p = gkyl_array_fetch(rhsin, linidx);
+    const double *phibc_p = up->isdirichletvar? gkyl_array_cfetch(phibc, linidx) : NULL;
 
     int keri = idx_to_inup_ker(up->ndim, up->num_cells, up->solve_iter.idx);
     for (size_t d=0; d<up->ndim; d++) idx0[d] = up->solve_iter.idx[d]-1;
@@ -259,7 +267,7 @@ gkyl_fem_poisson_set_rhs(gkyl_fem_poisson* up, struct gkyl_array *rhsin)
     // Apply the RHS source stencil. It's mostly the mass matrix times a
     // modal-to-nodal operator times the source, modified by BCs in skin cells.
     keri = idx_to_inloup_ker(up->ndim, up->num_cells, up->solve_iter.idx);
-    up->kernels->srcker[keri](eps_p, up->dx, rhsin_p, up->bcvals, up->globalidx, brhs_p);
+    up->kernels->srcker[keri](eps_p, up->dx, rhsin_p, up->bcvals, phibc_p, up->globalidx, brhs_p);
   }
 
   gkyl_superlu_brhs_from_array(up->prob, brhs_p);

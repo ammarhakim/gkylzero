@@ -102,16 +102,10 @@ void evalFunc2x_dirichletx_neumannx_dirichlety(double t, const double *xn, doubl
 
 // allocate array (filled with zeros)
 static struct gkyl_array*
-mkarr(long nc, long size)
+mkarr(bool use_gpu, long nc, long size)
 {
-  struct gkyl_array* a = gkyl_array_new(GKYL_DOUBLE, nc, size);
-  return a;
-}
-
-static struct gkyl_array*
-mkarr_cu(long nc, long size)
-{
-  struct gkyl_array* a = gkyl_array_cu_dev_new(GKYL_DOUBLE, nc, size);
+  struct gkyl_array* a = use_gpu? gkyl_array_cu_dev_new(GKYL_DOUBLE, nc, size)
+                                : gkyl_array_new(GKYL_DOUBLE, nc, size);
   return a;
 }
 
@@ -191,27 +185,27 @@ test_1x(int poly_order, const int *cells, struct gkyl_poisson_bc bcs, bool use_g
   }
 
   // Create DG field we wish to make continuous.
-  struct gkyl_array *rho = mkarr(basis.num_basis, localRange_ext.volume);
+  struct gkyl_array *rho = mkarr(false, basis.num_basis, localRange_ext.volume);
   // Create array holding continuous field we'll compute.
-  struct gkyl_array *phi = mkarr(basis.num_basis, localRange_ext.volume);
+  struct gkyl_array *phi = mkarr(false, basis.num_basis, localRange_ext.volume);
   // Device copies:
   struct gkyl_array *rho_cu, *phi_cu;
   if (use_gpu) {
-    rho_cu  = mkarr_cu(basis.num_basis, localRange_ext.volume);
-    phi_cu  = mkarr_cu(basis.num_basis, localRange_ext.volume);
+    rho_cu  = mkarr(use_gpu, basis.num_basis, localRange_ext.volume);
+    phi_cu  = mkarr(use_gpu, basis.num_basis, localRange_ext.volume);
   }
 
-  struct gkyl_array *epsilon = use_gpu? mkarr_cu(basis.num_basis, localRange_ext.volume)
-                                      : mkarr(basis.num_basis, localRange_ext.volume);
+  struct gkyl_array *epsilon = mkarr(use_gpu,basis.num_basis, localRange_ext.volume);
+
   gkyl_array_clear(epsilon, 0.);
   gkyl_array_shiftc(epsilon, epsilon_0*pow(sqrt(2.),dim), 0);
 
   // Only used in the fully periodic case.
-  struct gkyl_array *rho_cellavg = use_gpu? mkarr_cu(1, localRange_ext.volume) : mkarr(1, localRange_ext.volume);
+  struct gkyl_array *rho_cellavg = mkarr(use_gpu, 1, localRange_ext.volume);
 
   // Project the right-side source on the basis.
   gkyl_proj_on_basis_advance(projob, 0.0, &localRange, rho);
-  struct gkyl_array *perbuff = mkarr(basis.num_basis, skin_ghost.lower_skin[dim-1].volume);
+  struct gkyl_array *perbuff = mkarr(false, basis.num_basis, skin_ghost.lower_skin[dim-1].volume);
   for (int d=0; d<dim; d++)
     if (bcs.lo_type[d] == GKYL_POISSON_PERIODIC) apply_periodic_bc(perbuff, rho, d, skin_ghost);
 //  gkyl_grid_sub_array_write(&grid, &localRange, NULL, rho, "ctest_fem_poisson_1x_rho_1.gkyl");
@@ -222,9 +216,9 @@ test_1x(int poly_order, const int *cells, struct gkyl_poisson_bc bcs, bool use_g
 
   // Set the RHS source.
   if (use_gpu)
-    gkyl_fem_poisson_set_rhs(poisson, rho_cu);
+    gkyl_fem_poisson_set_rhs(poisson, rho_cu, NULL);
   else
-    gkyl_fem_poisson_set_rhs(poisson, rho);
+    gkyl_fem_poisson_set_rhs(poisson, rho, NULL);
 
   // Solve the problem.
   if (use_gpu) {
@@ -576,27 +570,26 @@ test_2x(int poly_order, const int *cells, struct gkyl_poisson_bc bcs, bool use_g
   }
 
   // Create DG field we wish to make continuous.
-  struct gkyl_array *rho = mkarr(basis.num_basis, localRange_ext.volume);
+  struct gkyl_array *rho = mkarr(false, basis.num_basis, localRange_ext.volume);
   // Create array holding continuous field we'll compute.
-  struct gkyl_array *phi = mkarr(basis.num_basis, localRange_ext.volume);
+  struct gkyl_array *phi = mkarr(false, basis.num_basis, localRange_ext.volume);
   // Device copies:
   struct gkyl_array *rho_cu, *phi_cu;
   if (use_gpu) {
-    rho_cu = mkarr_cu(basis.num_basis, localRange_ext.volume);
-    phi_cu = mkarr_cu(basis.num_basis, localRange_ext.volume);
+    rho_cu = mkarr(use_gpu, basis.num_basis, localRange_ext.volume);
+    phi_cu = mkarr(use_gpu, basis.num_basis, localRange_ext.volume);
   }
 
-  struct gkyl_array *epsilon = use_gpu? mkarr_cu(basis.num_basis, localRange_ext.volume)
-                                      : mkarr(basis.num_basis, localRange_ext.volume);
+  struct gkyl_array *epsilon = mkarr(use_gpu, basis.num_basis, localRange_ext.volume);
   gkyl_array_clear(epsilon, 0.);
   gkyl_array_shiftc(epsilon, epsilon_0*pow(sqrt(2.),dim), 0);
 
   // Only used in the fully periodic case.
-  struct gkyl_array *rho_cellavg = use_gpu? mkarr_cu(1, localRange_ext.volume) : mkarr(1, localRange_ext.volume);
+  struct gkyl_array *rho_cellavg = mkarr(use_gpu, 1, localRange_ext.volume);
 
   // Project the right-side source on the basis.
   gkyl_proj_on_basis_advance(projob, 0.0, &localRange, rho);
-  struct gkyl_array *perbuff = mkarr(basis.num_basis, skin_ghost.lower_skin[dim-1].volume);
+  struct gkyl_array *perbuff = mkarr(false, basis.num_basis, skin_ghost.lower_skin[dim-1].volume);
   for (int d=0; d<dim; d++)
     if (bcs.lo_type[d] == GKYL_POISSON_PERIODIC) apply_periodic_bc(perbuff, rho, d, skin_ghost);
 //  gkyl_grid_sub_array_write(&grid, &localRange, NULL, rho, "ctest_fem_poisson_2x_rho_1.gkyl");
@@ -607,9 +600,9 @@ test_2x(int poly_order, const int *cells, struct gkyl_poisson_bc bcs, bool use_g
 
   // Set the RHS source.
   if (use_gpu)
-    gkyl_fem_poisson_set_rhs(poisson, rho_cu);
+    gkyl_fem_poisson_set_rhs(poisson, rho_cu, NULL);
   else
-    gkyl_fem_poisson_set_rhs(poisson, rho);
+    gkyl_fem_poisson_set_rhs(poisson, rho, NULL);
 
   // Solve the problem.
   if (use_gpu) {
@@ -2190,6 +2183,347 @@ test_2x(int poly_order, const int *cells, struct gkyl_poisson_bc bcs, bool use_g
   gkyl_array_release(perbuff);
 }
 
+void evalFunc2x_dirichletvarx_dirichletvary(double t, const double *xn, double* restrict fout, void *ctx)
+{
+  double x = xn[0], y = xn[1];
+  fout[0] = -6.0;
+}
+
+void evalFunc2x_dirichletvarx_dirichletvary_bc(double t, const double *xn, double* restrict fout, void *ctx)
+{
+  double x = xn[0], y = xn[1];
+  fout[0] = 1.0 + x*x + 2.0*y*y;
+}
+
+void
+test_2x_varBC(int poly_order, const int *cells, struct gkyl_poisson_bc bcs, bool use_gpu)
+{
+  // This test is meant to replicate a test for the Fenics Poisson solver here:
+  //   https://fenicsproject.org/pub/tutorial/sphinx1/._ftut1003.html
+  double epsilon_0 = 1.0;
+  double lower[] = {0.0, 0.0}, upper[] = {1.0, 1.0};
+  int dim = sizeof(lower)/sizeof(lower[0]);
+
+  // grids.
+  struct gkyl_rect_grid grid;
+  gkyl_rect_grid_init(&grid, dim, lower, upper, cells);
+
+  // basis functions.
+  struct gkyl_basis basis;
+  gkyl_cart_modal_serendip(&basis, dim, poly_order);
+
+  int ghost[] = { 1, 1 };
+  struct gkyl_range localRange, localRange_ext; // local, local-ext ranges.
+  gkyl_create_grid_ranges(&grid, ghost, &localRange_ext, &localRange);
+  struct skin_ghost_ranges skin_ghost; // skin/ghost.
+  skin_ghost_ranges_init(&skin_ghost, &localRange_ext, ghost);
+
+  // Projection updater for DG field.
+  gkyl_proj_on_basis *projob = gkyl_proj_on_basis_new(&grid, &basis,
+    poly_order+1, 1, evalFunc2x_dirichletvarx_dirichletvary, NULL);
+
+  // Create DG field we wish to make continuous.
+  struct gkyl_array *rho = mkarr(use_gpu, basis.num_basis, localRange_ext.volume);
+  // Create array holding continuous field we'll compute.
+  struct gkyl_array *phi = mkarr(use_gpu, basis.num_basis, localRange_ext.volume);
+  // Device copies:
+  struct gkyl_array *rho_ho, *phi_ho;
+  if (use_gpu) {
+    rho_ho = mkarr(false, basis.num_basis, localRange_ext.volume);
+    phi_ho = mkarr(false, basis.num_basis, localRange_ext.volume);
+  }
+  else {
+    rho_ho = gkyl_array_acquire(rho);
+    phi_ho = gkyl_array_acquire(phi);
+  }
+
+  struct gkyl_array *epsilon = mkarr(use_gpu, basis.num_basis, localRange_ext.volume);
+
+  gkyl_array_clear(epsilon, 0.);
+  gkyl_array_shiftc(epsilon, epsilon_0*pow(sqrt(2.),dim), 0);
+
+  // Project the right-side source on the basis.
+  gkyl_proj_on_basis_advance(projob, 0.0, &localRange, rho_ho);
+  gkyl_array_copy(rho, rho_ho);
+//  gkyl_grid_sub_array_write(&grid, &localRange, NULL, rho_ho, "ctest_fem_poisson_2x_rho_1.gkyl");
+
+  // Project the BC:
+  struct gkyl_array *phibc = mkarr(use_gpu, basis.num_basis, localRange_ext.volume);
+  struct gkyl_array *phibc_ho = use_gpu? mkarr(false, basis.num_basis, localRange_ext.volume)
+                                       : gkyl_array_acquire(phibc);
+  gkyl_proj_on_basis *projob_bc = gkyl_proj_on_basis_new(&grid, &basis,
+    poly_order+1, 1, evalFunc2x_dirichletvarx_dirichletvary_bc, NULL);
+  gkyl_proj_on_basis_advance(projob_bc, 0.0, &localRange, phibc_ho);
+  gkyl_array_copy(phibc, phibc_ho);
+
+  // FEM poisson solver.
+  gkyl_fem_poisson *poisson = gkyl_fem_poisson_new(&localRange, &grid, basis, &bcs, epsilon, NULL, true, use_gpu);
+
+  // Set the RHS source.
+  gkyl_fem_poisson_set_rhs(poisson, rho, phibc);
+  // Solve the problem.
+  gkyl_fem_poisson_solve(poisson, phi);
+  gkyl_array_copy(phi_ho, phi);
+  gkyl_grid_sub_array_write(&grid, &localRange, NULL, phi_ho, "ctest_fem_poisson_2x_phi_1.gkyl");
+
+#ifdef GKYL_HAVE_CUDA
+  if (use_gpu) {
+    cudaDeviceSynchronize();
+  }
+#endif
+
+  if (poly_order == 1) {
+    // Solution with N=8x8 (checked visually against g2):
+    const double sol[256] = {
+      2.3681559834188498e-01,  1.3672554945099072e-01,  1.3672554945098905e-01,  7.8938532780630122e-02,
+      6.3388180537571182e-01,  3.6597183096807612e-01,  9.2520732066094527e-02,  5.3416869563979862e-02,
+      8.9067264750613684e-01,  5.1423009279750498e-01,  5.5737529763337020e-02,  3.2180077812826891e-02,
+      1.0196938687973565e+00,  5.8872052964116539e-01,  1.8752907080322980e-02,  1.0826995950913283e-02,
+      1.0196938687973551e+00,  5.8872052964116617e-01, -1.8752907080323782e-02, -1.0826995950912827e-02,
+      8.9067264750613595e-01,  5.1423009279750564e-01, -5.5737529763335895e-02, -3.2180077812827390e-02,
+      6.3388180537571470e-01,  3.6597183096807495e-01, -9.2520732066093542e-02, -5.3416869563980424e-02,
+      2.3681559834188717e-01,  1.3672554945099089e-01, -1.3672554945099044e-01, -7.8938532780628831e-02,
+                                                      
+      6.3388180537571459e-01,  9.2520732066094485e-02,  3.6597183096807473e-01,  5.3416869563980014e-02,
+      1.7090814385197843e+00,  2.5479496666024115e-01,  2.5479496666024093e-01,  4.0272203461491046e-02,
+      2.4167368175137374e+00,  3.6684346655702615e-01,  1.5377005689540441e-01,  2.4419028116211553e-02,
+      2.7726579759463506e+00,  4.2335376950105846e-01,  5.1721119735948180e-02,  8.2072105005127904e-03,
+      2.7726579759463510e+00,  4.2335376950105857e-01, -5.1721119735948097e-02, -8.2072105005127401e-03,
+      2.4167368175137383e+00,  3.6684346655702638e-01, -1.5377005689540432e-01, -2.4419028116211581e-02,
+      1.7090814385197852e+00,  2.5479496666024121e-01, -2.5479496666024098e-01, -4.0272203461491102e-02,
+      6.3388180537571515e-01,  9.2520732066093431e-02, -3.6597183096807484e-01, -5.3416869563980611e-02,
+                                                      
+      8.9067264750613706e-01,  5.5737529763335694e-02,  5.1423009279750498e-01,  3.2180077812827605e-02,
+      2.4167368175137374e+00,  1.5377005689540435e-01,  3.6684346655702599e-01,  2.4419028116211518e-02,
+      3.4373208199425331e+00,  2.2239098197586474e-01,  2.2239098197586490e-01,  1.5199281451033411e-02,
+      3.9521264825956046e+00,  2.5761269031357442e-01,  7.4832205937229848e-02,  5.1359813390617843e-03,
+      3.9521264825956055e+00,  2.5761269031357470e-01, -7.4832205937229418e-02, -5.1359813390615995e-03,
+      3.4373208199425345e+00,  2.2239098197586496e-01, -2.2239098197586502e-01, -1.5199281451033622e-02,
+      2.4167368175137383e+00,  1.5377005689540424e-01, -3.6684346655702615e-01, -2.4419028116211505e-02,
+      8.9067264750613750e-01,  5.5737529763336638e-02, -5.1423009279750520e-01, -3.2180077812827015e-02,
+                                                      
+      1.0196938687973565e+00,  1.8752907080324045e-02,  5.8872052964116561e-01,  1.0826995950912709e-02,
+      2.7726579759463501e+00,  5.1721119735948284e-02,  4.2335376950105824e-01,  8.2072105005128095e-03,
+      3.9521264825956042e+00,  7.4832205937229584e-02,  2.5761269031357442e-01,  5.1359813390616359e-03,
+      4.5485900655688685e+00,  8.6755719877848164e-02,  8.6755719877848719e-02,  1.7480626442406752e-03,
+      4.5485900655688685e+00,  8.6755719877847776e-02, -8.6755719877848275e-02, -1.7480626442409205e-03,
+      3.9521264825956046e+00,  7.4832205937228988e-02, -2.5761269031357459e-01, -5.1359813390615587e-03,
+      2.7726579759463506e+00,  5.1721119735947924e-02, -4.2335376950105819e-01, -8.2072105005127505e-03,
+      1.0196938687973565e+00,  1.8752907080322814e-02, -5.8872052964116572e-01, -1.0826995950913227e-02,
+                                                      
+      1.0196938687973578e+00, -1.8752907080323244e-02,  5.8872052964116495e-01, -1.0826995950913076e-02,
+      2.7726579759463510e+00, -5.1721119735948159e-02,  4.2335376950105824e-01, -8.2072105005127211e-03,
+      3.9521264825956046e+00, -7.4832205937229349e-02,  2.5761269031357431e-01, -5.1359813390616368e-03,
+      4.5485900655688685e+00, -8.6755719877848525e-02,  8.6755719877847970e-02, -1.7480626442410686e-03,
+      4.5485900655688667e+00, -8.6755719877848803e-02, -8.6755719877848247e-02,  1.7480626442408095e-03,
+      3.9521264825956033e+00, -7.4832205937229904e-02, -2.5761269031357409e-01,  5.1359813390617765e-03,
+      2.7726579759463501e+00, -5.1721119735948243e-02, -4.2335376950105824e-01,  8.2072105005128078e-03,
+      1.0196938687973569e+00, -1.8752907080322453e-02, -5.8872052964116517e-01,  1.0826995950913517e-02,
+                                                      
+      8.9067264750613750e-01, -5.5737529763336964e-02,  5.1423009279750509e-01, -3.2180077812826779e-02,
+      2.4167368175137387e+00, -1.5377005689540407e-01,  3.6684346655702621e-01, -2.4419028116211449e-02,
+      3.4373208199425340e+00, -2.2239098197586465e-01,  2.2239098197586460e-01, -1.5199281451033603e-02,
+      3.9521264825956037e+00, -2.5761269031357431e-01,  7.4832205937229085e-02, -5.1359813390615770e-03,
+      3.9521264825956024e+00, -2.5761269031357420e-01, -7.4832205937229654e-02,  5.1359813390616099e-03,
+      3.4373208199425314e+00, -2.2239098197586477e-01, -2.2239098197586432e-01,  1.5199281451033496e-02,
+      2.4167368175137374e+00, -1.5377005689540416e-01, -3.6684346655702588e-01,  2.4419028116211574e-02,
+      8.9067264750613806e-01, -5.5737529763336978e-02, -5.1423009279750453e-01,  3.2180077812826766e-02,
+                                                      
+      6.3388180537571459e-01, -9.2520732066093431e-02,  3.6597183096807528e-01, -5.3416869563980569e-02,
+      1.7090814385197859e+00, -2.5479496666024121e-01,  2.5479496666024121e-01, -4.0272203461491109e-02,
+      2.4167368175137387e+00, -3.6684346655702615e-01,  1.5377005689540399e-01, -2.4419028116211421e-02,
+      2.7726579759463506e+00, -4.2335376950105813e-01,  5.1721119735947743e-02, -8.2072105005127610e-03,
+      2.7726579759463492e+00, -4.2335376950105796e-01, -5.1721119735948368e-02,  8.2072105005128824e-03,
+      2.4167368175137369e+00, -3.6684346655702577e-01, -1.5377005689540402e-01,  2.4419028116211414e-02,
+      1.7090814385197848e+00, -2.5479496666024104e-01, -2.5479496666024082e-01,  4.0272203461491039e-02,
+      6.3388180537571470e-01, -9.2520732066093667e-02, -3.6597183096807501e-01,  5.3416869563980458e-02,
+                                                      
+      2.3681559834188717e-01, -1.3672554945099052e-01,  1.3672554945099086e-01, -7.8938532780628887e-02,
+      6.3388180537571537e-01, -3.6597183096807490e-01,  9.2520732066093569e-02, -5.3416869563980528e-02,
+      8.9067264750613795e-01, -5.1423009279750498e-01,  5.5737529763336596e-02, -3.2180077812827008e-02,
+      1.0196938687973571e+00, -5.8872052964116517e-01,  1.8752907080323126e-02, -1.0826995950912990e-02,
+      1.0196938687973565e+00, -5.8872052964116517e-01, -1.8752907080323424e-02,  1.0826995950912984e-02,
+      8.9067264750613695e-01, -5.1423009279750498e-01, -5.5737529763336513e-02,  3.2180077812827092e-02,
+      6.3388180537571459e-01, -3.6597183096807484e-01, -9.2520732066093569e-02,  5.3416869563980382e-02,
+      2.3681559834188676e-01, -1.3672554945099064e-01, -1.3672554945099064e-01,  7.8938532780628942e-02,
+    };
+    for (int j=0; j<cells[0]; j++) {
+      for (int k=0; k<cells[1]; k++) {
+        int idx0[] = {j+1,k+1};
+        long linidx = gkyl_range_idx(&localRange, idx0);
+        const double *phi_p  = gkyl_array_cfetch(phi, linidx);
+        for (int m=0; m<basis.num_basis; m++) {
+//          TEST_CHECK( gkyl_compare(sol[(j*cells[1]+k)*basis.num_basis+m], phi_p[m], 1e-12) );
+//          TEST_MSG("Expected: %.13e in cell (%d,%d)", sol[(j*cells[1]+k)*basis.num_basis+m], j, k);
+//          TEST_MSG("Produced: %.13e", phi_p[m]);
+        }
+      }
+    }
+  } if (poly_order == 2) {
+    // Solution with N=8x8 (checked visually against g2):
+    const double sol[512] =  {
+       2.6174232732491770e-01,  1.4239797833436429e-01,  1.4239797833437121e-01,  7.7179579805169304e-02,
+      -6.7537275729811939e-03, -6.7537275729829148e-03, -3.8992664322967511e-03, -3.8992664322970148e-03,
+       6.6919163252610048e-01,  3.6607316345625468e-01,  9.5063998582039566e-02,  5.3241649763932503e-02,
+      -1.5712542948565247e-02, -5.0333399450138384e-03, -1.2731080364168593e-03, -2.9060001721712362e-03,
+       9.3261285108184055e-01,  5.1325052577226338e-01,  5.7325647937302174e-02,  3.1906370575560429e-02,
+      -1.9514998592151618e-02, -4.7983776055374530e-03, -9.2224075298933392e-04, -2.7703446022362605e-03,
+       1.0655299621632952e+00,  5.8724826482558512e-01,  1.9276481795971818e-02,  1.0736800514483670e-02,
+      -2.1638935540250832e-02, -4.9049622075441517e-03, -3.0401481573749179e-04, -2.8318812508971261e-03,
+       1.0655299621633028e+00,  5.8724826482558323e-01, -1.9276481795972602e-02, -1.0736800514480182e-02,
+      -2.1638935540251626e-02, -4.9049622075482769e-03,  3.0401481573705659e-04, -2.8318812508936436e-03,
+       9.3261285108186132e-01,  5.1325052577225383e-01, -5.7325647937298004e-02, -3.1906370575565557e-02,
+      -1.9514998592151112e-02, -4.7983776055450077e-03,  9.2224075299059171e-04, -2.7703446022306617e-03,
+       6.6919163252609015e-01,  3.6607316345626151e-01, -9.5063998582045506e-02, -5.3241649763929401e-02,
+      -1.5712542948564903e-02, -5.0333399450088745e-03,  1.2731080364155342e-03, -2.9060001721745977e-03,
+       2.6174232732491648e-01,  1.4239797833437010e-01, -1.4239797833436521e-01, -7.7179579805168486e-02,
+      -6.7537275729838489e-03, -6.7537275729819659e-03,  3.8992664322963539e-03, -3.8992664322969480e-03,
+                                                       
+       6.6919163252608815e-01,  9.5063998582044021e-02,  3.6607316345626351e-01,  5.3241649763928853e-02,
+      -5.0333399450085128e-03, -1.5712542948565542e-02, -2.9060001721746753e-03, -1.2731080364157741e-03,
+       1.7423637960024951e+00,  2.5663155896154988e-01,  2.5663155896154877e-01,  3.9269506879060931e-02,
+      -1.3304720861538551e-02, -1.3304720861538329e-02, -1.8694838265539103e-03, -1.8694838265541740e-03,
+       2.4546088336295506e+00,  3.6679544630615912e-01,  1.5482377206844999e-01,  2.4122215546182844e-02,
+      -1.8491615532474651e-02, -1.3118456058247588e-02, -1.1251712079693174e-03, -2.0332549321147595e-03,
+       2.8136363432486524e+00,  4.2275290286990563e-01,  5.2063204566974094e-02,  8.1141391202813138e-03,
+      -2.1072335114916858e-02, -1.3426476507161618e-02, -3.6480793765665813e-04, -2.0880173238903453e-03,
+       2.8136363432486524e+00,  4.2275290286990524e-01, -5.2063204566972256e-02, -8.1141391202823199e-03,
+      -2.1072335114916522e-02, -1.3426476507160893e-02,  3.6480793765687319e-04, -2.0880173238910131e-03,
+       2.4546088336295533e+00,  3.6679544630615807e-01, -1.5482377206845077e-01, -2.4122215546182161e-02,
+      -1.8491615532474186e-02, -1.3118456058246705e-02,  1.1251712079691587e-03, -2.0332549321155132e-03,
+       1.7423637960024967e+00,  2.5663155896154877e-01, -2.5663155896155010e-01, -3.9269506879060175e-02,
+      -1.3304720861539127e-02, -1.3304720861538711e-02,  1.8694838265534816e-03, -1.8694838265539018e-03,
+       6.6919163252608682e-01,  9.5063998582043396e-02, -3.6607316345626262e-01, -5.3241649763929991e-02,
+      -5.0333399450070591e-03, -1.5712542948565018e-02,  2.9060001721762860e-03, -1.2731080364161030e-03,
+                                                       
+       9.3261285108185710e-01,  5.7325647937300842e-02,  5.1325052577225627e-01,  3.1906370575564183e-02,
+      -4.7983776055426555e-03, -1.9514998592151105e-02, -2.7703446022324602e-03, -9.2224075298994704e-04,
+       2.4546088336295533e+00,  1.5482377206845188e-01,  3.6679544630615785e-01,  2.4122215546181956e-02,
+      -1.3118456058246891e-02, -1.8491615532474508e-02, -2.0332549321152001e-03, -1.1251712079690640e-03,
+       3.4763948230693575e+00,  2.2273928406436580e-01,  2.2273928406436491e-01,  1.4934123050414328e-02,
+      -1.8796563154148561e-02, -1.8796563154148505e-02, -1.2450017281912052e-03, -1.2450017281912329e-03,
+       3.9932287149419077e+00,  2.5750472735140589e-01,  7.4989196262071997e-02,  5.0536521254172630e-03,
+      -2.1676786288648296e-02, -1.9312217015521736e-02, -4.1789587383843661e-04, -1.3101165429916409e-03,
+       3.9932287149419086e+00,  2.5750472735140550e-01, -7.4989196262071983e-02, -5.0536521254171546e-03,
+      -2.1676786288648310e-02, -1.9312217015521806e-02,  4.1789587383839465e-04, -1.3101165429915658e-03,
+       3.4763948230693589e+00,  2.2273928406436544e-01, -2.2273928406436508e-01, -1.4934123050414191e-02,
+      -1.8796563154148464e-02, -1.8796563154148630e-02,  1.2450017281912470e-03, -1.2450017281910922e-03,
+       2.4546088336295528e+00,  1.5482377206845233e-01, -3.6679544630615840e-01, -2.4122215546181762e-02,
+      -1.3118456058247220e-02, -1.8491615532474616e-02,  2.0332549321149230e-03, -1.1251712079691938e-03,
+       9.3261285108185132e-01,  5.7325647937300522e-02, -5.1325052577225905e-01, -3.1906370575564613e-02,
+      -4.7983776055399753e-03, -1.9514998592151157e-02,  2.7703446022344595e-03, -9.2224075299001112e-04,
+                                                       
+       1.0655299621633085e+00,  1.9276481795971488e-02,  5.8724826482558201e-01,  1.0736800514482708e-02,
+      -4.9049622075492960e-03, -2.1638935540251314e-02, -2.8318812508928769e-03, -3.0401481573748951e-04,
+       2.8136363432486569e+00,  5.2063204566973623e-02,  4.2275290286990502e-01,  8.1141391202819799e-03,
+      -1.3426476507160820e-02, -2.1072335114916560e-02, -2.0880173238911450e-03, -3.6480793765673593e-04,
+       3.9932287149419117e+00,  7.4989196262073329e-02,  2.5750472735140501e-01,  5.0536521254175961e-03,
+      -1.9312217015521948e-02, -2.1676786288648508e-02, -1.3101165429914947e-03, -4.1789587383842935e-04,
+       4.5910338085415718e+00,  8.6771187773204306e-02,  8.6771187773202557e-02,  1.7165201446689979e-03,
+      -2.2348374449956559e-02, -2.2348374449956337e-02, -4.4280976908144193e-04, -4.4280976908130315e-04,
+       4.5910338085415718e+00,  8.6771187773204195e-02, -8.6771187773203362e-02, -1.7165201446691534e-03,
+      -2.2348374449956399e-02, -2.2348374449956399e-02,  4.4280976908152368e-04, -4.4280976908143911e-04,
+       3.9932287149419095e+00,  7.4989196262072677e-02, -2.5750472735140451e-01, -5.0536521254171502e-03,
+      -1.9312217015521778e-02, -2.1676786288648116e-02,  1.3101165429914377e-03, -4.1789587383835627e-04,
+       2.8136363432486573e+00,  5.2063204566974289e-02, -4.2275290286990530e-01, -8.1141391202814977e-03,
+      -1.3426476507160697e-02, -2.1072335114916685e-02,  2.0880173238911949e-03, -3.6480793765670535e-04,
+       1.0655299621633088e+00,  1.9276481795971901e-02, -5.8724826482558179e-01, -1.0736800514483127e-02,
+      -4.9049622075491390e-03, -2.1638935540251369e-02,  2.8318812508928517e-03, -3.0401481573744788e-04,
+                                                       
+       1.0655299621633059e+00, -1.9276481795971124e-02,  5.8724826482558301e-01, -1.0736800514483365e-02,
+      -4.9049622075478649e-03, -2.1638935540251245e-02, -2.8318812508938908e-03,  3.0401481573757262e-04,
+       2.8136363432486569e+00, -5.2063204566973290e-02,  4.2275290286990536e-01, -8.1141391202814873e-03,
+      -1.3426476507160872e-02, -2.1072335114916612e-02, -2.0880173238910075e-03,  3.6480793765668437e-04,
+       3.9932287149419130e+00, -7.4989196262072108e-02,  2.5750472735140517e-01, -5.0536521254173029e-03,
+      -1.9312217015521708e-02, -2.1676786288648268e-02, -1.3101165429914407e-03,  4.1789587383857528e-04,
+       4.5910338085415718e+00, -8.6771187773202793e-02,  8.6771187773202904e-02, -1.7165201446689685e-03,
+      -2.2348374449956222e-02, -2.2348374449956222e-02, -4.4280976908148416e-04,  4.4280976908131210e-04,
+       4.5910338085415727e+00, -8.6771187773202474e-02, -8.6771187773202779e-02,  1.7165201446694099e-03,
+      -2.2348374449956278e-02, -2.2348374449956500e-02,  4.4280976908150861e-04,  4.4280976908139759e-04,
+       3.9932287149419117e+00, -7.4989196262071275e-02, -2.5750472735140512e-01,  5.0536521254170332e-03,
+      -1.9312217015521788e-02, -2.1676786288648237e-02,  1.3101165429913700e-03,  4.1789587383833242e-04,
+       2.8136363432486591e+00, -5.2063204566973408e-02, -4.2275290286990502e-01,  8.1141391202817024e-03,
+      -1.3426476507160754e-02, -2.1072335114916716e-02,  2.0880173238911632e-03,  3.6480793765672633e-04,
+       1.0655299621633081e+00, -1.9276481795971284e-02, -5.8724826482558301e-01,  1.0736800514483185e-02,
+      -4.9049622075484347e-03, -2.1638935540251134e-02,  2.8318812508933353e-03,  3.0401481573757126e-04,
+                                                       
+       9.3261285108185266e-01, -5.7325647937301265e-02,  5.1325052577225927e-01, -3.1906370575562747e-02,
+      -4.7983776055406909e-03, -1.9514998592151191e-02, -2.7703446022337964e-03,  9.2224075298978842e-04,
+       2.4546088336295555e+00, -1.5482377206845083e-01,  3.6679544630615885e-01, -2.4122215546182133e-02,
+      -1.3118456058247074e-02, -1.8491615532474526e-02, -2.0332549321151190e-03,  1.1251712079692335e-03,
+       3.4763948230693624e+00, -2.2273928406436483e-01,  2.2273928406436511e-01, -1.4934123050414449e-02,
+      -1.8796563154148675e-02, -1.8796563154148564e-02, -1.2450017281912206e-03,  1.2450017281911187e-03,
+       3.9932287149419121e+00, -2.5750472735140495e-01,  7.4989196262071955e-02, -5.0536521254169655e-03,
+      -2.1676786288648216e-02, -1.9312217015521767e-02, -4.1789587383831805e-04,  1.3101165429915314e-03,
+       3.9932287149419126e+00, -2.5750472735140467e-01, -7.4989196262072025e-02,  5.0536521254170704e-03,
+      -2.1676786288648092e-02, -1.9312217015522087e-02,  4.1789587383837931e-04,  1.3101165429914169e-03,
+       3.4763948230693611e+00, -2.2273928406436524e-01, -2.2273928406436566e-01,  1.4934123050414329e-02,
+      -1.8796563154148464e-02, -1.8796563154148713e-02,  1.2450017281911525e-03,  1.2450017281911802e-03,
+       2.4546088336295551e+00, -1.5482377206845158e-01, -3.6679544630615818e-01,  2.4122215546182102e-02,
+      -1.3118456058246773e-02, -1.8491615532474696e-02,  2.0332549321152413e-03,  1.1251712079691884e-03,
+       9.3261285108185532e-01, -5.7325647937301619e-02, -5.1325052577225805e-01,  3.1906370575563073e-02,
+      -4.7983776055419217e-03, -1.9514998592151160e-02,  2.7703446022327573e-03,  9.2224075298971849e-04,
+                                                       
+       6.6919163252609370e-01, -9.5063998582043147e-02,  3.6607316345626068e-01, -5.3241649763929991e-02,
+      -5.0333399450107766e-03, -1.5712542948565014e-02, -2.9060001721731752e-03,  1.2731080364163324e-03,
+       1.7423637960024991e+00, -2.5663155896154932e-01,  2.5663155896154954e-01, -3.9269506879060966e-02,
+      -1.3304720861538491e-02, -1.3304720861538602e-02, -1.8694838265540792e-03,  1.8694838265539704e-03,
+       2.4546088336295564e+00, -3.6679544630615801e-01,  1.5482377206845152e-01, -2.4122215546181613e-02,
+      -1.8491615532474564e-02, -1.3118456058247055e-02, -1.1251712079691414e-03,  2.0332549321152114e-03,
+       2.8136363432486586e+00, -4.2275290286990402e-01,  5.2063204566973983e-02, -8.1141391202815896e-03,
+      -2.1072335114916560e-02, -1.3426476507160459e-02, -3.6480793765670513e-04,  2.0880173238911949e-03,
+       2.8136363432486595e+00, -4.2275290286990463e-01, -5.2063204566974060e-02,  8.1141391202815445e-03,
+      -2.1072335114916383e-02, -1.3426476507160671e-02,  3.6480793765677414e-04,  2.0880173238913636e-03,
+       2.4546088336295546e+00, -3.6679544630615818e-01, -1.5482377206845166e-01,  2.4122215546182019e-02,
+      -1.8491615532474439e-02, -1.3118456058246849e-02,  1.1251712079690349e-03,  2.0332549321153233e-03,
+       1.7423637960024978e+00, -2.5663155896154966e-01, -2.5663155896154949e-01,  3.9269506879060584e-02,
+      -1.3304720861538579e-02, -1.3304720861538607e-02,  1.8694838265540319e-03,  1.8694838265540597e-03,
+       6.6919163252609004e-01, -9.5063998582043216e-02, -3.6607316345626228e-01,  5.3241649763930428e-02,
+      -5.0333399450094695e-03, -1.5712542948565080e-02,  2.9060001721740326e-03,  1.2731080364163240e-03,
+                                                       
+       2.6174232732492186e-01, -1.4239797833436652e-01,  1.4239797833436699e-01, -7.7179579805169304e-02,
+      -6.7537275729839755e-03, -6.7537275729838663e-03, -3.8992664322955498e-03,  3.8992664322956201e-03,
+       6.6919163252609259e-01, -3.6607316345626134e-01,  9.5063998582043535e-02, -5.3241649763929630e-02,
+      -1.5712542948564886e-02, -5.0333399450095380e-03, -1.2731080364162786e-03,  2.9060001721740491e-03,
+       9.3261285108185321e-01, -5.1325052577226005e-01,  5.7325647937300730e-02, -3.1906370575564294e-02,
+      -1.9514998592151306e-02, -4.7983776055403804e-03, -9.2224075298998217e-04,  2.7703446022338254e-03,
+       1.0655299621633147e+00, -5.8724826482558012e-01,  1.9276481795972494e-02, -1.0736800514482444e-02,
+      -2.1638935540251224e-02, -4.9049622075506205e-03, -3.0401481573732217e-04,  2.8318812508918382e-03,
+       1.0655299621633119e+00, -5.8724826482558135e-01, -1.9276481795972668e-02,  1.0736800514482532e-02,
+      -2.1638935540251137e-02, -4.9049622075495979e-03,  3.0401481573736000e-04,  2.8318812508924367e-03,
+       9.3261285108185554e-01, -5.1325052577225794e-01, -5.7325647937301508e-02,  3.1906370575563600e-02,
+      -1.9514998592151313e-02, -4.7983776055423831e-03,  9.2224075298983992e-04,  2.7703446022324342e-03,
+       6.6919163252608904e-01, -3.6607316345626240e-01, -9.5063998582043160e-02,  5.3241649763930317e-02,
+      -1.5712542948565038e-02, -5.0333399450093533e-03,  1.2731080364162960e-03,  2.9060001721740885e-03,
+       2.6174232732492109e-01, -1.4239797833436624e-01, -1.4239797833436613e-01,  7.7179579805169332e-02,
+      -6.7537275729838767e-03, -6.7537275729839148e-03,  3.8992664322956569e-03,  3.8992664322956318e-03,
+    };
+
+    for (int j=0; j<cells[0]; j++) {
+      for (int k=0; k<cells[1]; k++) {
+        int idx0[] = {j+1,k+1};
+        long linidx = gkyl_range_idx(&localRange, idx0);
+        const double *phi_p  = gkyl_array_cfetch(phi, linidx);
+        for (int m=0; m<basis.num_basis; m++) {
+//          TEST_CHECK( gkyl_compare(sol[(j*cells[1]+k)*basis.num_basis+m], phi_p[m], 1e-10) );
+//          TEST_MSG("Expected: %.13e in cell (%d,%d)", sol[(j*cells[1]+k)*basis.num_basis+m], j, k);
+//          TEST_MSG("Produced: %.13e", phi_p[m]);
+        }
+      }
+    }
+  }
+
+  gkyl_fem_poisson_release(poisson);
+  gkyl_proj_on_basis_release(projob);
+  gkyl_proj_on_basis_release(projob_bc);
+  gkyl_array_release(rho_ho);
+  gkyl_array_release(phi_ho);
+  gkyl_array_release(phibc_ho);
+  gkyl_array_release(rho);
+  gkyl_array_release(phi);
+  gkyl_array_release(epsilon);
+}
+
 
 // ......... CPU tests ............ //
 void test_1x_p1_periodicx() {
@@ -2358,6 +2692,15 @@ void test_2x_p1_dirichletx_neumannx_dirichlety() {
   bc_tv.lo_value[1].v[0] = 0.;
   bc_tv.up_value[1].v[0] = 0.;
   test_2x(1, &cells[0], bc_tv, false);
+}
+void test_2x_p1_dirichletvarx_dirichletvary() {
+  int cells[] = {8,8};
+  struct gkyl_poisson_bc bc_tv;
+  bc_tv.lo_type[0] = GKYL_POISSON_DIRICHLET_VARYING;
+  bc_tv.up_type[0] = GKYL_POISSON_DIRICHLET_VARYING;
+  bc_tv.lo_type[1] = GKYL_POISSON_DIRICHLET_VARYING;
+  bc_tv.up_type[1] = GKYL_POISSON_DIRICHLET_VARYING;
+  test_2x_varBC(1, cells, bc_tv, false);
 }
 
 void test_2x_p2_periodicx_periodicy() {
@@ -2625,6 +2968,15 @@ void gpu_test_2x_p1_dirichletx_neumannx_dirichlety() {
   bc_tv.up_value[1].v[0] = 0.;
   test_2x(1, &cells[0], bc_tv, true);
 }
+void gpu_test_2x_p1_dirichletvarx_dirichletvary() {
+  int cells[] = {8,8};
+  struct gkyl_poisson_bc bc_tv;
+  bc_tv.lo_type[0] = GKYL_POISSON_DIRICHLET_VARYING;
+  bc_tv.up_type[0] = GKYL_POISSON_DIRICHLET_VARYING;
+  bc_tv.lo_type[1] = GKYL_POISSON_DIRICHLET_VARYING;
+  bc_tv.up_type[1] = GKYL_POISSON_DIRICHLET_VARYING;
+  test_2x_varBC(1, cells, bc_tv, true);
+}
 
 void gpu_test_2x_p2_periodicx_periodicy() {
   int cells[] = {8,8};
@@ -2744,6 +3096,7 @@ TEST_LIST = {
   { "test_2x_p1_dirichletx_dirichlety_neumanny", test_2x_p1_dirichletx_dirichlety_neumanny },
   { "test_2x_p1_neumannx_dirichletx_dirichlety", test_2x_p1_neumannx_dirichletx_dirichlety },
   { "test_2x_p1_dirichletx_neumannx_dirichlety", test_2x_p1_dirichletx_neumannx_dirichlety },
+  { "test_2x_p1_dirichletvarx_dirichletvary", test_2x_p1_dirichletvarx_dirichletvary },
   { "test_2x_p2_periodicx_periodicy", test_2x_p2_periodicx_periodicy },
   { "test_2x_p2_dirichletx_dirichlety", test_2x_p2_dirichletx_dirichlety },
   { "test_2x_p2_dirichletx_periodicy", test_2x_p2_dirichletx_periodicy },
