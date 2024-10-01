@@ -9,12 +9,14 @@ struct deflated_fem_data {
   struct gkyl_array *deflated_field;
   struct gkyl_array *deflated_phi;
   struct gkyl_array *deflated_epsilon;
+  struct gkyl_array *deflated_kSq;
   struct gkyl_array *deflated_nodal_fld;
   struct gkyl_fem_poisson *fem_poisson;
 };
 
 // Updater type
 struct gkyl_deflated_fem_poisson {
+  bool ishelmholtz; // if solving Helmholtz equation (kSq is not zero/NULL).
   struct gkyl_rect_grid grid;
   struct gkyl_rect_grid deflated_grid;
   struct gkyl_basis basis;

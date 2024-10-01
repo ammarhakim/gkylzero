@@ -4,10 +4,9 @@
 #include <gkyl_deflated_fem_poisson_priv.h>
 
 struct gkyl_deflated_fem_poisson* 
-gkyl_deflated_fem_poisson_new(struct gkyl_rect_grid grid, 
-  struct gkyl_basis *basis_on_dev, struct gkyl_basis basis, 
-  struct gkyl_range local, struct gkyl_range global_sub_range, 
-  struct gkyl_array *epsilon, struct gkyl_poisson_bc poisson_bc, bool use_gpu)
+gkyl_deflated_fem_poisson_new(struct gkyl_rect_grid grid, struct gkyl_basis *basis_on_dev, struct gkyl_basis basis, 
+  struct gkyl_range local, struct gkyl_range global_sub_range, struct gkyl_array *epsilon, struct gkyl_array *kSq,
+  struct gkyl_poisson_bc poisson_bc, bool use_gpu)
 {
   struct gkyl_deflated_fem_poisson *up = gkyl_malloc(sizeof(*up));
   up->use_gpu = use_gpu;
@@ -84,6 +83,12 @@ gkyl_deflated_fem_poisson_new(struct gkyl_rect_grid grid,
   up->n2m = gkyl_nodal_ops_new(&up->basis, &up->grid, use_gpu);
   up->n2m_deflated = gkyl_nodal_ops_new(&up->deflated_basis, &up->deflated_grid, use_gpu);
 
+  if (kSq) {
+    up->ishelmholtz = true;
+  } else {
+    up->ishelmholtz = false;
+  }
+
   // Allocate necessary fields and solvers for each z slice
   int ctr = 0;
   for (int zidx = up->local.lower[up->cdim-1]; zidx <= up->local.upper[up->cdim-1]+1; zidx++) {
@@ -91,19 +96,29 @@ gkyl_deflated_fem_poisson_new(struct gkyl_rect_grid grid,
       up->d_fem_data[ctr].deflated_field = gkyl_array_cu_dev_new(GKYL_DOUBLE, up->deflated_basis.num_basis, up->deflated_local_ext.volume);
       up->d_fem_data[ctr].deflated_phi = gkyl_array_cu_dev_new(GKYL_DOUBLE, up->deflated_basis.num_basis, up->deflated_local_ext.volume);
       up->d_fem_data[ctr].deflated_epsilon = gkyl_array_cu_dev_new(GKYL_DOUBLE, (2*up->deflated_grid.ndim - 1)*up->deflated_basis.num_basis, up->deflated_local_ext.volume);
+      up->d_fem_data[ctr].deflated_kSq = up->ishelmholtz? gkyl_array_cu_dev_new(GKYL_DOUBLE, (2*up->deflated_grid.ndim - 1)*up->deflated_basis.num_basis, up->deflated_local_ext.volume) : 0;
       up->d_fem_data[ctr].deflated_nodal_fld = gkyl_array_cu_dev_new(GKYL_DOUBLE, up->deflated_grid.ndim, up->deflated_nrange.volume);
     }
     else {
       up->d_fem_data[ctr].deflated_field = gkyl_array_new(GKYL_DOUBLE, up->deflated_basis.num_basis, up->deflated_local_ext.volume);
       up->d_fem_data[ctr].deflated_phi = gkyl_array_new(GKYL_DOUBLE, up->deflated_basis.num_basis, up->deflated_local_ext.volume);
       up->d_fem_data[ctr].deflated_epsilon = gkyl_array_new(GKYL_DOUBLE, (2*up->deflated_grid.ndim - 1)*up->deflated_basis.num_basis, up->deflated_local_ext.volume);
+      up->d_fem_data[ctr].deflated_kSq = up->ishelmholtz? gkyl_array_new(GKYL_DOUBLE, (2*up->deflated_grid.ndim - 1)*up->deflated_basis.num_basis, up->deflated_local_ext.volume) : 0;
       up->d_fem_data[ctr].deflated_nodal_fld = gkyl_array_new(GKYL_DOUBLE, up->deflated_grid.ndim, up->deflated_nrange.volume);
     }
-    if (zidx == up->local.upper[up->cdim-1] + 1 )
+
+    if (zidx == up->local.upper[up->cdim-1] + 1 ) {
       gkyl_deflate_zsurf_advance(up->deflator_up, zidx-1, &up->local, &up->deflated_local, epsilon, up->d_fem_data[ctr].deflated_epsilon,  2*up->deflated_grid.ndim-1);
-    else 
+      if (up->ishelmholtz)
+        gkyl_deflate_zsurf_advance(up->deflator_up, zidx-1, &up->local, &up->deflated_local, kSq, up->d_fem_data[ctr].deflated_kSq,  2*up->deflated_grid.ndim-1);
+    }
+    else {
       gkyl_deflate_zsurf_advance(up->deflator_lo, zidx, &up->local, &up->deflated_local, epsilon, up->d_fem_data[ctr].deflated_epsilon, 2*up->deflated_grid.ndim-1);
-    up->d_fem_data[ctr].fem_poisson = gkyl_fem_poisson_new(&up->deflated_local, &up->deflated_grid, up->deflated_basis, &up->poisson_bc, up->d_fem_data[ctr].deflated_epsilon, 0, false, use_gpu);
+      if (up->ishelmholtz)
+        gkyl_deflate_zsurf_advance(up->deflator_lo, zidx, &up->local, &up->deflated_local, kSq, up->d_fem_data[ctr].deflated_kSq, 2*up->deflated_grid.ndim-1);
+    }
+
+    up->d_fem_data[ctr].fem_poisson = gkyl_fem_poisson_new(&up->deflated_local, &up->deflated_grid, up->deflated_basis, &up->poisson_bc, up->d_fem_data[ctr].deflated_epsilon, up->d_fem_data[ctr].deflated_kSq, false, use_gpu);
     ctr += 1;
   }
 
@@ -155,6 +170,8 @@ void gkyl_deflated_fem_poisson_release(struct gkyl_deflated_fem_poisson* up){
     gkyl_array_release(up->d_fem_data[ctr].deflated_field);
     gkyl_array_release(up->d_fem_data[ctr].deflated_phi);
     gkyl_array_release(up->d_fem_data[ctr].deflated_epsilon);
+    if (up->ishelmholtz)
+      gkyl_array_release(up->d_fem_data[ctr].deflated_kSq);
     gkyl_array_release(up->d_fem_data[ctr].deflated_nodal_fld);
     gkyl_fem_poisson_release(up->d_fem_data[ctr].fem_poisson);
     ctr += 1;
