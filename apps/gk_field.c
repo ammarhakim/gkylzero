@@ -45,7 +45,7 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
 
     f->phi_pol = mkarr(app->use_gpu, phi_pol_basis.num_basis, app->local_ext.volume);
     struct gkyl_array *phi_pol_ho = app->use_gpu? mkarr(false, f->phi_pol->ncomp, f->phi_pol->size)
-                                            : gkyl_array_acquire(f->phi_pol);
+                                                : gkyl_array_acquire(f->phi_pol);
 
     struct gkyl_eval_on_nodes *phi_pol_proj = gkyl_eval_on_nodes_new(&app->grid, &phi_pol_basis,
       1, f->info.polarization_potential, f->info.polarization_potential_ctx);
@@ -139,12 +139,12 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
          f->info.poisson_bcs.up_type[d] == GKYL_POISSON_DIRICHLET_VARYING);
       if (f->is_dirichletvar) {
         // Project the spatially varying BC if the user specifies it.
-        f->phi_bc = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
+        f->phi_bc = mkarr(app->use_gpu, app->confBasis.num_basis, app->global_ext.volume);
         struct gkyl_array *phi_bc_ho = mkarr(false, f->phi_bc->ncomp, f->phi_bc->size);
 
         gkyl_eval_on_nodes *phibc_proj = gkyl_eval_on_nodes_new(&app->grid, &app->confBasis, 
           1, f->info.poisson_bcs.bc_value_func, f->info.poisson_bcs.bc_value_func_ctx);
-        gkyl_eval_on_nodes_advance(phibc_proj, 0.0, &app->local_ext, f->phi_bc);
+        gkyl_eval_on_nodes_advance(phibc_proj, 0.0, &app->global, phi_bc_ho);
         gkyl_array_copy(f->phi_bc, phi_bc_ho);
 
         gkyl_eval_on_nodes_release(phibc_proj);
