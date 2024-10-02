@@ -50,10 +50,12 @@ struct gkyl_deflated_fem_poisson* gkyl_deflated_fem_poisson_new(struct gkyl_rect
  * Solve the poisson equation for the given charge density
  *
  * @param up deflated FEM poisson updater to run.
- * @param field DG field to set as RHS source (charge density rho).
+ * @param rhs DG field to set as RHS source (charge density rho).
+ * @param phibc Spatially varying BC as a DG (volume) field, defined in the whole
  * @param phi DG field solution to poison problem (phi).
  */
-void gkyl_deflated_fem_poisson_advance(struct gkyl_deflated_fem_poisson* up, struct gkyl_array *field, struct gkyl_array* phi);
+void gkyl_deflated_fem_poisson_advance(struct gkyl_deflated_fem_poisson* up, struct gkyl_array *rhs,
+  struct gkyl_array *phibc, struct gkyl_array* phi);
 
 /**
  * Delete updater.

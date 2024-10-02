@@ -342,7 +342,7 @@ gk_field_rhs(gkyl_gyrokinetic_app *app, struct gk_field *field)
         gkyl_fem_parproj_set_rhs(field->fem_parproj, field->rho_c_global_dg, field->rho_c_global_dg);
         gkyl_fem_parproj_solve(field->fem_parproj, field->rho_c_global_smooth);
       }
-      gkyl_deflated_fem_poisson_advance(field->deflated_fem_poisson, field->rho_c_global_smooth, field->phi_smooth);
+      gkyl_deflated_fem_poisson_advance(field->deflated_fem_poisson, field->rho_c_global_smooth, NULL, field->phi_smooth);
     }
   }
   app->stat.field_rhs_tm += gkyl_time_diff_now_sec(wst);

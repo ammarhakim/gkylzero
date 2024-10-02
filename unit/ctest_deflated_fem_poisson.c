@@ -201,7 +201,7 @@ test_zdep_nd_nxnz(int nx, int ny){
 
   struct gkyl_deflated_fem_poisson* deflated_fem_poisson = gkyl_deflated_fem_poisson_new(grid, basis_on_dev, basis, 
     local, local, epsilon_dev, 0, poisson_bc, use_gpu);
-  gkyl_deflated_fem_poisson_advance(deflated_fem_poisson, field_dev, phi_dev);
+  gkyl_deflated_fem_poisson_advance(deflated_fem_poisson, field_dev, NULL, phi_dev);
 #ifdef GKYL_HAVE_CUDA
   gkyl_array_copy(phi, phi_dev);
 #endif
@@ -304,7 +304,7 @@ test_simplez_dd_nxnz(int nx, int ny){
                                             
   struct gkyl_deflated_fem_poisson* deflated_fem_poisson = gkyl_deflated_fem_poisson_new(grid, basis_on_dev, basis, 
     local, local, epsilon_dev, 0, poisson_bc, use_gpu);
-  gkyl_deflated_fem_poisson_advance(deflated_fem_poisson, field_dev, phi_dev);
+  gkyl_deflated_fem_poisson_advance(deflated_fem_poisson, field_dev, NULL, phi_dev);
 #ifdef GKYL_HAVE_CUDA
   gkyl_array_copy(phi, phi_dev);
 #endif
@@ -492,7 +492,7 @@ test_zind_dd_nxnz(int nx, int ny){
                                             
   struct gkyl_deflated_fem_poisson* deflated_fem_poisson = gkyl_deflated_fem_poisson_new(grid, basis_on_dev, basis, 
     local, local, epsilon_dev, 0, poisson_bc, use_gpu);
-  gkyl_deflated_fem_poisson_advance(deflated_fem_poisson, field_dev, phi_dev);
+  gkyl_deflated_fem_poisson_advance(deflated_fem_poisson, field_dev, NULL, phi_dev);
 #ifdef GKYL_HAVE_CUDA
   gkyl_array_copy(phi, phi_dev);
 #endif
@@ -614,7 +614,7 @@ test_3x_dd_dd_nxnynz(int nx, int ny, int nz){
 
   struct gkyl_deflated_fem_poisson* deflated_fem_poisson = gkyl_deflated_fem_poisson_new(grid, basis_on_dev, basis, 
     local, local, epsilon_dev, 0, poisson_bc, use_gpu);
-  gkyl_deflated_fem_poisson_advance(deflated_fem_poisson, field_dev, phi_dev);
+  gkyl_deflated_fem_poisson_advance(deflated_fem_poisson, field_dev, NULL, phi_dev);
 #ifdef GKYL_HAVE_CUDA
   gkyl_array_copy(phi, phi_dev);
 #endif
