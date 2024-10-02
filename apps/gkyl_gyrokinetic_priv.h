@@ -563,6 +563,15 @@ struct gk_species {
 
   // vtsq_min
   double vtsq_min; 
+
+  // Quantities used for FLR model:
+  struct gkyl_array *m0_gyroavg; // Gyroaveraged particle density.
+  struct gkyl_array *flr_rhoSqD2; // Laplacian weight in FLR operator.
+  struct gkyl_array *flr_kSq; // Field multiplying phi in FLR operator.
+  struct gkyl_deflated_fem_poisson *flr_op; // Helmholtz solver to invert FLR operator.
+  // Pointer to function that performs the gyroaverage.
+  void (*gyroaverage)(gkyl_gyrokinetic_app *app, struct gk_species *species,
+    struct gkyl_array *field_in, struct gkyl_array *field_gyroavg);
 };
 
 // neutral species data
@@ -679,7 +688,6 @@ struct gk_field {
   double es_energy_fac_1d; 
   struct gkyl_array *es_energy_fac; 
   struct gkyl_array *epsilon; // Permittivity; i.e. polarization weight.
-  struct gkyl_array *kSq; // Field multiplying phi in Helmholtz equation.
 
   bool is_dirichletvar; // Whether user provided spatially varying phi BCs.
   struct gkyl_array *phi_bc; // Spatially varying BC.
@@ -691,6 +699,13 @@ struct gk_field {
 
   struct gkyl_deflated_fem_poisson *deflated_fem_poisson; // poisson solver which solves on lines in x or planes in xy
                                                           // - nabla . (epsilon * nabla phi) - kSq * phi = rho
+
+  // Objects needed for FLR effects.
+  bool use_flr;
+  void (*invert_flr)(gkyl_gyrokinetic_app *app, struct gk_field *field, struct gkyl_array *phi);
+  struct gkyl_array *flr_rhoSq_sum; // Laplacian weight in FLR operator.
+  struct gkyl_array *flr_kSq; // Field multiplying phi in FLR operator.
+  struct gkyl_deflated_fem_poisson *flr_op; // Helmholtz solver to invert FLR operator.
 
   struct gkyl_array_integrate *calc_em_energy;
   double *em_energy_red, *em_energy_red_global; // memory for use in GPU reduction of EM energy

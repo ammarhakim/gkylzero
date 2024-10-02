@@ -164,6 +164,14 @@ struct gkyl_gyrokinetic_react {
   struct gkyl_gyrokinetic_react_type react_type[GKYL_MAX_REACT];
 };
 
+// Parameters in FLR effects.
+struct gkyl_gyrokinetic_flr {
+  enum gkyl_gk_flr_type type; 
+  double Tperp; // Perp temperature used to evaluate gyroradius. 
+  double bmag; // Magnetic field used to evaluate gyroradius. If not provided
+               // it'll use B in the center of the domain.
+};
+
 // Parameters for gk species.
 struct gkyl_gyrokinetic_species {
   char name[128]; // Species name.
@@ -183,6 +191,8 @@ struct gkyl_gyrokinetic_species {
   bool no_by; // Boolean for whether we are using specialized GK kernels with no b_y.
               // These more computationally efficient kernels are for slab or mirror 
               // calculations where there is no toroidal field. 
+
+  struct gkyl_gyrokinetic_flr flr; // Options for FLR effects.
 
   int num_diag_moments; // number of diagnostic moments
   char diag_moments[24][24]; // list of diagnostic moments

@@ -349,7 +349,6 @@ gkyl_gyrokinetic_app_new(struct gkyl_gk *gk)
 
   gkyl_gyrokinetic_app_write_geometry(app);
 
-
   // allocate space to store species and neutral species objects
   app->species = ns>0 ? gkyl_malloc(sizeof(struct gk_species[ns])) : 0;
   app->neut_species = neuts>0 ? gkyl_malloc(sizeof(struct gk_neut_species[neuts])) : 0;
