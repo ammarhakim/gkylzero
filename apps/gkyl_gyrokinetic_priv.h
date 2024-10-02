@@ -678,8 +678,11 @@ struct gk_field {
   struct gkyl_array *weight;
   double es_energy_fac_1d; 
   struct gkyl_array *es_energy_fac; 
-  struct gkyl_array *epsilon; 
-  struct gkyl_array *kSq; 
+  struct gkyl_array *epsilon; // Permittivity; i.e. polarization weight.
+  struct gkyl_array *kSq; // Field multiplying phi in Helmholtz equation.
+
+  bool is_dirichletvar; // Whether user provided spatially varying phi BCs.
+  struct gkyl_array *phi_bc; // Spatially varying BC.
 
   struct gkyl_fem_parproj *fem_parproj; // FEM smoother for projecting DG functions onto continuous FEM basis
                                         // weight*phi_{fem} = phi_{dg} 
