@@ -105,6 +105,7 @@ static const char *const valid_moment_names[] = {
   "M3par",
   "M3perp",
   "ThreeMoments",
+  "FourMoments",
   "MaxwellianMoments", // internal flag for whether we are computing (n, u_par, T/m)
   "BiMaxwellianMoments", // internal flag for whether we are computing (n, u_par, T_par/m, T_perp/m)
   "Integrated", // this is an internal flag, not for passing to moment type
@@ -310,6 +311,9 @@ struct gk_bgk_collisions {
 
   struct gkyl_proj_maxwellian_on_basis *proj_max; // Maxwellian projection object
   struct gkyl_bgk_collisions *up_bgk; // BGK updater (also computes stable timestep)
+
+  bool implicit_step; // whether or not to take an implcit bgk step
+  double dt_implicit; // timestep used by the implicit collisions  
 };
 
 struct gk_boundary_fluxes {
@@ -451,7 +455,6 @@ struct gk_species {
   struct gkyl_rect_grid grid;
   struct gkyl_range local, local_ext; // local, local-ext phase-space ranges
   struct gkyl_range global, global_ext; // global, global-ext conf-space ranges    
-  struct app_skin_ghost_ranges skin_ghost; // conf-space skin/ghost
 
   struct gkyl_comm *comm;   // communicator object for phase-space arrays
   int nghost[GKYL_MAX_DIM]; // number of ghost-cells in each direction
@@ -554,9 +557,9 @@ struct gk_species {
   struct gkyl_dg_updater_diffusion_gyrokinetic *diff_slvr; // Gyrokinetic diffusion equation solver.
 
   // Updater that enforces positivity by shifting f.
-  bool enforce_positivity; // Flag indicating whether to apply positivity_shift.
   struct gkyl_positivity_shift_gyrokinetic *pos_shift_op;
-  struct gkyl_array *ps_intmom_grid; // Grid contribution to the integrated moments of the positivity shift.
+  struct gkyl_array *ps_delta_m0; // Number density of the positivity shift.
+  struct gk_species_moment ps_moms; // Positivity shift diagnostic moments.
   gkyl_dynvec ps_integ_diag; // Integrated moments of the positivity shift.
   bool is_first_ps_integ_write_call; // Flag first time writing ps_integ_diag.
 
@@ -574,7 +577,6 @@ struct gk_neut_species {
   struct gkyl_rect_grid grid;
   struct gkyl_range local, local_ext; // local, local-ext phase-space ranges
   struct gkyl_range global, global_ext; // global, global-ext conf-space ranges    
-  struct app_skin_ghost_ranges skin_ghost; // conf-space skin/ghost
 
   struct gkyl_comm *comm;   // communicator object for phase-space arrays
   int nghost[GKYL_MAX_DIM]; // number of ghost-cells in each direction
@@ -658,6 +660,9 @@ struct gk_field {
 
   struct gkyl_array *phi_host;  // host copy for use IO and initialization
 
+  bool init_phi_pol; // Whether to use the initial user polarization phi.
+  struct gkyl_array *phi_pol; // Initial polarization density potential.
+
   struct gkyl_range global_sub_range; // sub range of intersection of global range and local range
                                       // for solving subset of Poisson solves with parallelization in z
 
@@ -722,6 +727,8 @@ struct gkyl_gyrokinetic_app {
 
   bool use_gpu; // should we use GPU (if present)
 
+  bool enforce_positivity; // Whether to enforce f>0.
+
   int num_periodic_dir; // number of periodic directions
   int periodic_dirs[3]; // list of periodic directions
     
@@ -737,7 +744,8 @@ struct gkyl_gyrokinetic_app {
   struct gkyl_basis basis, neut_basis; // phase-space and phase-space basis for neutrals
   struct gkyl_basis confBasis; // conf-space basis
   
-  struct gkyl_comm *comm;   // communicator object for conf-space arrays
+  struct gkyl_rect_decomp *decomp; // Decomposition object.
+  struct gkyl_comm *comm; // communicator object for conf-space arrays
 
   // pointers to basis on device (these point to host structs if not
   // on GPU)
@@ -753,6 +761,7 @@ struct gkyl_gyrokinetic_app {
   // species data
   int num_species;
   struct gk_species *species; // data for each species
+  struct gkyl_array *ps_delta_m0_ions; // Number density of the total ion positivity shift.
   
   // neutral species data
   int num_neut_species;
@@ -1238,6 +1247,16 @@ void gk_species_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app, struc
  * @param t0 Time for use in ICs
  */
 void gk_species_apply_ic(gkyl_gyrokinetic_app *app, struct gk_species *species, double t0);
+
+/**
+ * Compute the part of the species initial conditions that depends on other
+ * species.
+ *
+ * @param app gyrokinetic app object
+ * @param species Species object
+ * @param t0 Time for use in ICs
+ */
+void gk_species_apply_ic_cross(gkyl_gyrokinetic_app *app, struct gk_species *species, double t0);
 
 /**
  * Compute RHS from species distribution function

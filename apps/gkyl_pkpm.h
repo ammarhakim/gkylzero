@@ -58,10 +58,13 @@ struct gkyl_pkpm_species {
   // diffusion coupling to include for momentum
   struct gkyl_pkpm_fluid_diffusion diffusion;
 
-  void *accel_ctx; // context for applied acceleration function
+  void *app_accel_ctx; // context for applied acceleration function
   // pointer to applied acceleration function
-  void (*accel)(double t, const double *xn, double *aout, void *ctx);
+  void (*app_accel)(double t, const double *xn, double *aout, void *ctx);
   bool app_accel_evolve; // set to true if applied acceleration function is time dependent
+
+  double limiter_fac; // Optional input parameter for adjusting diffusion in slope limiter
+  bool limit_fluid; // Optional input parameter for applying limiters to fluid variables
 
   // boundary conditions
   enum gkyl_species_bc_type bcx[2], bcy[2], bcz[2];
@@ -90,6 +93,9 @@ struct gkyl_pkpm_field {
   void (*app_current)(double t, const double *xn, double *app_current_out, void *ctx);
   bool app_current_evolve; // set to true if applied current function is time dependent
   
+  double limiter_fac; // Optional input parameter for adjusting diffusion in slope limiter
+  bool limit_em; // Optional input parameter for applying limiters to EM fields
+  
   // boundary conditions
   enum gkyl_field_bc_type bcx[2], bcy[2], bcz[2];
 };
@@ -104,9 +110,13 @@ struct gkyl_pkpm {
   int poly_order; // polynomial order
   enum gkyl_basis_type basis_type; // type of basis functions to use
 
-  double cfl_frac; // CFL fraction to use (default 1.0)
+  void *c2p_ctx; // context for mapc2p function
+  // pointer to mapc2p function: xc are the computational space
+  // coordinates and on output xp are the corresponding physical space
+  // coordinates.
+  void (*mapc2p)(double t, const double *xc, double *xp, void *ctx);
 
-  bool use_gpu; // Flag to indicate if solver should use GPUs
+  double cfl_frac; // CFL fraction to use (default 1.0)
 
   int num_periodic_dir; // number of periodic directions
   int periodic_dirs[3]; // list of periodic directions
@@ -114,13 +124,13 @@ struct gkyl_pkpm {
   int num_species; // number of species
   struct gkyl_pkpm_species species[GKYL_MAX_SPECIES]; // species objects
   
-  bool skip_field; // Skip field update or no field specified
   struct gkyl_pkpm_field field; // field object
 
-  // this should not be set by typical user-facing code but only by
-  // higher-level drivers
-  bool has_low_inp; // should one use low-level inputs?
-  struct gkyl_app_comm_low_inp low_inp; // low-level inputs  
+  bool use_explicit_source; // Use fully explicit SSP RK3 scheme 
+                            // Default is a first-order operator split with 
+                            // implicit fluid-EM coupling.
+
+  struct gkyl_app_parallelism_inp parallelism; // Parallelism-related inputs.
 };
 
 // Simulation statistics
@@ -137,6 +147,8 @@ struct gkyl_pkpm_stat {
   double stage_3_dt_diff[2]; // [min,max] rel-diff for stage-3 failure
     
   double total_tm; // time for simulation (not including ICs)
+  double rk3_tm; // time for SSP RK3 step
+  double pkpm_em_tm; // time for implicit fluid-EM coupling step
   double init_species_tm; // time to initialize all species
   double init_fluid_species_tm; // time to initialize all fluid species
   double init_field_tm; // time to initialize fields
@@ -319,6 +331,65 @@ void gkyl_pkpm_app_write_field_energy(gkyl_pkpm_app* app);
  * @param app App object.
  */
 void gkyl_pkpm_app_stat_write(gkyl_pkpm_app* app);
+
+/**
+ * Initialize field from file
+ *
+ * @param app App object
+ * @param fname file to read
+ */
+struct gkyl_app_restart_status
+gkyl_pkpm_app_from_file_field(gkyl_pkpm_app *app, const char *fname);
+
+/**
+ * Initialize pkpm species from file
+ *
+ * @param app App object
+ * @param sidx gk species index
+ * @param fname file to read
+ */
+struct gkyl_app_restart_status 
+gkyl_pkpm_app_from_file_species(gkyl_pkpm_app *app, int sidx,
+  const char *fname);
+
+/**
+ * Initialize pkpm fluid species from file
+ *
+ * @param app App object
+ * @param sidx gk species index
+ * @param fname file to read
+ */
+struct gkyl_app_restart_status 
+gkyl_pkpm_app_from_file_fluid_species(gkyl_pkpm_app *app, int sidx,
+  const char *fname);
+
+/**
+ * Initialize field from frame
+ *
+ * @param app App object
+ * @param frame frame to read
+ */
+struct gkyl_app_restart_status
+gkyl_pkpm_app_from_frame_field(gkyl_pkpm_app *app, int frame);
+
+/**
+ * Initialize pkpm species and fluid species from frame
+ *
+ * @param app App object
+ * @param sidx gk species index
+ * @param frame frame to read
+ */
+struct gkyl_app_restart_status
+gkyl_pkpm_app_from_frame_species(gkyl_pkpm_app *app, int sidx, int frame);
+
+/**
+ * Initialize the pkpm app from a specific frame.
+ *
+ * @param app App object
+ * @param frame frame to read
+ */
+struct gkyl_app_restart_status
+gkyl_pkpm_app_read_from_frame(gkyl_pkpm_app *app, int frame);
 
 /**
  * Write output to console: this is mainly for diagnostic messages the

@@ -175,6 +175,36 @@ void gkyl_gk_geometry_bmag_mid(struct gk_geometry* up) {
   }
 }
 
+void
+gkyl_gk_geometry_init_nodal_range( struct gkyl_range *nrange, struct gkyl_range *range, int poly_order)
+{
+    int nodes[GKYL_MAX_DIM];
+    if (poly_order == 1) {
+      for (int d=0; d<range->ndim; ++d)
+        nodes[d] = gkyl_range_shape(range, d) + 1;
+    }
+    if (poly_order == 2) {
+      for (int d=0; d<range->ndim; ++d)
+        nodes[d] = 2*gkyl_range_shape(range, d) + 1;
+    }
+    gkyl_range_init_from_shape(nrange, range->ndim, nodes);
+
+}
+
+void
+gkyl_gk_geometry_init_nodal_grid(struct gkyl_rect_grid *ngrid, struct gkyl_rect_grid *grid, struct gkyl_range *nrange)
+{
+    double lower[GKYL_MAX_DIM];
+    double upper[GKYL_MAX_DIM];
+    int cells[GKYL_MAX_DIM];
+    for (int i=0; i<nrange->ndim; ++i) {
+      lower[i] = grid->lower[i];
+      upper[i] = grid->upper[i];
+      cells[i] = gkyl_range_shape(nrange, i);
+    }
+    gkyl_rect_grid_init(ngrid, nrange->ndim, lower, upper, cells);
+}
+
 struct gk_geometry*
 gkyl_gk_geometry_deflate(const struct gk_geometry* up_3d, struct gkyl_gk_geometry_inp *geometry_inp)
 {

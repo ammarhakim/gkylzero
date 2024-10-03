@@ -49,7 +49,8 @@ gkyl_mom_gyrokinetic_new(const struct gkyl_basis* cbasis, const struct gkyl_basi
 
   // choose kernel tables based on basis-function type
   const gkyl_gyrokinetic_mom_kern_list *m0_kernels, *m1_kernels, *m2_kernels, 
-    *m2_par_kernels, *m2_perp_kernels, *m3_par_kernels, *m3_perp_kernels, *three_moments_kernels;
+    *m2_par_kernels, *m2_perp_kernels, *m3_par_kernels, *m3_perp_kernels,
+    *three_moments_kernels, *four_moments_kernels;;
 
   switch (cbasis->b_type) {
     case GKYL_BASIS_MODAL_SERENDIPITY:
@@ -61,6 +62,7 @@ gkyl_mom_gyrokinetic_new(const struct gkyl_basis* cbasis, const struct gkyl_basi
       m3_par_kernels = ser_m3_par_kernels;
       m3_perp_kernels = ser_m3_perp_kernels;
       three_moments_kernels = ser_three_moments_kernels;
+      four_moments_kernels = ser_four_moments_kernels;
       break;
 
     default:
@@ -117,12 +119,21 @@ gkyl_mom_gyrokinetic_new(const struct gkyl_basis* cbasis, const struct gkyl_basi
     mom_gk->momt.kernel = m3_perp_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
     mom_gk->momt.num_mom = 1;
   }
-  else if (strcmp(mom, "ThreeMoments") == 0) { // Zeroth (density), First (parallel momentum),
-    assert(cv_index[cdim].vdim[vdim] != -1);   // and Second (total energy) computed together
+  else if (strcmp(mom, "ThreeMoments") == 0) { 
+    // Density), parallel momentum, and total energy computed together.
+    assert(cv_index[cdim].vdim[vdim] != -1);   
     assert(NULL != three_moments_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order]);
     
     mom_gk->momt.kernel = three_moments_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
     mom_gk->momt.num_mom = 3;
+  }
+  else if (strcmp(mom, "FourMoments") == 0) { // Density, parallel momentum, parallel and perpendicular
+                                              // kinetic energy computed together.
+    assert(cv_index[cdim].vdim[vdim] != -1);
+    assert(NULL != four_moments_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order]);
+    
+    mom_gk->momt.kernel = four_moments_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
+    mom_gk->momt.num_mom = vdim > 1? 4 : 3;
   }
   else {
     // string not recognized

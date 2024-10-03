@@ -141,6 +141,17 @@ void gkyl_range_shift(struct gkyl_range *rng, const struct gkyl_range *inp,
   const int *delta);
 
 /**
+ * Create a new range that is the same shape as inp range, but lower
+ * indices are reset to the specified ones.
+ *
+ * @param rng On output new reset range
+ * @param inp Input range to reset
+ * @param lower New lower indices
+ */
+void gkyl_range_reset_lower(struct gkyl_range *rng, const struct gkyl_range *inp,
+  const int *lower);
+
+/**
  * Shape in direction dir
  *
  * @param rng Range object

@@ -4,6 +4,18 @@
 
 #include <gkyl_alloc.h>
 #include <gkyl_pkpm.h>
+#include <gkyl_util.h>
+
+#include <gkyl_null_comm.h>
+
+#ifdef GKYL_HAVE_MPI
+#include <mpi.h>
+#include <gkyl_mpi_comm.h>
+#ifdef GKYL_HAVE_NCCL
+#include <gkyl_nccl_comm.h>
+#endif
+#endif
+
 #include <rt_arg_parse.h>
 
 struct pkpm_alf_ctx {
@@ -24,8 +36,10 @@ struct pkpm_alf_ctx {
   double nuIon;
   double delta_u0;
   double delta_B0;
-  double L;
-  double tend;
+  double Lx; // Domain size (x-direction).
+  int Nx; // Cell count (x-direction).
+  double t_end; // Final simulation time.
+  double init_dt; // Initial time step guess so first step does not generate NaN
   double min_dt;
   double th;
   double k;
@@ -85,7 +99,7 @@ evalFluidElc(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fo
   double qi = app->chargeIon;
   double me = app->massElc;
   double mi = app->massIon;
-  double L = app->L;
+  double L = app->Lx;
   double k = app->k;
   double u0perp = app->delta_u0;
   double B0perp = app->delta_B0;
@@ -112,7 +126,7 @@ evalFluidIon(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fo
   double qi = app->chargeIon;
   double me = app->massElc;
   double mi = app->massIon;
-  double L = app->L;
+  double L = app->Lx;
   double k = app->k;
   double u0perp = app->delta_u0;
   double B0perp = app->delta_B0;
@@ -135,7 +149,7 @@ evalFieldFunc(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fo
 
   double qe = app->chargeElc;
   double qi = app->chargeIon;
-  double L = app->L;
+  double L = app->Lx;
   double k = app->k;
   double th = app->th;
   double B0 = app->B0;
@@ -235,9 +249,12 @@ create_ctx(void)
   double k = sqrt(kpar*kpar + kperp*kperp);
   double th = -atan(kpar/kperp); //Angle to rotate k to be along x
   // domain size and simulation time
-  double L = 2.*M_PI/k;
-
-  double tend = 100.0/omegaCi;
+  double Lx = 2.0*M_PI/k;
+  int Nx = 16; 
+  double dx = Lx/Nx;
+  double t_end = 100.0/omegaCi;
+  // initial dt guess so first step does not generate NaN
+  double init_dt = (Lx/Nx)/(3.0);
   
   struct pkpm_alf_ctx ctx = {
     .epsilon0 = epsilon0,
@@ -257,10 +274,12 @@ create_ctx(void)
     .nuIon = nuIon,
     .delta_u0 = delta_u0,
     .delta_B0 = delta_B0,
-    .L = L,
     .k = k,
     .th = th,
-    .tend = tend,
+    .Lx = Lx,
+    .Nx = Nx, 
+    .t_end = t_end, 
+    .init_dt = init_dt, 
     .min_dt = 1.0e-2, 
   };
   return ctx;
@@ -278,15 +297,21 @@ main(int argc, char **argv)
 {
   struct gkyl_app_args app_args = parse_app_args(argc, argv);
 
-  int NX = APP_ARGS_CHOOSE(app_args.xcells[0], 16);
+#ifdef GKYL_HAVE_MPI
+  if (app_args.use_mpi) {
+    MPI_Init(&argc, &argv);
+  }
+#endif
+
+  struct pkpm_alf_ctx ctx = create_ctx(); // context for init functions
+
+  int NX = APP_ARGS_CHOOSE(app_args.xcells[0], ctx.Nx);
   int VX = APP_ARGS_CHOOSE(app_args.vcells[0], 32);
 
   if (app_args.trace_mem) {
     gkyl_cu_dev_mem_debug_set(true);
     gkyl_mem_debug_set(true);
   }
-     
-  struct pkpm_alf_ctx ctx = create_ctx(); // context for init functions
   
   // electrons
   struct gkyl_pkpm_species elc = {
@@ -307,8 +332,6 @@ main(int argc, char **argv)
       .ctx = &ctx,
       .self_nu = evalNuElc,
     },    
-
-    //.diffusion = {.D = 1.0e-5, .order=4},
   };
   
   // ions
@@ -330,8 +353,6 @@ main(int argc, char **argv)
       .ctx = &ctx,
       .self_nu = evalNuIon,
     },    
-
-    //.diffusion = {.D = 1.0e-5, .order=4},
   };
 
   // field
@@ -344,13 +365,72 @@ main(int argc, char **argv)
     .init = evalFieldFunc
   };
 
+  int nrank = 1; // Number of processes in simulation.
+#ifdef GKYL_HAVE_MPI
+  if (app_args.use_mpi) {
+    MPI_Comm_size(MPI_COMM_WORLD, &nrank);
+  }
+#endif
+
+  // Construct communicator for use in app.
+  struct gkyl_comm *comm;
+#ifdef GKYL_HAVE_MPI
+  if (app_args.use_gpu && app_args.use_mpi) {
+#ifdef GKYL_HAVE_NCCL
+    comm = gkyl_nccl_comm_new( &(struct gkyl_nccl_comm_inp) {
+        .mpi_comm = MPI_COMM_WORLD,
+      }
+    );
+#else
+    printf(" Using -g and -M together requires NCCL.\n");
+    assert(0 == 1);
+#endif
+  }
+  else if (app_args.use_mpi) {
+    comm = gkyl_mpi_comm_new( &(struct gkyl_mpi_comm_inp) {
+        .mpi_comm = MPI_COMM_WORLD,
+      }
+    );
+  }
+  else {
+    comm = gkyl_null_comm_inew( &(struct gkyl_null_comm_inp) {
+        .use_gpu = app_args.use_gpu
+      }
+    );
+  }
+#else
+  comm = gkyl_null_comm_inew( &(struct gkyl_null_comm_inp) {
+      .use_gpu = app_args.use_gpu
+    }
+  );
+#endif
+
+  int my_rank;
+  gkyl_comm_get_rank(comm, &my_rank);
+  int comm_size;
+  gkyl_comm_get_size(comm, &comm_size);
+
+  int ccells[] = { NX };
+  int cdim = sizeof(ccells) / sizeof(ccells[0]);
+  int ncuts = 1;
+  for (int d = 0; d < cdim; d++) {
+    ncuts *= app_args.cuts[d];
+  }
+
+  if (ncuts != comm_size) {
+    if (my_rank == 0) {
+      fprintf(stderr, "*** Number of ranks, %d, does not match total cuts, %d!\n", comm_size, ncuts);
+    }
+    goto mpifinalize;
+  }
+
   // pkpm app
   struct gkyl_pkpm pkpm = {
     .name = "pkpm_alf_wave_1x_p1",
 
     .cdim = 1, .vdim = 1,
     .lower = { 0.0},
-    .upper = { ctx.L },
+    .upper = { ctx.Lx },
     .cells = { NX},
     .poly_order = 1,
     .basis_type = app_args.basis_type,
@@ -362,15 +442,19 @@ main(int argc, char **argv)
     .species = { elc, ion },
     .field = field,
 
-    .use_gpu = app_args.use_gpu,
+    .parallelism = {
+      .use_gpu = app_args.use_gpu,
+      .cuts = { app_args.cuts[0] },
+      .comm = comm,
+    },
   };
 
   // create app object
   gkyl_pkpm_app *app = gkyl_pkpm_app_new(&pkpm);
 
   // start, end and initial time-step
-  double tcurr = 0.0, tend = ctx.tend;
-  double dt = tend-tcurr;
+  double tcurr = 0.0, tend = ctx.t_end;
+  double dt = ctx.init_dt;
   int nframe = 10;
   // create trigger for IO
   struct gkyl_tm_trigger io_trig = { .dt = tend/nframe };
@@ -441,8 +525,17 @@ main(int argc, char **argv)
   gkyl_pkpm_app_cout(app, stdout, "Number of write calls %ld,\n", stat.nio);
   gkyl_pkpm_app_cout(app, stdout, "IO time took %g secs \n", stat.io_tm);
 
+  gkyl_comm_release(comm);
+
   // simulation complete, free app
   gkyl_pkpm_app_release(app);
+
+  mpifinalize:
+  ;
+#ifdef GKYL_HAVE_MPI
+  if (app_args.use_mpi)
+    MPI_Finalize();
+#endif  
   
   return 0;
 }

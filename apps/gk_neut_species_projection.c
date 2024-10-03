@@ -45,7 +45,6 @@ gk_neut_species_projection_init(struct gkyl_gyrokinetic_app *app, struct gk_neut
       .vel_range = &s->local_vel,
       .vel_map = s->vel_map,
       .model_id = GKYL_MODEL_DEFAULT, // default model is non-relativistic
-      .mass = s->info.mass,
       .use_gpu = app->use_gpu,
     };
     proj->proj_lte = gkyl_vlasov_lte_proj_on_basis_inew( &inp_proj );
@@ -63,7 +62,6 @@ gk_neut_species_projection_init(struct gkyl_gyrokinetic_app *app, struct gk_neut
         .vel_range = &s->local_vel,
         .vel_map = s->vel_map,
         .model_id = GKYL_MODEL_DEFAULT, // default model is non-relativistic
-        .mass = s->info.mass,
         .use_gpu = app->use_gpu,
         .max_iter = 100,
         .eps = 1e-12,

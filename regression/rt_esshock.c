@@ -10,6 +10,9 @@
 #ifdef GKYL_HAVE_MPI
 #include <mpi.h>
 #include <gkyl_mpi_comm.h>
+#ifdef GKYL_HAVE_NCCL
+#include <gkyl_nccl_comm.h>
+#endif
 #endif
 
 #include <rt_arg_parse.h>
@@ -106,65 +109,8 @@ main(int argc, char **argv)
     gkyl_cu_dev_mem_debug_set(true);
     gkyl_mem_debug_set(true);
   }
+
   struct esshock_ctx ctx = create_ctx(); // context for init functions
-
-  int nrank = 1; // number of processors in simulation
-#ifdef GKYL_HAVE_MPI
-  if (app_args.use_mpi)
-    MPI_Comm_size(MPI_COMM_WORLD, &nrank);
-#endif  
-
-  // create global range
-  int cells[] = { NX };
-  struct gkyl_range globalr;
-  gkyl_create_global_range(1, cells, &globalr);
-
-  // create decomposition
-  int cuts[] = { 1 };
-#ifdef GKYL_HAVE_MPI  
-  if (app_args.use_mpi) {
-    cuts[0] = app_args.cuts[0];
-  }
-#endif  
-    
-  struct gkyl_rect_decomp *decomp =
-    gkyl_rect_decomp_new_from_cuts(1, cuts, &globalr);
-
-  // construct communcator for use in app
-  struct gkyl_comm *comm;
-#ifdef GKYL_HAVE_MPI
-  if (app_args.use_mpi) {
-    comm = gkyl_mpi_comm_new( &(struct gkyl_mpi_comm_inp) {
-        .mpi_comm = MPI_COMM_WORLD,
-        .decomp = decomp
-      }
-    );
-  }
-  else
-    comm = gkyl_null_comm_inew( &(struct gkyl_null_comm_inp) {
-        .decomp = decomp,
-        .use_gpu = app_args.use_gpu
-      }
-    );
-#else
-  comm = gkyl_null_comm_inew( &(struct gkyl_null_comm_inp) {
-      .decomp = decomp,
-      .use_gpu = app_args.use_gpu
-    }
-  );
-#endif
-
-  int my_rank;
-  gkyl_comm_get_rank(comm, &my_rank);
-  int comm_sz;
-  gkyl_comm_get_size(comm, &comm_sz);
-
-  int ncuts = cuts[0];
-  if (ncuts != comm_sz) {
-    if (my_rank == 0)
-      fprintf(stderr, "*** Number of ranks, %d, do not match total cuts, %d!\n", comm_sz, ncuts);
-    goto mpifinalize;
-  }  
   
   // electrons
   struct gkyl_vlasov_species elc = {
@@ -174,7 +120,8 @@ main(int argc, char **argv)
     .upper = { 6.0 * ctx.vte}, 
     .cells = { VX },
 
-    .projection = {
+    .num_init = 1, 
+    .projection[0] = {
       .proj_id = GKYL_PROJ_FUNC,
       .func = evalDistFuncElc,
       .ctx_func = &ctx,
@@ -192,7 +139,8 @@ main(int argc, char **argv)
     .upper = { 16.0 * ctx.vti}, 
     .cells = { VX },
 
-    .projection = {
+    .num_init = 1, 
+    .projection[0] = {
       .proj_id = GKYL_PROJ_FUNC,
       .func = evalDistFuncIon,
       .ctx_func = &ctx,
@@ -212,6 +160,82 @@ main(int argc, char **argv)
     .init = evalFieldFunc
   };
 
+  int nrank = 1; // Number of processors in simulation.
+#ifdef GKYL_HAVE_MPI
+  if (app_args.use_mpi) {
+    MPI_Comm_size(MPI_COMM_WORLD, &nrank);
+  }
+#endif  
+
+  int ccells[] = { NX };
+  int cdim = sizeof(ccells) / sizeof(ccells[0]);
+
+  int cuts[cdim];
+#ifdef GKYL_HAVE_MPI  
+  for (int d = 0; d < cdim; d++) {
+    if (app_args.use_mpi) {
+      cuts[d] = app_args.cuts[d];
+    }
+    else {
+      cuts[d] = 1;
+    }
+  }
+#else
+  for (int d = 0; d < cdim; d++) {
+    cuts[d] = 1;
+  }
+#endif  
+    
+  // Construct communicator for use in app.
+  struct gkyl_comm *comm;
+#ifdef GKYL_HAVE_MPI
+  if (app_args.use_gpu && app_args.use_mpi) {
+#ifdef GKYL_HAVE_NCCL
+    comm = gkyl_nccl_comm_new( &(struct gkyl_nccl_comm_inp) {
+        .mpi_comm = MPI_COMM_WORLD,
+      }
+    );
+#else
+    printf(" Using -g and -M together requires NCCL.\n");
+    assert(0 == 1);
+#endif
+  }
+  else if (app_args.use_mpi) {
+    comm = gkyl_mpi_comm_new( &(struct gkyl_mpi_comm_inp) {
+        .mpi_comm = MPI_COMM_WORLD,
+      }
+    );
+  }
+  else {
+    comm = gkyl_null_comm_inew( &(struct gkyl_null_comm_inp) {
+        .use_gpu = app_args.use_gpu
+      }
+    );
+  }
+#else
+  comm = gkyl_null_comm_inew( &(struct gkyl_null_comm_inp) {
+      .use_gpu = app_args.use_gpu
+    }
+  );
+#endif
+
+  int my_rank;
+  gkyl_comm_get_rank(comm, &my_rank);
+  int comm_size;
+  gkyl_comm_get_size(comm, &comm_size);
+
+  int ncuts = 1;
+  for (int d = 0; d < cdim; d++) {
+    ncuts *= cuts[d];
+  }
+
+  if (ncuts != comm_size) {
+    if (my_rank == 0) {
+      fprintf(stderr, "*** Number of ranks, %d, does not match total cuts, %d!\n", comm_size, ncuts);
+    }
+    goto mpifinalize;
+  }
+
   // VM app
   struct gkyl_vm vm = {
     .name = "esshock",
@@ -230,13 +254,11 @@ main(int argc, char **argv)
     .species = { elc, ion },
     .field = field,
 
-    .use_gpu = app_args.use_gpu,
-
-    .has_low_inp = true,
-    .low_inp = {
-      .local_range = decomp->ranges[my_rank],
-      .comm = comm
-    }
+    .parallelism = {
+      .use_gpu = app_args.use_gpu,
+      .cuts = { app_args.cuts[0] },
+      .comm = comm,
+    },
   };
 
   // create app object
@@ -301,7 +323,6 @@ main(int argc, char **argv)
   gkyl_vlasov_app_cout(app, stdout, "Number of write calls %ld,\n", stat.nio);
   gkyl_vlasov_app_cout(app, stdout, "IO time took %g secs \n", stat.io_tm);
 
-  gkyl_rect_decomp_release(decomp);
   gkyl_comm_release(comm);
   
   // simulation complete, free app

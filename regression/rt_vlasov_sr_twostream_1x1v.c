@@ -24,7 +24,6 @@ struct twostream_sr_ctx
 {
   // Mathematical constants (dimensionless).
   double pi;
-  double K_2; // Modified Bessel function of the second kind, evaluated for vt = 0.04 mc^2.
 
   // Physical constants (using normalized code units).
   double epsilon0; // Permittivity of free space.
@@ -32,7 +31,8 @@ struct twostream_sr_ctx
   double mass_elc; // Electron mass.
   double charge_elc; // Electron charge.
 
-  double vt; // Thermal velocity.
+  double n0; // Reference density.
+  double T; // Temperature (units of mc^2).
   double Vx_drift; // Drift velocity (x-direction).
 
   double alpha; // Applied perturbation amplitude.
@@ -40,7 +40,6 @@ struct twostream_sr_ctx
 
   // Derived physical quantities (using normalized code units).
   double gamma; // Gamma factor.
-  double E_over_vt; // Energy (mc^2) over thermal velocity.
 
   // Simulation parameters.
   int Nx; // Cell count (configuration space: x-direction).
@@ -61,7 +60,6 @@ create_ctx(void)
 {
   // Mathematical constants (dimensionless).
   double pi = M_PI;
-  double K_2 = 3.7467838080691090570137658745889511812329380156362352887017e-12; // Modified Bessel function of the second kind, evaluated for vt = 0.04 mc^2.
 
   // Physical constants (using normalized code units).
   double epsilon0 = 1.0; // Permittivity of free space.
@@ -69,7 +67,8 @@ create_ctx(void)
   double mass_elc = 1.0; // Electron mass.
   double charge_elc = -1.0; // Electron charge.
 
-  double vt = 0.04; // Thermal velocity.
+  double n0 = 1.0; // Reference density. 
+  double T = 0.04; // Temperature (units of mc^2).
   double Vx_drift = 0.9; // Drift velocity (x-direction).
 
   double alpha = 1.0e-3; // Applied perturbation amplitude.
@@ -77,7 +76,6 @@ create_ctx(void)
 
   // Derived physical quantities (using normalized code units).
   double gamma = 1.0 / sqrt(1.0 - (Vx_drift * Vx_drift)); // Gamma factor.
-  double E_over_vt = 1.0 / vt; // Energy (mc^2) over thermal velocity.
 
   // Simulation parameters.
   int Nx = 64; // Cell count (configuration space: x-direction).
@@ -94,17 +92,16 @@ create_ctx(void)
 
   struct twostream_sr_ctx ctx = {
     .pi = pi,
-    .K_2 = K_2,
     .epsilon0 = epsilon0,
     .mu0 = mu0,
     .mass_elc = mass_elc,
     .charge_elc = charge_elc,
-    .vt = vt,
+    .n0 = n0, 
+    .T = T,
     .Vx_drift = Vx_drift,
     .alpha = alpha,
     .kx = kx,
     .gamma = gamma,
-    .E_over_vt = E_over_vt,
     .Nx = Nx,
     .Nvx = Nvx,
     .Lx = Lx,
@@ -121,27 +118,52 @@ create_ctx(void)
 }
 
 void
-evalElcInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
+evalDensityInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
 {
   struct twostream_sr_ctx *app = ctx;
-  double x = xn[0], v = xn[1];
-
-  double pi = app->pi;
-  double K_2 = app->K_2;
-
-  double vt = app->vt;
-  double Vx_drift = app->Vx_drift;
+  double x = xn[0];
 
   double alpha = app->alpha;
   double kx = app->kx;
+  double n = 0.5*app->n0;
+
+  // Set density.
+  fout[0] = (1.0 + alpha * cos(kx * x))*n;
+}
+
+void
+evalTempInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
+{
+  struct twostream_sr_ctx *app = ctx;
+
+  double T = app->T;
+
+  // Set temperature.
+  fout[0] = T;
+}
+
+void
+evalVDriftLInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
+{
+  struct twostream_sr_ctx *app = ctx;
 
   double gamma = app->gamma;
-  double E_over_vt = app->E_over_vt;
+  double Vx_drift = app->Vx_drift;
 
-  double n = 1.0 + (alpha * cos(kx * x));
+  // Set left-going drift (four-) velocity.
+  fout[0] = gamma*Vx_drift;
+}
 
-  // Set electron distribution function.
-  fout[0] = ((0.5 * n) / (4.0 * pi * vt * K_2)) * (exp(-E_over_vt * gamma * (sqrt(1.0 + (v * v)) - (Vx_drift * v))) + exp(-E_over_vt * gamma * (sqrt(1.0 + (v * v)) + (Vx_drift * v))));
+void
+evalVDriftRInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
+{
+  struct twostream_sr_ctx *app = ctx;
+
+  double gamma = app->gamma;
+  double Vx_drift = app->Vx_drift;
+
+  // Set right-going drift (four-) velocity.
+  fout[0] = -gamma*Vx_drift;
 }
 
 void
@@ -207,13 +229,9 @@ main(int argc, char **argv)
   }
 #endif  
 
-  // Create global range.
   int ccells[] = { NX };
   int cdim = sizeof(ccells) / sizeof(ccells[0]);
-  struct gkyl_range cglobal_r;
-  gkyl_create_global_range(cdim, ccells, &cglobal_r);
 
-  // Create decomposition.
   int cuts[cdim];
 #ifdef GKYL_HAVE_MPI  
   for (int d = 0; d < cdim; d++) {
@@ -230,8 +248,6 @@ main(int argc, char **argv)
   }
 #endif  
     
-  struct gkyl_rect_decomp *decomp = gkyl_rect_decomp_new_from_cuts(cdim, cuts, &cglobal_r);
-
   // Construct communicator for use in app.
   struct gkyl_comm *comm;
 #ifdef GKYL_HAVE_MPI
@@ -239,7 +255,6 @@ main(int argc, char **argv)
 #ifdef GKYL_HAVE_NCCL
     comm = gkyl_nccl_comm_new( &(struct gkyl_nccl_comm_inp) {
         .mpi_comm = MPI_COMM_WORLD,
-        .decomp = decomp
       }
     );
 #else
@@ -250,20 +265,17 @@ main(int argc, char **argv)
   else if (app_args.use_mpi) {
     comm = gkyl_mpi_comm_new( &(struct gkyl_mpi_comm_inp) {
         .mpi_comm = MPI_COMM_WORLD,
-        .decomp = decomp
       }
     );
   }
   else {
     comm = gkyl_null_comm_inew( &(struct gkyl_null_comm_inp) {
-        .decomp = decomp,
         .use_gpu = app_args.use_gpu
       }
     );
   }
 #else
   comm = gkyl_null_comm_inew( &(struct gkyl_null_comm_inp) {
-      .decomp = decomp,
       .use_gpu = app_args.use_gpu
     }
   );
@@ -295,10 +307,29 @@ main(int argc, char **argv)
     .upper = { ctx.vx_max }, 
     .cells = { NVX },
 
-    .projection = {
-      .proj_id = GKYL_PROJ_FUNC,
-      .func = evalElcInit,
-      .ctx_func = &ctx,
+    .num_init = 2, 
+    // Two counter-streaming Maxwellians.
+    .projection[0] = {
+      .proj_id = GKYL_PROJ_VLASOV_LTE,
+      .density = evalDensityInit,
+      .ctx_density = &ctx,
+      .temp = evalTempInit,
+      .ctx_temp = &ctx,
+      .V_drift = evalVDriftLInit,
+      .ctx_V_drift = &ctx,
+      .correct_all_moms = true,
+      .use_last_converged = true, 
+    },
+    .projection[1] = {
+      .proj_id = GKYL_PROJ_VLASOV_LTE,
+      .density = evalDensityInit,
+      .ctx_density = &ctx,
+      .temp = evalTempInit,
+      .ctx_temp = &ctx,
+      .V_drift = evalVDriftRInit,
+      .ctx_V_drift = &ctx,
+      .correct_all_moms = true,
+      .use_last_converged = true, 
     },
 
     .num_diag_moments = 2,
@@ -337,13 +368,11 @@ main(int argc, char **argv)
 
     .field = field,
 
-    .use_gpu = app_args.use_gpu,
-
-    .has_low_inp = true,
-    .low_inp = {
-      .local_range = decomp->ranges[my_rank],
-      .comm = comm
-    }
+    .parallelism = {
+      .use_gpu = app_args.use_gpu,
+      .cuts = { app_args.cuts[0] },
+      .comm = comm,
+    },
   };
   
   // Create app object.
@@ -359,7 +388,8 @@ main(int argc, char **argv)
   // Initialize simulation.
   gkyl_vlasov_app_apply_ic(app, t_curr);
   write_data(&io_trig, app, t_curr, false);
-
+  gkyl_vlasov_app_calc_integrated_mom(app, t_curr);
+  gkyl_vlasov_app_calc_field_energy(app, t_curr);  
   // Compute initial guess of maximum stable time-step.
   double dt = t_end - t_curr;
 
@@ -381,6 +411,8 @@ main(int argc, char **argv)
     t_curr += status.dt_actual;
     dt = status.dt_suggested;
 
+    gkyl_vlasov_app_calc_integrated_mom(app, t_curr);
+    gkyl_vlasov_app_calc_field_energy(app, t_curr);  
     write_data(&io_trig, app, t_curr, false);
 
     if (dt_init < 0.0) {
@@ -405,6 +437,8 @@ main(int argc, char **argv)
     step += 1;
   }
 
+  gkyl_vlasov_app_write_integrated_mom(app);
+  gkyl_vlasov_app_write_field_energy(app);  
   write_data(&io_trig, app, t_curr, false);
   gkyl_vlasov_app_stat_write(app);
 
@@ -429,7 +463,6 @@ main(int argc, char **argv)
   gkyl_vlasov_app_cout(app, stdout, "IO time took %g secs \n", stat.io_tm);
 
   // Free resources after simulation completion.
-  gkyl_rect_decomp_release(decomp);
   gkyl_comm_release(comm);
   gkyl_vlasov_app_release(app);
 

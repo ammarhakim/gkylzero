@@ -2,6 +2,8 @@
 
 #include <gkyl_alloc.h>
 #include <gkyl_lua_utils.h>
+#include <gkyl_lw_priv.h>
+#include <gkyl_null_comm.h>
 #include <gkyl_pkpm.h>
 #include <gkyl_pkpm_lw.h>
 #include <gkyl_pkpm_priv.h>
@@ -12,6 +14,11 @@
 
 #include <string.h>
 
+#ifdef GKYL_HAVE_MPI
+#include <mpi.h>
+#include <gkyl_mpi_comm.h>
+#endif
+
 // Check and fetch user-data based on metatable name
 #define CHECK_UDATA(L, mnm) luaL_checkudata(L, 1, mnm)
 
@@ -21,33 +28,12 @@
       fprintf(stdout, "--> Top of stack is %s\n", lua_typename(L, lua_type(L, -1))); \
     } while (0);
 
-// Get basis type from string
-static enum gkyl_basis_type
-get_basis_type(const char *bnm)
-{
-  if (strcmp(bnm, "serendipity") == 0)
-    return GKYL_BASIS_MODAL_SERENDIPITY;
-  if (strcmp(bnm, "tensor") == 0)
-    return GKYL_BASIS_MODAL_TENSOR;
-  if (strcmp(bnm, "hybrid") == 0)
-    return GKYL_BASIS_MODAL_HYBRID;
-
-  return GKYL_BASIS_MODAL_SERENDIPITY;
-}
-
 // Magic IDs for use in distinguishing various species and field types
 enum pkpm_magic_ids {
   PKPM_SPECIES_DEFAULT = 100, // non-relativistic PKPM model
   PKPM_FIELD_DEFAULT, // Maxwell equations
   PKPM_COLLISIONS_DEFAULT, // LBO Collisions
   PKPM_DIFFUSION_DEFAULT, // Diffusion operator
-};
-
-// Used in call back passed to the initial conditions
-struct lua_func_ctx {
-  int func_ref; // reference to Lua function in registery
-  int ndim, nret; // dimensions of function, number of return values
-  lua_State *L; // Lua state
 };
 
 static void
@@ -501,6 +487,15 @@ pkpm_app_new(lua_State *L)
       pkpm.cells[d] = glua_tbl_iget_integer(L, d+1, 0);
   }
 
+  int cuts[GKYL_MAX_DIM];
+  for (int d=0; d<cdim; ++d) cuts[d] = 1;
+  
+  with_lua_tbl_tbl(L, "decompCuts") {
+    int ncuts = glua_objlen(L);
+    for (int d=0; d<ncuts; ++d)
+      cuts[d] = glua_tbl_iget_integer(L, d+1, 0);
+  }  
+
   with_lua_tbl_tbl(L, "lower") {
     for (int d=0; d<cdim; ++d)
       pkpm.lower[d] = glua_tbl_iget_number(L, d+1, 0);
@@ -545,8 +540,8 @@ pkpm_app_new(lua_State *L)
     // get context for species' applied acceleration if they exist
     if (pkpm_s_lw[s]->has_app_accel) {
       app_lw->app_accel_func_ctx[s] = pkpm_s_lw[s]->app_accel_ref;
-      pkpm.species[s].accel = eval_ic;
-      pkpm.species[s].accel_ctx = &app_lw->app_accel_func_ctx[s];
+      pkpm.species[s].app_accel = eval_ic;
+      pkpm.species[s].app_accel_ctx = &app_lw->app_accel_func_ctx[s];
     }
 
     // assign the App's species object collision struct to user input collision struct 
@@ -564,7 +559,6 @@ pkpm_app_new(lua_State *L)
   }
 
   // set field input
-  pkpm.skip_field = true;
   with_lua_tbl_key(L, "field") {
     if (lua_type(L, -1) == LUA_TUSERDATA) {
       struct pkpm_field_lw *pkpm_f_lw = lua_touserdata(L, -1);
@@ -572,7 +566,6 @@ pkpm_app_new(lua_State *L)
         pkpm_f_lw->init_ref.ndim = cdim;
 
         pkpm.field = pkpm_f_lw->pkpm_field;
-        pkpm.skip_field = false; // if field object is present, we are updating the fields
 
         app_lw->field_func_ctx = pkpm_f_lw->init_ref;
         pkpm.field.init = eval_ic;
@@ -595,9 +588,52 @@ pkpm_app_new(lua_State *L)
       }
     }
   }
+
+  // create parallelism
+  struct gkyl_comm *comm = 0;
+  bool has_mpi = false;
+
+  for (int d=0; d<cdim; ++d)
+    pkpm.parallelism.cuts[d] = cuts[d]; 
   
+#ifdef GKYL_HAVE_MPI
+  with_lua_global(L, "GKYL_MPI_COMM") {
+    if (lua_islightuserdata(L, -1)) {
+      has_mpi = true;
+      MPI_Comm mpi_comm = lua_touserdata(L, -1);
+      comm = gkyl_mpi_comm_new( &(struct gkyl_mpi_comm_inp) {
+          .mpi_comm = mpi_comm,
+        }
+      );
+
+    }
+  }
+#endif
+
+  if (!has_mpi) {
+    // if there is no proper MPI_Comm specifed, the assume we are a
+    // serial sim
+    comm = gkyl_null_comm_inew( &(struct gkyl_null_comm_inp) {} );
+  }
+  pkpm.parallelism.comm = comm;
+
+  int rank;
+  gkyl_comm_get_rank(comm, &rank);
+
+  int comm_sz;
+  gkyl_comm_get_size(comm, &comm_sz);
+
+  int tot_cuts = 1; for (int d=0; d<cdim; ++d) tot_cuts *= cuts[d];
+
+  if (tot_cuts != comm_sz) {
+    printf("tot_cuts = %d (%d)\n", tot_cuts, comm_sz);
+    luaL_error(L, "Number of ranks and cuts do not match!");
+  }
+
   app_lw->app = gkyl_pkpm_app_new(&pkpm);
-  
+
+  gkyl_comm_release(comm);
+
   // create Lua userdata ...
   struct pkpm_app_lw **l_app_lw = lua_newuserdata(L, sizeof(struct pkpm_app_lw*));
   *l_app_lw = app_lw; // ... point it to the Lua app pointer

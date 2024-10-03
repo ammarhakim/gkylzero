@@ -1,8 +1,9 @@
 #include <acutest.h>
 
-#include <gkyl_null_comm.h>
 #include <gkyl_array_rio.h>
+#include <gkyl_comm_io.h>
 #include <gkyl_elem_type_priv.h>
+#include <gkyl_null_comm.h>
 
 void
 test_1d()
@@ -18,6 +19,9 @@ test_1d()
       .decomp = decomp
     }
   );
+
+  TEST_CHECK( strcmp(comm->id, "null_comm") == 0 );
+  TEST_CHECK( comm->has_decomp );
 
   int rank;
   gkyl_comm_get_rank(comm, &rank);

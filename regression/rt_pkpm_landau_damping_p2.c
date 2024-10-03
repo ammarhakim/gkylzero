@@ -4,15 +4,30 @@
 
 #include <gkyl_alloc.h>
 #include <gkyl_pkpm.h>
+#include <gkyl_util.h>
+
+#include <gkyl_null_comm.h>
+
+#ifdef GKYL_HAVE_MPI
+#include <mpi.h>
+#include <gkyl_mpi_comm.h>
+#ifdef GKYL_HAVE_NCCL
+#include <gkyl_nccl_comm.h>
+#endif
+#endif
+
 #include <rt_arg_parse.h>
 
 struct langmuir_ctx {
   double charge; // charge
   double mass; // mass
   double vt; // thermal velocity
-  double Lx; // size of the box
-  double k0; // wave number
   double perturb; // perturbation amplitude
+  double k0; // wave number
+  double Lx; // Domain size (x-direction).
+  int Nx; // Cell count (x-direction).
+  double t_end; // Final simulation time.
+  double init_dt; // Initial time step guess so first step does not generate NaN
 };
 
 static inline double sq(double x) { return x*x; }
@@ -62,7 +77,7 @@ evalFieldFunc(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fo
 void
 evalExtEmFunc(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
 {
-  struct pkpm_sheath_ctx *app = ctx;
+  struct langmuir_ctx *app = ctx;
   double x = xn[0];
   double B_x = 1.0;
   
@@ -81,13 +96,24 @@ evalNu(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, vo
 struct langmuir_ctx
 create_ctx(void)
 {
+  double k0 = 0.5;
+  double Lx = M_PI/k0; 
+  int Nx = 32; 
+  double dx = Lx/Nx;
+  double t_end = 20.0;
+  // initial dt guess so first step does not generate NaN
+  double init_dt = (Lx/Nx)/(3.0);
+
   struct langmuir_ctx ctx = {
     .mass = 1.0,
     .charge = -1.0,
     .vt = 1.0,
-    .Lx = M_PI/0.5,
-    .k0 = 0.5,
-    .perturb = 1.e-1
+    .perturb = 1.e-1, 
+    .k0 = k0,
+    .Lx = Lx,
+    .Nx = Nx, 
+    .t_end = t_end, 
+    .init_dt = init_dt, 
   };
   return ctx;
 }
@@ -104,14 +130,21 @@ main(int argc, char **argv)
 {
   struct gkyl_app_args app_args = parse_app_args(argc, argv);
 
-  int NX = APP_ARGS_CHOOSE(app_args.xcells[0], 32);
+#ifdef GKYL_HAVE_MPI
+  if (app_args.use_mpi) {
+    MPI_Init(&argc, &argv);
+  }
+#endif
+
+  struct langmuir_ctx ctx = create_ctx(); // context for init functions
+
+  int NX = APP_ARGS_CHOOSE(app_args.xcells[0], ctx.Nx);
   int NV = APP_ARGS_CHOOSE(app_args.vcells[0], 32);
 
   if (app_args.trace_mem) {
     gkyl_cu_dev_mem_debug_set(true);
     gkyl_mem_debug_set(true);
   }
-  struct langmuir_ctx ctx = create_ctx(); // context for init functions
 
   // electrons
   struct gkyl_pkpm_species elc = {
@@ -147,6 +180,65 @@ main(int argc, char **argv)
     .ext_em_ctx = &ctx,
   };
 
+  int nrank = 1; // Number of processes in simulation.
+#ifdef GKYL_HAVE_MPI
+  if (app_args.use_mpi) {
+    MPI_Comm_size(MPI_COMM_WORLD, &nrank);
+  }
+#endif
+
+  // Construct communicator for use in app.
+  struct gkyl_comm *comm;
+#ifdef GKYL_HAVE_MPI
+  if (app_args.use_gpu && app_args.use_mpi) {
+#ifdef GKYL_HAVE_NCCL
+    comm = gkyl_nccl_comm_new( &(struct gkyl_nccl_comm_inp) {
+        .mpi_comm = MPI_COMM_WORLD,
+      }
+    );
+#else
+    printf(" Using -g and -M together requires NCCL.\n");
+    assert(0 == 1);
+#endif
+  }
+  else if (app_args.use_mpi) {
+    comm = gkyl_mpi_comm_new( &(struct gkyl_mpi_comm_inp) {
+        .mpi_comm = MPI_COMM_WORLD,
+      }
+    );
+  }
+  else {
+    comm = gkyl_null_comm_inew( &(struct gkyl_null_comm_inp) {
+        .use_gpu = app_args.use_gpu
+      }
+    );
+  }
+#else
+  comm = gkyl_null_comm_inew( &(struct gkyl_null_comm_inp) {
+      .use_gpu = app_args.use_gpu
+    }
+  );
+#endif
+
+  int my_rank;
+  gkyl_comm_get_rank(comm, &my_rank);
+  int comm_size;
+  gkyl_comm_get_size(comm, &comm_size);
+
+  int ccells[] = { NX };
+  int cdim = sizeof(ccells) / sizeof(ccells[0]);
+  int ncuts = 1;
+  for (int d = 0; d < cdim; d++) {
+    ncuts *= app_args.cuts[d];
+  }
+
+  if (ncuts != comm_size) {
+    if (my_rank == 0) {
+      fprintf(stderr, "*** Number of ranks, %d, does not match total cuts, %d!\n", comm_size, ncuts);
+    }
+    goto mpifinalize;
+  }
+
   // pkpm app
   struct gkyl_pkpm pkpm = {
     .name = "pkpm_landau_damping_p2",
@@ -158,6 +250,8 @@ main(int argc, char **argv)
     .poly_order = 2,
     .basis_type = app_args.basis_type,
 
+    .use_explicit_source = true, 
+
     .num_periodic_dir = 1,
     .periodic_dirs = { 0 },
 
@@ -165,18 +259,23 @@ main(int argc, char **argv)
     .species = { elc },
     .field = field,
 
-    .use_gpu = app_args.use_gpu,
+    .parallelism = {
+      .use_gpu = app_args.use_gpu,
+      .cuts = { app_args.cuts[0] },
+      .comm = comm,
+    },
   };
 
   // create app object
   gkyl_pkpm_app *app = gkyl_pkpm_app_new(&pkpm);
 
   // start, end and initial time-step
-  double tcurr = 0.0, tend = 20.;
-  double dt = tend-tcurr;
-  int nframe = 100;
+  double tcurr = 0.0, tend = ctx.t_end;
+  double dt = ctx.init_dt;
+  int nframe = 1;
   // create trigger for IO
   struct gkyl_tm_trigger io_trig = { .dt = tend/nframe };
+
 
   // initialize simulation
   gkyl_pkpm_app_apply_ic(app, tcurr);
@@ -236,8 +335,17 @@ main(int argc, char **argv)
   gkyl_pkpm_app_cout(app, stdout, "Number of write calls %ld,\n", stat.nio);
   gkyl_pkpm_app_cout(app, stdout, "IO time took %g secs \n", stat.io_tm);
 
+  gkyl_comm_release(comm);
+
   // simulation complete, free app
   gkyl_pkpm_app_release(app);
+
+  mpifinalize:
+  ;
+#ifdef GKYL_HAVE_MPI
+  if (app_args.use_mpi)
+    MPI_Finalize();
+#endif  
   
   return 0;
 }

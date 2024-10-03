@@ -57,30 +57,6 @@ struct gk_step_ctx {
   int num_failures_max; // Maximum allowable number of consecutive small time-steps.
 };
 
-struct gkyl_tok_geo_efit_inp inp = {
-  // psiRZ and related inputs
-  .filepath = "./data/eqdsk/step.geqdsk",
-  .rzpoly_order = 2,
-  .rz_basis_type = GKYL_BASIS_MODAL_TENSOR,
-  .fluxpoly_order = 1,
-  .plate_spec = false,
-  .quad_param = {  .eps = 1e-10 },
-  .reflect = true,
-};
-
-
-struct gkyl_tok_geo_grid_inp ginp = {
-    .ftype = GKYL_SOL_DN_OUT_MID,
-    .rright= 6.2,
-    .rleft= 1.1,
-    .rmin = 2.1,
-    .rmax = 6.2,
-    .zxpt_lo = -6.1672666854902927,
-    .zxpt_up = 6.1672666854902927,
-    .write_node_coord_array = true,
-    .node_file_nm = "step_outboard_fixed_z_nodes.gkyl"
-  };
-
 void
 eval_density(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
 {
@@ -261,7 +237,6 @@ create_ctx(void)
 
   // Simulation box size (m).
   double lower_x = 0.934;
-  //double upper_x = 1.4688;
   double upper_x = 1.5093065418975686;
   double Lx = upper_x - lower_x;
   double Lz = (M_PI-1e-14)*2.0;
@@ -389,17 +364,8 @@ main(int argc, char **argv)
   for (int d=0; d<ctx.vdim; d++)
     cells_v[d] = APP_ARGS_CHOOSE(app_args.vcells[d], ctx.cells[ctx.cdim+d]);
 
-  // Create decomposition.
-  struct gkyl_rect_decomp *decomp = gkyl_gyrokinetic_comms_decomp_new(ctx.cdim, cells_x, app_args.cuts, app_args.use_mpi, stderr);
-
   // Construct communicator for use in app.
-  struct gkyl_comm *comm = gkyl_gyrokinetic_comms_new(app_args.use_mpi, app_args.use_gpu, decomp, stderr);
-
-  int my_rank = 0;
-#ifdef GKYL_HAVE_MPI
-  if (app_args.use_mpi)
-    gkyl_comm_get_rank(comm, &my_rank);
-#endif
+  struct gkyl_comm *comm = gkyl_gyrokinetic_comms_new(app_args.use_mpi, app_args.use_gpu, stderr);
 
   // Electrons.
   struct gkyl_gyrokinetic_species elc = {
@@ -684,11 +650,29 @@ main(int argc, char **argv)
                     .lo_value = {0.0}, .up_value = {0.0}}, 
   };
 
+  struct gkyl_efit_inp efit_inp = {
+    // psiRZ and related inputs
+    .filepath = "./data/eqdsk/step.geqdsk",   // equilibrium to use
+    .rz_poly_order = 2,                       // polynomial order for psi(R,Z) used for field line tracing
+    .flux_poly_order = 1,                     // polynomial order for fpol(psi)
+    .reflect = true,                          // Reflect lower half of psi(R,Z) for up-down symmetry
+  };
+
+  struct gkyl_tok_geo_grid_inp grid_inp = {
+      .ftype = GKYL_SOL_DN_OUT_MID, // type of geometry
+      .rclose = 6.2,                // closest R to region of interest
+      .rright= 6.2,                 // Closest R to outboard SOL
+      .rleft= 2.0,                  // closest R to inboard SOL
+      .rmin = 1.1,                  // smallest R in machine
+      .rmax = 6.2,                  // largest R in machine
+      .use_cubics = false,          // Whether to use cubic representation of psi(R,Z) for field line tracing
+  };
+
   // GK app
   struct gkyl_gk gk = {
     .name = "gk_step_out_2x2v_p1",
 
-    .cdim = 2, .vdim = 2,
+    .cdim = ctx.cdim, .vdim = ctx.vdim,
     .lower = { ctx.lower_x, -ctx.Lz/2.0 },
     .upper = { ctx.upper_x,  ctx.Lz/2.0 },
     .cells = { cells_x[0], cells_x[1] },
@@ -698,8 +682,8 @@ main(int argc, char **argv)
     .geometry = {
       .world = {0.0},
       .geometry_id = GKYL_TOKAMAK,
-      .tok_efit_info = &inp,
-      .tok_grid_info = &ginp,
+      .efit_info = efit_inp,
+      .tok_grid_info = grid_inp,
     },
 
     .num_periodic_dir = 0,
@@ -713,13 +697,11 @@ main(int argc, char **argv)
 
     .field = field,
 
-    .use_gpu = app_args.use_gpu,
-
-    .has_low_inp = true,
-    .low_inp = {
-      .local_range = decomp->ranges[my_rank],
-      .comm = comm
-    }
+    .parallelism = {
+      .use_gpu = app_args.use_gpu,
+      .cuts = { app_args.cuts[0], app_args.cuts[1] },
+      .comm = comm,
+    },
   };
 
   // Create app object.
@@ -829,7 +811,7 @@ main(int argc, char **argv)
   freeresources:
   // Free resources after simulation completion.
   gkyl_gyrokinetic_app_release(app);
-  gkyl_gyrokinetic_comms_release(decomp, comm);
+  gkyl_gyrokinetic_comms_release(comm);
 
 #ifdef GKYL_HAVE_MPI
   if (app_args.use_mpi)

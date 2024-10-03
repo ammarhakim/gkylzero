@@ -88,7 +88,8 @@ main(int argc, char **argv)
     .upper = { 6.0*ctx.vt}, 
     .cells = { 32 },
 
-    .projection = {
+    .num_init = 1, 
+    .projection[0] = {
       .proj_id = GKYL_PROJ_FUNC,
       .func = evalDistFunc,
       .ctx_func = &ctx,
@@ -131,7 +132,9 @@ main(int argc, char **argv)
     .species = { elc },
     .field = field,
 
-    .use_gpu = app_args.use_gpu,
+    .parallelism = {
+      .use_gpu = app_args.use_gpu,
+    },
   };
 
   // create app object

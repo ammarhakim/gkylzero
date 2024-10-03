@@ -127,7 +127,8 @@ main(int argc, char **argv)
     .h_ij_inv_ctx = &ctx,
     .det_h_ctx = &ctx,
 
-    .projection = {
+    .num_init = 1, 
+    .projection[0] = {
       .proj_id = GKYL_PROJ_VLASOV_LTE,
       .density = evalDensityInit,
       .ctx_density = &ctx,
@@ -167,7 +168,9 @@ main(int argc, char **argv)
     .species = { neut },
     .skip_field = true,
 
-    .use_gpu = app_args.use_gpu,
+    .parallelism = {
+      .use_gpu = app_args.use_gpu,
+    },
   };
 
   // create app object

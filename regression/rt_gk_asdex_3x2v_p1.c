@@ -12,7 +12,7 @@
 #include <rt_arg_parse.h>
 
 struct gk_asdex_ctx {
-  int cdim, vdim; // Dimensionality
+  int cdim, vdim; // Dimensionality.
   double chargeElc; // electron charge
   double massElc; // electron mass
   double chargeIon; // ion charge
@@ -55,32 +55,6 @@ void shaped_pfunc_lower(double s, double* RZ){
   RZ[0] = 1.6 + (1.8 - 1.6)*s;
   RZ[1] = -1.26 + (-1.1 + 1.26)*s;
 }
-
-struct gkyl_tok_geo_efit_inp inp = {
-  // psiRZ and related inputs
-  .filepath = "./data/eqdsk/asdex.geqdsk",
-  .rzpoly_order = 2,
-  .fluxpoly_order = 1,
-  .plate_spec = true,
-  .plate_func_lower = shaped_pfunc_lower,
-  .plate_func_upper = shaped_pfunc_upper,
-  .quad_param = {  .eps = 1e-10 }
-};
-
-struct gkyl_tok_geo_grid_inp ginp = {
-  .ftype = GKYL_SOL_SN_LO,
-  .rclose = 2.5,
-  .rright = 2.5,
-  .rleft = 0.7,
-  .rmax = 2.5,
-  .rmin = 0.7,
-  .zmin = -1.3,
-  .zmax = 1.0,
-  .zmin_left = -1.3,
-  .zmin_right = -1.3,
-  .write_node_coord_array = true,
-  .node_file_nm = "asdex_fixed_z_nodes.gkyl"
-};
 
 double random0to1() 
 {
@@ -270,7 +244,7 @@ create_ctx(void)
   double r0 = 0.5;   
   double Lx = 0.02;
   double Ly = 50 * rho_s * q0/r0 ; 
-  double Lz = 3.14*2;
+  double Lz = (M_PI-1e-14)*2.0 ; // Domain size (configuration space: z-direction).
 
   // Source parameters.
   double x_source = 0.16167;
@@ -384,17 +358,8 @@ main(int argc, char **argv)
   for (int d=0; d<ctx.vdim; d++)
     cells_v[d] = APP_ARGS_CHOOSE(app_args.vcells[d], ctx.cells[ctx.cdim+d]);
 
-  // Create decomposition.
-  struct gkyl_rect_decomp *decomp = gkyl_gyrokinetic_comms_decomp_new(ctx.cdim, cells_x, app_args.cuts, app_args.use_mpi, stderr);
-
   // Construct communicator for use in app.
-  struct gkyl_comm *comm = gkyl_gyrokinetic_comms_new(app_args.use_mpi, app_args.use_gpu, decomp, stderr);
-
-  int my_rank = 0;
-#ifdef GKYL_HAVE_MPI
-  if (app_args.use_mpi)
-    gkyl_comm_get_rank(comm, &my_rank);
-#endif
+  struct gkyl_comm *comm = gkyl_gyrokinetic_comms_new(app_args.use_mpi, app_args.use_gpu, stderr);
 
   // electrons
   struct gkyl_gyrokinetic_species elc = {
@@ -510,11 +475,34 @@ main(int argc, char **argv)
                     .lo_value = {0.0, 0.0}, .up_value = {0.0, 0.0}}, 
   };
 
+  struct gkyl_efit_inp efit_inp = {
+    // psiRZ and related inputs
+    .filepath = "./data/eqdsk/asdex.geqdsk", // equilibrium to use
+    .rz_poly_order = 2,                      // polynomial order for psi(R,Z) used for field line tracing
+    .flux_poly_order = 1,                    // polynomial order for fpol(psi)
+  };
+
+  struct gkyl_tok_geo_grid_inp grid_inp = {
+    .ftype = GKYL_SOL_SN_LO,                   // type of geometry
+    .rclose = 2.5,                             // closest R to region of interest
+    .rright = 2.5,                             // Closest R to outboard SOL
+    .rleft = 0.7,                              // closest R to inboard SOL
+    .rmax = 2.5,                               // largest R in machine
+    .rmin = 0.7,                               // smallest R in machine
+    .zmin = -1.3,                              // Lower Z boundary 
+    .zmax = 1.0,                               // Upper Z boundary
+    .zmin_left = -1.3,                         // Z of inboard divertor plate
+    .zmin_right = -1.3,                        // Z of outboard divertor plate
+    .plate_spec = true,                        // Whether we have specified shape function for plates
+    .plate_func_lower = shaped_pfunc_lower,    // function of s \in [0,1] which gives R and Z on lower divertor plate
+    .plate_func_upper = shaped_pfunc_upper,     // function of s \in [0,1] which gives R and Z on lower divertor plate
+  };
+
   // GK app
   struct gkyl_gk gk = {
     .name = "gk_asdex_3x2v_p1",
 
-    .cdim = 3, .vdim = 2,
+    .cdim = ctx.cdim, .vdim = ctx.vdim,
     .lower = { 0.16, -ctx.Ly/2.0, -ctx.Lz/2.0 },
     .upper = { 0.17501, ctx.Ly/2.0, ctx.Lz/2.0 },
     .cells = { cells_x[0], cells_x[1], cells_x[2] },
@@ -523,8 +511,8 @@ main(int argc, char **argv)
 
     .geometry = {
       .geometry_id = GKYL_TOKAMAK,
-      .tok_efit_info = &inp,
-      .tok_grid_info = &ginp,
+      .efit_info = efit_inp,
+      .tok_grid_info = grid_inp,
     },
 
     .num_periodic_dir = 1,
@@ -534,13 +522,11 @@ main(int argc, char **argv)
     .species = { elc, ion },
     .field = field,
 
-    .use_gpu = app_args.use_gpu,
-
-    .has_low_inp = true,
-    .low_inp = {
-      .local_range = decomp->ranges[my_rank],
-      .comm = comm
-    }
+    .parallelism = {
+      .use_gpu = app_args.use_gpu,
+      .cuts = { app_args.cuts[0], app_args.cuts[1], app_args.cuts[2] },
+      .comm = comm,
+    },
   };
 
   // Create app object.
@@ -651,7 +637,7 @@ main(int argc, char **argv)
   freeresources:
   // simulation complete, free app
   gkyl_gyrokinetic_app_release(app);
-  gkyl_gyrokinetic_comms_release(decomp, comm);
+  gkyl_gyrokinetic_comms_release(comm);
   
 #ifdef GKYL_HAVE_MPI
   if (app_args.use_mpi) {

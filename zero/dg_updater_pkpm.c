@@ -12,7 +12,7 @@
 gkyl_dg_updater_pkpm*
 gkyl_dg_updater_pkpm_new(const struct gkyl_rect_grid *conf_grid, const struct gkyl_rect_grid *phase_grid, 
   const struct gkyl_basis *conf_basis, const struct gkyl_basis *phase_basis, 
-  const struct gkyl_range *conf_range, const struct gkyl_range *vel_range, const struct gkyl_range *phase_range,
+  const struct gkyl_range *conf_range, const struct gkyl_range *phase_range,
   const bool *is_zero_flux_dir, 
   struct gkyl_dg_vlasov_pkpm_auxfields *vlasov_pkpm_inp, struct gkyl_dg_euler_pkpm_auxfields *euler_pkpm_inp, 
   bool use_gpu)

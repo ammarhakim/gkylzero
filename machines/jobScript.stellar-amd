@@ -15,7 +15,7 @@
 #.Request wall time
 #SBATCH -t 00:30:00
 
-#.Specify GPU needs:
+#.Specify GPUs per node (stellar-amd has 2):
 #SBATCH --gres=gpu:2
 
 #.Mail is sent to you when the job starts and when it terminates or aborts.

@@ -90,8 +90,8 @@ test_1x1v(int poly_order, bool use_gpu)
     confUpper[d] = upper[d];
     confCells[d] = cells[d];
   }
-  double vLower[vdim], vUpper[vdim];
-  int vCells[vdim];
+  double vLower[3], vUpper[3];
+  int vCells[3];
   for (int d=0; d<vdim; d++) {
     vLower[d] = lower[cdim+d];
     vUpper[d] = upper[cdim+d];
@@ -126,7 +126,7 @@ test_1x1v(int poly_order, bool use_gpu)
   struct skin_ghost_ranges skin_ghost; // phase-space skin/ghost
   skin_ghost_ranges_init(&skin_ghost, &local_ext, ghost);
 
-  int vGhost[vdim] = { 0 };
+  int vGhost[3] = { 0 };
   struct gkyl_range vLocal, vLocal_ext;
   gkyl_create_grid_ranges(&vGrid, vGhost, &vLocal_ext, &vLocal);
 
@@ -327,8 +327,8 @@ test_1x2v(int poly_order, bool use_gpu)
     confUpper[d] = upper[d];
     confCells[d] = cells[d];
   }
-  double vLower[vdim], vUpper[vdim];
-  int vCells[vdim];
+  double vLower[3], vUpper[3];
+  int vCells[3];
   for (int d=0; d<vdim; d++) {
     vLower[d] = lower[cdim+d];
     vUpper[d] = upper[cdim+d];
@@ -363,7 +363,7 @@ test_1x2v(int poly_order, bool use_gpu)
   struct skin_ghost_ranges skin_ghost; // phase-space skin/ghost
   skin_ghost_ranges_init(&skin_ghost, &local_ext, ghost);
 
-  int vGhost[vdim] = {0};
+  int vGhost[3] = {0};
   struct gkyl_range vLocal, vLocal_ext;
   gkyl_create_grid_ranges(&vGrid, vGhost, &vLocal_ext, &vLocal);
 
@@ -594,8 +594,8 @@ test_1x2v_gk(int poly_order, bool use_gpu)
     confUpper[d] = upper[d];
     confCells[d] = cells[d];
   }
-  double vLower[vdim], vUpper[vdim];
-  int vCells[vdim];
+  double vLower[3], vUpper[3];
+  int vCells[3];
   for (int d=0; d<vdim; d++) {
     vLower[d] = lower[cdim+d];
     vUpper[d] = upper[cdim+d];
@@ -630,7 +630,7 @@ test_1x2v_gk(int poly_order, bool use_gpu)
   struct skin_ghost_ranges skin_ghost; // phase-space skin/ghost
   skin_ghost_ranges_init(&skin_ghost, &local_ext, ghost);
 
-  int vGhost[vdim] = {0};
+  int vGhost[3] = {0};
   struct gkyl_range vLocal, vLocal_ext;
   gkyl_create_grid_ranges(&vGrid, vGhost, &vLocal_ext, &vLocal);
 
