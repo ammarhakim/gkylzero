@@ -698,7 +698,7 @@ main(int argc, char **argv)
     .source = {
       .source_id = GKYL_PROJ_SOURCE,
       .write_source = false,
-      .num_sources = 1,
+      .num_sources = 2,
       .projection[0] = {
         .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM,
         .ctx_density = &ctx,
@@ -775,7 +775,7 @@ main(int argc, char **argv)
     .source = {
       .source_id = GKYL_PROJ_SOURCE,
       .write_source = false,
-      .num_sources = 1,
+      .num_sources = 2,
       .projection[0] = {
         .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM,
         .ctx_density = &ctx,
