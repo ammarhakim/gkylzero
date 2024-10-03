@@ -759,10 +759,10 @@ gk_species_release(const gkyl_gyrokinetic_app* app, const struct gk_species *s)
     gkyl_dynvec_release(s->ps_integ_diag);
   }
 
+  gkyl_array_release(s->m0_gyroavg);
   if (s->info.flr.type) {
     gkyl_array_release(s->flr_rhoSqD2);
     gkyl_array_release(s->flr_kSq);
-    gkyl_array_release(s->m0_gyroavg);
     gkyl_deflated_fem_poisson_release(s->flr_op);
   }
 }
