@@ -37,6 +37,9 @@ vlasov_update_ssp_rk3(gkyl_vlasov_app* app, double dt0)
             fout, fluidout, app->has_field ? app->field->em1 : 0,
             &st
           );
+
+          vm_apply_bc(app, tcurr, fout, fluidout, app->has_field ? app->field->em1 : 0);
+
           // Limit fluid and EM solutions if desired (done after update as post-hoc fix)
           for (int i=0; i<nfs; ++i) {
             vm_fluid_species_limiter(app, &app->fluid_species[i], fluidout[i]);
@@ -67,6 +70,9 @@ vlasov_update_ssp_rk3(gkyl_vlasov_app* app, double dt0)
             fout, fluidout, app->has_field ? app->field->emnew : 0,
             &st
           );
+
+          vm_apply_bc(app, tcurr, fout, fluidout, app->has_field ? app->field->emnew : 0);
+
           // Limit fluid and EM solutions if desired (done after update as post-hoc fix)
           for (int i=0; i<nfs; ++i) {
             vm_fluid_species_limiter(app, &app->fluid_species[i], fluidout[i]);
@@ -120,6 +126,9 @@ vlasov_update_ssp_rk3(gkyl_vlasov_app* app, double dt0)
             fout, fluidout, app->has_field ? app->field->emnew : 0,
             &st
           );
+
+          vm_apply_bc(app, tcurr, fout, fluidout, app->has_field ? app->field->emnew : 0);
+
           // Limit fluid and EM solutions if desired (done after update as post-hoc fix)
           for (int i=0; i<nfs; ++i) {
             vm_fluid_species_limiter(app, &app->fluid_species[i], fluidout[i]);
