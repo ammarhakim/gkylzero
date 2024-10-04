@@ -513,10 +513,6 @@ gkyl_proj_maxwellian_pots_deriv_on_basis_advance(const gkyl_proj_maxwellian_pots
 void 
 gkyl_proj_maxwellian_pots_on_basis_release(gkyl_proj_maxwellian_pots_on_basis *up)
 {
-  gkyl_array_release(up->conf_ordinates);
-  gkyl_array_release(up->conf_weights);
-  gkyl_array_release(up->conf_basis_at_ords);
-
   gkyl_array_release(up->ordinates);
   gkyl_array_release(up->weights);
   gkyl_array_release(up->basis_at_ords);
@@ -542,6 +538,10 @@ gkyl_proj_maxwellian_pots_on_basis_release(gkyl_proj_maxwellian_pots_on_basis *u
     gkyl_mat_mm_array_mem_release(up->surf_quad_nodal_to_modal_mem);
 
     gkyl_cart_modal_basis_release_cu(up->surf_basis_dev);
+
+    gkyl_array_release(up->conf_ordinates);
+    gkyl_array_release(up->conf_weights);
+    gkyl_array_release(up->conf_basis_at_ords);
   }
   else {
     gkyl_array_release(up->fpo_h_at_ords);
