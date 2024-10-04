@@ -26,6 +26,8 @@ typedef void (*fpo_correct_accum_t)(const double *drag_diff_coeff_corrs, double 
 
 // Object type
 struct gkyl_fpo_coeffs_correct {
+  int num_conf_basis;
+
   const struct gkyl_rect_grid *grid;
   const struct gkyl_basis *conf_basis;
 
@@ -35,6 +37,8 @@ struct gkyl_fpo_coeffs_correct {
 
   fpo_correct_mat_set_t mat_set_kernel;
   fpo_correct_accum_t accum_kernel;
+
+  uint32_t flags;
 
   struct gkyl_fpo_coeffs_correct *on_dev; // Pointer to device copy of struct
 };

@@ -1,14 +1,15 @@
 #include <math.h>
 #include <string.h>
 
-#include <gkyl_const.h>
 #include <gkyl_basis.h>
+#include <gkyl_const.h>
 #include <gkyl_eval_on_nodes.h>
 #include <gkyl_fpo_proj_maxwellian_pots_on_basis.h>
 #include <gkyl_gauss_quad_data.h>
-#include <gkyl_util.h>
+#include <gkyl_mat.h>
+#include <gkyl_mat_priv.h>
 #include <gkyl_rect_grid.h>
-
+#include <gkyl_util.h>
 
 struct gkyl_proj_maxwellian_pots_on_basis {
   struct gkyl_rect_grid grid;
@@ -18,16 +19,22 @@ struct gkyl_proj_maxwellian_pots_on_basis {
   
   bool use_gpu;
 
-  const struct gkyl_basis *phase_basis;
-  const struct gkyl_basis *conf_basis;
+  struct gkyl_basis phase_basis;
+  struct gkyl_basis conf_basis;
   struct gkyl_basis surf_basis;
 
   int num_conf_basis; // number of configuration space basis functions
   int num_phase_basis; // number of phase space basis functions
   int num_surf_basis; // Number of surface basis functions
  
-  int tot_quad;
+  int tot_conf_quad;
   struct gkyl_range conf_qrange;
+  struct gkyl_array *conf_ordinates;
+  struct gkyl_array *conf_weights;
+  struct gkyl_array *conf_basis_at_ords;
+  struct gkyl_array *conf_basis_at_nodes;
+
+  int tot_quad;
   struct gkyl_range phase_qrange;
   struct gkyl_array *ordinates;
   struct gkyl_array *weights;
@@ -52,9 +59,24 @@ struct gkyl_proj_maxwellian_pots_on_basis {
   struct gkyl_array *fpo_d2gdv2_at_surf_ords;
    
   struct gkyl_array *surf_nodes;
+  struct gkyl_array *conf_nodes;
   struct gkyl_array *fpo_dgdv_at_surf_nodes;
 
+  struct gkyl_array *prim_moms_conf_quad; // Array of primitive moments evaluated at conf space quadrature nodes 
+  struct gkyl_array *prim_moms_conf_nodes; // Array of primitive moments evaluated at conf space nodes 
+  struct gkyl_array *pot_phase_quad; // Array of potential H or G evaluated at phase space quadrature nodes
+  struct gkyl_array *pot_surf_quad; // Array of potentials (H, G) evaluated at phase space surface quadrature nodes in each velocity direction
+  struct gkyl_array *pot_deriv_surf_quad; // Array of derivatives of potentials (dH/dv, d2G/dv2) evaluated at phase space surface quadrature nodes in each velocity direction 
+  struct gkyl_array *sol_pot_surf_modal; // Array to store solutions of quad to modal conversion.
+
+  struct gkyl_mat_mm_array_mem *phase_quad_nodal_to_modal_mem;
+  struct gkyl_mat_mm_array_mem *surf_quad_nodal_to_modal_mem;
+
   int *p2c_qidx;  // Mapping between conf-space and phase-space ordinates.
+  int *surf2c_qidx;  // Mapping between conf-space and phase-space surface ordinates.
+  int *surf2c_nidx;  // Mapping between conf-space and phase-space surface nodes.
+
+  struct gkyl_basis *surf_basis_dev; // Basis that lives on device for nodal-modal conversion
 };
 
 GKYL_CU_DH
@@ -91,15 +113,6 @@ edge_idx_to_phase_idx(int ndim, int dir, const int *surf_idx, int edge_idx, int 
     else if (i == dir) phase_idx[i] = edge_idx;
     else phase_idx[i] = surf_idx[i-1];
   }
-}
-
-static inline void
-copy_idx_arrays(int cdim, int pdim, const int *cidx, const int *vidx, int *out)
-{
-  for (int i=0; i<cdim; ++i)
-    out[i] = cidx[i];
-  for (int i=cdim; i<pdim; ++i)
-    out[i] = vidx[i-cdim];
 }
 
 static void
@@ -163,6 +176,15 @@ static inline struct gkyl_range get_qrange(int cdim, int dim, int num_quad, int 
   struct gkyl_range qrange;
   gkyl_range_init_from_shape(&qrange, dim, qshape);
   return qrange;
+}
+
+// create range to loop over nodes.
+static inline struct gkyl_range get_nrange(int cdim, int num_conf_basis) {
+  int nshape[GKYL_MAX_DIM];
+  for (int i=0; i<cdim; ++i) nshape[i] = num_conf_basis;
+  struct gkyl_range nrange;
+  gkyl_range_init_from_shape(&nrange, cdim, nshape);
+  return nrange;
 }
 
 // Sets ordinates, weights and basis functions at ords.

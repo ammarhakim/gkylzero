@@ -4,6 +4,7 @@
 #include <gkyl_array_ops.h>
 #include <gkyl_array_ops_priv.h>
 #include <gkyl_fpo_vlasov_coeff_recovery.h>
+#include <gkyl_fpo_vlasov_coeff_recovery_priv.h>
 #include <gkyl_dg_fpo_vlasov_drag_coeff.h>
 #include <gkyl_dg_fpo_vlasov_drag_coeff_priv.h>
 #include <gkyl_util.h>
@@ -33,9 +34,9 @@ void gkyl_calc_fpo_drag_coeff_recovery(const struct gkyl_fpo_vlasov_coeff_recove
     return gkyl_calc_fpo_drag_coeff_recovery_cu(coeff_recovery, grid, pbasis, phase_range, conf_range, gamma, fpo_h, fpo_dhdv_surf, fpo_drag_coeff, fpo_drag_coeff_surf);
 #endif
 
-  int pdim = pbasis.ndim;
-  int vdim = 3;
-  int cdim = pdim - vdim;
+  int pdim = coeff_recovery->pdim;
+  int vdim = coeff_recovery->vdim;
+  int cdim = coeff_recovery->cdim;
 
   int poly_order = pbasis.poly_order;  
 
@@ -49,14 +50,14 @@ void gkyl_calc_fpo_drag_coeff_recovery(const struct gkyl_fpo_vlasov_coeff_recove
     gkyl_copy_int_arr(pdim, iter.idx, idxc);
     gkyl_copy_int_arr(cdim, iter.idx, conf_idxc);
 
-    long linc = gkyl_range_idx(phase_range, idxc);
-    long conf_linc = gkyl_range_idx(conf_range, conf_idxc);
+    long linp = gkyl_range_idx(phase_range, idxc);
+    long linc = gkyl_range_idx(conf_range, conf_idxc);
  
-    const double *fpo_dhdv_surf_c = gkyl_array_cfetch(fpo_dhdv_surf, linc);
-    double *fpo_drag_coeff_c = gkyl_array_fetch(fpo_drag_coeff, linc);
-    double *fpo_drag_coeff_surf_c = gkyl_array_fetch(fpo_drag_coeff_surf, linc);
+    const double *fpo_dhdv_surf_c = gkyl_array_cfetch(fpo_dhdv_surf, linp);
+    double *fpo_drag_coeff_c = gkyl_array_fetch(fpo_drag_coeff, linp);
+    double *fpo_drag_coeff_surf_c = gkyl_array_fetch(fpo_drag_coeff_surf, linp);
 
-    const double *gamma_c = gkyl_array_cfetch(gamma, conf_linc);
+    const double *gamma_c = gkyl_array_cfetch(gamma, linc);
 
     // Iterate through velocity space directions
     for (int d=0; d<vdim; ++d) {
@@ -70,7 +71,7 @@ void gkyl_calc_fpo_drag_coeff_recovery(const struct gkyl_fpo_vlasov_coeff_recove
       const double* fpo_h_stencil[3];
 
       for (int i=0; i<3; ++i) {
-        fpo_h_stencil[i] = gkyl_array_cfetch(fpo_h, linc+offsets[i]);
+        fpo_h_stencil[i] = gkyl_array_cfetch(fpo_h, linp+offsets[i]);
       }
 
       coeff_recovery->drag_coeff_recovery_stencil[d][keri](
@@ -92,9 +93,9 @@ void gkyl_calc_fpo_sgn_drag_coeff(const struct gkyl_fpo_vlasov_coeff_recovery *c
   }
 #endif
 
-  int pdim = pbasis.ndim;
-  int vdim = 3;
-  int cdim = pdim - vdim;
+  int pdim = coeff_recovery->pdim;
+  int vdim = coeff_recovery->vdim;
+  int cdim = coeff_recovery->cdim;
 
   int poly_order = pbasis.poly_order; 
 

@@ -1,5 +1,6 @@
 #include <assert.h>
 #include <gkyl_alloc.h>
+#include <gkyl_alloc_flags_priv.h>
 #include <gkyl_fpo_vlasov_coeffs_correct.h>
 #include <gkyl_fpo_vlasov_coeffs_correct_priv.h>
 
@@ -21,6 +22,7 @@ gkyl_fpo_coeffs_correct_new(const struct gkyl_rect_grid *grid,
   
   up->grid = grid;
   up->conf_basis = conf_basis;
+  up->num_conf_basis = conf_basis->num_basis;
 
   up->is_first = true;
 
@@ -46,6 +48,9 @@ gkyl_fpo_coeffs_correct_new(const struct gkyl_rect_grid *grid,
   up->mat_set_kernel = mat_set_kern_list[cdim].kernels[poly_order];
   up->accum_kernel = accum_kern_list[cdim].kernels[poly_order];
 
+  up->flags = 0;
+  GKYL_CLEAR_CU_ALLOC(up->flags);
+
   return up;
 }
 
@@ -68,7 +73,7 @@ void gkyl_fpo_coeffs_correct_advance(gkyl_fpo_coeffs_correct *up,
   struct gkyl_range_iter conf_iter, vel_iter;
 
   // allocate memory for use in kernels
-  int nc = up->conf_basis->num_basis;
+  int nc = up->num_conf_basis;
   int vdim = 3;
   int N = nc*(vdim + 1);
 
@@ -140,3 +145,16 @@ void gkyl_fpo_coeffs_correct_advance(gkyl_fpo_coeffs_correct *up,
   }
 }
 
+void gkyl_fpo_vlasov_coeffs_correct_release(gkyl_fpo_coeffs_correct *up)
+{
+  if (up->As)
+    gkyl_nmat_release(up->As);
+  if (up->xs)
+    gkyl_nmat_release(up->xs);
+  if (up->mem)
+    gkyl_nmat_linsolve_lu_release(up->mem);
+
+  if (GKYL_IS_CU_ALLOC(up->flags))
+    gkyl_cu_free(up->on_dev);
+  gkyl_free(up);
+}

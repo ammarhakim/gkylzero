@@ -44,7 +44,7 @@ __global__ static void fpo_vlasov_coeff_recovery_set_cu_dev_ptrs(gkyl_fpo_vlasov
 
 gkyl_fpo_vlasov_coeff_recovery*
 gkyl_fpo_vlasov_coeff_recovery_cu_dev_new(const struct gkyl_rect_grid *grid, 
-    const struct gkyl_basis *phase_basis, const struct gkyl_range *phase_range, bool use_gpu)
+    const struct gkyl_basis *phase_basis, const struct gkyl_range *phase_range, long offsets[36])
 {
   gkyl_fpo_vlasov_coeff_recovery *up = (gkyl_fpo_vlasov_coeff_recovery *)gkyl_malloc(sizeof(gkyl_fpo_vlasov_coeff_recovery));
 
@@ -66,29 +66,27 @@ gkyl_fpo_vlasov_coeff_recovery_cu_dev_new(const struct gkyl_rect_grid *grid,
   // Create array of 36 relative offsets.
   // 3-cell stencil in each velocity direction, (vx, vy, vz)
   // 9-cell stencil in some pairs of velocity directions (vxvy, vxvz, vyvz)
-  int idxc[GKYL_MAX_DIM];
+  int idxc[GKYL_MAX_DIM] = {0};
 
-  // This inherently assumes / relies on there being at least 3 cells in velocity space,
-  // which is reasonable I think?
-  for (int i=0; i<pdim; ++i) idxc[i] = 2;
+  for (int i=cdim; i<pdim; ++i) idxc[i] = 2;
 
-  long offsets_arr[36];
-  gkyl_range_inv_idx(phase_range, 1, idxc);
+  long offsets_arr[36] = {0};
   for (int d1=0; d1<vdim; ++d1) {
     int dir1 = d1 + cdim;
     int num_update_dir = 1;
     int update_dir[] = {dir1};
     create_offsets(num_update_dir, update_dir, phase_range, idxc, &offsets_arr[d1*3]);
 
-    for (int d2=0; d2<vdim; ++d2) {
+    for (int d2=d1+1; d2<vdim; ++d2) {
       int dir2 = d2 + cdim;
-      int num_update_dir = 2;
-      int update_dir[] = {dir1, dir2};
-      create_offsets(num_update_dir, update_dir, phase_range, idxc, 
-        &offsets_arr[3*vdim + (d1+d2-1)]);
+      int num_update_dirs = 2;
+      int update_dirs[] = {dir1, dir2};
+      create_offsets(num_update_dirs, update_dirs, phase_range, idxc,
+        &offsets_arr[(d1+d2)*9]);
     }
   }
   gkyl_copy_long_arr(36, offsets_arr, up->offsets);  
+  gkyl_copy_long_arr(36, offsets_arr, offsets);
 
   gkyl_fpo_vlasov_coeff_recovery *up_cu = (gkyl_fpo_vlasov_coeff_recovery *)
     gkyl_cu_malloc(sizeof(gkyl_fpo_vlasov_coeff_recovery));

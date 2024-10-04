@@ -80,7 +80,7 @@ gkyl_dg_updater_fpo_vlasov_advance(struct gkyl_dg_updater_collisions *fpo,
   // Fokker-Planck diffusion requires generalized hyper dg operator due to 
   // off diagonal terms in diffusion tensor and mixed partial derivatives
   wst = gkyl_wall_clock();
-  if (fpo->use_gpu) {  
+  if (fpo->use_gpu) {
     gkyl_hyper_dg_gen_stencil_advance_cu(fpo->diff, offsets, update_rng, fIn, cflrate, rhs);
   }
   else {

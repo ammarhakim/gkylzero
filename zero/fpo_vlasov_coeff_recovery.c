@@ -9,15 +9,15 @@
 
 gkyl_fpo_vlasov_coeff_recovery* 
 gkyl_fpo_vlasov_coeff_recovery_new(const struct gkyl_rect_grid *grid,
-    const struct gkyl_basis *phase_basis, const struct gkyl_range *phase_range, bool use_gpu)
+    const struct gkyl_basis *phase_basis, const struct gkyl_range *phase_range, long offsets[36], bool use_gpu)
 {
 #ifdef GKYL_HAVE_CUDA
   if (use_gpu) {
-    return gkyl_fpo_vlasov_coeff_recovery_cu_dev_new(grid, phase_basis, phase_range, use_gpu);
+    return gkyl_fpo_vlasov_coeff_recovery_cu_dev_new(grid, phase_basis, phase_range, offsets);
   }
 #endif
 
-  gkyl_fpo_vlasov_coeff_recovery *up = gkyl_malloc(sizeof(gkyl_fpo_vlasov_coeff_recovery));
+  gkyl_fpo_vlasov_coeff_recovery *up = gkyl_malloc(sizeof(struct gkyl_fpo_vlasov_coeff_recovery));
 
   // FPO always 3V
   int vdim = 3;
@@ -36,7 +36,7 @@ gkyl_fpo_vlasov_coeff_recovery_new(const struct gkyl_rect_grid *grid,
   // 9-cell stencil in some pairs of velocity directions (vxvy, vxvz, vyvz)
   int idxc[GKYL_MAX_DIM] = {0};
 
-  // This inherently assumes / relies on there being at least 3 cells in velocity space,
+  // This inherently assumes / relies on there being at least 3 cells in each velocity space direction,
   // which is reasonable I think?
   for (int i=cdim; i<pdim; ++i) idxc[i] = 2;
 
@@ -52,10 +52,11 @@ gkyl_fpo_vlasov_coeff_recovery_new(const struct gkyl_rect_grid *grid,
       int num_update_dir = 2;
       int update_dir[] = {dir1, dir2};
       create_offsets(num_update_dir, update_dir, phase_range, idxc, 
-        &offsets_arr[3*vdim + (d1+d2-1)*9]);
+        &offsets_arr[(d1+d2)*9]);
     }
   }
   gkyl_copy_long_arr(36, offsets_arr, up->offsets);
+  gkyl_copy_long_arr(36, offsets_arr, offsets);
 
   // Set pointers to kernels
   for (int d1=0; d1<vdim; ++d1) {
@@ -91,4 +92,11 @@ gkyl_fpo_vlasov_coeff_recovery_new(const struct gkyl_rect_grid *grid,
   up->on_dev = up;
 
   return up;
+}
+
+void gkyl_fpo_vlasov_coeff_recovery_release(struct gkyl_fpo_vlasov_coeff_recovery *up)
+{
+  if (GKYL_IS_CU_ALLOC(up->flags))
+    gkyl_cu_free(up->on_dev);
+  gkyl_free(up);
 }

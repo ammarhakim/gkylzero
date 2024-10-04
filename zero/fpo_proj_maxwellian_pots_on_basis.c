@@ -6,15 +6,26 @@
 #include <gkyl_array_ops.h>
 #include <gkyl_const.h>
 #include <gkyl_eval_on_nodes.h>
-#include <gkyl_proj_on_basis.h>
-#include <gkyl_gauss_quad_data.h>
 #include <gkyl_fpo_proj_maxwellian_pots_on_basis.h>
 #include <gkyl_fpo_proj_maxwellian_pots_on_basis_priv.h>
+#include <gkyl_gauss_quad_data.h>
+#include <gkyl_proj_on_basis.h>
+#include <gkyl_mat.h>
 #include <gkyl_range.h>
 #include <gkyl_util.h>
 
+static inline void
+copy_idx_arrays(int cdim, int pdim, const int *cidx, const int *vidx, int *out)
+{
+  for (int i=0; i<cdim; ++i)
+    out[i] = cidx[i];
+  for (int i=cdim; i<pdim; ++i)
+    out[i] = vidx[i-cdim];
+}
+
 struct gkyl_proj_maxwellian_pots_on_basis* 
-gkyl_proj_maxwellian_pots_on_basis_new(const struct gkyl_rect_grid *grid, 
+gkyl_proj_maxwellian_pots_on_basis_new(const struct gkyl_rect_grid *grid,
+  const struct gkyl_range *conf_range, const struct gkyl_range *phase_range,
   const struct gkyl_basis *conf_basis, const struct gkyl_basis *phase_basis, int num_quad, bool use_gpu) 
 {
   gkyl_proj_maxwellian_pots_on_basis *up = gkyl_malloc(sizeof(gkyl_proj_maxwellian_pots_on_basis));
@@ -23,8 +34,7 @@ gkyl_proj_maxwellian_pots_on_basis_new(const struct gkyl_rect_grid *grid,
   up->pdim = phase_basis->ndim;
   up->num_quad = num_quad;
 
-  up->phase_basis = phase_basis;
-  up->conf_basis = conf_basis;
+  up->conf_basis = *conf_basis;
 
   up->use_gpu = use_gpu;
 
@@ -33,7 +43,6 @@ gkyl_proj_maxwellian_pots_on_basis_new(const struct gkyl_rect_grid *grid,
   } else {
     gkyl_cart_modal_serendip(&up->surf_basis, up->pdim-1, phase_basis->poly_order);
   }
-  // up->surf_basis = surf_basis;
 
   up->num_conf_basis = conf_basis->num_basis;
   up->num_phase_basis = phase_basis->num_basis;
@@ -41,11 +50,11 @@ gkyl_proj_maxwellian_pots_on_basis_new(const struct gkyl_rect_grid *grid,
   
   // Quadrature points for phase space expansion
   up->tot_quad = init_quad_values(up->cdim, phase_basis, num_quad,
-    &up->ordinates, &up->weights, &up->basis_at_ords, use_gpu);
+    &up->ordinates, &up->weights, &up->basis_at_ords, false);
 
   // Initialize quadrature for surface expansion
   up->tot_surf_quad = init_quad_values(up->cdim, &up->surf_basis, num_quad,
-    &up->surf_ordinates, &up->surf_weights, &up->surf_basis_at_ords, use_gpu);
+    &up->surf_ordinates, &up->surf_weights, &up->surf_basis_at_ords, false);
 
   // Hybrid basis support: uses p=2 in velocity space
   int vdim = up->pdim-up->cdim;
@@ -57,38 +66,161 @@ gkyl_proj_maxwellian_pots_on_basis_new(const struct gkyl_rect_grid *grid,
     is_vdim_p2[0] = true, is_vdim_p2[1] = true, is_vdim_p2[2] = true;
   }
 
-  up->conf_qrange = get_qrange(up->cdim, up->cdim, num_quad, num_quad_v, is_vdim_p2);
   up->phase_qrange = get_qrange(up->cdim, up->pdim, num_quad, num_quad_v, is_vdim_p2);
   up->surf_qrange = get_qrange(up->cdim, up->pdim-1, num_quad, num_quad_v, is_vdim_p2);
 
-  up->fpo_h_at_ords = gkyl_array_new(GKYL_DOUBLE, 1, up->tot_quad);
-  up->fpo_g_at_ords = gkyl_array_new(GKYL_DOUBLE, 1, up->tot_quad);
-  up->fpo_dhdv_at_ords = gkyl_array_new(GKYL_DOUBLE, 1, up->tot_quad);
-  up->fpo_d2gdv2_at_ords = gkyl_array_new(GKYL_DOUBLE, 1, up->tot_quad);
+  if (!up->use_gpu) {
+    up->fpo_h_at_ords = gkyl_array_new(GKYL_DOUBLE, 1, up->tot_quad);
+    up->fpo_g_at_ords = gkyl_array_new(GKYL_DOUBLE, 1, up->tot_quad);
+    up->fpo_dhdv_at_ords = gkyl_array_new(GKYL_DOUBLE, 1, up->tot_quad);
+    up->fpo_d2gdv2_at_ords = gkyl_array_new(GKYL_DOUBLE, 1, up->tot_quad);
+  
+    up->fpo_h_at_surf_ords = gkyl_array_new(GKYL_DOUBLE, 1, up->tot_surf_quad);
+    up->fpo_g_at_surf_ords = gkyl_array_new(GKYL_DOUBLE, 1, up->tot_surf_quad);
+    up->fpo_dhdv_at_surf_ords = gkyl_array_new(GKYL_DOUBLE, 1, up->tot_surf_quad);
+    up->fpo_d2gdv2_at_surf_ords = gkyl_array_new(GKYL_DOUBLE, 1, up->tot_surf_quad);
 
-  up->fpo_h_at_surf_ords = gkyl_array_new(GKYL_DOUBLE, 1, up->tot_surf_quad);
-  up->fpo_g_at_surf_ords = gkyl_array_new(GKYL_DOUBLE, 1, up->tot_surf_quad);
-  up->fpo_dhdv_at_surf_ords = gkyl_array_new(GKYL_DOUBLE, 1, up->tot_surf_quad);
-  up->fpo_d2gdv2_at_surf_ords = gkyl_array_new(GKYL_DOUBLE, 1, up->tot_surf_quad);
-
-  // Nodes for nodal surface expansions
-  up->surf_nodes = gkyl_array_new(GKYL_DOUBLE, grid->ndim-1, up->surf_basis.num_basis);
-  up->surf_basis.node_list(gkyl_array_fetch(up->surf_nodes, 0));
-  up->fpo_dgdv_at_surf_nodes = gkyl_array_new(GKYL_DOUBLE, 1, up->surf_basis.num_basis);
+    // Nodes for nodal surface expansions
+    up->surf_nodes = gkyl_array_new(GKYL_DOUBLE, grid->ndim-1, up->surf_basis.num_basis);
+    up->surf_basis.node_list(gkyl_array_fetch(up->surf_nodes, 0));
+    up->fpo_dgdv_at_surf_nodes = gkyl_array_new(GKYL_DOUBLE, 1, up->num_surf_basis);
+  }
 
 #ifdef GKYL_HAVE_CUDA
   if (up->use_gpu) {
-    // Allocate device copies of arrays needed for quadrature.
+    // Evaluate conf basis at nodes
+    struct gkyl_array *conf_nodes_ho = gkyl_array_new(GKYL_DOUBLE,
+      up->cdim, up->surf_basis.num_basis);
+    up->conf_basis.node_list((double *)gkyl_array_fetch(conf_nodes_ho, 0));
+
+    struct gkyl_array *conf_basis_at_nodes_ho = gkyl_array_new(GKYL_DOUBLE, 
+      up->num_conf_basis, up->num_conf_basis);
+    for (int k=0; k<up->num_conf_basis; ++k) {
+      up->conf_basis.eval((double *)gkyl_array_fetch(conf_nodes_ho,k),
+        (double *)gkyl_array_fetch(conf_basis_at_nodes_ho,k));
+    }
+    up->conf_basis_at_nodes = gkyl_array_cu_dev_new(GKYL_DOUBLE, 
+      up->num_conf_basis, up->num_conf_basis);
+    gkyl_array_copy(up->conf_basis_at_nodes, conf_basis_at_nodes_ho);
+    gkyl_array_release(conf_basis_at_nodes_ho);
+    gkyl_array_release(conf_nodes_ho);
+
+    // Allocate the memory for computing the specific phase and surface nodal to modal calculations
+    struct gkyl_mat_mm_array_mem *phase_quad_nodal_to_modal_mem_ho;
+    phase_quad_nodal_to_modal_mem_ho = gkyl_mat_mm_array_mem_new(up->num_phase_basis, up->tot_quad, 1.0, 0.0, 
+      GKYL_NO_TRANS, GKYL_NO_TRANS, false);
+
+    struct gkyl_mat_mm_array_mem *surf_quad_nodal_to_modal_mem_ho;
+    surf_quad_nodal_to_modal_mem_ho = gkyl_mat_mm_array_mem_new(vdim*up->num_surf_basis, vdim*up->tot_surf_quad, 1.0, 0.0, 
+      GKYL_NO_TRANS, GKYL_NO_TRANS, false);
+
+    // Compute the matrix A for the phase and surface nodal to modal memory
+    const double *phase_w = (const double*) up->weights->data;
+    const double *phaseb_o = (const double*) up->basis_at_ords->data;
+    for (int n=0; n<up->tot_quad; ++n){
+      for (int k=0; k<up->num_phase_basis; ++k){
+        gkyl_mat_set(phase_quad_nodal_to_modal_mem_ho->A, k, n, phase_w[n]*phaseb_o[k+up->num_phase_basis*n]);
+      }
+    }
+
+    // Block matrix for vdim component quad nodal to modal matrix multiplication
+    const double *surf_w = (const double*) up->surf_weights->data;
+    const double *surfb_o = (const double*) up->surf_basis_at_ords->data;
+    for (int n=0; n<vdim*up->tot_surf_quad; ++n){
+      for (int k=0; k<vdim*up->num_surf_basis; ++k){
+        bool block = !((n-n%up->tot_surf_quad)/up->tot_surf_quad - (k-k%up->num_surf_basis)/up->num_surf_basis);
+        if (block) {
+          gkyl_mat_set(surf_quad_nodal_to_modal_mem_ho->A, k, n, 
+            surf_w[n%up->tot_surf_quad]*surfb_o[(k%up->num_surf_basis)+up->num_surf_basis*(n%up->tot_surf_quad)]);
+        }
+      }
+    }
+
+    // Copy matrix memory to device
+    up->phase_quad_nodal_to_modal_mem = gkyl_mat_mm_array_mem_new(up->num_phase_basis, up->tot_quad, 1.0, 0.0, 
+      GKYL_NO_TRANS, GKYL_NO_TRANS, up->use_gpu);
+    gkyl_mat_copy(up->phase_quad_nodal_to_modal_mem->A, phase_quad_nodal_to_modal_mem_ho->A);
+    gkyl_mat_mm_array_mem_release(phase_quad_nodal_to_modal_mem_ho);
+
+    up->surf_quad_nodal_to_modal_mem = gkyl_mat_mm_array_mem_new(vdim*up->num_surf_basis, vdim*up->tot_surf_quad, 1.0, 0.0, 
+      GKYL_NO_TRANS, GKYL_NO_TRANS, up->use_gpu);
+    gkyl_mat_copy(up->surf_quad_nodal_to_modal_mem->A, surf_quad_nodal_to_modal_mem_ho->A);
+    gkyl_mat_mm_array_mem_release(surf_quad_nodal_to_modal_mem_ho);
+
+    // Initialize quadrature data on device
+    // Quadrature points for configuration space expansion
+    up->tot_conf_quad = init_quad_values(up->cdim, &up->conf_basis, num_quad,
+      &up->conf_ordinates, &up->conf_weights, &up->conf_basis_at_ords, up->use_gpu);
+
+    // Quadrature points for phase space expansion
+    up->tot_quad = init_quad_values(up->cdim, phase_basis, num_quad,
+      &up->ordinates, &up->weights, &up->basis_at_ords, up->use_gpu);
+  
+    // Initialize quadrature for surface expansion
+    up->tot_surf_quad = init_quad_values(up->cdim, &up->surf_basis, num_quad,
+      &up->surf_ordinates, &up->surf_weights, &up->surf_basis_at_ords, up->use_gpu);
+
+    // Allocate arrays to store quantities at quadrature points
+    up->prim_moms_conf_quad = gkyl_array_cu_dev_new(GKYL_DOUBLE,
+      (vdim+2)*up->tot_conf_quad, conf_range->volume);
+    up->pot_phase_quad = gkyl_array_cu_dev_new(GKYL_DOUBLE,
+      up->tot_quad, phase_range->volume);
+
+    // Primitive moments evaluated at nodes
+    up->prim_moms_conf_nodes = gkyl_array_cu_dev_new(GKYL_DOUBLE,
+      (vdim+2)*up->num_conf_basis, conf_range->volume);
+
+    // H and G surface quadrature
+    up->pot_surf_quad = gkyl_array_cu_dev_new(GKYL_DOUBLE,
+      vdim*up->tot_surf_quad, phase_range->volume);
+    // dH/dv and d2G/dv2 surface quadrature 
+    up->pot_deriv_surf_quad = gkyl_array_cu_dev_new(GKYL_DOUBLE,
+      vdim*up->tot_surf_quad, phase_range->volume); 
+    // Nodal evaluation of dG/dv at surfaces in transverse directions
+    up->fpo_dgdv_at_surf_nodes = gkyl_array_cu_dev_new(GKYL_DOUBLE,
+      2*vdim*up->num_surf_basis, phase_range->volume); 
+
+    // Arrays to store computed potentials for copying
+    up->sol_pot_surf_modal = gkyl_array_cu_dev_new(GKYL_DOUBLE,
+      vdim*up->num_surf_basis, phase_range->volume); 
+
+    // Mappings between phase and configuration space quadrature points 
     int p2c_qidx_ho[up->phase_qrange.volume];
+    int surf2c_qidx_ho[up->surf_qrange.volume];
     up->p2c_qidx = (int *) gkyl_cu_malloc(sizeof(int)*up->phase_qrange.volume);
+    up->surf2c_qidx = (int *) gkyl_cu_malloc(sizeof(int)*up->surf_qrange.volume);
+
+    struct gkyl_range conf_qrange = get_qrange(up->cdim, up->cdim, num_quad, num_quad_v, is_vdim_p2);
 
     int pidx[GKYL_MAX_DIM];
     for (int n=0; n<up->tot_quad; ++n) {
       gkyl_range_inv_idx(&up->phase_qrange, n, pidx);
-      int cqidx = gkyl_range_idx(&up->conf_qrange, pidx);
+      int cqidx = gkyl_range_idx(&conf_qrange, pidx);
       p2c_qidx_ho[n] = cqidx;
     }
     gkyl_cu_memcpy(up->p2c_qidx, p2c_qidx_ho, sizeof(int)*up->phase_qrange.volume, GKYL_CU_MEMCPY_H2D);
+
+    for (int n=0; n<up->tot_surf_quad; ++n) {
+      gkyl_range_inv_idx(&up->surf_qrange, n, pidx);
+      int cqidx = gkyl_range_idx(&conf_qrange, pidx);
+      surf2c_qidx_ho[n] = cqidx;
+    }
+    gkyl_cu_memcpy(up->surf2c_qidx, surf2c_qidx_ho, sizeof(int)*up->surf_qrange.volume, GKYL_CU_MEMCPY_H2D);
+
+    // Mapping between phase and configuration space nodes
+    int surf2c_nidx_ho[up->num_conf_basis];
+    up->surf2c_nidx = (int *) gkyl_cu_malloc(sizeof(int)*up->num_surf_basis);
+
+    struct gkyl_range surf_nrange = get_nrange(up->pdim-1, up->num_surf_basis);
+    struct gkyl_range conf_nrange = get_nrange(up->cdim, up->num_conf_basis);
+    for(int k=0; k<up->num_surf_basis; ++k) {
+      gkyl_range_inv_idx(&surf_nrange, k, pidx);
+      int cnidx = gkyl_range_idx(&conf_nrange, pidx);
+      surf2c_nidx_ho[k] = cnidx;
+    }
+    gkyl_cu_memcpy(up->surf2c_nidx, surf2c_nidx_ho, sizeof(int)*up->num_surf_basis, GKYL_CU_MEMCPY_H2D);
+
+    up->surf_basis_dev = gkyl_cart_modal_serendip_cu_dev_new(up->pdim-1, phase_basis->poly_order);
   }
 #endif
 
@@ -122,7 +254,7 @@ gkyl_proj_maxwellian_pots_on_basis_advance(const gkyl_proj_maxwellian_pots_on_ba
   struct gkyl_range_iter phase_iter, qiter, surf_qiter; 
 
   int pidx[GKYL_MAX_DIM], rem_dir[GKYL_MAX_DIM] = { 0 };
-  for (int d=0; d<conf_range->ndim; ++d) rem_dir[d] = 1;
+  for (int d=0; d<cdim; ++d) rem_dir[d] = 1;
 
   double xc[GKYL_MAX_DIM], xmu[GKYL_MAX_DIM];
 
@@ -148,12 +280,12 @@ gkyl_proj_maxwellian_pots_on_basis_advance(const gkyl_proj_maxwellian_pots_on_ba
       comp_to_phys(pdim, quad_node, up->grid.dx, xc, xmu);
 
       // Evaluate moments at quadrature node
-      double den_q = up->conf_basis->eval_expand(quad_node, m0_d);
-      double vtsq_q = up->conf_basis->eval_expand(quad_node, vtsq_d);
+      double den_q = up->conf_basis.eval_expand(quad_node, m0_d);
+      double vtsq_q = up->conf_basis.eval_expand(quad_node, vtsq_d);
 
       double rel_speedsq_q = 0.0;
       for (int d=0; d<vdim; ++d) {
-        double udrift_q = up->conf_basis->eval_expand(quad_node, &u_drift_d[d*num_conf_basis]);
+        double udrift_q = up->conf_basis.eval_expand(quad_node, &u_drift_d[d*num_conf_basis]);
         rel_speedsq_q += pow(xmu[cdim+d]-udrift_q,2);
       }
       double rel_speed_q = sqrt(rel_speedsq_q);
@@ -200,13 +332,13 @@ gkyl_proj_maxwellian_pots_on_basis_advance(const gkyl_proj_maxwellian_pots_on_ba
           comp_to_phys(pdim, gkyl_array_cfetch(up->ordinates, phase_qidx), up->grid.dx, xc, xmu);
           xmu[dir1] = vbound;
 
-          double den_q = up->conf_basis->eval_expand(surf_ord, m0_d);
-          double vtsq_q = up->conf_basis->eval_expand(surf_ord, vtsq_d);
+          double den_q = up->conf_basis.eval_expand(surf_ord, m0_d);
+          double vtsq_q = up->conf_basis.eval_expand(surf_ord, vtsq_d);
 
           double rel_speedsq_q = 0.0;
           double rel_vel_in_dir_q = 0.0;
           for (int d=0; d<vdim; ++d) {
-            double udrift_q = up->conf_basis->eval_expand(surf_ord, &u_drift_d[d*num_conf_basis]);
+            double udrift_q = up->conf_basis.eval_expand(surf_ord, &u_drift_d[d*num_conf_basis]);
               rel_speedsq_q += pow(xmu[cdim+d]-udrift_q, 2);
               if (d == d1)
                 rel_vel_in_dir_q += xmu[dir1]-udrift_q;
@@ -241,13 +373,13 @@ gkyl_proj_maxwellian_pots_on_basis_advance(const gkyl_proj_maxwellian_pots_on_ba
             surf_comp_to_phys(dir1, pdim, surf_node, up->grid.dx, xc, xmu);
             xmu[dir1] = vbound;
 
-            double den_n = up->conf_basis->eval_expand(surf_node, m0_d);
-            double vtsq_n = up->conf_basis->eval_expand(surf_node, vtsq_d);
+            double den_n = up->conf_basis.eval_expand(surf_node, m0_d);
+            double vtsq_n = up->conf_basis.eval_expand(surf_node, vtsq_d);
 
             double rel_speedsq_n = 0.0;
             double rel_vel_in_dir2_n = 0.0;
             for (int d=0; d<vdim; ++d) {
-              double udrift_n = up->conf_basis->eval_expand(surf_node, &u_drift_d[d*num_conf_basis]);
+              double udrift_n = up->conf_basis.eval_expand(surf_node, &u_drift_d[d*num_conf_basis]);
               rel_speedsq_n += pow(xmu[cdim+d]-udrift_n,2);
               if (d == d2)
                 rel_vel_in_dir2_n += xmu[dir2]-udrift_n;
@@ -334,15 +466,15 @@ gkyl_proj_maxwellian_pots_deriv_on_basis_advance(const gkyl_proj_maxwellian_pots
             comp_to_phys(pdim, quad_node, up->grid.dx, xc, xmu);
     
             // Evaluate moments at quadrature node
-            double den_q = up->conf_basis->eval_expand(quad_node, m0_d);
-            double u_drift_q = up->conf_basis->eval_expand(quad_node, u_drift_d);
-            double vtsq_q = up->conf_basis->eval_expand(quad_node, vtsq_d);
+            double den_q = up->conf_basis.eval_expand(quad_node, m0_d);
+            double u_drift_q = up->conf_basis.eval_expand(quad_node, u_drift_d);
+            double vtsq_q = up->conf_basis.eval_expand(quad_node, vtsq_d);
     
             double rel_speedsq_q = 0.0;
             double rel_vel_in_dir1_q = 0.0;
             double rel_vel_in_dir2_q = 0.0;
             for (int d=0; d<vdim; ++d) {
-              double udrift_q = up->conf_basis->eval_expand(quad_node, &u_drift_d[d*num_conf_basis]);
+              double udrift_q = up->conf_basis.eval_expand(quad_node, &u_drift_d[d*num_conf_basis]);
               rel_speedsq_q += pow(xmu[cdim+d]-udrift_q,2);
               if (d == d1)
                 rel_vel_in_dir1_q += xmu[d1+cdim]-udrift_q;
@@ -381,19 +513,48 @@ gkyl_proj_maxwellian_pots_deriv_on_basis_advance(const gkyl_proj_maxwellian_pots
 void 
 gkyl_proj_maxwellian_pots_on_basis_release(gkyl_proj_maxwellian_pots_on_basis *up)
 {
+  gkyl_array_release(up->conf_ordinates);
+  gkyl_array_release(up->conf_weights);
+  gkyl_array_release(up->conf_basis_at_ords);
+
   gkyl_array_release(up->ordinates);
   gkyl_array_release(up->weights);
   gkyl_array_release(up->basis_at_ords);
+
   gkyl_array_release(up->surf_ordinates);
   gkyl_array_release(up->surf_weights);
   gkyl_array_release(up->surf_basis_at_ords);
-  gkyl_array_release(up->fpo_h_at_ords);
-  gkyl_array_release(up->fpo_g_at_ords);
-  gkyl_array_release(up->fpo_h_at_surf_ords);
-  gkyl_array_release(up->fpo_g_at_surf_ords);
-  gkyl_array_release(up->fpo_dhdv_at_surf_ords);
-  gkyl_array_release(up->fpo_d2gdv2_at_surf_ords);
+
   gkyl_array_release(up->surf_nodes);
+
+  if (up->use_gpu) {
+    gkyl_array_release(up->conf_basis_at_nodes);
+
+    gkyl_array_release(up->prim_moms_conf_quad);
+    gkyl_array_release(up->prim_moms_conf_nodes);
+  
+    gkyl_array_release(up->pot_phase_quad);
+    gkyl_array_release(up->pot_surf_quad);
+    gkyl_array_release(up->pot_deriv_surf_quad);
+    gkyl_array_release(up->sol_pot_surf_modal);
+  
+    gkyl_mat_mm_array_mem_release(up->phase_quad_nodal_to_modal_mem);
+    gkyl_mat_mm_array_mem_release(up->surf_quad_nodal_to_modal_mem);
+
+    gkyl_cart_modal_basis_release_cu(up->surf_basis_dev);
+  }
+  else {
+    gkyl_array_release(up->fpo_h_at_ords);
+    gkyl_array_release(up->fpo_g_at_ords);
+    gkyl_array_release(up->fpo_dhdv_at_ords);
+    gkyl_array_release(up->fpo_d2gdv2_at_ords);
+
+    gkyl_array_release(up->fpo_h_at_surf_ords);
+    gkyl_array_release(up->fpo_g_at_surf_ords);
+    gkyl_array_release(up->fpo_dhdv_at_surf_ords);
+    gkyl_array_release(up->fpo_d2gdv2_at_surf_ords);
+    gkyl_array_release(up->fpo_dgdv_at_surf_nodes);
+  }
 
   gkyl_free(up);
 }

@@ -36,3 +36,10 @@ void gkyl_fpo_coeffs_correct_advance_cu(gkyl_fpo_coeffs_correct *up,
   const struct gkyl_array *moms, struct gkyl_array *drag_diff_coeff_corrs,
   struct gkyl_array *drag_coeff, struct gkyl_array *drag_coeff_surf,
   struct gkyl_array *diff_coeff, struct gkyl_array *diff_coeff_surf);
+
+/**
+ * Delete updater.
+ *
+ * @param up Updater to delete
+ */
+void gkyl_fpo_vlasov_coeffs_correct_release(gkyl_fpo_coeffs_correct *up);

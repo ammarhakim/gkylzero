@@ -15,9 +15,11 @@ void
 gkyl_mom_fpo_vlasov_free(const struct gkyl_ref_count *ref)
 {
   struct gkyl_mom_type *momt = container_of(ref, struct gkyl_mom_type, ref_count);
+  struct mom_type_fpo_vlasov *fpo_momt = container_of(momt, struct mom_type_fpo_vlasov, momt);
   if (GKYL_IS_CU_ALLOC(momt->flags))
     gkyl_cu_free(momt->on_dev);
   gkyl_free(momt);
+  gkyl_free(fpo_momt);
 }
 
 void
@@ -46,7 +48,7 @@ gkyl_mom_fpo_vlasov_new(const struct gkyl_basis* cbasis, const struct gkyl_basis
     return gkyl_mom_fpo_vlasov_cu_dev_new(cbasis, pbasis, phase_range);
   } 
 #endif    
-  struct mom_type_fpo_vlasov *mom_fpo_vlasov = gkyl_malloc(sizeof(*mom_fpo_vlasov));
+  struct mom_type_fpo_vlasov *mom_fpo_vlasov = gkyl_malloc(sizeof(struct mom_type_fpo_vlasov));
   int cdim = cbasis->ndim, pdim = pbasis->ndim;
   int poly_order = cbasis->poly_order;
 

@@ -70,7 +70,7 @@ gkyl_mom_fpo_vlasov_cu_dev_new(const struct gkyl_basis* cbasis, const struct gky
   mom_fpo_vlasov->phase_range = *phase_range;
 
   mom_fpo_vlasov->momt.flags = 0;
-  GKYL_CLEAR_CU_ALLOC(mom_fpo_vlasov->momt.flags);
+  GKYL_SET_CU_ALLOC(mom_fpo_vlasov->momt.flags);
   mom_fpo_vlasov->momt.ref_count = gkyl_ref_count_init(gkyl_mom_fpo_vlasov_free);
  
   // copy struct to device

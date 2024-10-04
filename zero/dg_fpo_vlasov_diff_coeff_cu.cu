@@ -1,11 +1,13 @@
 extern "C" {
-  #include <gkyl_range.h>
-  #include <gkyl_util.h>
-  #include <gkyl_alloc.h>
-  #include <gkyl_array_ops.h>
-  #include <gkyl_array_ops_priv.h>
-  #include <gkyl_dg_fpo_vlasov_diff_coeff.h>
-  #include <gkyl_dg_fpo_vlasov_diff_coeff_priv.h>
+#include <gkyl_range.h>
+#include <gkyl_util.h>
+#include <gkyl_alloc.h>
+#include <gkyl_array_ops.h>
+#include <gkyl_array_ops_priv.h>
+#include <gkyl_dg_fpo_vlasov_diff_coeff.h>
+#include <gkyl_dg_fpo_vlasov_diff_coeff_priv.h>
+#include <gkyl_fpo_vlasov_coeff_recovery.h>
+#include <gkyl_fpo_vlasov_coeff_recovery_priv.h>
 } 
 
 __device__ static
@@ -22,20 +24,19 @@ int idx_to_inloup_ker(int dim, const int *idx, const int *dirs, const int *num_c
   return iout;
 }
 
-__global__ void
+__global__ static void
 gkyl_calc_fpo_diff_coeff_recovery_cu_kernel(const struct gkyl_fpo_vlasov_coeff_recovery* coeff_recovery,
   const struct gkyl_rect_grid grid, struct gkyl_basis pbasis, 
   const struct gkyl_range phase_range, const struct gkyl_range conf_range, 
   const struct gkyl_array *gamma, const struct gkyl_array *fpo_g,
   const struct gkyl_array *fpo_g_surf, const struct gkyl_array *fpo_dgdv_surf, 
   const struct gkyl_array *fpo_d2gdv2_surf, 
-  struct gkyl_array *fpo_diff_coeff, struct gkyl_array *fpo_diff_coeff_surf)
+  struct gkyl_array *fpo_diff_coeff)
 {
   int cdim = coeff_recovery->cdim;
-  int pdim = coeff_recovery->pdim; 
-  int vdim = pdim - cdim;
+  int vdim = coeff_recovery->vdim;
 
-  int idxl[GKYL_MAX_DIM], idxc[GKYL_MAX_DIM];
+  int idxc[GKYL_MAX_DIM];
 
   for (unsigned long tid = threadIdx.x + blockIdx.x*blockDim.x;
       tid < phase_range.volume;
@@ -66,7 +67,7 @@ gkyl_calc_fpo_diff_coeff_recovery_cu_kernel(const struct gkyl_fpo_vlasov_coeff_r
 
       const double* fpo_g_stencil[3];
       for (int i=0; i<3; ++i) {
-        fpo_g_stencil[i] = (const double *)gkyl_array_cfetch(fpo_g, linc+offsets[i]);
+        fpo_g_stencil[i] = (const double *)gkyl_array_cfetch(fpo_g, linp+offsets[i]);
       }
 
       // Compute diagonal element of diffusion tensor
@@ -85,13 +86,13 @@ gkyl_calc_fpo_diff_coeff_recovery_cu_kernel(const struct gkyl_fpo_vlasov_coeff_r
         update_dirs[1] = dir1 < dir2 ? dir2 : dir1;
 
         // Index into kernel list
-        const long *offsets = &(coeff_recovery->offsets[3*vdim + (d1+d2-1)*9]);
+        const long *offsets = &(coeff_recovery->offsets[(d1+d2)*9]);
         int keri = idx_to_inloup_ker(2, idxc, update_dirs, phase_range.upper);
 
         const double *fpo_g_stencil[9], *fpo_g_surf_stencil[9];
         for (int i=0; i<9; ++i) {
-          fpo_g_stencil[i] = (const double *)gkyl_array_cfetch(fpo_g, linc+offsets[i]);
-          fpo_g_surf_stencil[i] = (const double *)gkyl_array_cfetch(fpo_g_surf, linc+offsets[i]); 
+          fpo_g_stencil[i] = (const double *)gkyl_array_cfetch(fpo_g, linp+offsets[i]);
+          fpo_g_surf_stencil[i] = (const double *)gkyl_array_cfetch(fpo_g_surf, linp+offsets[i]);
         }
 
         coeff_recovery->diff_coeff_cross_recovery_stencil[d1][d2][keri](grid.dx, 
@@ -100,6 +101,18 @@ gkyl_calc_fpo_diff_coeff_recovery_cu_kernel(const struct gkyl_fpo_vlasov_coeff_r
       }
     }
   }
+}
+
+__global__ static void
+gkyl_calc_fpo_diff_coeff_surf_cu_kernel(const struct gkyl_fpo_vlasov_coeff_recovery* coeff_recovery,
+  const struct gkyl_range phase_range,
+  struct gkyl_array *fpo_diff_coeff, struct gkyl_array *fpo_diff_coeff_surf)
+{
+  int cdim = coeff_recovery->cdim;
+  int pdim = coeff_recovery->pdim;
+  int vdim = coeff_recovery->vdim;
+
+  int idxl[GKYL_MAX_DIM], idxc[GKYL_MAX_DIM];
 
   // Loop back over phase space to calculate surface expansions on LOWER cell boundary
   for (unsigned long tid = threadIdx.x + blockIdx.x*blockDim.x;
@@ -107,9 +120,9 @@ gkyl_calc_fpo_diff_coeff_recovery_cu_kernel(const struct gkyl_fpo_vlasov_coeff_r
       tid += gridDim.x*blockDim.x)
   {    
     gkyl_sub_range_inv_idx(&phase_range, tid, idxc);  
-    long linc = gkyl_range_idx(&phase_range, idxc);
+    long linp_c = gkyl_range_idx(&phase_range, idxc);
 
-    double *fpo_diff_coeff_surf_c = (double *)gkyl_array_fetch(fpo_diff_coeff_surf, linc);
+    double *fpo_diff_coeff_surf_c = (double *)gkyl_array_fetch(fpo_diff_coeff_surf, linp_c);
 
     // Iterate over primary direction for recovery, the kernel will handle
     // populating the three directions for the derivative across/along that boundary
@@ -123,16 +136,17 @@ gkyl_calc_fpo_diff_coeff_recovery_cu_kernel(const struct gkyl_fpo_vlasov_coeff_r
 
       gkyl_copy_int_arr(pdim, idxc, idxl); 
       idxl[dir1] = idxc[dir1]-1; 
-      long linl = gkyl_range_idx(&phase_range, idxl);
+      long linp_l = gkyl_range_idx(&phase_range, idxl);
 
-      const double *fpo_diff_coeff_l = (const double *)gkyl_array_cfetch(fpo_diff_coeff, linl);
-      const double *fpo_diff_coeff_c = (const double *)gkyl_array_cfetch(fpo_diff_coeff, linc);
+      const double *fpo_diff_coeff_l = (const double *)gkyl_array_cfetch(fpo_diff_coeff, linp_l);
+      const double *fpo_diff_coeff_c = (const double *)gkyl_array_cfetch(fpo_diff_coeff, linp_c);
 
       coeff_recovery->diff_coeff_surf_recovery[d1](fpo_diff_coeff_l, fpo_diff_coeff_c,
         fpo_diff_coeff_surf_c);
     }
   }
 }
+
 
 void 
 gkyl_calc_fpo_diff_coeff_recovery_cu(const struct gkyl_fpo_vlasov_coeff_recovery* coeff_recovery,
@@ -149,5 +163,8 @@ gkyl_calc_fpo_diff_coeff_recovery_cu(const struct gkyl_fpo_vlasov_coeff_recovery
   gkyl_calc_fpo_diff_coeff_recovery_cu_kernel<<<nblocks, nthreads>>>(coeff_recovery->on_dev, 
     *grid, pbasis, *phase_range, *conf_range, gamma->on_dev, 
     fpo_g->on_dev, fpo_g_surf->on_dev, fpo_dgdv_surf->on_dev,
-    fpo_d2gdv2_surf->on_dev, fpo_diff_coeff->on_dev, fpo_diff_coeff_surf->on_dev);
+    fpo_d2gdv2_surf->on_dev, fpo_diff_coeff->on_dev);
+
+  gkyl_calc_fpo_diff_coeff_surf_cu_kernel<<<nblocks, nthreads>>>(coeff_recovery->on_dev,
+    *phase_range, fpo_diff_coeff->on_dev, fpo_diff_coeff_surf->on_dev);
 }

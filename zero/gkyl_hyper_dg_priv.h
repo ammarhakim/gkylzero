@@ -20,41 +20,6 @@ struct gkyl_hyper_dg {
 };
 
 GKYL_CU_DH
-static void
-create_offsets(const int num_up_dirs, const int update_dirs[2], 
-  const struct gkyl_range *range, const int idxc[GKYL_MAX_DIM], long offsets[9])
-{
-  
-  // Check if we're at an upper or lower edge in each direction
-  bool is_edge_upper[2], is_edge_lower[2];
-  for (int i=0; i<num_up_dirs; ++i) {
-    is_edge_lower[i] = idxc[update_dirs[i]] == range->lower[update_dirs[i]];
-    is_edge_upper[i] = idxc[update_dirs[i]] == range->upper[update_dirs[i]];
-  }
-
-  // Construct the offsets *only* in the directions being updated.
-  // No need to load the neighbors that are not needed for the update.
-  int lower_offset[GKYL_MAX_DIM] = {0};
-  int upper_offset[GKYL_MAX_DIM] = {0};
-  for (int d=0; d<num_up_dirs; ++d) {
-    int dir = update_dirs[d];
-    lower_offset[dir] = -1 + is_edge_lower[d];
-    upper_offset[dir] = 1 - is_edge_upper[d];
-  }  
-
-  // box spanning stencil
-  struct gkyl_range box3;
-  gkyl_range_init(&box3, range->ndim, lower_offset, upper_offset);
-  struct gkyl_range_iter iter3;
-  gkyl_range_iter_init(&iter3, &box3);
-  // construct list of offsets
-  int count = 0;
-  while (gkyl_range_iter_next(&iter3))
-    offsets[count++] = gkyl_range_offset(range, iter3.idx);
-
-}
-
-GKYL_CU_DH
 static int 
 idx_to_inloup_ker(int dim, const int *idx, const int *dirs, const int *num_cells) {
   int iout = 0;

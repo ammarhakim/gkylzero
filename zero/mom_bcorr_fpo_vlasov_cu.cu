@@ -76,7 +76,7 @@ gkyl_mom_bcorr_fpo_vlasov_cu_dev_new(const struct gkyl_basis* cbasis, const stru
   mom_bcorr->vBoundary[5] = vBoundary[5];
 
   mom_bcorr->momt.flags = 0;
-  GKYL_CLEAR_CU_ALLOC(mom_bcorr->momt.flags);
+  GKYL_SET_CU_ALLOC(mom_bcorr->momt.flags);
   mom_bcorr->momt.ref_count = gkyl_ref_count_init(gkyl_mom_bcorr_fpo_vlasov_free);
 
   // copy struct to device

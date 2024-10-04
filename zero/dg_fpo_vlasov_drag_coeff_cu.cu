@@ -4,6 +4,7 @@ extern "C" {
   #include <gkyl_array_ops.h>
   #include <gkyl_array_ops_priv.h>
   #include <gkyl_fpo_vlasov_coeff_recovery.h>
+  #include <gkyl_fpo_vlasov_coeff_recovery_priv.h>
   #include <gkyl_dg_fpo_vlasov_drag_coeff.h>
   #include <gkyl_dg_fpo_vlasov_drag_coeff_priv.h>
   #include <gkyl_util.h>
@@ -33,22 +34,23 @@ gkyl_calc_fpo_drag_coeff_recovery_cu_kernel(const struct gkyl_fpo_vlasov_coeff_r
   struct gkyl_array* fpo_drag_coeff_surf)
 {
   int cdim = coeff_recovery->cdim;
-  int vdim = coeff_recovery->pdim - cdim;
+  int vdim = coeff_recovery->vdim;
 
-  int idxc[GKYL_MAX_DIM];
+  int idxp[GKYL_MAX_DIM];
 
   for (unsigned long tid = threadIdx.x + blockIdx.x*blockDim.x;
       tid < phase_range.volume;
       tid += gridDim.x*blockDim.x)
   {
-    gkyl_sub_range_inv_idx(&phase_range, tid, idxc);  
-    long linp = gkyl_range_idx(&phase_range, idxc);
+    gkyl_sub_range_inv_idx(&phase_range, tid, idxp);
+    long linp = gkyl_range_idx(&phase_range, idxp);
+    long linc = gkyl_range_idx(&conf_range, idxp);
 
     const double *fpo_dhdv_surf_c = (const double*)gkyl_array_cfetch(fpo_dhdv_surf, linp);
     double *fpo_drag_coeff_c = (double *)gkyl_array_fetch(fpo_drag_coeff, linp);
     double *fpo_drag_coeff_surf_c = (double *)gkyl_array_fetch(fpo_drag_coeff_surf, linp);
 
-    const double *gamma_c = (const double *)gkyl_array_cfetch(gamma, linp);
+    const double *gamma_c = (const double *)gkyl_array_cfetch(gamma, linc);
 
     for (int d=0; d<vdim; ++d) {
       int dir = d + cdim;
@@ -57,13 +59,13 @@ gkyl_calc_fpo_drag_coeff_recovery_cu_kernel(const struct gkyl_fpo_vlasov_coeff_r
       int update_dir[] = {dir};
 
       // Index into kernel list.
-      const long *offsets = &coeff_recovery->offsets[d*3];
-      int keri = idx_to_inloup_ker(1, idxc, update_dir, phase_range.upper);
+      const long *offsets = &(coeff_recovery->offsets[d*3]);
+      int keri = idx_to_inloup_ker(1, idxp, update_dir, phase_range.upper);
 
       const double* fpo_h_stencil[3];
 
       for (int i=0; i<3; ++i) {
-        fpo_h_stencil[i] = (const double *)gkyl_array_cfetch(fpo_h, linp+offsets[3*d+i]);
+        fpo_h_stencil[i] = (const double *)gkyl_array_cfetch(fpo_h, linp+offsets[i]);
       }
 
       coeff_recovery->drag_coeff_recovery_stencil[d][keri](
@@ -81,14 +83,14 @@ gkyl_calc_fpo_sgn_drag_coeff_cu_kernel(const struct gkyl_fpo_vlasov_coeff_recove
   int cdim = coeff_recovery->cdim;
   int vdim = coeff_recovery->pdim - cdim;
 
-  int idxc[GKYL_MAX_DIM];
+  int idxp[GKYL_MAX_DIM];
 
   for (unsigned long tid = threadIdx.x + blockIdx.x*blockDim.x;
       tid < phase_range.volume;
       tid += gridDim.x*blockDim.x)
   {
-    gkyl_sub_range_inv_idx(&phase_range, tid, idxc);  
-    long linp = gkyl_range_idx(&phase_range, idxc);
+    gkyl_sub_range_inv_idx(&phase_range, tid, idxp);
+    long linp = gkyl_range_idx(&phase_range, idxp);
 
     const double *fpo_drag_coeff_surf_d = (const double *)gkyl_array_cfetch(fpo_drag_coeff_surf, linp);
     double *sgn_drag_coeff_surf_d = (double *)gkyl_array_fetch(sgn_drag_coeff_surf, linp);
@@ -98,7 +100,7 @@ gkyl_calc_fpo_sgn_drag_coeff_cu_kernel(const struct gkyl_fpo_vlasov_coeff_recove
       int dir = d + cdim;
       int update_dir[] = {dir};
 
-      int keri = idx_to_inloup_ker(1, idxc, update_dir, phase_range.upper);
+      int keri = idx_to_inloup_ker(1, idxp, update_dir, phase_range.upper);
 
       coeff_recovery->sgn_drag_coeff_stencil[d][keri](fpo_drag_coeff_surf_d, sgn_drag_coeff_surf_d, &const_sgn_drag_coeff_surf_d[d]);
     } 

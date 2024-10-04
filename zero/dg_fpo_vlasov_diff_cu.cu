@@ -10,23 +10,24 @@ extern "C" {
 #include <cassert>
 
 // "Choose Kernel" based on cdim and polynomial order
-#define CK(lst, cdim, poly_order) lst[cdim-1].kernels[poly_order]
+#define CK(lst, cdim, poly_order) lst[cdim-1].kernels[poly_order-1]
 
 // CUDA kernel to set pointer to diffusion tensor.
 // This is required because eqn object lives on device,
 // and so its members cannot be modified without a full __global__ kernel on device.
 __global__ static void
-gkyl_fpo_vlasov_diff_set_auxfields_cu_kernel(const struct gkyl_dg_eqn *eqn, const struct gkyl_array *diff_coeff)
+gkyl_fpo_vlasov_diff_set_auxfields_cu_kernel(const struct gkyl_dg_eqn *eqn, const struct gkyl_array *diff_coeff, const struct gkyl_array *diff_coeff_surf)
 {
   struct dg_fpo_vlasov_diff *fpo_vlasov_diff = container_of(eqn, struct dg_fpo_vlasov_diff, eqn);
   fpo_vlasov_diff->auxfields.diff_coeff = diff_coeff;
+  fpo_vlasov_diff->auxfields.diff_coeff_surf = diff_coeff_surf;
 }
 
 //// Host-side wrapper for device kernels setting g (second Rosenbluth potential).
 void
 gkyl_fpo_vlasov_diff_set_auxfields_cu(const struct gkyl_dg_eqn *eqn, struct gkyl_dg_fpo_vlasov_diff_auxfields auxin)
 {
-  gkyl_fpo_vlasov_diff_set_auxfields_cu_kernel<<<1,1>>>(eqn, auxin.diff_coeff->on_dev);
+  gkyl_fpo_vlasov_diff_set_auxfields_cu_kernel<<<1,1>>>(eqn, auxin.diff_coeff->on_dev, auxin.diff_coeff_surf->on_dev);
 }
 
 // CUDA kernel to set device pointers to range object and vlasov fpo kernel function
@@ -71,15 +72,15 @@ dg_fpo_vlasov_diff_set_cu_dev_ptrs(struct dg_fpo_vlasov_diff *fpo_vlasov_diff, e
  
   fpo_vlasov_diff->eqn.vol_term = CK(vol_kernels, cdim, poly_order);
 
-  choose_fpo_vlasov_diff_surf_kern(fpo_vlasov_diff->surf[0][0], surf_vxvx_kernel_list, cdim, poly_order);
-  choose_fpo_vlasov_diff_surf_kern(fpo_vlasov_diff->surf[0][1], surf_vxvy_kernel_list, cdim, poly_order);
-  choose_fpo_vlasov_diff_surf_kern(fpo_vlasov_diff->surf[0][2], surf_vxvz_kernel_list, cdim, poly_order);
-  choose_fpo_vlasov_diff_surf_kern(fpo_vlasov_diff->surf[1][0], surf_vyvx_kernel_list, cdim, poly_order);
-  choose_fpo_vlasov_diff_surf_kern(fpo_vlasov_diff->surf[1][1], surf_vyvy_kernel_list, cdim, poly_order);
-  choose_fpo_vlasov_diff_surf_kern(fpo_vlasov_diff->surf[1][2], surf_vyvz_kernel_list, cdim, poly_order);
-  choose_fpo_vlasov_diff_surf_kern(fpo_vlasov_diff->surf[2][0], surf_vzvx_kernel_list, cdim, poly_order);
-  choose_fpo_vlasov_diff_surf_kern(fpo_vlasov_diff->surf[2][1], surf_vzvy_kernel_list, cdim, poly_order);
-  choose_fpo_vlasov_diff_surf_kern(fpo_vlasov_diff->surf[2][2], surf_vzvz_kernel_list, cdim, poly_order);
+  fpo_vlasov_diff->surf[0][0] = surf_vxvx_kernel_list[cdim-1][poly_order-1];
+  fpo_vlasov_diff->surf[0][1] = surf_vxvy_kernel_list[cdim-1][poly_order-1];
+  fpo_vlasov_diff->surf[0][2] = surf_vxvz_kernel_list[cdim-1][poly_order-1];
+  fpo_vlasov_diff->surf[1][0] = surf_vyvx_kernel_list[cdim-1][poly_order-1];
+  fpo_vlasov_diff->surf[1][1] = surf_vyvy_kernel_list[cdim-1][poly_order-1];
+  fpo_vlasov_diff->surf[1][2] = surf_vyvz_kernel_list[cdim-1][poly_order-1];
+  fpo_vlasov_diff->surf[2][0] = surf_vzvx_kernel_list[cdim-1][poly_order-1];
+  fpo_vlasov_diff->surf[2][1] = surf_vzvy_kernel_list[cdim-1][poly_order-1];
+  fpo_vlasov_diff->surf[2][2] = surf_vzvz_kernel_list[cdim-1][poly_order-1];
 }
 
 struct gkyl_dg_eqn*

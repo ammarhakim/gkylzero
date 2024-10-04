@@ -34,17 +34,12 @@ vm_species_fpo_init(struct gkyl_vlasov_app *app, struct vm_species *s, struct vm
   fpo->dgdv_surf = mkarr(app->use_gpu, 2*vdim*surf_basis.num_basis, s->local_ext.volume); 
   fpo->d2gdv2_surf = mkarr(app->use_gpu, vdim*surf_basis.num_basis, s->local_ext.volume); 
 
-  fpo->pot_slvr = gkyl_proj_maxwellian_pots_on_basis_new(&s->grid, &app->confBasis, &app->basis, app->poly_order+1, app->use_gpu);
+  fpo->pot_slvr = gkyl_proj_maxwellian_pots_on_basis_new(&s->grid, 
+    &app->local_ext, &s->local_ext, &app->confBasis, &app->basis, app->poly_order+1, app->use_gpu);
 
   // allocate moments needed for FPO update
   vm_species_moment_init(app, s, &fpo->lte_moms, "LTEMoments");
   vm_species_moment_init(app, s, &fpo->moms, "FiveMoments");
-
-  double v_bounds[2*GKYL_MAX_DIM];
-  for (int d=0; d<vdim; ++d) {
-    v_bounds[d] = s->info.lower[d];
-    v_bounds[d + vdim] = s->info.upper[d];
-  }
 
   // initialize drag and diffusion coefficient arrays
   int num_surf_quad_nodes = (int)(pow(app->poly_order+1, pdim-1));
@@ -56,6 +51,10 @@ vm_species_fpo_init(struct gkyl_vlasov_app *app, struct vm_species *s, struct vm
   fpo->diff_coeff = mkarr(app->use_gpu, vdim*vdim*app->basis.num_basis, s->local_ext.volume);
   fpo->diff_coeff_surf = mkarr(app->use_gpu, 2*vdim*vdim*surf_basis.num_basis, s->local_ext.volume);
 
+  // utility struct for computing drag and diffusion coefficients
+  fpo->coeff_recovery = gkyl_fpo_vlasov_coeff_recovery_new(&s->grid, &app->basis, &s->local_ext, fpo->offsets, app->use_gpu);
+
+  // host-side arrays for writing out H, G, a, D
   fpo->h_host = fpo->h;
   fpo->g_host = fpo->g;
   fpo->drag_coeff_host = fpo->drag_coeff;
@@ -72,20 +71,24 @@ vm_species_fpo_init(struct gkyl_vlasov_app *app, struct vm_species *s, struct vm
   fpo->boundary_corrections = mkarr(app->use_gpu, 2*(vdim+1)*app->confBasis.num_basis, app->local_ext.volume);
   fpo->drag_diff_coeff_corrs = mkarr(app->use_gpu, (vdim+1)*app->confBasis.num_basis, app->local_ext.volume);
 
+  // updater to compute moments for conservation corrections
   const struct gkyl_mom_type* fpo_mom_type = gkyl_mom_fpo_vlasov_new(&app->confBasis, 
     &app->basis, &s->local, app->use_gpu);
-
-  struct gkyl_mom_fpo_vlasov_auxfields fpo_mom_auxfields = { 
-    .a = fpo->drag_coeff, .D = fpo->diff_coeff};
+  struct gkyl_mom_fpo_vlasov_auxfields fpo_mom_auxfields = { .a = fpo->drag_coeff, .D = fpo->diff_coeff };
   gkyl_mom_fpo_vlasov_set_auxfields(fpo_mom_type, fpo_mom_auxfields);
-  
-  fpo->fpo_mom_calc = gkyl_mom_calc_new(&s->grid, fpo_mom_type, app->use_gpu);
+   fpo->fpo_mom_calc = gkyl_mom_calc_new(&s->grid, fpo_mom_type, app->use_gpu); 
+
+  // updater to compute boundary corrections for conservation corrections
+  double v_bounds[2*GKYL_MAX_DIM];
+  for (int d=0; d<vdim; ++d) {
+    v_bounds[d] = s->info.lower[d];
+    v_bounds[d + vdim] = s->info.upper[d];
+  }
   fpo->bcorr_calc = gkyl_mom_calc_bcorr_fpo_vlasov_new(&s->grid,
     &app->confBasis, &app->basis, &s->local, v_bounds, fpo->diff_coeff, app->use_gpu);
 
+  // updater object for drag and diffusion coefficient correction
   fpo->coeffs_correct_calc = gkyl_fpo_coeffs_correct_new(&s->grid, &app->confBasis, &app->local, app->use_gpu);
-
-  fpo->coeff_recovery = gkyl_fpo_vlasov_coeff_recovery_new(&s->grid, &app->basis, &s->local, app->use_gpu);
 
   // initialize FPO updater
   fpo->coll_slvr = gkyl_dg_updater_fpo_vlasov_new(&s->grid, &app->basis, &s->local, app->use_gpu);
@@ -160,7 +163,7 @@ vm_species_fpo_rhs(gkyl_vlasov_app *app, const struct vm_species *s,
  
   // accumulate update due to collisions onto rhs
   gkyl_dg_updater_fpo_vlasov_advance(fpo->coll_slvr,
-     fpo->coeff_recovery->offsets, &s->local,
+    fpo->offsets, &s->local,
     fpo->drag_coeff, fpo->drag_coeff_surf, 
     fpo->sgn_drag_coeff_surf, fpo->const_sgn_drag_coeff_surf,
     fpo->diff_coeff, fpo->diff_coeff_surf, fin, s->cflrate, rhs);
@@ -174,6 +177,13 @@ vm_species_fpo_release(const struct gkyl_vlasov_app *app, const struct vm_fpo_co
   gkyl_array_release(fpo->gamma);
   gkyl_array_release(fpo->h);
   gkyl_array_release(fpo->g);
+  if (app->use_gpu) {
+    gkyl_array_release(fpo->h_host);
+    gkyl_array_release(fpo->g_host);
+    gkyl_array_release(fpo->drag_coeff_host);
+    gkyl_array_release(fpo->diff_coeff_host);
+  }
+
   gkyl_array_release(fpo->h_surf);
   gkyl_array_release(fpo->g_surf);
   gkyl_array_release(fpo->dhdv_surf);
@@ -182,10 +192,25 @@ vm_species_fpo_release(const struct gkyl_vlasov_app *app, const struct vm_fpo_co
 
   gkyl_proj_maxwellian_pots_on_basis_release(fpo->pot_slvr);
 
+  vm_species_moment_release(app, &fpo->lte_moms);
   vm_species_moment_release(app, &fpo->moms);
 
   gkyl_array_release(fpo->drag_coeff);
   gkyl_array_release(fpo->diff_coeff);
+  gkyl_array_release(fpo->drag_coeff_surf);
+  gkyl_array_release(fpo->diff_coeff_surf);
+  gkyl_array_release(fpo->sgn_drag_coeff_surf);
+  gkyl_array_release(fpo->const_sgn_drag_coeff_surf);
+
+  gkyl_array_release(fpo->fpo_moms);
+  gkyl_array_release(fpo->boundary_corrections);
+  gkyl_array_release(fpo->drag_diff_coeff_corrs);
+
+  gkyl_mom_calc_release(fpo->fpo_mom_calc);
+  gkyl_mom_calc_bcorr_release(fpo->bcorr_calc);
+
+  gkyl_fpo_vlasov_coeffs_correct_release(fpo->coeffs_correct_calc);
+  gkyl_fpo_vlasov_coeff_recovery_release(fpo->coeff_recovery);
 
   gkyl_dg_updater_fpo_vlasov_release(fpo->coll_slvr);
 }

@@ -1,7 +1,6 @@
 #pragma once
 
 #include <gkyl_array.h>
-#include <gkyl_fpo_vlasov_coeff_recovery_priv.h>
 #include <gkyl_basis.h>
 #include <gkyl_range.h>
 #include <gkyl_rect_grid.h>
@@ -15,14 +14,14 @@ typedef struct gkyl_fpo_vlasov_coeff_recovery gkyl_fpo_vlasov_coeff_recovery;
 */
 struct gkyl_fpo_vlasov_coeff_recovery*
 gkyl_fpo_vlasov_coeff_recovery_new(const struct gkyl_rect_grid *grid,
-    const struct gkyl_basis *phase_basis, const struct gkyl_range *phase_range, bool use_gpu);
+    const struct gkyl_basis *phase_basis, const struct gkyl_range *phase_range, long offsets[36], bool use_gpu);
 
 /**
  * Create a new updater on device for NV-GPU.
 */
 struct gkyl_fpo_vlasov_coeff_recovery*
 gkyl_fpo_vlasov_coeff_recovery_cu_dev_new(const struct gkyl_rect_grid *grid, 
-    const struct gkyl_basis *phase_basis, const struct gkyl_range *phase_range, bool use_gpu);
+    const struct gkyl_basis *phase_basis, const struct gkyl_range *phase_range, long offsets[36]);
 
 /**
  * Delete updater.
