@@ -69,6 +69,10 @@ gkyl_proj_maxwellian_pots_on_basis_new(const struct gkyl_rect_grid *grid,
   up->phase_qrange = get_qrange(up->cdim, up->pdim, num_quad, num_quad_v, is_vdim_p2);
   up->surf_qrange = get_qrange(up->cdim, up->pdim-1, num_quad, num_quad_v, is_vdim_p2);
 
+  // Nodes for nodal surface expansions
+  struct gkyl_array *surf_nodes_ho = gkyl_array_new(GKYL_DOUBLE, grid->ndim-1, up->surf_basis.num_basis);
+  up->surf_basis.node_list(gkyl_array_fetch(surf_nodes_ho, 0));
+
   if (!up->use_gpu) {
     up->fpo_h_at_ords = gkyl_array_new(GKYL_DOUBLE, 1, up->tot_quad);
     up->fpo_g_at_ords = gkyl_array_new(GKYL_DOUBLE, 1, up->tot_quad);
@@ -80,9 +84,7 @@ gkyl_proj_maxwellian_pots_on_basis_new(const struct gkyl_rect_grid *grid,
     up->fpo_dhdv_at_surf_ords = gkyl_array_new(GKYL_DOUBLE, 1, up->tot_surf_quad);
     up->fpo_d2gdv2_at_surf_ords = gkyl_array_new(GKYL_DOUBLE, 1, up->tot_surf_quad);
 
-    // Nodes for nodal surface expansions
-    up->surf_nodes = gkyl_array_new(GKYL_DOUBLE, grid->ndim-1, up->surf_basis.num_basis);
-    up->surf_basis.node_list(gkyl_array_fetch(up->surf_nodes, 0));
+    up->surf_nodes = surf_nodes_ho;
     up->fpo_dgdv_at_surf_nodes = gkyl_array_new(GKYL_DOUBLE, 1, up->num_surf_basis);
   }
 
@@ -104,6 +106,10 @@ gkyl_proj_maxwellian_pots_on_basis_new(const struct gkyl_rect_grid *grid,
     gkyl_array_copy(up->conf_basis_at_nodes, conf_basis_at_nodes_ho);
     gkyl_array_release(conf_basis_at_nodes_ho);
     gkyl_array_release(conf_nodes_ho);
+
+    up->surf_nodes = gkyl_array_cu_dev_new(GKYL_DOUBLE, grid->ndim-1, up->surf_basis.num_basis);
+    gkyl_array_copy(up->surf_nodes, surf_nodes_ho);
+    gkyl_array_release(surf_nodes_ho);
 
     // Allocate the memory for computing the specific phase and surface nodal to modal calculations
     struct gkyl_mat_mm_array_mem *phase_quad_nodal_to_modal_mem_ho;
