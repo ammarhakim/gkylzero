@@ -2,6 +2,8 @@
  
 GKYL_CU_DH double fpo_vlasov_diff_boundary_surfvyvx_1x3v_ser_p1_lovy_invx(const double *dxv, const double *diff_coeff_C,
       const double *diff_coeff_surf_stencil[9], const double *f_stencil[9], double* GKYL_RESTRICT out) { 
+  // Stencil indices for this kernel: [0, -1] 
+
   // dxv[NDIM]: Cell spacing in each direction. 
   // diff_coeff_stencil[3]: 3-cell stencil of diffusion tensor. 
   // f_stencil[9]: 9-cell stencil of distribution function. 
@@ -22,16 +24,19 @@ GKYL_CU_DH double fpo_vlasov_diff_boundary_surfvyvx_1x3v_ser_p1_lovy_invx(const 
 
   // Index into D and f stencils. 
   const double *DCC = &diff_coeff_C[120]; 
-  const double *fCL = f_stencil[0]; 
-  const double *fTL = f_stencil[1]; 
-  const double *fCC = f_stencil[2]; 
-  const double *Dsurf_CC_vy = &diff_coeff_surf_stencil[2][48]; 
-  const double *Dsurf_CC_vx = &diff_coeff_surf_stencil[2][56]; 
-  const double *fTC = f_stencil[3]; 
-  const double* Dsurf_TC_vy = &diff_coeff_surf_stencil[3][48]; 
-  const double *fCR = f_stencil[4]; 
-  const double* Dsurf_CR_vx = &diff_coeff_surf_stencil[4][56]; 
-  const double *fTR = f_stencil[5]; 
+  const double *fBL = f_stencil[0]; 
+  const double *fCL = f_stencil[1]; 
+  const double *fTL = f_stencil[2]; 
+  const double *fBC = f_stencil[3]; 
+  const double *fCC = f_stencil[4]; 
+  const double *Dsurf_CC_vy = &diff_coeff_surf_stencil[4][48]; 
+  const double *Dsurf_CC_vx = &diff_coeff_surf_stencil[4][56]; 
+  const double *fTC = f_stencil[5]; 
+  const double* Dsurf_TC_vy = &diff_coeff_surf_stencil[5][48]; 
+  const double *fBR = f_stencil[6]; 
+  const double *fCR = f_stencil[7]; 
+  const double* Dsurf_CR_vx = &diff_coeff_surf_stencil[7][56]; 
+  const double *fTR = f_stencil[8]; 
 
   f_rec_lo[0] = 0.408248290463863*fCL[2]-0.408248290463863*fCC[2]+0.3535533905932737*fCL[0]+0.3535533905932737*fCC[0]; 
   f_rec_lo[1] = 0.408248290463863*fCL[5]-0.408248290463863*fCC[5]+0.3535533905932737*fCL[1]+0.3535533905932737*fCC[1]; 
@@ -158,6 +163,7 @@ GKYL_CU_DH double fpo_vlasov_diff_boundary_surfvyvx_1x3v_ser_p1_lovy_invx(const 
   out[37] += 0.5*vol[37]*dv1_sq; 
   out[38] += 0.5*vol[38]*dv1_sq; 
   out[39] += 0.5*vol[39]*dv1_sq; 
+  double cflFreq = fabs(Dsurf_TC_vy[0]); 
 
-  return 0.0; 
+  return 1.4142135623730951*dv1_sq*cflFreq; 
 } 

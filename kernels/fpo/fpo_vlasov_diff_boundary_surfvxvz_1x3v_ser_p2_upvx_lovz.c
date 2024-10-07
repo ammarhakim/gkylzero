@@ -1,6 +1,6 @@
 #include <gkyl_fpo_vlasov_kernels.h> 
  
-  // Stencil indices for this kernel: [1, -1]; 
+  // Stencil indices for this kernel: [1, -1] 
 
 GKYL_CU_DH double fpo_vlasov_diff_boundary_surfvxvz_1x3v_ser_p2_upvx_lovz(const double *dxv, const double *diff_coeff_C,
       const double *diff_coeff_surf_stencil[9], const double *f_stencil[9], double* GKYL_RESTRICT out) { 

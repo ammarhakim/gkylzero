@@ -1,5 +1,7 @@
 #include <gkyl_fpo_vlasov_kernels.h> 
  
+  // Stencil indices for this kernel: [-1, 0] 
+
 GKYL_CU_DH double fpo_vlasov_diff_boundary_surfvyvz_1x3v_ser_p1_lovy_invz(const double *dxv, const double *diff_coeff_C,
       const double *diff_coeff_surf_stencil[9], const double *f_stencil[9], double* GKYL_RESTRICT out) { 
   // dxv[NDIM]: Cell spacing in each direction. 
@@ -22,16 +24,19 @@ GKYL_CU_DH double fpo_vlasov_diff_boundary_surfvyvz_1x3v_ser_p1_lovy_invz(const 
 
   // Index into D and f stencils. 
   const double *DCC = &diff_coeff_C[200]; 
-  const double *fBC = f_stencil[0]; 
-  const double *fCC = f_stencil[1]; 
-  const double *Dsurf_CC_vy = &diff_coeff_surf_stencil[1][80]; 
-  const double *Dsurf_CC_vz = &diff_coeff_surf_stencil[1][88]; 
-  const double *fTC = f_stencil[2]; 
-  const double* Dsurf_TC_vz = &diff_coeff_surf_stencil[2][88]; 
-  const double *fBR = f_stencil[3]; 
-  const double *fCR = f_stencil[4]; 
-  const double* Dsurf_CR_vy = &diff_coeff_surf_stencil[4][80]; 
-  const double *fTR = f_stencil[5]; 
+  const double *fBL = f_stencil[0]; 
+  const double *fCL = f_stencil[1]; 
+  const double *fTL = f_stencil[2]; 
+  const double *fBC = f_stencil[3]; 
+  const double *fCC = f_stencil[4]; 
+  const double *Dsurf_CC_vy = &diff_coeff_surf_stencil[4][80]; 
+  const double *Dsurf_CC_vz = &diff_coeff_surf_stencil[4][88]; 
+  const double *fTC = f_stencil[5]; 
+  const double* Dsurf_TC_vz = &diff_coeff_surf_stencil[5][88]; 
+  const double *fBR = f_stencil[6]; 
+  const double *fCR = f_stencil[7]; 
+  const double* Dsurf_CR_vy = &diff_coeff_surf_stencil[7][80]; 
+  const double *fTR = f_stencil[8]; 
 
   f_rec_lo[0] = -(0.408248290463863*fCC[4])+0.408248290463863*fBC[4]+0.3535533905932737*fCC[0]+0.3535533905932737*fBC[0]; 
   f_rec_lo[1] = -(0.408248290463863*fCC[8])+0.408248290463863*fBC[8]+0.3535533905932737*fCC[1]+0.3535533905932737*fBC[1]; 
@@ -158,6 +163,7 @@ GKYL_CU_DH double fpo_vlasov_diff_boundary_surfvyvz_1x3v_ser_p1_lovy_invz(const 
   out[37] += (0.5*vol[37]-1.3693063937629153*surft2_up[1]+1.3693063937629153*surft2_lo[1])*dv1_sq; 
   out[38] += (0.5*vol[38]-1.3693063937629153*surft2_up[2]+1.3693063937629153*surft2_lo[2])*dv1_sq; 
   out[39] += (0.5*vol[39]-1.3693063937629153*surft2_up[4]+1.3693063937629153*surft2_lo[4])*dv1_sq; 
+  double cflFreq = fabs(Dsurf_CR_vy[0]); 
 
-  return 0.0; 
+  return 1.4142135623730951*dv1_sq*cflFreq; 
 } 

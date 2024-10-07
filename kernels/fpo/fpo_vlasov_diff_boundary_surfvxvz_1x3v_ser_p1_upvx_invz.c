@@ -1,5 +1,7 @@
 #include <gkyl_fpo_vlasov_kernels.h> 
  
+  // Stencil indices for this kernel: [1, 0] 
+
 GKYL_CU_DH double fpo_vlasov_diff_boundary_surfvxvz_1x3v_ser_p1_upvx_invz(const double *dxv, const double *diff_coeff_C,
       const double *diff_coeff_surf_stencil[9], const double *f_stencil[9], double* GKYL_RESTRICT out) { 
   // dxv[NDIM]: Cell spacing in each direction. 
@@ -31,6 +33,10 @@ GKYL_CU_DH double fpo_vlasov_diff_boundary_surfvxvz_1x3v_ser_p1_upvx_invz(const 
   const double *Dsurf_CC_vz = &diff_coeff_surf_stencil[4][40]; 
   const double *fTC = f_stencil[5]; 
   const double* Dsurf_TC_vz = &diff_coeff_surf_stencil[5][40]; 
+  const double *fBR = f_stencil[6]; 
+  const double *fCR = f_stencil[7]; 
+  const double* Dsurf_CR_vx = &diff_coeff_surf_stencil[7][32]; 
+  const double *fTR = f_stencil[8]; 
 
   f_rec_lo[0] = -(0.408248290463863*fCC[4])+0.408248290463863*fBC[4]+0.3535533905932737*fCC[0]+0.3535533905932737*fBC[0]; 
   f_rec_lo[1] = -(0.408248290463863*fCC[8])+0.408248290463863*fBC[8]+0.3535533905932737*fCC[1]+0.3535533905932737*fBC[1]; 
@@ -66,6 +72,14 @@ GKYL_CU_DH double fpo_vlasov_diff_boundary_surfvxvz_1x3v_ser_p1_upvx_invz(const 
   surft1_lo[5] = 0.3535533905932737*Dsurf_CC_vx[2]*df_rec_lo[7]+0.3535533905932737*df_rec_lo[2]*Dsurf_CC_vx[7]+0.3535533905932737*Dsurf_CC_vx[4]*df_rec_lo[6]+0.3535533905932737*df_rec_lo[4]*Dsurf_CC_vx[6]+0.3535533905932737*Dsurf_CC_vx[0]*df_rec_lo[5]+0.3535533905932737*df_rec_lo[0]*Dsurf_CC_vx[5]+0.3535533905932737*Dsurf_CC_vx[1]*df_rec_lo[3]+0.3535533905932737*df_rec_lo[1]*Dsurf_CC_vx[3]; 
   surft1_lo[6] = 0.3535533905932737*Dsurf_CC_vx[1]*df_rec_lo[7]+0.3535533905932737*df_rec_lo[1]*Dsurf_CC_vx[7]+0.3535533905932737*Dsurf_CC_vx[0]*df_rec_lo[6]+0.3535533905932737*df_rec_lo[0]*Dsurf_CC_vx[6]+0.3535533905932737*Dsurf_CC_vx[4]*df_rec_lo[5]+0.3535533905932737*df_rec_lo[4]*Dsurf_CC_vx[5]+0.3535533905932737*Dsurf_CC_vx[2]*df_rec_lo[3]+0.3535533905932737*df_rec_lo[2]*Dsurf_CC_vx[3]; 
   surft1_lo[7] = 0.3535533905932737*Dsurf_CC_vx[0]*df_rec_lo[7]+0.3535533905932737*df_rec_lo[0]*Dsurf_CC_vx[7]+0.3535533905932737*Dsurf_CC_vx[1]*df_rec_lo[6]+0.3535533905932737*df_rec_lo[1]*Dsurf_CC_vx[6]+0.3535533905932737*Dsurf_CC_vx[2]*df_rec_lo[5]+0.3535533905932737*df_rec_lo[2]*Dsurf_CC_vx[5]+0.3535533905932737*Dsurf_CC_vx[3]*df_rec_lo[4]+0.3535533905932737*df_rec_lo[3]*Dsurf_CC_vx[4]; 
+  surft1_up[0] = 0.3535533905932737*Dsurf_CR_vx[7]*df_rec_up[7]+0.3535533905932737*Dsurf_CR_vx[6]*df_rec_up[6]+0.3535533905932737*Dsurf_CR_vx[5]*df_rec_up[5]+0.3535533905932737*Dsurf_CR_vx[4]*df_rec_up[4]+0.3535533905932737*Dsurf_CR_vx[3]*df_rec_up[3]+0.3535533905932737*Dsurf_CR_vx[2]*df_rec_up[2]+0.3535533905932737*Dsurf_CR_vx[1]*df_rec_up[1]+0.3535533905932737*Dsurf_CR_vx[0]*df_rec_up[0]; 
+  surft1_up[1] = 0.3535533905932737*Dsurf_CR_vx[6]*df_rec_up[7]+0.3535533905932737*df_rec_up[6]*Dsurf_CR_vx[7]+0.3535533905932737*Dsurf_CR_vx[3]*df_rec_up[5]+0.3535533905932737*df_rec_up[3]*Dsurf_CR_vx[5]+0.3535533905932737*Dsurf_CR_vx[2]*df_rec_up[4]+0.3535533905932737*df_rec_up[2]*Dsurf_CR_vx[4]+0.3535533905932737*Dsurf_CR_vx[0]*df_rec_up[1]+0.3535533905932737*df_rec_up[0]*Dsurf_CR_vx[1]; 
+  surft1_up[2] = 0.3535533905932737*Dsurf_CR_vx[5]*df_rec_up[7]+0.3535533905932737*df_rec_up[5]*Dsurf_CR_vx[7]+0.3535533905932737*Dsurf_CR_vx[3]*df_rec_up[6]+0.3535533905932737*df_rec_up[3]*Dsurf_CR_vx[6]+0.3535533905932737*Dsurf_CR_vx[1]*df_rec_up[4]+0.3535533905932737*df_rec_up[1]*Dsurf_CR_vx[4]+0.3535533905932737*Dsurf_CR_vx[0]*df_rec_up[2]+0.3535533905932737*df_rec_up[0]*Dsurf_CR_vx[2]; 
+  surft1_up[3] = 0.3535533905932737*Dsurf_CR_vx[4]*df_rec_up[7]+0.3535533905932737*df_rec_up[4]*Dsurf_CR_vx[7]+0.3535533905932737*Dsurf_CR_vx[2]*df_rec_up[6]+0.3535533905932737*df_rec_up[2]*Dsurf_CR_vx[6]+0.3535533905932737*Dsurf_CR_vx[1]*df_rec_up[5]+0.3535533905932737*df_rec_up[1]*Dsurf_CR_vx[5]+0.3535533905932737*Dsurf_CR_vx[0]*df_rec_up[3]+0.3535533905932737*df_rec_up[0]*Dsurf_CR_vx[3]; 
+  surft1_up[4] = 0.3535533905932737*Dsurf_CR_vx[3]*df_rec_up[7]+0.3535533905932737*df_rec_up[3]*Dsurf_CR_vx[7]+0.3535533905932737*Dsurf_CR_vx[5]*df_rec_up[6]+0.3535533905932737*df_rec_up[5]*Dsurf_CR_vx[6]+0.3535533905932737*Dsurf_CR_vx[0]*df_rec_up[4]+0.3535533905932737*df_rec_up[0]*Dsurf_CR_vx[4]+0.3535533905932737*Dsurf_CR_vx[1]*df_rec_up[2]+0.3535533905932737*df_rec_up[1]*Dsurf_CR_vx[2]; 
+  surft1_up[5] = 0.3535533905932737*Dsurf_CR_vx[2]*df_rec_up[7]+0.3535533905932737*df_rec_up[2]*Dsurf_CR_vx[7]+0.3535533905932737*Dsurf_CR_vx[4]*df_rec_up[6]+0.3535533905932737*df_rec_up[4]*Dsurf_CR_vx[6]+0.3535533905932737*Dsurf_CR_vx[0]*df_rec_up[5]+0.3535533905932737*df_rec_up[0]*Dsurf_CR_vx[5]+0.3535533905932737*Dsurf_CR_vx[1]*df_rec_up[3]+0.3535533905932737*df_rec_up[1]*Dsurf_CR_vx[3]; 
+  surft1_up[6] = 0.3535533905932737*Dsurf_CR_vx[1]*df_rec_up[7]+0.3535533905932737*df_rec_up[1]*Dsurf_CR_vx[7]+0.3535533905932737*Dsurf_CR_vx[0]*df_rec_up[6]+0.3535533905932737*df_rec_up[0]*Dsurf_CR_vx[6]+0.3535533905932737*Dsurf_CR_vx[4]*df_rec_up[5]+0.3535533905932737*df_rec_up[4]*Dsurf_CR_vx[5]+0.3535533905932737*Dsurf_CR_vx[2]*df_rec_up[3]+0.3535533905932737*df_rec_up[2]*Dsurf_CR_vx[3]; 
+  surft1_up[7] = 0.3535533905932737*Dsurf_CR_vx[0]*df_rec_up[7]+0.3535533905932737*df_rec_up[0]*Dsurf_CR_vx[7]+0.3535533905932737*Dsurf_CR_vx[1]*df_rec_up[6]+0.3535533905932737*df_rec_up[1]*Dsurf_CR_vx[6]+0.3535533905932737*Dsurf_CR_vx[2]*df_rec_up[5]+0.3535533905932737*df_rec_up[2]*Dsurf_CR_vx[5]+0.3535533905932737*Dsurf_CR_vx[3]*df_rec_up[4]+0.3535533905932737*df_rec_up[3]*Dsurf_CR_vx[4]; 
 
   surft2_lo[0] = 0.3535533905932737*Dsurf_CC_vz[7]*f_rec_lo[7]+0.3535533905932737*Dsurf_CC_vz[6]*f_rec_lo[6]+0.3535533905932737*Dsurf_CC_vz[5]*f_rec_lo[5]+0.3535533905932737*Dsurf_CC_vz[4]*f_rec_lo[4]+0.3535533905932737*Dsurf_CC_vz[3]*f_rec_lo[3]+0.3535533905932737*Dsurf_CC_vz[2]*f_rec_lo[2]+0.3535533905932737*Dsurf_CC_vz[1]*f_rec_lo[1]+0.3535533905932737*Dsurf_CC_vz[0]*f_rec_lo[0]; 
   surft2_lo[1] = 0.3535533905932737*Dsurf_CC_vz[6]*f_rec_lo[7]+0.3535533905932737*f_rec_lo[6]*Dsurf_CC_vz[7]+0.3535533905932737*Dsurf_CC_vz[3]*f_rec_lo[5]+0.3535533905932737*f_rec_lo[3]*Dsurf_CC_vz[5]+0.3535533905932737*Dsurf_CC_vz[2]*f_rec_lo[4]+0.3535533905932737*f_rec_lo[2]*Dsurf_CC_vz[4]+0.3535533905932737*Dsurf_CC_vz[0]*f_rec_lo[1]+0.3535533905932737*f_rec_lo[0]*Dsurf_CC_vz[1]; 
@@ -149,6 +163,7 @@ GKYL_CU_DH double fpo_vlasov_diff_boundary_surfvxvz_1x3v_ser_p1_upvx_invz(const 
   out[37] += 0.5*vol[37]*dv1_sq; 
   out[38] += (0.5*vol[38]-1.3693063937629153*surft2_up[3]+1.3693063937629153*surft2_lo[3])*dv1_sq; 
   out[39] += (0.5*vol[39]-1.3693063937629153*surft2_up[5]+1.3693063937629153*surft2_lo[5])*dv1_sq; 
+  double cflFreq = fabs(Dsurf_CC_vx[0]); 
 
-  return 0.0; 
+  return 1.4142135623730951*dv1_sq*cflFreq; 
 } 

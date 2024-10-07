@@ -2,6 +2,8 @@
  
 GKYL_CU_DH double fpo_vlasov_diff_boundary_surfvyvx_1x3v_ser_p2_lovy_upvx(const double *dxv, const double *diff_coeff_C,
       const double *diff_coeff_surf_stencil[9], const double *f_stencil[9], double* GKYL_RESTRICT out) { 
+  // Stencil indices for this kernel: [1, -1] 
+
   // dxv[NDIM]: Cell spacing in each direction. 
   // diff_coeff_stencil[3]: 3-cell stencil of diffusion tensor. 
   // f_stencil[9]: 9-cell stencil of distribution function. 

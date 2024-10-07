@@ -1,6 +1,6 @@
 #include <gkyl_fpo_vlasov_kernels.h> 
  
-  // Stencil indices for this kernel: [-1, 0]; 
+  // Stencil indices for this kernel: [-1, 0] 
 
 GKYL_CU_DH double fpo_vlasov_diff_boundary_surfvyvz_1x3v_ser_p2_lovy_invz(const double *dxv, const double *diff_coeff_C,
       const double *diff_coeff_surf_stencil[9], const double *f_stencil[9], double* GKYL_RESTRICT out) { 
@@ -24,16 +24,19 @@ GKYL_CU_DH double fpo_vlasov_diff_boundary_surfvyvz_1x3v_ser_p2_lovy_invz(const 
 
   // Index into D and f stencils. 
   const double *DCC = &diff_coeff_C[240]; 
-  const double *fBC = f_stencil[0]; 
-  const double *fCC = f_stencil[1]; 
-  const double *Dsurf_CC_vy = &diff_coeff_surf_stencil[1][200]; 
-  const double *Dsurf_CC_vz = &diff_coeff_surf_stencil[1][220]; 
-  const double *fTC = f_stencil[2]; 
-  const double* Dsurf_TC_vz = &diff_coeff_surf_stencil[2][220]; 
-  const double *fBR = f_stencil[3]; 
-  const double *fCR = f_stencil[4]; 
-  const double* Dsurf_CR_vy = &diff_coeff_surf_stencil[4][200]; 
-  const double *fTR = f_stencil[5]; 
+  const double *fBL = f_stencil[0]; 
+  const double *fCL = f_stencil[1]; 
+  const double *fTL = f_stencil[2]; 
+  const double *fBC = f_stencil[3]; 
+  const double *fCC = f_stencil[4]; 
+  const double *Dsurf_CC_vy = &diff_coeff_surf_stencil[4][200]; 
+  const double *Dsurf_CC_vz = &diff_coeff_surf_stencil[4][220]; 
+  const double *fTC = f_stencil[5]; 
+  const double* Dsurf_TC_vz = &diff_coeff_surf_stencil[5][220]; 
+  const double *fBR = f_stencil[6]; 
+  const double *fCR = f_stencil[7]; 
+  const double* Dsurf_CR_vy = &diff_coeff_surf_stencil[7][200]; 
+  const double *fTR = f_stencil[8]; 
 
   f_rec_lo[0] = 0.34587411908091625*fCC[14]+0.34587411908091625*fBC[14]-0.49755260400283263*fCC[4]+0.49755260400283263*fBC[4]+0.3535533905932737*fCC[0]+0.3535533905932737*fBC[0]; 
   f_rec_lo[1] = 0.34587411908091625*fCC[28]+0.34587411908091625*fBC[28]-0.49755260400283263*fCC[8]+0.49755260400283263*fBC[8]+0.3535533905932737*fCC[1]+0.3535533905932737*fBC[1]; 
