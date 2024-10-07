@@ -281,9 +281,9 @@ gkyl_gr_ultra_rel_euler_inv_spatial_metric(const double q[27], double ***inv_spa
 }
 
 void
-gkyl_gr_ultra_rel_euler_stress_energy_tensor(double gas_gamma, const double q[28], double ***stress_energy)
+gkyl_gr_ultra_rel_euler_stress_energy_tensor(double gas_gamma, const double q[27], double ***stress_energy)
 {
-  double v[28] = { 0.0 };
+  double v[27] = { 0.0 };
   gkyl_gr_ultra_rel_euler_prim_vars(gas_gamma, q, v);
   double rho = v[0];
   double vx = v[1];
@@ -884,7 +884,7 @@ gr_ultra_rel_euler_source(const struct gkyl_wv_eqn* eqn, const double* qin, doub
   const struct wv_gr_ultra_rel_euler *gr_ultra_rel_euler = container_of(eqn, struct wv_gr_ultra_rel_euler, eqn);
   double gas_gamma = gr_ultra_rel_euler->gas_gamma;
 
-  double v[28] = { 0.0 };
+  double v[27] = { 0.0 };
   gkyl_gr_ultra_rel_euler_prim_vars(gas_gamma, qin, v);
   double rho = v[0];
   double vx = v[1];

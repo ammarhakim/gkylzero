@@ -17,6 +17,17 @@ struct wv_gr_euler {
 };
 
 /**
+* Compute flux vector. Assumes rotation to local coordinate system.
+*
+* @param gas_gamma Adiabatic index.
+* @param q Conserved variable vector.
+* @param flux Flux vector in direction 'dir' (output).
+*/
+GKYL_CU_D
+void
+gkyl_gr_euler_flux(double gas_gamma, const double q[28], double flux[28]);
+
+/**
 * Compute primitive variables given the conserved variables.
 *
 * @param gas_gamma Adiabatic index.
@@ -58,17 +69,6 @@ gkyl_gr_euler_stress_energy_tensor(double gas_gamma, const double q[28], double 
 GKYL_CU_D
 static inline double
 gkyl_gr_euler_max_abs_speed(double gas_gamma, const double q[28]);
-
-/**
-* Compute flux vector. Assumes rotation to local coordinate system.
-*
-* @param gas_gamma Adiabatic index.
-* @param q Conserved variable vector.
-* @param flux Flux vector in direction 'dir' (output).
-*/
-GKYL_CU_D
-void
-gkyl_gr_euler_flux(double gas_gamma, const double q[28], double flux[28]);
 
 /**
 * Compute Riemann variables given the conserved variables.
