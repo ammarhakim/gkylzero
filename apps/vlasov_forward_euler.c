@@ -20,11 +20,14 @@ vlasov_forward_euler(gkyl_vlasov_app* app, double tcurr, double dt,
   // Note: external EM field and  applied currents use proj_on_basis 
   // so does copy to GPU every call if app->use_gpu = true.
   if (app->has_field) {
-    if (app->field->ext_em_evolve) {
-      vm_field_calc_ext_em(app, app->field, tcurr);
-    }
     if (app->field->app_current_evolve && !app->has_fluid_em_coupling) {
       vm_field_calc_app_current(app, app->field, tcurr); 
+    }
+    if (app->field->ext_em_evolve) {
+      app->field_calc_ext_em(app, app->field, tcurr);
+    }
+    if (app->field->ext_pot_evolve) {
+      vp_field_calc_ext_pot(app, app->field, tcurr);
     }
   }
   // Compute applied acceleration if if present and time-dependent.
@@ -82,8 +85,10 @@ vlasov_forward_euler(gkyl_vlasov_app* app, double tcurr, double dt,
   }
   // compute RHS of Maxwell equations
   if (app->has_field) {
-    double dt1 = vm_field_rhs(app, app->field, emin, emout);
-    dtmin = fmin(dtmin, dt1);
+    if (app->field->field_id == GKYL_FIELD_E_B) {
+      double dt1 = vm_field_rhs(app, app->field, emin, emout);
+      dtmin = fmin(dtmin, dt1);
+    }
   }
 
   double dt_max_rel_diff = 0.01;
@@ -105,29 +110,27 @@ vlasov_forward_euler(gkyl_vlasov_app* app, double tcurr, double dt,
   // complete update of distribution function
   for (int i=0; i<app->num_species; ++i) {
     gkyl_array_accumulate(gkyl_array_scale(fout[i], dta), 1.0, fin[i]);
-    vm_species_apply_bc(app, &app->species[i], fout[i], tcurr);
   }
 
   // complete update of fluid species
   for (int i=0; i<app->num_fluid_species; ++i) {
     gkyl_array_accumulate(gkyl_array_scale(fluidout[i], dta), 1.0, fluidin[i]);
-    vm_fluid_species_apply_bc(app, &app->fluid_species[i], fluidout[i]);
   }
 
   if (app->has_field) {
-    struct timespec wst = gkyl_wall_clock();
+    if (app->field->field_id == GKYL_FIELD_E_B) {
+      struct timespec wst = gkyl_wall_clock();
 
-    // (can't accumulate current when field is static)
-    if (!app->field->info.is_static) {
-      // accumulate current contribution from kinetic species to electric field terms
-      vm_field_accumulate_current(app, fin, fluidin, emout);
-      app->stat.current_tm += gkyl_time_diff_now_sec(wst);
+      // (can't accumulate current when field is static)
+      if (!app->field->info.is_static) {
+        // accumulate current contribution from kinetic species to electric field terms
+        vm_field_accumulate_current(app, fin, fluidin, emout);
+        app->stat.current_tm += gkyl_time_diff_now_sec(wst);
+      }
+
+      // complete update of field (even when field is static, it is
+      // safest to do this accumulate as it ensure emout = emin)
+      gkyl_array_accumulate(gkyl_array_scale(emout, dta), 1.0, emin);
     }
-
-    // complete update of field (even when field is static, it is
-    // safest to do this accumulate as it ensure emout = emin)
-    gkyl_array_accumulate(gkyl_array_scale(emout, dta), 1.0, emin);
-
-    vm_field_apply_bc(app, app->field, emout);
   }
 }

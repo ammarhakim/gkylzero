@@ -6,6 +6,8 @@
 #include <gkyl_range.h>
 #include <gkyl_util.h>
 #include <gkyl_wv_eqn.h>
+#include <gkyl_fem_poisson_bctype.h>
+#include <gkyl_vlasov_comms.h>
 
 #include <stdbool.h>
 
@@ -213,6 +215,14 @@ struct gkyl_vlasov_field {
   
   // boundary conditions
   enum gkyl_field_bc_type bcx[2], bcy[2], bcz[2];
+
+  // Options for Vlasov-Poisson.
+  struct gkyl_poisson_bc poisson_bcs; // Boundary conditions for Poisson eqn.
+
+  void *external_potentials_ctx; // Context for external (phi,A) potentials.
+  // Pointer to function defining external potentials (phi,A).
+  void (*external_potentials)(double t, const double *xn, double *ext_pot, void *ctx);
+  bool external_potentials_evolve; // True if external potentials are time dependent.
 };
 
 // Parameter for Vlasov fluid species
@@ -279,6 +289,7 @@ struct gkyl_vm {
   
   bool skip_field; // Skip field update or no field specified
   struct gkyl_vlasov_field field; // field object
+  bool is_electrostatic; // Indicate whether to use Vlasov-Poisson.
 
   struct gkyl_app_parallelism_inp parallelism; // Parallelism-related inputs.
 };

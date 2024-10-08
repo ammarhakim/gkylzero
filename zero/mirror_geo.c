@@ -78,6 +78,7 @@ struct gkyl_mirror_geo*
 gkyl_mirror_geo_new(const struct gkyl_efit_inp *inp, const struct gkyl_mirror_geo_grid_inp *ginp)
 {
   struct gkyl_mirror_geo *geo = gkyl_malloc(sizeof(*geo));
+  *geo = (struct gkyl_mirror_geo) {};
 
   geo->efit = gkyl_efit_new(inp);
 

@@ -227,7 +227,7 @@ gkyl_efit* gkyl_efit_new(const struct gkyl_efit_inp *inp)
         up->evf->eval_cubic_wgrad2(0.0, xn, fout, up->evf->ctx);
         psi_curr = fout[0];
         br = fout[3]*scale_factorZ*scale_factorR;
-        bz = fout[1]*scale_factorR*scale_factorR;
+        bz = -fout[1]*scale_factorR*scale_factorR;
       }
       else {
         double fout[3];
