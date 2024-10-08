@@ -231,7 +231,7 @@ static double
 wave_roe(const struct gkyl_wv_eqn* eqn, const double* delta, const double* ql, const double* qr, double* waves, double* s);
 
 /**
-* Compute flucuations using Roe fluxes.
+* Compute fluctuations using Roe fluxes.
 *
 * @param eqn Base equation object.
 * @param ql Conserved variable vector on the left of the interface.
@@ -325,7 +325,7 @@ static inline void
 gr_euler_cons_to_diag(const struct gkyl_wv_eqn* eqn, const double* qin, double* diag);
 
 /**
-* Compute forcing/source term vector from conserved variable.
+* Compute forcing/source term vector from conserved variables.
 *
 * @param eqn Base equation object.
 * @param qin Conserved variable vector (input).

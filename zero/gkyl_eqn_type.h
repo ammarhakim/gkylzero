@@ -13,6 +13,7 @@ enum gkyl_eqn_type {
   GKYL_EQN_BURGERS, // Burgers equations
   GKYL_EQN_ADVECTION, // Scalar advection equation
   GKYL_EQN_GR_EULER, // General relativistic Euler equations with ideal gas equation of state.
+  GKYL_EQN_GR_EULER_TETRAD, // General relativistic Euler equations in the tetrad basis with ideal gas equation of state.
   GKYL_EQN_GR_ULTRA_REL_EULER, // General relativistic Euler equations with ultra-relativistic equation of state.
   GKYL_EQN_GR_ULTRA_REL_EULER_TETRAD, // General relativistic Euler equations in the tetrad basis with ultra-relativistic equation of state.
   GKYL_EQN_GR_MAXWELL, // General relativistic Maxwell equations.
