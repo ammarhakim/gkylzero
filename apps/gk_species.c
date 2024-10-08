@@ -218,38 +218,32 @@ gk_species_init(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *app, st
 
   // set species source id
   gks->src = (struct gk_source) { };
-  gks->source_id = gks->info.source.source_id;
   
   // Determine collision type and initialize it.
-  gks->collision_id = gks->info.collisions.collision_id;
   gks->lbo = (struct gk_lbo_collisions) { };
   gks->bgk = (struct gk_bgk_collisions) { };
-  if (gks->collision_id == GKYL_LBO_COLLISIONS) {
+  if (gks->info.collisions.collision_id == GKYL_LBO_COLLISIONS) {
     gk_species_lbo_init(app, gks, &gks->lbo);
   }
-  else if (gks->collision_id == GKYL_BGK_COLLISIONS) {
+  if (gks->info.collisions.collision_id == GKYL_BGK_COLLISIONS) {
     gk_species_bgk_init(app, gks, &gks->bgk);
   }
 
-  gks->has_reactions = false;
-  gks->has_neutral_reactions = false;
   gks->react = (struct gk_react) { };
   gks->react_neut = (struct gk_react) { };
   if (gks->info.react.num_react) {
-    gks->has_reactions = true;
     gk_species_react_init(app, gks, gks->info.react, &gks->react, true);
   }
   if (gks->info.react_neut.num_react) {
-    gks->has_neutral_reactions = true;
     gk_species_react_init(app, gks, gks->info.react_neut, &gks->react_neut, false);
   }
 
   // determine radiation type to use in gyrokinetic update
   gks->rad = (struct gk_rad_drag) { };
-  gks->radiation_id = gks->info.radiation.radiation_id;
 
   // initialize boundary fluxes for diagnostics and, if present,
   // ambipolar potential solve
+  gks->bflux = (struct gk_boundary_fluxes) { };
   gk_species_bflux_init(app, gks, &gks->bflux); 
 
   // vtsq_min
@@ -407,8 +401,7 @@ gk_species_apply_ic(gkyl_gyrokinetic_app *app, struct gk_species *gks, double t0
   gk_species_projection_calc(app, gks, &gks->proj_init, gks->f, t0);
 
   // We are pre-computing source for now as it is time-independent.
-  if (gks->source_id)
-    gk_species_source_calc(app, gks, &gks->src, t0);
+  gk_species_source_calc(app, gks, &gks->src, t0);
 }
 
 void
@@ -478,21 +471,21 @@ gk_species_rhs(gkyl_gyrokinetic_app *app, struct gk_species *species,
   gkyl_dg_updater_gyrokinetic_advance(species->slvr, &species->local, 
     fin, species->cflrate, rhs);
 
-  if (species->collision_id == GKYL_LBO_COLLISIONS)
+  if (species->lbo.collision_id == GKYL_LBO_COLLISIONS)
     gk_species_lbo_rhs(app, species, &species->lbo, fin, rhs);
-  else if (species->collision_id == GKYL_BGK_COLLISIONS)
+  if (species->bgk.collision_id == GKYL_BGK_COLLISIONS)
     gk_species_bgk_rhs(app, species, &species->bgk, fin, rhs);
   
   if (species->has_diffusion)
     gkyl_dg_updater_diffusion_gyrokinetic_advance(species->diff_slvr, &species->local, 
       species->diffD, app->gk_geom->jacobgeo_inv, fin, species->cflrate, rhs);
 
-  if (species->radiation_id == GKYL_GK_RADIATION)
+  if (species->rad.radiation_id == GKYL_GK_RADIATION)
     gk_species_radiation_rhs(app, species, &species->rad, fin, rhs);
 
-  if (species->has_reactions)
+  if (species->react.num_react)
     gk_species_react_rhs(app, species, &species->react, fin, rhs);
-  if (species->has_neutral_reactions)
+  if (species->react_neut.num_react)
     gk_species_react_rhs(app, species, &species->react_neut, fin, rhs);
   
   app->stat.nspecies_omega_cfl +=1;
@@ -574,7 +567,7 @@ void
 gk_species_coll_tm(gkyl_gyrokinetic_app *app)
 {
   for (int i=0; i<app->num_species; ++i) {
-    if (app->species[i].collision_id == GKYL_LBO_COLLISIONS) {
+    if (app->species[i].lbo.collision_id == GKYL_LBO_COLLISIONS) {
       struct gkyl_dg_updater_lbo_gyrokinetic_tm tm =
         gkyl_dg_updater_lbo_gyrokinetic_get_tm(app->species[i].lbo.coll_slvr);
       app->stat.species_lbo_coll_diff_tm[i] = tm.diff_tm;
@@ -637,21 +630,19 @@ gk_species_release(const gkyl_gyrokinetic_app* app, const struct gk_species *s)
   gk_species_moment_release(app, &s->integ_moms); 
   gkyl_dynvec_release(s->integ_diag);
 
-  if (s->source_id) {
-    gk_species_source_release(app, &s->src);
-  }
+  gk_species_source_release(app, &s->src);
 
-  if (s->collision_id == GKYL_LBO_COLLISIONS)
+  if (s->lbo.collision_id == GKYL_LBO_COLLISIONS)
     gk_species_lbo_release(app, &s->lbo);
-  else if (s->collision_id == GKYL_BGK_COLLISIONS)
+  if (s->bgk.collision_id == GKYL_BGK_COLLISIONS)
     gk_species_bgk_release(app, &s->bgk);
 
-  if (s->has_reactions)
+  if (s->react.num_react)
     gk_species_react_release(app, &s->react);
-  if (s->has_neutral_reactions)
+  if (s->react_neut.num_react)
     gk_species_react_release(app, &s->react_neut);  
 
-  if (s->radiation_id == GKYL_GK_RADIATION) 
+  if (s->rad.radiation_id == GKYL_GK_RADIATION) 
     gk_species_radiation_release(app, &s->rad);
 
   gk_species_bflux_release(app, &s->bflux);

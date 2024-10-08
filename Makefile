@@ -2,10 +2,13 @@
 
 # Type make help to see help for this Makefile
 
+# Obtain the git commit ID.
+GIT_COMMIT_HASH := "$(shell git describe --dirty=+ --always --tags)"
+
 ARCH_FLAGS ?= -march=native
 CUDA_ARCH ?= 70
 # Warning flags: -Wall -Wno-unused-variable -Wno-unused-function -Wno-missing-braces
-CFLAGS ?= -O3 -g -ffast-math -fPIC -MMD -MP 
+CFLAGS ?= -O3 -g -ffast-math -fPIC -MMD -MP -DGIT_COMMIT_ID=\"$(GIT_COMMIT_HASH)\"
 LDFLAGS = 
 PREFIX ?= ${HOME}/gkylsoft
 INSTALL_PREFIX ?= ${PREFIX}
@@ -42,7 +45,7 @@ NVCC_FLAGS =
 CUDA_LIBS =
 ifeq ($(CC), nvcc)
        USING_NVCC = yes
-       CFLAGS = -O3 -g --forward-unknown-to-host-compiler --use_fast_math -ffast-math -MMD -MP -fPIC
+       CFLAGS = -O3 -g --forward-unknown-to-host-compiler --use_fast_math -ffast-math -MMD -MP -fPIC -DGIT_COMMIT_ID=\"$(GIT_COMMIT_HASH)\"
        NVCC_FLAGS = -x cu -dc -arch=sm_${CUDA_ARCH} --compiler-options="-fPIC"
        LDFLAGS += -arch=sm_${CUDA_ARCH}
        ifdef CUDAMATH_LIBDIR
