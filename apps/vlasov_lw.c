@@ -448,7 +448,6 @@ vm_app_calc_integrated_mom(lua_State *L)
   return 1;
 }
 
-
 // Compute integrated L2 norm of distribution function. (tm) -> bool
 static int
 vm_app_calc_integrated_L2_f(lua_State *L)

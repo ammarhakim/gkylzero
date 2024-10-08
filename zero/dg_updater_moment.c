@@ -48,7 +48,8 @@ gkyl_dg_updater_moment_new(const struct gkyl_rect_grid *grid,
     struct gkyl_mom_vlasov_sr_auxfields *sr_inp = aux_inp;
     gkyl_mom_vlasov_sr_set_auxfields(up->type, *sr_inp);
 
-  } else if (up->model_id == GKYL_MODEL_CANONICAL_PB && (strcmp(mom, "MEnergy") == 0 || strcmp(mom, "Integrated") == 0)) {
+  } 
+  else if (up->model_id == GKYL_MODEL_CANONICAL_PB && (strcmp(mom, "MEnergy") == 0 || strcmp(mom, "Integrated") == 0)) {
     if (is_integrated) {
       up->type = gkyl_int_mom_canonical_pb_new(cbasis, pbasis, phase_range, use_gpu);
     }
@@ -59,7 +60,8 @@ gkyl_dg_updater_moment_new(const struct gkyl_rect_grid *grid,
     struct gkyl_mom_canonical_pb_auxfields *can_pb_inp = aux_inp;
     gkyl_mom_canonical_pb_set_auxfields(up->type, *can_pb_inp);
 
-  } else {
+  } 
+  else {
     if (is_integrated) {
       up->type = gkyl_int_mom_vlasov_new(cbasis, pbasis, use_gpu);
     }
