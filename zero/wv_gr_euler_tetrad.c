@@ -9,13 +9,129 @@
 void
 gkyl_gr_euler_tetrad_flux(double gas_gamma, const double q[28], double flux[28])
 {
-  // TODO: Reimplement flat spacetime flux computation.
+  double v[28] = { 0.0 };
+  gkyl_gr_euler_tetrad_prim_vars(gas_gamma, q, v);
+  double rho =  v[0];
+  double vx = v[1];
+  double vy = v[2];
+  double vz = v[3];
+  double p = v[4];
+
+  bool in_excision_region = false;
+  if (v[27] < pow(10.0, -8.0)) {
+    in_excision_region = true;
+  }
+
+  if (!in_excision_region) {
+    double W = 1.0 / (sqrt(1.0 - ((vx * vx) + (vy * vy) + (vz * vz))));
+    if ((vx * vx) + (vy * vy) + (vz * vz) > 1.0 - pow(10.0, -8.0)) {
+      W = 1.0 / sqrt(pow(10.0, -8.0));
+    }
+
+    double h = 1.0 + ((p / rho) * (gas_gamma / (gas_gamma - 1.0)));
+
+    flux[0] = rho * W * vx;
+    flux[1] = (rho * h * (W * W) * (vx * vx)) + p;
+    flux[2] = rho * h * (W * W) * (vy * vx);
+    flux[3] = rho * h * (W * W) * (vz * vx);
+    flux[4] = ((rho * h * (W * W)) - (rho * W)) * vx;
+
+    for (int i = 5; i < 28; i++) {
+      flux[i] = 0.0;
+    }
+  }
+  else {
+    for (int i = 0; i < 28; i++) {
+      flux[i] = 0.0;
+    }
+  }
 }
 
 void
 gkyl_gr_euler_tetrad_flux_correction(double gas_gamma, const double q[28], const double flux_sr[28], double flux_gr[28])
 {
-  // TODO: Reimplement curved spacetime flux correction.
+  double v[28] = { 0.0 };
+  gkyl_gr_euler_tetrad_prim_vars(gas_gamma, q, v);
+  double rho =  v[0];
+  double vx = v[1];
+  double vy = v[2];
+  double vz = v[3];
+  double p = v[4];
+
+  double lapse = v[5];
+  double shift_x = v[6];
+
+  double **spatial_metric = gkyl_malloc(sizeof(double*[3]));
+  for (int i = 0; i < 3; i++) {
+    spatial_metric[i] = gkyl_malloc(sizeof(double[3]));
+  }
+
+  spatial_metric[0][0] = v[9]; spatial_metric[0][1] = v[10]; spatial_metric[0][2] = v[11];
+  spatial_metric[1][0] = v[12]; spatial_metric[1][1] = v[13]; spatial_metric[1][2] = v[14];
+  spatial_metric[2][0] = v[15]; spatial_metric[2][1] = v[16]; spatial_metric[2][2] = v[17];
+
+  double spatial_det = (spatial_metric[0][0] * ((spatial_metric[1][1] * spatial_metric[2][2]) - (spatial_metric[2][1] * spatial_metric[1][2]))) -
+    (spatial_metric[0][1] * ((spatial_metric[1][0] * spatial_metric[2][2]) - (spatial_metric[1][2] * spatial_metric[2][0]))) +
+    (spatial_metric[0][2] * ((spatial_metric[1][0] * spatial_metric[2][1]) - (spatial_metric[1][1] * spatial_metric[2][0])));
+  
+  bool in_excision_region = false;
+  if (v[27] < pow(10.0, -8.0)) {
+    in_excision_region = true;
+  }
+
+  if (!in_excision_region) {
+    double *vel = gkyl_malloc(sizeof(double[3]));
+    double v_sq = 0.0;
+    vel[0] = vx; vel[1] = vy; vel[2] = vz;
+
+    for (int i = 0; i < 3; i++) {
+      for (int j = 0; j < 3; j++) {
+        v_sq += spatial_metric[i][j] * vel[i] * vel[j];
+      }
+    }
+
+    double W_flat = 1.0 / (sqrt(1.0 - ((vx * vx) + (vy * vy) + (vz * vz))));
+    if ((vx * vx) + (vy * vy) + (vz * vz) > 1.0 - pow(10.0, -8.0)) {
+      W_flat = 1.0 / sqrt(pow(10.0, -8.0));
+    }
+
+    double W_curved = 1.0 / (sqrt(1.0 - v_sq));
+    if (v_sq > 1.0 - pow(10.0, -8.0)) {
+      W_curved = 1.0 / sqrt(pow(10.0, -8.0));
+    }
+
+    if (fabs(vx) < pow(10.0, -8.0)) {
+      if (vx > 0.0) {
+        vx = pow(10.0, -8.0);
+      }
+      else {
+        vx = -pow(10.0, -8.0);
+      }
+    }
+
+    flux_gr[0] = (lapse * sqrt(spatial_det)) * ((flux_sr[0] * (vx - (shift_x / lapse)) * W_curved) / (vx * W_flat));
+    flux_gr[1] = (lapse * sqrt(spatial_det)) * ((((flux_sr[1] - p) * (vx - (shift_x / lapse)) * (W_curved * W_curved)) / (vx * (W_flat * W_flat))) + p);
+    flux_gr[2] = (lapse * sqrt(spatial_det)) * ((flux_sr[2] * (vx - (shift_x / lapse)) * (W_curved * W_curved)) / (vx * (W_flat * W_flat)));
+    flux_gr[3] = (lapse * sqrt(spatial_det)) * ((flux_sr[3] * (vx - (shift_x / lapse)) * (W_curved * W_curved)) / (vx * (W_flat * W_flat)));
+    flux_gr[4] = (lapse * sqrt(spatial_det)) * ((flux_sr[4] * ((W_curved * W_curved) / (W_flat * W_flat))) +
+      ((shift_x * (p - ((flux_sr[4] * (W_curved * W_curved)) / (vx * (W_flat * W_flat))))) / lapse));
+
+    for (int i = 5; i < 28; i++) {
+      flux_gr[i] = 0.0;
+    }
+
+    gkyl_free(vel);
+  }
+  else {
+    for (int i = 0; i < 28; i++) {
+      flux_gr[i] = 0.0;
+    }
+  }
+
+  for (int i = 0; i < 3; i++) {
+    gkyl_free(spatial_metric[i]);
+  }
+  gkyl_free(spatial_metric);
 }
 
 void
@@ -1004,7 +1120,7 @@ gkyl_wv_gr_euler_tetrad_new(double gas_gamma, struct gkyl_gr_spacetime* spacetim
   return gkyl_wv_gr_euler_tetrad_inew(&(struct gkyl_wv_gr_euler_tetrad_inp) {
       .gas_gamma = gas_gamma,
       .spacetime = spacetime,
-      .rp_type = WV_GR_EULER_TETRAD_RP_ROE,
+      .rp_type = WV_GR_EULER_TETRAD_RP_LAX,
       .use_gpu = use_gpu,
     }
   );
