@@ -113,8 +113,8 @@ gkyl_gr_euler_tetrad_flux_correction(double gas_gamma, const double q[28], const
     flux_gr[1] = (lapse * sqrt(spatial_det)) * ((((flux_sr[1] - p) * (vx - (shift_x / lapse)) * (W_curved * W_curved)) / (vx * (W_flat * W_flat))) + p);
     flux_gr[2] = (lapse * sqrt(spatial_det)) * ((flux_sr[2] * (vx - (shift_x / lapse)) * (W_curved * W_curved)) / (vx * (W_flat * W_flat)));
     flux_gr[3] = (lapse * sqrt(spatial_det)) * ((flux_sr[3] * (vx - (shift_x / lapse)) * (W_curved * W_curved)) / (vx * (W_flat * W_flat)));
-    flux_gr[4] = (lapse * sqrt(spatial_det)) * ((flux_sr[4] * ((W_curved * W_curved) / (W_flat * W_flat))) +
-      ((shift_x * (p - ((flux_sr[4] * (W_curved * W_curved)) / (vx * (W_flat * W_flat))))) / lapse));
+    flux_gr[4] = (lapse * sqrt(spatial_det)) * (((((flux_sr[4] + (rho * vx * W_flat)) * (W_curved * W_curved)) / (vx * (W_flat * W_flat))) - p -
+      (rho * W_curved)) * (vx - (shift_x / lapse)) + (p * vx));
 
     for (int i = 5; i < 28; i++) {
       flux_gr[i] = 0.0;
