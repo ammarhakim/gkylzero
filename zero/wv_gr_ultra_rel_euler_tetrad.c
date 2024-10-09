@@ -865,6 +865,131 @@ qfluct_lax_l(const struct gkyl_wv_eqn* eqn, enum gkyl_wv_flux_type type, const d
 }
 
 static double
+wave_roe(const struct gkyl_wv_eqn* eqn, const double* delta, const double* ql, const double* qr, double* waves, double* s)
+{
+  const struct wv_gr_ultra_rel_euler_tetrad *gr_ultra_rel_euler_tetrad = container_of(eqn, struct wv_gr_ultra_rel_euler_tetrad, eqn);
+  double vl[27], vr[27];
+  double gas_gamma = gr_ultra_rel_euler_tetrad->gas_gamma;
+  
+  gkyl_gr_ultra_rel_euler_tetrad_prim_vars(gas_gamma, ql, vl);
+  gkyl_gr_ultra_rel_euler_tetrad_prim_vars(gas_gamma, qr, vr);
+
+  double rho_l = vl[0];
+  double vx_l = vl[1];
+  double vy_l = vl[2];
+  double vz_l = vl[3];
+  double p_l = (gas_gamma - 1.0) * rho_l;
+
+  double rho_r = vr[0];
+  double vx_r = vr[1];
+  double vy_r = vr[2];
+  double vz_r = vr[3];
+  double p_r = (gas_gamma - 1.0) * rho_r;
+
+  double Etot_l = ql[0];
+  double Etot_r = qr[0];
+
+  double W_l = 1.0 / sqrt(1.0 - ((vx_l * vx_l) + (vy_l * vy_l) + (vz_l * vz_l)));
+  double W_r = 1.0 / sqrt(1.0 - ((vx_r * vx_r) + (vy_r * vy_r) + (vz_r * vz_r)));
+
+  double K_l = sqrt(Etot_l + p_l) / W_l;
+  double K_r = sqrt(Etot_r + p_r) / W_r;
+  double K_avg = 1.0 / (K_l + K_r);
+
+  double v0 = ((p_l / K_l) + (p_r / K_r)) * K_avg;
+  double v1 = ((K_l * W_l * vx_l) + (K_r * W_r * vx_r)) * K_avg;
+  double v2 = ((K_l * W_l * vy_l) + (K_r * W_r * vy_r)) * K_avg;
+  double v3 = ((K_l * W_l * vz_l) + (K_r * W_r * vz_r)) * K_avg;
+
+  double c_minus = 1.0 - ((gas_gamma / (gas_gamma - 1.0)) * v0);
+  double c_plus = 1.0 + ((gas_gamma / (gas_gamma - 1.0)) * v0);
+
+  double v_alpha_sq = -(v0 * v0) + (v1 * v1) + (v2 * v2) + (v3 * v3);
+  double s_sq = (0.5 * gas_gamma * v0 * (1.0 - v_alpha_sq)) - (0.5 * (gas_gamma - 1.0) * (1.0 + v_alpha_sq));
+  double energy = (v0 * v0) - (v1 * v1);
+  double y = sqrt(((1.0 - (gas_gamma * v0)) * energy) + s_sq);
+
+  double k = (v0 * delta[4]) - (v1 * delta[1]);
+  double v_delta = (-v0 * delta[0]) + (v1 * delta[1]) + (v2 * delta[2]) + (v3 * delta[3]);
+  double a1 = -((s_sq * k) + (sqrt(s_sq) * y * ((v0 * delta[1]) - (v1 * delta[0])) + ((gas_gamma - 1.0) * energy * (delta[0] + (c_plus * v_delta))))) / (2.0 * energy * s_sq);
+  double a2 = -((s_sq * k) - (sqrt(s_sq) * y * ((v0 * delta[1]) - (v1 * delta[0])) + ((gas_gamma - 1.0) * energy * (delta[0] + (c_plus * v_delta))))) / (2.0 * energy * s_sq);
+  double a3 = ((2.0 * s_sq * k) + ((gas_gamma - 1.0) * energy * (delta[0] + (c_plus * v_delta)))) / (energy * s_sq);
+  double a4 = delta[2] - ((k * v2) / energy);
+  double a5 = delta[3] - ((k * v3) / energy);
+
+  for (int i = 0; i < 27 * 3; i++) {
+    waves[i] = 0;
+  }
+
+  double *wv;
+  wv = &waves[0 * 27];
+  wv[0] = a1 * (v0 - ((sqrt(s_sq) * v1) / y));
+  wv[1] = a1 * (v1 - ((sqrt(s_sq) * v0) / y));
+  wv[2] = a1 * v2;
+  wv[3] = a1 * v3;
+  s[0] = (((1.0 - (gas_gamma * v0)) * v0 * v1) - (sqrt(s_sq) * y)) / (((1.0 - (gas_gamma * v0)) * v0 * v0) + s_sq);
+
+  wv = &waves[1 * 27];
+  wv[0] = a3 * v0;
+  wv[1] = a3 * v1;
+  wv[2] = (a3 * v2) + a4;
+  wv[3] = (a3 * v3) + a5;
+  s[1] = v1 / v0;
+
+  wv = &waves[2 * 27];
+  wv[0] = a2 * (v0 + ((sqrt(s_sq) * v1) / y));
+  wv[1] = a2 * (v1 + ((sqrt(s_sq) * v0) / y));
+  wv[2] = a2 * v2;
+  wv[3] = a2 * v3;
+  s[2] = (((1.0 - (gas_gamma * v0)) * v0 * v1) + (sqrt(s_sq) * y)) / (((1.0 - (gas_gamma * v0)) * v0 * v0) + s_sq);
+
+  return (((1.0 - (gas_gamma * v0)) * v0 * fabs(v1)) + (sqrt(s_sq) * y)) / (((1.0 - (gas_gamma * v0)) * v0 * v0) + s_sq);
+}
+
+static void
+qfluct_roe(const struct gkyl_wv_eqn* eqn, const double* ql, const double* qr, const double* waves, const double* s, double* amdq, double* apdq)
+{
+  const double* w0 = &waves[0 * 27];
+  const double* w1 = &waves[1 * 27];
+  const double* w2 = &waves[2 * 27];
+
+  double s0m = fmin(0.0, s[0]), s1m = fmin(0.0, s[1]), s2m = fmin(0.0, s[2]);
+  double s0p = fmax(0.0, s[0]), s1p = fmax(0.0, s[1]), s2p = fmax(0.0, s[2]);
+
+  for (int i = 0; i < 5; i++) {
+    amdq[i] = (s0m * w0[i]) + (s1m * w1[i]) + (s2m * w2[i]);
+    apdq[i] = (s0p * w0[i]) + (s1p * w1[i]) + (s2p * w2[i]);
+  }
+  for (int i = 5; i < 27; i++) {
+    amdq[i] = 0.0;
+    apdq[i] = 0.0;
+  }
+}
+
+static double
+wave_roe_l(const struct gkyl_wv_eqn* eqn, enum gkyl_wv_flux_type type, const double* delta, const double* ql, const double* qr, double* waves, double* s)
+{
+  if (type == GKYL_WV_HIGH_ORDER_FLUX) {
+    return wave_roe(eqn, delta, ql, qr, waves, s);
+  }
+  else {
+    return wave_lax(eqn, delta, ql, qr, waves, s);
+  }
+}
+
+static void
+qfluct_roe_l(const struct gkyl_wv_eqn* eqn, enum gkyl_wv_flux_type type, const double* ql, const double* qr, const double* waves, const double* s,
+  double* amdq, double* apdq)
+{
+  if (type == GKYL_WV_HIGH_ORDER_FLUX) {
+    return qfluct_roe(eqn, ql, qr, waves, s, amdq, apdq);
+  }
+  else {
+    return qfluct_lax(eqn, ql, qr, waves, s, amdq, apdq);
+  }
+}
+
+static double
 flux_jump(const struct gkyl_wv_eqn* eqn, const double* ql, const double* qr, double* flux_jump)
 {
   const struct wv_gr_ultra_rel_euler_tetrad *gr_ultra_rel_euler_tetrad = container_of(eqn, struct wv_gr_ultra_rel_euler_tetrad, eqn);
@@ -1112,7 +1237,7 @@ gkyl_wv_gr_ultra_rel_euler_tetrad_new(double gas_gamma, struct gkyl_gr_spacetime
   return gkyl_wv_gr_ultra_rel_euler_tetrad_inew(&(struct gkyl_wv_gr_ultra_rel_euler_tetrad_inp) {
       .gas_gamma = gas_gamma,
       .spacetime = spacetime,
-      .rp_type = WV_GR_ULTRA_REL_EULER_TETRAD_RP_LAX,
+      .rp_type = WV_GR_ULTRA_REL_EULER_TETRAD_RP_ROE,
       .use_gpu = use_gpu,
     }
   );
@@ -1134,6 +1259,11 @@ gkyl_wv_gr_ultra_rel_euler_tetrad_inew(const struct gkyl_wv_gr_ultra_rel_euler_t
     gr_ultra_rel_euler_tetrad->eqn.num_waves = 2;
     gr_ultra_rel_euler_tetrad->eqn.waves_func = wave_lax_l;
     gr_ultra_rel_euler_tetrad->eqn.qfluct_func = qfluct_lax_l;
+  }
+  else if (inp->rp_type == WV_GR_ULTRA_REL_EULER_TETRAD_RP_ROE) {
+    gr_ultra_rel_euler_tetrad->eqn.num_waves = 3;
+    gr_ultra_rel_euler_tetrad->eqn.waves_func = wave_roe_l;
+    gr_ultra_rel_euler_tetrad->eqn.qfluct_func = qfluct_roe_l;
   }
 
   gr_ultra_rel_euler_tetrad->eqn.flux_jump = flux_jump;
