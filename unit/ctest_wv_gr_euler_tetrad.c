@@ -14,7 +14,7 @@ test_gr_euler_tetrad_basic_minkowski()
   struct gkyl_wv_eqn *gr_euler_tetrad = gkyl_wv_gr_euler_tetrad_new(gas_gamma, spacetime, false);
 
   TEST_CHECK( gr_euler_tetrad->num_equations == 28 );
-  TEST_CHECK( gr_euler_tetrad->num_waves == 2 );
+  TEST_CHECK( gr_euler_tetrad->num_waves == 3 );
 
   for (int x_ind = -10; x_ind < 11; x_ind++) {
     for (int y_ind = -10; y_ind < 11; y_ind++) {
@@ -171,7 +171,7 @@ test_gr_euler_tetrad_basic_schwarzschild()
   struct gkyl_wv_eqn *gr_euler_tetrad = gkyl_wv_gr_euler_tetrad_new(gas_gamma, spacetime, false);
 
   TEST_CHECK( gr_euler_tetrad->num_equations == 28 );
-  TEST_CHECK( gr_euler_tetrad->num_waves == 2 );
+  TEST_CHECK( gr_euler_tetrad->num_waves == 3 );
 
   for (int x_ind = -10; x_ind < 11; x_ind++) {
     for (int y_ind = -10; y_ind < 11; y_ind++) {
@@ -332,7 +332,7 @@ test_gr_euler_tetrad_basic_kerr()
   struct gkyl_wv_eqn *gr_euler_tetrad = gkyl_wv_gr_euler_tetrad_new(gas_gamma, spacetime, false);
 
   TEST_CHECK( gr_euler_tetrad->num_equations == 28 );
-  TEST_CHECK( gr_euler_tetrad->num_waves == 2 );
+  TEST_CHECK( gr_euler_tetrad->num_waves == 3 );
 
   for (int x_ind = -10; x_ind < 11; x_ind++) {
     for (int y_ind = -10; y_ind < 11; y_ind++) {
@@ -604,7 +604,7 @@ test_gr_euler_tetrad_waves_minkowski()
       };
 
       for (int d = 0; d < 3; d++) {
-        double speeds[2], waves[2 * 28], waves_local[2 * 28];
+        double speeds[3], waves[3 * 28], waves_local[3 * 28];
 
         double ql_local[28], qr_local[28];
         gkyl_wv_eqn_rotate_to_local(gr_euler_tetrad, tau1[d], tau2[d], norm[d], ql, ql_local);
@@ -620,7 +620,7 @@ test_gr_euler_tetrad_waves_minkowski()
         double apdq_local[28], amdq_local[28];
         gkyl_wv_eqn_qfluct(gr_euler_tetrad, GKYL_WV_LOW_ORDER_FLUX, ql_local, qr_local, waves_local, speeds, amdq_local, apdq_local);
 
-        for (int i = 0; i < 2; i++) {
+        for (int i = 0; i < 3; i++) {
           gkyl_wv_eqn_rotate_to_global(gr_euler_tetrad, tau1[d], tau2[d], norm[d], &waves_local[i * 28], &waves[i * 28]);
         }
 
@@ -789,7 +789,7 @@ test_gr_euler_tetrad_waves_schwarzschild()
         };
 
         for (int d = 0; d < 3; d++) {
-          double speeds[2], waves[2 * 28], waves_local[2 * 28];
+          double speeds[3], waves[3 * 28], waves_local[3 * 28];
 
           double ql_local[28], qr_local[28];
           gkyl_wv_eqn_rotate_to_local(gr_euler_tetrad, tau1[d], tau2[d], norm[d], ql, ql_local);
@@ -805,7 +805,7 @@ test_gr_euler_tetrad_waves_schwarzschild()
           double apdq_local[28], amdq_local[28];
           gkyl_wv_eqn_qfluct(gr_euler_tetrad, GKYL_WV_LOW_ORDER_FLUX, ql_local, qr_local, waves_local, speeds, amdq_local, apdq_local);
 
-          for (int i = 0; i < 2; i++) {
+          for (int i = 0; i < 3; i++) {
             gkyl_wv_eqn_rotate_to_global(gr_euler_tetrad, tau1[d], tau2[d], norm[d], &waves_local[i * 28], &waves[i * 28]);
           }
 
@@ -975,7 +975,7 @@ test_gr_euler_tetrad_waves_kerr()
         };
 
         for (int d = 0; d < 3; d++) {
-          double speeds[2], waves[2 * 28], waves_local[2 * 28];
+          double speeds[3], waves[3 * 28], waves_local[3 * 28];
 
           double ql_local[28], qr_local[28];
           gkyl_wv_eqn_rotate_to_local(gr_euler_tetrad, tau1[d], tau2[d], norm[d], ql, ql_local);
@@ -991,7 +991,7 @@ test_gr_euler_tetrad_waves_kerr()
           double apdq_local[28], amdq_local[28];
           gkyl_wv_eqn_qfluct(gr_euler_tetrad, GKYL_WV_LOW_ORDER_FLUX, ql_local, qr_local, waves_local, speeds, amdq_local, apdq_local);
 
-          for (int i = 0; i < 2; i++) {
+          for (int i = 0; i < 3; i++) {
             gkyl_wv_eqn_rotate_to_global(gr_euler_tetrad, tau1[d], tau2[d], norm[d], &waves_local[i * 28], &waves[i * 28]);
           }
 
