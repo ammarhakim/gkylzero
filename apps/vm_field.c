@@ -16,6 +16,7 @@ vm_field_new(struct gkyl_vm *vm, struct gkyl_vlasov_app *app)
   struct vm_field *f = gkyl_malloc(sizeof(struct vm_field));
 
   f->info = vm->field;
+  f->field_id = f->info.field_id;
 
   // allocate EM arrays
   f->em = mkarr(app->use_gpu, 8*app->confBasis.num_basis, app->local_ext.volume);
@@ -60,6 +61,9 @@ vm_field_new(struct gkyl_vm *vm, struct gkyl_vlasov_app *app)
     f->ext_em_proj = gkyl_proj_on_basis_new(&app->grid, &app->confBasis, app->confBasis.poly_order+1,
       6, f->info.ext_em, f->info.ext_em_ctx);
   }
+
+  // Vlasov-Maxwell doesn't presently use external potentials.
+  f->has_ext_pot = f->ext_pot_evolve = false;
 
   // Initialize applied currents (always used by implicit fluid sources, so always initialize) 
   f->app_current = mkarr(app->use_gpu, 3*app->confBasis.num_basis, app->local_ext.volume);

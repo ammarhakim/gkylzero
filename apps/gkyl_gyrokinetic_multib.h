@@ -300,27 +300,12 @@ void gkyl_gyrokinetic_multib_app_cout(const gkyl_gyrokinetic_multib_app* app, FI
 void gkyl_gyrokinetic_multib_app_write_topo(const gkyl_gyrokinetic_multib_app* app);
 
 /**
- * Calculate diagnostic moments.
- *
- * @param app App object.
- */
-void gkyl_gyrokinetic_multib_app_calc_mom(gkyl_gyrokinetic_multib_app *app);
-
-/**
  * Calculate integrated diagnostic moments for plasma species (including sources).
  *
  * @param tm Time at which integrated diagnostics are to be computed
  * @param app App object.
  */
 void gkyl_gyrokinetic_multib_app_calc_integrated_mom(gkyl_gyrokinetic_multib_app* app, double tm);
-
-/**
- * Calculate integrated diagnostic moments for neutral species (including sources).
- *
- * @param tm Time at which integrated diagnostics are to be computed
- * @param app App object.
- */
-void gkyl_gyrokinetic_multib_app_calc_integrated_neut_mom(gkyl_gyrokinetic_multib_app* app, double tm);
 
 /**
  * Calculate integrated field energy
