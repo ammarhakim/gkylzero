@@ -408,16 +408,6 @@ int main(int argc, char **argv)
   gkyl_eval_on_nodes_advance(evalDistf, 0.0, &app->local, phi);
   gkyl_eval_on_nodes_release(evalDistf);
 
-    // Create triggers for IO.
-  int num_frames = 1, num_int_diag_calc = 1;
-  struct gkyl_tm_trigger trig_write = { .dt = 1, .tcurr = 0, .curr = 0 };
-  struct gkyl_tm_trigger trig_calc_intdiag = { .dt = 1,
-    .tcurr = 0, .curr = 0 };
-
-  // Write out ICs (if restart, it overwrites the restart frame).
-  calc_integrated_diagnostics(&trig_calc_intdiag, app, t_curr, false);
-  write_data(&trig_write, app, t_curr, false);
-
     // read the components of npol
   struct gkyl_range_iter conf_iter;
   gkyl_range_iter_init(&conf_iter, &app->local);
