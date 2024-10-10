@@ -1,3 +1,10 @@
+// 2D Bondi-Hoyle-Lyttleton accretion problem onto a static (Schwarzschild) black hole, for the general relativistic Euler equations in the tetrad basis.
+// Input parameters describe wind accretion of a cold relativistic gas onto a non-rotating black hole.
+// Based on the analytical solution for stiff relativistic fluids presented in the article:
+// L. I. Petrich, S. L. Shapiro and S. A. Teukolsky (1988), "Accretion onto a moving black hole: An exact solution",
+// Physical Review Letters, Volume 60 (18): 1781-1784.
+// https://journals.aps.org/prl/abstract/10.1103/PhysRevLett.60.1781
+
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>

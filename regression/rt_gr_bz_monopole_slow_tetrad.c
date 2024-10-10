@@ -1,3 +1,10 @@
+// 2D Blandford-Znajek magnetosphere problem for a slowly-rotating (Kerr) black hole, for the general relativistic Maxwell equations in the tetrad basis.
+// Input parameters describe a (purely radial) monopole magnetic field surrounding a slowly-rotating black hole.
+// Based on the perturbative analytical solution for force-free electrodynamics presented in the article:
+// R. D. Blandford and R. L. Znajek (1977), "Electromagnetic extraction of energy from Kerr black holes",
+// Monthly Notices of the Royal Astronomical Society, Volume 179 (3): 433-456.
+// https://academic.oup.com/mnras/article/179/3/433/962905
+
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>

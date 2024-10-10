@@ -1,3 +1,10 @@
+// 2D Wald magnetosphere problem for a non-static (Kerr) black hole, for the general relativistic Maxwell equations in the tetrad basis.
+// Input parameters describe a uniform magnetic field surrounding rotating black hole.
+// Based on the analytical solution for force-free electrodynamics presented in the article:
+// R. M. Wald (1974), "Black hole in a uniform magnetic field",
+// Physical Review D, Volume 10 (6): 1680.
+// https://journals.aps.org/prd/abstract/10.1103/PhysRevD.10.1680
+
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>

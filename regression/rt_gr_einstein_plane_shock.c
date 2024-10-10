@@ -1,3 +1,9 @@
+// Shock tube test on a plane-symmetric Gowdy spacetime for the coupled fluid-Einstein equations, assuming an ultra-relativistic equation of state.
+// Input parameters taken from the initial conditions in Section 9 (Riemann problem 1), from the article:
+// A. P. Barnes, P. G. Lefloch, B. G. Schmidt and J. M. Stewart (2004), "The Glimm scheme for perfect fluids on plane-symmetric Gowdy spacetimes",
+// Classical and Quantum Gravity, Volume 21 (22): 5043.
+// https://iopscience.iop.org/article/10.1088/0264-9381/21/22/003
+
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>

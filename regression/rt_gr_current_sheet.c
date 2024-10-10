@@ -1,3 +1,9 @@
+// 1D current sheet Riemann problem for the general relativistic Maxwell equations.
+// Input parameters taken from the initial conditions in Section C3.2 (current sheet), from the article:
+// S. S. Komissarov (2004), "Electrodynamics of black hole magnetospheres",
+// Monthly Notices of the Royal Astronomical Society, Volume 350 (2): 427-448.
+// https://arxiv.org/abs/astro-ph/0402403
+
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>

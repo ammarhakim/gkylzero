@@ -1,3 +1,9 @@
+// Non-zero tangential velocity Riemann problem for the general relativistic Euler equations, assuming an ultra-relativistic equation of state.
+// Input parameters taken from the initial conditions in Figure 3 (Riemann problem 1), from the article:
+// P. Mach and M. Piętka (2010), "Exact solution of the hydrodynamical Riemann problem with nonzero tangential velocities and the ultrarelativistic equation of state",
+// Physical Review E, Volume 81 (4): 046313.
+// https://arxiv.org/abs/0905.0349
+
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>

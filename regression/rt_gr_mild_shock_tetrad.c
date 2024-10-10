@@ -1,3 +1,9 @@
+// Mildly relativistic blast wave test for the general relativistic Euler equations in the tetrad basis.
+// Input parameters taken from the initial conditions in Section 4.1 (blast wave 1), from the article:
+// L. Del Zanna and N. Bucciantini (2002), "An efficient shock-cpaturing central-type scheme for multidimensional relativistic flows. I. Hydrodynamics",
+// Astronomy and Astrophysics, Volume 390 (3): 1177-1186.
+// https://arxiv.org/abs/astro-ph/0205290
+
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
