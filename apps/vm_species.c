@@ -539,6 +539,7 @@ vm_species_apply_bc(gkyl_vlasov_app *app, const struct vm_species *species, stru
   app->stat.species_bc_tm += gkyl_time_diff_now_sec(wst);
 }
 
+
 void
 vm_species_calc_L2(gkyl_vlasov_app *app, double tm, const struct vm_species *species)
 {

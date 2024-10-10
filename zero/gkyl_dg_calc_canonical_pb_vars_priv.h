@@ -13,7 +13,7 @@
 
 typedef int (*canonical_pb_alpha_surf_t)(const double *w, const double *dxv, const double *hamil,
   double* GKYL_RESTRICT alpha_surf, double* GKYL_RESTRICT sgn_alpha_surf); 
-typedef void (*canonical_pb_pressure_t)(const double *h_ij_inv, const double *M2ij, const double *v_j,
+typedef void (*canonical_pb_pressure_t)(const double *h_ij_inv, const double *MEnergy, const double *v_j,
   const double *nv_i, double* GKYL_RESTRICT d_Jv_P); 
 
 // for use in kernel tables
