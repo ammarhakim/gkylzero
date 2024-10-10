@@ -101,23 +101,20 @@ test_gr_maxwell_tetrad_basic_minkowski()
         }
       }
 
-      double q_l[6], q_g[6];
+      double q_l[22], q_g[22];
       for (int d = 0; d < 3; d++) {
         gkyl_wv_eqn_rotate_to_local(gr_maxwell_tetrad, tau1[d], tau2[d], norm[d], q, q_l);
         gkyl_wv_eqn_rotate_to_global(gr_maxwell_tetrad, tau1[d], tau2[d], norm[d], q_l, q_g);
 
-        for (int i = 0; i < 6; i++) {
-// Something is going wrong with the local->global comparison on NVCC compilers. To investigate. -JG (10/10/24)
-#ifndef __NVCC__
+        for (int i = 0; i < 8; i++) {
           TEST_CHECK( gkyl_compare(q[i], q_g[i], 1e-16) );
-#endif
         }
 
-        double w1[6], q1[6];
+        double w1[22], q1[22];
         gr_maxwell_tetrad->cons_to_riem(gr_maxwell_tetrad, q_local, q_local, w1);
         gr_maxwell_tetrad->riem_to_cons(gr_maxwell_tetrad, q_local, w1, q1);
 
-        for (int i = 0; i < 6; i++) {
+        for (int i = 0; i < 8; i++) {
           TEST_CHECK( gkyl_compare(q_local[i], q1[i], 1e-16) );
         }
       }
@@ -232,23 +229,20 @@ test_gr_maxwell_tetrad_basic_schwarzschild()
           }
         }
 
-        double q_l[6], q_g[6];
+        double q_l[22], q_g[22];
         for (int d = 0; d < 3; d++) {
           gkyl_wv_eqn_rotate_to_local(gr_maxwell_tetrad, tau1[d], tau2[d], norm[d], q, q_l);
           gkyl_wv_eqn_rotate_to_global(gr_maxwell_tetrad, tau1[d], tau2[d], norm[d], q_l, q_g);
 
-          for (int i = 0; i < 6; i++) {
-// Something is going wrong with the local->global comparison on NVCC compilers. To investigate. -JG (10/10/24)
-#ifndef __NVCC__
-            TEST_CHECK( gkyl_compare(q[i], q_g[i], 1e-15) );
-#endif
+          for (int i = 0; i < 8; i++) {
+            TEST_CHECK( gkyl_compare(q[i], q_g[i], 1e-16) );
           }
 
-          double w1[6], q1[6];
+          double w1[22], q1[22];
           gr_maxwell_tetrad->cons_to_riem(gr_maxwell_tetrad, q_local, q_local, w1);
           gr_maxwell_tetrad->riem_to_cons(gr_maxwell_tetrad, q_local, w1, q1);
 
-          for (int i = 0; i < 6; i++) {
+          for (int i = 0; i < 8; i++) {
             TEST_CHECK( gkyl_compare(q_local[i], q1[i], 1e-16) );
           }
         }
@@ -364,23 +358,20 @@ test_gr_maxwell_tetrad_basic_kerr()
           }
         }
 
-        double q_l[6], q_g[6];
+        double q_l[22], q_g[22];
         for (int d = 0; d < 3; d++) {
           gkyl_wv_eqn_rotate_to_local(gr_maxwell_tetrad, tau1[d], tau2[d], norm[d], q, q_l);
           gkyl_wv_eqn_rotate_to_global(gr_maxwell_tetrad, tau1[d], tau2[d], norm[d], q_l, q_g);
 
-          for (int i = 0; i < 6; i++) {
-// Something is going wrong with the local->global comparison on NVCC compilers. To investigate. -JG (10/10/24)
-#ifndef __NVCC__
-            TEST_CHECK( gkyl_compare(q[i], q_g[i], 1e-15) );
-#endif
+          for (int i = 0; i < 8; i++) {
+            TEST_CHECK( gkyl_compare(q[i], q_g[i], 1e-16) );
           }
 
-          double w1[6], q1[6];
+          double w1[22], q1[22];
           gr_maxwell_tetrad->cons_to_riem(gr_maxwell_tetrad, q_local, q_local, w1);
           gr_maxwell_tetrad->riem_to_cons(gr_maxwell_tetrad, q_local, w1, q1);
 
-          for (int i = 0; i < 6; i++) {
+          for (int i = 0; i < 8; i++) {
             TEST_CHECK( gkyl_compare(q_local[i], q1[i], 1e-16) );
           }
         }

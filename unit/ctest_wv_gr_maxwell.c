@@ -100,19 +100,16 @@ test_gr_maxwell_basic_minkowski()
         }
       }
 
-      double q_l[8], q_g[8];
+      double q_l[22], q_g[22];
       for (int d = 0; d < 3; d++) {
         gkyl_wv_eqn_rotate_to_local(gr_maxwell, tau1[d], tau2[d], norm[d], q, q_l);
         gkyl_wv_eqn_rotate_to_global(gr_maxwell, tau1[d], tau2[d], norm[d], q_l, q_g);
 
         for (int i = 0; i < 8; i++) {
-// Something is going wrong with the local->global comparison on NVCC compilers. To investigate. -JG (10/10/24)
-#ifndef __NVCC__
           TEST_CHECK( gkyl_compare(q[i], q_g[i], 1e-16) );
-#endif
         }
 
-        double w1[8], q1[8];
+        double w1[22], q1[22];
         gr_maxwell->cons_to_riem(gr_maxwell, q_local, q_local, w1);
         gr_maxwell->riem_to_cons(gr_maxwell, q_local, w1, q1);
 
@@ -230,19 +227,16 @@ test_gr_maxwell_basic_schwarzschild()
           }
         }
 
-        double q_l[8], q_g[8];
+        double q_l[22], q_g[22];
         for (int d = 0; d < 3; d++) {
           gkyl_wv_eqn_rotate_to_local(gr_maxwell, tau1[d], tau2[d], norm[d], q, q_l);
           gkyl_wv_eqn_rotate_to_global(gr_maxwell, tau1[d], tau2[d], norm[d], q_l, q_g);
 
           for (int i = 0; i < 8; i++) {
-// Something is going wrong with the local->global comparison on NVCC compilers. To investigate. -JG (10/10/24)
-#ifndef __NVCC__
             TEST_CHECK( gkyl_compare(q[i], q_g[i], 1e-16) );
-#endif
           }
 
-          double w1[8], q1[8];
+          double w1[22], q1[22];
           gr_maxwell->cons_to_riem(gr_maxwell, q_local, q_local, w1);
           gr_maxwell->riem_to_cons(gr_maxwell, q_local, w1, q1);
 
@@ -361,19 +355,16 @@ test_gr_maxwell_basic_kerr()
           }
         }
 
-        double q_l[8], q_g[8];
+        double q_l[22], q_g[22];
         for (int d = 0; d < 3; d++) {
           gkyl_wv_eqn_rotate_to_local(gr_maxwell, tau1[d], tau2[d], norm[d], q, q_l);
           gkyl_wv_eqn_rotate_to_global(gr_maxwell, tau1[d], tau2[d], norm[d], q_l, q_g);
 
           for (int i = 0; i < 8; i++) {
-// Something is going wrong with the local->global comparison on NVCC compilers. To investigate. -JG (10/10/24)
-#ifndef __NVCC__
             TEST_CHECK( gkyl_compare(q[i], q_g[i], 1e-16) );
-#endif
           }
 
-          double w1[8], q1[8];
+          double w1[22], q1[22];
           gr_maxwell->cons_to_riem(gr_maxwell, q_local, q_local, w1);
           gr_maxwell->riem_to_cons(gr_maxwell, q_local, w1, q1);
 
