@@ -16,7 +16,7 @@ struct gkyl_bc_twistshift_inp {
   int shear_dir; // Direction in which the shift varies (shear).
   enum gkyl_edge_loc edge; // Edge of to apply this BC at (lower/upper).
   int cdim; // Configuration space dimensions.
-  struct gkyl_range local_ext_r; // Local extended range.
+  struct gkyl_range bcdir_ext_update_r; // Local range where to apply BC, extended in bc_dir.
   const int *num_ghost; // Number of ghost cells in each direction.
   struct gkyl_basis basis; // Basis of the field shifted.
   struct gkyl_rect_grid grid; // Grid the field shifted is defined on.
