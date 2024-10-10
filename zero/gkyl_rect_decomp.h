@@ -169,3 +169,11 @@ void gkyl_create_grid_ranges(const struct gkyl_rect_grid *grid,
  */
 void gkyl_create_ranges(const struct gkyl_range *inrange,
   const int *nghost, struct gkyl_range *ext_range, struct gkyl_range *range);
+
+/**
+ * Return the cuts used to create the the decomposition object.
+ * 
+ * @param decomp Decomposition object.
+ * @param cuts Output cuts in each direction.
+ */
+void gkyl_rect_decomp_get_cuts(struct gkyl_rect_decomp* decomp, int* cuts);

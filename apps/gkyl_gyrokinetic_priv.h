@@ -771,6 +771,33 @@ struct gkyl_gyrokinetic_app {
 /** gkyl_gyrokinetic_app private API */
 
 /**
+ * Create a new array metadata object. It must be freed using
+ * gk_array_meta_release.
+ *
+ * @param meta Gyrokinetic metadata object.
+ * @return Array metadata object.
+ */
+struct gkyl_array_meta*
+gk_array_meta_new(struct gyrokinetic_output_meta meta);
+
+/**
+ * Free memory for array metadata object.
+ *
+ * @param mt Array metadata object.
+ */
+void
+gk_array_meta_release(struct gkyl_array_meta *mt);
+
+/**
+ * Return the metadata for outputing gyrokinetic data.
+ *
+ * @param mt Array metadata object.
+ * @return A gyrokinetic metadata object.
+ */
+struct gyrokinetic_output_meta
+gk_meta_from_mpack(struct gkyl_array_meta *mt);
+
+/**
  * Find species with given name.
  *
  * @param app Top-level app to look into
