@@ -97,6 +97,18 @@ moment_coupling_init(const struct gkyl_moment_app *app, struct moment_coupling *
       }
     }
   }
+  
+  src_inp.has_einstein_medium_sources = false;
+  for (int i = 0; i < app->num_species; i++) {
+    if (app->species[i].has_einstein_medium) {
+      src_inp.has_einstein_medium_sources = true;
+
+      if (app->species[i].medium_gas_gamma != 0.0 || app->species[i].medium_kappa != 0.0) {
+        src_inp.medium_gas_gamma = app->species[i].medium_gas_gamma;
+        src_inp.medium_kappa = app->species[i].medium_kappa;
+      }
+    }
+  }
 
   // save the use-rel bool
   src_inp.use_rel = use_rel;

@@ -69,6 +69,10 @@ struct moment_species {
   double reactivity_ignition_temperature; // Ignition temperature for reactive sources.
   double reactivity_reaction_rate; // Reaction rate for reactive sources.
 
+  bool has_einstein_medium; // Run with coupled fluid-Einstein sources in plane-symmetric spacetimes.
+  double medium_gas_gamma; // Adiabatic index for coupled fluid-Einstein sources in plane-symmetric spacetimes.
+  double medium_kappa; // Stress-energy prefactor for coupled fluid-Einstein sources in plane-symmetric spacetimes.
+
   int evolve; // evolve species? 1-yes, 0-no
 
   void *ctx; // context for initial condition init function
