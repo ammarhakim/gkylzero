@@ -622,6 +622,7 @@ eval_cubic_wgrad2(double t, const double *xn, double *fout, void *ctx)
 
   fout[0] = ectx->basis.eval_expand(eta, fdg);
   if (ectx->ndim > 1) {
+    fout[1] = eval_laplacian_expand_2d_tensor_p3(0, eta, fdg);
     fout[2] = eval_laplacian_expand_2d_tensor_p3(1, eta, fdg);
     fout[3] = eval_mixedpartial_expand_2d_tensor_p3(eta, fdg);
   }

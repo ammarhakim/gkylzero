@@ -3,7 +3,7 @@
 
 void
 vm_species_emission_init(struct gkyl_vlasov_app *app, struct vm_emitting_wall *emit,
-  int dir, enum gkyl_edge_loc edge, void *ctx, bool use_gpu)
+  int dir, enum gkyl_edge_loc edge, void *ctx)
 {
   struct gkyl_bc_emission_ctx *params = ctx;
   emit->params = params;
@@ -42,6 +42,9 @@ vm_species_emission_cross_init(struct gkyl_vlasov_app *app, struct vm_species *s
   emit->emit_skin_r = (emit->edge == GKYL_LOWER_EDGE) ? &s->lower_skin[emit->dir] : &s->upper_skin[emit->dir];
   emit->buffer = s->bc_buffer;
   emit->f_emit = mkarr(app->use_gpu, app->basis.num_basis, emit->emit_buff_r->volume);
+  emit->f_emit_host = app->use_gpu? mkarr(false, emit->f_emit->ncomp, emit->f_emit->size)
+	                          : gkyl_array_acquire(emit->f_emit);
+
   struct gkyl_array *proj_buffer = mkarr(false, app->basis.num_basis, emit->emit_buff_r->volume);
 
   // Initialize elastic component of emission
@@ -123,7 +126,8 @@ vm_species_emission_apply_bc(struct gkyl_vlasov_app *app, const struct vm_emitti
 // KB - The write function only works in 1x at the moment.
 // It expects a single rank to own the whole emit range.
 void
-vm_species_emission_write(struct gkyl_vlasov_app *app, struct vm_species *s, struct vm_emitting_wall *emit, struct gkyl_array_meta *mt, int frame)
+vm_species_emission_write(struct gkyl_vlasov_app *app, struct vm_species *s,
+  struct vm_emitting_wall *emit, struct gkyl_array_meta *mt, int frame)
 {
   const char *fmt = (emit->edge == GKYL_LOWER_EDGE) ? "%s-%s_bc_lo_%d.gkyl" : "%s-%s_bc_up_%d.gkyl";
   int sz = gkyl_calc_strlen(fmt, app->name, s->info.name, frame);
@@ -131,13 +135,16 @@ vm_species_emission_write(struct gkyl_vlasov_app *app, struct vm_species *s, str
   snprintf(fileNm, sizeof fileNm, fmt, app->name, s->info.name, frame);
 
   if (emit->write) {
-    gkyl_grid_sub_array_write(emit->emit_grid, emit->emit_buff_r, mt, emit->f_emit, fileNm);
+    if (app->use_gpu)
+      gkyl_array_copy(emit->f_emit_host, emit->f_emit);
+    gkyl_grid_sub_array_write(emit->emit_grid, emit->emit_buff_r, mt, emit->f_emit_host, fileNm);
   }
 }
 
 void
 vm_species_emission_release(const struct vm_emitting_wall *emit)
 {
+  gkyl_array_release(emit->f_emit_host);
   gkyl_array_release(emit->f_emit);
   if (emit->elastic) {
     gkyl_array_release(emit->elastic_yield);

@@ -291,6 +291,7 @@ struct gkyl_tok_geo*
 gkyl_tok_geo_new(const struct gkyl_efit_inp *inp, const struct gkyl_tok_geo_grid_inp *ginp)
 {
   struct gkyl_tok_geo *geo = gkyl_malloc(sizeof(*geo));
+  *geo = (struct gkyl_tok_geo) {};
 
   geo->efit = gkyl_efit_new(inp);
 
