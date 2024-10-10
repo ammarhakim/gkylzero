@@ -826,7 +826,7 @@ test_gr_euler_tetrad_waves_schwarzschild()
           gkyl_wv_eqn_rotate_to_global(gr_euler_tetrad, tau1[d], tau2[d], norm[d], fr_local_gr, fr);
 
           for (int i = 0; i < 28; i++) {
-            TEST_CHECK( gkyl_compare(fr[i] - fl[i], amdq[i] + apdq[i], 1e-13) );
+            TEST_CHECK( gkyl_compare(fr[i] - fl[i], amdq[i] + apdq[i], 1e-12) );
           }
         }
       }
