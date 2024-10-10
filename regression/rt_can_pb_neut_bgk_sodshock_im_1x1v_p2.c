@@ -65,7 +65,7 @@ create_ctx(void)
 
   double vt = 1.0; // Thermal velocity.
   double Vx_drift = 0.0; // Drift velocity (x-direction).
-  double nu = 100.0; // Collision frequency.
+  double nu = 15000.0; // Collision frequency.
 
   // Simulation parameters.
   int Nx = 128; // Cell count (configuration space: x-direction).
@@ -204,6 +204,7 @@ write_data(struct gkyl_tm_trigger* iot, gkyl_vlasov_app* app, double t_curr, boo
 
     gkyl_vlasov_app_calc_mom(app);
     gkyl_vlasov_app_write_mom(app, t_curr, iot->curr - 1);
+    gkyl_vlasov_app_write_integrated_mom(app);
   }
 }
 
@@ -343,18 +344,19 @@ main(int argc, char **argv)
     },
     .collisions =  {
       .collision_id = GKYL_BGK_COLLISIONS,
+      .has_implicit_coll_scheme = true,
       .self_nu = evalNu,
       .ctx = &ctx,
       .correct_all_moms = true,
     },
     
-    .num_diag_moments = 3,
-    .diag_moments = { "M0", "M1i", "LTEMoments" },
+    .num_diag_moments = 4,
+    .diag_moments = { "M0", "M1i", "LTEMoments", "MEnergy" },
   };
 
   // Vlasov-Maxwell app.
   struct gkyl_vm app_inp = {
-   .name = "can_pb_neut_bgk_sodshock_1x1v_p2",
+   .name = "can_pb_neut_bgk_sodshock_im_1x1v_p2",
 
    .cdim = 1, .vdim = 1, 
    .lower = { 0.0 },
@@ -408,6 +410,7 @@ main(int argc, char **argv)
     gkyl_vlasov_app_cout(app, stdout, "Taking time-step %ld at t = %g ...", step, t_curr);
     struct gkyl_update_status status = gkyl_vlasov_update(app, dt);
     gkyl_vlasov_app_cout(app, stdout, " dt = %g\n", status.dt_actual);
+    gkyl_vlasov_app_calc_integrated_mom(app, t_curr);
     
     if (!status.success) {
       gkyl_vlasov_app_cout(app, stdout, "** Update method failed! Aborting simulation ....\n");

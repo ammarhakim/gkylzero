@@ -69,9 +69,9 @@ GKYL_CU_DH void em_vars_limiterx_2x_ser_p1(double limiter_fac, const struct gkyl
   double q_l_local[8] = {0.0}; 
   double q_c_local[8] = {0.0}; 
   double q_r_local[8] = {0.0}; 
-  gkyl_wv_eqn_rotate_to_local(wv_eqn, tau1, tau2, norm, q_avg_l, q_l_local); 
-  gkyl_wv_eqn_rotate_to_local(wv_eqn, tau1, tau2, norm, q_avg_c, q_c_local); 
-  gkyl_wv_eqn_rotate_to_local(wv_eqn, tau1, tau2, norm, q_avg_r, q_r_local); 
+  rot_to_local(wv_eqn, tau1, tau2, norm, q_avg_l, q_l_local); 
+  rot_to_local(wv_eqn, tau1, tau2, norm, q_avg_c, q_c_local); 
+  rot_to_local(wv_eqn, tau1, tau2, norm, q_avg_r, q_r_local); 
 
   double delta_l[8] = {0.0}; 
   double delta_c[8] = {0.0}; 
@@ -102,15 +102,15 @@ GKYL_CU_DH void em_vars_limiterx_2x_ser_p1(double limiter_fac, const struct gkyl
   delta_r[7] = limiter_fac*(q_r_local[7] - q_c_local[7]); 
 
   double delta_c_local[8] = {0.0}; 
-  gkyl_wv_eqn_rotate_to_local(wv_eqn, tau1, tau2, norm, delta_c, delta_c_local); 
+  rot_to_local(wv_eqn, tau1, tau2, norm, delta_c, delta_c_local); 
 
   double waves_slope_l[48] = {0.0}; 
   double waves_slope_c[48] = {0.0}; 
   double waves_slope_r[48] = {0.0}; 
   double speeds[6] = {0.0}; 
-  double my_max_speed_l = gkyl_wv_eqn_waves(wv_eqn, GKYL_WV_HIGH_ORDER_FLUX, delta_l, q_c_local, q_c_local, waves_slope_l, speeds); 
-  double my_max_speed_c = gkyl_wv_eqn_waves(wv_eqn, GKYL_WV_HIGH_ORDER_FLUX, delta_c_local, q_c_local, q_c_local, waves_slope_c, speeds); 
-  double my_max_speed_r = gkyl_wv_eqn_waves(wv_eqn, GKYL_WV_HIGH_ORDER_FLUX, delta_r, q_c_local, q_c_local, waves_slope_r, speeds); 
+  double my_max_speed_l = wave(wv_eqn, GKYL_WV_HIGH_ORDER_FLUX, delta_l, q_c_local, q_c_local, waves_slope_l, speeds); 
+  double my_max_speed_c = wave(wv_eqn, GKYL_WV_HIGH_ORDER_FLUX, delta_c_local, q_c_local, q_c_local, waves_slope_c, speeds); 
+  double my_max_speed_r = wave(wv_eqn, GKYL_WV_HIGH_ORDER_FLUX, delta_r, q_c_local, q_c_local, waves_slope_r, speeds); 
 
   double mm[48] = {0.0}; 
   double slope[8] = {0.0}; 
