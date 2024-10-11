@@ -4,8 +4,9 @@
 
 // Type of Riemann-solver to use:
 enum gkyl_wv_reactive_euler_rp {
-  WV_REACTIVE_EULER_RP_LAX = 0, // Default (Lax fluxes).
-  WV_REACTIVE_EULER_RP_ROE,
+  WV_REACTIVE_EULER_RP_ROE = 0, // Default (Roe fluxes).
+  WV_REACTIVE_EULER_RP_LAX,
+  WV_REACTIVE_EULER_RP_HLL,
 };
 
 // Input context, packaged as a struct.

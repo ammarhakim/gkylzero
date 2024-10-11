@@ -16,8 +16,8 @@ gkyl_reactive_euler_prim_vars(double gas_gamma, double energy_of_formation, cons
   double Etot = q[4];
   double reaction_density = q[5];
 
-  double specific_internal_energy = (Etot / rho) - (0.5 * ((momx * momx) + (momy * momy) + (momz * momz)) / (rho * rho)) -
-    (energy_of_formation * ((reaction_density / rho) - 1.0));
+  double specific_internal_energy = (Etot - (0.5 * ((momx * momx) + (momy * momy) + (momz * momz)) / rho) -
+    (energy_of_formation * ((reaction_density / rho) - 1.0))) / rho;
 
   v[0] = rho;
   v[1] = momx / rho;
@@ -182,6 +182,90 @@ qfluct_lax_l(const struct gkyl_wv_eqn* eqn, enum gkyl_wv_flux_type type, const d
   double* amdq, double* apdq)
 {
   return qfluct_lax(eqn, ql, qr, waves, s, amdq, apdq);
+}
+
+static double
+wave_hll(const struct gkyl_wv_eqn* eqn, const double* delta, const double* ql, const double* qr, double* waves, double* s)
+{
+  const struct wv_reactive_euler *reactive_euler = container_of(eqn, struct wv_reactive_euler, eqn);
+  double gas_gamma = reactive_euler->gas_gamma;
+  double energy_of_formation = reactive_euler->energy_of_formation;
+
+  double vl[6], vr[6];
+  gkyl_reactive_euler_prim_vars(gas_gamma, energy_of_formation, ql, vl);
+  gkyl_reactive_euler_prim_vars(gas_gamma, energy_of_formation, qr, vr);
+
+  double rho_l = vl[0];
+  double vx_l = vl[1];
+  double p_l = vl[4];
+
+  double rho_r = vr[0];
+  double vx_r = vr[1];
+  double p_r = vr[4];
+
+  double vx_avg = 0.5 * (vx_l + vx_r);
+  double cs_avg = 0.5 * (sqrt(gas_gamma * (p_l / rho_l)) + sqrt(gas_gamma * (p_r / rho_r)));
+
+  double sl = (vx_avg - cs_avg) / (1.0 - (vx_avg * cs_avg));
+  double sr = (vx_avg + cs_avg) / (1.0 + (vx_avg * cs_avg));
+
+  double fl[6], fr[6];
+  gkyl_reactive_euler_flux(gas_gamma, energy_of_formation, ql, fl);
+  gkyl_reactive_euler_flux(gas_gamma, energy_of_formation, qr, fr);
+
+  double qm[6];
+  for (int i = 0; i < 6; i++) {
+    qm[i] = ((sr * qr[i]) - (sl * ql[i]) + (fl[i] - fr[i])) / (sr - sl);
+  }
+
+  double *w0 = &waves[0], *w1 = &waves[6];
+  for (int i = 0; i < 6; i++) {
+    w0[i] = qm[i] - ql[i];
+    w1[i] = qr[i] - qm[i];
+  }
+
+  s[0] = sl;
+  s[1] = sr;
+
+  return fmax(fabs(sl), fabs(sr));
+}
+
+static void
+qfluct_hll(const struct gkyl_wv_eqn* eqn, const double* ql, const double* qr, const double* waves, const double* s, double* amdq, double* apdq)
+{
+  const double *w0 = &waves[0], *w1 = &waves[6];
+  double s0m = fmin(0.0, s[0]), s1m = fmin(0.0, s[1]);
+  double s0p = fmax(0.0, s[0]), s1p = fmax(0.0, s[1]);
+
+  for (int i = 0; i < 6; i++) {
+    amdq[i] = (s0m * w0[i]) + (s1m * w1[i]);
+    apdq[i] = (s0p * w0[i]) + (s1p * w1[i]);
+  }
+}
+
+static double
+wave_hll_l(const struct gkyl_wv_eqn* eqn, enum gkyl_wv_flux_type type, const double* delta, const double* ql, const double* qr, double* waves, double* s)
+{
+  if (type == GKYL_WV_HIGH_ORDER_FLUX) {
+    return wave_hll(eqn, delta, ql, qr, waves, s);
+  }
+  else {
+    return wave_lax(eqn, delta, ql, qr, waves, s);
+  }
+
+  return 0.0; // Unreachable code.
+}
+
+static void
+qfluct_hll_l(const struct gkyl_wv_eqn* eqn, enum gkyl_wv_flux_type type, const double* ql, const double* qr, const double* waves, const double* s,
+  double* amdq, double* apdq)
+{
+  if (type == GKYL_WV_HIGH_ORDER_FLUX) {
+    return qfluct_hll(eqn, ql, qr, waves, s, amdq, apdq);
+  }
+  else {
+    return qfluct_lax(eqn, ql, qr, waves, s, amdq, apdq);
+  }
 }
 
 static double
@@ -412,7 +496,7 @@ gkyl_wv_reactive_euler_new(double gas_gamma, double specific_heat_capacity, doub
       .energy_of_formation = energy_of_formation,
       .ignition_temperature = ignition_temperature,
       .reaction_rate = reaction_rate,
-      .rp_type = WV_REACTIVE_EULER_RP_LAX,
+      .rp_type = WV_REACTIVE_EULER_RP_HLL,
       .use_gpu = use_gpu,
     }
   );
@@ -442,6 +526,11 @@ gkyl_wv_reactive_euler_inew(const struct gkyl_wv_reactive_euler_inp* inp)
     reactive_euler->eqn.num_waves = 3;
     reactive_euler->eqn.waves_func = wave_roe_l;
     reactive_euler->eqn.qfluct_func = qfluct_roe_l;
+  }
+  else if (inp->rp_type == WV_REACTIVE_EULER_RP_HLL) {
+    reactive_euler->eqn.num_waves = 2;
+    reactive_euler->eqn.waves_func = wave_hll_l;
+    reactive_euler->eqn.qfluct_func = qfluct_hll_l;
   }
 
   reactive_euler->eqn.flux_jump = flux_jump;
