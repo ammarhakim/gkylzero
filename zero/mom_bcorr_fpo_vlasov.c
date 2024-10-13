@@ -25,8 +25,7 @@ gkyl_mom_bcorr_fpo_vlasov_set_auxfields(const struct gkyl_mom_type *momt, struct
 {
 #ifdef GKYL_HAVE_CUDA
   if (gkyl_mom_type_is_cu_dev(momt)) {
-    gkyl_mom_bcorr_fpo_vlasov_set_auxfields_cu(momt->on_dev, auxin);
-    return;
+    return gkyl_mom_bcorr_fpo_vlasov_set_auxfields_cu(momt, auxin);
   }
 #endif
 
@@ -45,7 +44,7 @@ gkyl_mom_bcorr_fpo_vlasov_new(const struct gkyl_basis* cbasis, const struct gkyl
     return gkyl_mom_bcorr_fpo_vlasov_cu_dev_new(cbasis, pbasis, phase_range, vBoundary);
   } 
 #endif  
-  struct mom_type_bcorr_fpo_vlasov *mom_bcorr = gkyl_malloc(sizeof(*mom_bcorr));
+  struct mom_type_bcorr_fpo_vlasov *mom_bcorr = gkyl_malloc(sizeof(struct mom_type_bcorr_fpo_vlasov));
   int cdim = cbasis->ndim, pdim = pbasis->ndim, vdim = pdim-cdim;
   int poly_order = cbasis->poly_order;
 
@@ -54,6 +53,7 @@ gkyl_mom_bcorr_fpo_vlasov_new(const struct gkyl_basis* cbasis, const struct gkyl
   mom_bcorr->momt.poly_order = poly_order;
   mom_bcorr->momt.num_config = cbasis->num_basis;
   mom_bcorr->momt.num_phase = pbasis->num_basis;
+  mom_bcorr->use_gpu = false;
 
   // FPO is 3V by default
   mom_bcorr->vBoundary[0] = vBoundary[0];

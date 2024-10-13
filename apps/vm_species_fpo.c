@@ -34,7 +34,8 @@ vm_species_fpo_init(struct gkyl_vlasov_app *app, struct vm_species *s, struct vm
   fpo->dgdv_surf = mkarr(app->use_gpu, 2*vdim*surf_basis.num_basis, s->local_ext.volume); 
   fpo->d2gdv2_surf = mkarr(app->use_gpu, vdim*surf_basis.num_basis, s->local_ext.volume); 
 
-  fpo->pot_slvr = gkyl_proj_maxwellian_pots_on_basis_new(&s->grid, 
+
+  fpo->pot_slvr = gkyl_proj_maxwellian_pots_on_basis_new(&s->grid,
     &app->local_ext, &s->local_ext, &app->confBasis, &app->basis, app->poly_order+1, app->use_gpu);
 
   // allocate moments needed for FPO update

@@ -25,7 +25,7 @@ gkyl_mom_bcorr_fpo_vlasov_set_auxfields_cu_kernel(const struct gkyl_mom_type *mo
 void 
 gkyl_mom_bcorr_fpo_vlasov_set_auxfields_cu(const struct gkyl_mom_type *momt, struct gkyl_mom_bcorr_fpo_vlasov_auxfields auxin)
 {
-  gkyl_mom_bcorr_fpo_vlasov_set_auxfields_cu_kernel<<<1,1>>>(momt, auxin.D->on_dev);
+  gkyl_mom_bcorr_fpo_vlasov_set_auxfields_cu_kernel<<<1,1>>>(momt->on_dev, auxin.D->on_dev);
 }
 
 // CUDA kernel to set device pointers to range object and vlasov fpo kernel function
@@ -57,7 +57,8 @@ set_cu_ptrs(struct mom_type_bcorr_fpo_vlasov *mom_bcorr, enum gkyl_basis_type b_
 struct gkyl_mom_type*
 gkyl_mom_bcorr_fpo_vlasov_cu_dev_new(const struct gkyl_basis* cbasis, const struct gkyl_basis* pbasis, const struct gkyl_range* phase_range, const double* vBoundary)
 {
-  struct mom_type_bcorr_fpo_vlasov *mom_bcorr = (struct mom_type_bcorr_fpo_vlasov*) gkyl_malloc(sizeof(*mom_bcorr));
+  struct mom_type_bcorr_fpo_vlasov *mom_bcorr = (struct mom_type_bcorr_fpo_vlasov *)
+    gkyl_malloc(sizeof(struct mom_type_bcorr_fpo_vlasov));
   int cdim = cbasis->ndim, pdim = pbasis->ndim;
   int poly_order = cbasis->poly_order;
 
@@ -66,6 +67,9 @@ gkyl_mom_bcorr_fpo_vlasov_cu_dev_new(const struct gkyl_basis* cbasis, const stru
   mom_bcorr->momt.poly_order = poly_order;
   mom_bcorr->momt.num_config = cbasis->num_basis;
   mom_bcorr->momt.num_phase = pbasis->num_basis;
+  mom_bcorr->use_gpu = true;
+
+  mom_bcorr->phase_range = *phase_range;
 
   // FPO is 3V by default
   mom_bcorr->vBoundary[0] = vBoundary[0];
@@ -80,7 +84,7 @@ gkyl_mom_bcorr_fpo_vlasov_cu_dev_new(const struct gkyl_basis* cbasis, const stru
   mom_bcorr->momt.ref_count = gkyl_ref_count_init(gkyl_mom_bcorr_fpo_vlasov_free);
 
   // copy struct to device
-  struct mom_type_bcorr_fpo_vlasov *mom_bcorr_cu = (struct mom_type_bcorr_fpo_vlasov*)
+  struct mom_type_bcorr_fpo_vlasov *mom_bcorr_cu = (struct mom_type_bcorr_fpo_vlasov *)
     gkyl_cu_malloc(sizeof(struct mom_type_bcorr_fpo_vlasov));
   gkyl_cu_memcpy(mom_bcorr_cu, mom_bcorr, sizeof(struct mom_type_bcorr_fpo_vlasov), GKYL_CU_MEMCPY_H2D);
 

@@ -15,6 +15,7 @@ struct mom_type_bcorr_fpo_vlasov {
   double vBoundary[6];
   struct gkyl_range phase_range; // velocity space range
   struct gkyl_mom_bcorr_fpo_vlasov_auxfields auxfields; // Auxiliary fields.
+  bool use_gpu;
 };
 
 // for use in kernel tables
@@ -27,37 +28,11 @@ GKYL_CU_DH
 static void
 set_phase_idx(enum gkyl_vel_edge edge, const struct gkyl_range *phase_range, int cdim, int pdim, const int *idx, int fidx[GKYL_MAX_DIM])
 {
-  int vel_idx = 0;
-  int cell = 1;
+  int vdim = pdim - cdim;
+  int vel_idx = cdim+edge%vdim;
+  int cell = edge < vdim ? 1 : phase_range->upper[vel_idx];
 
-  switch (edge) {
-    case GKYL_VX_LOWER:
-      vel_idx = 1;
-      break;
-    case GKYL_VX_UPPER:
-      vel_idx = 1;
-      cell = phase_range->upper[vel_idx];
-      break;
-    case GKYL_VY_LOWER:
-      vel_idx = 2;
-      break;
-    case GKYL_VY_UPPER:
-      vel_idx = 2;
-      cell = phase_range->upper[vel_idx];
-      break;
-    case GKYL_VZ_LOWER:
-      vel_idx = 3;
-      break;
-    case GKYL_VZ_UPPER:
-      vel_idx = 3;
-      cell = phase_range->upper[vel_idx];
-      break;
-    default:
-      assert(false);
-      break;
-  }
-  
-  for (int i=0; i<(cdim+vel_idx); ++i) fidx[i] = idx[i];
+  for (int i=0; i<(vel_idx); ++i) fidx[i] = idx[i];
   fidx[vel_idx] = cell;
   for (int i=vel_idx+1; i<pdim; ++i) fidx[i] = idx[i-1];
 }
@@ -72,8 +47,19 @@ kernel_mom_bcorr_fpo_vlasov_1x3v_ser_p1(const struct gkyl_mom_type *momt, const 
   enum gkyl_vel_edge edge = *(enum gkyl_vel_edge *)param;
 
   int fidx[GKYL_MAX_DIM];
-  set_phase_idx(edge, &mom_fpo_vlasov->phase_range, 
-    mom_fpo_vlasov->momt.cdim, mom_fpo_vlasov->momt.pdim, idx, fidx);
+
+  if (!mom_fpo_vlasov->use_gpu) {
+   set_phase_idx(edge, &mom_fpo_vlasov->phase_range,
+     cdim, pdim, idx, fidx);
+   for (int i=0; i<pdim; ++i) w[i] = xc[i];
+  } else {
+    gkyl_copy_int_arr(GKYL_MAX_DIM, idx, fidx);
+
+    int vdim = 3;
+    int vel_idx = edge%vdim;
+    for (int i=0; i<cdim+vel_idx; ++i) w[i] = xc[i];
+    for (int i=cdim+vel_idx; i<pdim-1; ++i) w[i] = xc[i+1];
+  }
 
   long linc = gkyl_range_idx(&mom_fpo_vlasov->phase_range, fidx);
 
@@ -91,12 +77,33 @@ kernel_mom_bcorr_fpo_vlasov_1x3v_ser_p2(const struct gkyl_mom_type *momt, const 
   enum gkyl_vel_edge edge = *(enum gkyl_vel_edge *)param;
 
   int fidx[GKYL_MAX_DIM];
-  set_phase_idx(edge, &mom_fpo_vlasov->phase_range, 
-    mom_fpo_vlasov->momt.cdim, mom_fpo_vlasov->momt.pdim, idx, fidx);
+  double w[GKYL_MAX_DIM];
+
+  int cdim = mom_fpo_vlasov->momt.cdim;
+  int pdim = mom_fpo_vlasov->momt.pdim;
+
+  // TODO: Check if the CPU and GPU routines for bcorr_advance can be fixed so this hack isnt necessary
+  // The hack in question arises because for e.g. a vx surface:
+  // CPU code inputs xc = (x, vy, vz), idx = (idx_x, idx_vy, idx_vz)
+  // GPU code inputs xc = (x, vx, vy, vz), idx = (idx_x, idx_vx, idx_vy, idx_vz)
+  //
+  // FPO seems to be the only routine that actually uses these, so it previously didn't matter
+  if (!mom_fpo_vlasov->use_gpu) {
+   set_phase_idx(edge, &mom_fpo_vlasov->phase_range,
+     cdim, pdim, idx, fidx);
+   for (int i=0; i<pdim; ++i) w[i] = xc[i];
+  } else {
+    gkyl_copy_int_arr(GKYL_MAX_DIM, idx, fidx);
+
+    int vdim = 3;
+    int vel_idx = edge%vdim;
+    for (int i=0; i<cdim+vel_idx; ++i) w[i] = xc[i];
+    for (int i=cdim+vel_idx; i<pdim-1; ++i) w[i] = xc[i+1];
+  }
 
   long linc = gkyl_range_idx(&mom_fpo_vlasov->phase_range, fidx);
 
-  return mom_bcorr_fpo_vlasov_1x3v_ser_p2(xc, idx, edge, mom_fpo_vlasov->vBoundary, dx, 
+  return mom_bcorr_fpo_vlasov_1x3v_ser_p2(w, fidx, edge, mom_fpo_vlasov->vBoundary, dx,
     (const double*) gkyl_array_cfetch(mom_fpo_vlasov->auxfields.D, linc), 
     f, out);
 }
@@ -110,8 +117,19 @@ kernel_mom_bcorr_fpo_vlasov_2x3v_ser_p1(const struct gkyl_mom_type *momt, const 
   enum gkyl_vel_edge edge = *(enum gkyl_vel_edge *)param;
 
   int fidx[GKYL_MAX_DIM];
-  set_phase_idx(edge, &mom_fpo_vlasov->phase_range, 
-    mom_fpo_vlasov->momt.cdim, mom_fpo_vlasov->momt.pdim, idx, fidx);
+
+  if (!mom_fpo_vlasov->use_gpu) {
+   set_phase_idx(edge, &mom_fpo_vlasov->phase_range,
+     cdim, pdim, idx, fidx);
+   for (int i=0; i<pdim; ++i) w[i] = xc[i];
+  } else {
+    gkyl_copy_int_arr(GKYL_MAX_DIM, idx, fidx);
+
+    int vdim = 3;
+    int vel_idx = edge%vdim;
+    for (int i=0; i<cdim+vel_idx; ++i) w[i] = xc[i];
+    for (int i=cdim+vel_idx; i<pdim-1; ++i) w[i] = xc[i+1];
+  }
 
   long linc = gkyl_range_idx(&mom_fpo_vlasov->phase_range, fidx);
 
@@ -129,8 +147,19 @@ kernel_mom_bcorr_fpo_vlasov_2x3v_ser_p2(const struct gkyl_mom_type *momt, const 
   enum gkyl_vel_edge edge = *(enum gkyl_vel_edge *)param;
 
   int fidx[GKYL_MAX_DIM];
-  set_phase_idx(edge, &mom_fpo_vlasov->phase_range, 
-    mom_fpo_vlasov->momt.cdim, mom_fpo_vlasov->momt.pdim, idx, fidx);
+
+  if (!mom_fpo_vlasov->use_gpu) {
+   set_phase_idx(edge, &mom_fpo_vlasov->phase_range,
+     cdim, pdim, idx, fidx);
+   for (int i=0; i<pdim; ++i) w[i] = xc[i];
+  } else {
+    gkyl_copy_int_arr(GKYL_MAX_DIM, idx, fidx);
+
+    int vdim = 3;
+    int vel_idx = edge%vdim;
+    for (int i=0; i<cdim+vel_idx; ++i) w[i] = xc[i];
+    for (int i=cdim+vel_idx; i<pdim-1; ++i) w[i] = xc[i+1];
+  }
 
   long linc = gkyl_range_idx(&mom_fpo_vlasov->phase_range, fidx);
 
@@ -148,8 +177,19 @@ kernel_mom_bcorr_fpo_vlasov_3x3v_ser_p1(const struct gkyl_mom_type *momt, const 
   enum gkyl_vel_edge edge = *(enum gkyl_vel_edge *)param;
 
   int fidx[GKYL_MAX_DIM];
-  set_phase_idx(edge, &mom_fpo_vlasov->phase_range, 
-    mom_fpo_vlasov->momt.cdim, mom_fpo_vlasov->momt.pdim, idx, fidx);
+
+  if (!mom_fpo_vlasov->use_gpu) {
+   set_phase_idx(edge, &mom_fpo_vlasov->phase_range,
+     cdim, pdim, idx, fidx);
+   for (int i=0; i<pdim; ++i) w[i] = xc[i];
+  } else {
+    gkyl_copy_int_arr(GKYL_MAX_DIM, idx, fidx);
+
+    int vdim = 3;
+    int vel_idx = edge%vdim;
+    for (int i=0; i<cdim+vel_idx; ++i) w[i] = xc[i];
+    for (int i=cdim+vel_idx; i<pdim-1; ++i) w[i] = xc[i+1];
+  }
 
   long linc = gkyl_range_idx(&mom_fpo_vlasov->phase_range, fidx);
 

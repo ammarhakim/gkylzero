@@ -76,7 +76,7 @@ gkyl_proj_maxwellian_pots_on_basis_conf_nodes_ker(struct gkyl_range conf_range,
   int cidx[GKYL_MAX_CDIM];
 
   // 2D thread grid
-  // linq goes from 0 to tot_conf_quad
+  // linq goes from 0 to num_conf_basis
   long linn = threadIdx.y + blockIdx.y*blockDim.y;
   for(unsigned long tid = threadIdx.x + blockIdx.x*blockDim.x;
       tid < conf_range.volume; tid += blockDim.x*gridDim.x) {
