@@ -591,26 +591,11 @@ gkyl_gyrokinetic_multib_app_write_topo(const gkyl_gyrokinetic_multib_app* app)
   }
 }
 
-void gkyl_gyrokinetic_multib_app_calc_mom(gkyl_gyrokinetic_multib_app *app)
-{
-  for (int i=0; i<app->num_local_blocks; ++i) {
-    gkyl_gyrokinetic_app_calc_mom(app->singleb_apps[i]);
-  }
-}
-
 void gkyl_gyrokinetic_multib_app_calc_integrated_mom(gkyl_gyrokinetic_multib_app* app, double tm)
 {
   for (int i=0; i<app->num_local_blocks; ++i) {
     gkyl_gyrokinetic_app_calc_integrated_mom(app->singleb_apps[i], tm);
   }
-  // TO DO: REDUCE ACROSS BLOCKS
-}
-
-void gkyl_gyrokinetic_multib_app_calc_integrated_neut_mom(gkyl_gyrokinetic_multib_app* app, double tm)
-{
-  for (int i=0; i<app->num_local_blocks; ++i) {
-    gkyl_gyrokinetic_app_calc_integrated_neut_mom(app->singleb_apps[i], tm);
-  }  
   // TO DO: REDUCE ACROSS BLOCKS
 }
 
