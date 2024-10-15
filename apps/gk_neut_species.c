@@ -150,8 +150,8 @@ gk_neut_species_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app, struc
     }
   }
 
-  s->has_neutral_reactions = false;
   s->model_id = GKYL_MODEL_GEN_GEO;
+  s->react_neut = (struct gk_react) { };
   if (!s->info.is_static) {
     struct gkyl_dg_vlasov_auxfields aux_inp = {.field = 0, .cot_vec = s->cot_vec, 
       .alpha_surf = s->alpha_surf, .sgn_alpha_surf = s->sgn_alpha_surf, .const_sgn_alpha = s->const_sgn_alpha };
@@ -164,7 +164,6 @@ gk_neut_species_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app, struc
     s->eqn_vlasov = gkyl_dg_updater_vlasov_acquire_eqn(s->slvr);
 
     if (s->info.react_neut.num_react) {
-      s->has_neutral_reactions = true;
       gk_neut_species_react_init(app, s, s->info.react_neut, &s->react_neut);
     }
   }
@@ -196,7 +195,6 @@ gk_neut_species_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app, struc
 
   // set species source id
   s->src = (struct gk_source) { };  
-  s->source_id = s->info.source.source_id;
 
   // vtsq_min
   s->vtsq_min = s->grid.dx[cdim]*s->grid.dx[cdim]/6.0;
@@ -284,8 +282,7 @@ gk_neut_species_apply_ic(gkyl_gyrokinetic_app *app, struct gk_neut_species *spec
   gk_neut_species_projection_calc(app, species, &species->proj_init, species->f, t0);
 
   // we are pre-computing source for now as it is time-independent
-  if (species->source_id)
-    gk_neut_species_source_calc(app, species, &species->src, t0);
+  gk_neut_species_source_calc(app, species, &species->src, t0);
 }
 
 // Compute the RHS for species update, returning maximum stable
@@ -303,7 +300,7 @@ gk_neut_species_rhs(gkyl_gyrokinetic_app *app, struct gk_neut_species *species,
     gkyl_dg_updater_vlasov_advance(species->slvr, &species->local, 
       fin, species->cflrate, rhs);
 
-    if (species->has_neutral_reactions)
+    if (species->react_neut.num_react)
       gk_neut_species_react_rhs(app, species, &species->react_neut, fin, rhs);
 
     app->stat.nspecies_omega_cfl +=1;
@@ -433,10 +430,9 @@ gk_neut_species_release(const gkyl_gyrokinetic_app* app, const struct gk_neut_sp
   gk_neut_species_moment_release(app, &s->integ_moms); 
   gkyl_dynvec_release(s->integ_diag);
 
-  if (s->source_id) 
-    gk_neut_species_source_release(app, &s->src);
+  gk_neut_species_source_release(app, &s->src);
 
-  if (s->has_neutral_reactions)
+  if (s->react_neut.num_react)
     gk_neut_species_react_release(app, &s->react_neut);
 
   // Copy BCs are allocated by default. Need to free.

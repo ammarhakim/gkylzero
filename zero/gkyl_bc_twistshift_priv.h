@@ -66,7 +66,6 @@ struct gkyl_bc_twistshift {
   int shear_dir; // Direction the shift varies in (shear).
   enum gkyl_edge_loc edge; // Indicates if BC is for lowe/upper edge.
   struct gkyl_basis basis; // Basis the shifted field is defined with.
-  struct gkyl_range local_ext_r; // Local range.
   struct gkyl_range local_bcdir_ext_r; // Local range.
   struct gkyl_rect_grid grid; // Grid the shifted field is defined in.
   evalf_t shift_func; // Function defining the shift.
