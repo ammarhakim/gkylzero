@@ -265,12 +265,18 @@ gkyl_gyrokinetic_app_new(struct gkyl_gk *gk)
     .efit_info = gk->geometry.efit_info,
     .tok_grid_info = gk->geometry.tok_grid_info,
     .mirror_grid_info = gk->geometry.mirror_grid_info,
+    .mirror_geo_c2fa_ctx = gk->geometry.mirror_geo_c2fa_ctx,
+    .nonuniform_geom = false,
+    .nonuniform_map_fraction = gk->geometry.nonuniform_mapping_fraction,
     .grid = app->grid,
     .local = app->local,
     .local_ext = app->local_ext,
     .global = app->global,
     .global_ext = app->global_ext,
     .basis = app->confBasis,
+    .cdim = app->cdim,
+    .use_gpu = app->use_gpu,
+    .comm = app->comm,
   };
   for(int i = 0; i<3; i++)
     geometry_inp.world[i] = gk->geometry.world[i];

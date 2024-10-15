@@ -3,14 +3,17 @@
 #include <gkyl_array_rio.h>
 #include <assert.h>
 #include <gkyl_basis.h>
+#include <gkyl_calc_bmag.h>
+#include <gkyl_efit.h>
+#include <gkyl_gk_geometry.h>
 #include <gkyl_dg_basis_ops.h>
 #include <gkyl_math.h>
+#include <gkyl_mirror_geo_priv.h>
+#include <gkyl_nodal_ops.h>
 #include <gkyl_range.h>
 #include <gkyl_rect_grid.h>
-#include <gkyl_nodal_ops.h>
-#include <gkyl_gk_geometry.h>
-#include <gkyl_efit.h>
-#include <gkyl_mirror_geo_priv.h>
+#include <gkyl_util.h>
+
 
 #include <math.h>
 #include <string.h>
@@ -59,8 +62,6 @@ mirror_plate_psi_func(double s, void *ctx){
   }
 }
 
-
-
 // Function to pass to root-finder to find Z location for given arc-length
 static inline double
 arc_length_func(double Z, void *ctx)
@@ -72,6 +73,34 @@ arc_length_func(double Z, void *ctx)
   double ival = 0.0;
   ival = integrate_psi_contour_memo(actx->geo, psi, zmin, Z, rclose, true, false, arc_memo) - arcL;
   return ival;
+}
+
+void gkyl_mirror_geo_comp2fieldalligned_advance(double t, const double *x_comp, double *x_fa, void *ctx)
+{
+  struct gkyl_mirror_geo_c2fa_ctx *gc = ctx;
+  int cidx[GKYL_MAX_CDIM];
+  for(int i = 0; i < gc->grid_deflate.ndim; i++){
+    int idxtemp = gc->range_global_deflate.lower[i] + (int) floor((x_comp[i] - (gc->grid_deflate.lower[i]) )/gc->grid_deflate.dx[i]);
+    idxtemp = GKYL_MIN2(idxtemp, gc->range_deflate.upper[i]);
+    idxtemp = GKYL_MAX2(idxtemp, gc->range_deflate.lower[i]);
+    cidx[i] = idxtemp;
+  }
+  long lidx = gkyl_range_idx(&gc->range_deflate, cidx);
+  const double *c2fa_coeffs = gkyl_array_cfetch(gc->c2fa_deflate, lidx);
+  double cxc[gc->grid_deflate.ndim];
+  double x_log[gc->grid_deflate.ndim];
+  gkyl_rect_grid_cell_center(&gc->grid_deflate, cidx, cxc);
+  for(int i = 0; i < gc->grid_deflate.ndim; i++){
+    x_log[i] = (x_comp[i]-cxc[i])/(gc->grid_deflate.dx[i]*0.5);
+  }
+  double xyz_fa[3];
+  for(int i = 0; i < 3; i++){
+    xyz_fa[i] = gc->basis_deflate.eval_expand(x_log, &c2fa_coeffs[i*gc->basis_deflate.num_basis]);
+  }
+  for (int i=0; i<gc->grid_deflate.ndim; i++) {
+    x_fa[i] = xyz_fa[i];
+  }
+  x_fa[gc->grid_deflate.ndim-1] = xyz_fa[2];
 }
 
 struct gkyl_mirror_geo*
@@ -158,7 +187,8 @@ gkyl_mirror_geo_R_psiZ(const struct gkyl_mirror_geo *geo, double psi, double Z, 
 
 void gkyl_mirror_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, double dzc[3], 
   struct gkyl_mirror_geo *geo, struct gkyl_mirror_geo_grid_inp *inp, 
-  struct gkyl_array *mc2p_nodal_fd, struct gkyl_array *mc2p_nodal, struct gkyl_array *mc2p)
+  struct gkyl_array *mc2p_nodal_fd, struct gkyl_array *mc2p_nodal, struct gkyl_array *mc2p, bool nonuniform,
+  struct gkyl_array* c2fa_nodal_fd, struct gkyl_array* c2fa_nodal, struct gkyl_array* c2fa)
 {
 
 
@@ -172,6 +202,10 @@ void gkyl_mirror_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, dou
   double theta_lo = up->grid.lower[TH_IDX] + (up->local.lower[TH_IDX] - up->global.lower[TH_IDX])*up->grid.dx[TH_IDX],
     psi_lo = up->grid.lower[PSI_IDX] + (up->local.lower[PSI_IDX] - up->global.lower[PSI_IDX])*up->grid.dx[PSI_IDX],
     alpha_lo = up->grid.lower[AL_IDX] + (up->local.lower[AL_IDX] - up->global.lower[AL_IDX])*up->grid.dx[AL_IDX];
+
+  double theta_hi = inp->cgrid.upper[TH_IDX],
+    psi_hi = inp->cgrid.upper[PSI_IDX],
+    alpha_hi = inp->cgrid.upper[AL_IDX];
 
   double dx_fact = up->basis.poly_order == 1 ? 1 : 0.5;
   dtheta *= dx_fact; dpsi *= dx_fact; dalpha *= dx_fact;
@@ -197,11 +231,42 @@ void gkyl_mirror_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, dou
   struct arc_length_ctx arc_ctx = {
     .geo = geo,
     .arc_memo = arc_memo,
-    .zmaxis = geo->zmaxis
+    .zmaxis = geo->zmaxis,
+    .theta_min = up->grid.lower[TH_IDX],
+    .theta_max = theta_hi,
   };
   struct plate_ctx pctx = {
     .geo = geo
   };
+  struct bmag_ctx *bmag_ctx_inp = gkyl_malloc(sizeof(struct bmag_ctx));
+  if (nonuniform)
+  {
+    bmag_ctx_inp->crange_global = &up->decomp_global;
+    bmag_ctx_inp->cbasis = &up->decomp_basis;
+    bmag_ctx_inp->cgrid = &up->decomp_grid;
+    bmag_ctx_inp->bmag = gkyl_array_acquire(up->bmag_global);
+    int ia = (nrange->lower[AL_IDX] + nrange->upper[AL_IDX])/2;
+    int ia_delta = 2;
+    double alpha_curr = alpha_lo + ia*dalpha + modifiers[ia_delta]*delta_alpha;
+
+    int ip = (nrange->lower[PSI_IDX] + nrange->upper[PSI_IDX])/2;
+    int ip_delta_max = 5;// should be 5
+    if(ia_delta != 0)
+      ip_delta_max = 1;
+    int ip_delta = ip_delta_max/2;
+    double psi_curr = psi_lo + ip*dpsi + modifiers[ip_delta]*delta_psi;
+    double zmin = inp->zmin, zmax = inp->zmax;
+    double darcL, arcL_curr, arcL_lo;
+    mirror_find_endpoints(inp, geo, &arc_ctx, &pctx, psi_curr, alpha_curr, &zmin, &zmax, arc_memo);
+    double arcL = arc_ctx.arcL_tot;
+    darcL = arcL/(up->basis.poly_order*inp->cgrid.cells[TH_IDX]) * (inp->cgrid.upper[TH_IDX] - inp->cgrid.lower[TH_IDX])/2/M_PI;
+
+    arc_ctx.mapping_frac = inp->nonuniform_mapping_fraction;
+    arc_ctx.psi = psi_curr;
+    arc_ctx.alpha = alpha_curr;
+    calculate_mirror_throat_location(&arc_ctx, bmag_ctx_inp);
+    calculate_optimal_mapping(&arc_ctx, bmag_ctx_inp);
+  }
 
   int cidx[3] = { 0 };
   for(int ia=nrange->lower[AL_IDX]; ia<=nrange->upper[AL_IDX]; ++ia){
@@ -275,6 +340,11 @@ void gkyl_mirror_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, dou
               }
               arcL_curr = arcL_lo + it*darcL + modifiers[it_delta]*delta_theta*(arcL/2/M_PI);
               double theta_curr = arcL_curr*(2*M_PI/arcL) - M_PI ; 
+              
+              if (nonuniform) {
+                theta_curr = map_theta_to_z(theta_curr, &arc_ctx); // Need theta_mirror
+                arcL_curr = (theta_curr + M_PI)/2/M_PI*arcL;
+              }
 
               mirror_set_ridders(inp, &arc_ctx, psi_curr, arcL, arcL_curr, zmin, zmax, &rclose, &ridders_min, &ridders_max);
 
@@ -318,6 +388,17 @@ void gkyl_mirror_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, dou
                 mc2p_n[Y_IDX] = z_curr;
                 mc2p_n[Z_IDX] = phi_curr;
               }
+
+              double *c2fa_fd_n = gkyl_array_fetch(c2fa_nodal_fd, gkyl_range_idx(nrange, cidx));
+              double *c2fa_n = gkyl_array_fetch(c2fa_nodal, gkyl_range_idx(nrange, cidx));
+              c2fa_fd_n[lidx+X_IDX] = psi_curr;
+              c2fa_fd_n[lidx+Y_IDX] = alpha_curr;
+              c2fa_fd_n[lidx+Z_IDX] = theta_curr;
+              if(ip_delta==0 && ia_delta==0 && it_delta==0) {
+                c2fa_n[X_IDX] = psi_curr;
+                c2fa_n[Y_IDX] = alpha_curr;
+                c2fa_n[Z_IDX] = theta_curr;
+              }
             }
           }
         }
@@ -327,9 +408,16 @@ void gkyl_mirror_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, dou
 
   struct gkyl_nodal_ops *n2m =  gkyl_nodal_ops_new(&inp->cbasis, &inp->cgrid, false);
   gkyl_nodal_ops_n2m(n2m, &inp->cbasis, &inp->cgrid, nrange, &up->local, 3, mc2p_nodal, mc2p);
+  gkyl_nodal_ops_n2m(n2m, &inp->cbasis, &inp->cgrid, nrange, &up->local, 3, c2fa_nodal, c2fa);
   gkyl_nodal_ops_release(n2m);
 
   gkyl_free(arc_memo);
+
+  if (nonuniform)
+  {
+    gkyl_array_release(bmag_ctx_inp->bmag);
+  }
+  gkyl_free(bmag_ctx_inp);
 }
 
 

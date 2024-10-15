@@ -22,11 +22,19 @@ struct gk_geometry {
   struct gkyl_basis basis;
   struct gkyl_rect_grid grid;
 
+  struct gkyl_range decomp_local;
+  struct gkyl_range decomp_local_ext;
+  struct gkyl_range decomp_global;
+  struct gkyl_range decomp_global_ext;
+  struct gkyl_basis decomp_basis;
+  struct gkyl_rect_grid decomp_grid;
+
   // These 21 DG fields contain the geometric quantities needed to solve the
   // GK Equation and Poisson Equation and to apply certain BC's
   // The first 20 are defined on the configuration space domain. The last is a single element.
   struct gkyl_array* mc2p; // 3 components. Cartesian X,Y, and Z
   struct gkyl_array* bmag; // 1 component. B Magnitude of magnetic field
+  struct gkyl_array* bmag_global; // 1 component. B Magnitude of magnetic field. Global bmag in computational coordinates
   struct gkyl_array* g_ij; // 6 components. 
                            // Metric coefficients g_{ij} Stored in order g_11, g12, g_13, g_22, g_23, g_33
   struct gkyl_array* dxdz; // 9 components.
@@ -62,6 +70,8 @@ struct gk_geometry {
 struct gkyl_gk_geometry_inp {
   enum gkyl_geometry_id geometry_id;
 
+  void *mirror_geo_c2fa_ctx; // context for arcL mapping used in the non-uniform grids
+
   void *c2p_ctx; // context for mapc2p function
   // pointer to mapc2p function: xc are the computational space
   // coordinates and on output xp are the corresponding physical space
@@ -71,6 +81,14 @@ struct gkyl_gk_geometry_inp {
   void *bmag_ctx; // context for bmag function
   // pointer to bmag function
   void (*bmag_func)(double t, const double *xc, double *xp, void *ctx);
+
+  struct gkyl_array* bmag_global; // global bmag array
+
+  bool nonuniform_geom; // flag to indicate if the geometry is non-uniform
+  double nonuniform_map_fraction; // fraction of non-uniformity in the geometry
+  double cdim; // dimensionality of the simulation
+  bool use_gpu; // flag to indicate if the geometry is on the gpu
+  struct gkyl_comm *comm;   // communicator object for phase-space arrays
 
   struct gkyl_efit_inp efit_info; // context with RZ data such as efit file for a tokamak or mirror
   struct gkyl_tok_geo_grid_inp tok_grid_info; // context for tokamak geometry with computational domain info
