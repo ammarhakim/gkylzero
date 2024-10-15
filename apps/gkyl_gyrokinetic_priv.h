@@ -174,6 +174,7 @@ struct gk_species_moment {
 };
 
 struct gk_rad_drag {  
+  enum gkyl_radiation_id radiation_id; // type of radiation
   int num_cross_collisions; // number of species we cross-collide with
   struct gk_species *collide_with[GKYL_MAX_SPECIES]; // pointers to cross-species we collide with
   struct gk_neut_species *collide_with_neut[GKYL_MAX_SPECIES]; // pointers to neutral cross-species we collide with
@@ -228,6 +229,8 @@ struct gk_rad_drag {
 struct gk_species;
 
 struct gk_lbo_collisions {  
+  enum gkyl_collision_id collision_id; // type of collisions
+  bool write_diagnostics; // Whether to write diagnostics out.
   struct gkyl_array *boundary_corrections; // LBO boundary corrections
   struct gkyl_mom_calc_bcorr *bcorr_calc; // LBO boundary corrections calculator
   struct gkyl_array *nu_sum, *prim_moms, *nu_prim_moms; // LBO primitive moments
@@ -270,6 +273,8 @@ struct gk_lbo_collisions {
 };
 
 struct gk_bgk_collisions {  
+  enum gkyl_collision_id collision_id; // type of collisions
+  bool write_diagnostics; // Whether to write diagnostics out.
   struct gkyl_array *nu_sum; // BGK collision frequency 
   struct gkyl_array *nu_sum_host; // BGK collision frequency host-side for I/O
   struct gkyl_array *self_nu; // BGK self-collision frequency
@@ -429,7 +434,7 @@ struct gk_proj {
 
 struct gk_source {
   enum gkyl_source_id source_id; // type of source
-  bool write_source; // optional parameter to write out source distribution
+  bool evolve; // Whether the source is time dependent.
   struct gkyl_array *source; // applied source
   struct gkyl_array *source_host; // host copy for use in IO and projecting
   struct gk_proj proj_source[GKYL_MAX_SOURCES]; // projector for source
@@ -524,7 +529,6 @@ struct gk_species {
 
   struct gk_proj proj_init; // projector for initial conditions
 
-  enum gkyl_source_id source_id; // type of source
   struct gk_source src; // applied source
 
   // boundary fluxes
@@ -532,19 +536,15 @@ struct gk_species {
 
   // collisions
   struct {
-    enum gkyl_collision_id collision_id; // type of collisions
     union {
       struct gk_lbo_collisions lbo; // LBO collisions object
       struct gk_bgk_collisions bgk; // BGK collisions object
     };      
   };
 
-  bool has_reactions; 
-  bool has_neutral_reactions; 
   struct gk_react react; // reaction object for reactions with other plasma species
   struct gk_react react_neut; // reaction object for reactions with neutral species
 
-  enum gkyl_radiation_id radiation_id; // type of radiation
   struct gk_rad_drag rad; // radiation object
 
   // Gyrokinetic diffusion.
@@ -629,10 +629,8 @@ struct gk_neut_species {
 
   struct gk_proj proj_init; // projector for initial conditions
 
-  enum gkyl_source_id source_id; // type of source
   struct gk_source src; // applied source
 
-  bool has_neutral_reactions;
   struct gk_react react_neut; // reaction object
 
   // vtsq_min
