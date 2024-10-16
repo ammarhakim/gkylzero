@@ -476,9 +476,9 @@ create_ctx(void)
   double vpar_max_ion = 20 * vti;
   double mu_max_ion = mi * pow(3. * vti, 2.) / (2. * B_p);
   int Nx = 4;
-  int Nz = 32;
-  int Nvpar = 32; // Number of cells in the paralell velocity direction 96
-  int Nmu = 48;  // Number of cells in the mu direction 192
+  int Nz = 16;
+  int Nvpar = 16; // Number of cells in the paralell velocity direction 96
+  int Nmu = 16;  // Number of cells in the mu direction 192
   int poly_order = 1;
 
   double t_end = 1.5e-10;
@@ -591,10 +591,6 @@ write_data(struct gkyl_tm_trigger* iot, gkyl_gyrokinetic_app* app, double t_curr
 
     gkyl_gyrokinetic_app_write(app, t_curr, frame);
 
-    gkyl_gyrokinetic_app_calc_mom(app);
-    gkyl_gyrokinetic_app_write_mom(app, t_curr, frame);
-    gkyl_gyrokinetic_app_write_source_mom(app, t_curr, frame);
-
     gkyl_gyrokinetic_app_calc_field_energy(app, t_curr);
     gkyl_gyrokinetic_app_write_field_energy(app);
 
@@ -664,7 +660,6 @@ int main(int argc, char **argv)
 
     .source = {
       .source_id = GKYL_PROJ_SOURCE,
-      .write_source = true,
       .num_sources = 1,
       .projection[0] = {
         .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM, 
@@ -727,7 +722,6 @@ int main(int argc, char **argv)
 
     .source = {
       .source_id = GKYL_PROJ_SOURCE,
-      .write_source = true,
       .num_sources = 1,
       .projection[0] = {
         .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM, 

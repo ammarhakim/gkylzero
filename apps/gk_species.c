@@ -40,7 +40,6 @@ gk_species_file_import_init(struct gkyl_gyrokinetic_app *app, struct gk_species 
   FILE *fp;
   with_file(fp, inp.file_name, "r") {
 
-    printf("here 0\n");
     int status = gkyl_grid_sub_array_header_read_fp(&grid_do, &hdr, fp);
 
     pdim_do = grid_do.ndim;
@@ -86,6 +85,7 @@ gk_species_file_import_init(struct gkyl_gyrokinetic_app *app, struct gk_species 
       );
     assert(strcmp(app->basis.id, meta.basis_type) == 0);
     assert(poly_order == meta.poly_order);
+    gkyl_grid_sub_array_header_release(&hdr);
   }
 
   // Donor basis.
