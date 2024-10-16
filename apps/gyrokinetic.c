@@ -2841,13 +2841,6 @@ gkyl_gyrokinetic_app_from_frame_species(gkyl_gyrokinetic_app *app, int sidx, int
 
   cstr fileNm = cstr_from_fmt("%s-%s_%d.gkyl", app->name, gk_s->info.name, frame);
   struct gkyl_app_restart_status rstat = gkyl_gyrokinetic_app_from_file_species(app, sidx, fileNm.str);
-  app->species[sidx].is_first_integ_write_call = false; // Append to existing diagnostic.
-  if (app->species[sidx].radiation_id == GKYL_GK_RADIATION) {
-    struct gk_species *gk_s = &app->species[sidx];
-    gk_s->rad.is_first_integ_write_call = false;  // Append to existing diagnostic
-  }
-  if (app->species[sidx].enforce_positivity)
-    app->species[sidx].is_first_ps_integ_write_call = false; // Append to existing diagnostic.
   cstr_drop(&fileNm);
 
   // Append to existing integrated diagnostics.
