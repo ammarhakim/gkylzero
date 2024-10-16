@@ -660,7 +660,12 @@ gkyl_gyrokinetic_app_write_geometry(gkyl_gyrokinetic_app* app)
   app->stat.io_tm += gkyl_time_diff_now_sec(wtm);
   app->stat.nio += 21;
 
-  // Write out global geometry on rank 0
+  // Write out nodes. This has to be done from rank 0 so we need to gather mc2p.
+  struct gkyl_array *mc2p_global = mkarr(app->use_gpu, app->gk_geom->mc2p->ncomp, app->global_ext.volume);
+  gkyl_comm_array_allgather(app->comm, &app->local, &app->global, app->gk_geom->mc2p, mc2p_global);
+  struct gkyl_array *mc2p_global_ho = mkarr(false, mc2p_global->ncomp, mc2p_global->size);
+  gkyl_array_copy(mc2p_global_ho, mc2p_global);
+
   int rank;
   gkyl_comm_get_rank(app->comm, &rank);
   if (rank == 0) {
@@ -669,8 +674,7 @@ gkyl_gyrokinetic_app_write_geometry(gkyl_gyrokinetic_app* app)
     gkyl_gk_geometry_init_nodal_range(&nrange, &app->global, app->poly_order);
     struct gkyl_array* mc2p_nodal = mkarr(false, 3, nrange.volume);
     struct gkyl_nodal_ops *n2m = gkyl_nodal_ops_new(&app->confBasis, &app->grid, false);
-    gkyl_array_copy(arr_ho3, app->gk_geom->mc2p);
-    gkyl_nodal_ops_m2n(n2m, &app->confBasis, &app->grid, &nrange, &app->global, 3, mc2p_nodal, arr_ho3);
+    gkyl_nodal_ops_m2n(n2m, &app->confBasis, &app->grid, &nrange, &app->global, 3, mc2p_nodal, mc2p_global_ho);
     struct gkyl_rect_grid ngrid;
     gkyl_gk_geometry_init_nodal_grid(&ngrid, &app->grid, &nrange);
 
@@ -688,6 +692,8 @@ gkyl_gyrokinetic_app_write_geometry(gkyl_gyrokinetic_app* app)
     gkyl_array_release(mc2p_nodal);
   }
 
+  gkyl_array_release(mc2p_global);
+  gkyl_array_release(mc2p_global_ho);
   gkyl_array_release(arr_ho1);
   gkyl_array_release(arr_ho3);
   gkyl_array_release(arr_ho6);
