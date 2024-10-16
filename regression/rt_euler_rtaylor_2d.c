@@ -120,6 +120,17 @@ applied_acceleration(double t, const double* GKYL_RESTRICT xn, double* GKYL_REST
 }
 
 void
+evalFieldInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
+{
+  // Set electric field.
+  fout[0] = 0.0, fout[1] = 0.0; fout[2] = 0.0;
+  // Set magnetic field.
+  fout[3] = 0.0, fout[4] = 0.0; fout[5] = 0.0;
+  // Set correction potentials.
+  fout[6] = 0.0; fout[7] = 0.0;
+}
+
+void
 write_data(struct gkyl_tm_trigger* iot, gkyl_moment_app* app, double t_curr, bool force_write)
 {
   if (gkyl_tm_trigger_check_and_bump(iot, t_curr)) {
@@ -174,6 +185,14 @@ main(int argc, char **argv)
     .bcy = { GKYL_SPECIES_REFLECT, GKYL_SPECIES_REFLECT },
   };
 
+  // Field.
+  struct gkyl_moment_field field = {
+    .epsilon0 = 1.0, .mu0 = 1.0,
+    
+    .evolve = false,
+    .init = evalFieldInit,
+  };
+
   int nrank = 1; // Number of processes in simulation.
 #ifdef GKYL_HAVE_MPI
   if (app_args.use_mpi) {
@@ -181,13 +200,9 @@ main(int argc, char **argv)
   }
 #endif
 
-  // Create global range.
   int cells[] = { NX, NY };
   int dim = sizeof(cells) / sizeof(cells[0]);
-  struct gkyl_range global_r;
-  gkyl_create_global_range(dim, cells, &global_r);
 
-  // Create decomposition.
   int cuts[dim];
 #ifdef GKYL_HAVE_MPI
   for (int d = 0; d < dim; d++) {
@@ -204,28 +219,23 @@ main(int argc, char **argv)
   }
 #endif
 
-  struct gkyl_rect_decomp *decomp = gkyl_rect_decomp_new_from_cuts(dim, cuts, &global_r);
-
   // Construct communicator for use in app.
   struct gkyl_comm *comm;
 #ifdef GKYL_HAVE_MPI
   if (app_args.use_mpi) {
     comm = gkyl_mpi_comm_new( &(struct gkyl_mpi_comm_inp) {
         .mpi_comm = MPI_COMM_WORLD,
-        .decomp = decomp
       }
     );
   }
   else {
     comm = gkyl_null_comm_inew( &(struct gkyl_null_comm_inp) {
-        .decomp = decomp,
         .use_gpu = app_args.use_gpu
       }
     );
   }
 #else
   comm = gkyl_null_comm_inew( &(struct gkyl_null_comm_inp) {
-      .decomp = decomp,
       .use_gpu = app_args.use_gpu
     }
   );
@@ -264,11 +274,13 @@ main(int argc, char **argv)
     .num_species = 1,
     .species = { fluid },
 
-    .has_low_inp = true,
-    .low_inp = {
-      .local_range = decomp->ranges[my_rank],
-      .comm = comm
-    }
+    .field = field,
+
+    .parallelism = {
+      .use_gpu = app_args.use_gpu,
+      .cuts = { app_args.cuts[0], app_args.cuts[1] },
+      .comm = comm,
+    },
   };
 
   // Create app object.
@@ -350,7 +362,6 @@ main(int argc, char **argv)
   
   // Free resources after simulation completion.
   gkyl_wv_eqn_release(euler);
-  gkyl_rect_decomp_release(decomp);
   gkyl_comm_release(comm);
   gkyl_moment_app_release(app);  
   

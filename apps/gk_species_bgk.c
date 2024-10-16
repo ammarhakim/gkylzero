@@ -5,6 +5,9 @@
 void 
 gk_species_bgk_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s, struct gk_bgk_collisions *bgk)
 {
+  bgk->collision_id = s->info.collisions.collision_id;
+  bgk->write_diagnostics = s->info.collisions.write_diagnostics;
+
   int cdim = app->cdim, vdim = app->vdim;
   // allocate nu and initialize it
   bgk->nu_sum = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
@@ -273,7 +276,7 @@ gk_species_bgk_rhs(gkyl_gyrokinetic_app *app, const struct gk_species *species,
   }
 
   gkyl_bgk_collisions_advance(bgk->up_bgk, &app->local, &species->local, 
-    bgk->nu_sum, bgk->nu_fmax, fin, rhs, species->cflrate);
+    bgk->nu_sum, bgk->nu_fmax, fin, bgk->implicit_step, bgk->dt_implicit, rhs, species->cflrate);
 
   app->stat.species_coll_tm += gkyl_time_diff_now_sec(wst);
 }

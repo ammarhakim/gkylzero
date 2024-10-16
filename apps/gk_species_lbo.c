@@ -5,6 +5,9 @@
 void 
 gk_species_lbo_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s, struct gk_lbo_collisions *lbo)
 {
+  lbo->collision_id = s->info.collisions.collision_id;
+  lbo->write_diagnostics = s->info.collisions.write_diagnostics;
+
   int cdim = app->cdim, vdim = app->vdim;
 
   // Allocate nu and initialize it.

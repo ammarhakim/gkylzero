@@ -70,8 +70,8 @@ struct gkyl_bc_emission_spectrum*
 gkyl_bc_emission_spectrum_new(struct gkyl_emission_spectrum_model *spectrum_model,
   struct gkyl_emission_yield_model *yield_model, struct gkyl_array *yield,
   struct gkyl_array *spectrum, int dir, enum gkyl_edge_loc edge, int cdim, int vdim,
-  double mass_in, double mass_out, struct gkyl_range *impact_buff_r,
-  struct gkyl_range *emit_buff_r, struct gkyl_rect_grid *grid, int poly_order,
+  double mass_in, double mass_out, struct gkyl_range *impact_buff_r, struct gkyl_range *emit_buff_r,
+  struct gkyl_rect_grid *impact_grid, struct gkyl_rect_grid *emit_grid, int poly_order,
   struct gkyl_basis *basis, struct gkyl_array *proj_buffer, bool use_gpu)
 {
   // Allocate space for new updater.
@@ -82,7 +82,7 @@ gkyl_bc_emission_spectrum_new(struct gkyl_emission_spectrum_model *spectrum_mode
   up->vdim = vdim;
   up->edge = edge;
   up->use_gpu = use_gpu;
-  up->grid = grid;
+  up->grid = impact_grid;
 
   int ghost[GKYL_MAX_DIM];
   for (int d=0; d<cdim; ++d) {
@@ -101,7 +101,7 @@ gkyl_bc_emission_spectrum_new(struct gkyl_emission_spectrum_model *spectrum_mode
   up->yield_model->vdim = vdim;
   up->yield_model->mass = mass_in;
 
-  gkyl_proj_on_basis *proj = gkyl_proj_on_basis_new(grid, basis, poly_order + 1, 1,
+  gkyl_proj_on_basis *proj = gkyl_proj_on_basis_new(emit_grid, basis, poly_order + 1, 1,
       up->spectrum_model->distribution, up->spectrum_model);
 
 #ifdef GKYL_HAVE_CUDA
@@ -116,7 +116,7 @@ gkyl_bc_emission_spectrum_new(struct gkyl_emission_spectrum_model *spectrum_mode
 #else
   gkyl_proj_on_basis_advance(proj, 0.0, emit_buff_r, spectrum);
 #endif
-  gkyl_bc_emission_spectrum_sey_calc(up, yield, grid, impact_buff_r);
+  gkyl_bc_emission_spectrum_sey_calc(up, yield, impact_grid, impact_buff_r);
   gkyl_proj_on_basis_release(proj);
   
   return up;
@@ -157,7 +157,7 @@ gkyl_bc_emission_spectrum_advance(const struct gkyl_bc_emission_spectrum *up,
   while (gkyl_range_iter_next(&conf_iter)) {
     long midx = gkyl_range_idx(impact_cbuff_r, conf_iter.idx);
 
-    gkyl_range_deflate(&vel_buff_r, emit_buff_r, rem_dir, conf_iter.idx);
+    gkyl_range_deflate(&vel_buff_r, impact_buff_r, rem_dir, conf_iter.idx);
     gkyl_range_iter_no_split_init(&vel_iter, &vel_buff_r);
 
     double *w = gkyl_array_fetch(weight, midx);

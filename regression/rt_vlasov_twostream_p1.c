@@ -31,6 +31,7 @@ struct twostream_ctx
   double mass_elc; // Electron mass.
   double charge_elc; // Electron charge.
 
+  double n0; // Reference density.
   double vt; // Thermal velocity.
   double Vx_drift; // Drift velocity (x-direction).
 
@@ -63,6 +64,7 @@ create_ctx(void)
   double mass_elc = 1.0; // Electron mass.
   double charge_elc = -1.0; // Electron charge.
 
+  double n0 = 1.0; // Reference density.
   double vt = 0.2; // Thermal velocity.
   double Vx_drift = 1.0; // Drift velocity (x-direction).
 
@@ -88,6 +90,7 @@ create_ctx(void)
     .mu0 = mu0,
     .mass_elc = mass_elc,
     .charge_elc = charge_elc,
+    .n0 = n0, 
     .vt = vt,
     .Vx_drift = Vx_drift,
     .alpha = alpha,
@@ -108,26 +111,51 @@ create_ctx(void)
 }
 
 void
-evalElcInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
+evalDensityInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
 {
   struct twostream_ctx *app = ctx;
-  double x = xn[0], v = xn[1];
-
-  double pi = app->pi;
-
-  double vt = app->vt;
-  double Vx_drift = app->Vx_drift;
+  double x = xn[0];
 
   double alpha = app->alpha;
   double kx = app->kx;
+  double n = 0.5*app->n0;
 
-  double v_sq_m = (v - Vx_drift) * (v - Vx_drift);
-  double v_sq_p = (v + Vx_drift) * (v + Vx_drift);
+  // Set density.
+  fout[0] = (1.0 + alpha * cos(kx * x))*n;
+}
 
-  double dist = (1.0 / sqrt(8.0 * pi * vt * vt)) * (exp(-v_sq_m / (2.0 * vt * vt)) + exp(-v_sq_p / (2.0 * vt * vt)));
+void
+evalTempInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
+{
+  struct twostream_ctx *app = ctx;
 
-  // Set electron distribution function.
-  fout[0] = (1.0 + alpha * cos(kx * x)) * dist;
+  double mass_elc = app->mass_elc;
+  double vt = app->vt;
+
+  // Set temperature.
+  fout[0] = vt*vt*mass_elc;
+}
+
+void
+evalVDriftLInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
+{
+  struct twostream_ctx *app = ctx;
+
+  double Vx_drift = app->Vx_drift;
+
+  // Set left-going drift velocity.
+  fout[0] = Vx_drift;
+}
+
+void
+evalVDriftRInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
+{
+  struct twostream_ctx *app = ctx;
+
+  double Vx_drift = app->Vx_drift;
+
+  // Set right-going drift velocity.
+  fout[0] = -Vx_drift;
 }
 
 void
@@ -193,13 +221,9 @@ main(int argc, char **argv)
   }
 #endif  
 
-  // Create global range.
   int ccells[] = { NX };
   int cdim = sizeof(ccells) / sizeof(ccells[0]);
-  struct gkyl_range cglobal_r;
-  gkyl_create_global_range(cdim, ccells, &cglobal_r);
 
-  // Create decomposition.
   int cuts[cdim];
 #ifdef GKYL_HAVE_MPI  
   for (int d = 0; d < cdim; d++) {
@@ -216,8 +240,6 @@ main(int argc, char **argv)
   }
 #endif  
     
-  struct gkyl_rect_decomp *decomp = gkyl_rect_decomp_new_from_cuts(cdim, cuts, &cglobal_r);
-
   // Construct communicator for use in app.
   struct gkyl_comm *comm;
 #ifdef GKYL_HAVE_MPI
@@ -225,7 +247,6 @@ main(int argc, char **argv)
 #ifdef GKYL_HAVE_NCCL
     comm = gkyl_nccl_comm_new( &(struct gkyl_nccl_comm_inp) {
         .mpi_comm = MPI_COMM_WORLD,
-        .decomp = decomp
       }
     );
 #else
@@ -236,20 +257,17 @@ main(int argc, char **argv)
   else if (app_args.use_mpi) {
     comm = gkyl_mpi_comm_new( &(struct gkyl_mpi_comm_inp) {
         .mpi_comm = MPI_COMM_WORLD,
-        .decomp = decomp
       }
     );
   }
   else {
     comm = gkyl_null_comm_inew( &(struct gkyl_null_comm_inp) {
-        .decomp = decomp,
         .use_gpu = app_args.use_gpu
       }
     );
   }
 #else
   comm = gkyl_null_comm_inew( &(struct gkyl_null_comm_inp) {
-      .decomp = decomp,
       .use_gpu = app_args.use_gpu
     }
   );
@@ -280,10 +298,27 @@ main(int argc, char **argv)
     .upper = { ctx.vx_max }, 
     .cells = { NVX },
 
-    .projection = {
-      .proj_id = GKYL_PROJ_FUNC,
-      .func = evalElcInit,
-      .ctx_func = &ctx,
+    .num_init = 2, 
+    // Two counter-streaming Maxwellians.
+    .projection[0] = {
+      .proj_id = GKYL_PROJ_VLASOV_LTE,
+      .density = evalDensityInit,
+      .ctx_density = &ctx,
+      .temp = evalTempInit,
+      .ctx_temp = &ctx,
+      .V_drift = evalVDriftLInit,
+      .ctx_V_drift = &ctx,
+      .correct_all_moms = true,
+    },
+    .projection[1] = {
+      .proj_id = GKYL_PROJ_VLASOV_LTE,
+      .density = evalDensityInit,
+      .ctx_density = &ctx,
+      .temp = evalTempInit,
+      .ctx_temp = &ctx,
+      .V_drift = evalVDriftRInit,
+      .ctx_V_drift = &ctx,
+      .correct_all_moms = true,
     },
 
     .num_diag_moments = 3,
@@ -322,13 +357,11 @@ main(int argc, char **argv)
 
     .field = field,
 
-    .use_gpu = app_args.use_gpu,
-
-    .has_low_inp = true,
-    .low_inp = {
-      .local_range = decomp->ranges[my_rank],
-      .comm = comm
-    }
+    .parallelism = {
+      .use_gpu = app_args.use_gpu,
+      .cuts = { app_args.cuts[0] },
+      .comm = comm,
+    },
   };
   
   // Create app object.
@@ -414,7 +447,6 @@ main(int argc, char **argv)
   gkyl_vlasov_app_cout(app, stdout, "IO time took %g secs \n", stat.io_tm);
 
   // Free resources after simulation completion.
-  gkyl_rect_decomp_release(decomp);
   gkyl_comm_release(comm);
   gkyl_vlasov_app_release(app);
 

@@ -96,15 +96,15 @@ test_1x2v(int poly_order, bool use_gpu)
     .mu_max = mu_max, // Maximum mu of the grid.
   };
 
-  double confLower[cdim] = {0.0}, confUpper[cdim] = {0.0};
-  int confCells[cdim] = {0};
+  double confLower[cdim], confUpper[cdim];
+  int confCells[cdim];
   for (int d=0; d<cdim; d++) {
     confLower[d] = lower[d];
     confUpper[d] = upper[d];
     confCells[d] = cells[d];
   }
-  double velLower[vdim] = {0.0}, velUpper[vdim] = {0.0};
-  int velCells[vdim] = {0};
+  double velLower[vdim], velUpper[vdim];
+  int velCells[vdim];
   for (int d=0; d<vdim; d++) {
     velLower[d] = lower[cdim+d];
     velUpper[d] = upper[cdim+d];
@@ -128,15 +128,15 @@ test_1x2v(int poly_order, bool use_gpu)
   gkyl_cart_modal_serendip(&confBasis, cdim, poly_order);
 
   // Ranges
-  int confGhost[cdim] = { 1 };
+  int confGhost[GKYL_MAX_CDIM] = { 1 };
   struct gkyl_range confLocal, confLocal_ext; // local, local-ext conf-space ranges
   gkyl_create_grid_ranges(&confGrid, confGhost, &confLocal_ext, &confLocal);
 
-  int velGhost[vdim] = { 0 };
+  int velGhost[3] = { 0 };
   struct gkyl_range velLocal, velLocal_ext; // local, local-ext vel-space ranges
   gkyl_create_grid_ranges(&velGrid, velGhost, &velLocal_ext, &velLocal);
 
-  int ghost[ndim] = {0};
+  int ghost[GKYL_MAX_DIM] = {0};
   for (int d=0; d<cdim; d++) ghost[d] = confGhost[d];
   struct gkyl_range local, local_ext; // local, local-ext phase-space ranges
   gkyl_create_grid_ranges(&grid, ghost, &local_ext, &local);
@@ -207,7 +207,6 @@ test_1x2v(int poly_order, bool use_gpu)
   else
     red_intmom = gkyl_malloc(sizeof(double[2+vdim]));
 
-  // Now calculate the integrated moments
   gkyl_dg_updater_moment_gyrokinetic_advance(int_mom_up, &local, &confLocal, distf, intmom_grid);
   gkyl_array_reduce_range(red_intmom, intmom_grid, GKYL_SUM, &confLocal);
   double intmom_pre[2+vdim];
@@ -216,22 +215,30 @@ test_1x2v(int poly_order, bool use_gpu)
   else
     memcpy(intmom_pre, red_intmom, sizeof(double[2+vdim]));
 
-//  printf("intmom_pre = %g %g %g %g\n",intmom_pre[0],intmom_pre[1],intmom_pre[2],intmom_pre[3]);
+//  printf("\nintmom_pre = %16.14e %16.14e %16.14e %16.14e\n",intmom_pre[0],intmom_pre[1],intmom_pre[2],intmom_pre[3]);
 //  // Write distribution function to file.
 //  char fname0[1024];
 //  sprintf(fname0, "ctest_positivity_shift_gyrokinetic_1x2v_p%d_pre.gkyl", poly_order);
 //  gkyl_grid_sub_array_write(&grid, &local, NULL, distf, fname0);
 
   // Run the positivity shift. First time it sets ffloor in the pos_shift updater.
-  struct gkyl_array *ps_intmom_grid = mkarr(use_gpu, num_mom, confLocal_ext.volume);
-  struct gkyl_positivity_shift_gyrokinetic* pos_shift = gkyl_positivity_shift_gyrokinetic_new(basis, 
-    grid, proj_ctx.mass, gk_geom, gvm, use_gpu);
-  gkyl_positivity_shift_gyrokinetic_advance(pos_shift, &local, &confLocal, distf, ps_intmom_grid);
+  struct gkyl_array *m0 = mkarr(use_gpu, confBasis.num_basis, confLocal_ext.volume);
+  struct gkyl_array *ps_delta_m0 = mkarr(use_gpu, confBasis.num_basis, confLocal_ext.volume);
+  struct gkyl_array *deltaf;
+  deltaf = mkarr(use_gpu, basis.num_basis, local_ext.volume);
+  gkyl_array_set(deltaf, -1.0, distf);
+
+  struct gkyl_positivity_shift_gyrokinetic* pos_shift = gkyl_positivity_shift_gyrokinetic_new(confBasis,
+    basis, grid, proj_ctx.mass, gk_geom, gvm, &confLocal_ext, use_gpu);
+  gkyl_positivity_shift_gyrokinetic_advance(pos_shift, &confLocal, &local, distf, m0, ps_delta_m0);
 
   // Project distf and apply the positivity shift again (using new ffloor).
   gkyl_proj_on_basis_advance(proj_distf, 0.0, &local, distf_ho);
   gkyl_array_copy(distf, distf_ho);
-  gkyl_positivity_shift_gyrokinetic_advance(pos_shift, &local, &confLocal, distf, ps_intmom_grid);
+  gkyl_positivity_shift_gyrokinetic_advance(pos_shift, &confLocal, &local, distf, m0, ps_delta_m0);
+
+  // Compute delta f:
+  gkyl_array_accumulate(deltaf, 1.0, distf);
 
   // Compute the integrated moments after the positivity shift.
   gkyl_dg_updater_moment_gyrokinetic_advance(int_mom_up, &local, &confLocal, distf, intmom_grid);
@@ -243,6 +250,8 @@ test_1x2v(int poly_order, bool use_gpu)
     memcpy(intmom_post, red_intmom, sizeof(double[2+vdim]));
 
   // Compute the integrated moments of the shift.
+  struct gkyl_array *ps_intmom_grid = mkarr(use_gpu, num_mom, confLocal_ext.volume);
+  gkyl_dg_updater_moment_gyrokinetic_advance(int_mom_up, &local, &confLocal, deltaf, ps_intmom_grid);
   gkyl_array_reduce_range(red_intmom, ps_intmom_grid, GKYL_SUM, &confLocal);
   double intmom_shift[2+vdim];
   if (use_gpu)
@@ -250,7 +259,7 @@ test_1x2v(int poly_order, bool use_gpu)
   else
     memcpy(intmom_shift, red_intmom, sizeof(double[2+vdim]));
 
-//  printf("intmom_post = %g %g %g %g\n",intmom_post[0],intmom_post[1],intmom_post[2],intmom_post[3]);
+//  printf("intmom_post = %16.14e %16.14e %16.14e %16.14e\n",intmom_post[0],intmom_post[1],intmom_post[2],intmom_post[3]);
 //  printf("intmom_shift = %16.14e %16.14e %16.14e %16.14e\n",intmom_shift[0],intmom_shift[1],intmom_shift[2],intmom_shift[3]);
 //  // Write distribution function to file.
 //  char fname1[1024];
@@ -259,18 +268,20 @@ test_1x2v(int poly_order, bool use_gpu)
  
   // Check the integrated moments.
   TEST_CHECK( gkyl_compare( intmom_shift[0], 9.13090909090910e+00, 1e-10));
-  TEST_CHECK( gkyl_compare( intmom_shift[1], 8.61055942680578e-16, 1e-10));
-  TEST_CHECK( gkyl_compare( intmom_shift[2], 1.79770909090909e+02, 1e-10));
-  TEST_CHECK( gkyl_compare( intmom_shift[3], 4.58457166783993e+02, 1e-10));
   TEST_MSG("intmom_shift[0]: produced: %.14e | expected: %.14e", intmom_shift[0], 9.13090909090910e+00);
+  TEST_CHECK( gkyl_compare( intmom_shift[1], 8.61055942680578e-16, 1e-10));
   TEST_MSG("intmom_shift[1]: produced: %.14e | expected: %.14e", intmom_shift[1], 8.61055942680578e-16);
+  TEST_CHECK( gkyl_compare( intmom_shift[2], 1.79770909090909e+02, 1e-10));
   TEST_MSG("intmom_shift[2]: produced: %.14e | expected: %.14e", intmom_shift[2], 1.79770909090909e+02);
+  TEST_CHECK( gkyl_compare( intmom_shift[3], 4.58457166783993e+02, 1e-10));
   TEST_MSG("intmom_shift[3]: produced: %.14e | expected: %.14e", intmom_shift[3], 4.58457166783993e+02);
 
   gkyl_array_release(bmag);
   gkyl_array_release(distf);
   gkyl_array_release(intmom_grid);
   gkyl_array_release(ps_intmom_grid);
+  gkyl_array_release(ps_delta_m0);
+  gkyl_array_release(m0);
   if (use_gpu) {
     gkyl_array_release(bmag_ho);
     gkyl_array_release(distf_ho);

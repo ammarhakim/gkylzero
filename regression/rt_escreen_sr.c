@@ -20,79 +20,125 @@
 
 #include <rt_arg_parse.h>
 
-struct escreen_ctx {
+struct escreen_ctx 
+{
   // Mathematical constants (dimensionless).
   double pi;
 
   // Physical constants (using normalized code units).
   double epsilon0; // Permittivity of free space.
   double mu0; // Permeability of free space.
-  double mass_ion; // Proton mass.
-  double charge_ion; // Proton charge.
+  double mass_ion; // Positron mass.
+  double charge_ion; // Positron charge.
   double mass_elc; // Electron mass.
   double charge_elc; // Electron charge.
 
-  double n; // reference number density
-  double T; // electron temperature
-  double vdrift; // drift velocity
-  double E0; // electric field amplitude
+  double n0; // Reference density.
+  double T; // Temperature (units of mc^2).
+  double E0; // Electric field amplitude.
   double noise_amp; // Noise level for perturbation.
   int mode_init; // Initial wave mode to perturb with noise.
   int mode_final; // Final wave mode to perturb with noise.
+
   // Simulation parameters.
-  int Nx; // Cell count (x-direction).
-  int Np; // Cell countr (p-direction).
-  double Lx; // Domain size (x-direction).
+  int Nx; // Cell count (configuration space: x-direction).
+  int Npx; // Cell count (momentum space: px-direction).
+  double Lx; // Domain size (configuration space: x-direction).
+  double px_max; // Domain boundary (momentum space: px-direction).
+  int poly_order; // Polynomial order.
+  double cfl_frac; // CFL coefficient.
+
   double t_end; // Final simulation time.
-  double pmax; // Momentum space extents for electrons and positrons
   int num_frames; // Number of output frames.
-  int int_diag_calc_num; // Number of integrated diagnostics computations (=INT_MAX for every step).
+   int int_diag_calc_num; // Number of integrated diagnostics computations (=INT_MAX for every step).
   double dt_failure_tol; // Minimum allowable fraction of initial time-step.
   int num_failures_max; // Maximum allowable number of consecutive small time-steps.
 };
 
-void
-evalDistFunc(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
+struct escreen_ctx
+create_ctx(void)
 {
-  struct escreen_ctx *app = ctx;
-  double x = xn[0], p = xn[1];
-  double T = app->T, vdrift = app->vdrift;
+  // Mathematical constants (dimensionless).
+  double pi = M_PI;
 
-  // modified Bessel function of the second kind evaluated for T = mc^2 (K_2(1))
-  double K_2 = 1.6248388986351774828107073822838437146593935281628733843345054697;
-  // modified Bessel function of the second kind evaluated for T = 0.1 mc^2 (K_2(10))
-  //double K_2 = 0.0000215098170069327687306645644239671272492068461808732468335569;
-  // modified Bessel function of the second kind evaluated for T = 0.04 mc^2 (K_2(25))
-  //double K_2 = 3.7467838080691090570137658745889511812329380156362352887017e-12;
-  // Lorentz factor for drift velocity
-  double gamma = 1.0/sqrt(1 - vdrift*vdrift);
+  // Physical constants (using normalized code units).
+  double epsilon0 = 1.0; // Permittivity of free space.
+  double mu0 = 1.0; // Permeability of free space.
+  double mass_ion = 1.0; // Positron mass.
+  double charge_ion = 1.0; // Positron charge.
+  double mass_elc = 1.0; // Electron mass.
+  double charge_elc = -1.0; // Electron charge.
 
-  double n = app->n;
-  double mc2_T = 1.0/T;
+  double n0 = 1.0; // Reference density.
+  double T = 1.0; // Reference temperature (in units of mc^2).
 
-  double fv = n/K_2*exp(-mc2_T*gamma*(sqrt(1 + p*p) - vdrift*p));
-  fout[0] = fv;
+  double E0 = 100.0; // Electric field amplitude
+  double noise_amp = 1.0e-6 * E0; // Noise level for perturbation.
+  int mode_init = 1; // Initial wave mode to perturb with noise.
+  int mode_final = 4; // Final wave mode to perturb with noise.
+
+  // Simulation parameters.
+  int Nx = 16; // Cell count (configuration space: x-direction).
+  int Npx = 512; // Cell count (velocity space: vx-direction).
+  double Lx = 1.0; // Domain size (configuration space: x-direction).
+  double px_max = 768.0; // Domain boundary (velocity space: vx-direction).
+  int poly_order = 2; // Polynomial order.
+  double cfl_frac = 1.0; // CFL coefficient.
+
+  double t_end = 10.0; // Final simulation time.
+  int num_frames = 2; // Number of output frames.
+  int int_diag_calc_num = num_frames*100;
+  double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.
+  int num_failures_max = 20; // Maximum allowable number of consecutive small time-steps.
+
+  return (struct escreen_ctx) {
+    .pi = pi,
+    .epsilon0 = epsilon0,
+    .mu0 = mu0,
+    .mass_ion = mass_ion,
+    .charge_ion = charge_ion,
+    .mass_elc = mass_elc,
+    .charge_elc = charge_elc,
+    .n0 = n0, 
+    .T = T,
+    .E0 = E0, 
+    .noise_amp = noise_amp,
+    .mode_init = mode_init,
+    .mode_final = mode_final,
+    .Nx = Nx,
+    .Npx = Npx,
+    .Lx = Lx,
+    .px_max = px_max,
+    .poly_order = poly_order,
+    .cfl_frac = cfl_frac,
+    .t_end = t_end,
+    .num_frames = num_frames,
+    .int_diag_calc_num = int_diag_calc_num,
+    .dt_failure_tol = dt_failure_tol,
+    .num_failures_max = num_failures_max,
+  };
 }
 
 void
-evalDistFuncDensityPerturb(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
+evalDensityInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
 {
   struct escreen_ctx *app = ctx;
-  double x = xn[0], p = xn[1];
-  double T = app->T, vdrift = app->vdrift;
-  double pi = app->pi;
 
-  // modified Bessel function of the second kind evaluated for T = mc^2 (K_2(1))
-  double K_2 = 1.6248388986351774828107073822838437146593935281628733843345054697;
-  // modified Bessel function of the second kind evaluated for T = 0.1 mc^2 (K_2(10))
-  //double K_2 = 0.0000215098170069327687306645644239671272492068461808732468335569;
-  // modified Bessel function of the second kind evaluated for T = 0.04 mc^2 (K_2(25))
-  //double K_2 = 3.7467838080691090570137658745889511812329380156362352887017e-12;
-  // Lorentz factor for drift velocity
-  double gamma = 1.0/sqrt(1 - vdrift*vdrift);
+  double n = app->n0;
 
-  double n = app->n;
+  // Set density (no perturbation).
+  fout[0] = n;
+}
+
+void
+evalDensityPerturbInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
+{
+  struct escreen_ctx *app = ctx;
+  double x = xn[0];
+
   // Perturbation to initial density to satisfy div(E) = rho_c
+  double n = app->n0;
+  double pi = app->pi;  
   double noise_amp = app->noise_amp;
   double mode_init = app->mode_init;
   double mode_final = app->mode_final;
@@ -105,10 +151,29 @@ evalDistFuncDensityPerturb(double t, const double* GKYL_RESTRICT xn, double* GKY
   for (int i = mode_init; i < mode_final; i++) {
     n -= alpha * gkyl_pcg64_rand_double(&rng) * cos(i * kx * x + 2.0 * pi * gkyl_pcg64_rand_double(&rng)); 
   }
-  double mc2_T = 1.0/T;
 
-  double fv = n/K_2*exp(-mc2_T*gamma*(sqrt(1 + p*p) - vdrift*p));
-  fout[0] = fv;
+  // Set density (no perturbation).
+  fout[0] = n;
+}
+
+void
+evalTempInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
+{
+  struct escreen_ctx *app = ctx;
+
+  double T = app->T;
+
+  // Set temperature.
+  fout[0] = T;
+}
+
+void
+evalVDriftInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
+{
+  struct escreen_ctx *app = ctx;
+
+  // Set drift (four-) velocity.
+  fout[0] = 0.0;
 }
 
 void
@@ -136,66 +201,6 @@ evalFieldFunc(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fo
   fout[0] = E_x; fout[1] = 0.0, fout[2] = 0.0;
   fout[3] = 0.0; fout[4] = 0.0; fout[5] = 0.0;
   fout[6] = 0.0; fout[7] = 0.0;
-}
-
-struct escreen_ctx
-create_default_ctx(void)
-{
-  // Mathematical constants (dimensionless).
-  double pi = M_PI;
-
-  // Physical constants (using normalized code units).
-  double epsilon0 = 1.0; // Permittivity of free space.
-  double mu0 = 1.0; // Permeability of free space.
-  double mass_ion = 1.0; // Positron mass.
-  double charge_ion = 1.0; // Positron charge.
-  double mass_elc = 1.0; // Electron mass.
-  double charge_elc = -1.0; // Electron charge.
-
-  double n = 1.0; // Reference density
-  double vdrift = 0.0; // Initial drift velocity
-  double T = 1.0; // Reference temperature (in units of mc^2)
-
-  double E0 = 100.0; // Electric field amplitude
-  double noise_amp = 1.0e-6 * E0; // Noise level for perturbation.
-  int mode_init = 1; // Initial wave mode to perturb with noise.
-  int mode_final = 4; // Final wave mode to perturb with noise.
-
-  // Simulation parameters.
-  int Nx = 16; // Cell count (x-direction).
-  int Np = 512; // Cell count (p-direction).
-  double Lx = 1.0; // Domain size (x-direction).
-  double pmax = 768.0; // Momentum space extents for electrons and positrons  
-  double t_end = 10.0; // Final simulation time.
-  int num_frames = 2; // Number of output frames.
-  int int_diag_calc_num = num_frames*100;
-  double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.
-  int num_failures_max = 20; // Maximum allowable number of consecutive small time-steps.
-  return (struct escreen_ctx) {
-    .pi = pi,
-    .epsilon0 = epsilon0,
-    .mu0 = mu0,
-    .mass_ion = mass_ion,
-    .charge_ion = charge_ion,
-    .mass_elc = mass_elc,
-    .charge_elc = charge_elc,
-    .n = n, 
-    .vdrift = vdrift,
-    .T = T,
-    .E0 = E0, 
-    .noise_amp = noise_amp,
-    .mode_init = mode_init,
-    .mode_final = mode_final,
-    .Nx = Nx,
-    .Np = Np, 
-    .Lx = Lx,
-    .t_end = t_end,
-    .pmax = pmax, 
-    .num_frames = num_frames,
-    .int_diag_calc_num = int_diag_calc_num,
-    .dt_failure_tol = dt_failure_tol,
-    .num_failures_max = num_failures_max,
-  };
 }
 
 void
@@ -239,11 +244,10 @@ main(int argc, char **argv)
     gkyl_mem_debug_set(true);
   }
 
-  struct escreen_ctx ctx;
-  ctx = create_default_ctx(); // context for init functions
+  struct escreen_ctx ctx = create_ctx(); // Context for initialization functions.
 
   int NX = APP_ARGS_CHOOSE(app_args.xcells[0], ctx.Nx);
-  int VX = APP_ARGS_CHOOSE(app_args.vcells[0], ctx.Np);  
+  int NPX = APP_ARGS_CHOOSE(app_args.vcells[0], ctx.Npx);
 
   int nrank = 1; // Number of processors in simulation.
 #ifdef GKYL_HAVE_MPI
@@ -252,13 +256,9 @@ main(int argc, char **argv)
   }
 #endif  
 
-  // Create global range.
   int ccells[] = { NX };
   int cdim = sizeof(ccells) / sizeof(ccells[0]);
-  struct gkyl_range cglobal_r;
-  gkyl_create_global_range(cdim, ccells, &cglobal_r);
 
-  // Create decomposition.
   int cuts[cdim];
 #ifdef GKYL_HAVE_MPI  
   for (int d = 0; d < cdim; d++) {
@@ -275,8 +275,6 @@ main(int argc, char **argv)
   }
 #endif  
     
-  struct gkyl_rect_decomp *decomp = gkyl_rect_decomp_new_from_cuts(cdim, cuts, &cglobal_r);
-
   // Construct communicator for use in app.
   struct gkyl_comm *comm;
 #ifdef GKYL_HAVE_MPI
@@ -284,7 +282,6 @@ main(int argc, char **argv)
 #ifdef GKYL_HAVE_NCCL
     comm = gkyl_nccl_comm_new( &(struct gkyl_nccl_comm_inp) {
         .mpi_comm = MPI_COMM_WORLD,
-        .decomp = decomp
       }
     );
 #else
@@ -295,20 +292,17 @@ main(int argc, char **argv)
   else if (app_args.use_mpi) {
     comm = gkyl_mpi_comm_new( &(struct gkyl_mpi_comm_inp) {
         .mpi_comm = MPI_COMM_WORLD,
-        .decomp = decomp
       }
     );
   }
   else {
     comm = gkyl_null_comm_inew( &(struct gkyl_null_comm_inp) {
-        .decomp = decomp,
         .use_gpu = app_args.use_gpu
       }
     );
   }
 #else
   comm = gkyl_null_comm_inew( &(struct gkyl_null_comm_inp) {
-      .decomp = decomp,
       .use_gpu = app_args.use_gpu
     }
   );
@@ -331,37 +325,42 @@ main(int argc, char **argv)
     goto mpifinalize;
   }
 
-  for (int d = 0; d < cdim - 1; d++) {
-    if (cuts[d] > 1) {
-      if (my_rank == 0) {
-        fprintf(stderr, "*** Parallelization only allowed in z. Number of ranks, %d, in direction %d cannot be > 1!\n", cuts[d], d);
-      }
-      goto mpifinalize;
-    }
-  }
-
   // electrons
   struct gkyl_vlasov_species elc = {
     .name = "elc",
     .model_id = GKYL_MODEL_SR,
     .charge = ctx.charge_elc, .mass = ctx.mass_elc,
-    .lower = { -ctx.pmax },
-    .upper = { ctx.pmax }, 
-    .cells = { VX },
+    .lower = { -ctx.px_max },
+    .upper = { ctx.px_max }, 
+    .cells = { NPX },
 
-    .projection = {
-      .proj_id = GKYL_PROJ_FUNC,
-      .func = evalDistFuncDensityPerturb,
-      .ctx_func = &ctx,
+    .num_init = 1, 
+    .projection[0] = {
+      .proj_id = GKYL_PROJ_VLASOV_LTE,
+      .density = evalDensityPerturbInit,
+      .ctx_density = &ctx,
+      .temp = evalTempInit,
+      .ctx_temp = &ctx,
+      .V_drift = evalVDriftInit,
+      .ctx_V_drift = &ctx,
+      .correct_all_moms = true,
+      .use_last_converged = true, 
     },
 
-    // source is the same as initial condition
+    // Source is the same as initial condition without perturbation.
     .source = {
       .source_id = GKYL_PROJ_SOURCE,
-      .projection = {
-        .proj_id = GKYL_PROJ_FUNC,
-        .func = evalDistFunc,
-        .ctx_func = &ctx,
+      .num_sources = 1, 
+      .projection[0] = {
+        .proj_id = GKYL_PROJ_VLASOV_LTE,
+        .density = evalDensityInit,
+        .ctx_density = &ctx,
+        .temp = evalTempInit,
+        .ctx_temp = &ctx,
+        .V_drift = evalVDriftInit,
+        .ctx_V_drift = &ctx,
+        .correct_all_moms = true,
+        .use_last_converged = true, 
       },
     },
 
@@ -374,23 +373,35 @@ main(int argc, char **argv)
     .name = "pos",
     .model_id = GKYL_MODEL_SR,
     .charge = ctx.charge_ion, .mass = ctx.mass_ion,
-    .lower = { -ctx.pmax },
-    .upper = { ctx.pmax }, 
-    .cells = { VX },
+    .lower = { -ctx.px_max },
+    .upper = { ctx.px_max }, 
+    .cells = { NPX },
 
-    .projection = {
-      .proj_id = GKYL_PROJ_FUNC,
-      .func = evalDistFunc,
-      .ctx_func = &ctx,
+    .num_init = 1, 
+    // No perturbation in positron initial conditions. 
+    .projection[0] = {
+      .proj_id = GKYL_PROJ_VLASOV_LTE,
+      .density = evalDensityInit,
+      .ctx_density = &ctx,
+      .temp = evalTempInit,
+      .ctx_temp = &ctx,
+      .V_drift = evalVDriftInit,
+      .ctx_V_drift = &ctx,
+      .correct_all_moms = true,
     },
 
-    // source is the same as initial condition
     .source = {
       .source_id = GKYL_PROJ_SOURCE,
-      .projection = {
-        .proj_id = GKYL_PROJ_FUNC,
-        .func = evalDistFunc,
-        .ctx_func = &ctx,
+      .num_sources = 1, 
+      .projection[0] = {
+        .proj_id = GKYL_PROJ_VLASOV_LTE,
+        .density = evalDensityInit,
+        .ctx_density = &ctx,
+        .temp = evalTempInit,
+        .ctx_temp = &ctx,
+        .V_drift = evalVDriftInit,
+        .ctx_V_drift = &ctx,
+        .correct_all_moms = true,
       },
     },
 
@@ -408,35 +419,36 @@ main(int argc, char **argv)
     .init = evalFieldFunc,
   };
 
-  // VM app
-  struct gkyl_vm vm = {
-    .name = "escreen_sr",
+  // Vlasov-Maxwell app.
+  struct gkyl_vm app_inp = {
+    .name = "vlasov_sr_escreen",
     
     .cdim = 1, .vdim = 1,
-    .lower = { 0.0 },
-    .upper = { ctx.Lx },
+    .lower = { -0.5 * ctx.Lx },
+    .upper = { 0.5 * ctx.Lx },
     .cells = { NX },
-    .poly_order = 2,
+
+    .poly_order = ctx.poly_order,
     .basis_type = app_args.basis_type,
+    .cfl_frac = ctx.cfl_frac,
 
     .num_periodic_dir = 1,
     .periodic_dirs = { 0 },
 
     .num_species = 2,
     .species = { elc, pos },
+
     .field = field,
 
-    .use_gpu = app_args.use_gpu,
-
-    .has_low_inp = true,
-    .low_inp = {
-      .local_range = decomp->ranges[my_rank],
-      .comm = comm
-    }
+    .parallelism = {
+      .use_gpu = app_args.use_gpu,
+      .cuts = { app_args.cuts[0] },
+      .comm = comm,
+    },
   };
   
   // create app object
-  gkyl_vlasov_app *app = gkyl_vlasov_app_new(&vm);
+  gkyl_vlasov_app *app = gkyl_vlasov_app_new(&app_inp);
 
   // Initial and final simulation times.
   int frame_curr = 0;
@@ -523,25 +535,28 @@ main(int argc, char **argv)
   
   struct gkyl_vlasov_stat stat = gkyl_vlasov_app_stat(app);
 
-  printf("\n");
-  printf("Number of update calls %ld\n", stat.nup);
-  printf("Number of forward-Euler calls %ld\n", stat.nfeuler);
-  printf("Number of RK stage-2 failures %ld\n", stat.nstage_2_fail);
+  gkyl_vlasov_app_cout(app, stdout, "\n");
+  gkyl_vlasov_app_cout(app, stdout, "Number of update calls %ld\n", stat.nup);
+  gkyl_vlasov_app_cout(app, stdout, "Number of forward-Euler calls %ld\n", stat.nfeuler);
+  gkyl_vlasov_app_cout(app, stdout, "Number of RK stage-2 failures %ld\n", stat.nstage_2_fail);
   if (stat.nstage_2_fail > 0) {
-    printf("Max rel dt diff for RK stage-2 failures %g\n", stat.stage_2_dt_diff[1]);
-    printf("Min rel dt diff for RK stage-2 failures %g\n", stat.stage_2_dt_diff[0]);
-  }
-  printf("Number of RK stage-3 failures %ld\n", stat.nstage_3_fail);
-  printf("Species RHS calc took %g secs\n", stat.species_rhs_tm);
-  printf("Field RHS calc took %g secs\n", stat.field_rhs_tm);
-  printf("Current evaluation and accumulate took %g secs\n", stat.current_tm);
-  printf("Updates took %g secs\n", stat.total_tm);
+    gkyl_vlasov_app_cout(app, stdout, "  Max rel dt diff for RK stage-2 failures %g\n", stat.stage_2_dt_diff[1]);
+    gkyl_vlasov_app_cout(app, stdout, "  Min rel dt diff for RK stage-2 failures %g\n", stat.stage_2_dt_diff[0]);
+  }  
+  gkyl_vlasov_app_cout(app, stdout, "Number of RK stage-3 failures %ld\n", stat.nstage_3_fail);
+  gkyl_vlasov_app_cout(app, stdout, "Species RHS calc took %g secs\n", stat.species_rhs_tm);
+  gkyl_vlasov_app_cout(app, stdout, "Species collisions RHS calc took %g secs\n", stat.species_coll_tm);
+  gkyl_vlasov_app_cout(app, stdout, "Field RHS calc took %g secs\n", stat.field_rhs_tm);
+  gkyl_vlasov_app_cout(app, stdout, "Species collisional moments took %g secs\n", stat.species_coll_mom_tm);
+  gkyl_vlasov_app_cout(app, stdout, "Total updates took %g secs\n", stat.total_tm);
+
+  gkyl_vlasov_app_cout(app, stdout, "Number of write calls %ld\n", stat.nio);
+  gkyl_vlasov_app_cout(app, stdout, "IO time took %g secs \n", stat.io_tm);
 
   freeresources:
   // Free resources after simulation completion.
-  gkyl_vlasov_app_release(app);
-  gkyl_rect_decomp_release(decomp);
   gkyl_comm_release(comm);
+  gkyl_vlasov_app_release(app);
 
   mpifinalize:
 #ifdef GKYL_HAVE_MPI
@@ -549,6 +564,6 @@ main(int argc, char **argv)
     MPI_Finalize();
   }
 #endif
-  
+
   return 0;
 }

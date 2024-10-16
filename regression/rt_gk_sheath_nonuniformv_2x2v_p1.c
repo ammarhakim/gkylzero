@@ -458,10 +458,6 @@ write_data(struct gkyl_tm_trigger* iot, gkyl_gyrokinetic_app* app, double t_curr
 
     gkyl_gyrokinetic_app_write(app, t_curr, frame);
 
-    gkyl_gyrokinetic_app_calc_mom(app);
-    gkyl_gyrokinetic_app_write_mom(app, t_curr, frame);
-    gkyl_gyrokinetic_app_write_source_mom(app, t_curr, frame);
-
     gkyl_gyrokinetic_app_calc_field_energy(app, t_curr);
     gkyl_gyrokinetic_app_write_field_energy(app);
 
@@ -495,17 +491,8 @@ main(int argc, char **argv)
   for (int d=0; d<ctx.vdim; d++)
     cells_v[d] = APP_ARGS_CHOOSE(app_args.vcells[d], ctx.cells[ctx.cdim+d]);
 
-  // Create decomposition.
-  struct gkyl_rect_decomp *decomp = gkyl_gyrokinetic_comms_decomp_new(ctx.cdim, cells_x, app_args.cuts, app_args.use_mpi, stderr);
-
   // Construct communicator for use in app.
-  struct gkyl_comm *comm = gkyl_gyrokinetic_comms_new(app_args.use_mpi, app_args.use_gpu, decomp, stderr);
-
-  int my_rank = 0;
-#ifdef GKYL_HAVE_MPI
-  if (app_args.use_mpi)
-    gkyl_comm_get_rank(comm, &my_rank);
-#endif
+  struct gkyl_comm *comm = gkyl_gyrokinetic_comms_new(app_args.use_mpi, app_args.use_gpu, stderr);
 
   // Electron species.
   struct gkyl_gyrokinetic_species elc = {
@@ -541,7 +528,6 @@ main(int argc, char **argv)
 
     .source = {
       .source_id = GKYL_PROJ_SOURCE,
-      .write_source = true,
       .num_sources = 1,
       .projection[0] = {
         .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM, 
@@ -601,7 +587,6 @@ main(int argc, char **argv)
 
     .source = {
       .source_id = GKYL_PROJ_SOURCE,
-      .write_source = true,
       .num_sources = 1,
       .projection[0] = {
         .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM,
@@ -639,7 +624,7 @@ main(int argc, char **argv)
   struct gkyl_gk app_inp = {
     .name = "gk_sheath_nonuniformv_2x2v_p1",
 
-    .cdim = 2, .vdim = 2,
+    .cdim = ctx.cdim, .vdim = ctx.vdim,
     .lower = { ctx.R - (0.5 * ctx.Lx), -0.5 * ctx.Lz },
     .upper = { ctx.R + (0.5 * ctx.Lx),  0.5 * ctx.Lz },
     .cells = { cells_x[0], cells_x[1] },
@@ -661,13 +646,11 @@ main(int argc, char **argv)
     .species = { elc, ion },
     .field = field,
 
-    .use_gpu = app_args.use_gpu,
-
-    .has_low_inp = true,
-    .low_inp = {
-      .local_range = decomp->ranges[my_rank],
-      .comm = comm
-    }
+    .parallelism = {
+      .use_gpu = app_args.use_gpu,
+      .cuts = { app_args.cuts[0], app_args.cuts[1] },
+      .comm = comm,
+    },
   };
 
   // Create app object.
@@ -779,7 +762,7 @@ main(int argc, char **argv)
   freeresources:
   // Free resources after simulation completion.
   gkyl_gyrokinetic_app_release(app);
-  gkyl_gyrokinetic_comms_release(decomp, comm);
+  gkyl_gyrokinetic_comms_release(comm);
 
 #ifdef GKYL_HAVE_MPI
   if (app_args.use_mpi) {

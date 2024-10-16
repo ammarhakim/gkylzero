@@ -3,6 +3,7 @@
 #include <gkyl_alloc.h>
 #include <gkyl_lua_utils.h>
 #include <gkyl_lw_priv.h>
+#include <gkyl_null_comm.h>
 #include <gkyl_vlasov.h>
 #include <gkyl_vlasov_lw.h>
 #include <gkyl_vlasov_priv.h>
@@ -298,8 +299,9 @@ vm_app_new(lua_State *L)
     vm.vdim = species[s]->vdim;
     
     app_lw->species_func_ctx[s] = species[s]->init_ref;
-    vm.species[s].projection.func = gkyl_lw_eval_cb;
-    vm.species[s].projection.ctx_func = &app_lw->species_func_ctx[s];
+    vm.species[s].num_init = 1;
+    vm.species[s].projection[0].func = gkyl_lw_eval_cb;
+    vm.species[s].projection[0].ctx_func = &app_lw->species_func_ctx[s];
   }
 
   // set field input
@@ -321,44 +323,51 @@ vm_app_new(lua_State *L)
     }
   }
 
-  // create decomp and communicator
-  struct gkyl_rect_decomp *decomp
-    = gkyl_rect_decomp_new_from_cuts_and_cells(cdim, cuts, vm.cells);
-
+  // create parallelism
   struct gkyl_comm *comm = 0;
+  bool has_mpi = false;
 
-  vm.has_low_inp = false;
-  
+  for (int d=0; d<cdim; ++d)
+    vm.parallelism.cuts[d] = cuts[d]; 
+
 #ifdef GKYL_HAVE_MPI
   with_lua_global(L, "GKYL_MPI_COMM") {
-
     if (lua_islightuserdata(L, -1)) {
+      has_mpi = true;
       MPI_Comm mpi_comm = lua_touserdata(L, -1);
-      //printf("%p %p\n", mpi_comm_p, MPI_COMM_WORLD);
-      
-     comm = gkyl_mpi_comm_new( &(struct gkyl_mpi_comm_inp) {
-         .mpi_comm = mpi_comm,
-         .decomp = decomp
-       }
-     );
+      comm = gkyl_mpi_comm_new( &(struct gkyl_mpi_comm_inp) {
+          .mpi_comm = mpi_comm,
+        }
+      );
 
-     int rank;
-     MPI_Comm_rank(mpi_comm, &rank);
-
-     vm.has_low_inp = true;
-     vm.low_inp = (struct gkyl_app_comm_low_inp) {
-       .comm = comm,
-       .local_range = decomp->ranges[rank]
-     };
     }
   }
 #endif
+
+  if (!has_mpi) {
+    // if there is no proper MPI_Comm specifed, the assume we are a
+    // serial sim
+    comm = gkyl_null_comm_inew( &(struct gkyl_null_comm_inp) {} );
+  }
+  vm.parallelism.comm = comm;
+
+  int rank;
+  gkyl_comm_get_rank(comm, &rank);
+
+  int comm_sz;
+  gkyl_comm_get_size(comm, &comm_sz);
+
+  int tot_cuts = 1; for (int d=0; d<cdim; ++d) tot_cuts *= cuts[d];
+
+  if (tot_cuts != comm_sz) {
+    printf("tot_cuts = %d (%d)\n", tot_cuts, comm_sz);
+    luaL_error(L, "Number of ranks and cuts do not match!");
+  }
   
   app_lw->app = gkyl_vlasov_app_new(&vm);
 
-  gkyl_rect_decomp_release(decomp);
-  if (comm) gkyl_comm_release(comm);
-  
+  gkyl_comm_release(comm);
+
   // create Lua userdata ...
   struct vlasov_app_lw **l_app_lw = lua_newuserdata(L, sizeof(struct vlasov_app_lw*));
   *l_app_lw = app_lw; // ... point it to the Lua app pointer

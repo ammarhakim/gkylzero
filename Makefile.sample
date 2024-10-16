@@ -3,10 +3,13 @@
 # Sample Makefile to use installed gkylzero library: copy and modify
 # for your needs
 
+# Obtain the git commit ID.
+GIT_COMMIT_HASH := "$(shell git describe --dirty=+ --always --tags)"
+
 ARCH_FLAGS ?= -march=native
 CUDA_ARCH ?= 70
 # Warning flags: -Wall -Wno-unused-variable -Wno-unused-function -Wno-missing-braces
-CFLAGS ?= -O3 -g -ffast-math -fPIC -MMD -MP
+CFLAGS ?= -O3 -g -ffast-math -fPIC -MMD -MP -DGIT_COMMIT_ID=\"$(GIT_COMMIT_HASH)\"
 LDFLAGS = 
 PREFIX ?= ${HOME}/gkylsoft
 
@@ -30,7 +33,7 @@ endif
 # Include config.mak file (if it exists)
 -include G0_SHARE_INSTALL_PREFIX_TAG/config.mak
 
-CFLAGS = -O3 -g -ffast-math -I.
+CFLAGS = -O3 -g -ffast-math -I. -DGIT_COMMIT_ID=\"$(GIT_COMMIT_HASH)\"
 
 G0_INC_DIR = ${PREFIX}/gkylzero/include
 G0_LIB_DIR = ${PREFIX}/gkylzero/lib
@@ -41,7 +44,7 @@ NVCC_FLAGS =
 CUDA_LIBS =
 ifeq ($(CC), nvcc)
        USING_NVCC = yes
-       CFLAGS = -O3 -g --forward-unknown-to-host-compiler --use_fast_math -ffast-math -MMD -MP -fPIC
+       CFLAGS = -O3 -g --forward-unknown-to-host-compiler --use_fast_math -ffast-math -MMD -MP -fPIC -DGIT_COMMIT_ID=\"$(GIT_COMMIT_HASH)\"
        NVCC_FLAGS = -x cu -dc -arch=sm_${CUDA_ARCH} --compiler-options="-fPIC"
        LDFLAGS += -arch=sm_${CUDA_ARCH}
        ifdef CUDAMATH_LIBDIR
@@ -103,11 +106,13 @@ endif
 USING_CUDSS =
 CUDSS_INC_DIR = zero # dummy
 CUDSS_LIB_DIR = .
+CUDSS_RPATH =
 ifeq (${USE_CUDSS}, 1)
 ifdef USING_NVCC
 	USING_CUDSS = yes
 	CUDSS_INC_DIR = ${CONF_CUDSS_INC_DIR}
 	CUDSS_LIB_DIR = ${CONF_CUDSS_LIB_DIR}
+	CUDSS_RPATH = -Xlinker "-rpath,${CONF_CUDSS_LIB_DIR}"
 	CUDSS_LIBS = -lcudss
 	CFLAGS += -DGKYL_HAVE_CUDSS
 endif
@@ -128,7 +133,7 @@ endif
 
 INCLUDES = -I${G0_INC_DIR} -I${LAPACK_INC} -I${SUPERLU_INC} -I${MPI_INC_DIR} -I${LUA_INC_DIR} -I${NCCL_INC_DIR} -I${CUDSS_INC_DIR}
 LIB_DIRS = -L${LAPACK_LIB_DIR} -L${SUPERLU_LIB_DIR} -L${MPI_LIB_DIR} -L${LUA_LIB_DIR} -L${NCCL_LIB_DIR} -L${CUDSS_LIB_DIR}
-EXT_LIBS = ${LAPACK_LIB} ${SUPERLU_LIB} ${MPI_RPATH} ${MPI_LIBS} ${LUA_RPATH} ${LUA_LIBS} ${NCCL_LIBS} ${CUDSS_LIBS} -lm -lpthread -ldl
+EXT_LIBS = ${LAPACK_LIB} ${SUPERLU_LIB} ${MPI_RPATH} ${MPI_LIBS} ${LUA_RPATH} ${LUA_LIBS} ${NCCL_LIBS} ${CUDSS_RPATH} ${CUDSS_LIBS} -lm -lpthread -ldl
 
 all: rt_vlasov_twostream_p2
 

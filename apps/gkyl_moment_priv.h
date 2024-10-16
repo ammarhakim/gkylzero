@@ -16,6 +16,7 @@
 #include <gkyl_array_ops.h>
 #include <gkyl_array_rio.h>
 #include <gkyl_comm.h>
+#include <gkyl_comm_io.h>
 #include <gkyl_dflt.h>
 #include <gkyl_dynvec.h>
 #include <gkyl_elem_type.h>
@@ -24,6 +25,7 @@
 #include <gkyl_kep_scheme.h>
 #include <gkyl_mhd_src.h>
 #include <gkyl_moment.h>
+#include <gkyl_moment_braginskii.h>
 #include <gkyl_moment_em_coupling.h>
 #include <gkyl_mp_scheme.h>
 #include <gkyl_range.h>
@@ -34,9 +36,19 @@
 #include <gkyl_wave_geom.h>
 #include <gkyl_wave_prop.h>
 #include <gkyl_wv_apply_bc.h>
+#include <gkyl_wv_euler.h>
+#include <gkyl_wv_iso_euler.h>
 #include <gkyl_wv_maxwell.h>
 #include <gkyl_wv_mhd.h>
 #include <gkyl_wv_ten_moment.h>
+
+// number of components that various applied functions should return
+enum {
+  GKYL_MOM_APP_NUM_APPLIED_CURRENT = 3,
+  GKYL_MOM_APP_NUM_EXT_EM = 6,
+  GKYL_MOM_APP_NUM_APPLIED_ACCELERATION = 3,
+  GKYL_MOM_APP_NUM_NT_SOURCE = 2
+};
 
 // Species data
 struct moment_species {
@@ -46,6 +58,25 @@ struct moment_species {
 
   double k0; // closure parameter (default is 0.0, used by 10 moment)
   bool has_grad_closure; // has gradient-based closure (only for 10 moment)
+  enum gkyl_braginskii_type type_brag; // which Braginskii equations
+
+  bool has_friction; // Run with frictional sources.
+  bool use_explicit_friction; // Use an explicit (SSP-RK3) solver for integrating frictional sources.
+  double friction_Z; // Ionization number for frictional sources.
+  double friction_T_elc; // Electron temperature for frictional sources.
+  double friction_Lambda_ee; // Electron-electron collisional term for frictional sources.
+
+  bool has_volume_sources; // Run with volume-based geometrical sources.
+  double volume_gas_gamma; // Adiabatic index for volume-based geometrical sources.
+  double volume_U0; // Initial comoving plasma velocity for volume-based geometrical sources.
+  double volume_R0; // Initial radial distance from expansion/contraction center for volume-based geometrical sources.
+
+  bool has_reactivity; // Run with reactive sources.
+  double reactivity_gas_gamma; // Adiabatic index for reactive sources.
+  double reactivity_specific_heat_capacity; // Specific heat capacity for reactive sources.
+  double reactivity_energy_of_formation; // Energy of formation for reactive sources.
+  double reactivity_ignition_temperature; // Ignition temperature for reactive sources.
+  double reactivity_reaction_rate; // Reaction rate for reactive sources.
 
   int evolve; // evolve species? 1-yes, 0-no
 
@@ -121,13 +152,18 @@ struct moment_field {
 
   bool is_ext_em_static; // flag to indicate if external field is time-independent
   struct gkyl_array *ext_em; // array external fields
-  double t_ramp_ext_em; // linear ramp for turning on external E field
+  double t_ramp_E; // linear ramp for turning on external E field
   gkyl_fv_proj *proj_ext_em; // pointer to projection operator for external fields
   bool was_ext_em_computed; // flag to indicate if we already computed external EM field
 
   bool use_explicit_em_coupling; // flag to indicate if em coupling should be explicit, defaults implicit
   struct gkyl_array *app_current1; // arrays for applied currents (for use_explicit_em_coupling stages)
   struct gkyl_array *app_current2; // arrays for applied currents (for use_explicit_em_coupling stages)
+
+  bool has_volume_sources; // Run with volume-based geometrical sources.
+  double volume_gas_gamma; // Adiabatic index for volume-based geometrical sources.
+  double volume_U0; // Initial comoving plasma velocity for volume-based geometrical sources.
+  double volume_R0; // Initial radial distance from expansion/contraction center for volume-based geometrical sources.
 
   struct gkyl_array *bc_buffer; // buffer for periodic BCs
 
@@ -158,21 +194,28 @@ struct moment_field {
 
 // Source data
 struct moment_coupling {
-// grid for braginskii variables (braginskii variables located at cell nodes)  
+  // grid for braginskii variables (braginskii variables located at cell nodes)  
   struct gkyl_rect_grid non_ideal_grid;
- // local, local-ext ranges for braginskii variables (loop over nodes)  
+  // local, local-ext ranges for braginskii variables (loop over nodes)  
   struct gkyl_range non_ideal_local, non_ideal_local_ext;
 
- // Gradient-based closure solver (if present)  
-  gkyl_ten_moment_grad_closure *grad_closure_slvr[GKYL_MAX_SPECIES];
- // array for stable time-step from non-ideal terms  
+  // Gradient-based closure solver (if present)  
+  struct gkyl_ten_moment_grad_closure *grad_closure_slvr[GKYL_MAX_SPECIES];
+  // Braginskii solver (if present)
+  struct gkyl_moment_braginskii *brag_slvr; 
+
+  // array for stable time-step from non-ideal terms  
   struct gkyl_array *non_ideal_cflrate[GKYL_MAX_SPECIES];
- // array for non-ideal variables (heat-flux tensor)  
+  // array for non-ideal variables 
+  // Braginskii variables, viscous stress tensor and heat-flux vector for Euler/Isothermal Euler
+  // heat-flux tensor for ten-moment  
   struct gkyl_array *non_ideal_vars[GKYL_MAX_SPECIES];
-  // array for storing RHS of each species from non-ideal term updates (gradient-based closure)
-  struct gkyl_array  *pr_rhs[GKYL_MAX_SPECIES];
+  // array for storing RHS of each species from non-ideal term updates 
+  // Braginskii tranport for Euler/Isothermal Euler
+  // Gradient-based closure for ten-moment
+  struct gkyl_array *pr_rhs[GKYL_MAX_SPECIES];
   // array for storing RHS of number density and temperature source terms
-  struct gkyl_array  *nT_sources[GKYL_MAX_SPECIES];
+  struct gkyl_array *nT_sources[GKYL_MAX_SPECIES];
 
   gkyl_moment_em_coupling *slvr; // source solver function
 };
@@ -195,6 +238,9 @@ struct gkyl_moment_app {
  // should shock-hybrid scheme be used when using KEP?  
   bool use_hybrid_flux_kep;
 
+  bool has_braginskii; // has Braginskii transport
+  double coll_fac; // multiplicative collisionality factor for Braginskii  
+
   int num_periodic_dir; // number of periodic directions
   int periodic_dirs[3]; // list of periodic directions
   int nghost[3]; // number of ghost-cells in each direction
@@ -205,6 +251,7 @@ struct gkyl_moment_app {
   struct gkyl_range local, local_ext; // local, local-ext ranges
   struct gkyl_range global, global_ext; // global, global-ext ranges
 
+  struct gkyl_rect_decomp *decomp; // decomposition object
   struct gkyl_comm *comm;   // communicator object
 
   bool has_mapc2p; // flag to indicate if we have mapc2p
@@ -280,6 +327,13 @@ bc_copy(double t, int nc, const double *skin,
     ghost[c] = skin[c];
 }
 
+// function for skip BCs
+static inline void
+bc_skip(double t, int nc, const double *skin,
+  double *GKYL_RESTRICT ghost, void *ctx)
+{
+}
+
 // Compute integrated quantities specified by i_func
 void calc_integ_quant(const struct gkyl_wv_eqn *eqn, double vol,
   const struct gkyl_array *q,
@@ -300,6 +354,15 @@ void moment_apply_wedge_bc(const gkyl_moment_app *app, double tcurr,
   const struct gkyl_wv_apply_bc *lo,
   const struct gkyl_wv_apply_bc *up,
   struct gkyl_array *f);
+
+/**
+ * Return ghost cell layout for grid.
+ *
+ * @param app App object.
+ * @param nghost On output, ghost-cells used for grid.
+ *
+ */
+void gkyl_moment_app_nghost(gkyl_moment_app *app, int nghost[3]);
 
 /** moment_species API */
 

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <gkyl_array.h>
 #include <gkyl_ref_count.h>
 #include <gkyl_util.h>
 
@@ -16,6 +17,10 @@ enum gkyl_mat_trans { GKYL_NO_TRANS, GKYL_TRANS, GKYL_CONJ_TRANS };
 struct gkyl_mat {
   size_t nr, nc; // Number of rows, columns
   double *data; // Pointer to data
+
+  uint32_t flags;  
+  struct gkyl_ref_count ref_count;
+  struct gkyl_mat *on_dev; // pointer to itself or device data
 };
 
 /**
@@ -35,6 +40,10 @@ struct gkyl_nmat {
 // Type for storing preallocating memory needed in various batch
 // operations
 typedef struct gkyl_nmat_mem gkyl_nmat_mem;
+
+// Type for storing preallocating memory needed specificially for 
+// mat_mm_array
+typedef struct gkyl_mat_mm_array_mem gkyl_mat_mm_array_mem;
 
 /**
  * Construct new matrix with all elements initialized to @a
@@ -136,7 +145,7 @@ void gkyl_mat_show(const char *name, FILE *fp, const struct gkyl_mat *mat);
  */
 struct gkyl_mat* gkyl_mat_mm(double alpha, double beta,
   enum gkyl_mat_trans transa, const struct gkyl_mat *A,
-  enum gkyl_mat_trans transb, const struct gkyl_mat *B, struct gkyl_mat *C);
+  enum gkyl_mat_trans transb, const struct gkyl_mat *B, struct gkyl_mat *, bool on_gpu);
 
 /**
  * Computes matrix-vector product:
@@ -152,7 +161,6 @@ struct gkyl_mat* gkyl_mat_mv(double alpha, double beta,
   enum gkyl_mat_trans transa, const struct gkyl_mat *A,
   const struct gkyl_mat *x, struct gkyl_mat *y);
 
-
 /**
  * Does a batch of matrix-vector products:
  *
@@ -166,8 +174,8 @@ struct gkyl_mat* gkyl_mat_mv(double alpha, double beta,
  * @param y batch of output vectors
  */
 void
-gkyl_nmat_mv(double alpha, double beta, enum gkyl_mat_trans transa, struct gkyl_nmat *A, struct gkyl_nmat *x, struct gkyl_nmat *y);
-
+gkyl_nmat_mv(double alpha, double beta, enum gkyl_mat_trans transa, struct gkyl_nmat *A,
+  struct gkyl_nmat *x, struct gkyl_nmat *y);
 
 /**
  * Does a batch of matrix-matrix products:
@@ -183,9 +191,8 @@ gkyl_nmat_mv(double alpha, double beta, enum gkyl_mat_trans transa, struct gkyl_
  * @param C batch f output matrices
  */
 void
-gkyl_nmat_mm(double alpha, double beta, enum gkyl_mat_trans transa, struct gkyl_nmat *A,  enum gkyl_mat_trans transb, struct gkyl_nmat *B, struct gkyl_nmat *C);
-
-
+gkyl_nmat_mm(double alpha, double beta, enum gkyl_mat_trans transa, struct gkyl_nmat *A,
+  enum gkyl_mat_trans transb, struct gkyl_nmat *B, struct gkyl_nmat *C);
 
 /**
  * Solve system of linear equations using LU decomposition. On input
@@ -229,6 +236,25 @@ void gkyl_mat_release(struct gkyl_mat *mat);
 struct gkyl_nmat *gkyl_nmat_new(size_t num, size_t nr, size_t nc);
 
 /**
+ * Construct new matrix. Delete using
+ * gkyl_mat_release method.
+ *
+ * CAUTION: The mat returned by this method lives on the GPU. You
+ * CAN'T modify it directly on the host! If you try, it will crash the
+ * program.
+ *
+ * NOTE: the data member lives on GPU, but the struct lives on the
+ * host.  However, the on_dev member for this cal is set to a device
+ * clone of the host struct, and is what should be used to pass to
+ * CUDA kernels which require the entire array struct on device.
+ * 
+ * @param nr Number of rows
+ * @param nc Number of cols
+ * @return Pointer to new multi-matrix.
+ */
+struct gkyl_mat* gkyl_mat_cu_dev_new(size_t nr, size_t nc);
+
+/**
  * Construct new multi-matrix (batch of matrices). Delete using
  * gkyl_nmat_release method. Each matrix has the same shape.
  *
@@ -257,6 +283,16 @@ struct gkyl_nmat* gkyl_nmat_cu_dev_new(size_t num, size_t nr, size_t nc);
  * @return dest is returned
  */
 struct gkyl_nmat* gkyl_nmat_copy(struct gkyl_nmat *dest, const struct gkyl_nmat *src);
+
+/**
+ * Copy into mat: pointer to dest mat is returned. 'dest' and 'src'
+ * must not point to same data.
+ *
+ * @param dest Destination for copy.
+ * @param src Srouce to copy from.
+ * @return dest is returned
+ */
+struct gkyl_mat* gkyl_mat_copy(struct gkyl_mat *dest, const struct gkyl_mat *src);
 
 /**
  * Get a matrix from multi-matrix. DO NOT free the returned matrix!
@@ -310,6 +346,43 @@ gkyl_nmat_mem *gkyl_nmat_linsolve_lu_cu_dev_new(size_t num, size_t nrow);
  * @param mem Memory to release
  */
 void gkyl_nmat_linsolve_lu_release(gkyl_nmat_mem *mem);
+
+/**
+ * Allocate memory needed in modal to nodal conversion matrices needed 
+ * by cublasDgemm
+ *
+ * @param nr Number of rows in the matrix A
+ * @param nc Number of columns in the matrix A
+ * @param alpha Coefficient infront of A*B
+ * @param beta Coefficient infron of C
+ * @param transa Whether or not to transpose A
+ * @param transb Whether or not to transpose B
+ * @param use_gpu 
+ * @return Preallocated memory
+ */
+gkyl_mat_mm_array_mem *gkyl_mat_mm_array_mem_new(int nr, int nc, double alpha, 
+  double beta, enum gkyl_mat_trans transa, enum gkyl_mat_trans transb, bool use_gpu);
+
+/**
+ * Release memory allocated for batched LU solves.
+ *
+ * @param mem Memory to release
+ */
+void gkyl_mat_mm_array_mem_release(gkyl_mat_mm_array_mem *mem);
+
+/**
+ * Computes: alpha*matrix_multiplication(A,B) + Beta*C = C 
+ * This is done using the cublas_v2 library. The function here, mat_mm_array is designed specifically so
+ * A is type gkyl_mat_trans, and B/C are gkyl_arrays. This is purposefully done for calculations with
+ * small A but and very large B, C where we don't wish to translate B, C to mat/nmat types. 
+ * 
+ * Such calculations use this function like the conversion from nodal to modal representation of phase space
+ * quantities.
+ * @param mem structure containing the A matrix, associated transpose properties, alpha, beta
+ * @param B gkyl_array matrix for computing A*B = C
+ * @param C gkyl_array matrix for computing A*B = C
+*/
+void gkyl_mat_mm_array(struct gkyl_mat_mm_array_mem *mem, const struct gkyl_array *B, struct gkyl_array *C);
 
 /**
  * Solve a batched system of linear equations using LU

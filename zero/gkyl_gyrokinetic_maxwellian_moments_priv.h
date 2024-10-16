@@ -12,7 +12,7 @@ struct gkyl_gyrokinetic_maxwellian_moments
   struct gkyl_basis conf_basis; // Configuration-space basis
   struct gkyl_basis phase_basis; // Phase-space basis
   int num_conf_basis; // Number of configuration-space basis functions
-  int vdim; // Number of velocity dimensions
+  int vdim_phys; // Number of physical velocity dimensions captured.
   const struct gk_geometry *gk_geom; // Geometry struct
   bool divide_jacobgeo; // Boolean for if we are dividing out the configuration-space Jacobian from density
   double mass; // Species mass

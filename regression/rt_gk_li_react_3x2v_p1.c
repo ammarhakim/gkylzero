@@ -23,6 +23,7 @@ struct gk_app_ctx {
   double nuIon; // ion collision frequency
   double B0; // reference magnetic field
   double n0; // reference density
+  double n0Li1, n0Li2; // reference density for Li ions.
   double Lx; // Box size in x.
   double Ly; // Box size in y.
   double Lz; // Box size in z.
@@ -89,7 +90,7 @@ void eval_source_density_ion(double t, const double * GKYL_RESTRICT xn, double* 
   } else {
     fout[0] = 1.e-40;
   }
-  fout[0] = 0.9*n_src*fout[0];
+  fout[0] = 0.85*n_src*fout[0];
 }
 void eval_source_density_li(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
 {
@@ -170,7 +171,7 @@ void eval_density_ion(double t, const double * GKYL_RESTRICT xn, double* GKYL_RE
   eval_source_temp(t, xnCenterZ, T_src, ctx);
 
   double c_ss = sqrt((5./3.)*T_src[0]/mi);
-  double nPeak = 0.9*4.*sqrt(5)/3./c_ss*Ls/2.*n_src[0];
+  double nPeak = 0.85*4.*sqrt(5)/3./c_ss*Ls/2.*n_src[0];
   if (fabs(z) <= Ls) {
     fout[0] = nPeak*(1.+sqrt(1.-pow(z/Ls,2)))/2;
   } else {
@@ -298,6 +299,8 @@ create_ctx(void)
   double Te = 100.0*eV;
   double Ti = 100.0*eV;
   double n0 = 7.0e18;
+  double n0Li1 = 0.05*n0;
+  double n0Li2 = 0.05*n0;
 
   // Geometry and magnetic field.
   double B_axis = 0.5;
@@ -370,6 +373,8 @@ create_ctx(void)
     .nuIon = nuIon, 
     .B0 = B0, 
     .n0 = n0, 
+    .n0Li1 = n0Li1, 
+    .n0Li2 = n0Li2, 
     .Lx = Lx,
     .Ly = Ly,
     .Lz = Lz,
@@ -419,10 +424,6 @@ write_data(struct gkyl_tm_trigger* iot, gkyl_gyrokinetic_app* app, double t_curr
 
     gkyl_gyrokinetic_app_write(app, t_curr, frame);
 
-    gkyl_gyrokinetic_app_calc_mom(app);
-    gkyl_gyrokinetic_app_write_mom(app, t_curr, frame);
-    gkyl_gyrokinetic_app_write_source_mom(app, t_curr, frame);
-
     gkyl_gyrokinetic_app_calc_field_energy(app, t_curr);
     gkyl_gyrokinetic_app_write_field_energy(app);
 
@@ -455,17 +456,8 @@ main(int argc, char **argv)
   for (int d=0; d<ctx.vdim; d++)
     cells_v[d] = APP_ARGS_CHOOSE(app_args.vcells[d], ctx.cells[ctx.cdim+d]);
 
-  // Create decomposition.
-  struct gkyl_rect_decomp *decomp = gkyl_gyrokinetic_comms_decomp_new(ctx.cdim, cells_x, app_args.cuts, app_args.use_mpi, stderr);
-
   // Construct communicator for use in app.
-  struct gkyl_comm *comm = gkyl_gyrokinetic_comms_new(app_args.use_mpi, app_args.use_gpu, decomp, stderr);
-
-  int my_rank = 0;
-#ifdef GKYL_HAVE_MPI
-  if (app_args.use_mpi)
-    gkyl_comm_get_rank(comm, &my_rank);
-#endif
+  struct gkyl_comm *comm = gkyl_gyrokinetic_comms_new(app_args.use_mpi, app_args.use_gpu, stderr);
 
   // Electrons.
   struct gkyl_gyrokinetic_species elc = {
@@ -494,7 +486,6 @@ main(int argc, char **argv)
     },
     .source = {
       .source_id = GKYL_PROJ_SOURCE,
-      .write_source = true,
       .num_sources=1,
       .projection[0] = {
         .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM, 
@@ -551,7 +542,7 @@ main(int argc, char **argv)
     .lower = { -ctx.vpar_max_ion, 0.0},
     .upper = { ctx.vpar_max_ion, ctx.mu_max_ion}, 
     .cells = { cells_v[0], cells_v[1] },
-    .polarization_density = ctx.n0,
+    .polarization_density = ctx.n0 - ctx.n0Li1 - 2.0*ctx.n0Li2,
 
     .projection = {
       .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM, 
@@ -571,7 +562,6 @@ main(int argc, char **argv)
     },
     .source = {
       .source_id = GKYL_PROJ_SOURCE,
-      .write_source = true,
       .num_sources=1,
       .projection[0] = {
         .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM, 
@@ -603,7 +593,7 @@ main(int argc, char **argv)
     .lower = { -ctx.vpar_max_Li, 0.0},
     .upper = { ctx.vpar_max_Li, ctx.mu_max_Li}, 
     .cells = { cells_v[0], cells_v[1] },
-    .polarization_density = 0.05*ctx.n0,
+    .polarization_density = ctx.n0Li1,
 
     .projection = {
       .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM, 
@@ -616,7 +606,6 @@ main(int argc, char **argv)
     },
     .source = {
       .source_id = GKYL_PROJ_SOURCE,
-      .write_source = true,
       .num_sources=1,
       .projection[0] = {
         .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM, 
@@ -674,12 +663,12 @@ main(int argc, char **argv)
     .lower = { -ctx.vpar_max_Li, 0.0},
     .upper = { ctx.vpar_max_Li, ctx.mu_max_Li}, 
     .cells = { cells_v[0], cells_v[1] },
-    .polarization_density = 0.05*ctx.n0,
+    .polarization_density = ctx.n0Li2,
 
     .projection = { 
       .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM, 
       .ctx_density = &ctx,
-      .density = eval_density,
+      .density = eval_density_li,
       .ctx_upar = &ctx,
       .upar= eval_upar,
       .ctx_temp = &ctx,
@@ -687,7 +676,6 @@ main(int argc, char **argv)
     },
     .source = {
       .source_id = GKYL_PROJ_SOURCE,
-      .write_source = true,
       .num_sources=1,
       .projection[0] = {
         .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM, 
@@ -750,7 +738,7 @@ main(int argc, char **argv)
   struct gkyl_gk app_inp = {
     .name = "gk_li_react_3x2v_p1",
 
-    .cdim = 3, .vdim = 2,
+    .cdim = ctx.cdim, .vdim = ctx.vdim,
     .lower = { ctx.R-ctx.Lx/2.0, -ctx.Ly/2.0, -ctx.Lz/2.0 },
     .upper = { ctx.R+ctx.Lx/2.0,  ctx.Ly/2.0,  ctx.Lz/2.0 },
     .cells = { cells_x[0], cells_x[1], cells_x[2] },
@@ -772,7 +760,11 @@ main(int argc, char **argv)
     .species = { elc, ion, Li1, Li2 },
     .field = field,
 
-    .use_gpu = app_args.use_gpu,
+    .parallelism = {
+      .use_gpu = app_args.use_gpu,
+      .cuts = { app_args.cuts[0], app_args.cuts[1], app_args.cuts[2] },
+      .comm = comm,
+    },
   };
 
   // Create app object.
@@ -883,7 +875,7 @@ main(int argc, char **argv)
   freeresources:
   // Free resources after simulation completion.
   gkyl_gyrokinetic_app_release(app);
-  gkyl_gyrokinetic_comms_release(decomp, comm);
+  gkyl_gyrokinetic_comms_release(comm);
 
 #ifdef GKYL_HAVE_MPI
   if (app_args.use_mpi) {
