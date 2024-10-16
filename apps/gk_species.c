@@ -83,7 +83,7 @@ gk_species_file_import_init(struct gkyl_gyrokinetic_app *app, struct gk_species 
           .meta_sz = hdr.meta_size
         }
       );
-    assert(strcmp(app->basis.id, meta.basis_type) == 0);
+    assert(strcmp(app->basis.id, meta.basis_type_nm) == 0);
     assert(poly_order == meta.poly_order);
     gkyl_grid_sub_array_header_release(&hdr);
   }
