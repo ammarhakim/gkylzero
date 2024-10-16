@@ -58,6 +58,13 @@ moment_species_init(const struct gkyl_moment *mom, const struct gkyl_moment_spec
     sp->reactivity_reaction_rate = mom_sp->reactivity_reaction_rate;
   }
 
+  if (mom_sp->has_einstein_medium) {
+    sp->has_einstein_medium = true;
+
+    sp->medium_gas_gamma = mom_sp->medium_gas_gamma;
+    sp->medium_kappa = mom_sp->medium_kappa;
+  }
+
   sp->scheme_type = mom->scheme_type;
 
   // choose default limiter

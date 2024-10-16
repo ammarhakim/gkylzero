@@ -17,7 +17,8 @@ typedef struct gkyl_moment_em_coupling gkyl_moment_em_coupling;
 * @param app_current Array of current terms to be applied to the fluid equations (for external current driving).
 * @param ext_em External electromagnetic variables (for EM fields coming from external sources, e.g. coils, capacitors, etc.).
 */
-void implicit_em_source_update(const gkyl_moment_em_coupling* mom_em, double t_curr, double dt, 
+void
+implicit_em_source_update(const gkyl_moment_em_coupling* mom_em, double t_curr, double dt, 
   double fluid_rhs_s[GKYL_MAX_SPECIES][4], double* fluid_s[GKYL_MAX_SPECIES],
   const double *app_accel_s[GKYL_MAX_SPECIES], double* em, const double* app_current, const double* ext_em);
 
@@ -32,7 +33,8 @@ void implicit_em_source_update(const gkyl_moment_em_coupling* mom_em, double t_c
 * @param fluid_s Array of output fluid variables (array size = nfluids).
 * @param app_accel_s Array of acceleration terms to be applied to the fluid equations (for external forces).
 */
-void implicit_neut_source_update(const gkyl_moment_em_coupling* mom_em, double t_curr, double dt, 
+void
+implicit_neut_source_update(const gkyl_moment_em_coupling* mom_em, double t_curr, double dt, 
   double fluid_rhs_s[GKYL_MAX_SPECIES][4], double* fluid_s[GKYL_MAX_SPECIES],
   const double* app_accel_s[GKYL_MAX_SPECIES]);
 
@@ -44,7 +46,8 @@ void implicit_neut_source_update(const gkyl_moment_em_coupling* mom_em, double t
 * @param dt Current stable time-step.
 * @param fluid_s Array of fluid variables (array size = nfluids).
 */
-void implicit_collision_source_update(const gkyl_moment_em_coupling* mom_em, double dt, double* fluid_s[GKYL_MAX_SPECIES]);
+void
+implicit_collision_source_update(const gkyl_moment_em_coupling* mom_em, double dt, double* fluid_s[GKYL_MAX_SPECIES]);
 
 /**
 * Integrate the frictional source terms in the multi-fluid equation system within a single cell, using an implicit forcing solver (specifically
@@ -66,7 +69,8 @@ void implicit_collision_source_update(const gkyl_moment_em_coupling* mom_em, dou
 * @param app_current Array of current terms to be applied to the fluid equations (for external current driving).
 * @param ext_em External electromagnetic variables (for EM fields coming from external sources, e.g. coils, capacitors, etc.).
 */
-void implicit_frictional_source_update_half(const gkyl_moment_em_coupling* mom_em, const double Z, const double T_elc, const double Lambda_ee,
+void
+implicit_frictional_source_update_half(const gkyl_moment_em_coupling* mom_em, const double Z, const double T_elc, const double Lambda_ee,
   double t_curr, const double dt, double* f_elc_old, double* f_ion_old, double* f_elc_new, double* f_ion_new,
   const double* app_accel_s[GKYL_MAX_SPECIES], double* em_old, double* em_new, const double* app_current, const double* ext_em);
 
@@ -83,7 +87,8 @@ void implicit_frictional_source_update_half(const gkyl_moment_em_coupling* mom_e
 * @param app_current Array of current terms to be applied to the fluid equations (for external current driving).
 * @param ext_em External electromagnetic variables (for EM fields coming from external sources, e.g. coils, capacitors, etc.).
 */
-void implicit_frictional_source_update(const gkyl_moment_em_coupling* mom_em, double t_curr, double dt, double* fluid_s[GKYL_MAX_SPECIES],
+void
+implicit_frictional_source_update(const gkyl_moment_em_coupling* mom_em, double t_curr, double dt, double* fluid_s[GKYL_MAX_SPECIES],
   const double* app_accel_s[GKYL_MAX_SPECIES], double* em, const double* app_current, const double* ext_em);
 
 /**
@@ -101,6 +106,7 @@ void implicit_frictional_source_update(const gkyl_moment_em_coupling* mom_em, do
 * @param ext_em External electromagnetic variables (for EM fields coming from external sources, e.g. coils, capacitors, etc.).
 * @param nT_sources_s Array of number density and temperature source terms.
 */
-void implicit_source_coupling_update(const gkyl_moment_em_coupling* mom_em, double t_curr, double dt, double* fluid_s[GKYL_MAX_SPECIES],
+void
+implicit_source_coupling_update(const gkyl_moment_em_coupling* mom_em, double t_curr, double dt, double* fluid_s[GKYL_MAX_SPECIES],
   const double* app_accel_s[GKYL_MAX_SPECIES], const double* p_rhs_s[GKYL_MAX_SPECIES], double* em, const double* app_current,
   const double* ext_em, const double* nT_sources_s[GKYL_MAX_SPECIES]);
