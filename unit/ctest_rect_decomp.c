@@ -258,6 +258,12 @@ test_rect_decomp_2d(void)
     gkyl_rect_decomp_neigh_release(neigh);
   }
 
+  // Check the method to get cuts.
+  int cuts_new[decomp->ndim];
+  gkyl_rect_decomp_get_cuts(decomp, cuts_new);
+  for (int d=0; d<decomp->ndim; d++)
+    TEST_CHECK( cuts_new[d] == cuts[d] );
+
   gkyl_rect_decomp_release(decomp);
 }
 
@@ -341,6 +347,12 @@ test_rect_decomp_3d(void)
     gkyl_rect_decomp_neigh_release(neigh);
   }  
   
+  // Check the method to get cuts.
+  int cuts_new[decomp->ndim];
+  gkyl_rect_decomp_get_cuts(decomp, cuts_new);
+  for (int d=0; d<decomp->ndim; d++)
+    TEST_CHECK( cuts_new[d] == cuts[d] );
+
   gkyl_rect_decomp_release(decomp);
 }
 
@@ -364,6 +376,12 @@ test_rect_decomp_4d(void)
 
   TEST_CHECK( vol == range.volume );
   TEST_CHECK( gkyl_rect_decomp_check_covering(decomp) );
+
+  // Check the method to get cuts.
+  int cuts_new[decomp->ndim];
+  gkyl_rect_decomp_get_cuts(decomp, cuts_new);
+  for (int d=0; d<decomp->ndim; d++)
+    TEST_CHECK( cuts_new[d] == cuts[d] );
 
   gkyl_rect_decomp_release(decomp);
 }
@@ -397,6 +415,12 @@ test_rect_decomp_per_2d(void)
     }
   }
 
+  // Check the method to get cuts.
+  int cuts_new[decomp->ndim];
+  gkyl_rect_decomp_get_cuts(decomp, cuts_new);
+  for (int d=0; d<decomp->ndim; d++)
+    TEST_CHECK( cuts_new[d] == cuts[d] );
+
   gkyl_rect_decomp_release(decomp);
 }
 
@@ -428,6 +452,12 @@ test_rect_decomp_per_2d_2(void)
       gkyl_rect_decomp_neigh_release(neigh);
     }
   }
+
+  // Check the method to get cuts.
+  int cuts_new[decomp->ndim];
+  gkyl_rect_decomp_get_cuts(decomp, cuts_new);
+  for (int d=0; d<decomp->ndim; d++)
+    TEST_CHECK( cuts_new[d] == cuts[d] );
 
   gkyl_rect_decomp_release(decomp);
 }
@@ -461,6 +491,12 @@ test_rect_decomp_per_2d_corner(void)
     }
   }
 
+  // Check the method to get cuts.
+  int cuts_new[decomp->ndim];
+  gkyl_rect_decomp_get_cuts(decomp, cuts_new);
+  for (int d=0; d<decomp->ndim; d++)
+    TEST_CHECK( cuts_new[d] == cuts[d] );
+
   gkyl_rect_decomp_release(decomp);
 }
 
@@ -492,6 +528,12 @@ test_rect_decomp_per_3d(void)
       gkyl_rect_decomp_neigh_release(neigh);
     }
   }
+
+  // Check the method to get cuts.
+  int cuts_new[decomp->ndim];
+  gkyl_rect_decomp_get_cuts(decomp, cuts_new);
+  for (int d=0; d<decomp->ndim; d++)
+    TEST_CHECK( cuts_new[d] == cuts[d] );
 
   gkyl_rect_decomp_release(decomp);  
 }
@@ -529,6 +571,12 @@ test_rect_decomp_2d_2v(void)
     }
   }
 
+  // Check the method to get cuts.
+  int cuts_new[decomp->ndim];
+  gkyl_rect_decomp_get_cuts(decomp, cuts_new);
+  for (int d=0; d<decomp->ndim; d++)
+    TEST_CHECK( cuts_new[d] == cuts[d] );
+
   gkyl_rect_decomp_release(decomp);
   gkyl_rect_decomp_release(ext_decomp);
 }
@@ -544,6 +592,12 @@ test_rect_decomp_from_cuts_and_cells(void)
   TEST_CHECK( decomp->ndecomp == cuts[0]*cuts[1]*cuts[2] );
 
   TEST_CHECK( gkyl_rect_decomp_check_covering(decomp) );
+
+  // Check the method to get cuts.
+  int cuts_new[decomp->ndim];
+  gkyl_rect_decomp_get_cuts(decomp, cuts_new);
+  for (int d=0; d<decomp->ndim; d++)
+    TEST_CHECK( cuts_new[d] == cuts[d] );
 
   gkyl_rect_decomp_release(decomp);
 }
