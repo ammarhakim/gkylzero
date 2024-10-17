@@ -50,6 +50,7 @@ struct rad_ctx
   int Nz; // Cell count (configuration space: z-direction).
   int Nvpar; // Cell count (velocity space: parallel velocity direction).
   int Nmu; // Cell count (velocity space: magnetic moment direction).
+  int Nvneut; // Cell count (velocity space: each direction for neutral)
   int cells[GKYL_MAX_DIM]; // Number of cells in all directions.
   double Lz; // Domain size (configuration space: z-direction).
   double vpar_max_elc; // Domain boundary (electron velocity space: parallel velocity direction).
@@ -108,13 +109,14 @@ create_ctx(void)
 
   // Simulation parameters.
   int Nz = 4; // Cell count (configuration space: z-direction).
-  int Nv = 64; // Cell count (velocity space: parallel velocity direction).
+  int Nvpar = 64; // Cell count (velocity space: parallel velocity direction).
   int Nmu = 32; // Cell count (velocity space: magnetic moment direction).
-  double Lz = 200.0 * rho_si; // Domain size (configuration space: z-direction).
-  double Lv_elc = 8.0 * vte; // Domain size (electron velocity space: parallel velocity direction).
-  double Lmu_elc = 0.75 * mass_elc * (4.0 * vte) * (4.0 * vte) / (2.0 * B0); // Domain size (electron velocity space: magnetic moment direction).
-  double Lv_ion = 8.0 * vti; // Domain size (ion velocity space: parallel velocity direction).
-  double Lmu_ion = 0.75 * mass_ion * (4.0 * vti) * (4.0 * vti) / (2.0 * B0); // Domain size (ion velocity space: magnetic moment direction).
+  int Nvneut = 8; // Cell count (velocity space: each direction for neutral)
+  double Lz = 200.0 * rho_s; // Domain size (configuration space: z-direction).
+  double vpar_max_elc = 8.0 * vte; // Domain size (electron velocity space: parallel velocity direction).
+  double mu_max_elc = 0.75 * mass_elc * (4.0 * vte) * (4.0 * vte) / (2.0 * B0); // Domain size (electron velocity space: magnetic moment direction).
+  double vpar_max_ion = 8.0 * vti; // Domain size (ion velocity space: parallel velocity direction).
+  double mu_max_ion = 0.75 * mass_ion * (4.0 * vti) * (4.0 * vti) / (2.0 * B0); // Domain size (ion velocity space: magnetic moment direction).
   double t_end = 1.0e-10; // Final simulation time.
   int num_frames = 1; // Number of output frames.
   int int_diag_calc_num = num_frames*100;
@@ -149,7 +151,8 @@ create_ctx(void)
     .Nz = Nz,
     .Nvpar = Nvpar,
     .Nmu = Nmu,
-    .cells = {Nz, Nvpar, Nmu},
+    .Nvneut = Nvneut,
+    .cells = {Nz, Nvpar, Nmu, Nvneut},
     .Lz = Lz,
     .vpar_max_elc = vpar_max_elc,
     .mu_max_elc = mu_max_elc,
@@ -304,10 +307,10 @@ main(int argc, char **argv)
 
   struct rad_ctx ctx = create_ctx(); // Context for initialization functions.
 
-  int cells_x[ctx.cdim], cells_v[ctx.vdim];
+  int cells_x[ctx.cdim], cells_v[ctx.vdim+1];
   for (int d=0; d<ctx.cdim; d++)
     cells_x[d] = APP_ARGS_CHOOSE(app_args.xcells[d], ctx.cells[d]);
-  for (int d=0; d<ctx.vdim; d++)
+  for (int d=0; d<ctx.vdim+1; d++)
     cells_v[d] = APP_ARGS_CHOOSE(app_args.vcells[d], ctx.cells[ctx.cdim+d]);
 
   // Construct communicator for use in app.
@@ -317,9 +320,9 @@ main(int argc, char **argv)
   struct gkyl_gyrokinetic_species elc = {
     .name = "elc",
     .charge = ctx.charge_elc, .mass = ctx.mass_elc,
-    .lower = { -0.5 * ctx.Lv_elc, 0.0 },
-    .upper = { 0.5 * ctx.Lv_elc, ctx.Lmu_elc },
-    .cells = { NV, NMU },
+    .lower = { -0.5 * ctx.vpar_max_elc, 0.0 },
+    .upper = { 0.5 * ctx.vpar_max_elc, ctx.mu_max_elc },
+    .cells = { cells_v[0], cells_v[1] },
     .polarization_density = ctx.n0/2,
 
     .projection = {
@@ -374,9 +377,9 @@ main(int argc, char **argv)
   struct gkyl_gyrokinetic_species elc2 = {
     .name = "elc2",
     .charge = ctx.charge_elc, .mass = ctx.mass_elc,
-    .lower = { -0.5 * ctx.Lv_elc, 0.0 },
-    .upper = { 0.5 * ctx.Lv_elc, ctx.Lmu_elc },
-    .cells = { NV, NMU },
+    .lower = { -0.5 * ctx.vpar_max_elc, 0.0 },
+    .upper = { 0.5 * ctx.vpar_max_elc, ctx.mu_max_elc },
+    .cells = { cells_v[0], cells_v[1] },
     .polarization_density = ctx.n0/2,
 
     .projection = {
@@ -473,9 +476,9 @@ main(int argc, char **argv)
   // D0
   struct gkyl_gyrokinetic_neut_species test_sp_1 = {
     .name = "test_sp_1", .mass = ctx.mass_ion,
-    .lower = { -ctx.Lv_ion, -ctx.Lv_ion, -ctx.Lv_ion},
-    .upper = { ctx.Lv_ion, ctx.Lv_ion, ctx.Lv_ion },
-    .cells = { NV, NV, NV},
+    .lower = { -ctx.vpar_max_ion, -ctx.vpar_max_ion, -ctx.vpar_max_ion},
+    .upper = { ctx.vpar_max_ion, ctx.vpar_max_ion, ctx.vpar_max_ion },
+    .cells = { cells_v[2], cells_v[2], cells_v[2]},
     .is_static = true,
 
     .projection = {
@@ -495,9 +498,9 @@ main(int argc, char **argv)
   // Second D0
   struct gkyl_gyrokinetic_neut_species test_sp_2 = {
     .name = "test_sp_2", .mass = ctx.mass_ion,
-    .lower = { -ctx.Lv_ion, -ctx.Lv_ion, -ctx.Lv_ion},
-    .upper = { ctx.Lv_ion, ctx.Lv_ion, ctx.Lv_ion },
-    .cells = { NV, NV, NV},
+    .lower = { -ctx.vpar_max_ion, -ctx.vpar_max_ion, -ctx.vpar_max_ion},
+    .upper = { ctx.vpar_max_ion, ctx.vpar_max_ion, ctx.vpar_max_ion },
+    .cells = { cells_v[2], cells_v[2], cells_v[2]},
     .is_static = true,
 
     .projection = {
@@ -516,9 +519,9 @@ main(int argc, char **argv)
   // Third D0
   struct gkyl_gyrokinetic_neut_species test_sp_3 = {
     .name = "test_sp_3", .mass = ctx.mass_ion,
-    .lower = { -ctx.Lv_ion, -ctx.Lv_ion, -ctx.Lv_ion},
-    .upper = { ctx.Lv_ion, ctx.Lv_ion, ctx.Lv_ion },
-    .cells = { NV, NV, NV},
+    .lower = { -ctx.vpar_max_ion, -ctx.vpar_max_ion, -ctx.vpar_max_ion},
+    .upper = { ctx.vpar_max_ion, ctx.vpar_max_ion, ctx.vpar_max_ion },
+    .cells = { cells_v[2], cells_v[2], cells_v[2]},
     .is_static = true,
 
     .projection = {
@@ -537,9 +540,9 @@ main(int argc, char **argv)
   // Fourth D0
   struct gkyl_gyrokinetic_neut_species test_sp_4 = {
     .name = "test_sp_4", .mass = ctx.mass_ion,
-    .lower = { -ctx.Lv_ion, -ctx.Lv_ion, -ctx.Lv_ion},
-    .upper = { ctx.Lv_ion, ctx.Lv_ion, ctx.Lv_ion },
-    .cells = { NV, NV, NV},
+    .lower = { -ctx.vpar_max_ion, -ctx.vpar_max_ion, -ctx.vpar_max_ion},
+    .upper = { ctx.vpar_max_ion, ctx.vpar_max_ion, ctx.vpar_max_ion },
+    .cells = { cells_v[2], cells_v[2], cells_v[2]},
     .is_static = true,
 
     .projection = {

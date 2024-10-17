@@ -7,9 +7,14 @@
 #include <gkyl_range.h>
 #include <gkyl_rect_grid.h>
 #include <gkyl_velocity_map.h>
+#include <gkyl_util.h>
 
 // Object type
 typedef struct gkyl_dg_calc_gk_rad_vars gkyl_dg_calc_gk_rad_vars;
+
+struct gkyl_dg_rad_nu_ne_dependence {
+  struct gkyl_array *nu[GKYL_MAX_RAD_DENSITIES];
+};
 
 /**
  * Create new updater to compute the drag coefficients needed for 
@@ -30,15 +35,12 @@ typedef struct gkyl_dg_calc_gk_rad_vars gkyl_dg_calc_gk_rad_vars;
  * @param mass Species mass
  * @param gk_geom Geometry struct
  * @param vel_map Velocity space mapping object.
- * @param a, alpha, beta, gamma, v0 Input fitting parameters for a given collision type
  * @return New updater pointer.
  */
 struct gkyl_dg_calc_gk_rad_vars* 
 gkyl_dg_calc_gk_rad_vars_new(const struct gkyl_rect_grid *phase_grid, 
   const struct gkyl_basis *conf_basis, const struct gkyl_basis *phase_basis, double charge,
-  double mass, const struct gk_geometry *gk_geom, const struct gkyl_velocity_map *vel_map,
-  double a, double alpha, double beta, double gamma, double v0, 
-  bool use_gpu);
+  double mass, const struct gk_geometry *gk_geom, const struct gkyl_velocity_map *vel_map, bool use_gpu);
 
 /**
  * Compute drag coefficients needed for radiation in gyrokinetic equations
@@ -46,13 +48,15 @@ gkyl_dg_calc_gk_rad_vars_new(const struct gkyl_rect_grid *phase_grid,
  * @param up Updater for computing gyrokinetic radiation variables 
  * @param conf_range Configuration space range (should only be local range because geometry only defined on local range)
  * @param phase_range Phase space range 
+ * @param a, alpha, beta, gamma, v0 Input fitting parameters for a given collision type
  * @param vnu_surf Output surface expansion of vpar drag coefficient
  * @param vnu Output volume expansion of vpar drag coefficient
  * @param vsqnu_surf Output surface expansion of mu drag coefficient
  * @param vsqnu Output volume expansion of mu drag coefficient
  */
 void gkyl_dg_calc_gk_rad_vars_nu_advance(const struct gkyl_dg_calc_gk_rad_vars *up,
-  const struct gkyl_range *conf_range, const struct gkyl_range *phase_range, 
+  const struct gkyl_range *conf_range, const struct gkyl_range *phase_range,
+  double a, double alpha, double beta, double gamma, double v0, 
   struct gkyl_array* vnu_surf, struct gkyl_array* vnu, 
   struct gkyl_array* vsqnu_surf, struct gkyl_array* vsqnu);
 
@@ -75,12 +79,12 @@ void gkyl_dg_calc_gk_rad_vars_nu_advance(const struct gkyl_dg_calc_gk_rad_vars *
  * @param nvsqnu_surf Output surface expansion of mu component of sum_s n_{i_s} nu_s(v)
  * @param nvsqnu Output volume expansion of mu drag component of sum_s n_{i_s} nu_s(v)
  */
-void gkyl_dg_calc_gk_rad_vars_nI_nu_advance(const struct gkyl_dg_calc_gk_rad_vars *up[GKYL_MAX_RAD_DENSITIES],
+void gkyl_dg_calc_gk_rad_vars_nI_nu_advance(const struct gkyl_dg_calc_gk_rad_vars *up,
   const struct gkyl_range *conf_range, const struct gkyl_range *phase_range, 
-  const struct gkyl_array* vnu_surf[GKYL_MAX_RAD_DENSITIES],
-  const struct gkyl_array* vnu[GKYL_MAX_RAD_DENSITIES], 
-  const struct gkyl_array* vsqnu_surf[GKYL_MAX_RAD_DENSITIES],
-  const struct gkyl_array* vsqnu[GKYL_MAX_RAD_DENSITIES],
+  const struct gkyl_dg_rad_nu_ne_dependence* vnu_surf,
+  const struct gkyl_dg_rad_nu_ne_dependence* vnu, 
+  const struct gkyl_dg_rad_nu_ne_dependence* vsqnu_surf,
+  const struct gkyl_dg_rad_nu_ne_dependence* vsqnu,
   const struct gkyl_array* n_elc_rad,
   const struct gkyl_array* n_elc,
   const struct gkyl_array* nI, 
@@ -93,3 +97,4 @@ void gkyl_dg_calc_gk_rad_vars_nI_nu_advance(const struct gkyl_dg_calc_gk_rad_var
  * @param up Updater to delete.
  */
 void gkyl_dg_calc_gk_rad_vars_release(struct gkyl_dg_calc_gk_rad_vars *up);
+
