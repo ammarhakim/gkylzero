@@ -1243,10 +1243,12 @@ gkyl_gyrokinetic_app_write_species_source_mom(gkyl_gyrokinetic_app* app, int sid
       snprintf(fileNm, sizeof fileNm, fmt, app->name, gk_s->info.name,
         gk_s->info.diag_moments[m], frame);
 
-      // Rescale moment by inverse of Jacobian
-      gkyl_dg_div_op_range(gk_s->moms[m].mem_geo, app->confBasis, 
-        0, gk_s->src.moms[m].marr, 0, gk_s->src.moms[m].marr, 0, 
-        app->gk_geom->jacobgeo, &app->local);      
+      if (!gk_s->src.moms[m].is_bimaxwellian_moms && !gk_s->src.moms[m].is_maxwellian_moms) {
+        // Rescale moment by inverse of Jacobian
+        gkyl_dg_div_op_range(gk_s->moms[m].mem_geo, app->confBasis, 
+          0, gk_s->src.moms[m].marr, 0, gk_s->src.moms[m].marr, 0, 
+          app->gk_geom->jacobgeo, &app->local);      
+      }
 
       if (app->use_gpu) {
         gkyl_array_copy(gk_s->src.moms[m].marr_host, gk_s->src.moms[m].marr);
