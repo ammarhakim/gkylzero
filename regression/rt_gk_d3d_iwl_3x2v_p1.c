@@ -648,7 +648,7 @@ main(int argc, char **argv)
     cells_v[d] = APP_ARGS_CHOOSE(app_args.vcells[d], ctx.cells[ctx.cdim+d]);
 
   // Construct communicator for use in app.
-  struct gkyl_comm *comm = gkyl_gyrokinetic_comms_new(app_args.use_mpi, app_args.use_gpu, decomp, stderr);
+  struct gkyl_comm *comm = gkyl_gyrokinetic_comms_new(app_args.use_mpi, app_args.use_gpu, stderr);
 
   // electrons
   struct gkyl_gyrokinetic_species elc = {
@@ -722,7 +722,7 @@ main(int argc, char **argv)
       },
     },
 
-    .num_diag_moments = 5,
+    .num_diag_moments = 1,
     .diag_moments = { "MaxwellianMoments" },
   };
 
@@ -798,7 +798,7 @@ main(int argc, char **argv)
       },
     },
 
-    .num_diag_moments = 5,
+    .num_diag_moments = 1,
     .diag_moments = { "MaxwellianMoments" },
   };
 
@@ -958,7 +958,7 @@ main(int argc, char **argv)
   freeresources:
   // simulation complete, free app
   gkyl_gyrokinetic_app_release(app);
-  gkyl_gyrokinetic_comms_release(decomp, comm);
+  gkyl_gyrokinetic_comms_release(comm);
 
 #ifdef GKYL_HAVE_MPI
   if (app_args.use_mpi) {
