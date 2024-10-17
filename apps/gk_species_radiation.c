@@ -73,7 +73,7 @@ gk_species_radiation_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s
   // initialize drag coefficients
   for (int i=0; i<rad->num_cross_collisions; ++i) {
     int num_of_densities[1] = {0};
-    num_of_densities[0] = s->info.radiation.num_of_densities[i];
+    num_of_densities[0] = s->info.radiation.num_of_densities[i] ? s->info.radiation.num_of_densities[i] : 1;
     int status = gkyl_radiation_read_get_fit_params(*rad_data, s->info.radiation.z[i], s->info.radiation.charge_state[i], a, alpha, beta, gamma, v0, num_of_densities, ne, s->info.radiation.reference_ne, s->info.radiation.min_ne, s->info.radiation.max_ne);
     rad->rad_fit_ne[i] = mkarr(app->use_gpu, 1, num_of_densities[0]);
 

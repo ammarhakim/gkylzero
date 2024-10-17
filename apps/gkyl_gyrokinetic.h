@@ -131,7 +131,7 @@ struct gkyl_gyrokinetic_radiation {
   // Atomic z and charge state of species colliding with
   int z[2*GKYL_MAX_SPECIES];
   int charge_state[2*GKYL_MAX_SPECIES];
-  int num_of_densities[2*GKYL_MAX_SPECIES]; // Max number of densities to use per charge state
+  int num_of_densities[GKYL_MAX_RAD_DENSITIES]; // Max number of densities to use per charge state
 
   // reference, Max and min electron densities to specify range of density fits (when more than 1 density)
   double reference_ne;

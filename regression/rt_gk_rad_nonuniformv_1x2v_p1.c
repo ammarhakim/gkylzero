@@ -367,7 +367,6 @@ main(int argc, char **argv)
       .collide_with = { "ion" },
       .z = 1,
       .charge_state = 0,
-      .num_of_densities = 1, // Must be 1 for now.
     },
     
     .num_diag_moments = 7,
