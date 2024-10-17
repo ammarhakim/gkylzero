@@ -131,20 +131,18 @@ test_1x1v(const int *cells, const int *cells_tar, int poly_order, bool use_gpu)
   gkyl_create_grid_ranges(&grid, ghost, &local_ext, &local);
 
   // Create bmag arrays.
-  struct gkyl_array *bmag_ho, *bmag;
-  bmag = mkarr(use_gpu, confBasis.num_basis, confLocal_ext.volume);
-  bmag_ho = use_gpu? mkarr(false, bmag->ncomp, bmag->size)
-                   : gkyl_array_acquire(bmag);
+  struct gkyl_array *bmag = mkarr(use_gpu, confBasis.num_basis, confLocal_ext.volume);
+  struct gkyl_array *bmag_ho = use_gpu? mkarr(false, bmag->ncomp, bmag->size)
+                                      : gkyl_array_acquire(bmag);
   gkyl_proj_on_basis *proj_bmag = gkyl_proj_on_basis_new(&confGrid, &confBasis,
     poly_order+1, 1, eval_bmag_1x, &proj_ctx);
   gkyl_proj_on_basis_advance(proj_bmag, 0.0, &confLocal, bmag_ho);
   gkyl_array_copy(bmag, bmag_ho);
 
   // Create distribution function arrays.
-  struct gkyl_array *distf_ho, *distf;
-  distf = mkarr(use_gpu, basis.num_basis, local_ext.volume);
-  distf_ho = use_gpu? mkarr(false, distf->ncomp, distf->size)
-                    : gkyl_array_acquire(distf);
+  struct gkyl_array *distf = mkarr(use_gpu, basis.num_basis, local_ext.volume);
+  struct gkyl_array *distf_ho = use_gpu? mkarr(false, distf->ncomp, distf->size)
+                                       : gkyl_array_acquire(distf);
   gkyl_proj_on_basis *proj_distf = gkyl_proj_on_basis_new(&grid, &basis,
     poly_order+1, 1, eval_distf_1x1v, &proj_ctx);
   gkyl_proj_on_basis_advance(proj_distf, 0.0, &local, distf_ho);
@@ -194,10 +192,9 @@ test_1x1v(const int *cells, const int *cells_tar, int poly_order, bool use_gpu)
   gkyl_create_grid_ranges(&grid_tar, ghost, &local_tar_ext, &local_tar);
 
   // Target field.
-  struct gkyl_array *distf_tar_ho, *distf_tar;
-  distf_tar = mkarr(use_gpu, basis.num_basis, local_tar_ext.volume);
-  distf_tar_ho = use_gpu? mkarr(false, distf_tar->ncomp, distf_tar->size)
-                    : gkyl_array_acquire(distf_tar);
+  struct gkyl_array *distf_tar = mkarr(use_gpu, basis.num_basis, local_tar_ext.volume);
+  struct gkyl_array *distf_tar_ho = use_gpu? mkarr(false, distf_tar->ncomp, distf_tar->size)
+                                           : gkyl_array_acquire(distf_tar);
 
   // Create the interpolation operator and interpolate onto the target grid.
   struct gkyl_dg_interpolate *interp = gkyl_dg_interpolate_new(cdim, &basis,

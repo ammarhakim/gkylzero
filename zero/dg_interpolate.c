@@ -1,70 +1,7 @@
 #include <gkyl_dg_interpolate.h>
 #include <gkyl_dg_interpolate_priv.h>
 #include <gkyl_alloc.h>
-
-static int dg_interp_prime_factors(int n, int *pfs, int pfs_size)
-{
-  // Find the prime factos of number `n`, and put them into `pfs`. We assume
-  // there are fewer than `pfs_size` prime factors.
-  int pf_count = 0;
-  int c = 2;
-  while (n > 1) {
-    if (n % c == 0) {
-      pfs[pf_count] = c;
-      pf_count++;
-      assert(pf_count < pfs_size);
-      n /= c;
-    }
-    else
-      c++;
-  }
-  return pf_count;
-}
-
-static int dg_interp_index_stencil_map_refine(int dir, int idx,
-  int num_cells, double dx_rat, int stencilIn)
-{
-  // Given an index 'idx' to a cell in the coarse grid with 'num_cells'
-  // cells, return the index of the refinement stencil needed, within
-  // the table that holds stencils. Here 'dx_rat' is the ratio of
-  // donor to target cell length in the 'dir' direction.
-  double remDecL = (idx-1)*dx_rat-floor((idx-1)*dx_rat);
-  double remDecU = ceil(idx*dx_rat)-idx*dx_rat;
-  int stencilOut = stencilIn;
-  if ((idx == 1) ||   // First cell.
-      (remDecL == 0) ||    // Interior cell with a left-boundary-like stencil.
-      ((remDecL <= 0.5) && (remDecU <= 0.5))) {
-    stencilOut = 2*stencilIn + pow(3,dir-1) - 1;
-  }
-  else if ((idx == num_cells) || // Last cell.
-          (remDecU == 0)) { // Interior cell with a right-boundary-like stencil.
-    stencilOut = 2*stencilIn + pow(3,dir-1);
-  }
-  return stencilOut;
-}
-
-static int dg_interp_index_stencil_map_coarsen(int dir, int idx,
-  int num_cells, double dx_rat, int stencilIn)
-{
-  // Given an index 'idx' to a cell in the fine grid with 'num_cells'
-  // cells, return the index of the coarsening stencil needed, within
-  // the table that holds stencils. Here 'dx_rat' is the ratio of
-  // donor to target cell length in the 'dir' direction.
-  double remDecL = (idx-1)*dx_rat-floor(idx*dx_rat);
-  double remDecU = ceil(idx*dx_rat)-idx*dx_rat;
-  int stencilOut = stencilIn;
-  if ((idx == 1) || // First cell.
-      (remDecL == 0) || // Interior cell with a left-boundary-like stencil.
-      ((remDecL > 0) && (remDecU > 0))) {
-     stencilOut = 2*stencilIn + pow(3,dir-1) - 1;
-  }
-  else if ((idx == num_cells) || // Last cell.
-          (remDecU == 0)) { // Interior cell with a right-boundary-like stencil.
-     stencilOut = 2*stencilIn + pow(3,dir-1);
-  }
-  return stencilOut;
-}
-
+#include <gkyl_alloc_flags_priv.h>
 
 struct gkyl_dg_interpolate*
 gkyl_dg_interpolate_new(int cdim, const struct gkyl_basis *pbasis,
@@ -97,7 +34,7 @@ gkyl_dg_interpolate_new(int cdim, const struct gkyl_basis *pbasis,
   }
 
   // Choose kernels that translates the DG coefficients.
-  up->interp = dg_interp_choose_gk_interp_kernel(pbasis);
+  up->interp = dg_interp_choose_gk_interp_kernel(*pbasis);
 
   for (int d=0; d<up->ndim; d++) {
     // Ratio of cell-lengths in each direction.
@@ -152,18 +89,14 @@ gkyl_dg_interpolate_new(int cdim, const struct gkyl_basis *pbasis,
   //   .-----.-----.-----.
   // For each region we will make a list of the number of target
   // cells to fetch contributions from in each direction.
-  up->stencils = gkyl_malloc(pow(3,up->ndim)*sizeof(struct dg_interp_stencils));
-  // Interior stencil (region 0).
+  up->offset_upper = gkyl_malloc(pow(3,up->ndim) * up->ndim * sizeof(int));
+  int stencil_sizes[((int) round(pow(3,up->ndim))) * up->ndim];
   int sc = 0; // Current number of stencils.
+  // Interior stencil (region 0).
   for (int d=0; d<up->ndim; d++) {
-    up->stencils[sc].sz[d] = intStencilSize[d];
+    stencil_sizes[sc*up->ndim+d] = intStencilSize[d];
+    up->offset_upper[sc*up->ndim+d] = stencil_sizes[sc*up->ndim+d];
   }
-  int offsets_lo[GKYL_MAX_DIM] = {0};
-  int offsets_up[GKYL_MAX_DIM] = {-1};
-  for (int d=0; d<up->ndim; d++)
-    offsets_up[d] = up->stencils[sc].sz[d]-1;
-  printf("\nsc=%d | offsets=%d:%d,%d:%d\n", sc, offsets_lo[0], offsets_up[0], offsets_lo[1], offsets_up[1]);
-  gkyl_range_init(&up->stencils[sc].offsets, up->ndim, offsets_lo, offsets_up);
   sc++;
   int num_stencil_curr = 1; // Like sc but updated outside of the psI loop.
   // Other stencils.
@@ -172,14 +105,12 @@ gkyl_dg_interpolate_new(int cdim, const struct gkyl_basis *pbasis,
     for (int psI=0; psI<num_stencil_curr; psI++) {
       for (int mp=-1; mp<2; mp += 2) {
         for (int d=0; d<up->ndim; d++) {
-          up->stencils[sc].sz[d] = up->stencils[psI].sz[d];
+          stencil_sizes[sc*up->ndim+d] = stencil_sizes[psI*up->ndim+d];
         }
-        up->stencils[sc].sz[dI] = floor(up->dxRat[dI]) + ceil(up->dxRat[dI] - floor(up->dxRat[dI]));
+        stencil_sizes[sc*up->ndim+dI] = floor(up->dxRat[dI]) + ceil(up->dxRat[dI] - floor(up->dxRat[dI]));
 
         for (int d=0; d<up->ndim; d++)
-          offsets_up[d] = up->stencils[sc].sz[d]-1;
-  printf("sc=%d | offsets=%d:%d,%d:%d\n", sc, offsets_lo[0], offsets_up[0], offsets_lo[1], offsets_up[1]);
-        gkyl_range_init(&up->stencils[sc].offsets, up->ndim, offsets_lo, offsets_up);
+          up->offset_upper[sc*up->ndim+d] = stencil_sizes[sc*up->ndim+d];
 
         sc++;
         stencils_added++;
@@ -187,6 +118,13 @@ gkyl_dg_interpolate_new(int cdim, const struct gkyl_basis *pbasis,
     }
     num_stencil_curr += stencils_added;
   }
+
+#ifdef GKYL_HAVE_CUDA
+  if (up->use_gpu) {
+    // Allocate a device copy of the updater.
+    gkyl_dg_interpolate_new_cu(up, *pbasis);
+  }
+#endif
 
   return up;
 }
@@ -196,6 +134,9 @@ gkyl_dg_interpolate_advance(gkyl_dg_interpolate* up,
   const struct gkyl_range *range_do, const struct gkyl_range *range_tar,
   const struct gkyl_array *GKYL_RESTRICT fdo, struct gkyl_array *GKYL_RESTRICT ftar)
 {
+
+  gkyl_array_clear_range(ftar, 0.0, range_tar);
+
 #ifdef GKYL_HAVE_CUDA
   if (up->use_gpu) {
     gkyl_dg_interpolate_advance_cu(up, range_do, range_tar, fdo, ftar);
@@ -234,20 +175,35 @@ gkyl_dg_interpolate_advance(gkyl_dg_interpolate* up,
     idx_sten -= 1;
 
     // Loop over the target-grid cells this donor cell contributes to.
-    struct gkyl_range_iter iter_tar_off;
-    gkyl_range_iter_init(&iter_tar_off, &up->stencils[idx_sten].offsets);
-    while (gkyl_range_iter_next(&iter_tar_off)) {
-      for (int d=0; d<up->ndim; d++) {
-        idx_tar[d] = idx_tar_ll[d] + iter_tar_off.idx[d];
+    // Since we can't use range_iter's in CUDA kernels we have to use 4 nested
+    // loops instead.
+    for (int dI=0; dI<up->ndim; dI++) {
+
+      int offset[GKYL_MAX_DIM] = {0};
+
+      for (int oI=0; oI<up->offset_upper[idx_sten*up->ndim+dI]; oI++) {
+        offset[dI] = oI;
+
+        for (int eI=0; eI<dI; eI++) {
+
+          for (int pI=0; pI<up->offset_upper[idx_sten*up->ndim+eI]; pI++) {
+            offset[eI] = pI;
+
+            for (int d=0; d<up->ndim; d++)
+              idx_tar[d] = idx_tar_ll[d] + offset[d];
+
+            gkyl_rect_grid_cell_center(&up->grid_tar, idx_tar, xc_tar);
+
+            long linidx_tar = gkyl_range_idx(range_tar, idx_tar);
+            double *ftar_c = gkyl_array_fetch(ftar, linidx_tar);
+
+            up->interp(xc_do, xc_tar, up->grid_do.dx, up->grid_tar.dx, fdo_c, ftar_c);
+
+          }
+        }
       }
-
-      gkyl_rect_grid_cell_center(&up->grid_tar, idx_tar, xc_tar);
-
-      long linidx_tar = gkyl_range_idx(range_tar, idx_tar);
-      double *ftar_c = gkyl_array_fetch(ftar, linidx_tar);
-
-      up->interp(xc_do, xc_tar, up->grid_do.dx, up->grid_tar.dx, fdo_c, ftar_c);
     }
+
   }
 }
 
@@ -255,6 +211,14 @@ void
 gkyl_dg_interpolate_release(gkyl_dg_interpolate* up)
 {
   // Release memory associated with this updater.
-  gkyl_free(up->stencils);
+  if (!up->use_gpu)
+    gkyl_free(up->offset_upper);
+#ifdef GKYL_HAVE_CUDA
+  if (up->use_gpu) {
+    gkyl_cu_free(up->offset_upper);
+    if (GKYL_IS_CU_ALLOC(up->flags))
+      gkyl_cu_free(up->on_dev);
+  }
+#endif
   gkyl_free(up);
 }

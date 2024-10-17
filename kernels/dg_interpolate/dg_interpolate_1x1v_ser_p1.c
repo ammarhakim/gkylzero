@@ -1,6 +1,6 @@
 #include <gkyl_dg_interpolate_kernels.h> 
  
-void dg_interpolate_gyrokinetic_1x1v_ser_p1(const double *wDo, const double *wTar, const double *dxDo, const double *dxTar, const double *fldDo, double *fldTar) 
+GKYL_CU_DH void dg_interpolate_gyrokinetic_1x1v_ser_p1(const double *wDo, const double *wTar, const double *dxDo, const double *dxTar, const double *fldDo, double *fldTar) 
 { 
   // wDo: cell center of donor cell.
   // wTar: cell center of target cell.
