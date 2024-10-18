@@ -64,9 +64,9 @@ momentApp = Moments.App.new {
 
     -- Initial conditions function.
     init = function (t, xn)
-	  local x, y = xn[1], xn[2]
+      local x, y = xn[1], xn[2]
 
-	  local sech_sq = (1.0 / math.cosh(y / lambda)) * (1.0 / math.cosh(y / lambda)) -- Hyperbolic secant squared.
+      local sech_sq = (1.0 / math.cosh(y / lambda)) * (1.0 / math.cosh(y / lambda)) -- Hyperbolic secant squared.
 
       local n = n0 * (sech_sq + nb_over_n0) -- Total number density.
       local Jz = -(B0 / lambda) * sech_sq -- Total current density (z-direction).
@@ -77,12 +77,12 @@ momentApp = Moments.App.new {
       local mome_z = (mass_elc / charge_elc) * Jz * Te_frac -- Electron momentum density (z-direction).
       local pre = n * T_tot * Te_frac -- Electron pressure (scalar).
 
-	  local pre_xx = pre -- Electron pressure tensor (xx-component).
-	  local pre_xy = 0.0 -- Electron pressure tensor (xy-component).
-	  local pre_xz = 0.0 -- Electron pressure tensor (xz-component).
-	  local pre_yy = pre -- Electron pressure tensor (yy-component).
-	  local pre_yz = 0.0 -- Electron pressure tensor (yz-component).
-	  local pre_zz = pre + (mome_z * mome_z) / rhoe -- Electron pressure tensor (zz-component).
+      local pre_xx = pre -- Electron pressure tensor (xx-component).
+      local pre_xy = 0.0 -- Electron pressure tensor (xy-component).
+      local pre_xz = 0.0 -- Electron pressure tensor (xz-component).
+      local pre_yy = pre -- Electron pressure tensor (yy-component).
+      local pre_yz = 0.0 -- Electron pressure tensor (yz-component).
+      local pre_zz = pre + (mome_z * mome_z) / rhoe -- Electron pressure tensor (zz-component).
 	 
       return rhoe, mome_x, mome_y, mome_z, pre_xx, pre_xy, pre_xz, pre_yy, pre_yz, pre_zz
     end,
@@ -101,9 +101,9 @@ momentApp = Moments.App.new {
 
     -- Initial conditions function.
     init = function (t, xn)
-	  local x, y = xn[1], xn[2]
+      local x, y = xn[1], xn[2]
 
-	  local sech_sq = (1.0 / math.cosh(y / lambda)) * (1.0 / math.cosh(y / lambda)) -- Hyperbolic secant squared.
+      local sech_sq = (1.0 / math.cosh(y / lambda)) * (1.0 / math.cosh(y / lambda)) -- Hyperbolic secant squared.
 
       local n = n0 * (sech_sq + nb_over_n0) -- Total number density.
       local Jz = -(B0 / lambda) * sech_sq -- Total current density (z-direction).
@@ -114,12 +114,12 @@ momentApp = Moments.App.new {
       local momi_z = (mass_ion / charge_ion) * Jz * Ti_frac -- Ion momentum density (z-direction).
       local pri = n * T_tot * Ti_frac -- Ion pressure (scalar).
 
-	  local pri_xx = pri -- Ion pressure tensor (xx-component).
-	  local pri_xy = 0.0 -- Ion pressure tensor (xy-component).
-	  local pri_xz = 0.0 -- Ion pressure tensor (xz-component).
-	  local pri_yy = pri -- Ion pressure tensor (yy-component).
-	  local pri_yz = 0.0 -- Ion pressure tensor (yz-component).
-	  local pri_zz = pri + (momi_z * momi_z) / rhoi -- Ion pressure tensor (zz-component).
+      local pri_xx = pri -- Ion pressure tensor (xx-component).
+      local pri_xy = 0.0 -- Ion pressure tensor (xy-component).
+      local pri_xz = 0.0 -- Ion pressure tensor (xz-component).
+      local pri_yy = pri -- Ion pressure tensor (yy-component).
+      local pri_yz = 0.0 -- Ion pressure tensor (yz-component).
+      local pri_zz = pri + (momi_z * momi_z) / rhoi -- Ion pressure tensor (zz-component).
 	 
       return rhoi, momi_x, momi_y, momi_z, pri_xx, pri_xy, pri_xz, pri_yy, pri_yz, pri_zz
     end,

@@ -61,9 +61,9 @@ momentApp = Moments.App.new {
 
     -- Initial conditions function.
     init = function (t, xn)
-	   local x, y = xn[1], xn[2]
+      local x, y = xn[1], xn[2]
 
-	   local sech_sq = (1.0 / math.cosh(y / lambda)) * (1.0 / math.cosh(y / lambda)) -- Hyperbolic secant squared.
+      local sech_sq = (1.0 / math.cosh(y / lambda)) * (1.0 / math.cosh(y / lambda)) -- Hyperbolic secant squared.
 
       local n = n0 * (sech_sq + nb_over_n0) -- Total number density.
       local Jz = -(B0 / lambda) * sech_sq -- Total current density (z-direction).
@@ -73,8 +73,8 @@ momentApp = Moments.App.new {
       local mome_y = 0.0 -- Electron momentum density (y-direction).
       local mome_z = (mass_elc / charge_elc) * Jz * Te_frac -- Electron momentum density (z-direction).
       local Ee_tot = n * T_tot * Te_frac / (gas_gamma - 1.0) + 0.5 * mome_z * mome_z / rhoe -- Electron total energy density.
-	 
-	   return rhoe, mome_x, mome_y, mome_z, Ee_tot
+ 
+      return rhoe, mome_x, mome_y, mome_z, Ee_tot
     end,
 
     evolve = true, -- Evolve species?
