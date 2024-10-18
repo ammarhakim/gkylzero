@@ -630,6 +630,17 @@ void gkyl_gyrokinetic_app_write_species_rad_drag(gkyl_gyrokinetic_app *app, int 
 void gkyl_gyrokinetic_app_write_species_rad_emissivity(gkyl_gyrokinetic_app *app, int sidx, double tm, int frame);
 
 /**
+ * Write radiation emissivity of each species that species sidx collides with using the moments of f_elc
+ *  so it uses a maxwellian electron f.
+ * 
+ * @param app App object.
+ * @param sidx Index of species to write.
+ * @param tm Time-stamp
+ * @param frame Frame number
+ */
+void gkyl_gyrokinetic_app_write_species_rad_emissivity(gkyl_gyrokinetic_app *app, int sidx, double tm, int frame);
+
+/**
  * Calculate integrated diagnostic moments of the radiation model.
  *
  * @param app App object.

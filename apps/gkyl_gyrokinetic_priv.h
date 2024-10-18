@@ -192,8 +192,11 @@ struct gk_rad_drag {
   struct gk_species_moment moms[2*GKYL_MAX_SPECIES]; // moments needed in radiation update (need number density)
 
   struct gk_species_moment m2; // m2 of radiation update (needed for emissivity)
+  struct gk_species_moment m1; // m1 of radiation update (needed for momentum conservation of radiation)
   struct gkyl_array *emissivity[2*GKYL_MAX_SPECIES];
   struct gkyl_array *emissivity_host[2*GKYL_MAX_SPECIES];
+  struct gkyl_array *emissivity_max[2*GKYL_MAX_SPECIES]; // Emissivity assuming maxwellian
+  struct gkyl_array *emissivity_max_host[2*GKYL_MAX_SPECIES];
   struct gkyl_array *emissivity_rhs;
   struct gkyl_array *emissivity_denominator;
 
@@ -210,6 +213,11 @@ struct gk_rad_drag {
   gkyl_prim_lbo_calc *coll_pcalc; // primitive moment calculator to find te
   struct gkyl_mom_calc_bcorr *bcorr_calc; // LBO boundary corrections calculator for prim_lbo_calc
   struct gk_species_moment lab_moms; // moments needed for te (single array includes Zeroth, First, and Second moment)
+
+  // For calculating emissivity assuming a maxwellian
+  gkyl_proj_maxwellian_on_basis *proj_maxwellian;
+  struct gkyl_array *f_max;
+  struct gkyl_array *M1_zero;
 
   // host-side copies for I/O
   struct gkyl_array *nvnu_surf_host; 
@@ -904,6 +912,47 @@ void gk_species_radiation_moms(gkyl_gyrokinetic_app *app,
 void gk_species_radiation_emissivity(gkyl_gyrokinetic_app *app,
   struct gk_species *species, struct gk_rad_drag *rad, 
   const struct gkyl_array *fin[], const struct gkyl_array *fin_neut[]);
+
+/**
+ * Compute emissivities using moments of fin (so calculates emissivity assuming
+ * a maxwellian) 
+ *
+ * @param app gyrokinetic app object
+ * @param species Pointer to species
+ * @param rad Species radiation drag object
+ * @param fin Input distribution functions (size num_species)
+ * @param fin_neut Input neutral distribution functions (size num_species)
+ */
+void gk_species_radiation_emissivity_maxwellian(gkyl_gyrokinetic_app *app,
+  struct gk_species *species, struct gk_rad_drag *rad, 
+  const struct gkyl_array *fin[], const struct gkyl_array *fin_neut[]);
+
+/**
+ * Help compute emissivities
+ *
+ * @param app gyrokinetic app object
+ * @param species Pointer to species
+ * @param rad Species radiation drag object
+ * @param fin Input distribution functions (size num_species)
+ * @param fin_neut Input neutral distribution functions (size num_species)
+ * @param f_elc Input electron distribution function
+ * @param emissivity variable that returns the emissivity
+ */
+void gk_species_radiation_emissivity_base(gkyl_gyrokinetic_app *app,
+  struct gk_species *species, struct gk_rad_drag *rad, 
+  const struct gkyl_array *fin[], const struct gkyl_array *fin_neut[],
+  const struct gkyl_array *f_elc, struct gkyl_array *emissivity[2*GKYL_MAX_SPECIES]);
+
+/**
+ * Compute momentum loss from radiation
+ *
+ * @param app gyrokinetic app object
+ * @param species Pointer to species
+ * @param rad Species radiation drag object
+ */
+void gk_species_radiation_momentum_loss(gkyl_gyrokinetic_app *app,
+  struct gk_species *species, struct gk_rad_drag *rad);
+
 
 /**
  * Compute integrated moments of radiation drag object

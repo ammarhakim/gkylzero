@@ -1644,7 +1644,7 @@ gkyl_gyrokinetic_app_write_species_rad_emissivity(gkyl_gyrokinetic_app* app, int
       if (app->use_gpu) {
         gkyl_array_copy(gk_s->rad.emissivity_host[i], gk_s->rad.emissivity[i]);
       }
-      // Construct the file handles for vparallel and mu drag
+      // Construct the file handles for the emissivity
       const char *fmt_emissivity = "%s-%s_radiation_emissivity_%s_%d.gkyl";  
       if (gk_s->rad.is_neut_species[i]) {
         int sz_emissivity = gkyl_calc_strlen(fmt_emissivity, app->name, gk_s->info.name,
@@ -1673,6 +1673,65 @@ gkyl_gyrokinetic_app_write_species_rad_emissivity(gkyl_gyrokinetic_app* app, int
     app->stat.ndiag += 1;
   }
 }
+
+void
+gkyl_gyrokinetic_app_write_species_rad_emissivity_maxwellian(gkyl_gyrokinetic_app* app, int sidx, double tm, int frame)
+{
+  struct gk_species *gk_s = &app->species[sidx];
+
+  if (gk_s->rad.radiation_id == GKYL_GK_RADIATION) {
+    struct timespec wst = gkyl_wall_clock();
+    struct gkyl_array_meta *mt = gk_array_meta_new( (struct gyrokinetic_output_meta) {
+        .frame = frame,
+        .stime = tm,
+        .poly_order = app->poly_order,
+        .basis_type = app->confBasis.id
+      }
+    );
+    
+    const struct gkyl_array *fin_neut[app->num_neut_species];
+    const struct gkyl_array *fin[app->num_species];
+    for (int i=0; i<app->num_species; ++i) 
+      fin[i] = app->species[i].f;
+    for (int i=0; i<app->num_neut_species; ++i)
+      fin_neut[i] = app->neut_species[i].f;
+
+    gk_species_radiation_emissivity_maxwellian(app, gk_s, &gk_s->rad, fin, fin_neut);
+    for (int i=0; i<gk_s->rad.num_cross_collisions; i++) {
+      // copy data from device to host before writing it out
+      if (app->use_gpu) {
+        gkyl_array_copy(gk_s->rad.emissivity_max_host[i], gk_s->rad.emissivity_max[i]);
+      }
+      // Construct the file handles for the emissivity
+      const char *fmt_emissivity = "%s-%s_radiation_emissivity_maxwellian_%s_%d.gkyl";  
+      if (gk_s->rad.is_neut_species[i]) {
+        int sz_emissivity = gkyl_calc_strlen(fmt_emissivity, app->name, gk_s->info.name,
+          app->neut_species[gk_s->rad.collide_with_idx[i]].info.name, frame);
+        char fileNm_emissivity[sz_emissivity+1]; // ensures no buffer overflow
+        snprintf(fileNm_emissivity, sizeof fileNm_emissivity, fmt_emissivity, app->name,
+          gk_s->info.name, app->neut_species[gk_s->rad.collide_with_idx[i]].info.name, frame);
+        struct timespec wtm = gkyl_wall_clock();
+        gkyl_comm_array_write(app->comm, &app->grid, &app->local, mt, gk_s->rad.emissivity_max_host[i], fileNm_emissivity);
+        app->stat.io_tm += gkyl_time_diff_now_sec(wtm);
+      } else {
+        int sz_emissivity = gkyl_calc_strlen(fmt_emissivity, app->name, gk_s->info.name,
+          app->species[gk_s->rad.collide_with_idx[i]].info.name, frame);
+        char fileNm_emissivity[sz_emissivity+1]; // ensures no buffer overflow
+        snprintf(fileNm_emissivity, sizeof fileNm_emissivity, fmt_emissivity, app->name,
+          gk_s->info.name, app->species[gk_s->rad.collide_with_idx[i]].info.name, frame);
+        struct timespec wtm = gkyl_wall_clock();
+        gkyl_comm_array_write(app->comm, &app->grid, &app->local, mt, gk_s->rad.emissivity_max_host[i], fileNm_emissivity);
+        app->stat.io_tm += gkyl_time_diff_now_sec(wtm);
+      }  
+      app->stat.nio += 1;
+    }
+
+    gk_array_meta_release(mt);   
+    app->stat.diag_tm += gkyl_time_diff_now_sec(wst);
+    app->stat.ndiag += 1;
+  }
+}
+
 
 void
 gkyl_gyrokinetic_app_calc_species_rad_integrated_mom(gkyl_gyrokinetic_app *app, int sidx, double tm)
@@ -2002,6 +2061,8 @@ gkyl_gyrokinetic_app_write_species_conf(gkyl_gyrokinetic_app* app, int sidx, dou
 
   gkyl_gyrokinetic_app_write_species_rad_emissivity(app, sidx, tm, frame);
 
+  gkyl_gyrokinetic_app_write_species_rad_emissivity_maxwellian(app, sidx, tm, frame);
+
   struct gk_species *gk_s = &app->species[sidx];
   for (int j=0; j<gk_s->react.num_react; ++j) {
     if ((gk_s->react.react_id[j] == GKYL_REACT_IZ) 
@@ -2048,6 +2109,7 @@ gkyl_gyrokinetic_app_write_mom(gkyl_gyrokinetic_app* app, double tm, int frame)
     gkyl_gyrokinetic_app_write_species_source_mom(app, i, tm, frame);
     gkyl_gyrokinetic_app_write_species_lbo_mom(app, i, tm, frame);
     gkyl_gyrokinetic_app_write_species_rad_emissivity(app, i, tm, frame);
+    gkyl_gyrokinetic_app_write_species_rad_emissivity_maxwellian(app, i, tm, frame);
   }
 
   for (int i=0; i<app->num_neut_species; ++i) {
