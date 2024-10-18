@@ -172,7 +172,7 @@ void check_bc_2x(struct gkyl_rect_grid grid, struct gkyl_range range,
 
 
 void
-test_1x(int poly_order, const bool isperiodic, bool use_gpu)
+test_1x(int poly_order, const bool isperiodic, bool use_gpu, bool on_ghosts)
 {
   double lower[] = {-0.5}, upper[] = {0.5};
   int cells[] = {4};
@@ -207,14 +207,37 @@ test_1x(int poly_order, const bool isperiodic, bool use_gpu)
     phi_cu = mkarr_cu(basis.num_basis, localRange_ext.volume);
   }
 
+  struct gkyl_range solve_range;
+  if (on_ghosts)
+    solve_range = localRange_ext;
+  else
+    solve_range = localRange;
+
   // project distribution function on basis.
-  gkyl_proj_on_basis_advance(projob, 0.0, &localRange, rho);
+  gkyl_proj_on_basis_advance(projob, 0.0, &solve_range, rho);
   struct gkyl_array *parbuff = mkarr(basis.num_basis, skin_ghost.lower_skin[dim-1].volume);
-//  gkyl_grid_sub_array_write(&grid, &localRange, rho, "ctest_fem_parproj_1x_p2_rho_1.gkyl");
   if (use_gpu) gkyl_array_copy(rho_cu, rho);
 
+//  // Write RHS source in local range.
+//  gkyl_grid_sub_array_write(&grid, &localRange, 0, rho, "ctest_fem_parproj_1x_p2_rho_1.gkyl");
+//  // Write RHS source in extended range.
+//  double lower_ext[dim], upper_ext[dim];
+//  int cells_ext[dim];
+//  for (int d=0; d<dim; d++) {
+//    double dx = (upper[d] - lower[d])/cells[d];
+//    lower_ext[d] = lower[d] - dx;
+//    upper_ext[d] = upper[d] + dx;
+//    cells_ext[d] = cells[d] + 2*ghost[d];
+//  }
+//  struct gkyl_rect_grid grid_ext;
+//  gkyl_rect_grid_init(&grid_ext, dim, lower_ext, upper_ext, cells_ext);
+//  struct gkyl_range localRangeGhost, localRangeGhost_ext; // local, local-ext ranges.
+//  int ghostEXT[GKYL_MAX_DIM] = { 0 };
+//  gkyl_create_grid_ranges(&grid_ext, ghostEXT, &localRangeGhost_ext, &localRangeGhost);
+//  gkyl_grid_sub_array_write(&grid_ext, &localRangeGhost, 0, rho, "ctest_fem_parproj_1x_p2_rho_ext_1.gkyl");
+
   // parallel FEM projection method.
-  struct gkyl_fem_parproj *parproj = gkyl_fem_parproj_new(&localRange, &localRange_ext,
+  struct gkyl_fem_parproj *parproj = gkyl_fem_parproj_new(&solve_range, &localRange_ext,
     &basis, isperiodic? GKYL_FEM_PARPROJ_PERIODIC : GKYL_FEM_PARPROJ_NONE, NULL, use_gpu);
 
   // Set the RHS source.
@@ -236,10 +259,14 @@ test_1x(int poly_order, const bool isperiodic, bool use_gpu)
 
   if (isperiodic)
     apply_periodic_bc(parbuff, phi, dim-1, skin_ghost);
-//  gkyl_grid_sub_array_write(&grid, &localRange, phi, "ctest_fem_parproj_1x_p2_phi_1.gkyl");
+
+//  // Write solution in local range.
+//  gkyl_grid_sub_array_write(&grid, &localRange, 0, phi, "ctest_fem_parproj_1x_p2_phi_1.gkyl");
+//  // Write solution in extended range.
+//  gkyl_grid_sub_array_write(&grid_ext, &localRangeGhost, 0, phi, "ctest_fem_parproj_1x_p2_phi_ext_1.gkyl");
 
   if (poly_order == 1) {
-    if (!isperiodic) {
+    if (!isperiodic && !on_ghosts) {
       // Solution (checked visually, also checked that phi is actually continuous,
       // and checked that visually looks like results in g2):
       const double sol[8] = {-0.9089542445638024, -0.4554124667453318,
@@ -286,7 +313,7 @@ test_1x(int poly_order, const bool isperiodic, bool use_gpu)
       TEST_CHECK( gkyl_compare(sol[1], phi_p[1], 1e-14) );
     }
   } if (poly_order == 2) {
-    if (!isperiodic) {
+    if (!isperiodic && !on_ghosts) {
       // Solution (checked visually against g2):
       const double sol[12] = {-0.9010465429057769, -0.4272439810948228,  0.0875367707148495,
                               -0.9039382020247494,  0.4172269800703625,  0.08107082435707  ,
@@ -356,7 +383,7 @@ test_1x(int poly_order, const bool isperiodic, bool use_gpu)
 }
 
 void
-test_2x(int poly_order, const bool isperiodic, bool use_gpu)
+test_2x(int poly_order, const bool isperiodic, bool use_gpu, bool on_ghosts)
 {
   double lower[] = {-2., -0.5}, upper[] = {2., 0.5};
   int cells[] = {3, 4};
@@ -391,14 +418,37 @@ test_2x(int poly_order, const bool isperiodic, bool use_gpu)
     phi_cu = mkarr_cu(basis.num_basis, localRange_ext.volume);
   }
 
+  struct gkyl_range solve_range;
+  if (on_ghosts)
+    solve_range = localRange_ext;
+  else
+    solve_range = localRange;
+
   // project distribution function on basis.
-  gkyl_proj_on_basis_advance(projob, 0.0, &localRange, rho);
+  gkyl_proj_on_basis_advance(projob, 0.0, &solve_range, rho);
   struct gkyl_array *parbuff = mkarr(basis.num_basis, skin_ghost.lower_skin[dim-1].volume);
-//  gkyl_grid_sub_array_write(&grid, &localRange, rho, "ctest_fem_parproj_2x_p1_rho_1.gkyl");
   if (use_gpu) gkyl_array_copy(rho_cu, rho);
 
+//  // Write RHS source in local range.
+//  gkyl_grid_sub_array_write(&grid, &localRange, 0, rho, "ctest_fem_parproj_2x_p2_rho_1.gkyl");
+//  // Write RHS source in extended range.
+//  double lower_ext[dim], upper_ext[dim];
+//  int cells_ext[dim];
+//  for (int d=0; d<dim; d++) {
+//    double dx = (upper[d] - lower[d])/cells[d];
+//    lower_ext[d] = lower[d] - dx;
+//    upper_ext[d] = upper[d] + dx;
+//    cells_ext[d] = cells[d] + 2*ghost[d];
+//  }
+//  struct gkyl_rect_grid grid_ext;
+//  gkyl_rect_grid_init(&grid_ext, dim, lower_ext, upper_ext, cells_ext);
+//  struct gkyl_range localRangeGhost, localRangeGhost_ext; // local, local-ext ranges.
+//  int ghostEXT[GKYL_MAX_DIM] = { 0 };
+//  gkyl_create_grid_ranges(&grid_ext, ghostEXT, &localRangeGhost_ext, &localRangeGhost);
+//  gkyl_grid_sub_array_write(&grid_ext, &localRangeGhost, 0, rho, "ctest_fem_parproj_2x_p2_rho_ext_1.gkyl");
+
   // parallel FEM projection method.
-  struct gkyl_fem_parproj *parproj = gkyl_fem_parproj_new(&localRange, &localRange_ext,
+  struct gkyl_fem_parproj *parproj = gkyl_fem_parproj_new(&solve_range, &localRange_ext,
     &basis, isperiodic? GKYL_FEM_PARPROJ_PERIODIC : GKYL_FEM_PARPROJ_NONE, NULL, use_gpu);
 
   // Set the RHS source.
@@ -420,10 +470,14 @@ test_2x(int poly_order, const bool isperiodic, bool use_gpu)
 
   if (isperiodic)
     apply_periodic_bc(parbuff, phi, dim-1, skin_ghost);
-//  gkyl_grid_sub_array_write(&grid, &localRange, phi, "ctest_fem_parproj_2x_p1_phi_1.gkyl");
+
+//  // Write solution in local range.
+//  gkyl_grid_sub_array_write(&grid, &localRange, 0, phi, "ctest_fem_parproj_2x_p2_phi_1.gkyl");
+//  // Write solution in extended range.
+//  gkyl_grid_sub_array_write(&grid_ext, &localRangeGhost, 0, phi, "ctest_fem_parproj_2x_p2_phi_ext_1.gkyl");
 
   if (poly_order == 1) {
-    if (!isperiodic) {
+    if (!isperiodic && !on_ghosts) {
       // Solution (checked continuity manually):
       const double sol[48] = {
         // idx = [0,:]
@@ -547,7 +601,7 @@ test_2x(int poly_order, const bool isperiodic, bool use_gpu)
       }
     }
   } if (poly_order == 2) {
-    if (!isperiodic) {
+    if (!isperiodic && !on_ghosts) {
       // Solution (checked continuity manually):
       const double sol[96] = {
         // idx = [0,:]
@@ -786,7 +840,7 @@ test_2x_dirichlet(int poly_order, bool use_gpu){
 
 
 void
-test_3x(const int poly_order, const bool isperiodic, bool use_gpu)
+test_3x(const int poly_order, const bool isperiodic, bool use_gpu, bool on_ghosts)
 {
   double lower[] = {-2., -2., -0.5}, upper[] = {2., 2., 0.5};
   int cells[] = {3, 3, 4};
@@ -821,14 +875,37 @@ test_3x(const int poly_order, const bool isperiodic, bool use_gpu)
     phi_cu = mkarr_cu(basis.num_basis, localRange_ext.volume);
   }
 
+  struct gkyl_range solve_range;
+  if (on_ghosts)
+    solve_range = localRange_ext;
+  else
+    solve_range = localRange;
+
   // project distribution function on basis.
-  gkyl_proj_on_basis_advance(projob, 0.0, &localRange, rho);
+  gkyl_proj_on_basis_advance(projob, 0.0, &solve_range, rho);
   struct gkyl_array *parbuff = mkarr(basis.num_basis, skin_ghost.lower_skin[dim-1].volume);
-//  gkyl_grid_sub_array_write(&grid, &localRange, rho, "ctest_fem_parproj_3x_p2_rho_1.gkyl");
   if (use_gpu) gkyl_array_copy(rho_cu, rho);
 
+//  // Write RHS source in local range.
+//  gkyl_grid_sub_array_write(&grid, &localRange, 0, rho, "ctest_fem_parproj_3x_p2_rho_1.gkyl");
+//  // Write RHS source in extended range.
+//  double lower_ext[dim], upper_ext[dim];
+//  int cells_ext[dim];
+//  for (int d=0; d<dim; d++) {
+//    double dx = (upper[d] - lower[d])/cells[d];
+//    lower_ext[d] = lower[d] - dx;
+//    upper_ext[d] = upper[d] + dx;
+//    cells_ext[d] = cells[d] + 2*ghost[d];
+//  }
+//  struct gkyl_rect_grid grid_ext;
+//  gkyl_rect_grid_init(&grid_ext, dim, lower_ext, upper_ext, cells_ext);
+//  struct gkyl_range localRangeGhost, localRangeGhost_ext; // local, local-ext ranges.
+//  int ghostEXT[GKYL_MAX_DIM] = { 0 };
+//  gkyl_create_grid_ranges(&grid_ext, ghostEXT, &localRangeGhost_ext, &localRangeGhost);
+//  gkyl_grid_sub_array_write(&grid_ext, &localRangeGhost, 0, rho, "ctest_fem_parproj_3x_p2_rho_ext_1.gkyl");
+
   // parallel FEM projection method.
-  struct gkyl_fem_parproj *parproj = gkyl_fem_parproj_new(&localRange, &localRange_ext,
+  struct gkyl_fem_parproj *parproj = gkyl_fem_parproj_new(&solve_range, &localRange_ext,
     &basis, isperiodic? GKYL_FEM_PARPROJ_PERIODIC : GKYL_FEM_PARPROJ_NONE, NULL, use_gpu);
 
   // Set the RHS source.
@@ -850,10 +927,14 @@ test_3x(const int poly_order, const bool isperiodic, bool use_gpu)
 
   if (isperiodic)
     apply_periodic_bc(parbuff, phi, dim-1, skin_ghost);
-//  gkyl_grid_sub_array_write(&grid, &localRange, phi, "ctest_fem_parproj_3x_p1_phi_1.gkyl");
+
+//  // Write solution in local range.
+//  gkyl_grid_sub_array_write(&grid, &localRange, 0, phi, "ctest_fem_parproj_3x_p2_phi_1.gkyl");
+//  // Write solution in extended range.
+//  gkyl_grid_sub_array_write(&grid_ext, &localRangeGhost, 0, phi, "ctest_fem_parproj_3x_p2_phi_ext_1.gkyl");
 
   if (poly_order == 1) {
-    if (!isperiodic) {
+    if (!isperiodic && !on_ghosts) {
       // Solution (checked visually, also checked that phi is actually continuous,
       // and checked that visually looks like results in g2):
       const double sol[96] = {
@@ -1026,7 +1107,7 @@ test_3x(const int poly_order, const bool isperiodic, bool use_gpu)
       }
     }
   } if (poly_order == 2) {
-    if (!isperiodic) {
+    if (!isperiodic && !on_ghosts) {
       // Solution (checked visually against g2):
       const double sol[240] = {
         // idx = [0,1,:]
@@ -1197,68 +1278,82 @@ test_3x(const int poly_order, const bool isperiodic, bool use_gpu)
 
 }
 
-void test_1x_p1_nonperiodic() {test_1x(1, false, false);}
-void test_1x_p1_periodic() {test_1x(1, true, false);}
+void test_1x_p1_nonperiodic() {test_1x(1, false, false, false);}
+void test_1x_p1_periodic() {test_1x(1, true, false, false);}
+void test_1x_p1_nonperiodic_ghost() {test_1x(1, false, false, true);}
 
-void test_1x_p2_nonperiodic() {test_1x(2, false, false);}
-void test_1x_p2_periodic() {test_1x(2, true, false);}
+void test_1x_p2_nonperiodic() {test_1x(2, false, false, false);}
+void test_1x_p2_periodic() {test_1x(2, true, false, false);}
+void test_1x_p2_nonperiodic_ghost() {test_1x(2, false, false, true);}
 
-void test_2x_p1_nonperiodic() {test_2x(1, false, false);}
-void test_2x_p1_periodic() {test_2x(1, true, false);}
+void test_2x_p1_nonperiodic() {test_2x(1, false, false, false);}
+void test_2x_p1_periodic() {test_2x(1, true, false, false);}
 
-void test_2x_p2_nonperiodic() {test_2x(2, false, false);}
-void test_2x_p2_periodic() {test_2x(2, true, false);}
-
-void test_3x_p1_nonperiodic() {test_3x(1, false, false);}
-void test_3x_p1_periodic() {test_3x(1, true, false);}
-
-void test_3x_p2_nonperiodic() {test_3x(2, false, false);}
-void test_3x_p2_periodic() {test_3x(2, true, false);}
+void test_2x_p2_nonperiodic() {test_2x(2, false, false, false);}
+void test_2x_p2_periodic() {test_2x(2, true, false, false);}
 
 void test_2x_p1_dirichlet() {test_2x_dirichlet(1, false);}
 
+void test_3x_p1_nonperiodic() {test_3x(1, false, false, false);}
+void test_3x_p1_periodic() {test_3x(1, true, false, false);}
+void test_3x_p1_nonperiodic_ghost() {test_3x(1, false, false, true);}
+
+void test_3x_p2_nonperiodic() {test_3x(2, false, false, false);}
+void test_3x_p2_periodic() {test_3x(2, true, false, false);}
+void test_3x_p2_nonperiodic_ghost() {test_3x(2, false, false, true);}
+
 #ifdef GKYL_HAVE_CUDA
 // ......... GPU tests ............ //
-void gpu_test_1x_p1_nonperiodic() {test_1x(1, false, true);}
-void gpu_test_1x_p1_periodic() {test_1x(1, true, true);}
+void gpu_test_1x_p1_nonperiodic() {test_1x(1, false, true, false);}
+void gpu_test_1x_p1_periodic() {test_1x(1, true, true, false);}
+void gpu_test_1x_p1_nonperiodic_ghost() {test_1x(1, false, true, true);}
 
-void gpu_test_1x_p2_nonperiodic() {test_1x(2, false, true);}
-void gpu_test_1x_p2_periodic() {test_1x(2, true, true);}
+void gpu_test_1x_p2_nonperiodic() {test_1x(2, false, true, false);}
+void gpu_test_1x_p2_periodic() {test_1x(2, true, true, false);}
+void gpu_test_1x_p2_nonperiodic_ghost() {test_1x(2, false, true, true);}
+
+void gpu_test_2x_p1_dirichlet() {test_2x_dirichlet(1, true);}
 
 void gpu_test_3x_p1_nonperiodic() {test_3x(1, false, true);}
 void gpu_test_3x_p1_periodic() {test_3x(1, true, true);}
 
 void gpu_test_3x_p2_nonperiodic() {test_3x(2, false, true);}
 void gpu_test_3x_p2_periodic() {test_3x(2, true, true);}
-
-void gpu_test_2x_p1_dirichlet() {test_2x_dirichlet(1, true);}
 #endif
 
 
 TEST_LIST = {
   { "test_1x_p1_nonperiodic", test_1x_p1_nonperiodic },
   { "test_1x_p1_periodic", test_1x_p1_periodic },
+  { "test_1x_p1_nonperiodic_ghost", test_1x_p1_nonperiodic_ghost },
   { "test_1x_p2_nonperiodic", test_1x_p2_nonperiodic },
   { "test_1x_p2_periodic", test_1x_p2_periodic },
+  { "test_1x_p2_nonperiodic_ghost", test_1x_p2_nonperiodic_ghost },
   { "test_2x_p1_nonperiodic", test_2x_p1_nonperiodic },
   { "test_2x_p1_periodic", test_2x_p1_periodic },
+  { "test_2x_p1_dirichlet", test_2x_p1_dirichlet},
   { "test_2x_p2_nonperiodic", test_2x_p2_nonperiodic },
   { "test_2x_p2_periodic", test_2x_p2_periodic },
   { "test_3x_p1_nonperiodic", test_3x_p1_nonperiodic },
   { "test_3x_p1_periodic", test_3x_p1_periodic },
+  { "test_3x_p1_nonperiodic_ghost", test_3x_p1_nonperiodic_ghost },
   { "test_3x_p2_nonperiodic", test_3x_p2_nonperiodic },
   { "test_3x_p2_periodic", test_3x_p2_periodic },
-  { "test_2x_p1_dirichlet", test_2x_p1_dirichlet},
+  { "test_3x_p2_nonperiodic_ghost", test_3x_p2_nonperiodic_ghost },
 #ifdef GKYL_HAVE_CUDA
   { "gpu_test_1x_p1_nonperiodic", gpu_test_1x_p1_nonperiodic },
   { "gpu_test_1x_p1_periodic", gpu_test_1x_p1_periodic },
+  { "gpu_test_1x_p1_nonperiodic_ghost", gpu_test_1x_p1_nonperiodic_ghost },
   { "gpu_test_1x_p2_nonperiodic", gpu_test_1x_p2_nonperiodic },
   { "gpu_test_1x_p2_periodic", gpu_test_1x_p2_periodic },
+  { "gpu_test_1x_p2_nonperiodic_ghost", gpu_test_1x_p2_nonperiodic_ghost },
+  { "gpu_test_2x_p1_dirichlet", gpu_test_2x_p1_dirichlet},
   { "gpu_test_3x_p1_nonperiodic", gpu_test_3x_p1_nonperiodic },
   { "gpu_test_3x_p1_periodic", gpu_test_3x_p1_periodic },
+  { "gpu_test_3x_p1_nonperiodic_ghost", gpu_test_3x_p1_nonperiodic_ghost },
   { "gpu_test_3x_p2_nonperiodic", gpu_test_3x_p2_nonperiodic },
   { "gpu_test_3x_p2_periodic", gpu_test_3x_p2_periodic },
-  { "gpu_test_2x_p1_dirichlet", gpu_test_2x_p1_dirichlet},
+  { "gpu_test_3x_p2_nonperiodic_ghost", gpu_test_3x_p2_nonperiodic_ghost },
 #endif
   { NULL, NULL },
 };

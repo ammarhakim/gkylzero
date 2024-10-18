@@ -422,14 +422,14 @@ fem_parproj_choose_solstencil_kernel(const struct gkyl_basis *basis)
 }
 
 GKYL_CU_DH
-static inline int idx_to_inloup_ker(int num_cells, int idx) {
+static inline int idx_to_inloup_ker(int solve_rng_lo, int solve_rng_up, int idx) {
   // Return the index of the kernel (in the array of kernels) needed given the grid index.
   // This function is for kernels that differentiate between lower, interior
   // and upper cells.
   int iout = 0;
-  if (idx == 1)
+  if (idx == solve_rng_lo)
     iout = 1;
-  else if (idx == num_cells)
+  else if (idx == solve_rng_up)
     iout = 2;
   return iout;
 }
