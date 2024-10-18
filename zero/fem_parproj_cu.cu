@@ -55,7 +55,9 @@ fem_parproj_set_cu_ker_ptrs(struct gkyl_fem_parproj_kernels* kers, enum gkyl_bas
 }
 
 __global__ void
-gkyl_fem_parproj_set_rhs_kernel(double *rhs_global, const struct gkyl_array *rhsin, const struct gkyl_array *phibc, struct gkyl_range range, struct gkyl_range range_ext, struct gkyl_range perp_range2d, struct gkyl_range par_range1d, struct gkyl_fem_parproj_kernels *kers, long numnodes_global)
+gkyl_fem_parproj_set_rhs_kernel(double *rhs_global, const struct gkyl_array *rhsin, const struct gkyl_array *phibc,
+  struct gkyl_range range, struct gkyl_range range_ext, struct gkyl_range perp_range2d, struct gkyl_range par_range1d,
+  struct gkyl_fem_parproj_kernels *kers, long numnodes_global)
 {
   int idx[GKYL_MAX_CDIM], skin_idx[GKYL_MAX_CDIM];
   long globalidx[32];
@@ -83,7 +85,7 @@ gkyl_fem_parproj_set_rhs_kernel(double *rhs_global, const struct gkyl_array *rhs
     const double *phibc_p = phibc? (const double *) gkyl_array_cfetch(phibc, linidx) : NULL;
 
     long paridx = gkyl_range_idx(&par_range1d, idx1d);
-    int keri = idx1d[0] == parnum_cells? 1 : 0;
+    int keri = idx1d[0] == par_range1d.upper[0]? 1 : 0;
     kers->l2g[keri](parnum_cells, paridx, globalidx);
 
     int idx2d[] = {perp_range2d.lower[0], perp_range2d.lower[0]};
@@ -93,13 +95,16 @@ gkyl_fem_parproj_set_rhs_kernel(double *rhs_global, const struct gkyl_array *rhs
 
     // Apply the RHS source stencil. It's mostly the mass matrix times a
     // modal-to-nodal operator times the source, modified by BCs in skin cells.
-    keri = idx_to_inloup_ker(parnum_cells, idx1d[0]);
+    keri = idx_to_inloup_ker(par_range1d.lower[0],
+      par_range1d.upper[0], idx1d[0]);
     kers->srcker[keri](rhsin_p, phibc_p, perpProbOff, globalidx, rhs_global);
   }
 }
 
 __global__ void
-gkyl_fem_parproj_get_sol_kernel(struct gkyl_array *phiout, const double *x_global, struct gkyl_range range, struct gkyl_range perp_range2d, struct gkyl_range par_range1d, struct gkyl_fem_parproj_kernels *kers, long numnodes_global)
+gkyl_fem_parproj_get_sol_kernel(struct gkyl_array *phiout, const double *x_global, struct gkyl_range range,
+  struct gkyl_range perp_range2d, struct gkyl_range par_range1d, struct gkyl_fem_parproj_kernels *kers,
+  long numnodes_global)
 {
   int idx[GKYL_MAX_DIM];
   long globalidx[32];
@@ -121,7 +126,7 @@ gkyl_fem_parproj_get_sol_kernel(struct gkyl_array *phiout, const double *x_globa
 
     int idx1d[] = {idx[range.ndim-1]};
     long paridx = gkyl_range_idx(&par_range1d, idx1d);
-    int keri = idx1d[0] == parnum_cells? 1 : 0;
+    int keri = idx1d[0] == par_range1d.upper[0]? 1 : 0;
     kers->l2g[keri](parnum_cells, paridx, globalidx);
 
     int idx2d[] = {perp_range2d.lower[0], perp_range2d.lower[0]};
@@ -136,18 +141,21 @@ gkyl_fem_parproj_get_sol_kernel(struct gkyl_array *phiout, const double *x_globa
 }
 
 void
-fem_parproj_choose_kernels_cu(const struct gkyl_basis *basis, bool isperiodic, bool isdirichlet, struct gkyl_fem_parproj_kernels *kers)
+fem_parproj_choose_kernels_cu(const struct gkyl_basis *basis, bool isperiodic, bool isdirichlet,
+  struct gkyl_fem_parproj_kernels *kers)
 {
   fem_parproj_set_cu_ker_ptrs<<<1,1>>>(kers, basis->b_type, basis->ndim, basis->poly_order, isperiodic, isdirichlet);
 }
 
 void
-gkyl_fem_parproj_set_rhs_cu(gkyl_fem_parproj *up, const struct gkyl_array *rhsin, const struct gkyl_array *phibc)
+gkyl_fem_parproj_set_rhs_cu(gkyl_fem_parproj *up, const struct gkyl_array *rhsin,
+  const struct gkyl_array *phibc)
 {
   gkyl_culinsolver_clear_rhs(up->prob_cu, 0);
   double *rhs_cu = gkyl_culinsolver_get_rhs_ptr(up->prob_cu, 0);
   const struct gkyl_array *phibc_cu = phibc? phibc->on_dev : NULL;
-  gkyl_fem_parproj_set_rhs_kernel<<<rhsin->nblocks, rhsin->nthreads>>>(rhs_cu, rhsin->on_dev, phibc_cu, *up->solve_range, *up->solve_range_ext, up->perp_range2d, up->par_range1d, up->kernels_cu, up->numnodes_global);
+  gkyl_fem_parproj_set_rhs_kernel<<<rhsin->nblocks, rhsin->nthreads>>>(rhs_cu, rhsin->on_dev, phibc_cu,
+    *up->solve_range, *up->solve_range_ext, up->perp_range2d, up->par_range1d, up->kernels_cu, up->numnodes_global);
 }
 
 void
@@ -156,5 +164,6 @@ gkyl_fem_parproj_solve_cu(gkyl_fem_parproj *up, struct gkyl_array *phiout)
   gkyl_culinsolver_solve(up->prob_cu);
   double *x_cu = gkyl_culinsolver_get_sol_ptr(up->prob_cu, 0);
 
-  gkyl_fem_parproj_get_sol_kernel<<<phiout->nblocks, phiout->nthreads>>>(phiout->on_dev, x_cu, *up->solve_range, up->perp_range2d, up->par_range1d, up->kernels_cu, up->numnodes_global);
+  gkyl_fem_parproj_get_sol_kernel<<<phiout->nblocks, phiout->nthreads>>>(phiout->on_dev, x_cu, *up->solve_range,
+    up->perp_range2d, up->par_range1d, up->kernels_cu, up->numnodes_global);
 }

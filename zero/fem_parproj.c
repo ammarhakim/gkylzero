@@ -112,8 +112,8 @@ gkyl_fem_parproj_new(const struct gkyl_range *solve_range, const struct gkyl_ran
     const double *wgt_p = isweighted? gkyl_array_cfetch(weight, paridx+1) : NULL;
 
     // Apply the wgt*phi*basis stencil.
-    keri = idx_to_inloup_ker(up->solve_range->lower[up->pardir],
-      up->solve_range->upper[up->pardir], up->par_iter1d.idx[0]);
+    keri = idx_to_inloup_ker(up->par_range1d.lower[0],
+      up->par_range1d.upper[0], up->par_iter1d.idx[0]);
     up->kernels->lhsker[keri](wgt_p, up->globalidx, tri[0]);
   }
 #ifdef GKYL_HAVE_CUDA
@@ -164,7 +164,7 @@ gkyl_fem_parproj_set_rhs(struct gkyl_fem_parproj* up, const struct gkyl_array *r
     const double *phibc_p = up->isdirichlet? gkyl_array_cfetch(phibc, linidx) : NULL;
 
     long paridx = gkyl_range_idx(&up->par_range1d, idx1d);
-    int keri = idx1d[0] == up->solve_range->upper[up->pardir]? 1 : 0;
+    int keri = idx1d[0] == up->par_range1d.upper[0]? 1 : 0;
     up->kernels->l2g[keri](up->parnum_cells, paridx, up->globalidx);
 
     int idx2d[] = {up->perp_range2d.lower[0], up->perp_range2d.lower[0]};
@@ -172,8 +172,8 @@ gkyl_fem_parproj_set_rhs(struct gkyl_fem_parproj* up, const struct gkyl_array *r
     long perpidx2d = gkyl_range_idx(&up->perp_range2d, idx2d);
     long perpProbOff = perpidx2d*up->numnodes_global;
 
-    keri = idx_to_inloup_ker(up->solve_range->lower[up->pardir],
-      up->solve_range->upper[up->pardir], idx1d[0]);
+    keri = idx_to_inloup_ker(up->par_range1d.lower[0],
+      up->par_range1d.upper[0], idx1d[0]);
     up->kernels->srcker[keri](rhsin_p, phibc_p, perpProbOff, up->globalidx, brhs_p);
 
   }
@@ -202,7 +202,7 @@ gkyl_fem_parproj_solve(struct gkyl_fem_parproj* up, struct gkyl_array *phiout) {
 
     int idx1d[] = {up->solve_iter.idx[up->ndim-1]};
     long paridx = gkyl_range_idx(&up->par_range1d, idx1d);
-    int keri = idx1d[0] == up->solve_range->upper[up->pardir]? 1 : 0;
+    int keri = idx1d[0] == up->par_range1d.upper[0]? 1 : 0;
     up->kernels->l2g[keri](up->parnum_cells, paridx, up->globalidx);
 
     int idx2d[] = {up->perp_range2d.lower[0], up->perp_range2d.lower[0]};
