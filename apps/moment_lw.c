@@ -15,6 +15,7 @@
 #include <gkyl_wv_mhd.h>
 #include <gkyl_wv_sr_euler.h>
 #include <gkyl_wv_ten_moment.h>
+#include <gkyl_wv_reactive_euler.h>
 
 #include <lua.h>
 #include <lualib.h>
@@ -74,6 +75,13 @@ static const struct gkyl_str_int_pair mhd_divb_type[] = {
   { "none", GKYL_MHD_DIVB_NONE },
   { "glm",  GKYL_MHD_DIVB_GLM },
   { "eight_waves", GKYL_MHD_DIVB_EIGHT_WAVES },
+  { 0, 0 }
+};
+
+// Reactive Euler Riemann problem -> enum map
+static const struct gkyl_str_int_pair reactive_euler_rp_type[] = {
+  { "roe", WV_REACTIVE_EULER_RP_ROE },
+  { "lax", WV_REACTIVE_EULER_RP_LAX },
   { 0, 0 }
 };
 
@@ -328,6 +336,55 @@ static struct luaL_Reg eqn_mhd_ctor[] = {
   {0, 0}
 };
 
+/* ************************ */
+/* Reactive Euler Equations */
+/* ************************ */
+
+// ReactiveEuler.new { gasGamma = 1.4, specificHeatCapacity = 2.5, energyOfFormation = 1.0, ignitionTemperature = 0.25, reactionRate = 250.0, rpType = "roe" }
+// where rpType is one of "roe" or "lax".
+static int
+eqn_reactive_euler_lw_new(lua_State *L)
+{
+  struct wv_eqn_lw *reactive_euler_lw = gkyl_malloc(sizeof(*reactive_euler_lw));
+
+  double gas_gamma = glua_tbl_get_number(L, "gasGamma", 1.4);
+  double specific_heat_capacity = glua_tbl_get_number(L, "specificHeatCapacity", 2.5);
+  double energy_of_formation = glua_tbl_get_number(L, "energyOfFormation", 1.0);
+  double ignition_temperature = glua_tbl_get_number(L, "ignitionTemperature", 0.25);
+  double reaction_rate = glua_tbl_get_number(L, "reactionRate", 250.0);
+
+  const char *rp_str = glua_tbl_get_string(L, "rpType", "lax");
+  enum gkyl_wv_reactive_euler_rp rp_type = gkyl_search_str_int_pair_by_str(reactive_euler_rp_type, rp_str, WV_REACTIVE_EULER_RP_LAX);
+
+  reactive_euler_lw->magic = MOMENT_EQN_DEFAULT;
+  reactive_euler_lw->eqn = gkyl_wv_reactive_euler_inew( &(struct gkyl_wv_reactive_euler_inp) {
+      .gas_gamma = gas_gamma,
+      .specific_heat_capacity = specific_heat_capacity,
+      .energy_of_formation = energy_of_formation,
+      .ignition_temperature = ignition_temperature,
+      .reaction_rate = reaction_rate,
+      .rp_type = rp_type,
+      .use_gpu = false
+    }
+  );
+
+  // Create Lua userdata.
+  struct wv_eqn_lw **l_reactive_euler_lw = lua_newuserdata(L, sizeof(struct wv_eqn_lw*));
+  *l_reactive_euler_lw = reactive_euler_lw; // Point userdata to the equation object.
+  
+  // Set metatable.
+  luaL_getmetatable(L, MOMENT_WAVE_EQN_METATABLE_NM);
+  lua_setmetatable(L, -2);
+  
+  return 1;
+}
+
+// Equation constructor.
+static struct luaL_Reg eqn_reactive_euler_ctor[] = {
+  { "new", eqn_reactive_euler_lw_new },
+  { 0, 0 }
+};
+
 // Register and load all wave equation objects
 static void
 eqn_openlibs(lua_State *L)
@@ -344,6 +401,7 @@ eqn_openlibs(lua_State *L)
   luaL_register(L, "G0.Moments.Eq.ColdFluid", eqn_coldfluid_ctor);
   luaL_register(L, "G0.Moments.Eq.TenMoment", eqn_tenmoment_ctor); 
   luaL_register(L, "G0.Moments.Eq.Mhd", eqn_mhd_ctor);
+  luaL_register(L, "G0.Moments.Eq.ReactiveEuler", eqn_reactive_euler_ctor);
 }
 
 /* *****************/
@@ -451,6 +509,15 @@ moment_species_lw_new(lua_State *L)
     nT_source_ref = luaL_ref(L, LUA_REGISTRYINDEX);
   }
   mom_species.nT_source_set_only_once = glua_tbl_get_bool(L, "nTSourceSetOnlyOnce", false);
+
+  mom_species.has_reactivity = glua_tbl_get_bool(L, "hasReactivity", false);
+  if (mom_species.has_reactivity) {
+    mom_species.reactivity_gas_gamma = glua_tbl_get_number(L, "reactivityGasGamma", 0.0);
+    mom_species.reactivity_specific_heat_capacity = glua_tbl_get_number(L, "reactivitySpecificHeatCapacity", 0.0);
+    mom_species.reactivity_energy_of_formation = glua_tbl_get_number(L, "reactivityEnergyOfFormation", 0.0);
+    mom_species.reactivity_ignition_temperature = glua_tbl_get_number(L, "reactivityIgnitionTemperature", 0.0);
+    mom_species.reactivity_reaction_rate = glua_tbl_get_number(L, "reactivityReactionRate", 0.0);
+  }
 
   struct moment_species_lw *moms_lw = lua_newuserdata(L, sizeof(*moms_lw));
   moms_lw->magic = MOMENT_SPECIES_DEFAULT;
