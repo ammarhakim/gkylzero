@@ -62,7 +62,11 @@ gk_species_radiation_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s
     rad->vnu_surf = gkyl_cu_malloc(rad->num_cross_collisions*sizeof(struct gkyl_dg_rad_nu_ne_dependence));
     rad->vnu = gkyl_cu_malloc(rad->num_cross_collisions*sizeof(struct gkyl_dg_rad_nu_ne_dependence));
     rad->vsqnu_surf = gkyl_cu_malloc(rad->num_cross_collisions*sizeof(struct gkyl_dg_rad_nu_ne_dependence));
-    rad->vsqnu = gkyl_cu_malloc(rad->num_cross_collisions*sizeof(struct gkyl_dg_rad_nu_ne_dependence));    
+    rad->vsqnu = gkyl_cu_malloc(rad->num_cross_collisions*sizeof(struct gkyl_dg_rad_nu_ne_dependence));
+    rad->vnu_surf->on_dev = rad->vnu_surf;
+    rad->vnu->on_dev = rad->vnu;
+    rad->vsqnu_surf->on_dev = rad->vsqnu_surf;
+    rad->vsqnu->on_dev = rad->vsqnu;
   } else {
     rad->vnu_surf = gkyl_malloc(rad->num_cross_collisions*sizeof(struct gkyl_dg_rad_nu_ne_dependence));
     rad->vnu = gkyl_malloc(rad->num_cross_collisions*sizeof(struct gkyl_dg_rad_nu_ne_dependence));

@@ -14,6 +14,7 @@ typedef struct gkyl_dg_calc_gk_rad_vars gkyl_dg_calc_gk_rad_vars;
 
 struct gkyl_dg_rad_nu_ne_dependence {
   struct gkyl_array *nu[GKYL_MAX_RAD_DENSITIES];
+  struct gkyl_dg_rad_nu_ne_dependence *on_dev;  // pointer to itself on device
 };
 
 /**

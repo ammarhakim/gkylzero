@@ -56,7 +56,7 @@ void gkyl_dg_calc_gk_rad_vars_nu_advance(const struct gkyl_dg_calc_gk_rad_vars *
 #ifdef GKYL_HAVE_CUDA
   if (gkyl_array_is_cu_dev(vnu_surf)) {
     return gkyl_dg_calc_gk_rad_vars_nu_advance_cu(up, conf_range, phase_range, 
-      vnu_surf, vnu, vsqnu_surf, vsqnu);
+      a, alpha, beta, gamma, v0, vnu_surf, vnu, vsqnu_surf, vsqnu);
   }
 #endif
   int pdim = up->pdim;
@@ -105,7 +105,7 @@ void gkyl_dg_calc_gk_rad_vars_nI_nu_advance(const struct gkyl_dg_calc_gk_rad_var
 #ifdef GKYL_HAVE_CUDA
   if (gkyl_array_is_cu_dev(vnu_surf)) {
     return gkyl_dg_calc_gk_rad_vars_nI_nu_advance_cu(up, conf_range, phase_range, 
-      vnu_surf, vnu, vsqnu_surf, vsqnu, nI, 
+      vnu_surf, vnu, vsqnu_surf, vsqnu, n_elc_rad, n_elc, nI, 
       nvnu_surf, nvnu, nvsqnu_surf, nvsqnu);
   }
 #endif
