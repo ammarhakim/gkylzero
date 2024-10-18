@@ -92,8 +92,8 @@ create_ctx(void)
   double T_tot = beta * (B0 * B0) / 2.0 / n0; // Total temperature;
 
   // Simulation parameters.
-  int Nx = 64; // Cell count (x-direction).
-  int Ny = 32; // Cell count (y-direction).
+  int Nx = 128; // Cell count (x-direction).
+  int Ny = 64; // Cell count (y-direction).
   double Lx = 25.6; // Domain size (x-direction).
   double Ly = 12.8; // Domain size (y-direction).
   double cfl_frac = 1.0; // CFL coefficient.
@@ -160,13 +160,15 @@ evalElcInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout
   double Jz = -(B0 / lambda) * sech_sq; // Total current density (z-direction).
 
   double rhoe = n * mass_elc; // Electron mass density.
-  double momze = (mass_elc / charge_elc) * Jz * Te_frac; // Electron momentum density (z-direction).
-  double Ee_tot = n * T_tot * Te_frac / (gas_gamma - 1.0) + 0.5 * momze * momze / rhoe; // Electron total energy density.
+  double mome_x = 0.0; // Electron momentum density (x-direction).
+  double mome_y = 0.0; // Electron momentum density (y-direction).
+  double mome_z = (mass_elc / charge_elc) * Jz * Te_frac; // Electron momentum density (z-direction).
+  double Ee_tot = n * T_tot * Te_frac / (gas_gamma - 1.0) + 0.5 * mome_z * mome_z / rhoe; // Electron total energy density.
 
   // Set electron mass density.
   fout[0] = rhoe;
   // Set electron momentum density.
-  fout[1] = 0.0; fout[2] = 0.0; fout[3] = momze;
+  fout[1] = mome_x; fout[2] = mome_y; fout[3] = mome_z;
   // Set electron total energy density.
   fout[4] = Ee_tot;
 }
@@ -195,13 +197,15 @@ evalIonInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout
   double Jz = -(B0 / lambda) * sech_sq; // Total current density (z-direction).
 
   double rhoi = n * mass_ion; // Ion mass density.
-  double momzi = (mass_ion / charge_ion) * Jz * Ti_frac; // Ion momentum density (z-direction).
-  double Ei_tot = n * T_tot * Ti_frac / (gas_gamma - 1.0) + 0.5 * momzi * momzi / rhoi; // Ion total energy density.
+  double momi_x = 0.0; // Ion momentum density (x-direction).
+  double momi_y = 0.0; // Ion momentum density (y-direction).
+  double momi_z = (mass_ion / charge_ion) * Jz * Ti_frac; // Ion momentum density (z-direction).
+  double Ei_tot = n * T_tot * Ti_frac / (gas_gamma - 1.0) + 0.5 * momi_z * momi_z / rhoi; // Ion total energy density.
 
   // Set ion mass density.
   fout[0] = rhoi;
   // Set ion momentum density.
-  fout[1] = 0.0; fout[2] = 0.0; fout[3] = momzi;
+  fout[1] = momi_x; fout[2] = momi_y; fout[3] = momi_z;
   // Set ion total energy density.
   fout[4] = Ei_tot;
 }
@@ -223,12 +227,17 @@ evalFieldInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fo
   double Ly = app->Ly;
 
   double Bxb = B0 * tanh(y / lambda); // Total magnetic field strength.
+
+  double Ex = 0.0; // Total electric field (x-direction).
+  double Ey = 0.0; // Total electric field (y-direction).
+  double Ez = 0.0; // Total electric field (z-direction).
+
   double Bx = Bxb - psi0 * (pi / Ly) * cos(2.0 * pi * x / Lx) * sin(pi * y / Ly); // Total magnetic field (x-direction).
   double By = psi0 * (2.0 * pi / Lx) * sin(2.0 * pi * x / Lx) * cos(pi * y / Ly); // Total magnetic field (y-direction).
   double Bz = 0.0; // Total magnetic field (z-direction).
 
   // Set electric field.
-  fout[0] = 0.0, fout[1] = 0.0; fout[2] = 0.0;
+  fout[0] = Ex, fout[1] = Ey; fout[2] = Ez;
   // Set magnetic field.
   fout[3] = Bx, fout[4] = By; fout[5] = Bz;
   // Set correction potentials.
