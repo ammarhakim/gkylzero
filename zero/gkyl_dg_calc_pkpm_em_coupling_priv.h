@@ -27,15 +27,22 @@ typedef void (*pkpm_em_coupling_copy_t)(int count,
 // for use in kernel tables
 typedef struct { pkpm_em_coupling_set_t kernels[4]; } gkyl_dg_pkpm_em_coupling_set_kern_list;
 typedef struct { pkpm_em_coupling_copy_t kernels[4]; } gkyl_dg_pkpm_em_coupling_copy_kern_list;
+typedef struct { pkpm_em_coupling_set_t kernels[4]; } gkyl_dg_pkpm_em_coupling_nodal_set_kern_list;
+typedef struct { pkpm_em_coupling_copy_t kernels[4]; } gkyl_dg_pkpm_em_coupling_nodal_copy_kern_list;
 
 struct gkyl_dg_calc_pkpm_em_coupling {
+  int num_basis; // Number of configuration-space basis functions
   struct gkyl_range mem_range; // Configuration space range for linear solve
 
   struct gkyl_nmat *As, *xs; // matrices for LHS and RHS
   gkyl_nmat_mem *mem; // memory for use in batched linear solve
+  struct gkyl_nmat *As_nodal, *xs_nodal; // matrices for LHS and RHS in the nodal solve
+  gkyl_nmat_mem *mem_nodal; // memory for use in batched nodal linear solve 
 
   pkpm_em_coupling_set_t pkpm_em_coupling_set;  // kernel for setting matrices for linear solve
   pkpm_em_coupling_copy_t pkpm_em_coupling_copy; // kernel for copying solution to output
+  pkpm_em_coupling_set_t pkpm_em_coupling_nodal_set;  // kernel for setting matrices for nodal linear solve
+  pkpm_em_coupling_copy_t pkpm_em_coupling_nodal_copy; // kernel for converting nodal solution to modal output
 
   bool pkpm_field_static; // bool to determine if we are updating the self-consistent EM fields (dE/dt)
 
@@ -79,6 +86,22 @@ static const gkyl_dg_pkpm_em_coupling_copy_kern_list ten_pkpm_em_coupling_copy_k
   { NULL, euler_pkpm_em_coupling_copy_3x_ser_p1, NULL, NULL }, // 2
 };
 
+// Set matrices for computing *nodal* implicit source solve for fluid-em coupling in the PKPM system. (Serendipity kernels)
+GKYL_CU_D
+static const gkyl_dg_pkpm_em_coupling_set_kern_list ser_pkpm_em_coupling_nodal_set_kernels[] = {
+  { NULL, euler_pkpm_em_coupling_nodal_set_1x_ser_p1, NULL, NULL }, // 0
+  { NULL, euler_pkpm_em_coupling_nodal_set_2x_ser_p1, NULL, NULL }, // 1
+  { NULL, euler_pkpm_em_coupling_nodal_set_3x_ser_p1, NULL, NULL }, // 2
+};
+
+// Copy solution for *nodal* implicit source solve for fluid-em coupling in the PKPM system. (Serendipity kernels)
+GKYL_CU_D
+static const gkyl_dg_pkpm_em_coupling_copy_kern_list ser_pkpm_em_coupling_nodal_copy_kernels[] = {
+  { NULL, euler_pkpm_em_coupling_nodal_copy_1x_ser_p1, NULL, NULL }, // 0
+  { NULL, euler_pkpm_em_coupling_nodal_copy_2x_ser_p1, NULL, NULL }, // 1
+  { NULL, euler_pkpm_em_coupling_nodal_copy_3x_ser_p1, NULL, NULL }, // 2
+};
+
 GKYL_CU_D
 static pkpm_em_coupling_set_t
 choose_pkpm_em_coupling_set_kern(enum gkyl_basis_type b_type, int cdim, int poly_order)
@@ -106,6 +129,34 @@ choose_pkpm_em_coupling_copy_kern(enum gkyl_basis_type b_type, int cdim, int pol
       break;
     case GKYL_BASIS_MODAL_TENSOR:
       return ten_pkpm_em_coupling_copy_kernels[cdim-1].kernels[poly_order];
+      break;
+    default:
+      assert(false);
+      break;  
+  }
+}
+
+GKYL_CU_D
+static pkpm_em_coupling_set_t
+choose_pkpm_em_coupling_nodal_set_kern(enum gkyl_basis_type b_type, int cdim, int poly_order)
+{
+  switch (b_type) {
+    case GKYL_BASIS_MODAL_SERENDIPITY:
+      return ser_pkpm_em_coupling_nodal_set_kernels[cdim-1].kernels[poly_order];
+      break;
+    default:
+      assert(false);
+      break;  
+  }
+}
+
+GKYL_CU_D
+static pkpm_em_coupling_copy_t
+choose_pkpm_em_coupling_nodal_copy_kern(enum gkyl_basis_type b_type, int cdim, int poly_order)
+{
+  switch (b_type) {
+    case GKYL_BASIS_MODAL_SERENDIPITY:
+      return ser_pkpm_em_coupling_nodal_copy_kernels[cdim-1].kernels[poly_order];
       break;
     default:
       assert(false);

@@ -27,7 +27,15 @@ GKYL_CU_DH void euler_pkpm_em_coupling_set_1x_ser_p1(int count, int num_species,
   double* GKYL_RESTRICT em); 
 GKYL_CU_DH void euler_pkpm_em_coupling_copy_1x_ser_p1(int count, int num_species, double qbym[GKYL_MAX_SPECIES], double epsilon0, struct gkyl_nmat *x, 
   const double *vlasov_pkpm_moms[GKYL_MAX_SPECIES], const double* pkpm_u[GKYL_MAX_SPECIES], 
-  double* GKYL_RESTRICT euler_pkpm[GKYL_MAX_SPECIES], double* GKYL_RESTRICT em) ; 
+  double* GKYL_RESTRICT euler_pkpm[GKYL_MAX_SPECIES], double* GKYL_RESTRICT em); 
+GKYL_CU_DH void euler_pkpm_em_coupling_nodal_set_1x_ser_p1(int count, int num_species, double qbym[GKYL_MAX_SPECIES], double epsilon0, bool pkpm_field_static, double dt, 
+  struct gkyl_nmat *A, struct gkyl_nmat *rhs, 
+  const double *app_accel[GKYL_MAX_SPECIES], const double *ext_em, const double *app_current, 
+  const double *vlasov_pkpm_moms[GKYL_MAX_SPECIES], const double* pkpm_u[GKYL_MAX_SPECIES], 
+  double* GKYL_RESTRICT em); 
+GKYL_CU_DH void euler_pkpm_em_coupling_nodal_copy_1x_ser_p1(int count, int num_species, double qbym[GKYL_MAX_SPECIES], double epsilon0, struct gkyl_nmat *x, 
+  const double *vlasov_pkpm_moms[GKYL_MAX_SPECIES], const double* pkpm_u[GKYL_MAX_SPECIES], 
+  double* GKYL_RESTRICT euler_pkpm[GKYL_MAX_SPECIES], double* GKYL_RESTRICT em); 
 GKYL_CU_DH void euler_pkpm_source_1x_ser_p1(const double *qmem, const double *vlasov_pkpm_moms, const double *euler_pkpm, double* GKYL_RESTRICT out); 
 GKYL_CU_DH double euler_pkpm_vol_1x_ser_p1(const double *w, const double *dxv, const double *prim, const double *p_ij, const double *euler_pkpm, double* GKYL_RESTRICT out); 
 GKYL_CU_DH void pkpm_vars_accel_x_1x_ser_p1(const double *dxv, 
@@ -75,7 +83,15 @@ GKYL_CU_DH void euler_pkpm_em_coupling_set_1x_ser_p2(int count, int num_species,
   double* GKYL_RESTRICT em); 
 GKYL_CU_DH void euler_pkpm_em_coupling_copy_1x_ser_p2(int count, int num_species, double qbym[GKYL_MAX_SPECIES], double epsilon0, struct gkyl_nmat *x, 
   const double *vlasov_pkpm_moms[GKYL_MAX_SPECIES], const double* pkpm_u[GKYL_MAX_SPECIES], 
-  double* GKYL_RESTRICT euler_pkpm[GKYL_MAX_SPECIES], double* GKYL_RESTRICT em) ; 
+  double* GKYL_RESTRICT euler_pkpm[GKYL_MAX_SPECIES], double* GKYL_RESTRICT em); 
+GKYL_CU_DH void euler_pkpm_em_coupling_nodal_set_1x_ser_p2(int count, int num_species, double qbym[GKYL_MAX_SPECIES], double epsilon0, bool pkpm_field_static, double dt, 
+  struct gkyl_nmat *A, struct gkyl_nmat *rhs, 
+  const double *app_accel[GKYL_MAX_SPECIES], const double *ext_em, const double *app_current, 
+  const double *vlasov_pkpm_moms[GKYL_MAX_SPECIES], const double* pkpm_u[GKYL_MAX_SPECIES], 
+  double* GKYL_RESTRICT em); 
+GKYL_CU_DH void euler_pkpm_em_coupling_nodal_copy_1x_ser_p2(int count, int num_species, double qbym[GKYL_MAX_SPECIES], double epsilon0, struct gkyl_nmat *x, 
+  const double *vlasov_pkpm_moms[GKYL_MAX_SPECIES], const double* pkpm_u[GKYL_MAX_SPECIES], 
+  double* GKYL_RESTRICT euler_pkpm[GKYL_MAX_SPECIES], double* GKYL_RESTRICT em); 
 GKYL_CU_DH void euler_pkpm_source_1x_ser_p2(const double *qmem, const double *vlasov_pkpm_moms, const double *euler_pkpm, double* GKYL_RESTRICT out); 
 GKYL_CU_DH double euler_pkpm_vol_1x_ser_p2(const double *w, const double *dxv, const double *prim, const double *p_ij, const double *euler_pkpm, double* GKYL_RESTRICT out); 
 GKYL_CU_DH void pkpm_vars_accel_x_1x_ser_p2(const double *dxv, 
@@ -123,7 +139,15 @@ GKYL_CU_DH void euler_pkpm_em_coupling_set_1x_ser_p3(int count, int num_species,
   double* GKYL_RESTRICT em); 
 GKYL_CU_DH void euler_pkpm_em_coupling_copy_1x_ser_p3(int count, int num_species, double qbym[GKYL_MAX_SPECIES], double epsilon0, struct gkyl_nmat *x, 
   const double *vlasov_pkpm_moms[GKYL_MAX_SPECIES], const double* pkpm_u[GKYL_MAX_SPECIES], 
-  double* GKYL_RESTRICT euler_pkpm[GKYL_MAX_SPECIES], double* GKYL_RESTRICT em) ; 
+  double* GKYL_RESTRICT euler_pkpm[GKYL_MAX_SPECIES], double* GKYL_RESTRICT em); 
+GKYL_CU_DH void euler_pkpm_em_coupling_nodal_set_1x_ser_p3(int count, int num_species, double qbym[GKYL_MAX_SPECIES], double epsilon0, bool pkpm_field_static, double dt, 
+  struct gkyl_nmat *A, struct gkyl_nmat *rhs, 
+  const double *app_accel[GKYL_MAX_SPECIES], const double *ext_em, const double *app_current, 
+  const double *vlasov_pkpm_moms[GKYL_MAX_SPECIES], const double* pkpm_u[GKYL_MAX_SPECIES], 
+  double* GKYL_RESTRICT em); 
+GKYL_CU_DH void euler_pkpm_em_coupling_nodal_copy_1x_ser_p3(int count, int num_species, double qbym[GKYL_MAX_SPECIES], double epsilon0, struct gkyl_nmat *x, 
+  const double *vlasov_pkpm_moms[GKYL_MAX_SPECIES], const double* pkpm_u[GKYL_MAX_SPECIES], 
+  double* GKYL_RESTRICT euler_pkpm[GKYL_MAX_SPECIES], double* GKYL_RESTRICT em); 
 GKYL_CU_DH void euler_pkpm_source_1x_ser_p3(const double *qmem, const double *vlasov_pkpm_moms, const double *euler_pkpm, double* GKYL_RESTRICT out); 
 GKYL_CU_DH double euler_pkpm_vol_1x_ser_p3(const double *w, const double *dxv, const double *prim, const double *p_ij, const double *euler_pkpm, double* GKYL_RESTRICT out); 
 GKYL_CU_DH void pkpm_vars_accel_x_1x_ser_p3(const double *dxv, 
@@ -171,7 +195,15 @@ GKYL_CU_DH void euler_pkpm_em_coupling_set_2x_ser_p1(int count, int num_species,
   double* GKYL_RESTRICT em); 
 GKYL_CU_DH void euler_pkpm_em_coupling_copy_2x_ser_p1(int count, int num_species, double qbym[GKYL_MAX_SPECIES], double epsilon0, struct gkyl_nmat *x, 
   const double *vlasov_pkpm_moms[GKYL_MAX_SPECIES], const double* pkpm_u[GKYL_MAX_SPECIES], 
-  double* GKYL_RESTRICT euler_pkpm[GKYL_MAX_SPECIES], double* GKYL_RESTRICT em) ; 
+  double* GKYL_RESTRICT euler_pkpm[GKYL_MAX_SPECIES], double* GKYL_RESTRICT em); 
+GKYL_CU_DH void euler_pkpm_em_coupling_nodal_set_2x_ser_p1(int count, int num_species, double qbym[GKYL_MAX_SPECIES], double epsilon0, bool pkpm_field_static, double dt, 
+  struct gkyl_nmat *A, struct gkyl_nmat *rhs, 
+  const double *app_accel[GKYL_MAX_SPECIES], const double *ext_em, const double *app_current, 
+  const double *vlasov_pkpm_moms[GKYL_MAX_SPECIES], const double* pkpm_u[GKYL_MAX_SPECIES], 
+  double* GKYL_RESTRICT em); 
+GKYL_CU_DH void euler_pkpm_em_coupling_nodal_copy_2x_ser_p1(int count, int num_species, double qbym[GKYL_MAX_SPECIES], double epsilon0, struct gkyl_nmat *x, 
+  const double *vlasov_pkpm_moms[GKYL_MAX_SPECIES], const double* pkpm_u[GKYL_MAX_SPECIES], 
+  double* GKYL_RESTRICT euler_pkpm[GKYL_MAX_SPECIES], double* GKYL_RESTRICT em); 
 GKYL_CU_DH void euler_pkpm_source_2x_ser_p1(const double *qmem, const double *vlasov_pkpm_moms, const double *euler_pkpm, double* GKYL_RESTRICT out); 
 GKYL_CU_DH double euler_pkpm_vol_2x_ser_p1(const double *w, const double *dxv, const double *prim, const double *p_ij, const double *euler_pkpm, double* GKYL_RESTRICT out); 
 GKYL_CU_DH void pkpm_vars_accel_x_2x_ser_p1(const double *dxv, 
@@ -243,7 +275,15 @@ GKYL_CU_DH void euler_pkpm_em_coupling_set_2x_ser_p2(int count, int num_species,
   double* GKYL_RESTRICT em); 
 GKYL_CU_DH void euler_pkpm_em_coupling_copy_2x_ser_p2(int count, int num_species, double qbym[GKYL_MAX_SPECIES], double epsilon0, struct gkyl_nmat *x, 
   const double *vlasov_pkpm_moms[GKYL_MAX_SPECIES], const double* pkpm_u[GKYL_MAX_SPECIES], 
-  double* GKYL_RESTRICT euler_pkpm[GKYL_MAX_SPECIES], double* GKYL_RESTRICT em) ; 
+  double* GKYL_RESTRICT euler_pkpm[GKYL_MAX_SPECIES], double* GKYL_RESTRICT em); 
+GKYL_CU_DH void euler_pkpm_em_coupling_nodal_set_2x_ser_p2(int count, int num_species, double qbym[GKYL_MAX_SPECIES], double epsilon0, bool pkpm_field_static, double dt, 
+  struct gkyl_nmat *A, struct gkyl_nmat *rhs, 
+  const double *app_accel[GKYL_MAX_SPECIES], const double *ext_em, const double *app_current, 
+  const double *vlasov_pkpm_moms[GKYL_MAX_SPECIES], const double* pkpm_u[GKYL_MAX_SPECIES], 
+  double* GKYL_RESTRICT em); 
+GKYL_CU_DH void euler_pkpm_em_coupling_nodal_copy_2x_ser_p2(int count, int num_species, double qbym[GKYL_MAX_SPECIES], double epsilon0, struct gkyl_nmat *x, 
+  const double *vlasov_pkpm_moms[GKYL_MAX_SPECIES], const double* pkpm_u[GKYL_MAX_SPECIES], 
+  double* GKYL_RESTRICT euler_pkpm[GKYL_MAX_SPECIES], double* GKYL_RESTRICT em); 
 GKYL_CU_DH void euler_pkpm_source_2x_ser_p2(const double *qmem, const double *vlasov_pkpm_moms, const double *euler_pkpm, double* GKYL_RESTRICT out); 
 GKYL_CU_DH double euler_pkpm_vol_2x_ser_p2(const double *w, const double *dxv, const double *prim, const double *p_ij, const double *euler_pkpm, double* GKYL_RESTRICT out); 
 GKYL_CU_DH void pkpm_vars_accel_x_2x_ser_p2(const double *dxv, 
@@ -315,7 +355,15 @@ GKYL_CU_DH void euler_pkpm_em_coupling_set_2x_ser_p3(int count, int num_species,
   double* GKYL_RESTRICT em); 
 GKYL_CU_DH void euler_pkpm_em_coupling_copy_2x_ser_p3(int count, int num_species, double qbym[GKYL_MAX_SPECIES], double epsilon0, struct gkyl_nmat *x, 
   const double *vlasov_pkpm_moms[GKYL_MAX_SPECIES], const double* pkpm_u[GKYL_MAX_SPECIES], 
-  double* GKYL_RESTRICT euler_pkpm[GKYL_MAX_SPECIES], double* GKYL_RESTRICT em) ; 
+  double* GKYL_RESTRICT euler_pkpm[GKYL_MAX_SPECIES], double* GKYL_RESTRICT em); 
+GKYL_CU_DH void euler_pkpm_em_coupling_nodal_set_2x_ser_p3(int count, int num_species, double qbym[GKYL_MAX_SPECIES], double epsilon0, bool pkpm_field_static, double dt, 
+  struct gkyl_nmat *A, struct gkyl_nmat *rhs, 
+  const double *app_accel[GKYL_MAX_SPECIES], const double *ext_em, const double *app_current, 
+  const double *vlasov_pkpm_moms[GKYL_MAX_SPECIES], const double* pkpm_u[GKYL_MAX_SPECIES], 
+  double* GKYL_RESTRICT em); 
+GKYL_CU_DH void euler_pkpm_em_coupling_nodal_copy_2x_ser_p3(int count, int num_species, double qbym[GKYL_MAX_SPECIES], double epsilon0, struct gkyl_nmat *x, 
+  const double *vlasov_pkpm_moms[GKYL_MAX_SPECIES], const double* pkpm_u[GKYL_MAX_SPECIES], 
+  double* GKYL_RESTRICT euler_pkpm[GKYL_MAX_SPECIES], double* GKYL_RESTRICT em); 
 GKYL_CU_DH void euler_pkpm_source_2x_ser_p3(const double *qmem, const double *vlasov_pkpm_moms, const double *euler_pkpm, double* GKYL_RESTRICT out); 
 GKYL_CU_DH double euler_pkpm_vol_2x_ser_p3(const double *w, const double *dxv, const double *prim, const double *p_ij, const double *euler_pkpm, double* GKYL_RESTRICT out); 
 GKYL_CU_DH void pkpm_vars_accel_x_2x_ser_p3(const double *dxv, 
@@ -387,7 +435,15 @@ GKYL_CU_DH void euler_pkpm_em_coupling_set_3x_ser_p1(int count, int num_species,
   double* GKYL_RESTRICT em); 
 GKYL_CU_DH void euler_pkpm_em_coupling_copy_3x_ser_p1(int count, int num_species, double qbym[GKYL_MAX_SPECIES], double epsilon0, struct gkyl_nmat *x, 
   const double *vlasov_pkpm_moms[GKYL_MAX_SPECIES], const double* pkpm_u[GKYL_MAX_SPECIES], 
-  double* GKYL_RESTRICT euler_pkpm[GKYL_MAX_SPECIES], double* GKYL_RESTRICT em) ; 
+  double* GKYL_RESTRICT euler_pkpm[GKYL_MAX_SPECIES], double* GKYL_RESTRICT em); 
+GKYL_CU_DH void euler_pkpm_em_coupling_nodal_set_3x_ser_p1(int count, int num_species, double qbym[GKYL_MAX_SPECIES], double epsilon0, bool pkpm_field_static, double dt, 
+  struct gkyl_nmat *A, struct gkyl_nmat *rhs, 
+  const double *app_accel[GKYL_MAX_SPECIES], const double *ext_em, const double *app_current, 
+  const double *vlasov_pkpm_moms[GKYL_MAX_SPECIES], const double* pkpm_u[GKYL_MAX_SPECIES], 
+  double* GKYL_RESTRICT em); 
+GKYL_CU_DH void euler_pkpm_em_coupling_nodal_copy_3x_ser_p1(int count, int num_species, double qbym[GKYL_MAX_SPECIES], double epsilon0, struct gkyl_nmat *x, 
+  const double *vlasov_pkpm_moms[GKYL_MAX_SPECIES], const double* pkpm_u[GKYL_MAX_SPECIES], 
+  double* GKYL_RESTRICT euler_pkpm[GKYL_MAX_SPECIES], double* GKYL_RESTRICT em); 
 GKYL_CU_DH void euler_pkpm_source_3x_ser_p1(const double *qmem, const double *vlasov_pkpm_moms, const double *euler_pkpm, double* GKYL_RESTRICT out); 
 GKYL_CU_DH double euler_pkpm_vol_3x_ser_p1(const double *w, const double *dxv, const double *prim, const double *p_ij, const double *euler_pkpm, double* GKYL_RESTRICT out); 
 GKYL_CU_DH void pkpm_vars_accel_x_3x_ser_p1(const double *dxv, 
@@ -483,7 +539,15 @@ GKYL_CU_DH void euler_pkpm_em_coupling_set_3x_ser_p2(int count, int num_species,
   double* GKYL_RESTRICT em); 
 GKYL_CU_DH void euler_pkpm_em_coupling_copy_3x_ser_p2(int count, int num_species, double qbym[GKYL_MAX_SPECIES], double epsilon0, struct gkyl_nmat *x, 
   const double *vlasov_pkpm_moms[GKYL_MAX_SPECIES], const double* pkpm_u[GKYL_MAX_SPECIES], 
-  double* GKYL_RESTRICT euler_pkpm[GKYL_MAX_SPECIES], double* GKYL_RESTRICT em) ; 
+  double* GKYL_RESTRICT euler_pkpm[GKYL_MAX_SPECIES], double* GKYL_RESTRICT em); 
+GKYL_CU_DH void euler_pkpm_em_coupling_nodal_set_3x_ser_p2(int count, int num_species, double qbym[GKYL_MAX_SPECIES], double epsilon0, bool pkpm_field_static, double dt, 
+  struct gkyl_nmat *A, struct gkyl_nmat *rhs, 
+  const double *app_accel[GKYL_MAX_SPECIES], const double *ext_em, const double *app_current, 
+  const double *vlasov_pkpm_moms[GKYL_MAX_SPECIES], const double* pkpm_u[GKYL_MAX_SPECIES], 
+  double* GKYL_RESTRICT em); 
+GKYL_CU_DH void euler_pkpm_em_coupling_nodal_copy_3x_ser_p2(int count, int num_species, double qbym[GKYL_MAX_SPECIES], double epsilon0, struct gkyl_nmat *x, 
+  const double *vlasov_pkpm_moms[GKYL_MAX_SPECIES], const double* pkpm_u[GKYL_MAX_SPECIES], 
+  double* GKYL_RESTRICT euler_pkpm[GKYL_MAX_SPECIES], double* GKYL_RESTRICT em); 
 GKYL_CU_DH void euler_pkpm_source_3x_ser_p2(const double *qmem, const double *vlasov_pkpm_moms, const double *euler_pkpm, double* GKYL_RESTRICT out); 
 GKYL_CU_DH double euler_pkpm_vol_3x_ser_p2(const double *w, const double *dxv, const double *prim, const double *p_ij, const double *euler_pkpm, double* GKYL_RESTRICT out); 
 GKYL_CU_DH void pkpm_vars_accel_x_3x_ser_p2(const double *dxv, 
@@ -579,7 +643,15 @@ GKYL_CU_DH void euler_pkpm_em_coupling_set_3x_ser_p3(int count, int num_species,
   double* GKYL_RESTRICT em); 
 GKYL_CU_DH void euler_pkpm_em_coupling_copy_3x_ser_p3(int count, int num_species, double qbym[GKYL_MAX_SPECIES], double epsilon0, struct gkyl_nmat *x, 
   const double *vlasov_pkpm_moms[GKYL_MAX_SPECIES], const double* pkpm_u[GKYL_MAX_SPECIES], 
-  double* GKYL_RESTRICT euler_pkpm[GKYL_MAX_SPECIES], double* GKYL_RESTRICT em) ; 
+  double* GKYL_RESTRICT euler_pkpm[GKYL_MAX_SPECIES], double* GKYL_RESTRICT em); 
+GKYL_CU_DH void euler_pkpm_em_coupling_nodal_set_3x_ser_p3(int count, int num_species, double qbym[GKYL_MAX_SPECIES], double epsilon0, bool pkpm_field_static, double dt, 
+  struct gkyl_nmat *A, struct gkyl_nmat *rhs, 
+  const double *app_accel[GKYL_MAX_SPECIES], const double *ext_em, const double *app_current, 
+  const double *vlasov_pkpm_moms[GKYL_MAX_SPECIES], const double* pkpm_u[GKYL_MAX_SPECIES], 
+  double* GKYL_RESTRICT em); 
+GKYL_CU_DH void euler_pkpm_em_coupling_nodal_copy_3x_ser_p3(int count, int num_species, double qbym[GKYL_MAX_SPECIES], double epsilon0, struct gkyl_nmat *x, 
+  const double *vlasov_pkpm_moms[GKYL_MAX_SPECIES], const double* pkpm_u[GKYL_MAX_SPECIES], 
+  double* GKYL_RESTRICT euler_pkpm[GKYL_MAX_SPECIES], double* GKYL_RESTRICT em); 
 GKYL_CU_DH void euler_pkpm_source_3x_ser_p3(const double *qmem, const double *vlasov_pkpm_moms, const double *euler_pkpm, double* GKYL_RESTRICT out); 
 GKYL_CU_DH double euler_pkpm_vol_3x_ser_p3(const double *w, const double *dxv, const double *prim, const double *p_ij, const double *euler_pkpm, double* GKYL_RESTRICT out); 
 GKYL_CU_DH void pkpm_vars_accel_x_3x_ser_p3(const double *dxv, 
@@ -675,7 +747,15 @@ GKYL_CU_DH void euler_pkpm_em_coupling_set_2x_tensor_p2(int count, int num_speci
   double* GKYL_RESTRICT em); 
 GKYL_CU_DH void euler_pkpm_em_coupling_copy_2x_tensor_p2(int count, int num_species, double qbym[GKYL_MAX_SPECIES], double epsilon0, struct gkyl_nmat *x, 
   const double *vlasov_pkpm_moms[GKYL_MAX_SPECIES], const double* pkpm_u[GKYL_MAX_SPECIES], 
-  double* GKYL_RESTRICT euler_pkpm[GKYL_MAX_SPECIES], double* GKYL_RESTRICT em) ; 
+  double* GKYL_RESTRICT euler_pkpm[GKYL_MAX_SPECIES], double* GKYL_RESTRICT em); 
+GKYL_CU_DH void euler_pkpm_em_coupling_nodal_set_2x_tensor_p2(int count, int num_species, double qbym[GKYL_MAX_SPECIES], double epsilon0, bool pkpm_field_static, double dt, 
+  struct gkyl_nmat *A, struct gkyl_nmat *rhs, 
+  const double *app_accel[GKYL_MAX_SPECIES], const double *ext_em, const double *app_current, 
+  const double *vlasov_pkpm_moms[GKYL_MAX_SPECIES], const double* pkpm_u[GKYL_MAX_SPECIES], 
+  double* GKYL_RESTRICT em); 
+GKYL_CU_DH void euler_pkpm_em_coupling_nodal_copy_2x_tensor_p2(int count, int num_species, double qbym[GKYL_MAX_SPECIES], double epsilon0, struct gkyl_nmat *x, 
+  const double *vlasov_pkpm_moms[GKYL_MAX_SPECIES], const double* pkpm_u[GKYL_MAX_SPECIES], 
+  double* GKYL_RESTRICT euler_pkpm[GKYL_MAX_SPECIES], double* GKYL_RESTRICT em); 
 GKYL_CU_DH void euler_pkpm_source_2x_tensor_p2(const double *qmem, const double *vlasov_pkpm_moms, const double *euler_pkpm, double* GKYL_RESTRICT out); 
 GKYL_CU_DH double euler_pkpm_vol_2x_tensor_p2(const double *w, const double *dxv, const double *prim, const double *p_ij, const double *euler_pkpm, double* GKYL_RESTRICT out); 
 GKYL_CU_DH void pkpm_vars_accel_x_2x_tensor_p2(const double *dxv, 
@@ -726,5 +806,58 @@ GKYL_CU_DH double euler_pkpm_surfy_2x_tensor_p2(const double *w, const double *d
     const double *pkpm_lax_l, const double *pkpm_lax_r, 
     const double *pkpm_penalization_l, const double *pkpm_penalization_r,  
     double* GKYL_RESTRICT out); 
+
+GKYL_CU_DH 
+static inline void 
+modal_to_quad_nodal_1d_ser_p1(const double* fmodal, double* fquad) { 
+  fquad[0] = 0.7071067811865475*fmodal[0]-0.7071067811865475*fmodal[1]; 
+  fquad[1] = 0.7071067811865475*fmodal[1]+0.7071067811865475*fmodal[0]; 
+} 
+GKYL_CU_DH 
+static inline void 
+modal_to_quad_nodal_2d_ser_p1(const double* fmodal, double* fquad) { 
+  fquad[0] = 0.5*fmodal[3]-0.5*fmodal[2]-0.5*fmodal[1]+0.5*fmodal[0]; 
+  fquad[1] = (-0.5*fmodal[3])+0.5*fmodal[2]-0.5*fmodal[1]+0.5*fmodal[0]; 
+  fquad[2] = (-0.5*fmodal[3])-0.5*fmodal[2]+0.5*fmodal[1]+0.5*fmodal[0]; 
+  fquad[3] = 0.5*fmodal[3]+0.5*fmodal[2]+0.5*fmodal[1]+0.5*fmodal[0]; 
+} 
+GKYL_CU_DH 
+static inline void 
+modal_to_quad_nodal_3d_ser_p1(const double* fmodal, double* fquad) { 
+  fquad[0] = (-0.3535533905932737*fmodal[7])+0.3535533905932737*fmodal[6]+0.3535533905932737*fmodal[5]+0.3535533905932737*fmodal[4]-0.3535533905932737*fmodal[3]-0.3535533905932737*fmodal[2]-0.3535533905932737*fmodal[1]+0.3535533905932737*fmodal[0]; 
+  fquad[1] = 0.3535533905932737*fmodal[7]-0.3535533905932737*fmodal[6]-0.3535533905932737*fmodal[5]+0.3535533905932737*fmodal[4]+0.3535533905932737*fmodal[3]-0.3535533905932737*fmodal[2]-0.3535533905932737*fmodal[1]+0.3535533905932737*fmodal[0]; 
+  fquad[2] = 0.3535533905932737*fmodal[7]-0.3535533905932737*fmodal[6]+0.3535533905932737*fmodal[5]-0.3535533905932737*fmodal[4]-0.3535533905932737*fmodal[3]+0.3535533905932737*fmodal[2]-0.3535533905932737*fmodal[1]+0.3535533905932737*fmodal[0]; 
+  fquad[3] = (-0.3535533905932737*fmodal[7])+0.3535533905932737*fmodal[6]-0.3535533905932737*fmodal[5]-0.3535533905932737*fmodal[4]+0.3535533905932737*fmodal[3]+0.3535533905932737*fmodal[2]-0.3535533905932737*fmodal[1]+0.3535533905932737*fmodal[0]; 
+  fquad[4] = 0.3535533905932737*fmodal[7]+0.3535533905932737*fmodal[6]-0.3535533905932737*fmodal[5]-0.3535533905932737*fmodal[4]-0.3535533905932737*fmodal[3]-0.3535533905932737*fmodal[2]+0.3535533905932737*fmodal[1]+0.3535533905932737*fmodal[0]; 
+  fquad[5] = (-0.3535533905932737*fmodal[7])-0.3535533905932737*fmodal[6]+0.3535533905932737*fmodal[5]-0.3535533905932737*fmodal[4]+0.3535533905932737*fmodal[3]-0.3535533905932737*fmodal[2]+0.3535533905932737*fmodal[1]+0.3535533905932737*fmodal[0]; 
+  fquad[6] = (-0.3535533905932737*fmodal[7])-0.3535533905932737*fmodal[6]-0.3535533905932737*fmodal[5]+0.3535533905932737*fmodal[4]-0.3535533905932737*fmodal[3]+0.3535533905932737*fmodal[2]+0.3535533905932737*fmodal[1]+0.3535533905932737*fmodal[0]; 
+  fquad[7] = 0.3535533905932737*fmodal[7]+0.3535533905932737*fmodal[6]+0.3535533905932737*fmodal[5]+0.3535533905932737*fmodal[4]+0.3535533905932737*fmodal[3]+0.3535533905932737*fmodal[2]+0.3535533905932737*fmodal[1]+0.3535533905932737*fmodal[0]; 
+} 
+GKYL_CU_DH 
+static inline void 
+quad_nodal_to_modal_1d_ser_p1(const double* fquad, double* fmodal) { 
+  fmodal[0] = 0.7071067811865475*fquad[1]+0.7071067811865475*fquad[0]; 
+  fmodal[1] = 0.7071067811865475*fquad[1]-0.7071067811865475*fquad[0]; 
+} 
+GKYL_CU_DH 
+static inline void 
+quad_nodal_to_modal_2d_ser_p1(const double* fquad, double* fmodal) { 
+  fmodal[0] = 0.5*fquad[3]+0.5*fquad[2]+0.5*fquad[1]+0.5*fquad[0]; 
+  fmodal[1] = 0.5*fquad[3]+0.5*fquad[2]-0.5*fquad[1]-0.5*fquad[0]; 
+  fmodal[2] = 0.5*fquad[3]-0.5*fquad[2]+0.5*fquad[1]-0.5*fquad[0]; 
+  fmodal[3] = 0.5*fquad[3]-0.5*fquad[2]-0.5*fquad[1]+0.5*fquad[0]; 
+} 
+GKYL_CU_DH 
+static inline void 
+quad_nodal_to_modal_3d_ser_p1(const double* fquad, double* fmodal) { 
+  fmodal[0] = 0.3535533905932737*fquad[7]+0.3535533905932737*fquad[6]+0.3535533905932737*fquad[5]+0.3535533905932737*fquad[4]+0.3535533905932737*fquad[3]+0.3535533905932737*fquad[2]+0.3535533905932737*fquad[1]+0.3535533905932737*fquad[0]; 
+  fmodal[1] = 0.3535533905932737*fquad[7]+0.3535533905932737*fquad[6]+0.3535533905932737*fquad[5]+0.3535533905932737*fquad[4]-0.3535533905932737*fquad[3]-0.3535533905932737*fquad[2]-0.3535533905932737*fquad[1]-0.3535533905932737*fquad[0]; 
+  fmodal[2] = 0.3535533905932737*fquad[7]+0.3535533905932737*fquad[6]-0.3535533905932737*fquad[5]-0.3535533905932737*fquad[4]+0.3535533905932737*fquad[3]+0.3535533905932737*fquad[2]-0.3535533905932737*fquad[1]-0.3535533905932737*fquad[0]; 
+  fmodal[3] = 0.3535533905932737*fquad[7]-0.3535533905932737*fquad[6]+0.3535533905932737*fquad[5]-0.3535533905932737*fquad[4]+0.3535533905932737*fquad[3]-0.3535533905932737*fquad[2]+0.3535533905932737*fquad[1]-0.3535533905932737*fquad[0]; 
+  fmodal[4] = 0.3535533905932737*fquad[7]+0.3535533905932737*fquad[6]-0.3535533905932737*fquad[5]-0.3535533905932737*fquad[4]-0.3535533905932737*fquad[3]-0.3535533905932737*fquad[2]+0.3535533905932737*fquad[1]+0.3535533905932737*fquad[0]; 
+  fmodal[5] = 0.3535533905932737*fquad[7]-0.3535533905932737*fquad[6]+0.3535533905932737*fquad[5]-0.3535533905932737*fquad[4]-0.3535533905932737*fquad[3]+0.3535533905932737*fquad[2]-0.3535533905932737*fquad[1]+0.3535533905932737*fquad[0]; 
+  fmodal[6] = 0.3535533905932737*fquad[7]-0.3535533905932737*fquad[6]-0.3535533905932737*fquad[5]+0.3535533905932737*fquad[4]+0.3535533905932737*fquad[3]-0.3535533905932737*fquad[2]-0.3535533905932737*fquad[1]+0.3535533905932737*fquad[0]; 
+  fmodal[7] = 0.3535533905932737*fquad[7]-0.3535533905932737*fquad[6]-0.3535533905932737*fquad[5]+0.3535533905932737*fquad[4]-0.3535533905932737*fquad[3]+0.3535533905932737*fquad[2]+0.3535533905932737*fquad[1]-0.3535533905932737*fquad[0]; 
+} 
 
 EXTERN_C_END 

@@ -171,7 +171,7 @@ gkyl_dg_calc_pkpm_em_coupling_copy_two_fluids_cu_kernel(gkyl_dg_calc_pkpm_em_cou
   }
 }
 
-// Host-side wrapper for primitive variable calculation
+// Host-side wrapper for implicit source solve (modal)
 void gkyl_dg_calc_pkpm_em_coupling_advance_cu(struct gkyl_dg_calc_pkpm_em_coupling *up, double dt, 
   const struct gkyl_array* app_accel[GKYL_MAX_SPECIES], 
   const struct gkyl_array* ext_em, const struct gkyl_array* app_current, 
@@ -216,6 +216,16 @@ void gkyl_dg_calc_pkpm_em_coupling_advance_cu(struct gkyl_dg_calc_pkpm_em_coupli
   }
 }
 
+// Host-side wrapper for implicit source solve (nodal)
+void gkyl_dg_calc_pkpm_em_coupling_nodal_advance_cu(struct gkyl_dg_calc_pkpm_em_coupling *up, double dt, 
+  const struct gkyl_array* app_accel[GKYL_MAX_SPECIES], 
+  const struct gkyl_array* ext_em, const struct gkyl_array* app_current, 
+  const struct gkyl_array* vlasov_pkpm_moms[GKYL_MAX_SPECIES], const struct gkyl_array* pkpm_u[GKYL_MAX_SPECIES], 
+  struct gkyl_array* euler_pkpm[GKYL_MAX_SPECIES], struct gkyl_array* em)
+{
+  // TO DO: implement GPU nodal solve
+}
+
 // CUDA kernel to set device pointers to pkpm-em coupling kernel functions
 // Doing function pointer stuff in here avoids troublesome cudaMemcpyFromSymbol
 __global__ static void 
@@ -224,6 +234,8 @@ dg_calc_pkpm_em_coupling_set_cu_dev_ptrs(struct gkyl_dg_calc_pkpm_em_coupling *u
 {
   up->pkpm_em_coupling_set = choose_pkpm_em_coupling_set_kern(b_type, cdim, poly_order);
   up->pkpm_em_coupling_copy = choose_pkpm_em_coupling_copy_kern(b_type, cdim, poly_order);
+  up->pkpm_em_coupling_nodal_set = choose_pkpm_em_coupling_nodal_set_kern(b_type, cdim, poly_order);
+  up->pkpm_em_coupling_nodal_copy = choose_pkpm_em_coupling_nodal_copy_kern(b_type, cdim, poly_order);
 }
 
 gkyl_dg_calc_pkpm_em_coupling*
@@ -239,12 +251,18 @@ gkyl_dg_calc_pkpm_em_coupling_cu_dev_new(const struct gkyl_basis* cbasis,
   int poly_order = cbasis->poly_order;
   enum gkyl_basis_type b_type = cbasis->b_type;
   up->mem_range = *mem_range;
+  up->num_basis = nc;
 
   // Linear system size is nc*(3*num_species + 3)
   up->num_species = num_species;
   up->As = gkyl_nmat_cu_dev_new(mem_range->volume, nc*(3*up->num_species + 3), nc*(3*up->num_species + 3));
   up->xs = gkyl_nmat_cu_dev_new(mem_range->volume, nc*(3*up->num_species + 3), 1);
   up->mem = gkyl_nmat_linsolve_lu_cu_dev_new(up->As->num, up->As->nr);
+
+  // Linear system size for the nodal solve is (3*num_species + 3) (and there are nc more of them)
+  up->As_nodal = gkyl_nmat_cu_dev_new(nc*mem_range->volume, (3*up->num_species + 3), (3*up->num_species + 3));
+  up->xs_nodal = gkyl_nmat_cu_dev_new(nc*mem_range->volume, (3*up->num_species + 3), 1);
+  up->mem_nodal = gkyl_nmat_linsolve_lu_cu_dev_new(up->As->num, up->As->nr);
 
   // Boolean for whether or not self-consistent EM fields are static
   up->pkpm_field_static = pkpm_field_static;
