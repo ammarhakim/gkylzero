@@ -79,6 +79,12 @@ struct mpi_comm {
   int nsend; // number of elements in sinfo array
   struct comm_buff_stat send[MAX_RECV_NEIGH]; // info for send data
 
+  int nrecv_multib; // number of elements in rinfo array
+  struct comm_buff_stat recv_multib[MAX_RECV_NEIGH]; // info for recv data
+
+  int nsend_multib; // number of elements in sinfo array
+  struct comm_buff_stat send_multib[MAX_RECV_NEIGH]; // info for send data
+
   // buffers for for allgather
   struct comm_buff_stat allgather_buff_local; 
   struct comm_buff_stat allgather_buff_global; 
@@ -502,6 +508,131 @@ array_per_sync(struct gkyl_comm *comm, const struct gkyl_range *local,
 }
 
 static int
+sync_multib(struct gkyl_comm *comm, int num_blocks_local,
+  struct gkyl_multib_comm_conn **mbcc_send, struct gkyl_multib_comm_conn **mbcc_recv,
+  struct gkyl_range **local, struct gkyl_range **local_ext,
+  struct gkyl_array **array)
+{
+  struct mpi_comm *mpi = container_of(comm, struct mpi_comm, priv_comm.pub_comm);
+
+  int nridx = 0;
+  int tag = MPI_BASE_TAG;
+
+  // post nonblocking recv to get data into ghost-cells  
+  for (int bI=0; bI<num_blocks_local; ++bI) {
+    struct gkyl_multib_comm_conn *mbcc_r = mbcc_recv[bI];
+
+    for (int n=0; n<mbcc_r->num_comm_conn; ++n) {
+      int nid = mbcc_r->comm_conn[n].rank;
+      
+      // Extend range in non-multiblock dimensions if needed.
+      int multib_dim = mbcc_r->comm_conn[n].range.ndim;
+      int lo[GKYL_MAX_DIM] = {0}, up[GKYL_MAX_DIM] = {0};
+      for (int d=0; d<multib_dim; d++) {
+        lo[d] = mbcc_r->comm_conn[n].range.lower[d];
+        up[d] = mbcc_r->comm_conn[n].range.upper[d];
+      }
+      for (int d=multib_dim; d<local[bI]->ndim; d++) {
+        lo[d] = local[bI]->lower[d];
+        up[d] = local[bI]->upper[d];
+      }
+      gkyl_sub_range_init(&mpi->recv_multib[nridx].range, local_ext[bI], lo, up);
+      
+      size_t recv_vol = array[bI]->esznc*mpi->recv_multib[nridx].range.volume;
+
+      if (recv_vol>0) {
+        if (gkyl_mem_buff_size(mpi->recv[nridx].buff) < recv_vol)
+          gkyl_mem_buff_resize(mpi->recv[nridx].buff, recv_vol);
+
+        MPI_Irecv(gkyl_mem_buff_data(mpi->recv[nridx].buff),
+          recv_vol, MPI_CHAR, nid, tag, mpi->mcomm, &mpi->recv[nridx].status);
+
+        nridx += 1;
+      }
+    }
+  }
+
+  int nsidx = 0;
+  
+  // post non-blocking sends of skin-cell data to neighbors
+  for (int bI=0; bI<num_blocks_local; ++bI) {
+    struct gkyl_multib_comm_conn *mbcc_s = mbcc_send[bI];
+
+    for (int n=0; n<mbcc_s->num_comm_conn; ++n) {
+      int nid = mbcc_s->comm_conn[n].rank;
+    
+      // Extend range in non-multiblock dimensions if needed.
+      int multib_dim = mbcc_s->comm_conn[n].range.ndim;
+      int lo[GKYL_MAX_DIM] = {0}, up[GKYL_MAX_DIM] = {0};
+      for (int d=0; d<multib_dim; d++) {
+        lo[d] = mbcc_s->comm_conn[n].range.lower[d];
+        up[d] = mbcc_s->comm_conn[n].range.upper[d];
+      }
+      for (int d=multib_dim; d<local[bI]->ndim; d++) {
+        lo[d] = local[bI]->lower[d];
+        up[d] = local[bI]->upper[d];
+      }
+      gkyl_sub_range_init(&mpi->send_multib[nsidx].range, local_ext[bI], lo, up);
+      
+      size_t send_vol = array[bI]->esznc*mpi->send_multib[nsidx].range.volume;
+
+      if (send_vol>0) {
+        if (gkyl_mem_buff_size(mpi->send[nsidx].buff) < send_vol)
+          gkyl_mem_buff_resize(mpi->send[nsidx].buff, send_vol);
+        
+        gkyl_array_copy_to_buffer(gkyl_mem_buff_data(mpi->send[nsidx].buff),
+          array[bI], &mpi->send_multib[nsidx].range);
+
+        MPI_Isend(gkyl_mem_buff_data(mpi->send[nsidx].buff),
+          send_vol, MPI_CHAR, nid, tag, mpi->mcomm, &mpi->send[nsidx].status);
+
+        nsidx += 1;
+      }
+    }
+  }
+
+  // complete send
+  for (int s=0; s<nsidx; ++s) {
+    int issend = mpi->send_multib[s].range.volume;
+    if (issend)
+      MPI_Wait(&mpi->send[s].status, MPI_STATUS_IGNORE);
+  }
+
+  // complete recv, copying data into ghost-cells
+  nridx = 0;
+  for (int bI=0; bI<num_blocks_local; ++bI) {
+    struct gkyl_multib_comm_conn *mbcc_r = mbcc_recv[bI];
+    for (int n=0; n<mbcc_r->num_comm_conn; ++n) {
+      int isrecv = mpi->recv_multib[nridx].range.volume;
+      if (isrecv) {
+        MPI_Wait(&mpi->recv[nridx].status, MPI_STATUS_IGNORE);
+        
+        gkyl_array_copy_from_buffer(array[bI],
+          gkyl_mem_buff_data(mpi->recv[nridx].buff),
+          &(mpi->recv_multib[nridx].range)
+        );
+
+        nridx += 1;
+      }
+    }
+  }
+  
+  return 0;
+}
+
+static int
+array_sync_multib(struct gkyl_comm *comm, int num_blocks_local,
+  struct gkyl_multib_comm_conn **mbcc_send, struct gkyl_multib_comm_conn **mbcc_recv,
+  struct gkyl_range **local, struct gkyl_range **local_ext,
+  struct gkyl_array **array)
+{
+  sync_multib(comm, num_blocks_local, mbcc_send, mbcc_recv,
+    local, local_ext, array);
+  
+  return 0;
+}
+
+static int
 barrier(struct gkyl_comm *comm)
 {
   struct mpi_comm *mpi = container_of(comm, struct mpi_comm, priv_comm.pub_comm);
@@ -813,6 +944,7 @@ mpi_comm_new(const struct gkyl_mpi_comm_inp *inp,
   
   mpi->priv_comm.gkyl_array_sync = array_sync;
   mpi->priv_comm.gkyl_array_per_sync = array_per_sync;
+  mpi->priv_comm.gkyl_array_sync_multib = array_sync_multib;
   mpi->priv_comm.gkyl_array_write = array_write;
   mpi->priv_comm.gkyl_array_read = array_read;
   mpi->priv_comm.gkyl_array_allgather = array_allgather;

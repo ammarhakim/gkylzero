@@ -7,6 +7,7 @@
 #include <gkyl_rect_decomp.h>
 #include <gkyl_rect_grid.h>
 #include <gkyl_ref_count.h>
+#include <gkyl_multib_comm_conn.h>
 
 // Structure holding data and function pointers to communicate various
 // Gkeyll objects across multi-region or multi-block domains
@@ -114,6 +115,23 @@ int gkyl_comm_array_sync(struct gkyl_comm *comm,
   const struct gkyl_range *local,
   const struct gkyl_range *local_ext,
   struct gkyl_array *array);
+
+/**
+ * Synchronize array across multiblock domain.
+ *
+ * @param comm Communicator
+ * @param num_blocks_local Number of blocks in this rank.
+ * @param mbcc_send Send multiblock comm conn object.
+ * @param mbcc_recv Receive multiblock comm conn object.
+ * @param local Local range for array: sub-range of local_ext
+ * @param local_ext Extended range, i.e. range over which array is defined
+ * @param array Array to synchronize
+ * @return error code: 0 for success
+ */
+int gkyl_comm_array_sync_multib(struct gkyl_comm *comm, int num_blocks_local,
+  struct gkyl_multib_comm_conn **mbcc_send, struct gkyl_multib_comm_conn **mbcc_recv,
+  struct gkyl_range **local, struct gkyl_range **local_ext,
+  struct gkyl_array **array);
 
 /**
  * Synchronize array across domain in periodic directions.
