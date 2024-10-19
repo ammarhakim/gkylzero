@@ -5,12 +5,10 @@
 
 // Identifiers for connection type
 enum gkyl_conn_id {
-  GKYL_CONN_ZNEIGHBOR = 0, // Adjacent blocks
-  GKYL_CONN_XNEIGHBOR = 1, // Adjacent blocks
-  GKYL_CONN_Z = 2, // Bocks connected along Z
-  GKYL_CONN_X = 3, // Blocks connected along x
-  GKYL_CONN_CORNER = 4, // Blocks connected by a corner
+  GKYL_CONN_NEIGHBOR = 0, // Adjacent blocks
+  GKYL_CONN_ALL = 1, // Blocks connected along one direction
+  GKYL_CONN_CORNER = 2, // Blocks connected by a corner
 };
 
 
-void get_connection(gkyl_gyrokinetic_multib_app *mbapp, int bidx, enum gkyl_conn_id conn_id);
+void gkyl_multib_conn_get_connection(gkyl_gyrokinetic_multib_app *mbapp, int bidx, int dir, enum gkyl_conn_id conn_id);
