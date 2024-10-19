@@ -638,7 +638,18 @@ void gkyl_gyrokinetic_app_write_species_rad_emissivity(gkyl_gyrokinetic_app *app
  * @param tm Time-stamp
  * @param frame Frame number
  */
-void gkyl_gyrokinetic_app_write_species_rad_emissivity(gkyl_gyrokinetic_app *app, int sidx, double tm, int frame);
+void gkyl_gyrokinetic_app_write_species_rad_emissivity_maxwellian(gkyl_gyrokinetic_app *app, int sidx, double tm, int frame);
+
+/**
+ * Write radiation momentum loss (M1 momentum of radiation operator)
+ * 
+ * @param app App object.
+ * @param sidx Index of species to write.
+ * @param tm Time-stamp
+ * @param frame Frame number
+ */
+void gkyl_gyrokinetic_app_write_species_rad_momentum_conservation(gkyl_gyrokinetic_app *app, int sidx, double tm, int frame);
+
 
 /**
  * Calculate integrated diagnostic moments of the radiation model.

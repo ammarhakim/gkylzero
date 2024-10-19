@@ -1638,6 +1638,7 @@ gkyl_gyrokinetic_app_write_species_rad_emissivity(gkyl_gyrokinetic_app* app, int
     for (int i=0; i<app->num_neut_species; ++i)
       fin_neut[i] = app->neut_species[i].f;
 
+    gk_species_radiation_moms(app, gk_s, &gk_s->rad, fin, fin_neut);
     gk_species_radiation_emissivity(app, gk_s, &gk_s->rad, fin, fin_neut);
     for (int i=0; i<gk_s->rad.num_cross_collisions; i++) {
       // copy data from device to host before writing it out
@@ -1696,6 +1697,7 @@ gkyl_gyrokinetic_app_write_species_rad_emissivity_maxwellian(gkyl_gyrokinetic_ap
     for (int i=0; i<app->num_neut_species; ++i)
       fin_neut[i] = app->neut_species[i].f;
 
+    gk_species_radiation_moms(app, gk_s, &gk_s->rad, fin, fin_neut);
     gk_species_radiation_emissivity_maxwellian(app, gk_s, &gk_s->rad, fin, fin_neut);
     for (int i=0; i<gk_s->rad.num_cross_collisions; i++) {
       // copy data from device to host before writing it out
@@ -1725,6 +1727,53 @@ gkyl_gyrokinetic_app_write_species_rad_emissivity_maxwellian(gkyl_gyrokinetic_ap
       }  
       app->stat.nio += 1;
     }
+
+    gk_array_meta_release(mt);   
+    app->stat.diag_tm += gkyl_time_diff_now_sec(wst);
+    app->stat.ndiag += 1;
+  }
+}
+
+void
+gkyl_gyrokinetic_app_write_species_rad_momentum_conservation(gkyl_gyrokinetic_app* app, int sidx, double tm, int frame)
+{
+  struct gk_species *gk_s = &app->species[sidx];
+
+  if (gk_s->rad.radiation_id == GKYL_GK_RADIATION) {
+    struct timespec wst = gkyl_wall_clock();
+    struct gkyl_array_meta *mt = gk_array_meta_new( (struct gyrokinetic_output_meta) {
+        .frame = frame,
+        .stime = tm,
+        .poly_order = app->poly_order,
+        .basis_type = app->confBasis.id
+      }
+    );
+    
+    const struct gkyl_array *fin_neut[app->num_neut_species];
+    const struct gkyl_array *fin[app->num_species];
+    for (int i=0; i<app->num_species; ++i) 
+      fin[i] = app->species[i].f;
+    for (int i=0; i<app->num_neut_species; ++i)
+      fin_neut[i] = app->neut_species[i].f;
+
+    gk_species_radiation_moms(app, gk_s, &gk_s->rad, fin, fin_neut);
+    gk_species_radiation_momentum_loss(app, gk_s, &gk_s->rad);
+
+    // copy data from device to host before writing it out
+    if (app->use_gpu) {
+      gkyl_array_copy(gk_s->rad.m1.marr_host, gk_s->rad.m1.marr);
+    }
+    // Construct the file handles for the momentum
+    const char *fmt_momentum = "%s-%s_radiation_M1_%d.gkyl";  
+    int sz_momentum = gkyl_calc_strlen(fmt_momentum, app->name, gk_s->info.name, frame);
+    char fileNm_momentum[sz_momentum+1]; // ensures no buffer overflow
+    snprintf(fileNm_momentum, sizeof fileNm_momentum, fmt_momentum, app->name, gk_s->info.name,  frame);
+    struct timespec wtm = gkyl_wall_clock();
+    gkyl_comm_array_write(app->comm, &app->grid, &app->local, mt, gk_s->rad.m1.marr_host, fileNm_momentum);
+    app->stat.io_tm += gkyl_time_diff_now_sec(wtm);
+    
+    app->stat.nio += 1;
+
 
     gk_array_meta_release(mt);   
     app->stat.diag_tm += gkyl_time_diff_now_sec(wst);
