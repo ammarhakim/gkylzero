@@ -184,6 +184,7 @@ int get_connected(struct gkyl_gyrokinetic_multib_app *mbapp, int bidx, int dir, 
       break;
     }
     else if (conn.connections[dir][0].edge == GKYL_UPPER_POSITIVE) { 
+      if (conn.connections[dir][0].bid == bidx) return num_blocks;
       insert_below(block_list, num_blocks, conn.connections[dir][0].bid);
       curr_bidx = conn.connections[dir][0].bid;
       num_blocks+=1;
@@ -197,6 +198,7 @@ int get_connected(struct gkyl_gyrokinetic_multib_app *mbapp, int bidx, int dir, 
       break;
     }
     else if (conn.connections[dir][1].edge == GKYL_LOWER_POSITIVE) { 
+      if (conn.connections[dir][1].bid == bidx) return num_blocks;
       insert_above(block_list, num_blocks, conn.connections[dir][1].bid);
       curr_bidx = conn.connections[dir][1].bid;
       num_blocks+=1;
