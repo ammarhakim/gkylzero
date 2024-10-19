@@ -216,8 +216,6 @@ int get_connected(struct gkyl_gyrokinetic_multib_app *mbapp, int bidx, int dir, 
  * @param direction
  * return number of connected blocks 
  */
-// Maybe combine these two into one functions with a dummy block list
-// Also add break for encountering self
 int get_num_connected(struct gkyl_gyrokinetic_multib_app *mbapp, int bidx, int dir)
 {
   int block_list[100] = {-1};
