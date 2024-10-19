@@ -512,11 +512,18 @@ moment_species_lw_new(lua_State *L)
 
   mom_species.has_reactivity = glua_tbl_get_bool(L, "hasReactivity", false);
   if (mom_species.has_reactivity) {
-    mom_species.reactivity_gas_gamma = glua_tbl_get_number(L, "reactivityGasGamma", 0.0);
-    mom_species.reactivity_specific_heat_capacity = glua_tbl_get_number(L, "reactivitySpecificHeatCapacity", 0.0);
-    mom_species.reactivity_energy_of_formation = glua_tbl_get_number(L, "reactivityEnergyOfFormation", 0.0);
-    mom_species.reactivity_ignition_temperature = glua_tbl_get_number(L, "reactivityIgnitionTemperature", 0.0);
-    mom_species.reactivity_reaction_rate = glua_tbl_get_number(L, "reactivityReactionRate", 0.0);
+    mom_species.reactivity_gas_gamma = glua_tbl_get_number(L, "reactivityGasGamma", 1.4);
+    mom_species.reactivity_specific_heat_capacity = glua_tbl_get_number(L, "reactivitySpecificHeatCapacity", 2.5);
+    mom_species.reactivity_energy_of_formation = glua_tbl_get_number(L, "reactivityEnergyOfFormation", 1.0);
+    mom_species.reactivity_ignition_temperature = glua_tbl_get_number(L, "reactivityIgnitionTemperature", 0.25);
+    mom_species.reactivity_reaction_rate = glua_tbl_get_number(L, "reactivityReactionRate", 250.0);
+  }
+
+  mom_species.has_volume_sources = glua_tbl_get_bool(L, "hasVolumeSources", false);
+  if (mom_species.has_volume_sources) {
+    mom_species.volume_gas_gamma = glua_tbl_get_number(L, "volumeGasGamma", 5.0 / 3.0);
+    mom_species.volume_U0 = glua_tbl_get_number(L, "volumeU0", 1.0);
+    mom_species.volume_R0 = glua_tbl_get_number(L, "volumeR0", 1.0);
   }
 
   struct moment_species_lw *moms_lw = lua_newuserdata(L, sizeof(*moms_lw));

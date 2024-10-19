@@ -119,7 +119,7 @@ momentApp = Moments.App.new {
       return rhoe, mome_x, mome_y, mome_z, Ee_tot
     end,
 
-    evolve = true, -- Evolve species?
+    evolve = true -- Evolve species?
   },
 
   -- Ions.
@@ -175,7 +175,7 @@ momentApp = Moments.App.new {
       return rhoi, momi_x, momi_y, momi_z, Ei_tot
     end,
 
-    evolve = true, -- Evolve species?
+    evolve = true -- Evolve species?
   },
 
   -- Field.
@@ -209,8 +209,8 @@ momentApp = Moments.App.new {
       return Ex, Ey, Ez, Bx, By, Bz, 0.0, 0.0
     end,
 
-    evolve = true, -- Evolve field?
-  },
+    evolve = true -- Evolve field?
+  }
 }
 
 -- Run application.

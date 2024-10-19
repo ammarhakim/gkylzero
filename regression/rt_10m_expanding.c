@@ -93,13 +93,24 @@ eval10mInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout
   double u = app->u;
   double p = app->p;
 
+  double mom_x = rho * u; // Fluid momentum density (x-direction).
+  double mom_y = 0.0; // Fluid momentum density (y-direction).
+  double mom_z = 0.0; // Fluid momentum density (z-direction).
+
+  double pr_xx = p + (0.5 * rho * u * u); // Fluid pressure tensor (xx-component).
+  double pr_xy = 0.0; // Fluid pressure tensor (xy-component).
+  double pr_xz = 0.0; // Fluid pressure tensor (xz-component).
+  double pr_yy = p; // Fluid pressure tensor (yy-component).
+  double pr_yz = 0.0; // Fluid pressure tensor (yz-component).
+  double pr_zz = p; // Fluid pressure tensor (zz-component).
+  
   // Set fluid mass density.
   fout[0] = rho;
   // Set fluid momentum density.
-  fout[1] = rho * u; fout[2] = 0.0; fout[3] = 0.0;
+  fout[1] = mom_x; fout[2] = mom_y; fout[3] = mom_z;
   // Set fluid pressure tensor.
-  fout[4] = p + (0.5 * rho * u * u); fout[5] = 0.0; fout[6] = 0.0;
-  fout[7] = p; fout[8] = 0.0; fout[9] = p;
+  fout[4] = pr_xx; fout[5] = pr_xy; fout[6] = pr_xz;
+  fout[7] = pr_yy; fout[8] = pr_yz; fout[9] = pr_zz;
 }
 
 void

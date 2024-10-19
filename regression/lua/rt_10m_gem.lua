@@ -85,7 +85,7 @@ momentApp = Moments.App.new {
     end,
 
     evolve = true, -- Evolve species?
-    bcy = { G0.SpeciesBc.bcWall, G0.SpeciesBc.bcWall }, -- Wall boundary conditions (y-direction).
+    bcy = { G0.SpeciesBc.bcWall, G0.SpeciesBc.bcWall } -- Wall boundary conditions (y-direction).
   },
 
   -- Ions.
@@ -119,7 +119,7 @@ momentApp = Moments.App.new {
     end,
 
     evolve = true, -- Evolve species?
-    bcy = { G0.SpeciesBc.bcWall, G0.SpeciesBc.bcWall }, -- Wall boundary conditions (y-direction).
+    bcy = { G0.SpeciesBc.bcWall, G0.SpeciesBc.bcWall } -- Wall boundary conditions (y-direction).
   },
 
   -- Field.
@@ -144,8 +144,8 @@ momentApp = Moments.App.new {
     end,
 
     evolve = true, -- Evolve field?
-    bcy = { G0.FieldBc.bcWall, G0.FieldBc.bcWall }, -- Wall boundary conditions (y-direction).
-  },
+    bcy = { G0.FieldBc.bcWall, G0.FieldBc.bcWall } -- Wall boundary conditions (y-direction).
+  }
 }
 
 -- Run application.

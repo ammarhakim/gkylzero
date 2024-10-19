@@ -75,7 +75,7 @@ create_ctx(void)
   double cfl_frac = 0.95; // CFL coefficient.
 
   double t_end = 2.0; // Final simulation time.
-  int num_frames = 100; // Number of output frames.
+  int num_frames = 1; // Number of output frames.
   double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.
   int num_failures_max = 20; // Maximum allowable number of consecutive small time-steps.
 
@@ -129,13 +129,13 @@ evalFieldInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fo
 
   double phi = ((2.0 * pi) / Lx) * (k_wave_x * x);
 
-  double Ex = 0.0;
-  double Ey = E0 * cos(phi);
-  double Ez = E0 * cos(phi);
+  double Ex = 0.0; // Total electric field (x-direction).
+  double Ey = E0 * cos(phi); // Total electric field (y-direction).
+  double Ez = E0 * cos(phi); // Total electric field (z-direction).
 
-  double Bx = 0.0;
-  double By = -E0 * cos(phi) * k_xn;
-  double Bz = E0 * cos(phi) * k_xn;
+  double Bx = 0.0; // Total magnetic field (x-direction).
+  double By = -E0 * cos(phi) * k_xn; // Total magnetic field (y-direction).
+  double Bz = E0 * cos(phi) * k_xn; // Total magnetic field (z-direction).
 
   // Set electric field.
   fout[0] = Ex, fout[1] = Ey; fout[2] = Ez;
@@ -192,8 +192,6 @@ main(int argc, char **argv)
     .volume_gas_gamma = ctx.gas_gamma,
     .volume_U0 = ctx.U0,
     .volume_R0 = ctx.R0,
-
-    .bcx = { GKYL_SPECIES_COPY, GKYL_SPECIES_COPY },
   };
 
   // Field.

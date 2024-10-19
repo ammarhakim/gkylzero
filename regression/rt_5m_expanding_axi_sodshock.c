@@ -142,12 +142,17 @@ evalEulerInit(double t, const double* GKYL_RESTRICT zc, double* GKYL_RESTRICT fo
     p = pr; // Fluid pressure (right/outer).
   }
   
+  double mom_x = rho * u; // Fluid momentum density (x-direction).
+  double mom_y = 0.0; // Fluid momentum density (y-direction).
+  double mom_z = 0.0; // Fluid momentum density (z-direction).
+  double E_tot = (p / (gas_gamma - 1.0)) + (0.5 * rho * u * u); // Fluid total energy density.
+
   // Set fluid mass density.
   fout[0] = rho;
   // Set fluid momentum density.
-  fout[1] = 0.0; fout[2] = 0.0; fout[3] = 0.0;
+  fout[1] = mom_x; fout[2] = mom_y; fout[3] = mom_z;
   // Set fluid total energy density.
-  fout[4] = p / (gas_gamma - 1.0) + 0.5 * rho * u * u;
+  fout[4] = E_tot;
 }
 
 void
