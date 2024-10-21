@@ -155,8 +155,8 @@ create_ctx(void)
   int Nmu = 48;  // Number of cells in the mu direction 192
   int poly_order = 1;
 
-  double t_end = 10e-9;
-  int num_frames = 5;
+  double t_end = 10e-6;
+  int num_frames = 100;
   int int_diag_calc_num = num_frames*100;
   double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.
   int num_failures_max = 20; // Maximum allowable number of consecutive small time-steps.
@@ -305,7 +305,7 @@ int main(int argc, char **argv)
     .cells = { cells_x[0] },
     .poly_order = ctx.poly_order,
     .basis_type = app_args.basis_type,
-    // .enforce_positivity = true,
+    .enforce_positivity = true,
     .skip_field = true,
     .geometry = {
       .geometry_id = GKYL_MIRROR,
