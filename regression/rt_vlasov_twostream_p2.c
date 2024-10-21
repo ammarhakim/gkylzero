@@ -38,6 +38,9 @@ struct twostream_ctx
   double alpha; // Applied perturbation amplitude.
   double kx; // Perturbed wave number (x-direction).
 
+  // Derived physical quantities (using normalized code units).
+  double T; // Temperature.
+
   // Simulation parameters.
   int Nx; // Cell count (configuration space: x-direction).
   int Nvx; // Cell count (velocity space: vx-direction).
@@ -71,6 +74,9 @@ create_ctx(void)
   double alpha = 1.0e-6; // Applied perturbation amplitude.
   double kx = 0.5; // Perturbed wave number (x-direction).
 
+  // Derived physical quantities (using normalized code units).
+  double T = (vt * vt) * mass_elc; // Temperature.
+
   // Simulation parameters.
   int Nx = 64; // Cell count (configuration space: x-direction).
   int Nvx = 32; // Cell count (velocity space: vx-direction).
@@ -95,6 +101,7 @@ create_ctx(void)
     .Vx_drift = Vx_drift,
     .alpha = alpha,
     .kx = kx,
+    .T = T,
     .Nx = Nx,
     .Nvx = Nvx,
     .Lx = Lx,
@@ -118,10 +125,12 @@ evalDensityInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT 
 
   double alpha = app->alpha;
   double kx = app->kx;
-  double n = 0.5*app->n0;
+  double n0 = app->n0;
 
-  // Set density.
-  fout[0] = (1.0 + alpha * cos(kx * x))*n;
+  double n = 0.5 * (1.0 + alpha * cos(kx * x)) * n0; // Total number density.
+
+  // Set total number density.
+  fout[0] = n;
 }
 
 void
@@ -129,11 +138,10 @@ evalTempInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fou
 {
   struct twostream_ctx *app = ctx;
 
-  double mass_elc = app->mass_elc;
-  double vt = app->vt;
+  double T = app->T;
 
-  // Set temperature.
-  fout[0] = vt*vt*mass_elc;
+  // Set total temperature.
+  fout[0] = T;
 }
 
 void
@@ -167,12 +175,18 @@ evalFieldInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fo
   double alpha = app->alpha;
   double kx = app->kx;
 
-  double E_x = -alpha * sin(kx * x) / kx;
+  double Ex = -alpha * sin(kx * x) / kx; // Total electric field (x-direction).
+  double Ey = 0.0; // Total electric field (y-direction).
+  double Ez = 0.0; // Total electric field (z-direction).
+
+  double Bx = 0.0; // Total magnetic field (x-direction).
+  double By = 0.0; // Total magnetic field (y-direction).
+  double Bz = 0.0; // Total magnetic field (z-direction).
   
   // Set electric field.
-  fout[0] = E_x; fout[1] = 0.0, fout[2] = 0.0;
+  fout[0] = Ex; fout[1] = Ey, fout[2] = Ez;
   // Set magnetic field.
-  fout[3] = 0.0; fout[4] = 0.0; fout[5] = 0.0;
+  fout[3] = Bx; fout[4] = By; fout[5] = Bz;
   // Set correction potentials.
   fout[6] = 0.0; fout[7] = 0.0;
 }

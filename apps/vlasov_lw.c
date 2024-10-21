@@ -25,6 +25,16 @@ enum vlasov_magic_ids {
   VLASOV_FIELD_DEFAULT, // Maxwell equations
 };
 
+// Vlasov projection type -> enum map.
+static const struct gkyl_str_int_pair projection_type[] = {
+  { "func", GKYL_PROJ_FUNC },
+  { "maxwellianPrimitive", GKYL_PROJ_MAXWELLIAN_PRIM },
+  { "maxwellianLab", GKYL_PROJ_MAXWELLIAN_LAB },
+  { "biMaxwellian", GKYL_PROJ_BIMAXWELLIAN },
+  { "LTE", GKYL_PROJ_VLASOV_LTE },
+  { 0, 0 }
+};
+
 /* *****************/
 /* Species methods */
 /* *****************/
@@ -39,7 +49,26 @@ struct vlasov_species_lw {
   struct gkyl_vlasov_species vm_species; // input struct to construct species
   int vdim; // velocity dimensions
   bool evolve; // is this species evolved?
-  struct lua_func_ctx init_ref; // Lua registery reference to initilization function
+
+  int num_init; // Number of projection objects.
+  enum gkyl_projection_id proj_id[GKYL_MAX_PROJ]; // Projection type.
+
+  bool has_init_func[GKYL_MAX_PROJ]; // Is there an initialization function?
+  struct lua_func_ctx init_func_ref[GKYL_MAX_PROJ]; // Lua registry reference to initialization function.
+
+  bool has_density_init_func[GKYL_MAX_PROJ]; // Is there a density initialization function?
+  struct lua_func_ctx density_init_func_ref[GKYL_MAX_PROJ]; // Lua registry reference to density initialization function.
+
+  bool has_V_drift_init_func[GKYL_MAX_PROJ]; // Is there a drift velocity initialiation function?
+  struct lua_func_ctx V_drift_init_func_ref[GKYL_MAX_PROJ]; // Lua registry reference to drift velocity initialization function.
+
+  bool has_temp_init_func[GKYL_MAX_PROJ]; // Is there a temperature initialization function?
+  struct lua_func_ctx temp_init_func_ref[GKYL_MAX_PROJ]; // Lua registry reference to temperature initialization function.
+
+  bool correct_all_moms[GKYL_MAX_PROJ];
+  double iter_eps[GKYL_MAX_PROJ];
+  int max_iter[GKYL_MAX_PROJ];
+  bool use_last_converged[GKYL_MAX_PROJ];
 };
 
 static int
@@ -82,12 +111,71 @@ vlasov_species_lw_new(lua_State *L)
     }
     vm_species.num_diag_moments = n;
   }
+  
+  enum gkyl_projection_id proj_id[GKYL_MAX_PROJ];
 
-  int init_ref = LUA_NOREF;
-  if (glua_tbl_get_func(L, "init"))
-    init_ref = luaL_ref(L, LUA_REGISTRYINDEX);
-  else
-    return luaL_error(L, "Species must have an \"init\" function for initial conditions!");
+  bool has_init_func[GKYL_MAX_PROJ];
+  int init_func_ref[GKYL_MAX_PROJ];
+
+  bool has_density_init_func[GKYL_MAX_PROJ];
+  int density_init_func_ref[GKYL_MAX_PROJ];
+
+  bool has_V_drift_init_func[GKYL_MAX_PROJ];
+  int V_drift_init_func_ref[GKYL_MAX_PROJ];
+
+  bool has_temp_init_func[GKYL_MAX_PROJ];
+  int temp_init_func_ref[GKYL_MAX_PROJ];
+  
+  bool correct_all_moms[GKYL_MAX_PROJ];
+  double iter_eps[GKYL_MAX_PROJ];
+  int max_iter[GKYL_MAX_PROJ];
+  bool use_last_converged[GKYL_MAX_PROJ];
+
+  int num_init = glua_tbl_get_integer(L, "numInit", 0);
+
+  with_lua_tbl_tbl(L, "projections") {
+    for (int i = 0; i < num_init; i++) {
+      if (glua_tbl_iget_tbl(L, i + 1)) {
+        const char *projection_str = glua_tbl_get_string(L, "projectionID", "func");
+        proj_id[i] = gkyl_search_str_int_pair_by_str(projection_type, projection_str, GKYL_PROJ_FUNC);
+
+        init_func_ref[i] = LUA_NOREF;
+        has_init_func[i] = false;
+        if (glua_tbl_get_func(L, "init")) {
+          init_func_ref[i] = luaL_ref(L, LUA_REGISTRYINDEX);
+          has_init_func[i] = true;
+        }
+
+        density_init_func_ref[i] = LUA_NOREF;
+        has_density_init_func[i] = false;
+        if (glua_tbl_get_func(L, "densityInit")) {
+          density_init_func_ref[i] = luaL_ref(L, LUA_REGISTRYINDEX);
+          has_density_init_func[i] = true;
+        }
+
+        V_drift_init_func_ref[i] = LUA_NOREF;
+        has_V_drift_init_func[i] = false;
+        if (glua_tbl_get_func(L, "driftVelocityInit")) {
+          V_drift_init_func_ref[i] = luaL_ref(L, LUA_REGISTRYINDEX);
+          has_V_drift_init_func[i] = true;
+        }
+
+        temp_init_func_ref[i] = LUA_NOREF;
+        has_temp_init_func[i] = false;
+        if (glua_tbl_get_func(L, "temperatureInit")) {
+          temp_init_func_ref[i] = luaL_ref(L, LUA_REGISTRYINDEX);
+          has_temp_init_func[i] = true;
+        }
+
+        correct_all_moms[i] = glua_tbl_get_bool(L, "correctAllMoments", true);
+        iter_eps[i] = glua_tbl_get_number(L, "iterationEpsilon", pow(10.0, -12.0));
+        max_iter[i] = glua_tbl_get_integer(L, "maxIterations", 100);
+        use_last_converged[i] = glua_tbl_get_bool(L, "useLastConverged", true);
+
+        lua_pop(L, 1);
+      }
+    }
+  }
   
   struct vlasov_species_lw *vms_lw = lua_newuserdata(L, sizeof(*vms_lw));
   vms_lw->magic = VLASOV_SPECIES_DEFAULT;
@@ -95,12 +183,47 @@ vlasov_species_lw_new(lua_State *L)
   vms_lw->evolve = evolve;
   vms_lw->vm_species = vm_species;
 
-  vms_lw->init_ref = (struct lua_func_ctx) {
-    .func_ref = init_ref,
-    .ndim = 0, // this will be set later
-    .nret = 1,
-    .L = L,
-  };
+  vms_lw->num_init = num_init;
+  for (int i = 0; i < num_init; i++) {
+    vms_lw->proj_id[i] = proj_id[i];
+
+    vms_lw->has_init_func[i] = has_init_func[i];
+    vms_lw->init_func_ref[i] = (struct lua_func_ctx) {
+      .func_ref = init_func_ref[i],
+      .ndim = 0, // This will be set later.
+      .nret = 1,
+      .L = L,
+    };
+
+    vms_lw->has_density_init_func[i] = has_density_init_func[i];
+    vms_lw->density_init_func_ref[i] = (struct lua_func_ctx) {
+      .func_ref = density_init_func_ref[i],
+      .ndim = 0, // This will be set later.
+      .nret = 1,
+      .L = L,
+    };
+
+    vms_lw->has_V_drift_init_func[i] = has_V_drift_init_func[i];
+    vms_lw->V_drift_init_func_ref[i] = (struct lua_func_ctx) {
+      .func_ref = V_drift_init_func_ref[i],
+      .ndim = 0, // This will be set later.
+      .nret = 1,
+      .L = L,
+    };
+
+    vms_lw->has_temp_init_func[i] = has_temp_init_func[i];
+    vms_lw->temp_init_func_ref[i] = (struct lua_func_ctx) {
+      .func_ref = temp_init_func_ref[i],
+      .ndim = 0, // This will be set later.
+      .nret = 1,
+      .L = L,
+    };
+
+    vms_lw->correct_all_moms[i] = correct_all_moms[i];
+    vms_lw->iter_eps[i] = iter_eps[i];
+    vms_lw->max_iter[i] = max_iter[i];
+    vms_lw->use_last_converged[i] = use_last_converged[i];
+  }
   
   // set metatable
   luaL_getmetatable(L, VLASOV_SPECIES_METATABLE_NM);
@@ -188,7 +311,27 @@ static struct luaL_Reg vm_field_ctor[] = {
 // Lua userdata object for holding Vlasov app and run parameters
 struct vlasov_app_lw {
   gkyl_vlasov_app *app; // Vlasov app object
-  struct lua_func_ctx species_func_ctx[GKYL_MAX_SPECIES]; // function context for each species
+
+  int num_init[GKYL_MAX_SPECIES]; // Number of projection objects.
+  enum gkyl_projection_id proj_id[GKYL_MAX_SPECIES][GKYL_MAX_PROJ]; // Projection type.
+
+  bool has_init_func[GKYL_MAX_SPECIES][GKYL_MAX_PROJ]; // Is there an initialization function?
+  struct lua_func_ctx init_func_ctx[GKYL_MAX_SPECIES][GKYL_MAX_PROJ]; // Context for initialization function.
+
+  bool has_density_init_func[GKYL_MAX_SPECIES][GKYL_MAX_PROJ]; // Is there a density initialization function?
+  struct lua_func_ctx density_init_func_ctx[GKYL_MAX_SPECIES][GKYL_MAX_PROJ]; // Context for density initialization function.
+
+  bool has_V_drift_init_func[GKYL_MAX_SPECIES][GKYL_MAX_PROJ]; // Is there a drift velocity initialization function?
+  struct lua_func_ctx V_drift_init_func_ctx[GKYL_MAX_SPECIES][GKYL_MAX_PROJ]; // Context for drift velocity initialziation function.
+  
+  bool has_temp_init_func[GKYL_MAX_SPECIES][GKYL_MAX_PROJ]; // Is there a temperature initialization function?
+  struct lua_func_ctx temp_init_func_ctx[GKYL_MAX_SPECIES][GKYL_MAX_PROJ]; // Context for temperature initialization function.
+
+  bool correct_all_moms[GKYL_MAX_SPECIES][GKYL_MAX_PROJ];
+  double iter_eps[GKYL_MAX_SPECIES][GKYL_MAX_PROJ];
+  int max_iter[GKYL_MAX_SPECIES][GKYL_MAX_PROJ];
+  bool use_last_converged[GKYL_MAX_SPECIES][GKYL_MAX_PROJ];
+
   struct lua_func_ctx field_func_ctx; // function context for field
   
   double tstart, tend; // start and end times of simulation
@@ -211,7 +354,23 @@ get_species_inp(lua_State *L, int cdim, struct vlasov_species_lw *species[GKYL_M
       struct vlasov_species_lw *vms = lua_touserdata(L, TVAL);
       if (vms->magic == VLASOV_SPECIES_DEFAULT) {
         
-        vms->init_ref.ndim = cdim + vms->vdim;
+        for (int i =0; i < vms->num_init; i++) {
+          if (vms->has_init_func[i]) {
+            vms->init_func_ref[i].ndim = cdim + vms->vdim;
+          }
+
+          if (vms->has_density_init_func[i]) {
+            vms->density_init_func_ref[i].ndim = cdim + vms->vdim;
+          }
+          
+          if (vms->has_V_drift_init_func[i]) {
+            vms->V_drift_init_func_ref[i].ndim = cdim + vms->vdim;
+          }
+
+          if (vms->has_temp_init_func[i]) {
+            vms->temp_init_func_ref[i].ndim = cdim + vms->vdim;
+          }
+        }
         
         if (lua_type(L,TKEY) == LUA_TSTRING) {
           const char *key = lua_tolstring(L, TKEY, 0);
@@ -275,6 +434,7 @@ vm_app_new(lua_State *L)
       vm.upper[d] = glua_tbl_iget_number(L, d+1, 0);
   }
 
+  vm.cfl_frac = glua_tbl_get_number(L, "cflFrac", 0.95);
   vm.poly_order = glua_tbl_get_integer(L, "polyOrder", 1);
 
   vm.basis_type = get_basis_type(
@@ -297,11 +457,58 @@ vm_app_new(lua_State *L)
   for (int s=0; s<vm.num_species; ++s) {
     vm.species[s] = species[s]->vm_species;
     vm.vdim = species[s]->vdim;
-    
-    app_lw->species_func_ctx[s] = species[s]->init_ref;
-    vm.species[s].num_init = 1;
-    vm.species[s].projection[0].func = gkyl_lw_eval_cb;
-    vm.species[s].projection[0].ctx_func = &app_lw->species_func_ctx[s];
+
+    app_lw->num_init[s] = species[s]->num_init;
+    for (int i = 0; i < app_lw->num_init[s]; i++) {
+      app_lw->proj_id[s][i] = species[s]->proj_id[i];
+
+      app_lw->has_init_func[s][i] = species[s]->has_init_func[i];
+      app_lw->init_func_ctx[s][i] = species[s]->init_func_ref[i];
+
+      app_lw->has_density_init_func[s][i] = species[s]->has_density_init_func[i];
+      app_lw->density_init_func_ctx[s][i] = species[s]->density_init_func_ref[i];
+
+      app_lw->has_V_drift_init_func[s][i] = species[s]->has_V_drift_init_func[i];
+      app_lw->V_drift_init_func_ctx[s][i] = species[s]->V_drift_init_func_ref[i];
+      
+      app_lw->has_temp_init_func[s][i] = species[s]->has_temp_init_func[i];
+      app_lw->temp_init_func_ctx[s][i] = species[s]->temp_init_func_ref[i];
+
+      app_lw->correct_all_moms[s][i] = species[s]->correct_all_moms[i];
+      app_lw->iter_eps[s][i] = species[s]->iter_eps[i];
+      app_lw->max_iter[s][i] = species[s]->max_iter[i];
+      app_lw->use_last_converged[s][i] = species[s]->use_last_converged[i];
+    }
+
+    vm.species[s].num_init = app_lw->num_init[s];
+    for (int i = 0; i < app_lw->num_init[s]; i++) {
+      vm.species[s].projection[i].proj_id = app_lw->proj_id[s][i];
+
+      if (species[s]->has_init_func[i]) {
+        vm.species[s].projection[i].func = gkyl_lw_eval_cb;
+        vm.species[s].projection[i].ctx_func = &app_lw->init_func_ctx[s][i];
+      }
+
+      if (species[s]->has_density_init_func[i]) {
+        vm.species[s].projection[i].density = gkyl_lw_eval_cb;
+        vm.species[s].projection[i].ctx_density = &app_lw->density_init_func_ctx[s][i];
+      }
+
+      if (species[s]->has_V_drift_init_func[i]) {
+        vm.species[s].projection[i].V_drift = gkyl_lw_eval_cb;
+        vm.species[s].projection[i].ctx_V_drift = &app_lw->V_drift_init_func_ctx[s][i];
+      }
+
+      if (species[s]->has_temp_init_func[i]) {
+        vm.species[s].projection[i].temp = gkyl_lw_eval_cb;
+        vm.species[s].projection[i].ctx_temp = &app_lw->temp_init_func_ctx[s][i];
+      }
+
+      vm.species[s].projection[i].correct_all_moms = app_lw->correct_all_moms[s][i];
+      vm.species[s].projection[i].iter_eps = app_lw->iter_eps[s][i];
+      vm.species[s].projection[i].max_iter = app_lw->max_iter[s][i];
+      vm.species[s].projection[i].use_last_converged = app_lw->use_last_converged[s][i];
+    }
   }
 
   // set field input
