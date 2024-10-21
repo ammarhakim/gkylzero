@@ -216,16 +216,14 @@ gkyl_multib_comm_conn_new_send_from_connections(
   for (int ib=0; ib<nconnected; ib++) {
     int tar_ndecomp = decomp[block_list[ib]]->ndecomp;
     for (int ir=0; ir<tar_ndecomp; ir++) {
-      if ( !(block_id==block_list[ib] && block_rank==ir) ) {
-        int is_inter;
-        struct gkyl_range irng;
-        is_inter = gkyl_range_intersect(&irng, &cross_range, &sub_range);
-        if (is_inter) {
-          comm_conn[comm_conn_idx].rank = ir;
-          comm_conn[comm_conn_idx].block_id = block_list[ib];
-          memcpy(&comm_conn[comm_conn_idx].range, &irng, sizeof(struct gkyl_range));
-          comm_conn_idx += 1;
-        }
+      int is_inter;
+      struct gkyl_range irng;
+      is_inter = gkyl_range_intersect(&irng, &cross_range, &sub_range);
+      if (is_inter) {
+        comm_conn[comm_conn_idx].rank = ir;
+        comm_conn[comm_conn_idx].block_id = block_list[ib];
+        memcpy(&comm_conn[comm_conn_idx].range, &irng, sizeof(struct gkyl_range));
+        comm_conn_idx += 1;
       }
     }
   }
@@ -304,19 +302,17 @@ gkyl_multib_comm_conn_new_recv_from_connections(
   // and the cross range. So we will need to shift tar_br into the cross range
     int tar_ndecomp = tar_decomp->ndecomp;
     for (int ir=0; ir<tar_ndecomp; ir++) {
-      if ( !(block_id==block_list[ib] && block_rank==ir) ) {
-        const struct gkyl_range *tar_br = &decomp[tar_bid]->ranges[ir];
-        struct gkyl_range sub_range;
-        gkyl_range_shift(&sub_range, tar_br, delta);
-        int is_inter;
-        struct gkyl_range irng;
-        is_inter = gkyl_range_intersect(&irng, &cross_range, &sub_range);
-        if (is_inter) {
-          comm_conn[comm_conn_idx].rank = ir;
-          comm_conn[comm_conn_idx].block_id = tar_bid;
-          memcpy(&comm_conn[comm_conn_idx].range, &irng, sizeof(struct gkyl_range));
-          comm_conn_idx += 1;
-        }
+      const struct gkyl_range *tar_br = &decomp[tar_bid]->ranges[ir];
+      struct gkyl_range sub_range;
+      gkyl_range_shift(&sub_range, tar_br, delta);
+      int is_inter;
+      struct gkyl_range irng;
+      is_inter = gkyl_range_intersect(&irng, &cross_range, &sub_range);
+      if (is_inter) {
+        comm_conn[comm_conn_idx].rank = ir;
+        comm_conn[comm_conn_idx].block_id = tar_bid;
+        memcpy(&comm_conn[comm_conn_idx].range, &irng, sizeof(struct gkyl_range));
+        comm_conn_idx += 1;
       }
     }
   }
