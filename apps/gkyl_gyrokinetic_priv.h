@@ -1808,3 +1808,53 @@ void gk_field_calc_energy(gkyl_gyrokinetic_app *app, double tm, const struct gk_
  * @param f Field object to release
  */
 void gk_field_release(const gkyl_gyrokinetic_app* app, struct gk_field *f);
+
+/** Time stepping PI */
+
+/**
+ * Compute the gyrokinetic fields.
+ *
+ * @param app Gyrokinetic app.
+ * @param tcurr Current simulation time.
+ * @param fin Array of distribution functions (one for each species) .
+ */
+void gyrokinetic_calc_field(gkyl_gyrokinetic_app* app, double tcurr, const struct gkyl_array *fin[]);
+
+/**
+ * Compute the gyrokinetic fields and apply boundary conditions.
+ *
+ * @param app Gyrokinetic app.
+ * @param tcurr Current simulation time.
+ * @param distf Array of distribution functions (for each charged species).
+ * @param distf_neut Array of distribution functions (for each neutral species).
+ */
+void gyrokinetic_calc_field_and_apply_bc(gkyl_gyrokinetic_app* app, double tcurr,
+  struct gkyl_array *distf[], struct gkyl_array *distf_neut[]);
+
+/**
+ * Compute the RHS of the gyrokinetic equation (df/dt) and the minimum time
+ * step it requires for stability based on the CFL constraint.
+ *
+ * @param app Gyrokinetic app.
+ * @param tcurr Current simulation time.
+ * @param dt Suggested time step.
+ * @param fin Input array of charged-species distribution functions.
+ * @param fin_neut Input array of neutral-species distribution functions.
+ * @param fout Output array of charged-species distribution functions.
+ * @param fout_neut Output array of neutral-species distribution functions.
+ * @param st Time stepping status object.
+ */
+void gyrokinetic_rhs(gkyl_gyrokinetic_app* app, double tcurr, double dt,
+  const struct gkyl_array *fin[], struct gkyl_array *fout[], 
+  const struct gkyl_array *fin_neut[], struct gkyl_array *fout_neut[], 
+  struct gkyl_update_status *st); 
+
+/**
+ * Take time-step using the RK3 method. Also sets the status object
+ * which has the actual and suggested dts used. These can be different
+ * from the actual time-step.
+ *
+ * @param app Gyrokinetic app.
+ * @param dt0 Suggessted time step.
+ */
+struct gkyl_update_status gyrokinetic_update_ssp_rk3(gkyl_gyrokinetic_app* app, double dt0);
