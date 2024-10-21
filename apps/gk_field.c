@@ -152,10 +152,71 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
     gkyl_range_shorten_from_below(&f->global_ext_sol, &app->global_ext, 0, app->grid.cells[0]-idxLCFS_m+1);
     gkyl_range_shorten_from_above(&f->global_core, &app->global, 0, idxLCFS_m+1);
     gkyl_range_shorten_from_above(&f->global_ext_core, &app->global_ext, 0, idxLCFS_m+1);
-    f->fem_parproj_core = gkyl_fem_parproj_new(&f->global_core, &f->global_ext_core, 
+    f->fem_parproj_core = gkyl_fem_parproj_new(&f->global_ext_core, &f->global_ext_core, 
       &app->confBasis, fem_parproj_bc_core, f->weight, app->use_gpu);
     f->fem_parproj_sol = gkyl_fem_parproj_new(&f->global_sol, &f->global_ext_sol, 
       &app->confBasis, fem_parproj_bc_sol, f->weight, app->use_gpu);
+
+    if (app->cdim == 3) {
+      // MF 2024/10/19: very hacky, needs reformat.
+      // Allocate buffer for applying periodic BCs.
+      long buff_sz = 0;
+      // compute buffer size needed
+      for (int dir=0; dir<app->cdim; ++dir) {
+        long vol = GKYL_MAX2(app->lower_skin[dir].volume, app->upper_skin[dir].volume);
+        buff_sz = buff_sz > vol ? buff_sz : vol;
+      }
+      f->bc_buffer = mkarr(app->use_gpu, app->confBasis.num_basis, buff_sz);
+
+      // Create a twist-shift updater to TS the global charge density.
+      // Create a core global range, extended in the z dir.
+      int bc_dir = 2;
+      int lower_bcdir_ext[app->cdim], upper_bcdir_ext[app->cdim];
+      for (int i=0; i<app->cdim; i++) {
+        lower_bcdir_ext[i] = app->global.lower[i];
+        upper_bcdir_ext[i] = app->global.upper[i];
+      }
+      upper_bcdir_ext[0] = idxLCFS_m;
+      lower_bcdir_ext[bc_dir] = app->global_ext.lower[bc_dir];
+      upper_bcdir_ext[bc_dir] = app->global_ext.upper[bc_dir];
+      gkyl_sub_range_init(&f->global_par_ext_core, &app->global_ext, lower_bcdir_ext, upper_bcdir_ext);
+
+      int ghost[] = {1, 1, 1};
+      struct gk_species *gks = &app->species[0];
+      const struct gkyl_gyrokinetic_bcs *bc= &gks->info.bcz;
+
+      struct gkyl_bc_twistshift_inp tsinp_lo = {
+        .bc_dir = bc_dir,
+        .shift_dir = 1, // y shift.
+        .shear_dir = 0, // shift varies with x.
+        .edge = GKYL_LOWER_EDGE,
+        .cdim = app->cdim,
+        .bcdir_ext_update_r = f->global_par_ext_core,
+        .num_ghost = ghost,
+        .basis = app->confBasis,
+        .grid = app->grid,
+        .shift_func = bc->lower.aux_profile,
+        .shift_func_ctx = bc->lower.aux_ctx,
+        .use_gpu = app->use_gpu,
+      };
+      f->bc_ts_lo = gkyl_bc_twistshift_new(&tsinp_lo);
+
+      struct gkyl_bc_twistshift_inp tsinp_up = {
+        .bc_dir = bc_dir,
+        .shift_dir = 1, // y shift.
+        .shear_dir = 0, // shift varies with x.
+        .edge = GKYL_UPPER_EDGE,
+        .cdim = app->cdim,
+        .bcdir_ext_update_r = f->global_par_ext_core,
+        .num_ghost = ghost,
+        .basis = app->confBasis,
+        .grid = app->grid,
+        .shift_func = bc->upper.aux_profile,
+        .shift_func_ctx = bc->upper.aux_ctx,
+        .use_gpu = app->use_gpu,
+      };
+      f->bc_ts_up = gkyl_bc_twistshift_new(&tsinp_up);
+    }
   } 
   else {
     f->fem_parproj = gkyl_fem_parproj_new(&app->global, &app->global_ext, 
@@ -304,6 +365,17 @@ gk_field_calc_ambi_pot_sheath_vals(gkyl_gyrokinetic_app *app, struct gk_field *f
   } 
 }
 
+void
+apply_periodic_bc(gkyl_gyrokinetic_app *app, struct gkyl_array *buff, struct gkyl_array *fld, const int dir)
+{
+  // Apply periodic BCs along parallel direction
+  gkyl_array_copy_to_buffer(buff->data, fld, &(app->lower_skin[dir]));
+  gkyl_array_copy_from_buffer(fld, buff->data, &(app->upper_ghost[dir]));
+
+  gkyl_array_copy_to_buffer(buff->data, fld, &(app->upper_skin[dir]));
+  gkyl_array_copy_from_buffer(fld, buff->data, &(app->lower_ghost[dir]));
+}
+
 // Compute the electrostatic potential
 void
 gk_field_rhs(gkyl_gyrokinetic_app *app, struct gk_field *field)
@@ -333,6 +405,12 @@ gk_field_rhs(gkyl_gyrokinetic_app *app, struct gk_field *field)
     else if (app->cdim > 1) {
       // input is rho_c_global_dg, globally smoothed in z, and then output should be in *local* phi_smooth
       if (field->gkfield_id == GKYL_GK_FIELD_ES_IWL) {
+        // Apply twist-shift BC to the charge density.
+        apply_periodic_bc(app, field->bc_buffer, field->rho_c_global_dg, 2);
+
+        gkyl_bc_twistshift_advance(field->bc_ts_lo, field->rho_c_global_dg, field->rho_c_global_dg);
+        gkyl_bc_twistshift_advance(field->bc_ts_up, field->rho_c_global_dg, field->rho_c_global_dg);
+
         gkyl_fem_parproj_set_rhs(field->fem_parproj_core, field->rho_c_global_dg, field->rho_c_global_dg);
         gkyl_fem_parproj_solve(field->fem_parproj_core, field->rho_c_global_smooth);
         gkyl_fem_parproj_set_rhs(field->fem_parproj_sol, field->rho_c_global_dg, field->rho_c_global_dg);
@@ -406,6 +484,11 @@ gk_field_release(const gkyl_gyrokinetic_app* app, struct gk_field *f)
   if (app->cdim > 1 && f->gkfield_id == GKYL_GK_FIELD_ES_IWL) {
     gkyl_fem_parproj_release(f->fem_parproj_core);
     gkyl_fem_parproj_release(f->fem_parproj_sol);
+    if (app->cdim == 3) {
+      gkyl_array_release(f->bc_buffer);
+      gkyl_bc_twistshift_release(f->bc_ts_lo);
+      gkyl_bc_twistshift_release(f->bc_ts_up);
+    }
   } else {
     gkyl_fem_parproj_release(f->fem_parproj);
   }

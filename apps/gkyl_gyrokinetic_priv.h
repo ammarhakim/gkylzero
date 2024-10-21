@@ -711,6 +711,11 @@ struct gk_field {
 
   // Core and SOL ranges for IWL sims. 
   struct gkyl_range global_core, global_ext_core, global_sol, global_ext_sol;
+  // Buffer to apply periodicity before applying TS.
+  struct gkyl_array *bc_buffer;
+  // GK IWL sims need a core range extended in z, and a TS BC updater.
+  struct gkyl_range global_par_ext_core;
+  struct gkyl_bc_twistshift *bc_ts_lo, *bc_ts_up;
 };
 
 // gyrokinetic object: used as opaque pointer in user code
