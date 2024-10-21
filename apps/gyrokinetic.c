@@ -2427,7 +2427,7 @@ rk3(gkyl_gyrokinetic_app* app, double dt0)
             // Rescale each species to enforce quasineutrality.
             for (int i=0; i<app->num_species; ++i) {
               struct gk_species *gks = &app->species[i];
-              if (gks->info.charge > 0.0) {
+              if (gks->info.charge > 0.0 && app->num_species > 1) {
                 struct gk_species *gkelc = &app->species[elc_idx];
                 gkyl_positivity_shift_gyrokinetic_quasineutrality_scale(gks->pos_shift_op, &app->local, &gks->local,
                   gks->ps_delta_m0, app->ps_delta_m0_ions, gkelc->ps_delta_m0, gks->m0.marr, gks->f);
