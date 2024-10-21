@@ -65,3 +65,39 @@ struct gkyl_multib_comm_conn *gkyl_multib_comm_conn_new_recv(
  * @param cconn Object to release
  */
 void gkyl_multib_comm_conn_release(const struct gkyl_multib_comm_conn *cconn);
+
+/**
+ * Construct the send communication connections for a rank from its
+ * local block rank and a list of blocks connected to it along a direction.
+ *
+ * @param block_id ID of block
+ * @param block_rank Local rank in block
+ * @param nconnected Number of blocks including self connected along direction
+ * @param block list Ordered (based on topology) list of connected block ids (including self)
+ * @param dir direction in which blocks are connected
+ * @param decomp List of decomposition objects for each block
+ * @return New communication connection object for sends
+ */
+struct gkyl_multib_comm_conn *
+gkyl_multib_comm_conn_new_send_from_connections(
+  int block_id, int block_rank,
+  int nconnected, int* block_list, int dir,
+  struct gkyl_rect_decomp **decomp);
+
+/**
+ * Construct the recv communication connections for a rank from its
+ * local block rank and a list of blocks connected to it along a direction.
+ *
+ * @param block_id ID of block
+ * @param block_rank Local rank in block
+ * @param nconnected Number of blocks including self connected along direction
+ * @param block list Ordered (based on topology) list of connected block ids (including self)
+ * @param dir direction in which blocks are connected
+ * @param decomp List of decomposition objects for each block
+ * @return New communication connection object for sends
+ */
+struct gkyl_multib_comm_conn *
+gkyl_multib_comm_conn_new_recv_from_connections(
+  int block_id, int block_rank,
+  int nconnected, int* block_list, int dir,
+  struct gkyl_rect_decomp **decomp);

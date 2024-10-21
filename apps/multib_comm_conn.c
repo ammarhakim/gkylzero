@@ -1,3 +1,4 @@
+#include "gkyl_range.h"
 #include <gkyl_alloc.h>
 #include <gkyl_multib_comm_conn.h>
 #include <gkyl_util.h>
@@ -139,6 +140,186 @@ multib_comm_conn_new_sr(enum multib_send_recv sr,
     }
   }
 
+  struct gkyl_multib_comm_conn *mbcc =
+    gkyl_multib_comm_conn_new(comm_conn_idx, comm_conn);
+
+  gkyl_free(comm_conn);
+  
+  return mbcc;
+}
+
+// public method to compute send connections from block list
+struct gkyl_multib_comm_conn *
+gkyl_multib_comm_conn_new_send_from_connections(
+  int block_id, int block_rank,
+  int nconnected, int* block_list, int dir,
+  struct gkyl_rect_decomp **decomp)
+{
+  int ndim = decomp[0]->ndim;
+  // determine maximum number of ranks we can send/recv data 
+  int max_sr_ranks = 0;
+  for (int i=0; i<nconnected; i++) {
+    int nranks = decomp[block_list[i]]->ndecomp;
+    max_sr_ranks += nranks;
+  }
+
+  int comm_conn_idx = 0;
+  struct gkyl_comm_conn *comm_conn
+    = gkyl_malloc(sizeof(struct gkyl_comm_conn[max_sr_ranks]));
+
+  const struct gkyl_range *src_pr = &decomp[block_id]->parent_range;
+  const struct gkyl_range *src_br = &decomp[block_id]->ranges[block_rank];
+
+  // Construct the cross range which spans all the parent ranges
+  // Block list is always in order in dir
+  // Block parent ranges always share range extents in the other directions
+  int cross_lower[GKYL_MAX_DIM];
+  int cross_upper[GKYL_MAX_DIM];
+  for (int i =0; i<ndim; i++) {
+    cross_lower[i] = decomp[block_list[0]]->parent_range.lower[i];
+    cross_upper[i] = decomp[block_list[0]]->parent_range.upper[i];
+  }
+  for (int i=0; i<nconnected; i++) {
+    cross_upper[dir] += gkyl_range_shape(&decomp[block_list[i]]->parent_range, dir);
+  }
+  struct gkyl_range cross_range;
+  gkyl_range_init(&cross_range, ndim, cross_lower, cross_upper);
+
+  // Get block indices into the index space of the cross range
+  int new_lower[GKYL_MAX_DIM];
+  for (int d=0; d<ndim; ++d)
+    new_lower[d] = src_pr->lower[d];
+
+  int source_idx = -1;
+  for(int i=0; i<nconnected; i++) { if (block_list[i] == block_id) source_idx = i; }
+  for (int i=0; i<source_idx; i++) {
+    new_lower[dir] += gkyl_range_shape(&decomp[block_list[i]]->parent_range, dir);
+  }
+  
+  struct gkyl_range reset_src_pr;
+  gkyl_range_reset_lower(&reset_src_pr, src_pr, new_lower);
+
+  int delta[GKYL_MAX_DIM] = { 0 };
+  for (int d=0; d<ndim; ++d)
+    delta[d] = reset_src_pr.lower[d] - src_pr->lower[d];
+
+  int minus_delta[GKYL_MAX_DIM] = { 0 };
+  for (int d=0; d<ndim; ++d)
+    minus_delta[d] = -delta[d];
+
+  // The actual intersection should be between a our rank's range
+  // and the cross range. So we will need to shift src_br into the cross range
+  struct gkyl_range sub_range;
+  gkyl_range_shift(&sub_range, src_br, delta);
+
+  // Now loop over all the connected ranks and create a connection
+  for (int ib=0; ib<nconnected; ib++) {
+    int tar_ndecomp = decomp[block_list[ib]]->ndecomp;
+    for (int ir=0; ir<tar_ndecomp; ir++) {
+      if ( !(block_id==block_list[ib] && block_rank==ir) ) {
+        int is_inter;
+        struct gkyl_range irng;
+        is_inter = gkyl_range_intersect(&irng, &cross_range, &sub_range);
+        if (is_inter) {
+          comm_conn[comm_conn_idx].rank = ir;
+          comm_conn[comm_conn_idx].block_id = block_list[ib];
+          memcpy(&comm_conn[comm_conn_idx].range, &irng, sizeof(struct gkyl_range));
+          comm_conn_idx += 1;
+        }
+      }
+    }
+  }
+  struct gkyl_multib_comm_conn *mbcc =
+    gkyl_multib_comm_conn_new(comm_conn_idx, comm_conn);
+
+  gkyl_free(comm_conn);
+  
+  return mbcc;
+}
+
+// public method to compute recv connections from block list
+struct gkyl_multib_comm_conn *
+gkyl_multib_comm_conn_new_recv_from_connections(
+  int block_id, int block_rank,
+  int nconnected, int* block_list, int dir,
+  struct gkyl_rect_decomp **decomp)
+{
+  int ndim = decomp[0]->ndim;
+  // determine maximum number of ranks we can send/recv data 
+  int max_sr_ranks = 0;
+  for (int i=0; i<nconnected; i++) {
+    int nranks = decomp[block_list[i]]->ndecomp;
+    max_sr_ranks += nranks;
+  }
+
+  int comm_conn_idx = 0;
+  struct gkyl_comm_conn *comm_conn
+    = gkyl_malloc(sizeof(struct gkyl_comm_conn[max_sr_ranks]));
+
+  const struct gkyl_range *src_pr = &decomp[block_id]->parent_range;
+  const struct gkyl_range *src_br = &decomp[block_id]->ranges[block_rank];
+
+  // Construct the cross range which spans all the parent ranges
+  // Block list is always in order in dir
+  // Block parent ranges always share range extents in the other directions
+  int cross_lower[GKYL_MAX_DIM];
+  int cross_upper[GKYL_MAX_DIM];
+  for (int i =0; i<ndim; i++) {
+    cross_lower[i] = decomp[block_list[0]]->parent_range.lower[i];
+    cross_upper[i] = decomp[block_list[0]]->parent_range.upper[i];
+  }
+  for (int i=0; i<nconnected; i++) {
+    cross_upper[dir] += gkyl_range_shape(&decomp[block_list[i]]->parent_range, dir);
+  }
+  struct gkyl_range cross_range;
+  gkyl_range_init(&cross_range, ndim, cross_lower, cross_upper);
+
+  // Need to get other block indices into the index space of the cross range
+  for (int ib=0; ib<nconnected; ib++) {
+    int tar_bid = block_list[ib];
+    const struct gkyl_rect_decomp *tar_decomp = decomp[tar_bid];
+    const struct gkyl_range *tar_pr = &tar_decomp->parent_range;
+    int new_lower[GKYL_MAX_DIM];
+    for (int d=0; d<ndim; ++d)
+      new_lower[d] = tar_pr->lower[d];
+
+    int tar_idx = -1;
+    for(int i=0; i<nconnected; i++) { if (block_list[i] == tar_bid) tar_idx = i; }
+    for (int i=0; i<tar_idx; i++) {
+      new_lower[dir] += gkyl_range_shape(&decomp[block_list[i]]->parent_range, dir);
+    }
+    
+    struct gkyl_range reset_tar_pr;
+    gkyl_range_reset_lower(&reset_tar_pr, tar_pr, new_lower);
+
+    int delta[GKYL_MAX_DIM] = { 0 };
+    for (int d=0; d<ndim; ++d)
+      delta[d] = reset_tar_pr.lower[d] - tar_pr->lower[d];
+
+    int minus_delta[GKYL_MAX_DIM] = { 0 };
+    for (int d=0; d<ndim; ++d)
+      minus_delta[d] = -delta[d];
+
+  // The actual intersection should be between the target rank's range
+  // and the cross range. So we will need to shift tar_br into the cross range
+    int tar_ndecomp = tar_decomp->ndecomp;
+    for (int ir=0; ir<tar_ndecomp; ir++) {
+      if ( !(block_id==block_list[ib] && block_rank==ir) ) {
+        const struct gkyl_range *tar_br = &decomp[tar_bid]->ranges[ir];
+        struct gkyl_range sub_range;
+        gkyl_range_shift(&sub_range, tar_br, delta);
+        int is_inter;
+        struct gkyl_range irng;
+        is_inter = gkyl_range_intersect(&irng, &cross_range, &sub_range);
+        if (is_inter) {
+          comm_conn[comm_conn_idx].rank = ir;
+          comm_conn[comm_conn_idx].block_id = tar_bid;
+          memcpy(&comm_conn[comm_conn_idx].range, &irng, sizeof(struct gkyl_range));
+          comm_conn_idx += 1;
+        }
+      }
+    }
+  }
   struct gkyl_multib_comm_conn *mbcc =
     gkyl_multib_comm_conn_new(comm_conn_idx, comm_conn);
 
