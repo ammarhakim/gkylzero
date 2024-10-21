@@ -22,6 +22,8 @@ struct gk_nozzle_ctx
   double qi;
   double n_src;
   double Ti_src;
+  double n_init;
+  double Ti_init;
   // Thermal speeds.
   double vti;
   // Gyrofrequencies and gyroradii.
@@ -85,7 +87,7 @@ eval_density_ion_init(double t, const double *GKYL_RESTRICT xn, double *GKYL_RES
 {
   struct gk_nozzle_ctx *app = ctx;
   double z = xn[0];
-  fout[0] = app->n_src;
+  fout[0] = app->n_init;
 }
 
 void
@@ -99,7 +101,7 @@ eval_temp_ion_init(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRI
 {
   struct gk_nozzle_ctx *app = ctx;
   double z = xn[0];
-  fout[0] = app->Ti_src;
+  fout[0] = app->Ti_init;
 }
 
 void mapc2p_vel_ion(double t, const double *vc, double* GKYL_RESTRICT vp, void *ctx)
@@ -138,10 +140,12 @@ create_ctx(void)
   double psi_eval = 1e-5;
   double B_p = 3.0;
 
+  // Plasma parameters
+  double n_init = 3e19;
+  double Ti_init = 10000 * eV;
   double n_src = 3e19 / 8.0;
   double T_src = 10000 * eV;
   double vti = sqrt(T_src / mi);
-  printf("vti = %3.8e \n", vti);
 
   // Grid parameters
   double vpar_max_ion = 20 * vti;
@@ -151,8 +155,8 @@ create_ctx(void)
   int Nmu = 48;  // Number of cells in the mu direction 192
   int poly_order = 1;
 
-  double t_end = 4.0e-9;
-  int num_frames = 1;
+  double t_end = 10e-9;
+  int num_frames = 5;
   int int_diag_calc_num = num_frames*100;
   double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.
   int num_failures_max = 20; // Maximum allowable number of consecutive small time-steps.
@@ -168,6 +172,10 @@ create_ctx(void)
     .psi_eval = psi_eval,
     .vpar_max_ion = vpar_max_ion,
     .mu_max_ion = mu_max_ion,
+    .n_init = n_init,
+    .Ti_init = Ti_init,
+    .n_src = n_src,
+    .Ti_src = T_src,
     .Nz = Nz,
     .Nvpar = Nvpar,
     .Nmu = Nmu,
@@ -297,7 +305,7 @@ int main(int argc, char **argv)
     .cells = { cells_x[0] },
     .poly_order = ctx.poly_order,
     .basis_type = app_args.basis_type,
-    .enforce_positivity = true,
+    // .enforce_positivity = true,
     .skip_field = true,
     .geometry = {
       .geometry_id = GKYL_MIRROR,
