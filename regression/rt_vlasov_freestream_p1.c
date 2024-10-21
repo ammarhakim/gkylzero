@@ -99,7 +99,7 @@ evalNeutInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fou
   double pi = app->pi;
   double vt = app->vt;
 
-  // Set neutral distribution function.
+  // Set total number density.
   fout[0] = (cos(x) / sqrt(2.0 * pi * vt * vt)) * exp(-(v * v) / (2.0 * vt * vt));
 }
 

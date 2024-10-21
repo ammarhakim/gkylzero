@@ -9,7 +9,7 @@ mu0 = 1.0 -- Permeability of free space.
 mass_elc = 1.0 -- Electron mass.
 charge_elc = -1.0 -- Electron charge.
 
-n0 = 1.0 -- Reference density.
+n0 = 1.0 -- Reference number density.
 vt = 0.2 -- Thermal velocity.
 Vx_drift = 1.0 -- Drift velocity (x-direction).
 
@@ -53,6 +53,7 @@ vlasovApp = Vlasov.App.new {
 
   -- Electrons.
   elc = Vlasov.Species.new {
+    modelID = "default",
     charge = charge_elc, mass = mass_elc,
     
     -- Velocity space grid.
@@ -103,7 +104,7 @@ vlasovApp = Vlasov.App.new {
     },
 
     evolve = true, -- Evolve species?
-    diagnostics = { "M0", "M1i", "M2"  }
+    diagnostics = { "M0", "M1i", "M2" }
   },
 
   field = Vlasov.Field.new {

@@ -110,7 +110,7 @@ evalNeutInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fou
   double alpha = app->alpha;
   double kx = app->kx;
 
-  // Set electron distribution function.
+  // Set total number density.
   fout[0] = (1.0 + alpha * cos(kx * x)) * exp(-(v * v) / (2.0 * vt * vt));
 }
 
@@ -255,7 +255,7 @@ main(int argc, char **argv)
     .lower = { -0.5 * ctx.Lx },
     .upper = { 0.5 * ctx.Lx },
     .cells = { NX },
-
+    
     .poly_order = ctx.poly_order,
     .basis_type = app_args.basis_type,
     .cfl_frac = ctx.cfl_frac,

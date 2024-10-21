@@ -1,6 +1,7 @@
 #ifdef GKYL_HAVE_LUA
 
 #include <gkyl_alloc.h>
+#include <gkyl_eqn_type.h>
 #include <gkyl_lua_utils.h>
 #include <gkyl_lw_priv.h>
 #include <gkyl_null_comm.h>
@@ -32,6 +33,15 @@ static const struct gkyl_str_int_pair projection_type[] = {
   { "maxwellianLab", GKYL_PROJ_MAXWELLIAN_LAB },
   { "biMaxwellian", GKYL_PROJ_BIMAXWELLIAN },
   { "LTE", GKYL_PROJ_VLASOV_LTE },
+  { 0, 0 }
+};
+
+// Vlasov model type -> enum map.
+static const struct gkyl_str_int_pair model_type[] = {
+  { "default", GKYL_MODEL_DEFAULT },
+  { "SR", GKYL_MODEL_SR },
+  { "generalGeometry", GKYL_MODEL_GEN_GEO },
+  { "canonicalPB", GKYL_MODEL_CANONICAL_PB },
   { 0, 0 }
 };
 
@@ -77,7 +87,8 @@ vlasov_species_lw_new(lua_State *L)
   int vdim  = 0;
   struct gkyl_vlasov_species vm_species = { };
 
-  vm_species.model_id = GKYL_MODEL_DEFAULT;
+  const char *model_str = glua_tbl_get_string(L, "modelID", "default");
+  vm_species.model_id = gkyl_search_str_int_pair_by_str(model_type, model_str, GKYL_MODEL_DEFAULT);
   
   vm_species.charge = glua_tbl_get_number(L, "charge", 0.0);
   vm_species.mass = glua_tbl_get_number(L, "mass", 1.0);
@@ -512,20 +523,23 @@ vm_app_new(lua_State *L)
   }
 
   // set field input
-  vm.skip_field = true;
-  with_lua_tbl_key(L, "field") {
-    if (lua_type(L, -1) == LUA_TUSERDATA) {
-      struct vlasov_field_lw *vmf = lua_touserdata(L, -1);
-      if (vmf->magic == VLASOV_FIELD_DEFAULT) {
+  vm.skip_field = glua_tbl_get_bool(L, "skipField", false);
+  
+  if (!vm.skip_field) {
+    with_lua_tbl_key(L, "field") {
+      if (lua_type(L, -1) == LUA_TUSERDATA) {
+        struct vlasov_field_lw *vmf = lua_touserdata(L, -1);
+        if (vmf->magic == VLASOV_FIELD_DEFAULT) {
 
-        vmf->init_ref.ndim = cdim;
+          vmf->init_ref.ndim = cdim;
 
-        vm.field = vmf->vm_field;
-        vm.skip_field = !vmf->evolve;
+          vm.field = vmf->vm_field;
+          vm.skip_field = !vmf->evolve;
 
-        app_lw->field_func_ctx = vmf->init_ref;
-        vm.field.init = gkyl_lw_eval_cb;
-        vm.field.ctx = &app_lw->field_func_ctx;
+          app_lw->field_func_ctx = vmf->init_ref;
+          vm.field.init = gkyl_lw_eval_cb;
+          vm.field.ctx = &app_lw->field_func_ctx;
+        }
       }
     }
   }

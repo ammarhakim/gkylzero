@@ -49,6 +49,13 @@ struct twostream_sr_ctx
   double gamma_elc1; // First electron gamma factor.
   double gamma_elc2; // Second electron gamma factor.
 
+  double ux_elc1_sr; // First electron relativistic velocity (x-direction).
+  double ux_elc2_sr; // Second electron relativistic velocity (x-direction).
+  double uy_elc1_sr; // First electron relativistic velocity (y-direction).
+  double uy_elc2_sr; // Second electron relativistic velocity (y-direction).
+  double uz_elc1_sr; // First electron relativistic velocity (z-direction).
+  double uz_elc2_sr; // Second electron relativistic velocity (z-direction).
+
   // Simulation parameters.
   int Nx; // Cell count (configuration space: x-direction).
   int Nvx; // Cell count (velocity space: vx-direction).
@@ -95,7 +102,14 @@ create_ctx(void)
 
   // Derived physical quantities (using normalized code units).
   double gamma_elc1 = 1.0 / sqrt(1.0 - (ux_elc1 * ux_elc1) - (uy_elc1 * uy_elc1) - (uz_elc1 * uz_elc1)); // First electron gamma factor.
-  double gamma_elc2 = 1.0 / sqrt(1.0 - (ux_elc2 * ux_elc2) - (uy_elc2 * uy_elc2) - (uz_elc2 * uz_elc2));
+  double gamma_elc2 = 1.0 / sqrt(1.0 - (ux_elc2 * ux_elc2) - (uy_elc2 * uy_elc2) - (uz_elc2 * uz_elc2)); // Second electron gamma factor.
+
+  double ux_elc1_sr = gamma_elc1 * ux_elc1; // First electron relativistic velocity (x-direction).
+  double ux_elc2_sr = gamma_elc2 * ux_elc2; // Second electron relativistic velocity (x-direction).
+  double uy_elc1_sr = gamma_elc1 * uy_elc1; // First electron relativistic velocity (y-direction).
+  double uy_elc2_sr = gamma_elc2 * uy_elc2; // Second electron relativistic velocity (y-direction).
+  double uz_elc1_sr = gamma_elc1 * uz_elc1; // First electron relativistic velocity (z-direction).
+  double uz_elc2_sr = gamma_elc2 * uz_elc2; // Second electron relativistic velocity (z-direction).
 
   // Simulation parameters.
   int Nx = 32; // Cell count (configuration space: x-direction).
@@ -134,6 +148,12 @@ create_ctx(void)
     .kx = kx,
     .gamma_elc1 = gamma_elc1,
     .gamma_elc2 = gamma_elc2,
+    .ux_elc1_sr = ux_elc1_sr,
+    .ux_elc2_sr = ux_elc2_sr,
+    .uy_elc1_sr = uy_elc1_sr,
+    .uy_elc2_sr = uy_elc2_sr,
+    .uz_elc1_sr = uz_elc1_sr,
+    .uz_elc2_sr = uz_elc2_sr,
     .Nx = Nx,
     .Nvx = Nvx,
     .Nvy = Nvy,
@@ -161,10 +181,10 @@ evalDensityLInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT
 
   double alpha = app->alpha;
   double kx = app->kx;
-  double n = app->n_elc1;
+  double n_elc1 = app->n_elc1;
 
-  // Set left-going distribution density.
-  fout[0] = (1.0 + alpha * cos(kx * x))*n;
+  // Set left-going total number density.
+  fout[0] = (1.0 + alpha * cos(kx * x)) * n_elc1;
 }
 
 void
@@ -175,10 +195,10 @@ evalDensityRInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT
 
   double alpha = app->alpha;
   double kx = app->kx;
-  double n = app->n_elc2;
+  double n_elc2 = app->n_elc2;
 
-  // Set right-going distribution density.
-  fout[0] = (1.0 + alpha * cos(kx * x))*n;
+  // Set right-going total number density.
+  fout[0] = (1.0 + alpha * cos(kx * x)) * n_elc2;
 }
 
 void
@@ -186,10 +206,10 @@ evalTempLInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fo
 {
   struct twostream_sr_ctx *app = ctx;
 
-  double T = app->T_elc1;
+  double T_elc1 = app->T_elc1;
 
-  // Set left-going distribution temperature.
-  fout[0] = T;
+  // Set left-going temperature.
+  fout[0] = T_elc1;
 }
 
 void
@@ -197,10 +217,10 @@ evalTempRInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fo
 {
   struct twostream_sr_ctx *app = ctx;
 
-  double T = app->T_elc2;
+  double T_elc2 = app->T_elc2;
 
-  // Set right-going distribution temperature.
-  fout[0] = T;
+  // Set right-going temperature.
+  fout[0] = T_elc2;
 }
 
 void
@@ -208,15 +228,12 @@ evalVDriftLInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT 
 {
   struct twostream_sr_ctx *app = ctx;
 
-  double gamma = app->gamma_elc1;
-  double ux_elc = app->ux_elc1;
-  double uy_elc = app->uy_elc1;
-  double uz_elc = app->uz_elc1;
+  double ux_elc1_sr = app->ux_elc1_sr;
+  double uy_elc1_sr = app->uy_elc1_sr;
+  double uz_elc1_sr = app->uz_elc1_sr;
 
-  // Set left-going distribution drift (four-) velocity.
-  fout[0] = gamma*ux_elc;
-  fout[1] = gamma*uy_elc;
-  fout[2] = gamma*uz_elc;
+  // Set left-going relativistic drift velocity.
+  fout[0] = ux_elc1_sr; fout[1] = uy_elc1_sr; fout[2] = uz_elc1_sr;
 }
 
 void
@@ -224,15 +241,12 @@ evalVDriftRInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT 
 {
   struct twostream_sr_ctx *app = ctx;
 
-  double gamma = app->gamma_elc2;
-  double ux_elc = app->ux_elc2;
-  double uy_elc = app->uy_elc2;
-  double uz_elc = app->uz_elc2;
+  double ux_elc2_sr = app->ux_elc2_sr;
+  double uy_elc2_sr = app->uy_elc2_sr;
+  double uz_elc2_sr = app->uz_elc2_sr;
 
-  // Set right-going distribution drift (four-) velocity.
-  fout[0] = gamma*ux_elc;
-  fout[1] = gamma*uy_elc;
-  fout[2] = gamma*uz_elc;
+  // Set right-going relativistic drift velocity.
+  fout[0] = ux_elc2_sr; fout[1] = uy_elc2_sr; fout[2] = uz_elc2_sr;
 }
 
 void
@@ -244,12 +258,18 @@ evalFieldInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fo
   double alpha = app->alpha;
   double kx = app->kx;
 
-  double E_x = -alpha * sin(kx * x) / kx;
+  double Ex = -alpha * sin(kx * x) / kx; // Total electric field (x-direction).
+  double Ey = 0.0; // Total electric field (y-direction).
+  double Ez = 0.0; // Total electric field (z-direction).
+
+  double Bx = 0.0; // Total magnetic field (x-direction).
+  double By = 0.0; // Total magnetic field (y-direction).
+  double Bz = 0.0; // Total magnetic field (z-direction).
   
   // Set electric field.
-  fout[0] = E_x; fout[1] = 0.0, fout[2] = 0.0;
+  fout[0] = Ex; fout[1] = Ey, fout[2] = Ez;
   // Set magnetic field.
-  fout[3] = 0.0; fout[4] = 0.0; fout[5] = 0.0;
+  fout[3] = Bx; fout[4] = By; fout[5] = Bz;
   // Set correction potentials.
   fout[6] = 0.0; fout[7] = 0.0;
 }

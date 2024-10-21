@@ -10,26 +10,27 @@ mass_elc = 1.0 -- Electron mass.
 charge_elc = -1.0 -- Electron charge.
 
 n0 = 1.0 -- Reference number density.
-vt = 0.2 -- Thermal velocity.
-Vx_drift = 1.0 -- Drift velocity (x-direction).
+T = 0.04 -- Temperature (units of mc^2).
+Vx_drift = 0.9 -- Drift velocity (x-direction).
 
-alpha = 1.0e-6 -- Applied perturbation amplitude.
+alpha = 1.0e-3 -- Applied perturbation amplitude.
 kx = 0.5 -- Perturbed wave number (x-direction).
 
 -- Derived physical quantities (using normalized code units).
-T = (vt * vt) * mass_elc -- Temperature.
+gamma = 1.0 / math.sqrt(1.0 - (Vx_drift * Vx_drift)) -- Gamma factor.
+Vx_drift_SR = gamma * Vx_drift -- Relativistic drift velocity (x-direction).
 
 -- Simulation parameters.
 Nx = 64 -- Cell count (configuration space: x-direction).
-Nvx = 32 -- Cell count (velocity space: vx-direction).
+Nvx = 64 -- Cell count (velocity space: vx-direction).
 Lx = 2.0 * pi / kx -- Domain size (configuration space: x-direction).
-vx_max = 6.0 -- Domain boundary (velocity space: vx-direction).
+vx_max = 8.0 -- Domain boundary (velocity space: vx-direction).
 poly_order = 2 -- Polynomial order.
 basis_type = "serendipity" -- Basis function set.
 time_stepper = "rk3" -- Time integrator.
-cfl_frac = 0.6 -- CFL coefficient.
+cfl_frac = 1.0 -- CFL coefficient.
 
-t_end = 40.0 -- Final simulation time.
+t_end = 100.0 -- Final simulation time.
 num_frames = 1 -- Number of output frames.
 
 vlasovApp = Vlasov.App.new {
@@ -53,7 +54,7 @@ vlasovApp = Vlasov.App.new {
 
   -- Electrons.
   elc = Vlasov.Species.new {
-    modelID = "default",
+    modelID = "SR",
     charge = charge_elc, mass = mass_elc,
     
     -- Velocity space grid.
@@ -78,10 +79,11 @@ vlasovApp = Vlasov.App.new {
           return T -- Total temperature.
         end,
         driftVelocityInit = function (t, xn)
-          return Vx_drift -- Total left-going drift velocity.
+          return Vx_drift_SR -- Total left-going relativistic drift velocity.
         end,
 
-        correctAllMoments = true
+        correctAllMoments = true,
+        useLastConverged = true
       },
       {
         projectionID = "LTE",
@@ -96,15 +98,16 @@ vlasovApp = Vlasov.App.new {
           return T -- Total temperature.
         end,
         driftVelocityInit = function (t, xn)
-          return -Vx_drift -- Total right-going drift velocity.
+          return -Vx_drift_SR -- Total right-going relativistic drift velocity.
         end,
 
-        correctAllMoments = true
+        correctAllMoments = true,
+        useLastConverged = true
       }
     },
 
     evolve = true, -- Evolve species?
-    diagnostics = { "M0", "M1i", "M2" }
+    diagnostics = { "M0", "M1i" }
   },
 
   field = Vlasov.Field.new {
