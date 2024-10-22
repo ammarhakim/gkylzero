@@ -45,6 +45,15 @@ static const struct gkyl_str_int_pair model_type[] = {
   { 0, 0 }
 };
 
+// Vlasov collision type -> enum map.
+static const struct gkyl_str_int_pair collision_type[] = {
+  { "none", GKYL_NO_COLLISIONS },
+  { "BGK", GKYL_BGK_COLLISIONS },
+  { "LBO", GKYL_LBO_COLLISIONS },
+  { "FPO", GKYL_FPO_COLLISIONS },
+  { 0, 0 }
+};
+
 /* *****************/
 /* Species methods */
 /* *****************/
@@ -79,6 +88,13 @@ struct vlasov_species_lw {
   double iter_eps[GKYL_MAX_PROJ];
   int max_iter[GKYL_MAX_PROJ];
   bool use_last_converged[GKYL_MAX_PROJ];
+
+  enum gkyl_collision_id collision_id; // Collision type.
+  
+  bool has_self_nu_func; // Is there a self-collision frequency function?
+  struct lua_func_ctx self_nu_func_ref; // Lua registry reference to self-collision frequency function.
+
+  bool collision_correct_all_moms;
 };
 
 static int
@@ -187,6 +203,25 @@ vlasov_species_lw_new(lua_State *L)
       }
     }
   }
+
+  enum gkyl_collision_id collision_id = GKYL_NO_COLLISIONS;
+
+  bool has_self_nu_func = false;
+  int self_nu_func_ref = LUA_NOREF;
+
+  bool collision_correct_all_moms = false;
+
+  with_lua_tbl_tbl(L, "collisions") {
+    const char *collision_str = glua_tbl_get_string(L, "collisionID", "none");
+    collision_id = gkyl_search_str_int_pair_by_str(collision_type, collision_str, GKYL_NO_COLLISIONS);
+
+    if (glua_tbl_get_func(L, "selfNu")) {
+      self_nu_func_ref = luaL_ref(L, LUA_REGISTRYINDEX);
+      has_self_nu_func = true;
+    }
+
+    collision_correct_all_moms = glua_tbl_get_bool(L, "correctAllMoments", true);
+  }
   
   struct vlasov_species_lw *vms_lw = lua_newuserdata(L, sizeof(*vms_lw));
   vms_lw->magic = VLASOV_SPECIES_DEFAULT;
@@ -235,6 +270,18 @@ vlasov_species_lw_new(lua_State *L)
     vms_lw->max_iter[i] = max_iter[i];
     vms_lw->use_last_converged[i] = use_last_converged[i];
   }
+
+  vms_lw->collision_id = collision_id;
+
+  vms_lw->has_self_nu_func = has_self_nu_func;
+  vms_lw->self_nu_func_ref = (struct lua_func_ctx) {
+    .func_ref = self_nu_func_ref,
+    .ndim = 0,
+    .nret = 1,
+    .L = L,
+  };
+
+  vms_lw->collision_correct_all_moms = collision_correct_all_moms;
   
   // set metatable
   luaL_getmetatable(L, VLASOV_SPECIES_METATABLE_NM);
@@ -343,6 +390,13 @@ struct vlasov_app_lw {
   int max_iter[GKYL_MAX_SPECIES][GKYL_MAX_PROJ];
   bool use_last_converged[GKYL_MAX_SPECIES][GKYL_MAX_PROJ];
 
+  enum gkyl_collision_id collision_id[GKYL_MAX_SPECIES]; // Collision type.
+
+  bool has_self_nu_func[GKYL_MAX_SPECIES]; // Is there a self-collision frequency function?
+  struct lua_func_ctx self_nu_func_ctx[GKYL_MAX_SPECIES]; // Context for self-collision frequency function.
+
+  bool collision_correct_all_moms[GKYL_MAX_SPECIES];
+
   struct lua_func_ctx field_func_ctx; // function context for field
   
   double tstart, tend; // start and end times of simulation
@@ -381,6 +435,10 @@ get_species_inp(lua_State *L, int cdim, struct vlasov_species_lw *species[GKYL_M
           if (vms->has_temp_init_func[i]) {
             vms->temp_init_func_ref[i].ndim = cdim + vms->vdim;
           }
+        }
+
+        if (vms->has_self_nu_func) {
+          vms->self_nu_func_ref.ndim = cdim + vms->vdim;
         }
         
         if (lua_type(L,TKEY) == LUA_TSTRING) {
@@ -520,26 +578,40 @@ vm_app_new(lua_State *L)
       vm.species[s].projection[i].max_iter = app_lw->max_iter[s][i];
       vm.species[s].projection[i].use_last_converged = app_lw->use_last_converged[s][i];
     }
+
+    app_lw->collision_id[s] = species[s]->collision_id;
+
+    app_lw->has_self_nu_func[s] = species[s]->has_self_nu_func;
+    app_lw->self_nu_func_ctx[s] = species[s]->self_nu_func_ref;
+
+    app_lw->collision_correct_all_moms[s] = species[s]->collision_correct_all_moms;
+
+    vm.species[s].collisions.collision_id = app_lw->collision_id[s];
+
+    if (species[s]->has_self_nu_func) {
+      vm.species[s].collisions.self_nu = gkyl_lw_eval_cb;
+      vm.species[s].collisions.ctx = &app_lw->self_nu_func_ctx[s];
+    }
+
+    vm.species[s].collisions.correct_all_moms = app_lw->collision_correct_all_moms[s];
   }
 
-  // set field input
+  // Set field input.
   vm.skip_field = glua_tbl_get_bool(L, "skipField", false);
-  
-  if (!vm.skip_field) {
-    with_lua_tbl_key(L, "field") {
-      if (lua_type(L, -1) == LUA_TUSERDATA) {
-        struct vlasov_field_lw *vmf = lua_touserdata(L, -1);
-        if (vmf->magic == VLASOV_FIELD_DEFAULT) {
 
-          vmf->init_ref.ndim = cdim;
+  with_lua_tbl_key(L, "field") {
+    if (lua_type(L, -1) == LUA_TUSERDATA) {
+      struct vlasov_field_lw *vmf = lua_touserdata(L, -1);
+      if (vmf->magic == VLASOV_FIELD_DEFAULT) {
 
-          vm.field = vmf->vm_field;
-          vm.skip_field = !vmf->evolve;
+        vmf->init_ref.ndim = cdim;
 
-          app_lw->field_func_ctx = vmf->init_ref;
-          vm.field.init = gkyl_lw_eval_cb;
-          vm.field.ctx = &app_lw->field_func_ctx;
-        }
+        vm.field = vmf->vm_field;
+        vm.skip_field = !vmf->evolve;
+
+        app_lw->field_func_ctx = vmf->init_ref;
+        vm.field.init = gkyl_lw_eval_cb;
+        vm.field.ctx = &app_lw->field_func_ctx;
       }
     }
   }

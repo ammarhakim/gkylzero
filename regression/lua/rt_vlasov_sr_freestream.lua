@@ -73,6 +73,8 @@ vlasovApp = Vlasov.App.new {
     diagnostics = { "M0", "M1i" }
   },
 
+  skipField = true,
+
   -- Field.
   field = Vlasov.Field.new {
     epsilon0 = 1.0, mu0 = 1.0,

@@ -135,13 +135,13 @@ evalDensityInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT 
   double n = 0.0;
 
   if (x < 0.5) {
-    n = nl;
+    n = nl; // Total number density (left).
   }
   else {
-    n = nr;
+    n = nr; // Total number density (right).
   }
 
-  // Set distribution function.
+  // Set total number density.
   fout[0] = n;
 }
 
@@ -157,13 +157,13 @@ evalTempInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fou
   double T = 0.0;
 
   if (x < 0.5) {
-    T = Tl;
+    T = Tl; // Total temperature (left).
   }
   else {
-    T = Tr;
+    T = Tr; // Total temperature (right).
   }
 
-  // Set temperature.
+  // Set total temperature.
   fout[0] = T;
 }
 
@@ -176,7 +176,7 @@ evalVDriftInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT f
   double Vy_drift = app->Vy_drift;
   double Vz_drift = app->Vz_drift;
 
-  // Set drift velocity.
+  // Set total drift velocity.
   fout[0] = Vx_drift; fout[1] = Vy_drift; fout[2] = Vz_drift;
 }
 
