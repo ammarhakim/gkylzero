@@ -144,17 +144,17 @@ evalTopHatInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT f
   
   double n0 = app->n0;
 
-  double dist = 0.0;
+  double n = 0.0;
 
   if(fabs(vx) < 1.0 && fabs(vy) < 1.0 && fabs(vz) < 1.0) {
-    dist = 0.5 * n0;
+    n = 0.5 * n0; // Total number density (low velocity).
   }
   else {
-    dist = 0.0;
+    n = 0.0; // Total number density (high velocity).
   }
 
-  // Set distribution function.
-  fout[0] = dist;
+  // Set total number density.
+  fout[0] = n;
 }
 
 void
@@ -181,8 +181,11 @@ evalBumpInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fou
   double v_sq = ((vx - ux0) * (vx - ux0)) + ((vy - uy0) * (vy - uy0)) + ((vz - uz0) * (vz - uz0));
   double vb_sq = ((vx - ubx) * (vx - ubx)) + ((vy - uby) * (vy - uby)) + ((vz - ubz) * (vz - ubz));
 
-  // Set distribution function.
-  fout[0] = (n0 / sqrt(2.0 * pi * vt * vt)) * exp(-v_sq / (2.0 * vt * vt)) + (n0 / sqrt(2.0 * pi * vtb * vtb)) * exp(-vb_sq / (2.0 * vtb * vtb)) * (ab * ab) / (vb_sq + (sb * sb));
+  double n = (n0 / sqrt(2.0 * pi * vt * vt)) * exp(-v_sq / (2.0 * vt * vt)) + (n0 / sqrt(2.0 * pi * vtb * vtb)) *
+    exp(-vb_sq / (2.0 * vtb * vtb)) * (ab * ab) / (vb_sq + (sb * sb)); // Total number density.
+
+  // Set total number density.
+  fout[0] = n;
 }
 
 void

@@ -94,6 +94,9 @@ struct vlasov_species_lw {
   bool has_self_nu_func; // Is there a self-collision frequency function?
   struct lua_func_ctx self_nu_func_ref; // Lua registry reference to self-collision frequency function.
 
+  int num_cross_collisions; // Number of species that we cross-collide with.
+  char collide_with[GKYL_MAX_SPECIES][128]; // Names of species that we cross-collide with.
+
   bool collision_correct_all_moms; // Are we correcting all moments in collisions, or only density?
 };
 
@@ -209,6 +212,9 @@ vlasov_species_lw_new(lua_State *L)
   bool has_self_nu_func = false;
   int self_nu_func_ref = LUA_NOREF;
 
+  int num_cross_collisions = 0;
+  char collide_with[GKYL_MAX_SPECIES][128];
+
   bool collision_correct_all_moms = false;
 
   with_lua_tbl_tbl(L, "collisions") {
@@ -218,6 +224,14 @@ vlasov_species_lw_new(lua_State *L)
     if (glua_tbl_get_func(L, "selfNu")) {
       self_nu_func_ref = luaL_ref(L, LUA_REGISTRYINDEX);
       has_self_nu_func = true;
+    }
+
+    num_cross_collisions = glua_tbl_get_integer(L, "numCrossCollisions", 0);
+    with_lua_tbl_tbl(L, "collideWith") {
+      for (int i = 0; i < num_cross_collisions; i++) {
+        const char* collide_with_char = glua_tbl_iget_string(L, i + 1, "");
+        strcpy(collide_with[i], collide_with_char);
+      }
     }
 
     collision_correct_all_moms = glua_tbl_get_bool(L, "correctAllMoments", true);
@@ -280,6 +294,11 @@ vlasov_species_lw_new(lua_State *L)
     .nret = 1,
     .L = L,
   };
+
+  vms_lw->num_cross_collisions = num_cross_collisions;
+  for (int i = 0; i < num_cross_collisions; i++) {
+    strcpy(vms_lw->collide_with[i], collide_with[i]);
+  }
 
   vms_lw->collision_correct_all_moms = collision_correct_all_moms;
   
@@ -394,6 +413,9 @@ struct vlasov_app_lw {
 
   bool has_self_nu_func[GKYL_MAX_SPECIES]; // Is there a self-collision frequency function?
   struct lua_func_ctx self_nu_func_ctx[GKYL_MAX_SPECIES]; // Context for self-collision frequency function.
+
+  int num_cross_collisions[GKYL_MAX_SPECIES]; // Number of species that we cross-collide with.
+  char collide_with[GKYL_MAX_SPECIES][GKYL_MAX_SPECIES][128]; // Names of species that we cross-collide with.
 
   bool collision_correct_all_moms[GKYL_MAX_SPECIES]; // Are we correct all moments in collisions, or only density?
 
@@ -584,6 +606,11 @@ vm_app_new(lua_State *L)
     app_lw->has_self_nu_func[s] = species[s]->has_self_nu_func;
     app_lw->self_nu_func_ctx[s] = species[s]->self_nu_func_ref;
 
+    app_lw->num_cross_collisions[s] = species[s]->num_cross_collisions;
+    for (int i = 0; i < app_lw->num_cross_collisions[s]; i++) {
+      strcpy(app_lw->collide_with[s][i], species[s]->collide_with[i]);
+    }
+
     app_lw->collision_correct_all_moms[s] = species[s]->collision_correct_all_moms;
 
     vm.species[s].collisions.collision_id = app_lw->collision_id[s];
@@ -591,6 +618,11 @@ vm_app_new(lua_State *L)
     if (species[s]->has_self_nu_func) {
       vm.species[s].collisions.self_nu = gkyl_lw_eval_cb;
       vm.species[s].collisions.ctx = &app_lw->self_nu_func_ctx[s];
+    }
+
+    vm.species[s].collisions.num_cross_collisions = app_lw->num_cross_collisions[s];
+    for (int i = 0; i < app_lw->num_cross_collisions[s]; i++) {
+      strcpy(vm.species[s].collisions.collide_with[i], app_lw->collide_with[s][i]);
     }
 
     vm.species[s].collisions.correct_all_moms = app_lw->collision_correct_all_moms[s];
