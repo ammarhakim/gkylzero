@@ -80,6 +80,10 @@ set_cu_ptrs(struct mom_type_canonical_pb* mom_can_pb, int mom_id, enum gkyl_basi
       menergy_kernels = ser_menergy_kernels;
       break;
 
+    case GKYL_BASIS_MODAL_TENSOR:
+      menergy_kernels = tensor_menergy_kernels;
+      break;
+
     default:
       assert(false);
       break;    
@@ -153,6 +157,10 @@ set_int_cu_ptrs(struct mom_type_canonical_pb* mom_can_pb, enum gkyl_basis_type b
   switch (b_type) {
     case GKYL_BASIS_MODAL_SERENDIPITY:
       int_mom_kernels = ser_int_mom_kernels;
+      break;
+
+    case GKYL_BASIS_MODAL_TENSOR:
+      int_mom_kernels = tensor_int_mom_kernels;
       break;
 
     default:

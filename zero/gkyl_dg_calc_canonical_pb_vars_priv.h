@@ -40,7 +40,7 @@ GKYL_CU_D
 static const gkyl_dg_canonical_pb_alpha_surf_kern_list ser_canonical_pb_alpha_surfx_kernels[] = {
   { NULL, canonical_pb_alpha_surfx_1x1v_ser_p1, canonical_pb_alpha_surfx_1x1v_ser_p2 }, // 0
   { NULL, canonical_pb_alpha_surfx_2x2v_ser_p1, canonical_pb_alpha_surfx_2x2v_ser_p2 }, // 1
-  { NULL, canonical_pb_alpha_surfx_3x3v_ser_p1, NULL }, // 2
+  { NULL, NULL, NULL }, // 2
 };
 
 // canonical_pb general geometry phase space flux alpha edge surface expansions in x (Serendipity kernels)
@@ -48,7 +48,7 @@ GKYL_CU_D
 static const gkyl_dg_canonical_pb_alpha_surf_kern_list ser_canonical_pb_alpha_edge_surfx_kernels[] = {
   { NULL, canonical_pb_alpha_edge_surfx_1x1v_ser_p1, canonical_pb_alpha_edge_surfx_1x1v_ser_p2 }, // 0
   { NULL, canonical_pb_alpha_edge_surfx_2x2v_ser_p1, canonical_pb_alpha_edge_surfx_2x2v_ser_p2 }, // 1
-  { NULL, canonical_pb_alpha_edge_surfx_3x3v_ser_p1, NULL }, // 2
+  { NULL, NULL, NULL }, // 2
 };
 
 // canonical_pb general geometry phase space flux alpha surface expansions in y (Serendipity kernels)
@@ -56,7 +56,7 @@ GKYL_CU_D
 static const gkyl_dg_canonical_pb_alpha_surf_kern_list ser_canonical_pb_alpha_surfy_kernels[] = {
   { NULL, NULL, NULL }, // 0
   { NULL, canonical_pb_alpha_surfy_2x2v_ser_p1, canonical_pb_alpha_surfy_2x2v_ser_p2 }, // 1
-  { NULL, canonical_pb_alpha_surfy_3x3v_ser_p1, NULL }, // 2
+  { NULL, NULL, NULL }, // 2
 };
 
 // canonical_pb general geometry phase space flux alpha edge surface expansions in y (Serendipity kernels)
@@ -64,7 +64,7 @@ GKYL_CU_D
 static const gkyl_dg_canonical_pb_alpha_surf_kern_list ser_canonical_pb_alpha_edge_surfy_kernels[] = {
   { NULL, NULL, NULL }, // 0
   { NULL, canonical_pb_alpha_edge_surfy_2x2v_ser_p1, canonical_pb_alpha_edge_surfy_2x2v_ser_p2 }, // 1
-  { NULL, canonical_pb_alpha_edge_surfy_3x3v_ser_p1, NULL }, // 2
+  { NULL, NULL, NULL }, // 2
 };
 
 // canonical_pb general geometry phase space flux alpha surface expansions in z (Serendipity kernels)
@@ -72,7 +72,7 @@ GKYL_CU_D
 static const gkyl_dg_canonical_pb_alpha_surf_kern_list ser_canonical_pb_alpha_surfz_kernels[] = {
   { NULL, NULL, NULL }, // 0
   { NULL, NULL, NULL }, // 1
-  { NULL, canonical_pb_alpha_surfz_3x3v_ser_p1, NULL }, // 2
+  { NULL, NULL, NULL }, // 2
 };
 
 // canonical_pb general geometry phase space flux alpha edge surface expansions in z (Serendipity kernels)
@@ -80,7 +80,7 @@ GKYL_CU_D
 static const gkyl_dg_canonical_pb_alpha_surf_kern_list ser_canonical_pb_alpha_edge_surfz_kernels[] = {
   { NULL, NULL, NULL }, // 0
   { NULL, NULL, NULL }, // 1
-  { NULL, canonical_pb_alpha_edge_surfz_3x3v_ser_p1, NULL }, // 2
+  { NULL, NULL, NULL }, // 2
 };
 
 //
@@ -91,7 +91,7 @@ GKYL_CU_D
 static const gkyl_dg_canonical_pb_alpha_surf_kern_list ser_canonical_pb_alpha_surfvx_kernels[] = {
   { NULL, canonical_pb_alpha_surfvx_1x1v_ser_p1, canonical_pb_alpha_surfvx_1x1v_ser_p2 }, // 0
   { NULL, canonical_pb_alpha_surfvx_2x2v_ser_p1, canonical_pb_alpha_surfvx_2x2v_ser_p2 }, // 1
-  { NULL, canonical_pb_alpha_surfvx_3x3v_ser_p1, NULL }, // 2
+  { NULL, NULL, NULL }, // 2
 };
 
 
@@ -100,7 +100,7 @@ GKYL_CU_D
 static const gkyl_dg_canonical_pb_alpha_surf_kern_list ser_canonical_pb_alpha_surfvy_kernels[] = {
   { NULL, NULL, NULL }, // 0
   { NULL, canonical_pb_alpha_surfvy_2x2v_ser_p1, canonical_pb_alpha_surfvy_2x2v_ser_p2 }, // 1
-  { NULL, canonical_pb_alpha_surfvy_3x3v_ser_p1, NULL }, // 2
+  { NULL, NULL, NULL }, // 2
 };
 
 // canonical_pb general geometry phase space flux alpha surface expansions in vz (Serendipity kernels)
@@ -108,7 +108,7 @@ GKYL_CU_D
 static const gkyl_dg_canonical_pb_alpha_surf_kern_list ser_canonical_pb_alpha_surfvz_kernels[] = {
   { NULL, NULL, NULL }, // 0
   { NULL, NULL, NULL }, // 1
-  { NULL, canonical_pb_alpha_surfvz_3x3v_ser_p1, NULL }, // 2
+  { NULL, NULL, NULL }, // 2
 };
 
 // canonical_pb Pressure (d*P*Jv = h^{ij}*M2_{ij} - n*h^{ij}*u_i*u_j) (Serendipity kernels)
@@ -116,7 +116,7 @@ GKYL_CU_D
 static const gkyl_dg_canonical_pb_pressure_kern_list ser_canonical_pb_pressure_kernels[] = {
   { NULL, canonical_pb_vars_pressure_1x_ser_p1, canonical_pb_vars_pressure_1x_ser_p2 }, // 0
   { NULL, canonical_pb_vars_pressure_2x_ser_p1, canonical_pb_vars_pressure_2x_ser_p2 }, // 1
-  { NULL, canonical_pb_vars_pressure_3x_ser_p1, NULL }, // 2
+  { NULL, NULL, NULL }, // 2
 };
 
 
