@@ -103,7 +103,7 @@ void gkyl_dg_calc_gk_rad_vars_nI_nu_advance(const struct gkyl_dg_calc_gk_rad_var
   struct gkyl_array* nvsqnu_surf, struct gkyl_array* nvsqnu)
 {
 #ifdef GKYL_HAVE_CUDA
-  if (gkyl_array_is_cu_dev(vnu_surf)) {
+  if (gkyl_array_is_cu_dev(nI)) {
     return gkyl_dg_calc_gk_rad_vars_nI_nu_advance_cu(up, conf_range, phase_range, 
       vnu_surf, vnu, vsqnu_surf, vsqnu, n_elc_rad, n_elc, nI, 
       nvnu_surf, nvnu, nvsqnu_surf, nvsqnu);
@@ -128,10 +128,10 @@ void gkyl_dg_calc_gk_rad_vars_nI_nu_advance(const struct gkyl_dg_calc_gk_rad_var
     double ne_cell_avg = ne[0]/pow(2.0, cdim/2.0);
     int ne_idx = gkyl_find_nearest_idx(n_elc_rad, ne_cell_avg);
     
-    const double* vnu_surf_d = gkyl_array_cfetch(vnu_surf->nu[ne_idx], loc_phase);
-    const double* vnu_d = gkyl_array_cfetch(vnu->nu[ne_idx], loc_phase);
-    const double* vsqnu_surf_d = gkyl_array_cfetch(vsqnu_surf->nu[ne_idx], loc_phase);  
-    const double* vsqnu_d = gkyl_array_cfetch(vsqnu->nu[ne_idx], loc_phase);   
+    const double* vnu_surf_d = gkyl_array_cfetch(vnu_surf->nus[ne_idx].nu, loc_phase);
+    const double* vnu_d = gkyl_array_cfetch(vnu->nus[ne_idx].nu, loc_phase);
+    const double* vsqnu_surf_d = gkyl_array_cfetch(vsqnu_surf->nus[ne_idx].nu, loc_phase);  
+    const double* vsqnu_d = gkyl_array_cfetch(vsqnu->nus[ne_idx].nu, loc_phase);   
     const double *nI_d = gkyl_array_cfetch(nI, loc_conf);
 
     double* nvnu_surf_d = gkyl_array_fetch(nvnu_surf, loc_phase);
@@ -151,4 +151,17 @@ void gkyl_dg_calc_gk_rad_vars_release(gkyl_dg_calc_gk_rad_vars *up)
   if (GKYL_IS_CU_ALLOC(up->flags))
     gkyl_cu_free(up->on_dev);
   gkyl_free(up);
+}
+
+void gkyl_dg_rad_nu_ne_dependence_release(struct gkyl_dg_rad_nu_ne_dependence *vnu) {
+  for (int i=0; i<vnu->num_of_collisions;i++) {
+    for (int j=0; j<vnu->nus->num_of_densities; j++) {
+      gkyl_array_release(vnu[i].nus[j].nu);
+    }
+    gkyl_free(vnu[i].device_mem);
+    gkyl_cu_free(vnu[i].on_dev);
+    gkyl_free(vnu[i].nus);
+  }
+  gkyl_free(vnu);
+
 }

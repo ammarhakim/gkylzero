@@ -58,29 +58,28 @@ gk_species_radiation_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s
   rad->calc_gk_rad_vars = gkyl_dg_calc_gk_rad_vars_new(&s->grid, &app->confBasis,
 	&app->basis, s->info.charge, s->info.mass, app->gk_geom, s->vel_map, app->use_gpu);
 
-  if (app->use_gpu) {
-    rad->vnu_surf = gkyl_cu_malloc(rad->num_cross_collisions*sizeof(struct gkyl_dg_rad_nu_ne_dependence));
-    rad->vnu = gkyl_cu_malloc(rad->num_cross_collisions*sizeof(struct gkyl_dg_rad_nu_ne_dependence));
-    rad->vsqnu_surf = gkyl_cu_malloc(rad->num_cross_collisions*sizeof(struct gkyl_dg_rad_nu_ne_dependence));
-    rad->vsqnu = gkyl_cu_malloc(rad->num_cross_collisions*sizeof(struct gkyl_dg_rad_nu_ne_dependence));
-    rad->vnu_surf->on_dev = rad->vnu_surf;
-    rad->vnu->on_dev = rad->vnu;
-    rad->vsqnu_surf->on_dev = rad->vsqnu_surf;
-    rad->vsqnu->on_dev = rad->vsqnu;
-  } else {
-    rad->vnu_surf = gkyl_malloc(rad->num_cross_collisions*sizeof(struct gkyl_dg_rad_nu_ne_dependence));
-    rad->vnu = gkyl_malloc(rad->num_cross_collisions*sizeof(struct gkyl_dg_rad_nu_ne_dependence));
-    rad->vsqnu_surf = gkyl_malloc(rad->num_cross_collisions*sizeof(struct gkyl_dg_rad_nu_ne_dependence));
-    rad->vsqnu = gkyl_malloc(rad->num_cross_collisions*sizeof(struct gkyl_dg_rad_nu_ne_dependence));
-  }
-
+  rad->vnu_surf = gkyl_dg_rad_nu_ne_dependence_new(app->use_gpu, rad->num_cross_collisions);
+  rad->vnu = gkyl_dg_rad_nu_ne_dependence_new(app->use_gpu, rad->num_cross_collisions);
+  rad->vsqnu_surf = gkyl_dg_rad_nu_ne_dependence_new(app->use_gpu, rad->num_cross_collisions);
+  rad->vsqnu = gkyl_dg_rad_nu_ne_dependence_new(app->use_gpu, rad->num_cross_collisions);
+    
   // initialize drag coefficients
   for (int i=0; i<rad->num_cross_collisions; ++i) {
     int num_of_densities[1] = {0};
     num_of_densities[0] = s->info.radiation.num_of_densities[i] ? s->info.radiation.num_of_densities[i] : 1;
     int status = gkyl_radiation_read_get_fit_params(*rad_data, s->info.radiation.z[i], s->info.radiation.charge_state[i], a, alpha, beta, gamma, v0, num_of_densities, ne, s->info.radiation.reference_ne, s->info.radiation.min_ne, s->info.radiation.max_ne);
+    
+    /*    rad->vnu_surf[i].nus=gkyl_nu_on_device_new(app->use_gpu, num_of_densities[0]);
+    rad->vnu[i].nus=gkyl_nu_on_device_new(app->use_gpu, num_of_densities[0]);
+    rad->vsqnu[i].nus=gkyl_nu_on_device_new(app->use_gpu, num_of_densities[0]);
+    rad->vsqnu_surf[i].nus=gkyl_nu_on_device_new(app->use_gpu, num_of_densities[0]);*/
+    gkyl_nu_on_device_new(app->use_gpu, num_of_densities[0], &rad->vnu_surf[i]);
+    gkyl_nu_on_device_new(app->use_gpu, num_of_densities[0], &rad->vnu[i]);
+    gkyl_nu_on_device_new(app->use_gpu, num_of_densities[0], &rad->vsqnu_surf[i]);
+    gkyl_nu_on_device_new(app->use_gpu, num_of_densities[0], &rad->vsqnu[i]);
+    
     rad->rad_fit_ne[i] = mkarr(app->use_gpu, 1, num_of_densities[0]);
-
+    rad->rad_fit_ne[i]->data = ne;
     // Fetch the species we are colliding with and the fitting parameters for that species
     rad->collide_with_idx[i] = gk_find_species_idx(app, s->info.radiation.collide_with[i]);
     if (rad->collide_with_idx[i] == -1) {
@@ -103,20 +102,26 @@ gk_species_radiation_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s
       // where |v| = sqrt(v_par^2 + 2 mu B/m)
       // Note that through the spatial variation of B = B(x,z), 
       // both these drag coefficients depend on phase space, but a reduced (x,z,vpar,mu) phase space
-      rad->vnu_surf[i].nu[n] = mkarr(app->use_gpu, surf_rad_vpar_basis.num_basis, s->local_ext.volume);
-      rad->vnu[i].nu[n] = mkarr(app->use_gpu, rad_basis.num_basis, s->local_ext.volume);
-      rad->vsqnu_surf[i].nu[n] = mkarr(app->use_gpu,surf_rad_mu_basis.num_basis, s->local_ext.volume);
-      rad->vsqnu[i].nu[n] = mkarr(app->use_gpu, rad_basis.num_basis, s->local_ext.volume);
-      
+      rad->vnu_surf[i].nus[n].nu = mkarr(app->use_gpu, surf_rad_vpar_basis.num_basis, s->local_ext.volume);
+      rad->vnu[i].nus[n].nu = mkarr(app->use_gpu, rad_basis.num_basis, s->local_ext.volume);
+      rad->vsqnu_surf[i].nus[n].nu = mkarr(app->use_gpu,surf_rad_mu_basis.num_basis, s->local_ext.volume);
+      rad->vsqnu[i].nus[n].nu = mkarr(app->use_gpu, rad_basis.num_basis, s->local_ext.volume);
+      rad->vnu_surf[i].device_mem[n].nu = rad->vnu_surf[i].nus[n].nu->on_dev;
+      rad->vnu[i].device_mem[n].nu = rad->vnu[i].nus[n].nu->on_dev;
+      rad->vsqnu_surf[i].device_mem[n].nu = rad->vsqnu_surf[i].nus[n].nu->on_dev;
+      rad->vsqnu[i].device_mem[n].nu = rad->vsqnu[i].nus[n].nu->on_dev;
       gkyl_dg_calc_gk_rad_vars_nu_advance(rad->calc_gk_rad_vars, 
 					  &app->local, &s->local,
 					  a[n], alpha[n], beta[n], gamma[n], v0[n],
-					  rad->vnu_surf[i].nu[n], rad->vnu[i].nu[n], 
-					  rad->vsqnu_surf[i].nu[n], rad->vsqnu[i].nu[n]);
-      double* ne0 = (double*) gkyl_array_fetch(rad->rad_fit_ne[i], n);
-      ne0[0] = ne[n];
+					  rad->vnu_surf[i].nus[n].nu, rad->vnu[i].nus[n].nu, 
+					  rad->vsqnu_surf[i].nus[n].nu, rad->vsqnu[i].nus[n].nu);
     }
-    
+    if(app->use_gpu) {
+      gkyl_cu_memcpy(rad->vnu_surf[i].on_dev, rad->vnu_surf[i].device_mem, num_of_densities[0]*sizeof(struct gkyl_nu_on_device), GKYL_CU_MEMCPY_H2D);
+      gkyl_cu_memcpy(rad->vnu[i].on_dev, rad->vnu[i].device_mem, num_of_densities[0]*sizeof(struct gkyl_nu_on_device), GKYL_CU_MEMCPY_H2D);
+      gkyl_cu_memcpy(rad->vsqnu_surf[i].on_dev, rad->vsqnu_surf[i].device_mem, num_of_densities[0]*sizeof(struct gkyl_nu_on_device), GKYL_CU_MEMCPY_H2D);
+      gkyl_cu_memcpy(rad->vsqnu[i].on_dev, rad->vsqnu[i].device_mem, num_of_densities[0]*sizeof(struct gkyl_nu_on_device), GKYL_CU_MEMCPY_H2D);
+    }
     //allocate emissivity
     rad->emissivity[i] = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
     rad->emissivity_host[i] = rad->emissivity[i];
@@ -203,7 +208,7 @@ gk_species_radiation_moms(gkyl_gyrokinetic_app *app, const struct gk_species *sp
       gk_neut_species_moment_calc(&rad->moms[i], rad->collide_with_neut[i]->local, app->local, fin_neut[rad->collide_with_idx[i]]);
     else
       gk_species_moment_calc(&rad->moms[i], rad->collide_with[i]->local, app->local, fin[rad->collide_with_idx[i]]);
-    
+    //gkyl_comm_array_write(app->comm, &app->grid, &app->local, NULL, rad->moms[i].marr, "nI.gkyl");
     // divide out Jacobian from ion density before computation of final drag coefficient
     gkyl_dg_div_op_range(rad->moms[i].mem_geo, app->confBasis, 0, rad->moms[i].marr, 0,
       rad->moms[i].marr, 0, app->gk_geom->jacobgeo, &app->local);
@@ -302,12 +307,6 @@ gk_species_radiation_release(const struct gkyl_gyrokinetic_app *app, const struc
     gkyl_array_release(rad->emissivity[i]);
     if (app->use_gpu)
       gkyl_array_release(rad->emissivity_host[i]);
-    for (int j=0; j<rad->rad_fit_ne[i]->size; j++) {
-      gkyl_array_release(rad->vnu_surf[i].nu[j]);
-      gkyl_array_release(rad->vnu[i].nu[j]);
-      gkyl_array_release(rad->vsqnu_surf[i].nu[j]);
-      gkyl_array_release(rad->vsqnu[i].nu[j]);
-    }
     gkyl_array_release(rad->rad_fit_ne[i]);
     gk_species_moment_release(app, &rad->moms[i]);
   }
@@ -316,19 +315,15 @@ gk_species_radiation_release(const struct gkyl_gyrokinetic_app *app, const struc
   if (app->use_gpu) {
     gkyl_cu_free(rad->red_integ_diag);
     gkyl_cu_free(rad->red_integ_diag_global);
-    gkyl_cu_free(rad->vnu_surf);
-    gkyl_cu_free(rad->vnu);
-    gkyl_cu_free(rad->vsqnu);
-    gkyl_cu_free(rad->vsqnu_surf);
   }
   else {
     gkyl_free(rad->red_integ_diag);
     gkyl_free(rad->red_integ_diag_global);
-    gkyl_free(rad->vnu_surf);
-    gkyl_free(rad->vnu);
-    gkyl_free(rad->vsqnu);
-    gkyl_free(rad->vsqnu_surf);
-  }  
+  }
+  gkyl_dg_rad_nu_ne_dependence_release(rad->vnu);
+  gkyl_dg_rad_nu_ne_dependence_release(rad->vnu_surf);
+  gkyl_dg_rad_nu_ne_dependence_release(rad->vsqnu);
+  gkyl_dg_rad_nu_ne_dependence_release(rad->vsqnu_surf);
   gkyl_dynvec_release(rad->integ_diag);
   gkyl_array_release(rad->integrated_moms_rhs);
   gk_species_moment_release(app, &rad->m2);

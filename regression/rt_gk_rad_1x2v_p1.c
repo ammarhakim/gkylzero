@@ -307,10 +307,10 @@ main(int argc, char **argv)
 
   struct rad_ctx ctx = create_ctx(); // Context for initialization functions.
 
-  int cells_x[ctx.cdim], cells_v[ctx.vdim+1];
+  int cells_x[ctx.cdim], cells_v[ctx.vdim];
   for (int d=0; d<ctx.cdim; d++)
     cells_x[d] = APP_ARGS_CHOOSE(app_args.xcells[d], ctx.cells[d]);
-  for (int d=0; d<ctx.vdim+1; d++)
+  for (int d=0; d<ctx.vdim; d++)
     cells_v[d] = APP_ARGS_CHOOSE(app_args.vcells[d], ctx.cells[ctx.cdim+d]);
 
   // Construct communicator for use in app.
@@ -478,7 +478,7 @@ main(int argc, char **argv)
     .name = "test_sp_1", .mass = ctx.mass_ion,
     .lower = { -ctx.vpar_max_ion, -ctx.vpar_max_ion, -ctx.vpar_max_ion},
     .upper = { ctx.vpar_max_ion, ctx.vpar_max_ion, ctx.vpar_max_ion },
-    .cells = { cells_v[2], cells_v[2], cells_v[2]},
+    .cells = { ctx.Nvneut, ctx.Nvneut, ctx.Nvneut},
     .is_static = true,
 
     .projection = {
