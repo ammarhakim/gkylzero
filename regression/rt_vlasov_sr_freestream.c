@@ -110,8 +110,10 @@ evalNeutInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fou
   double alpha = app->alpha;
   double kx = app->kx;
 
+  double n = (1.0 + alpha * cos(kx * x)) * exp(-(v * v) / (2.0 * vt * vt)); // Total number density.
+
   // Set total number density.
-  fout[0] = (1.0 + alpha * cos(kx * x)) * exp(-(v * v) / (2.0 * vt * vt));
+  fout[0] = n;
 }
 
 void

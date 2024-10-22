@@ -84,17 +84,17 @@ struct vlasov_species_lw {
   bool has_temp_init_func[GKYL_MAX_PROJ]; // Is there a temperature initialization function?
   struct lua_func_ctx temp_init_func_ref[GKYL_MAX_PROJ]; // Lua registry reference to temperature initialization function.
 
-  bool correct_all_moms[GKYL_MAX_PROJ];
-  double iter_eps[GKYL_MAX_PROJ];
-  int max_iter[GKYL_MAX_PROJ];
-  bool use_last_converged[GKYL_MAX_PROJ];
+  bool correct_all_moms[GKYL_MAX_PROJ]; // Are we correcting all moments in projections, or only density?
+  double iter_eps[GKYL_MAX_PROJ]; // Error tolerance for moment fixes in projections (density is always exact).
+  int max_iter[GKYL_MAX_PROJ]; // Maximum number of iterations for moment fixes in projections.
+  bool use_last_converged[GKYL_MAX_PROJ]; // Use last iteration value in projections regardless of convergence?
 
   enum gkyl_collision_id collision_id; // Collision type.
   
   bool has_self_nu_func; // Is there a self-collision frequency function?
   struct lua_func_ctx self_nu_func_ref; // Lua registry reference to self-collision frequency function.
 
-  bool collision_correct_all_moms;
+  bool collision_correct_all_moms; // Are we correcting all moments in collisions, or only density?
 };
 
 static int
@@ -385,17 +385,17 @@ struct vlasov_app_lw {
   bool has_temp_init_func[GKYL_MAX_SPECIES][GKYL_MAX_PROJ]; // Is there a temperature initialization function?
   struct lua_func_ctx temp_init_func_ctx[GKYL_MAX_SPECIES][GKYL_MAX_PROJ]; // Context for temperature initialization function.
 
-  bool correct_all_moms[GKYL_MAX_SPECIES][GKYL_MAX_PROJ];
-  double iter_eps[GKYL_MAX_SPECIES][GKYL_MAX_PROJ];
-  int max_iter[GKYL_MAX_SPECIES][GKYL_MAX_PROJ];
-  bool use_last_converged[GKYL_MAX_SPECIES][GKYL_MAX_PROJ];
+  bool correct_all_moms[GKYL_MAX_SPECIES][GKYL_MAX_PROJ]; // Are we correcting all moments in projections, or only density?
+  double iter_eps[GKYL_MAX_SPECIES][GKYL_MAX_PROJ]; // Error tolerance for moment fixes in projections (density is always exact).
+  int max_iter[GKYL_MAX_SPECIES][GKYL_MAX_PROJ]; // Maximum number of iterations for moment fixes in projections.
+  bool use_last_converged[GKYL_MAX_SPECIES][GKYL_MAX_PROJ]; // Use last iteration value in projections regardless of convergence?
 
   enum gkyl_collision_id collision_id[GKYL_MAX_SPECIES]; // Collision type.
 
   bool has_self_nu_func[GKYL_MAX_SPECIES]; // Is there a self-collision frequency function?
   struct lua_func_ctx self_nu_func_ctx[GKYL_MAX_SPECIES]; // Context for self-collision frequency function.
 
-  bool collision_correct_all_moms[GKYL_MAX_SPECIES];
+  bool collision_correct_all_moms[GKYL_MAX_SPECIES]; // Are we correct all moments in collisions, or only density?
 
   struct lua_func_ctx field_func_ctx; // function context for field
   
