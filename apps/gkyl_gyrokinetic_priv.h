@@ -1617,7 +1617,7 @@ void gk_field_calc_energy(gkyl_gyrokinetic_app *app, double tm, const struct gk_
  */
 void gk_field_release(const gkyl_gyrokinetic_app* app, struct gk_field *f);
 
-/** Time stepping PI */
+/** Time stepping API */
 
 /**
  * Compute the gyrokinetic fields.

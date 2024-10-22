@@ -561,7 +561,7 @@ gkyl_gyrokinetic_app_apply_ic(gkyl_gyrokinetic_app* app, double t0)
       gk_species_bflux_rhs(app, s, &s->bflux, distf[i], distf[i]);
     }
   }
-  gyrokinetic_calc_field_and_apply_bc(app, 0., distf, distf_neut);
+  gyrokinetic_calc_field_and_apply_bc(app, t0, distf, distf_neut);
 }
 
 void
