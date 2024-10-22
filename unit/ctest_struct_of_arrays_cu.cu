@@ -4,7 +4,6 @@
 
 extern "C" {
 #include <gkyl_array_ops.h>
-#include "gkyl_struct_of_arrays.h"
 #include <gkyl_util.h>
 #include <gkyl_alloc.h>
   // Functions for test_array_container.
@@ -14,7 +13,14 @@ extern "C" {
     struct gkyl_array_container *acs1, double a, struct gkyl_array_container *acs2);
   int test_array_container_accumulate_dev_check_cu(int arr_ncomp, int arr_size, int num_containers,
     struct gkyl_array_container *acs1);
-  // Functions for test_container_pack.
+
+  struct gkyl_array_container {
+    struct gkyl_array *arr;
+  };
+  
+  struct gkyl_container_pack {
+    struct gkyl_array_container *ac;
+  };
 }
 
 #define START_ID (threadIdx.x + blockIdx.x*blockDim.x)

@@ -7,7 +7,14 @@
 #include <gkyl_elem_type_priv.h>
 #include <gkyl_range.h>
 #include <gkyl_util.h>
-#include "gkyl_struct_of_arrays.h"
+
+struct gkyl_array_container {
+  struct gkyl_array *arr;
+};
+
+struct gkyl_container_pack {
+  struct gkyl_array_container *ac;
+};
 
 void test_array_container_accumulate_ho()
 {
