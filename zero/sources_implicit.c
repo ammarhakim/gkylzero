@@ -430,6 +430,45 @@ implicit_frictional_source_update_half(const gkyl_moment_em_coupling* mom_em, co
 }
 
 void
+implicit_volume_source_10m_update_euler(const gkyl_moment_em_coupling* mom_em, double t_curr, const double dt, double* fluid_s[GKYL_MAX_SPECIES])
+{
+  int nfluids = mom_em->nfluids;
+  double U0 = mom_em->volume_U0;
+  double R0 = mom_em->volume_R0;
+    
+    for (int i = 0; i < nfluids; i++) {
+        double *f = fluid_s[i];
+        double fluid_new[10];
+        double rho = f[0];
+        double Pxx = f[4], Pxy = f[5], Pxz = f[6];
+        double Pyy = f[7], Pyz = f[8], Pzz = f[9];
+        double a = 1.0 + ((U0 * t_curr) / R0);
+        double exp_rho_source = ((2.0 * U0) / (a * R0));
+        double exp_u_source = ((U0) / (a * R0));
+        
+        fluid_new[0] = ((2.0 + dt * exp_rho_source) / (1.0 + dt * exp_rho_source) * rho) - rho;
+        
+        fluid_new[1] = f[1];
+        
+        fluid_new[2] = ((2.0 + dt * exp_u_source) / (1.0 + dt * exp_u_source) * f[2]) - f[2];
+        
+        fluid_new[3] = ((2.0 + dt * exp_u_source) / (1.0 + dt * exp_u_source) * f[3]) - f[3];
+        
+        fluid_new[4] = Pxx * ((2.0 + dt * exp_rho_source) / (1.0 + dt * exp_rho_source)) - Pxx + (fluid_new[0] * fluid_new[1] * fluid_new[1]);
+        
+        fluid_new[5] = 2.0 * Pxy * ((1.0 + dt * (exp_rho_source / 2.0 + exp_u_source / 2.0)) / (1.0 + dt * (exp_rho_source + exp_u_source))) - Pxy + (fluid_new[0] * fluid_new[1] * fluid_new[2]);
+        
+        fluid_new[6] = 2.0 * Pxz * ((1.0 + dt * (exp_rho_source / 2.0 + exp_u_source / 2.0)) / (1.0 + dt * (exp_rho_source + exp_u_source))) - Pxz + (fluid_new[0] * fluid_new[1] * fluid_new[3]);
+        
+        fluid_new[7] = 2.0 * Pyy * ((1.0 + dt * exp_rho_source) / (1.0 + 2.0 * dt * exp_rho_source)) - Pyy + (fluid_new[0] * fluid_new[2] * fluid_new[2]);
+        
+        fluid_new[8] = 2.0 * Pyz * ((1.0 + dt * exp_rho_source) / (1.0 + 2.0 * dt * exp_rho_source)) - Pyz + (fluid_new[0] * fluid_new[2] * fluid_new[3]);
+        
+        fluid_new[9] = 2.0 * Pzz * ((1.0 + dt * exp_rho_source) / (1.0 + 2.0 * dt * exp_rho_source)) - Pzz + (fluid_new[0] * fluid_new[3] * fluid_new[3]);
+    }
+}
+
+void
 implicit_frictional_source_update(const gkyl_moment_em_coupling* mom_em, double t_curr, const double dt, double* fluid_s[GKYL_MAX_SPECIES],
   const double* app_accel_s[GKYL_MAX_SPECIES], double* em, const double* app_current, const double* ext_em)
 {
@@ -612,7 +651,8 @@ implicit_source_coupling_update(const gkyl_moment_em_coupling* mom_em, double t_
     }
   }
   if (mom_em->has_volume_sources) {
-    explicit_volume_source_update(mom_em, t_curr, dt, fluid_s, em, ext_em);
+    implicit_volume_source_10m_update_euler(mom_em, t_curr, dt, fluid_s);
+      
   }
   if (mom_em->has_reactive_sources) {
     explicit_reactive_source_update(mom_em, t_curr, dt, fluid_s);
