@@ -232,15 +232,23 @@ struct vm_proj {
     // (Maxwellian for non-relativistic, Maxwell-Juttner for relativistic)
     struct {
       struct gkyl_array *dens; // host-side density
+      struct gkyl_proj_on_basis *proj_dens; // projection operator for density
       struct gkyl_array *V_drift; // host-side V_drift
+      struct gkyl_proj_on_basis *proj_V_drift; // projection operator for V_drift
+
+      // Maxwellian temperature initialization
       struct gkyl_array *T_over_m; // host-side T/m (temperature/mass)
+      struct gkyl_proj_on_basis *proj_temp; // projection operator for temperature
+
+      // Bi-Maxwellian parallel and perpendicular temperature initialization
+      // NOTE: ASSUMES Tpar = Txx AND THUS THE INITIAL MAGNETIC FIELD IS B = B0 x_hat (JJ: 10/23/24)
+      struct gkyl_array *Tpar_over_m; // host-side Tpar/m (parallel temperature/mass)
+      struct gkyl_proj_on_basis *proj_temp_par; // projection operator for parallel temperature
+      struct gkyl_array *Tperp_over_m; // host-side Tperp/m (perpendicular temperature/mass)
+      struct gkyl_proj_on_basis *proj_temp_perp; // projection operator for perpendicular temperature
 
       struct gkyl_array *vlasov_lte_moms_host; // host-side LTE moms (n, V_drift, T/m)
       struct gkyl_array *vlasov_lte_moms; // LTE moms (n, V_drift, T/m) for passing to updaters
-
-      struct gkyl_proj_on_basis *proj_dens; // projection operator for density
-      struct gkyl_proj_on_basis *proj_V_drift; // projection operator for V_drift
-      struct gkyl_proj_on_basis *proj_temp; // projection operator for temperature
       
       // LTE distribution function projection object
       // also corrects the density of projected distribution function

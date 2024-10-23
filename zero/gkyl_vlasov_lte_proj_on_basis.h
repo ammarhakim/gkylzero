@@ -28,6 +28,7 @@ struct gkyl_vlasov_lte_proj_on_basis_inp {
   const struct gkyl_array *h_ij_inv; // inverse of the metric tensor
   const struct gkyl_array *det_h; // determinant of the metric tensor
   enum gkyl_model_id model_id; // Enum identifier for model type (e.g., SR, see gkyl_eqn_type.h)
+  bool is_bimaxwellian; // Are we projecting a bi-Maxwellian?
   bool use_gpu; // bool for gpu useage
 };
 

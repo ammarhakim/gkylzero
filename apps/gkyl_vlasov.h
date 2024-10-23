@@ -37,8 +37,17 @@ struct gkyl_vlasov_projection {
       void (*density)(double t, const double *xn, double *fout, void *ctx);
       void *ctx_V_drift;
       void (*V_drift)(double t, const double *xn, double *fout, void *ctx);
+
+      // Maxwellian temperature initialization
       void *ctx_temp;
       void (*temp)(double t, const double *xn, double *fout, void *ctx);
+
+      // Bi-Maxwellian parallel and perpendicular temperature initialization
+      // NOTE: ASSUMES Tpar = Txx AND THUS THE INITIAL MAGNETIC FIELD IS B = B0 x_hat (JJ: 10/23/24)
+      void *ctx_temp_par;
+      void (*temp_par)(double t, const double *xn, double *fout, void *ctx);
+      void *ctx_temp_perp;
+      void (*temp_perp)(double t, const double *xn, double *fout, void *ctx);
 
       // boolean if we are correcting all the moments or only density
       bool correct_all_moms;  

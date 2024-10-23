@@ -322,6 +322,8 @@ gkyl_vlasov_lte_proj_on_basis_inew(const struct gkyl_vlasov_lte_proj_on_basis_in
     gkyl_vlasov_lte_proj_on_basis_geom_quad_vars(up, inp->conf_range, inp->h_ij_inv, inp->det_h);
   }
 
+  up->is_bimaxwellian = inp->is_bimaxwellian; 
+
   // Store a LTE moment calculation updater to compute and correct the density
   struct gkyl_vlasov_lte_moments_inp inp_mom = {
     .phase_grid = inp->phase_grid,
@@ -395,6 +397,7 @@ gkyl_vlasov_lte_proj_on_basis_advance(gkyl_vlasov_lte_proj_on_basis *up,
 
   double xc[GKYL_MAX_DIM], xmu[GKYL_MAX_DIM];
   double n_quad[tot_conf_quad], V_drift_quad[tot_conf_quad][vdim], T_over_m_quad[tot_conf_quad];
+  double Tperp_over_m_quad[tot_conf_quad];
   double expamp_quad[tot_conf_quad];
 
   // outer loop over configuration space cells; for each
@@ -430,7 +433,17 @@ gkyl_vlasov_lte_proj_on_basis_advance(gkyl_vlasov_lte_proj_on_basis *up,
       // Amplitude of the exponential.
       if ((n_quad[n] > 0.0) && (T_over_m_quad[n] > 0.0)) {
         if (up->is_relativistic) {
-          expamp_quad[n] = n_quad[n]*(1.0/(4.0*GKYL_PI*T_over_m_quad[n]))*(sqrt(2.0*T_over_m_quad[n]/GKYL_PI));
+          if (up->is_bimaxwellian) {
+            const double *Tperp_over_m_d = &moms_lte_d[num_conf_basis*(vdim+2)];
+            Tperp_over_m_quad[n] = 0.0;
+            for (int k=0; k<num_conf_basis; ++k) { 
+              Tperp_over_m_quad[n] += Tperp_over_m_d[k]*b_ord[k];
+            } 
+            expamp_quad[n] = n_quad[n]*(1.0/(4.0*GKYL_PI*Tperp_over_m_quad[n]*(1 + (Tperp_over_m_quad[n] - T_over_m_d[n]))))*(sqrt(2.0*T_over_m_quad[n]/GKYL_PI));
+          }
+          else {
+            expamp_quad[n] = n_quad[n]*(1.0/(4.0*GKYL_PI*T_over_m_quad[n]))*(sqrt(2.0*T_over_m_quad[n]/GKYL_PI));
+          }
         }
         else if (up->is_canonical_pb) { 
           const double *det_h_quad = gkyl_array_cfetch(up->det_h_quad, midx);
@@ -502,8 +515,16 @@ gkyl_vlasov_lte_proj_on_basis_advance(gkyl_vlasov_lte_proj_on_basis *up,
               uu += (xmu[cdim+d]*xmu[cdim+d]);
             }
             double GammaV_quad = sqrt(1.0 + vv);
-            fq[0] += jacob_vel_qidx*expamp_quad[cqidx]*exp((1.0/T_over_m_quad[cqidx]) 
-              - (1.0/T_over_m_quad[cqidx])*(GammaV_quad*sqrt(1.0 + uu) - vu));
+            if (up->is_bimaxwellian) {
+            // NOTE: THIS PROJECTION ROUTINE CURRENTLY ASSUMES Tpar = Txx AND THUS THE INITIAL MAGNETIC FIELD IS B = B0 x_hat (JJ: 10/23/24)
+              fq[0] += jacob_vel_qidx*expamp_quad[cqidx]*exp((1.0/T_over_m_quad[cqidx]) 
+                - (1.0/Tperp_over_m_quad[cqidx])*(GammaV_quad*sqrt(1.0 + uu) - vu) 
+                - ((1.0/T_over_m_quad[cqidx]) - (1.0/Tperp_over_m_quad[cqidx]))*sqrt(1.0 + (1.0 + vv)*(xmu[cdim] - V_drift_quad[cqidx][0])));
+            }
+            else {
+              fq[0] += jacob_vel_qidx*expamp_quad[cqidx]*exp((1.0/T_over_m_quad[cqidx]) 
+                - (1.0/T_over_m_quad[cqidx])*(GammaV_quad*sqrt(1.0 + uu) - vu));
+            }
           }
           else if (up->is_canonical_pb) {
             // Assumes a (particle) hamiltonian in canocial form: g = 1/2 g^{ij} w_i_w_j

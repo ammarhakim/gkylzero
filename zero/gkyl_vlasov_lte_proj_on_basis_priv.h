@@ -47,6 +47,7 @@ struct gkyl_vlasov_lte_proj_on_basis {
   int num_comp_V_drift; // Number of components in V_drift (in relativity this is the four-velocity).
   bool is_relativistic; // Boolean for if we are projecting the relativistic LTE
   bool is_canonical_pb; // Boolean for if we are projecting the canonical-pb LTE
+  bool is_bimaxwellian; // Boolean for if we are projecting a bi-Maxwellian
   bool use_gpu; // Boolean if we are performing projection on device.
 
   struct gkyl_range conf_qrange; // Range of Configuration-space ordinates.
