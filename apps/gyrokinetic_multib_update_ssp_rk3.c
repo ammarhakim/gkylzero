@@ -24,24 +24,13 @@ gyrokinetic_multib_forward_euler(struct gkyl_gyrokinetic_multib_app* app, double
     dtmin = fmin(dtmin, st->dt_actual);
   }
 
-  // Reduce the time step across all non-local blocks.
-  double dt_max_rel_diff = 0.01;
-  // Check if dtmin is slightly smaller than dt. Use dt if it is
-  // (avoids retaking steps if dt changes are very small).
-  double dt_rel_diff = (dt-dtmin)/dt;
-  if (dt_rel_diff > 0 && dt_rel_diff < dt_max_rel_diff)
-    dtmin = dt;
-
   // Compute minimum time-step across all processors.
   double dtmin_local = dtmin, dtmin_global;
   gkyl_comm_allreduce_host(app->comm, GKYL_DOUBLE, GKYL_MIN, 1, &dtmin_local, &dtmin_global);
-  dtmin = dtmin_global;
-
-  // Don't take a time-step larger that input dt.
-  double dta = st->dt_actual = dt < dtmin ? dt : dtmin;
-  st->dt_suggested = dtmin;
+  st->dt_actual = dtmin_global;
 
   // Complete update of distribution functions.
+  double dta = st->dt_actual;
   for (int b=0; b<app->num_local_blocks; ++b) {
     int li_charged = b * app->num_species;
     int li_neut = b * app->num_neut_species;

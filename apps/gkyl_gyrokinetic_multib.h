@@ -687,18 +687,18 @@ void gkyl_gyrokinetic_multib_app_write_conf(gkyl_gyrokinetic_multib_app* app, do
 void gkyl_gyrokinetic_multib_app_write(gkyl_gyrokinetic_multib_app* app, double tm, int frame);
 
 /**
- * Read geometry file.
- *
- * @param app App object.
- */
-void gkyl_gyrokinetic_multib_app_read_geometry(gkyl_gyrokinetic_multib_app *app);
-
-/**
  * Write stats to file. Data is written in json format.
  *
  * @param app App object.
  */
 void gkyl_gyrokinetic_multib_app_stat_write(gkyl_gyrokinetic_multib_app* app);
+
+/**
+ * Read geometry file.
+ *
+ * @param app App object.
+ */
+void gkyl_gyrokinetic_multib_app_read_geometry(gkyl_gyrokinetic_multib_app *app);
 
 /**
  * Write output to console: this is mainly for diagnostic messages the
