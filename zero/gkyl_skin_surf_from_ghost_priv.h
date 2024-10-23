@@ -16,13 +16,13 @@ typedef struct { skin_surf_from_ghost_kern_list list[3]; } edged_skin_surf_from_
 GKYL_CU_D
 static const edged_skin_surf_from_ghost_kern_list ser_skin_surf_from_ghost_list[] = {
   { .list={
-           { NULL, NULL }, // For 1D
+           { NULL, NULL }, // For 1D, to be implemented
            { skin_surf_from_ghost_lower_2x_ser_p1, NULL },
            { skin_surf_from_ghost_lower_3x_ser_p1, NULL },
           },
   },
   { .list={
-           { NULL, NULL }, // For 1D
+           { NULL, NULL }, // For 1D, to be implemented
            { skin_surf_from_ghost_upper_2x_ser_p1, NULL },
            { skin_surf_from_ghost_upper_3x_ser_p1, NULL },
           },
