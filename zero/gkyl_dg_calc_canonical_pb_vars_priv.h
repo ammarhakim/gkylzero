@@ -308,8 +308,10 @@ choose_canonical_pb_pressure_kern(enum gkyl_basis_type b_type, int cdim, int pol
   switch (b_type) {
     case GKYL_BASIS_MODAL_SERENDIPITY:
       return ser_canonical_pb_pressure_kernels[cdim-1].kernels[poly_order];
+      break; 
     case GKYL_BASIS_MODAL_TENSOR:
       return tensor_canonical_pb_pressure_kernels[cdim-1].kernels[poly_order];
+      break; 
     default:
       assert(false);
       break;  
