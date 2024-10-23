@@ -885,19 +885,43 @@ struct gkyl_gyrokinetic_stat
 gkyl_gyrokinetic_multib_app_stat(gkyl_gyrokinetic_multib_app* app)
 {
   app->stat.species_rhs_tm = 0.0;
+  app->stat.field_rhs_tm = 0.0;
+  app->stat.species_coll_mom_tm = 0.0;
+  app->stat.species_coll_tm = 0.0;
+  app->stat.species_bc_tm = 0.0;
+  app->stat.field_bc_tm = 0.0;
+  app->stat.nspecies_omega_cfl = 0;
+  app->stat.species_omega_cfl_tm = 0.0;
+  app->stat.nmom = 0;
+  app->stat.mom_tm = 0.0;
+  app->stat.ndiag = 0;
+  app->stat.diag_tm = 0.0;
+  app->stat.nio = 0;
+  app->stat.io_tm = 0.0;
   for (int i=0; i<app->num_species; ++i) {
     app->stat.species_lbo_coll_diff_tm[i] = 0.0;
     app->stat.species_lbo_coll_drag_tm[i] = 0.0;
   }
 
   for (int b=0; b<app->num_local_blocks; ++b) {
+    // Add time spent on various operations for each local block.
     struct gkyl_gyrokinetic_app *sbapp = app->singleb_apps[b];
-    gk_species_tm(sbapp);
-    for (int i=0; i<app->num_species; ++i) {
-      app->stat.species_rhs_tm += sbapp->stat.species_rhs_tm;
-    }
+    struct gkyl_gyrokinetic_stat sb_stat = gkyl_gyrokinetic_app_stat(sbapp);
 
-    gk_species_coll_tm(sbapp);
+    app->stat.species_rhs_tm += sb_stat.species_rhs_tm;
+    app->stat.field_rhs_tm += sb_stat.field_rhs_tm;
+    app->stat.species_coll_mom_tm += sb_stat.species_coll_mom_tm;
+    app->stat.species_coll_tm += sb_stat.species_coll_tm;
+    app->stat.species_bc_tm += sb_stat.species_bc_tm;
+    app->stat.field_bc_tm += sb_stat.field_bc_tm;
+    app->stat.nspecies_omega_cfl += sb_stat.nspecies_omega_cfl;
+    app->stat.species_omega_cfl_tm += sb_stat.species_omega_cfl_tm;
+    app->stat.nmom += sb_stat.nmom;
+    app->stat.mom_tm += sb_stat.mom_tm;
+    app->stat.ndiag += sb_stat.ndiag;
+    app->stat.diag_tm += sb_stat.diag_tm;
+    app->stat.nio += sb_stat.nio;
+    app->stat.io_tm += sb_stat.io_tm;
     for (int i=0; i<app->num_species; ++i) {
       app->stat.species_lbo_coll_diff_tm[i] += sbapp->stat.species_lbo_coll_diff_tm[i];
       app->stat.species_lbo_coll_drag_tm[i] += sbapp->stat.species_lbo_coll_drag_tm[i];
