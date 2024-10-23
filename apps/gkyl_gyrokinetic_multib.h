@@ -169,7 +169,6 @@ struct gkyl_gyrokinetic_multib {
   struct gkyl_comm *comm;  
 };
 
-
 /**
  * Construct a new gk multi-block app.
  *
@@ -209,7 +208,6 @@ void gkyl_gyrokinetic_multib_app_apply_ic_species(gkyl_gyrokinetic_multib_app* a
  * @param t0 Time for initial conditions
  */
 void gkyl_gyrokinetic_multib_app_apply_ic_neut_species(gkyl_gyrokinetic_multib_app* app, int sidx, double t0);
-
 
 /**
  * Initialize field from file

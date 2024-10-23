@@ -645,7 +645,7 @@ gkyl_gyrokinetic_multib_app_from_frame_neut_species(gkyl_gyrokinetic_multib_app 
 
 // private function to handle variable argument list for printing
 static void
-v_gyrokinetic_app_cout(const gkyl_gyrokinetic_multib_app* app, FILE *fp, const char *fmt, va_list argp)
+v_gyrokinetic_multib_app_cout(const gkyl_gyrokinetic_multib_app* app, FILE *fp, const char *fmt, va_list argp)
 {
   int rank;
   gkyl_comm_get_rank(app->comm, &rank);
@@ -658,7 +658,7 @@ gkyl_gyrokinetic_multib_app_cout(const gkyl_gyrokinetic_multib_app* app, FILE *f
 {
   va_list argp;
   va_start(argp, fmt);
-  v_gyrokinetic_app_cout(app, fp, fmt, argp);
+  v_gyrokinetic_multib_app_cout(app, fp, fmt, argp);
   va_end(argp);
 }
 
@@ -705,6 +705,29 @@ gkyl_gyrokinetic_multib_app_write_field(gkyl_gyrokinetic_multib_app *app, double
 //  gkyl_comm_barrier(app->comm);
 }
 
+void
+gkyl_gyrokinetic_multib_app_calc_field_energy(gkyl_gyrokinetic_multib_app* app, double tm)
+{
+  if (app->update_field) {
+    for (int b=0; b<app->num_local_blocks; ++b) {
+      gkyl_gyrokinetic_app_calc_field_energy(app->singleb_apps[b], tm);
+    }
+  }
+}
+
+void
+gkyl_gyrokinetic_multib_app_write_field_energy(gkyl_gyrokinetic_multib_app* app)
+{
+  if (app->update_field) {
+    for (int b=0; b<app->num_local_blocks; ++b) {
+      gkyl_gyrokinetic_app_write_field_energy(app->singleb_apps[b]);
+    }
+  }
+}
+
+//
+// ............. Species outputs ............... //
+// 
 void
 gkyl_gyrokinetic_multib_app_write_species(gkyl_gyrokinetic_multib_app* app, int sidx, double tm, int frame)
 {
@@ -763,9 +786,53 @@ gkyl_gyrokinetic_multib_app_write_neut_species(gkyl_gyrokinetic_multib_app* app,
 //  gkyl_comm_barrier(app->comm);
 }
 
-//
-// ............. Species outputs ............... //
-// 
+void
+gkyl_gyrokinetic_multib_app_write_species_mom(gkyl_gyrokinetic_multib_app* app, int sidx, double tm, int frame)
+{
+  for (int b=0; b<app->num_local_blocks; ++b) {
+    gkyl_gyrokinetic_app_write_species_mom(app->singleb_apps[b], sidx, tm, frame);
+  }
+}
+
+void
+gkyl_gyrokinetic_multib_app_write_neut_species_mom(gkyl_gyrokinetic_multib_app* app, int sidx, double tm, int frame)
+{
+  for (int b=0; b<app->num_local_blocks; ++b) {
+    gkyl_gyrokinetic_app_write_neut_species_mom(app->singleb_apps[b], sidx, tm, frame);
+  }
+}
+
+void
+gkyl_gyrokinetic_multib_app_calc_species_integrated_mom(gkyl_gyrokinetic_multib_app* app, int sidx, double tm)
+{
+  for (int b=0; b<app->num_local_blocks; ++b) {
+    gkyl_gyrokinetic_app_calc_species_integrated_mom(app->singleb_apps[b], sidx, tm);
+  }
+}
+
+void
+gkyl_gyrokinetic_multib_app_calc_neut_species_integrated_mom(gkyl_gyrokinetic_multib_app* app, int sidx, double tm)
+{
+  for (int b=0; b<app->num_local_blocks; ++b) {
+    gkyl_gyrokinetic_app_calc_neut_species_integrated_mom(app->singleb_apps[b], sidx, tm);
+  }
+}
+
+void
+gkyl_gyrokinetic_multib_app_write_species_integrated_mom(gkyl_gyrokinetic_multib_app *app, int sidx)
+{
+  for (int b=0; b<app->num_local_blocks; ++b) {
+    gkyl_gyrokinetic_app_write_species_integrated_mom(app->singleb_apps[b], sidx);
+  }
+}
+
+void
+gkyl_gyrokinetic_multib_app_write_neut_species_integrated_mom(gkyl_gyrokinetic_multib_app *app, int sidx)
+{
+  for (int b=0; b<app->num_local_blocks; ++b) {
+    gkyl_gyrokinetic_app_write_neut_species_integrated_mom(app->singleb_apps[b], sidx);
+  }
+}
 
 //
 // ............. Source outputs ............... //
@@ -786,6 +853,108 @@ gkyl_gyrokinetic_multib_app_write_neut_species_source(gkyl_gyrokinetic_multib_ap
   }
 }
 
+void
+gkyl_gyrokinetic_multib_app_write_species_source_mom(gkyl_gyrokinetic_multib_app* app, int sidx, double tm, int frame)
+{
+  for (int b=0; b<app->num_local_blocks; ++b) {
+    gkyl_gyrokinetic_app_write_species_source_mom(app->singleb_apps[b], sidx, tm, frame);
+  }
+}
+
+void
+gkyl_gyrokinetic_multib_app_write_neut_species_source_mom(gkyl_gyrokinetic_multib_app* app, int sidx, double tm, int frame)
+{
+  for (int b=0; b<app->num_local_blocks; ++b) {
+    gkyl_gyrokinetic_app_write_neut_species_source_mom(app->singleb_apps[b], sidx, tm, frame);
+  }
+}
+
+void
+gkyl_gyrokinetic_multib_app_calc_species_source_integrated_mom(gkyl_gyrokinetic_multib_app* app, int sidx, double tm)
+{
+  for (int b=0; b<app->num_local_blocks; ++b) {
+    gkyl_gyrokinetic_app_calc_species_source_integrated_mom(app->singleb_apps[b], sidx, tm);
+  }
+}
+
+void
+gkyl_gyrokinetic_multib_app_calc_neut_species_source_integrated_mom(gkyl_gyrokinetic_multib_app* app, int sidx, double tm)
+{
+  for (int b=0; b<app->num_local_blocks; ++b) {
+    gkyl_gyrokinetic_app_calc_neut_species_source_integrated_mom(app->singleb_apps[b], sidx, tm);
+  }
+}
+
+void
+gkyl_gyrokinetic_multib_app_write_species_source_integrated_mom(gkyl_gyrokinetic_multib_app *app, int sidx)
+{
+  for (int b=0; b<app->num_local_blocks; ++b) {
+    gkyl_gyrokinetic_app_write_species_source_integrated_mom(app->singleb_apps[b], sidx);
+  }
+}
+
+void
+gkyl_gyrokinetic_multib_app_write_neut_species_source_integrated_mom(gkyl_gyrokinetic_multib_app *app, int sidx)
+{
+  for (int b=0; b<app->num_local_blocks; ++b) {
+    gkyl_gyrokinetic_app_write_neut_species_source_integrated_mom(app->singleb_apps[b], sidx);
+  }
+}
+
+//
+// ............. Collision outputs ............... //
+// 
+void
+gkyl_gyrokinetic_multib_app_write_species_lbo_mom(gkyl_gyrokinetic_multib_app* app, int sidx, double tm, int frame)
+{
+  for (int b=0; b<app->num_local_blocks; ++b) {
+    gkyl_gyrokinetic_app_write_species_lbo_mom(app->singleb_apps[b], sidx, tm, frame);
+  }
+}
+
+void
+gkyl_gyrokinetic_multib_app_write_species_bgk_max_corr_status(gkyl_gyrokinetic_multib_app* app, int sidx)
+{
+  for (int b=0; b<app->num_local_blocks; ++b) {
+    gkyl_gyrokinetic_app_write_species_bgk_max_corr_status(app->singleb_apps[b], sidx);
+  }
+}
+
+//
+// ............. Radiation outputs ............... //
+// 
+void
+gkyl_gyrokinetic_multib_app_write_species_rad_drag(gkyl_gyrokinetic_multib_app* app, int sidx, double tm, int frame)
+{
+  for (int b=0; b<app->num_local_blocks; ++b) {
+    gkyl_gyrokinetic_app_write_species_rad_drag(app->singleb_apps[b], sidx, tm, frame);
+  }
+}
+
+void
+gkyl_gyrokinetic_multib_app_write_species_rad_emissivity(gkyl_gyrokinetic_multib_app* app, int sidx, double tm, int frame)
+{
+  for (int b=0; b<app->num_local_blocks; ++b) {
+    gkyl_gyrokinetic_app_write_species_rad_emissivity(app->singleb_apps[b], sidx, tm, frame);
+  }
+}
+
+void
+gkyl_gyrokinetic_multib_app_calc_species_rad_integrated_mom(gkyl_gyrokinetic_multib_app *app, int sidx, double tm)
+{
+  for (int b=0; b<app->num_local_blocks; ++b) {
+    gkyl_gyrokinetic_app_calc_species_rad_integrated_mom(app->singleb_apps[b], sidx, tm);
+  }
+}
+
+void
+gkyl_gyrokinetic_multib_app_write_species_rad_integrated_mom(gkyl_gyrokinetic_multib_app *app, int sidx)
+{
+  for (int b=0; b<app->num_local_blocks; ++b) {
+    gkyl_gyrokinetic_app_write_species_rad_integrated_mom(app->singleb_apps[b], sidx);
+  }
+}
+
 //
 // ............. Functions that group several outputs for a single species ............... //
 //
@@ -796,7 +965,7 @@ gkyl_gyrokinetic_multib_app_write_species_phase(gkyl_gyrokinetic_multib_app* app
 
   gkyl_gyrokinetic_multib_app_write_species_source(app, sidx, tm, frame);
 
-//  gkyl_gyrokinetic_multib_app_write_species_rad_drag(app, sidx, tm, frame);
+  gkyl_gyrokinetic_multib_app_write_species_rad_drag(app, sidx, tm, frame);
 }
 
 void
@@ -826,6 +995,53 @@ gkyl_gyrokinetic_multib_app_write_neut_species_conf(gkyl_gyrokinetic_multib_app*
 //
 // ............. Functions that group several species outputs ............... //
 // 
+void
+gkyl_gyrokinetic_multib_app_write_mom(gkyl_gyrokinetic_multib_app* app, double tm, int frame)
+{
+  for (int i=0; i<app->num_species; ++i) {
+    gkyl_gyrokinetic_multib_app_write_species_mom(app, i, tm, frame);
+    gkyl_gyrokinetic_multib_app_write_species_source_mom(app, i, tm, frame);
+    gkyl_gyrokinetic_multib_app_write_species_lbo_mom(app, i, tm, frame);
+    gkyl_gyrokinetic_multib_app_write_species_rad_emissivity(app, i, tm, frame);
+  }
+
+  for (int i=0; i<app->num_neut_species; ++i) {
+    gkyl_gyrokinetic_multib_app_write_neut_species_mom(app, i, tm, frame);
+    gkyl_gyrokinetic_multib_app_write_neut_species_source_mom(app, i, tm, frame);
+  }
+}
+
+void
+gkyl_gyrokinetic_multib_app_calc_integrated_mom(gkyl_gyrokinetic_multib_app* app, double tm)
+{
+  for (int i=0; i<app->num_species; ++i) {
+    gkyl_gyrokinetic_multib_app_calc_species_integrated_mom(app, i, tm);
+    gkyl_gyrokinetic_multib_app_calc_species_source_integrated_mom(app, i, tm);
+    gkyl_gyrokinetic_multib_app_calc_species_rad_integrated_mom(app, i, tm);
+  }
+
+  for (int i=0; i<app->num_neut_species; ++i) {
+    gkyl_gyrokinetic_multib_app_calc_neut_species_integrated_mom(app, i, tm);
+    gkyl_gyrokinetic_multib_app_calc_neut_species_source_integrated_mom(app, i, tm);
+  }
+}
+
+void
+gkyl_gyrokinetic_multib_app_write_integrated_mom(gkyl_gyrokinetic_multib_app *app)
+{
+  for (int i=0; i<app->num_species; ++i) {
+    gkyl_gyrokinetic_multib_app_write_species_integrated_mom(app, i);
+    gkyl_gyrokinetic_multib_app_write_species_source_integrated_mom(app, i);
+    gkyl_gyrokinetic_multib_app_write_species_bgk_max_corr_status(app, i);
+    gkyl_gyrokinetic_multib_app_write_species_rad_integrated_mom(app, i);
+  }
+
+  for (int i=0; i<app->num_neut_species; ++i) {
+    gkyl_gyrokinetic_multib_app_write_neut_species_integrated_mom(app, i);
+    gkyl_gyrokinetic_multib_app_write_neut_species_source_integrated_mom(app, i);
+  }
+}
+
 void
 gkyl_gyrokinetic_multib_app_write_conf(gkyl_gyrokinetic_multib_app* app, double tm, int frame)
 {

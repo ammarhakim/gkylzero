@@ -386,8 +386,8 @@ void
 calc_integrated_diagnostics(struct gkyl_tm_trigger* iot, gkyl_gyrokinetic_multib_app* app, double t_curr, bool force_calc)
 {
   if (gkyl_tm_trigger_check_and_bump(iot, t_curr) || force_calc) {
-//    gkyl_gyrokinetic_multib_app_calc_field_energy(app, t_curr);
-//    gkyl_gyrokinetic_multib_app_calc_integrated_mom(app, t_curr);
+    gkyl_gyrokinetic_multib_app_calc_field_energy(app, t_curr);
+    gkyl_gyrokinetic_multib_app_calc_integrated_mom(app, t_curr);
   }
 }
 
@@ -400,11 +400,11 @@ write_data(struct gkyl_tm_trigger* iot, gkyl_gyrokinetic_multib_app* app, double
 
     gkyl_gyrokinetic_multib_app_write(app, t_curr, frame);
 
-//    gkyl_gyrokinetic_multib_app_calc_field_energy(app, t_curr);
-//    gkyl_gyrokinetic_multib_app_write_field_energy(app);
-//
-//    gkyl_gyrokinetic_multib_app_calc_integrated_mom(app, t_curr);
-//    gkyl_gyrokinetic_multib_app_write_integrated_mom(app);
+    gkyl_gyrokinetic_multib_app_calc_field_energy(app, t_curr);
+    gkyl_gyrokinetic_multib_app_write_field_energy(app);
+
+    gkyl_gyrokinetic_multib_app_calc_integrated_mom(app, t_curr);
+    gkyl_gyrokinetic_multib_app_write_integrated_mom(app);
   }
 }
 
@@ -652,8 +652,8 @@ main(int argc, char **argv)
     .lower = { -ctx.vpar_max_Ar, 0.0},
     .upper = {  ctx.vpar_max_Ar, ctx.mu_max_Ar}, 
     .cells = { cells_v[0], cells_v[1] },
-    .num_diag_moments = 7,
-    .diag_moments = { "M0", "M1", "M2", "M2par", "M2perp", "M3par", "M3perp" },
+    .num_diag_moments = 5,
+    .diag_moments = { "M0", "M1", "M2", "M2par", "M2perp" },
 
     .collisions =  {
       .collision_id = GKYL_LBO_COLLISIONS,
