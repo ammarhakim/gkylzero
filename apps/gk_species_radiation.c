@@ -79,7 +79,12 @@ gk_species_radiation_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s
     gkyl_nu_on_device_new(app->use_gpu, num_of_densities[0], &rad->vsqnu[i]);
     
     rad->rad_fit_ne[i] = mkarr(app->use_gpu, 1, num_of_densities[0]);
-    rad->rad_fit_ne[i]->data = ne;
+    struct gkyl_array *ne_host = mkarr(false, 1, num_of_densities[0]);
+    ne_host->data = ne;
+    gkyl_array_copy(rad->rad_fit_ne[i], ne_host);
+    // gkyl_array_release(ne_host); This gives an error?
+    //printf("type=%d\n",rad->rad_fit_ne[i]->type);
+    //rad->rad_fit_ne[i]->data = ne;
     // Fetch the species we are colliding with and the fitting parameters for that species
     rad->collide_with_idx[i] = gk_find_species_idx(app, s->info.radiation.collide_with[i]);
     if (rad->collide_with_idx[i] == -1) {
@@ -97,6 +102,10 @@ gk_species_radiation_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s
       printf("No radiation fits exist for z=%d, charge state=%d\n",s->info.radiation.z[i], s->info.radiation.charge_state[i]);
     }
     for (int n=0; n<num_of_densities[0]; n++) {
+      /* double *ne0 = gkyl_array_fetch(rad->rad_fit_ne[i], n);
+      printf("n=%d,ne=%e\n",n,ne[n]);
+      printf("ne0=%e\n",ne0[0]);
+      ne0[0] = ne[n];*/
       // allocate drag coefficients in vparallel and mu for each collision, both surface and volume expansions
       // nu = nu(v) for both vparallel and mu updates, 
       // where |v| = sqrt(v_par^2 + 2 mu B/m)
@@ -110,6 +119,7 @@ gk_species_radiation_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s
       rad->vnu[i].device_mem[n].nu = rad->vnu[i].nus[n].nu->on_dev;
       rad->vsqnu_surf[i].device_mem[n].nu = rad->vsqnu_surf[i].nus[n].nu->on_dev;
       rad->vsqnu[i].device_mem[n].nu = rad->vsqnu[i].nus[n].nu->on_dev;
+      //printf("i=%d,n=%d,z=%d, charge state=%d, ne=%e\n",i,n,s->info.radiation.z[i], s->info.radiation.charge_state[i],ne[n]);
       gkyl_dg_calc_gk_rad_vars_nu_advance(rad->calc_gk_rad_vars, 
 					  &app->local, &s->local,
 					  a[n], alpha[n], beta[n], gamma[n], v0[n],

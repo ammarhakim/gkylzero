@@ -62,7 +62,6 @@ void gkyl_dg_calc_gk_rad_vars_nu_advance(const struct gkyl_dg_calc_gk_rad_vars *
   int pdim = up->pdim;
   int cdim = up->cdim;
   int idx[GKYL_MAX_DIM], idx_vel[2];
-
   struct gkyl_range_iter iter;
   gkyl_range_iter_init(&iter, phase_range);
   while (gkyl_range_iter_next(&iter)) {
@@ -130,6 +129,12 @@ void gkyl_dg_calc_gk_rad_vars_nI_nu_advance(const struct gkyl_dg_calc_gk_rad_var
     
     const double* vnu_surf_d = gkyl_array_cfetch(vnu_surf->nus[ne_idx].nu, loc_phase);
     const double* vnu_d = gkyl_array_cfetch(vnu->nus[ne_idx].nu, loc_phase);
+    const double* temp0 = gkyl_array_cfetch(vnu_surf->nus[0].nu, loc_phase);
+    const double* temp1 = gkyl_array_cfetch(vnu_surf->nus[1].nu, loc_phase);
+    const double* temp2 = gkyl_array_cfetch(vnu_surf->nus[2].nu, loc_phase);
+    const double* temp = gkyl_array_cfetch(n_elc_rad, 0);
+    //printf("neidx=%d, vnu w neidx=0 = %e, w neidx=1 = %e, w neidx = 2 = %e\n",ne_idx, temp0[0],temp1[0],temp2[0]);
+    //printf("ne_idx=%d, ne_cell_avg=%e, n_elc_rad[0]=%e, n_elc_rad[1]=%e\n",ne_idx,ne_cell_avg,temp[0],temp[1]);
     const double* vsqnu_surf_d = gkyl_array_cfetch(vsqnu_surf->nus[ne_idx].nu, loc_phase);  
     const double* vsqnu_d = gkyl_array_cfetch(vsqnu->nus[ne_idx].nu, loc_phase);   
     const double *nI_d = gkyl_array_cfetch(nI, loc_conf);

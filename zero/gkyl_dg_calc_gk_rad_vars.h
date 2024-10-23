@@ -47,7 +47,6 @@ static inline void gkyl_nu_on_device_new(bool use_gpu, int num_ne, struct gkyl_d
   } else {
     vnu_of_i->device_mem = vnu_of_i->nus;
     vnu_of_i->on_dev = vnu_of_i->nus;
-    //all_ne->on_dev = all_ne;
   }
 }
 
