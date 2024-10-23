@@ -46,48 +46,15 @@ struct gk_nozzle_ctx
 };
 
 void
-eval_density_ion_source(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
-{
-  struct gk_nozzle_ctx *app = ctx;
-  double z = xn[0];
-
-  if (fabs(z) <= 0.2)
-  {
-    fout[0] = app->n_src;
-  }
-  else
-  {
-    fout[0] = 1e-16;
-  }
-}
-
-void
-eval_upar_ion_source(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
-{
-  fout[0] = 0.0;
-}
-
-void
-eval_temp_ion_source(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
-{
-  struct gk_nozzle_ctx *app = ctx;
-  double z = xn[0];
-  if (fabs(z) <= 0.2)
-  {
-    fout[0] = app->Ti_src;
-  }
-  else
-  {
-    fout[0] = 1e-16;
-  }
-}
-
-void
 eval_density_ion_init(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   struct gk_nozzle_ctx *app = ctx;
   double z = xn[0];
-  fout[0] = app->n_init;
+  if (fabs(z) < 0.2){
+    fout[0] = app->n_src;
+  } else {
+    fout[0] = 1e-6 * app->n_src;
+  }
 }
 
 void
@@ -111,18 +78,21 @@ void mapc2p_vel_ion(double t, const double *vc, double* GKYL_RESTRICT vp, void *
   double mu_max_ion = app->mu_max_ion;
 
   double cvpar = vc[0], cmu = vc[1];
-  double b = 1.45;
-  double linear_velocity_threshold = 1./6.;
-  double frac_linear = 1/b*atan(linear_velocity_threshold*tan(b));
-  if (fabs(cvpar) < frac_linear) {
-    double func_frac = tan(frac_linear*b) / tan(b);
-    vp[0] = vpar_max_ion*func_frac*cvpar/frac_linear;
-  }
-  else {
-    vp[0] = vpar_max_ion*tan(cvpar*b)/tan(b);
-  }
+  // double b = 1.45;
+  // double linear_velocity_threshold = 1./6.;
+  // double frac_linear = 1/b*atan(linear_velocity_threshold*tan(b));
+  // if (fabs(cvpar) < frac_linear) {
+  //   double func_frac = tan(frac_linear*b) / tan(b);
+  //   vp[0] = vpar_max_ion*func_frac*cvpar/frac_linear;
+  // }
+  // else {
+  //   vp[0] = vpar_max_ion*tan(cvpar*b)/tan(b);
+  // }
   // Quadratic map in mu.
-  vp[1] = mu_max_ion*pow(cmu,2);
+  // vp[1] = mu_max_ion*pow(cmu,2);
+
+  vp[0] = vpar_max_ion*cvpar;
+  vp[1] = mu_max_ion*cmu;
 }
 
 struct gk_nozzle_ctx
@@ -138,25 +108,23 @@ create_ctx(void)
   double z_min = -3.0;
   double z_max =  3.0;
   double psi_eval = 1e-5;
-  double B_p = 3.0;
+  double B_p = 0.008;
 
   // Plasma parameters
   double n_init = 3e19;
   double Ti_init = 10000 * eV;
-  double n_src = 3e19 / 8.0;
-  double T_src = 10000 * eV;
-  double vti = sqrt(T_src / mi);
+  double vti = sqrt(Ti_init / mi);
 
   // Grid parameters
-  double vpar_max_ion = 20 * vti;
+  double vpar_max_ion = 6 * vti;
   double mu_max_ion = mi * pow(3. * vti, 2.) / (2. * B_p);
-  int Nz = 32;
+  int Nz = 16;
   int Nvpar = 32; // Number of cells in the paralell velocity direction 96
-  int Nmu = 48;  // Number of cells in the mu direction 192
+  int Nmu = 32;  // Number of cells in the mu direction 192
   int poly_order = 1;
 
-  double t_end = 10e-6;
-  int num_frames = 100;
+  double t_end = 1e-6;
+  int num_frames = 300;
   int int_diag_calc_num = num_frames*100;
   double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.
   int num_failures_max = 20; // Maximum allowable number of consecutive small time-steps.
@@ -174,8 +142,6 @@ create_ctx(void)
     .mu_max_ion = mu_max_ion,
     .n_init = n_init,
     .Ti_init = Ti_init,
-    .n_src = n_src,
-    .Ti_src = T_src,
     .Nz = Nz,
     .Nvpar = Nvpar,
     .Nmu = Nmu,
@@ -258,26 +224,13 @@ int main(int argc, char **argv)
       .temp = eval_temp_ion_init,
       .ctx_temp = &ctx,
     },
-    .source = {
-      .source_id = GKYL_PROJ_SOURCE,
-      .num_sources = 1,
-      .projection[0] = {
-        .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM, 
-        .ctx_density = &ctx,
-        .density = eval_density_ion_source,
-        .ctx_upar = &ctx,
-        .upar= eval_upar_ion_source,
-        .ctx_temp = &ctx,
-        .temp = eval_temp_ion_source,      
-      }, 
-    },
     .mapc2p = {
       .mapping = mapc2p_vel_ion,
       .ctx = &ctx,
     },
     .bcx = {
-      .lower={.type = GKYL_SPECIES_ABSORB,},
-      .upper={.type = GKYL_SPECIES_ABSORB,},
+      .lower={.type = GKYL_SPECIES_REFLECT,},
+      .upper={.type = GKYL_SPECIES_REFLECT,},
     },
     .num_diag_moments = 1,
     .diag_moments = {"BiMaxwellianMoments"},
@@ -305,7 +258,7 @@ int main(int argc, char **argv)
     .cells = { cells_x[0] },
     .poly_order = ctx.poly_order,
     .basis_type = app_args.basis_type,
-    .enforce_positivity = true,
+    // .enforce_positivity = true,
     .skip_field = true,
     .geometry = {
       .geometry_id = GKYL_MIRROR,
