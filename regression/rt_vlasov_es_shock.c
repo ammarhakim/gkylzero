@@ -137,17 +137,17 @@ evalElcInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout
   double v_sq_m = (v - Vx_drift) * (v - Vx_drift);
   double v_sq_p = (v + Vx_drift) * (v + Vx_drift);
 
-  double dist = 0.0;
+  double n = 0.0;
 
   if (x < 0.0) {
-    dist = (1.0 / sqrt(2.0 * pi * vte * vte)) * (exp(-v_sq_m / (2.0 * vte * vte)));
+    n = (1.0 / sqrt(2.0 * pi * vte * vte)) * (exp(-v_sq_m / (2.0 * vte * vte))); // Total number density (left).
   }
   else {
-    dist = (1.0 / sqrt(2.0 * pi * vte * vte)) * (exp(-v_sq_p / (2.0 * vte * vte)));
+    n = (1.0 / sqrt(2.0 * pi * vte * vte)) * (exp(-v_sq_p / (2.0 * vte * vte))); // Total number density (right).
   }
 
-  // Set electron distribution function.
-  fout[0] = dist;
+  // Set total number density.
+  fout[0] = n;
 }
 
 void
@@ -164,26 +164,34 @@ evalIonInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout
   double v_sq_m = (v - Vx_drift) * (v - Vx_drift);
   double v_sq_p = (v + Vx_drift) * (v + Vx_drift);
 
-  double dist = 0.0;
+  double n = 0.0;
 
   if (x < 0.0) {
-    dist = (1.0 / sqrt(2.0 * pi * vti * vti)) * (exp(-v_sq_m / (2.0 * vti * vti)));
+    n = (1.0 / sqrt(2.0 * pi * vti * vti)) * (exp(-v_sq_m / (2.0 * vti * vti))); // Total number density (left).
   }
   else {
-    dist = (1.0 / sqrt(2.0 * pi * vti * vti)) * (exp(-v_sq_p / (2.0 * vti * vti)));
+    n = (1.0 / sqrt(2.0 * pi * vti * vti)) * (exp(-v_sq_p / (2.0 * vti * vti))); // Total number density (right).
   }
 
-  // Set ion distribution function.
-  fout[0] = dist;
+  // Set total number density.
+  fout[0] = n;
 }
 
 void
 evalFieldInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
 {
+  double Ex = 0.0; // Total electric field (x-direction).
+  double Ey = 0.0; // Total electric field (y-direction).
+  double Ez = 0.0; // Total electric field (z-direction).
+
+  double Bx = 0.0; // Total magnetic field (x-direction).
+  double By = 0.0; // Total magnetic field (y-direction).
+  double Bz = 0.0; // Total magnetic field (z-direction).
+
   // Set electric field.
-  fout[0] = 0.0; fout[1] = 0.0, fout[2] = 0.0;
+  fout[0] = Ex; fout[1] = Ey, fout[2] = Ez;
   // Set magnetic field.
-  fout[3] = 0.0; fout[4] = 0.0; fout[5] = 0.0;
+  fout[3] = Bx; fout[4] = By; fout[5] = Bz;
   // Set correction potentials.
   fout[6] = 0.0; fout[7] = 0.0;
 }

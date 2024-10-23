@@ -98,10 +98,10 @@ evalElcInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout
 
   double pi = app->pi;
 
-  double dist = (1.0 / sqrt(2.0 * pi)) * (exp(-(v * v) / 2.0));
+  double n = (1.0 / sqrt(2.0 * pi)) * (exp(-(v * v) / 2.0));  // Total number density.
 
-  // Set electron distribution function.
-  fout[0] = dist;
+  // Set total number density.
+  fout[0] = n;
 }
 
 void
@@ -109,12 +109,18 @@ evalFieldInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fo
 {
   double x = xn[0];
 
-  double E_x = -sin(x);
+  double Ex = -sin(x); // Total electric field (x-direction).
+  double Ey = 0.0; // Total electric field (y-direction).
+  double Ez = 0.0; // Total electric field (z-direction).
+
+  double Bx = 0.0; // Total magnetic field (x-direction).
+  double By = 0.0; // Total magnetic field (y-direction).
+  double Bz = 0.0; // Total magnetic field (z-direction).
 
   // Set electric field.
-  fout[0] = E_x; fout[1] = 0.0, fout[2] = 0.0;
+  fout[0] = Ex; fout[1] = Ey, fout[2] = Ez;
   // Set magnetic field.
-  fout[3] = 0.0; fout[4] = 0.0; fout[5] = 0.0;
+  fout[3] = Bx; fout[4] = By; fout[5] = Bz;
   // Set correction potentials.
   fout[6] = 0.0; fout[7] = 0.0;
 }

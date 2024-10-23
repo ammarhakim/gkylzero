@@ -90,7 +90,7 @@ create_ctx(void)
   double Vx_drift = 2.0 * cs; // Drift velocity (x-direction).
 
   double nu_elc = 1.0e-4; // Electron collision frequency.
-  double nu_ion = (nu_elc / sqrt(mass_ion)) * (Te_over_Ti * sqrt(Te_over_Ti));
+  double nu_ion = (nu_elc / sqrt(mass_ion)) * (Te_over_Ti * sqrt(Te_over_Ti)); // Ion collision frequency.
 
   // Simulation parameters.
   int Nx = 32; // Cell count (configuration space: x-direction).
@@ -163,17 +163,17 @@ evalElcInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout
   double v_sq_m = ((vx - Vx_drift) * (vx - Vx_drift)) + (vy * vy) + (vz * vz);
   double v_sq_p = ((vx + Vx_drift) * (vx + Vx_drift)) + (vy * vy) + (vz * vz);
 
-  double dist = 0.0;
+  double n = 0.0;
 
   if (x < 0.0) {
-    dist = (1.0 / pow(sqrt(2.0 * pi * vte * vte), 3.0)) * (exp(-v_sq_m / (2.0 * vte * vte)));
+    n = (1.0 / pow(sqrt(2.0 * pi * vte * vte), 3.0)) * (exp(-v_sq_m / (2.0 * vte * vte))); // Total number density (left).
   }
   else {
-    dist = (1.0 / pow(sqrt(2.0 * pi * vte * vte), 3.0)) * (exp(-v_sq_p / (2.0 * vte * vte)));
+    n = (1.0 / pow(sqrt(2.0 * pi * vte * vte), 3.0)) * (exp(-v_sq_p / (2.0 * vte * vte))); // Total number density (right).
   }
 
-  // Set electron distribution function.
-  fout[0] = dist;
+  // Set total number density.
+  fout[0] = n;
 }
 
 void
@@ -190,26 +190,34 @@ evalIonInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout
   double v_sq_m = ((vx - Vx_drift) * (vx - Vx_drift)) + (vy * vy) + (vz * vz);
   double v_sq_p = ((vx + Vx_drift) * (vx + Vx_drift)) + (vy * vy) + (vz * vz);
 
-  double dist = 0.0;
+  double n = 0.0;
 
   if (x < 0.0) {
-    dist = (1.0 / pow(sqrt(2.0 * pi * vti * vti), 3.0)) * (exp(-v_sq_m / (2.0 * vti * vti)));
+    n = (1.0 / pow(sqrt(2.0 * pi * vti * vti), 3.0)) * (exp(-v_sq_m / (2.0 * vti * vti))); // Total number density (left).
   }
   else {
-    dist = (1.0 / pow(sqrt(2.0 * pi * vti * vti), 3.0)) * (exp(-v_sq_p / (2.0 * vti * vti)));
+    n = (1.0 / pow(sqrt(2.0 * pi * vti * vti), 3.0)) * (exp(-v_sq_p / (2.0 * vti * vti))); // Total number density (right).
   }
 
-  // Set ion distribution function.
-  fout[0] = dist;
+  // Set total number density.
+  fout[0] = n;
 }
 
 void
 evalFieldInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
 {
+  double Ex = 0.0; // Total electric field (x-direction).
+  double Ey = 0.0; // Total electric field (y-direction).
+  double Ez = 0.0; // Total electric field (z-direction).
+
+  double Bx = 0.0; // Total magnetic field (x-direction).
+  double By = 0.0; // Total magnetic field (y-direction).
+  double Bz = 0.0; // Total magnetic field (z-direction).
+
   // Set electric field.
-  fout[0] = 0.0; fout[1] = 0.0, fout[2] = 0.0;
+  fout[0] = Ex; fout[1] = Ey, fout[2] = Ez;
   // Set magnetic field.
-  fout[3] = 0.0; fout[4] = 0.0; fout[5] = 0.0;
+  fout[3] = Bx; fout[4] = By; fout[5] = Bz;
   // Set correction potentials.
   fout[6] = 0.0; fout[7] = 0.0;
 }
@@ -221,7 +229,7 @@ evalElcNu(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, 
 
   double nu_elc = app->nu_elc;
 
-  // Set electron collision frequency.
+  // Set collision frequency.
   fout[0] = nu_elc;
 }
 
@@ -232,7 +240,7 @@ evalIonNu(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, 
 
   double nu_ion = app->nu_ion;
 
-  // Set ion collision frequency.
+  // Set collision frequency.
   fout[0] = nu_ion;
 }
 

@@ -344,6 +344,8 @@ vlasov_field_lw_new(lua_State *L)
   vm_field.elcErrorSpeedFactor = glua_tbl_get_number(L, "elcErrorSpeedFactor", 0.0);
   vm_field.mgnErrorSpeedFactor = glua_tbl_get_number(L, "mgnErrorSpeedFactor", 0.0);
 
+  vm_field.is_static = glua_tbl_get_bool(L, "isStatic", false);
+
   bool evolve = glua_tbl_get_integer(L, "evolve", true);
 
   int init_ref = LUA_NOREF;
