@@ -179,7 +179,7 @@ gkyl_multib_comm_conn_new_send_from_connections(
     cross_lower[i] = decomp[block_list[0]]->parent_range.lower[i];
     cross_upper[i] = decomp[block_list[0]]->parent_range.upper[i];
   }
-  for (int i=0; i<nconnected; i++) {
+  for (int i=1; i<nconnected; i++) {
     cross_upper[dir] += gkyl_range_shape(&decomp[block_list[i]]->parent_range, dir);
   }
   struct gkyl_range cross_range;
@@ -266,7 +266,7 @@ gkyl_multib_comm_conn_new_recv_from_connections(
     cross_lower[i] = decomp[block_list[0]]->parent_range.lower[i];
     cross_upper[i] = decomp[block_list[0]]->parent_range.upper[i];
   }
-  for (int i=0; i<nconnected; i++) {
+  for (int i=1; i<nconnected; i++) {
     cross_upper[dir] += gkyl_range_shape(&decomp[block_list[i]]->parent_range, dir);
   }
   struct gkyl_range cross_range;
