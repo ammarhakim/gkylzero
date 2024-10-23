@@ -439,7 +439,7 @@ gkyl_vlasov_lte_proj_on_basis_advance(gkyl_vlasov_lte_proj_on_basis *up,
             for (int k=0; k<num_conf_basis; ++k) { 
               Tperp_over_m_quad[n] += Tperp_over_m_d[k]*b_ord[k];
             } 
-            expamp_quad[n] = n_quad[n]*(1.0/(4.0*GKYL_PI*Tperp_over_m_quad[n]*(1 + (Tperp_over_m_quad[n] - T_over_m_d[n]))))*(sqrt(2.0*T_over_m_quad[n]/GKYL_PI));
+            expamp_quad[n] = n_quad[n]*(1.0/(4.0*GKYL_PI*Tperp_over_m_quad[n]*(1 + (Tperp_over_m_quad[n] - T_over_m_quad[n]))))*(sqrt(2.0*T_over_m_quad[n]/GKYL_PI));
           }
           else {
             expamp_quad[n] = n_quad[n]*(1.0/(4.0*GKYL_PI*T_over_m_quad[n]))*(sqrt(2.0*T_over_m_quad[n]/GKYL_PI));
@@ -519,7 +519,7 @@ gkyl_vlasov_lte_proj_on_basis_advance(gkyl_vlasov_lte_proj_on_basis *up,
             // NOTE: THIS PROJECTION ROUTINE CURRENTLY ASSUMES Tpar = Txx AND THUS THE INITIAL MAGNETIC FIELD IS B = B0 x_hat (JJ: 10/23/24)
               fq[0] += jacob_vel_qidx*expamp_quad[cqidx]*exp((1.0/T_over_m_quad[cqidx]) 
                 - (1.0/Tperp_over_m_quad[cqidx])*(GammaV_quad*sqrt(1.0 + uu) - vu) 
-                - ((1.0/T_over_m_quad[cqidx]) - (1.0/Tperp_over_m_quad[cqidx]))*sqrt(1.0 + (1.0 + vv)*(xmu[cdim] - V_drift_quad[cqidx][0])));
+                - ((1.0/T_over_m_quad[cqidx]) - (1.0/Tperp_over_m_quad[cqidx]))*sqrt(1.0 + (1.0 + vv)*(xmu[cdim] - V_drift_quad[cqidx][0])*(xmu[cdim] - V_drift_quad[cqidx][0])));
             }
             else {
               fq[0] += jacob_vel_qidx*expamp_quad[cqidx]*exp((1.0/T_over_m_quad[cqidx]) 
