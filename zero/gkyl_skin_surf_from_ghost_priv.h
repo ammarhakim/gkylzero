@@ -67,14 +67,11 @@ skin_surf_from_ghost_choose_kernel(const struct gkyl_basis *basis, enum gkyl_edg
 #ifdef GKYL_HAVE_CUDA
 
 /**
- * CUDA device function to apply the sheath BC.
-
- * @param up BC updater.
- * @param phi Electrostatic potential.
- * @param phi_wall Wall potential.
- * @param distf Distribution function array to apply BC to.
- * @param conf_r Configuration space range (to index phi).
+ * CUDA device function to copy the values from the ghost region to the adjacent skin region (boundary cells).
+ *
+ * @param up Pointer to the boundary condition updater.
+ * @param field Array representing the field values to update (currently works only in configuration space).
  */
-void gkyl_skin_surf_from_ghost_advance_cu(const struct gkyl_skin_surf_from_ghost *up, struct gkyl_array *phi);
+void gkyl_skin_surf_from_ghost_advance_cu(const struct gkyl_skin_surf_from_ghost *up, struct gkyl_array *field);
 
 #endif

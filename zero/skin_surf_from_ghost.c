@@ -41,11 +41,11 @@ gkyl_skin_surf_from_ghost_new(int dir, enum gkyl_edge_loc edge, const struct gky
 
 /* Modeled after gkyl_array_flip_copy_to_buffer_fn */
 void
-gkyl_skin_surf_from_ghost_advance(const struct gkyl_skin_surf_from_ghost *up, struct gkyl_array *phi)
+gkyl_skin_surf_from_ghost_advance(const struct gkyl_skin_surf_from_ghost *up, struct gkyl_array *field)
 {
 #ifdef GKYL_HAVE_CUDA
   if (up->use_gpu) {
-    gkyl_skin_surf_from_ghost_advance_cu(up, phi);
+    gkyl_skin_surf_from_ghost_advance_cu(up, field);
     return;
   }
 #endif
@@ -65,8 +65,8 @@ gkyl_skin_surf_from_ghost_advance(const struct gkyl_skin_surf_from_ghost *up, st
     long ghost_linidx = gkyl_range_idx(up->ghost_r, gidx);
     long skin_linidx  = gkyl_range_idx(up->skin_r, iter.idx);
 
-    const double *inp = (const double*) gkyl_array_cfetch(phi, ghost_linidx);
-    double *out = (double*) gkyl_array_fetch(phi, skin_linidx);
+    const double *inp = (const double*) gkyl_array_cfetch(field, ghost_linidx);
+    double *out = (double*) gkyl_array_fetch(field, skin_linidx);
 
     // Now do something like out = inp
     up->kernels->ghost_to_skin(inp,out);
