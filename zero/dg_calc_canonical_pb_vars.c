@@ -28,11 +28,11 @@ gkyl_dg_calc_canonical_pb_vars_new(const struct gkyl_rect_grid *phase_grid,
   up->cdim = cdim;
   up->pdim = pdim;
 
-  up->canonical_pb_pressure = choose_canonical_pb_pressure_kern(cdim, poly_order);
+  up->canonical_pb_pressure = choose_canonical_pb_pressure_kern(conf_basis->b_type,cdim, poly_order);
   for (int d=0; d<cdim; ++d) {
-    up->alpha_surf[d] = choose_canonical_pb_alpha_surf_kern(d, cdim, poly_order);
-    up->alpha_surf[d+cdim] = choose_canonical_pb_alpha_surf_v_kern(d, cdim, poly_order);
-    up->alpha_edge_surf[d] = choose_canonical_pb_alpha_edge_surf_kern(d, cdim, poly_order);
+    up->alpha_surf[d] = choose_canonical_pb_alpha_surf_kern(phase_basis->b_type, d, cdim, poly_order);
+    up->alpha_surf[d+cdim] = choose_canonical_pb_alpha_surf_v_kern(phase_basis->b_type, d, cdim, poly_order);
+    up->alpha_edge_surf[d] = choose_canonical_pb_alpha_edge_surf_kern(phase_basis->b_type, d, cdim, poly_order);
   }
 
   up->flags = 0;
