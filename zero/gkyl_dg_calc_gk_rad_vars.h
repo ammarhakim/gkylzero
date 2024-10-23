@@ -28,13 +28,6 @@ struct gkyl_nu_on_device {
 static inline struct gkyl_dg_rad_nu_ne_dependence* gkyl_dg_rad_nu_ne_dependence_new(bool use_gpu, int num_collisions) {
   struct gkyl_dg_rad_nu_ne_dependence *all_nus = (struct gkyl_dg_rad_nu_ne_dependence*)gkyl_malloc(num_collisions*sizeof(struct gkyl_dg_rad_nu_ne_dependence));
   all_nus->num_of_collisions = num_collisions;
-  /* if (use_gpu) {
-    all_nus->on_dev = (struct gkyl_dg_rad_nu_ne_dependence*)gkyl_malloc(num_collisions*sizeof(struct gkyl_dg_rad_nu_ne_dependence));
-    all_nus->device_mem = (struct gkyl_dg_rad_nu_ne_dependence*)gkyl_malloc(num_collisions*sizeof(struct gkyl_dg_rad_nu_ne_dependence));
-  } else {
-    all_nus->on_dev = all_nus;
-    all_nus->device_mem = all_nus;
-    }*/
   return all_nus;
 }
 
