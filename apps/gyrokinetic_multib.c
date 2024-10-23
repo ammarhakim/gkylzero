@@ -355,6 +355,14 @@ singleb_app_new(const struct gkyl_gyrokinetic_multib *mbinp, int bid,
   }
 
   // choose proper block-specific field input
+  for (int i=0; i<num_blocks; ++i) {
+    if (bid == fld->blocks[i].block_id) {
+      const struct gkyl_gyrokinetic_multib_field_pb *fld_pb = &fld->blocks[i];
+      field_inp.fem_parbc = fld_pb->fem_parbc;
+      break;
+    }
+  }
+
   const struct gkyl_gyrokinetic_multib_field_pb *fld_pb = &fld->blocks[0];
   if (!fld->duplicate_across_blocks) {
     for (int i=0; i<num_blocks; ++i) {

@@ -63,20 +63,11 @@ create_block_geom(void)
   struct gkyl_efit *efit = gkyl_efit_new(&efit_inp);
   double psisep = efit->psisep;
   gkyl_efit_release(efit);
-  double psi_up_core = 1.8;
-  double psi_up_pf = 1.8;
   double psi_lo_outer_sol = 0.934;
-  double psi_lo_inner_sol = 1.45;
 
   int npsi_outer_sol = 4;
-  int npsi_core = 4;
-  int npsi_inner_sol = 4;
-  int npsi_lower_pf = 4;
-  int npsi_upper_pf = 4;
 
-  double ntheta_lower  = 8;
   double ntheta_middle = 8;
-  double ntheta_upper  = 8;
 
   double Lz = (M_PI-1e-14)*2.0;
   double theta_lo = -Lz/2.0, theta_up = Lz/2.0;
@@ -759,7 +750,7 @@ main(int argc, char **argv)
   // Field object
   struct gkyl_gyrokinetic_multib_field_pb field_blocks[1];
   field_blocks[0] = (struct gkyl_gyrokinetic_multib_field_pb) {
-    // No block specific field info for this simulation
+    .fem_parbc = GKYL_FEM_PARPROJ_NONE,
   };
 
   struct gkyl_block_physical_bcs field_phys_bcs[] = {

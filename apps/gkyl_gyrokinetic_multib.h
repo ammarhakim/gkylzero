@@ -104,6 +104,7 @@ struct gkyl_gyrokinetic_multib_field_pb {
   int block_id; // block ID
 
   double polarization_bmag; 
+  enum gkyl_fem_parproj_bc_type fem_parbc;
 
   void *phi_wall_lo_ctx; // context for biased wall potential on lower wall
   // pointer to biased wall potential on lower wall function
@@ -125,7 +126,6 @@ struct gkyl_gyrokinetic_multib_field {
   // parameters for adiabatic electrons simulations
   double electron_mass, electron_charge, electron_density, electron_temp;
 
-  //enum gkyl_fem_parproj_bc_type fem_parbc;
   //struct gkyl_poisson_bc poisson_bcs;
 
   bool duplicate_across_blocks; // set to true if all blocks are identical  
