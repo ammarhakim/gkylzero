@@ -20,8 +20,6 @@ struct gk_nozzle_ctx
   // Plasma parameters
   double mi;
   double qi;
-  double n_src;
-  double Ti_src;
   double n_init;
   double Ti_init;
   // Thermal speeds.
@@ -51,9 +49,9 @@ eval_density_ion_init(double t, const double *GKYL_RESTRICT xn, double *GKYL_RES
   struct gk_nozzle_ctx *app = ctx;
   double z = xn[0];
   if (fabs(z) < 0.2){
-    fout[0] = app->n_src;
+    fout[0] = app->n_init;
   } else {
-    fout[0] = 1e-6 * app->n_src;
+    fout[0] = 1e-6 * app->n_init;
   }
 }
 
@@ -117,14 +115,14 @@ create_ctx(void)
 
   // Grid parameters
   double vpar_max_ion = 6 * vti;
-  double mu_max_ion = mi * pow(3. * vti, 2.) / (2. * B_p);
+  double mu_max_ion = mi * pow(8. * vti, 2.) / (2. * B_p);
   int Nz = 16;
   int Nvpar = 32; // Number of cells in the paralell velocity direction 96
   int Nmu = 32;  // Number of cells in the mu direction 192
   int poly_order = 1;
 
   double t_end = 1e-6;
-  int num_frames = 300;
+  int num_frames = 100;
   int int_diag_calc_num = num_frames*100;
   double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.
   int num_failures_max = 20; // Maximum allowable number of consecutive small time-steps.
@@ -223,6 +221,7 @@ int main(int argc, char **argv)
       .ctx_upar = &ctx,
       .temp = eval_temp_ion_init,
       .ctx_temp = &ctx,
+      .correct_all_moms = true,
     },
     .mapc2p = {
       .mapping = mapc2p_vel_ion,
@@ -237,7 +236,6 @@ int main(int argc, char **argv)
   };
 
   struct gkyl_efit_inp efit_inp = {
-    // psiRZ and related inputs
     .filepath = "./data/eqdsk/single_coil.geqdsk", // equilibrium to use
     .rz_poly_order = 2,                     // polynomial order for psi(R,Z) used for field line tracing
     .flux_poly_order = 1,                   // polynomial order for fpol(psi)
