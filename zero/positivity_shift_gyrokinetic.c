@@ -149,13 +149,13 @@ void
 gkyl_positivity_shift_gyrokinetic_quasineutrality_scale(gkyl_positivity_shift_gyrokinetic* up,
   const struct gkyl_range *conf_rng, const struct gkyl_range *phase_rng,
   const struct gkyl_array *GKYL_RESTRICT delta_m0s, const struct gkyl_array *GKYL_RESTRICT delta_m0s_tot,
-  const struct gkyl_array *GKYL_RESTRICT delta_m0r, const struct gkyl_array *GKYL_RESTRICT m0s,
+  const struct gkyl_array *GKYL_RESTRICT delta_m0r_tot, const struct gkyl_array *GKYL_RESTRICT m0s,
   struct gkyl_array *GKYL_RESTRICT fs)
 {
 #ifdef GKYL_HAVE_CUDA
   if (up->use_gpu) {
     gkyl_positivity_shift_gyrokinetic_quasineutrality_scale_cu(up, conf_rng, phase_rng,
-      delta_m0s, delta_m0s_tot, delta_m0r, m0s, fs);
+      delta_m0s, delta_m0s_tot, delta_m0r_tot, m0s, fs);
     return;
   }
 #endif
@@ -172,28 +172,25 @@ gkyl_positivity_shift_gyrokinetic_quasineutrality_scale(gkyl_positivity_shift_gy
   while (gkyl_range_iter_next(&conf_iter)) {
     long clinidx = gkyl_range_idx(conf_rng, conf_iter.idx);
 
-    const double *delta_m0r_c = gkyl_array_cfetch(delta_m0r, clinidx);
+    const double *delta_m0r_tot_c = gkyl_array_cfetch(delta_m0r_tot, clinidx);
     const double *delta_m0s_tot_c = gkyl_array_cfetch(delta_m0s_tot, clinidx);
 
     // First condition in this if-statement is equivalent to
-    //   max((delta_m0r_c[0]-delta_m0s_tot_c[0])/abs(delta_m0r_c[0]-delta_m0s_tot_c[0]))
+    //   max((delta_m0r_tot_c[0]-delta_m0s_tot_c[0])/abs(delta_m0r_tot_c[0]-delta_m0s_tot_c[0]))
     // and the second condition is to avoid division by 0.
-    if (delta_m0r_c[0] > delta_m0s_tot_c[0] &&
+    if (delta_m0r_tot_c[0] > delta_m0s_tot_c[0] &&
         delta_m0s_tot_c[0] > 0.0) {
 
       const double *delta_m0s_c = gkyl_array_cfetch(delta_m0s, clinidx);
       const double *m0s_c = gkyl_array_cfetch(m0s, clinidx);
 
-      // Compute the scaling factor (n_s+h)/n_s with h=(Delta n_r - Delta_n_s,tot) * Delta n_s/Delta_n_s,tot
-      // where for electrons:
-      //   - Delta n_r = Delta n_i,tot
-      //   - Delta n_s,tot = Delta n_e
-      // and for ions:
-      //   - Delta n_r = Delta n_e
-      //   - Delta n_s,tot = Delta n_i,tot
+      // Compute the scaling factor (n_s+h)/n_s with h=(Delta n_r,tot - Delta_n_s,tot) * Delta n_s/Delta_n_s,tot
+      //   - Delta n_s = shift in density of this species due to positivity shift.
+      //   - Delta n_s,tot = sum of Delta n for species with same charge sign.
+      //   - Delta n_r,tot = sum of Delta n for species with opposite charge sign.
       double delta_m0fac_c[num_cbasis];
       for (int k=0; k<num_cbasis; k++)
-        delta_m0fac_c[k] = delta_m0r_c[k] - delta_m0s_tot_c[k];
+        delta_m0fac_c[k] = delta_m0r_tot_c[k] - delta_m0s_tot_c[k];
 
       up->kernels->conf_mul_op(delta_m0fac_c, delta_m0s_c, delta_m0fac_c);
 
