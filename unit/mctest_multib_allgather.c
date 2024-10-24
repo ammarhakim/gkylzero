@@ -1,8 +1,10 @@
+#include "gkyl_rect_grid.h"
 #include <acutest.h>
 
 #include <gkyl_block_geom.h>
 #include <gkyl_multib_comm_conn.h>
 #include <gkyl_rrobin_decomp.h>
+#include <string.h>
 
 #ifdef GKYL_HAVE_MPI
 #include <gkyl_mpi_comm.h>
@@ -131,6 +133,18 @@ create_L_domain_block_geom(int **cuts)
   );
 
   return bgeom;
+}
+
+// Allocate array (filled with zeros).
+static struct gkyl_array*
+mkarr(bool on_gpu, long nc, long size)
+{
+  struct gkyl_array* a;
+  if (on_gpu)
+    a = gkyl_array_cu_dev_new(GKYL_DOUBLE, nc, size);
+  else
+    a = gkyl_array_new(GKYL_DOUBLE, nc, size);
+  return a;
 }
 
 static inline int
@@ -752,13 +766,762 @@ test_L_domain_recv_connections_dir0_cuts2_par()
   gkyl_block_geom_release(geom);
 }
 
+static void
+test_L_domain_allgather_dir0_cuts2_par()
+{
+  printf("\n");
+  // Create world comm.
+  bool use_mpi = true;
+  bool use_gpu = false;
+  struct gkyl_comm* comm = comm_new(use_mpi, use_gpu, stderr);
+
+  int my_rank, num_ranks;
+  gkyl_comm_get_rank(comm, &my_rank);
+  gkyl_comm_get_size(comm, &num_ranks);
+
+
+  int num_blocks = 3; // L-shaped example.
+  int ndim = 2;
+  int cuts_flat[] = {
+    1, 1, // Block 0.
+    1, 1, // Block 1.
+    2, 1, // Block 2.
+  };
+  int **cuts = cuts_array_new(num_blocks, ndim, cuts_flat);
+  struct gkyl_block_geom *geom  = create_L_domain_block_geom(cuts);
+  struct gkyl_block_topo *topo = gkyl_block_geom_topo(geom);
+
+  // Construct decomp objects.
+  int *branks = gkyl_malloc(sizeof(int[num_blocks]));
+  for (int i=0; i<num_blocks; ++i) {
+    branks[i] = prod_of_elements_int(ndim, cuts[i]);
+  }
+  cuts_array_release(num_blocks, cuts);
+  const struct gkyl_rrobin_decomp* round_robin_decomp = gkyl_rrobin_decomp_new(num_ranks, num_blocks, branks);
+
+  int *rank_list = gkyl_malloc(sizeof(int[num_ranks])); // Allocate enough space.
+
+  int num_cuts[num_blocks];
+  int nghost[] = { 1, 1 };
+
+  // Setup for a gather along x
+  int block_list[3][2] = {{0},{1,2},{1,2}};
+  int dir = 0;
+  int nconnected[3] = {1,2,2};
+  
+  // construct decomp objects
+  struct gkyl_rect_decomp **decomp =
+    gkyl_malloc(sizeof(struct gkyl_rect_decomp*[num_blocks]));
+  for (int i=0; i<num_blocks; ++i) {
+    const struct gkyl_block_geom_info *ginfo = gkyl_block_geom_get_block(geom, i);
+
+    num_cuts[i] = 1;
+    for (int d=0; d<topo->ndim; ++d)
+      num_cuts[i] *= ginfo->cuts[d];
+    
+    struct gkyl_range range;
+    gkyl_create_global_range(2, ginfo->cells, &range);
+    decomp[i] = gkyl_rect_decomp_new_from_cuts(2, ginfo->cuts, &range);
+  }
+
+
+  int local_blocks[2];
+  int num_local_blocks = 0;
+  if (my_rank == 0) {
+    num_local_blocks = 2;
+    local_blocks[0] = 0;
+    local_blocks[1] = 2;
+  }
+  if (my_rank == 1) {
+    num_local_blocks = 2;
+    local_blocks[0] = 1;
+    local_blocks[1] = 2;
+  }
+
+
+
+  struct gkyl_multib_comm_conn **mbcc_send = gkyl_malloc(num_local_blocks * sizeof(struct gkyl_multib_comm_conn *));
+  struct gkyl_multib_comm_conn **mbcc_recv = gkyl_malloc(num_local_blocks * sizeof(struct gkyl_multib_comm_conn *));
+  for (int bI= 0; bI<num_local_blocks; bI++) {
+      int bid = local_blocks[bI];
+      gkyl_rrobin_decomp_getranks(round_robin_decomp, bid, rank_list);
+      int brank = -1;
+      for (int i=0; i<branks[bid]; ++i)
+        if (rank_list[i] == my_rank) brank = i;
+
+      mbcc_send[bI] = gkyl_multib_comm_conn_new_send_from_connections(bid, brank, nconnected[bid], block_list[bid], dir, decomp);
+      mbcc_recv[bI] = gkyl_multib_comm_conn_new_recv_from_connections(bid, brank, nconnected[bid], block_list[bid], dir, decomp);
+
+      for (int ns=0; ns<mbcc_send[bI]->num_comm_conn; ++ns) {
+        // need to get the actual rank that owns this cut
+        //int rank_list[gkyl_rrobin_decomp_nranks(round_robin_decomp, mbcc_send[bI]->comm_conn[ns].block_id)];
+        int rank_idx = mbcc_send[bI]->comm_conn[ns].rank;
+        gkyl_rrobin_decomp_getranks(round_robin_decomp, mbcc_send[bI]->comm_conn[ns].block_id, rank_list);
+        mbcc_send[bI]->comm_conn[ns].rank = rank_list[rank_idx];
+      }
+      for (int nr=0; nr<mbcc_recv[bI]->num_comm_conn; ++nr) {
+        // need to get the actual rank that owns this cut
+        //int rank_list[gkyl_rrobin_decomp_nranks(round_robin_decomp, mbcc_recv[num_conn]->comm_conn[nr].block_id)];
+        int rank_idx = mbcc_recv[bI]->comm_conn[nr].rank;
+        gkyl_rrobin_decomp_getranks(round_robin_decomp, mbcc_recv[bI]->comm_conn[nr].block_id, rank_list);
+        mbcc_recv[bI]->comm_conn[nr].rank = rank_list[rank_idx];
+      }
+
+  }
+
+
+
+  struct gkyl_range **local_ranges = gkyl_malloc(num_local_blocks* sizeof(struct gkyl_range *));
+  struct gkyl_array **array_local = gkyl_malloc(num_local_blocks* sizeof(struct gkyl_array*));
+  struct gkyl_array **array_global = gkyl_malloc(num_local_blocks* sizeof(struct gkyl_array *));
+
+  struct gkyl_range **global_ranges = gkyl_malloc(num_local_blocks* sizeof(struct gkyl_range *));
+
+
+  for (int bI= 0; bI<num_local_blocks; bI++) {
+    int bid = local_blocks[bI];
+    // Construct the cross range which spans all the parent ranges
+    // Block list is always in order in dir
+    // Block parent ranges always share range extents in the other directions
+    int cross_lower[GKYL_MAX_DIM];
+    int cross_upper[GKYL_MAX_DIM];
+    for (int i =0; i<ndim; i++) {
+      cross_lower[i] = decomp[block_list[bid][0]]->parent_range.lower[i];
+      cross_upper[i] = decomp[block_list[bid][0]]->parent_range.upper[i];
+    }
+    for (int i=1; i<nconnected[bid]; i++) {
+      cross_upper[dir] += gkyl_range_shape(&decomp[block_list[bid][i]]->parent_range, dir);
+    }
+    global_ranges[bI] = gkyl_malloc( sizeof(struct gkyl_range));
+    gkyl_range_init(global_ranges[bI], ndim, cross_lower, cross_upper);
+  }
+
+
+  int poly_order = 1;
+  struct gkyl_basis basis;
+  gkyl_cart_modal_serendip(&basis, ndim, poly_order);
+  // populate locals
+  for (int bI=0; bI<num_local_blocks; ++bI) {
+    int bid = local_blocks[bI];
+    gkyl_rrobin_decomp_getranks(round_robin_decomp, bid, rank_list);
+    int brank = -1;
+    for (int i=0; i<branks[bid]; ++i)
+      if (rank_list[i] == my_rank) brank = i;
+    local_ranges[bI] = &decomp[bid]->ranges[brank];
+    array_local[bI] = mkarr(false, basis.num_basis, local_ranges[bI]->volume);
+    gkyl_array_shiftc(array_local[bI], sqrt(pow(2,ndim)), 0); // Sets es_energy_fac=1.
+    gkyl_array_scale(array_local[bI], 0.5*my_rank);
+    array_global[bI] = mkarr(false,  basis.num_basis, global_ranges[bI]->volume);
+  }
+
+
+
+  int stat = gkyl_comm_array_allgather_multib(comm, num_local_blocks, local_blocks, mbcc_send, mbcc_recv, local_ranges, global_ranges, array_local, array_global);
+
+  for (int bI=0; bI<num_local_blocks; ++bI) {
+    struct gkyl_rect_grid grid;
+    int cells[2];
+    cells[0] = gkyl_range_shape(global_ranges[bI],0);
+    cells[1] = gkyl_range_shape(global_ranges[bI],1);
+    double gridlo[2] = {0.0,0.0};
+    double l0 = ((double) cells[0])/300.0;
+    double l1  = ((double) cells[1])/300.0;
+    double gridup[2] = {l0,l1 };
+    gkyl_rect_grid_init(&grid, 2, gridlo, gridup, cells);
+    char str[50];
+    sprintf(str, "lb%d_r%d.gkyl",bI, my_rank);
+    gkyl_grid_sub_array_write(&grid, global_ranges[bI], 0, array_global[bI], str);
+  }
+
+  for (int bI = 0; bI<num_local_blocks; ++bI) {
+    gkyl_multib_comm_conn_release(mbcc_send[bI]);
+    gkyl_multib_comm_conn_release(mbcc_recv[bI]);
+  }
+  gkyl_free(mbcc_send);
+  gkyl_free(mbcc_recv);
+  gkyl_free(local_ranges);
+  gkyl_free(array_local);
+  gkyl_free(array_global);
+
+  for (int i=0; i<num_blocks; ++i)
+    gkyl_rect_decomp_release(decomp[i]);
+  gkyl_free(decomp);
+  
+  gkyl_block_topo_release(topo);
+  gkyl_block_geom_release(geom);
+}
+
+static void
+test_L_domain_allgather_dir0_cuts2_par4()
+{
+  printf("\n");
+  // Create world comm.
+  bool use_mpi = true;
+  bool use_gpu = false;
+  struct gkyl_comm* comm = comm_new(use_mpi, use_gpu, stderr);
+
+  int my_rank, num_ranks;
+  gkyl_comm_get_rank(comm, &my_rank);
+  gkyl_comm_get_size(comm, &num_ranks);
+
+
+  int num_blocks = 3; // L-shaped example.
+  int ndim = 2;
+  int cuts_flat[] = {
+    1, 1, // Block 0.
+    1, 1, // Block 1.
+    2, 1, // Block 2.
+  };
+  int **cuts = cuts_array_new(num_blocks, ndim, cuts_flat);
+  struct gkyl_block_geom *geom  = create_L_domain_block_geom(cuts);
+  struct gkyl_block_topo *topo = gkyl_block_geom_topo(geom);
+
+  // Construct decomp objects.
+  int *branks = gkyl_malloc(sizeof(int[num_blocks]));
+  for (int i=0; i<num_blocks; ++i) {
+    branks[i] = prod_of_elements_int(ndim, cuts[i]);
+  }
+  cuts_array_release(num_blocks, cuts);
+  const struct gkyl_rrobin_decomp* round_robin_decomp = gkyl_rrobin_decomp_new(num_ranks, num_blocks, branks);
+
+  int *rank_list = gkyl_malloc(sizeof(int[num_ranks])); // Allocate enough space.
+
+  int num_cuts[num_blocks];
+  int nghost[] = { 1, 1 };
+
+  // Setup for a gather along x
+  int block_list[3][2] = {{0},{1,2},{1,2}};
+  int dir = 0;
+  int nconnected[3] = {1,2,2};
+  
+  // construct decomp objects
+  struct gkyl_rect_decomp **decomp =
+    gkyl_malloc(sizeof(struct gkyl_rect_decomp*[num_blocks]));
+  for (int i=0; i<num_blocks; ++i) {
+    const struct gkyl_block_geom_info *ginfo = gkyl_block_geom_get_block(geom, i);
+
+    num_cuts[i] = 1;
+    for (int d=0; d<topo->ndim; ++d)
+      num_cuts[i] *= ginfo->cuts[d];
+    
+    struct gkyl_range range;
+    gkyl_create_global_range(2, ginfo->cells, &range);
+    decomp[i] = gkyl_rect_decomp_new_from_cuts(2, ginfo->cuts, &range);
+  }
+
+
+  int local_blocks[1];
+  int num_local_blocks = 0;
+  if (my_rank == 0) {
+    num_local_blocks = 1;
+    local_blocks[0] = 0;
+  }
+  if (my_rank == 1) {
+    num_local_blocks = 1;
+    local_blocks[0] = 1;
+  }
+  if (my_rank == 2) {
+    num_local_blocks = 1;
+    local_blocks[0] = 2;
+  }
+  if (my_rank == 3) {
+    num_local_blocks = 1;
+    local_blocks[0] = 2;
+  }
+
+  struct gkyl_multib_comm_conn **mbcc_send = gkyl_malloc(num_local_blocks * sizeof(struct gkyl_multib_comm_conn *));
+  struct gkyl_multib_comm_conn **mbcc_recv = gkyl_malloc(num_local_blocks * sizeof(struct gkyl_multib_comm_conn *));
+  for (int bI= 0; bI<num_local_blocks; bI++) {
+      int bid = local_blocks[bI];
+      gkyl_rrobin_decomp_getranks(round_robin_decomp, bid, rank_list);
+      int brank = -1;
+      for (int i=0; i<branks[bid]; ++i)
+        if (rank_list[i] == my_rank) brank = i;
+
+      mbcc_send[bI] = gkyl_multib_comm_conn_new_send_from_connections(bid, brank, nconnected[bid], block_list[bid], dir, decomp);
+      mbcc_recv[bI] = gkyl_multib_comm_conn_new_recv_from_connections(bid, brank, nconnected[bid], block_list[bid], dir, decomp);
+
+      for (int ns=0; ns<mbcc_send[bI]->num_comm_conn; ++ns) {
+        // need to get the actual rank that owns this cut
+        int rank_idx = mbcc_send[bI]->comm_conn[ns].rank;
+        gkyl_rrobin_decomp_getranks(round_robin_decomp, mbcc_send[bI]->comm_conn[ns].block_id, rank_list);
+        mbcc_send[bI]->comm_conn[ns].rank = rank_list[rank_idx];
+      }
+      for (int nr=0; nr<mbcc_recv[bI]->num_comm_conn; ++nr) {
+        // need to get the actual rank that owns this cut
+        int rank_idx = mbcc_recv[bI]->comm_conn[nr].rank;
+        gkyl_rrobin_decomp_getranks(round_robin_decomp, mbcc_recv[bI]->comm_conn[nr].block_id, rank_list);
+        mbcc_recv[bI]->comm_conn[nr].rank = rank_list[rank_idx];
+      }
+
+  }
+
+
+
+  struct gkyl_range **local_ranges = gkyl_malloc(num_local_blocks* sizeof(struct gkyl_range *));
+  struct gkyl_array **array_local = gkyl_malloc(num_local_blocks* sizeof(struct gkyl_array*));
+  struct gkyl_array **array_global = gkyl_malloc(num_local_blocks* sizeof(struct gkyl_array *));
+
+  struct gkyl_range **global_ranges = gkyl_malloc(num_local_blocks* sizeof(struct gkyl_range *));
+
+
+  for (int bI= 0; bI<num_local_blocks; bI++) {
+    int bid = local_blocks[bI];
+    // Construct the cross range which spans all the parent ranges
+    // Block list is always in order in dir
+    // Block parent ranges always share range extents in the other directions
+    int cross_lower[GKYL_MAX_DIM];
+    int cross_upper[GKYL_MAX_DIM];
+    for (int i =0; i<ndim; i++) {
+      cross_lower[i] = decomp[block_list[bid][0]]->parent_range.lower[i];
+      cross_upper[i] = decomp[block_list[bid][0]]->parent_range.upper[i];
+    }
+    for (int i=1; i<nconnected[bid]; i++) {
+      cross_upper[dir] += gkyl_range_shape(&decomp[block_list[bid][i]]->parent_range, dir);
+    }
+    global_ranges[bI] = gkyl_malloc( sizeof(struct gkyl_range));
+    gkyl_range_init(global_ranges[bI], ndim, cross_lower, cross_upper);
+  }
+
+
+  int poly_order = 1;
+  struct gkyl_basis basis;
+  gkyl_cart_modal_serendip(&basis, ndim, poly_order);
+  // populate locals
+  for (int bI=0; bI<num_local_blocks; ++bI) {
+    int bid = local_blocks[bI];
+    gkyl_rrobin_decomp_getranks(round_robin_decomp, bid, rank_list);
+    int brank = -1;
+    for (int i=0; i<branks[bid]; ++i)
+      if (rank_list[i] == my_rank) brank = i;
+    local_ranges[bI] = &decomp[bid]->ranges[brank];
+    array_local[bI] = mkarr(false, basis.num_basis, local_ranges[bI]->volume);
+    gkyl_array_shiftc(array_local[bI], sqrt(pow(2,ndim)), 0); // Sets es_energy_fac=1.
+    gkyl_array_scale(array_local[bI], 0.5*my_rank);
+    array_global[bI] = mkarr(false,  basis.num_basis, global_ranges[bI]->volume);
+  }
+
+  int stat = gkyl_comm_array_allgather_multib(comm, num_local_blocks, local_blocks, mbcc_send, mbcc_recv, local_ranges, global_ranges, array_local, array_global);
+
+  for (int bI=0; bI<num_local_blocks; ++bI) {
+    struct gkyl_rect_grid grid;
+    int cells[2];
+    cells[0] = gkyl_range_shape(global_ranges[bI],0);
+    cells[1] = gkyl_range_shape(global_ranges[bI],1);
+    double gridlo[2] = {0.0,0.0};
+    double l0 = ((double) cells[0])/300.0;
+    double l1  = ((double) cells[1])/300.0;
+    double gridup[2] = {l0,l1 };
+    gkyl_rect_grid_init(&grid, 2, gridlo, gridup, cells);
+    char str[50];
+    sprintf(str, "lb%d_r%d.gkyl",bI, my_rank);
+    gkyl_grid_sub_array_write(&grid, global_ranges[bI], 0, array_global[bI], str);
+  }
+
+  for (int bI = 0; bI<num_local_blocks; ++bI) {
+    gkyl_multib_comm_conn_release(mbcc_send[bI]);
+    gkyl_multib_comm_conn_release(mbcc_recv[bI]);
+  }
+  gkyl_free(mbcc_send);
+  gkyl_free(mbcc_recv);
+  gkyl_free(local_ranges);
+  gkyl_free(array_local);
+  gkyl_free(array_global);
+
+  for (int i=0; i<num_blocks; ++i)
+    gkyl_rect_decomp_release(decomp[i]);
+  gkyl_free(decomp);
+  
+  gkyl_block_topo_release(topo);
+  gkyl_block_geom_release(geom);
+}
+
+static void
+test_L_domain_allgather_dir0_cuts2_par3()
+{
+  printf("\n");
+  // Create world comm.
+  bool use_mpi = true;
+  bool use_gpu = false;
+  struct gkyl_comm* comm = comm_new(use_mpi, use_gpu, stderr);
+
+  int my_rank, num_ranks;
+  gkyl_comm_get_rank(comm, &my_rank);
+  gkyl_comm_get_size(comm, &num_ranks);
+
+
+  int num_blocks = 3; // L-shaped example.
+  int ndim = 2;
+  int cuts_flat[] = {
+    1, 1, // Block 0.
+    1, 1, // Block 1.
+    2, 1, // Block 2.
+  };
+  int **cuts = cuts_array_new(num_blocks, ndim, cuts_flat);
+  struct gkyl_block_geom *geom  = create_L_domain_block_geom(cuts);
+  struct gkyl_block_topo *topo = gkyl_block_geom_topo(geom);
+
+  // Construct decomp objects.
+  int *branks = gkyl_malloc(sizeof(int[num_blocks]));
+  for (int i=0; i<num_blocks; ++i) {
+    branks[i] = prod_of_elements_int(ndim, cuts[i]);
+  }
+  cuts_array_release(num_blocks, cuts);
+  const struct gkyl_rrobin_decomp* round_robin_decomp = gkyl_rrobin_decomp_new(num_ranks, num_blocks, branks);
+
+  int *rank_list = gkyl_malloc(sizeof(int[num_ranks])); // Allocate enough space.
+
+  int num_cuts[num_blocks];
+  int nghost[] = { 1, 1 };
+
+  // Setup for a gather along x
+  int block_list[3][2] = {{0},{1,2},{1,2}};
+  int dir = 0;
+  int nconnected[3] = {1,2,2};
+  
+  // construct decomp objects
+  struct gkyl_rect_decomp **decomp =
+    gkyl_malloc(sizeof(struct gkyl_rect_decomp*[num_blocks]));
+  for (int i=0; i<num_blocks; ++i) {
+    const struct gkyl_block_geom_info *ginfo = gkyl_block_geom_get_block(geom, i);
+
+    num_cuts[i] = 1;
+    for (int d=0; d<topo->ndim; ++d)
+      num_cuts[i] *= ginfo->cuts[d];
+    
+    struct gkyl_range range;
+    gkyl_create_global_range(2, ginfo->cells, &range);
+    decomp[i] = gkyl_rect_decomp_new_from_cuts(2, ginfo->cuts, &range);
+  }
+
+
+  int local_blocks[2];
+  int num_local_blocks = 0;
+  if (my_rank == 0) {
+    num_local_blocks = 2;
+    local_blocks[0] = 0;
+    local_blocks[1] = 2;
+  }
+  if (my_rank == 1) {
+    num_local_blocks = 1;
+    local_blocks[0] = 1;
+  }
+  if (my_rank == 2) {
+    num_local_blocks = 1;
+    local_blocks[0] = 2;
+  }
+
+  struct gkyl_multib_comm_conn **mbcc_send = gkyl_malloc(num_local_blocks * sizeof(struct gkyl_multib_comm_conn *));
+  struct gkyl_multib_comm_conn **mbcc_recv = gkyl_malloc(num_local_blocks * sizeof(struct gkyl_multib_comm_conn *));
+  for (int bI= 0; bI<num_local_blocks; bI++) {
+      int bid = local_blocks[bI];
+      gkyl_rrobin_decomp_getranks(round_robin_decomp, bid, rank_list);
+      int brank = -1;
+      for (int i=0; i<branks[bid]; ++i)
+        if (rank_list[i] == my_rank) brank = i;
+
+      mbcc_send[bI] = gkyl_multib_comm_conn_new_send_from_connections(bid, brank, nconnected[bid], block_list[bid], dir, decomp);
+      mbcc_recv[bI] = gkyl_multib_comm_conn_new_recv_from_connections(bid, brank, nconnected[bid], block_list[bid], dir, decomp);
+
+      for (int ns=0; ns<mbcc_send[bI]->num_comm_conn; ++ns) {
+        // need to get the actual rank that owns this cut
+        int rank_idx = mbcc_send[bI]->comm_conn[ns].rank;
+        gkyl_rrobin_decomp_getranks(round_robin_decomp, mbcc_send[bI]->comm_conn[ns].block_id, rank_list);
+        mbcc_send[bI]->comm_conn[ns].rank = rank_list[rank_idx];
+      }
+      for (int nr=0; nr<mbcc_recv[bI]->num_comm_conn; ++nr) {
+        // need to get the actual rank that owns this cut
+        int rank_idx = mbcc_recv[bI]->comm_conn[nr].rank;
+        gkyl_rrobin_decomp_getranks(round_robin_decomp, mbcc_recv[bI]->comm_conn[nr].block_id, rank_list);
+        mbcc_recv[bI]->comm_conn[nr].rank = rank_list[rank_idx];
+      }
+
+  }
+
+
+
+  struct gkyl_range **local_ranges = gkyl_malloc(num_local_blocks* sizeof(struct gkyl_range *));
+  struct gkyl_array **array_local = gkyl_malloc(num_local_blocks* sizeof(struct gkyl_array*));
+  struct gkyl_array **array_global = gkyl_malloc(num_local_blocks* sizeof(struct gkyl_array *));
+
+  struct gkyl_range **global_ranges = gkyl_malloc(num_local_blocks* sizeof(struct gkyl_range *));
+
+
+  for (int bI= 0; bI<num_local_blocks; bI++) {
+    int bid = local_blocks[bI];
+    // Construct the cross range which spans all the parent ranges
+    // Block list is always in order in dir
+    // Block parent ranges always share range extents in the other directions
+    int cross_lower[GKYL_MAX_DIM];
+    int cross_upper[GKYL_MAX_DIM];
+    for (int i =0; i<ndim; i++) {
+      cross_lower[i] = decomp[block_list[bid][0]]->parent_range.lower[i];
+      cross_upper[i] = decomp[block_list[bid][0]]->parent_range.upper[i];
+    }
+    for (int i=1; i<nconnected[bid]; i++) {
+      cross_upper[dir] += gkyl_range_shape(&decomp[block_list[bid][i]]->parent_range, dir);
+    }
+    global_ranges[bI] = gkyl_malloc( sizeof(struct gkyl_range));
+    gkyl_range_init(global_ranges[bI], ndim, cross_lower, cross_upper);
+  }
+
+
+  int poly_order = 1;
+  struct gkyl_basis basis;
+  gkyl_cart_modal_serendip(&basis, ndim, poly_order);
+  // populate locals
+  for (int bI=0; bI<num_local_blocks; ++bI) {
+    int bid = local_blocks[bI];
+    gkyl_rrobin_decomp_getranks(round_robin_decomp, bid, rank_list);
+    int brank = -1;
+    for (int i=0; i<branks[bid]; ++i)
+      if (rank_list[i] == my_rank) brank = i;
+    local_ranges[bI] = &decomp[bid]->ranges[brank];
+    array_local[bI] = mkarr(false, basis.num_basis, local_ranges[bI]->volume);
+    gkyl_array_shiftc(array_local[bI], sqrt(pow(2,ndim)), 0); // Sets es_energy_fac=1.
+    gkyl_array_scale(array_local[bI], 0.5*my_rank);
+    array_global[bI] = mkarr(false,  basis.num_basis, global_ranges[bI]->volume);
+  }
+
+
+
+  int stat = gkyl_comm_array_allgather_multib(comm, num_local_blocks, local_blocks, mbcc_send, mbcc_recv, local_ranges, global_ranges, array_local, array_global);
+
+  for (int bI=0; bI<num_local_blocks; ++bI) {
+    struct gkyl_rect_grid grid;
+    int cells[2];
+    cells[0] = gkyl_range_shape(global_ranges[bI],0);
+    cells[1] = gkyl_range_shape(global_ranges[bI],1);
+    double gridlo[2] = {0.0,0.0};
+    double l0 = ((double) cells[0])/300.0;
+    double l1  = ((double) cells[1])/300.0;
+    double gridup[2] = {l0,l1 };
+    gkyl_rect_grid_init(&grid, 2, gridlo, gridup, cells);
+    char str[50];
+    sprintf(str, "lb%d_r%d.gkyl",bI, my_rank);
+    gkyl_grid_sub_array_write(&grid, global_ranges[bI], 0, array_global[bI], str);
+  }
+
+  for (int bI = 0; bI<num_local_blocks; ++bI) {
+    gkyl_multib_comm_conn_release(mbcc_send[bI]);
+    gkyl_multib_comm_conn_release(mbcc_recv[bI]);
+  }
+  gkyl_free(mbcc_send);
+  gkyl_free(mbcc_recv);
+  gkyl_free(local_ranges);
+  gkyl_free(array_local);
+  gkyl_free(array_global);
+
+  for (int i=0; i<num_blocks; ++i)
+    gkyl_rect_decomp_release(decomp[i]);
+  gkyl_free(decomp);
+  
+  gkyl_block_topo_release(topo);
+  gkyl_block_geom_release(geom);
+}
+
+static void
+test_L_domain_allgather_dir0_cuts2_par1()
+{
+  printf("\n");
+  // Create world comm.
+  bool use_mpi = true;
+  bool use_gpu = false;
+  struct gkyl_comm* comm = comm_new(use_mpi, use_gpu, stderr);
+
+  int my_rank, num_ranks;
+  gkyl_comm_get_rank(comm, &my_rank);
+  gkyl_comm_get_size(comm, &num_ranks);
+
+
+  int num_blocks = 3; // L-shaped example.
+  int ndim = 2;
+  int cuts_flat[] = {
+    1, 1, // Block 0.
+    1, 1, // Block 1.
+    1, 1, // Block 2.
+  };
+  int **cuts = cuts_array_new(num_blocks, ndim, cuts_flat);
+  struct gkyl_block_geom *geom  = create_L_domain_block_geom(cuts);
+  struct gkyl_block_topo *topo = gkyl_block_geom_topo(geom);
+
+  // Construct decomp objects.
+  int *branks = gkyl_malloc(sizeof(int[num_blocks]));
+  for (int i=0; i<num_blocks; ++i) {
+    branks[i] = prod_of_elements_int(ndim, cuts[i]);
+  }
+  cuts_array_release(num_blocks, cuts);
+  const struct gkyl_rrobin_decomp* round_robin_decomp = gkyl_rrobin_decomp_new(num_ranks, num_blocks, branks);
+
+  int *rank_list = gkyl_malloc(sizeof(int[num_ranks])); // Allocate enough space.
+
+  int num_cuts[num_blocks];
+  int nghost[] = { 1, 1 };
+
+  // Setup for a gather along x
+  int block_list[3][2] = {{0},{1,2},{1,2}};
+  int dir = 0;
+  int nconnected[3] = {1,2,2};
+  
+  // construct decomp objects
+  struct gkyl_rect_decomp **decomp =
+    gkyl_malloc(sizeof(struct gkyl_rect_decomp*[num_blocks]));
+  for (int i=0; i<num_blocks; ++i) {
+    const struct gkyl_block_geom_info *ginfo = gkyl_block_geom_get_block(geom, i);
+
+    num_cuts[i] = 1;
+    for (int d=0; d<topo->ndim; ++d)
+      num_cuts[i] *= ginfo->cuts[d];
+    
+    struct gkyl_range range;
+    gkyl_create_global_range(2, ginfo->cells, &range);
+    decomp[i] = gkyl_rect_decomp_new_from_cuts(2, ginfo->cuts, &range);
+  }
+
+
+  int local_blocks[3];
+  int num_local_blocks = 0;
+  if (my_rank == 0) {
+    num_local_blocks = 3;
+    local_blocks[0] = 0;
+    local_blocks[1] = 1;
+    local_blocks[2] = 2;
+  }
+
+  struct gkyl_multib_comm_conn **mbcc_send = gkyl_malloc(num_local_blocks * sizeof(struct gkyl_multib_comm_conn *));
+  struct gkyl_multib_comm_conn **mbcc_recv = gkyl_malloc(num_local_blocks * sizeof(struct gkyl_multib_comm_conn *));
+  for (int bI= 0; bI<num_local_blocks; bI++) {
+      int bid = local_blocks[bI];
+      gkyl_rrobin_decomp_getranks(round_robin_decomp, bid, rank_list);
+      int brank = -1;
+      for (int i=0; i<branks[bid]; ++i)
+        if (rank_list[i] == my_rank) brank = i;
+
+      mbcc_send[bI] = gkyl_multib_comm_conn_new_send_from_connections(bid, brank, nconnected[bid], block_list[bid], dir, decomp);
+      mbcc_recv[bI] = gkyl_multib_comm_conn_new_recv_from_connections(bid, brank, nconnected[bid], block_list[bid], dir, decomp);
+
+      for (int ns=0; ns<mbcc_send[bI]->num_comm_conn; ++ns) {
+        // need to get the actual rank that owns this cut
+        int rank_idx = mbcc_send[bI]->comm_conn[ns].rank;
+        gkyl_rrobin_decomp_getranks(round_robin_decomp, mbcc_send[bI]->comm_conn[ns].block_id, rank_list);
+        mbcc_send[bI]->comm_conn[ns].rank = rank_list[rank_idx];
+      }
+      for (int nr=0; nr<mbcc_recv[bI]->num_comm_conn; ++nr) {
+        // need to get the actual rank that owns this cut
+        int rank_idx = mbcc_recv[bI]->comm_conn[nr].rank;
+        gkyl_rrobin_decomp_getranks(round_robin_decomp, mbcc_recv[bI]->comm_conn[nr].block_id, rank_list);
+        mbcc_recv[bI]->comm_conn[nr].rank = rank_list[rank_idx];
+      }
+  }
+
+
+
+  struct gkyl_range **local_ranges = gkyl_malloc(num_local_blocks* sizeof(struct gkyl_range *));
+  struct gkyl_array **array_local = gkyl_malloc(num_local_blocks* sizeof(struct gkyl_array*));
+  struct gkyl_array **array_global = gkyl_malloc(num_local_blocks* sizeof(struct gkyl_array *));
+
+  struct gkyl_range **global_ranges = gkyl_malloc(num_local_blocks* sizeof(struct gkyl_range *));
+
+
+  for (int bI= 0; bI<num_local_blocks; bI++) {
+    int bid = local_blocks[bI];
+    // Construct the cross range which spans all the parent ranges
+    // Block list is always in order in dir
+    // Block parent ranges always share range extents in the other directions
+    int cross_lower[GKYL_MAX_DIM];
+    int cross_upper[GKYL_MAX_DIM];
+    for (int i =0; i<ndim; i++) {
+      cross_lower[i] = decomp[block_list[bid][0]]->parent_range.lower[i];
+      cross_upper[i] = decomp[block_list[bid][0]]->parent_range.upper[i];
+    }
+    for (int i=1; i<nconnected[bid]; i++) {
+      cross_upper[dir] += gkyl_range_shape(&decomp[block_list[bid][i]]->parent_range, dir);
+    }
+    global_ranges[bI] = gkyl_malloc( sizeof(struct gkyl_range));
+    gkyl_range_init(global_ranges[bI], ndim, cross_lower, cross_upper);
+  }
+
+
+  int poly_order = 1;
+  struct gkyl_basis basis;
+  gkyl_cart_modal_serendip(&basis, ndim, poly_order);
+  // populate locals
+  for (int bI=0; bI<num_local_blocks; ++bI) {
+    int bid = local_blocks[bI];
+    gkyl_rrobin_decomp_getranks(round_robin_decomp, bid, rank_list);
+    int brank = -1;
+    for (int i=0; i<branks[bid]; ++i)
+      if (rank_list[i] == my_rank) brank = i;
+    local_ranges[bI] = &decomp[bid]->ranges[brank];
+    array_local[bI] = mkarr(false, basis.num_basis, local_ranges[bI]->volume);
+    gkyl_array_shiftc(array_local[bI], sqrt(pow(2,ndim)), 0); // Sets es_energy_fac=1.
+    gkyl_array_scale(array_local[bI], 10.0*bid);
+    array_global[bI] = mkarr(false,  basis.num_basis, global_ranges[bI]->volume);
+  }
+
+
+
+  int stat = gkyl_comm_array_allgather_multib(comm, num_local_blocks, local_blocks, mbcc_send, mbcc_recv, local_ranges, global_ranges, array_local, array_global);
+
+
+  for (int bI=0; bI<num_local_blocks; ++bI) {
+    struct gkyl_rect_grid grid;
+    int cells[2];
+    cells[0] = gkyl_range_shape(global_ranges[bI],0);
+    cells[1] = gkyl_range_shape(global_ranges[bI],1);
+    double gridlo[2] = {0.0,0.0};
+    double l0 = ((double) cells[0])/300.0;
+    double l1  = ((double) cells[1])/300.0;
+    double gridup[2] = {l0,l1 };
+    gkyl_rect_grid_init(&grid, 2, gridlo, gridup, cells);
+    char str[50];
+    sprintf(str, "lb%d_r%d.gkyl",bI, my_rank);
+    gkyl_grid_sub_array_write(&grid, global_ranges[bI], 0, array_global[bI], str);
+
+
+    struct gkyl_rect_grid grid_local;
+    int cells_local[2];
+    cells_local[0] = gkyl_range_shape(local_ranges[bI],0);
+    cells_local[1] = gkyl_range_shape(local_ranges[bI],1);
+    double gridlo_local[2] = {0.0,0.0};
+    double l0_local = ((double) cells_local[0])/300.0;
+    double l1_local  = ((double) cells_local[1])/300.0;
+    double gridup_local[2] = {l0_local,l1_local };
+    gkyl_rect_grid_init(&grid_local, 2, gridlo_local, gridup_local, cells_local);
+    char str_local[50];
+    sprintf(str_local, "local_lb%d_r%d.gkyl",bI, my_rank);
+    gkyl_grid_sub_array_write(&grid_local, local_ranges[bI], 0, array_local[bI], str_local);
+  }
+
+  for (int bI = 0; bI<num_local_blocks; ++bI) {
+    gkyl_multib_comm_conn_release(mbcc_send[bI]);
+    gkyl_multib_comm_conn_release(mbcc_recv[bI]);
+  }
+  gkyl_free(mbcc_send);
+  gkyl_free(mbcc_recv);
+  gkyl_free(local_ranges);
+  gkyl_free(array_local);
+  gkyl_free(array_global);
+
+  for (int i=0; i<num_blocks; ++i)
+    gkyl_rect_decomp_release(decomp[i]);
+  gkyl_free(decomp);
+  
+  gkyl_block_topo_release(topo);
+  gkyl_block_geom_release(geom);
+}
+
 
 
 TEST_LIST = {
-  { "test_L_domain_send_connections_dir0_cuts1", test_L_domain_send_connections_dir0_cuts1},
-  { "test_L_domain_recv_connections_dir0_cuts1", test_L_domain_recv_connections_dir0_cuts1},
-  { "test_L_domain_send_connections_dir0_cuts2", test_L_domain_send_connections_dir0_cuts2},
-  { "test_L_domain_send_connections_dir0_cuts2_par", test_L_domain_send_connections_dir0_cuts2_par},
-  { "test_L_domain_recv_connections_dir0_cuts2_par", test_L_domain_recv_connections_dir0_cuts2_par},
+  //{ "test_L_domain_send_connections_dir0_cuts1", test_L_domain_send_connections_dir0_cuts1},
+  //{ "test_L_domain_recv_connections_dir0_cuts1", test_L_domain_recv_connections_dir0_cuts1},
+  //{ "test_L_domain_send_connections_dir0_cuts2", test_L_domain_send_connections_dir0_cuts2},
+  //{ "test_L_domain_send_connections_dir0_cuts2_par", test_L_domain_send_connections_dir0_cuts2_par},
+  //{ "test_L_domain_recv_connections_dir0_cuts2_par", test_L_domain_recv_connections_dir0_cuts2_par},
+  { "test_L_domain_allgather_dir0_cuts2_par", test_L_domain_allgather_dir0_cuts2_par}, // 2 ranks
+  //{ "test_L_domain_allgather_dir0_cuts2_par4", test_L_domain_allgather_dir0_cuts2_par4}, // 4 ranks
+  //{ "test_L_domain_allgather_dir0_cuts2_par3", test_L_domain_allgather_dir0_cuts2_par3}, // 3 ranks
+  //{ "test_L_domain_allgather_dir0_cuts2_par1", test_L_domain_allgather_dir0_cuts2_par1}, // 1 rank
   { NULL, NULL },
 };

@@ -134,6 +134,25 @@ int gkyl_comm_array_sync_multib(struct gkyl_comm *comm, int num_blocks_local,
   struct gkyl_array **array);
 
 /**
+ * Gather array across connected region of multiblock domain.
+ *
+ * @param comm Communicator
+ * @param num_local_blocks Number of local blocks.
+ * @param local_blocks block ids of local blocks.
+ * @param mbcc_send Send multiblock comm conn object.
+ * @param mbcc_recv Receive multiblock comm conn object.
+ * @param local ranges of local arrays
+ * @param global ranges of global arrays
+ * @param array_local local arrays
+ * @param array_global global arrays
+ * @return error code: 0 for success
+ */
+int gkyl_comm_array_allgather_multib(struct gkyl_comm *comm, int num_local_blocks, int *local_blocks,
+  struct gkyl_multib_comm_conn **mbcc_send, struct gkyl_multib_comm_conn **mbcc_recv,
+  struct gkyl_range **local, struct gkyl_range **global,
+  struct gkyl_array **array_local, struct gkyl_array **array_global);
+
+/**
  * Synchronize array across domain in periodic directions.
  *
  * @param comm Communicator

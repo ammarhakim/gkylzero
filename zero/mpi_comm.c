@@ -633,6 +633,123 @@ array_sync_multib(struct gkyl_comm *comm, int num_blocks_local,
 }
 
 static int
+allgather_multib(struct gkyl_comm *comm, int num_local_blocks, int *local_blocks,
+  struct gkyl_multib_comm_conn **mbcc_send, struct gkyl_multib_comm_conn **mbcc_recv,
+  struct gkyl_range **local, struct gkyl_range **global,
+  struct gkyl_array **array_local, struct gkyl_array **array_global)
+{
+  struct mpi_comm *mpi = container_of(comm, struct mpi_comm, priv_comm.pub_comm);
+
+  int nridx = 0;
+  int tag = MPI_BASE_TAG;
+
+
+  int my_rank, num_ranks;
+  gkyl_comm_get_rank(comm, &my_rank);
+
+  // post nonblocking recv
+  for (int bI=0; bI<num_local_blocks; ++bI) {
+      struct gkyl_multib_comm_conn *mbcc_r = mbcc_recv[bI];
+
+      for (int n=0; n<mbcc_r->num_comm_conn; ++n) {
+        int nid = mbcc_r->comm_conn[n].rank;
+        int ndim = mbcc_r->comm_conn[n].range.ndim;
+
+        // Make the receive range a sub-range of the global allgather range
+        gkyl_sub_range_init(&mpi->recv_multib[nridx].range, global[bI], mbcc_r->comm_conn[n].range.lower, mbcc_r->comm_conn[n].range.upper);
+
+        size_t recv_vol = array_local[bI]->esznc*mpi->recv_multib[nridx].range.volume;
+
+        if (recv_vol>0) {
+          if (gkyl_mem_buff_size(mpi->recv[nridx].buff) < recv_vol)
+            gkyl_mem_buff_resize(mpi->recv[nridx].buff, recv_vol);
+
+          int rtag = tag;
+          if (my_rank == nid)
+            rtag = tag + 1000*local_blocks[bI] + mbcc_r->comm_conn[n].block_id;
+
+          MPI_Irecv(gkyl_mem_buff_data(mpi->recv[nridx].buff),
+            recv_vol, MPI_CHAR, nid, rtag, mpi->mcomm, &mpi->recv[nridx].status);
+
+          nridx += 1;
+        }
+      }
+  }
+
+  int nsidx = 0;
+  // post non-blocking sends
+  for (int bI=0; bI<num_local_blocks; ++bI) {
+      struct gkyl_multib_comm_conn *mbcc_s = mbcc_send[bI];
+
+      for (int n=0; n<mbcc_s->num_comm_conn; ++n) {
+        int nid = mbcc_s->comm_conn[n].rank;
+        int ndim = mbcc_s->comm_conn[n].range.ndim;
+
+        // The send range is the local range
+        gkyl_range_init(&mpi->send_multib[nsidx].range, ndim, mbcc_s->comm_conn[n].range.lower, mbcc_s->comm_conn[n].range.upper);
+        size_t send_vol = array_local[bI]->esznc*mpi->send_multib[nsidx].range.volume;
+
+        if (send_vol>0) {
+          if (gkyl_mem_buff_size(mpi->send[nsidx].buff) < send_vol)
+            gkyl_mem_buff_resize(mpi->send[nsidx].buff, send_vol);
+
+          gkyl_array_copy_to_buffer(gkyl_mem_buff_data(mpi->send[nsidx].buff),
+            array_local[bI], local[bI]);
+
+          int stag = tag;
+          if (my_rank == nid)
+            stag = tag + 1000*mbcc_s->comm_conn[n].block_id + local_blocks[bI];
+
+          MPI_Isend(gkyl_mem_buff_data(mpi->send[nsidx].buff),
+            send_vol, MPI_CHAR, nid, stag, mpi->mcomm, &mpi->send[nsidx].status);
+
+          nsidx += 1;
+        }
+      }
+  }
+
+  // complete send
+  for (int s=0; s<nsidx; ++s) {
+    int issend = mpi->send_multib[s].range.volume;
+    if (issend)
+      MPI_Wait(&mpi->send[s].status, MPI_STATUS_IGNORE);
+  }
+
+  // complete recv, copying data
+  nridx = 0;
+  for (int bI=0; bI<num_local_blocks; ++bI) {
+      struct gkyl_multib_comm_conn *mbcc_r = mbcc_recv[bI];
+      for (int n=0; n<mbcc_r->num_comm_conn; ++n) {
+        int isrecv = mpi->recv_multib[nridx].range.volume;
+        if (isrecv) {
+          MPI_Wait(&mpi->recv[nridx].status, MPI_STATUS_IGNORE);
+
+          gkyl_array_copy_from_buffer(array_global[bI],
+            gkyl_mem_buff_data(mpi->recv[nridx].buff),
+            &(mpi->recv_multib[nridx].range)
+          );
+
+          nridx += 1;
+        }
+      }
+  }
+
+  return 0;
+}
+
+static int
+array_allgather_multib(struct gkyl_comm *comm, int num_local_blocks, int *local_blocks,
+  struct gkyl_multib_comm_conn **mbcc_send, struct gkyl_multib_comm_conn **mbcc_recv,
+  struct gkyl_range **local, struct gkyl_range **global,
+  struct gkyl_array **array_local, struct gkyl_array **array_global)
+{
+  allgather_multib(comm, num_local_blocks, local_blocks, mbcc_send, mbcc_recv,
+    local, global, array_local, array_global);
+ 
+  return 0;
+}
+
+static int
 barrier(struct gkyl_comm *comm)
 {
   struct mpi_comm *mpi = container_of(comm, struct mpi_comm, priv_comm.pub_comm);
@@ -945,6 +1062,7 @@ mpi_comm_new(const struct gkyl_mpi_comm_inp *inp,
   mpi->priv_comm.gkyl_array_sync = array_sync;
   mpi->priv_comm.gkyl_array_per_sync = array_per_sync;
   mpi->priv_comm.gkyl_array_sync_multib = array_sync_multib;
+  mpi->priv_comm.gkyl_array_allgather_multib = array_allgather_multib;
   mpi->priv_comm.gkyl_array_write = array_write;
   mpi->priv_comm.gkyl_array_read = array_read;
   mpi->priv_comm.gkyl_array_allgather = array_allgather;
