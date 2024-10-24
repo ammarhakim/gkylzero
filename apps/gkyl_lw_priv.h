@@ -33,18 +33,39 @@ struct lua_func_ctx {
 };
 
 /**
- * Add boundary condition flags for species into interpreter
+ * Add boundary condition flags for species into Lua interpreter.
  *
- * @param L Lua state to use
+ * @param L Lua state to use.
  */
 void gkyl_register_species_bc_types(lua_State *L);
 
 /**
- * Add boundary condition flags for field into interpreter
+ * Add boundary condition flags for field into Lua interpreter.
  *
- * @param L Lua state to use
+ * @param L Lua state to use.
  */
 void gkyl_register_field_bc_types(lua_State *L);
+
+/**
+ * Add projection type flags for Vlasov species initialization into Lua interpreter.
+ *
+ * @param L Lua state to use.
+ */
+void gkyl_register_vlasov_projection_types(lua_State *L);
+
+/**
+ * Add model type flags for Vlasov species initialization into Lua interpreter.
+ *
+ * @param L Lua state to use.
+ */
+void gkyl_register_vlasov_model_types(lua_State *L);
+
+/**
+ * Add collision type flags for Vlasov species initialization into Lua interpreter.
+ *
+ * @param L Lua state to use.
+ */
+void gkyl_register_vlasov_collision_types(lua_State *L);
 
 /**
  * Wrapper around Lua function for use in eval callbacks.

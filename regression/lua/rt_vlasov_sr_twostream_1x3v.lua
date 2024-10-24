@@ -72,7 +72,7 @@ vlasovApp = Vlasov.App.new {
 
   -- Electrons.
   elc = Vlasov.Species.new {
-    modelID = "SR",
+    modelID = G0.Model.SR,
     charge = charge_elc, mass = mass_elc,
     
     -- Velocity space grid.
@@ -85,7 +85,7 @@ vlasovApp = Vlasov.App.new {
     projections = {
       -- Two counter-streaming Maxwellians.
       {
-        projectionID = "LTE",
+        projectionID = G0.Projection.LTE,
 
         densityInit = function (t, xn)
           local x = xn[1]
@@ -104,7 +104,7 @@ vlasovApp = Vlasov.App.new {
         useLastConverged = true
       },
       {
-        projectionID = "LTE",
+        projectionID = G0.Projection.LTE,
 
         densityInit = function (t, xn)
           local x = xn[1]

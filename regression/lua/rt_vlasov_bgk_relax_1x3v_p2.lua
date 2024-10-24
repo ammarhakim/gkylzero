@@ -59,7 +59,7 @@ vlasovApp = Vlasov.App.new {
 
   -- Top hat species.
   square = Vlasov.Species.new {
-    modelID = "default",
+    modelID = G0.Model.Default,
     charge = charge_neut, mass = mass_neut,
     
     -- Velocity space grid.
@@ -71,7 +71,7 @@ vlasovApp = Vlasov.App.new {
     numInit = 1,
     projections = {
       {
-        projectionID = "func",
+        projectionID = G0.Projection.Func,
 
         init = function (t, xn)
           local vx, vy, vz = xn[2], xn[3], xn[4]
@@ -89,7 +89,7 @@ vlasovApp = Vlasov.App.new {
     },
 
     collisions = {
-      collisionID = "BGK",
+      collisionID = G0.Collisions.BGK,
 
       selfNu = function (t, xn)
         return nu -- Collision frequency.
@@ -104,7 +104,7 @@ vlasovApp = Vlasov.App.new {
 
   -- Bump species.
   bump = Vlasov.Species.new {
-    modelID = "default",
+    modelID = G0.Model.Default,
     charge = charge_neut, mass = mass_neut,
     
     -- Velocity space grid.
@@ -116,7 +116,7 @@ vlasovApp = Vlasov.App.new {
     numInit = 1,
     projections = {
       {
-        projectionID = "func",
+        projectionID = G0.Projection.Func,
 
         init = function (t, xn)
           local vx, vy, vz = xn[2], xn[3], xn[4]
@@ -133,7 +133,7 @@ vlasovApp = Vlasov.App.new {
     },
 
     collisions = {
-      collisionID = "BGK",
+      collisionID = G0.Collisions.BGK,
 
       selfNu = function (t, xn)
         return nu -- Collision frequency.

@@ -26,34 +26,6 @@ enum vlasov_magic_ids {
   VLASOV_FIELD_DEFAULT, // Maxwell equations
 };
 
-// Vlasov projection type -> enum map.
-static const struct gkyl_str_int_pair projection_type[] = {
-  { "func", GKYL_PROJ_FUNC },
-  { "maxwellianPrimitive", GKYL_PROJ_MAXWELLIAN_PRIM },
-  { "maxwellianLab", GKYL_PROJ_MAXWELLIAN_LAB },
-  { "biMaxwellian", GKYL_PROJ_BIMAXWELLIAN },
-  { "LTE", GKYL_PROJ_VLASOV_LTE },
-  { 0, 0 }
-};
-
-// Vlasov model type -> enum map.
-static const struct gkyl_str_int_pair model_type[] = {
-  { "default", GKYL_MODEL_DEFAULT },
-  { "SR", GKYL_MODEL_SR },
-  { "generalGeometry", GKYL_MODEL_GEN_GEO },
-  { "canonicalPB", GKYL_MODEL_CANONICAL_PB },
-  { 0, 0 }
-};
-
-// Vlasov collision type -> enum map.
-static const struct gkyl_str_int_pair collision_type[] = {
-  { "none", GKYL_NO_COLLISIONS },
-  { "BGK", GKYL_BGK_COLLISIONS },
-  { "LBO", GKYL_LBO_COLLISIONS },
-  { "FPO", GKYL_FPO_COLLISIONS },
-  { 0, 0 }
-};
-
 /* *****************/
 /* Species methods */
 /* *****************/
@@ -106,8 +78,7 @@ vlasov_species_lw_new(lua_State *L)
   int vdim  = 0;
   struct gkyl_vlasov_species vm_species = { };
 
-  const char *model_str = glua_tbl_get_string(L, "modelID", "default");
-  vm_species.model_id = gkyl_search_str_int_pair_by_str(model_type, model_str, GKYL_MODEL_DEFAULT);
+  vm_species.model_id = glua_tbl_get_integer(L, "modelID", 0);
   
   vm_species.charge = glua_tbl_get_number(L, "charge", 0.0);
   vm_species.mass = glua_tbl_get_number(L, "mass", 1.0);
@@ -141,6 +112,36 @@ vlasov_species_lw_new(lua_State *L)
     }
     vm_species.num_diag_moments = n;
   }
+
+  with_lua_tbl_tbl(L, "bcx") {
+    with_lua_tbl_tbl(L, "lower") {
+      vm_species.bcx.lower.type = glua_tbl_get_integer(L, "type", 0);
+    }
+    
+    with_lua_tbl_tbl(L, "upper") {
+      vm_species.bcx.upper.type = glua_tbl_get_integer(L, "type", 0);
+    }
+  }
+
+  with_lua_tbl_tbl(L, "bcy") {
+    with_lua_tbl_tbl(L, "lower") {
+      vm_species.bcy.lower.type = glua_tbl_get_integer(L, "type", 0);
+    }
+
+    with_lua_tbl_tbl(L, "upper") {
+      vm_species.bcy.upper.type = glua_tbl_get_integer(L, "type", 0);
+    }
+  }
+
+  with_lua_tbl_tbl(L, "bcz") {
+    with_lua_tbl_tbl(L, "lower") {
+      vm_species.bcz.lower.type = glua_tbl_get_integer(L, "type", 0);
+    }
+
+    with_lua_tbl_tbl(L, "upper") {
+      vm_species.bcz.upper.type = glua_tbl_get_integer(L, "type", 0);
+    }
+  }
   
   enum gkyl_projection_id proj_id[GKYL_MAX_PROJ];
 
@@ -166,8 +167,7 @@ vlasov_species_lw_new(lua_State *L)
   with_lua_tbl_tbl(L, "projections") {
     for (int i = 0; i < num_init; i++) {
       if (glua_tbl_iget_tbl(L, i + 1)) {
-        const char *projection_str = glua_tbl_get_string(L, "projectionID", "func");
-        proj_id[i] = gkyl_search_str_int_pair_by_str(projection_type, projection_str, GKYL_PROJ_FUNC);
+        proj_id[i] = glua_tbl_get_integer(L, "projectionID", 0);
 
         init_func_ref[i] = LUA_NOREF;
         has_init_func[i] = false;
@@ -218,8 +218,7 @@ vlasov_species_lw_new(lua_State *L)
   bool collision_correct_all_moms = false;
 
   with_lua_tbl_tbl(L, "collisions") {
-    const char *collision_str = glua_tbl_get_string(L, "collisionID", "none");
-    collision_id = gkyl_search_str_int_pair_by_str(collision_type, collision_str, GKYL_NO_COLLISIONS);
+    collision_id = glua_tbl_get_integer(L, "collisionID", 0);
 
     if (glua_tbl_get_func(L, "selfNu")) {
       self_nu_func_ref = luaL_ref(L, LUA_REGISTRYINDEX);
@@ -353,6 +352,30 @@ vlasov_field_lw_new(lua_State *L)
     init_ref = luaL_ref(L, LUA_REGISTRYINDEX);
   else
     return luaL_error(L, "Field must have an \"init\" function for initial conditions!");
+
+  with_lua_tbl_tbl(L, "bcx") { 
+    int nbc = glua_objlen(L);
+
+    for (int i = 0; i < (nbc > 2 ? 2 : nbc); i++) {
+      vm_field.bcx[i] = glua_tbl_iget_integer(L, i + 1, 0);
+    }
+  }
+
+  with_lua_tbl_tbl(L, "bcy") {
+    int nbc = glua_objlen(L);
+
+    for (int i = 0; i < (nbc > 2 ? 2 : nbc); i++) {
+      vm_field.bcy[i] = glua_tbl_iget_integer(L, i + 1, 0);
+    }
+  }
+
+  with_lua_tbl_tbl(L, "bcz") {
+    int nbc = glua_objlen(L);
+
+    for (int i = 0; i < (nbc > 2 ? 2 : nbc); i++) {
+      vm_field.bcz[i] = glua_tbl_iget_integer(L, i + 1, 0);
+    }
+  }
 
   struct vlasov_field_lw *vmf_lw = lua_newuserdata(L, sizeof(*vmf_lw));
 

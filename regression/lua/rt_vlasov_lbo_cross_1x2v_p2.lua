@@ -63,7 +63,7 @@ vlasovApp = Vlasov.App.new {
 
   -- First neutral species.
   neut1 = Vlasov.Species.new {
-    modelID = "default",
+    modelID = G0.Model.Default,
     charge = charge_neut1, mass = mass_neut1,
     
     -- Velocity space grid.
@@ -75,7 +75,7 @@ vlasovApp = Vlasov.App.new {
     numInit = 1,
     projections = {
       {
-        projectionID = "func",
+        projectionID = G0.Projection.Func,
 
         init = function (t, xn)
           local vx, vy = xn[2], xn[3]
@@ -89,7 +89,7 @@ vlasovApp = Vlasov.App.new {
     },
 
     collisions = {
-      collisionID = "LBO",
+      collisionID = G0.Collisions.LBO,
 
       selfNu = function (t, xn)
         return nu_neut1 -- Collision frequency.
@@ -105,7 +105,7 @@ vlasovApp = Vlasov.App.new {
 
   -- Second neutral species.
   neut2 = Vlasov.Species.new {
-    modelID = "default",
+    modelID = G0.Model.Default,
     charge = charge_neut2, mass = mass_neut2,
     
     -- Velocity space grid.
@@ -117,7 +117,7 @@ vlasovApp = Vlasov.App.new {
     numInit = 1,
     projections = {
       {
-        projectionID = "func",
+        projectionID = G0.Projection.Func,
 
         init = function (t, xn)
           local vx, vy = xn[2], xn[3]
@@ -131,7 +131,7 @@ vlasovApp = Vlasov.App.new {
     },
 
     collisions = {
-      collisionID = "LBO",
+      collisionID = G0.Collisions.LBO,
 
       selfNu = function (t, xn)
         return nu_neut2 -- Collision frequency.

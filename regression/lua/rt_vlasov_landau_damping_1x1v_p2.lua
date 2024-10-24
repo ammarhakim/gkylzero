@@ -49,7 +49,7 @@ vlasovApp = Vlasov.App.new {
 
   -- Electrons.
   elc = Vlasov.Species.new {
-    modelID = "default",
+    modelID = G0.Model.Default,
     charge = charge_elc, mass = mass_elc,
     
     -- Velocity space grid.
@@ -61,7 +61,7 @@ vlasovApp = Vlasov.App.new {
     numInit = 1,
     projections = {
       {
-        projectionID = "func",
+        projectionID = G0.Projection.Func,
 
         init = function (t, xn)
           local x, v = xn[1], xn[2]
@@ -75,7 +75,7 @@ vlasovApp = Vlasov.App.new {
     },
 
     collisions = {
-      collisionID = "LBO",
+      collisionID = G0.Collisions.LBO,
 
       selfNu = function (t, xn)
         return nu -- Collision frequency.

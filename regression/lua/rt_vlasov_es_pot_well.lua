@@ -43,7 +43,7 @@ vlasovApp = Vlasov.App.new {
 
   -- Electrons.
   elc = Vlasov.Species.new {
-    modelID = "default",
+    modelID = G0.Model.Default,
     charge = charge_elc, mass = mass_elc,
     
     -- Velocity space grid.
@@ -55,7 +55,7 @@ vlasovApp = Vlasov.App.new {
     numInit = 1,
     projections = {
       {
-        projectionID = "func",
+        projectionID = G0.Projection.Func,
 
         init = function (t, xn)
           local v = xn[2]

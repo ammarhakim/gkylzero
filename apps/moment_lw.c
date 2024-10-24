@@ -78,7 +78,7 @@ static const struct gkyl_str_int_pair mhd_divb_type[] = {
   { 0, 0 }
 };
 
-// Reactive Euler Riemann problem -> enum map
+// Reactive Euler Riemann problem -> enum map.
 static const struct gkyl_str_int_pair reactive_euler_rp_type[] = {
   { "roe", WV_REACTIVE_EULER_RP_ROE },
   { "lax", WV_REACTIVE_EULER_RP_LAX },
@@ -478,20 +478,26 @@ moment_species_lw_new(lua_State *L)
 
   with_lua_tbl_tbl(L, "bcx") {
     int nbc = glua_objlen(L);
-    for (int i=0; i < (nbc>2 ? 2 : nbc); ++i)
-      mom_species.bcx[i] = glua_tbl_iget_integer(L, i+1, 0);
+
+    for (int i = 0; i < (nbc > 2 ? 2 : nbc); i++) {
+      mom_species.bcx[i] = glua_tbl_iget_integer(L, i + 1, 0);
+    }
   }
 
   with_lua_tbl_tbl(L, "bcy") {
     int nbc = glua_objlen(L);
-    for (int i=0; i < (nbc>2 ? 2 : nbc); ++i)
-      mom_species.bcy[i] = glua_tbl_iget_integer(L, i+1, 0);
+
+    for (int i = 0; i < (nbc > 2 ? 2 : nbc); i++) {
+      mom_species.bcy[i] = glua_tbl_iget_integer(L, i + 1, 0);
+    }
   }
 
   with_lua_tbl_tbl(L, "bcz") {
     int nbc = glua_objlen(L);
-    for (int i=0; i < (nbc>2 ? 2 : nbc); ++i)
-      mom_species.bcz[i] = glua_tbl_iget_integer(L, i+1, 0);
+
+    for (int i = 0; i < (nbc > 2 ? 2 : nbc); i++) {
+      mom_species.bcz[i] = glua_tbl_iget_integer(L, i + 1, 0);
+    }
   }
 
   bool has_app_accel = false;
@@ -614,21 +620,27 @@ moment_field_lw_new(lua_State *L)
   
   with_lua_tbl_tbl(L, "bcx") {
     int nbc = glua_objlen(L);
-    for (int i=0; i < (nbc>2 ? 2 : nbc); ++i)
-      mom_field.bcx[i] = glua_tbl_iget_integer(L, i+1, 0);
+
+    for (int i = 0; i < (nbc > 2 ? 2 : nbc); i++) {
+      mom_field.bcx[i] = glua_tbl_iget_integer(L, i + 1, 0);
+    }
   }
 
   with_lua_tbl_tbl(L, "bcy") {
     int nbc = glua_objlen(L);
-    for (int i=0; i < (nbc>2 ? 2 : nbc); ++i)
-      mom_field.bcy[i] = glua_tbl_iget_integer(L, i+1, 0);
+
+    for (int i = 0; i < (nbc > 2 ? 2 : nbc); i++) {
+      mom_field.bcy[i] = glua_tbl_iget_integer(L, i + 1, 0);
+    }
   }
 
   with_lua_tbl_tbl(L, "bcz") {
     int nbc = glua_objlen(L);
-    for (int i=0; i < (nbc>2 ? 2 : nbc); ++i)
-      mom_field.bcz[i] = glua_tbl_iget_integer(L, i+1, 0);
-  }  
+
+    for (int i = 0; i < (nbc > 2 ? 2 : nbc); i++) {
+      mom_field.bcz[i] = glua_tbl_iget_integer(L, i + 1, 0);
+    }
+  }
 
   bool has_app_current = false;
   int app_current_ref = LUA_NOREF;

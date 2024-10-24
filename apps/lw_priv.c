@@ -1,10 +1,11 @@
 #ifdef GKYL_HAVE_LUA
 
 #include <gkyl_app.h>
+#include <gkyl_vlasov.h>
 #include <gkyl_lw_priv.h>
 #include <gkyl_util.h>
 
-// species BC strings -> enum map
+// Species boundary conditions -> enum map.
 static const struct gkyl_str_int_pair species_bcs[] = {
   {"bcCopy", GKYL_SPECIES_COPY},
   {"bcWall", GKYL_SPECIES_REFLECT},
@@ -21,7 +22,7 @@ static const struct gkyl_str_int_pair species_bcs[] = {
   {0, 0},
 };
 
-// field BC strings -> enum map
+// Field boundary conditions -> enum map.
 static const struct gkyl_str_int_pair field_bcs[] = {
   { "bcCopy", GKYL_FIELD_COPY }, 
   { "bcWall", GKYL_FIELD_PEC_WALL },
@@ -31,6 +32,34 @@ static const struct gkyl_str_int_pair field_bcs[] = {
   { "bcWedge", GKYL_FIELD_WEDGE },
   { "bcFunc", GKYL_FIELD_FUNC },
   { 0, 0 },
+};
+
+// Vlasov projection type -> enum map.
+static const struct gkyl_str_int_pair projection_type[] = {
+  { "Func", GKYL_PROJ_FUNC },
+  { "MaxwellianPrimitive", GKYL_PROJ_MAXWELLIAN_PRIM },
+  { "MaxwellianLab", GKYL_PROJ_MAXWELLIAN_LAB },
+  { "BiMaxwellian", GKYL_PROJ_BIMAXWELLIAN },
+  { "LTE", GKYL_PROJ_VLASOV_LTE },
+  { 0, 0 }
+};
+
+// Vlasov model type -> enum map.
+static const struct gkyl_str_int_pair model_type[] = {
+  { "Default", GKYL_MODEL_DEFAULT },
+  { "SR", GKYL_MODEL_SR },
+  { "GeneralGeometry", GKYL_MODEL_GEN_GEO },
+  { "CanonicalPB", GKYL_MODEL_CANONICAL_PB },
+  { 0, 0 }
+};
+
+// Vlasov collision type -> enum map.
+static const struct gkyl_str_int_pair collision_type[] = {
+  { "None", GKYL_NO_COLLISIONS },
+  { "BGK", GKYL_BGK_COLLISIONS },
+  { "LBO", GKYL_LBO_COLLISIONS },
+  { "FPO", GKYL_FPO_COLLISIONS },
+  { 0, 0 }
 };
 
 static void
@@ -59,6 +88,24 @@ void
 gkyl_register_field_bc_types(lua_State *L)
 {
   register_types(L, field_bcs, "FieldBc");
+}
+
+void
+gkyl_register_vlasov_projection_types(lua_State *L)
+{
+  register_types(L, projection_type, "Projection");
+}
+
+void
+gkyl_register_vlasov_model_types(lua_State *L)
+{
+  register_types(L, model_type, "Model");
+}
+
+void
+gkyl_register_vlasov_collision_types(lua_State *L)
+{
+  register_types(L, collision_type, "Collisions");
 }
 
 void

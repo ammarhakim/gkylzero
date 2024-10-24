@@ -51,7 +51,7 @@ vlasovApp = Vlasov.App.new {
 
   -- Neutral species.
   neut = Vlasov.Species.new {
-    modelID = "default",
+    modelID = G0.Model.Default,
     charge = charge_neut, mass = mass_neut,
     
     -- Velocity space grid.
@@ -63,7 +63,7 @@ vlasovApp = Vlasov.App.new {
     numInit = 1,
     projections = {
       {
-        projectionID = "LTE",
+        projectionID = G0.Projection.LTE,
 
         densityInit = function (t, xn)
           local x = xn[1]
@@ -98,7 +98,7 @@ vlasovApp = Vlasov.App.new {
     },
 
     collisions = {
-      collisionID = "LBO",
+      collisionID = G0.Collisions.LBO,
 
       selfNu = function (t, xn)
         return nu -- Collision frequency.

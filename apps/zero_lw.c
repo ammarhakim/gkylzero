@@ -16,7 +16,7 @@
 /* Rect decomp methods */
 /* *********************/
 
-// Metatable name for decomp object
+// Metatable name for top-level Vlasov App
 #define RECT_DECOMP_METATABLE_NM "GkeyllZero.Zero.RectDecomp"
 
 // Lua userdata object for holding Vlasov app and run parameters
@@ -103,15 +103,20 @@ rect_decomp_openlibs(lua_State *L)
 void
 gkyl_zero_lw_openlibs(lua_State *L)
 {
-  // push empty global table called "G0"
+  // Push empty global table called "G0".
   lua_newtable(L);
   lua_setglobal(L, "G0");
   
   rect_decomp_openlibs(L);
 
-  // species and field BCs
+  // Register types for species and field boundary conditions.
   gkyl_register_species_bc_types(L);
   gkyl_register_field_bc_types(L);
+
+  // Register types for Vlasov projection, model ID and collision ID initialization.
+  gkyl_register_vlasov_projection_types(L);
+  gkyl_register_vlasov_model_types(L);
+  gkyl_register_vlasov_collision_types(L);
 }
 
 #endif
