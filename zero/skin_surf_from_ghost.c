@@ -18,8 +18,7 @@ gkyl_skin_surf_from_ghost_new(int dir, enum gkyl_edge_loc edge, const struct gky
   up->skin_r = skin_r;
   up->ghost_r = ghost_r;
 
-  // Choose the kernel that does the reflection/no reflection/partial
-  // reflection.
+  // Choose the kernel that does the skin surf from ghost copy
   up->kernels = gkyl_malloc(sizeof(struct gkyl_skin_surf_from_ghost));
 #ifdef GKYL_HAVE_CUDA
   if (use_gpu) {
@@ -68,7 +67,8 @@ gkyl_skin_surf_from_ghost_advance(const struct gkyl_skin_surf_from_ghost *up, st
     const double *inp = (const double*) gkyl_array_cfetch(field, ghost_linidx);
     double *out = (double*) gkyl_array_fetch(field, skin_linidx);
 
-    // Now do something like out = inp
+    // Now call the kernel to ensure the nodal values to match the ghost nodal value 
+    // while ensuring that the other nodal value remains unchanged
     up->kernels->ghost_to_skin(inp,out);
 
   }
