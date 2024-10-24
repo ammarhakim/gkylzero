@@ -112,9 +112,10 @@ evalNeutInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fou
   double vt = app->vt;
 
   double v_sq = (v - u0) * (v - u0);
+  double n = (n0 / sqrt(2.0 * pi * vt * vt)) * exp(-v_sq / (2.0 * vt *  vt)); // Total number density.
 
-  // Set distribution function.
-  fout[0] = (n0 / sqrt(2.0 * pi * vt * vt)) * exp(-v_sq / (2.0 * vt *  vt));
+  // Set total number density.
+  fout[0] = n;
 }
 
 void

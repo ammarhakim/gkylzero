@@ -70,6 +70,9 @@ struct vlasov_species_lw {
   char collide_with[GKYL_MAX_SPECIES][128]; // Names of species that we cross-collide with.
 
   bool collision_correct_all_moms; // Are we correcting all moments in collisions, or only density?
+  double collision_iter_eps; // Error tolerance for moment fixes in collisions (density is always exact).
+  int collision_max_iter; // Maximum number of iterations for moment fixes in collisions.
+  bool collision_use_last_converged; // Use last iteration value in collisions regardless of convergence?
 };
 
 static int
@@ -216,6 +219,9 @@ vlasov_species_lw_new(lua_State *L)
   char collide_with[GKYL_MAX_SPECIES][128];
 
   bool collision_correct_all_moms = false;
+  double collision_iter_eps = pow(10.0, -12.0);
+  int collision_max_iter = 100;
+  bool collision_use_last_converged = true;
 
   with_lua_tbl_tbl(L, "collisions") {
     collision_id = glua_tbl_get_integer(L, "collisionID", 0);
@@ -234,6 +240,9 @@ vlasov_species_lw_new(lua_State *L)
     }
 
     collision_correct_all_moms = glua_tbl_get_bool(L, "correctAllMoments", true);
+    collision_iter_eps = glua_tbl_get_number(L, "iterationEpsilon", pow(10.0, -12.0));
+    collision_max_iter = glua_tbl_get_integer(L, "maxIterations", 100);
+    collision_use_last_converged = glua_tbl_get_bool(L, "useLastConverged", true);
   }
   
   struct vlasov_species_lw *vms_lw = lua_newuserdata(L, sizeof(*vms_lw));
@@ -300,6 +309,9 @@ vlasov_species_lw_new(lua_State *L)
   }
 
   vms_lw->collision_correct_all_moms = collision_correct_all_moms;
+  vms_lw->collision_iter_eps = collision_iter_eps;
+  vms_lw->collision_max_iter = collision_max_iter;
+  vms_lw->collision_use_last_converged = collision_use_last_converged;
   
   // set metatable
   luaL_getmetatable(L, VLASOV_SPECIES_METATABLE_NM);
@@ -442,7 +454,10 @@ struct vlasov_app_lw {
   int num_cross_collisions[GKYL_MAX_SPECIES]; // Number of species that we cross-collide with.
   char collide_with[GKYL_MAX_SPECIES][GKYL_MAX_SPECIES][128]; // Names of species that we cross-collide with.
 
-  bool collision_correct_all_moms[GKYL_MAX_SPECIES]; // Are we correct all moments in collisions, or only density?
+  bool collision_correct_all_moms[GKYL_MAX_SPECIES]; // Are we correcting all moments in collisions, or only density?
+  double collision_iter_eps[GKYL_MAX_SPECIES]; // Error tolerance for moment fixes in collision (density is always exact).
+  int collision_max_iter[GKYL_MAX_SPECIES]; // Maximum number of iterations for moment fixes in collisions.
+  bool collision_use_last_converged[GKYL_MAX_SPECIES]; // Use last iteration value in collisions regardless of convergence?
 
   struct lua_func_ctx field_func_ctx; // function context for field
   
@@ -637,6 +652,9 @@ vm_app_new(lua_State *L)
     }
 
     app_lw->collision_correct_all_moms[s] = species[s]->collision_correct_all_moms;
+    app_lw->collision_iter_eps[s] = species[s]->collision_iter_eps;
+    app_lw->collision_max_iter[s] = species[s]->collision_max_iter;
+    app_lw->collision_use_last_converged[s] = species[s]->collision_use_last_converged;
 
     vm.species[s].collisions.collision_id = app_lw->collision_id[s];
 
@@ -651,6 +669,9 @@ vm_app_new(lua_State *L)
     }
 
     vm.species[s].collisions.correct_all_moms = app_lw->collision_correct_all_moms[s];
+    vm.species[s].collisions.iter_eps = app_lw->collision_iter_eps[s];
+    vm.species[s].collisions.max_iter = app_lw->collision_max_iter[s];
+    vm.species[s].collisions.use_last_converged = app_lw->collision_use_last_converged[s];
   }
 
   // Set field input.
