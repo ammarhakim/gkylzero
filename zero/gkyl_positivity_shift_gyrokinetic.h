@@ -55,10 +55,8 @@ gkyl_positivity_shift_gyrokinetic_advance(gkyl_positivity_shift_gyrokinetic* up,
  * @param conf_rng Config-space range.
  * @param phase_rng Phase-space range.
  * @param delta_m0s M0 moment of the shift in fs.
- * @param delta_m0s_tot M0 moment of the shift in electrons (if scaling electrons)
- *                      or the total shift for all ions (if scaling ions).
- * @param delta_m0r M0 moment of the shift in electrons (if scaling ions) or of
- *                  the total shift for all ions (if scaling electrons).
+ * @param delta_m0s_tot Sum of M0 moment of the shift in species with same charge sign.
+ * @param delta_m0r_tot Sum of M0 moment of the shift in species with opposite charge sign.
  * @param m0s M0 moment of fs.
  * @param fs Distribution function of the species we wish to scale.
  */
@@ -66,7 +64,7 @@ void
 gkyl_positivity_shift_gyrokinetic_quasineutrality_scale(gkyl_positivity_shift_gyrokinetic* up,
   const struct gkyl_range *conf_rng, const struct gkyl_range *phase_rng,
   const struct gkyl_array *GKYL_RESTRICT delta_m0s, const struct gkyl_array *GKYL_RESTRICT delta_m0s_tot,
-  const struct gkyl_array *GKYL_RESTRICT delta_m0r, const struct gkyl_array *GKYL_RESTRICT m0s,
+  const struct gkyl_array *GKYL_RESTRICT delta_m0r_tot, const struct gkyl_array *GKYL_RESTRICT m0s,
   struct gkyl_array *GKYL_RESTRICT fs);
 
 /**
