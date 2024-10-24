@@ -19,7 +19,7 @@ gkyl_skin_surf_from_ghost_set_cu_ker_ptrs(const struct gkyl_basis *basis,
   switch (b_type) {
     case GKYL_BASIS_MODAL_SERENDIPITY:
       // Set the ghost_to_skin kernel for the chosen basis and dimensionality.
-      kers->ghost_to_skin = ser_skin_surf_from_ghost_list[edge].list[dim-2].kernels[poly_order-1];
+      kers->ghost_to_skin = ser_skin_surf_from_ghost_list[edge].list[dim-1].kernels[poly_order-1];
       break;
     default:
       // If an unsupported basis type is encountered, assert failure.
