@@ -38,31 +38,29 @@ gkyl_skin_surf_from_ghost_choose_kernel_cu(const struct gkyl_basis *basis,
 
 // CUDA kernel to copy ghost cell values to the adjacent skin (boundary) cells on the GPU.
 __global__ static void
-gkyl_skin_surf_from_ghost_advance_cu_ker(int cdim, int dir, const struct gkyl_range skin_r, const struct gkyl_range ghost_r,
+gkyl_skin_surf_from_ghost_advance_cu_ker(int cdim, int dir, enum gkyl_edge_loc edge, const struct gkyl_range skin_r, const struct gkyl_range ghost_r,
   const struct gkyl_basis *basis, struct gkyl_array *field, struct gkyl_skin_surf_from_ghost_kernels *kers)
 {
-  int fidx[GKYL_MAX_DIM]; // Flipped index to map ghost to skin.
-  int pidx[GKYL_MAX_DIM]; // Original index in the skin range.
+  int sidx[GKYL_MAX_DIM]; // skin idx
+  int gidx[GKYL_MAX_DIM]; // ghost idx
 
-  int pdim = skin_r.ndim; // Problem dimensionality.
-  int vpar_dir = cdim; // Parallel direction index.
-  int uplo = skin_r.upper[vpar_dir] + skin_r.lower[vpar_dir]; // Boundary offset for reflection.
+  int dim = skin_r.ndim; // Problem dimensionality.
 
   // Loop over all points in the skin range using CUDA threads.
   for (unsigned long linc = threadIdx.x + blockIdx.x * blockDim.x;
        linc < skin_r.volume; linc += blockDim.x * gridDim.x) {
 
     // Convert the linear index to a multi-dimensional index in the skin range.
-    gkyl_sub_range_inv_idx(&skin_r, linc, pidx);
+    gkyl_sub_range_inv_idx(&skin_r, linc, sidx);
 
-    // Copy the current index and flip the direction to the ghost side.
-    gkyl_copy_int_arr(pdim, pidx, fidx);
-    fidx[vpar_dir] = uplo - pidx[vpar_dir]; // Reflect across the boundary.
-    fidx[dir] = ghost_r.lower[dir]; // Set the correct ghost cell index.
+    // Copy the current index.
+    gkyl_copy_int_arr(dim, sidx, gidx);
+
+    gidx[dir] = edge == GKYL_LOWER_EDGE? sidx[dir]-1 : sidx[dir]+1;
 
     // Compute the linear indices for both skin and ghost locations.
-    long skin_loc = gkyl_range_idx(&skin_r, pidx);
-    long ghost_loc = gkyl_range_idx(&ghost_r, fidx);
+    long skin_loc = gkyl_range_idx(&skin_r, sidx);
+    long ghost_loc = gkyl_range_idx(&ghost_r, gidx);
 
     // Fetch the values from the ghost region and copy them to the skin region.
     const double *inp = (const double*) gkyl_array_cfetch(field, ghost_loc);
@@ -82,7 +80,7 @@ gkyl_skin_surf_from_ghost_advance_cu(const struct gkyl_skin_surf_from_ghost *up,
     int nblocks = up->skin_r->nblocks, nthreads = up->skin_r->nthreads; // CUDA grid configuration.
 
     // Launch the CUDA kernel to advance the ghost-to-skin update.
-    gkyl_skin_surf_from_ghost_advance_cu_ker<<<nblocks, nthreads>>>(up->cdim, up->dir, *up->skin_r, *up->ghost_r, 
+    gkyl_skin_surf_from_ghost_advance_cu_ker<<<nblocks, nthreads>>>(up->cdim, up->dir, up->edge, *up->skin_r, *up->ghost_r, 
       up->basis, field->on_dev, up->kernels_cu);
   }
 }
