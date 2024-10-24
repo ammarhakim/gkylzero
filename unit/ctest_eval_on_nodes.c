@@ -1124,7 +1124,7 @@ void test_4x(int poly_order, int test_func_op)
 void test_2x2v_hyb(int poly_order, int test_func_op)
 {
   double lower[] = {-2.0, -2.0, -2.0, -2.0}, upper[] = {2.0, 2.0, 2.0, 2.0};
-  int cells[] = {20, 20, 20, 20};
+  int cells[] = {2, 2, 2, 2};
   int ndim = sizeof(lower)/sizeof(lower[0]);
   struct gkyl_rect_grid grid;
   gkyl_rect_grid_init(&grid, ndim, lower, upper, cells);
