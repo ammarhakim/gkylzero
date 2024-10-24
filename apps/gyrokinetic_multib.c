@@ -406,8 +406,11 @@ gkyl_gyrokinetic_multib_app* gkyl_gyrokinetic_multib_app_new(const struct gkyl_g
 
   int tot_max[2];
   calc_tot_and_max_cuts(mbinp->block_geom, tot_max);
-  if ((num_ranks > tot_max[0]) || (num_ranks < tot_max[1]))
+  if ((num_ranks > tot_max[0]) || (num_ranks < tot_max[1])) {
+    fprintf(stderr, "\nSpecified %d total cuts but provided %d processes, \
+and the maximum number of cuts in a block is %d\n\n", tot_max[0], num_ranks, tot_max[1]);
     return 0;
+  }
 
   struct gkyl_gyrokinetic_multib_app *mbapp = gkyl_malloc(sizeof(*mbapp));
 
@@ -464,6 +467,8 @@ gkyl_gyrokinetic_multib_app* gkyl_gyrokinetic_multib_app_new(const struct gkyl_g
       branks[i], rank_list, mbapp->decomp[i], &status);
   }
   gkyl_free(rank_list);
+  gkyl_free(branks);
+
   mbapp->num_local_blocks = num_local_blocks;  
 
   printf("Rank %d handles %d Apps\n", my_rank, num_local_blocks);
@@ -493,11 +498,8 @@ gkyl_gyrokinetic_multib_app* gkyl_gyrokinetic_multib_app_new(const struct gkyl_g
   for (int i=0; i<num_local_blocks; ++i)
     mbapp->singleb_apps[i] = singleb_app_new(mbinp, mbapp->local_blocks[i], mbapp);
 
-  mbapp->stat = (struct gkyl_gyrokinetic_stat) {
-  };
+  mbapp->stat = (struct gkyl_gyrokinetic_stat) {};
 
-  gkyl_free(branks);
-  
   return mbapp;
 }
 

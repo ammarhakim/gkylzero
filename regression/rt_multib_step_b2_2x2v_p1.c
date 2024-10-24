@@ -791,7 +791,7 @@ main(int argc, char **argv)
 
     .field = field,
 
-    .comm = comm
+    .comm = comm,
   };
 
   // Create app object.

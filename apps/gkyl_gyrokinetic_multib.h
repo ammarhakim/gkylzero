@@ -165,7 +165,7 @@ struct gkyl_gyrokinetic_multib {
   // field inputs
   struct gkyl_gyrokinetic_multib_field field;
 
- // communicator to used  
+  // communicator to use.  
   struct gkyl_comm *comm;  
 };
 
