@@ -175,7 +175,11 @@ gkyl_positivity_shift_gyrokinetic_quasineutrality_scale(gkyl_positivity_shift_gy
     const double *delta_m0r_c = gkyl_array_cfetch(delta_m0r, clinidx);
     const double *delta_m0s_tot_c = gkyl_array_cfetch(delta_m0s_tot, clinidx);
 
-    if (delta_m0r_c[0] > delta_m0s_tot_c[0]) {
+    // First condition in this if-statement is equivalent to
+    //   max((delta_m0r_c[0]-delta_m0s_tot_c[0])/abs(delta_m0r_c[0]-delta_m0s_tot_c[0]))
+    // and the second condition is to avoid division by 0.
+    if (delta_m0r_c[0] > delta_m0s_tot_c[0] &&
+        delta_m0s_tot_c[0] > 0.0) {
 
       const double *delta_m0s_c = gkyl_array_cfetch(delta_m0s, clinidx);
       const double *m0s_c = gkyl_array_cfetch(m0s, clinidx);
