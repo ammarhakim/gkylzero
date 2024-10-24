@@ -197,11 +197,10 @@ evalElcInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout
 
   double maxwellian1 = (n_elc1 / (2.0 * pi * vt_elc1 * vt_elc1)) * exp(-v_sq_elc1 / (2.0 * vt_elc1 * vt_elc1));
   double maxwellian2 = (n_elc2 / (2.0 * pi * vt_elc2 * vt_elc2)) * exp(-v_sq_elc2 / (2.0 * vt_elc2 * vt_elc2));
-
-  double n = 1.0 + (perturb_n * cos((kx * x) + (ky * y)));
+  double n = (1.0 + (perturb_n * cos((kx * x) + (ky * y)))) * (maxwellian1 + maxwellian2); // Total number density.
   
-  // Set electron distribution function.
-  fout[0] = n * (maxwellian1 + maxwellian2);
+  // Set total number density.
+  fout[0] = n;
 }
 
 void
@@ -216,14 +215,18 @@ evalFieldInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fo
   double kx = app->kx;
   double ky = app->ky;
 
-  double E_x = -perturb_n * sin((kx * x) + (ky * y)) / (kx + (ky * alpha));
-  double E_y = alpha * E_x;
-  double B_z = (kx * E_y) - (ky * E_x);
+  double Ex = -perturb_n * sin((kx * x) + (ky * y)) / (kx + (ky * alpha)); // Total electric field (x-direction).
+  double Ey = alpha * Ex; // Total electric field (y-direction).
+  double Ez = 0.0; // Total electric field (z-direction).
+
+  double Bx = 0.0; // Total magnetic field (x-direction).
+  double By = 0.0; // Total magnetic field (y-direction).
+  double Bz = (kx * Ey) - (ky * Ex); // Total magnetic field (z-direction).
   
   // Set electric field.
-  fout[0] = E_x; fout[1] = E_y, fout[2] = 0.0;
+  fout[0] = Ex; fout[1] = Ey; fout[2] = Ez;
   // Set magnetic field.
-  fout[3] = 0.0; fout[4] = 0.0; fout[5] = B_z;
+  fout[3] = Bx; fout[4] = By; fout[5] = Bz;
   // Set correction potentials.
   fout[6] = 0.0; fout[7] = 0.0;
 }
