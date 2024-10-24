@@ -558,14 +558,18 @@ gkyl_gyrokinetic_multib_app_apply_ic(gkyl_gyrokinetic_multib_app* app, double t0
 
   // Compute the fields and apply BCs.
   assert(app->num_local_blocks == 1); // MF 2024/10/20: for testing with a single block.
-  struct gkyl_gyrokinetic_app *sbapp = app->singleb_apps[0];
-  struct gkyl_array *distf[app->num_species];
-  struct gkyl_array *distf_neut[app->num_neut_species];
-  for (int i=0; i<app->num_species; ++i) {
-    distf[i] = sbapp->species[i].f;
-  }
-  for (int i=0; i<app->num_neut_species; ++i) {
-    distf_neut[i] = sbapp->neut_species[i].f;
+  struct gkyl_array *distf[app->num_species * app->num_local_blocks];
+  struct gkyl_array *distf_neut[app->num_neut_species * app->num_local_blocks];
+  for (int b=0; b<app->num_local_blocks; ++b) {
+    struct gkyl_gyrokinetic_app *sbapp = app->singleb_apps[b];
+    int li_charged = b * app->num_species;
+    int li_neut = b * app->num_neut_species;
+    for (int i=0; i<app->num_species; ++i) {
+      distf[li_charged+i] = sbapp->species[i].f;
+    }
+    for (int i=0; i<app->num_neut_species; ++i) {
+      distf_neut[li_neut+i] = sbapp->neut_species[i].f;
+    }
   }
   gyrokinetic_multib_calc_field_and_apply_bc(app, t0, distf, distf_neut);
 }
@@ -618,8 +622,58 @@ gkyl_gyrokinetic_multib_app_from_file_neut_species(gkyl_gyrokinetic_multib_app *
 struct gkyl_app_restart_status
 gkyl_gyrokinetic_multib_app_read_from_frame(gkyl_gyrokinetic_multib_app *app, int frame)
 {
-  // TO DO
-  return (struct gkyl_app_restart_status) { };
+  struct gkyl_app_restart_status rstat;
+  for (int b=0; b<app->num_local_blocks; ++b) {
+    struct gkyl_gyrokinetic_app *sbapp = app->singleb_apps[b];
+    for (int i=0; i<app->num_neut_species; i++) {
+      int neut_frame = frame;
+      if (sbapp->neut_species[i].info.is_static) {
+        neut_frame = 0;
+      }
+      rstat = gkyl_gyrokinetic_app_from_frame_neut_species(sbapp, i, neut_frame);
+    }
+    for (int i=0; i<app->num_species; i++) {
+      rstat = gkyl_gyrokinetic_app_from_frame_species(sbapp, i, frame);
+    }
+  }
+  
+  if (rstat.io_status == GKYL_ARRAY_RIO_SUCCESS) {
+    // Compute the fields and apply BCs.
+    struct gkyl_array *distf[app->num_species * app->num_local_blocks];
+    struct gkyl_array *distf_neut[app->num_neut_species * app->num_local_blocks];
+    for (int b=0; b<app->num_local_blocks; ++b) {
+      struct gkyl_gyrokinetic_app *sbapp = app->singleb_apps[b];
+      int li_charged = b * app->num_species;
+      int li_neut = b * app->num_neut_species;
+      for (int i=0; i<app->num_species; ++i) {
+        distf[li_charged+i] = sbapp->species[i].f;
+      }
+      for (int i=0; i<app->num_neut_species; ++i) {
+        distf_neut[li_neut+i] = sbapp->neut_species[i].f;
+      }
+    }
+//    if (app->update_field && app->field->gkfield_id == GKYL_GK_FIELD_BOLTZMANN) {
+//      for (int i=0; i<app->num_species; ++i) {
+//        struct gk_species *s = &app->species[i];
+//
+//        // Compute advection speeds so we can compute the initial boundary flux.
+//        gkyl_dg_calc_gyrokinetic_vars_alpha_surf(s->calc_gk_vars, 
+//          &app->local, &s->local, &s->local_ext, app->field->phi_smooth,
+//          s->alpha_surf, s->sgn_alpha_surf, s->const_sgn_alpha);
+//
+//        // Compute and store (in the ghost cell of of out) the boundary fluxes.
+//        // NOTE: this overwrites ghost cells that may be used for sourcing.
+//        gk_species_bflux_rhs(app, s, &s->bflux, distf[i], distf[i]);
+//      }
+//    }
+    gyrokinetic_multib_calc_field_and_apply_bc(app, rstat.stime, distf, distf_neut);
+  }
+
+  assert(app->num_local_blocks == 1);
+  struct gkyl_gyrokinetic_app *sbapp = app->singleb_apps[0];
+  sbapp->field->is_first_energy_write_call = false; // Append to existing diagnostic.
+
+  return rstat;
 }
 
 struct gkyl_app_restart_status
@@ -1171,19 +1225,21 @@ void gkyl_gyrokinetic_multib_app_release(gkyl_gyrokinetic_multib_app* mbapp)
   int num_blocks = gkyl_block_geom_num_blocks(mbapp->block_geom);
 
   for (int i=0; i<num_blocks; ++i)
+    gkyl_comm_release(mbapp->block_comms[i]);
+  gkyl_free(mbapp->block_comms);
+
+  for (int i=0; i<num_blocks; ++i)
     gkyl_rect_decomp_release(mbapp->decomp[i]);
   gkyl_free(mbapp->decomp);
 
-  for (int i=0; i<num_blocks; ++i)
-    gkyl_comm_release(mbapp->block_comms[i]);
-  gkyl_free(mbapp->block_comms);
-  gkyl_comm_release(mbapp->comm);
+  gkyl_free(mbapp->local_blocks);    
 
   gkyl_rrobin_decomp_release(mbapp->round_robin);
   
   gkyl_block_geom_release(mbapp->block_geom);
   gkyl_block_topo_release(mbapp->block_topo);
-  gkyl_free(mbapp->local_blocks);    
   
+  gkyl_comm_release(mbapp->comm);
+
   gkyl_free(mbapp);
 }

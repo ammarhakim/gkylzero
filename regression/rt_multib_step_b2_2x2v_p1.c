@@ -413,19 +413,26 @@ main(int argc, char **argv)
 {
   struct gkyl_app_args app_args = parse_app_args(argc, argv);
 
-  // Construct communicator for use in app.
-  struct gkyl_comm *comm = gkyl_gyrokinetic_comms_new(app_args.use_mpi, app_args.use_gpu, stderr);
+#ifdef GKYL_HAVE_MPI
+  if (app_args.use_mpi) {
+    MPI_Init(&argc, &argv);
+  }
+#endif
 
   if (app_args.trace_mem) {
     gkyl_cu_dev_mem_debug_set(true);
     gkyl_mem_debug_set(true);
   }
   
+  // Construct communicator for use in app.
+  struct gkyl_comm *comm = gkyl_gyrokinetic_comms_new(app_args.use_mpi, app_args.use_gpu, stderr);
+
   // Construct block geometry.
   struct gkyl_block_geom *bgeom = create_block_geom();
   int nblocks = gkyl_block_geom_num_blocks(bgeom);
 
   struct gk_step_ctx ctx = create_ctx(); // Context for init functions.
+
   int cells_x[ctx.cdim], cells_v[ctx.vdim];
   for (int d=0; d<ctx.cdim; d++)
     cells_x[d] = APP_ARGS_CHOOSE(app_args.xcells[d], ctx.cells[d]);
@@ -794,24 +801,24 @@ main(int argc, char **argv)
   int frame_curr = 0;
   double t_curr = 0.0, t_end = ctx.t_end;
   // Initialize simulation.
-//  if (app_args.is_restart) {
-//    struct gkyl_app_restart_status status = gkyl_gyrokinetic_app_read_from_frame(app, app_args.restart_frame);
-//
-//    if (status.io_status != GKYL_ARRAY_RIO_SUCCESS) {
-//      gkyl_gyrokinetic_multib_app_cout(app, stderr, "*** Failed to read restart file! (%s)\n",
-//        gkyl_array_rio_status_msg(status.io_status));
-//      goto freeresources;
-//    }
-//
-//    frame_curr = status.frame;
-//    t_curr = status.stime;
-//
-//    gkyl_gyrokinetic_multib_app_cout(app, stdout, "Restarting from frame %d", frame_curr);
-//    gkyl_gyrokinetic_multib_app_cout(app, stdout, " at time = %g\n", t_curr);
-//  }
-//  else {
+  if (app_args.is_restart) {
+    struct gkyl_app_restart_status status = gkyl_gyrokinetic_multib_app_read_from_frame(app, app_args.restart_frame);
+
+    if (status.io_status != GKYL_ARRAY_RIO_SUCCESS) {
+      gkyl_gyrokinetic_multib_app_cout(app, stderr, "*** Failed to read restart file! (%s)\n",
+        gkyl_array_rio_status_msg(status.io_status));
+      goto freeresources;
+    }
+
+    frame_curr = status.frame;
+    t_curr = status.stime;
+
+    gkyl_gyrokinetic_multib_app_cout(app, stdout, "Restarting from frame %d", frame_curr);
+    gkyl_gyrokinetic_multib_app_cout(app, stdout, " at time = %g\n", t_curr);
+  }
+  else {
     gkyl_gyrokinetic_multib_app_apply_ic(app, t_curr);
-//  }
+  }
 
   // Create triggers for IO.
   int num_frames = ctx.num_frames, num_int_diag_calc = ctx.int_diag_calc_num;
@@ -893,8 +900,8 @@ main(int argc, char **argv)
 
   freeresources:
   // Free resources after simulation completion.
-  gkyl_block_geom_release(bgeom);
   gkyl_gyrokinetic_multib_app_release(app);
+  gkyl_block_geom_release(bgeom);
   gkyl_gyrokinetic_comms_release(comm);
 
 #ifdef GKYL_HAVE_MPI
