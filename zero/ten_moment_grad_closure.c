@@ -42,9 +42,10 @@ enum loc_3d {
 };
 
 struct gkyl_ten_moment_grad_closure {
-  struct gkyl_rect_grid grid; // grid object
-  int ndim; // number of dimensions
+  struct gkyl_rect_grid grid; // Grid over which the equations are solved.
+  int ndim; // Number of grid dimensions.
   double k0; // damping coefficient
+  bool has_volume_sources; // Run with volume-based geometrical sources.
 };
 
 static void
@@ -100,7 +101,26 @@ var_setup(const gkyl_ten_moment_grad_closure *gces,
 }
 
 static void
-calc_unmag_heat_flux(const gkyl_ten_moment_grad_closure *gces,
+var_volume_sources_setup(const gkyl_ten_moment_grad_closure *gces,
+  int start, int end,
+  const double *fluid_d[],
+  double rho[], double uy[], double uz[], double Tij[][6])
+{
+  for (int j = start; j <= end; ++j) {
+    rho[j] = fluid_d[j][RHO];
+    uy[j] = fluid_d[j][MY]/rho[j];
+    uz[j] = fluid_d[j][MZ]/rho[j];
+    Tij[j][T11] = (fluid_d[j][P11] - fluid_d[j][MX] * fluid_d[j][MX] / fluid_d[j][RHO]) / fluid_d[j][RHO];
+    Tij[j][T12] = (fluid_d[j][P12] - fluid_d[j][MX] * fluid_d[j][MY] / fluid_d[j][RHO]) / fluid_d[j][RHO];
+    Tij[j][T13] = (fluid_d[j][P13] - fluid_d[j][MX] * fluid_d[j][MZ] / fluid_d[j][RHO]) / fluid_d[j][RHO];
+    Tij[j][T22] = (fluid_d[j][P22] - fluid_d[j][MY] * fluid_d[j][MY] / fluid_d[j][RHO]) / fluid_d[j][RHO];
+    Tij[j][T23] = (fluid_d[j][P23] - fluid_d[j][MY] * fluid_d[j][MZ] / fluid_d[j][RHO]) / fluid_d[j][RHO];
+    Tij[j][T33] = (fluid_d[j][P33] - fluid_d[j][MZ] * fluid_d[j][MZ] / fluid_d[j][RHO]) / fluid_d[j][RHO];
+  }
+}
+
+static void
+calc_unmag_heat_flux(const gkyl_ten_moment_grad_closure *gces, double ebm_coeff,
   const double *fluid_d[], double *cflrate, double *heat_flux_d)
 {
   const int ndim = gces->ndim;
@@ -218,6 +238,80 @@ calc_unmag_heat_flux(const gkyl_ten_moment_grad_closure *gces,
   heat_flux_d[Q223] = alpha*vth_avg*rho_avg*(dTdy[T23] + dTdy[T23] + dTdz[T22])/3.0;
   heat_flux_d[Q233] = alpha*vth_avg*rho_avg*(dTdy[T33] + dTdz[T23] + dTdz[T23])/3.0;
   heat_flux_d[Q333] = alpha*vth_avg*rho_avg*(dTdz[T33] + dTdz[T33] + dTdz[T33])/3.0;
+    
+  if (gces->has_volume_sources) {
+
+    double Tij_avg[6] = {0.0};
+    double ux_avg = 0.0;
+    double uy_avg = 0.0;
+    double uz_avg = 0.0;
+    if (ndim == 1) {
+        double Tij[2][6] = {0.0};
+        double rho[2] = {0.0};
+        double uy[2] = {0.0};
+        double uz[2] = {0.0};
+        var_volume_sources_setup(gces, L_1D, U_1D, fluid_d, rho, uy, uz, Tij);
+        ux_avg = 0.0;
+        uy_avg = calc_arithm_avg_1D(uy[L_1D], uy[U_1D]);
+        uz_avg = calc_arithm_avg_1D(uz[L_1D], uz[U_1D]);
+        Tij_avg[T11] = calc_arithm_avg_1D(Tij[L_1D][T11], Tij[U_1D][T11]);
+        Tij_avg[T12] = calc_arithm_avg_1D(Tij[L_1D][T12], Tij[U_1D][T12]);
+        Tij_avg[T13] = calc_arithm_avg_1D(Tij[L_1D][T13], Tij[U_1D][T13]);
+        Tij_avg[T22] = calc_arithm_avg_1D(Tij[L_1D][T22], Tij[U_1D][T22]);
+        Tij_avg[T23] = calc_arithm_avg_1D(Tij[L_1D][T23], Tij[U_1D][T23]);
+        Tij_avg[T33] = calc_arithm_avg_1D(Tij[L_1D][T33], Tij[U_1D][T33]);
+
+    }
+    else if (ndim == 2) {
+        double Tij[4][6] = {0.0};
+        double rho[4] = {0.0};
+        double uy[4] = {0.0};
+        double uz[4] = {0.0};
+        var_volume_sources_setup(gces, LL_2D, UU_2D, fluid_d, rho, uy, uz, Tij);
+        ux_avg = 0.0;
+        uy_avg = calc_arithm_avg_2D(uy[LL_2D], uy[LU_2D], uy[UL_2D], uy[UU_2D]);
+        uz_avg = calc_arithm_avg_2D(uz[LL_2D], uz[LU_2D], uz[UL_2D], uz[UU_2D]);
+        Tij_avg[T11] = calc_arithm_avg_2D(Tij[LL_2D][T11], Tij[LU_2D][T11], Tij[UL_2D][T11], Tij[UU_2D][T11]);
+        Tij_avg[T12] = calc_arithm_avg_2D(Tij[LL_2D][T12], Tij[LU_2D][T12], Tij[UL_2D][T12], Tij[UU_2D][T12]);
+        Tij_avg[T13] = calc_arithm_avg_2D(Tij[LL_2D][T13], Tij[LU_2D][T13], Tij[UL_2D][T13], Tij[UU_2D][T13]);
+        Tij_avg[T22] = calc_arithm_avg_2D(Tij[LL_2D][T22], Tij[LU_2D][T22], Tij[UL_2D][T22], Tij[UU_2D][T22]);
+        Tij_avg[T23] = calc_arithm_avg_2D(Tij[LL_2D][T23], Tij[LU_2D][T23], Tij[UL_2D][T23], Tij[UU_2D][T23]);
+        Tij_avg[T33] = calc_arithm_avg_2D(Tij[LL_2D][T33], Tij[LU_2D][T33], Tij[UL_2D][T33], Tij[UU_2D][T33]);
+    }
+    else if (ndim ==3) {
+        double Tij[8][6] = {0.0};
+        double rho[8] = {0.0};
+        double uy[8] = {0.0};
+        double uz[8] = {0.0};
+        var_volume_sources_setup(gces, LLL_3D, UUU_3D, fluid_d, rho, uy, uz, Tij);
+        ux_avg = 0.0;
+        uy_avg = calc_arithm_avg_3D(uy[LLL_3D], uy[LLU_3D], uy[LUL_3D], uy[LUU_3D], uy[ULL_3D], uy[ULU_3D], uy[UUL_3D], uy[UUU_3D]);
+        uz_avg = calc_arithm_avg_3D(uz[LLL_3D], uz[LLU_3D], uz[LUL_3D], uz[LUU_3D], uz[ULL_3D], uz[ULU_3D], uz[UUL_3D], uz[UUU_3D]);
+        Tij_avg[T11] = calc_arithm_avg_3D(Tij[LLL_3D][T11], Tij[LLU_3D][T11], Tij[LUL_3D][T11], Tij[LUU_3D][T11],
+                                          Tij[ULL_3D][T11], Tij[ULU_3D][T11], Tij[UUL_3D][T11], Tij[UUU_3D][T11]);
+        Tij_avg[T12] = calc_arithm_avg_3D(Tij[LLL_3D][T12], Tij[LLU_3D][T12], Tij[LUL_3D][T12], Tij[LUU_3D][T12],
+                                          Tij[ULL_3D][T12], Tij[ULU_3D][T12], Tij[UUL_3D][T12], Tij[UUU_3D][T12]);
+        Tij_avg[T13] = calc_arithm_avg_3D(Tij[LLL_3D][T13], Tij[LLU_3D][T13], Tij[LUL_3D][T13], Tij[LUU_3D][T13],
+                                          Tij[ULL_3D][T13], Tij[ULU_3D][T13], Tij[UUL_3D][T13], Tij[UUU_3D][T13]);
+        Tij_avg[T22] = calc_arithm_avg_3D(Tij[LLL_3D][T22], Tij[LLU_3D][T22], Tij[LUL_3D][T22], Tij[LUU_3D][T22],
+                                          Tij[ULL_3D][T22], Tij[ULU_3D][T22], Tij[UUL_3D][T22], Tij[UUU_3D][T22]);
+        Tij_avg[T23] = calc_arithm_avg_3D(Tij[LLL_3D][T23], Tij[LLU_3D][T23], Tij[LUL_3D][T23], Tij[LUU_3D][T23],
+                                          Tij[ULL_3D][T23], Tij[ULU_3D][T23], Tij[UUL_3D][T23], Tij[UUU_3D][T23]);
+        Tij_avg[T33] = calc_arithm_avg_3D(Tij[LLL_3D][T33], Tij[LLU_3D][T33], Tij[LUL_3D][T33], Tij[LUU_3D][T33],
+                                          Tij[ULL_3D][T33], Tij[ULU_3D][T33], Tij[UUL_3D][T33], Tij[UUU_3D][T33]);
+    }
+      
+    heat_flux_d[Q111] += alpha*vth_avg*rho_avg*ebm_coeff*(ux_avg*Tij_avg[T11] + ux_avg*Tij_avg[T11] + ux_avg*Tij_avg[T11])/3.0;
+    heat_flux_d[Q112] += alpha*vth_avg*rho_avg*ebm_coeff*(ux_avg*Tij_avg[T12] + ux_avg*Tij_avg[T12] + uy_avg*Tij_avg[T11])/3.0;
+    heat_flux_d[Q113] += alpha*vth_avg*rho_avg*ebm_coeff*(ux_avg*Tij_avg[T13] + ux_avg*Tij_avg[T13] + uz_avg*Tij_avg[T11])/3.0;
+    heat_flux_d[Q122] += alpha*vth_avg*rho_avg*ebm_coeff*(ux_avg*Tij_avg[T22] + uy_avg*Tij_avg[T12] + uy_avg*Tij_avg[T12])/3.0;
+    heat_flux_d[Q123] += alpha*vth_avg*rho_avg*ebm_coeff*(ux_avg*Tij_avg[T22] + uy_avg*Tij_avg[T13] + uz_avg*Tij_avg[T12])/3.0;
+    heat_flux_d[Q133] += alpha*vth_avg*rho_avg*ebm_coeff*(ux_avg*Tij_avg[T33] + uz_avg*Tij_avg[T13] + uz_avg*Tij_avg[T13])/3.0;
+    heat_flux_d[Q222] += alpha*vth_avg*rho_avg*ebm_coeff*(uy_avg*Tij_avg[T22] + uy_avg*Tij_avg[T22] + uy_avg*Tij_avg[T22])/3.0;
+    heat_flux_d[Q223] += alpha*vth_avg*rho_avg*ebm_coeff*(uy_avg*Tij_avg[T23] + uy_avg*Tij_avg[T23] + uz_avg*Tij_avg[T22])/3.0;
+    heat_flux_d[Q233] += alpha*vth_avg*rho_avg*ebm_coeff*(uy_avg*Tij_avg[T33] + uz_avg*Tij_avg[T23] + uz_avg*Tij_avg[T23])/3.0;
+    heat_flux_d[Q333] += alpha*vth_avg*rho_avg*ebm_coeff*(uz_avg*Tij_avg[T33] + uz_avg*Tij_avg[T33] + uz_avg*Tij_avg[T33])/3.0;
+  }
 }
 
 static void
@@ -333,12 +427,13 @@ gkyl_ten_moment_grad_closure_new(struct gkyl_ten_moment_grad_closure_inp inp)
   up->grid = *(inp.grid);
   up->ndim = up->grid.ndim;
   up->k0 = inp.k0;
-
+  up->has_volume_sources = inp.has_volume_sources;
+    
   return up;
 }
 
 void
-gkyl_ten_moment_grad_closure_advance(const gkyl_ten_moment_grad_closure *gces,
+gkyl_ten_moment_grad_closure_advance(const gkyl_ten_moment_grad_closure *gces, double ebm_coeff,
   const struct gkyl_range *heat_flux_range, const struct gkyl_range *update_range,
   const struct gkyl_array *fluid, const struct gkyl_array *em_tot,
   struct gkyl_array *cflrate, struct gkyl_array *heat_flux,
@@ -373,7 +468,7 @@ gkyl_ten_moment_grad_closure_advance(const gkyl_ten_moment_grad_closure *gces,
 
     heat_flux_d = gkyl_array_fetch(heat_flux, linc_vertex);
 
-    calc_unmag_heat_flux(gces, fluid_d, gkyl_array_fetch(cflrate, linc_center), heat_flux_d);
+    calc_unmag_heat_flux(gces, ebm_coeff, fluid_d, gkyl_array_fetch(cflrate, linc_center), heat_flux_d);
   }
 
   struct gkyl_range_iter iter_center;

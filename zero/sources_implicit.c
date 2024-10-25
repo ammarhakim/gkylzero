@@ -454,17 +454,17 @@ implicit_volume_source_10m_update_euler(const gkyl_moment_em_coupling* mom_em, d
         
         fluid_new[3] = ((2.0 + dt * exp_u_source) / (1.0 + dt * exp_u_source) * f[3]) - f[3];
         
-        fluid_new[4] = Pxx * ((2.0 + dt * exp_rho_source) / (1.0 + dt * exp_rho_source)) - Pxx + (fluid_new[0] * fluid_new[1] * fluid_new[1]);
+        fluid_new[4] = Pxx * ((2.0 + dt * exp_rho_source) / (1.0 + dt * exp_rho_source)) - Pxx + ((fluid_new[1] * fluid_new[1])/(fluid_new[0]));
         
-        fluid_new[5] = 2.0 * Pxy * ((1.0 + dt * (exp_rho_source / 2.0 + exp_u_source / 2.0)) / (1.0 + dt * (exp_rho_source + exp_u_source))) - Pxy + (fluid_new[0] * fluid_new[1] * fluid_new[2]);
+        fluid_new[5] = 2.0 * Pxy * ((1.0 + dt * (exp_rho_source / 2.0 + exp_u_source / 2.0)) / (1.0 + dt * (exp_rho_source + exp_u_source))) - Pxy + ((fluid_new[1] * fluid_new[2])/(fluid_new[0]));
         
-        fluid_new[6] = 2.0 * Pxz * ((1.0 + dt * (exp_rho_source / 2.0 + exp_u_source / 2.0)) / (1.0 + dt * (exp_rho_source + exp_u_source))) - Pxz + (fluid_new[0] * fluid_new[1] * fluid_new[3]);
+        fluid_new[6] = 2.0 * Pxz * ((1.0 + dt * (exp_rho_source / 2.0 + exp_u_source / 2.0)) / (1.0 + dt * (exp_rho_source + exp_u_source))) - Pxz + ((fluid_new[1] * fluid_new[3])/(fluid_new[0]));
         
-        fluid_new[7] = 2.0 * Pyy * ((1.0 + dt * exp_rho_source) / (1.0 + 2.0 * dt * exp_rho_source)) - Pyy + (fluid_new[0] * fluid_new[2] * fluid_new[2]);
+        fluid_new[7] = 2.0 * Pyy * ((1.0 + dt * exp_rho_source) / (1.0 + 2.0 * dt * exp_rho_source)) - Pyy + ((fluid_new[2] * fluid_new[2])/(fluid_new[0]));
         
-        fluid_new[8] = 2.0 * Pyz * ((1.0 + dt * exp_rho_source) / (1.0 + 2.0 * dt * exp_rho_source)) - Pyz + (fluid_new[0] * fluid_new[2] * fluid_new[3]);
+        fluid_new[8] = 2.0 * Pyz * ((1.0 + dt * exp_rho_source) / (1.0 + 2.0 * dt * exp_rho_source)) - Pyz + ((fluid_new[2] * fluid_new[3])/(fluid_new[0]));
         
-        fluid_new[9] = 2.0 * Pzz * ((1.0 + dt * exp_rho_source) / (1.0 + 2.0 * dt * exp_rho_source)) - Pzz + (fluid_new[0] * fluid_new[3] * fluid_new[3]);
+        fluid_new[9] = 2.0 * Pzz * ((1.0 + dt * exp_rho_source) / (1.0 + 2.0 * dt * exp_rho_source)) - Pzz + ((fluid_new[3] * fluid_new[3])/(fluid_new[0]));
     }
 }
 

@@ -196,7 +196,12 @@ moment_coupling_update(gkyl_moment_app *app, struct moment_coupling *src,
     if (app->species[i].eqn_type == GKYL_EQN_TEN_MOMENT && app->species[i].has_grad_closure) {
       // non-ideal variables defined on an extended range with one additional "cell" in each direction
       // this additional cell accounts for the fact that non-ideal variables are stored at cell vertices
-      gkyl_ten_moment_grad_closure_advance(src->grad_closure_slvr[i],
+      double ebm_coeff = 0.0;
+        if (app->species[i].has_volume_sources) {
+            double a = 1.0 + ((app->species[i].volume_U0 * tcurr) / app->species[i].volume_R0);
+            ebm_coeff = app->species[i].volume_U0 / (a*app->species[i].volume_R0);
+        }
+      gkyl_ten_moment_grad_closure_advance(src->grad_closure_slvr[i], ebm_coeff,
         &src->non_ideal_local_ext, &app->local,
         app->species[i].f[sidx[nstrang]], app->field.f[sidx[nstrang]],
         src->non_ideal_cflrate[i], src->non_ideal_vars[i], src->pr_rhs[i]);
