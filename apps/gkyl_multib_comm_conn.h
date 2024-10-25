@@ -3,6 +3,8 @@
 #include <gkyl_block_topo.h>
 #include <gkyl_rect_decomp.h>
 #include <gkyl_ref_count.h>
+#include <gkyl_comm.h>
+#include <gkyl_array.h>
 
 // Information for block send/recv
 struct gkyl_comm_conn {
@@ -78,8 +80,7 @@ void gkyl_multib_comm_conn_release(const struct gkyl_multib_comm_conn *cconn);
  * @param decomp List of decomposition objects for each block
  * @return New communication connection object for sends
  */
-struct gkyl_multib_comm_conn *
-gkyl_multib_comm_conn_new_send_from_connections(
+struct gkyl_multib_comm_conn *gkyl_multib_comm_conn_new_send_from_connections(
   int block_id, int block_rank,
   int nconnected, int* block_list, int dir,
   struct gkyl_rect_decomp **decomp);
@@ -96,8 +97,25 @@ gkyl_multib_comm_conn_new_send_from_connections(
  * @param decomp List of decomposition objects for each block
  * @return New communication connection object for sends
  */
-struct gkyl_multib_comm_conn *
-gkyl_multib_comm_conn_new_recv_from_connections(
+struct gkyl_multib_comm_conn *gkyl_multib_comm_conn_new_recv_from_connections(
   int block_id, int block_rank,
   int nconnected, int* block_list, int dir,
   struct gkyl_rect_decomp **decomp);
+
+/**
+ * Transfer data from 'ain' and to 'aout' according to connections in
+ * 'mbcc_send' and 'mbcc_recv'.
+ *
+ * @param comm Multiblock comm object.
+ * @param num_blocks_local Number of blocks in this MPI process.
+ * @param local_blocks Block IDs of the local blocks.
+ * @param mbcc_send Sending connections between ranks (for each local block).
+ * @param mbcc_recv Receiving connections between ranks (for each local block).
+ * @param arr_send Array to send from (for each local block). 
+ * @param arr_recv Array to receive into (for each local block).
+ */
+int gkyl_multib_comm_conn_array_transfer(struct gkyl_comm *comm,
+  int num_blocks_local, const int *local_blocks,
+  struct gkyl_multib_comm_conn **mbcc_send, struct gkyl_multib_comm_conn **mbcc_recv,
+  struct gkyl_array **arr_send, struct gkyl_array **arr_recv);
+

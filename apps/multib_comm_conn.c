@@ -2,8 +2,10 @@
 #include <gkyl_alloc.h>
 #include <gkyl_multib_comm_conn.h>
 #include <gkyl_util.h>
+#include <gkyl_multib_comm_conn_priv.h>
 
 #include <string.h>
+#include <assert.h>
 
 enum multib_send_recv { GKYL_COMM_CONN_SEND, GKYL_COMM_CONN_RECV };
 
@@ -345,4 +347,28 @@ gkyl_multib_comm_conn_release(const struct gkyl_multib_comm_conn *cconn)
 {
   if (cconn)
     gkyl_ref_count_dec(&cconn->ref_count);
+}
+
+int
+gkyl_multib_comm_conn_array_transfer(struct gkyl_comm *comm, int num_blocks_local, const int *blocks_local,
+  struct gkyl_multib_comm_conn **mbcc_send, struct gkyl_multib_comm_conn **mbcc_recv,
+  struct gkyl_array **arr_send, struct gkyl_array **arr_recv)
+{
+  int err;
+  if (strcmp(comm->id, "null_comm") == 0) {
+//    err = gkyl_multib_comm_conn_array_transfer_null(comm, num_blocks_local, blocks_local,
+//      mbcc_send, mbcc_recv, arr_send, arr_recv);
+  }
+  else if (strcmp(comm->id, "mpi_comm") == 0) {
+    err = gkyl_multib_comm_conn_array_transfer_mpi(comm, num_blocks_local, blocks_local,
+      mbcc_send, mbcc_recv, arr_send, arr_recv);
+  }
+  else if (strcmp(comm->id, "nccl_comm") == 0) {
+//    err = gkyl_multib_comm_conn_array_transfer_nccl(comm, num_blocks_local, blocks_local,
+//      mbcc_send, mbcc_recv, arr_send, arr_recv);
+  }
+  else
+    assert(false);
+
+  return err;
 }

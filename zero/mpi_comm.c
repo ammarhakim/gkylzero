@@ -8,17 +8,11 @@
 #include <gkyl_comm_priv.h>
 #include <gkyl_elem_type_priv.h>
 #include <gkyl_mpi_comm.h>
+#include <gkyl_mpi_comm_priv.h>
 
 #include <assert.h>
 #include <errno.h>
 #include <string.h>
-
-// Maximum number of recv neighbors: not sure hard-coding this is a
-// good idea.
-#define MAX_RECV_NEIGH 128
-
-#define MPI_BASE_TAG 4242
-#define MPI_BASE_PER_TAG 5252
 
 // Mapping of Gkeyll type to MPI_Datatype
 static MPI_Datatype g2_mpi_datatype[] = {
@@ -35,13 +29,6 @@ static MPI_Op g2_mpi_op[] = {
   [GKYL_SUM] = MPI_SUM
 };
 
-// Receive data
-struct comm_buff_stat {
-  struct gkyl_range range;
-  MPI_Request status;
-  gkyl_mem_buff buff;
-};
-
 struct gkyl_comm_state {
   MPI_Request req;
   MPI_Status stat;
@@ -54,41 +41,6 @@ struct extra_mpi_comm_inp {
 // Internal method to create a new MPI communicator
 static struct gkyl_comm* mpi_comm_new(
   const struct gkyl_mpi_comm_inp *inp, const struct extra_mpi_comm_inp *extra_inp);
-
-// Private struct wrapping MPI-specific code
-struct mpi_comm {
-  struct gkyl_comm_priv priv_comm; // base communicator
-
-  bool is_mcomm_allocated; // is the mcomm allocated?
-  MPI_Comm mcomm; // MPI communicator to use
-  struct gkyl_rect_decomp *decomp; // pre-computed decomposition
-  long local_range_offset; // offset of the local region
-
-  bool sync_corners; // should we sync corners?
-
-  struct gkyl_rect_decomp_neigh *neigh; // neighbors of local region
-  struct gkyl_rect_decomp_neigh *per_neigh[GKYL_MAX_DIM]; // periodic neighbors
-
-  struct gkyl_range dir_edge; // for use in computing tags
-  int is_on_edge[2][GKYL_MAX_DIM]; // flags to indicate if local range is on edge
-  bool touches_any_edge; // true if this range touches any edge
-
-  int nrecv; // number of elements in rinfo array
-  struct comm_buff_stat recv[MAX_RECV_NEIGH]; // info for recv data
-
-  int nsend; // number of elements in sinfo array
-  struct comm_buff_stat send[MAX_RECV_NEIGH]; // info for send data
-
-  int nrecv_multib; // number of elements in rinfo array
-  struct comm_buff_stat recv_multib[MAX_RECV_NEIGH]; // info for recv data
-
-  int nsend_multib; // number of elements in sinfo array
-  struct comm_buff_stat send_multib[MAX_RECV_NEIGH]; // info for send data
-
-  // buffers for for allgather
-  struct comm_buff_stat allgather_buff_local; 
-  struct comm_buff_stat allgather_buff_global; 
-};
 
 static void
 comm_free(const struct gkyl_ref_count *ref)
@@ -508,115 +460,6 @@ array_per_sync(struct gkyl_comm *comm, const struct gkyl_range *local,
 }
 
 static int
-sync_multib(struct gkyl_comm *comm, int num_blocks_local, const int *local_blocks,
-  struct gkyl_multib_comm_conn **mbcc_send, struct gkyl_multib_comm_conn **mbcc_recv,
-  struct gkyl_array **array)
-{
-  struct mpi_comm *mpi = container_of(comm, struct mpi_comm, priv_comm.pub_comm);
-
-  int tag = MPI_BASE_TAG;
-
-  int my_rank;
-  gkyl_comm_get_rank(comm, &my_rank);
-
-  // post nonblocking recv to get data into ghost-cells  
-  int nridx = 0;
-  for (int bI=0; bI<num_blocks_local; ++bI) {
-    struct gkyl_multib_comm_conn *mbcc_r = mbcc_recv[bI];
-
-    for (int n=0; n<mbcc_r->num_comm_conn; ++n) {
-      int nid = mbcc_r->comm_conn[n].rank;
-      int bid = mbcc_r->comm_conn[n].block_id;
-      
-      size_t recv_vol = array[bI]->esznc*mbcc_r->comm_conn[n].range.volume;
-
-      if (recv_vol>0) {
-        if (gkyl_mem_buff_size(mpi->recv[nridx].buff) < recv_vol)
-          gkyl_mem_buff_resize(mpi->recv[nridx].buff, recv_vol);
-
-        int rtag = tag + 1000*nid + bid;
-
-        MPI_Irecv(gkyl_mem_buff_data(mpi->recv[nridx].buff),
-          recv_vol, MPI_CHAR, nid, rtag, mpi->mcomm, &mpi->recv[nridx].status);
-
-        nridx += 1;
-      }
-    }
-  }
-
-  // post non-blocking sends of skin-cell data to neighbors
-  int nsidx = 0;
-  for (int bI=0; bI<num_blocks_local; ++bI) {
-    struct gkyl_multib_comm_conn *mbcc_s = mbcc_send[bI];
-
-    for (int n=0; n<mbcc_s->num_comm_conn; ++n) {
-      int nid = mbcc_s->comm_conn[n].rank;
-    
-      size_t send_vol = array[bI]->esznc*mbcc_s->comm_conn[n].range.volume;
-
-      if (send_vol>0) {
-        if (gkyl_mem_buff_size(mpi->send[nsidx].buff) < send_vol)
-          gkyl_mem_buff_resize(mpi->send[nsidx].buff, send_vol);
-        
-        gkyl_array_copy_to_buffer(gkyl_mem_buff_data(mpi->send[nsidx].buff),
-          array[bI], &mbcc_s->comm_conn[n].range);
-
-        int stag = tag + 1000*my_rank + local_blocks[bI];
-
-        MPI_Isend(gkyl_mem_buff_data(mpi->send[nsidx].buff),
-          send_vol, MPI_CHAR, nid, stag, mpi->mcomm, &mpi->send[nsidx].status);
-
-        nsidx += 1;
-      }
-    }
-  }
-
-  // complete send
-  nsidx = 0;
-  for (int bI=0; bI<num_blocks_local; ++bI) {
-    struct gkyl_multib_comm_conn *mbcc_s = mbcc_send[bI];
-    for (int n=0; n<mbcc_s->num_comm_conn; ++n) {
-      int issend = mbcc_s->comm_conn[n].range.volume;
-      if (issend) {
-        MPI_Wait(&mpi->send[nsidx].status, MPI_STATUS_IGNORE);
-        nsidx += 1;
-      }
-    }
-  }
-
-  // complete recv, copying data into ghost-cells
-  nridx = 0;
-  for (int bI=0; bI<num_blocks_local; ++bI) {
-    struct gkyl_multib_comm_conn *mbcc_r = mbcc_recv[bI];
-    for (int n=0; n<mbcc_r->num_comm_conn; ++n) {
-      int isrecv = mbcc_r->comm_conn[n].range.volume;
-      if (isrecv) {
-        MPI_Wait(&mpi->recv[nridx].status, MPI_STATUS_IGNORE);
-        
-        gkyl_array_copy_from_buffer(array[bI],
-          gkyl_mem_buff_data(mpi->recv[nridx].buff),
-          &(mbcc_r->comm_conn[n].range)
-        );
-
-        nridx += 1;
-      }
-    }
-  }
-  
-  return 0;
-}
-
-static int
-array_sync_multib(struct gkyl_comm *comm, int num_blocks_local, const int *local_blocks,
-  struct gkyl_multib_comm_conn **mbcc_send, struct gkyl_multib_comm_conn **mbcc_recv,
-  struct gkyl_array **array)
-{
-  sync_multib(comm, num_blocks_local, local_blocks, mbcc_send, mbcc_recv, array);
-  
-  return 0;
-}
-
-static int
 barrier(struct gkyl_comm *comm)
 {
   struct mpi_comm *mpi = container_of(comm, struct mpi_comm, priv_comm.pub_comm);
@@ -928,7 +771,6 @@ mpi_comm_new(const struct gkyl_mpi_comm_inp *inp,
   
   mpi->priv_comm.gkyl_array_sync = array_sync;
   mpi->priv_comm.gkyl_array_per_sync = array_per_sync;
-  mpi->priv_comm.gkyl_array_sync_multib = array_sync_multib;
   mpi->priv_comm.gkyl_array_write = array_write;
   mpi->priv_comm.gkyl_array_read = array_read;
   mpi->priv_comm.gkyl_array_allgather = array_allgather;
