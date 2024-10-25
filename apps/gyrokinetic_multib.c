@@ -1136,7 +1136,8 @@ gkyl_gyrokinetic_multib_app_write(gkyl_gyrokinetic_multib_app* app, double tm, i
 // ............. End of write functions ............... //
 // 
 
-struct gkyl_update_status gkyl_gyrokinetic_multib_update(gkyl_gyrokinetic_multib_app* app, double dt)
+struct gkyl_update_status
+gkyl_gyrokinetic_multib_update(gkyl_gyrokinetic_multib_app* app, double dt)
 {
   app->stat.nup += 1;
   struct timespec wst = gkyl_wall_clock();
