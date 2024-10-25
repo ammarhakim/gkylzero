@@ -320,8 +320,8 @@ test_L_domain_sync(bool use_gpu, bool use_mpi, int **cuts, int poly_order)
   }
 
   // Sync blocks.
-  gkyl_comm_array_sync_multib(comm, num_blocks_local,
-    mbcc_send, mbcc_recv, locals, local_exts, fs);
+  gkyl_comm_array_sync_multib(comm, num_blocks_local, local_blocks,
+    mbcc_send, mbcc_recv, fs);
 
   // Check results.
   for (int bI=0; bI<num_blocks_local; ++bI) {

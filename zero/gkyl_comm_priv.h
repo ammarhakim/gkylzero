@@ -34,9 +34,8 @@ typedef int (*gkyl_array_per_sync_t)(struct gkyl_comm *comm,
   struct gkyl_array *array);
 
 // "Synchronize" @a array across the regions or blocks.
-typedef int (*gkyl_array_sync_multib_t)(struct gkyl_comm *comm, int num_blocks_local,
+typedef int (*gkyl_array_sync_multib_t)(struct gkyl_comm *comm, int num_blocks_local, const int *local_blocks,
   struct gkyl_multib_comm_conn **mbcc_send, struct gkyl_multib_comm_conn **mbcc_recv,
-  struct gkyl_range **local, struct gkyl_range **local_ext,
   struct gkyl_array **array);
 
 // Write array to specified file

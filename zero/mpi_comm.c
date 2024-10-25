@@ -508,14 +508,16 @@ array_per_sync(struct gkyl_comm *comm, const struct gkyl_range *local,
 }
 
 static int
-sync_multib(struct gkyl_comm *comm, int num_blocks_local,
+sync_multib(struct gkyl_comm *comm, int num_blocks_local, const int *local_blocks,
   struct gkyl_multib_comm_conn **mbcc_send, struct gkyl_multib_comm_conn **mbcc_recv,
-  struct gkyl_range **local, struct gkyl_range **local_ext,
   struct gkyl_array **array)
 {
   struct mpi_comm *mpi = container_of(comm, struct mpi_comm, priv_comm.pub_comm);
 
   int tag = MPI_BASE_TAG;
+
+  int my_rank;
+  gkyl_comm_get_rank(comm, &my_rank);
 
   // post nonblocking recv to get data into ghost-cells  
   int nridx = 0;
@@ -524,6 +526,7 @@ sync_multib(struct gkyl_comm *comm, int num_blocks_local,
 
     for (int n=0; n<mbcc_r->num_comm_conn; ++n) {
       int nid = mbcc_r->comm_conn[n].rank;
+      int bid = mbcc_r->comm_conn[n].block_id;
       
       size_t recv_vol = array[bI]->esznc*mbcc_r->comm_conn[n].range.volume;
 
@@ -531,8 +534,10 @@ sync_multib(struct gkyl_comm *comm, int num_blocks_local,
         if (gkyl_mem_buff_size(mpi->recv[nridx].buff) < recv_vol)
           gkyl_mem_buff_resize(mpi->recv[nridx].buff, recv_vol);
 
+        int rtag = tag + 1000*nid + bid;
+
         MPI_Irecv(gkyl_mem_buff_data(mpi->recv[nridx].buff),
-          recv_vol, MPI_CHAR, nid, tag, mpi->mcomm, &mpi->recv[nridx].status);
+          recv_vol, MPI_CHAR, nid, rtag, mpi->mcomm, &mpi->recv[nridx].status);
 
         nridx += 1;
       }
@@ -556,8 +561,10 @@ sync_multib(struct gkyl_comm *comm, int num_blocks_local,
         gkyl_array_copy_to_buffer(gkyl_mem_buff_data(mpi->send[nsidx].buff),
           array[bI], &mbcc_s->comm_conn[n].range);
 
+        int stag = tag + 1000*my_rank + local_blocks[bI];
+
         MPI_Isend(gkyl_mem_buff_data(mpi->send[nsidx].buff),
-          send_vol, MPI_CHAR, nid, tag, mpi->mcomm, &mpi->send[nsidx].status);
+          send_vol, MPI_CHAR, nid, stag, mpi->mcomm, &mpi->send[nsidx].status);
 
         nsidx += 1;
       }
@@ -600,13 +607,11 @@ sync_multib(struct gkyl_comm *comm, int num_blocks_local,
 }
 
 static int
-array_sync_multib(struct gkyl_comm *comm, int num_blocks_local,
+array_sync_multib(struct gkyl_comm *comm, int num_blocks_local, const int *local_blocks,
   struct gkyl_multib_comm_conn **mbcc_send, struct gkyl_multib_comm_conn **mbcc_recv,
-  struct gkyl_range **local, struct gkyl_range **local_ext,
   struct gkyl_array **array)
 {
-  sync_multib(comm, num_blocks_local, mbcc_send, mbcc_recv,
-    local, local_ext, array);
+  sync_multib(comm, num_blocks_local, local_blocks, mbcc_send, mbcc_recv, array);
   
   return 0;
 }

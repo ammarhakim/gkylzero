@@ -121,16 +121,14 @@ int gkyl_comm_array_sync(struct gkyl_comm *comm,
  *
  * @param comm Communicator
  * @param num_blocks_local Number of blocks in this rank.
+ * @param local_blocks Block IDs of blocks in this rank.
  * @param mbcc_send Send multiblock comm conn object.
  * @param mbcc_recv Receive multiblock comm conn object.
- * @param local Local range for array: sub-range of local_ext
- * @param local_ext Extended range, i.e. range over which array is defined
  * @param array Array to synchronize
  * @return error code: 0 for success
  */
-int gkyl_comm_array_sync_multib(struct gkyl_comm *comm, int num_blocks_local,
+int gkyl_comm_array_sync_multib(struct gkyl_comm *comm, int num_blocks_local, const int *local_blocks,
   struct gkyl_multib_comm_conn **mbcc_send, struct gkyl_multib_comm_conn **mbcc_recv,
-  struct gkyl_range **local, struct gkyl_range **local_ext,
   struct gkyl_array **array);
 
 /**

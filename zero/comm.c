@@ -93,14 +93,13 @@ gkyl_comm_array_per_sync(struct gkyl_comm *pcomm,
     nper_dirs, per_dirs, array);
 }
 
-int gkyl_comm_array_sync_multib(struct gkyl_comm *pcomm, int num_blocks_local,
+int gkyl_comm_array_sync_multib(struct gkyl_comm *pcomm, int num_blocks_local, const int *local_blocks,
   struct gkyl_multib_comm_conn **mbcc_send, struct gkyl_multib_comm_conn **mbcc_recv,
-  struct gkyl_range **local, struct gkyl_range **local_ext,
   struct gkyl_array **array)
 {
   struct gkyl_comm_priv *comm = container_of(pcomm, struct gkyl_comm_priv, pub_comm);  
   comm->barrier(pcomm);
-  return comm->gkyl_array_sync_multib(pcomm, num_blocks_local, mbcc_send, mbcc_recv, local, local_ext, array);
+  return comm->gkyl_array_sync_multib(pcomm, num_blocks_local, local_blocks, mbcc_send, mbcc_recv, array);
 }
 
 int
