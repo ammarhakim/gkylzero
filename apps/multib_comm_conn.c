@@ -307,7 +307,7 @@ gkyl_multib_comm_conn_new_recv_from_connections(
       gkyl_range_shift(&sub_range, tar_br, delta);
       int is_inter;
       struct gkyl_range irng;
-      is_inter = gkyl_range_intersect(&irng, &cross_range, &sub_range);
+      is_inter = gkyl_sub_range_intersect(&irng, &cross_range, &sub_range);
       if (is_inter) {
         comm_conn[comm_conn_idx].rank = ir;
         comm_conn[comm_conn_idx].block_id = tar_bid;
