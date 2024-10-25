@@ -32,10 +32,9 @@ void eval_field_3x(double t, const double *xn, double* restrict fout, void *ctx)
 void
 test_3x(int poly_order, bool use_gpu, enum gkyl_edge_loc edge)
 {
-  const int cdim = 3;
   double lower[] = {0.0, 0.0, 0.0}, upper[] = {1.0, 1.0, 1.0};
   int cells[] = {2, 4, 6};
-  int dir = 0;
+  int dir = 2;
 
   const int ndim = sizeof(cells)/sizeof(cells[0]);
 
@@ -45,7 +44,7 @@ test_3x(int poly_order, bool use_gpu, enum gkyl_edge_loc edge)
 
   // Basis functions.
   struct gkyl_basis basis;
-  gkyl_cart_modal_serendip(&basis, cdim, poly_order);
+  gkyl_cart_modal_serendip(&basis, ndim, poly_order);
 
   // Ranges
   int ghost[GKYL_MAX_CDIM] = { 1 };
@@ -112,14 +111,14 @@ test_3x(int poly_order, bool use_gpu, enum gkyl_edge_loc edge)
 
 void test_3x_ho()
 {
-  test_3x(1, false, GKYL_UPPER_EDGE);
   test_3x(1, false, GKYL_LOWER_EDGE);
+  test_3x(1, false, GKYL_UPPER_EDGE);
 }
 
 void test_3x_dev()
 {
-  test_3x(1, true, GKYL_UPPER_EDGE);
   test_3x(1, true, GKYL_LOWER_EDGE);
+  test_3x(1, true, GKYL_UPPER_EDGE);
 }
 
 TEST_LIST = {

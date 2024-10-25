@@ -38,7 +38,6 @@ gkyl_skin_surf_from_ghost_new(int dir, enum gkyl_edge_loc edge, const struct gky
   return up;
 }
 
-/* Modeled after gkyl_array_flip_copy_to_buffer_fn */
 void
 gkyl_skin_surf_from_ghost_advance(const struct gkyl_skin_surf_from_ghost *up, struct gkyl_array *field)
 {
