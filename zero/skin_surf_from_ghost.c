@@ -7,7 +7,7 @@ struct gkyl_skin_surf_from_ghost*
 gkyl_skin_surf_from_ghost_new(int dir, enum gkyl_edge_loc edge, const struct gkyl_basis *basis,
   const struct gkyl_range *skin_r, const struct gkyl_range *ghost_r, bool use_gpu)
 {
-
+  
   // Allocate space for new updater.
   struct gkyl_skin_surf_from_ghost *up = gkyl_malloc(sizeof(*up));
 
@@ -19,10 +19,10 @@ gkyl_skin_surf_from_ghost_new(int dir, enum gkyl_edge_loc edge, const struct gky
   up->ghost_r = ghost_r;
 
   // Choose the kernel that does the skin surf from ghost copy
-  up->kernels = gkyl_malloc(sizeof(struct gkyl_skin_surf_from_ghost));
+  up->kernels = gkyl_malloc(sizeof(struct gkyl_skin_surf_from_ghost_kernels));
 #ifdef GKYL_HAVE_CUDA
   if (use_gpu) {
-    up->kernels_cu = gkyl_cu_malloc(sizeof(struct gkyl_skin_surf_from_ghost));
+    up->kernels_cu = gkyl_cu_malloc(sizeof(struct gkyl_skin_surf_from_ghost_kernels));
     gkyl_skin_surf_from_ghost_choose_kernel_cu(basis, edge, up->kernels_cu);
   } else {
     up->kernels->ghost_to_skin = skin_surf_from_ghost_choose_kernel(basis, edge);
