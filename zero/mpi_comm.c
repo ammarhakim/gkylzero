@@ -565,10 +565,16 @@ sync_multib(struct gkyl_comm *comm, int num_blocks_local,
   }
 
   // complete send
-  for (int s=0; s<nsidx; ++s) {
-    int issend = mpi->send_multib[s].range.volume;
-    if (issend)
-      MPI_Wait(&mpi->send[nsidx].status, MPI_STATUS_IGNORE);
+  nsidx = 0;
+  for (int bI=0; bI<num_blocks_local; ++bI) {
+    struct gkyl_multib_comm_conn *mbcc_s = mbcc_send[bI];
+    for (int n=0; n<mbcc_s->num_comm_conn; ++n) {
+      int issend = mbcc_s->comm_conn[n].range.volume;
+      if (issend) {
+        MPI_Wait(&mpi->send[nsidx].status, MPI_STATUS_IGNORE);
+        nsidx += 1;
+      }
+    }
   }
 
   // complete recv, copying data into ghost-cells
