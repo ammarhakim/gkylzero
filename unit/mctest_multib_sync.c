@@ -175,7 +175,6 @@ mkarr(bool on_gpu, long nc, long size)
 static void
 test_L_domain_sync(bool use_gpu, bool use_mpi, int **cuts, int poly_order)
 {
-  printf("\n");
   // Create world comm.
   struct gkyl_comm* comm = comm_new(use_mpi, use_gpu, stderr);
 
@@ -268,8 +267,9 @@ test_L_domain_sync(bool use_gpu, bool use_mpi, int **cuts, int poly_order)
     app->f = mkarr(use_gpu, app->basis.num_basis, app->local_ext.volume);
     
     // Put some value in f that is distinct in every rank and block.
-    for (int k=0; k<app->basis.num_basis; k++)
-      gkyl_array_shiftc_range(app->f, bid*my_rank, k, &app->local);
+//    for (int k=0; k<app->basis.num_basis; k++)
+    int k=0;
+      gkyl_array_shiftc(app->f, bid+100.0*my_rank, k);
   }
 
   // Communication connections. 
@@ -294,19 +294,26 @@ test_L_domain_sync(bool use_gpu, bool use_mpi, int **cuts, int poly_order)
     mbcc_send[bI] = gkyl_multib_comm_conn_new_send(bid, brank, nghost,
       &topo->conn[bid], decomp);
 
+    struct app_L *app = singleb_apps[bI];
+
     // Translate the "rank" in gkyl_multib_comm_conn (right now it is a rank index).
     for (int ns=0; ns<mbcc_recv[bI]->num_comm_conn; ++ns) {
       int rankIdx = mbcc_recv[bI]->comm_conn[ns].rank;
       gkyl_rrobin_decomp_getranks(round_robin_decomp, mbcc_recv[bI]->comm_conn[ns].block_id, rank_list);
       mbcc_recv[bI]->comm_conn[ns].rank = rank_list[rankIdx];
+      // Make range a sub
+      gkyl_sub_range_init(&mbcc_recv[bI]->comm_conn[ns].range, &app->local_ext,
+        mbcc_recv[bI]->comm_conn[ns].range.lower, mbcc_recv[bI]->comm_conn[ns].range.upper);
     }
     for (int ns=0; ns<mbcc_send[bI]->num_comm_conn; ++ns) {
       int rankIdx = mbcc_send[bI]->comm_conn[ns].rank;
       gkyl_rrobin_decomp_getranks(round_robin_decomp, mbcc_send[bI]->comm_conn[ns].block_id, rank_list);
       mbcc_send[bI]->comm_conn[ns].rank = rank_list[rankIdx];
+      // Make range a sub
+      gkyl_sub_range_init(&mbcc_send[bI]->comm_conn[ns].range, &app->local_ext,
+        mbcc_send[bI]->comm_conn[ns].range.lower, mbcc_send[bI]->comm_conn[ns].range.upper);
     }
 
-    struct app_L *app = singleb_apps[bI];
     fs[bI] = app->f;
     locals[bI] = &app->local;
     local_exts[bI] = &app->local_ext;
@@ -319,20 +326,22 @@ test_L_domain_sync(bool use_gpu, bool use_mpi, int **cuts, int poly_order)
   // Check results.
   for (int bI=0; bI<num_blocks_local; ++bI) {
     struct app_L *app = singleb_apps[bI];
+    int bid = local_blocks[bI];
 
     for (int ns=0; ns<mbcc_recv[bI]->num_comm_conn; ++ns) {
       struct gkyl_comm_conn *cc = &mbcc_recv[bI]->comm_conn[ns];
-      double ref = cc->block_id * cc->rank;
+      double ref = cc->block_id + 100.0*cc->rank;
 
       struct gkyl_range_iter iter;
       gkyl_range_iter_init(&iter, &cc->range);
       while (gkyl_range_iter_next(&iter)) {
         long linidx = gkyl_range_idx(&cc->range, iter.idx);
         double *f_c = gkyl_array_fetch(app->f, linidx);
+//        for (int k=0; k<app->basis.num_basis; k++) {
         int k=0;
-        for (int k=0; k<app->basis.num_basis; k++) {
           TEST_CHECK( gkyl_compare(ref, f_c[k], 1e-10) );
-        }
+          TEST_MSG( "bid:%d | Expected: %.13e | Got: %.13e | Cell:%d,%d\n", bid, ref, f_c[k], iter.idx[0], iter.idx[1]);
+//        }
       }
     }
   }
