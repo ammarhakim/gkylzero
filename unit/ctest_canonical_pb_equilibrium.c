@@ -328,6 +328,7 @@ test_2x2v(int poly_order)
   gkyl_proj_on_basis_release(proj_m2);
   gkyl_eval_on_nodes_release(h_ij_inv_proj);
   gkyl_eval_on_nodes_release(hamil_proj);
+  gkyl_eval_on_nodes_release(det_h_proj);
 }
 
 

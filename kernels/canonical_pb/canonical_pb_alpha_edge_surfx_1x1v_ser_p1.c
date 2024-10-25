@@ -25,17 +25,27 @@ GKYL_CU_DH int canonical_pb_alpha_edge_surfx_1x1v_ser_p1(const double *w, const 
 
   int const_sgn_alpha_surf = 1;  
   
-  if (0.7071067811865468*alphaR[0]-0.7071067811865468*alphaR[1] > 0.) 
+  if (0.7071067811865468*alphaR[0]-0.9486832980505135*alphaR[1] > 0.) 
     sgn_alpha_surfR[0] = 1.0; 
   else  
     sgn_alpha_surfR[0] = -1.0; 
   
-  if (0.7071067811865468*(alphaR[1]+alphaR[0]) > 0.) 
+  if (0.7071067811865468*alphaR[0] > 0.) 
     sgn_alpha_surfR[1] = 1.0; 
   else  
     sgn_alpha_surfR[1] = -1.0; 
   
   if (sgn_alpha_surfR[1] == sgn_alpha_surfR[0]) 
+    const_sgn_alpha_surf = const_sgn_alpha_surf ? 1 : 0; 
+  else  
+    const_sgn_alpha_surf = 0; 
+  
+  if (0.9486832980505135*alphaR[1]+0.7071067811865468*alphaR[0] > 0.) 
+    sgn_alpha_surfR[2] = 1.0; 
+  else  
+    sgn_alpha_surfR[2] = -1.0; 
+  
+  if (sgn_alpha_surfR[2] == sgn_alpha_surfR[1]) 
     const_sgn_alpha_surf = const_sgn_alpha_surf ? 1 : 0; 
   else  
     const_sgn_alpha_surf = 0; 
