@@ -75,6 +75,21 @@ gkyl_mom_vlasov_sr_new(const struct gkyl_basis* cbasis, const struct gkyl_basis*
       }
       break;
 
+    case GKYL_BASIS_MODAL_TENSOR:
+      m0_kernels = tensor_m0_kernels;
+      m2_kernels = tensor_m2_kernels;
+      Ni_kernels = tensor_Ni_kernels;
+      Tij_kernels = tensor_Tij_kernels;
+      if (use_vmap) {
+        m1i_kernels = tensor_vmap_m1i_kernels;
+        m3i_kernels = tensor_vmap_m3i_kernels;
+      }
+      else {
+        m1i_kernels = tensor_m1i_kernels;
+        m3i_kernels = tensor_m3i_kernels;
+      }
+      break;
+
     default:
       assert(false);
       break;    
@@ -176,6 +191,15 @@ gkyl_int_mom_vlasov_sr_new(const struct gkyl_basis* cbasis, const struct gkyl_ba
       }
       else {
         int_mom_kernels = ser_int_mom_kernels;
+      }
+      break;
+
+    case GKYL_BASIS_MODAL_TENSOR:
+      if (use_vmap) {
+        int_mom_kernels = tensor_vmap_int_mom_kernels;
+      }
+      else {
+        int_mom_kernels = tensor_int_mom_kernels;
       }
       break;
 

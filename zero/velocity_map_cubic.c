@@ -11,8 +11,9 @@
 
 void
 gkyl_velocity_map_cubic_new(const struct gkyl_rect_grid *vgrid, const struct gkyl_range *vrange, 
-  evalf_t eval_vmap, void *ctx, 
-  struct gkyl_array *vmap, struct gkyl_array *jacob_vel_inv, struct gkyl_array *jacob_vel_gauss)
+  struct gkyl_velocity_map_cubic_inp inp_vmap[GKYL_MAX_CDIM], 
+  struct gkyl_array *vmap, struct gkyl_array *jacob_vel_inv, 
+  struct gkyl_array *vmap_pgkyl, struct gkyl_array *jacob_vel_inv_pgkyl, struct gkyl_array *jacob_vel_gauss)
 {
   int vdim = vgrid->ndim;
   struct gkyl_array *v_nodal[3];
@@ -61,7 +62,7 @@ gkyl_velocity_map_cubic_new(const struct gkyl_rect_grid *vgrid, const struct gky
       gkyl_rect_grid_ll_node(&grid_1d, iter.idx, xn);
 
       double *pn = gkyl_array_fetch(v_nodal[i], nidx);
-      eval_vmap(0.0, xn, pn, ctx);
+      inp_vmap[i].eval_vmap(0.0, xn, pn, inp_vmap[i].ctx);
     }
     
     // compute cubic expansion
@@ -86,9 +87,12 @@ gkyl_velocity_map_cubic_new(const struct gkyl_rect_grid *vgrid, const struct gky
     }
     double *vmap_d = gkyl_array_fetch(vmap, loc_vel);
     double *jacob_vel_inv_d = gkyl_array_fetch(jacob_vel_inv, loc_vel);
+    double *vmap_pgkyl_d = gkyl_array_fetch(vmap_pgkyl, loc_vel);
+    double *jacob_vel_inv_pgkyl_d = gkyl_array_fetch(jacob_vel_inv_pgkyl, loc_vel);
     double *jacob_vel_gauss_d = gkyl_array_fetch(jacob_vel_gauss, loc_vel);
     
-    vmap_op(vgrid->dx, v_cubic_dir, vmap_d, jacob_vel_inv_d, jacob_vel_gauss_d);
+    vmap_op(vgrid->dx, v_cubic_dir, vmap_d, jacob_vel_inv_d, 
+      vmap_pgkyl_d, jacob_vel_inv_pgkyl_d, jacob_vel_gauss_d);
   }
 
   // free temporary memory

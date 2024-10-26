@@ -358,8 +358,10 @@ main(int argc, char **argv)
       .use_last_converged = true, 
     },
 
-    .mapc2p_vel = mapc2p_vel, 
-    .mapc2p_vel_ctx = &ctx, 
+    .mapc2p_vel[0] = {
+      .mapc2p_vel_func = mapc2p_vel, 
+      .mapc2p_vel_ctx = &ctx, 
+    },
 
     .app_accel = evalAccelFunc,
     .app_accel_ctx = &ctx,
@@ -391,8 +393,10 @@ main(int argc, char **argv)
       .correct_all_moms = true,
     },
 
-    .mapc2p_vel = mapc2p_vel, 
-    .mapc2p_vel_ctx = &ctx, 
+    .mapc2p_vel[0] = {
+      .mapc2p_vel_func = mapc2p_vel, 
+      .mapc2p_vel_ctx = &ctx, 
+    },
 
     .app_accel = evalAccelFunc,
     .app_accel_ctx = &ctx,
