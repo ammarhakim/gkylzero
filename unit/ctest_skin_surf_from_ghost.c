@@ -26,12 +26,11 @@ void eval_field_3x(double t, const double *xn, double* restrict fout, void *ctx)
 }
 
 // Function to set up and test the ghost-to-skin surf copy in 3D
-void test_3x(int poly_order, bool use_gpu, enum gkyl_edge_loc edge, bool control) { 
+void test_3x(int poly_order, bool use_gpu, enum gkyl_edge_loc edge, int dir, bool control) { 
     // Set up 3D grid parameters
     int cdim = 3;
     double lower[] = {0.0, 0.0, 0.0}, upper[] = {1.0, 1.0, 1.0};
     int cells[] = {2, 4, 6};  // Cell count in each dimension
-    int dir = 2;              // Dimension along which ghost/surf are applied
 
     const int ndim = sizeof(cells)/sizeof(cells[0]);
 
@@ -104,18 +103,32 @@ void test_3x(int poly_order, bool use_gpu, enum gkyl_edge_loc edge, bool control
 
 // Tests for 3D case on CPU
 void test_3x_ho() {
-    test_3x(1, false, GKYL_LOWER_EDGE, true);
-    test_3x(1, false, GKYL_UPPER_EDGE, true);
-    test_3x(1, false, GKYL_LOWER_EDGE, false);
-    test_3x(1, false, GKYL_UPPER_EDGE, false);
+    bool use_gpu = false;
+    // Loop over edges
+    for (int edge = GKYL_LOWER_EDGE; edge <= GKYL_UPPER_EDGE; edge++) {
+        // Loop over control states (perform the test or not)
+        for (int control = 0; control <= 1; control++) {
+            // Loop over directions
+            for (int dir = 1; dir <= 2; dir++) {
+                test_3x(1, use_gpu, edge, dir, control==1);
+            }
+        }
+    }
 }
 
 // Tests for 3D case on GPU (if available)
 void test_3x_dev() {
-    test_3x(1, true, GKYL_LOWER_EDGE, true);
-    test_3x(1, true, GKYL_UPPER_EDGE, true);
-    test_3x(1, true, GKYL_LOWER_EDGE, false);
-    test_3x(1, true, GKYL_UPPER_EDGE, false);
+    bool use_gpu = true;
+    // Loop over edges
+    for (int edge = GKYL_LOWER_EDGE; edge <= GKYL_UPPER_EDGE; edge++) {
+        // Loop over control states (perform the test or not)
+        for (int control = 0; control <= 1; control++) {
+            // Loop over directions
+            for (int dir = 1; dir <= 2; dir++) {
+                test_3x(use_gpu, true, edge, dir, control==1);
+            }
+        }
+    }
 }
 
 // List of tests for the test framework

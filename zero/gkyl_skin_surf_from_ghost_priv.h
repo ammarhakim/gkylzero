@@ -10,23 +10,70 @@
 typedef void (*skin_surf_from_ghost_t)(const double *fghost, double *fskin);
 
 typedef struct { skin_surf_from_ghost_t kernels[2]; } skin_surf_from_ghost_kern_list;  // For use in kernel tables.
-typedef struct { skin_surf_from_ghost_kern_list list[3]; } edged_skin_surf_from_ghost_kern_list;
+typedef struct { skin_surf_from_ghost_kern_list dirlist[3]; } dir_skin_surf_from_ghost_kern_list;
+typedef struct { dir_skin_surf_from_ghost_kern_list edgedlist[3]; } edged_skin_surf_from_ghost_kern_list;
 
 // Serendipity  kernels.
 GKYL_CU_D
 static const edged_skin_surf_from_ghost_kern_list ser_skin_surf_from_ghost_list[] = {
-  { .list={
-           { NULL, NULL }, // For 1D, to be implemented
-           { skin_surf_from_ghost_lower_2x_ser_p1, NULL },
-           { skin_surf_from_ghost_lower_3x_ser_p1, NULL },
-          },
+  { 
+    .edgedlist=
+      { 
+        { 
+          .dirlist=
+            {
+              { skin_surf_from_ghost_lowerx_1x_ser_p1, NULL },
+              { NULL, NULL },
+              { NULL, NULL },
+            }
+        },
+        {.
+          dirlist=
+            {
+              { skin_surf_from_ghost_lowerx_2x_ser_p1, NULL },
+              { skin_surf_from_ghost_lowery_2x_ser_p1, NULL },
+              { NULL, NULL },
+            }
+        },
+        {.
+          dirlist=
+            {
+              { skin_surf_from_ghost_lowerx_3x_ser_p1, NULL },
+              { skin_surf_from_ghost_lowery_3x_ser_p1, NULL },
+              { skin_surf_from_ghost_lowerz_3x_ser_p1, NULL },
+            }
+        }
+      }
   },
-  { .list={
-           { NULL, NULL }, // For 1D, to be implemented
-           { skin_surf_from_ghost_upper_2x_ser_p1, NULL },
-           { skin_surf_from_ghost_upper_3x_ser_p1, NULL },
-          },
-  },
+  { 
+    .edgedlist=
+      { 
+        { 
+          .dirlist=
+            {
+              { skin_surf_from_ghost_upperx_1x_ser_p1, NULL },
+              { NULL, NULL },
+              { NULL, NULL },
+            }
+        },
+        {.
+          dirlist=
+            {
+              { skin_surf_from_ghost_upperx_2x_ser_p1, NULL },
+              { skin_surf_from_ghost_uppery_2x_ser_p1, NULL },
+              { NULL, NULL },
+            }
+        },
+        {.
+          dirlist=
+            {
+              { skin_surf_from_ghost_upperx_3x_ser_p1, NULL },
+              { skin_surf_from_ghost_uppery_3x_ser_p1, NULL },
+              { skin_surf_from_ghost_upperz_3x_ser_p1, NULL },
+            }
+        }
+      }
+  }
 };
  
 struct gkyl_skin_surf_from_ghost_kernels {
@@ -46,18 +93,18 @@ struct gkyl_skin_surf_from_ghost {
 #ifdef GKYL_HAVE_CUDA
 
 void skin_surf_from_ghost_choose_kernel_cu(const struct gkyl_basis basis, enum gkyl_edge_loc edge, 
-  struct gkyl_skin_surf_from_ghost_kernels *kers);
+  int dir, struct gkyl_skin_surf_from_ghost_kernels *kers);
 
 void skin_surf_from_ghost_advance_cu(const struct gkyl_skin_surf_from_ghost *up, struct gkyl_array *field);
 #endif
 
 GKYL_CU_D
 static void skin_surf_from_ghost_choose_kernel(const struct gkyl_basis basis, enum gkyl_edge_loc edge, 
-  bool use_gpu, struct gkyl_skin_surf_from_ghost_kernels *kernels)
+  int dir, bool use_gpu, struct gkyl_skin_surf_from_ghost_kernels *kernels)
 {
 #ifdef GKYL_HAVE_CUDA
   if (use_gpu) {
-    skin_surf_from_ghost_choose_kernel_cu(basis, edge, kernels);
+    skin_surf_from_ghost_choose_kernel_cu(basis, edge, dir, kernels);
     return;
   }
 #endif
@@ -67,7 +114,7 @@ static void skin_surf_from_ghost_choose_kernel(const struct gkyl_basis basis, en
   int poly_order = basis.poly_order;
   switch (basis_type) {
     case GKYL_BASIS_MODAL_SERENDIPITY:
-      kernels->ghost_to_skin = ser_skin_surf_from_ghost_list[edge].list[dim-1].kernels[poly_order-1];
+      kernels->ghost_to_skin = ser_skin_surf_from_ghost_list[edge].edgedlist[dim-1].dirlist[dir].kernels[poly_order-1];
       break;
     default:
       assert(false);

@@ -8,7 +8,7 @@ extern "C" {
 // CUDA kernel to set device pointers to the kernel that transfers ghost cell values to skin cells.
 __global__ static void
 skin_surf_from_ghost_set_cu_ker_ptrs(const struct gkyl_basis basis,
-  enum gkyl_edge_loc edge, struct gkyl_skin_surf_from_ghost_kernels *kers)
+  enum gkyl_edge_loc edge, int dir, struct gkyl_skin_surf_from_ghost_kernels *kers)
 {
   // Get the dimension and basis type information from the provided basis object.
   int dim = basis.ndim; // Spatial dimension.
@@ -19,7 +19,7 @@ skin_surf_from_ghost_set_cu_ker_ptrs(const struct gkyl_basis basis,
   switch (b_type) {
     case GKYL_BASIS_MODAL_SERENDIPITY:
       // Set the ghost_to_skin kernel for the chosen basis and dimensionality.
-      kers->ghost_to_skin = ser_skin_surf_from_ghost_list[edge].list[dim-1].kernels[poly_order-1];
+      kers->ghost_to_skin = ser_skin_surf_from_ghost_list[edge].edgedlist[dim-1].dirlist[dir].kernels[poly_order-1];
       break;
     default:
       // If an unsupported basis type is encountered, assert failure.
@@ -30,10 +30,10 @@ skin_surf_from_ghost_set_cu_ker_ptrs(const struct gkyl_basis basis,
 // Function to launch a CUDA kernel that selects the appropriate kernel on the GPU.
 void
 skin_surf_from_ghost_choose_kernel_cu(const struct gkyl_basis basis,
-  enum gkyl_edge_loc edge, struct gkyl_skin_surf_from_ghost_kernels *kers)
+  enum gkyl_edge_loc edge, int dir, struct gkyl_skin_surf_from_ghost_kernels *kers)
 {
   // Launch the kernel with a single thread to set the kernel pointers.
-  skin_surf_from_ghost_set_cu_ker_ptrs<<<1,1>>>(basis, edge, kers);
+  skin_surf_from_ghost_set_cu_ker_ptrs<<<1,1>>>(basis, edge, dir, kers);
 }
 
 // CUDA kernel to copy ghost cell values to the adjacent skin (boundary) cells on the GPU.

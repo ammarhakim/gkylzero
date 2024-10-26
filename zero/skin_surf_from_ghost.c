@@ -25,7 +25,7 @@ gkyl_skin_surf_from_ghost_new(int dir, enum gkyl_edge_loc edge, const struct gky
     up->kernels = gkyl_cu_malloc(sizeof(struct gkyl_skin_surf_from_ghost_kernels));
 #endif
 
-  skin_surf_from_ghost_choose_kernel(basis, edge, use_gpu, up->kernels);
+  skin_surf_from_ghost_choose_kernel(basis, edge, up->dir, use_gpu, up->kernels);
 
   return up;
 }
