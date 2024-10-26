@@ -69,12 +69,11 @@ void test_3x(int poly_order, bool use_gpu, enum gkyl_edge_loc edge, bool control
         double *f_i = gkyl_array_fetch(field_ho, linidx);
         f_i[0] = 1.0;
     }
-
     // Copy field values to the GPU if necessary
     gkyl_array_copy(field, field_ho);
 
     // Initialize the skin-surf updater and call it if control is false
-    gkyl_skin_surf_from_ghost* up = gkyl_skin_surf_from_ghost_new(dir, edge, &basis, &skin_r, &ghost_r, use_gpu);
+    gkyl_skin_surf_from_ghost* up = gkyl_skin_surf_from_ghost_new(dir, edge, basis, &skin_r, &ghost_r, use_gpu);
     if (!control) {
         gkyl_skin_surf_from_ghost_advance(up, field);  // Apply ghost values to skin cells
     }

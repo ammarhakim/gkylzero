@@ -37,41 +37,40 @@ struct gkyl_skin_surf_from_ghost_kernels {
 struct gkyl_skin_surf_from_ghost {
   int dir, cdim;
   enum gkyl_edge_loc edge;
-  const struct gkyl_basis *basis;
   bool use_gpu;
   struct gkyl_skin_surf_from_ghost_kernels *kernels;  // skin surface from ghost kernel.
   struct gkyl_skin_surf_from_ghost_kernels *kernels_cu;  // device copy.
   const struct gkyl_range *skin_r, *ghost_r;
 };
 
-void
-gkyl_skin_surf_from_ghost_choose_kernel_cu(const struct gkyl_basis *basis, enum gkyl_edge_loc edge, struct gkyl_skin_surf_from_ghost_kernels *kers);
+#ifdef GKYL_HAVE_CUDA
+
+void skin_surf_from_ghost_choose_kernel_cu(const struct gkyl_basis basis, enum gkyl_edge_loc edge, 
+  struct gkyl_skin_surf_from_ghost_kernels *kers);
+
+void skin_surf_from_ghost_advance_cu(const struct gkyl_skin_surf_from_ghost *up, struct gkyl_array *field);
+#endif
 
 GKYL_CU_D
-static skin_surf_from_ghost_t
-skin_surf_from_ghost_choose_kernel(const struct gkyl_basis *basis, enum gkyl_edge_loc edge)
+static void skin_surf_from_ghost_choose_kernel(const struct gkyl_basis basis, enum gkyl_edge_loc edge, 
+  bool use_gpu, struct gkyl_skin_surf_from_ghost_kernels *kernels)
 {
-  int dim = basis->ndim;
-  enum gkyl_basis_type basis_type = basis->b_type;
-  int poly_order = basis->poly_order;
+#ifdef GKYL_HAVE_CUDA
+  if (use_gpu) {
+    skin_surf_from_ghost_choose_kernel_cu(basis, edge, kernels);
+    return;
+  }
+#endif
+
+  int dim = basis.ndim;
+  enum gkyl_basis_type basis_type = basis.b_type;
+  int poly_order = basis.poly_order;
   switch (basis_type) {
     case GKYL_BASIS_MODAL_SERENDIPITY:
-      return ser_skin_surf_from_ghost_list[edge].list[dim-1].kernels[poly_order-1];
+      kernels->ghost_to_skin = ser_skin_surf_from_ghost_list[edge].list[dim-1].kernels[poly_order-1];
+      break;
     default:
       assert(false);
       break;
   }
-  return 0;
 }
-
-#ifdef GKYL_HAVE_CUDA
-
-/**
- * CUDA device function to copy the values from the ghost region to the adjacent skin region (boundary cells).
- *
- * @param up Pointer to the boundary condition updater.
- * @param field Array representing the field values to update (currently works only in configuration space).
- */
-void gkyl_skin_surf_from_ghost_advance_cu(const struct gkyl_skin_surf_from_ghost *up, struct gkyl_array *field);
-
-#endif

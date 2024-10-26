@@ -7,7 +7,7 @@ extern "C" {
 
 // CUDA kernel to set device pointers to the kernel that transfers ghost cell values to skin cells.
 __global__ static void
-gkyl_skin_surf_from_ghost_set_cu_ker_ptrs(const struct gkyl_basis basis,
+skin_surf_from_ghost_set_cu_ker_ptrs(const struct gkyl_basis basis,
   enum gkyl_edge_loc edge, struct gkyl_skin_surf_from_ghost_kernels *kers)
 {
   // Get the dimension and basis type information from the provided basis object.
@@ -29,16 +29,16 @@ gkyl_skin_surf_from_ghost_set_cu_ker_ptrs(const struct gkyl_basis basis,
 
 // Function to launch a CUDA kernel that selects the appropriate kernel on the GPU.
 void
-gkyl_skin_surf_from_ghost_choose_kernel_cu(const struct gkyl_basis *basis,
+skin_surf_from_ghost_choose_kernel_cu(const struct gkyl_basis basis,
   enum gkyl_edge_loc edge, struct gkyl_skin_surf_from_ghost_kernels *kers)
 {
   // Launch the kernel with a single thread to set the kernel pointers.
-  gkyl_skin_surf_from_ghost_set_cu_ker_ptrs<<<1,1>>>(*basis, edge, kers);
+  skin_surf_from_ghost_set_cu_ker_ptrs<<<1,1>>>(basis, edge, kers);
 }
 
 // CUDA kernel to copy ghost cell values to the adjacent skin (boundary) cells on the GPU.
 __global__ static void
-gkyl_skin_surf_from_ghost_advance_cu_ker(int dir, enum gkyl_edge_loc edge,
+skin_surf_from_ghost_advance_cu_ker(int dir, enum gkyl_edge_loc edge,
   const struct gkyl_range skin_r, const struct gkyl_range ghost_r,
   struct gkyl_array *field, struct gkyl_skin_surf_from_ghost_kernels *kers)
 {
@@ -74,14 +74,14 @@ gkyl_skin_surf_from_ghost_advance_cu_ker(int dir, enum gkyl_edge_loc edge,
 
 // Function to launch the CUDA kernel that performs the ghost-to-skin value transfer on the GPU.
 void
-gkyl_skin_surf_from_ghost_advance_cu(const struct gkyl_skin_surf_from_ghost *up, struct gkyl_array *field)
+skin_surf_from_ghost_advance_cu(const struct gkyl_skin_surf_from_ghost *up, struct gkyl_array *field)
 {
   // Only proceed if the skin range has a non-zero volume (i.e., there are skin cells to update).
   if (up->skin_r->volume > 0) {
     int nblocks = up->skin_r->nblocks, nthreads = up->skin_r->nthreads; // CUDA grid configuration.
 
     // Launch the CUDA kernel to advance the ghost-to-skin update.
-    gkyl_skin_surf_from_ghost_advance_cu_ker<<<nblocks, nthreads>>>(up->dir, up->edge,
-      *up->skin_r, *up->ghost_r, field->on_dev, up->kernels_cu);
+    skin_surf_from_ghost_advance_cu_ker<<<nblocks, nthreads>>>(up->dir, up->edge,
+      *up->skin_r, *up->ghost_r, field->on_dev, up->kernels);
   }
 }

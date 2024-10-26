@@ -4,36 +4,28 @@
 #include <assert.h>
 
 struct gkyl_skin_surf_from_ghost*
-gkyl_skin_surf_from_ghost_new(int dir, enum gkyl_edge_loc edge, const struct gkyl_basis *basis,
+gkyl_skin_surf_from_ghost_new(int dir, enum gkyl_edge_loc edge, const struct gkyl_basis basis,
   const struct gkyl_range *skin_r, const struct gkyl_range *ghost_r, bool use_gpu)
 {
-  
+
   // Allocate space for new updater.
   struct gkyl_skin_surf_from_ghost *up = gkyl_malloc(sizeof(*up));
 
   up->dir = dir;
   up->edge = edge;
   up->use_gpu = use_gpu;
-  up->basis = basis;
   up->skin_r = skin_r;
   up->ghost_r = ghost_r;
 
   // Choose the kernel that does the skin surf from ghost copy
-  up->kernels = gkyl_malloc(sizeof(struct gkyl_skin_surf_from_ghost_kernels));
+  if (!use_gpu)
+    up->kernels = gkyl_malloc(sizeof(struct gkyl_skin_surf_from_ghost_kernels));
 #ifdef GKYL_HAVE_CUDA
-  if (use_gpu) {
-    up->kernels_cu = gkyl_cu_malloc(sizeof(struct gkyl_skin_surf_from_ghost_kernels));
-    gkyl_skin_surf_from_ghost_choose_kernel_cu(basis, edge, up->kernels_cu);
-  } else {
-    up->kernels->ghost_to_skin = skin_surf_from_ghost_choose_kernel(basis, edge);
-    assert(up->kernels->ghost_to_skin);
-    up->kernels_cu = up->kernels;
-  }
-#else
-  up->kernels->ghost_to_skin = skin_surf_from_ghost_choose_kernel(basis, edge);
-  assert(up->kernels->ghost_to_skin);
-  up->kernels_cu = up->kernels;
+  if (use_gpu)
+    up->kernels = gkyl_cu_malloc(sizeof(struct gkyl_skin_surf_from_ghost_kernels));
 #endif
+
+  skin_surf_from_ghost_choose_kernel(basis, edge, use_gpu, up->kernels);
 
   return up;
 }
@@ -43,7 +35,7 @@ gkyl_skin_surf_from_ghost_advance(const struct gkyl_skin_surf_from_ghost *up, st
 {
 #ifdef GKYL_HAVE_CUDA
   if (up->use_gpu) {
-    gkyl_skin_surf_from_ghost_advance_cu(up, field);
+    skin_surf_from_ghost_advance_cu(up, field);
     return;
   }
 #endif
@@ -76,11 +68,11 @@ gkyl_skin_surf_from_ghost_advance(const struct gkyl_skin_surf_from_ghost *up, st
 void gkyl_skin_surf_from_ghost_release(struct gkyl_skin_surf_from_ghost *up)
 {
   // Release memory associated with this updater.
+  if (!up->use_gpu)
+    gkyl_free(up->kernels);
 #ifdef GKYL_HAVE_CUDA
-  if (up->use_gpu) {
-    gkyl_cu_free(up->kernels_cu);
-  }
+  if (up->use_gpu)
+    gkyl_cu_free(up->kernels);
 #endif
-  gkyl_free(up->kernels);
   gkyl_free(up);
 }
