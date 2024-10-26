@@ -296,20 +296,21 @@ test_L_domain_sync(bool use_gpu, bool use_mpi, int **cuts, int poly_order)
 
     struct app_L *app = singleb_apps[bI];
 
-    // Translate the "rank" in gkyl_multib_comm_conn (right now it is a rank index).
     for (int ns=0; ns<mbcc_recv[bI]->num_comm_conn; ++ns) {
+      // Translate the "rank" in gkyl_multib_comm_conn (right now it is a rank index).
       int rankIdx = mbcc_recv[bI]->comm_conn[ns].rank;
       gkyl_rrobin_decomp_getranks(round_robin_decomp, mbcc_recv[bI]->comm_conn[ns].block_id, rank_list);
       mbcc_recv[bI]->comm_conn[ns].rank = rank_list[rankIdx];
-      // Make range a sub
+      // Make range a sub range.
       gkyl_sub_range_init(&mbcc_recv[bI]->comm_conn[ns].range, &app->local_ext,
         mbcc_recv[bI]->comm_conn[ns].range.lower, mbcc_recv[bI]->comm_conn[ns].range.upper);
     }
     for (int ns=0; ns<mbcc_send[bI]->num_comm_conn; ++ns) {
+      // Translate the "rank" in gkyl_multib_comm_conn (right now it is a rank index).
       int rankIdx = mbcc_send[bI]->comm_conn[ns].rank;
       gkyl_rrobin_decomp_getranks(round_robin_decomp, mbcc_send[bI]->comm_conn[ns].block_id, rank_list);
       mbcc_send[bI]->comm_conn[ns].rank = rank_list[rankIdx];
-      // Make range a sub
+      // Make range a sub range.
       gkyl_sub_range_init(&mbcc_send[bI]->comm_conn[ns].range, &app->local_ext,
         mbcc_send[bI]->comm_conn[ns].range.lower, mbcc_send[bI]->comm_conn[ns].range.upper);
     }
@@ -423,7 +424,7 @@ test_L_domain_sync_ho(void)
     1, 1, // Block 2.
   };
   int **cuts1 = cuts_array_new(num_blocks, ndim, cuts_flat1);
-  test_L_domain_sync(false, true, cuts1, 1);
+  test_L_domain_sync(false, false, cuts1, 1);
   cuts_array_release(num_blocks, cuts1);
 }
 

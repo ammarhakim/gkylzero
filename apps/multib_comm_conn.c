@@ -356,8 +356,8 @@ gkyl_multib_comm_conn_array_transfer(struct gkyl_comm *comm, int num_blocks_loca
 {
   int err;
   if (strcmp(comm->id, "null_comm") == 0) {
-//    err = gkyl_multib_comm_conn_array_transfer_null(comm, num_blocks_local, blocks_local,
-//      mbcc_send, mbcc_recv, arr_send, arr_recv);
+    err = gkyl_multib_comm_conn_array_transfer_null(comm, num_blocks_local, blocks_local,
+      mbcc_send, mbcc_recv, arr_send, arr_recv);
   }
   else if (strcmp(comm->id, "mpi_comm") == 0) {
     err = gkyl_multib_comm_conn_array_transfer_mpi(comm, num_blocks_local, blocks_local,
