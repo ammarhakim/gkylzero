@@ -490,10 +490,7 @@ gkyl_vlasov_lte_proj_on_basis_advance(gkyl_vlasov_lte_proj_on_basis *up,
             qidx_vel[i] = qiter.idx[cdim+i];          
           }
           int vqidx = gkyl_range_idx(&up->vel_qrange, qidx_vel);
-          jacob_vel_qidx = jacob_vel_quad_d[qidx_vel[0]];
-          // printf("v = %g, jacob_vel_qidx = %g\n", xmu[cdim], jacob_vel_qidx);
-          // printf("qiter 0,1 = %d %d\n", qiter.idx[0], qiter.idx[1]);
-          // printf("loc_vel = %ld, vqidx = %d\n", loc_vel, vqidx);
+          jacob_vel_qidx = jacob_vel_quad_d[vqidx];
         }
         else {
           comp_to_phys(pdim, gkyl_array_cfetch(up->ordinates, pqidx),

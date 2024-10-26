@@ -166,6 +166,7 @@ mapc2p_vel_par(double t, const double *vc, double* GKYL_RESTRICT vp, void *ctx)
 {
   struct sr_bimaxwellian_ctx *app = ctx;
   double vpar_max = app->vpar_max;
+
   vp[0] = vpar_max*pow(vc[0], 1.0);
 }
 
@@ -174,14 +175,13 @@ mapc2p_vel_perp(double t, const double *vc, double* GKYL_RESTRICT vp, void *ctx)
 {
   struct sr_bimaxwellian_ctx *app = ctx;
   double vperp_max = app->vperp_max;
-  vp[0] = vperp_max*pow(vc[0], 1.0);
 
-  // if (vc[0] < 0.0) {
-  //   vp[0] = -vperp_max*pow(vc[0], 2.0);
-  // }
-  // else {
-  //   vp[0] = vperp_max*pow(vc[0], 2.0);  
-  // }
+  if (vc[0] < 0.0) {
+    vp[0] = -vperp_max*pow(vc[0], 2.0);
+  }
+  else {
+    vp[0] = vperp_max*pow(vc[0], 2.0);  
+  }
 }
 
 void
@@ -318,13 +318,13 @@ main(int argc, char **argv)
 
     .num_init = 1, 
     .projection[0] = {
-      .proj_id = GKYL_PROJ_VLASOV_LTE,
+      .proj_id = GKYL_PROJ_BIMAXWELLIAN,
       .density = evalDensityInit,
       .ctx_density = &ctx,
-      .temp = evalTempParInit,
-      .ctx_temp = &ctx,
-      // .temp_perp = evalTempPerpInit,
-      // .ctx_temp_perp = &ctx,
+      .temp_par = evalTempParInit,
+      .ctx_temp_par = &ctx,
+      .temp_perp = evalTempPerpInit,
+      .ctx_temp_perp = &ctx,
       .V_drift = evalVDriftInit,
       .ctx_V_drift = &ctx,
     },
