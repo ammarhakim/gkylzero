@@ -65,7 +65,7 @@ info_hamil(double t, const double* xn, double* fout, void* ctx)
 
 
 void 
-test_2x2v(int poly_order)
+test_2x2v(int poly_order, enum gkyl_basis_type b_type)
 {
   double pi = 3.14159265359;
   double lower[] = {pi/4,pi/4, -5.0, -5.0}, upper[] = {(1.01)*pi/4,(1.01)*pi/4, 5.0, 5.0};
@@ -93,11 +93,17 @@ test_2x2v(int poly_order)
 
   // basis functions
   struct gkyl_basis basis, confBasis;
-  if (poly_order == 1) {
+  if (poly_order == 1 && b_type == GKYL_BASIS_MODAL_SERENDIPITY) {
     gkyl_cart_modal_hybrid(&basis, cdim, vdim);
+    //printf("Choosing hybrid basis for phase space\n");
   } 
-  else {
+  else if (b_type == GKYL_BASIS_MODAL_SERENDIPITY) {
     gkyl_cart_modal_serendip(&basis, pdim, poly_order);
+    //printf("Choosing serindipty basis for phase space\n");
+  }
+  else {
+    gkyl_cart_modal_tensor(&basis, pdim, poly_order);
+    //printf("Choosing tensor basis for velocity space\n");
   }
   gkyl_cart_modal_serendip(&confBasis, cdim, poly_order);
 
@@ -119,10 +125,10 @@ test_2x2v(int poly_order)
   // Evaluate specified inverse metric function and det. at nodes to insure continuity
   struct gkyl_eval_on_nodes* h_ij_inv_proj = gkyl_eval_on_nodes_new(&confGrid, &confBasis, cdim*(cdim+1)/2, info_h_ij_inv, 0);
   struct gkyl_eval_on_nodes* det_h_proj = gkyl_eval_on_nodes_new(&confGrid, &confBasis, 1, info_det_h, 0);
-  struct gkyl_eval_on_nodes* hamil_proj = gkyl_eval_on_nodes_new(&confGrid, &confBasis, 1, info_hamil, 0);
+  struct gkyl_eval_on_nodes* hamil_proj = gkyl_eval_on_nodes_new(&grid, &basis, 1, info_hamil, 0);
   gkyl_eval_on_nodes_advance(h_ij_inv_proj, 0.0, &confLocal, h_ij_inv);
   gkyl_eval_on_nodes_advance(det_h_proj, 0.0, &confLocal, det_h);
-  gkyl_eval_on_nodes_advance(hamil_proj, 0.0, &confLocal, hamil);
+  gkyl_eval_on_nodes_advance(hamil_proj, 0.0, &local, hamil);
 
   // Need to figure out size of alpha_surf and sgn_alpha_surf by finding size of surface basis set 
   struct gkyl_basis surf_basis, surf_quad_basis;
@@ -196,7 +202,7 @@ test_2x2v(int poly_order)
 
     const double *alpha_surf_comp_L_local = gkyl_array_cfetch(alpha_surf_comp_L, pidx);
 
-    // Iterate in the lower direction
+    // Iterate in the lower direction (only conf space comparison - becuase there are no velocity space ghost cells for comparison)
     for (int dir = 0; dir<cdim; ++dir) {
       gkyl_copy_int_arr(pdim, piter.idx, pidxl);
       pidxl[dir] = pidxl[dir]-1;
@@ -205,6 +211,9 @@ test_2x2v(int poly_order)
 
       // Iterate overthe number of basis on the surface
       for (int n = 0; n<surf_basis.num_basis; n++){
+        // if(alpha_surf_comp_L_local[n + dir*surf_basis.num_basis] != 0.0 && alpha_surf_comp_R_local[n + dir*surf_basis.num_basis] != 0.0){
+        //   printf("(%1.16e) == (%1.16e)\n",alpha_surf_comp_L_local[n + dir*surf_basis.num_basis], alpha_surf_comp_R_local[n + dir*surf_basis.num_basis]);
+        // }
         TEST_CHECK(gkyl_compare_double(alpha_surf_comp_L_local[n + dir*surf_basis.num_basis], alpha_surf_comp_R_local[n + dir*surf_basis.num_basis], 1e-12));
       }
     }
@@ -228,9 +237,13 @@ test_2x2v(int poly_order)
 
 
 // Check the 2x2v_p continuity
-void test_2x2v_p2_continuity() { test_2x2v(2); }
+void test_2x2v_p1_continuity_tensor() { test_2x2v(1, GKYL_BASIS_MODAL_TENSOR); }
+void test_2x2v_p1_continuity_ser() { test_2x2v(1, GKYL_BASIS_MODAL_SERENDIPITY); }
+void test_2x2v_p2_continuity_ser() { test_2x2v(2, GKYL_BASIS_MODAL_SERENDIPITY); }
 
 TEST_LIST = {
-  {"test_2x2v_p2_continuity", test_2x2v_p2_continuity},
+  {"test_2x2v_p1_continuity_tensor", test_2x2v_p1_continuity_tensor},
+  {"test_2x2v_p1_continuity_ser", test_2x2v_p1_continuity_ser},
+  {"test_2x2v_p2_continuity_ser", test_2x2v_p2_continuity_ser},
   {NULL, NULL},
 };
