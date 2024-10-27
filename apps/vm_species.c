@@ -99,9 +99,9 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
   struct gkyl_basis vmap_basis, jacob_vel_basis;
   gkyl_cart_modal_serendip(&vmap_basis, vdim, 3); 
   gkyl_cart_modal_tensor(&jacob_vel_basis, vdim, 2);
-  // velocity map and inverse Jacobian for I/O 
+  // velocity map and Jacobian for I/O 
   s->vmap_pgkyl = mkarr(app->use_gpu, vdim*vmap_basis.num_basis, s->local_vel.volume);
-  s->jacob_vel_inv_pgkyl = mkarr(app->use_gpu, jacob_vel_basis.num_basis, s->local_vel.volume);
+  s->jacob_vel_pgkyl = mkarr(app->use_gpu, jacob_vel_basis.num_basis, s->local_vel.volume);
   // velocity space Jacobian at Gaussian quadrature points for projecting distribution functions
   s->jacob_vel_gauss = mkarr(app->use_gpu, jacob_vel_basis.num_basis, s->local_vel.volume);
 
@@ -114,7 +114,7 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
     }
     gkyl_velocity_map_cubic_new(&s->grid_vel, &s->local_vel, 
       inp_vmap, s->vmap, s->jacob_vel_inv, 
-      s->vmap_pgkyl, s->jacob_vel_inv_pgkyl, s->jacob_vel_gauss);
+      s->vmap_pgkyl, s->jacob_vel_pgkyl, s->jacob_vel_gauss);
   }
 
   if (s->model_id  == GKYL_MODEL_SR) {
@@ -666,7 +666,7 @@ vm_species_release(const gkyl_vlasov_app* app, const struct vm_species *s)
   gkyl_array_release(s->vmap);
   gkyl_array_release(s->jacob_vel_inv);
   gkyl_array_release(s->vmap_pgkyl);
-  gkyl_array_release(s->jacob_vel_inv_pgkyl);
+  gkyl_array_release(s->jacob_vel_pgkyl);
   gkyl_array_release(s->jacob_vel_gauss);
 
   // Release arrays for different types of Vlasov equations

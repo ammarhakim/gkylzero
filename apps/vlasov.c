@@ -543,12 +543,12 @@ gkyl_vlasov_app_write_species(gkyl_vlasov_app* app, int sidx, double tm, int fra
 
       gkyl_grid_sub_array_write(&vm_s->grid_vel, &vm_s->local_vel, vm_s->vmap_pgkyl, fileNm_vmap);
 
-      const char *fmt_jacob_vel_inv = "%s-%s_jacob_vel_inv.gkyl";
-      int sz_jacob_vel_inv = gkyl_calc_strlen(fmt_jacob_vel_inv, app->name, vm_s->info.name);
-      char fileNm_jacob_vel_inv[sz_jacob_vel_inv+1]; // ensures no buffer overflow
-      snprintf(fileNm_jacob_vel_inv, sizeof fileNm_jacob_vel_inv, fmt_jacob_vel_inv, app->name, vm_s->info.name);
+      const char *fmt_jacob_vel = "%s-%s_jacob_vel.gkyl";
+      int sz_jacob_vel = gkyl_calc_strlen(fmt_jacob_vel, app->name, vm_s->info.name);
+      char fileNm_jacob_vel[sz_jacob_vel+1]; // ensures no buffer overflow
+      snprintf(fileNm_jacob_vel, sizeof fileNm_jacob_vel, fmt_jacob_vel, app->name, vm_s->info.name);
 
-      gkyl_grid_sub_array_write(&vm_s->grid_vel, &vm_s->local_vel, vm_s->jacob_vel_inv_pgkyl, fileNm_jacob_vel_inv);      
+      gkyl_grid_sub_array_write(&vm_s->grid_vel, &vm_s->local_vel, vm_s->jacob_vel_pgkyl, fileNm_jacob_vel);      
     }
   }  
 }

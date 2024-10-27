@@ -318,7 +318,7 @@ struct vm_species {
   struct gkyl_array *vmap; // mapping for mapped velocity-space grids
   struct gkyl_array *jacob_vel_inv; // inverse Jacobian in each direction for mapped velocity-space grids
   struct gkyl_array *vmap_pgkyl; // mapping for mapped velocity-space grids for I/O
-  struct gkyl_array *jacob_vel_inv_pgkyl; // inverse Jacobian for mapped velocity-space grids for I/O 
+  struct gkyl_array *jacob_vel_pgkyl; // total Jacobian for mapped velocity-space grids for I/O 
   struct gkyl_array *jacob_vel_gauss; // total Jacobian for mapped velocity-space grids at Gauss-Legendre quadrature points.
   // organization of the different equation objects and the required data and solvers
   union {
