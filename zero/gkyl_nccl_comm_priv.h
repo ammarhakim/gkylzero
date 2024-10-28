@@ -43,6 +43,7 @@ struct nccl_comm {
 
   ncclComm_t ncomm; // NCCL communicator to use.
   MPI_Comm mcomm; // MPI communicator to use
+  bool is_mcomm_allocated; // Is the mcomm allocated?
   struct gkyl_comm *mpi_comm; // MPI comm this NCCL comm derives from.
   bool has_decomp; // Whether this comm is associated with a decomposition (e.g. of a range)
   cudaStream_t custream; // Cuda stream for NCCL comms.

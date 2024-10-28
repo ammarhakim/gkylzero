@@ -47,6 +47,14 @@ static MPI_Op g2_mpi_op[] = {
   [GKYL_SUM] = MPI_SUM
 };
 
+struct extra_nccl_comm_inp {
+  bool is_comm_allocated; // is MPI_Comm allocated?
+};
+
+// Internal method to create a new NCCL communicator
+static struct gkyl_comm* nccl_comm_new(
+  const struct gkyl_nccl_comm_inp *inp, const struct extra_nccl_comm_inp *extra_inp);
+
 struct gkyl_comm_state {
   ncclComm_t *ncomm;
   int tag;
@@ -110,6 +118,9 @@ comm_free(const struct gkyl_ref_count *ref)
   checkCuda(cudaStreamSynchronize(nccl->custream));
   checkCuda(cudaDeviceSynchronize());
   ncclCommDestroy(nccl->ncomm);
+
+  if (nccl->is_mcomm_allocated)
+    MPI_Comm_free(&nccl->mcomm);
 
   gkyl_comm_release(nccl->mpi_comm);
   gkyl_free(nccl);
@@ -558,21 +569,62 @@ split_comm(const struct gkyl_comm *comm, int color, struct gkyl_rect_decomp *new
   return newcomm;
 }
 
+static struct gkyl_comm*
+create_comm_from_ranks(const struct gkyl_comm *comm,
+  int nranks, const int *ranks, struct gkyl_rect_decomp *new_decomp,
+  bool *is_valid)
+{
+  struct nccl_comm *nccl = container_of(comm, struct nccl_comm, priv_comm.pub_comm);
+
+  MPI_Group group;
+  MPI_Comm_group(nccl->mcomm, &group);
+
+  MPI_Group new_group;
+  MPI_Group_incl(group, nranks, ranks, &new_group);
+
+  MPI_Comm new_mcomm;
+  MPI_Comm_create_group(nccl->mcomm, new_group, 0, &new_mcomm);
+
+  *is_valid = false;
+  struct gkyl_comm *new_comm = 0;
+  if (MPI_COMM_NULL != new_mcomm) {
+    *is_valid = true;
+
+    new_comm = nccl_comm_new( &(struct gkyl_nccl_comm_inp) {
+        .mpi_comm = new_mcomm,
+        .sync_corners = nccl->sync_corners,
+        .decomp = new_decomp,
+        .device_set = 1,
+        .custream = nccl->custream,
+      },
+      &(struct extra_nccl_comm_inp) {
+        .is_comm_allocated = true
+      }
+    );
+  }
+
+  MPI_Group_free(&group);
+  MPI_Group_free(&new_group);
+
+  return new_comm;
+}
+
 struct gkyl_comm*
-gkyl_nccl_comm_new(const struct gkyl_nccl_comm_inp *inp)
+nccl_comm_new(const struct gkyl_nccl_comm_inp *inp,
+  const struct extra_nccl_comm_inp *extra_inp)
 {
   struct nccl_comm *nccl = gkyl_malloc(sizeof *nccl);
   strcpy(nccl->priv_comm.pub_comm.id, "nccl_comm");
   
+  nccl->is_mcomm_allocated = extra_inp->is_comm_allocated;
   nccl->mcomm = inp->mpi_comm;
 
-  nccl->mpi_comm = gkyl_mpi_comm_new( &(struct gkyl_mpi_comm_inp)
-      {
-        .mpi_comm = nccl->mcomm,
-        .decomp = inp->decomp, 
-        .sync_corners = inp->sync_corners, 
-      }
-    );
+  nccl->mpi_comm = gkyl_mpi_comm_new( &(struct gkyl_mpi_comm_inp) {
+      .mpi_comm = nccl->mcomm,
+      .decomp = inp->decomp, 
+      .sync_corners = inp->sync_corners, 
+    }
+  );
   MPI_Comm_rank(nccl->mcomm, &nccl->rank);
   MPI_Comm_size(nccl->mcomm, &nccl->size);
 
@@ -675,9 +727,19 @@ gkyl_nccl_comm_new(const struct gkyl_nccl_comm_inp *inp)
   nccl->priv_comm.comm_group_call_end = group_call_end;
   nccl->priv_comm.extend_comm = extend_comm;
   nccl->priv_comm.split_comm = split_comm;
+  nccl->priv_comm.create_comm_from_ranks = create_comm_from_ranks;
   nccl->priv_comm.pub_comm.ref_count = gkyl_ref_count_init(comm_free);
 
   return &nccl->priv_comm.pub_comm;
+}
+
+struct gkyl_comm*
+gkyl_nccl_comm_new(const struct gkyl_nccl_comm_inp *inp)
+{
+  return nccl_comm_new(inp, &(struct extra_nccl_comm_inp) {
+      .is_comm_allocated = false
+    }
+  );
 }
 
 #endif

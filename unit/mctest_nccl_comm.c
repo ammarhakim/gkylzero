@@ -9,6 +9,7 @@
 #include <gkyl_rect_decomp.h>
 #include <gkyl_mpi_comm.h>
 #include <gkyl_nccl_comm.h>
+#include <gkyl_rrobin_decomp.h>
 
 void
 nccl_allreduce()
@@ -1025,6 +1026,132 @@ nccl_n4_multicomm_2d()
   gkyl_rect_decomp_release(confdecomp);
 }
   
+static void
+nccl_n4_create_comm_from_ranks_1()
+{
+  int m_sz;
+  MPI_Comm_size(MPI_COMM_WORLD, &m_sz);
+  if (m_sz != 4) return;
+
+  int rank;
+  MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+
+  struct gkyl_comm *comm = gkyl_nccl_comm_new( &(struct gkyl_nccl_comm_inp) {
+      .mpi_comm = MPI_COMM_WORLD,
+    }
+  );
+
+  int branks[2] =  { 2, 2 };
+  bool status = false;
+  
+  const struct gkyl_rrobin_decomp *rrd =
+    gkyl_rrobin_decomp_new(m_sz, 2, branks);
+
+  int rb1[4];
+  gkyl_rrobin_decomp_getranks(rrd, 0, rb1);
+
+  struct gkyl_comm *comm_b1 =
+    gkyl_comm_create_comm_from_ranks(comm, branks[0], rb1, 0, &status);
+
+  if (rank == rb1[0])
+    TEST_CHECK( status );
+  if (rank == rb1[1])
+    TEST_CHECK( status );
+
+  if (comm_b1) {
+    int sz_b1;
+    gkyl_comm_get_size(comm_b1, &sz_b1);
+    TEST_CHECK( branks[0] == sz_b1);
+  }
+
+  int rb2[4];
+  gkyl_rrobin_decomp_getranks(rrd, 1, rb2);
+
+  struct gkyl_comm *comm_b2 =
+    gkyl_comm_create_comm_from_ranks(comm, branks[1], rb2, 0, &status);
+
+  if (rank == rb2[0])
+    TEST_CHECK( status );
+  if (rank == rb2[1])
+    TEST_CHECK( status );
+
+  if (comm_b2) {
+    int sz_b2;
+    gkyl_comm_get_size(comm_b2, &sz_b2);
+    TEST_CHECK( branks[1] == sz_b2);
+  }  
+
+  gkyl_rrobin_decomp_release(rrd);
+  gkyl_comm_release(comm);
+  gkyl_comm_release(comm_b1);
+  gkyl_comm_release(comm_b2);
+}
+
+static void
+nccl_n4_create_comm_from_ranks_2()
+{
+  int m_sz;
+  MPI_Comm_size(MPI_COMM_WORLD, &m_sz);
+  if (m_sz != 4) return;
+
+  int rank;
+  MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+
+  struct gkyl_comm *comm = gkyl_nccl_comm_new( &(struct gkyl_nccl_comm_inp) {
+      .mpi_comm = MPI_COMM_WORLD,
+    }
+  );
+
+  int branks[2] =  { 4, 2 };
+  bool status = false;
+  
+  const struct gkyl_rrobin_decomp *rrd =
+    gkyl_rrobin_decomp_new(m_sz, 2, branks);
+
+  int rb1[4];
+  gkyl_rrobin_decomp_getranks(rrd, 0, rb1);
+
+  struct gkyl_comm *comm_b1 =
+    gkyl_comm_create_comm_from_ranks(comm, branks[0], rb1, 0, &status);
+
+  if (rank == rb1[0])
+    TEST_CHECK( status );
+  if (rank == rb1[1])
+    TEST_CHECK( status );
+  if (rank == rb1[2])
+    TEST_CHECK( status );
+  if (rank == rb1[3])
+    TEST_CHECK( status );
+
+  if (comm_b1) {
+    int sz_b1;
+    gkyl_comm_get_size(comm_b1, &sz_b1);
+    TEST_CHECK( branks[0] == sz_b1);
+  }
+
+  int rb2[4];
+  gkyl_rrobin_decomp_getranks(rrd, 1, rb2);
+
+  struct gkyl_comm *comm_b2 =
+    gkyl_comm_create_comm_from_ranks(comm, branks[1], rb2, 0, &status);
+
+  if (rank == rb2[0])
+    TEST_CHECK( status );
+  if (rank == rb2[1])
+    TEST_CHECK( status );
+
+  if (comm_b2) {
+    int sz_b2;
+    gkyl_comm_get_size(comm_b2, &sz_b2);
+    TEST_CHECK( branks[1] == sz_b2);
+  }
+
+  gkyl_rrobin_decomp_release(rrd);
+  gkyl_comm_release(comm);
+  gkyl_comm_release(comm_b1);
+  gkyl_comm_release(comm_b2);
+}
+
 void
 nccl_bcast_1d()
 {
@@ -1313,6 +1440,8 @@ TEST_LIST = {
   {"nccl_n1_per_sync_2d", nccl_n1_per_sync_2d },
   {"nccl_n2_per_sync_2d", nccl_n2_per_sync_2d },
   {"nccl_n4_multicomm_2d", nccl_n4_multicomm_2d},
+  {"nccl_n4_create_comm_from_ranks_1", nccl_n4_create_comm_from_ranks_1 },
+  {"nccl_n4_create_comm_from_ranks_2", nccl_n4_create_comm_from_ranks_2 },
   {"nccl_bcast_1d", nccl_bcast_1d},
   {"nccl_bcast_2d", nccl_bcast_2d},
   {"nccl_bcast_1d_host", nccl_bcast_1d_host},
