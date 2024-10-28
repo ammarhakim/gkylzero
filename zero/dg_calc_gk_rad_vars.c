@@ -9,6 +9,83 @@
 #include <gkyl_dg_calc_gk_rad_vars_priv.h>
 #include <gkyl_util.h>
 
+struct gkyl_gk_rad_drag*
+gkyl_dg_calc_gk_rad_vars_drag_new(int num_collisions,
+  const int *num_densities, int ncomp, long sz, bool use_gpu)
+{
+  // Drag coefficient for each species.
+  struct gkyl_gk_rad_drag *drag_s = gkyl_malloc(num_collisions*sizeof(struct gkyl_gk_rad_drag));
+  for (int i=0; i<num_collisions; i++) {
+    drag_s[i].num_dens = num_densities[i];
+    drag_s[i].data = gkyl_malloc(num_densities[i]*sizeof(struct gkyl_gk_rad_drag));
+
+    // Drag coefficient for each density.
+    struct gkyl_gk_rad_drag *drag_ne = &drag_s[i];
+    for (int n=0; n<num_densities[i]; n++) {
+      struct gkyl_gk_rad_drag *drag = &drag_ne->data[n];
+      drag->arr = use_gpu? gkyl_array_cu_dev_new(GKYL_DOUBLE, ncomp, sz)
+                         : gkyl_array_new(GKYL_DOUBLE, ncomp, sz);
+    }
+  }
+
+  // Create a temporary drag struct to store the on_dev pointers.
+  struct gkyl_gk_rad_drag *drag_s_dev = gkyl_malloc(num_collisions*sizeof(struct gkyl_gk_rad_drag));
+  for (int i=0; i<num_collisions; i++) {
+    drag_s_dev[i].on_dev = gkyl_malloc(num_densities[i]*sizeof(struct gkyl_gk_rad_drag));
+
+    struct gkyl_gk_rad_drag *drag_ne_dev = &drag_s_dev[i];
+    struct gkyl_gk_rad_drag *drag_ne_ho = &drag_s[i];
+    for (int n=0; n<num_densities[i]; n++) {
+      struct gkyl_gk_rad_drag *drag_dev = &drag_ne_dev->on_dev[n];
+      struct gkyl_gk_rad_drag *drag_ho = &drag_ne_ho->data[n];
+      drag_dev->arr = drag_ho->arr->on_dev;
+    }
+  }
+
+  // Now allocate the drag coeff as a function of density and assign its array to the on_dev pointers.
+  for (int i=0; i<num_collisions; i++) {
+    if (use_gpu) {
+      drag_s[i].on_dev = gkyl_cu_malloc(num_densities[i]*sizeof(struct gkyl_gk_rad_drag));
+      gkyl_cu_memcpy(drag_s[i].on_dev, drag_s_dev[i].on_dev,
+        num_densities[i] * sizeof(struct gkyl_gk_rad_drag), GKYL_CU_MEMCPY_H2D);
+    }
+    else {
+      drag_s[i].on_dev = gkyl_malloc(num_densities[i]*sizeof(struct gkyl_gk_rad_drag));
+      memcpy(drag_s[i].on_dev, drag_s_dev[i].on_dev,
+        num_densities[i] * sizeof(struct gkyl_gk_rad_drag));
+    }
+  }
+
+  // Release the temporary struct with on_dev pointers.
+  for (int i=0; i<num_collisions; i++) {
+    gkyl_free(drag_s_dev[i].on_dev);
+  }
+  gkyl_free(drag_s_dev);
+  
+  return drag_s;
+}
+
+void
+gkyl_dg_calc_gk_rad_vars_drag_release(struct gkyl_gk_rad_drag *drag_s, int num_collisions, bool use_gpu)
+{
+  // Free memory allocated to store a drag coefficient for each collision and each density.
+  for (int i=0; i<num_collisions; i++) {
+    if (use_gpu)
+      gkyl_cu_free(drag_s[i].on_dev);
+    else
+      gkyl_free(drag_s[i].on_dev);
+  }
+  for (int i=0; i<num_collisions; i++) {
+    struct gkyl_gk_rad_drag *drag_ne = &drag_s[i];
+    for (int n=0; n<drag_s[i].num_dens; n++) {
+      struct gkyl_gk_rad_drag *drag = &drag_ne->data[n];
+      gkyl_array_release(drag->arr);
+    }
+    gkyl_free(drag_s[i].data);
+  }
+  gkyl_free(drag_s);
+}
+
 gkyl_dg_calc_gk_rad_vars* 
 gkyl_dg_calc_gk_rad_vars_new(const struct gkyl_rect_grid *phase_grid, 
   const struct gkyl_basis *conf_basis, const struct gkyl_basis *phase_basis, double charge,
@@ -91,12 +168,9 @@ void gkyl_dg_calc_gk_rad_vars_nu_advance(const struct gkyl_dg_calc_gk_rad_vars *
 
 void gkyl_dg_calc_gk_rad_vars_nI_nu_advance(const struct gkyl_dg_calc_gk_rad_vars *up,
   const struct gkyl_range *conf_range, const struct gkyl_range *phase_range, 
-  const struct gkyl_dg_rad_nu_ne_dependence* vnu_surf,
-  const struct gkyl_dg_rad_nu_ne_dependence* vnu,
-  const struct gkyl_dg_rad_nu_ne_dependence* vsqnu_surf,
-  const struct gkyl_dg_rad_nu_ne_dependence* vsqnu,
-  const struct gkyl_array* n_elc_rad,
-  const struct gkyl_array* n_elc,
+  const struct gkyl_gk_rad_drag* vnu_surf, const struct gkyl_gk_rad_drag* vnu,
+  const struct gkyl_gk_rad_drag* vsqnu_surf, const struct gkyl_gk_rad_drag* vsqnu,
+  const struct gkyl_array* n_elc_rad, const struct gkyl_array* n_elc,
   const struct gkyl_array *nI, 
   struct gkyl_array* nvnu_surf, struct gkyl_array* nvnu, 
   struct gkyl_array* nvsqnu_surf, struct gkyl_array* nvsqnu)
@@ -127,10 +201,10 @@ void gkyl_dg_calc_gk_rad_vars_nI_nu_advance(const struct gkyl_dg_calc_gk_rad_var
     double ne_cell_avg = ne[0]/pow(2.0, cdim/2.0);
     int ne_idx = gkyl_find_nearest_idx(n_elc_rad, ne_cell_avg);
     
-    const double* vnu_surf_d = gkyl_array_cfetch(vnu_surf->nus[ne_idx].nu, loc_phase);
-    const double* vnu_d = gkyl_array_cfetch(vnu->nus[ne_idx].nu, loc_phase);
-    const double* vsqnu_surf_d = gkyl_array_cfetch(vsqnu_surf->nus[ne_idx].nu, loc_phase);  
-    const double* vsqnu_d = gkyl_array_cfetch(vsqnu->nus[ne_idx].nu, loc_phase);   
+    const double* vnu_surf_d = gkyl_array_cfetch(vnu_surf->data[ne_idx].arr, loc_phase);
+    const double* vnu_d = gkyl_array_cfetch(vnu->data[ne_idx].arr, loc_phase);
+    const double* vsqnu_surf_d = gkyl_array_cfetch(vsqnu_surf->data[ne_idx].arr, loc_phase);  
+    const double* vsqnu_d = gkyl_array_cfetch(vsqnu->data[ne_idx].arr, loc_phase);   
     const double *nI_d = gkyl_array_cfetch(nI, loc_conf);
 
     double* nvnu_surf_d = gkyl_array_fetch(nvnu_surf, loc_phase);
@@ -150,16 +224,4 @@ void gkyl_dg_calc_gk_rad_vars_release(gkyl_dg_calc_gk_rad_vars *up)
   if (GKYL_IS_CU_ALLOC(up->flags))
     gkyl_cu_free(up->on_dev);
   gkyl_free(up);
-}
-
-void gkyl_dg_rad_nu_ne_dependence_release(struct gkyl_dg_rad_nu_ne_dependence *vnu) {
-  for (int i=0; i<vnu->num_of_collisions;i++) {
-    for (int j=0; j<vnu->nus->num_of_densities; j++) {
-      gkyl_array_release(vnu[i].nus[j].nu);
-    }
-    //gkyl_free(vnu[i].device_mem);
-    //gkyl_cu_free(vnu[i].on_dev);
-    //    gkyl_free(vnu[i].nus);
-  }
-  gkyl_free(vnu);
 }

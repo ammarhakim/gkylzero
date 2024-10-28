@@ -75,8 +75,8 @@ gkyl_dg_calc_gk_rad_vars_nu_advance_cu(const struct gkyl_dg_calc_gk_rad_vars *up
 __global__ void
 gkyl_dg_calc_gk_rad_vars_nI_nu_advance_cu_kernel(struct gkyl_dg_calc_gk_rad_vars *up, 
   struct gkyl_range conf_range, struct gkyl_range phase_range,
-  const struct gkyl_nu_on_device* vnu_surf, const struct gkyl_nu_on_device* vnu, 
-  const struct gkyl_nu_on_device* vsqnu_surf, const struct gkyl_nu_on_device* vsqnu,
+  const struct gkyl_gk_rad_drag* vnu_surf, const struct gkyl_gk_rad_drag* vnu, 
+  const struct gkyl_gk_rad_drag* vsqnu_surf, const struct gkyl_gk_rad_drag* vsqnu,
   const struct gkyl_array* n_elc_rad, const struct gkyl_array* n_elc,
   const struct gkyl_array *nI, 
   struct gkyl_array* nvnu_surf, struct gkyl_array* nvnu, 
@@ -118,10 +118,10 @@ gkyl_dg_calc_gk_rad_vars_nI_nu_advance_cu_kernel(struct gkyl_dg_calc_gk_rad_vars
     }
     int ne_idx = left;
 
-    const double* vnu_surf_d = (const double*) gkyl_array_cfetch(vnu_surf[ne_idx].nu, loc_phase);
-    const double* vnu_d = (const double*) gkyl_array_cfetch(vnu[ne_idx].nu, loc_phase);
-    const double* vsqnu_surf_d = (const double*) gkyl_array_cfetch(vsqnu_surf[ne_idx].nu, loc_phase);  
-    const double* vsqnu_d = (const double*) gkyl_array_cfetch(vsqnu[ne_idx].nu, loc_phase);   
+    const double* vnu_surf_d = (const double*) gkyl_array_cfetch(vnu_surf[ne_idx].arr, loc_phase);
+    const double* vnu_d = (const double*) gkyl_array_cfetch(vnu[ne_idx].arr, loc_phase);
+    const double* vsqnu_surf_d = (const double*) gkyl_array_cfetch(vsqnu_surf[ne_idx].arr, loc_phase);  
+    const double* vsqnu_d = (const double*) gkyl_array_cfetch(vsqnu[ne_idx].arr, loc_phase);   
 
     const double *nI_d = (const double*) gkyl_array_cfetch(nI, loc_conf);
 
@@ -139,8 +139,8 @@ gkyl_dg_calc_gk_rad_vars_nI_nu_advance_cu_kernel(struct gkyl_dg_calc_gk_rad_vars
 void 
 gkyl_dg_calc_gk_rad_vars_nI_nu_advance_cu(const struct gkyl_dg_calc_gk_rad_vars *up,
   const struct gkyl_range *conf_range, const struct gkyl_range *phase_range, 
-  const struct gkyl_dg_rad_nu_ne_dependence* vnu_surf, const struct gkyl_dg_rad_nu_ne_dependence* vnu, 
-  const struct gkyl_dg_rad_nu_ne_dependence* vsqnu_surf, const struct gkyl_dg_rad_nu_ne_dependence* vsqnu,
+  const struct gkyl_gk_rad_drag* vnu_surf, const struct gkyl_gk_rad_drag* vnu, 
+  const struct gkyl_gk_rad_drag* vsqnu_surf, const struct gkyl_gk_rad_drag* vsqnu,
   const struct gkyl_array* n_elc_rad, const struct gkyl_array* n_elc,
   const struct gkyl_array *nI, 
   struct gkyl_array* nvnu_surf, struct gkyl_array* nvnu, 

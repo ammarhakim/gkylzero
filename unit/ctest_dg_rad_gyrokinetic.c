@@ -22,6 +22,7 @@
 #include <gkyl_rect_decomp.h>
 #include <gkyl_util.h>
 #include <math.h>
+#include <assert.h>
 
 static struct gkyl_array*
 mkarr(bool on_gpu, long nc, long size)
@@ -101,7 +102,8 @@ eval_vthsq(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout
 }
 
 void
-test_1x(int poly_order, bool use_gpu, double te, int atomic_z, int charge_state, int num_ne[1], int ne_interval)
+test_1x(int poly_order, bool use_gpu, double te, int atomic_z,
+  int charge_state, int num_ne[1], int ne_interval)
 {
   double mass = GKYL_ELECTRON_MASS;
   double charge = -1.0*GKYL_ELEMENTARY_CHARGE;
@@ -212,23 +214,29 @@ test_1x(int poly_order, bool use_gpu, double te, int atomic_z, int charge_state,
   // vnu = v_par*nu(v)
   // vsqnu = 2*mu*nu(v)
   // Note that through the spatial variation of B, both these drag coefficients depend on the full phase space
-  struct gkyl_array  *nvnu, *nvsqnu, *nvnu_surf, *nvsqnu_surf,
-    *nvnu_host, *nvsqnu_host, *nvnu_surf_host, *nvsqnu_surf_host;
-  struct gkyl_dg_rad_nu_ne_dependence *vnu, *vsqnu, *vnu_surf, *vsqnu_surf;
-  if (use_gpu) {
-    vnu_surf = gkyl_cu_malloc(sizeof(struct gkyl_dg_rad_nu_ne_dependence));                                
-    vnu = gkyl_cu_malloc(sizeof(struct gkyl_dg_rad_nu_ne_dependence));                                     
-    vsqnu_surf = gkyl_cu_malloc(sizeof(struct gkyl_dg_rad_nu_ne_dependence));                              
-    vsqnu = gkyl_cu_malloc(sizeof(struct gkyl_dg_rad_nu_ne_dependence));                                   
-  } else {                                                              vnu_surf = gkyl_malloc(sizeof(struct gkyl_dg_rad_nu_ne_dependence));                                   
-    vnu = gkyl_malloc(sizeof(struct gkyl_dg_rad_nu_ne_dependence));                                        
-    vsqnu_surf = gkyl_malloc(sizeof(struct gkyl_dg_rad_nu_ne_dependence));                                 
-    vsqnu = gkyl_malloc(sizeof(struct gkyl_dg_rad_nu_ne_dependence));                                      
-  }                    
-  struct all_radiation_states *rad_data=gkyl_radiation_read_rad_fit_params();
+
+  int num_collisions = 1;
+  int num_ne_per_coll[num_collisions];
+  num_ne_per_coll[0] = num_ne[0];
+  struct all_radiation_states *rad_data = gkyl_radiation_read_rad_fit_params();
+  int stat = gkyl_radiation_read_get_num_densities(*rad_data, atomic_z, charge_state,
+    1, 1e30, num_ne_per_coll);
+
+  struct gkyl_gk_rad_drag *vnu, *vsqnu, *vnu_surf, *vsqnu_surf;
+  vnu = gkyl_dg_calc_gk_rad_vars_drag_new(num_collisions,
+    num_ne_per_coll, basis.num_basis, local_ext.volume, use_gpu);
+  vsqnu = gkyl_dg_calc_gk_rad_vars_drag_new(num_collisions,
+    num_ne_per_coll, basis.num_basis, local_ext.volume, use_gpu);
+  vnu_surf = gkyl_dg_calc_gk_rad_vars_drag_new(num_collisions,
+    num_ne_per_coll, surf_vpar_basis.num_basis, local_ext.volume, use_gpu);
+  vsqnu_surf = gkyl_dg_calc_gk_rad_vars_drag_new(num_collisions,
+    num_ne_per_coll, surf_mu_basis.num_basis, local_ext.volume, use_gpu);
+
   double a[GKYL_MAX_RAD_DENSITIES], alpha[GKYL_MAX_RAD_DENSITIES], beta[GKYL_MAX_RAD_DENSITIES],
     gamma[GKYL_MAX_RAD_DENSITIES], v0[GKYL_MAX_RAD_DENSITIES], n_elc_d[GKYL_MAX_RAD_DENSITIES];
-  int status = gkyl_radiation_read_get_fit_params(*rad_data, atomic_z, charge_state, a, alpha, beta, gamma, v0, num_ne, n_elc_d, 1e19, 1, 1e30);
+  int status = gkyl_radiation_read_get_fit_params(*rad_data, atomic_z, charge_state,
+    a, alpha, beta, gamma, v0, num_ne, n_elc_d, 1e19, 1, 1e30);
+  assert(num_ne[0] == num_ne_per_coll[0]);
   if (status == 1) {
     printf("No radiation fits exist for z=%d, charge state=%d\n",atomic_z, charge_state);
     TEST_CHECK( status==0 );
@@ -236,25 +244,26 @@ test_1x(int poly_order, bool use_gpu, double te, int atomic_z, int charge_state,
   double ctx[2], Lz[1];
   ne_interval = fmin(ne_interval, num_ne[0]);
   struct gkyl_array *n_elc = mkarr(use_gpu, 1, num_ne[0]);
-  n_elc->data=n_elc_d;
+  struct gkyl_array *n_elc_ho = mkarr(false, 1, num_ne[0]);
+  memcpy(n_elc_ho->data, n_elc_d, num_ne[0]*sizeof(double));
+  gkyl_array_copy(n_elc, n_elc_ho);
+  gkyl_array_release(n_elc_ho);
   
-  vnu->nu[ne_interval-1] = mkarr(use_gpu, basis.num_basis, local_ext.volume);
-  vsqnu->nu[ne_interval-1] = mkarr(use_gpu, basis.num_basis, local_ext.volume);
-  vnu_surf->nu[ne_interval-1] = mkarr(use_gpu, surf_vpar_basis.num_basis, local_ext.volume);
-  vsqnu_surf->nu[ne_interval-1] = mkarr(use_gpu, surf_mu_basis.num_basis, local_ext.volume);
-
-  ctx[0]=te;
-  ctx[1]=n_elc_d[ne_interval-1];
+  ctx[0] = te;
+  ctx[1] = n_elc_d[ne_interval-1];
 
   gkyl_radiation_read_get_fit_lz(*rad_data, atomic_z, charge_state, log10(n_elc_d[ne_interval-1]), ctx, Lz);
   gkyl_radiation_read_release_fit_params(rad_data);
   
-  struct gkyl_dg_calc_gk_rad_vars *calc_gk_rad_vars = gkyl_dg_calc_gk_rad_vars_new(&grid, &confBasis, &basis, 
-		charge, mass, gk_geom, gvm, use_gpu);
+  struct gkyl_dg_calc_gk_rad_vars *calc_gk_rad_vars = gkyl_dg_calc_gk_rad_vars_new(&grid,
+    &confBasis, &basis, charge, mass, gk_geom, gvm, use_gpu);
 
-  gkyl_dg_calc_gk_rad_vars_nu_advance(calc_gk_rad_vars, &confLocal, &local, a[ne_interval-1], alpha[ne_interval-1],
-		  beta[ne_interval-1], gamma[ne_interval-1], v0[ne_interval-1], vnu_surf->nu[ne_interval-1], vnu->nu[ne_interval-1], vsqnu_surf->nu[ne_interval-1], vsqnu->nu[ne_interval-1]);
+  gkyl_dg_calc_gk_rad_vars_nu_advance(calc_gk_rad_vars, &confLocal, &local,
+    a[ne_interval-1], alpha[ne_interval-1],beta[ne_interval-1], gamma[ne_interval-1], v0[ne_interval-1],
+    vnu_surf[0].data[ne_interval-1].arr, vnu[0].data[ne_interval-1].arr,
+    vsqnu_surf[0].data[ne_interval-1].arr, vsqnu[0].data[ne_interval-1].arr);
 
+  struct gkyl_array *nvnu, *nvsqnu, *nvnu_surf, *nvsqnu_surf;
   nvnu = mkarr(use_gpu, basis.num_basis, local_ext.volume);
   nvsqnu = mkarr(use_gpu, basis.num_basis, local_ext.volume);
   nvnu_surf = mkarr(use_gpu, surf_vpar_basis.num_basis, local_ext.volume);
@@ -310,7 +319,8 @@ test_1x(int poly_order, bool use_gpu, double te, int atomic_z, int charge_state,
   struct gkyl_dg_updater_collisions *slvr;
   struct gkyl_dg_rad_gyrokinetic_auxfields drag_inp = { .nvnu_surf = nvnu_surf, .nvnu = nvnu, 
     .nvsqnu_surf = nvsqnu_surf, .nvsqnu = nvsqnu, .vtsq = vtsq_imp, .vtsq_min = vtsq_min};
-  slvr = gkyl_dg_updater_rad_gyrokinetic_new(&grid, &confBasis, &basis, &local, &confLocal, gvm, &drag_inp, use_gpu);
+  slvr = gkyl_dg_updater_rad_gyrokinetic_new(&grid, &confBasis,
+    &basis, &local, &confLocal, gvm, &drag_inp, use_gpu);
 
   struct gkyl_array *cflrate, *rhs, *fmax;
   cflrate = mkarr(use_gpu, 1, local_ext.volume);
@@ -327,24 +337,22 @@ test_1x(int poly_order, bool use_gpu, double te, int atomic_z, int charge_state,
   // Assumed electron and ion density are the same and uniform
   if (use_gpu) {
     gkyl_dg_calc_gk_rad_vars_nI_nu_advance(calc_gk_rad_vars, 
-      &confLocal, &local, vnu_surf,
-      vnu, vsqnu_surf, vsqnu, n_elc,
-      m0_dev, m0_dev, nvnu_surf, nvnu, nvsqnu_surf, nvsqnu);
+      &confLocal, &local, &vnu_surf[0], &vnu[0], &vsqnu_surf[0], &vsqnu[0],
+      n_elc, m0_dev, m0_dev, nvnu_surf, nvnu, nvsqnu_surf, nvsqnu);
   }
   else {
     gkyl_dg_calc_gk_rad_vars_nI_nu_advance(calc_gk_rad_vars, 
-      &confLocal, &local, vnu_surf,
-      vnu, vsqnu_surf, vsqnu, n_elc,
-      m0, m0, nvnu_surf, nvnu, nvsqnu_surf, nvsqnu);
+      &confLocal, &local, &vnu_surf[0], &vnu[0], &vsqnu_surf[0], &vsqnu[0],
+      n_elc, m0, m0, nvnu_surf, nvnu, nvsqnu_surf, nvsqnu);
   }
 
   gkyl_dg_updater_rad_gyrokinetic_advance(slvr, &local, f, cflrate, rhs);
 
-  // Take 2nd moment of rhs to find energy loss on host
-    gkyl_grid_sub_array_write(&grid, &local, 0, rhs, "ctest_dg_rad_gyrokinetic_1x_rhs.gkyl");
-  gkyl_grid_sub_array_write(&grid, &local, 0, nvnu, "ctest_dg_rad_gyrokinetic_1x_nvnu.gkyl");
-  gkyl_grid_sub_array_write(&grid, &local, 0, nvsqnu, "ctest_dg_rad_gyrokinetic_1x_nvsqnu.gkyl");
-  gkyl_grid_sub_array_write(&grid, &local, 0, f, "ctest_dg_rad_gyrokinetic_1x_f.gkyl");
+//  // Take 2nd moment of rhs to find energy loss on host
+//  gkyl_grid_sub_array_write(&grid, &local, 0, rhs, "ctest_dg_rad_gyrokinetic_1x_rhs.gkyl");
+//  gkyl_grid_sub_array_write(&grid, &local, 0, nvnu, "ctest_dg_rad_gyrokinetic_1x_nvnu.gkyl");
+//  gkyl_grid_sub_array_write(&grid, &local, 0, nvsqnu, "ctest_dg_rad_gyrokinetic_1x_nvsqnu.gkyl");
+//  gkyl_grid_sub_array_write(&grid, &local, 0, f, "ctest_dg_rad_gyrokinetic_1x_f.gkyl");
 
   struct gkyl_dg_updater_moment *m2_calc = gkyl_dg_updater_moment_gyrokinetic_new(&grid, &confBasis, &basis,
     &confLocal, GKYL_ELECTRON_MASS, gvm, gk_geom, "M2", false, use_gpu);
@@ -373,14 +381,10 @@ test_1x(int poly_order, bool use_gpu, double te, int atomic_z, int charge_state,
   TEST_CHECK( cell_avg0<0 );
   
   // Release memory
-  gkyl_array_release(vnu->nu[ne_interval-1]);
-  gkyl_array_release(vsqnu->nu[ne_interval-1]);
-  gkyl_array_release(vnu_surf->nu[ne_interval-1]);
-  gkyl_array_release(vsqnu_surf->nu[ne_interval-1]);	
-  gkyl_free(vnu);
-  gkyl_free(vnu_surf);
-  gkyl_free(vsqnu);
-  gkyl_free(vsqnu_surf);
+  gkyl_dg_calc_gk_rad_vars_drag_release(vnu, num_collisions, use_gpu);
+  gkyl_dg_calc_gk_rad_vars_drag_release(vnu_surf, num_collisions, use_gpu);
+  gkyl_dg_calc_gk_rad_vars_drag_release(vsqnu, num_collisions, use_gpu);
+  gkyl_dg_calc_gk_rad_vars_drag_release(vsqnu_surf, num_collisions, use_gpu);
   gkyl_array_release(nvnu);
   gkyl_array_release(nvnu_surf);
   gkyl_array_release(nvsqnu);
@@ -528,50 +532,58 @@ test_2x(int poly_order, bool use_gpu, double te)
   // vnu = v_par*nu(v)
   // vsqnu = 2*mu*nu(v)
   // Note that through the spatial variation of B, both these drag coefficients depend on the full phase space
-  struct gkyl_array *nvnu, *nvsqnu, *nvnu_surf, *nvsqnu_surf,
-    *nvnu_host, *nvsqnu_host, *nvnu_surf_host, *nvsqnu_surf_host;
-  struct gkyl_dg_rad_nu_ne_dependence *vnu, *vsqnu, *vnu_surf, *vsqnu_surf;
-  if (use_gpu) {
-    vnu_surf = gkyl_cu_malloc(sizeof(struct gkyl_dg_rad_nu_ne_dependence));                                
-    vnu = gkyl_cu_malloc(sizeof(struct gkyl_dg_rad_nu_ne_dependence));                                     
-    vsqnu_surf = gkyl_cu_malloc(sizeof(struct gkyl_dg_rad_nu_ne_dependence));                              
-    vsqnu = gkyl_cu_malloc(sizeof(struct gkyl_dg_rad_nu_ne_dependence));                                   
-  } else {                                                              vnu_surf = gkyl_malloc(sizeof(struct gkyl_dg_rad_nu_ne_dependence));                                   
-    vnu = gkyl_malloc(sizeof(struct gkyl_dg_rad_nu_ne_dependence));                                        
-    vsqnu_surf = gkyl_malloc(sizeof(struct gkyl_dg_rad_nu_ne_dependence));                                 
-    vsqnu = gkyl_malloc(sizeof(struct gkyl_dg_rad_nu_ne_dependence));                                      
-  }                    
-  vnu->nu[0] = mkarr(use_gpu, basis.num_basis, local_ext.volume);
-  vsqnu->nu[0] = mkarr(use_gpu, basis.num_basis, local_ext.volume);
-  vnu_surf->nu[0] = mkarr(use_gpu, surf_vpar_basis.num_basis, local_ext.volume);
-  vsqnu_surf->nu[0] = mkarr(use_gpu, surf_mu_basis.num_basis, local_ext.volume);
 
-  struct all_radiation_states *rad_data=gkyl_radiation_read_rad_fit_params();
-  double a[1], alpha[1], beta[1], gamma[1], v0[1], n_elc_d[1];
+  int num_collisions = 1;
+  int num_ne_per_coll[1] = {1};
   int atomic_z = 3;
   int charge_state = 0;
+  struct all_radiation_states *rad_data = gkyl_radiation_read_rad_fit_params();
+  int stat = gkyl_radiation_read_get_num_densities(*rad_data, atomic_z, charge_state,
+    1, 1e30, num_ne_per_coll);
+
+  struct gkyl_gk_rad_drag *vnu, *vsqnu, *vnu_surf, *vsqnu_surf;
+  vnu = gkyl_dg_calc_gk_rad_vars_drag_new(num_collisions,
+    num_ne_per_coll, basis.num_basis, local_ext.volume, use_gpu);
+  vsqnu = gkyl_dg_calc_gk_rad_vars_drag_new(num_collisions,
+    num_ne_per_coll, basis.num_basis, local_ext.volume, use_gpu);
+  vnu_surf = gkyl_dg_calc_gk_rad_vars_drag_new(num_collisions,
+    num_ne_per_coll, surf_vpar_basis.num_basis, local_ext.volume, use_gpu);
+  vsqnu_surf = gkyl_dg_calc_gk_rad_vars_drag_new(num_collisions,
+    num_ne_per_coll, surf_mu_basis.num_basis, local_ext.volume, use_gpu);
+
+  double a[1], alpha[1], beta[1], gamma[1], v0[1], n_elc_d[1];
   int num_ne[1] = {1};
   int ne_interval = 1;
-  int status = gkyl_radiation_read_get_fit_params(*rad_data, atomic_z, charge_state, a, alpha, beta, gamma, v0, num_ne, n_elc_d, 1e19, 1, 1e30);
+  int status = gkyl_radiation_read_get_fit_params(*rad_data, atomic_z, charge_state,
+    a, alpha, beta, gamma, v0, num_ne, n_elc_d, 1e19, 1, 1e30);
+  assert(num_ne[0] == num_ne_per_coll[0]);
 
   struct gkyl_array *n_elc = mkarr(use_gpu, 1, num_ne[0]);
-  n_elc->data=n_elc_d;
+  struct gkyl_array *n_elc_ho = mkarr(false, 1, num_ne[0]);
+  memcpy(n_elc_ho->data, n_elc_d, num_ne[0]*sizeof(double));
+  gkyl_array_copy(n_elc, n_elc_ho);
+  gkyl_array_release(n_elc_ho);
+
   if (status == 1) {
     printf("No radiation fits exist for z=%d, charge state=%d\n",atomic_z, charge_state);
     TEST_CHECK( status==0 );
   }
   double ctx[2], Lz[1];
-  ctx[0]=te;
+  ctx[0] = te;
   ctx[1] = n_elc_d[ne_interval-1];
 
   gkyl_radiation_read_get_fit_lz(*rad_data, atomic_z, charge_state, log10(ctx[1]), ctx, Lz);
   gkyl_radiation_read_release_fit_params(rad_data);
   
-  struct gkyl_dg_calc_gk_rad_vars *calc_gk_rad_vars = gkyl_dg_calc_gk_rad_vars_new(&grid, &confBasis, &basis, 
-		  charge, mass, gk_geom, gvm, use_gpu);
+  struct gkyl_dg_calc_gk_rad_vars *calc_gk_rad_vars = gkyl_dg_calc_gk_rad_vars_new(&grid,
+    &confBasis, &basis, charge, mass, gk_geom, gvm, use_gpu);
 
-  gkyl_dg_calc_gk_rad_vars_nu_advance(calc_gk_rad_vars, &confLocal, &local, a[0], alpha[0], beta[0], gamma[0], v0[0], vnu_surf->nu[0], vnu->nu[0], vsqnu_surf->nu[0], vsqnu->nu[0]);
+  gkyl_dg_calc_gk_rad_vars_nu_advance(calc_gk_rad_vars, &confLocal, &local,
+    a[0], alpha[0], beta[0], gamma[0], v0[0],
+    vnu_surf[0].data[ne_interval-1].arr, vnu[0].data[ne_interval-1].arr,
+    vsqnu_surf[0].data[ne_interval-1].arr, vsqnu[0].data[ne_interval-1].arr);
 
+  struct gkyl_array *nvnu, *nvsqnu, *nvnu_surf, *nvsqnu_surf;
   nvnu = mkarr(use_gpu, basis.num_basis, local_ext.volume);
   nvsqnu = mkarr(use_gpu, basis.num_basis, local_ext.volume);
   nvnu_surf = mkarr(use_gpu, surf_vpar_basis.num_basis, local_ext.volume);
@@ -647,15 +659,13 @@ test_2x(int poly_order, bool use_gpu, double te)
   // Assumed electron and ion density are the same and uniform
   if (use_gpu) {
     gkyl_dg_calc_gk_rad_vars_nI_nu_advance(calc_gk_rad_vars, 
-      &confLocal, &local, vnu_surf,
-      vnu, vsqnu_surf, vsqnu, n_elc,
-      m0_dev, m0_dev, nvnu_surf, nvnu, nvsqnu_surf, nvsqnu);
+      &confLocal, &local, &vnu_surf[0], &vnu[0], &vsqnu_surf[0], &vsqnu[0],
+      n_elc, m0_dev, m0_dev, nvnu_surf, nvnu, nvsqnu_surf, nvsqnu);
   }
   else {
     gkyl_dg_calc_gk_rad_vars_nI_nu_advance(calc_gk_rad_vars, 
-      &confLocal, &local, vnu_surf,
-      vnu, vsqnu_surf, vsqnu, n_elc,
-      m0, m0, nvnu_surf, nvnu, nvsqnu_surf, nvsqnu);
+      &confLocal, &local, &vnu_surf[0], &vnu[0], &vsqnu_surf[0], &vsqnu[0],
+      n_elc, m0, m0, nvnu_surf, nvnu, nvsqnu_surf, nvsqnu);
   }
 
   gkyl_dg_updater_rad_gyrokinetic_advance(slvr, &local, f, cflrate, rhs);
@@ -692,14 +702,10 @@ test_2x(int poly_order, bool use_gpu, double te)
   TEST_CHECK( cell_avg0<0 );
 
   // Release memory
-  gkyl_array_release(vnu->nu[0]);
-  gkyl_array_release(vsqnu->nu[0]);
-  gkyl_array_release(vnu_surf->nu[0]);
-  gkyl_array_release(vsqnu_surf->nu[0]);	
-  gkyl_free(vnu);
-  gkyl_free(vnu_surf);
-  gkyl_free(vsqnu);
-  gkyl_free(vsqnu_surf);
+  gkyl_dg_calc_gk_rad_vars_drag_release(vnu, num_collisions, use_gpu);
+  gkyl_dg_calc_gk_rad_vars_drag_release(vnu_surf, num_collisions, use_gpu);
+  gkyl_dg_calc_gk_rad_vars_drag_release(vsqnu, num_collisions, use_gpu);
+  gkyl_dg_calc_gk_rad_vars_drag_release(vsqnu_surf, num_collisions, use_gpu);
   gkyl_array_release(nvnu);
   gkyl_array_release(nvnu_surf);
   gkyl_array_release(nvsqnu);
@@ -756,7 +762,7 @@ void test_1x2v_p1_Li1_highNe() { test_1x(1, false, 30.0, 3, 1, num_ne2, 13); }
 
 void test_1x2v_p1_gpu() { test_1x(1, true, 30.0, 3, 0, num_ne, 1); }
 void test_1x2v_p1_L1_midNe_gpu() { printf("XFAIL"); test_1x(1, true, 30.0, 3, 1, num_ne2, 6); }
-void test_1x2v_p2_gpu() { test_1x(2, true, 30.0); }
+void test_1x2v_p2_gpu() { test_1x(2, true, 30.0, 3, 0, num_ne, 1); }
 
 #endif
 

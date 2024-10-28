@@ -183,10 +183,10 @@ struct gk_rad_drag {
   bool is_neut_species[2*GKYL_MAX_SPECIES]; // Flag of whether neutral or gk species
   
   // drag coefficients in vparallel and mu for each species being collided with
-  struct gkyl_dg_rad_nu_ne_dependence *vnu_surf;
-  struct gkyl_dg_rad_nu_ne_dependence *vnu;
-  struct gkyl_dg_rad_nu_ne_dependence *vsqnu_surf;
-  struct gkyl_dg_rad_nu_ne_dependence *vsqnu;
+  struct gkyl_gk_rad_drag *vnu_surf;
+  struct gkyl_gk_rad_drag *vnu;
+  struct gkyl_gk_rad_drag *vsqnu_surf;
+  struct gkyl_gk_rad_drag *vsqnu;
   struct gkyl_dg_calc_gk_rad_vars *calc_gk_rad_vars;
   struct gkyl_array *rad_fit_ne[2*GKYL_MAX_SPECIES];
 

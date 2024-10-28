@@ -12,36 +12,36 @@
 // Object type
 typedef struct gkyl_dg_calc_gk_rad_vars gkyl_dg_calc_gk_rad_vars;
 
-struct gkyl_dg_rad_nu_ne_dependence {
-  struct gkyl_nu_on_device *nus;
-  struct gkyl_nu_on_device *on_dev;  // pointer to itself on device
-  struct gkyl_nu_on_device *device_mem;  // Temporary device-memory pointers
-  int num_of_collisions;
+// Struct to store drag coefficients for each
+// cross-species collisions and for each density.
+struct gkyl_gk_rad_drag {
+  struct gkyl_array *arr; // Array with drag coeff.
+  int num_dens; // Number of densities drag coeffs computed for.
+  struct gkyl_gk_rad_drag *on_dev; // on_dev.arr has on_dev pointers.
+  struct gkyl_gk_rad_drag *data; // data.arr has host pointer with array data and ->on_dev on the GPU (use_gpu=true).
 };
 
-struct gkyl_nu_on_device {
-  struct gkyl_array *nu;
-  int num_of_densities;
-};
+/**
+ * Allocate a new struct storing a drag coefficient for each cross-collision and for each density.
+ *
+ * @param num_collisions Number of radiating collisions.
+ * @param num_densities Number of densities fits are calculate for, for each species.
+ * @param num_comp Number of DG components/basis functions
+ * @param sz Number of cells/size
+ * @param use_gpu Whether to store drag coefficient on the gpu.
+ */
+struct gkyl_gk_rad_drag* gkyl_dg_calc_gk_rad_vars_drag_new(int num_collisions,
+  const int *num_densities, int ncomp, long sz, bool use_gpu);
 
-
-static inline struct gkyl_dg_rad_nu_ne_dependence* gkyl_dg_rad_nu_ne_dependence_new(bool use_gpu, int num_collisions) {
-  struct gkyl_dg_rad_nu_ne_dependence *all_nus = (struct gkyl_dg_rad_nu_ne_dependence*)gkyl_malloc(num_collisions*sizeof(struct gkyl_dg_rad_nu_ne_dependence));
-  all_nus->num_of_collisions = num_collisions;
-  return all_nus;
-}
-
-static inline void gkyl_nu_on_device_new(bool use_gpu, int num_ne, struct gkyl_dg_rad_nu_ne_dependence* vnu_of_i) {
-  vnu_of_i->nus = (struct gkyl_nu_on_device*)gkyl_malloc(num_ne*sizeof(struct gkyl_nu_on_device));
-  vnu_of_i->nus->num_of_densities = num_ne;
-  if (use_gpu) {
-    vnu_of_i->device_mem = (struct gkyl_nu_on_device*)gkyl_malloc(num_ne*sizeof(struct gkyl_nu_on_device));
-    vnu_of_i->on_dev = (struct gkyl_nu_on_device*)gkyl_cu_malloc(num_ne*sizeof(struct gkyl_nu_on_device));
-  } else {
-    vnu_of_i->device_mem = vnu_of_i->nus;
-    vnu_of_i->on_dev = vnu_of_i->nus;
-  }
-}
+/**
+ * Free memory associated with a gkyl_gk_rad_drag struct.
+ *
+ * @param drag Struct with drag coefficient for each cross-collision and density.
+ * @param num_collision Number of radiating collisions.
+ * @param use_gpu Whether data was stored on the GPU.
+ */
+void gkyl_dg_calc_gk_rad_vars_drag_release(struct gkyl_gk_rad_drag *drag,
+  int num_collisions, bool use_gpu);
 
 /**
  * Create new updater to compute the drag coefficients needed for 
@@ -108,14 +108,10 @@ void gkyl_dg_calc_gk_rad_vars_nu_advance(const struct gkyl_dg_calc_gk_rad_vars *
  */
 void gkyl_dg_calc_gk_rad_vars_nI_nu_advance(const struct gkyl_dg_calc_gk_rad_vars *up,
   const struct gkyl_range *conf_range, const struct gkyl_range *phase_range, 
-  const struct gkyl_dg_rad_nu_ne_dependence* vnu_surf,
-  const struct gkyl_dg_rad_nu_ne_dependence* vnu, 
-  const struct gkyl_dg_rad_nu_ne_dependence* vsqnu_surf,
-  const struct gkyl_dg_rad_nu_ne_dependence* vsqnu,
-  const struct gkyl_array* n_elc_rad,
-  const struct gkyl_array* n_elc,
-  const struct gkyl_array* nI, 
-  struct gkyl_array* nvnu_surf, struct gkyl_array* nvnu, 
+  const struct gkyl_gk_rad_drag* vnu_surf, const struct gkyl_gk_rad_drag* vnu, 
+  const struct gkyl_gk_rad_drag* vsqnu_surf, const struct gkyl_gk_rad_drag* vsqnu,
+  const struct gkyl_array* n_elc_rad, const struct gkyl_array* n_elc,
+  const struct gkyl_array* nI, struct gkyl_array* nvnu_surf, struct gkyl_array* nvnu, 
   struct gkyl_array* nvsqnu_surf, struct gkyl_array* nvsqnu);
 
 /**
@@ -124,5 +120,3 @@ void gkyl_dg_calc_gk_rad_vars_nI_nu_advance(const struct gkyl_dg_calc_gk_rad_var
  * @param up Updater to delete.
  */
 void gkyl_dg_calc_gk_rad_vars_release(struct gkyl_dg_calc_gk_rad_vars *up);
-
-void gkyl_dg_rad_nu_ne_dependence_release(struct gkyl_dg_rad_nu_ne_dependence *vnu);
