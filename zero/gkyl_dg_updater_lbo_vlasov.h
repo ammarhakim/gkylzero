@@ -18,10 +18,11 @@ struct gkyl_dg_updater_lbo_vlasov_tm {
 /**
  * Create new updater to update lbo equations using hyper dg.
  *
- * @param phase_grid Phase space grid object
- * @param conf_basis Configuration space basis functions
- * @param phase_basis Phase space basis function
- * @param conf_range Configuration space range
+ * @param phase_grid Phase-space grid object
+ * @param conf_basis Configuration-space basis functions
+ * @param phase_basis Phase-space basis function
+ * @param conf_range Configuration-space range
+ * @param vel_range Velocity-space range
  * @param drag_inp Input struct to vlasov drag operator (see gkyl_dg_lbo_vlasov_drag.h) 
  * @param diff_inp Input struct to vlasov diffusion operator (see gkyl_dg_lbo_vlasov_diff.h) 
  * @param use_gpu Bool for whether updater is on host or device
@@ -30,7 +31,7 @@ struct gkyl_dg_updater_lbo_vlasov_tm {
 struct gkyl_dg_updater_collisions* 
 gkyl_dg_updater_lbo_vlasov_new(const struct gkyl_rect_grid *phase_grid,
   const struct gkyl_basis *conf_basis, const struct gkyl_basis *phase_basis, 
-  const struct gkyl_range *conf_range, 
+  const struct gkyl_range *conf_range, const struct gkyl_range *vel_range, 
   struct gkyl_dg_lbo_vlasov_drag_auxfields *drag_inp, struct gkyl_dg_lbo_vlasov_diff_auxfields *diff_inp, 
   bool use_gpu);
 

@@ -33,7 +33,7 @@ struct gkyl_dg_eqn* gkyl_dg_vlasov_sr_new(const struct gkyl_basis* cbasis,
   enum gkyl_field_id field_id, bool use_vmap, bool use_gpu);
 
 /**
- * Create new special relativistic Vlasov equation object object on NV-GPU: 
+ * Create new special relativistic Vlasov equation object on NV-GPU: 
  * see new() method above for documentation.
  */
 struct gkyl_dg_eqn* gkyl_dg_vlasov_sr_cu_dev_new(const struct gkyl_basis* cbasis,

@@ -66,7 +66,7 @@ vm_species_lbo_init(struct gkyl_vlasov_app *app, struct vm_species *s, struct vm
   struct gkyl_dg_lbo_vlasov_drag_auxfields drag_inp = { .nuSum = lbo->nu_sum, .nuPrimMomsSum = lbo->nu_prim_moms };
   struct gkyl_dg_lbo_vlasov_diff_auxfields diff_inp = { .nuSum = lbo->nu_sum, .nuPrimMomsSum = lbo->nu_prim_moms };
   lbo->coll_slvr = gkyl_dg_updater_lbo_vlasov_new(&s->grid, 
-    &app->confBasis, &app->basis, &app->local, &drag_inp, &diff_inp, app->use_gpu);
+    &app->confBasis, &app->basis, &app->local, &s->local_vel, &drag_inp, &diff_inp, app->use_gpu);
 }
 
 void 

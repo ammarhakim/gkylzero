@@ -34,15 +34,18 @@ gkyl_lbo_vlasov_drag_set_auxfields(const struct gkyl_dg_eqn *eqn, const struct g
   struct dg_lbo_vlasov_drag *lbo_vlasov_drag = container_of(eqn, struct dg_lbo_vlasov_drag, eqn);
   lbo_vlasov_drag->auxfields.nuSum = auxin.nuSum;
   lbo_vlasov_drag->auxfields.nuPrimMomsSum = auxin.nuPrimMomsSum;
+  lbo_vlasov_drag->auxfields.vmap = auxin.vmap;
+  lbo_vlasov_drag->auxfields.jacob_vel_inv = auxin.jacob_vel_inv;
 }
 
 struct gkyl_dg_eqn*
 gkyl_dg_lbo_vlasov_drag_new(const struct gkyl_basis* cbasis, const struct gkyl_basis* pbasis,
-  const struct gkyl_range* conf_range, const struct gkyl_rect_grid *pgrid, bool use_gpu)
+  const struct gkyl_range* conf_range, const struct gkyl_range* vel_range, 
+  const struct gkyl_rect_grid *pgrid, bool use_vmap, bool use_gpu)
 {
 #ifdef GKYL_HAVE_CUDA
   if(use_gpu) {
-    return gkyl_dg_lbo_vlasov_drag_cu_dev_new(cbasis, pbasis, conf_range, pgrid);
+    return gkyl_dg_lbo_vlasov_drag_cu_dev_new(cbasis, pbasis, conf_range, vel_range, pgrid, use_vmap);
   } 
 #endif
   struct dg_lbo_vlasov_drag* lbo_vlasov_drag = gkyl_malloc(sizeof(struct dg_lbo_vlasov_drag));
@@ -72,13 +75,25 @@ gkyl_dg_lbo_vlasov_drag_new(const struct gkyl_basis* cbasis, const struct gkyl_b
   
   switch (cbasis->b_type) {
     case GKYL_BASIS_MODAL_SERENDIPITY:
-      vol_kernels = ser_vol_kernels;
-      surf_vx_kernels = ser_surf_vx_kernels;
-      surf_vy_kernels = ser_surf_vy_kernels;
-      surf_vz_kernels = ser_surf_vz_kernels;
-      boundary_surf_vx_kernels = ser_boundary_surf_vx_kernels;
-      boundary_surf_vy_kernels = ser_boundary_surf_vy_kernels;
-      boundary_surf_vz_kernels = ser_boundary_surf_vz_kernels;
+      if (use_vmap) {
+        vol_kernels = ser_vmap_vol_kernels;
+        surf_vx_kernels = ser_vmap_surf_vx_kernels;
+        surf_vy_kernels = ser_vmap_surf_vy_kernels;
+        surf_vz_kernels = ser_vmap_surf_vz_kernels;
+        boundary_surf_vx_kernels = ser_vmap_boundary_surf_vx_kernels;
+        boundary_surf_vy_kernels = ser_vmap_boundary_surf_vy_kernels;
+        boundary_surf_vz_kernels = ser_vmap_boundary_surf_vz_kernels;
+      }
+      else {
+        vol_kernels = ser_vol_kernels;
+        surf_vx_kernels = ser_surf_vx_kernels;
+        surf_vy_kernels = ser_surf_vy_kernels;
+        surf_vz_kernels = ser_surf_vz_kernels;
+        boundary_surf_vx_kernels = ser_boundary_surf_vx_kernels;
+        boundary_surf_vy_kernels = ser_boundary_surf_vy_kernels;
+        boundary_surf_vz_kernels = ser_boundary_surf_vz_kernels;
+      }
+
       break;
 
     default:
@@ -106,7 +121,10 @@ gkyl_dg_lbo_vlasov_drag_new(const struct gkyl_basis* cbasis, const struct gkyl_b
 
   lbo_vlasov_drag->auxfields.nuSum = 0;
   lbo_vlasov_drag->auxfields.nuPrimMomsSum = 0;
+  lbo_vlasov_drag->auxfields.vmap = 0;
+  lbo_vlasov_drag->auxfields.jacob_vel_inv = 0;
   lbo_vlasov_drag->conf_range = *conf_range;
+  lbo_vlasov_drag->vel_range = *vel_range;
 
   lbo_vlasov_drag->eqn.flags = 0;
   GKYL_CLEAR_CU_ALLOC(lbo_vlasov_drag->eqn.flags);
@@ -119,8 +137,9 @@ gkyl_dg_lbo_vlasov_drag_new(const struct gkyl_basis* cbasis, const struct gkyl_b
 #ifndef GKYL_HAVE_CUDA
 
 struct gkyl_dg_eqn*
-gkyl_dg_lbo_vlasov_drag_cu_dev_new(const struct gkyl_basis* cbasis,
-  const struct gkyl_basis* pbasis, const struct gkyl_range* conf_range, const struct gkyl_rect_grid *pgrid)
+gkyl_dg_lbo_vlasov_drag_cu_dev_new(const struct gkyl_basis* cbasis, const struct gkyl_basis* pbasis,
+  const struct gkyl_range* conf_range, const struct gkyl_range* vel_range, 
+  const struct gkyl_rect_grid *pgrid, bool use_vmap)
 {
   assert(false);
   return 0;

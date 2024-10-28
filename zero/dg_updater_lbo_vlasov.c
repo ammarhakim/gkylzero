@@ -12,14 +12,14 @@
 struct gkyl_dg_updater_collisions*
 gkyl_dg_updater_lbo_vlasov_new(const struct gkyl_rect_grid *phase_grid, 
   const struct gkyl_basis *conf_basis, const struct gkyl_basis *phase_basis, 
-  const struct gkyl_range *conf_range, 
+  const struct gkyl_range *conf_range, const struct gkyl_range *vel_range, 
   struct gkyl_dg_lbo_vlasov_drag_auxfields *drag_inp, struct gkyl_dg_lbo_vlasov_diff_auxfields *diff_inp, 
   bool use_gpu)
 {
   struct gkyl_dg_updater_collisions *up = gkyl_malloc(sizeof(gkyl_dg_updater_collisions));
   up->use_gpu = use_gpu;
-
-  up->coll_drag = gkyl_dg_lbo_vlasov_drag_new(conf_basis, phase_basis, conf_range, phase_grid, use_gpu);
+  // No non-uniform LBO using cubic velocity mapping for now JJ: 10/27/24
+  up->coll_drag = gkyl_dg_lbo_vlasov_drag_new(conf_basis, phase_basis, conf_range, vel_range, phase_grid, false, use_gpu);
   gkyl_lbo_vlasov_drag_set_auxfields(up->coll_drag, *drag_inp);
   up->coll_diff = gkyl_dg_lbo_vlasov_diff_new(conf_basis, phase_basis, conf_range, phase_grid, use_gpu);
   gkyl_lbo_vlasov_diff_set_auxfields(up->coll_diff, *diff_inp);

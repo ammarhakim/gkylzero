@@ -1,10 +1,12 @@
 #include <gkyl_lbo_vlasov_kernels.h> 
 #include <gkyl_basis_hyb_2x2v_p1_surfx4_eval_quad.h> 
 #include <gkyl_basis_hyb_2x2v_p1_upwind_quad_to_modal.h> 
-GKYL_CU_DH double lbo_vlasov_drag_surfvy_2x2v_ser_p1(const double *w, const double *dxv, const double *nuSum, const double *nuPrimMomsSum, const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out) 
+GKYL_CU_DH double lbo_vlasov_drag_surfvy_2x2v_ser_p1(const double *w, const double *dxv, const double *vmap, const double *jacob_vel_inv, const double *nuSum, const double *nuPrimMomsSum, const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out) 
 { 
   // w[4]: cell-center coordinates. 
   // dxv[4]: cell spacing. 
+  // vmap: Velocity-space nonuniform mapping in each dimension (unused in uniform grid simulations). 
+  // jacob_vel_inv: Inverse of velocity space Jacobian in each dimension (unused in uniform grid simulations). 
   // nuSum: collisionalities added (self and cross species collisionalities). 
   // nuPrimMomsSum[12]: sum of bulk velocities and thermal speeds (squared) times their respective collisionalities. 
   // fl/fc/fr: distribution function in cells 

@@ -12,13 +12,14 @@
 struct gkyl_dg_updater_rad_vlasov*
 gkyl_dg_updater_rad_vlasov_new(const struct gkyl_rect_grid *phase_grid, 
   const struct gkyl_basis *conf_basis, const struct gkyl_basis *phase_basis, 
-  const struct gkyl_range *conf_range, struct gkyl_dg_lbo_vlasov_drag_auxfields *drag_inp, 
-  bool use_gpu)
+  const struct gkyl_range *conf_range, const struct gkyl_range *vel_range, 
+  struct gkyl_dg_lbo_vlasov_drag_auxfields *drag_inp, 
+  bool use_vmap, bool use_gpu)
 {
   struct gkyl_dg_updater_rad_vlasov *up = gkyl_malloc(sizeof(*up));
   up->use_gpu = use_gpu;
 
-  up->rad_drag = gkyl_dg_lbo_vlasov_drag_new(conf_basis, phase_basis, conf_range, phase_grid, use_gpu);
+  up->rad_drag = gkyl_dg_lbo_vlasov_drag_new(conf_basis, phase_basis, conf_range, vel_range, phase_grid, use_vmap, use_gpu);
   gkyl_lbo_vlasov_drag_set_auxfields(up->rad_drag, *drag_inp);
 
   int cdim = conf_basis->ndim, pdim = phase_basis->ndim;
