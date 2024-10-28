@@ -1028,11 +1028,11 @@ nccl_n4_multicomm_2d()
 void
 nccl_bcast_1d()
 {
-  int bcast_rank = 1;
-
   int m_sz, rank;
   MPI_Comm_size(MPI_COMM_WORLD, &m_sz);
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+
+  int bcast_rank = m_sz > 1? 1 : 0;
 
   struct gkyl_range global;
   gkyl_range_init(&global, 1, (int[]) { 1 }, (int[]) { 8*27*125 });
@@ -1082,11 +1082,11 @@ nccl_bcast_1d()
 void
 nccl_bcast_2d_test(int *cuts)
 {
-  int bcast_rank = 1;
-
   int m_sz, rank;
   MPI_Comm_size(MPI_COMM_WORLD, &m_sz);
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+
+  int bcast_rank = m_sz > 1? 1 : 0;
 
   // create global range
   int cells[] = { 4*9*25, 4*9*25 };
@@ -1169,11 +1169,11 @@ nccl_bcast_2d()
 void
 nccl_bcast_1d_host()
 {
-  int bcast_rank = 1;
-
   int m_sz, rank;
   MPI_Comm_size(MPI_COMM_WORLD, &m_sz);
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+
+  int bcast_rank = m_sz > 1? 1 : 0;
 
   struct gkyl_range global;
   gkyl_range_init(&global, 1, (int[]) { 1 }, (int[]) { 8*27*125 });
@@ -1219,11 +1219,11 @@ nccl_bcast_1d_host()
 void
 nccl_bcast_2d_host_test(int *cuts)
 {
-  int bcast_rank = 1;
-
   int m_sz, rank;
   MPI_Comm_size(MPI_COMM_WORLD, &m_sz);
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+
+  int bcast_rank = m_sz > 1? 1 : 0;
 
   // create global range
   int cells[] = { 4*9*25, 4*9*25 };
