@@ -1,14 +1,35 @@
+/**
+ * This code implements a test suite for validating the `gkyl_skin_surf_from_ghost` 
+ * module, which updates discontinuous Galerkin (DG) coefficients to ensure continuity 
+ * at the interface between skin and ghost cells in structured grids. The update process 
+ * leverages interface-based kernels found in `gkylzero/kernels/skin_surf_from_ghost` 
+ * to adjust skin cell coefficients to match ghost cell values at shared nodes, while 
+ * maintaining the opposing skin cell nodal value.
+ * 
+ * Specifically, the updater enforces that the skin cell value at the interface (e.g., 
+ * upper edge) equals the ghost cell value, achieving continuity across the interface 
+ * while altering the average skin cell value. Testing ensures accuracy by initializing 
+ * skin cells to zero and ghost cells to one; in a first-order (poly_order=1) scenario, 
+ * successful updates should result in a skin cell value of 0.5.
+ * 
+ * Example for GKYL_UPPER_EDGE:
+ * 
+ * vls            vus  vlg                vug
+ *  |___skin cell___|   |____ghost cell____|
+ * 
+ * Here, `vus` will be set to 1 (matching `vug`), while `vls` remains 0, yielding 
+ * an expected skin cell average of 0.5 for order one polynomials.
+ */
+
 #include "gkyl_array.h"
 #include <gkyl_proj_on_basis.h>
 #include <gkyl_range.h>
 #include <gkyl_rect_decomp.h>
 #include <gkyl_rect_grid.h>
-#include <gkyl_array_ops.h>
-#include <gkyl_translate_dim_gyrokinetic.h>
-#include <gkyl_util.h>
 #include <gkyl_array_rio.h>
 #include <acutest.h>
-#include <gkyl_skin_surf_from_ghost.h>  // Include the custom updater
+// This the updater to be tested
+#include <gkyl_skin_surf_from_ghost.h>  
 
 // Function to allocate a gkyl array, zero-initialized, on CPU or GPU
 static struct gkyl_array* mkarr(bool on_gpu, long nc, long size) {
