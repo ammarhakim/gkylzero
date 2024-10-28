@@ -109,7 +109,7 @@ void test_3x_ho() {
         // Loop over control states (perform the test or not)
         for (int control = 0; control <= 1; control++) {
             // Loop over directions
-            for (int dir = 1; dir <= 2; dir++) {
+            for (int dir = 0; dir <= 2; dir++) {
                 test_3x(1, use_gpu, edge, dir, control==1);
             }
         }
@@ -121,10 +121,10 @@ void test_3x_dev() {
     bool use_gpu = true;
     // Loop over edges
     for (int edge = GKYL_LOWER_EDGE; edge <= GKYL_UPPER_EDGE; edge++) {
-        // Loop over control states (perform the test or not)
+        // Loop over control states (perform the test or just check identity)
         for (int control = 0; control <= 1; control++) {
             // Loop over directions
-            for (int dir = 1; dir <= 2; dir++) {
+            for (int dir = 0; dir <= 2; dir++) {
                 test_3x(use_gpu, true, edge, dir, control==1);
             }
         }

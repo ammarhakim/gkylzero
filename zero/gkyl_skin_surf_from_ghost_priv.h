@@ -27,16 +27,16 @@ static const edged_skin_surf_from_ghost_kern_list ser_skin_surf_from_ghost_list[
               { NULL, NULL },
             }
         },
-        {.
-          dirlist=
+        {
+          .dirlist=
             {
               { skin_surf_from_ghost_lowerx_2x_ser_p1, NULL },
               { skin_surf_from_ghost_lowery_2x_ser_p1, NULL },
               { NULL, NULL },
             }
         },
-        {.
-          dirlist=
+        {
+          .dirlist=
             {
               { skin_surf_from_ghost_lowerx_3x_ser_p1, NULL },
               { skin_surf_from_ghost_lowery_3x_ser_p1, NULL },
@@ -56,16 +56,16 @@ static const edged_skin_surf_from_ghost_kern_list ser_skin_surf_from_ghost_list[
               { NULL, NULL },
             }
         },
-        {.
-          dirlist=
+        {
+          .dirlist=
             {
               { skin_surf_from_ghost_upperx_2x_ser_p1, NULL },
               { skin_surf_from_ghost_uppery_2x_ser_p1, NULL },
               { NULL, NULL },
             }
         },
-        {.
-          dirlist=
+        {
+          .dirlist=
             {
               { skin_surf_from_ghost_upperx_3x_ser_p1, NULL },
               { skin_surf_from_ghost_uppery_3x_ser_p1, NULL },
