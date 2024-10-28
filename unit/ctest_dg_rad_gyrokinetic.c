@@ -761,7 +761,7 @@ void test_1x2v_p1_Li1_highNe() { test_1x(1, false, 30.0, 3, 1, num_ne2, 13); }
 #ifdef GKYL_HAVE_CUDA
 
 void test_1x2v_p1_gpu() { test_1x(1, true, 30.0, 3, 0, num_ne, 1); }
-void test_1x2v_p1_L1_midNe_gpu() { printf("XFAIL"); test_1x(1, true, 30.0, 3, 1, num_ne2, 6); }
+void test_1x2v_p1_L1_midNe_gpu() {test_1x(1, true, 30.0, 3, 1, num_ne2, 6); }
 void test_1x2v_p2_gpu() { test_1x(2, true, 30.0, 3, 0, num_ne, 1); }
 
 #endif

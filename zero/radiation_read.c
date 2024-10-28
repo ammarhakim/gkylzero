@@ -161,8 +161,6 @@ gkyl_radiation_read_get_fit_params(const struct all_radiation_states rad_data, i
   double log_ref_dens = log10(ref_dens);
   atomic_z = atomic_z-1;
   int index = atomic_z*rad_data.max_atomic_number+charge_state;
-  if (rad_data.all_states[index].number_of_densities<num_densities[0])
-    printf("\nWarning! More densities selected for element %d, charge state %d than available. Setting to max available.\n", atomic_z+1, charge_state);
   if (!rad_data.all_states[index].state_exists)
     return 1;
   if (num_densities[0]==1 || rad_data.all_states[index].number_of_densities==1) {
