@@ -811,9 +811,9 @@ test_L_domain_allgather_dir0_cuts2_par()
   int nconnected[num_blocks];
   int **block_list = gkyl_malloc(num_blocks*sizeof(int*));
   for (int bidx=0; bidx<num_blocks; ++bidx) {
-    nconnected[bidx] = gkyl_multib_conn_get_num_connected(topo, bidx, dir, GKYL_CONN_ALL);
+    nconnected[bidx] = gkyl_multib_conn_get_num_connected(topo, bidx, dir, 0, GKYL_CONN_ALL);
     block_list[bidx] = gkyl_malloc(nconnected[bidx]*sizeof(int));
-    gkyl_multib_conn_get_connection(topo, bidx, dir, GKYL_CONN_ALL, block_list[bidx]);
+    gkyl_multib_conn_get_connection(topo, bidx, dir, 0, GKYL_CONN_ALL, block_list[bidx]);
   }
 
 

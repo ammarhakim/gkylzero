@@ -266,16 +266,8 @@ get_num_corner_connected(struct gkyl_block_topo *block_topo, int bidx, int* edge
 }
 
 
-/** 
- * @param block_topo block topology object
- * @param bidx block index
- * @param dir direction in which to find neighbors or connected blocks
- * @param conn_id type of connection : GKYL_CONN_NEIGHBOR, _ALL, or _CORNER
- * @param block_list on output, list of connected block ids
- * return number of connected blocks
- */
 int
-gkyl_multib_conn_get_connection(struct gkyl_block_topo *block_topo, int bidx, int dir, enum gkyl_conn_id conn_id, int *block_list)
+gkyl_multib_conn_get_connection(struct gkyl_block_topo *block_topo, int bidx, int dir, int corner_num, enum gkyl_conn_id conn_id, int *block_list)
 {
   struct gkyl_block_connections conn = block_topo->conn[bidx];
   int num_connected = 0;
@@ -283,46 +275,27 @@ gkyl_multib_conn_get_connection(struct gkyl_block_topo *block_topo, int bidx, in
   if (conn_id == GKYL_CONN_NEIGHBOR) {
       num_connected = get_num_neighbors(block_topo, bidx, dir);
       get_neighbors(block_topo, bidx, dir, block_list);
-      printf("dir %d neighbors for block %d : ", dir, bidx);
-      for( int i = 0; i <num_connected; i++) printf(" %d", block_list[i]);
-      printf("\n");
   }
   else if (conn_id == GKYL_CONN_ALL) {
       num_connected = get_num_connected(block_topo, bidx, dir);
       get_connected(block_topo, bidx, dir, block_list);
-      printf("dir %d connected for block %d : ", dir, bidx);
-      for( int i = 0; i <num_connected; i++) printf(" %d", block_list[i]);
-      printf("\n");
   }
   else if (conn_id == GKYL_CONN_CORNER) {
-      for( int e0 = 0; e0 < 2; e0++) {
-        for( int e1 = 0; e1 < 2; e1++) {
-          int edges[2] = {e0,e1};
-          num_connected = get_num_corner_connected(block_topo, bidx, edges);
-          printf("corner num connected at corner (%d,%d) = %d\n", e0, e1, num_connected);
-          get_corner_connected(block_topo, bidx, edges, block_list);
-          printf("corner connected for block %d at corner (%d,%d): ", bidx, e0,e1);
-          for( int i = 0; i <num_connected; i++) printf(" %d", block_list[i]);
-          printf("\n");
-        }
-      }
+      int e0 = corner_num/2;
+      int e1 = corner_num%2;
+      int edges[2] = {e0,e1};
+      num_connected = get_num_corner_connected(block_topo, bidx, edges);
+      get_corner_connected(block_topo, bidx, edges, block_list);
   }
 
   return num_connected;
 }
 
-/** 
- * @param block_topo block topology object
- * @param bidx block index
- * @param dir direction in which to find neighbors or connected blocks
- * @param conn_id type of connection : GKYL_CONN_NEIGHBOR, _ALL, or _CORNER
- * return number of connected blocks
- */
 int
-gkyl_multib_conn_get_num_connected(struct gkyl_block_topo *block_topo, int bidx, int dir, enum gkyl_conn_id conn_id)
+gkyl_multib_conn_get_num_connected(struct gkyl_block_topo *block_topo, int bidx, int dir, int corner_num, enum gkyl_conn_id conn_id)
 {
   int block_list[1000] = {-1};
-  int num_connected = gkyl_multib_conn_get_connection(block_topo, bidx, dir, conn_id, block_list);
+  int num_connected = gkyl_multib_conn_get_connection(block_topo, bidx, dir, corner_num, conn_id, block_list);
   return num_connected;
 }
 
