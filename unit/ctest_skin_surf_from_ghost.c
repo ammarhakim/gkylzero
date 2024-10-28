@@ -21,17 +21,35 @@ static struct gkyl_array* mkarr(bool on_gpu, long nc, long size) {
 }
 
 // Analytical field evaluation function, setting field to zero
-void eval_field_3x(double t, const double *xn, double* restrict fout, void *ctx) {
+void eval_field(double t, const double *xn, double* restrict fout, void *ctx) {
     fout[0] = 0.0;
 }
 
 // Function to set up and test the ghost-to-skin surf copy in 3D
-void test_3x(int poly_order, bool use_gpu, enum gkyl_edge_loc edge, int dir, bool control) { 
-    // Set up 3D grid parameters
-    int cdim = 3;
-    double lower[] = {0.0, 0.0, 0.0}, upper[] = {1.0, 1.0, 1.0};
-    int cells[] = {2, 4, 6};  // Cell count in each dimension
-
+void test_ssfg(int cdim, int poly_order, bool use_gpu, enum gkyl_edge_loc edge, int dir, bool control) { 
+double lower[cdim], upper[cdim];
+int cells[cdim];
+switch(cdim) {
+    case 3:
+        lower[0] = 0.0; lower[1] = 0.0; lower[2] = 0.0;
+        upper[0] = 1.0; upper[1] = 1.0; upper[2] = 1.0;
+        cells[0] = 2;   cells[1] = 4;   cells[2] = 6;
+        break;
+    case 2:
+        lower[0] = 0.0; lower[1] = 0.0;
+        upper[0] = 1.0; upper[1] = 1.0;
+        cells[0] = 4;   cells[1] = 6;
+        break;
+    case 1:
+        lower[0] = 0.0;
+        upper[0] = 1.0;
+        cells[0] = 6;
+        break;
+    default:
+        // Handle invalid cdim values
+        fprintf(stderr, "Invalid cdim value: %d\n", cdim);
+        exit(1);
+}
     const int ndim = sizeof(cells)/sizeof(cells[0]);
 
     // Initialize grid and basis functions
@@ -57,7 +75,7 @@ void test_3x(int poly_order, bool use_gpu, enum gkyl_edge_loc edge, int dir, boo
                        : gkyl_array_acquire(field);                 // Directly host-based if not using GPU
 
     // Project analytical field onto the basis functions
-    gkyl_proj_on_basis *proj_field = gkyl_proj_on_basis_new(&grid, &basis, poly_order + 1, 1, eval_field_3x, NULL);
+    gkyl_proj_on_basis *proj_field = gkyl_proj_on_basis_new(&grid, &basis, poly_order + 1, 1, eval_field, NULL);
     gkyl_proj_on_basis_advance(proj_field, 0.0, &local, field_ho);
 
     // Set ghost cell values to 1.0 for the test case
@@ -102,40 +120,54 @@ void test_3x(int poly_order, bool use_gpu, enum gkyl_edge_loc edge, int dir, boo
 }
 
 // Tests for 3D case on CPU
-void test_3x_ho() {
-    bool use_gpu = false;
+void test_ssfg_ho() {
+  bool use_gpu    = false;
+  int  poly_order = 1;
+  printf("\n");
+  // Loop over dimensionalities
+  for (int cdim = 1; cdim <= 3; cdim++) {
+    printf("Running tests for dimensionality cdim = %d\n", cdim);
     // Loop over edges
     for (int edge = GKYL_LOWER_EDGE; edge <= GKYL_UPPER_EDGE; edge++) {
-        // Loop over control states (perform the test or not)
-        for (int control = 0; control <= 1; control++) {
-            // Loop over directions
-            for (int dir = 0; dir <= 2; dir++) {
-                test_3x(1, use_gpu, edge, dir, control==1);
-            }
+      // Loop over control states (perform the test or not)
+      for (int control = 0; control <= 1; control++) {
+        // Loop over directions
+        for (int dir = 0; dir <= cdim-1; dir++) {
+            // Run the actual test
+            test_ssfg(cdim, poly_order, use_gpu, edge, dir, control == 1);
         }
+      }
     }
+  }
 }
 
 // Tests for 3D case on GPU (if available)
-void test_3x_dev() {
-    bool use_gpu = true;
+void test_ssfg_dev() {
+  int  poly_order = 1;
+  bool use_gpu    = true;
+  printf("\n");
+  // Loop over dimensionalities
+  for (int cdim = 1; cdim <= 3; cdim++){
+    printf("Running tests for dimensionality cdim = %d\n", cdim);
     // Loop over edges
     for (int edge = GKYL_LOWER_EDGE; edge <= GKYL_UPPER_EDGE; edge++) {
-        // Loop over control states (perform the test or just check identity)
-        for (int control = 0; control <= 1; control++) {
-            // Loop over directions
-            for (int dir = 0; dir <= 2; dir++) {
-                test_3x(use_gpu, true, edge, dir, control==1);
-            }
+      // Loop over control states (perform the test or just check identity)
+      for (int control = 0; control <= 1; control++) {
+        // Loop over directions
+        for (int dir = 0; dir <= cdim-1; dir++) {
+            // Run the actual test
+            test_ssfg(cdim, poly_order, use_gpu, edge, dir, control==1);
         }
+      }
     }
+  }
 }
 
 // List of tests for the test framework
 TEST_LIST = {
-    { "test_3x_ho", test_3x_ho },
+    { "test_ssfg_ho", test_ssfg_ho },
 #ifdef GKYL_HAVE_CUDA
-    { "test_3x_dev", test_3x_dev },
+    { "test_ssfg_dev", test_ssfg_dev },
 #endif
     { NULL, NULL },
 };
