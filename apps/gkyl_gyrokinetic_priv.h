@@ -76,6 +76,7 @@
 #include <gkyl_rect_decomp.h>
 #include <gkyl_rect_grid.h>
 #include <gkyl_spitzer_coll_freq.h>
+#include <gkyl_skin_surf_from_ghost.h>
 #include <gkyl_tok_geo.h>
 #include <gkyl_positivity_shift_gyrokinetic.h>
 #include <gkyl_vlasov_lte_correct.h>
@@ -709,8 +710,24 @@ struct gk_field {
   struct gkyl_array *phi_wall_up_host; // host copy for use in IO and projecting
   gkyl_eval_on_nodes *phi_wall_up_proj; // projector for biased wall potential on upper wall 
 
-  // Core and SOL ranges for IWL sims. 
+  // Core and SOL ranges for IWL sims.
   struct gkyl_range global_core, global_ext_core, global_sol, global_ext_sol;
+
+  // Additional attributes for TS BC
+  struct gkyl_range local, local_ext; // local, local-ext conf-space ranges
+  // Core and SOL ranges for IWL sims. 
+  // GK IWL sims need a core range extended in z, and a TS BC updater.
+  struct gkyl_range local_par_ext_core;
+  struct gkyl_bc_twistshift *bc_ts_lo, *bc_ts_up;
+
+  // Additional attributes for setting skin surface to ghost surface (SSFG)
+  // Global skin and ghost ranges to apply skin surf from ghost 
+  struct gkyl_range lower_skin_core, lower_ghost_core;
+  struct gkyl_range upper_skin_core, upper_ghost_core;
+  // Updater for skin surf ghost copy
+  struct gkyl_skin_surf_from_ghost *ssfg_lo, *ssfg_up;
+  // communicator object for config-space
+  struct gkyl_comm *comm;   
 };
 
 // gyrokinetic object: used as opaque pointer in user code
@@ -1561,6 +1578,18 @@ void gk_neut_species_release(const gkyl_gyrokinetic_app* app, const struct gk_ne
  * @return Newly created field
  */
 struct gk_field* gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app);
+
+/**
+ * Add to the field structure the twist-and-shift and skin surface from ghost updaters.
+ * This function is modifying f only if we are solving a 3x IWL problem.
+ * (This function needs a species to be initialized to work)
+ * 
+ * @param gk Input gk data
+ * @param app gyrokinetic app object
+ * @param f  the field structure to be updated
+ */
+void
+gk_field_add_TSBC_and_SSFG_updaters(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app, struct gk_field *f);
 
 /**
  * Compute biased wall potentials 
