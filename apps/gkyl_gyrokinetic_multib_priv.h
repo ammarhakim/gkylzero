@@ -3,6 +3,7 @@
 #pragma once
 
 #include <gkyl_gyrokinetic_priv.h>
+#include <gkyl_gyrokinetic_multib.h>
 
 // top-level internal App
 struct gkyl_gyrokinetic_multib_app {
@@ -45,6 +46,31 @@ struct gyrokinetic_multib_output_meta {
   double stime; // output time
   const char *app_name; // name of App
   const char *topo_file_name; // name of topology file
+};
+
+
+// field data
+struct gk_field_multib {
+  struct gkyl_gyrokinetic_multib_field info; // data for field
+  enum gkyl_gkfield_id gkfield_id; // type of field
+
+
+  struct gkyl_multib_comm_conn **mbcc_send; // comm object for allgather
+  struct gkyl_multib_comm_conn **mbcc_recv; // comm object for allgather
+  struct gkyl_range **local_ranges;
+  struct gkyl_range **local_ranges_ext;
+  struct gkyl_range **global_ranges; // ranges for allgather
+  struct gkyl_range **global_ranges_ext; // extended ranges for allgather
+  struct gkyl_range **block_subranges; // ranges for copying smooth charge density
+                                       // back to single block apps
+
+  // arrays for global charge density and global smoothed (in z) charge density
+  struct gkyl_array **rho_c_local_dg;
+  struct gkyl_array **rho_c_global_dg;
+  struct gkyl_array **rho_c_global_smooth; 
+
+  struct gkyl_fem_parproj **fem_parproj; // FEM smoothers for projecting DG functions onto continuous FEM basis
+                                        // weight*phi_{fem} = phi_{dg} 
 };
 
 /** Time stepping API */
