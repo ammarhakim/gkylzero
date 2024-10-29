@@ -237,8 +237,96 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
     if (app->use_gpu) // note: phi_wall_up_host is same as phi_wall_up when not on GPUs
       gkyl_array_copy(f->phi_wall_up, f->phi_wall_up_host);
   }
-
+  
   return f;
+}
+
+void
+gk_field_add_TSBC_and_SSFG_updaters(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app, struct gk_field *f)
+{
+  printf("\n call of gk_field_add_TSBC_and_SSFG_updaters \n");
+  // If we are in a 3x simulation and IWL, we add TS BC and SSFG updaters
+  if(app->cdim ==3){
+    if (f->gkfield_id == GKYL_GK_FIELD_ES_IWL) {
+      // We take the first species to copy the function for the TS BC
+      struct gk_species *gks = &app->species[0];
+
+      int ghost[] = {1, 1, 1};
+      // Create local and local_ext from app local range.
+      gkyl_create_ranges(&app->local, ghost, &f->local_ext, &f->local);
+
+      // Setting of the TS BC updater and the skin surf from ghost (SSFG)
+      // we consider only dir=2 (z-BC)
+      int zdir = 2; 
+
+      //-------- Define sub range that spans only the core
+      double xLCFS = gks->lower_bc[zdir].aux_parameter;
+      // Index of the cell that abuts the xLCFS from below.
+      int idxLCFS_m = (xLCFS-1e-8 - app->grid.lower[0])/app->grid.dx[0]+1;
+      // Create a core local range, extended in the BC dir.
+      int ndim = app->cdim;
+      int lower_bcdir_ext[ndim], upper_bcdir_ext[ndim];
+      for (int i=0; i<ndim; i++) {
+        lower_bcdir_ext[i] = f->local.lower[i];
+        upper_bcdir_ext[i] = f->local.upper[i];
+      }
+      upper_bcdir_ext[0] = idxLCFS_m;
+      lower_bcdir_ext[zdir] = f->local_ext.lower[zdir];
+      upper_bcdir_ext[zdir] = f->local_ext.upper[zdir];
+      gkyl_sub_range_init(&f->local_par_ext_core, &f->local_ext, lower_bcdir_ext, upper_bcdir_ext);
+
+      // TS BC updater settings for the lower edge
+      struct gkyl_bc_twistshift_inp tsinp_lo = {
+        .bc_dir = zdir,
+        .shift_dir = 1, // y shift.
+        .shear_dir = 0, // shift varies with x.
+        .edge = GKYL_LOWER_EDGE,
+        .cdim = app->cdim,
+        .bcdir_ext_update_r = f->local_par_ext_core,
+        .num_ghost = ghost, // one ghost per config direction
+        .basis = app->confBasis,
+        .grid = app->grid,
+        .shift_func = gks->lower_bc[zdir].aux_profile,
+        .shift_func_ctx = gks->lower_bc[zdir].aux_ctx,
+        .use_gpu = app->use_gpu,
+      };
+      // The TS BC updater settings for the upper edge
+      struct gkyl_bc_twistshift_inp tsinp_up = {
+        .bc_dir = zdir,
+        .shift_dir = 1, // y shift.
+        .shear_dir = 0, // shift varies with x.
+        .edge = GKYL_UPPER_EDGE,
+        .cdim = app->cdim,
+        .bcdir_ext_update_r = f->local_par_ext_core,
+        .num_ghost = ghost,
+        .basis = app->confBasis,
+        .grid = app->grid,
+        .shift_func = gks->upper_bc[zdir].aux_profile,
+        .shift_func_ctx = gks->upper_bc[zdir].aux_ctx,
+        .use_gpu = app->use_gpu,
+      };
+      // Add the TS updater to f
+      f->bc_ts_lo = gkyl_bc_twistshift_new(&tsinp_lo);
+      f->bc_ts_up = gkyl_bc_twistshift_new(&tsinp_up);
+
+      //------------ Skin surface from ghost updater
+      // create lower and upper skin and ghost ranges for the z BC in the core region
+      gkyl_skin_ghost_ranges( &f->lower_skin_core, &f->lower_ghost_core, zdir, 
+                              GKYL_LOWER_EDGE, &f->local_par_ext_core, ghost);
+      gkyl_skin_ghost_ranges( &f->upper_skin_core, &f->upper_ghost_core, zdir, 
+                              GKYL_UPPER_EDGE, &f->local_par_ext_core, ghost);
+
+      // add the SSFG updater for lower and upper application
+      f->ssfg_lo = gkyl_skin_surf_from_ghost_new(zdir,GKYL_LOWER_EDGE,
+                    *app->basis_on_dev.confBasis,&f->upper_skin_core,&f->upper_ghost_core,app->use_gpu);
+      f->ssfg_up = gkyl_skin_surf_from_ghost_new(zdir,GKYL_UPPER_EDGE,
+                    *app->basis_on_dev.confBasis,&f->lower_skin_core,&f->lower_ghost_core,app->use_gpu);
+
+      // Finally we need a config space communicator to sync the inner cell data and
+      // avoid applying TS BC inside the domain
+      f->comm = gkyl_comm_extend_comm(app->comm, &f->local);
+    }
+  }
 }
 
 void
@@ -343,6 +431,33 @@ gk_field_rhs(gkyl_gyrokinetic_app *app, struct gk_field *field)
         gkyl_fem_parproj_solve(field->fem_parproj, field->rho_c_global_smooth);
       }
       gkyl_deflated_fem_poisson_advance(field->deflated_fem_poisson, field->rho_c_global_smooth, field->phi_smooth);
+
+      /*
+      * If we are in a 3x simulation with IWL we apply TS BC to the upper and lower edges
+      * so that we can enforce that the surface value of the global skin cells are matching the
+      * twist-and-shift BC exactly. (this should enforce periodicity of y-avg phi)
+      */
+      if (field->gkfield_id == GKYL_GK_FIELD_ES_IWL && app->cdim == 3) {
+        gkyl_bc_twistshift_advance(field->bc_ts_lo, field->phi_smooth, field->phi_smooth);
+        gkyl_bc_twistshift_advance(field->bc_ts_up, field->phi_smooth, field->phi_smooth);
+        /* Note:
+        * Here the TS BC has been applied blindly i.e. regardless if the process is at the 
+        * border of the domain. Technically, only the processes with the global skin cells 
+        * should apply it. We resolve this with an array sync so that the ghost
+        * cells of inner skin cells are overwritten by the neighbor process skin value.
+        * This method creates a lighter code and is the same to the one used for the TS BC
+        * of the distribution function in gk_species.c
+        */
+        gkyl_comm_array_sync(field->comm, &field->local, &field->local_ext, field->phi_smooth);
+        // Copy the ghost surface value to the skin surface value (SSFG)
+        gkyl_skin_surf_from_ghost_advance(field->ssfg_lo, field->phi_smooth);
+        gkyl_skin_surf_from_ghost_advance(field->ssfg_up, field->phi_smooth);
+        /* Note: 
+        * Here the SSFG is also applied blindly, i.e. regardless if the process is at the 
+        * border of the domain but this is fine because inner skin cells should have matching
+        * surface value with their corresponding ghost cell (phi is smooth)
+        */
+      }
     }
   }
   app->stat.field_rhs_tm += gkyl_time_diff_now_sec(wst);
@@ -409,6 +524,15 @@ gk_field_release(const gkyl_gyrokinetic_app* app, struct gk_field *f)
   } else {
     gkyl_fem_parproj_release(f->fem_parproj);
   }
+
+  // Release TS BS and SSFG updater
+  // if (app->cdim == 3 && f->gkfield_id == GKYL_GK_FIELD_ES_IWL) {
+  //   gkyl_bc_twistshift_release(f->bc_ts_up);
+  //   gkyl_bc_twistshift_release(f->bc_ts_lo);
+  //   gkyl_skin_surf_from_ghost_release(f->ssfg_up);
+  //   gkyl_skin_surf_from_ghost_release(f->ssfg_lo);
+  //   gkyl_comm_release(f->comm);
+  // }
 
   gkyl_dynvec_release(f->integ_energy);
   gkyl_array_integrate_release(f->calc_em_energy);
