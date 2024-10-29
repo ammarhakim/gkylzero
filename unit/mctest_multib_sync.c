@@ -158,6 +158,7 @@ struct app_L {
   struct gkyl_range upper_ghost[GKYL_MAX_DIM];
   struct gkyl_basis basis;
   struct gkyl_array *f;
+  struct gkyl_array *f_ho;
 };
 
 // Allocate array (filled with zeros).
@@ -265,6 +266,8 @@ test_L_domain_sync(bool use_gpu, bool use_mpi, int **cuts, int poly_order)
     gkyl_cart_modal_serendip(&app->basis, ndim, poly_order);
 
     app->f = mkarr(use_gpu, app->basis.num_basis, app->local_ext.volume);
+    app->f_ho = use_gpu? mkarr(false, app->basis.num_basis, app->local_ext.volume)
+	               : gkyl_array_acquire(app->f);
     
     // Put some value in f that is distinct in every rank and block.
 //    for (int k=0; k<app->basis.num_basis; k++)
@@ -329,6 +332,8 @@ test_L_domain_sync(bool use_gpu, bool use_mpi, int **cuts, int poly_order)
     struct app_L *app = singleb_apps[bI];
     int bid = local_blocks[bI];
 
+    gkyl_array_copy(app->f_ho, app->f);
+
     for (int ns=0; ns<mbcc_recv[bI]->num_comm_conn; ++ns) {
       struct gkyl_comm_conn *cc = &mbcc_recv[bI]->comm_conn[ns];
       double ref = cc->block_id + 100.0*cc->rank;
@@ -337,7 +342,7 @@ test_L_domain_sync(bool use_gpu, bool use_mpi, int **cuts, int poly_order)
       gkyl_range_iter_init(&iter, &cc->range);
       while (gkyl_range_iter_next(&iter)) {
         long linidx = gkyl_range_idx(&cc->range, iter.idx);
-        double *f_c = gkyl_array_fetch(app->f, linidx);
+        double *f_c = gkyl_array_fetch(app->f_ho, linidx);
 //        for (int k=0; k<app->basis.num_basis; k++) {
         int k=0;
           TEST_CHECK( gkyl_compare(ref, f_c[k], 1e-10) );
@@ -359,6 +364,7 @@ test_L_domain_sync(bool use_gpu, bool use_mpi, int **cuts, int poly_order)
 
   for (int bI=0; bI<num_blocks_local; ++bI) {
     struct app_L *app = singleb_apps[bI];
+    gkyl_array_release(app->f_ho);
     gkyl_array_release(app->f);
     gkyl_free(app);
   }
@@ -424,7 +430,7 @@ test_L_domain_sync_ho(void)
     1, 1, // Block 2.
   };
   int **cuts1 = cuts_array_new(num_blocks, ndim, cuts_flat1);
-  test_L_domain_sync(false, false, cuts1, 1);
+  test_L_domain_sync(false, true, cuts1, 1);
   cuts_array_release(num_blocks, cuts1);
 }
 
