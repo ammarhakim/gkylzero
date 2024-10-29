@@ -273,19 +273,19 @@ gkyl_multib_conn_get_connection(struct gkyl_block_topo *block_topo, int bidx, in
   int num_connected = 0;
 
   if (conn_id == GKYL_CONN_NEIGHBOR) {
-      num_connected = get_num_neighbors(block_topo, bidx, dir);
-      get_neighbors(block_topo, bidx, dir, block_list);
+    num_connected = get_num_neighbors(block_topo, bidx, dir);
+    get_neighbors(block_topo, bidx, dir, block_list);
   }
   else if (conn_id == GKYL_CONN_ALL) {
-      num_connected = get_num_connected(block_topo, bidx, dir);
-      get_connected(block_topo, bidx, dir, block_list);
+    num_connected = get_num_connected(block_topo, bidx, dir);
+    get_connected(block_topo, bidx, dir, block_list);
   }
   else if (conn_id == GKYL_CONN_CORNER) {
-      int e0 = corner_num/2;
-      int e1 = corner_num%2;
-      int edges[2] = {e0,e1};
-      num_connected = get_num_corner_connected(block_topo, bidx, edges);
-      get_corner_connected(block_topo, bidx, edges, block_list);
+    int e0 = corner_num/2;
+    int e1 = corner_num%2;
+    int edges[2] = {e0,e1};
+    num_connected = get_num_corner_connected(block_topo, bidx, edges);
+    get_corner_connected(block_topo, bidx, edges, block_list);
   }
 
   return num_connected;
