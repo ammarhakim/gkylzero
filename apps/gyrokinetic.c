@@ -373,6 +373,9 @@ gkyl_gyrokinetic_app_new(struct gkyl_gk *gk)
   for (int i=0; i<ns; ++i) 
     gk_species_init(gk, app, &app->species[i]);
 
+  // Add TSBC and SSFG updater to the field (needs a species to be initialized to work)
+  gk_field_add_TSBC_and_SSFG_updaters(gk, app, app->field);
+
   // initialize each neutral species
   for (int i=0; i<neuts; ++i) 
     gk_neut_species_init(gk, app, &app->neut_species[i]);
