@@ -2,7 +2,6 @@
 #include <gkyl_elem_type_priv.h>
 #include <gkyl_gyrokinetic_multib.h>
 #include <gkyl_gyrokinetic_multib_priv.h>
-#include <gkyl_rrobin_decomp.h>
 
 #include <mpack.h>
 
@@ -466,8 +465,6 @@ and the maximum number of cuts in a block is %d\n\n", tot_max[0], num_ranks, tot
     mbapp->block_comms[i] = gkyl_comm_create_comm_from_ranks(mbinp->comm,
       branks[i], rank_list, mbapp->decomp[i], &status);
   }
-  gkyl_free(rank_list);
-  gkyl_free(branks);
 
   mbapp->num_local_blocks = num_local_blocks;  
 
@@ -498,7 +495,132 @@ and the maximum number of cuts in a block is %d\n\n", tot_max[0], num_ranks, tot
   for (int i=0; i<num_local_blocks; ++i)
     mbapp->singleb_apps[i] = singleb_app_new(mbinp, mbapp->local_blocks[i], mbapp);
 
+  // Create connections needed for conf-space syncs.
+  int ghost[] = { 1, 1, 1 };
+  mbapp->mbcc_sync_conf = gkyl_malloc(sizeof(struct gkyl_mbcc_sr));
+  mbapp->mbcc_sync_conf->send = gkyl_malloc(mbapp->num_local_blocks * sizeof(struct gkyl_multib_comm_conn *));
+  mbapp->mbcc_sync_conf->recv = gkyl_malloc(mbapp->num_local_blocks * sizeof(struct gkyl_multib_comm_conn *));
+
+  for (int bI=0; bI<num_local_blocks; ++bI) {
+    int bid = mbapp->local_blocks[bI];
+
+    gkyl_rrobin_decomp_getranks(mbapp->round_robin, bid, rank_list);
+    int brank = -1;
+    for (int i=0; i<branks[bid]; ++i)
+      if (rank_list[i] == my_rank) brank = i;
+
+    mbapp->mbcc_sync_conf->recv[bI] = gkyl_multib_comm_conn_new_recv(bid, brank, 
+      ghost, &mbapp->block_topo->conn[bid], mbapp->decomp);
+    mbapp->mbcc_sync_conf->send[bI] = gkyl_multib_comm_conn_new_send(bid, brank,
+      ghost, &mbapp->block_topo->conn[bid], mbapp->decomp);
+
+    struct gkyl_multib_comm_conn *mbcc_s = mbapp->mbcc_sync_conf->send[bI], *mbcc_r = mbapp->mbcc_sync_conf->recv[bI];
+    struct gkyl_gyrokinetic_app *sbapp = mbapp->singleb_apps[bI];
+
+    for (int ns=0; ns<mbcc_s->num_comm_conn; ++ns) {
+      // Translate the "rank" in gkyl_multib_comm_conn (right now it is a rank index).
+      struct gkyl_comm_conn *ccs = &mbcc_s->comm_conn[ns];
+      int rankIdx = ccs->rank;
+      gkyl_rrobin_decomp_getranks(mbapp->round_robin, ccs->block_id, rank_list);
+      ccs->rank = rank_list[rankIdx];
+      // Make range a sub range.
+      gkyl_sub_range_init(&ccs->range, &sbapp->local_ext, ccs->range.lower, ccs->range.upper);
+    }
+    for (int nr=0; nr<mbcc_r->num_comm_conn; ++nr) {
+      // Translate the "rank" in gkyl_multib_comm_conn (right now it is a rank index).
+      struct gkyl_comm_conn *ccr = &mbcc_r->comm_conn[nr];
+      int rankIdx = ccr->rank;
+      gkyl_rrobin_decomp_getranks(mbapp->round_robin, ccr->block_id, rank_list);
+      ccr->rank = rank_list[rankIdx];
+      // Make range a sub range.
+      gkyl_sub_range_init(&ccr->range, &sbapp->local_ext, ccr->range.lower, ccr->range.upper);
+    }
+
+    // Sort connections according to rank and block ID (needed by NCCL).
+    gkyl_multib_comm_conn_sort(mbcc_r);
+    gkyl_multib_comm_conn_sort(mbcc_s);
+  }
+
+  // Create connections needed for syncing charged species phase-space quantities.
+  mbapp->mbcc_sync_charged = gkyl_malloc(mbapp->num_species * sizeof(struct gkyl_mbcc_sr));
+  for (int i=0; i<mbinp->num_species; ++i) {
+    mbapp->mbcc_sync_charged[i].send = gkyl_malloc(mbapp->num_local_blocks * sizeof(struct gkyl_multib_comm_conn *));
+    mbapp->mbcc_sync_charged[i].recv = gkyl_malloc(mbapp->num_local_blocks * sizeof(struct gkyl_multib_comm_conn *));
+  }
+  for (int bI=0; bI<num_local_blocks; ++bI) {
+    struct gkyl_gyrokinetic_app *sbapp = mbapp->singleb_apps[bI];
+    struct gkyl_multib_comm_conn *mbcc_cs = mbapp->mbcc_sync_conf->send[bI], *mbcc_cr = mbapp->mbcc_sync_conf->recv[bI];
+    for (int i=0; i<mbinp->num_species; ++i) {
+      mbapp->mbcc_sync_charged[i].send[bI] = gkyl_multib_comm_conn_new(mbcc_cs->num_comm_conn, mbcc_cs->comm_conn);
+      mbapp->mbcc_sync_charged[i].recv[bI] = gkyl_multib_comm_conn_new(mbcc_cr->num_comm_conn, mbcc_cr->comm_conn);
+      struct gkyl_multib_comm_conn *mbcc_ps = mbapp->mbcc_sync_charged[i].send[bI],
+                                   *mbcc_pr = mbapp->mbcc_sync_charged[i].recv[bI];
+      // Extend ranges to include velocity space, and make them a sub range.
+      struct gk_species *gks = &sbapp->species[i];
+      for (int ns=0; ns<mbcc_cs->num_comm_conn; ++ns) {
+        struct gkyl_comm_conn *ccs_conf = &mbcc_cs->comm_conn[ns];
+        struct gkyl_comm_conn *ccs_phase = &mbcc_ps->comm_conn[ns];
+        struct gkyl_range phase_r;
+        gkyl_range_ten_prod(&phase_r, &ccs_conf->range, &gks->local_vel);
+        gkyl_sub_range_init(&ccs_phase->range, &gks->local_ext, ccs_phase->range.lower, ccs_phase->range.upper);
+      }
+      for (int nr=0; nr<mbcc_cr->num_comm_conn; ++nr) {
+        struct gkyl_comm_conn *ccs_conf = &mbcc_cr->comm_conn[nr];
+        struct gkyl_comm_conn *ccs_phase = &mbcc_pr->comm_conn[nr];
+        struct gkyl_range phase_r;
+        gkyl_range_ten_prod(&phase_r, &ccs_conf->range, &gks->local_vel);
+        gkyl_sub_range_init(&ccs_phase->range, &gks->local_ext, ccs_phase->range.lower, ccs_phase->range.upper);
+      }
+    }
+  }
+
+  // Create connections needed for syncing neutral species phase-space quantities.
+  mbapp->mbcc_sync_neut = gkyl_malloc(mbapp->num_neut_species * sizeof(struct gkyl_mbcc_sr));
+  for (int i=0; i<mbinp->num_neut_species; ++i) {
+    mbapp->mbcc_sync_neut[i].send = gkyl_malloc(mbapp->num_local_blocks * sizeof(struct gkyl_multib_comm_conn *));
+    mbapp->mbcc_sync_neut[i].recv = gkyl_malloc(mbapp->num_local_blocks * sizeof(struct gkyl_multib_comm_conn *));
+  }
+  for (int bI=0; bI<num_local_blocks; ++bI) {
+    struct gkyl_gyrokinetic_app *sbapp = mbapp->singleb_apps[bI];
+    struct gkyl_multib_comm_conn *mbcc_cs = mbapp->mbcc_sync_conf->send[bI], *mbcc_cr = mbapp->mbcc_sync_conf->recv[bI];
+    for (int i=0; i<mbinp->num_neut_species; ++i) {
+      mbapp->mbcc_sync_neut[i].send[bI] = gkyl_multib_comm_conn_new(mbcc_cs->num_comm_conn, mbcc_cs->comm_conn);
+      mbapp->mbcc_sync_neut[i].recv[bI] = gkyl_multib_comm_conn_new(mbcc_cr->num_comm_conn, mbcc_cr->comm_conn);
+      struct gkyl_multib_comm_conn *mbcc_ps = mbapp->mbcc_sync_neut[i].send[bI],
+                                   *mbcc_pr = mbapp->mbcc_sync_neut[i].recv[bI];
+      // Extend ranges to include velocity space, and make them a sub range.
+      struct gk_neut_species *gkns = &sbapp->neut_species[i];
+      for (int ns=0; ns<mbcc_cs->num_comm_conn; ++ns) {
+        struct gkyl_comm_conn *ccs_conf = &mbcc_cs->comm_conn[ns];
+        struct gkyl_comm_conn *ccs_phase = &mbcc_ps->comm_conn[ns];
+        struct gkyl_range phase_r;
+        gkyl_range_ten_prod(&phase_r, &ccs_conf->range, &gkns->local_vel);
+        gkyl_sub_range_init(&ccs_phase->range, &gkns->local_ext, ccs_phase->range.lower, ccs_phase->range.upper);
+      }
+      for (int nr=0; nr<mbcc_cr->num_comm_conn; ++nr) {
+        struct gkyl_comm_conn *ccs_conf = &mbcc_cr->comm_conn[nr];
+        struct gkyl_comm_conn *ccs_phase = &mbcc_pr->comm_conn[nr];
+        struct gkyl_range phase_r;
+        gkyl_range_ten_prod(&phase_r, &ccs_conf->range, &gkns->local_vel);
+        gkyl_sub_range_init(&ccs_phase->range, &gkns->local_ext, ccs_phase->range.lower, ccs_phase->range.upper);
+      }
+    }
+  }
+
+  // Sync the conf-space Jacobian needed for syncing quantities that include a
+  // jacobgeo factor in them.
+  struct gkyl_array *jacs[mbapp->num_local_blocks];
+  for (int b=0; b<mbapp->num_local_blocks; ++b) {
+    struct gkyl_gyrokinetic_app *sbapp = mbapp->singleb_apps[b];
+    jacs[b] = sbapp->gk_geom->jacobgeo;
+  }
+  gkyl_multib_comm_conn_array_transfer(mbapp->comm, mbapp->num_local_blocks, mbapp->local_blocks,
+    mbapp->mbcc_sync_conf->send, mbapp->mbcc_sync_conf->recv, jacs, jacs);
+
   mbapp->stat = (struct gkyl_gyrokinetic_stat) {};
+
+  gkyl_free(rank_list);
+  gkyl_free(branks);
 
   return mbapp;
 }
@@ -519,18 +641,11 @@ gyrokinetic_multib_calc_field(struct gkyl_gyrokinetic_multib_app* app, double tc
   }
 }
 
-void
-gyrokinetic_multib_calc_field_and_apply_bc(struct gkyl_gyrokinetic_multib_app* app, double tcurr,
+static void
+gyrokinetic_multib_apply_bc(struct gkyl_gyrokinetic_multib_app* app, double tcurr,
   struct gkyl_array *distf[], struct gkyl_array *distf_neut[])
 {
-  // Compute fields and apply BCs.
-
-  // Compute the field.
-  // MF 2024/09/27/: Need the cast here for consistency. Fixing
-  // this may require removing 'const' from a lot of places.
-  gyrokinetic_multib_calc_field(app, tcurr, (const struct gkyl_array **) distf);
-
-  // Apply boundary conditions.
+  // Apply boundary conditions in each block (including intrablock sync).
   for (int b=0; b<app->num_local_blocks; ++b) {
     struct gkyl_gyrokinetic_app *sbapp = app->singleb_apps[b];
     int li_charged = b * app->num_species;
@@ -545,6 +660,48 @@ gyrokinetic_multib_calc_field_and_apply_bc(struct gkyl_gyrokinetic_multib_app* a
     }
   }
 
+  // Sync blocks.
+  for (int i=0; i<app->num_species; ++i) {
+    // Sync charged species.
+    struct gkyl_array *fs[app->num_local_blocks];
+    for (int b=0; b<app->num_local_blocks; ++b) {
+      int li_charged = b * app->num_species;
+      fs[b] = distf[li_charged+i];
+    }
+    gkyl_multib_comm_conn_array_transfer(app->comm, app->num_local_blocks, app->local_blocks,
+      app->mbcc_sync_charged[i].send, app->mbcc_sync_charged[i].recv, fs, fs);
+    // Divide and multiply by the appropriate jacobians.
+  }
+
+  struct gkyl_gyrokinetic_app *sbapp = app->singleb_apps[0];
+  for (int i=0; i<app->num_neut_species; ++i) {
+    // Sync neutral species.
+    if (!sbapp->neut_species[i].info.is_static) {
+      struct gkyl_array *fs[app->num_local_blocks];
+      for (int b=0; b<app->num_local_blocks; ++b) {
+        int li_neut = b * app->num_neut_species;
+        fs[b] = distf_neut[li_neut+i];
+      }
+      gkyl_multib_comm_conn_array_transfer(app->comm, app->num_local_blocks, app->local_blocks,
+        app->mbcc_sync_neut[i].send, app->mbcc_sync_neut[i].recv, fs, fs);
+      // Divide and multiply by the appropriate jacobians.
+    }
+  }
+}
+
+void
+gyrokinetic_multib_calc_field_and_apply_bc(struct gkyl_gyrokinetic_multib_app* app, double tcurr,
+  struct gkyl_array *distf[], struct gkyl_array *distf_neut[])
+{
+  // Compute fields and apply BCs.
+
+  // Compute the field.
+  // MF 2024/09/27/: Need the cast here for consistency. Fixing
+  // this may require removing 'const' from a lot of places.
+  gyrokinetic_multib_calc_field(app, tcurr, (const struct gkyl_array **) distf);
+
+  // Apply boundary conditions.
+  gyrokinetic_multib_apply_bc(app, tcurr, distf, distf_neut);
 }
 
 void
@@ -1219,6 +1376,34 @@ gkyl_gyrokinetic_multib_app_stat_write(gkyl_gyrokinetic_multib_app* app)
 
 void gkyl_gyrokinetic_multib_app_release(gkyl_gyrokinetic_multib_app* mbapp)
 {
+  for (int i=0; i<mbapp->num_neut_species; ++i) {
+    for (int bI=0; bI<mbapp->num_local_blocks; ++bI) {
+      gkyl_multib_comm_conn_release(mbapp->mbcc_sync_neut[i].send[bI]);
+      gkyl_multib_comm_conn_release(mbapp->mbcc_sync_neut[i].recv[bI]);
+    }
+    gkyl_free(mbapp->mbcc_sync_neut[i].send);
+    gkyl_free(mbapp->mbcc_sync_neut[i].recv);
+  }
+  gkyl_free(mbapp->mbcc_sync_neut);
+
+  for (int i=0; i<mbapp->num_species; ++i) {
+    for (int bI=0; bI<mbapp->num_local_blocks; ++bI) {
+      gkyl_multib_comm_conn_release(mbapp->mbcc_sync_charged[i].send[bI]);
+      gkyl_multib_comm_conn_release(mbapp->mbcc_sync_charged[i].recv[bI]);
+    }
+    gkyl_free(mbapp->mbcc_sync_charged[i].send);
+    gkyl_free(mbapp->mbcc_sync_charged[i].recv);
+  }
+  gkyl_free(mbapp->mbcc_sync_charged);
+
+  for (int bI=0; bI<mbapp->num_local_blocks; ++bI) {
+    gkyl_multib_comm_conn_release(mbapp->mbcc_sync_conf->send[bI]);
+    gkyl_multib_comm_conn_release(mbapp->mbcc_sync_conf->recv[bI]);
+  }
+  gkyl_free(mbapp->mbcc_sync_conf->send);
+  gkyl_free(mbapp->mbcc_sync_conf->recv);
+  gkyl_free(mbapp->mbcc_sync_conf);
+
   if (mbapp->singleb_apps) {
     for (int i=0; i<mbapp->num_local_blocks; ++i)
       gkyl_gyrokinetic_app_release(mbapp->singleb_apps[i]);

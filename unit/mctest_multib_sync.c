@@ -322,13 +322,6 @@ test_L_domain_sync(bool use_gpu, bool use_mpi, int **cuts, int poly_order)
     gkyl_multib_comm_conn_sort(mbcc_recv[bI]);
     gkyl_multib_comm_conn_sort(mbcc_send[bI]);
 
-    for (int ns=0; ns<mbcc_recv[bI]->num_comm_conn; ++ns) {
-      printf("r:%d | bid:%d | recv%d range=%3d:%3d,%3d:%3d from block=%d rank=%d\n",my_rank, bid, ns, mbcc_recv[bI]->comm_conn[ns].range.lower[0], mbcc_recv[bI]->comm_conn[ns].range.upper[0], mbcc_recv[bI]->comm_conn[ns].range.lower[1], mbcc_recv[bI]->comm_conn[ns].range.upper[1], mbcc_recv[bI]->comm_conn[ns].block_id, mbcc_recv[bI]->comm_conn[ns].rank);
-    }
-    for (int ns=0; ns<mbcc_send[bI]->num_comm_conn; ++ns) {
-      printf("r:%d | bid:%d | send%d range=%3d:%3d,%3d:%3d to   block=%d rank=%d\n",my_rank, bid, ns, mbcc_send[bI]->comm_conn[ns].range.lower[0], mbcc_send[bI]->comm_conn[ns].range.upper[0], mbcc_send[bI]->comm_conn[ns].range.lower[1], mbcc_send[bI]->comm_conn[ns].range.upper[1], mbcc_send[bI]->comm_conn[ns].block_id, mbcc_send[bI]->comm_conn[ns].rank);
-    }
-
     fs[bI] = app->f;
     locals[bI] = &app->local;
     local_exts[bI] = &app->local_ext;
