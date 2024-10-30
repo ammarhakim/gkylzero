@@ -244,8 +244,6 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
 void
 gk_field_add_TSBC_and_SSFG_updaters(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app, struct gk_field *f)
 {
-  printf("\n call of gk_field_add_TSBC_and_SSFG_updaters \n");
-  if(false){
   // If we are in a 3x simulation and IWL, we add TS BC and SSFG updaters
   if(app->cdim ==3){
     if (f->gkfield_id == GKYL_GK_FIELD_ES_IWL) {
@@ -319,9 +317,9 @@ gk_field_add_TSBC_and_SSFG_updaters(struct gkyl_gk *gk, struct gkyl_gyrokinetic_
 
       // add the SSFG updater for lower and upper application
       f->ssfg_lo = gkyl_skin_surf_from_ghost_new(zdir,GKYL_LOWER_EDGE,
-                    *app->basis_on_dev.confBasis,&f->upper_skin_core,&f->upper_ghost_core,app->use_gpu);
+                    app->confBasis,&f->upper_skin_core,&f->upper_ghost_core,app->use_gpu);
       f->ssfg_up = gkyl_skin_surf_from_ghost_new(zdir,GKYL_UPPER_EDGE,
-                    *app->basis_on_dev.confBasis,&f->lower_skin_core,&f->lower_ghost_core,app->use_gpu);
+                    app->confBasis,&f->lower_skin_core,&f->lower_ghost_core,app->use_gpu);
 
       // Finally we need a config space communicator to sync the inner cell data and
       // avoid applying TS BC inside the domain
@@ -329,7 +327,6 @@ gk_field_add_TSBC_and_SSFG_updaters(struct gkyl_gk *gk, struct gkyl_gyrokinetic_
     }
   }
   }
-}
 
 void
 gk_field_calc_phi_wall(gkyl_gyrokinetic_app *app, struct gk_field *field, double tm)
@@ -530,7 +527,7 @@ gk_field_release(const gkyl_gyrokinetic_app* app, struct gk_field *f)
   }
 
   // Release TS BS and SSFG updater
-  if (false){
+  if (true){
   if (app->cdim == 3 && f->gkfield_id == GKYL_GK_FIELD_ES_IWL) {
     gkyl_bc_twistshift_release(f->bc_ts_up);
     gkyl_bc_twistshift_release(f->bc_ts_lo);
