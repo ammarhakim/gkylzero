@@ -20,8 +20,7 @@ struct gkyl_gyrokinetic_multib_app {
   int num_neut_species; // number of neutral species
 
   bool update_field; // true if there solving Poisson equation
-  struct gk_field *field; // Field object. MF 2024/10/20: will replace this
-                          // with MB field object.
+  struct gk_field_multib *field; // Field object.
 
   char species_name[GKYL_MAX_SPECIES][128]; // name of each species
   char neut_species_name[GKYL_MAX_SPECIES][128]; // name of each neutral species  
@@ -104,3 +103,19 @@ void gyrokinetic_multib_calc_field_and_apply_bc(struct gkyl_gyrokinetic_multib_a
  * @param dt0 Suggessted time step.
  */
 struct gkyl_update_status gyrokinetic_multib_update_ssp_rk3(struct gkyl_gyrokinetic_multib_app* app, double dt0);
+
+
+
+/** Field API */
+
+// Initialize multib field object
+struct gk_field_multib* gk_field_multib_new(const struct gkyl_gyrokinetic_multib *mbinp,
+    struct gkyl_gyrokinetic_multib_app *mbapp);
+
+
+// Compute the electrostatic potential
+void gk_field_multib_rhs(gkyl_gyrokinetic_multib_app *mbapp, 
+    struct gk_field_multib *mbf, const struct gkyl_array *fin[]);
+
+// Release resources for multib field
+void gk_field_multib_release(const gkyl_gyrokinetic_multib_app* mbapp, struct gk_field_multib *mbf);

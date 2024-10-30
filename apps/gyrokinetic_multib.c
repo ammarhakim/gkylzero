@@ -354,16 +354,21 @@ singleb_app_new(const struct gkyl_gyrokinetic_multib *mbinp, int bid,
     }
   }
 
+  const struct gkyl_gyrokinetic_multib_field_pb *fld_pb = &fld->blocks[0];
   // choose proper block-specific field input
-  for (int i=0; i<num_blocks; ++i) {
-    if (bid == fld->blocks[i].block_id) {
-      const struct gkyl_gyrokinetic_multib_field_pb *fld_pb = &fld->blocks[i];
-      field_inp.fem_parbc = fld_pb->fem_parbc;
-      break;
+  if (!fld->duplicate_across_blocks) {
+    for (int i=0; i<num_blocks; ++i) {
+      if (bid == fld->blocks[i].block_id) {
+        const struct gkyl_gyrokinetic_multib_field_pb *fld_pb = &fld->blocks[i];
+        field_inp.fem_parbc = fld_pb->fem_parbc;
+        break;
+      }
     }
   }
+  else {
+    field_inp.fem_parbc = fld_pb->fem_parbc;
+  }
 
-  const struct gkyl_gyrokinetic_multib_field_pb *fld_pb = &fld->blocks[0];
   if (!fld->duplicate_across_blocks) {
     for (int i=0; i<num_blocks; ++i) {
       if (bid == fld->blocks[i].block_id) {
@@ -498,6 +503,8 @@ and the maximum number of cuts in a block is %d\n\n", tot_max[0], num_ranks, tot
   for (int i=0; i<num_local_blocks; ++i)
     mbapp->singleb_apps[i] = singleb_app_new(mbinp, mbapp->local_blocks[i], mbapp);
 
+  mbapp->field = gk_field_multib_new(mbinp, mbapp);
+
   mbapp->stat = (struct gkyl_gyrokinetic_stat) {};
 
   return mbapp;
@@ -507,15 +514,9 @@ void
 gyrokinetic_multib_calc_field(struct gkyl_gyrokinetic_multib_app* app, double tcurr, const struct gkyl_array *fin[])
 {
   // Compute fields.
-  assert(app->num_local_blocks == 1); // MF 2024/10/20: for testing with a single block.
-  struct gkyl_gyrokinetic_app *sbapp = app->singleb_apps[0];
-
   if (app->update_field) {
-    // Compute electrostatic potential from gyrokinetic Poisson's equation.
-    gk_field_accumulate_rho_c(sbapp, sbapp->field, fin);
-
     // Solve the field equation.
-    gk_field_rhs(sbapp, sbapp->field);
+    gk_field_multib_rhs(app, app->field, fin);
   }
 }
 
@@ -559,7 +560,6 @@ gkyl_gyrokinetic_multib_app_apply_ic(gkyl_gyrokinetic_multib_app* app, double t0
   }  
 
   // Compute the fields and apply BCs.
-  assert(app->num_local_blocks == 1); // MF 2024/10/20: for testing with a single block.
   struct gkyl_array *distf[app->num_species * app->num_local_blocks];
   struct gkyl_array *distf_neut[app->num_neut_species * app->num_local_blocks];
   for (int b=0; b<app->num_local_blocks; ++b) {

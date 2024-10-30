@@ -88,8 +88,8 @@ gk_field_multib_new(const struct gkyl_gyrokinetic_multib *mbinp, struct gkyl_gyr
 
   for (int bI=0; bI<mbapp->num_local_blocks; ++bI) {
     mbf->rho_c_local_dg[bI] = mbapp->singleb_apps[bI]->field->rho_c;
-    mbf->rho_c_global_dg[bI] = mkarr(mbapp->singleb_apps[bI]->use_gpu, mbapp->singleb_apps[bI]->confBasis.num_basis, mbf->global_ranges[bI]->volume);
-    mbf->rho_c_global_smooth[bI] = mkarr(mbapp->singleb_apps[bI]->use_gpu, mbapp->singleb_apps[bI]->confBasis.num_basis, mbf->global_ranges[bI]->volume);
+    mbf->rho_c_global_dg[bI] = mkarr(mbapp->singleb_apps[bI]->use_gpu, mbapp->singleb_apps[bI]->confBasis.num_basis, mbf->global_ranges_ext[bI]->volume);
+    mbf->rho_c_global_smooth[bI] = mkarr(mbapp->singleb_apps[bI]->use_gpu, mbapp->singleb_apps[bI]->confBasis.num_basis, mbf->global_ranges_ext[bI]->volume);
   }
 
 
@@ -167,22 +167,18 @@ gk_field_multib_new(const struct gkyl_gyrokinetic_multib *mbinp, struct gkyl_gyr
 
 // Compute the electrostatic potential
 void
-gk_field_multib_rhs(gkyl_gyrokinetic_multib_app *mbapp, struct gk_field_multib *mbf, int fidx)
+gk_field_multib_rhs(gkyl_gyrokinetic_multib_app *mbapp, struct gk_field_multib *mbf, const struct gkyl_array *fin[])
 {
-
   // Every local block calculates its charge density
   for (int bI=0; bI<mbapp->num_local_blocks; bI++) {
-    struct gkyl_gyrokinetic_app *app = mbapp->singleb_apps[bI];
-    // Get fin and the field for app we own
-    const struct gkyl_array *fin[app->num_species];
-    for (int i=0; i<app->num_species; ++i) {
-      // AS 10/29/24: Not sure .f is correct. Need to clarify what the different
-      // f's and fidx's are.
-      fin[i] = &app->species[i].f[fidx];
+    // Construct fin for the local block
+    const struct gkyl_array *fin_local_block[mbapp->num_species];
+    int lin_idx = bI * mbapp->num_species;
+    for (int i=0; i<mbapp->num_species; ++i) {
+      fin_local_block[i] = fin[lin_idx+i];
     }
-    struct gk_field* field = app->field;
-    // accumulate rho_c in each block
-    gk_field_accumulate_rho_c(app, field, fin);
+    // accumulate rho_c in local block
+    gk_field_accumulate_rho_c(mbapp->singleb_apps[bI], mbapp->singleb_apps[bI]->field, fin_local_block);
   }
 
 
