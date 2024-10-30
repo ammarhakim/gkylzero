@@ -617,6 +617,18 @@ and the maximum number of cuts in a block is %d\n\n", tot_max[0], num_ranks, tot
   gkyl_multib_comm_conn_array_transfer(mbapp->comm, mbapp->num_local_blocks, mbapp->local_blocks,
     mbapp->mbcc_sync_conf->send, mbapp->mbcc_sync_conf->recv, jacs, jacs);
 
+  // Allocate updaters to rescale jac*f by the jacobians in the skin/ghost cells.
+  while (true) {
+    struct gkyl_gyrokinetic_app *sbapp0 = mbapp->singleb_apps[0];
+    mbapp->jf_rescale_charged = gkyl_phase_ghost_conf_div_mul_new(sbapp0->basis_on_dev.confBasis,
+      sbapp0->basis_on_dev.basis, mbapp->use_gpu);
+    if ((mbapp->num_neut_species > 0) && (!sbapp0->neut_species[0].info.is_static)) {
+      mbapp->jf_rescale_neut = gkyl_phase_ghost_conf_div_mul_new(sbapp0->basis_on_dev.confBasis,
+        sbapp0->basis_on_dev.neut_basis, mbapp->use_gpu);
+    }
+    break;
+  }
+
   mbapp->stat = (struct gkyl_gyrokinetic_stat) {};
 
   gkyl_free(rank_list);
@@ -661,6 +673,7 @@ gyrokinetic_multib_apply_bc(struct gkyl_gyrokinetic_multib_app* app, double tcur
   }
 
   // Sync blocks.
+  int cdim = gkyl_block_geom_ndim(app->block_geom);
   for (int i=0; i<app->num_species; ++i) {
     // Sync charged species.
     struct gkyl_array *fs[app->num_local_blocks];
@@ -670,13 +683,33 @@ gyrokinetic_multib_apply_bc(struct gkyl_gyrokinetic_multib_app* app, double tcur
     }
     gkyl_multib_comm_conn_array_transfer(app->comm, app->num_local_blocks, app->local_blocks,
       app->mbcc_sync_charged[i].send, app->mbcc_sync_charged[i].recv, fs, fs);
+
     // Divide and multiply by the appropriate jacobians.
+    for (int b=0; b<app->num_local_blocks; ++b) {
+      struct gkyl_gyrokinetic_app *sbapp = app->singleb_apps[b];
+      int bid = app->local_blocks[b];
+      int li_charged = b * app->num_species;
+
+      for (int dir=0; dir<cdim; ++dir) {
+        for (int e=0; e<2; ++e) {
+          if (app->block_topo->conn[bid].connections[dir][e].edge != GKYL_PHYSICAL) {
+            struct gk_species *gks = &sbapp->species[i];
+            gkyl_phase_ghost_conf_div_mul_advance(app->jf_rescale_charged, dir, e,
+              e==0? &sbapp->global_lower_skin[dir] : &sbapp->global_upper_skin[dir],
+              e==0? &sbapp->global_lower_ghost[dir] : &sbapp->global_upper_ghost[dir],
+              e==0? &gks->global_lower_ghost[dir] : &gks->global_upper_ghost[dir],
+              sbapp->gk_geom->jacobgeo, distf[li_charged+i]);
+          }
+        }
+      }
+    }
+
   }
 
-  struct gkyl_gyrokinetic_app *sbapp = app->singleb_apps[0];
+  struct gkyl_gyrokinetic_app *sbapp0 = app->singleb_apps[0];
   for (int i=0; i<app->num_neut_species; ++i) {
     // Sync neutral species.
-    if (!sbapp->neut_species[i].info.is_static) {
+    if (!sbapp0->neut_species[i].info.is_static) {
       struct gkyl_array *fs[app->num_local_blocks];
       for (int b=0; b<app->num_local_blocks; ++b) {
         int li_neut = b * app->num_neut_species;
@@ -685,6 +718,25 @@ gyrokinetic_multib_apply_bc(struct gkyl_gyrokinetic_multib_app* app, double tcur
       gkyl_multib_comm_conn_array_transfer(app->comm, app->num_local_blocks, app->local_blocks,
         app->mbcc_sync_neut[i].send, app->mbcc_sync_neut[i].recv, fs, fs);
       // Divide and multiply by the appropriate jacobians.
+      for (int b=0; b<app->num_local_blocks; ++b) {
+        struct gkyl_gyrokinetic_app *sbapp = app->singleb_apps[b];
+        int bid = app->local_blocks[b];
+        int li_neut = b * app->num_neut_species;
+
+        for (int dir=0; dir<cdim; ++dir) {
+          for (int e=0; e<2; ++e) {
+            if (app->block_topo->conn[bid].connections[dir][e].edge != GKYL_PHYSICAL) {
+              struct gk_neut_species *gkns = &sbapp->neut_species[i];
+              gkyl_phase_ghost_conf_div_mul_advance(app->jf_rescale_neut, dir, e,
+                e==0? &sbapp->global_lower_skin[dir] : &sbapp->global_upper_skin[dir],
+                e==0? &sbapp->global_lower_ghost[dir] : &sbapp->global_upper_ghost[dir],
+                e==0? &gkns->global_lower_ghost[dir] : &gkns->global_upper_ghost[dir],
+                sbapp->gk_geom->jacobgeo, distf_neut[li_neut+i]);
+            }
+          }
+        }
+      }
+
     }
   }
 }
@@ -1376,6 +1428,15 @@ gkyl_gyrokinetic_multib_app_stat_write(gkyl_gyrokinetic_multib_app* app)
 
 void gkyl_gyrokinetic_multib_app_release(gkyl_gyrokinetic_multib_app* mbapp)
 {
+  while (true) {
+    struct gkyl_gyrokinetic_app *sbapp0 = mbapp->singleb_apps[0];
+    gkyl_phase_ghost_conf_div_mul_release(mbapp->jf_rescale_charged);
+    if ((mbapp->num_neut_species > 0) && (!sbapp0->neut_species[0].info.is_static)) {
+      gkyl_phase_ghost_conf_div_mul_release(mbapp->jf_rescale_neut);
+    }
+    break;
+  }
+
   for (int i=0; i<mbapp->num_neut_species; ++i) {
     for (int bI=0; bI<mbapp->num_local_blocks; ++bI) {
       gkyl_multib_comm_conn_release(mbapp->mbcc_sync_neut[i].send[bI]);
