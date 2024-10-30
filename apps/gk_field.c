@@ -436,7 +436,6 @@ gk_field_rhs(gkyl_gyrokinetic_app *app, struct gk_field *field)
       * so that we can enforce that the surface value of the global skin cells are matching the
       * twist-and-shift BC exactly. (this should enforce periodicity of y-avg phi)
       */
-     if (false){
       if (field->gkfield_id == GKYL_GK_FIELD_ES_IWL && app->cdim == 3) {
         gkyl_bc_twistshift_advance(field->bc_ts_lo, field->phi_smooth, field->phi_smooth);
         gkyl_bc_twistshift_advance(field->bc_ts_up, field->phi_smooth, field->phi_smooth);
@@ -458,7 +457,6 @@ gk_field_rhs(gkyl_gyrokinetic_app *app, struct gk_field *field)
         * surface value with their corresponding ghost cell (phi is smooth)
         */
       }
-    }
     }
   }
   app->stat.field_rhs_tm += gkyl_time_diff_now_sec(wst);
@@ -527,14 +525,13 @@ gk_field_release(const gkyl_gyrokinetic_app* app, struct gk_field *f)
   }
 
   // Release TS BS and SSFG updater
-  if (true){
   if (app->cdim == 3 && f->gkfield_id == GKYL_GK_FIELD_ES_IWL) {
     gkyl_bc_twistshift_release(f->bc_ts_up);
     gkyl_bc_twistshift_release(f->bc_ts_lo);
     gkyl_skin_surf_from_ghost_release(f->ssfg_up);
     gkyl_skin_surf_from_ghost_release(f->ssfg_lo);
     gkyl_comm_release(f->comm);
-  }}
+  }
 
   gkyl_dynvec_release(f->integ_energy);
   gkyl_array_integrate_release(f->calc_em_energy);
