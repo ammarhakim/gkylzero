@@ -74,7 +74,7 @@ struct gkyl_multib_comm_conn *gkyl_multib_comm_conn_new_recv(
  * @return New communication connection object for sends
  */
 struct gkyl_multib_comm_conn *gkyl_multib_comm_conn_new_send_from_connections(
-  int block_id, int block_rank,
+  int block_id, int block_rank, const int *nghost,
   int nconnected, int* block_list, int dir,
   struct gkyl_rect_decomp **decomp);
 
@@ -91,7 +91,7 @@ struct gkyl_multib_comm_conn *gkyl_multib_comm_conn_new_send_from_connections(
  * @return New communication connection object for sends
  */
 struct gkyl_multib_comm_conn *gkyl_multib_comm_conn_new_recv_from_connections(
-  int block_id, int block_rank,
+  int block_id, int block_rank, const int *nghost,
   int nconnected, int* block_list, int dir,
   struct gkyl_rect_decomp **decomp);
 

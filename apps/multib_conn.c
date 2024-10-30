@@ -15,7 +15,8 @@
  * @param n length of a
  * return number of unique elements in a
  */
-static int count_distinct(int a[], int n)
+static
+int count_distinct(int a[], int n)
 {
    int i, j, count = 1;
    for (i = 1; i < n; i++) { // Check if a[i] is a new element
@@ -37,7 +38,8 @@ static int count_distinct(int a[], int n)
  * @param unique_array on output contains the unique elements in a
  * return number of unique elements in a
  */
-static int get_unique(int *a, int n, int *unique_array) {
+static int
+get_unique(int *a, int n, int *unique_array) {
    unique_array[0] = a[0]; // The first element of a is the first unique element
    int i, j, count = 1;
    for (i = 1; i < n; i++) { // Check if a[i] is a new element
@@ -85,56 +87,19 @@ insert_above(int* arr, int n, int new_val)
   arr[n] = new_val;
 }
 
-//// This function should be called in a loop over num blocks local
-//void
-//set_crossz_idxs(struct gkyl_gyrokinetic_multib_app *mba, int myidx, int* crossz_blocks, int* num_blocks){
-//  struct gkyl_block_topo *btopo = mba->btopo;
-//  struct gkyl_block_connections *conn = btopo->conn;
-//  int dir = 1;
-//
-//  int bidx = myidx;
-//  crossz_blocks[0] = bidx;
-//  *num_blocks = 1;
-//
-//  while(true) {
-//    if (conn[bidx].connections[dir][0].edge == GKYL_BLOCK_EDGE_PHYSICAL) {
-//      break;
-//    }
-//    else if (conn[bidx].connections[dir][0].edge == GKYL_BLOCK_EDGE_UPPER_POSITIVE) { 
-//      insert_below(crossz_blocks, num_blocks, conn[bidx].connections[dir][0].bid);
-//      bidx = conn[bidx].connections[dir][0].bid;
-//    }
-//  }
-//
-//  bidx = myidx;
-//  while(true) {
-//    if (conn[bidx].connections[dir][1].edge == GKYL_BLOCK_EDGE_PHYSICAL) {
-//      break;
-//    }
-//    else if (conn[bidx].connections[dir][1].edge == GKYL_BLOCK_EDGE_LOWER_POSITIVE) { 
-//      insert_above(crossz_blocks, num_blocks, conn[bidx].connections[dir][1].bid);
-//      bidx = conn[bidx].connections[dir][1].bid;
-//    }
-//  }
-//
-//}
-
-
-
-
-
 /**
  *  Get the block indices of neighbors (adjacent blocks) in a direction.
  * 
- * @param mbapp multiblock app object
+ * @param block_topo block topology object
  * @param bidx block index
  * @param dir
  * @param neighbor_idxs on output indices of neighboring blocks
  * return number of neighbors
  */
-int get_neighbors(struct gkyl_gyrokinetic_multib_app *mbapp, int bidx, int dir, int *neighbor_idxs)
+int
+get_neighbors(struct gkyl_block_topo *block_topo, int bidx, int dir, int *neighbor_idxs)
 {
-  struct gkyl_block_connections conn = mbapp->block_topo->conn[bidx];
+  struct gkyl_block_connections conn = block_topo->conn[bidx];
   int neighbor_num = 0;
   for (int e = 0; e < 2; e++) {
     if (conn.connections[dir][e].edge != GKYL_PHYSICAL) {
@@ -148,15 +113,16 @@ int get_neighbors(struct gkyl_gyrokinetic_multib_app *mbapp, int bidx, int dir, 
 /**
  *  Get the number of neighbors (adjacent blocks) in a direction.
  * 
- * @param mbapp multiblock app object
+ * @param block_topo block topology object
  * @param bidx block index
  * @param direction
  * return number of neighbors
  */
-int get_num_neighbors(struct gkyl_gyrokinetic_multib_app *mbapp, int bidx, int dir)
+int
+get_num_neighbors(struct gkyl_block_topo *block_topo, int bidx, int dir)
 {
-  int neighbor_idxs[100] = {-1};
-  int neighbor_num = get_neighbors(mbapp, bidx, dir, neighbor_idxs);
+  int neighbor_idxs[1000] = {-1};
+  int neighbor_num = get_neighbors(block_topo, bidx, dir, neighbor_idxs);
   return neighbor_num;
 }
 
@@ -166,20 +132,21 @@ int get_num_neighbors(struct gkyl_gyrokinetic_multib_app *mbapp, int bidx, int d
 /**
  *  Get the indices of connected blocks in a direction.
  * 
- * @param mbapp multiblock app object
+ * @param block_topo block topology object
  * @param bidx block index
  * @param direction
  * @param block_list ordered indices of connected blocks including self
  * return number of connected blocks 
  */
-int get_connected(struct gkyl_gyrokinetic_multib_app *mbapp, int bidx, int dir, int* block_list)
+int
+get_connected(struct gkyl_block_topo *block_topo, int bidx, int dir, int* block_list)
 {
   struct gkyl_block_connections conn;
   block_list[0] = bidx;
   int num_blocks = 1;
   int curr_bidx = bidx;
   while(true) {
-    conn = mbapp->block_topo->conn[curr_bidx];
+    conn = block_topo->conn[curr_bidx];
     if (conn.connections[dir][0].edge == GKYL_PHYSICAL) {
       break;
     }
@@ -193,7 +160,7 @@ int get_connected(struct gkyl_gyrokinetic_multib_app *mbapp, int bidx, int dir, 
 
   curr_bidx = bidx;
   while(true) {
-    conn = mbapp->block_topo->conn[curr_bidx];
+    conn = block_topo->conn[curr_bidx];
     if (conn.connections[dir][1].edge == GKYL_PHYSICAL) {
       break;
     }
@@ -211,15 +178,16 @@ int get_connected(struct gkyl_gyrokinetic_multib_app *mbapp, int bidx, int dir, 
 /**
  *  Get the number of connected blocks in a direction.
  * 
- * @param mbapp multiblock app object
+ * @param block_topo block topology object
  * @param bidx block index
  * @param direction
  * return number of connected blocks 
  */
-int get_num_connected(struct gkyl_gyrokinetic_multib_app *mbapp, int bidx, int dir)
+int
+get_num_connected(struct gkyl_block_topo *block_topo, int bidx, int dir)
 {
-  int block_list[100] = {-1};
-  int num_blocks = get_connected(mbapp, bidx, dir, block_list);
+  int block_list[1000] = {-1};
+  int num_blocks = get_connected(block_topo, bidx, dir, block_list);
   return num_blocks;
 }
 
@@ -227,15 +195,15 @@ int get_num_connected(struct gkyl_gyrokinetic_multib_app *mbapp, int bidx, int d
 
 /**
  * Check if a block corner is an interior corner
- * @param mbapp multib app object
+ * @param block_topo block topology object
  * @param bidx block index
  * @param edges list of edges (0 for lower, 1 for upper)
 */
-int check_corner(struct gkyl_gyrokinetic_multib_app *mbapp, int bidx, int* edges)
+int
+check_corner(struct gkyl_block_topo *block_topo, int bidx, int* edges)
 {
-  struct gkyl_block_topo *btopo =  mbapp->block_topo;
-  struct gkyl_block_connections conn = mbapp->block_topo->conn[bidx];
-  int ndim = btopo->ndim;
+  struct gkyl_block_connections conn = block_topo->conn[bidx];
+  int ndim = block_topo->ndim;
   int interior = 1; // true
   for (int i = 0; i < ndim; i++) {
     if(conn.connections[i][edges[i]].edge == GKYL_PHYSICAL)  {
@@ -248,18 +216,18 @@ int check_corner(struct gkyl_gyrokinetic_multib_app *mbapp, int bidx, int* edges
 
 /**
  * Get the list of blocks that touch a specific corner of a block
- * @param mbapp multib app object
+ * @param block_topo block topology object
  * @param bidx block index
  * @param edges list of edges of length ndim (0 for lower, 1 for upper)
  * @param block list on output a list of block indices that touch the corner
 */
-int get_corner_connected(struct gkyl_gyrokinetic_multib_app *mbapp, int bidx, int* edges, int* block_list)
+int 
+get_corner_connected(struct gkyl_block_topo *block_topo, int bidx, int* edges, int* block_list)
 {
-  struct gkyl_block_topo *btopo =  mbapp->block_topo;
-  int ndim = btopo->ndim;
+  int ndim = block_topo->ndim;
   int num_corner_connected = 0;
-  struct gkyl_block_connections conn = mbapp->block_topo->conn[bidx];
-  int interior = check_corner(mbapp, bidx, edges);
+  struct gkyl_block_connections conn = block_topo->conn[bidx];
+  int interior = check_corner(block_topo, bidx, edges);
   if (interior == 0) return num_corner_connected;
   num_corner_connected+=1;
   block_list[0] = bidx;
@@ -274,9 +242,9 @@ int get_corner_connected(struct gkyl_gyrokinetic_multib_app *mbapp, int bidx, in
     num_corner_connected+=1;
     next_edges[next_dir] = !next_edges[next_dir]; // 0 ->1 or 1 ->0
     next_dir = !next_dir;                                         
-    interior = check_corner(mbapp, next_bidx, next_edges);
+    interior = check_corner(block_topo, next_bidx, next_edges);
     if(interior == 0) break; // no more corners
-    conn = mbapp->block_topo->conn[next_bidx];
+    conn = block_topo->conn[next_bidx];
   }
 
   return num_corner_connected;
@@ -284,60 +252,50 @@ int get_corner_connected(struct gkyl_gyrokinetic_multib_app *mbapp, int bidx, in
 
 /**
  * Get the number of blocks that touch a specific corner of a block
- * @param mbapp multib app object
+ * @param block_topo block topology object
  * @param bidx block index
  * @param edges list of edges of length ndim (0 for lower, 1 for upper)
  * return number of blocks touching this corner
 */
-int get_num_corner_connected(struct gkyl_gyrokinetic_multib_app *mbapp, int bidx, int* edges)
+int
+get_num_corner_connected(struct gkyl_block_topo *block_topo, int bidx, int* edges)
 {
-  int block_list[100] = {-1};
-  int num_corner_connected = get_corner_connected(mbapp, bidx, edges, block_list);
+  int block_list[1000] = {-1};
+  int num_corner_connected = get_corner_connected(block_topo, bidx, edges, block_list);
   return num_corner_connected;
 }
 
 
-/** 
- * @param mbapp multib app object
- * @param bidx block index
- * @param dir direction in which to find neighbors or connected blocks
- * @param conn_id type of connection : GKYL_CONN_NEIGHBOR, _ALL, or _CORNER
- */
-void gkyl_multib_conn_get_connection(struct gkyl_gyrokinetic_multib_app *mbapp, int bidx, int dir, enum gkyl_conn_id conn_id)
+int
+gkyl_multib_conn_get_connection(struct gkyl_block_topo *block_topo, int bidx, int dir, int corner_num, enum gkyl_conn_id conn_id, int *block_list)
 {
-  struct gkyl_block_topo *btopo =  mbapp->block_topo;
-  struct gkyl_block_connections conn = btopo->conn[bidx];
+  struct gkyl_block_connections conn = block_topo->conn[bidx];
+  int num_connected = 0;
 
   if (conn_id == GKYL_CONN_NEIGHBOR) {
-      int num_neighbors = get_num_neighbors(mbapp, bidx, dir);
-      int neighbors[num_neighbors];
-      get_neighbors(mbapp, bidx, dir, neighbors);
-      printf("dir %d neighbors for block %d : ", dir, bidx);
-      for( int i = 0; i <num_neighbors; i++) printf(" %d", neighbors[i]);
-      printf("\n");
+    num_connected = get_num_neighbors(block_topo, bidx, dir);
+    get_neighbors(block_topo, bidx, dir, block_list);
   }
   else if (conn_id == GKYL_CONN_ALL) {
-      int num_connected = get_num_connected(mbapp, bidx, dir);
-      int connected_bidxs[num_connected];
-      get_connected(mbapp, bidx, dir, connected_bidxs);
-      printf("dir %d connected for block %d : ", dir, bidx);
-      for( int i = 0; i <num_connected; i++) printf(" %d", connected_bidxs[i]);
-      printf("\n");
+    num_connected = get_num_connected(block_topo, bidx, dir);
+    get_connected(block_topo, bidx, dir, block_list);
   }
   else if (conn_id == GKYL_CONN_CORNER) {
-      for( int e0 = 0; e0 < 2; e0++) {
-        for( int e1 = 0; e1 < 2; e1++) {
-          int edges[2] = {e0,e1};
-          int num_connected = get_num_corner_connected(mbapp, bidx, edges);
-          printf("corner num connected at corner (%d,%d) = %d\n", e0, e1, num_connected);
-          int connected_bidxs[num_connected];
-          get_corner_connected(mbapp, bidx, edges, connected_bidxs);
-          printf("corner connected for block %d at corner (%d,%d): ", bidx, e0,e1);
-          for( int i = 0; i <num_connected; i++) printf(" %d", connected_bidxs[i]);
-          printf("\n");
-        }
-      }
+    int e0 = corner_num/2;
+    int e1 = corner_num%2;
+    int edges[2] = {e0,e1};
+    num_connected = get_num_corner_connected(block_topo, bidx, edges);
+    get_corner_connected(block_topo, bidx, edges, block_list);
   }
 
+  return num_connected;
+}
+
+int
+gkyl_multib_conn_get_num_connected(struct gkyl_block_topo *block_topo, int bidx, int dir, int corner_num, enum gkyl_conn_id conn_id)
+{
+  int block_list[1000] = {-1};
+  int num_connected = gkyl_multib_conn_get_connection(block_topo, bidx, dir, corner_num, conn_id, block_list);
+  return num_connected;
 }
 

@@ -33,7 +33,6 @@ typedef int (*gkyl_array_per_sync_t)(struct gkyl_comm *comm,
   int nper_dirs, const int *per_dirs,
   struct gkyl_array *array);
 
-// "Synchronize" @a array across the regions or blocks.
 // Write array to specified file
 typedef int (*gkyl_array_write_t)(struct gkyl_comm *comm,
   const struct gkyl_rect_grid *grid,
