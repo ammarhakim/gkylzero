@@ -1,8 +1,8 @@
 local Vlasov = G0.Vlasov
 
 -- Physical constants (using normalized code units).
-mass = 1.0 -- Neutral mass.
-charge = 0.0 -- Neutral charge.
+mass_neut = 1.0 -- Neutral mass.
+charge_neut = 0.0 -- Neutral charge.
 
 nl = 1.0 -- Left number density.
 Tl = 1.0 -- Left temperature.

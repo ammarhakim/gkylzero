@@ -18,7 +18,7 @@ nu = 100.0 -- Collision frequency.
 Nx = 128 -- Cell count (configuration space: x-direction).
 Nvx = 32 -- Cell count (velocity space: vx-direction).
 Lx = 1.0 -- Domain size (configuration space: x-direction).
-vx_max = 8.0 * vt -- Domain boundary (velocity space: vx-direction).
+vx_max = 20.0 * vt -- Domain boundary (velocity space: vx-direction).
 poly_order = 2 -- Polynomial order.
 basis_type = "serendipity" -- Basis function set.
 time_stepper = "rk3" -- Time integrator.
@@ -48,7 +48,7 @@ vlasovApp = Vlasov.App.new {
 
   -- Neutral species.
   neut = Vlasov.Species.new {
-    modelID = G0.Model.Default,
+    modelID = G0.Model.SR,
     charge = charge_neut, mass = mass_neut,
     
     -- Velocity space grid.
@@ -87,7 +87,7 @@ vlasovApp = Vlasov.App.new {
           return T
         end,
         driftVelocityInit = function (t, xn)
-          return Vx_drift -- Total drift velocity.
+          return Vx_drift -- Total relativistic drift velocity.
         end,
 
         correctAllMoments = true
@@ -95,7 +95,7 @@ vlasovApp = Vlasov.App.new {
     },
 
     collisions = {
-      collisionID = G0.Collisions.LBO,
+      collisionID = G0.Collisions.BGK,
 
       selfNu = function (t, xn)
         return nu -- Collision frequency.

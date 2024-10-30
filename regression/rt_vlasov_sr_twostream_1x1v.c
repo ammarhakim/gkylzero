@@ -104,6 +104,7 @@ create_ctx(void)
     .alpha = alpha,
     .kx = kx,
     .gamma = gamma,
+    .Vx_drift_SR = Vx_drift_SR,
     .Nx = Nx,
     .Nvx = Nvx,
     .Lx = Lx,

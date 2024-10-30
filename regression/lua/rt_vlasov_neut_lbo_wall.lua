@@ -4,8 +4,8 @@ local Vlasov = G0.Vlasov
 pi = math.pi
 
 -- Physical constants (using normalized code units).
-mass = 1.0 -- Neutral mass.
-charge = 0.0 -- Neutral charge.
+mass_neut = 1.0 -- Neutral mass.
+charge_neut = 0.0 -- Neutral charge.
 
 n0 = 1.0 -- Reference number density.
 u0 = 1.0 -- Reference velocity.
@@ -47,7 +47,7 @@ vlasovApp = Vlasov.App.new {
   -- Neutral species.
   neut = Vlasov.Species.new {
     modelID = G0.Model.Default,
-    charge = charge, mass = mass,
+    charge = charge_neut, mass = mass_neut,
     
     -- Velocity space grid.
     lower = { -vx_max },

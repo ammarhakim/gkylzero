@@ -36,6 +36,10 @@ struct sr_sodshock_ctx
   double Vx_drift; // Drift velocity (x-direction).
   double nu; // Collision frequency.
 
+  // Derived physical quantities (using normalized code units).
+  double gamma; // Gamma factor.
+  double Vx_drift_SR; // Relativistic drift velocity (x-direction).
+
   // Simulation parameters.
   int Nx; // Cell count (configuration space: x-direction).
   int Nvx; // Cell count (velocity space: vx-direction).
@@ -67,6 +71,10 @@ create_ctx(void)
   double Vx_drift = 0.0; // Drift velocity (x-direction).
   double nu = 100.0; // Collision frequency.
 
+  // Derived physical quantities (using normalized code units).
+  double gamma = 1.0 / sqrt(1.0 - (Vx_drift * Vx_drift)); // Gamma factor.
+  double Vx_drift_SR = gamma * Vx_drift; // Relativistic drift velocity (x-direction).
+
   // Simulation parameters.
   int Nx = 128; // Cell count (configuration space: x-direction).
   int Nvx = 32; // Cell count (velocity space: vx-direction).
@@ -90,6 +98,8 @@ create_ctx(void)
     .vt = vt,
     .Vx_drift = Vx_drift,
     .nu = nu,
+    .gamma = gamma,
+    .Vx_drift_SR = Vx_drift_SR,
     .Nx = Nx,
     .Nvx = Nvx,
     .Lx = Lx,
@@ -117,13 +127,13 @@ evalDensityInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT 
   double n = 0.0;
 
   if (x < 0.5) {
-    n = nl;
+    n = nl; // Total number density (left).
   }
   else {
-    n = nr;
+    n = nr; // Total number density (right).
   }
 
-  // Set distribution function.
+  // Set total number density.
   fout[0] = n;
 }
 
@@ -139,13 +149,13 @@ evalTempInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fou
   double T = 0.0;
 
   if (x < 0.5) {
-    T = Tl;
+    T = Tl; // Total temperature (left).
   }
   else {
-    T = Tr;
+    T = Tr; // Total temperature (right).
   }
 
-  // Set temperature.
+  // Set total temperature.
   fout[0] = T;
 }
 
@@ -154,10 +164,10 @@ evalVDriftInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT f
 {
   struct sr_sodshock_ctx *app = ctx;
 
-  double Vx_drift = app->Vx_drift;
-  double gamma = 1.0/sqrt(1.0 - Vx_drift*Vx_drift);
-  // Set drift velocity.
-  fout[0] = gamma*Vx_drift;
+  double Vx_drift_SR = app->Vx_drift_SR;
+
+  // Set relativistic drift velocity.
+  fout[0] = Vx_drift_SR;
 }
 
 void
