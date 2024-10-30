@@ -70,7 +70,8 @@ gk_species_radiation_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s
       rad->collide_with_neut[i] = gk_find_neut_species(app, s->info.radiation.collide_with[i]);
       rad->is_neut_species[i] = true;
       gk_neut_species_moment_init(app, rad->collide_with_neut[i], &rad->moms[i], "M0");
-    } else {
+    }
+    else {
       rad->collide_with[i] = gk_find_species(app, s->info.radiation.collide_with[i]);
       rad->is_neut_species[i] = false;
       // allocate density calculation needed for radiation update
@@ -80,12 +81,18 @@ gk_species_radiation_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s
     int status = gkyl_get_fit_params(*rad_data, s->info.radiation.z[i], s->info.radiation.charge_state[i], a, alpha, beta, gamma, v0, s->info.radiation.num_of_densities[i]);
     double *vtsq = gkyl_array_fetch(rad->vtsq_min, i);
     double T_min_eV;
-    if (s->info.radiation.te_min == GKYL_CONST_TE) //
+    if (s->info.radiation.te_min == GKYL_CONST_TE) {
+      // Turn off radiation below a constant temperature
       T_min_eV = s->info.radiation.T_min_eV;
-    else if (s->info.radiation.te_min == GKYL_VARY_TE_AGGRESSIVE)  // radiation below 10^-4*max(Lz)
+    }
+    else if (s->info.radiation.te_min == GKYL_VARY_TE_AGGRESSIVE) {
+      // Turn off radiation below 10^-4*max(Lz)
       T_min_eV = 0.1372 * pow(v0[0], 1.867);
-    else  // (s->info.radiation.te_min == GKYL_VARY_TE_CONSERVATIVE) i.e. radiation below 3.16*10^-3*max(Lz)
+    }
+    else {
+      // (s->info.radiation.te_min == GKYL_VARY_TE_CONSERVATIVE) i.e. Turn off radiation below 3.16*10^-3*max(Lz)
       T_min_eV = 0.2815 * pow(v0[0], 1.768);
+    }
     vtsq[0] = T_min_eV * fabs(s->info.charge)/s->info.mass;
     
     if (status == 1) {
@@ -180,7 +187,8 @@ gk_species_radiation_moms(gkyl_gyrokinetic_app *app, const struct gk_species *sp
   if (app->use_gpu) {
     gkyl_mom_calc_bcorr_advance_cu(rad->bcorr_calc, &species->local, &app->local, species->f, rad->boundary_corrections);
     gkyl_prim_lbo_calc_advance_cu(rad->coll_pcalc, &app->local, rad->lab_moms.marr, rad->boundary_corrections, rad->prim_moms);
-  } else {
+  }
+  else {
     gkyl_mom_calc_bcorr_advance(rad->bcorr_calc, &species->local, &app->local, species->f, rad->boundary_corrections);
     gkyl_prim_lbo_calc_advance(rad->coll_pcalc, &app->local, rad->lab_moms.marr, rad->boundary_corrections, rad->prim_moms);
   }
