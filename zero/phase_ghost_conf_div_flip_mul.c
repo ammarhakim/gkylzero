@@ -1,15 +1,15 @@
-#include <gkyl_phase_ghost_conf_div_mul.h>
-#include <gkyl_phase_ghost_conf_div_mul_priv.h>
+#include <gkyl_phase_ghost_conf_div_flip_mul.h>
+#include <gkyl_phase_ghost_conf_div_flip_mul_priv.h>
 #include <gkyl_alloc.h>
 #include <assert.h>
 
-struct gkyl_phase_ghost_conf_div_mul*
-gkyl_phase_ghost_conf_div_mul_new(const struct gkyl_basis *conf_basis,
+struct gkyl_phase_ghost_conf_div_flip_mul*
+gkyl_phase_ghost_conf_div_flip_mul_new(const struct gkyl_basis *conf_basis,
   const struct gkyl_basis *phase_basis, bool use_gpu)
 {
 
   // Allocate space for new updater.
-  struct gkyl_phase_ghost_conf_div_mul *up = gkyl_malloc(sizeof(*up));
+  struct gkyl_phase_ghost_conf_div_flip_mul *up = gkyl_malloc(sizeof(*up));
 
   up->use_gpu = use_gpu;
   up->conf_basis = conf_basis;
@@ -19,21 +19,21 @@ gkyl_phase_ghost_conf_div_mul_new(const struct gkyl_basis *conf_basis,
 
   // Choose the kernel that does the skin surf from ghost copy
   if (!use_gpu)
-    up->kernels = gkyl_malloc(sizeof(struct gkyl_phase_ghost_conf_div_mul_kernels));
+    up->kernels = gkyl_malloc(sizeof(struct gkyl_phase_ghost_conf_div_flip_mul_kernels));
 #ifdef GKYL_HAVE_CUDA
   if (use_gpu)
-    up->kernels = gkyl_cu_malloc(sizeof(struct gkyl_phase_ghost_conf_div_mul_kernels));
+    up->kernels = gkyl_cu_malloc(sizeof(struct gkyl_phase_ghost_conf_div_flip_mul_kernels));
 #endif
 
-  phase_ghost_conf_div_mul_choose_kernel(up->kernels, conf_basis, phase_basis, use_gpu);
+  phase_ghost_conf_div_flip_mul_choose_kernel(up->kernels, conf_basis, phase_basis, use_gpu);
 
   return up;
 }
 
 void
-gkyl_phase_ghost_conf_div_mul_advance(const struct gkyl_phase_ghost_conf_div_mul *up,
+gkyl_phase_ghost_conf_div_flip_mul_advance(const struct gkyl_phase_ghost_conf_div_flip_mul *up,
   int dir, enum gkyl_edge_loc edge, const struct gkyl_range *conf_skin_r, const struct gkyl_range *conf_ghost_r,
-  const struct gkyl_range *phase_ghost_r, struct gkyl_array *jac, struct gkyl_array *jf)
+  const struct gkyl_range *phase_ghost_r, const struct gkyl_array *jac, struct gkyl_array *jf)
 {
 #ifdef GKYL_HAVE_CUDA
   if (up->use_gpu) {
@@ -88,7 +88,7 @@ gkyl_phase_ghost_conf_div_mul_advance(const struct gkyl_phase_ghost_conf_div_mul
 }
 
 void
-gkyl_phase_ghost_conf_div_mul_release(struct gkyl_phase_ghost_conf_div_mul *up)
+gkyl_phase_ghost_conf_div_flip_mul_release(struct gkyl_phase_ghost_conf_div_flip_mul *up)
 {
   // Release memory associated with this updater.
   if (!up->use_gpu)
