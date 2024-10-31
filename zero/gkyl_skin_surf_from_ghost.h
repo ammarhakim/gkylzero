@@ -13,7 +13,7 @@ typedef struct gkyl_skin_surf_from_ghost gkyl_skin_surf_from_ghost;
  *
  * @param dir Direction along which to apply the skin-ghost boundary copy.
  * @param edge Lower or upper edge where the boundary condition is applied (see gkyl_edge_loc).
- * @param basis Basis on which the array coefficients are expanded (use a device pointer if use_gpu=true).
+ * @param basis Basis on which the array coefficients are expanded.
  * @param skin_r Range representing the skin (boundary) region.
  * @param ghost_r Range representing the ghost (outer boundary) region.
  * @param use_gpu Boolean flag to indicate whether GPU computation should be used.
@@ -24,7 +24,8 @@ struct gkyl_skin_surf_from_ghost* gkyl_skin_surf_from_ghost_new(int dir, enum gk
   bool use_gpu);
 
 /**
- * Copy the values from the ghost region to the adjacent skin region (boundary cells).
+ * Enforce that the value of the skin cell at the node facing the ghost cell is equal to the ghost value
+ * at that same node. The other nodal value of the skin cell remains unchanged.
  *
  * @param up Pointer to the boundary condition updater.
  * @param field Array representing the field values to update (currently works only in configuration space).
