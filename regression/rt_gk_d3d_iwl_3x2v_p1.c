@@ -728,7 +728,7 @@ main(int argc, char **argv)
       },
     },
 
-    .num_diag_moments = 5,
+    .num_diag_moments = 1,
     .diag_moments = { "MaxwellianMoments" },
   };
 
@@ -804,7 +804,7 @@ main(int argc, char **argv)
       },
     },
 
-    .num_diag_moments = 5,
+    .num_diag_moments = 1,
     .diag_moments = { "MaxwellianMoments" },
   };
 
