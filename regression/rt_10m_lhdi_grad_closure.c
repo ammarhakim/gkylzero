@@ -227,21 +227,29 @@ evalElcInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout
   double Jx_noise = -noise_amp * (iy * pi / Ly) * sin(iy * pi * y / Ly) * sin(ix * 2.0 * pi* x / Lx) / mode; // Current density noise (x-direction).
   double Jy_noise = -noise_amp * (ix * 2.0 * pi / Lx) * cos(iy * pi * y / Ly) * cos(ix * 2.0 * pi * x / Lx) / mode; // Current density noise (y-direction).
 
-  double Jx  = (B0 / l) * (-sech_sq) + Jx_noise; // Total current density, with noise (x-direction).
-  double Jy  = Jy_noise; // Total current density, with noise (y-direction).
+  double Jx = (B0 / l) * (-sech_sq) + Jx_noise; // Total current density, with noise (x-direction).
+  double Jy = Jy_noise; // Total current density, with noise (y-direction).
 
   double rhoe = n * mass_elc; // Electron mass density.
-  double momxe = (mass_elc / charge_elc) * Jx * Te_frac; // Electron momentum density (x-direction).
-  double momye = (mass_elc / charge_elc) * Jy * Te_frac; // Electron momentum density (y-direction).
+  double mome_x = (mass_elc / charge_elc) * Jx * Te_frac; // Electron momentum density (x-direction).
+  double mome_y = (mass_elc / charge_elc) * Jy * Te_frac; // Electron momentum density (y-direction).
+  double mome_z = 0.0; // Electron momentum density (z-direction).
   double pre = n * Te; // Electron pressure (scalar).
+
+  double pre_xx = pre + (mome_x * mome_x) / rhoe; // Electron pressure tensor (xx-component).
+  double pre_xy = (mome_x * mome_y) / rhoe; // Electron pressure tensor (xy-component).
+  double pre_xz = 0.0; // Electron pressure tensor (xz-component).
+  double pre_yy = pre + (mome_y * mome_y) / rhoe; // Electron pressure tensor (yy-component).
+  double pre_yz = 0.0; // Electron pressure tensor (yz-component).
+  double pre_zz = pre; // Electron pressure tensor (zz-component).
 
   // Set electron mass density.
   fout[0] = rhoe;
   // Set electron momentum density.
-  fout[1] = momxe; fout[2] = momye; fout[3] = 0.0;
+  fout[1] = mome_x; fout[2] = mome_y; fout[3] = mome_z;
   // Set electron pressure tensor.
-  fout[4] = pre + momxe * momxe / rhoe; fout[5] = momxe * momye / rhoe; fout[6] = 0.0;  
-  fout[7] = pre + momye * momye / rhoe; fout[8] = 0.0; fout[9] = pre;  
+  fout[4] = pre_xx; fout[5] = pre_xy; fout[6] = pre_xz;
+  fout[7] = pre_yy; fout[8] = pre_yz; fout[9] = pre_zz;
 }
 
 void
@@ -279,21 +287,29 @@ evalIonInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout
   double Jx_noise = -noise_amp * (iy * pi / Ly) * sin(iy * pi * y / Ly) * sin(ix * 2.0 * pi* x / Lx) / mode; // Current density noise (x-direction).
   double Jy_noise = -noise_amp * (ix * 2.0 * pi / Lx) * cos(iy * pi * y / Ly) * cos(ix * 2.0 * pi * x / Lx) / mode; // Current density noise (y-direction).
 
-  double Jx  = (B0 / l) * (-sech_sq) + Jx_noise; // Total current density, with noise (x-direction).
-  double Jy  = Jy_noise; // Total current density, with noise (y-direction).
+  double Jx = (B0 / l) * (-sech_sq) + Jx_noise; // Total current density, with noise (x-direction).
+  double Jy = Jy_noise; // Total current density, with noise (y-direction).
 
   double rhoi = n * mass_ion; // Ion mass density.
-  double momxi = (mass_ion / charge_ion) * Jx * Ti_frac; // Ion momentum density (x-direction).
-  double momyi = (mass_ion / charge_ion) * Jy * Ti_frac; // Ion momentum density (y-direction).
+  double momi_x = (mass_ion / charge_ion) * Jx * Ti_frac; // Ion momentum density (x-direction).
+  double momi_y = (mass_ion / charge_ion) * Jy * Ti_frac; // Ion momentum density (y-direction).
+  double momi_z = 0.0; // Ion momentum density (z-direction).
   double pri = n * Ti; // Ion pressure (scalar).
+
+  double pri_xx = pri + (momi_x * momi_x) / rhoi; // Ion pressure tensor (xx-component).
+  double pri_xy = (momi_x * momi_y) / rhoi; // Ion pressure tensor (xy-component).
+  double pri_xz = 0.0; // Ion pressure tensor (xz-component).
+  double pri_yy = pri + (momi_y * momi_y) / rhoi; // Ion pressure tensor (yy-component).
+  double pri_yz = 0.0; // Ion pressure tensor (yz-component).
+  double pri_zz = pri; // Ion pressure tensor (zz-component).
 
   // Set ion mass density.
   fout[0] = rhoi;
   // Set ion momentum density.
-  fout[1] = momxi; fout[2] = momyi; fout[3] = 0.0;
+  fout[1] = momi_x; fout[2] = momi_y; fout[3] = momi_z;
   // Set ion pressure tensor.
-  fout[4] = pri + momxi * momxi / rhoi; fout[5] = momxi * momyi / rhoi; fout[6] = 0.0;  
-  fout[7] = pri + momyi * momyi / rhoi; fout[8] = 0.0; fout[9] = pri;
+  fout[4] = pri_xx; fout[5] = pri_xy; fout[6] = pri_xz;
+  fout[7] = pri_yy; fout[8] = pri_yz; fout[9] = pri_zz;
 }
 
 void
@@ -318,14 +334,19 @@ evalFieldInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fo
   double Ly = app->Ly;
 
   double Bz_noise = noise_amp * cos(iy * pi * y / Ly) * sin(ix * 2.0 * pi * x / Lx) / mode;
-  double Bx = 0.0;
-  double By = 0.0;
-  double Bz = -B0 * tanh(y / l) + Bz_noise;
+  
+  double Ex = 0.0; // Total electric field (x-direction).
+  double Ey = 0.0; // Total electric field (y-direction).
+  double Ez = 0.0; // Total electric field (z-direction).
+
+  double Bx = 0.0; // Total magnetic field (x-direction).
+  double By = 0.0; // Total magnetic field (y-direction).
+  double Bz = -B0 * tanh(y / l) + Bz_noise; // Total magnetic field (z-direction).
 
   // Set electric field.
-  fout[0] = 0.0, fout[1] = 0.0; fout[2] = 0.0;
+  fout[0] = Ex; fout[1] = Ey; fout[2] = Ez;
   // Set magnetic field.
-  fout[3] = Bx, fout[4] = By; fout[5] = Bz;
+  fout[3] = Bx; fout[4] = By; fout[5] = Bz;
   // Set correction potentials.
   fout[6] = 0.0; fout[7] = 0.0;
 }

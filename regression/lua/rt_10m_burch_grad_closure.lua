@@ -76,7 +76,7 @@ momentApp = Moments.App.new {
     charge = charge_elc, mass = mass_elc,
     equation = TenMoment.new {
       k0 = k0_elc,
-      has_grad_closure = true
+      hasGradClosure = true
     },
 
     -- Initial conditions function.
@@ -141,7 +141,7 @@ momentApp = Moments.App.new {
     charge = charge_ion, mass = mass_ion,
     equation = TenMoment.new {
       k0 = k0_ion,
-      has_grad_closure = true
+      hasGradClosure = true
     },
 
     -- Initial conditions function.
