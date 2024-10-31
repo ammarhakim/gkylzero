@@ -114,7 +114,10 @@ static void skin_surf_from_ghost_choose_kernel(const struct gkyl_basis basis, en
   int poly_order = basis.poly_order;
   switch (basis_type) {
     case GKYL_BASIS_MODAL_SERENDIPITY:
-      kernels->ghost_to_skin = ser_skin_surf_from_ghost_list[edge].edgedlist[dim-1].dirlist[dir].kernels[poly_order-1];
+      kernels->ghost_to_skin = ser_skin_surf_from_ghost_list[edge]
+                                .edgedlist[dim-1]
+                                  .dirlist[dir]
+                                    .kernels[poly_order-1];
       break;
     default:
       assert(false);
