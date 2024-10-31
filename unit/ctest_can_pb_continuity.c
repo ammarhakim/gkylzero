@@ -6,6 +6,9 @@
 #include <gkyl_array_ops.h>
 #include <gkyl_array_ops_priv.h>
 #include <gkyl_array_rio.h>
+#include <gkyl_canonical_pb_kernels.h> 
+#include <gkyl_dg_calc_canonical_pb_vars.h>
+#include <gkyl_dg_calc_canonical_pb_vars_priv.h>
 #include <gkyl_eqn_type.h>
 #include <gkyl_eval_on_nodes.h>
 #include <gkyl_proj_on_basis.h>
@@ -17,11 +20,6 @@
 #include <gkyl_vlasov_lte_proj_on_basis.h>
 #include <gkyl_util.h>
 #include <math.h>
-
-#include <gkyl_dg_calc_canonical_pb_vars.h>
-#include <gkyl_dg_calc_canonical_pb_vars_priv.h>
-#include <gkyl_canonical_pb_kernels.h> 
-
 
 
 void
@@ -35,7 +33,6 @@ info_det_h_1x1v(double t, const double* xn, double* fout, void* ctx)
 {
   fout[0] = 1;
 }
-
 
 void
 info_hamil_1x1v(double t, const double* xn, double* fout, void* ctx)
@@ -76,18 +73,14 @@ test_1x1v(int poly_order, enum gkyl_basis_type b_type)
   struct gkyl_basis basis, confBasis;
   if (poly_order == 1 && b_type == GKYL_BASIS_MODAL_SERENDIPITY) {
     gkyl_cart_modal_hybrid(&basis, cdim, vdim);
-    ////printf("Choosing hybrid basis for phase space\n");
   } 
   else if (b_type == GKYL_BASIS_MODAL_SERENDIPITY) {
     gkyl_cart_modal_serendip(&basis, pdim, poly_order);
-    ////printf("Choosing serindipty basis for phase space\n");
   }
   else {
-    gkyl_cart_modal_tensor(&basis, pdim, poly_order);
-    ////printf("Choosing tensor basis for velocity space\n");
+    gkyl_cart_modal_tensor(&basis, pdim, poly_order);;
   }
   gkyl_cart_modal_serendip(&confBasis, cdim, poly_order);
-
 
   int confGhost[] = {1};
   struct gkyl_range confLocal, confLocal_ext; 
@@ -118,12 +111,10 @@ test_1x1v(int poly_order, enum gkyl_basis_type b_type)
     // sizes in each direction.
     gkyl_cart_modal_serendip(&surf_basis, pdim-1, 2);
     gkyl_cart_modal_tensor(&surf_quad_basis, pdim-1, 2);
-    ////printf("Hybrid Basis selected\n");
   } 
   else {
     gkyl_cart_modal_serendip(&surf_basis, pdim-1, poly_order);
     gkyl_cart_modal_tensor(&surf_quad_basis, pdim-1, poly_order);
-    ////printf("Regular ser/tensor Basis selected\n");
   }
 
   // always 2*cdim
@@ -144,8 +135,6 @@ test_1x1v(int poly_order, enum gkyl_basis_type b_type)
   gkyl_dg_calc_canonical_pb_vars_alpha_surf(calc_vars, &confLocal, &local, &local_ext, hamil,
     alpha_surf, sgn_alpha_surf, const_sgn_alpha);
 
-
-
   // Check continuity (Directly via Kernels, Option 2)
   double w_edge_not_used[2] = { 0.0, 0.0 };
   double dxv[2] = {confGrid.dx[0], vel_grid.dx[0] };
@@ -163,24 +152,20 @@ test_1x1v(int poly_order, enum gkyl_basis_type b_type)
     double *alpha_surf_comp_R_local = gkyl_array_fetch(alpha_surf_comp_R,pidx);
     double *sgn_alpha_surf_comp_not_used_local = gkyl_array_fetch(sgn_alpha_surf_comp_not_used,pidx);
 
-
     if (poly_order == 1 && b_type == GKYL_BASIS_MODAL_SERENDIPITY) {
       int const_sgn_alpha_surf = canonical_pb_alpha_surfx_1x1v_ser_p1(w_edge_not_used, dxv, hamil_local, alpha_surf_comp_L_local, sgn_alpha_surf_comp_not_used_local); 
       int const_sgn_alpha_surf_edge = canonical_pb_alpha_edge_surfx_1x1v_ser_p1(w_edge_not_used, dxv, hamil_local, alpha_surf_comp_R_local, sgn_alpha_surf_comp_not_used_local); 
       const_sgn_alpha_surf = canonical_pb_alpha_surfvx_1x1v_ser_p1(w_edge_not_used, dxv, hamil_local, alpha_surf_comp_L_local, sgn_alpha_surf_comp_not_used_local); 
-      ////printf("(KERNELS) Choosing hybrid basis for phase space\n");
     } 
     else if (b_type == GKYL_BASIS_MODAL_SERENDIPITY) {
       int const_sgn_alpha_surf = canonical_pb_alpha_surfx_1x1v_ser_p2(w_edge_not_used, dxv, hamil_local, alpha_surf_comp_L_local, sgn_alpha_surf_comp_not_used_local); 
       int const_sgn_alpha_surf_edge = canonical_pb_alpha_edge_surfx_1x1v_ser_p2(w_edge_not_used, dxv, hamil_local, alpha_surf_comp_R_local, sgn_alpha_surf_comp_not_used_local); 
       const_sgn_alpha_surf = canonical_pb_alpha_surfvx_1x1v_ser_p2(w_edge_not_used, dxv, hamil_local, alpha_surf_comp_L_local, sgn_alpha_surf_comp_not_used_local); 
-      ////printf("(KERNELS) Choosing serindipty basis for phase space\n");
     }
     else if ((b_type == GKYL_BASIS_MODAL_TENSOR) && (poly_order == 1)) {
       int const_sgn_alpha_surf = canonical_pb_alpha_surfx_1x1v_tensor_p1(w_edge_not_used, dxv, hamil_local, alpha_surf_comp_L_local, sgn_alpha_surf_comp_not_used_local); 
       int const_sgn_alpha_surf_edge = canonical_pb_alpha_edge_surfx_1x1v_tensor_p1(w_edge_not_used, dxv, hamil_local, alpha_surf_comp_R_local, sgn_alpha_surf_comp_not_used_local); 
       const_sgn_alpha_surf = canonical_pb_alpha_surfvx_1x1v_tensor_p1(w_edge_not_used, dxv, hamil_local, alpha_surf_comp_L_local, sgn_alpha_surf_comp_not_used_local); 
-      ////printf("(KERNELS) Choosing tensor basis for velocity space\n");
     } 
     else {
       //Tensor p2 will not be sorted until main is merged into gk-g0-app
@@ -197,7 +182,6 @@ test_1x1v(int poly_order, enum gkyl_basis_type b_type)
   int pidxl[GKYL_MAX_DIM];
   while(gkyl_range_iter_next(&piter)){
     long pidx = gkyl_range_idx(&local, piter.idx);
-
     const double *alpha_surf_comp_L_local = gkyl_array_cfetch(alpha_surf_comp_L, pidx);
 
     // Iterate in the lower direction (only conf space comparison - becuase there are no velocity space ghost cells for comparison)
@@ -209,9 +193,6 @@ test_1x1v(int poly_order, enum gkyl_basis_type b_type)
 
       // Iterate overthe number of basis on the surface
       for (int n = 0; n<surf_basis.num_basis; n++){
-        if(alpha_surf_comp_L_local[n + dir*surf_basis.num_basis] != 0.0 || alpha_surf_comp_R_local[n + dir*surf_basis.num_basis] != 0.0){
-          ////printf("(%1.16e) == (%1.16e)\n",alpha_surf_comp_L_local[n + dir*surf_basis.num_basis], alpha_surf_comp_R_local[n + dir*surf_basis.num_basis]);
-        }
         TEST_CHECK(gkyl_compare_double(alpha_surf_comp_L_local[n + dir*surf_basis.num_basis], alpha_surf_comp_R_local[n + dir*surf_basis.num_basis], 1e-12));
       }
     }
@@ -232,7 +213,6 @@ test_1x1v(int poly_order, enum gkyl_basis_type b_type)
   gkyl_eval_on_nodes_release(hamil_proj);
   gkyl_dg_calc_canonical_pb_vars_release(calc_vars);
 }
-
 
 
 void 
@@ -281,7 +261,7 @@ test_2x2v(int poly_order, enum gkyl_basis_type b_type)
 {
   double pi = 3.14159265359;
   double lower[] = {pi/4,pi/4, -5.0, -5.0}, upper[] = {(1.01)*pi/4,(1.01)*pi/4, 5.0, 5.0};
-  int cells[] = {2, 2, 2, 2};
+  int cells[] = {4, 4, 4, 4};
   int vdim = 2, cdim = 2;
   int pdim = cdim + vdim;
 
@@ -307,18 +287,14 @@ test_2x2v(int poly_order, enum gkyl_basis_type b_type)
   struct gkyl_basis basis, confBasis;
   if (poly_order == 1 && b_type == GKYL_BASIS_MODAL_SERENDIPITY) {
     gkyl_cart_modal_hybrid(&basis, cdim, vdim);
-    //printf("Choosing hybrid basis for phase space\n");
   } 
   else if (b_type == GKYL_BASIS_MODAL_SERENDIPITY) {
     gkyl_cart_modal_serendip(&basis, pdim, poly_order);
-    //printf("Choosing serindipty basis for phase space\n");
   }
   else {
     gkyl_cart_modal_tensor(&basis, pdim, poly_order);
-    //printf("Choosing tensor basis for velocity space\n");
   }
   gkyl_cart_modal_serendip(&confBasis, cdim, poly_order);
-
 
   int confGhost[] = {1, 1};
   struct gkyl_range confLocal, confLocal_ext; 
@@ -350,15 +326,11 @@ test_2x2v(int poly_order, enum gkyl_basis_type b_type)
     //gkyl_cart_modal_serendip(&surf_basis, pdim-1, 2);
     gkyl_cart_modal_hybrid(&surf_basis, cdim, vdim-1);
     gkyl_cart_modal_tensor(&surf_quad_basis, pdim-1, 2);
-    //printf("Hybrid Basis selected\n");
   } 
   else {
     gkyl_cart_modal_serendip(&surf_basis, pdim-1, poly_order);
     gkyl_cart_modal_tensor(&surf_quad_basis, pdim-1, poly_order);
-    //printf("Regular ser/tensor Basis selected\n");
   }
-
-  //printf("surf_basis.num_basis: %d\n",surf_basis.num_basis);
 
   // always 2*cdim
   int alpha_surf_sz = (2*cdim)*surf_basis.num_basis; 
@@ -378,8 +350,6 @@ test_2x2v(int poly_order, enum gkyl_basis_type b_type)
   gkyl_dg_calc_canonical_pb_vars_alpha_surf(calc_vars, &confLocal, &local, &local_ext, hamil,
     alpha_surf, sgn_alpha_surf, const_sgn_alpha);
 
-
-
   // Check continuity (Directly via Kernels, Option 2)
   double w_edge_not_used[4] = { 0.0, 0.0, 0.0, 0.0 };
   double dxv[4] = {confGrid.dx[0], confGrid.dx[1], vel_grid.dx[0], vel_grid.dx[1]};
@@ -397,50 +367,32 @@ test_2x2v(int poly_order, enum gkyl_basis_type b_type)
     double *alpha_surf_comp_R_local = gkyl_array_fetch(alpha_surf_comp_R,pidx);
     double *sgn_alpha_surf_comp_not_used_local = gkyl_array_fetch(sgn_alpha_surf_comp_not_used,pidx);
 
-
-  if (poly_order == 1 && b_type == GKYL_BASIS_MODAL_SERENDIPITY) {
-    int const_sgn_alpha_surf = canonical_pb_alpha_surfx_2x2v_ser_p1(w_edge_not_used, dxv, hamil_local, alpha_surf_comp_L_local, sgn_alpha_surf_comp_not_used_local); 
-    int const_sgn_alpha_surf_edge = canonical_pb_alpha_edge_surfx_2x2v_ser_p1(w_edge_not_used, dxv, hamil_local, alpha_surf_comp_R_local, sgn_alpha_surf_comp_not_used_local); 
-    const_sgn_alpha_surf = canonical_pb_alpha_surfy_2x2v_ser_p1(w_edge_not_used, dxv, hamil_local, alpha_surf_comp_L_local, sgn_alpha_surf_comp_not_used_local); 
-    const_sgn_alpha_surf_edge = canonical_pb_alpha_edge_surfy_2x2v_ser_p1(w_edge_not_used, dxv, hamil_local, alpha_surf_comp_R_local, sgn_alpha_surf_comp_not_used_local); 
-    const_sgn_alpha_surf = canonical_pb_alpha_surfvx_2x2v_ser_p1(w_edge_not_used, dxv, hamil_local, alpha_surf_comp_L_local, sgn_alpha_surf_comp_not_used_local); 
-    const_sgn_alpha_surf = canonical_pb_alpha_surfvy_2x2v_ser_p1(w_edge_not_used, dxv, hamil_local, alpha_surf_comp_L_local, sgn_alpha_surf_comp_not_used_local);
-    //printf("(KERNELS) Choosing hybrid basis for phase space\n");
-  } 
-  else if (b_type == GKYL_BASIS_MODAL_SERENDIPITY) {
-    int const_sgn_alpha_surf = canonical_pb_alpha_surfx_2x2v_ser_p2(w_edge_not_used, dxv, hamil_local, alpha_surf_comp_L_local, sgn_alpha_surf_comp_not_used_local); 
-    int const_sgn_alpha_surf_edge = canonical_pb_alpha_edge_surfx_2x2v_ser_p2(w_edge_not_used, dxv, hamil_local, alpha_surf_comp_R_local, sgn_alpha_surf_comp_not_used_local); 
-    const_sgn_alpha_surf = canonical_pb_alpha_surfy_2x2v_ser_p2(w_edge_not_used, dxv, hamil_local, alpha_surf_comp_L_local, sgn_alpha_surf_comp_not_used_local); 
-    const_sgn_alpha_surf_edge = canonical_pb_alpha_edge_surfy_2x2v_ser_p2(w_edge_not_used, dxv, hamil_local, alpha_surf_comp_R_local, sgn_alpha_surf_comp_not_used_local); 
-    const_sgn_alpha_surf = canonical_pb_alpha_surfvx_2x2v_ser_p2(w_edge_not_used, dxv, hamil_local, alpha_surf_comp_L_local, sgn_alpha_surf_comp_not_used_local); 
-    const_sgn_alpha_surf = canonical_pb_alpha_surfvy_2x2v_ser_p2(w_edge_not_used, dxv, hamil_local, alpha_surf_comp_L_local, sgn_alpha_surf_comp_not_used_local);
-    //printf("(KERNELS) Choosing serindipty basis for phase space\n");
-  }
-  else if ((b_type == GKYL_BASIS_MODAL_TENSOR) && (poly_order == 1)) {
-    int const_sgn_alpha_surf = canonical_pb_alpha_surfx_2x2v_tensor_p1(w_edge_not_used, dxv, hamil_local, alpha_surf_comp_L_local, sgn_alpha_surf_comp_not_used_local); 
-    int const_sgn_alpha_surf_edge = canonical_pb_alpha_edge_surfx_2x2v_tensor_p1(w_edge_not_used, dxv, hamil_local, alpha_surf_comp_R_local, sgn_alpha_surf_comp_not_used_local); 
-    const_sgn_alpha_surf = canonical_pb_alpha_surfy_2x2v_tensor_p1(w_edge_not_used, dxv, hamil_local, alpha_surf_comp_L_local, sgn_alpha_surf_comp_not_used_local); 
-    const_sgn_alpha_surf_edge = canonical_pb_alpha_edge_surfy_2x2v_tensor_p1(w_edge_not_used, dxv, hamil_local, alpha_surf_comp_R_local, sgn_alpha_surf_comp_not_used_local); 
-    const_sgn_alpha_surf = canonical_pb_alpha_surfvx_2x2v_tensor_p1(w_edge_not_used, dxv, hamil_local, alpha_surf_comp_L_local, sgn_alpha_surf_comp_not_used_local); 
-    const_sgn_alpha_surf = canonical_pb_alpha_surfvy_2x2v_tensor_p1(w_edge_not_used, dxv, hamil_local, alpha_surf_comp_L_local, sgn_alpha_surf_comp_not_used_local);
-    //printf("(KERNELS) Choosing tensor basis for velocity space\n");
-  } 
-  else {
-    //Tensor p2 will not be sorted until main is merged into gk-g0-app
-    assert(true);
-    int const_sgn_alpha_surf = canonical_pb_alpha_surfx_2x2v_tensor_p2(w_edge_not_used, dxv, hamil_local, alpha_surf_comp_L_local, sgn_alpha_surf_comp_not_used_local); 
-    int const_sgn_alpha_surf_edge = canonical_pb_alpha_edge_surfx_2x2v_tensor_p2(w_edge_not_used, dxv, hamil_local, alpha_surf_comp_R_local, sgn_alpha_surf_comp_not_used_local); 
-    const_sgn_alpha_surf = canonical_pb_alpha_surfy_2x2v_tensor_p2(w_edge_not_used, dxv, hamil_local, alpha_surf_comp_L_local, sgn_alpha_surf_comp_not_used_local); 
-    const_sgn_alpha_surf_edge = canonical_pb_alpha_edge_surfy_2x2v_tensor_p2(w_edge_not_used, dxv, hamil_local, alpha_surf_comp_R_local, sgn_alpha_surf_comp_not_used_local); 
-    const_sgn_alpha_surf = canonical_pb_alpha_surfvx_2x2v_tensor_p2(w_edge_not_used, dxv, hamil_local, alpha_surf_comp_L_local, sgn_alpha_surf_comp_not_used_local); 
-    const_sgn_alpha_surf = canonical_pb_alpha_surfvy_2x2v_tensor_p2(w_edge_not_used, dxv, hamil_local, alpha_surf_comp_L_local, sgn_alpha_surf_comp_not_used_local);
-  }
-
-  
-    // Don't exist:
-    //const_sgn_alpha_surf_edge = canonical_pb_alpha_edge_surfvx_2x2v_ser_p2(w_edge_not_used, dxv, hamil_local, alpha_surf_comp_R_local, sgn_alpha_surf_comp_not_used_local);  
-    //const_sgn_alpha_surf_edge = canonical_pb_alpha_edge_surfvy_2x2v_ser_p2(w_edge_not_used, dxv, hamil_local, alpha_surf_comp_R_local, sgn_alpha_surf_comp_not_used_local);
-  
+    if (poly_order == 1 && b_type == GKYL_BASIS_MODAL_SERENDIPITY) {
+      int const_sgn_alpha_surf = canonical_pb_alpha_surfx_2x2v_ser_p1(w_edge_not_used, dxv, hamil_local, alpha_surf_comp_L_local, sgn_alpha_surf_comp_not_used_local); 
+      int const_sgn_alpha_surf_edge = canonical_pb_alpha_edge_surfx_2x2v_ser_p1(w_edge_not_used, dxv, hamil_local, alpha_surf_comp_R_local, sgn_alpha_surf_comp_not_used_local); 
+      const_sgn_alpha_surf = canonical_pb_alpha_surfy_2x2v_ser_p1(w_edge_not_used, dxv, hamil_local, alpha_surf_comp_L_local, sgn_alpha_surf_comp_not_used_local); 
+      const_sgn_alpha_surf_edge = canonical_pb_alpha_edge_surfy_2x2v_ser_p1(w_edge_not_used, dxv, hamil_local, alpha_surf_comp_R_local, sgn_alpha_surf_comp_not_used_local); 
+    } 
+    else if (b_type == GKYL_BASIS_MODAL_SERENDIPITY) {
+      int const_sgn_alpha_surf = canonical_pb_alpha_surfx_2x2v_ser_p2(w_edge_not_used, dxv, hamil_local, alpha_surf_comp_L_local, sgn_alpha_surf_comp_not_used_local); 
+      int const_sgn_alpha_surf_edge = canonical_pb_alpha_edge_surfx_2x2v_ser_p2(w_edge_not_used, dxv, hamil_local, alpha_surf_comp_R_local, sgn_alpha_surf_comp_not_used_local); 
+      const_sgn_alpha_surf = canonical_pb_alpha_surfy_2x2v_ser_p2(w_edge_not_used, dxv, hamil_local, alpha_surf_comp_L_local, sgn_alpha_surf_comp_not_used_local); 
+      const_sgn_alpha_surf_edge = canonical_pb_alpha_edge_surfy_2x2v_ser_p2(w_edge_not_used, dxv, hamil_local, alpha_surf_comp_R_local, sgn_alpha_surf_comp_not_used_local); 
+    }
+    else if ((b_type == GKYL_BASIS_MODAL_TENSOR) && (poly_order == 1)) {
+      int const_sgn_alpha_surf = canonical_pb_alpha_surfx_2x2v_tensor_p1(w_edge_not_used, dxv, hamil_local, alpha_surf_comp_L_local, sgn_alpha_surf_comp_not_used_local); 
+      int const_sgn_alpha_surf_edge = canonical_pb_alpha_edge_surfx_2x2v_tensor_p1(w_edge_not_used, dxv, hamil_local, alpha_surf_comp_R_local, sgn_alpha_surf_comp_not_used_local); 
+      const_sgn_alpha_surf = canonical_pb_alpha_surfy_2x2v_tensor_p1(w_edge_not_used, dxv, hamil_local, alpha_surf_comp_L_local, sgn_alpha_surf_comp_not_used_local); 
+      const_sgn_alpha_surf_edge = canonical_pb_alpha_edge_surfy_2x2v_tensor_p1(w_edge_not_used, dxv, hamil_local, alpha_surf_comp_R_local, sgn_alpha_surf_comp_not_used_local); 
+    } 
+    else {
+      //Tensor p2 will not be sorted until main is merged into gk-g0-app
+      assert(true);
+      int const_sgn_alpha_surf = canonical_pb_alpha_surfx_2x2v_tensor_p2(w_edge_not_used, dxv, hamil_local, alpha_surf_comp_L_local, sgn_alpha_surf_comp_not_used_local); 
+      int const_sgn_alpha_surf_edge = canonical_pb_alpha_edge_surfx_2x2v_tensor_p2(w_edge_not_used, dxv, hamil_local, alpha_surf_comp_R_local, sgn_alpha_surf_comp_not_used_local); 
+      const_sgn_alpha_surf = canonical_pb_alpha_surfy_2x2v_tensor_p2(w_edge_not_used, dxv, hamil_local, alpha_surf_comp_L_local, sgn_alpha_surf_comp_not_used_local); 
+      const_sgn_alpha_surf_edge = canonical_pb_alpha_edge_surfy_2x2v_tensor_p2(w_edge_not_used, dxv, hamil_local, alpha_surf_comp_R_local, sgn_alpha_surf_comp_not_used_local); 
+    }  
   }
 
   // Compare suface wise element 
@@ -449,7 +401,6 @@ test_2x2v(int poly_order, enum gkyl_basis_type b_type)
   int pidxl[GKYL_MAX_DIM];
   while(gkyl_range_iter_next(&piter)){
     long pidx = gkyl_range_idx(&local, piter.idx);
-
     const double *alpha_surf_comp_L_local = gkyl_array_cfetch(alpha_surf_comp_L, pidx);
 
     // Iterate in the lower direction (only conf space comparison - becuase there are no velocity space ghost cells for comparison)
@@ -461,9 +412,6 @@ test_2x2v(int poly_order, enum gkyl_basis_type b_type)
 
       // Iterate overthe number of basis on the surface
       for (int n = 0; n<surf_basis.num_basis; n++){
-        if(alpha_surf_comp_L_local[n + dir*surf_basis.num_basis] != 0.0 || alpha_surf_comp_R_local[n + dir*surf_basis.num_basis] != 0.0){
-          //printf("(%1.16e) == (%1.16e)\n",alpha_surf_comp_L_local[n + dir*surf_basis.num_basis], alpha_surf_comp_R_local[n + dir*surf_basis.num_basis]);
-        }
         TEST_CHECK(gkyl_compare_double(alpha_surf_comp_L_local[n + dir*surf_basis.num_basis], alpha_surf_comp_R_local[n + dir*surf_basis.num_basis], 1e-10));
       }
     }
@@ -558,15 +506,12 @@ test_3x3v(int poly_order, enum gkyl_basis_type b_type)
   struct gkyl_basis basis, confBasis;
   if (poly_order == 1 && b_type == GKYL_BASIS_MODAL_SERENDIPITY) {
     gkyl_cart_modal_hybrid(&basis, cdim, vdim);
-    //printf("Choosing hybrid basis for phase space\n");
   } 
   else if (b_type == GKYL_BASIS_MODAL_SERENDIPITY) {
     gkyl_cart_modal_serendip(&basis, pdim, poly_order);
-    //printf("Choosing serindipty basis for phase space\n");
   }
   else {
     gkyl_cart_modal_tensor(&basis, pdim, poly_order);
-    //printf("Choosing tensor basis for velocity space\n");
   }
   //gkyl_cart_modal_serendip(&confBasis, cdim, poly_order);
   // (NOTE!) Need to change to tensor for 3x3v p1 to work:
@@ -601,12 +546,10 @@ test_3x3v(int poly_order, enum gkyl_basis_type b_type)
     // sizes in each direction.
     gkyl_cart_modal_serendip(&surf_basis, pdim-1, 2);
     gkyl_cart_modal_tensor(&surf_quad_basis, pdim-1, 2);
-    //printf("Hybrid Basis selected\n");
   } 
   else {
     gkyl_cart_modal_serendip(&surf_basis, pdim-1, poly_order);
     gkyl_cart_modal_tensor(&surf_quad_basis, pdim-1, poly_order);
-    //printf("Regular ser/tensor Basis selected\n");
   }
 
   // always 2*cdim
@@ -627,8 +570,6 @@ test_3x3v(int poly_order, enum gkyl_basis_type b_type)
   gkyl_dg_calc_canonical_pb_vars_alpha_surf(calc_vars, &confLocal, &local, &local_ext, hamil,
     alpha_surf, sgn_alpha_surf, const_sgn_alpha);
 
-
-
   // Check continuity (Directly via Kernels, Option 2)
   double w_edge_not_used[6] = { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 };
   double dxv[6] = {confGrid.dx[0], confGrid.dx[1], confGrid.dx[2], vel_grid.dx[0], vel_grid.dx[1], vel_grid.dx[2]};
@@ -646,7 +587,6 @@ test_3x3v(int poly_order, enum gkyl_basis_type b_type)
     double *alpha_surf_comp_R_local = gkyl_array_fetch(alpha_surf_comp_R,pidx);
     double *sgn_alpha_surf_comp_not_used_local = gkyl_array_fetch(sgn_alpha_surf_comp_not_used,pidx);
 
-
     if ((b_type == GKYL_BASIS_MODAL_TENSOR) && (poly_order == 1)) {
       int const_sgn_alpha_surf = canonical_pb_alpha_surfx_3x3v_tensor_p1(w_edge_not_used, dxv, hamil_local, alpha_surf_comp_L_local, sgn_alpha_surf_comp_not_used_local); 
       int const_sgn_alpha_surf_edge = canonical_pb_alpha_edge_surfx_3x3v_tensor_p1(w_edge_not_used, dxv, hamil_local, alpha_surf_comp_R_local, sgn_alpha_surf_comp_not_used_local); 
@@ -657,7 +597,6 @@ test_3x3v(int poly_order, enum gkyl_basis_type b_type)
       const_sgn_alpha_surf = canonical_pb_alpha_surfvx_3x3v_tensor_p1(w_edge_not_used, dxv, hamil_local, alpha_surf_comp_L_local, sgn_alpha_surf_comp_not_used_local); 
       const_sgn_alpha_surf = canonical_pb_alpha_surfvy_3x3v_tensor_p1(w_edge_not_used, dxv, hamil_local, alpha_surf_comp_L_local, sgn_alpha_surf_comp_not_used_local);
       const_sgn_alpha_surf = canonical_pb_alpha_surfvz_3x3v_tensor_p1(w_edge_not_used, dxv, hamil_local, alpha_surf_comp_L_local, sgn_alpha_surf_comp_not_used_local);
-      //printf("(KERNELS) Choosing tensor basis for velocity space\n");
     } 
     else {
       //Only tensor p1 is supported for 3x3v
@@ -671,7 +610,6 @@ test_3x3v(int poly_order, enum gkyl_basis_type b_type)
   int pidxl[GKYL_MAX_DIM];
   while(gkyl_range_iter_next(&piter)){
     long pidx = gkyl_range_idx(&local, piter.idx);
-
     const double *alpha_surf_comp_L_local = gkyl_array_cfetch(alpha_surf_comp_L, pidx);
 
     // Iterate in the lower direction (only conf space comparison - becuase there are no velocity space ghost cells for comparison)
@@ -683,9 +621,6 @@ test_3x3v(int poly_order, enum gkyl_basis_type b_type)
 
       // Iterate overthe number of basis on the surface
       for (int n = 0; n<surf_basis.num_basis; n++){
-        if(alpha_surf_comp_L_local[n + dir*surf_basis.num_basis] != 0.0 || alpha_surf_comp_R_local[n + dir*surf_basis.num_basis] != 0.0){
-          //printf("(%1.16e) == (%1.16e)\n",alpha_surf_comp_L_local[n + dir*surf_basis.num_basis], alpha_surf_comp_R_local[n + dir*surf_basis.num_basis]);
-        }
         TEST_CHECK(gkyl_compare_double(alpha_surf_comp_L_local[n + dir*surf_basis.num_basis], alpha_surf_comp_R_local[n + dir*surf_basis.num_basis], 1e-10));
       }
     }
@@ -707,7 +642,6 @@ test_3x3v(int poly_order, enum gkyl_basis_type b_type)
   gkyl_dg_calc_canonical_pb_vars_release(calc_vars);
 }
 
-
 // Check the 1x1v_p1/2 continuity
 void test_1x1v_p1_continuity_tensor() { test_1x1v(1, GKYL_BASIS_MODAL_TENSOR); }
 void test_1x1v_p1_continuity_ser() { test_1x1v(1, GKYL_BASIS_MODAL_SERENDIPITY); }
@@ -720,12 +654,12 @@ void test_2x2v_p2_continuity_ser() { test_2x2v(2, GKYL_BASIS_MODAL_SERENDIPITY);
 void test_3x3v_p1_continuity_tensor() { test_3x3v(1, GKYL_BASIS_MODAL_TENSOR); }
 
 TEST_LIST = {
-  {"test_1x1v_p1_continuity_tensor", test_1x1v_p1_continuity_tensor},
+  {"test_1x1v_p1_continuity_ten", test_1x1v_p1_continuity_tensor},
   {"test_1x1v_p1_continuity_ser", test_1x1v_p1_continuity_ser},
   {"test_1x1v_p2_continuity_ser", test_1x1v_p2_continuity_ser},
-  {"test_2x2v_p1_continuity_tensor", test_2x2v_p1_continuity_tensor},
+  {"test_2x2v_p1_continuity_ten", test_2x2v_p1_continuity_tensor},
   {"test_2x2v_p1_continuity_ser", test_2x2v_p1_continuity_ser},
   {"test_2x2v_p2_continuity_ser", test_2x2v_p2_continuity_ser},
-  {"test_3x3v_p1_continuity_tensor", test_3x3v_p1_continuity_tensor},
+  {"test_3x3v_p1_continuity_ten", test_3x3v_p1_continuity_tensor},
   {NULL, NULL},
 };
