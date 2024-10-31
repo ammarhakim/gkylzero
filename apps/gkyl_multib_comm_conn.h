@@ -62,13 +62,6 @@ struct gkyl_multib_comm_conn *gkyl_multib_comm_conn_new_recv(
   const struct gkyl_block_connections *block_conn, struct gkyl_rect_decomp **decomp);
 
 /**
- * Release comm-conn object.
- *
- * @param cconn Object to release
- */
-void gkyl_multib_comm_conn_release(const struct gkyl_multib_comm_conn *cconn);
-
-/**
  * Construct the send communication connections for a rank from its
  * local block rank and a list of blocks connected to it along a direction.
  *
@@ -133,3 +126,17 @@ int gkyl_multib_comm_conn_array_transfer(struct gkyl_comm *comm,
 void gkyl_multib_comm_conn_create_multib_ranges_in_dir(struct gkyl_range *cross_range_ext,
     struct gkyl_range *cross_range, const int *nghost, int nconnected, 
     int* block_list, int dir, struct gkyl_rect_decomp **decomp);
+
+/**
+ * Sort the connections in ascending order according to rank, and block id.
+ *
+ * @param comm_conn List of individual communication connections.
+ */
+void gkyl_multib_comm_conn_sort(struct gkyl_multib_comm_conn *mbcc);
+
+/**
+ * Release comm-conn object.
+ *
+ * @param cconn Object to release
+ */
+void gkyl_multib_comm_conn_release(const struct gkyl_multib_comm_conn *cconn);

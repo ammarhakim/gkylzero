@@ -23,8 +23,8 @@ struct comm_buff_stat {
 struct mpi_comm {
   struct gkyl_comm_priv priv_comm; // base communicator
 
-  bool is_mcomm_allocated; // is the mcomm allocated?
   MPI_Comm mcomm; // MPI communicator to use
+  bool is_mcomm_allocated; // Is the mcomm allocated?
   struct gkyl_rect_decomp *decomp; // pre-computed decomposition
   long local_range_offset; // offset of the local region
 

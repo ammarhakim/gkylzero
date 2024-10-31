@@ -9,10 +9,10 @@ gkyl_multib_comm_conn_array_transfer_mpi(struct gkyl_comm *comm, int num_blocks_
 {
   struct mpi_comm *mpi = container_of(comm, struct mpi_comm, priv_comm.pub_comm);
 
-  int tag = MPI_BASE_TAG;
-
   int my_rank;
   gkyl_comm_get_rank(comm, &my_rank);
+
+  int tag = MPI_BASE_TAG;
 
   // post nonblocking recv to get data into ghost-cells  
   int nridx = 0;

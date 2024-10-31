@@ -4,6 +4,13 @@
 
 #include <gkyl_gyrokinetic_priv.h>
 #include <gkyl_gyrokinetic_multib.h>
+#include <gkyl_rrobin_decomp.h>
+#include <gkyl_multib_comm_conn.h>
+
+// A multib_comm_conn send/recv pair used for communicating between blocks.
+struct gkyl_mbcc_sr {
+  struct gkyl_multib_comm_conn **recv, **send;
+};
 
 // top-level internal App
 struct gkyl_gyrokinetic_multib_app {
@@ -11,7 +18,7 @@ struct gkyl_gyrokinetic_multib_app {
   struct gkyl_comm *comm; // global communicator to use
   bool use_gpu; // Whether to use the GPU.
   
- // geometry and topology of all blocks in simulation
+  // geometry and topology of all blocks in simulation
   struct gkyl_block_geom *block_geom;
   struct gkyl_block_topo *block_topo;
   
@@ -33,6 +40,10 @@ struct gkyl_gyrokinetic_multib_app {
 
   const struct gkyl_rrobin_decomp *round_robin; // round-robin decomp
   struct gkyl_rect_decomp **decomp; // list of decomps (num_blocks)
+
+  struct gkyl_mbcc_sr *mbcc_sync_conf; // Connections for conf-space sync.
+  struct gkyl_mbcc_sr *mbcc_sync_charged; // Connections for charged species phase-space.
+  struct gkyl_mbcc_sr *mbcc_sync_neut; // Connections for neut species phase-space.
 
   double tcurr; // current time
   

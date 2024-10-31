@@ -339,13 +339,6 @@ gkyl_multib_comm_conn_new_recv(
   return multib_comm_conn_new_sr(GKYL_COMM_CONN_RECV, block_id, block_rank, nghost, block_conn, decomp);
 }
 
-void
-gkyl_multib_comm_conn_release(const struct gkyl_multib_comm_conn *cconn)
-{
-  if (cconn)
-    gkyl_ref_count_dec(&cconn->ref_count);
-}
-
 int
 gkyl_multib_comm_conn_array_transfer(struct gkyl_comm *comm, int num_blocks_local, const int *blocks_local,
   struct gkyl_multib_comm_conn **mbcc_send, struct gkyl_multib_comm_conn **mbcc_recv,
@@ -361,11 +354,60 @@ gkyl_multib_comm_conn_array_transfer(struct gkyl_comm *comm, int num_blocks_loca
       mbcc_send, mbcc_recv, arr_send, arr_recv);
   }
   else if (strcmp(comm->id, "nccl_comm") == 0) {
-//    err = gkyl_multib_comm_conn_array_transfer_nccl(comm, num_blocks_local, blocks_local,
-//      mbcc_send, mbcc_recv, arr_send, arr_recv);
+    err = gkyl_multib_comm_conn_array_transfer_nccl(comm, num_blocks_local, blocks_local,
+      mbcc_send, mbcc_recv, arr_send, arr_recv);
   }
   else
     assert(false);
 
   return err;
+}
+
+static void
+swap_comm_conns(struct gkyl_comm_conn *ccj, struct gkyl_comm_conn *cck)
+{
+  struct gkyl_comm_conn cc_tmp = *ccj;
+  *ccj = *cck;
+  *cck = cc_tmp;
+}
+
+void
+gkyl_multib_comm_conn_sort(struct gkyl_multib_comm_conn *mbcc)
+{
+  int num_conn = mbcc->num_comm_conn;
+  // First sort connections in ascending rank (w/ bubble sort).
+  for (int i=0; i<num_conn-1; i++) {
+    bool swapped = false;
+    for (int j=0; j<num_conn-i-1; j++) {
+      struct gkyl_comm_conn *cj = &mbcc->comm_conn[j], *cjp1 = &mbcc->comm_conn[j+1];
+      if (cj->rank > cjp1->rank) {
+        swap_comm_conns(cj, cjp1);
+        swapped = true;
+      }
+    }
+    if (swapped == false)
+      break; // Stop if no swaps happened.
+  }
+
+  // Now sort connections in ascending block ID.
+  for (int i=0; i<num_conn-1; i++) {
+    bool swapped = false;
+    for (int j=0; j<num_conn-i-1; j++) {
+      struct gkyl_comm_conn *cj = &mbcc->comm_conn[j], *cjp1 = &mbcc->comm_conn[j+1];
+      if ((cj->rank == cjp1->rank) && (cj->block_id > cjp1->block_id)) {
+        swap_comm_conns(cj, cjp1);
+        swapped = true;
+      }
+    }
+    if (swapped == false)
+      break; // Stop if no swaps happened.
+  }
+
+}
+
+void
+gkyl_multib_comm_conn_release(const struct gkyl_multib_comm_conn *cconn)
+{
+  if (cconn)
+    gkyl_ref_count_dec(&cconn->ref_count);
 }
