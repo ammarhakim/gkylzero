@@ -37,7 +37,7 @@ gkyl_phase_ghost_conf_div_flip_mul_advance(const struct gkyl_phase_ghost_conf_di
 {
 #ifdef GKYL_HAVE_CUDA
   if (up->use_gpu) {
-    skin_surf_from_ghost_advance_cu(up, dir, edge,
+    gkyl_phase_ghost_conf_div_flip_mul_advance_cu(up, dir, edge,
       conf_skin_r, conf_ghost_r, phase_ghost_r, jac, jf);
     return;
   }

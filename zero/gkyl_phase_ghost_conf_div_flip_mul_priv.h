@@ -20,9 +20,6 @@ struct gkyl_phase_ghost_conf_div_flip_mul {
   int dir; // Direction perpendicular to the boundary.
   enum gkyl_edge_loc edge; // Boundary edge (lower/upper).
   const struct gkyl_basis *conf_basis; // Configuration space basis object.
-  const struct gkyl_range *conf_skin_r; // Conf-space skin range.
-  const struct gkyl_range *conf_ghost_r; // Conf-space ghost range.
-  const struct gkyl_range *phase_ghost_r; // Phase-space ghost range.
   bool use_gpu; // Whether to run on the GPU or not.
   struct gkyl_phase_ghost_conf_div_flip_mul_kernels *kernels;
 };
@@ -30,13 +27,13 @@ struct gkyl_phase_ghost_conf_div_flip_mul {
 #ifdef GKYL_HAVE_CUDA
 // Declaration of cuda device functions.
 void
-phase_ghost_conf_div_flip_mul_kernel_cu(struct gkyl_phase_ghost_conf_div_flip_mul_kernels *kernels,
-  struct gkyl_basis *cbasis, struct gkyl_basis *pbasis);
+pghost_cdm_choose_kernel_cu(struct gkyl_phase_ghost_conf_div_flip_mul_kernels *kernels,
+  const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis);
 
 void
 gkyl_phase_ghost_conf_div_flip_mul_advance_cu(const struct gkyl_phase_ghost_conf_div_flip_mul *up,
   int dir, enum gkyl_edge_loc edge, const struct gkyl_range *conf_skin_r, const struct gkyl_range *conf_ghost_r,
-  const struct gkyl_range *phase_ghost_r, struct gkyl_array *GKYL_RESTRICT jac, struct gkyl_array *GKYL_RESTRICT jf);
+  const struct gkyl_range *phase_ghost_r, const struct gkyl_array *jac, struct gkyl_array *jf);
 #endif
 
 GKYL_CU_D
@@ -45,7 +42,7 @@ static void phase_ghost_conf_div_flip_mul_choose_kernel(struct gkyl_phase_ghost_
 {
 #ifdef GKYL_HAVE_CUDA
   if (use_gpu) {
-    pos_shift_gk_choose_shift_kernel_cu(kernels, cbasis, pbasis);
+    pghost_cdm_choose_kernel_cu(kernels, cbasis, pbasis);
     return;
   }
 #endif
