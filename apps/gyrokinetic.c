@@ -485,7 +485,6 @@ calc_field_and_apply_bc(gkyl_gyrokinetic_app* app, double tcurr, struct gkyl_arr
       gk_neut_species_apply_bc(app, &app->neut_species[i], distf_neut[i]);
     }
   }
-  gk_field_apply_bc(app, app->field);
 }
 
 struct gk_species *
