@@ -22,6 +22,7 @@ struct gk_nozzle_ctx
   double qi;
   double n_init;
   double Ti_init;
+  double nu_ion;
   // Thermal speeds.
   double vti;
   // Gyrofrequencies and gyroradii.
@@ -69,6 +70,13 @@ eval_temp_ion_init(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRI
   fout[0] = app->Ti_init;
 }
 
+void
+eval_nu_ion(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+{
+  struct gk_nozzle_ctx *app = ctx;
+  fout[0] = app->nu_ion;
+}
+
 void mapc2p_vel_ion(double t, const double *vc, double* GKYL_RESTRICT vp, void *ctx)
 {
   struct gk_nozzle_ctx *app = ctx;
@@ -112,17 +120,26 @@ create_ctx(void)
   double n_init = 3e19;
   double Ti_init = 10000 * eV;
   double vti = sqrt(Ti_init / mi);
+  printf("vti = %g\n", vti);
 
   // Grid parameters
   double vpar_max_ion = 6 * vti;
   double mu_max_ion = mi * pow(8. * vti, 2.) / (2. * B_p);
-  int Nz = 16;
+  int Nz = 64;
   int Nvpar = 32; // Number of cells in the paralell velocity direction 96
   int Nmu = 32;  // Number of cells in the mu direction 192
   int poly_order = 1;
 
-  double t_end = 1e-6;
-  int num_frames = 100;
+  // double loglambda_ion = 6.6 - 0.5 * log(n_init / 1e20) + 1.5 * log(Ti_init / eV);
+  // double nu_frac = 100.0;
+  // double nu_ion = nu_frac * loglambda_ion * pow(eV, 4.) * n_init /
+  //                (12 * pow(M_PI, 3. / 2.) * pow(eps0, 2.) * sqrt(mi) * pow(Ti_init, 3. / 2.));
+  
+  double nu_ion = 1 / (5e-3);
+  printf("nu_ion = %g\n", nu_ion);
+  printf("1/nu_ion = %g\n", 1.0/nu_ion);
+  double t_end = 10e-9;
+  int num_frames = 1300;
   int int_diag_calc_num = num_frames*100;
   double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.
   int num_failures_max = 20; // Maximum allowable number of consecutive small time-steps.
@@ -133,6 +150,7 @@ create_ctx(void)
     .vdim = vdim,
     .mi = mi,
     .qi = qi,
+    .nu_ion = nu_ion,
     .z_min = z_min,
     .z_max = z_max,
     .psi_eval = psi_eval,
@@ -210,29 +228,32 @@ int main(int argc, char **argv)
     .name = "ion",
     .charge = ctx.qi,
     .mass = ctx.mi,
-    .lower = {-1.0, 0.0},
-    .upper = { 1.0, 1.0},
+    .lower = {- ctx.vpar_max_ion, 0.0},
+    .upper = {  ctx.vpar_max_ion, ctx.mu_max_ion},
     .cells = { cells_v[0], cells_v[1] },
     .projection = {
-      .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM,
+      .proj_id = GKYL_PROJ_BIMAXWELLIAN,
       .density = eval_density_ion_init,
       .ctx_density = &ctx,
       .upar = eval_upar_ion_init,
       .ctx_upar = &ctx,
-      .temp = eval_temp_ion_init,
-      .ctx_temp = &ctx,
+      .temppar = eval_temp_ion_init,
+      .ctx_temppar = &ctx,
+      .tempperp = eval_temp_ion_init,
+      .ctx_tempperp = &ctx,
       .correct_all_moms = true,
     },
-    .mapc2p = {
-      .mapping = mapc2p_vel_ion,
+    .collisions =  {
+      .collision_id = GKYL_LBO_COLLISIONS,
       .ctx = &ctx,
+      .self_nu = eval_nu_ion,
     },
     .bcx = {
       .lower={.type = GKYL_SPECIES_REFLECT,},
       .upper={.type = GKYL_SPECIES_REFLECT,},
     },
-    .num_diag_moments = 1,
-    .diag_moments = {"BiMaxwellianMoments"},
+    .num_diag_moments = 6,
+    .diag_moments = {"M0", "M1", "M2", "M2par", "M2perp", "BiMaxwellianMoments"},
   };
 
   struct gkyl_efit_inp efit_inp = {
@@ -320,7 +341,8 @@ int main(int argc, char **argv)
   long step = 1, num_steps = app_args.num_steps;
   while ((t_curr < t_end) && (step <= num_steps))
   {
-    gkyl_gyrokinetic_app_cout(app, stdout, "Taking time-step at t = %g ...", t_curr);
+    gkyl_gyrokinetic_app_cout(app, stdout, "Taking time-step %i ", step);
+    gkyl_gyrokinetic_app_cout(app, stdout, "at t = %g ...", t_curr);
     struct gkyl_update_status status = gkyl_gyrokinetic_update(app, dt);
     gkyl_gyrokinetic_app_cout(app, stdout, " dt = %g\n", status.dt_actual);
 
