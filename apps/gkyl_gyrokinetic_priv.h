@@ -682,6 +682,7 @@ struct gk_field {
   struct gkyl_array *es_energy_fac; 
   struct gkyl_array *epsilon; 
   struct gkyl_array *kSq; 
+  struct gkyl_array *jacobgeo_global;
 
   struct gkyl_fem_parproj *fem_parproj; // FEM smoother for projecting DG functions onto continuous FEM basis
                                         // weight*phi_{fem} = phi_{dg} 
