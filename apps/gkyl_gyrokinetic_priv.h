@@ -655,6 +655,8 @@ struct gk_field {
   struct gkyl_array *rho_c_global_dg;
   struct gkyl_array *rho_c_global_smooth; 
   struct gkyl_array *phi_fem, *phi_smooth; // arrays for updates
+  // array to store species m0 with jacobian divided out
+  struct gkyl_array *m0;
 
   struct gkyl_array *phi_host;  // host copy for use IO and initialization
 

@@ -24,6 +24,9 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
   f->rho_c_global_dg = mkarr(app->use_gpu, app->confBasis.num_basis, app->global_ext.volume);
   f->rho_c_global_smooth = mkarr(app->use_gpu, app->confBasis.num_basis, app->global_ext.volume);
 
+  // allocate array for M0 with jacobian divided out
+  f->m0 = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
+
   // allocate arrays for electrostatic potential
   // global phi (only used in 1x simulations)
   f->phi_fem = mkarr(app->use_gpu, app->confBasis.num_basis, app->global_ext.volume);
@@ -265,13 +268,13 @@ gk_field_accumulate_rho_c(gkyl_gyrokinetic_app *app, struct gk_field *field,
     struct gk_species *s = &app->species[i];
 
     gk_species_moment_calc(&s->m0, s->local, app->local, fin[i]);
-    gkyl_dg_div_op_range(s->m0.mem_geo, app->confBasis, 0, s->m0.marr, 0,
+    gkyl_dg_div_op_range(s->m0.mem_geo, app->confBasis, 0, field->m0, 0,
         s->m0.marr, 0, app->gk_geom->jacobgeo, &app->local);  
     if (field->gkfield_id == GKYL_GK_FIELD_BOLTZMANN) {
       // For Boltzmann electrons, we only need ion density, not charge density.
-      gkyl_array_accumulate_range(field->rho_c, 1.0, s->m0.marr, &app->local);
+      gkyl_array_accumulate_range(field->rho_c, 1.0, field->m0, &app->local);
     } else {
-      gkyl_array_accumulate_range(field->rho_c, s->info.charge, s->m0.marr, &app->local);
+      gkyl_array_accumulate_range(field->rho_c, s->info.charge, field->m0, &app->local);
       if (field->gkfield_id == GKYL_GK_FIELD_ADIABATIC) {
         // Add the background (electron) charge density.
         double n_s0 = field->info.electron_density;
@@ -314,8 +317,6 @@ gk_field_rhs(gkyl_gyrokinetic_app *app, struct gk_field *field)
 {
   struct timespec wst = gkyl_wall_clock();
   if (field->gkfield_id == GKYL_GK_FIELD_BOLTZMANN) { 
-    gkyl_dg_mul_op_range(app->confBasis, 0, field->rho_c_global_smooth, 0, 
-        field->rho_c_global_smooth, 0, field->jacobgeo_global, &app->global);
     gkyl_ambi_bolt_potential_phi_calc(field->ambi_pot, &app->local, &app->local_ext,
       app->gk_geom->jacobgeo_inv, field->rho_c, field->sheath_vals[0], field->phi_smooth);
 
@@ -383,6 +384,7 @@ gk_field_release(const gkyl_gyrokinetic_app* app, struct gk_field *f)
   gkyl_array_release(f->rho_c);
   gkyl_array_release(f->rho_c_global_dg);
   gkyl_array_release(f->rho_c_global_smooth);
+  gkyl_array_release(f->m0);
   gkyl_array_release(f->phi_fem);
   gkyl_array_release(f->phi_smooth);
   gkyl_array_release(f->jacobgeo_global);
