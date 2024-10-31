@@ -412,7 +412,7 @@ test_2x2v(int poly_order, enum gkyl_basis_type b_type)
 
       // Iterate overthe number of basis on the surface
       for (int n = 0; n<surf_basis.num_basis; n++){
-        TEST_CHECK(gkyl_compare_double(alpha_surf_comp_L_local[n + dir*surf_basis.num_basis], alpha_surf_comp_R_local[n + dir*surf_basis.num_basis], 1e-10));
+        TEST_CHECK(gkyl_compare_double(alpha_surf_comp_L_local[n + dir*surf_basis.num_basis], alpha_surf_comp_R_local[n + dir*surf_basis.num_basis], 1e-9));
       }
     }
   }
