@@ -23,8 +23,8 @@ GKYL_CU_DH double canonical_pb_boundary_surfvx_1x1v_ser_p1(const double *w, cons
 
   const double *alphaL = &alpha_surf_skin[3];
   const double *alphaR = &alpha_surf_edge[3];
-  const double *sgn_alpha_surfL = &sgn_alpha_surf_skin[2];
-  const double *sgn_alpha_surfR = &sgn_alpha_surf_edge[2];
+  const double *sgn_alpha_surfL = &sgn_alpha_surf_skin[3];
+  const double *sgn_alpha_surfR = &sgn_alpha_surf_edge[3];
   const int *const_sgn_alphaL = &const_sgn_alpha_skin[1];
   const int *const_sgn_alphaR = &const_sgn_alpha_edge[1];
 
