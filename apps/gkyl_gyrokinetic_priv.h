@@ -1587,12 +1587,11 @@ struct gk_field* gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *a
  * This function is modifying f only if we are solving a 3x IWL problem.
  * (This function needs a species to be initialized to work)
  * 
- * @param gk Input gk data
  * @param app gyrokinetic app object
  * @param f  the field structure to be updated
  */
 void
-gk_field_add_TSBC_and_SSFG_updaters(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app, struct gk_field *f);
+gk_field_add_TSBC_and_SSFG_updaters(struct gkyl_gyrokinetic_app *app, struct gk_field *f);
 
 /**
  * Compute biased wall potentials 
@@ -1631,6 +1630,14 @@ void gk_field_calc_ambi_pot_sheath_vals(gkyl_gyrokinetic_app *app, struct gk_fie
  * @param em Output field
  */
 void gk_field_rhs(gkyl_gyrokinetic_app *app, struct gk_field *field);
+
+/**
+ * Apply twist-and-shift BC and ensure that the skin surface values matches it
+ * 
+ * @param app gk app object
+ * @param field pointer to the field (modified)
+ */
+void gk_field_apply_bc(gkyl_gyrokinetic_app *app, struct gk_field *field);
 
 /**
  * Compute field energy diagnostic
