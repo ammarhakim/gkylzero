@@ -67,15 +67,15 @@ struct gk_field_multib {
 
   struct gkyl_multib_comm_conn **mbcc_send; // comm object for allgather
   struct gkyl_multib_comm_conn **mbcc_recv; // comm object for allgather
-  struct gkyl_range **multib_z_ranges; // ranges for allgather along z
-  struct gkyl_range **multib_z_ranges_ext; // extended ranges for smoothing along z
+  struct gkyl_range **multibz_ranges; // ranges for allgather along z
+  struct gkyl_range **multibz_ranges_ext; // extended ranges for smoothing along z
   struct gkyl_range **block_subranges; // ranges for copying smooth charge density
                                        // back to single block apps
 
   // arrays for global charge density and global smoothed (in z) charge density
-  struct gkyl_array **rho_c_local_dg;
-  struct gkyl_array **rho_c_global_dg;
-  struct gkyl_array **rho_c_global_smooth; 
+  struct gkyl_array **rho_c_local;
+  struct gkyl_array **rho_c_multibz_dg;
+  struct gkyl_array **rho_c_multibz_smooth; 
 
   struct gkyl_fem_parproj **fem_parproj; // FEM smoothers for projecting DG functions onto continuous FEM basis
                                         // weight*phi_{fem} = phi_{dg} 
