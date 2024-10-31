@@ -274,7 +274,10 @@ gk_field_accumulate_rho_c(gkyl_gyrokinetic_app *app, struct gk_field *field,
       // For Boltzmann electrons, we only need ion density, not charge density.
       gkyl_array_accumulate_range(field->rho_c, 1.0, s->m0.marr, &app->local);
     } else {
-      gkyl_array_accumulate_range(field->rho_c, s->info.charge, field->m0, &app->local);
+      if (app->cdim == 1)
+        gkyl_array_accumulate_range(field->rho_c, s->info.charge, s->m0.marr, &app->local);
+      else if (app->cdim > 1)
+        gkyl_array_accumulate_range(field->rho_c, s->info.charge, field->m0, &app->local);
       if (field->gkfield_id == GKYL_GK_FIELD_ADIABATIC) {
         // Add the background (electron) charge density.
         double n_s0 = field->info.electron_density;
