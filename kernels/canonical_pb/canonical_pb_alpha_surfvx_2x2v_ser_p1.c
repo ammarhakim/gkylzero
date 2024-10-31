@@ -22,8 +22,8 @@ GKYL_CU_DH int canonical_pb_alpha_surfvx_2x2v_ser_p1(const double *w, const doub
   double wvy = w[3];
   double rdvy2 = 2.0/dxv[3];
 
-  double *alphaL = &alpha_surf[24];
-  double *sgn_alpha_surfL = &sgn_alpha_surf[24];
+  double *alphaL = &alpha_surf[32];
+  double *sgn_alpha_surfL = &sgn_alpha_surf[36];
   alphaL[0] = (-2.738612787525831*hamil[17]*rdx2)+2.121320343559642*hamil[6]*rdx2-1.224744871391589*hamil[1]*rdx2; 
   alphaL[2] = (-2.738612787525831*hamil[20]*rdx2)+2.121320343559642*hamil[11]*rdx2-1.224744871391589*hamil[5]*rdx2; 
   alphaL[3] = (-2.738612787525831*hamil[21]*rdx2)+2.121320343559642*hamil[13]*rdx2-1.224744871391589*hamil[8]*rdx2; 

@@ -20,10 +20,10 @@ GKYL_CU_DH double canonical_pb_surfvy_2x2v_ser_p1(const double *w, const double 
 
   double rdvy2 = 2.0/dxv[3];
 
-  const double *alphaL = &alpha_surf_l[36];
-  const double *alphaR = &alpha_surf_r[36];
-  const double *sgn_alpha_surfL = &sgn_alpha_surf_l[36];
-  const double *sgn_alpha_surfR = &sgn_alpha_surf_r[36];
+  const double *alphaL = &alpha_surf_l[44];
+  const double *alphaR = &alpha_surf_r[44];
+  const double *sgn_alpha_surfL = &sgn_alpha_surf_l[48];
+  const double *sgn_alpha_surfR = &sgn_alpha_surf_r[48];
   const int *const_sgn_alphaL = &const_sgn_alpha_l[3];
   const int *const_sgn_alphaR = &const_sgn_alpha_r[3];
 
