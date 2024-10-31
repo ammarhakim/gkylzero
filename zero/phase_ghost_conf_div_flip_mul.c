@@ -14,7 +14,7 @@ gkyl_phase_ghost_conf_div_flip_mul_new(const struct gkyl_basis *conf_basis,
   up->use_gpu = use_gpu;
   up->conf_basis = conf_basis;
 
-  int poly_order = conf_basis->poly_order;
+  int poly_order = phase_basis->poly_order;
   assert(poly_order == 1); // MF 2024/10/30: Because of the inv_op below.
 
   // Choose the kernel that does the skin surf from ghost copy

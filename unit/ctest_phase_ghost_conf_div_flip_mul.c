@@ -97,9 +97,8 @@ void test_1x1v_at_edge(bool use_gpu, int dir, enum gkyl_edge_loc edge)
   struct gkyl_basis basis;
   gkyl_cart_modal_serendip(&basis, pdim, poly_order);
 
-  struct gkyl_basis *basis_conf_dev;
-  basis_conf_dev = use_gpu? gkyl_cart_modal_serendip_cu_dev_new(cdim, poly_order)
-                 : gkyl_cart_modal_serendip_new(cdim, poly_order);
+  struct gkyl_basis *basis_conf_dev = use_gpu? gkyl_cart_modal_serendip_cu_dev_new(cdim, poly_order)
+                                             : gkyl_cart_modal_serendip_new(cdim, poly_order);
 
   // Ranges.
   int ghost_cells_conf[cdim];
@@ -146,7 +145,7 @@ void test_1x1v_at_edge(bool use_gpu, int dir, enum gkyl_edge_loc edge)
   // Multiply jac * f.
   gkyl_dg_mul_conf_phase_op_range(&basis_conf, &basis, jf, jac, distf, &local_conf_ext, &local_ext);
   // Place jf in distf as we'll need it to check results.
-  gkyl_array_copy(distf, jf);
+  gkyl_array_copy(distf_ho, jf);
 
   // Divide jf by j in the ghost cell, and multiply by the flipped skin cell j.
   struct gkyl_phase_ghost_conf_div_flip_mul* jf_rescale =
@@ -158,9 +157,9 @@ void test_1x1v_at_edge(bool use_gpu, int dir, enum gkyl_edge_loc edge)
   gkyl_phase_ghost_conf_div_flip_mul_release(jf_rescale);
 
   // Check the results.
+  gkyl_array_copy(jf_ho, jf);
   inv_op_t conf_inv_op = choose_ser_inv_kern(cdim, poly_order);
   mul_op_t conf_phase_mul_op = choose_mul_conf_phase_kern(basis.b_type, cdim, vdim, poly_order);
-  gkyl_array_copy(jf_ho, jf);
   struct gkyl_range_iter iter;
   gkyl_range_iter_init(&iter, &ghost);
   while (gkyl_range_iter_next(&iter)) {
@@ -269,9 +268,8 @@ void test_2x2v_at_edge(bool use_gpu, int dir, enum gkyl_edge_loc edge)
   struct gkyl_basis basis;
   gkyl_cart_modal_serendip(&basis, pdim, poly_order);
 
-  struct gkyl_basis *basis_conf_dev;
-  basis_conf_dev = use_gpu? gkyl_cart_modal_serendip_cu_dev_new(cdim, poly_order)
-                 : gkyl_cart_modal_serendip_new(cdim, poly_order);
+  struct gkyl_basis *basis_conf_dev = use_gpu? gkyl_cart_modal_serendip_cu_dev_new(cdim, poly_order)
+                                             : gkyl_cart_modal_serendip_new(cdim, poly_order);
 
   // Ranges.
   int ghost_cells_conf[cdim];
@@ -318,7 +316,7 @@ void test_2x2v_at_edge(bool use_gpu, int dir, enum gkyl_edge_loc edge)
   // Multiply jac * f.
   gkyl_dg_mul_conf_phase_op_range(&basis_conf, &basis, jf, jac, distf, &local_conf_ext, &local_ext);
   // Place jf in distf as we'll need it to check results.
-  gkyl_array_copy(distf, jf);
+  gkyl_array_copy(distf_ho, jf);
 
   // Divide jf by j in the ghost cell, and multiply by the flipped skin cell j.
   struct gkyl_phase_ghost_conf_div_flip_mul* jf_rescale =
@@ -330,9 +328,9 @@ void test_2x2v_at_edge(bool use_gpu, int dir, enum gkyl_edge_loc edge)
   gkyl_phase_ghost_conf_div_flip_mul_release(jf_rescale);
 
   // Check the results.
+  gkyl_array_copy(jf_ho, jf);
   inv_op_t conf_inv_op = choose_ser_inv_kern(cdim, poly_order);
   mul_op_t conf_phase_mul_op = choose_mul_conf_phase_kern(basis.b_type, cdim, vdim, poly_order);
-  gkyl_array_copy(jf_ho, jf);
   struct gkyl_range_iter iter;
   gkyl_range_iter_init(&iter, &ghost);
   while (gkyl_range_iter_next(&iter)) {
@@ -405,6 +403,8 @@ test_2x2v_dev()
 {
   test_2x2v_at_edge(true, 0, GKYL_LOWER_EDGE);
   test_2x2v_at_edge(true, 0, GKYL_UPPER_EDGE);
+  test_2x2v_at_edge(true, 1, GKYL_LOWER_EDGE);
+  test_2x2v_at_edge(true, 1, GKYL_UPPER_EDGE);
 }
 #endif
 

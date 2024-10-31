@@ -12,24 +12,26 @@ __global__ static void
 gkyl_pghost_cdm_set_cu_ker_ptrs(struct gkyl_phase_ghost_conf_div_flip_mul_kernels *kernels,
   const struct gkyl_basis *cbasis, struct gkyl_basis pbasis)
 {
-  int cdim = cbasis->ndim, pdim = pbasis.ndim;
-  enum gkyl_basis_type cbasis_type = cbasis->b_type, pbasis_type = pbasis.b_type;
-  int poly_order = pbasis.poly_order;
-
-  switch (pbasis_type) {
-    case GKYL_BASIS_MODAL_GKHYBRID:
+  int cdim = cbasis->ndim;
+  enum gkyl_basis_type cbasis_type = cbasis->b_type;
+  int cpoly_order = cbasis->poly_order;
+  switch (cbasis_type) {
     case GKYL_BASIS_MODAL_SERENDIPITY:
-      kernels->conf_phase_mul_op = choose_mul_conf_phase_kern(pbasis_type, cdim, pdim-cdim, poly_order);
+      kernels->conf_inv_op = choose_ser_inv_kern(cdim, cpoly_order);
+      kernels->conf_mul_op = choose_ser_mul_kern(cdim, cpoly_order);
       break;
     default:
       assert(false);
       break;
   }
 
-  switch (cbasis_type) {
+  int pdim = pbasis.ndim;
+  enum gkyl_basis_type pbasis_type = pbasis.b_type;
+  int ppoly_order = pbasis.poly_order;
+  switch (pbasis_type) {
+    case GKYL_BASIS_MODAL_GKHYBRID:
     case GKYL_BASIS_MODAL_SERENDIPITY:
-      kernels->conf_inv_op = choose_ser_inv_kern(cdim, poly_order);
-      kernels->conf_mul_op = choose_ser_mul_kern(cdim, poly_order);
+      kernels->conf_phase_mul_op = choose_mul_conf_phase_kern(pbasis_type, cdim, pdim-cdim, ppoly_order);
       break;
     default:
       assert(false);
