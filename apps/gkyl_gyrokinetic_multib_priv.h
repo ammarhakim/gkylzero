@@ -72,7 +72,7 @@ struct gk_field_multib {
   struct gkyl_range **block_subranges; // ranges for copying smooth charge density
                                        // back to single block apps
 
-  // arrays for global charge density and global smoothed (in z) charge density
+  // arrays for connected-along-z charge density and smoothed (in z) charge density
   struct gkyl_array **rho_c_local;
   struct gkyl_array **rho_c_multibz_dg;
   struct gkyl_array **rho_c_multibz_smooth; 
