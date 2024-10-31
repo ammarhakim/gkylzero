@@ -56,10 +56,8 @@ struct gk_field_multib {
 
   struct gkyl_multib_comm_conn **mbcc_send; // comm object for allgather
   struct gkyl_multib_comm_conn **mbcc_recv; // comm object for allgather
-  struct gkyl_range **local_ranges;
-  struct gkyl_range **local_ranges_ext;
-  struct gkyl_range **global_ranges; // ranges for allgather
-  struct gkyl_range **global_ranges_ext; // extended ranges for allgather
+  struct gkyl_range **multib_z_ranges; // ranges for allgather along z
+  struct gkyl_range **multib_z_ranges_ext; // extended ranges for smoothing along z
   struct gkyl_range **block_subranges; // ranges for copying smooth charge density
                                        // back to single block apps
 

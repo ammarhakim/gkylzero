@@ -150,7 +150,7 @@ multib_comm_conn_new_sr(enum multib_send_recv sr,
 }
 
 void
-create_cross_ranges_in_dir(struct gkyl_range *cross_range_ext, struct gkyl_range *cross_range,
+gkyl_multib_comm_conn_create_multib_ranges_in_dir(struct gkyl_range *cross_range_ext, struct gkyl_range *cross_range,
     const int *nghost, int nconnected, int* block_list, int dir, struct gkyl_rect_decomp **decomp)
 {
   // Construct the cross range which spans all the parent ranges
@@ -194,7 +194,7 @@ gkyl_multib_comm_conn_new_send_from_connections(
   const struct gkyl_range *src_block_range = &decomp[block_id]->ranges[block_rank];
 
   struct gkyl_range cross_range, cross_range_ext;
-  create_cross_ranges_in_dir(&cross_range_ext, &cross_range, nghost, nconnected, block_list, dir, decomp);
+  gkyl_multib_comm_conn_create_multib_ranges_in_dir(&cross_range_ext, &cross_range, nghost, nconnected, block_list, dir, decomp);
 
   // Get block indices into the index space of the cross range
   int new_lower[GKYL_MAX_DIM];
@@ -269,7 +269,7 @@ gkyl_multib_comm_conn_new_recv_from_connections(
   const struct gkyl_range *src_block_range = &decomp[block_id]->ranges[block_rank];
 
   struct gkyl_range cross_range, cross_range_ext;
-  create_cross_ranges_in_dir(&cross_range_ext, &cross_range, nghost, nconnected, block_list, dir, decomp);
+  gkyl_multib_comm_conn_create_multib_ranges_in_dir(&cross_range_ext, &cross_range, nghost, nconnected, block_list, dir, decomp);
 
   // Need to get other block indices into the index space of the cross range
   for (int ib=0; ib<nconnected; ib++) {
