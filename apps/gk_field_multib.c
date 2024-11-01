@@ -31,7 +31,6 @@ gk_field_multib_new(const struct gkyl_gyrokinetic_multib *mbinp, struct gkyl_gyr
   mbf->info = mbinp->field;
   mbf->gkfield_id = mbf->info.gkfield_id ? mbf->info.gkfield_id : GKYL_GK_FIELD_ES;
 
-
   int my_rank, num_ranks;
   gkyl_comm_get_rank(mbapp->comm, &my_rank);
   gkyl_comm_get_size(mbapp->comm, &num_ranks);
@@ -83,9 +82,6 @@ gk_field_multib_new(const struct gkyl_gyrokinetic_multib *mbinp, struct gkyl_gyr
     mbf->rho_c_multibz_smooth[bI] = mkarr(mbapp->use_gpu, sbapp->confBasis.num_basis, mbf->multibz_ranges_ext[bI]->volume);
   }
 
-
-
-
   // Construct the comm_conns for the allgather
   mbf->mbcc_send = gkyl_malloc(num_local_blocks * sizeof(struct gkyl_multib_comm_conn *));
   mbf->mbcc_recv = gkyl_malloc(num_local_blocks * sizeof(struct gkyl_multib_comm_conn *));
@@ -117,9 +113,6 @@ gk_field_multib_new(const struct gkyl_gyrokinetic_multib *mbinp, struct gkyl_gyr
       }
   }
 
-
-
-
   mbf->fem_parproj = gkyl_malloc(num_local_blocks* sizeof(struct gkyl_fem_parproj*));
   // Make the parrallel smoother
   for (int bI=0; bI<mbapp->num_local_blocks; ++bI) {
@@ -147,14 +140,12 @@ gk_field_multib_new(const struct gkyl_gyrokinetic_multib *mbinp, struct gkyl_gyr
     int inter = gkyl_sub_range_intersect(mbf->block_subranges[bI], mbf->multibz_ranges[bI], &shifted_parent_range);
   }
 
-
   // Free temporary memory
   gkyl_free(branks);
   for (int bidx=0; bidx<num_blocks; ++bidx) {
     gkyl_free(block_list[bidx]);
   }
   gkyl_free(block_list);
-
 
   return mbf;
 }
@@ -176,8 +167,7 @@ gk_field_multib_rhs(gkyl_gyrokinetic_multib_app *mbapp, struct gk_field_multib *
     gk_field_accumulate_rho_c(sbapp, sbapp->field, fin_local_block);
   }
 
-
-  // Do the allgather
+  // Do the allgather along the magnetic field.
   int stat = gkyl_multib_comm_conn_array_transfer(mbapp->comm, mbapp->num_local_blocks, mbapp->local_blocks, mbf->mbcc_send, mbf->mbcc_recv, mbf->rho_c_local, mbf->rho_c_multibz_dg);
 
   // Do the smoothing on the interblock cross-z range

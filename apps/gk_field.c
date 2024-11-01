@@ -268,16 +268,17 @@ gk_field_accumulate_rho_c(gkyl_gyrokinetic_app *app, struct gk_field *field,
     struct gk_species *s = &app->species[i];
 
     gk_species_moment_calc(&s->m0, s->local, app->local, fin[i]);
-    gkyl_dg_div_op_range(s->m0.mem_geo, app->confBasis, 0, field->m0, 0,
-        s->m0.marr, 0, app->gk_geom->jacobgeo, &app->local);  
+    if (app->cdim == 1)
+      gkyl_array_copy(field->m0, s->m0.marr)
+    else if (app->cdim > 1)
+      gkyl_dg_div_op_range(s->m0.mem_geo, app->confBasis, 0, field->m0, 0,
+          s->m0.marr, 0, app->gk_geom->jacobgeo, &app->local);  
+
     if (field->gkfield_id == GKYL_GK_FIELD_BOLTZMANN) {
       // For Boltzmann electrons, we only need ion density, not charge density.
-      gkyl_array_accumulate_range(field->rho_c, 1.0, s->m0.marr, &app->local);
+      gkyl_array_accumulate_range(field->rho_c, 1.0, field->m0, &app->local);
     } else {
-      if (app->cdim == 1)
-        gkyl_array_accumulate_range(field->rho_c, s->info.charge, s->m0.marr, &app->local);
-      else if (app->cdim > 1)
-        gkyl_array_accumulate_range(field->rho_c, s->info.charge, field->m0, &app->local);
+      gkyl_array_accumulate_range(field->rho_c, s->info.charge, field->m0, &app->local);
       if (field->gkfield_id == GKYL_GK_FIELD_ADIABATIC) {
         // Add the background (electron) charge density.
         double n_s0 = field->info.electron_density;
@@ -285,6 +286,7 @@ gk_field_accumulate_rho_c(gkyl_gyrokinetic_app *app, struct gk_field *field,
         gkyl_array_shiftc_range(field->rho_c, q_s*n_s0*sqrt(2.), 0, &app->local);
       }
     }
+
   } 
 }
 
@@ -351,7 +353,7 @@ gk_field_rhs(gkyl_gyrokinetic_app *app, struct gk_field *field)
         gkyl_fem_parproj_solve(field->fem_parproj, field->rho_c_global_smooth);
       }
       gkyl_dg_mul_op_range(app->confBasis, 0, field->rho_c_global_smooth, 0, 
-          field->rho_c_global_smooth, 0, field->jacobgeo_global, &app->global);
+        field->rho_c_global_smooth, 0, field->jacobgeo_global, &app->global);
       gkyl_deflated_fem_poisson_advance(field->deflated_fem_poisson, field->rho_c_global_smooth, field->phi_smooth);
     }
   }

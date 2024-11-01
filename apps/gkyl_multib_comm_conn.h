@@ -124,8 +124,8 @@ int gkyl_multib_comm_conn_array_transfer(struct gkyl_comm *comm,
  * @param decomp List of decomposition objects for each block
  */
 void gkyl_multib_comm_conn_create_multib_ranges_in_dir(struct gkyl_range *cross_range_ext,
-    struct gkyl_range *cross_range, const int *nghost, int nconnected, 
-    int* block_list, int dir, struct gkyl_rect_decomp **decomp);
+  struct gkyl_range *cross_range, const int *nghost, int nconnected, 
+  int* block_list, int dir, struct gkyl_rect_decomp **decomp);
 
 /**
  * Sort the connections in ascending order according to rank, and block id.

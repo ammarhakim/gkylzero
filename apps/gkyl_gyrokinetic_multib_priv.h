@@ -58,12 +58,10 @@ struct gyrokinetic_multib_output_meta {
   const char *topo_file_name; // name of topology file
 };
 
-
 // field data
 struct gk_field_multib {
   struct gkyl_gyrokinetic_multib_field info; // data for field
   enum gkyl_gkfield_id gkfield_id; // type of field
-
 
   struct gkyl_multib_comm_conn **mbcc_send; // comm object for allgather
   struct gkyl_multib_comm_conn **mbcc_recv; // comm object for allgather
@@ -114,17 +112,16 @@ void gyrokinetic_multib_calc_field_and_apply_bc(struct gkyl_gyrokinetic_multib_a
 struct gkyl_update_status gyrokinetic_multib_update_ssp_rk3(struct gkyl_gyrokinetic_multib_app* app, double dt0);
 
 
-
 /** Field API */
 
 // Initialize multib field object
 struct gk_field_multib* gk_field_multib_new(const struct gkyl_gyrokinetic_multib *mbinp,
-    struct gkyl_gyrokinetic_multib_app *mbapp);
+  struct gkyl_gyrokinetic_multib_app *mbapp);
 
 
 // Compute the electrostatic potential
 void gk_field_multib_rhs(gkyl_gyrokinetic_multib_app *mbapp, 
-    struct gk_field_multib *mbf, const struct gkyl_array *fin[]);
+  struct gk_field_multib *mbf, const struct gkyl_array *fin[]);
 
 // Release resources for multib field
 void gk_field_multib_release(const gkyl_gyrokinetic_multib_app* mbapp, struct gk_field_multib *mbf);

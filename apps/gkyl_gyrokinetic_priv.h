@@ -655,8 +655,8 @@ struct gk_field {
   struct gkyl_array *rho_c_global_dg;
   struct gkyl_array *rho_c_global_smooth; 
   struct gkyl_array *phi_fem, *phi_smooth; // arrays for updates
-  // array to store species m0 with jacobian divided out
-  struct gkyl_array *m0;
+  struct gkyl_array *m0; // Species m0 with Jacobian divided out.
+  struct gkyl_array *jacobgeo_global; // Conf-space Jacobian in global range. 
 
   struct gkyl_array *phi_host;  // host copy for use IO and initialization
 
@@ -684,7 +684,6 @@ struct gk_field {
   struct gkyl_array *es_energy_fac; 
   struct gkyl_array *epsilon; 
   struct gkyl_array *kSq; 
-  struct gkyl_array *jacobgeo_global;
 
   struct gkyl_fem_parproj *fem_parproj; // FEM smoother for projecting DG functions onto continuous FEM basis
                                         // weight*phi_{fem} = phi_{dg} 
