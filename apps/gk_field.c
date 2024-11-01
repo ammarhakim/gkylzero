@@ -269,7 +269,7 @@ gk_field_accumulate_rho_c(gkyl_gyrokinetic_app *app, struct gk_field *field,
 
     gk_species_moment_calc(&s->m0, s->local, app->local, fin[i]);
     if (app->cdim == 1)
-      gkyl_array_copy(field->m0, s->m0.marr)
+      gkyl_array_copy(field->m0, s->m0.marr);
     else if (app->cdim > 1)
       gkyl_dg_div_op_range(s->m0.mem_geo, app->confBasis, 0, field->m0, 0,
           s->m0.marr, 0, app->gk_geom->jacobgeo, &app->local);  

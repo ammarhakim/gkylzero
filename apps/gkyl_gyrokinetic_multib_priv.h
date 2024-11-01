@@ -62,6 +62,7 @@ struct gyrokinetic_multib_output_meta {
 struct gk_field_multib {
   struct gkyl_gyrokinetic_multib_field info; // data for field
   enum gkyl_gkfield_id gkfield_id; // type of field
+  int num_local_blocks; // total number of blocks on current rank
 
   struct gkyl_multib_comm_conn **mbcc_send; // comm object for allgather
   struct gkyl_multib_comm_conn **mbcc_recv; // comm object for allgather
@@ -124,4 +125,4 @@ void gk_field_multib_rhs(gkyl_gyrokinetic_multib_app *mbapp,
   struct gk_field_multib *mbf, const struct gkyl_array *fin[]);
 
 // Release resources for multib field
-void gk_field_multib_release(const gkyl_gyrokinetic_multib_app* mbapp, struct gk_field_multib *mbf);
+void gk_field_multib_release(struct gk_field_multib *mbf);

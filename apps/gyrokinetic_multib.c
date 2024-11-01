@@ -1410,6 +1410,8 @@ void gkyl_gyrokinetic_multib_app_release(gkyl_gyrokinetic_multib_app* mbapp)
     gkyl_free(mbapp->singleb_apps);
   }  
 
+  gk_field_multib_release(mbapp->field);
+
   int num_blocks = gkyl_block_geom_num_blocks(mbapp->block_geom);
 
   for (int i=0; i<num_blocks; ++i)
