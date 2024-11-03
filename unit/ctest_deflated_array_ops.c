@@ -89,7 +89,7 @@ void check_same(struct gkyl_range range, struct gkyl_basis basis, struct gkyl_ar
 
 
 void
-test_aop(bool use_gpu)
+test_aop()
 {
   int c_lop = 0;
   int c_rop = 0;
@@ -112,6 +112,17 @@ test_aop(bool use_gpu)
   struct gkyl_basis basis;
   gkyl_cart_modal_serendip(&basis, 2, poly_order);
 
+  bool use_gpu = false;
+#ifdef GKYL_HAVE_CUDA
+  use_gpu = true;
+  struct gkyl_basis *basis_on_dev = gkyl_cu_malloc(sizeof(struct gkyl_basis));
+  gkyl_cart_modal_serendip_cu_dev(basis_on_dev, 2, poly_order);
+#else
+  struct gkyl_basis *basis_on_dev = &basis;
+#endif
+
+
+
   // project initial functions on 2d field
   struct gkyl_array *rho = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, local_ext.volume);
   gkyl_proj_on_basis *proj = gkyl_proj_on_basis_new(&grid, &basis, 2, 1, &proj_rho, 0);
@@ -132,6 +143,7 @@ test_aop(bool use_gpu)
   gkyl_grid_sub_array_write(&grid, &local, 0, Cxz, "Cxz.gkyl");
 
 
+  // Write out the weak division for a visual comparison
   gkyl_dg_bin_op_mem *mem_big;
   struct gkyl_array *sizearr_big = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, local.volume);
   mem_big = gkyl_dg_bin_op_mem_new(sizearr_big->size, basis.num_basis);
@@ -143,39 +155,78 @@ test_aop(bool use_gpu)
 
 
 
-  // Allocate their modal counterparts
+#ifdef GKYL_HAVE_CUDA
+  struct gkyl_array *Cxz_dev = gkyl_array_cu_dev_new(GKYL_DOUBLE, basis.num_basis, local_ext.volume);
+  gkyl_array_copy(Cxz_dev, Cxz);
+  struct gkyl_array *jac_dev = gkyl_array_cu_dev_new(GKYL_DOUBLE, basis.num_basis, local_ext.volume);
+  gkyl_array_copy(jac_dev, jac);
+#else
+  struct gkyl_array *Cxz_dev = Cxz;
+  struct gkyl_array *jac_dev = jac;
+#endif
+
+  // Allocate Exz which will store C/J, the smoothed version of it, and
+  // Fxz = Exz*J which will hold the final result
   struct gkyl_array *Exz = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, local_ext.volume);
   struct gkyl_array *Exz_smooth = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, local_ext.volume);
   struct gkyl_array *Fxz = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, local_ext.volume);
-  struct gkyl_basis basis_on_dev = basis;
+#ifdef GKYL_HAVE_CUDA
+  struct gkyl_array *Exz_dev = gkyl_array_cu_dev_new(GKYL_DOUBLE, basis.num_basis, local_ext.volume);
+  struct gkyl_array *Exz_smooth_dev = gkyl_array_cu_dev_new(GKYL_DOUBLE, basis.num_basis, local_ext.volume);
+  struct gkyl_array *Fxz_dev = gkyl_array_cu_dev_new(GKYL_DOUBLE, basis.num_basis, local_ext.volume);
+#else
+  struct gkyl_array *Exz_dev = Exz;
+  struct gkyl_array *Exz_smooth_dev = Exz_smooth;
+  struct gkyl_array *Fxz_dev = Fxz;
+#endif
+
+
+
 
 
   // Make deflated array operator
-  struct gkyl_deflated_array_ops* operator = gkyl_deflated_array_ops_new(grid, &basis_on_dev, basis, local, local, use_gpu);
+  struct gkyl_deflated_array_ops* operator = gkyl_deflated_array_ops_new(grid, basis_on_dev, basis, local, local, use_gpu);
 
   // Divide
-  gkyl_deflated_array_ops_div(operator, c_oop, Exz, c_lop, Cxz, c_rop, jac);
+  gkyl_deflated_array_ops_div(operator, c_oop, Exz_dev, c_lop, Cxz_dev, c_rop, jac_dev);
 
-  gkyl_grid_sub_array_write(&grid, &local, 0, Exz, "Exz.gkyl");
-  //check_same(local, basis, Exz, rho);
+#ifdef GKYL_HAVE_CUDA
+  gkyl_array_copy(Exz, Exz_dev);
+#endif
+  gkyl_grid_sub_array_write(&grid, &local, 0, Exz_dev, "Exz.gkyl");
 
   // Smooth E
   struct gkyl_fem_parproj *fem_parproj = gkyl_fem_parproj_new(&local, &local_ext, &basis, GKYL_FEM_PARPROJ_NONE, NULL, use_gpu);
-  gkyl_fem_parproj_set_rhs(fem_parproj, Exz, Exz);
-  gkyl_fem_parproj_solve(fem_parproj, Exz_smooth);
+  gkyl_fem_parproj_set_rhs(fem_parproj, Exz_dev, Exz_dev);
+  gkyl_fem_parproj_solve(fem_parproj, Exz_smooth_dev);
   gkyl_fem_parproj_release(fem_parproj);
 
+#ifdef GKYL_HAVE_CUDA
+  gkyl_array_copy(Exz_smooth, Exz_smooth_dev);
+#endif
   gkyl_grid_sub_array_write(&grid, &local, 0, Exz_smooth, "Exz_smooth.gkyl");
 
   // Multiply
-  gkyl_deflated_array_ops_mul(operator, c_oop, Fxz, c_lop, Exz_smooth, c_rop, jac);
+  gkyl_deflated_array_ops_mul(operator, c_oop, Fxz_dev, c_lop, Exz_smooth_dev, c_rop, jac_dev);
   
+#ifdef GKYL_HAVE_CUDA
+  gkyl_array_copy(Fxz, Fxz_dev);
+#endif
   gkyl_grid_sub_array_write(&grid, &local, 0, Fxz, "Fxz.gkyl");
 
 
   check_continuity_2x(grid, local, basis, Fxz);
-  //check_same(local, basis, Fxz, Cxz);
   
+
+
+#ifdef GKYL_HAVE_CUDA 
+  gkyl_cu_free(basis_on_dev);
+  gkyl_array_release(Cxz_dev);
+  gkyl_array_release(jac_dev);
+  gkyl_array_release(Exz_dev);
+  gkyl_array_release(Exz_smooth_dev);
+  gkyl_array_release(Fxz_dev);
+#endif
   gkyl_array_release(rho);
   gkyl_array_release(jac);
   gkyl_array_release(Cxz);
@@ -186,13 +237,10 @@ test_aop(bool use_gpu)
 
 }
 
-void test_aop_ho() {
-  test_aop(false);
-}
 
 
 
 TEST_LIST = {
-  { "test_aop_ho", test_aop_ho},
+  { "test_aop", test_aop},
   { NULL, NULL },
 };
