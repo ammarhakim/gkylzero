@@ -30,12 +30,11 @@ typedef struct gkyl_deflated_array_ops gkyl_deflated_array_ops;
  * @param basis_on_dev Basis functions of the DG field stored on the gpu.
  * @param basis Basis functions of the DG field.
  * @param local range on which the operation should take place
- * @param global_sub_range local range as a sub-range of the global range
  * @param use_gpu boolean indicating whether to use the GPU.
  * @return New updater pointer.
  */
 struct gkyl_deflated_array_ops* gkyl_deflated_array_ops_new(struct gkyl_rect_grid grid, 
-  struct gkyl_basis *basis_on_dev, struct gkyl_basis basis, struct gkyl_range local, struct gkyl_range global_sub_range, bool use_gpu);
+  struct gkyl_basis *basis_on_dev, struct gkyl_basis basis, struct gkyl_range local, bool use_gpu);
 
 /**
  * Multiply the two input fields on surfaces constant in the last dimension

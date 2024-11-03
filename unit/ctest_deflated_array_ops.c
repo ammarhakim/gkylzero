@@ -173,7 +173,7 @@ test_aop()
 
 
   // Make deflated array operator
-  struct gkyl_deflated_array_ops* operator = gkyl_deflated_array_ops_new(grid, basis_on_dev, basis, local, local, use_gpu);
+  struct gkyl_deflated_array_ops* operator = gkyl_deflated_array_ops_new(grid, basis_on_dev, basis, local, use_gpu);
 
   // Divide
   gkyl_deflated_array_ops_div(operator, c_oop, Exz_dev, c_lop, Cxz_dev, c_rop, jac_dev);

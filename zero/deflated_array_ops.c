@@ -8,7 +8,7 @@
 struct gkyl_deflated_array_ops* 
 gkyl_deflated_array_ops_new(struct gkyl_rect_grid grid, 
   struct gkyl_basis *basis_on_dev, struct gkyl_basis basis, 
-  struct gkyl_range local, struct gkyl_range global_sub_range, bool use_gpu)
+  struct gkyl_range local, bool use_gpu)
 {
   struct gkyl_deflated_array_ops *up = gkyl_malloc(sizeof(*up));
   up->use_gpu = use_gpu;
@@ -19,8 +19,6 @@ gkyl_deflated_array_ops_new(struct gkyl_rect_grid grid,
   // Assumes domain decomposition *only* in z.
   // local range andglobal sub_ranges can be different if the operation is being called on global arrays
   up->local = local;
-  up->global_sub_range = global_sub_range;
-  assert(up->local.volume == up->global_sub_range.volume);
 
   up->cdim = grid.ndim;
   up->num_solves_z = up->local.upper[up->cdim-1] - up->local.lower[up->cdim-1] + 2;
@@ -115,13 +113,12 @@ void deflated_array_ops_advance(enum deflated_array_ops_type op_type, struct gky
   int lop_ncomp = lop->ncomp/up->basis.num_basis;
   int rop_ncomp = lop->ncomp/up->basis.num_basis;
   int ctr = 0;
-  int local_range_ctr = up->local.lower[up->cdim-1];
-  for (int zidx = up->global_sub_range.lower[up->cdim-1]; zidx <= up->global_sub_range.upper[up->cdim-1]; zidx++) {
-    // Deflate lop and rop indexing global sub-range to fetch correct place in z
+  for (int zidx = up->local.lower[up->cdim-1]; zidx <= up->local.upper[up->cdim-1]; zidx++) {
+    // Deflate lop and rop
     gkyl_deflate_zsurf_advance(up->deflator_lo, zidx, 
-      &up->global_sub_range, &up->deflated_local, lop, up->d_aop_data[ctr].deflated_lop, lop_ncomp);
+      &up->local, &up->deflated_local, lop, up->d_aop_data[ctr].deflated_lop, lop_ncomp);
     gkyl_deflate_zsurf_advance(up->deflator_lo, zidx, 
-      &up->global_sub_range, &up->deflated_local, rop, up->d_aop_data[ctr].deflated_rop, rop_ncomp);
+      &up->local, &up->deflated_local, rop, up->d_aop_data[ctr].deflated_rop, rop_ncomp);
 
     // Divide or Multiply
     if (op_type == GKYL_DEFLATED_DIV)
@@ -134,13 +131,12 @@ void deflated_array_ops_advance(enum deflated_array_ops_type op_type, struct gky
       &up->deflated_grid, &up->nrange, &up->deflated_nrange, &up->deflated_local, 1, 
       up->nodal_fld, up->d_aop_data[ctr].deflated_out, ctr);
     ctr += 1;
-    local_range_ctr += 1;
-    if (zidx == up->global_sub_range.upper[up->cdim-1]) {
-      // Deflate lop and rop indexing global sub-range to fetch correct place in z
+    if (zidx == up->local.upper[up->cdim-1]) {
+      // Deflate lop and rop
       gkyl_deflate_zsurf_advance(up->deflator_up, zidx, 
-        &up->global_sub_range, &up->deflated_local, lop, up->d_aop_data[ctr].deflated_lop, lop_ncomp);
+        &up->local, &up->deflated_local, lop, up->d_aop_data[ctr].deflated_lop, lop_ncomp);
       gkyl_deflate_zsurf_advance(up->deflator_up, zidx, 
-        &up->global_sub_range, &up->deflated_local, rop, up->d_aop_data[ctr].deflated_rop, rop_ncomp);
+        &up->local, &up->deflated_local, rop, up->d_aop_data[ctr].deflated_rop, rop_ncomp);
 
 
       // Divide or Multiply

@@ -134,6 +134,12 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
       // need sub range of global range corresponding to where we are in z to properly index global charge density
       f->deflated_fem_poisson = gkyl_deflated_fem_poisson_new(app->grid, app->basis_on_dev.confBasis, app->confBasis,
         app->local, f->global_sub_range, f->epsilon, f->info.poisson_bcs, app->use_gpu);
+      // deflated array operator performs local division of rhoJ by J on planes
+      f->deflated_array_ops = gkyl_deflated_array_ops_new(app->grid, app->basis_on_dev.confBasis, app->confBasis,
+        app->local, app->use_gpu);
+      // deflated array operator performs global multiplication of rho by J on planes
+      f->deflated_array_ops_global = gkyl_deflated_array_ops_new(app->grid, app->basis_on_dev.confBasis, app->confBasis,
+        app->local, app->use_gpu);
     }
   }
 
@@ -271,8 +277,7 @@ gk_field_accumulate_rho_c(gkyl_gyrokinetic_app *app, struct gk_field *field,
     if (app->cdim == 1)
       gkyl_array_copy(field->m0, s->m0.marr);
     else if (app->cdim > 1)
-      gkyl_dg_div_op_range(s->m0.mem_geo, app->confBasis, 0, field->m0, 0,
-          s->m0.marr, 0, app->gk_geom->jacobgeo, &app->local);  
+      gkyl_deflated_array_ops_div(field->deflated_array_ops, 0, field->m0, 0, s->m0.marr, 0, app->gk_geom->jacobgeo);
 
     if (field->gkfield_id == GKYL_GK_FIELD_BOLTZMANN) {
       // For Boltzmann electrons, we only need ion density, not charge density.
@@ -352,8 +357,7 @@ gk_field_rhs(gkyl_gyrokinetic_app *app, struct gk_field *field)
         gkyl_fem_parproj_set_rhs(field->fem_parproj, field->rho_c_global_dg, field->rho_c_global_dg);
         gkyl_fem_parproj_solve(field->fem_parproj, field->rho_c_global_smooth);
       }
-      gkyl_dg_mul_op_range(app->confBasis, 0, field->rho_c_global_smooth, 0, 
-        field->rho_c_global_smooth, 0, field->jacobgeo_global, &app->global);
+      gkyl_deflated_array_ops_mul(field->deflated_array_ops_global, 0, field->rho_c_global_smooth, 0, field->rho_c_global_smooth, 0, field->jacobgeo_global);
       gkyl_deflated_fem_poisson_advance(field->deflated_fem_poisson, field->rho_c_global_smooth, field->phi_smooth);
     }
   }
@@ -414,6 +418,8 @@ gk_field_release(const gkyl_gyrokinetic_app* app, struct gk_field *f)
     else if (app->cdim > 1) {
       gkyl_array_release(f->epsilon);
       gkyl_deflated_fem_poisson_release(f->deflated_fem_poisson);
+      gkyl_deflated_array_ops_release(f->deflated_array_ops);
+      gkyl_deflated_array_ops_release(f->deflated_array_ops_global);
     }
   }
 

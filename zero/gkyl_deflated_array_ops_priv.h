@@ -33,8 +33,6 @@ struct gkyl_deflated_array_ops {
   struct gkyl_basis *deflated_basis_on_dev; // deflated basis on GPU
   struct gkyl_range local; // Local range where operation should hapen
   struct gkyl_range deflated_local; // Local range with last dim removed
-  struct gkyl_range global_sub_range; // Local range as a
-                                      // sub range of the global range
   struct gkyl_range deflated_local_ext; // extended deflated local range
   struct gkyl_range nrange; // nodal range corresponding to
                             // local range
