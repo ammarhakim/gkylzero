@@ -85,7 +85,10 @@ gkyl_deflated_array_ops_new(struct gkyl_rect_grid grid,
   up->n2m_deflated = gkyl_nodal_ops_new(&up->deflated_basis, &up->deflated_grid, use_gpu);
 
   // Allocate memory for division
-  up->mem = gkyl_dg_bin_op_mem_new(up->deflated_local.volume, up->deflated_basis.num_basis);
+  if (up->use_gpu)
+    up->mem = gkyl_dg_bin_op_mem_cu_dev_new(up->deflated_local.volume, up->deflated_basis.num_basis);
+  else
+    up->mem = gkyl_dg_bin_op_mem_new(up->deflated_local.volume, up->deflated_basis.num_basis);
 
   // Allocate necessary fields and solvers for each z slice
   int ctr = 0;

@@ -143,18 +143,6 @@ test_aop()
   gkyl_grid_sub_array_write(&grid, &local, 0, Cxz, "Cxz.gkyl");
 
 
-  // Write out the weak division for a visual comparison
-  gkyl_dg_bin_op_mem *mem_big;
-  struct gkyl_array *sizearr_big = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, local.volume);
-  mem_big = gkyl_dg_bin_op_mem_new(sizearr_big->size, basis.num_basis);
-  struct gkyl_array *rhodiv = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, local_ext.volume);
-  gkyl_dg_div_op_range(mem_big, basis, 0, rhodiv, 0, Cxz, 0, jac, &local);
-  gkyl_grid_sub_array_write(&grid, &local, 0, rhodiv, "rhodiv.gkyl");
-  gkyl_dg_bin_op_mem_release(mem_big);
-  gkyl_array_release(rhodiv);
-
-
-
 #ifdef GKYL_HAVE_CUDA
   struct gkyl_array *Cxz_dev = gkyl_array_cu_dev_new(GKYL_DOUBLE, basis.num_basis, local_ext.volume);
   gkyl_array_copy(Cxz_dev, Cxz);
@@ -193,7 +181,7 @@ test_aop()
 #ifdef GKYL_HAVE_CUDA
   gkyl_array_copy(Exz, Exz_dev);
 #endif
-  gkyl_grid_sub_array_write(&grid, &local, 0, Exz_dev, "Exz.gkyl");
+  gkyl_grid_sub_array_write(&grid, &local, 0, Exz, "Exz.gkyl");
 
   // Smooth E
   struct gkyl_fem_parproj *fem_parproj = gkyl_fem_parproj_new(&local, &local_ext, &basis, GKYL_FEM_PARPROJ_NONE, NULL, use_gpu);
