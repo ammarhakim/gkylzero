@@ -1,5 +1,4 @@
-#include "gkyl_array.h"
-
+#include <gkyl_array.h>
 #include <gkyl_proj_on_basis.h>
 #include <gkyl_range.h>
 #include <gkyl_rect_decomp.h>

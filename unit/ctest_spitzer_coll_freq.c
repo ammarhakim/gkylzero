@@ -1,14 +1,14 @@
-#include "gkyl_array.h"
-#include "gkyl_util.h"
+#include <gkyl_array.h>
+#include <gkyl_util.h>
 #include <acutest.h>
-#include "math.h"
-
 #include <gkyl_array_rio.h>
 #include <gkyl_spitzer_coll_freq.h>
 #include <gkyl_proj_on_basis.h>
 #include <gkyl_range.h>
 #include <gkyl_rect_decomp.h>
 #include <gkyl_rect_grid.h>
+
+#include "math.h"
 
 // allocate array (filled with zeros)
 static struct gkyl_array*
