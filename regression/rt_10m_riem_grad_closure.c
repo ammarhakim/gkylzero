@@ -1,4 +1,4 @@
-// Generalized Brio-Wu Riemann problem, with gradient-closure, for the 10-moment equations.
+// Generalized Brio-Wu Riemann problem, with gradient-based closure, for the 10-moment equations.
 // Input parameters match the initial conditions found in entry JE4 of Ammar's Simulation Journal (https://ammar-hakim.org/sj/je/je4/je4-twofluid-shock.html), adapted from Section 7.1 of the article:
 // A. Hakim, J. Loverich and U. Shumlak (2006), "A high resolution wave propagation scheme for ideal Two-Fluid plasma equations",
 // Journal of Computational Physics, Volume 219 (1): 418-442.
@@ -154,13 +154,24 @@ evalElcInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout
     p = pr; // Electron pressure (right).
   }
 
+  double mom_x = 0.0; // Electron momentum density (x-direction).
+  double mom_y = 0.0; // Electron momentum density (y-direction).
+  double mom_z = 0.0; // Electron momentum density (z-direction).
+
+  double pr_xx = p; // Electron pressure tensor (xx-component).
+  double pr_xy = 0.0; // Electron pressure tensor (xy-component).
+  double pr_xz = 0.0; // Electron pressure tensor (xz-component).
+  double pr_yy = p; // Electron pressure tensor (yy-component).
+  double pr_yz = 0.0; // Electron pressure tensor (yz-component).
+  double pr_zz = p; // Electron pressure tensor (zz-component).
+
   // Set electron mass density.
   fout[0] = rho;
   // Set electron momentum density.
-  fout[1] = 0.0; fout[2] = 0.0; fout[3] = 0.0;
+  fout[1] = mom_x; fout[2] = mom_y; fout[3] = mom_z;
   // Set electron pressure tensor.
-  fout[4] = p; fout[5] = 0.0; fout[6] = 0.0;
-  fout[7] = p; fout[8] = 0.0; fout[9] = p;
+  fout[4] = pr_xx; fout[5] = pr_xy; fout[6] = pr_xz;
+  fout[7] = pr_yy; fout[8] = pr_yz; fout[9] = pr_zz;
 }
 
 void
@@ -187,13 +198,24 @@ evalIonInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout
     p = pr; // Ion pressure (right).
   }
 
+  double mom_x = 0.0; // Ion momentum density (x-direction).
+  double mom_y = 0.0; // Ion momentum density (y-direction).
+  double mom_z = 0.0; // Ion momentum density (z-direction).
+
+  double pr_xx = p; // Ion pressure tensor (xx-component).
+  double pr_xy = 0.0; // Ion pressure tensor (xy-component).
+  double pr_xz = 0.0; // Ion pressure tensor (xz-component).
+  double pr_yy = p; // Ion pressure tensor (yy-component).
+  double pr_yz = 0.0; // Ion pressure tensor (yz-component).
+  double pr_zz = p; // Ion pressure tensor (zz-component).
+
   // Set ion mass density.
   fout[0] = rho;
   // Set ion momentum density.
-  fout[1] = 0.0; fout[2] = 0.0; fout[3] = 0.0;
+  fout[1] = mom_x; fout[2] = mom_y; fout[3] = mom_z;
   // Set ion pressure tensor.
-  fout[4] = p; fout[5] = 0.0; fout[6] = 0.0;
-  fout[7] = p; fout[8] = 0.0; fout[9] = p;
+  fout[4] = pr_xx; fout[5] = pr_xy; fout[6] = pr_xz;
+  fout[7] = pr_yy; fout[8] = pr_yz; fout[9] = pr_zz;
 }
 
 void
@@ -202,10 +224,15 @@ evalFieldInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fo
   double x = xn[0];
   struct riem_grad_closure_ctx *app = ctx;
 
-  double Bx = app->Bx;
   double Bzl = app->Bzl;
   double Bzr = app->Bzr;
 
+  double Ex = 0.0; // Total electric field (x-direction).
+  double Ey = 0.0; // Total electric field (y-direction).
+  double Ez = 0.0; // Total electric field (z-direction).
+  
+  double Bx = app->Bx; // Total magnetic field (x-direction).
+  double By = 0.0; // Total magnetic field (y-direction).
   double Bz = 0.0;
 
   if (x < 0.5) {
@@ -216,9 +243,9 @@ evalFieldInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fo
   }
 
   // Set electric field.
-  fout[0] = 0.0, fout[1] = 0.0; fout[2] = 0.0;
+  fout[0] = Ex, fout[1] = Ey; fout[2] = Ez;
   // Set magnetic field.
-  fout[3] = Bx, fout[4] = 0.0; fout[5] = Bz;
+  fout[3] = Bx, fout[4] = By; fout[5] = Bz;
   // Set correction potentials.
   fout[6] = 0.0; fout[7] = 0.0;
 }
@@ -369,8 +396,8 @@ main(int argc, char **argv)
 
     .has_collision = ctx.has_collision,
     .nu_base = {
-      {0, ctx.nu_base_ei},
-      {ctx.nu_base_ei, 0}
+      { 0.0, ctx.nu_base_ei },
+      { ctx.nu_base_ei, 0.0 }
     },
 
     .field = field,
