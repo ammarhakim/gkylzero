@@ -37,7 +37,6 @@ gkyl_dg_calc_gk_rad_vars_new(const struct gkyl_rect_grid *phase_grid,
   up->gk_geom = gkyl_gk_geometry_acquire(gk_geom);
   up->vel_map = gkyl_velocity_map_acquire(vel_map);
 
-  up->cellav_norm_conf = 1.0/pow(sqrt(2.0), cdim);
   // Fitting parameters for a given collision type
   up->a = a;
   up->alpha = alpha;
@@ -107,13 +106,13 @@ void gkyl_dg_calc_gk_rad_vars_nI_nu_advance(const struct gkyl_dg_calc_gk_rad_var
   const struct gkyl_array *nI, 
   struct gkyl_array* nvnu_surf, struct gkyl_array* nvnu, 
   struct gkyl_array* nvsqnu_surf, struct gkyl_array* nvsqnu,
-  double vtsq_min, struct gkyl_array* vtsq)
+  double vtsq_min_normalized, struct gkyl_array* vtsq)
 {
 #ifdef GKYL_HAVE_CUDA
   if (gkyl_array_is_cu_dev(vnu_surf)) {
     return gkyl_dg_calc_gk_rad_vars_nI_nu_advance_cu(up, conf_range, phase_range, 
       vnu_surf, vnu, vsqnu_surf, vsqnu, nI, 
-      nvnu_surf, nvnu, nvsqnu_surf, nvsqnu, vtsq_min, vtsq);
+      nvnu_surf, nvnu, nvsqnu_surf, nvsqnu, vtsq_min_normalized, vtsq);
   }
 #endif
   int pdim = up->pdim;
@@ -129,7 +128,7 @@ void gkyl_dg_calc_gk_rad_vars_nI_nu_advance(const struct gkyl_dg_calc_gk_rad_var
     long loc_conf = gkyl_range_idx(conf_range, idx);
     long loc_phase = gkyl_range_idx(phase_range, idx);
     const double* vtsq_d = gkyl_array_cfetch(vtsq, loc_conf);
-    if ( vtsq_d[0] * up->cellav_norm_conf > vtsq_min ) {
+    if ( vtsq_d[0] > vtsq_min_normalized ) {
       gkyl_rect_grid_cell_center(&up->phase_grid, idx, xc);
 
       const double* vnu_surf_d = gkyl_array_cfetch(vnu_surf, loc_phase);

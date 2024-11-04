@@ -72,7 +72,7 @@ void gkyl_dg_calc_gk_rad_vars_nu_advance(const struct gkyl_dg_calc_gk_rad_vars *
  * @param nvnu Output volume expansion of vpar component of sum_s n_{i_s} nu_s(v)
  * @param nvsqnu_surf Output surface expansion of mu component of sum_s n_{i_s} nu_s(v)
  * @param nvsqnu Output volume expansion of mu drag component of sum_s n_{i_s} nu_s(v)
- * @param vtsq_min Minimum vtsq for each fit
+ * @param vtsq_min_normalized Minimum vtsq for each fit divided by configuration space normalization
  * @param vtsq vtsq
  */
 void gkyl_dg_calc_gk_rad_vars_nI_nu_advance(const struct gkyl_dg_calc_gk_rad_vars *up,
@@ -82,7 +82,7 @@ void gkyl_dg_calc_gk_rad_vars_nI_nu_advance(const struct gkyl_dg_calc_gk_rad_var
   const struct gkyl_array* nI, 
   struct gkyl_array* nvnu_surf, struct gkyl_array* nvnu, 
   struct gkyl_array* nvsqnu_surf, struct gkyl_array* nvsqnu,
-  double vtsq_min, struct gkyl_array* vtsq);
+  double vtsq_min_normalized, struct gkyl_array* vtsq);
 
 /**
  * Delete pointer to updater to compute gyrokinetic variables.

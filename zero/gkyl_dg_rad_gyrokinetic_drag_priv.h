@@ -60,21 +60,17 @@ kernel_rad_gyrokinetic_vol_1x2v_ser_p1(const struct gkyl_dg_eqn *eqn, const doub
   struct dg_rad_gyrokinetic_drag *grad_drag = container_of(eqn, struct dg_rad_gyrokinetic_drag, eqn);
 
   long cidx = gkyl_range_idx(&grad_drag->conf_range, idx);
-  // if ( qIn[0] < 0.0 ) {
-  //  return 0.0;
-  //} else {
-    int vel_idx[2];
-    for (int d=grad_drag->cdim; d<grad_drag->pdim; d++) vel_idx[d-grad_drag->cdim] = idx[d];
-
-    long vidx = gkyl_range_idx(&grad_drag->vel_map->local_vel, vel_idx);
-    long pidx = gkyl_range_idx(&grad_drag->phase_range, idx);
-
-    return rad_gyrokinetic_vol_1x2v_ser_p1(xc, dx,
-      (const double*) gkyl_array_cfetch(grad_drag->vel_map->vmap_prime, vidx),
-      (const double*) gkyl_array_cfetch(grad_drag->auxfields.nvnu, pidx), 
-      (const double*) gkyl_array_cfetch(grad_drag->auxfields.nvsqnu, pidx), 
+  int vel_idx[2];
+  for (int d=grad_drag->cdim; d<grad_drag->pdim; d++) vel_idx[d-grad_drag->cdim] = idx[d];
+  
+  long vidx = gkyl_range_idx(&grad_drag->vel_map->local_vel, vel_idx);
+  long pidx = gkyl_range_idx(&grad_drag->phase_range, idx);
+  
+  return rad_gyrokinetic_vol_1x2v_ser_p1(xc, dx,
+     (const double*) gkyl_array_cfetch(grad_drag->vel_map->vmap_prime, vidx),
+     (const double*) gkyl_array_cfetch(grad_drag->auxfields.nvnu, pidx), 
+     (const double*) gkyl_array_cfetch(grad_drag->auxfields.nvsqnu, pidx), 
       qIn, qRhsOut);
-    //}
 }
 
 GKYL_CU_DH
@@ -85,21 +81,17 @@ kernel_rad_gyrokinetic_vol_2x2v_ser_p1(const struct gkyl_dg_eqn *eqn, const doub
   struct dg_rad_gyrokinetic_drag *grad_drag = container_of(eqn, struct dg_rad_gyrokinetic_drag, eqn);
 
   long cidx = gkyl_range_idx(&grad_drag->conf_range, idx);
-  if ( qIn[0] < 0.0 ) {
-    return 0.0;
-  } else {
-    int vel_idx[2];
-    for (int d=grad_drag->cdim; d<grad_drag->pdim; d++) vel_idx[d-grad_drag->cdim] = idx[d];
+  int vel_idx[2];
+  for (int d=grad_drag->cdim; d<grad_drag->pdim; d++) vel_idx[d-grad_drag->cdim] = idx[d];
 
-    long vidx = gkyl_range_idx(&grad_drag->vel_map->local_vel, vel_idx);
-    long pidx = gkyl_range_idx(&grad_drag->phase_range, idx);
+  long vidx = gkyl_range_idx(&grad_drag->vel_map->local_vel, vel_idx);
+  long pidx = gkyl_range_idx(&grad_drag->phase_range, idx);
 
-    return rad_gyrokinetic_vol_2x2v_ser_p1(xc, dx,
-      (const double*) gkyl_array_cfetch(grad_drag->vel_map->vmap_prime, vidx),
-      (const double*) gkyl_array_cfetch(grad_drag->auxfields.nvnu, pidx), 
-      (const double*) gkyl_array_cfetch(grad_drag->auxfields.nvsqnu, pidx), 
-      qIn, qRhsOut);
-  }
+  return rad_gyrokinetic_vol_2x2v_ser_p1(xc, dx,
+    (const double*) gkyl_array_cfetch(grad_drag->vel_map->vmap_prime, vidx),
+    (const double*) gkyl_array_cfetch(grad_drag->auxfields.nvnu, pidx), 
+    (const double*) gkyl_array_cfetch(grad_drag->auxfields.nvsqnu, pidx), 
+    qIn, qRhsOut);
 }
 
 GKYL_CU_DH
@@ -110,21 +102,17 @@ kernel_rad_gyrokinetic_vol_3x2v_ser_p1(const struct gkyl_dg_eqn *eqn, const doub
   struct dg_rad_gyrokinetic_drag *grad_drag = container_of(eqn, struct dg_rad_gyrokinetic_drag, eqn);
 
   long cidx = gkyl_range_idx(&grad_drag->conf_range, idx);
-  if ( qIn[0] < 0.0 ) {
-    return 0.0;
-  } else {
-    int vel_idx[2];
-    for (int d=grad_drag->cdim; d<grad_drag->pdim; d++) vel_idx[d-grad_drag->cdim] = idx[d];
+  int vel_idx[2];
+  for (int d=grad_drag->cdim; d<grad_drag->pdim; d++) vel_idx[d-grad_drag->cdim] = idx[d];
 
-    long vidx = gkyl_range_idx(&grad_drag->vel_map->local_vel, vel_idx);
-    long pidx = gkyl_range_idx(&grad_drag->phase_range, idx);
+  long vidx = gkyl_range_idx(&grad_drag->vel_map->local_vel, vel_idx);
+  long pidx = gkyl_range_idx(&grad_drag->phase_range, idx);
 
-    return rad_gyrokinetic_vol_3x2v_ser_p1(xc, dx,
-      (const double*) gkyl_array_cfetch(grad_drag->vel_map->vmap_prime, vidx),
-      (const double*) gkyl_array_cfetch(grad_drag->auxfields.nvnu, pidx), 
-      (const double*) gkyl_array_cfetch(grad_drag->auxfields.nvsqnu, pidx), 
-      qIn, qRhsOut);
-  }
+  return rad_gyrokinetic_vol_3x2v_ser_p1(xc, dx,
+    (const double*) gkyl_array_cfetch(grad_drag->vel_map->vmap_prime, vidx),
+    (const double*) gkyl_array_cfetch(grad_drag->auxfields.nvnu, pidx), 
+    (const double*) gkyl_array_cfetch(grad_drag->auxfields.nvsqnu, pidx), 
+    qIn, qRhsOut);
 }
 
 // Volume kernel list

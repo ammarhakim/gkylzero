@@ -347,8 +347,8 @@ main(int argc, char **argv)
       .z = 1,
       .charge_state = 0,
       .num_of_densities = 1, // Must be 1 for now.
-      .te_min = GKYL_CONST_TE,
-      .T_min_eV = 12.0,
+      .te_min_model = GKYL_CONST_TE,
+      .Te_min_J = 12.0 * GKYL_ELEMENTARY_CHARGE,
     },
     
     .num_diag_moments = 7,

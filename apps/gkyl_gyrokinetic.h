@@ -139,8 +139,8 @@ struct gkyl_gyrokinetic_radiation {
   int charge_state[GKYL_MAX_SPECIES];
   int num_of_densities[GKYL_MAX_SPECIES]; // Max number of densities to use per charge state
 
-  enum gkyl_te_min te_min; // How the radiation is turned off (constant or varying Te)
-  double T_min_eV;
+  enum gkyl_te_min_model te_min_model; // How the radiation is turned off (constant or varying Te)
+  double Te_min_J;
 };
 
 struct gkyl_gyrokinetic_react_type {

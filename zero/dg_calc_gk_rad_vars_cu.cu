@@ -80,7 +80,7 @@ gkyl_dg_calc_gk_rad_vars_nI_nu_advance_cu_kernel(struct gkyl_dg_calc_gk_rad_vars
   const struct gkyl_array *nI, 
   struct gkyl_array* nvnu_surf, struct gkyl_array* nvnu, 
   struct gkyl_array* nvsqnu_surf, struct gkyl_array* nvsqnu,
-  double vtsq_min, struct gkyl_array* vtsq)
+  double vtsq_min_normalized, struct gkyl_array* vtsq)
 {
   double xc[GKYL_MAX_DIM] = {0.0};
   int idx[GKYL_MAX_DIM];
@@ -102,7 +102,7 @@ gkyl_dg_calc_gk_rad_vars_nI_nu_advance_cu_kernel(struct gkyl_dg_calc_gk_rad_vars
     long loc_phase = gkyl_range_idx(&phase_range, idx);
 
     const double* vtsq_d = (const double*) gkyl_array_cfetch(vtsq, loc_conf);
-    if ( vtsq_d[0] * up->cellav_norm_conf > vtsq_min ) {      
+    if ( vtsq_d[0] > vtsq_min_normalized ) {      
       const double* vnu_surf_d = (const double*) gkyl_array_cfetch(vnu_surf, loc_phase);
       const double* vnu_d = (const double*) gkyl_array_cfetch(vnu, loc_phase);
       const double* vsqnu_surf_d = (const double*) gkyl_array_cfetch(vsqnu_surf, loc_phase);  
@@ -130,7 +130,7 @@ gkyl_dg_calc_gk_rad_vars_nI_nu_advance_cu(const struct gkyl_dg_calc_gk_rad_vars 
   const struct gkyl_array *nI, 
   struct gkyl_array* nvnu_surf, struct gkyl_array* nvnu, 
   struct gkyl_array* nvsqnu_surf, struct gkyl_array* nvsqnu,
-  double vtsq_min, struct gkyl_array* vtsq)
+  double vtsq_min_normalized, struct gkyl_array* vtsq)
 {
   int nblocks = phase_range->nblocks;
   int nthreads = phase_range->nthreads;
@@ -138,7 +138,7 @@ gkyl_dg_calc_gk_rad_vars_nI_nu_advance_cu(const struct gkyl_dg_calc_gk_rad_vars 
     *conf_range, *phase_range, 
     vnu_surf->on_dev, vnu->on_dev, vsqnu_surf->on_dev, vsqnu->on_dev, 
     nI->on_dev, nvnu_surf->on_dev, nvnu->on_dev, nvsqnu_surf->on_dev, nvsqnu->on_dev,
-    vtsq_min, vtsq->on_dev);
+    vtsq_min_normalized, vtsq->on_dev);
 }
 
 // CUDA kernel to set device pointers to gyrokinetic radiation vars kernel functions
