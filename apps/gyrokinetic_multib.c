@@ -569,14 +569,14 @@ and the maximum number of cuts in a block is %d\n\n", tot_max[0], num_ranks, tot
         struct gkyl_comm_conn *ccs_phase = &mbcc_ps->comm_conn[ns];
         struct gkyl_range phase_r;
         gkyl_range_ten_prod(&phase_r, &ccs_conf->range, &gks->local_vel);
-        gkyl_sub_range_init(&ccs_phase->range, &gks->local_ext, ccs_phase->range.lower, ccs_phase->range.upper);
+        gkyl_sub_range_init(&ccs_phase->range, &gks->local_ext, phase_r.lower, phase_r.upper);
       }
       for (int nr=0; nr<mbcc_cr->num_comm_conn; ++nr) {
         struct gkyl_comm_conn *ccs_conf = &mbcc_cr->comm_conn[nr];
         struct gkyl_comm_conn *ccs_phase = &mbcc_pr->comm_conn[nr];
         struct gkyl_range phase_r;
         gkyl_range_ten_prod(&phase_r, &ccs_conf->range, &gks->local_vel);
-        gkyl_sub_range_init(&ccs_phase->range, &gks->local_ext, ccs_phase->range.lower, ccs_phase->range.upper);
+        gkyl_sub_range_init(&ccs_phase->range, &gks->local_ext, phase_r.lower, phase_r.upper);
       }
     }
   }
@@ -602,14 +602,14 @@ and the maximum number of cuts in a block is %d\n\n", tot_max[0], num_ranks, tot
         struct gkyl_comm_conn *ccs_phase = &mbcc_ps->comm_conn[ns];
         struct gkyl_range phase_r;
         gkyl_range_ten_prod(&phase_r, &ccs_conf->range, &gkns->local_vel);
-        gkyl_sub_range_init(&ccs_phase->range, &gkns->local_ext, ccs_phase->range.lower, ccs_phase->range.upper);
+        gkyl_sub_range_init(&ccs_phase->range, &gkns->local_ext, phase_r.lower, phase_r.upper);
       }
       for (int nr=0; nr<mbcc_cr->num_comm_conn; ++nr) {
         struct gkyl_comm_conn *ccs_conf = &mbcc_cr->comm_conn[nr];
         struct gkyl_comm_conn *ccs_phase = &mbcc_pr->comm_conn[nr];
         struct gkyl_range phase_r;
         gkyl_range_ten_prod(&phase_r, &ccs_conf->range, &gkns->local_vel);
-        gkyl_sub_range_init(&ccs_phase->range, &gkns->local_ext, ccs_phase->range.lower, ccs_phase->range.upper);
+        gkyl_sub_range_init(&ccs_phase->range, &gkns->local_ext, phase_r.lower, phase_r.upper);
       }
     }
   }
