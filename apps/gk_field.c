@@ -139,7 +139,7 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
         app->local, app->use_gpu);
       // deflated array operator performs global multiplication of rho by J on planes
       f->deflated_array_ops_global = gkyl_deflated_array_ops_new(app->grid, app->basis_on_dev.confBasis, app->confBasis,
-        app->local, app->use_gpu);
+        app->global, app->use_gpu);
     }
   }
 
