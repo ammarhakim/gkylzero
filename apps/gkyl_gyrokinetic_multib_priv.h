@@ -75,10 +75,10 @@ struct gk_field_multib {
   struct gkyl_range **block_subranges; // ranges for copying smooth charge density
                                        // back to single block apps
 
-  // arrays for connected-along-z charge density and smoothed (in z) charge density
-  struct gkyl_array **rho_c_local;
-  struct gkyl_array **rho_c_multibz_dg;
-  struct gkyl_array **rho_c_multibz_smooth; 
+  // arrays for connected-along-z phi and smoothed (in z) phi
+  struct gkyl_array **phi_local;
+  struct gkyl_array **phi_multibz_dg;
+  struct gkyl_array **phi_multibz_smooth;
 
   struct gkyl_fem_parproj **fem_parproj; // FEM smoothers for projecting DG functions onto continuous FEM basis
                                         // weight*phi_{fem} = phi_{dg} 
