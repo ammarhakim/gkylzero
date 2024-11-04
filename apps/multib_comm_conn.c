@@ -150,25 +150,25 @@ multib_comm_conn_new_sr(enum multib_send_recv sr,
 }
 
 void
-gkyl_multib_comm_conn_create_multib_ranges_in_dir(struct gkyl_range *cross_range_ext, struct gkyl_range *cross_range,
+gkyl_multib_comm_conn_create_multib_ranges_in_dir(struct gkyl_range *multib_range_ext, struct gkyl_range *multib_range,
     const int *nghost, int nconnected, int* block_list, int dir, struct gkyl_rect_decomp **decomp)
 {
-  // Construct the cross range which spans all the parent ranges
+  // Construct the multib range which spans all the parent ranges
   // Block list is always in order in dir
   // Block parent ranges always share range extents in the other directions
   int ndim = decomp[0]->ndim;
-  int cross_lower[GKYL_MAX_DIM];
-  int cross_upper[GKYL_MAX_DIM];
+  int multib_lower[GKYL_MAX_DIM];
+  int multib_upper[GKYL_MAX_DIM];
   for (int i =0; i<ndim; i++) {
-    cross_lower[i] = decomp[block_list[0]]->parent_range.lower[i];
-    cross_upper[i] = decomp[block_list[0]]->parent_range.upper[i];
+    multib_lower[i] = decomp[block_list[0]]->parent_range.lower[i];
+    multib_upper[i] = decomp[block_list[0]]->parent_range.upper[i];
   }
   for (int i=1; i<nconnected; i++) {
-    cross_upper[dir] += gkyl_range_shape(&decomp[block_list[i]]->parent_range, dir);
+    multib_upper[dir] += gkyl_range_shape(&decomp[block_list[i]]->parent_range, dir);
   }
-  struct gkyl_range cross_rng;
-  gkyl_range_init(&cross_rng, ndim, cross_lower, cross_upper);
-  gkyl_create_ranges(&cross_rng, nghost, cross_range_ext, cross_range);
+  struct gkyl_range multib_rng;
+  gkyl_range_init(&multib_rng, ndim, multib_lower, multib_upper);
+  gkyl_create_ranges(&multib_rng, nghost, multib_range_ext, multib_range);
 }
 
 // public method to compute send connections from block list

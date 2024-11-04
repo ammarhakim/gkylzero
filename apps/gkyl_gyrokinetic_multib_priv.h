@@ -68,11 +68,11 @@ struct gk_field_multib {
   enum gkyl_gkfield_id gkfield_id; // type of field
   int num_local_blocks; // total number of blocks on current rank
 
-  struct gkyl_multib_comm_conn **mbcc_send; // comm object for allgather
-  struct gkyl_multib_comm_conn **mbcc_recv; // comm object for allgather
+  struct gkyl_multib_comm_conn **mbcc_allgatherz_send; // comm object for allgather sends
+  struct gkyl_multib_comm_conn **mbcc_allgatherz_recv; // comm object for allgather receives
   struct gkyl_range **multibz_ranges; // ranges for allgather along z
   struct gkyl_range **multibz_ranges_ext; // extended ranges for smoothing along z
-  struct gkyl_range **block_subranges; // ranges for copying smooth charge density
+  struct gkyl_range **block_subrangesz; // ranges for copying smooth phi density
                                        // back to single block apps
 
   // arrays for connected-along-z phi and smoothed (in z) phi
@@ -119,14 +119,24 @@ struct gkyl_update_status gyrokinetic_multib_update_ssp_rk3(struct gkyl_gyrokine
 
 /** Field API */
 
-// Initialize multib field object
+/** Initialize multib field object
+ * @param mbinp App inputs.
+ * @param mbapp Gyrokinetic multib app.
+ * return new multib field object
+ */
 struct gk_field_multib* gk_field_multib_new(const struct gkyl_gyrokinetic_multib *mbinp,
   struct gkyl_gyrokinetic_multib_app *mbapp);
 
 
-// Compute the electrostatic potential
+/** Compute the electrostatic potential
+ * @param mbapp Gyrokinetic multib app.
+ * @param mbf Multib field object.
+ * @param fin Distribution function (for all local blocks).
+*/
 void gk_field_multib_rhs(gkyl_gyrokinetic_multib_app *mbapp, 
   struct gk_field_multib *mbf, const struct gkyl_array *fin[]);
 
-// Release resources for multib field
+/** Releas the resources for the multib field object
+ * @param mbf Multib field object.
+*/
 void gk_field_multib_release(struct gk_field_multib *mbf);
