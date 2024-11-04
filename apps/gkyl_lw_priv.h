@@ -37,39 +37,53 @@ struct lua_func_ctx {
  *
  * @param L Lua state to use.
  */
-void gkyl_register_species_bc_types(lua_State *L);
+void
+gkyl_register_species_bc_types(lua_State *L);
 
 /**
  * Add boundary condition flags for field into Lua interpreter.
  *
  * @param L Lua state to use.
  */
-void gkyl_register_field_bc_types(lua_State *L);
+void
+gkyl_register_field_bc_types(lua_State *L);
+
+/**
+* Add momentum reconstruction type flags for fluid solvers into Lua interpreter.
+*
+* @param L Lua state to use.
+ */
+void
+gkyl_register_moment_scheme_types(lua_State *L);
 
 /**
  * Add projection type flags for Vlasov species initialization into Lua interpreter.
  *
  * @param L Lua state to use.
  */
-void gkyl_register_vlasov_projection_types(lua_State *L);
+void
+gkyl_register_vlasov_projection_types(lua_State *L);
 
 /**
  * Add model type flags for Vlasov species initialization into Lua interpreter.
  *
  * @param L Lua state to use.
  */
-void gkyl_register_vlasov_model_types(lua_State *L);
+void
+gkyl_register_vlasov_model_types(lua_State *L);
 
 /**
  * Add collision type flags for Vlasov species initialization into Lua interpreter.
  *
  * @param L Lua state to use.
  */
-void gkyl_register_vlasov_collision_types(lua_State *L);
+void
+gkyl_register_vlasov_collision_types(lua_State *L);
 
 /**
  * Wrapper around Lua function for use in eval callbacks.
  */
-void gkyl_lw_eval_cb(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx);
+void
+gkyl_lw_eval_cb(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx);
 
 #endif

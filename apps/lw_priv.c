@@ -1,25 +1,26 @@
 #ifdef GKYL_HAVE_LUA
 
 #include <gkyl_app.h>
+#include <gkyl_moment.h>
 #include <gkyl_vlasov.h>
 #include <gkyl_lw_priv.h>
 #include <gkyl_util.h>
 
 // Species boundary conditions -> enum map.
 static const struct gkyl_str_int_pair species_bcs[] = {
-  {"bcCopy", GKYL_SPECIES_COPY},
-  {"bcWall", GKYL_SPECIES_REFLECT},
-  {"bcReflect", GKYL_SPECIES_REFLECT},
-  {"bcAbsorb", GKYL_SPECIES_ABSORB},
-  {"bcNoSlip", GKYL_SPECIES_NO_SLIP},
-  {"bcWedge", GKYL_SPECIES_WEDGE},
-  {"bcFunc", GKYL_SPECIES_FUNC},
-  {"bcFixedFunc", GKYL_SPECIES_FIXED_FUNC},
-  {"bcZeroFlux", GKYL_SPECIES_ZERO_FLUX},
-  {"bcGkSheath", GKYL_SPECIES_GK_SHEATH},
-  {"bcRecycle", GKYL_SPECIES_RECYCLE},
-  {"bcGkIWL", GKYL_SPECIES_GK_IWL},
-  {0, 0},
+  { "bcCopy", GKYL_SPECIES_COPY },
+  { "bcWall", GKYL_SPECIES_REFLECT },
+  { "bcReflect", GKYL_SPECIES_REFLECT },
+  { "bcAbsorb", GKYL_SPECIES_ABSORB },
+  { "bcNoSlip", GKYL_SPECIES_NO_SLIP },
+  { "bcWedge", GKYL_SPECIES_WEDGE },
+  { "bcFunc", GKYL_SPECIES_FUNC },
+  { "bcFixedFunc", GKYL_SPECIES_FIXED_FUNC },
+  { "bcZeroFlux", GKYL_SPECIES_ZERO_FLUX },
+  { "bcGkSheath", GKYL_SPECIES_GK_SHEATH },
+  { "bcRecycle", GKYL_SPECIES_RECYCLE },
+  { "bcGkIWL", GKYL_SPECIES_GK_IWL },
+  { 0, 0 },
 };
 
 // Field boundary conditions -> enum map.
@@ -32,6 +33,14 @@ static const struct gkyl_str_int_pair field_bcs[] = {
   { "bcWedge", GKYL_FIELD_WEDGE },
   { "bcFunc", GKYL_FIELD_FUNC },
   { 0, 0 },
+};
+
+// Moment scheme type -> enum map.
+static const struct gkyl_str_int_pair moment_scheme_type[] = {
+  { "WaveProp", GKYL_MOMENT_WAVE_PROP },
+  { "MP", GKYL_MOMENT_MP },
+  { "KEP", GKYL_MOMENT_KEP },
+  { 0, 0 }
 };
 
 // Vlasov projection type -> enum map.
@@ -88,6 +97,12 @@ void
 gkyl_register_field_bc_types(lua_State *L)
 {
   register_types(L, field_bcs, "FieldBc");
+}
+
+void
+gkyl_register_moment_scheme_types(lua_State *L)
+{
+  register_types(L, moment_scheme_type, "SchemeType");
 }
 
 void

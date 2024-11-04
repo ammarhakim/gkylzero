@@ -35,7 +35,7 @@ enum moment_magic_ids {
   MOMENT_EQN_DEFAULT
 };
 
-// wave limiter -> enum map
+// Wave limiter -> enum map.
 static const struct gkyl_str_int_pair wave_limiter[] = {
   { "no-limiter", GKYL_NO_LIMITER },
   { "min-mod", GKYL_MIN_MOD },
@@ -46,14 +46,14 @@ static const struct gkyl_str_int_pair wave_limiter[] = {
   { 0, 0 }
 };
 
-// edge-splitting -> enum map
+// Edge-splitting -> enum map.
 static const struct gkyl_str_int_pair wave_split_type[] = {
   { "qwave", GKYL_WAVE_QWAVE },
   { "fwave", GKYL_WAVE_FWAVE },
   { 0, 0 }
 };
 
-// Euler RP -> enum map
+// Euler Riemann problem -> enum map.
 static const struct gkyl_str_int_pair euler_rp_type[] = {
   { "roe", WV_EULER_RP_ROE },
   { "hllc", WV_EULER_RP_HLLC },
@@ -62,7 +62,7 @@ static const struct gkyl_str_int_pair euler_rp_type[] = {
   { 0, 0 }
 };
 
-// Ideal MHD RP -> enum map
+// Ideal MHD Riemann problem -> enum map.
 static const struct gkyl_str_int_pair mhd_rp_type[] = {
   { "roe", WV_MHD_RP_ROE },
   { "hlld", WV_MHD_RP_HLLD },
@@ -70,7 +70,7 @@ static const struct gkyl_str_int_pair mhd_rp_type[] = {
   { 0, 0 }
 };
 
-// Ideal divB correction -> enum map
+// Ideal divB correction -> enum map.
 static const struct gkyl_str_int_pair mhd_divb_type[] = {
   { "none", GKYL_MHD_DIVB_NONE },
   { "glm",  GKYL_MHD_DIVB_GLM },
@@ -825,6 +825,8 @@ mom_app_new(lua_State *L)
   }
 
   mom.cfl_frac = glua_tbl_get_number(L, "cflFrac", 0.95);
+
+  mom.scheme_type = glua_tbl_get_integer(L, "schemeType", 0);
 
   mom.num_periodic_dir = 0;
   if (glua_tbl_has_key(L, "periodicDirs")) {

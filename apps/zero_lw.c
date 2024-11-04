@@ -113,6 +113,9 @@ gkyl_zero_lw_openlibs(lua_State *L)
   gkyl_register_species_bc_types(L);
   gkyl_register_field_bc_types(L);
 
+  // Register types for moment reconstruction schemes.
+  gkyl_register_moment_scheme_types(L);
+
   // Register types for Vlasov projection, model ID and collision ID initialization.
   gkyl_register_vlasov_projection_types(L);
   gkyl_register_vlasov_model_types(L);

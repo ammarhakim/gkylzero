@@ -1,13 +1,9 @@
--- Sod-type shock tube test, using first-order (Lax) fluxes, for the 10-moment equations.
--- Input parameters match the initial conditions in Section 2.6.2, with the contact discontinuity placed at x = 0.75 rather than x = 0.5, from the thesis:
--- A. Hakim (2006), "High Resolution Wave Propagation Schemes for Two-Fluid Plasma Simulations",
--- PhD Thesis, University of Washington.
--- https:--www.aa.washington.edu/sites/aa/files/research/cpdlab/docs/PhDthesis_hakim.pdf
-
 local Moments = G0.Moments
-local TenMoment = G0.Moments.Eq.TenMoment
+local Euler = G0.Moments.Eq.Euler
 
 -- Physical constants (using normalized code units).
+gas_gamma = 1.4 -- Adiabatic index.
+
 rhol = 3.0 -- Left fluid mass density.
 ul = 0.0 -- Left fluid velocity.
 pl = 3.0 -- Left fluid pressure.
@@ -19,7 +15,6 @@ pr = 1.0 -- Right fluid pressure.
 -- Simulation parameters.
 Nx = 512 -- Cell count (x-direction).
 Lx = 1.0 -- Domain size (x-direction).
-k0 = 0.0 -- Closure parameter.
 cfl_frac = 0.9 -- CFL coefficient.
 
 t_end = 0.1 -- Final simulation time.
@@ -28,7 +23,6 @@ dt_failure_tol = 1.0e-4 -- Minimum allowable fraction of initial time-step.
 num_failures_max = 20 -- Maximum allowable number of consecutive small time-steps.
 
 momentApp = Moments.App.new {
-
   tEnd = t_end,
   nFrame = num_frames,
   dtFailureTol = dt_failure_tol,
@@ -37,15 +31,19 @@ momentApp = Moments.App.new {
   upper = { 0.25 + Lx },
   cells = { Nx },
   cflFrac = cfl_frac,
-  
+    
   -- Boundary conditions for configuration space.
   periodicDirs = { }, -- Periodic directions (none).
-
+  
   -- Fluid.
   fluid = Moments.Species.new {
-    charge = 0.0, mass = 1.0,
-    equation = TenMoment.new { k0 = k0 },
+    equation = Euler.new { gasGamma = gas_gamma },
 
+    hasVolumeSources = true,
+    volumeGasGamma = gas_gamma,
+    volumeU0 = U0,
+    volumeR0 = R0,
+    
     -- Initial conditions function.
     init = function (t, xn)
       local x = xn[1]
@@ -63,23 +61,16 @@ momentApp = Moments.App.new {
         u = ur -- Fluid velocity (right).
         p = pr -- Fluid pressure (right).
       end
-
+  
       local mom_x = rho * u -- Fluid momentum density (x-direction).
       local mom_y = 0.0 -- Fluid momentum density (y-direction).
       local mom_z = 0.0 -- Fluid momentum density (z-direction).
-
-      local pr_xx = p + 0.5 * (rho * u * u) -- Fluid pressure tensor (xx-component).
-      local pr_xy = 0.0 -- Fluid pressure tensor (xy-component).
-      local pr_xz = 0.0 -- Fluid pressure tensor (xz-component).
-      local pr_yy = p -- Fluid pressure tensor (yy-component).
-      local pr_yz = 0.0 -- Fluid pressure tensor (yz-component).
-      local pr_zz = p -- Fluid pressure tensor (zz-component).
-	 
-      return rho, mom_x, mom_y, mom_z, pr_xx, pr_xy, pr_xz, pr_yy, pr_yz, pr_zz
+      local Etot = (p / (gas_gamma - 1.0)) + (0.5 * rho * u * u) -- Fluid total energy density.
+      
+      return rho, mom_x, mom_y, mom_z, Etot
     end,
-
+  
     evolve = true, -- Evolve species?
-    forceLowOrderFlux = true, -- Use Lax fluxes.
     bcx = { G0.SpeciesBc.bcCopy, G0.SpeciesBc.bcCopy } -- Copy boundary conditions (x-direction).
   }
 }
