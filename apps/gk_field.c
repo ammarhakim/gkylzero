@@ -24,18 +24,11 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
   f->rho_c_global_dg = mkarr(app->use_gpu, app->confBasis.num_basis, app->global_ext.volume);
   f->rho_c_global_smooth = mkarr(app->use_gpu, app->confBasis.num_basis, app->global_ext.volume);
 
-  // allocate array for M0 with jacobian divided out
-  f->m0 = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
-
   // allocate arrays for electrostatic potential
   // global phi (only used in 1x simulations)
   f->phi_fem = mkarr(app->use_gpu, app->confBasis.num_basis, app->global_ext.volume);
   // local phi (assuming domain decomposition is *only* in z right now)
   f->phi_smooth = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
-
-  // Gather jacobgeo for smoothing in z.
-  f->jacobgeo_global = mkarr(app->use_gpu, app->confBasis.num_basis, app->global_ext.volume);
-  gkyl_comm_array_allgather(app->comm, &app->local, &app->global, app->gk_geom->jacobgeo, f->jacobgeo_global);
 
   if (f->gkfield_id == GKYL_GK_FIELD_EM) {
     f->apar_fem = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
@@ -98,7 +91,11 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
       // Need to set weight to kperpsq*polarizationWeight for use in potential smoothing.
       f->weight = mkarr(false, app->confBasis.num_basis, app->global_ext.volume); // fem_parproj expects weight on host
  
-      gkyl_array_copy(f->weight, f->jacobgeo_global);
+      // Gather jacobgeo for smoothing in z.
+      struct gkyl_array *jacobgeo_global = mkarr(app->use_gpu, app->confBasis.num_basis, app->global_ext.volume);
+      gkyl_comm_array_allgather(app->comm, &app->local, &app->global, app->gk_geom->jacobgeo, jacobgeo_global);
+      gkyl_array_copy(f->weight, jacobgeo_global);
+      gkyl_array_copy(f->weight, jacobgeo_global);
 
       gkyl_array_scale(f->weight, polarization_weight);
       gkyl_array_scale(f->weight, f->info.kperpSq);
@@ -112,7 +109,7 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
         double T_s = f->info.electron_temp;
         double quasineut_contr = q_s*n_s0*q_s/T_s;
         struct gkyl_array *weight_adiab = mkarr(false, app->confBasis.num_basis, app->global_ext.volume); // fem_parproj expects weight on host
-        gkyl_array_copy(weight_adiab, f->jacobgeo_global);
+        gkyl_array_copy(weight_adiab, jacobgeo_global);
         gkyl_array_scale(weight_adiab, quasineut_contr);
         gkyl_array_accumulate(f->weight, 1., weight_adiab);
         gkyl_array_release(weight_adiab);
@@ -134,12 +131,6 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
       // need sub range of global range corresponding to where we are in z to properly index global charge density
       f->deflated_fem_poisson = gkyl_deflated_fem_poisson_new(app->grid, app->basis_on_dev.confBasis, app->confBasis,
         app->local, f->global_sub_range, f->epsilon, f->info.poisson_bcs, app->use_gpu);
-      // deflated array operator performs local division of rhoJ by J on planes
-      f->deflated_array_ops = gkyl_deflated_array_ops_new(app->grid, app->basis_on_dev.confBasis, app->confBasis,
-        app->local, app->use_gpu);
-      // deflated array operator performs global multiplication of rho by J on planes
-      f->deflated_array_ops_global = gkyl_deflated_array_ops_new(app->grid, app->basis_on_dev.confBasis, app->confBasis,
-        app->global, app->use_gpu);
     }
   }
 
@@ -274,16 +265,11 @@ gk_field_accumulate_rho_c(gkyl_gyrokinetic_app *app, struct gk_field *field,
     struct gk_species *s = &app->species[i];
 
     gk_species_moment_calc(&s->m0, s->local, app->local, fin[i]);
-    if (app->cdim == 1)
-      gkyl_array_copy(field->m0, s->m0.marr);
-    else if (app->cdim > 1)
-      gkyl_deflated_array_ops_div(field->deflated_array_ops, 0, field->m0, 0, s->m0.marr, 0, app->gk_geom->jacobgeo);
-
     if (field->gkfield_id == GKYL_GK_FIELD_BOLTZMANN) {
       // For Boltzmann electrons, we only need ion density, not charge density.
-      gkyl_array_accumulate_range(field->rho_c, 1.0, field->m0, &app->local);
+      gkyl_array_accumulate_range(field->rho_c, 1.0, s->m0.marr, &app->local);
     } else {
-      gkyl_array_accumulate_range(field->rho_c, s->info.charge, field->m0, &app->local);
+      gkyl_array_accumulate_range(field->rho_c, s->info.charge, s->m0.marr, &app->local);
       if (field->gkfield_id == GKYL_GK_FIELD_ADIABATIC) {
         // Add the background (electron) charge density.
         double n_s0 = field->info.electron_density;
@@ -357,7 +343,6 @@ gk_field_rhs(gkyl_gyrokinetic_app *app, struct gk_field *field)
         gkyl_fem_parproj_set_rhs(field->fem_parproj, field->rho_c_global_dg, field->rho_c_global_dg);
         gkyl_fem_parproj_solve(field->fem_parproj, field->rho_c_global_smooth);
       }
-      gkyl_deflated_array_ops_mul(field->deflated_array_ops_global, 0, field->rho_c_global_smooth, 0, field->rho_c_global_smooth, 0, field->jacobgeo_global);
       gkyl_deflated_fem_poisson_advance(field->deflated_fem_poisson, field->rho_c_global_smooth, field->phi_smooth);
     }
   }
@@ -391,10 +376,8 @@ gk_field_release(const gkyl_gyrokinetic_app* app, struct gk_field *f)
   gkyl_array_release(f->rho_c);
   gkyl_array_release(f->rho_c_global_dg);
   gkyl_array_release(f->rho_c_global_smooth);
-  gkyl_array_release(f->m0);
   gkyl_array_release(f->phi_fem);
   gkyl_array_release(f->phi_smooth);
-  gkyl_array_release(f->jacobgeo_global);
 
   if (f->gkfield_id == GKYL_GK_FIELD_EM) {
     gkyl_array_release(f->apar_fem);
@@ -418,8 +401,6 @@ gk_field_release(const gkyl_gyrokinetic_app* app, struct gk_field *f)
     else if (app->cdim > 1) {
       gkyl_array_release(f->epsilon);
       gkyl_deflated_fem_poisson_release(f->deflated_fem_poisson);
-      gkyl_deflated_array_ops_release(f->deflated_array_ops);
-      gkyl_deflated_array_ops_release(f->deflated_array_ops_global);
     }
   }
 
