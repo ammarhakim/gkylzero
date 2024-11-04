@@ -95,7 +95,6 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
       struct gkyl_array *jacobgeo_global = mkarr(app->use_gpu, app->confBasis.num_basis, app->global_ext.volume);
       gkyl_comm_array_allgather(app->comm, &app->local, &app->global, app->gk_geom->jacobgeo, jacobgeo_global);
       gkyl_array_copy(f->weight, jacobgeo_global);
-      gkyl_array_copy(f->weight, jacobgeo_global);
 
       gkyl_array_scale(f->weight, polarization_weight);
       gkyl_array_scale(f->weight, f->info.kperpSq);
@@ -117,6 +116,7 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
         es_energy_fac_1d_adiabatic = 0.5*quasineut_contr; 
       }
 
+      gkyl_array_release(jacobgeo_global);
     }
     else if (app->cdim > 1) {
       // set whatever epsilon we need
@@ -277,7 +277,6 @@ gk_field_accumulate_rho_c(gkyl_gyrokinetic_app *app, struct gk_field *field,
         gkyl_array_shiftc_range(field->rho_c, q_s*n_s0*sqrt(2.), 0, &app->local);
       }
     }
-
   } 
 }
 
