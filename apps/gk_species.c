@@ -621,9 +621,20 @@ gk_species_init(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *app, st
     }
   }
 
-  // Positivity enforcing by shifting f.
   if (app->enforce_positivity) {
+    // Positivity enforcing by shifting f (ps=positivity shift).
     gks->ps_delta_m0 = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
+
+    // Set pointers to total ion/electron Delta m0.
+    if (gks->info.charge > 0.0) {
+      gks->ps_delta_m0s_tot = gkyl_array_acquire(app->ps_delta_m0_ions);
+      gks->ps_delta_m0r_tot = gkyl_array_acquire(app->ps_delta_m0_elcs);
+    }
+    else {
+      gks->ps_delta_m0s_tot = gkyl_array_acquire(app->ps_delta_m0_elcs);
+      gks->ps_delta_m0r_tot = gkyl_array_acquire(app->ps_delta_m0_ions);
+    }
+
     gks->pos_shift_op = gkyl_positivity_shift_gyrokinetic_new(app->confBasis, app->basis,
       gks->grid, gks->info.mass, app->gk_geom, gks->vel_map, &app->local_ext, app->use_gpu);
 
@@ -940,6 +951,8 @@ gk_species_release(const gkyl_gyrokinetic_app* app, const struct gk_species *s)
 
   if (app->enforce_positivity) {
     gkyl_array_release(s->ps_delta_m0);
+    gkyl_array_release(s->ps_delta_m0s_tot);
+    gkyl_array_release(s->ps_delta_m0r_tot);
     gkyl_positivity_shift_gyrokinetic_release(s->pos_shift_op);
     gk_species_moment_release(app, &s->ps_moms);
     gkyl_dynvec_release(s->ps_integ_diag);

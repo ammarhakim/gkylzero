@@ -159,8 +159,6 @@ gkyl_gyrokinetic_app_new(struct gkyl_gk *gk)
   app->use_gpu = false; // can't use GPUs if we don't have them!
 #endif
 
-  app->enforce_positivity = gk->enforce_positivity;
-
   app->num_periodic_dir = gk->num_periodic_dir;
   for (int d=0; d<cdim; ++d)
     app->periodic_dirs[d] = gk->periodic_dirs[d];
@@ -381,6 +379,13 @@ gkyl_gyrokinetic_app_new(struct gkyl_gk *gk)
   app->update_field = !gk->skip_field; // note inversion of truth value (default: update field)
   app->field = gk_field_new(gk, app); // initialize field, even if we are skipping field updates
 
+  app->enforce_positivity = gk->enforce_positivity;
+  if (app->enforce_positivity) {
+    // Number of density of the positivity shift added over all the ions.
+    app->ps_delta_m0_ions = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
+    app->ps_delta_m0_elcs = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
+  }
+
   // initialize each species
   for (int i=0; i<ns; ++i) 
     gk_species_init(gk, app, &app->species[i]);
@@ -435,11 +440,6 @@ gkyl_gyrokinetic_app_new(struct gkyl_gk *gk)
   }
   for (int i=0; i<neuts; ++i) {
     gk_neut_species_source_init(app, &app->neut_species[i], &app->neut_species[i].src);
-  }
-
-  if (app->enforce_positivity) {
-    // Number of density of the positivity shift added over all the ions.
-    app->ps_delta_m0_ions = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
   }
 
   // initialize stat object
@@ -1257,10 +1257,12 @@ gkyl_gyrokinetic_app_write_species_source_mom(gkyl_gyrokinetic_app* app, int sid
       snprintf(fileNm, sizeof fileNm, fmt, app->name, gk_s->info.name,
         gk_s->info.diag_moments[m], frame);
 
-      // Rescale moment by inverse of Jacobian
-      gkyl_dg_div_op_range(gk_s->moms[m].mem_geo, app->confBasis, 
-        0, gk_s->src.moms[m].marr, 0, gk_s->src.moms[m].marr, 0, 
-        app->gk_geom->jacobgeo, &app->local);      
+      if (!gk_s->src.moms[m].is_bimaxwellian_moms && !gk_s->src.moms[m].is_maxwellian_moms) {
+        // Rescale moment by inverse of Jacobian
+        gkyl_dg_div_op_range(gk_s->moms[m].mem_geo, app->confBasis, 
+          0, gk_s->src.moms[m].marr, 0, gk_s->src.moms[m].marr, 0, 
+          app->gk_geom->jacobgeo, &app->local);      
+      }
 
       if (app->use_gpu) {
         gkyl_array_copy(gk_s->src.moms[m].marr_host, gk_s->src.moms[m].marr);
@@ -2735,6 +2737,7 @@ gkyl_gyrokinetic_app_release(gkyl_gyrokinetic_app* app)
 {
   if (app->enforce_positivity) {
     gkyl_array_release(app->ps_delta_m0_ions);
+    gkyl_array_release(app->ps_delta_m0_elcs);
   }
 
   gkyl_gk_geometry_release(app->gk_geom);

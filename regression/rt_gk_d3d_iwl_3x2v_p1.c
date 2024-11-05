@@ -650,12 +650,6 @@ main(int argc, char **argv)
   // Construct communicator for use in app.
   struct gkyl_comm *comm = gkyl_gyrokinetic_comms_new(app_args.use_mpi, app_args.use_gpu, stderr);
 
-  int my_rank = 0;
-#ifdef GKYL_HAVE_MPI
-  if (app_args.use_mpi)
-    gkyl_comm_get_rank(comm, &my_rank);
-#endif
-
   // electrons
   struct gkyl_gyrokinetic_species elc = {
     .name = "elc",
@@ -822,7 +816,7 @@ main(int argc, char **argv)
   struct gkyl_gk gk = {
     .name = "gk_d3d_iwl_3x2v_p1",
 
-    .cdim = 3, .vdim = 2,
+    .cdim = ctx.cdim, .vdim = ctx.vdim,
     .lower = { ctx.x_min, ctx.y_min, ctx.z_min },
     .upper = { ctx.x_max, ctx.y_max, ctx.z_max },
     .cells = { cells_x[0], cells_x[1], cells_x[2] },
@@ -847,7 +841,7 @@ main(int argc, char **argv)
     .parallelism = {
       .use_gpu = app_args.use_gpu,
       .comm = comm,
-      .cuts = {app_args.cuts[0], app_args.cuts[1], app_args.cuts[2]},
+      .cuts = { app_args.cuts[0], app_args.cuts[1], app_args.cuts[2] },
     }
   };
 
