@@ -120,6 +120,10 @@ gk_field_multib_new(const struct gkyl_gyrokinetic_multib *mbinp, struct gkyl_gyr
           mbf->multibz_ranges_ext[bI], mbf->mbcc_allgatherz_recv[bI]->comm_conn[nr].range.lower,
           mbf->mbcc_allgatherz_recv[bI]->comm_conn[nr].range.upper);
     }
+
+    // Sort connections according to rank and block ID (needed by NCCL).
+    gkyl_multib_comm_conn_sort(mbf->mbcc_allgatherz_send[bI]);
+    gkyl_multib_comm_conn_sort(mbf->mbcc_allgatherz_recv[bI]);
   }
 
   mbf->fem_parproj = gkyl_malloc(mbf->num_local_blocks* sizeof(struct gkyl_fem_parproj*));
@@ -179,20 +183,22 @@ gk_field_multib_rhs(gkyl_gyrokinetic_multib_app *mbapp, struct gk_field_multib *
   // Every block gathers rho, does the smoothing, and solves the poisson equation
   for (int bI=0; bI<mbf->num_local_blocks; ++bI) {
     struct gkyl_gyrokinetic_app *sbapp = mbapp->singleb_apps[bI];
+
     gkyl_comm_array_allgather(sbapp->comm, &sbapp->local, &sbapp->global, 
-        sbapp->field->rho_c, sbapp->field->rho_c_global_dg);
+      sbapp->field->rho_c, sbapp->field->rho_c_global_dg);
+
     gkyl_fem_parproj_set_rhs(sbapp->field->fem_parproj, 
-        sbapp->field->rho_c_global_dg, sbapp->field->rho_c_global_dg);
+      sbapp->field->rho_c_global_dg, sbapp->field->rho_c_global_dg);
     gkyl_fem_parproj_solve(sbapp->field->fem_parproj, sbapp->field->rho_c_global_smooth);
+
     gkyl_deflated_fem_poisson_advance(sbapp->field->deflated_fem_poisson, 
-        sbapp->field->rho_c_global_smooth, sbapp->field->phi_smooth);
+      sbapp->field->rho_c_global_smooth, sbapp->field->phi_smooth);
   }
 
-
-  //Do the allgather along the magnetic field.
+  // Do the allgather the across blocks along the magnetic field.
   int stat = gkyl_multib_comm_conn_array_transfer(mbapp->comm, mbf->num_local_blocks, 
-      mbapp->local_blocks, mbf->mbcc_allgatherz_send, mbf->mbcc_allgatherz_recv, mbf->phi_local, mbf->phi_multibz_dg);
-  // Do the smoothing on the interblock cross-z range
+    mbapp->local_blocks, mbf->mbcc_allgatherz_send, mbf->mbcc_allgatherz_recv, mbf->phi_local, mbf->phi_multibz_dg);
+  // Do the smoothing on the multiblock range.
   for (int bI=0; bI<mbf->num_local_blocks; ++bI) {
     gkyl_fem_parproj_set_rhs(mbf->fem_parproj[bI], mbf->phi_multibz_dg[bI], mbf->phi_multibz_dg[bI]);
     gkyl_fem_parproj_solve(mbf->fem_parproj[bI], mbf->phi_multibz_smooth[bI]);
@@ -201,7 +207,7 @@ gk_field_multib_rhs(gkyl_gyrokinetic_multib_app *mbapp, struct gk_field_multib *
   // Copy smooth array back to local ranges
   for (int bI=0; bI<mbf->num_local_blocks; ++bI) {
     gkyl_array_copy_range_to_range(mbapp->singleb_apps[bI]->field->phi_smooth, 
-        mbf->phi_multibz_smooth[bI], &mbapp->singleb_apps[bI]->local, mbf->block_subrangesz[bI]);
+      mbf->phi_multibz_smooth[bI], &mbapp->singleb_apps[bI]->local, mbf->block_subrangesz[bI]);
   }
 
 }

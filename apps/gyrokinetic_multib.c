@@ -500,6 +500,7 @@ and the maximum number of cuts in a block is %d\n\n", tot_max[0], num_ranks, tot
   for (int i=0; i<num_local_blocks; ++i)
     mbapp->singleb_apps[i] = singleb_app_new(mbinp, mbapp->local_blocks[i], mbapp);
 
+  // Create the MB field app.
   mbapp->field = gk_field_multib_new(mbinp, mbapp);
 
   // Create connections needed for conf-space syncs.
@@ -621,6 +622,7 @@ and the maximum number of cuts in a block is %d\n\n", tot_max[0], num_ranks, tot
     struct gkyl_gyrokinetic_app *sbapp = mbapp->singleb_apps[b];
     jacs[b] = sbapp->gk_geom->jacobgeo;
   }
+  // Sync across blocks.
   gkyl_multib_comm_conn_array_transfer(mbapp->comm, mbapp->num_local_blocks, mbapp->local_blocks,
     mbapp->mbcc_sync_conf->send, mbapp->mbcc_sync_conf->recv, jacs, jacs);
 
@@ -691,10 +693,11 @@ gyrokinetic_multib_apply_bc(struct gkyl_gyrokinetic_multib_app* app, double tcur
       int bid = app->local_blocks[b];
       int li_charged = b * app->num_species;
 
+      struct gk_species *gks = &sbapp->species[i];
+
       for (int dir=0; dir<cdim; ++dir) {
         for (int e=0; e<2; ++e) {
           if (app->block_topo->conn[bid].connections[dir][e].edge != GKYL_PHYSICAL) {
-            struct gk_species *gks = &sbapp->species[i];
             gkyl_phase_ghost_conf_div_flip_mul_advance(app->jf_rescale_charged, dir, e,
               e==0? &sbapp->global_lower_skin[dir] : &sbapp->global_upper_skin[dir],
               e==0? &sbapp->global_lower_ghost[dir] : &sbapp->global_upper_ghost[dir],
@@ -704,7 +707,6 @@ gyrokinetic_multib_apply_bc(struct gkyl_gyrokinetic_multib_app* app, double tcur
         }
       }
     }
-
   }
 
   struct gkyl_gyrokinetic_app *sbapp0 = app->singleb_apps[0];
@@ -737,7 +739,6 @@ gyrokinetic_multib_apply_bc(struct gkyl_gyrokinetic_multib_app* app, double tcur
           }
         }
       }
-
     }
   }
 }
