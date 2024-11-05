@@ -1,7 +1,8 @@
-#ifdef GKYL_HAVE_MPI
-
 #include <gkyl_multib_comm_conn_priv.h>
 #include <gkyl_comm_priv.h>
+
+#ifdef GKYL_HAVE_MPI
+
 #include <gkyl_mpi_comm_priv.h>
 
 int
