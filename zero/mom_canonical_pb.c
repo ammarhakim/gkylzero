@@ -60,6 +60,10 @@ gkyl_mom_canonical_pb_new(const struct gkyl_basis* cbasis, const struct gkyl_bas
       menergy_kernels = ser_menergy_kernels;
       break;
 
+    case GKYL_BASIS_MODAL_TENSOR:
+      menergy_kernels = tensor_menergy_kernels;
+      break;
+
     default:
       assert(false);
       break;    
@@ -119,6 +123,10 @@ gkyl_int_mom_canonical_pb_new(const struct gkyl_basis* cbasis, const struct gkyl
   switch (cbasis->b_type) {
     case GKYL_BASIS_MODAL_SERENDIPITY:
       int_mom_kernels = ser_int_mom_kernels;
+      break;
+
+    case GKYL_BASIS_MODAL_TENSOR:
+      int_mom_kernels = tensor_int_mom_kernels;
       break;
 
     default:

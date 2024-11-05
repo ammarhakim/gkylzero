@@ -135,13 +135,13 @@ gkyl_canonical_pb_pressure_cu(struct gkyl_dg_calc_canonical_pb_vars *up, const s
 // Doing function pointer stuff in here avoids troublesome cudaMemcpyFromSymbol
 __global__ static void 
   dg_calc_canoncial_pb_vars_set_cu_dev_ptrs(struct gkyl_dg_calc_canonical_pb_vars *up,
-  int cdim,int poly_order)
+  enum gkyl_basis_type b_type, int cdim, int poly_order)
 {
-  up->canonical_pb_pressure = choose_canonical_pb_pressure_kern(cdim, poly_order);
+  up->canonical_pb_pressure = choose_canonical_pb_pressure_kern(b_type, cdim, poly_order);
   for (int d=0; d<cdim; ++d) {  
-    up->alpha_surf[d] = choose_canonical_pb_alpha_surf_kern(d, cdim, poly_order);
-    up->alpha_surf[d+cdim] = choose_canonical_pb_alpha_surf_v_kern(d, cdim, poly_order);
-    up->alpha_edge_surf[d] = choose_canonical_pb_alpha_edge_surf_kern(d, cdim, poly_order);
+    up->alpha_surf[d] = choose_canonical_pb_alpha_surf_kern(b_type, d, cdim, poly_order);
+    up->alpha_surf[d+cdim] = choose_canonical_pb_alpha_surf_v_kern(b_type, d, cdim, poly_order);
+    up->alpha_edge_surf[d] = choose_canonical_pb_alpha_edge_surf_kern(b_type, d, cdim, poly_order);
   }
 }
 
@@ -165,7 +165,7 @@ gkyl_dg_calc_canonical_pb_vars_cu_dev_new(const struct gkyl_rect_grid *phase_gri
   struct gkyl_dg_calc_canonical_pb_vars *up_cu = (struct gkyl_dg_calc_canonical_pb_vars *) gkyl_cu_malloc(sizeof(gkyl_dg_calc_canonical_pb_vars));
   gkyl_cu_memcpy(up_cu, up, sizeof(gkyl_dg_calc_canonical_pb_vars), GKYL_CU_MEMCPY_H2D);
 
-  dg_calc_canoncial_pb_vars_set_cu_dev_ptrs<<<1,1>>>(up_cu, cdim, poly_order);
+  dg_calc_canoncial_pb_vars_set_cu_dev_ptrs<<<1,1>>>(up_cu, conf_basis->b_type, cdim, poly_order);
 
   // set parent on_dev pointer
   up->on_dev = up_cu;
