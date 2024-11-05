@@ -26,6 +26,7 @@ comm_new(bool use_mpi, bool use_gpu, FILE *iostream)
 #ifdef GKYL_HAVE_MPI
   if (use_gpu && use_mpi) {
 #ifdef GKYL_HAVE_NCCL
+    printf("using NCCL\n");
     comm = gkyl_nccl_comm_new( &(struct gkyl_nccl_comm_inp) {
         .mpi_comm = MPI_COMM_WORLD,
       }
@@ -1053,13 +1054,13 @@ test_L_domain_allgather_dir0_cuts2_par()
 }
 
 static void
-test_SOL_domain_allgather_dir1_cuts2_par()
+test_SOL_domain_allgather_dir1_cuts2_par(bool use_gpu)
 {
   printf("\n");
   // Create world comm.
   bool use_mpi = true;
-  bool use_gpu = false;
   struct gkyl_comm* comm = comm_new(use_mpi, use_gpu, stderr);
+  printf("made comms\n");
 
   int my_rank, num_ranks;
   gkyl_comm_get_rank(comm, &my_rank);
@@ -1186,6 +1187,7 @@ test_SOL_domain_allgather_dir1_cuts2_par()
     gkyl_create_ranges(&decomp[bid]->ranges[brank], nghost, local_ranges_ext[bI], local_ranges[bI]);
   }
 
+  printf("making arrays\n");
   int poly_order = 1;
   struct gkyl_basis basis;
   gkyl_cart_modal_serendip(&basis, ndim, poly_order);
@@ -1206,40 +1208,48 @@ test_SOL_domain_allgather_dir1_cuts2_par()
     array_global[bI] = mkarr(use_gpu,  basis.num_basis, global_ranges_ext[bI]->volume);
     array_global_ho[bI] = use_gpu ? mkarr(false,  basis.num_basis, global_ranges_ext[bI]->volume) : gkyl_array_acquire(array_global[bI]);
   }
+  printf("made arrays\n");
 
 
   struct gkyl_multib_comm_conn **mbcc_send = gkyl_malloc(num_local_blocks * sizeof(struct gkyl_multib_comm_conn *));
   struct gkyl_multib_comm_conn **mbcc_recv = gkyl_malloc(num_local_blocks * sizeof(struct gkyl_multib_comm_conn *));
   for (int bI= 0; bI<num_local_blocks; bI++) {
-      int bid = local_blocks[bI];
-      gkyl_rrobin_decomp_getranks(round_robin_decomp, bid, rank_list);
-      int brank = -1;
-      for (int i=0; i<branks[bid]; ++i)
-        if (rank_list[i] == my_rank) brank = i;
+    int bid = local_blocks[bI];
+    gkyl_rrobin_decomp_getranks(round_robin_decomp, bid, rank_list);
+    int brank = -1;
+    for (int i=0; i<branks[bid]; ++i)
+      if (rank_list[i] == my_rank) brank = i;
 
-      mbcc_send[bI] = gkyl_multib_comm_conn_new_send_from_connections(bid, brank, nghost, nconnected[bid], block_list[bid], dir, decomp);
-      mbcc_recv[bI] = gkyl_multib_comm_conn_new_recv_from_connections(bid, brank, nghost, nconnected[bid], block_list[bid], dir, decomp);
+    mbcc_send[bI] = gkyl_multib_comm_conn_new_send_from_connections(bid, brank, nghost, nconnected[bid], block_list[bid], dir, decomp);
+    mbcc_recv[bI] = gkyl_multib_comm_conn_new_recv_from_connections(bid, brank, nghost, nconnected[bid], block_list[bid], dir, decomp);
 
-      for (int ns=0; ns<mbcc_send[bI]->num_comm_conn; ++ns) {
-        // need to get the actual rank that owns this cut
-        int rank_idx = mbcc_send[bI]->comm_conn[ns].rank;
-        gkyl_rrobin_decomp_getranks(round_robin_decomp, mbcc_send[bI]->comm_conn[ns].block_id, rank_list);
-        mbcc_send[bI]->comm_conn[ns].rank = rank_list[rank_idx];
-        // Make range a subrange
-        mbcc_send[bI]->comm_conn[ns].range = *local_ranges[bI];
-      }
-      for (int nr=0; nr<mbcc_recv[bI]->num_comm_conn; ++nr) {
-        // need to get the actual rank that owns this cut
-        int rank_idx = mbcc_recv[bI]->comm_conn[nr].rank;
-        gkyl_rrobin_decomp_getranks(round_robin_decomp, mbcc_recv[bI]->comm_conn[nr].block_id, rank_list);
-        mbcc_recv[bI]->comm_conn[nr].rank = rank_list[rank_idx];
-        // Make range a subrange
-        gkyl_sub_range_init(&mbcc_recv[bI]->comm_conn[nr].range, global_ranges_ext[bI], mbcc_recv[bI]->comm_conn[nr].range.lower, mbcc_recv[bI]->comm_conn[nr].range.upper);
-      }
+    for (int ns=0; ns<mbcc_send[bI]->num_comm_conn; ++ns) {
+      // need to get the actual rank that owns this cut
+      int rank_idx = mbcc_send[bI]->comm_conn[ns].rank;
+      gkyl_rrobin_decomp_getranks(round_robin_decomp, mbcc_send[bI]->comm_conn[ns].block_id, rank_list);
+      mbcc_send[bI]->comm_conn[ns].rank = rank_list[rank_idx];
+      // Make range a subrange
+      mbcc_send[bI]->comm_conn[ns].range = *local_ranges[bI];
+    }
+    for (int nr=0; nr<mbcc_recv[bI]->num_comm_conn; ++nr) {
+      // need to get the actual rank that owns this cut
+      int rank_idx = mbcc_recv[bI]->comm_conn[nr].rank;
+      gkyl_rrobin_decomp_getranks(round_robin_decomp, mbcc_recv[bI]->comm_conn[nr].block_id, rank_list);
+      mbcc_recv[bI]->comm_conn[nr].rank = rank_list[rank_idx];
+      // Make range a subrange
+      gkyl_sub_range_init(&mbcc_recv[bI]->comm_conn[nr].range, global_ranges_ext[bI], mbcc_recv[bI]->comm_conn[nr].range.lower, mbcc_recv[bI]->comm_conn[nr].range.upper);
+    }
+
+    // Sort connections according to rank and block ID.
+    gkyl_multib_comm_conn_sort(mbcc_recv[bI]);
+    gkyl_multib_comm_conn_sort(mbcc_send[bI]);
 
   }
 
+
+  printf("calling transfer\n");
   int stat = gkyl_multib_comm_conn_array_transfer(comm, num_local_blocks, local_blocks, mbcc_send, mbcc_recv, array_local, array_global);
+  printf("did transfer\n");
 
 
   for (int bI=0; bI<num_local_blocks; ++bI) {
@@ -1261,6 +1271,7 @@ test_SOL_domain_allgather_dir1_cuts2_par()
     gkyl_grid_sub_array_write(&grid, global_ranges[bI], 0, array_global_ho[bI], str);
   }
 
+  printf("checking\n");
   for (int bI=0; bI<num_local_blocks; ++bI) {
     struct gkyl_range_iter iter;
     gkyl_range_iter_init(&iter, global_ranges[bI]);
@@ -1324,6 +1335,21 @@ test_SOL_domain_allgather_dir1_cuts2_par()
   gkyl_comm_release(comm);
 }
 
+static void
+test_SOL_domain_allgather_dir1_cuts2_par_ho(void)
+{
+  test_SOL_domain_allgather_dir1_cuts2_par(false);
+}
+
+#ifdef GKYL_HAVE_NCCL
+static void
+test_SOL_domain_allgather_dir1_cuts2_par_dev(void)
+{
+  test_SOL_domain_allgather_dir1_cuts2_par(true);
+}
+#endif
+
+
 
 TEST_LIST = {
   //{ "test_L_domain_send_connections_dir0_cuts1", test_L_domain_send_connections_dir0_cuts1},
@@ -1333,6 +1359,9 @@ TEST_LIST = {
   //{ "test_L_domain_send_connections_dir0_cuts2_par", test_L_domain_send_connections_dir0_cuts2_par},
   //{ "test_L_domain_recv_connections_dir0_cuts2_par", test_L_domain_recv_connections_dir0_cuts2_par},
   //{ "test_L_domain_allgather_dir0_cuts2_par", test_L_domain_allgather_dir0_cuts2_par},
-  { "test_SOL_domain_allgather_dir1_cuts2_par", test_SOL_domain_allgather_dir1_cuts2_par},
+  { "test_SOL_domain_allgather_dir1_cuts2_par_ho", test_SOL_domain_allgather_dir1_cuts2_par_ho},
+#ifdef GKYL_HAVE_NCCL
+  { "test_SOL_domain_allgather_dir1_cuts2_par_dev", test_SOL_domain_allgather_dir1_cuts2_par_dev},
+#endif
   { NULL, NULL },
 };
