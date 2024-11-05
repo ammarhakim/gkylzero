@@ -442,7 +442,7 @@ main(int argc, char **argv)
     },
     .collisions = {
       .collision_id = GKYL_BGK_COLLISIONS,
-      .self_nu = evalElcNu,
+      .self_nu = evalIonNu,
       .ctx = &ctx,
       .fixed_temp_relax = true,
     },

@@ -72,6 +72,7 @@ struct vlasov_species_lw {
   bool collision_correct_all_moms; // Are we correcting all moments in collisions, or only density?
   double collision_iter_eps; // Error tolerance for moment fixes in collisions (density is always exact).
   int collision_max_iter; // Maximum number of iterations for moment fixes in collisions.
+  bool fixed_temp_relax; // Are BGK collisions relaxing to a fixed input temperature?
   bool collision_use_last_converged; // Use last iteration value in collisions regardless of convergence?
 
   enum gkyl_source_id source_id; // Source type.
@@ -246,6 +247,7 @@ vlasov_species_lw_new(lua_State *L)
   bool collision_correct_all_moms = false;
   double collision_iter_eps = pow(10.0, -12.0);
   int collision_max_iter = 100;
+  bool fixed_temp_relax = false;
   bool collision_use_last_converged = true;
 
   with_lua_tbl_tbl(L, "collisions") {
@@ -267,6 +269,7 @@ vlasov_species_lw_new(lua_State *L)
     collision_correct_all_moms = glua_tbl_get_bool(L, "correctAllMoments", true);
     collision_iter_eps = glua_tbl_get_number(L, "iterationEpsilon", pow(10.0, -12.0));
     collision_max_iter = glua_tbl_get_integer(L, "maxIterations", 100);
+    fixed_temp_relax = glua_tbl_get_bool(L, "fixedTempRelax", false);
     collision_use_last_converged = glua_tbl_get_bool(L, "useLastConverged", true);
   }
 
@@ -414,6 +417,7 @@ vlasov_species_lw_new(lua_State *L)
   vms_lw->collision_correct_all_moms = collision_correct_all_moms;
   vms_lw->collision_iter_eps = collision_iter_eps;
   vms_lw->collision_max_iter = collision_max_iter;
+  vms_lw->fixed_temp_relax = fixed_temp_relax;
   vms_lw->collision_use_last_converged = collision_use_last_converged;
   
   // set metatable
@@ -560,6 +564,7 @@ struct vlasov_app_lw {
   bool collision_correct_all_moms[GKYL_MAX_SPECIES]; // Are we correcting all moments in collisions, or only density?
   double collision_iter_eps[GKYL_MAX_SPECIES]; // Error tolerance for moment fixes in collision (density is always exact).
   int collision_max_iter[GKYL_MAX_SPECIES]; // Maximum number of iterations for moment fixes in collisions.
+  bool fixed_temp_relax[GKYL_MAX_SPECIES]; // Are BGK collisions relaxing to a fixed input temperature?
   bool collision_use_last_converged[GKYL_MAX_SPECIES]; // Use last iteration value in collisions regardless of convergence?
 
   enum gkyl_source_id source_id[GKYL_MAX_SPECIES]; // Source type.
@@ -800,6 +805,7 @@ vm_app_new(lua_State *L)
     app_lw->collision_correct_all_moms[s] = species[s]->collision_correct_all_moms;
     app_lw->collision_iter_eps[s] = species[s]->collision_iter_eps;
     app_lw->collision_max_iter[s] = species[s]->collision_max_iter;
+    app_lw->fixed_temp_relax[s] = species[s]->fixed_temp_relax;
     app_lw->collision_use_last_converged[s] = species[s]->collision_use_last_converged;
 
     vm.species[s].collisions.collision_id = app_lw->collision_id[s];
@@ -817,6 +823,7 @@ vm_app_new(lua_State *L)
     vm.species[s].collisions.correct_all_moms = app_lw->collision_correct_all_moms[s];
     vm.species[s].collisions.iter_eps = app_lw->collision_iter_eps[s];
     vm.species[s].collisions.max_iter = app_lw->collision_max_iter[s];
+    vm.species[s].collisions.fixed_temp_relax = app_lw->fixed_temp_relax[s];
     vm.species[s].collisions.use_last_converged = app_lw->collision_use_last_converged[s];
 
     app_lw->source_id[s] = species[s]->source_id;
