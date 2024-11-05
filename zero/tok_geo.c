@@ -376,7 +376,7 @@ void gkyl_tok_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, double
   geo->rleft = inp->rleft;
   geo->rright = inp->rright;
 
-  geo->exact_roots = inp->exact_roots;
+  geo->inexact_roots = inp->inexact_roots;
 
   geo->rmax = inp->rmax;
   geo->rmin = inp->rmin;

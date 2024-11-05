@@ -2512,6 +2512,11 @@ gyrokinetic_app_geometry_read_and_copy(gkyl_gyrokinetic_app* app, struct gkyl_ar
       gkyl_comm_array_read(app->comm, &app->grid, &app->local, arr_host, fileNm.str);
     gkyl_array_copy(arr, arr_host);
   }
+  else {
+    gkyl_gyrokinetic_app_cout(app, stderr, "*** Failed to read geometry file! (%s)\n",
+        gkyl_array_rio_status_msg(rstat.io_status));
+    assert(false);
+  }
 }
 
 void
