@@ -541,6 +541,36 @@ void gkyl_tok_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, double
               int nr = gkyl_tok_geo_R_psiZ(geo, psi_curr, z_curr, 4, R, dR);
               double r_curr = choose_closest(rclose, R, R, nr);
 
+              if (psi_curr==geo->psisep && it_delta==0 && ip_delta==0) {
+                  if (z_curr == geo->efit->Zxpt[0]) {
+                    nr = 1;
+                    r_curr = geo->efit->Rxpt[0];
+                  }
+                  if (z_curr == geo->efit->Zxpt[1]) {
+                    nr = 1;
+                    r_curr = geo->efit->Rxpt[1];
+                  }
+              }
+              //if( inp->ftype == GKYL_SOL_DN_OUT_LO && it == nrange->upper[TH_IDX] && (up->local.upper[TH_IDX]== up->global.upper[TH_IDX]) && it_delta == 0 && psi_curr ==geo->psisep) {
+              //  nr = 1;
+              //  r_curr = geo->efit->Rxpt[0];
+              //}
+
+              //if( inp->ftype == GKYL_SOL_DN_OUT_MID && it == nrange->upper[TH_IDX] && (up->local.upper[TH_IDX]== up->global.upper[TH_IDX]) && it_delta == 0 && psi_curr ==geo->psisep) {
+              //  nr = 1;
+              //  r_curr = geo->efit->Rxpt[1];
+              //}
+
+              //if( inp->ftype == GKYL_SOL_DN_OUT_MID && it == nrange->lower[TH_IDX] && (up->local.lower[TH_IDX]== up->global.lower[TH_IDX]) && it_delta == 0 && psi_curr ==geo->psisep) {
+              //  nr = 1;
+              //  r_curr = geo->efit->Rxpt[0];
+              //}
+
+              //if( inp->ftype == GKYL_SOL_DN_OUT_UP&& it == nrange->lower[TH_IDX] && (up->local.lower[TH_IDX]== up->global.lower[TH_IDX]) && it_delta == 0 && psi_curr ==geo->psisep) {
+              //  nr = 1;
+              //  r_curr = geo->efit->Rxpt[1];
+              //}
+
               // For all blocks on the inner edge with z boundaries we will need to match the entire outer edge
               if(inp->ftype == GKYL_CORE_L){ // Match the core right boundary at upper and lower theta ends
                 if ((it == nrange->lower[TH_IDX]) && (up->local.lower[TH_IDX]== up->global.lower[TH_IDX]))
