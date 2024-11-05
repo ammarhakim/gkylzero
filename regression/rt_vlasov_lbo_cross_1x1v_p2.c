@@ -135,7 +135,7 @@ void
 evalNeut1Init(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
 {
   struct lbo_cross_ctx *app = ctx;
-  double v = xn[1];
+  double vx = xn[1];
   
   double pi = app->pi;
 
@@ -143,7 +143,7 @@ evalNeut1Init(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fo
   double ux0_neut1 = app->ux0_neut1;
   double vt_neut1 = app->vt_neut1;
 
-  double v_sq = (v - ux0_neut1) * (v - ux0_neut1);
+  double v_sq = (vx - ux0_neut1) * (vx - ux0_neut1);
 
   double n = (n0_neut1 / sqrt(2.0 * pi * vt_neut1 * vt_neut1)) * exp(-v_sq / (2.0 * vt_neut1 * vt_neut1)); // Total number density.
 
@@ -155,7 +155,7 @@ void
 evalNeut2Init(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
 {
   struct lbo_cross_ctx *app = ctx;
-  double v = xn[1];
+  double vx = xn[1];
   
   double pi = app->pi;
 
@@ -163,7 +163,7 @@ evalNeut2Init(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fo
   double ux0_neut2 = app->ux0_neut2;
   double vt_neut2 = app->vt_neut2;
 
-  double v_sq = (v - ux0_neut2) * (v - ux0_neut2);
+  double v_sq = (vx - ux0_neut2) * (vx - ux0_neut2);
 
   double n = (n0_neut2 / sqrt(2.0 * pi * vt_neut2 * vt_neut2)) * exp(-v_sq / (2.0 * vt_neut2 * vt_neut2)); // Total number density.
 

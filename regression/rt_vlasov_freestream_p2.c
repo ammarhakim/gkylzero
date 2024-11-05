@@ -94,12 +94,12 @@ void
 evalNeutInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
 {
   struct freestream_ctx *app = ctx;
-  double x = xn[0], v = xn[1];
+  double x = xn[0], vx = xn[1];
 
   double pi = app->pi;
   double vt = app->vt;
 
-  double n = (cos(x) / sqrt(2.0 * pi * vt * vt)) * exp(-(v * v) / (2.0 * vt * vt)); // Total number density.
+  double n = (cos(x) / sqrt(2.0 * pi * vt * vt)) * exp(-(vx * vx) / (2.0 * vt * vt)); // Total number density.
 
   // Set total number density.
   fout[0] = n;

@@ -116,13 +116,13 @@ void
 evalTopHatInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
 {
   struct bgk_relax_ctx *app = ctx;
-  double v = xn[1];
+  double vx = xn[1];
   
   double n0 = app->n0;
 
   double n = 0.0;
 
-  if(fabs(v) < 1.0) {
+  if (fabs(vx) < 1.0) {
     n = 0.5 * n0; // Total number density (low velocity).
   }
   else {
@@ -137,7 +137,7 @@ void
 evalBumpInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
 {
   struct bgk_relax_ctx *app = ctx;
-  double v = xn[1];
+  double vx = xn[1];
 
   double pi = app->pi;
 
@@ -150,8 +150,8 @@ evalBumpInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fou
   double ub = app->ub;
   double vtb = app->vtb;
 
-  double v_sq = (v - u0) * (v - u0);
-  double vb_sq = (v - ub) * (v - ub);
+  double v_sq = (vx - u0) * (vx - u0);
+  double vb_sq = (vx - ub) * (vx - ub);
 
   double n = (n0 / sqrt(2.0 * pi * vt * vt)) * exp(-v_sq / (2.0 * vt * vt)) + (n0 / sqrt(2.0 * pi * vtb * vtb)) *
     exp(-vb_sq / (2.0 * vtb * vtb)) * (ab * ab) / (vb_sq + (sb * sb)); // Total number density.

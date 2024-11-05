@@ -20,16 +20,27 @@
 
 #include <rt_arg_parse.h>
 
-struct freestream_ctx
+struct landau_damping_ctx
 {
   // Mathematical constants (dimensionless).
   double pi;
 
   // Physical constants (using normalized code units).
-  double mass; // Neutral mass.
-  double charge; // Neutral charge.
+  double epsilon0; // Permittivity of free space.
+  double mass_elc; // Electron mass.
+  double charge_elc; // Electron charge.
 
-  double vt; // Thermal velocity.
+  double n0; // Reference number density.
+  double Te; // Electron temperature.
+
+  double alpha; // Applied perturbation amplitude.
+
+  // Derived physical quantities (using normalized code units).
+  double vte; // Electron thermal velocity.
+  double omega_pe; // Electron plasma frequency.
+  double lambda_D; // Electron Debye length.
+
+  double k0; // Perturbed wave number.
 
   // Simulation parameters.
   int Nx; // Cell count (configuration space: x-direction).
@@ -45,36 +56,54 @@ struct freestream_ctx
   int num_failures_max; // Maximum allowable number of consecutive small time-steps.
 };
 
-struct freestream_ctx
+struct landau_damping_ctx
 create_ctx(void)
 {
   // Mathematical constants (dimensionless).
   double pi = M_PI;
 
   // Physical constants (using normalized code units).
-  double mass = 1.0; // Neutral mass.
-  double charge = 0.0; // Neutral charge.
+  double epsilon0 = 1.0; // Permittivity of free space.
+  double mass_elc = 1.0; // Electron mass.
+  double charge_elc = -1.0; // Electron charge.
 
-  double vt = 1.0; // Thermal velocity.
+  double n0 = 1.0; // Reference number density.
+  double Te = 1.0; // Electron temperature.
+
+  double alpha = 1.0e-4; // Applied perturbation amplitude.
+
+  // Derived physical quantities (using normalized code units).
+  double vte = sqrt(Te / mass_elc); // Electron thermal velocity.
+  double omega_pe = sqrt((charge_elc * charge_elc) * n0 / (epsilon0 * mass_elc)); // Electron plasma frequency.
+  double lambda_D = vte / omega_pe; // Electron Debye length.
+
+  double k0 = 0.5 / lambda_D; // Perturbed wave number.
 
   // Simulation parameters.
   int Nx = 64; // Cell count (configuration space: x-direction).
-  int Nvx = 32; // Cell count (velocity space: vx-direction).
-  double Lx = 2.0 * pi; // Domain size (configuration space: x-direction).
-  double vx_max = 6.0 * vt; // Domain boundary (velocity space: vx-direction).
+  int Nvx = 64; // Cell count (velocity space: vx-direction).
+  double Lx = 2.0 * pi / k0; // Domain size (configuration space: x-direction).
+  double vx_max = 6.0 * vte; // Domain boundary (velocity space: vx-direction).
   int poly_order = 1; // Polynomial order.
-  double cfl_frac = 1.0; // CFL coefficient.
+  double cfl_frac = 0.6; // CFL coefficient.
 
-  double t_end = 20.0; // Final simulation time.
+  double t_end = 15.0 / omega_pe; // Final simulation time.
   int num_frames = 1; // Number of output frames.
   double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.
   int num_failures_max = 20; // Maximum allowable number of consecutive small time-steps.
 
-  struct freestream_ctx ctx = {
+  struct landau_damping_ctx ctx = {
     .pi = pi,
-    .mass = mass,
-    .charge = charge,
-    .vt = vt,
+    .epsilon0 = epsilon0,
+    .mass_elc = mass_elc,
+    .charge_elc = charge_elc,
+    .n0 = n0,
+    .Te = Te,
+    .alpha = alpha,
+    .vte = vte,
+    .omega_pe = omega_pe,
+    .lambda_D = lambda_D,
+    .k0 = k0,
     .Nx = Nx,
     .Nvx = Nvx,
     .Lx = Lx,
@@ -91,15 +120,19 @@ create_ctx(void)
 }
 
 void
-evalNeutInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
+evalElcInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
 {
-  struct freestream_ctx *app = ctx;
+  struct landau_damping_ctx *app = ctx;
   double x = xn[0], vx = xn[1];
 
   double pi = app->pi;
-  double vt = app->vt;
+  double vte = app->vte;
 
-  double n = (cos(x) / sqrt(2.0 * pi * vt * vt)) * exp(-(vx * vx) / (2.0 * vt * vt)); // Total number density.
+  double alpha = app->alpha;
+  double k0 = app->k0;
+
+  double n = (1.0 + alpha * cos(k0 * x)) *
+    (1.0 / sqrt(2.0 * pi * vte * vte)) * (exp(-(vx * vx) / (2.0 * vte * vte))); // Electron total number density.
 
   // Set total number density.
   fout[0] = n;
@@ -137,7 +170,7 @@ main(int argc, char **argv)
     gkyl_mem_debug_set(true);
   }
 
-  struct freestream_ctx ctx = create_ctx(); // Context for initialization functions.
+  struct landau_damping_ctx ctx = create_ctx(); // Context for initialization functions.
 
   int NX = APP_ARGS_CHOOSE(app_args.xcells[0], ctx.Nx);
   int NVX = APP_ARGS_CHOOSE(app_args.vcells[0], ctx.Nvx);
@@ -218,18 +251,18 @@ main(int argc, char **argv)
     goto mpifinalize;
   }
 
-  // Neutral species.
-  struct gkyl_vlasov_species neut = {
-    .name = "neut",
-    .charge = ctx.charge, .mass = ctx.mass,
+  // Electrons.
+  struct gkyl_vlasov_species elc = {
+    .name = "elc",
+    .charge = ctx.charge_elc, .mass = ctx.mass_elc,
     .lower = { -ctx.vx_max },
     .upper = { ctx.vx_max }, 
     .cells = { NVX },
 
-    .num_init = 1, 
+    .num_init = 1,
     .projection[0] = {
       .proj_id = GKYL_PROJ_FUNC,
-      .func = evalNeutInit,
+      .func = evalElcInit,
       .ctx_func = &ctx,
     },
 
@@ -237,13 +270,23 @@ main(int argc, char **argv)
     .diag_moments = { "M0", "M1i", "M2" },
   };
 
-  // Vlasov-Maxwell app.
+  // Field.
+  struct gkyl_vlasov_field field = {
+    .epsilon0 = ctx.epsilon0,
+
+    .poisson_bcs = {
+      .lo_type = { GKYL_POISSON_PERIODIC },
+      .up_type = { GKYL_POISSON_PERIODIC },
+    },
+  };
+
+  // Vlasov-Poisson app.
   struct gkyl_vm app_inp = {
-    .name = "vlasov_freestream_p1",
-    
+    .name = "vp_landau_damping_1x1v_p1",
+
     .cdim = 1, .vdim = 1,
-    .lower = { 0.0 },
-    .upper = { ctx.Lx },
+    .lower = { -0.5 * ctx.Lx },
+    .upper = { 0.5 * ctx.Lx },
     .cells = { NX },
 
     .poly_order = ctx.poly_order,
@@ -254,14 +297,16 @@ main(int argc, char **argv)
     .periodic_dirs = { 0 },
 
     .num_species = 1,
-    .species = { neut },
-    .skip_field = true,
+    .species = { elc },
+
+    .field = field,
+    .is_electrostatic = true,
 
     .parallelism = {
       .use_gpu = app_args.use_gpu,
       .cuts = { app_args.cuts[0] },
       .comm = comm,
-    },
+    }
   };
 
   // Create app object.
@@ -349,6 +394,7 @@ main(int argc, char **argv)
   // Free resources after simulation completion.
   gkyl_comm_release(comm);
   gkyl_vlasov_app_release(app);
+
 mpifinalize:
 #ifdef GKYL_HAVE_MPI
   if (app_args.use_mpi) {

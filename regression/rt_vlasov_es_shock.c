@@ -127,15 +127,15 @@ void
 evalElcInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
 {
   struct es_shock_ctx *app = ctx;
-  double x = xn[0], v = xn[1];
+  double x = xn[0], vx = xn[1];
 
   double pi = app->pi;
 
   double vte = app->vte;
   double Vx_drift = app->Vx_drift;
 
-  double v_sq_m = (v - Vx_drift) * (v - Vx_drift);
-  double v_sq_p = (v + Vx_drift) * (v + Vx_drift);
+  double v_sq_m = (vx - Vx_drift) * (vx - Vx_drift);
+  double v_sq_p = (vx + Vx_drift) * (vx + Vx_drift);
 
   double n = 0.0;
 
@@ -154,15 +154,15 @@ void
 evalIonInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
 {
   struct es_shock_ctx *app = ctx;
-  double x = xn[0], v = xn[1];
+  double x = xn[0], vx = xn[1];
 
   double pi = app->pi;
 
   double vti = app->vti;
   double Vx_drift = app->Vx_drift;
 
-  double v_sq_m = (v - Vx_drift) * (v - Vx_drift);
-  double v_sq_p = (v + Vx_drift) * (v + Vx_drift);
+  double v_sq_m = (vx - Vx_drift) * (vx - Vx_drift);
+  double v_sq_p = (vx + Vx_drift) * (vx + Vx_drift);
 
   double n = 0.0;
 
