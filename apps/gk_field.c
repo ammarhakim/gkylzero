@@ -461,7 +461,6 @@ gk_field_apply_bc(const gkyl_gyrokinetic_app *app, const struct gk_field *field,
 
   // Then call the TS BC updater to update the z ghosts with TS
   gkyl_bc_twistshift_advance(field->bc_ts_lo, inout, inout);
-  // gkyl_bc_twistshift_advance(field->bc_ts_up, inout, inout);
 
   /* Note:
   * Here the TS BC has been applied blindly i.e. regardless if the process is at the 
@@ -475,7 +474,6 @@ gk_field_apply_bc(const gkyl_gyrokinetic_app *app, const struct gk_field *field,
 
   // Copy the ghost surface value to the skin surface value (SSFG)
   gkyl_skin_surf_from_ghost_advance(field->ssfg_lo, inout);
-  // gkyl_skin_surf_from_ghost_advance(field->ssfg_up, inout);
   /* Note: 
   * Here the SSFG is also applied blindly, i.e. regardless if the process is at the 
   * border of the domain but this is fine because inner skin cells should have matching
