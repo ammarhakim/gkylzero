@@ -74,7 +74,7 @@ newton_raphson(struct gkyl_efit *up, const double *coeffs, double *xsol, bool cu
     errf = 0.0;
     for (int i=0;i<n;i++) errf += fvec[i]*fvec[i];
     errf = sqrt(errf);
-    if (errf <= 1e-19) {
+    if (errf <= 1e-18) {
       for (int i=0;i<n;i++) xsol[i] = x[i];
       return true;
     }
