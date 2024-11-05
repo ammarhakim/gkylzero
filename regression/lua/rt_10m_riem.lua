@@ -1,8 +1,8 @@
 -- Generalized Brio-Wu Riemann problem for the 10-moment equations.
--- Input parameters match the initial conditions found in entry JE4 of Ammar's Simulation Journal (https:--ammar-hakim.org/sj/je/je4/je4-twofluid-shock.html), adapted from Section 7.1 of the article:
+-- Input parameters match the initial conditions found in entry JE4 of Ammar's Simulation Journal (https://ammar-hakim.org/sj/je/je4/je4-twofluid-shock.html), adapted from Section 7.1 of the article:
 -- A. Hakim, J. Loverich and U. Shumlak (2006), "A high resolution wave propagation scheme for ideal Two-Fluid plasma equations",
 -- Journal of Computational Physics, Volume 219 (1): 418-442.
--- https:--www.sciencedirect.com/science/article/pii/S0021999106001707
+-- https://www.sciencedirect.com/science/article/pii/S0021999106001707
 
 local Moments = G0.Moments
 local TenMoment = G0.Moments.Eq.TenMoment

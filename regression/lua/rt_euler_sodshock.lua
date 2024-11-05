@@ -1,3 +1,9 @@
+-- Sod-type shock tube test, using higher-order (Roe) fluxes, for the 5-moment (Euler) equations.
+-- Input parameters match the initial conditions in Section 2.6.2, with the contact discontinuity placed at x = 0.75 rather than x = 0.5, from the thesis:
+-- A. Hakim (2006), "High Resolution Wave Propagation Schemes for Two-Fluid Plasma Simulations",
+-- PhD Thesis, University of Washington.
+-- https://www.aa.washington.edu/sites/aa/files/research/cpdlab/docs/PhDthesis_hakim.pdf
+
 local Moments = G0.Moments
 local Euler = G0.Moments.Eq.Euler
 
@@ -23,6 +29,7 @@ dt_failure_tol = 1.0e-4 -- Minimum allowable fraction of initial time-step.
 num_failures_max = 20 -- Maximum allowable number of consecutive small time-steps.
 
 momentApp = Moments.App.new {
+  
   tEnd = t_end,
   nFrame = num_frames,
   dtFailureTol = dt_failure_tol,

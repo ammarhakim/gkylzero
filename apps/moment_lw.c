@@ -107,12 +107,12 @@ wv_eqn_get(lua_State *L)
   return wv_lw->eqn;
 }
 
-/* ****************/
-/* Euler Equation */
-/* ****************/
+/* *************** */
+/* Euler Equations */
+/* *************** */
 
-// Euler.new { gasgamma = 1.4, rpType = "roe" }
-// rpType is one of "roe", "hllc", "lax", "hll"
+// Euler.new { gasGamma = 1.4, rpType = G0.EulerRP.Roe }
+// where rpType is one of G0.EulerRP.Roe, G0.EulerRP.Lax, G0.EulerRP.HLL or G0.EulerRP.HLLC.
 static int
 eqn_euler_lw_new(lua_State *L)
 {
@@ -129,11 +129,11 @@ eqn_euler_lw_new(lua_State *L)
     }
   );
 
-  // create Lua userdata ...
+  // Create Lua userdata.
   struct wv_eqn_lw **l_euler_lw = lua_newuserdata(L, sizeof(struct wv_eqn_lw*));
-  *l_euler_lw = euler_lw; // ... point it to proper object
+  *l_euler_lw = euler_lw; // Point userdata to the equation object.
   
-  // set metatable
+  // Set metatable.
   luaL_getmetatable(L, MOMENT_WAVE_EQN_METATABLE_NM);
   lua_setmetatable(L, -2);
   
@@ -142,8 +142,8 @@ eqn_euler_lw_new(lua_State *L)
 
 // Equation constructor
 static struct luaL_Reg eqn_euler_ctor[] = {
-  {"new", eqn_euler_lw_new},
-  {0, 0}
+  { "new", eqn_euler_lw_new },
+  { 0, 0 }
 };
 
 /* ***************************/
