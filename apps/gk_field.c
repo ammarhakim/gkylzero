@@ -266,6 +266,7 @@ gk_field_add_TSBC_and_SSFG_updaters(struct gkyl_gyrokinetic_app *app, struct gk_
   double xLCFS = f->info.xLCFS;
   // Index of the cell that abuts the xLCFS from below.
   int idxLCFS_m = (xLCFS-1e-8 - app->grid.lower[0])/app->grid.dx[0]+1;
+
   // Create a core local range, extended in the BC dir.
   int ndim = app->cdim;
   int lower_bcdir_ext[ndim], upper_bcdir_ext[ndim];
@@ -442,7 +443,7 @@ gk_field_rhs(gkyl_gyrokinetic_app *app, struct gk_field *field)
       * twist-and-shift BC exactly. (this should enforce periodicity of y-avg phi)
       */
       if (field->gkfield_id == GKYL_GK_FIELD_ES_IWL && app->cdim == 3) {      
-        gk_field_apply_bc(app, field);
+        gk_field_apply_bc(app, field, field->phi_smooth);
       }
     }
   }
@@ -450,17 +451,17 @@ gk_field_rhs(gkyl_gyrokinetic_app *app, struct gk_field *field)
 }
 
 void
-gk_field_apply_bc(gkyl_gyrokinetic_app *app, struct gk_field *field){
+gk_field_apply_bc(const gkyl_gyrokinetic_app *app, const struct gk_field *field, struct gkyl_array *inout){
 
   // First apply the periodicity to fill the ghost cells
   int num_periodic_dir = 1; // we need only periodicity in z
   int periodic_dirs[] = {2}; // z direction
   gkyl_comm_array_per_sync(app->comm, &app->local, &app->local_ext,
-    num_periodic_dir, periodic_dirs, field->phi_smooth); 
+    num_periodic_dir, periodic_dirs, inout); 
 
   // Then call the TS BC updater to update the z ghosts with TS
-  gkyl_bc_twistshift_advance(field->bc_ts_lo, field->phi_smooth, field->phi_smooth);
-  gkyl_bc_twistshift_advance(field->bc_ts_up, field->phi_smooth, field->phi_smooth);
+  gkyl_bc_twistshift_advance(field->bc_ts_lo, inout, inout);
+  // gkyl_bc_twistshift_advance(field->bc_ts_up, inout, inout);
 
   /* Note:
   * Here the TS BC has been applied blindly i.e. regardless if the process is at the 
@@ -470,11 +471,11 @@ gk_field_apply_bc(gkyl_gyrokinetic_app *app, struct gk_field *field){
   * This method creates a lighter code and is the same to the one used for the TS BC
   * of the distribution function in gk_species.c
   */
-  gkyl_comm_array_sync(field->comm, &field->local, &field->local_ext, field->phi_smooth);
+  gkyl_comm_array_sync(field->comm, &field->local, &field->local_ext, inout);
 
   // Copy the ghost surface value to the skin surface value (SSFG)
-  gkyl_skin_surf_from_ghost_advance(field->ssfg_lo, field->phi_smooth);
-  gkyl_skin_surf_from_ghost_advance(field->ssfg_up, field->phi_smooth);
+  gkyl_skin_surf_from_ghost_advance(field->ssfg_lo, inout);
+  // gkyl_skin_surf_from_ghost_advance(field->ssfg_up, inout);
   /* Note: 
   * Here the SSFG is also applied blindly, i.e. regardless if the process is at the 
   * border of the domain but this is fine because inner skin cells should have matching
