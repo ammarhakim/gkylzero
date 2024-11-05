@@ -73,6 +73,31 @@ struct vlasov_species_lw {
   double collision_iter_eps; // Error tolerance for moment fixes in collisions (density is always exact).
   int collision_max_iter; // Maximum number of iterations for moment fixes in collisions.
   bool collision_use_last_converged; // Use last iteration value in collisions regardless of convergence?
+
+  enum gkyl_source_id source_id; // Source type.
+
+  double source_length; // Length used to scale the source function.
+  char source_species[128]; // Name of species to use for the source.
+
+  int num_sources; // Number of projection objects in source.
+  enum gkyl_projection_id source_proj_id[GKYL_MAX_PROJ]; // Projection type in source.
+
+  bool source_has_init_func[GKYL_MAX_PROJ]; // Is there an initialization function in source?
+  struct lua_func_ctx source_init_func_ref[GKYL_MAX_PROJ]; // Lua registry reference to initialization function in source.
+
+  bool source_has_density_init_func[GKYL_MAX_PROJ]; // Is there a density initialization function in source?
+  struct lua_func_ctx source_density_init_func_ref[GKYL_MAX_PROJ]; // Lua registry reference to density initialization function in source.
+
+  bool source_has_V_drift_init_func[GKYL_MAX_PROJ]; // Is there a drift velocity initialization function in source?
+  struct lua_func_ctx source_V_drift_init_func_ref[GKYL_MAX_PROJ]; // Lua registry reference to drift velocity initialization function in source.
+
+  bool source_has_temp_init_func[GKYL_MAX_PROJ]; // Is there a temperature initialization function in source?
+  struct lua_func_ctx source_temp_init_func_ref[GKYL_MAX_PROJ]; // Lua registry reference to temperature initialization function in source.
+
+  bool source_correct_all_moms[GKYL_MAX_PROJ]; // Are we correcting all moments in projections, or only density, in source?
+  double source_iter_eps[GKYL_MAX_PROJ]; // Error tolerance for moment fixes in projections (density is always exact) in source.
+  int source_max_iter[GKYL_MAX_PROJ]; // Maximum number of iterations for moment fixes in projections in source.
+  bool source_use_last_converged[GKYL_MAX_PROJ]; // Use last iteration value in projection regardless of convergence in source?
 };
 
 static int
@@ -243,6 +268,84 @@ vlasov_species_lw_new(lua_State *L)
     collision_iter_eps = glua_tbl_get_number(L, "iterationEpsilon", pow(10.0, -12.0));
     collision_max_iter = glua_tbl_get_integer(L, "maxIterations", 100);
     collision_use_last_converged = glua_tbl_get_bool(L, "useLastConverged", true);
+  }
+
+  enum gkyl_source_id source_id = GKYL_NO_SOURCE;
+
+  double source_length = 1.0;
+  char source_species[128];
+
+  int num_sources = 0;
+  enum gkyl_projection_id source_proj_id[GKYL_MAX_PROJ];
+
+  bool source_has_init_func[GKYL_MAX_PROJ];
+  int source_init_func_ref[GKYL_MAX_PROJ];
+
+  bool source_has_density_init_func[GKYL_MAX_PROJ];
+  int source_density_init_func_ref[GKYL_MAX_PROJ];
+
+  bool source_has_V_drift_init_func[GKYL_MAX_PROJ];
+  int source_V_drift_init_func_ref[GKYL_MAX_PROJ];
+
+  bool source_has_temp_init_func[GKYL_MAX_PROJ];
+  int source_temp_init_func_ref[GKYL_MAX_PROJ];
+
+  bool source_correct_all_moms[GKYL_MAX_PROJ];
+  double source_iter_eps[GKYL_MAX_PROJ];
+  int source_max_iter[GKYL_MAX_PROJ];
+  bool source_use_last_converged[GKYL_MAX_PROJ];
+
+  with_lua_tbl_tbl(L, "source") {
+    source_id = glua_tbl_get_integer(L, "sourceID", 0);
+
+    source_length = glua_tbl_get_number(L, "sourceLength", 1.0);
+    const char* source_species_char = glua_tbl_get_string(L, "sourceSpecies", "");
+    strcpy(source_species, source_species_char);
+
+    num_sources = glua_tbl_get_integer(L, "numSources", 0);
+
+    with_lua_tbl_tbl(L, "projections") {
+      for (int i = 0; i < num_init; i++) {
+        if (glua_tbl_iget_tbl(L, i + 1)) {
+          source_proj_id[i] = glua_tbl_get_integer(L, "projectionID", 0);
+
+          source_init_func_ref[i] = LUA_NOREF;
+          source_has_init_func[i] = false;
+          if (glua_tbl_get_func(L, "init")) {
+            source_init_func_ref[i] = luaL_ref(L, LUA_REGISTRYINDEX);
+            source_has_init_func[i] = true;
+          }
+
+          source_density_init_func_ref[i] = LUA_NOREF;
+          source_has_density_init_func[i] = false;
+          if (glua_tbl_get_func(L, "densityInit")) {
+            source_density_init_func_ref[i] = luaL_ref(L, LUA_REGISTRYINDEX);
+            source_has_density_init_func[i] = true;
+          }
+
+          source_V_drift_init_func_ref[i] = LUA_NOREF;
+          source_has_V_drift_init_func[i] = false;
+          if (glua_tbl_get_func(L, "driftVelocityInit")) {
+            source_V_drift_init_func_ref[i] = luaL_ref(L, LUA_REGISTRYINDEX);
+            source_has_V_drift_init_func[i] = true;
+          }
+
+          source_temp_init_func_ref[i] = LUA_NOREF;
+          source_has_temp_init_func[i] = false;
+          if (glua_tbl_get_func(L, "temperatureInit")) {
+            source_temp_init_func_ref[i] = luaL_ref(L, LUA_REGISTRYINDEX);
+            source_has_temp_init_func[i] = true;
+          }
+
+          source_correct_all_moms[i] = glua_tbl_get_bool(L, "correctAllMoms", true);
+          source_iter_eps[i] = glua_tbl_get_number(L, "iterationEpsilon", pow(10.0, -12.0));
+          source_max_iter[i] = glua_tbl_get_integer(L, "maxIterations", 100);
+          source_use_last_converged[i] = glua_tbl_get_bool(L, "useLastConverged", true);
+
+          lua_pop(L, 1);
+        }
+      }
+    }
   }
   
   struct vlasov_species_lw *vms_lw = lua_newuserdata(L, sizeof(*vms_lw));
@@ -459,6 +562,31 @@ struct vlasov_app_lw {
   int collision_max_iter[GKYL_MAX_SPECIES]; // Maximum number of iterations for moment fixes in collisions.
   bool collision_use_last_converged[GKYL_MAX_SPECIES]; // Use last iteration value in collisions regardless of convergence?
 
+  enum gkyl_source_id source_id[GKYL_MAX_SPECIES]; // Source type.
+
+  double source_length[GKYL_MAX_SPECIES]; // Length used to scale the source function.
+  char source_species[GKYL_MAX_SPECIES][128]; // Name of speccies to use for the source.
+
+  int num_sources[GKYL_MAX_SPECIES]; // Number of projection objects in source.
+  enum gkyl_projection_id source_proj_id[GKYL_MAX_SPECIES][GKYL_MAX_PROJ]; // Projection type in source.
+
+  bool source_has_init_func[GKYL_MAX_SPECIES][GKYL_MAX_PROJ]; // Is there an initialization function in source?
+  struct lua_func_ctx source_init_func_ctx[GKYL_MAX_SPECIES][GKYL_MAX_PROJ]; // Context for initialization function in source.
+
+  bool source_has_density_init_func[GKYL_MAX_SPECIES][GKYL_MAX_PROJ]; // Is there a density initialization function in source?
+  struct lua_func_ctx source_density_init_func_ctx[GKYL_MAX_SPECIES][GKYL_MAX_PROJ]; // Context for density initialization function in source.
+
+  bool source_has_V_drift_init_func[GKYL_MAX_SPECIES][GKYL_MAX_PROJ]; // Is there a drift velocity initialization function in source?
+  struct lua_func_ctx source_V_drift_init_func_ctx[GKYL_MAX_SPECIES][GKYL_MAX_PROJ]; // Context for drift velocity initialization function in source.
+
+  bool source_has_temp_init_func[GKYL_MAX_SPECIES][GKYL_MAX_PROJ]; // Is there a temperature initialization function in source?
+  struct lua_func_ctx source_temp_init_func_ctx[GKYL_MAX_SPECIES][GKYL_MAX_PROJ]; // Context for temperature initialization function in source.
+
+  bool source_correct_all_moms[GKYL_MAX_SPECIES][GKYL_MAX_PROJ]; // Are we correcting all moments in projections, or only density, in source?
+  double source_iter_eps[GKYL_MAX_SPECIES][GKYL_MAX_PROJ]; // Error tolerance for moment fixes in projections (density is always exact) in source.
+  int source_max_iter[GKYL_MAX_SPECIES][GKYL_MAX_PROJ]; // Maximum number of iterations for moment fixes in projections in source.
+  bool source_use_last_converged[GKYL_MAX_SPECIES][GKYL_MAX_PROJ]; // Use last iteration value in projection regardless of convergence in source?
+
   struct lua_func_ctx field_func_ctx; // function context for field
   
   double tstart, tend; // start and end times of simulation
@@ -481,7 +609,7 @@ get_species_inp(lua_State *L, int cdim, struct vlasov_species_lw *species[GKYL_M
       struct vlasov_species_lw *vms = lua_touserdata(L, TVAL);
       if (vms->magic == VLASOV_SPECIES_DEFAULT) {
         
-        for (int i =0; i < vms->num_init; i++) {
+        for (int i = 0; i < vms->num_init; i++) {
           if (vms->has_init_func[i]) {
             vms->init_func_ref[i].ndim = cdim + vms->vdim;
           }
@@ -501,6 +629,24 @@ get_species_inp(lua_State *L, int cdim, struct vlasov_species_lw *species[GKYL_M
 
         if (vms->has_self_nu_func) {
           vms->self_nu_func_ref.ndim = cdim + vms->vdim;
+        }
+
+        for (int i = 0; i < vms->num_sources; i++) {
+          if (vms->source_has_init_func[i]) {
+            vms->source_init_func_ref[i].ndim = cdim + vms->vdim;
+          }
+
+          if (vms->source_has_density_init_func[i]) {
+            vms->source_density_init_func_ref[i].ndim = cdim + vms->vdim;
+          }
+
+          if (vms->source_has_V_drift_init_func[i]) {
+            vms->source_V_drift_init_func_ref[i].ndim = cdim + vms->vdim;
+          }
+
+          if (vms->source_has_temp_init_func[i]) {
+            vms->source_temp_init_func_ref[i].ndim = cdim + vms->vdim;
+          }
         }
         
         if (lua_type(L,TKEY) == LUA_TSTRING) {
@@ -672,6 +818,68 @@ vm_app_new(lua_State *L)
     vm.species[s].collisions.iter_eps = app_lw->collision_iter_eps[s];
     vm.species[s].collisions.max_iter = app_lw->collision_max_iter[s];
     vm.species[s].collisions.use_last_converged = app_lw->collision_use_last_converged[s];
+
+    app_lw->source_id[s] = species[s]->source_id;
+
+    app_lw->source_length[s] = species[s]->source_length;
+    strcpy(app_lw->source_species[s], species[s]->source_species);
+
+    app_lw->num_sources[s] = species[s]->num_init;
+    for (int i = 0; i < app_lw->num_init[s]; i++) {
+      app_lw->source_proj_id[s][i] = species[s]->source_proj_id[i];
+
+      app_lw->source_has_init_func[s][i] = species[s]->source_has_init_func[i];
+      app_lw->source_init_func_ctx[s][i] = species[s]->source_init_func_ref[i];
+
+      app_lw->source_has_density_init_func[s][i] = species[s]->source_has_density_init_func[i];
+      app_lw->source_density_init_func_ctx[s][i] = species[s]->source_density_init_func_ref[i];
+
+      app_lw->source_has_V_drift_init_func[s][i] = species[s]->source_has_V_drift_init_func[i];
+      app_lw->source_V_drift_init_func_ctx[s][i] = species[s]->source_V_drift_init_func_ref[i];
+
+      app_lw->source_has_temp_init_func[s][i] = species[s]->source_has_temp_init_func[i];
+      app_lw->source_temp_init_func_ctx[s][i] = species[s]->source_temp_init_func_ref[i];
+
+      app_lw->source_correct_all_moms[s][i] = species[s]->source_correct_all_moms[i];
+      app_lw->source_iter_eps[s][i] = species[s]->source_iter_eps[i];
+      app_lw->source_max_iter[s][i] = species[s]->source_max_iter[i];
+      app_lw->source_use_last_converged[s][i] = species[s]->source_use_last_converged[i];
+    }
+
+    vm.species[s].source.source_id = app_lw->source_id[s];
+
+    vm.species[s].source.source_length = app_lw->source_length[s];
+    strcpy(vm.species[s].source.source_species, app_lw->source_species[s]);
+
+    vm.species[s].source.num_sources = app_lw->num_sources[s];
+    for (int i = 0; i < app_lw->num_sources[s]; i++) {
+      vm.species[s].source.projection[i].proj_id = app_lw->source_proj_id[s][i];
+
+      if (species[s]->source_has_init_func[i]) {
+        vm.species[s].source.projection[i].func = gkyl_lw_eval_cb;
+        vm.species[s].source.projection[i].ctx_func = &app_lw->source_init_func_ctx[s][i];
+      }
+
+      if (species[s]->source_has_density_init_func[i]) {
+        vm.species[s].source.projection[i].density = gkyl_lw_eval_cb;
+        vm.species[s].source.projection[i].ctx_density = &app_lw->source_density_init_func_ctx[s][i];
+      }
+
+      if (species[s]->source_has_V_drift_init_func[i]) {
+        vm.species[s].source.projection[i].V_drift = gkyl_lw_eval_cb;
+        vm.species[s].source.projection[i].ctx_V_drift = &app_lw->source_V_drift_init_func_ctx[s][i];
+      }
+
+      if (species[s]->source_has_temp_init_func[i]) {
+        vm.species[s].source.projection[i].temp = gkyl_lw_eval_cb;
+        vm.species[s].source.projection[i].ctx_temp = &app_lw->source_temp_init_func_ctx[s][i];
+      }
+
+      vm.species[s].source.projection[i].correct_all_moms = app_lw->source_correct_all_moms[s][i];
+      vm.species[s].source.projection[i].iter_eps = app_lw->source_iter_eps[s][i];
+      vm.species[s].source.projection[i].max_iter = app_lw->source_max_iter[s][i];
+      vm.species[s].source.projection[i].use_last_converged = app_lw->source_use_last_converged[s][i];
+    }
   }
 
   // Set field input.

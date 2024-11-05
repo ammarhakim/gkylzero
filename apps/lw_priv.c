@@ -81,6 +81,15 @@ static const struct gkyl_str_int_pair collision_type[] = {
   { 0, 0 }
 };
 
+// Vlasov source type -> enum map.
+static const struct gkyl_str_int_pair source_type[] = {
+  { "None", GKYL_NO_SOURCE },
+  { "Func", GKYL_FUNC_SOURCE },
+  { "Proj", GKYL_PROJ_SOURCE },
+  { "BoundaryFlux", GKYL_BFLUX_SOURCE },
+  { 0, 0 }
+};
+
 static void
 register_types(lua_State *L, const struct gkyl_str_int_pair types[], const char *nm)
 {
@@ -137,6 +146,12 @@ void
 gkyl_register_vlasov_collision_types(lua_State *L)
 {
   register_types(L, collision_type, "Collisions");
+}
+
+void
+gkyl_register_vlasov_source_types(lua_State *L)
+{
+  register_types(L, collision_type, "Source");
 }
 
 void

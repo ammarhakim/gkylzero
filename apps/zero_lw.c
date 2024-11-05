@@ -119,10 +119,11 @@ gkyl_zero_lw_openlibs(lua_State *L)
   // Register types for Riemann solvers.
   gkyl_register_euler_rp_types(L);
 
-  // Register types for Vlasov projection, model ID and collision ID initialization.
+  // Register types for Vlasov projection, model ID, collision ID, and source ID initialization.
   gkyl_register_vlasov_projection_types(L);
   gkyl_register_vlasov_model_types(L);
   gkyl_register_vlasov_collision_types(L);
+  gkyl_register_vlasov_source_types(L);
 }
 
 #endif

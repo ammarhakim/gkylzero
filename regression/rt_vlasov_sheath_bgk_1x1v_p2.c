@@ -167,8 +167,8 @@ evalElcSourceInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRIC
 
   double n = 0.0;
 
-  if(fabs(x) < Ls) {
-    n = 2.0 * (Ls - fabs(x)) / Ls * (1.0 / sqrt(2.0 * pi * (vte * vte)) * (exp(-(vx * vx) / (2.0 * (vte * vte))))); // Electron source total number density (left);
+  if (fabs(x) < Ls) {
+    n = 2.0 * (Ls - fabs(x)) / Ls * (1.0 / sqrt(2.0 * pi * (vte * vte)) * (exp(-(vx * vx) / (2.0 * (vte * vte))))); // Electron source total number density (left).
   }
   else {
     n = 0.0; // Electron source total number density (right).

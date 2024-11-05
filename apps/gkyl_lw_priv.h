@@ -89,6 +89,14 @@ void
 gkyl_register_vlasov_collision_types(lua_State *L);
 
 /**
+ * Add source type flags for Vlasov species initialization into Lua interpreter.
+ *
+ * @param L Lua state to use.
+ */
+void
+gkyl_register_vlasov_source_types(lua_State *L);
+
+/**
  * Wrapper around Lua function for use in eval callbacks.
  */
 void
