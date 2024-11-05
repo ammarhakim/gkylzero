@@ -594,8 +594,10 @@ struct vlasov_app_lw {
 
   struct lua_func_ctx field_func_ctx; // function context for field
   
-  double tstart, tend; // start and end times of simulation
-  int nframe; // number of data frames to write
+  double t_start, t_end; // Start and end times of simulation.
+  int num_frames; // Number of data frames to write.
+  double dt_failure_tol; // Minimum allowable fraction of initial time-step.
+  int num_failures_max; // Maximum allowable number of consecutive small time-steps.
 };
 
 // Gets all species objects from the App table, which must on top of
@@ -682,9 +684,11 @@ vm_app_new(lua_State *L)
   
   // initialize app using table inputs (table is on top of stack)
 
-  app_lw->tstart = glua_tbl_get_number(L, "tStart", 0.0);
-  app_lw->tend = glua_tbl_get_number(L, "tEnd", 1.0);
-  app_lw->nframe = glua_tbl_get_integer(L, "nFrame", 1);
+  app_lw->t_start = glua_tbl_get_number(L, "tStart", 0.0);
+  app_lw->t_end = glua_tbl_get_number(L, "tEnd", 1.0);
+  app_lw->num_frames = glua_tbl_get_integer(L, "nFrame", 1);
+  app_lw->dt_failure_tol = glua_tbl_get_number(L, "dtFailureTol", 1.0e-4);
+  app_lw->num_failures_max = glua_tbl_get_integer(L, "numFailuresMax", 20);
 
   struct gkyl_vm vm = { }; // input table for app
 
@@ -974,7 +978,7 @@ vm_app_apply_ic(lua_State *L)
   struct vlasov_app_lw **l_app_lw = GKYL_CHECK_UDATA(L, VLASOV_APP_METATABLE_NM);
   struct vlasov_app_lw *app_lw = *l_app_lw;
 
-  double t0 = luaL_optnumber(L, 2, app_lw->tstart);
+  double t0 = luaL_optnumber(L, 2, app_lw->t_start);
   gkyl_vlasov_app_apply_ic(app_lw->app, t0);
 
   lua_pushboolean(L, status);  
@@ -990,7 +994,7 @@ vm_app_apply_ic_field(lua_State *L)
   struct vlasov_app_lw **l_app_lw = GKYL_CHECK_UDATA(L, VLASOV_APP_METATABLE_NM);
   struct vlasov_app_lw *app_lw = *l_app_lw;
 
-  double t0 = luaL_optnumber(L, 2, app_lw->tstart);
+  double t0 = luaL_optnumber(L, 2, app_lw->t_start);
   gkyl_vlasov_app_apply_ic_field(app_lw->app, t0);
 
   lua_pushboolean(L, status);  
@@ -1007,7 +1011,7 @@ vm_app_apply_ic_species(lua_State *L)
   struct vlasov_app_lw *app_lw = *l_app_lw;
 
   int sidx = luaL_checkinteger(L, 2);
-  double t0 = luaL_optnumber(L, 3, app_lw->tstart);
+  double t0 = luaL_optnumber(L, 3, app_lw->t_start);
   gkyl_vlasov_app_apply_ic_species(app_lw->app, sidx, t0);
 
   lua_pushboolean(L, status);  
@@ -1207,66 +1211,115 @@ vm_app_stat_write(lua_State *L)
   return 1;  
 }
 
-// Write data from simulation to file
+// Write data from simulation to file.
 static void
-write_data(struct gkyl_tm_trigger *iot, gkyl_vlasov_app *app, double tcurr)
+write_data(struct gkyl_tm_trigger* iot, gkyl_vlasov_app* app, double t_curr, bool force_write)
 {
-  if (gkyl_tm_trigger_check_and_bump(iot, tcurr)) {
-    gkyl_vlasov_app_write(app, tcurr, iot->curr-1);
-    gkyl_vlasov_app_calc_mom(app); gkyl_vlasov_app_write_mom(app, tcurr, iot->curr-1);
+  if (gkyl_tm_trigger_check_and_bump(iot, t_curr)) {
+    int frame = iot->curr - 1;
+    if (force_write) {
+      frame = iot->curr;
+    }
+
+    gkyl_vlasov_app_write(app, t_curr, iot->curr - 1);
+
+    gkyl_vlasov_app_calc_mom(app);
+    gkyl_vlasov_app_write_mom(app, t_curr, iot->curr - 1);
   }
 }
 
-// Run simulation. (num_steps) -> bool. num_steps is optional
+// Run simulation. (num_steps) -> bool. num_steps is optional.
 static int
 vm_app_run(lua_State *L)
 {
   bool ret_status = true;
 
+  // Create app object.
   struct vlasov_app_lw **l_app_lw = GKYL_CHECK_UDATA(L, VLASOV_APP_METATABLE_NM);
   struct vlasov_app_lw *app_lw = *l_app_lw;
   struct gkyl_vlasov_app *app = app_lw->app;
 
-  double tcurr = app_lw->tstart;
-  double tend = app_lw->tend;
-  double dt = tend-tcurr;
+  // Initial and final simulation times.
+  double t_curr = app_lw->t_start, t_end = app_lw->t_end;
   long num_steps = luaL_optinteger(L, 2, INT_MAX);
 
-  int nframe = app_lw->nframe;
+  // Create trigger for IO.
+  int num_frames = app_lw->num_frames;
+  struct gkyl_tm_trigger io_trig = { .dt = t_end / num_frames };
 
-  // create trigger for IO
-  struct gkyl_tm_trigger io_trig = { .dt = tend/nframe };
+  // Initialize simulation.
+  gkyl_vlasov_app_apply_ic(app, t_curr);
+  gkyl_vlasov_app_calc_integrated_mom(app, t_curr);
+  gkyl_vlasov_app_calc_field_energy(app, t_curr);
+  write_data(&io_trig, app, t_curr, false);
 
-  // initialize simulation
-  gkyl_vlasov_app_apply_ic(app, tcurr);
-  write_data(&io_trig, app, tcurr);
-  gkyl_vlasov_app_calc_integrated_mom(app, tcurr);
-  gkyl_vlasov_app_calc_field_energy(app, tcurr);
+  // Compute initial guess of maximum stable time-step.
+  double dt = t_end - t_curr;
+
+  // Initialize small time-step check.
+  double dt_init = -1.0, dt_failure_tol = app_lw->dt_failure_tol;
+  int num_failures = 0, num_failures_max = app_lw->num_failures_max;
 
   long step = 1;
-  while ((tcurr < tend) && (step <= num_steps)) {
-    gkyl_vlasov_app_cout(app, stdout, "Taking time-step at t = %g ...", tcurr);
+  while ((t_curr < t_end) && (step <= num_steps)) {
+    gkyl_vlasov_app_cout(app, stdout, "Taking time-step %ld at t = %g ...", step, t_curr);
     struct gkyl_update_status status = gkyl_vlasov_update(app, dt);
     gkyl_vlasov_app_cout(app, stdout, " dt = %g\n", status.dt_actual);
 
-    gkyl_vlasov_app_calc_integrated_mom(app, tcurr);
-    gkyl_vlasov_app_calc_field_energy(app, tcurr);    
-    
     if (!status.success) {
-      ret_status = false;
       gkyl_vlasov_app_cout(app, stdout, "** Update method failed! Aborting simulation ....\n");
       break;
     }
-    tcurr += status.dt_actual;
+
+    t_curr += status.dt_actual;
     dt = status.dt_suggested;
-    write_data(&io_trig, app, tcurr);
+
+    write_data(&io_trig, app, t_curr, false);
+
+    if (dt_init < 0.0) {
+      dt_init = status.dt_actual;
+    }
+    else if (status.dt_actual < dt_failure_tol * dt_init) {
+      num_failures += 1;
+
+      gkyl_vlasov_app_cout(app, stdout, "WARNING: Time-step dt = %g", status.dt_actual);
+      gkyl_vlasov_app_cout(app, stdout, " is below %g*dt_init ...", dt_failure_tol);
+      gkyl_vlasov_app_cout(app, stdout, " num_failures = %d\n", num_failures);
+      if (num_failures >= num_failures_max) {
+        gkyl_vlasov_app_cout(app, stdout, "ERROR: Time-step was below %g*dt_init ", dt_failure_tol);
+        gkyl_vlasov_app_cout(app, stdout, "%d consecutive times. Aborting simulation ....\n", num_failures_max);
+        break;
+      }
+    }
+    else {
+      num_failures = 0;
+    }
 
     step += 1;
   }
 
+  write_data(&io_trig, app, t_curr, false);
   gkyl_vlasov_app_stat_write(app);
-  gkyl_vlasov_app_write_integrated_mom(app);
-  gkyl_vlasov_app_write_field_energy(app);
+
+  struct gkyl_vlasov_stat stat = gkyl_vlasov_app_stat(app);
+
+  gkyl_vlasov_app_cout(app, stdout, "\n");
+  gkyl_vlasov_app_cout(app, stdout, "Number of update calls %ld\n", stat.nup);
+  gkyl_vlasov_app_cout(app, stdout, "Number of forward-Euler calls %ld\n", stat.nfeuler);
+  gkyl_vlasov_app_cout(app, stdout, "Number of RK stage-2 failures %ld\n", stat.nstage_2_fail);
+  if (stat.nstage_2_fail > 0) {
+    gkyl_vlasov_app_cout(app, stdout, "  Max rel dt diff for RK stage-2 failures %g\n", stat.stage_2_dt_diff[1]);
+    gkyl_vlasov_app_cout(app, stdout, "  Min rel dt diff for RK stage-2 failures %g\n", stat.stage_2_dt_diff[0]);
+  }  
+  gkyl_vlasov_app_cout(app, stdout, "Number of RK stage-3 failures %ld\n", stat.nstage_3_fail);
+  gkyl_vlasov_app_cout(app, stdout, "Species RHS calc took %g secs\n", stat.species_rhs_tm);
+  gkyl_vlasov_app_cout(app, stdout, "Species collisions RHS calc took %g secs\n", stat.species_coll_tm);
+  gkyl_vlasov_app_cout(app, stdout, "Field RHS calc took %g secs\n", stat.field_rhs_tm);
+  gkyl_vlasov_app_cout(app, stdout, "Species collisional moments took %g secs\n", stat.species_coll_mom_tm);
+  gkyl_vlasov_app_cout(app, stdout, "Total updates took %g secs\n", stat.total_tm);
+
+  gkyl_vlasov_app_cout(app, stdout, "Number of write calls %ld\n", stat.nio);
+  gkyl_vlasov_app_cout(app, stdout, "IO time took %g secs \n", stat.io_tm);
 
   lua_pushboolean(L, ret_status);
   return 1;

@@ -24,11 +24,15 @@ cfl_frac = 1.0 -- CFL coefficient.
 
 t_end = 0.3 -- Final simulation time.
 num_frames = 1 -- Number of output frames.
+dt_failure_tol = 1.0e-4 -- Minimum allowable fraction of initial time-step.
+num_failures_max = 20 -- Maximum allowable number of consecutive small time-steps.
 
 vlasovApp = Vlasov.App.new {
 
   tEnd = t_end,
   nFrame = num_frames,
+  dtFailureTol = dt_failure_tol,
+  numFailuresMax = num_failures_max,
   lower = { 0.0 },
   upper = { Lx },
   cells = { Nx },

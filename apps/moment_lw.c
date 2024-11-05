@@ -1343,7 +1343,7 @@ mom_app_stat_write(lua_State *L)
 }
 
 // Write data from simulation to file.
-void
+static void
 write_data(struct gkyl_tm_trigger* iot, gkyl_moment_app* app, double t_curr, bool force_write)
 {
   if (gkyl_tm_trigger_check_and_bump(iot, t_curr)) {
@@ -1391,7 +1391,7 @@ mom_app_update(lua_State *L)
   return 1;
 }
 
-// Run simulation. (num_steps) -> bool. num_steps is optional
+// Run simulation. (num_steps) -> bool. num_steps is optional.
 static int
 mom_app_run(lua_State *L)
 {

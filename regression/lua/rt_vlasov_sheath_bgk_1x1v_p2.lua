@@ -44,6 +44,8 @@ vlasovApp = Vlasov.App.new {
 
   tEnd = t_end,
   nFrame = num_frames,
+  dtFailureTol = dt_failure_tol,
+  numFailuresMax = num_failures_max,
   lower = { 0.0 },
   upper = { Lx },
   cells = { Nx },
