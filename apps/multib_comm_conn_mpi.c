@@ -1,3 +1,5 @@
+#ifdef GKYL_HAVE_MPI
+
 #include <gkyl_multib_comm_conn_priv.h>
 #include <gkyl_comm_priv.h>
 #include <gkyl_mpi_comm_priv.h>
@@ -100,3 +102,15 @@ gkyl_multib_comm_conn_array_transfer_mpi(struct gkyl_comm *comm, int num_blocks_
   
   return 0;
 }
+
+#else 
+
+int
+gkyl_multib_comm_conn_array_transfer_mpi(struct gkyl_comm *comm, int num_blocks_local, const int *local_blocks,
+  struct gkyl_multib_comm_conn **mbcc_send, struct gkyl_multib_comm_conn **mbcc_recv,
+  struct gkyl_array **arr_send, struct gkyl_array **arr_recv)
+{
+  return 1;
+}
+
+#endif
