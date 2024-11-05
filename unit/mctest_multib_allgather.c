@@ -566,6 +566,7 @@ test_L_domain_send_connections_dir0_cuts2_par()
   int my_rank, num_ranks;
   gkyl_comm_get_rank(comm, &my_rank);
   gkyl_comm_get_size(comm, &num_ranks);
+  if (num_ranks!=2) {return;}
 
 
   int num_blocks = 3; // L-shaped example.
@@ -699,6 +700,8 @@ test_L_domain_send_connections_dir0_cuts2_par()
   
   gkyl_block_topo_release(topo);
   gkyl_block_geom_release(geom);
+  gkyl_comm_release(comm);
+
 }
 
 static void
@@ -713,6 +716,7 @@ test_L_domain_recv_connections_dir0_cuts2_par()
   int my_rank, num_ranks;
   gkyl_comm_get_rank(comm, &my_rank);
   gkyl_comm_get_size(comm, &num_ranks);
+  if (num_ranks!=2) {return;}
 
 
   int num_blocks = 3; // L-shaped example.
@@ -846,6 +850,7 @@ test_L_domain_recv_connections_dir0_cuts2_par()
   
   gkyl_block_topo_release(topo);
   gkyl_block_geom_release(geom);
+  gkyl_comm_release(comm);
 }
 
 static void
@@ -1044,6 +1049,7 @@ test_L_domain_allgather_dir0_cuts2_par()
   gkyl_free(block_list);
   gkyl_block_topo_release(topo);
   gkyl_block_geom_release(geom);
+  gkyl_comm_release(comm);
 }
 
 static void
@@ -1059,16 +1065,18 @@ test_SOL_domain_allgather_dir1_cuts2_par()
   gkyl_comm_get_rank(comm, &my_rank);
   gkyl_comm_get_size(comm, &num_ranks);
 
+  if (num_ranks!=2) 
+    return;
 
-  int num_blocks = 3; // L-shaped example.
+  int num_blocks = 3; // SOL-shaped example.
   int ndim = 2;
 
-  int ncuts_block2 = num_ranks > 1 ? 2 : 1;
+  int ncuts_block1 = num_ranks > 1 ? 2 : 1;
   
   int cuts_flat[] = {
     1, 1, // Block 0.
-    1, 1, // Block 1.
-    ncuts_block2, 1, // Block 2.
+    1, ncuts_block1, // Block 1.
+    1, 1, // Block 2.
   };
   int **cuts = cuts_array_new(num_blocks, ndim, cuts_flat);
   struct gkyl_block_geom *geom  = create_SOL_domain_block_geom(cuts);
@@ -1081,6 +1089,30 @@ test_SOL_domain_allgather_dir1_cuts2_par()
   }
   cuts_array_release(num_blocks, cuts);
   const struct gkyl_rrobin_decomp* round_robin_decomp = gkyl_rrobin_decomp_new(num_ranks, num_blocks, branks);
+
+  // Check rank info. This is what was used to produce the expected results
+  //int num_ranks_pb[3] = {-1};
+  //num_ranks_pb[0] = gkyl_rrobin_decomp_nranks(round_robin_decomp, 0);
+  //num_ranks_pb[1] = gkyl_rrobin_decomp_nranks(round_robin_decomp, 1);
+  //num_ranks_pb[2] = gkyl_rrobin_decomp_nranks(round_robin_decomp, 2);
+
+  //int ranks_0[num_ranks_pb[0]];
+  //int ranks_1[num_ranks_pb[1]];
+  //int ranks_2[num_ranks_pb[2]];
+  //gkyl_rrobin_decomp_getranks(round_robin_decomp, 0, ranks_0);
+  //gkyl_rrobin_decomp_getranks(round_robin_decomp, 1, ranks_1);
+  //gkyl_rrobin_decomp_getranks(round_robin_decomp, 2, ranks_2);
+
+  //printf("num_ranks_pb = [%d, %d, %d]\n", num_ranks_pb[0], num_ranks_pb[1], num_ranks_pb[2]);
+  //printf("Block 0 has ranks: ");
+  //for (int i=0; i<num_ranks_pb[0]; i++) printf("%d ", ranks_0[i]);
+  //printf("\n");
+  //printf("Block 1 has ranks: ");
+  //for (int i=0; i<num_ranks_pb[1]; i++) printf("%d ", ranks_1[i]);
+  //printf("\n");
+  //printf("Block 2 has ranks: ");
+  //for (int i=0; i<num_ranks_pb[2]; i++) printf("%d ", ranks_2[i]);
+  //printf("\n");
 
   int *rank_list = gkyl_malloc(sizeof(int[num_ranks])); // Allocate enough space.
 
@@ -1130,6 +1162,8 @@ test_SOL_domain_allgather_dir1_cuts2_par()
 
   struct gkyl_array **array_local = gkyl_malloc(num_local_blocks* sizeof(struct gkyl_array*));
   struct gkyl_array **array_global = gkyl_malloc(num_local_blocks* sizeof(struct gkyl_array *));
+  struct gkyl_array **array_local_ho = gkyl_malloc(num_local_blocks* sizeof(struct gkyl_array*));
+  struct gkyl_array **array_global_ho = gkyl_malloc(num_local_blocks* sizeof(struct gkyl_array *));
 
   struct gkyl_range **local_ranges = gkyl_malloc(num_local_blocks* sizeof(struct gkyl_range *));
   struct gkyl_range **local_ranges_ext = gkyl_malloc(num_local_blocks* sizeof(struct gkyl_range *));
@@ -1162,13 +1196,15 @@ test_SOL_domain_allgather_dir1_cuts2_par()
     int brank = -1;
     for (int i=0; i<branks[bid]; ++i)
       if (rank_list[i] == my_rank) brank = i;
-    array_local[bI] = mkarr(false, basis.num_basis, local_ranges_ext[bI]->volume);
+    array_local[bI] = mkarr(use_gpu, basis.num_basis, local_ranges_ext[bI]->volume);
+    array_local_ho[bI] = use_gpu ? mkarr(false, basis.num_basis, local_ranges_ext[bI]->volume) : gkyl_array_acquire(array_local[bI]);
     gkyl_array_shiftc(array_local[bI], sqrt(pow(2,ndim)), 0); // Sets es_energy_fac=1.
     if (num_ranks > 1) 
       gkyl_array_scale(array_local[bI], 0.5*my_rank);
     else
       gkyl_array_scale_range(array_local[bI], 100.0*bid, local_ranges[bI]);
-    array_global[bI] = mkarr(false,  basis.num_basis, global_ranges_ext[bI]->volume);
+    array_global[bI] = mkarr(use_gpu,  basis.num_basis, global_ranges_ext[bI]->volume);
+    array_global_ho[bI] = use_gpu ? mkarr(false,  basis.num_basis, global_ranges_ext[bI]->volume) : gkyl_array_acquire(array_global[bI]);
   }
 
 
@@ -1207,6 +1243,10 @@ test_SOL_domain_allgather_dir1_cuts2_par()
 
 
   for (int bI=0; bI<num_local_blocks; ++bI) {
+    gkyl_array_copy(array_global_ho[bI], array_global[bI]);
+  }
+
+  for (int bI=0; bI<num_local_blocks; ++bI) {
     struct gkyl_rect_grid grid;
     int cells[2];
     cells[0] = gkyl_range_shape(global_ranges[bI],0);
@@ -1218,12 +1258,54 @@ test_SOL_domain_allgather_dir1_cuts2_par()
     gkyl_rect_grid_init(&grid, 2, gridlo, gridup, cells);
     char str[50];
     sprintf(str, "lb%d_r%d.gkyl",bI, my_rank);
-    gkyl_grid_sub_array_write(&grid, global_ranges[bI], 0, array_global[bI], str);
+    gkyl_grid_sub_array_write(&grid, global_ranges[bI], 0, array_global_ho[bI], str);
+  }
+
+  for (int bI=0; bI<num_local_blocks; ++bI) {
+    struct gkyl_range_iter iter;
+    gkyl_range_iter_init(&iter, global_ranges[bI]);
+    double fcheck[4] = {0.0};
+    while(gkyl_range_iter_next(&iter)) {
+      if(iter.idx[1]<= 8) {
+        fcheck[0] = 0.0;
+        fcheck[1] = 0.0;
+        fcheck[2] = 0.0;
+        fcheck[3] = 0.0;
+      }
+      else if(iter.idx[1] <= 12) {
+        fcheck[0] = 1.0;
+        fcheck[1] = 0.0;
+        fcheck[2] = 0.0;
+        fcheck[3] = 0.0;
+      }
+      else if(iter.idx[1]<=16) {
+        fcheck[0] = 0.0;
+        fcheck[1] = 0.0;
+        fcheck[2] = 0.0;
+        fcheck[3] = 0.0;
+      }
+      else if(iter.idx[1] <=24) {
+          fcheck[0] = 1.0;
+          fcheck[1] = 0.0;
+          fcheck[2] = 0.0;
+          fcheck[3] = 0.0;
+      }
+      long loc = gkyl_range_idx(global_ranges[bI], iter.idx);
+      const double *f = gkyl_array_cfetch(array_global_ho[bI], loc);
+      for (int i=0; i<basis.num_basis; ++i) {
+        TEST_CHECK( f[i] == fcheck[i] );
+      }
+    }
+      
   }
 
   for (int bI = 0; bI<num_local_blocks; ++bI) {
     gkyl_multib_comm_conn_release(mbcc_send[bI]);
     gkyl_multib_comm_conn_release(mbcc_recv[bI]);
+    gkyl_array_release(array_local_ho[bI]);
+    gkyl_array_release(array_local[bI]);
+    gkyl_array_release(array_global_ho[bI]);
+    gkyl_array_release(array_global[bI]);
   }
   gkyl_free(mbcc_send);
   gkyl_free(mbcc_recv);
@@ -1239,6 +1321,7 @@ test_SOL_domain_allgather_dir1_cuts2_par()
   gkyl_free(block_list);
   gkyl_block_topo_release(topo);
   gkyl_block_geom_release(geom);
+  gkyl_comm_release(comm);
 }
 
 
@@ -1246,6 +1329,7 @@ TEST_LIST = {
   //{ "test_L_domain_send_connections_dir0_cuts1", test_L_domain_send_connections_dir0_cuts1},
   //{ "test_L_domain_recv_connections_dir0_cuts1", test_L_domain_recv_connections_dir0_cuts1},
   //{ "test_L_domain_send_connections_dir0_cuts2", test_L_domain_send_connections_dir0_cuts2},
+  //
   //{ "test_L_domain_send_connections_dir0_cuts2_par", test_L_domain_send_connections_dir0_cuts2_par},
   //{ "test_L_domain_recv_connections_dir0_cuts2_par", test_L_domain_recv_connections_dir0_cuts2_par},
   //{ "test_L_domain_allgather_dir0_cuts2_par", test_L_domain_allgather_dir0_cuts2_par},
