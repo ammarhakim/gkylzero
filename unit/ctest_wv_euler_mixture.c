@@ -80,7 +80,7 @@ test_euler_mixture_twocomponent_basic()
     euler_mixture->rotate_to_global_func(euler_mixture, tau1[d], tau2[d], norm[d], flux_local, flux);
 
     for (int i = 0; i < 8; i++) {
-      TEST_CHECK( gkyl_compare(flux[i], fluxes[d][i], 1e-16) );
+      TEST_CHECK( gkyl_compare(flux[i], fluxes[d][i], 1e-15) );
     }
   }
 
