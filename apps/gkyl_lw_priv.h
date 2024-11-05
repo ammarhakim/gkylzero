@@ -57,6 +57,14 @@ void
 gkyl_register_moment_scheme_types(lua_State *L);
 
 /**
+* Add Riemann problem type flags for Euler equations into Lua interpreter.
+*
+* @param L Lua state to use.
+ */
+void
+gkyl_register_euler_rp_types(lua_State *L);
+
+/**
  * Add projection type flags for Vlasov species initialization into Lua interpreter.
  *
  * @param L Lua state to use.

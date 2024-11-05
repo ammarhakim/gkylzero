@@ -53,15 +53,6 @@ static const struct gkyl_str_int_pair wave_split_type[] = {
   { 0, 0 }
 };
 
-// Euler Riemann problem -> enum map.
-static const struct gkyl_str_int_pair euler_rp_type[] = {
-  { "roe", WV_EULER_RP_ROE },
-  { "hllc", WV_EULER_RP_HLLC },
-  { "lax", WV_EULER_RP_LAX },
-  { "hll", WV_EULER_RP_HLL },
-  { 0, 0 }
-};
-
 // Ideal MHD Riemann problem -> enum map.
 static const struct gkyl_str_int_pair mhd_rp_type[] = {
   { "roe", WV_MHD_RP_ROE },
@@ -128,8 +119,7 @@ eqn_euler_lw_new(lua_State *L)
   struct wv_eqn_lw *euler_lw = gkyl_malloc(sizeof(*euler_lw));
 
   double gas_gamma = glua_tbl_get_number(L, "gasGamma", 1.4);
-  const char *rp_str = glua_tbl_get_string(L, "rpType", "roe");
-  enum gkyl_wv_euler_rp rp_type = gkyl_search_str_int_pair_by_str(euler_rp_type, rp_str, WV_EULER_RP_ROE);
+  enum gkyl_wv_euler_rp rp_type = glua_tbl_get_integer(L, "rpType", WV_EULER_RP_ROE);
 
   euler_lw->magic = MOMENT_EQN_DEFAULT;
   euler_lw->eqn = gkyl_wv_euler_inew( &(struct gkyl_wv_euler_inp) {

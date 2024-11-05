@@ -2,6 +2,7 @@
 
 #include <gkyl_app.h>
 #include <gkyl_moment.h>
+#include <gkyl_wv_euler.h>
 #include <gkyl_vlasov.h>
 #include <gkyl_lw_priv.h>
 #include <gkyl_util.h>
@@ -40,6 +41,15 @@ static const struct gkyl_str_int_pair moment_scheme_type[] = {
   { "WaveProp", GKYL_MOMENT_WAVE_PROP },
   { "MP", GKYL_MOMENT_MP },
   { "KEP", GKYL_MOMENT_KEP },
+  { 0, 0 }
+};
+
+// Euler Riemann problem -> enum map.
+static const struct gkyl_str_int_pair euler_rp_type[] = {
+  { "Roe", WV_EULER_RP_ROE },
+  { "HLLC", WV_EULER_RP_HLLC },
+  { "Lax", WV_EULER_RP_LAX },
+  { "HLL", WV_EULER_RP_HLL },
   { 0, 0 }
 };
 
@@ -103,6 +113,12 @@ void
 gkyl_register_moment_scheme_types(lua_State *L)
 {
   register_types(L, moment_scheme_type, "SchemeType");
+}
+
+void
+gkyl_register_euler_rp_types(lua_State *L)
+{
+  register_types(L, euler_rp_type, "EulerRP");
 }
 
 void

@@ -38,11 +38,6 @@ momentApp = Moments.App.new {
   -- Fluid.
   fluid = Moments.Species.new {
     equation = Euler.new { gasGamma = gas_gamma },
-
-    hasVolumeSources = true,
-    volumeGasGamma = gas_gamma,
-    volumeU0 = U0,
-    volumeR0 = R0,
     
     -- Initial conditions function.
     init = function (t, xn)
