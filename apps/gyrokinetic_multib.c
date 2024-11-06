@@ -630,10 +630,10 @@ and the maximum number of cuts in a block is %d\n\n", tot_max[0], num_ranks, tot
   while (true) {
     struct gkyl_gyrokinetic_app *sbapp0 = mbapp->singleb_apps[0];
     mbapp->jf_rescale_charged = gkyl_phase_ghost_conf_div_flip_mul_new(sbapp0->basis_on_dev.confBasis,
-      sbapp0->basis_on_dev.basis, mbapp->use_gpu);
+      &sbapp0->basis, mbapp->use_gpu);
     if ((mbapp->num_neut_species > 0) && (!sbapp0->neut_species[0].info.is_static)) {
       mbapp->jf_rescale_neut = gkyl_phase_ghost_conf_div_flip_mul_new(sbapp0->basis_on_dev.confBasis,
-        sbapp0->basis_on_dev.neut_basis, mbapp->use_gpu);
+        &sbapp0->neut_basis, mbapp->use_gpu);
     }
     break;
   }
