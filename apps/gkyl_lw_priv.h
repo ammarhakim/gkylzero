@@ -49,6 +49,14 @@ void
 gkyl_register_field_bc_types(lua_State *L);
 
 /**
+ * Add boundary condition flags for Poisson solver into Lua interpreter.
+ *
+ * @param L Lua state to use.
+ */
+void
+gkyl_register_poisson_bc_types(lua_State *L);
+
+/**
 * Add momentum reconstruction type flags for fluid solvers into Lua interpreter.
 *
 * @param L Lua state to use.

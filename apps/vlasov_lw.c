@@ -467,11 +467,10 @@ vlasov_field_lw_new(lua_State *L)
   bool evolve = glua_tbl_get_integer(L, "evolve", true);
 
   int init_ref = LUA_NOREF;
-  if (glua_tbl_get_func(L, "init"))
+  if (glua_tbl_get_func(L, "init")) {
     init_ref = luaL_ref(L, LUA_REGISTRYINDEX);
-  else
-    return luaL_error(L, "Field must have an \"init\" function for initial conditions!");
-
+  }
+  
   with_lua_tbl_tbl(L, "bcx") { 
     int nbc = glua_objlen(L);
 
@@ -493,6 +492,24 @@ vlasov_field_lw_new(lua_State *L)
 
     for (int i = 0; i < (nbc > 2 ? 2 : nbc); i++) {
       vm_field.bcz[i] = glua_tbl_iget_integer(L, i + 1, 0);
+    }
+  }
+
+  with_lua_tbl_tbl(L, "poissonBcs") {
+    with_lua_tbl_tbl(L, "lowerType") {
+      int nbc = glua_objlen(L);
+
+      for (int i = 0; i < (nbc > 2 ? 2 : nbc); i++) {
+        vm_field.poisson_bcs.lo_type[i] = glua_tbl_iget_integer(L, i + 1, 0);
+      }
+    }
+
+    with_lua_tbl_tbl(L, "upperType") {
+      int nbc = glua_objlen(L);
+
+      for (int i = 0; i < (nbc > 2 ? 2 : nbc); i++) {
+        vm_field.poisson_bcs.up_type[i] = glua_tbl_iget_integer(L, i + 1, 0);
+      }
     }
   }
 
@@ -895,6 +912,7 @@ vm_app_new(lua_State *L)
 
   // Set field input.
   vm.skip_field = glua_tbl_get_bool(L, "skipField", false);
+  vm.is_electrostatic = glua_tbl_get_bool(L, "isElectrostatic", false);
 
   with_lua_tbl_key(L, "field") {
     if (lua_type(L, -1) == LUA_TUSERDATA) {

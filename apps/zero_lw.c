@@ -109,9 +109,10 @@ gkyl_zero_lw_openlibs(lua_State *L)
   
   rect_decomp_openlibs(L);
 
-  // Register types for species and field boundary conditions.
+  // Register types for species, field, and Poisson solver boundary conditions.
   gkyl_register_species_bc_types(L);
   gkyl_register_field_bc_types(L);
+  gkyl_register_poisson_bc_types(L);
 
   // Register types for moment reconstruction schemes.
   gkyl_register_moment_scheme_types(L);

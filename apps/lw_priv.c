@@ -21,7 +21,7 @@ static const struct gkyl_str_int_pair species_bcs[] = {
   { "bcGkSheath", GKYL_SPECIES_GK_SHEATH },
   { "bcRecycle", GKYL_SPECIES_RECYCLE },
   { "bcGkIWL", GKYL_SPECIES_GK_IWL },
-  { 0, 0 },
+  { 0, 0 }
 };
 
 // Field boundary conditions -> enum map.
@@ -33,7 +33,16 @@ static const struct gkyl_str_int_pair field_bcs[] = {
   { "bcReservoir", GKYL_FIELD_RESERVOIR },
   { "bcWedge", GKYL_FIELD_WEDGE },
   { "bcFunc", GKYL_FIELD_FUNC },
-  { 0, 0 },
+  { 0, 0 }
+};
+
+// Poisson boundary conditions -> enum map.
+static const struct gkyl_str_int_pair poisson_bcs[] = {
+  { "bcPeriodic", GKYL_POISSON_PERIODIC },
+  { "bcDirichlet", GKYL_POISSON_DIRICHLET },
+  { "bcNeumann", GKYL_POISSON_NEUMANN },
+  { "bcRobin", GKYL_POISSON_ROBIN },
+  { 0, 0 }
 };
 
 // Moment scheme type -> enum map.
@@ -116,6 +125,12 @@ void
 gkyl_register_field_bc_types(lua_State *L)
 {
   register_types(L, field_bcs, "FieldBc");
+}
+
+void
+gkyl_register_poisson_bc_types(lua_State *L)
+{
+  register_types(L, field_bcs, "PoissonBc");
 }
 
 void
