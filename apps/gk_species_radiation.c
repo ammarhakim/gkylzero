@@ -49,8 +49,8 @@ gk_species_radiation_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s
   struct all_radiation_states *rad_data=gkyl_read_rad_fit_params();
 
   rad->num_cross_collisions = s->info.radiation.num_cross_collisions;
-  // Make array for cutoff below which radiation is set to 0. Set to 1eV. Keep the radiation from driving Te negative.
-  rad->vtsq_min_normalized = mkarr(app->use_gpu, 1, rad->num_cross_collisions);
+  // Make array for cutoff below which radiation is set to 0. Set to 1eV. Keep the radiation from driving Te negative. Only lives on host.
+  rad->vtsq_min_normalized = mkarr(false, 1, rad->num_cross_collisions);
   
   // initialize drag coefficients
   for (int i=0; i<rad->num_cross_collisions; ++i) {
@@ -126,24 +126,9 @@ gk_species_radiation_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s
   rad->nvsqnu = mkarr(app->use_gpu, app->basis.num_basis, s->local_ext.volume);
   rad->vtsq = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
 
-  // Needed arrays for calculating temperature
-  //  rad->boundary_corrections = mkarr(app->use_gpu, 2*app->confBasis.num_basis, app->local_ext.volume);
-  //rad->prim_moms = mkarr(app->use_gpu, 2*app->confBasis.num_basis, app->local_ext.volume);
-
   // allocate moments needed for temperature update
   gk_species_moment_init(app, s, &rad->prim_moms, "MaxwellianMoments");
   
-  /*  // allocate moments needed for temperature update
-  gk_species_moment_init(app, s, &rad->lab_moms, "ThreeMoments");
-
-  // Edge of velocity space corrections to momentum and energy.
-  rad->bcorr_calc = gkyl_mom_calc_bcorr_lbo_gyrokinetic_new(&s->grid,
-    &app->confBasis, &app->basis, s->info.mass, s->vel_map, app->use_gpu);
-  
-  // Primitive moment calculator.
-  rad->coll_pcalc = gkyl_prim_lbo_gyrokinetic_calc_new(&s->grid, 
-    &app->confBasis, &app->basis, &app->local, app->use_gpu);
-  */
   rad->nvnu_surf_host = rad->nvnu_surf;
   rad->nvnu_host = rad->nvnu;
   rad->nvsqnu_surf_host = rad->nvsqnu_surf;
