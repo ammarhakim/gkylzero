@@ -95,10 +95,10 @@ vlasovApp = Vlasov.App.new {
 
     poissonBcs = {
       lowerType = {
-        bcPeriodic
+        G0.PoissonBc.bcPeriodic
       },
       upperType = {
-        bcPeriodic
+        G0.PoissonBc.bcPeriodic
       }
     }
   }

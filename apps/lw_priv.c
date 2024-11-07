@@ -130,7 +130,7 @@ gkyl_register_field_bc_types(lua_State *L)
 void
 gkyl_register_poisson_bc_types(lua_State *L)
 {
-  register_types(L, field_bcs, "PoissonBc");
+  register_types(L, poisson_bcs, "PoissonBc");
 }
 
 void

@@ -470,7 +470,7 @@ vlasov_field_lw_new(lua_State *L)
   if (glua_tbl_get_func(L, "init")) {
     init_ref = luaL_ref(L, LUA_REGISTRYINDEX);
   }
-  
+
   with_lua_tbl_tbl(L, "bcx") { 
     int nbc = glua_objlen(L);
 
@@ -498,8 +498,8 @@ vlasov_field_lw_new(lua_State *L)
   with_lua_tbl_tbl(L, "poissonBcs") {
     with_lua_tbl_tbl(L, "lowerType") {
       int nbc = glua_objlen(L);
-
-      for (int i = 0; i < (nbc > 2 ? 2 : nbc); i++) {
+      
+      for (int i = 0; i < nbc; i++) {
         vm_field.poisson_bcs.lo_type[i] = glua_tbl_iget_integer(L, i + 1, 0);
       }
     }
@@ -507,8 +507,32 @@ vlasov_field_lw_new(lua_State *L)
     with_lua_tbl_tbl(L, "upperType") {
       int nbc = glua_objlen(L);
 
-      for (int i = 0; i < (nbc > 2 ? 2 : nbc); i++) {
+      for (int i = 0; i < nbc; i++) {
         vm_field.poisson_bcs.up_type[i] = glua_tbl_iget_integer(L, i + 1, 0);
+      }
+    }
+
+    with_lua_tbl_tbl(L, "lowerValue") {
+      int nbc = glua_objlen(L);
+
+      for (int i = 0; i < nbc; i++) {
+        struct gkyl_poisson_bc_value lower_bc = {
+          .v = { glua_tbl_iget_number(L, i + 1, 0.0) },
+        };
+
+        vm_field.poisson_bcs.lo_value[i] = lower_bc;
+      }
+    }
+
+    with_lua_tbl_tbl(L, "upperValue") {
+      int nbc = glua_objlen(L);
+
+      for (int i = 0; i < nbc; i++) {
+        struct gkyl_poisson_bc_value upper_bc = {
+          .v = { glua_tbl_iget_number(L, i + 1, 0.0) },
+        };
+
+        vm_field.poisson_bcs.up_value[i] = upper_bc;
       }
     }
   }

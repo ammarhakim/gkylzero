@@ -1,41 +1,26 @@
 #include <math.h>
 #include <stdio.h>
-#include <stdlib.h>
 #include <time.h>
 
 #include <gkyl_alloc.h>
+#include <gkyl_const.h>
 #include <gkyl_vlasov.h>
-#include <gkyl_util.h>
-#include <gkyl_wv_euler.h>
-
-#include <gkyl_null_comm.h>
-
-#ifdef GKYL_HAVE_MPI
-#include <mpi.h>
-#include <gkyl_mpi_comm.h>
-#ifdef GKYL_HAVE_NCCL
-#include <gkyl_nccl_comm.h>
-#endif
-#endif
-
 #include <rt_arg_parse.h>
 
 struct sheath_ctx
 {
-  // Mathematical constants (dimensionless).
-  double pi;
-
-  // Physical constants (using non-normalized physical units).
+  // Physical constants (using normalized code units).
   double epsilon0; // Permittivity of free space.
-  double mu0; // Permeability of free space.
   double mass_elc; // Electron mass.
   double charge_elc; // Electron charge.
   double mass_ion; // Ion mass.
   double charge_ion; // Ion charge.
 
   double n0; // Reference number density.
+  double Vx_drift_elc; // Electron drift velocity (x-direction).
+  double Vx_drift_ion; // Ion drift velocity (x-direction).
 
-  // Derived physical quantities (using non-normalized physical units).
+  // Derived physical quantities (using normalized code units).
   double Te; // Electron temperature.
   double Ti; // Ion temperature.
 
@@ -45,12 +30,16 @@ struct sheath_ctx
   double lambda_D; // Electron Debye length.
   double omega_pe; // Electron plasma frequency.
 
+  double nu_ee; // Electron-electron collision frequency.
+  double nu_ii; // Ion-ion collision frequency.
+
   // Simulation parameters.
   int Nx; // Cell count (configuration space: x-direction).
   int Nvx; // Cell count (velocity space: vx-direction).
   double Lx; // Domain size (configuration space: x-direction).
   double Ls; // Domain size (source).
-  double vx_max; // Domain boundary (velocity space: vx-direction).
+  double vx_max_elc; // Domain boundary (electron velocity space: vx-direction).
+  double vx_max_ion; // Domain boundary (ion velocity space: vx-direction).
   int poly_order; // Polynomial order.
   double cfl_frac; // CFL coefficient.
 
@@ -63,22 +52,20 @@ struct sheath_ctx
 struct sheath_ctx
 create_ctx(void)
 {
-  // Mathematical constants (dimensionless).
-  double pi = M_PI;
+  // Physical constants (using normalized code units).
+  double epsilon0 = 1.0; // Permittivity of free space.
+  double mass_elc = 1.0; // Electron mass.
+  double charge_elc = -1.0; // Electron charge.
+  double mass_ion = 1836.153; // Ion mass.
+  double charge_ion = 1.0; // Ion charge.
 
-  // Physical constants (using non-normalized physical units).
-  double epsilon0 = 8.854e-12; // Permittivity of free space.
-  double mu0 = 1.257e-6; // Permeability of free space.
-  double mass_elc = 9.109e-31; // Electron mass.
-  double charge_elc = -1.602e-19; // Electron charge.
-  double mass_ion = 1836.153 * 9.109e-31; // Ion mass.
-  double charge_ion = 1.602e-19; // Ion charge.
+  double n0 = 1.0; // Reference number density.
+  double Vx_drift_elc = 0.0; // Electron drift velocity (x-direction).
+  double Vx_drift_ion = 0.0; // Ion drift velocity (x-direction).
 
-  double n0 = 1.0e17; // Reference number density.
-
-  // Derived physical quantities (using non-normalized physical units).
-  double Te = 10.0 * charge_ion; // Electron temperature.
-  double Ti = 10.0 * charge_ion; // Ion temperature.
+  // Derived physical quantities (using normalized code units).
+  double Te = 1.0 * charge_ion; // Electron temperature.
+  double Ti = 1.0 * charge_ion; // Ion temperature.
 
   double vte = sqrt(Te / mass_elc); // Electron thermal velocity.
   double vti = sqrt(Ti / mass_ion); // Ion thermal velocity.
@@ -86,40 +73,47 @@ create_ctx(void)
   double lambda_D = sqrt(epsilon0 * Te / (n0 * charge_ion * charge_ion)); // Electron Debye length.
   double omega_pe = sqrt(n0 * charge_ion * charge_ion / (epsilon0 * mass_elc)); // Electron plasma frequency.
 
+  double nu_ee = vte / (50.0 * lambda_D); // Electron-electron collision frequency.
+  double nu_ii = vti / (50.0 * lambda_D); // Ion-ion collision frequency.
+
   // Simulation parameters.
-  int Nx = 128; // Cell count (configuration space: x-direction).
-  int Nvx = 32; // Cell count (velocity space: vx-direction).
-  double Lx = 128.0 * lambda_D; // Domain size (configuration space: x-direction).
+  int Nx = 256; // Cell count (configuration space: x-direction).
+  int Nvx = 64; // Cell count (velocity space: vx-direction).
+  double Lx = 256.0 * lambda_D; // Domain size (configuration space: x-direction).
   double Ls = 100.0 * lambda_D; // Domain size (source).
-  double vx_max = 4.0 * vte; // Domain boundary (velocity space: vx-direction).
+  double vx_max_elc = 6.0 * vte; // Domain boundary (electron velocity space: vx-direction).
+  double vx_max_ion = 6.0 * vti; // Domain boundary (ion velocity space: vx-direction).
   int poly_order = 2; // Polynomial order.
   double cfl_frac = 1.0; // CFL coefficient.
 
-  double t_end = 10.0 / omega_pe; // Final simulation time.
+  double t_end = 20.0 / omega_pe; // Final simulation time.
   int num_frames = 1; // Number of output frames.
   double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.
   int num_failures_max = 20; // Maximum allowable number of consecutive small time-steps.
 
   struct sheath_ctx ctx = {
-    .pi = pi,
     .epsilon0 = epsilon0,
-    .mu0 = mu0,
     .mass_elc = mass_elc,
     .charge_elc = charge_elc,
     .mass_ion = mass_ion,
     .charge_ion = charge_ion,
     .n0 = n0,
+    .Vx_drift_elc = Vx_drift_elc,
+    .Vx_drift_ion = Vx_drift_ion,
     .Te = Te,
     .Ti = Ti,
     .vte = vte,
     .vti = vti,
     .lambda_D = lambda_D,
     .omega_pe = omega_pe,
+    .nu_ee = nu_ee,
+    .nu_ii = nu_ii,
     .Nx = Nx,
     .Nvx = Nvx,
     .Lx = Lx,
     .Ls = Ls,
-    .vx_max = vx_max,
+    .vx_max_elc = vx_max_elc,
+    .vx_max_ion = vx_max_ion,
     .poly_order = poly_order,
     .cfl_frac = cfl_frac,
     .t_end = t_end,
@@ -132,35 +126,50 @@ create_ctx(void)
 }
 
 void
-evalElcInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
+evalElcDensityInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
 {
   struct sheath_ctx *app = ctx;
-  double vx = xn[1];
 
-  double pi = app->pi;
-  double vte = app->vte;
   double n0 = app->n0;
 
-  double n = n0 / sqrt(2.0 * pi * (vte * vte)) * (exp(-(vx * vx) / (2.0 * (vte * vte)))); // Electron total number density.
-
   // Set electron total number density.
-  fout[0] = n;
+  fout[0] = n0;
 }
 
 void
-evalElcSourceInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
+evalElcTempInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
 {
   struct sheath_ctx *app = ctx;
-  double x = xn[0], vx = xn[1];
 
-  double pi = app->pi;
-  double vte = app->vte;
+  double Te = app->Te;
+
+  // Set electron total temperature..
+  fout[0] = Te;
+}
+
+void
+evalElcVDriftInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
+{
+  struct sheath_ctx *app = ctx;
+
+  double Vx_drift_elc = app->Vx_drift_elc;
+
+  // Set electron drift velocity.
+  fout[0] = Vx_drift_elc;
+}
+
+void
+evalElcSourceDensityInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
+{
+  struct sheath_ctx *app = ctx;
+  double x = xn[0];
+
   double Ls = app->Ls;
 
   double n = 0.0;
 
   if (fabs(x) < Ls) {
-    n = 2.0 * (Ls - fabs(x)) / Ls * (1.0 / sqrt(2.0 * pi * (vte * vte)) * (exp(-(vx * vx) / (2.0 * (vte * vte))))); // Electron source total number density (left).
+    n = (Ls - fabs(x)) / Ls; // Electron source total number density (left).
   }
   else {
     n = 0.0; // Electron source total number density (right).
@@ -171,36 +180,72 @@ evalElcSourceInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRIC
 }
 
 void
-evalIonInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
+evalElcSourceTempInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
 {
   struct sheath_ctx *app = ctx;
-  double vx = xn[1];
 
-  double pi = app->pi;
-  double vti = app->vti;
-  double n0 = app->n0;
+  double Te = app->Te;
 
-  double n = n0 / sqrt(2.0 * pi * (vti * vti)) * (exp(-(vx * vx) / (2.0 * (vti * vti)))); // Ion total number density.
-
-
-  // Set ion total number density.
-  fout[0] = n;
+  // Set electron source total temperature.
+  fout[0] = Te;
 }
 
 void
-evalIonSourceInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
+evalElcSourceVDriftInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
 {
   struct sheath_ctx *app = ctx;
-  double x = xn[0], vx = xn[1];
 
-  double pi = app->pi;
-  double vti = app->vti;
+  double Vx_drift_elc = app->Vx_drift_elc;
+
+  // Set electron source drift velocity.
+  fout[0] = Vx_drift_elc;
+}
+
+void
+evalIonDensityInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
+{
+  struct sheath_ctx *app = ctx;
+
+  double n0 = app->n0;
+
+  // Set ion total number density.
+  fout[0] = n0;
+}
+
+void
+evalIonTempInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
+{
+  struct sheath_ctx *app = ctx;
+
+  double Ti = app->Ti;
+
+  // Set ion total temperature..
+  fout[0] = Ti;
+}
+
+void
+evalIonVDriftInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
+{
+  struct sheath_ctx *app = ctx;
+
+  double Vx_drift_ion = app->Vx_drift_ion;
+
+  // Set ion drift velocity.
+  fout[0] = Vx_drift_ion;
+}
+
+void
+evalIonSourceDensityInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
+{
+  struct sheath_ctx *app = ctx;
+  double x = xn[0];
+
   double Ls = app->Ls;
 
   double n = 0.0;
 
   if (fabs(x) < Ls) {
-    n = 2.0 * (Ls - fabs(x)) / Ls * (1.0 / sqrt(2.0 * pi * (vti * vti)) * (exp(-(vx * vx) / (2.0 * (vti * vti))))); // Ion source total number density (left).
+    n = (Ls - fabs(x)) / Ls; // Ion source total number density (left).
   }
   else {
     n = 0.0; // Ion source total number density (right).
@@ -211,22 +256,57 @@ evalIonSourceInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRIC
 }
 
 void
-evalFieldInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
+evalIonSourceTempInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
 {
-  double Ex = 0.0; // Total electric field (x-direction).
-  double Ey = 0.0; // Total electric field (y-direction).
-  double Ez = 0.0; // Total electric field (z-direction).
+  struct sheath_ctx *app = ctx;
 
-  double Bx = 0.0; // Total magnetic field (x-direction).
-  double By = 0.0; // Total magnetic field (y-direction).
-  double Bz = 0.0; // Total magnetic field (z-direction).
+  double Ti = app->Ti;
 
-  // Set electric field.
-  fout[0] = Ex; fout[1] = Ey; fout[2] = Ez;
-  // Set magnetic field.
-  fout[3] = Bx; fout[4] = By; fout[5] = Bz;
-  // Set correction potentials.
-  fout[6] = 0.0; fout[7] = 0.0;
+  // Set ion source total temperature..
+  fout[0] = Ti;
+}
+
+void
+evalIonSourceVDriftInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
+{
+  struct sheath_ctx *app = ctx;
+
+  double Vx_drift_ion = app->Vx_drift_ion;
+
+  // Set ion source drift velocity.
+  fout[0] = Vx_drift_ion;
+}
+
+void
+evalElcNu(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
+{
+  struct sheath_ctx *app = ctx;
+
+  double x = xn[0];
+
+  double nu_ee = app->nu_ee;
+  double lambda_D = app->lambda_D;
+
+  double nu = nu_ee / (1.0 + exp(fabs(x) / (6.0 * lambda_D) - 8.0 / 1.5)); // Electron collision frequency.
+
+  // Set electron collision frequency.
+  fout[0] = nu;
+}
+
+void
+evalIonNu(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
+{
+  struct sheath_ctx *app = ctx;
+
+  double x = xn[0];
+
+  double nu_ii = app->nu_ii;
+  double lambda_D = app->lambda_D;
+
+  double nu = nu_ii / (1.0 + exp(fabs(x) / (6.0 * lambda_D) - 8.0 / 1.5)); // Ion collision frequency.
+
+  // Set ion collision frequency.
+  fout[0] = nu;
 }
 
 void
@@ -347,15 +427,25 @@ main(int argc, char **argv)
   struct gkyl_vlasov_species elc = {
     .name = "elc",
     .charge = ctx.charge_elc, .mass = ctx.mass_elc,
-    .lower = { -ctx.vx_max },
-    .upper = { ctx.vx_max }, 
+    .lower = { -ctx.vx_max_elc },
+    .upper = { ctx.vx_max_elc }, 
     .cells = { NVX },
 
-    .num_init = 1, 
+    .num_init = 1,
     .projection[0] = {
-      .proj_id = GKYL_PROJ_FUNC,
-      .func = evalElcInit,
-      .ctx_func = &ctx,
+      .proj_id = GKYL_PROJ_VLASOV_LTE,
+      .density = evalElcDensityInit,
+      .ctx_density = &ctx,
+      .temp = evalElcTempInit,
+      .ctx_temp = &ctx,
+      .V_drift = evalElcVDriftInit,
+      .ctx_V_drift = &ctx,
+    },
+    .collisions = {
+      .collision_id = GKYL_BGK_COLLISIONS,
+      .self_nu = evalElcNu,
+      .ctx = &ctx,
+      .fixed_temp_relax = true,
     },
 
     .source = {
@@ -365,34 +455,48 @@ main(int argc, char **argv)
 
       .num_sources = 1,
       .projection[0] = {
-        .proj_id = GKYL_PROJ_FUNC,
-        .func = evalElcSourceInit,
-        .ctx_func = &ctx,
+        .proj_id = GKYL_PROJ_VLASOV_LTE,
+        .density = evalElcSourceDensityInit,
+        .ctx_density = &ctx,
+        .temp = evalElcSourceTempInit,
+        .ctx_temp = &ctx,
+        .V_drift = evalElcSourceVDriftInit,
+        .ctx_V_drift = &ctx,
       },
     },
-
+    
     .bcx = {
-      .lower = { .type = GKYL_SPECIES_REFLECT, },
+      .lower = { .type = GKYL_SPECIES_ABSORB, },
       .upper = { .type = GKYL_SPECIES_ABSORB, },
     },
-    
-    .num_diag_moments = 3,
-    .diag_moments = { "M0", "M1i", "M2" },
+
+    .num_diag_moments = 1,
+    .diag_moments = { "LTEMoments" },
   };
 
   // Ions.
   struct gkyl_vlasov_species ion = {
     .name = "ion",
     .charge = ctx.charge_ion, .mass = ctx.mass_ion,
-    .lower = { -ctx.vx_max },
-    .upper = { ctx.vx_max }, 
+    .lower = { -ctx.vx_max_ion },
+    .upper = { ctx.vx_max_ion }, 
     .cells = { NVX },
 
-    .num_init = 1, 
+    .num_init = 1,
     .projection[0] = {
-      .proj_id = GKYL_PROJ_FUNC,
-      .func = evalIonInit,
-      .ctx_func = &ctx,
+      .proj_id = GKYL_PROJ_VLASOV_LTE,
+      .density = evalIonDensityInit,
+      .ctx_density = &ctx,
+      .temp = evalIonTempInit,
+      .ctx_temp = &ctx,
+      .V_drift = evalIonVDriftInit,
+      .ctx_V_drift = &ctx,
+    },
+    .collisions = {
+      .collision_id = GKYL_BGK_COLLISIONS,
+      .self_nu = evalIonNu,
+      .ctx = &ctx,
+      .fixed_temp_relax = true,
     },
 
     .source = {
@@ -400,44 +504,49 @@ main(int argc, char **argv)
       .source_length = ctx.Ls,
       .source_species = "ion",
 
-      .num_sources = 1, 
+      .num_sources = 1,
       .projection[0] = {
-        .proj_id = GKYL_PROJ_FUNC,
-        .func = evalIonSourceInit,
-        .ctx_func = &ctx,
+        .proj_id = GKYL_PROJ_VLASOV_LTE,
+        .density = evalIonSourceDensityInit,
+        .ctx_density = &ctx,
+        .temp = evalIonSourceTempInit,
+        .ctx_temp = &ctx,
+        .V_drift = evalIonSourceVDriftInit,
+        .ctx_V_drift = &ctx,
       },
     },
-
+    
     .bcx = {
-      .lower = { .type = GKYL_SPECIES_REFLECT, },
+      .lower = { .type = GKYL_SPECIES_ABSORB, },
       .upper = { .type = GKYL_SPECIES_ABSORB, },
     },
-    
-    .num_diag_moments = 3,
-    .diag_moments = { "M0", "M1i", "M2" },
+
+    .num_diag_moments = 1,
+    .diag_moments = { "LTEMoments" },
   };
 
   // Field.
   struct gkyl_vlasov_field field = {
-    .epsilon0 = ctx.epsilon0, .mu0 = ctx.mu0,
-    .elcErrorSpeedFactor = 0.0,
-    .mgnErrorSpeedFactor = 0.0,
+    .epsilon0 = ctx.epsilon0,
+    
+    .poisson_bcs = {
+      .lo_type = { GKYL_POISSON_DIRICHLET },
+      .up_type = { GKYL_POISSON_DIRICHLET },
 
-    .init = evalFieldInit,
-    .ctx = &ctx,
-
-    .bcx = { GKYL_FIELD_SYM_WALL, GKYL_FIELD_PEC_WALL }
+      .lo_value = { 0.0 },
+      .up_value = { 0.0 }
+    },
   };
 
-  // Vlasov-Maxwell app.
+  // Vlasov-Poisson app.
   struct gkyl_vm app_inp = {
-    .name = "vlasov_sheath_1x1v_p2",
+    .name = "vp_sheath_feedback_sources_bgk_1x1v_p2",
 
     .cdim = 1, .vdim = 1,
-    .lower = { 0.0 },
-    .upper = { ctx.Lx },
+    .lower = { -0.5 * ctx.Lx },
+    .upper = { 0.5 * ctx.Lx },
     .cells = { NX },
-    
+
     .poly_order = ctx.poly_order,
     .basis_type = app_args.basis_type,
     .cfl_frac = ctx.cfl_frac,
@@ -449,6 +558,7 @@ main(int argc, char **argv)
     .species = { elc, ion },
 
     .field = field,
+    .is_electrostatic = true,
 
     .parallelism = {
       .use_gpu = app_args.use_gpu,

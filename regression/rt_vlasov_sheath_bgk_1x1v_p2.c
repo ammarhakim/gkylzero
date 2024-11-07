@@ -481,7 +481,7 @@ main(int argc, char **argv)
     .bcx = { GKYL_FIELD_SYM_WALL, GKYL_FIELD_PEC_WALL }
   };
 
-  // VM app
+  // Vlasov-Maxwell app.
   struct gkyl_vm app_inp = {
     .name = "vlasov_sheath_bgk_1x1v_p2",
 
