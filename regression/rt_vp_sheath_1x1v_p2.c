@@ -4,6 +4,7 @@
 #include <time.h>
 
 #include <gkyl_alloc.h>
+#include <gkyl_const.h>
 #include <gkyl_vlasov.h>
 #include <gkyl_util.h>
 
