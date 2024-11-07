@@ -82,9 +82,9 @@ gk_species_radiation_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s
     int status = gkyl_get_fit_params(*rad_data, s->info.radiation.z[i], s->info.radiation.charge_state[i], a, alpha, beta, gamma, v0, s->info.radiation.num_of_densities[i]);
     double *vtsq_normalized = gkyl_array_fetch(rad->vtsq_min_normalized, i);
     double Te_min_eV;
-    if (s->info.radiation.te_min_model == GKYL_CONST_TE && s->info.radiation.Te_min_J) {
+    if (s->info.radiation.te_min_model == GKYL_CONST_TE && s->info.radiation.Te_min) {
       // Turn off radiation below a constant temperature
-      Te_min_eV = s->info.radiation.Te_min_J / GKYL_ELEMENTARY_CHARGE;
+      Te_min_eV = s->info.radiation.Te_min / GKYL_ELEMENTARY_CHARGE;
     }
     else if (s->info.radiation.te_min_model == GKYL_VARY_TE_AGGRESSIVE) {
       // Turn off radiation below 10^-4*max(Lz)
