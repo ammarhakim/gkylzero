@@ -105,13 +105,14 @@ void gkyl_dg_calc_gk_rad_vars_nI_nu_advance(const struct gkyl_dg_calc_gk_rad_var
   const struct gkyl_array* vsqnu_surf, const struct gkyl_array* vsqnu, 
   const struct gkyl_array *nI, 
   struct gkyl_array* nvnu_surf, struct gkyl_array* nvnu, 
-  struct gkyl_array* nvsqnu_surf, struct gkyl_array* nvsqnu)
+  struct gkyl_array* nvsqnu_surf, struct gkyl_array* nvsqnu,
+  double vtsq_min_normalized, struct gkyl_array* vtsq)
 {
 #ifdef GKYL_HAVE_CUDA
   if (gkyl_array_is_cu_dev(vnu_surf)) {
     return gkyl_dg_calc_gk_rad_vars_nI_nu_advance_cu(up, conf_range, phase_range, 
       vnu_surf, vnu, vsqnu_surf, vsqnu, nI, 
-      nvnu_surf, nvnu, nvsqnu_surf, nvsqnu);
+      nvnu_surf, nvnu, nvsqnu_surf, nvsqnu, vtsq_min_normalized, vtsq);
   }
 #endif
   int pdim = up->pdim;
@@ -126,23 +127,25 @@ void gkyl_dg_calc_gk_rad_vars_nI_nu_advance(const struct gkyl_dg_calc_gk_rad_var
 
     long loc_conf = gkyl_range_idx(conf_range, idx);
     long loc_phase = gkyl_range_idx(phase_range, idx);
+    const double* vtsq_d = gkyl_array_cfetch(vtsq, loc_conf);
+    if ( vtsq_d[0] > vtsq_min_normalized ) {
+      gkyl_rect_grid_cell_center(&up->phase_grid, idx, xc);
 
-    gkyl_rect_grid_cell_center(&up->phase_grid, idx, xc);
-
-    const double* vnu_surf_d = gkyl_array_cfetch(vnu_surf, loc_phase);
-    const double* vnu_d = gkyl_array_cfetch(vnu, loc_phase);
-    const double* vsqnu_surf_d = gkyl_array_cfetch(vsqnu_surf, loc_phase);  
-    const double* vsqnu_d = gkyl_array_cfetch(vsqnu, loc_phase);   
-
-    const double *nI_d = gkyl_array_cfetch(nI, loc_conf);
-
-    double* nvnu_surf_d = gkyl_array_fetch(nvnu_surf, loc_phase);
-    double* nvnu_d = gkyl_array_fetch(nvnu, loc_phase);
-    double* nvsqnu_surf_d = gkyl_array_fetch(nvsqnu_surf, loc_phase);  
-    double* nvsqnu_d = gkyl_array_fetch(nvsqnu, loc_phase);   
-
-    up->rad_nI_nu(vnu_surf_d, vnu_d, vsqnu_surf_d, vsqnu_d, nI_d, 
-      nvnu_surf_d, nvnu_d, nvsqnu_surf_d, nvsqnu_d);
+      const double* vnu_surf_d = gkyl_array_cfetch(vnu_surf, loc_phase);
+      const double* vnu_d = gkyl_array_cfetch(vnu, loc_phase);
+      const double* vsqnu_surf_d = gkyl_array_cfetch(vsqnu_surf, loc_phase);  
+      const double* vsqnu_d = gkyl_array_cfetch(vsqnu, loc_phase);   
+      
+      const double *nI_d = gkyl_array_cfetch(nI, loc_conf);
+      
+      double* nvnu_surf_d = gkyl_array_fetch(nvnu_surf, loc_phase);
+      double* nvnu_d = gkyl_array_fetch(nvnu, loc_phase);
+      double* nvsqnu_surf_d = gkyl_array_fetch(nvsqnu_surf, loc_phase);  
+      double* nvsqnu_d = gkyl_array_fetch(nvsqnu, loc_phase);   
+      
+      up->rad_nI_nu(vnu_surf_d, vnu_d, vsqnu_surf_d, vsqnu_d, nI_d, 
+		    nvnu_surf_d, nvnu_d, nvsqnu_surf_d, nvsqnu_d);
+    }
   }
 }
 

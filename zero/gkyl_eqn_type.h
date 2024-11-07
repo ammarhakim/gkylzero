@@ -90,6 +90,12 @@ enum gkyl_react_id {
   GKYL_REACT_RECOMB, // Recombination.
 };
 
+enum gkyl_te_min_model {
+  GKYL_VARY_TE_CONSERVATIVE = 0,  // Minimum temperature depends on V0, turns off at (relatively) high Te, so low chance of negative emissivity. This is default
+  GKYL_VARY_TE_AGGRESSIVE,  // Minimum temperature depends on V0, turns off at (relatively) low Te, so higher chance of negative emissivity
+  GKYL_CONST_TE,  // A constant minimum temperature, below which radiation is turned off
+};
+
 // Identifiers for different ion reaction types
 enum gkyl_ion_type
 {
