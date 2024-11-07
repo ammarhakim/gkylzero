@@ -68,10 +68,10 @@ vlasovApp = Vlasov.App.new {
         projectionID = G0.Projection.Func,
 
         init = function (t, xn)
-          local x, v = xn[1], xn[2]
+          local x, vx = xn[1], xn[2]
 
           local n = (1.0 + alpha * math.cos(k0 * x)) *
-            (1.0 / math.sqrt(2.0 * pi * vt * vt)) * (math.exp(-(v * v) / (2.0 * vt * vt))) -- Total number density.
+            (1.0 / math.sqrt(2.0 * pi * vt * vt)) * (math.exp(-(vx * vx) / (2.0 * vt * vt))) -- Total number density.
 
           return n
         end

@@ -74,10 +74,10 @@ vlasovApp = Vlasov.App.new {
         projectionID = G0.Projection.Func,
 
         init = function (t, xn)
-          local x, v = xn[1], xn[2]
+          local x, vx = xn[1], xn[2]
 
-          local v_sq_m = (v - Vx_drift) * (v - Vx_drift)
-          local v_sq_p = (v + Vx_drift) * (v + Vx_drift)
+          local v_sq_m = (vx - Vx_drift) * (vx - Vx_drift)
+          local v_sq_p = (vx + Vx_drift) * (vx + Vx_drift)
 
           local n = 0.0
           if x < 0.0 then
@@ -112,10 +112,10 @@ vlasovApp = Vlasov.App.new {
         projectionID = G0.Projection.Func,
   
         init = function (t, xn)
-          local x, v = xn[1], xn[2]
+          local x, vx = xn[1], xn[2]
   
-          local v_sq_m = (v - Vx_drift) * (v - Vx_drift)
-          local v_sq_p = (v + Vx_drift) * (v + Vx_drift)
+          local v_sq_m = (vx - Vx_drift) * (vx - Vx_drift)
+          local v_sq_p = (vx + Vx_drift) * (vx + Vx_drift)
   
           local n = 0.0
           if x < 0.0 then

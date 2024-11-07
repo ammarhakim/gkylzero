@@ -33,6 +33,8 @@ Lx = 128.0 * lambda_D -- Domain size (configuration space: x-direction).
 Ls = 100.0 * lambda_D -- Domain size (source).
 vx_max = 4.0 * vte -- Domain boundary (velocity space: vx-direction).
 poly_order = 2 -- Polynomial order.
+basis_type = "serendipity" -- Basis function set.
+time_stepper = "rk3" -- Time integrator.
 cfl_frac = 1.0 -- CFL coefficient.
 
 t_end = 10.0 / omega_pe -- Final simulation time.

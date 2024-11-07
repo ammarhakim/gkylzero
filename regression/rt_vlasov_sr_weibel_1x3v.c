@@ -6,7 +6,6 @@
 #include <gkyl_alloc.h>
 #include <gkyl_vlasov.h>
 #include <gkyl_util.h>
-#include <gkyl_wv_euler.h>
 
 #include <gkyl_null_comm.h>
 
@@ -48,6 +47,13 @@ struct weibel_sr_ctx
   // Derived physical quantities (using normalized code units).
   double gamma_elc1; // First electron gamma factor.
   double gamma_elc2; // Second electron gamma factor.
+
+  double ux_elc1_sr; // First electron relativistic velocity (x-direction).
+  double ux_elc2_sr; // Second electron relativistic velocity (x-direction).
+  double uy_elc1_sr; // First electron relativistic velocity (y-direction).
+  double uy_elc2_sr; // Second electron relativistic velocity (y-direction).
+  double uz_elc1_sr; // First electron relativistic velocity (z-direction).
+  double uz_elc2_sr; // Second electron relativistic velocity (z-direction).
 
   // Simulation parameters.
   int Nx; // Cell count (configuration space: x-direction).
@@ -95,7 +101,14 @@ create_ctx(void)
 
   // Derived physical quantities (using normalized code units).
   double gamma_elc1 = 1.0 / sqrt(1.0 - (ux_elc1 * ux_elc1) - (uy_elc1 * uy_elc1) - (uz_elc1 * uz_elc1)); // First electron gamma factor.
-  double gamma_elc2 = 1.0 / sqrt(1.0 - (ux_elc2 * ux_elc2) - (uy_elc2 * uy_elc2) - (uz_elc2 * uz_elc2));
+  double gamma_elc2 = 1.0 / sqrt(1.0 - (ux_elc2 * ux_elc2) - (uy_elc2 * uy_elc2) - (uz_elc2 * uz_elc2)); // Second electron gamma factor.
+
+  double ux_elc1_sr = gamma_elc1 * ux_elc1; // First electron relativistic velocity (x-direction).
+  double ux_elc2_sr = gamma_elc2 * ux_elc2; // Second electron relativistic velocity (x-direction).
+  double uy_elc1_sr = gamma_elc1 * uy_elc1; // First electron relativistic velocity (y-direction).
+  double uy_elc2_sr = gamma_elc2 * uy_elc2; // Second electron relativistic velocity (y-direction).
+  double uz_elc1_sr = gamma_elc1 * uz_elc1; // First electron relativistic velocity (z-direction).
+  double uz_elc2_sr = gamma_elc2 * uz_elc2; // Second electron relativistic velocity (z-direction).
 
   // Simulation parameters.
   int Nx = 24; // Cell count (configuration space: x-direction).
@@ -134,6 +147,12 @@ create_ctx(void)
     .kx = kx,
     .gamma_elc1 = gamma_elc1,
     .gamma_elc2 = gamma_elc2,
+    .ux_elc1_sr = ux_elc1_sr,
+    .ux_elc2_sr = ux_elc2_sr,
+    .uy_elc1_sr = uy_elc1_sr,
+    .uy_elc2_sr = uy_elc2_sr,
+    .uz_elc1_sr = uz_elc1_sr,
+    .uz_elc2_sr = uz_elc2_sr,
     .Nx = Nx,
     .Nvx = Nvx,
     .Nvy = Nvy,

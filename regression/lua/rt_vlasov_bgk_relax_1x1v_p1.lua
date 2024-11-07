@@ -70,10 +70,10 @@ vlasovApp = Vlasov.App.new {
         projectionID = G0.Projection.func,
 
         init = function (t, xn)
-          local v = xn[2]
+          local vx = xn[2]
 
           local n = 0.0
-          if math.abs(v) < 1.0 then
+          if math.abs(vx) < 1.0 then
             n = 0.5 * n0 -- Total number density (low velocity).
           else
             n = 0.0 -- Total number density (high velocity).
@@ -115,10 +115,10 @@ vlasovApp = Vlasov.App.new {
         projectionID = G0.Projection.Func,
 
         init = function (t, xn)
-          local v = xn[2]
+          local vx = xn[2]
 
-          local v_sq = (v - u0) * (v - u0)
-          local vb_sq = (v - ub) * (v - ub)
+          local v_sq = (vx - u0) * (vx - u0)
+          local vb_sq = (vx - ub) * (vx - ub)
           
           local n = (n0 / math.sqrt(2.0 * pi * vt * vt)) * math.exp(-v_sq / (2.0 * vt * vt)) + (n0 / math.sqrt(2.0 * pi * vtb * vtb)) *
             math.exp(-vb_sq / (2.0 * vtb * vtb)) * (ab * ab) / (vb_sq + (sb * sb)) -- Total number density.

@@ -6,7 +6,6 @@
 #include <gkyl_alloc.h>
 #include <gkyl_vlasov.h>
 #include <gkyl_util.h>
-#include <gkyl_wv_euler.h>
 
 #include <gkyl_null_comm.h>
 

@@ -19,49 +19,36 @@
 
 #include <rt_arg_parse.h>
 
-struct weibel_ctx
+struct sheath_ctx
 {
-  // Mathematical constants (dimensionless).
-  double pi;
-
-  // Physical constants (using normalized code units).
+  // Physical constants (using non-normalized physical units).
   double epsilon0; // Permittivity of free space.
-  double mu0; // Permeability of free space.
   double mass_elc; // Electron mass.
   double charge_elc; // Electron charge.
+  double mass_ion; // Ion mass.
+  double charge_ion; // Ion charge.
 
-  double n_elc1; // First electron number density.
-  double n_elc2; // Second electron number density.
-  double ux_elc1; // First electron velocity (x-direction).
-  double ux_elc2; // Second electron velocity (x-direction).
-  double uy_elc1; // First electron velocity (y-direction).
-  double uy_elc2; // Second electron velocity (y-direction).
+  double n0; // Reference number density.
+  double Vx_drift_elc; // Electron drift velocity (x-direction).
+  double Vx_drift_ion; // Ion drift velocity (x-direction).
 
-  double theta; // Perturbation angle.
-  double R_elc; // Electron radius.
+  // Derived physical quantities (using non-normalized physical units).
+  double Te; // Electron temperature.
+  double Ti; // Ion temperature.
 
-  double k0; // Reference perturbed wave number.
-  double alpha; // Applied perturbation amplitude.
-  double perturb_n; // Perturbation density.
+  double vte; // Electron thermal velocity.
+  double vti; // Ion thermal velocity.
 
-  // Derived physical quantities (using normalized code units).
-  double T_elc1; // First electron temperature.
-  double T_elc2; // Second electron temperature.
-  double vt_elc1; // First electron thermal velocity.
-  double vt_elc2; // Second electron thermal velocity.
-
-  double kx; // Perturbed wave number (x-direction).
-  double ky; // Perturbed wave number (y-direction).
+  double lambda_D; // Electron Debye length.
+  double omega_pe; // Electron plasma frequency.
 
   // Simulation parameters.
   int Nx; // Cell count (configuration space: x-direction).
-  int Ny; // Cell count (configuration space: y-direction).
   int Nvx; // Cell count (velocity space: vx-direction).
-  int Nvy; // Cell count (velocity space: vy-direction).
   double Lx; // Domain size (configuration space: x-direction).
-  double Ly; // Domain size (configuration space: y-direction).
-  double vx_max; // Domain boundary (velocity space: vx-direction).
-  double vy_max; // Domain boundary (velocity space: vy-direction).
+  double Ls; // Domain size (source).
+  double vx_max_elc; // Domain boundary (electron velocity space: vx-direction).
+  double vx_max_ion; // Domain boundary (ion velocity space: vx-direction).
   int poly_order; // Polynomial order.
   double cfl_frac; // CFL coefficient.
 
@@ -71,89 +58,64 @@ struct weibel_ctx
   int num_failures_max; // Maximum allowable number of consecutive small time-steps.
 };
 
-struct weibel_ctx
+struct sheath_ctx
 create_ctx(void)
 {
-  // Mathematical constants (dimensionless).
-  double pi = M_PI;
+  // Physical constants (using non-normalized physical units).
+  double epsilon0 = GKYL_EPSILON0; // Permittivity of free space.
+  double mass_elc = GKYL_ELECTRON_MASS; // Electron mass.
+  double charge_elc = -GKYL_ELEMENTARY_CHARGE; // Electron charge.
+  double mass_ion = GKYL_PROTON_MASS; // Ion mass.
+  double charge_ion = GKYL_ELEMENTARY_CHARGE; // Ion charge.
 
-  // Physical constants (using normalized code units).
-  double epsilon0 = 1.0; // Permittivity of free space.
-  double mu0 = 1.0; // Permeability of free space.
-  double mass_elc = 1.0; // Electron mass.
-  double charge_elc = -1.0; // Electron charge.
+  double n0 = 1.0e18; // Reference number density.
+  double Vx_drift_elc = 0.0; // Electron drift velocity (x-direction).
+  double Vx_drift_ion = 0.0; // Ion drift velocity (x-direction).
 
-  double n_elc1 = 0.5; // First electron number density.
-  double n_elc2 = 0.5; // Second electron number density.
-  double ux_elc1 = 0.0; // First electron velocity (x-direction).
-  double ux_elc2 = 0.0; // Second electron velocity (x-direction).
-  double uy_elc1 = 0.3; // First electron velocity (y-direction).
-  double uy_elc2 = -0.3; // Second electron velocity (y-direction).
+  // Derived physical quantities (using non-normalized physical units).
+  double Te = 10.0 * charge_ion; // Electron temperature.
+  double Ti = 10.0 * charge_ion; // Ion temperature.
 
-  double theta = (45.0 / 180.0) * pi; // Perturbation angle.
-  double R_elc = 0.333333333333333; // Electron radius.
+  double vte = sqrt(Te / mass_elc); // Electron thermal velocity.
+  double vti = sqrt(Ti / mass_ion); // Ion thermal velocity.
 
-  double k0 = 1.0; // Reference perturbed wave number.
-  double alpha = 1.18281106421231; // Applied perturbation amplitude.
-  double perturb_n = 1.0e-8; // Perturbation density.
-
-  // Derived physical quantities (using normalized code units).
-  double T_elc1 = mass_elc * ((R_elc * uy_elc1) * (R_elc * uy_elc1)); // First electron temperature.
-  double T_elc2 = mass_elc * ((R_elc * uy_elc1) * (R_elc * uy_elc1)); // Second electron temperature.
-  double vt_elc1 = sqrt(T_elc1 / mass_elc); // First electron thermal velocity.
-  double vt_elc2 = sqrt(T_elc2 / mass_elc); // Second electron thermal velocity.
-
-  double kx = k0 * cos(theta); // Perturbed wave number (x-direction).
-  double ky = k0 * sin(theta); // Perturbed wave number (y-direction).
+  double lambda_D = sqrt(epsilon0 * Te / (n0 * charge_ion * charge_ion)); // Electron Debye length.
+  double omega_pe = sqrt(n0 * charge_ion * charge_ion / (epsilon0 * mass_elc)); // Electron plasma frequency.
 
   // Simulation parameters.
-  int Nx = 8; // Cell count (configuration space: x-direction).
-  int Ny = 8; // Cell count (configuration space: y-direction).
+  int Nx = 64; // Cell count (configuration space: x-direction).
   int Nvx = 16; // Cell count (velocity space: vx-direction).
-  int Nvy = 16; // Cell count (velocity space: vy-direction).
-  double Lx = 2.0 * pi / kx; // Domain size (configuration space: x-direction).
-  double Ly = 2.0 * pi / ky; // Domain size (configuration space: y-direction).
-  double vx_max = 0.9; // Domain boundary (velocity space: vx-direction).
-  double vy_max = 0.9; // Domain boundary (velocity space: vy-direction).
-  int poly_order = 1; // Polynomial order.
-  double cfl_frac = 0.6; // CFL coefficient.
+  double Lx = 128.0 * lambda_D; // Domain size (configuration space: x-direction).
+  double vx_max_elc = 6.0 * vte; // Domain boundary (electron velocity space: vx-direction).
+  double vx_max_ion = 6.0 * vti; // Domain boundary (ion velocity space: vx-direction).
+  int poly_order = 2; // Polynomial order.
+  double cfl_frac = 1.0; // CFL coefficient.
 
-  double t_end = 80.0; // Final simulation time.
+  double t_end = 100.0 / omega_pe; // Final simulation time.
   int num_frames = 1; // Number of output frames.
   double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.
   int num_failures_max = 20; // Maximum allowable number of consecutive small time-steps.
 
-  struct weibel_ctx ctx = {
-    .pi = pi,
+  struct sheath_ctx ctx = {
     .epsilon0 = epsilon0,
-    .mu0 = mu0,
     .mass_elc = mass_elc,
     .charge_elc = charge_elc,
-    .n_elc1 = n_elc1,
-    .n_elc2 = n_elc2,
-    .ux_elc1 = ux_elc1,
-    .ux_elc2 = ux_elc2,
-    .uy_elc1 = uy_elc1,
-    .uy_elc2 = uy_elc2,
-    .theta = theta,
-    .R_elc = R_elc,
-    .k0 = k0,
-    .alpha = alpha,
-    .perturb_n = perturb_n,
-    .T_elc1 = T_elc1,
-    .T_elc2 = T_elc2,
-    .vt_elc1 = vt_elc1,
-    .vt_elc2 = vt_elc2,
-    .kx = kx,
-    .ky = ky,
+    .mass_ion = mass_ion,
+    .charge_ion = charge_ion,
+    .n0 = n0,
+    .Vx_drift_elc = Vx_drift_elc,
+    .Vx_drift_ion = Vx_drift_ion,
+    .Te = Te,
+    .Ti = Ti,
+    .vte = vte,
+    .vti = vti,
+    .lambda_D = lambda_D,
+    .omega_pe = omega_pe,
     .Nx = Nx,
-    .Ny = Ny,
     .Nvx = Nvx,
-    .Nvy = Nvy,
     .Lx = Lx,
-    .Ly = Ly,
-    .vx_max = vx_max,
-    .vy_max = vy_max,
+    .vx_max_elc = vx_max_elc,
+    .vx_max_ion = vx_max_ion,
     .poly_order = poly_order,
     .cfl_frac = cfl_frac,
     .t_end = t_end,
@@ -166,68 +128,75 @@ create_ctx(void)
 }
 
 void
-evalElcInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
+evalElcDensityInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
 {
-  struct weibel_ctx *app = ctx;
-  double x = xn[0], y = xn[1], vx = xn[2], vy = xn[3];
+  struct sheath_ctx *app = ctx;
 
-  double pi = app->pi;
+  double n0 = app->n0;
 
-  double n_elc1 = app->n_elc1;
-  double n_elc2 = app->n_elc2;
-  double ux_elc1 = app->ux_elc1;
-  double ux_elc2 = app->ux_elc2;
-  double uy_elc1 = app->uy_elc1;
-  double uy_elc2 = app->uy_elc2;
-  double vt_elc1 = app->vt_elc1;
-  double vt_elc2 = app->vt_elc2;
-
-  double perturb_n = app->perturb_n;
-  double kx = app->kx;
-  double ky = app->ky;
-
-  double v_sq_elc1 = ((vx - ux_elc1) * (vx - ux_elc1)) + ((vy - uy_elc1) * (vy - uy_elc1));
-  double v_sq_elc2 = ((vx - ux_elc2) * (vx - ux_elc2)) + ((vy - uy_elc2) * (vy - uy_elc2));
-
-  double maxwellian1 = (n_elc1 / (2.0 * pi * vt_elc1 * vt_elc1)) * exp(-v_sq_elc1 / (2.0 * vt_elc1 * vt_elc1));
-  double maxwellian2 = (n_elc2 / (2.0 * pi * vt_elc2 * vt_elc2)) * exp(-v_sq_elc2 / (2.0 * vt_elc2 * vt_elc2));
-  double n = (1.0 + (perturb_n * cos((kx * x) + (ky * y)))) * (maxwellian1 + maxwellian2); // Total number density.
-  
-  // Set total number density.
-  fout[0] = n;
+  // Set electron total number density.
+  fout[0] = n0;
 }
 
 void
-evalFieldInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
+evalElcTempInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
 {
-  struct weibel_ctx *app = ctx;
-  double x = xn[0], y = xn[1];
+  struct sheath_ctx *app = ctx;
 
-  double alpha = app->alpha;
-  double perturb_n = app->perturb_n;
+  double Te = app->Te;
 
-  double kx = app->kx;
-  double ky = app->ky;
+  // Set electron total temperature..
+  fout[0] = Te;
+}
 
-  double Ex = -perturb_n * sin((kx * x) + (ky * y)) / (kx + (ky * alpha)); // Total electric field (x-direction).
-  double Ey = alpha * Ex; // Total electric field (y-direction).
-  double Ez = 0.0; // Total electric field (z-direction).
+void
+evalElcVDriftInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
+{
+  struct sheath_ctx *app = ctx;
 
-  double Bx = 0.0; // Total magnetic field (x-direction).
-  double By = 0.0; // Total magnetic field (y-direction).
-  double Bz = (kx * Ey) - (ky * Ex); // Total magnetic field (z-direction).
-  
-  // Set electric field.
-  fout[0] = Ex; fout[1] = Ey; fout[2] = Ez;
-  // Set magnetic field.
-  fout[3] = Bx; fout[4] = By; fout[5] = Bz;
-  // Set correction potentials.
-  fout[6] = 0.0; fout[7] = 0.0;
+  double Vx_drift_elc = app->Vx_drift_elc;
+
+  // Set electron drift velocity.
+  fout[0] = Vx_drift_elc;
+}
+
+void
+evalIonDensityInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
+{
+  struct sheath_ctx *app = ctx;
+
+  double n0 = app->n0;
+
+  // Set ion total number density.
+  fout[0] = n0;
+}
+
+void
+evalIonTempInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
+{
+  struct sheath_ctx *app = ctx;
+
+  double Ti = app->Ti;
+
+  // Set ion total temperature..
+  fout[0] = Ti;
+}
+
+void
+evalIonVDriftInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
+{
+  struct sheath_ctx *app = ctx;
+
+  double Vx_drift_ion = app->Vx_drift_ion;
+
+  // Set ion drift velocity.
+  fout[0] = Vx_drift_ion;
 }
 
 void
 write_data(struct gkyl_tm_trigger* iot, gkyl_vlasov_app* app, double t_curr, bool force_write)
 {
+  gkyl_vlasov_app_calc_integrated_mom(app, t_curr);
   if (gkyl_tm_trigger_check_and_bump(iot, t_curr)) {
     int frame = iot->curr - 1;
     if (force_write) {
@@ -246,7 +215,7 @@ main(int argc, char **argv)
 {
   struct gkyl_app_args app_args = parse_app_args(argc, argv);
 
-#ifdef GKYL_HAVE_MPI
+  #ifdef GKYL_HAVE_MPI
   if (app_args.use_mpi) {
     MPI_Init(&argc, &argv);
   }
@@ -257,21 +226,19 @@ main(int argc, char **argv)
     gkyl_mem_debug_set(true);
   }
 
-  struct weibel_ctx ctx = create_ctx(); // Context for initialization functions.
+  struct sheath_ctx ctx = create_ctx(); // Context for initialization functions.
 
   int NX = APP_ARGS_CHOOSE(app_args.xcells[0], ctx.Nx);
-  int NY = APP_ARGS_CHOOSE(app_args.xcells[1], ctx.Ny);
   int NVX = APP_ARGS_CHOOSE(app_args.vcells[0], ctx.Nvx);
-  int NVY = APP_ARGS_CHOOSE(app_args.vcells[1], ctx.Nvy);
 
   int nrank = 1; // Number of processors in simulation.
 #ifdef GKYL_HAVE_MPI
   if (app_args.use_mpi) {
     MPI_Comm_size(MPI_COMM_WORLD, &nrank);
   }
-#endif  
+#endif
 
-  int ccells[] = { NX, NY };
+  int ccells[] = { NX };
   int cdim = sizeof(ccells) / sizeof(ccells[0]);
 
   int cuts[cdim];
@@ -288,8 +255,8 @@ main(int argc, char **argv)
   for (int d = 0; d < cdim; d++) {
     cuts[d] = 1;
   }
-#endif  
-    
+#endif
+
   // Construct communicator for use in app.
   struct gkyl_comm *comm;
 #ifdef GKYL_HAVE_MPI
@@ -338,62 +305,102 @@ main(int argc, char **argv)
       fprintf(stderr, "*** Number of ranks, %d, does not match total cuts, %d!\n", comm_size, ncuts);
     }
     goto mpifinalize;
-  } 
-  
+  }
+
   // Electrons.
   struct gkyl_vlasov_species elc = {
     .name = "elc",
     .charge = ctx.charge_elc, .mass = ctx.mass_elc,
-    .lower = { -ctx.vx_max, -ctx.vy_max },
-    .upper = { ctx.vx_max, ctx.vy_max }, 
-    .cells = { NVX, NVY },
+    .lower = { -ctx.vx_max_elc },
+    .upper = { ctx.vx_max_elc }, 
+    .cells = { NVX },
 
-    .num_init = 1, 
+    .num_init = 1,
     .projection[0] = {
-      .proj_id = GKYL_PROJ_FUNC,
-      .func = evalElcInit,
-      .ctx_func = &ctx,
+      .proj_id = GKYL_PROJ_VLASOV_LTE,
+      .density = evalElcDensityInit,
+      .ctx_density = &ctx,
+      .temp = evalElcTempInit,
+      .ctx_temp = &ctx,
+      .V_drift = evalElcVDriftInit,
+      .ctx_V_drift = &ctx,
     },
 
-    .num_diag_moments = 2,
-    .diag_moments = { "M0", "M1i" },
+    .bcx = {
+      .lower = { .type = GKYL_SPECIES_ABSORB, },
+      .upper = { .type = GKYL_SPECIES_REFLECT, },
+    },
+
+    .num_diag_moments = 1,
+    .diag_moments = { "LTEMoments" },
+  };
+
+  // Ions.
+  struct gkyl_vlasov_species ion = {
+    .name = "ion",
+    .charge = ctx.charge_ion, .mass = ctx.mass_ion,
+    .lower = { -ctx.vx_max_ion },
+    .upper = { ctx.vx_max_ion }, 
+    .cells = { NVX },
+
+    .num_init = 1,
+    .projection[0] = {
+      .proj_id = GKYL_PROJ_VLASOV_LTE,
+      .density = evalIonDensityInit,
+      .ctx_density = &ctx,
+      .temp = evalIonTempInit,
+      .ctx_temp = &ctx,
+      .V_drift = evalIonVDriftInit,
+      .ctx_V_drift = &ctx,
+    },
+
+    .bcx = {
+      .lower = { .type = GKYL_SPECIES_ABSORB, },
+      .upper = { .type = GKYL_SPECIES_REFLECT, },
+    },
+
+    .num_diag_moments = 1,
+    .diag_moments = { "LTEMoments" },
   };
 
   // Field.
   struct gkyl_vlasov_field field = {
-    .epsilon0 = ctx.epsilon0, .mu0 = ctx.mu0,
+    .epsilon0 = ctx.epsilon0,
 
-    .elcErrorSpeedFactor = 0.0,
-    .mgnErrorSpeedFactor = 0.0,
+    .poisson_bcs = {
+      .lo_type = { GKYL_POISSON_DIRICHLET },
+      .up_type = { GKYL_POISSON_NEUMANN },
 
-    .init = evalFieldInit,
-    .ctx = &ctx,
+      .lo_value = { 0.0 },
+      .up_value = { 0.0 },
+    },
   };
 
-  // Vlasov-Maxwell app.
+  // Vlasov-Poisson app.
   struct gkyl_vm app_inp = {
-    .name = "vlasov_weibel_2x2v_p1",
-    
-    .cdim = 2, .vdim = 2,
-    .lower = { 0.0, 0.0 },
-    .upper = { ctx.Lx, ctx.Ly },
-    .cells = { NX, NY },
+    .name = "vp_sheath_1x1v_p2",
+
+    .cdim = 1, .vdim = 1,
+    .lower = { 0.0 },
+    .upper = { ctx.Lx },
+    .cells = { NX },
 
     .poly_order = ctx.poly_order,
     .basis_type = app_args.basis_type,
     .cfl_frac = ctx.cfl_frac,
 
-    .num_periodic_dir = 2,
-    .periodic_dirs = { 0, 1 },
+    .num_periodic_dir = 0,
+    .periodic_dirs = { },
 
-    .num_species = 1,
-    .species = { elc },
+    .num_species = 2,
+    .species = { elc, ion },
 
     .field = field,
- 
+    .is_electrostatic = true,
+
     .parallelism = {
       .use_gpu = app_args.use_gpu,
-      .cuts = { app_args.cuts[0], app_args.cuts[1] },
+      .cuts = { app_args.cuts[0] },
       .comm = comm,
     },
   };
@@ -458,6 +465,7 @@ main(int argc, char **argv)
   }
 
   write_data(&io_trig, app, t_curr, false);
+  gkyl_vlasov_app_write_integrated_mom(app);
   gkyl_vlasov_app_stat_write(app);
 
   struct gkyl_vlasov_stat stat = gkyl_vlasov_app_stat(app);
