@@ -18,7 +18,7 @@
 
 #include <gkyl_fem_parproj.h>
 
-#include <gkyl_deflated_array_ops.h>
+#include <gkyl_deflated_dg_bin_ops.h>
 
 
 void
@@ -173,10 +173,10 @@ test_aop()
 
 
   // Make deflated array operator
-  struct gkyl_deflated_array_ops* operator = gkyl_deflated_array_ops_new(grid, basis_on_dev, basis, local, use_gpu);
+  struct gkyl_deflated_dg_bin_ops* operator = gkyl_deflated_dg_bin_ops_new(grid, basis_on_dev, basis, local, use_gpu);
 
   // Divide
-  gkyl_deflated_array_ops_div(operator, c_oop, Exz_dev, c_lop, Cxz_dev, c_rop, jac_dev);
+  gkyl_deflated_dg_bin_ops_div(operator, c_oop, Exz_dev, c_lop, Cxz_dev, c_rop, jac_dev);
 
 #ifdef GKYL_HAVE_CUDA
   gkyl_array_copy(Exz, Exz_dev);
@@ -195,7 +195,7 @@ test_aop()
   gkyl_grid_sub_array_write(&grid, &local, 0, Exz_smooth, "Exz_smooth.gkyl");
 
   // Multiply
-  gkyl_deflated_array_ops_mul(operator, c_oop, Fxz_dev, c_lop, Exz_smooth_dev, c_rop, jac_dev);
+  gkyl_deflated_dg_bin_ops_mul(operator, c_oop, Fxz_dev, c_lop, Exz_smooth_dev, c_rop, jac_dev);
   
 #ifdef GKYL_HAVE_CUDA
   gkyl_array_copy(Fxz, Fxz_dev);
@@ -221,7 +221,7 @@ test_aop()
   gkyl_array_release(Exz);
   gkyl_array_release(Exz_smooth);
   gkyl_array_release(Fxz);
-  gkyl_deflated_array_ops_release(operator);
+  gkyl_deflated_dg_bin_ops_release(operator);
 
 }
 

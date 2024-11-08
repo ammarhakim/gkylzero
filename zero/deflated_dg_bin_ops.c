@@ -1,16 +1,16 @@
 #include <assert.h>
 
-#include <gkyl_deflated_array_ops.h>
-#include <gkyl_deflated_array_ops_priv.h>
+#include <gkyl_deflated_dg_bin_ops.h>
+#include <gkyl_deflated_dg_bin_ops_priv.h>
 
 #include <gkyl_array_rio.h>
 
-struct gkyl_deflated_array_ops* 
-gkyl_deflated_array_ops_new(struct gkyl_rect_grid grid, 
+struct gkyl_deflated_dg_bin_ops* 
+gkyl_deflated_dg_bin_ops_new(struct gkyl_rect_grid grid, 
   struct gkyl_basis *basis_on_dev, struct gkyl_basis basis, 
   struct gkyl_range local, bool use_gpu)
 {
-  struct gkyl_deflated_array_ops *up = gkyl_malloc(sizeof(*up));
+  struct gkyl_deflated_dg_bin_ops *up = gkyl_malloc(sizeof(*up));
   up->use_gpu = use_gpu;
   up->grid = grid;
   up->basis = basis;
@@ -22,7 +22,7 @@ gkyl_deflated_array_ops_new(struct gkyl_rect_grid grid,
 
   up->cdim = grid.ndim;
   up->num_solves_z = up->local.upper[up->cdim-1] - up->local.lower[up->cdim-1] + 2;
-  up->d_aop_data = gkyl_malloc(sizeof(struct deflated_array_ops_data[up->num_solves_z]));
+  up->d_bop_data = gkyl_malloc(sizeof(struct deflated_dg_bin_ops_data[up->num_solves_z]));
 
   int poly_order = up->basis.poly_order;
 
@@ -48,9 +48,11 @@ gkyl_deflated_array_ops_new(struct gkyl_rect_grid grid,
     deflated_cells[i] = up->grid.cells[i];
   }
 
-  gkyl_rect_grid_init(&up->deflated_grid, up->cdim-1, deflated_lower, deflated_upper, deflated_cells);
+  gkyl_rect_grid_init(&up->deflated_grid, up->cdim-1, deflated_lower, 
+      deflated_upper, deflated_cells);
   int deflated_nghost[GKYL_MAX_CDIM] = { 1 };
-  gkyl_create_grid_ranges(&up->deflated_grid, deflated_nghost, &up->deflated_local_ext, &up->deflated_local);
+  gkyl_create_grid_ranges(&up->deflated_grid, deflated_nghost, 
+      &up->deflated_local_ext, &up->deflated_local);
   gkyl_cart_modal_serendip(&up->deflated_basis, up->cdim-1, poly_order);
 
   if (up->use_gpu) {
@@ -92,14 +94,20 @@ gkyl_deflated_array_ops_new(struct gkyl_rect_grid grid,
   int ctr = 0;
   for (int zidx = up->local.lower[up->cdim-1]; zidx <= up->local.upper[up->cdim-1]+1; zidx++) {
     if (use_gpu) {
-      up->d_aop_data[ctr].deflated_lop = gkyl_array_cu_dev_new(GKYL_DOUBLE, up->deflated_basis.num_basis, up->deflated_local_ext.volume);
-      up->d_aop_data[ctr].deflated_rop = gkyl_array_cu_dev_new(GKYL_DOUBLE, up->deflated_basis.num_basis, up->deflated_local_ext.volume);
-      up->d_aop_data[ctr].deflated_out = gkyl_array_cu_dev_new(GKYL_DOUBLE, up->deflated_basis.num_basis, up->deflated_local_ext.volume);
+      up->d_bop_data[ctr].deflated_lop = gkyl_array_cu_dev_new(GKYL_DOUBLE, 
+          up->deflated_basis.num_basis, up->deflated_local_ext.volume);
+      up->d_bop_data[ctr].deflated_rop = gkyl_array_cu_dev_new(GKYL_DOUBLE, 
+          up->deflated_basis.num_basis, up->deflated_local_ext.volume);
+      up->d_bop_data[ctr].deflated_out = gkyl_array_cu_dev_new(GKYL_DOUBLE, 
+          up->deflated_basis.num_basis, up->deflated_local_ext.volume);
     }
     else {
-      up->d_aop_data[ctr].deflated_lop = gkyl_array_new(GKYL_DOUBLE, up->deflated_basis.num_basis, up->deflated_local_ext.volume);
-      up->d_aop_data[ctr].deflated_rop = gkyl_array_new(GKYL_DOUBLE, up->deflated_basis.num_basis, up->deflated_local_ext.volume);
-      up->d_aop_data[ctr].deflated_out = gkyl_array_new(GKYL_DOUBLE, up->deflated_basis.num_basis, up->deflated_local_ext.volume);
+      up->d_bop_data[ctr].deflated_lop = gkyl_array_new(GKYL_DOUBLE, 
+          up->deflated_basis.num_basis, up->deflated_local_ext.volume);
+      up->d_bop_data[ctr].deflated_rop = gkyl_array_new(GKYL_DOUBLE, 
+          up->deflated_basis.num_basis, up->deflated_local_ext.volume);
+      up->d_bop_data[ctr].deflated_out = gkyl_array_new(GKYL_DOUBLE, 
+          up->deflated_basis.num_basis, up->deflated_local_ext.volume);
     }
     ctr += 1;
   }
@@ -107,7 +115,9 @@ gkyl_deflated_array_ops_new(struct gkyl_rect_grid grid,
   return up;
 }
 
-void deflated_array_ops_advance(enum deflated_array_ops_type op_type, struct gkyl_deflated_array_ops* up, int c_oop, struct gkyl_array *out, int c_lop, struct gkyl_array *lop, int c_rop, struct gkyl_array* rop)
+void 
+deflated_dg_bin_ops_advance(enum deflated_dg_bin_ops_type op_type, struct gkyl_deflated_dg_bin_ops* up,
+    int c_oop, struct gkyl_array *out, int c_lop, struct gkyl_array *lop, int c_rop, struct gkyl_array* rop)
 {
 
   int lop_ncomp = lop->ncomp/up->basis.num_basis;
@@ -116,39 +126,43 @@ void deflated_array_ops_advance(enum deflated_array_ops_type op_type, struct gky
   for (int zidx = up->local.lower[up->cdim-1]; zidx <= up->local.upper[up->cdim-1]; zidx++) {
     // Deflate lop and rop
     gkyl_deflate_zsurf_advance(up->deflator_lo, zidx, 
-      &up->local, &up->deflated_local, lop, up->d_aop_data[ctr].deflated_lop, lop_ncomp);
+      &up->local, &up->deflated_local, lop, up->d_bop_data[ctr].deflated_lop, lop_ncomp);
     gkyl_deflate_zsurf_advance(up->deflator_lo, zidx, 
-      &up->local, &up->deflated_local, rop, up->d_aop_data[ctr].deflated_rop, rop_ncomp);
+      &up->local, &up->deflated_local, rop, up->d_bop_data[ctr].deflated_rop, rop_ncomp);
 
     // Divide or Multiply
     if (op_type == GKYL_DEFLATED_DIV)
-      gkyl_dg_div_op_range(up->mem, up->deflated_basis, c_oop, up->d_aop_data[ctr].deflated_out, c_lop, up->d_aop_data[ctr].deflated_lop, c_rop, up->d_aop_data[ctr].deflated_rop, &up->deflated_local);
+      gkyl_dg_div_op_range(up->mem, up->deflated_basis, c_oop, up->d_bop_data[ctr].deflated_out,
+          c_lop, up->d_bop_data[ctr].deflated_lop, c_rop, up->d_bop_data[ctr].deflated_rop, &up->deflated_local);
     else if (op_type == GKYL_DEFLATED_MUL)
-      gkyl_dg_mul_op_range(up->deflated_basis, c_oop, up->d_aop_data[ctr].deflated_out, c_lop, up->d_aop_data[ctr].deflated_lop, c_rop, up->d_aop_data[ctr].deflated_rop, &up->deflated_local);
+      gkyl_dg_mul_op_range(up->deflated_basis, c_oop, up->d_bop_data[ctr].deflated_out, c_lop,
+          up->d_bop_data[ctr].deflated_lop, c_rop, up->d_bop_data[ctr].deflated_rop, &up->deflated_local);
 
     // Modal to Nodal in 1d -> Store the result in the 2d nodal field
     gkyl_nodal_ops_m2n_deflated(up->n2m_deflated, up->deflated_basis_on_dev, 
       &up->deflated_grid, &up->nrange, &up->deflated_nrange, &up->deflated_local, 1, 
-      up->nodal_fld, up->d_aop_data[ctr].deflated_out, ctr);
+      up->nodal_fld, up->d_bop_data[ctr].deflated_out, ctr);
     ctr += 1;
     if (zidx == up->local.upper[up->cdim-1]) {
       // Deflate lop and rop
       gkyl_deflate_zsurf_advance(up->deflator_up, zidx, 
-        &up->local, &up->deflated_local, lop, up->d_aop_data[ctr].deflated_lop, lop_ncomp);
+        &up->local, &up->deflated_local, lop, up->d_bop_data[ctr].deflated_lop, lop_ncomp);
       gkyl_deflate_zsurf_advance(up->deflator_up, zidx, 
-        &up->local, &up->deflated_local, rop, up->d_aop_data[ctr].deflated_rop, rop_ncomp);
+        &up->local, &up->deflated_local, rop, up->d_bop_data[ctr].deflated_rop, rop_ncomp);
 
 
       // Divide or Multiply
       if (op_type == GKYL_DEFLATED_DIV)
-        gkyl_dg_div_op_range(up->mem, up->deflated_basis, c_oop, up->d_aop_data[ctr].deflated_out, c_lop, up->d_aop_data[ctr].deflated_lop, c_rop, up->d_aop_data[ctr].deflated_rop, &up->deflated_local);
+        gkyl_dg_div_op_range(up->mem, up->deflated_basis, c_oop, up->d_bop_data[ctr].deflated_out, 
+            c_lop, up->d_bop_data[ctr].deflated_lop, c_rop, up->d_bop_data[ctr].deflated_rop, &up->deflated_local);
       else if (op_type == GKYL_DEFLATED_MUL)
-        gkyl_dg_mul_op_range(up->deflated_basis, c_oop, up->d_aop_data[ctr].deflated_out, c_lop, up->d_aop_data[ctr].deflated_lop, c_rop, up->d_aop_data[ctr].deflated_rop, &up->deflated_local);
+        gkyl_dg_mul_op_range(up->deflated_basis, c_oop, up->d_bop_data[ctr].deflated_out, 
+            c_lop, up->d_bop_data[ctr].deflated_lop, c_rop, up->d_bop_data[ctr].deflated_rop, &up->deflated_local);
 
       // Modal to Nodal in 1d -> Store the result in the 2d nodal field
       gkyl_nodal_ops_m2n_deflated(up->n2m_deflated, up->deflated_basis_on_dev, 
         &up->deflated_grid, &up->nrange, &up->deflated_nrange, &up->deflated_local, 1, 
-        up->nodal_fld, up->d_aop_data[ctr].deflated_out, ctr);
+        up->nodal_fld, up->d_bop_data[ctr].deflated_out, ctr);
     }
   }
 
@@ -158,18 +172,20 @@ void deflated_array_ops_advance(enum deflated_array_ops_type op_type, struct gky
 
 
 void 
-gkyl_deflated_array_ops_mul(struct gkyl_deflated_array_ops* up, int c_oop, struct gkyl_array *out, int c_lop, struct gkyl_array *lop, int c_rop, struct gkyl_array* rop)
+gkyl_deflated_dg_bin_ops_mul(struct gkyl_deflated_dg_bin_ops* up, int c_oop, struct gkyl_array *out,
+    int c_lop, struct gkyl_array *lop, int c_rop, struct gkyl_array* rop)
 {
-  deflated_array_ops_advance(GKYL_DEFLATED_MUL, up, c_oop, out, c_lop, lop, c_rop, rop);
+  deflated_dg_bin_ops_advance(GKYL_DEFLATED_MUL, up, c_oop, out, c_lop, lop, c_rop, rop);
 }
 
 void 
-gkyl_deflated_array_ops_div(struct gkyl_deflated_array_ops* up, int c_oop, struct gkyl_array *out, int c_lop, struct gkyl_array *lop, int c_rop, struct gkyl_array* rop)
+gkyl_deflated_dg_bin_ops_div(struct gkyl_deflated_dg_bin_ops* up, int c_oop, struct gkyl_array *out,
+    int c_lop, struct gkyl_array *lop, int c_rop, struct gkyl_array* rop)
 {
-  deflated_array_ops_advance(GKYL_DEFLATED_DIV, up, c_oop, out, c_lop, lop, c_rop, rop);
+  deflated_dg_bin_ops_advance(GKYL_DEFLATED_DIV, up, c_oop, out, c_lop, lop, c_rop, rop);
 }
 
-void gkyl_deflated_array_ops_release(struct gkyl_deflated_array_ops* up){
+void gkyl_deflated_dg_bin_ops_release(struct gkyl_deflated_dg_bin_ops* up){
   gkyl_array_release(up->nodal_fld);
   gkyl_nodal_ops_release(up->n2m);
   gkyl_nodal_ops_release(up->n2m_deflated);
@@ -177,16 +193,16 @@ void gkyl_deflated_array_ops_release(struct gkyl_deflated_array_ops* up){
   gkyl_deflate_zsurf_release(up->deflator_up);
   int ctr = 0;
   for (int zidx = up->local.lower[up->cdim-1]; zidx <= up->local.upper[up->cdim-1] + 1; zidx++) {
-    gkyl_array_release(up->d_aop_data[ctr].deflated_lop);
-    gkyl_array_release(up->d_aop_data[ctr].deflated_rop);
-    gkyl_array_release(up->d_aop_data[ctr].deflated_out);
+    gkyl_array_release(up->d_bop_data[ctr].deflated_lop);
+    gkyl_array_release(up->d_bop_data[ctr].deflated_rop);
+    gkyl_array_release(up->d_bop_data[ctr].deflated_out);
     ctr += 1;
   }
   if (up->use_gpu) {
     gkyl_cu_free(up->deflated_basis_on_dev);
   }
 
-  gkyl_free(up->d_aop_data);
+  gkyl_free(up->d_bop_data);
   gkyl_free(up);
 }
 

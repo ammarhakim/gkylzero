@@ -9,20 +9,20 @@
 // needed to do the div or mul on a
 // surface which is constant in the last coordinate
 // of the configuration space grid
-struct deflated_array_ops_data {
+struct deflated_dg_bin_ops_data {
   struct gkyl_array *deflated_lop;
   struct gkyl_array *deflated_rop;
   struct gkyl_array *deflated_out;
 };
 
-enum deflated_array_ops_type { 
+enum deflated_dg_bin_ops_type { 
   GKYL_DEFLATED_MUL = 0, 
   GKYL_DEFLATED_DIV = 1, 
 };
 
 
 // Updater type
-struct gkyl_deflated_array_ops {
+struct gkyl_deflated_dg_bin_ops {
   struct gkyl_rect_grid grid; // Conf space grid
   struct gkyl_rect_grid deflated_grid; // Conf space grid with last
                                        // dimension removed
@@ -41,7 +41,7 @@ struct gkyl_deflated_array_ops {
 
   struct gkyl_dg_bin_op_mem *mem; // memory fir division of deflated fields
 
-  struct deflated_array_ops_data *d_aop_data; // Array of deflated_dem_data
+  struct deflated_dg_bin_ops_data *d_bop_data; // Array of deflated_dem_data
                                         // to be used for individual surface solves
   struct gkyl_array *nodal_fld; // Nodal field which holds solution
   int num_solves_z; // Number of surfaces to solve on
