@@ -115,7 +115,7 @@ void gkyl_dg_calc_gk_rad_vars_nI_nu_advance(const struct gkyl_dg_calc_gk_rad_var
   const struct gkyl_array* n_elc_rad, const struct gkyl_array* n_elc,
   const struct gkyl_array* nI, struct gkyl_array* nvnu_surf, struct gkyl_array* nvnu, 
   struct gkyl_array* nvsqnu_surf, struct gkyl_array* nvsqnu,
-  double vtsq_min_normalized, struct gkyl_array* vtsq);
+  const double* vtsq_min_normalized, struct gkyl_array* vtsq);
 
 /**
  * Delete pointer to updater to compute gyrokinetic variables.

@@ -342,7 +342,7 @@ test_1x(int poly_order, bool use_gpu, double te, int atomic_z,
   // Assumed electron and ion density are the same and uniform
   gkyl_dg_calc_gk_rad_vars_nI_nu_advance(calc_gk_rad_vars, 
     &confLocal, &local, &vnu_surf[0], &vnu[0], &vsqnu_surf[0], &vsqnu[0], 
-    n_elc, m0, m0, nvnu_surf, nvnu, nvsqnu_surf, nvsqnu, vtsq_min, vtsq);
+    n_elc, m0, m0, nvnu_surf, nvnu, nvsqnu_surf, nvsqnu, &vtsq_min, vtsq);
 
   gkyl_dg_updater_rad_gyrokinetic_advance(slvr, &local, f, cflrate, rhs);
 
@@ -666,7 +666,7 @@ test_2x(int poly_order, bool use_gpu, double te)
   // Assumed electron and ion density are the same and uniform
   gkyl_dg_calc_gk_rad_vars_nI_nu_advance(calc_gk_rad_vars, 
     &confLocal, &local, &vnu_surf[0], &vnu[0], &vsqnu_surf[0], &vsqnu[0], 
-    n_elc, m0, m0, nvnu_surf, nvnu, nvsqnu_surf, nvsqnu, vtsq_min, vtsq);
+    n_elc, m0, m0, nvnu_surf, nvnu, nvsqnu_surf, nvsqnu, &vtsq_min, vtsq);
 
 
   gkyl_dg_updater_rad_gyrokinetic_advance(slvr, &local, f, cflrate, rhs);

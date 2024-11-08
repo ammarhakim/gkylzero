@@ -74,7 +74,7 @@ gk_species_radiation_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s
     rad_basis.num_basis, s->local_ext.volume, app->use_gpu);
 
   // Make array for cutoff below which radiation is set to 0. Set to 1eV. Keep the radiation from driving Te negative. Only lives on host.
-  rad->vtsq_min_normalized = mkarr(false, 1, rad->num_cross_collisions);
+  rad->vtsq_min_normalized = mkarr(false, 1, rad->num_cross_collisions*GKYL_MAX_RAD_DENSITIES);
   
   // Initialize drag coefficients.
   for (int i=0; i<rad->num_cross_collisions; ++i) {
@@ -105,22 +105,6 @@ gk_species_radiation_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s
       gk_species_moment_init(app, rad->collide_with[i], &rad->moms[i], "M0");
     }
 
-    double *vtsq_normalized = gkyl_array_fetch(rad->vtsq_min_normalized, i);
-    double Te_min_eV;
-    if (s->info.radiation.te_min_model == GKYL_CONST_TE && s->info.radiation.Te_min) {
-      // Turn off radiation below a constant temperature
-      Te_min_eV = s->info.radiation.Te_min / GKYL_ELEMENTARY_CHARGE;
-    }
-    else if (s->info.radiation.te_min_model == GKYL_VARY_TE_AGGRESSIVE) {
-      // Turn off radiation below 10^-4*max(Lz)
-      Te_min_eV = 0.1372 * pow(v0[0], 1.867);
-    }
-    else {
-      // (s->info.radiation.te_min_model == GKYL_VARY_TE_CONSERVATIVE) i.e. Turn off radiation below 3.16*10^-3*max(Lz)
-      Te_min_eV = 0.2815 * pow(v0[0], 1.768);
-    }
-    vtsq_normalized[0] = Te_min_eV * fabs(s->info.charge)/s->info.mass * pow(sqrt(2.0), cdim);
-
     if (status == 1) {
       char msg[100];
       sprintf(msg, "No radiation fits exist for z=%d, charge state=%d\n",s->info.radiation.z[i], s->info.radiation.charge_state[i]);
@@ -129,8 +113,6 @@ gk_species_radiation_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s
     }
 
     for (int n=0; n<num_densities; n++) {
-      /* double *ne0 = gkyl_array_fetch(rad->rad_fit_ne[i], n);
-      ne0[0] = ne[n];*/
       // allocate drag coefficients in vparallel and mu for each collision, both surface and volume expansions
       // nu = nu(v) for both vparallel and mu updates, 
       // where |v| = sqrt(v_par^2 + 2 mu B/m)
@@ -140,6 +122,22 @@ gk_species_radiation_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s
         a[n], alpha[n], beta[n], gamma[n], v0[n],
         rad->vnu_surf[i].data[n].arr, rad->vnu[i].data[n].arr,
         rad->vsqnu_surf[i].data[n].arr, rad->vsqnu[i].data[n].arr);
+
+      double *vtsq_normalized = gkyl_array_fetch(rad->vtsq_min_normalized, n+i*GKYL_MAX_RAD_DENSITIES);
+      double Te_min_eV;
+      if (s->info.radiation.te_min_model == GKYL_CONST_TE && s->info.radiation.Te_min) {
+	// Turn off radiation below a constant temperature
+	Te_min_eV = s->info.radiation.Te_min / GKYL_ELEMENTARY_CHARGE;
+      }
+      else if (s->info.radiation.te_min_model == GKYL_VARY_TE_AGGRESSIVE) {
+	// Turn off radiation below 10^-4*max(Lz)
+	Te_min_eV = 0.1372 * pow(v0[n], 1.867);
+      }
+      else {
+	// (s->info.radiation.te_min_model == GKYL_VARY_TE_CONSERVATIVE) i.e. Turn off radiation below 3.16*10^-3*max(Lz)
+	Te_min_eV = 0.2815 * pow(v0[n], 1.768);
+      }
+      vtsq_normalized[0] = Te_min_eV * fabs(s->info.charge)/s->info.mass * pow(sqrt(2.0), cdim);
     }
 
     // Allocate emissivity.
@@ -228,13 +226,13 @@ gk_species_radiation_moms(gkyl_gyrokinetic_app *app, const struct gk_species *sp
     // divide out Jacobian from ion density before computation of final drag coefficient
     gkyl_dg_div_op_range(rad->moms[i].mem_geo, app->confBasis, 0, rad->moms[i].marr, 0,
       rad->moms[i].marr, 0, app->gk_geom->jacobgeo, &app->local);
-    const double* vtsq_min_normalized_d = gkyl_array_cfetch(rad->vtsq_min_normalized, i);    
+    const double* vtsq_min_normalized_d = gkyl_array_cfetch(rad->vtsq_min_normalized, i*GKYL_MAX_RAD_DENSITIES);
     gkyl_dg_calc_gk_rad_vars_nI_nu_advance(
       rad->calc_gk_rad_vars, &app->local, &species->local, 
       &rad->vnu_surf[i], &rad->vnu[i], &rad->vsqnu_surf[i], &rad->vsqnu[i], 
       rad->rad_fit_ne[i], rad->m0, rad->moms[i].marr, 
       rad->nvnu_surf, rad->nvnu, rad->nvsqnu_surf, rad->nvsqnu,
-      vtsq_min_normalized_d[0], rad->vtsq);					   
+      vtsq_min_normalized_d, rad->vtsq);					   
   }
 }
 
@@ -280,7 +278,7 @@ gk_species_radiation_emissivity(gkyl_gyrokinetic_app *app, struct gk_species *sp
       rad->rad_fit_ne[i], species->m0.marr, rad->moms[i].marr, 
       rad->nvnu_surf, rad->nvnu, 
       rad->nvsqnu_surf, rad->nvsqnu,
-      vtsq_min_normalized_d[0], rad->vtsq);
+      vtsq_min_normalized_d, rad->vtsq);
     
     gkyl_dg_updater_rad_gyrokinetic_advance(rad->drag_slvr, &species->local,
       species->f, species->cflrate, rad->emissivity_rhs);
