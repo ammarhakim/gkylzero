@@ -81,6 +81,7 @@ riem_to_cons(const struct gkyl_wv_eqn* eqn, const double* qstate, const double* 
 /**
 * Boundary condition function for applying wall boundary conditions for the reactive Euler equations.
 *
+* @param eqn Base equation object.
 * @param t Current simulation time.
 * @param nc Number of boundary cells to which to apply wall boundary conditions.
 * @param skin Skin cells in boundary region (from which values are copied).
@@ -89,11 +90,12 @@ riem_to_cons(const struct gkyl_wv_eqn* eqn, const double* qstate, const double* 
 */
 GKYL_CU_D
 static void
-reactive_euler_wall(double t, int nc, const double* skin, double* GKYL_RESTRICT ghost, void* ctx);
+reactive_euler_wall(const struct gkyl_wv_eqn* eqn, double t, int nc, const double* skin, double* GKYL_RESTRICT ghost, void* ctx);
 
 /**
 * Boundary condition function for applying no-slip boundary conditions for the reactive Euler equations.
 *
+* @param eqn Base equation object.
 * @param t Current simulation time.
 * @param nc Number of boundary cells to which to apply no-slip boundary conditions.
 * @param skin Skin cells in boundary region (from which values are copied).
@@ -102,11 +104,12 @@ reactive_euler_wall(double t, int nc, const double* skin, double* GKYL_RESTRICT 
 */
 GKYL_CU_D
 static void
-reactive_euler_no_slip(double t, int nc, const double* skin, double* GKYL_RESTRICT ghost, void* ctx);
+reactive_euler_no_slip(const struct gkyl_wv_eqn* eqn, double t, int nc, const double* skin, double* GKYL_RESTRICT ghost, void* ctx);
 
 /**
 * Rotate state vector from global to local coordinate frame.
 *
+* @param eqn Base equation object.
 * @param tau1 First tangent vector of the coordinate frame.
 * @param tau2 Second tangent vector of the coordinate frame.
 * @param norm Normal vector of the coordinate frame.
@@ -115,11 +118,13 @@ reactive_euler_no_slip(double t, int nc, const double* skin, double* GKYL_RESTRI
 */
 GKYL_CU_D
 static inline void
-rot_to_local(const double* tau1, const double* tau2, const double* norm, const double* GKYL_RESTRICT qglobal, double* GKYL_RESTRICT qlocal);
+rot_to_local(const struct gkyl_wv_eqn* eqn, const double* tau1, const double* tau2, const double* norm, const double* GKYL_RESTRICT qglobal,
+  double* GKYL_RESTRICT qlocal);
 
 /**
 * Rotate state vector from local to global coordinate frame.
 *
+* @param eqn Base equation object.
 * @param tau1 First tangent vector of the coordinate frame.
 * @param tau2 Second tangent vector of the coordinate frame.
 * @param norm Normal vector of the coordinate frame.
@@ -128,7 +133,8 @@ rot_to_local(const double* tau1, const double* tau2, const double* norm, const d
 */
 GKYL_CU_D
 static inline void
-rot_to_global(const double* tau1, const double* tau2, const double* norm, const double* GKYL_RESTRICT qlocal, double* GKYL_RESTRICT qglobal);
+rot_to_global(const struct gkyl_wv_eqn* eqn, const double* tau1, const double* tau2, const double* norm, const double* GKYL_RESTRICT qlocal,
+  double* GKYL_RESTRICT qglobal);
 
 /**
 * Compute waves and speeds using Lax fluxes.
@@ -191,6 +197,69 @@ wave_lax_l(const struct gkyl_wv_eqn* eqn, enum gkyl_wv_flux_type type, const dou
 GKYL_CU_D
 static void
 qfluct_lax_l(const struct gkyl_wv_eqn* eqn, enum gkyl_wv_flux_type type, const double* ql, const double* qr, const double* waves, const double* s,
+  double* amdq, double* apdq);
+
+/**
+* Compute waves and speeds using Roe fluxes.
+*
+* @param eqn Base equation object.
+* @param delta Jump across interface to split.
+* @param ql Conserved variables on the left of the interface.
+* @param qr Conserved variables on the right of the interface.
+* @param waves Waves (output).
+* @param s Wave speeds (output).
+* @return Maximum wave speed.
+*/
+GKYL_CU_D
+static double
+wave_roe(const struct gkyl_wv_eqn* eqn, const double* delta, const double* ql, const double* qr, double* waves, double* s);
+
+/**
+* Compute fluctuations using Roe fluxes.
+*
+* @param eqn Base equation object.
+* @param ql Conserved variable vector on the left of the interface.
+* @param qr Conserved variable vector on the right of the interface.
+* @param waves Waves (input).
+* @param s Wave speeds (input).
+* @param amdq Left-moving fluctuations (output).
+* @param apdq Right-moving fluctuations (output).
+*/
+GKYL_CU_D
+static void
+qfluct_roe(const struct gkyl_wv_eqn* eqn, const double* ql, const double* qr, const double* waves, const double* s, double* amdq, double* apdq);
+
+/**
+* Compute waves and speeds using Roe fluxes (with potential fallback).
+*
+* @param eqn Base equation object.
+* @param type Type of Riemann-solver flux to use.
+* @param delta Jump across interface to split.
+* @param ql Conserved variables on the left of the interface.
+* @param qr Conserved variables on the right of the interface.
+* @param waves Waves (output).
+* @param s Wave speeds (output).
+* @return Maximum wave speed.
+*/
+GKYL_CU_D
+static double
+wave_roe_l(const struct gkyl_wv_eqn*, enum gkyl_wv_flux_type type, const double* delta, const double* ql, const double* qr, double* waves, double* s);
+
+/**
+* Compute fluctuations using Roe fluxes (with potential fallback).
+*
+* @param eqn Base equation object.
+* @param type Type of Riemann-solver flux to use.
+* @param ql Conserved variable vector on the left of the interface.
+* @param qr Conserved variable vector on the right of the interface.
+* @param waves Waves (input).
+* @param s Wave speeds (input).
+* @param amdq Left-moving fluctuations (output).
+* @param apdq Right-moving fluctuations (output).
+*/
+GKYL_CU_D
+static void
+qfluct_roe_l(const struct gkyl_wv_eqn*, enum gkyl_wv_flux_type type, const double* ql, const double* qr, const double* waves, const double* s,
   double* amdq, double* apdq);
 
 /**

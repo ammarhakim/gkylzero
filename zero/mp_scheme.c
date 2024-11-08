@@ -325,8 +325,8 @@ gkyl_mp_scheme_advance(gkyl_mp_scheme *mp,
       const struct gkyl_wave_cell_geom *cg = gkyl_wave_geom_get(mp->geom, iter.idx);
 
       // rotate ql and qr to local frame
-      mp->equation->rotate_to_local_func(cg->tau1[dir], cg->tau2[dir], cg->norm[dir], qr_l, qlocal_l);
-      mp->equation->rotate_to_local_func(cg->tau1[dir], cg->tau2[dir], cg->norm[dir], qr_r, qlocal_r);
+      mp->equation->rotate_to_local_func(mp->equation, cg->tau1[dir], cg->tau2[dir], cg->norm[dir], qr_l, qlocal_l);
+      mp->equation->rotate_to_local_func(mp->equation, cg->tau1[dir], cg->tau2[dir], cg->norm[dir], qr_r, qlocal_r);
 
       for (int m=0; m<meqn; ++m) delta[m] = qlocal_r[m]-qlocal_l[m];
       
@@ -340,8 +340,8 @@ gkyl_mp_scheme_advance(gkyl_mp_scheme *mp,
       double *apdq_p = gkyl_array_fetch(apdq, loc+offsets[IP]);
 
       // rotate fluctuations back to global frame
-      mp->equation->rotate_to_global_func(cg->tau1[dir], cg->tau2[dir], cg->norm[dir], amdq_local, amdq_p);
-      mp->equation->rotate_to_global_func(cg->tau1[dir], cg->tau2[dir], cg->norm[dir], apdq_local, apdq_p);
+      mp->equation->rotate_to_global_func(mp->equation, cg->tau1[dir], cg->tau2[dir], cg->norm[dir], amdq_local, amdq_p);
+      mp->equation->rotate_to_global_func(mp->equation, cg->tau1[dir], cg->tau2[dir], cg->norm[dir], apdq_local, apdq_p);
     }
 
     double deltaf_local[meqn], deltaf[meqn];
@@ -358,13 +358,13 @@ gkyl_mp_scheme_advance(gkyl_mp_scheme *mp,
       const double *qr_r = gkyl_array_cfetch(qrec_r, loc);
       
       // rotate ql and qr to local frame
-      mp->equation->rotate_to_local_func(cg->tau1[dir], cg->tau2[dir], cg->norm[dir], qr_l, qlocal_l);
-      mp->equation->rotate_to_local_func(cg->tau1[dir], cg->tau2[dir], cg->norm[dir], qr_r, qlocal_r);
+      mp->equation->rotate_to_local_func(mp->equation, cg->tau1[dir], cg->tau2[dir], cg->norm[dir], qr_l, qlocal_l);
+      mp->equation->rotate_to_local_func(mp->equation, cg->tau1[dir], cg->tau2[dir], cg->norm[dir], qr_r, qlocal_r);
 
       double amax = gkyl_wv_eqn_flux_jump(mp->equation, qlocal_l, qlocal_r, deltaf_local);
 
       // rotate deltaf back to global frame
-      mp->equation->rotate_to_local_func(cg->tau1[dir], cg->tau2[dir], cg->norm[dir], deltaf_local, deltaf);
+      mp->equation->rotate_to_local_func(mp->equation, cg->tau1[dir], cg->tau2[dir], cg->norm[dir], deltaf_local, deltaf);
 
       const double *amdq_p = gkyl_array_cfetch(amdq, loc);
       const double *apdq_p = gkyl_array_cfetch(apdq, loc);

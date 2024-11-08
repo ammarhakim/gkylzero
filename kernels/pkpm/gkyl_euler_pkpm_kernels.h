@@ -3,6 +3,7 @@
 #include <gkyl_mat.h> 
 #include <gkyl_wave_geom.h> 
 #include <gkyl_wv_eqn.h> 
+#include <gkyl_wv_ten_moment_priv.h> 
 #include <gkyl_util.h> 
 EXTERN_C_BEG 
 
