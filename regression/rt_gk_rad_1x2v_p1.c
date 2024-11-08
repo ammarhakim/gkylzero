@@ -367,7 +367,9 @@ main(int argc, char **argv)
       .reference_ne = ctx.n0/10,
       .min_ne = ctx.n0/100,
       .max_ne = ctx.n0,
-    },
+      .te_min_model = GKYL_CONST_TE,
+      .Te_min = 12.0 * GKYL_ELEMENTARY_CHARGE,
+      },
     
     .num_diag_moments = 7,
     .diag_moments = { "M0", "M1", "M2", "M2par", "M2perp", "M3par", "M3perp" },
@@ -500,7 +502,7 @@ main(int argc, char **argv)
     .name = "test_sp_2", .mass = ctx.mass_ion,
     .lower = { -ctx.vpar_max_ion, -ctx.vpar_max_ion, -ctx.vpar_max_ion},
     .upper = { ctx.vpar_max_ion, ctx.vpar_max_ion, ctx.vpar_max_ion },
-    .cells = { cells_v[2], cells_v[2], cells_v[2]},
+    .cells = { ctx.Nvneut, ctx.Nvneut, ctx.Nvneut},
     .is_static = true,
 
     .projection = {
@@ -521,7 +523,7 @@ main(int argc, char **argv)
     .name = "test_sp_3", .mass = ctx.mass_ion,
     .lower = { -ctx.vpar_max_ion, -ctx.vpar_max_ion, -ctx.vpar_max_ion},
     .upper = { ctx.vpar_max_ion, ctx.vpar_max_ion, ctx.vpar_max_ion },
-    .cells = { cells_v[2], cells_v[2], cells_v[2]},
+    .cells = { ctx.Nvneut, ctx.Nvneut, ctx.Nvneut},
     .is_static = true,
 
     .projection = {
@@ -542,7 +544,7 @@ main(int argc, char **argv)
     .name = "test_sp_4", .mass = ctx.mass_ion,
     .lower = { -ctx.vpar_max_ion, -ctx.vpar_max_ion, -ctx.vpar_max_ion},
     .upper = { ctx.vpar_max_ion, ctx.vpar_max_ion, ctx.vpar_max_ion },
-    .cells = { cells_v[2], cells_v[2], cells_v[2]},
+    .cells = { ctx.Nvneut, ctx.Nvneut, ctx.Nvneut},
     .is_static = true,
 
     .projection = {
@@ -601,10 +603,8 @@ main(int argc, char **argv)
       .comm = comm,
     },
   };
-
   // Create app object.
   gkyl_gyrokinetic_app *app = gkyl_gyrokinetic_app_new(&app_inp);
-
   // Initial and final simulation times.
   int frame_curr = 0;
   double t_curr = 0.0, t_end = ctx.t_end;

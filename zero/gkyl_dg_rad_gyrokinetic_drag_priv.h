@@ -60,22 +60,17 @@ kernel_rad_gyrokinetic_vol_1x2v_ser_p1(const struct gkyl_dg_eqn *eqn, const doub
   struct dg_rad_gyrokinetic_drag *grad_drag = container_of(eqn, struct dg_rad_gyrokinetic_drag, eqn);
 
   long cidx = gkyl_range_idx(&grad_drag->conf_range, idx);
-  const double *vtsq = (const double *) gkyl_array_cfetch(grad_drag->auxfields.vtsq, cidx);
-  if ( vtsq[0]*grad_drag->cellav_norm_conf < grad_drag->auxfields.vtsq_min) {   
-    return 0.0;
-  } else {
-    int vel_idx[2];
-    for (int d=grad_drag->cdim; d<grad_drag->pdim; d++) vel_idx[d-grad_drag->cdim] = idx[d];
-
-    long vidx = gkyl_range_idx(&grad_drag->vel_map->local_vel, vel_idx);
-    long pidx = gkyl_range_idx(&grad_drag->phase_range, idx);
-
-    return rad_gyrokinetic_vol_1x2v_ser_p1(xc, dx,
-      (const double*) gkyl_array_cfetch(grad_drag->vel_map->vmap_prime, vidx),
-      (const double*) gkyl_array_cfetch(grad_drag->auxfields.nvnu, pidx), 
-      (const double*) gkyl_array_cfetch(grad_drag->auxfields.nvsqnu, pidx), 
+  int vel_idx[2];
+  for (int d=grad_drag->cdim; d<grad_drag->pdim; d++) vel_idx[d-grad_drag->cdim] = idx[d];
+  
+  long vidx = gkyl_range_idx(&grad_drag->vel_map->local_vel, vel_idx);
+  long pidx = gkyl_range_idx(&grad_drag->phase_range, idx);
+  
+  return rad_gyrokinetic_vol_1x2v_ser_p1(xc, dx,
+     (const double*) gkyl_array_cfetch(grad_drag->vel_map->vmap_prime, vidx),
+     (const double*) gkyl_array_cfetch(grad_drag->auxfields.nvnu, pidx), 
+     (const double*) gkyl_array_cfetch(grad_drag->auxfields.nvsqnu, pidx), 
       qIn, qRhsOut);
-  }
 }
 
 GKYL_CU_DH
@@ -86,22 +81,17 @@ kernel_rad_gyrokinetic_vol_2x2v_ser_p1(const struct gkyl_dg_eqn *eqn, const doub
   struct dg_rad_gyrokinetic_drag *grad_drag = container_of(eqn, struct dg_rad_gyrokinetic_drag, eqn);
 
   long cidx = gkyl_range_idx(&grad_drag->conf_range, idx);
-  const double *vtsq = (const double *) gkyl_array_cfetch(grad_drag->auxfields.vtsq, cidx);
-  if ( vtsq[0]*grad_drag->cellav_norm_conf < grad_drag->auxfields.vtsq_min) {   
-    return 0.0;
-  } else {
-    int vel_idx[2];
-    for (int d=grad_drag->cdim; d<grad_drag->pdim; d++) vel_idx[d-grad_drag->cdim] = idx[d];
+  int vel_idx[2];
+  for (int d=grad_drag->cdim; d<grad_drag->pdim; d++) vel_idx[d-grad_drag->cdim] = idx[d];
 
-    long vidx = gkyl_range_idx(&grad_drag->vel_map->local_vel, vel_idx);
-    long pidx = gkyl_range_idx(&grad_drag->phase_range, idx);
+  long vidx = gkyl_range_idx(&grad_drag->vel_map->local_vel, vel_idx);
+  long pidx = gkyl_range_idx(&grad_drag->phase_range, idx);
 
-    return rad_gyrokinetic_vol_2x2v_ser_p1(xc, dx,
-      (const double*) gkyl_array_cfetch(grad_drag->vel_map->vmap_prime, vidx),
-      (const double*) gkyl_array_cfetch(grad_drag->auxfields.nvnu, pidx), 
-      (const double*) gkyl_array_cfetch(grad_drag->auxfields.nvsqnu, pidx), 
-      qIn, qRhsOut);
-  }
+  return rad_gyrokinetic_vol_2x2v_ser_p1(xc, dx,
+    (const double*) gkyl_array_cfetch(grad_drag->vel_map->vmap_prime, vidx),
+    (const double*) gkyl_array_cfetch(grad_drag->auxfields.nvnu, pidx), 
+    (const double*) gkyl_array_cfetch(grad_drag->auxfields.nvsqnu, pidx), 
+    qIn, qRhsOut);
 }
 
 GKYL_CU_DH
@@ -112,22 +102,17 @@ kernel_rad_gyrokinetic_vol_3x2v_ser_p1(const struct gkyl_dg_eqn *eqn, const doub
   struct dg_rad_gyrokinetic_drag *grad_drag = container_of(eqn, struct dg_rad_gyrokinetic_drag, eqn);
 
   long cidx = gkyl_range_idx(&grad_drag->conf_range, idx);
-  const double *vtsq = (const double *) gkyl_array_cfetch(grad_drag->auxfields.vtsq, cidx);
-  if ( vtsq[0]*grad_drag->cellav_norm_conf < grad_drag->auxfields.vtsq_min) {   
-    return 0.0;
-  } else {
-    int vel_idx[2];
-    for (int d=grad_drag->cdim; d<grad_drag->pdim; d++) vel_idx[d-grad_drag->cdim] = idx[d];
+  int vel_idx[2];
+  for (int d=grad_drag->cdim; d<grad_drag->pdim; d++) vel_idx[d-grad_drag->cdim] = idx[d];
 
-    long vidx = gkyl_range_idx(&grad_drag->vel_map->local_vel, vel_idx);
-    long pidx = gkyl_range_idx(&grad_drag->phase_range, idx);
+  long vidx = gkyl_range_idx(&grad_drag->vel_map->local_vel, vel_idx);
+  long pidx = gkyl_range_idx(&grad_drag->phase_range, idx);
 
-    return rad_gyrokinetic_vol_3x2v_ser_p1(xc, dx,
-      (const double*) gkyl_array_cfetch(grad_drag->vel_map->vmap_prime, vidx),
-      (const double*) gkyl_array_cfetch(grad_drag->auxfields.nvnu, pidx), 
-      (const double*) gkyl_array_cfetch(grad_drag->auxfields.nvsqnu, pidx), 
-      qIn, qRhsOut);
-  }
+  return rad_gyrokinetic_vol_3x2v_ser_p1(xc, dx,
+    (const double*) gkyl_array_cfetch(grad_drag->vel_map->vmap_prime, vidx),
+    (const double*) gkyl_array_cfetch(grad_drag->auxfields.nvnu, pidx), 
+    (const double*) gkyl_array_cfetch(grad_drag->auxfields.nvsqnu, pidx), 
+    qIn, qRhsOut);
 }
 
 // Volume kernel list
@@ -220,21 +205,17 @@ surf(const struct gkyl_dg_eqn *eqn,
     long pidxC = gkyl_range_idx(&grad_drag->phase_range, idxC);
     long pidxR = gkyl_range_idx(&grad_drag->phase_range, idxR);
     long cidx = gkyl_range_idx(&grad_drag->conf_range, idxR);
-    const double *vtsq = (const double *) gkyl_array_cfetch(grad_drag->auxfields.vtsq, cidx);
-    if ( vtsq[0]*grad_drag->cellav_norm_conf < grad_drag->auxfields.vtsq_min) {   
-      return 0.0;
-    } else {
-      return grad_drag->surf[dir-grad_drag->cdim](xcC, dxC,
-        (const double*) gkyl_array_cfetch(grad_drag->vel_map->vmap, vidxC),
-        (const double*) gkyl_array_cfetch(grad_drag->vel_map->vmap_prime, vidxL),
-        (const double*) gkyl_array_cfetch(grad_drag->vel_map->vmap_prime, vidxC),
-        (const double*) gkyl_array_cfetch(grad_drag->vel_map->vmap_prime, vidxR),
-        (const double*) gkyl_array_cfetch(grad_drag->auxfields.nvnu_surf, pidxC),
-        (const double*) gkyl_array_cfetch(grad_drag->auxfields.nvnu_surf, pidxR),
-        (const double*) gkyl_array_cfetch(grad_drag->auxfields.nvsqnu_surf, pidxC),
-        (const double*) gkyl_array_cfetch(grad_drag->auxfields.nvsqnu_surf, pidxR),
-        qInL, qInC, qInR, qRhsOut);
-    }
+    return grad_drag->surf[dir-grad_drag->cdim](xcC, dxC,
+      (const double*) gkyl_array_cfetch(grad_drag->vel_map->vmap, vidxC),
+      (const double*) gkyl_array_cfetch(grad_drag->vel_map->vmap_prime, vidxL),
+      (const double*) gkyl_array_cfetch(grad_drag->vel_map->vmap_prime, vidxC),
+      (const double*) gkyl_array_cfetch(grad_drag->vel_map->vmap_prime, vidxR),
+      (const double*) gkyl_array_cfetch(grad_drag->auxfields.nvnu_surf, pidxC),
+      (const double*) gkyl_array_cfetch(grad_drag->auxfields.nvnu_surf, pidxR),
+      (const double*) gkyl_array_cfetch(grad_drag->auxfields.nvsqnu_surf, pidxC),
+      (const double*) gkyl_array_cfetch(grad_drag->auxfields.nvsqnu_surf, pidxR),
+      qInL, qInC, qInR, qRhsOut);
+
   }
   return 0.;
 }
@@ -253,32 +234,28 @@ boundary_surf(const struct gkyl_dg_eqn *eqn,
   // Only in vpar,mu directions.
   if (dir >= grad_drag->cdim) {
     long cidx = gkyl_range_idx(&grad_drag->conf_range, idxSkin);
-    const double *vtsq = (const double *) gkyl_array_cfetch(grad_drag->auxfields.vtsq, cidx);
-    if ( vtsq[0]*grad_drag->cellav_norm_conf < grad_drag->auxfields.vtsq_min) {   
-      return 0.0;
-    } else {
-      int vel_idxEdge[2], vel_idxSkin[2];
-      for (int d=grad_drag->cdim; d<grad_drag->pdim; d++) {
-        vel_idxEdge[d-grad_drag->cdim] = idxEdge[d];
-        vel_idxSkin[d-grad_drag->cdim] = idxSkin[d];
-      }
-      long vidxEdge = gkyl_range_idx(&grad_drag->vel_map->local_vel, vel_idxEdge);
-      long vidxSkin = gkyl_range_idx(&grad_drag->vel_map->local_vel, vel_idxSkin);
-
-      // Each cell owns the *lower* edge surface alpha
-      long pidxEdge = gkyl_range_idx(&grad_drag->phase_range, idxEdge);
-      long pidxSkin = gkyl_range_idx(&grad_drag->phase_range, idxSkin);
-
-      return grad_drag->boundary_surf[dir-grad_drag->cdim](xcSkin, dxSkin,
-        (const double*) gkyl_array_cfetch(grad_drag->vel_map->vmap, vidxSkin),
-        (const double*) gkyl_array_cfetch(grad_drag->vel_map->vmap_prime, vidxEdge),
-        (const double*) gkyl_array_cfetch(grad_drag->vel_map->vmap_prime, vidxSkin),
-        (const double*) gkyl_array_cfetch(grad_drag->auxfields.nvnu_surf, pidxEdge),
-        (const double*) gkyl_array_cfetch(grad_drag->auxfields.nvnu_surf, pidxSkin),
-        (const double*) gkyl_array_cfetch(grad_drag->auxfields.nvsqnu_surf, pidxEdge),
-        (const double*) gkyl_array_cfetch(grad_drag->auxfields.nvsqnu_surf, pidxSkin),
-        edge, qInEdge, qInSkin, qRhsOut);
+    int vel_idxEdge[2], vel_idxSkin[2];
+    for (int d=grad_drag->cdim; d<grad_drag->pdim; d++) {
+      vel_idxEdge[d-grad_drag->cdim] = idxEdge[d];
+      vel_idxSkin[d-grad_drag->cdim] = idxSkin[d];
     }
+    long vidxEdge = gkyl_range_idx(&grad_drag->vel_map->local_vel, vel_idxEdge);
+    long vidxSkin = gkyl_range_idx(&grad_drag->vel_map->local_vel, vel_idxSkin);
+    
+    // Each cell owns the *lower* edge surface alpha
+    long pidxEdge = gkyl_range_idx(&grad_drag->phase_range, idxEdge);
+    long pidxSkin = gkyl_range_idx(&grad_drag->phase_range, idxSkin);
+    
+    return grad_drag->boundary_surf[dir-grad_drag->cdim](xcSkin, dxSkin,
+      (const double*) gkyl_array_cfetch(grad_drag->vel_map->vmap, vidxSkin),
+      (const double*) gkyl_array_cfetch(grad_drag->vel_map->vmap_prime, vidxEdge),
+      (const double*) gkyl_array_cfetch(grad_drag->vel_map->vmap_prime, vidxSkin),
+      (const double*) gkyl_array_cfetch(grad_drag->auxfields.nvnu_surf, pidxEdge),
+      (const double*) gkyl_array_cfetch(grad_drag->auxfields.nvnu_surf, pidxSkin),
+      (const double*) gkyl_array_cfetch(grad_drag->auxfields.nvsqnu_surf, pidxEdge),
+      (const double*) gkyl_array_cfetch(grad_drag->auxfields.nvsqnu_surf, pidxSkin),
+      edge, qInEdge, qInSkin, qRhsOut);
+    
   }
   return 0.;
 }

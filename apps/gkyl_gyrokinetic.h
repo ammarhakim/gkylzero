@@ -137,6 +137,9 @@ struct gkyl_gyrokinetic_radiation {
   double reference_ne;
   double max_ne;
   double min_ne;
+
+  enum gkyl_te_min_model te_min_model; // How the radiation is turned off (constant or varying Te)
+  double Te_min; // Minimum temperature (in J) at which to stop radiating.
 };
 
 struct gkyl_gyrokinetic_react_type {
