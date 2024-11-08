@@ -3,6 +3,7 @@
 #include <gkyl_mat.h> 
 #include <gkyl_wave_geom.h> 
 #include <gkyl_wv_eqn.h> 
+#include <gkyl_wv_maxwell_priv.h> 
 #include <gkyl_util.h> 
 EXTERN_C_BEG 
 typedef struct { double c, chi, gamma; } gkyl_maxwell_inp; 
