@@ -99,68 +99,74 @@ struct five_moment_copy_job_ctx {
 /**
 * Boundary condition function for applying wall boundary conditions for the coupled five-moment equations.
 *
+* @param eqn Base equation object.
 * @param t Current simulation time.
 * @param nc Number of boundary cells to which to apply wall boundary conditions.
 * @param skin Skin cells in boundary region (from which values are copied).
 * @param ghost Ghost cells in boundary region (to which values are copied).
 * @param ctx Context to pass to the function.
 */
-void five_moment_wall_bc(double t, int nc, const double* GKYL_RESTRICT skin, double* GKYL_RESTRICT ghost, void* ctx);
+void five_moment_wall_bc(const struct gkyl_wv_eqn* eqn, double t, int nc, const double* GKYL_RESTRICT skin, double* GKYL_RESTRICT ghost, void* ctx);
 
 /**
 * Boundary condition function for applying wall boundary conditions for the coupled ten-moment equations.
 *
+* @param eqn Base equation object.
 * @param t Current simulation time.
 * @param nc Number of boundary cells to which to apply wall boundary conditions.
 * @param skin Skin cells in boundary region (from which values are copied).
 * @param ghost Ghost cells in boundary region (to which values are copied).
 * @param ctx Context to pass to the function.
 */
-void ten_moment_wall_bc(double t, int nc, const double* GKYL_RESTRICT skin, double* GKYL_RESTRICT ghost, void* ctx);
+void ten_moment_wall_bc(const struct gkyl_wv_eqn* eqn, double t, int nc, const double* GKYL_RESTRICT skin, double* GKYL_RESTRICT ghost, void* ctx);
 
 /**
 * Boundary condition function for applying wall boundary conditions for the Maxwell equations.
 *
+* @param eqn Base equation object.
 * @param t Current simulation time.
 * @param nc Number of boundary cells to which to apply wall boundary conditions.
 * @param skin Skin cells in boundary region (from which values are copied).
 * @param ghost Ghost cells in boundary region (to which values are copied).
 * @param ctx Context to pass to the function.
 */
-void maxwell_wall_bc(double t, int nc, const double* GKYL_RESTRICT skin, double* GKYL_RESTRICT ghost, void* ctx);
+void maxwell_wall_bc(const struct gkyl_wv_eqn* eqn, double t, int nc, const double* GKYL_RESTRICT skin, double* GKYL_RESTRICT ghost, void* ctx);
 
 /**
 * Boundary condition function for applying copy boundary conditions for the coupled five-moment equations.
 *
+* @param eqn Base equation object.
 * @param t Current simulation time.
 * @param nc Number of boundary cells to which to apply copy boundary conditions.
 * @param skin Skin cells in boundary region (from which values are copied).
 * @param ghost Ghost cells in boundary region (to which values are copied).
 * @param ctx Context to pass to the function.
 */
-void five_moment_copy_bc(double t, int nc, const double* GKYL_RESTRICT skin, double* GKYL_RESTRICT ghost, void* ctx);
+void five_moment_copy_bc(const struct gkyl_wv_eqn* eqn, double t, int nc, const double* GKYL_RESTRICT skin, double* GKYL_RESTRICT ghost, void* ctx);
 
 /**
 * Boundary condition function for applying copy boundary conditions for the coupled ten-moment equations.
 *
+* @param eqn Base equation object.
 * @param t Current simulation time.
 * @param nc Number of boundary cells to which to apply copy boundary conditions.
 * @param skin Skin cells in boundary region (from which values are copied).
 * @param ghost Ghost cells in boundary region (to which values are copied).
 * @param ctx Context to pass to the function.
 */
-void ten_moment_copy_bc(double t, int nc, const double* GKYL_RESTRICT skin, double* GKYL_RESTRICT ghost, void* ctx);
+void ten_moment_copy_bc(const struct gkyl_wv_eqn* eqn, double t, int nc, const double* GKYL_RESTRICT skin, double* GKYL_RESTRICT ghost, void* ctx);
 
 /**
 * Boundary condition function for applying copy boundary conditions for the Maxwell equations.
 *
+* @param eqn Base equation object.
 * @param t Current simulation time.
 * @param nc Number of boundary cells to which to apply tranmissive boundary conditions.
 * @param skin Skin cells in boundary region (from which values are copied).
 * @param ghost Ghost cells in boundary region (to which values are copied).
 * @param ctx Context to pass to the function.
 */
-void maxwell_copy_bc(double t, int nc, const double* GKYL_RESTRICT skin, double* GKYL_RESTRICT ghost, void* ctx);
+void maxwell_copy_bc(const struct gkyl_wv_eqn* eqn, double t, int nc, const double* GKYL_RESTRICT skin, double* GKYL_RESTRICT ghost, void* ctx);
 
 /**
 * Initialize block AMR updaters for both physical (outer-block) and non-physical (inter-block) boundary conditions for the coupled five-moment equations.

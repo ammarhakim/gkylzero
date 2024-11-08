@@ -78,7 +78,7 @@ create_ctx(void)
   double t_end = 0.1; // Final simulation time.
   int num_frames = 1; // Number of output frames.
   double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.
-  int num_failures_max = 20; // Maximum allowable number of consecutive small time-steps.
+  int num_failures_max = 20; // Maximum allowable number of consecutive small time-steps. 
 
   struct sodshock_ctx ctx = {
     .mass = mass,
@@ -344,26 +344,26 @@ main(int argc, char **argv)
 
   // Vlasov-Maxwell app.
   struct gkyl_vm app_inp = {
-   .name = "can_pb_neut_bgk_sodshock_1x1v_p2",
+    .name = "can_pb_neut_bgk_sodshock_1x1v_p2",
 
-   .cdim = 1, .vdim = 1, 
-   .lower = { 0.0 },
-   .upper = { ctx.Lx },
-   .cells = { NX },
+    .cdim = 1, .vdim = 1, 
+    .lower = { 0.0 },
+    .upper = { ctx.Lx },
+    .cells = { NX },
 
-   .poly_order = ctx.poly_order,
-   .basis_type = app_args.basis_type,
-   .cfl_frac = ctx.cfl_frac,
+    .poly_order = ctx.poly_order,
+    .basis_type = app_args.basis_type,
+    .cfl_frac = ctx.cfl_frac,
 
-   .num_periodic_dir = 0,
-   .periodic_dirs = { },
+    .num_periodic_dir = 0,
+    .periodic_dirs = { },
 
-   .num_species = 1,
-   .species = { neut },
+    .num_species = 1,
+    .species = { neut },
 
-   .skip_field = true,
+    .skip_field = true,
 
-   .parallelism = {
+    .parallelism = {
       .use_gpu = app_args.use_gpu,
       .cuts = { app_args.cuts[0] },
       .comm = comm,

@@ -1,4 +1,6 @@
 #include <gkyl_canonical_pb_kernels.h> 
+#include <gkyl_basis_ser_2x_p2_surfx2_eval_quad.h> 
+#include <gkyl_basis_ser_2x_p2_upwind_quad_to_modal.h> 
 GKYL_CU_DH int canonical_pb_alpha_surfvx_1x1v_ser_p2(const double *w, const double *dxv, const double *hamil,
    double* GKYL_RESTRICT alpha_surf, double* GKYL_RESTRICT sgn_alpha_surf) 
 { 
