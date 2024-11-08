@@ -8,7 +8,6 @@
 #include <gkyl_nodal_ops.h>
 #include <gkyl_dg_bin_ops.h>
 
-
 // Object type
 typedef struct gkyl_deflated_dg_bin_ops gkyl_deflated_dg_bin_ops;
 
@@ -53,7 +52,7 @@ struct gkyl_deflated_dg_bin_ops* gkyl_deflated_dg_bin_ops_new(struct gkyl_rect_g
  *
  */
 void gkyl_deflated_dg_bin_ops_mul(struct gkyl_deflated_dg_bin_ops* up, int c_oop, 
-    struct gkyl_array *out, int c_lop, struct gkyl_array *lop, int c_rop, struct gkyl_array* rop);
+  struct gkyl_array *out, int c_lop, struct gkyl_array *lop, int c_rop, struct gkyl_array* rop);
 
 /**
 * Divide the two input fields on surfaces constant in the last dimension
@@ -71,9 +70,8 @@ void gkyl_deflated_dg_bin_ops_mul(struct gkyl_deflated_dg_bin_ops* up, int c_oop
 * @param rop Right operand DG field
 *
 */
-
 void gkyl_deflated_dg_bin_ops_div(struct gkyl_deflated_dg_bin_ops* up, int c_oop, 
-    struct gkyl_array *out, int c_lop, struct gkyl_array *lop, int c_rop, struct gkyl_array* rop);
+  struct gkyl_array *out, int c_lop, struct gkyl_array *lop, int c_rop, struct gkyl_array* rop);
 
 /**
  * Delete updater.

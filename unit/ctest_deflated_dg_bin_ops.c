@@ -121,8 +121,6 @@ test_aop()
   struct gkyl_basis *basis_on_dev = &basis;
 #endif
 
-
-
   // project initial functions on 2d field
   struct gkyl_array *rho = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, local_ext.volume);
   gkyl_proj_on_basis *proj = gkyl_proj_on_basis_new(&grid, &basis, 2, 1, &proj_rho, 0);
@@ -141,7 +139,6 @@ test_aop()
   struct gkyl_array *Cxz = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, local_ext.volume);
   gkyl_dg_mul_op(basis, 0, Cxz, 0,rho, 0, jac);
   gkyl_grid_sub_array_write(&grid, &local, 0, Cxz, "Cxz.gkyl");
-
 
 #ifdef GKYL_HAVE_CUDA
   struct gkyl_array *Cxz_dev = gkyl_array_cu_dev_new(GKYL_DOUBLE, basis.num_basis, local_ext.volume);
@@ -167,10 +164,6 @@ test_aop()
   struct gkyl_array *Exz_smooth_dev = Exz_smooth;
   struct gkyl_array *Fxz_dev = Fxz;
 #endif
-
-
-
-
 
   // Make deflated array operator
   struct gkyl_deflated_dg_bin_ops* operator = gkyl_deflated_dg_bin_ops_new(grid, basis_on_dev, basis, local, use_gpu);
@@ -202,11 +195,8 @@ test_aop()
 #endif
   gkyl_grid_sub_array_write(&grid, &local, 0, Fxz, "Fxz.gkyl");
 
-
   check_continuity_2x(grid, local, basis, Fxz);
   
-
-
 #ifdef GKYL_HAVE_CUDA 
   gkyl_cu_free(basis_on_dev);
   gkyl_array_release(Cxz_dev);
@@ -224,9 +214,6 @@ test_aop()
   gkyl_deflated_dg_bin_ops_release(operator);
 
 }
-
-
-
 
 TEST_LIST = {
   { "test_aop", test_aop},
