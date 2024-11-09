@@ -121,6 +121,7 @@ test_deflate_inflate(bool use_gpu){
   struct gkyl_range nrange;
   gkyl_range_init_from_shape(&nrange, grid.ndim, nodes);
   struct gkyl_array* nodal_fld = gkyl_array_new(GKYL_DOUBLE, grid.ndim, nrange.volume);
+  struct gkyl_array* nodal_fld_dev = use_gpu ? gkyl_array_cu_dev_new(GKYL_DOUBLE, grid.ndim, nrange.volume) : gkyl_array_acquire(nodal_fld);
 
   //create the deflated nodal range and 1d array that will be used as an intermediate
   int deflated_nodes[3] = { 1, 1, 1 };
@@ -144,17 +145,17 @@ test_deflate_inflate(bool use_gpu){
   int ctr = 0;
   for(int zidx = local.lower[1]; zidx <= local.upper[1]; zidx++){
     // first deflate
-    gkyl_deflate_zsurf_advance(deflator_lo, zidx, &local, &deflated_local, field, deflated_field, 1);
+    gkyl_deflate_zsurf_advance(deflator_lo, zidx, &local, &deflated_local, field_dev, deflated_field_dev, 1);
     // Modal to Nodal in 1d -> Store the result in the 2d nodal field
     gkyl_nodal_ops_m2n_deflated(n2m_1d, deflated_basis_on_dev, 
       &deflated_grid, &nrange, &deflated_nrange, &deflated_local, 1, 
-      nodal_fld, deflated_field, ctr);
+      nodal_fld_dev, deflated_field_dev, ctr);
     ctr += 1;
     if (zidx == local.upper[1]){
-      gkyl_deflate_zsurf_advance(deflator_up, zidx, &local, &deflated_local, field, deflated_field, 1);
+      gkyl_deflate_zsurf_advance(deflator_up, zidx, &local, &deflated_local, field_dev, deflated_field_dev, 1);
       gkyl_nodal_ops_m2n_deflated(n2m_1d, deflated_basis_on_dev, 
         &deflated_grid, &nrange, &deflated_nrange, &deflated_local, 1, 
-        nodal_fld, deflated_field, ctr);
+        nodal_fld_dev, deflated_field_dev, ctr);
     }
   }
 
@@ -163,7 +164,7 @@ test_deflate_inflate(bool use_gpu){
 
   // Convert back to modal and do a check
   struct gkyl_nodal_ops *n2m = gkyl_nodal_ops_new(&basis, &grid, use_gpu);
-  gkyl_nodal_ops_n2m(n2m, basis_on_dev, &grid, &nrange, &local, 1, nodal_fld, out_field);
+  gkyl_nodal_ops_n2m(n2m, basis_on_dev, &grid, &nrange, &local, 1, nodal_fld_dev, out_field_dev);
   gkyl_array_copy(out_field, out_field_dev);
   gkyl_grid_sub_array_write(&grid, &local, 0, out_field, "out_field.gkyl");
 
@@ -177,9 +178,11 @@ test_deflate_inflate(bool use_gpu){
   gkyl_array_release(field);
   gkyl_array_release(out_field);
   gkyl_array_release(deflated_field);
+  gkyl_array_release(nodal_fld);
   gkyl_array_release(field_dev);
   gkyl_array_release(out_field_dev);
   gkyl_array_release(deflated_field_dev);
+  gkyl_array_release(nodal_fld_dev);
   
   gkyl_nodal_ops_release(n2m_1d);
   gkyl_nodal_ops_release(n2m);
