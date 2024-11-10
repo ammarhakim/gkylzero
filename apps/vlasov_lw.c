@@ -20,26 +20,26 @@
 #include <gkyl_mpi_comm.h>
 #endif
 
-// Magic IDs for use in distinguishing various species and field types
+// Magic IDs for use in distinguishing various species and field types.
 enum vlasov_magic_ids {
-  VLASOV_SPECIES_DEFAULT = 100, // non-relativistic kinetic species
-  VLASOV_FIELD_DEFAULT, // Maxwell equations
+  VLASOV_SPECIES_DEFAULT = 100, // Non-relativistic kinetic species.
+  VLASOV_FIELD_DEFAULT, // Maxwell equations.
 };
 
-/* *****************/
+/* *************** */
 /* Species methods */
-/* *****************/
+/* *************** */
 
-// Metatable name for species input struct
+// Metatable name for species input struct.
 #define VLASOV_SPECIES_METATABLE_NM "GkeyllZero.App.Vlasov.Species"
 
-// Lua userdata object for constructing species input
+// Lua userdata object for constructing species input.
 struct vlasov_species_lw {
-  int magic; // this must be first element in the struct
+  int magic; // This must be first element in the struct.
   
-  struct gkyl_vlasov_species vm_species; // input struct to construct species
-  int vdim; // velocity dimensions
-  bool evolve; // is this species evolved?
+  struct gkyl_vlasov_species vm_species; // Input struct to construct species.
+  int vdim; // Velocity space dimensions.
+  bool evolve; // Is this species evolved?
 
   int num_init; // Number of projection objects.
   enum gkyl_projection_id proj_id[GKYL_MAX_PROJ]; // Projection type.
@@ -114,18 +114,22 @@ vlasov_species_lw_new(lua_State *L)
 
   with_lua_tbl_tbl(L, "cells") {
     vdim = glua_objlen(L);
-    for (int d=0; d<vdim; ++d)
-      vm_species.cells[d] = glua_tbl_iget_integer(L, d+1, 0);
+
+    for (int d = 0; d < vdim; d++) {
+      vm_species.cells[d] = glua_tbl_iget_integer(L, d + 1, 0);
+    }
   }
 
   with_lua_tbl_tbl(L, "lower") {
-    for (int d=0; d<vdim; ++d)
-      vm_species.lower[d] = glua_tbl_iget_number(L, d+1, 0);
+    for (int d = 0; d < vdim; d++) {
+      vm_species.lower[d] = glua_tbl_iget_number(L, d + 1, 0);
+    }
   }
 
   with_lua_tbl_tbl(L, "upper") {
-    for (int d=0; d<vdim; ++d)
-      vm_species.upper[d] = glua_tbl_iget_number(L, d+1, 0);
+    for (int d = 0; d < vdim; d++) {
+      vm_species.upper[d] = glua_tbl_iget_number(L, d + 1, 0);
+    }
   }
 
   bool evolve = glua_tbl_get_integer(L, "evolve", true);
@@ -134,11 +138,14 @@ vlasov_species_lw_new(lua_State *L)
     int num_diag_moments = glua_objlen(L);
 
     int n = 0;
-    for (int i=0; i<num_diag_moments; ++i) {
+    for (int i = 0; i < num_diag_moments; i ++) {
       const char *mom = glua_tbl_iget_string(L, i+1, "");
-      if (is_moment_name_valid(mom))
+
+      if (is_moment_name_valid(mom)) {
         strcpy(vm_species.diag_moments[n++], mom);
+      }
     }
+
     vm_species.num_diag_moments = n;
   }
 
@@ -381,7 +388,7 @@ vlasov_species_lw_new(lua_State *L)
     vms_lw->V_drift_init_func_ref[i] = (struct lua_func_ctx) {
       .func_ref = V_drift_init_func_ref[i],
       .ndim = 0, // This will be set later.
-      .nret = 1,
+      .nret = vdim,
       .L = L,
     };
 
@@ -420,32 +427,32 @@ vlasov_species_lw_new(lua_State *L)
   vms_lw->fixed_temp_relax = fixed_temp_relax;
   vms_lw->collision_use_last_converged = collision_use_last_converged;
   
-  // set metatable
+  // Set metatable.
   luaL_getmetatable(L, VLASOV_SPECIES_METATABLE_NM);
   lua_setmetatable(L, -2);
   
   return 1;
 }
 
-// Species constructor
+// Species constructor.
 static struct luaL_Reg vm_species_ctor[] = {
-  {"new", vlasov_species_lw_new},
-  {0, 0}
+  { "new", vlasov_species_lw_new },
+  { 0, 0 }
 };
 
-/* *****************/
+/* ************* */
 /* Field methods */
-/* *****************/
+/* ************* */
 
-// Metatable name for field input struct
+// Metatable name for field input struct.
 #define VLASOV_FIELD_METATABLE_NM "GkeyllZero.App.Vlasov.Field"
 
-// Lua userdata object for constructing field input
+// Lua userdata object for constructing field input.
 struct vlasov_field_lw {
-  int magic; // this must be first element in the struct
+  int magic; // This must be first element in the struct.
   
-  struct gkyl_vlasov_field vm_field; // input struct to construct field
-  bool evolve; // is this field evolved?
+  struct gkyl_vlasov_field vm_field; // Input struct to construct field.
+  bool evolve; // Is this field evolved?
   struct lua_func_ctx init_ref; // Lua registry reference to initilization function.
 
   bool has_external_potential_func; // Is there an external potential initialization function?
@@ -597,29 +604,29 @@ vlasov_field_lw_new(lua_State *L)
     .L = L,
   };
   
-  // set metatable
+  // Set metatable.
   luaL_getmetatable(L, VLASOV_FIELD_METATABLE_NM);
   lua_setmetatable(L, -2);
   
   return 1;
 }
 
-// Species constructor
+// Species constructor.
 static struct luaL_Reg vm_field_ctor[] = {
   { "new",  vlasov_field_lw_new },
   { 0, 0 }
 };
 
-/* *************/
+/* *********** */
 /* App methods */
-/* *************/
+/* *********** */
 
-// Metatable name for top-level Vlasov App
+// Metatable name for top-level Vlasov App.
 #define VLASOV_APP_METATABLE_NM "GkeyllZero.App.Vlasov"
 
-// Lua userdata object for holding Vlasov app and run parameters
+// Lua userdata object for holding Vlasov app and run parameters.
 struct vlasov_app_lw {
-  gkyl_vlasov_app *app; // Vlasov app object
+  gkyl_vlasov_app *app; // Vlasov app object.
 
   int num_init[GKYL_MAX_SPECIES]; // Number of projection objects.
   enum gkyl_projection_id proj_id[GKYL_MAX_SPECIES][GKYL_MAX_PROJ]; // Projection type.
@@ -696,16 +703,16 @@ struct vlasov_app_lw {
 static int
 get_species_inp(lua_State *L, int cdim, struct vlasov_species_lw *species[GKYL_MAX_SPECIES])
 {
-  enum { TKEY = -2, TVAL = -1};
+  enum { TKEY = -2, TVAL = -1 };
   
   int curr = 0;
-  lua_pushnil(L); // initial key is nil
+  lua_pushnil(L); // Initial key is nil.
   while (lua_next(L, TKEY) != 0) {
-    // key at TKEY and value at TVAL
+    // Key at TKEY and value at TVAL.
     if (lua_type(L, TVAL) == LUA_TUSERDATA) {
       struct vlasov_species_lw *vms = lua_touserdata(L, TVAL);
+
       if (vms->magic == VLASOV_SPECIES_DEFAULT) {
-        
         for (int i = 0; i < vms->num_init; i++) {
           if (vms->has_init_func[i]) {
             vms->init_func_ref[i].ndim = cdim + vms->vdim;
@@ -755,10 +762,11 @@ get_species_inp(lua_State *L, int cdim, struct vlasov_species_lw *species[GKYL_M
     }
     lua_pop(L, 1);
   }
+
   return curr;
 }
 
-// Create top-level App object
+// Create top-level App object.
 static int
 vm_app_new(lua_State *L)
 {
@@ -767,12 +775,14 @@ vm_app_new(lua_State *L)
   // The output prefix to use is stored in the global
   // GKYL_OUT_PREFIX. If this is not found then "g0-vlasov" is used.
   const char *sim_name = "g0-vlasov";
+
   with_lua_global(L, "GKYL_OUT_PREFIX") {
-    if (lua_isstring(L, -1))
+    if (lua_isstring(L, -1)) {
       sim_name = lua_tostring(L, -1);
+    }
   }
   
-  // initialize app using table inputs (table is on top of stack)
+  // Initialize app using table inputs (table is on top of stack).
 
   app_lw->t_start = glua_tbl_get_number(L, "tStart", 0.0);
   app_lw->t_end = glua_tbl_get_number(L, "tEnd", 1.0);
@@ -780,34 +790,42 @@ vm_app_new(lua_State *L)
   app_lw->dt_failure_tol = glua_tbl_get_number(L, "dtFailureTol", 1.0e-4);
   app_lw->num_failures_max = glua_tbl_get_integer(L, "numFailuresMax", 20);
 
-  struct gkyl_vm vm = { }; // input table for app
+  struct gkyl_vm vm = { }; // Input table for app.
 
   strcpy(vm.name, sim_name);
   
   int cdim = 0;
   with_lua_tbl_tbl(L, "cells") {
     vm.cdim = cdim = glua_objlen(L);
-    for (int d=0; d<cdim; ++d)
-      vm.cells[d] = glua_tbl_iget_integer(L, d+1, 0);
+
+    for (int d = 0; d < cdim; d++) {
+      vm.cells[d] = glua_tbl_iget_integer(L, d + 1, 0);
+    }
   }
 
   int cuts[GKYL_MAX_DIM];
-  for (int d=0; d<cdim; ++d) cuts[d] = 1;
+  for (int d = 0; d < cdim; d++) {
+    cuts[d] = 1;
+  }
   
   with_lua_tbl_tbl(L, "decompCuts") {
     int ncuts = glua_objlen(L);
-    for (int d=0; d<ncuts; ++d)
-      cuts[d] = glua_tbl_iget_integer(L, d+1, 0);
+
+    for (int d = 0; d < ncuts; d++) {
+      cuts[d] = glua_tbl_iget_integer(L, d + 1, 0);
+    }
   }  
 
   with_lua_tbl_tbl(L, "lower") {
-    for (int d=0; d<cdim; ++d)
-      vm.lower[d] = glua_tbl_iget_number(L, d+1, 0);
+    for (int d = 0; d < cdim; d++) {
+      vm.lower[d] = glua_tbl_iget_number(L, d + 1, 0);
+    }
   }
 
   with_lua_tbl_tbl(L, "upper") {
-    for (int d=0; d<cdim; ++d)
-      vm.upper[d] = glua_tbl_iget_number(L, d+1, 0);
+    for (int d = 0; d < cdim; d++) {
+      vm.upper[d] = glua_tbl_iget_number(L, d + 1, 0);
+    }
   }
 
   vm.cfl_frac = glua_tbl_get_number(L, "cflFrac", 0.95);
@@ -821,16 +839,19 @@ vm_app_new(lua_State *L)
   if (glua_tbl_has_key(L, "periodicDirs")) {
     with_lua_tbl_tbl(L, "periodicDirs") {
       vm.num_periodic_dir = glua_objlen(L);
-      for (int d=0; d<vm.num_periodic_dir; ++d)
-        // indexes are off by 1 between Lua and C
-        vm.periodic_dirs[d] = glua_tbl_iget_integer(L, d+1, 0)-1;
+
+      for (int d = 0; d < vm.num_periodic_dir; d++) {
+        // Indices are off by 1 between Lua and C.
+        vm.periodic_dirs[d] = glua_tbl_iget_integer(L, d + 1, 0) - 1;
+      }
     }
   }
 
   struct vlasov_species_lw *species[GKYL_MAX_SPECIES];
-  // set all species input
+
+  // Set all species input.
   vm.num_species = get_species_inp(L, cdim, species);
-  for (int s=0; s<vm.num_species; ++s) {
+  for (int s = 0; s < vm.num_species; s++) {
     vm.species[s] = species[s]->vm_species;
     vm.vdim = species[s]->vdim;
 
@@ -990,8 +1011,8 @@ vm_app_new(lua_State *L)
   with_lua_tbl_key(L, "field") {
     if (lua_type(L, -1) == LUA_TUSERDATA) {
       struct vlasov_field_lw *vmf = lua_touserdata(L, -1);
-      if (vmf->magic == VLASOV_FIELD_DEFAULT) {
 
+      if (vmf->magic == VLASOV_FIELD_DEFAULT) {
         vmf->init_ref.ndim = cdim;
 
         vm.field = vmf->vm_field;
@@ -1024,12 +1045,13 @@ vm_app_new(lua_State *L)
     }
   }
 
-  // create parallelism
+  // Create parallelism.
   struct gkyl_comm *comm = 0;
   bool has_mpi = false;
 
-  for (int d=0; d<cdim; ++d)
+  for (int d = 0; d < cdim; d++) {
     vm.parallelism.cuts[d] = cuts[d]; 
+  }
 
 #ifdef GKYL_HAVE_MPI
   with_lua_global(L, "GKYL_MPI_COMM") {
@@ -1046,8 +1068,8 @@ vm_app_new(lua_State *L)
 #endif
 
   if (!has_mpi) {
-    // if there is no proper MPI_Comm specifed, the assume we are a
-    // serial sim
+    // If there is no proper MPI_Comm specifed, the assume we are a
+    // serial sim.
     comm = gkyl_null_comm_inew( &(struct gkyl_null_comm_inp) {} );
   }
   vm.parallelism.comm = comm;
@@ -1058,7 +1080,10 @@ vm_app_new(lua_State *L)
   int comm_sz;
   gkyl_comm_get_size(comm, &comm_sz);
 
-  int tot_cuts = 1; for (int d=0; d<cdim; ++d) tot_cuts *= cuts[d];
+  int tot_cuts = 1;
+  for (int d = 0; d < cdim; d++) {
+    tot_cuts *= cuts[d];
+  }
 
   if (tot_cuts != comm_sz) {
     printf("tot_cuts = %d (%d)\n", tot_cuts, comm_sz);
@@ -1069,18 +1094,18 @@ vm_app_new(lua_State *L)
 
   gkyl_comm_release(comm);
 
-  // create Lua userdata ...
+  // Create Lua userdata.
   struct vlasov_app_lw **l_app_lw = lua_newuserdata(L, sizeof(struct vlasov_app_lw*));
-  *l_app_lw = app_lw; // ... point it to the Lua app pointer
+  *l_app_lw = app_lw; // Point it to the Lua app pointer.
 
-  // set metatable
+  // Set metatable.
   luaL_getmetatable(L, VLASOV_APP_METATABLE_NM);
   lua_setmetatable(L, -2);
   
   return 1;
 }
 
-// Apply initial conditions. (time) -> bool
+// Apply initial conditions. (time) -> bool.
 static int
 vm_app_apply_ic(lua_State *L)
 {
@@ -1096,7 +1121,7 @@ vm_app_apply_ic(lua_State *L)
   return 1;
 }
 
-// Apply initial conditions to field. (time) -> bool
+// Apply initial conditions to field. (time) -> bool.
 static int
 vm_app_apply_ic_field(lua_State *L)
 {
@@ -1112,7 +1137,7 @@ vm_app_apply_ic_field(lua_State *L)
   return 1;
 }
 
-// Apply initial conditions to species. (sidx, time) -> bool
+// Apply initial conditions to species. (sidx, time) -> bool.
 static int
 vm_app_apply_ic_species(lua_State *L)
 {
@@ -1129,7 +1154,7 @@ vm_app_apply_ic_species(lua_State *L)
   return 1;
 }
 
-// Compute diagnostic moments. () -> bool
+// Compute diagnostic moments. () -> bool.
 static int
 vm_app_calc_mom(lua_State *L)
 {
@@ -1144,7 +1169,7 @@ vm_app_calc_mom(lua_State *L)
   return 1;
 }
 
-// Compute integrated moments. (tm) -> bool
+// Compute integrated moments. (tm) -> bool.
 static int
 vm_app_calc_integrated_mom(lua_State *L)
 {
@@ -1160,7 +1185,7 @@ vm_app_calc_integrated_mom(lua_State *L)
   return 1;
 }
 
-// Compute integrated L2 norm of distribution function. (tm) -> bool
+// Compute integrated L2 norm of distribution function. (tm) -> bool.
 static int
 vm_app_calc_integrated_L2_f(lua_State *L)
 {
@@ -1177,7 +1202,7 @@ vm_app_calc_integrated_L2_f(lua_State *L)
 }
 
 // Compute integrated field energy (L2 norm of each field
-// component). (tm) -> bool
+// component). (tm) -> bool.
 static int
 vm_app_calc_field_energy(lua_State *L)
 {
@@ -1193,7 +1218,7 @@ vm_app_calc_field_energy(lua_State *L)
   return 1;
 }
 
-// Write solution (field and species) to file (time, frame) -> bool
+// Write solution (field and species) to file (time, frame) -> bool.
 static int
 vm_app_write(lua_State *L)
 {
@@ -1210,7 +1235,7 @@ vm_app_write(lua_State *L)
   return 1;
 }
 
-// Write field to file (time, frame) -> bool
+// Write field to file (time, frame) -> bool.
 static int
 vm_app_write_field(lua_State *L)
 {
@@ -1227,7 +1252,7 @@ vm_app_write_field(lua_State *L)
   return 1;
 }
 
-// Write species solution to file (sidx, time, frame) -> bool
+// Write species solution to file (sidx, time, frame) -> bool.
 static int
 vm_app_write_species(lua_State *L)
 {
@@ -1245,7 +1270,7 @@ vm_app_write_species(lua_State *L)
   return 1;
 }
 
-// Write diagnostic moments to file (time, frame) -> bool
+// Write diagnostic moments to file (time, frame) -> bool.
 static int
 vm_app_write_mom(lua_State *L)
 {
@@ -1262,7 +1287,7 @@ vm_app_write_mom(lua_State *L)
   return 1;
 }
 
-// Write integrated moments to file () -> bool
+// Write integrated moments to file () -> bool.
 static int
 vm_app_write_integrated_mom(lua_State *L)
 {
@@ -1277,7 +1302,7 @@ vm_app_write_integrated_mom(lua_State *L)
   return 1;
 }
 
-// Write integrated L2 norm of f to file () -> bool
+// Write integrated L2 norm of f to file () -> bool.
 static int
 vm_app_write_integrated_L2_f(lua_State *L)
 {
@@ -1292,7 +1317,7 @@ vm_app_write_integrated_L2_f(lua_State *L)
   return 1;
 }
 
-// Write integrated field energy to file () -> bool
+// Write integrated field energy to file () -> bool.
 static int
 vm_app_write_field_energy(lua_State *L)
 {
@@ -1307,7 +1332,7 @@ vm_app_write_field_energy(lua_State *L)
   return 1;
 }
 
-// Write simulation statistics to JSON. () -> bool
+// Write simulation statistics to JSON. () -> bool.
 static int
 vm_app_stat_write(lua_State *L)
 {
@@ -1436,7 +1461,7 @@ vm_app_run(lua_State *L)
   return 1;
 }
 
-// Clean up memory allocated for simulation
+// Clean up memory allocated for simulation.
 static int
 vm_app_gc(lua_State *L)
 {
@@ -1449,13 +1474,13 @@ vm_app_gc(lua_State *L)
   return 0;
 }
 
-// App constructor
+// App constructor.
 static struct luaL_Reg vm_app_ctor[] = {
   { "new",  vm_app_new },
   { 0, 0 }
 };
 
-// App methods
+// App methods.
 static struct luaL_Reg vm_app_funcs[] = {
   { "apply_ic", vm_app_apply_ic },
   { "apply_ic_field", vm_app_apply_ic_field },
@@ -1479,7 +1504,7 @@ static struct luaL_Reg vm_app_funcs[] = {
 static void
 app_openlibs(lua_State *L)
 {
-  // Register top-level App
+  // Register top-level App.
   do {
     luaL_newmetatable(L, VLASOV_APP_METATABLE_NM);
 
@@ -1493,19 +1518,22 @@ app_openlibs(lua_State *L)
     
     luaL_register(L, "G0.Vlasov.App", vm_app_ctor);
     
-  } while (0);
+  }
+  while (0);
 
-  // Register Species input struct
+  // Register Species input struct.
   do {
     luaL_newmetatable(L, VLASOV_SPECIES_METATABLE_NM);
     luaL_register(L, "G0.Vlasov.Species", vm_species_ctor);
-  } while (0);
+  }
+  while (0);
 
-  // Register Field input struct
+  // Register Field input struct.
   do {
     luaL_newmetatable(L, VLASOV_FIELD_METATABLE_NM);
     luaL_register(L, "G0.Vlasov.Field", vm_field_ctor);
-  } while (0);
+  }
+  while (0);
 }
 
 void
