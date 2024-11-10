@@ -32,6 +32,10 @@ struct sheath_ctx
   double n0; // Reference number density.
   double Vx_drift_elc; // Electron drift velocity (x-direction).
   double Vx_drift_ion; // Ion drift velocity (x-direction).
+  double Vy_drift_elc; // Electron drift velocity (y-direction).
+  double Vy_drift_ion; // Ion drift velocity (y-direction).
+
+  double B0; // Reference magnetic field strength.
 
   // Derived physical quantities (using non-normalized physical units).
   double Te; // Electron temperature.
@@ -46,9 +50,13 @@ struct sheath_ctx
   // Simulation parameters.
   int Nx; // Cell count (configuration space: x-direction).
   int Nvx; // Cell count (velocity space: vx-direction).
+  int Nvy; // Cell count (velocity space: vy-direction).
   double Lx; // Domain size (configuration space: x-direction).
+  double Ls; // Domain size (source).
   double vx_max_elc; // Domain boundary (electron velocity space: vx-direction).
   double vx_max_ion; // Domain boundary (ion velocity space: vx-direction).
+  double vy_max_elc; // Domain boundary (electron velocity space: vy-direction).
+  double vy_max_ion; // Domain boundary (ion velocity space: vy-direction).
   int poly_order; // Polynomial order.
   double cfl_frac; // CFL coefficient.
 
@@ -71,6 +79,10 @@ create_ctx(void)
   double n0 = 1.0e18; // Reference number density.
   double Vx_drift_elc = 0.0; // Electron drift velocity (x-direction).
   double Vx_drift_ion = 0.0; // Ion drift velocity (x-direction).
+  double Vy_drift_elc = 0.0; // Electron drift velocity (y-direction).
+  double Vy_drift_ion = 0.0; // Ion drift velocity (y-direction).
+
+  double B0 = 0.001; // Reference magnetic field strength.
 
   // Derived physical quantities (using non-normalized physical units).
   double Te = 10.0 * charge_ion; // Electron temperature.
@@ -85,9 +97,12 @@ create_ctx(void)
   // Simulation parameters.
   int Nx = 64; // Cell count (configuration space: x-direction).
   int Nvx = 16; // Cell count (velocity space: vx-direction).
+  int Nvy = 16; // Cell count (velocity space: vy-direction).
   double Lx = 128.0 * lambda_D; // Domain size (configuration space: x-direction).
   double vx_max_elc = 6.0 * vte; // Domain boundary (electron velocity space: vx-direction).
   double vx_max_ion = 6.0 * vti; // Domain boundary (ion velocity space: vx-direction).
+  double vy_max_elc = 6.0 * vte; // Domain boundary (electron velocity space: vy-direction).
+  double vy_max_ion = 6.0 * vti; // Domain boundary (ion velocity space: vy-direction).
   int poly_order = 2; // Polynomial order.
   double cfl_frac = 1.0; // CFL coefficient.
 
@@ -105,6 +120,9 @@ create_ctx(void)
     .n0 = n0,
     .Vx_drift_elc = Vx_drift_elc,
     .Vx_drift_ion = Vx_drift_ion,
+    .Vy_drift_elc = Vy_drift_elc,
+    .Vy_drift_ion = Vy_drift_ion,
+    .B0 = B0,
     .Te = Te,
     .Ti = Ti,
     .vte = vte,
@@ -113,9 +131,12 @@ create_ctx(void)
     .omega_pe = omega_pe,
     .Nx = Nx,
     .Nvx = Nvx,
+    .Nvy = Nvy,
     .Lx = Lx,
     .vx_max_elc = vx_max_elc,
+    .vy_max_elc = vy_max_elc,
     .vx_max_ion = vx_max_ion,
+    .vy_max_ion = vy_max_ion,
     .poly_order = poly_order,
     .cfl_frac = cfl_frac,
     .t_end = t_end,
@@ -155,9 +176,10 @@ evalElcVDriftInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRIC
   struct sheath_ctx *app = ctx;
 
   double Vx_drift_elc = app->Vx_drift_elc;
+  double Vy_drift_elc = app->Vy_drift_elc;
 
   // Set electron drift velocity.
-  fout[0] = Vx_drift_elc;
+  fout[0] = Vx_drift_elc; fout[1] = Vy_drift_elc;
 }
 
 void
@@ -188,9 +210,31 @@ evalIonVDriftInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRIC
   struct sheath_ctx *app = ctx;
 
   double Vx_drift_ion = app->Vx_drift_ion;
+  double Vy_drift_ion = app->Vy_drift_ion;
 
   // Set ion drift velocity.
-  fout[0] = Vx_drift_ion;
+  fout[0] = Vx_drift_ion; fout[1] = Vy_drift_ion;
+}
+
+void
+evalExternalFieldInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
+{
+  struct sheath_ctx *app = ctx;
+
+  double B0 = app->B0;
+
+  double Ex = 0.0; // External electric field (x-direction).
+  double Ey = 0.0; // External electric field (y-direction).
+  double Ez = 0.0; // External electric field (z-direction).
+
+  double Bx = 0.0; // External magnetic field (x-direction).
+  double By = 0.0; // External magnetic field (y-direction).
+  double Bz = B0; // External magnetic field (z-direction).
+
+  // Set external electric field.
+  fout[0] = Ex; fout[1] = Ey; fout[2] = Ez;
+  // Set external magnetic field.
+  fout[3] = Bx; fout[4] = By; fout[5] = Bz;
 }
 
 void
@@ -230,6 +274,7 @@ main(int argc, char **argv)
 
   int NX = APP_ARGS_CHOOSE(app_args.xcells[0], ctx.Nx);
   int NVX = APP_ARGS_CHOOSE(app_args.vcells[0], ctx.Nvx);
+  int NVY = APP_ARGS_CHOOSE(app_args.vcells[1], ctx.Nvy);
 
   int nrank = 1; // Number of processors in simulation.
 #ifdef GKYL_HAVE_MPI
@@ -311,9 +356,9 @@ main(int argc, char **argv)
   struct gkyl_vlasov_species elc = {
     .name = "elc",
     .charge = ctx.charge_elc, .mass = ctx.mass_elc,
-    .lower = { -ctx.vx_max_elc },
-    .upper = { ctx.vx_max_elc }, 
-    .cells = { NVX },
+    .lower = { -ctx.vx_max_elc, -ctx.vy_max_elc },
+    .upper = { ctx.vx_max_elc, ctx.vy_max_elc },
+    .cells = { NVX, NVY },
 
     .num_init = 1,
     .projection[0] = {
@@ -339,9 +384,9 @@ main(int argc, char **argv)
   struct gkyl_vlasov_species ion = {
     .name = "ion",
     .charge = ctx.charge_ion, .mass = ctx.mass_ion,
-    .lower = { -ctx.vx_max_ion },
-    .upper = { ctx.vx_max_ion }, 
-    .cells = { NVX },
+    .lower = { -ctx.vx_max_ion, -ctx.vy_max_ion },
+    .upper = { ctx.vx_max_ion, ctx.vy_max_ion },
+    .cells = { NVX, NVY },
 
     .num_init = 1,
     .projection[0] = {
@@ -374,13 +419,17 @@ main(int argc, char **argv)
       .lo_value = { 0.0 },
       .up_value = { 0.0 },
     },
+
+    .ext_em = evalExternalFieldInit,
+    .ext_em_ctx = &ctx,
+    .ext_em_evolve = false,
   };
 
   // Vlasov-Poisson app.
   struct gkyl_vm app_inp = {
-    .name = "vp_sheath_1x1v_p2",
+    .name = "vp_sheath_Bext_1x2v_p2",
 
-    .cdim = 1, .vdim = 1,
+    .cdim = 1, .vdim = 2,
     .lower = { 0.0 },
     .upper = { ctx.Lx },
     .cells = { NX },

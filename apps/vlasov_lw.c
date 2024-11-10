@@ -446,7 +446,15 @@ struct vlasov_field_lw {
   
   struct gkyl_vlasov_field vm_field; // input struct to construct field
   bool evolve; // is this field evolved?
-  struct lua_func_ctx init_ref; // Lua registery reference to initilization function
+  struct lua_func_ctx init_ref; // Lua registry reference to initilization function.
+
+  bool has_external_potential_func; // Is there an external potential initialization function?
+  struct lua_func_ctx external_potential_func_ref; // Lua registry reference to external potential initialization function.
+  bool evolve_external_potential; // Is the external potential evolved?
+
+  bool has_external_field_func; // Is there an external field initialization function?
+  struct lua_func_ctx external_field_func_ref; // Lua registry reference to external field initialization function.
+  bool evolve_external_field; // Is the external field evolved?
 };
 
 static int
@@ -537,6 +545,28 @@ vlasov_field_lw_new(lua_State *L)
     }
   }
 
+  bool has_external_potential_func = false;
+  int external_potential_func_ref = LUA_NOREF;
+  bool evolve_external_potential = false;
+
+  if (glua_tbl_get_func(L, "externalPotentialInit")) {
+    external_potential_func_ref = luaL_ref(L, LUA_REGISTRYINDEX);
+    has_external_potential_func = true;
+
+    evolve_external_potential = glua_tbl_get_bool(L, "evolveExternalPotential", false);
+  }
+
+  bool has_external_field_func = false;
+  int external_field_func_ref = LUA_NOREF;
+  bool evolve_external_field = false;
+
+  if (glua_tbl_get_func(L, "externalFieldInit")) {
+    external_field_func_ref = luaL_ref(L, LUA_REGISTRYINDEX);
+    has_external_field_func = true;
+
+    evolve_external_field = glua_tbl_get_bool(L, "evolveExternalField", false);
+  }
+
   struct vlasov_field_lw *vmf_lw = lua_newuserdata(L, sizeof(*vmf_lw));
 
   vmf_lw->magic = VLASOV_FIELD_DEFAULT;
@@ -545,10 +575,27 @@ vlasov_field_lw_new(lua_State *L)
   
   vmf_lw->init_ref = (struct lua_func_ctx) {
     .func_ref = init_ref,
-    .ndim = 0, // this will be set later
+    .ndim = 0, // This will be set later.
     .nret = 6,
     .L = L,
-  };  
+  };
+
+  vmf_lw->has_external_potential_func = has_external_potential_func;
+  vmf_lw->external_potential_func_ref = (struct lua_func_ctx) {
+    .func_ref = external_potential_func_ref,
+    .ndim = 0, // This will be set later.
+    .nret = 4,
+    .L = L,
+  };
+  vmf_lw->evolve_external_potential = evolve_external_potential;
+
+  vmf_lw->has_external_field_func = has_external_field_func;
+  vmf_lw->external_field_func_ref = (struct lua_func_ctx) {
+    .func_ref = external_field_func_ref,
+    .ndim = 0, // This will be set later.
+    .nret = 6,
+    .L = L,
+  };
   
   // set metatable
   luaL_getmetatable(L, VLASOV_FIELD_METATABLE_NM);
@@ -633,7 +680,9 @@ struct vlasov_app_lw {
   int source_max_iter[GKYL_MAX_SPECIES][GKYL_MAX_PROJ]; // Maximum number of iterations for moment fixes in projections in source.
   bool source_use_last_converged[GKYL_MAX_SPECIES][GKYL_MAX_PROJ]; // Use last iteration value in projection regardless of convergence in source?
 
-  struct lua_func_ctx field_func_ctx; // function context for field
+  struct lua_func_ctx field_func_ctx; // Function context for field.
+  struct lua_func_ctx external_potential_func_ctx; // Function context for external potential.
+  struct lua_func_ctx external_field_func_ctx; // Function context for external field.
   
   double t_start, t_end; // Start and end times of simulation.
   int num_frames; // Number of data frames to write.
@@ -951,6 +1000,26 @@ vm_app_new(lua_State *L)
         app_lw->field_func_ctx = vmf->init_ref;
         vm.field.init = gkyl_lw_eval_cb;
         vm.field.ctx = &app_lw->field_func_ctx;
+
+        if (vmf->has_external_potential_func) {
+          vmf->external_potential_func_ref.ndim = cdim;
+
+          app_lw->external_potential_func_ctx = vmf->external_potential_func_ref;
+          vm.field.external_potentials = gkyl_lw_eval_cb;
+          vm.field.external_potentials_ctx = &app_lw->external_potential_func_ctx;
+
+          vm.field.external_potentials_evolve = vmf->evolve_external_potential;
+        }
+
+        if (vmf->has_external_field_func) {
+          vmf->external_field_func_ref.ndim = cdim;
+
+          app_lw->external_field_func_ctx = vmf->external_field_func_ref;
+          vm.field.ext_em = gkyl_lw_eval_cb;
+          vm.field.ext_em_ctx = &app_lw->external_field_func_ctx;
+
+          vm.field.ext_em_evolve = vmf->evolve_external_field;
+        }
       }
     }
   }
