@@ -167,20 +167,28 @@ evalEulerMixtureInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_REST
   }
   double rho_total = (alpha1 * rho1) + ((1.0 - alpha1) * rho2); // Total mixture density.
 
+  double momx_total = rho_total * vx_total; // Total mixture momentum density (x-direction).
+  double momy_total = rho_total * vy_total; // Total mixture momentum density (y-direction).
+  double momz_total = rho_total * vz_total; // Total mixture momentum density (z-direction).
+
   double E1 = (p_total / (gas_gamma1 - 1.0)) + (0.5 * rho1 * (vx_total * vx_total)); // First species total energy.
   double E2 = (p_total / (gas_gamma2 - 1.0)) + (0.5 * rho2 * (vx_total * vx_total)); // Second species total energy.
   double E_total = (alpha1 * E1) + ((1.0 - alpha1) * E2); // Total mixture energy.
 
+  double vol_frac1 = rho_total * alpha1; // Mixture weighted volume fraction (first species).
+  double mass_frac1 = alpha1 * rho1; // Mixture volume-weighted mass density (first species).
+  double mass_frac2 = (1.0 - alpha1) * rho2; // Mixture volume-weighted mass density (second species).
+
   // Set fluid mixture total mass density.
   fout[0] = rho_total;
   // Set fluid mixture total momentum density.
-  fout[1] = rho_total * vx_total; fout[2] = rho_total * vy_total; fout[3] = rho_total * vz_total;
+  fout[1] = momx_total; fout[2] = momy_total; fout[3] = momz_total;
   // Set fluid mixture total energy density.
   fout[4] = E_total;
   // Set fluid mixture weighted volume fraction (first species).
-  fout[5] = rho_total * alpha1;
+  fout[5] = vol_frac1;
   // Set fluid mixture volume-weighted mass densities (first and second species).
-  fout[6] = alpha1 * rho1; fout[7] = (1.0 - alpha1) * rho2;
+  fout[6] = mass_frac1; fout[7] = mass_frac2;
 }
 
 void

@@ -16,6 +16,8 @@
 #include <gkyl_wv_sr_euler.h>
 #include <gkyl_wv_ten_moment.h>
 #include <gkyl_wv_reactive_euler.h>
+#include <gkyl_wv_euler_mixture.h>
+#include <gkyl_wv_iso_euler_mixture.h>
 
 #include <lua.h>
 #include <lualib.h>
@@ -73,6 +75,20 @@ static const struct gkyl_str_int_pair mhd_divb_type[] = {
 static const struct gkyl_str_int_pair reactive_euler_rp_type[] = {
   { "roe", WV_REACTIVE_EULER_RP_ROE },
   { "lax", WV_REACTIVE_EULER_RP_LAX },
+  { 0, 0 }
+};
+
+// Euler mixture Riemann problem -> enum map.
+static const struct gkyl_str_int_pair euler_mixture_rp_type[] = {
+  { "roe", WV_EULER_MIXTURE_RP_ROE },
+  { "lax", WV_EULER_MIXTURE_RP_LAX },
+  { 0, 0 }
+};
+
+// Isothermal Euler mixture Riemann problem -> enum map.
+static const struct gkyl_str_int_pair iso_euler_mixture_rp_type[] = {
+  { "roe", WV_ISO_EULER_MIXTURE_RP_ROE },
+  { "lax", WV_ISO_EULER_MIXTURE_RP_LAX },
   { 0, 0 }
 };
 
@@ -375,6 +391,104 @@ static struct luaL_Reg eqn_reactive_euler_ctor[] = {
   { 0, 0 }
 };
 
+/* *********************** */
+/* Euler Mixture Equations */
+/* *********************** */
+
+// EulerMixture.new { numComponents = 2, gasGamma = {1.4, 1.4}, rpType = "roe" }
+// where rpType is one of "roe" or "lax".
+static int
+eqn_euler_mixture_lw_new(lua_State *L)
+{
+  struct wv_eqn_lw *euler_mixture_lw = gkyl_malloc(sizeof(*euler_mixture_lw));
+
+  int num_components = glua_tbl_get_integer(L, "numComponents", 2);
+
+  double *gas_gamma_s = gkyl_malloc(sizeof(double[num_components]));
+  with_lua_tbl_tbl(L, "gasGamma") {
+    for (int i = 0; i < num_components; i++) {
+      gas_gamma_s[i] = glua_tbl_iget_number(L, i + 1, 1.4);
+    }
+  }
+  
+  const char *rp_str = glua_tbl_get_string(L, "rpType", "lax");
+  enum gkyl_wv_euler_mixture_rp rp_type = gkyl_search_str_int_pair_by_str(euler_mixture_rp_type, rp_str, WV_EULER_MIXTURE_RP_LAX);
+
+  euler_mixture_lw->magic = MOMENT_EQN_DEFAULT;
+  euler_mixture_lw->eqn = gkyl_wv_euler_mixture_inew( & (struct gkyl_wv_euler_mixture_inp) {
+      .num_species = num_components,
+      .gas_gamma_s = gas_gamma_s,
+      .rp_type = rp_type,
+      .use_gpu = false
+    }
+  );
+
+  // Create Lua userdata.
+  struct wv_eqn_lw **l_euler_mixture_lw = lua_newuserdata(L, sizeof(struct wv_eqn_lw*));
+  *l_euler_mixture_lw = euler_mixture_lw; // Point userdata to the equation object.
+
+  // Set metatable.
+  luaL_getmetatable(L, MOMENT_WAVE_EQN_METATABLE_NM);
+  lua_setmetatable(L, -2);
+
+  return 1;
+}
+
+// Equation constructor.
+static const luaL_Reg eqn_euler_mixture_ctor[] = {
+  { "new", eqn_euler_mixture_lw_new },
+  { 0, 0 }
+};
+
+/* ********************************** */
+/* Isothermal Euler Mixture Equations */
+/* ********************************** */
+
+// IsoEulerMixture.new { numComponents = 2, vThermal = {1.0, 1.0}, rpType = "roe" }
+// where rpType is one of "roe" or "lax".
+static int
+eqn_iso_euler_mixture_lw_new(lua_State *L)
+{
+  struct wv_eqn_lw *iso_euler_mixture_lw = gkyl_malloc(sizeof(*iso_euler_mixture_lw));
+
+  int num_components = glua_tbl_get_integer(L, "numComponents", 2);
+
+  double *vt_s = gkyl_malloc(sizeof(double[num_components]));
+  with_lua_tbl_tbl(L, "vThermal") {
+    for (int i = 0; i < num_components; i++) {
+      vt_s[i] = glua_tbl_iget_number(L, i + 1, 1.0);
+    }
+  }
+  
+  const char *rp_str = glua_tbl_get_string(L, "rpType", "lax");
+  enum gkyl_wv_iso_euler_mixture_rp rp_type = gkyl_search_str_int_pair_by_str(iso_euler_mixture_rp_type, rp_str, WV_ISO_EULER_MIXTURE_RP_LAX);
+
+  iso_euler_mixture_lw->magic = MOMENT_EQN_DEFAULT;
+  iso_euler_mixture_lw->eqn = gkyl_wv_iso_euler_mixture_inew( & (struct gkyl_wv_iso_euler_mixture_inp) {
+      .num_species = num_components,
+      .vt_s = vt_s,
+      .rp_type = rp_type,
+      .use_gpu = false
+    }
+  );
+
+  // Create Lua userdata.
+  struct wv_eqn_lw **l_iso_euler_mixture_lw = lua_newuserdata(L, sizeof(struct wv_eqn_lw*));
+  *l_iso_euler_mixture_lw = iso_euler_mixture_lw; // Point userdata to the equation object.
+
+  // Set metatable.
+  luaL_getmetatable(L, MOMENT_WAVE_EQN_METATABLE_NM);
+  lua_setmetatable(L, -2);
+
+  return 1;
+}
+
+// Equation constructor.
+static const luaL_Reg eqn_iso_euler_mixture_ctor[] = {
+  { "new", eqn_iso_euler_mixture_lw_new },
+  { 0, 0 }
+};
+
 // Register and load all wave equation objects
 static void
 eqn_openlibs(lua_State *L)
@@ -392,6 +506,8 @@ eqn_openlibs(lua_State *L)
   luaL_register(L, "G0.Moments.Eq.TenMoment", eqn_tenmoment_ctor); 
   luaL_register(L, "G0.Moments.Eq.Mhd", eqn_mhd_ctor);
   luaL_register(L, "G0.Moments.Eq.ReactiveEuler", eqn_reactive_euler_ctor);
+  luaL_register(L, "G0.Moments.Eq.EulerMixture", eqn_euler_mixture_ctor);
+  luaL_register(L, "G0.Moments.Eq.IsoEulerMixture", eqn_iso_euler_mixture_ctor);
 }
 
 /* *****************/
