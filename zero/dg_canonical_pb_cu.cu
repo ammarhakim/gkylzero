@@ -90,25 +90,25 @@ dg_canonical_pb_set_cu_dev_ptrs(struct dg_canonical_pb *canonical_pb, enum gkyl_
       break;    
   }  
 
-  canonical_pb->eqn.vol_term = CK(vol_kernels,cdim,poly_order);
+  canonical_pb->eqn.vol_term = CK(vol_kernels,cdim,vdim,poly_order);
 
-  canonical_pb->stream_surf[0] = CK(stream_surf_x_kernels,cdim,poly_order);
+  canonical_pb->stream_surf[0] = CK(stream_surf_x_kernels,cdim,vdim,poly_order);
   if (cdim>1)
-    canonical_pb->stream_surf[1] = CK(stream_surf_y_kernels,cdim,poly_order);
+    canonical_pb->stream_surf[1] = CK(stream_surf_y_kernels,cdim,vdim,poly_order);
   if (cdim>2)
-    canonical_pb->stream_surf[2] = CK(stream_surf_z_kernels,cdim,poly_order);
+    canonical_pb->stream_surf[2] = CK(stream_surf_z_kernels,cdim,vdim,poly_order);
 
-  canonical_pb->accel_surf[0] = CK(accel_surf_vx_kernels,cdim,poly_order);
+  canonical_pb->accel_surf[0] = CK(accel_surf_vx_kernels,cdim,vdim,poly_order);
   if (vdim>1)
-    canonical_pb->accel_surf[1] = CK(accel_surf_vy_kernels,cdim,poly_order);
+    canonical_pb->accel_surf[1] = CK(accel_surf_vy_kernels,cdim,vdim,poly_order);
   if (vdim>2)
-    canonical_pb->accel_surf[2] = CK(accel_surf_vz_kernels,cdim,poly_order);
+    canonical_pb->accel_surf[2] = CK(accel_surf_vz_kernels,cdim,vdim,poly_order);
 
-  canonical_pb->accel_boundary_surf[0] = CK(accel_boundary_surf_vx_kernels,cdim,poly_order);
+  canonical_pb->accel_boundary_surf[0] = CK(accel_boundary_surf_vx_kernels,cdim,vdim,poly_order);
   if (vdim>1)
-    canonical_pb->accel_boundary_surf[1] = CK(accel_boundary_surf_vy_kernels,cdim,poly_order);
+    canonical_pb->accel_boundary_surf[1] = CK(accel_boundary_surf_vy_kernels,cdim,vdim,poly_order);
   if (vdim>2)
-    canonical_pb->accel_boundary_surf[2] = CK(accel_boundary_surf_vz_kernels,cdim,poly_order);
+    canonical_pb->accel_boundary_surf[2] = CK(accel_boundary_surf_vz_kernels,cdim,vdim,poly_order);
 }
 
 

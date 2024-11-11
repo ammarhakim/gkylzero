@@ -121,10 +121,10 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
     }
 
     // Allocate arrays for specified metric inverse
-    s->h_ij_inv = mkarr(app->use_gpu, app->confBasis.num_basis*cdim*(cdim+1)/2, app->local_ext.volume);
+    s->h_ij_inv = mkarr(app->use_gpu, app->confBasis.num_basis*vdim*(vdim+1)/2, app->local_ext.volume);
     s->h_ij_inv_host = s->h_ij_inv;
     if (app->use_gpu){
-      s->h_ij_inv_host = mkarr(false, app->confBasis.num_basis*cdim*(cdim+1)/2, app->local_ext.volume);
+      s->h_ij_inv_host = mkarr(false, app->confBasis.num_basis*vdim*(vdim+1)/2, app->local_ext.volume);
     }
 
     // Allocate arrays for specified metric determinant
@@ -144,7 +144,7 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
     gkyl_eval_on_nodes_release(hamil_proj);
 
     // Evaluate specified inverse metric function at nodes to insure continuity of the inverse 
-    struct gkyl_eval_on_nodes* h_ij_inv_proj = gkyl_eval_on_nodes_new(&app->grid, &app->confBasis, cdim*(cdim+1)/2, s->info.h_ij_inv, s->info.h_ij_inv_ctx);
+    struct gkyl_eval_on_nodes* h_ij_inv_proj = gkyl_eval_on_nodes_new(&app->grid, &app->confBasis, vdim*(vdim+1)/2, s->info.h_ij_inv, s->info.h_ij_inv_ctx);
     gkyl_eval_on_nodes_advance(h_ij_inv_proj, 0.0, &app->local, s->h_ij_inv_host);
     if (app->use_gpu){
       gkyl_array_copy(s->h_ij_inv, s->h_ij_inv_host);
@@ -172,9 +172,8 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
       gkyl_cart_modal_tensor(&surf_quad_basis, pdim-1, app->poly_order);
     }
 
-    // always 2*cdim
-    int alpha_surf_sz = (2*cdim)*surf_basis.num_basis; 
-    int sgn_alpha_surf_sz = (2*cdim)*surf_quad_basis.num_basis; // sign(alpha) is store at quadrature points
+    int alpha_surf_sz = (cdim + vdim)*surf_basis.num_basis; 
+    int sgn_alpha_surf_sz = (cdim + vdim)*surf_quad_basis.num_basis; // sign(alpha) is store at quadrature points
 
     // allocate arrays to store fields: 
     // 1. alpha_surf (surface phase space velocity)
@@ -182,7 +181,7 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
     // 3. const_sgn_alpha (boolean for if sign(alpha_surf) is a constant, either +1 or -1)
     s->alpha_surf = mkarr(app->use_gpu, alpha_surf_sz, s->local_ext.volume);
     s->sgn_alpha_surf = mkarr(app->use_gpu, sgn_alpha_surf_sz, s->local_ext.volume);
-    s->const_sgn_alpha = mk_int_arr(app->use_gpu, (2*cdim), s->local_ext.volume);
+    s->const_sgn_alpha = mk_int_arr(app->use_gpu, (cdim + vdim), s->local_ext.volume);
 
     // Pre-compute alpha_surf, sgn_alpha_surf, const_sgn_alpha, and cot_vec since they are time-independent
     struct gkyl_dg_calc_canonical_pb_vars *calc_vars = gkyl_dg_calc_canonical_pb_vars_new(&s->grid, 
@@ -199,6 +198,20 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
     //create solver
     s->slvr = gkyl_dg_updater_vlasov_new(&s->grid, &app->confBasis, &app->basis, 
       &app->local, &s->local_vel, &s->local, is_zero_flux, s->model_id, s->field_id, &aux_inp, app->use_gpu);
+
+    printf("cdim: %d, vdim: %d, pdim: %d, alpha_surf_sz: %d\n",cdim,vdim,pdim,alpha_surf_sz);
+    char fh[1024] = "out_alpha_surf.gkyl";
+    gkyl_grid_sub_array_write(&s->grid, &local, s->alpha_surf, fh);
+    char fh2[1024] = "out_sgn_alpha_surf.gkyl";
+    gkyl_grid_sub_array_write(&s->grid, &local, s->sgn_alpha_surf, fh2);
+    char fh3[1024] = "out_const_sgn_alpha.gkyl";
+    gkyl_grid_sub_array_write(&s->grid, &local, s->const_sgn_alpha, fh3);
+    char fh4[1024] = "out_hamil.gkyl";
+    gkyl_grid_sub_array_write(&s->grid, &local, s->hamil, fh4);  
+    char fh5[1024] = "out_h_ij_inv.gkyl";
+    gkyl_grid_sub_array_write(&app->grid, &app->local, s->h_ij_inv, fh5);  
+    char fh6[1024] = "out_det_h.gkyl";
+    gkyl_grid_sub_array_write(&app->grid, &app->local, s->det_h, fh6);
   }
   else {
     // by default, we do not have zero-flux boundary conditions in any direction
