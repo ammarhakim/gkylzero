@@ -125,7 +125,7 @@ create_ctx(void)
   // Grid parameters
   double vpar_max_ion = 6 * vti;
   double mu_max_ion = mi * pow(8. * vti, 2.) / (2. * B_p);
-  int Nz = 64;
+  int Nz = 16;
   int Nvpar = 32; // Number of cells in the paralell velocity direction 96
   int Nmu = 32;  // Number of cells in the mu direction 192
   int poly_order = 1;
@@ -138,7 +138,7 @@ create_ctx(void)
   double nu_ion = 1 / (5e-3);
   printf("nu_ion = %g\n", nu_ion);
   printf("1/nu_ion = %g\n", 1.0/nu_ion);
-  double t_end = 10e-9;
+  double t_end = 10e-11;
   int num_frames = 1300;
   int int_diag_calc_num = num_frames*100;
   double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.
