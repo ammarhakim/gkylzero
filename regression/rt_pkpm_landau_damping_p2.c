@@ -125,9 +125,10 @@ evalElcDistInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT 
 
   double n = (1.0 + alpha * cos(k0 * x)) *
     (1.0 / sqrt(2.0 * pi * vt * vt)) * (exp(-(vx * vx) / (2.0 * vt * vt))); // Total number density.
+  double T_sq_n = (vt * vt) * n; // Temperature squared times number density.
 
-  // Set total number density.
-  fout[0] = n; fout[1] = n;
+  // Set distribution function.
+  fout[0] = n; fout[1] = T_sq_n;
 }
 
 void
@@ -460,7 +461,7 @@ main(int argc, char **argv)
   gkyl_pkpm_app_cout(app, stdout, "Species PKPM vars took %g secs\n", stat.species_pkpm_vars_tm);
   gkyl_pkpm_app_cout(app, stdout, "Species collisional moments took %g secs\n", stat.species_coll_mom_tm);
   gkyl_pkpm_app_cout(app, stdout, "EM variables (bvar) calc took %g secs\n", stat.field_em_vars_tm);
-  gkyl_pkpm_app_cout(app, stdout, "Current evaluation and accumulate took $g secs\n", stat.current_tm);
+  gkyl_pkpm_app_cout(app, stdout, "Current evaluation and accumulate took %g secs\n", stat.current_tm);
   gkyl_pkpm_app_cout(app, stdout, "Total updates took %g secs\n", stat.total_tm);
 
   gkyl_pkpm_app_cout(app, stdout, "Number of write calls %ld\n", stat.nio);

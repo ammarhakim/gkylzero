@@ -81,7 +81,9 @@ pkpmApp = PKPM.App.new {
         T = Tr -- Total temperature (right).
       end
       
-      return n, (T * T) * n
+      local T_sq_n = (T * T) * n -- Temperature squared times number density.
+      
+      return n, T_sq_n
     end,
 
     -- Initial conditions (fluid).

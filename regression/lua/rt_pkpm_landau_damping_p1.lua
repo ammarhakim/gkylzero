@@ -69,8 +69,9 @@ pkpmApp = PKPM.App.new {
 
       local n = (1.0 + alpha * math.cos(k0 * x)) *
         (1.0 / math.sqrt(2.0 * pi * vt * vt)) * (math.exp(-(vx * vx) / (2.0 * vt * vt))) -- Total number density.
+      local T_sq_n = (vt * vt) * n -- Temperature squared times number density.
       
-      return n, n
+      return n, T_sq_n
     end,
 
     -- Initial conditions (fluid).
@@ -121,7 +122,7 @@ pkpmApp = PKPM.App.new {
       local By = 0.0 -- External magnetic field (y-direction).
       local Bz = 0.0 -- External magnetic field (z-direction).
 
-    return Ex, Ey, Ez, Bx, By, Bz
+      return Ex, Ey, Ez, Bx, By, Bz
     end,
 
     evolve = true, -- Evolve field?
