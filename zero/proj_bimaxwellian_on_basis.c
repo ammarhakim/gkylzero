@@ -286,14 +286,13 @@ gkyl_proj_bimaxwellian_on_basis_gyrokinetic_lab_mom(const gkyl_proj_bimaxwellian
       }
       upar[n] = upar[n]/den;
       vtparsq[n] = (m2par_n - den*upar[n]*upar[n])/den;
-      vtperpsq[n] = m2perp_n/den;
+      vtperpsq[n] = 0.5*m2perp_n/den;
 
-      // compute the amplitude of the exponential.
+      // Compute the amplitude of the exponential.
       if ((den > 0.) && (vtparsq[n]>0.) && (vtperpsq[n]>0.))
         exp_amp[n] = jac*den/(sqrt(pow(2.0*GKYL_PI,3)*vtparsq[n])*vtperpsq[n]);
       else
         exp_amp[n] = 0.;
-
     }
 
     // inner loop over velocity space

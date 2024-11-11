@@ -83,6 +83,28 @@ void test_range_shift()
   }
 }
 
+static void
+test_range_reset()
+{
+  int lower[] = {1, 1}, upper[] = {10, 20};
+  struct gkyl_range range;
+  gkyl_range_init(&range, 2, lower, upper);
+
+  int new_lower[] = { 10, -20 };
+  
+  struct gkyl_range rlower;
+  gkyl_range_reset_lower(&rlower, &range, new_lower);
+
+  TEST_CHECK( rlower.ndim = range.ndim );
+  TEST_CHECK( rlower.volume = range.volume );
+
+  for (int d=0; d<range.ndim; ++d)
+    TEST_CHECK( gkyl_range_shape(&range, d) == gkyl_range_shape(&rlower, d) );
+
+  for (int d=0; d<range.ndim; ++d)
+    TEST_CHECK( rlower.lower[d] == new_lower[d] );
+}
+
 void test_range_iter_init_next()
 {
   // Test 1D range
@@ -1299,6 +1321,7 @@ TEST_LIST = {
   { "range_0", test_range_0 },
   { "range_1", test_range_1 },
   { "range_shift", test_range_shift },
+  { "range_reset", test_range_reset },
   { "range_shape",  test_range_shape },
   { "range_shape1",  test_range_shape1 },  
   { "sub_range",  test_sub_range },

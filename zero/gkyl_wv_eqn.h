@@ -34,13 +34,13 @@ typedef double (*wv_max_speed_t)(const struct gkyl_wv_eqn *eqn, const double *q)
 
 // Function pointer to rotate conserved variables to local
 // tangent-normal frame: tau1 X tau2 = norm
-typedef void (*wv_rotate_to_local)(const double *tau1, const double *tau2, const double *norm,
-  const double *qglobal, double *qlocal);
+typedef void (*wv_rotate_to_local)(const struct gkyl_wv_eqn* eqn, const double* tau1, const double* tau2, const double* norm,
+  const double* qglobal, double* qlocal);
 
 // Function pointer to rotate conserved variables to local
 // tangent-normal frame: tau1 X tau2 = norm
-typedef void (*wv_rotate_to_global)(const double *tau1, const double *tau2, const double *norm,
-  const double *qlocal, double *qglobal);
+typedef void (*wv_rotate_to_global)(const struct gkyl_wv_eqn* eqn, const double* tau1, const double* tau2, const double* norm,
+  const double* qlocal, double* qglobal);
 
 // Function pointer to convert conserved variables to Riemann
 // variables, given an input state 'qstate'
@@ -262,7 +262,7 @@ gkyl_wv_eqn_rotate_to_local(const struct gkyl_wv_eqn* eqn,
   const double *tau1, const double *tau2, const double *norm,
   const double *GKYL_RESTRICT qglobal, double *GKYL_RESTRICT qlocal)
 {
-  eqn->rotate_to_local_func(tau1, tau2, norm, qglobal, qlocal);
+  eqn->rotate_to_local_func(eqn, tau1, tau2, norm, qglobal, qlocal);
 }
 
 /**
@@ -281,7 +281,7 @@ gkyl_wv_eqn_rotate_to_global(const struct gkyl_wv_eqn* eqn,
   const double *tau1, const double *tau2, const double *norm,
   const double *GKYL_RESTRICT qlocal, double *GKYL_RESTRICT qglobal)
 {
-  eqn->rotate_to_global_func(tau1, tau2, norm, qlocal, qglobal);
+  eqn->rotate_to_global_func(eqn, tau1, tau2, norm, qlocal, qglobal);
 }
 
 /**

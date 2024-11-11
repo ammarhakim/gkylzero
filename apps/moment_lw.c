@@ -825,13 +825,13 @@ mom_app_new(lua_State *L)
     }
   }
 
-  // create decomp and communicator
-  struct gkyl_rect_decomp *decomp
-    = gkyl_rect_decomp_new_from_cuts_and_cells(cdim, cuts, mom.cells);
-
+  // create parallelism
   struct gkyl_comm *comm = 0;
   bool has_mpi = false;
-  
+
+  for (int d=0; d<cdim; ++d)
+    mom.parallelism.cuts[d] = cuts[d]; 
+
 #ifdef GKYL_HAVE_MPI
   with_lua_global(L, "GKYL_MPI_COMM") {
     if (lua_islightuserdata(L, -1)) {
@@ -839,7 +839,6 @@ mom_app_new(lua_State *L)
       MPI_Comm mpi_comm = lua_touserdata(L, -1);
       comm = gkyl_mpi_comm_new( &(struct gkyl_mpi_comm_inp) {
           .mpi_comm = mpi_comm,
-          .decomp = decomp,
           .sync_corners = true
         }
       );
@@ -852,11 +851,11 @@ mom_app_new(lua_State *L)
     // if there is no proper MPI_Comm specifed, the assume we are a
     // serial sim
     comm = gkyl_null_comm_inew( &(struct gkyl_null_comm_inp) {
-        .decomp = decomp,
         .sync_corners = true
       }
     );
   }
+  mom.parallelism.comm = comm;
 
   int rank;
   gkyl_comm_get_rank(comm, &rank);
@@ -871,15 +870,8 @@ mom_app_new(lua_State *L)
     luaL_error(L, "Number of ranks and cuts do not match!");
   }
   
-  mom.has_low_inp = true;  
-  mom.low_inp = (struct gkyl_app_comm_low_inp) {
-    .comm = comm,
-    .local_range = decomp->ranges[rank]
-  };
-  
   app_lw->app = gkyl_moment_app_new(&mom); // create the Moment app
 
-  gkyl_rect_decomp_release(decomp);
   gkyl_comm_release(comm);
   
   // create Lua userdata ...

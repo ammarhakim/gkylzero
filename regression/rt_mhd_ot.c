@@ -109,40 +109,41 @@ main(int argc, char **argv)
 
   // create global range
   int cells[] = { NX, NY };
-  struct gkyl_range globalr;
-  gkyl_create_global_range(2, cells, &globalr);
-  
-  // create decomposition
-  int cuts[] = { 1, 1 };
-#ifdef GKYL_HAVE_MPI  
-  if (app_args.use_mpi) {
-    cuts[0] = app_args.cuts[0];
-    cuts[1] = app_args.cuts[1];
+  int dim = sizeof(cells) / sizeof(cells[0]);
+
+  int cuts[dim];
+#ifdef GKYL_HAVE_MPI
+  for (int d = 0; d < dim; d++) {
+    if (app_args.use_mpi) {
+      cuts[d] = app_args.cuts[d];
+    }
+    else {
+      cuts[d] = 1;
+    }
   }
-#endif  
-    
-  struct gkyl_rect_decomp *decomp =
-    gkyl_rect_decomp_new_from_cuts(2, cuts, &globalr);
-  
-  // construct communcator for use in app
+#else
+  for (int d = 0; d < dim; d++) {
+    cuts[d] = 1;
+  }
+#endif
+
+  // Construct communicator for use in app.
   struct gkyl_comm *comm;
 #ifdef GKYL_HAVE_MPI
   if (app_args.use_mpi) {
     comm = gkyl_mpi_comm_new( &(struct gkyl_mpi_comm_inp) {
         .mpi_comm = MPI_COMM_WORLD,
-        .decomp = decomp
       }
     );
   }
-  else
+  else {
     comm = gkyl_null_comm_inew( &(struct gkyl_null_comm_inp) {
-        .decomp = decomp,
-        .use_gpu = app_args.use_gpu        
+        .use_gpu = app_args.use_gpu
       }
     );
+  }
 #else
   comm = gkyl_null_comm_inew( &(struct gkyl_null_comm_inp) {
-      .decomp = decomp,
       .use_gpu = app_args.use_gpu
     }
   );
@@ -175,11 +176,11 @@ main(int argc, char **argv)
     .num_species = 1,
     .species = { fluid },
 
-    .has_low_inp = true,
-    .low_inp = {
+    .parallelism = {
+      .use_gpu = app_args.use_gpu,
+      .cuts = { app_args.cuts[0], app_args.cuts[1] },
       .comm = comm,
-      .local_range = decomp->ranges[my_rank]
-    }    
+    },
   };
 
   // create app object
@@ -231,7 +232,6 @@ main(int argc, char **argv)
   gkyl_wv_eqn_release(mhd);
   gkyl_moment_app_release(app);
   gkyl_comm_release(comm);
-  gkyl_rect_decomp_release(decomp);
   
   mpifinalize:
   ;

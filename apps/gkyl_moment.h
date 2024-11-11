@@ -11,14 +11,6 @@
 
 #include <time.h>
 
-// number of components that various applied functions should return
-enum {
-  GKYL_MOM_APP_NUM_APPLIED_CURRENT = 3,
-  GKYL_MOM_APP_NUM_EXT_EM = 6,
-  GKYL_MOM_APP_NUM_APPLIED_ACCELERATION = 3,
-  GKYL_MOM_APP_NUM_NT_SOURCE = 2
-};
-
 // Parameters for moment species
 struct gkyl_moment_species {
   char name[128]; // species name
@@ -48,6 +40,10 @@ struct gkyl_moment_species {
   double reactivity_ignition_temperature; // Ignition temperature for reactive sources.
   double reactivity_reaction_rate; // Reaction rate for reactive sources.
 
+  bool has_einstein_medium; // Run with coupled fluid-Einstein sources in plane-symmetric spacetimes.
+  double medium_gas_gamma; // Adiabatic index for coupled fluid-Einstein sources in plane-symmetric spacetimes.
+  double medium_kappa; // Stress-energy prefactor for coupled fluid-Einstein sources in plane-symmetric spacetimes.
+
   int evolve; // evolve species? 1-yes, 0-no
   bool force_low_order_flux; // should  we force low-order flux?
 
@@ -67,7 +63,6 @@ struct gkyl_moment_species {
 
   // boundary conditions
   enum gkyl_species_bc_type bcx[2], bcy[2], bcz[2];
-
   // for function BCs these should be set
   wv_bc_func_t bcx_func[2], bcy_func[2], bcz_func[2];  
 };
@@ -158,10 +153,7 @@ struct gkyl_moment {
   bool has_braginskii; // has Braginskii transport
   double coll_fac; // multiplicative collisionality factor for Braginskii  
 
-  // this should not be set by typical user-facing code but only by
-  // higher-level drivers
-  bool has_low_inp; // should one use low-level inputs?
-  struct gkyl_app_comm_low_inp low_inp; // low-level inputs
+  struct gkyl_app_parallelism_inp parallelism; // Parallelism-related inputs.
 };
 
 // Simulation statistics
@@ -395,15 +387,6 @@ void gkyl_moment_app_calc_integrated_mom(gkyl_moment_app *app, double tm);
  * @param vals On output, value of the integrate moments for species
  */
 void gkyl_moment_app_get_integrated_mom(gkyl_moment_app *app, double *vals);
-
-/**
- * Return ghost cell layout for grid.
- *
- * @param app App object.
- * @param nghost On output, ghost-cells used for grid.
- *
- */
-void gkyl_moment_app_nghost(gkyl_moment_app *app, int nghost[3]);
 
 /**
  * Get a pointer to the species array that needs to be written out. If

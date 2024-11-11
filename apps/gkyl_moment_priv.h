@@ -16,6 +16,7 @@
 #include <gkyl_array_ops.h>
 #include <gkyl_array_rio.h>
 #include <gkyl_comm.h>
+#include <gkyl_comm_io.h>
 #include <gkyl_dflt.h>
 #include <gkyl_dynvec.h>
 #include <gkyl_elem_type.h>
@@ -40,6 +41,14 @@
 #include <gkyl_wv_maxwell.h>
 #include <gkyl_wv_mhd.h>
 #include <gkyl_wv_ten_moment.h>
+
+// number of components that various applied functions should return
+enum {
+  GKYL_MOM_APP_NUM_APPLIED_CURRENT = 3,
+  GKYL_MOM_APP_NUM_EXT_EM = 6,
+  GKYL_MOM_APP_NUM_APPLIED_ACCELERATION = 3,
+  GKYL_MOM_APP_NUM_NT_SOURCE = 2
+};
 
 // Species data
 struct moment_species {
@@ -68,6 +77,10 @@ struct moment_species {
   double reactivity_energy_of_formation; // Energy of formation for reactive sources.
   double reactivity_ignition_temperature; // Ignition temperature for reactive sources.
   double reactivity_reaction_rate; // Reaction rate for reactive sources.
+
+  bool has_einstein_medium; // Run with coupled fluid-Einstein sources in plane-symmetric spacetimes.
+  double medium_gas_gamma; // Adiabatic index for coupled fluid-Einstein sources in plane-symmetric spacetimes.
+  double medium_kappa; // Stress-energy prefactor for coupled fluid-Einstein sources in plane-symmetric spacetimes.
 
   int evolve; // evolve species? 1-yes, 0-no
 
@@ -242,6 +255,7 @@ struct gkyl_moment_app {
   struct gkyl_range local, local_ext; // local, local-ext ranges
   struct gkyl_range global, global_ext; // global, global-ext ranges
 
+  struct gkyl_rect_decomp *decomp; // decomposition object
   struct gkyl_comm *comm;   // communicator object
 
   bool has_mapc2p; // flag to indicate if we have mapc2p
@@ -310,11 +324,18 @@ integ_sq(int nc, const double *qin, double *integ_out)
 
 // function for copy BC
 static inline void
-bc_copy(double t, int nc, const double *skin,
+bc_copy(const struct gkyl_wv_eqn* eqn, double t, int nc, const double *skin,
   double *GKYL_RESTRICT ghost, void *ctx)
 {
   for (int c = 0; c < nc; ++c)
     ghost[c] = skin[c];
+}
+
+// function for skip BCs
+static inline void
+bc_skip(const struct gkyl_wv_eqn* eqn, double t, int nc, const double *skin,
+  double *GKYL_RESTRICT ghost, void *ctx)
+{
 }
 
 // Compute integrated quantities specified by i_func
@@ -337,6 +358,15 @@ void moment_apply_wedge_bc(const gkyl_moment_app *app, double tcurr,
   const struct gkyl_wv_apply_bc *lo,
   const struct gkyl_wv_apply_bc *up,
   struct gkyl_array *f);
+
+/**
+ * Return ghost cell layout for grid.
+ *
+ * @param app App object.
+ * @param nghost On output, ghost-cells used for grid.
+ *
+ */
+void gkyl_moment_app_nghost(gkyl_moment_app *app, int nghost[3]);
 
 /** moment_species API */
 

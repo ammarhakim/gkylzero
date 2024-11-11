@@ -60,7 +60,14 @@ moment_species_init(const struct gkyl_moment *mom, const struct gkyl_moment_spec
     sp->reactivity_ignition_temperature = mom_sp->reactivity_ignition_temperature;
     sp->reactivity_reaction_rate = mom_sp->reactivity_reaction_rate;
   }
-    
+
+  if (mom_sp->has_einstein_medium) {
+    sp->has_einstein_medium = true;
+
+    sp->medium_gas_gamma = mom_sp->medium_gas_gamma;
+    sp->medium_kappa = mom_sp->medium_kappa;
+  }
+
   sp->scheme_type = mom->scheme_type;
 
   // choose default limiter
@@ -207,7 +214,14 @@ moment_species_init(const struct gkyl_moment *mom, const struct gkyl_moment_spec
         case GKYL_SPECIES_COPY:
         case GKYL_SPECIES_WEDGE: // wedge also uses bc_copy
           sp->lower_bc[dir] = gkyl_wv_apply_bc_new(
-            &app->grid, mom_sp->equation, app->geom, dir, GKYL_LOWER_EDGE, nghost, bc_copy, 0);
+            &app->grid, mom_sp->equation, app->geom, dir, GKYL_LOWER_EDGE, nghost,
+            bc_copy, 0);
+          break;
+
+        case GKYL_SPECIES_SKIP:
+          sp->lower_bc[dir] = gkyl_wv_apply_bc_new(
+            &app->grid, mom_sp->equation, app->geom, dir, GKYL_LOWER_EDGE, nghost,
+            bc_skip, 0);
           break;
 
         default:
@@ -238,7 +252,14 @@ moment_species_init(const struct gkyl_moment *mom, const struct gkyl_moment_spec
         case GKYL_SPECIES_COPY:
         case GKYL_SPECIES_WEDGE:
           sp->upper_bc[dir] = gkyl_wv_apply_bc_new(
-            &app->grid, mom_sp->equation, app->geom, dir, GKYL_UPPER_EDGE, nghost, bc_copy, 0);
+            &app->grid, mom_sp->equation, app->geom, dir, GKYL_UPPER_EDGE, nghost,
+            bc_copy, 0);
+          break;
+
+        case GKYL_SPECIES_SKIP:
+          sp->upper_bc[dir] = gkyl_wv_apply_bc_new(
+            &app->grid, mom_sp->equation, app->geom, dir, GKYL_UPPER_EDGE, nghost,
+            bc_skip, 0);
           break;
 
         default:
@@ -255,9 +276,12 @@ moment_species_init(const struct gkyl_moment *mom, const struct gkyl_moment_spec
   sp->proj_app_accel = 0;
   if (mom_sp->app_accel_func) {
     void *ctx = sp->ctx;
-    if (mom_sp->app_accel_ctx)
+
+    if (mom_sp->app_accel_ctx) {
       ctx = mom_sp->app_accel_ctx;
-    sp->proj_app_accel = gkyl_fv_proj_new(&app->grid, 2, GKYL_MOM_APP_NUM_APPLIED_ACCELERATION,
+    }
+
+    sp->proj_app_accel = gkyl_fv_proj_new(&app->grid, 2, GKYL_MOM_APP_NUM_APPLIED_ACCELERATION, 
       mom_sp->app_accel_func, ctx);
   }
 

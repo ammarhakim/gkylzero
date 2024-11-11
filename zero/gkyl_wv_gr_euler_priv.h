@@ -17,6 +17,17 @@ struct wv_gr_euler {
 };
 
 /**
+* Compute flux vector. Assumes rotation to local coordinate system.
+*
+* @param gas_gamma Adiabatic index.
+* @param q Conserved variable vector.
+* @param flux Flux vector in direction 'dir' (output).
+*/
+GKYL_CU_D
+void
+gkyl_gr_euler_flux(double gas_gamma, const double q[28], double flux[28]);
+
+/**
 * Compute primitive variables given the conserved variables.
 *
 * @param gas_gamma Adiabatic index.
@@ -25,7 +36,17 @@ struct wv_gr_euler {
 */
 GKYL_CU_D
 void
-gkyl_gr_euler_prim_vars(double gas_gamma, const double q[29], double v[29]);
+gkyl_gr_euler_prim_vars(double gas_gamma, const double q[28], double v[28]);
+
+/**
+* Compute inverse spatial metric tensor (in covariant component form) given the conserved variables.
+*
+* @param q Conserved variable vector.
+* @param inv_spatial_metric Inverse spatial metric tensor (output).
+*/
+GKYL_CU_D
+void
+gkyl_gr_euler_inv_spatial_metric(const double q[28], double ***inv_spatial_metric);
 
 /**
 * Compute perfect fluid stress-energy tensor (in contravariant component form) given the conserved variables.
@@ -36,7 +57,7 @@ gkyl_gr_euler_prim_vars(double gas_gamma, const double q[29], double v[29]);
 */
 GKYL_CU_D
 void
-gkyl_gr_euler_stress_energy_tensor(double gas_gamma, const double q[29], double stress_energy[4][4]);
+gkyl_gr_euler_stress_energy_tensor(double gas_gamma, const double q[28], double ***stress_energy);
 
 /**
 * Compute maximum absolute wave speed.
@@ -47,18 +68,7 @@ gkyl_gr_euler_stress_energy_tensor(double gas_gamma, const double q[29], double 
 */
 GKYL_CU_D
 static inline double
-gkyl_gr_euler_max_abs_speed(double gas_gamma, const double q[29]);
-
-/**
-* Compute flux vector. Assumes rotation to local coordinate system.
-*
-* @param gas_gamma Adiabatic index.
-* @param q Conserved variable vector.
-* @param flux Flux vector in direction 'dir' (output).
-*/
-GKYL_CU_D
-static void
-gkyl_gr_euler_flux(double gas_gamma, const double q[29], double flux[29]);
+gkyl_gr_euler_max_abs_speed(double gas_gamma, const double q[28]);
 
 /**
 * Compute Riemann variables given the conserved variables.
@@ -85,8 +95,9 @@ static inline void
 riem_to_cons(const struct gkyl_wv_eqn* eqn, const double* qstate, const double* win, double *qout);
 
 /**
-* Boundary condition function for applying wall boundary conditions for the general relativistic Euler equations.
+* Boundary condition function for applying wall boundary conditions for the general relativistic Euler equations with ideal gas equation of state.
 *
+* @param eqn Base equation object.
 * @param t Current simulation time.
 * @param nc Number of boundary cells to which to apply wall boundary conditions.
 * @param skin Skin cells in boundary region (from which values are copied).
@@ -95,11 +106,12 @@ riem_to_cons(const struct gkyl_wv_eqn* eqn, const double* qstate, const double* 
 */
 GKYL_CU_D
 static void
-gr_euler_wall(double t, int nc, const double* skin, double* GKYL_RESTRICT ghost, void* ctx);
+gr_euler_wall(const struct gkyl_wv_eqn* eqn, double t, int nc, const double* skin, double* GKYL_RESTRICT ghost, void* ctx);
 
 /**
-* Boundary condition function for applying no-slip boundary conditions for the general relativistic Euler equations.
+* Boundary condition function for applying no-slip boundary conditions for the general relativistic Euler equations with ideal gas equation of state.
 *
+* @param eqn Base equation object.
 * @param t Current simulation time.
 * @param nc Number of boundary cells to which to apply no-slip boundary conditions.
 * @param skin Skin cells in boundary region (from which values are copied).
@@ -108,11 +120,12 @@ gr_euler_wall(double t, int nc, const double* skin, double* GKYL_RESTRICT ghost,
 */
 GKYL_CU_D
 static void
-gr_euler_no_slip(double t, int nc, const double* skin, double* GKYL_RESTRICT ghost, void* ctx);
+gr_euler_no_slip(const struct gkyl_wv_eqn* eqn, double t, int nc, const double* skin, double* GKYL_RESTRICT ghost, void* ctx);
 
 /**
 * Rotate state vector from global to local coordinate frame.
 *
+* @param eqn Base equation object.
 * @param tau1 First tangent vector of the coordinate frame.
 * @param tau2 Second tangent vector of the coordinate frame.
 * @param norm Normal vector of the coordinate frame.
@@ -121,11 +134,13 @@ gr_euler_no_slip(double t, int nc, const double* skin, double* GKYL_RESTRICT gho
 */
 GKYL_CU_D
 static inline void
-rot_to_local(const double* tau1, const double* tau2, const double* norm, const double* GKYL_RESTRICT qglobal, double* GKYL_RESTRICT qlocal);
+rot_to_local(const struct gkyl_wv_eqn* eqn, const double* tau1, const double* tau2, const double* norm, const double* GKYL_RESTRICT qglobal,
+  double* GKYL_RESTRICT qlocal);
 
 /**
 * Rotate state vector from local to global coordinate frame.
 *
+* @param eqn Base equation object.
 * @param tau1 First tangent vector of the coordinate frame.
 * @param tau2 Second tangent vector of the coordinate frame.
 * @param norm Normal vector of the coordinate frame.
@@ -134,7 +149,8 @@ rot_to_local(const double* tau1, const double* tau2, const double* norm, const d
 */
 GKYL_CU_D
 static inline void
-rot_to_global(const double* tau1, const double* tau2, const double* norm, const double* GKYL_RESTRICT qlocal, double* GKYL_RESTRICT qglobal);
+rot_to_global(const struct gkyl_wv_eqn* eqn, const double* tau1, const double* tau2, const double* norm, const double* GKYL_RESTRICT qlocal,
+  double* GKYL_RESTRICT qglobal);
 
 /**
 * Compute waves and speeds using Lax fluxes.
@@ -215,7 +231,7 @@ static double
 wave_roe(const struct gkyl_wv_eqn* eqn, const double* delta, const double* ql, const double* qr, double* waves, double* s);
 
 /**
-* Compute flucuations using Roe fluxes.
+* Compute fluctuations using Roe fluxes.
 *
 * @param eqn Base equation object.
 * @param ql Conserved variable vector on the left of the interface.
@@ -276,7 +292,7 @@ static double
 flux_jump(const struct gkyl_wv_eqn* eqn, const double* ql, const double* qr, double* flux_jump);
 
 /**
-* Determine whether invariant domain of the general relativistic Euler equations is satisfied.
+* Determine whether invariant domain of the general relativistic Euler equations with ideal gas equation of state is satisfied.
 *
 * @param eqn Base equation object.
 * @param q Conserved variable vector.
@@ -309,7 +325,7 @@ static inline void
 gr_euler_cons_to_diag(const struct gkyl_wv_eqn* eqn, const double* qin, double* diag);
 
 /**
-* Compute forcing/source term vector from conserved variable.
+* Compute forcing/source term vector from conserved variables.
 *
 * @param eqn Base equation object.
 * @param qin Conserved variable vector (input).
@@ -320,8 +336,8 @@ static inline void
 gr_euler_source(const struct gkyl_wv_eqn* eqn, const double* qin, double* sout);
 
 /**
-* Free general relativistic Euler equations object.
+* Free general relativistic Euler equations object with ideal gas equation of state.
 *
-* @param ref Reference counter for general relativistic Euler equations.
+* @param ref Reference counter for general relativistic Euler equations with ideal gas equation of state.
 */
 void gkyl_gr_euler_free(const struct gkyl_ref_count* ref);

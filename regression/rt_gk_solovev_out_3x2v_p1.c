@@ -46,29 +46,6 @@ struct gk_solovev_ctx {
   int num_failures_max; // Maximum allowable number of consecutive small time-steps.
 };
 
-struct gkyl_tok_geo_efit_inp inp = {
-  // psiRZ and related inputs
-  .filepath = "./data/eqdsk/solovev.geqdsk",
-  .rzpoly_order = 2,
-  .fluxpoly_order = 1,
-  .plate_spec = false,
-  .quad_param = {  .eps = 1e-10 }
-};
-
-struct gkyl_tok_geo_grid_inp ginp = {
-  .ftype = GKYL_SOL_DN_OUT,
-  .rclose = 3.0, // any number larger than ~2 will do
-  .rright = 3.0,
-  .rleft = 0.1,
-  .rmin = 0.1,
-  .rmax = 3.5,
-  .zmin = -1.5,
-  .zmax = 1.5,
-  .write_node_coord_array = true,
-  .node_file_nm = "solovev_nodes.gkyl"
-}; 
-
-
 void
 eval_density(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
 {
@@ -251,7 +228,7 @@ create_ctx(void)
   double r0 = 0.40705706492831;
   double Lx = 0.02;
   double Ly = 50 * rho_s * q0/r0 ; // should be 0.107890816895
-  double Lz = 3.14*2;
+  double Lz = (M_PI-1e-14)*2.0 ; // Domain size (configuration space: z-direction).
 
   // Source parameters.
   double x_source = -0.07;
@@ -332,10 +309,6 @@ write_data(struct gkyl_tm_trigger* iot, gkyl_gyrokinetic_app* app, double t_curr
 
     gkyl_gyrokinetic_app_write(app, t_curr, frame);
 
-    gkyl_gyrokinetic_app_calc_mom(app);
-    gkyl_gyrokinetic_app_write_mom(app, t_curr, frame);
-    gkyl_gyrokinetic_app_write_source_mom(app, t_curr, frame);
-
     gkyl_gyrokinetic_app_calc_field_energy(app, t_curr);
     gkyl_gyrokinetic_app_write_field_energy(app);
 
@@ -368,17 +341,8 @@ main(int argc, char **argv)
   for (int d=0; d<ctx.vdim; d++)
     cells_v[d] = APP_ARGS_CHOOSE(app_args.vcells[d], ctx.cells[ctx.cdim+d]);
 
-  // Create decomposition.
-  struct gkyl_rect_decomp *decomp = gkyl_gyrokinetic_comms_decomp_new(ctx.cdim, cells_x, app_args.cuts, app_args.use_mpi, stderr);
-
   // Construct communicator for use in app.
-  struct gkyl_comm *comm = gkyl_gyrokinetic_comms_new(app_args.use_mpi, app_args.use_gpu, decomp, stderr);
-
-  int my_rank = 0;
-#ifdef GKYL_HAVE_MPI
-  if (app_args.use_mpi)
-    gkyl_comm_get_rank(comm, &my_rank);
-#endif
+  struct gkyl_comm *comm = gkyl_gyrokinetic_comms_new(app_args.use_mpi, app_args.use_gpu, stderr);
 
   // electrons
   struct gkyl_gyrokinetic_species elc = {
@@ -407,7 +371,6 @@ main(int argc, char **argv)
     },
     .source = {
       .source_id = GKYL_PROJ_SOURCE,
-      .write_source = true,
       .num_sources = 1,
       .projection[0] = {
         .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM, 
@@ -460,7 +423,6 @@ main(int argc, char **argv)
     },
     .source = {
       .source_id = GKYL_PROJ_SOURCE,
-      .write_source = true,
       .num_sources = 1,
       .projection[0] = {
         .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM, 
@@ -494,11 +456,32 @@ main(int argc, char **argv)
                     .lo_value = {0.0, 0.0}, .up_value = {0.0, 0.0}}, 
   };
 
+
+  struct gkyl_efit_inp efit_inp = {
+    // psiRZ and related inputs
+    .filepath = "./data/eqdsk/solovev.geqdsk", // equilibrium to use
+    .rz_poly_order = 2,                        // polynomial order for psi(R,Z) used for field line tracing
+    .flux_poly_order = 1,                      // polynomial order for fpol(psi)
+  };
+  
+  struct gkyl_tok_geo_grid_inp grid_inp = {
+    .ftype = GKYL_SOL_DN_OUT,    // type of geometry
+    .rclose = 3.0,               // closest R to region of interest
+    .rright = 3.0,               // Closest R to outboard SOL
+    .rleft = 0.1,                // closest R to inboard SOL
+    .rmin = 0.1,                 // smallest R in machine
+    .rmax = 3.5,                 // largest R in machine
+    .zmin = -1.5,                // Z of lower divertor plate
+    .zmax = 1.5,                 // Z of upper divertor plate
+  }; 
+
+
+
   // GK app
   struct gkyl_gk app_inp = {
     .name = "gk_solovev_out_3x2v_p1",
 
-    .cdim = 3, .vdim = 2,
+    .cdim = ctx.cdim, .vdim = ctx.vdim,
     .lower = { -0.08, -ctx.Ly/2.0, -ctx.Lz/2.0 },
     .upper = { -0.06, ctx.Ly/2.0, ctx.Lz/2.0 },
     .cells = { cells_x[0], cells_x[1], cells_x[2] },
@@ -507,8 +490,8 @@ main(int argc, char **argv)
 
     .geometry = {
       .geometry_id = GKYL_TOKAMAK,
-      .tok_efit_info = &inp,
-      .tok_grid_info = &ginp,
+      .efit_info = efit_inp,
+      .tok_grid_info = grid_inp,
     },
 
     .num_periodic_dir = 1,
@@ -518,7 +501,9 @@ main(int argc, char **argv)
     .species = { elc, ion },
     .field = field,
 
-    .use_gpu = app_args.use_gpu,
+    .parallelism = {
+      .use_gpu = app_args.use_gpu,
+    },
   };
 
   // Create app object.
@@ -631,7 +616,7 @@ main(int argc, char **argv)
   freeresources:
   // Free resources after simulation completion.
   gkyl_gyrokinetic_app_release(app);
-  gkyl_gyrokinetic_comms_release(decomp, comm);
+  gkyl_gyrokinetic_comms_release(comm);
 
 #ifdef GKYL_HAVE_MPI
   if (app_args.use_mpi) {

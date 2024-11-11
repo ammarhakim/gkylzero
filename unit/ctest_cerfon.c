@@ -18,13 +18,12 @@
 #include <gkyl_gk_geometry_tok.h>
 
 
-  struct gkyl_tok_geo_efit_inp inp = {
+  struct gkyl_efit_inp efit_inp = {
       // psiRZ and related inputs
       .filepath = "./data/eqdsk/cerfon.geqdsk",
-      .rzpoly_order = 2,
-      .fluxpoly_order = 1,
-      .plate_spec = false,
-      .quad_param = {  .eps = 1e-10 }
+      .rz_poly_order = 2,
+      .flux_poly_order = 1,
+      .reflect = true,
     };
 
 
@@ -58,17 +57,14 @@ test_11()
     .ftype = GKYL_CORE_R,
     .rclose = 6.0,
     .rright= 6.0,
-    .zxpt_lo = -4.3,
-    .zxpt_up = 4.3,
+    .rleft = 0.25,
 
-    .write_node_coord_array = true,
-    .node_file_nm = "cerfon11_nodes.gkyl"
   }; 
 
   struct gkyl_gk_geometry_inp geometry_inp = {
     .geometry_id  = GKYL_TOKAMAK,
-    .tok_efit_info = &inp,
-    .tok_grid_info = &ginp,
+    .efit_info = efit_inp,
+    .tok_grid_info = ginp,
     .grid = cgrid,
     .local = clocal,
     .local_ext = clocal_ext,
@@ -123,15 +119,12 @@ test_12()
     .ftype = GKYL_CORE_L,
     .rclose = 6.0,
     .rleft= 0.25,
-    .zxpt_lo = -4.3,
-    .zxpt_up = 4.3,
-    .write_node_coord_array = true,
-    .node_file_nm = "cerfon12_nodes.gkyl"
+    .rright= 6.0,
   }; 
   struct gkyl_gk_geometry_inp geometry_inp = {
     .geometry_id  = GKYL_TOKAMAK,
-    .tok_efit_info = &inp,
-    .tok_grid_info = &ginp,
+    .efit_info = efit_inp,
+    .tok_grid_info = ginp,
     .grid = cgrid,
     .local = clocal,
     .local_ext = clocal_ext,
@@ -185,16 +178,14 @@ test_1()
     .rmax = 10.0,
     .ftype = GKYL_PF_LO_R,
     .rright = 6.0,
+    .rleft = 0.25,
     .zmin = -5.8,
-    .zxpt_lo = -4.3,
-    .write_node_coord_array = true,
-    .node_file_nm = "cerfon1_nodes.gkyl"
   }; 
 
   struct gkyl_gk_geometry_inp geometry_inp = {
     .geometry_id  = GKYL_TOKAMAK,
-    .tok_efit_info = &inp,
-    .tok_grid_info = &ginp,
+    .efit_info = efit_inp,
+    .tok_grid_info = ginp,
     .grid = cgrid,
     .local = clocal,
     .local_ext = clocal_ext,
@@ -242,15 +233,13 @@ test_2()
     .rmax = 10.0,
     .ftype = GKYL_SOL_DN_OUT_LO,
     .rright = 6.0,
+    .rleft = 0.25,
     .zmin = -5.8,
-    .zxpt_lo = -4.3,
-    .write_node_coord_array = true,
-    .node_file_nm = "cerfon2_nodes.gkyl"
   }; 
   struct gkyl_gk_geometry_inp geometry_inp = {
     .geometry_id  = GKYL_TOKAMAK,
-    .tok_efit_info = &inp,
-    .tok_grid_info = &ginp,
+    .efit_info = efit_inp,
+    .tok_grid_info = ginp,
     .grid = cgrid,
     .local = clocal,
     .local_ext = clocal_ext,
@@ -299,15 +288,12 @@ test_3()
     .rmax = 10.0,
     .ftype = GKYL_SOL_DN_OUT_MID,
     .rright = 6.0,
-    .zxpt_lo = -4.3,
-    .zxpt_up = 4.3,
-    .write_node_coord_array = true,
-    .node_file_nm = "cerfon3_nodes.gkyl"
+    .rleft = 0.25,
   }; 
   struct gkyl_gk_geometry_inp geometry_inp = {
     .geometry_id  = GKYL_TOKAMAK,
-    .tok_efit_info = &inp,
-    .tok_grid_info = &ginp,
+    .efit_info = efit_inp,
+    .tok_grid_info = ginp,
     .grid = cgrid,
     .local = clocal,
     .local_ext = clocal_ext,
@@ -356,15 +342,13 @@ test_4()
     .rmax = 10.0,
     .ftype = GKYL_SOL_DN_OUT_UP,
     .rright = 6.0,
+    .rleft = 0.25,
     .zmax = 5.8,
-    .zxpt_up = 4.3,
-    .write_node_coord_array = true,
-    .node_file_nm = "cerfon4_nodes.gkyl"
   }; 
   struct gkyl_gk_geometry_inp geometry_inp = {
     .geometry_id  = GKYL_TOKAMAK,
-    .tok_efit_info = &inp,
-    .tok_grid_info = &ginp,
+    .efit_info = efit_inp,
+    .tok_grid_info = ginp,
     .grid = cgrid,
     .local = clocal,
     .local_ext = clocal_ext,
@@ -413,15 +397,13 @@ test_7()
     .rmax = 10.0,
     .ftype = GKYL_SOL_DN_IN_UP,
     .rleft = 0.25,
-    .zxpt_up = 4.3,
+    .rright= 6.0,
     .zmax = 5.8,
-    .write_node_coord_array = true,
-    .node_file_nm = "cerfon7_nodes.gkyl"
   }; 
   struct gkyl_gk_geometry_inp geometry_inp = {
     .geometry_id  = GKYL_TOKAMAK,
-    .tok_efit_info = &inp,
-    .tok_grid_info = &ginp,
+    .efit_info = efit_inp,
+    .tok_grid_info = ginp,
     .grid = cgrid,
     .local = clocal,
     .local_ext = clocal_ext,
@@ -470,15 +452,12 @@ test_8()
     .rmax = 10.0,
     .ftype = GKYL_SOL_DN_IN_MID,
     .rleft = 0.25,
-    .zxpt_lo = -4.3,
-    .zxpt_up = 4.3,
-    .write_node_coord_array = true,
-    .node_file_nm = "cerfon8_nodes.gkyl"
+    .rright= 6.0,
   }; 
   struct gkyl_gk_geometry_inp geometry_inp = {
     .geometry_id  = GKYL_TOKAMAK,
-    .tok_efit_info = &inp,
-    .tok_grid_info = &ginp,
+    .efit_info = efit_inp,
+    .tok_grid_info = ginp,
     .grid = cgrid,
     .local = clocal,
     .local_ext = clocal_ext,
@@ -527,15 +506,13 @@ test_9()
     .rmax = 10.0,
     .ftype = GKYL_SOL_DN_IN_LO,
     .rleft = 0.25,
+    .rright= 6.0,
     .zmin = -5.8,
-    .zxpt_lo = -4.3,
-    .write_node_coord_array = true,
-    .node_file_nm = "cerfon9_nodes.gkyl"
   }; 
   struct gkyl_gk_geometry_inp geometry_inp = {
     .geometry_id  = GKYL_TOKAMAK,
-    .tok_efit_info = &inp,
-    .tok_grid_info = &ginp,
+    .efit_info = efit_inp,
+    .tok_grid_info = ginp,
     .grid = cgrid,
     .local = clocal,
     .local_ext = clocal_ext,
@@ -585,14 +562,12 @@ test_10()
     .ftype = GKYL_PF_LO_L,
     .rleft= 0.25,
     .zmin = -5.8,
-    .zxpt_lo = -4.3,
-    .write_node_coord_array = true,
-    .node_file_nm = "cerfon10_nodes.gkyl"
+    .rright= 6.0,
   }; 
   struct gkyl_gk_geometry_inp geometry_inp = {
     .geometry_id  = GKYL_TOKAMAK,
-    .tok_efit_info = &inp,
-    .tok_grid_info = &ginp,
+    .efit_info = efit_inp,
+    .tok_grid_info = ginp,
     .grid = cgrid,
     .local = clocal,
     .local_ext = clocal_ext,
@@ -641,15 +616,13 @@ test_5()
     .rmax = 10.0,
     .ftype = GKYL_PF_UP_R,
     .rright = 6.0,
+    .rleft = 0.25,
     .zmax = 5.8,
-    .zxpt_up = 4.3,
-    .write_node_coord_array = true,
-    .node_file_nm = "cerfon5_nodes.gkyl"
   }; 
   struct gkyl_gk_geometry_inp geometry_inp = {
     .geometry_id  = GKYL_TOKAMAK,
-    .tok_efit_info = &inp,
-    .tok_grid_info = &ginp,
+    .efit_info = efit_inp,
+    .tok_grid_info = ginp,
     .grid = cgrid,
     .local = clocal,
     .local_ext = clocal_ext,
@@ -698,15 +671,13 @@ test_6()
     .rmax = 10.0,
     .ftype = GKYL_PF_UP_L,
     .rleft = 0.25,
+    .rright= 6.0,
     .zmax = 5.8,
-    .zxpt_up = 4.3,
-    .write_node_coord_array = true,
-    .node_file_nm = "cerfon6_nodes.gkyl"
   }; 
   struct gkyl_gk_geometry_inp geometry_inp = {
     .geometry_id  = GKYL_TOKAMAK,
-    .tok_efit_info = &inp,
-    .tok_grid_info = &ginp,
+    .efit_info = efit_inp,
+    .tok_grid_info = ginp,
     .grid = cgrid,
     .local = clocal,
     .local_ext = clocal_ext,

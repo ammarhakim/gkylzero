@@ -39,7 +39,7 @@ gkyl_rad_gyrokinetic_drag_set_auxfields(const struct gkyl_dg_eqn *eqn, struct gk
   grad->auxfields.nvsqnu_surf = auxin.nvsqnu_surf;
   grad->auxfields.nvsqnu = auxin.nvsqnu;
   grad->auxfields.vtsq = auxin.vtsq;
-  grad->auxfields.vtsq_min = auxin.vtsq_min;
+  grad->auxfields.vtsq_min_normalized = auxin.vtsq_min_normalized;
 }
 
 struct gkyl_dg_eqn*

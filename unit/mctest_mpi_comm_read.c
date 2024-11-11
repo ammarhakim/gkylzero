@@ -10,6 +10,7 @@
 #include <gkyl_array_rio.h>
 #include <gkyl_elem_type_priv.h>
 #include <gkyl_mpi_comm.h>
+#include <gkyl_comm_io.h>
 #include <gkyl_range.h>
 #include <gkyl_rect_decomp.h>
 #include <gkyl_util.h>
