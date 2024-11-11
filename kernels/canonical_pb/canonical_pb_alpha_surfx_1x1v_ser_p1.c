@@ -1,4 +1,6 @@
 #include <gkyl_canonical_pb_kernels.h> 
+#include <gkyl_basis_hyb_1x1v_p1_surfx2_eval_quad.h> 
+#include <gkyl_basis_hyb_1x1v_p1_upwind_quad_to_modal.h> 
 GKYL_CU_DH int canonical_pb_alpha_surfx_1x1v_ser_p1(const double *w, const double *dxv, const double *hamil,
    double* GKYL_RESTRICT alpha_surf, double* GKYL_RESTRICT sgn_alpha_surf) 
 { 
@@ -23,17 +25,27 @@ GKYL_CU_DH int canonical_pb_alpha_surfx_1x1v_ser_p1(const double *w, const doubl
 
   int const_sgn_alpha_surf = 1;  
   
-  if (0.7071067811865468*alphaL[0]-0.7071067811865468*alphaL[1] > 0.) 
+  if (0.7071067811865468*alphaL[0]-0.9486832980505135*alphaL[1] > 0.) 
     sgn_alpha_surfL[0] = 1.0; 
   else  
     sgn_alpha_surfL[0] = -1.0; 
   
-  if (0.7071067811865468*(alphaL[1]+alphaL[0]) > 0.) 
+  if (0.7071067811865468*alphaL[0] > 0.) 
     sgn_alpha_surfL[1] = 1.0; 
   else  
     sgn_alpha_surfL[1] = -1.0; 
   
   if (sgn_alpha_surfL[1] == sgn_alpha_surfL[0]) 
+    const_sgn_alpha_surf = const_sgn_alpha_surf ? 1 : 0; 
+  else  
+    const_sgn_alpha_surf = 0; 
+  
+  if (0.9486832980505135*alphaL[1]+0.7071067811865468*alphaL[0] > 0.) 
+    sgn_alpha_surfL[2] = 1.0; 
+  else  
+    sgn_alpha_surfL[2] = -1.0; 
+  
+  if (sgn_alpha_surfL[2] == sgn_alpha_surfL[1]) 
     const_sgn_alpha_surf = const_sgn_alpha_surf ? 1 : 0; 
   else  
     const_sgn_alpha_surf = 0; 

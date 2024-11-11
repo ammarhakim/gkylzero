@@ -98,9 +98,9 @@ test_ten_moment_basic()
 
   double q_local[10], flux_local[10], flux[10];
   for (int d=0; d<3; ++d) {
-    ten_moment->rotate_to_local_func(tau1[d], tau2[d], norm[d], q, q_local);
+    ten_moment->rotate_to_local_func(ten_moment, tau1[d], tau2[d], norm[d], q, q_local);
     gkyl_ten_moment_flux(q_local, flux_local);
-    ten_moment->rotate_to_global_func(tau1[d], tau2[d], norm[d], flux_local, flux);
+    ten_moment->rotate_to_global_func(ten_moment, tau1[d], tau2[d], norm[d], flux_local, flux);
     
     for (int m=0; m<10; ++m)
       TEST_CHECK( gkyl_compare(flux[m], fluxes[d][m], 1e-15) );

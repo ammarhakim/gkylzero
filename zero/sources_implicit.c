@@ -582,7 +582,7 @@ implicit_source_coupling_update(const gkyl_moment_em_coupling* mom_em, double t_
     }
     // As I do not understand how the source terms for gradient-based closure interact with the source terms for the expanding-box
     // model, I'm disabling the former whenever the latter are present, pro tem. This should be updated! -JG 07/25/24
-    else if (mom_em->param[i].type == GKYL_EQN_TEN_MOMENT && !mom_em->has_volume_sources) {
+    else if (mom_em->param[i].type == GKYL_EQN_TEN_MOMENT && mom_em->param[i].charge != 0.0) {
       double rho = f[0];
       double mom_x = f[1], mom_y = f[2], mom_z = f[3];
 
@@ -616,5 +616,8 @@ implicit_source_coupling_update(const gkyl_moment_em_coupling* mom_em, double t_
   }
   if (mom_em->has_reactive_sources) {
     explicit_reactive_source_update(mom_em, t_curr, dt, fluid_s);
+  }
+  if (mom_em->has_einstein_medium_sources) {
+    explicit_medium_source_update(mom_em, t_curr, dt, fluid_s);
   }
 }

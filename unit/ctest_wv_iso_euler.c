@@ -49,9 +49,9 @@ test_iso_euler_basic()
 
   double flux[4], flux_local[4];  
   for (int d=1; d<2; ++d) {
-    iso_euler->rotate_to_local_func(tau1[d], tau2[d], norm[d], q, q_local);
+    iso_euler->rotate_to_local_func(iso_euler, tau1[d], tau2[d], norm[d], q, q_local);
     gkyl_iso_euler_flux(vt, q_local, flux_local);
-    iso_euler->rotate_to_global_func(tau1[d], tau2[d], norm[d], flux_local, flux);
+    iso_euler->rotate_to_global_func(iso_euler, tau1[d], tau2[d], norm[d], flux_local, flux);
     
     for (int m=0; m<4; ++m)
       TEST_CHECK( gkyl_compare(flux[m], fluxes[d][m], 1e-15) );
@@ -65,27 +65,27 @@ test_iso_euler_basic()
       TEST_CHECK( gkyl_compare_double(q_local[m], q1[m], 1e-14) );
   }  
 
-  iso_euler->rotate_to_local_func(tau1[0], tau2[0], norm[0], q, q_local);
+  iso_euler->rotate_to_local_func(iso_euler, tau1[0], tau2[0], norm[0], q, q_local);
   gkyl_iso_euler_flux(vt, q_local, flux_local);
-  iso_euler->rotate_to_global_func(tau1[0], tau2[0], norm[0], flux_local, flux);
+  iso_euler->rotate_to_global_func(iso_euler, tau1[0], tau2[0], norm[0], flux_local, flux);
 
   TEST_CHECK( flux[0] == rho*u );
   TEST_CHECK( flux[1] == rho*(u*u + vt*vt) );
   TEST_CHECK( flux[2] == rho*u*v );
   TEST_CHECK( flux[3] == rho*u*w );
 
-  iso_euler->rotate_to_local_func(tau1[1], tau2[1], norm[1], q, q_local);
+  iso_euler->rotate_to_local_func(iso_euler, tau1[1], tau2[1], norm[1], q, q_local);
   gkyl_iso_euler_flux(vt, q_local, flux_local);
-  iso_euler->rotate_to_global_func(tau1[1], tau2[1], norm[1], flux_local, flux);
+  iso_euler->rotate_to_global_func(iso_euler, tau1[1], tau2[1], norm[1], flux_local, flux);
   
   TEST_CHECK( flux[0] == rho*v );
   TEST_CHECK( flux[1] == rho*v*u );
   TEST_CHECK( flux[2] == rho*(v*v + vt*vt) );
   TEST_CHECK( flux[3] == rho*v*w );
 
-  iso_euler->rotate_to_local_func(tau1[2], tau2[2], norm[2], q, q_local);
+  iso_euler->rotate_to_local_func(iso_euler, tau1[2], tau2[2], norm[2], q, q_local);
   gkyl_iso_euler_flux(vt, q_local, flux_local);
-  iso_euler->rotate_to_global_func(tau1[2], tau2[2], norm[2], flux_local, flux);
+  iso_euler->rotate_to_global_func(iso_euler, tau1[2], tau2[2], norm[2], flux_local, flux);
 
   TEST_CHECK( flux[0] == rho*w );
   TEST_CHECK( flux[1] == rho*w*u );
