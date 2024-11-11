@@ -37,7 +37,7 @@ struct gkyl_dg_interpolate {
 GKYL_CU_D
 static const dg_interp_kern_list_gk dg_interp_kern_list_gk_ser[] = {
   { dg_interpolate_gyrokinetic_1x1v_ser_p1, NULL },
-  { NULL, NULL },
+  { dg_interpolate_gyrokinetic_1x2v_ser_p1, NULL },
   { NULL, NULL },
   { NULL, NULL },
 };
