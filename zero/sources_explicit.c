@@ -61,9 +61,6 @@ explicit_frictional_source_update_euler(const gkyl_moment_em_coupling* mom_em, c
     double u_elc = f_elc_old[1], v_elc = f_elc_old[2], w_elc = f_elc_old[3];
     double u_ion = f_ion_old[1], v_ion = f_ion_old[2], w_ion = f_ion_old[3];
 
-    double E_elc = f_elc_old[4];
-    double E_ion = f_ion_old[4];
-
     double n_elc = rho_elc / mass_elc;
 
     double tau_ei = (1.0 / Z) * ((3.0 * sqrt(mass_elc) * ((4.0 * pi * epsilon0) * (4.0 * pi * epsilon0)) * pow(T_elc, 3.0 / 2.0)) /
@@ -84,8 +81,12 @@ explicit_frictional_source_update_euler(const gkyl_moment_em_coupling* mom_em, c
     f_ion_new[2] = f_ion_old[2] - (dt * mom_src_y);
     f_ion_new[3] = f_ion_old[3] - (dt * mom_src_z);
 
-    f_elc_new[4] = f_elc_old[4] + (dt * E_src);
-    f_ion_new[4] = f_ion_old[4] - (dt * E_src);
+    if (mom_em->param[0].type == GKYL_EQN_EULER) {
+      f_elc_new[4] = f_elc_old[4] + (dt * E_src);
+    }
+    if (mom_em->param[1].type == GKYL_EQN_EULER) {
+      f_ion_new[4] = f_ion_old[4] - (dt * E_src);
+    }
 
     f_elc_new[0] = f_elc_old[0];
     f_ion_new[0] = f_ion_old[0];
@@ -105,30 +106,63 @@ explicit_frictional_source_update(const gkyl_moment_em_coupling* mom_em, double 
     double T_elc = mom_em->friction_T_elc;
     double Lambda_ee = mom_em->friction_Lambda_ee;
 
-    double f_elc_new[5], f_elc_stage1[5], f_elc_stage2[5];
-    double f_ion_new[5], f_ion_stage1[5], f_ion_stage2[5];
-    double f_elc_old[5], f_ion_old[5];
+    int elc_num_equations = 0;
+    int ion_num_equations = 0;
 
-    for (int i = 0; i < 5; i++) {
+    if (mom_em->param[0].type == GKYL_EQN_EULER) {
+      elc_num_equations = 5;
+    }
+    else if (mom_em->param[0].type == GKYL_EQN_ISO_EULER) {
+      elc_num_equations = 4;
+    }
+
+    // Right now, we allocate these arrays on the stack with size 5 (current maximum supported number of equations).
+    double f_elc_new[5];
+    double f_elc_stage1[5];
+    double f_elc_stage2[5];
+    double f_elc_old[5];
+
+    if (mom_em->param[1].type == GKYL_EQN_EULER) {
+      ion_num_equations = 5;
+    }
+    else if (mom_em->param[1].type == GKYL_EQN_ISO_EULER) {
+      ion_num_equations = 4;
+    }
+
+    // Right now, we allocate these arrays on the stack with size 5 (current maximum supported number of equations).
+    double f_ion_new[5];
+    double f_ion_stage1[5];
+    double f_ion_stage2[5];
+    double f_ion_old[5];
+
+    for (int i = 0; i < elc_num_equations; i++) {
       f_elc_old[i] = f_elc[i];
+    }
+    for (int i = 0; i < ion_num_equations; i++) {
       f_ion_old[i] = f_ion[i];
     }
 
     explicit_frictional_source_update_euler(mom_em, Z, T_elc, Lambda_ee, t_curr, dt, f_elc_old, f_ion_old, f_elc_new, f_ion_new);
-    for (int i = 0; i < 5; i++) {
+    for (int i = 0; i < elc_num_equations; i++) {
       f_elc_stage1[i] = f_elc_new[i];
+    }
+    for (int i = 0; i < ion_num_equations; i++) {
       f_ion_stage1[i] = f_ion_new[i];
     }
 
     explicit_frictional_source_update_euler(mom_em, Z, T_elc, Lambda_ee, t_curr + dt, dt, f_elc_stage1, f_ion_stage1, f_elc_new, f_ion_new);
-    for (int i = 0; i < 5; i++) {
+    for (int i = 0; i < elc_num_equations; i++) {
       f_elc_stage2[i] = (0.75 * f_elc_old[i]) + (0.25 * f_elc_new[i]);
+    }
+    for (int i = 0; i < ion_num_equations; i++) {
       f_ion_stage2[i] = (0.75 * f_ion_old[i]) + (0.25 * f_ion_new[i]);
     }
 
     explicit_frictional_source_update_euler(mom_em, Z, T_elc, Lambda_ee, t_curr + (0.5 * dt), dt, f_elc_stage2, f_ion_stage2, f_elc_new, f_ion_new);
-    for (int i = 0; i < 5; i++) {
+    for (int i = 0; i < elc_num_equations; i++) {
       f_elc[i] = ((1.0 / 3.0) * f_elc_old[i]) + ((2.0 / 3.0) * f_elc_new[i]);
+    }
+    for (int i = 0; i < ion_num_equations; i++) {
       f_ion[i] = ((1.0 / 3.0) * f_ion_old[i]) + ((2.0 / 3.0) * f_ion_new[i]);
     }
   }
@@ -359,6 +393,96 @@ explicit_reactive_source_update(const gkyl_moment_em_coupling* mom_em, double t_
     explicit_reactive_source_update_euler(mom_em, gas_gamma, specific_heat_capacity, energy_of_formation, ignition_temperature, reaction_rate,
       t_curr + (0.5 * dt), dt, f_stage2, f_new);
     for (int j = 0; j < 6; j++) {
+      f[j] = ((1.0 / 3.0) * f_old[j]) + ((2.0 / 3.0) * f_new[j]);
+    }
+  }
+}
+
+void
+explicit_medium_source_update_euler(const gkyl_moment_em_coupling* mom_em, const double gas_gamma, const double kappa, double t_curr,
+  const double dt, double* fluid_old, double* fluid_new)
+{
+  double exp_2a = fluid_old[0];
+
+  double a_dt = fluid_old[1], a_dx = fluid_old[2];
+  double b_dt = fluid_old[3], b_dx = fluid_old[4];
+  double c_dt = fluid_old[5], c_dx = fluid_old[6];
+  
+  double a_dt_dx = fluid_old[7], a_dx_dx = fluid_old[8];
+  double b_dt_dx = fluid_old[9], b_dx_dx = fluid_old[10];
+  double c_dt_dx = fluid_old[11], c_dx_dx = fluid_old[12];
+
+  double Etot = fluid_old[13];
+  double mom = fluid_old[14];
+
+  double rho = (1.0 / (gas_gamma - 1.0)) * ((-0.5 * (2.0 - gas_gamma) * Etot) + sqrt((0.25 * (2.0 - gas_gamma) * (2.0 - gas_gamma) * Etot * Etot) +
+    ((gas_gamma - 1.0) * ((Etot * Etot) - (mom * mom)))));
+
+  double vel = 0.0;
+  if (fabs(mom) > pow(10.0, -8.0)) {
+    vel = ((gas_gamma * rho) / (2.0 * mom)) * (sqrt(1.0 + ((4 * mom * mom) / ((gas_gamma * gas_gamma) * (rho * rho)))) - 1.0);
+  }
+
+  double p = (gas_gamma - 1.0) * rho;
+
+  double W = 1.0 / sqrt(1.0 - (vel * vel));
+  if (vel * vel > 1.0 - pow(1.0, -8.0)) {
+    W = 1.0 / sqrt(pow(1.0, -8.0));
+  }
+
+  for (int i = 0; i < 15; i++) {
+    fluid_new[i] = fluid_old[i];
+  }
+
+  fluid_new[0] += dt * (2.0 * a_dt * exp_2a);
+
+  fluid_new[1] += dt * (a_dx_dx + (b_dt * b_dt) - (b_dx * b_dx) - (c_dt * c_dt) + (c_dx * c_dx) - (0.5 * kappa * exp_2a * (Etot - ((mom * vel) + p))));
+  fluid_new[2] += dt * (a_dt_dx);
+  fluid_new[3] += dt * (b_dx_dx - (2.0 * (b_dt * b_dt)) + (2.0 * (b_dx * b_dx)) + (0.5 * kappa * exp_2a * (Etot - ((mom * vel) + p))));
+  fluid_new[4] += dt * (b_dt_dx);
+  fluid_new[5] += dt * (c_dx_dx - (2.0 * ((b_dt * c_dt) - (b_dx * c_dx))));
+  fluid_new[6] += dt * (c_dt_dx);
+
+  fluid_new[7] += dt * ((2.0 * (b_dt * b_dt_dx)) - (2.0 * (b_dx * b_dx_dx)) - (2.0 * (c_dt * c_dt_dx)) + (2.0 * (c_dx * c_dx_dx)));
+  fluid_new[8] += 0.0;
+  fluid_new[9] += dt * (-(4.0 * (b_dt * b_dt_dx)) + (4.0 * (b_dx * b_dx_dx)));
+  fluid_new[10] += 0.0;
+  fluid_new[11] += dt * (-2.0 * ((b_dt * c_dt_dx) - (b_dx * c_dx_dx) + (b_dt_dx * c_dt) - (b_dx_dx * c_dx)));
+  fluid_new[12] += 0.0;
+
+  fluid_new[13] += dt * ((-Etot * (a_dt + (2.0 * b_dt))) - (2.0 * mom * (a_dx + b_dx)) - (((mom * vel) + p) * a_dt) - (2.0 * p * b_dt));
+  fluid_new[14] += dt * ((-Etot * a_dx) - (2.0 * mom * (a_dt + b_dt)) - (((mom * vel) + p) * (a_dx + (2.0 * b_dx))) + (2.0 * p * b_dx));
+}
+
+void
+explicit_medium_source_update(const gkyl_moment_em_coupling* mom_em, double t_curr, const double dt, double* fluid_s[GKYL_MAX_SPECIES])
+{
+  int nfluids = mom_em->nfluids;
+
+  double gas_gamma = mom_em->medium_gas_gamma;
+  double kappa = mom_em->medium_kappa;
+
+  for (int i = 0; i < nfluids; i++) {
+    double *f = fluid_s[i];
+
+    double f_new[15], f_stage1[15], f_stage2[15], f_old[15];
+
+    for (int j = 0; j < 15; j++) {
+      f_old[j] = f[j];
+    }
+
+    explicit_medium_source_update_euler(mom_em, gas_gamma, kappa, t_curr, dt, f_old, f_new);
+    for (int j = 0; j < 15; j++) {
+      f_stage1[j] = f_new[j];
+    }
+
+    explicit_medium_source_update_euler(mom_em, gas_gamma, kappa, t_curr + dt, dt, f_stage1, f_new);
+    for (int j = 0; j < 15; j++) {
+      f_stage2[j] = (0.75 * f_old[j]) + (0.25 * f_new[j]);
+    }
+
+    explicit_medium_source_update_euler(mom_em, gas_gamma, kappa, t_curr + (0.5 * dt), dt, f_stage2, f_new);
+    for (int j = 0; j < 15; j++) {
       f[j] = ((1.0 / 3.0) * f_old[j]) + ((2.0 / 3.0) * f_new[j]);
     }
   }

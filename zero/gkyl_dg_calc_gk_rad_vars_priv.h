@@ -48,6 +48,7 @@ struct gkyl_dg_calc_gk_rad_vars {
 
   uint32_t flags;
   struct gkyl_dg_calc_gk_rad_vars *on_dev; // pointer to itself or device data
+  double cellav_norm_conf; // Normalization of configuration space cell average
 };
 
 // Radiation drag surface and volume expansions in vpar (Serendipity kernels)
@@ -128,5 +129,6 @@ void gkyl_dg_calc_gk_rad_vars_nI_nu_advance_cu(const struct gkyl_dg_calc_gk_rad_
   const struct gkyl_array* vsqnu_surf, const struct gkyl_array* vsqnu, 
   const struct gkyl_array* nI, 
   struct gkyl_array* nvnu_surf, struct gkyl_array* nvnu, 
-  struct gkyl_array* nvsqnu_surf, struct gkyl_array* nvsqnu);
+  struct gkyl_array* nvsqnu_surf, struct gkyl_array* nvsqnu,
+  double vtsq_min_normalized, struct gkyl_array* vtsq);
 #endif

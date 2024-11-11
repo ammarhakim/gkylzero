@@ -138,6 +138,9 @@ struct gkyl_gyrokinetic_radiation {
   int z[GKYL_MAX_SPECIES];
   int charge_state[GKYL_MAX_SPECIES];
   int num_of_densities[GKYL_MAX_SPECIES]; // Max number of densities to use per charge state
+
+  enum gkyl_te_min_model te_min_model; // How the radiation is turned off (constant or varying Te)
+  double Te_min; // Minimum temperature (in J) at which to stop radiating.
 };
 
 struct gkyl_gyrokinetic_react_type {
@@ -166,6 +169,16 @@ struct gkyl_gyrokinetic_react {
   struct gkyl_gyrokinetic_react_type react_type[GKYL_MAX_REACT];
 };
 
+struct gkyl_gyrokinetic_ic_import {
+  // Inputs to initialize the species with the distribution from a file (f_in)
+  // and to modify that distribution such that f = alpha(x)*f_in+beta(x,v).
+  enum gkyl_ic_import_type type;
+  char file_name[128]; // Name of file that contains IC, f_in.
+  void *conf_scale_ctx;
+  void (*conf_scale)(double t, const double *xn, double *fout, void *ctx); // alpha(x).
+  struct gkyl_gyrokinetic_projection phase_add; // beta(x,v).
+};
+
 // Parameters for gk species.
 struct gkyl_gyrokinetic_species {
   char name[128]; // Species name.
@@ -179,6 +192,8 @@ struct gkyl_gyrokinetic_species {
 
   // Initial conditions using projection routine.
   struct gkyl_gyrokinetic_projection projection;
+  // Initial conditions from a file.
+  struct gkyl_gyrokinetic_ic_import init_from_file;
 
   double polarization_density;
 

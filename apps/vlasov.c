@@ -1100,7 +1100,6 @@ comm_reduce_app_stat(const gkyl_vlasov_app* app,
     global->niter_self_bgk_corr[s] = l_red_bgk_corr[s];
   }
 
-
   enum {
     TOTAL_TM, RK3_TM, FL_EM_TM, 
     INIT_SPECIES_TM, INIT_FLUID_SPECIES_TM, INIT_FIELD_TM, 
