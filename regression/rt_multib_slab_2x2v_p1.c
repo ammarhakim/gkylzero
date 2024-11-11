@@ -242,7 +242,7 @@ create_block_geom(void *ctx)
   // block 0. Lower SOL.
   gkyl_block_geom_set_block(bgeom, 0, &(struct gkyl_block_geom_info) {
       .lower = { 0.0, -Lz/2.0 },
-      .upper = { Lx, -Lz/3.0 },
+      .upper = { Lx, -Lz/6.0 },
       .cells = { nx, nz},
       .cuts = { 1, 1 },
       .geometry = {
@@ -267,8 +267,8 @@ create_block_geom(void *ctx)
 
   // block 1. Middle SOL.
   gkyl_block_geom_set_block(bgeom, 1, &(struct gkyl_block_geom_info) {
-      .lower = { 0.0, -Lz/3.0},
-      .upper = { Lx, Lz/3.0},
+      .lower = { 0.0, -Lz/6.0},
+      .upper = { Lx, Lz/6.0},
       .cells = { nx, nz},
       .cuts = { 1, 1 },
       .geometry = {
@@ -294,7 +294,7 @@ create_block_geom(void *ctx)
 
   // block 2. Upper SOL.
   gkyl_block_geom_set_block(bgeom, 2, &(struct gkyl_block_geom_info) {
-      .lower = { 0.0, Lz/3.0},
+      .lower = { 0.0, Lz/6.0},
       .upper = { Lx, Lz/2.0},
       .cells = { nx, nz},
       .cuts = { 1, 1 },
