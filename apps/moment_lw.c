@@ -643,6 +643,8 @@ moment_species_lw_new(lua_State *L)
     mom_species.volume_R0 = glua_tbl_get_number(L, "volumeR0", 1.0);
   }
 
+  mom_species.type_brag = glua_tbl_get_integer(L, "braginskiiType", 0);
+
   struct moment_species_lw *moms_lw = lua_newuserdata(L, sizeof(*moms_lw));
   moms_lw->magic = MOMENT_SPECIES_DEFAULT;
   moms_lw->evolve = evolve;
@@ -964,6 +966,9 @@ mom_app_new(lua_State *L)
       }
     }
   }
+
+  mom.has_braginskii = glua_tbl_get_bool(L, "hasBraginskii", false);
+  mom.coll_fac = glua_tbl_get_number(L, "collisionFactor", 0.0);
 
   // mapc2p function.
   mom.c2p_ctx = 0;

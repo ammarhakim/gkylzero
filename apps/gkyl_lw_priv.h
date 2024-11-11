@@ -73,6 +73,14 @@ void
 gkyl_register_euler_rp_types(lua_State *L);
 
 /**
+* Add Braginskii type flags for moment equations into Lua interpreter.
+*
+* @param L Lua state to use.
+ */
+void
+gkyl_register_braginskii_types(lua_State *L);
+
+/**
  * Add projection type flags for Vlasov species initialization into Lua interpreter.
  *
  * @param L Lua state to use.

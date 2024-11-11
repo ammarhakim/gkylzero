@@ -62,6 +62,16 @@ static const struct gkyl_str_int_pair euler_rp_type[] = {
   { 0, 0 }
 };
 
+// Braginskii type -> enum map.
+static const struct gkyl_str_int_pair braginskii_type[] = {
+  { "Mag", GKYL_BRAG_MAG },
+  { "Visc", GKYL_BRAG_VISC },
+  { "HeatFlux", GKYL_BRAG_HEATFLUX },
+  { "UnmagFull", GKYL_BRAG_UNMAG_FULL },
+  { "MagFull", GKYL_BRAG_MAG_FULL },
+  { 0, 0 }
+};
+
 // Vlasov projection type -> enum map.
 static const struct gkyl_str_int_pair projection_type[] = {
   { "Func", GKYL_PROJ_FUNC },
@@ -143,6 +153,12 @@ void
 gkyl_register_euler_rp_types(lua_State *L)
 {
   register_types(L, euler_rp_type, "EulerRP");
+}
+
+void
+gkyl_register_braginskii_types(lua_State *L)
+{
+  register_types(L, braginskii_type, "Braginskii");
 }
 
 void

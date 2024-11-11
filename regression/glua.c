@@ -16,6 +16,7 @@
 
 #include <gkyl_moment_lw.h>
 #include <gkyl_vlasov_lw.h>
+#include <gkyl_pkpm_lw.h>
 #include <gkyl_zero_lw.h>
 
 #include <rt_arg_parse.h>
@@ -63,6 +64,7 @@ main(int argc, char **argv)
   gkyl_zero_lw_openlibs(L);
   gkyl_vlasov_lw_openlibs(L);
   gkyl_moment_lw_openlibs(L);
+  gkyl_pkpm_lw_openlibs(L);
   lua_gc(L, LUA_GCRESTART, -1);
 
 #ifdef GKYL_HAVE_MPI
