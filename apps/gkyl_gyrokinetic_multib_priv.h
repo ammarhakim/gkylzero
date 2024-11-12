@@ -3,6 +3,7 @@
 #pragma once
 
 #include <gkyl_gyrokinetic_priv.h>
+#include <gkyl_gyrokinetic_multib.h>
 #include <gkyl_rrobin_decomp.h>
 #include <gkyl_multib_comm_conn.h>
 #include <gkyl_phase_ghost_conf_div_flip_mul.h>
@@ -27,8 +28,7 @@ struct gkyl_gyrokinetic_multib_app {
   int num_neut_species; // number of neutral species
 
   bool update_field; // true if there solving Poisson equation
-  struct gk_field *field; // Field object. MF 2024/10/20: will replace this
-                          // with MB field object.
+  struct gk_field_multib *field; // Field object.
 
   char species_name[GKYL_MAX_SPECIES][128]; // name of each species
   char neut_species_name[GKYL_MAX_SPECIES][128]; // name of each neutral species  
@@ -62,6 +62,28 @@ struct gyrokinetic_multib_output_meta {
   const char *topo_file_name; // name of topology file
 };
 
+// field data
+struct gk_field_multib {
+  struct gkyl_gyrokinetic_multib_field info; // data for field
+  enum gkyl_gkfield_id gkfield_id; // type of field
+  int num_local_blocks; // total number of blocks on current rank
+
+  struct gkyl_multib_comm_conn **mbcc_allgatherz_send; // comm object for allgather sends
+  struct gkyl_multib_comm_conn **mbcc_allgatherz_recv; // comm object for allgather receives
+  struct gkyl_range **multibz_ranges; // ranges for allgather along z
+  struct gkyl_range **multibz_ranges_ext; // extended ranges for smoothing along z
+  struct gkyl_range **block_subrangesz; // ranges for copying smooth phi density
+                                       // back to single block apps
+
+  // arrays for connected-along-z phi and smoothed (in z) phi
+  struct gkyl_array **phi_local;
+  struct gkyl_array **phi_multibz_dg;
+  struct gkyl_array **phi_multibz_smooth;
+
+  struct gkyl_fem_parproj **fem_parproj; // FEM smoothers for projecting DG functions onto continuous FEM basis
+                                        // weight*phi_{fem} = phi_{dg} 
+};
+
 /** Time stepping API */
 
 /**
@@ -93,3 +115,28 @@ void gyrokinetic_multib_calc_field_and_apply_bc(struct gkyl_gyrokinetic_multib_a
  * @param dt0 Suggessted time step.
  */
 struct gkyl_update_status gyrokinetic_multib_update_ssp_rk3(struct gkyl_gyrokinetic_multib_app* app, double dt0);
+
+
+/** Field API */
+
+/** Initialize multib field object
+ * @param mbinp App inputs.
+ * @param mbapp Gyrokinetic multib app.
+ * return new multib field object
+ */
+struct gk_field_multib* gk_field_multib_new(const struct gkyl_gyrokinetic_multib *mbinp,
+  struct gkyl_gyrokinetic_multib_app *mbapp);
+
+
+/** Compute the electrostatic potential
+ * @param mbapp Gyrokinetic multib app.
+ * @param mbf Multib field object.
+ * @param fin Distribution function (for all local blocks).
+*/
+void gk_field_multib_rhs(gkyl_gyrokinetic_multib_app *mbapp, 
+  struct gk_field_multib *mbf, const struct gkyl_array *fin[]);
+
+/** Releas the resources for the multib field object
+ * @param mbf Multib field object.
+*/
+void gk_field_multib_release(struct gk_field_multib *mbf);

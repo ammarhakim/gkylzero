@@ -250,13 +250,13 @@ gkyl_gyrokinetic_app_new(struct gkyl_gk *gk)
   // Global skin and ghost ranges, only valid (i.e. volume>0) in ranges
   // abutting boundaries.
   for (int dir=0; dir<cdim; ++dir) {
-    gkyl_skin_ghost_ranges(&app->global_lower_skin[dir], &app->global_lower_ghost[dir],
-      dir, GKYL_LOWER_EDGE, &app->global_ext, ghost); 
+    gkyl_skin_ghost_ranges(&app->global_lower_skin[dir], &app->global_lower_ghost[dir], dir, GKYL_LOWER_EDGE, &app->global_ext, ghost); 
+    gkyl_skin_ghost_ranges(&app->global_upper_skin[dir], &app->global_upper_ghost[dir], dir, GKYL_UPPER_EDGE, &app->global_ext, ghost);
+
     gkyl_sub_range_intersect(&app->global_lower_skin[dir], &app->local_ext, &app->global_lower_skin[dir]);
-    gkyl_sub_range_intersect(&app->global_lower_ghost[dir], &app->local_ext, &app->global_lower_ghost[dir]);
-    gkyl_skin_ghost_ranges(&app->global_upper_skin[dir], &app->global_upper_ghost[dir],
-      dir, GKYL_UPPER_EDGE, &app->local_ext, ghost);
     gkyl_sub_range_intersect(&app->global_upper_skin[dir], &app->local_ext, &app->global_upper_skin[dir]);
+
+    gkyl_sub_range_intersect(&app->global_lower_ghost[dir], &app->local_ext, &app->global_lower_ghost[dir]);
     gkyl_sub_range_intersect(&app->global_upper_ghost[dir], &app->local_ext, &app->global_upper_ghost[dir]);
   }
 
@@ -2511,6 +2511,11 @@ gyrokinetic_app_geometry_read_and_copy(gkyl_gyrokinetic_app* app, struct gkyl_ar
     rstat.io_status =
       gkyl_comm_array_read(app->comm, &app->grid, &app->local, arr_host, fileNm.str);
     gkyl_array_copy(arr, arr_host);
+  }
+  else {
+    gkyl_gyrokinetic_app_cout(app, stderr, "*** Failed to read geometry file! (%s)\n",
+        gkyl_array_rio_status_msg(rstat.io_status));
+    assert(false);
   }
 }
 

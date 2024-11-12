@@ -57,7 +57,7 @@ struct gkyl_mirror_geo {
   struct { int max_iter; double eps; } root_param;
   struct { int max_level; double eps; } quad_param;
 
-  bool exact_roots; // If false we will allow approximate roots when no root is found
+  bool inexact_roots; // If true we will allow approximate roots when no root is found
   bool use_cubics; // If true will use the cubic rep of psi rather than the quadratic representation
 
   // pointer to root finder (depends on polyorder)
@@ -89,7 +89,7 @@ struct gkyl_mirror_geo_grid_inp {
   plate_func plate_func_lower;
   plate_func plate_func_upper;
 
-  bool exact_roots; // If false we will allow approximate roots when no root is found
+  bool inexact_roots; // If true we will allow approximate roots when no root is found
   bool use_cubics; // If true will use the cubic rep of psi rather than the quadratic representation
 
   // Parameters for root finder: leave unset to use defaults

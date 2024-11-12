@@ -24,14 +24,6 @@ gkyl_deflate_zsurf_new(const struct gkyl_basis *cbasis, const struct gkyl_basis 
   int edge, bool use_gpu);
 
 /**
- * Create new updater deflate a 2d (x,z)  or 3d (x,y,z) modal expansion to a 1d (x) modal expansion or 2d (x,y)
- * NV-GPU. See new() method for documentation.
- */
-struct gkyl_deflate_zsurf* 
-gkyl_deflate_zsurf_cu_dev_new(const struct gkyl_basis *cbasis, const struct gkyl_basis *deflated_cbasis,
-  int edge);
-
-/**
  * Advance deflate_zsurf (compute the derived_zsurf coefficients).
  *
  * @param up deflate_zsurf updater object.

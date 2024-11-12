@@ -113,19 +113,19 @@ int gkyl_multib_comm_conn_array_transfer(struct gkyl_comm *comm,
   struct gkyl_array **arr_send, struct gkyl_array **arr_recv);
 
 /**
- * Create a crosa and cross-extended range that spans
+ * Create a multib range and extended range that spans
  * a set of blocks in a direction
- * @param cross_range_ext on output extended range spanning all connected blocks in direction
- * @param cross_range on output the range spanning all connected blocks in direction
+ * @param multib_range_ext on output extended range spanning all connected blocks in direction
+ * @param multib_range on output the range spanning all connected blocks in direction
  * @param nghost Number of ghost cells in direction d is nghost[d]
  * @param nconnected Number of blocks including self connected along direction
  * @param block list Ordered (based on topology) list of connected block ids (including self)
  * @param dir direction in which blocks are connected
  * @param decomp List of decomposition objects for each block
  */
-void create_cross_ranges_in_dir(struct gkyl_range *cross_range_ext,
-    struct gkyl_range *cross_range, const int *nghost, int nconnected, 
-    int* block_list, int dir, struct gkyl_rect_decomp **decomp);
+void gkyl_multib_comm_conn_create_multib_ranges_in_dir(struct gkyl_range *multib_range_ext,
+  struct gkyl_range *multib_range, const int *nghost, int nconnected, 
+  int* block_list, int dir, struct gkyl_rect_decomp **decomp);
 
 /**
  * Sort the connections in ascending order according to rank, and block id.

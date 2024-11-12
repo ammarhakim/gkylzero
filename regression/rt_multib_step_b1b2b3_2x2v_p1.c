@@ -344,7 +344,73 @@ init_density(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fo
 }
 
 void
-init_density_Ar0(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
+init_density_b1(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
+{
+  double x = xn[0], z = xn[1];
+
+  struct gk_step_ctx *app = ctx;
+  double n0 = app->n0;
+  double cx = app->cx;
+  double cz = app->cz;
+  double xcenter = 1.2014;
+  double n = n0/2400.0;
+  fout[0] = n;
+}
+
+void
+init_density_b2(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
+{
+  double x = xn[0], z = xn[1];
+
+  struct gk_step_ctx *app = ctx;
+  double n0 = app->n0;
+  double cx = app->cx;
+  double cz = app->cz;
+  double xcenter = 1.2014;
+  double n = n0*exp(-(x-xcenter)*(x-xcenter)/2/cx/cx) * exp(-z*z/2/cz/cz);
+  if (n/n0 < 1./2400.0)
+    n = n0/2400.0;
+  fout[0] = n;
+}
+
+void
+init_density_b3(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
+{
+  double x = xn[0], z = xn[1];
+
+  struct gk_step_ctx *app = ctx;
+  double n0 = app->n0;
+  double cx = app->cx;
+  double cz = app->cz;
+  double xcenter = 1.2014;
+  double n = n0/2400.0;
+  fout[0] = n;
+}
+
+void
+init_density_Ar0_b1(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
+{
+  double x = xn[0], z = xn[1];
+
+  struct gk_step_ctx *app = ctx;
+  double n0 = app->n0Ar;
+  double cz = 6*app->cz/1.4/2.0;
+
+  double Lz = (M_PI-1e-14)*2.0;
+  double theta_lo = -Lz/2.0, theta_up = Lz/2.0;
+
+  double zcenter = theta_lo;
+
+  double n = n0 * exp(-pow(z-zcenter,2.0)/(2.0*pow(cz,2.0)));
+
+  if (n < 1.0e8)
+    n = 1.0e8;
+
+  fout[0] = n;
+}
+
+void
+init_density_Ar0_b2(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
 {
   double x = xn[0], z = xn[1];
 
@@ -352,11 +418,28 @@ init_density_Ar0(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRIC
   double n0 = app->n0Ar;
   double cz = app->cz/1.4/2.0;
   double zcenter = 3.14;
-  double n = 0.0;
-  if (z>0)
-    n = n0 * exp(-(z-zcenter)*(z-zcenter)/(2.0*cz*cz));
-  else
-    n = n0 * exp(-(z+zcenter)*(z+zcenter)/(2.0*cz*cz));
+
+  double n = 1.0e8;
+
+  fout[0] = n;
+}
+
+void
+init_density_Ar0_b3(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
+{
+  double x = xn[0], z = xn[1];
+
+  struct gk_step_ctx *app = ctx;
+  double n0 = app->n0Ar;
+  double cz = 6*app->cz/1.4/2.0;
+
+  double Lz = (M_PI-1e-14)*2.0;
+  double theta_lo = -Lz/2.0, theta_up = Lz/2.0;
+
+  double zcenter = theta_up;
+
+  double n = n0 * exp(-pow(z-zcenter,2.0)/(2.0*pow(cz,2.0)));
+
   if (n < 1.0e8)
     n = 1.0e8;
 
@@ -511,15 +594,81 @@ main(int argc, char **argv)
 
   // Elc Species
   // all data is common across blocks
-  struct gkyl_gyrokinetic_multib_species_pb elc_blocks[1];
+  struct gkyl_gyrokinetic_multib_species_pb elc_blocks[3];
   elc_blocks[0] = (struct gkyl_gyrokinetic_multib_species_pb) {
+
+    .block_id = 0,
 
     .polarization_density = ctx.n0,
 
     .projection = {
       .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM,
       .ctx_density = &ctx,
-      .density = init_density,
+      .density = init_density_b1,
+      .ctx_upar = &ctx,
+      .upar = init_upar,
+      .ctx_temp = &ctx,
+      .temp = init_temp_elc,
+    },
+
+    .source = {
+      .source_id = GKYL_PROJ_SOURCE,
+      .num_sources = 1,
+      .projection[0] = {
+        .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM,
+        .ctx_density = &ctx,
+        .density = init_density_source,
+        .ctx_upar = &ctx,
+        .upar = init_upar_source,
+        .ctx_temp = &ctx,
+        .temp = init_temp_source,
+      },
+    },
+
+  };
+
+  elc_blocks[1] = (struct gkyl_gyrokinetic_multib_species_pb) {
+
+    .block_id = 1,
+
+    .polarization_density = ctx.n0,
+
+    .projection = {
+      .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM,
+      .ctx_density = &ctx,
+      .density = init_density_b2,
+      .ctx_upar = &ctx,
+      .upar = init_upar,
+      .ctx_temp = &ctx,
+      .temp = init_temp_elc,
+    },
+
+    .source = {
+      .source_id = GKYL_PROJ_SOURCE,
+      .num_sources = 1,
+      .projection[0] = {
+        .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM,
+        .ctx_density = &ctx,
+        .density = init_density_source,
+        .ctx_upar = &ctx,
+        .upar = init_upar_source,
+        .ctx_temp = &ctx,
+        .temp = init_temp_source,
+      },
+    },
+
+  };
+
+  elc_blocks[2] = (struct gkyl_gyrokinetic_multib_species_pb) {
+
+    .block_id = 2,
+
+    .polarization_density = ctx.n0,
+
+    .projection = {
+      .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM,
+      .ctx_density = &ctx,
+      .density = init_density_b3,
       .ctx_upar = &ctx,
       .upar = init_upar,
       .ctx_temp = &ctx,
@@ -619,7 +768,7 @@ main(int argc, char **argv)
       },
     }, 
 
-    .duplicate_across_blocks = true,
+    .duplicate_across_blocks = false,
     .blocks = elc_blocks,
     .num_physical_bcs = 8,
     .bcs = elc_phys_bcs,
@@ -628,15 +777,81 @@ main(int argc, char **argv)
 
   // Ion Species
   // all data is common across blocks
-  struct gkyl_gyrokinetic_multib_species_pb ion_blocks[1];
+  struct gkyl_gyrokinetic_multib_species_pb ion_blocks[3];
   ion_blocks[0] = (struct gkyl_gyrokinetic_multib_species_pb) {
+
+    .block_id = 0,
 
     .polarization_density = ctx.n0,
 
     .projection = {
       .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM,
       .ctx_density = &ctx,
-      .density = init_density,
+      .density = init_density_b1,
+      .ctx_upar = &ctx,
+      .upar = init_upar,
+      .ctx_temp = &ctx,
+      .temp = init_temp_ion,
+    },
+
+    .source = {
+      .source_id = GKYL_PROJ_SOURCE,
+      .num_sources = 1,
+      .projection[0] = {
+        .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM,
+        .ctx_density = &ctx,
+        .density = init_density_source,
+        .ctx_upar = &ctx,
+        .upar = init_upar_source,
+        .ctx_temp = &ctx,
+        .temp = init_temp_source,
+      },
+    },
+
+  };
+
+  ion_blocks[1] = (struct gkyl_gyrokinetic_multib_species_pb) {
+
+    .block_id = 1,
+
+    .polarization_density = ctx.n0,
+
+    .projection = {
+      .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM,
+      .ctx_density = &ctx,
+      .density = init_density_b2,
+      .ctx_upar = &ctx,
+      .upar = init_upar,
+      .ctx_temp = &ctx,
+      .temp = init_temp_ion,
+    },
+
+    .source = {
+      .source_id = GKYL_PROJ_SOURCE,
+      .num_sources = 1,
+      .projection[0] = {
+        .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM,
+        .ctx_density = &ctx,
+        .density = init_density_source,
+        .ctx_upar = &ctx,
+        .upar = init_upar_source,
+        .ctx_temp = &ctx,
+        .temp = init_temp_source,
+      },
+    },
+
+  };
+
+  ion_blocks[2] = (struct gkyl_gyrokinetic_multib_species_pb) {
+
+    .block_id = 2,
+
+    .polarization_density = ctx.n0,
+
+    .projection = {
+      .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM,
+      .ctx_density = &ctx,
+      .density = init_density_b3,
       .ctx_upar = &ctx,
       .upar = init_upar,
       .ctx_temp = &ctx,
@@ -701,7 +916,7 @@ main(int argc, char **argv)
       .order = 2, 
     }, 
   
-    .duplicate_across_blocks = true,
+    .duplicate_across_blocks = false,
     .blocks = ion_blocks,
     .num_physical_bcs = 8,
     .bcs = ion_phys_bcs,
@@ -802,13 +1017,47 @@ main(int argc, char **argv)
 
   // Neutral Ar0 Species
   // all data is common across blocks
-  struct gkyl_gyrokinetic_multib_neut_species_pb Ar0_blocks[1];
+  struct gkyl_gyrokinetic_multib_neut_species_pb Ar0_blocks[3];
   Ar0_blocks[0] = (struct gkyl_gyrokinetic_multib_neut_species_pb) {
+
+    .block_id = 0,
 
     .projection = {
       .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM, 
       .ctx_density = &ctx,
-      .density = init_density_Ar0,
+      .density = init_density_Ar0_b1,
+      .ctx_udrift = &ctx,
+      .udrift = init_udrift_Ar0,
+      .ctx_temp = &ctx,
+      .temp = init_temp_Ar,
+    },
+
+  };
+
+  Ar0_blocks[1] = (struct gkyl_gyrokinetic_multib_neut_species_pb) {
+
+    .block_id = 1,
+
+    .projection = {
+      .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM, 
+      .ctx_density = &ctx,
+      .density = init_density_Ar0_b2,
+      .ctx_udrift = &ctx,
+      .udrift = init_udrift_Ar0,
+      .ctx_temp = &ctx,
+      .temp = init_temp_Ar,
+    },
+
+  };
+
+  Ar0_blocks[2] = (struct gkyl_gyrokinetic_multib_neut_species_pb) {
+
+    .block_id = 2,
+
+    .projection = {
+      .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM, 
+      .ctx_density = &ctx,
+      .density = init_density_Ar0_b3,
       .ctx_udrift = &ctx,
       .udrift = init_udrift_Ar0,
       .ctx_temp = &ctx,
@@ -841,7 +1090,7 @@ main(int argc, char **argv)
     .num_diag_moments = 3,
     .diag_moments = { "M0", "M1i", "M2"},
 
-    .duplicate_across_blocks = true,
+    .duplicate_across_blocks = false,
     .blocks = Ar0_blocks,
     .num_physical_bcs = 8,
     .bcs = Ar0_phys_bcs,
@@ -851,6 +1100,7 @@ main(int argc, char **argv)
   struct gkyl_gyrokinetic_multib_field_pb field_blocks[1];
   field_blocks[0] = (struct gkyl_gyrokinetic_multib_field_pb) {
     .fem_parbc = GKYL_FEM_PARPROJ_NONE,
+    .polarization_bmag = 2.51,
   };
 
   struct gkyl_block_physical_bcs field_phys_bcs[] = {
