@@ -476,7 +476,7 @@ install: all $(ZERO_SH_INSTALL_LIB) ${BUILD_DIR}/glua ## Install library and hea
 
 install-glua: install ${BUILD_DIR}/glua-install ## Install the glua exectuable
 # glua executable
-	cp -f ${BUILD_DIR}/glua-install ${INSTALL_PREFIX}/gkylzero/bin/glua
+	cp -f ${BUILD_DIR}/glua-install ${INSTALL_PREFIX}/gkylzero/bin/gkyl
 
 
 .PHONY: clean
