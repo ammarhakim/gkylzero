@@ -352,7 +352,7 @@ $(BUILD_DIR)/kernels/array_integrate/%.c.o : kernels/array_integrate/%.c
 	$(MKDIR_P) $(dir $@)
 	$(CC) $(CFLAGS) $(NVCC_FLAGS) $(INCLUDES) -c $< -o $@
 
-$(BUILD_DIR)/kernels/deflate_zsurf/%.c.o : kernels/deflate_zsurf/%.c
+$(BUILD_DIR)/kernels/deflate_surf/%.c.o : kernels/deflate_surf/%.c
 	$(MKDIR_P) $(dir $@)
 	$(CC) $(CFLAGS) $(NVCC_FLAGS) $(INCLUDES) -c $< -o $@
 
