@@ -623,7 +623,7 @@ static const gkyl_dg_canonical_pb_accel_boundary_surf_kern_list tensor_accel_bou
 
 
 // "Choose Kernel" based on cdim, vdim and polyorder
-#define CK(lst,cdim,vdim,poly_order) lst[cv_index[cdim].vdim[vdim]].kernels[poly_order]
+#define CK(lst,cv_index,poly_order) lst[cv_index].kernels[poly_order]
 
 /**
  * Free vlasov eqn object.

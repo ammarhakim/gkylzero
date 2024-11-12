@@ -100,25 +100,26 @@ gkyl_dg_canonical_pb_new(const struct gkyl_basis* cbasis, const struct gkyl_basi
       assert(false);
       break;    
   }  
-  canonical_pb->eqn.vol_term = CK(vol_kernels,cdim,vdim,poly_order);
+  int cv_index_val = cv_index[cdim].vdim[vdim];
+  canonical_pb->eqn.vol_term = CK(vol_kernels,cv_index_val,poly_order);
 
-  canonical_pb->stream_surf[0] = CK(stream_surf_x_kernels,cdim,vdim,poly_order);
+  canonical_pb->stream_surf[0] = CK(stream_surf_x_kernels,cv_index_val,poly_order);
   if (cdim>1)
-    canonical_pb->stream_surf[1] = CK(stream_surf_y_kernels,cdim,vdim,poly_order);
+    canonical_pb->stream_surf[1] = CK(stream_surf_y_kernels,cv_index_val,poly_order);
   if (cdim>2)
-    canonical_pb->stream_surf[2] = CK(stream_surf_z_kernels,cdim,vdim,poly_order);
+    canonical_pb->stream_surf[2] = CK(stream_surf_z_kernels,cv_index_val,poly_order);
 
-  canonical_pb->accel_surf[0] = CK(accel_surf_vx_kernels,cdim,vdim,poly_order);
+  canonical_pb->accel_surf[0] = CK(accel_surf_vx_kernels,cv_index_val,poly_order);
   if (vdim>1)
-    canonical_pb->accel_surf[1] = CK(accel_surf_vy_kernels,cdim,vdim,poly_order);
+    canonical_pb->accel_surf[1] = CK(accel_surf_vy_kernels,cv_index_val,poly_order);
   if (vdim>2)
-    canonical_pb->accel_surf[2] = CK(accel_surf_vz_kernels,cdim,vdim,poly_order);
+    canonical_pb->accel_surf[2] = CK(accel_surf_vz_kernels,cv_index_val,poly_order);
 
-  canonical_pb->accel_boundary_surf[0] = CK(accel_boundary_surf_vx_kernels,cdim,vdim,poly_order);
+  canonical_pb->accel_boundary_surf[0] = CK(accel_boundary_surf_vx_kernels,cv_index_val,poly_order);
   if (vdim>1)
-    canonical_pb->accel_boundary_surf[1] = CK(accel_boundary_surf_vy_kernels,cdim,vdim,poly_order);
+    canonical_pb->accel_boundary_surf[1] = CK(accel_boundary_surf_vy_kernels,cv_index_val,poly_order);
   if (vdim>2)
-    canonical_pb->accel_boundary_surf[2] = CK(accel_boundary_surf_vz_kernels,cdim,vdim,poly_order);
+    canonical_pb->accel_boundary_surf[2] = CK(accel_boundary_surf_vz_kernels,cv_index_val,poly_order);
 
   // ensure non-NULL pointers
   for (int i=0; i<cdim; ++i) assert(canonical_pb->stream_surf[i]);

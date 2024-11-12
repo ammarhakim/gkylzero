@@ -329,26 +329,26 @@ static const gkyl_dg_canonical_pb_pressure_kern_list tensor_canonical_pb_pressur
 
 GKYL_CU_D
 static canonical_pb_alpha_surf_t
-choose_canonical_pb_alpha_surf_kern(enum gkyl_basis_type b_type, int dir, int cdim, int vdim, int poly_order)
+choose_canonical_pb_alpha_surf_kern(enum gkyl_basis_type b_type, int dir, int cv_index, int cdim, int vdim, int poly_order)
 {
   switch (b_type) {
     case GKYL_BASIS_MODAL_SERENDIPITY:
       if (dir == 0)
-        return ser_canonical_pb_alpha_surfx_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
+        return ser_canonical_pb_alpha_surfx_kernels[cv_index].kernels[poly_order];
       else if (dir == 1)
-        return ser_canonical_pb_alpha_surfy_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
+        return ser_canonical_pb_alpha_surfy_kernels[cv_index].kernels[poly_order];
       else if (dir == 2)
-        return ser_canonical_pb_alpha_surfz_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
+        return ser_canonical_pb_alpha_surfz_kernels[cv_index].kernels[poly_order];
       else
         return NULL;
       break;
     case GKYL_BASIS_MODAL_TENSOR:
       if (dir == 0)
-        return tensor_canonical_pb_alpha_surfx_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
+        return tensor_canonical_pb_alpha_surfx_kernels[cv_index].kernels[poly_order];
       else if (dir == 1)
-        return tensor_canonical_pb_alpha_surfy_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
+        return tensor_canonical_pb_alpha_surfy_kernels[cv_index].kernels[poly_order];
       else if (dir == 2)
-        return tensor_canonical_pb_alpha_surfz_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
+        return tensor_canonical_pb_alpha_surfz_kernels[cv_index].kernels[poly_order];
       else
         return NULL;
       break;
@@ -360,26 +360,26 @@ choose_canonical_pb_alpha_surf_kern(enum gkyl_basis_type b_type, int dir, int cd
 
 GKYL_CU_D
 static canonical_pb_alpha_surf_t
-choose_canonical_pb_alpha_edge_surf_kern(enum gkyl_basis_type b_type, int dir, int cdim, int vdim, int poly_order)
+choose_canonical_pb_alpha_edge_surf_kern(enum gkyl_basis_type b_type, int dir, int cv_index, int cdim, int vdim, int poly_order)
 {
   switch (b_type) {
     case GKYL_BASIS_MODAL_SERENDIPITY:
       if (dir == 0)
-        return ser_canonical_pb_alpha_edge_surfx_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
+        return ser_canonical_pb_alpha_edge_surfx_kernels[cv_index].kernels[poly_order];
       else if (dir == 1)
-        return ser_canonical_pb_alpha_edge_surfy_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
+        return ser_canonical_pb_alpha_edge_surfy_kernels[cv_index].kernels[poly_order];
       else if (dir == 2)
-        return ser_canonical_pb_alpha_edge_surfz_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
+        return ser_canonical_pb_alpha_edge_surfz_kernels[cv_index].kernels[poly_order];
       else
         return NULL;
       break;
     case GKYL_BASIS_MODAL_TENSOR:
       if (dir == 0)
-        return tensor_canonical_pb_alpha_edge_surfx_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
+        return tensor_canonical_pb_alpha_edge_surfx_kernels[cv_index].kernels[poly_order];
       else if (dir == 1)
-        return tensor_canonical_pb_alpha_edge_surfy_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
+        return tensor_canonical_pb_alpha_edge_surfy_kernels[cv_index].kernels[poly_order];
       else if (dir == 2)
-        return tensor_canonical_pb_alpha_edge_surfz_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
+        return tensor_canonical_pb_alpha_edge_surfz_kernels[cv_index].kernels[poly_order];
       else
         return NULL;
       break;
@@ -392,26 +392,26 @@ choose_canonical_pb_alpha_edge_surf_kern(enum gkyl_basis_type b_type, int dir, i
 
 GKYL_CU_D
 static canonical_pb_alpha_surf_t
-choose_canonical_pb_alpha_surf_v_kern(enum gkyl_basis_type b_type, int dir, int cdim, int vdim, int poly_order)
+choose_canonical_pb_alpha_surf_v_kern(enum gkyl_basis_type b_type, int dir, int cv_index, int cdim, int vdim, int poly_order)
 {
   switch (b_type) {
     case GKYL_BASIS_MODAL_SERENDIPITY:
       if (dir == 0)
-        return ser_canonical_pb_alpha_surfvx_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
+        return ser_canonical_pb_alpha_surfvx_kernels[cv_index].kernels[poly_order];
       else if (dir == 1)
-        return ser_canonical_pb_alpha_surfvy_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
+        return ser_canonical_pb_alpha_surfvy_kernels[cv_index].kernels[poly_order];
       else if (dir == 2)
-        return ser_canonical_pb_alpha_surfvz_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
+        return ser_canonical_pb_alpha_surfvz_kernels[cv_index].kernels[poly_order];
       else
         return NULL;
       break;
     case GKYL_BASIS_MODAL_TENSOR:
       if (dir == 0)
-        return tensor_canonical_pb_alpha_surfvx_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
+        return tensor_canonical_pb_alpha_surfvx_kernels[cv_index].kernels[poly_order];
       else if (dir == 1)
-        return tensor_canonical_pb_alpha_surfvy_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
+        return tensor_canonical_pb_alpha_surfvy_kernels[cv_index].kernels[poly_order];
       else if (dir == 2)
-        return tensor_canonical_pb_alpha_surfvz_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
+        return tensor_canonical_pb_alpha_surfvz_kernels[cv_index].kernels[poly_order];
       else
         return NULL;
       break;

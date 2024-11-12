@@ -198,20 +198,6 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
     //create solver
     s->slvr = gkyl_dg_updater_vlasov_new(&s->grid, &app->confBasis, &app->basis, 
       &app->local, &s->local_vel, &s->local, is_zero_flux, s->model_id, s->field_id, &aux_inp, app->use_gpu);
-
-    printf("cdim: %d, vdim: %d, pdim: %d, alpha_surf_sz: %d\n",cdim,vdim,pdim,alpha_surf_sz);
-    char fh[1024] = "out_alpha_surf.gkyl";
-    gkyl_grid_sub_array_write(&s->grid, &local, s->alpha_surf, fh);
-    char fh2[1024] = "out_sgn_alpha_surf.gkyl";
-    gkyl_grid_sub_array_write(&s->grid, &local, s->sgn_alpha_surf, fh2);
-    char fh3[1024] = "out_const_sgn_alpha.gkyl";
-    gkyl_grid_sub_array_write(&s->grid, &local, s->const_sgn_alpha, fh3);
-    char fh4[1024] = "out_hamil.gkyl";
-    gkyl_grid_sub_array_write(&s->grid, &local, s->hamil, fh4);  
-    char fh5[1024] = "out_h_ij_inv.gkyl";
-    gkyl_grid_sub_array_write(&app->grid, &app->local, s->h_ij_inv, fh5);  
-    char fh6[1024] = "out_det_h.gkyl";
-    gkyl_grid_sub_array_write(&app->grid, &app->local, s->det_h, fh6);
   }
   else {
     // by default, we do not have zero-flux boundary conditions in any direction
