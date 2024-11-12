@@ -319,7 +319,7 @@ test_1x(int poly_order, bool use_gpu, double te, int atomic_z,
     vtsq = vtsq_ho;
     m0 = m0_ho;
   }
-  struct gkyl_array *vtsq_min_normalized = mkarr(false, 1, 1);
+  struct gkyl_array *vtsq_min_normalized = mkarr(use_gpu, 1, num_ne[0]);
   gkyl_array_clear(vtsq_min_normalized, vtsq_min);
 
   // initialize solver 
@@ -342,16 +342,11 @@ test_1x(int poly_order, bool use_gpu, double te, int atomic_z,
   // Assumed electron and ion density are the same and uniform
   gkyl_dg_calc_gk_rad_vars_nI_nu_advance(calc_gk_rad_vars, 
     &confLocal, &local, &vnu_surf[0], &vnu[0], &vsqnu_surf[0], &vsqnu[0], 
-    n_elc, m0, m0, nvnu_surf, nvnu, nvsqnu_surf, nvsqnu, &vtsq_min, vtsq);
+    n_elc, m0, m0, nvnu_surf, nvnu, nvsqnu_surf, nvsqnu, vtsq_min_normalized, vtsq);
 
   gkyl_dg_updater_rad_gyrokinetic_advance(slvr, &local, f, cflrate, rhs);
 
-//  // Take 2nd moment of rhs to find energy loss on host
-//  gkyl_grid_sub_array_write(&grid, &local, 0, rhs, "ctest_dg_rad_gyrokinetic_1x_rhs.gkyl");
-//  gkyl_grid_sub_array_write(&grid, &local, 0, nvnu, "ctest_dg_rad_gyrokinetic_1x_nvnu.gkyl");
-//  gkyl_grid_sub_array_write(&grid, &local, 0, nvsqnu, "ctest_dg_rad_gyrokinetic_1x_nvsqnu.gkyl");
-//  gkyl_grid_sub_array_write(&grid, &local, 0, f, "ctest_dg_rad_gyrokinetic_1x_f.gkyl");
-
+  // Take 2nd moment of rhs to find energy loss on host
   struct gkyl_dg_updater_moment *m2_calc = gkyl_dg_updater_moment_gyrokinetic_new(&grid, &confBasis, &basis,
     &confLocal, GKYL_ELECTRON_MASS, gvm, gk_geom, "M2", false, use_gpu);
 
@@ -666,7 +661,7 @@ test_2x(int poly_order, bool use_gpu, double te)
   // Assumed electron and ion density are the same and uniform
   gkyl_dg_calc_gk_rad_vars_nI_nu_advance(calc_gk_rad_vars, 
     &confLocal, &local, &vnu_surf[0], &vnu[0], &vsqnu_surf[0], &vsqnu[0], 
-    n_elc, m0, m0, nvnu_surf, nvnu, nvsqnu_surf, nvsqnu, &vtsq_min, vtsq);
+    n_elc, m0, m0, nvnu_surf, nvnu, nvsqnu_surf, nvsqnu, vtsq_min_normalized, vtsq);
 
 
   gkyl_dg_updater_rad_gyrokinetic_advance(slvr, &local, f, cflrate, rhs);

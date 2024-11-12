@@ -174,7 +174,7 @@ void gkyl_dg_calc_gk_rad_vars_nI_nu_advance(const struct gkyl_dg_calc_gk_rad_var
   const struct gkyl_array *nI, 
   struct gkyl_array* nvnu_surf, struct gkyl_array* nvnu, 
   struct gkyl_array* nvsqnu_surf, struct gkyl_array* nvsqnu,
-  const double* vtsq_min_normalized, struct gkyl_array* vtsq)
+  struct gkyl_array* vtsq_min_normalized, struct gkyl_array* vtsq)
 {
 #ifdef GKYL_HAVE_CUDA
   if (gkyl_array_is_cu_dev(nI)) {
@@ -200,7 +200,8 @@ void gkyl_dg_calc_gk_rad_vars_nI_nu_advance(const struct gkyl_dg_calc_gk_rad_var
     const double* ne = gkyl_array_cfetch(n_elc, loc_conf);
     double ne_cell_avg = ne[0]/pow(2.0, cdim/2.0);
     int ne_idx = gkyl_find_nearest_idx(n_elc_rad, ne_cell_avg);
-    if ( vtsq_d[0] > vtsq_min_normalized[ne_idx] ) {      
+    const double* vtsq_min_d = gkyl_array_cfetch(vtsq_min_normalized, ne_idx);
+    if ( vtsq_d[0] > vtsq_min_d[0] ) {      
       const double* vnu_surf_d = gkyl_array_cfetch(vnu_surf->data[ne_idx].arr, loc_phase);
       const double* vnu_d = gkyl_array_cfetch(vnu->data[ne_idx].arr, loc_phase);
       const double* vsqnu_surf_d = gkyl_array_cfetch(vsqnu_surf->data[ne_idx].arr, loc_phase);  

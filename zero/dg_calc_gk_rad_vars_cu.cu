@@ -81,12 +81,11 @@ gkyl_dg_calc_gk_rad_vars_nI_nu_advance_cu_kernel(struct gkyl_dg_calc_gk_rad_vars
   const struct gkyl_array *nI, 
   struct gkyl_array* nvnu_surf, struct gkyl_array* nvnu, 
   struct gkyl_array* nvsqnu_surf, struct gkyl_array* nvsqnu,
-  double* vtsq_min_normalized, struct gkyl_array* vtsq)
+  struct gkyl_array* vtsq_min_normalized, struct gkyl_array* vtsq)
 {
   int cdim = up->cdim;
   double xc[GKYL_MAX_DIM] = {0.0};
   int idx[GKYL_MAX_DIM];
-  int cdim = up->cdim;
   
   for (unsigned long linc1 = threadIdx.x + blockIdx.x*blockDim.x;
       linc1 < phase_range.volume;
@@ -120,7 +119,8 @@ gkyl_dg_calc_gk_rad_vars_nI_nu_advance_cu_kernel(struct gkyl_dg_calc_gk_rad_vars
       }
     }
     int ne_idx = left;
-    if ( vtsq_d[0] > vtsq_min_normalized[ne_idx] ) {            
+    const double* vtsq_min_d = (const double*) gkyl_array_cfetch(vtsq_min_normalized, ne_idx);
+    if ( vtsq_d[0] > vtsq_min_d[0] ) {            
       const double* vnu_surf_d = (const double*) gkyl_array_cfetch(vnu_surf[ne_idx].arr, loc_phase);
       const double* vnu_d = (const double*) gkyl_array_cfetch(vnu[ne_idx].arr, loc_phase);
       const double* vsqnu_surf_d = (const double*) gkyl_array_cfetch(vsqnu_surf[ne_idx].arr, loc_phase);  
@@ -149,7 +149,7 @@ gkyl_dg_calc_gk_rad_vars_nI_nu_advance_cu(const struct gkyl_dg_calc_gk_rad_vars 
   const struct gkyl_array *nI, 
   struct gkyl_array* nvnu_surf, struct gkyl_array* nvnu, 
   struct gkyl_array* nvsqnu_surf, struct gkyl_array* nvsqnu,
-  const double* vtsq_min_normalized, struct gkyl_array* vtsq)
+  struct gkyl_array* vtsq_min_normalized, struct gkyl_array* vtsq)
 {
   int nblocks = phase_range->nblocks;
   int nthreads = phase_range->nthreads;
@@ -158,7 +158,7 @@ gkyl_dg_calc_gk_rad_vars_nI_nu_advance_cu(const struct gkyl_dg_calc_gk_rad_vars 
     vnu_surf->on_dev, vnu->on_dev, vsqnu_surf->on_dev, vsqnu->on_dev, 
     n_elc_rad->on_dev, n_elc->on_dev, nI->on_dev, 
     nvnu_surf->on_dev, nvnu->on_dev, nvsqnu_surf->on_dev, nvsqnu->on_dev,
-    vtsq_min_normalized, vtsq->on_dev);
+    vtsq_min_normalized->on_dev, vtsq->on_dev);
 }
 
 // CUDA kernel to set device pointers to gyrokinetic radiation vars kernel functions

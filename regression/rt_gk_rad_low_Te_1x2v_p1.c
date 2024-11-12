@@ -426,7 +426,7 @@ main(int argc, char **argv)
       .reference_ne = ctx.n0,
       .min_ne = ctx.n0*1.01,
       .max_ne = ctx.n0*10000,
-    },
+      },
     
     .num_diag_moments = 7,
     .diag_moments = { "M0", "M1", "M2", "M2par", "M2perp", "M3par", "M3perp" },
