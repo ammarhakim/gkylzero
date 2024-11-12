@@ -430,6 +430,25 @@ gkyl_gyrokinetic_app_new(struct gkyl_gk *gk)
     gk_neut_species_source_init(app, &app->neut_species[i], &app->neut_species[i].src);
   }
 
+  // Use implicit BGK collisions if specified
+  app->has_implicit_coll_scheme = false;
+  for (int i=0; i<ns; ++i){
+    if (gk->species[i].collisions.has_implicit_coll_scheme){
+      app->has_implicit_coll_scheme = true;
+    }
+  }
+
+  // Set the appropriate update function for taking a single time step
+  // If we have implicit BGK collisions for either the gyrokinetic or neutral species, 
+  // we perform a first-order operator split and treat those terms implicitly.
+  // Otherwise, we default to an SSP-RK3 method. 
+  if (app->has_implicit_coll_scheme) {
+    app->update_func = gyrokinetic_update_op_split;
+  }
+  else {
+    app->update_func = gyrokinetic_update_ssp_rk3;
+  }
+
   // initialize stat object
   app->stat = (struct gkyl_gyrokinetic_stat) {
     .use_gpu = app->use_gpu,
@@ -2238,7 +2257,7 @@ gkyl_gyrokinetic_update(gkyl_gyrokinetic_app* app, double dt)
   app->stat.nup += 1;
   struct timespec wst = gkyl_wall_clock();
 
-  struct gkyl_update_status status = gyrokinetic_update_ssp_rk3(app, dt);
+  struct gkyl_update_status status = app->update_func(app, dt);
   app->tcurr += status.dt_actual;
 
   app->stat.total_tm += gkyl_time_diff_now_sec(wst);

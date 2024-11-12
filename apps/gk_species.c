@@ -703,6 +703,8 @@ double
 gk_species_rhs(gkyl_gyrokinetic_app *app, struct gk_species *species,
   const struct gkyl_array *fin, struct gkyl_array *rhs)
 {
+  double omega_cfl = 1/DBL_MAX; 
+
   gkyl_array_set(species->phi, 1.0, app->field->phi_smooth);
 
   gkyl_array_clear(species->cflrate, 0.0);
@@ -723,7 +725,7 @@ gk_species_rhs(gkyl_gyrokinetic_app *app, struct gk_species *species,
 
   if (species->lbo.collision_id == GKYL_LBO_COLLISIONS)
     gk_species_lbo_rhs(app, species, &species->lbo, fin, rhs);
-  if (species->bgk.collision_id == GKYL_BGK_COLLISIONS)
+  if (species->bgk.collision_id == GKYL_BGK_COLLISIONS && !app->has_implicit_coll_scheme)
     gk_species_bgk_rhs(app, species, &species->bgk, fin, rhs);
   
   if (species->has_diffusion)
@@ -747,10 +749,44 @@ gk_species_rhs(gkyl_gyrokinetic_app *app, struct gk_species *species,
     gkyl_cu_memcpy(omega_cfl_ho, species->omega_cfl, sizeof(double), GKYL_CU_MEMCPY_D2H);
   else
     omega_cfl_ho[0] = species->omega_cfl[0];
+  omega_cfl = omega_cfl_ho[0];
 
   app->stat.species_omega_cfl_tm += gkyl_time_diff_now_sec(tm);
   
-  return app->cfl/omega_cfl_ho[0];
+  return app->cfl/omega_cfl;
+}
+
+// Compute the implicit RHS for species update, returning maximum stable
+// time-step.
+double
+gk_species_rhs_implicit(gkyl_gyrokinetic_app *app, struct gk_species *species,
+  const struct gkyl_array *fin, struct gkyl_array *rhs, double dt)
+{
+  double omega_cfl = 1/DBL_MAX;
+
+  gkyl_array_clear(species->cflrate, 0.0);
+  gkyl_array_clear(rhs, 0.0);
+
+  // Compute implicit update and update rhs to new time step
+  if (species->bgk.collision_id == GKYL_BGK_COLLISIONS) {
+    gk_species_bgk_rhs(app, species, &species->bgk, fin, rhs);
+  }
+  gkyl_array_accumulate(gkyl_array_scale(rhs, dt), 1.0, fin);
+
+  app->stat.nspecies_omega_cfl +=1;
+  struct timespec tm = gkyl_wall_clock();
+  gkyl_array_reduce_range(species->omega_cfl, species->cflrate, GKYL_MAX, &species->local);
+
+  double omega_cfl_ho[1];
+  if (app->use_gpu)
+    gkyl_cu_memcpy(omega_cfl_ho, species->omega_cfl, sizeof(double), GKYL_CU_MEMCPY_D2H);
+  else
+    omega_cfl_ho[0] = species->omega_cfl[0];
+  omega_cfl = omega_cfl_ho[0];
+
+  app->stat.species_omega_cfl_tm += gkyl_time_diff_now_sec(tm);
+  
+  return app->cfl/omega_cfl;
 }
 
 // Apply boundary conditions to the distribution function.

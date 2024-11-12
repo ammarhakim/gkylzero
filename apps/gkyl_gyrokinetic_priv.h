@@ -340,6 +340,7 @@ struct gk_bgk_collisions {
   struct gkyl_gyrokinetic_cross_prim_moms_bgk *cross_bgk; // cross-species moment computation
 
   struct gkyl_bgk_collisions *up_bgk; // BGK updater (also computes stable timestep)
+
   bool implicit_step; // whether or not to take an implcit bgk step
   double dt_implicit; // timestep used by the implicit collisions  
 };
@@ -799,6 +800,11 @@ struct gkyl_gyrokinetic_app {
   // neutral species data
   int num_neut_species;
   struct gk_neut_species *neut_species; // data for each species
+
+  bool has_implicit_coll_scheme; // Boolean for using implicit bgk scheme (over explicit rk3)
+
+  // pointer to function that takes a single-step of simulation
+  struct gkyl_update_status (*update_func)(gkyl_gyrokinetic_app *app, double dt0);
 
   struct gkyl_gyrokinetic_stat stat; // statistics
 };
@@ -1377,6 +1383,19 @@ double gk_species_rhs(gkyl_gyrokinetic_app *app, struct gk_species *species,
   const struct gkyl_array *fin, struct gkyl_array *rhs);
 
 /**
+ * Compute the *implicit* RHS from species distribution function
+ *
+ * @param app gyrokinetic app object
+ * @param species Pointer to species
+ * @param fin Input distribution function
+ * @param rhs On output, the RHS from the species object
+ * @param dt timestep size (used in the implcit coef.)
+ * @return Maximum stable time-step
+ */
+double gk_species_rhs_implicit(gkyl_gyrokinetic_app *app, struct gk_species *species,
+  const struct gkyl_array *fin, struct gkyl_array *rhs, double dt);
+
+/**
  * Apply BCs to species distribution function.
  *
  * @param app gyrokinetic app object
@@ -1711,6 +1730,19 @@ double gk_neut_species_rhs(gkyl_gyrokinetic_app *app, struct gk_neut_species *sp
   const struct gkyl_array *fin, struct gkyl_array *rhs);
 
 /**
+ * Compute the *implicit* RHS from neutral species distribution function
+ *
+ * @param app gyrokinetic app object
+ * @param species Pointer to neutral species
+ * @param fin Input distribution function
+ * @param rhs On output, the RHS from the species object
+ * @param dt timestep size (used in the implcit coef.)
+ * @return Maximum stable time-step
+ */
+double gk_neut_species_rhs_implicit(gkyl_gyrokinetic_app *app, struct gk_neut_species *species,
+  const struct gkyl_array *fin, struct gkyl_array *rhs, double dt);
+
+/**
  * Apply BCs to neutral species distribution function
  *
  * @param app gyrokinetic app object
@@ -1858,3 +1890,24 @@ void gyrokinetic_rhs(gkyl_gyrokinetic_app* app, double tcurr, double dt,
  * @param dt0 Suggessted time step.
  */
 struct gkyl_update_status gyrokinetic_update_ssp_rk3(gkyl_gyrokinetic_app* app, double dt0);
+
+/**
+ * Take time-step of the (BGK) collision operator using a first order implicit method. 
+ *
+ * @param app Gyrokinetic app.
+ * @param dt0 Suggessted time step.
+ */
+void gyrokinetic_update_implicit_coll(gkyl_gyrokinetic_app *app,  double dt0);
+
+/**
+ * Take time-step using a first order operator split combining 
+ * the RK3 method for the collisionless advection with a first order implicit
+ * method for BGK collisions. The first order implicit step occurs *after* the 
+ * RK3 step and utilizes the stable RK3 time step. Also sets the status object
+ * which has the actual and suggested dts used. These can be different
+ * from the actual time-step.
+ *
+ * @param app Gyrokinetic app.
+ * @param dt0 Suggessted time step.
+ */
+struct gkyl_update_status gyrokinetic_update_op_split(gkyl_gyrokinetic_app *app,  double dt0);
