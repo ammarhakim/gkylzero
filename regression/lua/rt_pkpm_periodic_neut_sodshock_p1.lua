@@ -6,28 +6,31 @@ pi = math.pi
 -- Physical constants (using normalized code units).
 epsilon0 = 1.0 -- Permittivity of free space.
 mu0 = 1.0 -- Permeability of free space.
-mass_elc = 1.0 -- Electron mass.
-charge_elc = -1.0 -- Electron charge.
+mass = 1.0 -- Neutral mass.
+charge = 0.0 -- Neutral charge.
+
+nl = 1.0 -- Left number density.
+Tl = 1.0 -- Left temperature.
+
+nr = 0.125 -- Right number density.
+Tr = math.sqrt(0.1 / 0.125) -- Right temperature.
 
 vt = 1.0 -- Thermal velocity.
-nu = 1.0e-4 -- Collision frequency.
-
-alpha = 1.0e-1 -- Applied perturbation amplitude.
-k0 = 0.5 -- Perturbed wave number.
+nu = 100.0 -- Collision frequency.
 
 B0 = 1.0 -- Reference magnetic field strength.
 
 -- Simulation parameters.
-Nx = 32 -- Cell count (configuration space: x-direction).
-Nvx = 32 -- Cell count (velocity space: vx-direction).
-Lx = 4.0 * pi -- Domain size (configuration space: x-direction).
+Nx = 128 -- Cell count (configuration space: x-direction).
+Nvx = 16 -- Cell count (velocity space: vx-direction).
+Lx = 2.0 -- Domain size (configuration space: x-direction).
 vx_max = 6.0 * vt -- Domain boundary (velocity space: vx-direction).
-poly_order = 2 -- Polynomial order.
+poly_order = 1 -- Polynomial order.
 basis_type = "serendipity" -- Basis function set.
 time_stepper = "rk3" -- Time integrator.
 cfl_frac = 1.0 -- CFL coefficient.
 
-t_end = 20.0 -- Final simulation time.
+t_end = 0.1 -- Final simulation time.
 num_frames = 1 -- Number of output frames.
 dt_failure_tol = 1.0e-4 -- Minimum allowable fraction of initial time-step.
 num_failures_max = 20 -- Maximum allowable number of consecutive small time-steps.
@@ -43,8 +46,6 @@ pkpmApp = PKPM.App.new {
   cells = { Nx },
   cflFrac = cfl_frac,
 
-  useExplicitSource = true,
-
   basis = basis_type,
   polyOrder = poly_order,
   timeStepper = time_stepper,
@@ -55,10 +56,10 @@ pkpmApp = PKPM.App.new {
   -- Boundary conditions for configuration space.
   periodicDirs = { 1 }, -- Periodic directions (x-direction only).
 
-  -- Electrons.
-  elc = PKPM.Species.new {
+  -- Neutral species.
+  neut = PKPM.Species.new {
     modelID = G0.Model.Default,
-    charge = charge_elc, mass = mass_elc,
+    charge = charge, mass = mass,
     
     -- Velocity space grid.
     lower = { -vx_max },
@@ -69,9 +70,18 @@ pkpmApp = PKPM.App.new {
     initDist = function (t, xn)
       local x, vx = xn[1], xn[2]
 
-      local n = (1.0 + alpha * math.cos(k0 * x)) *
-        (1.0 / math.sqrt(2.0 * pi * vt * vt)) * (math.exp(-(vx * vx) / (2.0 * vt * vt))) -- Total number density.
-      local T_sq_n = (vt * vt) * n -- Temperature squared times number density.
+      local n = 0.0
+      local T = 0.0
+      
+      if math.abs(x) < 0.5 then
+        n = (nl / math.sqrt(2.0 * pi * Tl * Tl)) * (math.exp(-(vx * vx) / (2.0 * Tl * Tl))) -- Total number density (left).
+        T = Tl -- Total temperature (left).
+      else
+        n = (nr / math.sqrt(2.0 * pi * Tr * Tr)) * (math.exp(-(vx * vx) / (2.0 * Tr * Tr))) -- Total number density (right).
+        T = Tr -- Total temperature (right).
+      end
+
+      local T_sq_n = (T * T) * n -- Temperature squared times number density.
       
       return n, T_sq_n
     end,
@@ -102,32 +112,18 @@ pkpmApp = PKPM.App.new {
 
     -- Initial conditions function.
     init = function (t, xn)
-      local x = xn[1]
-
-      local Ex = -alpha * math.sin(k0 * x) / k0 -- Total electric field (x-direction).
+      local Ex = 0.0 -- Total electric field (x-direction).
       local Ey = 0.0 -- Total electric field (y-direction).
       local Ez = 0.0 -- Total electric field (z-direction).
 
-      local Bx = 0.0 -- Total magnetic field (x-direction).
+      local Bx = B0 -- Total magnetic field (x-direction).
       local By = 0.0 -- Total magnetic field (y-direction).
       local Bz = 0.0 -- Total magnetic field (z-direction).
 
       return Ex, Ey, Ez, Bx, By, Bz, 0.0, 0.0
     end,
 
-    externalFieldInit = function (t, xn)
-      local Ex = 0.0 -- External electric field (x-direction).
-      local Ey = 0.0 -- External electric field (y-direction).
-      local Ez = 0.0 -- External electric field (z-direction).
-
-      local Bx = B0 -- External magnetic field (x-direction).
-      local By = 0.0 -- External magnetic field (y-direction).
-      local Bz = 0.0 -- External magnetic field (z-direction).
-
-      return Ex, Ey, Ez, Bx, By, Bz
-    end,
-
-    evolve = true, -- Evolve field?
+    evolve = false, -- Evolve field?
     elcErrorSpeedFactor = 0.0,
     mgnErrorSpeedFactor = 0.0
   }

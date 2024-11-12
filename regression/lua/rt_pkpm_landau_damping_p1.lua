@@ -43,6 +43,8 @@ pkpmApp = PKPM.App.new {
   cells = { Nx },
   cflFrac = cfl_frac,
 
+  useExplicitSource = true,
+
   basis = basis_type,
   polyOrder = poly_order,
   timeStepper = time_stepper,

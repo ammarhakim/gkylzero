@@ -455,6 +455,8 @@ pkpm_app_new(lua_State *L)
   pkpm.cfl_frac = glua_tbl_get_number(L, "cflFrac", 0.95);
   pkpm.poly_order = glua_tbl_get_integer(L, "polyOrder", 1);
 
+  pkpm.use_explicit_source = glua_tbl_get_bool(L, "useExplicitSource", false);
+
   pkpm.basis_type = get_basis_type(
     glua_tbl_get_string(L, "basis", "serendipity")
   );
@@ -928,7 +930,7 @@ pkpm_app_run(lua_State *L)
   gkyl_pkpm_app_cout(app, stdout, "Species PKPM vars took %g secs\n", stat.species_pkpm_vars_tm);
   gkyl_pkpm_app_cout(app, stdout, "Species collisional moments took %g secs\n", stat.species_coll_mom_tm);
   gkyl_pkpm_app_cout(app, stdout, "EM variables (bvar) calc took %g secs\n", stat.field_em_vars_tm);
-  gkyl_pkpm_app_cout(app, stdout, "Current evaluation and accumulate took $g secs\n", stat.current_tm);
+  gkyl_pkpm_app_cout(app, stdout, "Current evaluation and accumulate took %g secs\n", stat.current_tm);
   gkyl_pkpm_app_cout(app, stdout, "Total updates took %g secs\n", stat.total_tm);
 
   gkyl_pkpm_app_cout(app, stdout, "Number of write calls %ld\n", stat.nio);
