@@ -311,14 +311,6 @@ main(int argc, char **argv)
   lua_setglobal(L, "GKYL_USE_GPU");  
 #endif
 
-#ifdef GKYL_HAVE_ADIOS
-  lua_pushboolean(L, true);
-  lua_setglobal(L, "GKYL_HAVE_ADIOS");
-#else
-  lua_pushboolean(L, false);
-  lua_setglobal(L, "GKYL_HAVE_ADIOS");
-#endif  
-
   lua_pushnumber(L, DBL_MIN);
   lua_setglobal(L, "GKYL_MIN_DOUBLE");
   lua_pushnumber(L, DBL_MAX);
