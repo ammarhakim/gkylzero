@@ -72,7 +72,7 @@ create_ctx(void)
   double vt = 1.0; // Thermal velocity.
   double nu = 10.0; // Collision frequency.
 
-  double B0 = 0.1; // Reference magnetic field strength.
+  double B0 = 1.0; // Reference magnetic field strength.
 
   // Simulation parameters.
   int Nx = 128; // Cell count (configuration space: x-direction).

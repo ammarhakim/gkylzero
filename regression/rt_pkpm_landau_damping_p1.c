@@ -70,7 +70,7 @@ create_ctx(void)
   double alpha = 1.0e-1; // Applied perturbation amplitude.
   double k0 = 0.5; // Perturbed wave number.
 
-  double B0 = 0.1; // Reference magnetic field strength.
+  double B0 = 1.0; // Reference magnetic field strength.
 
   // Simulation parameters.
   int Nx = 32; // Cell count (configuration space: x-direction).

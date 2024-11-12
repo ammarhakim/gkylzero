@@ -16,7 +16,7 @@ T0 = 0.5 -- Reference temperature.
 vt = 1.0 -- Thermal velocity.
 nu = 10.0 -- Collision frequency.
 
-B0 = 0.1 -- Reference magnetic field strength.
+B0 = 1.0 -- Reference magnetic field strength.
 
 -- Simulation parameters.
 Nx = 128 -- Cell count (configuration space: x-direction).
@@ -66,7 +66,7 @@ pkpmApp = PKPM.App.new {
 
     -- Initial conditions (distribution function).
     initDist = function (t, xn)
-      local x, vx = xn[1], xn[2]
+      local vx = xn[2]
 
       local n = (n0 / math.sqrt(2.0 * pi * T0 * T0)) * (math.exp(-(vx * vx) / (2.0 * T0 * T0))) -- Total number density.
       local T = T0 -- Total temperature.

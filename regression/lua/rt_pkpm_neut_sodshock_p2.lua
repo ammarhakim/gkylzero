@@ -18,7 +18,7 @@ Tr = math.sqrt(0.1 / 0.125) -- Right temperature.
 vt = 1.0 -- Thermal velocity.
 nu = 100.0 -- Collision frequency.
 
-B0 = 0.1 -- Reference magnetic field strength.
+B0 = 1.0 -- Reference magnetic field strength.
 
 -- Simulation parameters.
 Nx = 128 -- Cell count (configuration space: x-direction).
