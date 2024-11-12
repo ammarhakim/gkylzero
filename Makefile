@@ -2,19 +2,21 @@
 
 # Type make help to see help for this Makefile
 
-# Obtain the git commit ID.
-GIT_COMMIT_HASH := "$(shell git describe --dirty=+ --always --tags)"
+# determine date of build
+BUILD_DATE = $(shell date)
+GIT_TIP = $(shell git describe --abbrev=12 --always --dirty=+)
 
 ARCH_FLAGS ?= -march=native
 CUDA_ARCH ?= 70
 # Warning flags: -Wall -Wno-unused-variable -Wno-unused-function -Wno-missing-braces
-CFLAGS ?= -O3 -g -ffast-math -fPIC -MMD -MP -DGIT_COMMIT_ID=\"$(GIT_COMMIT_HASH)\"
+CFLAGS ?= -O3 -g -ffast-math -fPIC -MMD -MP -DGIT_COMMIT_ID=\"$(GIT_TIP)\" -DGKYL_BUILD_DATE="${BUILD_DATE}" -DGKYL_GIT_CHANGESET="${GIT_TIP}"
 LDFLAGS = 
 PREFIX ?= ${HOME}/gkylsoft
 INSTALL_PREFIX ?= ${PREFIX}
 
 # determine OS we are running on
 UNAME = $(shell uname)
+
 
 # Default lapack include and libraries: we prefer linking to static library
 LAPACK_INC = $(PREFIX)/OpenBLAS/include
@@ -45,7 +47,7 @@ NVCC_FLAGS =
 CUDA_LIBS =
 ifeq ($(CC), nvcc)
        USING_NVCC = yes
-       CFLAGS = -O3 -g --forward-unknown-to-host-compiler --use_fast_math -ffast-math -MMD -MP -fPIC -DGIT_COMMIT_ID=\"$(GIT_COMMIT_HASH)\"
+       CFLAGS = -O3 -g --forward-unknown-to-host-compiler --use_fast_math -ffast-math -MMD -MP -fPIC -DGIT_COMMIT_ID=\"$(GIT_TIP)\" -DGKYL_BUILD_DATE="${BUILD_DATE}" -DGKYL_GIT_CHANGESET="${GIT_TIP}"
        NVCC_FLAGS = -x cu -dc -arch=sm_${CUDA_ARCH} --compiler-options="-fPIC"
        LDFLAGS += -arch=sm_${CUDA_ARCH}
        ifdef CUDAMATH_LIBDIR
