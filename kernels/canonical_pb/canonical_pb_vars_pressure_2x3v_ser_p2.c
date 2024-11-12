@@ -1,6 +1,6 @@
 #include <gkyl_canonical_pb_kernels.h>  
 #include <gkyl_binop_mul_ser.h> 
-GKYL_CU_DH void canonical_pb_vars_pressure_3x_tensor_p1(const double *h_ij_inv, const double *MEnergy, const double *v_j, const double *nv_i, double* GKYL_RESTRICT d_Jv_P) 
+GKYL_CU_DH void canonical_pb_vars_pressure_2x3v_ser_p2(const double *h_ij_inv, const double *MEnergy, const double *v_j, const double *nv_i, double* GKYL_RESTRICT d_Jv_P) 
 { 
   // h_ij_inv:         Input volume expansion of the inverse metric tensor.
   //                   [Hxx, Hxy, Hxz, 
@@ -33,33 +33,33 @@ GKYL_CU_DH void canonical_pb_vars_pressure_3x_tensor_p1(const double *h_ij_inv, 
   // h^{ij}*nv_i*v_j 
   double Hxx_M1x[8] = {0.0}; 
   double Hxx_M1x_Vx[8] = {0.0}; 
-  binop_mul_3d_ser_p1(Hxx, NVx, Hxx_M1x); 
-  binop_mul_3d_ser_p1(Hxx_M1x, Vx, Hxx_M1x_Vx); 
+  binop_mul_2d_ser_p2(Hxx, NVx, Hxx_M1x); 
+  binop_mul_2d_ser_p2(Hxx_M1x, Vx, Hxx_M1x_Vx); 
  
   double Hxy_M1x[8] = {0.0}; 
   double Hxy_M1x_Vy[8] = {0.0}; 
-  binop_mul_3d_ser_p1(Hxy, NVx, Hxy_M1x); 
-  binop_mul_3d_ser_p1(Hxy_M1x, Vy, Hxy_M1x_Vy); 
+  binop_mul_2d_ser_p2(Hxy, NVx, Hxy_M1x); 
+  binop_mul_2d_ser_p2(Hxy_M1x, Vy, Hxy_M1x_Vy); 
  
   double Hyy_M1y[8] = {0.0}; 
   double Hyy_M1y_Vy[8] = {0.0}; 
-  binop_mul_3d_ser_p1(Hyy, NVy, Hyy_M1y); 
-  binop_mul_3d_ser_p1(Hyy_M1y, Vy, Hyy_M1y_Vy); 
+  binop_mul_2d_ser_p2(Hyy, NVy, Hyy_M1y); 
+  binop_mul_2d_ser_p2(Hyy_M1y, Vy, Hyy_M1y_Vy); 
  
   double Hxz_M1x[8] = {0.0}; 
   double Hxz_M1x_Vz[8] = {0.0}; 
-  binop_mul_3d_ser_p1(Hxz, NVx, Hxz_M1x); 
-  binop_mul_3d_ser_p1(Hxz_M1x, Vz, Hxz_M1x_Vz); 
+  binop_mul_2d_ser_p2(Hxz, NVx, Hxz_M1x); 
+  binop_mul_2d_ser_p2(Hxz_M1x, Vz, Hxz_M1x_Vz); 
  
   double Hyz_M1y[8] = {0.0}; 
   double Hyz_M1y_Vz[8] = {0.0}; 
-  binop_mul_3d_ser_p1(Hyz, NVy, Hyz_M1y); 
-  binop_mul_3d_ser_p1(Hyz_M1y, Vz, Hyz_M1y_Vz); 
+  binop_mul_2d_ser_p2(Hyz, NVy, Hyz_M1y); 
+  binop_mul_2d_ser_p2(Hyz_M1y, Vz, Hyz_M1y_Vz); 
  
   double Hzz_M1z[8] = {0.0}; 
   double Hzz_M1z_Vz[8] = {0.0}; 
-  binop_mul_3d_ser_p1(Hzz, NVz, Hzz_M1z); 
-  binop_mul_3d_ser_p1(Hzz_M1z, Vz, Hzz_M1z_Vz); 
+  binop_mul_2d_ser_p2(Hzz, NVz, Hzz_M1z); 
+  binop_mul_2d_ser_p2(Hzz_M1z, Vz, Hzz_M1z_Vz); 
  
   d_Jv_P[0] = 2.0*energy[0]; 
   d_Jv_P[0] += - Hxx_M1x_Vx[0]; 

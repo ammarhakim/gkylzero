@@ -1,6 +1,6 @@
 #include <gkyl_canonical_pb_kernels.h>  
 #include <gkyl_binop_mul_ser.h> 
-GKYL_CU_DH void canonical_pb_vars_pressure_1x_tensor_p1(const double *h_ij_inv, const double *MEnergy, const double *v_j, const double *nv_i, double* GKYL_RESTRICT d_Jv_P) 
+GKYL_CU_DH void canonical_pb_vars_pressure_1x1v_tensor_p2(const double *h_ij_inv, const double *MEnergy, const double *v_j, const double *nv_i, double* GKYL_RESTRICT d_Jv_P) 
 { 
   // h_ij_inv:         Input volume expansion of the inverse metric tensor.
   //                   [Hxx, Hxy, Hxz, 
@@ -22,14 +22,16 @@ GKYL_CU_DH void canonical_pb_vars_pressure_1x_tensor_p1(const double *h_ij_inv, 
   const double *Hxx = &h_ij_inv[0]; 
 
   // h^{ij}*nv_i*v_j 
-  double Hxx_M1x[2] = {0.0}; 
-  double Hxx_M1x_Vx[2] = {0.0}; 
-  binop_mul_1d_ser_p1(Hxx, NVx, Hxx_M1x); 
-  binop_mul_1d_ser_p1(Hxx_M1x, Vx, Hxx_M1x_Vx); 
+  double Hxx_M1x[3] = {0.0}; 
+  double Hxx_M1x_Vx[3] = {0.0}; 
+  binop_mul_1d_ser_p2(Hxx, NVx, Hxx_M1x); 
+  binop_mul_1d_ser_p2(Hxx_M1x, Vx, Hxx_M1x_Vx); 
  
   d_Jv_P[0] = 2.0*energy[0]; 
   d_Jv_P[0] += - Hxx_M1x_Vx[0]; 
   d_Jv_P[1] = 2.0*energy[1]; 
   d_Jv_P[1] += - Hxx_M1x_Vx[1]; 
+  d_Jv_P[2] = 2.0*energy[2]; 
+  d_Jv_P[2] += - Hxx_M1x_Vx[2]; 
  
 } 

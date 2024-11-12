@@ -7,8 +7,8 @@ EXTERN_C_BEG
 
 GKYL_CU_DH double canonical_pb_vol_1x1v_ser_p1(const double *w, const double *dxv, const double *hamil,  
               const double *fin, double* GKYL_RESTRICT out); 
-GKYL_CU_DH void canonical_pb_vars_pressure_1x_ser_p1(const double *h_ij_inv, const double *MEnergy, const double *v_j, 
-              const double *nv_i, double* GKYL_RESTRICT d_Jv_P);
+GKYL_CU_DH void canonical_pb_vars_pressure_1x1v_ser_p1(const double *h_ij_inv, const double *MEnergy, const double *v_j, 
+            const double *nv_i, double* GKYL_RESTRICT d_Jv_P);
 GKYL_CU_DH int canonical_pb_alpha_surfx_1x1v_ser_p1(const double *w, const double *dxv, const double *hamil, 
                 double* GKYL_RESTRICT alpha_surf, double* GKYL_RESTRICT sgn_alpha_surf); 
 GKYL_CU_DH int canonical_pb_alpha_edge_surfx_1x1v_ser_p1(const double *w, const double *dxv, const double *hamil,
@@ -38,8 +38,8 @@ GKYL_CU_DH double canonical_pb_boundary_surfvx_1x1v_ser_p1(const double *w, cons
 
 GKYL_CU_DH double canonical_pb_vol_1x1v_ser_p2(const double *w, const double *dxv, const double *hamil,  
               const double *fin, double* GKYL_RESTRICT out); 
-GKYL_CU_DH void canonical_pb_vars_pressure_1x_ser_p2(const double *h_ij_inv, const double *MEnergy, const double *v_j, 
-              const double *nv_i, double* GKYL_RESTRICT d_Jv_P);
+GKYL_CU_DH void canonical_pb_vars_pressure_1x1v_ser_p2(const double *h_ij_inv, const double *MEnergy, const double *v_j, 
+            const double *nv_i, double* GKYL_RESTRICT d_Jv_P);
 GKYL_CU_DH int canonical_pb_alpha_surfx_1x1v_ser_p2(const double *w, const double *dxv, const double *hamil, 
                 double* GKYL_RESTRICT alpha_surf, double* GKYL_RESTRICT sgn_alpha_surf); 
 GKYL_CU_DH int canonical_pb_alpha_edge_surfx_1x1v_ser_p2(const double *w, const double *dxv, const double *hamil,
@@ -69,6 +69,8 @@ GKYL_CU_DH double canonical_pb_boundary_surfvx_1x1v_ser_p2(const double *w, cons
 
 GKYL_CU_DH double canonical_pb_vol_1x2v_ser_p1(const double *w, const double *dxv, const double *hamil,  
               const double *fin, double* GKYL_RESTRICT out); 
+GKYL_CU_DH void canonical_pb_vars_pressure_1x2v_ser_p1(const double *h_ij_inv, const double *MEnergy, const double *v_j, 
+            const double *nv_i, double* GKYL_RESTRICT d_Jv_P);
 GKYL_CU_DH int canonical_pb_alpha_surfx_1x2v_ser_p1(const double *w, const double *dxv, const double *hamil, 
                 double* GKYL_RESTRICT alpha_surf, double* GKYL_RESTRICT sgn_alpha_surf); 
 GKYL_CU_DH int canonical_pb_alpha_edge_surfx_1x2v_ser_p1(const double *w, const double *dxv, const double *hamil,
@@ -110,6 +112,8 @@ GKYL_CU_DH double canonical_pb_boundary_surfvy_1x2v_ser_p1(const double *w, cons
 
 GKYL_CU_DH double canonical_pb_vol_1x2v_ser_p2(const double *w, const double *dxv, const double *hamil,  
               const double *fin, double* GKYL_RESTRICT out); 
+GKYL_CU_DH void canonical_pb_vars_pressure_1x2v_ser_p2(const double *h_ij_inv, const double *MEnergy, const double *v_j, 
+            const double *nv_i, double* GKYL_RESTRICT d_Jv_P);
 GKYL_CU_DH int canonical_pb_alpha_surfx_1x2v_ser_p2(const double *w, const double *dxv, const double *hamil, 
                 double* GKYL_RESTRICT alpha_surf, double* GKYL_RESTRICT sgn_alpha_surf); 
 GKYL_CU_DH int canonical_pb_alpha_edge_surfx_1x2v_ser_p2(const double *w, const double *dxv, const double *hamil,
@@ -151,6 +155,8 @@ GKYL_CU_DH double canonical_pb_boundary_surfvy_1x2v_ser_p2(const double *w, cons
 
 GKYL_CU_DH double canonical_pb_vol_1x3v_ser_p1(const double *w, const double *dxv, const double *hamil,  
               const double *fin, double* GKYL_RESTRICT out); 
+GKYL_CU_DH void canonical_pb_vars_pressure_1x3v_ser_p1(const double *h_ij_inv, const double *MEnergy, const double *v_j, 
+            const double *nv_i, double* GKYL_RESTRICT d_Jv_P);
 GKYL_CU_DH int canonical_pb_alpha_surfx_1x3v_ser_p1(const double *w, const double *dxv, const double *hamil, 
                 double* GKYL_RESTRICT alpha_surf, double* GKYL_RESTRICT sgn_alpha_surf); 
 GKYL_CU_DH int canonical_pb_alpha_edge_surfx_1x3v_ser_p1(const double *w, const double *dxv, const double *hamil,
@@ -204,6 +210,8 @@ GKYL_CU_DH double canonical_pb_boundary_surfvz_1x3v_ser_p1(const double *w, cons
 
 GKYL_CU_DH double canonical_pb_vol_1x3v_ser_p2(const double *w, const double *dxv, const double *hamil,  
               const double *fin, double* GKYL_RESTRICT out); 
+GKYL_CU_DH void canonical_pb_vars_pressure_1x3v_ser_p2(const double *h_ij_inv, const double *MEnergy, const double *v_j, 
+            const double *nv_i, double* GKYL_RESTRICT d_Jv_P);
 GKYL_CU_DH int canonical_pb_alpha_surfx_1x3v_ser_p2(const double *w, const double *dxv, const double *hamil, 
                 double* GKYL_RESTRICT alpha_surf, double* GKYL_RESTRICT sgn_alpha_surf); 
 GKYL_CU_DH int canonical_pb_alpha_edge_surfx_1x3v_ser_p2(const double *w, const double *dxv, const double *hamil,
@@ -257,8 +265,8 @@ GKYL_CU_DH double canonical_pb_boundary_surfvz_1x3v_ser_p2(const double *w, cons
 
 GKYL_CU_DH double canonical_pb_vol_2x2v_ser_p1(const double *w, const double *dxv, const double *hamil,  
               const double *fin, double* GKYL_RESTRICT out); 
-GKYL_CU_DH void canonical_pb_vars_pressure_2x_ser_p1(const double *h_ij_inv, const double *MEnergy, const double *v_j, 
-              const double *nv_i, double* GKYL_RESTRICT d_Jv_P);
+GKYL_CU_DH void canonical_pb_vars_pressure_2x2v_ser_p1(const double *h_ij_inv, const double *MEnergy, const double *v_j, 
+            const double *nv_i, double* GKYL_RESTRICT d_Jv_P);
 GKYL_CU_DH int canonical_pb_alpha_surfx_2x2v_ser_p1(const double *w, const double *dxv, const double *hamil, 
                 double* GKYL_RESTRICT alpha_surf, double* GKYL_RESTRICT sgn_alpha_surf); 
 GKYL_CU_DH int canonical_pb_alpha_edge_surfx_2x2v_ser_p1(const double *w, const double *dxv, const double *hamil,
@@ -314,8 +322,8 @@ GKYL_CU_DH double canonical_pb_boundary_surfvy_2x2v_ser_p1(const double *w, cons
 
 GKYL_CU_DH double canonical_pb_vol_2x2v_ser_p2(const double *w, const double *dxv, const double *hamil,  
               const double *fin, double* GKYL_RESTRICT out); 
-GKYL_CU_DH void canonical_pb_vars_pressure_2x_ser_p2(const double *h_ij_inv, const double *MEnergy, const double *v_j, 
-              const double *nv_i, double* GKYL_RESTRICT d_Jv_P);
+GKYL_CU_DH void canonical_pb_vars_pressure_2x2v_ser_p2(const double *h_ij_inv, const double *MEnergy, const double *v_j, 
+            const double *nv_i, double* GKYL_RESTRICT d_Jv_P);
 GKYL_CU_DH int canonical_pb_alpha_surfx_2x2v_ser_p2(const double *w, const double *dxv, const double *hamil, 
                 double* GKYL_RESTRICT alpha_surf, double* GKYL_RESTRICT sgn_alpha_surf); 
 GKYL_CU_DH int canonical_pb_alpha_edge_surfx_2x2v_ser_p2(const double *w, const double *dxv, const double *hamil,
@@ -371,6 +379,8 @@ GKYL_CU_DH double canonical_pb_boundary_surfvy_2x2v_ser_p2(const double *w, cons
 
 GKYL_CU_DH double canonical_pb_vol_2x3v_ser_p1(const double *w, const double *dxv, const double *hamil,  
               const double *fin, double* GKYL_RESTRICT out); 
+GKYL_CU_DH void canonical_pb_vars_pressure_2x3v_ser_p1(const double *h_ij_inv, const double *MEnergy, const double *v_j, 
+            const double *nv_i, double* GKYL_RESTRICT d_Jv_P);
 GKYL_CU_DH int canonical_pb_alpha_surfx_2x3v_ser_p1(const double *w, const double *dxv, const double *hamil, 
                 double* GKYL_RESTRICT alpha_surf, double* GKYL_RESTRICT sgn_alpha_surf); 
 GKYL_CU_DH int canonical_pb_alpha_edge_surfx_2x3v_ser_p1(const double *w, const double *dxv, const double *hamil,
@@ -438,6 +448,8 @@ GKYL_CU_DH double canonical_pb_boundary_surfvz_2x3v_ser_p1(const double *w, cons
 
 GKYL_CU_DH double canonical_pb_vol_2x3v_ser_p2(const double *w, const double *dxv, const double *hamil,  
               const double *fin, double* GKYL_RESTRICT out); 
+GKYL_CU_DH void canonical_pb_vars_pressure_2x3v_ser_p2(const double *h_ij_inv, const double *MEnergy, const double *v_j, 
+            const double *nv_i, double* GKYL_RESTRICT d_Jv_P);
 GKYL_CU_DH int canonical_pb_alpha_surfx_2x3v_ser_p2(const double *w, const double *dxv, const double *hamil, 
                 double* GKYL_RESTRICT alpha_surf, double* GKYL_RESTRICT sgn_alpha_surf); 
 GKYL_CU_DH int canonical_pb_alpha_edge_surfx_2x3v_ser_p2(const double *w, const double *dxv, const double *hamil,
@@ -505,8 +517,8 @@ GKYL_CU_DH double canonical_pb_boundary_surfvz_2x3v_ser_p2(const double *w, cons
 
 GKYL_CU_DH double canonical_pb_vol_1x1v_tensor_p1(const double *w, const double *dxv, const double *hamil,  
               const double *fin, double* GKYL_RESTRICT out); 
-GKYL_CU_DH void canonical_pb_vars_pressure_1x_tensor_p1(const double *h_ij_inv, const double *MEnergy, const double *v_j, 
-              const double *nv_i, double* GKYL_RESTRICT d_Jv_P);
+GKYL_CU_DH void canonical_pb_vars_pressure_1x1v_tensor_p1(const double *h_ij_inv, const double *MEnergy, const double *v_j, 
+            const double *nv_i, double* GKYL_RESTRICT d_Jv_P);
 GKYL_CU_DH int canonical_pb_alpha_surfx_1x1v_tensor_p1(const double *w, const double *dxv, const double *hamil, 
                 double* GKYL_RESTRICT alpha_surf, double* GKYL_RESTRICT sgn_alpha_surf); 
 GKYL_CU_DH int canonical_pb_alpha_edge_surfx_1x1v_tensor_p1(const double *w, const double *dxv, const double *hamil,
@@ -536,8 +548,8 @@ GKYL_CU_DH double canonical_pb_boundary_surfvx_1x1v_tensor_p1(const double *w, c
 
 GKYL_CU_DH double canonical_pb_vol_1x1v_tensor_p2(const double *w, const double *dxv, const double *hamil,  
               const double *fin, double* GKYL_RESTRICT out); 
-GKYL_CU_DH void canonical_pb_vars_pressure_1x_tensor_p2(const double *h_ij_inv, const double *MEnergy, const double *v_j, 
-              const double *nv_i, double* GKYL_RESTRICT d_Jv_P);
+GKYL_CU_DH void canonical_pb_vars_pressure_1x1v_tensor_p2(const double *h_ij_inv, const double *MEnergy, const double *v_j, 
+            const double *nv_i, double* GKYL_RESTRICT d_Jv_P);
 GKYL_CU_DH int canonical_pb_alpha_surfx_1x1v_tensor_p2(const double *w, const double *dxv, const double *hamil, 
                 double* GKYL_RESTRICT alpha_surf, double* GKYL_RESTRICT sgn_alpha_surf); 
 GKYL_CU_DH int canonical_pb_alpha_edge_surfx_1x1v_tensor_p2(const double *w, const double *dxv, const double *hamil,
@@ -567,6 +579,8 @@ GKYL_CU_DH double canonical_pb_boundary_surfvx_1x1v_tensor_p2(const double *w, c
 
 GKYL_CU_DH double canonical_pb_vol_1x2v_tensor_p1(const double *w, const double *dxv, const double *hamil,  
               const double *fin, double* GKYL_RESTRICT out); 
+GKYL_CU_DH void canonical_pb_vars_pressure_1x2v_tensor_p1(const double *h_ij_inv, const double *MEnergy, const double *v_j, 
+            const double *nv_i, double* GKYL_RESTRICT d_Jv_P);
 GKYL_CU_DH int canonical_pb_alpha_surfx_1x2v_tensor_p1(const double *w, const double *dxv, const double *hamil, 
                 double* GKYL_RESTRICT alpha_surf, double* GKYL_RESTRICT sgn_alpha_surf); 
 GKYL_CU_DH int canonical_pb_alpha_edge_surfx_1x2v_tensor_p1(const double *w, const double *dxv, const double *hamil,
@@ -608,6 +622,8 @@ GKYL_CU_DH double canonical_pb_boundary_surfvy_1x2v_tensor_p1(const double *w, c
 
 GKYL_CU_DH double canonical_pb_vol_1x2v_tensor_p2(const double *w, const double *dxv, const double *hamil,  
               const double *fin, double* GKYL_RESTRICT out); 
+GKYL_CU_DH void canonical_pb_vars_pressure_1x2v_tensor_p2(const double *h_ij_inv, const double *MEnergy, const double *v_j, 
+            const double *nv_i, double* GKYL_RESTRICT d_Jv_P);
 GKYL_CU_DH int canonical_pb_alpha_surfx_1x2v_tensor_p2(const double *w, const double *dxv, const double *hamil, 
                 double* GKYL_RESTRICT alpha_surf, double* GKYL_RESTRICT sgn_alpha_surf); 
 GKYL_CU_DH int canonical_pb_alpha_edge_surfx_1x2v_tensor_p2(const double *w, const double *dxv, const double *hamil,
@@ -649,6 +665,8 @@ GKYL_CU_DH double canonical_pb_boundary_surfvy_1x2v_tensor_p2(const double *w, c
 
 GKYL_CU_DH double canonical_pb_vol_1x3v_tensor_p1(const double *w, const double *dxv, const double *hamil,  
               const double *fin, double* GKYL_RESTRICT out); 
+GKYL_CU_DH void canonical_pb_vars_pressure_1x3v_tensor_p1(const double *h_ij_inv, const double *MEnergy, const double *v_j, 
+            const double *nv_i, double* GKYL_RESTRICT d_Jv_P);
 GKYL_CU_DH int canonical_pb_alpha_surfx_1x3v_tensor_p1(const double *w, const double *dxv, const double *hamil, 
                 double* GKYL_RESTRICT alpha_surf, double* GKYL_RESTRICT sgn_alpha_surf); 
 GKYL_CU_DH int canonical_pb_alpha_edge_surfx_1x3v_tensor_p1(const double *w, const double *dxv, const double *hamil,
@@ -702,6 +720,8 @@ GKYL_CU_DH double canonical_pb_boundary_surfvz_1x3v_tensor_p1(const double *w, c
 
 GKYL_CU_DH double canonical_pb_vol_1x3v_tensor_p2(const double *w, const double *dxv, const double *hamil,  
               const double *fin, double* GKYL_RESTRICT out); 
+GKYL_CU_DH void canonical_pb_vars_pressure_1x3v_tensor_p2(const double *h_ij_inv, const double *MEnergy, const double *v_j, 
+            const double *nv_i, double* GKYL_RESTRICT d_Jv_P);
 GKYL_CU_DH int canonical_pb_alpha_surfx_1x3v_tensor_p2(const double *w, const double *dxv, const double *hamil, 
                 double* GKYL_RESTRICT alpha_surf, double* GKYL_RESTRICT sgn_alpha_surf); 
 GKYL_CU_DH int canonical_pb_alpha_edge_surfx_1x3v_tensor_p2(const double *w, const double *dxv, const double *hamil,
@@ -755,8 +775,8 @@ GKYL_CU_DH double canonical_pb_boundary_surfvz_1x3v_tensor_p2(const double *w, c
 
 GKYL_CU_DH double canonical_pb_vol_2x2v_tensor_p1(const double *w, const double *dxv, const double *hamil,  
               const double *fin, double* GKYL_RESTRICT out); 
-GKYL_CU_DH void canonical_pb_vars_pressure_2x_tensor_p1(const double *h_ij_inv, const double *MEnergy, const double *v_j, 
-              const double *nv_i, double* GKYL_RESTRICT d_Jv_P);
+GKYL_CU_DH void canonical_pb_vars_pressure_2x2v_tensor_p1(const double *h_ij_inv, const double *MEnergy, const double *v_j, 
+            const double *nv_i, double* GKYL_RESTRICT d_Jv_P);
 GKYL_CU_DH int canonical_pb_alpha_surfx_2x2v_tensor_p1(const double *w, const double *dxv, const double *hamil, 
                 double* GKYL_RESTRICT alpha_surf, double* GKYL_RESTRICT sgn_alpha_surf); 
 GKYL_CU_DH int canonical_pb_alpha_edge_surfx_2x2v_tensor_p1(const double *w, const double *dxv, const double *hamil,
@@ -812,8 +832,8 @@ GKYL_CU_DH double canonical_pb_boundary_surfvy_2x2v_tensor_p1(const double *w, c
 
 GKYL_CU_DH double canonical_pb_vol_2x2v_tensor_p2(const double *w, const double *dxv, const double *hamil,  
               const double *fin, double* GKYL_RESTRICT out); 
-GKYL_CU_DH void canonical_pb_vars_pressure_2x_tensor_p2(const double *h_ij_inv, const double *MEnergy, const double *v_j, 
-              const double *nv_i, double* GKYL_RESTRICT d_Jv_P);
+GKYL_CU_DH void canonical_pb_vars_pressure_2x2v_tensor_p2(const double *h_ij_inv, const double *MEnergy, const double *v_j, 
+            const double *nv_i, double* GKYL_RESTRICT d_Jv_P);
 GKYL_CU_DH int canonical_pb_alpha_surfx_2x2v_tensor_p2(const double *w, const double *dxv, const double *hamil, 
                 double* GKYL_RESTRICT alpha_surf, double* GKYL_RESTRICT sgn_alpha_surf); 
 GKYL_CU_DH int canonical_pb_alpha_edge_surfx_2x2v_tensor_p2(const double *w, const double *dxv, const double *hamil,
@@ -869,6 +889,8 @@ GKYL_CU_DH double canonical_pb_boundary_surfvy_2x2v_tensor_p2(const double *w, c
 
 GKYL_CU_DH double canonical_pb_vol_2x3v_tensor_p1(const double *w, const double *dxv, const double *hamil,  
               const double *fin, double* GKYL_RESTRICT out); 
+GKYL_CU_DH void canonical_pb_vars_pressure_2x3v_tensor_p1(const double *h_ij_inv, const double *MEnergy, const double *v_j, 
+            const double *nv_i, double* GKYL_RESTRICT d_Jv_P);
 GKYL_CU_DH int canonical_pb_alpha_surfx_2x3v_tensor_p1(const double *w, const double *dxv, const double *hamil, 
                 double* GKYL_RESTRICT alpha_surf, double* GKYL_RESTRICT sgn_alpha_surf); 
 GKYL_CU_DH int canonical_pb_alpha_edge_surfx_2x3v_tensor_p1(const double *w, const double *dxv, const double *hamil,
@@ -936,8 +958,8 @@ GKYL_CU_DH double canonical_pb_boundary_surfvz_2x3v_tensor_p1(const double *w, c
 
 GKYL_CU_DH double canonical_pb_vol_3x3v_tensor_p1(const double *w, const double *dxv, const double *hamil,  
               const double *fin, double* GKYL_RESTRICT out); 
-GKYL_CU_DH void canonical_pb_vars_pressure_3x_tensor_p1(const double *h_ij_inv, const double *MEnergy, const double *v_j, 
-              const double *nv_i, double* GKYL_RESTRICT d_Jv_P);
+GKYL_CU_DH void canonical_pb_vars_pressure_3x3v_tensor_p1(const double *h_ij_inv, const double *MEnergy, const double *v_j, 
+            const double *nv_i, double* GKYL_RESTRICT d_Jv_P);
 GKYL_CU_DH int canonical_pb_alpha_surfx_3x3v_tensor_p1(const double *w, const double *dxv, const double *hamil, 
                 double* GKYL_RESTRICT alpha_surf, double* GKYL_RESTRICT sgn_alpha_surf); 
 GKYL_CU_DH int canonical_pb_alpha_edge_surfx_3x3v_tensor_p1(const double *w, const double *dxv, const double *hamil,

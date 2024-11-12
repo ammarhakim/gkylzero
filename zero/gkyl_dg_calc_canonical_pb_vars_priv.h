@@ -178,9 +178,12 @@ static const gkyl_dg_canonical_pb_alpha_surf_kern_list ser_canonical_pb_alpha_su
 GKYL_CU_D
 static const gkyl_dg_canonical_pb_pressure_kern_list ser_canonical_pb_pressure_kernels[] = {
   // 1x kernels
-  { NULL, canonical_pb_vars_pressure_1x_ser_p1, canonical_pb_vars_pressure_1x_ser_p2 }, // 0
+  { NULL, canonical_pb_vars_pressure_1x1v_ser_p1, canonical_pb_vars_pressure_1x1v_ser_p2 }, // 0
+  { NULL, canonical_pb_vars_pressure_1x2v_ser_p1, canonical_pb_vars_pressure_1x2v_ser_p2 }, // 1
+  { NULL, canonical_pb_vars_pressure_1x3v_ser_p1, canonical_pb_vars_pressure_1x3v_ser_p2 }, // 2
   // 2x kernels
-  { NULL, canonical_pb_vars_pressure_2x_ser_p1, canonical_pb_vars_pressure_2x_ser_p2 }, // 1
+  { NULL, canonical_pb_vars_pressure_2x2v_ser_p1, canonical_pb_vars_pressure_2x2v_ser_p2 }, // 3
+  { NULL, canonical_pb_vars_pressure_2x3v_ser_p1, canonical_pb_vars_pressure_2x3v_ser_p2 }, // 3
   // 3x kernels
   { NULL, NULL, NULL }, // 2
 };
@@ -321,9 +324,15 @@ static const gkyl_dg_canonical_pb_alpha_surf_kern_list tensor_canonical_pb_alpha
 // canonical_pb Pressure (d*P*Jv = h^{ij}*M2_{ij} - n*h^{ij}*u_i*u_j) (Tensor kernels)
 GKYL_CU_D
 static const gkyl_dg_canonical_pb_pressure_kern_list tensor_canonical_pb_pressure_kernels[] = {
-  { NULL, canonical_pb_vars_pressure_1x_tensor_p1, canonical_pb_vars_pressure_1x_tensor_p2 }, // 0
-  { NULL, canonical_pb_vars_pressure_2x_tensor_p1, canonical_pb_vars_pressure_2x_tensor_p2 }, // 1
-  { NULL, canonical_pb_vars_pressure_3x_tensor_p1, NULL }, // 2
+  // 1x kernels
+  { NULL, canonical_pb_vars_pressure_1x1v_tensor_p1, canonical_pb_vars_pressure_1x1v_tensor_p2 }, // 0
+  { NULL, canonical_pb_vars_pressure_1x2v_tensor_p1, canonical_pb_vars_pressure_1x2v_tensor_p2 }, // 1
+  { NULL, canonical_pb_vars_pressure_1x3v_tensor_p1, canonical_pb_vars_pressure_1x3v_tensor_p2 }, // 2
+  // 2x kernels
+  { NULL, canonical_pb_vars_pressure_2x2v_tensor_p1, canonical_pb_vars_pressure_2x2v_tensor_p2 }, // 3
+  { NULL, canonical_pb_vars_pressure_2x3v_tensor_p1, NULL }, //4
+  // 3x kernels
+  { NULL, canonical_pb_vars_pressure_3x3v_tensor_p1, NULL }, // 5
 };
 
 
@@ -423,14 +432,14 @@ choose_canonical_pb_alpha_surf_v_kern(enum gkyl_basis_type b_type, int dir, int 
 
 GKYL_CU_D
 static canonical_pb_pressure_t
-choose_canonical_pb_pressure_kern(enum gkyl_basis_type b_type, int cdim, int poly_order)
+choose_canonical_pb_pressure_kern(enum gkyl_basis_type b_type, int cv_index, int cdim, int poly_order)
 {
   switch (b_type) {
     case GKYL_BASIS_MODAL_SERENDIPITY:
-      return ser_canonical_pb_pressure_kernels[cdim-1].kernels[poly_order];
+      return ser_canonical_pb_pressure_kernels[cv_index].kernels[poly_order];
       break; 
     case GKYL_BASIS_MODAL_TENSOR:
-      return tensor_canonical_pb_pressure_kernels[cdim-1].kernels[poly_order];
+      return tensor_canonical_pb_pressure_kernels[cv_index].kernels[poly_order];
       break; 
     default:
       assert(false);

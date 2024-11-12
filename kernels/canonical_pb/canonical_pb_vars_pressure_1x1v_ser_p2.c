@@ -1,6 +1,6 @@
 #include <gkyl_canonical_pb_kernels.h>  
 #include <gkyl_binop_mul_ser.h> 
-GKYL_CU_DH void canonical_pb_vars_pressure_1x_ser_p2(const double *h_ij_inv, const double *MEnergy, const double *v_j, const double *nv_i, double* GKYL_RESTRICT d_Jv_P) 
+GKYL_CU_DH void canonical_pb_vars_pressure_1x1v_ser_p2(const double *h_ij_inv, const double *MEnergy, const double *v_j, const double *nv_i, double* GKYL_RESTRICT d_Jv_P) 
 { 
   // h_ij_inv:         Input volume expansion of the inverse metric tensor.
   //                   [Hxx, Hxy, Hxz, 

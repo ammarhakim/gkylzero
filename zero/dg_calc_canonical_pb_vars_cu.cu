@@ -137,7 +137,7 @@ __global__ static void
   dg_calc_canoncial_pb_vars_set_cu_dev_ptrs(struct gkyl_dg_calc_canonical_pb_vars *up,
   enum gkyl_basis_type b_type, int cv_index, int cdim, int vdim, int poly_order)
 {
-  up->canonical_pb_pressure = choose_canonical_pb_pressure_kern(b_type, cdim, poly_order);
+  up->canonical_pb_pressure = choose_canonical_pb_pressure_kern(b_type, cv_index, cdim, poly_order);
   for (int d=0; d<cdim; ++d) {  
     up->alpha_surf[d] = choose_canonical_pb_alpha_surf_kern(b_type, d, cv_index, cdim, vdim, poly_order);
     up->alpha_edge_surf[d] = choose_canonical_pb_alpha_edge_surf_kern(b_type, d, cv_index, cdim, vdim, poly_order);
