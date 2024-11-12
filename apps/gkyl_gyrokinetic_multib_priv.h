@@ -47,7 +47,8 @@ struct gkyl_gyrokinetic_multib_app {
   struct gkyl_mbcc_sr *mbcc_sync_neut; // Connections for neut species phase-space.
 
   // Updaters to rescale jac*f in the ghost cell.
-  struct gkyl_phase_ghost_conf_div_flip_mul *jf_rescale_charged, *jf_rescale_neut;
+  struct gkyl_phase_ghost_conf_div_flip_mul *jf_rescale_charged[2*GKYL_MAX_CDIM];
+  struct gkyl_phase_ghost_conf_div_flip_mul *jf_rescale_neut[2*GKYL_MAX_CDIM];
 
   double tcurr; // current time
   

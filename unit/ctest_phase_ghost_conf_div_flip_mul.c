@@ -97,9 +97,6 @@ void test_1x1v_at_edge(bool use_gpu, int dir, enum gkyl_edge_loc edge)
   struct gkyl_basis basis;
   gkyl_cart_modal_serendip(&basis, pdim, poly_order);
 
-  struct gkyl_basis *basis_conf_dev = use_gpu? gkyl_cart_modal_serendip_cu_dev_new(cdim, poly_order)
-                                             : gkyl_cart_modal_serendip_new(cdim, poly_order);
-
   // Ranges.
   int ghost_cells_conf[cdim];
   for (int d=0; d<cdim; d++) ghost_cells_conf[d] = 1;
@@ -149,10 +146,10 @@ void test_1x1v_at_edge(bool use_gpu, int dir, enum gkyl_edge_loc edge)
 
   // Divide jf by j in the ghost cell, and multiply by the flipped skin cell j.
   struct gkyl_phase_ghost_conf_div_flip_mul* jf_rescale =
-    gkyl_phase_ghost_conf_div_flip_mul_new(basis_conf_dev, &basis, use_gpu);
+    gkyl_phase_ghost_conf_div_flip_mul_new(dir, edge, &basis_conf, &basis, use_gpu);
 
   gkyl_phase_ghost_conf_div_flip_mul_advance(jf_rescale,
-    dir, edge, &skin_conf, &ghost_conf, &ghost, jac, jf);
+    &skin_conf, &ghost_conf, &ghost, jac, jf);
 
   gkyl_phase_ghost_conf_div_flip_mul_release(jf_rescale);
 
@@ -193,10 +190,6 @@ void test_1x1v_at_edge(bool use_gpu, int dir, enum gkyl_edge_loc edge)
   }
 
   // Free memory.
-  if (use_gpu)
-    gkyl_cart_modal_basis_release_cu(basis_conf_dev);
-  else
-    gkyl_cart_modal_basis_release(basis_conf_dev);
   gkyl_array_release(distf_ho);
   gkyl_array_release(distf);
   gkyl_array_release(jac_ho);
@@ -268,9 +261,6 @@ void test_2x2v_at_edge(bool use_gpu, int dir, enum gkyl_edge_loc edge)
   struct gkyl_basis basis;
   gkyl_cart_modal_serendip(&basis, pdim, poly_order);
 
-  struct gkyl_basis *basis_conf_dev = use_gpu? gkyl_cart_modal_serendip_cu_dev_new(cdim, poly_order)
-                                             : gkyl_cart_modal_serendip_new(cdim, poly_order);
-
   // Ranges.
   int ghost_cells_conf[cdim];
   for (int d=0; d<cdim; d++) ghost_cells_conf[d] = 1;
@@ -320,10 +310,10 @@ void test_2x2v_at_edge(bool use_gpu, int dir, enum gkyl_edge_loc edge)
 
   // Divide jf by j in the ghost cell, and multiply by the flipped skin cell j.
   struct gkyl_phase_ghost_conf_div_flip_mul* jf_rescale =
-    gkyl_phase_ghost_conf_div_flip_mul_new(basis_conf_dev, &basis, use_gpu);
+    gkyl_phase_ghost_conf_div_flip_mul_new(dir, edge, &basis_conf, &basis, use_gpu);
 
   gkyl_phase_ghost_conf_div_flip_mul_advance(jf_rescale,
-    dir, edge, &skin_conf, &ghost_conf, &ghost, jac, jf);
+    &skin_conf, &ghost_conf, &ghost, jac, jf);
 
   gkyl_phase_ghost_conf_div_flip_mul_release(jf_rescale);
 
@@ -364,10 +354,6 @@ void test_2x2v_at_edge(bool use_gpu, int dir, enum gkyl_edge_loc edge)
   }
 
   // Free memory.
-  if (use_gpu)
-    gkyl_cart_modal_basis_release_cu(basis_conf_dev);
-  else
-    gkyl_cart_modal_basis_release(basis_conf_dev);
   gkyl_array_release(distf_ho);
   gkyl_array_release(distf);
   gkyl_array_release(jac_ho);

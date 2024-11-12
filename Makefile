@@ -356,6 +356,10 @@ $(BUILD_DIR)/kernels/deflate_surf/%.c.o : kernels/deflate_surf/%.c
 	$(MKDIR_P) $(dir $@)
 	$(CC) $(CFLAGS) $(NVCC_FLAGS) $(INCLUDES) -c $< -o $@
 
+$(BUILD_DIR)/kernels/inflate_surf/%.c.o : kernels/inflate_surf/%.c
+	$(MKDIR_P) $(dir $@)
+	$(CC) $(CFLAGS) $(NVCC_FLAGS) $(INCLUDES) -c $< -o $@
+
 $(BUILD_DIR)/kernels/positivity_shift/%.c.o : kernels/positivity_shift/%.c
 	$(MKDIR_P) $(dir $@)
 	$(CC) $(CFLAGS) $(NVCC_FLAGS) $(INCLUDES) -c $< -o $@

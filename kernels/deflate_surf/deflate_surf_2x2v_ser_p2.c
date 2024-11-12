@@ -48,7 +48,7 @@ GKYL_CU_DH void deflate_surfx_upper_2x2v_ser_p2(const double *fld, double *fld_d
   fld_deflated[19] = 1.224744871391589*fld[47]+0.7071067811865475*fld[43]; 
 }
  
-GKYL_CU_DH void deflate_surfz_lower_2x2v_ser_p2(const double *fld, double *fld_deflated) 
+GKYL_CU_DH void deflate_surfy_lower_2x2v_ser_p2(const double *fld, double *fld_deflated) 
 { 
   fld_deflated[0] = 1.5811388300841895*fld[12]-1.224744871391589*fld[2]+0.7071067811865475*fld[0]; 
   fld_deflated[1] = 1.5811388300841898*fld[20]-1.224744871391589*fld[5]+0.7071067811865475*fld[1]; 
@@ -72,7 +72,7 @@ GKYL_CU_DH void deflate_surfz_lower_2x2v_ser_p2(const double *fld, double *fld_d
   fld_deflated[19] = 0.7071067811865475*fld[42]-1.224744871391589*fld[47]; 
 }
  
-GKYL_CU_DH void deflate_surfz_upper_2x2v_ser_p2(const double *fld, double *fld_deflated) 
+GKYL_CU_DH void deflate_surfy_upper_2x2v_ser_p2(const double *fld, double *fld_deflated) 
 { 
   fld_deflated[0] = 1.5811388300841895*fld[12]+1.224744871391589*fld[2]+0.7071067811865475*fld[0]; 
   fld_deflated[1] = 1.5811388300841898*fld[20]+1.224744871391589*fld[5]+0.7071067811865475*fld[1]; 
