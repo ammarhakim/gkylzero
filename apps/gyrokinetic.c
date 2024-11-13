@@ -462,10 +462,7 @@ gkyl_gyrokinetic_app_new_solver(struct gkyl_gk *gk, gkyl_gyrokinetic_app *app)
 gkyl_gyrokinetic_app*
 gkyl_gyrokinetic_app_new(struct gkyl_gk *gk)
 {
-  // Allocate the new app and create its geometry.
   gkyl_gyrokinetic_app* app = gkyl_gyrokinetic_app_new_geom(gk);
-
-  // Create the rest of the app's solvers.
   gkyl_gyrokinetic_app_new_solver(gk, app);
 
   return app;

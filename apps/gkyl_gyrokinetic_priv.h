@@ -816,6 +816,27 @@ struct gyrokinetic_output_meta
 gk_meta_from_mpack(struct gkyl_array_meta *mt);
 
 /**
+ * Allocate a new gyrokinetic app and initialize its conf-space grid and
+ * geometry. This method needs to be complemented by
+ * gkyl_gyrokinetic_app_new_solver below.
+ *
+ * @param gk Gyrokinetic input struct.
+ * @return A gyrokinetic app object.
+ */
+gkyl_gyrokinetic_app*
+gkyl_gyrokinetic_app_new_geom(struct gkyl_gk *gk);
+
+/**
+ * Initialize the rest of the gyrokinetic app solver, after having called
+ * the gkyl_gyrokinetic_app_new_geom method.
+ *
+ * @param gk Gyrokinetic input struct.
+ * @param app Gyrokinetic app.
+ */
+void
+gkyl_gyrokinetic_app_new_solver(struct gkyl_gk *gk, gkyl_gyrokinetic_app *app);
+
+/**
  * Find species with given name.
  *
  * @param app Top-level app to look into
