@@ -93,6 +93,8 @@ gkyl_rescale_ghost_jacf_advance(const struct gkyl_rescale_ghost_jacf *up,
       up->kernels->conf_phase_mul_op(jacskin_surf_c, jf_surf_c, jf_surf_c);
 
       // Inflate Jf.
+      for (int k=0; k<jf->ncomp; k++)
+        jf_c[k] = 0.0;
       up->kernels->inflate_phase_ghost_op(jf_surf_c, jf_c);
     }
   }
