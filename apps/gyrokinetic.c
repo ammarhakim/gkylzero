@@ -135,7 +135,7 @@ gk_meta_from_mpack(struct gkyl_array_meta *mt)
 }
 
 gkyl_gyrokinetic_app*
-gkyl_gyrokinetic_app_new(struct gkyl_gk *gk)
+gkyl_gyrokinetic_app_new_geom(struct gkyl_gk *gk)
 {
   disable_denorm_float();
 
@@ -285,7 +285,7 @@ gkyl_gyrokinetic_app_new(struct gkyl_gk *gk)
   for(int i = 0; i<3; i++)
     geometry_inp.world[i] = gk->geometry.world[i];
 
-  if(app->cdim < 3){
+  if (app->cdim < 3){
     geometry_inp.geo_grid = gkyl_gk_geometry_augment_grid(app->grid, geometry_inp);
     switch (gk->basis_type) {
       case GKYL_BASIS_MODAL_SERENDIPITY:
@@ -307,7 +307,6 @@ gkyl_gyrokinetic_app_new(struct gkyl_gk *gk)
       memcpy(&geometry_inp.geo_local, &geometry_inp.geo_global, sizeof(struct gkyl_range));
       memcpy(&geometry_inp.geo_local_ext, &geometry_inp.geo_global_ext, sizeof(struct gkyl_range));
     }
-
   }
   else{
     geometry_inp.geo_grid = app->grid;
@@ -362,7 +361,16 @@ gkyl_gyrokinetic_app_new(struct gkyl_gk *gk)
 
   gkyl_gyrokinetic_app_write_geometry(app);
 
-  // allocate space to store species and neutral species objects
+  return app;
+}
+
+void
+gkyl_gyrokinetic_app_new_solver(struct gkyl_gk *gk, gkyl_gyrokinetic_app *app)
+{
+  int ns = app->num_species = gk->num_species;
+  int neuts = app->num_neut_species = gk->num_neut_species;
+
+  // Allocate space to store species and neutral species objects
   app->species = ns>0 ? gkyl_malloc(sizeof(struct gk_species[ns])) : 0;
   app->neut_species = neuts>0 ? gkyl_malloc(sizeof(struct gk_neut_species[neuts])) : 0;
 
@@ -382,6 +390,7 @@ gkyl_gyrokinetic_app_new(struct gkyl_gk *gk)
   app->enforce_positivity = gk->enforce_positivity;
   if (app->enforce_positivity) {
     // Number of density of the positivity shift added over all the ions.
+    // Needed before species_init because species store pointers to these.
     app->ps_delta_m0_ions = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
     app->ps_delta_m0_elcs = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
   }
@@ -448,6 +457,16 @@ gkyl_gyrokinetic_app_new(struct gkyl_gk *gk)
     .stage_2_dt_diff = { DBL_MAX, 0.0 },
     .stage_3_dt_diff = { DBL_MAX, 0.0 },
   };
+}
+
+gkyl_gyrokinetic_app*
+gkyl_gyrokinetic_app_new(struct gkyl_gk *gk)
+{
+  // Allocate the new app and create its geometry.
+  gkyl_gyrokinetic_app* app = gkyl_gyrokinetic_app_new_geom(gk);
+
+  // Create the rest of the app's solvers.
+  gkyl_gyrokinetic_app_new_solver(gk, app);
 
   return app;
 }
@@ -456,7 +475,6 @@ void
 gyrokinetic_calc_field(gkyl_gyrokinetic_app* app, double tcurr, const struct gkyl_array *fin[])
 {
   // Compute fields.
-
   if (app->update_field) {
     // Compute electrostatic potential from gyrokinetic Poisson's equation.
     gk_field_accumulate_rho_c(app, app->field, fin);
@@ -2248,7 +2266,6 @@ gyrokinetic_rhs(gkyl_gyrokinetic_app* app, double tcurr, double dt,
   // Don't take a time-step larger that input dt.
   double dta = st->dt_actual = dt < dtmin ? dt : dtmin;
   st->dt_suggested = dtmin;
-
 }
 
 struct gkyl_update_status
