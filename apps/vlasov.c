@@ -1449,7 +1449,13 @@ gkyl_vlasov_app_read_from_frame(gkyl_vlasov_app *app, int frame)
       for (int i=0; i<app->num_species; ++i)
         distf[i] = app->species[i].f;
 
-      vp_calc_field_and_apply_bc(app, rstat.stime, distf);
+      // MF 2024/09/27/: Need the cast here for consistency. Fixing
+      // this may require removing 'const' from a lot of places.
+      vp_field_apply_ic(app, app->field, (const struct gkyl_array **) distf, rstat.stime);
+      // Apply boundary conditions.
+      for (int i=0; i<app->num_species; ++i) {
+        vm_species_apply_bc(app, &app->species[i], distf[i], rstat.stime);
+      }
     }
   }
 
