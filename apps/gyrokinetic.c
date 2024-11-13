@@ -366,6 +366,7 @@ gkyl_gyrokinetic_app_new(struct gkyl_gk *gk)
 
   app->update_field = !gk->skip_field; // note inversion of truth value (default: update field)
   app->field = gk_field_new(gk, app); // initialize field, even if we are skipping field updates
+  app->static_field = gk->static_field;
 
   app->enforce_positivity = gk->enforce_positivity;
   if (app->enforce_positivity) {
@@ -474,7 +475,9 @@ calc_field_and_apply_bc(gkyl_gyrokinetic_app* app, double tcurr, struct gkyl_arr
   // Compute the field.
   // MF 2024/09/27/: Need the cast here for consistency. Fixing
   // this may require removing 'const' from a lot of places.
-  calc_field(app, tcurr, (const struct gkyl_array **) distf);
+  if (app->static_field == false || app->stat.nup == 0) {
+    calc_field(app, tcurr, (const struct gkyl_array **) distf);
+  }
 
   // Apply boundary conditions.
   for (int i=0; i<app->num_species; ++i) {
