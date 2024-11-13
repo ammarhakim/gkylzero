@@ -1,8 +1,8 @@
 #pragma once
 
-// Private header for phase_ghost_conf_div_flip_mul updater, not for direct use in user code.
+// Private header for rescale_ghost_jacf updater, not for direct use in user code.
 
-#include <gkyl_phase_ghost_conf_div_flip_mul.h>
+#include <gkyl_rescale_ghost_jacf.h>
 #include <gkyl_mom_gyrokinetic_kernels.h>
 #include <gkyl_mom_gyrokinetic_priv.h>
 #include <gkyl_dg_bin_ops_priv.h>
@@ -214,7 +214,7 @@ static const edged_inflate_surf_kern_list ser_inflate_surf_phase_list[] = {
   }
 };
 
-struct gkyl_phase_ghost_conf_div_flip_mul_kernels {
+struct gkyl_rescale_ghost_jacf_kernels {
   deflate_surf_op_t deflate_conf_ghost_op; // Project conf-field onto plane at lower/upper surface.
   deflate_surf_op_t deflate_conf_skin_op; // Project conf-field onto plane at lower/upper surface.
   deflate_surf_op_t deflate_phase_ghost_op; // Project phase-field onto plane at lower/upper surface.
@@ -225,27 +225,27 @@ struct gkyl_phase_ghost_conf_div_flip_mul_kernels {
 };
 
 // Primary struct in this updater.
-struct gkyl_phase_ghost_conf_div_flip_mul {
+struct gkyl_rescale_ghost_jacf {
   int dir; // Direction perpendicular to the boundary.
   enum gkyl_edge_loc edge; // Boundary edge (lower/upper).
   bool use_gpu; // Whether to run on the GPU or not.
-  struct gkyl_phase_ghost_conf_div_flip_mul_kernels *kernels;
+  struct gkyl_rescale_ghost_jacf_kernels *kernels;
 };
 
 #ifdef GKYL_HAVE_CUDA
 // Declaration of cuda device functions.
 void
-pghost_cdm_choose_kernel_cu(struct gkyl_phase_ghost_conf_div_flip_mul_kernels *kernels,
+pghost_cdm_choose_kernel_cu(struct gkyl_rescale_ghost_jacf_kernels *kernels,
   int dir, enum gkyl_edge_loc edge, const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis);
 
 void
-gkyl_phase_ghost_conf_div_flip_mul_advance_cu(const struct gkyl_phase_ghost_conf_div_flip_mul *up,
+gkyl_rescale_ghost_jacf_advance_cu(const struct gkyl_rescale_ghost_jacf *up,
   const struct gkyl_range *conf_skin_r, const struct gkyl_range *conf_ghost_r,
   const struct gkyl_range *phase_ghost_r, const struct gkyl_array *jac, struct gkyl_array *jf);
 #endif
 
 GKYL_CU_D
-static void phase_ghost_conf_div_flip_mul_choose_kernel(struct gkyl_phase_ghost_conf_div_flip_mul_kernels *kernels,
+static void rescale_ghost_jacf_choose_kernel(struct gkyl_rescale_ghost_jacf_kernels *kernels,
   int dir, enum gkyl_edge_loc edge, const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis, bool use_gpu)
 {
 #ifdef GKYL_HAVE_CUDA
@@ -266,7 +266,7 @@ static void phase_ghost_conf_div_flip_mul_choose_kernel(struct gkyl_phase_ghost_
     case GKYL_BASIS_MODAL_SERENDIPITY:
       kernels->deflate_phase_ghost_op = ser_deflate_surf_phase_list[ghost_edge].edgedlist[pdim-1].dirlist[dir].kernels[poly_order-1];
       kernels->inflate_phase_ghost_op = ser_inflate_surf_phase_list[pdim-1].dirlist[dir].kernels[poly_order-1];
-      kernels->conf_phase_mul_op = choose_mul_conf_phase_kern(pbasis_type, cdim-1, pdim-(cdim-1), poly_order);
+      kernels->conf_phase_mul_op = choose_mul_conf_phase_kern(pbasis_type, cdim-1, pdim-cdim, poly_order);
       break;
     default:
       assert(false);

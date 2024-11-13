@@ -1,15 +1,15 @@
 /* -*- c++ -*- */
 
 extern "C" {
-#include <gkyl_phase_ghost_conf_div_flip_mul.h>
-#include <gkyl_phase_ghost_conf_div_flip_mul_priv.h>
+#include <gkyl_rescale_ghost_jacf.h>
+#include <gkyl_rescale_ghost_jacf_priv.h>
 #include <gkyl_array_ops.h>
 #include <float.h>
 }
 
 // CUDA kernel to set device pointers to kernels.
 __global__ static void
-gkyl_pghost_cdm_set_cu_ker_ptrs(struct gkyl_phase_ghost_conf_div_flip_mul_kernels *kernels,
+gkyl_pghost_cdm_set_cu_ker_ptrs(struct gkyl_rescale_ghost_jacf_kernels *kernels,
   const struct gkyl_basis *cbasis, struct gkyl_basis pbasis)
 {
   int cdim = cbasis->ndim;
@@ -40,7 +40,7 @@ gkyl_pghost_cdm_set_cu_ker_ptrs(struct gkyl_phase_ghost_conf_div_flip_mul_kernel
 };
 
 void
-pghost_cdm_choose_kernel_cu(struct gkyl_phase_ghost_conf_div_flip_mul_kernels *kernels,
+pghost_cdm_choose_kernel_cu(struct gkyl_rescale_ghost_jacf_kernels *kernels,
   const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis)
 {
   gkyl_pghost_cdm_set_cu_ker_ptrs<<<1,1>>>(kernels, cbasis, *pbasis);
@@ -48,7 +48,7 @@ pghost_cdm_choose_kernel_cu(struct gkyl_phase_ghost_conf_div_flip_mul_kernels *k
 
 // CUDA kernel to copy ghost cell values to the adjacent skin (boundary) cells on the GPU.
 __global__ static void
-gkyl_phase_ghost_conf_div_flip_mul_advance_cu_ker(struct gkyl_phase_ghost_conf_div_flip_mul_kernels *kers,
+gkyl_rescale_ghost_jacf_advance_cu_ker(struct gkyl_rescale_ghost_jacf_kernels *kers,
   int dir, enum gkyl_edge_loc edge, const struct gkyl_basis *conf_basis,
   const struct gkyl_range conf_skin_r, const struct gkyl_range conf_ghost_r,
   const struct gkyl_range phase_ghost_r, const struct gkyl_array *jac, struct gkyl_array *jf)
@@ -96,7 +96,7 @@ gkyl_phase_ghost_conf_div_flip_mul_advance_cu_ker(struct gkyl_phase_ghost_conf_d
 
 // Function to launch the CUDA kernel that performs the ghost-to-skin value transfer on the GPU.
 void
-gkyl_phase_ghost_conf_div_flip_mul_advance_cu(const struct gkyl_phase_ghost_conf_div_flip_mul *up,
+gkyl_rescale_ghost_jacf_advance_cu(const struct gkyl_rescale_ghost_jacf *up,
   int dir, enum gkyl_edge_loc edge, const struct gkyl_range *conf_skin_r, const struct gkyl_range *conf_ghost_r,
   const struct gkyl_range *phase_ghost_r, const struct gkyl_array *jac, struct gkyl_array *jf)
 {
@@ -104,6 +104,6 @@ gkyl_phase_ghost_conf_div_flip_mul_advance_cu(const struct gkyl_phase_ghost_conf
   int nblocks = phase_ghost_r->nblocks, nthreads = phase_ghost_r->nthreads; // CUDA grid configuration.
 
   // Launch the CUDA kernel to advance the ghost-to-skin update.
-  gkyl_phase_ghost_conf_div_flip_mul_advance_cu_ker<<<nblocks, nthreads>>>(up->kernels, dir, edge,
+  gkyl_rescale_ghost_jacf_advance_cu_ker<<<nblocks, nthreads>>>(up->kernels, dir, edge,
     up->conf_basis, *conf_skin_r, *conf_ghost_r, *phase_ghost_r, jac->on_dev, jf->on_dev);
 }

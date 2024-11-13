@@ -6,7 +6,7 @@
 #include <gkyl_array_rio.h>
 #include <gkyl_proj_on_basis.h>
 #include <gkyl_eval_on_nodes.h>
-#include <gkyl_phase_ghost_conf_div_flip_mul.h>
+#include <gkyl_rescale_ghost_jacf.h>
 #include <gkyl_dg_bin_ops.h>
 #include <gkyl_dg_bin_ops_priv.h>
 #include <gkyl_util.h>
@@ -145,13 +145,13 @@ void test_1x1v_at_edge(bool use_gpu, int dir, enum gkyl_edge_loc edge)
   gkyl_array_copy(distf_ho, jf);
 
   // Divide jf by j in the ghost cell, and multiply by the flipped skin cell j.
-  struct gkyl_phase_ghost_conf_div_flip_mul* jf_rescale =
-    gkyl_phase_ghost_conf_div_flip_mul_new(dir, edge, &basis_conf, &basis, use_gpu);
+  struct gkyl_rescale_ghost_jacf* jf_rescale =
+    gkyl_rescale_ghost_jacf_new(dir, edge, &basis_conf, &basis, use_gpu);
 
-  gkyl_phase_ghost_conf_div_flip_mul_advance(jf_rescale,
+  gkyl_rescale_ghost_jacf_advance(jf_rescale,
     &skin_conf, &ghost_conf, &ghost, jac, jf);
 
-  gkyl_phase_ghost_conf_div_flip_mul_release(jf_rescale);
+  gkyl_rescale_ghost_jacf_release(jf_rescale);
 
   // Check the results.
   gkyl_array_copy(jf_ho, jf);
@@ -309,13 +309,13 @@ void test_2x2v_at_edge(bool use_gpu, int dir, enum gkyl_edge_loc edge)
   gkyl_array_copy(distf_ho, jf);
 
   // Divide jf by j in the ghost cell, and multiply by the flipped skin cell j.
-  struct gkyl_phase_ghost_conf_div_flip_mul* jf_rescale =
-    gkyl_phase_ghost_conf_div_flip_mul_new(dir, edge, &basis_conf, &basis, use_gpu);
+  struct gkyl_rescale_ghost_jacf* jf_rescale =
+    gkyl_rescale_ghost_jacf_new(dir, edge, &basis_conf, &basis, use_gpu);
 
-  gkyl_phase_ghost_conf_div_flip_mul_advance(jf_rescale,
+  gkyl_rescale_ghost_jacf_advance(jf_rescale,
     &skin_conf, &ghost_conf, &ghost, jac, jf);
 
-  gkyl_phase_ghost_conf_div_flip_mul_release(jf_rescale);
+  gkyl_rescale_ghost_jacf_release(jf_rescale);
 
   // Check the results.
   gkyl_array_copy(jf_ho, jf);

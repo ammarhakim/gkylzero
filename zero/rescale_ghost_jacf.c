@@ -1,15 +1,15 @@
-#include <gkyl_phase_ghost_conf_div_flip_mul.h>
-#include <gkyl_phase_ghost_conf_div_flip_mul_priv.h>
+#include <gkyl_rescale_ghost_jacf.h>
+#include <gkyl_rescale_ghost_jacf_priv.h>
 #include <gkyl_alloc.h>
 #include <assert.h>
 
-struct gkyl_phase_ghost_conf_div_flip_mul*
-gkyl_phase_ghost_conf_div_flip_mul_new(int dir, enum gkyl_edge_loc edge, const struct gkyl_basis *conf_basis,
+struct gkyl_rescale_ghost_jacf*
+gkyl_rescale_ghost_jacf_new(int dir, enum gkyl_edge_loc edge, const struct gkyl_basis *conf_basis,
   const struct gkyl_basis *phase_basis, bool use_gpu)
 {
 
   // Allocate space for new updater.
-  struct gkyl_phase_ghost_conf_div_flip_mul *up = gkyl_malloc(sizeof(*up));
+  struct gkyl_rescale_ghost_jacf *up = gkyl_malloc(sizeof(*up));
 
   up->dir = dir;
   up->edge = edge;
@@ -20,25 +20,25 @@ gkyl_phase_ghost_conf_div_flip_mul_new(int dir, enum gkyl_edge_loc edge, const s
 
   // Choose the kernel that does the skin surf from ghost copy
   if (!use_gpu)
-    up->kernels = gkyl_malloc(sizeof(struct gkyl_phase_ghost_conf_div_flip_mul_kernels));
+    up->kernels = gkyl_malloc(sizeof(struct gkyl_rescale_ghost_jacf_kernels));
 #ifdef GKYL_HAVE_CUDA
   if (use_gpu)
-    up->kernels = gkyl_cu_malloc(sizeof(struct gkyl_phase_ghost_conf_div_flip_mul_kernels));
+    up->kernels = gkyl_cu_malloc(sizeof(struct gkyl_rescale_ghost_jacf_kernels));
 #endif
 
-  phase_ghost_conf_div_flip_mul_choose_kernel(up->kernels, dir, edge, conf_basis, phase_basis, use_gpu);
+  rescale_ghost_jacf_choose_kernel(up->kernels, dir, edge, conf_basis, phase_basis, use_gpu);
 
   return up;
 }
 
 void
-gkyl_phase_ghost_conf_div_flip_mul_advance(const struct gkyl_phase_ghost_conf_div_flip_mul *up,
+gkyl_rescale_ghost_jacf_advance(const struct gkyl_rescale_ghost_jacf *up,
   const struct gkyl_range *conf_skin_r, const struct gkyl_range *conf_ghost_r,
   const struct gkyl_range *phase_ghost_r, const struct gkyl_array *jac, struct gkyl_array *jf)
 {
 #ifdef GKYL_HAVE_CUDA
   if (up->use_gpu) {
-    gkyl_phase_ghost_conf_div_flip_mul_advance_cu(up,
+    gkyl_rescale_ghost_jacf_advance_cu(up,
       conf_skin_r, conf_ghost_r, phase_ghost_r, jac, jf);
     return;
   }
@@ -99,7 +99,7 @@ gkyl_phase_ghost_conf_div_flip_mul_advance(const struct gkyl_phase_ghost_conf_di
 }
 
 void
-gkyl_phase_ghost_conf_div_flip_mul_release(struct gkyl_phase_ghost_conf_div_flip_mul *up)
+gkyl_rescale_ghost_jacf_release(struct gkyl_rescale_ghost_jacf *up)
 {
   // Release memory associated with this updater.
   if (!up->use_gpu)
