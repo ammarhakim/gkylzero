@@ -19,7 +19,7 @@ struct gkyl_dg_rad_gyrokinetic_auxfields {
   const struct gkyl_array *nvsqnu_surf;  // surface drag for mu direction: 2*n*mu*nu(vpar,mu)
   const struct gkyl_array *nvsqnu;  // volume drag for mu direction: 2*n*mu*nu(vpar,mu)
   const struct gkyl_array *vtsq;  // Vth squared of all configuration space
-  double vtsq_min;  // Vth squared of lowest temperature at which radiation is evaluated
+  const struct gkyl_array *vtsq_min_normalized;  // Vth squared of lowest temperature at which radiation is evaluated (different for each fit), divided by configuration space normalization
 };
 
 /**

@@ -76,6 +76,7 @@ GKYL_CU_DH double canonical_pb_surfy_2x2v_ser_p2(const double *w, const double *
   double f_lr[20] = {0.};
   double f_cl[20] = {0.};
   double sgn_alphaUpL[20] = {0.};
+  // Project tensor nodal quadrature basis back onto modal basis. 
   ser_4x_p2_upwind_quad_to_modal(sgn_alpha_surfL, sgn_alphaUpL); 
 
   f_lr[0] = 1.58113883008419*fl[12]+1.224744871391589*fl[2]+0.7071067811865475*fl[0]; 
@@ -191,6 +192,7 @@ GKYL_CU_DH double canonical_pb_surfy_2x2v_ser_p2(const double *w, const double *
   double f_cr[20] = {0.};
   double f_rl[20] = {0.};
   double sgn_alphaUpR[20] = {0.};
+  // Project tensor nodal quadrature basis back onto modal basis. 
   ser_4x_p2_upwind_quad_to_modal(sgn_alpha_surfR, sgn_alphaUpR); 
 
   f_cr[0] = 1.58113883008419*fc[12]+1.224744871391589*fc[2]+0.7071067811865475*fc[0]; 

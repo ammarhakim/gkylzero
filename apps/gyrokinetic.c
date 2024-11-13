@@ -54,9 +54,9 @@ gyrokinetic_cuts_check(struct gkyl_gyrokinetic_app* app, struct gkyl_comm *comm,
   }
 }
 
-// returned gkyl_array_meta must be freed using gyrokinetic_array_meta_release
-static struct gkyl_array_meta*
-gyrokinetic_array_meta_new(struct gyrokinetic_output_meta meta)
+// returned gkyl_array_meta must be freed using gk_array_meta_release
+struct gkyl_array_meta*
+gk_array_meta_new(struct gyrokinetic_output_meta meta)
 {
   struct gkyl_array_meta *mt = gkyl_malloc(sizeof(*mt));
 
@@ -95,16 +95,16 @@ gyrokinetic_array_meta_new(struct gyrokinetic_output_meta meta)
   return mt;
 }
 
-static void
-gyrokinetic_array_meta_release(struct gkyl_array_meta *mt)
+void
+gk_array_meta_release(struct gkyl_array_meta *mt)
 {
   if (!mt) return;
   MPACK_FREE(mt->meta);
   gkyl_free(mt);
 }
 
-static struct gyrokinetic_output_meta
-gyrokinetic_meta_from_mpack(struct gkyl_array_meta *mt)
+struct gyrokinetic_output_meta
+gk_meta_from_mpack(struct gkyl_array_meta *mt)
 {
   struct gyrokinetic_output_meta meta = { .frame = 0, .stime = 0.0 };
 
@@ -158,8 +158,6 @@ gkyl_gyrokinetic_app_new(struct gkyl_gk *gk)
 #else
   app->use_gpu = false; // can't use GPUs if we don't have them!
 #endif
-
-  app->enforce_positivity = gk->enforce_positivity;
 
   app->num_periodic_dir = gk->num_periodic_dir;
   for (int d=0; d<cdim; ++d)
@@ -375,6 +373,13 @@ gkyl_gyrokinetic_app_new(struct gkyl_gk *gk)
   app->update_field = !gk->skip_field; // note inversion of truth value (default: update field)
   app->field = gk_field_new(gk, app); // initialize field, even if we are skipping field updates
 
+  app->enforce_positivity = gk->enforce_positivity;
+  if (app->enforce_positivity) {
+    // Number of density of the positivity shift added over all the ions.
+    app->ps_delta_m0_ions = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
+    app->ps_delta_m0_elcs = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
+  }
+
   // initialize each species
   for (int i=0; i<ns; ++i) 
     gk_species_init(gk, app, &app->species[i]);
@@ -429,11 +434,6 @@ gkyl_gyrokinetic_app_new(struct gkyl_gk *gk)
   }
   for (int i=0; i<neuts; ++i) {
     gk_neut_species_source_init(app, &app->neut_species[i], &app->neut_species[i].src);
-  }
-
-  if (app->enforce_positivity) {
-    // Number of density of the positivity shift added over all the ions.
-    app->ps_delta_m0_ions = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
   }
 
   // initialize stat object
@@ -627,7 +627,7 @@ gyrokinetic_app_geometry_copy_and_write(gkyl_gyrokinetic_app* app, struct gkyl_a
 void
 gkyl_gyrokinetic_app_write_geometry(gkyl_gyrokinetic_app* app)
 {
-  struct gkyl_array_meta *mt = gyrokinetic_array_meta_new( (struct gyrokinetic_output_meta) {
+  struct gkyl_array_meta *mt = gk_array_meta_new( (struct gyrokinetic_output_meta) {
       .frame = 0,
       .stime = 0,
       .poly_order = app->poly_order,
@@ -666,7 +666,12 @@ gkyl_gyrokinetic_app_write_geometry(gkyl_gyrokinetic_app* app)
   app->stat.io_tm += gkyl_time_diff_now_sec(wtm);
   app->stat.nio += 21;
 
-  // Write out global geometry on rank 0
+  // Write out nodes. This has to be done from rank 0 so we need to gather mc2p.
+  struct gkyl_array *mc2p_global = mkarr(app->use_gpu, app->gk_geom->mc2p->ncomp, app->global_ext.volume);
+  gkyl_comm_array_allgather(app->comm, &app->local, &app->global, app->gk_geom->mc2p, mc2p_global);
+  struct gkyl_array *mc2p_global_ho = mkarr(false, mc2p_global->ncomp, mc2p_global->size);
+  gkyl_array_copy(mc2p_global_ho, mc2p_global);
+
   int rank;
   gkyl_comm_get_rank(app->comm, &rank);
   if (rank == 0) {
@@ -675,8 +680,7 @@ gkyl_gyrokinetic_app_write_geometry(gkyl_gyrokinetic_app* app)
     gkyl_gk_geometry_init_nodal_range(&nrange, &app->global, app->poly_order);
     struct gkyl_array* mc2p_nodal = mkarr(false, 3, nrange.volume);
     struct gkyl_nodal_ops *n2m = gkyl_nodal_ops_new(&app->confBasis, &app->grid, false);
-    gkyl_array_copy(arr_ho3, app->gk_geom->mc2p);
-    gkyl_nodal_ops_m2n(n2m, &app->confBasis, &app->grid, &nrange, &app->global, 3, mc2p_nodal, arr_ho3);
+    gkyl_nodal_ops_m2n(n2m, &app->confBasis, &app->grid, &nrange, &app->global, 3, mc2p_nodal, mc2p_global_ho);
     struct gkyl_rect_grid ngrid;
     gkyl_gk_geometry_init_nodal_grid(&ngrid, &app->grid, &nrange);
 
@@ -694,12 +698,14 @@ gkyl_gyrokinetic_app_write_geometry(gkyl_gyrokinetic_app* app)
     gkyl_array_release(mc2p_nodal);
   }
 
+  gkyl_array_release(mc2p_global);
+  gkyl_array_release(mc2p_global_ho);
   gkyl_array_release(arr_ho1);
   gkyl_array_release(arr_ho3);
   gkyl_array_release(arr_ho6);
   gkyl_array_release(arr_ho9);
 
-  gyrokinetic_array_meta_release(mt);
+  gk_array_meta_release(mt);
 }
 
 //
@@ -715,7 +721,7 @@ gkyl_gyrokinetic_app_write_field(gkyl_gyrokinetic_app* app, double tm, int frame
       gkyl_array_copy(app->field->phi_host, app->field->phi_smooth);
     }
 
-    struct gkyl_array_meta *mt = gyrokinetic_array_meta_new( (struct gyrokinetic_output_meta) {
+    struct gkyl_array_meta *mt = gk_array_meta_new( (struct gyrokinetic_output_meta) {
         .frame = frame,
         .stime = tm,
         .poly_order = app->poly_order,
@@ -733,7 +739,7 @@ gkyl_gyrokinetic_app_write_field(gkyl_gyrokinetic_app* app, double tm, int frame
     app->stat.io_tm += gkyl_time_diff_now_sec(wtm);
     app->stat.nio += 1;
 
-    gyrokinetic_array_meta_release(mt);
+    gk_array_meta_release(mt);
     app->stat.diag_tm += gkyl_time_diff_now_sec(wst);
     app->stat.ndiag += 1;
   }
@@ -793,7 +799,7 @@ gkyl_gyrokinetic_app_write_species(gkyl_gyrokinetic_app* app, int sidx, double t
   struct timespec wst = gkyl_wall_clock();
   struct gk_species *gk_s = &app->species[sidx];
 
-  struct gkyl_array_meta *mt = gyrokinetic_array_meta_new( (struct gyrokinetic_output_meta) {
+  struct gkyl_array_meta *mt = gk_array_meta_new( (struct gyrokinetic_output_meta) {
       .frame = frame,
       .stime = tm,
       .poly_order = app->poly_order,
@@ -816,7 +822,7 @@ gkyl_gyrokinetic_app_write_species(gkyl_gyrokinetic_app* app, int sidx, double t
   app->stat.io_tm += gkyl_time_diff_now_sec(wtm);
   app->stat.nio += 1;
 
-  gyrokinetic_array_meta_release(mt);  
+  gk_array_meta_release(mt);  
   app->stat.diag_tm += gkyl_time_diff_now_sec(wst);
   app->stat.ndiag += 1;
 }
@@ -828,7 +834,7 @@ gkyl_gyrokinetic_app_write_neut_species(gkyl_gyrokinetic_app* app, int sidx, dou
 
   if (!gk_ns->info.is_static || frame == 0) {
     struct timespec wst = gkyl_wall_clock();
-    struct gkyl_array_meta *mt = gyrokinetic_array_meta_new( (struct gyrokinetic_output_meta) {
+    struct gkyl_array_meta *mt = gk_array_meta_new( (struct gyrokinetic_output_meta) {
         .frame = frame,
         .stime = tm,
         .poly_order = app->poly_order,
@@ -851,7 +857,7 @@ gkyl_gyrokinetic_app_write_neut_species(gkyl_gyrokinetic_app* app, int sidx, dou
     app->stat.io_tm += gkyl_time_diff_now_sec(wtm);
     app->stat.nio += 1;
 
-    gyrokinetic_array_meta_release(mt);  
+    gk_array_meta_release(mt);  
     app->stat.diag_tm += gkyl_time_diff_now_sec(wst);
     app->stat.ndiag += 1;
   }
@@ -863,7 +869,7 @@ gkyl_gyrokinetic_app_write_species_mom(gkyl_gyrokinetic_app* app, int sidx, doub
   struct timespec wst = gkyl_wall_clock();
   struct gk_species *gks = &app->species[sidx];
 
-  struct gkyl_array_meta *mt = gyrokinetic_array_meta_new( (struct gyrokinetic_output_meta) {
+  struct gkyl_array_meta *mt = gk_array_meta_new( (struct gyrokinetic_output_meta) {
       .frame = frame,
       .stime = tm,
       .poly_order = app->poly_order,
@@ -925,7 +931,7 @@ gkyl_gyrokinetic_app_write_species_mom(gkyl_gyrokinetic_app* app, int sidx, doub
     app->stat.io_tm += gkyl_time_diff_now_sec(wtm);
     app->stat.nio += 1;
   }
-  gyrokinetic_array_meta_release(mt);   
+  gk_array_meta_release(mt);   
   app->stat.diag_tm += gkyl_time_diff_now_sec(wst);
   app->stat.ndiag += 1;
 }
@@ -938,7 +944,7 @@ gkyl_gyrokinetic_app_write_neut_species_mom(gkyl_gyrokinetic_app* app, int sidx,
   if (!gk_ns->info.is_static || frame == 0) {
     struct timespec wst = gkyl_wall_clock();
 
-    struct gkyl_array_meta *mt = gyrokinetic_array_meta_new( (struct gyrokinetic_output_meta) {
+    struct gkyl_array_meta *mt = gk_array_meta_new( (struct gyrokinetic_output_meta) {
         .frame = frame,
         .stime = tm,
         .poly_order = app->poly_order,
@@ -972,7 +978,7 @@ gkyl_gyrokinetic_app_write_neut_species_mom(gkyl_gyrokinetic_app* app, int sidx,
       app->stat.io_tm += gkyl_time_diff_now_sec(wtm);
       app->stat.nio += 1;
     }
-    gyrokinetic_array_meta_release(mt);   
+    gk_array_meta_release(mt);   
     app->stat.diag_tm += gkyl_time_diff_now_sec(wst);
     app->stat.ndiag += 1;
   }
@@ -1149,7 +1155,7 @@ gkyl_gyrokinetic_app_write_species_source(gkyl_gyrokinetic_app* app, int sidx, d
 
   if (gk_s->src.source_id && (gk_s->src.evolve || frame == 0)) {
     struct timespec wst = gkyl_wall_clock();
-    struct gkyl_array_meta *mt = gyrokinetic_array_meta_new( (struct gyrokinetic_output_meta) {
+    struct gkyl_array_meta *mt = gk_array_meta_new( (struct gyrokinetic_output_meta) {
         .frame = frame,
         .stime = tm,
         .poly_order = app->poly_order,
@@ -1173,7 +1179,7 @@ gkyl_gyrokinetic_app_write_species_source(gkyl_gyrokinetic_app* app, int sidx, d
     app->stat.io_tm += gkyl_time_diff_now_sec(wtm);
     app->stat.nio += 1;
 
-    gyrokinetic_array_meta_release(mt);   
+    gk_array_meta_release(mt);   
     app->stat.diag_tm += gkyl_time_diff_now_sec(wst);
     app->stat.ndiag += 1;
   }
@@ -1187,7 +1193,7 @@ gkyl_gyrokinetic_app_write_neut_species_source(gkyl_gyrokinetic_app* app, int si
 
   if (gk_ns->src.source_id && (gk_ns->src.evolve || frame == 0)) {
     struct timespec wst = gkyl_wall_clock();
-    struct gkyl_array_meta *mt = gyrokinetic_array_meta_new( (struct gyrokinetic_output_meta) {
+    struct gkyl_array_meta *mt = gk_array_meta_new( (struct gyrokinetic_output_meta) {
         .frame = frame,
         .stime = tm,
         .poly_order = app->poly_order,
@@ -1211,7 +1217,7 @@ gkyl_gyrokinetic_app_write_neut_species_source(gkyl_gyrokinetic_app* app, int si
     app->stat.io_tm += gkyl_time_diff_now_sec(wtm);
     app->stat.nio += 1;
 
-    gyrokinetic_array_meta_release(mt);   
+    gk_array_meta_release(mt);   
     app->stat.diag_tm += gkyl_time_diff_now_sec(wst);
     app->stat.ndiag += 1;
   }
@@ -1224,7 +1230,7 @@ gkyl_gyrokinetic_app_write_species_source_mom(gkyl_gyrokinetic_app* app, int sid
 
   if (gk_s->src.source_id && (gk_s->src.evolve || frame == 0)) {
     struct timespec wst = gkyl_wall_clock();
-    struct gkyl_array_meta *mt = gyrokinetic_array_meta_new( (struct gyrokinetic_output_meta) {
+    struct gkyl_array_meta *mt = gk_array_meta_new( (struct gyrokinetic_output_meta) {
         .frame = frame,
         .stime = tm,
         .poly_order = app->poly_order,
@@ -1243,10 +1249,12 @@ gkyl_gyrokinetic_app_write_species_source_mom(gkyl_gyrokinetic_app* app, int sid
       snprintf(fileNm, sizeof fileNm, fmt, app->name, gk_s->info.name,
         gk_s->info.diag_moments[m], frame);
 
-      // Rescale moment by inverse of Jacobian
-      gkyl_dg_div_op_range(gk_s->moms[m].mem_geo, app->confBasis, 
-        0, gk_s->src.moms[m].marr, 0, gk_s->src.moms[m].marr, 0, 
-        app->gk_geom->jacobgeo, &app->local);      
+      if (!gk_s->src.moms[m].is_bimaxwellian_moms && !gk_s->src.moms[m].is_maxwellian_moms) {
+        // Rescale moment by inverse of Jacobian
+        gkyl_dg_div_op_range(gk_s->moms[m].mem_geo, app->confBasis, 
+          0, gk_s->src.moms[m].marr, 0, gk_s->src.moms[m].marr, 0, 
+          app->gk_geom->jacobgeo, &app->local);      
+      }
 
       if (app->use_gpu) {
         gkyl_array_copy(gk_s->src.moms[m].marr_host, gk_s->src.moms[m].marr);
@@ -1259,7 +1267,7 @@ gkyl_gyrokinetic_app_write_species_source_mom(gkyl_gyrokinetic_app* app, int sid
       app->stat.nio += 1;
     }
 
-    gyrokinetic_array_meta_release(mt);   
+    gk_array_meta_release(mt);   
     app->stat.diag_tm += gkyl_time_diff_now_sec(wst);
     app->stat.ndiag += 1;
   }
@@ -1273,7 +1281,7 @@ gkyl_gyrokinetic_app_write_neut_species_source_mom(gkyl_gyrokinetic_app* app, in
   if (gk_ns->src.source_id && (gk_ns->src.evolve || frame == 0)) {
     struct timespec wst = gkyl_wall_clock();
 
-    struct gkyl_array_meta *mt = gyrokinetic_array_meta_new( (struct gyrokinetic_output_meta) {
+    struct gkyl_array_meta *mt = gk_array_meta_new( (struct gyrokinetic_output_meta) {
         .frame = frame,
         .stime = tm,
         .poly_order = app->poly_order,
@@ -1308,7 +1316,7 @@ gkyl_gyrokinetic_app_write_neut_species_source_mom(gkyl_gyrokinetic_app* app, in
       app->stat.nio += 1;
     }
 
-    gyrokinetic_array_meta_release(mt);   
+    gk_array_meta_release(mt);   
     app->stat.diag_tm += gkyl_time_diff_now_sec(wst);
     app->stat.ndiag += 1;
   }
@@ -1449,7 +1457,7 @@ gkyl_gyrokinetic_app_write_species_lbo_mom(gkyl_gyrokinetic_app* app, int sidx, 
   if (gk_s->lbo.collision_id == GKYL_LBO_COLLISIONS && gk_s->lbo.write_diagnostics) {
     struct timespec wst = gkyl_wall_clock();
 
-    struct gkyl_array_meta *mt = gyrokinetic_array_meta_new( (struct gyrokinetic_output_meta) {
+    struct gkyl_array_meta *mt = gk_array_meta_new( (struct gyrokinetic_output_meta) {
         .frame = frame,
         .stime = tm,
         .poly_order = app->poly_order,
@@ -1500,7 +1508,7 @@ gkyl_gyrokinetic_app_write_species_lbo_mom(gkyl_gyrokinetic_app* app, int sidx, 
     gkyl_comm_array_write(app->comm, &app->grid, &app->local, mt, gk_s->lbo.nu_sum_host, fileNm);
     gkyl_comm_array_write(app->comm, &app->grid, &app->local, mt, gk_s->lbo.nu_prim_moms_host, fileNm_nu_prim);*/
 
-    gyrokinetic_array_meta_release(mt); 
+    gk_array_meta_release(mt); 
     app->stat.diag_tm += gkyl_time_diff_now_sec(wst);
     app->stat.ndiag += 1;
   }
@@ -1553,7 +1561,7 @@ gkyl_gyrokinetic_app_write_species_rad_drag(gkyl_gyrokinetic_app* app, int sidx,
 
   if (gk_s->rad.radiation_id == GKYL_GK_RADIATION) {
     struct timespec wst = gkyl_wall_clock();
-    struct gkyl_array_meta *mt = gyrokinetic_array_meta_new( (struct gyrokinetic_output_meta) {
+    struct gkyl_array_meta *mt = gk_array_meta_new( (struct gyrokinetic_output_meta) {
         .frame = frame,
         .stime = tm,
         .poly_order = app->poly_order,
@@ -1608,7 +1616,7 @@ gkyl_gyrokinetic_app_write_species_rad_drag(gkyl_gyrokinetic_app* app, int sidx,
     app->stat.io_tm += gkyl_time_diff_now_sec(wtm);
     app->stat.nio += 4;
 
-    gyrokinetic_array_meta_release(mt);   
+    gk_array_meta_release(mt);   
     app->stat.diag_tm += gkyl_time_diff_now_sec(wst);
     app->stat.ndiag += 1;
   }
@@ -1621,7 +1629,7 @@ gkyl_gyrokinetic_app_write_species_rad_emissivity(gkyl_gyrokinetic_app* app, int
 
   if (gk_s->rad.radiation_id == GKYL_GK_RADIATION) {
     struct timespec wst = gkyl_wall_clock();
-    struct gkyl_array_meta *mt = gyrokinetic_array_meta_new( (struct gyrokinetic_output_meta) {
+    struct gkyl_array_meta *mt = gk_array_meta_new( (struct gyrokinetic_output_meta) {
         .frame = frame,
         .stime = tm,
         .poly_order = app->poly_order,
@@ -1666,7 +1674,7 @@ gkyl_gyrokinetic_app_write_species_rad_emissivity(gkyl_gyrokinetic_app* app, int
       app->stat.nio += 1;
     }
 
-    gyrokinetic_array_meta_release(mt);   
+    gk_array_meta_release(mt);   
     app->stat.diag_tm += gkyl_time_diff_now_sec(wst);
     app->stat.ndiag += 1;
   }
@@ -1753,7 +1761,7 @@ gkyl_gyrokinetic_app_write_species_iz_react(gkyl_gyrokinetic_app* app, int sidx,
   struct timespec wst = gkyl_wall_clock();
   struct gk_species *gk_s = &app->species[sidx];
 
-  struct gkyl_array_meta *mt = gyrokinetic_array_meta_new( (struct gyrokinetic_output_meta) {
+  struct gkyl_array_meta *mt = gk_array_meta_new( (struct gyrokinetic_output_meta) {
       .frame = frame,
       .stime = tm,
       .poly_order = app->poly_order,
@@ -1785,7 +1793,7 @@ gkyl_gyrokinetic_app_write_species_iz_react(gkyl_gyrokinetic_app* app, int sidx,
   app->stat.io_tm += gkyl_time_diff_now_sec(wtm);
   app->stat.nio += 1;
 
-  gyrokinetic_array_meta_release(mt); 
+  gk_array_meta_release(mt); 
   app->stat.diag_tm += gkyl_time_diff_now_sec(wst);
   app->stat.ndiag += 1;
 }
@@ -1794,7 +1802,7 @@ void
 gkyl_gyrokinetic_app_write_species_iz_react_neut(gkyl_gyrokinetic_app* app, int sidx, int ridx, double tm, int frame)
 {
   struct timespec wst = gkyl_wall_clock();
-  struct gkyl_array_meta *mt = gyrokinetic_array_meta_new( (struct gyrokinetic_output_meta) {
+  struct gkyl_array_meta *mt = gk_array_meta_new( (struct gyrokinetic_output_meta) {
       .frame = frame,
       .stime = tm,
       .poly_order = app->poly_order,
@@ -1828,7 +1836,7 @@ gkyl_gyrokinetic_app_write_species_iz_react_neut(gkyl_gyrokinetic_app* app, int 
   app->stat.io_tm += gkyl_time_diff_now_sec(wtm);
   app->stat.nio += 1;
 
-  gyrokinetic_array_meta_release(mt); 
+  gk_array_meta_release(mt); 
   app->stat.diag_tm += gkyl_time_diff_now_sec(wst);
   app->stat.ndiag += 1;
 }
@@ -1840,7 +1848,7 @@ void
 gkyl_gyrokinetic_app_write_species_recomb_react(gkyl_gyrokinetic_app* app, int sidx, int ridx, double tm, int frame)
 {
   struct timespec wst = gkyl_wall_clock();
-  struct gkyl_array_meta *mt = gyrokinetic_array_meta_new( (struct gyrokinetic_output_meta) {
+  struct gkyl_array_meta *mt = gk_array_meta_new( (struct gyrokinetic_output_meta) {
       .frame = frame,
       .stime = tm,
       .poly_order = app->poly_order,
@@ -1874,7 +1882,7 @@ gkyl_gyrokinetic_app_write_species_recomb_react(gkyl_gyrokinetic_app* app, int s
   app->stat.io_tm += gkyl_time_diff_now_sec(wtm);
   app->stat.nio += 1;
 
-  gyrokinetic_array_meta_release(mt); 
+  gk_array_meta_release(mt); 
   app->stat.diag_tm += gkyl_time_diff_now_sec(wst);
   app->stat.ndiag += 1;
 }
@@ -1883,7 +1891,7 @@ void
 gkyl_gyrokinetic_app_write_species_recomb_react_neut(gkyl_gyrokinetic_app* app, int sidx, int ridx, double tm, int frame)
 {
   struct timespec wst = gkyl_wall_clock();
-  struct gkyl_array_meta *mt = gyrokinetic_array_meta_new( (struct gyrokinetic_output_meta) {
+  struct gkyl_array_meta *mt = gk_array_meta_new( (struct gyrokinetic_output_meta) {
       .frame = frame,
       .stime = tm,
       .poly_order = app->poly_order,
@@ -1917,7 +1925,7 @@ gkyl_gyrokinetic_app_write_species_recomb_react_neut(gkyl_gyrokinetic_app* app, 
   app->stat.io_tm += gkyl_time_diff_now_sec(wtm);
   app->stat.nio += 1;
 
-  gyrokinetic_array_meta_release(mt); 
+  gk_array_meta_release(mt); 
   app->stat.diag_tm += gkyl_time_diff_now_sec(wst);
   app->stat.ndiag += 1;
 }
@@ -1929,7 +1937,7 @@ void
 gkyl_gyrokinetic_app_write_species_cx_react_neut(gkyl_gyrokinetic_app* app, int sidx, int ridx, double tm, int frame)
 {
   struct timespec wst = gkyl_wall_clock();
-  struct gkyl_array_meta *mt = gyrokinetic_array_meta_new( (struct gyrokinetic_output_meta) {
+  struct gkyl_array_meta *mt = gk_array_meta_new( (struct gyrokinetic_output_meta) {
       .frame = frame,
       .stime = tm,
       .poly_order = app->poly_order,
@@ -1963,7 +1971,7 @@ gkyl_gyrokinetic_app_write_species_cx_react_neut(gkyl_gyrokinetic_app* app, int 
   app->stat.io_tm += gkyl_time_diff_now_sec(wtm);
   app->stat.nio += 1;
 
-  gyrokinetic_array_meta_release(mt); 
+  gk_array_meta_release(mt); 
   app->stat.diag_tm += gkyl_time_diff_now_sec(wst);
   app->stat.ndiag += 1;
 }
@@ -2403,8 +2411,8 @@ rk3(gkyl_gyrokinetic_app* app, double dt0)
 
           if (app->enforce_positivity) {
             // Apply positivity shift if requested.
-            int elc_idx = -1;
             gkyl_array_clear(app->ps_delta_m0_ions, 0.0);
+            gkyl_array_clear(app->ps_delta_m0_elcs, 0.0);
             for (int i=0; i<app->num_species; ++i) {
               struct gk_species *gks = &app->species[i];
 
@@ -2415,25 +2423,15 @@ rk3(gkyl_gyrokinetic_app* app, double dt0)
               gkyl_positivity_shift_gyrokinetic_advance(gks->pos_shift_op, &app->local, &gks->local,
                 gks->f, gks->m0.marr, gks->ps_delta_m0);
 
-              // Accumulate the shift density of all ions:
-              if (gks->info.charge > 0.0)
-                gkyl_array_accumulate(app->ps_delta_m0_ions, 1.0, gks->ps_delta_m0);
-              else if (gks->info.charge < 0.0) 
-                elc_idx = i;
+              // Accumulate the shift density of all like-species:
+              gkyl_array_accumulate(gks->ps_delta_m0s_tot, 1.0, gks->ps_delta_m0);
             }
 
             // Rescale each species to enforce quasineutrality.
             for (int i=0; i<app->num_species; ++i) {
               struct gk_species *gks = &app->species[i];
-              if (gks->info.charge > 0.0) {
-                struct gk_species *gkelc = &app->species[elc_idx];
-                gkyl_positivity_shift_gyrokinetic_quasineutrality_scale(gks->pos_shift_op, &app->local, &gks->local,
-                  gks->ps_delta_m0, app->ps_delta_m0_ions, gkelc->ps_delta_m0, gks->m0.marr, gks->f);
-              }
-              else {
-                gkyl_positivity_shift_gyrokinetic_quasineutrality_scale(gks->pos_shift_op, &app->local, &gks->local,
-                  gks->ps_delta_m0, gks->ps_delta_m0, app->ps_delta_m0_ions, gks->m0.marr, gks->f);
-              }
+              gkyl_positivity_shift_gyrokinetic_quasineutrality_scale(gks->pos_shift_op, &app->local, &gks->local,
+                gks->ps_delta_m0, gks->ps_delta_m0s_tot, gks->ps_delta_m0r_tot, gks->m0.marr, gks->f);
 
               gkyl_array_accumulate(gks->fnew, 1.0, gks->f);
             }
@@ -2690,7 +2688,7 @@ header_from_file(gkyl_gyrokinetic_app *app, const char *fname)
     }
 
     struct gyrokinetic_output_meta meta =
-      gyrokinetic_meta_from_mpack( &(struct gkyl_array_meta) {
+      gk_meta_from_mpack( &(struct gkyl_array_meta) {
           .meta = hdr.meta,
           .meta_sz = hdr.meta_size
         }
@@ -2946,6 +2944,7 @@ gkyl_gyrokinetic_app_release(gkyl_gyrokinetic_app* app)
 {
   if (app->enforce_positivity) {
     gkyl_array_release(app->ps_delta_m0_ions);
+    gkyl_array_release(app->ps_delta_m0_elcs);
   }
 
   gkyl_gk_geometry_release(app->gk_geom);
