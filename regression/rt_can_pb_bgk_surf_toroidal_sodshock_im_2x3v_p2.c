@@ -29,15 +29,12 @@ struct annulus_sodshock_ctx
   // Simulation parameters.
   int Nr; // Cell count (configuration space: r-direction).
   int Ntheta; // Cell count (configuration space: theta-direction).
-  int Nphi; // Cell count (configuration space: phi-direction).
   int Nv; // Cell count (velocity space: all directions).
   double R; // Major radius
   double rmin; // Domain size (configuration space: r-direction, min value).
   double rmax; // Domain size (configuration space: r-direction, max value).
   double theta_min; // Domain size (configuration space: theta-direction, min value).
   double theta_max; // Domain size (configuration space: theta-direction, max value).
-  double phi_min; // Domain size (configuration space: phi-direction, min value).
-  double phi_max; // Domain size (configuration space: phi-direction, max value).
   int poly_order; // Polynomial order.
   double cfl_frac; // CFL coefficient.
 
@@ -71,22 +68,19 @@ create_ctx(void)
   double tempr = sqrt(0.1 / 0.125); // Right/outer temperature.
 
   // Simulation parameters.
-  int Nr = 32; // Cell count (configuration space: r-direction).
+  int Nr = 128; // Cell count (configuration space: r-direction).
   int Ntheta = 1; // Cell count (configuration space: theta-direction).
-  int Nphi = 1; // Cell count (configuration space: phi-direction).
-  int Nv = 8; // Cell count (velocity space: all directions).
+  int Nv = 12; // Cell count (velocity space: all directions).
   double R = 2.0; // Major radius
   double rmin = 0.5; // Domain size (configuration space: r-direction, min value).
   double rmax = 1.5; // Domain size (configuration space: r-direction, max value).
   double theta_min = 0.0; // Domain size (configuration space: theta-direction, min value).
   double theta_max = 2*pi; // Domain size (configuration space: theta-direction, max value).
-  double phi_min = 0.0; // Domain size (configuration space: phi-direction, min value).
-  double phi_max = 2*pi; // Domain size (configuration space: phi-direction, max value).
-  int poly_order = 1; // Polynomial order.
+  int poly_order = 2; // Polynomial order.
   double cfl_frac = 0.9; // CFL coefficient.
 
   double t_end = 0.1; // Final simulation time.
-  int num_frames = 5; // Number of output frames.
+  int num_frames = 10000; // Number of output frames.
   double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.
   int num_failures_max = 20; // Maximum allowable number of consecutive small time-steps.
 
@@ -109,15 +103,12 @@ create_ctx(void)
     .tempr = tempr,
     .Nr = Nr,
     .Ntheta = Ntheta,
-    .Nphi = Nphi,
     .Nv = Nv,
     .R = R,
     .rmin = rmin,
     .rmax = rmax,
     .theta_min = theta_min,
     .theta_max = theta_max,
-    .phi_min = phi_min,
-    .phi_max = phi_max,
     .poly_order = poly_order,
     .cfl_frac = cfl_frac,
     .t_end = t_end,
@@ -145,7 +136,7 @@ h_ij_inv(double t, const double* xn, double* fout, void* ctx)
 {
   // Inverse metric tensor, must be symmetric!
   struct annulus_sodshock_ctx *app = (struct annulus_sodshock_ctx *)ctx;
-  double q_r = xn[0], q_theta = xn[1], q_phi = xn[2];
+  double q_r = xn[0], q_theta = xn[1];
 
   // [h^{rr}, h^{rtheta},h^{rphi},h^{thetatheta},h^{thetaphi},h^{phiphi}]
   fout[0] = 1.0;
@@ -161,7 +152,7 @@ det_h(double t, const double* xn, double* fout, void* ctx)
 {
   // determinant of the metric tensor: J = det(h_{ij})
   struct annulus_sodshock_ctx *app = (struct annulus_sodshock_ctx *)ctx;
-  double q_r = xn[0], q_theta = xn[1], q_phi = xn[2];
+  double q_r = xn[0], q_theta = xn[1];
   fout[0] = q_r*(app->R + q_r*cos(q_theta));
 }
 
@@ -169,7 +160,7 @@ void
 hamil(double t, const double* xn, double* fout, void* ctx)
 {
   // Canonical coordinates:
-  double q_R = xn[0], q_theta = xn[1], q_phi = xn[2], p_R_dot = xn[3], p_theta_dot = xn[4], p_phi_dot = xn[5];
+  double q_R = xn[0], q_theta = xn[1], p_R_dot = xn[2], p_theta_dot = xn[3], p_phi_dot = xn[4];
   const double w[3] = {p_R_dot, p_theta_dot, p_phi_dot};
   struct annulus_sodshock_ctx *app = (struct annulus_sodshock_ctx *)ctx;
   double *h_inv = malloc(6 * sizeof(double));
@@ -205,7 +196,6 @@ evalDensityInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT 
   // Set the density.
   double det_h_val;
   det_h(t, xn, &det_h_val, ctx);
-  //printf("r: %e, theta: %e, phi: %e, rho: %e, det_h_val: %e \n", q_r, xn[1], xn[2], rho, det_h_val);
   fout[0] = rho*det_h_val;
 }
 
@@ -291,7 +281,6 @@ main(int argc, char **argv)
 
   int NR = APP_ARGS_CHOOSE(app_args.xcells[0], ctx.Nr);
   int NTHETA = APP_ARGS_CHOOSE(app_args.xcells[1], ctx.Ntheta);
-  int NPHI = APP_ARGS_CHOOSE(app_args.xcells[2], ctx.Nphi);
 
   // electrons
   struct gkyl_vlasov_species neut = {
@@ -337,17 +326,17 @@ main(int argc, char **argv)
 
   // VM app
   struct gkyl_vm vm = {
-    .name = "can_pb_bgk_surf_toroidal_sodshock_p2",
+    .name = "can_pb_bgk_surf_toroidal_sodshock_2x3v_p2",
 
-    .cdim = 3, .vdim = 3,
-    .lower = { ctx.rmin, ctx.theta_min, ctx.phi_min },
-    .upper = { ctx.rmax, ctx.theta_max, ctx.phi_max },
-    .cells = { NR, NTHETA, NPHI },
+    .cdim = 2, .vdim = 3,
+    .lower = { ctx.rmin, ctx.theta_min },
+    .upper = { ctx.rmax, ctx.theta_max },
+    .cells = { NR, NTHETA },
     .poly_order = ctx.poly_order,
     .basis_type = app_args.basis_type,
 
-    .num_periodic_dir = 2,
-    .periodic_dirs = {1, 2},
+    .num_periodic_dir = 1,
+    .periodic_dirs = {1},
 
     .num_species = 1,
     .species = { neut },
