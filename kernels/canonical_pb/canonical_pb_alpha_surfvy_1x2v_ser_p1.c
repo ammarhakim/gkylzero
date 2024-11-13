@@ -13,8 +13,6 @@ GKYL_CU_DH int canonical_pb_alpha_surfvy_1x2v_ser_p1(const double *w, const doub
   //                 Note: Each cell owns their *lower* edge sign(alpha_surf).
   // returns int const_sgn_alpha (true if sign(alpha_surf) is only one sign, either +1 or -1).
 
-  printf("p1 ser 1x2v vy surf\n");
-
   double wx = w[0];
   double rdx2 = 2.0/dxv[0];
   double wvx = w[1];

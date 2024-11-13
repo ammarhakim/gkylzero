@@ -76,7 +76,6 @@ void gkyl_dg_calc_canonical_pb_vars_alpha_surf(struct gkyl_dg_calc_canonical_pb_
 
     // Fill in the velocity space alpha_surf
     for (int dir = 0; dir<vdim; ++dir) {
-      printf("cdim: %d, vdim: %d, dir: %d\n",cdim, vdim, dir);
       const_sgn_alpha_d[dir+cdim] = up->alpha_surf[dir+cdim](xc, up->phase_grid.dx, 
         (const double*) gkyl_array_cfetch(hamil, loc_phase),
         alpha_surf_d, sgn_alpha_surf_d);

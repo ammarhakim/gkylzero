@@ -20,8 +20,6 @@ GKYL_CU_DH int canonical_pb_alpha_surfx_1x2v_ser_p1(const double *w, const doubl
   double wvy = w[2];
   double rdvy2 = 2.0/dxv[2];
 
-    printf("p1 ser 1x2v x surf\n");
-
   double *alphaL = &alpha_surf[0];
   double *sgn_alpha_surfL = &sgn_alpha_surf[0];
   alphaL[0] = 1.224744871391589*hamil[2]*rdvx2-2.121320343559642*hamil[4]*rdvx2; 
