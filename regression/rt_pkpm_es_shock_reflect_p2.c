@@ -19,7 +19,7 @@
 
 #include <rt_arg_parse.h>
 
-struct es_pot_well_ctx
+struct es_shock_ctx
 {
   // Mathematical constants (dimensionless).
   double pi;
@@ -29,17 +29,30 @@ struct es_pot_well_ctx
   double mu0; // Permeability of free space.
   double mass_elc; // Electron mass.
   double charge_elc; // Electron charge.
+  double mass_ion; // Ion mass.
+  double charge_ion; // Ion charge.
 
-  double vt; // Thermal velocity.
-  double nu; // Collision frequency.
+  double n0; // Reference number density.
 
+  double Te_over_Ti; // Electron temperature / ion temperature.
   double B0; // Reference magnetic field strength.
+
+  // Derived physical quantities (using normalized code units).
+  double vte; // Electron thermal velocity.
+  double vti; // Ion thermal velocity.
+  double cs; // Sound speed.
+
+  double Vx_drift; // Drift velocity (x-direction).
+
+  double nu_elc; // Electron collision frequency.
+  double nu_ion; // Ion collision frequency.
 
   // Simulation parameters.
   int Nx; // Cell count (configuration space: x-direction).
   int Nvx; // Cell count (velocity space: vx-direction).
   double Lx; // Domain size (configuration space: x-direction).
-  double vx_max; // Domain boundary (velocity space: vx-direction).
+  double vx_max_elc; // Domain boundary (electron velocity space: vx-direction).
+  double vx_max_ion; // Domain boundary (ion velocity space: vx-direction).
   int poly_order; // Polynomial order.
   double cfl_frac; // CFL coefficient.
 
@@ -49,7 +62,7 @@ struct es_pot_well_ctx
   int num_failures_max; // Maximum allowable number of consecutive small time-steps.
 };
 
-struct es_pot_well_ctx
+struct es_shock_ctx
 create_ctx(void)
 {
   // Mathematical constants (dimensionless).
@@ -60,38 +73,60 @@ create_ctx(void)
   double mu0 = 1.0; // Permeability of free space.
   double mass_elc = 1.0; // Electron mass.
   double charge_elc = -1.0; // Electron charge.
+  double mass_ion = 1836.153; // Ion mass.
+  double charge_ion = 1.0; // Ion charge.
 
-  double vt = 1.0; // Thermal velocity.
-  double nu = 1.0e-4; // Collision frequency.
+  double n0 = 1.0; // Reference number density.
 
+  double Te_over_Ti = 4.0; // Electron temperature / ion temperature.
   double B0 = 1.0; // Reference magnetic field strength.
 
+  // Derived physical quantities (using normalized code units).
+  double vte = 1.0; // Electron thermal velocity.
+  double vti = vte / sqrt(Te_over_Ti * mass_ion); // Ion thermal velocity.
+  double cs = vte / sqrt(mass_ion); // Sound speed.
+
+  double Vx_drift = 2.0 * cs; // Drift velocity (x-direction).
+  
+  double nu_elc = 1.0e-4; // Electron collision frequency.
+  double nu_ion = 1.0e-4 / sqrt(mass_ion) * (Te_over_Ti * sqrt(Te_over_Ti)); // Ion collision frequency.
+
   // Simulation parameters.
-  int Nx = 32; // Cell count (configuration space: x-direction).
-  int Nvx = 24; // Cell count (velocity space: vx-direction).
-  double Lx = 2.0 * pi; // Domain size (configuration space: x-direction).
-  double vx_max = 6.0 * vt; // Domain boundary (velocity space: vx-direction).
+  int Nx = 64; // Cell count (configuration space: x-direction).
+  int Nvx = 64; // Cell count (velocity space: vx-direction).
+  double Lx = 128.0; // Domain size (configuration space: x-direction).
+  double vx_max_elc = 6.0 * vte; // Domain boundary (electron velocity space: vx-direction).
+  double vx_max_ion = 32.0 * vti; // Domain boundary (ion velocity space: vx-direction).
   int poly_order = 2; // Polynomial order.
   double cfl_frac = 1.0; // CFL coefficient.
 
-  double t_end = 3.0; // Final simulation time.
+  double t_end = 100.0; // Final simulation time.
   int num_frames = 1; // Number of output frames.
   double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.
   int num_failures_max = 20; // Maximum allowable number of consecutive small time-steps.
 
-  struct es_pot_well_ctx ctx = {
+  struct es_shock_ctx ctx = {
     .pi = pi,
     .epsilon0 = epsilon0,
     .mu0 = mu0,
     .mass_elc = mass_elc,
     .charge_elc = charge_elc,
-    .vt = vt,
-    .nu = nu,
+    .mass_ion = mass_ion,
+    .charge_ion = charge_ion,
+    .n0 = n0,
+    .Te_over_Ti = Te_over_Ti,
     .B0 = B0,
+    .vte = vte,
+    .vti = vti,
+    .cs = cs,
+    .Vx_drift = Vx_drift,
+    .nu_elc = nu_elc,
+    .nu_ion = nu_ion,
     .Nx = Nx,
     .Nvx = Nvx,
     .Lx = Lx,
-    .vx_max = vx_max,
+    .vx_max_elc = vx_max_elc,
+    .vx_max_ion = vx_max_ion,
     .poly_order = poly_order,
     .cfl_frac = cfl_frac,
     .t_end = t_end,
@@ -106,43 +141,85 @@ create_ctx(void)
 void
 evalElcDistInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
 {
-  struct es_pot_well_ctx *app = ctx;
+  struct es_shock_ctx *app = ctx;
   double vx = xn[1];
 
   double pi = app->pi;
-  double vt = app->vt;
 
-  double n = (1.0 / sqrt(2.0 * pi * vt * vt)) * (exp(-(vx * vx) / (2.0 * vt * vt))); // Total number density.
-  double T_sq_n = (vt * vt) * n; // Temperature squared times number density.
+  double n0 = app->n0;
+  double vte = app->vte;
 
-  // Set distribution function.
+  double n = (n0 / sqrt(2.0 * pi * vte * vte)) * (exp(-(vx * vx) / (2.0 * vte * vte))); // Electron total number density.
+  double T_sq_n = (vte * vte) * n; // Electron temperature squared times electron number density.
+
+  // Set electron distribution function.
   fout[0] = n; fout[1] = T_sq_n;
 }
 
 void
 evalElcFluidInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
 {
-  double mom_x = 0.0; // Total momentum density (x-direction).
-  double mom_y = 0.0; // Total momentum density (y-direction).
-  double mom_z = 0.0; // Total momentum density (z-direction).
+  struct es_shock_ctx *app = ctx;
+  double x = xn[0];
 
-  // Set total momentum density.
+  double mass_elc = app->mass_elc;
+  
+  double n0 = app->n0;
+  double Vx_drift = app->Vx_drift;
+
+  double mom_x = -n0 * mass_elc * Vx_drift * tanh(x); // Electron total momentum density (x-direction).
+  double mom_y = 0.0; // Electron total momentum density (y-direction).
+  double mom_z = 0.0; // Electron total momentum density (z-direction).
+
+  // Set electron total momentum density.
+  fout[0] = mom_x; fout[1] = mom_y; fout[2] = mom_z;
+}
+
+void
+evalIonDistInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
+{
+  struct es_shock_ctx *app = ctx;
+  double vx = xn[1];
+
+  double pi = app->pi;
+
+  double n0 = app->n0;
+  double vti = app->vti;
+
+  double n = (n0 / sqrt(2.0 * pi * vti * vti)) * (exp(-(vx * vx) / (2.0 * vti * vti))); // Ion total number density.
+  double T_sq_n = (vti * vti) * n; // Ion temperature squared times ion number density.
+
+  // Set electron distribution function.
+  fout[0] = n; fout[1] = T_sq_n;
+}
+
+void
+evalIonFluidInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
+{
+  struct es_shock_ctx *app = ctx;
+  double x = xn[0];
+
+  double mass_ion = app->mass_ion;
+
+  double n0 = app->n0;
+  double Vx_drift = app->Vx_drift;
+
+  double mom_x = -n0 * mass_ion * Vx_drift * tanh(x); // Ion total momentum density (x-direction).
+  double mom_y = 0.0; // Ion total momentum density (y-direction).
+  double mom_z = 0.0; // Ion total momentum density (z-direction).
+
+  // Set ion total momentum density.
   fout[0] = mom_x; fout[1] = mom_y; fout[2] = mom_z;
 }
 
 void
 evalFieldInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
 {
-  struct es_pot_well_ctx *app = ctx;
-  double x = xn[0];
-
-  double B0 = app->B0;
-
-  double Ex = -sin(x); // Total electric field (x-direction).
+  double Ex = 0.0; // Total electric field (x-direction).
   double Ey = 0.0; // Total electric field (y-direction).
   double Ez = 0.0; // Total electric field (z-direction).
 
-  double Bx = B0; // Total magnetic field (x-direction).
+  double Bx = 0.0; // Total magnetic field (x-direction).
   double By = 0.0; // Total magnetic field (y-direction).
   double Bz = 0.0; // Total magnetic field (z-direction).
   
@@ -155,14 +232,46 @@ evalFieldInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fo
 }
 
 void
-evalNu(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
+evalExternalFieldInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
 {
-  struct es_pot_well_ctx *app = ctx;
+  struct es_shock_ctx *app = ctx;
 
-  double nu = app->nu;
+  double B0 = app->B0;
 
-  // Set collision frequency.
-  fout[0] = nu;
+  double Ex = 0.0; // External electric field (x-direction).
+  double Ey = 0.0; // External electric field (y-direction).
+  double Ez = 0.0; // External electric field (z-direction).
+
+  double Bx = B0; // External magnetic field (x-direction).
+  double By = 0.0; // External magnetic field (y-direction).
+  double Bz = 0.0; // External magnetic field (z-direction).
+
+  // Set external electric field.
+  fout[0] = Ex; fout[1] = Ey; fout[2] = Ez;
+  // Set external magnetic field.
+  fout[3] = Bx; fout[4] = By; fout[5] = Bz;
+}
+
+void
+evalElcNu(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
+{
+  struct es_shock_ctx *app = ctx;
+
+  double nu_elc = app->nu_elc;
+
+  // Set electron collision frequency.
+  fout[0] = nu_elc;
+}
+
+void
+evalIonNu(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
+{
+  struct es_shock_ctx *app = ctx;
+
+  double nu_ion = app->nu_ion;
+
+  // Set ion collision frequency.
+  fout[0] = nu_ion;
 }
 
 void
@@ -202,7 +311,7 @@ main(int argc, char **argv)
     gkyl_mem_debug_set(true);
   }
 
-  struct es_pot_well_ctx ctx = create_ctx(); // Context for initialization functions.
+  struct es_shock_ctx ctx = create_ctx(); // Context for initialization functions.
 
   int NX = APP_ARGS_CHOOSE(app_args.xcells[0], ctx.Nx);
   int NVX = APP_ARGS_CHOOSE(app_args.vcells[0], ctx.Nvx);
@@ -287,8 +396,8 @@ main(int argc, char **argv)
   struct gkyl_pkpm_species elc = {
     .name = "elc",
     .charge = ctx.charge_elc, .mass = ctx.mass_elc,
-    .lower = { -ctx.vx_max },
-    .upper = { ctx.vx_max }, 
+    .lower = { -ctx.vx_max_elc },
+    .upper = { ctx.vx_max_elc },
     .cells = { NVX },
 
     .init_dist = evalElcDistInit,
@@ -298,9 +407,33 @@ main(int argc, char **argv)
 
     .collisions =  {
       .collision_id = GKYL_LBO_COLLISIONS,
-      .self_nu = evalNu,
+      .self_nu = evalElcNu,
       .ctx = &ctx,
     },
+
+    .bcx = { GKYL_SPECIES_REFLECT, GKYL_SPECIES_COPY },
+  };
+
+  // Ions.
+  struct gkyl_pkpm_species ion = {
+    .name = "ion",
+    .charge = ctx.charge_ion, .mass = ctx.mass_ion,
+    .lower = { -ctx.vx_max_ion },
+    .upper = { ctx.vx_max_ion },
+    .cells = { NVX },
+
+    .init_dist = evalIonDistInit,
+    .ctx_dist = &ctx,
+    .init_fluid = evalIonFluidInit,
+    .ctx_fluid = &ctx,
+
+    .collisions =  {
+      .collision_id = GKYL_LBO_COLLISIONS,
+      .self_nu = evalIonNu,
+      .ctx = &ctx,
+    },
+
+    .bcx = { GKYL_SPECIES_REFLECT, GKYL_SPECIES_COPY },
   };
 
   // Field.
@@ -312,15 +445,18 @@ main(int argc, char **argv)
     .init = evalFieldInit,
     .ctx = &ctx,
 
-    .is_static = true,
+    .ext_em = evalExternalFieldInit,
+    .ext_em_ctx = &ctx,
+
+    .bcx = { GKYL_FIELD_PEC_WALL, GKYL_FIELD_COPY },
   };
 
   // PKPM app.
   struct gkyl_pkpm app_inp = {
-    .name = "pkpm_es_pot_well_1x_p2",
+    .name = "pkpm_es_shock_reflect_p2",
 
     .cdim = 1, .vdim = 1,
-    .lower = { 0.0 },
+    .lower = { 0.0},
     .upper = { ctx.Lx },
     .cells = { NX },
 
@@ -328,13 +464,13 @@ main(int argc, char **argv)
     .basis_type = app_args.basis_type,
     .cfl_frac = ctx.cfl_frac,
 
-    .use_explicit_source = true, 
+    .use_explicit_source = true,
 
-    .num_periodic_dir = 1,
-    .periodic_dirs = { 0 },
+    .num_periodic_dir = 0,
+    .periodic_dirs = { },
 
-    .num_species = 1,
-    .species = { elc },
+    .num_species = 2,
+    .species = { elc, ion },
 
     .field = field,
 

@@ -13,23 +13,26 @@ charge_ion = 1.0 -- Ion charge.
 
 n0 = 1.0 -- Reference number density.
 
-Te_over_Ti = 1.0 -- Electron temperature / ion temperature.
+Te_over_Ti = 4.0 -- Electron temperature / ion temperature.
 B0 = 1.0 -- Reference magnetic field strength.
 
 -- Derived physical quantities (using normalized code units).
 vte = 1.0 -- Electron thermal velocity.
 vti = vte / math.sqrt(Te_over_Ti * mass_ion) -- Ion thermal velocity.
+cs = vte / math.sqrt(mass_ion) -- Sound speed.
 
-nu_elc = 1.0e-5 -- Electron collision frequency.
-nu_ion = 1.0e-5 / math.sqrt(mass_ion) * (Te_over_Ti * math.sqrt(Te_over_Ti)) -- Ion collision frequency.
+Vx_drift = 2.0 * cs -- Drift velocity (x-direction).
+
+nu_elc = 1.0e-4 -- Electron collision frequency.
+nu_ion = 1.0e-4 / math.sqrt(mass_ion) * (Te_over_Ti * math.sqrt(Te_over_Ti)) -- Ion collision frequency.
 
 -- Simulation parameters.
 Nx = 128 -- Cell count (configuration space: x-direction).
-Nvx = 32 -- Cell count (velocity space: vx-direction).
+Nvx = 64 -- Cell count (velocity space: vx-direction).
 Lx = 256.0 -- Domain size (configuration space: x-direction).
-vx_max_elc = 8.0 * vte -- Domain boundary (electron velocity space: vx-direction).
-vx_max_ion = 6.0 * vti -- Domain boundary (ion velocity space: vx-direction).
-poly_order = 1 -- Polynomial order.
+vx_max_elc = 6.0 * vte -- Domain boundary (electron velocity space: vx-direction).
+vx_max_ion = 32.0 * vti -- Domain boundary (ion velocity space: vx-direction).
+poly_order = 2 -- Polynomial order.
 basis_type = "serendipity" -- Basis function set.
 time_stepper = "rk3" -- Time integrator.
 cfl_frac = 1.0 -- CFL coefficient.
@@ -49,6 +52,8 @@ pkpmApp = PKPM.App.new {
   upper = { 0.5 * Lx },
   cells = { Nx },
   cflFrac = cfl_frac,
+
+  useExplicitSource = true,
 
   basis = basis_type,
   polyOrder = poly_order,
@@ -82,7 +87,9 @@ pkpmApp = PKPM.App.new {
 
     -- Initial conditions (fluid).
     initFluid = function (t, xn)
-      local mom_x = 0.0 -- Total momentum density (x-direction).
+      local x = xn[1]
+      
+      local mom_x = -n0 * mass_elc * Vx_drift * math.tanh(x) -- Total momentum density (x-direction).
       local mom_y = 0.0 -- Total momentum density (y-direction).
       local mom_z = 0.0 -- Total momentum density (z-direction).
 
@@ -98,7 +105,7 @@ pkpmApp = PKPM.App.new {
     },
 
     evolve = true, -- Evolve species?
-    bcx = { G0.SpeciesBc.bcAbsorb, G0.SpeciesBc.bcAbsorb } -- Absorbing boundary conditions (x-direction).
+    bcx = { G0.SpeciesBc.bcCopy, G0.SpeciesBc.bcCopy } -- Copy boundary conditions (x-direction).
   },
 
   -- Ions.
@@ -123,7 +130,9 @@ pkpmApp = PKPM.App.new {
 
     -- Initial conditions (fluid).
     initFluid = function (t, xn)
-      local mom_x = 0.0 -- Total momentum density (x-direction).
+      local x = xn[1]
+
+      local mom_x = -n0 * mass_ion * Vx_drift * math.tanh(x) -- Total momentum density (x-direction).
       local mom_y = 0.0 -- Total momentum density (y-direction).
       local mom_z = 0.0 -- Total momentum density (z-direction).
 
@@ -139,7 +148,7 @@ pkpmApp = PKPM.App.new {
     },
 
     evolve = true, -- Evolve species?
-    bcx = { G0.SpeciesBc.bcAbsorb, G0.SpeciesBc.bcAbsorb } -- Absorbing boundary conditions (x-direction).
+    bcx = { G0.SpeciesBc.bcCopy, G0.SpeciesBc.bcCopy } -- Copy boundary conditions (x-direction).
   },
 
   -- Field.
@@ -172,8 +181,8 @@ pkpmApp = PKPM.App.new {
     end,
 
     evolve = true, -- Evolve field?
-    bcx = { G0.FieldBc.bcPECWall, G0.FieldBc.bcPECWall }, -- PEC wall boundary conditions (x-direction).
-    
+    bcx = { G0.FieldBc.bcCopy, G0.FieldBc.bcCopy }, -- Copy boundary conditions (x-direction).
+
     elcErrorSpeedFactor = 0.0,
     mgnErrorSpeedFactor = 0.0
   }
