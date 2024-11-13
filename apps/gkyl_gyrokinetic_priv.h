@@ -734,6 +734,7 @@ struct gkyl_gyrokinetic_app {
   int poly_order; // polynomial order
   double tcurr; // current time
   double cfl; // CFL number
+  double bmag_ref; // Reference magnetic field
 
   bool use_gpu; // should we use GPU (if present)
 

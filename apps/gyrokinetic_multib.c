@@ -110,9 +110,9 @@ gyrokinetic_multib_data_write(const char *fname, struct gyrokinetic_multib_outpu
   return status;
 }
 
-// construct single-block App for given block ID
+// construct single-block App geometry for given block ID
 static struct gkyl_gyrokinetic_app *
-singleb_app_new(const struct gkyl_gyrokinetic_multib *mbinp, int bid,
+singleb_app_new_geom(const struct gkyl_gyrokinetic_multib *mbinp, int bid,
   const struct gkyl_gyrokinetic_multib_app *mbapp)
 {
   // For kinetic simulations, block dimension defined configuration-space dimensionality.
@@ -140,6 +140,39 @@ singleb_app_new(const struct gkyl_gyrokinetic_multib *mbinp, int bid,
     app_inp.cells[i] = bgi->cells[i];
   }
   app_inp.geometry = bgi->geometry;
+  int vdim = app_inp.vdim = mbinp->vdim;
+  int num_species = app_inp.num_species = mbinp->num_species;
+  int num_neut_species = app_inp.num_neut_species = mbinp->num_neut_species; 
+
+  app_inp.poly_order = mbinp->poly_order;
+  app_inp.basis_type = mbinp->basis_type;
+  app_inp.cfl_frac = mbinp->cfl_frac; 
+
+  return gkyl_gyrokinetic_app_new_geom(&app_inp);
+}
+
+// construct single-block App solver for given block ID
+static void
+singleb_app_new_solver(const struct gkyl_gyrokinetic_multib *mbinp, int bid,
+  const struct gkyl_gyrokinetic_multib_app *mbapp, struct gkyl_gyrokinetic_app *app)
+{
+  // For kinetic simulations, block dimension defined configuration-space dimensionality.
+  int cdim = gkyl_block_geom_ndim(mbapp->block_geom);
+  int num_blocks = gkyl_block_geom_num_blocks(mbapp->block_geom);
+
+  const struct gkyl_block_geom_info *bgi =
+    gkyl_block_geom_get_block(mbapp->block_geom, bid);
+
+  // construct top-level single-block input struct
+  struct gkyl_gk app_inp = { };
+
+  // Set the configuration-space extents, cells.
+  app_inp.cdim = cdim;
+  for (int i=0; i<cdim; ++i) {
+    app_inp.lower[i] = bgi->lower[i];
+    app_inp.upper[i] = bgi->upper[i];
+    app_inp.cells[i] = bgi->cells[i];
+  }
 
   int vdim = app_inp.vdim = mbinp->vdim;
   int num_species = app_inp.num_species = mbinp->num_species;
@@ -377,7 +410,7 @@ singleb_app_new(const struct gkyl_gyrokinetic_multib *mbinp, int bid,
     }
   }
 
-  field_inp.polarization_bmag = fld_pb->polarization_bmag;
+  field_inp.polarization_bmag = fld_pb->polarization_bmag ? fld_pb->polarization_bmag : mbapp->bmag_ref;
 
   field_inp.phi_wall_lo_ctx = fld_pb->phi_wall_lo_ctx; 
   field_inp.phi_wall_lo = fld_pb->phi_wall_lo; 
@@ -399,7 +432,7 @@ singleb_app_new(const struct gkyl_gyrokinetic_multib *mbinp, int bid,
   // Copy parallelism input into app input.
   memcpy(&app_inp.parallelism, &parallel_inp, sizeof(struct gkyl_app_parallelism_inp));
   
-  return gkyl_gyrokinetic_app_new(&app_inp);    
+  gkyl_gyrokinetic_app_new_solver(&app_inp, app);
 }
 
 gkyl_gyrokinetic_multib_app* gkyl_gyrokinetic_multib_app_new(const struct gkyl_gyrokinetic_multib *mbinp)
@@ -497,8 +530,31 @@ and the maximum number of cuts in a block is %d\n\n", tot_max[0], num_ranks, tot
   for (int i=0; i<mbinp->num_neut_species; ++i)
     strcpy(mbapp->neut_species_name[i], mbinp->neut_species[i].name);  
 
+  // Create single-block apps
   for (int i=0; i<num_local_blocks; ++i)
-    mbapp->singleb_apps[i] = singleb_app_new(mbinp, mbapp->local_blocks[i], mbapp);
+    mbapp->singleb_apps[i] = singleb_app_new_geom(mbinp, mbapp->local_blocks[i], mbapp);
+
+  // Set bmag_ref
+  double bmag_min_local = DBL_MAX;
+  double bmag_min_global;
+  for (int i=0; i<num_local_blocks; ++i) {
+    double bmag_min = gkyl_gk_geometry_reduce_bmag(mbapp->singleb_apps[i]->gk_geom, GKYL_MIN);
+    bmag_min_local = GKYL_MIN2(bmag_min_local, bmag_min);
+  }
+  gkyl_comm_allreduce_host(mbapp->comm, GKYL_DOUBLE, GKYL_MIN, 1, &bmag_min_local, &bmag_min_global);
+
+  double bmag_max_local = 0.0;
+  double bmag_max_global;
+  for (int i=0; i<num_local_blocks; ++i) {
+    double bmag_max = gkyl_gk_geometry_reduce_bmag(mbapp->singleb_apps[i]->gk_geom, GKYL_MAX);
+    bmag_max_local = GKYL_MAX2(bmag_max_local, bmag_max);
+  }
+  gkyl_comm_allreduce_host(mbapp->comm, GKYL_DOUBLE, GKYL_MAX, 1, &bmag_max_local, &bmag_max_global);
+
+  mbapp->bmag_ref = (bmag_min_global + bmag_min_global)/2.0;
+
+  for (int i=0; i<num_local_blocks; ++i)
+    singleb_app_new_solver(mbinp, mbapp->local_blocks[i], mbapp, mbapp->singleb_apps[i]);
 
   // Create the MB field app.
   mbapp->field = gk_field_multib_new(mbinp, mbapp);
