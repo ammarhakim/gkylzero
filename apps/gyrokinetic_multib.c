@@ -140,6 +140,13 @@ singleb_app_new_geom(const struct gkyl_gyrokinetic_multib *mbinp, int bid,
     app_inp.cells[i] = bgi->cells[i];
   }
   app_inp.geometry = bgi->geometry;
+  int vdim = app_inp.vdim = mbinp->vdim;
+  int num_species = app_inp.num_species = mbinp->num_species;
+  int num_neut_species = app_inp.num_neut_species = mbinp->num_neut_species; 
+
+  app_inp.poly_order = mbinp->poly_order;
+  app_inp.basis_type = mbinp->basis_type;
+  app_inp.cfl_frac = mbinp->cfl_frac; 
 
   return gkyl_gyrokinetic_app_new_geom(&app_inp);
 }
@@ -159,21 +166,13 @@ singleb_app_new_solver(const struct gkyl_gyrokinetic_multib *mbinp, int bid,
   // construct top-level single-block input struct
   struct gkyl_gk app_inp = { };
 
-  strcpy(app_inp.name, mbinp->name);
-  if (num_blocks > 1) {
-    cstr app_name = cstr_from_fmt("%s_b%d", mbinp->name, bid);
-    strcpy(app_inp.name, app_name.str);
-    cstr_drop(&app_name);
-  }
-
-  // Set the configuration-space extents, cells, and geometry.
+  // Set the configuration-space extents, cells.
   app_inp.cdim = cdim;
   for (int i=0; i<cdim; ++i) {
     app_inp.lower[i] = bgi->lower[i];
     app_inp.upper[i] = bgi->upper[i];
     app_inp.cells[i] = bgi->cells[i];
   }
-  app_inp.geometry = bgi->geometry;
 
   int vdim = app_inp.vdim = mbinp->vdim;
   int num_species = app_inp.num_species = mbinp->num_species;
