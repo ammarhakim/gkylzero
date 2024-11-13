@@ -366,7 +366,6 @@ gkyl_gyrokinetic_app_new(struct gkyl_gk *gk)
 
   app->update_field = !gk->skip_field; // note inversion of truth value (default: update field)
   app->field = gk_field_new(gk, app); // initialize field, even if we are skipping field updates
-  app->is_field_static = gk->is_field_static;
 
   app->enforce_positivity = gk->enforce_positivity;
   if (app->enforce_positivity) {
@@ -446,24 +445,26 @@ static void
 calc_field(gkyl_gyrokinetic_app* app, double tcurr, const struct gkyl_array *fin[])
 {
   if (app->update_field) {
-    // Compute electrostatic potential from gyrokinetic Poisson's equation.
-    gk_field_accumulate_rho_c(app, app->field, fin);
+    if (app->field->is_static == false || app->stat.nup == 0) {
+      // Compute electrostatic potential from gyrokinetic Poisson's equation.
+      gk_field_accumulate_rho_c(app, app->field, fin);
 
-    // Compute ambipolar potential sheath values if using adiabatic electrons
-    // done here as the RHS update for all species should be complete before
-    // boundary fluxes are computed (ion fluxes needed for sheath values) 
-    // and these boundary fluxes are stored temporarily in ghost cells of RHS
-    if (app->field->gkfield_id == GKYL_GK_FIELD_BOLTZMANN)
-      gk_field_calc_ambi_pot_sheath_vals(app, app->field);
+      // Compute ambipolar potential sheath values if using adiabatic electrons
+      // done here as the RHS update for all species should be complete before
+      // boundary fluxes are computed (ion fluxes needed for sheath values) 
+      // and these boundary fluxes are stored temporarily in ghost cells of RHS
+      if (app->field->gkfield_id == GKYL_GK_FIELD_BOLTZMANN)
+        gk_field_calc_ambi_pot_sheath_vals(app, app->field);
 
-    // Compute biased wall potential if present and time-dependent.
-    // Note: biased wall potential use eval_on_nodes. 
-    // so does copy to GPU every call if app->use_gpu = true.
-    if (app->field->phi_wall_lo_evolve || app->field->phi_wall_up_evolve)
-      gk_field_calc_phi_wall(app, app->field, tcurr);
+      // Compute biased wall potential if present and time-dependent.
+      // Note: biased wall potential use eval_on_nodes. 
+      // so does copy to GPU every call if app->use_gpu = true.
+      if (app->field->phi_wall_lo_evolve || app->field->phi_wall_up_evolve)
+        gk_field_calc_phi_wall(app, app->field, tcurr);
 
-    // Solve the field equation.
-    gk_field_rhs(app, app->field);
+      // Solve the field equation.
+      gk_field_rhs(app, app->field);
+    }
   }
 }
 
@@ -475,9 +476,7 @@ calc_field_and_apply_bc(gkyl_gyrokinetic_app* app, double tcurr, struct gkyl_arr
   // Compute the field.
   // MF 2024/09/27/: Need the cast here for consistency. Fixing
   // this may require removing 'const' from a lot of places.
-  if (app->is_field_static == false || app->stat.nup == 0) {
-    calc_field(app, tcurr, (const struct gkyl_array **) distf);
-  }
+   calc_field(app, tcurr, (const struct gkyl_array **) distf);
 
   // Apply boundary conditions.
   for (int i=0; i<app->num_species; ++i) {

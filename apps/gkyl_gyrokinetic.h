@@ -307,7 +307,6 @@ struct gkyl_gk {
   struct gkyl_gyrokinetic_neut_species neut_species[GKYL_MAX_SPECIES]; // species objects
   
   bool skip_field; // Skip field update -> phi = 0 for all time
-  bool is_field_static; // Static field -> dphi/dt = 0 for all time. phi(t=0) is initial condition.
   struct gkyl_gyrokinetic_field field; // field object
 
   struct gkyl_app_parallelism_inp parallelism; // Parallelism-related inputs.
