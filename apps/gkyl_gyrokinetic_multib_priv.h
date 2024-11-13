@@ -24,6 +24,7 @@ struct gkyl_gyrokinetic_multib_app {
   struct gkyl_block_topo *block_topo;
   
   double cfl_frac; // CFL fraction to use
+  double bmag_ref; // Reference magnetic field
   int num_species; // number of species
   int num_neut_species; // number of neutral species
 

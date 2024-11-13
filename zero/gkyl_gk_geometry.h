@@ -50,7 +50,6 @@ struct gk_geometry {
   struct gkyl_array* gyyj; // 1 component. g^{yy} * J. For poisson solve.
   struct gkyl_array* gxzj; // 1 component. g^{xz} * J. For poisson solve if z derivatives are kept.
   struct gkyl_array* eps2; // 1 component. eps2 = Jg^33 - J/g_33. For poisson if z derivatives are kept.
-  struct gkyl_array* bmag_mid; // 1 component. B at center of domain.
 
   uint32_t flags;
   struct gkyl_ref_count ref_count;  
@@ -141,12 +140,13 @@ gkyl_gk_geometry_augment_grid(struct gkyl_rect_grid grid, struct gkyl_gk_geometr
 void 
 gkyl_gk_geometry_augment_local(const struct gkyl_range *inrange, const int *nghost, struct gkyl_range *ext_range, struct gkyl_range *range);
 
-
 /**
- * Evaluate and set bmag at the center of the domain
+ * Reduce bmag to get min or max value.
+ * Only to be used during initialization because it allocates memory
+ *  @param up gk_geometry object
+ *  @param op operation to perform (GKYL_MAX or GKYL_MIN)
  */
-void gkyl_gk_geometry_bmag_mid(struct gk_geometry* up);
-
+double gkyl_gk_geometry_reduce_bmag(struct gk_geometry* up, enum gkyl_array_op op);
 
 /**
  * Init nodal range from modal range
