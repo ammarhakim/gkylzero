@@ -178,7 +178,7 @@ kernel_canonical_pb_vol_2x3v_ser_p1(const struct gkyl_dg_eqn *eqn, const double*
   struct dg_canonical_pb *canonical_pb = container_of(eqn, struct dg_canonical_pb, eqn);
   long pidx = gkyl_range_idx(&canonical_pb->phase_range, idx);
 
-  return canonical_pb_vol_2x2v_ser_p1(xc, dx,
+  return canonical_pb_vol_2x3v_ser_p1(xc, dx,
     (const double*) gkyl_array_cfetch(canonical_pb->auxfields.hamil, pidx), 
     qIn, qRhsOut);  
 }
@@ -191,7 +191,7 @@ kernel_canonical_pb_vol_2x3v_ser_p2(const struct gkyl_dg_eqn *eqn, const double*
   struct dg_canonical_pb *canonical_pb = container_of(eqn, struct dg_canonical_pb, eqn);
   long pidx = gkyl_range_idx(&canonical_pb->phase_range, idx);
 
-  return canonical_pb_vol_2x2v_ser_p2(xc, dx,
+  return canonical_pb_vol_2x3v_ser_p2(xc, dx,
     (const double*) gkyl_array_cfetch(canonical_pb->auxfields.hamil, pidx), 
     qIn, qRhsOut);  
 }
