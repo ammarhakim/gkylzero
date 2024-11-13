@@ -264,8 +264,8 @@ static void rescale_ghost_jacf_choose_kernel(struct gkyl_rescale_ghost_jacf_kern
   switch (pbasis_type) {
     case GKYL_BASIS_MODAL_GKHYBRID:
     case GKYL_BASIS_MODAL_SERENDIPITY:
-      kernels->deflate_phase_ghost_op = ser_deflate_surf_phase_list[ghost_edge].edgedlist[pdim-1].dirlist[dir].kernels[poly_order-1];
-      kernels->inflate_phase_ghost_op = ser_inflate_surf_phase_list[pdim-1].dirlist[dir].kernels[poly_order-1];
+      kernels->deflate_phase_ghost_op = ser_deflate_surf_phase_list[ghost_edge].edgedlist[pdim-2].dirlist[dir].kernels[poly_order-1];
+      kernels->inflate_phase_ghost_op = ser_inflate_surf_phase_list[pdim-2].dirlist[dir].kernels[poly_order-1];
       kernels->conf_phase_mul_op = choose_mul_conf_phase_kern(pbasis_type, cdim-1, pdim-cdim, poly_order);
       break;
     default:
