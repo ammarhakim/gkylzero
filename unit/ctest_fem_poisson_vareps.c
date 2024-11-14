@@ -378,9 +378,9 @@ test_2x(int poly_order, const int *cells, struct gkyl_poisson_bc bcs, bool use_g
 
   // Set the RHS source.
   if (use_gpu)
-    gkyl_fem_poisson_set_rhs(poisson, rho_cu);
+    gkyl_fem_poisson_set_rhs(poisson, rho_cu, NULL);
   else
-    gkyl_fem_poisson_set_rhs(poisson, rho);
+    gkyl_fem_poisson_set_rhs(poisson, rho, NULL);
 
   // Solve the problem.
   if (use_gpu) {

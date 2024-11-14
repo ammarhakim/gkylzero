@@ -594,10 +594,6 @@ write_data(struct gkyl_tm_trigger* iot, gkyl_gyrokinetic_app* app, double t_curr
 
     gkyl_gyrokinetic_app_write(app, t_curr, frame);
 
-    gkyl_gyrokinetic_app_calc_mom(app);
-    gkyl_gyrokinetic_app_write_mom(app, t_curr, frame);
-    gkyl_gyrokinetic_app_write_source_mom(app, t_curr, frame);
-
     gkyl_gyrokinetic_app_calc_field_energy(app, t_curr);
     gkyl_gyrokinetic_app_write_field_energy(app);
 
@@ -667,7 +663,6 @@ int main(int argc, char **argv)
 
     .source = {
       .source_id = GKYL_PROJ_SOURCE,
-      .write_source = true,
       .num_sources = 1,
       .projection[0] = {
         .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM, 
@@ -730,7 +725,6 @@ int main(int argc, char **argv)
 
     .source = {
       .source_id = GKYL_PROJ_SOURCE,
-      .write_source = true,
       .num_sources = 1,
       .projection[0] = {
         .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM, 
@@ -790,8 +784,8 @@ int main(int argc, char **argv)
   struct gkyl_gk app_inp = {
     .name = "gk_wham_3x2v_p1",
     .cdim = ctx.cdim,  .vdim = ctx.vdim,
-    .lower = {ctx.psi_min, 0, ctx.z_min},
-    .upper = {ctx.psi_max, 2 * M_PI, ctx.z_max},
+    .lower = {ctx.psi_min, - M_PI, ctx.z_min},
+    .upper = {ctx.psi_max,   M_PI, ctx.z_max},
     .cells = { cells_x[0], cells_x[1], cells_x[2] },
     .poly_order = ctx.poly_order,
     .basis_type = app_args.basis_type,

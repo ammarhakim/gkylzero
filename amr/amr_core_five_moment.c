@@ -41,7 +41,7 @@ five_moment_1d_run_single(int argc, char **argv, struct five_moment_1d_single_in
   double mass_ion = init->mass_ion;
   double charge_ion = init->charge_ion;
 
-  char five_moment_output[32];
+  char five_moment_output[64];
   strcpy(five_moment_output, init->five_moment_output);
 
   bool low_order_flux = init->low_order_flux;
@@ -348,7 +348,7 @@ five_moment_1d_run_double(int argc, char **argv, struct five_moment_1d_double_in
   double mass_ion = init->mass_ion;
   double charge_ion = init->charge_ion;
 
-  char five_moment_output[32];
+  char five_moment_output[64];
   strcpy(five_moment_output, init->five_moment_output);
 
   bool low_order_flux = init->low_order_flux;
@@ -674,7 +674,7 @@ five_moment_2d_run_single(int argc, char **argv, struct five_moment_2d_single_in
   bool wall_x = init->wall_x;
   bool wall_y = init->wall_y;
 
-  char five_moment_output[32];
+  char five_moment_output[64];
   strcpy(five_moment_output, init->five_moment_output);
 
   bool low_order_flux = init->low_order_flux;
@@ -1021,7 +1021,7 @@ five_moment_2d_run_double(int argc, char **argv, struct five_moment_2d_double_in
   bool wall_x = init->wall_x;
   bool wall_y = init->wall_y;
 
-  char five_moment_output[32];
+  char five_moment_output[64];
   strcpy(five_moment_output, init->five_moment_output);
 
   bool low_order_flux = init->low_order_flux;

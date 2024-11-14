@@ -382,7 +382,7 @@ test_poisson_slices(){
     // first deflate
     gkyl_deflate_zsurf_advance(deflator_lo, zidx, &local, &deflated_local, field, deflated_field, 1);
     // do the poisson solve
-    gkyl_fem_poisson_set_rhs(fem_poisson, deflated_field);
+    gkyl_fem_poisson_set_rhs(fem_poisson, deflated_field, NULL);
     gkyl_fem_poisson_solve(fem_poisson, deflated_phi);
     // then nodal to modal
     gkyl_nodal_ops_m2n(n2m_1d, &deflated_basis, &deflated_grid, &deflated_nrange, &deflated_local, 1, deflated_nodal_fld, deflated_phi);
@@ -400,7 +400,7 @@ test_poisson_slices(){
       // first deflate
       gkyl_deflate_zsurf_advance(deflator_up, zidx, &local, &deflated_local, field, deflated_field, 1);
       // do the poisson solve
-      gkyl_fem_poisson_set_rhs(fem_poisson, deflated_field);
+      gkyl_fem_poisson_set_rhs(fem_poisson, deflated_field, NULL);
       gkyl_fem_poisson_solve(fem_poisson, deflated_phi);
       // then nodal to modal
       gkyl_nodal_ops_m2n(n2m_1d, &deflated_basis, &deflated_grid, &deflated_nrange, &deflated_local, 1, deflated_nodal_fld, deflated_phi);

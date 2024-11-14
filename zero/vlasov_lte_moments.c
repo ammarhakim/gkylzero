@@ -10,6 +10,7 @@
 #include <gkyl_dg_updater_moment.h>
 #include <gkyl_vlasov_lte_moments.h>
 #include <gkyl_vlasov_lte_moments_priv.h>
+#include <gkyl_mom_canonical_pb.h>
 #include <gkyl_mom_vlasov_sr.h>
 
 struct gkyl_vlasov_lte_moments*
@@ -67,41 +68,41 @@ gkyl_vlasov_lte_moments_inew(const struct gkyl_vlasov_lte_moments_inp *inp)
     struct gkyl_mom_vlasov_sr_auxfields sr_inp = {.gamma = inp->gamma};  
     // Moment calculator for needed moments (M0, M1i)
     up->M0_calc = gkyl_dg_updater_moment_new(inp->phase_grid, inp->conf_basis,
-      inp->phase_basis, inp->conf_range, inp->vel_range, up->model_id, &sr_inp, "M0", false, inp->use_gpu);
+      inp->phase_basis, inp->conf_range, inp->vel_range, inp->phase_range, up->model_id, &sr_inp, "M0", false, inp->use_gpu);
     up->M1i_calc = gkyl_dg_updater_moment_new(inp->phase_grid, inp->conf_basis,
-      inp->phase_basis, inp->conf_range, inp->vel_range, up->model_id, &sr_inp, "M1i", false, inp->use_gpu);
+      inp->phase_basis, inp->conf_range, inp->vel_range, inp->phase_range, up->model_id, &sr_inp, "M1i", false, inp->use_gpu);
   }
   else if (up->model_id == GKYL_MODEL_CANONICAL_PB) {
-    int num_pij_comps = up->vdim*(up->vdim+1)/2;
     up->h_ij_inv = gkyl_array_acquire(inp->h_ij_inv);
     up->det_h = gkyl_array_acquire(inp->det_h);
     if (inp->use_gpu) {
-      up->pressure_tensor = gkyl_array_cu_dev_new(GKYL_DOUBLE, up->num_conf_basis*num_pij_comps, conf_local_ext_ncells);
+      up->energy_moment = gkyl_array_cu_dev_new(GKYL_DOUBLE, up->num_conf_basis, conf_local_ext_ncells);
     }
     else {
-      up->pressure_tensor = gkyl_array_new(GKYL_DOUBLE, up->num_conf_basis*num_pij_comps, conf_local_ext_ncells);
+      up->energy_moment = gkyl_array_new(GKYL_DOUBLE, up->num_conf_basis, conf_local_ext_ncells);
     }
     up->can_pb_vars = gkyl_dg_calc_canonical_pb_vars_new(inp->phase_grid, inp->conf_basis, inp->phase_basis, inp->use_gpu);
+    struct gkyl_mom_canonical_pb_auxfields can_pb_inp = {.hamil = inp->hamil}; 
 
     // Moment calculator for needed moments (M0, M1i, and M2 for non-relativistic)
     // Temperature moment is modified by can-pb, requires computing g^{ij}w_iw_j kernel
     // Note: auxiliary field input is NULL (not used by non-relativistic simulations)
     up->M0_calc = gkyl_dg_updater_moment_new(inp->phase_grid, inp->conf_basis,
-      inp->phase_basis, inp->conf_range, inp->vel_range, up->model_id, 0, "M0", false, inp->use_gpu);
+      inp->phase_basis, inp->conf_range, inp->vel_range, inp->phase_range, up->model_id, 0, "M0", false, inp->use_gpu);
     up->M1i_calc = gkyl_dg_updater_moment_new(inp->phase_grid, inp->conf_basis,
-      inp->phase_basis, inp->conf_range, inp->vel_range, up->model_id, 0, "M1i", false, inp->use_gpu);
+      inp->phase_basis, inp->conf_range, inp->vel_range, inp->phase_range, up->model_id, 0, "M1i", false, inp->use_gpu);
     up->Pcalc = gkyl_dg_updater_moment_new(inp->phase_grid, inp->conf_basis,
-      inp->phase_basis, inp->conf_range, inp->vel_range, up->model_id, 0, "M2ij", false, inp->use_gpu);   
+      inp->phase_basis, inp->conf_range, inp->vel_range, inp->phase_range, up->model_id, &can_pb_inp, "MEnergy", false, inp->use_gpu);   
   }
   else {
     // Moment calculator for needed moments (M0, M1i, and M2 for non-relativistic)
     // Note: auxiliary field input is NULL (not used by non-relativistic simulations)
     up->M0_calc = gkyl_dg_updater_moment_new(inp->phase_grid, inp->conf_basis,
-      inp->phase_basis, inp->conf_range, inp->vel_range, up->model_id, 0, "M0", false, inp->use_gpu);
+      inp->phase_basis, inp->conf_range, inp->vel_range, inp->phase_range, up->model_id, 0, "M0", false, inp->use_gpu);
     up->M1i_calc = gkyl_dg_updater_moment_new(inp->phase_grid, inp->conf_basis,
-      inp->phase_basis, inp->conf_range, inp->vel_range, up->model_id, 0, "M1i", false, inp->use_gpu);
+      inp->phase_basis, inp->conf_range, inp->vel_range, inp->phase_range, up->model_id, 0, "M1i", false, inp->use_gpu);
     up->Pcalc = gkyl_dg_updater_moment_new(inp->phase_grid, inp->conf_basis,
-      inp->phase_basis, inp->conf_range, inp->vel_range, up->model_id, 0, "M2", false, inp->use_gpu);    
+      inp->phase_basis, inp->conf_range, inp->vel_range, inp->phase_range, up->model_id, 0, "M2", false, inp->use_gpu);    
   }
   return up;
 }
@@ -185,12 +186,12 @@ gkyl_vlasov_lte_moments_advance(struct gkyl_vlasov_lte_moments *lte_moms,
     }
 
     if (lte_moms->model_id == GKYL_MODEL_CANONICAL_PB) {
-      // Compute the lab frame M2ij
+      // Compute MEnergy
       gkyl_dg_updater_moment_advance(lte_moms->Pcalc, phase_local, conf_local, 
-        fin, lte_moms->pressure_tensor);
-      // Solve for d*P*Jv: d*P*Jv = h^{ij}*M2_{ij} - n*h^{ij}*u_i*u_j 
-      //                          = h^{ij}*M2_{ij} - h^{ij}*M1i*V_drift_j 
-      gkyl_canonical_pb_pressure(lte_moms->can_pb_vars, conf_local, lte_moms->h_ij_inv, lte_moms->pressure_tensor,
+        fin, lte_moms->energy_moment);
+      // Solve for d*P*Jv: d*P*Jv = 2*E - n*h^{ij}*u_i*u_j 
+      //                          = 2*E - h^{ij}*M1i*V_drift_j 
+      gkyl_canonical_pb_pressure(lte_moms->can_pb_vars, conf_local, lte_moms->h_ij_inv, lte_moms->energy_moment,
         lte_moms->V_drift, lte_moms->M1i, lte_moms->pressure);
     }
     else {
@@ -240,7 +241,7 @@ gkyl_vlasov_lte_moments_release(gkyl_vlasov_lte_moments *lte_moms)
   else if (lte_moms->model_id == GKYL_MODEL_CANONICAL_PB) {
     gkyl_array_release(lte_moms->h_ij_inv);
     gkyl_array_release(lte_moms->det_h);
-    gkyl_array_release(lte_moms->pressure_tensor);
+    gkyl_array_release(lte_moms->energy_moment);
     gkyl_dg_calc_canonical_pb_vars_release(lte_moms->can_pb_vars);
   } 
 
