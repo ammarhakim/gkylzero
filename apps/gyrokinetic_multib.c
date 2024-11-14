@@ -530,7 +530,7 @@ and the maximum number of cuts in a block is %d\n\n", tot_max[0], num_ranks, tot
   for (int i=0; i<mbinp->num_neut_species; ++i)
     strcpy(mbapp->neut_species_name[i], mbinp->neut_species[i].name);  
 
-  // Create single-block apps
+  // Create single-block grids and geometries.
   for (int i=0; i<num_local_blocks; ++i)
     mbapp->singleb_apps[i] = singleb_app_new_geom(mbinp, mbapp->local_blocks[i], mbapp);
 
@@ -543,7 +543,7 @@ and the maximum number of cuts in a block is %d\n\n", tot_max[0], num_ranks, tot
   }
   gkyl_comm_allreduce_host(mbapp->comm, GKYL_DOUBLE, GKYL_MIN, 1, &bmag_min_local, &bmag_min_global);
 
-  double bmag_max_local = 0.0;
+  double bmag_max_local = -DBL_MAX;
   double bmag_max_global;
   for (int i=0; i<num_local_blocks; ++i) {
     double bmag_max = gkyl_gk_geometry_reduce_bmag(mbapp->singleb_apps[i]->gk_geom, GKYL_MAX);
@@ -553,6 +553,7 @@ and the maximum number of cuts in a block is %d\n\n", tot_max[0], num_ranks, tot
 
   mbapp->bmag_ref = (bmag_max_global + bmag_min_global)/2.0;
 
+  // Create the rest of the single-block solvers.
   for (int i=0; i<num_local_blocks; ++i)
     singleb_app_new_solver(mbinp, mbapp->local_blocks[i], mbapp, mbapp->singleb_apps[i]);
 
