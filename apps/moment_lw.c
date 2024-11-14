@@ -11,13 +11,13 @@
 #include <gkyl_wave_prop.h>
 #include <gkyl_wv_coldfluid.h>
 #include <gkyl_wv_euler.h>
+#include <gkyl_wv_euler_mixture.h>
 #include <gkyl_wv_iso_euler.h>
+#include <gkyl_wv_iso_euler_mixture.h>
 #include <gkyl_wv_mhd.h>
+#include <gkyl_wv_reactive_euler.h>
 #include <gkyl_wv_sr_euler.h>
 #include <gkyl_wv_ten_moment.h>
-#include <gkyl_wv_reactive_euler.h>
-#include <gkyl_wv_euler_mixture.h>
-#include <gkyl_wv_iso_euler_mixture.h>
 
 #include <lua.h>
 #include <lualib.h>

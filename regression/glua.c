@@ -249,6 +249,25 @@ parse_app_args(int argc, char **argv)
   return args;
 }
 
+static void
+show_banner(FILE *fp)
+{
+  if (fp) {
+    time_t t = time(NULL);
+    struct tm *tm = localtime(&t);
+    char s[64];
+    size_t ret = strftime(s, sizeof(s), "%c", tm);
+    fprintf(fp, "%s\n", s);
+    fprintf(fp, "Gkyl built with Git changset %s\n", STRINGIFY(GKYL_GIT_CHANGESET));
+    fprintf(fp, "Gkyl build on %s\n", STRINGIFY(GKYL_BUILD_DATE));
+#ifdef GKYL_HAVE_NCCL
+    fprintf(fp, "Built with CUDA\n");
+#else
+    fprintf(fp, "Built without CUDA\n\n");
+#endif    
+  }
+}
+
 int
 main(int argc, char **argv)
 {
@@ -394,6 +413,12 @@ main(int argc, char **argv)
   if (app_args->echunk)
     glua_run_lua(L, app_args->echunk, strlen(app_args->echunk), 0);
 
+  int rank = 0;
+#ifdef GKYL_HAVE_MPI
+  MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+#endif
+  show_banner(rank == 0 ? stdout : 0);
+  
   if (app_args->num_opt_args > 0) {
     bool something_run = false;
 
