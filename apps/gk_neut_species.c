@@ -196,9 +196,6 @@ gk_neut_species_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app, struc
   // set species source id
   s->src = (struct gk_source) { };  
 
-  // vtsq_min
-  s->vtsq_min = s->grid.dx[cdim]*s->grid.dx[cdim]/6.0;
-
   // Create skin/ghost ranges fir applying BCs.
   for (int dir=0; dir<cdim; ++dir) {
     // Create local lower skin and ghost ranges for distribution function

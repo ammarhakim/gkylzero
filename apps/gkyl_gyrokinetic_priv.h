@@ -346,6 +346,9 @@ struct gk_react {
   int donor_idx[GKYL_MAX_REACT]; // integer index of donor species being reacted with 
   int partner_idx[GKYL_MAX_REACT]; // integer index of neut species in cx reaction
   
+  double ion_vtsq_min[GKYL_MAX_REACT]; // Minimum temperature for ions.
+  double neut_vtsq_min[GKYL_MAX_REACT]; // Minimum temperature for neutrals.
+
   struct gk_species_moment moms_elc[GKYL_MAX_REACT]; // for computing moments of electron species in reaction
   struct gk_species_moment moms_ion[GKYL_MAX_REACT]; // for computing moments of ion species in reaction
   struct gk_species_moment moms_donor[GKYL_MAX_REACT]; // for computing moments of donor species in reaction
@@ -571,9 +574,6 @@ struct gk_species {
   bool is_first_ps_integ_write_call; // Flag first time writing ps_integ_diag.
 
   double *omega_cfl;
-
-  // vtsq_min
-  double vtsq_min; 
 };
 
 // neutral species data
@@ -648,9 +648,6 @@ struct gk_neut_species {
   struct gk_source src; // applied source
 
   struct gk_react react_neut; // reaction object
-
-  // vtsq_min
-  double vtsq_min; 
 
   double *omega_cfl;
 };
