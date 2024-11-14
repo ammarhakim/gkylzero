@@ -514,7 +514,8 @@ gkyl_gk_maxwellian_proj_on_basis_advance(gkyl_gk_maxwellian_proj_on_basis *up,
         }
 
         double *fq = gkyl_array_fetch(up->fun_at_ords, pqidx);
-        fq[0] = f_floor + jacobvel_d[0]*expamp_quad[cqidx]*exp(-efact);
+        fq[0] = T_over_m_quad[cqidx] > 0.0 ? f_floor + 
+          jacobvel_d[0]*expamp_quad[cqidx]*exp(-efact) : f_floor;
       }
       // compute expansion coefficients of Maxwellian distribution function on basis
       proj_on_basis(up, up->fun_at_ords, gkyl_array_fetch(f_maxwellian, lidx));

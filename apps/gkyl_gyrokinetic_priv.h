@@ -558,7 +558,6 @@ struct gk_species {
 
   struct gk_lte lte; // object needed for the lte equilibrium
 
-  enum gkyl_collision_id collision_id; // type of collisions
   // collisions
   union {
     struct {
@@ -662,7 +661,6 @@ struct gk_neut_species {
 
   struct gk_lte lte; // object needed for the lte equilibrium
 
-  enum gkyl_collision_id collision_id; // type of collisions
   // collisions
   union {
     struct {

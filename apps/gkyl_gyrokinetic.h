@@ -647,6 +647,19 @@ void gkyl_gyrokinetic_app_write_neut_species_source_integrated_mom(gkyl_gyrokine
 void gkyl_gyrokinetic_app_write_species_lbo_mom(gkyl_gyrokinetic_app *app, int sidx, double tm, int frame);
 
 /**
+ * Write BGK cross collisional moments for species to file.
+ * In general there are num_cross_collisions number of moments, 
+ * *but we only write out the first cross moments by default*. 
+ * This write method could be generalized to write out any number of moments.
+ * 
+ * @param app App object.
+ * @param sidx Index of species to write.
+ * @param tm Time-stamp
+ * @param frame Frame number
+ */
+void gkyl_gyrokinetic_app_write_species_bgk_cross_mom(gkyl_gyrokinetic_app *app, int sidx, double tm, int frame);
+
+/**
  * Write species integrated correct Maxwellian status of the to file. 
  * Correct Maxwellian status is appended to the same file.
  * 

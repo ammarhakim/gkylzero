@@ -892,12 +892,11 @@ gkyl_gyrokinetic_app_write_species_mom(gkyl_gyrokinetic_app* app, int sidx, doub
     snprintf(fileNm, sizeof fileNm, fmt, app->name, gks->info.name,
       gks->info.diag_moments[m], frame);
 
-    // Rescale moment by inverse of Jacobian if not already re-scaled 
-    if (!gks->moms[m].is_bimaxwellian_moms && !gks->moms[m].is_maxwellian_moms) {
-      gkyl_dg_div_op_range(gks->moms[m].mem_geo, app->confBasis, 
-        0, gks->moms[m].marr, 0, gks->moms[m].marr, 0, 
-        app->gk_geom->jacobgeo, &app->local);  
-    }    
+    // Rescale moment by inverse of Jacobian 
+    // For Maxwellian and bi-Maxwellian moments, only have to re-scale M0
+    gkyl_dg_div_op_range(gks->moms[m].mem_geo, app->confBasis, 
+      0, gks->moms[m].marr, 0, gks->moms[m].marr, 0, 
+      app->gk_geom->jacobgeo, &app->local);  
 
     if (app->use_gpu) {
       gkyl_array_copy(gks->moms[m].marr_host, gks->moms[m].marr);
@@ -1509,6 +1508,43 @@ gkyl_gyrokinetic_app_write_species_lbo_mom(gkyl_gyrokinetic_app* app, int sidx, 
 }
 
 void
+gkyl_gyrokinetic_app_write_species_bgk_cross_mom(gkyl_gyrokinetic_app* app, int sidx, double tm, int frame)
+{
+  struct gk_species *gk_s = &app->species[sidx];
+
+  if (gk_s->bgk.collision_id == GKYL_BGK_COLLISIONS && gk_s->bgk.write_diagnostics) {
+    struct timespec wst = gkyl_wall_clock();
+
+    struct gkyl_array_meta *mt = gk_array_meta_new( (struct gyrokinetic_output_meta) {
+        .frame = frame,
+        .stime = tm,
+        .poly_order = app->poly_order,
+        .basis_type = app->confBasis.id
+      }
+    );
+
+    // Construct the file handles for cross moments
+    const char *fmt_cross = "%s-%s_cross_moms_%d.gkyl";
+    int sz_cross = gkyl_calc_strlen(fmt_cross, app->name, gk_s->info.name, frame);
+    char fileNm_cross[sz_cross+1]; // ensures no buffer overflow
+    snprintf(fileNm_cross, sizeof fileNm_cross, fmt_cross, app->name, gk_s->info.name, frame);
+
+    // Compute primitive moments and cross primitive moments
+    gk_species_bgk_moms(app, gk_s, &gk_s->bgk, gk_s->f);
+    if (gk_s->lbo.num_cross_collisions)
+      gk_species_bgk_cross_moms(app, gk_s, &gk_s->bgk, gk_s->f);
+
+    struct timespec wtm = gkyl_wall_clock();
+    // Write out the 0th cross moment (we can write out others but this is just a debugging tool)
+    gkyl_comm_array_write(app->comm, &app->grid, &app->local, mt, gk_s->bgk.cross_moms[0], fileNm_cross);
+    app->stat.io_tm += gkyl_time_diff_now_sec(wtm);
+    app->stat.nio += 1;
+
+    gk_array_meta_release(mt); 
+  }
+}
+
+void
 gkyl_gyrokinetic_app_write_species_max_corr_status(gkyl_gyrokinetic_app* app, int sidx)
 {
   struct gk_species *gks = &app->species[sidx];
@@ -2013,6 +2049,8 @@ gkyl_gyrokinetic_app_write_species_conf(gkyl_gyrokinetic_app* app, int sidx, dou
 
   gkyl_gyrokinetic_app_write_species_lbo_mom(app, sidx, tm, frame);
 
+  gkyl_gyrokinetic_app_write_species_bgk_cross_mom(app, sidx, tm, frame);
+
   gkyl_gyrokinetic_app_write_species_rad_emissivity(app, sidx, tm, frame);
 
   struct gk_species *gk_s = &app->species[sidx];
@@ -2152,7 +2190,7 @@ gyrokinetic_rhs(gkyl_gyrokinetic_app* app, double tcurr, double dt,
       gk_species_lbo_moms(app, &app->species[i], 
         &app->species[i].lbo, fin[i]);
     }
-    if (app->species[i].bgk.collision_id == GKYL_BGK_COLLISIONS) {
+    if (app->species[i].bgk.collision_id == GKYL_BGK_COLLISIONS && !app->has_implicit_coll_scheme) {
       gk_species_bgk_moms(app, &app->species[i], 
         &app->species[i].bgk, fin[i]);
     }
@@ -2169,7 +2207,7 @@ gyrokinetic_rhs(gkyl_gyrokinetic_app* app, double tcurr, double dt,
           &gk_s->lbo, fin[i]);        
       }
     }
-    if (gk_s->bgk.collision_id == GKYL_BGK_COLLISIONS) {
+    if (gk_s->bgk.collision_id == GKYL_BGK_COLLISIONS && !app->has_implicit_coll_scheme) {
       if (gk_s->bgk.num_cross_collisions) {
         gk_species_bgk_cross_moms(app, &app->species[i], 
           &gk_s->bgk, fin[i]);        

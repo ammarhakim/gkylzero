@@ -15,7 +15,7 @@ gyrokinetic_update_implicit_coll(gkyl_gyrokinetic_app* app, double dt0)
     struct gk_species *gks = &app->species[i];
     fin[i] = gks->f;
     fout[i] = gks->f1;
-    if (gks->collision_id == GKYL_BGK_COLLISIONS) {
+    if (gks->bgk.collision_id == GKYL_BGK_COLLISIONS) {
       gk_species_bgk_moms(app, gks, &gks->bgk, fin[i]);
     }
   }
@@ -24,7 +24,7 @@ gyrokinetic_update_implicit_coll(gkyl_gyrokinetic_app* app, double dt0)
   // Needs to be done after self-collisions moments, so separate loop over species.
   for (int i=0; i<ns; ++i) {
     struct gk_species *gks = &app->species[i];
-    if (gks->collision_id == GKYL_BGK_COLLISIONS) {
+    if (gks->bgk.collision_id == GKYL_BGK_COLLISIONS) {
       if (gks->bgk.num_cross_collisions) {
         gk_species_bgk_cross_moms(app, gks, &gks->bgk, fin[i]);        
       }
@@ -50,7 +50,7 @@ gyrokinetic_update_implicit_coll(gkyl_gyrokinetic_app* app, double dt0)
     struct gk_neut_species *gkns = &app->neut_species[i];
     fin_neut[i] = gkns->f;
     fout_neut[i] = gkns->f1;
-    if (gkns->collision_id == GKYL_BGK_COLLISIONS) {
+    if (gkns->bgk.collision_id == GKYL_BGK_COLLISIONS) {
       gk_neut_species_bgk_moms(app, gkns, &gkns->bgk, fin_neut[i]);
     }
   }
