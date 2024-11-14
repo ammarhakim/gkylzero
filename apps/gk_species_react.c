@@ -63,13 +63,13 @@ gk_species_react_cross_init(struct gkyl_gyrokinetic_app *app, struct gk_species 
     react->Jm0_ion[i] = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
     react->Jm0_donor[i] = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
 
-    // Vector flow velocity, donor velocity, and donor LTE moments for projecting LTE distribution functions
+    // Vector flow velocity, donor velocity, and donor vt^2 for projecting LTE distribution functions
     // donor velocity is simply upar when reacting with plasma, and u_i . b_i when reacting with neutrals
     react->u_i[i] = mkarr(app->use_gpu, 3*app->confBasis.num_basis, app->local_ext.volume);
     react->u_i_dot_b_i[i] = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
     react->vt_sq_donor[i] = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
 
-    // Partner flow velocity (upar b_i), partner LTE moments for projecting LTE distribution functions
+    // Partner flow velocity (upar b_i), partner vt^2 for projecting LTE distribution functions
     react->upar_partner[i] = mkarr(app->use_gpu, 3*app->confBasis.num_basis, app->local_ext.volume);
     react->vt_sq_partner[i] = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
     

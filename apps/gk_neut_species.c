@@ -446,9 +446,11 @@ gk_neut_species_tm(gkyl_gyrokinetic_app *app)
 {
   app->stat.species_rhs_tm = 0.0;
   for (int i=0; i<app->num_neut_species; ++i) {
-    struct gkyl_dg_updater_vlasov_tm tm =
-      gkyl_dg_updater_vlasov_get_tm(app->neut_species[i].slvr);
-    app->stat.neut_species_rhs_tm += tm.vlasov_tm;
+    if (!app->neut_species[i].info.is_static) {
+      struct gkyl_dg_updater_vlasov_tm tm =
+        gkyl_dg_updater_vlasov_get_tm(app->neut_species[i].slvr);
+      app->stat.neut_species_rhs_tm += tm.vlasov_tm;
+    }
   }
 }
 

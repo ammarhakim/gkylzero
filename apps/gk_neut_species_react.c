@@ -53,7 +53,7 @@ gk_neut_species_react_cross_init(struct gkyl_gyrokinetic_app *app, struct gk_neu
     react->Jm0_elc[i] = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
     react->Jm0_partner[i] = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
 
-    // Partner flow velocity (upar b_i), partner LTE moments for projecting LTE distribution functions
+    // Partner flow velocity (upar b_i), partner vt^2 for projecting LTE distribution functions
     react->upar_partner[i] = mkarr(app->use_gpu, 3*app->confBasis.num_basis, app->local_ext.volume);
     react->vt_sq_partner[i] = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
 
