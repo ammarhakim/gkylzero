@@ -215,22 +215,22 @@ static const edged_inflate_surf_kern_list ser_inflate_surf_phase_list[] = {
 };
 
 // Need a special kernel for cdim=1:
-GKYL_CU_DH
-void
+GKYL_CU_D
+static void
 conf_inv_op_0x(const double *A, double *A_inv)
 {
   A_inv[0] = 1.0/A[0];
 }
 
-GKYL_CU_DH
-void
+GKYL_CU_D
+static void
 conf_mul_op_0x(const double *f, const double *g, double *fg)
 {
   fg[0] = f[0]*g[0];
 };
 
-GKYL_CU_DH
-void
+GKYL_CU_D
+static void
 conf_mul_op_0x_1x1v_gkhybrid(const double *f, const double *g, double *fg)
 {
   fg[0] = f[0]*g[0];
@@ -241,8 +241,8 @@ conf_mul_op_0x_1x1v_gkhybrid(const double *f, const double *g, double *fg)
   fg[5] = f[0]*g[5];
 };
 
-GKYL_CU_DH
-void
+GKYL_CU_D
+static void
 conf_mul_op_0x_1x2v_gkhybrid(const double *f, const double *g, double *fg)
 {
   fg[0] = f[0]*g[0];
@@ -280,7 +280,7 @@ struct gkyl_rescale_ghost_jacf {
 #ifdef GKYL_HAVE_CUDA
 // Declaration of cuda device functions.
 void
-pghost_cdm_choose_kernel_cu(struct gkyl_rescale_ghost_jacf_kernels *kernels,
+rescale_ghost_jacf_choose_kernel_cu(struct gkyl_rescale_ghost_jacf_kernels *kernels,
   int dir, enum gkyl_edge_loc edge, const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis);
 
 void
@@ -295,14 +295,14 @@ static void rescale_ghost_jacf_choose_kernel(struct gkyl_rescale_ghost_jacf_kern
 {
 #ifdef GKYL_HAVE_CUDA
   if (use_gpu) {
-    pghost_cdm_choose_kernel_cu(kernels, dir, edge, cbasis, pbasis);
+    rescale_ghost_jacf_choose_kernel_cu(kernels, dir, edge, cbasis, pbasis);
     return;
   }
 #endif
 
-  enum gkyl_basis_type cbasis_type = cbasis->b_type, pbasis_type = pbasis->b_type;
   int cdim = cbasis->ndim, pdim = pbasis->ndim;
   int vdim = pdim-cdim;
+  enum gkyl_basis_type cbasis_type = cbasis->b_type, pbasis_type = pbasis->b_type;
   int poly_order = pbasis->poly_order;
 
   enum gkyl_edge_loc ghost_edge = edge == GKYL_LOWER_EDGE? GKYL_UPPER_EDGE : GKYL_LOWER_EDGE;
