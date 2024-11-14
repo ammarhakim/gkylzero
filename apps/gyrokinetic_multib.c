@@ -148,6 +148,15 @@ singleb_app_new_geom(const struct gkyl_gyrokinetic_multib *mbinp, int bid,
   app_inp.basis_type = mbinp->basis_type;
   app_inp.cfl_frac = mbinp->cfl_frac; 
 
+  struct gkyl_comm *comm = mbapp->block_comms[bid];
+
+  struct gkyl_app_parallelism_inp parallel_inp = {};
+  parallel_inp.use_gpu = mbinp->use_gpu;
+  for (int d=0; d<cdim; ++d) parallel_inp.cuts[d] = bgi->cuts[d];
+  parallel_inp.comm = comm;
+  // Copy parallelism input into app input.
+  memcpy(&app_inp.parallelism, &parallel_inp, sizeof(struct gkyl_app_parallelism_inp));
+
   return gkyl_gyrokinetic_app_new_geom(&app_inp);
 }
 
@@ -422,15 +431,6 @@ singleb_app_new_solver(const struct gkyl_gyrokinetic_multib *mbinp, int bid,
 
   // Copy field input into app input
   memcpy(&app_inp.field, &field_inp, sizeof(struct gkyl_gyrokinetic_field));  
-
-  struct gkyl_comm *comm = mbapp->block_comms[bid];
-
-  struct gkyl_app_parallelism_inp parallel_inp = {};
-  parallel_inp.use_gpu = mbinp->use_gpu;
-  for (int d=0; d<cdim; ++d) parallel_inp.cuts[d] = bgi->cuts[d];
-  parallel_inp.comm = comm;
-  // Copy parallelism input into app input.
-  memcpy(&app_inp.parallelism, &parallel_inp, sizeof(struct gkyl_app_parallelism_inp));
   
   gkyl_gyrokinetic_app_new_solver(&app_inp, app);
 }
