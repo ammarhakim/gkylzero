@@ -356,7 +356,7 @@ gkyl_gyrokinetic_app_new_geom(struct gkyl_gk *gk)
   bmag_max_local = gkyl_gk_geometry_reduce_bmag(app->gk_geom, GKYL_MAX);
   gkyl_comm_allreduce_host(app->comm, GKYL_DOUBLE, GKYL_MAX, 1, &bmag_max_local, &bmag_max_global);
 
-  app->bmag_ref = (bmag_min_global + bmag_min_global)/2.0;
+  app->bmag_ref = (bmag_max_global + bmag_min_global)/2.0;
   
   // If we are on the gpu, copy from host
   if (app->use_gpu) {

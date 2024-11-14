@@ -180,7 +180,7 @@ gkyl_gk_geometry_reduce_bmag(struct gk_geometry* up, enum gkyl_array_op op)
   gkyl_range_iter_init(&iter, &up->local);
   while (gkyl_range_iter_next(&iter)) {
     long linidx = gkyl_range_idx(&up->local, iter.idx);
-    double *b_d = gkyl_array_fetch(up->bmag, linidx);
+    double *b_d = gkyl_array_fetch(bmag_ho, linidx);
     double blog[cdim];
     for (int n = 0; n < up->basis.num_basis; n++) {
       const double *blog = gkyl_array_cfetch(nodes,n);

@@ -551,7 +551,7 @@ and the maximum number of cuts in a block is %d\n\n", tot_max[0], num_ranks, tot
   }
   gkyl_comm_allreduce_host(mbapp->comm, GKYL_DOUBLE, GKYL_MAX, 1, &bmag_max_local, &bmag_max_global);
 
-  mbapp->bmag_ref = (bmag_min_global + bmag_min_global)/2.0;
+  mbapp->bmag_ref = (bmag_max_global + bmag_min_global)/2.0;
 
   for (int i=0; i<num_local_blocks; ++i)
     singleb_app_new_solver(mbinp, mbapp->local_blocks[i], mbapp, mbapp->singleb_apps[i]);
