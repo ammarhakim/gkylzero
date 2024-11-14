@@ -192,6 +192,47 @@ gkyl_fem_poisson_new(const struct gkyl_range *solve_range, const struct gkyl_rec
     keri = idx_to_inloup_ker(up->ndim, up->num_cells, up->solve_iter.idx);
     up->kernels->lhsker[keri](eps_p, kSq_p, up->dx, up->bcvals, up->globalidx, tri[0]);
   }
+// We added the z_edge to know if we are on a z plane that has a target corner phi=0 BC.
+up->z_edge = bcs->z_edge;
+up->xLCFS  = bcs->xLCFS;
+  if(bcs->z_edge){
+    double xLCFS = bcs->xLCFS;
+    int idxLCFS_m = (xLCFS-1e-8 - grid->lower[0])/grid->dx[0]+1;
+    gkyl_mat_triples_iter *iter = gkyl_mat_triples_iter_new(tri[0]);
+    for (size_t i=0; i<gkyl_mat_triples_size(tri[0]); ++i) {
+      gkyl_mat_triples_iter_next(iter); // bump iterator.
+      struct gkyl_mtriple mt = gkyl_mat_triples_iter_at(iter);
+      size_t idx[2] = { mt.row, mt.col };
+      int k  = idx[0]; // k-th equation row (k = iy + Ny*ix) for periodic y
+      int ix = k / grid->cells[1]; // get node x-index
+      int iy = k % grid->cells[1]; // get node y-index
+      // Detect if we are currently at an equation row for the LCFS
+      if(ix == idxLCFS_m){
+        // Set up 1 at the diag element
+        if(idx[0] == idx[1]) {
+          gkyl_mat_triples_insert(tri[0], idx[0],idx[1], 1.0);
+        }
+        // 0 everywhere else
+        else{
+          gkyl_mat_triples_insert(tri[0], idx[0],idx[1], 0.0);
+        }
+      }
+    }
+    gkyl_mat_triples_iter_release(iter);
+  }
+// // Write the matrix elements in a file
+//   gkyl_mat_triples_iter *iter2 = gkyl_mat_triples_iter_new(tri[0]);
+//     FILE *file = fopen("A.txt", "w");
+//     for (size_t i=0; i<gkyl_mat_triples_size(tri[0]); ++i) {
+//       gkyl_mat_triples_iter_next(iter2); // bump iterator.
+//       struct gkyl_mtriple mt = gkyl_mat_triples_iter_at(iter2);
+//       size_t idx[2] = { mt.row, mt.col };
+      
+//       fprintf(file,"a(%zu,%zu) = %g\n",idx[0],idx[1],mt.val);
+//     }
+//   gkyl_mat_triples_iter_release(iter2);
+//   fclose(file); 
+
 #ifdef GKYL_HAVE_CUDA
   if (up->use_gpu) {
     gkyl_culinsolver_amat_from_triples(up->prob_cu, tri);
@@ -261,6 +302,29 @@ gkyl_fem_poisson_set_rhs(gkyl_fem_poisson* up, struct gkyl_array *rhsin)
     keri = idx_to_inloup_ker(up->ndim, up->num_cells, up->solve_iter.idx);
     up->kernels->srcker[keri](eps_p, up->dx, rhsin_p, up->bcvals, up->globalidx, brhs_p);
   }
+
+  // If we are located at the edge of the z domain (This is temporary and should be generalized)
+  if(up->z_edge){
+    double xLCFS = up->xLCFS;
+    int idxLCFS_m = (xLCFS-1e-8 - up->grid.lower[0])/up->grid.dx[0]+1;
+    // apply new BC on the RHS vector
+    gkyl_range_iter_init(&up->solve_iter, up->solve_range);
+    for (size_t i=0; i<up->numnodes_global; ++i) {
+      int ix = i / up->grid.cells[1]; // get node x-index
+      int iy = i % up->grid.cells[1]; // get node y-index
+      if(i == idxLCFS_m){
+        brhs_p[i] = 0.0;
+      }
+    }
+  }
+
+  // Write the rhs vector elements in a file
+  // FILE *file = fopen("b.txt", "w");
+  // gkyl_range_iter_init(&up->solve_iter, up->solve_range);
+  // for (size_t i=0; i<up->numnodes_global; ++i) {
+  //   fprintf(file,"b(%zu) = %g\n",i,brhs_p[i]);
+  // }
+  // fclose(file); 
 
   gkyl_superlu_brhs_from_array(up->prob, brhs_p);
 

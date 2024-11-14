@@ -103,6 +103,8 @@ gkyl_deflated_fem_poisson_new(struct gkyl_rect_grid grid,
       gkyl_deflate_zsurf_advance(up->deflator_up, zidx-1, &up->local, &up->deflated_local, epsilon, up->d_fem_data[ctr].deflated_epsilon,  2*up->deflated_grid.ndim-1);
     else 
       gkyl_deflate_zsurf_advance(up->deflator_lo, zidx, &up->local, &up->deflated_local, epsilon, up->d_fem_data[ctr].deflated_epsilon, 2*up->deflated_grid.ndim-1);
+    // check if we are at an extremal index of z
+    up->poisson_bc.z_edge = (zidx == local.lower[up->cdim-1]) || (zidx == up->local.upper[up->cdim-1]+1);
     up->d_fem_data[ctr].fem_poisson = gkyl_fem_poisson_new(&up->deflated_local, &up->deflated_grid, up->deflated_basis, &up->poisson_bc, up->d_fem_data[ctr].deflated_epsilon, 0, false, use_gpu);
     ctr += 1;
   }
@@ -120,6 +122,7 @@ gkyl_deflated_fem_poisson_advance(struct gkyl_deflated_fem_poisson *up, struct g
     gkyl_deflate_zsurf_advance(up->deflator_lo, zidx, 
       &up->global_sub_range, &up->deflated_local, field, up->d_fem_data[ctr].deflated_field, 1);
     // Do the poisson solve 
+    bool z_edge = (zidx == up->global_sub_range.lower[up->cdim-1]) || (zidx == up->global_sub_range.upper[up->cdim-1]);
     gkyl_fem_poisson_set_rhs(up->d_fem_data[ctr].fem_poisson, up->d_fem_data[ctr].deflated_field);
     gkyl_fem_poisson_solve(up->d_fem_data[ctr].fem_poisson, up->d_fem_data[ctr].deflated_phi);
     // Modal to Nodal in 1d -> Store the result in the 2d nodal field

@@ -680,6 +680,10 @@ struct gkyl_fem_poisson {
   struct gkyl_fem_poisson_kernels *kernels;
   struct gkyl_fem_poisson_kernels *kernels_cu;
   bool use_gpu;
+
+  // Information that will change the Poisson solver according to the z-plane
+  bool z_edge; // to check if we are on a z edge to apply the phi=0 target corner BC
+  double xLCFS; // Position of the LCFS
 };
 
 void

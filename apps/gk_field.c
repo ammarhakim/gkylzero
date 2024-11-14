@@ -16,6 +16,9 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
   struct gk_field *f = gkyl_malloc(sizeof(struct gk_field));
 
   f->info = gk->field;
+  // We add the position of the lcfs in the poisson BC structure
+  // to pass it to the deflated FEM solver
+  f->info.poisson_bcs.xLCFS = f->info.xLCFS;
 
   f->gkfield_id = f->info.gkfield_id ? f->info.gkfield_id : GKYL_GK_FIELD_ES;
 
