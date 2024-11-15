@@ -26,7 +26,7 @@ proj_jac(double t, const double *xn, double *fout, void *ctx)
 {
   double x = xn[0];
   double z = xn[1];
-  fout[0] = 1.0 + z*z*cos(x);
+  fout[0] = 1.0;// + z*z*cos(x);
 }
 
 void
@@ -34,7 +34,7 @@ proj_rho(double t, const double *xn, double *fout, void *ctx)
 {
   double x = xn[0];
   double z = xn[1];
-  fout[0] = z*sin((2.*M_PI/(2.*M_PI))*x);
+  fout[0] = sin(2.0*z)*sin((2.*M_PI/(2.*M_PI))*x);
 }
 
 // Check continuity along last dim in 2x
@@ -96,7 +96,7 @@ test_bop(bool use_gpu)
   int c_oop = 0;
   // create the 2d field
   // create xz grid
-  double lower[] = { -M_PI, 0.0 }, upper[] = { M_PI, 1.0 };
+  double lower[] = { -M_PI, -M_PI }, upper[] = { M_PI, M_PI };
   int cells[] = { 12, 8 };
   struct gkyl_rect_grid grid;
   gkyl_rect_grid_init(&grid, 2, lower, upper, cells);
@@ -153,10 +153,14 @@ test_bop(bool use_gpu)
   struct gkyl_deflated_dg_bin_ops* operator = gkyl_deflated_dg_bin_ops_new(grid, basis_on_dev, basis, local, use_gpu);
 
   // Divide
-  gkyl_deflated_dg_bin_ops_div(operator, c_oop, Exz_dev, c_lop, Cxz_dev, c_rop, jac_dev);
+  //gkyl_deflated_dg_bin_ops_div(operator, c_oop, Exz_dev, c_lop, Cxz_dev, c_rop, jac_dev);
+  struct gkyl_dg_bin_op_mem *mem = gkyl_dg_bin_op_mem_new(local.volume, basis.num_basis);
+  gkyl_dg_div_op_range(mem, basis, c_oop, Exz_dev, c_lop, Cxz_dev, c_rop, jac_dev, &local);
 
   gkyl_array_copy(Exz, Exz_dev);
   gkyl_grid_sub_array_write(&grid, &local, 0, Exz, "Exz.gkyl");
+
+  check_same(local, basis, Exz, rho);
 
   // Smooth E
   struct gkyl_fem_parproj *fem_parproj = gkyl_fem_parproj_new(&local, &local_ext, &basis, GKYL_FEM_PARPROJ_NONE, NULL, use_gpu);
