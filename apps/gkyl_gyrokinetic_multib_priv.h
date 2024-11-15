@@ -29,7 +29,7 @@ struct gkyl_gyrokinetic_multib_app {
   int num_neut_species; // number of neutral species
 
   bool update_field; // true if there solving Poisson equation
-  struct gk_field_multib *field; // Field object.
+  struct gk_multib_field *field; // Field object.
 
   char species_name[GKYL_MAX_SPECIES][128]; // name of each species
   char neut_species_name[GKYL_MAX_SPECIES][128]; // name of each neutral species  
@@ -65,7 +65,7 @@ struct gyrokinetic_multib_output_meta {
 };
 
 // field data
-struct gk_field_multib {
+struct gk_multib_field {
   struct gkyl_gyrokinetic_multib_field info; // data for field
   enum gkyl_gkfield_id gkfield_id; // type of field
   int num_local_blocks; // total number of blocks on current rank
@@ -126,7 +126,7 @@ struct gkyl_update_status gyrokinetic_multib_update_ssp_rk3(struct gkyl_gyrokine
  * @param mbapp Gyrokinetic multib app.
  * return new multib field object
  */
-struct gk_field_multib* gk_field_multib_new(const struct gkyl_gyrokinetic_multib *mbinp,
+struct gk_multib_field* gk_multib_field_new(const struct gkyl_gyrokinetic_multib *mbinp,
   struct gkyl_gyrokinetic_multib_app *mbapp);
 
 
@@ -135,10 +135,10 @@ struct gk_field_multib* gk_field_multib_new(const struct gkyl_gyrokinetic_multib
  * @param mbf Multib field object.
  * @param fin Distribution function (for all local blocks).
 */
-void gk_field_multib_rhs(gkyl_gyrokinetic_multib_app *mbapp, 
-  struct gk_field_multib *mbf, const struct gkyl_array *fin[]);
+void gk_multib_field_rhs(gkyl_gyrokinetic_multib_app *mbapp, 
+  struct gk_multib_field *mbf, const struct gkyl_array *fin[]);
 
 /** Releas the resources for the multib field object
  * @param mbf Multib field object.
 */
-void gk_field_multib_release(struct gk_field_multib *mbf);
+void gk_multib_field_release(struct gk_multib_field *mbf);

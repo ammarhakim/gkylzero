@@ -558,7 +558,7 @@ and the maximum number of cuts in a block is %d\n\n", tot_max[0], num_ranks, tot
     singleb_app_new_solver(mbinp, mbapp->local_blocks[i], mbapp, mbapp->singleb_apps[i]);
 
   // Create the MB field app.
-  mbapp->field = gk_field_multib_new(mbinp, mbapp);
+  mbapp->field = gk_multib_field_new(mbinp, mbapp);
 
   // Create connections needed for conf-space syncs.
   int ghost[] = { 1, 1, 1 };
@@ -713,7 +713,7 @@ gyrokinetic_multib_calc_field(struct gkyl_gyrokinetic_multib_app* app, double tc
   // Compute fields.
   if (app->update_field) {
     // Solve the field equation.
-    gk_field_multib_rhs(app, app->field, fin);
+    gk_multib_field_rhs(app, app->field, fin);
   }
 }
 
@@ -1537,7 +1537,7 @@ void gkyl_gyrokinetic_multib_app_release(gkyl_gyrokinetic_multib_app* mbapp)
     gkyl_free(mbapp->singleb_apps);
   }  
 
-  gk_field_multib_release(mbapp->field);
+  gk_multib_field_release(mbapp->field);
 
   int num_blocks = gkyl_block_geom_num_blocks(mbapp->block_geom);
 

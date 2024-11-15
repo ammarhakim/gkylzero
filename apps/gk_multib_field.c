@@ -22,11 +22,11 @@ calc_cuts(int ndim, const int *cuts)
 }
 
 // Initialize multib field object
-struct gk_field_multib* 
-gk_field_multib_new(const struct gkyl_gyrokinetic_multib *mbinp, struct gkyl_gyrokinetic_multib_app *mbapp)
+struct gk_multib_field* 
+gk_multib_field_new(const struct gkyl_gyrokinetic_multib *mbinp, struct gkyl_gyrokinetic_multib_app *mbapp)
 {
 
-  struct gk_field_multib *mbf = gkyl_malloc(sizeof(struct gk_field_multib));
+  struct gk_multib_field *mbf = gkyl_malloc(sizeof(struct gk_multib_field));
 
   mbf->info = mbinp->field;
   mbf->gkfield_id = mbf->info.gkfield_id ? mbf->info.gkfield_id : GKYL_GK_FIELD_ES;
@@ -165,7 +165,7 @@ gk_field_multib_new(const struct gkyl_gyrokinetic_multib *mbinp, struct gkyl_gyr
 
 // Compute the electrostatic potential
 void
-gk_field_multib_rhs(gkyl_gyrokinetic_multib_app *mbapp, struct gk_field_multib *mbf, const struct gkyl_array *fin[])
+gk_multib_field_rhs(gkyl_gyrokinetic_multib_app *mbapp, struct gk_multib_field *mbf, const struct gkyl_array *fin[])
 {
   // Every local block calculates its charge density
   for (int bI=0; bI<mbf->num_local_blocks; bI++) {
@@ -214,7 +214,7 @@ gk_field_multib_rhs(gkyl_gyrokinetic_multib_app *mbapp, struct gk_field_multib *
 
 // Release resources for multib field
 void
-gk_field_multib_release(struct gk_field_multib *mbf)
+gk_multib_field_release(struct gk_multib_field *mbf)
 {
 
   for (int bI= 0; bI<mbf->num_local_blocks; bI++) {
