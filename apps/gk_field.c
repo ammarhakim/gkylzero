@@ -381,6 +381,7 @@ void
 gk_field_release(const gkyl_gyrokinetic_app* app, struct gk_field *f)
 {
   gkyl_array_release(f->rho_c);
+  gkyl_array_release(f->m0);
   gkyl_array_release(f->rho_c_global_dg);
   gkyl_array_release(f->rho_c_global_smooth);
   gkyl_array_release(f->phi_fem);
