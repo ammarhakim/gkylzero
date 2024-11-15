@@ -1473,7 +1473,7 @@ vm_app_run(lua_State *L)
       num_failures = 0;
     }
 
-    write_step_message(app, &m_trig, step, t_curr, status.dt_suggested);    
+    write_step_message(app, &m_trig, step, t_curr, status.dt_suggested);
 
     step += 1;
   }
