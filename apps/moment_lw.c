@@ -1549,9 +1549,6 @@ write_step_message(const struct gkyl_moment_app *app,
 {
   if (gkyl_tm_trigger_check_and_bump(&trigs->log_trig, t_curr)) {
     if (trigs->log_count > 0)
-      /* gkyl_moment_app_cout(app, stdout, */
-      /*   " Step %6d at time  %#11.8g.  Time step  %.6e.  Completed %g%s\n", */
-      /*   step, t_curr, dt_next, trigs->tenth*10, "%"); */
       gkyl_moment_app_cout(app, stdout,
         " Step %6d at time %#11.8g.  Time step  %.6e.  Completed %g%s\n",
         step, t_curr, dt_next, trigs->tenth*10.0, "%");
@@ -1614,9 +1611,8 @@ mom_app_run(lua_State *L)
 
   long step = 1;
   while ((t_curr < t_end) && (step <= num_steps)) {
-    //gkyl_moment_app_cout(app, stdout, "Taking time-step %ld at t = %g ...", step, t_curr);
+    
     struct gkyl_update_status status = gkyl_moment_update(app, dt);
-    //gkyl_moment_app_cout(app, stdout, " dt = %g\n", status.dt_actual);
     
     if (!status.success) {
       gkyl_moment_app_cout(app, stdout, "** Update method failed! Aborting simulation ....\n");
