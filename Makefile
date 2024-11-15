@@ -204,7 +204,7 @@ EXEC_LIBS = ${BUILD_DIR}/libgkylzero.so ${EXEC_EXT_LIBS}
 EXEC_INSTALLED_LIBS = ${G0_RPATH} -lgkylzero ${EXEC_EXT_LIBS}
 EXEC_RPATH = 
 
-# Rpath for use in glua exectuable
+# Rpath for use in gkyl exectuable
 G0_LIB_DIR = ${INSTALL_PREFIX}/gkylzero/lib
 G0_RPATH = -Wl,-rpath,${G0_LIB_DIR}
 
@@ -239,12 +239,12 @@ ${BUILD_DIR}/ci/%: ci/%.c ${BUILD_DIR}/libgkylzero.so
 	${CC} ${CFLAGS} ${LDFLAGS} -o $@ $< -I. $(INCLUDES) ${EXEC_LIB_DIRS} ${EXEC_RPATH} ${EXEC_LIBS}
 
 # Lua interpreter for testing Lua regression tests
-${BUILD_DIR}/glua: regression/glua.c ${BUILD_DIR}/libgkylzero.so
+${BUILD_DIR}/gkyl: regression/gkyl.c ${BUILD_DIR}/libgkylzero.so
 	$(MKDIR_P) ${BUILD_DIR}
 	${CC} ${CFLAGS} ${LDFLAGS} -o $@ $< -I. $(INCLUDES) ${EXEC_LIB_DIRS} ${EXEC_RPATH} ${EXEC_LIBS}
 
 # Lua interpreter for testing Lua regression tests
-${BUILD_DIR}/glua-install: regression/glua.c ${BUILD_DIR}/libgkylzero.so
+${BUILD_DIR}/gkyl-install: regression/gkyl.c ${BUILD_DIR}/libgkylzero.so
 	$(MKDIR_P) ${BUILD_DIR}
 	${CC} ${CFLAGS} ${LDFLAGS} -o $@ $< -I. $(INCLUDES) ${EXEC_LIB_DIRS} ${EXEC_INSTALLED_LIBS} 
 
@@ -399,10 +399,10 @@ endef
 
 OPT_FROM_FILE :=
 ifdef USING_NVCC
-	# Note there should be a blank space following --options-file.
+# Note there should be a blank space following --options-file.
         OPT_FROM_FILE += --options-file 
 else
-	# There should be no blank space follow @.
+# There should be no blank space follow @.
         OPT_FROM_FILE += @
 endif
 
@@ -431,16 +431,16 @@ $(ZERO_SH_INSTALL_LIB): $(ZERO_SH_INSTALL_LIB).in $(OBJS)
 ## All libraries build targets completed at this point
 
 .PHONY: all
-all: ${BUILD_DIR}/gkylzero.h ${ZERO_SH_LIB} ## Build libraries and amalgamated header
+all: ${BUILD_DIR}/gkylzero.h ${ZERO_SH_LIB} ${BUILD_DIR}/gkyl ## Build libraries and amalgamated header
 	${MKDIR_P} ${INSTALL_PREFIX}/gkylzero/share/adas
 	cp ./data/adas/radiation_fit_parameters.txt ${INSTALL_PREFIX}/gkylzero/share/adas
 
 # Explicit targets to build unit and regression tests
 unit: ${ZERO_SH_LIB} ${UNITS} ${MPI_UNITS} ${LUA_UNITS} ## Build unit tests
-regression: ${ZERO_SH_LIB} ${REGS} regression/rt_arg_parse.h ${BUILD_DIR}/glua ## Build regression tests
+regression: ${ZERO_SH_LIB} ${REGS} regression/rt_arg_parse.h ${BUILD_DIR}/gkyl ## Build regression tests
 amr_regression: ${ZERO_SH_LIB} ${AMR_REGS} ## Build AMR regression tests
 ci: ${ZERO_SH_LIB} ${CI} ## Build automated regression system
-glua: ${BUILD_DIR}/glua ## Build Lua interpreter
+gkyl: ${BUILD_DIR}/gkyl ## Build Lua interpreter
 
 .PHONY: check mpicheck
 # Run all unit tests
@@ -455,7 +455,7 @@ mpicheck: ${MPI_UNITS} ## Build (if needed) and run all unit tests needing MPI
 G0_SHARE_INSTALL_PREFIX=${INSTALL_PREFIX}/gkylzero/share
 SED_REPS_STR=s,G0_SHARE_INSTALL_PREFIX_TAG,${G0_SHARE_INSTALL_PREFIX},g
 
-install: all $(ZERO_SH_INSTALL_LIB) ${BUILD_DIR}/glua ## Install library and headers
+install: all $(ZERO_SH_INSTALL_LIB) ${BUILD_DIR}/gkyl-install ## Install library and headers
 # Construct install directories
 	$(MKDIR_P) ${INSTALL_PREFIX}/gkylzero/include
 	${MKDIR_P} ${INSTALL_PREFIX}/gkylzero/lib
@@ -473,11 +473,8 @@ install: all $(ZERO_SH_INSTALL_LIB) ${BUILD_DIR}/glua ## Install library and hea
 	sed ${SED_REPS_STR} Makefile.sample > ${INSTALL_PREFIX}/gkylzero/share/Makefile
 	cp -f regression/rt_arg_parse.h ${INSTALL_PREFIX}/gkylzero/include/rt_arg_parse.h
 	cp -f regression/rt_vlasov_twostream_p2.c ${INSTALL_PREFIX}/gkylzero/share/rt_vlasov_twostream_p2.c
-
-install-glua: install ${BUILD_DIR}/glua-install ## Install the glua exectuable
-# glua executable
-	cp -f ${BUILD_DIR}/glua-install ${INSTALL_PREFIX}/gkylzero/bin/gkyl
-
+# gkyl executable
+	cp -f ${BUILD_DIR}/gkyl-install ${INSTALL_PREFIX}/gkylzero/bin/gkyl
 
 .PHONY: clean
 clean: ## Clean build output
@@ -485,7 +482,7 @@ clean: ## Clean build output
 
 .PHONY: cleanur
 cleanur: ## Delete the unit and regression test executables
-	rm -rf ${BUILD_DIR}/unit ${BUILD_DIR}/regression ${BUILD_DIR}/amr_regression {BUILD_DIR}/ci ${BUILD_DIR}/glua
+	rm -rf ${BUILD_DIR}/unit ${BUILD_DIR}/regression ${BUILD_DIR}/amr_regression {BUILD_DIR}/ci ${BUILD_DIR}/gkyl
 
 .PHONY: cleanr
 cleanr: ## Delete the regression test executables

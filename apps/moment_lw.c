@@ -1090,7 +1090,8 @@ mom_app_new(lua_State *L)
   int tot_cuts = 1; for (int d=0; d<cdim; ++d) tot_cuts *= cuts[d];
 
   if (tot_cuts != comm_sz) {
-    printf("tot_cuts = %d (%d)\n", tot_cuts, comm_sz);
+    if (0 == rank)
+      fprintf(stderr, "tot_cuts = %d (%d)\n", tot_cuts, comm_sz);
     luaL_error(L, "Number of ranks and cuts do not match!");
   }
   
@@ -1532,6 +1533,38 @@ mom_app_update(lua_State *L)
   return 1;
 }
 
+// step message context
+struct step_message_trigs {
+  int log_count; // number of times logging called
+  int tenth, p1c; 
+  struct gkyl_tm_trigger log_trig; // 10% trigger
+  struct gkyl_tm_trigger log_trig_1p; // 1% trigger
+};
+
+// Write log message to console
+static void
+write_step_message(const struct gkyl_moment_app *app,
+  struct step_message_trigs *trigs,
+  int step, double t_curr, double dt_next)
+{
+  if (gkyl_tm_trigger_check_and_bump(&trigs->log_trig, t_curr)) {
+    if (trigs->log_count > 0)
+      /* gkyl_moment_app_cout(app, stdout, */
+      /*   " Step %6d at time  %#11.8g.  Time step  %.6e.  Completed %g%s\n", */
+      /*   step, t_curr, dt_next, trigs->tenth*10, "%"); */
+      gkyl_moment_app_cout(app, stdout,
+        " Step %6d at time %#11.8g.  Time step  %.6e.  Completed %g%s\n",
+        step, t_curr, dt_next, trigs->tenth*10.0, "%");
+    else
+      trigs->log_count += 1;
+    trigs->tenth += 1;
+  }
+  if (gkyl_tm_trigger_check_and_bump(&trigs->log_trig_1p, t_curr)) {
+    gkyl_moment_app_cout(app, stdout, "%d", trigs->p1c);
+    trigs->p1c = (trigs->p1c+1) % 10;
+  }
+}
+
 // Run simulation. (num_steps) -> bool. num_steps is optional.
 static int
 mom_app_run(lua_State *L)
@@ -1547,14 +1580,29 @@ mom_app_run(lua_State *L)
   double t_curr = app_lw->t_start, t_end = app_lw->t_end;
   long num_steps = luaL_optinteger(L, 2, INT_MAX);
 
-  // Create trigger for IO.
   int num_frames = app_lw->num_frames;
-  struct gkyl_tm_trigger io_trig = { .dt = t_end / num_frames };
+  // triggers for IO and logging
+  struct gkyl_tm_trigger io_trig = { .dt = (t_end-t_curr) / num_frames };
 
+  struct step_message_trigs m_trig = {
+    .log_count = 0,
+    .tenth = t_curr > 0 ? 0 : (int) floor(t_curr/t_end*10),
+    .p1c = t_curr > 0 ? 0 : (int) floor(t_curr/t_end*100) % 10,
+    .log_trig = { .dt = (t_end-t_curr)/10 },
+    .log_trig_1p = { .dt = (t_end-t_curr)/100 },
+  };
+  
+  gkyl_moment_app_cout(app, stdout, "Initializing Moments Simulation ...\n");
+
+  struct timespec tm_ic0 = gkyl_wall_clock();
   // Initialize simulation.
   gkyl_moment_app_apply_ic(app, t_curr);
   gkyl_moment_app_calc_integrated_mom(app, t_curr);
   gkyl_moment_app_calc_field_energy(app, t_curr);
+  
+  gkyl_moment_app_cout(app, stdout, "Initializing completed in %g sec\n\n",
+    gkyl_time_diff_now_sec(tm_ic0));
+
   write_data(&io_trig, app, t_curr, false);
 
   // Compute estimate of maximum stable time-step.
@@ -1566,9 +1614,9 @@ mom_app_run(lua_State *L)
 
   long step = 1;
   while ((t_curr < t_end) && (step <= num_steps)) {
-    gkyl_moment_app_cout(app, stdout, "Taking time-step %ld at t = %g ...", step, t_curr);
+    //gkyl_moment_app_cout(app, stdout, "Taking time-step %ld at t = %g ...", step, t_curr);
     struct gkyl_update_status status = gkyl_moment_update(app, dt);
-    gkyl_moment_app_cout(app, stdout, " dt = %g\n", status.dt_actual);
+    //gkyl_moment_app_cout(app, stdout, " dt = %g\n", status.dt_actual);
     
     if (!status.success) {
       gkyl_moment_app_cout(app, stdout, "** Update method failed! Aborting simulation ....\n");
@@ -1602,6 +1650,8 @@ mom_app_run(lua_State *L)
       num_failures = 0;
     }
 
+    write_step_message(app, &m_trig, step, t_curr, status.dt_suggested);
+
     step += 1;
   }
 
@@ -1610,13 +1660,14 @@ mom_app_run(lua_State *L)
 
   struct gkyl_moment_stat stat = gkyl_moment_app_stat(app);
 
-  gkyl_moment_app_cout(app, stdout, "\n");
+  gkyl_moment_app_cout(app, stdout, "\n\n");
   gkyl_moment_app_cout(app, stdout, "Number of update calls %ld\n", stat.nup);
   gkyl_moment_app_cout(app, stdout, "Number of failed time-steps %ld\n", stat.nfail);
   gkyl_moment_app_cout(app, stdout, "Species updates took %g secs\n", stat.species_tm);
   gkyl_moment_app_cout(app, stdout, "Field updates took %g secs\n", stat.field_tm);
   gkyl_moment_app_cout(app, stdout, "Source updates took %g secs\n", stat.sources_tm);
   gkyl_moment_app_cout(app, stdout, "Total updates took %g secs\n", stat.total_tm);
+  gkyl_moment_app_cout(app, stdout, "See log file for full statistics\n");
 
   lua_pushboolean(L, ret_status);
   return 1;
