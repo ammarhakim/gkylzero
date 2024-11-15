@@ -12,6 +12,38 @@
 
 #include <string.h>
 
+struct gkyl_tool_args *
+gkyl_tool_args_new(lua_State *L)
+{
+  struct gkyl_tool_args *args = gkyl_malloc(sizeof(*args));
+
+  with_lua_global(L, "GKYL_COMMANDS") {
+    args->argc = glua_objlen(L);
+    args->argv = 0;
+
+    if (args->argc > 0) {
+      args->argv = gkyl_malloc(args->argc*sizeof(char*));
+    
+      for (int i = 1; i <= glua_objlen(L); ++i)  {
+        const char *av = glua_tbl_iget_string(L, i, "x");
+        args->argv[i-1] = gkyl_malloc(1+strlen(av));
+        strcpy(args->argv[i-1], av);
+      }
+    }
+  }
+
+  return args;
+}
+
+void
+gkyl_tool_args_release(struct gkyl_tool_args* args)
+{
+  for (int i=0; i<args->argc; ++i)
+    gkyl_free(args->argv[i]);
+  gkyl_free(args->argv);
+  gkyl_free(args);
+}
+
 /* *********************/
 /* Rect decomp methods */
 /* *********************/

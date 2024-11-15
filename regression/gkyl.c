@@ -422,7 +422,8 @@ main(int argc, char **argv)
 
   int rank = 0;
 #ifdef GKYL_HAVE_MPI
-  MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+  if (app_args->use_mpi)
+    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 #endif
   show_banner(rank == 0 ? stdout : 0);
   

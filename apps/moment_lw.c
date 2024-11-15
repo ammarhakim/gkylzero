@@ -18,6 +18,7 @@
 #include <gkyl_wv_reactive_euler.h>
 #include <gkyl_wv_sr_euler.h>
 #include <gkyl_wv_ten_moment.h>
+#include <gkyl_zero_lw.h>
 
 #include <lua.h>
 #include <lualib.h>
@@ -1572,6 +1573,11 @@ mom_app_run(lua_State *L)
   struct moment_app_lw **l_app_lw = GKYL_CHECK_UDATA(L, MOMENT_APP_METATABLE_NM);
   struct moment_app_lw *app_lw = *l_app_lw;
   struct gkyl_moment_app *app = app_lw->app;
+
+  // parse command lines args passed to input file
+  struct gkyl_tool_args *args = gkyl_tool_args_new(L);
+
+  gkyl_tool_args_release(args);
 
   // Initial and final simulation times.
   double t_curr = app_lw->t_start, t_end = app_lw->t_end;
