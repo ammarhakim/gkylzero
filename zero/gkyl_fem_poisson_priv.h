@@ -1788,7 +1788,6 @@ typedef struct { bias_lhs_kern_loc_list_2x list[3]; } bias_lhs_kern_bcy_list_2x;
 typedef struct { bias_lhs_kern_bcy_list_2x list[2]; } bias_lhs_kern_bcx_list_2x;
 
 // Serendipity bias_lhs kernels.
-GKYL_CU_D
 static const bias_lhs_kern_bcx_list_1x ser_bias_lhs_list_1x[] = {
   // periodicx
   { .list = {{NULL, NULL},
@@ -1800,7 +1799,6 @@ static const bias_lhs_kern_bcx_list_1x ser_bias_lhs_list_1x[] = {
             {fem_poisson_bias_plane_lhs_1x_ser_p2_inx, fem_poisson_bias_plane_lhs_1x_ser_p2_upx_nonperiodicx}}, }
 };
 
-GKYL_CU_D
 static const bias_lhs_kern_bcx_list_2x ser_bias_lhs_list_2x[] = {
   // periodicx
   { .list = {
@@ -2238,6 +2236,15 @@ fem_poisson_choose_bias_src_kernels(const struct gkyl_basis* basis,
                 domain but really only applicable to and used in the skin cell.
  */
 void gkyl_fem_poisson_set_rhs_cu(gkyl_fem_poisson* up, struct gkyl_array *rhsin, const struct gkyl_array *phibc);
+
+/**
+ * Replace the entries in the RHS src vector with the biased potential values.
+ *
+ * @param up FEM poisson updater to run.
+ * @param rhsin DG field to set as RHS source.
+ */
+void
+gkyl_fem_poisson_bias_src_cu(gkyl_fem_poisson *up, struct gkyl_array *rhsin);
 
 /**
  * Solve the linear problem on the device.

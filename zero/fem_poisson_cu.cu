@@ -102,6 +102,40 @@ fem_poisson_set_cu_ker_ptrs(struct gkyl_fem_poisson_kernels* kers, enum gkyl_bas
 
 }
 
+// CUDA kernel to set device pointers to biasing kernel functions.
+// Doing function pointer stuff in here avoids troublesome
+// cudaMemcpyFromSymbol.
+__global__ static void
+fem_poisson_set_cu_biasker_ptrs(struct gkyl_fem_poisson_kernels* kers, enum gkyl_basis_type b_type,
+  int dim, int poly_order, const int *bckey)
+{
+
+  // Set l2g kernels.
+  const bias_src_kern_bcx_list_1x *bias_plane_1x_kernels;
+  const bias_src_kern_bcx_list_2x *bias_plane_2x_kernels;
+
+  switch (b_type) {
+    case GKYL_BASIS_MODAL_SERENDIPITY:
+      bias_plane_1x_kernels = ser_bias_src_list_1x;
+      bias_plane_2x_kernels = ser_bias_src_list_2x;
+      break;
+    default:
+      assert(false);
+      break;
+  }
+
+  for (int k=0; k<(int)(pow(2,dim)+0.5); k++) {
+    if (dim == 1) {
+      kers->bias_src_ker[k] = CK1(bias_plane_1x_kernels, poly_order, k, bckey[0]);
+    } else if ( dim == 2) {
+      kers->bias_src_ker[k] = CK2(bias_plane_2x_kernels, poly_order, k, bckey[0], bckey[1]);
+//    } else if (dim == 3) {
+//      kers->bias_src_ker[k] = CK3(bias_plane_3x_kernels, poly_order, k, bckey[0], bckey[1], bckey[2]);
+    }
+  }
+
+}
+
 void
 fem_poisson_choose_kernels_cu(const struct gkyl_basis* basis, const struct gkyl_poisson_bc *bcs,
   bool isvareps, const bool *isdirperiodic, struct gkyl_fem_poisson_kernels *kers)
@@ -137,6 +171,9 @@ fem_poisson_choose_kernels_cu(const struct gkyl_basis* basis, const struct gkyl_
   gkyl_cu_memcpy(bckey_d, bckey, sizeof(int[GKYL_MAX_CDIM]), GKYL_CU_MEMCPY_H2D);
 
   fem_poisson_set_cu_ker_ptrs<<<1,1>>>(kers, basis->b_type, dim, poly_order, bckey_d, isvareps);
+
+  // Biasing kernels
+  fem_poisson_set_cu_biasker_ptrs<<<1,1>>>(kers, basis->b_type, dim, poly_order, bckey_d);
 
   gkyl_cu_free(bckey_d);
 }

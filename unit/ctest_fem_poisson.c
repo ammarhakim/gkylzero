@@ -502,10 +502,6 @@ test_1x_bias(int poly_order, const int *cells, struct gkyl_poisson_bc bcs, bool 
 {
   double epsilon_0 = 1.0;
   double lower[] = {0.0}, upper[] = {1.0};
-  if (bcs.lo_type[0] == GKYL_POISSON_PERIODIC) {
-    lower[0] = -M_PI;
-    upper[0] =  M_PI;
-  }
   int dim = sizeof(lower)/sizeof(lower[0]);
 
   // Grids.
@@ -561,10 +557,6 @@ test_1x_bias(int poly_order, const int *cells, struct gkyl_poisson_bc bcs, bool 
   gkyl_proj_on_basis_advance(projob, 0.0, &localRange, rho_ho);
   gkyl_array_copy(rho, rho_ho);
 
-  struct gkyl_array *perbuff = mkarr(use_gpu, basis.num_basis, skin_ghost.lower_skin[dim-1].volume);
-  for (int d=0; d<dim; d++)
-    if (bcs.lo_type[d] == GKYL_POISSON_PERIODIC) apply_periodic_bc(perbuff, rho, d, skin_ghost);
-
 //  gkyl_grid_sub_array_write(&grid, &localRange, NULL, rho_ho, "ctest_fem_poisson_1x_rho_1.gkyl");
 
   // Specify the bias:
@@ -592,26 +584,8 @@ test_1x_bias(int poly_order, const int *cells, struct gkyl_poisson_bc bcs, bool 
   }
 #endif
 
-  for (int d=0; d<dim; d++)
-    if (bcs.lo_type[d] == GKYL_POISSON_PERIODIC) apply_periodic_bc(perbuff, phi, d, skin_ghost);
-
   gkyl_array_copy(phi_ho, phi);
 //  gkyl_grid_sub_array_write(&grid, &localRange, NULL, phi_ho, "ctest_fem_poisson_1x_phi_1.gkyl");
-
-  if (bcs.lo_type[0] == GKYL_POISSON_PERIODIC) {
-    struct gkyl_array *sol_cellavg = mkarr(false, 1, localRange_ext.volume);
-    double* sol_avg = (double*) gkyl_malloc(sizeof(double)); 
-    // Factor accounting for normalization when subtracting a constant from a
-    // DG field and the 1/N to properly compute the volume averaged RHS.
-    double mavgfac = -pow(sqrt(2.),dim)/localRange.volume;
-    // Subtract the volume averaged sol from the sol.
-    gkyl_dg_calc_average_range(basis, 0, sol_cellavg, 0, phi_ho, localRange);
-    gkyl_array_reduce_range(sol_avg, sol_cellavg, GKYL_SUM, &localRange);
-    gkyl_array_shiftc(phi_ho, mavgfac*sol_avg[0], 0);
-
-    gkyl_free(sol_avg);
-    gkyl_array_release(sol_cellavg);
-  }
 
   if (poly_order == 1) {
     if (bcs.lo_type[0]==GKYL_POISSON_DIRICHLET && bcs.up_type[0]==GKYL_POISSON_DIRICHLET) {
@@ -745,7 +719,6 @@ test_1x_bias(int poly_order, const int *cells, struct gkyl_poisson_bc bcs, bool 
   gkyl_array_release(epsilon);
   gkyl_array_release(rho_ho);
   gkyl_array_release(phi_ho);
-  gkyl_array_release(perbuff);
 }
 
 void
@@ -3810,6 +3783,24 @@ void gpu_test_1x_p1_dirichletx_neumannx() {
   bc_tv.up_value[0].v[0] = 0.;
   test_1x(1, &cells[0], bc_tv, true);
 }
+void gpu_test_1x_p1_dirichletx_bias() {
+  int cells[] = {16};
+  struct gkyl_poisson_bc bc_tv;
+  bc_tv.lo_type[0] = GKYL_POISSON_DIRICHLET;
+  bc_tv.up_type[0] = GKYL_POISSON_DIRICHLET;
+  bc_tv.lo_value[0].v[0] = 0.;
+  bc_tv.up_value[0].v[0] = 0.;
+  test_1x_bias(1, &cells[0], bc_tv, true);
+}
+void gpu_test_1x_p1_neumannx_dirichletx_bias() {
+  int cells[] = {16};
+  struct gkyl_poisson_bc bc_tv;
+  bc_tv.lo_type[0] = GKYL_POISSON_NEUMANN;
+  bc_tv.up_type[0] = GKYL_POISSON_DIRICHLET;
+  bc_tv.lo_value[0].v[0] = 0.;
+  bc_tv.up_value[0].v[0] = 0.;
+  test_1x_bias(1, &cells[0], bc_tv, true);
+}
 
 void gpu_test_1x_p2_periodicx() {
   int cells[] = {8};
@@ -3844,6 +3835,24 @@ void gpu_test_1x_p2_dirichletx_neumannx() {
   bc_tv.lo_value[0].v[0] = 0.;
   bc_tv.up_value[0].v[0] = 0.;
   test_1x(2, &cells[0], bc_tv, true);
+}
+void gpu_test_1x_p2_dirichletx_bias() {
+  int cells[] = {8};
+  struct gkyl_poisson_bc bc_tv;
+  bc_tv.lo_type[0] = GKYL_POISSON_DIRICHLET;
+  bc_tv.up_type[0] = GKYL_POISSON_DIRICHLET;
+  bc_tv.lo_value[0].v[0] = 0.;
+  bc_tv.up_value[0].v[0] = 0.;
+  test_1x_bias(2, &cells[0], bc_tv, true);
+}
+void gpu_test_1x_p2_neumannx_dirichletx_bias() {
+  int cells[] = {8};
+  struct gkyl_poisson_bc bc_tv;
+  bc_tv.lo_type[0] = GKYL_POISSON_NEUMANN;
+  bc_tv.up_type[0] = GKYL_POISSON_DIRICHLET;
+  bc_tv.lo_value[0].v[0] = 0.;
+  bc_tv.up_value[0].v[0] = 0.;
+  test_1x_bias(2, &cells[0], bc_tv, true);
 }
 
 void gpu_test_2x_p1_periodicx_periodicy() {
@@ -3951,6 +3960,30 @@ void gpu_test_2x_p1_dirichletvarx_dirichletvary() {
   bc_tv.up_type[1] = GKYL_POISSON_DIRICHLET_VARYING;
   test_2x_varBC(1, cells, bc_tv, true);
 }
+void gpu_test_2x_p1_dirichletx_dirichlety_bias() {
+  int cells[] = {8,8};
+  struct gkyl_poisson_bc bc_tv;
+  bc_tv.lo_type[0] = GKYL_POISSON_DIRICHLET;
+  bc_tv.up_type[0] = GKYL_POISSON_DIRICHLET;
+  bc_tv.lo_type[1] = GKYL_POISSON_DIRICHLET;
+  bc_tv.up_type[1] = GKYL_POISSON_DIRICHLET;
+  bc_tv.lo_value[0].v[0] = 0.;
+  bc_tv.up_value[0].v[0] = 0.;
+  bc_tv.lo_value[1].v[0] = 0.;
+  bc_tv.up_value[1].v[0] = 0.;
+  test_2x_bias(1, &cells[0], bc_tv, true);
+}
+void gpu_test_2x_p1_dirichletx_periodicy_bias() {
+  int cells[] = {8,8};
+  struct gkyl_poisson_bc bc_tv;
+  bc_tv.lo_type[0] = GKYL_POISSON_DIRICHLET;
+  bc_tv.up_type[0] = GKYL_POISSON_DIRICHLET;
+  bc_tv.lo_type[1] = GKYL_POISSON_PERIODIC;
+  bc_tv.up_type[1] = GKYL_POISSON_PERIODIC;
+  bc_tv.lo_value[0].v[0] = 0.;
+  bc_tv.up_value[0].v[0] = 0.;
+  test_2x_bias(1, &cells[0], bc_tv, true);
+}
 
 void gpu_test_2x_p2_periodicx_periodicy() {
   int cells[] = {8,8};
@@ -4057,6 +4090,30 @@ void gpu_test_2x_p2_dirichletvarx_dirichletvary() {
   bc_tv.up_type[1] = GKYL_POISSON_DIRICHLET_VARYING;
   test_2x_varBC(2, cells, bc_tv, true);
 }
+void gpu_test_2x_p2_dirichletx_dirichlety_bias() {
+  int cells[] = {8,8};
+  struct gkyl_poisson_bc bc_tv;
+  bc_tv.lo_type[0] = GKYL_POISSON_DIRICHLET;
+  bc_tv.up_type[0] = GKYL_POISSON_DIRICHLET;
+  bc_tv.lo_type[1] = GKYL_POISSON_DIRICHLET;
+  bc_tv.up_type[1] = GKYL_POISSON_DIRICHLET;
+  bc_tv.lo_value[0].v[0] = 0.;
+  bc_tv.up_value[0].v[0] = 0.;
+  bc_tv.lo_value[1].v[0] = 0.;
+  bc_tv.up_value[1].v[0] = 0.;
+  test_2x_bias(2, &cells[0], bc_tv, true);
+}
+void gpu_test_2x_p2_dirichletx_periodicy_bias() {
+  int cells[] = {8,8};
+  struct gkyl_poisson_bc bc_tv;
+  bc_tv.lo_type[0] = GKYL_POISSON_DIRICHLET;
+  bc_tv.up_type[0] = GKYL_POISSON_DIRICHLET;
+  bc_tv.lo_type[1] = GKYL_POISSON_PERIODIC;
+  bc_tv.up_type[1] = GKYL_POISSON_PERIODIC;
+  bc_tv.lo_value[0].v[0] = 0.;
+  bc_tv.up_value[0].v[0] = 0.;
+  test_2x_bias(2, &cells[0], bc_tv, true);
+}
 #endif
 
 
@@ -4103,10 +4160,14 @@ TEST_LIST = {
   { "gpu_test_1x_p1_dirichletx", gpu_test_1x_p1_dirichletx },
   { "gpu_test_1x_p1_neumannx_dirichletx", gpu_test_1x_p1_neumannx_dirichletx },
   { "gpu_test_1x_p1_dirichletx_neumannx", gpu_test_1x_p1_dirichletx_neumannx },
+  { "gpu_test_1x_p1_dirichletx_bias", gpu_test_1x_p1_dirichletx_bias },
+  { "gpu_test_1x_p1_neumannx_dirichletx_bias", gpu_test_1x_p1_neumannx_dirichletx_bias },
   { "gpu_test_1x_p2_periodicx", gpu_test_1x_p2_periodicx },
   { "gpu_test_1x_p2_dirichletx", gpu_test_1x_p2_dirichletx },
   { "gpu_test_1x_p2_neumannx_dirichletx", gpu_test_1x_p2_neumannx_dirichletx },
   { "gpu_test_1x_p2_dirichletx_neumannx", gpu_test_1x_p2_dirichletx_neumannx },
+  { "gpu_test_1x_p2_dirichletx_bias", gpu_test_1x_p2_dirichletx_bias },
+  { "gpu_test_1x_p2_neumannx_dirichletx_bias", gpu_test_1x_p2_neumannx_dirichletx_bias },
   // 2x tests
   { "gpu_test_2x_p1_periodicx_periodicy", gpu_test_2x_p1_periodicx_periodicy },
   { "gpu_test_2x_p1_dirichletx_dirichlety", gpu_test_2x_p1_dirichletx_dirichlety },
@@ -4116,6 +4177,8 @@ TEST_LIST = {
   { "gpu_test_2x_p1_dirichletx_dirichlety_neumanny", gpu_test_2x_p1_dirichletx_dirichlety_neumanny },
   { "gpu_test_2x_p1_neumannx_dirichletx_dirichlety", gpu_test_2x_p1_neumannx_dirichletx_dirichlety },
   { "gpu_test_2x_p1_dirichletx_neumannx_dirichlety", gpu_test_2x_p1_dirichletx_neumannx_dirichlety },
+  { "gpu_test_2x_p1_dirichletx_dirichlety_bias", gpu_test_2x_p1_dirichletx_dirichlety_bias },
+  { "gpu_test_2x_p1_dirichletx_periodicy_bias", gpu_test_2x_p1_dirichletx_periodicy_bias },
   { "gpu_test_2x_p2_periodicx_periodicy", gpu_test_2x_p2_periodicx_periodicy },
   { "gpu_test_2x_p2_dirichletx_dirichlety", gpu_test_2x_p2_dirichletx_dirichlety },
   { "gpu_test_2x_p2_dirichletx_periodicy", gpu_test_2x_p2_dirichletx_periodicy },
@@ -4123,6 +4186,8 @@ TEST_LIST = {
   { "gpu_test_2x_p2_dirichletx_dirichlety_neumanny", gpu_test_2x_p2_dirichletx_dirichlety_neumanny },
   { "gpu_test_2x_p2_neumannx_dirichletx_dirichlety", gpu_test_2x_p2_neumannx_dirichletx_dirichlety },
   { "gpu_test_2x_p2_dirichletx_neumannx_dirichlety", gpu_test_2x_p2_dirichletx_neumannx_dirichlety },
+  { "gpu_test_2x_p2_dirichletx_dirichlety_bias", gpu_test_2x_p2_dirichletx_dirichlety_bias },
+  { "gpu_test_2x_p2_dirichletx_periodicy_bias", gpu_test_2x_p2_dirichletx_periodicy_bias },
 #endif
   { NULL, NULL },
 };
