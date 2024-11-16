@@ -120,7 +120,9 @@ show_usage()
   fprintf(stdout, "  -v         Show version information\n");
   fprintf(stdout, "  -g         Run on NVIDIA GPU (if available and built with CUDA)\n\n");
   fprintf(stdout, "  -m         Run memory tracer\n");
-  fprintf(stdout, "  -S         Do not initialize MPI\n\n");  
+  fprintf(stdout, "  -S         Do not initialize MPI\n");
+  fprintf(stdout, "  -V         Use verbose output\n");
+  fprintf(stdout, "  -sN        Only run N steps of simulation\n\n");
 
   fprintf(stdout, "Most app input files take the following commands:\n");
   fprintf(stdout, "  run        Run simulation. Default if nothing specified\n");
@@ -157,6 +159,7 @@ struct app_args {
   int num_steps; // number of steps
   bool is_restart; // is this a restarted sim?
   bool use_mpi; // should we use MPI?
+  bool use_verbose; // Should we use verbose output?
 
   char *echunk; // chunk of lua code to execute
   
@@ -196,12 +199,13 @@ parse_app_args(int argc, char **argv)
   
   args->trace_mem = false;
   args->is_restart = false;
-  args->num_steps = INT_MAX;
   args->num_opt_args = 0;
   args->echunk = 0;
+  args->use_verbose = false;
+  args->num_steps = -1;
 
   int c;
-  while ((c = getopt(argc, argv, "+hvtmSe:g")) != -1) {
+  while ((c = getopt(argc, argv, "+hvtmSe:gVs:")) != -1) {
     switch (c)
     {
       case 'h':
@@ -234,6 +238,14 @@ parse_app_args(int argc, char **argv)
         
       case 'm':
         args->trace_mem = true;
+        break;
+      
+      case 'V':
+        args->use_verbose = true;
+        break;
+      
+      case 's':
+        args->num_steps = atoi(optarg);
         break;
 
       case '?':
@@ -336,6 +348,17 @@ main(int argc, char **argv)
   lua_pushboolean(L, false);
   lua_setglobal(L, "GKYL_USE_GPU");  
 #endif
+
+  if (app_args->use_verbose) {
+    lua_pushboolean(L, true);
+  }
+  else {
+    lua_pushboolean(L, false);
+  }
+  lua_setglobal(L, "GKYL_USE_VERBOSE");
+
+  lua_pushinteger(L, app_args->num_steps);
+  lua_setglobal(L, "GKYL_NUM_STEPS");
 
   lua_pushnumber(L, DBL_MIN);
   lua_setglobal(L, "GKYL_MIN_DOUBLE");

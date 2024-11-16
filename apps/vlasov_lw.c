@@ -1364,27 +1364,26 @@ write_data(struct gkyl_tm_trigger* iot, gkyl_vlasov_app* app, double t_curr, boo
   }
 }
 
-// step message context
+// Step message context.
 struct step_message_trigs {
-  int log_count; // number of times logging called
+  int log_count; // Number of times logging called.
   int tenth, p1c; 
-  struct gkyl_tm_trigger log_trig; // 10% trigger
-  struct gkyl_tm_trigger log_trig_1p; // 1% trigger
+  struct gkyl_tm_trigger log_trig; // 10% trigger.
+  struct gkyl_tm_trigger log_trig_1p; // 1% trigger.
 };
 
-// Write log message to console
+// Write log message to console.
 static void
-write_step_message(const struct gkyl_vlasov_app *app,
-  struct step_message_trigs *trigs,
-  int step, double t_curr, double dt_next)
+write_step_message(const struct gkyl_vlasov_app *app, struct step_message_trigs *trigs, int step, double t_curr, double dt_next)
 {
   if (gkyl_tm_trigger_check_and_bump(&trigs->log_trig, t_curr)) {
-    if (trigs->log_count > 0)
-      gkyl_vlasov_app_cout(app, stdout,
-        " Step %6d at time %#11.8g.  Time step  %.6e.  Completed %g%s\n",
-        step, t_curr, dt_next, trigs->tenth*10.0, "%");
-    else
+    if (trigs->log_count > 0) {
+      gkyl_vlasov_app_cout(app, stdout, " Step %6d at time %#11.8g.  Time-step  %.6e.  Completed %g%s\n", step, t_curr, dt_next, trigs->tenth * 10.0, "%");
+    }
+    else {
       trigs->log_count += 1;
+    }
+    
     trigs->tenth += 1;
   }
   if (gkyl_tm_trigger_check_and_bump(&trigs->log_trig_1p, t_curr)) {
@@ -1408,16 +1407,16 @@ vm_app_run(lua_State *L)
   double t_curr = app_lw->t_start, t_end = app_lw->t_end;
   long num_steps = luaL_optinteger(L, 2, INT_MAX);
 
-  // Create trigger for IO.
   int num_frames = app_lw->num_frames;
-  struct gkyl_tm_trigger io_trig = { .dt = t_end / num_frames };
+  // Triggers for IO and logging.
+  struct gkyl_tm_trigger io_trig = { .dt = (t_end - t_curr) / num_frames };
 
   struct step_message_trigs m_trig = {
     .log_count = 0,
-    .tenth = t_curr > 0 ? 0 : (int) floor(t_curr/t_end*10),
-    .p1c = t_curr > 0 ? 0 : (int) floor(t_curr/t_end*100) % 10,
-    .log_trig = { .dt = (t_end-t_curr)/10 },
-    .log_trig_1p = { .dt = (t_end-t_curr)/100 },
+    .tenth = t_curr > 0.0 ? 0.0 : (int) floor(t_curr / t_end * 10.0),
+    .p1c = t_curr > 0.0 ? 0.0 : (int) floor(t_curr / t_end * 100.0) % 10,
+    .log_trig = { .dt = (t_end - t_curr) / 10.0 },
+    .log_trig_1p = { .dt = (t_end - t_curr) / 100.0 },
   };
 
   gkyl_vlasov_app_cout(app, stdout, "Initializing Vlasov Simulation ...\n");
@@ -1429,8 +1428,7 @@ vm_app_run(lua_State *L)
   gkyl_vlasov_app_calc_field_energy(app, t_curr);
   write_data(&io_trig, app, t_curr, false);
 
-  gkyl_vlasov_app_cout(app, stdout, "Initializing completed in %g sec\n\n",
-    gkyl_time_diff_now_sec(tm_ic0));
+  gkyl_vlasov_app_cout(app, stdout, "Initialization completed in %g sec\n\n", gkyl_time_diff_now_sec(tm_ic0));
 
   // Compute initial guess of maximum stable time-step.
   double dt = t_end - t_curr;
@@ -1439,10 +1437,30 @@ vm_app_run(lua_State *L)
   double dt_init = -1.0, dt_failure_tol = app_lw->dt_failure_tol;
   int num_failures = 0, num_failures_max = app_lw->num_failures_max;
 
+  bool use_verbose = false;
+  lua_getglobal(L, "GKYL_USE_VERBOSE");
+  if (lua_toboolean(L, -1)) {
+    use_verbose = true;
+  }
+  lua_pop(L, 1);
+
+  long num_steps_new = -1;
+  lua_getglobal(L, "GKYL_NUM_STEPS");
+  num_steps_new = lua_tointeger(L, -1);
+  lua_pop(L, 1);
+  if (num_steps_new != -1) {
+    num_steps = num_steps_new;
+  }
+
   long step = 1;
   while ((t_curr < t_end) && (step <= num_steps)) {
-    
+    if (use_verbose) {
+      gkyl_vlasov_app_cout(app, stdout, "Taking time-step %ld at t = %g ...", step, t_curr);
+    }
     struct gkyl_update_status status = gkyl_vlasov_update(app, dt);
+    if (use_verbose) {
+      gkyl_vlasov_app_cout(app, stdout, " dt = %g\n", status.dt_actual);
+    }
 
     if (!status.success) {
       gkyl_vlasov_app_cout(app, stdout, "** Update method failed! Aborting simulation ....\n");
@@ -1473,7 +1491,9 @@ vm_app_run(lua_State *L)
       num_failures = 0;
     }
 
-    write_step_message(app, &m_trig, step, t_curr, status.dt_suggested);
+    if (!use_verbose) {
+      write_step_message(app, &m_trig, step, t_curr, status.dt_suggested);
+    }
 
     step += 1;
   }
