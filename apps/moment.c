@@ -819,8 +819,7 @@ gkyl_moment_app_release(gkyl_moment_app* app)
     moment_species_release(&app->species[i]);
   gkyl_free(app->species);
 
-  if (app->has_field)
-    moment_field_release(&app->field);
+  moment_field_release(&app->field);
 
   if (app->update_mhd_source)
     mhd_src_release(&app->mhd_source);
