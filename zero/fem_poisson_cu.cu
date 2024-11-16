@@ -212,6 +212,56 @@ gkyl_fem_poisson_get_sol_kernel(struct gkyl_array *x_local, const double *x_glob
   }
 }
 
+__global__ void
+gkyl_fem_poisson_bias_src_kernel(double *rhs_global, struct gkyl_rect_grid grid,
+  struct gkyl_range range, struct gkyl_fem_poisson_kernels *kers,
+  int num_bias_plane, struct gkyl_poisson_bias_plane *bias_planes)
+{
+  int idx[GKYL_MAX_CDIM];  int idx0[GKYL_MAX_CDIM];  int num_cells[GKYL_MAX_CDIM];
+  long globalidx[32];
+  for (int d=0; d<GKYL_MAX_CDIM; d++) num_cells[d] = range.upper[d]-range.lower[d]+1;
+
+  for (unsigned long linc1 = threadIdx.x + blockIdx.x*blockDim.x;
+       linc1 < range.volume;
+       linc1 += gridDim.x*blockDim.x)
+  {
+    // inverse index from linc1 to idx
+    // must use gkyl_sub_range_inv_idx so that linc1=0 maps to idx={1,1,...}
+    // since update_range is a subrange
+    gkyl_sub_range_inv_idx(&range, linc1, idx);
+    
+    // convert back to a linear index on the super-range (with ghost cells)
+    // linc will have jumps in it to jump over ghost cells
+    long start = gkyl_range_idx(&range, idx);
+    
+    int keri = idx_to_inup_ker(range.ndim, num_cells, idx);
+    for (size_t d=0; d<range.ndim; d++) idx0[d] = idx[d]-1;
+    kers->l2g[keri](num_cells, idx0, globalidx);
+
+    // Apply the RHS source stencil. It's mostly the mass matrix times a
+    // modal-to-nodal operator times the source, modified by BCs in skin cells.
+    for (int i=0; i<num_bias_plane; i++) {
+      // Index of the cell that abuts the plane from below.
+      struct gkyl_poisson_bias_plane *bp = &bias_planes[i];
+      double dx = grid.dx[bp->dir];
+      int bp_idx_m = (bp->loc-1e-3*dx - grid.lower[bp->dir])/dx+1;
+
+      if (idx[bp->dir] == bp_idx_m || idx[bp->dir] == bp_idx_m+1) {
+        kers->bias_src_ker[keri](-1+2*((bp_idx_m+1)-idx[bp->dir]),
+          bp->dir, bp->val, globalidx, rhs_global);
+      }
+    }
+  }
+}
+
+void 
+gkyl_fem_poisson_bias_src_cu(gkyl_fem_poisson *up, struct gkyl_array *rhsin)
+{
+  double *rhs_cu = gkyl_culinsolver_get_rhs_ptr(up->prob_cu, 0);
+  gkyl_fem_poisson_bias_src_kernel<<<rhsin->nblocks, rhsin->nthreads>>>(rhs_cu, up->grid,
+    *up->solve_range, up->kernels_cu, up->num_bias_plane, up->bias_planes); 
+}	
+
 void 
 gkyl_fem_poisson_set_rhs_cu(gkyl_fem_poisson *up, struct gkyl_array *rhsin, const struct gkyl_array *phibc)
 {
@@ -221,6 +271,9 @@ gkyl_fem_poisson_set_rhs_cu(gkyl_fem_poisson *up, struct gkyl_array *rhsin, cons
   gkyl_fem_poisson_set_rhs_kernel<<<rhsin->nblocks, rhsin->nthreads>>>(up->epsilon->on_dev,
     up->isvareps, up->dx_cu, rhs_cu, rhsin->on_dev, *up->solve_range, up->bcvals_cu,
     phibc_cu, up->kernels_cu); 
+
+  // Set the corresponding entries to the biasing potential.
+  up->bias_plane_src(up, rhsin);
 }	
 
 void

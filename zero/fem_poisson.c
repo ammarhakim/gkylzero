@@ -9,13 +9,20 @@ fem_poisson_bias_src_none(gkyl_fem_poisson* up, struct gkyl_array *rhsin)
 void
 fem_poisson_bias_src(gkyl_fem_poisson* up, struct gkyl_array *rhsin)
 {
+#ifdef GKYL_HAVE_CUDA
+  if (up->use_gpu) {
+    assert(gkyl_array_is_cu_dev(rhsin));
+
+    gkyl_fem_poisson_bias_src_cu(up, rhsin);
+    return;
+  }
+#endif
+
   gkyl_range_iter_init(&up->solve_iter, up->solve_range);
   int idx0[GKYL_MAX_CDIM];
   double *brhs_p = gkyl_array_fetch(up->brhs, 0);
   while (gkyl_range_iter_next(&up->solve_iter)) {
     long linidx = gkyl_range_idx(up->solve_range, up->solve_iter.idx);
-
-    double *rhsin_p = gkyl_array_fetch(rhsin, linidx);
 
     int keri = idx_to_inup_ker(up->ndim, up->num_cells, up->solve_iter.idx);
     for (size_t d=0; d<up->ndim; d++) idx0[d] = up->solve_iter.idx[d]-1;
