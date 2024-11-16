@@ -24,6 +24,17 @@ struct gkyl_poisson_bc {
   void *bc_value_func_ctx;
 };
 
+struct gkyl_poisson_bias_plane {
+  int dir; // Direction perpendicular to the plane.
+  double loc; // Location of the plane in the 'dir' dimension.
+  double val; // Biasing value.
+};
+
+struct gkyl_poisson_bias_plane_list {
+  int num_bias_plane; // Number of bias planes.
+  struct gkyl_poisson_bias_plane *bp;
+};
+
 GKYL_CU_DH
 static inline int idx_to_inup_ker(const int dim, const int *num_cells, const int *idx) {
   // Return the index of the kernel (in the array of kernels) needed given the grid index.

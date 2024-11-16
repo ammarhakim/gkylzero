@@ -373,7 +373,8 @@ test_poisson_slices(){
 
   struct gkyl_array *epsilon = gkyl_array_new(GKYL_DOUBLE, deflated_basis.num_basis, deflated_local_ext.volume);
   gkyl_array_shiftc(epsilon, sqrt(2.0), 0); // Sets weight=1.
-  struct gkyl_fem_poisson *fem_poisson = gkyl_fem_poisson_new(&deflated_local, &deflated_grid, deflated_basis, &poisson_bc, epsilon, 0, false, false);
+  struct gkyl_fem_poisson *fem_poisson = gkyl_fem_poisson_new(&deflated_local, &deflated_grid,
+    deflated_basis, &poisson_bc, NULL, epsilon, 0, false, false);
 
 
   struct gkyl_nodal_ops *n2m_1d = gkyl_nodal_ops_new(&basis, &grid, false);

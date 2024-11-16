@@ -70,6 +70,13 @@ GKYL_CU_DH void fem_poisson_src_stencil_vareps_1x_ser_p1_upx_dirichletvarx(const
 
 GKYL_CU_DH void fem_poisson_sol_stencil_1x_ser_p1(const double *sol_nodal_global, const long *globalIdxs, double *sol_modal_local);
 
+GKYL_CU_DH void fem_poisson_bias_plane_lhs_1x_ser_p1_inx(int edge, int dir, const long *globalIdxs, gkyl_mat_triples *tri);
+GKYL_CU_DH void fem_poisson_bias_plane_lhs_1x_ser_p1_upx_periodicx(int edge, int dir, const long *globalIdxs, gkyl_mat_triples *tri);
+GKYL_CU_DH void fem_poisson_bias_plane_lhs_1x_ser_p1_upx_nonperiodicx(int edge, int dir, const long *globalIdxs, gkyl_mat_triples *tri);
+GKYL_CU_DH void fem_poisson_bias_plane_src_1x_ser_p1_inx(int edge, int dir, double val, const long *globalIdxs, double *bsrc);
+GKYL_CU_DH void fem_poisson_bias_plane_src_1x_ser_p1_upx_periodicx(int edge, int dir, double val, const long *globalIdxs, double *bsrc);
+GKYL_CU_DH void fem_poisson_bias_plane_src_1x_ser_p1_upx_nonperiodicx(int edge, int dir, double val, const long *globalIdxs, double *bsrc);
+
 long fem_poisson_num_nodes_global_2x_ser_p1_periodicx_periodicy(const int *numCells);
 long fem_poisson_num_nodes_global_2x_ser_p1_periodicx_nonperiodicy(const int *numCells);
 long fem_poisson_num_nodes_global_2x_ser_p1_nonperiodicx_periodicy(const int *numCells);
@@ -579,6 +586,25 @@ GKYL_CU_DH void fem_poisson_src_stencil_vareps_2x_ser_p1_upx_dirichletvarx_upy_r
 GKYL_CU_DH void fem_poisson_src_stencil_vareps_2x_ser_p1_upx_dirichletvarx_upy_dirichletvary(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const double *phiBC, const long *globalIdxs, double *bsrc);
 
 GKYL_CU_DH void fem_poisson_sol_stencil_2x_ser_p1(const double *sol_nodal_global, const long *globalIdxs, double *sol_modal_local);
+
+GKYL_CU_DH void fem_poisson_bias_plane_lhs_2x_ser_p1_inx_iny(int edge, int dir, const long *globalIdxs, gkyl_mat_triples *tri);
+GKYL_CU_DH void fem_poisson_bias_plane_lhs_2x_ser_p1_upx_periodicx_iny(int edge, int dir, const long *globalIdxs, gkyl_mat_triples *tri);
+GKYL_CU_DH void fem_poisson_bias_plane_lhs_2x_ser_p1_upx_nonperiodicx_iny(int edge, int dir, const long *globalIdxs, gkyl_mat_triples *tri);
+GKYL_CU_DH void fem_poisson_bias_plane_lhs_2x_ser_p1_inx_upy_periodicy(int edge, int dir, const long *globalIdxs, gkyl_mat_triples *tri);
+GKYL_CU_DH void fem_poisson_bias_plane_lhs_2x_ser_p1_inx_upy_nonperiodicy(int edge, int dir, const long *globalIdxs, gkyl_mat_triples *tri);
+GKYL_CU_DH void fem_poisson_bias_plane_lhs_2x_ser_p1_upx_periodicx_upy_periodicy(int edge, int dir, const long *globalIdxs, gkyl_mat_triples *tri);
+GKYL_CU_DH void fem_poisson_bias_plane_lhs_2x_ser_p1_upx_periodicx_upy_nonperiodicy(int edge, int dir, const long *globalIdxs, gkyl_mat_triples *tri);
+GKYL_CU_DH void fem_poisson_bias_plane_lhs_2x_ser_p1_upx_nonperiodicx_upy_periodicy(int edge, int dir, const long *globalIdxs, gkyl_mat_triples *tri);
+GKYL_CU_DH void fem_poisson_bias_plane_lhs_2x_ser_p1_upx_nonperiodicx_upy_nonperiodicy(int edge, int dir, const long *globalIdxs, gkyl_mat_triples *tri);
+GKYL_CU_DH void fem_poisson_bias_plane_src_2x_ser_p1_inx_iny(int edge, int dir, double val, const long *globalIdxs, double *bsrc);
+GKYL_CU_DH void fem_poisson_bias_plane_src_2x_ser_p1_upx_periodicx_iny(int edge, int dir, double val, const long *globalIdxs, double *bsrc);
+GKYL_CU_DH void fem_poisson_bias_plane_src_2x_ser_p1_upx_nonperiodicx_iny(int edge, int dir, double val, const long *globalIdxs, double *bsrc);
+GKYL_CU_DH void fem_poisson_bias_plane_src_2x_ser_p1_inx_upy_periodicy(int edge, int dir, double val, const long *globalIdxs, double *bsrc);
+GKYL_CU_DH void fem_poisson_bias_plane_src_2x_ser_p1_inx_upy_nonperiodicy(int edge, int dir, double val, const long *globalIdxs, double *bsrc);
+GKYL_CU_DH void fem_poisson_bias_plane_src_2x_ser_p1_upx_periodicx_upy_periodicy(int edge, int dir, double val, const long *globalIdxs, double *bsrc);
+GKYL_CU_DH void fem_poisson_bias_plane_src_2x_ser_p1_upx_periodicx_upy_nonperiodicy(int edge, int dir, double val, const long *globalIdxs, double *bsrc);
+GKYL_CU_DH void fem_poisson_bias_plane_src_2x_ser_p1_upx_nonperiodicx_upy_periodicy(int edge, int dir, double val, const long *globalIdxs, double *bsrc);
+GKYL_CU_DH void fem_poisson_bias_plane_src_2x_ser_p1_upx_nonperiodicx_upy_nonperiodicy(int edge, int dir, double val, const long *globalIdxs, double *bsrc);
 
 long fem_poisson_num_nodes_global_3x_ser_p1_periodicx_periodicy_periodicz(const int *numCells);
 long fem_poisson_num_nodes_global_3x_ser_p1_periodicx_periodicy_nonperiodicz(const int *numCells);
@@ -5982,6 +6008,61 @@ GKYL_CU_DH void fem_poisson_src_stencil_vareps_3x_ser_p1_upx_dirichletvarx_upy_d
 
 GKYL_CU_DH void fem_poisson_sol_stencil_3x_ser_p1(const double *sol_nodal_global, const long *globalIdxs, double *sol_modal_local);
 
+GKYL_CU_DH void fem_poisson_bias_plane_lhs_3x_ser_p1_inx_iny_inz(int edge, int dir, const long *globalIdxs, gkyl_mat_triples *tri);
+GKYL_CU_DH void fem_poisson_bias_plane_lhs_3x_ser_p1_upx_periodicx_iny_inz(int edge, int dir, const long *globalIdxs, gkyl_mat_triples *tri);
+GKYL_CU_DH void fem_poisson_bias_plane_lhs_3x_ser_p1_upx_nonperiodicx_iny_inz(int edge, int dir, const long *globalIdxs, gkyl_mat_triples *tri);
+GKYL_CU_DH void fem_poisson_bias_plane_lhs_3x_ser_p1_inx_upy_periodicy_inz(int edge, int dir, const long *globalIdxs, gkyl_mat_triples *tri);
+GKYL_CU_DH void fem_poisson_bias_plane_lhs_3x_ser_p1_inx_upy_nonperiodicy_inz(int edge, int dir, const long *globalIdxs, gkyl_mat_triples *tri);
+GKYL_CU_DH void fem_poisson_bias_plane_lhs_3x_ser_p1_upx_periodicx_upy_periodicy_inz(int edge, int dir, const long *globalIdxs, gkyl_mat_triples *tri);
+GKYL_CU_DH void fem_poisson_bias_plane_lhs_3x_ser_p1_upx_periodicx_upy_nonperiodicy_inz(int edge, int dir, const long *globalIdxs, gkyl_mat_triples *tri);
+GKYL_CU_DH void fem_poisson_bias_plane_lhs_3x_ser_p1_upx_nonperiodicx_upy_periodicy_inz(int edge, int dir, const long *globalIdxs, gkyl_mat_triples *tri);
+GKYL_CU_DH void fem_poisson_bias_plane_lhs_3x_ser_p1_upx_nonperiodicx_upy_nonperiodicy_inz(int edge, int dir, const long *globalIdxs, gkyl_mat_triples *tri);
+GKYL_CU_DH void fem_poisson_bias_plane_lhs_3x_ser_p1_inx_iny_upz_periodicz(int edge, int dir, const long *globalIdxs, gkyl_mat_triples *tri);
+GKYL_CU_DH void fem_poisson_bias_plane_lhs_3x_ser_p1_inx_iny_upz_nonperiodicz(int edge, int dir, const long *globalIdxs, gkyl_mat_triples *tri);
+GKYL_CU_DH void fem_poisson_bias_plane_lhs_3x_ser_p1_upx_periodicx_iny_upz_periodicz(int edge, int dir, const long *globalIdxs, gkyl_mat_triples *tri);
+GKYL_CU_DH void fem_poisson_bias_plane_lhs_3x_ser_p1_upx_periodicx_iny_upz_nonperiodicz(int edge, int dir, const long *globalIdxs, gkyl_mat_triples *tri);
+GKYL_CU_DH void fem_poisson_bias_plane_lhs_3x_ser_p1_upx_nonperiodicx_iny_upz_periodicz(int edge, int dir, const long *globalIdxs, gkyl_mat_triples *tri);
+GKYL_CU_DH void fem_poisson_bias_plane_lhs_3x_ser_p1_upx_nonperiodicx_iny_upz_nonperiodicz(int edge, int dir, const long *globalIdxs, gkyl_mat_triples *tri);
+GKYL_CU_DH void fem_poisson_bias_plane_lhs_3x_ser_p1_inx_upy_periodicy_upz_periodicz(int edge, int dir, const long *globalIdxs, gkyl_mat_triples *tri);
+GKYL_CU_DH void fem_poisson_bias_plane_lhs_3x_ser_p1_inx_upy_periodicy_upz_nonperiodicz(int edge, int dir, const long *globalIdxs, gkyl_mat_triples *tri);
+GKYL_CU_DH void fem_poisson_bias_plane_lhs_3x_ser_p1_inx_upy_nonperiodicy_upz_periodicz(int edge, int dir, const long *globalIdxs, gkyl_mat_triples *tri);
+GKYL_CU_DH void fem_poisson_bias_plane_lhs_3x_ser_p1_inx_upy_nonperiodicy_upz_nonperiodicz(int edge, int dir, const long *globalIdxs, gkyl_mat_triples *tri);
+GKYL_CU_DH void fem_poisson_bias_plane_lhs_3x_ser_p1_upx_periodicx_upy_periodicy_upz_periodicz(int edge, int dir, const long *globalIdxs, gkyl_mat_triples *tri);
+GKYL_CU_DH void fem_poisson_bias_plane_lhs_3x_ser_p1_upx_periodicx_upy_periodicy_upz_nonperiodicz(int edge, int dir, const long *globalIdxs, gkyl_mat_triples *tri);
+GKYL_CU_DH void fem_poisson_bias_plane_lhs_3x_ser_p1_upx_periodicx_upy_nonperiodicy_upz_periodicz(int edge, int dir, const long *globalIdxs, gkyl_mat_triples *tri);
+GKYL_CU_DH void fem_poisson_bias_plane_lhs_3x_ser_p1_upx_periodicx_upy_nonperiodicy_upz_nonperiodicz(int edge, int dir, const long *globalIdxs, gkyl_mat_triples *tri);
+GKYL_CU_DH void fem_poisson_bias_plane_lhs_3x_ser_p1_upx_nonperiodicx_upy_periodicy_upz_periodicz(int edge, int dir, const long *globalIdxs, gkyl_mat_triples *tri);
+GKYL_CU_DH void fem_poisson_bias_plane_lhs_3x_ser_p1_upx_nonperiodicx_upy_periodicy_upz_nonperiodicz(int edge, int dir, const long *globalIdxs, gkyl_mat_triples *tri);
+GKYL_CU_DH void fem_poisson_bias_plane_lhs_3x_ser_p1_upx_nonperiodicx_upy_nonperiodicy_upz_periodicz(int edge, int dir, const long *globalIdxs, gkyl_mat_triples *tri);
+GKYL_CU_DH void fem_poisson_bias_plane_lhs_3x_ser_p1_upx_nonperiodicx_upy_nonperiodicy_upz_nonperiodicz(int edge, int dir, const long *globalIdxs, gkyl_mat_triples *tri);
+GKYL_CU_DH void fem_poisson_bias_plane_src_3x_ser_p1_inx_iny_inz(int edge, int dir, double val, const long *globalIdxs, double *bsrc);
+GKYL_CU_DH void fem_poisson_bias_plane_src_3x_ser_p1_upx_periodicx_iny_inz(int edge, int dir, double val, const long *globalIdxs, double *bsrc);
+GKYL_CU_DH void fem_poisson_bias_plane_src_3x_ser_p1_upx_nonperiodicx_iny_inz(int edge, int dir, double val, const long *globalIdxs, double *bsrc);
+GKYL_CU_DH void fem_poisson_bias_plane_src_3x_ser_p1_inx_upy_periodicy_inz(int edge, int dir, double val, const long *globalIdxs, double *bsrc);
+GKYL_CU_DH void fem_poisson_bias_plane_src_3x_ser_p1_inx_upy_nonperiodicy_inz(int edge, int dir, double val, const long *globalIdxs, double *bsrc);
+GKYL_CU_DH void fem_poisson_bias_plane_src_3x_ser_p1_upx_periodicx_upy_periodicy_inz(int edge, int dir, double val, const long *globalIdxs, double *bsrc);
+GKYL_CU_DH void fem_poisson_bias_plane_src_3x_ser_p1_upx_periodicx_upy_nonperiodicy_inz(int edge, int dir, double val, const long *globalIdxs, double *bsrc);
+GKYL_CU_DH void fem_poisson_bias_plane_src_3x_ser_p1_upx_nonperiodicx_upy_periodicy_inz(int edge, int dir, double val, const long *globalIdxs, double *bsrc);
+GKYL_CU_DH void fem_poisson_bias_plane_src_3x_ser_p1_upx_nonperiodicx_upy_nonperiodicy_inz(int edge, int dir, double val, const long *globalIdxs, double *bsrc);
+GKYL_CU_DH void fem_poisson_bias_plane_src_3x_ser_p1_inx_iny_upz_periodicz(int edge, int dir, double val, const long *globalIdxs, double *bsrc);
+GKYL_CU_DH void fem_poisson_bias_plane_src_3x_ser_p1_inx_iny_upz_nonperiodicz(int edge, int dir, double val, const long *globalIdxs, double *bsrc);
+GKYL_CU_DH void fem_poisson_bias_plane_src_3x_ser_p1_upx_periodicx_iny_upz_periodicz(int edge, int dir, double val, const long *globalIdxs, double *bsrc);
+GKYL_CU_DH void fem_poisson_bias_plane_src_3x_ser_p1_upx_periodicx_iny_upz_nonperiodicz(int edge, int dir, double val, const long *globalIdxs, double *bsrc);
+GKYL_CU_DH void fem_poisson_bias_plane_src_3x_ser_p1_upx_nonperiodicx_iny_upz_periodicz(int edge, int dir, double val, const long *globalIdxs, double *bsrc);
+GKYL_CU_DH void fem_poisson_bias_plane_src_3x_ser_p1_upx_nonperiodicx_iny_upz_nonperiodicz(int edge, int dir, double val, const long *globalIdxs, double *bsrc);
+GKYL_CU_DH void fem_poisson_bias_plane_src_3x_ser_p1_inx_upy_periodicy_upz_periodicz(int edge, int dir, double val, const long *globalIdxs, double *bsrc);
+GKYL_CU_DH void fem_poisson_bias_plane_src_3x_ser_p1_inx_upy_periodicy_upz_nonperiodicz(int edge, int dir, double val, const long *globalIdxs, double *bsrc);
+GKYL_CU_DH void fem_poisson_bias_plane_src_3x_ser_p1_inx_upy_nonperiodicy_upz_periodicz(int edge, int dir, double val, const long *globalIdxs, double *bsrc);
+GKYL_CU_DH void fem_poisson_bias_plane_src_3x_ser_p1_inx_upy_nonperiodicy_upz_nonperiodicz(int edge, int dir, double val, const long *globalIdxs, double *bsrc);
+GKYL_CU_DH void fem_poisson_bias_plane_src_3x_ser_p1_upx_periodicx_upy_periodicy_upz_periodicz(int edge, int dir, double val, const long *globalIdxs, double *bsrc);
+GKYL_CU_DH void fem_poisson_bias_plane_src_3x_ser_p1_upx_periodicx_upy_periodicy_upz_nonperiodicz(int edge, int dir, double val, const long *globalIdxs, double *bsrc);
+GKYL_CU_DH void fem_poisson_bias_plane_src_3x_ser_p1_upx_periodicx_upy_nonperiodicy_upz_periodicz(int edge, int dir, double val, const long *globalIdxs, double *bsrc);
+GKYL_CU_DH void fem_poisson_bias_plane_src_3x_ser_p1_upx_periodicx_upy_nonperiodicy_upz_nonperiodicz(int edge, int dir, double val, const long *globalIdxs, double *bsrc);
+GKYL_CU_DH void fem_poisson_bias_plane_src_3x_ser_p1_upx_nonperiodicx_upy_periodicy_upz_periodicz(int edge, int dir, double val, const long *globalIdxs, double *bsrc);
+GKYL_CU_DH void fem_poisson_bias_plane_src_3x_ser_p1_upx_nonperiodicx_upy_periodicy_upz_nonperiodicz(int edge, int dir, double val, const long *globalIdxs, double *bsrc);
+GKYL_CU_DH void fem_poisson_bias_plane_src_3x_ser_p1_upx_nonperiodicx_upy_nonperiodicy_upz_periodicz(int edge, int dir, double val, const long *globalIdxs, double *bsrc);
+GKYL_CU_DH void fem_poisson_bias_plane_src_3x_ser_p1_upx_nonperiodicx_upy_nonperiodicy_upz_nonperiodicz(int edge, int dir, double val, const long *globalIdxs, double *bsrc);
+
 
 long fem_poisson_num_nodes_global_1x_ser_p2_periodicx(const int *numCells);
 long fem_poisson_num_nodes_global_1x_ser_p2_nonperiodicx(const int *numCells);
@@ -6038,6 +6119,13 @@ GKYL_CU_DH void fem_poisson_src_stencil_vareps_1x_ser_p2_upx_robinx(const double
 GKYL_CU_DH void fem_poisson_src_stencil_vareps_1x_ser_p2_upx_dirichletvarx(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const double *phiBC, const long *globalIdxs, double *bsrc);
 
 GKYL_CU_DH void fem_poisson_sol_stencil_1x_ser_p2(const double *sol_nodal_global, const long *globalIdxs, double *sol_modal_local);
+
+GKYL_CU_DH void fem_poisson_bias_plane_lhs_1x_ser_p2_inx(int edge, int dir, const long *globalIdxs, gkyl_mat_triples *tri);
+GKYL_CU_DH void fem_poisson_bias_plane_lhs_1x_ser_p2_upx_periodicx(int edge, int dir, const long *globalIdxs, gkyl_mat_triples *tri);
+GKYL_CU_DH void fem_poisson_bias_plane_lhs_1x_ser_p2_upx_nonperiodicx(int edge, int dir, const long *globalIdxs, gkyl_mat_triples *tri);
+GKYL_CU_DH void fem_poisson_bias_plane_src_1x_ser_p2_inx(int edge, int dir, double val, const long *globalIdxs, double *bsrc);
+GKYL_CU_DH void fem_poisson_bias_plane_src_1x_ser_p2_upx_periodicx(int edge, int dir, double val, const long *globalIdxs, double *bsrc);
+GKYL_CU_DH void fem_poisson_bias_plane_src_1x_ser_p2_upx_nonperiodicx(int edge, int dir, double val, const long *globalIdxs, double *bsrc);
 
 long fem_poisson_num_nodes_global_2x_ser_p2_periodicx_periodicy(const int *numCells);
 long fem_poisson_num_nodes_global_2x_ser_p2_periodicx_nonperiodicy(const int *numCells);
@@ -6548,6 +6636,25 @@ GKYL_CU_DH void fem_poisson_src_stencil_vareps_2x_ser_p2_upx_dirichletvarx_upy_r
 GKYL_CU_DH void fem_poisson_src_stencil_vareps_2x_ser_p2_upx_dirichletvarx_upy_dirichletvary(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const double *phiBC, const long *globalIdxs, double *bsrc);
 
 GKYL_CU_DH void fem_poisson_sol_stencil_2x_ser_p2(const double *sol_nodal_global, const long *globalIdxs, double *sol_modal_local);
+
+GKYL_CU_DH void fem_poisson_bias_plane_lhs_2x_ser_p2_inx_iny(int edge, int dir, const long *globalIdxs, gkyl_mat_triples *tri);
+GKYL_CU_DH void fem_poisson_bias_plane_lhs_2x_ser_p2_upx_periodicx_iny(int edge, int dir, const long *globalIdxs, gkyl_mat_triples *tri);
+GKYL_CU_DH void fem_poisson_bias_plane_lhs_2x_ser_p2_upx_nonperiodicx_iny(int edge, int dir, const long *globalIdxs, gkyl_mat_triples *tri);
+GKYL_CU_DH void fem_poisson_bias_plane_lhs_2x_ser_p2_inx_upy_periodicy(int edge, int dir, const long *globalIdxs, gkyl_mat_triples *tri);
+GKYL_CU_DH void fem_poisson_bias_plane_lhs_2x_ser_p2_inx_upy_nonperiodicy(int edge, int dir, const long *globalIdxs, gkyl_mat_triples *tri);
+GKYL_CU_DH void fem_poisson_bias_plane_lhs_2x_ser_p2_upx_periodicx_upy_periodicy(int edge, int dir, const long *globalIdxs, gkyl_mat_triples *tri);
+GKYL_CU_DH void fem_poisson_bias_plane_lhs_2x_ser_p2_upx_periodicx_upy_nonperiodicy(int edge, int dir, const long *globalIdxs, gkyl_mat_triples *tri);
+GKYL_CU_DH void fem_poisson_bias_plane_lhs_2x_ser_p2_upx_nonperiodicx_upy_periodicy(int edge, int dir, const long *globalIdxs, gkyl_mat_triples *tri);
+GKYL_CU_DH void fem_poisson_bias_plane_lhs_2x_ser_p2_upx_nonperiodicx_upy_nonperiodicy(int edge, int dir, const long *globalIdxs, gkyl_mat_triples *tri);
+GKYL_CU_DH void fem_poisson_bias_plane_src_2x_ser_p2_inx_iny(int edge, int dir, double val, const long *globalIdxs, double *bsrc);
+GKYL_CU_DH void fem_poisson_bias_plane_src_2x_ser_p2_upx_periodicx_iny(int edge, int dir, double val, const long *globalIdxs, double *bsrc);
+GKYL_CU_DH void fem_poisson_bias_plane_src_2x_ser_p2_upx_nonperiodicx_iny(int edge, int dir, double val, const long *globalIdxs, double *bsrc);
+GKYL_CU_DH void fem_poisson_bias_plane_src_2x_ser_p2_inx_upy_periodicy(int edge, int dir, double val, const long *globalIdxs, double *bsrc);
+GKYL_CU_DH void fem_poisson_bias_plane_src_2x_ser_p2_inx_upy_nonperiodicy(int edge, int dir, double val, const long *globalIdxs, double *bsrc);
+GKYL_CU_DH void fem_poisson_bias_plane_src_2x_ser_p2_upx_periodicx_upy_periodicy(int edge, int dir, double val, const long *globalIdxs, double *bsrc);
+GKYL_CU_DH void fem_poisson_bias_plane_src_2x_ser_p2_upx_periodicx_upy_nonperiodicy(int edge, int dir, double val, const long *globalIdxs, double *bsrc);
+GKYL_CU_DH void fem_poisson_bias_plane_src_2x_ser_p2_upx_nonperiodicx_upy_periodicy(int edge, int dir, double val, const long *globalIdxs, double *bsrc);
+GKYL_CU_DH void fem_poisson_bias_plane_src_2x_ser_p2_upx_nonperiodicx_upy_nonperiodicy(int edge, int dir, double val, const long *globalIdxs, double *bsrc);
 
 long fem_poisson_num_nodes_global_3x_ser_p2_periodicx_periodicy_periodicz(const int *numCells);
 long fem_poisson_num_nodes_global_3x_ser_p2_periodicx_periodicy_nonperiodicz(const int *numCells);
@@ -11950,6 +12057,61 @@ GKYL_CU_DH void fem_poisson_src_stencil_vareps_3x_ser_p2_upx_dirichletvarx_upy_d
 GKYL_CU_DH void fem_poisson_src_stencil_vareps_3x_ser_p2_upx_dirichletvarx_upy_dirichletvary_upz_dirichletvarz(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const double *phiBC, const long *globalIdxs, double *bsrc);
 
 GKYL_CU_DH void fem_poisson_sol_stencil_3x_ser_p2(const double *sol_nodal_global, const long *globalIdxs, double *sol_modal_local);
+
+GKYL_CU_DH void fem_poisson_bias_plane_lhs_3x_ser_p2_inx_iny_inz(int edge, int dir, const long *globalIdxs, gkyl_mat_triples *tri);
+GKYL_CU_DH void fem_poisson_bias_plane_lhs_3x_ser_p2_upx_periodicx_iny_inz(int edge, int dir, const long *globalIdxs, gkyl_mat_triples *tri);
+GKYL_CU_DH void fem_poisson_bias_plane_lhs_3x_ser_p2_upx_nonperiodicx_iny_inz(int edge, int dir, const long *globalIdxs, gkyl_mat_triples *tri);
+GKYL_CU_DH void fem_poisson_bias_plane_lhs_3x_ser_p2_inx_upy_periodicy_inz(int edge, int dir, const long *globalIdxs, gkyl_mat_triples *tri);
+GKYL_CU_DH void fem_poisson_bias_plane_lhs_3x_ser_p2_inx_upy_nonperiodicy_inz(int edge, int dir, const long *globalIdxs, gkyl_mat_triples *tri);
+GKYL_CU_DH void fem_poisson_bias_plane_lhs_3x_ser_p2_upx_periodicx_upy_periodicy_inz(int edge, int dir, const long *globalIdxs, gkyl_mat_triples *tri);
+GKYL_CU_DH void fem_poisson_bias_plane_lhs_3x_ser_p2_upx_periodicx_upy_nonperiodicy_inz(int edge, int dir, const long *globalIdxs, gkyl_mat_triples *tri);
+GKYL_CU_DH void fem_poisson_bias_plane_lhs_3x_ser_p2_upx_nonperiodicx_upy_periodicy_inz(int edge, int dir, const long *globalIdxs, gkyl_mat_triples *tri);
+GKYL_CU_DH void fem_poisson_bias_plane_lhs_3x_ser_p2_upx_nonperiodicx_upy_nonperiodicy_inz(int edge, int dir, const long *globalIdxs, gkyl_mat_triples *tri);
+GKYL_CU_DH void fem_poisson_bias_plane_lhs_3x_ser_p2_inx_iny_upz_periodicz(int edge, int dir, const long *globalIdxs, gkyl_mat_triples *tri);
+GKYL_CU_DH void fem_poisson_bias_plane_lhs_3x_ser_p2_inx_iny_upz_nonperiodicz(int edge, int dir, const long *globalIdxs, gkyl_mat_triples *tri);
+GKYL_CU_DH void fem_poisson_bias_plane_lhs_3x_ser_p2_upx_periodicx_iny_upz_periodicz(int edge, int dir, const long *globalIdxs, gkyl_mat_triples *tri);
+GKYL_CU_DH void fem_poisson_bias_plane_lhs_3x_ser_p2_upx_periodicx_iny_upz_nonperiodicz(int edge, int dir, const long *globalIdxs, gkyl_mat_triples *tri);
+GKYL_CU_DH void fem_poisson_bias_plane_lhs_3x_ser_p2_upx_nonperiodicx_iny_upz_periodicz(int edge, int dir, const long *globalIdxs, gkyl_mat_triples *tri);
+GKYL_CU_DH void fem_poisson_bias_plane_lhs_3x_ser_p2_upx_nonperiodicx_iny_upz_nonperiodicz(int edge, int dir, const long *globalIdxs, gkyl_mat_triples *tri);
+GKYL_CU_DH void fem_poisson_bias_plane_lhs_3x_ser_p2_inx_upy_periodicy_upz_periodicz(int edge, int dir, const long *globalIdxs, gkyl_mat_triples *tri);
+GKYL_CU_DH void fem_poisson_bias_plane_lhs_3x_ser_p2_inx_upy_periodicy_upz_nonperiodicz(int edge, int dir, const long *globalIdxs, gkyl_mat_triples *tri);
+GKYL_CU_DH void fem_poisson_bias_plane_lhs_3x_ser_p2_inx_upy_nonperiodicy_upz_periodicz(int edge, int dir, const long *globalIdxs, gkyl_mat_triples *tri);
+GKYL_CU_DH void fem_poisson_bias_plane_lhs_3x_ser_p2_inx_upy_nonperiodicy_upz_nonperiodicz(int edge, int dir, const long *globalIdxs, gkyl_mat_triples *tri);
+GKYL_CU_DH void fem_poisson_bias_plane_lhs_3x_ser_p2_upx_periodicx_upy_periodicy_upz_periodicz(int edge, int dir, const long *globalIdxs, gkyl_mat_triples *tri);
+GKYL_CU_DH void fem_poisson_bias_plane_lhs_3x_ser_p2_upx_periodicx_upy_periodicy_upz_nonperiodicz(int edge, int dir, const long *globalIdxs, gkyl_mat_triples *tri);
+GKYL_CU_DH void fem_poisson_bias_plane_lhs_3x_ser_p2_upx_periodicx_upy_nonperiodicy_upz_periodicz(int edge, int dir, const long *globalIdxs, gkyl_mat_triples *tri);
+GKYL_CU_DH void fem_poisson_bias_plane_lhs_3x_ser_p2_upx_periodicx_upy_nonperiodicy_upz_nonperiodicz(int edge, int dir, const long *globalIdxs, gkyl_mat_triples *tri);
+GKYL_CU_DH void fem_poisson_bias_plane_lhs_3x_ser_p2_upx_nonperiodicx_upy_periodicy_upz_periodicz(int edge, int dir, const long *globalIdxs, gkyl_mat_triples *tri);
+GKYL_CU_DH void fem_poisson_bias_plane_lhs_3x_ser_p2_upx_nonperiodicx_upy_periodicy_upz_nonperiodicz(int edge, int dir, const long *globalIdxs, gkyl_mat_triples *tri);
+GKYL_CU_DH void fem_poisson_bias_plane_lhs_3x_ser_p2_upx_nonperiodicx_upy_nonperiodicy_upz_periodicz(int edge, int dir, const long *globalIdxs, gkyl_mat_triples *tri);
+GKYL_CU_DH void fem_poisson_bias_plane_lhs_3x_ser_p2_upx_nonperiodicx_upy_nonperiodicy_upz_nonperiodicz(int edge, int dir, const long *globalIdxs, gkyl_mat_triples *tri);
+GKYL_CU_DH void fem_poisson_bias_plane_src_3x_ser_p2_inx_iny_inz(int edge, int dir, double val, const long *globalIdxs, double *bsrc);
+GKYL_CU_DH void fem_poisson_bias_plane_src_3x_ser_p2_upx_periodicx_iny_inz(int edge, int dir, double val, const long *globalIdxs, double *bsrc);
+GKYL_CU_DH void fem_poisson_bias_plane_src_3x_ser_p2_upx_nonperiodicx_iny_inz(int edge, int dir, double val, const long *globalIdxs, double *bsrc);
+GKYL_CU_DH void fem_poisson_bias_plane_src_3x_ser_p2_inx_upy_periodicy_inz(int edge, int dir, double val, const long *globalIdxs, double *bsrc);
+GKYL_CU_DH void fem_poisson_bias_plane_src_3x_ser_p2_inx_upy_nonperiodicy_inz(int edge, int dir, double val, const long *globalIdxs, double *bsrc);
+GKYL_CU_DH void fem_poisson_bias_plane_src_3x_ser_p2_upx_periodicx_upy_periodicy_inz(int edge, int dir, double val, const long *globalIdxs, double *bsrc);
+GKYL_CU_DH void fem_poisson_bias_plane_src_3x_ser_p2_upx_periodicx_upy_nonperiodicy_inz(int edge, int dir, double val, const long *globalIdxs, double *bsrc);
+GKYL_CU_DH void fem_poisson_bias_plane_src_3x_ser_p2_upx_nonperiodicx_upy_periodicy_inz(int edge, int dir, double val, const long *globalIdxs, double *bsrc);
+GKYL_CU_DH void fem_poisson_bias_plane_src_3x_ser_p2_upx_nonperiodicx_upy_nonperiodicy_inz(int edge, int dir, double val, const long *globalIdxs, double *bsrc);
+GKYL_CU_DH void fem_poisson_bias_plane_src_3x_ser_p2_inx_iny_upz_periodicz(int edge, int dir, double val, const long *globalIdxs, double *bsrc);
+GKYL_CU_DH void fem_poisson_bias_plane_src_3x_ser_p2_inx_iny_upz_nonperiodicz(int edge, int dir, double val, const long *globalIdxs, double *bsrc);
+GKYL_CU_DH void fem_poisson_bias_plane_src_3x_ser_p2_upx_periodicx_iny_upz_periodicz(int edge, int dir, double val, const long *globalIdxs, double *bsrc);
+GKYL_CU_DH void fem_poisson_bias_plane_src_3x_ser_p2_upx_periodicx_iny_upz_nonperiodicz(int edge, int dir, double val, const long *globalIdxs, double *bsrc);
+GKYL_CU_DH void fem_poisson_bias_plane_src_3x_ser_p2_upx_nonperiodicx_iny_upz_periodicz(int edge, int dir, double val, const long *globalIdxs, double *bsrc);
+GKYL_CU_DH void fem_poisson_bias_plane_src_3x_ser_p2_upx_nonperiodicx_iny_upz_nonperiodicz(int edge, int dir, double val, const long *globalIdxs, double *bsrc);
+GKYL_CU_DH void fem_poisson_bias_plane_src_3x_ser_p2_inx_upy_periodicy_upz_periodicz(int edge, int dir, double val, const long *globalIdxs, double *bsrc);
+GKYL_CU_DH void fem_poisson_bias_plane_src_3x_ser_p2_inx_upy_periodicy_upz_nonperiodicz(int edge, int dir, double val, const long *globalIdxs, double *bsrc);
+GKYL_CU_DH void fem_poisson_bias_plane_src_3x_ser_p2_inx_upy_nonperiodicy_upz_periodicz(int edge, int dir, double val, const long *globalIdxs, double *bsrc);
+GKYL_CU_DH void fem_poisson_bias_plane_src_3x_ser_p2_inx_upy_nonperiodicy_upz_nonperiodicz(int edge, int dir, double val, const long *globalIdxs, double *bsrc);
+GKYL_CU_DH void fem_poisson_bias_plane_src_3x_ser_p2_upx_periodicx_upy_periodicy_upz_periodicz(int edge, int dir, double val, const long *globalIdxs, double *bsrc);
+GKYL_CU_DH void fem_poisson_bias_plane_src_3x_ser_p2_upx_periodicx_upy_periodicy_upz_nonperiodicz(int edge, int dir, double val, const long *globalIdxs, double *bsrc);
+GKYL_CU_DH void fem_poisson_bias_plane_src_3x_ser_p2_upx_periodicx_upy_nonperiodicy_upz_periodicz(int edge, int dir, double val, const long *globalIdxs, double *bsrc);
+GKYL_CU_DH void fem_poisson_bias_plane_src_3x_ser_p2_upx_periodicx_upy_nonperiodicy_upz_nonperiodicz(int edge, int dir, double val, const long *globalIdxs, double *bsrc);
+GKYL_CU_DH void fem_poisson_bias_plane_src_3x_ser_p2_upx_nonperiodicx_upy_periodicy_upz_periodicz(int edge, int dir, double val, const long *globalIdxs, double *bsrc);
+GKYL_CU_DH void fem_poisson_bias_plane_src_3x_ser_p2_upx_nonperiodicx_upy_periodicy_upz_nonperiodicz(int edge, int dir, double val, const long *globalIdxs, double *bsrc);
+GKYL_CU_DH void fem_poisson_bias_plane_src_3x_ser_p2_upx_nonperiodicx_upy_nonperiodicy_upz_periodicz(int edge, int dir, double val, const long *globalIdxs, double *bsrc);
+GKYL_CU_DH void fem_poisson_bias_plane_src_3x_ser_p2_upx_nonperiodicx_upy_nonperiodicy_upz_nonperiodicz(int edge, int dir, double val, const long *globalIdxs, double *bsrc);
 
 
 EXTERN_C_END 

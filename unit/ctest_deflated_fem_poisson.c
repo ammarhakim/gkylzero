@@ -391,7 +391,8 @@ void test_fem_poisson_zind_dd_nx(int nx){
   struct gkyl_array *epsilon_dev = epsilon;
 #endif
 
-  struct gkyl_fem_poisson* fem_poisson = gkyl_fem_poisson_new(&local, &grid, basis, &poisson_bc, epsilon_dev, 0, false, use_gpu);
+  struct gkyl_fem_poisson* fem_poisson = gkyl_fem_poisson_new(&local, &grid,
+    basis, &poisson_bc, NULL, epsilon_dev, 0, false, use_gpu);
   gkyl_fem_poisson_set_rhs(fem_poisson, field, NULL);
   gkyl_fem_poisson_solve(fem_poisson, phi);
   gkyl_grid_sub_array_write(&grid, &local, 0, phi, "out_field.gkyl");

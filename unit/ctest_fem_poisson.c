@@ -215,7 +215,7 @@ test_1x(int poly_order, const int *cells, struct gkyl_poisson_bc bcs, bool use_g
 //  gkyl_grid_sub_array_write(&grid, &localRange, NULL, rho_ho, "ctest_fem_poisson_1x_rho_1.gkyl");
 
   // FEM poisson solver.
-  gkyl_fem_poisson *poisson = gkyl_fem_poisson_new(&localRange, &grid, basis, &bcs, epsilon, NULL, true, use_gpu);
+  gkyl_fem_poisson *poisson = gkyl_fem_poisson_new(&localRange, &grid, basis, &bcs, NULL, epsilon, NULL, true, use_gpu);
 
   // Set the RHS source.
   gkyl_fem_poisson_set_rhs(poisson, rho, NULL);
@@ -498,6 +498,257 @@ test_1x(int poly_order, const int *cells, struct gkyl_poisson_bc bcs, bool use_g
 }
 
 void
+test_1x_bias(int poly_order, const int *cells, struct gkyl_poisson_bc bcs, bool use_gpu)
+{
+  double epsilon_0 = 1.0;
+  double lower[] = {0.0}, upper[] = {1.0};
+  if (bcs.lo_type[0] == GKYL_POISSON_PERIODIC) {
+    lower[0] = -M_PI;
+    upper[0] =  M_PI;
+  }
+  int dim = sizeof(lower)/sizeof(lower[0]);
+
+  // Grids.
+  struct gkyl_rect_grid grid;
+  gkyl_rect_grid_init(&grid, dim, lower, upper, cells);
+
+  // Basis functions.
+  struct gkyl_basis basis;
+  gkyl_cart_modal_serendip(&basis, dim, poly_order);
+
+  int ghost[] = { 1, 1 };
+  struct gkyl_range localRange, localRange_ext; // local, local-ext ranges.
+  gkyl_create_grid_ranges(&grid, ghost, &localRange_ext, &localRange);
+  struct skin_ghost_ranges skin_ghost; // skin/ghost.
+  skin_ghost_ranges_init(&skin_ghost, &localRange_ext, ghost);
+
+  // Projection updater for DG field.
+  gkyl_proj_on_basis *projob;
+  if (bcs.lo_type[0] == GKYL_POISSON_PERIODIC) {
+    projob = gkyl_proj_on_basis_new(&grid, &basis,
+      poly_order+1, 1, evalFunc1x_periodicx, NULL);
+  } else if (bcs.lo_type[0]==GKYL_POISSON_DIRICHLET && bcs.up_type[0]==GKYL_POISSON_DIRICHLET) {
+    projob = gkyl_proj_on_basis_new(&grid, &basis,
+      poly_order+1, 1, evalFunc1x_dirichletx, NULL);
+  } else if (bcs.lo_type[0]==GKYL_POISSON_NEUMANN && bcs.up_type[0]==GKYL_POISSON_DIRICHLET) {
+    projob = gkyl_proj_on_basis_new(&grid, &basis,
+      poly_order+1, 1, evalFunc1x_neumannx_dirichletx, NULL);
+  } else if (bcs.lo_type[0]==GKYL_POISSON_DIRICHLET && bcs.up_type[0]==GKYL_POISSON_NEUMANN) {
+    projob = gkyl_proj_on_basis_new(&grid, &basis,
+      poly_order+1, 1, evalFunc1x_dirichletx_neumannx, NULL);
+  }
+
+  // Create DG field we wish to make continuous.
+  struct gkyl_array *rho = mkarr(use_gpu, basis.num_basis, localRange_ext.volume);
+  // Create array holding continuous field we'll compute.
+  struct gkyl_array *phi = mkarr(use_gpu, basis.num_basis, localRange_ext.volume);
+  // Device copies:
+  struct gkyl_array *rho_ho, *phi_ho;
+  if (use_gpu) {
+    rho_ho = mkarr(false, basis.num_basis, localRange_ext.volume);
+    phi_ho = mkarr(false, basis.num_basis, localRange_ext.volume);
+  }
+  else {
+    rho_ho = gkyl_array_acquire(rho);
+    phi_ho = gkyl_array_acquire(phi);
+  }
+
+  struct gkyl_array *epsilon = mkarr(use_gpu, basis.num_basis, localRange_ext.volume);
+  gkyl_array_clear(epsilon, 0.);
+  gkyl_array_shiftc(epsilon, epsilon_0*pow(sqrt(2.),dim), 0);
+
+  // Project the right-side source on the basis.
+  gkyl_proj_on_basis_advance(projob, 0.0, &localRange, rho_ho);
+  gkyl_array_copy(rho, rho_ho);
+
+  struct gkyl_array *perbuff = mkarr(use_gpu, basis.num_basis, skin_ghost.lower_skin[dim-1].volume);
+  for (int d=0; d<dim; d++)
+    if (bcs.lo_type[d] == GKYL_POISSON_PERIODIC) apply_periodic_bc(perbuff, rho, d, skin_ghost);
+
+//  gkyl_grid_sub_array_write(&grid, &localRange, NULL, rho_ho, "ctest_fem_poisson_1x_rho_1.gkyl");
+
+  // Specify the bias:
+  struct gkyl_poisson_bias_plane bias = {
+    .dir = 0,
+    .loc = 0.5, // Location of the plane in the 'dir' dimension.
+    .val = 0., // Biasing value.
+  };
+  struct gkyl_poisson_bias_plane_list bpl = {
+    .num_bias_plane = 1, // Number of bias planes.
+    .bp = &bias,
+  };
+
+  // FEM poisson solver.
+  gkyl_fem_poisson *poisson = gkyl_fem_poisson_new(&localRange, &grid, basis, &bcs, &bpl, epsilon, NULL, true, use_gpu);
+
+  // Set the RHS source.
+  gkyl_fem_poisson_set_rhs(poisson, rho, NULL);
+  // Solve the problem.
+  gkyl_fem_poisson_solve(poisson, phi);
+
+#ifdef GKYL_HAVE_CUDA
+  if (use_gpu) {
+    cudaDeviceSynchronize();
+  }
+#endif
+
+  for (int d=0; d<dim; d++)
+    if (bcs.lo_type[d] == GKYL_POISSON_PERIODIC) apply_periodic_bc(perbuff, phi, d, skin_ghost);
+
+  gkyl_array_copy(phi_ho, phi);
+//  gkyl_grid_sub_array_write(&grid, &localRange, NULL, phi_ho, "ctest_fem_poisson_1x_phi_1.gkyl");
+
+  if (bcs.lo_type[0] == GKYL_POISSON_PERIODIC) {
+    struct gkyl_array *sol_cellavg = mkarr(false, 1, localRange_ext.volume);
+    double* sol_avg = (double*) gkyl_malloc(sizeof(double)); 
+    // Factor accounting for normalization when subtracting a constant from a
+    // DG field and the 1/N to properly compute the volume averaged RHS.
+    double mavgfac = -pow(sqrt(2.),dim)/localRange.volume;
+    // Subtract the volume averaged sol from the sol.
+    gkyl_dg_calc_average_range(basis, 0, sol_cellavg, 0, phi_ho, localRange);
+    gkyl_array_reduce_range(sol_avg, sol_cellavg, GKYL_SUM, &localRange);
+    gkyl_array_shiftc(phi_ho, mavgfac*sol_avg[0], 0);
+
+    gkyl_free(sol_avg);
+    gkyl_array_release(sol_cellavg);
+  }
+
+  if (poly_order == 1) {
+    if (bcs.lo_type[0]==GKYL_POISSON_DIRICHLET && bcs.up_type[0]==GKYL_POISSON_DIRICHLET) {
+      // Solution with N=16:
+      const double sol[32] = {
+        -0.0087485618349013, -0.0050509845304024,
+        -0.0235087253582045, -0.0034707998530596,
+        -0.0328597061478215, -0.0019279914230128,
+        -0.036974137695253 , -0.0004474767384591,
+        -0.0361109702377499,  0.0009458267024042,
+        -0.0306154707583134,  0.0022270014013799,
+        -0.0209192229856952,  0.0033711298602706,
+        -0.007540127394397 ,  0.0043532945808792,
+        -0.0002895207513708, -0.0001671548837399,
+         0.0001420629773807,  0.0004163298657125,
+         0.0021848926268047,  0.000763098382291 ,
+         0.0049758007393981,  0.0008482331677983,
+         0.0075653031119075,  0.0006468167240371,
+         0.008917598795329 ,  0.0001339315528103,
+         0.0079105700949087, -0.0007153398440796,
+         0.0033357825701422, -0.0019259149648297,
+      };
+
+      for (int k=0; k<cells[0]; k++) {
+        long linidx;
+        const double *phi_p;
+        int idx0[] = {k+1};
+        linidx = gkyl_range_idx(&localRange, idx0);
+        phi_p  = gkyl_array_cfetch(phi_ho, linidx);
+        for (int m=0; m<basis.num_basis; m++) {
+          TEST_CHECK( gkyl_compare(sol[k*basis.num_basis+m], phi_p[m], 1e-12) );
+          TEST_MSG("Expected: %.13e in cell (%d)", sol[k*basis.num_basis+m], k);
+          TEST_MSG("Produced: %.13e", phi_p[m]);
+	}
+      }
+    }
+    else if (bcs.lo_type[0]==GKYL_POISSON_NEUMANN && bcs.up_type[0]==GKYL_POISSON_DIRICHLET) {
+      // Solution with N=16:
+      const double sol[32] = {
+        -0.1385716448416738,  0.0007947643695833,
+        -0.1331193037351125,  0.0023531462360035,
+        -0.1224304133863657,  0.0038180874841839,
+        -0.1069365575241848,  0.0051272943686315,
+        -0.0872851117416974,  0.006218473143853 ,
+        -0.0643392434964064,  0.0070293300643554,
+        -0.0391779121101907,  0.0074975713846456,
+        -0.013095868769305 ,  0.0075609033592303,
+         0.0137774114076251,  0.0079543921849286,
+         0.0397155935055936,  0.007021024231623 ,
+         0.0613954828132133,  0.0054958656961326,
+         0.0766591606867267,  0.0033166228329641,
+         0.083132916618    ,  0.0004210018966245,
+         0.078227248234524 , -0.0032532908583794,
+         0.0591368612994136, -0.0077685491775407,
+         0.0228406697114078, -0.0131870668063526,
+      };
+
+      for (int k=0; k<cells[0]; k++) {
+        long linidx;
+        const double *phi_p;
+        int idx0[] = {k+1};
+        linidx = gkyl_range_idx(&localRange, idx0);
+        phi_p  = gkyl_array_cfetch(phi_ho, linidx);
+        for (int m=0; m<basis.num_basis; m++) {
+          TEST_CHECK( gkyl_compare(sol[k*basis.num_basis+m], phi_p[m], 1e-12) );
+          TEST_MSG("Expected: %.13e in cell (%d)", sol[k*basis.num_basis+m], k);
+          TEST_MSG("Produced: %.13e", phi_p[m]);
+	}
+      }
+    }
+  }
+  else if (poly_order == 2) {
+    if (bcs.lo_type[0]==GKYL_POISSON_DIRICHLET && bcs.up_type[0]==GKYL_POISSON_DIRICHLET) {
+      // Solution with N=8:
+      const double sol[24] =  {
+        -1.6584324083492974e-02, -8.5217843834619264e-03,  8.1578940289174376e-04,
+        -3.5343830159893758e-02, -2.3754681614718402e-03,  7.6432003993327194e-04,
+        -3.3732584239221292e-02,  3.1728281037840698e-03,  6.6138131401633307e-04,
+        -1.4512722185485518e-02,  7.7244244411496937e-03,  5.0697322514092562e-04,
+        -2.4168688810088715e-04,  2.4917498197256333e-04,  3.0109577330704798e-04,
+         3.5562499249127679e-03,  1.6113315500892961e-03,  4.3748958514699756e-05,
+         8.3899876869301757e-03,  7.8074827684739695e-04, -2.6506721923611772e-04,
+         5.9731188059214974e-03, -2.6412548089092564e-03, -6.2535275994540730e-04,
+      };
+
+      for (int k=0; k<cells[0]; k++) {
+        long linidx;
+        const double *phi_p;
+        int idx0[] = {k+1};
+        linidx = gkyl_range_idx(&localRange, idx0);
+        phi_p  = gkyl_array_cfetch(phi_ho, linidx);
+        for (int m=0; m<basis.num_basis; m++) {
+          TEST_CHECK( gkyl_compare(sol[k*basis.num_basis+m], phi_p[m], 1e-12) );
+          TEST_MSG("Expected: %.13e in cell (%d)", sol[k*basis.num_basis+m], k);
+          TEST_MSG("Produced: %.13e", phi_p[m]);
+	}
+      }
+    }
+    else if (bcs.lo_type[0]==GKYL_POISSON_NEUMANN && bcs.up_type[0]==GKYL_POISSON_DIRICHLET) {
+      // Solution with N=8:
+      const double sol[24] =  {
+        -1.3629414153973707e-01,  3.1479106055867416e-03,  8.0420879622607210e-04,
+        -1.1506022208516119e-01,  8.9453818528150968e-03,  6.7553538882990502e-04,
+        -7.6045053006021726e-02,  1.3247803208208071e-02,  4.1818857403755778e-04,
+        -2.6153973962343396e-02,  1.5058474743875368e-02,  3.2168351849040308e-05,
+         2.7017141419847148e-02,  1.4975416416551469e-02, -4.8252527773565146e-04,
+         6.9657613820500383e-02,  8.8124885290965828e-03, -1.1258923147165133e-03,
+         8.1741958225543906e-02, -2.8322889617548573e-03, -1.8979327590935668e-03,
+         4.2554155654903059e-02, -2.0955615983893214e-02, -2.7986466108667878e-03,
+      };
+
+      for (int k=0; k<cells[0]; k++) {
+        long linidx;
+        const double *phi_p;
+        int idx0[] = {k+1};
+        linidx = gkyl_range_idx(&localRange, idx0);
+        phi_p  = gkyl_array_cfetch(phi_ho, linidx);
+        for (int m=0; m<basis.num_basis; m++) {
+          TEST_CHECK( gkyl_compare(sol[k*basis.num_basis+m], phi_p[m], 1e-12) );
+          TEST_MSG("Expected: %.13e in cell (%d)", sol[k*basis.num_basis+m], k);
+          TEST_MSG("Produced: %.13e", phi_p[m]);
+	}
+      }
+    }
+  }
+
+  gkyl_fem_poisson_release(poisson);
+  gkyl_proj_on_basis_release(projob);
+  gkyl_array_release(rho);
+  gkyl_array_release(phi);
+  gkyl_array_release(epsilon);
+  gkyl_array_release(rho_ho);
+  gkyl_array_release(phi_ho);
+  gkyl_array_release(perbuff);
+}
+
+void
 test_2x(int poly_order, const int *cells, struct gkyl_poisson_bc bcs, bool use_gpu)
 {
   double epsilon_0 = 1.0;
@@ -598,7 +849,7 @@ test_2x(int poly_order, const int *cells, struct gkyl_poisson_bc bcs, bool use_g
 //  gkyl_grid_sub_array_write(&grid, &localRange, NULL, rho_ho, "ctest_fem_poisson_2x_rho_1.gkyl");
 
   // FEM poisson solver.
-  gkyl_fem_poisson *poisson = gkyl_fem_poisson_new(&localRange, &grid, basis, &bcs, epsilon, NULL, true, use_gpu);
+  gkyl_fem_poisson *poisson = gkyl_fem_poisson_new(&localRange, &grid, basis, &bcs, NULL, epsilon, NULL, true, use_gpu);
 
   // Set the RHS source.
   gkyl_fem_poisson_set_rhs(poisson, rho, NULL);
@@ -2254,7 +2505,7 @@ test_2x_varBC(int poly_order, const int *cells, struct gkyl_poisson_bc bcs, bool
   gkyl_array_copy(phibc, phibc_ho);
 
   // FEM poisson solver.
-  gkyl_fem_poisson *poisson = gkyl_fem_poisson_new(&localRange, &grid, basis, &bcs, epsilon, NULL, true, use_gpu);
+  gkyl_fem_poisson *poisson = gkyl_fem_poisson_new(&localRange, &grid, basis, &bcs, NULL, epsilon, NULL, true, use_gpu);
 
   // Set the RHS source.
   gkyl_fem_poisson_set_rhs(poisson, rho, phibc);
@@ -2521,6 +2772,640 @@ test_2x_varBC(int poly_order, const int *cells, struct gkyl_poisson_bc bcs, bool
   gkyl_array_release(epsilon);
 }
 
+void
+test_2x_bias(int poly_order, const int *cells, struct gkyl_poisson_bc bcs, bool use_gpu)
+{
+  double epsilon_0 = 1.0;
+  double lower[] = {-M_PI,-M_PI}, upper[] = {M_PI,M_PI};
+  if ( ((bcs.lo_type[0]==GKYL_POISSON_DIRICHLET && bcs.up_type[0]==GKYL_POISSON_DIRICHLET) &&
+        (bcs.lo_type[1]==GKYL_POISSON_NEUMANN && bcs.up_type[1]==GKYL_POISSON_DIRICHLET))
+      || ((bcs.lo_type[0]==GKYL_POISSON_DIRICHLET && bcs.up_type[0]==GKYL_POISSON_DIRICHLET) &&
+          (bcs.lo_type[1]==GKYL_POISSON_DIRICHLET && bcs.up_type[1]==GKYL_POISSON_NEUMANN))
+      || ((bcs.lo_type[0]==GKYL_POISSON_NEUMANN && bcs.up_type[0]==GKYL_POISSON_DIRICHLET) &&
+          (bcs.lo_type[1]==GKYL_POISSON_DIRICHLET && bcs.up_type[1]==GKYL_POISSON_DIRICHLET))
+      || ((bcs.lo_type[0]==GKYL_POISSON_DIRICHLET && bcs.up_type[0]==GKYL_POISSON_NEUMANN) &&
+          (bcs.lo_type[1]==GKYL_POISSON_DIRICHLET && bcs.up_type[1]==GKYL_POISSON_DIRICHLET))
+     ) {
+    lower[0] = 0.; lower[1] = 0.;
+    upper[0] = 1.; upper[1] = 1.;
+  }
+  int dim = sizeof(lower)/sizeof(lower[0]);
+
+  // grids.
+  struct gkyl_rect_grid grid;
+  gkyl_rect_grid_init(&grid, dim, lower, upper, cells);
+
+  // basis functions.
+  struct gkyl_basis basis;
+  gkyl_cart_modal_serendip(&basis, dim, poly_order);
+
+  int ghost[] = { 1, 1 };
+  struct gkyl_range localRange, localRange_ext; // local, local-ext ranges.
+  gkyl_create_grid_ranges(&grid, ghost, &localRange_ext, &localRange);
+  struct skin_ghost_ranges skin_ghost; // skin/ghost.
+  skin_ghost_ranges_init(&skin_ghost, &localRange_ext, ghost);
+
+  // Projection updater for DG field.
+  gkyl_proj_on_basis *projob;
+  if ((bcs.lo_type[0]==GKYL_POISSON_DIRICHLET && bcs.up_type[0]==GKYL_POISSON_DIRICHLET) &&
+      (bcs.lo_type[1]==GKYL_POISSON_DIRICHLET && bcs.up_type[1]==GKYL_POISSON_DIRICHLET)) {
+    projob = gkyl_proj_on_basis_new(&grid, &basis,
+      poly_order+1, 1, evalFunc2x_dirichletx_dirichlety, NULL);
+  } else if ((bcs.lo_type[0]==GKYL_POISSON_DIRICHLET && bcs.up_type[0]==GKYL_POISSON_DIRICHLET) &&
+             (bcs.lo_type[1]==GKYL_POISSON_PERIODIC && bcs.up_type[1]==GKYL_POISSON_PERIODIC)) {
+    projob = gkyl_proj_on_basis_new(&grid, &basis,
+      poly_order+1, 1, evalFunc2x_dirichletx_periodicy, NULL);
+  }
+
+  // Create DG field we wish to make continuous.
+  struct gkyl_array *rho = mkarr(use_gpu, basis.num_basis, localRange_ext.volume);
+  // Create array holding continuous field we'll compute.
+  struct gkyl_array *phi = mkarr(use_gpu, basis.num_basis, localRange_ext.volume);
+  // Device copies:
+  struct gkyl_array *rho_ho, *phi_ho;
+  if (use_gpu) {
+    rho_ho = mkarr(false, basis.num_basis, localRange_ext.volume);
+    phi_ho = mkarr(false, basis.num_basis, localRange_ext.volume);
+  }
+  else {
+    rho_ho = gkyl_array_acquire(rho);
+    phi_ho = gkyl_array_acquire(phi);
+  }
+
+  struct gkyl_array *epsilon = mkarr(use_gpu, basis.num_basis, localRange_ext.volume);
+  gkyl_array_clear(epsilon, 0.);
+  gkyl_array_shiftc(epsilon, epsilon_0*pow(sqrt(2.),dim), 0);
+
+  // Only used in the fully periodic case.
+  struct gkyl_array *rho_cellavg = mkarr(use_gpu, 1, localRange_ext.volume);
+
+  // Project the right-side source on the basis.
+  gkyl_proj_on_basis_advance(projob, 0.0, &localRange, rho_ho);
+  gkyl_array_copy(rho, rho_ho);
+
+  struct gkyl_array *perbuff = mkarr(use_gpu, basis.num_basis, skin_ghost.lower_skin[dim-1].volume);
+  for (int d=0; d<dim; d++)
+    if (bcs.lo_type[d] == GKYL_POISSON_PERIODIC) apply_periodic_bc(perbuff, rho, d, skin_ghost);
+
+  gkyl_grid_sub_array_write(&grid, &localRange, NULL, rho_ho, "ctest_fem_poisson_2x_rho_1.gkyl");
+
+//  // Specify a bias at a fixed x:
+//  struct gkyl_poisson_bias_plane bias = {
+//    .dir = 0,
+//    .loc = -M_PI+2*2*M_PI/8, // Location of the plane in the 'dir' dimension.
+//    .val = 0.2, // Biasing value.
+//  };
+//  struct gkyl_poisson_bias_plane_list bpl = {
+//    .num_bias_plane = 1, // Number of bias planes.
+//    .bp = &bias,
+//  };
+//  // Specify a bias at a fixed y:
+//  struct gkyl_poisson_bias_plane bias = {
+//    .dir = 1,
+//    .loc = -1.0, // Location of the plane in the 'dir' dimension.
+//    .val = 0., // Biasing value.
+//  };
+//  struct gkyl_poisson_bias_plane_list bpl = {
+//    .num_bias_plane = 1, // Number of bias planes.
+//    .bp = &bias,
+//  };
+//  // Specify a bias at a fixed x and another at a fixed y:
+  struct gkyl_poisson_bias_plane bias[2];
+  bias[0].dir = 0;
+  bias[0].loc = -M_PI+2*2*M_PI/8; // Location of the plane in the 'dir' dimension.
+  bias[0].val = 0.3; // Biasing value.
+  bias[1].dir = 1;
+  bias[1].loc = 0.8; // Location of the plane in the 'dir' dimension.
+  bias[1].val = 0.3; // Biasing value.
+  struct gkyl_poisson_bias_plane_list bpl = {
+    .num_bias_plane = 2, // Number of bias planes.
+    .bp = bias,
+  };
+//  struct gkyl_poisson_bias_plane_list bpl = {
+//    .num_bias_plane = 0, // Number of bias planes.
+//  };
+
+  // FEM poisson solver.
+  gkyl_fem_poisson *poisson = gkyl_fem_poisson_new(&localRange, &grid, basis, &bcs, &bpl, epsilon, NULL, true, use_gpu);
+
+  // Set the RHS source.
+  gkyl_fem_poisson_set_rhs(poisson, rho, NULL);
+  // Solve the problem.
+  gkyl_fem_poisson_solve(poisson, phi);
+
+#ifdef GKYL_HAVE_CUDA
+  if (use_gpu) {
+    cudaDeviceSynchronize();
+  }
+#endif
+
+  for (int d=0; d<dim; d++)
+    if (bcs.lo_type[d] == GKYL_POISSON_PERIODIC) apply_periodic_bc(perbuff, phi, d, skin_ghost);
+
+  gkyl_grid_sub_array_write(&grid, &localRange, NULL, phi_ho, "ctest_fem_poisson_2x_phi_1.gkyl");
+
+  gkyl_array_copy(phi_ho, phi);
+
+  if (poly_order == 1) {
+    if ((bcs.lo_type[0] == GKYL_POISSON_DIRICHLET && bcs.up_type[0] == GKYL_POISSON_DIRICHLET) &&
+        (bcs.lo_type[1] == GKYL_POISSON_DIRICHLET && bcs.up_type[1] == GKYL_POISSON_DIRICHLET)) {
+      // Solution with N=8x8:
+      const double sol[256] = {
+         1.2895156953678269e-01,  7.4450223384485620e-02,  7.4450223384485828e-02,  4.2983856512260797e-02,
+         2.8830517927384303e-01,  1.6645307286251634e-01,  1.7552626093544542e-02,  1.0134013400092890e-02,
+         3.3225367768176517e-01,  1.9182675024880982e-01,  7.8210512927491659e-03,  4.5154860692143634e-03,
+         3.5214664660491579e-01,  2.0331196121157141e-01,  3.6641596700126913e-03,  2.1155035718356517e-03,
+         3.6972744538778313e-01,  2.1346224012142875e-01,  6.4861192398443946e-03,  3.7447626891202847e-03,
+         4.9048086672757174e-01,  1.0997417968063671e-01,  6.3230901076250887e-02, -6.3493622242523848e-02,
+         4.4653236831964949e-01,  8.4600502294343086e-02, -8.8604578462544659e-02,  4.8844122773216501e-02,
+         1.4653236831964953e-01,  8.4600502294343058e-02, -8.4600502294343058e-02, -4.8844122773216522e-02,
+                                
+         4.2895156953678315e-01,  9.8754857372402388e-02,  7.4450223384485453e-02, -4.2983856512261012e-02,
+         5.8830517927384274e-01,  6.7520078943712021e-03,  1.7552626093544479e-02, -1.0134013400092921e-02,
+         6.3225367768176433e-01, -1.8621669491922586e-02,  7.8210512927488936e-03, -4.5154860692145091e-03,
+         6.5214664660491373e-01, -3.0106880454684778e-02,  3.6641596700122750e-03, -2.1155035718358941e-03,
+         6.6972744538778173e-01, -4.0257159364541752e-02,  6.4861192398452438e-03, -3.7447626891198025e-03,
+         6.4048086672757265e-01, -2.3371639302192299e-02, -2.3371639302192552e-02,  1.3493622242524079e-02,
+         5.9653236831965029e-01,  2.0020380841012666e-03, -2.0020380841012666e-03,  1.1558772267832309e-03,
+         4.4653236831964949e-01,  8.8604578462544686e-02, -8.4600502294343058e-02,  4.8844122773216522e-02,
+                                
+         6.1722373660761676e-01,  9.9441289668576079e-03,  1.8314920972374435e-01,  1.0574124553587159e-01,
+         1.0938631994762913e+00,  2.8513205116048679e-01,  9.2038712469883516e-02,  5.3138575420354009e-02,
+         1.3261247268759631e+00,  4.1922830652708126e-01,  4.2057542896710598e-02,  2.4281933712870175e-02,
+         1.3866182591485865e+00,  4.5415426366891287e-01, -7.1315857548800068e-03, -4.1174229553283363e-03,
+         1.2598753892685446e+00,  3.8097923362580427e-01, -6.6043444288228045e-02, -3.8130200338019393e-02,
+         8.7274239412724519e-01,  1.5746789466878686e-01, -1.5746789466878724e-01, -9.0914131375748317e-02,
+         6.4048086672757232e-01,  2.3371639302192361e-02,  2.3371639302192489e-02,  1.3493622242524190e-02,
+         4.9048086672757152e-01, -6.3230901076251081e-02, -1.0997417968063683e-01, -6.3493622242523959e-02,
+                                
+         7.0276798098732818e-01,  3.9444863553391919e-02,  4.0574328300088197e-01,  2.2773502590699067e-02,
+         1.8104132743081691e+00,  1.2856832743154439e-01,  2.3375602526452760e-01,  2.8681953270464161e-02,
+         2.4005612181889311e+00,  2.0109789095961778e-01,  1.0696604899673452e-01,  1.3193009756675185e-02,
+         2.5504406343836705e+00,  2.1777889796197247e-01, -2.0433127710717744e-02, -3.5622258735116272e-03,
+         2.2174000987841271e+00,  1.7184791516873588e-01, -1.7184791516873568e-01, -2.2956039406307645e-02,
+         1.2598753892685450e+00,  6.6043444288228809e-02, -3.8097923362580405e-01, -3.8130200338019032e-02,
+         6.6972744538778239e-01, -6.4861192398445074e-03,  4.0257159364541495e-02, -3.7447626891201633e-03,
+         3.6972744538778263e-01, -6.4861192398443304e-03, -2.1346224012142911e-01,  3.7447626891202652e-03,
+                                
+         7.7717226524603089e-01,  3.5124699922315329e-03,  4.4870061654650595e-01,  2.0279254955354741e-03,
+         2.0554433053316998e+00,  1.2899826939433492e-02,  2.8930951254425802e-01,  3.3918675649106675e-03,
+         2.7899149178753726e+00,  2.3695572364325838e-02,  1.3473787066997003e-01,  2.8410589622536184e-03,
+         2.9754662530247851e+00,  2.7609757372962000e-02, -2.7609757372962257e-02, -5.8120319385953278e-04,
+         2.5504406343836705e+00,  2.0433127710717487e-02, -2.1777889796197247e-01, -3.5622258735116272e-03,
+         1.3866182591485874e+00,  7.1315857548793658e-03, -4.5415426366891248e-01, -4.1174229553286512e-03,
+         6.5214664660491461e-01, -3.6641596700128197e-03,  3.0106880454684556e-02, -2.1155035718355242e-03,
+         3.5214664660491596e-01, -3.6641596700124029e-03, -2.0331196121157155e-01,  2.1155035718357644e-03,
+                                
+         7.2160737736820613e-01, -3.5592872965984977e-02,  4.1662021357275375e-01, -2.0549554788142962e-02,
+         1.9135017578046214e+00, -9.4849817613384166e-02,  2.7152032781781293e-01, -1.3662458155387695e-02,
+         2.6073728069988200e+00, -1.2908630921734573e-01,  1.2908630921734573e-01, -6.1039894882679970e-03,
+         2.7899149178753717e+00, -1.3473787066997003e-01, -2.3695572364325967e-02,  2.8410589622536553e-03,
+         2.4005612181889306e+00, -1.0696604899673465e-01, -2.0109789095961778e-01,  1.3193009756675074e-02,
+         1.3261247268759631e+00, -4.2057542896710404e-02, -4.1922830652708110e-01,  2.4281933712870359e-02,
+         6.3225367768176466e-01, -7.8210512927487010e-03,  1.8621669491922586e-02, -4.5154860692147311e-03,
+         3.3225367768176545e-01, -7.8210512927493741e-03, -1.9182675024880988e-01,  4.5154860692143339e-03,
+                                
+         5.3333521029737307e-01, -7.3106113373274759e-02,  3.0792122723349458e-01, -4.2207834235467784e-02,
+         1.4079437376021731e+00, -1.9703424144147386e-01,  1.9703424144147386e-01, -2.9342103864873393e-02,
+         1.9135017578046212e+00, -2.7152032781781293e-01,  9.4849817613383916e-02, -1.3662458155387658e-02,
+         2.0554433053316989e+00, -2.8930951254425813e-01, -1.2899826939433621e-02,  3.3918675649105383e-03,
+         1.8104132743081678e+00, -2.3375602526452785e-01, -1.2856832743154434e-01,  2.8681953270464161e-02,
+         1.0938631994762908e+00, -9.2038712469883932e-02, -2.8513205116048629e-01,  5.3138575420353953e-02,
+         5.8830517927384285e-01, -1.7552626093544799e-02, -6.7520078943714267e-03, -1.0134013400092848e-02,
+         2.8830517927384264e-01, -1.7552626093544701e-02, -1.6645307286251645e-01,  1.0134013400092904e-02,
+                                
+         2.0335585379548557e-01, -1.1740755693010950e-01,  1.1740755693010979e-01, -6.7785284598495046e-02,
+         5.3333521029737341e-01, -3.0792122723349435e-01,  7.3106113373274675e-02, -4.2207834235467825e-02,
+         7.2160737736820590e-01, -4.1662021357275386e-01,  3.5592872965984651e-02, -2.0549554788143062e-02,
+         7.7717226524602934e-01, -4.4870061654650611e-01, -3.5124699922319496e-03,  2.0279254955354879e-03,
+         7.0276798098732574e-01, -4.0574328300088236e-01, -3.9444863553392016e-02,  2.2773502590698942e-02,
+         6.1722373660761443e-01, -1.8314920972374513e-01, -9.9441289668574153e-03,  1.0574124553587151e-01,
+         4.2895156953678204e-01, -7.4450223384485856e-02, -9.8754857372401889e-02, -4.2983856512260686e-02,
+         1.2895156953678202e-01, -7.4450223384485856e-02, -7.4450223384485856e-02,  4.2983856512260686e-02,
+      };
+      for (int j=0; j<cells[0]; j++) {
+        for (int k=0; k<cells[1]; k++) {
+          int idx0[] = {j+1,k+1};
+          long linidx = gkyl_range_idx(&localRange, idx0);
+          const double *phi_p  = gkyl_array_cfetch(phi_ho, linidx);
+          for (int m=0; m<basis.num_basis; m++) {
+            TEST_CHECK( gkyl_compare(sol[(j*cells[1]+k)*basis.num_basis+m], phi_p[m], 1e-12) );
+            TEST_MSG("Expected: %.13e in cell (%d,%d)", sol[(j*cells[1]+k)*basis.num_basis+m], j, k);
+            TEST_MSG("Produced: %.13e", phi_p[m]);
+	  }
+        }
+      }
+    } else if ((bcs.lo_type[0] == GKYL_POISSON_DIRICHLET && bcs.up_type[0] == GKYL_POISSON_DIRICHLET) &&
+               (bcs.lo_type[1] == GKYL_POISSON_PERIODIC && bcs.up_type[1] == GKYL_POISSON_PERIODIC)) {
+      // Solution with N=8x8 (checked visually against g2):
+      const double sol[256] = {
+         2.0695556873727669e-01,  1.1948585332075820e-01, -1.9046453463662513e-02, -1.0996475034353147e-02, 
+         1.4558864481965927e-01,  8.4055643277583011e-02, -1.6383756579513183e-02, -9.4591662715190448e-03, 
+         1.2818040369987443e-01,  7.4004990580957775e-02,  6.3331038828874937e-03,  3.6564192315910174e-03, 
+         1.8756046745906696e-01,  1.0828808637682398e-01,  2.7949991912979449e-02,  1.6136935354806071e-02, 
+         2.0345037480984871e-01,  1.1746212866319607e-01, -1.8775949626607395e-02, -1.0840299571212131e-02, 
+         3.8546473804810522e-01,  4.9343089518294872e-02,  1.2386199123859315e-01, -2.8488246016035241e-02, 
+         4.7796329610410232e-01,  1.0274715691157675e-01, -7.0457923845310980e-02,  5.9321098701367460e-02, 
+         2.9793579302427070e-01,  1.7201331030378694e-01, -3.3481003519366004e-02, -1.9330266394644992e-02, 
+                                
+         5.0695556873727465e-01,  5.3719227436128343e-02, -1.9046453463662225e-02,  1.0996475034353324e-02, 
+         4.4558864481965854e-01,  8.9149437479304330e-02, -1.6383756579512680e-02,  9.4591662715193241e-03, 
+         4.2818040369987509e-01,  9.9200090175930317e-02,  6.3331038828877582e-03, -3.6564192315908643e-03, 
+         4.8756046745906639e-01,  6.4916994380063445e-02,  2.7949991912978502e-02, -1.6136935354806602e-02, 
+         5.0345037480984711e-01,  5.5742952093690824e-02, -1.8775949626607009e-02,  1.0840299571212351e-02, 
+         5.3546473804810524e-01,  3.7259450860149000e-02,  3.7259450860149736e-02, -2.1511753983964516e-02, 
+         6.2796329610410262e-01, -1.6144616533132653e-02,  1.6144616533132653e-02, -9.3210987013675681e-03, 
+         5.9793579302426936e-01,  1.1917704531000553e-03, -3.3481003519366739e-02,  1.9330266394644548e-02, 
+                                
+         7.8902649394019042e-01,  1.0913449716034193e-01, -1.8183182083654607e-02, -1.0498065070722228e-02, 
+         7.4401342921382563e-01,  8.3146192123524101e-02, -7.8051229531621259e-03, -4.5062898380666509e-03, 
+         7.8907637658376129e-01,  1.0916329691803331e-01,  3.3822227747672386e-02,  1.9527272294711247e-02, 
+         9.1813274798934152e-01,  1.8367402768968197e-01,  4.0688503023975697e-02,  2.3491518173815857e-02, 
+         8.7470690321784439e-01,  1.5860210452107232e-01, -6.5760426192586471e-02, -3.7966799764314260e-02, 
+         6.8040325196245055e-01,  4.6420839164242632e-02, -4.6420839164242340e-02, -2.6801083987484216e-02, 
+         7.2274050955105884e-01,  7.0864266229775458e-02,  7.0864266229775874e-02,  4.0913503183686570e-02, 
+         8.3300085412723712e-01,  1.3452310585177427e-01, -7.2054266077784040e-03, -4.1600549916263156e-03, 
+                                
+         1.0664987158368842e+00,  5.1064164844357766e-02, -4.0682412354198595e-02, -2.4918715825357398e-03, 
+         9.7165477291101243e-01,  4.8282598938734773e-02, -1.4075763625058893e-02,  8.8593375815563657e-04, 
+         1.0940060220721883e+00,  6.6887915988607230e-02,  8.4715290263950777e-02,  9.8558510489465245e-03, 
+         1.4003576031526708e+00,  9.4738622248794480e-02,  9.2156877539533236e-02,  6.2237617074937445e-03, 
+         1.2974375859789402e+00,  8.5461568965760626e-02, -1.5157777715978749e-01, -1.1579870917739880e-02, 
+         8.1744858731991787e-01,  3.2702322095573610e-02, -1.2554400042405800e-01, -1.8880694465004517e-02, 
+         8.8097664729592318e-01,  2.0493410492748654e-02,  1.6222194295229936e-01,  1.1831876064601199e-02, 
+         1.1494580078003347e+00,  4.8183517008371347e-02, -7.2141571926803982e-03,  4.1550143860829940e-03, 
+                                
+         1.1491297624369667e+00, -3.3571078463795392e-03, -4.8356641584218818e-02, -1.9388467292392932e-03, 
+         1.0325050395128668e+00, -1.3150681135893643e-02, -1.8976673590175835e-02, -3.7154754457900223e-03, 
+         1.1511743022204932e+00, -3.3881794055875360e-02,  8.7490404358958399e-02, -8.2536381791619359e-03, 
+         1.4622888540779364e+00, -5.8982597855842096e-02,  9.2131665904746168e-02, -6.2383176516247864e-03, 
+         1.3496078336183466e+00, -5.5341062447459850e-02, -1.5718808339965204e-01,  8.3407590999178289e-03, 
+         8.3867504341288779e-01, -2.0447221956355628e-02, -1.3779910056327618e-01,  1.1805209100681080e-02, 
+         9.1819497786477200e-01,  9.9460267996469374e-04,  1.8370995612501295e-01,  5.7423412501523663e-04, 
+         1.2346379391368876e+00,  9.9513927834130609e-04, -1.0115272513946342e-03, -5.7392431979802494e-04, 
+                                
+         1.0495695703772063e+00, -5.4123995839893982e-02, -5.6960458456916822e-02, -3.0285692582711827e-03, 
+         8.9218479705791143e-01, -6.7863248618228386e-02, -3.3905682785326366e-02, -4.9037920317645178e-03, 
+         9.2801433171934899e-01, -9.4959674985309217e-02,  5.4591874267046404e-02, -1.0740337025346467e-02, 
+         1.1455379463444140e+00, -1.2389362399016544e-01,  7.0995443191835192e-02, -5.9646862213262337e-03, 
+         1.0657450080545758e+00, -1.0854721630471093e-01, -1.1706391759290431e-01,  1.4824938829617130e-02, 
+         7.3149217752530427e-01, -4.1434834516356350e-02, -7.5917044090565114e-02,  2.3922412861846317e-02, 
+         8.9385184002337748e-01, -1.5049119865613990e-02,  1.6965543893936455e-01, -8.6886134054795627e-03, 
+         1.1679658292468793e+00, -3.9488299870777899e-02, -1.1395653472533528e-02, -5.4213537492755308e-03, 
+                                
+         7.6749864517429045e-01, -1.0872972875657638e-01, -5.7823729836924409e-02,  2.5301592946400673e-03, 
+         5.9376001266374423e-01, -1.0443238098460009e-01, -4.2484316411676902e-02, -4.9084401688122760e-05, 
+         5.6711835883546291e-01, -1.1340371210865438e-01,  2.7102750402261823e-02, -5.1305160377738985e-03, 
+         7.1496566581413878e-01, -1.2469739807957991e-01,  5.8256932080838000e-02, -1.3898965976830624e-03, 
+         6.9448847964657867e-01, -1.0579784031005225e-01, -7.0079441026924913e-02,  1.2301561363484743e-02, 
+         5.8655366361095895e-01, -4.2245455508035185e-02,  7.7632459338270975e-03,  2.4390425109602477e-02, 
+         7.9907462657642148e-01, -3.9670529831028617e-02,  1.1493578924272123e-01, -2.2903791076839465e-02, 
+         9.3290076814391143e-01, -9.6226576434096420e-02, -3.7671230384121929e-02, -9.7488576537427662e-03, 
+                                
+         2.8958661533735852e-01, -1.6719291031873673e-01, -2.6720682693682486e-02,  1.5427193346128274e-02, 
+         2.0643891142151358e-01, -1.1918756108042412e-01, -2.1284666544629894e-02,  1.2288707959153511e-02, 
+         1.8534868384817985e-01, -1.0701111251368946e-01,  9.1082179778951937e-03, -5.2586321013756172e-03, 
+         2.4949171838433232e-01, -1.4404411076977661e-01,  2.7924780278191910e-02, -1.6122379410675240e-02, 
+         2.5562062244925482e-01, -1.4758263518149697e-01, -2.4386255866471529e-02,  1.4079411389034433e-02, 
+         4.0669119414107574e-01, -6.1598189657512729e-02,  1.1160689109937504e-01,  3.5563731380358600e-02, 
+         5.1518162667295164e-01, -1.2423517008429019e-01, -4.8969910672597566e-02, -7.1727208890983898e-02, 
+         3.8311572436082308e-01, -2.2119196659049989e-01, -2.7278373578080651e-02,  1.5749176328359930e-02, 
+      };
+      for (int j=0; j<cells[0]; j++) {
+        for (int k=0; k<cells[1]; k++) {
+          int idx0[] = {j+1,k+1};
+          long linidx = gkyl_range_idx(&localRange, idx0);
+          const double *phi_p  = gkyl_array_cfetch(phi_ho, linidx);
+          for (int m=0; m<basis.num_basis; m++) {
+            TEST_CHECK( gkyl_compare(sol[(j*cells[1]+k)*basis.num_basis+m], phi_p[m], 1e-12) );
+            TEST_MSG("Expected: %.13e in cell (%d,%d)", sol[(j*cells[1]+k)*basis.num_basis+m], j, k);
+            TEST_MSG("Produced: %.13e", phi_p[m]);
+	  }
+        }
+      }
+    }
+  }
+  if (poly_order == 2) {
+    if ((bcs.lo_type[0] == GKYL_POISSON_DIRICHLET && bcs.up_type[0] == GKYL_POISSON_DIRICHLET) &&
+        (bcs.lo_type[1] == GKYL_POISSON_DIRICHLET && bcs.up_type[1] == GKYL_POISSON_DIRICHLET)) {
+      // Solution with N=8x8 (checked visually against g2):
+      const double sol[512] =  {
+        1.5533311401374375e-01,  8.0448181189757023e-02,  7.1383887553887471e-02,  3.5882581089513192e-02, 
+       -7.1521872221691971e-03, -1.4173358881541273e-02, -4.1293172180145955e-03, -8.1829925655791530e-03, 
+        3.1000404198245896e-01,  1.5667545777456296e-01,  3.1082184954682655e-02,  1.5729096122371413e-02, 
+       -1.7277734490433301e-02, -3.9744222223506787e-03, -1.7166702230099677e-03, -2.2946337399476009e-03, 
+        3.7857548166792060e-01,  1.8900099866514894e-01,  1.2087608801617626e-02,  5.0010090967487408e-03, 
+       -2.2904558275500107e-02, -1.2013238572225022e-03, -1.5319780039809404e-03, -6.9358465235151343e-04, 
+        4.0425568356501707e-01,  2.0122821599342283e-01,  3.3091265420904133e-03,  2.3876201154691768e-03, 
+       -2.4917931882494315e-02, -7.5959936635899025e-04,  3.6955621000353653e-04, -4.3855489864395652e-04, 
+        4.1727748169260132e-01,  1.9919888758010218e-01,  3.7258386804603460e-03, -3.8382137320551062e-03, 
+       -3.2313368072759904e-02, -1.1338638972530678e-03, -4.6393132852280720e-03, -6.5463662630302550e-04, 
+        4.3716603455009728e-01,  1.6861780147080760e-01,  5.1616434224149459e-02, -5.5162092692047124e-02, 
+       -2.0174447197502901e-02,  3.2839645130219128e-02,  1.1647722520229270e-02, -3.2679799993408046e-02, 
+        3.6859459486463331e-01,  1.3629226058022006e-01, -9.4786227980451360e-02,  3.4431987472926334e-02, 
+       -1.4547623412436273e-02,  3.0066546765090796e-02, -8.3990742932384555e-03, -3.4280849081003914e-02, 
+        1.6835491214132511e-01,  7.8418852776436732e-02, -7.8418852776436718e-02, -3.4431987472926508e-02, 
+       -1.4547623412435470e-02, -1.4547623412435403e-02,  8.3990742932389239e-03, -8.3990742932387886e-03, 
+                               
+        3.6946581339115087e-01,  9.2756899567128556e-02,  1.3727843226277400e-01, -3.5882581089510680e-02, 
+        3.1248837025134639e-02, -1.4173358881541398e-02, -3.3598253481106524e-02,  8.1829925655790611e-03, 
+        6.3102752485654046e-01,  1.6529622982323057e-02,  2.6901062871493353e-02, -1.5729096122372332e-02, 
+       -2.6679721856484408e-02, -3.9744222223490177e-03,  1.5318441703666890e-04,  2.2946337399485412e-03, 
+        6.9398195984660038e-01, -1.5795917908265063e-02,  1.3025751711878395e-02, -5.0010090967484450e-03, 
+       -2.9794544775782170e-02, -1.2013238572200467e-03, -1.9515282679712243e-03,  6.9358465235292582e-04, 
+        7.2277418406744665e-01, -2.8023135236537666e-02,  4.1677105581693734e-03, -2.3876201154694843e-03, 
+       -3.3199657075455628e-02, -7.5959936635750370e-04, -1.4414234866165383e-05,  4.3855489864478870e-04, 
+        7.2190296554094235e-01, -2.5993806823209158e-02, -5.1538822407193605e-03,  3.8382137320559979e-03, 
+       -3.4381947335499423e-02, -1.1338638972569219e-03, -6.6818136503040088e-04,  6.5463662630079952e-04, 
+        6.8178871257800111e-01, -2.4280234173402714e-02, -3.1881507866188909e-02,  5.1620926920462346e-03, 
+       -1.7769635704202077e-02, -1.1881714419775227e-02,  1.0259303957221907e-02,  6.8599110186927685e-03, 
+        6.1883427758793386e-01,  8.0453067171828759e-03, -8.0453067171869994e-03,  1.5568012527073011e-02, 
+       -1.4654812784905439e-02, -1.4654812784904112e-02, -8.4609601062880010e-03,  8.4609601062883271e-03, 
+        3.6859459486463103e-01,  9.4786227980450402e-02, -1.3629226058021895e-01,  3.4431987472927521e-02, 
+        3.0066546765090994e-02, -1.4547623412436293e-02,  3.4280849081004490e-02,  8.3990742932382664e-03, 
+                               
+        5.6355951897661249e-01,  1.9416433643301461e-02,  2.4441834236771329e-01,  9.7805239292666477e-02, 
+        3.1336583368864267e-02, -1.7984485310210251e-02, -3.3547593105935421e-02, -1.0383347435086744e-02, 
+        1.1384058619348891e+00,  2.7612252255954328e-01,  9.9223874625614897e-02,  5.7190569078997951e-02, 
+       -2.6898835076978919e-02, -8.8794685107920785e-03, -7.4641410142641562e-05, -5.1265635349686976e-03, 
+        1.3850274387252464e+00,  4.1402380087178647e-01,  4.6278677379411756e-02,  2.4225516380595231e-02, 
+       -3.0373486296460757e-02, -6.4661984458473437e-03, -1.9314494067652782e-03, -3.7332614133465157e-03, 
+        1.4544697477545541e+00,  4.4973913257369985e-01, -6.9271508916094642e-03, -4.0330819406447426e-03, 
+       -3.3764054020119380e-02, -7.0401817996435913e-03, -2.6095781194674182e-05, -4.0646508571701365e-03, 
+        1.3280762633280476e+00,  3.7870626470624230e-01, -6.8873390005292481e-02, -3.8610064659977676e-02, 
+       -3.2260992258763090e-02, -9.2301436869407748e-03,  8.9388889372232631e-04, -5.3290259423093688e-03, 
+        9.2841028936836756e-01,  1.6978278617843032e-01, -1.6978278617842624e-01, -8.6578178151638860e-02, 
+       -1.5356365639260707e-02, -1.5356365639256775e-02,  8.8660018355975270e-03, -8.8660018356005350e-03, 
+        6.8178871257800355e-01,  3.1881507866190303e-02,  2.4280234173395865e-02,  5.1620926920476311e-03, 
+       -1.1881714419779777e-02, -1.7769635704201387e-02, -6.8599110186901499e-03, -1.0259303957222634e-02, 
+        4.3716603455009401e-01, -5.1616434224148716e-02, -1.6861780147080513e-01, -5.5162092692047818e-02, 
+        3.2839645130219648e-02, -2.0174447197503050e-02,  3.2679799993408386e-02, -1.1647722520229139e-02, 
+                               
+        7.4609938259350195e-01,  3.8300006873649907e-02,  3.9479280796571392e-01,  2.8156146829750164e-02, 
+       -5.5907627764121559e-03, -2.7860593399204731e-02, -3.2278283939377078e-03,  4.6813737713599368e-03, 
+        1.8293289250498705e+00,  1.3644217999604571e-01,  2.4285963049722542e-01,  2.2005598418681240e-02, 
+       -1.6317777900311633e-02, -1.8372116865789129e-02, -2.9654166754468736e-03, -3.5401954811126055e-04, 
+        2.4355022228369760e+00,  2.0016168776061879e-01,  1.0985282738580757e-01,  1.2766252509240556e-02, 
+       -2.4414057689995498e-02, -1.6251161789052802e-02, -1.7089726405616346e-03, -1.9160898068638810e-03, 
+        2.5933034580746872e+00,  2.1680376207396349e-01, -2.0816003865757875e-02, -3.4972802786778327e-03, 
+       -2.6764066188286684e-02, -1.7854392635571970e-02,  3.5219460147529547e-04, -2.1789366800265826e-03, 
+        2.2644815571737853e+00,  1.7477791651985289e-01, -1.7477791651985303e-01, -2.0820652819017429e-02, 
+       -2.2307167309127181e-02, -2.2307167309126706e-02,  2.2209971661584305e-03, -2.2209971661588312e-03, 
+        1.3280762633280376e+00,  6.8873390005293370e-02, -3.7870626470624885e-01, -3.8610064659975844e-02, 
+       -9.2301436869363998e-03, -3.2260992258763520e-02,  5.3290259423125087e-03, -8.9388889372177130e-04, 
+        7.2190296554093059e-01,  5.1538822407212193e-03,  2.5993806823215299e-02,  3.8382137320544804e-03, 
+       -1.1338638972525981e-03, -3.4381947335499416e-02, -6.5463662630404866e-04,  6.6818136503074500e-04, 
+        4.1727748169260243e-01, -3.7258386804597905e-03, -1.9919888758010085e-01, -3.8382137320548135e-03, 
+       -1.1338638972534752e-03, -3.2313368072759835e-02,  6.5463662630354819e-04,  4.6393132852280521e-03, 
+                               
+        8.1840185220427497e-01,  3.9530659924141790e-03,  4.4611017446764928e-01,  1.7659483239659112e-03, 
+       -5.1963206673014588e-03, -2.0444979630721963e-02, -3.0000971360621140e-03, -3.9996716592006934e-04, 
+        2.0860799139066417e+00,  1.3887607915190749e-02,  2.8704596433183399e-01,  4.1266743013064410e-03, 
+       -1.4695357771295256e-02, -1.9467540393028303e-02, -2.4841744929710204e-03, -2.7842352021709333e-04, 
+        2.8177754775937482e+00,  2.4982469364969215e-02,  1.3467003300532823e-01,  2.2940277548075452e-03, 
+       -2.0975940204581451e-02, -2.0031937337692138e-02, -1.1419214655543684e-03, -2.6674197388848914e-04, 
+        3.0074496267139450e+00,  2.8078196400262975e-02, -2.8078196400262719e-02, -6.5628816075654272e-04, 
+       -2.2291113936514215e-02, -2.2291113936514163e-02,  3.8260555739177558e-04, -3.8260555739177569e-04, 
+        2.5933034580746881e+00,  2.0816003865758558e-02, -2.1680376207396365e-01, -3.4972802786774255e-03, 
+       -1.7854392635572227e-02, -2.6764066188286983e-02,  2.1789366800265375e-03, -3.5219460147525676e-04, 
+        1.4544697477545572e+00,  6.9271508916091649e-03, -4.4973913257369802e-01, -4.0330819406462224e-03, 
+       -7.0401817996444040e-03, -3.3764054020119214e-02,  4.0646508571697921e-03,  2.6095781194406601e-05, 
+        7.2277418406744964e-01, -4.1677105581695443e-03,  2.8023135236536021e-02, -2.3876201154679022e-03, 
+       -7.5959936635850323e-04, -3.3199657075455476e-02, -4.3855489864451282e-04,  1.4414234865926383e-05, 
+        4.0425568356501562e-01, -3.3091265420903547e-03, -2.0122821599342386e-01,  2.3876201154680596e-03, 
+       -7.5959936635783113e-04, -2.4917931882494276e-02,  4.3855489864490373e-04, -3.6955621000352699e-04, 
+                               
+        7.6084873642469175e-01, -3.6904814421138479e-02,  4.1414515579073768e-01, -2.0061289360797218e-02, 
+       -4.9820994058618140e-03, -1.9466440790086081e-02, -2.8764164331037327e-03,  9.6492682897369076e-04, 
+        1.9431899809806050e+00, -9.4838695630359612e-02,  2.7013626166562887e-01, -1.3315992530960111e-02, 
+       -1.3497480022339876e-02, -1.8183413090288651e-02, -2.0399408580720002e-03,  1.0198147641276472e-03, 
+        2.6342354598592506e+00, -1.2809162129789270e-01,  1.2809162129789259e-01, -5.9085147528866377e-03, 
+       -1.8762354610967265e-02, -1.8762354610967088e-02, -9.9973590292168867e-04,  9.9973590292161234e-04, 
+        2.8177754775937496e+00, -1.3467003300532823e-01, -2.4982469364968788e-02,  2.2940277548078041e-03, 
+       -2.0031937337692263e-02, -2.0975940204581451e-02,  2.6674197388852714e-04,  1.1419214655543684e-03, 
+        2.4355022228369778e+00, -1.0985282738580707e-01, -2.0016168776061879e-01,  1.2766252509240687e-02, 
+       -1.6251161789052726e-02, -2.4414057689995577e-02,  1.9160898068641100e-03,  1.7089726405617488e-03, 
+        1.3850274387252517e+00, -4.6278677379411499e-02, -4.1402380087178442e-01,  2.4225516380595231e-02, 
+       -6.4661984458494132e-03, -3.0373486296460778e-02,  3.7332614133449389e-03,  1.9314494067654499e-03, 
+        6.9398195984660527e-01, -1.3025751711878397e-02,  1.5795917908262885e-02, -5.0010090967485561e-03, 
+       -1.2013238572220258e-03, -2.9794544775782104e-02, -6.9358465235129171e-04,  1.9515282679713963e-03, 
+        3.7857548166792104e-01, -1.2087608801618022e-02, -1.8900099866514941e-01,  5.0010090967483340e-03, 
+       -1.2013238572224517e-03, -2.2904558275500139e-02,  6.9358465235103898e-04,  1.5319780039808881e-03, 
+                               
+        5.6675503083922718e-01, -7.5268518789291167e-02,  3.0700524568579995e-01, -4.1861368842359296e-02, 
+       -5.0698457495897964e-03, -1.5655314361417098e-02, -2.9270768082761073e-03,  1.2354280405340475e-03, 
+        1.4358116439022561e+00, -1.9781344991150729e-01,  1.9781344991150732e-01, -2.8145480425665254e-02, 
+       -1.3278366801845595e-02, -1.3278366801845456e-02, -1.8121150308925303e-03,  1.8121150308926656e-03, 
+        1.9431899809806050e+00, -2.7013626166562865e-01,  9.4838695630359529e-02, -1.3315992530959981e-02, 
+       -1.8183413090288560e-02, -1.3497480022339674e-02, -1.0198147641276088e-03,  2.0399408580721147e-03, 
+        2.0860799139066426e+00, -2.8704596433183377e-01, -1.3887607915189981e-02,  4.1266743013062745e-03, 
+       -1.9467540393028414e-02, -1.4695357771295062e-02,  2.7842352021697933e-04,  2.4841744929711210e-03, 
+        1.8293289250498728e+00, -2.4285963049722564e-01, -1.3644217999604569e-01,  2.2005598418681185e-02, 
+       -1.8372116865788844e-02, -1.6317777900311383e-02,  3.5401954811151046e-04,  2.9654166754469412e-03, 
+        1.1384058619348920e+00, -9.9223874625615535e-02, -2.7612252255954334e-01,  5.7190569078997333e-02, 
+       -8.8794685107933587e-03, -2.6898835076978989e-02,  5.1265635349675900e-03,  7.4641410142385839e-05, 
+        6.3102752485654290e-01, -2.6901062871494016e-02, -1.6529622982323668e-02, -1.5729096122371986e-02, 
+       -3.9744222223503838e-03, -2.6679721856484789e-02, -2.2946337399474236e-03, -1.5318441703709033e-04, 
+        3.1000404198245629e-01, -3.1082184954682957e-02, -1.5667545777456476e-01,  1.5729096122371902e-02, 
+       -3.9744222223497307e-03, -1.7277734490433259e-02,  2.2946337399477939e-03,  1.7166702230100577e-03, 
+                               
+        2.2763558362451619e-01, -1.2270125405582197e-01,  1.2270125405582216e-01, -6.5804676243228263e-02, 
+       -6.7577451130583438e-03, -6.7577451130582744e-03, -3.9015859601390134e-03,  3.9015859601392545e-03, 
+        5.6675503083922774e-01, -3.0700524568579945e-01,  7.5268518789290390e-02, -4.1861368842360212e-02, 
+       -1.5655314361417160e-02, -5.0698457495904582e-03, -1.2354280405342797e-03,  2.9270768082754663e-03, 
+        7.6084873642469208e-01, -4.1414515579073780e-01,  3.6904814421139520e-02, -2.0061289360796382e-02, 
+       -1.9466440790086130e-02, -4.9820994058621332e-03, -9.6492682897348031e-04,  2.8764164331032990e-03, 
+        8.1840185220427752e-01, -4.4611017446764822e-01, -3.9530659924142328e-03,  1.7659483239655942e-03, 
+       -2.0444979630721800e-02, -5.1963206673020955e-03,  3.9996716591999290e-04,  3.0000971360615619e-03, 
+        7.4609938259350450e-01, -3.9479280796571403e-01, -3.8300006873650226e-02,  2.8156146829749602e-02, 
+       -2.7860593399204932e-02, -5.5907627764129946e-03, -4.6813737713600227e-03,  3.2278283939370035e-03, 
+        5.6355951897661616e-01, -2.4441834236771068e-01, -1.9416433643299941e-02,  9.7805239292669613e-02, 
+       -1.7984485310210362e-02,  3.1336583368863830e-02,  1.0383347435086867e-02,  3.3547593105935511e-02, 
+        3.6946581339115164e-01, -1.3727843226277259e-01, -9.2756899567130208e-02, -3.5882581089513220e-02, 
+       -1.4173358881541453e-02,  3.1248837025135395e-02, -8.1829925655791651e-03,  3.3598253481107600e-02, 
+        1.5533311401374345e-01, -7.1383887553887249e-02, -8.0448181189757509e-02,  3.5882581089513220e-02, 
+       -1.4173358881541490e-02, -7.1521872221696117e-03,  8.1829925655791547e-03,  4.1293172180142459e-03, 
+      };
+
+      for (int j=0; j<cells[0]; j++) {
+        for (int k=0; k<cells[1]; k++) {
+          int idx0[] = {j+1,k+1};
+          long linidx = gkyl_range_idx(&localRange, idx0);
+          const double *phi_p  = gkyl_array_cfetch(phi_ho, linidx);
+          for (int m=0; m<basis.num_basis; m++) {
+            TEST_CHECK( gkyl_compare(sol[(j*cells[1]+k)*basis.num_basis+m], phi_p[m], 1e-10) );
+            TEST_MSG("Expected: %.13e in cell (%d,%d)", sol[(j*cells[1]+k)*basis.num_basis+m], j, k);
+            TEST_MSG("Produced: %.13e", phi_p[m]);
+	  }
+        }
+      }
+    } else if ((bcs.lo_type[0] == GKYL_POISSON_DIRICHLET && bcs.up_type[0] == GKYL_POISSON_DIRICHLET) &&
+               (bcs.lo_type[1] == GKYL_POISSON_PERIODIC && bcs.up_type[1] == GKYL_POISSON_PERIODIC)) {
+      // Solution with N=8x8 (checked visually against g2):
+      const double sol[512] =  {
+         2.1586267052960614e-01,  1.1494113900184900e-01, -2.2160891440115113e-02, -1.0033363538509546e-02, 
+        -7.5036975921132943e-03,  3.4735460101775035e-03,  2.1388419622000235e-03,  2.0054527240191246e-03, 
+         1.5189545122344580e-01,  8.8570694533605054e-02, -1.9733655611820895e-02, -8.0570412565080119e-03, 
+         6.7685409640906536e-04, -3.7082045559042455e-04,  2.5842017572880105e-03, -2.1409328985628725e-04, 
+         1.1533392259191108e-01,  7.1384648051902394e-02,  7.1644520061524379e-03,  3.0650158192709769e-03, 
+         3.7154124105361753e-03,  6.2439289727240386e-03, -8.2988929667835050e-04,  3.6049340732027977e-03, 
+         2.0164435976184503e-01,  1.0950275559554255e-01,  3.0200132477082454e-02,  1.1744791018291728e-02, 
+        -5.3576293843106164e-03, -3.4127892749095893e-03, -4.4084338259451662e-03, -1.9703748065567693e-03, 
+         2.2325502725940449e-01,  1.1425357838446824e-01, -1.8481830780721915e-02, -9.4398933959146669e-03, 
+        -1.1342242188590531e-02, -4.0004161244795323e-03,  9.5321601239847461e-04, -2.3096413263394870e-03, 
+         2.6140474630845567e-01,  8.6931415779306687e-02,  1.2058007860883976e-01, -2.6771353354680897e-02, 
+        -4.8456118122639997e-03,  5.8023473555332633e-02,  2.7976152841991510e-03, -1.8139909872943488e-02, 
+         3.9923702256698385e-01,  1.4670447600225761e-01, -5.9367977013402518e-02,  5.0678077012300753e-02, 
+        -2.0186066294717149e-02,  4.3797695726909752e-02, -1.1654430809134692e-02, -2.6353166531615985e-02, 
+         3.4662570879766441e-01,  1.6682943277557366e-01, -3.8200308246014211e-02, -1.1186232304250341e-02, 
+        -2.5790206564719292e-02, -8.2498782638835838e-03,  8.4188789156725494e-03, -4.7630694364341362e-03, 
+                                                          
+         5.1689791587943612e-01,  5.8263941755036547e-02, -2.2859613871489739e-02,  1.0033363538509105e-02, 
+        -7.9666733872370693e-03,  3.4735460101798705e-03,  2.4513201329911991e-03, -2.0054527240177637e-03, 
+         4.5184750558026437e-01,  8.4634386223283203e-02, -1.9660313791848436e-02,  8.0570412565081368e-03, 
+         6.9829603988514569e-04, -3.7082045559060377e-04,  2.5514022982777058e-03,  2.1409328985618688e-04, 
+         4.1553825343001166e-01,  1.0182043270498713e-01,  7.2367620805570774e-03, -3.0650158192711053e-03, 
+         3.6240328817590487e-03,  6.2439289727228946e-03, -8.6222734504381527e-04, -3.6049340732034773e-03, 
+         5.0343323992976197e-01,  6.3702325161346079e-02,  3.1042662384792374e-02, -1.1744791018291617e-02, 
+        -6.1576409161226298e-03, -3.4127892749100685e-03, -4.7852246552882657e-03,  1.9703748065564948e-03, 
+         5.1062387227790884e-01,  5.8951502372419015e-02, -2.7649771863668387e-02,  9.4398933959141430e-03, 
+        -5.6934179539989971e-03, -4.0004161244794638e-03,  5.0532439074343358e-03,  2.3096413263395108e-03, 
+         4.9714949893947713e-01,  5.7406151518099226e-02,  4.2207809136240247e-02, -2.3228646645318689e-02, 
+         1.5295286183578047e-03,  1.3302114005336851e-02, -8.8307375954184756e-04, -7.6799791017726259e-03, 
+         6.3472949871672413e-01, -2.3669087048523519e-03,  1.8858640564821116e-02, -6.7807701230037298e-04, 
+        -1.3698104391842032e-02, -9.2366382308450953e-04, -7.9086042580178602e-03,  5.3327755690076484e-04, 
+         6.3324091899808888e-01,  6.3756479813146857e-03, -2.9176174639404251e-02,  1.1186232304250386e-02, 
+        -1.9804346593439444e-02, -8.2498782638828674e-03,  4.3831636791885481e-03,  4.7630694364345456e-03, 
+                                                          
+         7.9669310875087918e-01,  1.0375414693349232e-01, -2.0266296955233722e-02, -9.4401510177539484e-03, 
+        -7.5962157398736865e-03,  2.6659256900898546e-03,  1.7510539933307684e-03,  1.5391729148107644e-03, 
+         7.4496312882187410e-01,  8.1917436794197662e-02, -1.0696170271041952e-02, -3.8001416042442735e-03, 
+        -1.3765083617684950e-03,  1.8168520243091850e-03,  1.8398957356989957e-03,  1.0489600053126933e-03, 
+         7.7101263805180820e-01,  9.9674385664237267e-02,  3.3254980887842074e-02,  1.8393286453245197e-02, 
+         7.2827040512924985e-04,  7.6411369064037678e-03, -6.2470114804598874e-04,  4.4116124498280000e-03, 
+         9.4196670141620098e-01,  1.8793144588299548e-01,  4.3756617849704256e-02,  2.0039930495653904e-02, 
+        -7.3610860548943263e-03, -9.1589165610489118e-03, -4.0456909817194889e-03, -5.2879029420066122e-03, 
+         8.9878642057493607e-01,  1.6656461618143703e-01, -7.1248302604095690e-02, -3.3854980021914928e-02, 
+        -4.6009525242543502e-03, -1.1143075353917424e-02,  5.6392548186338003e-03, -6.4334575551852789e-03, 
+         6.4345461989165043e-01,  2.8423512966575141e-02, -4.3435234660647325e-02, -2.7002793988992049e-02, 
+         2.5832616692228463e-03,  1.4211291293031876e-02, -1.4914468201137644e-03,  8.2048928535644657e-03, 
+         7.3875638680953348e-01,  6.7135559765420835e-02,  7.9130952232432605e-02,  3.8194881138876494e-02, 
+        -1.0050761661718852e-02, -7.5917061052388143e-04, -5.8028099509534522e-03, -4.3830735634903646e-04, 
+         8.8222345096854260e-01,  1.4310523382099843e-01, -1.0496546478960242e-02, -2.5300314548703986e-03, 
+        -1.5365326773277715e-02, -1.1755610116889350e-02,  2.7344443531691315e-03, -6.7871046654745032e-03, 
+                                                          
+         1.0631958114771909e+00,  5.0444306239435549e-02, -3.8385918908420656e-02, -2.6237190677024800e-03, 
+        -7.3382394066251553e-03,  4.9759462587561998e-03,  5.0976168975893060e-04, -2.0548191765771472e-04, 
+         9.7626883686450805e-01,  4.4522171672997997e-02, -1.1454235674422020e-02,  6.7072891068743312e-04, 
+        -6.8798661362913802e-03,  5.2448533868768932e-03, -2.4511975874243929e-04,  9.3019750414814512e-04, 
+         1.0772723792237053e+00,  6.1975158927731977e-02,  8.4465886736531381e-02,  9.2088756428255498e-03, 
+        -1.1022050775899156e-02,  1.6629277778719535e-02, -2.1463716579682504e-03,  7.7769310231773847e-04, 
+         1.4592593018788609e+00,  9.6773808133432143e-02,  8.6635145383198373e-02,  7.3824276306553877e-03, 
+        -1.8169628356648381e-02, -2.1666177752134325e-02, -1.9802841823310384e-03, -1.9331676734915578e-03, 
+         1.3618658290516619e+00,  8.5682134779673375e-02, -1.4800034003590376e-01, -1.3793119643751742e-02, 
+        -1.6306866669662572e-02, -2.5643767976196202e-02,  3.0557501437484154e-03, -1.9385212337234257e-03, 
+         7.6245667412648599e-01,  2.9837773953860069e-02, -1.2937856967575645e-01, -1.6586431892270211e-02, 
+        -5.5070760827273975e-03,  2.7563375792996905e-02,  3.1795118588102090e-03, -4.9606327326703458e-04, 
+         8.8286367912837838e-01,  2.4272311064120894e-02,  1.5908799283094821e-01,  1.2706932497486551e-02, 
+        -3.6932697103741656e-03, -3.2714536161833844e-03, -2.1323102614742352e-03, -1.0121599132489781e-03, 
+         1.2013618239433934e+00,  5.0911208534270433e-02, -2.9699606561751119e-03,  3.0343059220695290e-03, 
+        -7.8038559868938914e-03, -2.4779646387858571e-02, -2.4093783180159647e-04, -7.3232618150505940e-04, 
+                                                          
+         1.1414577541168380e+00, -4.4842413364417641e-03, -4.5401647444754153e-02, -2.2108034195797068e-03, 
+        -6.7375309733318919e-03,  4.3032531205827850e-03, -9.7514142477539561e-05, -1.8289764674865404e-04, 
+         1.0301082929209153e+00, -1.4574429930042739e-02, -1.6422458503697671e-02, -3.8590341960145040e-03, 
+        -7.7601818536419875e-03,  6.2114994724910590e-03, -4.9291361855647415e-04, -3.7210412640766759e-04, 
+         1.1285500148542398e+00, -3.3305613098992458e-02,  8.7284792291645957e-02, -7.1455058775012183e-03, 
+        -1.1746771867359510e-02,  1.7076750786305099e-02, -1.8087451990120582e-03, -5.1934444093305811e-04, 
+         1.5225609118376628e+00, -5.8805683445042833e-02,  8.9014061382215987e-02, -5.0842881575580900e-03, 
+        -1.7068986026288629e-02, -2.2569774272950257e-02, -1.2640365783305148e-03,  1.4114759789596901e-03, 
+         1.4123706053764706e+00, -5.5357476387942459e-02, -1.5753137114721999e-01,  7.2183584727072815e-03, 
+        -1.5403909893680940e-02, -2.6364451060557272e-02,  2.2253687317128354e-03,  1.5224346609671899e-03, 
+         7.8065106809459350e-01, -1.9678774248293812e-02, -1.3872732829273812e-01,  1.1388420362828854e-02, 
+        -5.7747290923905788e-03,  2.6668112734835641e-02,  3.3340413959877086e-03, -2.0817094357912604e-05, 
+         9.2370042204318070e-01,  1.0468664832981849e-03,  1.8019769892090598e-01,  4.8654833046057899e-04, 
+        -2.3438657416457358e-03, -5.1826922176694433e-03, -1.3532315168823664e-03, -9.1294207804667053e-05, 
+         1.2863851852374695e+00,  9.8583567633453483e-04,  1.5862527936420128e-03, -7.9369551534319593e-04, 
+        -5.6281815036968632e-03, -2.6571005679194678e-02, -5.4296907244158628e-04, -3.0191558756314797e-04, 
+                                                          
+         1.0376461833777941e+00, -5.5129221073935433e-02, -5.4384076509311631e-02, -2.5299825176015598e-03, 
+        -6.4879745936563564e-03,  3.9856936295335019e-03,  2.4735325927903245e-04, -4.4541089240756464e-07, 
+         8.8500028578280476e-01, -6.6288092700731591e-02, -3.3167131347759046e-02, -4.7564009177981665e-03, 
+        -5.5017489418357551e-03,  4.4341403371513126e-03,  3.2204438628128079e-04, -6.5405464882739204e-04, 
+         8.9345440152655042e-01, -9.2173353509972092e-02,  5.1830438538806929e-02, -1.0139628277075470e-02, 
+        -3.8044069399830838e-03,  1.5109880425834396e-02,  6.5791647539523612e-04, -6.1622869114581823e-04, 
+         1.1686958437949939e+00, -1.2537800413393285e-01,  6.6368196919629655e-02, -5.4781225309281662e-03, 
+        -1.4837875523777699e-03, -1.6425565266637097e-02,  6.8189375272534401e-04,  2.1358847447925373e-03, 
+         1.0899279369791366e+00, -1.1163032235989877e-01, -1.1528576482924126e-01,  1.4113886282535629e-02, 
+        -5.5135753115332156e-04, -1.9090871619691134e-02, -1.4355502897091374e-04,  2.6769683871889932e-03, 
+         6.6184749305462187e-01, -4.1973757738133589e-02, -7.1464026093316230e-02,  2.3439979527187366e-02, 
+        -4.0000106750650601e-04,  2.7696756840852817e-02,  2.3094072400100290e-04,  6.1470504586723948e-04, 
+         8.9488445319278820e-01, -1.8082954491535259e-02,  1.6513342331838485e-01, -9.4143789520873197e-03, 
+        -2.6530697323322171e-03, -3.9645368865213531e-03, -1.5317505241408177e-03,  7.9459651615785079e-04, 
+         1.2139960141437611e+00, -4.3403409255577091e-02, -9.0310599971932699e-03, -5.2353526142323225e-03, 
+        -6.1112712354048308e-03, -2.5759194735691038e-02, -4.6484304457016499e-04,  7.7061485432604099e-04, 
+                                                          
+         7.5785099050635130e-01, -1.0688886761459329e-01, -5.6977393425567437e-02,  1.9367699968464440e-03, 
+        -6.8584322410197998e-03,  4.7933139496233734e-03,  9.4761939893941148e-04,  4.6672522009931088e-04, 
+         5.9188466254119543e-01, -1.0026373031674923e-01, -4.2131274868565646e-02,  4.9950126553432094e-04, 
+        -3.4269445401823024e-03,  2.2464678572515074e-03,  1.0335509488600284e-03, -6.0899864634152221e-04, 
+         5.3798001690475372e-01, -1.0932146485925229e-01,  2.5812219731521820e-02, -5.1886423568986073e-03, 
+        -9.0864446335326289e-04,  1.3712672492153478e-02,  4.2039027839748170e-04, -1.9044968547872484e-04, 
+         7.3016238230855479e-01, -1.2625576691040866e-01,  5.3654241454717942e-02, -2.8170169464341132e-03, 
+        -2.8034241360597916e-04, -1.0679437980498247e-02, -5.7639920843499212e-05,  1.1816433906575866e-03, 
+         7.0176538868210925e-01, -1.1388579619395725e-01, -7.1687234088814028e-02,  1.0301200343465104e-02, 
+        -1.6438229608980407e-03, -1.1948212390253175e-02, -7.2956594017040035e-04,  1.4468478416567725e-03, 
+         5.1554237210244991e-01, -4.3855906746540885e-02,  1.4179017703572055e-02,  2.6791461107123344e-02, 
+        -1.4537341183722822e-03,  2.6787579553157689e-02,  8.3931378457259087e-04, -1.1396187976591013e-03, 
+         7.9085756509997984e-01, -4.6685696569033333e-02,  1.0486111165077257e-01, -2.8102425174488771e-02, 
+        -6.3004124624559156e-03, -4.1290300990819368e-03, -3.6375448312048176e-03, -8.8956671670958789e-04, 
+         9.6501348217330729e-01, -1.0607747254673591e-01, -2.7710688157637269e-02, -3.4208482351476936e-03, 
+        -1.0550291055566489e-02, -2.2253462882684757e-02,  1.1838762814492037e-03,  1.2534203747138002e-03, 
+                                                          
+         2.9412461316925403e-01, -1.6090120390484253e-01, -2.9176619976449127e-02,  1.4867886025791300e-02, 
+        -6.9029891588198930e-03,  2.8008528720044577e-03,  1.5315661299634606e-03, -1.6170731596124341e-03, 
+         2.0573490727985275e-01, -1.1851843627656046e-01, -2.4701878441096427e-02,  1.1245346541835231e-02, 
+        -2.0346162094144078e-04,  5.9582563002411070e-04,  2.3364078974739879e-03, -3.4400008788394194e-04, 
+         1.6661155822244592e-01, -1.0005419388064173e-01,  9.9833575612669565e-03, -5.1283855845954841e-03, 
+         2.9906913190757825e-03,  6.6914019803097670e-03, -4.9226283772221097e-04, -3.8632827345874148e-03, 
+         2.6494596972064716e-01, -1.4747088028393204e-01,  3.2579048476099888e-02, -1.4042930491389011e-02, 
+        -4.2569870539508094e-03, -4.3163857957252720e-03, -3.6921862219445266e-03,  2.4920665010887367e-03, 
+         2.7375980358421392e-01, -1.4457823677619877e-01, -2.8012861892038388e-02,  1.6014654566958938e-02, 
+        -1.0439285412608815e-02, -4.7210992088410593e-03,  1.2283460036275438e-04,  2.7257278990954230e-03, 
+         2.7959914027655991e-01, -9.7090415484873821e-02,  1.1123131999185713e-01,  3.1969364884122366e-02, 
+        -5.1132648219266094e-03,  5.7128210497171636e-02,  2.9521448213771064e-03,  1.8656790240568655e-02, 
+         4.4007376548178490e-01, -1.7202365354967644e-01, -3.8258270923443416e-02, -6.3871557840247742e-02, 
+        -1.8836662325988185e-02,  4.1886457125423347e-02, -1.0875352064543299e-02,  2.7456620652669513e-02, 
+         4.3164907009174019e-01, -2.1872647698617886e-01, -3.3644094796196622e-02,  8.9456218975244150e-03, 
+        -2.3614532081522272e-02, -1.0041237555219056e-02,  8.1168476750327311e-03,  5.7973112055029127e-03, 
+      };
+
+      for (int j=0; j<cells[0]; j++) {
+        for (int k=0; k<cells[1]; k++) {
+          int idx0[] = {j+1,k+1};
+          long linidx = gkyl_range_idx(&localRange, idx0);
+          const double *phi_p  = gkyl_array_cfetch(phi_ho, linidx);
+          for (int m=0; m<basis.num_basis; m++) {
+            TEST_CHECK( gkyl_compare(sol[(j*cells[1]+k)*basis.num_basis+m], phi_p[m], 1e-10) );
+            TEST_MSG("Expected: %.13e in cell (%d,%d)", sol[(j*cells[1]+k)*basis.num_basis+m], j, k);
+            TEST_MSG("Produced: %.13e", phi_p[m]);
+          }
+        }
+      }
+    }
+  }
+
+  gkyl_fem_poisson_release(poisson);
+  gkyl_proj_on_basis_release(projob);
+  gkyl_array_release(rho);
+  gkyl_array_release(rho_cellavg);
+  gkyl_array_release(phi);
+  gkyl_array_release(epsilon);
+  gkyl_array_release(rho_ho);
+  gkyl_array_release(phi_ho);
+  gkyl_array_release(perbuff);
+}
+
 
 // ......... CPU tests ............ //
 void test_1x_p1_periodicx() {
@@ -2557,6 +3442,24 @@ void test_1x_p1_dirichletx_neumannx() {
   bc_tv.up_value[0].v[0] = 0.;
   test_1x(1, &cells[0], bc_tv, false);
 }
+void test_1x_p1_dirichletx_bias() {
+  int cells[] = {16};
+  struct gkyl_poisson_bc bc_tv;
+  bc_tv.lo_type[0] = GKYL_POISSON_DIRICHLET;
+  bc_tv.up_type[0] = GKYL_POISSON_DIRICHLET;
+  bc_tv.lo_value[0].v[0] = 0.;
+  bc_tv.up_value[0].v[0] = 0.;
+  test_1x_bias(1, &cells[0], bc_tv, false);
+}
+void test_1x_p1_neumannx_dirichletx_bias() {
+  int cells[] = {16};
+  struct gkyl_poisson_bc bc_tv;
+  bc_tv.lo_type[0] = GKYL_POISSON_NEUMANN;
+  bc_tv.up_type[0] = GKYL_POISSON_DIRICHLET;
+  bc_tv.lo_value[0].v[0] = 0.;
+  bc_tv.up_value[0].v[0] = 0.;
+  test_1x_bias(1, &cells[0], bc_tv, false);
+}
 
 void test_1x_p2_periodicx() {
   int cells[] = {8};
@@ -2592,7 +3495,24 @@ void test_1x_p2_dirichletx_neumannx() {
   bc_tv.up_value[0].v[0] = 0.;
   test_1x(2, &cells[0], bc_tv, false);
 }
-
+void test_1x_p2_dirichletx_bias() {
+  int cells[] = {8};
+  struct gkyl_poisson_bc bc_tv;
+  bc_tv.lo_type[0] = GKYL_POISSON_DIRICHLET;
+  bc_tv.up_type[0] = GKYL_POISSON_DIRICHLET;
+  bc_tv.lo_value[0].v[0] = 0.;
+  bc_tv.up_value[0].v[0] = 0.;
+  test_1x_bias(2, &cells[0], bc_tv, false);
+}
+void test_1x_p2_neumannx_dirichletx_bias() {
+  int cells[] = {8};
+  struct gkyl_poisson_bc bc_tv;
+  bc_tv.lo_type[0] = GKYL_POISSON_NEUMANN;
+  bc_tv.up_type[0] = GKYL_POISSON_DIRICHLET;
+  bc_tv.lo_value[0].v[0] = 0.;
+  bc_tv.up_value[0].v[0] = 0.;
+  test_1x_bias(2, &cells[0], bc_tv, false);
+}
 
 void test_2x_p1_periodicx_periodicy() {
   int cells[] = {8,8};
@@ -2699,6 +3619,30 @@ void test_2x_p1_dirichletvarx_dirichletvary() {
   bc_tv.up_type[1] = GKYL_POISSON_DIRICHLET_VARYING;
   test_2x_varBC(1, cells, bc_tv, false);
 }
+void test_2x_p1_dirichletx_dirichlety_bias() {
+  int cells[] = {8,8};
+  struct gkyl_poisson_bc bc_tv;
+  bc_tv.lo_type[0] = GKYL_POISSON_DIRICHLET;
+  bc_tv.up_type[0] = GKYL_POISSON_DIRICHLET;
+  bc_tv.lo_type[1] = GKYL_POISSON_DIRICHLET;
+  bc_tv.up_type[1] = GKYL_POISSON_DIRICHLET;
+  bc_tv.lo_value[0].v[0] = 0.;
+  bc_tv.up_value[0].v[0] = 0.;
+  bc_tv.lo_value[1].v[0] = 0.;
+  bc_tv.up_value[1].v[0] = 0.;
+  test_2x_bias(1, &cells[0], bc_tv, false);
+}
+void test_2x_p1_dirichletx_periodicy_bias() {
+  int cells[] = {8,8};
+  struct gkyl_poisson_bc bc_tv;
+  bc_tv.lo_type[0] = GKYL_POISSON_DIRICHLET;
+  bc_tv.up_type[0] = GKYL_POISSON_DIRICHLET;
+  bc_tv.lo_type[1] = GKYL_POISSON_PERIODIC;
+  bc_tv.up_type[1] = GKYL_POISSON_PERIODIC;
+  bc_tv.lo_value[0].v[0] = 0.;
+  bc_tv.up_value[0].v[0] = 0.;
+  test_2x_bias(1, &cells[0], bc_tv, false);
+}
 
 void test_2x_p2_periodicx_periodicy() {
   int cells[] = {8,8};
@@ -2804,6 +3748,30 @@ void test_2x_p2_dirichletvarx_dirichletvary() {
   bc_tv.lo_type[1] = GKYL_POISSON_DIRICHLET_VARYING;
   bc_tv.up_type[1] = GKYL_POISSON_DIRICHLET_VARYING;
   test_2x_varBC(2, cells, bc_tv, false);
+}
+void test_2x_p2_dirichletx_dirichlety_bias() {
+  int cells[] = {8,8};
+  struct gkyl_poisson_bc bc_tv;
+  bc_tv.lo_type[0] = GKYL_POISSON_DIRICHLET;
+  bc_tv.up_type[0] = GKYL_POISSON_DIRICHLET;
+  bc_tv.lo_type[1] = GKYL_POISSON_DIRICHLET;
+  bc_tv.up_type[1] = GKYL_POISSON_DIRICHLET;
+  bc_tv.lo_value[0].v[0] = 0.;
+  bc_tv.up_value[0].v[0] = 0.;
+  bc_tv.lo_value[1].v[0] = 0.;
+  bc_tv.up_value[1].v[0] = 0.;
+  test_2x_bias(2, &cells[0], bc_tv, false);
+}
+void test_2x_p2_dirichletx_periodicy_bias() {
+  int cells[] = {8,8};
+  struct gkyl_poisson_bc bc_tv;
+  bc_tv.lo_type[0] = GKYL_POISSON_DIRICHLET;
+  bc_tv.up_type[0] = GKYL_POISSON_DIRICHLET;
+  bc_tv.lo_type[1] = GKYL_POISSON_PERIODIC;
+  bc_tv.up_type[1] = GKYL_POISSON_PERIODIC;
+  bc_tv.lo_value[0].v[0] = 0.;
+  bc_tv.up_value[0].v[0] = 0.;
+  test_2x_bias(2, &cells[0], bc_tv, false);
 }
 
 #ifdef GKYL_HAVE_CUDA
@@ -3098,10 +4066,14 @@ TEST_LIST = {
   { "test_1x_p1_dirichletx", test_1x_p1_dirichletx },
   { "test_1x_p1_neumannx_dirichletx", test_1x_p1_neumannx_dirichletx },
   { "test_1x_p1_dirichletx_neumannx", test_1x_p1_dirichletx_neumannx },
+  { "test_1x_p1_dirichletx_bias", test_1x_p1_dirichletx_bias },
+  { "test_1x_p1_neumannx_dirichletx_bias", test_1x_p1_neumannx_dirichletx_bias },
   { "test_1x_p2_periodicx", test_1x_p2_periodicx },
   { "test_1x_p2_dirichletx", test_1x_p2_dirichletx },
   { "test_1x_p2_neumannx_dirichletx", test_1x_p2_neumannx_dirichletx },
   { "test_1x_p2_dirichletx_neumannx", test_1x_p2_dirichletx_neumannx },
+  { "test_1x_p2_dirichletx_bias", test_1x_p2_dirichletx_bias },
+  { "test_1x_p2_neumannx_dirichletx_bias", test_1x_p2_neumannx_dirichletx_bias },
   // 2x tests
   { "test_2x_p1_periodicx_periodicy", test_2x_p1_periodicx_periodicy },
   { "test_2x_p1_dirichletx_dirichlety", test_2x_p1_dirichletx_dirichlety },
@@ -3112,6 +4084,8 @@ TEST_LIST = {
   { "test_2x_p1_neumannx_dirichletx_dirichlety", test_2x_p1_neumannx_dirichletx_dirichlety },
   { "test_2x_p1_dirichletx_neumannx_dirichlety", test_2x_p1_dirichletx_neumannx_dirichlety },
   { "test_2x_p1_dirichletvarx_dirichletvary", test_2x_p1_dirichletvarx_dirichletvary },
+  { "test_2x_p1_dirichletx_dirichlety_bias", test_2x_p1_dirichletx_dirichlety_bias },
+  { "test_2x_p1_dirichletx_periodicy_bias", test_2x_p1_dirichletx_periodicy_bias },
   { "test_2x_p2_periodicx_periodicy", test_2x_p2_periodicx_periodicy },
   { "test_2x_p2_dirichletx_dirichlety", test_2x_p2_dirichletx_dirichlety },
   { "test_2x_p2_dirichletx_periodicy", test_2x_p2_dirichletx_periodicy },
@@ -3121,6 +4095,8 @@ TEST_LIST = {
   { "test_2x_p2_neumannx_dirichletx_dirichlety", test_2x_p2_neumannx_dirichletx_dirichlety },
   { "test_2x_p2_dirichletx_neumannx_dirichlety", test_2x_p2_dirichletx_neumannx_dirichlety },
   { "test_2x_p2_dirichletvarx_dirichletvary", test_2x_p2_dirichletvarx_dirichletvary },
+  { "test_2x_p2_dirichletx_dirichlety_bias", test_2x_p2_dirichletx_dirichlety_bias },
+  { "test_2x_p2_dirichletx_periodicy_bias", test_2x_p2_dirichletx_periodicy_bias },
 #ifdef GKYL_HAVE_CUDA
   // 1x tests
   { "gpu_test_1x_p1_periodicx", gpu_test_1x_p1_periodicx },

@@ -132,7 +132,7 @@ gkyl_deflated_fem_poisson_new(struct gkyl_rect_grid grid, struct gkyl_basis *bas
     }
 
     up->d_fem_data[ctr].fem_poisson = gkyl_fem_poisson_new(&up->deflated_local, &up->deflated_grid,
-      up->deflated_basis, &up->poisson_bc, up->d_fem_data[ctr].deflated_epsilon,
+      up->deflated_basis, &up->poisson_bc, NULL, up->d_fem_data[ctr].deflated_epsilon,
       up->d_fem_data[ctr].deflated_kSq, false, use_gpu);
     ctr += 1;
   }
