@@ -62,9 +62,9 @@ create_ctx(void)
   double thetaloc = pi/8.0; //  boundary (theta-coordinate).
 
   // Simulation parameters.
-  int Nx = 32; // Cell count (configuration space: x-direction).
+  int Nx = 128; // Cell count (configuration space: x-direction).
   int Ny = 1; // Cell count (configuration space: y-direction).
-  int Nv = 16; // Cell count (velocity space: all directions).
+  int Nv = 32; // Cell count (velocity space: all directions).
   double Lx = 1.0; // Domain size (configuration space: x-direction).
   double Ly = 2*pi; // Domain size (configuration space: y-direction).
   int poly_order = 2; // Polynomial order.
@@ -273,8 +273,8 @@ main(int argc, char **argv)
     .name = "neut",
     .model_id = GKYL_MODEL_CANONICAL_PB,
     .charge = ctx.charge, .mass = ctx.mass,
-    .lower = { -6.0*ctx.vt, -6.0*ctx.vt},
-    .upper = { 6.0*ctx.vt, 6.0*ctx.vt},
+    .lower = { -8.0*ctx.vt, -8.0*ctx.vt},
+    .upper = { 8.0*ctx.vt, 8.0*ctx.vt},
     .cells = { ctx.Nv, ctx.Nv },
     .hamil = hamil,
     .h_ij_inv = h_ij_inv,

@@ -26,12 +26,9 @@ struct annulus_sodshock_ctx
 
   // Simulation parameters.
   int Nr; // Cell count (configuration space: r-direction).
-  int Ntheta; // Cell count (configuration space: theta-direction).
   int Nv; // Cell count (velocity space: all directions).
   double Rmin; // Domain size (configuration space: r-direction, min value).
   double Rmax; // Domain size (configuration space: r-direction, max value).
-  double theta_min; // Domain size (configuration space: theta-direction, min value).
-  double theta_max; // Domain size (configuration space: theta-direction, max value).
   int poly_order; // Polynomial order.
   double cfl_frac; // CFL coefficient.
 
@@ -64,12 +61,9 @@ create_ctx(void)
 
   // Simulation parameters.
   int Nr = 128; // Cell count (configuration space: x-direction).
-  int Ntheta = 1; // Cell count (configuration space: y-direction).
   int Nv = 12; // Cell count (velocity space: all directions).
   double Rmin = 0.5; // Domain size (configuration space: r-direction, min value).
   double Rmax = 1.5; // Domain size (configuration space: r-direction, max value).
-  double theta_min = 0.0; // Domain size (configuration space: theta-direction, min value).
-  double theta_max = 2*pi; // Domain size (configuration space: theta-direction, max value).
   int poly_order = 2; // Polynomial order.
   double cfl_frac = 0.9; // CFL coefficient.
 
@@ -94,12 +88,9 @@ create_ctx(void)
     .ur_theta = ur_theta,
     .tempr = tempr,
     .Nr = Nr,
-    .Ntheta = Ntheta,
     .Nv = Nv,
     .Rmin = Rmin,
     .Rmax = Rmax,
-    .theta_min = theta_min,
-    .theta_max = theta_max,
     .poly_order = poly_order,
     .cfl_frac = cfl_frac,
     .t_end = t_end,
@@ -119,7 +110,6 @@ create_ctx(void)
 void
 evalNu(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
 {
-  double theta = xn[0], v = xn[1];
   fout[0] = 15000.0;
 }
 
@@ -129,10 +119,10 @@ h_ij_inv(double t, const double* xn, double* fout, void* ctx)
   // Inverse metric tensor, must be symmetric!
   // [h^{xx},h^{xy},h^{yy}]
   struct annulus_sodshock_ctx *app = (struct annulus_sodshock_ctx *)ctx;
-  double q_R = xn[0], q_theta = xn[1];
-  const double q[2] = {q_R, q_theta};
+  double q_R = xn[0];
+  const double q[1] = {q_R};
 
-  // [h^{thetatheta},h^{thetaphi},h^{phiphi}]
+  // [h^{rr},h^{rtheta},h^{thetatheta}]
   fout[0] = 1.0;
   fout[1] = 0.0;
   fout[2] = 1.0 / pow(q[0], 2);
@@ -143,8 +133,8 @@ det_h(double t, const double* xn, double* fout, void* ctx)
 {
   // determinant of the metric tensor: J = det(h_{ij})
   struct annulus_sodshock_ctx *app = (struct annulus_sodshock_ctx *)ctx;
-  double q_R = xn[0], q_theta = xn[1];
-  const double q[2] = {q_R, q_theta};
+  double q_R = xn[0];
+  const double q[1] = {q_R};
   fout[0] = q_R;
 }
 
@@ -152,8 +142,8 @@ void
 hamil(double t, const double* xn, double* fout, void* ctx)
 {
   // Canonical coordinates:
-  double q_R = xn[0], q_theta = xn[1], p_R_dot = xn[2], p_theta_dot = xn[3];
-  const double q[2] = {q_R, q_theta};
+  double q_R = xn[0], p_R_dot = xn[1], p_theta_dot = xn[2];
+  const double q[1] = {q_R};
   const double w[2] = {p_R_dot, p_theta_dot};
   struct annulus_sodshock_ctx *app = (struct annulus_sodshock_ctx *)ctx;
   double *h_inv = malloc(3 * sizeof(double));
@@ -167,7 +157,7 @@ hamil(double t, const double* xn, double* fout, void* ctx)
 void
 evalDensityInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
 {
-  double R = xn[0], theta = xn[1];
+  double R = xn[0];
   struct annulus_sodshock_ctx *app = ctx;
   double pi = app -> pi;
   double rhol = app -> rhol;
@@ -192,7 +182,7 @@ evalDensityInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT 
 void
 evalVDriftInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
 {
-  double R = xn[0], theta = xn[1];
+  double R = xn[0];
   struct annulus_sodshock_ctx *app = ctx;
   double pi = app -> pi;
   double ul_R = app -> ul;
@@ -222,7 +212,7 @@ evalVDriftInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT f
 void
 evalTempInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
 {
-  double R = xn[0], theta = xn[1];
+  double R = xn[0];
   struct annulus_sodshock_ctx *app = ctx;
   double pi = app -> pi;
   double templ = app -> templ;
@@ -265,7 +255,6 @@ main(int argc, char **argv)
   struct annulus_sodshock_ctx ctx = create_ctx(); // context for init functions
 
   int NR = APP_ARGS_CHOOSE(app_args.xcells[0], ctx.Nr);
-  int NTHETA = APP_ARGS_CHOOSE(app_args.xcells[1], ctx.Ntheta);
 
   // electrons
   struct gkyl_vlasov_species neut = {
@@ -312,17 +301,14 @@ main(int argc, char **argv)
 
   // VM app
   struct gkyl_vm vm = {
-    .name = "can_pb_bgk_surf_annulus_sodshock_p2",
+    .name = "can_pb_bgk_surf_annulus_sodshock_1x2v_p2",
 
-    .cdim = 2, .vdim = 2,
-    .lower = { ctx.Rmin, ctx.theta_min },
-    .upper = { ctx.Rmax, ctx.theta_max },
-    .cells = { NR, NTHETA },
+    .cdim = 1, .vdim = 2,
+    .lower = { ctx.Rmin },
+    .upper = { ctx.Rmax },
+    .cells = { NR },
     .poly_order = ctx.poly_order,
     .basis_type = app_args.basis_type,
-
-    .num_periodic_dir = 1,
-    .periodic_dirs = {1},
 
     .num_species = 1,
     .species = { neut },

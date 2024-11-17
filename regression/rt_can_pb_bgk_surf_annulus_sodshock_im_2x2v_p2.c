@@ -9,25 +9,29 @@
 
 static inline double sq(double x) { return x*x; }
 
-struct sodshock_1d_ctx
+struct annulus_sodshock_ctx
 {
   // Mathematical constants (dimensionless).
   double pi;
 
   double rhol; // Left/inner density.
-  double ul; // Left/inner velocity (x-direction).
-  double pl; // Left/inner pressure.
+  double ul; // Left/inner velocity (r-direction).
+  double ul_theta; // Left/inner velocity (theta-direction).
+  double templ; // Left/inner temperature.
 
   double rhor; // Right/outer density.
-  double ur; // Right/outer velocity (x-direction).
-  double pr; // Right/outer pressure.
-
-  double thetaloc; // Boundary (y-coordinate).
+  double ur; // Right/outer velocity (r-direction).
+  double ur_theta; // Right/outer velocity (theta-direction).
+  double tempr; // Right/outer temperature.
 
   // Simulation parameters.
-  int Nx; // Cell count (configuration space: x-direction).
+  int Nr; // Cell count (configuration space: r-direction).
+  int Ntheta; // Cell count (configuration space: theta-direction).
   int Nv; // Cell count (velocity space: all directions).
-  double Lx; // Domain size (configuration space: x-direction).
+  double Rmin; // Domain size (configuration space: r-direction, min value).
+  double Rmax; // Domain size (configuration space: r-direction, max value).
+  double theta_min; // Domain size (configuration space: theta-direction, min value).
+  double theta_max; // Domain size (configuration space: theta-direction, max value).
   int poly_order; // Polynomial order.
   double cfl_frac; // CFL coefficient.
 
@@ -39,30 +43,33 @@ struct sodshock_1d_ctx
   double charge; // charge
   double mass; // mass
   double vt; // thermal velocity
-  double R; // Radius of the surface
   double midplane; // midplane of the theta coord.
 };
 
-struct sodshock_1d_ctx
+struct annulus_sodshock_ctx
 create_ctx(void)
 {
   // Mathematical constants (dimensionless).
   double pi = M_PI;
 
-  double rhol = 2.0; // Left/inner density.
-  double ul = -0.5; // Left/inner  velocity (x-direction).
-  double pl = 2.5; // Left/inner  pressure.
+  double rhol = 1.0; // Left/inner density.
+  double ul = 0.0; // Left/inner velocity (r-direction).
+  double ul_theta = 0.0; // Left/inner velocity (theta-direction).
+  double templ = 1.0; // Left/inner temperature.
 
-  double rhor = 0.25; // Right/outer density.
-  double ur = 0.5; // Right/outer  velocity (x-direction).
-  double pr = 0.25*sqrt(0.1 / 0.125); // Right/outer  pressure.
-
-  double thetaloc = pi/8.0; //  boundary (theta-coordinate).
+  double rhor = 0.125; // Right/outer density.
+  double ur = 0.0; // Right/outer velocity (r-direction).
+  double ur_theta = 0.0; // Right/outer velocity (theta-direction).
+  double tempr = sqrt(0.1 / 0.125); // Right/outer temperature.
 
   // Simulation parameters.
-  int Nx = 128; // Cell count (configuration space: x-direction).
-  int Nv = 32; // Cell count (velocity space: all directions).
-  double Lx = 1.0; // Domain size (configuration space: x-direction).
+  int Nr = 128; // Cell count (configuration space: x-direction).
+  int Ntheta = 1; // Cell count (configuration space: y-direction).
+  int Nv = 12; // Cell count (velocity space: all directions).
+  double Rmin = 0.5; // Domain size (configuration space: r-direction, min value).
+  double Rmax = 1.5; // Domain size (configuration space: r-direction, max value).
+  double theta_min = 0.0; // Domain size (configuration space: theta-direction, min value).
+  double theta_max = 2*pi; // Domain size (configuration space: theta-direction, max value).
   int poly_order = 2; // Polynomial order.
   double cfl_frac = 0.9; // CFL coefficient.
 
@@ -74,21 +81,25 @@ create_ctx(void)
   double charge = 1.0; // charge
   double mass = 1.0; // mass
   double vt = 1.0; // thermal velocity
-  double R = 1.0; // Radius of the surface
-  double midplane = pi/2.0; // Midplane 
+  double midplane = 1.0; // Midplane location in R for the jump in quantities
 
-  struct sodshock_1d_ctx ctx = {
+  struct annulus_sodshock_ctx ctx = {
     .pi = pi,
     .rhol = rhol,
     .ul = ul,
-    .pl = pl,
+    .ul_theta = ul_theta,
+    .templ = templ,
     .rhor = rhor,
     .ur = ur,
-    .pr = pr,
-    .thetaloc = thetaloc,
-    .Nx = Nx,
+    .ur_theta = ur_theta,
+    .tempr = tempr,
+    .Nr = Nr,
+    .Ntheta = Ntheta,
     .Nv = Nv,
-    .Lx = Lx,
+    .Rmin = Rmin,
+    .Rmax = Rmax,
+    .theta_min = theta_min,
+    .theta_max = theta_max,
     .poly_order = poly_order,
     .cfl_frac = cfl_frac,
     .t_end = t_end,
@@ -98,7 +109,6 @@ create_ctx(void)
     .charge = charge,
     .mass = mass,
     .vt = vt,
-    .R = R,
     .midplane = midplane,
   };
 
@@ -118,36 +128,34 @@ h_ij_inv(double t, const double* xn, double* fout, void* ctx)
 {
   // Inverse metric tensor, must be symmetric!
   // [h^{xx},h^{xy},h^{yy}]
-  struct sodshock_1d_ctx *app = (struct sodshock_1d_ctx *)ctx;
-  double R = app->R;
-  double q_theta = xn[0];
-  const double q[1] = {q_theta};
+  struct annulus_sodshock_ctx *app = (struct annulus_sodshock_ctx *)ctx;
+  double q_R = xn[0], q_theta = xn[1];
+  const double q[2] = {q_R, q_theta};
 
   // [h^{thetatheta},h^{thetaphi},h^{phiphi}]
-  fout[0] = 1.0 / pow(R, 2);
+  fout[0] = 1.0;
   fout[1] = 0.0;
-  fout[2] = 1.0 / pow(R * sin(q[0]), 2);
+  fout[2] = 1.0 / pow(q[0], 2);
 }
 
 void 
 det_h(double t, const double* xn, double* fout, void* ctx)
 {
   // determinant of the metric tensor: J = det(h_{ij})
-  struct sodshock_1d_ctx *app = (struct sodshock_1d_ctx *)ctx;
-  double R = app->R;
-  double q_theta = xn[0];
-  const double q[1] = {q_theta};
-  fout[0] = sq(R)*sin(q[0]);
+  struct annulus_sodshock_ctx *app = (struct annulus_sodshock_ctx *)ctx;
+  double q_R = xn[0], q_theta = xn[1];
+  const double q[2] = {q_R, q_theta};
+  fout[0] = q_R;
 }
 
 void 
 hamil(double t, const double* xn, double* fout, void* ctx)
 {
   // Canonical coordinates:
-  double q_theta = xn[0], p_theta_dot = xn[1], p_phi_dot = xn[2];
-  const double q[1] = {q_theta};
-  const double w[2] = {p_theta_dot, p_phi_dot};
-  struct sodshock_1d_ctx *app = (struct sodshock_1d_ctx *)ctx;
+  double q_R = xn[0], q_theta = xn[1], p_R_dot = xn[2], p_theta_dot = xn[3];
+  const double q[2] = {q_R, q_theta};
+  const double w[2] = {p_R_dot, p_theta_dot};
+  struct annulus_sodshock_ctx *app = (struct annulus_sodshock_ctx *)ctx;
   double *h_inv = malloc(3 * sizeof(double));
   h_ij_inv(t, xn, h_inv, ctx); 
   fout[0] = 0.5 * h_inv[0] * w[0] * w[0] + 
@@ -159,17 +167,16 @@ hamil(double t, const double* xn, double* fout, void* ctx)
 void
 evalDensityInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
 {
-  double theta = xn[0];
-  struct sodshock_1d_ctx *app = ctx;
+  double R = xn[0], theta = xn[1];
+  struct annulus_sodshock_ctx *app = ctx;
   double pi = app -> pi;
   double rhol = app -> rhol;
   double rhor = app -> rhor;
-  double thetaloc = app -> thetaloc;
   double midplane = app -> midplane;
 
   double rho = 0.0;
 
-  if (fabs(theta - midplane) < thetaloc) {
+  if (R < midplane) {
     rho = rhol; // Density (left/inner).
   }
   else {
@@ -185,57 +192,55 @@ evalDensityInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT 
 void
 evalVDriftInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
 {
-  double theta = xn[0];
-  struct sodshock_1d_ctx *app = ctx;
+  double R = xn[0], theta = xn[1];
+  struct annulus_sodshock_ctx *app = ctx;
   double pi = app -> pi;
-  double ul = app -> ul;
-  double ur = app -> ur;
-  double thetaloc = app -> thetaloc;
+  double ul_R = app -> ul;
+  double ur_R = app -> ur;
+  double ul_theta = app -> ul_theta;
+  double ur_theta = app -> ur_theta;
   double midplane = app -> midplane;
 
+  double u_R = 0.0;
   double u_theta = 0.0;
-  double u_phi = 0.0;
 
 
-  if (fabs(theta - midplane) < thetaloc) {
-    u_phi = ul; // x-velocity (left/inner).
+  if (R < midplane) {
+    u_R = ul_R; // r-velocity (left/inner).
+    u_theta = ul_theta; // theta-velocity (left/inner).
   }
   else {
-    u_phi = ur; // x-velocity (right/outer).
+    u_R = ur_R; // r-velocity (right/outer).
+    u_theta = ur_theta; // theta-velocity (right-outer).
   }
 
   // Set the velocity.
-  fout[0] = u_theta; 
-  fout[1] = u_phi;
+  fout[0] = u_R; 
+  fout[1] = u_theta;
 }
 
 void
 evalTempInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
 {
-  double theta = xn[0];
-  struct sodshock_1d_ctx *app = ctx;
+  double R = xn[0], theta = xn[1];
+  struct annulus_sodshock_ctx *app = ctx;
   double pi = app -> pi;
-  double rhol = app -> rhol;
-  double pl = app -> pl;
-  double rhor = app -> rhor;
-  double pr = app -> pr;
-  double thetaloc = app -> thetaloc;
+  double templ = app -> templ;
+  double tempr = app -> tempr;
   double midplane = app -> midplane;
 
   double rho = 0.0;
-  double p = 0.0;
+  double temperature = 0.0;
 
-  if (fabs(theta - midplane) < thetaloc) {
-    rho = rhol; // Density (left/inner).
-    p = pl; // Pressure (left/inner).
+  if (R < midplane) {
+    temperature = templ; // Temperature (left/inner).
   }
   else {
-    rho = rhor; // Density (right/outer).
-    p = pr; // Pressure (right/outer).
+    temperature = tempr; // Temperature (right/outer).
   }
 
   // Set temperature
-  fout[0] = p/rho;
+  fout[0] = temperature;
 }
 
 void
@@ -257,9 +262,10 @@ main(int argc, char **argv)
     gkyl_cu_dev_mem_debug_set(true);
     gkyl_mem_debug_set(true);
   }
-  struct sodshock_1d_ctx ctx = create_ctx(); // context for init functions
+  struct annulus_sodshock_ctx ctx = create_ctx(); // context for init functions
 
-  int NX = APP_ARGS_CHOOSE(app_args.xcells[0], ctx.Nx);
+  int NR = APP_ARGS_CHOOSE(app_args.xcells[0], ctx.Nr);
+  int NTHETA = APP_ARGS_CHOOSE(app_args.xcells[1], ctx.Ntheta);
 
   // electrons
   struct gkyl_vlasov_species neut = {
@@ -275,7 +281,6 @@ main(int argc, char **argv)
     .hamil_ctx = &ctx,
     .h_ij_inv_ctx = &ctx,
     .det_h_ctx = &ctx,
-    .output_f_lte = true,
 
     // Reflective boundary condition
     .bcx = {GKYL_SPECIES_REFLECT, GKYL_SPECIES_REFLECT},
@@ -301,20 +306,23 @@ main(int argc, char **argv)
       .correct_all_moms = true, 
     },
 
-    .num_diag_moments = 3,
-    .diag_moments = { "M0", "M1i", "LTEMoments" },
+    .num_diag_moments = 4,
+    .diag_moments = { "M0", "M1i", "LTEMoments", "MEnergy" },
   };
 
   // VM app
   struct gkyl_vm vm = {
-    .name = "can_pb_bgk_surf_sphere_sodshock_1x2v_p2",
+    .name = "can_pb_bgk_surf_annulus_sodshock_2x2v_p2",
 
-    .cdim = 1, .vdim = 2,
-    .lower = { 3.141592653589793/8.0 },
-    .upper = { 3.141592653589793/2.0 },
-    .cells = { NX },
+    .cdim = 2, .vdim = 2,
+    .lower = { ctx.Rmin, ctx.theta_min },
+    .upper = { ctx.Rmax, ctx.theta_max },
+    .cells = { NR, NTHETA },
     .poly_order = ctx.poly_order,
     .basis_type = app_args.basis_type,
+
+    .num_periodic_dir = 1,
+    .periodic_dirs = {1},
 
     .num_species = 1,
     .species = { neut },
@@ -377,4 +385,3 @@ main(int argc, char **argv)
   
   return 0;
 }
-

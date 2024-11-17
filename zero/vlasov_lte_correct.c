@@ -268,7 +268,6 @@ gkyl_vlasov_lte_correct_all_moments(gkyl_vlasov_lte_correct *up,
   struct gkyl_vlasov_lte_correct_status status;
   status.iter_converged = corr_status;
   status.num_iter = niter;
-  printf("(corr) num_iter: %d\n",niter);
   for (int i=0; i<num_comp; ++i) {
     status.error[i] = up->error[i];
   }
