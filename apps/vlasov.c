@@ -1393,7 +1393,7 @@ gkyl_vlasov_app_from_frame_field(gkyl_vlasov_app *app, int frame)
 {
   cstr fileNm = cstr_from_fmt("%s-%s_%d.gkyl", app->name, "field", frame);
   struct gkyl_app_restart_status rstat = gkyl_vlasov_app_from_file_field(app, fileNm.str);
-  app->field->is_first_energy_write_call = false; // append to existing diagnostic
+  //app->field->is_first_energy_write_call = false; // append to existing diagnostic
   cstr_drop(&fileNm);
   
   return rstat;

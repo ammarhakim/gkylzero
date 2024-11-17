@@ -121,6 +121,7 @@ show_usage()
   fprintf(stdout, "  -g         Run on NVIDIA GPU (if available and built with CUDA)\n\n");
   fprintf(stdout, "  -m         Run memory tracer\n");
   fprintf(stdout, "  -S         Do not initialize MPI\n");
+  fprintf(stdout, "  -rN        Restart simulation from frame N\n");
   fprintf(stdout, "  -V         Use verbose output\n");
   fprintf(stdout, "  -sN        Only run N steps of simulation\n\n");
 
@@ -157,9 +158,10 @@ struct app_args {
   bool step_mode; // run for fixed number of steps? (for valgrind/cuda-memcheck)
   bool trace_mem; // should we trace memory allocation/deallocations?
   int num_steps; // number of steps
-  bool is_restart; // is this a restarted sim?
   bool use_mpi; // should we use MPI?
   bool use_verbose; // Should we use verbose output?
+  bool is_restart; // Is this a restarted simulation?
+  int restart_frame; // Which frame to restart simulation from.
 
   char *echunk; // chunk of lua code to execute
   
@@ -198,14 +200,16 @@ parse_app_args(int argc, char **argv)
 #endif
   
   args->trace_mem = false;
-  args->is_restart = false;
   args->num_opt_args = 0;
   args->echunk = 0;
   args->use_verbose = false;
   args->num_steps = -1;
 
+  args->is_restart = false;
+  args->restart_frame = 0;
+
   int c;
-  while ((c = getopt(argc, argv, "+hvtmSe:gVs:")) != -1) {
+  while ((c = getopt(argc, argv, "+hvtmSe:gVs:r:")) != -1) {
     switch (c)
     {
       case 'h':
@@ -246,6 +250,11 @@ parse_app_args(int argc, char **argv)
       
       case 's':
         args->num_steps = atoi(optarg);
+        break;
+      
+      case 'r':
+        args->is_restart = true;
+        args->restart_frame = atoi(optarg);
         break;
 
       case '?':
@@ -359,6 +368,17 @@ main(int argc, char **argv)
 
   lua_pushinteger(L, app_args->num_steps);
   lua_setglobal(L, "GKYL_NUM_STEPS");
+
+  if (app_args->is_restart) {
+    lua_pushboolean(L, true);
+  }
+  else {
+    lua_pushboolean(L, false);
+  }
+  lua_setglobal(L, "GKYL_IS_RESTART");
+
+  lua_pushinteger(L, app_args->restart_frame);
+  lua_setglobal(L, "GKYL_RESTART_FRAME");
 
   lua_pushnumber(L, DBL_MIN);
   lua_setglobal(L, "GKYL_MIN_DOUBLE");

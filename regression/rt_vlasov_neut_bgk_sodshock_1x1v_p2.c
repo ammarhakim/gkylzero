@@ -348,12 +348,30 @@ main(int argc, char **argv)
   // Initial and final simulation times.
   double t_curr = 0.0, t_end = ctx.t_end;
 
+  // Initialize simulation.
+  int frame_curr = 0;
+  if (app_args.is_restart) {
+    struct gkyl_app_restart_status status = gkyl_vlasov_app_read_from_frame(app, app_args.restart_frame);
+
+    if (status.io_status != GKYL_ARRAY_RIO_SUCCESS) {
+      gkyl_vlasov_app_cout(app, stderr, "*** Failed to read restart file! (%s)\n", gkyl_array_rio_status_msg(status.io_status));
+      goto freeresources;
+    }
+
+    frame_curr = status.frame;
+    t_curr = status.stime;
+
+    gkyl_vlasov_app_cout(app, stdout, "Restarting from frame %d", frame_curr);
+    gkyl_vlasov_app_cout(app, stdout, " at time = %g\n", t_curr);
+  }
+  else {
+    gkyl_vlasov_app_apply_ic(app, t_curr);
+  }
+
   // Create trigger for IO.
   int num_frames = ctx.num_frames;
-  struct gkyl_tm_trigger io_trig = { .dt = t_end / num_frames };
+  struct gkyl_tm_trigger io_trig = { .dt = t_end / num_frames, .tcurr = t_curr, .curr = frame_curr };
 
-  // Initialize simulation.
-  gkyl_vlasov_app_apply_ic(app, t_curr);
   write_data(&io_trig, app, t_curr, false);
 
   // Compute initial guess of maximum stable time-step.
@@ -424,6 +442,7 @@ main(int argc, char **argv)
   gkyl_vlasov_app_cout(app, stdout, "Number of write calls %ld\n", stat.nio);
   gkyl_vlasov_app_cout(app, stdout, "IO time took %g secs \n", stat.io_tm);
 
+freeresources:
   // Free resources after simulation completion.
   gkyl_comm_release(comm);
   gkyl_vlasov_app_release(app);
