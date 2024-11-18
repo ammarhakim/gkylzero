@@ -80,13 +80,13 @@ evalFieldInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fo
 
   double r_sq = (x * x) + (y * y);
 
-  double Ex = 0.0;
-  double Ey = 0.0;
-  double Ez = exp(-25.0 * r_sq);
+  double Ex = 0.0; // Total electric field (x-direction).
+  double Ey = 0.0; // Total electric field (y-direction).
+  double Ez = exp(-25.0 * r_sq); // Total electric field (z-direction).
   
-  double Bx = 0.0;
-  double By = 0.0;
-  double Bz = 0.0;
+  double Bx = 0.0; // Total magnetic field (x-direction).
+  double By = 0.0; // Total magnetic field (y-direction).
+  double Bz = 0.0; // Total magnetic field (z-direction).
 
   // Set electric field.
   fout[0] = Ex, fout[1] = Ey; fout[2] = Ez;
@@ -235,16 +235,34 @@ main(int argc, char **argv)
   // Initial and final simulation times.
   double t_curr = 0.0, t_end = ctx.t_end;
 
+  // Initialize simulation.
+  int frame_curr = 0;
+  if (app_args.is_restart) {
+    struct gkyl_app_restart_status status = gkyl_moment_app_read_from_frame(app, app_args.restart_frame);
+
+    if (status.io_status != GKYL_ARRAY_RIO_SUCCESS) {
+      gkyl_moment_app_cout(app, stderr, "*** Failed to read restart file! (%s)\n", gkyl_array_rio_status_msg(status.io_status));
+      goto freeresources;
+    }
+
+    frame_curr = status.frame;
+    t_curr = status.stime;
+
+    gkyl_moment_app_cout(app, stdout, "Restarting from frame %d", frame_curr);
+    gkyl_moment_app_cout(app, stdout, " at time = %g\n", t_curr);
+  }
+  else {
+    gkyl_moment_app_apply_ic(app, t_curr);
+  }
+
   // Create trigger for IO.
   int num_frames = ctx.num_frames;
-  struct gkyl_tm_trigger io_trig = { .dt = t_end / num_frames };
+  struct gkyl_tm_trigger io_trig = { .dt = t_end / num_frames, .tcurr = t_curr, .curr = frame_curr };
 
-  // Initialize simulation.
-  gkyl_moment_app_apply_ic(app, t_curr);
   write_data(&io_trig, app, t_curr, false);
 
-  // Compute estimate of maximum stable time-step.
-  double dt = gkyl_moment_app_max_dt(app);
+  // Compute initial guess of maximum stable time-step.
+  double dt = t_end - t_curr;
 
   // Initialize small time-step check.
   double dt_init = -1.0, dt_failure_tol = ctx.dt_failure_tol;
@@ -301,6 +319,7 @@ main(int argc, char **argv)
   gkyl_moment_app_cout(app, stdout, "Source updates took %g secs\n", stat.sources_tm);
   gkyl_moment_app_cout(app, stdout, "Total updates took %g secs\n", stat.total_tm);
 
+freeresources:
   // Free resources after simulation completion.
   gkyl_comm_release(comm);
   gkyl_moment_app_release(app);  

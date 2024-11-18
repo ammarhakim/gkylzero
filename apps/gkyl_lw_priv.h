@@ -57,12 +57,20 @@ void
 gkyl_register_poisson_bc_types(lua_State *L);
 
 /**
-* Add momentum reconstruction type flags for fluid solvers into Lua interpreter.
+* Add moment reconstruction type flags for fluid solvers into Lua interpreter.
 *
 * @param L Lua state to use.
  */
 void
 gkyl_register_moment_scheme_types(lua_State *L);
+
+/**
+* Add wave limiter type flags for fluid solvers into Lua interpreter.
+*
+* @param L Lua state to use.
+ */
+void
+gkyl_register_wave_limiter_types(lua_State *L);
 
 /**
 * Add Riemann problem type flags for Euler equations into Lua interpreter.

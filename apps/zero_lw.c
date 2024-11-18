@@ -146,8 +146,9 @@ gkyl_zero_lw_openlibs(lua_State *L)
   gkyl_register_field_bc_types(L);
   gkyl_register_poisson_bc_types(L);
 
-  // Register types for moment reconstruction schemes.
+  // Register types for moment reconstruction and wave limiter schemes.
   gkyl_register_moment_scheme_types(L);
+  gkyl_register_wave_limiter_types(L);
 
   // Register types for Riemann solvers and Braginskii types.
   gkyl_register_euler_rp_types(L);

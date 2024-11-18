@@ -38,17 +38,6 @@ enum moment_magic_ids {
   MOMENT_EQN_DEFAULT // Equation object.
 };
 
-// Wave limiter -> enum map.
-static const struct gkyl_str_int_pair wave_limiter[] = {
-  { "no-limiter", GKYL_NO_LIMITER },
-  { "min-mod", GKYL_MIN_MOD },
-  { "superbee", GKYL_SUPERBEE },
-  { "van-leer", GKYL_VAN_LEER },
-  { "beam-warming", GKYL_BEAM_WARMING },
-  { "zero", GKYL_ZERO },
-  { 0, 0 }
-};
-
 // Edge-splitting -> enum map.
 static const struct gkyl_str_int_pair wave_split_type[] = {
   { "qwave", GKYL_WAVE_QWAVE },
@@ -571,8 +560,7 @@ moment_species_lw_new(lua_State *L)
     return luaL_error(L, "Species \"equation\" not specfied or incorrect type!");
   }
 
-  const char *lim_str = glua_tbl_get_string(L, "limiter", "monotonized-centered");
-  mom_species.limiter = gkyl_search_str_int_pair_by_str(wave_limiter, lim_str, GKYL_MONOTONIZED_CENTERED);
+  mom_species.limiter = glua_tbl_get_integer(L, "limiter", GKYL_NO_LIMITER);
 
   const char *split_str = glua_tbl_get_string(L, "splitType", "qwave");
   mom_species.split_type = gkyl_search_str_int_pair_by_str(wave_split_type, split_str, GKYL_WAVE_QWAVE);
@@ -721,8 +709,7 @@ moment_field_lw_new(lua_State *L)
   mom_field.elc_error_speed_fact = glua_tbl_get_number(L, "elcErrorSpeedFactor", 0.0);
   mom_field.mag_error_speed_fact = glua_tbl_get_number(L, "mgnErrorSpeedFactor", 1.0);
 
-  const char *lim_str = glua_tbl_get_string(L, "limiter", "monotonized-centered");  
-  mom_field.limiter = gkyl_search_str_int_pair_by_str(wave_limiter, lim_str, GKYL_MONOTONIZED_CENTERED);
+  mom_field.limiter = glua_tbl_get_integer(L, "limiter", GKYL_NO_LIMITER);
   
   bool evolve = glua_tbl_get_integer(L, "evolve", true);
 

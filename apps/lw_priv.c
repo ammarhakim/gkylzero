@@ -53,6 +53,18 @@ static const struct gkyl_str_int_pair moment_scheme_type[] = {
   { 0, 0 }
 };
 
+// Wave limiter -> enum map.
+static const struct gkyl_str_int_pair wave_limiter[] = {
+  { "NoLimiter", GKYL_NO_LIMITER },
+  { "MonotonizedCentered", GKYL_MONOTONIZED_CENTERED },
+  { "MinMod", GKYL_MIN_MOD },
+  { "SuperBee", GKYL_SUPERBEE },
+  { "VanLeer", GKYL_VAN_LEER },
+  { "BeamWarming", GKYL_BEAM_WARMING },
+  { "Zero", GKYL_ZERO },
+  { 0, 0 }
+};
+
 // Euler Riemann problem -> enum map.
 static const struct gkyl_str_int_pair euler_rp_type[] = {
   { "Roe", WV_EULER_RP_ROE },
@@ -147,6 +159,12 @@ void
 gkyl_register_moment_scheme_types(lua_State *L)
 {
   register_types(L, moment_scheme_type, "SchemeType");
+}
+
+void
+gkyl_register_wave_limiter_types(lua_State *L)
+{
+  register_types(L, wave_limiter, "WaveLimiter");
 }
 
 void
