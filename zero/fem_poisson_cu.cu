@@ -151,6 +151,9 @@ fem_poisson_choose_kernels_cu(const struct gkyl_basis* basis, const struct gkyl_
 
   fem_poisson_set_cu_l2gker_ptrs<<<1,1>>>(kers, basis->b_type, dim, poly_order, bckey_d);
   
+  // Biasing kernels (set this before redefining bckey_d below).
+  fem_poisson_set_cu_biasker_ptrs<<<1,1>>>(kers, basis->b_type, dim, poly_order, bckey_d);
+
   for (int d=0; d<basis->ndim; d++) {
          if (bcs->lo_type[d]==GKYL_POISSON_PERIODIC          && bcs->up_type[d]==GKYL_POISSON_PERIODIC         ) { bckey[d] = 0; }
     else if (bcs->lo_type[d]==GKYL_POISSON_DIRICHLET         && bcs->up_type[d]==GKYL_POISSON_DIRICHLET        ) { bckey[d] = 1; }
@@ -171,9 +174,6 @@ fem_poisson_choose_kernels_cu(const struct gkyl_basis* basis, const struct gkyl_
   gkyl_cu_memcpy(bckey_d, bckey, sizeof(int[GKYL_MAX_CDIM]), GKYL_CU_MEMCPY_H2D);
 
   fem_poisson_set_cu_ker_ptrs<<<1,1>>>(kers, basis->b_type, dim, poly_order, bckey_d, isvareps);
-
-  // Biasing kernels
-  fem_poisson_set_cu_biasker_ptrs<<<1,1>>>(kers, basis->b_type, dim, poly_order, bckey_d);
 
   gkyl_cu_free(bckey_d);
 }

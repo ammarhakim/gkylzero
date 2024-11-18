@@ -403,13 +403,6 @@ gkyl_fem_poisson_solve(gkyl_fem_poisson* up, struct gkyl_array *phiout) {
 
 void gkyl_fem_poisson_release(gkyl_fem_poisson *up)
 {
-  if (up->num_bias_plane > 0) {
-    if (up->use_gpu)
-      gkyl_cu_free(up->bias_planes);
-    else
-      gkyl_free(up->bias_planes);
-  }
-
   if (up->isdomperiodic) {
     gkyl_array_release(up->rhs_cellavg);
     gkyl_free(up->rhs_avg);
@@ -425,11 +418,19 @@ void gkyl_fem_poisson_release(gkyl_fem_poisson *up)
     if (up->isdomperiodic) gkyl_cu_free(up->rhs_avg_cu);
     gkyl_cu_free(up->bcvals_cu);
     gkyl_culinsolver_prob_release(up->prob_cu);
+
+    if (up->num_bias_plane > 0)
+      gkyl_cu_free(up->bias_planes);
   } else {
     gkyl_superlu_prob_release(up->prob);
+
+    if (up->num_bias_plane > 0)
+      gkyl_free(up->bias_planes);
   }
 #else
   gkyl_superlu_prob_release(up->prob);
+  if (up->num_bias_plane > 0)
+    gkyl_free(up->bias_planes);
 #endif
 
   gkyl_free(up->globalidx);
