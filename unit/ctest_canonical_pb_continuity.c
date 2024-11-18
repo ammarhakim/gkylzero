@@ -167,12 +167,13 @@ test_1x1v(int poly_order, enum gkyl_basis_type b_type)
       int const_sgn_alpha_surf_edge = canonical_pb_alpha_edge_surfx_1x1v_tensor_p1(w_edge_not_used, dxv, hamil_local, alpha_surf_comp_R_local, sgn_alpha_surf_comp_not_used_local); 
       const_sgn_alpha_surf = canonical_pb_alpha_surfvx_1x1v_tensor_p1(w_edge_not_used, dxv, hamil_local, alpha_surf_comp_L_local, sgn_alpha_surf_comp_not_used_local); 
     } 
-    else {
-      //Tensor p2 will not be sorted until main is merged into gk-g0-app
-      assert(true);
+    else if ((b_type == GKYL_BASIS_MODAL_TENSOR) && (poly_order == 2)) {
       int const_sgn_alpha_surf = canonical_pb_alpha_surfx_1x1v_tensor_p2(w_edge_not_used, dxv, hamil_local, alpha_surf_comp_L_local, sgn_alpha_surf_comp_not_used_local); 
       int const_sgn_alpha_surf_edge = canonical_pb_alpha_edge_surfx_1x1v_tensor_p2(w_edge_not_used, dxv, hamil_local, alpha_surf_comp_R_local, sgn_alpha_surf_comp_not_used_local); 
       const_sgn_alpha_surf = canonical_pb_alpha_surfvx_1x1v_tensor_p2(w_edge_not_used, dxv, hamil_local, alpha_surf_comp_L_local, sgn_alpha_surf_comp_not_used_local); 
+    } 
+    else {
+      assert(false);
     }
   }
 
@@ -380,12 +381,13 @@ test_1x2v(int poly_order, enum gkyl_basis_type b_type)
       int const_sgn_alpha_surf_edge = canonical_pb_alpha_edge_surfx_1x2v_tensor_p1(w_edge_not_used, dxv, hamil_local, alpha_surf_comp_R_local, sgn_alpha_surf_comp_not_used_local); 
       const_sgn_alpha_surf = canonical_pb_alpha_surfvx_1x2v_tensor_p1(w_edge_not_used, dxv, hamil_local, alpha_surf_comp_L_local, sgn_alpha_surf_comp_not_used_local); 
     } 
-    else {
-      //Tensor p2 will not be sorted until main is merged into gk-g0-app
-      assert(true);
+    else if ((b_type == GKYL_BASIS_MODAL_TENSOR) && (poly_order == 2)) {
       int const_sgn_alpha_surf = canonical_pb_alpha_surfx_1x2v_tensor_p2(w_edge_not_used, dxv, hamil_local, alpha_surf_comp_L_local, sgn_alpha_surf_comp_not_used_local); 
       int const_sgn_alpha_surf_edge = canonical_pb_alpha_edge_surfx_1x2v_tensor_p2(w_edge_not_used, dxv, hamil_local, alpha_surf_comp_R_local, sgn_alpha_surf_comp_not_used_local); 
       const_sgn_alpha_surf = canonical_pb_alpha_surfvx_1x2v_tensor_p2(w_edge_not_used, dxv, hamil_local, alpha_surf_comp_L_local, sgn_alpha_surf_comp_not_used_local); 
+    } 
+    else {
+      assert(false);      
     }
   }
 
@@ -594,12 +596,13 @@ test_1x3v(int poly_order, enum gkyl_basis_type b_type)
       int const_sgn_alpha_surf_edge = canonical_pb_alpha_edge_surfx_1x3v_tensor_p1(w_edge_not_used, dxv, hamil_local, alpha_surf_comp_R_local, sgn_alpha_surf_comp_not_used_local); 
       const_sgn_alpha_surf = canonical_pb_alpha_surfvx_1x3v_tensor_p1(w_edge_not_used, dxv, hamil_local, alpha_surf_comp_L_local, sgn_alpha_surf_comp_not_used_local); 
     } 
-    else {
-      //Tensor p2 will not be sorted until main is merged into gk-g0-app
-      assert(true);
+    else if ((b_type == GKYL_BASIS_MODAL_TENSOR) && (poly_order == 2)) {
       int const_sgn_alpha_surf = canonical_pb_alpha_surfx_1x3v_tensor_p2(w_edge_not_used, dxv, hamil_local, alpha_surf_comp_L_local, sgn_alpha_surf_comp_not_used_local); 
       int const_sgn_alpha_surf_edge = canonical_pb_alpha_edge_surfx_1x3v_tensor_p2(w_edge_not_used, dxv, hamil_local, alpha_surf_comp_R_local, sgn_alpha_surf_comp_not_used_local); 
       const_sgn_alpha_surf = canonical_pb_alpha_surfvx_1x3v_tensor_p2(w_edge_not_used, dxv, hamil_local, alpha_surf_comp_L_local, sgn_alpha_surf_comp_not_used_local); 
+    } 
+    else {
+      assert(false);
     }
   }
 
@@ -813,14 +816,15 @@ test_2x2v(int poly_order, enum gkyl_basis_type b_type)
       const_sgn_alpha_surf = canonical_pb_alpha_surfy_2x2v_tensor_p1(w_edge_not_used, dxv, hamil_local, alpha_surf_comp_L_local, sgn_alpha_surf_comp_not_used_local); 
       const_sgn_alpha_surf_edge = canonical_pb_alpha_edge_surfy_2x2v_tensor_p1(w_edge_not_used, dxv, hamil_local, alpha_surf_comp_R_local, sgn_alpha_surf_comp_not_used_local); 
     } 
-    else {
-      //Tensor p2 will not be sorted until main is merged into gk-g0-app
-      assert(true);
+    else if ((b_type == GKYL_BASIS_MODAL_TENSOR) && (poly_order == 2)) {
       int const_sgn_alpha_surf = canonical_pb_alpha_surfx_2x2v_tensor_p2(w_edge_not_used, dxv, hamil_local, alpha_surf_comp_L_local, sgn_alpha_surf_comp_not_used_local); 
       int const_sgn_alpha_surf_edge = canonical_pb_alpha_edge_surfx_2x2v_tensor_p2(w_edge_not_used, dxv, hamil_local, alpha_surf_comp_R_local, sgn_alpha_surf_comp_not_used_local); 
       const_sgn_alpha_surf = canonical_pb_alpha_surfy_2x2v_tensor_p2(w_edge_not_used, dxv, hamil_local, alpha_surf_comp_L_local, sgn_alpha_surf_comp_not_used_local); 
       const_sgn_alpha_surf_edge = canonical_pb_alpha_edge_surfy_2x2v_tensor_p2(w_edge_not_used, dxv, hamil_local, alpha_surf_comp_R_local, sgn_alpha_surf_comp_not_used_local); 
-    }  
+    } 
+    else {
+      assert(false);
+    }
   }
 
   // Compare suface wise element 
@@ -1034,7 +1038,7 @@ test_2x3v(int poly_order, enum gkyl_basis_type b_type)
     } 
     else {
       //Tensor p2 is not availible for 2x3v
-      assert(true);
+      assert(false);
     }  
   }
 
@@ -1055,7 +1059,6 @@ test_2x3v(int poly_order, enum gkyl_basis_type b_type)
 
       // Iterate overthe number of basis on the surface
       for (int n = 0; n<surf_basis.num_basis; n++){
-        //printf("%1.16e = %1.16e\n",alpha_surf_comp_L_local[n + dir*surf_basis.num_basis], alpha_surf_comp_R_local[n + dir*surf_basis.num_basis]);
         TEST_CHECK(gkyl_compare_double(alpha_surf_comp_L_local[n + dir*surf_basis.num_basis], alpha_surf_comp_R_local[n + dir*surf_basis.num_basis], 1e-10));
       }
     }
@@ -1244,7 +1247,7 @@ test_3x3v(int poly_order, enum gkyl_basis_type b_type)
     } 
     else {
       //Only tensor p1 is supported for 3x3v
-      assert(true);
+      assert(false);
     }
   }
 
@@ -1289,18 +1292,22 @@ test_3x3v(int poly_order, enum gkyl_basis_type b_type)
 // Check the 1x1v_p1/2 continuity
 void test_1x1v_p1_continuity_tensor() { test_1x1v(1, GKYL_BASIS_MODAL_TENSOR); }
 void test_1x1v_p1_continuity_ser() { test_1x1v(1, GKYL_BASIS_MODAL_SERENDIPITY); }
+void test_1x1v_p2_continuity_tensor() { test_1x1v(2, GKYL_BASIS_MODAL_TENSOR); }
 void test_1x1v_p2_continuity_ser() { test_1x1v(2, GKYL_BASIS_MODAL_SERENDIPITY); }
 // Check the 1x2v_p1/2 continuity
 void test_1x2v_p1_continuity_tensor() { test_1x2v(1, GKYL_BASIS_MODAL_TENSOR); }
 void test_1x2v_p1_continuity_ser() { test_1x2v(1, GKYL_BASIS_MODAL_SERENDIPITY); }
+void test_1x2v_p2_continuity_tensor() { test_1x2v(2, GKYL_BASIS_MODAL_TENSOR); }
 void test_1x2v_p2_continuity_ser() { test_1x2v(2, GKYL_BASIS_MODAL_SERENDIPITY); }
 // Check the 1x3v_p1/2 continuity
 void test_1x3v_p1_continuity_tensor() { test_1x3v(1, GKYL_BASIS_MODAL_TENSOR); }
 void test_1x3v_p1_continuity_ser() { test_1x3v(1, GKYL_BASIS_MODAL_SERENDIPITY); }
+void test_1x3v_p2_continuity_tensor() { test_1x3v(2, GKYL_BASIS_MODAL_TENSOR); }
 void test_1x3v_p2_continuity_ser() { test_1x3v(2, GKYL_BASIS_MODAL_SERENDIPITY); }
 // Check the 2x2v_p1/2 continuity
 void test_2x2v_p1_continuity_tensor() { test_2x2v(1, GKYL_BASIS_MODAL_TENSOR); }
 void test_2x2v_p1_continuity_ser() { test_2x2v(1, GKYL_BASIS_MODAL_SERENDIPITY); }
+void test_2x2v_p2_continuity_tensor() { test_2x2v(2, GKYL_BASIS_MODAL_TENSOR); }
 void test_2x2v_p2_continuity_ser() { test_2x2v(2, GKYL_BASIS_MODAL_SERENDIPITY); }
 // Check the 2x3v_p1/2 continuity
 void test_2x3v_p1_continuity_tensor() { test_2x3v(1, GKYL_BASIS_MODAL_TENSOR); }
@@ -1312,15 +1319,19 @@ void test_3x3v_p1_continuity_tensor() { test_3x3v(1, GKYL_BASIS_MODAL_TENSOR); }
 TEST_LIST = {
   {"test_1x1v_p1_continuity_ten", test_1x1v_p1_continuity_tensor},
   {"test_1x1v_p1_continuity_hyb", test_1x1v_p1_continuity_ser},
+  {"test_1x1v_p2_continuity_ten", test_1x1v_p2_continuity_tensor},
   {"test_1x1v_p2_continuity_ser", test_1x1v_p2_continuity_ser},
   {"test_1x2v_p1_continuity_ten", test_1x2v_p1_continuity_tensor},
   {"test_1x2v_p1_continuity_hyb", test_1x2v_p1_continuity_ser},
+  {"test_1x2v_p2_continuity_ten", test_1x2v_p2_continuity_tensor},
   {"test_1x2v_p2_continuity_ser", test_1x2v_p2_continuity_ser},
   {"test_1x3v_p1_continuity_ten", test_1x3v_p1_continuity_tensor},
   {"test_1x3v_p1_continuity_hyb", test_1x3v_p1_continuity_ser},
+  {"test_1x3v_p2_continuity_ten", test_1x3v_p2_continuity_tensor},
   {"test_1x3v_p2_continuity_ser", test_1x3v_p2_continuity_ser},
   {"test_2x2v_p1_continuity_ten", test_2x2v_p1_continuity_tensor},
   {"test_2x2v_p1_continuity_hyb", test_2x2v_p1_continuity_ser},
+  {"test_2x2v_p2_continuity_ten", test_2x2v_p2_continuity_tensor},
   {"test_2x2v_p2_continuity_ser", test_2x2v_p2_continuity_ser},
   {"test_2x3v_p1_continuity_ten", test_2x3v_p1_continuity_tensor},
   {"test_2x3v_p1_continuity_hyb", test_2x3v_p1_continuity_ser},
