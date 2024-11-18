@@ -266,6 +266,8 @@ struct gkyl_gyrokinetic_field {
   enum gkyl_fem_parproj_bc_type fem_parbc;
   struct gkyl_poisson_bc poisson_bcs;
 
+  bool is_static; // Set to true if field does not change in time.
+
   // Initial potential used to compute the total polarization density.
   void (*polarization_potential)(double t, const double *xn, double *out, void *ctx);
   void *polarization_potential_ctx;

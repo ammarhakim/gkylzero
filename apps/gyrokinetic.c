@@ -444,27 +444,25 @@ gkyl_gyrokinetic_app_new(struct gkyl_gk *gk)
 static void
 calc_field(gkyl_gyrokinetic_app* app, double tcurr, const struct gkyl_array *fin[])
 {
-  if (app->update_field) {
-    if (app->field->is_static == false || app->stat.nup == 0) {
-      // Compute electrostatic potential from gyrokinetic Poisson's equation.
-      gk_field_accumulate_rho_c(app, app->field, fin);
+  if (app->update_field && app->field->is_static == false) {
+    // Compute electrostatic potential from gyrokinetic Poisson's equation.
+    gk_field_accumulate_rho_c(app, app->field, fin);
 
-      // Compute ambipolar potential sheath values if using adiabatic electrons
-      // done here as the RHS update for all species should be complete before
-      // boundary fluxes are computed (ion fluxes needed for sheath values) 
-      // and these boundary fluxes are stored temporarily in ghost cells of RHS
-      if (app->field->gkfield_id == GKYL_GK_FIELD_BOLTZMANN)
-        gk_field_calc_ambi_pot_sheath_vals(app, app->field);
+    // Compute ambipolar potential sheath values if using adiabatic electrons
+    // done here as the RHS update for all species should be complete before
+    // boundary fluxes are computed (ion fluxes needed for sheath values) 
+    // and these boundary fluxes are stored temporarily in ghost cells of RHS
+    if (app->field->gkfield_id == GKYL_GK_FIELD_BOLTZMANN)
+      gk_field_calc_ambi_pot_sheath_vals(app, app->field);
 
-      // Compute biased wall potential if present and time-dependent.
-      // Note: biased wall potential use eval_on_nodes. 
-      // so does copy to GPU every call if app->use_gpu = true.
-      if (app->field->phi_wall_lo_evolve || app->field->phi_wall_up_evolve)
-        gk_field_calc_phi_wall(app, app->field, tcurr);
+    // Compute biased wall potential if present and time-dependent.
+    // Note: biased wall potential use eval_on_nodes. 
+    // so does copy to GPU every call if app->use_gpu = true.
+    if (app->field->phi_wall_lo_evolve || app->field->phi_wall_up_evolve)
+      gk_field_calc_phi_wall(app, app->field, tcurr);
 
-      // Solve the field equation.
-      gk_field_rhs(app, app->field);
-    }
+    // Solve the field equation.
+    gk_field_rhs(app, app->field);
   }
 }
 
@@ -562,6 +560,7 @@ gkyl_gyrokinetic_app_apply_ic(gkyl_gyrokinetic_app* app, double t0)
     }
   }
   calc_field_and_apply_bc(app, 0., distf, distf_neut);
+  app->field->is_static = app->field->info.is_static;
 }
 
 void
@@ -2910,7 +2909,7 @@ gkyl_gyrokinetic_app_read_from_frame(gkyl_gyrokinetic_app *app, int frame)
     }
     calc_field_and_apply_bc(app, rstat.stime, distf, distf_neut);
   }
-
+  app->field->is_static = app->field->info.is_static;
   app->field->is_first_energy_write_call = false; // Append to existing diagnostic.
 
   return rstat;

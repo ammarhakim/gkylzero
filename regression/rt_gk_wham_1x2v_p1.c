@@ -865,6 +865,7 @@ int main(int argc, char **argv)
     .polarization_bmag = ctx.B_p, 
     .fem_parbc = GKYL_FEM_PARPROJ_NONE,
     .kperpSq = pow(ctx.kperp, 2.),
+    .is_static = true,
   };
 
   struct gkyl_efit_inp efit_inp = {

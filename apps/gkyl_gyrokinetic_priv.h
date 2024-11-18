@@ -752,7 +752,6 @@ struct gkyl_gyrokinetic_app {
   struct gk_geometry *gk_geom;
 
   bool update_field; // are we updating the field?
-  bool is_field_static; // is the field static? Take dphi/dt = 0 and use phi(t=0) as initial condition.
   struct gk_field *field; // pointer to field object
 
   // species data
