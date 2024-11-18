@@ -69,7 +69,7 @@ create_ctx(void)
 
   // Simulation parameters.
   int Nr = 128; // Cell count (configuration space: r-direction).
-  int Ntheta = 1; // Cell count (configuration space: theta-direction).
+  int Ntheta = 4; // Cell count (configuration space: theta-direction).
   int Nv = 12; // Cell count (velocity space: all directions).
   double R = 2.0; // Major radius
   double rmin = 0.5; // Domain size (configuration space: r-direction, min value).
