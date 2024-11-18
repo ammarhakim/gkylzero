@@ -18,7 +18,10 @@ struct gkyl_poisson_bc_value { double v[3]; };
 struct gkyl_poisson_bc {
   enum gkyl_poisson_bc_type lo_type[GKYL_MAX_CDIM], up_type[GKYL_MAX_CDIM];
   struct gkyl_poisson_bc_value lo_value[GKYL_MAX_CDIM], up_value[GKYL_MAX_CDIM];
-  bool z_edge;
+
+  // Additional attributes to apply a different BC according to the edge planes in the z direction.
+  bool is_z_edge;
+  bool contains_lower_z_edge, contains_upper_z_edge;
   double xLCFS;
 };
 
