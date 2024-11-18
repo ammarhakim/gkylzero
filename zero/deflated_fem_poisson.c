@@ -103,8 +103,16 @@ gkyl_deflated_fem_poisson_new(struct gkyl_rect_grid grid,
       gkyl_deflate_zsurf_advance(up->deflator_up, zidx-1, &up->local, &up->deflated_local, epsilon, up->d_fem_data[ctr].deflated_epsilon,  2*up->deflated_grid.ndim-1);
     else 
       gkyl_deflate_zsurf_advance(up->deflator_lo, zidx, &up->local, &up->deflated_local, epsilon, up->d_fem_data[ctr].deflated_epsilon, 2*up->deflated_grid.ndim-1);
-    // check if we are at an extremal index of z
-    up->poisson_bc.z_edge = (zidx == local.lower[up->cdim-1]) || (zidx == up->local.upper[up->cdim-1]+1);
+    
+    //---- check if we are at an extremal global index of z to apply target corner BC
+    // get the global index of the z plane
+    int global_zidx = zidx + up->global_sub_range.lower[up->cdim-1]; 
+    // check if the global index is equal to the lower or upper limit of the z grid
+    bool is_lower_z_edge = (zidx == up->local.lower[up->cdim-1])   && up->poisson_bc.contains_lower_z_edge;
+    bool is_upper_z_edge = (zidx == up->local.upper[up->cdim-1]+1) && up->poisson_bc.contains_upper_z_edge;
+    // store it in pisson_bc to pass it to gkyl_fem_poisson_new
+    up->poisson_bc.is_z_edge = is_upper_z_edge || is_lower_z_edge;
+
     up->d_fem_data[ctr].fem_poisson = gkyl_fem_poisson_new(&up->deflated_local, &up->deflated_grid, up->deflated_basis, &up->poisson_bc, up->d_fem_data[ctr].deflated_epsilon, 0, false, use_gpu);
     ctr += 1;
   }
