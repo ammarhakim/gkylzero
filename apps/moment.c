@@ -785,6 +785,20 @@ gkyl_moment_app_from_frame_species(gkyl_moment_app *app, int sidx, int frame)
   return rstat;
 }
 
+struct gkyl_app_restart_status
+gkyl_moment_app_read_from_frame(gkyl_moment_app *app, int frame)
+{
+  struct gkyl_app_restart_status rstat;
+
+  rstat = gkyl_moment_app_from_frame_field(app, frame);
+
+  for (int i = 0; i < app->num_species; i++) {
+    rstat = gkyl_moment_app_from_frame_species(app, i, frame);
+  }
+
+  return rstat;
+}
+
 // private function to handle variable argument list for printing
 static void
 v_moment_app_cout(const gkyl_moment_app* app, FILE *fp, const char *fmt, va_list argp)

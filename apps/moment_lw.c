@@ -898,8 +898,8 @@ mom_app_new(lua_State *L)
   struct moment_app_lw *app_lw = gkyl_malloc(sizeof(*app_lw));
 
   // The output prefix to use is stored in the global
-  // GKYL_OUT_PREFIX. If this is not found then "g0-vlasov" is used.
-  const char *sim_name = "g0-vlasov";
+  // GKYL_OUT_PREFIX. If this is not found then "g0-moment" is used.
+  const char *sim_name = "g0-moment";
   with_lua_global(L, "GKYL_OUT_PREFIX") {
     if (lua_isstring(L, -1)) {
       sim_name = lua_tostring(L, -1);
@@ -1582,9 +1582,43 @@ mom_app_run(lua_State *L)
   double t_curr = app_lw->t_start, t_end = app_lw->t_end;
   long num_steps = luaL_optinteger(L, 2, INT_MAX);
 
+  gkyl_moment_app_cout(app, stdout, "Initializing Moments Simulation ...\n");
+
+  // Initialize simulation.
+  bool is_restart = false;
+  lua_getglobal(L, "GKYL_IS_RESTART");
+  if (lua_toboolean(L, -1)) {
+    is_restart = true;
+  }
+  lua_pop(L, 1);
+
+  int restart_frame = 0;
+  lua_getglobal(L, "GKYL_RESTART_FRAME");
+  restart_frame = lua_tointeger(L, -1);
+  lua_pop(L, 1);
+
+  int frame_curr = 0;
+  if (is_restart) {
+    struct gkyl_app_restart_status status = gkyl_moment_app_read_from_frame(app, restart_frame);
+
+    if (status.io_status != GKYL_ARRAY_RIO_SUCCESS) {
+      gkyl_moment_app_cout(app, stderr, "*** Failed to read restart file! (%s)\n", gkyl_array_rio_status_msg(status.io_status));
+      goto freeresources;
+    }
+
+    frame_curr = status.frame;
+    t_curr = status.stime;
+
+    gkyl_moment_app_cout(app, stdout, "Restarting from frame %d", frame_curr);
+    gkyl_moment_app_cout(app, stdout, " at time = %g\n", t_curr);
+  }
+  else {
+    gkyl_moment_app_apply_ic(app, t_curr);
+  }
+
   int num_frames = app_lw->num_frames;
   // Triggers for IO and logging.
-  struct gkyl_tm_trigger io_trig = { .dt = (t_end - t_curr) / num_frames };
+  struct gkyl_tm_trigger io_trig = { .dt = (t_end - t_curr) / num_frames, .tcurr = t_curr, .curr = frame_curr };
 
   struct step_message_trigs m_trig = {
     .log_count = 0,
@@ -1593,18 +1627,14 @@ mom_app_run(lua_State *L)
     .log_trig = { .dt = (t_end - t_curr) / 10.0 },
     .log_trig_1p = { .dt = (t_end - t_curr) / 100.0 },
   };
-  
-  gkyl_moment_app_cout(app, stdout, "Initializing Moments Simulation ...\n");
 
   struct timespec tm_ic0 = gkyl_wall_clock();
   // Initialize simulation.
-  gkyl_moment_app_apply_ic(app, t_curr);
   gkyl_moment_app_calc_integrated_mom(app, t_curr);
   gkyl_moment_app_calc_field_energy(app, t_curr);
+  write_data(&io_trig, app, t_curr, false);
   
   gkyl_moment_app_cout(app, stdout, "Initialization completed in %g sec\n\n", gkyl_time_diff_now_sec(tm_ic0));
-
-  write_data(&io_trig, app, t_curr, false);
 
   // Compute estimate of maximum stable time-step.
   double dt = gkyl_moment_app_max_dt(app);
@@ -1690,6 +1720,8 @@ mom_app_run(lua_State *L)
   gkyl_moment_app_cout(app, stdout, "Source updates took %g secs\n", stat.sources_tm);
   gkyl_moment_app_cout(app, stdout, "Total updates took %g secs\n", stat.total_tm);
   gkyl_moment_app_cout(app, stdout, "See log file for full statistics\n");
+
+freeresources:
 
   lua_pushboolean(L, ret_status);
   return 1;
