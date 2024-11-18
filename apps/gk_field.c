@@ -528,8 +528,8 @@ gk_field_apply_bc(const gkyl_gyrokinetic_app *app, const struct gk_field *field,
   //   and f_up* = T_UL(T_LU(f_up))
 
   //1. Fill the lower ghost cells of aux_array with the upper ghost cells of phi_smooth and vice versa
-  gkyl_array_copy_range_to_range(field->aux_array, fout, &field->upper_skin_core, &field->upper_skin_core);
-  gkyl_array_copy_range_to_range(field->aux_array, fout, &field->lower_skin_core, &field->lower_skin_core);
+  gkyl_array_copy_range_to_range(field->aux_array, fout, &field->upper_ghost_core, &field->upper_skin_core);
+  gkyl_array_copy_range_to_range(field->aux_array, fout, &field->lower_ghost_core, &field->lower_skin_core);
   // aux_array ghost cells: | f_lo | ----- | f_up |
 
   //1.5 Apply reflect BCs to aux_array to get the correct value at the z-boundary.
