@@ -212,7 +212,7 @@ gkyl_gk_maxwellian_proj_on_basis_f_quad_ker(struct gkyl_rect_grid phase_grid,
       efact += xmu[cdim+1]*bmag_quad_d[cqidx]/(mass*T_over_m_quad[cqidx]);
     }
     fq[linc2] = T_over_m_quad[cqidx] > 0.0 ? f_floor + 
-      jacobvel_d[0]*expamp_quad[cqidx]*exp(-efact) : f_floor; 
+      jacobvel_d[0]*expamp_quad_d[cqidx]*exp(-efact) : f_floor; 
   }
 }
 
