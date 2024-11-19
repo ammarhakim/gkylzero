@@ -331,7 +331,7 @@ gk_species_react_rhs(gkyl_gyrokinetic_app *app, struct gk_species *s,
 
         // Accumulate J*n_elc*fmax(n_donor, upar_donor, vt_donor^2) onto f_react
         gkyl_dg_mul_conf_phase_op_accumulate_range(&app->confBasis, &app->basis, react->f_react,
-          1.0, react->Jm0_elc[i], gks_elc->lte.f_lte, &app->local, &s->local);
+          1.0, react->Jm0_elc[i], gks_ion->lte.f_lte, &app->local, &s->local);
       }
       else {
         // donor update is -n_elc*coeff_react*f_donor
