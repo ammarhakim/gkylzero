@@ -1391,10 +1391,16 @@ gkyl_vlasov_app_from_file_fluid_species(gkyl_vlasov_app *app, int sidx,
 struct gkyl_app_restart_status
 gkyl_vlasov_app_from_frame_field(gkyl_vlasov_app *app, int frame)
 {
-  cstr fileNm = cstr_from_fmt("%s-%s_%d.gkyl", app->name, "field", frame);
-  struct gkyl_app_restart_status rstat = gkyl_vlasov_app_from_file_field(app, fileNm.str);
+  struct gkyl_app_restart_status rstat;
+  if (app->has_field) {
+    if (app->field->field_id == GKYL_FIELD_E_B) {
+      cstr fileNm = cstr_from_fmt("%s-%s_%d.gkyl", app->name, "field", frame);
+      rstat = gkyl_vlasov_app_from_file_field(app, fileNm.str);
+      cstr_drop(&fileNm);
+    }
+  }
+
   app->field->is_first_energy_write_call = false; // append to existing diagnostic
-  cstr_drop(&fileNm);
   
   return rstat;
 }
@@ -1434,6 +1440,23 @@ gkyl_vlasov_app_read_from_frame(gkyl_vlasov_app *app, int frame)
   }
   for (int i=0; i<app->num_fluid_species; i++) {
     rstat = gkyl_vlasov_app_from_frame_fluid_species(app, i, frame);
+  }
+
+  if (rstat.io_status == GKYL_ARRAY_RIO_SUCCESS) {
+    // Compute the fields and apply BCs.
+    if ((app->field->field_id != GKYL_FIELD_E_B) && (app->field->field_id != GKYL_FIELD_NULL)) {
+      struct gkyl_array *distf[app->num_species];
+      for (int i=0; i<app->num_species; ++i)
+        distf[i] = app->species[i].f;
+
+      // MF 2024/09/27/: Need the cast here for consistency. Fixing
+      // this may require removing 'const' from a lot of places.
+      vp_field_apply_ic(app, app->field, (const struct gkyl_array **) distf, rstat.stime);
+      // Apply boundary conditions.
+      for (int i=0; i<app->num_species; ++i) {
+        vm_species_apply_bc(app, &app->species[i], distf[i], rstat.stime);
+      }
+    }
   }
 
   return rstat;
