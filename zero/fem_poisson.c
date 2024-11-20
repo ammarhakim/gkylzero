@@ -193,9 +193,9 @@ gkyl_fem_poisson_new(const struct gkyl_range *solve_range, const struct gkyl_rec
     up->kernels->lhsker[keri](eps_p, kSq_p, up->dx, up->bcvals, up->globalidx, tri[0]);
   }
 // We added the z_edge to know if we are on a z plane that has a target corner phi=0 BC.
-up->z_edge = bcs->z_edge;
+up->is_z_edge = bcs->is_z_edge;
 up->xLCFS  = bcs->xLCFS;
-  if(bcs->z_edge){
+  if(bcs->is_z_edge){
     double xLCFS = bcs->xLCFS;
     int idxLCFS_m = (xLCFS-1e-8 - grid->lower[0])/grid->dx[0]+1;
     gkyl_mat_triples_iter *iter = gkyl_mat_triples_iter_new(tri[0]);
@@ -304,7 +304,7 @@ gkyl_fem_poisson_set_rhs(gkyl_fem_poisson* up, struct gkyl_array *rhsin)
   }
 
   // If we are located at the edge of the z domain (This is temporary and should be generalized)
-  if(up->z_edge){
+  if(up->is_z_edge){
     double xLCFS = up->xLCFS;
     int idxLCFS_m = (xLCFS-1e-8 - up->grid.lower[0])/up->grid.dx[0]+1;
     // apply new BC on the RHS vector
