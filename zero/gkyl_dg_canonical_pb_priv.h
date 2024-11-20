@@ -30,12 +30,20 @@ typedef double (*canonical_pb_accel_boundary_surf_t)(const double *w, const doub
   const double *sgn_alpha_surf_edge, const double *sgn_alpha_surf_skin, 
   const int *const_sgn_alpha_edge, const int *const_sgn_alpha_skin, 
   const int edge, const double *fedge, const double *fskin, double* GKYL_RESTRICT out);
+
+typedef double (*canonical_pb_stream_boundary_surf_t)(const double *w, const double *dxv,
+  const double *hamil, 
+  const double *alpha_surf_edge, const double *alpha_surf_skin, 
+  const double *sgn_alpha_surf_edge, const double *sgn_alpha_surf_skin, 
+  const int *const_sgn_alpha_edge, const int *const_sgn_alpha_skin, 
+  const int edge, const double *fedge, const double *fskin, double* GKYL_RESTRICT out);
   
 
 // for use in kernel tables
 typedef struct { vol_termf_t kernels[3]; } gkyl_dg_canonical_pb_vol_kern_list;
 typedef struct { canonical_pb_stream_surf_t kernels[3]; } gkyl_dg_canonical_pb_stream_surf_kern_list;
 typedef struct { canonical_pb_accel_surf_t kernels[3]; } gkyl_dg_canonical_pb_accel_surf_kern_list;
+typedef struct { canonical_pb_stream_boundary_surf_t kernels[3]; } gkyl_dg_canonical_pb_stream_boundary_surf_kern_list;
 typedef struct { canonical_pb_accel_boundary_surf_t kernels[3]; } gkyl_dg_canonical_pb_accel_boundary_surf_kern_list;
 
 struct dg_canonical_pb {
@@ -44,6 +52,7 @@ struct dg_canonical_pb {
   int pdim; // Phase-space dimensions
   canonical_pb_stream_surf_t stream_surf[3]; // Surface terms for streaming
   canonical_pb_accel_surf_t accel_surf[3]; // Surface terms for acceleration
+  canonical_pb_stream_boundary_surf_t stream_boundary_surf[3]; // Surface terms for streaming
   canonical_pb_accel_boundary_surf_t accel_boundary_surf[3]; // Surface terms for acceleration
   struct gkyl_range conf_range; // configuration space range
   struct gkyl_range vel_range; // velocity space range
@@ -341,6 +350,49 @@ static const gkyl_dg_canonical_pb_accel_boundary_surf_kern_list ser_accel_bounda
 };
 
 
+// Stream boundary surface kernel (zero-flux BCs) list: x-direction
+GKYL_CU_D
+static const gkyl_dg_canonical_pb_stream_boundary_surf_kern_list ser_stream_boundary_surf_x_kernels[] = {
+  // 1x kernels
+  { NULL, canonical_pb_boundary_surfx_1x1v_ser_p1, canonical_pb_boundary_surfx_1x1v_ser_p2 }, // 0
+  { NULL, canonical_pb_boundary_surfx_1x2v_ser_p1, canonical_pb_boundary_surfx_1x2v_ser_p2 }, // 1
+  { NULL, canonical_pb_boundary_surfx_1x3v_ser_p1, canonical_pb_boundary_surfx_1x3v_ser_p2 }, // 2
+  // 2x kernels
+  { NULL, canonical_pb_boundary_surfx_2x2v_ser_p1, canonical_pb_boundary_surfx_2x2v_ser_p2 }, // 3
+  { NULL, canonical_pb_boundary_surfx_2x3v_ser_p1, canonical_pb_boundary_surfx_2x3v_ser_p2 }, // 4
+  // 3x kernels
+  { NULL, NULL, NULL                   }, // 5
+};
+
+// Stream boundary surface kernel (zero-flux BCs) list: y-direction
+GKYL_CU_D
+static const gkyl_dg_canonical_pb_stream_boundary_surf_kern_list ser_stream_boundary_surf_y_kernels[] = {
+  // 1x kernels
+  { NULL, NULL, NULL }, // 0
+  { NULL, NULL, NULL }, // 1
+  { NULL, NULL, NULL }, // 2
+  // 2x kernels
+  { NULL, canonical_pb_boundary_surfy_2x2v_ser_p1, canonical_pb_boundary_surfy_2x2v_ser_p2 }, // 3
+  { NULL, canonical_pb_boundary_surfy_2x3v_ser_p1, canonical_pb_boundary_surfy_2x3v_ser_p2 }, // 4
+  // 3x kernels
+  { NULL, NULL, NULL                   }, // 5
+};
+
+// Stream boundary surface kernel (zero-flux BCs) list: z-direction
+GKYL_CU_D
+static const gkyl_dg_canonical_pb_stream_boundary_surf_kern_list ser_stream_boundary_surf_z_kernels[] = {
+  // 1x kernels
+  { NULL, NULL, NULL }, // 0
+  { NULL, NULL, NULL }, // 1
+  { NULL, NULL, NULL }, // 2
+  // 2x kernels
+  { NULL, NULL, NULL }, // 3
+  { NULL, NULL, NULL }, // 4
+  // 3x kernels
+  { NULL, NULL, NULL }, // 5
+};
+
+
 //
 // Tensor volume kernels
 // Need to be separated like this for GPU build
@@ -622,6 +674,48 @@ static const gkyl_dg_canonical_pb_accel_boundary_surf_kern_list tensor_accel_bou
 };
 
 
+// Stream boundary surface kernel (zero-flux BCs) list: x-direction
+GKYL_CU_D
+static const gkyl_dg_canonical_pb_stream_boundary_surf_kern_list tensor_stream_boundary_surf_x_kernels[] = {
+  // 1x kernels
+  { NULL, canonical_pb_boundary_surfx_1x1v_tensor_p1, canonical_pb_boundary_surfx_1x1v_tensor_p2 }, // 0
+  { NULL, canonical_pb_boundary_surfx_1x2v_tensor_p1, canonical_pb_boundary_surfx_1x2v_tensor_p2 }, // 1
+  { NULL, canonical_pb_boundary_surfx_1x3v_tensor_p1, canonical_pb_boundary_surfx_1x3v_tensor_p2 }, // 2
+  // 2x kernels
+  { NULL, canonical_pb_boundary_surfx_2x2v_tensor_p1, canonical_pb_boundary_surfx_2x2v_tensor_p2 }, // 3
+  { NULL, canonical_pb_boundary_surfx_2x3v_tensor_p1, NULL }, // 4
+  // 3x kernels
+  { NULL, canonical_pb_boundary_surfx_3x3v_tensor_p1, NULL }, // 5
+};
+
+// Stream boundary surface kernel (zero-flux BCs) list: y-direction
+GKYL_CU_D
+static const gkyl_dg_canonical_pb_stream_boundary_surf_kern_list tensor_stream_boundary_surf_y_kernels[] = {
+  // 1x kernels
+  { NULL, NULL, NULL }, // 0
+  { NULL, NULL, NULL  }, // 1
+  { NULL, NULL, NULL  }, // 2
+  // 2x kernels
+  { NULL, canonical_pb_boundary_surfy_2x2v_tensor_p1, canonical_pb_boundary_surfy_2x2v_tensor_p2 }, // 3
+  { NULL, canonical_pb_boundary_surfy_2x3v_tensor_p1, NULL }, // 4
+  // 3x kernels
+  { NULL, canonical_pb_boundary_surfy_3x3v_tensor_p1, NULL }, // 5
+};
+
+// Stream boundary surface kernel (zero-flux BCs) list: z-direction
+GKYL_CU_D
+static const gkyl_dg_canonical_pb_stream_boundary_surf_kern_list tensor_stream_boundary_surf_z_kernels[] = {
+  // 1x kernels
+  { NULL, NULL, NULL }, // 0
+  { NULL, NULL, NULL }, // 1
+  { NULL, NULL, NULL }, // 2
+  // 2x kernels
+  { NULL, NULL, NULL }, // 3
+  { NULL, NULL, NULL }, // 4
+  // 3x kernels
+  { NULL, canonical_pb_boundary_surfz_3x3v_tensor_p1, NULL }, // 5
+};
+
 // "Choose Kernel" based on cdim, vdim and polyorder
 #define CK(lst,cv_index,poly_order) lst[cv_index].kernels[poly_order]
 
@@ -682,7 +776,20 @@ boundary_surf(const struct gkyl_dg_eqn *eqn,
   const double* qInEdge, const double* qInSkin, double* GKYL_RESTRICT qRhsOut)
 {
   struct dg_canonical_pb *canonical_pb = container_of(eqn, struct dg_canonical_pb, eqn);
-
+  if (dir < canonical_pb->cdim) {
+    // Each cell owns the *lower* edge surface alpha
+    long pidxEdge = gkyl_range_idx(&canonical_pb->phase_range, idxEdge);
+    long pidxSkin = gkyl_range_idx(&canonical_pb->phase_range, idxSkin);
+    return canonical_pb->stream_boundary_surf[dir](xcSkin, dxSkin,
+      (const double*) gkyl_array_cfetch(canonical_pb->auxfields.hamil, pidxSkin),
+      (const double*) gkyl_array_cfetch(canonical_pb->auxfields.alpha_surf, pidxEdge), 
+      (const double*) gkyl_array_cfetch(canonical_pb->auxfields.alpha_surf, pidxSkin), 
+      (const double*) gkyl_array_cfetch(canonical_pb->auxfields.sgn_alpha_surf, pidxEdge), 
+      (const double*) gkyl_array_cfetch(canonical_pb->auxfields.sgn_alpha_surf, pidxSkin), 
+      (const int*) gkyl_array_cfetch(canonical_pb->auxfields.const_sgn_alpha, pidxEdge), 
+      (const int*) gkyl_array_cfetch(canonical_pb->auxfields.const_sgn_alpha, pidxSkin), 
+      edge, qInEdge, qInSkin, qRhsOut);
+  }
   if (dir >= canonical_pb->cdim) {
     // Each cell owns the *lower* edge surface alpha
     long pidxEdge = gkyl_range_idx(&canonical_pb->phase_range, idxEdge);
