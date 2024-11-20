@@ -917,7 +917,14 @@ gkyl_pkpm_app_from_file_field(gkyl_pkpm_app *app, const char *fname)
       pkpm_field_apply_bc(app, app->field, app->field->em);
     }
   }
-  
+
+  // Compute external EM field and applied current if present
+  // Computation necessary in case external EM field or applied current
+  // are time-independent and not computed in the time-stepping loop
+  // since they are not read-in as part of restarts. 
+  pkpm_field_calc_ext_em(app, app->field, rstat.stime);
+  pkpm_field_calc_app_current(app, app->field, rstat.stime);
+
   return rstat;
 }
 
@@ -954,13 +961,12 @@ gkyl_pkpm_app_from_file_fluid_species(gkyl_pkpm_app *app, int sidx,
   if (rstat.io_status == GKYL_ARRAY_RIO_SUCCESS) {
     // Read in the full 10 component fluid array
     rstat.io_status =
-      gkyl_comm_array_read(s->comm, &s->grid, &s->local, s->fluid_io_host, fname);
+      gkyl_comm_array_read(app->comm, &app->grid, &app->local, s->fluid_io_host, fname);
     if (app->use_gpu) {
       gkyl_array_copy(s->fluid_io, s->fluid_io_host);
     }
-    // Copy the relevant components of 10 component fluid array
-    gkyl_array_set_offset_range(s->fluid_io, 1.0, s->fluid, 
-      app->confBasis.num_basis, &app->local);
+    // Copy the relevant components of 10 component fluid array (components 1-4)
+    gkyl_array_set_offset_range(s->fluid, 1.0, s->fluid_io, app->confBasis.num_basis, &app->local);
     if (GKYL_ARRAY_RIO_SUCCESS == rstat.io_status) {
       pkpm_fluid_species_apply_bc(app, s, s->fluid);
     }
