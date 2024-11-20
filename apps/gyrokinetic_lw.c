@@ -55,6 +55,8 @@ struct gyrokinetic_species_lw {
   bool has_temp_init_func; // Is there a temperature initialization function?
   struct lua_func_ctx temp_init_func_ref; // Lua registry reference to temperature initialization function.
 
+  bool correct_all_moms; // Are we correcting all moments in projection, or only density?
+
   enum gkyl_collision_id collision_id; // Collision type.
   
   bool has_self_nu_func; // Is there a self-collision frequency function?
@@ -62,6 +64,11 @@ struct gyrokinetic_species_lw {
 
   int num_cross_collisions; // Number of species that we cross-collide with.
   char collide_with[GKYL_MAX_SPECIES][128]; // Names of species that we cross-collide with.
+
+  bool collision_correct_all_moms; // Are we correcting all moments in collisions, or only density?
+  double collision_iter_eps; // Error tolerance for moment fixes in collisions (density is always exact).
+  int collision_max_iter; // Maximum number of iterations for moment fixes in collisions.
+  bool collision_use_last_converged; // Use last iteration value in collisions regardless of convergence?
 
   enum gkyl_source_id source_id; // Source type.
 
@@ -172,6 +179,8 @@ gyrokinetic_species_lw_new(lua_State *L)
   bool has_temp_init_func = false;
   int temp_init_func_ref = LUA_NOREF;
 
+  bool correct_all_moms = false;
+
   with_lua_tbl_tbl(L, "projection") {
     proj_id = glua_tbl_get_integer(L, "projectionID", 0);
 
@@ -194,6 +203,8 @@ gyrokinetic_species_lw_new(lua_State *L)
       temp_init_func_ref = luaL_ref(L, LUA_REGISTRYINDEX);
       has_temp_init_func = true;
     }
+
+    correct_all_moms = glua_tbl_get_bool(L, "correctAllMoments", true);
   }
 
   enum gkyl_collision_id collision_id = GKYL_NO_COLLISIONS;
@@ -203,6 +214,11 @@ gyrokinetic_species_lw_new(lua_State *L)
 
   int num_cross_collisions = 0;
   char collide_with[GKYL_MAX_SPECIES][128];
+
+  bool collision_correct_all_moms = false;
+  double collision_iter_eps = pow(10.0, -12.0);
+  int collision_max_iter = 100;
+  bool collision_use_last_converged = true;
 
   with_lua_tbl_tbl(L, "collisions") {
     collision_id = glua_tbl_get_integer(L, "collisionID", 0);
@@ -219,6 +235,11 @@ gyrokinetic_species_lw_new(lua_State *L)
         strcpy(collide_with[i], collide_with_char);
       }
     }
+
+    collision_correct_all_moms = glua_tbl_get_bool(L, "correctAllMoments", true);
+    collision_iter_eps = glua_tbl_get_number(L, "iterationEpsilon", pow(10.0, -12.0));
+    collision_max_iter = glua_tbl_get_integer(L, "maxIterations", 100);
+    collision_use_last_converged = glua_tbl_get_bool(L, "useLastConverged", true);
   }
 
   enum gkyl_source_id source_id = GKYL_NO_SOURCE;
@@ -321,6 +342,8 @@ gyrokinetic_species_lw_new(lua_State *L)
     .L = L,
   };
 
+  gks_lw->correct_all_moms = correct_all_moms;
+
   gks_lw->source_id = source_id;
   gks_lw->num_sources = num_sources;
   
@@ -374,6 +397,11 @@ gyrokinetic_species_lw_new(lua_State *L)
   for (int i = 0; i < num_cross_collisions; i++) {
     strcpy(gks_lw->collide_with[i], collide_with[i]);
   }
+
+  gks_lw->collision_correct_all_moms = collision_correct_all_moms;
+  gks_lw->collision_iter_eps = collision_iter_eps;
+  gks_lw->collision_max_iter = collision_max_iter;
+  gks_lw->collision_use_last_converged = collision_use_last_converged;
   
   // Set metatable.
   luaL_getmetatable(L, GYROKINETIC_SPECIES_METATABLE_NM);
@@ -407,6 +435,11 @@ gyrokinetic_field_lw_new(lua_State *L)
 {
   int vdim  = 0;
   struct gkyl_gyrokinetic_field gk_field = { };
+
+  gk_field.gkfield_id = glua_tbl_get_integer(L, "fieldID", 0);
+  gk_field.electron_mass = glua_tbl_get_number(L, "electronMass", 0.0);
+  gk_field.electron_charge = glua_tbl_get_number(L, "electronCharge", 0.0);
+  gk_field.electron_temp = glua_tbl_get_number(L, "electronTemperature", 0.0);
 
   gk_field.fem_parbc = glua_tbl_get_integer(L, "femParBc", 0);
   gk_field.kperpSq = glua_tbl_get_number(L, "kPerpSq", 0.0);
@@ -457,6 +490,8 @@ struct gyrokinetic_app_lw {
   bool has_temp_init_func[GKYL_MAX_SPECIES]; // Is there a temperature initialization function?
   struct lua_func_ctx temp_init_func_ctx[GKYL_MAX_SPECIES]; // Context for temperature initialization function.
 
+  bool correct_all_moms[GKYL_MAX_SPECIES]; // Are we correcting all moments in projection, or only density?
+
   enum gkyl_collision_id collision_id[GKYL_MAX_SPECIES]; // Collision type.
 
   bool has_self_nu_func[GKYL_MAX_SPECIES]; // Is there a self-collision frequency function?
@@ -464,6 +499,11 @@ struct gyrokinetic_app_lw {
 
   int num_cross_collisions[GKYL_MAX_SPECIES]; // Number of species that we cross-collide with.
   char collide_with[GKYL_MAX_SPECIES][GKYL_MAX_SPECIES][128]; // Names of species that we cross-collide with.
+
+  bool collision_correct_all_moms[GKYL_MAX_SPECIES]; // Are we correcting all moments in collisions, or only density?
+  double collision_iter_eps[GKYL_MAX_SPECIES]; // Error tolerance for moment fixes in collision (density is always exact).
+  int collision_max_iter[GKYL_MAX_SPECIES]; // Maximum number of iterations for moment fixes in collisions.
+  bool collision_use_last_converged[GKYL_MAX_SPECIES]; // Use last iteration value in collisions regardless of convergence?
 
   enum gkyl_source_id source_id[GKYL_MAX_SPECIES]; // Source type.
 
@@ -708,6 +748,8 @@ gk_app_new(lua_State *L)
     app_lw->has_temp_init_func[s] = species[s]->has_temp_init_func;
     app_lw->temp_init_func_ctx[s] = species[s]->temp_init_func_ref;
 
+    app_lw->correct_all_moms[s] = species[s]->correct_all_moms;
+
     gk.species[s].projection.proj_id = app_lw->proj_id[s];
 
     if (species[s]->has_init_func) {
@@ -730,6 +772,8 @@ gk_app_new(lua_State *L)
       gk.species[s].projection.ctx_temp = &app_lw->temp_init_func_ctx[s];
     }
 
+    gk.species[s].projection.correct_all_moms = app_lw->correct_all_moms[s];
+
     app_lw->collision_id[s] = species[s]->collision_id;
 
     app_lw->has_self_nu_func[s] = species[s]->has_self_nu_func;
@@ -739,6 +783,11 @@ gk_app_new(lua_State *L)
     for (int i = 0; i < app_lw->num_cross_collisions[s]; i++) {
       strcpy(app_lw->collide_with[s][i], species[s]->collide_with[i]);
     }
+
+    app_lw->collision_correct_all_moms[s] = species[s]->collision_correct_all_moms;
+    app_lw->collision_iter_eps[s] = species[s]->collision_iter_eps;
+    app_lw->collision_max_iter[s] = species[s]->collision_max_iter;
+    app_lw->collision_use_last_converged[s] = species[s]->collision_use_last_converged;
 
     gk.species[s].collisions.collision_id = app_lw->collision_id[s];
 
@@ -751,6 +800,11 @@ gk_app_new(lua_State *L)
     for (int i = 0; i < app_lw->num_cross_collisions[s]; i++) {
       strcpy(gk.species[s].collisions.collide_with[i], app_lw->collide_with[s][i]);
     }
+
+    gk.species[s].collisions.correct_all_moms = app_lw->collision_correct_all_moms[s];
+    gk.species[s].collisions.iter_eps = app_lw->collision_iter_eps[s];
+    gk.species[s].collisions.max_iter = app_lw->collision_max_iter[s];
+    gk.species[s].collisions.use_last_converged = app_lw->collision_use_last_converged[s];
 
     app_lw->source_id[s] = species[s]->source_id;
 
@@ -800,6 +854,8 @@ gk_app_new(lua_State *L)
   }
 
   // Set field input.
+  gk.skip_field = glua_tbl_get_bool(L, "skipField", false);
+
   with_lua_tbl_key(L, "field") {
     if (lua_type(L, -1) == LUA_TUSERDATA) {
       struct gyrokinetic_field_lw *gkf = lua_touserdata(L, -1);

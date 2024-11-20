@@ -121,7 +121,7 @@ void
 gkyl_register_vlasov_source_types(lua_State *L);
 
 /**
- * Add FEM boundary condition flags for gyrokinetic field initialization into Lua interpreter./
+ * Add FEM boundary condition flags for gyrokinetic field initialization into Lua interpreter.
  *
  * @param L Lua state to use.
  */
@@ -135,6 +135,14 @@ gkyl_register_gyrokinetic_fem_bc_types(lua_State *L);
  */
 void
 gkyl_register_gyrokinetic_geometry_types(lua_State *L);
+
+/**
+ * Add field type flags for gyrokinetic field initialization into Lua interpreter.
+ *
+ * @param L Lua state to use.
+ */
+void
+gkyl_register_gyrokinetic_field_types(lua_State *L);
 
 /**
  * Wrapper around Lua function for use in eval callbacks.

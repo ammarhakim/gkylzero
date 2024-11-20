@@ -139,6 +139,16 @@ static const struct gkyl_str_int_pair geometry_type[] = {
   { 0, 0 }
 };
 
+// Gyrokinetic field type -> enum map.
+static const struct gkyl_str_int_pair gk_field_type[] = {
+  { "Electrostatic", GKYL_GK_FIELD_ES },
+  { "Boltzmann", GKYL_GK_FIELD_BOLTZMANN },
+  { "Adiabatic", GKYL_GK_FIELD_ADIABATIC },
+  { "ElectrostaticIWL", GKYL_GK_FIELD_ES_IWL },
+  { "Electromagnetic", GKYL_GK_FIELD_EM },
+  { 0, 0 }
+};
+
 static void
 register_types(lua_State *L, const struct gkyl_str_int_pair types[], const char *nm)
 {
@@ -231,6 +241,12 @@ void
 gkyl_register_gyrokinetic_geometry_types(lua_State *L)
 {
   register_types(L, geometry_type, "Geometry");
+}
+
+void
+gkyl_register_gyrokinetic_field_types(lua_State *L)
+{
+  register_types(L, gk_field_type, "GKField");
 }
 
 void
