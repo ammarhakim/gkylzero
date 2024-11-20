@@ -1644,7 +1644,7 @@ void gk_field_rhs(gkyl_gyrokinetic_app *app, struct gk_field *field);
  * @param app gk app object
  * @param field pointer to the field (modified)
  */
-void gk_field_apply_bc(const gkyl_gyrokinetic_app *app, const struct gk_field *field, struct gkyl_array *fout);
+void gk_field_apply_bc(const gkyl_gyrokinetic_app *app, const struct gk_field *field, struct gkyl_array *finout);
 
 /**
  * Compute field energy diagnostic
