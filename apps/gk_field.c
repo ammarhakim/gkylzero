@@ -62,6 +62,12 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
   // Create global subrange we'll copy the field solver solution from (into local).
   int intersect = gkyl_sub_range_intersect(&f->global_sub_range, &app->global, &app->local);
 
+  // detect if this process contains an edge in the z dimension by comparing the local and global indices
+  // for target corner BC
+  int ndim = app->grid.ndim;
+  f->info.poisson_bcs.contains_lower_z_edge = f->global_sub_range.lower[ndim-1] == app->global.lower[ndim-1];
+  f->info.poisson_bcs.contains_upper_z_edge = f->global_sub_range.upper[ndim-1] == app->global.upper[ndim-1];
+
   if (f->gkfield_id == GKYL_GK_FIELD_BOLTZMANN || f->gkfield_id == GKYL_GK_FIELD_ADIABATIC)
     assert(app->cdim == 1); // Not yet implemented for cdim>1.
 
