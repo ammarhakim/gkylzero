@@ -4,6 +4,7 @@
 #include <gkyl_moment.h>
 #include <gkyl_wv_euler.h>
 #include <gkyl_vlasov.h>
+#include <gkyl_gyrokinetic.h>
 #include <gkyl_lw_priv.h>
 #include <gkyl_util.h>
 
@@ -121,6 +122,23 @@ static const struct gkyl_str_int_pair source_type[] = {
   { 0, 0 }
 };
 
+// Gyrokinetic FEM boundary conditions -> enum map.
+static const struct gkyl_str_int_pair parproj_type[] = {
+  { "None", GKYL_FEM_PARPROJ_NONE },
+  { "Periodic", GKYL_FEM_PARPROJ_PERIODIC },
+  { "Dirichlet", GKYL_FEM_PARPROJ_DIRICHLET },
+  { 0, 0 }
+};
+
+// Gyrokinetic geometry type -> enum map.
+static const struct gkyl_str_int_pair geometry_type[] = {
+  { "Tokamak", GKYL_TOKAMAK },
+  { "Mirror", GKYL_MIRROR },
+  { "MapC2P", GKYL_MAPC2P },
+  { "FromFile", GKYL_GEOMETRY_FROMFILE },
+  { 0, 0 }
+};
+
 static void
 register_types(lua_State *L, const struct gkyl_str_int_pair types[], const char *nm)
 {
@@ -200,7 +218,19 @@ gkyl_register_vlasov_collision_types(lua_State *L)
 void
 gkyl_register_vlasov_source_types(lua_State *L)
 {
-  register_types(L, collision_type, "Source");
+  register_types(L, source_type, "Source");
+}
+
+void
+gkyl_register_gyrokinetic_fem_bc_types(lua_State *L)
+{
+  register_types(L, parproj_type, "ParProjBc");
+}
+
+void
+gkyl_register_gyrokinetic_geometry_types(lua_State *L)
+{
+  register_types(L, geometry_type, "Geometry");
 }
 
 void
