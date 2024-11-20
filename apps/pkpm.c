@@ -966,7 +966,7 @@ gkyl_pkpm_app_from_file_fluid_species(gkyl_pkpm_app *app, int sidx,
       gkyl_array_copy(s->fluid_io, s->fluid_io_host);
     }
     // Copy the relevant components of 10 component fluid array (components 1-4)
-    gkyl_array_set_offset_range(s->fluid, 1.0, s->fluid_io, app->confBasis.num_basis, &app->local);
+    gkyl_array_set_offset(s->fluid, 1.0, s->fluid_io, app->confBasis.num_basis);
     if (GKYL_ARRAY_RIO_SUCCESS == rstat.io_status) {
       pkpm_fluid_species_apply_bc(app, s, s->fluid);
     }
@@ -995,7 +995,7 @@ gkyl_pkpm_app_from_frame_species(gkyl_pkpm_app *app, int sidx, int frame)
   struct gkyl_app_restart_status rstat = gkyl_pkpm_app_from_file_species(app, sidx, fileNm.str);
 
   cstr fileNm_fluid = cstr_from_fmt("%s-%s_pkpm_fluid_%d.gkyl", app->name, s->info.name, frame);
-  struct gkyl_app_restart_status rstat_fluid = gkyl_pkpm_app_from_file_species(app, sidx, fileNm_fluid.str);
+  struct gkyl_app_restart_status rstat_fluid = gkyl_pkpm_app_from_file_fluid_species(app, sidx, fileNm_fluid.str);
 
   app->species[sidx].is_first_integ_write_call = false; // append to existing diagnostic
   app->species[sidx].is_first_integ_L2_write_call = false; // append to existing diagnostic
