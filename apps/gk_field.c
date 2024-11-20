@@ -519,7 +519,7 @@ gk_field_apply_bc(const gkyl_gyrokinetic_app *app, const struct gk_field *field,
   int periodic_dirs[] = {2}; // z direction
   gkyl_comm_array_per_sync(app->comm, &app->local, &app->local_ext,
     num_periodic_dir, periodic_dirs, fout); 
-  // phi_smooth ghost cells: | f_up | ----- | f_lo |
+  // phi_smooth ghost cells: | f_up> | ----- | <f_lo |
 
   //=== We now perform the phase 3a, i.e. 
   // phi_L = 1/2 (T_LU(f_up) + f_lo*)
@@ -528,13 +528,14 @@ gk_field_apply_bc(const gkyl_gyrokinetic_app *app, const struct gk_field *field,
   //   and f_up* = T_UL(T_LU(f_up))
 
   //1. Fill the lower ghost cells of aux_array with the upper ghost cells of phi_smooth and vice versa
-  gkyl_array_copy_range_to_range(field->aux_array, fout, &field->upper_ghost_core, &field->upper_skin_core);
-  gkyl_array_copy_range_to_range(field->aux_array, fout, &field->lower_ghost_core, &field->lower_skin_core);
-  // aux_array ghost cells: | f_lo | ----- | f_up |
+  gkyl_array_copy_range_to_range(field->aux_array, fout, &field->upper_skin_core, &field->upper_skin_core);
+  gkyl_array_copy_range_to_range(field->aux_array, fout, &field->lower_skin_core, &field->lower_skin_core);
+  // aux_array ghost cells: | <f_lo | ----- | f_up> |
 
   //1.5 Apply reflect BCs to aux_array to get the correct value at the z-boundary.
   gkyl_bc_basic_advance(field->bc_reflect_lo, field->bc_buffer, field->aux_array);
   gkyl_bc_basic_advance(field->bc_reflect_up, field->bc_buffer, field->aux_array);
+  // aux_array ghost cells: | f_lo> | ----- | <f_up | (it is now continuous at the skin ghost surface)
 
   //2. Apply forward and backward TS in aux_array phase 3b
   gkyl_bc_twistshift_advance(field->bc_T_UL_lo, field->aux_array, field->aux_array); // | T_UL(f_lo) | ----- | f_up       |
