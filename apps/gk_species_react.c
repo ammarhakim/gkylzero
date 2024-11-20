@@ -335,7 +335,6 @@ gk_species_react_rhs(gkyl_gyrokinetic_app *app, struct gk_species *s,
       }
       else {
         // donor update is -n_elc*coeff_react*f_donor
-
         // Accumulate -n_elc*(J*f_donor) (*note* Jacobian factor already included in fin)
         gkyl_dg_mul_conf_phase_op_accumulate_range(&app->confBasis, &app->basis, react->f_react,
           -1.0, gks_elc->lte.moms.marr, fin, &app->local, &s->local);  
@@ -344,15 +343,12 @@ gk_species_react_rhs(gkyl_gyrokinetic_app *app, struct gk_species *s,
     else if (react->react_id[i] == GKYL_REACT_RECOMB) {
       if (react->type_self[i] == GKYL_SELF_ELC) {
         // electron update is -n_ion*coeff_react*f_elc
-
         // Accumulate -n_ion*(J*f_elc) (*note* Jacobian factor already included in fin)
         gkyl_dg_mul_conf_phase_op_accumulate_range(&app->confBasis, &app->basis, react->f_react,
           -1.0, gks_ion->lte.moms.marr, fin, &app->local, &s->local);  
       }
       else if (react->type_self[i] == GKYL_SELF_ION) {
         // ion update is -n_elc*coeff_react*f_ion
-        gkyl_array_set(react->f_react, 1.0, fin);
-
         // Accumulate -n_elc*(J*f_ion) (*note* Jacobian factor already included in fin)
         gkyl_dg_mul_conf_phase_op_accumulate_range(&app->confBasis, &app->basis, react->f_react,
           -1.0, gks_elc->lte.moms.marr, fin, &app->local, &s->local);  
