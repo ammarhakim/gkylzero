@@ -70,7 +70,7 @@ gk_species_react_cross_init(struct gkyl_gyrokinetic_app *app, struct gk_species 
     react->vt_sq_donor[i] = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
 
     // Partner flow velocity (upar b_i), partner vt^2 for projecting LTE distribution functions
-    react->upar_partner[i] = mkarr(app->use_gpu, 3*app->confBasis.num_basis, app->local_ext.volume);
+    react->upar_ion[i] = mkarr(app->use_gpu, 3*app->confBasis.num_basis, app->local_ext.volume);
     react->vt_sq_partner[i] = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
     
     if (react->react_id[i] == GKYL_REACT_IZ) {
@@ -232,7 +232,7 @@ gk_species_react_cross_moms(gkyl_gyrokinetic_app *app, const struct gk_species *
       // Construct partner vector velocity upar b_i
       for (int j = 0; j < 3; ++j) {
         gkyl_dg_mul_op_range(app->confBasis, 
-          j, react->upar_partner[i], 1, gks_ion->lte.moms.marr, j, 
+          j, react->upar_ion[i], 1, gks_ion->lte.moms.marr, j, 
           app->gk_geom->bcart, &app->local); 
       } 
 
@@ -256,7 +256,7 @@ gk_species_react_cross_moms(gkyl_gyrokinetic_app *app, const struct gk_species *
 
       // prim_vars_neut_gk is returned to prim_vars[i] here.
       gkyl_dg_cx_coll(react->cx[i], gks_ion->lte.moms.marr, gkns_partner->lte.moms.marr, 
-        react->upar_partner[i], react->coeff_react[i], 0);
+        react->upar_ion[i], react->coeff_react[i], 0);
     }
   }
   app->stat.species_react_mom_tm += gkyl_time_diff_now_sec(wst);
@@ -408,7 +408,7 @@ gk_species_react_release(const struct gkyl_gyrokinetic_app *app, const struct gk
     gkyl_array_release(react->u_i[i]); 
     gkyl_array_release(react->u_i_dot_b_i[i]);
     gkyl_array_release(react->vt_sq_donor[i]);
-    gkyl_array_release(react->upar_partner[i]); 
+    gkyl_array_release(react->upar_ion[i]); 
     gkyl_array_release(react->vt_sq_partner[i]); 
 
     if (react->react_id[i] == GKYL_REACT_IZ) {

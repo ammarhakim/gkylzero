@@ -382,8 +382,9 @@ struct gk_react {
   struct gkyl_array *u_i[GKYL_MAX_REACT]; // Vector flow velocity for neutrals (ux, uy, uz)
   struct gkyl_array *u_i_dot_b_i[GKYL_MAX_REACT]; // u_i . b_i (Cartesian compoments of magnetic field unit vector)
   struct gkyl_array *vt_sq_donor[GKYL_MAX_REACT]; // Donor thermal velocity 
-  struct gkyl_array *upar_partner[GKYL_MAX_REACT]; // Partner vector parallel flow velocity upar b_i
-  struct gkyl_array *vt_sq_partner[GKYL_MAX_REACT]; // Partner thermal velocity 
+  struct gkyl_array *upar_ion[GKYL_MAX_REACT]; // Ion vector parallel flow velocity upar b_i
+  struct gkyl_array *vt_sq_ion[GKYL_MAX_REACT]; // Ion thermal velocity 
+  struct gkyl_array *vt_sq_partner[GKYL_MAX_REACT]; // Neutral (partner) thermal velocity
   
   union {
     // ionization
