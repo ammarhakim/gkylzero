@@ -40,7 +40,8 @@ gkyl_tool_args_release(struct gkyl_tool_args* args)
 {
   for (int i=0; i<args->argc; ++i)
     gkyl_free(args->argv[i]);
-  gkyl_free(args->argv);
+  if (args->argv)
+    gkyl_free(args->argv);
   gkyl_free(args);
 }
 

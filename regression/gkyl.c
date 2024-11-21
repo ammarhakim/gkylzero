@@ -291,7 +291,12 @@ show_banner(FILE *fp)
 #ifdef GKYL_HAVE_NCCL
     fprintf(fp, "Built with CUDA\n");
 #else
-    fprintf(fp, "Built without CUDA\n\n");
+    fprintf(fp, "Built without CUDA\n");
+#endif
+#ifdef GKYL_HAVE_MPI
+    fprintf(fp, "Built with MPI\n");
+#else
+    fprintf(fp, "Built without MPI\n\n");
 #endif    
   }
 }
@@ -440,8 +445,14 @@ main(int argc, char **argv)
   // push extra arguments into a Lua table to Tools and App can get
   // them
   lua_newtable(L);
+  if (app_args->num_opt_args > 0)  {
+    lua_pushinteger(L, 1);
+    lua_pushstring(L, app_args->opt_args[0]);
+    lua_rawset(L, -3);    
+  }
+  
   for (int i=1; i<app_args->num_opt_args; ++i) {
-    lua_pushinteger(L, i);
+    lua_pushinteger(L, i+1);
     lua_pushstring(L, app_args->opt_args[i]);
     lua_rawset(L, -3);
   }

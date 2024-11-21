@@ -24,7 +24,10 @@
 #include <lualib.h>
 #include <lauxlib.h>
 
+#include <stdio.h>
 #include <string.h>
+
+#include <stc/coption.h>
 
 #ifdef GKYL_HAVE_MPI
 #include <mpi.h>
@@ -1549,6 +1552,80 @@ write_step_message(const struct gkyl_moment_app *app, struct step_message_trigs 
   }
 }
 
+static void
+show_help(const struct gkyl_moment_app *app)
+{
+  gkyl_moment_app_cout(app, stdout, "Moment script takes the following arguments:\n");
+  gkyl_moment_app_cout(app, stdout, " -h  Print this help message and exit\n");
+  gkyl_moment_app_cout(app, stdout, " -V  Show verbose output\n\n");
+
+  gkyl_moment_app_cout(app, stdout, "The following commands are supported:\n");
+  gkyl_moment_app_cout(app, stdout, " run Run the simulation. It takes the following arguments\n");
+  gkyl_moment_app_cout(app, stdout, "   -s N Number of steps to run\n");
+}
+
+static struct gkyl_tool_args *
+tool_args_from_argv(int optind, int argc, char *const*argv)
+{
+  struct gkyl_tool_args *targs = gkyl_malloc(sizeof *targs);
+  
+  targs->argc = argc-optind;
+  targs->argv = 0;
+
+  if (targs->argc > 0) {
+    targs->argv = gkyl_malloc(targs->argc*sizeof(char *));
+      for (int i = optind, j = 0; i < argc; ++i, ++j) {
+        targs->argv[j] = gkyl_malloc(strlen(argv[i])+1);
+        strcpy(targs->argv[j], argv[i]);
+      }
+  }
+
+  return targs;
+}
+
+// CLI parser for main script
+struct script_cli {
+  bool verbose;
+  bool help;
+  struct gkyl_tool_args *rest;
+};
+
+static struct script_cli
+mom_parse_script_cli(struct gkyl_tool_args *acv)
+{
+  struct script_cli cli = {
+    .verbose = false,
+    .help = false
+  };
+  
+  coption_long longopts[] = {
+    {0}
+  };
+  const char* shortopts = "+hV";
+
+  coption opt = coption_init();
+  int c;
+  while ((c = coption_get(&opt, acv->argc, acv->argv, shortopts, longopts)) != -1) {
+    switch (c) {
+      case 'h':
+        cli.help = true;
+        break;
+        
+      case 'V':
+        cli.verbose = true;
+        break;
+        
+      case '?':
+        break;
+    }
+  }
+
+  cli.rest = tool_args_from_argv(opt.ind, acv->argc, acv->argv);
+  
+  return cli;
+}
+    
+
 // Run simulation. (num_steps) -> bool. num_steps is optional.
 static int
 mom_app_run(lua_State *L)
@@ -1563,6 +1640,15 @@ mom_app_run(lua_State *L)
   // Parse command lines arguments passed to input file.
   struct gkyl_tool_args *args = gkyl_tool_args_new(L);
 
+  struct script_cli script_cli = mom_parse_script_cli(args);
+  if (script_cli.help) {
+    show_help(app);
+    gkyl_tool_args_release(script_cli.rest);
+    gkyl_tool_args_release(args);
+    goto freeresources;
+  }
+
+  gkyl_tool_args_release(script_cli.rest);
   gkyl_tool_args_release(args);
 
   // Initial and final simulation times.
@@ -1630,12 +1716,7 @@ mom_app_run(lua_State *L)
   double dt_init = -1.0, dt_failure_tol = app_lw->dt_failure_tol;
   int num_failures = 0, num_failures_max = app_lw->num_failures_max;
 
-  bool use_verbose = false;
-  lua_getglobal(L, "GKYL_USE_VERBOSE");
-  if (lua_toboolean(L, -1)) {
-    use_verbose = true;
-  }
-  lua_pop(L, 1);
+  bool use_verbose = script_cli.verbose;
 
   long num_steps_new = -1;
   lua_getglobal(L, "GKYL_NUM_STEPS");
