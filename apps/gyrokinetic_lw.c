@@ -97,6 +97,7 @@ gyrokinetic_species_lw_new(lua_State *L)
   gk_species.charge = glua_tbl_get_number(L, "charge", 0.0);
   gk_species.mass = glua_tbl_get_number(L, "mass", 1.0);
   gk_species.polarization_density = glua_tbl_get_number(L, "polarizationDensity", 0.0);
+  gk_species.no_by = glua_tbl_get_bool(L, "noBy", false);
 
   with_lua_tbl_tbl(L, "cells") {
     vdim = glua_objlen(L);
@@ -443,6 +444,48 @@ gyrokinetic_field_lw_new(lua_State *L)
 
   gk_field.fem_parbc = glua_tbl_get_integer(L, "femParBc", 0);
   gk_field.kperpSq = glua_tbl_get_number(L, "kPerpSq", 0.0);
+
+  with_lua_tbl_tbl(L, "poissonBcs") {
+    with_lua_tbl_tbl(L, "lowerType") {
+      int nbc = glua_objlen(L);
+      
+      for (int i = 0; i < nbc; i++) {
+        gk_field.poisson_bcs.lo_type[i] = glua_tbl_iget_integer(L, i + 1, 0);
+      }
+    }
+
+    with_lua_tbl_tbl(L, "upperType") {
+      int nbc = glua_objlen(L);
+
+      for (int i = 0; i < nbc; i++) {
+        gk_field.poisson_bcs.up_type[i] = glua_tbl_iget_integer(L, i + 1, 0);
+      }
+    }
+
+    with_lua_tbl_tbl(L, "lowerValue") {
+      int nbc = glua_objlen(L);
+
+      for (int i = 0; i < nbc; i++) {
+        struct gkyl_poisson_bc_value lower_bc = {
+          .v = { glua_tbl_iget_number(L, i + 1, 0.0) },
+        };
+
+        gk_field.poisson_bcs.lo_value[i] = lower_bc;
+      }
+    }
+
+    with_lua_tbl_tbl(L, "upperValue") {
+      int nbc = glua_objlen(L);
+
+      for (int i = 0; i < nbc; i++) {
+        struct gkyl_poisson_bc_value upper_bc = {
+          .v = { glua_tbl_iget_number(L, i + 1, 0.0) },
+        };
+
+        gk_field.poisson_bcs.up_value[i] = upper_bc;
+      }
+    }
+  }
 
   struct gyrokinetic_field_lw *gkf_lw = lua_newuserdata(L, sizeof(*gkf_lw));
 
