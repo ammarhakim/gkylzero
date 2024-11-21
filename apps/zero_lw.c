@@ -160,6 +160,11 @@ gkyl_zero_lw_openlibs(lua_State *L)
   gkyl_register_vlasov_model_types(L);
   gkyl_register_vlasov_collision_types(L);
   gkyl_register_vlasov_source_types(L);
+
+  // Register types for gyrokinetic FEM boundary conditions, geometry type, and field ID.
+  gkyl_register_gyrokinetic_fem_bc_types(L);
+  gkyl_register_gyrokinetic_geometry_types(L);
+  gkyl_register_gyrokinetic_field_types(L);
 }
 
 #endif

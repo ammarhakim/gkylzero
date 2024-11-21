@@ -315,7 +315,7 @@ vlasov_species_lw_new(lua_State *L)
     num_sources = glua_tbl_get_integer(L, "numSources", 0);
 
     with_lua_tbl_tbl(L, "projections") {
-      for (int i = 0; i < num_init; i++) {
+      for (int i = 0; i < num_sources; i++) {
         if (glua_tbl_iget_tbl(L, i + 1)) {
           source_proj_id[i] = glua_tbl_get_integer(L, "projectionID", 0);
 
@@ -611,7 +611,7 @@ vlasov_field_lw_new(lua_State *L)
   return 1;
 }
 
-// Species constructor.
+// Field constructor.
 static struct luaL_Reg vm_field_ctor[] = {
   { "new",  vlasov_field_lw_new },
   { 0, 0 }
@@ -946,8 +946,8 @@ vm_app_new(lua_State *L)
     app_lw->source_length[s] = species[s]->source_length;
     strcpy(app_lw->source_species[s], species[s]->source_species);
 
-    app_lw->num_sources[s] = species[s]->num_init;
-    for (int i = 0; i < app_lw->num_init[s]; i++) {
+    app_lw->num_sources[s] = species[s]->num_sources;
+    for (int i = 0; i < app_lw->num_sources[s]; i++) {
       app_lw->source_proj_id[s][i] = species[s]->source_proj_id[i];
 
       app_lw->source_has_init_func[s][i] = species[s]->source_has_init_func[i];

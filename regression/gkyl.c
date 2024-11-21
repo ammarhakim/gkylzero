@@ -32,6 +32,7 @@
 #include <gkyl_moment_lw.h>
 #include <gkyl_vlasov_lw.h>
 #include <gkyl_pkpm_lw.h>
+#include <gkyl_gyrokinetic_lw.h>
 #include <gkyl_zero_lw.h>
 
 #ifdef GKYL_HAVE_MPI
@@ -326,6 +327,7 @@ main(int argc, char **argv)
   gkyl_vlasov_lw_openlibs(L);
   gkyl_moment_lw_openlibs(L);
   gkyl_pkpm_lw_openlibs(L);
+  gkyl_gyrokinetic_lw_openlibs(L);
   lua_gc(L, LUA_GCRESTART, -1);
 
   if (app_args->use_mpi) {
