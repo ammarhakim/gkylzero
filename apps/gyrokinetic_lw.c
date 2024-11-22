@@ -41,6 +41,9 @@ struct gyrokinetic_species_lw {
   int vdim; // Velocity space dimensions.
   bool evolve; // Is this species evolved?
 
+  bool has_mapc2p_mapping_func; // Is there a non-uniform velocity space mapping function?
+  struct lua_func_ctx mapc2p_mapping_func_ref; // Lua registry reference to non-uniofrm velocity space mapping function.
+
   enum gkyl_projection_id proj_id; // Projection type.
 
   bool has_init_func; // Is there an initialization function?
@@ -165,6 +168,16 @@ gyrokinetic_species_lw_new(lua_State *L)
       gk_species.bcz.upper.type = glua_tbl_get_integer(L, "type", 0);
     }
   }
+
+  bool has_mapc2p_mapping_func = false;
+  int mapc2p_mapping_func_ref = LUA_NOREF;
+
+  with_lua_tbl_tbl(L, "mapc2p") {
+    if (glua_tbl_get_func(L, "mapping")) {
+      mapc2p_mapping_func_ref = luaL_ref(L, LUA_REGISTRYINDEX);
+      has_mapc2p_mapping_func = true;
+    }
+  };
   
   enum gkyl_projection_id proj_id = GKYL_PROJ_FUNC;
 
@@ -308,6 +321,14 @@ gyrokinetic_species_lw_new(lua_State *L)
   gks_lw->vdim = vdim;
   gks_lw->evolve = evolve;
   gks_lw->gk_species = gk_species;
+
+  gks_lw->has_mapc2p_mapping_func = has_mapc2p_mapping_func;
+  gks_lw->mapc2p_mapping_func_ref = (struct lua_func_ctx) {
+    .func_ref = mapc2p_mapping_func_ref,
+    .ndim = 2,
+    .nret = 2,
+    .L = L,
+  };
 
   gks_lw->proj_id = proj_id;
 
@@ -518,6 +539,9 @@ struct gyrokinetic_app_lw {
 
   struct lua_func_ctx mapc2p_ctx; // Function context for mapc2p.
   struct lua_func_ctx bmag_ctx; // Function context for bmag.
+
+  bool has_mapc2p_mapping_func[GKYL_MAX_SPECIES]; // Is there a non-uniform velocity space mapping function?
+  struct lua_func_ctx mapc2p_mapping_func_ctx[GKYL_MAX_SPECIES]; // Context for non-uniform velocity space mapping function.
 
   enum gkyl_projection_id proj_id[GKYL_MAX_SPECIES]; // Projection type.
 
@@ -777,6 +801,9 @@ gk_app_new(lua_State *L)
     gk.species[s] = species[s]->gk_species;
     gk.vdim = species[s]->vdim;
 
+    app_lw->has_mapc2p_mapping_func[s] = species[s]->has_mapc2p_mapping_func;
+    app_lw->mapc2p_mapping_func_ctx[s] = species[s]->mapc2p_mapping_func_ref;
+
     app_lw->proj_id[s] = species[s]->proj_id;
 
     app_lw->has_init_func[s] = species[s]->has_init_func;
@@ -792,6 +819,11 @@ gk_app_new(lua_State *L)
     app_lw->temp_init_func_ctx[s] = species[s]->temp_init_func_ref;
 
     app_lw->correct_all_moms[s] = species[s]->correct_all_moms;
+
+    if (species[s]->has_mapc2p_mapping_func) {
+      gk.species[s].mapc2p.mapping = gkyl_lw_eval_cb;
+      gk.species[s].mapc2p.ctx = &app_lw->mapc2p_mapping_func_ctx[s];
+    }
 
     gk.species[s].projection.proj_id = app_lw->proj_id[s];
 

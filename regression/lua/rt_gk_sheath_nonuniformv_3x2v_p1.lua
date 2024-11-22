@@ -123,10 +123,29 @@ gyrokineticApp = Gyrokinetic.App.new {
     charge = charge_elc, mass = mass_elc,
     
     -- Velocity space grid.
-    lower = { -vpar_max_elc, 0.0 },
-    upper = { vpar_max_elc, mu_max_elc },
+    lower = { -1.0, 0.0 },
+    upper = { 1.0, 1.0 },
     cells = { Nvpar, Nmu },
     polarizationDensity = n0,
+
+    mapc2p = {
+      -- Rescaled electron velocity space coordinates (vpar, mu) from old velocity space coordinates (cpvar, cmu).
+      mapping = function (t, vc)
+        local cvpar, cmu = vc[1], vc[2]
+    
+        local vpar = 0.0
+        local mu = 0.0
+    
+        if cvpar < 0.0 then
+          vpar = -vpar_max_elc * (cvpar * cvpar)
+        else
+          vpar = vpar_max_elc * (cvpar * cvpar)
+        end
+        mu = mu_max_elc * (cmu * cmu)
+    
+        return vpar, mu
+      end
+    },
 
     -- Initial conditions.
     projection = {
@@ -253,10 +272,29 @@ gyrokineticApp = Gyrokinetic.App.new {
     charge = charge_ion, mass = mass_ion,
     
     -- Velocity space grid.
-    lower = { -vpar_max_ion, 0.0 },
-    upper = { vpar_max_ion, mu_max_ion },
+    lower = { -1.0, 0.0 },
+    upper = { 1.0, 1.0 },
     cells = { Nvpar, Nmu },
     polarizationDensity = n0,
+
+    mapc2p = {
+      -- Rescaled ion velocity space coordinates (vpar, mu) from old velocity space coordinates (cpvar, cmu).
+      mapping = function (t, vc)
+        local cvpar, cmu = vc[1], vc[2]
+    
+        local vpar = 0.0
+        local mu = 0.0
+    
+        if cvpar < 0.0 then
+          vpar = -vpar_max_ion * (cvpar * cvpar)
+        else
+          vpar = vpar_max_ion * (cvpar * cvpar)
+        end
+        mu = mu_max_ion * (cmu * cmu)
+    
+        return vpar, mu
+      end
+    },
 
     -- Initial conditions.
     projection = {

@@ -45,12 +45,10 @@ floor_src = 0.1 -- Minimum source intensity.
 
 -- Simulation parameters.
 Nx = 4 -- Cell count (configuration space: x-direction).
-Ny = 1 -- Cell count (configuration space: y-direction).
 Nz = 8 -- Cell count (configuration space: z-direction).
 Nvpar = 6 -- Cell count (velocity space: parallel velocity direction).
 Nmu = 4 -- Cell count (velocity space: magnetic moment direction).
 Lx = 50.0 * rho_s -- Domain size (configuration space: x-direction).
-Ly = 100.0 * rho_s -- Domain size (configuration space: y-direction).
 Lz = 4.0 -- Domain size (configuration space: z-direction).
 vpar_max_elc = 4.0 * vte -- Domain boundary (electron velocity space: parallel velocity direction).
 mu_max_elc = (3.0 / 2.0) * 0.5 * mass_elc * math.pow(4.0 * vte, 2.0) / (2.0 * B0) -- Domain boundary (electron velocity space: magnetic moment direction).
@@ -72,9 +70,9 @@ gyrokineticApp = Gyrokinetic.App.new {
   nFrame = num_frames,
   dtFailureTol = dt_failure_tol,
   numFailuresMax = num_failures_max,
-  lower = { R - 0.5 * Lx, -0.5 * Ly, -0.5 * Lz },
-  upper = { R + 0.5 * Lx, 0.5 * Ly, 0.5 * Lz },
-  cells = { Nx, Ny, Nz },
+  lower = { R - 0.5 * Lx, -0.5 * Lz },
+  upper = { R + 0.5 * Lx, 0.5 * Lz },
+  cells = { Nx, Nz },
   cflFrac = cfl_frac,
 
   --basis = basis_type,
@@ -85,7 +83,7 @@ gyrokineticApp = Gyrokinetic.App.new {
   decompCuts = { 1 }, -- Cuts in each coodinate direction (x-direction only).
 
   -- Boundary conditions for configuration space.
-  periodicDirs = { 2 }, -- Periodic directions (y-direction only).
+  periodicDirs = { }, -- Periodic directions (none).
 
   geometry = {
     geometryID = G0.Geometry.MapC2P,
@@ -123,17 +121,36 @@ gyrokineticApp = Gyrokinetic.App.new {
     charge = charge_elc, mass = mass_elc,
     
     -- Velocity space grid.
-    lower = { -vpar_max_elc, 0.0 },
-    upper = { vpar_max_elc, mu_max_elc },
+    lower = { -1.0, 0.0 },
+    upper = { 1.0, 1.0 },
     cells = { Nvpar, Nmu },
     polarizationDensity = n0,
+
+    mapc2p = {
+      -- Rescaled electron velocity space coordinates (vpar, mu) from old velocity space coordinates (cpvar, cmu).
+      mapping = function (t, vc)
+        local cvpar, cmu = vc[1], vc[2]
+  
+        local vpar = 0.0
+        local mu = 0.0
+  
+        if cvpar < 0.0 then
+          vpar = -vpar_max_elc * (cvpar * cvpar)
+        else
+          vpar = vpar_max_elc * (cvpar * cvpar)
+        end
+        mu = mu_max_elc * (cmu * cmu)
+  
+        return vpar, mu
+      end
+    },
 
     -- Initial conditions.
     projection = {
       projectionID = G0.Projection.MaxwellianPrimitive,
 
       densityInit = function (t, xn)
-        local x, z = xn[1], xn[3]
+        local x, z = xn[1], xn[2]
 
         local src_density = math.max(math.exp(-((x - xmu_src) * (x - xmu_src)) / ((2.0 * xsigma_src) * (2.0 * xsigma_src))), floor_src) * n_src
         local src_temp = 0.0
@@ -183,7 +200,7 @@ gyrokineticApp = Gyrokinetic.App.new {
           projectionID = G0.Projection.MaxwellianPrimitive,
 
           densityInit = function (t, xn)
-            local x, z = xn[1], xn[3]
+            local x, z = xn[1], xn[2]
 
             local n = 0.0
 
@@ -235,7 +252,7 @@ gyrokineticApp = Gyrokinetic.App.new {
         type = G0.SpeciesBc.bcZeroFlux
       }
     },
-    bcz = {
+    bcy = {
       lower = {
         type = G0.SpeciesBc.bcGkSheath
       },
@@ -253,17 +270,36 @@ gyrokineticApp = Gyrokinetic.App.new {
     charge = charge_ion, mass = mass_ion,
     
     -- Velocity space grid.
-    lower = { -vpar_max_ion, 0.0 },
-    upper = { vpar_max_ion, mu_max_ion },
+    lower = { -1.0, 0.0 },
+    upper = { 1.0, 1.0 },
     cells = { Nvpar, Nmu },
     polarizationDensity = n0,
+
+    mapc2p = {
+      -- Rescaled ion velocity space coordinates (vpar, mu) from old velocity space coordinates (cpvar, cmu).
+      mapping = function (t, vc)
+        local cvpar, cmu = vc[1], vc[2]
+  
+        local vpar = 0.0
+        local mu = 0.0
+  
+        if cvpar < 0.0 then
+          vpar = -vpar_max_ion * (cvpar * cvpar)
+        else
+          vpar = vpar_max_ion * (cvpar * cvpar)
+        end
+        mu = mu_max_ion * (cmu * cmu)
+  
+        return vpar, mu
+      end
+    },
 
     -- Initial conditions.
     projection = {
       projectionID = G0.Projection.MaxwellianPrimitive,
 
       densityInit = function (t, xn)
-        local x, z = xn[1], xn[3]
+        local x, z = xn[1], xn[2]
 
         local src_density = math.max(math.exp(-((x - xmu_src) * (x - xmu_src)) / ((2.0 * xsigma_src) * (2.0 * xsigma_src))), floor_src) * n_src
         local src_temp = 0.0
@@ -313,7 +349,7 @@ gyrokineticApp = Gyrokinetic.App.new {
           projectionID = G0.Projection.MaxwellianPrimitive,
 
           densityInit = function (t, xn)
-            local x, z = xn[1], xn[3]
+            local x, z = xn[1], xn[2]
 
             local n = 0.0
 
@@ -365,7 +401,7 @@ gyrokineticApp = Gyrokinetic.App.new {
         type = G0.SpeciesBc.bcZeroFlux
       }
     },
-    bcz = {
+    bcy = {
       lower = {
         type = G0.SpeciesBc.bcGkSheath
       },
@@ -375,7 +411,7 @@ gyrokineticApp = Gyrokinetic.App.new {
     },
 
     evolve = true, -- Evolve species?
-    diagnostics = { "FourMoments" }
+    diagnostics = { "M0", "M1", "M2", "M2par", "M2perp" }
   },
 
   -- Field.
@@ -384,12 +420,10 @@ gyrokineticApp = Gyrokinetic.App.new {
 
     poissonBcs = {
       lowerType = {
-        G0.PoissonBc.bcDirichlet,
-        G0.PoissonBc.bcPeriodic
+        G0.PoissonBc.bcDirichlet
       },
       upperType = {
-        G0.PoissonBc.bcDirichlet,
-        G0.PoissonBc.bcPeriodic
+        G0.PoissonBc.bcDirichlet
       },
       lowerValue = {
         0.0

@@ -20,6 +20,8 @@ a0 = 0.15 -- Minor axis (simple toroidal coordinates).
 
 nu_frac = 0.1 -- Collision frequency fraction.
 
+k_perp_rho_s = 0.3 -- Product of perpendicular wavenumber and ion-sound gyroradius.
+
 -- Derived physical quantities (using non-normalized physical units).
 R = R0 + a0 -- Radial coordinate (simple toroidal coordinates).
 B0 = B_axis * (R0 / R) -- Reference magnetic field strength (Tesla).
@@ -37,20 +39,18 @@ vti = math.sqrt(Ti / mass_ion) -- Ion thermal velocity.
 omega_ci = math.abs(charge_ion * B0 / mass_ion) -- Ion cyclotron frequency.
 rho_s = c_s / omega_ci -- Ion-sound gyroradius.
 
-n_src = 1.4690539 * 3.612270e23 -- Source number density.
+k_perp = k_perp_rho_s / rho_s -- Perpendicular wavenumber (for Poisson solver).
+
+n_src = 2.870523e21 -- Source number density.
 T_src = 2.0 * Te -- Source temperature.
-xmu_src = R -- Source mean position (x-direction).
-xsigma_src = 0.005 -- Source standard deviation (x-direction).
-floor_src = 0.1 -- Minimum source intensity.
+
+c_s_src = math.sqrt((5.0 / 3.0) * T_src / mass_ion) -- Source sound speed.
+n_peak = 4.0 * math.sqrt(5.0) / 3.0 / c_s_src * 0.5 * n_src -- Peak number density.
 
 -- Simulation parameters.
-Nx = 4 -- Cell count (configuration space: x-direction).
-Ny = 1 -- Cell count (configuration space: y-direction).
 Nz = 8 -- Cell count (configuration space: z-direction).
 Nvpar = 6 -- Cell count (velocity space: parallel velocity direction).
 Nmu = 4 -- Cell count (velocity space: magnetic moment direction).
-Lx = 50.0 * rho_s -- Domain size (configuration space: x-direction).
-Ly = 100.0 * rho_s -- Domain size (configuration space: y-direction).
 Lz = 4.0 -- Domain size (configuration space: z-direction).
 vpar_max_elc = 4.0 * vte -- Domain boundary (electron velocity space: parallel velocity direction).
 mu_max_elc = (3.0 / 2.0) * 0.5 * mass_elc * math.pow(4.0 * vte, 2.0) / (2.0 * B0) -- Domain boundary (electron velocity space: magnetic moment direction).
@@ -72,9 +72,9 @@ gyrokineticApp = Gyrokinetic.App.new {
   nFrame = num_frames,
   dtFailureTol = dt_failure_tol,
   numFailuresMax = num_failures_max,
-  lower = { R - 0.5 * Lx, -0.5 * Ly, -0.5 * Lz },
-  upper = { R + 0.5 * Lx, 0.5 * Ly, 0.5 * Lz },
-  cells = { Nx, Ny, Nz },
+  lower = { -0.5 * Lz },
+  upper = { 0.5 * Lz },
+  cells = { Nz },
   cflFrac = cfl_frac,
 
   --basis = basis_type,
@@ -85,7 +85,7 @@ gyrokineticApp = Gyrokinetic.App.new {
   decompCuts = { 1 }, -- Cuts in each coodinate direction (x-direction only).
 
   -- Boundary conditions for configuration space.
-  periodicDirs = { 2 }, -- Periodic directions (y-direction only).
+  periodicDirs = { }, -- Periodic directions (none).
 
   geometry = {
     geometryID = G0.Geometry.MapC2P,
@@ -93,28 +93,18 @@ gyrokineticApp = Gyrokinetic.App.new {
 
     -- Computational coordinates (x, y, z) from physical coordinates (X, Y, Z).
     mapc2p = function (t, zc)
-      local x, y, z = zc[1], zc[2], zc[3]
-
       local xp = { }
       
-      local R = x
-      local phi = z / (R0 + a0)
-      local X = R * math.cos(phi)
-      local Y = R * math.sin(phi)
-      local Z = y
-
-      xp[1] = X
-      xp[2] = Y
-      xp[3] = Z
+      xp[1] = zc[1]
+      xp[2] = zc[2]
+      xp[3] = zc[3]
 
       return xp[1], xp[2], xp[3]
     end,
 
     -- Magnetic field strength.
     bmagFunc = function (t, zc)
-      local x = zc[1]
-
-      return B0 * R / x
+      return B0
     end
   },
 
@@ -123,31 +113,39 @@ gyrokineticApp = Gyrokinetic.App.new {
     charge = charge_elc, mass = mass_elc,
     
     -- Velocity space grid.
-    lower = { -vpar_max_elc, 0.0 },
-    upper = { vpar_max_elc, mu_max_elc },
+    lower = { -1.0, 0.0 },
+    upper = { 1.0, 1.0 },
     cells = { Nvpar, Nmu },
     polarizationDensity = n0,
+
+    mapc2p = {
+      -- Rescaled electron velocity space coordinates (vpar, mu) from old velocity space coordinates (cpvar, cmu).
+      mapping = function (t, vc)
+        local cvpar, cmu = vc[1], vc[2]
+
+        local vpar = 0.0
+        local mu = 0.0
+
+        if cvpar < 0.0 then
+          vpar = -vpar_max_elc * (cvpar * cvpar)
+        else
+          vpar = vpar_max_elc * (cvpar * cvpar)
+        end
+        mu = mu_max_elc * (cmu * cmu)
+
+        return vpar, mu
+      end
+    },
 
     -- Initial conditions.
     projection = {
       projectionID = G0.Projection.MaxwellianPrimitive,
 
       densityInit = function (t, xn)
-        local x, z = xn[1], xn[3]
+        local z = xn[1]
 
-        local src_density = math.max(math.exp(-((x - xmu_src) * (x - xmu_src)) / ((2.0 * xsigma_src) * (2.0 * xsigma_src))), floor_src) * n_src
-        local src_temp = 0.0
-        local n = 0
-      
-        if x < xmu_src + 3.0 * xsigma_src then
-          src_temp = T_src
-        else
-          src_temp = (3.0 / 8.0) * T_src
-        end
-      
-        local c_s_src = math.sqrt((5.0 / 3.0) * src_temp / mass_ion)
-        local n_peak = 4.0 * math.sqrt(5.0) / 3.0 / c_s_src * (0.125 * Lz) * src_density
-      
+        local n = 0.0
+
         if math.abs(z) <= 0.25 * Lz then
           n = 0.5 * n_peak * (1.0 + math.sqrt(1.0 - (z / (0.25 * Lz)) * (z / (0.25 * Lz)))) -- Electron total number density (left).
         else
@@ -157,17 +155,7 @@ gyrokineticApp = Gyrokinetic.App.new {
         return n
       end,
       temperatureInit = function (t, xn)
-        local x = xn[1]
-
-        local T = 0.0
-
-        if x < xmu_src + 3.0 * xsigma_src then
-          T = (5.0 / 4.0) * Te -- Electron total temperature (left).
-        else
-          T = 0.5 * Te -- Electron total temperature (right).
-        end
-
-        return T
+        return Te -- Electron total temperature.
       end,
       parallelVelocityInit = function (t, xn)
         return 0.0 -- Electron parallel velocity.
@@ -183,13 +171,12 @@ gyrokineticApp = Gyrokinetic.App.new {
           projectionID = G0.Projection.MaxwellianPrimitive,
 
           densityInit = function (t, xn)
-            local x, z = xn[1], xn[3]
+            local z = xn[1]
 
             local n = 0.0
 
             if math.abs(z) < 0.25 * Lz then
-              n = math.max(math.exp(-((x - xmu_src) * (x - xmu_src)) / ((2.0 * xsigma_src) * (2.0 * xsigma_src))),
-                floor_src) * n_src -- Electron source total number density (left).
+              n = n_src -- Electron source total number density (left).
             else
               n = 1.0e-40 * n_src -- Electron source total number density (right).
             end
@@ -197,17 +184,7 @@ gyrokineticApp = Gyrokinetic.App.new {
             return n
           end,
           temperatureInit = function (t, xn)
-            local x = xn[1]
-
-            local T = 0.0
-
-            if x < xmu_src + 3.0 * xsigma_src then
-              T = T_src -- Electron source total temperature (left).
-            else
-              T = (3.0 / 8.0) * T_src -- Electron source total temperature (right).
-            end
-
-            return T -- Electron source total temperature.
+            return T_src -- Electron source total temperature.
           end,
           parallelVelocityInit = function (t, xn)
             return 0.0 -- Electron source parallel velocity.
@@ -229,14 +206,6 @@ gyrokineticApp = Gyrokinetic.App.new {
 
     bcx = {
       lower = {
-        type = G0.SpeciesBc.bcZeroFlux
-      },
-      upper = {
-        type = G0.SpeciesBc.bcZeroFlux
-      }
-    },
-    bcz = {
-      lower = {
         type = G0.SpeciesBc.bcGkSheath
       },
       upper = {
@@ -253,31 +222,39 @@ gyrokineticApp = Gyrokinetic.App.new {
     charge = charge_ion, mass = mass_ion,
     
     -- Velocity space grid.
-    lower = { -vpar_max_ion, 0.0 },
-    upper = { vpar_max_ion, mu_max_ion },
+    lower = { -1.0, 0.0 },
+    upper = { 1.0, 1.0 },
     cells = { Nvpar, Nmu },
     polarizationDensity = n0,
+
+    mapc2p = {
+      -- Rescaled ion velocity space coordinates (vpar, mu) from old velocity space coordinates (cpvar, cmu).
+      mapping = function (t, vc)
+        local cvpar, cmu = vc[1], vc[2]
+
+        local vpar = 0.0
+        local mu = 0.0
+
+        if cvpar < 0.0 then
+          vpar = -vpar_max_ion * (cvpar * cvpar)
+        else
+          vpar = vpar_max_ion * (cvpar * cvpar)
+        end
+        mu = mu_max_ion * (cmu * cmu)
+
+        return vpar, mu
+      end
+    },
 
     -- Initial conditions.
     projection = {
       projectionID = G0.Projection.MaxwellianPrimitive,
 
       densityInit = function (t, xn)
-        local x, z = xn[1], xn[3]
+        local z = xn[1]
 
-        local src_density = math.max(math.exp(-((x - xmu_src) * (x - xmu_src)) / ((2.0 * xsigma_src) * (2.0 * xsigma_src))), floor_src) * n_src
-        local src_temp = 0.0
-        local n = 0
-      
-        if x < xmu_src + 3.0 * xsigma_src then
-          src_temp = T_src
-        else
-          src_temp = (3.0 / 8.0) * T_src
-        end
-      
-        local c_s_src = math.sqrt((5.0 / 3.0) * src_temp / mass_ion)
-        local n_peak = 4.0 * math.sqrt(5.0) / 3.0 / c_s_src * (0.125 * Lz) * src_density
-      
+        local n = 0.0
+
         if math.abs(z) <= 0.25 * Lz then
           n = 0.5 * n_peak * (1.0 + math.sqrt(1.0 - (z / (0.25 * Lz)) * (z / (0.25 * Lz)))) -- Ion total number density (left).
         else
@@ -287,17 +264,7 @@ gyrokineticApp = Gyrokinetic.App.new {
         return n
       end,
       temperatureInit = function (t, xn)
-        local x = xn[1]
-
-        local T = 0.0
-
-        if x < xmu_src + 3.0 * xsigma_src then
-          T = (5.0 / 4.0) * Ti -- Ion total temperature (left).
-        else
-          T = 0.5 * Ti -- Ion total temperature (right).
-        end
-
-        return T
+        return Ti -- Ion total temperature.
       end,
       parallelVelocityInit = function (t, xn)
         return 0.0 -- Ion parallel velocity.
@@ -306,20 +273,19 @@ gyrokineticApp = Gyrokinetic.App.new {
 
     source = {
       sourceID = G0.Source.Proj,
-  
+
       numSources = 1,
       projections = {
         {
           projectionID = G0.Projection.MaxwellianPrimitive,
 
           densityInit = function (t, xn)
-            local x, z = xn[1], xn[3]
+            local z = xn[1]
 
             local n = 0.0
 
             if math.abs(z) < 0.25 * Lz then
-              n = math.max(math.exp(-((x - xmu_src) * (x - xmu_src)) / ((2.0 * xsigma_src) * (2.0 * xsigma_src))),
-                floor_src) * n_src -- Ion source total number density (left).
+              n = n_src -- Ion source total number density (left).
             else
               n = 1.0e-40 * n_src -- Ion source total number density (right).
             end
@@ -327,17 +293,7 @@ gyrokineticApp = Gyrokinetic.App.new {
             return n
           end,
           temperatureInit = function (t, xn)
-            local x = xn[1]
-
-            local T = 0.0
-
-            if x < xmu_src + 3.0 * xsigma_src then
-              T = T_src -- Ion source total temperature (left).
-            else
-              T = (3.0 / 8.0) * T_src -- Ion source total temperature (right).
-            end
-
-            return T -- Ion source total temperature.
+            return T_src -- Ion source total temperature.
           end,
           parallelVelocityInit = function (t, xn)
             return 0.0 -- Ion source parallel velocity.
@@ -359,14 +315,6 @@ gyrokineticApp = Gyrokinetic.App.new {
 
     bcx = {
       lower = {
-        type = G0.SpeciesBc.bcZeroFlux
-      },
-      upper = {
-        type = G0.SpeciesBc.bcZeroFlux
-      }
-    },
-    bcz = {
-      lower = {
         type = G0.SpeciesBc.bcGkSheath
       },
       upper = {
@@ -375,29 +323,13 @@ gyrokineticApp = Gyrokinetic.App.new {
     },
 
     evolve = true, -- Evolve species?
-    diagnostics = { "FourMoments" }
+    diagnostics = { "M0", "M1", "M2", "M2par", "M2perp" }
   },
 
   -- Field.
   field = Gyrokinetic.Field.new {
     femParBc = G0.ParProjBc.None,
-
-    poissonBcs = {
-      lowerType = {
-        G0.PoissonBc.bcDirichlet,
-        G0.PoissonBc.bcPeriodic
-      },
-      upperType = {
-        G0.PoissonBc.bcDirichlet,
-        G0.PoissonBc.bcPeriodic
-      },
-      lowerValue = {
-        0.0
-      },
-      upperValue = {
-        0.0
-      }
-    }
+    kPerpSq = k_perp * k_perp
   }
 }
 
