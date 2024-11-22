@@ -10,6 +10,7 @@ ARCH_FLAGS ?= -march=native
 CUDA_ARCH ?= 70
 # Warning flags: -Wall -Wno-unused-variable -Wno-unused-function -Wno-missing-braces
 CFLAGS ?= -O3 -g -ffast-math -fPIC -MMD -MP -DGIT_COMMIT_ID=\"$(GIT_TIP)\" -DGKYL_BUILD_DATE="${BUILD_DATE}" -DGKYL_GIT_CHANGESET="${GIT_TIP}"
+SQL_CFLAGS ?= -fPIC
 LDFLAGS = 
 PREFIX ?= ${HOME}/gkylsoft
 INSTALL_PREFIX ?= ${PREFIX}
@@ -232,6 +233,11 @@ ${BUILD_DIR}/regression/%: regression/%.c ${BUILD_DIR}/libgkylzero.so
 ${BUILD_DIR}/amr_regression/%: amr_regression/%.c ${BUILD_DIR}/libgkylzero.so$
 	${MKDIR_P} ${BUILD_DIR}/amr_regression
 	${CC} ${CFLAGS} ${LDFLAGS} -o $@ $< -I. $(INCLUDES) ${EXEC_LIB_DIRS} ${EXEC_RPATH} ${EXEC_LIBS}
+
+# SQLIGHT needs special flags
+$(BUILD_DIR)/minus/sqlite3.c.o: minus/sqlite3.c
+	$(MKDIR_P) $(dir $@)
+	$(CC) $(SQL_CFLAGS) -c $< -o $@
 
 # Automated regression system
 ${BUILD_DIR}/ci/%: ci/%.c ${BUILD_DIR}/libgkylzero.so
