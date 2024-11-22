@@ -349,6 +349,7 @@ gk_species_radiation_release(const struct gkyl_gyrokinetic_app *app, const struc
   gkyl_array_release(rad->nvsqnu_surf);
   gkyl_array_release(rad->nvsqnu);
   gkyl_array_release(rad->vtsq);
+  gkyl_array_release(rad->m0);
   gkyl_array_release(rad->vtsq_min_normalized);
   gkyl_array_release(rad->vtsq_min_per_species);
   if (app->use_gpu) {

@@ -383,6 +383,7 @@ test_1x(int poly_order, bool use_gpu, double te, int atomic_z,
   gkyl_array_release(nvnu_surf);
   gkyl_array_release(nvsqnu);
   gkyl_array_release(nvsqnu_surf);
+  gkyl_array_release(n_elc);
 
   gkyl_dg_calc_gk_rad_vars_release(calc_gk_rad_vars);
 
@@ -706,6 +707,7 @@ test_2x(int poly_order, bool use_gpu, double te)
   gkyl_array_release(nvnu_surf);
   gkyl_array_release(nvsqnu);
   gkyl_array_release(nvsqnu_surf);
+  gkyl_array_release(n_elc);
 
   gkyl_dg_calc_gk_rad_vars_release(calc_gk_rad_vars);
 
