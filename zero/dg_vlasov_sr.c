@@ -47,7 +47,7 @@ gkyl_dg_vlasov_sr_new(const struct gkyl_basis* cbasis, const struct gkyl_basis* 
 {
 #ifdef GKYL_HAVE_CUDA
   if(use_gpu) {
-    return gkyl_dg_vlasov_sr_cu_dev_new(cbasis, pbasis, conf_range, vel_range, field_id);
+    return gkyl_dg_vlasov_sr_cu_dev_new(cbasis, pbasis, conf_range, vel_range, field_id, use_vmap);
   } 
 #endif
   struct dg_vlasov_sr *vlasov_sr = gkyl_malloc(sizeof(struct dg_vlasov_sr));
