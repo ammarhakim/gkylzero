@@ -563,7 +563,7 @@ moment_species_lw_new(lua_State *L)
     return luaL_error(L, "Species \"equation\" not specfied or incorrect type!");
   }
 
-  mom_species.limiter = glua_tbl_get_integer(L, "limiter", GKYL_NO_LIMITER);
+  mom_species.limiter = glua_tbl_get_integer(L, "limiter", GKYL_MONOTONIZED_CENTERED);
 
   const char *split_str = glua_tbl_get_string(L, "splitType", "qwave");
   mom_species.split_type = gkyl_search_str_int_pair_by_str(wave_split_type, split_str, GKYL_WAVE_QWAVE);
@@ -712,7 +712,7 @@ moment_field_lw_new(lua_State *L)
   mom_field.elc_error_speed_fact = glua_tbl_get_number(L, "elcErrorSpeedFactor", 0.0);
   mom_field.mag_error_speed_fact = glua_tbl_get_number(L, "mgnErrorSpeedFactor", 1.0);
 
-  mom_field.limiter = glua_tbl_get_integer(L, "limiter", GKYL_NO_LIMITER);
+  mom_field.limiter = glua_tbl_get_integer(L, "limiter", GKYL_MONOTONIZED_CENTERED);
   
   bool evolve = glua_tbl_get_integer(L, "evolve", true);
 
