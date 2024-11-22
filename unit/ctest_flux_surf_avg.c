@@ -1,5 +1,6 @@
-// A test for the integrated moments
-//
+/* A test for the flux surface average
+description of the test and the function tested here:...
+*/ 
 #include <acutest.h>
 #include <gkyl_alloc.h>
 #include <gkyl_array.h>
@@ -55,7 +56,7 @@ void eval_bmag_3x(double t, const double *xn, double* GKYL_RESTRICT fout, void *
   struct test_ctx *pars = ctx;
   double B0 = pars->B0;
 
-  fout[0] = B0;
+  fout[0] = B0*(1.0+0.5*sin(z))/(x+0.8); // the x dependence will modify the grid shape
 }
 
 void
@@ -105,8 +106,8 @@ test_3x_option(bool use_gpu)
   double mu_max_ion = 12.*mi*vtIon*vtIon/(2.0*B0);
 
   // Phase space and Configuration space extents and resolution
-  double lower[] = {0.0, 0.0, 0.0, -vpar_max_ion, 0.0};
-  double upper[] = {1.0, 1.0, 1.0, vpar_max_ion, mu_max_ion};
+  double lower[] = {-0.5, -0.5, -0.5, -vpar_max_ion, 0.0};
+  double upper[] = { 0.5,  0.5,  0.5, vpar_max_ion, mu_max_ion};
   int cells[] = {12, 4, 16, 12, 6};
   const int vdim = 2;
   const int ndim = sizeof(cells)/sizeof(cells[0]);
@@ -136,15 +137,12 @@ test_3x_option(bool use_gpu)
 
   printf("\t 0.2 basis functions\n");
   // basis functions
-  struct gkyl_basis basis, confBasis, surf_vpar_basis, surf_mu_basis;
+  struct gkyl_basis basis, confBasis;
   if (poly_order > 1) {
     gkyl_cart_modal_serendip(&basis, ndim, poly_order);
-    gkyl_cart_modal_serendip(&surf_mu_basis, ndim-1, poly_order);
   } else if (poly_order == 1) {
     /* Force hybrid basis (p=2 in vpar). */
     gkyl_cart_modal_gkhybrid(&basis, cdim, vdim);
-    // constant mu surface
-    gkyl_cart_modal_gkhybrid(&surf_mu_basis, cdim, poly_order);
   }
   gkyl_cart_modal_serendip(&confBasis, cdim, poly_order);
 
@@ -260,10 +258,8 @@ test_3x_option(bool use_gpu)
   int num_mom = 4;
 
   struct gkyl_array *marr = mkarr(use_gpu, num_mom, confLocal_ext.volume);
-  struct gkyl_array *marr_host = marr;
-  if (use_gpu)
-    marr_host = mkarr(false, num_mom, local_ext.volume);  
-
+  struct gkyl_array *marr_host = use_gpu? mkarr(false, marr->ncomp, marr->size)
+                                        : gkyl_array_acquire(marr);
   double *red_integ_diag_global;
 
   if (use_gpu)
@@ -301,17 +297,13 @@ test_3x_option(bool use_gpu)
   gkyl_dg_updater_moment_gyrokinetic_advance(m2calc, &local, &confLocal, f, m2arr);
 
   // Create a integration updater
-  gkyl_array_integrate *local_int_calc = gkyl_array_integrate_new(&grid, &basis, cdim, GKYL_ARRAY_INTEGRATE_OP_NONE, use_gpu);
-  // Create weights and initialize by proj on basis
+  gkyl_array_integrate *local_int_calc = gkyl_array_integrate_new(&confGrid, &confBasis, cdim, GKYL_ARRAY_INTEGRATE_OP_NONE, use_gpu);
+  // Create weights but useless (jacobian is already in the volume of the cell)
   struct gkyl_array *weights = mkarr(false, confBasis.num_basis, confLocal_ext.volume);
-  gkyl_proj_on_basis *proj_weights = gkyl_proj_on_basis_new(&confGrid, &confBasis,
-    poly_order+1, 1, eval_weights, NULL);
-  gkyl_proj_on_basis_advance(proj_weights, 0.0, &confLocal, weights); 
 
-  // compute the integral
+  // compute the local integral
   double local_int;
   gkyl_array_integrate_advance(local_int_calc, m2arr, 1.0, weights, &confLocal, &local_int);
-  // gkyl_array_integrate_advance(local_int_calc, m2arr, 1.0, gk_geom->jacobgeo, &confLocal, &local_int);
 
   double integral_global;
   if (use_gpu)
@@ -335,12 +327,12 @@ test_3x_option(bool use_gpu)
   gkyl_array_release(prim_moms);
 
   gkyl_array_release(marr);
+  gkyl_array_release(marr_host);
   gkyl_array_release(m2arr);
 
   gkyl_proj_on_basis_release(proj_m0);
   gkyl_proj_on_basis_release(proj_udrift);
   gkyl_proj_on_basis_release(proj_vtsq);
-  gkyl_proj_on_basis_release(proj_weights);
   gkyl_proj_maxwellian_on_basis_release(proj_max);  
   gkyl_velocity_map_release(gvm);
 
