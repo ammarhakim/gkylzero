@@ -462,7 +462,7 @@ main(int argc, char **argv)
 
   // set package paths so we find installed libraries
   do {
-    const char *fmt = "package.path = package.path .. \";%s/?.lua;%s/Lib/?.lua;%s/?/init.lua\"";
+    const char *fmt = "package.path = package.path .. \";%s/lua/?.lua;%s/lua/Lib/?.lua;%s/lua/?/init.lua\"";    
     size_t len = gkyl_calc_strlen(fmt, app_args->exec_path, app_args->exec_path, app_args->exec_path);
 
     char *str = gkyl_malloc(len+1);

@@ -481,6 +481,19 @@ install: all $(ZERO_SH_INSTALL_LIB) ${BUILD_DIR}/gkyl-install ## Install library
 	cp -f regression/rt_vlasov_twostream_p2.c ${INSTALL_PREFIX}/gkylzero/share/rt_vlasov_twostream_p2.c
 # gkyl executable
 	cp -f ${BUILD_DIR}/gkyl-install ${INSTALL_PREFIX}/gkylzero/bin/gkyl
+# Copy Lua code from various directories
+	${MKDIR_P} ${INSTALL_PREFIX}/gkyl/bin/lua/xsys
+	find lua/xsys -name '*.lua' | xargs cp --parents -f -t ${INSTALL_PREFIX}/gkylzero/bin
+#
+	${MKDIR_P} ${INSTALL_PREFIX}/gkylzero/bin/lua/sci
+	find lua/sci -name '*.lua' | xargs cp --parents -f -t ${INSTALL_PREFIX}/gkylzero/bin
+#
+	${MKDIR_P} ${INSTALL_PREFIX}/gkylzero/bin/lua/Tool
+	find lua/Tool -name '*.lua' | xargs cp --parents -f -t ${INSTALL_PREFIX}/gkylzero/bin
+#
+	${MKDIR_P} ${INSTALL_PREFIX}/gkylzero/bin/lua/Lib
+	find lua/Lib -name '*.lua' | xargs cp --parents -f -t ${INSTALL_PREFIX}/gkylzero/bin
+
 
 .PHONY: clean
 clean: ## Clean build output
