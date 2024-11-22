@@ -24,6 +24,7 @@
 #include <lualib.h>
 #include <lauxlib.h>
 
+#include <limits.h>
 #include <stdio.h>
 #include <string.h>
 
@@ -1556,12 +1557,12 @@ static void
 show_help(const struct gkyl_moment_app *app)
 {
   gkyl_moment_app_cout(app, stdout, "Moment script takes the following arguments:\n");
-  gkyl_moment_app_cout(app, stdout, " -h  Print this help message and exit\n");
-  gkyl_moment_app_cout(app, stdout, " -V  Show verbose output\n\n");
+  gkyl_moment_app_cout(app, stdout, " -h   Print this help message and exit\n");
+  gkyl_moment_app_cout(app, stdout, " -V   Show verbose output\n");
+  gkyl_moment_app_cout(app, stdout, " -rN  Restart simulation from frame N\n");
+  gkyl_moment_app_cout(app, stdout, " -sN  Only run N steps of simulation\n");
 
-  gkyl_moment_app_cout(app, stdout, "The following commands are supported:\n");
-  gkyl_moment_app_cout(app, stdout, " run Run the simulation. It takes the following arguments\n");
-  gkyl_moment_app_cout(app, stdout, "   -s N Number of steps to run\n");
+  gkyl_moment_app_cout(app, stdout, "\n");
 }
 
 static struct gkyl_tool_args *
@@ -1585,8 +1586,13 @@ tool_args_from_argv(int optind, int argc, char *const*argv)
 
 // CLI parser for main script
 struct script_cli {
-  bool verbose;
-  bool help;
+  bool help; // show help
+  bool step_mode; // run for fixed number of steps? (for valgrind/cuda-memcheck)
+  int num_steps; // number of steps
+  bool use_verbose; // Should we use verbose output?
+  bool is_restart; // Is this a restarted simulation?
+  int restart_frame; // Which frame to restart simulation from.  
+  
   struct gkyl_tool_args *rest;
 };
 
@@ -1594,14 +1600,18 @@ static struct script_cli
 mom_parse_script_cli(struct gkyl_tool_args *acv)
 {
   struct script_cli cli = {
-    .verbose = false,
-    .help = false
+    .help =- false,
+    .step_mode = false,
+    .num_steps = INT_MAX,
+    .use_verbose = false,
+    .is_restart = false,
+    .restart_frame = 0,
   };
   
   coption_long longopts[] = {
     {0}
   };
-  const char* shortopts = "+hV";
+  const char* shortopts = "+hVs:r:";
 
   coption opt = coption_init();
   int c;
@@ -1612,8 +1622,17 @@ mom_parse_script_cli(struct gkyl_tool_args *acv)
         break;
         
       case 'V':
-        cli.verbose = true;
+        cli.use_verbose = true;
         break;
+
+      case 's':
+        cli.num_steps = atoi(opt.arg);
+        break;
+      
+      case 'r':
+        cli.is_restart = true;
+        cli.restart_frame = atoi(opt.arg);
+        break;        
         
       case '?':
         break;
@@ -1653,22 +1672,13 @@ mom_app_run(lua_State *L)
 
   // Initial and final simulation times.
   double t_curr = app_lw->t_start, t_end = app_lw->t_end;
-  long num_steps = luaL_optinteger(L, 2, INT_MAX);
+  long num_steps = script_cli.num_steps;
 
   gkyl_moment_app_cout(app, stdout, "Initializing Moments Simulation ...\n");
 
   // Initialize simulation.
-  bool is_restart = false;
-  lua_getglobal(L, "GKYL_IS_RESTART");
-  if (lua_toboolean(L, -1)) {
-    is_restart = true;
-  }
-  lua_pop(L, 1);
-
-  int restart_frame = 0;
-  lua_getglobal(L, "GKYL_RESTART_FRAME");
-  restart_frame = lua_tointeger(L, -1);
-  lua_pop(L, 1);
+  bool is_restart = script_cli.is_restart;
+  int restart_frame = script_cli.restart_frame;
 
   int frame_curr = 0;
   if (is_restart) {
@@ -1716,15 +1726,7 @@ mom_app_run(lua_State *L)
   double dt_init = -1.0, dt_failure_tol = app_lw->dt_failure_tol;
   int num_failures = 0, num_failures_max = app_lw->num_failures_max;
 
-  bool use_verbose = script_cli.verbose;
-
-  long num_steps_new = -1;
-  lua_getglobal(L, "GKYL_NUM_STEPS");
-  num_steps_new = lua_tointeger(L, -1);
-  lua_pop(L, 1);
-  if (num_steps_new != -1) {
-    num_steps = num_steps_new;
-  }
+  bool use_verbose = script_cli.use_verbose;
 
   long step = 1;
   while ((t_curr < t_end) && (step <= num_steps)) {
