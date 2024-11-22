@@ -42,11 +42,11 @@ vm_species_bflux_init(struct gkyl_vlasov_app *app, struct vm_species *s, struct 
     gkyl_rect_grid_init(&bflux->boundary_grid[2*i+1], ndim, lower, upper, cells);
 
     bflux->integ_moms[2*i] = gkyl_dg_updater_moment_new(&bflux->boundary_grid[2*i],
-      &app->confBasis, &app->basis, &bflux->conf_r[2*i], &s->local_vel, s->model_id, 0, "Integrated", 1,
-      app->use_gpu);
+      &app->confBasis, &app->basis, &bflux->conf_r[2*i], &s->local_vel, &s->local, 
+      s->model_id, 0, "Integrated", 1, app->use_gpu);
     bflux->integ_moms[2*i+1] = gkyl_dg_updater_moment_new(&bflux->boundary_grid[2*i+1],
-      &app->confBasis, &app->basis, &bflux->conf_r[2*i+1], &s->local_vel, s->model_id, 0, "Integrated", 1,
-      app->use_gpu);
+      &app->confBasis, &app->basis, &bflux->conf_r[2*i+1], &s->local_vel, &s->local, 
+      s->model_id, 0, "Integrated", 1, app->use_gpu);
 
     cells[i] = s->grid.cells[i];
 

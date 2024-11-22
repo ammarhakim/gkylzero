@@ -1,5 +1,5 @@
 #include <gkyl_canonical_pb_kernels.h>
-#include <gkyl_basis_ser_2x_p1_upwind_quad_to_modal.h> 
+#include <gkyl_basis_hyb_1x1v_p1_upwind_quad_to_modal.h> 
 GKYL_CU_DH double canonical_pb_boundary_surfvx_1x1v_ser_p1(const double *w, const double *dxv, const double *hamil, 
   const double *alpha_surf_edge, const double *alpha_surf_skin, 
   const double *sgn_alpha_surf_edge, const double *sgn_alpha_surf_skin, 
@@ -21,10 +21,10 @@ GKYL_CU_DH double canonical_pb_boundary_surfvx_1x1v_ser_p1(const double *w, cons
 
   double rdvx2 = 2.0/dxv[1];
 
-  const double *alphaL = &alpha_surf_skin[2];
-  const double *alphaR = &alpha_surf_edge[2];
-  const double *sgn_alpha_surfL = &sgn_alpha_surf_skin[2];
-  const double *sgn_alpha_surfR = &sgn_alpha_surf_edge[2];
+  const double *alphaL = &alpha_surf_skin[3];
+  const double *alphaR = &alpha_surf_edge[3];
+  const double *sgn_alpha_surfL = &sgn_alpha_surf_skin[3];
+  const double *sgn_alpha_surfR = &sgn_alpha_surf_edge[3];
   const int *const_sgn_alphaL = &const_sgn_alpha_skin[1];
   const int *const_sgn_alphaR = &const_sgn_alpha_edge[1];
 
@@ -43,7 +43,8 @@ GKYL_CU_DH double canonical_pb_boundary_surfvx_1x1v_ser_p1(const double *w, cons
   double f_cr[2] = {0.};
   double f_rl[2] = {0.};
   double sgn_alphaUpR[2] = {0.};
-  ser_2x_p1_upwind_quad_to_modal(sgn_alpha_surfR, sgn_alphaUpR); 
+  // Project tensor nodal quadrature basis back onto modal basis. 
+  hyb_1x1v_p1_vdir_upwind_quad_to_modal(sgn_alpha_surfR, sgn_alphaUpR); 
 
   f_cr[0] = 1.58113883008419*fskin[4]+1.224744871391589*fskin[2]+0.7071067811865475*fskin[0]; 
   f_cr[1] = 1.58113883008419*fskin[5]+1.224744871391589*fskin[3]+0.7071067811865475*fskin[1]; 
@@ -81,7 +82,8 @@ GKYL_CU_DH double canonical_pb_boundary_surfvx_1x1v_ser_p1(const double *w, cons
   double f_lr[2] = {0.};
   double f_cl[2] = {0.};
   double sgn_alphaUpL[2] = {0.};
-  ser_2x_p1_upwind_quad_to_modal(sgn_alpha_surfL, sgn_alphaUpL); 
+  // Project tensor nodal quadrature basis back onto modal basis. 
+  hyb_1x1v_p1_vdir_upwind_quad_to_modal(sgn_alpha_surfL, sgn_alphaUpL); 
 
   f_lr[0] = 1.58113883008419*fedge[4]+1.224744871391589*fedge[2]+0.7071067811865475*fedge[0]; 
   f_lr[1] = 1.58113883008419*fedge[5]+1.224744871391589*fedge[3]+0.7071067811865475*fedge[1]; 
@@ -107,6 +109,6 @@ GKYL_CU_DH double canonical_pb_boundary_surfvx_1x1v_ser_p1(const double *w, cons
   } 
 
   double cflFreq = fmax(fabs(alphaL[0]), fabs(alphaR[0])); 
-  return 1.060660171779821*rdvx2*cflFreq; 
+  return 1.767766952966369*rdvx2*cflFreq; 
 
 } 

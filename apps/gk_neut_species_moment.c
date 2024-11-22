@@ -11,7 +11,7 @@ gk_neut_species_moment_init(struct gkyl_gyrokinetic_app *app, struct gk_neut_spe
   sm->is_integrated = strcmp(nm, "Integrated") == 0;
 
   sm->mcalc = gkyl_dg_updater_moment_new(&s->grid, &app->confBasis, 
-    &app->neut_basis, &app->local, &s->local_vel, s->model_id, 0,
+    &app->neut_basis, &app->local, &s->local_vel, &s->local, s->model_id, 0,
     nm, sm->is_integrated, app->use_gpu);    
 
   sm->num_mom = gkyl_dg_updater_moment_num_mom(sm->mcalc);
