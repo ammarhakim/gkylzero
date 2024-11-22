@@ -512,15 +512,17 @@ gkyl_vlasov_lte_proj_on_basis_advance(gkyl_vlasov_lte_proj_on_basis *up,
               uu += (xmu[cdim+d]*xmu[cdim+d]);
             }
             double GammaV_quad = sqrt(1.0 + vv);
+            double gamma_quad = sqrt(1.0 + uu);
             if (up->is_bimaxwellian) {
             // NOTE: THIS PROJECTION ROUTINE CURRENTLY ASSUMES Tpar = Txx AND THUS THE INITIAL MAGNETIC FIELD IS B = B0 x_hat (JJ: 10/23/24)
               fq[0] += jacob_vel_qidx*expamp_quad[cqidx]*exp((1.0/T_over_m_quad[cqidx]) 
-                - (1.0/Tperp_over_m_quad[cqidx])*(GammaV_quad*sqrt(1.0 + uu) - vu) 
-                - ((1.0/T_over_m_quad[cqidx]) - (1.0/Tperp_over_m_quad[cqidx]))*sqrt(1.0 + (1.0 + vv)*(xmu[cdim] - V_drift_quad[cqidx][0])*(xmu[cdim] - V_drift_quad[cqidx][0])));
+                - (1.0/Tperp_over_m_quad[cqidx])*(GammaV_quad*gamma_quad - vu) 
+                - ((1.0/T_over_m_quad[cqidx]) - (1.0/Tperp_over_m_quad[cqidx]))*sqrt(1.0 + 
+                (1.0 + vv)*xmu[cdim]*xmu[cdim] - 2.0*GammaV_quad*gamma_quad*xmu[cdim]*V_drift_quad[cqidx][0] + (1.0 + uu)*V_drift_quad[cqidx][0]*V_drift_quad[cqidx][0]));
             }
             else {
               fq[0] += jacob_vel_qidx*expamp_quad[cqidx]*exp((1.0/T_over_m_quad[cqidx]) 
-                - (1.0/T_over_m_quad[cqidx])*(GammaV_quad*sqrt(1.0 + uu) - vu));
+                - (1.0/T_over_m_quad[cqidx])*(GammaV_quad*gamma_quad - vu));
             }
           }
           else if (up->is_canonical_pb) {
