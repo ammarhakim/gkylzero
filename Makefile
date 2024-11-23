@@ -497,6 +497,12 @@ install: all $(ZERO_SH_INSTALL_LIB) ${BUILD_DIR}/gkyl-install ## Install library
 	${MKDIR_P} ${INSTALL_PREFIX}/gkylzero/bin/lua/Lib
 	find lua/Lib -name '*.lua' | xargs cp --parents -f -t ${INSTALL_PREFIX}/gkylzero/bin
 #
+	${MKDIR_P} ${INSTALL_PREFIX}/gkylzero/bin/lua/Grid
+	find lua/Grid -name '*.lua' | xargs cp --parents -f -t ${INSTALL_PREFIX}/gkylzero/bin
+#
+	${MKDIR_P} ${INSTALL_PREFIX}/gkylzero/bin/lua/DataStruct
+	find lua/DataStruct -name '*.lua' | xargs cp --parents -f -t ${INSTALL_PREFIX}/gkylzero/bin
+#
 	${MKDIR_P} ${INSTALL_PREFIX}/gkylzero/bin/lua/Comm
 	find lua/Comm -name '*.lua' | xargs cp --parents -f -t ${INSTALL_PREFIX}/gkylzero/bin
 

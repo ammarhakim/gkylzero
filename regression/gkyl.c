@@ -54,7 +54,8 @@ static struct tool_description tool_list[] = {
   {"man", "man.lua", "Gkeyll online manual"},
   {"woman", "man.lua", "Gkeyll online manual (Woe without man)"},
   {"queryrdb", "queryrdb.lua", "Query/modify regression test DB"},
-  {"runregression", "runregression.lua", "Run regression/unit tests"},  
+  {"runregression", "runregression.lua", "Run regression/unit tests"},
+  {"eqdskreader", "eqdskreader.lua", "Read eqdsk file, writing data to files"},
   {0, 0}
 };
 
