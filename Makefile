@@ -10,6 +10,7 @@ ARCH_FLAGS ?= -march=native
 CUDA_ARCH ?= 70
 # Warning flags: -Wall -Wno-unused-variable -Wno-unused-function -Wno-missing-braces
 CFLAGS ?= -O3 -g -ffast-math -fPIC -MMD -MP -DGIT_COMMIT_ID=\"$(GIT_TIP)\" -DGKYL_BUILD_DATE="${BUILD_DATE}" -DGKYL_GIT_CHANGESET="${GIT_TIP}"
+SQL_CFLAGS ?= -fPIC
 LDFLAGS = 
 PREFIX ?= ${HOME}/gkylsoft
 INSTALL_PREFIX ?= ${PREFIX}
@@ -170,7 +171,7 @@ INSTALL_HEADERS += $(shell ls minus/*.h)
 INCLUDES = -Iminus -Iminus/STC/include -Izero -Iapps -Iamr -Iregression -I${BUILD_DIR} ${KERN_INCLUDES} -I${LAPACK_INC} -I${SUPERLU_INC} -I${MPI_INC_DIR} -I${NCCL_INC_DIR} -I${CUDSS_INC_DIR} -I${LUA_INC_DIR}
 
 # Directories containing source code
-SRC_DIRS := minus zero apps amr kernels data/adas
+SRC_DIRS := minus zero apps amr kernels lua/Comm lua/Tool data/adas
 
 # List of regression and unit test
 REGS := $(patsubst %.c,${BUILD_DIR}/%,$(wildcard regression/rt_*.c))
@@ -232,6 +233,11 @@ ${BUILD_DIR}/regression/%: regression/%.c ${BUILD_DIR}/libgkylzero.so
 ${BUILD_DIR}/amr_regression/%: amr_regression/%.c ${BUILD_DIR}/libgkylzero.so$
 	${MKDIR_P} ${BUILD_DIR}/amr_regression
 	${CC} ${CFLAGS} ${LDFLAGS} -o $@ $< -I. $(INCLUDES) ${EXEC_LIB_DIRS} ${EXEC_RPATH} ${EXEC_LIBS}
+
+# SQLIGHT needs special flags
+$(BUILD_DIR)/minus/sqlite3.c.o: minus/sqlite3.c
+	$(MKDIR_P) $(dir $@)
+	$(CC) $(SQL_CFLAGS) -c $< -o $@
 
 # Automated regression system
 ${BUILD_DIR}/ci/%: ci/%.c ${BUILD_DIR}/libgkylzero.so
@@ -456,7 +462,7 @@ G0_SHARE_INSTALL_PREFIX=${INSTALL_PREFIX}/gkylzero/share
 SED_REPS_STR=s,G0_SHARE_INSTALL_PREFIX_TAG,${G0_SHARE_INSTALL_PREFIX},g
 
 install: all $(ZERO_SH_INSTALL_LIB) ${BUILD_DIR}/gkyl-install ## Install library and headers
-# Construct install directories
+# Construct install 
 	$(MKDIR_P) ${INSTALL_PREFIX}/gkylzero/include
 	${MKDIR_P} ${INSTALL_PREFIX}/gkylzero/lib
 	${MKDIR_P} ${INSTALL_PREFIX}/gkylzero/bin
@@ -475,6 +481,31 @@ install: all $(ZERO_SH_INSTALL_LIB) ${BUILD_DIR}/gkyl-install ## Install library
 	cp -f regression/rt_vlasov_twostream_p2.c ${INSTALL_PREFIX}/gkylzero/share/rt_vlasov_twostream_p2.c
 # gkyl executable
 	cp -f ${BUILD_DIR}/gkyl-install ${INSTALL_PREFIX}/gkylzero/bin/gkyl
+# Copy Lua code from various directories
+	${MKDIR_P} ${INSTALL_PREFIX}/gkylzero/bin/lua/xsys
+	find lua/xsys -name '*.lua' | xargs cp --parents -f -t ${INSTALL_PREFIX}/gkylzero/bin
+#
+	${MKDIR_P} ${INSTALL_PREFIX}/gkylzero/bin/lua/sci
+	find lua/sci -name '*.lua' | xargs cp --parents -f -t ${INSTALL_PREFIX}/gkylzero/bin
+#
+	${MKDIR_P} ${INSTALL_PREFIX}/gkylzero/bin/lua/sqlite3
+	find lua/sqlite3 -name '*.lua' | xargs cp --parents -f -t ${INSTALL_PREFIX}/gkylzero/bin
+#
+	${MKDIR_P} ${INSTALL_PREFIX}/gkylzero/bin/lua/Tool
+	find lua/Tool -name '*.lua' | xargs cp --parents -f -t ${INSTALL_PREFIX}/gkylzero/bin
+#
+	${MKDIR_P} ${INSTALL_PREFIX}/gkylzero/bin/lua/Lib
+	find lua/Lib -name '*.lua' | xargs cp --parents -f -t ${INSTALL_PREFIX}/gkylzero/bin
+#
+	${MKDIR_P} ${INSTALL_PREFIX}/gkylzero/bin/lua/Grid
+	find lua/Grid -name '*.lua' | xargs cp --parents -f -t ${INSTALL_PREFIX}/gkylzero/bin
+#
+	${MKDIR_P} ${INSTALL_PREFIX}/gkylzero/bin/lua/DataStruct
+	find lua/DataStruct -name '*.lua' | xargs cp --parents -f -t ${INSTALL_PREFIX}/gkylzero/bin
+#
+	${MKDIR_P} ${INSTALL_PREFIX}/gkylzero/bin/lua/Comm
+	find lua/Comm -name '*.lua' | xargs cp --parents -f -t ${INSTALL_PREFIX}/gkylzero/bin
+
 
 .PHONY: clean
 clean: ## Clean build output
