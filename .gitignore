@@ -21,6 +21,7 @@ gkylzero-dist*
 *.json
 TAGS
 data/adas/*.npy
+*.log
 
 # Object files
 *.o

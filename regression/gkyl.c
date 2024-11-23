@@ -51,6 +51,10 @@ struct tool_description {
 
 // List of available Tools
 static struct tool_description tool_list[] = {
+  {"man", "man.lua", "Gkeyll online manual"},
+  {"woman", "man.lua", "Gkeyll online manual (Woe without man)"},
+  {"queryrdb", "queryrdb.lua", "Query/modify regression test DB"},
+  {"runregression", "runregression.lua", "Run regression/unit tests"},  
   {0, 0}
 };
 
@@ -295,7 +299,7 @@ show_banner(FILE *fp)
     fprintf(fp, "Built without CUDA\n");
 #endif
 #ifdef GKYL_HAVE_MPI
-    fprintf(fp, "Built with MPI\n");
+    fprintf(fp, "Built with MPI\n\n");
 #else
     fprintf(fp, "Built without MPI\n\n");
 #endif    
@@ -458,7 +462,19 @@ main(int argc, char **argv)
     lua_pushstring(L, app_args->opt_args[i]);
     lua_rawset(L, -3);
   }
-  lua_setglobal(L, "GKYL_COMMANDS");  
+  lua_setglobal(L, "GKYL_COMMANDS");
+
+  // Pushing args without the script name into a new table: this is
+  // needed for various tools CLI parsers. For some reson they do not
+  // allow the script name in the args
+  lua_newtable(L);
+  
+  for (int i=1; i<app_args->num_opt_args; ++i) {
+    lua_pushinteger(L, i);
+    lua_pushstring(L, app_args->opt_args[i]);
+    lua_rawset(L, -3);
+  }
+  lua_setglobal(L, "GKYL_COMMANDS_L");
 
   // set package paths so we find installed libraries
   do {
@@ -504,7 +520,7 @@ main(int argc, char **argv)
       // check if it is a Tool, and run it if so
       const char *tlua = get_tool_from_name(app_args->opt_args[0]);
       if (tlua) {
-        const char *fmt = "%s/Tool/%s";
+        const char *fmt = "%s/lua/Tool/%s";
         size_t len = gkyl_calc_strlen(fmt, app_args->exec_path, tlua);
         char *tool_name = gkyl_malloc(len+1);
         snprintf(tool_name, len+1, fmt, app_args->exec_path, tlua);

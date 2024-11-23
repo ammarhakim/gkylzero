@@ -171,7 +171,7 @@ INSTALL_HEADERS += $(shell ls minus/*.h)
 INCLUDES = -Iminus -Iminus/STC/include -Izero -Iapps -Iamr -Iregression -I${BUILD_DIR} ${KERN_INCLUDES} -I${LAPACK_INC} -I${SUPERLU_INC} -I${MPI_INC_DIR} -I${NCCL_INC_DIR} -I${CUDSS_INC_DIR} -I${LUA_INC_DIR}
 
 # Directories containing source code
-SRC_DIRS := minus zero apps amr kernels data/adas
+SRC_DIRS := minus zero apps amr kernels lua/Comm lua/Tool data/adas
 
 # List of regression and unit test
 REGS := $(patsubst %.c,${BUILD_DIR}/%,$(wildcard regression/rt_*.c))
@@ -462,7 +462,7 @@ G0_SHARE_INSTALL_PREFIX=${INSTALL_PREFIX}/gkylzero/share
 SED_REPS_STR=s,G0_SHARE_INSTALL_PREFIX_TAG,${G0_SHARE_INSTALL_PREFIX},g
 
 install: all $(ZERO_SH_INSTALL_LIB) ${BUILD_DIR}/gkyl-install ## Install library and headers
-# Construct install directories
+# Construct install 
 	$(MKDIR_P) ${INSTALL_PREFIX}/gkylzero/include
 	${MKDIR_P} ${INSTALL_PREFIX}/gkylzero/lib
 	${MKDIR_P} ${INSTALL_PREFIX}/gkylzero/bin
@@ -482,17 +482,23 @@ install: all $(ZERO_SH_INSTALL_LIB) ${BUILD_DIR}/gkyl-install ## Install library
 # gkyl executable
 	cp -f ${BUILD_DIR}/gkyl-install ${INSTALL_PREFIX}/gkylzero/bin/gkyl
 # Copy Lua code from various directories
-	${MKDIR_P} ${INSTALL_PREFIX}/gkyl/bin/lua/xsys
+	${MKDIR_P} ${INSTALL_PREFIX}/gkylzero/bin/lua/xsys
 	find lua/xsys -name '*.lua' | xargs cp --parents -f -t ${INSTALL_PREFIX}/gkylzero/bin
 #
 	${MKDIR_P} ${INSTALL_PREFIX}/gkylzero/bin/lua/sci
 	find lua/sci -name '*.lua' | xargs cp --parents -f -t ${INSTALL_PREFIX}/gkylzero/bin
+#
+	${MKDIR_P} ${INSTALL_PREFIX}/gkylzero/bin/lua/sqlite3
+	find lua/sqlite3 -name '*.lua' | xargs cp --parents -f -t ${INSTALL_PREFIX}/gkylzero/bin
 #
 	${MKDIR_P} ${INSTALL_PREFIX}/gkylzero/bin/lua/Tool
 	find lua/Tool -name '*.lua' | xargs cp --parents -f -t ${INSTALL_PREFIX}/gkylzero/bin
 #
 	${MKDIR_P} ${INSTALL_PREFIX}/gkylzero/bin/lua/Lib
 	find lua/Lib -name '*.lua' | xargs cp --parents -f -t ${INSTALL_PREFIX}/gkylzero/bin
+#
+	${MKDIR_P} ${INSTALL_PREFIX}/gkylzero/bin/lua/Comm
+	find lua/Comm -name '*.lua' | xargs cp --parents -f -t ${INSTALL_PREFIX}/gkylzero/bin
 
 
 .PHONY: clean

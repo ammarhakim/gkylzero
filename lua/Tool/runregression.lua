@@ -17,13 +17,12 @@ if GKYL_HAVE_SQLITE3 == false then
 end
 
 local currDir = lfs.currentdir()
-if not string.match(currDir, "Regression$") then
+if not string.match(currDir, "regression$") then
    -- only run when in Regression directory
    print("Can only run from Regression source directory.")
    return 1
 end
 
-local AdiosReader = require "Io.AdiosReader"
 local Alloc = require "Lib.Alloc"
 local Logger = require "Lib.Logger"
 local Time = require "Lib.Time"
@@ -840,7 +839,7 @@ local c_rununit = parser:command("rununit")
    :action(rununit_action)
 
 -- parse command-line args (functionality encoded in command actions)
-local _ = parser:parse(GKYL_COMMANDS)
+local _ = parser:parse(GKYL_COMMANDS_L)
 
 -- print final test stats for regression tests
 if numPassedTests > 0 then
