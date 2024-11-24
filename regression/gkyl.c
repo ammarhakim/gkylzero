@@ -54,7 +54,10 @@ static struct tool_description tool_list[] = {
   {"man", "man.lua", "Gkeyll online manual"},
   {"woman", "man.lua", "Gkeyll online manual (Woe without man)"},
   {"queryrdb", "queryrdb.lua", "Query/modify regression test DB"},
+  {"exacteulerrp", "exacteulerrp.lua", "Exact Euler Riemann problem solver"},
   {"runregression", "runregression.lua", "Run regression/unit tests"},
+  {"multimomlinear", "multimomlinear.lua",
+   "Linear dispersion solver for multi-moment, multifluid equations"},  
   {"eqdskreader", "eqdskreader.lua", "Read eqdsk file, writing data to files"},
   {0, 0}
 };
@@ -498,13 +501,14 @@ main(int argc, char **argv)
   if (app_args->use_mpi)
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 #endif
-  show_banner(rank == 0 ? stdout : 0);
   
   if (app_args->num_opt_args > 0) {
     bool something_run = false;
 
     const char *inp_name = app_args->opt_args[0];
     if (gkyl_check_file_exists(inp_name)) {
+
+      show_banner(rank == 0 ? stdout : 0);
 
       const char *suff = get_fname(inp_name);
       const char *suff1 = suff ? suff+1 : inp_name;
