@@ -150,12 +150,12 @@ local grid2d = Grid.RectCart {
 }
 
 -- allocate various fields
-fpol = makeField(meta, grid1d)
-pres = makeField(meta, grid1d)
-ffprime = makeField(meta, grid1d)
-pprime = makeField(meta, grid1d)
-psi = makeField(meta, grid2d)
-qpsi = makeField(meta, grid1d)
+fpol = makeField(metaData, grid1d)
+pres = makeField(metaData, grid1d)
+ffprime = makeField(metaData, grid1d)
+pprime = makeField(metaData, grid1d)
+psi = makeField(metaData, grid2d)
+qpsi = makeField(metaData, grid1d)
 
 dataItr:seek(21) -- need to skip forward
 -- construct 1D arrays
