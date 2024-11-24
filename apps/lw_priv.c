@@ -149,6 +149,22 @@ static const struct gkyl_str_int_pair gk_field_type[] = {
   { 0, 0 }
 };
 
+// Gyrokinetic radiation type -> enum map.
+static const struct gkyl_str_int_pair gk_radiation_type[] = {
+  { "None", GKYL_NO_RADIATION },
+  { "GKRadiation", GKYL_GK_RADIATION },
+  { "VMComptonRadiation", GKYL_VM_COMPTON_RADIATION },
+  { 0, 0 }
+};
+
+// Gyrokinetic radiation Te model type -> enum map.
+static const struct gkyl_str_int_pair gk_radiation_te_type[] = {
+  { "Conservative", GKYL_VARY_TE_CONSERVATIVE },
+  { "Aggressive", GKYL_VARY_TE_AGGRESSIVE },
+  { "Const", GKYL_CONST_TE },
+  { 0, 0 }
+};
+
 static void
 register_types(lua_State *L, const struct gkyl_str_int_pair types[], const char *nm)
 {
@@ -247,6 +263,18 @@ void
 gkyl_register_gyrokinetic_field_types(lua_State *L)
 {
   register_types(L, gk_field_type, "GKField");
+}
+
+void
+gkyl_register_gyrokinetic_radiation_types(lua_State *L)
+{
+  register_types(L, gk_radiation_type, "Radiation");
+}
+
+void
+gkyl_register_gyrokinetic_radiation_Te_types(lua_State *L)
+{
+  register_types(L, gk_radiation_te_type, "TeMinModel");
 }
 
 void

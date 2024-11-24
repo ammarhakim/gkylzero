@@ -145,6 +145,22 @@ void
 gkyl_register_gyrokinetic_field_types(lua_State *L);
 
 /**
+ * Add radiation type flags for gyrokinetic species initialization into Lua interpreter.
+ *
+ * @param L Lua state to use.
+ */
+void
+gkyl_register_gyrokinetic_radiation_types(lua_State *L);
+
+/**
+ * Add Te model type flags for gyrokinetic radiation initialization into Lua interpreter.
+ *
+ * @param L Lua state to use.
+ */
+void
+gkyl_register_gyrokinetic_radiation_Te_types(lua_State *L);
+
+/**
  * Wrapper around Lua function for use in eval callbacks.
  */
 void

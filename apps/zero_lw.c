@@ -40,8 +40,7 @@ gkyl_tool_args_release(struct gkyl_tool_args* args)
 {
   for (int i=0; i<args->argc; ++i)
     gkyl_free(args->argv[i]);
-  if (args->argv)
-    gkyl_free(args->argv);
+  gkyl_free(args->argv);
   gkyl_free(args);
 }
 
@@ -161,10 +160,12 @@ gkyl_zero_lw_openlibs(lua_State *L)
   gkyl_register_vlasov_collision_types(L);
   gkyl_register_vlasov_source_types(L);
 
-  // Register types for gyrokinetic FEM boundary conditions, geometry type, and field ID.
+  // Register types for gyrokinetic FEM boundary conditions, geometry type, field ID, radiation ID, and Te min model type.
   gkyl_register_gyrokinetic_fem_bc_types(L);
   gkyl_register_gyrokinetic_geometry_types(L);
   gkyl_register_gyrokinetic_field_types(L);
+  gkyl_register_gyrokinetic_radiation_types(L);
+  gkyl_register_gyrokinetic_radiation_Te_types(L);
 }
 
 #endif

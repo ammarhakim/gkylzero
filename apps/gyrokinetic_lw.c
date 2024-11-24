@@ -89,6 +89,18 @@ struct gyrokinetic_species_lw {
 
   bool source_has_temp_init_func[GKYL_MAX_PROJ]; // Is there a temperature initialization function in source?
   struct lua_func_ctx source_temp_init_func_ref[GKYL_MAX_PROJ]; // Lua registry reference to temperature initialization function in source.
+
+  enum gkyl_radiation_id radiation_id; // Radiation type.
+
+  int radiation_num_cross_collisions; // Number of radiation species that we cross-collide with.
+  char radiation_collide_with[GKYL_MAX_SPECIES][128]; // Names of radiation species that we cross-collide with.
+
+  int radiation_z[GKYL_MAX_SPECIES]; // Atomic Z of radiation species that we are colliding with.
+  int radiation_charge_state[GKYL_MAX_SPECIES]; // Charge state of radiation species that we are colliding with.
+  int radiation_num_of_densities[GKYL_MAX_SPECIES]; // Maximum number of densities to use per charge state of radiation species that we are colliding with.
+
+  enum gkyl_te_min_model radiation_te_min_model; // How is the radiation turned off (constant, or with varying electron temperature)?
+  double radiation_Te_min; // Minimum temperature (in J) at which to stop radiating.
 };
 
 static int
@@ -218,7 +230,7 @@ gyrokinetic_species_lw_new(lua_State *L)
       has_temp_init_func = true;
     }
 
-    correct_all_moms = glua_tbl_get_bool(L, "correctAllMoments", true);
+    correct_all_moms = glua_tbl_get_bool(L, "correctAllMoments", false);
   }
 
   enum gkyl_collision_id collision_id = GKYL_NO_COLLISIONS;
@@ -250,7 +262,7 @@ gyrokinetic_species_lw_new(lua_State *L)
       }
     }
 
-    collision_correct_all_moms = glua_tbl_get_bool(L, "correctAllMoments", true);
+    collision_correct_all_moms = glua_tbl_get_bool(L, "correctAllMoments", false);
     collision_iter_eps = glua_tbl_get_number(L, "iterationEpsilon", pow(10.0, -12.0));
     collision_max_iter = glua_tbl_get_integer(L, "maxIterations", 100);
     collision_use_last_converged = glua_tbl_get_bool(L, "useLastConverged", true);
@@ -314,6 +326,49 @@ gyrokinetic_species_lw_new(lua_State *L)
         }
       }
     }
+  }
+
+  enum gkyl_radiation_id radiation_id = GKYL_NO_RADIATION;
+
+  int radiation_num_cross_collisions = 0;
+  char radiation_collide_with[GKYL_MAX_SPECIES][128];
+
+  int radiation_z[GKYL_MAX_SPECIES];
+  int radiation_charge_state[GKYL_MAX_SPECIES];
+  int radiation_num_of_densities[GKYL_MAX_SPECIES];
+
+  int radiation_te_min_model = GKYL_VARY_TE_CONSERVATIVE;
+  double radiation_Te_min = 0.0;
+
+  with_lua_tbl_tbl(L, "radiation") {
+    radiation_id = glua_tbl_get_integer(L, "radiationID", GKYL_NO_RADIATION);
+
+    radiation_num_cross_collisions = glua_tbl_get_integer(L, "numCrossCollisions", 0);
+    with_lua_tbl_tbl(L, "collideWith") {
+      for (int i = 0; i < radiation_num_cross_collisions; i++) {
+        const char* radiation_collide_with_char = glua_tbl_iget_string(L, i + 1, "");
+        strcpy(radiation_collide_with[i], radiation_collide_with_char);
+      }
+    }
+    
+    with_lua_tbl_tbl(L, "atomicZ") {
+      for (int i = 0; i < radiation_num_cross_collisions; i++) {
+        radiation_z[i] = glua_tbl_iget_integer(L, i + 1, 0);
+      }
+    }
+    with_lua_tbl_tbl(L, "chargeState") {
+      for (int i = 0; i < radiation_num_cross_collisions; i++) {
+        radiation_charge_state[i] = glua_tbl_iget_integer(L, i + 1, 0);
+      }
+    }
+    with_lua_tbl_tbl(L, "numDensities") {
+      for (int i = 0; i < radiation_num_cross_collisions; i++) {
+        radiation_num_of_densities[i] = glua_tbl_iget_integer(L, i + 1, 0);
+      }
+    }
+
+    radiation_te_min_model = glua_tbl_get_integer(L, "TeMinModel", 0);
+    radiation_Te_min = glua_tbl_get_number(L, "TeMin", 0.0);
   }
   
   struct gyrokinetic_species_lw *gks_lw = lua_newuserdata(L, sizeof(*gks_lw));
@@ -424,6 +479,20 @@ gyrokinetic_species_lw_new(lua_State *L)
   gks_lw->collision_iter_eps = collision_iter_eps;
   gks_lw->collision_max_iter = collision_max_iter;
   gks_lw->collision_use_last_converged = collision_use_last_converged;
+
+  gks_lw->radiation_id = radiation_id;
+
+  gks_lw->radiation_num_cross_collisions = radiation_num_cross_collisions;
+  for (int i = 0; i < radiation_num_cross_collisions; i++) {
+    strcpy(gks_lw->radiation_collide_with[i], radiation_collide_with[i]);
+
+    gks_lw->radiation_z[i] = radiation_z[i];
+    gks_lw->radiation_charge_state[i] = radiation_charge_state[i];
+    gks_lw->radiation_num_of_densities[i] = radiation_num_of_densities[i];
+  }
+
+  gks_lw->radiation_te_min_model = radiation_te_min_model;
+  gks_lw->radiation_Te_min = radiation_Te_min;
   
   // Set metatable.
   luaL_getmetatable(L, GYROKINETIC_SPECIES_METATABLE_NM);
@@ -588,6 +657,18 @@ struct gyrokinetic_app_lw {
 
   bool source_has_temp_init_func[GKYL_MAX_SPECIES][GKYL_MAX_PROJ]; // Is there a temperature initialization function in source?
   struct lua_func_ctx source_temp_init_func_ctx[GKYL_MAX_SPECIES][GKYL_MAX_PROJ]; // Context for temperature initialization function in source.
+
+  enum gkyl_radiation_id radiation_id[GKYL_MAX_SPECIES]; // Radiation type.
+
+  int radiation_num_cross_collisions[GKYL_MAX_SPECIES]; // Number of radiation species that we cross-collide with.
+  char radiation_collide_with[GKYL_MAX_SPECIES][GKYL_MAX_SPECIES][128]; // Names of radiation species that we cross-collide with.
+
+  int radiation_z[GKYL_MAX_SPECIES][GKYL_MAX_SPECIES]; // Atomic Z of radiation species that we are colliding with.
+  int radiation_charge_state[GKYL_MAX_SPECIES][GKYL_MAX_SPECIES]; // Charge state of radiation species that we are colliding with.
+  int radiation_num_of_densities[GKYL_MAX_SPECIES][GKYL_MAX_SPECIES]; // Maximum number of densities to use per charge state of radiation species that we are colliding with.
+  
+  enum gkyl_te_min_model radiation_te_min_model[GKYL_MAX_SPECIES]; // How is the radiation turned off (constant, or with varying electron temperature)?
+  double radiation_Te_min[GKYL_MAX_SPECIES]; // Minimum temperature (in J) at which to stop radiating.
   
   double t_start, t_end; // Start and end times of simulation.
   int num_frames; // Number of data frames to write.
@@ -926,6 +1007,34 @@ gk_app_new(lua_State *L)
         gk.species[s].source.projection[i].ctx_temp = &app_lw->source_temp_init_func_ctx[s][i];
       }
     }
+
+    app_lw->radiation_id[s] = species[s]->radiation_id;
+
+    app_lw->radiation_num_cross_collisions[s] = species[s]->radiation_num_cross_collisions;
+    for (int i = 0; i < app_lw->radiation_num_cross_collisions[s]; i++) {
+      strcpy(app_lw->radiation_collide_with[s][i], species[s]->radiation_collide_with[i]);
+
+      app_lw->radiation_z[s][i] = species[s]->radiation_z[i];
+      app_lw->radiation_charge_state[s][i] = species[s]->radiation_charge_state[i];
+      app_lw->radiation_num_of_densities[s][i] = species[s]->radiation_num_of_densities[i];
+    }
+
+    app_lw->radiation_te_min_model[s] = species[s]->radiation_te_min_model;
+    app_lw->radiation_Te_min[s] = species[s]->radiation_Te_min;
+
+    gk.species[s].radiation.radiation_id = app_lw->radiation_id[s];
+
+    gk.species[s].radiation.num_cross_collisions = app_lw->radiation_num_cross_collisions[s];
+    for (int i = 0; i < app_lw->radiation_num_cross_collisions[s]; i++) {
+      strcpy(gk.species[s].radiation.collide_with[i], app_lw->radiation_collide_with[s][i]);
+
+      gk.species[s].radiation.z[i] = app_lw->radiation_z[s][i];
+      gk.species[s].radiation.charge_state[i] = app_lw->radiation_charge_state[s][i];
+      gk.species[s].radiation.num_of_densities[i] = app_lw->radiation_num_of_densities[s][i];
+    }
+
+    gk.species[s].radiation.te_min_model = app_lw->radiation_te_min_model[s];
+    gk.species[s].radiation.Te_min = app_lw->radiation_Te_min[s];
   }
 
   // Set field input.
