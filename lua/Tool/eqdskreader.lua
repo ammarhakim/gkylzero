@@ -193,11 +193,11 @@ for i = 1, nbbbs do
    sepRZ:appendData(i, { dataItr:next(), dataItr:next() } )
 end
 
--- write data to BP files
-fpol:write("fpol.bp")
-pres:write("pres.bp")
-ffprime:write("ffprime.bp")
-pprime:write("pprime.bp")
-psi:write("psi.bp")
-qpsi:write("qpsi.bp")
-sepRZ:write("sepRZ.bp")
+-- write data to Gkeyll files
+fpol:write("fpol.gkyl")
+pres:write("pres.gkyl")
+ffprime:write("ffprime.gkyl")
+pprime:write("pprime.gkyl")
+psi:write("psi.gkyl")
+qpsi:write("qpsi.gkyl")
+sepRZ:write("sepRZ.gkyl")

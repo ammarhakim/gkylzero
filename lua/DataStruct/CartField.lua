@@ -21,6 +21,7 @@ local LinearDecomp = require "Lib.LinearDecomp"
 local Mpi = require "Comm.Mpi"
 local Range = require "Lib.Range"
 local ZeroArray = require "DataStruct.ZeroArray"
+local ZeroArrayRio = require "DataStruct.ZeroArrayRio"
 local lume = require "Lib.lume"
 
 local RangeVec = Lin.new_vec_ct(ffi.typeof("struct gkyl_range"))
@@ -738,7 +739,10 @@ local function Field_meta_ctor(elct)
          return self._data + loc
       end,
       write = function(self, fName, tmStamp, frNum, writeGhost)
-         io.write("Write NYI!\n")
+	 local meta = ffi.new("struct gkyl_array_meta")
+	 meta.meta_sz = 0
+	 local fullNm = GKYL_OUT_PREFIX .. "_" .. fName -- Concatenate prefix.
+         ffi.C.gkyl_grid_sub_array_write(self._grid._zero, self._localExtRange, meta, self._zero, fullNm)
       end,
       read = function(self, fName)  --> time-stamp, frame-number
          return self._adiosIo:read(self, fName)
