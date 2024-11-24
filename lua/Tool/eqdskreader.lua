@@ -1,6 +1,6 @@
 -- Gkyl ------------------------------------------------------------------------
 --
--- Reads eqdsk files and converts to BP files
+-- Reads eqdsk files and converts to Gkeyll files
 --
 --    _______     ___
 -- + 6 @ |||| # P ||| +

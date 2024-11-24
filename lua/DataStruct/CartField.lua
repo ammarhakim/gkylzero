@@ -22,9 +22,12 @@ local Mpi = require "Comm.Mpi"
 local Range = require "Lib.Range"
 local ZeroArray = require "DataStruct.ZeroArray"
 local ZeroArrayRio = require "DataStruct.ZeroArrayRio"
+
 local lume = require "Lib.lume"
+local mpack = require "Lib.MessagePack"
 
 local RangeVec = Lin.new_vec_ct(ffi.typeof("struct gkyl_range"))
+
 
 -- C interfaces
 ffi.cdef [[
@@ -350,8 +353,9 @@ local function Field_meta_ctor(elct)
          end
       end
 
-      -- tag to identify basis used to set this field
       self._metaData = tbl.metaData
+      self._metaDataPacked = mpack.pack(tbl.metaData)
+      -- tag to identify basis used to set this field
       self._basisId = "none"
 
       return self
@@ -740,7 +744,14 @@ local function Field_meta_ctor(elct)
       end,
       write = function(self, fName, tmStamp, frNum, writeGhost)
 	 local meta = ffi.new("struct gkyl_array_meta")
-	 meta.meta_sz = 0
+
+
+	 local metaChar = ffi.new("char[?]", string.len(self._metaDataPacked))
+	 ffi.copy(metaChar, self._metaDataPacked, string.len(self._metaDataPacked))
+
+	 meta.meta_sz = 0 --string.len(self._metaDataPacked)
+	 --meta.meta = metaChar
+
 	 local fullNm = GKYL_OUT_PREFIX .. "_" .. fName -- Concatenate prefix.
          ffi.C.gkyl_grid_sub_array_write(self._grid._zero, self._localExtRange, meta, self._zero, fullNm)
       end,
