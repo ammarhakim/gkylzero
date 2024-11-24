@@ -68,6 +68,13 @@ struct gyrokinetic_species_lw {
   int num_cross_collisions; // Number of species that we cross-collide with.
   char collide_with[GKYL_MAX_SPECIES][128]; // Names of species that we cross-collide with.
 
+  bool collision_norm_nu; // Are we rescaling the collision frequency?
+  double collision_n_ref; // Density used to calculate Coulomb logarithm for collision frequency.
+  double collision_T_ref; // Temperature used to calculate Coulomb logarithm for collision frequency.
+  double collision_hbar; // Reduced Planck's constant for calculating collision frequency.
+  double collision_eps0; // Vacuum permittivity for calculating collision frequency.
+  double collision_eV; // Elementary charge for calculating collision frequency.
+
   bool collision_correct_all_moms; // Are we correcting all moments in collisions, or only density?
   double collision_iter_eps; // Error tolerance for moment fixes in collisions (density is always exact).
   int collision_max_iter; // Maximum number of iterations for moment fixes in collisions.
@@ -241,6 +248,13 @@ gyrokinetic_species_lw_new(lua_State *L)
   int num_cross_collisions = 0;
   char collide_with[GKYL_MAX_SPECIES][128];
 
+  bool collision_norm_nu = false;
+  double collision_n_ref = 0.0;
+  double collision_T_ref = 0.0;
+  double collision_hbar = 0.0;
+  double collision_eps0 = 0.0;
+  double collision_eV = 0.0;
+
   bool collision_correct_all_moms = false;
   double collision_iter_eps = pow(10.0, -12.0);
   int collision_max_iter = 100;
@@ -261,6 +275,13 @@ gyrokinetic_species_lw_new(lua_State *L)
         strcpy(collide_with[i], collide_with_char);
       }
     }
+
+    collision_norm_nu = glua_tbl_get_bool(L, "normalizeNu", false);
+    collision_n_ref = glua_tbl_get_number(L, "referenceDensity", 0.0);
+    collision_T_ref = glua_tbl_get_number(L, "referenceTemperature", 0.0);
+    collision_hbar = glua_tbl_get_number(L, "hbar", 0.0);
+    collision_eps0 = glua_tbl_get_number(L, "epsilon0", 0.0);
+    collision_eV = glua_tbl_get_number(L, "eV", 0.0);
 
     collision_correct_all_moms = glua_tbl_get_bool(L, "correctAllMoments", false);
     collision_iter_eps = glua_tbl_get_number(L, "iterationEpsilon", pow(10.0, -12.0));
@@ -475,6 +496,13 @@ gyrokinetic_species_lw_new(lua_State *L)
     strcpy(gks_lw->collide_with[i], collide_with[i]);
   }
 
+  gks_lw->collision_norm_nu = collision_norm_nu;
+  gks_lw->collision_n_ref = collision_n_ref;
+  gks_lw->collision_T_ref = collision_T_ref;
+  gks_lw->collision_hbar = collision_hbar;
+  gks_lw->collision_eps0 = collision_eps0;
+  gks_lw->collision_eV = collision_eV;
+
   gks_lw->collision_correct_all_moms = collision_correct_all_moms;
   gks_lw->collision_iter_eps = collision_iter_eps;
   gks_lw->collision_max_iter = collision_max_iter;
@@ -636,6 +664,13 @@ struct gyrokinetic_app_lw {
 
   int num_cross_collisions[GKYL_MAX_SPECIES]; // Number of species that we cross-collide with.
   char collide_with[GKYL_MAX_SPECIES][GKYL_MAX_SPECIES][128]; // Names of species that we cross-collide with.
+
+  bool collision_norm_nu[GKYL_MAX_SPECIES]; // Are we rescaling the collision frequency?
+  double collision_n_ref[GKYL_MAX_SPECIES]; // Density used to calculate Coulomb logarithm for collision frequency.
+  double collision_T_ref[GKYL_MAX_SPECIES]; // Temperature used to calculate Coulomb logarithm for collision frequency.
+  double collision_hbar[GKYL_MAX_SPECIES]; // Reduced Planck's constant for calculating collision frequency.
+  double collision_eps0[GKYL_MAX_SPECIES]; // Vacuum permittivity for calculating collision frequency.
+  double collision_eV[GKYL_MAX_SPECIES]; // Elementary charge for calculating collision frequency.
 
   bool collision_correct_all_moms[GKYL_MAX_SPECIES]; // Are we correcting all moments in collisions, or only density?
   double collision_iter_eps[GKYL_MAX_SPECIES]; // Error tolerance for moment fixes in collision (density is always exact).
@@ -941,6 +976,13 @@ gk_app_new(lua_State *L)
       strcpy(app_lw->collide_with[s][i], species[s]->collide_with[i]);
     }
 
+    app_lw->collision_norm_nu[s] = species[s]->collision_norm_nu;
+    app_lw->collision_n_ref[s] = species[s]->collision_n_ref;
+    app_lw->collision_T_ref[s] = species[s]->collision_T_ref;
+    app_lw->collision_hbar[s] = species[s]->collision_hbar;
+    app_lw->collision_eps0[s] = species[s]->collision_eps0;
+    app_lw->collision_eV[s] = species[s]->collision_eV;
+
     app_lw->collision_correct_all_moms[s] = species[s]->collision_correct_all_moms;
     app_lw->collision_iter_eps[s] = species[s]->collision_iter_eps;
     app_lw->collision_max_iter[s] = species[s]->collision_max_iter;
@@ -957,6 +999,13 @@ gk_app_new(lua_State *L)
     for (int i = 0; i < app_lw->num_cross_collisions[s]; i++) {
       strcpy(gk.species[s].collisions.collide_with[i], app_lw->collide_with[s][i]);
     }
+
+    gk.species[s].collisions.normNu = app_lw->collision_norm_nu[s];
+    gk.species[s].collisions.n_ref = app_lw->collision_n_ref[s];
+    gk.species[s].collisions.T_ref = app_lw->collision_T_ref[s];
+    gk.species[s].collisions.hbar = app_lw->collision_hbar[s];
+    gk.species[s].collisions.eps0 = app_lw->collision_eps0[s];
+    gk.species[s].collisions.eV = app_lw->collision_eV[s];
 
     gk.species[s].collisions.correct_all_moms = app_lw->collision_correct_all_moms[s];
     gk.species[s].collisions.iter_eps = app_lw->collision_iter_eps[s];

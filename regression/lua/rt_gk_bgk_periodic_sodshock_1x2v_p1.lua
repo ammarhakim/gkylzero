@@ -1,8 +1,5 @@
 local Gyrokinetic = G0.Gyrokinetic
 
--- Mathematical constants (dimensionless).
-pi = M_PI
-
 -- Physical constants (using normalized code units).
 mass = 1.0 -- Neutral mass.
 charge = 0.0 -- Neutral charge.
