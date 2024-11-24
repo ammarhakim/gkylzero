@@ -742,15 +742,16 @@ local function Field_meta_ctor(elct)
          local loc = (k - 1) * self._numComponents -- (k-1) as k is 1-based index
          return self._data + loc
       end,
-      write = function(self, fName, tmStamp, frNum, writeGhost)
+      write = function(self, fName)
 	 local meta = ffi.new("struct gkyl_array_meta")
 
-
-	 local metaChar = ffi.new("char[?]", string.len(self._metaDataPacked))
-	 ffi.copy(metaChar, self._metaDataPacked, string.len(self._metaDataPacked))
-
-	 meta.meta_sz = 0 --string.len(self._metaDataPacked)
-	 --meta.meta = metaChar
+	 if self._metaData then
+	    meta.meta_sz = string.len(self._metaDataPacked)
+	    meta.meta = ffi.new("char[?]", string.len(self._metaDataPacked)+1)
+	    ffi.copy(meta.meta, self._metaDataPacked)
+	 else
+	    meta.meta_sz = 0
+	 end
 
 	 local fullNm = GKYL_OUT_PREFIX .. "_" .. fName -- Concatenate prefix.
          ffi.C.gkyl_grid_sub_array_write(self._grid._zero, self._localExtRange, meta, self._zero, fullNm)
