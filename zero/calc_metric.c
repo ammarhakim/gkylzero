@@ -554,6 +554,7 @@ void gkyl_calc_metric_advance(gkyl_calc_metric *up, struct gkyl_range *nrange,
   gkyl_array_release(gFld_nodal);
   gkyl_array_release(tanvecFld_nodal);
   gkyl_array_release(dualFld_nodal);
+  gkyl_array_release(dualmagFld_nodal);
   gkyl_array_release(normFld_nodal);
 }
 
