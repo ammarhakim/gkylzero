@@ -32,7 +32,7 @@ int gkyl_dynvec_elem_type(gkyl_dynvec vec);
  * @param vec Dynvec object
  * @return Number of components
  */
-size_t gkyl_dynvec_ncomp(gkyl_dynvec vec);
+int gkyl_dynvec_ncomp(gkyl_dynvec vec);
 
 /**
  * Reserve @a rsize more elements so additional @a rsize append calls

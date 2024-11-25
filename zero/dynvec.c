@@ -56,7 +56,7 @@ gkyl_dynvec_new(enum gkyl_elem_type type, size_t ncomp)
 }
 
 int gkyl_dynvec_elem_type(gkyl_dynvec vec) { return vec->type; }
-size_t gkyl_dynvec_ncomp(gkyl_dynvec vec) { return vec->ncomp; }
+int gkyl_dynvec_ncomp(gkyl_dynvec vec) { return vec->ncomp; }
 
 void
 gkyl_dynvec_reserve_more(gkyl_dynvec dv, size_t rsize)

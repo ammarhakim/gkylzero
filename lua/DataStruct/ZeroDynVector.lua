@@ -59,7 +59,7 @@ int gkyl_dynvec_elem_type(gkyl_dynvec vec);
  * @param vec Dynvec object
  * @return Number of components
  */
-size_t gkyl_dynvec_ncomp(gkyl_dynvec vec);
+int gkyl_dynvec_ncomp(gkyl_dynvec vec);
 
 /**
  * Reserve @a rsize more elements so additional @a rsize append calls
@@ -274,6 +274,17 @@ local dynvec_fn = {
    numComponents = function(self)
       return ffiC.gkyl_dynvec_ncomp(self)
    end,
+   appendData = function(self, tm, vals)
+      local f = ffi.new(getType(self:elemType()) .. "[?]", self:numComponents())
+      for i = 1, self:numComponents() do
+	 f[i-1] = vals[i]
+      end
+      ffiC.gkyl_dynvec_append(self, tm, f)
+   end,
+   write = function(self, fName, tmStamp, frame)
+      local fullNm = GKYL_OUT_PREFIX .. "_" .. fName
+      return ffiC.gkyl_dynvec_write(self, fullNm)
+   end
 }
 
 local dynvec_mt = {

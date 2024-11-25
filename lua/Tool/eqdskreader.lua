@@ -8,6 +8,7 @@
 
 local Alloc = require "Lib.Alloc"
 local DataStruct = require "DataStruct"
+local ZeroDynVector = require "DataStruct.ZeroDynVector"
 local Grid = require "Grid"
 local argparse = require "Lib.argparse"
 local Proto = require "Lib.Proto"
@@ -184,7 +185,7 @@ for i = 1, nx do
 end
 
 -- read (R,Z) coordinates of LCFS
-local sepRZ = DataStruct.DynVector { numComponents = 2 }
+local sepRZ = ZeroDynVector.DynVector { numComponents = 2 }
 
 local nbbbs = dataItr:next()
 local limtr = dataItr:next()

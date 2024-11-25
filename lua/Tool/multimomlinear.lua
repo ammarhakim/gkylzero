@@ -249,7 +249,7 @@ for _, kv in ipairs(kvectors) do
 end
 
 -- write out eigenvaules
-eigValues:write("frequencies.bp", 0.0, 0)
+eigValues:write("frequencies.gkyl", 0.0, 0)
 
 io.write(string.format("Completed in %g seconds\n", Time.clock()-tmStart))
 
