@@ -400,6 +400,7 @@ void gkyl_calc_metric_advance_mirror(
   gkyl_array_release(bcartFld_nodal);
   gkyl_array_release(tanvecFld_nodal);
   gkyl_array_release(dualFld_nodal);
+  gkyl_array_release(dualmagFld_nodal);
   gkyl_array_release(normFld_nodal);
 }
 
