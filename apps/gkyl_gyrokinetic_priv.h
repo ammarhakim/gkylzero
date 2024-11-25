@@ -249,7 +249,8 @@ struct gk_lbo_collisions {
   
   struct gkyl_array *self_nu, *self_nu_prim_moms; // LBO self-primitive moments
 
-  struct gk_species_moment moms; // moments needed in LBO (single array includes Zeroth, First, and Second moment)
+  struct gk_species_moment moms; // Moments needed in LBO (M0, M1, M2).
+  gkyl_dg_bin_op_mem *dg_div_mem; // Memory needed for weak division.
 
   struct gkyl_array *m0;
   struct gkyl_array *vtsq;
@@ -257,7 +258,6 @@ struct gk_lbo_collisions {
   struct gkyl_array *self_mnu_m0[GKYL_MAX_SPECIES], *self_mnu[GKYL_MAX_SPECIES];
   struct gkyl_array *other_mnu_m0[GKYL_MAX_SPECIES], *other_mnu[GKYL_MAX_SPECIES];
   struct gkyl_array *greene_num[GKYL_MAX_SPECIES], *greene_den[GKYL_MAX_SPECIES];
-  gkyl_dg_bin_op_mem *greene_factor_mem; // memory needed in computing Greene factor
   struct gkyl_array *greene_factor[GKYL_MAX_SPECIES];
 
   int num_cross_collisions; // number of species we cross-collide with
@@ -283,7 +283,7 @@ struct gk_bgk_collisions {
   struct gkyl_array *nu_init; // Array for initial collisionality when using Spitzer updater
   struct gkyl_spitzer_coll_freq* spitzer_calc; // Updater for Spitzer collisionality if computing Spitzer value
 
-  struct gk_species_moment moms; // moments needed in BGK (single array includes Zeroth, First, and Second moment)
+  struct gk_species_moment moms; // Moments needed in BGK (M0, M1, M2).
   struct gkyl_array *m0;
   struct gkyl_array *vtsq;
   
