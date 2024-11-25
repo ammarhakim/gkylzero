@@ -354,6 +354,7 @@ local function Field_meta_ctor(elct)
       end
 
       self._metaData = tbl.metaData
+      mpack.set_number("double")
       self._metaDataPacked = mpack.pack(tbl.metaData)
       -- tag to identify basis used to set this field
       self._basisId = "none"

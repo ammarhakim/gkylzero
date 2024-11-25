@@ -1,11 +1,16 @@
+#include <gkyl_alloc.h>
+#include <gkyl_array.h>
+#include <gkyl_array_rio.h>
 #include <gkyl_exact_euler_rp.h>
-#include <gkylzero.h>
+#include <gkyl_range.h>
+#include <gkyl_rect_grid.h>
 
-#include <math.h>
-#include <stdlib.h>
-#include <stdio.h>
-#include <limits.h>
 #include <float.h>
+#include <limits.h>
+#include <math.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
 /** Problem state */
 struct ProblemState {

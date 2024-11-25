@@ -9,6 +9,9 @@ test_1()
 {
   gkyl_dynvec dv = gkyl_dynvec_new(GKYL_DOUBLE, 3);
 
+  TEST_CHECK( gkyl_dynvec_elem_type(dv) == GKYL_DOUBLE );
+  TEST_CHECK( gkyl_dynvec_ncomp(dv) == 3 );
+
   double out[3];
   TEST_CHECK( gkyl_dynvec_size(dv) == 0 );
   TEST_CHECK( gkyl_dynvec_getlast(dv, out) == false );

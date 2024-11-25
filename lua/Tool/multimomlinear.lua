@@ -7,6 +7,7 @@
 --------------------------------------------------------------------------------
 
 local DataStruct = require "DataStruct"
+local ZeroDynVector = require "DataStruct.ZeroDynVector"
 local Lin = require "Lib.Linalg"
 local Proto = require "Lib.Proto"
 local Species = require "Tool.LinearSpecies"
@@ -238,7 +239,7 @@ for _, s in ipairs(speciesList) do
 end
 -- allocate dynvector for output. Arranged as:
 -- kx, ky, kz, w1r, w1i, w2r, w2i, ...
-local eigValues = DataStruct.DynVector { numComponents = 3 + 2*numEqn }
+local eigValues = ZeroDynVector.DynVector { numComponents = 3 + 2*numEqn }
 
 local tmStart = Time.clock()
 

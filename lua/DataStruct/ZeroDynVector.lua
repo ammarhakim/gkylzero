@@ -1,13 +1,40 @@
-#pragma once
+-- Gkyl ------------------------------------------------------------------------
+--
+-- Lua interface to gkylzero's gkyl_dynvec structure
+---
+--    _______     ___
+-- + 6 @ |||| # P ||| +
+--------------------------------------------------------------------------------
 
-#include <gkyl_array.h>
-#include <gkyl_elem_type.h>
+-- system libraries
+local ffi = require "ffi"
+local ffiC = ffi.C
+local xsys = require "xsys"
+local new, sizeof, typeof, metatype = xsys.from(ffi,
+     "new, sizeof, typeof, metatype")
 
-#include <stdbool.h>
-#include <stddef.h>
+local Alloc = require "Lib.Alloc"
+local cuda
+require "Lib.ZeroUtil"
 
-/** Dynamic vector to store time-dependent diagnostics */
+_M = {}
+
+ffi.cdef [[
 typedef struct gkyl_dynvec_tag* gkyl_dynvec;
+
+struct gkyl_dynvec_tag {
+  enum gkyl_elem_type type; // type of data stored in vector
+  size_t elemsz, ncomp; // size of elements, number of 'components'
+
+  size_t cloc; // current location to insert data into
+  size_t csize; // current number of elements allocated
+
+  size_t esznc; // elemsz*ncomp
+  void *data; // pointer to data
+  double *tm_mesh; // time stamps
+  
+  struct gkyl_ref_count ref_count;  
+};
 
 /**
  * Create a new new dynvec. Delete using gkyl_dynvec_release method.
@@ -200,3 +227,70 @@ void gkyl_dynvec_to_array(const gkyl_dynvec vec, struct gkyl_array *tm_mesh,
  */
 void gkyl_dynvec_release(gkyl_dynvec vec);
 
+]]
+
+local longSz = sizeof("long")
+
+-- Various types for arrays of basic C-types
+_M.int    = 'GKYL_INT'
+_M.int64  = 'GKYL_INT64'
+_M.float  = 'GKYL_FLOAT'
+_M.double = 'GKYL_DOUBLE'
+_M.long   = typeof('long')
+_M.char   = typeof('char')
+
+local function getArrayTypeCode(atype)
+   if atype == typeof("int") then
+      return 1
+   elseif atype == typeof("int64") then
+      return 2
+   elseif atype == typeof("float") then
+      return 3
+   elseif atype == typeof("double") then
+      return 4
+   end
+   return 42 -- user-defined type
+end
+
+local function getType(enum)
+   if enum == 0 then
+      return "int"
+   elseif enum == 1 then
+      return "int64"
+   elseif enum == 2 then
+      return "float"
+   elseif enum == 3 then
+      return "double"
+   end
+end
+
+-- Array ctype
+local DynVecCt = typeof("struct gkyl_dynvec_tag")
+
+local dynvec_fn = {
+   elemType = function(self)
+      return ffiC.gkyl_dynvec_elem_type(self)
+   end,
+   numComponents = function(self)
+      return ffiC.gkyl_dynvec_ncomp(self)
+   end,
+}
+
+local dynvec_mt = {
+   __new = function (self, atype, ncomp)
+      return ffi.gc(ffiC.gkyl_dynvec_new(atype, ncomp), ffiC.gkyl_dynvec_release)
+   end,
+   __index = dynvec_fn
+}
+local DynVecCtor = metatype(DynVecCt, dynvec_mt)
+
+-- Construct array of given shape and type
+_M.DynVector = function (tbl)
+   return DynVecCtor(_M.double, tbl.numComponents)
+end
+
+_M.DynVectorGen = function (atype, ncomp)
+   return DynVecCtor(atype, ncomp)
+end
+
+return _M
