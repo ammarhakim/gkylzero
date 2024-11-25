@@ -33,6 +33,8 @@ struct gk_geometry {
                            // Cartesian components of tangent Vectors stored in order e_1, e_2, e_3
   struct gkyl_array* dzdx; // 9 components.
                            // Cartesian components of dual vectors stroed in order e^1, e^2, e^3
+  struct gkyl_array* dualmag; // 3 components
+                              // norms of the dual vectors : sqrt(e^i.e^i)
   struct gkyl_array* normals; // 9 components
                               // Cartesian components of normal vectors in order n^1,, n^2, n^3
   struct gkyl_array* jacobgeo; // 1 component. Configuration space jacobian J
