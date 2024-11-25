@@ -41,10 +41,14 @@ vte = math.sqrt(Te / mass_elc) -- Electron thermal velocity.
 vti = math.sqrt(Ti / mass_ion) -- Ion thermal velocity.
 
 -- Simulation parameters.
+Nx = 2 -- Cell count (configuration space: x-direction).
+Ny = 2 -- Cell count (configuration space: y-direction).
 Nz = 4 -- Cell count (configuration space: z-direction).
 Nvpar = 16 -- Cell count (velocity space: parallel velocity direction).
 Nmu = 8 -- Cell count (velocity space: magnetic moment direction).
-Lz = 4.0 -- Domain size (configuration space: z-direction).
+Lx = 1.0 -- Domain size (configuration space: x-direction).
+Ly = 1.0 -- Domain size (configuration space: y-direction).
+Lz = 1.0 -- Domain size (configuration space: z-direction).
 vpar_max_elc = 4.0 * vte -- Domain boundary (electron velocity space: parallel velocity direction).
 mu_max_elc = mass_elc * math.pow(4.0 * vte, 2.0) / (2.0 * B0) -- Domain boundary (electron velocity space: magnetic moment direction).
 vpar_max_ion = 4.0 * vti -- Domain boundary (ion velocity space: parallel velocity direction).
@@ -54,7 +58,7 @@ basis_type = "serendipity" -- Basis function set.
 time_stepper = "rk3" -- Time integrator.
 cfl_frac = 1.0 -- CFL coefficient.
 
-t_end = 1.0 / nu_elc -- Final simulation time.
+t_end = 0.04 / nu_elc -- Final simulation time.
 num_frames = 1 -- Number of output frames.
 dt_failure_tol = 1.0e-4 -- Minimum allowable fraction of initial time-step.
 num_failures_max = 20 -- Maximum allowable number of consecutive small time-steps.
@@ -65,9 +69,9 @@ gyrokineticApp = Gyrokinetic.App.new {
   nFrame = num_frames,
   dtFailureTol = dt_failure_tol,
   numFailuresMax = num_failures_max,
-  lower = { -0.5 * Lz },
-  upper = { 0.5 * Lz },
-  cells = { Nz },
+  lower = { -0.5 * Lx, -0.5 * Ly, -0.5 * Lz },
+  upper = { 0.5 * Lx, 0.5 * Ly, 0.5 * Lz },
+  cells = { Nx, Ny, Nz },
   cflFrac = cfl_frac,
 
   --basis = basis_type,
@@ -78,7 +82,7 @@ gyrokineticApp = Gyrokinetic.App.new {
   decompCuts = { 1 }, -- Cuts in each coodinate direction (x-direction only).
 
   -- Boundary conditions for configuration space.
-  periodicDirs = { 1 }, -- Periodic directions (x-direction only).
+  periodicDirs = { 1, 2, 3 }, -- Periodic directions (x-direction only).
 
   geometry = {
     geometryID = G0.Geometry.MapC2P,
@@ -106,10 +110,29 @@ gyrokineticApp = Gyrokinetic.App.new {
     charge = charge_elc, mass = mass_elc,
     
     -- Velocity space grid.
-    lower = { -vpar_max_elc, 0.0 },
-    upper = { vpar_max_elc, mu_max_elc },
+    lower = { -1.0, 0.0 },
+    upper = { 1.0, 1.0 },
     cells = { Nvpar, Nmu },
     polarizationDensity = n0,
+
+    mapc2p = {
+      -- Rescaled electron velocity space coordinates (vpar, mu) from old velocity space coordinates (cpvar, cmu).
+      mapping = function (t, vc)
+        local cvpar, cmu = vc[1], vc[2]
+
+        local vpar = 0.0
+        local mu = 0.0
+
+        if cvpar < 0.0 then
+          vpar = -vpar_max_elc * (cvpar * cvpar)
+        else
+          vpar = vpar_max_elc * (cvpar * cvpar)
+        end
+        mu = mu_max_elc * (cmu * cmu)
+
+        return vpar, mu
+      end
+    },
 
     -- Initial conditions.
     projection = {
@@ -130,7 +153,7 @@ gyrokineticApp = Gyrokinetic.App.new {
     },
 
     collisions = {
-      collisionID = G0.Collisions.BGK,
+      collisionID = G0.Collisions.LBO,
 
       selfNu = function (t, xn)
         return nu_elc
@@ -170,7 +193,7 @@ gyrokineticApp = Gyrokinetic.App.new {
     },
 
     collisions = {
-      collisionID = G0.Collisions.BGK,
+      collisionID = G0.Collisions.LBO,
 
       selfNu = function (t, xn)
         return nu_ion
@@ -185,12 +208,24 @@ gyrokineticApp = Gyrokinetic.App.new {
 
   -- Field.
   field = Gyrokinetic.Field.new {
-    fieldID = G0.GKField.Boltzmann,
+    femParBc = G0.ParProjBc.None,
 
-    electronMass = mass_elc,
-    electronCharge = charge_elc,
-    electronTemperature = Te,
-    femParBc = G0.ParProjBc.None
+    poissonBcs = {
+      lowerType = {
+        G0.PoissonBc.bcDirichlet,
+        G0.PoissonBc.bcDirichlet
+    },
+    upperType = {
+        G0.PoissonBc.bcDirichlet,
+        G0.PoissonBc.bcDirichlet
+    },
+    lowerValue = {
+        0.0, 0.0
+    },
+    upperValue = {
+        0.0, 0.0
+    }
+    }
   }
 }
 

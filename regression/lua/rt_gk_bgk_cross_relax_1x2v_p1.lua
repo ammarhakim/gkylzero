@@ -10,51 +10,50 @@ mass_ion = 2.014 * 1.672621637e-27 -- Proton mass.
 charge_elc = -1.602176487e-19 -- Electron charge.
 charge_ion = 1.602176487e-19 -- Proton charge.
 
-T_par_elc = 90.0 * 1.602176487e-19 -- Parallel electron temperature.
-T_par_ion = 90.0 * 1.602176487e-19 -- Parallel ion temperature.
-T_perp_elc = 15.0 * 1.602176487e-19 -- Perpendicular electron temperature.
-T_perp_ion = 15.0 * 1.602176487e-19 -- Perpendicular ion temperature.
+T_par_elc = 300.0 * 1.602176487e-19 -- Parallel electron temperature.
+T_par_ion = 200.0 * 1.602176487e-19 -- Parallel ion temperature.
+alpha = 1.3 -- Ration of perpendicular to parallel temperatures.
 
-n0 = 7.0e18 --  Reference number density (1 / m^3).
-
-B_axis = 0.5 -- Magnetic field axis (simple toroidal coordinates).
-R0 = 0.85 -- Major radius (simple toroidal coordinates).
-a0 = 0.15 -- Minor axis (simple toroidal coordinates).
-
-nu_frac = 0.1 -- Collision frequency fraction.
+n0 = 7.0e19 --  Reference number density (1 / m^3).
+B0 = 1.0 -- Reference magnetic field strength (Tesla).
 
 -- Derived physical quantities (using non-normalized physical units).
-R = R0 + a0 -- Radial coordinate (simple toroidal coordinates).
-B0 = B_axis * (R0 / R) -- Reference magnetic field strength (Tesla).
+T_perp_elc = alpha * T_par_elc -- Perpendicular electron temperature.
+T_perp_ion = alpha * T_par_ion -- Perpendicular ion temperature.
 
 Te = (T_par_elc + (2.0 * T_perp_elc)) / 3.0 -- Electron temperature.
 Ti = (T_par_ion + (2.0 * T_perp_ion)) / 3.0 -- Ion temperature.
 
-log_lambda_elc = 6.6 - 0.5 * math.log(n0 / 1.0e20) + 1.5 * math.log(Te / charge_ion) -- Electron Coulomb logarithm.
-log_lambda_ion = 6.6 - 0.5 * math.log(n0 / 1.0e20) + 1.5 * math.log(Ti / charge_ion) -- Ion Coulomb logarithm.
-nu_elc = nu_frac * log_lambda_elc * math.pow(charge_ion, 4.0) * n0 /
-  (6.0 * math.sqrt(2.0) * math.pow(pi, 3.0 / 2.0) * math.pow(epsilon0, 2.0) * math.sqrt(mass_elc) * math.pow(Te, 3.0 / 2.0)) -- Electron collision frequency.
-nu_ion = nu_frac * log_lambda_ion * math.pow(charge_ion, 4.0) * n0 /
-  (12.0 * math.pow(pi, 3.0 / 2.0) * math.pow(epsilon0, 2.0) * math.sqrt(mass_ion) * math.pow(Ti, 3.0 / 2.0)) -- Ion collision frequency.
+log_lambda_elc = 6.6 - 0.5 * math.log(n0 / 1.0e20) + 1.5 * math.log(T_par_elc / charge_ion) -- Electron Coulomb logarithm.
+log_lambda_ion = 6.6 - 0.5 * math.log(n0 / 1.0e20) + 1.5 * math.log(T_par_ion / charge_ion) -- Ion Coulomb logarithm.
+nu_elc = log_lambda_elc * math.pow(charge_ion, 4.0) * n0 /
+  (6.0 * math.sqrt(2.0) * math.pow(pi, 3.0 / 2.0) * math.pow(epsilon0, 2.0) * math.sqrt(mass_elc) * math.pow(T_par_elc, 3.0 / 2.0)) -- Electron collision frequency.
+nu_ion = log_lambda_ion * math.pow(charge_ion, 4.0) * n0 /
+  (12.0 * math.pow(pi, 3.0 / 2.0) * math.pow(epsilon0, 2.0) * math.sqrt(mass_ion) * math.pow(T_par_ion, 3.0 / 2.0)) -- Ion collision frequency.
 
+vte_par = math.sqrt(T_par_elc / mass_elc) -- Parallel electron thermal velocity.
+vti_par = math.sqrt(T_par_ion / mass_ion) -- Parallel ion thermal velocity.
 vte = math.sqrt(Te / mass_elc) -- Electron thermal velocity.
 vti = math.sqrt(Ti / mass_ion) -- Ion thermal velocity.
 
+upar_elc = 0.5 * math.sqrt(mass_elc / mass_ion) * vte -- Parallel electron velocity.
+upar_ion = 50.0 * (mass_elc / mass_ion) * vti -- Parallel ion velocity.
+
 -- Simulation parameters.
-Nz = 4 -- Cell count (configuration space: z-direction).
+Nz = 1 -- Cell count (configuration space: z-direction).
 Nvpar = 16 -- Cell count (velocity space: parallel velocity direction).
-Nmu = 8 -- Cell count (velocity space: magnetic moment direction).
+Nmu = 16 -- Cell count (velocity space: magnetic moment direction).
 Lz = 4.0 -- Domain size (configuration space: z-direction).
-vpar_max_elc = 4.0 * vte -- Domain boundary (electron velocity space: parallel velocity direction).
-mu_max_elc = mass_elc * math.pow(4.0 * vte, 2.0) / (2.0 * B0) -- Domain boundary (electron velocity space: magnetic moment direction).
-vpar_max_ion = 4.0 * vti -- Domain boundary (ion velocity space: parallel velocity direction).
-mu_max_ion = mass_ion * math.pow(4.0 * vti, 2.0) / (2.0 * B0) -- Domain boundary (ion velocity space: magnetic moment direction).
+vpar_max_elc = 5.0 * vte_par -- Domain boundary (electron velocity space: parallel velocity direction).
+mu_max_elc = mass_elc * math.pow(5.0 * vte_par, 2.0) / (2.0 * B0) -- Domain boundary (electron velocity space: magnetic moment direction).
+vpar_max_ion = 5.0 * vti_par -- Domain boundary (ion velocity space: parallel velocity direction).
+mu_max_ion = mass_ion * math.pow(5.0 * vti_par, 2.0) / (2.0 * B0) -- Domain boundary (ion velocity space: magnetic moment direction).
 poly_order = 1 -- Polynomial order.
 basis_type = "serendipity" -- Basis function set.
 time_stepper = "rk3" -- Time integrator.
 cfl_frac = 1.0 -- CFL coefficient.
 
-t_end = 1.0 / nu_elc -- Final simulation time.
+t_end = 0.1 / nu_ion -- Final simulation time.
 num_frames = 1 -- Number of output frames.
 dt_failure_tol = 1.0e-4 -- Minimum allowable fraction of initial time-step.
 num_failures_max = 20 -- Maximum allowable number of consecutive small time-steps.
@@ -110,6 +109,7 @@ gyrokineticApp = Gyrokinetic.App.new {
     upper = { vpar_max_elc, mu_max_elc },
     cells = { Nvpar, Nmu },
     polarizationDensity = n0,
+    noBy = true,
 
     -- Initial conditions.
     projection = {
@@ -125,20 +125,34 @@ gyrokineticApp = Gyrokinetic.App.new {
         return T_perp_elc -- Electron perpendicular temperature.
       end,
       parallelVelocityInit = function (t, xn)
-        return 0.0 -- Electron parallel velocity.
-      end
+        return upar_elc -- Electron parallel velocity.
+      end,
+
+      correctAllMoments = true
     },
 
     collisions = {
       collisionID = G0.Collisions.BGK,
 
+      normalizeNu = true,
+      referenceDensity = n0,
+      referenceTemperature = Te,
+
       selfNu = function (t, xn)
         return nu_elc
-      end
+      end,
+
+      numCrossCollisions = 1,
+      collideWith = { "ion" },
+
+      correctAllMoments = true,
+      iterationEpsilon = 1.0e-12,
+      maxIterations = 10,
+      useLastConverged = true
     },
 
     evolve = true, -- Evolve species?
-    diagnostics = { "M0", "M1", "M2", "M2par", "M2perp" }
+    diagnostics = { "M0", "M1", "M2", "M2par", "M2perp", "BiMaxwellianMoments" }
   },
 
   -- Ions.
@@ -150,6 +164,7 @@ gyrokineticApp = Gyrokinetic.App.new {
     upper = { vpar_max_ion, mu_max_ion },
     cells = { Nvpar, Nmu },
     polarizationDensity = n0,
+    noBy = true,
 
     -- Initial conditions.
     projection = {
@@ -165,31 +180,40 @@ gyrokineticApp = Gyrokinetic.App.new {
         return T_perp_ion -- Ion perpendicular temperature.
       end,
       parallelVelocityInit = function (t, xn)
-        return 0.0 -- Ion parallel velocity.
-      end
+        return upar_ion -- Ion parallel velocity.
+      end,
+
+      correctAllMoments = true
     },
 
     collisions = {
       collisionID = G0.Collisions.BGK,
 
+      normalizeNu = true,
+      referenceDensity = n0,
+      referenceTemperature = Ti,
+
       selfNu = function (t, xn)
         return nu_ion
-      end
+      end,
+
+      numCrossCollisions = 1,
+      collideWith = { "elc" },
+
+      correctAllMoments = true,
+      iterationEpsilon = 1.0e-12,
+      maxIterations = 10,
+      useLastConverged = true
     },
 
     evolve = true, -- Evolve species?
-    diagnostics = { "M0", "M1", "M2", "M2par", "M2perp" }
+    diagnostics = { "M0", "M1", "M2", "M2par", "M2perp", "BiMaxwellianMoments" }
   },
 
   skipField = true,
 
   -- Field.
   field = Gyrokinetic.Field.new {
-    fieldID = G0.GKField.Boltzmann,
-
-    electronMass = mass_elc,
-    electronCharge = charge_elc,
-    electronTemperature = Te,
     femParBc = G0.ParProjBc.None
   }
 }
