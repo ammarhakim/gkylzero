@@ -58,6 +58,12 @@ struct gyrokinetic_species_lw {
   bool has_temp_init_func; // Is there a temperature initialization function?
   struct lua_func_ctx temp_init_func_ref; // Lua registry reference to temperature initialization function.
 
+  bool has_par_temp_init_func; // Is there a parallel temperature initialization function?
+  struct lua_func_ctx par_temp_init_func_ref; // Lua registry reference to parallel temperature initialization function.
+
+  bool has_perp_temp_init_func; // Is there a perpendicular temperature initialization function?
+  struct lua_func_ctx perp_temp_init_func_ref; // Lua registry reference to perpendicular temperature initialization function.
+
   bool correct_all_moms; // Are we correcting all moments in projection, or only density?
 
   enum gkyl_collision_id collision_id; // Collision type.
@@ -212,6 +218,12 @@ gyrokinetic_species_lw_new(lua_State *L)
   bool has_temp_init_func = false;
   int temp_init_func_ref = LUA_NOREF;
 
+  bool has_par_temp_init_func = false;
+  int par_temp_init_func_ref = LUA_NOREF;
+
+  bool has_perp_temp_init_func = false;
+  int perp_temp_init_func_ref = LUA_NOREF;
+
   bool correct_all_moms = false;
 
   with_lua_tbl_tbl(L, "projection") {
@@ -235,6 +247,16 @@ gyrokinetic_species_lw_new(lua_State *L)
     if (glua_tbl_get_func(L, "temperatureInit")) {
       temp_init_func_ref = luaL_ref(L, LUA_REGISTRYINDEX);
       has_temp_init_func = true;
+    }
+
+    if (glua_tbl_get_func(L, "parallelTemperatureInit")) {
+      par_temp_init_func_ref = luaL_ref(L, LUA_REGISTRYINDEX);
+      has_par_temp_init_func = true;
+    }
+
+    if (glua_tbl_get_func(L, "perpendicularTemperatureInit")) {
+      perp_temp_init_func_ref = luaL_ref(L, LUA_REGISTRYINDEX);
+      has_perp_temp_init_func = true;
     }
 
     correct_all_moms = glua_tbl_get_bool(L, "correctAllMoments", false);
@@ -435,6 +457,22 @@ gyrokinetic_species_lw_new(lua_State *L)
   gks_lw->has_temp_init_func = has_temp_init_func;
   gks_lw->temp_init_func_ref = (struct lua_func_ctx) {
     .func_ref = temp_init_func_ref,
+    .ndim = 0, // This will be set later.
+    .nret = 1,
+    .L = L,
+  };
+
+  gks_lw->has_par_temp_init_func = has_par_temp_init_func;
+  gks_lw->par_temp_init_func_ref = (struct lua_func_ctx) {
+    .func_ref = par_temp_init_func_ref,
+    .ndim = 0, // This will be set later.
+    .nret = 1,
+    .L = L,
+  };
+
+  gks_lw->has_perp_temp_init_func = has_perp_temp_init_func;
+  gks_lw->perp_temp_init_func_ref = (struct lua_func_ctx) {
+    .func_ref = perp_temp_init_func_ref,
     .ndim = 0, // This will be set later.
     .nret = 1,
     .L = L,
@@ -655,6 +693,12 @@ struct gyrokinetic_app_lw {
   bool has_temp_init_func[GKYL_MAX_SPECIES]; // Is there a temperature initialization function?
   struct lua_func_ctx temp_init_func_ctx[GKYL_MAX_SPECIES]; // Context for temperature initialization function.
 
+  bool has_par_temp_init_func[GKYL_MAX_SPECIES]; // Is there a parallel temperature initialization function?
+  struct lua_func_ctx par_temp_init_func_ctx[GKYL_MAX_SPECIES]; // Context for parallel temperature initialization function.
+
+  bool has_perp_temp_init_func[GKYL_MAX_SPECIES]; // Is there a perpendicular temperature initialization function?
+  struct lua_func_ctx perp_temp_init_func_ctx[GKYL_MAX_SPECIES]; // Context for perpendicular temperature initialization function.
+
   bool correct_all_moms[GKYL_MAX_SPECIES]; // Are we correcting all moments in projection, or only density?
 
   enum gkyl_collision_id collision_id[GKYL_MAX_SPECIES]; // Collision type.
@@ -742,6 +786,14 @@ get_species_inp(lua_State *L, int cdim, struct gyrokinetic_species_lw *species[G
 
         if (gks->has_temp_init_func) {
           gks->temp_init_func_ref.ndim = cdim + gks->vdim;
+        }
+
+        if (gks->has_par_temp_init_func) {
+          gks->par_temp_init_func_ref.ndim = cdim + gks->vdim;
+        }
+
+        if (gks->has_perp_temp_init_func) {
+          gks->perp_temp_init_func_ref.ndim = cdim + gks->vdim;
         }
 
         if (gks->has_self_nu_func) {
@@ -935,6 +987,12 @@ gk_app_new(lua_State *L)
     app_lw->has_temp_init_func[s] = species[s]->has_temp_init_func;
     app_lw->temp_init_func_ctx[s] = species[s]->temp_init_func_ref;
 
+    app_lw->has_par_temp_init_func[s] = species[s]->has_par_temp_init_func;
+    app_lw->par_temp_init_func_ctx[s] = species[s]->par_temp_init_func_ref;
+    
+    app_lw->has_perp_temp_init_func[s] = species[s]->has_perp_temp_init_func;
+    app_lw->perp_temp_init_func_ctx[s] = species[s]->perp_temp_init_func_ref;
+
     app_lw->correct_all_moms[s] = species[s]->correct_all_moms;
 
     if (species[s]->has_mapc2p_mapping_func) {
@@ -962,6 +1020,16 @@ gk_app_new(lua_State *L)
     if (species[s]->has_temp_init_func) {
       gk.species[s].projection.temp = gkyl_lw_eval_cb;
       gk.species[s].projection.ctx_temp = &app_lw->temp_init_func_ctx[s];
+    }
+
+    if (species[s]->has_par_temp_init_func) {
+      gk.species[s].projection.temppar = gkyl_lw_eval_cb;
+      gk.species[s].projection.ctx_temppar = &app_lw->par_temp_init_func_ctx[s];
+    }
+
+    if (species[s]->has_perp_temp_init_func) {
+      gk.species[s].projection.tempperp = gkyl_lw_eval_cb;
+      gk.species[s].projection.ctx_tempperp = &app_lw->perp_temp_init_func_ctx[s];
     }
 
     gk.species[s].projection.correct_all_moms = app_lw->correct_all_moms[s];
