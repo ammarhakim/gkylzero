@@ -33,6 +33,7 @@ struct gk_geometry {
   // GK Equation and Poisson Equation and to apply certain BC's
   // The first 20 are defined on the configuration space domain. The last is a single element.
   struct gkyl_array* mc2p; // 3 components. Cartesian X,Y, and Z
+  struct gkyl_array* c2fa; // 3 components. Computational to field aligned mapping
   struct gkyl_array* bmag; // 1 component. B Magnitude of magnetic field
   struct gkyl_array* bmag_global; // 1 component. B Magnitude of magnetic field. Global bmag in computational coordinates
   struct gkyl_array* g_ij; // 6 components. 
@@ -204,6 +205,14 @@ struct gk_geometry* gkyl_gk_geometry_deflate(const struct gk_geometry* up_3d, st
  */
 struct gk_geometry* gkyl_gk_geometry_acquire(const struct gk_geometry* up);
 
+/**
+ * Updater for advancing the map from computational coordinates to non-uniform coordinates
+ * 
+ * @param ctx gk_geometry object
+ * @param x_comp computational coordinates
+ * @param x_fa non-uniform coordinates
+ */
+void gkyl_gk_geometry_c2fa_advance(void *ctx, const double *x_comp, double *x_fa);
 
 
 void gkyl_gk_geometry_free(const struct gkyl_ref_count *ref);

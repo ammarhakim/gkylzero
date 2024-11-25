@@ -381,15 +381,16 @@ struct gk_react {
 struct gk_proj_on_basis_c2p_func_ctx {
   int cdim, vdim;
   struct gkyl_velocity_map *vel_map;
+  struct gk_geometry *gk_geometry;
 };
 
 struct gk_proj {
   enum gkyl_projection_id proj_id; // type of projection
+  struct gk_proj_on_basis_c2p_func_ctx proj_on_basis_c2p_ctx; // c2p function context.
   // organization of the different projection objects and the required data and solvers
   union {
     // function projection
     struct {
-      struct gk_proj_on_basis_c2p_func_ctx proj_on_basis_c2p_ctx; // c2p function context.
       struct gkyl_proj_on_basis *proj_func; // projection operator for specified function
       struct gkyl_array *proj_host; // array for projection on host-side if running on GPUs
     };

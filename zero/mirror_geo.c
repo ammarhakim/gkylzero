@@ -75,34 +75,6 @@ arc_length_func(double Z, void *ctx)
   return ival;
 }
 
-void gkyl_mirror_geo_comp2fieldalligned_advance(double t, const double *x_comp, double *x_fa, void *ctx)
-{
-  struct gkyl_mirror_geo_c2fa_ctx *gc = ctx;
-  int cidx[GKYL_MAX_CDIM];
-  for(int i = 0; i < gc->grid_deflate.ndim; i++){
-    int idxtemp = gc->range_global_deflate.lower[i] + (int) floor((x_comp[i] - (gc->grid_deflate.lower[i]) )/gc->grid_deflate.dx[i]);
-    idxtemp = GKYL_MIN2(idxtemp, gc->range_deflate.upper[i]);
-    idxtemp = GKYL_MAX2(idxtemp, gc->range_deflate.lower[i]);
-    cidx[i] = idxtemp;
-  }
-  long lidx = gkyl_range_idx(&gc->range_deflate, cidx);
-  const double *c2fa_coeffs = gkyl_array_cfetch(gc->c2fa_deflate, lidx);
-  double cxc[gc->grid_deflate.ndim];
-  double x_log[gc->grid_deflate.ndim];
-  gkyl_rect_grid_cell_center(&gc->grid_deflate, cidx, cxc);
-  for(int i = 0; i < gc->grid_deflate.ndim; i++){
-    x_log[i] = (x_comp[i]-cxc[i])/(gc->grid_deflate.dx[i]*0.5);
-  }
-  double xyz_fa[3];
-  for(int i = 0; i < 3; i++){
-    xyz_fa[i] = gc->basis_deflate.eval_expand(x_log, &c2fa_coeffs[i*gc->basis_deflate.num_basis]);
-  }
-  for (int i=0; i<gc->grid_deflate.ndim; i++) {
-    x_fa[i] = xyz_fa[i];
-  }
-  x_fa[gc->grid_deflate.ndim-1] = xyz_fa[2];
-}
-
 struct gkyl_mirror_geo*
 gkyl_mirror_geo_new(const struct gkyl_efit_inp *inp, const struct gkyl_mirror_geo_grid_inp *ginp)
 {

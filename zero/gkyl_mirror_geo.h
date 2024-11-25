@@ -127,15 +127,6 @@ struct gkyl_mirror_geo_c2fa_ctx {
   struct gkyl_basis basis_deflate;
 };
 
-/**
- * Updater for advancing the map from computational coordinates to non-uniform coordinates
- * 
- * @param t Time
- * @param xn Computational coordinates as given in deflated geometry
- * @param fout Non-uniform coordinates in full 3D field alligned coordinates
- * @param ctx Context for the map
- */
-void gkyl_mirror_geo_comp2fieldalligned_advance(double t, const double *xn, double *fout, void *ctx);
 
 /**
  * Create new updater to compute the geometry needed in GK
