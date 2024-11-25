@@ -134,7 +134,30 @@ test_3x_p1()
       }
   }
 
+  // Check that the duals are what they should be
+  struct gkyl_array* dualmag_nodal_fld = gkyl_array_new(GKYL_DOUBLE, grid.ndim, nrange.volume);
+  gkyl_nodal_ops_m2n(n2m, &basis, &grid, &nrange, &range, 3, dualmag_nodal_fld, gk_geom->dualmag);
+  struct gkyl_array* mapc2p_nodal_fld = gkyl_array_new(GKYL_DOUBLE, grid.ndim, nrange.volume);
+  gkyl_nodal_ops_m2n(n2m, &basis, &grid, &nrange, &range, 3, mapc2p_nodal_fld, gk_geom->mc2p);
+  for(int ia=nrange.lower[AL_IDX]; ia<=nrange.upper[AL_IDX]; ++ia){
+      for (int ip=nrange.lower[PSI_IDX]; ip<=nrange.upper[PSI_IDX]; ++ip) {
+          for (int it=nrange.lower[TH_IDX]; it<=nrange.upper[TH_IDX]; ++it) {
+              cidx[PSI_IDX] = ip;
+              cidx[AL_IDX] = ia;
+              cidx[TH_IDX] = it;
+              double *dualmag_n = gkyl_array_fetch(dualmag_nodal_fld, gkyl_range_idx(&nrange, cidx));
+              double *mapc2p_n = gkyl_array_fetch(mapc2p_nodal_fld, gkyl_range_idx(&nrange, cidx));
+              double e2mag = sqrt(1/(mapc2p_n[0]*mapc2p_n[0] +  mapc2p_n[1]*mapc2p_n[1]));
+              TEST_CHECK( gkyl_compare( dualmag_n[0], 1.0, 1e-8) );
+              TEST_CHECK( gkyl_compare( dualmag_n[1], e2mag, 1e-8) );
+              TEST_CHECK( gkyl_compare( dualmag_n[2], 1.0, 1e-8) );
+          }
+      }
+  }
+
   gkyl_array_release(bhat_nodal_fld);
+  gkyl_array_release(dualmag_nodal_fld);
+  gkyl_array_release(mapc2p_nodal_fld);
   gkyl_nodal_ops_release(n2m);
   gkyl_gk_geometry_release(gk_geom);
 }
