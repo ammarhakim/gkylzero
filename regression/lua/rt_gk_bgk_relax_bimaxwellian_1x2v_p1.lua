@@ -78,7 +78,7 @@ gyrokineticApp = Gyrokinetic.App.new {
   decompCuts = { 1 }, -- Cuts in each coodinate direction (x-direction only).
 
   -- Boundary conditions for configuration space.
-  periodicDirs = { 0 }, -- Periodic directions (x-direction only).
+  periodicDirs = { 1 }, -- Periodic directions (x-direction only).
 
   geometry = {
     geometryID = G0.Geometry.MapC2P,
