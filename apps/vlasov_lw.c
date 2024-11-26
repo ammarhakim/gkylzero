@@ -41,6 +41,15 @@ struct vlasov_species_lw {
   int vdim; // Velocity space dimensions.
   bool evolve; // Is this species evolved?
 
+  bool has_hamiltonian_func; // Is there a Hamiltonian function?
+  struct lua_func_ctx hamiltonian_func_ref; // Lua registry reference to Hamiltonian function.
+
+  bool has_inverse_metric_func; // Is there an inverse metric tensor function?
+  struct lua_func_ctx inverse_metric_func_ref; // Lua registry reference to inverse metric tensor function.
+
+  bool has_metric_determinant_func; // Is there a metric determinant function?
+  struct lua_func_ctx metric_determinant_func_ref; // Lua registry reference to metric determinant function.
+
   int num_init; // Number of projection objects.
   enum gkyl_projection_id proj_id[GKYL_MAX_PROJ]; // Projection type.
 
@@ -74,6 +83,7 @@ struct vlasov_species_lw {
   int collision_max_iter; // Maximum number of iterations for moment fixes in collisions.
   bool fixed_temp_relax; // Are BGK collisions relaxing to a fixed input temperature?
   bool collision_use_last_converged; // Use last iteration value in collisions regardless of convergence?
+  bool has_implicit_coll_scheme; // Use implicit scheme for collisions?
 
   enum gkyl_source_id source_id; // Source type.
 
@@ -178,6 +188,30 @@ vlasov_species_lw_new(lua_State *L)
       vm_species.bcz.upper.type = glua_tbl_get_integer(L, "type", 0);
     }
   }
+
+  bool has_hamiltonian_func = false;
+  int hamiltonian_func_ref = LUA_NOREF;
+
+  bool has_inverse_metric_func = false;
+  int inverse_metric_func_ref = LUA_NOREF;
+
+  bool has_metric_determinant_func = false;
+  int metric_determinant_func_ref = LUA_NOREF;
+
+  if (glua_tbl_get_func(L, "hamiltonian")) {
+    hamiltonian_func_ref = luaL_ref(L, LUA_REGISTRYINDEX);
+    has_hamiltonian_func = true;
+  }
+
+  if (glua_tbl_get_func(L, "inverseMetric")) {
+    inverse_metric_func_ref = luaL_ref(L, LUA_REGISTRYINDEX);
+    has_inverse_metric_func = true;
+  }
+
+  if (glua_tbl_get_func(L, "metricDeterminant")) {
+    metric_determinant_func_ref = luaL_ref(L, LUA_REGISTRYINDEX);
+    has_metric_determinant_func = true;
+  }
   
   enum gkyl_projection_id proj_id[GKYL_MAX_PROJ];
 
@@ -256,6 +290,7 @@ vlasov_species_lw_new(lua_State *L)
   int collision_max_iter = 100;
   bool fixed_temp_relax = false;
   bool collision_use_last_converged = true;
+  bool has_implicit_coll_scheme = false;
 
   with_lua_tbl_tbl(L, "collisions") {
     collision_id = glua_tbl_get_integer(L, "collisionID", 0);
@@ -278,6 +313,7 @@ vlasov_species_lw_new(lua_State *L)
     collision_max_iter = glua_tbl_get_integer(L, "maxIterations", 100);
     fixed_temp_relax = glua_tbl_get_bool(L, "fixedTempRelax", false);
     collision_use_last_converged = glua_tbl_get_bool(L, "useLastConverged", true);
+    has_implicit_coll_scheme = glua_tbl_get_bool(L, "useImplicitCollisionScheme", false);
   }
 
   enum gkyl_source_id source_id = GKYL_NO_SOURCE;
@@ -364,6 +400,30 @@ vlasov_species_lw_new(lua_State *L)
   vms_lw->evolve = evolve;
   vms_lw->vm_species = vm_species;
 
+  vms_lw->has_hamiltonian_func = has_hamiltonian_func;
+  vms_lw->hamiltonian_func_ref = (struct lua_func_ctx) {
+    .func_ref = hamiltonian_func_ref,
+    .ndim = 0,
+    .nret = 1,
+    .L = L,
+  };
+
+  vms_lw->has_inverse_metric_func = has_inverse_metric_func;
+  vms_lw->inverse_metric_func_ref = (struct lua_func_ctx) {
+    .func_ref = inverse_metric_func_ref,
+    .ndim = 0,
+    .nret = (vdim * (vdim + 1)) / 2,
+    .L = L,
+  };
+
+  vms_lw->has_metric_determinant_func = has_metric_determinant_func;
+  vms_lw->metric_determinant_func_ref = (struct lua_func_ctx) {
+    .func_ref = metric_determinant_func_ref,
+    .ndim = 0,
+    .nret = 1,
+    .L = L,
+  };
+
   vms_lw->num_init = num_init;
   for (int i = 0; i < num_init; i++) {
     vms_lw->proj_id[i] = proj_id[i];
@@ -426,6 +486,7 @@ vlasov_species_lw_new(lua_State *L)
   vms_lw->collision_max_iter = collision_max_iter;
   vms_lw->fixed_temp_relax = fixed_temp_relax;
   vms_lw->collision_use_last_converged = collision_use_last_converged;
+  vms_lw->has_implicit_coll_scheme = has_implicit_coll_scheme;
   
   // Set metatable.
   luaL_getmetatable(L, VLASOV_SPECIES_METATABLE_NM);
@@ -628,6 +689,15 @@ static struct luaL_Reg vm_field_ctor[] = {
 struct vlasov_app_lw {
   gkyl_vlasov_app *app; // Vlasov app object.
 
+  bool has_hamiltonian_func[GKYL_MAX_SPECIES]; // Is there a Hamiltonian function?
+  struct lua_func_ctx hamiltonian_func_ctx[GKYL_MAX_SPECIES]; // Lua registry reference to Hamiltonian function.
+
+  bool has_inverse_metric_func[GKYL_MAX_SPECIES]; // Is there an inverse metric tensor function?
+  struct lua_func_ctx inverse_metric_func_ctx[GKYL_MAX_SPECIES]; // Lua registry reference to inverse metric tensor function.
+
+  bool has_metric_determinant_func[GKYL_MAX_SPECIES]; // Is there a metric determinant function?
+  struct lua_func_ctx metric_determinant_func_ctx[GKYL_MAX_SPECIES]; // Lua registry reference to metric determinant function.
+
   int num_init[GKYL_MAX_SPECIES]; // Number of projection objects.
   enum gkyl_projection_id proj_id[GKYL_MAX_SPECIES][GKYL_MAX_PROJ]; // Projection type.
 
@@ -661,6 +731,7 @@ struct vlasov_app_lw {
   int collision_max_iter[GKYL_MAX_SPECIES]; // Maximum number of iterations for moment fixes in collisions.
   bool fixed_temp_relax[GKYL_MAX_SPECIES]; // Are BGK collisions relaxing to a fixed input temperature?
   bool collision_use_last_converged[GKYL_MAX_SPECIES]; // Use last iteration value in collisions regardless of convergence?
+  bool has_implicit_coll_scheme[GKYL_MAX_SPECIES]; // Use implicit scheme for collisions?
 
   enum gkyl_source_id source_id[GKYL_MAX_SPECIES]; // Source type.
 
@@ -713,6 +784,18 @@ get_species_inp(lua_State *L, int cdim, struct vlasov_species_lw *species[GKYL_M
       struct vlasov_species_lw *vms = lua_touserdata(L, TVAL);
 
       if (vms->magic == VLASOV_SPECIES_DEFAULT) {
+        if (vms->has_hamiltonian_func) {
+          vms->hamiltonian_func_ref.ndim = cdim + vms->vdim;
+        }
+
+        if (vms->has_inverse_metric_func) {
+          vms->inverse_metric_func_ref.ndim = cdim + vms->vdim;
+        }
+
+        if (vms->has_metric_determinant_func) {
+          vms->metric_determinant_func_ref.ndim = cdim + vms->vdim;
+        }
+
         for (int i = 0; i < vms->num_init; i++) {
           if (vms->has_init_func[i]) {
             vms->init_func_ref[i].ndim = cdim + vms->vdim;
@@ -855,6 +938,30 @@ vm_app_new(lua_State *L)
     vm.species[s] = species[s]->vm_species;
     vm.vdim = species[s]->vdim;
 
+    app_lw->has_hamiltonian_func[s] = species[s]->has_hamiltonian_func;
+    app_lw->hamiltonian_func_ctx[s] = species[s]->hamiltonian_func_ref;
+
+    app_lw->has_inverse_metric_func[s] = species[s]->has_inverse_metric_func;
+    app_lw->inverse_metric_func_ctx[s] = species[s]->inverse_metric_func_ref;
+
+    app_lw->has_metric_determinant_func[s] = species[s]->has_metric_determinant_func;
+    app_lw->metric_determinant_func_ctx[s] = species[s]->metric_determinant_func_ref;
+
+    if (species[s]->has_hamiltonian_func) {
+      vm.species[s].hamil = gkyl_lw_eval_cb;
+      vm.species[s].hamil_ctx = &app_lw->hamiltonian_func_ctx[s];
+    }
+
+    if (species[s]->has_inverse_metric_func) {
+      vm.species[s].h_ij_inv = gkyl_lw_eval_cb;
+      vm.species[s].h_ij_inv_ctx = &app_lw->inverse_metric_func_ctx[s];
+    }
+
+    if (species[s]->has_metric_determinant_func) {
+      vm.species[s].det_h = gkyl_lw_eval_cb;
+      vm.species[s].det_h_ctx = &app_lw->metric_determinant_func_ctx[s];
+    }
+
     app_lw->num_init[s] = species[s]->num_init;
     for (int i = 0; i < app_lw->num_init[s]; i++) {
       app_lw->proj_id[s][i] = species[s]->proj_id[i];
@@ -922,6 +1029,7 @@ vm_app_new(lua_State *L)
     app_lw->collision_max_iter[s] = species[s]->collision_max_iter;
     app_lw->fixed_temp_relax[s] = species[s]->fixed_temp_relax;
     app_lw->collision_use_last_converged[s] = species[s]->collision_use_last_converged;
+    app_lw->has_implicit_coll_scheme[s] = species[s]->has_implicit_coll_scheme;
 
     vm.species[s].collisions.collision_id = app_lw->collision_id[s];
 
@@ -940,6 +1048,7 @@ vm_app_new(lua_State *L)
     vm.species[s].collisions.max_iter = app_lw->collision_max_iter[s];
     vm.species[s].collisions.fixed_temp_relax = app_lw->fixed_temp_relax[s];
     vm.species[s].collisions.use_last_converged = app_lw->collision_use_last_converged[s];
+    vm.species[s].collisions.has_implicit_coll_scheme = app_lw->has_implicit_coll_scheme[s];
 
     app_lw->source_id[s] = species[s]->source_id;
 
