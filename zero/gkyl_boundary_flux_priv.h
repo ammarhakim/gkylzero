@@ -5,8 +5,8 @@
 struct gkyl_boundary_flux {
   int dir; // Direction perpendicular to the sheath boundary.
   enum gkyl_edge_loc edge; // Lower or upper boundary.
-  const struct gkyl_rect_grid *grid; // Phase-space grid object.
-  const struct gkyl_range *skin_r, *ghost_r; // Skin and ghost ranges.
+  struct gkyl_rect_grid grid; // Phase-space grid object.
+  struct gkyl_range skin_r, ghost_r; // Skin and ghost ranges.
   const struct gkyl_dg_eqn *equation; // Equation object.
   bool use_gpu; // Whether to run on GPU.
 
@@ -15,13 +15,13 @@ struct gkyl_boundary_flux {
 };
 
 
-#ifndef GKYL_HAVE_CUDA
+#ifdef GKYL_HAVE_CUDA
 /**
  * Create new boundary_flux updater on the GPU.
  *
  * @param dir Direction in which to apply BC.
  * @param edge Lower or upper edge at which to apply BC (see gkyl_edge_loc).
- * @param grid_cu Grid object (on device)
+ * @param grid Grid object (on device)
  * @param skin_r Skin range.
  * @param ghost_r Ghost range.
  * @param equation Equation object

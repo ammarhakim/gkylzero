@@ -3,106 +3,76 @@
 extern "C" {
 #include <gkyl_alloc.h>
 #include <gkyl_alloc_flags_priv.h>
-#include <gkyl_array.h>    
-#include <gkyl_array_ops.h>
-#include <gkyl_ghost_surf_calc.h>
-#include <gkyl_ghost_surf_calc_priv.h>
-#include <gkyl_mom_type.h>
-#include <gkyl_range.h>
-#include <gkyl_rect_grid.h>
-#include <gkyl_util.h>
+#include <gkyl_boundary_flux.h>
+#include <gkyl_boundary_flux_priv.h>
 }
 
-__global__ static void
-gkyl_ghost_surf_calc_advance_cu_ker(const struct gkyl_ghost_surf_calc *gcalc,
-  int dir, int edge, struct gkyl_range edge_rng,
-  const struct gkyl_array* fIn, struct gkyl_array* rhs)
+struct gkyl_boundary_flux*
+gkyl_boundary_flux_cu_dev_new(int dir, enum gkyl_edge_loc edge,
+  const struct gkyl_rect_grid *grid, const struct gkyl_range *skin_r, const struct gkyl_range *ghost_r,
+  const struct gkyl_dg_eqn *equation)
 {
-  double xcg[GKYL_MAX_DIM], xcs[GKYL_MAX_DIM];
-  int idxg[GKYL_MAX_DIM], idxs[GKYL_MAX_DIM];
+  struct gkyl_boundary_flux *up = (struct gkyl_boundary_flux*) gkyl_malloc(sizeof(struct gkyl_boundary_flux));
 
-  for(unsigned long tid = threadIdx.x + blockIdx.x*blockDim.x;
-      tid < edge_rng.volume; tid += blockDim.x*gridDim.x) {
-    gkyl_sub_range_inv_idx(&edge_rng, tid, idxg);
-    gkyl_copy_int_arr(edge_rng.ndim, idxg, idxs);
-    idxs[dir] -= edge;
-
-    gkyl_rect_grid_cell_center(&gcalc->grid, idxg, xcg);
-    gkyl_rect_grid_cell_center(&gcalc->grid, idxs, xcs);
-
-    long lincg = gkyl_range_idx(&edge_rng, idxg);
-    long lincs = gkyl_range_idx(&edge_rng, idxs);
-
-    const double* fgptr = (const double*) gkyl_array_cfetch(fIn, lincg);
-    const double* fsptr = (const double*) gkyl_array_cfetch(fIn, lincs);
-    
-    gcalc->equation->boundary_surf_term(gcalc->equation,
-      dir, xcs, xcg, gcalc->grid.dx, gcalc->grid.dx, idxs, idxg,
-      edge, fsptr, fgptr, (double*) gkyl_array_fetch(rhs, lincg)
-    );
-  }
-}
-
-void
-gkyl_ghost_surf_calc_advance_cu(struct gkyl_ghost_surf_calc *gcalc,
-  const struct gkyl_range *phase_rng,
-  const struct gkyl_array *fIn, struct gkyl_array *rhs)
-{
-  struct gkyl_range edge_rng;
-  int nblocks, nthreads;
-  int edge;
-  int clower_idx[GKYL_MAX_DIM], cupper_idx[GKYL_MAX_DIM] = { 0 };
-  for (int dim=0; dim<phase_rng->ndim; ++dim) {
-    clower_idx[dim] = phase_rng->lower[dim];
-    cupper_idx[dim] = phase_rng->upper[dim];
-  }
-  
-  for(int dir=0; dir<gcalc->cdim; ++dir) {
-    edge = -1;
-    clower_idx[dir] = phase_rng->lower[dir];
-    cupper_idx[dir] = phase_rng->lower[dir];
-    gkyl_sub_range_init(&edge_rng, phase_rng, clower_idx, cupper_idx);
-    nblocks = edge_rng.nblocks;
-    nthreads = edge_rng.nthreads;
-
-    gkyl_ghost_surf_calc_advance_cu_ker<<<nblocks, nthreads>>>(gcalc->on_dev, dir,
-      edge, edge_rng, fIn->on_dev, rhs->on_dev);
-
-    edge = 1;
-    clower_idx[dir] = phase_rng->upper[dir];
-    cupper_idx[dir] = phase_rng->upper[dir];
-    gkyl_sub_range_init(&edge_rng, phase_rng, clower_idx, cupper_idx);
-    nblocks = edge_rng.nblocks;
-    nthreads = edge_rng.nthreads;
-
-    gkyl_ghost_surf_calc_advance_cu_ker<<<nblocks, nthreads>>>(gcalc->on_dev, dir,
-      edge, edge_rng, fIn->on_dev, rhs->on_dev);
-
-    // Reset indices for loop over each velocity dimension
-    clower_idx[dir] = phase_rng->lower[dir];
-    cupper_idx[dir] = phase_rng->upper[dir];
-  }
-}
-
-struct gkyl_ghost_surf_calc*
-gkyl_ghost_surf_calc_cu_dev_new(const struct gkyl_rect_grid *grid,
-  const struct gkyl_dg_eqn *equation, int cdim)
-{
-  struct gkyl_ghost_surf_calc *up = (struct gkyl_ghost_surf_calc*) gkyl_malloc(sizeof(struct gkyl_ghost_surf_calc));
+  up->dir = dir;
+  up->edge = edge;
   up->grid = *grid;
-  up->cdim = cdim;
-  
+  up->skin_r = *skin_r;
+  up->ghost_r = *ghost_r;
+  up->use_gpu = true;
+
   struct gkyl_dg_eqn *eqn = gkyl_dg_eqn_acquire(equation);
   up->equation = eqn->on_dev;
   
   up->flags = 0;
   GKYL_SET_CU_ALLOC(up->flags);
 
-  struct gkyl_ghost_surf_calc *up_cu = (struct gkyl_ghost_surf_calc*) gkyl_cu_malloc(sizeof(struct gkyl_ghost_surf_calc));
-  gkyl_cu_memcpy(up_cu, up, sizeof(struct gkyl_ghost_surf_calc), GKYL_CU_MEMCPY_H2D);
+  struct gkyl_boundary_flux *up_cu = (struct gkyl_boundary_flux*) gkyl_cu_malloc(sizeof(struct gkyl_boundary_flux));
+  gkyl_cu_memcpy(up_cu, up, sizeof(struct gkyl_boundary_flux), GKYL_CU_MEMCPY_H2D);
   up->on_dev = up_cu;
   
   up->equation = eqn;
   
   return up;
+}
+
+__global__ static void
+gkyl_boundary_flux_advance_cu_ker(const struct gkyl_boundary_flux *up,
+  const struct gkyl_array* fIn, struct gkyl_array* fluxOut)
+{
+  int idx_g[GKYL_MAX_DIM], idx_s[GKYL_MAX_DIM];
+  double xc_g[GKYL_MAX_DIM], xc_s[GKYL_MAX_DIM];
+
+  for (unsigned long tid = threadIdx.x + blockIdx.x*blockDim.x;
+      tid < up->ghost_r.volume; tid += blockDim.x*gridDim.x) {
+
+    gkyl_sub_range_inv_idx(&up->ghost_r, tid, idx_g);
+
+    gkyl_copy_int_arr(up->ghost_r.ndim, idx_g, idx_s);
+    idx_s[up->dir] = up->edge == GKYL_LOWER_EDGE? idx_g[up->dir]+1 : idx_g[up->dir]-1;
+
+    gkyl_rect_grid_cell_center(&up->grid, idx_g, xc_g);
+    gkyl_rect_grid_cell_center(&up->grid, idx_s, xc_s);
+
+    long linidx_g = gkyl_range_idx(&up->ghost_r, idx_g);
+    long linidx_s = gkyl_range_idx(&up->skin_r, idx_s);
+
+    const double* fg_c = (const double*) gkyl_array_cfetch(fIn, linidx_g);
+    const double* fs_c = (const double*) gkyl_array_cfetch(fIn, linidx_s);
+    
+    up->equation->boundary_flux_term(up->equation, up->dir, xc_s, xc_g,
+      up->grid.dx, up->grid.dx, idx_s, idx_g, up->edge == GKYL_LOWER_EDGE? -1 : 1,
+      fs_c, fg_c, (double*) gkyl_array_fetch(fluxOut, linidx_g)
+    );
+  }
+}
+
+void
+gkyl_boundary_flux_advance_cu(struct gkyl_boundary_flux *up,
+  const struct gkyl_array *fIn, struct gkyl_array *fluxOut)
+{
+  int nblocks = up->ghost_r.nblocks, nthreads = up->ghost_r.nthreads;
+  
+  gkyl_boundary_flux_advance_cu_ker<<<nblocks, nthreads>>>(up->on_dev,
+    fIn->on_dev, fluxOut->on_dev);
 }
