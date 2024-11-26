@@ -758,7 +758,8 @@ local function Field_meta_ctor(elct)
          ffi.C.gkyl_grid_sub_array_write(self._grid._zero, self._localExtRange, meta, self._zero, fullNm)
       end,
       read = function(self, fName)  --> time-stamp, frame-number
-         return self._adiosIo:read(self, fName)
+	 ffi.C.gkyl_grid_sub_array_read(self._grid._zero, self._localExtRange, self._zero, fName)
+         return 0.0, 0
       end,
       sync = function(self, syncPeriodicDirs_)
          local syncPeriodicDirs = xsys.pickBool(syncPeriodicDirs_, true)

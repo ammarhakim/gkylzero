@@ -32,6 +32,18 @@ struct gkyl_array_meta {
   char *meta; // meta-data encoded in mpack format
 };
 
+// Array header data to write: this is for low-level control and is
+// typically not something most users would ever encounter
+struct gkyl_array_header_info {
+  uint64_t file_type; // file type
+  enum gkyl_elem_type etype; // element type
+  uint64_t esznc; // elem sz * number of components
+  uint64_t tot_cells; // total number of cells in grid
+  uint64_t meta_size; // size in bytes of meta-data embedded in header
+  char *meta; // meta-data as byte array
+  uint64_t nrange; // number of ranges
+};
+
 /**
  * Write out grid and array data to file in .gkyl format so postgkyl
  * can understand it.
@@ -46,4 +58,31 @@ struct gkyl_array_meta {
 enum gkyl_array_rio_status gkyl_grid_sub_array_write(const struct gkyl_rect_grid *grid,
   const struct gkyl_range *range, const struct gkyl_array_meta *meta,
   const struct gkyl_array *arr, const char *fname);
+
+/**
+ * Read grid and array data header data from file. Note that only
+ * HEADER is read and NOT the array data itself.
+ *
+ * @param grid Grid object to read
+ * @param hrd On output, Header data.
+ * @param fname Name of output file (include .gkyl extension)
+ * @return Status flag
+ */
+enum gkyl_array_rio_status gkyl_grid_sub_array_header_read(struct gkyl_rect_grid *grid,
+  struct gkyl_array_header_info *hdr, const char *fname);
+
+/**
+ * Read grid and array data from file. The input array must be
+ * pre-allocated and must be big enough to hold the read data.
+ * 
+ * @param grid Grid object to read
+ * @param range Range describing portion of the array.
+ * @param arr Array object to read
+ * @param fname Name of input file
+ * @return Status flag
+ */
+enum gkyl_array_rio_status gkyl_grid_sub_array_read(struct gkyl_rect_grid *grid,
+  const struct gkyl_range *range,
+  struct gkyl_array *arr, const char* fname);
+
 ]]
