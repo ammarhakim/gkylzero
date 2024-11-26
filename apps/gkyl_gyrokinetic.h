@@ -9,6 +9,7 @@
 #include <gkyl_range.h>
 #include <gkyl_util.h>
 #include <gkyl_velocity_map.h>
+#include <gkyl_position_map.h>
 #include <gkyl_gyrokinetic_comms.h>
 
 #include <stdbool.h>
@@ -104,13 +105,13 @@ struct gkyl_gyrokinetic_bcs {
 struct gkyl_gyrokinetic_geometry {
   enum gkyl_geometry_id geometry_id;
 
-  void *mirror_geo_c2fa_ctx; // context for computational to field alligned mapping used in the non-uniform grids
-
   void *c2p_ctx; // context for mapc2p function
   // pointer to mapc2p function: xc are the computational space
   // coordinates and on output xp are the corresponding physical space
   // coordinates.
   void (*mapc2p)(double t, const double *xc, double *xp, void *ctx);
+
+  struct gkyl_mapc2fa_inp mapc2fa; // context for mapc2fa function
 
   void *bmag_ctx; // context for bmag function
   // pointer to bmag function

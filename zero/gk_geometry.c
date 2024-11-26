@@ -284,34 +284,6 @@ gkyl_gk_geometry_deflate(const struct gk_geometry* up_3d, struct gkyl_gk_geometr
   return up;
 }
 
-void gkyl_gk_geometry_c2fa_advance(void *ctx, const double *x_comp, double *x_fa)
-{
-  struct gk_geometry *gk_geometry = ctx;
-  int cidx[GKYL_MAX_CDIM];
-  for(int i = 0; i < gk_geometry->grid.ndim; i++){
-    int idxtemp = gk_geometry->local.lower[i] + (int) floor((x_comp[i] - (gk_geometry->grid.lower[i]) )/gk_geometry->grid.dx[i]);
-    idxtemp = GKYL_MIN2(idxtemp, gk_geometry->local.upper[i]);
-    idxtemp = GKYL_MAX2(idxtemp, gk_geometry->local.lower[i]);
-    cidx[i] = idxtemp;
-  }
-  long lidx = gkyl_range_idx(&gk_geometry->local, cidx);
-  const double *c2fa_coeffs = gkyl_array_cfetch(gk_geometry->c2fa, lidx);
-  double cxc[gk_geometry->grid.ndim];
-  double x_log[gk_geometry->grid.ndim];
-  gkyl_rect_grid_cell_center(&gk_geometry->grid, cidx, cxc);
-  for(int i = 0; i < gk_geometry->grid.ndim; i++){
-    x_log[i] = (x_comp[i]-cxc[i])/(gk_geometry->grid.dx[i]*0.5);
-  }
-  double xyz_fa[3];
-  for(int i = 0; i < 3; i++){
-    xyz_fa[i] = gk_geometry->basis.eval_expand(x_log, &c2fa_coeffs[i*gk_geometry->basis.num_basis]);
-  }
-  for (int i=0; i<gk_geometry->grid.ndim; i++) {
-    x_fa[i] = xyz_fa[i];
-  }
-  x_fa[gk_geometry->grid.ndim-1] = xyz_fa[2];
-}
-
 void
 gkyl_gk_geometry_free(const struct gkyl_ref_count *ref)
 {

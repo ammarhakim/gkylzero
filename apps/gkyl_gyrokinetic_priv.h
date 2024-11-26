@@ -64,6 +64,7 @@
 #include <gkyl_mom_calc_bcorr.h>
 #include <gkyl_mom_gyrokinetic.h>
 #include <gkyl_null_pool.h>
+#include <gkyl_position_map.h>
 #include <gkyl_prim_lbo_calc.h>
 #include <gkyl_prim_lbo_cross_calc.h>
 #include <gkyl_prim_lbo_gyrokinetic.h>
@@ -381,7 +382,7 @@ struct gk_react {
 struct gk_proj_on_basis_c2p_func_ctx {
   int cdim, vdim;
   struct gkyl_velocity_map *vel_map;
-  struct gk_geometry *gk_geometry;
+  struct gkyl_position_map *pos_map;
 };
 
 struct gk_proj {
@@ -750,6 +751,7 @@ struct gkyl_gyrokinetic_app {
   } basis_on_dev;
 
   struct gk_geometry *gk_geom;
+  struct gkyl_position_map *position_map; // Position mapping object.
 
   bool update_field; // are we updating the field?
   struct gk_field *field; // pointer to field object

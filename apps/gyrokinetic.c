@@ -263,7 +263,6 @@ gkyl_gyrokinetic_app_new(struct gkyl_gk *gk)
     .efit_info = gk->geometry.efit_info,
     .tok_grid_info = gk->geometry.tok_grid_info,
     .mirror_grid_info = gk->geometry.mirror_grid_info,
-    .mirror_geo_c2fa_ctx = gk->geometry.mirror_geo_c2fa_ctx,
     .nonuniform_geom = false,
     .nonuniform_map_fraction = gk->geometry.nonuniform_mapping_fraction,
     .grid = app->grid,
@@ -341,6 +340,9 @@ gkyl_gyrokinetic_app_new(struct gkyl_gk *gk)
   }
 
   gkyl_gk_geometry_release(gk_geom_3d); // release temporary 3d geometry
+
+  app->position_map = gkyl_position_map_new(gk->geometry.mapc2fa, app->gk_geom->c2fa, app->grid, app->local, 
+      app->local_ext, app->basis, app->use_gpu);
 
   gkyl_gk_geometry_bmag_mid(app->gk_geom); // set bmag mid
   int bcast_rank = comm_sz/2;
@@ -2431,15 +2433,9 @@ rk3(gkyl_gyrokinetic_app* app, double dt0)
             // Rescale each species to enforce quasineutrality.
             for (int i=0; i<app->num_species; ++i) {
               struct gk_species *gks = &app->species[i];
-              if (gks->info.charge > 0.0 && app->num_species > 1) {
-                struct gk_species *gkelc = &app->species[elc_idx];
-                gkyl_positivity_shift_gyrokinetic_quasineutrality_scale(gks->pos_shift_op, &app->local, &gks->local,
-                  gks->ps_delta_m0, app->ps_delta_m0_ions, gkelc->ps_delta_m0, gks->m0.marr, gks->f);
-              }
-              else {
-                gkyl_positivity_shift_gyrokinetic_quasineutrality_scale(gks->pos_shift_op, &app->local, &gks->local,
-                  gks->ps_delta_m0, gks->ps_delta_m0, app->ps_delta_m0_ions, gks->m0.marr, gks->f);
-              }
+              gkyl_positivity_shift_gyrokinetic_quasineutrality_scale(gks->pos_shift_op, &app->local, &gks->local,
+                gks->ps_delta_m0, gks->ps_delta_m0s_tot, gks->ps_delta_m0r_tot, gks->m0.marr, gks->f);
+
               gkyl_array_accumulate(gks->fnew, 1.0, gks->f);
             }
           }
@@ -2958,6 +2954,8 @@ gkyl_gyrokinetic_app_release(gkyl_gyrokinetic_app* app)
   gkyl_gk_geometry_release(app->gk_geom);
 
   gk_field_release(app, app->field);
+
+  gkyl_position_map_release(app->position_map);
 
   for (int i=0; i<app->num_species; ++i)
     gk_species_release(app, &app->species[i]);

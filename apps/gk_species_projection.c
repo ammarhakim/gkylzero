@@ -7,14 +7,14 @@ proj_on_basis_c2p_phase_func(const double *xcomp, double *xphys, void *ctx)
   struct gk_proj_on_basis_c2p_func_ctx *c2p_ctx = ctx;
   int cdim = c2p_ctx->cdim; // Assumes update range is a phase range.
   gkyl_velocity_map_eval_c2p(c2p_ctx->vel_map, &xcomp[cdim], &xphys[cdim]);
-  gkyl_gk_geometry_c2fa_advance(c2p_ctx->gk_geometry, xcomp, xphys);
+  gkyl_position_map_eval_c2p(c2p_ctx->pos_map, xcomp, xphys);
 }
 
 void
 proj_on_basis_c2p_position_func(const double *xcomp, double *xphys, void *ctx)
 {
   struct gk_proj_on_basis_c2p_func_ctx *c2p_ctx = ctx;
-  gkyl_gk_geometry_c2fa_advance(c2p_ctx->gk_geometry, xcomp, xphys);
+  gkyl_position_map_eval_c2p(c2p_ctx->pos_map, xcomp, xphys);
 }
 
 void 
@@ -26,7 +26,7 @@ gk_species_projection_init(struct gkyl_gyrokinetic_app *app, struct gk_species *
   proj->proj_on_basis_c2p_ctx.cdim = app->cdim;
   proj->proj_on_basis_c2p_ctx.vdim = s->local_vel.ndim;
   proj->proj_on_basis_c2p_ctx.vel_map = s->vel_map;
-  proj->proj_on_basis_c2p_ctx.gk_geometry = app->gk_geom;
+  proj->proj_on_basis_c2p_ctx.pos_map = app->position_map;
   if (proj->proj_id == GKYL_PROJ_FUNC) {
     proj->proj_func = gkyl_proj_on_basis_inew( &(struct gkyl_proj_on_basis_inp) {
         .grid = &s->grid,
