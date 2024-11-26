@@ -444,15 +444,15 @@ eval_density_ion(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT
   Bfield_psiZ(psi, Z, ctx, &BRad, &BZ, &Bmag);
   if (fabs(Z) <= app->Z_bt)
   {
-    fout[0] = app->n0 * pow(1.0 - pow((R - app->R_bt) / app->alim, 2), app->alphaIC0 / 2);
+    fout[0] = 1.2 * app->n0 * pow(1.0 - pow((R - app->R_bt) / app->alim, 2), app->alphaIC0 / 2);
   }
   else if (fabs(Z) <= app->Z_m)
   {
-    fout[0] = app->n0 * pow(1.0 - pow((R - app->R_bt) / app->alim, 2), app->alphaIC1 / 2);
+    fout[0] = 1.2 * app->n0 * pow(1.0 - pow((R - app->R_bt) / app->alim, 2), app->alphaIC1 / 2);
   }
   else
   {
-    fout[0] = app->n_m * sqrt(Bmag / app->B_m);
+    fout[0] = 1.2 * app->n_m * sqrt(Bmag / app->B_m);
   }
 }
 
@@ -603,10 +603,10 @@ create_ctx(void)
   double mu_max_ion = mi * pow(3. * vti, 2.) / (2. * B_p);
   int Nz = 32;
   int Nvpar = 32; // Number of cells in the paralell velocity direction 96
-  int Nmu = 48;  // Number of cells in the mu direction 192
+  int Nmu = 32;  // Number of cells in the mu direction 192
   int poly_order = 1;
 
-  double t_end = 4.0e-9;
+  double t_end = 1.0e-9;
   int num_frames = 1;
   int int_diag_calc_num = num_frames*100;
   double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.
@@ -865,6 +865,7 @@ int main(int argc, char **argv)
     .polarization_bmag = ctx.B_p, 
     .fem_parbc = GKYL_FEM_PARPROJ_NONE,
     .kperpSq = pow(ctx.kperp, 2.),
+    .is_static = true,
   };
 
   struct gkyl_efit_inp efit_inp = {
@@ -1028,4 +1029,6 @@ int main(int argc, char **argv)
     MPI_Finalize();
 #endif
   return 0;
+
+  
 }
