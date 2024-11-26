@@ -57,6 +57,14 @@ enum gkyl_array_rio_status gkyl_grid_sub_array_header_read(struct gkyl_rect_grid
   struct gkyl_array_header_info *hdr, const char *fname);
 
 /**
+ * Free header info if needed (only of meta_size > 0) does this call
+ * actually free anything.
+ *
+ * @param info Header info to free
+ */
+void gkyl_array_header_info_release(struct gkyl_array_header_info *info);
+
+/**
  * Write out grid and array data to file in .gkyl format so postgkyl
  * can understand it.
  *

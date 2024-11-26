@@ -223,6 +223,13 @@ gkyl_grid_sub_array_header_read(struct gkyl_rect_grid *grid,
   return status;
 }
 
+void
+gkyl_array_header_info_release(struct gkyl_array_header_info *info)
+{
+  if (info->meta_size > 0)
+    gkyl_free(info->meta);
+}
+
 enum gkyl_array_rio_status
 gkyl_grid_sub_array_write(const struct gkyl_rect_grid *grid, const struct gkyl_range *range,
   const struct gkyl_array_meta *meta,

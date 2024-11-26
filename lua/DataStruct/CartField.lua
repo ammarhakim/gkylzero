@@ -355,7 +355,6 @@ local function Field_meta_ctor(elct)
 
       self._metaData = tbl.metaData
       mpack.set_number("double")
-      self._metaDataPacked = mpack.pack(tbl.metaData)
       -- tag to identify basis used to set this field
       self._basisId = "none"
 
@@ -747,9 +746,10 @@ local function Field_meta_ctor(elct)
 	 local meta = ffi.new("struct gkyl_array_meta")
 
 	 if self._metaData then
-	    meta.meta_sz = string.len(self._metaDataPacked)
-	    meta.meta = ffi.new("char[?]", string.len(self._metaDataPacked)+1)
-	    ffi.copy(meta.meta, self._metaDataPacked)
+	    local metaDataPacked = mpack.pack(self._metaData)
+	    meta.meta_sz = string.len(metaDataPacked)
+	    meta.meta = ffi.new("char[?]", string.len(metaDataPacked)+1)
+	    ffi.copy(meta.meta, metaDataPacked)
 	 else
 	    meta.meta_sz = 0
 	 end
@@ -758,6 +758,14 @@ local function Field_meta_ctor(elct)
          ffi.C.gkyl_grid_sub_array_write(self._grid._zero, self._localExtRange, meta, self._zero, fullNm)
       end,
       read = function(self, fName)  --> time-stamp, frame-number
+	 local meta = ffi.new("struct gkyl_array_header_info")
+	 ffi.C.gkyl_grid_sub_array_header_read(self._grid._zero, meta, fName)
+	 self._metaData = 0
+	 if (meta.meta_size > 0) then
+	    self._metaData = mpack.unpack(ffi.string(meta.meta, meta.meta_size))
+	    ffi.C.gkyl_array_header_info_release(meta)
+	 end
+
 	 ffi.C.gkyl_grid_sub_array_read(self._grid._zero, self._localExtRange, self._zero, fName)
          return 0.0, 0
       end,

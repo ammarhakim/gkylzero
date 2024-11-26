@@ -281,9 +281,7 @@ test_io_p1_p4(void)
 
   TEST_CHECK( 0 == status );  
 
-  if (hdr.meta_size > 0)
-    gkyl_free(hdr.meta);
-  
+  gkyl_array_header_info_release(&hdr);
   gkyl_rect_decomp_release(decomp);
   gkyl_comm_release(comm);
   gkyl_array_release(s_arr);
