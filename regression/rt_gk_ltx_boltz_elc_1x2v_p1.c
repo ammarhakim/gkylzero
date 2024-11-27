@@ -443,7 +443,9 @@ int main(int argc, char **argv)
     .lower = { -ctx.vpar_max_ion, 0.0},
     .upper = {  ctx.vpar_max_ion, ctx.mu_max_ion}, 
     .cells = { cells_v[0], cells_v[1] },
+
     .polarization_density = ctx.n0,
+
     .projection = {
       .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM, 
       .ctx_density = &ctx,
@@ -453,11 +455,13 @@ int main(int argc, char **argv)
       .ctx_temp = &ctx,
       .temp = temp_ion,      
     },
+
     .collisions =  {
       .collision_id = GKYL_LBO_COLLISIONS,
       .ctx = &ctx,
       .self_nu = evalNuIon,
     },
+
     .source = {
       .source_id = GKYL_PROJ_SOURCE,
       .num_sources = 1,
@@ -471,10 +475,12 @@ int main(int argc, char **argv)
         .temp = temp_ion_src,  
       }, 
     },
+
     .bcx = {
       .lower={.type = GKYL_SPECIES_GK_SHEATH,},
       .upper={.type = GKYL_SPECIES_GK_SHEATH,},
     },
+
     .num_diag_moments = 5,
     .diag_moments = { "M0", "M1", "M2", "M2par", "M2perp" },
   };
@@ -522,7 +528,6 @@ int main(int argc, char **argv)
     },
   };
   
-
   // Create app object.
   gkyl_gyrokinetic_app *app = gkyl_gyrokinetic_app_new(&gk);
 
