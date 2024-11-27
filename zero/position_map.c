@@ -45,7 +45,7 @@ gkyl_position_map_new(struct gkyl_mapc2fa_inp mapc2p_in, struct gkyl_array* c2fa
   struct gkyl_position_map *gpm = gkyl_malloc(sizeof(*gpm));
 
   // gpm->is_identity = mapc2p_in.mapping == 0;
-  if (mapc2p_in.mapping == 0) {
+  if (mapc2p_in.mapping == 0 && mapc2p_in.numerical_mapping_fraction == 0.0) {
     gpm->is_identity = true;
   }
   gpm->grid = grid;
@@ -53,24 +53,9 @@ gkyl_position_map_new(struct gkyl_mapc2fa_inp mapc2p_in, struct gkyl_array* c2fa
   gpm->local_ext = local_ext;
   gpm->pmap_basis = &basis;
 
-  int cdim = grid.ndim;
-
-  gpm->pmap     = mkarr(false, cdim*gpm->pmap_basis->num_basis, gpm->local_ext.volume);
+  gpm->pmap     = gkyl_array_acquire(c2fa);
   // Need a host copy of pmap for some IC setting options.
   gpm->pmap_ho  = gkyl_array_acquire(gpm->pmap);
-
-
-  gkyl_eval_on_nodes *evup;
-  if (gpm->is_identity) {
-    struct mapc2p_pos_identity_ctx identity_ctx = { .cdim = cdim };
-    evup = gkyl_eval_on_nodes_new(&gpm->grid, gpm->pmap_basis,
-      cdim, mapc2p_pos_identity, &identity_ctx);
-  }
-  else {
-    evup = gkyl_eval_on_nodes_new(&gpm->grid, gpm->pmap_basis,
-      cdim, mapc2p_in.mapping, mapc2p_in.ctx);
-  }
-  gkyl_eval_on_nodes_advance(evup, 0., &gpm->local, gpm->pmap);
 
   gpm->flags = 0;
   GKYL_CLEAR_CU_ALLOC(gpm->flags);

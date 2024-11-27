@@ -9,6 +9,7 @@
 #include <gkyl_fem_poisson_bctype.h>
 #include <gkyl_gyrokinetic.h>
 #include <gkyl_math.h>
+#include <gkyl_position_map.h>
 
 #include <rt_arg_parse.h>
 
@@ -286,15 +287,14 @@ eval_density_ion(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT
   double z = xn[0];
   double z_m = app->z_m;
   double sigma = 0.9*z_m;
-  fout[0] = app->n0;
-  // if (fabs(z) <= sigma)
-  // {
-  //   fout[0] = 0.5*app->n0*(1. + tanh(10. * sigma * fabs(sigma - fabs(z))));
-  // }
-  // else
-  // {
-  //   fout[0] = 0.5*app->n0* exp(-5 * (fabs(sigma - fabs(z))));
-  // }
+  if (fabs(z) <= sigma)
+  {
+    fout[0] = 0.5*app->n0*(1. + tanh(10. * sigma * fabs(sigma - fabs(z))));
+  }
+  else
+  {
+    fout[0] = 0.5*app->n0* exp(-5 * (fabs(sigma - fabs(z))));
+  }
 }
 
 void
@@ -749,9 +749,13 @@ int main(int argc, char **argv)
     .zmax =  2.0,  // Z of upper boundary 
   };
 
+  struct gkyl_mapc2fa_inp position_map_inp = {
+    .numerical_mapping_fraction = 0.0,
+  };
+
   // GK app
   struct gkyl_gk app_inp = {
-    .name = "gk_wham_1x2v_p1",
+    .name = "gk_wham_1x2v_p1_uniform",
 
     .cdim = ctx.cdim, .vdim = ctx.vdim,
     .lower = {ctx.z_min},
@@ -765,7 +769,7 @@ int main(int argc, char **argv)
       .world = {ctx.psi_eval, 0.0},
       .efit_info = efit_inp,
       .mirror_grid_info = grid_inp,
-      .nonuniform_mapping_fraction = 0.0,
+      .mapc2fa_inp = position_map_inp,
     },
 
     .num_periodic_dir = 0,

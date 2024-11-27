@@ -10,6 +10,7 @@
 #include <gkyl_math.h>
 #include <gkyl_mirror_geo_priv.h>
 #include <gkyl_nodal_ops.h>
+#include <gkyl_position_map.h>
 #include <gkyl_range.h>
 #include <gkyl_rect_grid.h>
 #include <gkyl_util.h>
@@ -160,7 +161,7 @@ gkyl_mirror_geo_R_psiZ(const struct gkyl_mirror_geo *geo, double psi, double Z, 
 void gkyl_mirror_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, double dzc[3], 
   struct gkyl_mirror_geo *geo, struct gkyl_mirror_geo_grid_inp *inp, 
   struct gkyl_array *mc2p_nodal_fd, struct gkyl_array *mc2p_nodal, struct gkyl_array *mc2p, bool nonuniform,
-  struct gkyl_array* c2fa_nodal_fd, struct gkyl_array* c2fa_nodal, struct gkyl_array* c2fa)
+  struct gkyl_array* c2fa_nodal_fd, struct gkyl_array* c2fa_nodal, struct gkyl_array* c2fa, struct gkyl_mapc2fa_inp *mapc2fa_inp)
 {
 
 
@@ -239,6 +240,14 @@ void gkyl_mirror_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, dou
     calculate_mirror_throat_location(&arc_ctx, bmag_ctx_inp);
     calculate_optimal_mapping(&arc_ctx, bmag_ctx_inp);
   }
+  else
+  {
+    arc_ctx.mapping_frac = 0.0;
+    arc_ctx.mapping_order_center = 1;
+    arc_ctx.mapping_order_expander = 1;
+    arc_ctx.theta_throat = 1.0;
+    arc_ctx.Bmag_throat = 10.0;
+  }
 
   int cidx[3] = { 0 };
   for(int ia=nrange->lower[AL_IDX]; ia<=nrange->upper[AL_IDX]; ++ia){
@@ -316,6 +325,11 @@ void gkyl_mirror_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, dou
               if (nonuniform) {
                 theta_curr = map_theta_to_z(theta_curr, &arc_ctx); // Need theta_mirror
                 arcL_curr = (theta_curr + M_PI)/2/M_PI*arcL;
+              }
+              if (mapc2fa_inp->mapping != NULL && 
+                (nonuniform || mapc2fa_inp->numerical_mapping_fraction == 0.0))
+              {
+                mapc2fa_inp->mapping(0.0, &theta_curr, theta_curr, mapc2fa_inp->ctx);
               }
 
               mirror_set_ridders(inp, &arc_ctx, psi_curr, arcL, arcL_curr, zmin, zmax, &rclose, &ridders_min, &ridders_max);

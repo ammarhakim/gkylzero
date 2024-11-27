@@ -26,7 +26,7 @@ gkyl_gk_geometry_mirror_new(struct gkyl_gk_geometry_inp *geometry_inp)
   gk_geom_3d = gkyl_gk_geometry_mirror_advance(geometry_inp);
   // The conversion array computational to field aligned is still computed
   // in uniform geometry, so we need to deflate it
-  double nonuniform_frac = geometry_inp->nonuniform_map_fraction;
+  double nonuniform_frac = geometry_inp->mapc2fa_inp.numerical_mapping_fraction;
   if (nonuniform_frac > 0.0 & nonuniform_frac <= 1.0) {
     // Must deflate the 3Duniform geometry in order for the allgather to work
     if(geometry_inp->cdim < 3)
@@ -135,13 +135,13 @@ gkyl_gk_geometry_mirror_advance(struct gkyl_gk_geometry_inp *geometry_inp)
   const struct gkyl_efit_inp inp = geometry_inp->efit_info;
   struct gkyl_mirror_geo_grid_inp ginp = geometry_inp->mirror_grid_info;
   bool nonuniform_geom = geometry_inp->nonuniform_geom;
-  ginp.nonuniform_mapping_fraction = geometry_inp->nonuniform_map_fraction;
+  ginp.nonuniform_mapping_fraction = geometry_inp->mapc2fa_inp.numerical_mapping_fraction;
   ginp.cgrid = up->grid;
   ginp.cbasis = up->basis;
   struct gkyl_mirror_geo *geo = gkyl_mirror_geo_new(&inp, &ginp);
   // calculate mapc2p
   gkyl_mirror_geo_calc(up, &nrange, dzc, geo, &ginp, mc2p_nodal_fd, mc2p_nodal, up->mc2p,
-      nonuniform_geom, map_c2fa_nodal_fd, map_c2fa_nodal, up->c2fa);
+      nonuniform_geom, map_c2fa_nodal_fd, map_c2fa_nodal, up->c2fa, &geometry_inp->mapc2fa_inp);
   // calculate bmag
   gkyl_calc_bmag *bcalculator = gkyl_calc_bmag_new(&up->basis, &geo->rzbasis, &up->grid, &geo->rzgrid, false);
   gkyl_calc_bmag_advance(bcalculator, &up->local, &up->local_ext, &up->global, &geo->rzlocal, &geo->rzlocal_ext, geo->efit->bmagzr, up->bmag, up->mc2p);

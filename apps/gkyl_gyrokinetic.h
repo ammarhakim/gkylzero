@@ -111,8 +111,6 @@ struct gkyl_gyrokinetic_geometry {
   // coordinates.
   void (*mapc2p)(double t, const double *xc, double *xp, void *ctx);
 
-  struct gkyl_mapc2fa_inp mapc2fa; // context for mapc2fa function
-
   void *bmag_ctx; // context for bmag function
   // pointer to bmag function
   void (*bmag_func)(double t, const double *xc, double *xp, void *ctx);
@@ -120,9 +118,9 @@ struct gkyl_gyrokinetic_geometry {
   struct gkyl_efit_inp efit_info; // context with RZ data such as efit file for a tokamak or mirror
   struct gkyl_tok_geo_grid_inp tok_grid_info; // context for tokamak geometry with computational domain info
   struct gkyl_mirror_geo_grid_inp mirror_grid_info; // context for mirror geometry with computational domain info
+  struct gkyl_mapc2fa_inp mapc2fa_inp; // context for mapc2fa function
 
   double world[3]; // extra computational coordinates for cases with reduced dimensionality
-  double nonuniform_mapping_fraction; // Zero is uniform mapping, one is fully nonuniform mapping. In between values. Used for the mirror geometry
 };
 
 // Parameters for species radiation

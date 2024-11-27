@@ -9,6 +9,7 @@
 #include <gkyl_eqn_type.h>
 #include <gkyl_tok_geo.h>
 #include <gkyl_mirror_geo.h>
+#include <gkyl_position_map.h>
 
 
 typedef struct gk_geometry gk_geometry;
@@ -71,8 +72,6 @@ struct gk_geometry {
 struct gkyl_gk_geometry_inp {
   enum gkyl_geometry_id geometry_id;
 
-  void *mirror_geo_c2fa_ctx; // context for arcL mapping used in the non-uniform grids
-
   void *c2p_ctx; // context for mapc2p function
   // pointer to mapc2p function: xc are the computational space
   // coordinates and on output xp are the corresponding physical space
@@ -86,7 +85,7 @@ struct gkyl_gk_geometry_inp {
   struct gkyl_array* bmag_global; // global bmag array
 
   bool nonuniform_geom; // flag to indicate if the geometry is non-uniform
-  double nonuniform_map_fraction; // fraction of non-uniformity in the geometry
+  struct gkyl_mapc2fa_inp mapc2fa_inp; // position map for non-uniform geometry
   double cdim; // dimensionality of the simulation
   bool use_gpu; // flag to indicate if the geometry is on the gpu
   struct gkyl_comm *comm;   // communicator object for phase-space arrays

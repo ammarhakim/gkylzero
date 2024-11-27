@@ -7,11 +7,12 @@
 #include <gkyl_comm.h>
 #include <gkyl_comm_io.h>
 
-typedef void (*mapc2fa_t)(double t, const double *zc, double *vp, void *ctx);
+typedef void (*mapc2fa_t)(double t, const double *zc, double zp, void *ctx);
 
 // Position space mappings.
 struct gkyl_mapc2fa_inp {
   mapc2fa_t mapping; // univariate mapping vp[0](zc[0]), vp[1](zc[1]), etc.
+  double numerical_mapping_fraction; // Zero is uniform mapping, one is fully nonuniform mapping. In between values. Used for the mirror geometry
   void *ctx;  // Context for mapping.
 };
 
