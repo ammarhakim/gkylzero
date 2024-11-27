@@ -7,7 +7,7 @@
 #include <gkyl_comm.h>
 #include <gkyl_comm_io.h>
 
-typedef void (*mapc2fa_t)(double t, const double *zc, double zp, void *ctx);
+typedef void (*mapc2fa_t)(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx);
 
 // Position space mappings.
 struct gkyl_mapc2fa_inp {

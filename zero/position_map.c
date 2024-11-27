@@ -47,6 +47,7 @@ gkyl_position_map_new(struct gkyl_mapc2fa_inp mapc2p_in, struct gkyl_array* c2fa
   // gpm->is_identity = mapc2p_in.mapping == 0;
   if (mapc2p_in.mapping == 0 && mapc2p_in.numerical_mapping_fraction == 0.0) {
     gpm->is_identity = true;
+    printf("Using identity mapping\n");
   }
   gpm->grid = grid;
   gpm->local = local;

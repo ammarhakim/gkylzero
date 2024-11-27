@@ -329,7 +329,8 @@ void gkyl_mirror_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, dou
               if (mapc2fa_inp->mapping != NULL && 
                 (nonuniform || mapc2fa_inp->numerical_mapping_fraction == 0.0))
               {
-                mapc2fa_inp->mapping(0.0, &theta_curr, theta_curr, mapc2fa_inp->ctx);
+                mapc2fa_inp->mapping(0.0, &theta_curr, &theta_curr, mapc2fa_inp->ctx);
+                arcL_curr = (theta_curr + M_PI)/2/M_PI*arcL;
               }
 
               mirror_set_ridders(inp, &arc_ctx, psi_curr, arcL, arcL_curr, zmin, zmax, &rclose, &ridders_min, &ridders_max);
