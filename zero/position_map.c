@@ -39,7 +39,7 @@ gkyl_position_map_free(const struct gkyl_ref_count *ref)
 }
 
 struct gkyl_position_map*
-gkyl_position_map_new(struct gkyl_mapc2fa_inp mapc2p_in, struct gkyl_array* c2fa, struct gkyl_rect_grid grid,
+gkyl_position_map_new(struct gkyl_position_map_inp mapc2p_in, struct gkyl_array* position_mapping, struct gkyl_rect_grid grid,
   struct gkyl_range local, struct gkyl_range local_ext, struct gkyl_basis basis, bool use_gpu)
 {
   struct gkyl_position_map *gpm = gkyl_malloc(sizeof(*gpm));
@@ -54,7 +54,7 @@ gkyl_position_map_new(struct gkyl_mapc2fa_inp mapc2p_in, struct gkyl_array* c2fa
   gpm->local_ext = local_ext;
   gpm->pmap_basis = &basis;
 
-  gpm->pmap     = gkyl_array_acquire(c2fa);
+  gpm->pmap     = gkyl_array_acquire(position_mapping);
   // Need a host copy of pmap for some IC setting options.
   gpm->pmap_ho  = gkyl_array_acquire(gpm->pmap);
 

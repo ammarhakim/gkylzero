@@ -161,7 +161,7 @@ gkyl_mirror_geo_R_psiZ(const struct gkyl_mirror_geo *geo, double psi, double Z, 
 void gkyl_mirror_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, double dzc[3], 
   struct gkyl_mirror_geo *geo, struct gkyl_mirror_geo_grid_inp *inp, 
   struct gkyl_array *mc2p_nodal_fd, struct gkyl_array *mc2p_nodal, struct gkyl_array *mc2p, bool nonuniform,
-  struct gkyl_array* c2fa_nodal_fd, struct gkyl_array* c2fa_nodal, struct gkyl_array* c2fa, struct gkyl_mapc2fa_inp *mapc2fa_inp)
+  struct gkyl_array* c2fa_nodal_fd, struct gkyl_array* c2fa_nodal, struct gkyl_array* c2fa, struct gkyl_position_map_inp *mapc2fa_inp)
 {
 
 
@@ -329,7 +329,11 @@ void gkyl_mirror_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, dou
               if (mapc2fa_inp->mapping != NULL && 
                 (nonuniform || mapc2fa_inp->numerical_mapping_fraction == 0.0))
               {
-                mapc2fa_inp->mapping(0.0, &theta_curr, &theta_curr, mapc2fa_inp->ctx);
+                double coords[3] = {psi_curr, alpha_curr, theta_curr};
+                mapc2fa_inp->mapping(0.0, coords, coords, mapc2fa_inp->ctx);
+                psi_curr = coords[0];
+                alpha_curr = coords[1];
+                theta_curr = coords[2];
                 arcL_curr = (theta_curr + M_PI)/2/M_PI*arcL;
               }
 

@@ -85,7 +85,7 @@ struct gkyl_gk_geometry_inp {
   struct gkyl_array* bmag_global; // global bmag array
 
   bool nonuniform_geom; // flag to indicate if the geometry is non-uniform
-  struct gkyl_mapc2fa_inp mapc2fa_inp; // position map for non-uniform geometry
+  struct gkyl_position_map_inp mapc2fa_inp; // position map for non-uniform geometry
   double cdim; // dimensionality of the simulation
   bool use_gpu; // flag to indicate if the geometry is on the gpu
   struct gkyl_comm *comm;   // communicator object for phase-space arrays

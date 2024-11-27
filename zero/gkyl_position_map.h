@@ -10,7 +10,7 @@
 typedef void (*mapc2fa_t)(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx);
 
 // Position space mappings.
-struct gkyl_mapc2fa_inp {
+struct gkyl_position_map_inp {
   mapc2fa_t mapping; // univariate mapping vp[0](zc[0]), vp[1](zc[1]), etc.
   double numerical_mapping_fraction; // Zero is uniform mapping, one is fully nonuniform mapping. In between values. Used for the mirror geometry
   void *ctx;  // Context for mapping.
@@ -46,7 +46,7 @@ struct gkyl_position_map {
  * @param use_gpu Whether to create a device copy of this new object.
  * @return New position map object.
  */
-struct gkyl_position_map* gkyl_position_map_new(struct gkyl_mapc2fa_inp mapc2p_in,
+struct gkyl_position_map* gkyl_position_map_new(struct gkyl_position_map_inp mapc2p_in,
   struct gkyl_array* c2fa, struct gkyl_rect_grid grid, struct gkyl_range local, 
   struct gkyl_range local_ext, struct gkyl_basis basis, bool use_gpu);
 

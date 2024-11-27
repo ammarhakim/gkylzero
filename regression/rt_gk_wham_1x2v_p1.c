@@ -605,15 +605,15 @@ mapc2fa(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, vo
 {
   double transition = 1.5;
   double poly_order = 2;
-  double z = xn[0];
+  double z = xn[2];
   if (z < -transition)
-    fout[0] = z;
+    fout[2] = z;
   else if (z < transition)
   {
-    fout[0] = - pow(z - transition, poly_order)/pow(2*transition, poly_order-1) + transition;
+    fout[2] = - pow(z - transition, poly_order)/pow(2*transition, poly_order-1) + transition;
   }
   else
-    fout[0] = z;
+    fout[2] = z;
 };
 
 int main(int argc, char **argv)
@@ -765,7 +765,7 @@ int main(int argc, char **argv)
     .zmax =  2.0,  // Z of upper boundary 
   };
 
-  struct gkyl_mapc2fa_inp position_map_inp = {
+  struct gkyl_position_map_inp position_map_inp = {
     .numerical_mapping_fraction = 0.5,
     .mapping = &mapc2fa,
     .ctx = &ctx,
