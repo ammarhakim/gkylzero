@@ -366,11 +366,11 @@ local function runCxxUnitTest(test)
    end
 end
 
-local function isLuaRegressionTest(fn)
-   return string.find(fn, "/rt%-[^/]-%.lua$") ~= nil
-end
-local function isShellRegressionTest(fn)
-   return string.find(fn, "/rt%-[^/]-%.sh$") ~= nil
+local function isLuaRegressionTest(fn, appPrefix)
+   if appPrefix then
+      return string.find(fn, "/rt_" .. appPrefix .. "_[^/]+%.lua$") ~= nil
+   end
+   return string.find(fn, "/rt_[^/]+%.lua$") ~= nil
 end
 
 local function isLuaUnitTest(fn)
@@ -390,11 +390,11 @@ end
 local function list_tests(args)
    local luaRegTests, shellRegTests = {}, {}
 
+   local appPrefix = args.app
+
    local function addTest(fn)
-      if isLuaRegressionTest(fn) then
+      if isLuaRegressionTest(fn, appPrefix) then
 	 table.insert(luaRegTests, fn)
-      elseif isShellRegressionTest(fn) then
-	 table.insert(shellRegTests, fn)
       end
    end
 
@@ -678,7 +678,7 @@ local function check_action(test)
    local fullResultsDir = configVals.results_dir .. "/"
       .. string.sub(test, 1, -5) -- remove the initial ./ and last .lua
 
-   local vloc = string.find(test, "/rt%-[^/]-%.lua$")
+   local vloc = string.find(test, "/rt_[^/]+_%.lua$")
    local outDirName = string.sub(test, 1, vloc)
    -- the very strange looking pattern below puts an escape character
    -- (i.e. \) before characters that are treated as special by
@@ -812,6 +812,7 @@ c_conf:flag("--drop-tables", "Recreate SQL tables", false)
 local c_list = parser:command("list", "List all regression tests")
    :action(list_action)
 c_list:option("-r --run-only", "Only list this test or all tests in this directory")
+c_list:option("-a --app", "Only list specified App tests. This is the prefix in test name after rt_ ")
 c_list:flag("-m --moat", "Only list MOAT regression")
 
 -- "run" tests
@@ -820,6 +821,7 @@ local c_run = parser:command("run")
    :require_command(false)
    :action(run_action)
 c_run:option("-r --run-only", "Only run these tests or all tests in these directories.\nCommma separated list")
+c_run:option("-a --app", "Only run specified App tests. This is the prefix in test name after rt_ ")
 c_run:flag("-m --moat", "Only run key MOAT regression")
 
 -- check against accepted results
