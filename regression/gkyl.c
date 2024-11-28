@@ -115,6 +115,12 @@ get_fname(const char *fn)
   return strrchr(fn, '/');
 }
 
+static const char*
+get_fname_with_dir(const char *fn)
+{
+  return fn;
+}
+
 // show usage
 static void
 show_usage()
@@ -127,6 +133,7 @@ show_usage()
   fprintf(stdout, "  -e chunk   Execute string 'chunk'\n");
   fprintf(stdout, "  -t         Show list of registered tools\n");
   fprintf(stdout, "  -v         Show version information\n");
+  fprintf(stdout, "  -d         Write output to same directory as input file\n");  
   fprintf(stdout, "  -g         Run on NVIDIA GPU (if available and built with CUDA)\n\n");
   fprintf(stdout, "  -m         Run memory tracer\n");
   fprintf(stdout, "  -S         Do not initialize MPI\n");
@@ -172,6 +179,8 @@ struct app_args {
   bool is_restart; // Is this a restarted simulation?
   int restart_frame; // Which frame to restart simulation from.
 
+  bool use_dir_path; /// should we use full directory path
+  
   char *echunk; // chunk of lua code to execute
   
   int num_opt_args; // number of optional arguments
@@ -217,8 +226,10 @@ parse_app_args(int argc, char **argv)
   args->is_restart = false;
   args->restart_frame = 0;
 
+  args->use_dir_path = false;
+
   int c;
-  while ((c = getopt(argc, argv, "+hvtmSe:gVs:r:")) != -1) {
+  while ((c = getopt(argc, argv, "+hvtmdSe:gVs:r:")) != -1) {
     switch (c)
     {
       case 'h':
@@ -244,6 +255,10 @@ parse_app_args(int argc, char **argv)
       case 'g':
         args->use_gpu = true;
         break;
+
+      case 'd':
+        args->use_dir_path = true;
+        break;        
 
       case 'S':
         args->use_mpi = false;
@@ -469,7 +484,7 @@ main(int argc, char **argv)
   lua_setglobal(L, "GKYL_COMMANDS");
 
   // Pushing args without the script name into a new table: this is
-  // needed for various tools CLI parsers. For some reson they do not
+  // needed for various tools CLI parsers. For some reason they do not
   // allow the script name in the args
   lua_newtable(L);
   
@@ -510,10 +525,20 @@ main(int argc, char **argv)
 
       show_banner(rank == 0 ? stdout : 0);
 
-      const char *suff = get_fname(inp_name);
-      const char *suff1 = suff ? suff+1 : inp_name;
-      lua_pushlstring(L, suff1, calc_output_prefix_len(suff1));
-      lua_setglobal(L, "GKYL_OUT_PREFIX");
+      const char *suff = 0, suff1 = 0;
+      if (app_args->use_dir_path) {
+        const char *suff = get_fname_with_dir(inp_name);
+        const char *suff1 = suff;
+        lua_pushlstring(L, suff1, calc_output_prefix_len(suff1));
+        lua_setglobal(L, "GKYL_OUT_PREFIX");
+        
+      }
+      else {
+        const char *suff = get_fname(inp_name);
+        const char *suff1 = suff ? suff+1 : inp_name;
+        lua_pushlstring(L, suff1, calc_output_prefix_len(suff1));
+        lua_setglobal(L, "GKYL_OUT_PREFIX");
+      }
       
       int64_t sz = 0;
       char *buff = gkyl_load_file(inp_name, &sz);
