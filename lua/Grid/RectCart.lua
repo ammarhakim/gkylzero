@@ -21,43 +21,7 @@ local Mpi = require "Comm.Mpi"
 local Proto = require "Lib.Proto"
 local Range = require "Lib.Range"
 
-ffi.cdef [[
-/**
- * Rectangular grid object.
- */
-struct gkyl_rect_grid {
-  int _ndim; // number of dimensions
-  double _lower[7]; // lower-left corner
-  double _upper[7]; // upper-right corner
-  int _cells[7]; // number of cells    
-  double _dx[7]; // cell spacing
-  double _cellVolume; // cell volume
-};
-
-/**
- * Create new grid object.
- *
- * @param grid Grid object to initialize.
- * @param ndim Dimension of grid
- * @param lower Coordinates of lower-left corner of grid
- * @param upper Coordinates of upper-right corner of grid
- * @param cells Number of cells in each direction
- */
-void gkyl_rect_grid_init(struct gkyl_rect_grid *grid, int ndim,
-  const double *lower, const double *upper, const int *cells);
-
-/**
- * Create range and extended ranges from grid and ghost-cell data. The
- * range is a sub-range of the extended range.
- *
- * @param grid Grid to compute ranges for
- * @param nghost Number of ghost-cells in each direction
- * @param ext_range On output, extended range spanning grid+ghost-cells
- * @param range On output, range spanning grid. Sub-range of ext_range.
- */
-void gkyl_create_grid_ranges(const struct gkyl_rect_grid *grid,
-  const int *nghost, struct gkyl_range *ext_range, struct gkyl_range *range);
-]]
+local ZeroRectCart = require "Grid.ZeroRectCart"
 
 local rectCartSz = sizeof("struct gkyl_rect_grid")
 

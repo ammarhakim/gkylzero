@@ -264,7 +264,7 @@ local function getType(enum)
    end
 end
 
--- Array ctype
+-- DynVector ctype
 local DynVecCt = typeof("struct gkyl_dynvec_tag")
 
 local dynvec_fn = {

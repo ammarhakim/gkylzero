@@ -13,6 +13,8 @@ local xsys = require "xsys"
 local new, sizeof, typeof, metatype = xsys.from(ffi,
      "new, sizeof, typeof, metatype")
 
+local Grid = require "Grid.RectCart"
+
 _M = {}
 
 ffi.cdef [[
@@ -93,4 +95,25 @@ enum gkyl_array_rio_status gkyl_grid_sub_array_read(struct gkyl_rect_grid *grid,
   const struct gkyl_range *range,
   struct gkyl_array *arr, const char* fname);
 
+/**
+ * Read grid and array data from file, creating a new array.
+ * 
+ * @param grid On outout, grid on which array is defined.
+ * @param fname Name of input file
+ * @return Newly created array object. NULL if failed
+ */
+struct gkyl_array *gkyl_grid_array_new_from_file(struct gkyl_rect_grid *grid,
+  const char* fname);
 ]]
+
+-- Returns grid and array from file
+function _M.arrayNewFromFile(fName)
+   local grid = ffi.new("struct gkyl_rect_grid")
+   local array = ffi.C.gkyl_grid_array_new_from_file(grid, fName)
+   if array then
+      return grid, array
+   end
+   return nil, nil
+end
+
+return _M
