@@ -85,7 +85,7 @@ gkyl_gk_geometry_tok_new(struct gkyl_gk_geometry_inp *geometry_inp)
   struct gkyl_tok_geo *geo = gkyl_tok_geo_new(&inp, &ginp);
   // calculate mapc2p and mapc2prz
   gkyl_tok_geo_calc(up, &nrange, dzc, geo, &ginp, mc2p_nodal_fd, mc2p_nodal, up->mc2p, 
-    dphidtheta_nodal, map_c2fa_nodal_fd, map_c2fa_nodal, up->c2fa, &geometry_inp->mapc2fa_inp);
+    dphidtheta_nodal, map_c2fa_nodal_fd, map_c2fa_nodal, up->c2fa, &geometry_inp->position_map_inp);
   // calculate bmag
   gkyl_calc_bmag *bcalculator = gkyl_calc_bmag_new(&up->basis, &geo->rzbasis, &up->grid, &geo->rzgrid, false);
   gkyl_calc_bmag_advance(bcalculator, &up->local, &up->local_ext, &up->global, &geo->rzlocal, &geo->rzlocal_ext, geo->efit->bmagzr, up->bmag, up->mc2p);

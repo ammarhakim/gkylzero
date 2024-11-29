@@ -118,6 +118,7 @@ gkyl_position_map_write(const struct gkyl_position_map* gpm, struct gkyl_comm* c
 
 void gkyl_position_map_eval_c2p(const struct gkyl_position_map* gpm, const double *x_comp, double *x_fa)
 {
+  printf("gkyl_position_map_eval_c2p\n");
   int cidx[GKYL_MAX_CDIM];
   for(int i = 0; i < gpm->grid.ndim; i++){
     int idxtemp = gpm->local.lower[i] + (int) floor((x_comp[i] - (gpm->grid.lower[i]) )/gpm->grid.dx[i]);
@@ -141,6 +142,8 @@ void gkyl_position_map_eval_c2p(const struct gkyl_position_map* gpm, const doubl
     x_fa[i] = xyz_fa[i];
   }
   x_fa[gpm->grid.ndim-1] = xyz_fa[2];
+  printf("mapped x_comp = %g %g %g to x_fa = %g %g %g\n", x_comp[0], x_comp[1], x_comp[2], x_fa[0], x_fa[1], x_fa[2]);
+
 }
 
 

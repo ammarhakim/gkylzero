@@ -395,6 +395,22 @@ write_data(struct gkyl_tm_trigger* iot, gkyl_gyrokinetic_app* app, double t_curr
   }
 }
 
+void
+mapc2fa(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+{
+  double transition = 1.5;
+  double poly_order = 2;
+  double z = xn[2];
+  if (z < -transition)
+    fout[2] = z;
+  else if (z < transition)
+  {
+    fout[2] = - pow(z - transition, poly_order)/pow(2*transition, poly_order-1) + transition;
+  }
+  else
+    fout[2] = z;
+};
+
 int
 main(int argc, char **argv)
 {
@@ -487,6 +503,7 @@ main(int argc, char **argv)
       },
     }, 
 
+
     .num_diag_moments = 7,
     .diag_moments = { "M0", "M1", "M2", "M2par", "M2perp", "M3par", "M3perp" },
   };
@@ -530,6 +547,7 @@ main(int argc, char **argv)
       }, 
     },
 
+    
     .react_neut = {
       .num_react = 3,
       .react_type = {
@@ -591,15 +609,21 @@ main(int argc, char **argv)
     .diag_moments = { "M0", "M1i", "M2"}, //, "M2par", "M2perp" },
   };
 
+
   // Field.
   struct gkyl_gyrokinetic_field field = {
     .fem_parbc = GKYL_FEM_PARPROJ_NONE, 
     .kperpSq = ctx.k_perp * ctx.k_perp,
   };
 
+  struct gkyl_position_map_inp position_map_inp = {
+    .mapping = &mapc2fa,
+    .ctx = &ctx,
+  };
+
   // GK app.
   struct gkyl_gk app_inp = {
-    .name = "gk_step_1x2v_p1_cons",
+    .name = "gk_step_1x2v_p1_cons_nonuniform",
 
     .cdim = ctx.cdim, .vdim = ctx.vdim,
     .lower = { -0.5 * ctx.Lz},
@@ -614,6 +638,7 @@ main(int argc, char **argv)
       .geometry_id = GKYL_TOKAMAK,
       .efit_info = inp,
       .tok_grid_info = ginp,
+      .position_map_inp = position_map_inp
     },
 
     .num_periodic_dir = 1,

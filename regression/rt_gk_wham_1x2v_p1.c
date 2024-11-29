@@ -787,7 +787,7 @@ int main(int argc, char **argv)
       .world = {ctx.psi_eval, 0.0},
       .efit_info = efit_inp,
       .mirror_grid_info = grid_inp,
-      .mapc2fa_inp = position_map_inp,
+      .position_map_inp = position_map_inp,
     },
 
     .num_periodic_dir = 0,
