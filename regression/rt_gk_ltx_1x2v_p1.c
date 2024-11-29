@@ -491,6 +491,7 @@ int main(int argc, char **argv)
     .lower = { -ctx.vpar_max_elc, 0.0},
     .upper = {  ctx.vpar_max_elc, ctx.mu_max_elc}, 
     .cells = { cells_v[0], cells_v[1] },
+
     .polarization_density = ctx.n0,
 
     .projection = {
@@ -502,6 +503,7 @@ int main(int argc, char **argv)
       .ctx_temp = &ctx,
       .temp = temp_elc,      
     },
+
     .collisions =  {
       .collision_id = GKYL_LBO_COLLISIONS,
       .ctx = &ctx,
@@ -509,6 +511,7 @@ int main(int argc, char **argv)
       .num_cross_collisions = 1,
       .collide_with = { "ion" },
     },
+
     .source = {
       .source_id = GKYL_PROJ_SOURCE,
       .num_sources = 1,
@@ -539,6 +542,7 @@ int main(int argc, char **argv)
     .lower = { -ctx.vpar_max_ion, 0.0},
     .upper = {  ctx.vpar_max_ion, ctx.mu_max_ion}, 
     .cells = { cells_v[0], cells_v[1] },
+
     .polarization_density = ctx.n0,
 
     .projection = {
@@ -550,6 +554,7 @@ int main(int argc, char **argv)
       .ctx_temp = &ctx,
       .temp = temp_ion,      
     },
+
     .collisions =  {
       .collision_id = GKYL_LBO_COLLISIONS,
       .ctx = &ctx,
@@ -557,6 +562,7 @@ int main(int argc, char **argv)
       .num_cross_collisions = 1,
       .collide_with = { "elc" },
     },
+
     .source = {
       .source_id = GKYL_PROJ_SOURCE,
       .num_sources = 1,
