@@ -29,7 +29,7 @@ gkyl_gk_geometry_mirror_new(struct gkyl_gk_geometry_inp *geometry_inp)
   double nonuniform_frac = geometry_inp->mapc2fa_inp.numerical_mapping_fraction;
   if (nonuniform_frac > 0.0 & nonuniform_frac <= 1.0) {
     // Must deflate the 3Duniform geometry in order for the allgather to work
-    if(geometry_inp->cdim < 3)
+    if(geometry_inp->grid.ndim < 3)
       gk_geom = gkyl_gk_geometry_deflate(gk_geom_3d, geometry_inp);
     else
       gk_geom = gkyl_gk_geometry_acquire(gk_geom_3d);

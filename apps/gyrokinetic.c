@@ -270,8 +270,7 @@ gkyl_gyrokinetic_app_new(struct gkyl_gk *gk)
     .global = app->global,
     .global_ext = app->global_ext,
     .basis = app->confBasis,
-    .cdim = app->cdim,
-    .use_gpu = app->use_gpu,
+    .use_gpu = app->use_gpu, // can be removed if allgather is addeed as a CPU operation
     .comm = app->comm,
   };
   for(int i = 0; i<3; i++)
