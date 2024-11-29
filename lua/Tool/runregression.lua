@@ -273,7 +273,7 @@ local function copyAllFiles(srcPath, ext, destPath)
    -- for now using os.execute to run the "cp" command. Perhaps this
    -- is not the best way to do this and one might want to use a more
    -- Lua-ish way
-   local cp = "cp -rf" .. " " .. srcPath .. "_*." .. ext .. " " .. destPath
+   local cp = "cp -rf" .. " " .. srcPath .. "-*." .. ext .. " " .. destPath
    verboseLog(string.format("... executing %s ...\n", cp))
    os.execute(cp)
 end
@@ -295,11 +295,11 @@ local function runLuaTest(test)
    f:close()
 
    -- before running tests delete all old output
-   local rm = "rm -rf " .. string.sub(test, 1, -5) .. "_*.bp"
+   local rm = "rm -rf " .. string.sub(test, 1, -5) .. "-*.gkyl"
    os.execute(rm)
 
    -- construct command to run
-   local runCmd = string.format("%s %s", GKYL_EXEC, test)
+   local runCmd = string.format("%s -d %s", GKYL_EXEC, test)
    if opts.numProc then
       runCmd = string.format("%s -n %d %s %s", configVals.mpiExec, opts.numProc, GKYL_EXEC, test)
    end
@@ -487,44 +487,20 @@ local function create_action(test)
    return -2
 end
 
--- function to compare floats: the comparison is normalized to the
--- maximum value of the field being compared. Perhaps this is too
--- "coarse" but a direct comparison of floats is very tricky.
-local function check_equal_numeric(expected, actual, maxVal)
-   if maxVal < GKYL_MIN_DOUBLE then
-      return math.abs(expected-actual) > 10*GKYL_MIN_DOUBLE
-   end
-   if math.abs(expected-actual)/maxVal > 1e-12 then
-      return false
-   end
-   return true
-end
-
--- relative difference between two numbers (NOT SURE IF THIS IS BEST
--- WAY TO DO THINGS)
-local function get_relative_numeric(expected, actual, maxVal)
-   if maxVal < GKYL_MIN_DOUBLE then
-      return math.abs(expected-actual)
-   else
-      return math.abs(expected-actual)/maxVal
-   end
-end
-
--- calculates maximum value in supplied field
-local function maxValueInField(fld)
-   local maxVal = 0.0
-   for i = 1, #fld do maxVal = math.max(maxVal, math.abs(fld[i])) end
-   return maxVal
-end
-
 -- function to compare files
 local function compareFiles(f1, f2)
-   verboseLog(string.format("Comparing %s %s ...\n", f1, f2))   
+   --verboseLogger(string.format("Comparing %s %s ...\n", f1, f2))   
    if not lfs.attributes(f1) or not lfs.attributes(f2) then
       verboseLog(string.format(
 		    " ... files %s and/or %s do not exist!\n", f1, f2))
       return false
    end
+
+   local a1 = ZeroArrayRio.arrayNewFromFile(f1)
+   local a2 = ZeroArrayRio.arrayNewFromFile(f2)
+
+   
+
    local cmpPass = true
    
    return cmpPass
@@ -535,22 +511,22 @@ local function check_action(test)
    local fullResultsDir = configVals.results_dir .. "/"
       .. string.sub(test, 1, -5) -- remove the initial ./ and last .lua
 
-   local vloc = string.find(test, "/rt_[^/]+_%.lua$")
+   local vloc = string.find(test, "/rt_[^/]+%.lua$")
    local outDirName = string.sub(test, 1, vloc)
    -- the very strange looking pattern below puts an escape character
    -- (i.e. \) before characters that are treated as special by
-   -- pattern matcher. (The final underscore is needed to avoid the
+   -- pattern matcher. (The final dash is needed to avoid the
    -- regression system getting confused with other tests that have
    -- the same prefix)
    local testPrefix = string.gsub(
-      string.sub(test, 3, -5), "(%W)", "%%%1") .. "_"
+      string.sub(test, 3, -5), "(%W)", "%%%1") .. "%-"
 
    local passed, count = true, 0
    for fn in lfs.dir(outDirName) do
       local fullNm = outDirName .. fn
       local attr = lfs.attributes(fullNm)
-      if attr.mode == "directory" then
-	 if string.find(fullNm, testPrefix) and string.sub(fullNm, -3, -1) == ".bp" then
+      if attr.mode == "file" then
+	 if string.find(fullNm, testPrefix) and string.sub(fullNm, -5, -1) == ".gkyl" then
 	    count = count + 1 -- increment number of files compared
 	    local acceptedFileNm = fullResultsDir .. "/" .. string.sub(fullNm, vloc+1, -1)
 	    local status = compareFiles(acceptedFileNm, fullNm)
