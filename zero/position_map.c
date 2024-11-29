@@ -45,25 +45,25 @@ gkyl_position_map_new(struct gkyl_position_map_inp mapc2p_in, struct gkyl_rect_g
   struct gkyl_position_map *gpm = gkyl_malloc(sizeof(*gpm));
 
   // gpm->is_identity = mapc2p_in.mapping == 0;
-  if (mapc2p_in.mapping == 0 && mapc2p_in.numerical_mapping_fraction == 0.0) {
-    gpm->is_identity = true;
-  }
+  gpm->is_identity = (mapc2p_in.mapping == 0 && mapc2p_in.numerical_mapping_fraction == 0.0);
   gpm->grid = grid;
   gpm->local = local;
   gpm->local_ext = local_ext;
-  gpm->pmap_basis = &basis;
+  gpm->pmap_basis = gkyl_cart_modal_serendip_new(basis.poly_order, basis.ndim);
   int cdim = grid.ndim; 
 
   gpm->pmap     = mkarr(false, cdim*gpm->pmap_basis->num_basis, gpm->local_ext.volume);
   // Need a host copy of pmap for some IC setting options.
   gpm->pmap_ho  = gkyl_array_acquire(gpm->pmap);
 
-  gkyl_eval_on_nodes *evup;
   if (gpm->is_identity) {
+    // This is not correct. It shifts the array to the left by a few. About 4 on the negative side are left out
+    struct gkyl_eval_on_nodes *evup;
     struct mapc2p_pos_identity_ctx identity_ctx = { .cdim = cdim };
     evup = gkyl_eval_on_nodes_new(&gpm->grid, gpm->pmap_basis,
       cdim, mapc2p_pos_identity, &identity_ctx);
-    gkyl_eval_on_nodes_advance(evup, 0., &gpm->local, gpm->pmap);
+    gkyl_eval_on_nodes_advance(evup, 0., &gpm->local_ext, gpm->pmap);
+    gkyl_eval_on_nodes_release(evup);
   }
 
   gpm->flags = 0;
@@ -118,7 +118,6 @@ gkyl_position_map_write(const struct gkyl_position_map* gpm, struct gkyl_comm* c
 
 void gkyl_position_map_eval_c2p(const struct gkyl_position_map* gpm, const double *x_comp, double *x_fa)
 {
-  printf("gkyl_position_map_eval_c2p\n");
   int cidx[GKYL_MAX_CDIM];
   for(int i = 0; i < gpm->grid.ndim; i++){
     int idxtemp = gpm->local.lower[i] + (int) floor((x_comp[i] - (gpm->grid.lower[i]) )/gpm->grid.dx[i]);
@@ -142,8 +141,6 @@ void gkyl_position_map_eval_c2p(const struct gkyl_position_map* gpm, const doubl
     x_fa[i] = xyz_fa[i];
   }
   x_fa[gpm->grid.ndim-1] = xyz_fa[2];
-  printf("mapped x_comp = %g %g %g to x_fa = %g %g %g\n", x_comp[0], x_comp[1], x_comp[2], x_fa[0], x_fa[1], x_fa[2]);
-
 }
 
 

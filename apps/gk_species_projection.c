@@ -14,7 +14,9 @@ void
 proj_on_basis_c2p_position_func(const double *xcomp, double *xphys, void *ctx)
 {
   struct gk_proj_on_basis_c2p_func_ctx *c2p_ctx = ctx;
+  printf("mapping from %g to ", xcomp[0]);
   gkyl_position_map_eval_c2p(c2p_ctx->pos_map, xcomp, xphys);
+  printf("%g \n", xphys[0]);
 }
 
 void 
