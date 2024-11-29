@@ -11,9 +11,9 @@ typedef void (*mapc2fa_t)(double t, const double *GKYL_RESTRICT xn, double *GKYL
 
 // Position space mappings.
 struct gkyl_position_map_inp {
-  mapc2fa_t mapping; // univariate mapping vp[0](zc[0]), vp[1](zc[1]), etc.
-  double numerical_mapping_fraction; // Zero is uniform mapping, one is fully nonuniform mapping. In between values. Used for the mirror geometry
+  mapc2fa_t mapping; // Must be 3x mapping function.
   void *ctx;  // Context for mapping.
+  double numerical_mapping_fraction; // Zero is uniform mapping, one is fully nonuniform mapping. In between values. Used for the mirror geometry
 };
 
 // Object type.
@@ -39,7 +39,6 @@ struct gkyl_position_map {
  * grids).
  *
  * @param mapc2p_in Comp. to phys. mapping input object (see definition above).
- * @param c2fa Array containing the numerical comp. to phys. mapping.
  * @param grid Position space grid.
  * @param local Local position range.
  * @param local_ext Local extended position range.
@@ -47,8 +46,19 @@ struct gkyl_position_map {
  * @return New position map object.
  */
 struct gkyl_position_map* gkyl_position_map_new(struct gkyl_position_map_inp mapc2p_in,
-  struct gkyl_array* c2fa, struct gkyl_rect_grid grid, struct gkyl_range local, 
+  struct gkyl_rect_grid grid, struct gkyl_range local, 
   struct gkyl_range local_ext, struct gkyl_basis basis, bool use_gpu);
+
+/**
+ * Set the position map object.
+ * 
+ * @param gpm Position map object.
+ * @param pmap Position map array.
+ * 
+ * @note This function is used to set the position map array in the position map object.
+ */
+void gkyl_position_map_set(struct gkyl_position_map* gpm, struct gkyl_array* pmap);
+
 
 /**
  * Write the position map and its jacobian to file.

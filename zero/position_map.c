@@ -39,7 +39,7 @@ gkyl_position_map_free(const struct gkyl_ref_count *ref)
 }
 
 struct gkyl_position_map*
-gkyl_position_map_new(struct gkyl_position_map_inp mapc2p_in, struct gkyl_array* position_mapping, struct gkyl_rect_grid grid,
+gkyl_position_map_new(struct gkyl_position_map_inp mapc2p_in, struct gkyl_rect_grid grid,
   struct gkyl_range local, struct gkyl_range local_ext, struct gkyl_basis basis, bool use_gpu)
 {
   struct gkyl_position_map *gpm = gkyl_malloc(sizeof(*gpm));
@@ -47,16 +47,24 @@ gkyl_position_map_new(struct gkyl_position_map_inp mapc2p_in, struct gkyl_array*
   // gpm->is_identity = mapc2p_in.mapping == 0;
   if (mapc2p_in.mapping == 0 && mapc2p_in.numerical_mapping_fraction == 0.0) {
     gpm->is_identity = true;
-    printf("Using identity mapping\n");
   }
   gpm->grid = grid;
   gpm->local = local;
   gpm->local_ext = local_ext;
   gpm->pmap_basis = &basis;
+  int cdim = grid.ndim; 
 
-  gpm->pmap     = gkyl_array_acquire(position_mapping);
+  gpm->pmap     = mkarr(false, cdim*gpm->pmap_basis->num_basis, gpm->local_ext.volume);
   // Need a host copy of pmap for some IC setting options.
   gpm->pmap_ho  = gkyl_array_acquire(gpm->pmap);
+
+  gkyl_eval_on_nodes *evup;
+  if (gpm->is_identity) {
+    struct mapc2p_pos_identity_ctx identity_ctx = { .cdim = cdim };
+    evup = gkyl_eval_on_nodes_new(&gpm->grid, gpm->pmap_basis,
+      cdim, mapc2p_pos_identity, &identity_ctx);
+    gkyl_eval_on_nodes_advance(evup, 0., &gpm->local, gpm->pmap);
+  }
 
   gpm->flags = 0;
   GKYL_CLEAR_CU_ALLOC(gpm->flags);
@@ -78,6 +86,15 @@ bool
 gkyl_position_map_is_cu_dev(const struct gkyl_position_map* gpm)
 {
   return GKYL_IS_CU_ALLOC(gpm->flags);
+}
+
+void
+gkyl_position_map_set(struct gkyl_position_map* gpm, struct gkyl_array* pmap)
+{
+  gkyl_array_release(gpm->pmap);
+  gkyl_array_release(gpm->pmap_ho);
+  gpm->pmap = gkyl_array_acquire(pmap);
+  gpm->pmap_ho = gkyl_array_acquire(pmap);
 }
 
 void
