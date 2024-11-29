@@ -67,8 +67,8 @@ double map_theta_to_z(const double uniform_coordinate, void *arc_ctx)
   struct arc_length_ctx *arc_app = arc_ctx;
   int n_ex = arc_app->mapping_order_expander;//app->mapping_order_expander;
   int n_ct = arc_app->mapping_order_center;//app->mapping_order_center;
-  double z_min = arc_app->theta_min * 0.95;
-  double z_max = arc_app->theta_max * 0.95;
+  double z_min = arc_app->theta_min;
+  double z_max = arc_app->theta_max;
   double z_m = arc_app->theta_throat;
   double frac = arc_app->mapping_frac; // 1 is full mapping, 0 is no mapping
   double nonuniform_coordinate, left, right;

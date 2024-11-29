@@ -23,6 +23,7 @@ struct gk_geometry {
   struct gkyl_basis basis;
   struct gkyl_rect_grid grid;
 
+  // stuff for reading deflated arrays. Important for non-uniform grids reading B
   struct gkyl_range decomp_local;
   struct gkyl_range decomp_local_ext;
   struct gkyl_range decomp_global;
@@ -204,16 +205,6 @@ struct gk_geometry* gkyl_gk_geometry_deflate(const struct gk_geometry* up_3d, st
  * @return Pointer to acquired geometry
  */
 struct gk_geometry* gkyl_gk_geometry_acquire(const struct gk_geometry* up);
-
-/**
- * Updater for advancing the map from computational coordinates to non-uniform coordinates
- * 
- * @param ctx gk_geometry object
- * @param x_comp computational coordinates
- * @param x_fa non-uniform coordinates
- */
-void gkyl_gk_geometry_c2fa_advance(void *ctx, const double *x_comp, double *x_fa);
-
 
 void gkyl_gk_geometry_free(const struct gkyl_ref_count *ref);
 
