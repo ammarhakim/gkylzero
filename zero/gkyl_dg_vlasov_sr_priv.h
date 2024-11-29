@@ -1110,6 +1110,26 @@ kernel_vlasov_sr_vmap_vol_1x3v_tensor_p2(const struct gkyl_dg_eqn *eqn, const do
     qIn, qRhsOut);  
 }
 
+GKYL_CU_DH
+static double
+kernel_vlasov_sr_vmap_vol_2x2v_tensor_p2(const struct gkyl_dg_eqn *eqn, const double*  xc, const double*  dx, 
+  const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
+{
+  struct dg_vlasov_sr *vlasov_sr = container_of(eqn, struct dg_vlasov_sr, eqn);
+  int idx_vel[GKYL_MAX_DIM];
+  for (int i=0; i<vlasov_sr->pdim-vlasov_sr->cdim; ++i)
+    idx_vel[i] = idx[vlasov_sr->cdim+i];
+
+  long cidx = gkyl_range_idx(&vlasov_sr->conf_range, idx);
+  long vidx = gkyl_range_idx(&vlasov_sr->vel_range, idx_vel);
+
+  return vlasov_sr_vmap_vol_2x2v_tensor_p2(xc, dx, 
+    (const double*) gkyl_array_cfetch(vlasov_sr->auxfields.jacob_vel_inv, vidx), 
+    (const double*) gkyl_array_cfetch(vlasov_sr->auxfields.gamma, vidx), 
+    (const double*) gkyl_array_cfetch(vlasov_sr->auxfields.qmem, cidx),
+    qIn, qRhsOut);  
+}
+
 // Volume kernel list for relativistic streaming + EM 
 // with a mapped momentum (four-velocity)-space grid
 GKYL_CU_D
@@ -1119,7 +1139,7 @@ static const gkyl_dg_vlasov_sr_vol_kern_list tensor_vmap_vol_kernels[] = {
   { NULL, NULL, kernel_vlasov_sr_vmap_vol_1x2v_tensor_p2 }, // 1
   { NULL, NULL, kernel_vlasov_sr_vmap_vol_1x3v_tensor_p2 }, // 2
   // 2x kernels
-  { NULL, NULL, NULL }, // 3
+  { NULL, NULL, kernel_vlasov_sr_vmap_vol_2x2v_tensor_p2 }, // 3
   { NULL, NULL, NULL }, // 4
   // 3x kernels
   { NULL, NULL, NULL }, // 5
@@ -1397,7 +1417,7 @@ static const gkyl_dg_vlasov_sr_stream_surf_kern_list tensor_vmap_stream_surf_x_k
   { NULL, NULL, vlasov_sr_vmap_surfx_1x2v_tensor_p2 }, // 1
   { NULL, NULL, vlasov_sr_vmap_surfx_1x3v_tensor_p2 }, // 2
   // 2x kernels
-  { NULL, NULL, NULL }, // 3
+  { NULL, NULL, vlasov_sr_vmap_surfx_2x2v_tensor_p2 }, // 3
   { NULL, NULL, NULL }, // 4
   // 3x kernels
   { NULL, NULL, NULL }, // 5
@@ -1411,7 +1431,7 @@ static const gkyl_dg_vlasov_sr_stream_surf_kern_list tensor_vmap_stream_surf_y_k
   { NULL, NULL, NULL }, // 1
   { NULL, NULL, NULL }, // 2  
   // 2x kernels
-  { NULL, NULL, NULL }, // 3
+  { NULL, NULL, vlasov_sr_vmap_surfy_2x2v_tensor_p2 }, // 3
   { NULL, NULL, NULL }, // 4
   // 3x kernels
   { NULL, NULL, NULL }, // 5
@@ -1439,7 +1459,7 @@ static const gkyl_dg_vlasov_sr_accel_surf_kern_list tensor_vmap_accel_surf_vx_ke
   { NULL, NULL, vlasov_sr_vmap_surfvx_1x2v_tensor_p2 }, // 1
   { NULL, NULL, vlasov_sr_vmap_surfvx_1x3v_tensor_p2 }, // 2
   // 2x kernels
-  { NULL, NULL, NULL }, // 3
+  { NULL, NULL, vlasov_sr_vmap_surfvx_2x2v_tensor_p2 }, // 3
   { NULL, NULL, NULL }, // 4
   // 3x kernels
   { NULL, NULL, NULL }, // 5
@@ -1453,7 +1473,7 @@ static const gkyl_dg_vlasov_sr_accel_surf_kern_list tensor_vmap_accel_surf_vy_ke
   { NULL, NULL, vlasov_sr_vmap_surfvy_1x2v_tensor_p2 }, // 1
   { NULL, NULL, vlasov_sr_vmap_surfvy_1x3v_tensor_p2 }, // 2
   // 2x kernels
-  { NULL, NULL, NULL }, // 3
+  { NULL, NULL, vlasov_sr_vmap_surfvy_2x2v_tensor_p2 }, // 3
   { NULL, NULL, NULL }, // 4
   // 3x kernels
   { NULL, NULL, NULL }, // 5
@@ -1481,7 +1501,7 @@ static const gkyl_dg_vlasov_sr_accel_boundary_surf_kern_list tensor_vmap_accel_b
   { NULL, NULL, vlasov_sr_vmap_boundary_surfvx_1x2v_tensor_p2 }, // 1
   { NULL, NULL, vlasov_sr_vmap_boundary_surfvx_1x3v_tensor_p2 }, // 2
   // 2x kernels
-  { NULL, NULL, NULL }, // 3
+  { NULL, NULL, vlasov_sr_vmap_boundary_surfvx_2x2v_tensor_p2 }, // 3
   { NULL, NULL, NULL }, // 4
   // 3x kernels
   { NULL, NULL, NULL }, // 5
@@ -1495,7 +1515,7 @@ static const gkyl_dg_vlasov_sr_accel_boundary_surf_kern_list tensor_vmap_accel_b
   { NULL, NULL, vlasov_sr_vmap_boundary_surfvy_1x2v_tensor_p2 }, // 1
   { NULL, NULL, vlasov_sr_vmap_boundary_surfvy_1x3v_tensor_p2 }, // 2
   // 2x kernels
-  { NULL, NULL, NULL }, // 3
+  { NULL, NULL, vlasov_sr_vmap_boundary_surfvy_2x2v_tensor_p2 }, // 3
   { NULL, NULL, NULL }, // 4
   // 3x kernels
   { NULL, NULL, NULL }, // 5

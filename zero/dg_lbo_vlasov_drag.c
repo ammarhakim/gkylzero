@@ -96,6 +96,19 @@ gkyl_dg_lbo_vlasov_drag_new(const struct gkyl_basis* cbasis, const struct gkyl_b
 
       break;
 
+    case GKYL_BASIS_MODAL_TENSOR:
+      if (use_vmap) {
+        vol_kernels = tensor_vmap_vol_kernels;
+        surf_vx_kernels = tensor_vmap_surf_vx_kernels;
+        surf_vy_kernels = tensor_vmap_surf_vy_kernels;
+        surf_vz_kernels = tensor_vmap_surf_vz_kernels;
+        boundary_surf_vx_kernels = tensor_vmap_boundary_surf_vx_kernels;
+        boundary_surf_vy_kernels = tensor_vmap_boundary_surf_vy_kernels;
+        boundary_surf_vz_kernels = tensor_vmap_boundary_surf_vz_kernels;
+      }
+
+      break;
+
     default:
       assert(false);
       break;    
