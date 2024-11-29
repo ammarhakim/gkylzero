@@ -7,8 +7,10 @@
 #include <gkyl_range.h>
 #include <gkyl_rect_grid.h>
 #include <gkyl_nodal_ops.h>
+#include <gkyl_position_map.h>
 #include <gkyl_gk_geometry.h>
 #include <gkyl_tok_geo_priv.h>
+
 
 #include <math.h>
 #include <string.h>
@@ -370,7 +372,8 @@ gkyl_tok_geo_R_psiZ(const struct gkyl_tok_geo *geo, double psi, double Z, int nm
 }
 
 void gkyl_tok_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, double dzc[3], struct gkyl_tok_geo *geo, 
-    struct gkyl_tok_geo_grid_inp *inp, struct gkyl_array *mc2p_nodal_fd, struct gkyl_array *mc2p_nodal, struct gkyl_array *mc2p, struct gkyl_array *dphidtheta_nodal)
+    struct gkyl_tok_geo_grid_inp *inp, struct gkyl_array *mc2p_nodal_fd, struct gkyl_array *mc2p_nodal, 
+    struct gkyl_array *mc2p, struct gkyl_array *dphidtheta_nodal, struct gkyl_position_map_inp *mapc2fa_inp)
 {
 
   geo->rleft = inp->rleft;
@@ -514,6 +517,16 @@ void gkyl_tok_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, double
               }
               arcL_curr = arcL_lo + it*darcL + modifiers[it_delta]*delta_theta*(arc_ctx.arcL_tot/2/M_PI);
               double theta_curr = arcL_curr*(2*M_PI/arc_ctx.arcL_tot) - M_PI ; 
+
+              if (mapc2fa_inp->mapping != NULL)
+              {
+                double coords[3] = {psi_curr, alpha_curr, theta_curr};
+                mapc2fa_inp->mapping(0.0, coords, coords, mapc2fa_inp->ctx);
+                psi_curr = coords[0];
+                alpha_curr = coords[1];
+                theta_curr = coords[2];
+                arcL_curr = arcL_curr*(2*M_PI/arc_ctx.arcL_tot) - M_PI ;
+              }
 
               tok_set_ridders(inp, &arc_ctx, psi_curr, arcL_curr, &rclose, &ridders_min, &ridders_max);
 
