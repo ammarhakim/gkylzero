@@ -107,7 +107,7 @@ struct gkyl_array *gkyl_grid_array_new_from_file(struct gkyl_rect_grid *grid,
 ]]
 
 -- Returns grid and array from file
-function _M.arrayNewFromFile(fName)
+function _M.ArrayNewFromFile(fName)
    local grid = ffi.new("struct gkyl_rect_grid")
    local array = ffi.C.gkyl_grid_array_new_from_file(grid, fName)
    if array then

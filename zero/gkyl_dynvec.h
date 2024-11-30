@@ -9,6 +9,12 @@
 /** Dynamic vector to store time-dependent diagnostics */
 typedef struct gkyl_dynvec_tag* gkyl_dynvec;
 
+// Element type and number of components
+struct gkyl_dynvec_etype_ncomp {
+  enum gkyl_elem_type type; // type of data stored in vector
+  size_t ncomp; // number of 'components'
+};
+
 /**
  * Create a new new dynvec. Delete using gkyl_dynvec_release method.
  * 
@@ -167,9 +173,9 @@ int gkyl_dynvec_awrite(const gkyl_dynvec vec, const char *fname);
  * Read number of components from the dynvec file.
  *
  * @param Name of input file
- * @return Number of components
+ * @return Element type and number of components
  */
-int gkyl_dynvec_read_ncomp(const char *fname);
+struct gkyl_dynvec_etype_ncomp gkyl_dynvec_read_ncomp(const char *fname);
 
 /**
  * Read dynvector from file, appending data to end of the

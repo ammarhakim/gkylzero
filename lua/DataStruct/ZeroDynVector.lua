@@ -36,6 +36,12 @@ struct gkyl_dynvec_tag {
   struct gkyl_ref_count ref_count;  
 };
 
+// Element type and number of components
+struct gkyl_dynvec_etype_ncomp {
+  enum gkyl_elem_type type; // type of data stored in vector
+  size_t ncomp; // number of 'components'
+};
+
 /**
  * Create a new new dynvec. Delete using gkyl_dynvec_release method.
  * 
@@ -194,9 +200,9 @@ int gkyl_dynvec_awrite(const gkyl_dynvec vec, const char *fname);
  * Read number of components from the dynvec file.
  *
  * @param Name of input file
- * @return Number of components
+ * @return Element type and number of components
  */
-int gkyl_dynvec_read_ncomp(const char *fname);
+struct gkyl_dynvec_etype_ncomp gkyl_dynvec_read_ncomp(const char *fname);
 
 /**
  * Read dynvector from file, appending data to end of the
@@ -284,7 +290,7 @@ local dynvec_fn = {
    write = function(self, fName, tmStamp, frame)
       local fullNm = GKYL_OUT_PREFIX .. "_" .. fName
       return ffiC.gkyl_dynvec_write(self, fullNm)
-   end
+   end,
 }
 
 local dynvec_mt = {
@@ -295,13 +301,19 @@ local dynvec_mt = {
 }
 local DynVecCtor = metatype(DynVecCt, dynvec_mt)
 
--- Construct array of given shape and type
 _M.DynVector = function (tbl)
    return DynVecCtor(_M.double, tbl.numComponents)
 end
 
 _M.DynVectorGen = function (atype, ncomp)
    return DynVecCtor(atype, ncomp)
+end
+
+_M.DynVectorFromFile = function(fName)
+   local enc = ffi.C.gkyl_dynvec_read_ncomp(fName)
+   local dv = _M.DynVectorGen(enc.type, enc.ncomp)
+   ffi.C.gkyl_dynvec_read(dv,  fName)
+   return dv
 end
 
 return _M
