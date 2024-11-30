@@ -110,3 +110,12 @@ size_t gkyl_file_type_1_partial_hrd_size(int ndim);
 size_t gkyl_file_type_2_hrd_size(void);
 size_t gkyl_file_type_3_hrd_size(int ndim);
 size_t gkyl_file_type_3_range_hrd_size(int ndim);
+
+/**
+ * Return .gkyl file type. Returns -1 if file does not exist or is not
+ * a gkyl file.
+ *
+ * @param fname File name
+ * @param file type.
+ */
+int gkyl_get_gkyl_file_type(const char *fname);
