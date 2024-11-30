@@ -15,6 +15,7 @@ local new, sizeof, typeof, metatype = xsys.from(ffi,
 
 local Alloc = require "Lib.Alloc"
 local Lin = require "Lib.Linalg"
+local Range = require "Lib.Range"
 
 local cuda
 require "Lib.ZeroUtil"
@@ -76,7 +77,18 @@ local RectCartCt = typeof("struct gkyl_rect_grid")
 local rect_cart_fn = {
    compare = function(self, grid)
       return ffi.C.gkyl_rect_grid_cmp(self, grid)
-   end
+   end,
+   -- returns range, ext_range
+   createGridRanges = function(self, nghost)
+      local ndim = self._ndim
+      local vnghost = Lin.IntVec(ndim)
+      for i = 1, ndim do vnghost[i] = nghost[i] end
+      
+      local range = ffi.new("struct gkyl_range")
+      local ext_range = ffi.new("struct gkyl_range")
+      ffi.C.gkyl_create_grid_ranges(self, vnghost:data(), ext_range, range)
+      return range, ext_range
+   end,
 }
 
 local rect_cart_mt = {

@@ -31,9 +31,11 @@ local lume = require "Lib.lume"
 local Lin = require "Lib.Linalg"
 local sql = require "sqlite3"
 
+local ZeroArray = require "DataStruct.ZeroArray"
 local ZeroArrayRio = require "DataStruct.ZeroArrayRio"
 local ZeroDynVector = require "DataStruct.ZeroDynVector"
 local ZeroRectCart = require "Grid.ZeroRectCart"
+local ZeroUtil = require "Lib.ZeroUtil"
 
 -- need to change this as it is keyed on input file name
 GKYL_OUT_PREFIX = lfs.currentdir() .. "/" .. "runregression"
@@ -489,21 +491,60 @@ end
 
 -- function to compare files
 local function compareFiles(f1, f2)
-   --verboseLogger(string.format("Comparing %s %s ...\n", f1, f2))   
+   verboseLog(string.format("Comparing %s %s ...\n", f1, f2))
    if not lfs.attributes(f1) or not lfs.attributes(f2) then
       verboseLog(string.format(
 		    " ... files %s and/or %s do not exist!\n", f1, f2))
       return false
    end
 
-   local a1 = ZeroArrayRio.arrayNewFromFile(f1)
-   local a2 = ZeroArrayRio.arrayNewFromFile(f2)
+   local f1type = ZeroUtil.gkylFileType(f1)
+   local f2type = ZeroUtil.gkylFileType(f2)
 
-   
+   if f1type ~= f2type then
+      verboseLog(string.format(
+		    " ... files %s and %s are not of the same type!\n", f1, f2))
+      return false
+   end
 
-   local cmpPass = true
-   
-   return cmpPass
+   if f1type == "dynvector" then
+      verboseLog(string.format(" ... dynvector comparison NYI!"))
+      return true
+   end
+
+   -- read arrays
+   local g1, a1 = ZeroArrayRio.arrayNewFromFile(f1)
+   local g2, a2 = ZeroArrayRio.arrayNewFromFile(f2)
+
+   if not g1 then return false end
+   if not g2 then return false end
+
+   local gridsSame = ZeroRectCart.compare(g1, g2)
+   if not gridsSame then
+      return false
+   end
+
+   -- create range and extended ranges
+   local nghost = { 0, 0, 0, 0, 0, 0, 0 }
+   local r1, er1 = g1:createGridRanges(nghost)
+   local r2, er2 = g2:createGridRanges(nghost)
+
+   local diff = ZeroArray.arrayDiff(a1, a2, r1)
+
+   -- check array differences
+   if not diff.is_compatible then return false end
+   if diff.max_abs_diff > 1e-12 then
+      verboseLog(string.format(
+		    " ... max absolute difference is %g\n", diff.max_abs_diff))
+      return false
+   end
+   if diff.max_rel_diff > 1e-12 then
+      verboseLog(string.format(
+		    " ... max relative difference is %g\n", diff.max_rel_diff))
+      return false
+   end
+
+   return true
 end
 
 -- function to handle "check" sub-command of "run"

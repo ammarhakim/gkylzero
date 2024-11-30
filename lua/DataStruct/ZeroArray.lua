@@ -555,4 +555,9 @@ _M.Array = function (atype, ncomp, size, on_gpu)
    return ArrayCtor(atype, ncomp, size, on_gpu)
 end
 
+-- Compare arrays a1 nd a2 and return struct gkyl_array_diff
+_M.arrayDiff = function(a1, a2, range)
+   return ffi.C.gkyl_array_diff(a1, a2, range)
+end
+
 return _M
