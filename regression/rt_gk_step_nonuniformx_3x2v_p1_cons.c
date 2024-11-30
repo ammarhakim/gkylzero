@@ -71,6 +71,8 @@ struct sheath_ctx
   double n_peak; // Peak number density.
 
   // Simulation parameters.
+  int Nx;
+  int Ny;
   int Nz; // Cell count (configuration space: z-direction).
   int Nvpar; // Cell count (velocity space: parallel velocity direction).
   int Nmu; // Cell count (velocity space: magnetic moment direction).
@@ -98,14 +100,14 @@ struct gkyl_efit_inp inp = {
 
 
 struct gkyl_tok_geo_grid_inp ginp = {
-    .ftype = GKYL_SOL_DN_OUT,  // type of geometry
-    .rclose = 6.2,             // closest R to region of interest
-    .rright= 6.2,              // Closest R to outboard SOL
-    .rleft= 2.0,               // closest R to inboard SOL
-    .rmin = 1.1,               // smallest R in machine
-    .rmax = 6.2,               // largest R in machine
-    .zmin = -5.14213,          // Z of lower divertor plate
-    .zmax = 5.14226,           // Z of upper divertor plate
+    .ftype = GKYL_SOL_DN_OUT, // type of geometry
+    .rclose = 6.2,            // closest R to region of interest
+    .rright= 6.2,             // Closest R to outboard SOL
+    .rleft= 2.0,              // closest R to inboard SOL
+    .rmin = 1.1,              // smallest R in machine
+    .rmax = 6.2,              // largest R in machine
+    .zmin = -5.14213,         // Z of lower divertor plate
+    .zmax = 5.14226,          // Z of upper divertor plate
   };
 
 
@@ -113,7 +115,7 @@ struct gkyl_tok_geo_grid_inp ginp = {
 struct sheath_ctx
 create_ctx(void)
 {
-  int cdim = 1, vdim = 2; // Dimensionality.
+  int cdim = 3, vdim = 2; // Dimensionality.
 
   // Mathematical constants (dimensionless).
   double pi = M_PI;
@@ -167,7 +169,9 @@ create_ctx(void)
   double n_peak = 4.0 * sqrt(5.0) / 3.0 / c_s_src * 0.5 * n_src; // Peak number density.
 
   // Simulation parameters.
-  int Nz = 16; // Cell count (configuration space: z-direction).
+  int Nx = 2;
+  int Ny = 2;
+  int Nz = 4; // Cell count (configuration space: z-direction).
   int Nvpar = 16; // Cell count (velocity space: parallel velocity direction).
   int Nmu = 16; // Cell count (velocity space: magnetic moment direction).
   double Lz = (M_PI-1e-14)*2.0 ; // Domain size (configuration space: z-direction).
@@ -175,9 +179,9 @@ create_ctx(void)
   double mu_max_elc = (3.0 / 2.0) * 0.5 * mass_elc * pow(4.0 * vte,2) / (2.0 * B0); // Domain boundary (electron velocity space: magnetic moment direction).
   double vpar_max_ion = 4.0 * vti; // Domain boundary (ion velocity space: parallel velocity direction).
   double mu_max_ion = (3.0 / 2.0) * 0.5 * mass_ion * pow(4.0 * vti,2) / (2.0 * B0); // Domain boundary (ion velocity space: magnetic moment direction).
-  double vpar_max_D0 = 4*vtD0;
+  double vpar_max_D0 = 8.0*vtD0;
 
-  double t_end = 6.0e-6; // Final simulation time.
+  double t_end = 6.0e-8; // Final simulation time.
   int num_frames = 1; // Number of output frames.
   int int_diag_calc_num = num_frames*100;
   double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.
@@ -215,10 +219,12 @@ create_ctx(void)
     .T_src = T_src,
     .c_s_src = c_s_src,
     .n_peak = n_peak,
+    .Nx = Nx,
+    .Ny = Ny,
     .Nz = Nz,
     .Nvpar = Nvpar,
     .Nmu = Nmu,
-    .cells = {Nz, Nvpar, Nmu},
+    .cells = {Nx, Ny, Nz, Nvpar, Nmu},
     .Lz = Lz,
     .vpar_max_elc = vpar_max_elc,
     .mu_max_elc = mu_max_elc,
@@ -487,6 +493,7 @@ main(int argc, char **argv)
       },
     }, 
 
+
     .num_diag_moments = 7,
     .diag_moments = { "M0", "M1", "M2", "M2par", "M2perp", "M3par", "M3perp" },
   };
@@ -530,6 +537,7 @@ main(int argc, char **argv)
       }, 
     },
 
+    
     .react_neut = {
       .num_react = 3,
       .react_type = {
@@ -575,7 +583,7 @@ main(int argc, char **argv)
     .lower = { -ctx.vpar_max_D0, -ctx.vpar_max_D0, -ctx.vpar_max_D0},
     .upper = { ctx.vpar_max_D0, ctx.vpar_max_D0, ctx.vpar_max_D0 },
     .cells = { cells_v[0], cells_v[0], cells_v[0] },
-    .is_static = true,
+    .is_static = false,
 
     .projection = {
       .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM, 
@@ -587,37 +595,79 @@ main(int argc, char **argv)
       .temp = evalTempD0Init,      
     },
 
+    .react_neut = {
+      .num_react = 3,
+      .react_type = {
+        { .react_id = GKYL_REACT_CX,
+          .type_self = GKYL_SELF_PARTNER,
+          .ion_id = GKYL_ION_D,
+          .elc_nm = "elc",
+          .ion_nm = "ion",
+          .partner_nm = "D0",
+          .ion_mass = ctx.mass_ion,
+          .partner_mass = ctx.mass_ion,
+        },
+        { .react_id = GKYL_REACT_IZ,
+          .type_self = GKYL_SELF_DONOR,
+          .ion_id = GKYL_ION_H,
+          .elc_nm = "elc",
+          .ion_nm = "ion", // ion is always the higher charge state
+          .donor_nm = "D0", // interacts with elc to give up charge
+          .charge_state = 0, // corresponds to lower charge state (donor)
+          .ion_mass = ctx.mass_ion,
+          .elc_mass = ctx.mass_elc,
+        },
+        { .react_id = GKYL_REACT_RECOMB,
+          .type_self = GKYL_SELF_RECVR,
+          .ion_id = GKYL_ION_H,
+          .elc_nm = "elc",
+          .ion_nm = "ion",
+          .recvr_nm = "D0",
+          .charge_state = 0,
+          .ion_mass = ctx.mass_ion,
+          .elc_mass = ctx.mass_elc,
+        },
+      },
+    },
+    
     .num_diag_moments = 3,
     .diag_moments = { "M0", "M1i", "M2"}, //, "M2par", "M2perp" },
   };
 
+
   // Field.
   struct gkyl_gyrokinetic_field field = {
-    .fem_parbc = GKYL_FEM_PARPROJ_NONE, 
-    .kperpSq = ctx.k_perp * ctx.k_perp,
+    .fem_parbc = GKYL_FEM_PARPROJ_NONE,
+    .poisson_bcs = {
+      .lo_type = { GKYL_POISSON_DIRICHLET, GKYL_POISSON_PERIODIC },
+      .up_type = { GKYL_POISSON_DIRICHLET, GKYL_POISSON_PERIODIC },
+      .lo_value = { 0.0 }, .up_value = { 0.0 }
+      //.lo_type = { GKYL_POISSON_PERIODIC, GKYL_POISSON_PERIODIC },
+      //.up_type = { GKYL_POISSON_PERIODIC, GKYL_POISSON_PERIODIC },
+      ////.lo_value = { 0.0 }, .up_value = { 0.0 }
+    },
   };
 
   // GK app.
   struct gkyl_gk app_inp = {
-    .name = "gk_step_1x2v_p1_cons",
+    .name = "gk_step_3x2v_p1_cons",
 
     .cdim = ctx.cdim, .vdim = ctx.vdim,
-    .lower = { -0.5 * ctx.Lz},
-    .upper = { 0.5 * ctx.Lz},
-    .cells = { cells_x[0] },
+    .lower = { 0.934, -0.5, -0.5 * ctx.Lz},
+    .upper = { 1.4688, 0.5, 0.5 * ctx.Lz},
+    .cells = { cells_x[0], cells_x[1], cells_x[2] },
     .poly_order = 1,
     .basis_type = app_args.basis_type,
 
     .geometry = {
       //.geometry_id = GKYL_GEOMETRY_FROMFILE,
-      .world = {1.2014, 0.0},
       .geometry_id = GKYL_TOKAMAK,
       .efit_info = inp,
       .tok_grid_info = ginp,
     },
 
-    .num_periodic_dir = 1,
-    .periodic_dirs = {0},
+    .num_periodic_dir = 3,
+    .periodic_dirs = {0,1,2},
 
     .num_species = 2,
     .species = { elc, ion },
@@ -629,7 +679,7 @@ main(int argc, char **argv)
 
     .parallelism = {
       .use_gpu = app_args.use_gpu,
-      .cuts = { app_args.cuts[0] },
+      .cuts = { app_args.cuts[0], app_args.cuts[1], app_args.cuts[2] },
       .comm = comm,
     },
   };
