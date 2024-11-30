@@ -45,8 +45,8 @@ Ti1 = Ti2 * Ti1_over_Ti2 -- Magnetospheric ion temperature.
 Te2 = (0.5 * (b1 * b1 - b2 * b2) + 0.5 * (guide1 * guide1 - guide2 * guide2)
   + n1 * (Ti1 + Te1) - n2 * Ti2) / n2 -- Magnetosheath electron temperature (so that the system is in force balance).
 
-Nx = 256 -- Cell count (x-direction).
-Ny = 128 -- Cell count (y-direction).
+Nx = 256/2 -- Cell count (x-direction).
+Ny = 128/2 -- Cell count (y-direction).
 Lx = 40.96 * di -- Domain size (x-direction).
 Ly = 20.48 * di -- Domain size (y-direction).
 cfl_frac = 1.0 -- CFL coefficient.
