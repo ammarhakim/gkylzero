@@ -23,8 +23,10 @@ p_post = 1.5698 / gas_gamma1 -- Post-shock fluid pressure.
 p_bub = 1.0 / gas_gamma1 -- Bubble fluid pressure.
 
 -- Simulation parameters.
-Nx = 325 -- Cell count (x-direction).
-Ny = 89 -- Cell count (y-direction).
+--Nx = 325 -- Cell count (x-direction).
+--Ny = 89 -- Cell count (y-direction).
+Nx = 100 -- Cell count (x-direction).
+Ny = 30 -- Cell count (y-direction).
 Lx = 0.325 -- Domain size (x-direction).
 Ly = 0.089 -- Domain size (y-direction).
 cfl_frac = 0.95 -- CFL coefficient.
