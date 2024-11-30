@@ -31,10 +31,6 @@ gkyl_position_map_free(const struct gkyl_ref_count *ref)
 
   gkyl_array_release(gpm->pmap);
   gkyl_array_release(gpm->pmap_ho);
-
-  if (gkyl_position_map_is_cu_dev(gpm))
-    gkyl_cu_free(gpm->on_dev);
-
   gkyl_free(gpm);
 }
 
@@ -72,20 +68,7 @@ gkyl_position_map_new(struct gkyl_position_map_inp mapc2p_in, struct gkyl_rect_g
   gpm->on_dev = gpm; // CPU eqn gpm points to itself
 
   struct gkyl_position_map *gpm_out = gpm;
-#ifdef GKYL_HAVE_CUDA
-  if (use_gpu) {
-    gpm_out = gkyl_position_map_new_cu_dev(gpm);
-    gkyl_position_map_release(gpm);
-  }
-#endif
-
   return gpm_out;
-}
-
-bool
-gkyl_position_map_is_cu_dev(const struct gkyl_position_map* gpm)
-{
-  return GKYL_IS_CU_ALLOC(gpm->flags);
 }
 
 void

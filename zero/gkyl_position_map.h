@@ -83,14 +83,6 @@ void
 gkyl_position_map_eval_c2p(const struct gkyl_position_map* gpm, const double *zc, double *vp);
 
 /**
- * Indicate if this position map object is allocated on the GPU.
- *
- * @param gpm Gkyl position map object.
- * @return
- */
-bool gkyl_position_map_is_cu_dev(const struct gkyl_position_map* gpm);
-
-/**
  * Create a new pointer to the position map object.
  * Release it with gkyl_position_map_release.
  *
