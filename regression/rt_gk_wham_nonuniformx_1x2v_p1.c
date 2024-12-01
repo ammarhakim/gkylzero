@@ -600,6 +600,22 @@ write_data(struct gkyl_tm_trigger* iot, gkyl_gyrokinetic_app* app, double t_curr
   }
 }
 
+void
+mapc2fa(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+{
+  double transition = 1.5;
+  double poly_order = 2;
+  double z = xn[2];
+  if (z < -transition)
+    fout[2] = z;
+  else if (z < transition)
+  {
+    fout[2] = - pow(z - transition, poly_order)/pow(2*transition, poly_order-1) + transition;
+  }
+  else
+    fout[2] = z;
+};
+
 int main(int argc, char **argv)
 {
   struct gkyl_app_args app_args = parse_app_args(argc, argv);
@@ -749,9 +765,15 @@ int main(int argc, char **argv)
     .zmax =  2.0,  // Z of upper boundary 
   };
 
+  struct gkyl_position_map_inp position_map_inp = {
+    .numerical_mapping_fraction = 0.5,
+    .mapping = &mapc2fa,
+    .ctx = &ctx,
+  };
+
   // GK app
   struct gkyl_gk app_inp = {
-    .name = "gk_wham_1x2v_p1",
+    .name = "gk_wham_nonuniformx_1x2v_p1",
 
     .cdim = ctx.cdim, .vdim = ctx.vdim,
     .lower = {ctx.z_min},
@@ -765,6 +787,7 @@ int main(int argc, char **argv)
       .world = {ctx.psi_eval, 0.0},
       .efit_info = efit_inp,
       .mirror_grid_info = grid_inp,
+      .position_map_inp = position_map_inp,
     },
 
     .num_periodic_dir = 0,

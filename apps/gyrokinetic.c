@@ -339,11 +339,9 @@ gkyl_gyrokinetic_app_new(struct gkyl_gk *gk)
 
   gkyl_gk_geometry_release(gk_geom_3d); // release temporary 3d geometry
 
-  app->position_map = gkyl_position_map_new(gk->geometry.position_map_inp, app->gk_geom->grid, app->gk_geom->local, 
-      app->gk_geom->local_ext, app->gk_geom->basis, app->use_gpu);
-  // if (app->position_map->is_identity == false) {
+  app->position_map = gkyl_position_map_new(gk->geometry.position_map_inp, app->gk_geom->grid, app->local, 
+      app->local_ext, app->global, app->confBasis);
   gkyl_position_map_set(app->position_map, app->gk_geom->c2fa);
-  // }
 
   gkyl_gk_geometry_bmag_mid(app->gk_geom); // set bmag mid
   int bcast_rank = comm_sz/2;

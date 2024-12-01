@@ -384,11 +384,11 @@ void gkyl_mirror_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, dou
               double *c2fa_fd_n = gkyl_array_fetch(c2fa_nodal_fd, gkyl_range_idx(nrange, cidx));
               double *c2fa_n = gkyl_array_fetch(c2fa_nodal, gkyl_range_idx(nrange, cidx));
               c2fa_fd_n[lidx+X_IDX] = psi_curr;
-              c2fa_fd_n[lidx+Y_IDX] = alpha_curr;
+              c2fa_fd_n[lidx+Y_IDX] = -alpha_curr; // Negative sign from a convention in Akash's notes
               c2fa_fd_n[lidx+Z_IDX] = theta_curr;
               if(ip_delta==0 && ia_delta==0 && it_delta==0) {
                 c2fa_n[X_IDX] = psi_curr;
-                c2fa_n[Y_IDX] = alpha_curr;
+                c2fa_n[Y_IDX] = -alpha_curr;
                 c2fa_n[Z_IDX] = theta_curr;
               }
             }

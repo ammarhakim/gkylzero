@@ -140,7 +140,7 @@ void gkyl_gk_geometry_mapc2p_advance(struct gk_geometry* up, struct gkyl_range *
                 mc2p_n[Z_IDX] = XYZ[Z_IDX];
               }
 
-                            double *c2fa_fd_n = gkyl_array_fetch(c2fa_nodal_fd, gkyl_range_idx(nrange, cidx));
+              double *c2fa_fd_n = gkyl_array_fetch(c2fa_nodal_fd, gkyl_range_idx(nrange, cidx));
               double *c2fa_n = gkyl_array_fetch(c2fa_nodal, gkyl_range_idx(nrange, cidx));
               c2fa_fd_n[lidx+X_IDX] = psi_curr;
               c2fa_fd_n[lidx+Y_IDX] = alpha_curr;

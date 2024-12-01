@@ -22,12 +22,10 @@ typedef struct gkyl_position_map gkyl_position_map;
 struct gkyl_position_map {
   bool is_identity; // =True if comp coords = phys coords.
   struct gkyl_rect_grid grid; // Position space grid.
-  struct gkyl_range local, local_ext; // Local & extended local position-space range.
+  struct gkyl_range local, local_ext, global; // Local & extended local position-space range.
   struct gkyl_basis *pmap_basis;  // Basis for position mapping.
   struct gkyl_array *pmap; // Position mapping in each position direction.
   struct gkyl_position_map *on_dev; // Device copy of itself.
-  // For internal/private use only:
-  struct gkyl_array *pmap_ho; // Host copy of pmap.
   struct gkyl_basis pmap_basis_ho;  // Host basis for position mapping.
   uint32_t flags;
   struct gkyl_ref_count ref_count;
@@ -42,12 +40,13 @@ struct gkyl_position_map {
  * @param grid Position space grid.
  * @param local Local position range.
  * @param local_ext Local extended position range.
+ * @param global Global position range.
  * @param use_gpu Whether to create a device copy of this new object.
  * @return New position map object.
  */
 struct gkyl_position_map* gkyl_position_map_new(struct gkyl_position_map_inp mapc2p_in,
   struct gkyl_rect_grid grid, struct gkyl_range local, 
-  struct gkyl_range local_ext, struct gkyl_basis basis, bool use_gpu);
+  struct gkyl_range local_ext, struct gkyl_range global, struct gkyl_basis basis);
 
 /**
  * Set the position map object.

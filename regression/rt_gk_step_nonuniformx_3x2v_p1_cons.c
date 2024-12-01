@@ -365,6 +365,22 @@ mapc2p(double t, const double* GKYL_RESTRICT zc, double* GKYL_RESTRICT xp, void*
 }
 
 void
+mapc2fa(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+{
+  double transition = 1.5;
+  double poly_order = 2;
+  double z = xn[2];
+  if (z < -transition)
+    fout[2] = z;
+  else if (z < transition)
+  {
+    fout[2] = - pow(z - transition, poly_order)/pow(2*transition, poly_order-1) + transition;
+  }
+  else
+    fout[2] = z;
+};
+
+void
 bmag_func(double t, const double* GKYL_RESTRICT zc, double* GKYL_RESTRICT fout, void *ctx)
 {
   struct sheath_ctx *app = ctx;
@@ -648,6 +664,11 @@ main(int argc, char **argv)
     },
   };
 
+  struct gkyl_position_map_inp position_map_inp = {
+    .mapping = &mapc2fa,
+    .ctx = &ctx,
+  };
+
   // GK app.
   struct gkyl_gk app_inp = {
     .name = "gk_step_3x2v_p1_cons",
@@ -664,6 +685,7 @@ main(int argc, char **argv)
       .geometry_id = GKYL_TOKAMAK,
       .efit_info = inp,
       .tok_grid_info = ginp,
+      .position_map_inp = position_map_inp,
     },
 
     .num_periodic_dir = 3,

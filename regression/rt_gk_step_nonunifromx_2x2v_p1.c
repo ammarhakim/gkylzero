@@ -189,6 +189,22 @@ bmag_func(double t, const double *xc, double* GKYL_RESTRICT fout, void *ctx)
   fout[0] = app->B0;
 }
 
+void
+mapc2fa(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+{
+  double transition = 1.5;
+  double poly_order = 2;
+  double z = xn[2];
+  if (z < -transition)
+    fout[2] = z;
+  else if (z < transition)
+  {
+    fout[2] = - pow(z - transition, poly_order)/pow(2*transition, poly_order-1) + transition;
+  }
+  else
+    fout[2] = z;
+};
+
 double plasma_frequency(double n, double m)
 {
   double eps0 = GKYL_EPSILON0;
@@ -662,6 +678,11 @@ main(int argc, char **argv)
       .use_cubics = false,          // Whether to use cubic representation of psi(R,Z) for field line tracing
   };
 
+  struct gkyl_position_map_inp position_map_inp = {
+    .mapping = &mapc2fa,
+    .ctx = &ctx,
+  };
+
   // GK app
   struct gkyl_gk gk = {
     .name = "gk_step_out_2x2v_p1",
@@ -678,6 +699,7 @@ main(int argc, char **argv)
       .geometry_id = GKYL_TOKAMAK,
       .efit_info = efit_inp,
       .tok_grid_info = grid_inp,
+      .position_map_inp = position_map_inp,
     },
 
     .num_periodic_dir = 0,
