@@ -24,10 +24,7 @@ struct gk_geometry {
   struct gkyl_rect_grid grid;
 
   // stuff for reading deflated arrays. Important for non-uniform grids reading B
-  struct gkyl_range decomp_local;
-  struct gkyl_range decomp_local_ext;
   struct gkyl_range decomp_global;
-  struct gkyl_range decomp_global_ext;
   struct gkyl_basis decomp_basis;
   struct gkyl_rect_grid decomp_grid;
 

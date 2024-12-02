@@ -77,10 +77,7 @@ gkyl_gk_geometry_mirror_advance(struct gkyl_gk_geometry_inp *geometry_inp)
   up->grid = geometry_inp->geo_grid;
   up->bmag_global = geometry_inp->bmag_global;
   up->decomp_basis = geometry_inp->basis;
-  up->decomp_local = geometry_inp->local;
-  up->decomp_local_ext = geometry_inp->local_ext;
   up->decomp_global = geometry_inp->global;
-  up->decomp_global_ext = geometry_inp->global_ext;
   up->decomp_grid = geometry_inp->grid;
 
   struct gkyl_range nrange;
