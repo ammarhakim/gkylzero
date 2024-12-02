@@ -527,7 +527,7 @@ void gkyl_tok_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, double
                 psi_curr = coords[0];
                 alpha_curr = coords[1];
                 theta_curr = coords[2];
-                arcL_curr = arcL_curr*(2*M_PI/arc_ctx.arcL_tot) - M_PI ;
+                arcL_curr = (theta_curr + M_PI) / (2*M_PI/arc_ctx.arcL_tot);
               }
 
               tok_set_ridders(inp, &arc_ctx, psi_curr, arcL_curr, &rclose, &ridders_min, &ridders_max);
@@ -656,9 +656,7 @@ void gkyl_tok_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, double
   }
   struct gkyl_nodal_ops *n2m =  gkyl_nodal_ops_new(&inp->cbasis, &inp->cgrid, false);
   gkyl_nodal_ops_n2m(n2m, &inp->cbasis, &inp->cgrid, nrange, &up->local, 3, mc2p_nodal, mc2p);
-  printf("Done with mc2p\n");
   gkyl_nodal_ops_n2m(n2m, &inp->cbasis, &inp->cgrid, nrange, &up->local, 3, c2fa_nodal, c2fa);
-  printf("Done with c2fa\n");
   gkyl_nodal_ops_release(n2m);
 
   gkyl_free(arc_memo);

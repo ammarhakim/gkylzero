@@ -17,25 +17,6 @@ proj_on_basis_c2p_position_func(const double *xcomp, double *xphys, void *ctx)
   struct gk_proj_on_basis_c2p_func_ctx *c2p_ctx = ctx;
   double init_val[3]  = {xcomp[0], xcomp[1], xcomp[2]};
   gkyl_position_map_eval_c2p(c2p_ctx->pos_map, xcomp, xphys);
-  // printf("Mapped position %g %g %g to %g %g %g\n", init_val[0], init_val[1], init_val[2], xphys[0], xphys[1], xphys[2]);
-  if      (c2p_ctx->cdim == 1) {
-    if ( !gkyl_compare(xphys[0], init_val[0], 1e-3) )
-      printf("Mapped %g to %g\n", init_val[0], xphys[0]);
-  }  
-  else if (c2p_ctx->cdim == 2) {
-    if ( !gkyl_compare(xcomp[0], init_val[0], 1e-3) )
-      printf("Mapped coord 0: %g to %g\n", init_val[0], xphys[0]);
-    if ( !gkyl_compare(xphys[1], init_val[1], 1e-3) )
-      printf("Mapped coord 1: %g to %g\n", init_val[1], xphys[1]);
-  }
-  else if (c2p_ctx->cdim == 3 ) {
-    if ( !gkyl_compare(xphys[0], init_val[0], 1e-3) )
-      printf("Mapped coord 0: %g to %g\n", init_val[0], xphys[0]);
-    if ( !gkyl_compare(xphys[1], init_val[1], 1e-3) )
-      printf("Mapped coord 1: %g to %g\n", init_val[1], xphys[1]);
-    if ( !gkyl_compare(xphys[2], init_val[2], 1e-3) )
-      printf("Mapped coord 2: %g to %g\n", init_val[2], xphys[2]);
-  }
 }
 
 void 

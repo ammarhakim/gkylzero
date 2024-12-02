@@ -367,7 +367,7 @@ mapc2p(double t, const double* GKYL_RESTRICT zc, double* GKYL_RESTRICT xp, void*
 void
 mapc2fa(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
-  double transition = 1.5;
+  double transition = 1.0;
   double poly_order = 2;
   double z = xn[2];
   if (z < -transition)
@@ -671,7 +671,7 @@ main(int argc, char **argv)
 
   // GK app.
   struct gkyl_gk app_inp = {
-    .name = "gk_step_3x2v_p1_cons",
+    .name = "gk_step_nonuniformx_3x2v_p1_cons",
 
     .cdim = ctx.cdim, .vdim = ctx.vdim,
     .lower = { 0.934, -0.5, -0.5 * ctx.Lz},
