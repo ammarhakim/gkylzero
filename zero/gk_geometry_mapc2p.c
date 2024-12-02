@@ -245,6 +245,9 @@ gkyl_gk_geometry_mapc2p_new(struct gkyl_gk_geometry_inp *geometry_inp)
   GKYL_CLEAR_CU_ALLOC(up->flags);
   up->ref_count = gkyl_ref_count_init(gkyl_gk_geometry_free);
   up->on_dev = up; // CPU eqn obj points to itself
+
+  gkyl_array_release(map_c2fa_nodal_fd);
+  gkyl_array_release(map_c2fa_nodal);
                    
   gkyl_array_release(mc2p_nodal_fd);
   gkyl_array_release(mc2p_nodal);

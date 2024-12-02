@@ -113,6 +113,8 @@ gkyl_gk_geometry_tok_new(struct gkyl_gk_geometry_inp *geometry_inp)
   up->on_dev = up; // CPU eqn obj points to itself
 
   gkyl_tok_geo_release(geo);
+  gkyl_array_release(map_c2fa_nodal_fd);
+  gkyl_array_release(map_c2fa_nodal);
   gkyl_array_release(mc2p_nodal_fd);
   gkyl_array_release(mc2p_nodal);
   gkyl_array_release(dphidtheta_nodal);
