@@ -150,7 +150,10 @@ vlasovApp = Vlasov.App.new {
           return V_r_drift, V_theta_drift
         end,
 
-        correctAllMoments = true
+        correctAllMoments = true,
+        iterationEpsilon = 0.0,
+        maxIterations = 0,
+        useLastConverged = false
       }
     },
 
@@ -162,7 +165,10 @@ vlasovApp = Vlasov.App.new {
       end,
       
       useImplicitCollisionScheme = true,
-      correctAllMoments = true
+      correctAllMoments = true,
+      iterationEpsilon = 0.0,
+      maxIterations = 0,
+      useLastConverged = false
     },
 
     bcx = {

@@ -422,6 +422,9 @@ main(int argc, char **argv)
       .V_drift = evalVDriftInit,
       .ctx_V_drift = &ctx,
       .correct_all_moms = true,
+      .iter_eps = 0.0,
+      .max_iter = 0,
+      .use_last_converged = false,
     },
     .collisions =  {
       .collision_id = GKYL_BGK_COLLISIONS,
@@ -429,6 +432,9 @@ main(int argc, char **argv)
       .ctx = &ctx,
       .has_implicit_coll_scheme = true,
       .correct_all_moms = true,
+      .iter_eps = 0.0,
+      .max_iter = 0,
+      .use_last_converged = false,
     },
 
     .bcx = {
