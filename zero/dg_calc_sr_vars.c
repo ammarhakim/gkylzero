@@ -46,7 +46,6 @@ gkyl_dg_calc_sr_vars_new(const struct gkyl_rect_grid *phase_grid, const struct g
     up->sr_pressure = choose_sr_vars_pressure_vmap_kern(b_type, cdim, vdim, poly_order);
   }
   else {
-    printf("Here\n");
     up->sr_p_vars = choose_sr_p_vars_kern(b_type_v, vdim, poly_order_v);
     up->sr_pressure = choose_sr_vars_pressure_kern(b_type, cdim, vdim, poly_order);    
   }
