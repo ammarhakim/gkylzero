@@ -325,7 +325,7 @@ test_3x_option(bool use_gpu)
   struct gkyl_rect_grid cgrid_x;
   gkyl_rect_grid_init(&cgrid_x, 1, &clower[0], &cupper[0], &ccells[0]);
   // 1D Ranges
-  int cghost_x[] = {1};
+  int cghost_x[] = { confGhost[0] };
   struct gkyl_range crng_x, crng_x_ext; // local, local-ext conf-space ranges
   gkyl_create_grid_ranges(&cgrid_x, cghost_x, &crng_x_ext, &crng_x);
   // 1D gkyl array
@@ -351,20 +351,19 @@ test_3x_option(bool use_gpu)
 
   printf("\t 3.3 declare the scalar structures to perform the x average\n");
   // integrate the 1D array
-  // scalar gkyl_array (only one element)
-  struct gkyl_array *mom_int = mkarr(use_gpu, 1, 1);
+  // scalar gkyl_array (1D)
+  struct gkyl_array *mom_int = mkarr(use_gpu, cbasis_x.num_basis, crng_x_ext.volume);
   struct gkyl_array *mom_int_ho = use_gpu? mkarr(false, mom_int->ncomp, mom_int->size)
                                         : gkyl_array_acquire(mom_int);
   // declare a gkyl range for a scalar
   struct gkyl_range rng_0D;
-  int low_ = 0; int up_ = 0;
-  gkyl_range_init(&rng_0D, 1, &low_, &up_);
+  gkyl_range_lower_skin(&rng_0D, &crng_x, 0, 1);
 
   printf("\t 3.4 create 1D integral updater and advance it\n");
   // Create an array average updater
   struct gkyl_array_average *avg_x;
   gkyl_array_average_new(&cgrid_x, &cbasis_x, GKYL_ARRAY_AVERAGE_OP, use_gpu);
-  gkyl_array_average_advance(avg_x, &crng_x, &rng_0D, mom_x, mom_int);
+  gkyl_array_average_advance(avg_x, &crng_x, &crng_x, mom_x, mom_int);
   gkyl_array_average_release(avg_x);
 
   // check output
