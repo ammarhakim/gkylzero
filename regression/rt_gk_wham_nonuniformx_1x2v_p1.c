@@ -601,7 +601,7 @@ write_data(struct gkyl_tm_trigger* iot, gkyl_gyrokinetic_app* app, double t_curr
 }
 
 void
-mapc2fa(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+nonuniform_position_map(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   double transition = 1.5;
   double poly_order = 2;
@@ -765,12 +765,6 @@ int main(int argc, char **argv)
     .zmax =  2.0,  // Z of upper boundary 
   };
 
-  struct gkyl_position_map_inp position_map_inp = {
-    .numerical_mapping_fraction = 0.5,
-    .mapping = &mapc2fa,
-    .ctx = &ctx,
-  };
-
   // GK app
   struct gkyl_gk app_inp = {
     .name = "gk_wham_nonuniformx_1x2v_p1",
@@ -787,7 +781,11 @@ int main(int argc, char **argv)
       .world = {ctx.psi_eval, 0.0},
       .efit_info = efit_inp,
       .mirror_grid_info = grid_inp,
-      .position_map_inp = position_map_inp,
+      .nonuniform_map_info = {
+        .mapping = &nonuniform_position_map,
+        .numerical_mapping_fraction = 0.5,
+        .ctx = &ctx,
+      },
     },
 
     .num_periodic_dir = 0,

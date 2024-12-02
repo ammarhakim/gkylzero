@@ -32,7 +32,7 @@ struct gk_geometry {
   // GK Equation and Poisson Equation and to apply certain BC's
   // The first 20 are defined on the configuration space domain. The last is a single element.
   struct gkyl_array* mc2p; // 3 components. Cartesian X,Y, and Z
-  struct gkyl_array* c2fa; // 3 components. Computational to field aligned mapping
+  struct gkyl_array* mu2nu_pos; // 3 components. Computational to field aligned mapping
   struct gkyl_array* bmag; // 1 component. B Magnitude of magnetic field
   struct gkyl_array* bmag_global; // 1 component. B Magnitude of magnetic field. Global bmag in computational coordinates
   struct gkyl_array* g_ij; // 6 components. 
@@ -85,7 +85,7 @@ struct gkyl_gk_geometry_inp {
   struct gkyl_array* bmag_global; // global bmag array
 
   bool nonuniform_geom; // flag to indicate if the geometry is non-uniform
-  struct gkyl_position_map_inp position_map_inp; // position map for non-uniform geometry
+  struct gkyl_nonuniform_position_map_info nonuniform_map_info; // position map for non-uniform geometry
   bool use_gpu; // flag to indicate if the geometry is on the gpu
   struct gkyl_comm *comm;   // communicator object for phase-space arrays
 

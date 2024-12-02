@@ -365,7 +365,7 @@ mapc2p(double t, const double* GKYL_RESTRICT zc, double* GKYL_RESTRICT xp, void*
 }
 
 void
-mapc2fa(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+nonuniform_position_map(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   double transition = 1.0;
   double poly_order = 2;
@@ -664,11 +664,6 @@ main(int argc, char **argv)
     },
   };
 
-  struct gkyl_position_map_inp position_map_inp = {
-    .mapping = &mapc2fa,
-    .ctx = &ctx,
-  };
-
   // GK app.
   struct gkyl_gk app_inp = {
     .name = "gk_step_nonuniformx_3x2v_p1_cons",
@@ -685,7 +680,10 @@ main(int argc, char **argv)
       .geometry_id = GKYL_TOKAMAK,
       .efit_info = inp,
       .tok_grid_info = ginp,
-      .position_map_inp = position_map_inp,
+      .nonuniform_map_info = {
+        .mapping = &nonuniform_position_map,
+        .ctx = &ctx,
+      },
     },
 
     .num_periodic_dir = 3,

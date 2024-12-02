@@ -374,8 +374,8 @@ gkyl_tok_geo_R_psiZ(const struct gkyl_tok_geo *geo, double psi, double Z, int nm
 void gkyl_tok_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, double dzc[3], struct gkyl_tok_geo *geo, 
   struct gkyl_tok_geo_grid_inp *inp, struct gkyl_array *mc2p_nodal_fd, struct gkyl_array *mc2p_nodal, 
   struct gkyl_array *mc2p, struct gkyl_array *dphidtheta_nodal,
-  struct gkyl_array* c2fa_nodal_fd, struct gkyl_array* c2fa_nodal, struct gkyl_array* c2fa,
-  struct gkyl_position_map_inp *position_map_inp)
+  struct gkyl_array* c2fa_nodal_fd, struct gkyl_array* c2fa_nodal, struct gkyl_array* mu2nu_pos,
+  struct gkyl_nonuniform_position_map_info *nonuniform_map_info)
 {
 
   geo->rleft = inp->rleft;
@@ -520,10 +520,10 @@ void gkyl_tok_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, double
               arcL_curr = arcL_lo + it*darcL + modifiers[it_delta]*delta_theta*(arc_ctx.arcL_tot/2/M_PI);
               double theta_curr = arcL_curr*(2*M_PI/arc_ctx.arcL_tot) - M_PI ; 
 
-              if (position_map_inp->mapping != NULL)
+              if (nonuniform_map_info->mapping != 0)
               {
                 double coords[3] = {psi_curr, alpha_curr, theta_curr};
-                position_map_inp->mapping(0.0, coords, coords, position_map_inp->ctx);
+                nonuniform_map_info->mapping(0.0, coords, coords, nonuniform_map_info->ctx);
                 psi_curr = coords[0];
                 alpha_curr = coords[1];
                 theta_curr = coords[2];
@@ -656,7 +656,7 @@ void gkyl_tok_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, double
   }
   struct gkyl_nodal_ops *n2m =  gkyl_nodal_ops_new(&inp->cbasis, &inp->cgrid, false);
   gkyl_nodal_ops_n2m(n2m, &inp->cbasis, &inp->cgrid, nrange, &up->local, 3, mc2p_nodal, mc2p);
-  gkyl_nodal_ops_n2m(n2m, &inp->cbasis, &inp->cgrid, nrange, &up->local, 3, c2fa_nodal, c2fa);
+  gkyl_nodal_ops_n2m(n2m, &inp->cbasis, &inp->cgrid, nrange, &up->local, 3, c2fa_nodal, mu2nu_pos);
   gkyl_nodal_ops_release(n2m);
 
   gkyl_free(arc_memo);

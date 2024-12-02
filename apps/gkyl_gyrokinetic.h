@@ -118,7 +118,7 @@ struct gkyl_gyrokinetic_geometry {
   struct gkyl_efit_inp efit_info; // context with RZ data such as efit file for a tokamak or mirror
   struct gkyl_tok_geo_grid_inp tok_grid_info; // context for tokamak geometry with computational domain info
   struct gkyl_mirror_geo_grid_inp mirror_grid_info; // context for mirror geometry with computational domain info
-  struct gkyl_position_map_inp position_map_inp; // context for mapc2fa function
+  struct gkyl_nonuniform_position_map_info nonuniform_map_info; // position map for non-uniform geometry
 
   double world[3]; // extra computational coordinates for cases with reduced dimensionality
 };

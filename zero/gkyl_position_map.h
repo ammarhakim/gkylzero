@@ -10,7 +10,7 @@
 typedef void (*mapc2fa_t)(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx);
 
 // Position space mappings.
-struct gkyl_position_map_inp {
+struct gkyl_nonuniform_position_map_info {
   mapc2fa_t mapping; // Must be 3x mapping function.
   void *ctx;  // Context for mapping.
   double numerical_mapping_fraction; // Zero is uniform mapping, one is fully nonuniform mapping. In between values. Used for the mirror geometry
@@ -23,10 +23,8 @@ struct gkyl_position_map {
   bool is_identity; // =True if comp coords = phys coords.
   struct gkyl_rect_grid grid; // Position space grid.
   struct gkyl_range local, local_ext, global; // Local & extended local position-space range.
-  struct gkyl_basis *pmap_basis;  // Basis for position mapping.
+  struct gkyl_basis basis;  // Basis for position mapping.
   struct gkyl_array *pmap; // Position mapping in each position direction.
-  struct gkyl_position_map *on_dev; // Device copy of itself.
-  struct gkyl_basis pmap_basis_ho;  // Host basis for position mapping.
   uint32_t flags;
   struct gkyl_ref_count ref_count;
 };
@@ -44,7 +42,7 @@ struct gkyl_position_map {
  * @param use_gpu Whether to create a device copy of this new object.
  * @return New position map object.
  */
-struct gkyl_position_map* gkyl_position_map_new(struct gkyl_position_map_inp mapc2p_in,
+struct gkyl_position_map* gkyl_position_map_new(struct gkyl_nonuniform_position_map_info mapc2p_in,
   struct gkyl_rect_grid grid, struct gkyl_range local, 
   struct gkyl_range local_ext, struct gkyl_range global, struct gkyl_basis basis);
 
@@ -57,18 +55,6 @@ struct gkyl_position_map* gkyl_position_map_new(struct gkyl_position_map_inp map
  * @note This function is used to set the position map array in the position map object.
  */
 void gkyl_position_map_set(struct gkyl_position_map* gpm, struct gkyl_array* pmap);
-
-
-/**
- * Write the position map and its jacobian to file.
- *
- * @param gpm Gkyl position map object.
- * @param comm Communicator.
- * @param app_name Name of the app.
- */
-void
-gkyl_position_map_write(const struct gkyl_position_map* gpm, struct gkyl_comm* comm,
-  const char* app_name);
 
 /**
  * Evaluate the position mapping at a specific computational (position) coordinate.

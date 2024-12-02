@@ -24,7 +24,7 @@ gkyl_gk_geometry_cu_dev_new(struct gk_geometry* geo_host, struct gkyl_gk_geometr
 
   // Copy the host-side initialized geometry object to the device
   struct gkyl_array *mc2p_dev = gkyl_array_cu_dev_new(geo_host->mc2p->type, geo_host->mc2p->ncomp, geo_host->mc2p->size);
-  struct gkyl_array *c2fa_dev = gkyl_array_cu_dev_new(geo_host->c2fa->type, geo_host->c2fa->ncomp, geo_host->c2fa->size);
+  struct gkyl_array *mu2nu_pos_dev = gkyl_array_cu_dev_new(geo_host->mu2nu_pos->type, geo_host->mu2nu_pos->ncomp, geo_host->mu2nu_pos->size);
   struct gkyl_array *bmag_dev = gkyl_array_cu_dev_new(geo_host->bmag->type, geo_host->bmag->ncomp, geo_host->bmag->size);
   struct gkyl_array *g_ij_dev = gkyl_array_cu_dev_new(geo_host->g_ij->type, geo_host->g_ij->ncomp, geo_host->g_ij->size);
   struct gkyl_array *dxdz_dev = gkyl_array_cu_dev_new(geo_host->dxdz->type, geo_host->dxdz->ncomp, geo_host->dxdz->size);
@@ -49,7 +49,7 @@ gkyl_gk_geometry_cu_dev_new(struct gk_geometry* geo_host, struct gkyl_gk_geometr
   struct gkyl_array *bmag_mid_dev = gkyl_array_cu_dev_new(geo_host->bmag_mid->type, geo_host->bmag_mid->ncomp, geo_host->bmag_mid->size);
 
   gkyl_array_copy(mc2p_dev, geo_host->mc2p);
-  gkyl_array_copy(c2fa_dev, geo_host->c2fa);
+  gkyl_array_copy(mu2nu_pos_dev, geo_host->mu2nu_pos);
   gkyl_array_copy(bmag_dev, geo_host->bmag);
   gkyl_array_copy(g_ij_dev, geo_host->g_ij);
   gkyl_array_copy(dxdz_dev, geo_host->dxdz);
@@ -75,7 +75,7 @@ gkyl_gk_geometry_cu_dev_new(struct gk_geometry* geo_host, struct gkyl_gk_geometr
 
   // this is for the memcpy below
   up->mc2p  = mc2p_dev->on_dev;
-  up->c2fa  = c2fa_dev->on_dev;
+  up->mu2nu_pos  = mu2nu_pos_dev->on_dev;
   up->bmag  = bmag_dev->on_dev;
   up->g_ij  = g_ij_dev->on_dev;
   up->dxdz  = dxdz_dev->on_dev;
@@ -110,7 +110,7 @@ gkyl_gk_geometry_cu_dev_new(struct gk_geometry* geo_host, struct gkyl_gk_geometr
 
   // geometry object should store host pointer
   up->mc2p  = mc2p_dev;
-  up->c2fa  = c2fa_dev;
+  up->mu2nu_pos  = mu2nu_pos_dev;
   up->bmag  = bmag_dev;
   up->g_ij  = g_ij_dev;
   up->dxdz  = dxdz_dev;

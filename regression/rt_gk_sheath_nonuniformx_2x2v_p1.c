@@ -392,7 +392,7 @@ mapc2p(double t, const double* GKYL_RESTRICT zc, double* GKYL_RESTRICT xp, void*
 }
 
 void
-mapc2fa(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+nonuniform_position_map(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   struct sheath_ctx *app = ctx;
   double poly_order = 2;
@@ -591,11 +591,6 @@ main(int argc, char **argv)
     },
   };
 
-  struct gkyl_position_map_inp position_map_inp = {
-    .mapping = &mapc2fa,
-    .ctx = &ctx,
-  };
-
   // GK app.
   struct gkyl_gk app_inp = {
     .name = "gk_sheath_nonuniformx_2x2v_p1",
@@ -614,7 +609,10 @@ main(int argc, char **argv)
       .c2p_ctx = &ctx,
       .bmag_func = bmag_func,
       .bmag_ctx = &ctx,
-      .position_map_inp = position_map_inp,
+      .nonuniform_map_info = {
+        .mapping = &nonuniform_position_map,
+        .ctx = &ctx,
+      },
     },
 
     .num_periodic_dir = 0,
