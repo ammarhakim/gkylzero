@@ -4,13 +4,13 @@ local Vlasov = G0.Vlasov
 mass = 1.0 -- Neutral mass.
 charge = 0.0 -- Neutral charge.
 
-nl = 1.0 -- Left number density.
-Tl = 1.0 -- Left temperature.
+nl = 1.0 -- Left/inner number density.
+Tl = 1.0 -- Left/inner temperature.
 V_r_drift_l = 0.0 -- Left/inner drift velocity (radial direction).
 V_theta_drift_l = 0.0 -- Left/inner drift velocity (angular direction).
 
-nr = 0.125 -- Right number density.
-Tr = math.sqrt(0.1 / 0.125) -- Right temperature.
+nr = 0.125 -- Right/outer number density.
+Tr = math.sqrt(0.1 / 0.125) -- Right/outer temperature.
 V_r_drift_r = 0.0 -- Right/outer drift velocity (radial direction).
 V_theta_drift_r = 0.0 -- Right/outer drift velocity (angular direction).
 
@@ -114,7 +114,7 @@ vlasovApp = Vlasov.App.new {
 
           local metric_det = r
 
-          return n
+          return metric_det * n
         end,
         temperatureInit = function (t, xn)
           local r = xn[1]

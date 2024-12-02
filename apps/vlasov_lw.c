@@ -50,6 +50,8 @@ struct vlasov_species_lw {
   bool has_metric_determinant_func; // Is there a metric determinant function?
   struct lua_func_ctx metric_determinant_func_ref; // Lua registry reference to metric determinant function.
 
+  bool output_f_lte; // Should f_lte be written out (for calculating transport coefficients)?
+
   int num_init; // Number of projection objects.
   enum gkyl_projection_id proj_id[GKYL_MAX_PROJ]; // Projection type.
 
@@ -212,6 +214,8 @@ vlasov_species_lw_new(lua_State *L)
     metric_determinant_func_ref = luaL_ref(L, LUA_REGISTRYINDEX);
     has_metric_determinant_func = true;
   }
+
+  bool output_f_lte = glua_tbl_get_bool(L, "outputfLTE", false);
   
   enum gkyl_projection_id proj_id[GKYL_MAX_PROJ];
 
@@ -403,7 +407,7 @@ vlasov_species_lw_new(lua_State *L)
   vms_lw->has_hamiltonian_func = has_hamiltonian_func;
   vms_lw->hamiltonian_func_ref = (struct lua_func_ctx) {
     .func_ref = hamiltonian_func_ref,
-    .ndim = 0,
+    .ndim = 0, // This will be set later.
     .nret = 1,
     .L = L,
   };
@@ -411,7 +415,7 @@ vlasov_species_lw_new(lua_State *L)
   vms_lw->has_inverse_metric_func = has_inverse_metric_func;
   vms_lw->inverse_metric_func_ref = (struct lua_func_ctx) {
     .func_ref = inverse_metric_func_ref,
-    .ndim = 0,
+    .ndim = 0, // This will be set later.
     .nret = (vdim * (vdim + 1)) / 2,
     .L = L,
   };
@@ -419,10 +423,12 @@ vlasov_species_lw_new(lua_State *L)
   vms_lw->has_metric_determinant_func = has_metric_determinant_func;
   vms_lw->metric_determinant_func_ref = (struct lua_func_ctx) {
     .func_ref = metric_determinant_func_ref,
-    .ndim = 0,
+    .ndim = 0, // This will be set later.
     .nret = 1,
     .L = L,
   };
+
+  vms_lw->output_f_lte = output_f_lte;
 
   vms_lw->num_init = num_init;
   for (int i = 0; i < num_init; i++) {
@@ -531,7 +537,7 @@ vlasov_field_lw_new(lua_State *L)
   int vdim  = 0;
   struct gkyl_vlasov_field vm_field = { };
 
-  vm_field.field_id = GKYL_FIELD_E_B;  
+  vm_field.field_id = GKYL_FIELD_E_B;
   
   vm_field.epsilon0 = glua_tbl_get_number(L, "epsilon0", 1.0);
   vm_field.mu0 = glua_tbl_get_number(L, "mu0", 1.0);
@@ -697,6 +703,8 @@ struct vlasov_app_lw {
 
   bool has_metric_determinant_func[GKYL_MAX_SPECIES]; // Is there a metric determinant function?
   struct lua_func_ctx metric_determinant_func_ctx[GKYL_MAX_SPECIES]; // Lua registry reference to metric determinant function.
+
+  bool output_f_lte[GKYL_MAX_SPECIES]; // Should f_lte be written out (for calculating transport coefficients)?
 
   int num_init[GKYL_MAX_SPECIES]; // Number of projection objects.
   enum gkyl_projection_id proj_id[GKYL_MAX_SPECIES][GKYL_MAX_PROJ]; // Projection type.
@@ -962,6 +970,8 @@ vm_app_new(lua_State *L)
       vm.species[s].det_h_ctx = &app_lw->metric_determinant_func_ctx[s];
     }
 
+    app_lw->output_f_lte[s] = species[s]->output_f_lte;
+
     app_lw->num_init[s] = species[s]->num_init;
     for (int i = 0; i < app_lw->num_init[s]; i++) {
       app_lw->proj_id[s][i] = species[s]->proj_id[i];
@@ -983,6 +993,8 @@ vm_app_new(lua_State *L)
       app_lw->max_iter[s][i] = species[s]->max_iter[i];
       app_lw->use_last_converged[s][i] = species[s]->use_last_converged[i];
     }
+
+    vm.species[s].output_f_lte = app_lw->output_f_lte[s];
 
     vm.species[s].num_init = app_lw->num_init[s];
     for (int i = 0; i < app_lw->num_init[s]; i++) {

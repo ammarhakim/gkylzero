@@ -33,8 +33,8 @@ struct annulus_sodshock_ctx
   double V_r_drift_l; // Left/inner drift velocity (radial direction).
   double V_theta_drift_l; // Left/inner drift velocity (angular direction).
 
-  double nr; // Right number density.
-  double Tr; // Right temperature.
+  double nr; // Right/outer number density.
+  double Tr; // Right/outer temperature.
   double V_r_drift_r; // Right/outer drift velocity (radial direction).
   double V_theta_drift_r; // Right/outer drift velocity (angular direction).
 
@@ -71,13 +71,13 @@ create_ctx(void)
   double mass = 1.0; // Neutral mass.
   double charge = 0.0; // Neutral charge.
 
-  double nl = 1.0; // Left number density.
-  double Tl = 1.0; // Left temperature.
+  double nl = 1.0; // Left/inner number density.
+  double Tl = 1.0; // Left/inner temperature.
   double V_r_drift_l = 0.0; // Left/inner drift velocity (radial direction).
   double V_theta_drift_l = 0.0; // Left/inner drift velocity (angular direction).
 
-  double nr = 0.125; // Right number density.
-  double Tr = sqrt(0.1 / 0.125); // Right temperature.
+  double nr = 0.125; // Right/outer number density.
+  double Tr = sqrt(0.1 / 0.125); // Right/outer temperature.
   double V_r_drift_r = 0.0; // Right/outer drift velocity (radial direction).
   double V_theta_drift_r = 0.0; // Right/outer drift velocity (angular direction).
 
