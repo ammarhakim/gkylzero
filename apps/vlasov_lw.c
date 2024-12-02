@@ -472,6 +472,45 @@ vlasov_species_lw_new(lua_State *L)
     vms_lw->use_last_converged[i] = use_last_converged[i];
   }
 
+  vms_lw->source_id = source_id;
+  vms_lw->num_sources = num_sources;
+  
+  for (int i = 0; i < num_sources; i++) {
+    vms_lw->source_proj_id[i] = source_proj_id[i];
+
+    vms_lw->source_has_init_func[i] = source_has_init_func[i];
+    vms_lw->source_init_func_ref[i] = (struct lua_func_ctx) {
+      .func_ref = source_init_func_ref[i],
+      .ndim = 0, // This will be set later.
+      .nret = 1,
+      .L = L,
+    };
+
+    vms_lw->source_has_density_init_func[i] = source_has_density_init_func[i];
+    vms_lw->source_density_init_func_ref[i] = (struct lua_func_ctx) {
+      .func_ref = source_density_init_func_ref[i],
+      .ndim = 0, // This will be set later.
+      .nret = 1,
+      .L = L,
+    };
+
+    vms_lw->source_has_V_drift_init_func[i] = source_has_V_drift_init_func[i];
+    vms_lw->source_V_drift_init_func_ref[i] = (struct lua_func_ctx) {
+      .func_ref = source_V_drift_init_func_ref[i],
+      .ndim = 0, // This will be set later.
+      .nret = vdim,
+      .L = L,
+    };
+
+    vms_lw->source_has_temp_init_func[i] = source_has_temp_init_func[i];
+    vms_lw->source_temp_init_func_ref[i] = (struct lua_func_ctx) {
+      .func_ref = source_temp_init_func_ref[i],
+      .ndim = 0, // This will be set later.
+      .nret = 1,
+      .L = L,
+    };
+  }
+
   vms_lw->collision_id = collision_id;
 
   vms_lw->has_self_nu_func = has_self_nu_func;
