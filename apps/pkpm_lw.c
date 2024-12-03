@@ -918,9 +918,43 @@ pkpm_app_run(lua_State *L)
   double t_curr = app_lw->t_start, t_end = app_lw->t_end;
   long num_steps = luaL_optinteger(L, 2, INT_MAX);
 
+  gkyl_pkpm_app_cout(app, stdout, "Initializing PKPM Simulation ...\n");
+
+  // Initialize simulation.
+  bool is_restart = false;
+  lua_getglobal(L, "GKYL_IS_RESTART");
+  if (lua_toboolean(L, -1)) {
+    is_restart = true;
+  }
+  lua_pop(L, 1);
+
+  int restart_frame = 0;
+  lua_getglobal(L, "GKYL_RESTART_FRAME");
+  restart_frame = lua_tointeger(L, -1);
+  lua_pop(L, 1);
+
+  int frame_curr = 0;
+  if (is_restart) {
+    struct gkyl_app_restart_status status = gkyl_pkpm_app_read_from_frame(app, restart_frame);
+
+    if (status.io_status != GKYL_ARRAY_RIO_SUCCESS) {
+      gkyl_pkpm_app_cout(app, stderr, "*** Failed to read restart file! (%s)\n", gkyl_array_rio_status_msg(status.io_status));
+      goto freeresources;
+    }
+
+    frame_curr = status.frame;
+    t_curr = status.stime;
+
+    gkyl_pkpm_app_cout(app, stdout, "Restarting from frame %d", frame_curr);
+    gkyl_pkpm_app_cout(app, stdout, " at time = %g\n", t_curr);
+  }
+  else {
+    gkyl_pkpm_app_apply_ic(app, t_curr);
+  }
+
   int num_frames = app_lw->num_frames;
   // Triggers for IO and logging.
-  struct gkyl_tm_trigger io_trig = { .dt = (t_end - t_curr) / num_frames };
+  struct gkyl_tm_trigger io_trig = { .dt = (t_end - t_curr) / num_frames, .tcurr = t_curr, .curr = frame_curr };
 
   struct step_message_trigs m_trig = {
     .log_count = 0,
@@ -930,12 +964,7 @@ pkpm_app_run(lua_State *L)
     .log_trig_1p = { .dt = (t_end - t_curr) / 100.0 },
   };
 
-  gkyl_pkpm_app_cout(app, stdout, "Initializing PKPM Simulation ...\n");
-
-  struct timespec tm_ic0 = gkyl_wall_clock();  
-
-  // Initialize simulation.
-  gkyl_pkpm_app_apply_ic(app, t_curr);
+  struct timespec tm_ic0 = gkyl_wall_clock();
   gkyl_pkpm_app_calc_integrated_mom(app, t_curr);
   gkyl_pkpm_app_calc_field_energy(app, t_curr);
   write_data(&io_trig, app, t_curr, false);
@@ -1036,6 +1065,8 @@ pkpm_app_run(lua_State *L)
 
   gkyl_pkpm_app_cout(app, stdout, "Number of write calls %ld\n", stat.nio);
   gkyl_pkpm_app_cout(app, stdout, "IO time took %g secs \n", stat.io_tm);
+
+freeresources:
 
   lua_pushboolean(L, ret_status);
   return 1;
