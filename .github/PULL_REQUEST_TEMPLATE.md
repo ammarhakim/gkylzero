@@ -1,3 +1,0 @@
-Doneness:
-- [ ] Testing
-- [ ] Documentation
