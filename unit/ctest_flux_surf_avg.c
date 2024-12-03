@@ -28,12 +28,22 @@ void evalFunc_one(double t, const double *xn, double* restrict fout, void *ctx)
   fout[0] = 1.0;
 }
 
+// to weight the integral
+void evalFunc_weight(double t, const double *xn, double* restrict fout, void *ctx)
+{
+  fout[0] = 10.0;
+}
 // function to evaluate in the 1x testcase
 void evalFunc_1x(double t, const double *xn, double* restrict fout, void *ctx)
 {
   double x = xn[0];
   double lower[] = {-6.0}, upper[] = {6.0}; // Has to match the test below.
-  fout[0] = 1./(upper[0]-lower[0]);
+  double Lx = upper[0]-lower[0];
+  double k_x = 2.*M_PI/Lx;
+  double phi = 0.0;
+
+  fout[0] = 1./Lx;
+  // fout[0] = sin(k_x*x + phi);
   // fout[0] = 2.0*pow(x,2) + 1.3*x - 1.2;
 }
 
@@ -41,8 +51,15 @@ void evalFunc_2x(double t, const double *xn, double* restrict fout, void *ctx)
 {
   double x = xn[0];
   double y = xn[1];
-    double lower[] = {0., -6.0}, upper[] = {2., 6.0}; // Has to match the test below.
-  fout[0] = 1./((upper[0]-lower[0])*(upper[1]-lower[1]));
+  double lower[] = {0., -6.0}, upper[] = {2., 6.0}; // Has to match the test below.
+  double Lx = upper[0]-lower[0];
+  double Ly = upper[1]-lower[1];
+  double k_x = 2.*M_PI/Lx;
+  double k_y = 2.*M_PI/Lx;
+  double phi = 0.5;
+
+  // fout[0] = 1./(Lx*Ly);
+  fout[0] = sin(k_x*x) * cos(k_y*y + phi);
   // fout[0] = 2.0*pow(x,2) - 3.0*pow(y,2) + 1.3*x*y - 1.2;
 }
 
@@ -67,7 +84,7 @@ void test_1x(int poly_order, bool use_gpu)
   struct gkyl_range local, local_ext; // local, local-ext ranges
   gkyl_create_grid_ranges(&grid, ghost, &local_ext, &local);
 
-  //------------------ 2. Project the const function (1) to evaluate the volume of the domain ------------------
+  //------------------ 2. Project the const functions to evaluate the volume of the domain ------------------
   //.projection updater for the volume evaluation
   gkyl_proj_on_basis *proj_one;
   proj_one = gkyl_proj_on_basis_new(&grid, &basis, poly_order+1, 1, evalFunc_one, NULL);
@@ -75,6 +92,7 @@ void test_1x(int poly_order, bool use_gpu)
   struct gkyl_array *one_ga = mkarr(basis.num_basis, local_ext.volume, use_gpu);
   //.project distribution function on basis
   gkyl_proj_on_basis_advance(proj_one, 0.0, &local, one_ga);
+  gkyl_proj_on_basis_release(proj_one);
 
   //------------------ 3. Project the target function ------------------
   //.projection updater for dist-function
@@ -84,19 +102,21 @@ void test_1x(int poly_order, bool use_gpu)
   struct gkyl_array *distf = mkarr(basis.num_basis, local_ext.volume, use_gpu);
   //.project distribution function on basis
   gkyl_proj_on_basis_advance(projf, 0.0, &local, distf);
+  gkyl_proj_on_basis_release(projf);
 
   //------------------ 4. Average through array integrate of target function and volume function ------------------
   //.integrate updater
   struct gkyl_array_integrate *integ_up = gkyl_array_integrate_new(&grid, &basis, 1, GKYL_ARRAY_INTEGRATE_OP_NONE, use_gpu);
   double *fint = use_gpu? gkyl_cu_malloc(sizeof(double)) : gkyl_malloc(sizeof(double));
   double *vint = use_gpu? gkyl_cu_malloc(sizeof(double)) : gkyl_malloc(sizeof(double));
-  struct gkyl_array *weight = mkarr(basis.num_basis, local_ext.volume, use_gpu);
+  struct gkyl_array *unused_weights = mkarr(basis.num_basis, local_ext.volume, use_gpu);
   // Integrate the input function
-  gkyl_array_integrate_advance(integ_up, distf, 1., weight, &local, fint);
+  gkyl_array_integrate_advance(integ_up, distf, 1., unused_weights, &local, fint);
   // Integrate the space to get the volume
-  gkyl_array_integrate_advance(integ_up, one_ga,  1., weight, &local, vint);
+  gkyl_array_integrate_advance(integ_up, one_ga,  1., unused_weights, &local, vint);
   // release the updater
   gkyl_array_integrate_release(integ_up);
+  gkyl_array_release(unused_weights);
 
   // Get the integration results back to the host
   double *fint_ho = gkyl_malloc(sizeof(double));
@@ -118,10 +138,19 @@ void test_1x(int poly_order, bool use_gpu)
   // declare a single cell gkyl array (integral will be first coeff)
   struct gkyl_array *avg_res = mkarr(1, ls_rng.volume, use_gpu);
 
+  //.projection updater for the weight evaluation
+  gkyl_proj_on_basis *proj_weight;
+  proj_weight = gkyl_proj_on_basis_new(&grid, &basis, poly_order+1, 1, evalFunc_weight, NULL);
+  //.create and project the const function
+  struct gkyl_array *weight = mkarr(basis.num_basis, local_ext.volume, use_gpu);
+  //.project distribution function on basis
+  gkyl_proj_on_basis_advance(proj_weight, 0.0, &local, weight);
+  gkyl_proj_on_basis_release(proj_weight);
+
   // create full average updater and advance it
   struct gkyl_array_average *avg_full;
-  // declare an average updater without any weights (NULL)
-  gkyl_array_average_new(&grid, basis, NULL, GKYL_ARRAY_AVERAGE_OP, use_gpu);
+  // declare a weighted integrator
+  avg_full = gkyl_array_average_new(&grid, basis, weight, GKYL_ARRAY_AVERAGE_OP, use_gpu);
   // run the updater (this will integrate)
   gkyl_array_average_advance(avg_full, &local, &ls_rng, distf, avg_res);
   // release the updater
@@ -143,8 +172,6 @@ void test_1x(int poly_order, bool use_gpu)
   gkyl_array_release(avg_res);
   gkyl_array_release(distf);
   gkyl_array_release(one_ga);
-  gkyl_proj_on_basis_release(projf);
-  gkyl_proj_on_basis_release(proj_one);
   gkyl_array_release(weight);
 
   gkyl_free(fint_ho);
