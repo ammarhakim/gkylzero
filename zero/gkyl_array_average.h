@@ -28,24 +28,24 @@ enum gkyl_array_average_op {
  * @param grid computational grid to compute the surface element
  * @param basis gkyl basis, indicate the dimensionality ndim and polynomial type and order
  * @param op enum type to describe which kind of average has to be perform
+ * @param full_rng range of the input array (all dimensions)
+ * @param sub_rng range of the output array (only non-avg dimensions)
  * @param use_gpu Indicate whether to perform integral on the device.
  */
 struct gkyl_array_average*
-gkyl_array_average_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis basis, 
-  const struct gkyl_array *weights, enum gkyl_array_average_op op, bool use_gpu);
-
+gkyl_array_average_new(const struct gkyl_rect_grid *grid, 
+  const struct gkyl_basis tot_basis, const struct gkyl_basis sub_basis, 
+  const struct gkyl_range tot_rng, const struct gkyl_range sub_rng, 
+  struct gkyl_array *weights, enum gkyl_array_average_op op, 
+  bool use_gpu);
 /**
  * Compute the array average.
  *
  * @param up array_integrate updater.
- * @param full_rng range of the input array (all dimensions)
- * @param sub_rng range of the output array (only non-avg dimensions)
  * @param fin input gkyl_array
- * @param win input weights (e.g. can be the Jacobian)
  * @param avgout Output gkyl_array
  */
 void gkyl_array_average_advance(gkyl_array_average *up, 
-  const struct gkyl_range *full_rng, const struct gkyl_range *sub_rng,
   struct gkyl_array *fin, struct gkyl_array *avgout);
 
 /**

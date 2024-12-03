@@ -67,6 +67,7 @@ void evalFunc_2x(double t, const double *xn, double* restrict fout, void *ctx)
 
 void test_1x(int poly_order, bool use_gpu)
 {
+  printf("\n");
   double lower[] = {-6.0}, upper[] = {6.0};
   int cells[] = {16};
   int ndim = sizeof(lower)/sizeof(lower[0]);
@@ -135,8 +136,11 @@ void test_1x(int poly_order, bool use_gpu)
   // declare the lower skin (ls) range to perform the x average
   struct gkyl_range ls_rng;
   gkyl_range_lower_skin(&ls_rng, &local, 0, 1);
+  // const basis
+  struct gkyl_basis const_basis;
+  gkyl_cart_modal_serendip(&const_basis, 1, 0);
   // declare a single cell gkyl array (integral will be first coeff)
-  struct gkyl_array *avg_res = mkarr(1, ls_rng.volume, use_gpu);
+  struct gkyl_array *avg_res = mkarr(const_basis.num_basis, ls_rng.volume, use_gpu);
 
   //.projection updater for the weight evaluation
   gkyl_proj_on_basis *proj_weight;
@@ -149,10 +153,9 @@ void test_1x(int poly_order, bool use_gpu)
 
   // create full average updater and advance it
   struct gkyl_array_average *avg_full;
-  // declare a weighted integrator
-  avg_full = gkyl_array_average_new(&grid, basis, weight, GKYL_ARRAY_AVERAGE_OP, use_gpu);
+  avg_full = gkyl_array_average_new(&grid, basis, const_basis, local, ls_rng, weight, GKYL_ARRAY_AVERAGE_OP, use_gpu);
   // run the updater (this will integrate)
-  gkyl_array_average_advance(avg_full, &local, &ls_rng, distf, avg_res);
+  gkyl_array_average_advance(avg_full, distf, avg_res);
   // release the updater
   gkyl_array_average_release(avg_full);
   // Fetch the integration result and send it back to the host
@@ -257,14 +260,19 @@ void test_2x(int poly_order, bool use_gpu)
 
   // Create an array average updater
   struct gkyl_array_average *avg_yz;
-  gkyl_array_average_new(&grid, basis, one_ga, GKYL_ARRAY_AVERAGE_OP_X, use_gpu);
-  gkyl_array_average_advance(avg_yz, &local, &local_x, distf, favg_x);
+  gkyl_array_average_new(&grid, basis, basis_x, local, local_x, one_ga, GKYL_ARRAY_AVERAGE_OP_X, use_gpu);
+  gkyl_array_average_advance(avg_yz, distf, favg_x);
   gkyl_array_average_release(avg_yz);
 
   // declare the lower skin (ls) structure to perform the x average
   struct gkyl_range ls_rng;
   gkyl_range_lower_skin(&ls_rng, &local_x_ext, 0, 1);
-  struct gkyl_array *favg_arr = mkarr(1, ls_rng.volume, use_gpu);
+  // const basis
+  struct gkyl_basis const_basis;
+  gkyl_cart_modal_serendip(&const_basis, 1, 0);
+  printf("const_basis.num_basis = %d",const_basis.num_basis);
+  // declare a single cell gkyl array (integral will be first coeff)
+  struct gkyl_array *favg_arr = mkarr(const_basis.num_basis, ls_rng.volume, use_gpu);
 
   // projection updater for constant one function
   gkyl_proj_on_basis *proj_one_x;
@@ -280,8 +288,8 @@ void test_2x(int poly_order, bool use_gpu)
 
   // create full average updater and advance it
   struct gkyl_array_average *avg_x;
-  gkyl_array_average_new(&grid_x, basis_x, NULL, GKYL_ARRAY_AVERAGE_OP, use_gpu);
-  gkyl_array_average_advance(avg_x, &local_x, &ls_rng, favg_x, favg_arr);
+  gkyl_array_average_new(&grid_x, basis_x, const_basis,  local_x, ls_rng, NULL, GKYL_ARRAY_AVERAGE_OP, use_gpu);
+  gkyl_array_average_advance(avg_x, favg_x, favg_arr);
   gkyl_array_average_release(avg_x);
 
 

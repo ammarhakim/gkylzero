@@ -7,6 +7,7 @@
 #include <gkyl_array_average.h>
 #include <gkyl_array_average_kernels.h>
 #include <assert.h>
+#include <gkyl_dg_bin_ops.h>
 
 // Function pointer type for array_average kernels.
 typedef void (*array_average_t)(const double *fin, double *out, const double subvol);
@@ -59,7 +60,11 @@ static const dim_array_average_kern_list gkyl_array_average_ker_list[] = {
 struct gkyl_array_average {
   // dimensionality of the full array
   int ndim;
-  struct gkyl_basis basis;
+  struct gkyl_basis tot_basis;
+  struct gkyl_basis sub_basis;
+  // the updater stores the ranges of the input and output
+  struct gkyl_range tot_rng;
+  struct gkyl_range sub_rng;
 
   // if we use gpu or not
   bool use_gpu;
@@ -82,9 +87,13 @@ struct gkyl_array_average {
   // Pointer to itself on device.
   struct gkyl_array_average *on_dev;
 
-  // weights 
-  struct gkyl_array *weights;
+  // weighted integral
   bool isweighted;
+  struct gkyl_array *weights;
+  struct gkyl_array *integral_weights;
+
+  // memory for the weak division at the end of averaging
+  gkyl_dg_bin_op_mem *div_mem;
 };
 
 GKYL_CU_D static
