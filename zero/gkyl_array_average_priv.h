@@ -9,7 +9,7 @@
 #include <assert.h>
 
 // Function pointer type for array_average kernels.
-typedef void (*array_average_t)(const double *fIn, double *out, const double subvol);
+typedef void (*array_average_t)(const double *fin, double *out, const double subvol);
 
 // For use in kernel tables.
 typedef struct { array_average_t kernels[2]; } array_average_kern_list;
@@ -59,6 +59,7 @@ static const dim_array_average_kern_list gkyl_array_average_ker_list[] = {
 struct gkyl_array_average {
   // dimensionality of the full array
   int ndim;
+  struct gkyl_basis basis;
 
   // if we use gpu or not
   bool use_gpu;
@@ -80,21 +81,24 @@ struct gkyl_array_average {
 
   // Pointer to itself on device.
   struct gkyl_array_average *on_dev;
+
+  // weights 
+  struct gkyl_array *weights;
+  bool isweighted;
 };
 
 GKYL_CU_D static
-void gkyl_array_average_choose_kernel(struct gkyl_array_average *up, const struct gkyl_basis *basis, enum gkyl_array_average_op op)
+void gkyl_array_average_choose_kernel(struct gkyl_array_average *up, const struct gkyl_basis *basis,  enum gkyl_array_average_op op)
 {
   int ndim = basis->ndim, poly_order = basis->poly_order;
 
-  printf("kernel choice: ndim-1=%d, op=%d, polyorder-1=%d\n",ndim-1, op, poly_order-1);
   up->kernel = gkyl_array_average_ker_list[ndim-1].list[op].kernels[poly_order-1];
 
 }
 
 struct gkyl_array_average*
 gkyl_array_average_cu_dev_new(const struct gkyl_basis *basis,
-  int num_comp, enum gkyl_array_average_op op);
+  const struct gkyl_array *GKYL_RESTRICT weights, enum gkyl_array_average_op op);
 
 void gkyl_array_average_advance_cu(gkyl_array_average *up, const struct gkyl_array *arr,
   const struct gkyl_range *range, double *out);

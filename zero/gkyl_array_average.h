@@ -31,8 +31,8 @@ enum gkyl_array_average_op {
  * @param use_gpu Indicate whether to perform integral on the device.
  */
 struct gkyl_array_average*
-gkyl_array_average_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis *basis, 
-  enum gkyl_array_average_op op, bool use_gpu);
+gkyl_array_average_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis basis, 
+  const struct gkyl_array *weights, enum gkyl_array_average_op op, bool use_gpu);
 
 /**
  * Compute the array average.
@@ -40,12 +40,13 @@ gkyl_array_average_new(const struct gkyl_rect_grid *grid, const struct gkyl_basi
  * @param up array_integrate updater.
  * @param full_rng range of the input array (all dimensions)
  * @param sub_rng range of the output array (only non-avg dimensions)
- * @param fin Input gkyl_array
+ * @param fin input gkyl_array
+ * @param win input weights (e.g. can be the Jacobian)
  * @param avgout Output gkyl_array
  */
 void gkyl_array_average_advance(gkyl_array_average *up, 
   const struct gkyl_range *full_rng, const struct gkyl_range *sub_rng,
-  const struct gkyl_array *GKYL_RESTRICT fin, struct gkyl_array *GKYL_RESTRICT avgout);
+  struct gkyl_array *fin, struct gkyl_array *avgout);
 
 /**
  * Release memory associated with this updater.
