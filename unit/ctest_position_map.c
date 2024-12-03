@@ -1,17 +1,18 @@
-#include "gkyl_array.h"
 #include <stdio.h>
 #include <stdlib.h>
+#include <acutest.h>
+
+#include <gkyl_array.h>
+#include <gkyl_array_ops.h>
 #include <gkyl_range.h>
 #include <gkyl_rect_decomp.h>
 #include <gkyl_rect_grid.h>
-#include <gkyl_array_ops.h>
 #include <gkyl_util.h>
-#include <acutest.h>
 #include <gkyl_position_map.h>
 #include <gkyl_proj_on_basis.h>
 
 void
-mapc2fa(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+test_nonuniform_position_map(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   double poly_order = 2;
   fout[0] = xn[0];
@@ -47,7 +48,7 @@ test_position_map_init_1x()
   gkyl_cart_modal_serendip(&basis, dim, poly_order);
   struct gkyl_nonuniform_position_map_info pos_map_inp = {
     .ctx = NULL,
-    .mapping = mapc2fa,
+    .mapping = test_nonuniform_position_map,
     .numerical_mapping_fraction = 0.5
   };
 
@@ -118,7 +119,7 @@ test_position_map_init_2x()
   gkyl_cart_modal_serendip(&basis, dim, poly_order);
   struct gkyl_nonuniform_position_map_info pos_map_inp = {
     .ctx = NULL,
-    .mapping = mapc2fa,
+    .mapping = test_nonuniform_position_map,
     .numerical_mapping_fraction = 0.5
   };
 
@@ -155,7 +156,7 @@ test_position_map_init_3x()
   gkyl_cart_modal_serendip(&basis, dim, poly_order);
   struct gkyl_nonuniform_position_map_info pos_map_inp = {
     .ctx = NULL,
-    .mapping = mapc2fa,
+    .mapping = test_nonuniform_position_map,
     .numerical_mapping_fraction = 0.5
   };
 
@@ -192,7 +193,7 @@ test_position_map_set()
   gkyl_cart_modal_serendip(&basis, dim, poly_order);
   struct gkyl_nonuniform_position_map_info pos_map_inp = {
     .ctx = NULL,
-    .mapping = mapc2fa,
+    .mapping = test_nonuniform_position_map,
     .numerical_mapping_fraction = 0.5
   };
 
@@ -232,7 +233,7 @@ test_gkyl_position_map_eval_c2p()
   gkyl_cart_modal_serendip(&basis, dim, poly_order);
   struct gkyl_nonuniform_position_map_info pos_map_inp = {
     .ctx = NULL,
-    .mapping = mapc2fa,
+    .mapping = test_nonuniform_position_map,
     .numerical_mapping_fraction = 0.5
   };
 
@@ -242,7 +243,7 @@ test_gkyl_position_map_eval_c2p()
 
 
   gkyl_proj_on_basis *projDistf = gkyl_proj_on_basis_new(&grid, &basis,
-    poly_order+1, 3, mapc2fa, NULL);
+    poly_order+1, 3, test_nonuniform_position_map, NULL);
   gkyl_proj_on_basis_advance(projDistf, 0.0, &localRange, pmap_arr_set);
 
   gkyl_position_map_set(pos_map, pmap_arr_set);
@@ -254,7 +255,7 @@ test_gkyl_position_map_eval_c2p()
         double x_fa[3];
         gkyl_position_map_eval_c2p(pos_map, x, x_fa);
         double x_fa_c2fa[3];
-        mapc2fa(0.0, x, x_fa_c2fa, NULL);
+        test_nonuniform_position_map(0.0, x, x_fa_c2fa, NULL);
         for (int d=0; d<3; ++d)
           TEST_CHECK( gkyl_compare(x_fa[d], x_fa_c2fa[d], 1e-12) );
       }
