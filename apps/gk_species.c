@@ -417,7 +417,7 @@ gk_species_init(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *app, st
   // ambipolar potential solve
   gks->bflux = (struct gk_boundary_fluxes) { };
   gk_species_bflux_init(app, gks, &gks->bflux); 
-
+  
   // initialize diffusion if present
   gks->has_diffusion = false;  
   if (gks->info.diffusion.num_diff_dir) {
@@ -615,6 +615,11 @@ gk_species_init(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *app, st
       }
     }
   }
+
+  // Initialize boundary fluxes for diagnostics and, if present,
+  // ambipolar potential solve (do after skin ghost ranges are created). 
+  gks->bflux = (struct gk_boundary_fluxes) { };
+  gk_species_bflux_init(app, gks, &gks->bflux); 
 
   if (app->enforce_positivity) {
     // Positivity enforcing by shifting f (ps=positivity shift).

@@ -70,7 +70,6 @@ gkyl_mom_canonical_pb_new(const struct gkyl_basis* cbasis, const struct gkyl_bas
   }
 
   if (strcmp(mom, "MEnergy") == 0) { // Energy int( f*H ) 
-      assert(cdim == vdim); // Can-pb needs equal vdim and cdim
       assert(cv_index[cdim].vdim[vdim] != -1);
       assert(NULL != menergy_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order]);
       

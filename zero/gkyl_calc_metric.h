@@ -42,10 +42,11 @@ gkyl_calc_metric* gkyl_calc_metric_new(const struct gkyl_basis *cbasis,
  * @param gFld output field where metric modal coefficients will be placed
  * @param tanvecFld output field where tangent vector modal coefficients will be placed
  * @param dualFld output field where dual vector modal coefficients will be placed
+ * @param dualmagFld output field where magnitude of the dual vectors will be placed
  * @param normFld output field where dual vector modal coefficients will be placed
  * @param update range. Modal range over which metric coefficients and tangent vectors will be calculated
  */
-void gkyl_calc_metric_advance(gkyl_calc_metric *up, struct gkyl_range *nrange, struct gkyl_array *mc2p_nodal_fd, double *dzc, struct gkyl_array *gFld, struct gkyl_array *tanvecFld, struct gkyl_array *dualFld, struct gkyl_array* normFld, const struct gkyl_range *update_range);
+void gkyl_calc_metric_advance(gkyl_calc_metric *up, struct gkyl_range *nrange, struct gkyl_array *mc2p_nodal_fd, double *dzc, struct gkyl_array *gFld, struct gkyl_array *tanvecFld, struct gkyl_array *dualFld, struct gkyl_array *dualmagFld, struct gkyl_array* normFld, const struct gkyl_range *update_range);
 
 
 /**
@@ -62,12 +63,13 @@ void gkyl_calc_metric_advance(gkyl_calc_metric *up, struct gkyl_range *nrange, s
  * @param bmag_nodal input nodal array containing B at nodes
  * @param tanvecFld output field where tangent vector modal coefficients will be placed
  * @param dualFld output field where dual vector modal coefficients will be placed
+ * @param dualmagFld output field where magnitude of the dual vectors will be placed
  * @param normFld output field where dual vector modal coefficients will be placed
  * @param jFld output field where jacobian modal coefficients will be placed
  * @param bcartFld output field where cartesian compnents of b modal coefficients will be placed
  * @param update range. Modal range over which metric coefficients and tangent vectors will be calculated
  */
-void gkyl_calc_metric_advance_rz(gkyl_calc_metric *up, struct gkyl_range *nrange, struct gkyl_array *mc2p_nodal_fd, struct gkyl_array *dphidtheta_nodal, struct gkyl_array *bmag_nodal, double *dzc, struct gkyl_array *gFld, struct gkyl_array *tanvecFld, struct gkyl_array *dualFld, struct gkyl_array *normFld, struct gkyl_array *jFld, struct gkyl_array* bcartFld, const struct gkyl_range *update_range);
+void gkyl_calc_metric_advance_rz(gkyl_calc_metric *up, struct gkyl_range *nrange, struct gkyl_array *mc2p_nodal_fd, struct gkyl_array *dphidtheta_nodal, struct gkyl_array *bmag_nodal, double *dzc, struct gkyl_array *gFld, struct gkyl_array *tanvecFld, struct gkyl_array *dualFld, struct gkyl_array *dualmagFld, struct gkyl_array *normFld, struct gkyl_array *jFld, struct gkyl_array* bcartFld, const struct gkyl_range *update_range);
 
 /**
  * Use finite differences to calculate metric coefficients and jacobian at nodes
@@ -82,12 +84,13 @@ void gkyl_calc_metric_advance_rz(gkyl_calc_metric *up, struct gkyl_range *nrange
  * @param bmag_nodal input nodal array containing B at nodes
  * @param tanvecFld output field where tangent vector modal coefficients will be placed
  * @param dualFld output field where dual vector modal coefficients will be placed
+ * @param dualmagFld output field where magnitude of the dual vectors will be placed
  * @param normFld output field where dual vector modal coefficients will be placed
  * @param jFld output field where jacobian modal coefficients will be placed
  * @param bcartFld output field where cartesian compnents of b modal coefficients will be placed
  * @param update range. Modal range over which metric coefficients and tangent vectors will be calculated
  */
-void gkyl_calc_metric_advance_mirror(gkyl_calc_metric *up, struct gkyl_range *nrange, struct gkyl_array *mc2p_nodal_fd, struct gkyl_array *bmag_nodal, double *dzc, struct gkyl_array *gFld, struct gkyl_array *tanvecFld, struct gkyl_array *dualFld, struct gkyl_array *normFld, struct gkyl_array *jFld, struct gkyl_array* bcartFld, const struct gkyl_range *update_range);
+void gkyl_calc_metric_advance_mirror(gkyl_calc_metric *up, struct gkyl_range *nrange, struct gkyl_array *mc2p_nodal_fd, struct gkyl_array *bmag_nodal, double *dzc, struct gkyl_array *gFld, struct gkyl_array *tanvecFld, struct gkyl_array *dualFld, struct gkyl_array *dualmagFld, struct gkyl_array *normFld, struct gkyl_array *jFld, struct gkyl_array* bcartFld, const struct gkyl_range *update_range);
 
 /**
  * Calculate cartesian components of bhat
