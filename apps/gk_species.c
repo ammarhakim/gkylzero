@@ -413,11 +413,6 @@ gk_species_init(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *app, st
   // determine radiation type to use in gyrokinetic update
   gks->rad = (struct gk_rad_drag) { };
 
-  // vtsq_min
-  double tpar_min = (gks->info.mass/6.0)*gks->grid.dx[cdim]*gks->grid.dx[cdim];
-  double tperp_min = vdim>1 ? (gks->info.collisions.bmag_mid/3.0)*gks->grid.dx[cdim+1] : tpar_min;
-  gks->vtsq_min = (tpar_min + 2*tperp_min)/(3*gks->info.mass);
-  
   // initialize diffusion if present
   gks->has_diffusion = false;  
   if (gks->info.diffusion.num_diff_dir) {
@@ -444,15 +439,30 @@ gk_species_init(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *app, st
       false, diff_dir, diffusion_order, &app->local, is_zero_flux, app->use_gpu);
   }
 
-  // create ranges and allocate buffers for applying periodic and non-periodic BCs
-  long buff_sz = 0;
-  // compute buffer size needed
+  // Create skin/ghost ranges fir applying BCs.
   for (int dir=0; dir<cdim; ++dir) {
     // Create local lower skin and ghost ranges for distribution function
     gkyl_skin_ghost_ranges(&gks->lower_skin[dir], &gks->lower_ghost[dir], dir, GKYL_LOWER_EDGE, &gks->local_ext, ghost);
     // Create local upper skin and ghost ranges for distribution function
     gkyl_skin_ghost_ranges(&gks->upper_skin[dir], &gks->upper_ghost[dir], dir, GKYL_UPPER_EDGE, &gks->local_ext, ghost);
+  }
 
+  // Global skin and ghost ranges, only valid (i.e. volume>0) in ranges
+  // abutting boundaries.
+  for (int dir=0; dir<cdim; ++dir) {
+    gkyl_skin_ghost_ranges(&gks->global_lower_skin[dir], &gks->global_lower_ghost[dir], dir, GKYL_LOWER_EDGE, &gks->global_ext, ghost); 
+    gkyl_skin_ghost_ranges(&gks->global_upper_skin[dir], &gks->global_upper_ghost[dir], dir, GKYL_UPPER_EDGE, &gks->global_ext, ghost);
+
+    gkyl_sub_range_intersect(&gks->global_lower_skin[dir], &gks->local_ext, &gks->global_lower_skin[dir]);
+    gkyl_sub_range_intersect(&gks->global_upper_skin[dir], &gks->local_ext, &gks->global_upper_skin[dir]);
+
+    gkyl_sub_range_intersect(&gks->global_lower_ghost[dir], &gks->local_ext, &gks->global_lower_ghost[dir]);
+    gkyl_sub_range_intersect(&gks->global_upper_ghost[dir], &gks->local_ext, &gks->global_upper_ghost[dir]);
+  }
+
+  // Allocate buffer needed for BCs.
+  long buff_sz = 0;
+  for (int dir=0; dir<cdim; ++dir) {
     long vol = GKYL_MAX2(gks->lower_skin[dir].volume, gks->upper_skin[dir].volume);
     buff_sz = buff_sz > vol ? buff_sz : vol;
   }

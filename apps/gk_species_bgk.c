@@ -33,11 +33,7 @@ gk_species_bgk_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s, stru
     double hbar = s->info.collisions.hbar ? s->info.collisions.hbar: GKYL_PLANCKS_CONSTANT_H/2/M_PI;
     double eV = s->info.collisions.eV ? s->info.collisions.eV: GKYL_ELEMENTARY_CHARGE;
 
-    struct gkyl_array* bmag_mid_host = app->use_gpu? mkarr(false, 1, 1) : gkyl_array_acquire(app->gk_geom->bmag_mid);
-    gkyl_array_copy(bmag_mid_host, app->gk_geom->bmag_mid);
-    double *bmag_mid_ptr = gkyl_array_fetch(bmag_mid_host, 0);
-    double bmag_mid = s->info.collisions.bmag_mid ? s->info.collisions.bmag_mid : bmag_mid_ptr[0];
-    gkyl_array_release(bmag_mid_host);
+    double bmag_mid = s->info.collisions.bmag_mid ? s->info.collisions.bmag_mid : app->bmag_ref;
 
     // Compute a minimum representable temperature based on the smallest dv in the grid.
     double dv_min[vdim];
@@ -125,15 +121,7 @@ gk_species_bgk_cross_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s
       double eps0 = s->info.collisions.eps0 ? s->info.collisions.eps0: GKYL_EPSILON0;
       double hbar = s->info.collisions.hbar ? s->info.collisions.hbar: GKYL_PLANCKS_CONSTANT_H/2/M_PI;
       double eV = s->info.collisions.eV ? s->info.collisions.eV: GKYL_ELEMENTARY_CHARGE;
-      struct gkyl_array* bmag_mid_host = app->gk_geom->bmag_mid;
-      if (app->use_gpu) {
-        bmag_mid_host = mkarr(false, 1, 1);
-        gkyl_array_copy(bmag_mid_host, app->gk_geom->bmag_mid);
-      }
-      double *bmag_mid_ptr = gkyl_array_fetch(bmag_mid_host, 0);
-      double bmag_mid = s->info.collisions.bmag_mid ? s->info.collisions.bmag_mid : bmag_mid_ptr[0];
-      if (app->use_gpu)
-        gkyl_array_release(bmag_mid_host);
+      double bmag_mid = s->info.collisions.bmag_mid ? s->info.collisions.bmag_mid : app->bmag_ref;
       bgk->cross_nu_fac[i] = nuFrac*gkyl_calc_norm_nu(s->info.collisions.n_ref, bgk->collide_with[i]->info.collisions.n_ref, 
         s->info.mass, bgk->collide_with[i]->info.mass, s->info.charge, bgk->collide_with[i]->info.charge, 
         s->info.collisions.T_ref, bgk->collide_with[i]->info.collisions.T_ref, bmag_mid, eps0, hbar, eV);
