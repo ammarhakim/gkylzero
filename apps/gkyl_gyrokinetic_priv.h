@@ -203,8 +203,7 @@ struct gk_rad_drag {
   struct gkyl_array *nvsqnu_surf; // total mu radiation drag surface expansion including density scaling
   struct gkyl_array *nvsqnu; // total mu radiation drag volume expansion including density scaling
 
-  struct gkyl_array *vtsq_min_normalized; // Smallest vtsq that radiation is calculated (one for each fit), divided by configuration space normalization
-  struct gkyl_array *vtsq_min_per_species;
+  struct gkyl_array **vtsq_min_per_species;  // Smallest vtsq that radiation is calculated (one for each fit), divided by configuration space normalization
   struct gk_species_moment prim_moms;
   struct gkyl_array *vtsq;
   struct gkyl_array *m0;
