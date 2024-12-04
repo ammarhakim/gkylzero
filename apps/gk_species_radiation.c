@@ -221,6 +221,7 @@ gk_species_radiation_moms(gkyl_gyrokinetic_app *app, const struct gk_species *sp
 
   gkyl_array_set_offset(rad->m0, 1.0, rad->prim_moms.marr, 0*app->confBasis.num_basis);
   gkyl_array_set_offset(rad->vtsq, 1.0, rad->prim_moms.marr, 2*app->confBasis.num_basis);
+
   gkyl_array_clear(rad->nvnu_surf, 0.0);
   gkyl_array_clear(rad->nvnu, 0.0);
   gkyl_array_clear(rad->nvsqnu_surf, 0.0);
@@ -262,7 +263,12 @@ gk_species_radiation_emissivity(gkyl_gyrokinetic_app *app, struct gk_species *sp
   struct gk_rad_drag *rad, const struct gkyl_array *fin[], const struct gkyl_array *fin_neut[])
 {
 
-  gk_species_moment_calc(&species->m0, species->local, app->local, species->f);
+  // compute needed Maxwellian moments (n, u_par, T/m) (Jacobian factors already eliminated)
+  gk_species_moment_calc(&rad->prim_moms, species->local, app->local, species->f);
+
+  gkyl_array_set_offset(rad->m0, 1.0, rad->prim_moms.marr, 0*app->confBasis.num_basis);
+  gkyl_array_set_offset(rad->vtsq, 1.0, rad->prim_moms.marr, 2*app->confBasis.num_basis);
+
   //Calculate m2
   for (int i=0; i<rad->num_cross_collisions; ++i) {
     gkyl_array_clear(rad->nvnu_surf, 0.0);
@@ -285,7 +291,7 @@ gk_species_radiation_emissivity(gkyl_gyrokinetic_app *app, struct gk_species *sp
       &app->local, &species->local, 
       &rad->vnu_surf[i], &rad->vnu[i],
       &rad->vsqnu_surf[i], &rad->vsqnu[i],
-      rad->rad_fit_ne[i], species->m0.marr, rad->moms[i].marr, 
+      rad->rad_fit_ne[i], rad->m0, rad->moms[i].marr, 
       rad->nvnu_surf, rad->nvnu, 
       rad->nvsqnu_surf, rad->nvsqnu,
       rad->vtsq_min_per_species, rad->vtsq);
@@ -293,8 +299,9 @@ gk_species_radiation_emissivity(gkyl_gyrokinetic_app *app, struct gk_species *sp
     gkyl_dg_updater_rad_gyrokinetic_advance(rad->drag_slvr, &species->local,
       species->f, species->cflrate, rad->emissivity_rhs);
     gk_species_moment_calc(&rad->m2, species->local, app->local, rad->emissivity_rhs);
-    
-    gkyl_dg_mul_op(app->confBasis, 0, rad->emissivity_denominator, 0, species->m0.marr, 0, rad->moms[i].marr);
+
+    gkyl_dg_mul_op(app->confBasis, 0, rad->emissivity_denominator, 0, rad->m0, 0, rad->moms[i].marr);
+    gkyl_dg_mul_op(app->confBasis, 0, rad->emissivity_denominator, 0, rad->emissivity_denominator, 0, app->gk_geom->jacobgeo);
     gkyl_dg_div_op_range(rad->m2.mem_geo ,app->confBasis, 0, rad->emissivity[i], 0, rad->m2.marr, 0, rad->emissivity_denominator, &app->local);
 
     rad->emissivity[i] = gkyl_array_scale(rad->emissivity[i], -species->info.mass/2.0);
