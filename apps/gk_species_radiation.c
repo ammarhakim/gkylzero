@@ -83,7 +83,7 @@ gk_species_radiation_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s
   rad->vtsq_min_normalized = mkarr(app->use_gpu, rad->num_cross_collisions, max_num_densities);
   struct gkyl_array* vtsq_min_normalized_host = mkarr(false, rad->num_cross_collisions, max_num_densities);
   rad->vtsq_min_per_species = mkarr(app->use_gpu, 1, max_num_densities); 
-  double* vtsq_normalized = (double*)malloc(rad->num_cross_collisions*max_num_densities*sizeof(double));
+  double* vtsq_normalized = (double*)gkyl_malloc(rad->num_cross_collisions*max_num_densities*sizeof(double));
   
   // Initialize drag coefficients.
   for (int i=0; i<rad->num_cross_collisions; ++i) {
@@ -156,7 +156,7 @@ gk_species_radiation_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s
   gkyl_array_copy(rad->vtsq_min_normalized, vtsq_min_normalized_host);
 
   gkyl_radiation_read_release_fit_params(rad_data);
-  free(vtsq_normalized);
+  gkyl_free(vtsq_normalized);
   gkyl_array_release(vtsq_min_normalized_host);
 
   // Total vparallel and mu radiation drag including density scaling
