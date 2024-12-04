@@ -12,6 +12,7 @@
 #include <gkyl_array_average.h>
 #include <math.h>
 #include <assert.h>
+#include <gkyl_dg_bin_ops.h>
 
 // allocate array (filled with zeros)
 static struct gkyl_array*
@@ -92,7 +93,7 @@ void test_1x(int poly_order, bool use_gpu)
   //.create and project the const function
   struct gkyl_array *one_ga = mkarr(basis.num_basis, local_ext.volume, use_gpu);
   //.project distribution function on basis
-  gkyl_proj_on_basis_advance(proj_one, 0.0, &local, one_ga);
+  gkyl_proj_on_basis_advance(proj_one, 0.0, &local_ext, one_ga);
   gkyl_proj_on_basis_release(proj_one);
 
   //------------------ 3. Project the target function ------------------
@@ -102,7 +103,7 @@ void test_1x(int poly_order, bool use_gpu)
   //.create distribution function array
   struct gkyl_array *distf = mkarr(basis.num_basis, local_ext.volume, use_gpu);
   //.project distribution function on basis
-  gkyl_proj_on_basis_advance(projf, 0.0, &local, distf);
+  gkyl_proj_on_basis_advance(projf, 0.0, &local_ext, distf);
   gkyl_proj_on_basis_release(projf);
 
   //------------------ 4. Average through array integrate of target function and volume function ------------------
@@ -135,12 +136,14 @@ void test_1x(int poly_order, bool use_gpu)
   //------------------ 5. Average through the array average routine ------------------
   // declare the lower skin (ls) range to perform the x average
   struct gkyl_range ls_rng;
-  gkyl_range_lower_skin(&ls_rng, &local, 0, 1);
+  // gkyl_range_lower_skin(&ls_rng, &local, 0, 1);
+  gkyl_range_init(&ls_rng, 1, &local.lower[0], &local.lower[0]);
+  printf("ls volume = %ld\n",ls_rng.volume);
   // const basis
-  struct gkyl_basis const_basis;
-  gkyl_cart_modal_serendip(&const_basis, 1, 0);
+  struct gkyl_basis reduced_basis;
+  gkyl_cart_modal_serendip(&reduced_basis, 1, poly_order);
   // declare a single cell gkyl array (integral will be first coeff)
-  struct gkyl_array *avg_res = mkarr(const_basis.num_basis, ls_rng.volume, use_gpu);
+  struct gkyl_array *avg_res = mkarr(reduced_basis.num_basis, ls_rng.volume, use_gpu);
 
   //.projection updater for the weight evaluation
   gkyl_proj_on_basis *proj_weight;
@@ -148,17 +151,60 @@ void test_1x(int poly_order, bool use_gpu)
   //.create and project the const function
   struct gkyl_array *weight = mkarr(basis.num_basis, local_ext.volume, use_gpu);
   //.project distribution function on basis
-  gkyl_proj_on_basis_advance(proj_weight, 0.0, &local, weight);
+  gkyl_proj_on_basis_advance(proj_weight, 0.0, &local_ext, weight);
   gkyl_proj_on_basis_release(proj_weight);
 
   // create full average updater and advance it
   struct gkyl_array_average *avg_full;
-  avg_full = gkyl_array_average_new(&grid, basis, const_basis, local, ls_rng, weight, GKYL_ARRAY_AVERAGE_OP, use_gpu);
+  avg_full = gkyl_array_average_new(&grid, basis, reduced_basis, local, ls_rng, weight, GKYL_ARRAY_AVERAGE_OP, use_gpu);
   // run the updater (this will integrate)
   gkyl_array_average_advance(avg_full, distf, avg_res);
   // release the updater
   gkyl_array_average_release(avg_full);
+
+  //----- weak division to normalize (should be in the updater)
+    //.projection updater for the volume evaluation
+  struct gkyl_array *denom = mkarr(reduced_basis.num_basis, ls_rng.volume, use_gpu);
+  
+  // create full average updater and advance it
+  struct gkyl_array_average *int_weight;
+  int_weight = gkyl_array_average_new(&grid, basis, reduced_basis, local, ls_rng, NULL, GKYL_ARRAY_AVERAGE_OP, use_gpu);
+  // run the updater (this will integrate)
+  gkyl_array_average_advance(int_weight, weight, denom);
+  // release the updater
+  gkyl_array_average_release(int_weight);
+
+  struct gkyl_range_iter ls_iter;
+  gkyl_range_iter_init(&ls_iter, &ls_rng);
+  while (gkyl_range_iter_next(&ls_iter)) {
+    long lidx = gkyl_range_idx(&ls_rng, ls_iter.idx);
+    const double *w_i = gkyl_array_cfetch(denom, lidx);
+    const double *a_i = gkyl_array_cfetch(avg_res, lidx);
+    printf("int[%ld][0]=%g\n",lidx,a_i[0]);
+    printf("int[%ld][1]=%g\n",lidx,a_i[1]);
+    printf("w[%ld][0]=%g\n",lidx,w_i[0]);
+    printf("w[%ld][1]=%g\n",lidx,w_i[1]);
+  }
+
+  // Perform weak division between the two integrals
+  gkyl_dg_bin_op_mem *div_mem = gkyl_dg_bin_op_mem_new(ls_rng.volume, reduced_basis.num_basis);
+  gkyl_dg_div_op_range(div_mem, reduced_basis, 0, avg_res, 0, avg_res, 0, denom, &ls_rng);
+  gkyl_dg_bin_op_mem_release(div_mem);
+  gkyl_array_release(denom);
+
+  // There is a factor sqrt(2) in the result due to the non constant polynomial basis
+  // I do not like to removing it by hand, I should find a way to get the normalization factor
+  // out of the basis directly
+  gkyl_array_scale(avg_res,sqrt(2)/2.0);
+
   // Fetch the integration result and send it back to the host
+  gkyl_range_iter_init(&ls_iter, &ls_rng);
+  while (gkyl_range_iter_next(&ls_iter)) {
+    long lidx = gkyl_range_idx(&ls_rng, ls_iter.idx);
+    const double *a_i = gkyl_array_cfetch(avg_res, lidx);
+    printf("avg[%ld][0]=%g\n",lidx,a_i[0]);
+    printf("avg[%ld][1]=%g\n",lidx,a_i[1]);
+  }
   const double *avg = gkyl_array_cfetch(avg_res, 0);
   double *avg_ho = gkyl_malloc(sizeof(double));
   if (use_gpu)
@@ -167,10 +213,10 @@ void test_1x(int poly_order, bool use_gpu)
     memcpy(avg_ho, avg, sizeof(double));
 
   //------------------ 6. Checks ------------------
-  printf("Volume integral : %g\n", vint_ho[0]);
-  printf("Average array results: %g\n",avg_ho[0]);
-  printf("Ground truth: %g\n", fint_ho[0]);
-  TEST_CHECK( gkyl_compare( avg_ho[0], fint_ho[0], 1e-12) );
+  // printf("Volume integral : %g\n", vint_ho[0]);
+  printf("Average with array average: %g\n",avg_ho[0]);
+  printf("Average with array integrate: %g\n", fint_ho[0]/vint_ho[0]);
+  TEST_CHECK( gkyl_compare( avg_ho[0], fint_ho[0]/vint_ho[0], 1e-12) );
 
   gkyl_array_release(avg_res);
   gkyl_array_release(distf);
