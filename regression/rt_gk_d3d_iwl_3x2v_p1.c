@@ -840,8 +840,8 @@ main(int argc, char **argv)
 
     .parallelism = {
       .use_gpu = app_args.use_gpu,
+      .comm = comm,
       .cuts = { app_args.cuts[0], app_args.cuts[1], app_args.cuts[2] },
-      .comm = comm
     }
   };
 

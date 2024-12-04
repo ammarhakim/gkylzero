@@ -71,7 +71,6 @@ gkyl_gk_geometry_mirror_new(struct gkyl_gk_geometry_inp *geometry_inp)
   up->gyyj= gkyl_array_new(GKYL_DOUBLE, up->basis.num_basis, up->local_ext.volume);
   up->gxzj= gkyl_array_new(GKYL_DOUBLE, up->basis.num_basis, up->local_ext.volume);
   up->eps2= gkyl_array_new(GKYL_DOUBLE, up->basis.num_basis, up->local_ext.volume);
-  up->bmag_mid = gkyl_array_new(GKYL_DOUBLE, 1, 1);
 
   const struct gkyl_efit_inp inp = geometry_inp->efit_info;
   struct gkyl_mirror_geo_grid_inp ginp = geometry_inp->mirror_grid_info;
