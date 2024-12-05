@@ -137,9 +137,7 @@ show_usage()
   fprintf(stdout, "  -g         Run on NVIDIA GPU (if available and built with CUDA)\n\n");
   fprintf(stdout, "  -m         Run memory tracer\n");
   fprintf(stdout, "  -S         Do not initialize MPI\n");
-  fprintf(stdout, "  -rN        Restart simulation from frame N\n");
   fprintf(stdout, "  -V         Use verbose output\n");
-  fprintf(stdout, "  -sN        Only run N steps of simulation\n\n");
 
   fprintf(stdout, "Most app input files take the following commands:\n");
   fprintf(stdout, "  run        Run simulation. Default if nothing specified\n");
@@ -229,7 +227,7 @@ parse_app_args(int argc, char **argv)
   args->use_dir_path = false;
 
   int c;
-  while ((c = getopt(argc, argv, "+hvtmdSe:gVs:r:")) != -1) {
+  while ((c = getopt(argc, argv, "+hvtmdSe:gV")) != -1) {
     switch (c)
     {
       case 'h':
@@ -272,15 +270,6 @@ parse_app_args(int argc, char **argv)
         args->use_verbose = true;
         break;
       
-      case 's':
-        args->num_steps = atoi(optarg);
-        break;
-      
-      case 'r':
-        args->is_restart = true;
-        args->restart_frame = atoi(optarg);
-        break;
-
       case '?':
         break;
     }
