@@ -600,7 +600,7 @@ write_data(struct gkyl_tm_trigger* iot, gkyl_gyrokinetic_app* app, double t_curr
   }
 }
 
-void
+static void
 nonuniform_position_map(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   double transition = 1.5;
@@ -783,7 +783,7 @@ int main(int argc, char **argv)
       .mirror_grid_info = grid_inp,
       .nonuniform_map_info = {
         .mapping = &nonuniform_position_map,
-        .numerical_mapping_fraction = 0.5,
+        .numerical_mapping_fraction = 0.5, // Seems unnecisary and unclear. Effectively non-uniform compuatational space
         .ctx = &ctx,
       },
     },

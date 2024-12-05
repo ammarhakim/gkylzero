@@ -9,7 +9,6 @@
 #include <gkyl_fem_poisson_bctype.h>
 #include <gkyl_gyrokinetic.h>
 #include <gkyl_math.h>
-#include <gkyl_position_map.h>
 
 #include <rt_arg_parse.h>
 
