@@ -133,17 +133,14 @@ void gkyl_calc_metric_advance_rz(
               dxdz[1][1] = 0.0;
               dxdz[2][1] = -1.0;
 
-
               // I have temporarily let dxdz be in cylindrical coords so I can try calculating J from eq 73
               double *jFld_n= gkyl_array_fetch(jFld_nodal, gkyl_range_idx(nrange, cidx));
               double R = mc2p_n[R_IDX];
               jFld_n[0] = sqrt(R*R*(dxdz[0][0]*dxdz[0][0]*dxdz[1][2]*dxdz[1][2] + dxdz[0][2]*dxdz[0][2]*dxdz[1][0]*dxdz[1][0] - 2*dxdz[0][0]*dxdz[0][2]*dxdz[1][0]*dxdz[1][2])) ;
 
-
               double *bmag_n = gkyl_array_fetch(bmag_nodal, gkyl_range_idx(nrange, cidx));
               double dphidtheta = (jFld_n[0]*jFld_n[0]*bmag_n[0]*bmag_n[0] - dxdz[0][2]*dxdz[0][2] - dxdz[1][2]*dxdz[1][2])/R/R;
               dphidtheta = sqrt(dphidtheta);
-
 
               double *gFld_n= gkyl_array_fetch(gFld_nodal, gkyl_range_idx(nrange, cidx));
               gFld_n[0] = dxdz[0][0]*dxdz[0][0] + R*R*dxdz[2][0]*dxdz[2][0] + dxdz[1][0]*dxdz[1][0]; 
@@ -158,8 +155,6 @@ void gkyl_calc_metric_advance_rz(
               //gFld_n[5] = dxdz[0][2]*dxdz[0][2] + R*R*dxdz[2][2]*dxdz[2][2] + dxdz[1][2]*dxdz[1][2];  // uses dphidtheta from FD
               //gFld_n[5] = dxdz[0][2]*dxdz[0][2] + R*R*ddtheta_n[0]*ddtheta_n[0] + dxdz[1][2]*dxdz[1][2];  // uses exact 1/gradpsi
               gFld_n[5] = dxdz[0][2]*dxdz[0][2] + R*R*dphidtheta*dphidtheta + dxdz[1][2]*dxdz[1][2];  // uses corrected 
-
-
               // Now do bcart
               double *bcartFld_n= gkyl_array_fetch(bcartFld_nodal, gkyl_range_idx(nrange, cidx));
               double phi = mc2p_n[PHI_IDX];
@@ -167,7 +162,6 @@ void gkyl_calc_metric_advance_rz(
               bcartFld_n[0] = b3*(dxdz[0][2]*cos(phi) - R*sin(phi)*dphidtheta);
               bcartFld_n[1] = b3*(dxdz[0][2]*sin(phi) + R*cos(phi)*dphidtheta);
               bcartFld_n[2] = b3*(dxdz[1][2]);
-
 
               // Set cartesian components of tangents and duals
               double Z = mc2p_n[Z_IDX];
@@ -316,13 +310,11 @@ void gkyl_calc_metric_advance_mirror(
                 dxdz[2][2] = -(mc2p_n[27 +PHI_IDX] - mc2p_n[30 +PHI_IDX])/2/dzc[2];
               }
 
-
               // Use exact expressions for dphidtheta, dR/dtheta, and dZ/dtheta
               double *ddtheta_n = gkyl_array_fetch(ddtheta_nodal, gkyl_range_idx(nrange, cidx));
               dxdz[0][2] = ddtheta_n[1];
               dxdz[1][2] = ddtheta_n[2];
               dxdz[2][2] = ddtheta_n[0];
-
 
               // use exact expressions for d/dalpha
               dxdz[0][1] = 0.0;
@@ -340,13 +332,11 @@ void gkyl_calc_metric_advance_mirror(
               double *jFld_n= gkyl_array_fetch(jFld_nodal, gkyl_range_idx(nrange, cidx));
               jFld_n[0] = sqrt(R*R*(dRdpsi*dRdpsi*dxdz[1][2]*dxdz[1][2] + dxdz[0][2]*dxdz[0][2]*dxdz[1][0]*dxdz[1][0] - 2*dRdpsi*dxdz[0][2]*dxdz[1][0]*dxdz[1][2])) ;
 
-
               gFld_n[0] = dRdpsi*dRdpsi + dxdz[1][0]*dxdz[1][0]; 
               gFld_n[1] = 0.0; 
               gFld_n[2] = dRdpsi*dxdz[0][2] + dxdz[1][0]*dxdz[1][2];
               gFld_n[3] = R*R; 
               gFld_n[4] = 0.0; 
-
 
               // Now do bcart
               double *bcartFld_n= gkyl_array_fetch(bcartFld_nodal, gkyl_range_idx(nrange, cidx));
@@ -355,7 +345,6 @@ void gkyl_calc_metric_advance_mirror(
               bcartFld_n[0] = b3*dxdz[0][2]*cos(phi);
               bcartFld_n[1] = b3*dxdz[0][2]*sin(phi);
               bcartFld_n[2] = b3*dxdz[1][2];
-
 
               // Set cartesian components of tangents and duals
               double Z = mc2p_n[Z_IDX];
