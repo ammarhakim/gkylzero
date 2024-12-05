@@ -8,12 +8,15 @@
 #include <gkyl_pkpm.h>
 #include <gkyl_pkpm_lw.h>
 #include <gkyl_pkpm_priv.h>
+#include <gkyl_zero_lw.h>
 
 #include <lua.h>
 #include <lualib.h>
 #include <lauxlib.h>
 
 #include <string.h>
+
+#include <stc/coption.h>
 
 #ifdef GKYL_HAVE_MPI
 #include <mpi.h>
@@ -918,6 +921,97 @@ write_step_message(const struct gkyl_pkpm_app *app, struct step_message_trigs *t
   }
 }
 
+static void
+show_help(const struct gkyl_pkpm_app *app)
+{
+  gkyl_pkpm_app_cout(app, stdout, "PKPM script takes the following arguments:\n");
+  gkyl_pkpm_app_cout(app, stdout, " -h   Print this help message and exit\n");
+  gkyl_pkpm_app_cout(app, stdout, " -V   Show verbose output\n");
+  gkyl_pkpm_app_cout(app, stdout, " -rN  Restart simulation from frame N\n");
+  gkyl_pkpm_app_cout(app, stdout, " -sN  Only run N steps of simulation\n");
+
+  gkyl_pkpm_app_cout(app, stdout, "\n");
+}
+
+static struct gkyl_tool_args *
+tool_args_from_argv(int optind, int argc, char *const*argv)
+{
+  struct gkyl_tool_args *targs = gkyl_malloc(sizeof *targs);
+  
+  targs->argc = argc-optind;
+  targs->argv = 0;
+
+  if (targs->argc > 0) {
+    targs->argv = gkyl_malloc(targs->argc*sizeof(char *));
+      for (int i = optind, j = 0; i < argc; ++i, ++j) {
+        targs->argv[j] = gkyl_malloc(strlen(argv[i])+1);
+        strcpy(targs->argv[j], argv[i]);
+      }
+  }
+
+  return targs;
+}
+
+// CLI parser for main script
+struct script_cli {
+  bool help; // show help
+  bool step_mode; // run for fixed number of steps? (for valgrind/cuda-memcheck)
+  int num_steps; // number of steps
+  bool use_verbose; // Should we use verbose output?
+  bool is_restart; // Is this a restarted simulation?
+  int restart_frame; // Which frame to restart simulation from.  
+  
+  struct gkyl_tool_args *rest;
+};
+
+static struct script_cli
+mom_parse_script_cli(struct gkyl_tool_args *acv)
+{
+  struct script_cli cli = {
+    .help =- false,
+    .step_mode = false,
+    .num_steps = INT_MAX,
+    .use_verbose = false,
+    .is_restart = false,
+    .restart_frame = 0,
+  };
+  
+  coption_long longopts[] = {
+    {0}
+  };
+  const char* shortopts = "+hVs:r:";
+
+  coption opt = coption_init();
+  int c;
+  while ((c = coption_get(&opt, acv->argc, acv->argv, shortopts, longopts)) != -1) {
+    switch (c) {
+      case 'h':
+        cli.help = true;
+        break;
+        
+      case 'V':
+        cli.use_verbose = true;
+        break;
+
+      case 's':
+        cli.num_steps = atoi(opt.arg);
+        break;
+      
+      case 'r':
+        cli.is_restart = true;
+        cli.restart_frame = atoi(opt.arg);
+        break;        
+        
+      case '?':
+        break;
+    }
+  }
+
+  cli.rest = tool_args_from_argv(opt.ind, acv->argc, acv->argv);
+  
+  return cli;
+}
+
 // Run simulation. (num_steps) -> bool. num_steps is optional.
 static int
 pkpm_app_run(lua_State *L)
@@ -929,24 +1023,29 @@ pkpm_app_run(lua_State *L)
   struct pkpm_app_lw *app_lw = *l_app_lw;
   struct gkyl_pkpm_app *app = app_lw->app;
 
+  // Parse command lines arguments passed to input file.
+  struct gkyl_tool_args *args = gkyl_tool_args_new(L);
+
+  struct script_cli script_cli = mom_parse_script_cli(args);
+  if (script_cli.help) {
+    show_help(app);
+    gkyl_tool_args_release(script_cli.rest);
+    gkyl_tool_args_release(args);
+    goto freeresources;
+  }
+
+  gkyl_tool_args_release(script_cli.rest);
+  gkyl_tool_args_release(args);  
+
   // Initial and final simulation times.
   double t_curr = app_lw->t_start, t_end = app_lw->t_end;
-  long num_steps = luaL_optinteger(L, 2, INT_MAX);
+  long num_steps = script_cli.num_steps;
 
   gkyl_pkpm_app_cout(app, stdout, "Initializing PKPM Simulation ...\n");
 
   // Initialize simulation.
-  bool is_restart = false;
-  lua_getglobal(L, "GKYL_IS_RESTART");
-  if (lua_toboolean(L, -1)) {
-    is_restart = true;
-  }
-  lua_pop(L, 1);
-
-  int restart_frame = 0;
-  lua_getglobal(L, "GKYL_RESTART_FRAME");
-  restart_frame = lua_tointeger(L, -1);
-  lua_pop(L, 1);
+  bool is_restart = script_cli.is_restart;
+  int restart_frame = script_cli.restart_frame;  
 
   int frame_curr = 0;
   if (is_restart) {
