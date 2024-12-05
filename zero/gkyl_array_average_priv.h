@@ -69,8 +69,9 @@ struct gkyl_array_average {
   // if we use gpu or not
   bool use_gpu;
 
-  // array that indicates if the dimension is averaged or not
-  int isavg_dim[GKYL_MAX_CDIM]; 
+  // array that indicates if the dimension is also a reduced dim
+  // (i.e. if the dimension remains)
+  int isred_dim[GKYL_MAX_CDIM]; 
 
   // array that maps the sub dimensions to the full one
   // examples:
