@@ -23,6 +23,7 @@ gkyl_array_average_new(const struct gkyl_rect_grid *grid,
   up->use_gpu = use_gpu;
   up->ndim = tot_basis.ndim;
   up->tot_basis = tot_basis;
+  up->sub_basis = sub_basis;
   // copy the total and sub ranges on the updater 
   // (will be used in advance and in the declaration of the integrated weighted array)
   gkyl_sub_range_init(&up->tot_rng, &tot_rng, tot_rng.lower, tot_rng.upper);
@@ -82,42 +83,60 @@ gkyl_array_average_new(const struct gkyl_rect_grid *grid,
       break;
   }
 
-  up->isweighted = false;
-  if (weights) {
-    up->isweighted = true;
-    up->weights = gkyl_array_new(GKYL_DOUBLE, weights->ncomp, weights->size);
-    gkyl_array_copy(up->weights, weights);
-
-    // Compute the subdim integral of the weights 
-    up->integral_weights = use_gpu? gkyl_array_cu_dev_new(GKYL_DOUBLE, sub_basis.num_basis, up->sub_rng.volume)
-                                  : gkyl_array_new(GKYL_DOUBLE, sub_basis.num_basis, up->sub_rng.volume);
-    // create new average routine to integrate the weights
-    struct gkyl_array_average *int_w;
-    // declare a weightless average (this will simply integrate)
-    int_w = gkyl_array_average_new(grid, tot_basis, sub_basis, tot_rng, sub_rng, NULL, op, use_gpu);
-    // run the updater to integrate the weights
-    gkyl_array_average_advance(int_w, weights, up->integral_weights);
-    // release the updater
-    gkyl_array_average_release(int_w);
-    // const double *wint = gkyl_array_cfetch(up->integral_weights, 0);
-    // printf("integral of the weights = %g \n",wint[0]);
-
-    // Allocate memory to prepare the weak division at the end of the advance routine
-    up->div_mem = gkyl_dg_bin_op_mem_new(up->integral_weights->size, sub_basis.num_basis);
-  } 
   
   // Compute the cell sub-dimensional volume
   up->subvol = 1.0;
   for (unsigned d=0; d < up->ndim; ++d){
     if (up->isavg_dim[d] == 0) up->subvol *= 0.5*grid->dx[d];
   }
+  // printf("subvolume = %g\n",up->subvol);
+
+  // Handle a possible weighted average
+  up->isweighted = false;
+  if (weights) {
+    up->isweighted = true;
+    up->weights = gkyl_array_new(GKYL_DOUBLE, weights->ncomp, weights->size);
+    gkyl_array_copy_range(up->weights, weights, &up->tot_rng);
+    // I use gkyl_array_copy before and it was not copying on the total range but one less, why?
+
+    // CHECK THE WEIGHT
+    // printf("Check the weights in array avg updater\n");
+    // struct gkyl_range_iter iter;
+    // gkyl_range_iter_init(&iter, &tot_rng);
+    // while (gkyl_range_iter_next(&iter)) {
+    //   long lidx = gkyl_range_idx(&tot_rng, iter.idx);
+    //   const double *w_i = gkyl_array_cfetch(up->weights, lidx);
+    //   printf("w[%ld][0]=%g, w[%ld][1]=%g\n",lidx,w_i[0],lidx,w_i[1]);
+    // }
+    // printf("Check done\n");
+
+    // Compute the subdim integral of the weights (for volume division after integration)
+    up->integral_weights = up->use_gpu? gkyl_array_cu_dev_new(GKYL_DOUBLE, up->sub_basis.num_basis, up->sub_rng.volume)
+                                  : gkyl_array_new(GKYL_DOUBLE, up->sub_basis.num_basis, up->sub_rng.volume);
+    // create new average routine to integrate the weights
+    struct gkyl_array_average *int_w;
+    // declare a weightless average 
+    // (this will simply integrate, not recursive call because here we do not put weights)
+    int_w = gkyl_array_average_new(grid, up->tot_basis, up->sub_basis, up->tot_rng, up->sub_rng, NULL, op, up->use_gpu);
+    // run the updater to integrate the weights
+    // printf("Integrate weights\n");
+    gkyl_array_average_advance(int_w, up->weights, up->integral_weights);
+    // printf("Integrate weights done\n");
+    // release the updater
+    gkyl_array_average_release(int_w);
+    // const double *wint = gkyl_array_cfetch(up->integral_weights, 0);
+    // printf("integral of the weights = %g \n",wint[0]);
+
+    // Allocate memory to prepare the weak division at the end of the advance routine
+    up->div_mem = gkyl_dg_bin_op_mem_new(up->sub_rng.volume, up->sub_basis.num_basis);
+  } 
 
   // Choose the kernel that performs the desired operation within the integral.
-  gkyl_array_average_choose_kernel(up, &tot_basis, op);
+  gkyl_array_average_choose_kernel(up, &up->tot_basis, op);
 
   #ifdef GKYL_HAVE_CUDA
   if (use_gpu)
-    return gkyl_array_average_cu_dev_new(up, grid, tot_basis, op);
+    return gkyl_array_average_cu_dev_new(up, grid, up->tot_basis, op);
   #endif
 
   return up;
@@ -135,7 +154,7 @@ void gkyl_array_average_advance(gkyl_array_average *up,
 
   // If we provided some weights, we integrate a weighted fin
   if(up->isweighted)
-    gkyl_dg_mul_op(up->tot_basis,1,fin,1,up->weights,1,fin);
+    gkyl_dg_mul_op_range(up->tot_basis, 0, fin, 0, fin, 0, up->weights, &up->tot_rng);
 
   gkyl_array_clear_range(avgout, 0.0, &up->sub_rng);
 
@@ -156,9 +175,9 @@ void gkyl_array_average_advance(gkyl_array_average *up,
         long cmp_lidx = gkyl_range_idx(&cmp_rng, cmp_iter.idx);
         const double *fin_i = gkyl_array_cfetch(fin, cmp_lidx);
         double *avg_i = gkyl_array_fetch(avgout, sub_lidx);
-        // printf("\tfin_i[%ld] = %g\n",cmp_lidx,fin_i[0]);
 
-        up->kernel(fin_i, avg_i, up->subvol);
+        up->kernel(up->subvol, NULL, fin_i, avg_i);
+        // printf("(subdim loop) fin_i[%2.0ld][0] = %6.4g, fin_i[%2.0ld][1] = %4.2g, avg_i[0] = %6.4g\n",cmp_lidx,fin_i[0],cmp_lidx,fin_i[1],avg_i[0]);
       }
     }
   } 
@@ -171,15 +190,19 @@ void gkyl_array_average_advance(gkyl_array_average *up,
     while (gkyl_range_iter_next(&tot_iter)) {
         long tot_lidx = gkyl_range_idx(&up->tot_rng, tot_iter.idx);
         const double *fin_i = gkyl_array_cfetch(fin, tot_lidx);
+        const double *win_i = gkyl_array_cfetch(up->weights, tot_lidx);
         double *avg_i = gkyl_array_fetch(avgout, 0);
-        up->kernel(fin_i, avg_i, up->subvol);
-        // printf("fin_i[%ld][0] = %g, fin_i[%ld][1] = %g, avg_i[0] = %g\n",tot_lidx,fin_i[0],tot_lidx,fin_i[1],avg_i[0]);
+        up->kernel(up->subvol, NULL, fin_i, avg_i);
+
+        // To check the integration:
+        // printf("(full loop) fin_i[%2.0ld][0] = %6.4g, fin_i[%2.0ld][1] = %6.4g, avg_i[0] = %6.4g\n",tot_lidx,fin_i[0],tot_lidx,fin_i[1],avg_i[0]);
     }
   }
 
-  // If we provided some weights, we now divide by the integrated weight
+  // // If we provided some weights, we now divide by the integrated weight
   if(up->isweighted)
-    gkyl_dg_div_op(up->div_mem, up->sub_basis, 1, avgout, 1, avgout, 1, avgout);
+    gkyl_dg_div_op_range(up->div_mem, up->sub_basis,
+     0, avgout, 0, avgout, 0, up->integral_weights, &up->sub_rng);
 
 }
 
@@ -190,11 +213,9 @@ void gkyl_array_average_release(gkyl_array_average *up)
   if (up->use_gpu)
     gkyl_cu_free(up->on_dev);
 #endif
-  if(up->isweighted){
-    gkyl_array_release(up->weights);
-    gkyl_array_release(up->integral_weights);
-    gkyl_dg_bin_op_mem_release(up->div_mem);
-  }
+  if(up->weights) gkyl_array_release(up->weights);
+  if(up->integral_weights) gkyl_array_release(up->integral_weights);
+  if(up->div_mem) gkyl_dg_bin_op_mem_release(up->div_mem);
 
   gkyl_free(up);
 }

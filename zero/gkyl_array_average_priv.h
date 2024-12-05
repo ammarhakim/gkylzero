@@ -10,7 +10,7 @@
 #include <gkyl_dg_bin_ops.h>
 
 // Function pointer type for array_average kernels.
-typedef void (*array_average_t)(const double *fin, double *out, const double subvol);
+typedef void (*array_average_t)( const double subvol, const double *win, const double *fin, double *out);
 
 // For use in kernel tables.
 typedef struct { array_average_t kernels[2]; } array_average_kern_list;
