@@ -83,28 +83,6 @@ void gkyl_position_map_eval_c2p(const struct gkyl_position_map* gpm, const doubl
     }
     x_fa[gpm->grid.ndim-1] = xyz_fa[2];
   }
-  int cdim = gpm->grid.ndim;
-  double xphys[3] = {x_comp[0], x_comp[1], x_comp[2]};
-  double init_val[3] = {x_fa[0], x_fa[1], x_fa[2]};
-    // printf("Mapped position %g %g %g to %g %g %g\n", init_val[0], init_val[1], init_val[2], xphys[0], xphys[1], xphys[2]);
-  if      (cdim == 1) {
-    if ( !gkyl_compare(xphys[0], init_val[0], 1e-3) )
-      printf("Mapped %g to %g\n", init_val[0], xphys[0]);
-  }  
-  else if (cdim == 2) {
-    if ( !gkyl_compare(xphys[0], init_val[0], 1e-3) )
-      printf("Mapped coord 0: %g to %g\n", init_val[0], xphys[0]);
-    if ( !gkyl_compare(xphys[1], init_val[1], 1e-3) )
-      printf("Mapped coord 1: %g to %g\n", init_val[1], xphys[1]);
-  }
-  else if (cdim == 3 ) {
-    if ( !gkyl_compare(xphys[0], init_val[0], 1e-3) )
-      printf("Mapped coord 0: %g to %g\n", init_val[0], xphys[0]);
-    if ( !gkyl_compare(xphys[1], init_val[1], 1e-3) )
-      printf("Mapped coord 1: %g to %g\n", init_val[1], xphys[1]);
-    if ( !gkyl_compare(xphys[2], init_val[2], 1e-3) )
-      printf("Mapped coord 2: %g to %g\n", init_val[2], xphys[2]);
-  }
 }
 
 

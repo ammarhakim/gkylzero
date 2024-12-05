@@ -11,12 +11,8 @@
 #include <gkyl_gk_geometry.h>
 #include <gkyl_tok_geo_priv.h>
 
-
 #include <math.h>
 #include <string.h>
-
-
-
 
 double
 tok_plate_psi_func(double s, void *ctx){

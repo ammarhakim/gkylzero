@@ -15,12 +15,8 @@
 #include <gkyl_rect_grid.h>
 #include <gkyl_util.h>
 
-
 #include <math.h>
 #include <string.h>
-
-
-
 
 double
 mirror_plate_psi_func(double s, void *ctx){
