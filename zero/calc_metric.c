@@ -48,7 +48,7 @@ calc_dual(double J, const double e_2[3], const double e_3[3], double e1[3])
 
 void gkyl_calc_metric_advance_rz(
   gkyl_calc_metric *up, struct gkyl_range *nrange,
-  struct gkyl_array *mc2p_nodal_fd, struct gkyl_array *dphidtheta_nodal,
+  struct gkyl_array *mc2p_nodal_fd, struct gkyl_array *ddtheta_nodal,
   struct gkyl_array *bmag_nodal, double *dzc, struct gkyl_array *gFld,
   struct gkyl_array *tanvecFld,
   struct gkyl_array *dualFld,
@@ -123,6 +123,17 @@ void gkyl_calc_metric_advance_rz(
                 dxdz[2][2] = -(mc2p_n[27 +PHI_IDX] - mc2p_n[30 +PHI_IDX])/2/dzc[2];
               }
 
+              // Use exact expressions for dR/dtheta and dZ/dtheta
+              double *ddtheta_n = gkyl_array_fetch(ddtheta_nodal, gkyl_range_idx(nrange, cidx));
+              dxdz[0][2] = ddtheta_n[1];
+              dxdz[1][2] = ddtheta_n[2];
+
+              // use exact expressions for d/dalpha
+              dxdz[0][1] = 0.0;
+              dxdz[1][1] = 0.0;
+              dxdz[2][1] = -1.0;
+
+
               // I have temporarily let dxdz be in cylindrical coords so I can try calculating J from eq 73
               double *jFld_n= gkyl_array_fetch(jFld_nodal, gkyl_range_idx(nrange, cidx));
               double R = mc2p_n[R_IDX];
@@ -134,19 +145,18 @@ void gkyl_calc_metric_advance_rz(
               dphidtheta = sqrt(dphidtheta);
 
 
-              double *dphidtheta_n = gkyl_array_fetch(dphidtheta_nodal, gkyl_range_idx(nrange, cidx));
               double *gFld_n= gkyl_array_fetch(gFld_nodal, gkyl_range_idx(nrange, cidx));
               gFld_n[0] = dxdz[0][0]*dxdz[0][0] + R*R*dxdz[2][0]*dxdz[2][0] + dxdz[1][0]*dxdz[1][0]; 
               gFld_n[1] = R*R*dxdz[2][0]; 
               //gFld_n[2] = dxdz[0][0]*dxdz[0][2] + R*R*dxdz[2][0]*dxdz[2][2] + dxdz[1][0]*dxdz[1][2]; // Uses dphi/dtheta from FD
-              //gFld_n[2] = dxdz[0][0]*dxdz[0][2] + R*R*dxdz[2][0]*dphidtheta_n[0] + dxdz[1][0]*dxdz[1][2];  // uses exact 1/gradpsi
+              //gFld_n[2] = dxdz[0][0]*dxdz[0][2] + R*R*dxdz[2][0]*ddtheta_n[0] + dxdz[1][0]*dxdz[1][2];  // uses exact 1/gradpsi
               gFld_n[2] = dxdz[0][0]*dxdz[0][2] + R*R*dxdz[2][0]*dphidtheta + dxdz[1][0]*dxdz[1][2];  // Uses corrected
               gFld_n[3] = R*R; 
               //gFld_n[4] = R*R*dxdz[2][2];  // Uses FD
-              //gFld_n[4] = R*R*dphidtheta_n[0]; //uses exact 1/gradpsi
+              //gFld_n[4] = R*R*ddtheta_n[0]; //uses exact 1/gradpsi
               gFld_n[4] = R*R*dphidtheta; //uses corrected 
               //gFld_n[5] = dxdz[0][2]*dxdz[0][2] + R*R*dxdz[2][2]*dxdz[2][2] + dxdz[1][2]*dxdz[1][2];  // uses dphidtheta from FD
-              //gFld_n[5] = dxdz[0][2]*dxdz[0][2] + R*R*dphidtheta_n[0]*dphidtheta_n[0] + dxdz[1][2]*dxdz[1][2];  // uses exact 1/gradpsi
+              //gFld_n[5] = dxdz[0][2]*dxdz[0][2] + R*R*ddtheta_n[0]*ddtheta_n[0] + dxdz[1][2]*dxdz[1][2];  // uses exact 1/gradpsi
               gFld_n[5] = dxdz[0][2]*dxdz[0][2] + R*R*dphidtheta*dphidtheta + dxdz[1][2]*dxdz[1][2];  // uses corrected 
 
 
@@ -231,7 +241,7 @@ void gkyl_calc_metric_advance_rz(
 
 void gkyl_calc_metric_advance_mirror(
   gkyl_calc_metric *up, struct gkyl_range *nrange,
-  struct gkyl_array *mc2p_nodal_fd,
+  struct gkyl_array *mc2p_nodal_fd, struct gkyl_array *ddtheta_nodal,
   struct gkyl_array *bmag_nodal, double *dzc, struct gkyl_array *gFld,
   struct gkyl_array *tanvecFld,
   struct gkyl_array *dualFld,
@@ -305,6 +315,19 @@ void gkyl_calc_metric_advance_mirror(
                 dxdz[1][2] = -(mc2p_n[27 +Z_IDX] - mc2p_n[30 +Z_IDX])/2/dzc[2];
                 dxdz[2][2] = -(mc2p_n[27 +PHI_IDX] - mc2p_n[30 +PHI_IDX])/2/dzc[2];
               }
+
+
+              // Use exact expressions for dphidtheta, dR/dtheta, and dZ/dtheta
+              double *ddtheta_n = gkyl_array_fetch(ddtheta_nodal, gkyl_range_idx(nrange, cidx));
+              dxdz[0][2] = ddtheta_n[1];
+              dxdz[1][2] = ddtheta_n[2];
+              dxdz[2][2] = ddtheta_n[0];
+
+
+              // use exact expressions for d/dalpha
+              dxdz[0][1] = 0.0;
+              dxdz[1][1] = 0.0;
+              dxdz[2][1] = -1.0;
 
               // I have temporarily let dxdz be in cylindrical coords so I can try calculating J from eq 73
               double R = mc2p_n[R_IDX];
