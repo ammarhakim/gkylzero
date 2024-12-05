@@ -416,6 +416,15 @@ get_species_inp(lua_State *L, int cdim, struct pkpm_species_lw *species[GKYL_MAX
   return curr;
 }
 
+// comparison method to sort species array by species name
+static int
+species_compare_func(const void *a, const void *b)
+{
+  const struct pkpm_species_lw *const *spa = a;
+  const struct pkpm_species_lw *const *spb = b;
+  return strcmp((*spa)->pkpm_species.name, (*spb)->pkpm_species.name);
+}
+
 // Create top-level App object.
 static int
 pkpm_app_new(lua_State *L)
@@ -503,6 +512,12 @@ pkpm_app_new(lua_State *L)
 
   // Set all species input.
   pkpm.num_species = get_species_inp(L, cdim, species);
+
+  // need to sort the species[] array by name of the species before
+  // proceeding as there is no way to ensure that all cores loop over
+  // Lua tables in the same order
+  qsort(species, pkpm.num_species, sizeof(struct pkpm_species_lw *), species_compare_func);
+  
   for (int s = 0; s < pkpm.num_species; s++) {
     pkpm.species[s] = species[s]->pkpm_species;
     pkpm.vdim = species[s]->vdim;
