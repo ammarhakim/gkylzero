@@ -1086,6 +1086,33 @@ gkyl_gyrokinetic_app_calc_neut_species_integrated_mom(gkyl_gyrokinetic_app* app,
 }
 
 void
+gkyl_gyrokinetic_app_calc_species_L2norm(gkyl_gyrokinetic_app *app, int sidx, double tm)
+{
+  struct timespec wst = gkyl_wall_clock();
+
+  struct gk_species *gk_s = &app->species[sidx];
+
+  double L2norm_global[] = {0.0};
+
+  gkyl_dg_calc_l2_range(app->basis, 0, gk_s->L2norm_cell, 0, gk_s->f, gk_s->local);
+  gkyl_array_scale_range(gk_s->L2norm_cell, gk_s->grid.cellVolume, &gk_s->local);
+  gkyl_array_reduce_range(gk_s->L2norm_local, gk_s->L2norm_cell, GKYL_SUM, &gk_s->local);
+  gkyl_comm_allreduce(app->comm, GKYL_DOUBLE, GKYL_SUM, 1, gk_s->L2norm_local, gk_s->L2norm_global);
+
+  if (app->use_gpu) {
+    gkyl_cu_memcpy(L2norm_global, gk_s->L2norm_global, sizeof(double), GKYL_CU_MEMCPY_D2H);
+  }
+  else { 
+    memcpy(L2norm_global, gk_s->L2norm_global, sizeof(double));
+  }
+  
+  gkyl_dynvec_append(gk_s->L2norm, tm, L2norm_global);  
+
+  app->stat.diag_tm += gkyl_time_diff_now_sec(wst);
+  app->stat.ndiag += 1;
+}
+
+void
 gkyl_gyrokinetic_app_write_species_integrated_mom(gkyl_gyrokinetic_app *app, int sidx)
 {
   struct timespec wst = gkyl_wall_clock();
@@ -1138,6 +1165,36 @@ gkyl_gyrokinetic_app_write_species_integrated_mom(gkyl_gyrokinetic_app *app, int
 
   app->stat.diag_tm += gkyl_time_diff_now_sec(wst);
   app->stat.ndiag += 1;
+}
+
+void
+gkyl_gyrokinetic_app_write_species_L2norm(gkyl_gyrokinetic_app *app, int sidx)
+{
+  struct timespec wst = gkyl_wall_clock();
+  struct gk_species *gks = &app->species[sidx];
+
+  int rank;
+  gkyl_comm_get_rank(app->comm, &rank);
+
+  if (rank == 0) {
+    // Write the L2 norm.
+    const char *fmt = "%s-%s_%s.gkyl";
+    int sz = gkyl_calc_strlen(fmt, app->name, gks->info.name, "L2norm");
+    char fileNm[sz+1]; // ensures no buffer overflow
+    snprintf(fileNm, sizeof fileNm, fmt, app->name, gks->info.name, "L2norm");
+
+    struct timespec wtm = gkyl_wall_clock();
+    if (gks->is_first_L2norm_write_call) {
+      gkyl_dynvec_write(gks->L2norm, fileNm);
+      gks->is_first_L2norm_write_call = false;
+    }
+    else {
+      gkyl_dynvec_awrite(gks->L2norm, fileNm);
+    }
+    app->stat.io_tm += gkyl_time_diff_now_sec(wtm);
+    app->stat.nio += 1;
+  }
+  gkyl_dynvec_clear(gks->L2norm);
 }
 
 void
@@ -2108,6 +2165,14 @@ gkyl_gyrokinetic_app_calc_integrated_mom(gkyl_gyrokinetic_app* app, double tm)
 }
 
 void
+gkyl_gyrokinetic_app_calc_L2norm(gkyl_gyrokinetic_app* app, double tm)
+{
+  for (int i=0; i<app->num_species; ++i) {
+    gkyl_gyrokinetic_app_calc_species_L2norm(app, i, tm);
+  }
+}
+
+void
 gkyl_gyrokinetic_app_write_integrated_mom(gkyl_gyrokinetic_app *app)
 {
   for (int i=0; i<app->num_species; ++i) {
@@ -2120,6 +2185,14 @@ gkyl_gyrokinetic_app_write_integrated_mom(gkyl_gyrokinetic_app *app)
   for (int i=0; i<app->num_neut_species; ++i) {
     gkyl_gyrokinetic_app_write_neut_species_integrated_mom(app, i);
     gkyl_gyrokinetic_app_write_neut_species_source_integrated_mom(app, i);
+  }
+}
+
+void
+gkyl_gyrokinetic_app_write_L2norm(gkyl_gyrokinetic_app *app)
+{
+  for (int i=0; i<app->num_species; ++i) {
+    gkyl_gyrokinetic_app_write_species_L2norm(app, i);
   }
 }
 
@@ -2662,6 +2735,7 @@ gkyl_gyrokinetic_app_from_frame_species(gkyl_gyrokinetic_app *app, int sidx, int
 
   // Append to existing integrated diagnostics.
   gk_s->is_first_integ_write_call = false;
+  gk_s->is_first_L2norm_write_call = false;
   if (app->enforce_positivity)
     gk_s->is_first_ps_integ_write_call = false;
   if (gk_s->rad.radiation_id == GKYL_GK_RADIATION)

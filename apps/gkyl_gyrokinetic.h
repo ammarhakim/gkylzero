@@ -445,7 +445,7 @@ void gkyl_gyrokinetic_app_write_field_energy(gkyl_gyrokinetic_app* app);
  * Write species data to file.
  * 
  * @param app App object.
- * @param sidx Index of species to initialize.
+ * @param sidx Index of species to write.
  * @param tm Time-stamp
  * @param frame Frame number
  */
@@ -455,7 +455,7 @@ void gkyl_gyrokinetic_app_write_species(gkyl_gyrokinetic_app* app, int sidx, dou
  * Write neutral species data to file.
  * 
  * @param app App object.
- * @param sidx Index of species to initialize.
+ * @param sidx Index of neutral species to write.
  * @param tm Time-stamp
  * @param frame Frame number
  */
@@ -465,7 +465,7 @@ void gkyl_gyrokinetic_app_write_neut_species(gkyl_gyrokinetic_app* app, int sidx
  * Write diagnostic moments for species to file.
  * 
  * @param app App object.
- * @param sidx Index of species to initialize.
+ * @param sidx Index of species whose moments to write.
  * @param tm Time-stamp
  * @param frame Frame number
  */
@@ -475,7 +475,7 @@ void gkyl_gyrokinetic_app_write_species_mom(gkyl_gyrokinetic_app *app, int sidx,
  * Write diagnostic moments for neutral species to file.
  * 
  * @param app App object.
- * @param sidx Index of neutral species to initialize.
+ * @param sidx Index of neutral species whose moments to write.
  * @param tm Time-stamp
  * @param frame Frame number
  */
@@ -485,7 +485,7 @@ void gkyl_gyrokinetic_app_write_neut_species_mom(gkyl_gyrokinetic_app *app, int 
  * Calculate integrated diagnostic moments for a plasma species.
  *
  * @param app App object.
- * @param sidx Index of species to initialize.
+ * @param sidx Index of species whose integrated moments to compute.
  * @param tm Time at which integrated diagnostics are to be computed
  */
 void gkyl_gyrokinetic_app_calc_species_integrated_mom(gkyl_gyrokinetic_app* app, int sidx, double tm);
@@ -494,17 +494,26 @@ void gkyl_gyrokinetic_app_calc_species_integrated_mom(gkyl_gyrokinetic_app* app,
  * Calculate integrated diagnostic moments for a neutral species.
  *
  * @param app App object.
- * @param sidx Index of neutral species to initialize.
+ * @param sidx Index of neutral species whose integrated moments to compute.
  * @param tm Time at which integrated diagnostics are to be computed
  */
 void gkyl_gyrokinetic_app_calc_neut_species_integrated_mom(gkyl_gyrokinetic_app* app, int sidx, double tm);
+
+/**
+ * Calculate the L2 norm of a plasma species.
+ *
+ * @param app App object.
+ * @param sidx Index of species whose L2 norm to compute.
+ * @param tm Time at which L2 norm is to be computed.
+ */
+void gkyl_gyrokinetic_app_calc_species_L2norm(gkyl_gyrokinetic_app* app, int sidx, double tm);
 
 /**
  * Write integrated diagnostic moments for charged species to file. Integrated
  * moments are appended to the same file.
  * 
  * @param app App object.
- * @param sidx Index of species to initialize.
+ * @param sidx Index of species whose integrated moments to write.
  */
 void gkyl_gyrokinetic_app_write_species_integrated_mom(gkyl_gyrokinetic_app *app, int sidx);
 
@@ -513,15 +522,24 @@ void gkyl_gyrokinetic_app_write_species_integrated_mom(gkyl_gyrokinetic_app *app
  * moments are appended to the same file.
  * 
  * @param app App object.
- * @param sidx Index of neutral species to initialize.
+ * @param sidx Index of neutral species whose integrated moments to write.
  */
 void gkyl_gyrokinetic_app_write_neut_species_integrated_mom(gkyl_gyrokinetic_app *app, int sidx);
+
+/**
+ * Write the L2 norm of a charged species to file. Subsequent calculations of
+ * L2 norm are appended to the same file.
+ * 
+ * @param app App object.
+ * @param sidx Index of species whose L2 norm to write out.
+ */
+void gkyl_gyrokinetic_app_write_species_L2norm(gkyl_gyrokinetic_app *app, int sidx);
 
 /**
  * Write species source to file.
  * 
  * @param app App object.
- * @param sidx Index of species to initialize.
+ * @param sidx Index of species whose source to write.
  * @param tm Time-stamp
  * @param frame Frame number
  */
@@ -531,7 +549,7 @@ void gkyl_gyrokinetic_app_write_species_source(gkyl_gyrokinetic_app* app, int si
  * Write neutral species source to file.
  * 
  * @param app App object.
- * @param sidx Index of species to initialize.
+ * @param sidx Index of neutral species whose source to write.
  * @param tm Time-stamp
  * @param frame Frame number
  */
@@ -541,7 +559,7 @@ void gkyl_gyrokinetic_app_write_neut_species_source(gkyl_gyrokinetic_app* app, i
  * Write diagnostic moments for species source to file.
  * 
  * @param app App object.
- * @param sidx Index of species to initialize.
+ * @param sidx Index of species whose source moments to write.
  * @param tm Time-stamp
  * @param frame Frame number
  */
@@ -551,7 +569,7 @@ void gkyl_gyrokinetic_app_write_species_source_mom(gkyl_gyrokinetic_app *app, in
  * Write diagnostic moments for neutral species source to file.
  * 
  * @param app App object.
- * @param sidx Index of neutral species to write.
+ * @param sidx Index of neutral species whose source moments to write.
  * @param tm Time-stamp
  * @param frame Frame number
  */
@@ -561,7 +579,7 @@ void gkyl_gyrokinetic_app_write_neut_species_source_mom(gkyl_gyrokinetic_app *ap
  * Calculate integrated diagnostic moments for a plasma species source.
  *
  * @param app App object.
- * @param sidx Index of species to write.
+ * @param sidx Index of species whose integrated moments to write.
  * @param tm Time at which integrated diagnostics are to be computed
  */
 void gkyl_gyrokinetic_app_calc_species_source_integrated_mom(gkyl_gyrokinetic_app* app, int sidx, double tm);
@@ -570,7 +588,7 @@ void gkyl_gyrokinetic_app_calc_species_source_integrated_mom(gkyl_gyrokinetic_ap
  * Calculate integrated diagnostic moments for a neutral species source.
  *
  * @param app App object.
- * @param sidx Index of neutral species to write.
+ * @param sidx Index of neutral species whose integrated moments to write.
  * @param tm Time at which integrated diagnostics are to be computed
  */
 void gkyl_gyrokinetic_app_calc_neut_species_source_integrated_mom(gkyl_gyrokinetic_app* app, int sidx, double tm);
@@ -580,7 +598,7 @@ void gkyl_gyrokinetic_app_calc_neut_species_source_integrated_mom(gkyl_gyrokinet
  * moments are appended to the same file.
  * 
  * @param app App object.
- * @param sidx Index of species to write.
+ * @param sidx Index of species whose source integrated moments to write.
  */
 void gkyl_gyrokinetic_app_write_species_source_integrated_mom(gkyl_gyrokinetic_app *app, int sidx);
 
@@ -589,7 +607,7 @@ void gkyl_gyrokinetic_app_write_species_source_integrated_mom(gkyl_gyrokinetic_a
  * moments are appended to the same file.
  * 
  * @param app App object.
- * @param sidx Index of neutral species to write.
+ * @param sidx Index of neutral species whose source integrated moments to write.
  */
 void gkyl_gyrokinetic_app_write_neut_species_source_integrated_mom(gkyl_gyrokinetic_app *app, int sidx);
 
@@ -597,7 +615,7 @@ void gkyl_gyrokinetic_app_write_neut_species_source_integrated_mom(gkyl_gyrokine
  * Write LBO collisional moments for species to file.
  * 
  * @param app App object.
- * @param sidx Index of species to write.
+ * @param sidx Index of species whose LBO moments to write.
  * @param tm Time-stamp
  * @param frame Frame number
  */
@@ -608,7 +626,7 @@ void gkyl_gyrokinetic_app_write_species_lbo_mom(gkyl_gyrokinetic_app *app, int s
  * to file. Correct Maxwellian status is appended to the same file.
  * 
  * @param app App object.
- * @param sidx Index of species to write.
+ * @param sidx Index of species whose BGK Maxwellian correction status to write.
  */
 void gkyl_gyrokinetic_app_write_species_bgk_max_corr_status(gkyl_gyrokinetic_app *app, int sidx);
 
@@ -616,7 +634,7 @@ void gkyl_gyrokinetic_app_write_species_bgk_max_corr_status(gkyl_gyrokinetic_app
  * Write radiation drag coefficients for species to file.
  * 
  * @param app App object.
- * @param sidx Index of species to write.
+ * @param sidx Index of species whose radiation drag coefficients to write.
  * @param tm Time-stamp
  * @param frame Frame number
  */
@@ -626,7 +644,7 @@ void gkyl_gyrokinetic_app_write_species_rad_drag(gkyl_gyrokinetic_app *app, int 
  * Write radiation emissivity of each species that species sidx collides with
  * 
  * @param app App object.
- * @param sidx Index of species to write.
+ * @param sidx Index of species whose radiation emissivity to write.
  * @param tm Time-stamp
  * @param frame Frame number
  */
@@ -636,7 +654,7 @@ void gkyl_gyrokinetic_app_write_species_rad_emissivity(gkyl_gyrokinetic_app *app
  * Calculate integrated diagnostic moments of the radiation model.
  *
  * @param app App object.
- * @param sidx Index of species to write.
+ * @param sidx Index of species to whose radiation int moments to compute.
  * @param tm Time at which integrated diagnostics are to be computed
  */
 void gkyl_gyrokinetic_app_calc_species_rad_integrated_mom(gkyl_gyrokinetic_app *app, int sidx, double tm);
@@ -645,7 +663,7 @@ void gkyl_gyrokinetic_app_calc_species_rad_integrated_mom(gkyl_gyrokinetic_app *
  * Write integrated moments of radiation rhs for radiating species 
  * 
  * @param app App object.
- * @param sidx Index of species from which to write radiation.
+ * @param sidx Index of species to whose radiation int moments to write.
  */
 void gkyl_gyrokinetic_app_write_species_rad_integrated_mom(gkyl_gyrokinetic_app *app, int sidx);
 
@@ -664,7 +682,7 @@ void gkyl_gyrokinetic_app_write_species_iz_react(gkyl_gyrokinetic_app* app, int 
  * Write iz react rate coefficients for species to file.
  * 
  * @param app App object.
- * @param sidx Index of species to write.
+ * @param sidx Index of species to whose ionization diagnostics to write.
  * @param ridx Index of reaction to write.
  * @param tm Time-stamp
  * @param frame Frame number
@@ -675,7 +693,7 @@ void gkyl_gyrokinetic_app_write_species_iz_react_neut(gkyl_gyrokinetic_app* app,
  * Write recomb react rate coefficients for species to file.
  * 
  * @param app App object.
- * @param sidx Index of species to write.
+ * @param sidx Index of species whose recombination diagnostics to write.
  * @param ridx Index of reaction to write.
  * @param tm Time-stamp
  * @param frame Frame number
@@ -686,23 +704,12 @@ void gkyl_gyrokinetic_app_write_species_recomb_react(gkyl_gyrokinetic_app* app, 
  * Write recomb react rate coefficients for species to file.
  * 
  * @param app App object.
- * @param sidx Index of species to write.
+ * @param sidx Index of species whose recombination diagnostics to write.
  * @param ridx Index of reaction to write.
  * @param tm Time-stamp
  * @param frame Frame number
  */
 void gkyl_gyrokinetic_app_write_species_recomb_react_neut(gkyl_gyrokinetic_app* app, int sidx, int ridx, double tm, int frame);
-
-/**
- * Write cx react rate coefficients for species to file.
- * 
- * @param app App object.
- * @param sidx Index of species to write.
- * @param ridx Index of reaction to write.
- * @param tm Time-stamp
- * @param frame Frame number
- */
-void gkyl_gyrokinetic_app_write_cx_react_neut(gkyl_gyrokinetic_app* app, int sidx, int ridx, double tm, int frame);
 
 /**
  * Write the phase-space diagnostics for a charged species.
@@ -718,7 +725,7 @@ void gkyl_gyrokinetic_app_write_species_phase(gkyl_gyrokinetic_app* app, int sid
  * Write the phase-space diagnostics for a neutral species.
  * 
  * @param app App object.
- * @param sidx Index of species to write.
+ * @param sidx Index of neutral species to write.
  * @param tm Time-stamp
  * @param frame Frame number
  */
@@ -738,7 +745,7 @@ void gkyl_gyrokinetic_app_write_species_conf(gkyl_gyrokinetic_app* app, int sidx
  * Write the conf-space diagnostics for a neutral species.
  * 
  * @param app App object.
- * @param sidx Index of species to write.
+ * @param sidx Index of neutral species to write.
  * @param tm Time-stamp
  * @param frame Frame number
  */
@@ -762,12 +769,28 @@ void gkyl_gyrokinetic_app_write_mom(gkyl_gyrokinetic_app *app, double tm, int fr
 void gkyl_gyrokinetic_app_calc_integrated_mom(gkyl_gyrokinetic_app* app, double tm);
 
 /**
+ * Calculate the L2 norm for all species.
+ *
+ * @param app App object.
+ * @param tm Time at which L2 norms are to be computed.
+ */
+void gkyl_gyrokinetic_app_calc_L2norm(gkyl_gyrokinetic_app* app, double tm);
+
+/**
  * Write integrated diagnostic moments for all species (including sources)
  * to file. Integrated moments are appended to the same file.
  * 
  * @param app App object.
  */
 void gkyl_gyrokinetic_app_write_integrated_mom(gkyl_gyrokinetic_app *app);
+
+/**
+ * Write the L2 norm for all species (including sources)
+ * to file. L2 norms are appended to the same file.
+ * 
+ * @param app App object.
+ */
+void gkyl_gyrokinetic_app_write_L2norm(gkyl_gyrokinetic_app *app);
 
 /**
  * Write phase space diagnostics to file.

@@ -409,6 +409,7 @@ calc_integrated_diagnostics(struct gkyl_tm_trigger* iot, gkyl_gyrokinetic_app* a
   if (gkyl_tm_trigger_check_and_bump(iot, t_curr) || force_calc) {
     gkyl_gyrokinetic_app_calc_field_energy(app, t_curr);
     gkyl_gyrokinetic_app_calc_integrated_mom(app, t_curr);
+    gkyl_gyrokinetic_app_calc_L2norm(app, t_curr);
   }
 }
 
@@ -426,6 +427,9 @@ write_data(struct gkyl_tm_trigger* iot, gkyl_gyrokinetic_app* app, double t_curr
 
     gkyl_gyrokinetic_app_calc_integrated_mom(app, t_curr);
     gkyl_gyrokinetic_app_write_integrated_mom(app);
+
+    gkyl_gyrokinetic_app_calc_L2norm(app, t_curr);
+    gkyl_gyrokinetic_app_write_L2norm(app);
   }
 }
 

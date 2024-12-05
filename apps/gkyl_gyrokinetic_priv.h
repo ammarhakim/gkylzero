@@ -502,6 +502,12 @@ struct gk_species {
   gkyl_dynvec integ_diag; // integrated moments reduced across grid
   bool is_first_integ_write_call; // flag for integrated moments dynvec written first time
 
+  struct gkyl_array *L2norm_cell; // L2norm contribution from each cell.
+  double *L2norm_local, *L2norm_global; // L2norm in local MPI process and
+                                        // across the communicator.
+  gkyl_dynvec L2norm; // L2 norm.
+  bool is_first_L2norm_write_call; // flag for L2norm dynvec written first time
+
   gkyl_dg_updater_gyrokinetic *slvr; // Gyrokinetic solver 
   struct gkyl_dg_eqn *eqn_gyrokinetic; // Gyrokinetic equation object
   
