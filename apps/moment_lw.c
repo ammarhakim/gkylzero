@@ -882,6 +882,15 @@ get_species_inp(lua_State *L, int cdim, struct moment_species_lw *species[GKYL_M
   return curr;
 }
 
+// comparison method to sort species array by species name
+static int
+species_compare_func(const void *a, const void *b)
+{
+  const struct moment_species_lw *const *spa = a;
+  const struct moment_species_lw *const *spb = b;
+  return strcmp((*spa)->mom_species.name, (*spb)->mom_species.name);
+}
+
 // Create top-level App object.
 static int
 mom_app_new(lua_State *L)
@@ -987,6 +996,12 @@ mom_app_new(lua_State *L)
 
   // Set all species input.
   mom.num_species = get_species_inp(L, cdim, species);
+
+  // need to sort the species[] array by name of the species before
+  // proceeding as there is no way to ensure that all cores loop over
+  // Lua tables in the same order
+  qsort(species, mom.num_species, sizeof(struct moment_species_lw *), species_compare_func);
+  
   for (int s = 0; s < mom.num_species; s++) {
     mom.species[s] = species[s]->mom_species;
     
