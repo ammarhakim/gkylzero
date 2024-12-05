@@ -155,20 +155,21 @@ void evalFunc_2x(double t, const double *xn, double* restrict fout, void *ctx)
   double phi = 0.5;
 
   fout[0] = 1 + sin(k_x*x + k_y*y);
-  // fout[0] = x * y * sin(1.5*k_x*x + 0.75*k_y*y + phi) * cos(1.42*k_y*y);
+  fout[0] = x * y * sin(1.5*k_x*x + 0.75*k_y*y + phi) * cos(1.42*k_y*y);
 }
 // to weight the integral
 void evalWeight_2x(double t, const double *xn, double* restrict fout, void *ctx)
 {
   double x = xn[0];
   double y = xn[1];
-  fout[0] = 10;
-  // fout[0] = 1 + x*x;
+  // fout[0] = 10;
+  fout[0] = 1 + x*x + y*y;
 }
 
 double solution_2x(){
+  // return 1;
   // Solution from a trapz integration with Python (see code at the end)
-  return 1;//-0.6715118302909872;
+  return -0.6715118302909872;
 }
 
 void test_2x_1step(int poly_order, bool use_gpu)
@@ -241,7 +242,7 @@ void test_2x_1step(int poly_order, bool use_gpu)
   */
   gkyl_array_average_advance(avg_full, fxy_c, avgf_c);
   gkyl_array_average_release(avg_full);
-
+ 
   //------------- 3. Fetch and transfer results ----------------
   // Retrieve the computed average from the device (if applicable)
   const double *avg_c0 = gkyl_array_cfetch(avgf_c, 0);
@@ -256,7 +257,7 @@ void test_2x_1step(int poly_order, bool use_gpu)
     Compare the computed result with the reference solution obtained from Python.
     Precision depends on the number of cells used in the grid.
   */
-  double result = avg_c0_ho[0]*0.5*sqrt(2); // get cell average
+  double result = avg_c0_ho[0]*sqrt(2)/2; // get cell average
   printf("Checking one-step average (XY to scalar)\n");
   printf("\tResult: %g, solution: %g\n",result,solution_2x());
   if (cells[0] < 8) {
@@ -284,7 +285,7 @@ void test_2x_2steps(int poly_order, bool use_gpu)
   //------------------ 1. Initialization ------------------
   // 1.1 Define grid and basis
   double lower[] = {-4.0, -3.0}, upper[] = {6.0, 5.0};
-  int cells[] = {8, 6};
+  int cells[] = {12, 8};
   int ndim = sizeof(lower) / sizeof(lower[0]);
 
   // Initialize the grid
