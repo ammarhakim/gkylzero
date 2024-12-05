@@ -193,10 +193,10 @@ gkyl_gk_geometry_reduce_bmag(struct gk_geometry* up, enum gkyl_array_op op)
     }
   }
 
-  return b_m;
-
   gkyl_array_release(nodes);
   gkyl_array_release(bmag_ho);
+
+  return b_m;
 }
 
 void
