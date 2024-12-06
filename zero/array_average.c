@@ -20,14 +20,12 @@ gkyl_array_average_new(const struct gkyl_array_average_inp *inp)
   up->ndim = inp->tot_basis.ndim;
   up->tot_basis = inp->tot_basis;
   up->sub_basis = inp->sub_basis;
+
   // copy the total and sub ranges on the updater 
   // (will be used in advance and in the declaration of the integrated weighted array)
-  gkyl_sub_range_init(&up->tot_rng, &inp->tot_rng, inp->tot_rng.lower, inp->tot_rng.upper);
-  gkyl_sub_range_init(&up->tot_rng_ext, &inp->tot_rng_ext, inp->tot_rng_ext.lower, inp->tot_rng_ext.upper);
-  gkyl_sub_range_init(&up->sub_rng, &inp->sub_rng, inp->sub_rng.lower, inp->sub_rng.upper);
-  // here there is two "sub":
-  // - one from the gkyl_sub_range_init (but it is actually a full copy)
-  // - the other from the sub dimensional output array from the averaging operation
+  up->tot_rng = *inp->tot_rng;
+  up->tot_rng_ext = *inp->tot_rng_ext;
+  up->sub_rng = *inp->sub_rng;
 
   // Set up the array of all dimensions that are conserved after the average (=0 for removed)
   // according to the operation input variable
@@ -87,13 +85,13 @@ gkyl_array_average_new(const struct gkyl_array_average_inp *inp)
   }
   // printf("subvolume = %g\n",up->subvol);
 
-  up->integrant = gkyl_array_new(GKYL_DOUBLE, inp->tot_basis.num_basis, inp->tot_rng_ext.volume);
+  up->integrant = gkyl_array_new(GKYL_DOUBLE, inp->tot_basis.num_basis, up->tot_rng_ext.volume);
 
   // Handle a possible weighted average
   if (inp->weights) {
     up->isweighted = true;
-    up->weights = gkyl_array_new(GKYL_DOUBLE, inp->tot_basis.num_basis, inp->tot_rng_ext.volume);
-    gkyl_array_copy_range(up->weights, inp->weights, &up->tot_rng_ext);
+    up->weights = gkyl_array_new(GKYL_DOUBLE, up->tot_basis.num_basis, up->tot_rng_ext.volume);
+    gkyl_array_set(up->weights, 1.0, inp->weights);
 
     // CHECK THE WEIGHT
     // printf("Check the weights in array avg updater\n");
@@ -126,9 +124,7 @@ gkyl_array_average_new(const struct gkyl_array_average_inp *inp)
     };
     int_w = gkyl_array_average_new(&inp_integral);
     // run the updater to integrate the weights
-    // printf("Integrate weights\n");
     gkyl_array_average_advance(int_w, up->weights, up->integral_weights);
-    // printf("Integrate weights done\n");
     // release the updater
     gkyl_array_average_release(int_w);
     // const double *wint = gkyl_array_cfetch(up->integral_weights, 0);
@@ -192,7 +188,7 @@ void gkyl_array_average_advance(gkyl_array_average *up,
       // printf("sub iter loop\n");
       gkyl_range_iter_no_split_init(&cmp_iter, &cmp_rng);
 
-      printf("cmp_range.volume = %ld\n",cmp_rng.volume);
+      // printf("cmp_range.volume = %ld\n",cmp_rng.volume);
 
       while (gkyl_range_iter_next(&cmp_iter)) {
         // printf("\tcmp iter loop\n");
@@ -202,7 +198,7 @@ void gkyl_array_average_advance(gkyl_array_average *up,
 
         up->kernel(up->subvol, NULL, fin_i, avg_i);
         // printf("(subdim loop) fin_i[%2.0ld][0] = %6.4g, fin_i[%2.0ld][1] = %4.2g, avg_i[0] = %6.4g\n",cmp_lidx,fin_i[0],cmp_lidx,fin_i[1],avg_i[0]);
-        printf("(subdim loop) fin_i[%2.0ld][0] = %6.4g, subvol = %6.4g, avg_i[0] = %6.4g\n",cmp_lidx,fin_i[0],up->subvol,avg_i[0]);
+      //   printf("(subdim loop) fin_i[%2.0ld][0] = %6.4g, subvol = %6.4g, avg_i[0] = %6.4g\n",cmp_lidx,fin_i[0],up->subvol,avg_i[0]);
       }
       stride++;
     }
@@ -222,7 +218,7 @@ void gkyl_array_average_advance(gkyl_array_average *up,
 
         // To check the integration:
         // printf("(full loop) fin_i[%2.0ld][0] = %6.4g, fin_i[%2.0ld][1] = %6.4g, avg_i[0] = %6.4g\n",tot_lidx,fin_i[0],tot_lidx,fin_i[1],avg_i[0]);
-        printf("(full loop) fin_i[%2.0ld][0] = %6.4g, subvol = %6.4g, avg_i[0] = %6.4g\n",tot_lidx,fin_i[0],up->subvol,avg_i[0]);
+        // printf("(full loop) fin_i[%2.0ld][0] = %6.4g, subvol = %6.4g, avg_i[0] = %6.4g\n",tot_lidx,fin_i[0],up->subvol,avg_i[0]);
     }
   }
 

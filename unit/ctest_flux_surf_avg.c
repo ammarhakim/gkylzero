@@ -99,9 +99,9 @@ void test_1x(int poly_order, bool use_gpu)
     .grid = &grid,
     .tot_basis = basis,
     .sub_basis = red_basis,
-    .tot_rng = local,
-    .tot_rng_ext = local_ext,
-    .sub_rng = red_local,
+    .tot_rng = &local,
+    .tot_rng_ext = &local_ext,
+    .sub_rng = &red_local,
     .weights = wx_c,
     .op = GKYL_ARRAY_AVERAGE_OP,
     .use_gpu = use_gpu
@@ -189,7 +189,7 @@ void test_2x_1step(int poly_order, bool use_gpu)
   //------------------ 1. Initialization ------------------
   // 1.1 Define grid and basis
   double lower[] = {-4.0, -3.0}, upper[] = {6.0, 5.0};
-  int cells[] = {4, 2};
+  int cells[] = {64, 48};
   int ndim = sizeof(lower) / sizeof(lower[0]);
 
   // Initialize the grid
@@ -201,7 +201,7 @@ void test_2x_1step(int poly_order, bool use_gpu)
   gkyl_cart_modal_serendip(&basis, ndim, poly_order);
 
   // Create ranges (local and extended, no ghost cells in this case)
-  int ghost[] = {0, 0};
+  int ghost[] = {1, 2};
   struct gkyl_range local, local_ext;
   gkyl_create_grid_ranges(&grid, ghost, &local_ext, &local);
 
@@ -243,9 +243,9 @@ void test_2x_1step(int poly_order, bool use_gpu)
     .grid = &grid,
     .tot_basis = basis,
     .sub_basis = red_basis,
-    .tot_rng = local,
-    .tot_rng_ext = local_ext,
-    .sub_rng = red_local,
+    .tot_rng = &local,
+    .tot_rng_ext = &local_ext,
+    .sub_rng = &red_local,
     .weights = wxy_c,
     .op = GKYL_ARRAY_AVERAGE_OP,
     .use_gpu = use_gpu
@@ -267,9 +267,9 @@ void test_2x_1step(int poly_order, bool use_gpu)
     .grid = &grid,
     .tot_basis = basis,
     .sub_basis = red_basis,
-    .tot_rng = local,
-    .tot_rng_ext = local_ext,
-    .sub_rng = red_local,
+    .tot_rng = &local,
+    .tot_rng_ext = &local_ext,
+    .sub_rng = &red_local,
     .weights = NULL,
     .op = GKYL_ARRAY_AVERAGE_OP,
     .use_gpu = use_gpu
@@ -277,7 +277,6 @@ void test_2x_1step(int poly_order, bool use_gpu)
   struct gkyl_array_average *int_xy = gkyl_array_average_new(&inp_int_xy); 
   // printf("we passed the new avg updater\n"); 
   gkyl_array_average_advance(int_xy, wfxy_c, intwf_c);
-  printf("-int(w)dxdy\n");
   gkyl_array_average_advance(int_xy, wxy_c, intw_c);
   gkyl_array_average_release(int_xy);
   // printf("we passed the release avg updater\n"); 
@@ -341,7 +340,7 @@ void test_2x_2steps(int poly_order, bool use_gpu)
   //------------------ 1. Initialization ------------------
   // 1.1 Define grid and basis
   double lower[] = {-4.0, -3.0}, upper[] = {6.0, 5.0};
-  int cells[] = {4, 2};
+  int cells[] = {64, 48};
   int ndim = sizeof(lower) / sizeof(lower[0]);
 
   // Initialize the grid
@@ -353,7 +352,7 @@ void test_2x_2steps(int poly_order, bool use_gpu)
   gkyl_cart_modal_serendip(&basis, ndim, poly_order);
 
   // Create ranges (local and extended, no ghost cells in this case)
-  int ghost[] = {0, 0};
+  int ghost[] = {2, 1};
   struct gkyl_range local, local_ext;
   gkyl_create_grid_ranges(&grid, ghost, &local_ext, &local);
 
@@ -397,15 +396,14 @@ void test_2x_2steps(int poly_order, bool use_gpu)
     .grid = &grid,
     .tot_basis = basis,
     .sub_basis = basis_y,
-    .tot_rng = local,
-    .tot_rng_ext = local_ext,
-    .sub_rng = local_y,
+    .tot_rng = &local,
+    .tot_rng_ext = &local_ext,
+    .sub_rng = &local_y,
     .weights = wxy_c,
     .op = GKYL_ARRAY_AVERAGE_OP_Y,
     .use_gpu = use_gpu
   };
   struct gkyl_array_average *avg_x = gkyl_array_average_new(&inp_avg_x);
-  printf("-compute int(wf)dx\n");
   gkyl_array_average_advance(avg_x, fxy_c, fy_c);
   gkyl_array_average_release(avg_x);
   /*
@@ -417,15 +415,14 @@ void test_2x_2steps(int poly_order, bool use_gpu)
     .grid = &grid,
     .tot_basis = basis,
     .sub_basis = basis_y,
-    .tot_rng = local,
-    .tot_rng_ext = local_ext,
-    .sub_rng = local_y,
+    .tot_rng = &local,
+    .tot_rng_ext = &local_ext,
+    .sub_rng = &local_y,
     .weights = NULL,
     .op = GKYL_ARRAY_AVERAGE_OP_Y,
     .use_gpu = use_gpu
   };
   struct gkyl_array_average *int_x = gkyl_array_average_new(&inp_int_x);
-  printf("-compute int(w)dx\n");
   gkyl_array_average_advance(int_x, wxy_c, wy_c);
   gkyl_array_average_release(int_x);
   /*
@@ -458,22 +455,21 @@ void test_2x_2steps(int poly_order, bool use_gpu)
     .grid = &grid_y,
     .tot_basis = basis_y,
     .sub_basis = red_basis,
-    .tot_rng = local_y,
-    .tot_rng_ext = local_y_ext,
-    .sub_rng = red_local,
+    .tot_rng = &local_y,
+    .tot_rng_ext = &local_y_ext,
+    .sub_rng = &red_local,
     .weights = NULL,
     .op = GKYL_ARRAY_AVERAGE_OP,
     .use_gpu = use_gpu
   };
   struct gkyl_array_average *int_y = gkyl_array_average_new(&inp_int_y);
   // printf("-compute int(wf)dy\n");
-  // gkyl_array_average_advance(int_y, fy_c, intf_c);
+  gkyl_array_average_advance(int_y, fy_c, intf_c);
   /*
   here intf_c is DG coeff of int[int[w(x,y) f(x,y)]dy]dx
   */
 
   // obtain full integral of weights too
-  printf("-compute int(w)dy\n");
   gkyl_array_average_advance(int_y, wy_c, intw_c);
   gkyl_array_average_release(int_y);
   /*

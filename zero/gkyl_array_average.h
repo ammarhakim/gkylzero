@@ -40,9 +40,9 @@ struct gkyl_array_average_inp {
   const struct gkyl_rect_grid *grid;         // Computational grid
   const struct gkyl_basis tot_basis;        // Total basis for the full dimensionality
   const struct gkyl_basis sub_basis;        // Subset basis for reduced dimensionality
-  const struct gkyl_range tot_rng;          // Range for input array (total)
-  const struct gkyl_range tot_rng_ext;      // Extended range for input array (with ghosts)
-  const struct gkyl_range sub_rng;          // Range for output array (reduced)
+  const struct gkyl_range *tot_rng;          // Range for input array (total)
+  const struct gkyl_range *tot_rng_ext;      // Extended range for input array (with ghosts)
+  const struct gkyl_range *sub_rng;          // Range for output array (reduced)
   const struct gkyl_array *weights;         // Weight array for averaging
   const enum gkyl_array_average_op op;      // Type of average operation to perform
   const bool use_gpu;                       // Flag for GPU computation
