@@ -67,7 +67,7 @@ vlasovApp = Vlasov.App.new {
         init = function (t, xn)
           local x, vx = xn[1], xn[2]
 
-          local n = (1.0 + alpha * math.cos(kx * x)) * math.exp(-(vx * vx) / (2.0 * vt * vt)) -- Total number density.
+          local n = (1.0 + alpha * math.cos(kx * x)) * math.exp(-(vx * vx) / (2.0 * vt * vt)) -- Distribution function.
           return n
         end,
       }

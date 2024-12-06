@@ -87,7 +87,7 @@ vlasovApp = Vlasov.App.new {
         
           local maxwellian1 = (n_elc1 / (2.0 * pi * vt_elc1 * vt_elc1)) * math.exp(-v_sq_elc1 / (2.0 * vt_elc1 * vt_elc1))
           local maxwellian2 = (n_elc2 / (2.0 * pi * vt_elc2 * vt_elc2)) * math.exp(-v_sq_elc2 / (2.0 * vt_elc2 * vt_elc2))
-          local n = maxwellian1 + maxwellian2 -- Total number density.
+          local n = maxwellian1 + maxwellian2 -- Distribution function.
 
           return n
         end

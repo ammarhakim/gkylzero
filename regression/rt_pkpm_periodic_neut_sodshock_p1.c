@@ -133,22 +133,22 @@ evalDistInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fou
   double nr = app->nr;
   double Tr = app->Tr;
 
-  double n = 0.0;
+  double F0 = 0.0;
   double T = 0.0;
 
   if (fabs(x) < 0.5) {
-    n = (nl / sqrt(2.0 * pi * Tl * Tl)) * (exp(-(vx * vx) / (2.0 * Tl * Tl))); // Total number density (left).
+    F0 = (nl / sqrt(2.0 * pi * Tl * Tl)) * (exp(-(vx * vx) / (2.0 * Tl * Tl))); // Distribution function (F0, left).
     T = Tl; // Total temperature (left).
   }
   else {
-    n = (nr / sqrt(2.0 * pi * Tr * Tr)) * (exp(-(vx * vx) / (2.0 * Tr * Tr))); // Total number density (right).
+    F0 = (nr / sqrt(2.0 * pi * Tr * Tr)) * (exp(-(vx * vx) / (2.0 * Tr * Tr))); // Distribution function (F0, right).
     T = Tr; // Total temperature (right).
   }
 
-  double T_sq_n = (T * T) * n; // Temperature squared times number density.
+  double G = (T * T) * F0; // Distribution function (G).
 
   // Set distribution function.
-  fout[0] = n; fout[1] = T_sq_n;
+  fout[0] = F0; fout[1] = G;
 }
 
 void

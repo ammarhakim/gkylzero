@@ -101,9 +101,9 @@ gyrokineticApp = Gyrokinetic.App.new {
         local n = 0.0;
       
         if math.abs(vpar) < v0 then
-          n = n0 / 2.0 / v0 -- Total number density (low velocity).
+          n = n0 / 2.0 / v0 -- Distribution function (low velocity).
         else
-          n = 0.0 -- Total number density (high velocity).
+          n = 0.0 -- Distribution function (high velocity).
         end
         
         return n
@@ -143,7 +143,7 @@ gyrokineticApp = Gyrokinetic.App.new {
         local vb_sq = ((vpar - u0) / (math.sqrt(2.0) * vtb)) * ((vpar - u0) / (math.sqrt(2.0) * vtb)) + mu * B0
         
         local n = (n0 / math.sqrt(2.0 * pi * vt)) * math.exp(-v_sq) + (n0 / math.sqrt(2.0 * pi * vtb)) *
-          math.exp(-vb_sq) * (ab * ab) / ((vpar - ub) * (vpar - ub) + sb * sb) -- Total number density.
+          math.exp(-vb_sq) * (ab * ab) / ((vpar - ub) * (vpar - ub) + sb * sb) -- Distribution function.
         
         return n
       end,

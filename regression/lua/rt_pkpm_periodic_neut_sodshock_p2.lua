@@ -70,20 +70,20 @@ pkpmApp = PKPM.App.new {
     initDist = function (t, xn)
       local x, vx = xn[1], xn[2]
 
-      local n = 0.0
+      local F0 = 0.0
       local T = 0.0
       
       if math.abs(x) < 0.5 then
-        n = (nl / math.sqrt(2.0 * pi * Tl * Tl)) * (math.exp(-(vx * vx) / (2.0 * Tl * Tl))) -- Total number density (left).
+        F0 = (nl / math.sqrt(2.0 * pi * Tl * Tl)) * (math.exp(-(vx * vx) / (2.0 * Tl * Tl))) -- Distribution function (F0, left).
         T = Tl -- Total temperature (left).
       else
-        n = (nr / math.sqrt(2.0 * pi * Tr * Tr)) * (math.exp(-(vx * vx) / (2.0 * Tr * Tr))) -- Total number density (right).
+        F0 = (nr / math.sqrt(2.0 * pi * Tr * Tr)) * (math.exp(-(vx * vx) / (2.0 * Tr * Tr))) -- Distribution function (F0, right).
         T = Tr -- Total temperature (right).
       end
 
-      local T_sq_n = (T * T) * n -- Temperature squared times number density.
+      local G = (T * T) * F0 -- Distribution function (G).
       
-      return n, T_sq_n
+      return F0, G
     end,
 
     -- Initial conditions (fluid).

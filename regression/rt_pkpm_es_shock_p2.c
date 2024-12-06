@@ -149,11 +149,11 @@ evalElcDistInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT 
   double n0 = app->n0;
   double vte = app->vte;
 
-  double n = (n0 / sqrt(2.0 * pi * vte * vte)) * (exp(-(vx * vx) / (2.0 * vte * vte))); // Electron total number density.
-  double T_sq_n = (vte * vte) * n; // Electron temperature squared times electron number density.
+  double F0 = (n0 / sqrt(2.0 * pi * vte * vte)) * (exp(-(vx * vx) / (2.0 * vte * vte))); // Electron distribution function (F0).
+  double G = (vte * vte) * F0; // Electron distribution function (G).
 
   // Set electron distribution function.
-  fout[0] = n; fout[1] = T_sq_n;
+  fout[0] = F0; fout[1] = G;
 }
 
 void
@@ -186,11 +186,11 @@ evalIonDistInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT 
   double n0 = app->n0;
   double vti = app->vti;
 
-  double n = (n0 / sqrt(2.0 * pi * vti * vti)) * (exp(-(vx * vx) / (2.0 * vti * vti))); // Ion total number density.
-  double T_sq_n = (vti * vti) * n; // Ion temperature squared times ion number density.
+  double F0 = (n0 / sqrt(2.0 * pi * vti * vti)) * (exp(-(vx * vx) / (2.0 * vti * vti))); // Ion distribution function (F0).
+  double G = (vti * vti) * F0; // Ion distribution function (G).
 
   // Set electron distribution function.
-  fout[0] = n; fout[1] = T_sq_n;
+  fout[0] = F0; fout[1] = G;
 }
 
 void

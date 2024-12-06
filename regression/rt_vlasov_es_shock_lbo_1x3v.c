@@ -165,13 +165,13 @@ evalElcInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout
   double n = 0.0;
 
   if (x < 0.0) {
-    n = (1.0 / pow(sqrt(2.0 * pi * vte * vte), 3.0)) * (exp(-v_sq_m / (2.0 * vte * vte))); // Total number density (left).
+    n = (1.0 / pow(sqrt(2.0 * pi * vte * vte), 3.0)) * (exp(-v_sq_m / (2.0 * vte * vte))); // Distribution function (left).
   }
   else {
-    n = (1.0 / pow(sqrt(2.0 * pi * vte * vte), 3.0)) * (exp(-v_sq_p / (2.0 * vte * vte))); // Total number density (right).
+    n = (1.0 / pow(sqrt(2.0 * pi * vte * vte), 3.0)) * (exp(-v_sq_p / (2.0 * vte * vte))); // Distribution function (right).
   }
 
-  // Set total number density.
+  // Set distribution function.
   fout[0] = n;
 }
 
@@ -192,13 +192,13 @@ evalIonInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout
   double n = 0.0;
 
   if (x < 0.0) {
-    n = (1.0 / pow(sqrt(2.0 * pi * vti * vti), 3.0)) * (exp(-v_sq_m / (2.0 * vti * vti))); // Total number density (left).
+    n = (1.0 / pow(sqrt(2.0 * pi * vti * vti), 3.0)) * (exp(-v_sq_m / (2.0 * vti * vti))); // Distribution function (left).
   }
   else {
-    n = (1.0 / pow(sqrt(2.0 * pi * vti * vti), 3.0)) * (exp(-v_sq_p / (2.0 * vti * vti))); // Total number density (right).
+    n = (1.0 / pow(sqrt(2.0 * pi * vti * vti), 3.0)) * (exp(-v_sq_p / (2.0 * vti * vti))); // Distribution function (right).
   }
 
-  // Set total number density.
+  // Set distribution function.
   fout[0] = n;
 }
 

@@ -165,22 +165,22 @@ evalElcDistInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT 
 
   double Lx = app->Lx;
 
-  double n = 0.0;
+  double F0 = 0.0;
   double T = 0.0;
 
   if (fabs(x) < 0.25 * Lx) {
-    n = (n0_l / sqrt(2.0 * pi * Te_l * Te_l)) * (exp(-(vx * vx) / (2.0 * Te_l * Te_l))); // Left electron total number density.
+    F0 = (n0_l / sqrt(2.0 * pi * Te_l * Te_l)) * (exp(-(vx * vx) / (2.0 * Te_l * Te_l))); // Left electron distribution function (F0).
     T = Te_l; // Left electron temperature.
   }
   else {
-    n = (n0_r / sqrt(2.0 * pi * Te_r * Te_r)) * (exp(-(vx * vx) / (2.0 * Te_r * Te_r))); // Right electron total number density.
+    F0 = (n0_r / sqrt(2.0 * pi * Te_r * Te_r)) * (exp(-(vx * vx) / (2.0 * Te_r * Te_r))); // Right electron distribution function (F0).
     T = Te_r; // Right electron temperature.
   }
 
-  double T_sq_n = (T * T) * n; // Electron temperature squared times electron number density.
+  double G = (T * T) * F0; // Electron distribution function (G).
 
   // Set electron distribution function.
-  fout[0] = n; fout[1] = T_sq_n;
+  fout[0] = F0; fout[1] = G;
 }
 
 void
@@ -210,22 +210,22 @@ evalIonDistInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT 
 
   double Lx = app->Lx;
 
-  double n = 0.0;
+  double F0 = 0.0;
   double T = 0.0;
 
   if (fabs(x) < 0.25 * Lx) {
-    n = (n0_l / sqrt(2.0 * pi * Ti_l * Ti_l)) * (exp(-(vx * vx) / (2.0 * Ti_l * Ti_l))); // Left ion total number density.
+    F0 = (n0_l / sqrt(2.0 * pi * Ti_l * Ti_l)) * (exp(-(vx * vx) / (2.0 * Ti_l * Ti_l))); // Left ion distribution function (F0).
     T = Ti_l; // Left ion temperature.
   }
   else {
-    n = (n0_r / sqrt(2.0 * pi * Ti_r * Ti_r)) * (exp(-(vx * vx) / (2.0 * Ti_r * Ti_r))); // Right ion total number density.
+    F0 = (n0_r / sqrt(2.0 * pi * Ti_r * Ti_r)) * (exp(-(vx * vx) / (2.0 * Ti_r * Ti_r))); // Right ion distribution function (F0).
     T = Ti_r; // Right ion temperature.
   }
 
-  double T_sq_n = (T * T) * n; // Ion temperature squared times ion number density.
+  double G = (T * T) * F0; // Ion distribution function (G).
 
   // Set ion distribution function.
-  fout[0] = n; fout[1] = T_sq_n;
+  fout[0] = F0; fout[1] = G;
 }
 
 void

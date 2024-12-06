@@ -109,9 +109,9 @@ evalNeutInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fou
   double alpha = app->alpha;
   double kx = app->kx;
 
-  double n = (1.0 + alpha * cos(kx * x)) * exp(-(v * v) / (2.0 * vt * vt)); // Total number density.
+  double n = (1.0 + alpha * cos(kx * x)) * exp(-(v * v) / (2.0 * vt * vt)); // Distribution function.
 
-  // Set total number density.
+  // Set distribution function.
   fout[0] = n;
 }
 

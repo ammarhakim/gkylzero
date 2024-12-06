@@ -74,9 +74,9 @@ vlasovApp = Vlasov.App.new {
 
           local n = 0.0
           if math.abs(vx) < 1.0 then
-            n = 0.5 * n0 -- Total number density (low velocity).
+            n = 0.5 * n0 -- Distribution function (low velocity).
           else
-            n = 0.0 -- Total number density (high velocity).
+            n = 0.0 -- Distribution function (high velocity).
           end
 
           return n
@@ -121,7 +121,7 @@ vlasovApp = Vlasov.App.new {
           local vb_sq = (vx - ub) * (vx - ub)
           
           local n = (n0 / math.sqrt(2.0 * pi * vt * vt)) * math.exp(-v_sq / (2.0 * vt * vt)) + (n0 / math.sqrt(2.0 * pi * vtb * vtb)) *
-            math.exp(-vb_sq / (2.0 * vtb * vtb)) * (ab * ab) / (vb_sq + (sb * sb)) -- Total number density.
+            math.exp(-vb_sq / (2.0 * vtb * vtb)) * (ab * ab) / (vb_sq + (sb * sb)) -- Distribution function.
 
           return n
         end

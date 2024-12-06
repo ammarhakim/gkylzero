@@ -83,20 +83,20 @@ pkpmApp = PKPM.App.new {
     initDist = function (t, xn)
       local x, vx = xn[1], xn[2]
 
-      local n = 0.0
+      local F0 = 0.0
       local T = 0.0
     
       if math.abs(x) < 0.25 * Lx then
-        n = (n0_l / math.sqrt(2.0 * pi * Te_l * Te_l)) * (math.exp(-(vx * vx) / (2.0 * Te_l * Te_l))) -- Left electron total number density.
+        F0 = (n0_l / math.sqrt(2.0 * pi * Te_l * Te_l)) * (math.exp(-(vx * vx) / (2.0 * Te_l * Te_l))) -- Left electron distribution function (F0).
         T = Te_l -- Left electron temperature.
       else
-        n = (n0_r / math.sqrt(2.0 * pi * Te_r * Te_r)) * (math.exp(-(vx * vx) / (2.0 * Te_r * Te_r))) -- Right electron total number density.
+        F0 = (n0_r / math.sqrt(2.0 * pi * Te_r * Te_r)) * (math.exp(-(vx * vx) / (2.0 * Te_r * Te_r))) -- Right electron distribution function (F0).
         T = Te_r -- Right electron temperature.
       end
     
-      local T_sq_n = (T * T) * n -- Electron temperature squared times electron number density.
+      local G = (T * T) * F0 -- Electron distribution function (G).
       
-      return n, T_sq_n
+      return F0, G
     end,
 
     -- Initial conditions (fluid).
@@ -133,20 +133,20 @@ pkpmApp = PKPM.App.new {
     initDist = function (t, xn)
       local x, vx = xn[1], xn[2]
 
-      local n = 0.0
+      local F0 = 0.0
       local T = 0.0
     
       if math.abs(x) < 0.25 * Lx then
-        n = (n0_l / math.sqrt(2.0 * pi * Ti_l * Ti_l)) * (math.exp(-(vx * vx) / (2.0 * Ti_l * Ti_l))) -- Left ion total number density.
+        F0 = (n0_l / math.sqrt(2.0 * pi * Ti_l * Ti_l)) * (math.exp(-(vx * vx) / (2.0 * Ti_l * Ti_l))) -- Left ion distribution function (F0).
         T = Ti_l -- Left ion temperature.
       else
-        n = (n0_r / math.sqrt(2.0 * pi * Ti_r * Ti_r)) * (math.exp(-(vx * vx) / (2.0 * Ti_r * Ti_r))) -- Right ion total number density.
+        F0 = (n0_r / math.sqrt(2.0 * pi * Ti_r * Ti_r)) * (math.exp(-(vx * vx) / (2.0 * Ti_r * Ti_r))) -- Right ion distribution function (F0).
         T = Ti_r -- Right ion temperature.
       end
     
-      local T_sq_n = (T * T) * n -- Ion temperature squared times ion number density.
+      local G = (T * T) * F0 -- Ion distribution function (G).
       
-      return n, T_sq_n
+      return F0, G
     end,
 
     -- Initial conditions (fluid).

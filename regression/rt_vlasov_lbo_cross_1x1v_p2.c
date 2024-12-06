@@ -145,9 +145,9 @@ evalNeut1Init(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fo
 
   double v_sq = (vx - ux0_neut1) * (vx - ux0_neut1);
 
-  double n = (n0_neut1 / sqrt(2.0 * pi * vt_neut1 * vt_neut1)) * exp(-v_sq / (2.0 * vt_neut1 * vt_neut1)); // Total number density.
+  double n = (n0_neut1 / sqrt(2.0 * pi * vt_neut1 * vt_neut1)) * exp(-v_sq / (2.0 * vt_neut1 * vt_neut1)); // Distribution function.
 
-  // Set total number density.
+  // Set distribution function.
   fout[0] = n;
 }
 
@@ -165,9 +165,9 @@ evalNeut2Init(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fo
 
   double v_sq = (vx - ux0_neut2) * (vx - ux0_neut2);
 
-  double n = (n0_neut2 / sqrt(2.0 * pi * vt_neut2 * vt_neut2)) * exp(-v_sq / (2.0 * vt_neut2 * vt_neut2)); // Total number density.
+  double n = (n0_neut2 / sqrt(2.0 * pi * vt_neut2 * vt_neut2)) * exp(-v_sq / (2.0 * vt_neut2 * vt_neut2)); // Distribution function.
 
-  // Set total number density.
+  // Set distribution function.
   fout[0] = n;
 }
 

@@ -76,7 +76,7 @@ vlasovApp = Vlasov.App.new {
 
           local v_sq = (vx * vx) + (vy * vy) + (vz * vz)
           local n = (1.0 + alpha * math.cos(k0 * x)) *
-            (1.0 / math.pow(math.sqrt(2.0 * pi * vt * vt), 3.0)) * (math.exp(-v_sq / (2.0 * vt * vt))) -- Total number density.
+            (1.0 / math.pow(math.sqrt(2.0 * pi * vt * vt), 3.0)) * (math.exp(-v_sq / (2.0 * vt * vt))) -- Distribution function.
 
           return n
         end

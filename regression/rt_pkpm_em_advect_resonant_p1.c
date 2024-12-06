@@ -115,11 +115,11 @@ evalElcDistInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT 
   double pi = app->pi;
   double vt = app->vt;
 
-  double n = (1.0 / sqrt(2.0 * pi * vt * vt)) * (exp(-(vx * vx) / (2.0 * vt * vt))); // Total number density.
-  double T_sq_n = (vt * vt) * n; // Temperature squared times number density.
+  double F0 = (1.0 / sqrt(2.0 * pi * vt * vt)) * (exp(-(vx * vx) / (2.0 * vt * vt))); // Distribution function (F0).
+  double G = (vt * vt) * F0; // Distribution function (G).
 
   // Set distribution function.
-  fout[0] = n; fout[1] = T_sq_n;
+  fout[0] = F0; fout[1] = G;
 }
 
 void

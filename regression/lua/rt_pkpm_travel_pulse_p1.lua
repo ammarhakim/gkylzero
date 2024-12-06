@@ -72,10 +72,10 @@ pkpmApp = PKPM.App.new {
       local n_perturb = n0 + (alpha * math.sin(pi * x))
       local T0 = math.sqrt(pr0 / n_perturb)
     
-      local n = (n_perturb / math.sqrt(2.0 * pi * T0 * T0)) * (math.exp(-(vx * vx) / (2.0 * T0 * T0))) -- Total number density.
-      local T_sq_n = (T0 * T0) * n -- Temperature squared times number density.
+      local F0 = (n_perturb / math.sqrt(2.0 * pi * T0 * T0)) * (math.exp(-(vx * vx) / (2.0 * T0 * T0))) -- Distribution function (F0).
+      local G = (T0 * T0) * F0 -- Distribution function (G).
       
-      return n, T_sq_n
+      return F0, G
     end,
 
     -- Initial conditions (fluid).

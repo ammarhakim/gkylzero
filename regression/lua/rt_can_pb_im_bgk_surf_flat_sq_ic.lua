@@ -100,9 +100,9 @@ vlasovApp = Vlasov.App.new {
 
           local n = 0.0
           if (math.abs(vx) < 1.0) and (math.abs(vy) < 1.0) then
-            n = n0 -- Total number density (low velocity).
+            n = n0 -- Distribution function (low velocity).
           else
-            n = 0.0 -- Total number density (high velocity).
+            n = 0.0 -- Distribution function (high velocity).
           end
 
           return metric_det * n

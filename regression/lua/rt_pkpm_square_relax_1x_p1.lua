@@ -65,20 +65,20 @@ pkpmApp = PKPM.App.new {
     initDist = function (t, xn)
       local vx = xn[2]
 
-      local n = 0.0
+      local F0 = 0.0
       local T = 0.0
     
       if math.abs(vx) < 1.0 then
-        n = 0.5 * n0 -- Total number density (low velocity).
+        F0 = 0.5 * n0 -- Distribution function (F0, low velocity).
         T = 0.5 * T0 -- Total temperature (low velocity).
       else
-        n = 0.0 -- Total number density (high velocity).
+        F0 = 0.0 -- Distribution function (F0, high velocity).
         T = 0.0 -- Total temperature (high velocity).
       end
     
-      local T_sq_n = (T0 * T0) * n -- Temperature squared times number density.
+      local G = (T0 * T0) * F0 -- Distribution function (G).
       
-      return n, T_sq_n
+      return F0, G
     end,
 
     -- Initial conditions (fluid).

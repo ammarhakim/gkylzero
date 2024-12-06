@@ -98,9 +98,9 @@ evalElcInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout
 
   double pi = app->pi;
 
-  double n = (1.0 / sqrt(2.0 * pi)) * (exp(-(v * v) / 2.0));  // Total number density.
+  double n = (1.0 / sqrt(2.0 * pi)) * (exp(-(v * v) / 2.0));  // Distribution function.
 
-  // Set total number density.
+  // Set distribution function.
   fout[0] = n;
 }
 

@@ -79,10 +79,10 @@ pkpmApp = PKPM.App.new {
     initDist = function (t, xn)
       local vx = xn[2]
 
-      local n = (n0 / math.sqrt(2.0 * pi * vte * vte)) * (math.exp(-(vx * vx) / (2.0 * vte * vte))) -- Electron total number density.
-      local T_sq_n = (vte * vte) * n -- Electron temperature squared times electron number density.
+      local F0 = (n0 / math.sqrt(2.0 * pi * vte * vte)) * (math.exp(-(vx * vx) / (2.0 * vte * vte))) -- Electron distribution function (F0).
+      local G = (vte * vte) * F0 -- Electron distribution function (G).
       
-      return n, T_sq_n
+      return F0, G
     end,
 
     -- Initial conditions (fluid).
@@ -122,10 +122,10 @@ pkpmApp = PKPM.App.new {
     initDist = function (t, xn)
       local vx = xn[2]
 
-      local n = (n0 / math.sqrt(2.0 * pi * vti * vti)) * (math.exp(-(vx * vx) / (2.0 * vti * vti))) -- Ion total number density.
-      local T_sq_n = (vti * vti) * n -- Ion temperature squared times ion number density.
+      local F0 = (n0 / math.sqrt(2.0 * pi * vti * vti)) * (math.exp(-(vx * vx) / (2.0 * vti * vti))) -- Ion distribution function (F0).
+      local G = (vti * vti) * F0 -- Ion distribution function (G).
       
-      return n, T_sq_n
+      return F0, G
     end,
 
     -- Initial conditions (fluid).

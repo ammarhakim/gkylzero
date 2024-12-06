@@ -132,11 +132,11 @@ evalDistInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fou
   double n_perturb = n0 + (alpha * sin(pi * x));
   double T0 = sqrt(pr0 / n_perturb);
 
-  double n = (n_perturb / sqrt(2.0 * pi * T0 * T0)) * (exp(-(vx * vx) / (2.0 * T0 * T0))); // Total number density.
-  double T_sq_n = (T0 * T0) * n; // Temperature squared times number density.
+  double F0 = (n_perturb / sqrt(2.0 * pi * T0 * T0)) * (exp(-(vx * vx) / (2.0 * T0 * T0))); // Distribution function (F0).
+  double G = (T0 * T0) * F0; // Distribution function (G).
 
   // Set distribution function.
-  fout[0] = n; fout[1] = T_sq_n;
+  fout[0] = F0; fout[1] = G;
 }
 
 void

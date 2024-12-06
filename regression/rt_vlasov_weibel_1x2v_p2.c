@@ -162,9 +162,9 @@ evalElcInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout
 
   double maxwellian1 = (n_elc1 / (2.0 * pi * vt_elc1 * vt_elc1)) * exp(-v_sq_elc1 / (2.0 * vt_elc1 * vt_elc1));
   double maxwellian2 = (n_elc2 / (2.0 * pi * vt_elc2 * vt_elc2)) * exp(-v_sq_elc2 / (2.0 * vt_elc2 * vt_elc2));
-  double n = maxwellian1 + maxwellian2; // Total number density.
+  double n = maxwellian1 + maxwellian2; // Distribution function.
   
-  // Set total number density.
+  // Set distribution function.
   fout[0] = n;
 }
 

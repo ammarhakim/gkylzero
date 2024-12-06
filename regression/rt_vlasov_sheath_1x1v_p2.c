@@ -140,9 +140,9 @@ evalElcInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout
   double vte = app->vte;
   double n0 = app->n0;
 
-  double n = n0 / sqrt(2.0 * pi * (vte * vte)) * (exp(-(vx * vx) / (2.0 * (vte * vte)))); // Electron total number density.
+  double n = n0 / sqrt(2.0 * pi * (vte * vte)) * (exp(-(vx * vx) / (2.0 * (vte * vte)))); // Electron distribution function.
 
-  // Set electron total number density.
+  // Set electron distribution function.
   fout[0] = n;
 }
 
@@ -159,13 +159,13 @@ evalElcSourceInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRIC
   double n = 0.0;
 
   if (fabs(x) < Ls) {
-    n = 2.0 * (Ls - fabs(x)) / Ls * (1.0 / sqrt(2.0 * pi * (vte * vte)) * (exp(-(vx * vx) / (2.0 * (vte * vte))))); // Electron source total number density (left).
+    n = 2.0 * (Ls - fabs(x)) / Ls * (1.0 / sqrt(2.0 * pi * (vte * vte)) * (exp(-(vx * vx) / (2.0 * (vte * vte))))); // Electron source distribution function (left).
   }
   else {
-    n = 0.0; // Electron source total number density (right).
+    n = 0.0; // Electron source distribution function (right).
   }
 
-  // Set electron source total number density.
+  // Set electron source distribution function.
   fout[0] = n;
 }
 
@@ -179,10 +179,10 @@ evalIonInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout
   double vti = app->vti;
   double n0 = app->n0;
 
-  double n = n0 / sqrt(2.0 * pi * (vti * vti)) * (exp(-(vx * vx) / (2.0 * (vti * vti)))); // Ion total number density.
+  double n = n0 / sqrt(2.0 * pi * (vti * vti)) * (exp(-(vx * vx) / (2.0 * (vti * vti)))); // Ion distribution function.
 
 
-  // Set ion total number density.
+  // Set ion distribution function.
   fout[0] = n;
 }
 
@@ -199,13 +199,13 @@ evalIonSourceInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRIC
   double n = 0.0;
 
   if (fabs(x) < Ls) {
-    n = 2.0 * (Ls - fabs(x)) / Ls * (1.0 / sqrt(2.0 * pi * (vti * vti)) * (exp(-(vx * vx) / (2.0 * (vti * vti))))); // Ion source total number density (left).
+    n = 2.0 * (Ls - fabs(x)) / Ls * (1.0 / sqrt(2.0 * pi * (vti * vti)) * (exp(-(vx * vx) / (2.0 * (vti * vti))))); // Ion source distribution function (left).
   }
   else {
-    n = 0.0; // Ion source total number density (right).
+    n = 0.0; // Ion source distribution function (right).
   }
 
-  // Set ion source total number density.
+  // Set ion source distribution function.
   fout[0] = n;
 }
 

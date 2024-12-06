@@ -119,9 +119,9 @@ evalElcInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout
   double k0 = app->k0;
 
   double n = (1.0 + alpha * cos(k0 * x)) *
-    (1.0 / sqrt(2.0 * pi * vt * vt)) * (exp(-(vx * vx) / (2.0 * vt * vt))); // Total number density.
+    (1.0 / sqrt(2.0 * pi * vt * vt)) * (exp(-(vx * vx) / (2.0 * vt * vt))); // Distribution function.
 
-  // Set total number density.
+  // Set distribution function.
   fout[0] = n;
 }
 

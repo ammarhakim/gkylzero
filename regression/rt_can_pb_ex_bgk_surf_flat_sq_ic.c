@@ -114,13 +114,13 @@ evalNeutInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fou
   double n = 0.0;
 
   if ((fabs(vx) < 1.0) && (fabs(vy) < 1.0)) {
-    n = n0; // Total number density (low velocity).
+    n = n0; // Distribution function (low velocity).
   }
   else {
-    n = 0.0; // Total number density (high velocity).
+    n = 0.0; // Distribution function (high velocity).
   }
 
-  // Set total number density.
+  // Set distribution function.
   fout[0] = metric_det * n;
 }
 

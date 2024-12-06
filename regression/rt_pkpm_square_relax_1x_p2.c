@@ -116,22 +116,22 @@ evalDistInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fou
   double n0 = app->n0;
   double T0 = app->T0;
 
-  double n = 0.0;
+  double F0 = 0.0;
   double T = 0.0;
 
   if (fabs(vx) < 1.0) {
-    n = 0.5 * n0; // Total number density (low velocity).
+    F0 = 0.5 * n0; // Distribution function (F0, low velocity).
     T = 0.5 * T0; // Total temperature (low velocity).
   }
   else {
-    n = 0.0; // Total number density (high velocity).
+    F0 = 0.0; // Distribution function (F0, high velocity).
     T = 0.0; // Total temperature (high velocity).
   }
 
-  double T_sq_n = (T0 * T0) * n; // Temperature squared times number density.
+  double G = (T0 * T0) * F0; // Distribution function (G).
 
   // Set distribution function.
-  fout[0] = n; fout[1] = T_sq_n;
+  fout[0] = F0; fout[1] = G;
 }
 
 void

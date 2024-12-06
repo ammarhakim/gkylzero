@@ -80,7 +80,7 @@ vlasovApp = Vlasov.App.new {
           local vx = xn[2]
 
           local v_sq = (vx - ux0_neut1) * (vx - ux0_neut1)
-          local n = (n0_neut1 / math.sqrt(2.0 * pi * vt_neut1 * vt_neut1)) * math.exp(-v_sq / (2.0 * vt_neut1 * vt_neut1)) -- Total number density.
+          local n = (n0_neut1 / math.sqrt(2.0 * pi * vt_neut1 * vt_neut1)) * math.exp(-v_sq / (2.0 * vt_neut1 * vt_neut1)) -- Distribution function.
 
           return n
         end
@@ -122,7 +122,7 @@ vlasovApp = Vlasov.App.new {
           local vx = xn[2]
 
           local v_sq = (vx - ux0_neut2) * (vx - ux0_neut2)
-          local n = (n0_neut2 / math.sqrt(2.0 * pi * vt_neut2 * vt_neut2)) * math.exp(-v_sq / (2.0 * vt_neut2 * vt_neut2)) -- Total number density.
+          local n = (n0_neut2 / math.sqrt(2.0 * pi * vt_neut2 * vt_neut2)) * math.exp(-v_sq / (2.0 * vt_neut2 * vt_neut2)) -- Distribution function.
 
           return n
         end

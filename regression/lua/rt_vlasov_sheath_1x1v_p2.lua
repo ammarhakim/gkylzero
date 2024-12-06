@@ -79,7 +79,7 @@ vlasovApp = Vlasov.App.new {
         init = function (t, xn)
           local vx = xn[2]
 
-          local n = n0 / math.sqrt(2.0 * pi * (vte * vte)) * (math.exp(-(vx * vx) / (2.0 * (vte * vte)))) -- Electron total number density.
+          local n = n0 / math.sqrt(2.0 * pi * (vte * vte)) * (math.exp(-(vx * vx) / (2.0 * (vte * vte)))) -- Electron distribution function.
 
           return n
         end
@@ -102,9 +102,9 @@ vlasovApp = Vlasov.App.new {
             local n = 0.0
 
             if math.abs(x) < Ls then
-              n = 2.0 * (Ls - fabs(x)) / Ls * (1.0 / math.sqrt(2.0 * pi * (vte * vte)) * (math.exp(-(vx * vx) / (2.0 * (vte * vte))))) -- Electron source total number density (left).
+              n = 2.0 * (Ls - fabs(x)) / Ls * (1.0 / math.sqrt(2.0 * pi * (vte * vte)) * (math.exp(-(vx * vx) / (2.0 * (vte * vte))))) -- Electron source distribution function (left).
             else
-              n = 0.0 -- Electron source total number density (right).
+              n = 0.0 -- Electron source distribution function (right).
             end
 
             return n
@@ -145,7 +145,7 @@ vlasovApp = Vlasov.App.new {
         init = function (t, xn)
           local vx = xn[2]
 
-          local n = n0 / math.sqrt(2.0 * pi * (vti * vti)) * (math.exp(-(vx * vx) / (2.0 * (vti * vti)))) -- Ion total number density.
+          local n = n0 / math.sqrt(2.0 * pi * (vti * vti)) * (math.exp(-(vx * vx) / (2.0 * (vti * vti)))) -- Ion distribution function.
 
           return n
         end
@@ -168,9 +168,9 @@ vlasovApp = Vlasov.App.new {
             local n = 0.0
 
             if math.abs(x) < Ls then
-              n = 2.0 * (Ls - fabs(x)) / Ls * (1.0 / math.sqrt(2.0 * pi * (vti * vti)) * (math.exp(-(vx * vx) / (2.0 * (vti * vti))))) -- Ion source total number density (left).
+              n = 2.0 * (Ls - fabs(x)) / Ls * (1.0 / math.sqrt(2.0 * pi * (vti * vti)) * (math.exp(-(vx * vx) / (2.0 * (vti * vti))))) -- Ion source distribution function (left).
             else
-              n = 0.0 -- Ion source total number density (right).
+              n = 0.0 -- Ion source distribution function (right).
             end
 
             return n
