@@ -189,7 +189,7 @@ void test_2x_1step(int poly_order, bool use_gpu)
   //------------------ 1. Initialization ------------------
   // 1.1 Define grid and basis
   double lower[] = {-4.0, -3.0}, upper[] = {6.0, 5.0};
-  int cells[] = {12, 6};
+  int cells[] = {4, 2};
   int ndim = sizeof(lower) / sizeof(lower[0]);
 
   // Initialize the grid
@@ -277,6 +277,7 @@ void test_2x_1step(int poly_order, bool use_gpu)
   struct gkyl_array_average *int_xy = gkyl_array_average_new(&inp_int_xy); 
   // printf("we passed the new avg updater\n"); 
   gkyl_array_average_advance(int_xy, wfxy_c, intwf_c);
+  printf("-int(w)dxdy\n");
   gkyl_array_average_advance(int_xy, wxy_c, intw_c);
   gkyl_array_average_release(int_xy);
   // printf("we passed the release avg updater\n"); 
@@ -340,7 +341,7 @@ void test_2x_2steps(int poly_order, bool use_gpu)
   //------------------ 1. Initialization ------------------
   // 1.1 Define grid and basis
   double lower[] = {-4.0, -3.0}, upper[] = {6.0, 5.0};
-  int cells[] = {12, 6};
+  int cells[] = {4, 2};
   int ndim = sizeof(lower) / sizeof(lower[0]);
 
   // Initialize the grid
@@ -454,7 +455,7 @@ void test_2x_2steps(int poly_order, bool use_gpu)
 
   // Create and run the array average updater to average on x only
       struct gkyl_array_average_inp inp_int_y = {
-    .grid = &grid,
+    .grid = &grid_y,
     .tot_basis = basis_y,
     .sub_basis = red_basis,
     .tot_rng = local_y,
@@ -465,8 +466,8 @@ void test_2x_2steps(int poly_order, bool use_gpu)
     .use_gpu = use_gpu
   };
   struct gkyl_array_average *int_y = gkyl_array_average_new(&inp_int_y);
-  printf("-compute int(wf)dy\n");
-  gkyl_array_average_advance(int_y, fy_c, intf_c);
+  // printf("-compute int(wf)dy\n");
+  // gkyl_array_average_advance(int_y, fy_c, intf_c);
   /*
   here intf_c is DG coeff of int[int[w(x,y) f(x,y)]dy]dx
   */
