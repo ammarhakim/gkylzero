@@ -8,26 +8,23 @@
 #include <assert.h>
 
 struct gkyl_array_average*
-gkyl_array_average_new(const struct gkyl_rect_grid *grid, 
-  const struct gkyl_basis tot_basis, const struct gkyl_basis sub_basis, 
-  const struct gkyl_range tot_rng, const struct gkyl_range sub_rng, 
-  struct gkyl_array *weights, enum gkyl_array_average_op op, 
-  bool use_gpu)
+gkyl_array_average_new(const struct gkyl_array_average_inp *inp)
 {
   // works for p = 1 only
-  assert(tot_basis.poly_order == 1); 
+  assert(inp->tot_basis.poly_order == 1); 
 
   // Allocate space for new updater.
   struct gkyl_array_average *up = gkyl_malloc(sizeof(struct gkyl_array_average));
 
-  up->use_gpu = use_gpu;
-  up->ndim = tot_basis.ndim;
-  up->tot_basis = tot_basis;
-  up->sub_basis = sub_basis;
+  up->use_gpu = inp->use_gpu;
+  up->ndim = inp->tot_basis.ndim;
+  up->tot_basis = inp->tot_basis;
+  up->sub_basis = inp->sub_basis;
   // copy the total and sub ranges on the updater 
   // (will be used in advance and in the declaration of the integrated weighted array)
-  gkyl_sub_range_init(&up->tot_rng, &tot_rng, tot_rng.lower, tot_rng.upper);
-  gkyl_sub_range_init(&up->sub_rng, &sub_rng, sub_rng.lower, sub_rng.upper);
+  gkyl_sub_range_init(&up->tot_rng, &inp->tot_rng, inp->tot_rng.lower, inp->tot_rng.upper);
+  gkyl_sub_range_init(&up->tot_rng_ext, &inp->tot_rng_ext, inp->tot_rng_ext.lower, inp->tot_rng_ext.upper);
+  gkyl_sub_range_init(&up->sub_rng, &inp->sub_rng, inp->sub_rng.lower, inp->sub_rng.upper);
   // here there is two "sub":
   // - one from the gkyl_sub_range_init (but it is actually a full copy)
   // - the other from the sub dimensional output array from the averaging operation
@@ -35,44 +32,44 @@ gkyl_array_average_new(const struct gkyl_rect_grid *grid,
   // Set up the array of all dimensions that are conserved after the average (=0 for removed)
   // according to the operation input variable
   for (unsigned d=0; d < up->ndim; ++d) up->isred_dim[d] = 0;
-  switch (op) {
+  switch (inp->op) {
     case GKYL_ARRAY_AVERAGE_OP: // Full integration
-      assert(tot_basis.ndim >= 1); // Ensure at least 1 dimension exists
+      assert(inp->tot_basis.ndim >= 1); // Ensure at least 1 dimension exists
       for (unsigned d=0; d < up->ndim; ++d){ 
         up->sub_dir[d] = 0;
       }
       break;
     case GKYL_ARRAY_AVERAGE_OP_X: // integration all except x
-      assert(tot_basis.ndim >= 1); // Ensure at least 1 dimension exists
+      assert(inp->tot_basis.ndim >= 1); // Ensure at least 1 dimension exists
       up->isred_dim[0] = 1; // here the first dimension is conserved
       up->sub_dir[0] = 0; // the first dimension in the reduced array is the first dim in the total array
       break;
     case GKYL_ARRAY_AVERAGE_OP_Y: // integration all except y
-      assert(tot_basis.ndim >= 2); // Ensure at least 2 dimensions for Y
+      assert(inp->tot_basis.ndim >= 2); // Ensure at least 2 dimensions for Y
       up->isred_dim[1] = 1;
       up->sub_dir[0] = 1;
       break;
     case GKYL_ARRAY_AVERAGE_OP_Z: // integration all except z
-      assert(tot_basis.ndim >= 3); // Ensure at least 3 dimensions for Z
+      assert(inp->tot_basis.ndim >= 3); // Ensure at least 3 dimensions for Z
       up->isred_dim[2] = 1;
       up->sub_dir[0] = 2;
       break;
     case GKYL_ARRAY_AVERAGE_OP_XY: // integration all except xy
-      assert(tot_basis.ndim >= 3); // Ensure at least 3 dimensions for XY reduction
+      assert(inp->tot_basis.ndim >= 3); // Ensure at least 3 dimensions for XY reduction
       up->isred_dim[0] = 1;
       up->isred_dim[1] = 1;
       up->sub_dir[0] = 0;
       up->sub_dir[1] = 1;
       break;
     case GKYL_ARRAY_AVERAGE_OP_XZ: // integration all except xz
-      assert(tot_basis.ndim >= 3); // Ensure at least 3 dimensions for XZ
+      assert(inp->tot_basis.ndim >= 3); // Ensure at least 3 dimensions for XZ
       up->isred_dim[0] = 1;
       up->isred_dim[2] = 1;
       up->sub_dir[0] = 0;
       up->sub_dir[1] = 2;
       break;
     case GKYL_ARRAY_AVERAGE_OP_YZ: // integration all except yz
-      assert(tot_basis.ndim >= 3); // Ensure at least 3 dimensions for YZ
+      assert(inp->tot_basis.ndim >= 3); // Ensure at least 3 dimensions for YZ
       up->isred_dim[1] = 1;
       up->isred_dim[2] = 1;
       up->sub_dir[0] = 1;
@@ -82,21 +79,24 @@ gkyl_array_average_new(const struct gkyl_rect_grid *grid,
       assert(false && "Invalid operation in switch(op)");
       break;
   }
+  // set the removed dimension flag array
+  for (unsigned d=0; d < up->ndim; ++d) up->rem_dim[d] = 1 - up->isred_dim[d];
 
   
   // Compute the cell sub-dimensional volume
   up->subvol = 1.0;
   for (unsigned d=0; d < up->ndim; ++d){
-    if (up->isred_dim[d] == 0) up->subvol *= 0.5*grid->dx[d];
+    if (up->isred_dim[d] == 0) up->subvol *= 0.5*inp->grid->dx[d];
   }
   // printf("subvolume = %g\n",up->subvol);
 
+  up->integrant = gkyl_array_new(GKYL_DOUBLE, inp->tot_basis.num_basis, inp->tot_rng_ext.volume);
+
   // Handle a possible weighted average
-  up->isweighted = false;
-  if (weights) {
+  if (inp->weights) {
     up->isweighted = true;
-    up->weights = gkyl_array_new(GKYL_DOUBLE, weights->ncomp, weights->size);
-    gkyl_array_copy_range(up->weights, weights, &up->tot_rng);
+    up->weights = gkyl_array_new(GKYL_DOUBLE, inp->weights->ncomp, inp->weights->size);
+    gkyl_array_copy_range(up->weights, inp->weights, &up->tot_rng);
     // I use gkyl_array_copy before and it was not copying on the total range but one less, why?
 
     // CHECK THE WEIGHT
@@ -117,7 +117,18 @@ gkyl_array_average_new(const struct gkyl_rect_grid *grid,
     struct gkyl_array_average *int_w;
     // declare a weightless average 
     // (this will simply integrate, not recursive call because here we do not put weights)
-    int_w = gkyl_array_average_new(grid, up->tot_basis, up->sub_basis, up->tot_rng, up->sub_rng, NULL, op, up->use_gpu);
+    struct gkyl_array_average_inp inp_integral = {
+    .grid = inp->grid,
+    .tot_basis = inp->tot_basis,
+    .sub_basis = inp->sub_basis,
+    .tot_rng = inp->tot_rng,
+    .tot_rng_ext = inp->tot_rng_ext,
+    .sub_rng = inp->sub_rng,
+    .weights = NULL, // No weights -> integral only
+    .op = inp->op,
+    .use_gpu = inp->use_gpu
+    };
+    int_w = gkyl_array_average_new(&inp_integral);
     // run the updater to integrate the weights
     // printf("Integrate weights\n");
     gkyl_array_average_advance(int_w, up->weights, up->integral_weights);
@@ -130,21 +141,30 @@ gkyl_array_average_new(const struct gkyl_rect_grid *grid,
     // Allocate memory to prepare the weak division at the end of the advance routine
     up->div_mem = gkyl_dg_bin_op_mem_new(up->sub_rng.volume, up->sub_basis.num_basis);
   } 
+  else{
+    up->weights = NULL;
+    up->integral_weights = NULL;
+    up->div_mem = NULL;
+    up->isweighted = false;
+  }
 
   // Choose the kernel that performs the desired operation within the integral.
-  gkyl_array_average_choose_kernel(up, &up->tot_basis, op);
+  gkyl_array_average_choose_kernel(up, &up->tot_basis, inp->op);
 
   #ifdef GKYL_HAVE_CUDA
   if (use_gpu)
-    return gkyl_array_average_cu_dev_new(up, grid, up->tot_basis, op);
+    return gkyl_array_average_cu_dev_new(up, grid, up->tot_basis, inp->op);
   #endif
 
   return up;
 }
 
 void gkyl_array_average_advance(gkyl_array_average *up, 
-  struct gkyl_array * fin, struct gkyl_array *avgout)
+  const struct gkyl_array * fin, struct gkyl_array *avgout)
 {
+// The routine does not work for vector fields
+  // assert(fin->ncomp > 1);
+
 #ifdef GKYL_HAVE_CUDA
   if (up->use_gpu) {
     gkyl_array_average_advance_cu(up, tot_rng, sub_rng, fin, out);
@@ -152,9 +172,12 @@ void gkyl_array_average_advance(gkyl_array_average *up,
   }
 #endif
 
+  // Copy the input array to the integrant local array
+  gkyl_array_copy_range(up->integrant, fin, &up->tot_rng_ext);
+
   // If we provided some weights, we integrate a weighted fin
   if(up->isweighted)
-    gkyl_dg_mul_op_range(up->tot_basis, 0, fin, 0, fin, 0, up->weights, &up->tot_rng);
+    gkyl_dg_mul_op_range(up->tot_basis, 0, up->integrant, 0, up->integrant, 0, up->weights, &up->tot_rng);
 
 
   gkyl_array_clear_range(avgout, 0.0, &up->sub_rng);
@@ -167,18 +190,18 @@ void gkyl_array_average_advance(gkyl_array_average *up,
     while (gkyl_range_iter_next(&sub_iter)) {
       long sub_lidx = gkyl_range_idx(&up->sub_rng, sub_iter.idx);
 
-      gkyl_range_deflate(&cmp_rng, &up->tot_rng, up->isred_dim, sub_iter.idx);
+      gkyl_range_deflate(&cmp_rng, &up->tot_rng, up->rem_dim, sub_iter.idx);
       // printf("sub iter loop\n");
       gkyl_range_iter_no_split_init(&cmp_iter, &cmp_rng);
 
       while (gkyl_range_iter_next(&cmp_iter)) {
         // printf("\tcmp iter loop\n");
         long cmp_lidx = gkyl_range_idx(&cmp_rng, cmp_iter.idx);
-        const double *fin_i = gkyl_array_cfetch(fin, cmp_lidx);
+        const double *fin_i = gkyl_array_cfetch(up->integrant, cmp_lidx);
         double *avg_i = gkyl_array_fetch(avgout, sub_lidx);
 
         up->kernel(up->subvol, NULL, fin_i, avg_i);
-        // printf("(subdim loop) fin_i[%2.0ld][0] = %6.4g, fin_i[%2.0ld][1] = %4.2g, avg_i[0] = %6.4g\n",cmp_lidx,fin_i[0],cmp_lidx,fin_i[1],avg_i[0]);
+        printf("(subdim loop) fin_i[%2.0ld][0] = %6.4g, fin_i[%2.0ld][1] = %4.2g, avg_i[0] = %6.4g\n",cmp_lidx,fin_i[0],cmp_lidx,fin_i[1],avg_i[0]);
       }
     }
   } 
@@ -190,13 +213,13 @@ void gkyl_array_average_advance(gkyl_array_average *up,
     gkyl_range_iter_init(&tot_iter, &up->tot_rng);
     while (gkyl_range_iter_next(&tot_iter)) {
         long tot_lidx = gkyl_range_idx(&up->tot_rng, tot_iter.idx);
-        const double *fin_i = gkyl_array_cfetch(fin, tot_lidx);
+        const double *fin_i = gkyl_array_cfetch(up->integrant, tot_lidx);
         const double *win_i = gkyl_array_cfetch(up->weights, tot_lidx);
         double *avg_i = gkyl_array_fetch(avgout, 0);
         up->kernel(up->subvol, NULL, fin_i, avg_i);
 
         // To check the integration:
-        // printf("(full loop) fin_i[%2.0ld][0] = %6.4g, fin_i[%2.0ld][1] = %6.4g, avg_i[0] = %6.4g\n",tot_lidx,fin_i[0],tot_lidx,fin_i[1],avg_i[0]);
+        printf("(full loop) fin_i[%2.0ld][0] = %6.4g, fin_i[%2.0ld][1] = %6.4g, avg_i[0] = %6.4g\n",tot_lidx,fin_i[0],tot_lidx,fin_i[1],avg_i[0]);
     }
   }
 
@@ -214,9 +237,37 @@ void gkyl_array_average_release(gkyl_array_average *up)
   if (up->use_gpu)
     gkyl_cu_free(up->on_dev);
 #endif
-  if(up->weights) gkyl_array_release(up->weights);
-  if(up->integral_weights) gkyl_array_release(up->integral_weights);
-  if(up->div_mem) gkyl_dg_bin_op_mem_release(up->div_mem);
+  if(up->integrant) {
+    // printf("free integrant\n");
+    gkyl_array_release(up->integrant);
+  }
+  else {
+    // printf("no integrant allocated\n");
+  }
+
+  if(up->weights) {
+    // printf("free weights\n");
+    gkyl_array_release(up->weights);
+  }
+  else {
+    // printf("no weights allocated\n");
+  }
+
+  if(up->integral_weights) {
+    // printf("free integral_weights\n");
+    gkyl_array_release(up->integral_weights);
+  }
+  else {
+    // printf("no integral_weights allocated\n");
+  }
+
+  if(up->div_mem) {
+    // printf("free div_mem\n");
+    gkyl_dg_bin_op_mem_release(up->div_mem);
+  }
+  else {
+    // printf("no integral_weights allocated\n");
+  }
 
   gkyl_free(up);
 }

@@ -95,8 +95,18 @@ void test_1x(int poly_order, bool use_gpu)
   // Create an array to store the average result
   struct gkyl_array *avgf_c = mkarr(red_basis.num_basis, red_local.volume, use_gpu);
   // Create and run the array average updater
-  struct gkyl_array_average *avg_full = gkyl_array_average_new(
-      &grid, basis, red_basis, local, red_local, wx_c, GKYL_ARRAY_AVERAGE_OP, use_gpu);
+    struct gkyl_array_average_inp inp_avg_full = {
+    .grid = &grid,
+    .tot_basis = basis,
+    .sub_basis = red_basis,
+    .tot_rng = local,
+    .tot_rng_ext = local_ext,
+    .sub_rng = red_local,
+    .weights = wx_c,
+    .op = GKYL_ARRAY_AVERAGE_OP,
+    .use_gpu = use_gpu
+  };
+  struct gkyl_array_average *avg_full = gkyl_array_average_new(&inp_avg_full);
 
   /*
     Run the updater to:
@@ -179,7 +189,7 @@ void test_2x_1step(int poly_order, bool use_gpu)
   //------------------ 1. Initialization ------------------
   // 1.1 Define grid and basis
   double lower[] = {-4.0, -3.0}, upper[] = {6.0, 5.0};
-  int cells[] = {8, 6};
+  int cells[] = {12, 6};
   int ndim = sizeof(lower) / sizeof(lower[0]);
 
   // Initialize the grid
@@ -196,26 +206,24 @@ void test_2x_1step(int poly_order, bool use_gpu)
   gkyl_create_grid_ranges(&grid, ghost, &local_ext, &local);
 
   // 1.2 Project the target function
-  // Create a projection updater for the target function
-  gkyl_proj_on_basis *projf = gkyl_proj_on_basis_new(
-      &grid, &basis, poly_order + 1, 1, evalFunc_2x, NULL);
 
   // Create an array to store the projected target function
   struct gkyl_array *fxy_c = mkarr(basis.num_basis, local_ext.volume, use_gpu);
 
-  // Project the target function onto the basis
+  // Create a projection updater for the target function
+  gkyl_proj_on_basis *projf = gkyl_proj_on_basis_new(
+      &grid, &basis, poly_order + 1, 1, evalFunc_2x, NULL);
   gkyl_proj_on_basis_advance(projf, 0.0, &local_ext, fxy_c);
   gkyl_proj_on_basis_release(projf);
 
   // 1.3 Project the weight function
-  // Create a projection updater for the weight function
-  gkyl_proj_on_basis *proj_weight = gkyl_proj_on_basis_new(
-      &grid, &basis, poly_order + 1, 1, evalWeight_2x, NULL);
 
   // Create an array to store the projected weight function
   struct gkyl_array *wxy_c = mkarr(basis.num_basis, local_ext.volume, use_gpu);
 
-  // Project the weight function onto the basis
+  // Create a projection updater for the weight function
+  gkyl_proj_on_basis *proj_weight = gkyl_proj_on_basis_new(
+      &grid, &basis, poly_order + 1, 1, evalWeight_2x, NULL);
   gkyl_proj_on_basis_advance(proj_weight, 0.0, &local_ext, wxy_c);
   gkyl_proj_on_basis_release(proj_weight);
 
@@ -231,34 +239,78 @@ void test_2x_1step(int poly_order, bool use_gpu)
   struct gkyl_array *avgf_c = mkarr(red_basis.num_basis, red_local.volume, use_gpu);
 
   // Create and run the array average updater
-  struct gkyl_array_average *avg_full = gkyl_array_average_new(
-      &grid, basis, red_basis, local, red_local, wxy_c, GKYL_ARRAY_AVERAGE_OP, use_gpu);
+  struct gkyl_array_average_inp inp_avg_xy = {
+    .grid = &grid,
+    .tot_basis = basis,
+    .sub_basis = red_basis,
+    .tot_rng = local,
+    .tot_rng_ext = local_ext,
+    .sub_rng = red_local,
+    .weights = wxy_c,
+    .op = GKYL_ARRAY_AVERAGE_OP,
+    .use_gpu = use_gpu
+  };
+  struct gkyl_array_average *avg_xy = gkyl_array_average_new(&inp_avg_xy);
+  gkyl_array_average_advance(avg_xy, fxy_c, avgf_c);
+  gkyl_array_average_release(avg_xy);
 
-  /*
-    The updater computes:
-    1. Integration of the weight function.
-    2. Weighted integral of the target function.
-    3. Normalization of (2) by (1).
-  */
-  gkyl_array_average_advance(avg_full, fxy_c, avgf_c);
-  gkyl_array_average_release(avg_full);
- 
+  //------------------ 2.1 integral of fw and integral of w then divide ------------------
+  struct gkyl_array *wfxy_c = mkarr(basis.num_basis, local_ext.volume, use_gpu);
+  gkyl_dg_mul_op_range(basis, 0, wfxy_c, 0, fxy_c, 0, wxy_c, &local_ext);
+
+  // Create an array to store the averaged result
+  struct gkyl_array *intwf_c = mkarr(red_basis.num_basis, red_local.volume, use_gpu);
+  struct gkyl_array *intw_c  = mkarr(red_basis.num_basis, red_local.volume, use_gpu);
+
+  // Create and run the array average updater
+  struct gkyl_array_average_inp inp_int_xy = {
+    .grid = &grid,
+    .tot_basis = basis,
+    .sub_basis = red_basis,
+    .tot_rng = local,
+    .tot_rng_ext = local_ext,
+    .sub_rng = red_local,
+    .weights = NULL,
+    .op = GKYL_ARRAY_AVERAGE_OP,
+    .use_gpu = use_gpu
+  };
+  struct gkyl_array_average *int_xy = gkyl_array_average_new(&inp_int_xy); 
+  // printf("we passed the new avg updater\n"); 
+  gkyl_array_average_advance(int_xy, wfxy_c, intwf_c);
+  gkyl_array_average_advance(int_xy, wxy_c, intw_c);
+  gkyl_array_average_release(int_xy);
+  // printf("we passed the release avg updater\n"); 
+
   //------------- 3. Fetch and transfer results ----------------
   // Retrieve the computed average from the device (if applicable)
-  const double *avg_c0 = gkyl_array_cfetch(avgf_c, 0);
-  double *avg_c0_ho = gkyl_malloc(sizeof(double));
-  if (use_gpu)
-    gkyl_cu_memcpy(avg_c0_ho, avg_c0, sizeof(double), GKYL_CU_MEMCPY_D2H);
-  else
-    memcpy(avg_c0_ho, avg_c0, sizeof(double));
+  const double *avgf_c0 = gkyl_array_cfetch(avgf_c, 0);
+  const double *intwf_c0 = gkyl_array_cfetch(intwf_c, 0);
+  const double *intw_c0 = gkyl_array_cfetch(intw_c, 0);
+  double *avgf_c0_ho = gkyl_malloc(sizeof(double));
+  double *intwf_c0_ho = gkyl_malloc(sizeof(double));
+  double *intw_c0_ho = gkyl_malloc(sizeof(double));
+  if (use_gpu){
+    gkyl_cu_memcpy(avgf_c0_ho, avgf_c0, sizeof(double), GKYL_CU_MEMCPY_D2H);
+    gkyl_cu_memcpy(intwf_c0_ho, intwf_c0, sizeof(double), GKYL_CU_MEMCPY_D2H);
+    gkyl_cu_memcpy(intw_c0_ho, intw_c0, sizeof(double), GKYL_CU_MEMCPY_D2H);
+  } else{
+    memcpy(avgf_c0_ho, avgf_c0, sizeof(double));
+    memcpy(intwf_c0_ho, intwf_c0, sizeof(double));
+    memcpy(intw_c0_ho, intw_c0, sizeof(double));
+  }
 
   //------------- 4. Check results ----------------
   /*
     Compare the computed result with the reference solution obtained from Python.
     Precision depends on the number of cells used in the grid.
   */
-  double result = avg_c0_ho[0]*sqrt(2)/2; // get cell average
+  double integral_wf = intwf_c0_ho[0]*sqrt(2)/2;
+  double integral_w = intw_c0_ho[0]*sqrt(2)/2;
+  double result = avgf_c0_ho[0]*sqrt(2)/2;
   printf("Checking one-step average (XY to scalar)\n");
+  printf("\tIntegral of wf \t= %g\n", integral_wf);
+  printf("\tIntegral of w \t= %g\n", integral_w);
+  printf("\tintwf/intw = %g\n", integral_wf/integral_w);
   printf("\tResult: %g, solution: %g\n",result,solution_2x());
   if (cells[0] < 8) {
     TEST_CHECK(gkyl_compare(result, solution_2x(), 1e-2));
@@ -275,6 +327,9 @@ void test_2x_1step(int poly_order, bool use_gpu)
   gkyl_array_release(avgf_c);
   gkyl_array_release(fxy_c);
   gkyl_array_release(wxy_c);
+  gkyl_array_release(wfxy_c);
+  gkyl_array_release(intwf_c);
+  gkyl_array_release(intw_c);
 }
 
 
@@ -285,7 +340,7 @@ void test_2x_2steps(int poly_order, bool use_gpu)
   //------------------ 1. Initialization ------------------
   // 1.1 Define grid and basis
   double lower[] = {-4.0, -3.0}, upper[] = {6.0, 5.0};
-  int cells[] = {12, 8};
+  int cells[] = {12, 6};
   int ndim = sizeof(lower) / sizeof(lower[0]);
 
   // Initialize the grid
@@ -308,7 +363,6 @@ void test_2x_2steps(int poly_order, bool use_gpu)
 
   // Create an array to store the projected target function
   struct gkyl_array *fxy_c = mkarr(basis.num_basis, local_ext.volume, use_gpu);
-
   // Project the target function onto the basis
   gkyl_proj_on_basis_advance(projf, 0.0, &local_ext, fxy_c);
   gkyl_proj_on_basis_release(projf);
@@ -320,7 +374,6 @@ void test_2x_2steps(int poly_order, bool use_gpu)
 
   // Create an array to store the projected weight function
   struct gkyl_array *wxy_c = mkarr(basis.num_basis, local_ext.volume, use_gpu);
-
   // Project the weight function onto the basis
   gkyl_proj_on_basis_advance(proj_weight, 0.0, &local_ext, wxy_c);
   gkyl_proj_on_basis_release(proj_weight);
@@ -328,18 +381,30 @@ void test_2x_2steps(int poly_order, bool use_gpu)
   //------------------ 2. Two steps average ------------------
   //  5.1 Average over x only
   // Define the reduced range and basis for averaging along x only
-  struct gkyl_range local_y;
+  struct gkyl_range local_y, local_y_ext;
   gkyl_range_init(&local_y, 1, &local.lower[1], &local.upper[1]);
+  gkyl_range_init(&local_y_ext, 1, &local_ext.lower[1], &local_ext.upper[1]);
 
   struct gkyl_basis basis_y;
   gkyl_cart_modal_serendip(&basis_y, 1, poly_order);
   // Create an array to store the averaged result
-  struct gkyl_array *fy_c = mkarr(basis_y.num_basis, local_y.volume, use_gpu);
-  struct gkyl_array *wy_c  = mkarr(basis_y.num_basis, local_y.volume, use_gpu);
+  struct gkyl_array *fy_c = mkarr(basis_y.num_basis, local_y_ext.volume, use_gpu);
+  struct gkyl_array *wy_c = mkarr(basis_y.num_basis, local_y_ext.volume, use_gpu);
 
   // Create and run the array average updater to average on x only
-  struct gkyl_array_average *avg_x = gkyl_array_average_new(
-      &grid, basis, basis_y, local, local_y, wxy_c, GKYL_ARRAY_AVERAGE_OP_Y, use_gpu);
+  struct gkyl_array_average_inp inp_avg_x = {
+    .grid = &grid,
+    .tot_basis = basis,
+    .sub_basis = basis_y,
+    .tot_rng = local,
+    .tot_rng_ext = local_ext,
+    .sub_rng = local_y,
+    .weights = wxy_c,
+    .op = GKYL_ARRAY_AVERAGE_OP_Y,
+    .use_gpu = use_gpu
+  };
+  struct gkyl_array_average *avg_x = gkyl_array_average_new(&inp_avg_x);
+  printf("-compute int(wf)dx\n");
   gkyl_array_average_advance(avg_x, fxy_c, fy_c);
   gkyl_array_average_release(avg_x);
   /*
@@ -347,8 +412,19 @@ void test_2x_2steps(int poly_order, bool use_gpu)
   */
 
   // obtain x integral of the weights too
-  struct gkyl_array_average *int_x = gkyl_array_average_new(
-      &grid, basis, basis_y, local, local_y, NULL, GKYL_ARRAY_AVERAGE_OP_Y, use_gpu);
+  struct gkyl_array_average_inp inp_int_x = {
+    .grid = &grid,
+    .tot_basis = basis,
+    .sub_basis = basis_y,
+    .tot_rng = local,
+    .tot_rng_ext = local_ext,
+    .sub_rng = local_y,
+    .weights = NULL,
+    .op = GKYL_ARRAY_AVERAGE_OP_Y,
+    .use_gpu = use_gpu
+  };
+  struct gkyl_array_average *int_x = gkyl_array_average_new(&inp_int_x);
+  printf("-compute int(w)dx\n");
   gkyl_array_average_advance(int_x, wxy_c, wy_c);
   gkyl_array_average_release(int_x);
   /*
@@ -377,14 +453,26 @@ void test_2x_2steps(int poly_order, bool use_gpu)
   struct gkyl_array *intw_c = mkarr(red_basis.num_basis, red_local.volume, use_gpu);
 
   // Create and run the array average updater to average on x only
-  struct gkyl_array_average *int_y = gkyl_array_average_new(
-      &grid_y, basis_y, red_basis, local_y, red_local, NULL, GKYL_ARRAY_AVERAGE_OP, use_gpu);
+      struct gkyl_array_average_inp inp_int_y = {
+    .grid = &grid,
+    .tot_basis = basis_y,
+    .sub_basis = red_basis,
+    .tot_rng = local_y,
+    .tot_rng_ext = local_y_ext,
+    .sub_rng = red_local,
+    .weights = NULL,
+    .op = GKYL_ARRAY_AVERAGE_OP,
+    .use_gpu = use_gpu
+  };
+  struct gkyl_array_average *int_y = gkyl_array_average_new(&inp_int_y);
+  printf("-compute int(wf)dy\n");
   gkyl_array_average_advance(int_y, fy_c, intf_c);
   /*
   here intf_c is DG coeff of int[int[w(x,y) f(x,y)]dy]dx
   */
 
   // obtain full integral of weights too
+  printf("-compute int(w)dy\n");
   gkyl_array_average_advance(int_y, wy_c, intw_c);
   gkyl_array_average_release(int_y);
   /*
@@ -406,12 +494,8 @@ void test_2x_2steps(int poly_order, bool use_gpu)
   else
     memcpy(intw_c0_ho, intw_c0, sizeof(double));
 
-  double integral_w = intw_c0_ho[0]*sqrt(2)/2;
-  printf("Integral of w \t= %g\n", integral_w);
-
-  double integral_wf = intf_c0_ho[0]*sqrt(2)/2;
-  printf("Integral of wf \t= %g\n", integral_wf);
-
+  const double integral_wf = intf_c0_ho[0]*sqrt(2)/2;
+  const double integral_w = intw_c0_ho[0]*sqrt(2)/2;
   const double result = integral_wf/integral_w;
 
   //------------------ 5. Check results two step avg ------------------
@@ -419,7 +503,10 @@ void test_2x_2steps(int poly_order, bool use_gpu)
     Compare the computed result with the reference solution from Python.
     The precision of the comparison depends on the grid resolution.
   */
-  printf("Checking two-step average (XY to Y then Y to scalar)\n");
+  printf("Checking two-step average (XY to Y then Y to scalar)\n");   
+  printf("\tIntegral of wf \t= %g\n", integral_wf);
+  printf("\tIntegral of w \t= %g\n", integral_w);
+  printf("\tintwf/intw = %g\n", integral_wf/integral_w);
   printf("\tResult: %g, solution: %g\n",result,solution_2x());
   if (cells[0] < 8) {
     TEST_CHECK(gkyl_compare(result, solution_2x(), 1e-2));

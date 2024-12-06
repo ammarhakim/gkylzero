@@ -21,23 +21,41 @@ enum gkyl_array_average_op {
     GKYL_ARRAY_AVERAGE_OP_YZ      // 2nd and 3rd dimensions will remain
 };
 
+// Input of the new routine is packaged as a struct
+typedef struct gkyl_array_average_inp gkyl_array_average_inp;
+/**
+ * The input structure contains the parameters required to perform a weighted array average:
+ * 
+ * @param grid       Pointer to the computational grid, used to compute the surface element.
+ * @param tot_basis  Total basis, describes the full dimensionality (ndim), polynomial type, and order.
+ * @param sub_basis  Subset basis, describes the reduced dimensionality, polynomial type, and order for the output.
+ * @param tot_rng    Full range of the input array, covering all dimensions of the total basis.
+ * @param tot_rng_ext Extended range of the input array, including ghost cells.
+ * @param sub_rng    Reduced range of the output array, covering only the non-averaged dimensions.
+ * @param weights    Pointer to the array containing weights for the averaging process. (set it to NULL for integral)
+ * @param op         Enumeration describing the type of average to perform (e.g., full or partial).
+ * @param use_gpu    Boolean flag indicating whether the computation should be performed on a GPU.
+ */
+struct gkyl_array_average_inp {
+  const struct gkyl_rect_grid *grid;         // Computational grid
+  const struct gkyl_basis tot_basis;        // Total basis for the full dimensionality
+  const struct gkyl_basis sub_basis;        // Subset basis for reduced dimensionality
+  const struct gkyl_range tot_rng;          // Range for input array (total)
+  const struct gkyl_range tot_rng_ext;      // Extended range for input array (with ghosts)
+  const struct gkyl_range sub_rng;          // Range for output array (reduced)
+  const struct gkyl_array *weights;         // Weight array for averaging
+  const enum gkyl_array_average_op op;      // Type of average operation to perform
+  const bool use_gpu;                       // Flag for GPU computation
+};
+
 /**
  * Create a new updater that computes the average of a gkyl_array, with an option to
  * set the dimensions to average
- *
- * @param grid computational grid to compute the surface element
- * @param basis gkyl basis, indicate the dimensionality ndim and polynomial type and order
- * @param op enum type to describe which kind of average has to be perform
- * @param full_rng range of the input array (all dimensions)
- * @param sub_rng range of the output array (only non-avg dimensions)
- * @param use_gpu Indicate whether to perform integral on the device.
+ * the input contains:
+ * @param inp see gkyl_array_average_inp structure
  */
 struct gkyl_array_average*
-gkyl_array_average_new(const struct gkyl_rect_grid *grid, 
-  const struct gkyl_basis tot_basis, const struct gkyl_basis sub_basis, 
-  const struct gkyl_range tot_rng, const struct gkyl_range sub_rng, 
-  struct gkyl_array *weights, enum gkyl_array_average_op op, 
-  bool use_gpu);
+gkyl_array_average_new(const gkyl_array_average_inp *inp);
 /**
  * Compute the array average.
  *
@@ -46,7 +64,7 @@ gkyl_array_average_new(const struct gkyl_rect_grid *grid,
  * @param avgout Output gkyl_array
  */
 void gkyl_array_average_advance(gkyl_array_average *up, 
-  struct gkyl_array *fin, struct gkyl_array *avgout);
+  const struct gkyl_array *fin, struct gkyl_array *avgout);
 
 /**
  * Release memory associated with this updater.

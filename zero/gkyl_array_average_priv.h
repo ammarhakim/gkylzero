@@ -64,6 +64,7 @@ struct gkyl_array_average {
   struct gkyl_basis sub_basis;
   // the updater stores the ranges of the input and output
   struct gkyl_range tot_rng;
+  struct gkyl_range tot_rng_ext;
   struct gkyl_range sub_rng;
 
   // if we use gpu or not
@@ -71,7 +72,11 @@ struct gkyl_array_average {
 
   // array that indicates if the dimension is also a reduced dim
   // (i.e. if the dimension remains)
-  int isred_dim[GKYL_MAX_CDIM]; 
+  int isred_dim[GKYL_MAX_CDIM];
+
+  // array that indicates if the dimension will be removed
+  // during the averaging
+  int rem_dim[GKYL_MAX_CDIM]; 
 
   // array that maps the sub dimensions to the full one
   // examples:
@@ -95,6 +100,9 @@ struct gkyl_array_average {
 
   // memory for the weak division at the end of averaging
   gkyl_dg_bin_op_mem *div_mem;
+
+  // to store the input array to integrate (keep the input constant)
+  struct gkyl_array *integrant;
 };
 
 GKYL_CU_D static
