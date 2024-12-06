@@ -92,9 +92,8 @@ gkyl_array_average_new(const struct gkyl_array_average_inp *inp)
   // Handle a possible weighted average
   if (inp->weights) {
     up->isweighted = true;
-    up->weights = gkyl_array_new(GKYL_DOUBLE, inp->weights->ncomp, inp->weights->size);
-    gkyl_array_copy_range(up->weights, inp->weights, &up->tot_rng);
-    // I use gkyl_array_copy before and it was not copying on the total range but one less, why?
+    up->weights = gkyl_array_new(GKYL_DOUBLE, inp->tot_basis.num_basis, inp->tot_rng_ext.volume);
+    gkyl_array_copy_range(up->weights, inp->weights, &up->tot_rng_ext);
 
     // CHECK THE WEIGHT
     // printf("Check the weights in array avg updater\n");
@@ -182,6 +181,7 @@ void gkyl_array_average_advance(gkyl_array_average *up,
   if (up->sub_rng.volume > 1){
     struct gkyl_range_iter cmp_iter, sub_iter;
     struct gkyl_range cmp_rng; // this is the complementary range, sub + cmp = full
+    
     // We now loop on the range of the averaged array
     gkyl_range_iter_init(&sub_iter, &up->sub_rng);
     int stride = 0;
@@ -201,7 +201,8 @@ void gkyl_array_average_advance(gkyl_array_average *up,
         double *avg_i = gkyl_array_fetch(avgout, sub_lidx);
 
         up->kernel(up->subvol, NULL, fin_i, avg_i);
-        printf("(subdim loop) fin_i[%2.0ld][0] = %6.4g, fin_i[%2.0ld][1] = %4.2g, avg_i[0] = %6.4g\n",cmp_lidx,fin_i[0],cmp_lidx,fin_i[1],avg_i[0]);
+        // printf("(subdim loop) fin_i[%2.0ld][0] = %6.4g, fin_i[%2.0ld][1] = %4.2g, avg_i[0] = %6.4g\n",cmp_lidx,fin_i[0],cmp_lidx,fin_i[1],avg_i[0]);
+        printf("(subdim loop) fin_i[%2.0ld][0] = %6.4g, subvol = %6.4g, avg_i[0] = %6.4g\n",cmp_lidx,fin_i[0],up->subvol,avg_i[0]);
       }
       stride++;
     }
@@ -215,12 +216,13 @@ void gkyl_array_average_advance(gkyl_array_average *up,
     while (gkyl_range_iter_next(&tot_iter)) {
         long tot_lidx = gkyl_range_idx(&up->tot_rng, tot_iter.idx);
         const double *fin_i = gkyl_array_cfetch(up->integrant, tot_lidx);
-        const double *win_i = gkyl_array_cfetch(up->weights, tot_lidx);
+        // const double *win_i = gkyl_array_cfetch(up->weights, tot_lidx);
         double *avg_i = gkyl_array_fetch(avgout, 0);
         up->kernel(up->subvol, NULL, fin_i, avg_i);
 
         // To check the integration:
-        printf("(full loop) fin_i[%2.0ld][0] = %6.4g, fin_i[%2.0ld][1] = %6.4g, avg_i[0] = %6.4g\n",tot_lidx,fin_i[0],tot_lidx,fin_i[1],avg_i[0]);
+        // printf("(full loop) fin_i[%2.0ld][0] = %6.4g, fin_i[%2.0ld][1] = %6.4g, avg_i[0] = %6.4g\n",tot_lidx,fin_i[0],tot_lidx,fin_i[1],avg_i[0]);
+        printf("(full loop) fin_i[%2.0ld][0] = %6.4g, subvol = %6.4g, avg_i[0] = %6.4g\n",tot_lidx,fin_i[0],up->subvol,avg_i[0]);
     }
   }
 
