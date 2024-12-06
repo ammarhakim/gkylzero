@@ -24,25 +24,8 @@ gkyl_array_integrate_new(const struct gkyl_rect_grid *grid, const struct gkyl_ba
 
   int ndim = basis->ndim;
   up->vol = 1.0;
-  if (op == GKYL_ARRAY_INTEGRATE_OP_GRAD_SQ) {
-    for (unsigned d=0; d<ndim; ++d)
-      up->vol *= (1./(2.*grid->dx[d]));
-    up->vol *= 12.;
-  } else if (op == GKYL_ARRAY_INTEGRATE_OP_GRADPERP_SQ) {
-    assert(ndim > 1);
-    for (unsigned d=0; d<ndim; ++d)
-      up->vol *= grid->dx[d]/2.;
-    for (unsigned d=0; d<2; ++d)
-      up->vol *= 1./(grid->dx[d]*grid->dx[d]);
-    up->vol *= 12.;
-  } else if (op == GKYL_ARRAY_INTEGRATE_OP_EPS_GRADPERP_SQ) {
-    assert(ndim > 1);
-    for (unsigned d=0; d<ndim; ++d)
-      up->vol *= grid->dx[d]/2.;
-  } else {
-    for (unsigned d=0; d<ndim; ++d)
-      up->vol *= op == GKYL_ARRAY_INTEGRATE_OP_SQ? grid->dx[d]/2.0 : grid->dx[d]/sqrt(2.0);
-  }
+  for (unsigned d=0; d<ndim; ++d)
+    up->vol *= grid->dx[d]/2.0;
 
   // Choose the kernel that performs the desired operation within the integral.
   gkyl_array_integrate_choose_kernel(op, basis, up);

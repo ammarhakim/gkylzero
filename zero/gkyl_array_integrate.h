@@ -12,6 +12,7 @@ enum gkyl_array_integrate_op {
   GKYL_ARRAY_INTEGRATE_OP_NONE = 0,  // int dx f
   GKYL_ARRAY_INTEGRATE_OP_ABS,  // int dx |f|
   GKYL_ARRAY_INTEGRATE_OP_SQ,  // int dx f^2
+  GKYL_ARRAY_INTEGRATE_OP_SQ_WEIGHTED,  // int dx w * f^2
   GKYL_ARRAY_INTEGRATE_OP_GRAD_SQ,  // int dx |nabla f|^2
   GKYL_ARRAY_INTEGRATE_OP_GRADPERP_SQ,  // int dx |nabla_perp f|^2
   GKYL_ARRAY_INTEGRATE_OP_EPS_GRADPERP_SQ,  // int dx epsilon*|nabla_perp f|^2
