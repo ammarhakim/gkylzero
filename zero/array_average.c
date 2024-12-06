@@ -31,7 +31,7 @@ gkyl_array_average_new(const struct gkyl_array_average_inp *inp)
 
   // Set up the array of all dimensions that are conserved after the average (=0 for removed)
   // according to the operation input variable
-  for (unsigned d=0; d < up->ndim; ++d) up->isred_dim[d] = 0;
+  for (unsigned d=0; d < up->ndim; ++d) up->issub_dim[d] = 0;
   switch (inp->op) {
     case GKYL_ARRAY_AVERAGE_OP: // Full integration
       assert(inp->tot_basis.ndim >= 1); // Ensure at least 1 dimension exists
@@ -41,37 +41,37 @@ gkyl_array_average_new(const struct gkyl_array_average_inp *inp)
       break;
     case GKYL_ARRAY_AVERAGE_OP_X: // integration all except x
       assert(inp->tot_basis.ndim >= 1); // Ensure at least 1 dimension exists
-      up->isred_dim[0] = 1; // here the first dimension is conserved
+      up->issub_dim[0] = 1; // here the first dimension is conserved
       up->sub_dir[0] = 0; // the first dimension in the reduced array is the first dim in the total array
       break;
     case GKYL_ARRAY_AVERAGE_OP_Y: // integration all except y
       assert(inp->tot_basis.ndim >= 2); // Ensure at least 2 dimensions for Y
-      up->isred_dim[1] = 1;
+      up->issub_dim[1] = 1;
       up->sub_dir[0] = 1;
       break;
     case GKYL_ARRAY_AVERAGE_OP_Z: // integration all except z
       assert(inp->tot_basis.ndim >= 3); // Ensure at least 3 dimensions for Z
-      up->isred_dim[2] = 1;
+      up->issub_dim[2] = 1;
       up->sub_dir[0] = 2;
       break;
     case GKYL_ARRAY_AVERAGE_OP_XY: // integration all except xy
       assert(inp->tot_basis.ndim >= 3); // Ensure at least 3 dimensions for XY reduction
-      up->isred_dim[0] = 1;
-      up->isred_dim[1] = 1;
+      up->issub_dim[0] = 1;
+      up->issub_dim[1] = 1;
       up->sub_dir[0] = 0;
       up->sub_dir[1] = 1;
       break;
     case GKYL_ARRAY_AVERAGE_OP_XZ: // integration all except xz
       assert(inp->tot_basis.ndim >= 3); // Ensure at least 3 dimensions for XZ
-      up->isred_dim[0] = 1;
-      up->isred_dim[2] = 1;
+      up->issub_dim[0] = 1;
+      up->issub_dim[2] = 1;
       up->sub_dir[0] = 0;
       up->sub_dir[1] = 2;
       break;
     case GKYL_ARRAY_AVERAGE_OP_YZ: // integration all except yz
       assert(inp->tot_basis.ndim >= 3); // Ensure at least 3 dimensions for YZ
-      up->isred_dim[1] = 1;
-      up->isred_dim[2] = 1;
+      up->issub_dim[1] = 1;
+      up->issub_dim[2] = 1;
       up->sub_dir[0] = 1;
       up->sub_dir[1] = 2;
       break;
@@ -79,14 +79,11 @@ gkyl_array_average_new(const struct gkyl_array_average_inp *inp)
       assert(false && "Invalid operation in switch(op)");
       break;
   }
-  // set the removed dimension flag array
-  for (unsigned d=0; d < up->ndim; ++d) up->rem_dim[d] = 1 - up->isred_dim[d];
 
-  
   // Compute the cell sub-dimensional volume
   up->subvol = 1.0;
   for (unsigned d=0; d < up->ndim; ++d){
-    if (up->isred_dim[d] == 0) up->subvol *= 0.5*inp->grid->dx[d];
+    if (up->issub_dim[d] == 0) up->subvol *= 0.5*inp->grid->dx[d];
   }
   // printf("subvolume = %g\n",up->subvol);
 
@@ -187,22 +184,26 @@ void gkyl_array_average_advance(gkyl_array_average *up,
     struct gkyl_range cmp_rng; // this is the complementary range, sub + cmp = full
     // We now loop on the range of the averaged array
     gkyl_range_iter_init(&sub_iter, &up->sub_rng);
+    int stride = 0;
     while (gkyl_range_iter_next(&sub_iter)) {
       long sub_lidx = gkyl_range_idx(&up->sub_rng, sub_iter.idx);
 
-      gkyl_range_deflate(&cmp_rng, &up->tot_rng, up->rem_dim, sub_iter.idx);
+      gkyl_range_deflate(&cmp_rng, &up->tot_rng, up->issub_dim, sub_iter.idx);
       // printf("sub iter loop\n");
       gkyl_range_iter_no_split_init(&cmp_iter, &cmp_rng);
 
+      printf("cmp_range.volume = %ld\n",cmp_rng.volume);
+
       while (gkyl_range_iter_next(&cmp_iter)) {
         // printf("\tcmp iter loop\n");
-        long cmp_lidx = gkyl_range_idx(&cmp_rng, cmp_iter.idx);
+        long cmp_lidx = gkyl_range_idx(&cmp_rng, cmp_iter.idx) + stride;
         const double *fin_i = gkyl_array_cfetch(up->integrant, cmp_lidx);
         double *avg_i = gkyl_array_fetch(avgout, sub_lidx);
 
         up->kernel(up->subvol, NULL, fin_i, avg_i);
         printf("(subdim loop) fin_i[%2.0ld][0] = %6.4g, fin_i[%2.0ld][1] = %4.2g, avg_i[0] = %6.4g\n",cmp_lidx,fin_i[0],cmp_lidx,fin_i[1],avg_i[0]);
       }
+      stride++;
     }
   } 
   else // This is the case if we are asking for a full integration
