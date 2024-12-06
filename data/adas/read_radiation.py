@@ -4,6 +4,12 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.pyplot import cm
 
+# Functions to plot and compare emissivities of different radiation fits
+# Helpful in determing desired number of density intervals
+# Main class is all_radiation_states
+# Example usage at bottom of file
+
+# Class defining a single fit
 class rad_fit_parameters:
     def __init__(self, ne, A, alpha, beta, V0, gamma, te_intervals, te, Lz):
         self.electron_density=ne
@@ -16,7 +22,7 @@ class rad_fit_parameters:
         self.te=te
         self.Lz=Lz
 
-
+# Class defining all fits for a charge state
 class radiating_state:
     def __init__(self, atomic_number, charge_state, state_exists, number_of_densities, rad_fits):
         self.atomic_number=atomic_number
@@ -41,6 +47,7 @@ class radiating_state:
     def get_ne_idx(self, electron_density):
         return np.abs(np.asarray(self.electron_densities)-electron_density).argmin()        
 
+# Class defining all fits for an element
 class element_states:
     def __init__(self, max_charge_state):
         self.max_charge_state = max_charge_state
@@ -53,6 +60,7 @@ class element_states:
     def __getitem__(self, idx):
         return self.all_states[idx]
 
+# Class defining all fits available
 class all_radiation_states:
     def __init__(self, max_atomic_number):
         self.max_atomic_number = max_atomic_number
@@ -65,24 +73,29 @@ class all_radiation_states:
     def __getitem__(self, idx):
         return self.all_elements[idx]
 
+    # Get electron densities for a given element and charge state
     def get_electron_densities(self, atomic_number, charge_state):
         return self.all_elements[atomic_number].all_states[charge_state].electron_densities
 
+    # Get all atomic numbers
     def get_atomic_nums(self):
         return self.existing_z
 
+    # Get available charge states for given atomic number (not all charge states necessarily have fits)
     def get_available_charge_states(self, atomic_number):
         return self.all_elements[atomic_number].existing_charge_states
 
+    # Print the fit parameters for a given fit
     def print_fit_params(self, atomic_number, charge_state, electron_density):
         idx = self.all_elements[atomic_number].all_states[charge_state].get_ne_idx(electron_density)
         fit = self.all_elements[atomic_number].all_states[charge_state].rad_fits[idx]
         print("A=%r, alpha=%r, beta=%r, gamma=%r, V0=%r" % (fit.A, fit.alpha, fit.beta, fit.gamma, fit.V0) )
 
-
+    # Plot the emissivity for a given z, charge state, and electron density
     def plot_emis(self, atomic_number, charge_state, electron_density=1e19, options={}):
         self.plot_emis_helper([atomic_number], [charge_state], [electron_density], options=options)
 
+    # Plot the emissivity of different elements with given charge state (i.e. He+1, Li+1, Be+1, etc.)
     def plot_emis_all_elements(self, charge_state, electron_density=1e19, options={}):
         z=self.get_atomic_nums()
         for i in range(charge_state):
@@ -90,10 +103,12 @@ class all_radiation_states:
                 z.remove(i)
         self.plot_emis_compare(z, [charge_state], [electron_density], options)
 
+    # Plot the emissivity of all the available charge states of given atomic number
     def plot_emis_all_states(self, atomic_number, electron_density=1e19, options={}):
         cstates = self.get_available_charge_states(atomic_number)
         self.plot_emis_compare([atomic_number], cstates, [electron_density], options)
 
+    # Plot the emissivity of for all electron densities of a given atomic number and charge state
     def plot_emis_all_ne(self, atomic_number, charge_state, options={}):
         ne = self.get_electron_densities(atomic_number, charge_state)
         self.plot_emis_compare([atomic_number], [charge_state], ne, options)
@@ -178,7 +193,7 @@ class all_radiation_states:
         plt.xscale('log')
         plt.show()        
 
-
+# Used in gkyl_read_rad_fit_params
 def read_two_numbers(fptr):
     str_line = fptr.readline().strip()
     if str_line:
@@ -188,6 +203,7 @@ def read_two_numbers(fptr):
         num2 = int(parts[3].strip())
     return num1, num2
 
+# Read fit parameters from radiation_fit_parameters.txt formatted file
 def gkyl_read_rad_fit_params(filepath = os.path.join(os.environ.get('GKYL_SHARE_DIR', ''), 'adas', 'radiation_fit_parameters.txt')):    
     with open(filepath, 'r') as fptr:
         # Read header: Max z of elements, number of elements
@@ -231,9 +247,24 @@ def gkyl_read_rad_fit_params(filepath = os.path.join(os.environ.get('GKYL_SHARE_
 # import read_radiation as read_rad
 # rad_data = read_rad.gkyl_read_rad_fit_params('$HOME/gkylzero/data/adas/radiation_fit_parameters.txt')
 
+# Example 1:
 # Plot argon +2 emissivity in red
 # options = {'color':'red} --  dictionary of matplotlib.pyplot options
 # atomic_number = 18
 # charge_state = 2
 # electron_density = 1e19 -- precise number is irrelevant for argon
 # rad_data.plot_emis(atomic_number, charge_state, electron_density, options)
+
+# Example 2:
+# Compare emissivity of Li^0 from different electron densities
+# atomic_number = 3
+# charge_state = 0
+# rad_data.plot_emis_all_ne(atomic_number, charge_state):
+
+# Example 3:
+# Print available atomic numbers and corresponding charge states
+# z = rad_data.get_atomic_nums()
+# for i in z:
+#    print("z=%d, charge states="%(i))
+#    charge = rad_data.get_available_charge_states(i)
+#    print(charge)

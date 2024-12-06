@@ -51,8 +51,8 @@ gk_species_radiation_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s
 	&app->basis, s->info.charge, s->info.mass, app->gk_geom, s->vel_map, app->use_gpu);
 
   // Fitting parameters
-  double a[GKYL_MAX_RAD_DENSITIES], alpha[GKYL_MAX_RAD_DENSITIES], beta[GKYL_MAX_RAD_DENSITIES],
-    gamma[GKYL_MAX_RAD_DENSITIES], v0[GKYL_MAX_RAD_DENSITIES], ne[GKYL_MAX_RAD_DENSITIES];
+  double rad_fit_a[GKYL_MAX_RAD_DENSITIES], rad_fit_alpha[GKYL_MAX_RAD_DENSITIES], rad_fit_beta[GKYL_MAX_RAD_DENSITIES],
+    rad_fit_gamma[GKYL_MAX_RAD_DENSITIES], rad_fit_v0[GKYL_MAX_RAD_DENSITIES], rad_fit_ne[GKYL_MAX_RAD_DENSITIES];
   struct all_radiation_states *rad_data = gkyl_radiation_read_rad_fit_params();
 
   rad->num_cross_collisions = s->info.radiation.num_cross_collisions;
@@ -86,16 +86,16 @@ gk_species_radiation_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s
   for (int i=0; i<rad->num_cross_collisions; ++i) {
     int num_densities = s->info.radiation.num_of_densities[i] ? s->info.radiation.num_of_densities[i] : 1;
     int status = gkyl_radiation_read_get_fit_params(*rad_data, s->info.radiation.z[i], s->info.radiation.charge_state[i],
-      a, alpha, beta, gamma, v0, &num_densities, ne, s->info.radiation.reference_ne, s->info.radiation.min_ne,
-      s->info.radiation.max_ne);
+      rad_fit_a, rad_fit_alpha, rad_fit_beta, rad_fit_gamma, rad_fit_v0, &num_densities, rad_fit_ne,
+      s->info.radiation.reference_ne, s->info.radiation.min_ne, s->info.radiation.max_ne);
     assert(num_densities == num_dens_per_coll[i]); // Consistency check.
     rad->vtsq_min_per_species[i] = mkarr(app->use_gpu, 1, num_densities);
     rad->rad_fit_ne[i] = mkarr(app->use_gpu, 1, num_densities);
-    struct gkyl_array *ne_host = mkarr(false, 1, num_densities);
+    struct gkyl_array *rad_fit_ne_host = mkarr(false, 1, num_densities);
     struct gkyl_array *vtsq_min_host = mkarr(false, 1, num_densities);
-    memcpy(ne_host->data, ne, num_densities*sizeof(double));
-    gkyl_array_copy(rad->rad_fit_ne[i], ne_host);
-    gkyl_array_release(ne_host);
+    memcpy(rad_fit_ne_host->data, rad_fit_ne, num_densities*sizeof(double));
+    gkyl_array_copy(rad->rad_fit_ne[i], rad_fit_ne_host);
+    gkyl_array_release(rad_fit_ne_host);
 
     // Fetch the species we are colliding with and the fitting parameters for that species
     rad->collide_with_idx[i] = gk_find_species_idx(app, s->info.radiation.collide_with[i]);
@@ -126,7 +126,7 @@ gk_species_radiation_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s
       // Note that through the spatial variation of B = B(x,z), 
       // both these drag coefficients depend on phase space, but a reduced (x,z,vpar,mu) phase space
       gkyl_dg_calc_gk_rad_vars_nu_advance(rad->calc_gk_rad_vars, &app->local, &s->local,
-        a[n], alpha[n], beta[n], gamma[n], v0[n],
+        rad_fit_a[n], rad_fit_alpha[n], rad_fit_beta[n], rad_fit_gamma[n], rad_fit_v0[n],
         rad->vnu_surf[i].data[n].arr, rad->vnu[i].data[n].arr,
         rad->vsqnu_surf[i].data[n].arr, rad->vsqnu[i].data[n].arr);
 
@@ -137,11 +137,11 @@ gk_species_radiation_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s
       }
       else if (s->info.radiation.te_min_model == GKYL_VARY_TE_AGGRESSIVE) {
 	// Turn off radiation below 10^-4*max(Lz)
-	Te_min_eV = 0.1372 * pow(v0[n], 1.867);
+	Te_min_eV = 0.1372 * pow(rad_fit_v0[n], 1.867);
       }
       else {
 	// (s->info.radiation.te_min_model == GKYL_VARY_TE_CONSERVATIVE) i.e. Turn off radiation below 3.16*10^-3*max(Lz)
-	Te_min_eV = 0.2815 * pow(v0[n], 1.768);
+	Te_min_eV = 0.2815 * pow(rad_fit_v0[n], 1.768);
       }
       double *vtsq_min_host_d = (double*) gkyl_array_fetch(vtsq_min_host, n);
       vtsq_min_host_d[0] = Te_min_eV * fabs(s->info.charge)/s->info.mass * pow(sqrt(2.0), cdim);
