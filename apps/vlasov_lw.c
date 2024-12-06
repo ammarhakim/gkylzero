@@ -839,11 +839,11 @@ get_species_inp(lua_State *L, int cdim, struct vlasov_species_lw *species[GKYL_M
         }
 
         if (vms->has_inverse_metric_func) {
-          vms->inverse_metric_func_ref.ndim = cdim + vms->vdim;
+          vms->inverse_metric_func_ref.ndim = cdim;
         }
 
         if (vms->has_metric_determinant_func) {
-          vms->metric_determinant_func_ref.ndim = cdim + vms->vdim;
+          vms->metric_determinant_func_ref.ndim = cdim;
         }
 
         for (int i = 0; i < vms->num_init; i++) {
@@ -852,20 +852,20 @@ get_species_inp(lua_State *L, int cdim, struct vlasov_species_lw *species[GKYL_M
           }
 
           if (vms->has_density_init_func[i]) {
-            vms->density_init_func_ref[i].ndim = cdim + vms->vdim;
+            vms->density_init_func_ref[i].ndim = cdim;
           }
           
           if (vms->has_V_drift_init_func[i]) {
-            vms->V_drift_init_func_ref[i].ndim = cdim + vms->vdim;
+            vms->V_drift_init_func_ref[i].ndim = cdim;
           }
 
           if (vms->has_temp_init_func[i]) {
-            vms->temp_init_func_ref[i].ndim = cdim + vms->vdim;
+            vms->temp_init_func_ref[i].ndim = cdim;
           }
         }
 
         if (vms->has_self_nu_func) {
-          vms->self_nu_func_ref.ndim = cdim + vms->vdim;
+          vms->self_nu_func_ref.ndim = cdim;
         }
 
         for (int i = 0; i < vms->num_sources; i++) {
@@ -874,15 +874,15 @@ get_species_inp(lua_State *L, int cdim, struct vlasov_species_lw *species[GKYL_M
           }
 
           if (vms->source_has_density_init_func[i]) {
-            vms->source_density_init_func_ref[i].ndim = cdim + vms->vdim;
+            vms->source_density_init_func_ref[i].ndim = cdim;
           }
 
           if (vms->source_has_V_drift_init_func[i]) {
-            vms->source_V_drift_init_func_ref[i].ndim = cdim + vms->vdim;
+            vms->source_V_drift_init_func_ref[i].ndim = cdim;
           }
 
           if (vms->source_has_temp_init_func[i]) {
-            vms->source_temp_init_func_ref[i].ndim = cdim + vms->vdim;
+            vms->source_temp_init_func_ref[i].ndim = cdim;
           }
         }
         

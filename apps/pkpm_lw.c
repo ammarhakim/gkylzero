@@ -399,11 +399,11 @@ get_species_inp(lua_State *L, int cdim, struct pkpm_species_lw *species[GKYL_MAX
         }
 
         if(pkpm_s->has_fluid_init_func) {
-          pkpm_s->fluid_init_func_ref.ndim = cdim + pkpm_s->vdim;
+          pkpm_s->fluid_init_func_ref.ndim = cdim;
         }
 
         if (pkpm_s->has_self_nu_func) {
-          pkpm_s->self_nu_func_ref.ndim = cdim + pkpm_s->vdim;
+          pkpm_s->self_nu_func_ref.ndim = cdim;
         }
         
         if (lua_type(L, TKEY) == LUA_TSTRING) {

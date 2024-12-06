@@ -780,27 +780,27 @@ get_species_inp(lua_State *L, int cdim, struct gyrokinetic_species_lw *species[G
         }
 
         if (gks->has_density_init_func) {
-          gks->density_init_func_ref.ndim = cdim + gks->vdim;
+          gks->density_init_func_ref.ndim = cdim;
         }
         
         if (gks->has_Upar_init_func) {
-          gks->Upar_init_func_ref.ndim = cdim + gks->vdim;
+          gks->Upar_init_func_ref.ndim = cdim;
         }
 
         if (gks->has_temp_init_func) {
-          gks->temp_init_func_ref.ndim = cdim + gks->vdim;
+          gks->temp_init_func_ref.ndim = cdim;
         }
 
         if (gks->has_par_temp_init_func) {
-          gks->par_temp_init_func_ref.ndim = cdim + gks->vdim;
+          gks->par_temp_init_func_ref.ndim = cdim;
         }
 
         if (gks->has_perp_temp_init_func) {
-          gks->perp_temp_init_func_ref.ndim = cdim + gks->vdim;
+          gks->perp_temp_init_func_ref.ndim = cdim;
         }
 
         if (gks->has_self_nu_func) {
-          gks->self_nu_func_ref.ndim = cdim + gks->vdim;
+          gks->self_nu_func_ref.ndim = cdim;
         }
 
         for (int i = 0; i < gks->num_sources; i++) {
@@ -809,15 +809,15 @@ get_species_inp(lua_State *L, int cdim, struct gyrokinetic_species_lw *species[G
           }
 
           if (gks->source_has_density_init_func[i]) {
-            gks->source_density_init_func_ref[i].ndim = cdim + gks->vdim;
+            gks->source_density_init_func_ref[i].ndim = cdim;
           }
 
           if (gks->source_has_Upar_init_func[i]) {
-            gks->source_Upar_init_func_ref[i].ndim = cdim + gks->vdim;
+            gks->source_Upar_init_func_ref[i].ndim = cdim;
           }
 
           if (gks->source_has_temp_init_func[i]) {
-            gks->source_temp_init_func_ref[i].ndim = cdim + gks->vdim;
+            gks->source_temp_init_func_ref[i].ndim = cdim;
           }
         }
         
