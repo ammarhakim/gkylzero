@@ -72,11 +72,7 @@ struct gkyl_array_average {
 
   // array that indicates if the dimension is also a reduced dim
   // (i.e. if the dimension remains)
-  int isred_dim[GKYL_MAX_CDIM];
-
-  // array that indicates if the dimension will be removed
-  // during the averaging
-  int rem_dim[GKYL_MAX_CDIM]; 
+  int issub_dim[GKYL_MAX_CDIM];
 
   // array that maps the sub dimensions to the full one
   // examples:
