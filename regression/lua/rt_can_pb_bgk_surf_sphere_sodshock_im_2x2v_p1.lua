@@ -138,18 +138,18 @@ vlasovApp = Vlasov.App.new {
           return T
         end,
         driftVelocityInit = function (t, xn)
-            local theta = xn[1]
+          local theta = xn[1]
 
-            local V_theta_drift = 0.0
-            local V_phi_drift = 0.0
-          
-            if math.abs(theta - midplane) < theta_loc then
-              V_theta_drift = V_theta_drift_l -- Polar angular drift velocity (left/inner).
-              V_phi_drift = V_phi_drift_l -- Azimuthal angular drift velocity (left/inner).
-            else
-              V_theta_drift = V_theta_drift_r -- Polar angular drift velocity (right/outer).
-              V_phi_drift = V_phi_drift_r -- Azimuthal angular drift velocity (right/outer).
-            end
+          local V_theta_drift = 0.0
+          local V_phi_drift = 0.0
+        
+          if math.abs(theta - midplane) < theta_loc then
+            V_theta_drift = V_theta_drift_l -- Polar angular drift velocity (left/inner).
+            V_phi_drift = V_phi_drift_l -- Azimuthal angular drift velocity (left/inner).
+          else
+            V_theta_drift = V_theta_drift_r -- Polar angular drift velocity (right/outer).
+            V_phi_drift = V_phi_drift_r -- Azimuthal angular drift velocity (right/outer).
+          end
 
           return V_theta_drift, V_phi_drift
         end,

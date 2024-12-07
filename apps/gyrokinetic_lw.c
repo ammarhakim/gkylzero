@@ -1643,20 +1643,7 @@ gk_app_run(lua_State *L)
   double dt_init = -1.0, dt_failure_tol = app_lw->dt_failure_tol;
   int num_failures = 0, num_failures_max = app_lw->num_failures_max;
 
-  bool use_verbose = false;
-  lua_getglobal(L, "GKYL_USE_VERBOSE");
-  if (lua_toboolean(L, -1)) {
-    use_verbose = true;
-  }
-  lua_pop(L, 1);
-
-  long num_steps_new = -1;
-  lua_getglobal(L, "GKYL_NUM_STEPS");
-  num_steps_new = lua_tointeger(L, -1);
-  lua_pop(L, 1);
-  if (num_steps_new != -1) {
-    num_steps = num_steps_new;
-  }
+  bool use_verbose = script_cli.use_verbose;
 
   long step = 1;
   while ((t_curr < t_end) && (step <= num_steps)) {

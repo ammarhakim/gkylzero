@@ -965,7 +965,7 @@ struct script_cli {
 };
 
 static struct script_cli
-mom_parse_script_cli(struct gkyl_tool_args *acv)
+pkpm_parse_script_cli(struct gkyl_tool_args *acv)
 {
   struct script_cli cli = {
     .help =- false,
@@ -1026,7 +1026,7 @@ pkpm_app_run(lua_State *L)
   // Parse command lines arguments passed to input file.
   struct gkyl_tool_args *args = gkyl_tool_args_new(L);
 
-  struct script_cli script_cli = mom_parse_script_cli(args);
+  struct script_cli script_cli = pkpm_parse_script_cli(args);
   if (script_cli.help) {
     show_help(app);
     gkyl_tool_args_release(script_cli.rest);
@@ -1092,20 +1092,7 @@ pkpm_app_run(lua_State *L)
   double dt_init = -1.0, dt_failure_tol = app_lw->dt_failure_tol;
   int num_failures = 0, num_failures_max = app_lw->num_failures_max;
 
-  bool use_verbose = false;
-  lua_getglobal(L, "GKYL_USE_VERBOSE");
-  if (lua_toboolean(L, -1)) {
-    use_verbose = true;
-  }
-  lua_pop(L, 1);
-
-  long num_steps_new = -1;
-  lua_getglobal(L, "GKYL_NUM_STEPS");
-  num_steps_new = lua_tointeger(L, -1);
-  lua_pop(L, 1);
-  if (num_steps_new != -1) {
-    num_steps = num_steps_new;
-  }
+  bool use_verbose = script_cli.use_verbose;
 
   long step = 1;
   while ((t_curr < t_end) && (step <= num_steps)) {
