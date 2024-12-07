@@ -383,7 +383,7 @@ gk_species_init(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *app, st
   gks->is_first_integ_write_call = true;
 
   // Objects for L2 norm diagnostic.
-  gks->L2norm_cell = mkarr(app->use_gpu, 1, gks->local_ext.volume); // f^2 in each cell.
+  gks->integ_wfsq_op = gkyl_array_integrate_new(&gks->grid, &app->basis, 1, GKYL_ARRAY_INTEGRATE_OP_SQ_WEIGHTED, app->use_gpu);
   if (app->use_gpu) {
     gks->L2norm_local = gkyl_cu_malloc(sizeof(double));
     gks->L2norm_global = gkyl_cu_malloc(sizeof(double));
@@ -963,8 +963,8 @@ gk_species_release(const gkyl_gyrokinetic_app* app, const struct gk_species *s)
   }
 
   // Release L2 norm memory.
+  gkyl_array_integrate_release(s->integ_wfsq_op);
   gkyl_dynvec_release(s->L2norm);
-  gkyl_array_release(s->L2norm_cell);
   if (app->use_gpu) {
     gkyl_cu_free(s->L2norm_local);
     gkyl_cu_free(s->L2norm_global);

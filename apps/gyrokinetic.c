@@ -368,6 +368,13 @@ gkyl_gyrokinetic_app_new_geom(struct gkyl_gk *gk)
 
   gkyl_gyrokinetic_app_write_geometry(app);
 
+  // Allocate 1/(J.B) using weak mul/div.
+  struct gkyl_array *tmp = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
+  app->jacobtot_inv_weak = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
+  gkyl_dg_mul_op_range(app->confBasis, 0, tmp, 0, app->gk_geom->bmag, 0, app->gk_geom->jacobgeo, &app->local); 
+  gkyl_dg_inv_op_range(app->confBasis, 0, app->jacobtot_inv_weak, 0, tmp, &app->local); 
+  gkyl_array_release(tmp);
+
   return app;
 }
 
@@ -1092,13 +1099,11 @@ gkyl_gyrokinetic_app_calc_species_L2norm(gkyl_gyrokinetic_app *app, int sidx, do
 
   struct gk_species *gk_s = &app->species[sidx];
 
-  double L2norm_global[] = {0.0};
-
-  gkyl_dg_calc_l2_range(app->basis, 0, gk_s->L2norm_cell, 0, gk_s->f, gk_s->local);
-  gkyl_array_scale_range(gk_s->L2norm_cell, gk_s->grid.cellVolume, &gk_s->local);
-  gkyl_array_reduce_range(gk_s->L2norm_local, gk_s->L2norm_cell, GKYL_SUM, &gk_s->local);
+  gkyl_array_integrate_advance(gk_s->integ_wfsq_op, gk_s->f, (2.0*M_PI)/gk_s->info.mass,
+    app->jacobtot_inv_weak, &gk_s->local, &app->local, gk_s->L2norm_local);
   gkyl_comm_allreduce(app->comm, GKYL_DOUBLE, GKYL_SUM, 1, gk_s->L2norm_local, gk_s->L2norm_global);
 
+  double L2norm_global[] = {0.0};
   if (app->use_gpu) {
     gkyl_cu_memcpy(L2norm_global, gk_s->L2norm_global, sizeof(double), GKYL_CU_MEMCPY_D2H);
   }
@@ -2840,6 +2845,7 @@ gkyl_gyrokinetic_app_release(gkyl_gyrokinetic_app* app)
     gkyl_array_release(app->ps_delta_m0_elcs);
   }
 
+  gkyl_array_release(app->jacobtot_inv_weak);
   gkyl_gk_geometry_release(app->gk_geom);
 
   gk_field_release(app, app->field);
