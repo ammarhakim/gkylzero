@@ -33,90 +33,69 @@ gkyl_dg_interpolate_new(int cdim, const struct gkyl_basis *pbasis,
       assert(prime_factors[k] == 2 || prime_factors[k] == 3); // Only (2^a)*(3^b) grids supported.
   }
 
-  // Choose kernels that translates the DG coefficients.
-  up->interp = dg_interp_choose_gk_interp_kernel(*pbasis);
-
+  // Identify direction to be coarsened/refined:
+  int num_diff_dirs = 0;
   for (int d=0; d<up->ndim; d++) {
-    // Ratio of cell-lengths in each direction.
-    up->dxRat[d] = grid_do->dx[d]/grid_tar->dx[d];
-
-    // Map from grid to stencil index in each direction.
-    if (up->dxRat[d] > 1)
-      up->grid2stencil[d] = dg_interp_index_stencil_map_refine;
-    else
-      up->grid2stencil[d] = dg_interp_index_stencil_map_coarsen;
+    if (grid_do->cells[d] != grid_tar->cells[d]) {
+      up->dir = d;
+      num_diff_dirs++;
+    }
   }
+  assert(num_diff_dirs = 1); // Meant for interpolation along a single dimension.
 
-  // Interior (away from boundaries) stencil size, in each direction.
-  int intStencilSize[GKYL_MAX_DIM] = {-1};
-  for (int d=0; d<up->ndim; d++) {
-    if (up->dxRat[d] > 1) {
-      // Mesh refinement.
-      // Brute force search. Start with the size of the boundary stencil.
-      int maxSize = floor(up->dxRat[d]) + ceil( up->dxRat[d]-floor(up->dxRat[d]) );
-      for (int i=2; i<grid_do->cells[d]; i++) {
-         double decimalL = 1-((i-1)*up->dxRat[d]-floor((i-1)*up->dxRat[d]));
-         double decimalU = 1-(ceil(i*up->dxRat[d])-i*up->dxRat[d]);
-         int currSize = floor(up->dxRat[d]-decimalL-decimalU) + ceil(decimalL) + ceil(decimalU);
-         maxSize = GKYL_MAX2(maxSize, currSize);
-      }
-      intStencilSize[d] = maxSize;
+  // Choose kernels that translates the DG coefficients.
+  up->interp = dg_interp_choose_gk_interp_kernel(*pbasis, up->dir);
+
+  // Ratio of cell-lengths in each direction.
+  up->dxRat = grid_do->dx[up->dir]/grid_tar->dx[up->dir];
+
+  // Map from grid to stencil index in each direction.
+  if (up->dxRat > 1)
+    up->grid2stencil = dg_interp_index_stencil_map_refine;
+  else
+    up->grid2stencil = dg_interp_index_stencil_map_coarsen;
+  
+
+  // Interior (away from boundaries) stencil size.
+  int intStencilSize = -1;
+  if (up->dxRat > 1) {
+    // Mesh refinement.
+    // Brute force search. Start with the size of the boundary stencil.
+    int maxSize = floor(up->dxRat) + ceil( up->dxRat-floor(up->dxRat) );
+    for (int i=2; i<grid_do->cells[up->dir]; i++) {
+       double decimalL = 1-((i-1)*up->dxRat-floor((i-1)*up->dxRat));
+       double decimalU = 1-(ceil(i*up->dxRat)-i*up->dxRat);
+       int currSize = floor(up->dxRat-decimalL-decimalU) + ceil(decimalL) + ceil(decimalU);
+       maxSize = GKYL_MAX2(maxSize, currSize);
     }
-    else {
-      // Mesh coarsening, or no change in resolution (dxRat=1).
-      intStencilSize[d] = 1+ceil(1*(1/up->dxRat[d]-floor(1/up->dxRat[d])));
-    }
+    intStencilSize = maxSize;
+  }
+  else {
+    // Mesh coarsening, or no change in resolution (dxRat=1).
+    intStencilSize = 1+ceil(1*(1/up->dxRat-floor(1/up->dxRat)));
   }
 
   // This updater will loop through the donor grid. At each cell it will give
   // the interpolation kernel the target grid cells, one at a time, and the
   // kernel will add the corresponding contributions to the target field DG
   // coefficients in that each target grid cell.
-
-  // There are 3^ndim stencils or regions. For example, in 2D the regions are
-  //   .-----.-----.-----.
-  //   |     |     |     |
-  //   |  6  |  4  |  8  |
-  //   |     |     |     |
+  // There are 3 stencils or regions. For example, in 2D the regions are
   //   .-----.-----.-----.
   //   |     |     |     |
   //   |  1  |  0  |  2  |
   //   |     |     |     |
   //   .-----.-----.-----.
-  //   |     |     |     |
-  //   |  5  |  3  |  7  |
-  //   |     |     |     |
-  //   .-----.-----.-----.
   // For each region we will make a list of the number of target
   // cells to fetch contributions from in each direction.
-  up->offset_upper = gkyl_malloc(pow(3,up->ndim) * up->ndim * sizeof(int));
-  int stencil_sizes[((int) round(pow(3,up->ndim))) * up->ndim];
+  up->offset_upper = gkyl_malloc(3 * sizeof(int));
   int sc = 0; // Current number of stencils.
   // Interior stencil (region 0).
-  for (int d=0; d<up->ndim; d++) {
-    stencil_sizes[sc*up->ndim+d] = intStencilSize[d];
-    up->offset_upper[sc*up->ndim+d] = stencil_sizes[sc*up->ndim+d];
-  }
+  up->offset_upper[0] = intStencilSize;
   sc++;
-  int num_stencil_curr = 1; // Like sc but updated outside of the psI loop.
   // Other stencils.
-  for (int dI=0; dI<up->ndim; dI++) {
-    int stencils_added = 0;
-    for (int psI=0; psI<num_stencil_curr; psI++) {
-      for (int mp=-1; mp<2; mp += 2) {
-        for (int d=0; d<up->ndim; d++) {
-          stencil_sizes[sc*up->ndim+d] = stencil_sizes[psI*up->ndim+d];
-        }
-        stencil_sizes[sc*up->ndim+dI] = floor(up->dxRat[dI]) + ceil(up->dxRat[dI] - floor(up->dxRat[dI]));
-
-        for (int d=0; d<up->ndim; d++)
-          up->offset_upper[sc*up->ndim+d] = stencil_sizes[sc*up->ndim+d];
-
-        sc++;
-        stencils_added++;
-      }
-    }
-    num_stencil_curr += stencils_added;
+  for (int mp=-1; mp<2; mp += 2) {
+    up->offset_upper[sc] = floor(up->dxRat) + ceil(up->dxRat - floor(up->dxRat));
+    sc++;
   }
 
 #ifdef GKYL_HAVE_CUDA
@@ -145,7 +124,7 @@ gkyl_dg_interpolate_advance(gkyl_dg_interpolate* up,
 #endif
 
   int idx_tar[GKYL_MAX_DIM] = {-1};
-  int idx_tar_ll[GKYL_MAX_DIM] = {-1};
+  int idx_tar_lo;
   double xc_do[GKYL_MAX_DIM];
   double xc_tar[GKYL_MAX_DIM];
 
@@ -161,47 +140,29 @@ gkyl_dg_interpolate_advance(gkyl_dg_interpolate* up,
     long linidx_do = gkyl_range_idx(range_do, idx_do);
     const double *fdo_c = gkyl_array_cfetch(fdo, linidx_do);
 
-    // Compute the target-grid index of the "lower-left" corner this cell contributes to.
-    for (int d=0; d<up->ndim; d++) {
-      double eveOI = up->dxRat[d]*(idx_do[d]-1);
-      idx_tar_ll[d] = ceil(eveOI)+((int) ceil(eveOI-floor(eveOI))+1) % 2;
-    }
+    // Compute the index of the lower target cell this cell contributes to.
+    double eveOI = up->dxRat*(idx_do[up->dir]-1);
+    idx_tar_lo = ceil(eveOI)+((int) ceil(eveOI-floor(eveOI))+1) % 2;
 
     // Get the index to the stencil for this donor cell.
-    int idx_sten = 1;
-    for (int d=0; d<up->ndim; d++) {
-      idx_sten = up->grid2stencil[d](d, idx_do[d], up->grid_do.cells[d], up->dxRat[d], idx_sten);
-    }
+    int idx_sten = up->grid2stencil(idx_do[up->dir], up->grid_do.cells[up->dir], up->dxRat);
     idx_sten -= 1;
 
+    for (int d=0; d<up->ndim; d++)
+      idx_tar[d] = idx_do[d];
+
     // Loop over the target-grid cells this donor cell contributes to.
-    // Since we can't use range_iter's in CUDA kernels we have to use 4 nested
-    // loops instead.
-    for (int dI=0; dI<up->ndim; dI++) {
+    for (int off=0; off<up->offset_upper[idx_sten]; off++) {
 
-      int offset[GKYL_MAX_DIM] = {0};
+      idx_tar[up->dir] = idx_tar_lo + off;
 
-      for (int oI=0; oI<up->offset_upper[idx_sten*up->ndim+dI]; oI++) {
-        offset[dI] = oI;
+      gkyl_rect_grid_cell_center(&up->grid_tar, idx_tar, xc_tar);
 
-        for (int eI=0; eI<dI; eI++) {
+      long linidx_tar = gkyl_range_idx(range_tar, idx_tar);
+      double *ftar_c = gkyl_array_fetch(ftar, linidx_tar);
 
-          for (int pI=0; pI<up->offset_upper[idx_sten*up->ndim+eI]; pI++) {
-            offset[eI] = pI;
-
-            for (int d=0; d<up->ndim; d++)
-              idx_tar[d] = idx_tar_ll[d] + offset[d];
-
-            gkyl_rect_grid_cell_center(&up->grid_tar, idx_tar, xc_tar);
-
-            long linidx_tar = gkyl_range_idx(range_tar, idx_tar);
-            double *ftar_c = gkyl_array_fetch(ftar, linidx_tar);
-
-            up->interp(xc_do, xc_tar, up->grid_do.dx, up->grid_tar.dx, fdo_c, ftar_c);
-
-          }
-        }
-      }
+      up->interp(xc_do, xc_tar, up->grid_do.dx, up->grid_tar.dx, fdo_c, ftar_c);
+      
     }
 
   }

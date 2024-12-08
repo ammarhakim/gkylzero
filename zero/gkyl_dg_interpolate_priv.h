@@ -8,14 +8,16 @@
 #include <assert.h>
 
 // Function that translates a grid index into a stencil index.
-typedef int (*dg_interp_grid2stencilIdx_t)(int dir, int idx,
-  int num_cells, double dx_rat, int stencilIn);
+typedef int (*dg_interp_grid2stencilIdx_t)(int idx,
+  int num_cells, double dx_rat);
 
 // Function pointer type for sheath reflection kernels.
 typedef void (*dg_interp_t)(const double *wDo, const double *wTar,
   const double *dxDo, const double *dxTar, const double *fldDo, double *fldTar);
 
-typedef struct {dg_interp_t kernels[2];} dg_interp_kern_list_gk;  // For use in kernel tables.
+// For use in kernel tables.
+typedef struct {dg_interp_t dirs[6];} dg_interp_kern_dir_list_gk;
+typedef struct {dg_interp_kern_dir_list_gk list[2];} dg_interp_kern_p_list_gk;
 
 // Primary struct in this updater.
 struct gkyl_dg_interpolate {
@@ -23,11 +25,12 @@ struct gkyl_dg_interpolate {
   bool use_gpu; // Whether to use the GPU.
   struct gkyl_rect_grid grid_do; // Donor grid.
   struct gkyl_rect_grid grid_tar; // Target grid.
-  double dxRat[GKYL_MAX_DIM]; // Ratio of donor to target cell lengths in each direction.
+  int dir; // Interpolation direction.
+  double dxRat; // Ratio of donor to target cell length in interpolation dir.
   int *offset_upper; // Upper index of the offset in each direction for each stencil.
 
   dg_interp_t interp;  // Kernel that performs the interpolation.
-  dg_interp_grid2stencilIdx_t grid2stencil[GKYL_MAX_DIM]; // Translate grid to stencil index.
+  dg_interp_grid2stencilIdx_t grid2stencil; // Translate grid to stencil index.
 
   uint32_t flags;
   struct gkyl_dg_interpolate *on_dev; // pointer to itself or device data
@@ -35,11 +38,31 @@ struct gkyl_dg_interpolate {
 
 // Serendipity  kernels.
 GKYL_CU_D
-static const dg_interp_kern_list_gk dg_interp_kern_list_gk_ser[] = {
-  { dg_interpolate_gyrokinetic_1x1v_ser_p1, NULL },
-  { dg_interpolate_gyrokinetic_1x2v_ser_p1, NULL },
-  { NULL, NULL },
-  { NULL, NULL },
+static const dg_interp_kern_p_list_gk dg_interp_kern_list_gk_ser[] = {
+  // 1x1v
+  { .list = {
+      { dg_interpolate_gyrokinetic_1x1v_ser_p1_x, dg_interpolate_gyrokinetic_1x1v_ser_p1_vpar, NULL, NULL, NULL, NULL, },
+      { dg_interpolate_gyrokinetic_1x1v_ser_p2_x, dg_interpolate_gyrokinetic_1x1v_ser_p2_vpar, NULL, NULL, NULL, NULL, },
+    },
+  },
+  // 1x2v
+  { .list = {
+      { dg_interpolate_gyrokinetic_1x2v_ser_p1_x, dg_interpolate_gyrokinetic_1x2v_ser_p1_vpar, dg_interpolate_gyrokinetic_1x2v_ser_p1_mu, NULL, NULL, NULL, },
+      { dg_interpolate_gyrokinetic_1x2v_ser_p2_x, dg_interpolate_gyrokinetic_1x2v_ser_p2_vpar, dg_interpolate_gyrokinetic_1x2v_ser_p2_mu, NULL, NULL, NULL, },
+    },
+  },
+  // 2x2v
+  { .list = {
+      { dg_interpolate_gyrokinetic_2x2v_ser_p1_x, dg_interpolate_gyrokinetic_2x2v_ser_p1_z, dg_interpolate_gyrokinetic_2x2v_ser_p1_vpar, dg_interpolate_gyrokinetic_2x2v_ser_p1_mu, NULL, NULL, },
+      { dg_interpolate_gyrokinetic_2x2v_ser_p2_x, dg_interpolate_gyrokinetic_2x2v_ser_p2_z, dg_interpolate_gyrokinetic_2x2v_ser_p2_vpar, dg_interpolate_gyrokinetic_2x2v_ser_p2_mu, NULL, NULL, },
+    },
+  },
+//  // 3x2v
+//  { .list = {
+//      { dg_interpolate_gyrokinetic_3v2v_ser_p1_x, dg_interpolate_gyrokinetic_3v2v_ser_p1_y, dg_interpolate_gyrokinetic_3v2v_ser_p1_z, dg_interpolate_gyrokinetic_3v2v_ser_p1_vpar, dg_interpolate_gyrokinetic_3v2v_ser_p1_mu, NULL, },
+//      { dg_interpolate_gyrokinetic_3v2v_ser_p2_x, dg_interpolate_gyrokinetic_3v2v_ser_p2_y, dg_interpolate_gyrokinetic_3v2v_ser_p2_z, dg_interpolate_gyrokinetic_3v2v_ser_p2_vpar, dg_interpolate_gyrokinetic_3v2v_ser_p2_mu, NULL, },
+//    },
+//  },
 };
 
 #ifdef GKYL_HAVE_CUDA
@@ -53,7 +76,7 @@ void gkyl_dg_interpolate_advance_cu(gkyl_dg_interpolate* up,
 
 GKYL_CU_D
 static dg_interp_t
-dg_interp_choose_gk_interp_kernel(struct gkyl_basis pbasis)
+dg_interp_choose_gk_interp_kernel(struct gkyl_basis pbasis, int dir)
 {
   enum gkyl_basis_type basis_type = pbasis.b_type;
   int pdim = pbasis.ndim;
@@ -62,7 +85,7 @@ dg_interp_choose_gk_interp_kernel(struct gkyl_basis pbasis)
   switch (basis_type) {
     case GKYL_BASIS_MODAL_GKHYBRID:
     case GKYL_BASIS_MODAL_SERENDIPITY:
-      return dg_interp_kern_list_gk_ser[pdim-2].kernels[poly_order-1];
+      return dg_interp_kern_list_gk_ser[pdim-2].list[poly_order-1].dirs[dir];
       break;
     default:
       assert(false);
@@ -92,47 +115,47 @@ static int dg_interp_prime_factors(int n, int *pfs, int pfs_size)
 }
 
 GKYL_CU_DH 
-static int dg_interp_index_stencil_map_refine(int dir, int idx,
-  int num_cells, double dx_rat, int stencilIn)
+static int dg_interp_index_stencil_map_refine(int idx,
+  int num_cells, double dx_rat)
 {
   // Given an index 'idx' to a cell in the coarse grid with 'num_cells'
   // cells, return the index of the refinement stencil needed, within
   // the table that holds stencils. Here 'dx_rat' is the ratio of
-  // donor to target cell length in the 'dir' direction.
+  // donor to target cell length in the interpolating direction.
   double remDecL = (idx-1)*dx_rat-floor((idx-1)*dx_rat);
   double remDecU = ceil(idx*dx_rat)-idx*dx_rat;
-  int stencilOut = stencilIn;
+  int stencilOut = 1;
   if ((idx == 1) ||   // First cell.
       (remDecL == 0) ||    // Interior cell with a left-boundary-like stencil.
       ((remDecL <= 0.5) && (remDecU <= 0.5))) {
-    stencilOut = 2*stencilIn + pow(3,dir-1) - 1;
+    stencilOut = 2*stencilOut - 1;
   }
   else if ((idx == num_cells) || // Last cell.
           (remDecU == 0)) { // Interior cell with a right-boundary-like stencil.
-    stencilOut = 2*stencilIn + pow(3,dir-1);
+    stencilOut = 2*stencilOut;
   }
   return stencilOut;
 }
 
 GKYL_CU_DH 
-static int dg_interp_index_stencil_map_coarsen(int dir, int idx,
-  int num_cells, double dx_rat, int stencilIn)
+static int dg_interp_index_stencil_map_coarsen(int idx,
+  int num_cells, double dx_rat)
 {
   // Given an index 'idx' to a cell in the fine grid with 'num_cells'
   // cells, return the index of the coarsening stencil needed, within
   // the table that holds stencils. Here 'dx_rat' is the ratio of
-  // donor to target cell length in the 'dir' direction.
+  // donor to target cell length in the interpolating direction.
   double remDecL = (idx-1)*dx_rat-floor(idx*dx_rat);
   double remDecU = ceil(idx*dx_rat)-idx*dx_rat;
-  int stencilOut = stencilIn;
+  int stencilOut = 1;
   if ((idx == 1) || // First cell.
       (remDecL == 0) || // Interior cell with a left-boundary-like stencil.
       ((remDecL > 0) && (remDecU > 0))) {
-     stencilOut = 2*stencilIn + pow(3,dir-1) - 1;
+     stencilOut = 2*stencilOut - 1;
   }
   else if ((idx == num_cells) || // Last cell.
           (remDecU == 0)) { // Interior cell with a right-boundary-like stencil.
-     stencilOut = 2*stencilIn + pow(3,dir-1);
+     stencilOut = 2*stencilOut;
   }
   return stencilOut;
 }
