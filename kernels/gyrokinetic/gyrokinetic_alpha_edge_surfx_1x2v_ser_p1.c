@@ -14,7 +14,7 @@ GKYL_CU_DH int gyrokinetic_alpha_edge_surfx_1x2v_ser_p1(const double *w, const d
   // cmag: coefficient multiplying parallel gradient.
   // b_i: covariant components of the field aligned unit vector.
   // phi: electrostatic potential.
-  // alpha_surf: output surface phase space flux in each direction (cdim + 1 components).
+  // alpha_surf: output surface phase space speed (times J*B) in each direction (cdim + 1 components).
   //             Note: Each cell owns their *lower* edge surface evaluation.
   // sgn_alpha_surf: output sign(alpha_surf) in each direction at quadrature points (cdim + 1 components).
   //                 Note: Each cell owns their *lower* edge sign(alpha_surf).
@@ -28,17 +28,17 @@ GKYL_CU_DH int gyrokinetic_alpha_edge_surfx_1x2v_ser_p1(const double *w, const d
   const double *b_z = &b_i[4];
 
   double hamil[12] = {0.}; 
-  hamil[0] = 2.0*phi[0]*q_+vmapSq[0]*m_+1.414213562373095*bmag[0]*vmap[2]; 
-  hamil[1] = 2.0*phi[1]*q_+1.414213562373095*bmag[1]*vmap[2]; 
+  hamil[0] = 2.0*phi[0]*q_+vmapSq[0]*m_+1.4142135623730951*bmag[0]*vmap[2]; 
+  hamil[1] = 2.0*phi[1]*q_+1.4142135623730951*bmag[1]*vmap[2]; 
   hamil[2] = vmapSq[1]*m_; 
-  hamil[3] = 1.414213562373095*bmag[0]*vmap[3]; 
-  hamil[5] = 1.414213562373095*bmag[1]*vmap[3]; 
+  hamil[3] = 1.4142135623730951*bmag[0]*vmap[3]; 
+  hamil[5] = 1.4142135623730951*bmag[1]*vmap[3]; 
   hamil[8] = vmapSq[2]*m_; 
 
   double *alphaR = &alpha_surf[0];
   double *sgn_alpha_surfR = &sgn_alpha_surf[0];
-  alphaR[0] = (1.5*cmag[1]*jacobtot_inv[1]*hamil[2]+0.8660254037844386*cmag[0]*jacobtot_inv[1]*hamil[2]+0.8660254037844386*jacobtot_inv[0]*cmag[1]*hamil[2]+0.5*cmag[0]*jacobtot_inv[0]*hamil[2])/(vmap[1]*m_); 
-  alphaR[1] = (3.354101966249685*cmag[1]*jacobtot_inv[1]*hamil[8]+1.936491673103709*cmag[0]*jacobtot_inv[1]*hamil[8]+1.936491673103709*jacobtot_inv[0]*cmag[1]*hamil[8]+1.118033988749895*cmag[0]*jacobtot_inv[0]*hamil[8])/(vmap[1]*m_); 
+  alphaR[0] = (1.224744871391589*cmag[1]*hamil[2]+0.7071067811865475*cmag[0]*hamil[2])/(vmap[1]*m_); 
+  alphaR[1] = (2.7386127875258306*cmag[1]*hamil[8]+1.5811388300841895*cmag[0]*hamil[8])/(vmap[1]*m_); 
 
   int const_sgn_alpha_surf = 1;  
   

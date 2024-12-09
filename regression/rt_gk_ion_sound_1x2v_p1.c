@@ -104,6 +104,7 @@ calc_integrated_diagnostics(struct gkyl_tm_trigger* iot, gkyl_gyrokinetic_app* a
   if (gkyl_tm_trigger_check_and_bump(iot, t_curr) || force_calc) {
     gkyl_gyrokinetic_app_calc_field_energy(app, t_curr);
     gkyl_gyrokinetic_app_calc_integrated_mom(app, t_curr);
+    gkyl_gyrokinetic_app_calc_L2norm(app, t_curr);
   }
 }
 
@@ -121,6 +122,9 @@ write_data(struct gkyl_tm_trigger* iot, gkyl_gyrokinetic_app* app, double t_curr
 
     gkyl_gyrokinetic_app_calc_integrated_mom(app, t_curr);
     gkyl_gyrokinetic_app_write_integrated_mom(app);
+
+    gkyl_gyrokinetic_app_calc_L2norm(app, t_curr);
+    gkyl_gyrokinetic_app_write_L2norm(app);
   }
 }
 
@@ -159,12 +163,12 @@ create_ctx(void)
   double mu_max_elc = me*pow(6.0*vtElc,2)/(2.0*B0);
 
   // Number of cells.
-  int Nz = 8;
+  int Nz = 16;
   int Nvpar = 64;
-  int Nmu = 12;
+  int Nmu = 16;
 
-  double t_end = 2.0; 
-  double num_frames = 1;
+  double t_end = 20.0; 
+  double num_frames = 20;
   int int_diag_calc_num = num_frames*100;
   double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.
   int num_failures_max = 20; // Maximum allowable number of consecutive small time-steps.

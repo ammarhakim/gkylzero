@@ -139,9 +139,6 @@ gk_species_projection_calc(gkyl_gyrokinetic_app *app, const struct gk_species *s
       gkyl_proj_on_basis_advance(proj->proj_func, tm, &s->local_ext, f);
     }
 
-    // Multiply by the gyrocenter coord jacobian (bmag).
-    gkyl_dg_mul_conf_phase_op_range(&app->confBasis, &app->basis, f, 
-        app->gk_geom->bmag, f, &app->local, &s->local);      
   }
   else if (proj->proj_id == GKYL_PROJ_MAXWELLIAN_PRIM) { 
     gkyl_proj_on_basis_advance(proj->proj_dens, tm, &app->local_ext, proj->dens); 
@@ -156,8 +153,13 @@ gk_species_projection_calc(gkyl_gyrokinetic_app *app, const struct gk_species *s
 
     // Copy the contents into the array we will use (potentially on GPUs).
     gkyl_array_copy(proj->prim_moms, proj->prim_moms_host);
+
+    struct gkyl_array* unit_field = mkarr(false, app->confBasis.num_basis, app->local_ext.volume);
+    gkyl_array_shiftc_range(unit_field, pow(sqrt(2.0),2), 0, &app->local);
+
     gkyl_proj_gkmaxwellian_on_basis_prim_mom(proj->proj_max_prim, &s->local_ext, &app->local_ext, 
-      proj->prim_moms, app->gk_geom->bmag, app->gk_geom->bmag, s->info.mass, f);
+      proj->prim_moms, app->gk_geom->bmag, unit_field, s->info.mass, f);
+    gkyl_array_release(unit_field);
   }
   else if (proj->proj_id == GKYL_PROJ_BIMAXWELLIAN) {
     gkyl_proj_on_basis_advance(proj->proj_dens, tm, &app->local_ext, proj->dens); 
@@ -175,12 +177,22 @@ gk_species_projection_calc(gkyl_gyrokinetic_app *app, const struct gk_species *s
 
     // Copy the contents into the array we will use (potentially on GPUs).
     gkyl_array_copy(proj->prim_moms, proj->prim_moms_host);
+
+    struct gkyl_array* unit_field = mkarr(false, app->confBasis.num_basis, app->local_ext.volume);
+    gkyl_array_shiftc_range(unit_field, pow(sqrt(2.0),2), 0, &app->local);
+
     gkyl_proj_bimaxwellian_on_basis_gyrokinetic_prim_mom(proj->proj_bimax, &s->local_ext, &app->local_ext, 
-      proj->prim_moms, app->gk_geom->bmag, app->gk_geom->bmag, s->info.mass, f);
+      proj->prim_moms, app->gk_geom->bmag, unit_field, s->info.mass, f);
+
+    gkyl_array_release(unit_field);
   }
 
   // Multiply by the velocity space jacobian.
   gkyl_array_scale_by_cell(f, s->vel_map->jacobvel);
+
+  // Multiply by the gyrocenter coord jacobian (bmag).
+  gkyl_dg_mul_conf_phase_op_range(&app->confBasis, &app->basis, f, 
+      app->gk_geom->bmag, f, &app->local, &s->local);      
 
   if (proj->proj_id == GKYL_PROJ_MAXWELLIAN_PRIM || proj->proj_id == GKYL_PROJ_BIMAXWELLIAN) {
     // Now compute and scale the density to the desired density function 
@@ -200,6 +212,7 @@ gk_species_projection_calc(gkyl_gyrokinetic_app *app, const struct gk_species *s
       }  
     }
   }
+
   // Multiply by the configuration space jacobian.
   gkyl_dg_mul_conf_phase_op_range(&app->confBasis, &app->basis, f, 
     app->gk_geom->jacobgeo, f, &app->local, &s->local);      

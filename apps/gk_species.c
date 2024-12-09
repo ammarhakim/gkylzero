@@ -252,6 +252,7 @@ gk_species_init(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *app, st
   gks->f = mkarr(app->use_gpu, app->basis.num_basis, gks->local_ext.volume);
   gks->f1 = mkarr(app->use_gpu, app->basis.num_basis, gks->local_ext.volume);
   gks->fnew = mkarr(app->use_gpu, app->basis.num_basis, gks->local_ext.volume);
+  gks->fDJtot = mkarr(app->use_gpu, app->basis.num_basis, gks->local_ext.volume);
 
   gks->f_host = gks->f;
   if (app->use_gpu)
@@ -727,8 +728,12 @@ gk_species_rhs(gkyl_gyrokinetic_app *app, struct gk_species *species,
     &app->local, &species->local, &species->local_ext, 
     species->phi, species->alpha_surf, species->sgn_alpha_surf, species->const_sgn_alpha);
 
+  // Multiply f by 1/(J_x . B).
+  gkyl_dg_mul_conf_phase_op_range(&app->confBasis, &app->basis, species->fDJtot,
+    app->jacobtot_inv_weak, fin, &app->local, &species->local);
+
   gkyl_dg_updater_gyrokinetic_advance(species->slvr, &species->local, 
-    fin, species->cflrate, rhs);
+    species->fDJtot, species->cflrate, rhs);
 
   if (species->lbo.collision_id == GKYL_LBO_COLLISIONS)
     gk_species_lbo_rhs(app, species, &species->lbo, fin, rhs);
@@ -864,6 +869,7 @@ gk_species_release(const gkyl_gyrokinetic_app* app, const struct gk_species *s)
   gkyl_array_release(s->f);
   gkyl_array_release(s->f1);
   gkyl_array_release(s->fnew);
+  gkyl_array_release(s->fDJtot);
   gkyl_array_release(s->cflrate);
   gkyl_array_release(s->bc_buffer);
   gkyl_array_release(s->bc_buffer_lo_fixed);
