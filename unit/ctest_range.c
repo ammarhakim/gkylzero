@@ -668,6 +668,20 @@ void test_range_deflate()
     );
   }
 
+  // Remove second dimension.
+  remDir[0] = 0; remDir[1] = 1; remDir[2] = 0;
+  locDir[0] = 0; locDir[1] = 3; locDir[2] = 0;
+  gkyl_range_deflate(&defr, &range, remDir, locDir);
+
+  idx[1] = locDir[1];
+  gkyl_range_iter_init(&iter, &defr);
+  while (gkyl_range_iter_next(&iter)) {  // loop over deflated region
+    idx[0] = iter.idx[0]; idx[2] = iter.idx[1];
+    TEST_CHECK(
+      gkyl_range_idx(&defr, iter.idx) == gkyl_range_idx(&range, idx)
+    );
+  }
+
   // remove two directions
   remDir[0] = 0; remDir[1] = 1; remDir[2] = 1;
   locDir[0] = 0; locDir[1] = upper[1]; locDir[2] = lower[2];
