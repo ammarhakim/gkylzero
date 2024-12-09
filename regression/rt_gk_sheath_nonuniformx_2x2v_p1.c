@@ -610,7 +610,7 @@ main(int argc, char **argv)
       .bmag_func = bmag_func,
       .bmag_ctx = &ctx,
       .nonuniform_map_info = {
-        .mapping = &nonuniform_position_map,
+        .mapping = nonuniform_position_map,
         .ctx = &ctx,
       },
     },

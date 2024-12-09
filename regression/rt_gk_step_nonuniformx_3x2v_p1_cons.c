@@ -680,7 +680,7 @@ main(int argc, char **argv)
       .efit_info = inp,
       .tok_grid_info = ginp,
       .nonuniform_map_info = {
-        .mapping = &nonuniform_position_map,
+        .mapping = nonuniform_position_map,
         .ctx = &ctx,
       },
     },

@@ -782,7 +782,7 @@ int main(int argc, char **argv)
       .efit_info = efit_inp,
       .mirror_grid_info = grid_inp,
       .nonuniform_map_info = {
-        .mapping = &nonuniform_position_map,
+        .mapping = nonuniform_position_map,
         .numerical_mapping_fraction = 0.5, // Seems unnecisary and unclear. Effectively non-uniform compuatational space
         .ctx = &ctx,
       },
