@@ -11,22 +11,27 @@ extern "C" {
 }
 
 __global__ static void
-gkyl_array_average_set_ker_cu(struct gkyl_array_average *up, struct gkyl_basis basis, enum gkyl_array_average_op op)
+gkyl_array_average_set_ker_cu(struct gkyl_array_average *up)
 {
-  int ndim = basis.ndim, poly_order = basis.poly_order;
-  up->kernel = gkyl_array_average_ker_list[ndim-1].dimlist[op].kernels[poly_order-1];
+  int ndim =  up->tot_basis.ndim, poly_order = up->tot_basis.poly_order;
+
+  int op = -1; // -1 shifted to start with 0
+  for (unsigned d = 0; d < ndim; d++)
+    op += pow(2,d) * up->avg_dim[d];
+
+  up->kernel = gkyl_array_average_ker_list[ndim-1].list[op].kernels[poly_order-1];
 
 }
 
 struct gkyl_array_average*
-gkyl_array_average_cu_dev_new(struct gkyl_array_average* up, const struct gkyl_rect_grid *grid, const struct gkyl_basis *basis, enum gkyl_array_average_op op)
+gkyl_array_average_cu_dev_new(const gkyl_array_average *up)
 {
   // Copy struct to device.
   struct gkyl_array_average *up_cu = (struct gkyl_array_average*) gkyl_cu_malloc(sizeof(struct gkyl_array_average));
   gkyl_cu_memcpy(up_cu, up, sizeof(struct gkyl_array_average), GKYL_CU_MEMCPY_H2D);
 
   // Set the kernel.
-  gkyl_array_average_set_ker_cu<<<1,1>>>(up_cu, *basis, op);
+  gkyl_array_average_set_ker_cu<<<1,1>>>(up_cu);
 
   up->on_dev = up_cu;
 
@@ -88,8 +93,8 @@ array_integrate_blockRedAtomic_cub(struct gkyl_array_average *up,
   // }
 }
 
-void gkyl_array_average_advance_cu(gkyl_array_average *up, const struct gkyl_array *fin,
-  const struct gkyl_range *range, double *out)
+void gkyl_array_average_advance_cu(gkyl_array_average *up, 
+  const struct gkyl_array *fin, struct gkyl_array *avgout)
 {
   gkyl_cu_memset(out, 0, up->num_comp*sizeof(double));
 
