@@ -14,7 +14,7 @@ GKYL_CU_DH int gyrokinetic_alpha_no_by_surfx_2x2v_ser_p1(const double *w, const 
   // cmag: coefficient multiplying parallel gradient.
   // b_i: covariant components of the field aligned unit vector.
   // phi: electrostatic potential.
-  // alpha_surf: output surface phase space flux in each direction (cdim + 1 components).
+  // alpha_surf: output surface phase space speed (times J*B) in each direction (cdim + 1 components).
   //             Note: Each cell owns their *lower* edge surface evaluation.
   // sgn_alpha_surf: output sign(alpha_surf) in each direction at quadrature points (cdim + 1 components).
   //                 Note: Each cell owns their *lower* edge sign(alpha_surf).
@@ -29,16 +29,16 @@ GKYL_CU_DH int gyrokinetic_alpha_no_by_surfx_2x2v_ser_p1(const double *w, const 
   const double *b_z = &b_i[8];
 
   double hamil[24] = {0.}; 
-  hamil[0] = 2.0*phi[0]*q_+1.414213562373095*(vmapSq[0]*m_+bmag[0]*vmap[2]); 
-  hamil[1] = 2.0*phi[1]*q_+1.414213562373095*bmag[1]*vmap[2]; 
-  hamil[2] = 2.0*phi[2]*q_+1.414213562373095*bmag[2]*vmap[2]; 
-  hamil[3] = 1.414213562373095*vmapSq[1]*m_; 
-  hamil[4] = 1.414213562373095*bmag[0]*vmap[3]; 
-  hamil[5] = 2.0*phi[3]*q_+1.414213562373095*vmap[2]*bmag[3]; 
-  hamil[8] = 1.414213562373095*bmag[1]*vmap[3]; 
-  hamil[9] = 1.414213562373095*bmag[2]*vmap[3]; 
-  hamil[12] = 1.414213562373095*bmag[3]*vmap[3]; 
-  hamil[16] = 1.414213562373095*vmapSq[2]*m_; 
+  hamil[0] = 2.0*phi[0]*q_+1.4142135623730951*(vmapSq[0]*m_+bmag[0]*vmap[2]); 
+  hamil[1] = 2.0*phi[1]*q_+1.4142135623730951*bmag[1]*vmap[2]; 
+  hamil[2] = 2.0*phi[2]*q_+1.4142135623730951*bmag[2]*vmap[2]; 
+  hamil[3] = 1.4142135623730951*vmapSq[1]*m_; 
+  hamil[4] = 1.4142135623730951*bmag[0]*vmap[3]; 
+  hamil[5] = 2.0*phi[3]*q_+1.4142135623730951*vmap[2]*bmag[3]; 
+  hamil[8] = 1.4142135623730951*bmag[1]*vmap[3]; 
+  hamil[9] = 1.4142135623730951*bmag[2]*vmap[3]; 
+  hamil[12] = 1.4142135623730951*bmag[3]*vmap[3]; 
+  hamil[16] = 1.4142135623730951*vmapSq[2]*m_; 
 
   double *alphaL = &alpha_surf[0];
   double *sgn_alpha_surfL = &sgn_alpha_surf[0];

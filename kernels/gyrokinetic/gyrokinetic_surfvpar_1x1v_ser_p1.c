@@ -31,11 +31,11 @@ GKYL_CU_DH double gyrokinetic_surfvpar_1x1v_ser_p1(const double *w, const double
   double fUpL[2] = {0.};
   if (const_sgn_alphaL[0] == 1) {  
     if (sgn_alpha_surfL[0] == 1.0) {  
-  fUpL[0] = (1.58113883008419*fl[4]+1.224744871391589*fl[2]+0.7071067811865475*fl[0])/vmap_prime_l[0]; 
-  fUpL[1] = (1.58113883008419*fl[5]+1.224744871391589*fl[3]+0.7071067811865475*fl[1])/vmap_prime_l[0]; 
+  fUpL[0] = (1.5811388300841895*fl[4]+1.224744871391589*fl[2]+0.7071067811865475*fl[0])/vmap_prime_l[0]; 
+  fUpL[1] = (1.5811388300841898*fl[5]+1.224744871391589*fl[3]+0.7071067811865475*fl[1])/vmap_prime_l[0]; 
     } else { 
-  fUpL[0] = (1.58113883008419*fc[4]-1.224744871391589*fc[2]+0.7071067811865475*fc[0])/vmap_prime_c[0]; 
-  fUpL[1] = (1.58113883008419*fc[5]-1.224744871391589*fc[3]+0.7071067811865475*fc[1])/vmap_prime_c[0]; 
+  fUpL[0] = (1.5811388300841895*fc[4]-1.224744871391589*fc[2]+0.7071067811865475*fc[0])/vmap_prime_c[0]; 
+  fUpL[1] = (1.5811388300841898*fc[5]-1.224744871391589*fc[3]+0.7071067811865475*fc[1])/vmap_prime_c[0]; 
     } 
   } else { 
   double f_lr[2] = {0.};
@@ -43,11 +43,11 @@ GKYL_CU_DH double gyrokinetic_surfvpar_1x1v_ser_p1(const double *w, const double
   double sgn_alphaUpL[2] = {0.};
   gkhyb_1x1v_p1_vpardir_upwind_quad_to_modal(sgn_alpha_surfL, sgn_alphaUpL); 
 
-  f_lr[0] = (1.58113883008419*fl[4]+1.224744871391589*fl[2]+0.7071067811865475*fl[0])/vmap_prime_l[0]; 
-  f_lr[1] = (1.58113883008419*fl[5]+1.224744871391589*fl[3]+0.7071067811865475*fl[1])/vmap_prime_l[0]; 
+  f_lr[0] = (1.5811388300841895*fl[4]+1.224744871391589*fl[2]+0.7071067811865475*fl[0])/vmap_prime_l[0]; 
+  f_lr[1] = (1.5811388300841898*fl[5]+1.224744871391589*fl[3]+0.7071067811865475*fl[1])/vmap_prime_l[0]; 
 
-  f_cl[0] = (1.58113883008419*fc[4]-1.224744871391589*fc[2]+0.7071067811865475*fc[0])/vmap_prime_c[0]; 
-  f_cl[1] = (1.58113883008419*fc[5]-1.224744871391589*fc[3]+0.7071067811865475*fc[1])/vmap_prime_c[0]; 
+  f_cl[0] = (1.5811388300841895*fc[4]-1.224744871391589*fc[2]+0.7071067811865475*fc[0])/vmap_prime_c[0]; 
+  f_cl[1] = (1.5811388300841898*fc[5]-1.224744871391589*fc[3]+0.7071067811865475*fc[1])/vmap_prime_c[0]; 
 
   fUpL[0] = (0.3535533905932737*f_lr[1]-0.3535533905932737*f_cl[1])*sgn_alphaUpL[1]+(0.3535533905932737*f_lr[0]-0.3535533905932737*f_cl[0])*sgn_alphaUpL[0]+0.5*(f_lr[0]+f_cl[0]); 
   fUpL[1] = (0.3535533905932737*f_lr[0]-0.3535533905932737*f_cl[0])*sgn_alphaUpL[1]+(0.3535533905932737*sgn_alphaUpL[0]+0.5)*f_lr[1]+(0.5-0.3535533905932737*sgn_alphaUpL[0])*f_cl[1]; 
@@ -56,11 +56,11 @@ GKYL_CU_DH double gyrokinetic_surfvpar_1x1v_ser_p1(const double *w, const double
   double fUpR[2] = {0.};
   if (const_sgn_alphaR[0] == 1) {  
     if (sgn_alpha_surfR[0] == 1.0) {  
-  fUpR[0] = (1.58113883008419*fc[4]+1.224744871391589*fc[2]+0.7071067811865475*fc[0])/vmap_prime_c[0]; 
-  fUpR[1] = (1.58113883008419*fc[5]+1.224744871391589*fc[3]+0.7071067811865475*fc[1])/vmap_prime_c[0]; 
+  fUpR[0] = (1.5811388300841895*fc[4]+1.224744871391589*fc[2]+0.7071067811865475*fc[0])/vmap_prime_c[0]; 
+  fUpR[1] = (1.5811388300841898*fc[5]+1.224744871391589*fc[3]+0.7071067811865475*fc[1])/vmap_prime_c[0]; 
     } else { 
-  fUpR[0] = (1.58113883008419*fr[4]-1.224744871391589*fr[2]+0.7071067811865475*fr[0])/vmap_prime_r[0]; 
-  fUpR[1] = (1.58113883008419*fr[5]-1.224744871391589*fr[3]+0.7071067811865475*fr[1])/vmap_prime_r[0]; 
+  fUpR[0] = (1.5811388300841895*fr[4]-1.224744871391589*fr[2]+0.7071067811865475*fr[0])/vmap_prime_r[0]; 
+  fUpR[1] = (1.5811388300841898*fr[5]-1.224744871391589*fr[3]+0.7071067811865475*fr[1])/vmap_prime_r[0]; 
     } 
   } else { 
   double f_cr[2] = {0.};
@@ -68,11 +68,11 @@ GKYL_CU_DH double gyrokinetic_surfvpar_1x1v_ser_p1(const double *w, const double
   double sgn_alphaUpR[2] = {0.};
   gkhyb_1x1v_p1_vpardir_upwind_quad_to_modal(sgn_alpha_surfR, sgn_alphaUpR); 
 
-  f_cr[0] = (1.58113883008419*fc[4]+1.224744871391589*fc[2]+0.7071067811865475*fc[0])/vmap_prime_c[0]; 
-  f_cr[1] = (1.58113883008419*fc[5]+1.224744871391589*fc[3]+0.7071067811865475*fc[1])/vmap_prime_c[0]; 
+  f_cr[0] = (1.5811388300841895*fc[4]+1.224744871391589*fc[2]+0.7071067811865475*fc[0])/vmap_prime_c[0]; 
+  f_cr[1] = (1.5811388300841898*fc[5]+1.224744871391589*fc[3]+0.7071067811865475*fc[1])/vmap_prime_c[0]; 
 
-  f_rl[0] = (1.58113883008419*fr[4]-1.224744871391589*fr[2]+0.7071067811865475*fr[0])/vmap_prime_r[0]; 
-  f_rl[1] = (1.58113883008419*fr[5]-1.224744871391589*fr[3]+0.7071067811865475*fr[1])/vmap_prime_r[0]; 
+  f_rl[0] = (1.5811388300841895*fr[4]-1.224744871391589*fr[2]+0.7071067811865475*fr[0])/vmap_prime_r[0]; 
+  f_rl[1] = (1.5811388300841898*fr[5]-1.224744871391589*fr[3]+0.7071067811865475*fr[1])/vmap_prime_r[0]; 
 
   fUpR[0] = (0.3535533905932737*f_cr[1]-0.3535533905932737*f_rl[1])*sgn_alphaUpR[1]+(0.3535533905932737*f_cr[0]-0.3535533905932737*f_rl[0])*sgn_alphaUpR[0]+0.5*(f_rl[0]+f_cr[0]); 
   fUpR[1] = (0.3535533905932737*f_cr[0]-0.3535533905932737*f_rl[0])*sgn_alphaUpR[1]+(0.5-0.3535533905932737*sgn_alphaUpR[0])*f_rl[1]+(0.3535533905932737*sgn_alphaUpR[0]+0.5)*f_cr[1]; 
@@ -88,13 +88,13 @@ GKYL_CU_DH double gyrokinetic_surfvpar_1x1v_ser_p1(const double *w, const double
 
   out[0] += (0.7071067811865475*GhatL[0]-0.7071067811865475*GhatR[0])*rdvpar2; 
   out[1] += (0.7071067811865475*GhatL[1]-0.7071067811865475*GhatR[1])*rdvpar2; 
-  out[2] += ((-1.224744871391589*GhatR[0])-1.224744871391589*GhatL[0])*rdvpar2; 
-  out[3] += ((-1.224744871391589*GhatR[1])-1.224744871391589*GhatL[1])*rdvpar2; 
-  out[4] += (1.58113883008419*GhatL[0]-1.58113883008419*GhatR[0])*rdvpar2; 
-  out[5] += (1.58113883008419*GhatL[1]-1.58113883008419*GhatR[1])*rdvpar2; 
+  out[2] += (-(1.224744871391589*GhatR[0])-1.224744871391589*GhatL[0])*rdvpar2; 
+  out[3] += (-(1.224744871391589*GhatR[1])-1.224744871391589*GhatL[1])*rdvpar2; 
+  out[4] += (1.5811388300841895*GhatL[0]-1.5811388300841895*GhatR[0])*rdvpar2; 
+  out[5] += (1.5811388300841898*GhatL[1]-1.5811388300841898*GhatR[1])*rdvpar2; 
 
   double vmap_prime_min = fmin(fmin(fabs(vmap_prime_l[0]),fabs(vmap_prime_c[0])),fabs(vmap_prime_r[0]));
   double cflFreq = fmax(fabs(alphaL[0]/vmap_prime_min), fabs(alphaR[0]/vmap_prime_min)); 
-  return 1.767766952966369*rdvpar2*cflFreq; 
+  return 1.7677669529663687*rdvpar2*cflFreq; 
 
 } 

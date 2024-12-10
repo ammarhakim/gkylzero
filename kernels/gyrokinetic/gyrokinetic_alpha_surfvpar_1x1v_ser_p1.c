@@ -14,7 +14,7 @@ GKYL_CU_DH int gyrokinetic_alpha_surfvpar_1x1v_ser_p1(const double *w, const dou
   // cmag: coefficient multiplying parallel gradient.
   // b_i: covariant components of the field aligned unit vector.
   // phi: electrostatic potential.
-  // alpha_surf: output surface phase space flux in each direction (cdim + 1 components).
+  // alpha_surf: output surface phase space speed (times J*B) in each direction (cdim + 1 components).
   //             Note: Each cell owns their *lower* edge surface evaluation.
   // sgn_alpha_surf: output sign(alpha_surf) in each direction at quadrature points (cdim + 1 components).
   //                 Note: Each cell owns their *lower* edge sign(alpha_surf).
@@ -28,15 +28,15 @@ GKYL_CU_DH int gyrokinetic_alpha_surfvpar_1x1v_ser_p1(const double *w, const dou
   const double *b_z = &b_i[4];
 
   double hamil[6] = {0.}; 
-  hamil[0] = 1.414213562373095*phi[0]*q_+0.7071067811865475*vmapSq[0]*m_; 
-  hamil[1] = 1.414213562373095*phi[1]*q_; 
+  hamil[0] = 1.4142135623730951*phi[0]*q_+0.7071067811865475*vmapSq[0]*m_; 
+  hamil[1] = 1.4142135623730951*phi[1]*q_; 
   hamil[2] = 0.7071067811865475*vmapSq[1]*m_; 
   hamil[4] = 0.7071067811865475*vmapSq[2]*m_; 
 
   double *alphaL = &alpha_surf[3];
   double *sgn_alpha_surfL = &sgn_alpha_surf[3];
-  alphaL[0] = (((-0.6123724356957944*cmag[1]*hamil[1]*jacobtot_inv[1])-0.6123724356957944*cmag[0]*jacobtot_inv[0]*hamil[1])*rdx2)/m_; 
-  alphaL[1] = (((-0.6123724356957944*cmag[0]*hamil[1]*jacobtot_inv[1])-0.6123724356957944*jacobtot_inv[0]*cmag[1]*hamil[1])*rdx2)/m_; 
+  alphaL[0] = -((0.8660254037844386*cmag[0]*hamil[1]*rdx2)/m_); 
+  alphaL[1] = -((0.8660254037844386*cmag[1]*hamil[1]*rdx2)/m_); 
 
   int const_sgn_alpha_surf = 1;  
   
