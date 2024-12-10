@@ -105,7 +105,7 @@ vlasovApp = Vlasov.App.new {
             local n = 0.0
 
             if math.abs(x) < Ls then
-              n = 2.0 * (Ls - fabs(x)) / Ls * (1.0 / math.sqrt(2.0 * pi * (vte * vte)) * (math.exp(-(vx * vx) / (2.0 * (vte * vte))))) -- Electron source distribution function (left).
+              n = 2.0 * (Ls - math.abs(x)) / Ls * (1.0 / math.sqrt(2.0 * pi * (vte * vte)) * (math.exp(-(vx * vx) / (2.0 * (vte * vte))))) -- Electron source distribution function (left).
             else
               n = 0.0 -- Electron source distribution function (right).
             end
@@ -185,7 +185,7 @@ vlasovApp = Vlasov.App.new {
             local n = 0.0
 
             if math.abs(x) < Ls then
-              n = 2.0 * (Ls - fabs(x)) / Ls * (1.0 / math.sqrt(2.0 * pi * (vti * vti)) * (math.exp(-(vx * vx) / (2.0 * (vti * vti))))) -- Ion source distribution function (left).
+              n = 2.0 * (Ls - math.abs(x)) / Ls * (1.0 / math.sqrt(2.0 * pi * (vti * vti)) * (math.exp(-(vx * vx) / (2.0 * (vti * vti))))) -- Ion source distribution function (left).
             else
               n = 0.0 -- Ion source distribution function (right).
             end

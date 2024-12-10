@@ -477,6 +477,9 @@ vlasov_species_lw_new(lua_State *L)
 
   vms_lw->source_id = source_id;
   vms_lw->num_sources = num_sources;
+
+  strcpy(vms_lw->source_species, source_species);
+  vms_lw->source_length = source_length;
   
   for (int i = 0; i < num_sources; i++) {
     vms_lw->source_proj_id[i] = source_proj_id[i];
