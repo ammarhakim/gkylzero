@@ -128,7 +128,6 @@ void gkyl_array_average_advance(gkyl_array_average *up,
   struct gkyl_range cmp_rng; // this is the complementary range, sub + cmp = full
   
   // We now loop on the range of the averaged array
-  // printf("// We now loop on the range of the averaged array\n");
   gkyl_range_iter_init(&sub_iter, &up->sub_rng);
   while (gkyl_range_iter_next(&sub_iter)) {
     long sub_lidx = gkyl_range_idx(&up->sub_rng, sub_iter.idx);
@@ -143,6 +142,7 @@ void gkyl_array_average_advance(gkyl_array_average *up,
       }
     }
 
+    // set up the complementary range, which is the range through all averaged dimensions
     gkyl_range_deflate(&cmp_rng, &up->tot_rng, up->issub_dim, parent_idx);
     gkyl_range_iter_no_split_init(&cmp_iter, &cmp_rng);
     while (gkyl_range_iter_next(&cmp_iter)) {

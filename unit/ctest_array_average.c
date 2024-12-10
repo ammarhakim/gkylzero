@@ -1,5 +1,8 @@
-// Test integration of a gkyl_array over a range.
-//
+/* Test gkyl_array_average updater
+This unit test performs several weighted averages and integrations from 1x to 3x arrays in various orders
+with the gkyl_array_average updater. It compares the final result (full averaging) to the gkyl_array_integrate
+updater.
+*/
 
 #include <acutest.h>
 #include <gkyl_rect_grid.h>
@@ -64,7 +67,7 @@ void evalWeight_1x(double t, const double *xn, double* restrict fout, void *ctx)
   double x = xn[0];
   fout[0] = 1+x*x;
 }
-
+// direct weighted averaging x -> avg
 void test_1x(int poly_order, bool use_gpu)
 {
   // define grid and basis
@@ -150,7 +153,7 @@ void test_1x(int poly_order, bool use_gpu)
   gkyl_array_release(wx_c);
 }
 
-// test 2x
+// tests 2x
 void evalFunc_2x(double t, const double *xn, double* restrict fout, void *ctx)
 {
   double x = xn[0], y = xn[1];
@@ -167,7 +170,7 @@ void evalWeight_2x(double t, const double *xn, double* restrict fout, void *ctx)
   fout[0] = 1 + x*x + y*y;
 }
 
-// One step averaging
+// one step weighted averaging x,y -> avg
 void test_2x_1step(int poly_order, bool use_gpu)
 {
   printf("\n");
@@ -186,14 +189,14 @@ void test_2x_1step(int poly_order, bool use_gpu)
   struct gkyl_range local, local_ext;
   gkyl_create_grid_ranges(&grid, ghost, &local_ext, &local);
 
-  // Define the reduced range and basis for averaging
+  // define the reduced range and basis for averaging
   struct gkyl_range red_local;
   gkyl_range_init(&red_local, 1, &local.lower[0], &local.lower[0]);
 
   struct gkyl_basis red_basis;
   gkyl_cart_modal_serendip(&red_basis, 1, poly_order);
 
-  // Project the target and weight functions
+  // project the target and weight functions
   gkyl_proj_on_basis *projf = gkyl_proj_on_basis_new(
       &grid, &basis, poly_order + 1, 1, evalFunc_2x, NULL);
 
@@ -240,7 +243,6 @@ void test_2x_1step(int poly_order, bool use_gpu)
   }
   double result = avgf_c0_ho[0] * sqrt(2)/2;
 
-  // double solution = solution_2x();
   double intwf_ref = solution_array_integrate(grid, basis, local_ext, local, wxy_c, fxy_c, use_gpu);
   double intw_ref  = solution_array_integrate(grid, basis, local_ext, local, NULL, wxy_c, use_gpu);
   double solution  = intwf_ref/intw_ref;
@@ -256,8 +258,7 @@ void test_2x_1step(int poly_order, bool use_gpu)
   gkyl_array_release(fxy_c);
   gkyl_array_release(wxy_c);
 }
-
-
+// two step integration of the weights x,y -> y -> int
 void test_2x_intx_inty(int poly_order, bool use_gpu)
 {
   // Define grids and basis
@@ -355,7 +356,6 @@ void test_2x_intx_inty(int poly_order, bool use_gpu)
 
   const double result = intw_c0_ho[0];
 
-  // double solution = 1333.33542278013;
   double intw_ref = solution_array_integrate(grid, basis, local_ext, local, NULL, wxy_c, use_gpu);
   double solution = intw_ref;
 
@@ -365,12 +365,12 @@ void test_2x_intx_inty(int poly_order, bool use_gpu)
   printf("\tRelative error: %e\n", rel_err );
   TEST_CHECK(gkyl_compare(rel_err, 0.0, 1e-12));
 
-  //------------------ Clean up ------------------
+  // clean  up
   gkyl_array_release(wxy_c);
   gkyl_array_release(wy_c);
   gkyl_array_release(intw_c);
 }
-
+// two steps averaging x,y -> y -> avg
 void test_2x_avgx_avgy(int poly_order, bool use_gpu)
 {
   // Define grids and basis
@@ -526,8 +526,7 @@ void test_2x_avgx_avgy(int poly_order, bool use_gpu)
   gkyl_array_release(intf_c);
   gkyl_array_release(intw_c);
 }
-
-
+// two steps averaging x,y -> x -> avg
 void test_2x_avgy_avgx(int poly_order, bool use_gpu)
 {
   // define grid and basis
@@ -709,8 +708,7 @@ void evalWeight_3x(double t, const double *xn, double* restrict fout, void *ctx)
   double z = xn[2];
   fout[0] = 1 + x*x + y*y + z*z;
 }
-
-// two steps average, first avg on x then on y and z
+// two steps average x,y,z -> y,z -> avg
 void test_3x_avgx_avgyz(int poly_order, bool use_gpu)
 {
   // Define grids and basis
@@ -868,7 +866,7 @@ void test_3x_avgx_avgyz(int poly_order, bool use_gpu)
   gkyl_array_release(intf_c);
   gkyl_array_release(intw_c);
 }
-
+// two steps average x,y,z -> x -> avg
 void test_3x_avgyz_avgx(int poly_order, bool use_gpu)
 {
   // define grids and basis
