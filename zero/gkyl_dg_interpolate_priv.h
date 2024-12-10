@@ -63,12 +63,12 @@ static const dg_interp_kern_p_list_gk dg_interp_kern_list_gk_ser[] = {
       { dg_interpolate_gyrokinetic_2x2v_ser_p2_x, dg_interpolate_gyrokinetic_2x2v_ser_p2_z, dg_interpolate_gyrokinetic_2x2v_ser_p2_vpar, dg_interpolate_gyrokinetic_2x2v_ser_p2_mu, NULL, NULL, },
     },
   },
-//  // 3x2v
-//  { .list = {
-//      { dg_interpolate_gyrokinetic_3v2v_ser_p1_x, dg_interpolate_gyrokinetic_3v2v_ser_p1_y, dg_interpolate_gyrokinetic_3v2v_ser_p1_z, dg_interpolate_gyrokinetic_3v2v_ser_p1_vpar, dg_interpolate_gyrokinetic_3v2v_ser_p1_mu, NULL, },
-//      { dg_interpolate_gyrokinetic_3v2v_ser_p2_x, dg_interpolate_gyrokinetic_3v2v_ser_p2_y, dg_interpolate_gyrokinetic_3v2v_ser_p2_z, dg_interpolate_gyrokinetic_3v2v_ser_p2_vpar, dg_interpolate_gyrokinetic_3v2v_ser_p2_mu, NULL, },
-//    },
-//  },
+  // 3x2v
+  { .list = {
+      { dg_interpolate_gyrokinetic_3x2v_ser_p1_x, dg_interpolate_gyrokinetic_3x2v_ser_p1_y, dg_interpolate_gyrokinetic_3x2v_ser_p1_z, dg_interpolate_gyrokinetic_3x2v_ser_p1_vpar, dg_interpolate_gyrokinetic_3x2v_ser_p1_mu, NULL, },
+      { NULL, NULL, NULL, NULL, NULL, NULL, },
+    },
+  },
 };
 
 #ifdef GKYL_HAVE_CUDA

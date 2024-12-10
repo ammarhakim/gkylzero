@@ -162,7 +162,7 @@ gk_species_file_import_init(struct gkyl_gyrokinetic_app *app, struct gk_species 
     else {
       // Interpolate the donor distribution to the target grid.
       struct gkyl_dg_interpolate *interp = gkyl_dg_interpolate_new(app->cdim, &app->basis,
-        &grid_do, &grid, &local_do, &gks->local, ghost_do, true, app->use_gpu);
+        &grid_do, &grid, &local_do, &gks->local, ghost_do, app->use_gpu);
       gkyl_dg_interpolate_advance(interp, fdo, gks->f);
       gkyl_dg_interpolate_release(interp);
     }

@@ -253,17 +253,17 @@ test_1x1v_gk(const int *cells, const int *cells_tar, int poly_order, bool use_gp
   for (int i=0; i<num_mom; i++) int_moms[i] = 0.0;
   calc_int_moms(num_mom, &confGrid, &confBasis, &confLocal, use_gpu, moms, int_moms);
 
-  // Write donor distribution function to file.
-  char fname0[1024];
-  sprintf(fname0, "ctest_dg_interp_1x1v_p%d_N%dx%d-N%dx%d_do.gkyl", poly_order, cells[0], cells[1], cells_tar[0], cells_tar[1]);
-  gkyl_grid_sub_array_write(&grid, &local, NULL, distf_ho, fname0);
-
-  // Write target moments to file.
-  char fname0m[1024];
-  sprintf(fname0m, "ctest_dg_interp_1x1v_p%d_N%dx%d-N%dx%d_do_mom.gkyl", poly_order, cells[0], cells[1], cells_tar[0], cells_tar[1]);
-  gkyl_grid_sub_array_write(&confGrid, &confLocal, NULL, moms_ho, fname0m);
-
-  printf("\n  Donor int_moms  = %g %g %g\n", int_moms[0],int_moms[1],int_moms[2]);
+//  // Write donor distribution function to file.
+//  char fname0[1024];
+//  sprintf(fname0, "ctest_dg_interp_1x1v_p%d_N%dx%d-N%dx%d_do.gkyl", poly_order, cells[0], cells[1], cells_tar[0], cells_tar[1]);
+//  gkyl_grid_sub_array_write(&grid, &local, NULL, distf_ho, fname0);
+//
+//  // Write target moments to file.
+//  char fname0m[1024];
+//  sprintf(fname0m, "ctest_dg_interp_1x1v_p%d_N%dx%d-N%dx%d_do_mom.gkyl", poly_order, cells[0], cells[1], cells_tar[0], cells_tar[1]);
+//  gkyl_grid_sub_array_write(&confGrid, &confLocal, NULL, moms_ho, fname0m);
+//
+//  printf("\n  Donor int_moms  = %g %g %g\n", int_moms[0],int_moms[1],int_moms[2]);
 
   // Target grids.
   int confCells_tar[cdim], velCells_tar[vdim];
@@ -304,7 +304,7 @@ test_1x1v_gk(const int *cells, const int *cells_tar, int poly_order, bool use_gp
 
   // Create the interpolation operator and interpolate onto the target grid.
   struct gkyl_dg_interpolate *interp = gkyl_dg_interpolate_new(cdim, &basis,
-    &grid, &grid_tar, &local, &local_tar, ghost, true, use_gpu);
+    &grid, &grid_tar, &local, &local_tar, ghost, use_gpu);
 
   gkyl_dg_interpolate_advance(interp, distf, distf_tar);
 
@@ -320,17 +320,17 @@ test_1x1v_gk(const int *cells, const int *cells_tar, int poly_order, bool use_gp
   for (int i=0; i<num_mom; i++) int_moms_tar[i] = 0.0;
   calc_int_moms(num_mom, &confGrid_tar, &confBasis, &confLocal_tar, use_gpu, moms_tar, int_moms_tar);
 
-  // Write target distribution function to file.
-  char fname1[1024];
-  sprintf(fname1, "ctest_dg_interp_1x1v_p%d_N%dx%d-N%dx%d_tar.gkyl", poly_order, cells[0], cells[1], cells_tar[0], cells_tar[1]);
-  gkyl_grid_sub_array_write(&grid_tar, &local_tar, NULL, distf_tar_ho, fname1);
-
-  // Write target moments to file.
-  char fname1m[1024];
-  sprintf(fname1m, "ctest_dg_interp_1x1v_p%d_N%dx%d-N%dx%d_tar_mom.gkyl", poly_order, cells[0], cells[1], cells_tar[0], cells_tar[1]);
-  gkyl_grid_sub_array_write(&confGrid_tar, &confLocal_tar, NULL, moms_tar_ho, fname1m);
-
-  printf("\n  Target int_moms = %g %g %g\n", int_moms_tar[0],int_moms_tar[1],int_moms_tar[2]);
+//  // Write target distribution function to file.
+//  char fname1[1024];
+//  sprintf(fname1, "ctest_dg_interp_1x1v_p%d_N%dx%d-N%dx%d_tar.gkyl", poly_order, cells[0], cells[1], cells_tar[0], cells_tar[1]);
+//  gkyl_grid_sub_array_write(&grid_tar, &local_tar, NULL, distf_tar_ho, fname1);
+//
+//  // Write target moments to file.
+//  char fname1m[1024];
+//  sprintf(fname1m, "ctest_dg_interp_1x1v_p%d_N%dx%d-N%dx%d_tar_mom.gkyl", poly_order, cells[0], cells[1], cells_tar[0], cells_tar[1]);
+//  gkyl_grid_sub_array_write(&confGrid_tar, &confLocal_tar, NULL, moms_tar_ho, fname1m);
+//
+//  printf("\n  Target int_moms = %g %g %g\n", int_moms_tar[0],int_moms_tar[1],int_moms_tar[2]);
 
   // Check that the moments and integrated moments are the same.
   bool same_conf_grid = true;
@@ -509,17 +509,17 @@ test_1x2v_gk(const int *cells, const int *cells_tar, int poly_order, bool use_gp
   for (int i=0; i<num_mom; i++) int_moms[i] = 0.0;
   calc_int_moms(num_mom, &confGrid, &confBasis, &confLocal, use_gpu, moms, int_moms);
 
-  // Write donor distribution function to file.
-  char fname0[1024];
-  sprintf(fname0, "ctest_dg_interp_1x2v_p%d_N%dx%dx%d-N%dx%dx%d_do.gkyl", poly_order, cells[0], cells[1], cells[2], cells_tar[0], cells_tar[1], cells_tar[2]);
-  gkyl_grid_sub_array_write(&grid, &local, NULL, distf_ho, fname0);
-
-  // Write target moments to file.
-  char fname0m[1024];
-  sprintf(fname0m, "ctest_dg_interp_1x2v_p%d_N%dx%dx%d-N%dx%dx%d_do_mom.gkyl", poly_order, cells[0], cells[1], cells[2], cells_tar[0], cells_tar[1], cells_tar[2]);
-  gkyl_grid_sub_array_write(&confGrid, &confLocal, NULL, moms_ho, fname0m);
-
-  printf("\n  Donor int_moms  = %g %g %g\n", int_moms[0],int_moms[1],int_moms[2]);
+//  // Write donor distribution function to file.
+//  char fname0[1024];
+//  sprintf(fname0, "ctest_dg_interp_1x2v_p%d_N%dx%dx%d-N%dx%dx%d_do.gkyl", poly_order, cells[0], cells[1], cells[2], cells_tar[0], cells_tar[1], cells_tar[2]);
+//  gkyl_grid_sub_array_write(&grid, &local, NULL, distf_ho, fname0);
+//
+//  // Write target moments to file.
+//  char fname0m[1024];
+//  sprintf(fname0m, "ctest_dg_interp_1x2v_p%d_N%dx%dx%d-N%dx%dx%d_do_mom.gkyl", poly_order, cells[0], cells[1], cells[2], cells_tar[0], cells_tar[1], cells_tar[2]);
+//  gkyl_grid_sub_array_write(&confGrid, &confLocal, NULL, moms_ho, fname0m);
+//
+//  printf("\n  Donor int_moms  = %g %g %g\n", int_moms[0],int_moms[1],int_moms[2]);
 
   // Target grids.
   int confCells_tar[cdim], velCells_tar[vdim];
@@ -560,7 +560,7 @@ test_1x2v_gk(const int *cells, const int *cells_tar, int poly_order, bool use_gp
 
   // Create the interpolation operator and interpolate onto the target grid.
   struct gkyl_dg_interpolate *interp = gkyl_dg_interpolate_new(cdim, &basis,
-    &grid, &grid_tar, &local, &local_tar, ghost, true, use_gpu);
+    &grid, &grid_tar, &local, &local_tar, ghost, use_gpu);
 
   gkyl_dg_interpolate_advance(interp, distf, distf_tar);
 
@@ -576,17 +576,17 @@ test_1x2v_gk(const int *cells, const int *cells_tar, int poly_order, bool use_gp
   for (int i=0; i<num_mom; i++) int_moms_tar[i] = 0.0;
   calc_int_moms(num_mom, &confGrid_tar, &confBasis, &confLocal_tar, use_gpu, moms_tar, int_moms_tar);
 
-  // Write target distribution function to file.
-  char fname1[1024];
-  sprintf(fname1, "ctest_dg_interp_1x2v_p%d_N%dx%dx%d-N%dx%dx%d_tar.gkyl", poly_order, cells[0], cells[1], cells[2], cells_tar[0], cells_tar[1], cells_tar[2]);
-  gkyl_grid_sub_array_write(&grid_tar, &local_tar, NULL, distf_tar_ho, fname1);
-
-  // Write target moments to file.
-  char fname1m[1024];
-  sprintf(fname1m, "ctest_dg_interp_1x2v_p%d_N%dx%dx%d-N%dx%dx%d_tar_mom.gkyl", poly_order, cells[0], cells[1], cells[2], cells_tar[0], cells_tar[1], cells_tar[2]);
-  gkyl_grid_sub_array_write(&confGrid_tar, &confLocal_tar, NULL, moms_tar_ho, fname1m);
-
-  printf("\n  Target int_moms = %g %g %g\n", int_moms_tar[0],int_moms_tar[1],int_moms_tar[2]);
+//  // Write target distribution function to file.
+//  char fname1[1024];
+//  sprintf(fname1, "ctest_dg_interp_1x2v_p%d_N%dx%dx%d-N%dx%dx%d_tar.gkyl", poly_order, cells[0], cells[1], cells[2], cells_tar[0], cells_tar[1], cells_tar[2]);
+//  gkyl_grid_sub_array_write(&grid_tar, &local_tar, NULL, distf_tar_ho, fname1);
+//
+//  // Write target moments to file.
+//  char fname1m[1024];
+//  sprintf(fname1m, "ctest_dg_interp_1x2v_p%d_N%dx%dx%d-N%dx%dx%d_tar_mom.gkyl", poly_order, cells[0], cells[1], cells[2], cells_tar[0], cells_tar[1], cells_tar[2]);
+//  gkyl_grid_sub_array_write(&confGrid_tar, &confLocal_tar, NULL, moms_tar_ho, fname1m);
+//
+//  printf("\n  Target int_moms = %g %g %g\n", int_moms_tar[0],int_moms_tar[1],int_moms_tar[2]);
 
   // Check that the moments and integrated moments are the same.
   bool same_conf_grid = true;

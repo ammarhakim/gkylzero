@@ -7,7 +7,7 @@ struct gkyl_dg_interpolate*
 gkyl_dg_interpolate_new(int cdim, const struct gkyl_basis *pbasis,
   const struct gkyl_rect_grid *grid_do, const struct gkyl_rect_grid *grid_tar,
   const struct gkyl_range *range_do, const struct gkyl_range *range_tar,
-  const int *nghost, bool pre_alloc_fields, bool use_gpu)
+  const int *nghost, bool use_gpu)
 {
   // Allocate space for new updater.
   struct gkyl_dg_interpolate *up = gkyl_malloc(sizeof(*up));
@@ -78,16 +78,14 @@ gkyl_dg_interpolate_new(int cdim, const struct gkyl_basis *pbasis,
   else {
     for (int k=0; k<up->num_interp_dirs; k++)
       up->interp_ops[k] = gkyl_dg_interpolate_new(cdim, pbasis, &up->grids[k], &up->grids[k+1],
-        &up->ranges[k], &up->ranges[k+1], nghost, false, use_gpu);
+        &up->ranges[k], &up->ranges[k+1], nghost, use_gpu);
   }
 
-//  if (pre_alloc_fields) {
-    // Pre-allocate fields for intermediate grids.
-    up->fields = gkyl_malloc((up->num_interp_dirs+1) * sizeof(struct gkyl_array *));
-    for (int k=1; k<up->num_interp_dirs; k++) {
-      up->fields[k] = gkyl_array_new(GKYL_DOUBLE, pbasis->num_basis, ranges_ext[k].volume);
-    }
-//  }
+  // Pre-allocate fields for intermediate grids.
+  up->fields = gkyl_malloc((up->num_interp_dirs+1) * sizeof(struct gkyl_array *));
+  for (int k=1; k<up->num_interp_dirs; k++) {
+    up->fields[k] = gkyl_array_new(GKYL_DOUBLE, pbasis->num_basis, ranges_ext[k].volume);
+  }
   gkyl_free(ranges_ext);
 
   if (up->num_interp_dirs > 1)

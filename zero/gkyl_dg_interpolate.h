@@ -21,7 +21,6 @@ typedef struct gkyl_dg_interpolate gkyl_dg_interpolate;
  * @param range_do Phase-space range in donor grid.
  * @param range_tar Phase-space range in target grid.
  * @param nghost Number of ghost cells in each direction.
- * @param pre_alloc_fields Whether to preallocate intermediate fields needed.
  * @param use_gpu bool to determine if on GPU.
  * @return New interpolation updater.
  */
@@ -29,7 +28,7 @@ struct gkyl_dg_interpolate*
 gkyl_dg_interpolate_new(int cdim, const struct gkyl_basis *pbasis,
   const struct gkyl_rect_grid *grid_do, const struct gkyl_rect_grid *grid_tar,
   const struct gkyl_range *range_do, const struct gkyl_range *range_tar,
-  const int *nghost, bool pre_alloc_fields, bool use_gpu);
+  const int *nghost, bool use_gpu);
 
 /**
  * Run the interpolation updater in the indicated range.
