@@ -8,19 +8,6 @@
 // Object type
 typedef struct gkyl_array_average gkyl_array_average;
 
-  // The symbol used for the coordinates are not related
-  // to 2x or 3x runs, x is always the first dim, y the second, z the third.
-  // E.g.: in a 2x run, y here translates into the z coordinate
-enum gkyl_array_average_op {
-    GKYL_ARRAY_AVERAGE_OP = 0,    // average over all dimensions
-    GKYL_ARRAY_AVERAGE_OP_X,      // 1st dimension will remain
-    GKYL_ARRAY_AVERAGE_OP_Y,      // 2nd dimension will remain
-    GKYL_ARRAY_AVERAGE_OP_Z,      // 3rd dimension will remain
-    GKYL_ARRAY_AVERAGE_OP_XY,     // 1st and 2nd dimensions will remain
-    GKYL_ARRAY_AVERAGE_OP_XZ,     // 1st and 3rd dimensions will remain
-    GKYL_ARRAY_AVERAGE_OP_YZ      // 2nd and 3rd dimensions will remain
-};
-
 // Input of the new routine is packaged as a struct
 typedef struct gkyl_array_average_inp gkyl_array_average_inp;
 /**
@@ -33,19 +20,19 @@ typedef struct gkyl_array_average_inp gkyl_array_average_inp;
  * @param tot_rng_ext Extended range of the input array, including ghost cells.
  * @param sub_rng    Reduced range of the output array, covering only the non-averaged dimensions.
  * @param weights    Pointer to the array containing weights for the averaging process. (set it to NULL for integral)
- * @param op         Enumeration describing the type of average to perform (e.g., full or partial).
+ * @param avg_dim    Flag array to set which dimension is averaged
  * @param use_gpu    Boolean flag indicating whether the computation should be performed on a GPU.
  */
 struct gkyl_array_average_inp {
-  const struct gkyl_rect_grid *grid;         // Computational grid
+  const struct gkyl_rect_grid *grid;        // Computational grid
   const struct gkyl_basis tot_basis;        // Total basis for the full dimensionality
   const struct gkyl_basis sub_basis;        // Subset basis for reduced dimensionality
-  const struct gkyl_range *tot_rng;          // Range for input array (total)
-  const struct gkyl_range *tot_rng_ext;      // Extended range for input array (with ghosts)
-  const struct gkyl_range *sub_rng;          // Range for output array (reduced)
+  const struct gkyl_range *tot_rng;         // Range for input array (total)
+  const struct gkyl_range *tot_rng_ext;     // Extended range for input array (with ghosts)
+  const struct gkyl_range *sub_rng;         // Range for output array (reduced)
   const struct gkyl_array *weights;         // Weight array for averaging
-  const enum gkyl_array_average_op op;      // Type of average operation to perform
-  const bool use_gpu;                       // Flag for GPU computation
+  const int *avg_dim;                       // Flag array to set which dimension is averaged
+  bool use_gpu;                             // Flag for GPU computation
 };
 
 /**

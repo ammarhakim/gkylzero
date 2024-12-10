@@ -29,54 +29,22 @@ gkyl_array_average_new(const struct gkyl_array_average_inp *inp)
 
   // Set up the array of all dimensions that are conserved after the average (=0 for removed)
   // according to the operation input variable
-  for (unsigned d=0; d < up->ndim; ++d) up->issub_dim[d] = 0;
-  switch (inp->op) {
-    case GKYL_ARRAY_AVERAGE_OP: // Full integration
-      assert(inp->tot_basis.ndim >= 1); // Ensure at least 1 dimension exists
-      for (unsigned d=0; d < up->ndim; ++d){ 
-        up->sub_dir[d] = 0;
-      }
-      break;
-    case GKYL_ARRAY_AVERAGE_OP_X: // integration all except x
-      assert(inp->tot_basis.ndim >= 1); // Ensure at least 1 dimension exists
-      up->issub_dim[0] = 1; // here the first dimension is conserved
-      up->sub_dir[0] = 0; // the first dimension in the reduced array is the first dim in the total array
-      break;
-    case GKYL_ARRAY_AVERAGE_OP_Y: // integration all except y
-      assert(inp->tot_basis.ndim >= 2); // Ensure at least 2 dimensions for Y
-      up->issub_dim[1] = 1;
-      up->sub_dir[0] = 1;
-      break;
-    case GKYL_ARRAY_AVERAGE_OP_Z: // integration all except z
-      assert(inp->tot_basis.ndim >= 3); // Ensure at least 3 dimensions for Z
-      up->issub_dim[2] = 1;
-      up->sub_dir[0] = 2;
-      break;
-    case GKYL_ARRAY_AVERAGE_OP_XY: // integration all except xy
-      assert(inp->tot_basis.ndim >= 3); // Ensure at least 3 dimensions for XY reduction
-      up->issub_dim[0] = 1;
-      up->issub_dim[1] = 1;
-      up->sub_dir[0] = 0;
-      up->sub_dir[1] = 1;
-      break;
-    case GKYL_ARRAY_AVERAGE_OP_XZ: // integration all except xz
-      assert(inp->tot_basis.ndim >= 3); // Ensure at least 3 dimensions for XZ
-      up->issub_dim[0] = 1;
-      up->issub_dim[2] = 1;
-      up->sub_dir[0] = 0;
-      up->sub_dir[1] = 2;
-      break;
-    case GKYL_ARRAY_AVERAGE_OP_YZ: // integration all except yz
-      assert(inp->tot_basis.ndim >= 3); // Ensure at least 3 dimensions for YZ
-      up->issub_dim[1] = 1;
-      up->issub_dim[2] = 1;
-      up->sub_dir[0] = 1;
-      up->sub_dir[1] = 2;
-      break;
-    default:
-      assert(false && "-array_average: Invalid operation in switch(op)\n");
-      break;
+  up->navg_dim = 0;
+  for (unsigned d=0; d < up->ndim; ++d){
+    up->avg_dim[d] = inp->avg_dim[d];
+    up->navg_dim += inp->avg_dim[d]; 
   }
+  assert(up->navg_dim <= up->ndim);
+
+  for (unsigned d=0; d < up->ndim; ++d) 
+    up->issub_dim[d] = 1 - inp->avg_dim[d];
+
+  int k = 0;
+  for (unsigned d=0; d < up->ndim; ++d) 
+    if(up->issub_dim[d]){
+      up->sub_dir[k] = d;
+      k++;
+    }
 
   // Compute the cell sub-dimensional volume
   up->subvol = 1.0;
@@ -106,7 +74,7 @@ gkyl_array_average_new(const struct gkyl_array_average_inp *inp)
     .tot_rng_ext = inp->tot_rng_ext,
     .sub_rng = inp->sub_rng,
     .weights = NULL, // No weights -> integral only
-    .op = inp->op,
+    .avg_dim = inp->avg_dim,
     .use_gpu = inp->use_gpu
     };
     int_w = gkyl_array_average_new(&inp_integral);
@@ -125,11 +93,11 @@ gkyl_array_average_new(const struct gkyl_array_average_inp *inp)
   }
 
   // Choose the kernel that performs the desired operation within the integral.
-  gkyl_array_average_choose_kernel(up, &up->tot_basis, inp->op);
+  gkyl_array_average_choose_kernel(up);
 
   #ifdef GKYL_HAVE_CUDA
   if (use_gpu)
-    return gkyl_array_average_cu_dev_new(up, grid, up->tot_basis, inp->op);
+    return gkyl_array_average_cu_dev_new(up);
   #endif
 
   return up;

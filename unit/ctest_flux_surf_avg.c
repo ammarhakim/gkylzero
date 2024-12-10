@@ -87,6 +87,7 @@ void test_1x(int poly_order, bool use_gpu)
   gkyl_proj_on_basis_release(proj_weight);
 
   //------------- 4. Compute weighted average ----------------
+    int avg_dim_x[] = {1,0,0};
     struct gkyl_array_average_inp inp_avg_full = {
     .grid = &grid,
     .tot_basis = basis,
@@ -95,7 +96,7 @@ void test_1x(int poly_order, bool use_gpu)
     .tot_rng_ext = &local_ext,
     .sub_rng = &red_local,
     .weights = wx_c,
-    .op = GKYL_ARRAY_AVERAGE_OP,
+    .avg_dim = avg_dim_x,
     .use_gpu = use_gpu
   };
   struct gkyl_array_average *avg_full = gkyl_array_average_new(&inp_avg_full);
@@ -193,6 +194,7 @@ void test_2x_1step(int poly_order, bool use_gpu)
   gkyl_proj_on_basis_release(proj_weight);
 
   // Perform the one step average
+  int avg_dim_xy[] = {1,1,0};
   struct gkyl_array_average_inp inp_avg_xy = {
     .grid = &grid,
     .tot_basis = basis,
@@ -201,7 +203,7 @@ void test_2x_1step(int poly_order, bool use_gpu)
     .tot_rng_ext = &local_ext,
     .sub_rng = &red_local,
     .weights = wxy_c,
-    .op = GKYL_ARRAY_AVERAGE_OP,
+    .avg_dim = avg_dim_xy,
     .use_gpu = use_gpu
   };
   struct gkyl_array_average *avg_xy = gkyl_array_average_new(&inp_avg_xy);
@@ -280,7 +282,8 @@ void test_2x_intx_inty(int poly_order, bool use_gpu)
 
   gkyl_proj_on_basis_release(proj_weight);
 
-  //  Integration over x only
+  //  Integration over x only, (x,y) to (y)
+  int int_dim_x[] = {1,0,0};
   struct gkyl_array_average_inp inp_int_x = {
     .grid = &grid,
     .tot_basis = basis,
@@ -289,7 +292,7 @@ void test_2x_intx_inty(int poly_order, bool use_gpu)
     .tot_rng_ext = &local_ext,
     .sub_rng = &local_y,
     .weights = NULL,
-    .op = GKYL_ARRAY_AVERAGE_OP_Y,
+    .avg_dim = int_dim_x,
     .use_gpu = use_gpu
   };
   struct gkyl_array_average *int_x = gkyl_array_average_new(&inp_int_x);
@@ -299,8 +302,9 @@ void test_2x_intx_inty(int poly_order, bool use_gpu)
 
   gkyl_array_average_release(int_x);
 
-  //  Integration over remaining dimensions (x)
-      struct gkyl_array_average_inp inp_int_y = {
+  //  Integration over remaining dimensions (y)
+  int int_dim_y[] = {1,0,0};
+  struct gkyl_array_average_inp inp_int_y = {
     .grid = &grid_y,
     .tot_basis = basis_y,
     .sub_basis = red_basis,
@@ -308,7 +312,7 @@ void test_2x_intx_inty(int poly_order, bool use_gpu)
     .tot_rng_ext = &local_y_ext,
     .sub_rng = &red_local,
     .weights = NULL,
-    .op = GKYL_ARRAY_AVERAGE_OP,
+    .avg_dim = int_dim_y,
     .use_gpu = use_gpu
   };
   struct gkyl_array_average *int_y = gkyl_array_average_new(&inp_int_y);
@@ -393,10 +397,8 @@ void test_2x_avgx_avgy(int poly_order, bool use_gpu)
 
   gkyl_proj_on_basis_release(proj_weight);
 
-
-  //Average over x only
-
   // Create and run the array average updater to average on x only
+  int avg_dim_x[] = {1,0,0};
   struct gkyl_array_average_inp inp_avg_x = {
     .grid = &grid,
     .tot_basis = basis,
@@ -405,7 +407,7 @@ void test_2x_avgx_avgy(int poly_order, bool use_gpu)
     .tot_rng_ext = &local_ext,
     .sub_rng = &local_y,
     .weights = wxy_c,
-    .op = GKYL_ARRAY_AVERAGE_OP_Y,
+    .avg_dim = avg_dim_x,
     .use_gpu = use_gpu
   };
   struct gkyl_array *fy_c = mkarr(basis_y.num_basis, local_y_ext.volume, use_gpu);
@@ -427,7 +429,7 @@ void test_2x_avgx_avgy(int poly_order, bool use_gpu)
     .tot_rng_ext = &local_ext,
     .sub_rng = &local_y,
     .weights = NULL,
-    .op = GKYL_ARRAY_AVERAGE_OP_Y,
+    .avg_dim = avg_dim_x,
     .use_gpu = use_gpu
   };
   struct gkyl_array_average *int_x = gkyl_array_average_new(&inp_int_x);
@@ -447,6 +449,7 @@ void test_2x_avgx_avgy(int poly_order, bool use_gpu)
   */
 
   //Average over y now
+  int avg_dim_y[] = {1,0,0};
   struct gkyl_array_average_inp inp_int_y = {
     .grid = &grid_y,
     .tot_basis = basis_y,
@@ -455,7 +458,7 @@ void test_2x_avgx_avgy(int poly_order, bool use_gpu)
     .tot_rng_ext = &local_y_ext,
     .sub_rng = &red_local,
     .weights = NULL,
-    .op = GKYL_ARRAY_AVERAGE_OP,
+    .avg_dim = avg_dim_y,
     .use_gpu = use_gpu
   };
   struct gkyl_array_average *int_y = gkyl_array_average_new(&inp_int_y);
@@ -568,7 +571,8 @@ void test_2x_avgy_avgx(int poly_order, bool use_gpu)
   struct gkyl_array *fx_c = mkarr(basis_x.num_basis, local_x_ext.volume, use_gpu);
   struct gkyl_array *wx_c = mkarr(basis_x.num_basis, local_x_ext.volume, use_gpu);
 
-  // Create and run the array average updater to average on x only
+  // Create and run the array average updater to average on y only
+  int avg_dim_y[] = {0,1,0};
   struct gkyl_array_average_inp inp_avg_x = {
     .grid = &grid,
     .tot_basis = basis,
@@ -577,7 +581,7 @@ void test_2x_avgy_avgx(int poly_order, bool use_gpu)
     .tot_rng_ext = &local_ext,
     .sub_rng = &local_x,
     .weights = wxy_c,
-    .op = GKYL_ARRAY_AVERAGE_OP_X,
+    .avg_dim = avg_dim_y,
     .use_gpu = use_gpu
   };
   struct gkyl_array_average *avg_x = gkyl_array_average_new(&inp_avg_x);
@@ -596,7 +600,7 @@ void test_2x_avgy_avgx(int poly_order, bool use_gpu)
     .tot_rng_ext = &local_ext,
     .sub_rng = &local_x,
     .weights = NULL,
-    .op = GKYL_ARRAY_AVERAGE_OP_X,
+    .avg_dim = avg_dim_y,
     .use_gpu = use_gpu
   };
   struct gkyl_array_average *int_x = gkyl_array_average_new(&inp_int_x);
@@ -628,7 +632,8 @@ void test_2x_avgy_avgx(int poly_order, bool use_gpu)
   struct gkyl_array *intw_c = mkarr(red_basis.num_basis, red_local.volume, use_gpu);
 
   // Create and run the array average updater to average on x only
-      struct gkyl_array_average_inp inp_int_y = {
+  int avg_dim_x[] = {1,0,0};
+  struct gkyl_array_average_inp inp_int_y = {
     .grid = &grid_x,
     .tot_basis = basis_x,
     .sub_basis = red_basis,
@@ -636,11 +641,10 @@ void test_2x_avgy_avgx(int poly_order, bool use_gpu)
     .tot_rng_ext = &local_x_ext,
     .sub_rng = &red_local,
     .weights = NULL,
-    .op = GKYL_ARRAY_AVERAGE_OP,
+    .avg_dim = avg_dim_x,
     .use_gpu = use_gpu
   };
   struct gkyl_array_average *int_y = gkyl_array_average_new(&inp_int_y);
-  // printf("-compute int(wf)dy\n");
   gkyl_array_average_advance(int_y, fx_c, intf_c);
   /*
   here intf_c is DG coeff of int[int[w(x,y) f(x,y)]dx]dy
@@ -775,6 +779,7 @@ void test_3x_avgx_avgyz(int poly_order, bool use_gpu)
   gkyl_proj_on_basis_release(proj_weight);
 
   // Create and run the array average updater to average on x only
+  int avg_dim_x[] = {1,0,0};
   struct gkyl_array_average_inp inp_avg_xyz_to_yz = {
     .grid = &grid,
     .tot_basis = basis,
@@ -783,7 +788,7 @@ void test_3x_avgx_avgyz(int poly_order, bool use_gpu)
     .tot_rng_ext = &local_ext,
     .sub_rng = &local_yz,
     .weights = wxyz_c,
-    .op = GKYL_ARRAY_AVERAGE_OP_YZ,
+    .avg_dim = avg_dim_x,
     .use_gpu = use_gpu
   };
   struct gkyl_array_average *avg_xyz_to_yz = gkyl_array_average_new(&inp_avg_xyz_to_yz);
@@ -802,7 +807,7 @@ void test_3x_avgx_avgyz(int poly_order, bool use_gpu)
     .tot_rng_ext = &local_ext,
     .sub_rng = &local_yz,
     .weights = NULL,
-    .op = GKYL_ARRAY_AVERAGE_OP_YZ,
+    .avg_dim = avg_dim_x,
     .use_gpu = use_gpu
   };
   struct gkyl_array_average *int_xyz_to_yz = gkyl_array_average_new(&inp_int_xyz_to_yz);
@@ -816,8 +821,9 @@ void test_3x_avgx_avgyz(int poly_order, bool use_gpu)
   gkyl_dg_mul_op_range(basis_yz, 0, fyz_c, 0, fyz_c, 0, wyz_c, &local_yz);
   // fy_c is DG coeff of int[w(x,y) f(x,y)]dy
 
-  // Create and run the array average updater to average on x only
-      struct gkyl_array_average_inp inp_int_y = {
+  // Create and run the array average updater to average on y and z (first second dim)
+  int avg_dim_yz[] = {1,1,0};
+  struct gkyl_array_average_inp inp_int_yz = {
     .grid = &grid_yz,
     .tot_basis = basis_yz,
     .sub_basis = red_basis,
@@ -825,20 +831,20 @@ void test_3x_avgx_avgyz(int poly_order, bool use_gpu)
     .tot_rng_ext = &local_yz_ext,
     .sub_rng = &red_local,
     .weights = NULL,
-    .op = GKYL_ARRAY_AVERAGE_OP,
+    .avg_dim = avg_dim_yz,
     .use_gpu = use_gpu
   };
-  struct gkyl_array_average *int_y = gkyl_array_average_new(&inp_int_y);
+  struct gkyl_array_average *int_yz = gkyl_array_average_new(&inp_int_yz);
   struct gkyl_array *intf_c = mkarr(red_basis.num_basis, red_local.volume, use_gpu);
-  gkyl_array_average_advance(int_y, fyz_c, intf_c);
+  gkyl_array_average_advance(int_yz, fyz_c, intf_c);
   // here intf_c is DG coeff of int[int[w(x,y) f(x,y)]dy]dx
 
   // obtain full integral of weights too
   struct gkyl_array *intw_c = mkarr(red_basis.num_basis, red_local.volume, use_gpu);
-  gkyl_array_average_advance(int_y, wyz_c, intw_c);
+  gkyl_array_average_advance(int_yz, wyz_c, intw_c);
   // here intw_c is DG coeff of int[int[w(x,y)]dy]dx
 
-  gkyl_array_average_release(int_y);
+  gkyl_array_average_release(int_yz);
 
   // Retrieve the computed average from the device (if applicable)
   const double *intf_c0  = gkyl_array_cfetch(intf_c, 0);
@@ -928,7 +934,8 @@ void test_3x_avgyz_avgx(int poly_order, bool use_gpu)
   gkyl_proj_on_basis_release(proj_weight);
 
 
-  // Create and run the array average updater to average on x only
+  // Create and run the array average updater to average y and z
+  int avg_dim_yz[] = {0,1,1};
   struct gkyl_array_average_inp inp_avg_xyz_to_x = {
     .grid = &grid,
     .tot_basis = basis,
@@ -937,7 +944,7 @@ void test_3x_avgyz_avgx(int poly_order, bool use_gpu)
     .tot_rng_ext = &local_ext,
     .sub_rng = &local_x,
     .weights = wxyz_c,
-    .op = GKYL_ARRAY_AVERAGE_OP_X,
+    .avg_dim = avg_dim_yz,
     .use_gpu = use_gpu
   };
   struct gkyl_array_average *avg_xyz_to_x = gkyl_array_average_new(&inp_avg_xyz_to_x);
@@ -957,7 +964,7 @@ void test_3x_avgyz_avgx(int poly_order, bool use_gpu)
     .tot_rng_ext = &local_ext,
     .sub_rng = &local_x,
     .weights = NULL,
-    .op = GKYL_ARRAY_AVERAGE_OP_X,
+    .avg_dim = avg_dim_yz,
     .use_gpu = use_gpu
   };
   struct gkyl_array_average *int_xyz_to_x = gkyl_array_average_new(&inp_int_xyz_to_x);
@@ -972,8 +979,9 @@ void test_3x_avgyz_avgx(int poly_order, bool use_gpu)
   gkyl_dg_mul_op_range(basis_x, 0, fx_c, 0, fx_c, 0, wx_c, &local_x);
   // fy_c is DG coeff of int[w(x,y) f(x,y)]dy
 
-  // Create and run the array average updater to average on x only
-      struct gkyl_array_average_inp inp_int_x = {
+  // Create and run the array average updater to average on x
+  int avg_dim_x[] = {1,0,0};
+  struct gkyl_array_average_inp inp_int_x = {
     .grid = &grid_x,
     .tot_basis = basis_x,
     .sub_basis = red_basis,
@@ -981,7 +989,7 @@ void test_3x_avgyz_avgx(int poly_order, bool use_gpu)
     .tot_rng_ext = &local_x_ext,
     .sub_rng = &red_local,
     .weights = NULL,
-    .op = GKYL_ARRAY_AVERAGE_OP,
+    .avg_dim = avg_dim_x,
     .use_gpu = use_gpu
   };
   struct gkyl_array_average *int_x = gkyl_array_average_new(&inp_int_x);

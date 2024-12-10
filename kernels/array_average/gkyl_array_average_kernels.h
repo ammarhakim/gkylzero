@@ -5,16 +5,16 @@
 
 EXTERN_C_BEG
 
-GKYL_CU_DH void gkyl_array_average_1x_ser_p1_ker(const double subvol, const double *win, const double *fin, double* GKYL_RESTRICT out);
-GKYL_CU_DH void gkyl_array_average_2x_ser_p1_y_ker(const double subvol, const double *win, const double *fin, double* GKYL_RESTRICT out);
-GKYL_CU_DH void gkyl_array_average_2x_ser_p1_x_ker(const double subvol, const double *win, const double *fin, double* GKYL_RESTRICT out);
-GKYL_CU_DH void gkyl_array_average_2x_ser_p1_ker(const double subvol, const double *win, const double *fin, double* GKYL_RESTRICT out);
-GKYL_CU_DH void gkyl_array_average_3x_ser_p1_yz_ker(const double subvol, const double *win, const double *fin, double* GKYL_RESTRICT out);
-GKYL_CU_DH void gkyl_array_average_3x_ser_p1_xz_ker(const double subvol, const double *win, const double *fin, double* GKYL_RESTRICT out);
-GKYL_CU_DH void gkyl_array_average_3x_ser_p1_xy_ker(const double subvol, const double *win, const double *fin, double* GKYL_RESTRICT out);
-GKYL_CU_DH void gkyl_array_average_3x_ser_p1_z_ker(const double subvol, const double *win, const double *fin, double* GKYL_RESTRICT out);
-GKYL_CU_DH void gkyl_array_average_3x_ser_p1_y_ker(const double subvol, const double *win, const double *fin, double* GKYL_RESTRICT out);
-GKYL_CU_DH void gkyl_array_average_3x_ser_p1_x_ker(const double subvol, const double *win, const double *fin, double* GKYL_RESTRICT out);
-GKYL_CU_DH void gkyl_array_average_3x_ser_p1_ker(const double subvol, const double *win, const double *fin, double* GKYL_RESTRICT out);
+GKYL_CU_DH void gkyl_array_average_1x_ser_p1_avgx_ker(const double subvol, const double *win, const double *fin, double* GKYL_RESTRICT out);
+GKYL_CU_DH void gkyl_array_average_2x_ser_p1_avgx_ker(const double subvol, const double *win, const double *fin, double* GKYL_RESTRICT out);
+GKYL_CU_DH void gkyl_array_average_2x_ser_p1_avgy_ker(const double subvol, const double *win, const double *fin, double* GKYL_RESTRICT out);
+GKYL_CU_DH void gkyl_array_average_2x_ser_p1_avgxy_ker(const double subvol, const double *win, const double *fin, double* GKYL_RESTRICT out);
+GKYL_CU_DH void gkyl_array_average_3x_ser_p1_avgx_ker(const double subvol, const double *win, const double *fin, double* GKYL_RESTRICT out);
+GKYL_CU_DH void gkyl_array_average_3x_ser_p1_avgy_ker(const double subvol, const double *win, const double *fin, double* GKYL_RESTRICT out);
+GKYL_CU_DH void gkyl_array_average_3x_ser_p1_avgz_ker(const double subvol, const double *win, const double *fin, double* GKYL_RESTRICT out);
+GKYL_CU_DH void gkyl_array_average_3x_ser_p1_avgxy_ker(const double subvol, const double *win, const double *fin, double* GKYL_RESTRICT out);
+GKYL_CU_DH void gkyl_array_average_3x_ser_p1_avgxz_ker(const double subvol, const double *win, const double *fin, double* GKYL_RESTRICT out);
+GKYL_CU_DH void gkyl_array_average_3x_ser_p1_avgyz_ker(const double subvol, const double *win, const double *fin, double* GKYL_RESTRICT out);
+GKYL_CU_DH void gkyl_array_average_3x_ser_p1_avgxyz_ker(const double subvol, const double *win, const double *fin, double* GKYL_RESTRICT out);
 
 EXTERN_C_END

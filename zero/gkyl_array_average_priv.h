@@ -21,7 +21,7 @@ static const dim_array_average_kern_list gkyl_array_average_ker_list[] = {
   { // Kernel list for 1x integration
     .list = 
       {
-        {gkyl_array_average_1x_ser_p1_ker, NULL},
+        {gkyl_array_average_1x_ser_p1_avgx_ker, NULL},
         {NULL, NULL},
         {NULL, NULL},
         {NULL, NULL},
@@ -33,9 +33,9 @@ static const dim_array_average_kern_list gkyl_array_average_ker_list[] = {
   { // Kernel list for 2x integration
     .list = 
       {
-        {gkyl_array_average_2x_ser_p1_ker, NULL},
-        {gkyl_array_average_2x_ser_p1_x_ker, NULL},
-        {gkyl_array_average_2x_ser_p1_y_ker, NULL},
+        {gkyl_array_average_2x_ser_p1_avgx_ker, NULL},
+        {gkyl_array_average_2x_ser_p1_avgy_ker, NULL},
+        {gkyl_array_average_2x_ser_p1_avgxy_ker, NULL},
         {NULL, NULL},
         {NULL, NULL},
         {NULL, NULL},
@@ -45,13 +45,13 @@ static const dim_array_average_kern_list gkyl_array_average_ker_list[] = {
   { // Kernel list for 3x integration
     .list = 
       {
-        {gkyl_array_average_3x_ser_p1_ker, NULL},
-        {gkyl_array_average_3x_ser_p1_x_ker, NULL},
-        {gkyl_array_average_3x_ser_p1_y_ker, NULL},
-        {gkyl_array_average_3x_ser_p1_z_ker, NULL},
-        {gkyl_array_average_3x_ser_p1_xy_ker, NULL},
-        {gkyl_array_average_3x_ser_p1_xz_ker, NULL},
-        {gkyl_array_average_3x_ser_p1_yz_ker, NULL},
+        {gkyl_array_average_3x_ser_p1_avgx_ker, NULL},
+        {gkyl_array_average_3x_ser_p1_avgy_ker, NULL},
+        {gkyl_array_average_3x_ser_p1_avgxy_ker, NULL},
+        {gkyl_array_average_3x_ser_p1_avgz_ker, NULL},
+        {gkyl_array_average_3x_ser_p1_avgxz_ker, NULL},
+        {gkyl_array_average_3x_ser_p1_avgyz_ker, NULL},
+        {gkyl_array_average_3x_ser_p1_avgxyz_ker, NULL},
       }
   }
 };
@@ -73,6 +73,10 @@ struct gkyl_array_average {
   // array that indicates if the dimension is also a reduced dim
   // (i.e. if the dimension remains)
   int issub_dim[GKYL_MAX_CDIM];
+  // array that indicates if the dimension is averaged
+  int avg_dim[GKYL_MAX_CDIM];
+  // number of averaged dimensions
+  int navg_dim;
 
   // array that maps the sub dimensions to the full one
   // examples:
@@ -102,17 +106,22 @@ struct gkyl_array_average {
 };
 
 GKYL_CU_D static
-void gkyl_array_average_choose_kernel(struct gkyl_array_average *up, const struct gkyl_basis *basis,  enum gkyl_array_average_op op)
+void gkyl_array_average_choose_kernel(struct gkyl_array_average *up)
 {
-  int ndim = basis->ndim, poly_order = basis->poly_order;
+  int ndim =  up->tot_basis.ndim, poly_order = up->tot_basis.poly_order;
+
+  // We encode the average operations as a binary number 
+  // (e.g. 011 = 3 = avgxy, 101 = 5 = avgxz, 111 = 7 = avgxyz)
+  int op = -1; // -1 shifted to start with 0
+  for (unsigned d = 0; d < ndim; d++)
+    op += pow(2,d) * up->avg_dim[d];
 
   up->kernel = gkyl_array_average_ker_list[ndim-1].list[op].kernels[poly_order-1];
 
 }
 
 struct gkyl_array_average*
-gkyl_array_average_cu_dev_new(const struct gkyl_basis *basis,
-  const struct gkyl_array *GKYL_RESTRICT weights, enum gkyl_array_average_op op);
+gkyl_array_average_cu_dev_new(const gkyl_array_average_inp *inp);
 
-void gkyl_array_average_advance_cu(gkyl_array_average *up, const struct gkyl_array *arr,
-  const struct gkyl_range *range, double *out);
+void gkyl_array_average_advance_cu(gkyl_array_average *up, 
+  const struct gkyl_array *fin, struct gkyl_array *avgout);
