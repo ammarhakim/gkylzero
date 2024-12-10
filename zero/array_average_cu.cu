@@ -13,7 +13,7 @@ extern "C" {
 __global__ static void
 gkyl_array_average_set_ker_cu(struct gkyl_array_average *up)
 {
-  int ndim =  up->tot_basis.ndim, poly_order = up->tot_basis.poly_order;
+  int ndim =  up->basis.ndim, poly_order = up->basis.poly_order;
 
   int op = -1; // -1 shifted to start with 0
   for (unsigned d = 0; d < ndim; d++)
@@ -41,7 +41,7 @@ gkyl_array_average_cu_dev_new(const gkyl_array_average *up)
 template <unsigned int BLOCKSIZE>
 __global__ void
 array_integrate_blockRedAtomic_cub(struct gkyl_array_average *up, 
-  const struct gkyl_range *full_rng, const struct gkyl_range *sub_rng,
+  const struct gkyl_range *full_rng, const struct gkyl_range *local_avg,
   const struct gkyl_array *GKYL_RESTRICT fin, struct gkyl_array *GKYL_RESTRICT *avgout)
 {
   int full_idx[GKYL_MAX_CDIM], sub_idx[GKYL_MAX_CDIM];
@@ -58,9 +58,9 @@ array_integrate_blockRedAtomic_cub(struct gkyl_array_average *up,
     const double* fptr = (const double*) gkyl_array_cfetch(fin, full_lidx);
 
     // get sub-space linear index using the full to sub dimension mapping
-    for (unsigned int k = 0; k < sub_rng->ndim; k++)
+    for (unsigned int k = 0; k < local_avg->ndim; k++)
       sub_idx[k] = full_idx[up->sub_dir[k]];
-    long sub_lidx = gkyl_range_idx(sub_rng, sub_idx);
+    long sub_lidx = gkyl_range_idx(local_avg, sub_idx);
 
     double* avgptr = (double*) gkyl_array_fetch(avgout, sub_lidx);
 

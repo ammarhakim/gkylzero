@@ -1104,13 +1104,13 @@ test_sub_intersect()
   struct gkyl_range local;
   gkyl_range_init(&local, 2, (int[]) { 4, 4 }, (int[]) { 10, 12 });
 
-  struct gkyl_range local_sub;
-  gkyl_sub_range_intersect(&local_sub, &local_ext, &local);
+  struct gkyl_range local_avg;
+  gkyl_sub_range_intersect(&local_avg, &local_ext, &local);
 
   struct gkyl_range_iter iter;
-  gkyl_range_iter_init(&iter, &local_sub);
+  gkyl_range_iter_init(&iter, &local_avg);
   while (gkyl_range_iter_next(&iter)) {
-    long lidx1 = gkyl_range_idx(&local_sub, iter.idx);
+    long lidx1 = gkyl_range_idx(&local_avg, iter.idx);
     long lidx2 = gkyl_range_idx(&local_ext, iter.idx);
 
     TEST_CHECK( lidx2 == lidx1 );

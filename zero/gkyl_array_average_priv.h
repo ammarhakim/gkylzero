@@ -60,12 +60,12 @@ static const dim_array_average_kern_list gkyl_array_average_ker_list[] = {
 struct gkyl_array_average {
   // dimensionality of the full array
   int ndim;
-  struct gkyl_basis tot_basis;
-  struct gkyl_basis sub_basis;
+  struct gkyl_basis basis;
+  struct gkyl_basis basis_avg;
   // the updater stores the ranges of the input and output
-  struct gkyl_range tot_rng;
-  struct gkyl_range tot_rng_ext;
-  struct gkyl_range sub_rng;
+  struct gkyl_range local;
+  struct gkyl_range local_ext;
+  struct gkyl_range local_avg;
 
   // if we use gpu or not
   bool use_gpu;
@@ -108,7 +108,7 @@ struct gkyl_array_average {
 GKYL_CU_D static
 void gkyl_array_average_choose_kernel(struct gkyl_array_average *up)
 {
-  int ndim =  up->tot_basis.ndim, poly_order = up->tot_basis.poly_order;
+  int ndim =  up->basis.ndim, poly_order = up->basis.poly_order;
 
   // We encode the average operations as a binary number 
   // (e.g. 011 = 3 = avgxy, 101 = 5 = avgxz, 111 = 7 = avgxyz)
