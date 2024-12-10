@@ -163,12 +163,12 @@ create_ctx(void)
   double mu_max_elc = me*pow(6.0*vtElc,2)/(2.0*B0);
 
   // Number of cells.
-  int Nz = 16;
+  int Nz = 8;
   int Nvpar = 64;
-  int Nmu = 16;
+  int Nmu = 12;
 
-  double t_end = 20.0; 
-  double num_frames = 20;
+  double t_end = 2.0; 
+  double num_frames = 1;
   int int_diag_calc_num = num_frames*100;
   double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.
   int num_failures_max = 20; // Maximum allowable number of consecutive small time-steps.

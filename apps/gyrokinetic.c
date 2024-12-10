@@ -522,6 +522,11 @@ gyrokinetic_calc_field_and_apply_bc(gkyl_gyrokinetic_app* app, double tcurr,
   // Apply boundary conditions.
   for (int i=0; i<app->num_species; ++i) {
     gk_species_apply_bc(app, &app->species[i], distf[i]);
+
+    // Multiply f by 1/(J_x . B) and apply BCs to it.
+    gkyl_dg_mul_conf_phase_op_range(&app->confBasis, &app->basis, app->species[i].fDJtot,
+      app->jacobtot_inv_weak, distf[i], &app->local, &app->species[i].local);
+    gk_species_apply_bc(app, &app->species[i], app->species[i].fDJtot);
   }
   for (int i=0; i<app->num_neut_species; ++i) {
     if (!app->neut_species[i].info.is_static) {

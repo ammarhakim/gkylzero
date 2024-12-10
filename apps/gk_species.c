@@ -728,10 +728,6 @@ gk_species_rhs(gkyl_gyrokinetic_app *app, struct gk_species *species,
     &app->local, &species->local, &species->local_ext, 
     species->phi, species->alpha_surf, species->sgn_alpha_surf, species->const_sgn_alpha);
 
-  // Multiply f by 1/(J_x . B).
-  gkyl_dg_mul_conf_phase_op_range(&app->confBasis, &app->basis, species->fDJtot,
-    app->jacobtot_inv_weak, fin, &app->local, &species->local);
-
   gkyl_dg_updater_gyrokinetic_advance(species->slvr, &species->local, 
     species->fDJtot, species->cflrate, rhs);
 
