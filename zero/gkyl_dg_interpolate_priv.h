@@ -23,6 +23,12 @@ typedef struct {dg_interp_kern_dir_list_gk list[2];} dg_interp_kern_p_list_gk;
 struct gkyl_dg_interpolate {
   int ndim; // Phase space dimensionality of the fields.
   bool use_gpu; // Whether to use the GPU.
+  int num_interp_dirs; // Number of directions to interpolate in.
+  int interp_dirs[GKYL_MAX_DIM]; // Directions to interpolate in.
+  struct gkyl_rect_grid *grids; // Target grids, one for each interp_dir.
+  struct gkyl_dg_interpolate **interp_ops; // Interp updater for each dimension.
+  struct gkyl_range *ranges; // Ranges to interpolate in for each dimension.
+  struct gkyl_array **fields; // Field at each grid.
   struct gkyl_rect_grid grid_do; // Donor grid.
   struct gkyl_rect_grid grid_tar; // Target grid.
   int dir; // Interpolation direction.

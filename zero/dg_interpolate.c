@@ -6,7 +6,8 @@
 struct gkyl_dg_interpolate*
 gkyl_dg_interpolate_new(int cdim, const struct gkyl_basis *pbasis,
   const struct gkyl_rect_grid *grid_do, const struct gkyl_rect_grid *grid_tar,
-  bool use_gpu)
+  const struct gkyl_range *range_do, const struct gkyl_range *range_tar,
+  const int *nghost, bool pre_alloc_fields, bool use_gpu)
 {
   // Allocate space for new updater.
   struct gkyl_dg_interpolate *up = gkyl_malloc(sizeof(*up));
@@ -33,15 +34,72 @@ gkyl_dg_interpolate_new(int cdim, const struct gkyl_basis *pbasis,
       assert(prime_factors[k] == 2 || prime_factors[k] == 3); // Only (2^a)*(3^b) grids supported.
   }
 
+  // Make a list of directions to be coarsened/refined.
+  up->num_interp_dirs = 0;
+  for (int d=0; d<up->ndim; d++) {
+    if (grid_do->cells[d] != grid_tar->cells[d]) {
+      up->interp_dirs[up->num_interp_dirs] = d;
+      up->num_interp_dirs++;
+    }
+  }
+
+  // Create a series of grids, each one the same as the previous one except
+  // that it has the number of target cells along one new direction.
+  up->grids = gkyl_malloc((up->num_interp_dirs+1) * sizeof(struct gkyl_rect_grid));
+  double lower_new[up->ndim], upper_new[up->ndim];
+  for (int d=0; d<up->ndim; d++) {
+    lower_new[d] = grid_do->lower[d];
+    upper_new[d] = grid_do->upper[d];
+  }
+  memcpy(&up->grids[0], grid_do, sizeof(struct gkyl_rect_grid));
+  for (int k=1; k<up->num_interp_dirs; k++) {
+    int cells_new[up->ndim];
+    for (int d=0; d<up->ndim; d++)
+      cells_new[d] = up->grids[k-1].cells[d];
+    cells_new[up->interp_dirs[k-1]] = grid_tar->cells[up->interp_dirs[k-1]];
+    gkyl_rect_grid_init(&up->grids[k], up->ndim, lower_new, upper_new, cells_new);
+  }
+  memcpy(&up->grids[up->num_interp_dirs], grid_tar, sizeof(struct gkyl_rect_grid));
+
+  // Create a donor and target range for each interpolation.
+  up->ranges = gkyl_malloc((up->num_interp_dirs+1) * sizeof(struct gkyl_range));
+  struct gkyl_range *ranges_ext = gkyl_malloc((up->num_interp_dirs+1) * sizeof(struct gkyl_range));
+  memcpy(&up->ranges[0], range_do, sizeof(struct gkyl_range));
+  for (int k=1; k<up->num_interp_dirs; k++) {
+    gkyl_create_grid_ranges(&up->grids[k], nghost, &ranges_ext[k], &up->ranges[k]);
+  }
+  memcpy(&up->ranges[up->num_interp_dirs], range_tar, sizeof(struct gkyl_range));
+
+  // Create an interpolation updater for each interpolation.
+  up->interp_ops = gkyl_malloc(up->num_interp_dirs * sizeof(struct gkyl_dg_interpolate*));
+  if (up->num_interp_dirs == 1) {
+    up->interp_ops[0] = up;
+  }
+  else {
+    for (int k=0; k<up->num_interp_dirs; k++)
+      up->interp_ops[k] = gkyl_dg_interpolate_new(cdim, pbasis, &up->grids[k], &up->grids[k+1],
+        &up->ranges[k], &up->ranges[k+1], nghost, false, use_gpu);
+  }
+
+//  if (pre_alloc_fields) {
+    // Pre-allocate fields for intermediate grids.
+    up->fields = gkyl_malloc((up->num_interp_dirs+1) * sizeof(struct gkyl_array *));
+    for (int k=1; k<up->num_interp_dirs; k++) {
+      up->fields[k] = gkyl_array_new(GKYL_DOUBLE, pbasis->num_basis, ranges_ext[k].volume);
+    }
+//  }
+  gkyl_free(ranges_ext);
+
+  if (up->num_interp_dirs > 1)
+    return up; // Only allocate the remaining objects if doing 1D interpolation.
+
   // Identify direction to be coarsened/refined:
-  int num_diff_dirs = 0;
   for (int d=0; d<up->ndim; d++) {
     if (grid_do->cells[d] != grid_tar->cells[d]) {
       up->dir = d;
-      num_diff_dirs++;
+      break;
     }
   }
-  assert(num_diff_dirs = 1); // Meant for interpolation along a single dimension.
 
   // Choose kernels that translates the DG coefficients.
   up->interp = dg_interp_choose_gk_interp_kernel(*pbasis, up->dir);
@@ -108,20 +166,20 @@ gkyl_dg_interpolate_new(int cdim, const struct gkyl_basis *pbasis,
   return up;
 }
 
-void
-gkyl_dg_interpolate_advance(gkyl_dg_interpolate* up,
+static void
+dg_interpolate_advance_1x(gkyl_dg_interpolate* up,
   const struct gkyl_range *range_do, const struct gkyl_range *range_tar,
   const struct gkyl_array *GKYL_RESTRICT fdo, struct gkyl_array *GKYL_RESTRICT ftar)
 {
 
-  gkyl_array_clear_range(ftar, 0.0, range_tar);
-
 #ifdef GKYL_HAVE_CUDA
   if (up->use_gpu) {
-    gkyl_dg_interpolate_advance_cu(up, range_do, range_tar, fdo, ftar);
+    gkyl_dg_interpolate_advance_1x_cu(up, range_do, range_tar, fdo, ftar);
     return;
   }
 #endif
+
+  gkyl_array_clear_range(ftar, 0.0, range_tar);
 
   int idx_tar[GKYL_MAX_DIM] = {-1};
   int idx_tar_lo;
@@ -169,17 +227,54 @@ gkyl_dg_interpolate_advance(gkyl_dg_interpolate* up,
 }
 
 void
+gkyl_dg_interpolate_advance(gkyl_dg_interpolate* up,
+  struct gkyl_array *fdo, struct gkyl_array *ftar)
+{
+#ifdef GKYL_HAVE_CUDA
+  if (up->use_gpu) {
+    gkyl_dg_interpolate_advance_cu(up, range_do, range_tar, fdo, ftar);
+    return;
+  }
+#endif
+
+  up->fields[0] = fdo;
+  up->fields[up->num_interp_dirs] = ftar;
+
+  // Loop over interpolating dimensions and do each interpolation separately.
+  for (int k=0; k<up->num_interp_dirs; k++) {
+    dg_interpolate_advance_1x(up->interp_ops[k], &up->ranges[k], &up->ranges[k+1], 
+      up->fields[k], up->fields[k+1]);
+  }
+
+}
+
+void
 gkyl_dg_interpolate_release(gkyl_dg_interpolate* up)
 {
   // Release memory associated with this updater.
-  if (!up->use_gpu)
-    gkyl_free(up->offset_upper);
+
+  if (up->num_interp_dirs == 1) {
+    if (!up->use_gpu)
+      gkyl_free(up->offset_upper);
 #ifdef GKYL_HAVE_CUDA
-  if (up->use_gpu) {
-    gkyl_cu_free(up->offset_upper);
-    if (GKYL_IS_CU_ALLOC(up->flags))
-      gkyl_cu_free(up->on_dev);
-  }
+    if (up->use_gpu) {
+      gkyl_cu_free(up->offset_upper);
+      if (GKYL_IS_CU_ALLOC(up->flags))
+        gkyl_cu_free(up->on_dev);
+    }
 #endif
+  }
+
+  gkyl_free(up->grids);
+  if (up->num_interp_dirs > 1) {
+    for (int k=0; k<up->num_interp_dirs; k++)
+      gkyl_dg_interpolate_release(up->interp_ops[k]);
+  }
+  gkyl_free(up->interp_ops);
+  gkyl_free(up->ranges);
+  for (int k=1; k<up->num_interp_dirs; k++)
+    gkyl_array_release(up->fields[k]);
+  gkyl_free(up->fields);
+
   gkyl_free(up);
 }

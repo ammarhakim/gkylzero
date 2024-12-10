@@ -304,9 +304,9 @@ test_1x1v_gk(const int *cells, const int *cells_tar, int poly_order, bool use_gp
 
   // Create the interpolation operator and interpolate onto the target grid.
   struct gkyl_dg_interpolate *interp = gkyl_dg_interpolate_new(cdim, &basis,
-    &grid, &grid_tar, use_gpu);
+    &grid, &grid_tar, &local, &local_tar, ghost, true, use_gpu);
 
-  gkyl_dg_interpolate_advance(interp, &local, &local_tar, distf, distf_tar);
+  gkyl_dg_interpolate_advance(interp, distf, distf_tar);
 
   // Calculate the moments.
   struct gkyl_array *moms_tar = mkarr(use_gpu, num_mom*confBasis.num_basis, confLocal_tar_ext.volume);
@@ -560,9 +560,9 @@ test_1x2v_gk(const int *cells, const int *cells_tar, int poly_order, bool use_gp
 
   // Create the interpolation operator and interpolate onto the target grid.
   struct gkyl_dg_interpolate *interp = gkyl_dg_interpolate_new(cdim, &basis,
-    &grid, &grid_tar, use_gpu);
+    &grid, &grid_tar, &local, &local_tar, ghost, true, use_gpu);
 
-  gkyl_dg_interpolate_advance(interp, &local, &local_tar, distf, distf_tar);
+  gkyl_dg_interpolate_advance(interp, distf, distf_tar);
 
   // Calculate the moments.
   struct gkyl_array *moms_tar = mkarr(use_gpu, num_mom*confBasis.num_basis, confLocal_tar_ext.volume);
@@ -647,6 +647,16 @@ void test_1x1v_gk_ho()
   int cells_do3[] = {8, 12};
   int cells_tar3[] = {8, 6};
   test_1x1v_gk(cells_do3, cells_tar3, 1, false);
+
+  // Refine along x and vpar.
+  int cells_do4[] = {8, 8};
+  int cells_tar4[] = {32, 16};
+  test_1x1v_gk(cells_do4, cells_tar4, 1, false);
+
+  // Coarsen along x and vpar.
+  int cells_do5[] = {8, 12};
+  int cells_tar5[] = {4, 6};
+  test_1x1v_gk(cells_do5, cells_tar5, 1, false);
 }
 
 void test_1x2v_gk_ho()
@@ -680,6 +690,36 @@ void test_1x2v_gk_ho()
   int cells_do5[] = {8, 6, 12};
   int cells_tar5[] = {8, 6, 4};
   test_1x2v_gk(cells_do5, cells_tar5, 1, false);
+
+  // Refine along x and vpar.
+  int cells_do6[] = {6, 8, 4};
+  int cells_tar6[] = {12, 16, 4};
+  test_1x2v_gk(cells_do6, cells_tar6, 1, false);
+
+  // Coarsen along x and vpar.
+  int cells_do7[] = {16, 8, 4};
+  int cells_tar7[] = {8, 4, 4};
+  test_1x2v_gk(cells_do7, cells_tar7, 1, false);
+
+  // Refine along x and mu.
+  int cells_do8[] = {6, 8, 4};
+  int cells_tar8[] = {12, 8, 8};
+  test_1x2v_gk(cells_do8, cells_tar8, 1, false);
+
+  // Coarsen along x and mu.
+  int cells_do9[] = {16, 4, 12};
+  int cells_tar9[] = {8, 4, 4};
+  test_1x2v_gk(cells_do9, cells_tar9, 1, false);
+
+  // Refine along vpar and mu.
+  int cells_do10[] = {8, 6, 4};
+  int cells_tar10[] = {8, 12, 8};
+  test_1x2v_gk(cells_do10, cells_tar10, 1, false);
+
+  // Coarsen along vpar and mu.
+  int cells_do11[] = {8, 16, 12};
+  int cells_tar11[] = {8, 4, 4};
+  test_1x2v_gk(cells_do11, cells_tar11, 1, false);
 }
 
 void test_1x1v_gk_dev()
