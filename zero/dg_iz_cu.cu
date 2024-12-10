@@ -93,7 +93,7 @@ gkyl_iz_react_rate_cu_ker(const struct gkyl_dg_iz *up,
           temp_elc_2 = 1.0/3.0 * pow(E*(3./2.*temp_elc_av - E), 0.5);
           vtSq_iz2_d[0] = temp_elc_2*elem_charge/(mass_elc*cell_av_fac);
           // T_e1 = T_e - 2/3*E_iz - T_e2
-          array_set2(nc, nc, vtSq_iz1_d, 1.0, prim_vars_elc_d);
+          array_set2(nc, 2*nc, vtSq_iz1_d, 1.0, prim_vars_elc_d);
           vtSq_iz1_d[0] = vtSq_iz1_d[0] - elem_charge*(2./3.*E + temp_elc_2)/(mass_elc*cell_av_fac);
         }
         else if (3./2.*temp_elc_av >= E) {
@@ -101,7 +101,7 @@ gkyl_iz_react_rate_cu_ker(const struct gkyl_dg_iz *up,
           temp_elc_2 = temp_elc_av/2.0 - E/3.0;
           vtSq_iz2_d[0] = temp_elc_2*elem_charge/(mass_elc*cell_av_fac);
           // T_e1 = T_e - 2/3*E_iz - T_e2
-          array_set2(nc, nc, vtSq_iz1_d, 1.0, prim_vars_elc_d);
+          array_set2(nc, 2*nc, vtSq_iz1_d, 1.0, prim_vars_elc_d);
           vtSq_iz1_d[0] = vtSq_iz1_d[0] - elem_charge*(2./3.*E + temp_elc_2)/(mass_elc*cell_av_fac);
         }
         else {

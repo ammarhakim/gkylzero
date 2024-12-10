@@ -212,7 +212,7 @@ void gkyl_dg_iz_coll(const struct gkyl_dg_iz *up,
           temp_elc_2 = 1.0/3.0*pow(up->E*(3./2.*temp_elc_av - up->E), 0.5);
           vtSq_iz2_d[0] = temp_elc_2*up->elem_charge/(up->mass_elc*cell_av_fac);
           // T_e1 = T_e - 2/3*E_iz - T_e2
-          array_set2(nc, nc, vtSq_iz1_d, 1.0, prim_vars_elc_d);
+          array_set2(nc, 2*nc, vtSq_iz1_d, 1.0, prim_vars_elc_d);
           vtSq_iz1_d[0] = vtSq_iz1_d[0] - up->elem_charge*(2./3.*up->E + temp_elc_2)/(up->mass_elc*cell_av_fac);
         }
         else if (3./2.*temp_elc_av >= up->E) {
@@ -220,7 +220,7 @@ void gkyl_dg_iz_coll(const struct gkyl_dg_iz *up,
           temp_elc_2 = temp_elc_av/2.0 - up->E/3.0;
           vtSq_iz2_d[0] = temp_elc_2*up->elem_charge/(up->mass_elc*cell_av_fac);
           // T_e1 = T_e - 2/3*E_iz - T_e2
-          array_set2(nc, nc, vtSq_iz1_d, 1.0, prim_vars_elc_d);
+          array_set2(nc, 2*nc, vtSq_iz1_d, 1.0, prim_vars_elc_d);
           vtSq_iz1_d[0] = vtSq_iz1_d[0] - up->elem_charge*(2./3.*up->E + temp_elc_2)/(up->mass_elc*cell_av_fac);
         }
         else {
