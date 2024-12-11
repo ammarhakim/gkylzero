@@ -72,7 +72,7 @@ struct gkyl_array_average {
 
   // array that indicates if the dimension is also a reduced dim
   // (i.e. if the dimension remains)
-  int issub_dim[GKYL_MAX_CDIM];
+  int isdim_sub[GKYL_MAX_CDIM];
   // array that indicates if the dimension is averaged
   int avg_dim[GKYL_MAX_CDIM];
   // number of averaged dimensions
@@ -97,6 +97,7 @@ struct gkyl_array_average {
   bool isweighted;
   struct gkyl_array *weights;
   struct gkyl_array *integral_weights;
+  struct gkyl_array * identity_weights; // to handle weighltess integral
 
   // memory for the weak division at the end of averaging
   gkyl_dg_bin_op_mem *div_mem;

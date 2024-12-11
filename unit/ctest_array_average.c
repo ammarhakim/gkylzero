@@ -70,6 +70,7 @@ void evalWeight_1x(double t, const double *xn, double* restrict fout, void *ctx)
 // direct weighted averaging x -> avg
 void test_1x(int poly_order, bool use_gpu)
 {
+  printf("\n Checking one-step average (X to scalar)\n");
   // define grid and basis
   double lower[] = {-4.0}, upper[] = {6.0};
   int cells[] = {32};
@@ -142,7 +143,6 @@ void test_1x(int poly_order, bool use_gpu)
   double solution = intf_ref/intw_ref;
   double result = avg_c0_ho[0]*0.5*sqrt(2);
   double rel_err = fabs(result - solution) / fabs(solution);
-  printf("\n Checking one-step average (X to scalar)\n");
   printf("Result: %g, solution: %g\n",result,solution);
   printf("Relative error: %e\n", fabs(result - solution) / fabs(solution));
   TEST_CHECK(gkyl_compare(result, solution, 1e-12));
@@ -173,8 +173,7 @@ void evalWeight_2x(double t, const double *xn, double* restrict fout, void *ctx)
 // one step weighted averaging x,y -> avg
 void test_2x_1step(int poly_order, bool use_gpu)
 {
-  printf("\n");
-
+  printf("\nChecking one-step average (XY to scalar)\n");
   double lower[] = {-4.0, -3.0}, upper[] = {6.0, 5.0};
   int cells[] = {64, 32};
   int ndim = sizeof(lower) / sizeof(lower[0]);
@@ -248,7 +247,6 @@ void test_2x_1step(int poly_order, bool use_gpu)
   double solution  = intwf_ref/intw_ref;
 
   double rel_err = fabs(result - solution) / fabs(solution);
-  printf("\nChecking one-step average (XY to scalar)\n");
   printf("\tResult: %g, solution: %g\n",result,solution);
   printf("\tRelative error: %e\n", rel_err);
   TEST_CHECK(gkyl_compare(rel_err, 0, 1e-12));
@@ -261,6 +259,7 @@ void test_2x_1step(int poly_order, bool use_gpu)
 // two step integration of the weights x,y -> y -> int
 void test_2x_intx_inty(int poly_order, bool use_gpu)
 {
+  printf("\nChecking two-step integration (XY to Y then Y to scalar)\n");   
   // Define grids and basis
   double lower[] = {-4.0, -3.0}, upper[] = {6.0, 5.0};
   int cells[] = {32, 24};
@@ -360,7 +359,6 @@ void test_2x_intx_inty(int poly_order, bool use_gpu)
   double solution = intw_ref;
 
   double rel_err = fabs(result - solution) / fabs(solution);
-  printf("\nChecking two-step integration (XY to Y then Y to scalar)\n");   
   printf("\tResult: %g, solution: %g\n",result, solution);
   printf("\tRelative error: %e\n", rel_err );
   TEST_CHECK(gkyl_compare(rel_err, 0.0, 1e-12));
@@ -373,6 +371,7 @@ void test_2x_intx_inty(int poly_order, bool use_gpu)
 // two steps averaging x,y -> y -> avg
 void test_2x_avgx_avgy(int poly_order, bool use_gpu)
 {
+  printf("\nChecking two-step average (XY to Y then Y to scalar)\n");   
   // Define grids and basis
   double lower[] = {-4.0, -3.0}, upper[] = {6.0, 5.0};
   int cells[] = {32, 24};
@@ -512,7 +511,6 @@ void test_2x_avgx_avgy(int poly_order, bool use_gpu)
   double rel_err = fabs(result - solution) / fabs(solution);
 
   // check results two step avg
-  printf("\nChecking two-step average (XY to Y then Y to scalar)\n");   
   printf("\tResult: %g, solution: %g\n",result, solution);
   printf("\tRelative error: %e\n", rel_err);
   TEST_CHECK(gkyl_compare(rel_err, 0, 1e-12));
@@ -529,6 +527,7 @@ void test_2x_avgx_avgy(int poly_order, bool use_gpu)
 // two steps averaging x,y -> x -> avg
 void test_2x_avgy_avgx(int poly_order, bool use_gpu)
 {
+  printf("\nChecking two-step average (XY to X then X to scalar)\n");   
   // define grid and basis
   double lower[] = {-4.0, -3.0}, upper[] = {6.0, 5.0};
   int cells[] = {32, 24};
@@ -592,9 +591,11 @@ void test_2x_avgy_avgx(int poly_order, bool use_gpu)
     .avg_dim = avg_dim_y,
     .use_gpu = use_gpu
   };
+  // This part can occasionally produce a segfault -> check with valgrind
   struct gkyl_array_average *avg_x = gkyl_array_average_new(&inp_avg_x);
 
   struct gkyl_array *fx_c = mkarr(basis_x.num_basis, local_x_ext.volume, use_gpu);
+
   gkyl_array_average_advance(avg_x, fxy_c, fx_c); // fx_c is DG coeff of int[w(x,y) f(x,y)]dx / int[w(x,y)]dx
 
   gkyl_array_average_release(avg_x);
@@ -670,7 +671,6 @@ void test_2x_avgy_avgx(int poly_order, bool use_gpu)
 
   double rel_err = fabs(result - solution) / fabs(solution);
 
-  printf("Checking two-step average (XY to X then X to scalar)\n");   
   printf("\tResult: %g, solution: %g\n",result,solution);
   printf("\tRelative error: %e\n", rel_err);
   TEST_CHECK(gkyl_compare(rel_err, 0.0, 1e-12));
@@ -711,6 +711,7 @@ void evalWeight_3x(double t, const double *xn, double* restrict fout, void *ctx)
 // two steps average x,y,z -> y,z -> avg
 void test_3x_avgx_avgyz(int poly_order, bool use_gpu)
 {
+  printf("\nChecking two-step average (XYZ to YZ then YZ to scalar)\n");   
   // Define grids and basis
   double lower[] = {-4.0, -3.0, -2.0}, upper[] = {6.0, 5.0, 4.0};
   int cells[] = {64, 48, 32};
@@ -853,7 +854,6 @@ void test_3x_avgx_avgyz(int poly_order, bool use_gpu)
 
   const double rel_err = fabs(result - solution) / fabs(solution);
 
-  printf("\nChecking two-step average (XYZ to YZ then YZ to scalar)\n");   
   printf("\tResult: %g, solution: %g\n",result,solution);
   printf("\tRelative error: %e\n", rel_err);
   TEST_CHECK(gkyl_compare(rel_err, 0, 1e-12));
@@ -869,6 +869,7 @@ void test_3x_avgx_avgyz(int poly_order, bool use_gpu)
 // two steps average x,y,z -> x -> avg
 void test_3x_avgyz_avgx(int poly_order, bool use_gpu)
 {
+  printf("\nChecking two-step average (XYZ to X then X to scalar)\n");   
   // define grids and basis
   double lower[] = {-4.0, -3.0, -2.0}, upper[] = {6.0, 5.0, 4.0};
   int cells[] = {128, 64, 48};
@@ -1010,7 +1011,6 @@ void test_3x_avgyz_avgx(int poly_order, bool use_gpu)
 
   const double rel_err = fabs(result - solution) / fabs(solution);
 
-  printf("\nChecking two-step average (XYZ to X then X to scalar)\n");   
   printf("\tResult: %g, solution: %g\n",result,solution);
   printf("\tRelative error: %e\n", rel_err);
   TEST_CHECK(gkyl_compare(rel_err, 0, 1e-12));
