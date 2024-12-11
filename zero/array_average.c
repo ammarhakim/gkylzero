@@ -11,7 +11,7 @@ struct gkyl_array_average*
 gkyl_array_average_new(const struct gkyl_array_average_inp *inp)
 {
   // works for p = 1 only
-  assert(inp->basis.poly_order == 1); 
+  assert(inp->basis.poly_order <= 2); 
 
   // Allocate space for new updater.
   struct gkyl_array_average *up = gkyl_malloc(sizeof(struct gkyl_array_average));

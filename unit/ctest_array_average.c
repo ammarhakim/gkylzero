@@ -70,7 +70,6 @@ void evalWeight_1x(double t, const double *xn, double* restrict fout, void *ctx)
 // direct weighted averaging x -> avg
 void test_1x(int poly_order, bool use_gpu)
 {
-  printf("\n Checking one-step average (X to scalar)\n");
   // define grid and basis
   double lower[] = {-4.0}, upper[] = {6.0};
   int cells[] = {32};
@@ -173,7 +172,6 @@ void evalWeight_2x(double t, const double *xn, double* restrict fout, void *ctx)
 // one step weighted averaging x,y -> avg
 void test_2x_1step(int poly_order, bool use_gpu)
 {
-  printf("\nChecking one-step average (XY to scalar)\n");
   double lower[] = {-4.0, -3.0}, upper[] = {6.0, 5.0};
   int cells[] = {64, 32};
   int ndim = sizeof(lower) / sizeof(lower[0]);
@@ -259,7 +257,6 @@ void test_2x_1step(int poly_order, bool use_gpu)
 // two step integration of the weights x,y -> y -> int
 void test_2x_intx_inty(int poly_order, bool use_gpu)
 {
-  printf("\nChecking two-step integration (XY to Y then Y to scalar)\n");   
   // Define grids and basis
   double lower[] = {-4.0, -3.0}, upper[] = {6.0, 5.0};
   int cells[] = {32, 24};
@@ -371,7 +368,6 @@ void test_2x_intx_inty(int poly_order, bool use_gpu)
 // two steps averaging x,y -> y -> avg
 void test_2x_avgx_avgy(int poly_order, bool use_gpu)
 {
-  printf("\nChecking two-step average (XY to Y then Y to scalar)\n");   
   // Define grids and basis
   double lower[] = {-4.0, -3.0}, upper[] = {6.0, 5.0};
   int cells[] = {32, 24};
@@ -527,7 +523,6 @@ void test_2x_avgx_avgy(int poly_order, bool use_gpu)
 // two steps averaging x,y -> x -> avg
 void test_2x_avgy_avgx(int poly_order, bool use_gpu)
 {
-  printf("\nChecking two-step average (XY to X then X to scalar)\n");   
   // define grid and basis
   double lower[] = {-4.0, -3.0}, upper[] = {6.0, 5.0};
   int cells[] = {32, 24};
@@ -711,7 +706,6 @@ void evalWeight_3x(double t, const double *xn, double* restrict fout, void *ctx)
 // two steps average x,y,z -> y,z -> avg
 void test_3x_avgx_avgyz(int poly_order, bool use_gpu)
 {
-  printf("\nChecking two-step average (XYZ to YZ then YZ to scalar)\n");   
   // Define grids and basis
   double lower[] = {-4.0, -3.0, -2.0}, upper[] = {6.0, 5.0, 4.0};
   int cells[] = {64, 48, 32};
@@ -869,7 +863,6 @@ void test_3x_avgx_avgyz(int poly_order, bool use_gpu)
 // two steps average x,y,z -> x -> avg
 void test_3x_avgyz_avgx(int poly_order, bool use_gpu)
 {
-  printf("\nChecking two-step average (XYZ to X then X to scalar)\n");   
   // define grids and basis
   double lower[] = {-4.0, -3.0, -2.0}, upper[] = {6.0, 5.0, 4.0};
   int cells[] = {128, 64, 48};
@@ -1026,82 +1019,47 @@ void test_3x_avgyz_avgx(int poly_order, bool use_gpu)
 
 void test_1x_cpu()
 {
-  // p=1
-  test_1x(1, false);
-
-  // p=2
-  // test_1x(2, false);
-
+  for (int p = 1; p<=2; p++){
+  printf("\n-X to average, p = %d\n",p);   
+   test_1x(p, false);
+  }
 }
 
-void test_2x_cpu_1step()
+void test_2x_cpu()
 {
-  // p=1
-  test_2x_1step(1, false);
-
-  // p=2
-  // test_2x(2, false);
-}
-
-void test_2x_cpu_2steps()
-{
-  // p=1
-  test_2x_intx_inty(1, false);
-  test_2x_avgx_avgy(1, false);
-  test_2x_avgy_avgx(1, false);
-
-  // p=2
-  // test_2x_2steps(2, false);
+  for (int p = 1; p<=2; p++){
+    printf("\n-XY to average, p = %d\n",p);   
+    test_2x_1step(p, false);
+    printf("\n-XY to Y then Y to integral, p = %d\n",p);   
+    test_2x_intx_inty(p, false);
+    printf("\n-XY to Y then Y to average, p = %d\n",p);   
+    test_2x_avgx_avgy(p, false);
+    printf("\n-XY to X then X to average, p = %d\n",p);   
+    test_2x_avgy_avgx(p, false);
+  }
 }
 
 void test_3x_cpu()
 {
-  // p=1
-  test_3x_avgx_avgyz(1, false);
-  test_3x_avgyz_avgx(1, false);
-
-  // p=2
-  // test_3x(2, false);
+  for (int p = 1; p<=2; p++){
+    printf("\n-XYZ to YZ then YZ to average, p = %d\n",p);   
+    test_3x_avgx_avgyz(p, false);
+    printf("\n-XYZ to X then X to average, p = %d\n",p);   
+    test_3x_avgyz_avgx(p, false);
+  }
 }
 
 #ifdef GKYL_HAVE_CUDA
-void test_1x_gpu()
-{
-  // p=1
-  test_1x(1, true);
 
-  // p=2
-  // test_1x(2, true);
-}
-
-void test_2x_gpu()
-{
-  // p=1
-  test_2x_nc1_op(1, true);
-  
-  // p=2
-  // test_2x_nc1_op(2, true);
-}
-
-void test_3x_gpu()
-{
-  // p=1
-  test_3x(1, true);
-
-  // p=2
-  // test_3x(2, true);
-}
 #endif
 
 TEST_LIST = {
   { "test_1x_cpu", test_1x_cpu },
-  { "test_2x_cpu_1step", test_2x_cpu_1step },
-  { "test_2x_cpu_2steps", test_2x_cpu_2steps },
+  { "test_2x_cpu", test_2x_cpu },
   { "test_3x_cpu", test_3x_cpu },
 #ifdef GKYL_HAVE_CUDA
   { "test_1x_gpu", test_1x_gpu },
-  { "test_2x_gpu_1step", test_2x_gpu_1step },
-  { "test_2x_gpu_2steps", test_2x_gpu_2steps },
+  { "test_2x_gpu", test_2x_gpu_1step },
   { "test_3x_gpu", test_3x_gpu },
 #endif
   { NULL, NULL },
