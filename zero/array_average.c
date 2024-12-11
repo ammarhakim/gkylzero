@@ -97,8 +97,8 @@ gkyl_array_average_new(const struct gkyl_array_average_inp *inp)
   // Choose the kernel that performs the desired operation within the integral.
   gkyl_array_average_choose_kernel(up);
 
-#ifdef GKYL_HAVE_CUDA
-  if (use_gpu)
+  #ifdef GKYL_HAVE_CUDA
+  if (up->use_gpu)
     return gkyl_array_average_cu_dev_new(up);
 #endif
 
