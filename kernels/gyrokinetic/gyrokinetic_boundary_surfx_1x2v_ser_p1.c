@@ -1,6 +1,6 @@
 #include <gkyl_gyrokinetic_kernels.h>
 #include <gkyl_basis_gkhyb_1x2v_p1_upwind_quad_to_modal.h> 
-GKYL_CU_DH double gyrokinetic_boundary_surfx_1x2v_ser_p1(const double *w, const double *dxv,
+GKYL_CU_DH double gyrokinetic_boundary_surfx_1x2v_ser_p1(const double *w, const double *dxv, const double *jacobtot_inv, 
     const double *vmap_prime_edge, const double *vmap_prime_skin,
     const double *alpha_surf_edge, const double *alpha_surf_skin, 
     const double *sgn_alpha_surf_edge, const double *sgn_alpha_surf_skin, 
@@ -9,6 +9,7 @@ GKYL_CU_DH double gyrokinetic_boundary_surfx_1x2v_ser_p1(const double *w, const 
 { 
   // w[NDIM]: cell-center.
   // dxv[NDIM]: cell length.
+  // jacobtot_inv: 1/(jacobgeo * bmag) projected so it's continuous.
   // vmap_prime_edge,vmap_prime_skin: velocity space mapping derivative in edge and skin cells.
   // alpha_surf_edge: Surface expansion of phase space flux on the lower edges of the edge cell.
   // alpha_surf_skin: Surface expansion of phase space flux on the lower edges of the skin cell.
@@ -28,6 +29,7 @@ GKYL_CU_DH double gyrokinetic_boundary_surfx_1x2v_ser_p1(const double *w, const 
   const double *sgn_alpha_surfR = &sgn_alpha_surf_edge[0];
   const int *const_sgn_alphaL = &const_sgn_alpha_skin[0];
   const int *const_sgn_alphaR = &const_sgn_alpha_edge[0];
+  double Jtot_inv;
 
   if (edge == -1) { 
 
@@ -97,6 +99,8 @@ GKYL_CU_DH double gyrokinetic_boundary_surfx_1x2v_ser_p1(const double *w, const 
   out[10] += -(0.7071067811865475*GhatR[5]*rdx2); 
   out[11] += -(1.224744871391589*GhatR[5]*rdx2); 
 
+  Jtot_inv = 1.224744871391589*jacobtot_inv[1]+0.7071067811865475*jacobtot_inv[0];
+
   } else { 
 
   double fUpL[6] = {0.};
@@ -165,9 +169,11 @@ GKYL_CU_DH double gyrokinetic_boundary_surfx_1x2v_ser_p1(const double *w, const 
   out[10] += 0.7071067811865475*GhatL[5]*rdx2; 
   out[11] += -(1.224744871391589*GhatL[5]*rdx2); 
 
+    Jtot_inv = 0.7071067811865475*jacobtot_inv[0]-1.224744871391589*jacobtot_inv[1];
+
   } 
 
-  double cflFreq = fmax(fabs(alphaL[0]), fabs(alphaR[0])); 
+  double cflFreq = fmax(fabs(Jtot_inv*alphaL[0]), fabs(Jtot_inv*alphaR[0])); 
   return 0.75*rdx2*cflFreq; 
 
 } 

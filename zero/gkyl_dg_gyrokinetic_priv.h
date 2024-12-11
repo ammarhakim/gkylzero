@@ -15,14 +15,14 @@
 typedef double (*gyrokinetic_step2_vol_t)(const double *w, const double *dxv, const double q_, const double m_,
   const double *apardot, const double *f, double* GKYL_RESTRICT out);
 
-typedef double (*gyrokinetic_surf_t)(const double *w, const double *dxv,
+typedef double (*gyrokinetic_surf_t)(const double *w, const double *dxv, const double *jacobtot_inv,
   const double *vmap_prime_l, const double *vmap_prime_c, const double *vmap_prime_r,
   const double *alpha_surf_l, const double *alpha_surf_r, 
   const double *sgn_alpha_surf_l, const double *sgn_alpha_surf_r, 
   const int *const_sgn_alpha_l, const int *const_sgn_alpha_r, 
   const double *fL, const double *fC, const double *fR, double* GKYL_RESTRICT out);
 
-typedef double (*gyrokinetic_boundary_surf_t)(const double *w, const double *dxv,
+typedef double (*gyrokinetic_boundary_surf_t)(const double *w, const double *dxv, const double *jacobtot_inv,
   const double *vmap_prime_edge, const double *vmap_prime_skin,
   const double *alpha_surf_edge, const double *alpha_surf_skin, 
   const double *sgn_alpha_surf_edge, const double *sgn_alpha_surf_skin, 
@@ -584,6 +584,8 @@ surf(const struct gkyl_dg_eqn *eqn,
 
   // Only in x,y,z,vpar directions.
   if (dir <= gyrokinetic->cdim) {
+    long cidxC = gkyl_range_idx(&gyrokinetic->conf_range, idxC);
+
     int vel_idxL[2], vel_idxC[2], vel_idxR[2];
     for (int d=gyrokinetic->cdim; d<gyrokinetic->pdim; d++) {
       vel_idxL[d-gyrokinetic->cdim] = idxL[d];
@@ -600,6 +602,7 @@ surf(const struct gkyl_dg_eqn *eqn,
     long pidxC = gkyl_range_idx(&gyrokinetic->phase_range, idxC);
     long pidxR = gkyl_range_idx(&gyrokinetic->phase_range, idxR);
     return gyrokinetic->surf[dir](xcC, dxC, 
+      (const double*) gkyl_array_cfetch(gyrokinetic->gk_geom->jacobtot_inv, cidxC),
       (const double*) gkyl_array_cfetch(gyrokinetic->vel_map->vmap_prime, vidxL),
       (const double*) gkyl_array_cfetch(gyrokinetic->vel_map->vmap_prime, vidxC),
       (const double*) gkyl_array_cfetch(gyrokinetic->vel_map->vmap_prime, vidxR),
@@ -627,6 +630,8 @@ boundary_surf(const struct gkyl_dg_eqn *eqn,
 
   // Only in x,y,z,vpar directions.
   if (dir <= gyrokinetic->cdim) {
+    long cidxSkin = gkyl_range_idx(&gyrokinetic->conf_range, idxSkin);
+
     int vel_idxEdge[2], vel_idxSkin[2];
     for (int d=gyrokinetic->cdim; d<gyrokinetic->pdim; d++) {
       vel_idxEdge[d-gyrokinetic->cdim] = idxEdge[d];
@@ -639,6 +644,7 @@ boundary_surf(const struct gkyl_dg_eqn *eqn,
     long pidxEdge = gkyl_range_idx(&gyrokinetic->phase_range, idxEdge);
     long pidxSkin = gkyl_range_idx(&gyrokinetic->phase_range, idxSkin);
     return gyrokinetic->boundary_surf[dir](xcSkin, dxSkin, 
+      (const double*) gkyl_array_cfetch(gyrokinetic->gk_geom->jacobtot_inv, cidxSkin),
       (const double*) gkyl_array_cfetch(gyrokinetic->vel_map->vmap_prime, vidxEdge),
       (const double*) gkyl_array_cfetch(gyrokinetic->vel_map->vmap_prime, vidxSkin),
       (const double*) gkyl_array_cfetch(gyrokinetic->auxfields.alpha_surf, pidxEdge), 
