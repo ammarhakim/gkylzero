@@ -30,6 +30,7 @@ struct gkyl_array_average_inp {
   const struct gkyl_range *local;       // Range for input array (total)
   const struct gkyl_range *local_ext;   // Extended range for input array (with ghosts)
   const struct gkyl_range *local_avg;   // Range for output array (reduced)
+  const struct gkyl_range *local_avg_ext;   // Ext range for output array (reduced)
   const struct gkyl_array *weight;      // Weight array for averaging
   const int *avg_dim;                   // That indicates if a dimension is averaged or not, must be GKYL_MAX_CDIM size
   bool use_gpu;                         // Flag for GPU computation

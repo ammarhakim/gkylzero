@@ -96,9 +96,9 @@ struct gkyl_array_average {
   // weighted average
   bool isweighted;
   struct gkyl_array *weight;
-  struct gkyl_array *weight_int;
+  struct gkyl_array *weight_avg;
   // inverse volume of the average domain
-  double inv_avg_vol; 
+  double vol_avg_inv; 
 
   // memory for the weak division at the end of averaging
   gkyl_dg_bin_op_mem *div_mem;
