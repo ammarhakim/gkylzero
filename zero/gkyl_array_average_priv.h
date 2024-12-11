@@ -101,9 +101,6 @@ struct gkyl_array_average {
 
   // memory for the weak division at the end of averaging
   gkyl_dg_bin_op_mem *div_mem;
-
-  // to store the input array to integrate (keep the input constant)
-  struct gkyl_array *integrant;
 };
 
 GKYL_CU_D static
@@ -121,8 +118,10 @@ void gkyl_array_average_choose_kernel(struct gkyl_array_average *up)
 
 }
 
+#if GKYL_HAVE_CUDA
 struct gkyl_array_average*
 gkyl_array_average_cu_dev_new(const gkyl_array_average_inp *inp);
 
 void gkyl_array_average_advance_cu(gkyl_array_average *up, 
   const struct gkyl_array *fin, struct gkyl_array *avgout);
+#endif

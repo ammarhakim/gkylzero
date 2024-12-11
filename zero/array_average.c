@@ -167,7 +167,6 @@ void gkyl_array_average_release(gkyl_array_average *up)
   if (up->use_gpu)
     gkyl_cu_free(up->on_dev);
 #endif
-  if(up->integrant) gkyl_array_release(up->integrant);
   if(up->weights) gkyl_array_release(up->weights);
   if(up->integral_weights) gkyl_array_release(up->integral_weights);
   if(up->div_mem) gkyl_dg_bin_op_mem_release(up->div_mem);
