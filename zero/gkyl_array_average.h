@@ -19,7 +19,7 @@ typedef struct gkyl_array_average_inp gkyl_array_average_inp;
  * @param local      Full range of the input array, covering all dimensions of the total basis.
  * @param local_ext  Extended range of the input array, including ghost cells.
  * @param local_avg  Reduced range of the output array, covering only the non-averaged dimensions.
- * @param weights    Pointer to the array containing weights for the averaging process. (set it to NULL for integral)
+ * @param weight     Pointer to the array containing weight for the averaging process. (set it to NULL for integral)
  * @param avg_dim    Flag array to set which dimension is averaged
  * @param use_gpu    Boolean flag indicating whether the computation should be performed on a GPU.
  */
@@ -30,7 +30,7 @@ struct gkyl_array_average_inp {
   const struct gkyl_range *local;       // Range for input array (total)
   const struct gkyl_range *local_ext;   // Extended range for input array (with ghosts)
   const struct gkyl_range *local_avg;   // Range for output array (reduced)
-  const struct gkyl_array *weights;     // Weight array for averaging
+  const struct gkyl_array *weight;      // Weight array for averaging
   const int *avg_dim;                   // That indicates if a dimension is averaged or not, must be GKYL_MAX_CDIM size
   bool use_gpu;                         // Flag for GPU computation
 };
