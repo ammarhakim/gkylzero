@@ -8,6 +8,7 @@ extern "C" {
 #include <gkyl_util.h>
 #include <gkyl_array_average.h>
 #include <gkyl_array_average_priv.h>
+#include <gkyl_array_ops.h>
 }
 
 __global__ static void
@@ -24,7 +25,7 @@ gkyl_array_average_set_ker_cu(struct gkyl_array_average *up)
 }
 
 struct gkyl_array_average*
-gkyl_array_average_cu_dev_new(const gkyl_array_average *up)
+gkyl_array_average_cu_dev_new(gkyl_array_average *up)
 {
   // Copy struct to device.
   struct gkyl_array_average *up_cu = (struct gkyl_array_average*) gkyl_cu_malloc(sizeof(struct gkyl_array_average));
@@ -93,14 +94,54 @@ array_integrate_blockRedAtomic_cub(struct gkyl_array_average *up,
   // }
 }
 
+__global__ static void
+gkyl_array_average_advance_cu_ker(gkyl_array_average *up, 
+  const struct gkyl_array *fin, struct gkyl_array *avgout)
+{
+  int pidx[GKYL_MAX_DIM];
+
+  const int num_cbasis = 20; // MF 2024/09/03: Hardcoded to p=2 3x ser for now.
+
+  for(unsigned long tid = threadIdx.x + blockIdx.x*blockDim.x;
+      tid < up->tot_rng.volume; tid += blockDim.x*gridDim.x) {
+    gkyl_sub_range_inv_idx(&up->tot_rng, tid, pidx);
+
+    long clinidx = gkyl_range_idx(&up->sub_rng, pidx);
+    const int *shiftedf_c = (const int*) gkyl_array_cfetch(shiftedf, clinidx);
+
+    if (shiftedf_c[0]) {
+      const double *delta_m0_c = (const double*) gkyl_array_cfetch(delta_m0, clinidx);
+      if (kers->is_m0_positive(delta_m0_c)) {
+        // Rescale f so it has the same m0 at this conf-space cell.
+        const double *m0_c = (const double*) gkyl_array_cfetch(m0, clinidx);
+        double m0ratio_c[num_cbasis];
+        kers->conf_inv_op(m0_c, m0ratio_c);
+        kers->conf_mul_op(delta_m0_c, m0ratio_c, m0ratio_c);
+
+        long plinidx = gkyl_range_idx(&up->tot_rng, pidx);
+        double *fin_i = (double*) gkyl_array_fetch(fin, plinidx);
+        kers->conf_phase_mul_op(m0ratio_c, fin_i, distf_c);
+      }
+    }
+  }
+}
+
 void gkyl_array_average_advance_cu(gkyl_array_average *up, 
   const struct gkyl_array *fin, struct gkyl_array *avgout)
 {
-  gkyl_cu_memset(out, 0, up->num_comp*sizeof(double));
 
-  const int nthreads = GKYL_DEFAULT_NUM_THREADS;
-  int nblocks = gkyl_int_div_up(range->volume, nthreads);
-  array_integrate_blockRedAtomic_cub<nthreads><<<nblocks, nthreads>>>(up->on_dev, fin->on_dev, *range, out);
-  // device synchronize required because out may be host pinned memory
-  cudaDeviceSynchronize();
+  int nblocks_tot = up->tot_rng.nblocks, nthreads_tot = up->tot_rng.nthreads;
+  int nblocks_sub = up->sub_rng.nblocks, nthreads_sub = up->sub_rng.nthreads;
+
+  gkyl_array_clear_range(avgout, 0.0, &up->sub_rng);
+
+  gkyl_array_average_advance_cu_ker<<nblocks_tot, nthreads_tot>>(up,fin,avgout);
+
+  // gkyl_cu_memset(out, 0, up->num_comp*sizeof(double));
+  // const int nthreads = GKYL_DEFAULT_NUM_THREADS;
+  // int nblocks = gkyl_int_div_up(range->volume, nthreads);
+  // array_integrate_blockRedAtomic_cub<nthreads><<<nblocks, nthreads>>>(up->on_dev, fin->on_dev, *range, out);
+  // // device synchronize required because out may be host pinned memory
+  // cudaDeviceSynchronize();
+
 }
