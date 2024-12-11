@@ -212,21 +212,21 @@ void gkyl_mirror_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, dou
     alpha_curr*=-1.0;
 
     for (int ip=nrange->lower[PSI_IDX]; ip<=nrange->upper[PSI_IDX]; ++ip) {
-      int ip_delta_max = 5;// should be 5
+      int ip_delta_max = 5;
       if(ia_delta != 0)
         ip_delta_max = 1;
       for(int ip_delta = 0; ip_delta < ip_delta_max; ip_delta++){
         if((ip == nrange->lower[PSI_IDX]) && (up->local.lower[PSI_IDX]== up->global.lower[PSI_IDX]) ){
           if(ip_delta == 1 || ip_delta == 3)
-            continue; // want to use one sided stencils at edge
+            continue; // one sided stencils at edge
         }
         else if((ip == nrange->upper[PSI_IDX]) && (up->local.upper[PSI_IDX]== up->global.upper[PSI_IDX])){
           if(ip_delta == 2 || ip_delta == 4)
-            continue; // want to use one sided stencils at edge
+            continue; // one sided stencils at edge
         }
         else{ // interior 
           if( ip_delta == 3 || ip_delta == 4)
-            continue; //dont do two away
+            continue;
         }
 
         double psi_curr = psi_lo + ip*dpsi + modifiers[ip_delta]*delta_psi;

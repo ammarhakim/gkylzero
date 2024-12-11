@@ -133,11 +133,14 @@ void gkyl_calc_metric_advance_rz(
               dxdz[1][1] = 0.0;
               dxdz[2][1] = -1.0;
 
-              // I have temporarily let dxdz be in cylindrical coords so I can try calculating J from eq 73
+              // dxdz is in cylindrical coords, calculate J as
+              // J = R(dR/dpsi*dZ/dtheta - dR/dtheta*dZ/dpsi)
               double *jFld_n= gkyl_array_fetch(jFld_nodal, gkyl_range_idx(nrange, cidx));
               double R = mc2p_n[R_IDX];
               jFld_n[0] = sqrt(R*R*(dxdz[0][0]*dxdz[0][0]*dxdz[1][2]*dxdz[1][2] + dxdz[0][2]*dxdz[0][2]*dxdz[1][0]*dxdz[1][0] - 2*dxdz[0][0]*dxdz[0][2]*dxdz[1][0]*dxdz[1][2])) ;
 
+              // Calculate dphi/dtheta based on the divergence free condition
+              // on B: 1 = J*B/sqrt(g_33)
               double *bmag_n = gkyl_array_fetch(bmag_nodal, gkyl_range_idx(nrange, cidx));
               double dphidtheta = (jFld_n[0]*jFld_n[0]*bmag_n[0]*bmag_n[0] - dxdz[0][2]*dxdz[0][2] - dxdz[1][2]*dxdz[1][2])/R/R;
               dphidtheta = sqrt(dphidtheta);
@@ -145,17 +148,12 @@ void gkyl_calc_metric_advance_rz(
               double *gFld_n= gkyl_array_fetch(gFld_nodal, gkyl_range_idx(nrange, cidx));
               gFld_n[0] = dxdz[0][0]*dxdz[0][0] + R*R*dxdz[2][0]*dxdz[2][0] + dxdz[1][0]*dxdz[1][0]; 
               gFld_n[1] = R*R*dxdz[2][0]; 
-              //gFld_n[2] = dxdz[0][0]*dxdz[0][2] + R*R*dxdz[2][0]*dxdz[2][2] + dxdz[1][0]*dxdz[1][2]; // Uses dphi/dtheta from FD
-              //gFld_n[2] = dxdz[0][0]*dxdz[0][2] + R*R*dxdz[2][0]*ddtheta_n[0] + dxdz[1][0]*dxdz[1][2];  // uses exact 1/gradpsi
-              gFld_n[2] = dxdz[0][0]*dxdz[0][2] + R*R*dxdz[2][0]*dphidtheta + dxdz[1][0]*dxdz[1][2];  // Uses corrected
+              gFld_n[2] = dxdz[0][0]*dxdz[0][2] + R*R*dxdz[2][0]*dphidtheta + dxdz[1][0]*dxdz[1][2];
               gFld_n[3] = R*R; 
-              //gFld_n[4] = R*R*dxdz[2][2];  // Uses FD
-              //gFld_n[4] = R*R*ddtheta_n[0]; //uses exact 1/gradpsi
-              gFld_n[4] = R*R*dphidtheta; //uses corrected 
-              //gFld_n[5] = dxdz[0][2]*dxdz[0][2] + R*R*dxdz[2][2]*dxdz[2][2] + dxdz[1][2]*dxdz[1][2];  // uses dphidtheta from FD
-              //gFld_n[5] = dxdz[0][2]*dxdz[0][2] + R*R*ddtheta_n[0]*ddtheta_n[0] + dxdz[1][2]*dxdz[1][2];  // uses exact 1/gradpsi
-              gFld_n[5] = dxdz[0][2]*dxdz[0][2] + R*R*dphidtheta*dphidtheta + dxdz[1][2]*dxdz[1][2];  // uses corrected 
-              // Now do bcart
+              gFld_n[4] = R*R*dphidtheta;
+              gFld_n[5] = dxdz[0][2]*dxdz[0][2] + R*R*dphidtheta*dphidtheta + dxdz[1][2]*dxdz[1][2]; 
+
+              // Calculate cartesian components of bhat
               double *bcartFld_n= gkyl_array_fetch(bcartFld_nodal, gkyl_range_idx(nrange, cidx));
               double phi = mc2p_n[PHI_IDX];
               double b3 = 1/sqrt(gFld_n[5]);
@@ -321,14 +319,17 @@ void gkyl_calc_metric_advance_mirror(
               dxdz[1][1] = 0.0;
               dxdz[2][1] = -1.0;
 
-              // I have temporarily let dxdz be in cylindrical coords so I can try calculating J from eq 73
               double R = mc2p_n[R_IDX];
               double *bmag_n = gkyl_array_fetch(bmag_nodal, gkyl_range_idx(nrange, cidx));
 
               double *gFld_n= gkyl_array_fetch(gFld_nodal, gkyl_range_idx(nrange, cidx));
               gFld_n[5] = dxdz[0][2]*dxdz[0][2] + dxdz[1][2]*dxdz[1][2];
 
+              // dxdz is in cylindrical coordinates. Caculate dR/dpsi as
+              // dR/dpsi = (1/(dZ/dtheta) ) * [sqrt(g_33)/RB + dR/dtheta*dZ/dtheta]
+              // because this is more reliable near R=0 than using finite differences
               double dRdpsi = 1/dxdz[1][2]*(sqrt(gFld_n[5])/bmag_n[0]/R + dxdz[0][2]*dxdz[1][0]);
+              // Calculate J as J = R(dR/dpsi*dZ/dtheta - dR/dtheta*dZ/dpsi)
               double *jFld_n= gkyl_array_fetch(jFld_nodal, gkyl_range_idx(nrange, cidx));
               jFld_n[0] = sqrt(R*R*(dRdpsi*dRdpsi*dxdz[1][2]*dxdz[1][2] + dxdz[0][2]*dxdz[0][2]*dxdz[1][0]*dxdz[1][0] - 2*dRdpsi*dxdz[0][2]*dxdz[1][0]*dxdz[1][2])) ;
 
