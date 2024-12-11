@@ -93,11 +93,12 @@ struct gkyl_array_average {
   // Pointer to itself on device.
   struct gkyl_array_average *on_dev;
 
-  // weighted integral
+  // weighted average
   bool isweighted;
   struct gkyl_array *weight;
   struct gkyl_array *weight_int;
-  struct gkyl_array *weight_1; // to handle weighltess integral
+  // inverse volume of the average domain
+  double inv_avg_vol; 
 
   // memory for the weak division at the end of averaging
   gkyl_dg_bin_op_mem *div_mem;

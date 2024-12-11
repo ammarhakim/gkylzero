@@ -342,6 +342,12 @@ void test_2x_intx_inty(int poly_order, bool use_gpu)
 
   gkyl_array_average_release(int_y);
 
+  // Multiply by the volume to get the integral
+  double volume = 1;
+  for (int d = 0; d < ndim; d++)
+    volume *= grid.upper[d] - grid.lower[d];
+  gkyl_array_scale(intw_c,volume);
+
   // retrieve the computed average from the device (if applicable)
   const double *intw_c0 = gkyl_array_cfetch(intw_c, 0);
   double *intw_c0_ho = gkyl_malloc(sizeof(double));
