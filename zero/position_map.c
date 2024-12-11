@@ -58,22 +58,26 @@ gkyl_position_map_new(struct gkyl_position_map_inp pmap_info, struct gkyl_rect_g
       }
 
     case GKYL_PMAP_UNIFORM_B:
+      gpm->map_x = gkyl_position_map_identity;
+      gpm->map_x_ctx = NULL;
       if (pmap_info.map_x == 0)
-      { gpm->map_x = gkyl_position_map_identity;
-        gpm->map_x_ctx = NULL;
+      { gpm->map_x_backup = gkyl_position_map_identity;
+        gpm->map_x_ctx_backup = NULL;
       } else
-      { gpm->map_x = pmap_info.map_x;
-        gpm->map_x_ctx = pmap_info.ctx_x;
+      { gpm->map_x_backup = pmap_info.map_x;
+        gpm->map_x_ctx_backup = pmap_info.ctx_x;
       }
 
+      gpm->map_y = gkyl_position_map_identity;
+      gpm->map_y_ctx = NULL;
       if (pmap_info.map_y == 0)
-      { gpm->map_y = gkyl_position_map_identity;
-        gpm->map_y_ctx = NULL;
+      { gpm->map_y_backup = gkyl_position_map_identity;
+        gpm->map_y_ctx_backup = NULL;
       } else
-      { gpm->map_y = pmap_info.map_y;
-        gpm->map_y_ctx = pmap_info.ctx_y;
+      { gpm->map_y_backup = pmap_info.map_y;
+        gpm->map_y_ctx_backup = pmap_info.ctx_y;
       }
-      gpm->map_z = gkyl_position_map_constB_z;
+      gpm->map_z = gkyl_position_map_identity;
       gpm->map_z_ctx = gpm->constB_ctx;
   }
 
@@ -179,6 +183,13 @@ gkyl_position_map_optimize(struct gkyl_position_map* gpm)
 {
   if (gpm->id == GKYL_PMAP_UNIFORM_B && gpm->bmag_global != 0)
   {
+    gpm->map_x = gpm->map_x_backup;
+    gpm->map_x_ctx = gpm->map_x_ctx_backup;
+    gpm->map_y = gpm->map_y_backup;
+    gpm->map_y_ctx = gpm->map_y_ctx_backup;
+    gpm->map_z = gkyl_position_map_constB_z;
+    gpm->map_z_ctx = gpm->constB_ctx;
+
     gpm->bmag_ctx->crange_global = &gpm->global;
     gpm->bmag_ctx->cbasis = &gpm->basis;
     gpm->bmag_ctx->cgrid = &gpm->grid;

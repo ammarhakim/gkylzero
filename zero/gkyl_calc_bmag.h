@@ -8,7 +8,6 @@
 
 // Object type
 typedef struct gkyl_calc_bmag gkyl_calc_bmag;
-typedef struct gkyl_bmag_ctx gkyl_bmag_ctx;
 
 struct gkyl_bmag_ctx{
    const struct gkyl_rect_grid* grid;

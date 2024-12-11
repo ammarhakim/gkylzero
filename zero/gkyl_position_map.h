@@ -31,10 +31,14 @@ struct gkyl_position_map {
   bool is_identity; // =True if comp coords = phys coords.
 
   mc2nu_t map_x; // Map in the first direction (x, psi, r, etc.)
+  mc2nu_t map_x_backup; // Backup map in the first direction (x, psi, r, etc.)
   mc2nu_t map_y; // Map in the second direction (y, alpha, theta, etc.)
+  mc2nu_t map_y_backup; // Backup map in the second direction (y, alpha, theta, etc.)
   mc2nu_t map_z; // Map in the third direction (z, field line length, etc.)
   void *map_x_ctx;  // Context for map_x.
+  void *map_x_ctx_backup;  // Context for map_x.
   void *map_y_ctx;  // Context for map_y.
+  void *map_y_ctx_backup;  // Context for map_y.
   void *map_z_ctx;  // Context for map_z.
 
   double map_strength; // Zero is uniform mapping, one is fully nonuniform mapping. In between values. Used for the constant B mapping

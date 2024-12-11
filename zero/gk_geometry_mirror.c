@@ -27,27 +27,22 @@ gkyl_gk_geometry_mirror_new(struct gkyl_gk_geometry_inp *geometry_inp)
   gk_geom_3d = gkyl_gk_geometry_mirror_advance(geometry_inp);
   // The conversion array computational to field aligned is still computed
   // in uniform geometry, so we need to deflate it
-  double nonuniform_frac = geometry_inp->position_map->map_strength;
-  if (nonuniform_frac > 0.0 & nonuniform_frac <= 1.0) {
+  if (geometry_inp->position_map->id == GKYL_PMAP_UNIFORM_B) {
     // Must deflate the 3Duniform geometry in order for the allgather to work
     if(geometry_inp->grid.ndim < 3)
       gk_geom = gkyl_gk_geometry_deflate(gk_geom_3d, geometry_inp);
     else
       gk_geom = gkyl_gk_geometry_acquire(gk_geom_3d);
 
-
     struct gkyl_array *bmag_global = gkyl_array_new(GKYL_DOUBLE, geometry_inp->basis.num_basis, geometry_inp->global_ext.volume);
     geometry_inp->position_map->bmag_global = bmag_global;
-
     gkyl_position_map_gather_bmag_global(geometry_inp->position_map, gk_geom->bmag);
+
     gkyl_gk_geometry_release(gk_geom_3d); // release temporary 3d geometry
     gkyl_gk_geometry_release(gk_geom); // release 3d geometry
     // Construct the non-uniform grid
     gk_geom_3d = gkyl_gk_geometry_mirror_advance(geometry_inp);
     gkyl_array_release(bmag_global);
-  }
-  else if (nonuniform_frac != 0.0) {
-    printf("Invalid non-uniform mapping fraction %f. Must be between 0 and 1", nonuniform_frac);
   }
   return gk_geom_3d;
 }
