@@ -1,6 +1,6 @@
 #include <gkyl_gyrokinetic_kernels.h>
 #include <gkyl_basis_gkhyb_1x1v_p1_upwind_quad_to_modal.h> 
-GKYL_CU_DH double gyrokinetic_boundary_surfvpar_1x1v_ser_p1(const double *w, const double *dxv,
+GKYL_CU_DH double gyrokinetic_boundary_surfvpar_1x1v_ser_p1(const double *w, const double *dxv, const double *jacobtot_inv, 
     const double *vmap_prime_edge, const double *vmap_prime_skin,
     const double *alpha_surf_edge, const double *alpha_surf_skin, 
     const double *sgn_alpha_surf_edge, const double *sgn_alpha_surf_skin, 
@@ -9,6 +9,7 @@ GKYL_CU_DH double gyrokinetic_boundary_surfvpar_1x1v_ser_p1(const double *w, con
 { 
   // w[NDIM]: cell-center.
   // dxv[NDIM]: cell length.
+  // jacobtot_inv: 1/(jacobgeo * bmag) projected so it's continuous.
   // vmap_prime_edge,vmap_prime_skin: velocity space mapping derivative in edge and skin cells.
   // alpha_surf_edge: Surface expansion of phase space flux on the lower edges of the edge cell.
   // alpha_surf_skin: Surface expansion of phase space flux on the lower edges of the skin cell.
@@ -28,6 +29,7 @@ GKYL_CU_DH double gyrokinetic_boundary_surfvpar_1x1v_ser_p1(const double *w, con
   const double *sgn_alpha_surfR = &sgn_alpha_surf_edge[3];
   const int *const_sgn_alphaL = &const_sgn_alpha_skin[1];
   const int *const_sgn_alphaR = &const_sgn_alpha_edge[1];
+  double Jtot_inv;
 
   if (edge == -1) { 
 
@@ -67,6 +69,8 @@ GKYL_CU_DH double gyrokinetic_boundary_surfvpar_1x1v_ser_p1(const double *w, con
   out[4] += -(1.5811388300841895*GhatR[0]*rdvpar2); 
   out[5] += -(1.5811388300841898*GhatR[1]*rdvpar2); 
 
+  Jtot_inv = 0.7071067811865475*jacobtot_inv[0];
+
   } else { 
 
   double fUpL[2] = {0.};
@@ -105,10 +109,12 @@ GKYL_CU_DH double gyrokinetic_boundary_surfvpar_1x1v_ser_p1(const double *w, con
   out[4] += 1.5811388300841895*GhatL[0]*rdvpar2; 
   out[5] += 1.5811388300841898*GhatL[1]*rdvpar2; 
 
+    Jtot_inv = 0.7071067811865475*jacobtot_inv[0];
+
   } 
 
   double vmap_prime_min = fmin(fabs(vmap_prime_edge[0]),fabs(vmap_prime_skin[0]));
-  double cflFreq = fmax(fabs(alphaL[0]/vmap_prime_min), fabs(alphaR[0]/vmap_prime_min)); 
+  double cflFreq = fmax(fabs(Jtot_inv*alphaL[0]/vmap_prime_min), fabs(Jtot_inv*alphaR[0]/vmap_prime_min)); 
   return 1.7677669529663687*rdvpar2*cflFreq; 
 
 } 

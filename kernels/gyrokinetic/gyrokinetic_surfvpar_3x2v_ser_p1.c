@@ -1,6 +1,6 @@
 #include <gkyl_gyrokinetic_kernels.h>
 #include <gkyl_basis_gkhyb_3x2v_p1_upwind_quad_to_modal.h> 
-GKYL_CU_DH double gyrokinetic_surfvpar_3x2v_ser_p1(const double *w, const double *dxv,
+GKYL_CU_DH double gyrokinetic_surfvpar_3x2v_ser_p1(const double *w, const double *dxv, const double *jacobtot_inv, 
     const double *vmap_prime_l, const double *vmap_prime_c, const double *vmap_prime_r,
     const double *alpha_surf_l, const double *alpha_surf_r, 
     const double *sgn_alpha_surf_l, const double *sgn_alpha_surf_r,
@@ -9,6 +9,7 @@ GKYL_CU_DH double gyrokinetic_surfvpar_3x2v_ser_p1(const double *w, const double
 { 
   // w[NDIM]: cell-center.
   // dxv[NDIM]: cell length.
+  // jacobtot_inv: 1/(jacobgeo * bmag) projected so it's continuous.
   // vmap_prime_l,vmap_prime_c,vmap_prime_r: velocity space mapping derivative in left, center and right cells.
   // alpha_surf_l: Surface expansion of phase space flux on the left.
   // alpha_surf_r: Surface expansion of phase space flux on the right.
@@ -304,7 +305,10 @@ GKYL_CU_DH double gyrokinetic_surfvpar_3x2v_ser_p1(const double *w, const double
   out[47] += (1.5811388300841895*GhatL[15]-1.5811388300841895*GhatR[15])*rdvpar2; 
 
   double vmap_prime_min = fmin(fmin(fabs(vmap_prime_l[0]),fabs(vmap_prime_c[0])),fabs(vmap_prime_r[0]));
-  double cflFreq = fmax(fabs(alphaL[0]/vmap_prime_min), fabs(alphaR[0]/vmap_prime_min)); 
+  double Jtot_inv_L = 0.3535533905932737*jacobtot_inv[0];
+  double Jtot_inv_R = 0.3535533905932737*jacobtot_inv[0];
+
+  double cflFreq = fmax(fabs(Jtot_inv_L*alphaL[0]/vmap_prime_min), fabs(Jtot_inv_R*alphaR[0]/vmap_prime_min)); 
   return 0.625*rdvpar2*cflFreq; 
 
 } 

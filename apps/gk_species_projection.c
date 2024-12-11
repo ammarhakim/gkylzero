@@ -154,8 +154,8 @@ gk_species_projection_calc(gkyl_gyrokinetic_app *app, const struct gk_species *s
     // Copy the contents into the array we will use (potentially on GPUs).
     gkyl_array_copy(proj->prim_moms, proj->prim_moms_host);
 
-    struct gkyl_array* unit_field = mkarr(false, app->confBasis.num_basis, app->local_ext.volume);
-    gkyl_array_shiftc_range(unit_field, pow(sqrt(2.0),2), 0, &app->local);
+    struct gkyl_array* unit_field = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
+    gkyl_array_shiftc_range(unit_field, pow(sqrt(2.0),app->cdim), 0, &app->local);
 
     gkyl_proj_gkmaxwellian_on_basis_prim_mom(proj->proj_max_prim, &s->local_ext, &app->local_ext, 
       proj->prim_moms, app->gk_geom->bmag, unit_field, s->info.mass, f);
@@ -178,8 +178,8 @@ gk_species_projection_calc(gkyl_gyrokinetic_app *app, const struct gk_species *s
     // Copy the contents into the array we will use (potentially on GPUs).
     gkyl_array_copy(proj->prim_moms, proj->prim_moms_host);
 
-    struct gkyl_array* unit_field = mkarr(false, app->confBasis.num_basis, app->local_ext.volume);
-    gkyl_array_shiftc_range(unit_field, pow(sqrt(2.0),2), 0, &app->local);
+    struct gkyl_array* unit_field = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
+    gkyl_array_shiftc_range(unit_field, pow(sqrt(2.0),app->cdim), 0, &app->local);
 
     gkyl_proj_bimaxwellian_on_basis_gyrokinetic_prim_mom(proj->proj_bimax, &s->local_ext, &app->local_ext, 
       proj->prim_moms, app->gk_geom->bmag, unit_field, s->info.mass, f);
