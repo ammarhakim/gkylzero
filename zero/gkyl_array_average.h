@@ -42,7 +42,7 @@ struct gkyl_array_average_inp {
  * @param inp see gkyl_array_average_inp structure
  */
 struct gkyl_array_average*
-gkyl_array_average_new(const gkyl_array_average_inp *inp);
+gkyl_array_average_new(const struct gkyl_array_average_inp *inp);
 /**
  * Compute the array average.
  *
@@ -50,7 +50,7 @@ gkyl_array_average_new(const gkyl_array_average_inp *inp);
  * @param fin input gkyl_array
  * @param avgout Output gkyl_array
  */
-void gkyl_array_average_advance(gkyl_array_average *up, 
+void gkyl_array_average_advance(const struct gkyl_array_average *up, 
   const struct gkyl_array *fin, struct gkyl_array *avgout);
 
 /**
@@ -58,4 +58,4 @@ void gkyl_array_average_advance(gkyl_array_average *up,
  *
  * @param up array_integrate updater.
  */
-void gkyl_array_average_release(gkyl_array_average *up);
+void gkyl_array_average_release(struct gkyl_array_average *up);

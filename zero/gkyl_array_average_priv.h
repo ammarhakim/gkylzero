@@ -10,7 +10,7 @@
 #include <gkyl_dg_bin_ops.h>
 
 // Function pointer type for array_average kernels.
-typedef void (*array_average_t)( const double subvol, const double *win, const double *fin, double *out);
+typedef void (*array_average_t)( const double subvol, const double *win, const double *fin, double* GKYL_RESTRICT out);
 
 // For use in kernel tables.
 typedef struct { array_average_t kernels[2]; } array_average_kern_list;
@@ -120,8 +120,8 @@ void gkyl_array_average_choose_kernel(struct gkyl_array_average *up)
 
 #ifdef GKYL_HAVE_CUDA
 struct gkyl_array_average*
-gkyl_array_average_cu_dev_new(const gkyl_array_average_inp *inp);
+  gkyl_array_average_cu_dev_new(struct gkyl_array_average *up);
 
-void gkyl_array_average_advance_cu(gkyl_array_average *up, 
+void gkyl_array_average_advance_cu(const struct gkyl_array_average *up, 
   const struct gkyl_array *fin, struct gkyl_array *avgout);
 #endif

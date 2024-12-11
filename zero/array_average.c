@@ -97,7 +97,7 @@ gkyl_array_average_new(const struct gkyl_array_average_inp *inp)
   // Choose the kernel that performs the desired operation within the integral.
   gkyl_array_average_choose_kernel(up);
 
-  #ifdef GKYL_HAVE_CUDA
+#ifdef GKYL_HAVE_CUDA
   if (up->use_gpu)
     return gkyl_array_average_cu_dev_new(up);
 #endif
@@ -105,7 +105,7 @@ gkyl_array_average_new(const struct gkyl_array_average_inp *inp)
   return up;
 }
 
-void gkyl_array_average_advance(gkyl_array_average *up, 
+void gkyl_array_average_advance(const struct gkyl_array_average *up, 
   const struct gkyl_array * fin, struct gkyl_array *avgout)
 {
 
@@ -160,7 +160,7 @@ void gkyl_array_average_advance(gkyl_array_average *up,
 
 }
 
-void gkyl_array_average_release(gkyl_array_average *up)
+void gkyl_array_average_release(struct gkyl_array_average *up)
 {
   // Release memory associated with this updater.
 #ifdef GKYL_HAVE_CUDA

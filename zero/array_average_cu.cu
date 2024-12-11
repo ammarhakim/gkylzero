@@ -25,7 +25,7 @@ gkyl_array_average_set_ker_cu(struct gkyl_array_average *up)
 }
 
 struct gkyl_array_average*
-gkyl_array_average_cu_dev_new(gkyl_array_average *up)
+gkyl_array_average_cu_dev_new(struct gkyl_array_average *up)
 {
   // // Copy struct to device.
   // struct gkyl_array_average *up_cu = (struct gkyl_array_average*) gkyl_cu_malloc(sizeof(struct gkyl_array_average));
@@ -36,7 +36,7 @@ gkyl_array_average_cu_dev_new(gkyl_array_average *up)
 
   // up->on_dev = up_cu;
 
-  // return up;
+  return up;
 }
 
 // template <unsigned int BLOCKSIZE>
@@ -95,7 +95,7 @@ gkyl_array_average_cu_dev_new(gkyl_array_average *up)
 // }
 
 __global__ static void
-gkyl_array_average_advance_cu_ker(gkyl_array_average *up, 
+gkyl_array_average_advance_cu_ker(const struct gkyl_array_average *up, 
   const struct gkyl_array *fin, struct gkyl_array *avgout)
 {
   // int pidx[GKYL_MAX_DIM];
@@ -126,7 +126,7 @@ gkyl_array_average_advance_cu_ker(gkyl_array_average *up,
   // }
 }
 
-void gkyl_array_average_advance_cu(gkyl_array_average *up, 
+void gkyl_array_average_advance_cu(struct gkyl_array_average *up, 
   const struct gkyl_array *fin, struct gkyl_array *avgout)
 {
 
