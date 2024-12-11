@@ -72,12 +72,22 @@ gk_multib_field_new(const struct gkyl_gyrokinetic_multib *mbinp, struct gkyl_gyr
   }
 
   // Allocate local and global arrays for charge density
+  mbf->rho_c_local = gkyl_malloc(mbf->num_local_blocks* sizeof(struct gkyl_array*));
+  mbf->rho_c_multibz_dg = gkyl_malloc(mbf->num_local_blocks* sizeof(struct gkyl_array*));
+  mbf->rho_c_multibz_smooth = gkyl_malloc(mbf->num_local_blocks* sizeof(struct gkyl_array*));
+  // Allocate local and global arrays for phi
   mbf->phi_local = gkyl_malloc(mbf->num_local_blocks* sizeof(struct gkyl_array*));
   mbf->phi_multibz_dg = gkyl_malloc(mbf->num_local_blocks* sizeof(struct gkyl_array*));
   mbf->phi_multibz_smooth = gkyl_malloc(mbf->num_local_blocks* sizeof(struct gkyl_array*));
 
   for (int bI=0; bI<mbf->num_local_blocks; ++bI) {
     struct gkyl_gyrokinetic_app *sbapp = mbapp->singleb_apps[bI];
+    mbf->rho_c_local[bI] = gkyl_array_acquire(sbapp->field->rho_c);
+    mbf->rho_c_multibz_dg[bI] = mkarr(mbapp->use_gpu, 
+      sbapp->confBasis.num_basis, mbf->multibz_ranges_ext[bI]->volume);
+    mbf->rho_c_multibz_smooth[bI] = mkarr(mbapp->use_gpu,
+      sbapp->confBasis.num_basis, mbf->multibz_ranges_ext[bI]->volume);
+
     mbf->phi_local[bI] = gkyl_array_acquire(sbapp->field->phi_smooth);
     mbf->phi_multibz_dg[bI] = mkarr(mbapp->use_gpu, 
         sbapp->confBasis.num_basis, mbf->multibz_ranges_ext[bI]->volume);
@@ -135,7 +145,25 @@ gk_multib_field_new(const struct gkyl_gyrokinetic_multib *mbinp, struct gkyl_gyr
         &sbapp->confBasis, mbf->info.blocks[bid].fem_parbc, NULL, mbapp->use_gpu);
   }
 
-  // Last initialization step should be to set intersects for copying local info back out after smoothing
+  // Set intersects for copying local rho back out after smoothing
+  mbf->parent_subrangesz = gkyl_malloc(mbf->num_local_blocks* sizeof(struct gkyl_range *));
+  for (int bI=0; bI<mbf->num_local_blocks; ++bI) {
+    int bid = local_blocks[bI];
+    int shift[GKYL_MAX_DIM] = {0};
+    for (int i=0; i<nconnected[bid]; i++) {
+      if (block_list[bid][i] == bid)
+        break;
+      else 
+        shift[dir] += gkyl_range_shape(&mbapp->decomp[block_list[bid][i]]->parent_range, dir);
+    }
+    struct gkyl_range shifted_parent_range;
+    gkyl_range_shift(&shifted_parent_range, &mbapp->singleb_apps[bI]->global, shift);
+    mbf->parent_subrangesz[bI] = gkyl_malloc(sizeof(struct gkyl_range));
+    int inter = gkyl_sub_range_intersect(mbf->parent_subrangesz[bI],
+        mbf->multibz_ranges[bI], &shifted_parent_range);
+  }
+
+  // Set intersects for copying local phi back out after smoothing
   mbf->block_subrangesz = gkyl_malloc(mbf->num_local_blocks* sizeof(struct gkyl_range *));
   for (int bI=0; bI<mbf->num_local_blocks; ++bI) {
     int bid = local_blocks[bI];
@@ -180,35 +208,24 @@ gk_multib_field_rhs(gkyl_gyrokinetic_multib_app *mbapp, struct gk_multib_field *
     gk_field_accumulate_rho_c(sbapp, sbapp->field, fin_local_block);
   }
 
-  // Every block gathers rho, does the smoothing, and solves the poisson equation
+  // Do the allgather of rho along the magnetic field.
+  int stat = gkyl_multib_comm_conn_array_transfer(mbapp->comm, mbf->num_local_blocks, mbapp->local_blocks, mbf->mbcc_allgatherz_send, mbf->mbcc_allgatherz_recv, mbf->rho_c_local, mbf->rho_c_multibz_dg);
+  // Do the rho smoothing on the multibz range
+  for (int bI=0; bI<mbf->num_local_blocks; ++bI) {
+    gkyl_fem_parproj_set_rhs(mbf->fem_parproj[bI], mbf->rho_c_multibz_dg[bI], mbf->rho_c_multibz_dg[bI]);
+    gkyl_fem_parproj_solve(mbf->fem_parproj[bI], mbf->rho_c_multibz_smooth[bI]);
+  }
+  // Copy smooth arrays  back to apps
+  for (int bI=0; bI<mbf->num_local_blocks; ++bI) {
+    gkyl_array_copy_range_to_range(mbapp->singleb_apps[bI]->field->rho_c_global_smooth, mbf->rho_c_multibz_smooth[bI], &mbapp->singleb_apps[bI]->global, mbf->parent_subrangesz[bI]);
+  }
+  // Every block Solves the poisson equation
   for (int bI=0; bI<mbf->num_local_blocks; ++bI) {
     struct gkyl_gyrokinetic_app *sbapp = mbapp->singleb_apps[bI];
-
-    gkyl_comm_array_allgather(sbapp->comm, &sbapp->local, &sbapp->global, 
-      sbapp->field->rho_c, sbapp->field->rho_c_global_dg);
-
-    gkyl_fem_parproj_set_rhs(sbapp->field->fem_parproj, 
-      sbapp->field->rho_c_global_dg, sbapp->field->rho_c_global_dg);
-    gkyl_fem_parproj_solve(sbapp->field->fem_parproj, sbapp->field->rho_c_global_smooth);
-
     gkyl_deflated_fem_poisson_advance(sbapp->field->deflated_fem_poisson, 
       sbapp->field->rho_c_global_smooth, sbapp->field->phi_smooth);
   }
 
-  // Do the allgather the across blocks along the magnetic field.
-  int stat = gkyl_multib_comm_conn_array_transfer(mbapp->comm, mbf->num_local_blocks, 
-    mbapp->local_blocks, mbf->mbcc_allgatherz_send, mbf->mbcc_allgatherz_recv, mbf->phi_local, mbf->phi_multibz_dg);
-  // Do the smoothing on the multiblock range.
-  for (int bI=0; bI<mbf->num_local_blocks; ++bI) {
-    gkyl_fem_parproj_set_rhs(mbf->fem_parproj[bI], mbf->phi_multibz_dg[bI], mbf->phi_multibz_dg[bI]);
-    gkyl_fem_parproj_solve(mbf->fem_parproj[bI], mbf->phi_multibz_smooth[bI]);
-  }
-  
-  // Copy smooth array back to local ranges
-  for (int bI=0; bI<mbf->num_local_blocks; ++bI) {
-    gkyl_array_copy_range_to_range(mbapp->singleb_apps[bI]->field->phi_smooth, 
-      mbf->phi_multibz_smooth[bI], &mbapp->singleb_apps[bI]->local, mbf->block_subrangesz[bI]);
-  }
 
 }
 
@@ -221,6 +238,10 @@ gk_multib_field_release(struct gk_multib_field *mbf)
     gkyl_free(mbf->multibz_ranges[bI]);
     gkyl_free(mbf->multibz_ranges_ext[bI]);
     gkyl_free(mbf->block_subrangesz[bI]);
+    gkyl_free(mbf->parent_subrangesz[bI]);
+    gkyl_array_release(mbf->rho_c_local[bI]);
+    gkyl_array_release(mbf->rho_c_multibz_dg[bI]);
+    gkyl_array_release(mbf->rho_c_multibz_smooth[bI]);
     gkyl_array_release(mbf->phi_local[bI]);
     gkyl_array_release(mbf->phi_multibz_dg[bI]);
     gkyl_array_release(mbf->phi_multibz_smooth[bI]);
@@ -231,6 +252,9 @@ gk_multib_field_release(struct gk_multib_field *mbf)
   gkyl_free(mbf->multibz_ranges);
   gkyl_free(mbf->multibz_ranges_ext);
   gkyl_free(mbf->block_subrangesz);
+  gkyl_free(mbf->rho_c_local);
+  gkyl_free(mbf->rho_c_multibz_dg);
+  gkyl_free(mbf->rho_c_multibz_smooth);
   gkyl_free(mbf->phi_local);
   gkyl_free(mbf->phi_multibz_dg);
   gkyl_free(mbf->phi_multibz_smooth);

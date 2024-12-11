@@ -23,12 +23,17 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
   f->rho_c = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
   f->rho_c_global_dg = mkarr(app->use_gpu, app->confBasis.num_basis, app->global_ext.volume);
   f->rho_c_global_smooth = mkarr(app->use_gpu, app->confBasis.num_basis, app->global_ext.volume);
+  f->m0 = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
 
   // allocate arrays for electrostatic potential
   // global phi (only used in 1x simulations)
   f->phi_fem = mkarr(app->use_gpu, app->confBasis.num_basis, app->global_ext.volume);
   // local phi (assuming domain decomposition is *only* in z right now)
   f->phi_smooth = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
+  
+  // Gather jacobgeo for smoothing in z.
+  f->jacobgeo_global = mkarr(app->use_gpu, app->confBasis.num_basis, app->global_ext.volume);
+  gkyl_comm_array_allgather(app->comm, &app->local, &app->global, app->gk_geom->jacobgeo, f->jacobgeo_global);
 
   if (f->gkfield_id == GKYL_GK_FIELD_EM) {
     f->apar_fem = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
@@ -88,9 +93,8 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
       f->weight = mkarr(false, app->confBasis.num_basis, app->global_ext.volume); // fem_parproj expects weight on host
  
       // Gather jacobgeo for smoothing in z.
-      struct gkyl_array *jacobgeo_global = mkarr(app->use_gpu, app->confBasis.num_basis, app->global_ext.volume);
-      gkyl_comm_array_allgather(app->comm, &app->local, &app->global, app->gk_geom->jacobgeo, jacobgeo_global);
-      gkyl_array_copy(f->weight, jacobgeo_global);
+      gkyl_array_copy(f->weight, f->jacobgeo_global);
+
 
       gkyl_array_scale(f->weight, polarization_weight);
       gkyl_array_scale(f->weight, f->info.kperpSq);
@@ -104,7 +108,7 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
         double T_s = f->info.electron_temp;
         double quasineut_contr = q_s*n_s0*q_s/T_s;
         struct gkyl_array *weight_adiab = mkarr(false, app->confBasis.num_basis, app->global_ext.volume); // fem_parproj expects weight on host
-        gkyl_array_copy(weight_adiab, jacobgeo_global);
+        gkyl_array_copy(weight_adiab, f->jacobgeo_global);
         gkyl_array_scale(weight_adiab, quasineut_contr);
         gkyl_array_accumulate(f->weight, 1., weight_adiab);
         gkyl_array_release(weight_adiab);
@@ -112,13 +116,12 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
         es_energy_fac_1d_adiabatic = 0.5*quasineut_contr; 
       }
 
-      gkyl_array_release(jacobgeo_global);
     }
     else if (app->cdim > 1) {
       // set whatever epsilon we need
       // initialize a the weight to be used by deflated_fem_poisson
       f->epsilon = mkarr(app->use_gpu, (2*(app->cdim-1)-1)*app->confBasis.num_basis, app->local_ext.volume);
-      gkyl_array_set_offset(f->epsilon, polarization_weight, app->gk_geom->gxxj, 0*app->confBasis.num_basis);
+      gkyl_array_set_offset(f->epsilon, polarization_weight, app->gk_geom->gij, 0*app->confBasis.num_basis);
       if (app->cdim > 2) {
         gkyl_array_set_offset(f->epsilon, polarization_weight, app->gk_geom->gxyj, 1*app->confBasis.num_basis);
         gkyl_array_set_offset(f->epsilon, polarization_weight, app->gk_geom->gyyj, 2*app->confBasis.num_basis);
@@ -261,11 +264,17 @@ gk_field_accumulate_rho_c(gkyl_gyrokinetic_app *app, struct gk_field *field,
     struct gk_species *s = &app->species[i];
 
     gk_species_moment_calc(&s->m0, s->local, app->local, fin[i]);
+    if (app->cdim == 1)
+      gkyl_array_copy(field->m0, s->m0.marr);
+    else if (app->cdim > 1)
+      gkyl_dg_div_op_range(s->m0.mem_geo, app->confBasis, 0, field->m0, 0, s->m0.marr, 0, app->gk_geom->jacobgeo, &app->local);
+
+    gk_species_moment_calc(&s->m0, s->local, app->local, fin[i]);
     if (field->gkfield_id == GKYL_GK_FIELD_BOLTZMANN) {
       // For Boltzmann electrons, we only need ion density, not charge density.
-      gkyl_array_accumulate_range(field->rho_c, 1.0, s->m0.marr, &app->local);
+      gkyl_array_accumulate_range(field->rho_c, 1.0, field->m0, &app->local);
     } else {
-      gkyl_array_accumulate_range(field->rho_c, s->info.charge, s->m0.marr, &app->local);
+      gkyl_array_accumulate_range(field->rho_c, s->info.charge, field->m0, &app->local);
       if (field->gkfield_id == GKYL_GK_FIELD_ADIABATIC) {
         // Add the background (electron) charge density.
         double n_s0 = field->info.electron_density;
@@ -369,6 +378,7 @@ void
 gk_field_release(const gkyl_gyrokinetic_app* app, struct gk_field *f)
 {
   gkyl_array_release(f->rho_c);
+  gkyl_array_release(f->m0);
   gkyl_array_release(f->rho_c_global_dg);
   gkyl_array_release(f->rho_c_global_smooth);
   gkyl_array_release(f->phi_fem);
