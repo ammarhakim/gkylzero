@@ -60,19 +60,19 @@ static const dim_array_average_kern_list gkyl_array_average_ker_list[] = {
 struct gkyl_array_average {
   // dimensionality of the full array
   int ndim;
-  struct gkyl_basis tot_basis;
-  struct gkyl_basis sub_basis;
+  struct gkyl_basis basis;
+  struct gkyl_basis basis_avg;
   // the updater stores the ranges of the input and output
-  struct gkyl_range tot_rng;
-  struct gkyl_range tot_rng_ext;
-  struct gkyl_range sub_rng;
+  struct gkyl_range local;
+  struct gkyl_range local_ext;
+  struct gkyl_range local_avg;
 
   // if we use gpu or not
   bool use_gpu;
 
   // array that indicates if the dimension is also a reduced dim
   // (i.e. if the dimension remains)
-  int issub_dim[GKYL_MAX_CDIM];
+  int isdim_sub[GKYL_MAX_CDIM];
   // array that indicates if the dimension is averaged
   int avg_dim[GKYL_MAX_CDIM];
   // number of averaged dimensions
@@ -97,6 +97,7 @@ struct gkyl_array_average {
   bool isweighted;
   struct gkyl_array *weights;
   struct gkyl_array *integral_weights;
+  struct gkyl_array * identity_weights; // to handle weighltess integral
 
   // memory for the weak division at the end of averaging
   gkyl_dg_bin_op_mem *div_mem;
@@ -108,7 +109,7 @@ struct gkyl_array_average {
 GKYL_CU_D static
 void gkyl_array_average_choose_kernel(struct gkyl_array_average *up)
 {
-  int ndim =  up->tot_basis.ndim, poly_order = up->tot_basis.poly_order;
+  int ndim =  up->basis.ndim, poly_order = up->basis.poly_order;
 
   // We encode the average operations as a binary number 
   // (e.g. 011 = 3 = avgxy, 101 = 5 = avgxz, 111 = 7 = avgxyz)
