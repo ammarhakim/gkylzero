@@ -122,4 +122,4 @@ gkyl_array_integrate_cu_dev_new(const struct gkyl_rect_grid *grid, const struct 
   int num_comp, enum gkyl_array_integrate_op op);
 
 void gkyl_array_integrate_advance_cu(gkyl_array_integrate *up, const struct gkyl_array *arr,
-  double factor, const struct gkyl_array *weight, const struct gkyl_range *range, double *out);
+  double factor, const struct gkyl_array *weight, const struct gkyl_range *range, const struct gkyl_range *weight_range, double *out);
