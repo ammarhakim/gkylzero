@@ -15,17 +15,34 @@ void
 test_nonuniform_position_map(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   double poly_order = 2;
-  fout[0] = xn[0];
-  fout[1] = xn[1];
-  double z = xn[2];
+  double z = xn[0];
   double left = 0.25;
   double right = 0.75;
   if (z < -left)
-    fout[2] = z;
+    fout[0] = z;
   else if (z < right)
-    fout[2] = - pow(z - right, poly_order)/fabs(pow(left-right, poly_order-1)) + right;
+    fout[0] = - pow(z - right, poly_order)/fabs(pow(left-right, poly_order-1)) + right;
   else
-    fout[2] = z;
+    fout[0] = z;
+}
+
+
+void
+test_nonuniform_position_map_3x(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+{
+  double poly_order = 2;
+  double left = 0.25;
+  double right = 0.75;
+  for (int i = 0; i<3; i++)
+  {
+    double z = xn[i];
+    if (z < -left)
+      fout[i] = z;
+    else if (z < right)
+      fout[i] = - pow(z - right, poly_order)/fabs(pow(left-right, poly_order-1)) + right;
+    else
+      fout[i] = z;
+  }
 }
 
 void
@@ -46,15 +63,17 @@ test_position_map_init_1x()
   // Basis functions.
   struct gkyl_basis basis;
   gkyl_cart_modal_serendip(&basis, dim, poly_order);
-  struct gkyl_nonuniform_position_map_info pos_map_inp = {
-    .ctx = NULL,
-    .mapping = test_nonuniform_position_map,
-    .numerical_mapping_fraction = 0.5
+  struct gkyl_position_map_inp pos_map_inp = {
+    .map_x = test_nonuniform_position_map,
+    .ctx_x = NULL,
+    .map_y = test_nonuniform_position_map,
+    .ctx_y = NULL,
+    .map_z = test_nonuniform_position_map,
+    .ctx_z = NULL,
   };
 
   struct gkyl_position_map *pos_map = gkyl_position_map_new(pos_map_inp, grid, localRange, localRange_ext, localRange, basis);
 
-  TEST_ASSERT(pos_map->is_identity == false);
   TEST_ASSERT(pos_map->grid.ndim == 1);
   TEST_ASSERT(pos_map->local.ndim == 1);
   TEST_ASSERT(pos_map->local_ext.ndim == 1);
@@ -84,11 +103,21 @@ test_position_map_init_1x_null()
   // Basis functions.
   struct gkyl_basis basis;
   gkyl_cart_modal_serendip(&basis, dim, poly_order);
-  struct gkyl_nonuniform_position_map_info pos_map_inp;
+  struct gkyl_position_map_inp pos_map_inp = {};
+  
   struct gkyl_position_map *pos_map = gkyl_position_map_new(pos_map_inp, grid, localRange, localRange_ext, localRange, basis);
 
-  printf("\npos_map->is_identity = %d\n", pos_map->is_identity);
-  TEST_ASSERT(pos_map->is_identity == true);
+  TEST_ASSERT(pos_map->id == GKYL_PMAP_FUNC);
+  for (double i = 0; i < 1; i = i+0.1){
+    double x[1] = {i};
+    double y[1];
+    pos_map->map_x(0, x, y, pos_map->map_x_ctx);
+    TEST_ASSERT(y[0] == x[0]);
+    pos_map->map_y(0, x, y, pos_map->map_y_ctx);
+    TEST_ASSERT(y[0] == x[0]);
+    pos_map->map_z(0, x, y, pos_map->map_z_ctx);
+    TEST_ASSERT(y[0] == x[0]);
+  }
   TEST_ASSERT(pos_map->grid.ndim == 1);
   TEST_ASSERT(pos_map->local.ndim == 1);
   TEST_ASSERT(pos_map->local_ext.ndim == 1);
@@ -117,15 +146,17 @@ test_position_map_init_2x()
   // Basis functions.
   struct gkyl_basis basis;
   gkyl_cart_modal_serendip(&basis, dim, poly_order);
-  struct gkyl_nonuniform_position_map_info pos_map_inp = {
-    .ctx = NULL,
-    .mapping = test_nonuniform_position_map,
-    .numerical_mapping_fraction = 0.5
+  struct gkyl_position_map_inp pos_map_inp = {
+    .map_x = test_nonuniform_position_map,
+    .ctx_x = NULL,
+    .map_y = test_nonuniform_position_map,
+    .ctx_y = NULL,
+    .map_z = test_nonuniform_position_map,
+    .ctx_z = NULL,
   };
 
   struct gkyl_position_map *pos_map = gkyl_position_map_new(pos_map_inp, grid, localRange, localRange_ext, localRange, basis);
 
-  TEST_ASSERT(pos_map->is_identity == false);
   TEST_ASSERT(pos_map->grid.ndim == 2);
   TEST_ASSERT(pos_map->local.ndim == 2);
   TEST_ASSERT(pos_map->local_ext.ndim == 2);
@@ -154,15 +185,17 @@ test_position_map_init_3x()
   // Basis functions.
   struct gkyl_basis basis;
   gkyl_cart_modal_serendip(&basis, dim, poly_order);
-  struct gkyl_nonuniform_position_map_info pos_map_inp = {
-    .ctx = NULL,
-    .mapping = test_nonuniform_position_map,
-    .numerical_mapping_fraction = 0.5
+  struct gkyl_position_map_inp pos_map_inp = {
+    .map_x = test_nonuniform_position_map,
+    .ctx_x = NULL,
+    .map_y = test_nonuniform_position_map,
+    .ctx_y = NULL,
+    .map_z = test_nonuniform_position_map,
+    .ctx_z = NULL,
   };
 
   struct gkyl_position_map *pos_map = gkyl_position_map_new(pos_map_inp, grid, localRange, localRange_ext, localRange, basis);
 
-  TEST_ASSERT(pos_map->is_identity == false);
   TEST_ASSERT(pos_map->grid.ndim == 3);
   TEST_ASSERT(pos_map->local.ndim == 3);
   TEST_ASSERT(pos_map->local_ext.ndim == 3);
@@ -191,10 +224,13 @@ test_position_map_set()
   // Basis functions.
   struct gkyl_basis basis;
   gkyl_cart_modal_serendip(&basis, dim, poly_order);
-  struct gkyl_nonuniform_position_map_info pos_map_inp = {
-    .ctx = NULL,
-    .mapping = test_nonuniform_position_map,
-    .numerical_mapping_fraction = 0.5
+  struct gkyl_position_map_inp pos_map_inp = {
+    .map_x = test_nonuniform_position_map,
+    .ctx_x = NULL,
+    .map_y = test_nonuniform_position_map,
+    .ctx_y = NULL,
+    .map_z = test_nonuniform_position_map,
+    .ctx_z = NULL,
   };
 
   struct gkyl_position_map *pos_map = gkyl_position_map_new(pos_map_inp, grid, localRange, localRange_ext, localRange, basis);
@@ -204,8 +240,8 @@ test_position_map_set()
 
   gkyl_position_map_set(pos_map, pmap_arr_set);
 
-  double *pos_map_i  = pos_map->pmap->data; 
-  for (unsigned i=0; i<pos_map->pmap->size; ++i)
+  double *pos_map_i  = pos_map->mc2nu->data; 
+  for (unsigned i=0; i<pos_map->mc2nu->size; ++i)
     TEST_CHECK( gkyl_compare(pos_map_i[i], 1.0, 1e-14) );
 
   gkyl_array_release(pmap_arr_set);
@@ -214,7 +250,7 @@ test_position_map_set()
 
 
 void
-test_gkyl_position_map_eval_c2p()
+test_gkyl_position_map_eval_mc2nu()
 {
   int cells[] = {8, 8, 8};
   int poly_order = 2;
@@ -231,19 +267,21 @@ test_gkyl_position_map_eval_c2p()
   // Basis functions.
   struct gkyl_basis basis;
   gkyl_cart_modal_serendip(&basis, dim, poly_order);
-  struct gkyl_nonuniform_position_map_info pos_map_inp = {
-    .ctx = NULL,
-    .mapping = test_nonuniform_position_map,
-    .numerical_mapping_fraction = 0.5
+  struct gkyl_position_map_inp pos_map_inp = {
+    .map_x = test_nonuniform_position_map,
+    .ctx_x = NULL,
+    .map_y = test_nonuniform_position_map,
+    .ctx_y = NULL,
+    .map_z = test_nonuniform_position_map,
+    .ctx_z = NULL,
   };
 
   struct gkyl_position_map *pos_map = gkyl_position_map_new(pos_map_inp, grid, localRange, localRange_ext, localRange, basis);
 
   struct gkyl_array *pmap_arr_set = gkyl_array_new(GKYL_DOUBLE, 3*pos_map->basis.num_basis, pos_map->local_ext.volume);
 
-
   gkyl_proj_on_basis *projDistf = gkyl_proj_on_basis_new(&grid, &basis,
-    poly_order+1, 3, test_nonuniform_position_map, NULL);
+    poly_order+1, 3, test_nonuniform_position_map_3x, NULL);
   gkyl_proj_on_basis_advance(projDistf, 0.0, &localRange, pmap_arr_set);
 
   gkyl_position_map_set(pos_map, pmap_arr_set);
@@ -253,11 +291,13 @@ test_gkyl_position_map_eval_c2p()
       for (int k=0; k<5; k++) {
         double x[3] = {i/10.0, j/10.0, k/10.0};
         double x_fa[3];
-        gkyl_position_map_eval_c2p(pos_map, x, x_fa);
-        double x_fa_c2fa[3];
-        test_nonuniform_position_map(0.0, x, x_fa_c2fa, NULL);
+        gkyl_position_map_eval_mc2nu(pos_map, x, x_fa);
+        double x_analytic[3];
+        test_nonuniform_position_map(0.0, &x[0], &x_analytic[0], NULL);
+        test_nonuniform_position_map(0.0, &x[1], &x_analytic[1], NULL);
+        test_nonuniform_position_map(0.0, &x[2], &x_analytic[2], NULL);
         for (int d=0; d<3; ++d)
-          TEST_CHECK( gkyl_compare(x_fa[d], x_fa_c2fa[d], 1e-12) );
+          TEST_CHECK( gkyl_compare(x_fa[d], x_analytic[d], 1e-12) );
       }
     }
   }
@@ -266,14 +306,12 @@ test_gkyl_position_map_eval_c2p()
   gkyl_position_map_release(pos_map);
 }
 
-// Need a test for gkyl_position_map_eval_c2p
-
 TEST_LIST = {
   { "test_position_map_init_1x", test_position_map_init_1x },
   { "test_position_map_init_1x_null", test_position_map_init_1x_null },
   { "test_position_map_init_2x", test_position_map_init_2x },
   { "test_position_map_init_3x", test_position_map_init_3x },
   { "test_position_map_set", test_position_map_set },
-  { "test_gkyl_position_map_eval_c2p", test_gkyl_position_map_eval_c2p }, 
+  { "test_gkyl_position_map_eval_mc2nu", test_gkyl_position_map_eval_mc2nu }, 
   { NULL, NULL },
 };

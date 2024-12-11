@@ -9,12 +9,6 @@ struct arc_length_ctx {
   double psi, rclose, zmin, zmax, arcL;
   double arcL_tot; // total arc length
   double zmaxis;
-  double theta_throat;
-  double Bmag_throat;
-  double theta_min, theta_max;
-  double alpha;
-  double mapping_frac;
-  int mapping_order_center, mapping_order_expander;
 };
 
 
@@ -618,12 +612,3 @@ void mirror_find_endpoints(struct gkyl_mirror_geo_grid_inp* inp, struct gkyl_mir
  * Used to set arc_ctx attributes before using ridders to find z
 */
 void mirror_set_ridders(struct gkyl_mirror_geo_grid_inp* inp, struct arc_length_ctx* arc_ctx, double psi_curr, double arcL, double arcL_curr, double zmin, double zmax, double* rclose, double *ridders_min, double* ridders_max);
-
-/*
- * Provide the non-uniform mapping from computational space to physical space
-*/
-double map_theta_to_z(const double uniform_coordinate, void *arc_ctx);
-
-void calculate_mirror_throat_location(void *arc_ctx, void *bmag_ctx_inp);
-
-void calculate_optimal_mapping(void *arc_ctx, void *bmag_ctx_inp);

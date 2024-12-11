@@ -23,7 +23,7 @@ gkyl_calc_bmag_new(const struct gkyl_basis *cbasis, const struct gkyl_basis *pba
 
 void gkyl_calc_bmag_global(double t, const double *xn, double *fout, void *ctx)
 {
-  struct bmag_ctx *gc = (struct bmag_ctx*) ctx;
+  struct gkyl_bmag_ctx *gc = (struct gkyl_bmag_ctx*) ctx;
   // Need a crude an manual deflated coordinate because this works on deflated geometry due to the allgather
   double xpt[GKYL_MAX_CDIM];
   if (gc->cgrid->ndim == 1)
@@ -56,7 +56,7 @@ void gkyl_calc_bmag_global(double t, const double *xn, double *fout, void *ctx)
 
 static inline void bmag_comp(double t, const double *xn, double *fout, void *ctx)
 {
-  struct bmag_ctx *gc = (struct bmag_ctx*) ctx;
+  struct gkyl_bmag_ctx *gc = (struct gkyl_bmag_ctx*) ctx;
   double RZPHI[gc->cgrid->ndim];
 
   int cidx[GKYL_MAX_CDIM];
@@ -110,7 +110,7 @@ void gkyl_calc_bmag_advance(const gkyl_calc_bmag *up,
   const struct gkyl_array *bmagrz, struct gkyl_array* bmag_compdg, struct gkyl_array* mapc2p)
 {
   // Convert bmag into computational coordinates
-  struct bmag_ctx *ctx = gkyl_malloc(sizeof(*ctx));
+  struct gkyl_bmag_ctx *ctx = gkyl_malloc(sizeof(*ctx));
   ctx->grid = up->pgrid;
   ctx->cgrid = up->cgrid;
   ctx->range = prange;

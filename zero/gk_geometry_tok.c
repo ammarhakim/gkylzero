@@ -47,9 +47,8 @@ gkyl_gk_geometry_tok_new(struct gkyl_gk_geometry_inp *geometry_inp)
   struct gkyl_array* mc2p_nodal = gkyl_array_new(GKYL_DOUBLE, up->grid.ndim, nrange.volume);
   up->mc2p = gkyl_array_new(GKYL_DOUBLE, up->grid.ndim*up->basis.num_basis, up->local_ext.volume);
 
-  struct gkyl_array* map_c2fa_nodal_fd = gkyl_array_new(GKYL_DOUBLE, up->grid.ndim*num_fd_nodes, nrange.volume);
-  struct gkyl_array* map_c2fa_nodal = gkyl_array_new(GKYL_DOUBLE, up->grid.ndim, nrange.volume);
-  up->mu2nu_pos = gkyl_array_new(GKYL_DOUBLE, up->grid.ndim*up->basis.num_basis, up->local_ext.volume);
+  struct gkyl_array* map_mc2nu_nodal = gkyl_array_new(GKYL_DOUBLE, up->grid.ndim, nrange.volume);
+  up->mc2nu_pos = gkyl_array_new(GKYL_DOUBLE, up->grid.ndim*up->basis.num_basis, up->local_ext.volume);
 
   struct gkyl_array* dphidtheta_nodal = gkyl_array_new(GKYL_DOUBLE, 1, nrange.volume);
   struct gkyl_array* bmag_nodal = gkyl_array_new(GKYL_DOUBLE, 1, nrange.volume);
@@ -85,7 +84,7 @@ gkyl_gk_geometry_tok_new(struct gkyl_gk_geometry_inp *geometry_inp)
   struct gkyl_tok_geo *geo = gkyl_tok_geo_new(&inp, &ginp);
   // calculate mapc2p and mapc2prz
   gkyl_tok_geo_calc(up, &nrange, dzc, geo, &ginp, mc2p_nodal_fd, mc2p_nodal, up->mc2p, 
-    dphidtheta_nodal, map_c2fa_nodal_fd, map_c2fa_nodal, up->mu2nu_pos, &geometry_inp->nonuniform_map_info);
+    dphidtheta_nodal, map_mc2nu_nodal, up->mc2nu_pos, geometry_inp->position_map);
   // calculate bmag
   gkyl_calc_bmag *bcalculator = gkyl_calc_bmag_new(&up->basis, &geo->rzbasis, &up->grid, &geo->rzgrid, false);
   gkyl_calc_bmag_advance(bcalculator, &up->local, &up->local_ext, &up->global, &geo->rzlocal, &geo->rzlocal_ext, geo->efit->bmagzr, up->bmag, up->mc2p);
@@ -113,8 +112,7 @@ gkyl_gk_geometry_tok_new(struct gkyl_gk_geometry_inp *geometry_inp)
   up->on_dev = up; // CPU eqn obj points to itself
 
   gkyl_tok_geo_release(geo);
-  gkyl_array_release(map_c2fa_nodal_fd);
-  gkyl_array_release(map_c2fa_nodal);
+  gkyl_array_release(map_mc2nu_nodal);
   gkyl_array_release(mc2p_nodal_fd);
   gkyl_array_release(mc2p_nodal);
   gkyl_array_release(dphidtheta_nodal);

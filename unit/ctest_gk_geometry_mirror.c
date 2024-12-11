@@ -27,8 +27,8 @@ write_geometry(gk_geometry *up, struct gkyl_rect_grid grid, struct gkyl_range lo
 
   sprintf(fileNm, fmt, name, "mapc2p");
   gkyl_grid_sub_array_write(&grid, &local, 0,  up->mc2p, fileNm);
-  sprintf(fileNm, fmt, name, "mapc2fa");
-  gkyl_grid_sub_array_write(&grid, &local, 0,  up->mu2nu_pos, fileNm);
+  sprintf(fileNm, fmt, name, "mapc2nu");
+  gkyl_grid_sub_array_write(&grid, &local, 0,  up->mc2nu_pos, fileNm);
   sprintf(fileNm, fmt, name, "bmag");
   gkyl_grid_sub_array_write(&grid, &local, 0,  up->bmag, fileNm);
   sprintf(fileNm, fmt, name, "g_ij");

@@ -8,7 +8,7 @@ proj_on_basis_c2p_phase_func(const double *xcomp, double *xphys, void *ctx)
   struct gk_proj_on_basis_c2p_func_ctx *c2p_ctx = ctx;
   int cdim = c2p_ctx->cdim; // Assumes update range is a phase range.
   gkyl_velocity_map_eval_c2p(c2p_ctx->vel_map, &xcomp[cdim], &xphys[cdim]);
-  gkyl_position_map_eval_c2p(c2p_ctx->pos_map, xcomp, xphys);
+  gkyl_position_map_eval_mc2nu(c2p_ctx->pos_map, xcomp, xphys);
 }
 
 void
@@ -16,7 +16,7 @@ proj_on_basis_c2p_position_func(const double *xcomp, double *xphys, void *ctx)
 {
   struct gk_proj_on_basis_c2p_func_ctx *c2p_ctx = ctx;
   double init_val[3]  = {xcomp[0], xcomp[1], xcomp[2]};
-  gkyl_position_map_eval_c2p(c2p_ctx->pos_map, xcomp, xphys);
+  gkyl_position_map_eval_mc2nu(c2p_ctx->pos_map, xcomp, xphys);
 }
 
 void 

@@ -23,18 +23,12 @@ struct gk_geometry {
   struct gkyl_basis basis;
   struct gkyl_rect_grid grid;
 
-  // stuff for reading deflated arrays. Important for non-uniform grids reading B
-  struct gkyl_range decomp_global;
-  struct gkyl_basis decomp_basis;
-  struct gkyl_rect_grid decomp_grid;
-
   // These 21 DG fields contain the geometric quantities needed to solve the
   // GK Equation and Poisson Equation and to apply certain BC's
   // The first 20 are defined on the configuration space domain. The last is a single element.
   struct gkyl_array* mc2p; // 3 components. Cartesian X,Y, and Z
-  struct gkyl_array* mu2nu_pos; // 3 components. Computational to field aligned mapping
+  struct gkyl_array* mc2nu_pos; // 3 components. Computational to field aligned mapping
   struct gkyl_array* bmag; // 1 component. B Magnitude of magnetic field
-  struct gkyl_array* bmag_global; // 1 component. B Magnitude of magnetic field. Global bmag in computational coordinates
   struct gkyl_array* g_ij; // 6 components. 
                            // Metric coefficients g_{ij} Stored in order g_11, g12, g_13, g_22, g_23, g_33
   struct gkyl_array* dxdz; // 9 components.
@@ -82,16 +76,10 @@ struct gkyl_gk_geometry_inp {
   // pointer to bmag function
   void (*bmag_func)(double t, const double *xc, double *xp, void *ctx);
 
-  struct gkyl_array* bmag_global; // global bmag array
-
-  bool nonuniform_geom; // flag to indicate if the geometry is non-uniform
-  struct gkyl_nonuniform_position_map_info nonuniform_map_info; // position map for non-uniform geometry
-  bool use_gpu; // flag to indicate if the geometry is on the gpu
-  struct gkyl_comm *comm;   // communicator object for phase-space arrays
-
   struct gkyl_efit_inp efit_info; // context with RZ data such as efit file for a tokamak or mirror
   struct gkyl_tok_geo_grid_inp tok_grid_info; // context for tokamak geometry with computational domain info
   struct gkyl_mirror_geo_grid_inp mirror_grid_info; // context for mirror geometry with computational domain info
+  struct gkyl_position_map *position_map; // position map object
 
   double world[3]; // extra computational coordinates for cases with reduced dimensionality
 

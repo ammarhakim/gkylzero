@@ -493,7 +493,7 @@ main(int argc, char **argv)
 
   // GK app.
   struct gkyl_gk app_inp = {
-    .name = "gk_sheath_1x2v_p1",
+    .name = "gk_sheath_1x2v_p1_ref",
 
     .cdim = ctx.cdim, .vdim = ctx.vdim,
     .lower = { -0.5 * ctx.Lz},

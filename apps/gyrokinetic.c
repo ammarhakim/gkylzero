@@ -252,6 +252,8 @@ gkyl_gyrokinetic_app_new(struct gkyl_gk *gk)
   gkyl_comm_get_size(app->comm, &comm_sz);
 
   // Configuration space geometry initialization
+  app->position_map = gkyl_position_map_new(gk->geometry.position_map_info, app->grid, app->local, 
+      app->local_ext, app->global, app->global_ext, app->confBasis);
 
   // Initialize the input struct from user side input struct
   struct gkyl_gk_geometry_inp geometry_inp = {
@@ -263,15 +265,13 @@ gkyl_gyrokinetic_app_new(struct gkyl_gk *gk)
     .efit_info = gk->geometry.efit_info,
     .tok_grid_info = gk->geometry.tok_grid_info,
     .mirror_grid_info = gk->geometry.mirror_grid_info,
-    .nonuniform_map_info = gk->geometry.nonuniform_map_info,
+    .position_map = app->position_map,
     .grid = app->grid,
     .local = app->local,
     .local_ext = app->local_ext,
     .global = app->global,
     .global_ext = app->global_ext,
     .basis = app->confBasis,
-    .use_gpu = app->use_gpu, // can be removed if allgather is addeed as a CPU operation
-    .comm = app->comm,
   };
   for(int i = 0; i<3; i++)
     geometry_inp.world[i] = gk->geometry.world[i];
@@ -339,10 +339,8 @@ gkyl_gyrokinetic_app_new(struct gkyl_gk *gk)
 
   gkyl_gk_geometry_release(gk_geom_3d); // release temporary 3d geometry
 
-  // Turn mu2nu_pos into a univariate mapping.
-  app->position_map = gkyl_position_map_new(gk->geometry.nonuniform_map_info, app->gk_geom->grid, app->local, 
-      app->local_ext, app->global, app->confBasis);
-  gkyl_position_map_set(app->position_map, app->gk_geom->mu2nu_pos);
+  // Turn mc2nu_pos into a univariate mapping.
+  gkyl_position_map_set(app->position_map, app->gk_geom->mc2nu_pos);
 
   gkyl_gk_geometry_bmag_mid(app->gk_geom); // set bmag mid
   int bcast_rank = comm_sz/2;
@@ -645,7 +643,7 @@ gkyl_gyrokinetic_app_write_geometry(gkyl_gyrokinetic_app* app)
 
   struct timespec wtm = gkyl_wall_clock();
   gyrokinetic_app_geometry_copy_and_write(app, app->gk_geom->mc2p        , arr_ho3, "mapc2p", mt);
-  gyrokinetic_app_geometry_copy_and_write(app, app->gk_geom->mu2nu_pos        , arr_ho3, "mu2nu_pos", mt);
+  gyrokinetic_app_geometry_copy_and_write(app, app->gk_geom->mc2nu_pos        , arr_ho3, "mc2nu_pos", mt);
   gyrokinetic_app_geometry_copy_and_write(app, app->gk_geom->bmag        , arr_ho1, "bmag", mt);
   gyrokinetic_app_geometry_copy_and_write(app, app->gk_geom->g_ij        , arr_ho6, "g_ij", mt);
   gyrokinetic_app_geometry_copy_and_write(app, app->gk_geom->dxdz        , arr_ho9, "dxdz", mt);
@@ -2733,7 +2731,7 @@ gkyl_gyrokinetic_app_read_geometry(gkyl_gyrokinetic_app* app)
   struct gkyl_array* arr_ho9 = mkarr(false, 9*app->confBasis.num_basis, app->local_ext.volume);
 
   gyrokinetic_app_geometry_read_and_copy(app, app->gk_geom->mc2p        , arr_ho3, "mapc2p");
-  gyrokinetic_app_geometry_read_and_copy(app, app->gk_geom->mu2nu_pos        , arr_ho3, "mu2nu_pos");
+  gyrokinetic_app_geometry_read_and_copy(app, app->gk_geom->mc2nu_pos        , arr_ho3, "mc2nu_pos");
   gyrokinetic_app_geometry_read_and_copy(app, app->gk_geom->bmag        , arr_ho1, "bmag");
   gyrokinetic_app_geometry_read_and_copy(app, app->gk_geom->g_ij        , arr_ho6, "g_ij");
   gyrokinetic_app_geometry_read_and_copy(app, app->gk_geom->dxdz        , arr_ho9, "dxdz");

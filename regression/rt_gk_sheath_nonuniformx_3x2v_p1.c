@@ -402,20 +402,18 @@ mapc2p(double t, const double* GKYL_RESTRICT zc, double* GKYL_RESTRICT xp, void*
 }
 
 void
-nonuniform_position_map(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+nonuniform_position_map_z(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   struct sheath_ctx *app = ctx;
   double poly_order = 2;
-  double z = xn[2];
+  double z = xn[0];
   double transition = app->Lz/4;
-  fout[0] = xn[0];
-  fout[1] = xn[1];
   if (z < -transition)
-    fout[2] = z;
+    fout[0] = z;
   else if (z < transition)
-    fout[2] = - pow(z - transition, poly_order)/pow(2*transition, poly_order-1) + transition;
+    fout[0] = - pow(z - transition, poly_order)/pow(2*transition, poly_order-1) + transition;
   else
-    fout[2] = z;
+    fout[0] = z;
 }
 
 void bmag_func(double t, const double* GKYL_RESTRICT zc, double* GKYL_RESTRICT fout, void* ctx)
@@ -622,9 +620,9 @@ main(int argc, char **argv)
       .c2p_ctx = &ctx,
       .bmag_func = bmag_func,
       .bmag_ctx = &ctx,
-      .nonuniform_map_info = {
-        .mapping = nonuniform_position_map,
-        .ctx = &ctx,
+      .position_map_info = {
+        .map_z = nonuniform_position_map_z,
+        .ctx_z = &ctx,
       },
     },
 

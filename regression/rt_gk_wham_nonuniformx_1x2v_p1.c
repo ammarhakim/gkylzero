@@ -781,10 +781,9 @@ int main(int argc, char **argv)
       .world = {ctx.psi_eval, 0.0},
       .efit_info = efit_inp,
       .mirror_grid_info = grid_inp,
-      .nonuniform_map_info = {
-        .mapping = nonuniform_position_map,
-        .numerical_mapping_fraction = 0.5, // Seems unnecisary and unclear. Effectively non-uniform compuatational space
-        .ctx = &ctx,
+      .position_map_info = {
+        .id = GKYL_PMAP_UNIFORM_B,
+        .map_strength = 0.5,
       },
     },
 

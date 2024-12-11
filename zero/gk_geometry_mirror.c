@@ -16,6 +16,7 @@
 #include <gkyl_tok_calc_derived_geo.h>
 #include <gkyl_calc_metric.h>
 #include <gkyl_calc_bmag.h>
+#include <gkyl_position_map.h>
 
 struct gk_geometry*
 gkyl_gk_geometry_mirror_new(struct gkyl_gk_geometry_inp *geometry_inp)
@@ -26,32 +27,19 @@ gkyl_gk_geometry_mirror_new(struct gkyl_gk_geometry_inp *geometry_inp)
   gk_geom_3d = gkyl_gk_geometry_mirror_advance(geometry_inp);
   // The conversion array computational to field aligned is still computed
   // in uniform geometry, so we need to deflate it
-  double nonuniform_frac = geometry_inp->nonuniform_map_info.numerical_mapping_fraction;
+  double nonuniform_frac = geometry_inp->position_map->map_strength;
   if (nonuniform_frac > 0.0 & nonuniform_frac <= 1.0) {
     // Must deflate the 3Duniform geometry in order for the allgather to work
     if(geometry_inp->grid.ndim < 3)
       gk_geom = gkyl_gk_geometry_deflate(gk_geom_3d, geometry_inp);
     else
       gk_geom = gkyl_gk_geometry_acquire(gk_geom_3d);
-    // We will allgather the bmag array onto bmag global so that each process has full access
-    // to evaluating global quantities of the magnetic field. This is neccisary to find the mirror throat
-    // and optimize for lowering dB/dCell
+
+
     struct gkyl_array *bmag_global = gkyl_array_new(GKYL_DOUBLE, geometry_inp->basis.num_basis, geometry_inp->global_ext.volume);
-    if (geometry_inp->use_gpu) { 
-      // If on GPU, allgather is only a GPU operation, so we must copy these arrays to GPU, then back to CPU
-      struct gkyl_array *bmag_global_dev = gkyl_array_cu_dev_new(GKYL_DOUBLE, geometry_inp->basis.num_basis, geometry_inp->global_ext.volume);
-      struct gkyl_array *bmag_dev = gkyl_array_cu_dev_new(GKYL_DOUBLE, geometry_inp->basis.num_basis, geometry_inp->local_ext.volume);
-      gkyl_array_copy(bmag_dev, gk_geom->bmag);
-      gkyl_comm_array_allgather(geometry_inp->comm, &geometry_inp->local, &geometry_inp->global, bmag_dev, bmag_global_dev);
-      gkyl_array_copy(bmag_global, bmag_global_dev);
-      gkyl_array_release(bmag_global_dev);
-      gkyl_array_release(bmag_dev);
-    }
-    else {
-      gkyl_comm_array_allgather(geometry_inp->comm, &geometry_inp->local, &geometry_inp->global, gk_geom->bmag, bmag_global);
-    }
-    geometry_inp->nonuniform_geom = true;
-    geometry_inp->bmag_global = bmag_global;
+    geometry_inp->position_map->bmag_global = bmag_global;
+
+    gkyl_position_map_gather_bmag_global(geometry_inp->position_map, gk_geom->bmag);
     gkyl_gk_geometry_release(gk_geom_3d); // release temporary 3d geometry
     gkyl_gk_geometry_release(gk_geom); // release 3d geometry
     // Construct the non-uniform grid
@@ -75,10 +63,6 @@ gkyl_gk_geometry_mirror_advance(struct gkyl_gk_geometry_inp *geometry_inp)
   up->global = geometry_inp->geo_global;
   up->global_ext = geometry_inp->geo_global_ext;
   up->grid = geometry_inp->geo_grid;
-  up->bmag_global = geometry_inp->bmag_global;
-  up->decomp_basis = geometry_inp->basis;
-  up->decomp_global = geometry_inp->global;
-  up->decomp_grid = geometry_inp->grid;
 
   struct gkyl_range nrange;
   double dzc[3] = {0.0};
@@ -100,9 +84,8 @@ gkyl_gk_geometry_mirror_advance(struct gkyl_gk_geometry_inp *geometry_inp)
   struct gkyl_array* mc2p_nodal = gkyl_array_new(GKYL_DOUBLE, up->grid.ndim, nrange.volume);
   up->mc2p = gkyl_array_new(GKYL_DOUBLE, up->grid.ndim*up->basis.num_basis, up->local_ext.volume);
 
-  struct gkyl_array* map_c2fa_nodal_fd = gkyl_array_new(GKYL_DOUBLE, up->grid.ndim*num_fd_nodes, nrange.volume);
-  struct gkyl_array* map_c2fa_nodal = gkyl_array_new(GKYL_DOUBLE, up->grid.ndim, nrange.volume);
-  up->mu2nu_pos = gkyl_array_new(GKYL_DOUBLE, up->grid.ndim*up->basis.num_basis, up->local_ext.volume);
+  struct gkyl_array* map_mc2nu_nodal = gkyl_array_new(GKYL_DOUBLE, up->grid.ndim, nrange.volume);
+  up->mc2nu_pos = gkyl_array_new(GKYL_DOUBLE, up->grid.ndim*up->basis.num_basis, up->local_ext.volume);
 
   struct gkyl_array* bmag_nodal = gkyl_array_new(GKYL_DOUBLE, 1, nrange.volume);
 
@@ -132,14 +115,12 @@ gkyl_gk_geometry_mirror_advance(struct gkyl_gk_geometry_inp *geometry_inp)
 
   const struct gkyl_efit_inp inp = geometry_inp->efit_info;
   struct gkyl_mirror_geo_grid_inp ginp = geometry_inp->mirror_grid_info;
-  bool nonuniform_geom = geometry_inp->nonuniform_geom;
-  ginp.nonuniform_mapping_fraction = geometry_inp->nonuniform_map_info.numerical_mapping_fraction;
   ginp.cgrid = up->grid;
   ginp.cbasis = up->basis;
   struct gkyl_mirror_geo *geo = gkyl_mirror_geo_new(&inp, &ginp);
   // calculate mapc2p
   gkyl_mirror_geo_calc(up, &nrange, dzc, geo, &ginp, mc2p_nodal_fd, mc2p_nodal, up->mc2p,
-      nonuniform_geom, map_c2fa_nodal_fd, map_c2fa_nodal, up->mu2nu_pos, &geometry_inp->nonuniform_map_info);
+      map_mc2nu_nodal, up->mc2nu_pos, geometry_inp->position_map);
   // calculate bmag
   gkyl_calc_bmag *bcalculator = gkyl_calc_bmag_new(&up->basis, &geo->rzbasis, &up->grid, &geo->rzgrid, false);
   gkyl_calc_bmag_advance(bcalculator, &up->local, &up->local_ext, &up->global, &geo->rzlocal, &geo->rzlocal_ext, geo->efit->bmagzr, up->bmag, up->mc2p);
@@ -169,8 +150,7 @@ gkyl_gk_geometry_mirror_advance(struct gkyl_gk_geometry_inp *geometry_inp)
   gkyl_mirror_geo_release(geo);
   gkyl_array_release(mc2p_nodal_fd);
   gkyl_array_release(mc2p_nodal);
-  gkyl_array_release(map_c2fa_nodal_fd);
-  gkyl_array_release(map_c2fa_nodal);
+  gkyl_array_release(map_mc2nu_nodal);
   gkyl_array_release(bmag_nodal);
 
   return up;

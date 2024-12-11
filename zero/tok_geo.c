@@ -370,8 +370,8 @@ gkyl_tok_geo_R_psiZ(const struct gkyl_tok_geo *geo, double psi, double Z, int nm
 void gkyl_tok_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, double dzc[3], struct gkyl_tok_geo *geo, 
   struct gkyl_tok_geo_grid_inp *inp, struct gkyl_array *mc2p_nodal_fd, struct gkyl_array *mc2p_nodal, 
   struct gkyl_array *mc2p, struct gkyl_array *dphidtheta_nodal,
-  struct gkyl_array* c2fa_nodal_fd, struct gkyl_array* c2fa_nodal, struct gkyl_array* mu2nu_pos,
-  struct gkyl_nonuniform_position_map_info *nonuniform_map_info)
+  struct gkyl_array *mc2nu_nodal, struct gkyl_array *mc2nu_pos,
+  struct gkyl_position_map *position_map)
 {
 
   geo->rleft = inp->rleft;
@@ -516,15 +516,10 @@ void gkyl_tok_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, double
               arcL_curr = arcL_lo + it*darcL + modifiers[it_delta]*delta_theta*(arc_ctx.arcL_tot/2/M_PI);
               double theta_curr = arcL_curr*(2*M_PI/arc_ctx.arcL_tot) - M_PI ; 
 
-              if (nonuniform_map_info->mapping != 0)
-              {
-                double coords[3] = {psi_curr, alpha_curr, theta_curr};
-                nonuniform_map_info->mapping(0.0, coords, coords, nonuniform_map_info->ctx);
-                psi_curr = coords[0];
-                alpha_curr = coords[1];
-                theta_curr = coords[2];
-                arcL_curr = (theta_curr + M_PI) / (2*M_PI/arc_ctx.arcL_tot);
-              }
+              position_map->map_x(0.0, &psi_curr,   &psi_curr,   position_map->map_x_ctx);
+              position_map->map_y(0.0, &alpha_curr, &alpha_curr, position_map->map_y_ctx);
+              position_map->map_z(0.0, &theta_curr, &theta_curr, position_map->map_z_ctx);
+              arcL_curr = (theta_curr + M_PI) / (2*M_PI/arc_ctx.arcL_tot);
 
               tok_set_ridders(inp, &arc_ctx, psi_curr, arcL_curr, &rclose, &ridders_min, &ridders_max);
 
@@ -634,15 +629,11 @@ void gkyl_tok_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, double
                 dphidtheta_n[0] = dphidtheta_func(z_curr, &arc_ctx);
               }
 
-              double *c2fa_fd_n = gkyl_array_fetch(c2fa_nodal_fd, gkyl_range_idx(nrange, cidx));
-              double *c2fa_n = gkyl_array_fetch(c2fa_nodal, gkyl_range_idx(nrange, cidx));
-              c2fa_fd_n[lidx+X_IDX] = psi_curr;
-              c2fa_fd_n[lidx+Y_IDX] = -alpha_curr;
-              c2fa_fd_n[lidx+Z_IDX] = theta_curr;
+              double *mc2nu_n = gkyl_array_fetch(mc2nu_nodal, gkyl_range_idx(nrange, cidx));
               if(ip_delta==0 && ia_delta==0 && it_delta==0) {
-                c2fa_n[X_IDX] = psi_curr;
-                c2fa_n[Y_IDX] = -alpha_curr;
-                c2fa_n[Z_IDX] = theta_curr;
+                mc2nu_n[X_IDX] = psi_curr;
+                mc2nu_n[Y_IDX] = -alpha_curr;
+                mc2nu_n[Z_IDX] = theta_curr;
               }
             }
           }
@@ -652,7 +643,7 @@ void gkyl_tok_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, double
   }
   struct gkyl_nodal_ops *n2m =  gkyl_nodal_ops_new(&inp->cbasis, &inp->cgrid, false);
   gkyl_nodal_ops_n2m(n2m, &inp->cbasis, &inp->cgrid, nrange, &up->local, 3, mc2p_nodal, mc2p);
-  gkyl_nodal_ops_n2m(n2m, &inp->cbasis, &inp->cgrid, nrange, &up->local, 3, c2fa_nodal, mu2nu_pos);
+  gkyl_nodal_ops_n2m(n2m, &inp->cbasis, &inp->cgrid, nrange, &up->local, 3, mc2nu_nodal, mc2nu_pos);
   gkyl_nodal_ops_release(n2m);
 
   gkyl_free(arc_memo);
