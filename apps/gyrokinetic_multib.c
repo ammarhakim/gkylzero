@@ -728,6 +728,10 @@ gyrokinetic_multib_apply_bc(struct gkyl_gyrokinetic_multib_app* app, double tcur
     int li_neut = b * app->num_neut_species;
     for (int i=0; i<app->num_species; ++i) {
       gk_species_apply_bc(sbapp, &sbapp->species[i], distf[li_charged+i]);
+      // Multiply f by 1/(J_x . B) and apply BCs to it.
+      gkyl_dg_mul_conf_phase_op_range(&sbapp->confBasis, &sbapp->basis, sbapp->species[i].fDJtot,
+        sbapp->jacobtot_inv_weak, distf[li_charged+i], &sbapp->local, &sbapp->species[i].local);
+      gk_species_apply_bc(sbapp, &sbapp->species[i], sbapp->species[i].fDJtot);
     }
     for (int i=0; i<app->num_neut_species; ++i) {
       if (!sbapp->neut_species[i].info.is_static) {
@@ -741,12 +745,16 @@ gyrokinetic_multib_apply_bc(struct gkyl_gyrokinetic_multib_app* app, double tcur
   for (int i=0; i<app->num_species; ++i) {
     // Sync charged species.
     struct gkyl_array *fs[app->num_local_blocks];
+    struct gkyl_array *fDJs[app->num_local_blocks];
     for (int b=0; b<app->num_local_blocks; ++b) {
       int li_charged = b * app->num_species;
       fs[b] = distf[li_charged+i];
+      fDJs[b] = app->singleb_apps[b]->species[i].fDJtot;
     }
     gkyl_multib_comm_conn_array_transfer(app->comm, app->num_local_blocks, app->local_blocks,
       app->mbcc_sync_charged[i].send, app->mbcc_sync_charged[i].recv, fs, fs);
+    gkyl_multib_comm_conn_array_transfer(app->comm, app->num_local_blocks, app->local_blocks,
+      app->mbcc_sync_charged[i].send, app->mbcc_sync_charged[i].recv, fDJs, fDJs);
 
     // Divide and multiply by the appropriate jacobians.
     for (int b=0; b<app->num_local_blocks; ++b) {
