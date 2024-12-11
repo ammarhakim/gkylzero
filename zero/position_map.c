@@ -22,7 +22,8 @@ gkyl_position_map_identity(double t, const double *xn, double *fout, void *ctx)
 
 struct gkyl_position_map*
 gkyl_position_map_new(struct gkyl_position_map_inp pmap_info, struct gkyl_rect_grid grid,
-  struct gkyl_range local, struct gkyl_range local_ext, struct gkyl_range global, struct gkyl_range global_ext, struct gkyl_basis basis)
+  struct gkyl_range local, struct gkyl_range local_ext, struct gkyl_range global, struct gkyl_range global_ext,
+  struct gkyl_basis basis, struct gkyl_comm* comm, bool use_gpu)
 {
   struct gkyl_position_map *gpm = gkyl_malloc(sizeof(*gpm));
   gpm->id = pmap_info.id;
@@ -89,6 +90,8 @@ gkyl_position_map_new(struct gkyl_position_map_inp pmap_info, struct gkyl_rect_g
   gpm->basis = basis;
   gpm->cdim = grid.ndim; 
   gpm->mc2nu = mkarr(false, gpm->cdim*gpm->basis.num_basis, gpm->local_ext.volume);
+  gpm->comm = gkyl_comm_acquire(comm);
+  gpm->use_gpu = use_gpu;
   gpm->flags = 0;
   GKYL_CLEAR_CU_ALLOC(gpm->flags);
   gpm->ref_count = gkyl_ref_count_init(gkyl_position_map_free);
@@ -152,6 +155,8 @@ gkyl_position_map_free(const struct gkyl_ref_count *ref)
   struct gkyl_position_map *gpm = container_of(ref, struct gkyl_position_map, ref_count);
   gkyl_array_release(gpm->mc2nu);
   gkyl_free(gpm->bmag_ctx);
+  gkyl_free(gpm->constB_ctx);
+  gkyl_comm_release(gpm->comm);
   gkyl_free(gpm);
 }
 
@@ -231,7 +236,7 @@ calculate_mirror_throat_location(struct gkyl_position_map_const_B_ctx *constB_ct
     {
       double z = interval_left + i * dz;
       xp[Z_IDX] = z;
-      gkyl_calc_bmag_global(0.0, xp, fout, &bmag_ctx);
+      gkyl_calc_bmag_global(0.0, xp, fout, bmag_ctx);
       double Bmag = fout[0];
       if (Bmag > maximum_Bmag)
       {

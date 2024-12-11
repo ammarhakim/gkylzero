@@ -377,7 +377,7 @@ void gkyl_tok_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, double
   geo->rleft = inp->rleft;
   geo->rright = inp->rright;
 
-  geo->exact_roots = inp->exact_roots;
+  geo->inexact_roots = inp->inexact_roots;
 
   geo->rmax = inp->rmax;
   geo->rmin = inp->rmin;
@@ -546,6 +546,17 @@ void gkyl_tok_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, double
               double R[4] = { 0 }, dR[4] = { 0 };
               int nr = gkyl_tok_geo_R_psiZ(geo, psi_curr, z_curr, 4, R, dR);
               double r_curr = choose_closest(rclose, R, R, nr);
+
+              if (psi_curr==geo->psisep && it_delta==0 && ip_delta==0) {
+                  if (z_curr == geo->efit->Zxpt[0]) {
+                    nr = 1;
+                    r_curr = geo->efit->Rxpt[0];
+                  }
+                  if (z_curr == geo->efit->Zxpt[1]) {
+                    nr = 1;
+                    r_curr = geo->efit->Rxpt[1];
+                  }
+              }
 
               // For all blocks on the inner edge with z boundaries we will need to match the entire outer edge
               if(inp->ftype == GKYL_CORE_L){ // Match the core right boundary at upper and lower theta ends

@@ -85,7 +85,8 @@ struct gkyl_position_map_const_B_ctx {
  */
 struct gkyl_position_map* gkyl_position_map_new(struct gkyl_position_map_inp mapc2p_in,
   struct gkyl_rect_grid grid, struct gkyl_range local, struct gkyl_range local_ext, 
-  struct gkyl_range global, struct gkyl_range global_ext, struct gkyl_basis basis);
+  struct gkyl_range global, struct gkyl_range global_ext, struct gkyl_basis basis,
+  struct gkyl_comm* comm, bool use_gpu);
 
 /**
  * Set the position map object.

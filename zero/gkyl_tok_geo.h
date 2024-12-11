@@ -95,7 +95,7 @@ struct gkyl_tok_geo {
   struct { int max_iter; double eps; } root_param;
   struct { int max_level; double eps; } quad_param;
 
-  bool exact_roots; // If false we will allow approximate roots when no root is found
+  bool inexact_roots; // If true we will allow approximate roots when no root is found
   bool use_cubics; // If true will use the cubic rep of psi rather than the quadratic representation
 
   // pointer to root finder (depends on polyorder)
@@ -136,7 +136,7 @@ struct gkyl_tok_geo_grid_inp {
                                // In a lower single null "lower" is the outer divertor and
                                // "upper" is the inner divertor
 
-  bool exact_roots; // If false we will allow approximate roots when no root is found
+  bool inexact_roots; // If true we will allow approximate roots when no root is found
   bool use_cubics; // If true will use the cubic rep of psi rather than the quadratic representation
 
   // Parameters for root finder: leave unset to use defaults

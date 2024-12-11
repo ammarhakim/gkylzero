@@ -38,15 +38,16 @@ struct gkyl_bc_sheath_gyrokinetic_kernels {
 
 // Primary struct in this updater.
 struct gkyl_bc_sheath_gyrokinetic {
-  int dir, cdim;
-  enum gkyl_edge_loc edge;
-  const struct gkyl_basis *basis;
-  bool use_gpu;
+  int dir; // Direction perpendicular to the sheath boundary.
+  int cdim; // Conf-space dimensionality.
+  enum gkyl_edge_loc edge; // Lower or upper boundary.
+  const struct gkyl_basis *basis; // Phase-space basis.
+  bool use_gpu; // Whether to run on GPU.
   double q2Dm; // charge-to-mass ratio times 2.
   struct gkyl_bc_sheath_gyrokinetic_kernels *kernels;  // reflectedf kernel.
   struct gkyl_bc_sheath_gyrokinetic_kernels *kernels_cu;  // device copy.
-  const struct gkyl_range *skin_r, *ghost_r;
-  const struct gkyl_velocity_map *vel_map;
+  const struct gkyl_range *skin_r, *ghost_r; // Skin and ghost ranges.
+  const struct gkyl_velocity_map *vel_map; // Velocity space mapping.
 };
 
 void
