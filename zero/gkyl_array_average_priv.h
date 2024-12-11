@@ -21,7 +21,7 @@ static const dim_array_average_kern_list gkyl_array_average_ker_list[] = {
   { // Kernel list for 1x integration
     .list = 
       {
-        {gkyl_array_average_1x_ser_p1_avgx_ker, NULL},
+        {gkyl_array_average_1x_ser_p1_avgx_ker, gkyl_array_average_1x_ser_p2_avgx_ker},
         {NULL, NULL},
         {NULL, NULL},
         {NULL, NULL},
@@ -33,9 +33,9 @@ static const dim_array_average_kern_list gkyl_array_average_ker_list[] = {
   { // Kernel list for 2x integration
     .list = 
       {
-        {gkyl_array_average_2x_ser_p1_avgx_ker, NULL},
-        {gkyl_array_average_2x_ser_p1_avgy_ker, NULL},
-        {gkyl_array_average_2x_ser_p1_avgxy_ker, NULL},
+        {gkyl_array_average_2x_ser_p1_avgx_ker, gkyl_array_average_2x_ser_p2_avgy_ker},
+        {gkyl_array_average_2x_ser_p1_avgy_ker, gkyl_array_average_2x_ser_p2_avgy_ker},
+        {gkyl_array_average_2x_ser_p1_avgxy_ker, gkyl_array_average_2x_ser_p2_avgxy_ker},
         {NULL, NULL},
         {NULL, NULL},
         {NULL, NULL},
@@ -45,13 +45,13 @@ static const dim_array_average_kern_list gkyl_array_average_ker_list[] = {
   { // Kernel list for 3x integration
     .list = 
       {
-        {gkyl_array_average_3x_ser_p1_avgx_ker, NULL},
-        {gkyl_array_average_3x_ser_p1_avgy_ker, NULL},
-        {gkyl_array_average_3x_ser_p1_avgxy_ker, NULL},
-        {gkyl_array_average_3x_ser_p1_avgz_ker, NULL},
-        {gkyl_array_average_3x_ser_p1_avgxz_ker, NULL},
-        {gkyl_array_average_3x_ser_p1_avgyz_ker, NULL},
-        {gkyl_array_average_3x_ser_p1_avgxyz_ker, NULL},
+        {gkyl_array_average_3x_ser_p1_avgx_ker, gkyl_array_average_3x_ser_p2_avgx_ker},
+        {gkyl_array_average_3x_ser_p1_avgy_ker, gkyl_array_average_3x_ser_p2_avgy_ker},
+        {gkyl_array_average_3x_ser_p1_avgxy_ker, gkyl_array_average_3x_ser_p2_avgxy_ker},
+        {gkyl_array_average_3x_ser_p1_avgz_ker, gkyl_array_average_3x_ser_p2_avgz_ker},
+        {gkyl_array_average_3x_ser_p1_avgxz_ker, gkyl_array_average_3x_ser_p2_avgxz_ker},
+        {gkyl_array_average_3x_ser_p1_avgyz_ker, gkyl_array_average_3x_ser_p2_avgyz_ker},
+        {gkyl_array_average_3x_ser_p1_avgxyz_ker, gkyl_array_average_3x_ser_p2_avgxyz_ker},
       }
   }
 };
@@ -118,8 +118,10 @@ void gkyl_array_average_choose_kernel(struct gkyl_array_average *up)
 
 }
 
+#ifdef GKYL_HAVE_CUDA
 struct gkyl_array_average*
 gkyl_array_average_cu_dev_new(const gkyl_array_average_inp *inp);
 
 void gkyl_array_average_advance_cu(gkyl_array_average *up, 
   const struct gkyl_array *fin, struct gkyl_array *avgout);
+#endif
