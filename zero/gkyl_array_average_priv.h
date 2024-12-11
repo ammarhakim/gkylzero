@@ -95,9 +95,9 @@ struct gkyl_array_average {
 
   // weighted integral
   bool isweighted;
-  struct gkyl_array *weights;
-  struct gkyl_array *integral_weights;
-  struct gkyl_array * identity_weights; // to handle weighltess integral
+  struct gkyl_array *weight;
+  struct gkyl_array *weight_int;
+  struct gkyl_array *weight_1; // to handle weighltess integral
 
   // memory for the weak division at the end of averaging
   gkyl_dg_bin_op_mem *div_mem;

@@ -91,7 +91,7 @@ void test_1x(int poly_order, bool use_gpu)
   struct gkyl_basis red_basis;
   gkyl_cart_modal_serendip(&red_basis, 1, poly_order);
 
-  // project the target function and weights
+  // project the target function and weight
   gkyl_proj_on_basis *projf = gkyl_proj_on_basis_new(
       &grid, &basis, poly_order + 1, 1, evalFunc_1x, NULL);
 
@@ -117,7 +117,7 @@ void test_1x(int poly_order, bool use_gpu)
     .local = &local,
     .local_ext = &local_ext,
     .local_avg = &red_local,
-    .weights = wx_c,
+    .weight = wx_c,
     .avg_dim = avg_dim_x,
     .use_gpu = use_gpu
   };
@@ -219,7 +219,7 @@ void test_2x_1step(int poly_order, bool use_gpu)
     .local = &local,
     .local_ext = &local_ext,
     .local_avg = &red_local,
-    .weights = wxy_c,
+    .weight = wxy_c,
     .avg_dim = avg_dim_xy,
     .use_gpu = use_gpu
   };
@@ -254,7 +254,7 @@ void test_2x_1step(int poly_order, bool use_gpu)
   gkyl_array_release(fxy_c);
   gkyl_array_release(wxy_c);
 }
-// two step integration of the weights x,y -> y -> int
+// two step integration of the weight x,y -> y -> int
 void test_2x_intx_inty(int poly_order, bool use_gpu)
 {
   // Define grids and basis
@@ -310,7 +310,7 @@ void test_2x_intx_inty(int poly_order, bool use_gpu)
     .local = &local,
     .local_ext = &local_ext,
     .local_avg = &local_y,
-    .weights = NULL,
+    .weight = NULL,
     .avg_dim = int_dim_x,
     .use_gpu = use_gpu
   };
@@ -330,7 +330,7 @@ void test_2x_intx_inty(int poly_order, bool use_gpu)
     .local = &local_y,
     .local_ext = &local_y_ext,
     .local_avg = &red_local,
-    .weights = NULL,
+    .weight = NULL,
     .avg_dim = int_dim_y,
     .use_gpu = use_gpu
   };
@@ -399,7 +399,7 @@ void test_2x_avgx_avgy(int poly_order, bool use_gpu)
   struct gkyl_basis red_basis;
   gkyl_cart_modal_serendip(&red_basis, 1, poly_order);
 
-  // Project the target function and weights
+  // Project the target function and weight
   gkyl_proj_on_basis *projf = gkyl_proj_on_basis_new(
       &grid, &basis, poly_order + 1, 1, evalFunc_2x, NULL);
 
@@ -425,7 +425,7 @@ void test_2x_avgx_avgy(int poly_order, bool use_gpu)
     .local = &local,
     .local_ext = &local_ext,
     .local_avg = &local_y,
-    .weights = wxy_c,
+    .weight = wxy_c,
     .avg_dim = avg_dim_x,
     .use_gpu = use_gpu
   };
@@ -436,7 +436,7 @@ void test_2x_avgx_avgy(int poly_order, bool use_gpu)
   
   gkyl_array_average_release(avg_x);
 
-  // obtain x integral of the weights too
+  // obtain x integral of the weight too
   struct gkyl_array_average_inp inp_int_x = {
     .grid = &grid,
     .basis = basis,
@@ -444,7 +444,7 @@ void test_2x_avgx_avgy(int poly_order, bool use_gpu)
     .local = &local,
     .local_ext = &local_ext,
     .local_avg = &local_y,
-    .weights = NULL,
+    .weight = NULL,
     .avg_dim = avg_dim_x,
     .use_gpu = use_gpu
   };
@@ -467,7 +467,7 @@ void test_2x_avgx_avgy(int poly_order, bool use_gpu)
     .local = &local_y,
     .local_ext = &local_y_ext,
     .local_avg = &red_local,
-    .weights = NULL,
+    .weight = NULL,
     .avg_dim = avg_dim_y,
     .use_gpu = use_gpu
   };
@@ -556,7 +556,7 @@ void test_2x_avgy_avgx(int poly_order, bool use_gpu)
   struct gkyl_basis red_basis;
   gkyl_cart_modal_serendip(&red_basis, 1, poly_order);
 
-  // project the target function and weights
+  // project the target function and weight
   gkyl_proj_on_basis *projf = gkyl_proj_on_basis_new(
     &grid, &basis, poly_order + 1, 1, evalFunc_2x, NULL);
 
@@ -582,7 +582,7 @@ void test_2x_avgy_avgx(int poly_order, bool use_gpu)
     .local = &local,
     .local_ext = &local_ext,
     .local_avg = &local_x,
-    .weights = wxy_c,
+    .weight = wxy_c,
     .avg_dim = avg_dim_y,
     .use_gpu = use_gpu
   };
@@ -595,7 +595,7 @@ void test_2x_avgy_avgx(int poly_order, bool use_gpu)
 
   gkyl_array_average_release(avg_x);
 
-  // obtain x integral of the weights too
+  // obtain x integral of the weight too
   struct gkyl_array_average_inp inp_int_x = {
     .grid = &grid,
     .basis = basis,
@@ -603,7 +603,7 @@ void test_2x_avgy_avgx(int poly_order, bool use_gpu)
     .local = &local,
     .local_ext = &local_ext,
     .local_avg = &local_x,
-    .weights = NULL,
+    .weight = NULL,
     .avg_dim = avg_dim_y,
     .use_gpu = use_gpu
   };
@@ -626,7 +626,7 @@ void test_2x_avgy_avgx(int poly_order, bool use_gpu)
     .local = &local_x,
     .local_ext = &local_x_ext,
     .local_avg = &red_local,
-    .weights = NULL,
+    .weight = NULL,
     .avg_dim = avg_dim_x,
     .use_gpu = use_gpu
   };
@@ -635,7 +635,7 @@ void test_2x_avgy_avgx(int poly_order, bool use_gpu)
   struct gkyl_array *intf_c = mkarr(red_basis.num_basis, red_local.volume, use_gpu);
   gkyl_array_average_advance(int_y, fx_c, intf_c); // intf_c is DG coeff of int[int[w(x,y) f(x,y)]dx]dy
 
-  // obtain full integral of weights too
+  // obtain full integral of weight too
   struct gkyl_array *intw_c = mkarr(red_basis.num_basis, red_local.volume, use_gpu);
   gkyl_array_average_advance(int_y, wx_c, intw_c); // intw_c is DG coeff of int[int[w(x,y)]dx]dy
 
@@ -742,7 +742,7 @@ void test_3x_avgx_avgyz(int poly_order, bool use_gpu)
   struct gkyl_basis red_basis;
   gkyl_cart_modal_serendip(&red_basis, 1, poly_order);
 
-  // project the target function and weights
+  // project the target function and weight
   gkyl_proj_on_basis *projf = gkyl_proj_on_basis_new(
       &grid, &basis, poly_order + 1, 1, evalFunc_3x, NULL);
 
@@ -768,7 +768,7 @@ void test_3x_avgx_avgyz(int poly_order, bool use_gpu)
     .local = &local,
     .local_ext = &local_ext,
     .local_avg = &local_yz,
-    .weights = wxyz_c,
+    .weight = wxyz_c,
     .avg_dim = avg_dim_x,
     .use_gpu = use_gpu
   };
@@ -778,7 +778,7 @@ void test_3x_avgx_avgyz(int poly_order, bool use_gpu)
   gkyl_array_average_advance(avg_xyz_to_yz, fxyz_c, fyz_c); // fy_c is DG coeff of int[w(x,y,z) f(x,y,z)]dx / int[w(x,y,z)]dx
   gkyl_array_average_release(avg_xyz_to_yz);
 
-  // obtain x integral of the weights too
+  // obtain x integral of the weight too
   struct gkyl_array_average_inp inp_int_xyz_to_yz = {
     .grid = &grid,
     .basis = basis,
@@ -786,7 +786,7 @@ void test_3x_avgx_avgyz(int poly_order, bool use_gpu)
     .local = &local,
     .local_ext = &local_ext,
     .local_avg = &local_yz,
-    .weights = NULL,
+    .weight = NULL,
     .avg_dim = avg_dim_x,
     .use_gpu = use_gpu
   };
@@ -808,7 +808,7 @@ void test_3x_avgx_avgyz(int poly_order, bool use_gpu)
     .local = &local_yz,
     .local_ext = &local_yz_ext,
     .local_avg = &red_local,
-    .weights = NULL,
+    .weight = NULL,
     .avg_dim = avg_dim_yz,
     .use_gpu = use_gpu
   };
@@ -817,7 +817,7 @@ void test_3x_avgx_avgyz(int poly_order, bool use_gpu)
   struct gkyl_array *intf_c = mkarr(red_basis.num_basis, red_local.volume, use_gpu);
   gkyl_array_average_advance(int_yz, fyz_c, intf_c); // intf_c is DG coeff of int[int[w(x,y) f(x,y)]dy]dx
 
-  // obtain full integral of weights too
+  // obtain full integral of weight too
   struct gkyl_array *intw_c = mkarr(red_basis.num_basis, red_local.volume, use_gpu);
   gkyl_array_average_advance(int_yz, wyz_c, intw_c); // intw_c is DG coeff of int[int[w(x,y)]dy]dx
 
@@ -895,7 +895,7 @@ void test_3x_avgyz_avgx(int poly_order, bool use_gpu)
   struct gkyl_basis red_basis;
   gkyl_cart_modal_serendip(&red_basis, 1, poly_order);
 
-  // project the target function and weights
+  // project the target function and weight
   gkyl_proj_on_basis *projf = gkyl_proj_on_basis_new(
       &grid, &basis, poly_order + 1, 1, evalFunc_3x, NULL);
 
@@ -922,7 +922,7 @@ void test_3x_avgyz_avgx(int poly_order, bool use_gpu)
     .local = &local,
     .local_ext = &local_ext,
     .local_avg = &local_x,
-    .weights = wxyz_c,
+    .weight = wxyz_c,
     .avg_dim = avg_dim_yz,
     .use_gpu = use_gpu
   };
@@ -933,7 +933,7 @@ void test_3x_avgyz_avgx(int poly_order, bool use_gpu)
 
   gkyl_array_average_release(avg_xyz_to_x);
 
-  // obtain x integral of the weights too
+  // obtain x integral of the weight too
   struct gkyl_array_average_inp inp_int_xyz_to_x = {
     .grid = &grid,
     .basis = basis,
@@ -941,7 +941,7 @@ void test_3x_avgyz_avgx(int poly_order, bool use_gpu)
     .local = &local,
     .local_ext = &local_ext,
     .local_avg = &local_x,
-    .weights = NULL,
+    .weight = NULL,
     .avg_dim = avg_dim_yz,
     .use_gpu = use_gpu
   };
@@ -964,7 +964,7 @@ void test_3x_avgyz_avgx(int poly_order, bool use_gpu)
     .local = &local_x,
     .local_ext = &local_x_ext,
     .local_avg = &red_local,
-    .weights = NULL,
+    .weight = NULL,
     .avg_dim = avg_dim_x,
     .use_gpu = use_gpu
   };
@@ -973,7 +973,7 @@ void test_3x_avgyz_avgx(int poly_order, bool use_gpu)
   struct gkyl_array *intf_c = mkarr(red_basis.num_basis, red_local.volume, use_gpu);
   gkyl_array_average_advance(int_x, fx_c, intf_c); // intf_c is DG coeff of int[int[int[w(x,y) f(x,y)]dy]dz]dx
 
-  // obtain full integral of weights too
+  // obtain full integral of weight too
   struct gkyl_array *intw_c = mkarr(red_basis.num_basis, red_local.volume, use_gpu);
   gkyl_array_average_advance(int_x, wx_c, intw_c); // intw_c is DG coeff of int[int[int[w(x,y)]dy]dz]dx
 

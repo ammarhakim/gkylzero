@@ -53,46 +53,43 @@ gkyl_array_average_new(const struct gkyl_array_average_inp *inp)
   }
 
   // Handle a possible weighted average
-  if (inp->weights) {
+  up->isweighted = false;
+  up->weight = NULL;
+  up->weight_int = NULL;
+  up->div_mem = NULL;
+  up->weight_1 = NULL;
+  if (inp->weight) {
     up->isweighted = true;
     // Copy the pointer to the updater
-    up->weights = gkyl_array_acquire(inp->weights);
-    // Compute the subdim integral of the weights (for volume division after integration)
-    up->integral_weights = up->use_gpu? gkyl_array_cu_dev_new(GKYL_DOUBLE, up->basis_avg.num_basis, up->local_avg.volume)
+    up->weight = gkyl_array_acquire(inp->weight);
+    // Compute the subdim integral of the weight (for volume division after integration)
+    up->weight_int = up->use_gpu? gkyl_array_cu_dev_new(GKYL_DOUBLE, up->basis_avg.num_basis, up->local_avg.volume)
                                   : gkyl_array_new(GKYL_DOUBLE, up->basis_avg.num_basis, up->local_avg.volume);
-    // create new average routine to integrate the weights
-    struct gkyl_array_average *int_w;
-    // declare a weightless average 
-    // (this will simply integrate, not recursive call because here we do not put weights)
+    // create new average routine to integrate the weight
     struct gkyl_array_average_inp inp_integral = {
-    .grid = inp->grid,
-    .basis = inp->basis,
-    .basis_avg = inp->basis_avg,
-    .local = inp->local,
-    .local_ext = inp->local_ext,
-    .local_avg = inp->local_avg,
-    .weights = NULL, // No weights -> integral only
-    .avg_dim = inp->avg_dim,
-    .use_gpu = inp->use_gpu
+      .grid = inp->grid,
+      .basis = inp->basis,
+      .basis_avg = inp->basis_avg,
+      .local = inp->local,
+      .local_ext = inp->local_ext,
+      .local_avg = inp->local_avg,
+      .weight = NULL, // No weight -> integral only
+      .avg_dim = inp->avg_dim,
+      .use_gpu = inp->use_gpu
     };
-    int_w = gkyl_array_average_new(&inp_integral);
-    // run the updater to integrate the weights
-    gkyl_array_average_advance(int_w, inp->weights, up->integral_weights);
-    // release the updater
+    struct gkyl_array_average *int_w = gkyl_array_average_new(&inp_integral);
+    // run the updater to integrate the weight
+    gkyl_array_average_advance(int_w, inp->weight, up->weight_int);
     gkyl_array_average_release(int_w);
     // Allocate memory to prepare the weak division at the end of the advance routine
     up->div_mem = gkyl_dg_bin_op_mem_new(up->local_avg.volume, up->basis_avg.num_basis);
   } 
-  else{
-    up->weights = NULL;
-    up->integral_weights = NULL;
-    up->div_mem = NULL;
-    up->isweighted = false;
+  else {
+    // set the identity weight for weightless integrals
+    up->weight_1 = gkyl_array_new(GKYL_DOUBLE, up->basis.num_basis, 1);
+    double *w_0 = gkyl_array_fetch(up->weight_1, 0);
+    w_0[0] = pow(sqrt(2.),up->ndim);
   }
-  // set the identity weight for weightless integrals
-  up->identity_weights = gkyl_array_new(GKYL_DOUBLE, up->basis.num_basis, 1);
-  double *w_0 = gkyl_array_fetch(up->identity_weights, 0);
-  w_0[0] = pow(sqrt(2.),up->ndim);
 
   // Choose the kernel that performs the desired operation within the integral.
   gkyl_array_average_choose_kernel(up);
@@ -131,7 +128,7 @@ void gkyl_array_average_advance(const struct gkyl_array_average *up,
     int parent_idx[GKYL_MAX_CDIM] = {0};
     int cnter = 0;
     for (int i = 0; i < up->basis.ndim; i++){
-      if(up->isdim_sub[i]){
+      if (up->isdim_sub[i]) {
         parent_idx[i] = iter_avg.idx[cnter];
         cnter ++;
       }
@@ -144,8 +141,8 @@ void gkyl_array_average_advance(const struct gkyl_array_average *up,
       long lidx_cmp = gkyl_range_idx(&rng_cmp, iter_cmp.idx);
 
       const double *fin_i = gkyl_array_cfetch(fin, lidx_cmp);
-      const double *win_i = up->weights? gkyl_array_cfetch(up->weights, lidx_cmp) : 
-        gkyl_array_cfetch(up->identity_weights, 0);
+      const double *win_i = up->isweighted? gkyl_array_cfetch(up->weight, lidx_cmp) : 
+        gkyl_array_cfetch(up->weight_1, 0);
 
       double *avg_i = gkyl_array_fetch(avgout, sub_lidx);
 
@@ -153,10 +150,10 @@ void gkyl_array_average_advance(const struct gkyl_array_average *up,
     }
   }
 
-  //If we provided some weights, we now divide by the integrated weight
-  if(up->isweighted)
+  // If we provided some weight, we now divide by the integrated weight
+  if (up->isweighted)
     gkyl_dg_div_op_range(up->div_mem, up->basis_avg,
-     0, avgout, 0, avgout, 0, up->integral_weights, &up->local_avg);
+     0, avgout, 0, avgout, 0, up->weight_int, &up->local_avg);
 
 }
 
@@ -167,9 +164,15 @@ void gkyl_array_average_release(struct gkyl_array_average *up)
   if (up->use_gpu)
     gkyl_cu_free(up->on_dev);
 #endif
-  if(up->weights) gkyl_array_release(up->weights);
-  if(up->integral_weights) gkyl_array_release(up->integral_weights);
-  if(up->div_mem) gkyl_dg_bin_op_mem_release(up->div_mem);
-  if(up->identity_weights) gkyl_array_release(up->identity_weights);
+
+  if (up->isweighted) {
+    gkyl_array_release(up->weight);
+    gkyl_array_release(up->weight_int);
+    gkyl_dg_bin_op_mem_release(up->div_mem);
+  }
+  else {
+    gkyl_array_release(up->weight_1);
+  }
+
   gkyl_free(up);
 }
