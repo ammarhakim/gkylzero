@@ -19,6 +19,11 @@ typedef void (*dg_interp_t)(const double *wDo, const double *wTar,
 typedef struct {dg_interp_t dirs[6];} dg_interp_kern_dir_list_gk;
 typedef struct {dg_interp_kern_dir_list_gk list[2];} dg_interp_kern_p_list_gk;
 
+struct gkyl_dg_interpolate_kernels {
+  dg_interp_t interp;  // Kernel that performs the interpolation.
+  dg_interp_grid2stencilIdx_t grid2stencil; // Translate grid to stencil index.
+};
+
 // Primary struct in this updater.
 struct gkyl_dg_interpolate {
   int ndim; // Phase space dimensionality of the fields.
@@ -34,12 +39,7 @@ struct gkyl_dg_interpolate {
   int dir; // Interpolation direction.
   double dxRat; // Ratio of donor to target cell length in interpolation dir.
   int *offset_upper; // Upper index of the offset in each direction for each stencil.
-
-  dg_interp_t interp;  // Kernel that performs the interpolation.
-  dg_interp_grid2stencilIdx_t grid2stencil; // Translate grid to stencil index.
-
-  uint32_t flags;
-  struct gkyl_dg_interpolate *on_dev; // pointer to itself or device data
+  struct gkyl_dg_interpolate_kernels *kernels;
 };
 
 // Serendipity  kernels.
@@ -73,9 +73,10 @@ static const dg_interp_kern_p_list_gk dg_interp_kern_list_gk_ser[] = {
 
 #ifdef GKYL_HAVE_CUDA
 // Declaration of cuda device functions.
-void gkyl_dg_interpolate_new_cu(struct gkyl_dg_interpolate* up, struct gkyl_basis pbasis);
+void dg_interp_choose_kernel_cu(struct gkyl_dg_interpolate_kernels *kernels,
+  struct gkyl_basis pbasis, int dir, double dxRat);
 
-void gkyl_dg_interpolate_advance_cu(gkyl_dg_interpolate* up,
+void gkyl_dg_interpolate_advance_1x_cu(gkyl_dg_interpolate* up,
   const struct gkyl_range *phase_rng_do, const struct gkyl_range *phase_rng_tar,
   const struct gkyl_array *GKYL_RESTRICT fdo, struct gkyl_array *GKYL_RESTRICT ftar);
 #endif

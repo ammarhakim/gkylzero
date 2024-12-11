@@ -84,7 +84,9 @@ gkyl_dg_interpolate_new(int cdim, const struct gkyl_basis *pbasis,
   // Pre-allocate fields for intermediate grids.
   up->fields = gkyl_malloc((up->num_interp_dirs+1) * sizeof(struct gkyl_array *));
   for (int k=1; k<up->num_interp_dirs; k++) {
-    up->fields[k] = gkyl_array_new(GKYL_DOUBLE, pbasis->num_basis, ranges_ext[k].volume);
+    up->fields[k] = up->use_gpu? gkyl_array_cu_dev_new(GKYL_DOUBLE, pbasis->num_basis, ranges_ext[k].volume)
+                               : gkyl_array_new(GKYL_DOUBLE, pbasis->num_basis, ranges_ext[k].volume);
+
   }
   gkyl_free(ranges_ext);
 
@@ -99,18 +101,8 @@ gkyl_dg_interpolate_new(int cdim, const struct gkyl_basis *pbasis,
     }
   }
 
-  // Choose kernels that translates the DG coefficients.
-  up->interp = dg_interp_choose_gk_interp_kernel(*pbasis, up->dir);
-
   // Ratio of cell-lengths in each direction.
   up->dxRat = grid_do->dx[up->dir]/grid_tar->dx[up->dir];
-
-  // Map from grid to stencil index in each direction.
-  if (up->dxRat > 1)
-    up->grid2stencil = dg_interp_index_stencil_map_refine;
-  else
-    up->grid2stencil = dg_interp_index_stencil_map_coarsen;
-  
 
   // Interior (away from boundaries) stencil size.
   int intStencilSize = -1;
@@ -143,21 +135,45 @@ gkyl_dg_interpolate_new(int cdim, const struct gkyl_basis *pbasis,
   //   .-----.-----.-----.
   // For each region we will make a list of the number of target
   // cells to fetch contributions from in each direction.
-  up->offset_upper = gkyl_malloc(3 * sizeof(int));
+  int offset_upper[3];
   int sc = 0; // Current number of stencils.
   // Interior stencil (region 0).
-  up->offset_upper[0] = intStencilSize;
+  offset_upper[0] = intStencilSize;
   sc++;
   // Other stencils.
   for (int mp=-1; mp<2; mp += 2) {
-    up->offset_upper[sc] = floor(up->dxRat) + ceil(up->dxRat - floor(up->dxRat));
+    offset_upper[sc] = floor(up->dxRat) + ceil(up->dxRat - floor(up->dxRat));
     sc++;
   }
 
+  if (!up->use_gpu) {
+    up->offset_upper = gkyl_malloc(sizeof(int[3]));
+    memcpy(up->offset_upper, offset_upper, sizeof(int[3]));
+  }
 #ifdef GKYL_HAVE_CUDA
   if (up->use_gpu) {
-    // Allocate a device copy of the updater.
-    gkyl_dg_interpolate_new_cu(up, *pbasis);
+    up->offset_upper = gkyl_cu_malloc(sizeof(int[3]));
+    gkyl_cu_memcpy(up->offset_upper, offset_upper, sizeof(int[3]), GKYL_CU_MEMCPY_H2D);
+  }
+#endif
+
+  // Set kernel/function pointers.
+  if (!up->use_gpu) {
+    up->kernels = gkyl_malloc(sizeof(struct gkyl_dg_interpolate_kernels));
+
+    // Choose kernels that translates the DG coefficients.
+    up->kernels->interp = dg_interp_choose_gk_interp_kernel(*pbasis, up->dir);
+
+    // Map from grid to stencil index in each direction.
+    if (up->dxRat > 1)
+      up->kernels->grid2stencil = dg_interp_index_stencil_map_refine;
+    else
+      up->kernels->grid2stencil = dg_interp_index_stencil_map_coarsen;
+  }
+#ifdef GKYL_HAVE_CUDA
+  if (up->use_gpu) {
+    up->kernels = gkyl_cu_malloc(sizeof(struct gkyl_dg_interpolate_kernels));
+    dg_interp_choose_kernel_cu(up->kernels, *pbasis, up->dir, up->dxRat);
   }
 #endif
 
@@ -201,7 +217,7 @@ dg_interpolate_advance_1x(gkyl_dg_interpolate* up,
     idx_tar_lo = ceil(eveOI)+((int) ceil(eveOI-floor(eveOI))+1) % 2;
 
     // Get the index to the stencil for this donor cell.
-    int idx_sten = up->grid2stencil(idx_do[up->dir], up->grid_do.cells[up->dir], up->dxRat);
+    int idx_sten = up->kernels->grid2stencil(idx_do[up->dir], up->grid_do.cells[up->dir], up->dxRat);
     idx_sten -= 1;
 
     for (int d=0; d<up->ndim; d++)
@@ -217,7 +233,7 @@ dg_interpolate_advance_1x(gkyl_dg_interpolate* up,
       long linidx_tar = gkyl_range_idx(range_tar, idx_tar);
       double *ftar_c = gkyl_array_fetch(ftar, linidx_tar);
 
-      up->interp(xc_do, xc_tar, up->grid_do.dx, up->grid_tar.dx, fdo_c, ftar_c);
+      up->kernels->interp(xc_do, xc_tar, up->grid_do.dx, up->grid_tar.dx, fdo_c, ftar_c);
       
     }
 
@@ -228,13 +244,6 @@ void
 gkyl_dg_interpolate_advance(gkyl_dg_interpolate* up,
   struct gkyl_array *fdo, struct gkyl_array *ftar)
 {
-#ifdef GKYL_HAVE_CUDA
-  if (up->use_gpu) {
-    gkyl_dg_interpolate_advance_cu(up, range_do, range_tar, fdo, ftar);
-    return;
-  }
-#endif
-
   up->fields[0] = fdo;
   up->fields[up->num_interp_dirs] = ftar;
 
@@ -243,7 +252,6 @@ gkyl_dg_interpolate_advance(gkyl_dg_interpolate* up,
     dg_interpolate_advance_1x(up->interp_ops[k], &up->ranges[k], &up->ranges[k+1], 
       up->fields[k], up->fields[k+1]);
   }
-
 }
 
 void
@@ -252,13 +260,14 @@ gkyl_dg_interpolate_release(gkyl_dg_interpolate* up)
   // Release memory associated with this updater.
 
   if (up->num_interp_dirs == 1) {
-    if (!up->use_gpu)
+    if (!up->use_gpu) {
       gkyl_free(up->offset_upper);
+      gkyl_free(up->kernels);
+    }
 #ifdef GKYL_HAVE_CUDA
     if (up->use_gpu) {
       gkyl_cu_free(up->offset_upper);
-      if (GKYL_IS_CU_ALLOC(up->flags))
-        gkyl_cu_free(up->on_dev);
+      gkyl_cu_free(up->kernels);
     }
 #endif
   }
