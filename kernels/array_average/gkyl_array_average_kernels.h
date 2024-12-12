@@ -1,8 +1,6 @@
 #pragma once
 
 #include <gkyl_util.h>
-#include <math.h>
-
 EXTERN_C_BEG
 
 GKYL_CU_DH void gkyl_array_average_1x_ser_p1_avgx_ker(const double subvol, const double *win, const double *fin, double* GKYL_RESTRICT out);
