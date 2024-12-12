@@ -3,7 +3,6 @@
 #include <gkyl_array_ops.h>
 #include <gkyl_array_average_priv.h>
 #include <gkyl_array_average.h>
-#include <gkyl_dg_bin_ops.h>
 
 #include <assert.h>
 
@@ -114,10 +113,10 @@ void gkyl_array_average_advance(const struct gkyl_array_average *up,
 {
 
 #ifdef GKYL_HAVE_CUDA
-  // if (up->use_gpu) {
-  //   gkyl_array_average_advance_cu(up, fin, avgout);
-  //   return;
-  // }
+  if (up->use_gpu) {
+    gkyl_array_average_advance_cu(up, fin, avgout);
+    return;
+  }
 #endif
 
   // clear the array that will contain the result

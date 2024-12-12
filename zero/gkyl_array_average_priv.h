@@ -6,8 +6,8 @@
 #include <math.h>
 #include <gkyl_array_average.h>
 #include <gkyl_array_average_kernels.h>
-#include <assert.h>
 #include <gkyl_dg_bin_ops.h>
+#include <assert.h>
 
 // Function pointer type for array_average kernels.
 typedef void (*array_average_t)( const double subvol, const double *win, const double *fin, double* GKYL_RESTRICT out);

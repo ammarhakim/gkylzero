@@ -1,15 +1,11 @@
 /* -*- c++ -*- */
 
-// CUB for reductions.
-#include <cub/cub.cuh>
-
-// extern "C" {
-// #include <gkyl_alloc.h>
-// #include <gkyl_util.h>
-// #include <gkyl_array_average.h>
-// #include <gkyl_array_average_priv.h>
-// #include <gkyl_array_ops.h>
-// }
+extern "C" {
+#include <gkyl_alloc.h>
+#include <gkyl_util.h>
+#include <gkyl_array_average.h>
+#include <gkyl_array_average_priv.h>
+}
 
 // __global__ static void
 // gkyl_array_average_set_ker_cu(struct gkyl_array_average *up)
@@ -126,9 +122,9 @@
 //   // }
 // }
 
-// void gkyl_array_average_advance_cu(struct gkyl_array_average *up, 
-//   const struct gkyl_array *fin, struct gkyl_array *avgout)
-// {
+void gkyl_array_average_advance_cu(const struct gkyl_array_average *up, 
+  const struct gkyl_array *fin, struct gkyl_array *avgout)
+{
 
 //   // int nblocks_tot = up->local.nblocks, nthreads_tot = up->local.nthreads;
 //   // int nblocks_sub = up->local_avg.nblocks, nthreads_sub = up->local_avg.nthreads;
@@ -144,4 +140,4 @@
 //   // // device synchronize required because out may be host pinned memory
 //   // cudaDeviceSynchronize();
 
-// }
+}
