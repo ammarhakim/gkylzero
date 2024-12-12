@@ -1,6 +1,6 @@
 #include <gkyl_array_average_kernels.h>
 
-GKYL_CU_DH void gkyl_array_average_1x_ser_p1_avgx_ker(const double subvol, const double *win, const double *fin, double* GKYL_RESTRICT out) 
+GKYL_CU_DH void gkyl_array_average_1x_ser_p1_avgx(const double subvol, const double *win, const double *fin, double* GKYL_RESTRICT out) 
 { 
 #ifdef __CUDA_ARCH__
   atomicAdd(&out[0], (fin[1]*win[1]+fin[0]*win[0])*subvol); 
@@ -8,7 +8,7 @@ GKYL_CU_DH void gkyl_array_average_1x_ser_p1_avgx_ker(const double subvol, const
   out[0] += (fin[1]*win[1]+fin[0]*win[0])*subvol; 
 #endif
 } 
-GKYL_CU_DH void gkyl_array_average_2x_ser_p1_avgx_ker(const double subvol, const double *win, const double *fin, double* GKYL_RESTRICT out) 
+GKYL_CU_DH void gkyl_array_average_2x_ser_p1_avgx(const double subvol, const double *win, const double *fin, double* GKYL_RESTRICT out) 
 { 
 #ifdef __CUDA_ARCH__
   atomicAdd(&out[0], (0.7071067811865475*fin[3]*win[3]+0.7071067811865475*fin[2]*win[2]+0.7071067811865475*fin[1]*win[1]+0.7071067811865475*fin[0]*win[0])*subvol); 
@@ -18,7 +18,7 @@ GKYL_CU_DH void gkyl_array_average_2x_ser_p1_avgx_ker(const double subvol, const
   out[1] += (0.7071067811865475*fin[1]*win[3]+0.7071067811865475*win[1]*fin[3]+0.7071067811865475*fin[0]*win[2]+0.7071067811865475*win[0]*fin[2])*subvol; 
 #endif
 } 
-GKYL_CU_DH void gkyl_array_average_2x_ser_p1_avgy_ker(const double subvol, const double *win, const double *fin, double* GKYL_RESTRICT out) 
+GKYL_CU_DH void gkyl_array_average_2x_ser_p1_avgy(const double subvol, const double *win, const double *fin, double* GKYL_RESTRICT out) 
 { 
 #ifdef __CUDA_ARCH__
   atomicAdd(&out[0], (0.7071067811865475*fin[3]*win[3]+0.7071067811865475*fin[2]*win[2]+0.7071067811865475*fin[1]*win[1]+0.7071067811865475*fin[0]*win[0])*subvol); 
@@ -28,7 +28,7 @@ GKYL_CU_DH void gkyl_array_average_2x_ser_p1_avgy_ker(const double subvol, const
   out[1] += (0.7071067811865475*fin[2]*win[3]+0.7071067811865475*win[2]*fin[3]+0.7071067811865475*fin[0]*win[1]+0.7071067811865475*win[0]*fin[1])*subvol; 
 #endif
 } 
-GKYL_CU_DH void gkyl_array_average_2x_ser_p1_avgxy_ker(const double subvol, const double *win, const double *fin, double* GKYL_RESTRICT out) 
+GKYL_CU_DH void gkyl_array_average_2x_ser_p1_avgxy(const double subvol, const double *win, const double *fin, double* GKYL_RESTRICT out) 
 { 
 #ifdef __CUDA_ARCH__
   atomicAdd(&out[0], (fin[3]*win[3]+fin[2]*win[2]+fin[1]*win[1]+fin[0]*win[0])*subvol); 
@@ -36,7 +36,7 @@ GKYL_CU_DH void gkyl_array_average_2x_ser_p1_avgxy_ker(const double subvol, cons
   out[0] += (fin[3]*win[3]+fin[2]*win[2]+fin[1]*win[1]+fin[0]*win[0])*subvol; 
 #endif
 } 
-GKYL_CU_DH void gkyl_array_average_3x_ser_p1_avgx_ker(const double subvol, const double *win, const double *fin, double* GKYL_RESTRICT out) 
+GKYL_CU_DH void gkyl_array_average_3x_ser_p1_avgx(const double subvol, const double *win, const double *fin, double* GKYL_RESTRICT out) 
 { 
 #ifdef __CUDA_ARCH__
   atomicAdd(&out[0], (0.5*fin[7]*win[7]+0.5*fin[6]*win[6]+0.5*fin[5]*win[5]+0.5*fin[4]*win[4]+0.5*fin[3]*win[3]+0.5*fin[2]*win[2]+0.5*fin[1]*win[1]+0.5*fin[0]*win[0])*subvol); 
@@ -50,7 +50,7 @@ GKYL_CU_DH void gkyl_array_average_3x_ser_p1_avgx_ker(const double subvol, const
   out[3] += (0.5*fin[1]*win[7]+0.5*win[1]*fin[7]+0.5*fin[0]*win[6]+0.5*win[0]*fin[6]+0.5*fin[4]*win[5]+0.5*win[4]*fin[5]+0.5*fin[2]*win[3]+0.5*win[2]*fin[3])*subvol; 
 #endif
 } 
-GKYL_CU_DH void gkyl_array_average_3x_ser_p1_avgy_ker(const double subvol, const double *win, const double *fin, double* GKYL_RESTRICT out) 
+GKYL_CU_DH void gkyl_array_average_3x_ser_p1_avgy(const double subvol, const double *win, const double *fin, double* GKYL_RESTRICT out) 
 { 
 #ifdef __CUDA_ARCH__
   atomicAdd(&out[0], (0.5*fin[7]*win[7]+0.5*fin[6]*win[6]+0.5*fin[5]*win[5]+0.5*fin[4]*win[4]+0.5*fin[3]*win[3]+0.5*fin[2]*win[2]+0.5*fin[1]*win[1]+0.5*fin[0]*win[0])*subvol); 
@@ -64,7 +64,7 @@ GKYL_CU_DH void gkyl_array_average_3x_ser_p1_avgy_ker(const double subvol, const
   out[3] += (0.5*fin[2]*win[7]+0.5*win[2]*fin[7]+0.5*fin[4]*win[6]+0.5*win[4]*fin[6]+0.5*fin[0]*win[5]+0.5*win[0]*fin[5]+0.5*fin[1]*win[3]+0.5*win[1]*fin[3])*subvol; 
 #endif
 } 
-GKYL_CU_DH void gkyl_array_average_3x_ser_p1_avgz_ker(const double subvol, const double *win, const double *fin, double* GKYL_RESTRICT out) 
+GKYL_CU_DH void gkyl_array_average_3x_ser_p1_avgz(const double subvol, const double *win, const double *fin, double* GKYL_RESTRICT out) 
 { 
 #ifdef __CUDA_ARCH__
   atomicAdd(&out[0], (0.5*fin[7]*win[7]+0.5*fin[6]*win[6]+0.5*fin[5]*win[5]+0.5*fin[4]*win[4]+0.5*fin[3]*win[3]+0.5*fin[2]*win[2]+0.5*fin[1]*win[1]+0.5*fin[0]*win[0])*subvol); 
@@ -78,7 +78,7 @@ GKYL_CU_DH void gkyl_array_average_3x_ser_p1_avgz_ker(const double subvol, const
   out[3] += (0.5*fin[3]*win[7]+0.5*win[3]*fin[7]+0.5*fin[5]*win[6]+0.5*win[5]*fin[6]+0.5*fin[0]*win[4]+0.5*win[0]*fin[4]+0.5*fin[1]*win[2]+0.5*win[1]*fin[2])*subvol; 
 #endif
 } 
-GKYL_CU_DH void gkyl_array_average_3x_ser_p1_avgxy_ker(const double subvol, const double *win, const double *fin, double* GKYL_RESTRICT out) 
+GKYL_CU_DH void gkyl_array_average_3x_ser_p1_avgxy(const double subvol, const double *win, const double *fin, double* GKYL_RESTRICT out) 
 { 
 #ifdef __CUDA_ARCH__
   atomicAdd(&out[0], (0.7071067811865475*fin[7]*win[7]+0.7071067811865475*fin[6]*win[6]+0.7071067811865475*fin[5]*win[5]+0.7071067811865475*fin[4]*win[4]+0.7071067811865475*fin[3]*win[3]+0.7071067811865475*fin[2]*win[2]+0.7071067811865475*fin[1]*win[1]+0.7071067811865475*fin[0]*win[0])*subvol); 
@@ -88,7 +88,7 @@ GKYL_CU_DH void gkyl_array_average_3x_ser_p1_avgxy_ker(const double subvol, cons
   out[1] += (0.7071067811865475*fin[4]*win[7]+0.7071067811865475*win[4]*fin[7]+0.7071067811865475*fin[2]*win[6]+0.7071067811865475*win[2]*fin[6]+0.7071067811865475*fin[1]*win[5]+0.7071067811865475*win[1]*fin[5]+0.7071067811865475*fin[0]*win[3]+0.7071067811865475*win[0]*fin[3])*subvol; 
 #endif
 } 
-GKYL_CU_DH void gkyl_array_average_3x_ser_p1_avgxz_ker(const double subvol, const double *win, const double *fin, double* GKYL_RESTRICT out) 
+GKYL_CU_DH void gkyl_array_average_3x_ser_p1_avgxz(const double subvol, const double *win, const double *fin, double* GKYL_RESTRICT out) 
 { 
 #ifdef __CUDA_ARCH__
   atomicAdd(&out[0], (0.7071067811865475*fin[7]*win[7]+0.7071067811865475*fin[6]*win[6]+0.7071067811865475*fin[5]*win[5]+0.7071067811865475*fin[4]*win[4]+0.7071067811865475*fin[3]*win[3]+0.7071067811865475*fin[2]*win[2]+0.7071067811865475*fin[1]*win[1]+0.7071067811865475*fin[0]*win[0])*subvol); 
@@ -98,7 +98,7 @@ GKYL_CU_DH void gkyl_array_average_3x_ser_p1_avgxz_ker(const double subvol, cons
   out[1] += (0.7071067811865475*fin[5]*win[7]+0.7071067811865475*win[5]*fin[7]+0.7071067811865475*fin[3]*win[6]+0.7071067811865475*win[3]*fin[6]+0.7071067811865475*fin[1]*win[4]+0.7071067811865475*win[1]*fin[4]+0.7071067811865475*fin[0]*win[2]+0.7071067811865475*win[0]*fin[2])*subvol; 
 #endif
 } 
-GKYL_CU_DH void gkyl_array_average_3x_ser_p1_avgyz_ker(const double subvol, const double *win, const double *fin, double* GKYL_RESTRICT out) 
+GKYL_CU_DH void gkyl_array_average_3x_ser_p1_avgyz(const double subvol, const double *win, const double *fin, double* GKYL_RESTRICT out) 
 { 
 #ifdef __CUDA_ARCH__
   atomicAdd(&out[0], (0.7071067811865475*fin[7]*win[7]+0.7071067811865475*fin[6]*win[6]+0.7071067811865475*fin[5]*win[5]+0.7071067811865475*fin[4]*win[4]+0.7071067811865475*fin[3]*win[3]+0.7071067811865475*fin[2]*win[2]+0.7071067811865475*fin[1]*win[1]+0.7071067811865475*fin[0]*win[0])*subvol); 
@@ -108,7 +108,7 @@ GKYL_CU_DH void gkyl_array_average_3x_ser_p1_avgyz_ker(const double subvol, cons
   out[1] += (0.7071067811865475*fin[6]*win[7]+0.7071067811865475*win[6]*fin[7]+0.7071067811865475*fin[3]*win[5]+0.7071067811865475*win[3]*fin[5]+0.7071067811865475*fin[2]*win[4]+0.7071067811865475*win[2]*fin[4]+0.7071067811865475*fin[0]*win[1]+0.7071067811865475*win[0]*fin[1])*subvol; 
 #endif
 } 
-GKYL_CU_DH void gkyl_array_average_3x_ser_p1_avgxyz_ker(const double subvol, const double *win, const double *fin, double* GKYL_RESTRICT out) 
+GKYL_CU_DH void gkyl_array_average_3x_ser_p1_avgxyz(const double subvol, const double *win, const double *fin, double* GKYL_RESTRICT out) 
 { 
 #ifdef __CUDA_ARCH__
   atomicAdd(&out[0], (fin[7]*win[7]+fin[6]*win[6]+fin[5]*win[5]+fin[4]*win[4]+fin[3]*win[3]+fin[2]*win[2]+fin[1]*win[1]+fin[0]*win[0])*subvol); 
@@ -116,7 +116,7 @@ GKYL_CU_DH void gkyl_array_average_3x_ser_p1_avgxyz_ker(const double subvol, con
   out[0] += (fin[7]*win[7]+fin[6]*win[6]+fin[5]*win[5]+fin[4]*win[4]+fin[3]*win[3]+fin[2]*win[2]+fin[1]*win[1]+fin[0]*win[0])*subvol; 
 #endif
 } 
-GKYL_CU_DH void gkyl_array_average_1x_ser_p2_avgx_ker(const double subvol, const double *win, const double *fin, double* GKYL_RESTRICT out) 
+GKYL_CU_DH void gkyl_array_average_1x_ser_p2_avgx(const double subvol, const double *win, const double *fin, double* GKYL_RESTRICT out) 
 { 
 #ifdef __CUDA_ARCH__
   atomicAdd(&out[0], (fin[2]*win[2]+fin[1]*win[1]+fin[0]*win[0])*subvol); 
@@ -124,7 +124,7 @@ GKYL_CU_DH void gkyl_array_average_1x_ser_p2_avgx_ker(const double subvol, const
   out[0] += (fin[2]*win[2]+fin[1]*win[1]+fin[0]*win[0])*subvol; 
 #endif
 } 
-GKYL_CU_DH void gkyl_array_average_2x_ser_p2_avgx_ker(const double subvol, const double *win, const double *fin, double* GKYL_RESTRICT out) 
+GKYL_CU_DH void gkyl_array_average_2x_ser_p2_avgx(const double subvol, const double *win, const double *fin, double* GKYL_RESTRICT out) 
 { 
 #ifdef __CUDA_ARCH__
   atomicAdd(&out[0], (0.7071067811865475*fin[7]*win[7]+0.7071067811865475*fin[6]*win[6]+0.7071067811865475*fin[5]*win[5]+0.7071067811865475*fin[4]*win[4]+0.7071067811865475*fin[3]*win[3]+0.7071067811865475*fin[2]*win[2]+0.7071067811865475*fin[1]*win[1]+0.7071067811865475*fin[0]*win[0])*subvol); 
@@ -136,7 +136,7 @@ GKYL_CU_DH void gkyl_array_average_2x_ser_p2_avgx_ker(const double subvol, const
   out[2] += (0.45175395145262565*fin[7]*win[7]+0.7071067811865475*fin[1]*win[7]+0.7071067811865475*win[1]*fin[7]+0.6324555320336759*fin[6]*win[6]+0.45175395145262565*fin[5]*win[5]+0.7071067811865475*fin[0]*win[5]+0.7071067811865475*win[0]*fin[5]+0.6324555320336759*fin[3]*win[3]+0.6324555320336759*fin[2]*win[2])*subvol; 
 #endif
 } 
-GKYL_CU_DH void gkyl_array_average_2x_ser_p2_avgy_ker(const double subvol, const double *win, const double *fin, double* GKYL_RESTRICT out) 
+GKYL_CU_DH void gkyl_array_average_2x_ser_p2_avgy(const double subvol, const double *win, const double *fin, double* GKYL_RESTRICT out) 
 { 
 #ifdef __CUDA_ARCH__
   atomicAdd(&out[0], (0.7071067811865475*fin[7]*win[7]+0.7071067811865475*fin[6]*win[6]+0.7071067811865475*fin[5]*win[5]+0.7071067811865475*fin[4]*win[4]+0.7071067811865475*fin[3]*win[3]+0.7071067811865475*fin[2]*win[2]+0.7071067811865475*fin[1]*win[1]+0.7071067811865475*fin[0]*win[0])*subvol); 
@@ -148,7 +148,7 @@ GKYL_CU_DH void gkyl_array_average_2x_ser_p2_avgy_ker(const double subvol, const
   out[2] += (0.6324555320336759*fin[7]*win[7]+0.45175395145262565*fin[6]*win[6]+0.7071067811865475*fin[2]*win[6]+0.7071067811865475*win[2]*fin[6]+0.45175395145262565*fin[4]*win[4]+0.7071067811865475*fin[0]*win[4]+0.7071067811865475*win[0]*fin[4]+0.6324555320336759*fin[3]*win[3]+0.6324555320336759*fin[1]*win[1])*subvol; 
 #endif
 } 
-GKYL_CU_DH void gkyl_array_average_2x_ser_p2_avgxy_ker(const double subvol, const double *win, const double *fin, double* GKYL_RESTRICT out) 
+GKYL_CU_DH void gkyl_array_average_2x_ser_p2_avgxy(const double subvol, const double *win, const double *fin, double* GKYL_RESTRICT out) 
 { 
 #ifdef __CUDA_ARCH__
   atomicAdd(&out[0], (fin[7]*win[7]+fin[6]*win[6]+fin[5]*win[5]+fin[4]*win[4]+fin[3]*win[3]+fin[2]*win[2]+fin[1]*win[1]+fin[0]*win[0])*subvol); 
@@ -156,7 +156,7 @@ GKYL_CU_DH void gkyl_array_average_2x_ser_p2_avgxy_ker(const double subvol, cons
   out[0] += (fin[7]*win[7]+fin[6]*win[6]+fin[5]*win[5]+fin[4]*win[4]+fin[3]*win[3]+fin[2]*win[2]+fin[1]*win[1]+fin[0]*win[0])*subvol; 
 #endif
 } 
-GKYL_CU_DH void gkyl_array_average_3x_ser_p2_avgx_ker(const double subvol, const double *win, const double *fin, double* GKYL_RESTRICT out) 
+GKYL_CU_DH void gkyl_array_average_3x_ser_p2_avgx(const double subvol, const double *win, const double *fin, double* GKYL_RESTRICT out) 
 { 
 #ifdef __CUDA_ARCH__
   atomicAdd(&out[0], (0.5*fin[19]*win[19]+0.5*fin[18]*win[18]+0.5*fin[17]*win[17]+0.5*fin[16]*win[16]+0.5*fin[15]*win[15]+0.5*fin[14]*win[14]+0.5*fin[13]*win[13]+0.5*fin[12]*win[12]+0.5*fin[11]*win[11]+0.5*fin[10]*win[10]+0.5*fin[9]*win[9]+0.5*fin[8]*win[8]+0.5*fin[7]*win[7]+0.5*fin[6]*win[6]+0.5*fin[5]*win[5]+0.5*fin[4]*win[4]+0.5*fin[3]*win[3]+0.5*fin[2]*win[2]+0.5*fin[1]*win[1]+0.5*fin[0]*win[0])*subvol); 
@@ -178,7 +178,7 @@ GKYL_CU_DH void gkyl_array_average_3x_ser_p2_avgx_ker(const double subvol, const
   out[7] += (0.31943828249996997*fin[15]*win[19]+0.4472135954999579*fin[12]*win[19]+0.5000000000000001*fin[1]*win[19]+0.31943828249996997*win[15]*fin[19]+0.4472135954999579*win[12]*fin[19]+0.5000000000000001*win[1]*fin[19]+0.4*fin[10]*win[18]+0.4*win[10]*fin[18]+0.4472135954999579*fin[13]*win[17]+0.4472135954999579*win[13]*fin[17]+0.31943828249996997*fin[9]*win[16]+0.4472135954999579*fin[8]*win[16]+0.5*fin[0]*win[16]+0.31943828249996997*win[9]*fin[16]+0.4472135954999579*win[8]*fin[16]+0.5*win[0]*fin[16]+0.5*fin[4]*win[15]+0.5*win[4]*fin[15]+0.4*fin[6]*win[14]+0.4*win[6]*fin[14]+0.44721359549995804*fin[5]*win[10]+0.44721359549995804*win[5]*fin[10]+0.5000000000000001*fin[2]*win[9]+0.5000000000000001*win[2]*fin[9]+0.44721359549995804*fin[3]*win[6]+0.44721359549995804*win[3]*fin[6])*subvol; 
 #endif
 } 
-GKYL_CU_DH void gkyl_array_average_3x_ser_p2_avgy_ker(const double subvol, const double *win, const double *fin, double* GKYL_RESTRICT out) 
+GKYL_CU_DH void gkyl_array_average_3x_ser_p2_avgy(const double subvol, const double *win, const double *fin, double* GKYL_RESTRICT out) 
 { 
 #ifdef __CUDA_ARCH__
   atomicAdd(&out[0], (0.5*fin[19]*win[19]+0.5*fin[18]*win[18]+0.5*fin[17]*win[17]+0.5*fin[16]*win[16]+0.5*fin[15]*win[15]+0.5*fin[14]*win[14]+0.5*fin[13]*win[13]+0.5*fin[12]*win[12]+0.5*fin[11]*win[11]+0.5*fin[10]*win[10]+0.5*fin[9]*win[9]+0.5*fin[8]*win[8]+0.5*fin[7]*win[7]+0.5*fin[6]*win[6]+0.5*fin[5]*win[5]+0.5*fin[4]*win[4]+0.5*fin[3]*win[3]+0.5*fin[2]*win[2]+0.5*fin[1]*win[1]+0.5*fin[0]*win[0])*subvol); 
@@ -200,7 +200,7 @@ GKYL_CU_DH void gkyl_array_average_3x_ser_p2_avgy_ker(const double subvol, const
   out[7] += (0.31943828249996997*fin[16]*win[19]+0.4472135954999579*fin[11]*win[19]+0.5000000000000001*fin[2]*win[19]+0.31943828249996997*win[16]*fin[19]+0.4472135954999579*win[11]*fin[19]+0.5000000000000001*win[2]*fin[19]+0.4472135954999579*fin[14]*win[18]+0.4472135954999579*win[14]*fin[18]+0.4*fin[10]*win[17]+0.4*win[10]*fin[17]+0.5*fin[4]*win[16]+0.5*win[4]*fin[16]+0.31943828249996997*fin[9]*win[15]+0.4472135954999579*fin[7]*win[15]+0.5*fin[0]*win[15]+0.31943828249996997*win[9]*fin[15]+0.4472135954999579*win[7]*fin[15]+0.5*win[0]*fin[15]+0.4*fin[5]*win[13]+0.4*win[5]*fin[13]+0.44721359549995804*fin[6]*win[10]+0.44721359549995804*win[6]*fin[10]+0.5000000000000001*fin[1]*win[9]+0.5000000000000001*win[1]*fin[9]+0.44721359549995804*fin[3]*win[5]+0.44721359549995804*win[3]*fin[5])*subvol; 
 #endif
 } 
-GKYL_CU_DH void gkyl_array_average_3x_ser_p2_avgz_ker(const double subvol, const double *win, const double *fin, double* GKYL_RESTRICT out) 
+GKYL_CU_DH void gkyl_array_average_3x_ser_p2_avgz(const double subvol, const double *win, const double *fin, double* GKYL_RESTRICT out) 
 { 
 #ifdef __CUDA_ARCH__
   atomicAdd(&out[0], (0.5*fin[19]*win[19]+0.5*fin[18]*win[18]+0.5*fin[17]*win[17]+0.5*fin[16]*win[16]+0.5*fin[15]*win[15]+0.5*fin[14]*win[14]+0.5*fin[13]*win[13]+0.5*fin[12]*win[12]+0.5*fin[11]*win[11]+0.5*fin[10]*win[10]+0.5*fin[9]*win[9]+0.5*fin[8]*win[8]+0.5*fin[7]*win[7]+0.5*fin[6]*win[6]+0.5*fin[5]*win[5]+0.5*fin[4]*win[4]+0.5*fin[3]*win[3]+0.5*fin[2]*win[2]+0.5*fin[1]*win[1]+0.5*fin[0]*win[0])*subvol); 
@@ -222,7 +222,7 @@ GKYL_CU_DH void gkyl_array_average_3x_ser_p2_avgz_ker(const double subvol, const
   out[7] += (0.4472135954999579*fin[16]*win[19]+0.4472135954999579*win[16]*fin[19]+0.31943828249996997*fin[14]*win[18]+0.4472135954999579*fin[13]*win[18]+0.5000000000000001*fin[3]*win[18]+0.31943828249996997*win[14]*fin[18]+0.4472135954999579*win[13]*fin[18]+0.5000000000000001*win[3]*fin[18]+0.4*fin[10]*win[17]+0.4*win[10]*fin[17]+0.5*fin[5]*win[14]+0.5*win[5]*fin[14]+0.31943828249996997*fin[8]*win[12]+0.4472135954999579*fin[7]*win[12]+0.5*fin[0]*win[12]+0.31943828249996997*win[8]*fin[12]+0.4472135954999579*win[7]*fin[12]+0.5*win[0]*fin[12]+0.4*fin[4]*win[11]+0.4*win[4]*fin[11]+0.44721359549995804*fin[6]*win[10]+0.44721359549995804*win[6]*fin[10]+0.5000000000000001*fin[1]*win[8]+0.5000000000000001*win[1]*fin[8]+0.44721359549995804*fin[2]*win[4]+0.44721359549995804*win[2]*fin[4])*subvol; 
 #endif
 } 
-GKYL_CU_DH void gkyl_array_average_3x_ser_p2_avgxy_ker(const double subvol, const double *win, const double *fin, double* GKYL_RESTRICT out) 
+GKYL_CU_DH void gkyl_array_average_3x_ser_p2_avgxy(const double subvol, const double *win, const double *fin, double* GKYL_RESTRICT out) 
 { 
 #ifdef __CUDA_ARCH__
   atomicAdd(&out[0], (0.7071067811865475*fin[19]*win[19]+0.7071067811865475*fin[18]*win[18]+0.7071067811865475*fin[17]*win[17]+0.7071067811865475*fin[16]*win[16]+0.7071067811865475*fin[15]*win[15]+0.7071067811865475*fin[14]*win[14]+0.7071067811865475*fin[13]*win[13]+0.7071067811865475*fin[12]*win[12]+0.7071067811865475*fin[11]*win[11]+0.7071067811865475*fin[10]*win[10]+0.7071067811865475*fin[9]*win[9]+0.7071067811865475*fin[8]*win[8]+0.7071067811865475*fin[7]*win[7]+0.7071067811865475*fin[6]*win[6]+0.7071067811865475*fin[5]*win[5]+0.7071067811865475*fin[4]*win[4]+0.7071067811865475*fin[3]*win[3]+0.7071067811865475*fin[2]*win[2]+0.7071067811865475*fin[1]*win[1]+0.7071067811865475*fin[0]*win[0])*subvol); 
@@ -234,7 +234,7 @@ GKYL_CU_DH void gkyl_array_average_3x_ser_p2_avgxy_ker(const double subvol, cons
   out[2] += (0.45175395145262565*fin[19]*win[19]+0.7071067811865475*fin[4]*win[19]+0.7071067811865475*win[4]*fin[19]+0.6324555320336759*fin[18]*win[18]+0.6324555320336759*fin[17]*win[17]+0.45175395145262565*fin[16]*win[16]+0.7071067811865475*fin[2]*win[16]+0.7071067811865475*win[2]*fin[16]+0.45175395145262565*fin[15]*win[15]+0.7071067811865475*fin[1]*win[15]+0.7071067811865475*win[1]*fin[15]+0.6324555320336759*fin[14]*win[14]+0.6324555320336759*fin[13]*win[13]+0.6324555320336759*fin[10]*win[10]+0.45175395145262565*fin[9]*win[9]+0.7071067811865475*fin[0]*win[9]+0.7071067811865475*win[0]*fin[9]+0.6324555320336759*fin[6]*win[6]+0.6324555320336759*fin[5]*win[5]+0.6324555320336759*fin[3]*win[3])*subvol; 
 #endif
 } 
-GKYL_CU_DH void gkyl_array_average_3x_ser_p2_avgxz_ker(const double subvol, const double *win, const double *fin, double* GKYL_RESTRICT out) 
+GKYL_CU_DH void gkyl_array_average_3x_ser_p2_avgxz(const double subvol, const double *win, const double *fin, double* GKYL_RESTRICT out) 
 { 
 #ifdef __CUDA_ARCH__
   atomicAdd(&out[0], (0.7071067811865475*fin[19]*win[19]+0.7071067811865475*fin[18]*win[18]+0.7071067811865475*fin[17]*win[17]+0.7071067811865475*fin[16]*win[16]+0.7071067811865475*fin[15]*win[15]+0.7071067811865475*fin[14]*win[14]+0.7071067811865475*fin[13]*win[13]+0.7071067811865475*fin[12]*win[12]+0.7071067811865475*fin[11]*win[11]+0.7071067811865475*fin[10]*win[10]+0.7071067811865475*fin[9]*win[9]+0.7071067811865475*fin[8]*win[8]+0.7071067811865475*fin[7]*win[7]+0.7071067811865475*fin[6]*win[6]+0.7071067811865475*fin[5]*win[5]+0.7071067811865475*fin[4]*win[4]+0.7071067811865475*fin[3]*win[3]+0.7071067811865475*fin[2]*win[2]+0.7071067811865475*fin[1]*win[1]+0.7071067811865475*fin[0]*win[0])*subvol); 
@@ -246,7 +246,7 @@ GKYL_CU_DH void gkyl_array_average_3x_ser_p2_avgxz_ker(const double subvol, cons
   out[2] += (0.6324555320336759*fin[19]*win[19]+0.45175395145262565*fin[18]*win[18]+0.7071067811865475*fin[5]*win[18]+0.7071067811865475*win[5]*fin[18]+0.6324555320336759*fin[17]*win[17]+0.6324555320336759*fin[16]*win[16]+0.45175395145262565*fin[14]*win[14]+0.7071067811865475*fin[3]*win[14]+0.7071067811865475*win[3]*fin[14]+0.45175395145262565*fin[12]*win[12]+0.7071067811865475*fin[1]*win[12]+0.7071067811865475*win[1]*fin[12]+0.6324555320336759*fin[11]*win[11]+0.6324555320336759*fin[10]*win[10]+0.45175395145262565*fin[8]*win[8]+0.7071067811865475*fin[0]*win[8]+0.7071067811865475*win[0]*fin[8]+0.6324555320336759*fin[6]*win[6]+0.6324555320336759*fin[4]*win[4]+0.6324555320336759*fin[2]*win[2])*subvol; 
 #endif
 } 
-GKYL_CU_DH void gkyl_array_average_3x_ser_p2_avgyz_ker(const double subvol, const double *win, const double *fin, double* GKYL_RESTRICT out) 
+GKYL_CU_DH void gkyl_array_average_3x_ser_p2_avgyz(const double subvol, const double *win, const double *fin, double* GKYL_RESTRICT out) 
 { 
 #ifdef __CUDA_ARCH__
   atomicAdd(&out[0], (0.7071067811865475*fin[19]*win[19]+0.7071067811865475*fin[18]*win[18]+0.7071067811865475*fin[17]*win[17]+0.7071067811865475*fin[16]*win[16]+0.7071067811865475*fin[15]*win[15]+0.7071067811865475*fin[14]*win[14]+0.7071067811865475*fin[13]*win[13]+0.7071067811865475*fin[12]*win[12]+0.7071067811865475*fin[11]*win[11]+0.7071067811865475*fin[10]*win[10]+0.7071067811865475*fin[9]*win[9]+0.7071067811865475*fin[8]*win[8]+0.7071067811865475*fin[7]*win[7]+0.7071067811865475*fin[6]*win[6]+0.7071067811865475*fin[5]*win[5]+0.7071067811865475*fin[4]*win[4]+0.7071067811865475*fin[3]*win[3]+0.7071067811865475*fin[2]*win[2]+0.7071067811865475*fin[1]*win[1]+0.7071067811865475*fin[0]*win[0])*subvol); 
@@ -258,7 +258,7 @@ GKYL_CU_DH void gkyl_array_average_3x_ser_p2_avgyz_ker(const double subvol, cons
   out[2] += (0.6324555320336759*fin[19]*win[19]+0.6324555320336759*fin[18]*win[18]+0.45175395145262565*fin[17]*win[17]+0.7071067811865475*fin[6]*win[17]+0.7071067811865475*win[6]*fin[17]+0.6324555320336759*fin[15]*win[15]+0.45175395145262565*fin[13]*win[13]+0.7071067811865475*fin[3]*win[13]+0.7071067811865475*win[3]*fin[13]+0.6324555320336759*fin[12]*win[12]+0.45175395145262565*fin[11]*win[11]+0.7071067811865475*fin[2]*win[11]+0.7071067811865475*win[2]*fin[11]+0.6324555320336759*fin[10]*win[10]+0.45175395145262565*fin[7]*win[7]+0.7071067811865475*fin[0]*win[7]+0.7071067811865475*win[0]*fin[7]+0.6324555320336759*fin[5]*win[5]+0.6324555320336759*fin[4]*win[4]+0.6324555320336759*fin[1]*win[1])*subvol; 
 #endif
 } 
-GKYL_CU_DH void gkyl_array_average_3x_ser_p2_avgxyz_ker(const double subvol, const double *win, const double *fin, double* GKYL_RESTRICT out) 
+GKYL_CU_DH void gkyl_array_average_3x_ser_p2_avgxyz(const double subvol, const double *win, const double *fin, double* GKYL_RESTRICT out) 
 { 
 #ifdef __CUDA_ARCH__
   atomicAdd(&out[0], (fin[19]*win[19]+fin[18]*win[18]+fin[17]*win[17]+fin[16]*win[16]+fin[15]*win[15]+fin[14]*win[14]+fin[13]*win[13]+fin[12]*win[12]+fin[11]*win[11]+fin[10]*win[10]+fin[9]*win[9]+fin[8]*win[8]+fin[7]*win[7]+fin[6]*win[6]+fin[5]*win[5]+fin[4]*win[4]+fin[3]*win[3]+fin[2]*win[2]+fin[1]*win[1]+fin[0]*win[0])*subvol); 
