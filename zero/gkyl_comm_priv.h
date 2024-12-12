@@ -95,6 +95,7 @@ struct gkyl_comm_priv {
   // FOLLOWING NEED A DECOMP 
 
   gkyl_array_allgather_t gkyl_array_allgather; // gather local arrays to global array
+  gkyl_array_allgather_t gkyl_array_allgather_host; // ?? gather local arrays to global array on host
 
   gkyl_array_bcast_t gkyl_array_bcast; // broadcast array to other processes
   gkyl_array_bcast_t gkyl_array_bcast_host; // ?? broadcast host side array to other processes
