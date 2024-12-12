@@ -101,8 +101,8 @@ gkyl_array_average_new(const struct gkyl_array_average_inp *inp)
   gkyl_array_average_choose_kernel(up);
 
 #ifdef GKYL_HAVE_CUDA
-  // if (up->use_gpu)
-  //   return gkyl_array_average_cu_dev_new(up);
+  if (up->use_gpu)
+    return gkyl_array_average_cu_dev_new(up);
 #endif
 
   return up;
@@ -128,7 +128,7 @@ void gkyl_array_average_advance(const struct gkyl_array_average *up,
   // We now loop on the range of the averaged array
   gkyl_range_iter_init(&iter_avg, &up->local_avg);
   while (gkyl_range_iter_next(&iter_avg)) {
-    long sub_lidx = gkyl_range_idx(&up->local_avg, iter_avg.idx);
+    long lidx_avg = gkyl_range_idx(&up->local_avg, iter_avg.idx);
 
     // We need to pass the moving index to the deflate operation as a sub dimensional iterator
     int parent_idx[GKYL_MAX_CDIM] = {0};
@@ -150,7 +150,7 @@ void gkyl_array_average_advance(const struct gkyl_array_average *up,
       const double *win_i = up->isweighted? gkyl_array_cfetch(up->weight, lidx_cmp) : 
         gkyl_array_cfetch(up->weight, 0);
 
-      double *avg_i = gkyl_array_fetch(avgout, sub_lidx);
+      double *avg_i = gkyl_array_fetch(avgout, lidx_avg);
 
       up->kernel(up->subvol, win_i, fin_i, avg_i);
     }
