@@ -12,6 +12,35 @@ gk_species_react_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s,
     react->react_type[i] = inp.react_type[i];
 }
 
+static double
+gk_species_react_get_vt_sq_min(struct gkyl_gyrokinetic_app *app, struct gk_species *s)
+{
+  double bmag_mid = app->bmag_ref;
+
+  int vdim = app->vdim;
+  double dv_min[vdim];
+  gkyl_velocity_map_reduce_dv_range(s->vel_map, GKYL_MIN, dv_min, s->vel_map->local_vel);
+
+  double tpar_min = (s->info.mass/6.0)*pow(dv_min[0],2);
+  double tperp_min = vdim>1 ? (bmag_mid/3.0)*dv_min[1] : tpar_min;
+  return (tpar_min + 2.0*tperp_min)/(3.0*s->info.mass);
+}
+
+static double
+gk_neut_species_react_get_vt_sq_min(struct gkyl_gyrokinetic_app *app, struct gk_neut_species *s)
+{
+  double bmag_mid = app->bmag_ref;
+
+  int vdim = app->vdim+1; // neutral species are 3v otherwise
+  double dv_min[vdim];
+  gkyl_velocity_map_reduce_dv_range(s->vel_map, GKYL_MIN, dv_min, s->vel_map->local_vel);
+
+  double t_min = 0.0;
+  for (int i=0; i<vdim; i++)
+    t_min += (s->info.mass/6.0)*pow(dv_min[0],2);
+  return t_min/(3.0*s->info.mass);
+}
+
 void 
 gk_species_react_cross_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s, struct gk_react *react)
 {
@@ -20,6 +49,8 @@ gk_species_react_cross_init(struct gkyl_gyrokinetic_app *app, struct gk_species 
   // f_react = n_donor*(fmax1(n_elc, upar_elc, vtiz1^2) + fmax2(n_elc, upar_donor, vtiz2^2) - f_elc)
   // RHS update is then obtained by incrementing rhs += coeff_react*f_react
   react->f_react = mkarr(app->use_gpu, app->basis.num_basis, s->local_ext.volume);
+
+  int vdim = app->vdim;
 
   for (int i=0; i<react->num_react; ++i) {
     react->react_id[i] = react->react_type[i].react_id;
@@ -33,6 +64,10 @@ gk_species_react_cross_init(struct gkyl_gyrokinetic_app *app, struct gk_species 
     react->elc_idx[i] = gk_find_species_idx(app, react->react_type[i].elc_nm);
     react->ion_idx[i] = gk_find_species_idx(app, react->react_type[i].ion_nm);
 
+    // Compute a minimum representable temperature based on the smallest dv in the grid.
+    double ion_vt_sq_min = gk_species_react_get_vt_sq_min(app,  &app->species[react->ion_idx[i]]);
+    double neut_vt_sq_min; 
+
     // If all the reacting species are gyrokinetic species, need to use 
     // gk methods to fetch pointers and indices, otherwise use gk_neut methods
     // to get the necessary neutral species information
@@ -44,6 +79,7 @@ gk_species_react_cross_init(struct gkyl_gyrokinetic_app *app, struct gk_species 
     }
     else if (gk_find_neut_species(app, react->react_type[i].partner_nm)) {
       react->partner_idx[i] = gk_find_neut_species_idx(app, react->react_type[i].partner_nm);
+      neut_vt_sq_min = gk_neut_species_react_get_vt_sq_min(app, &app->neut_species[react->partner_idx[i]]);
     }
 
     react->coeff_react[i] = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
@@ -114,8 +150,8 @@ gk_species_react_cross_init(struct gkyl_gyrokinetic_app *app, struct gk_species 
         .phase_rng = &s->local,
         .mass_ion = react->react_type[i].ion_mass,
         .mass_neut = react->react_type[i].partner_mass,
-        .vt_sq_ion_min = app->species[react->ion_idx[i]].vtsq_min, 
-        .vt_sq_neut_min = app->neut_species[react->partner_idx[i]].vtsq_min, 
+        .vt_sq_ion_min = ion_vt_sq_min, 
+        .vt_sq_neut_min = neut_vt_sq_min, 
         .type_ion = react->react_type[i].ion_id,
       };
       react->cx[i] = gkyl_dg_cx_new(&cx_inp, app->use_gpu);

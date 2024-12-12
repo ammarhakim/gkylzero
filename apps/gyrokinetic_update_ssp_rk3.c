@@ -180,8 +180,8 @@ gyrokinetic_update_ssp_rk3(gkyl_gyrokinetic_app* app, double dt0)
 
           if (app->enforce_positivity) {
             // Apply positivity shift if requested.
-            int elc_idx = -1;
-            gkyl_array_clear(app->ps_delta_m0_ions, 0.0);
+	    gkyl_array_clear(app->ps_delta_m0_ions, 0.0);
+            gkyl_array_clear(app->ps_delta_m0_elcs, 0.0);
             for (int i=0; i<app->num_species; ++i) {
               struct gk_species *gks = &app->species[i];
 
@@ -192,25 +192,15 @@ gyrokinetic_update_ssp_rk3(gkyl_gyrokinetic_app* app, double dt0)
               gkyl_positivity_shift_gyrokinetic_advance(gks->pos_shift_op, &app->local, &gks->local,
                 gks->f, gks->m0.marr, gks->ps_delta_m0);
 
-              // Accumulate the shift density of all ions:
-              if (gks->info.charge > 0.0)
-                gkyl_array_accumulate(app->ps_delta_m0_ions, 1.0, gks->ps_delta_m0);
-              else if (gks->info.charge < 0.0) 
-                elc_idx = i;
+	      // Accumulate the shift density of all like-species:
+              gkyl_array_accumulate(gks->ps_delta_m0s_tot, 1.0, gks->ps_delta_m0);
             }
 
             // Rescale each species to enforce quasineutrality.
-            for (int i=0; i<app->num_species; ++i) {
+	    for (int i=0; i<app->num_species; ++i) {
               struct gk_species *gks = &app->species[i];
-              if (gks->info.charge > 0.0) {
-                struct gk_species *gkelc = &app->species[elc_idx];
-                gkyl_positivity_shift_gyrokinetic_quasineutrality_scale(gks->pos_shift_op, &app->local, &gks->local,
-                  gks->ps_delta_m0, app->ps_delta_m0_ions, gkelc->ps_delta_m0, gks->m0.marr, gks->f);
-              }
-              else {
-                gkyl_positivity_shift_gyrokinetic_quasineutrality_scale(gks->pos_shift_op, &app->local, &gks->local,
-                  gks->ps_delta_m0, gks->ps_delta_m0, app->ps_delta_m0_ions, gks->m0.marr, gks->f);
-              }
+              gkyl_positivity_shift_gyrokinetic_quasineutrality_scale(gks->pos_shift_op, &app->local, &gks->local,
+                gks->ps_delta_m0, gks->ps_delta_m0s_tot, gks->ps_delta_m0r_tot, gks->m0.marr, gks->f);
 
               gkyl_array_accumulate(gks->fnew, 1.0, gks->f);
             }
@@ -236,4 +226,3 @@ gyrokinetic_update_ssp_rk3(gkyl_gyrokinetic_app* app, double dt0)
 
   return st;
 }
-

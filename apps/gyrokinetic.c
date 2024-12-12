@@ -135,7 +135,7 @@ gk_meta_from_mpack(struct gkyl_array_meta *mt)
 }
 
 gkyl_gyrokinetic_app*
-gkyl_gyrokinetic_app_new(struct gkyl_gk *gk)
+gkyl_gyrokinetic_app_new_geom(struct gkyl_gk *gk)
 {
   disable_denorm_float();
 
@@ -242,10 +242,22 @@ gkyl_gyrokinetic_app_new(struct gkyl_gk *gk)
     gkyl_create_ranges(&app->decomp->ranges[rank], ghost, &app->local_ext, &app->local);
   }
 
-  // local skin and ghost ranges for configuration space fields
+  // Local skin and ghost ranges for configuration space fields.
   for (int dir=0; dir<cdim; ++dir) {
     gkyl_skin_ghost_ranges(&app->lower_skin[dir], &app->lower_ghost[dir], dir, GKYL_LOWER_EDGE, &app->local_ext, ghost); 
     gkyl_skin_ghost_ranges(&app->upper_skin[dir], &app->upper_ghost[dir], dir, GKYL_UPPER_EDGE, &app->local_ext, ghost);
+  }
+  // Global skin and ghost ranges, only valid (i.e. volume>0) in ranges
+  // abutting boundaries.
+  for (int dir=0; dir<cdim; ++dir) {
+    gkyl_skin_ghost_ranges(&app->global_lower_skin[dir], &app->global_lower_ghost[dir], dir, GKYL_LOWER_EDGE, &app->global_ext, ghost); 
+    gkyl_skin_ghost_ranges(&app->global_upper_skin[dir], &app->global_upper_ghost[dir], dir, GKYL_UPPER_EDGE, &app->global_ext, ghost);
+
+    gkyl_sub_range_intersect(&app->global_lower_skin[dir], &app->local_ext, &app->global_lower_skin[dir]);
+    gkyl_sub_range_intersect(&app->global_upper_skin[dir], &app->local_ext, &app->global_upper_skin[dir]);
+
+    gkyl_sub_range_intersect(&app->global_lower_ghost[dir], &app->local_ext, &app->global_lower_ghost[dir]);
+    gkyl_sub_range_intersect(&app->global_upper_ghost[dir], &app->local_ext, &app->global_upper_ghost[dir]);
   }
 
   int comm_sz;
@@ -273,7 +285,7 @@ gkyl_gyrokinetic_app_new(struct gkyl_gk *gk)
   for(int i = 0; i<3; i++)
     geometry_inp.world[i] = gk->geometry.world[i];
 
-  if(app->cdim < 3){
+  if (app->cdim < 3){
     geometry_inp.geo_grid = gkyl_gk_geometry_augment_grid(app->grid, geometry_inp);
     switch (gk->basis_type) {
       case GKYL_BASIS_MODAL_SERENDIPITY:
@@ -295,7 +307,6 @@ gkyl_gyrokinetic_app_new(struct gkyl_gk *gk)
       memcpy(&geometry_inp.geo_local, &geometry_inp.geo_global, sizeof(struct gkyl_range));
       memcpy(&geometry_inp.geo_local_ext, &geometry_inp.geo_global_ext, sizeof(struct gkyl_range));
     }
-
   }
   else{
     geometry_inp.geo_grid = app->grid;
@@ -336,9 +347,16 @@ gkyl_gyrokinetic_app_new(struct gkyl_gk *gk)
 
   gkyl_gk_geometry_release(gk_geom_3d); // release temporary 3d geometry
 
-  gkyl_gk_geometry_bmag_mid(app->gk_geom); // set bmag mid
-  int bcast_rank = comm_sz/2;
-  gkyl_comm_array_bcast_host(app->comm, app->gk_geom->bmag_mid, app->gk_geom->bmag_mid, bcast_rank);
+  // Set bmag_ref
+  double bmag_min_local, bmag_min_global;
+  bmag_min_local = gkyl_gk_geometry_reduce_bmag(app->gk_geom, GKYL_MIN);
+  gkyl_comm_allreduce_host(app->comm, GKYL_DOUBLE, GKYL_MIN, 1, &bmag_min_local, &bmag_min_global);
+
+  double bmag_max_local, bmag_max_global;
+  bmag_max_local = gkyl_gk_geometry_reduce_bmag(app->gk_geom, GKYL_MAX);
+  gkyl_comm_allreduce_host(app->comm, GKYL_DOUBLE, GKYL_MAX, 1, &bmag_max_local, &bmag_max_global);
+
+  app->bmag_ref = (bmag_max_global + bmag_min_global)/2.0;
   
   // If we are on the gpu, copy from host
   if (app->use_gpu) {
@@ -350,7 +368,16 @@ gkyl_gyrokinetic_app_new(struct gkyl_gk *gk)
 
   gkyl_gyrokinetic_app_write_geometry(app);
 
-  // allocate space to store species and neutral species objects
+  return app;
+}
+
+void
+gkyl_gyrokinetic_app_new_solver(struct gkyl_gk *gk, gkyl_gyrokinetic_app *app)
+{
+  int ns = app->num_species = gk->num_species;
+  int neuts = app->num_neut_species = gk->num_neut_species;
+
+  // Allocate space to store species and neutral species objects
   app->species = ns>0 ? gkyl_malloc(sizeof(struct gk_species[ns])) : 0;
   app->neut_species = neuts>0 ? gkyl_malloc(sizeof(struct gk_neut_species[neuts])) : 0;
 
@@ -370,6 +397,7 @@ gkyl_gyrokinetic_app_new(struct gkyl_gk *gk)
   app->enforce_positivity = gk->enforce_positivity;
   if (app->enforce_positivity) {
     // Number of density of the positivity shift added over all the ions.
+    // Needed before species_init because species store pointers to these.
     app->ps_delta_m0_ions = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
     app->ps_delta_m0_elcs = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
   }
@@ -455,6 +483,13 @@ gkyl_gyrokinetic_app_new(struct gkyl_gk *gk)
     .stage_2_dt_diff = { DBL_MAX, 0.0 },
     .stage_3_dt_diff = { DBL_MAX, 0.0 },
   };
+}
+
+gkyl_gyrokinetic_app*
+gkyl_gyrokinetic_app_new(struct gkyl_gk *gk)
+{
+  gkyl_gyrokinetic_app* app = gkyl_gyrokinetic_app_new_geom(gk);
+  gkyl_gyrokinetic_app_new_solver(gk, app);
 
   return app;
 }
@@ -463,7 +498,6 @@ void
 gyrokinetic_calc_field(gkyl_gyrokinetic_app* app, double tcurr, const struct gkyl_array *fin[])
 {
   // Compute fields.
-
   if (app->update_field) {
     // Compute electrostatic potential from gyrokinetic Poisson's equation.
     gk_field_accumulate_rho_c(app, app->field, fin);
@@ -580,7 +614,7 @@ gkyl_gyrokinetic_app_apply_ic(gkyl_gyrokinetic_app* app, double t0)
       gk_species_bflux_rhs(app, s, &s->bflux, distf[i], distf[i]);
     }
   }
-  gyrokinetic_calc_field_and_apply_bc(app, 0., distf, distf_neut);
+  gyrokinetic_calc_field_and_apply_bc(app, t0, distf, distf_neut);
 }
 
 void
@@ -2286,7 +2320,6 @@ gyrokinetic_rhs(gkyl_gyrokinetic_app* app, double tcurr, double dt,
   // Don't take a time-step larger that input dt.
   double dta = st->dt_actual = dt < dtmin ? dt : dtmin;
   st->dt_suggested = dtmin;
-
 }
 
 struct gkyl_update_status
@@ -2669,6 +2702,11 @@ gyrokinetic_app_geometry_read_and_copy(gkyl_gyrokinetic_app* app, struct gkyl_ar
     rstat.io_status =
       gkyl_comm_array_read(app->comm, &app->grid, &app->local, arr_host, fileNm.str);
     gkyl_array_copy(arr, arr_host);
+  }
+  else {
+    gkyl_gyrokinetic_app_cout(app, stderr, "*** Failed to read geometry file! (%s)\n",
+        gkyl_array_rio_status_msg(rstat.io_status));
+    assert(false);
   }
 }
 
