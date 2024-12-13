@@ -67,7 +67,7 @@ gkyl_array_average_new(const struct gkyl_array_average_inp *inp)
     // Compute the subdim integral of the weight (for volume division after integration)
     up->weight_avg = up->use_gpu? gkyl_array_cu_dev_new(GKYL_DOUBLE, up->basis_avg.num_basis, inp->local_avg_ext->volume)
                                   : gkyl_array_new(GKYL_DOUBLE, up->basis_avg.num_basis, inp->local_avg_ext->volume);
-    // create new average routine to integrate the weight
+     // create new average routine to integrate the weight
     struct gkyl_array_average_inp inp_integral = {
       .grid = inp->grid,
       .basis = inp->basis,
@@ -86,24 +86,25 @@ gkyl_array_average_new(const struct gkyl_array_average_inp *inp)
     // multiply by the volume to get the integral and not the average
     gkyl_array_scale(up->weight_avg,1./up->vol_avg_inv);
     // Allocate memory to prepare the weak division at the end of the advance routine
-    up->div_mem = gkyl_dg_bin_op_mem_new(up->local_avg.volume, up->basis_avg.num_basis);
+    up->div_mem = up->use_gpu? gkyl_dg_bin_op_mem_cu_dev_new(up->local_avg.volume, up->basis_avg.num_basis)
+      : gkyl_dg_bin_op_mem_new(up->local_avg.volume, up->basis_avg.num_basis);
     // Assign the weight pointer to the input weight array
     up->weight = gkyl_array_acquire(inp->weight);
   } 
   else {
     // Assign the weight pointer to the identity weight
-    up->weight = gkyl_array_new(GKYL_DOUBLE, up->basis.num_basis, 1);
-    double *w_0 = gkyl_array_fetch(up->weight, 0);
-    w_0[0] = pow(sqrt(2.),up->ndim);
+    up->weight = up->use_gpu? gkyl_array_cu_dev_new(GKYL_DOUBLE, up->basis.num_basis, 1)
+      : gkyl_array_new(GKYL_DOUBLE, up->basis.num_basis, 1);
+    gkyl_array_shiftc(up->weight, pow(sqrt(2.),up->ndim), 0);
   }
-
-  // Choose the kernel that performs the desired operation within the integral.
-  gkyl_array_average_choose_kernel(up);
 
 #ifdef GKYL_HAVE_CUDA
   if (up->use_gpu)
     return gkyl_array_average_cu_dev_new(up);
 #endif
+  
+  // Choose the kernel that performs the desired operation within the integral.
+  gkyl_array_average_choose_kernel(up);
 
   return up;
 }
@@ -171,8 +172,8 @@ void gkyl_array_average_release(struct gkyl_array_average *up)
 {
   // Release memory associated with this updater.
 #ifdef GKYL_HAVE_CUDA
-  // if (up->use_gpu)
-  //   gkyl_cu_free(up->on_dev);
+  if (up->use_gpu)
+    gkyl_cu_free(up->on_dev);
 #endif
 
   gkyl_array_release(up->weight);
