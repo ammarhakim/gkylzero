@@ -374,6 +374,10 @@ $(BUILD_DIR)/kernels/translate_dim/%.c.o : kernels/translate_dim/%.c
 	$(MKDIR_P) $(dir $@)
 	$(CC) $(CFLAGS) $(NVCC_FLAGS) $(INCLUDES) -c $< -o $@
 
+$(BUILD_DIR)/kernels/array_average/%.c.o : kernels/array_average/%.c
+	$(MKDIR_P) $(dir $@)
+	$(CC) $(CFLAGS) $(NVCC_FLAGS) $(INCLUDES) -c $< -o $@
+
 endif
 
 ## GkylZero Library 
