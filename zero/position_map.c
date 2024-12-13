@@ -23,7 +23,7 @@ gkyl_position_map_identity(double t, const double *xn, double *fout, void *ctx)
 struct gkyl_position_map*
 gkyl_position_map_new(struct gkyl_position_map_inp pmap_info, struct gkyl_rect_grid grid,
   struct gkyl_range local, struct gkyl_range local_ext, struct gkyl_range global, struct gkyl_range global_ext,
-  struct gkyl_basis basis, struct gkyl_comm* comm, bool use_gpu)
+  struct gkyl_basis basis)
 {
   struct gkyl_position_map *gpm = gkyl_malloc(sizeof(*gpm));
   gpm->id = pmap_info.id;
@@ -90,8 +90,6 @@ gkyl_position_map_new(struct gkyl_position_map_inp pmap_info, struct gkyl_rect_g
   gpm->basis = basis;
   gpm->cdim = grid.ndim; 
   gpm->mc2nu = mkarr(false, gpm->cdim*gpm->basis.num_basis, gpm->local_ext.volume);
-  gpm->comm = gkyl_comm_acquire(comm);
-  gpm->use_gpu = use_gpu;
   gpm->flags = 0;
   GKYL_CLEAR_CU_ALLOC(gpm->flags);
   gpm->ref_count = gkyl_ref_count_init(gkyl_position_map_free);
@@ -156,32 +154,11 @@ gkyl_position_map_free(const struct gkyl_ref_count *ref)
   gkyl_array_release(gpm->mc2nu);
   gkyl_free(gpm->bmag_ctx);
   gkyl_free(gpm->constB_ctx);
-  gkyl_comm_release(gpm->comm);
   gkyl_free(gpm);
 }
 
 
 ////////////////////////// Utility functions for constant B mapping //////////////////////////
-
-void
-gkyl_position_map_gather_bmag_global(struct gkyl_position_map* gpm, struct gkyl_array* bmag)
-{
-  struct gkyl_array *bmag_global = gkyl_array_new(GKYL_DOUBLE, gpm->basis.num_basis, gpm->global_ext.volume);
-  if (gpm->use_gpu) { 
-    // If on GPU, allgather is only a GPU operation, so we must copy these arrays to GPU, then back to CPU
-    struct gkyl_array *bmag_global_dev = gkyl_array_cu_dev_new(GKYL_DOUBLE, gpm->basis.num_basis, gpm->global_ext.volume);
-    struct gkyl_array *bmag_dev = gkyl_array_cu_dev_new(GKYL_DOUBLE, gpm->basis.num_basis, gpm->local_ext.volume);
-    gkyl_array_copy(bmag_dev, bmag);
-    gkyl_comm_array_allgather(gpm->comm, &gpm->local, &gpm->global, bmag_dev, bmag_global_dev);
-    gkyl_array_copy(bmag_global, bmag_global_dev);
-    gkyl_array_release(bmag_global_dev);
-    gkyl_array_release(bmag_dev);
-  }
-  else {
-    gkyl_comm_array_allgather(gpm->comm, &gpm->local, &gpm->global, bmag, bmag_global);
-  }
-  gpm->bmag_global = bmag_global;
-}
 
 void
 gkyl_position_map_optimize(struct gkyl_position_map* gpm)

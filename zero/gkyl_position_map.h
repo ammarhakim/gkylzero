@@ -53,8 +53,6 @@ struct gkyl_position_map {
 
   // Stuff for constant B mapping
   struct gkyl_array *bmag_global; // Global magnetic field array
-  struct gkyl_comm *comm; // Communication object
-  bool use_gpu; // Whether to use GPU
   struct gkyl_bmag_ctx *bmag_ctx; // Context for magnetic field calculation
   struct gkyl_position_map_const_B_ctx *constB_ctx; // Context for constant B mapping
 };
@@ -85,8 +83,7 @@ struct gkyl_position_map_const_B_ctx {
  */
 struct gkyl_position_map* gkyl_position_map_new(struct gkyl_position_map_inp mapc2p_in,
   struct gkyl_rect_grid grid, struct gkyl_range local, struct gkyl_range local_ext, 
-  struct gkyl_range global, struct gkyl_range global_ext, struct gkyl_basis basis,
-  struct gkyl_comm* comm, bool use_gpu);
+  struct gkyl_range global, struct gkyl_range global_ext, struct gkyl_basis basis);
 
 /**
  * Set the position map object.
@@ -124,14 +121,6 @@ struct gkyl_position_map* gkyl_position_map_acquire(const struct gkyl_position_m
  * @param Position map object.
  */
 void gkyl_position_map_release(const struct gkyl_position_map *gpm);
-
-/**
- * Gather bmag into a global array for determining the non-uniform mapping
- * 
- * @param gpm Position map object.
- * @param bmag Local magnetic field array.
- */
-void gkyl_position_map_gather_bmag_global(struct gkyl_position_map* gpm, struct gkyl_array* bmag);
 
 /**
  * Optimize the position map object for constant B mapping.

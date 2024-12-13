@@ -265,7 +265,7 @@ gkyl_gyrokinetic_app_new_geom(struct gkyl_gk *gk)
 
   // Configuration space geometry initialization
   app->position_map = gkyl_position_map_new(gk->geometry.position_map_info, app->grid, app->local, 
-      app->local_ext, app->global, app->global_ext, app->confBasis, app->comm, app->use_gpu);
+      app->local_ext, app->global, app->global_ext, app->confBasis);
 
   // Initialize the input struct from user side input struct
   struct gkyl_gk_geometry_inp geometry_inp = {
@@ -284,6 +284,7 @@ gkyl_gyrokinetic_app_new_geom(struct gkyl_gk *gk)
     .global = app->global,
     .global_ext = app->global_ext,
     .basis = app->confBasis,
+    .comm = app->comm,
   };
   for(int i = 0; i<3; i++)
     geometry_inp.world[i] = gk->geometry.world[i];

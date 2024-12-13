@@ -79,6 +79,7 @@ struct gkyl_gk_geometry_inp {
   struct gkyl_tok_geo_grid_inp tok_grid_info; // context for tokamak geometry with computational domain info
   struct gkyl_mirror_geo_grid_inp mirror_grid_info; // context for mirror geometry with computational domain info
   struct gkyl_position_map *position_map; // position map object
+  struct gkyl_comm *comm; // communicator object
 
   double world[3]; // extra computational coordinates for cases with reduced dimensionality
 
