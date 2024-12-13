@@ -11,7 +11,7 @@
 # define GKYL_IPOW(a,e) (int)(pow(a,e)+0.5)
 #endif
 
-#define PERP_DIM 2
+#define PERP_DIM_MAX 2
 
 // Function pointer type for local-to-global mapping.
 typedef void (*local2global_t)(const int *numCells, const int *idx,
@@ -346,6 +346,7 @@ struct gkyl_fem_poisson_perp {
   void *ctx; // Evaluation context.
   struct gkyl_rect_grid grid;
   int ndim; // Grid's number of dimensions.
+  int ndim_perp; // Grid's number of perpendicular dimensions.
   int num_basis; // Number of basis functions.
   enum gkyl_basis_type basis_type;
   int poly_order;
@@ -366,7 +367,7 @@ struct gkyl_fem_poisson_perp {
   double *rhs_avg, mavgfac;
   double *rhs_avg_cu;
 
-  double bcvals[PERP_DIM*2*3]; // BC values, bc[0]*phi+bc[1]*d(phi)/dx=phi[3] at each boundary.
+  double bcvals[PERP_DIM_MAX*2*3]; // BC values, bc[0]*phi+bc[1]*d(phi)/dx=phi[3] at each boundary.
   double *bcvals_cu; // BC values, bc[0]*phi+bc[1]*d(phi)/dx=phi[3] at each boundary.
 
   const struct gkyl_range *solve_range;
@@ -399,7 +400,7 @@ void
 fem_poisson_perp_choose_kernels_cu(const struct gkyl_basis* basis, const struct gkyl_poisson_bc* bcs, const bool *isdirperiodic, struct gkyl_fem_poisson_perp_kernels *kers);
 
 static long
-gkyl_fem_poisson_perp_global_num_nodes(const int poly_order, const int basis_type, const int *num_cells, bool *isdirperiodic)
+gkyl_fem_poisson_perp_global_num_nodes(int ndim, int poly_order, int basis_type, const int *num_cells, bool *isdirperiodic)
 {
   if (poly_order == 1) {
     if (isdirperiodic[0] && isdirperiodic[1]) {
@@ -421,13 +422,14 @@ static void
 fem_poisson_perp_choose_local2global_kernels(const struct gkyl_basis* basis, const bool *isdirperiodic, local2global_t *l2gout)
 {
   int poly_order = basis->poly_order;
+  int ndim_perp = basis->ndim-1;
 
   int bckey[GKYL_MAX_CDIM] = {-1};
-  for (int d=0; d<PERP_DIM; d++) bckey[d] = isdirperiodic[d] ? 0 : 1;
+  for (int d=0; d<ndim_perp; d++) bckey[d] = isdirperiodic[d] ? 0 : 1;
 
   switch (basis->b_type) {
     case GKYL_BASIS_MODAL_SERENDIPITY:
-      for (int k=0; k<GKYL_IPOW(2,PERP_DIM); k++)
+      for (int k=0; k<GKYL_IPOW(2,ndim_perp); k++)
         l2gout[k] = CK(ser_loc2glob_list_3x, poly_order, k, bckey[0], bckey[1]);
       break;
 //    case GKYL_BASIS_MODAL_TENSOR:
@@ -443,9 +445,10 @@ static void
 fem_poisson_perp_choose_lhs_kernels(const struct gkyl_basis* basis, const struct gkyl_poisson_bc *bcs, lhsstencil_t *lhsout)
 {
   int poly_order = basis->poly_order;
+  int ndim_perp = basis->ndim-1;
 
   int bckey[GKYL_MAX_CDIM] = {-1, -1, -1};
-  for (int d=0; d<PERP_DIM; d++) {
+  for (int d=0; d<ndim_perp; d++) {
          if (bcs->lo_type[d]==GKYL_POISSON_PERIODIC  && bcs->up_type[d]==GKYL_POISSON_PERIODIC ) { bckey[d] = 0; }
     else if (bcs->lo_type[d]==GKYL_POISSON_DIRICHLET && bcs->up_type[d]==GKYL_POISSON_DIRICHLET) { bckey[d] = 1; }
     else if (bcs->lo_type[d]==GKYL_POISSON_DIRICHLET && bcs->up_type[d]==GKYL_POISSON_NEUMANN  ) { bckey[d] = 2; }
@@ -455,7 +458,7 @@ fem_poisson_perp_choose_lhs_kernels(const struct gkyl_basis* basis, const struct
 
   switch (basis->b_type) {
     case GKYL_BASIS_MODAL_SERENDIPITY:
-      for (int k=0; k<GKYL_IPOW(3,PERP_DIM); k++)
+      for (int k=0; k<GKYL_IPOW(3,ndim_perp); k++)
         lhsout[k] = CK(ser_lhsstencil_list_3x, poly_order, k, bckey[0], bckey[1]);
       break;
 //    case GKYL_BASIS_MODAL_TENSOR:
@@ -471,9 +474,10 @@ static void
 fem_poisson_perp_choose_src_kernels(const struct gkyl_basis* basis, const struct gkyl_poisson_bc *bcs, srcstencil_t *srcout)
 {
   int poly_order = basis->poly_order;
+  int ndim_perp = basis->ndim-1;
 
   int bckey[GKYL_MAX_CDIM] = {-1, -1, -1};
-  for (int d=0; d<PERP_DIM; d++) {
+  for (int d=0; d<ndim_perp; d++) {
          if (bcs->lo_type[d]==GKYL_POISSON_PERIODIC  && bcs->up_type[d]==GKYL_POISSON_PERIODIC ) { bckey[d] = 0; }
     else if (bcs->lo_type[d]==GKYL_POISSON_DIRICHLET && bcs->up_type[d]==GKYL_POISSON_DIRICHLET) { bckey[d] = 1; }
     else if (bcs->lo_type[d]==GKYL_POISSON_DIRICHLET && bcs->up_type[d]==GKYL_POISSON_NEUMANN  ) { bckey[d] = 2; }
@@ -483,7 +487,7 @@ fem_poisson_perp_choose_src_kernels(const struct gkyl_basis* basis, const struct
 
   switch (basis->b_type) {
     case GKYL_BASIS_MODAL_SERENDIPITY:
-      for (int k=0; k<GKYL_IPOW(3,PERP_DIM); k++)
+      for (int k=0; k<GKYL_IPOW(3,ndim_perp); k++)
         srcout[k] = CK(ser_srcstencil_list_3x, poly_order, k, bckey[0], bckey[1]);
       break;
 //    case GKYL_BASIS_MODAL_TENSOR:

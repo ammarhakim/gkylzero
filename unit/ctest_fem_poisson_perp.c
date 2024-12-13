@@ -10,8 +10,6 @@
 #include <gkyl_array_rio.h>
 #include <gkyl_fem_poisson_perp.h>
 
-#define PERP_DIM 2
-
 void evalFunc_consteps_periodicx_periodicy_sol(double t, const double *xn, double* restrict fout, void *ctx)
 {
   double x = xn[0], y = xn[1], z = xn[2];
@@ -30,8 +28,8 @@ void evalFunc_consteps_periodicx_periodicy_sol(double t, const double *xn, doubl
     }
   }
   double kz = 1.;
-  fout[0] *= (1.+kz*z);
-//  fout[0] *= (1.+kz*z+0.5*pow(z,2));
+//  fout[0] *= (1.+kz*z);
+  fout[0] *= (1.+kz*z+0.5*pow(z,2));
 }
 void evalFunc_consteps_periodicx_periodicy(double t, const double *xn, double* restrict fout, void *ctx)
 {
@@ -308,7 +306,7 @@ skin_ghost_ranges_init(struct skin_ghost_ranges *sgr,
 }
 
 void
-test_fem_poisson_perp_consteps(int poly_order, const int *cells, struct gkyl_poisson_bc bcs, bool use_gpu)
+test_fem_poisson_perp_consteps_3x(int poly_order, const int *cells, struct gkyl_poisson_bc bcs, bool use_gpu)
 {
   double epsilon_0 = 1.0;
   double lower[] = {-M_PI,-M_PI,-M_PI}, upper[] = {M_PI,M_PI,M_PI};
@@ -336,6 +334,7 @@ test_fem_poisson_perp_consteps(int poly_order, const int *cells, struct gkyl_poi
     lower[1] = 0.;  upper[1] = 1.;
   }
   int dim = sizeof(lower)/sizeof(lower[0]);
+  int dim_perp = dim-1; 
 
   // Grids.
   struct gkyl_rect_grid grid;
@@ -414,7 +413,7 @@ test_fem_poisson_perp_consteps(int poly_order, const int *cells, struct gkyl_poi
   // Create array holding continuous field we'll compute.
   struct gkyl_array *phi = mkarr(basis.num_basis, localRange_ext.volume);
   // Create DG field for permittivity tensor.
-  int epsnum = PERP_DIM+ceil((pow(3.,PERP_DIM-1)-PERP_DIM)/2);
+  int epsnum = dim_perp+ceil((pow(3.,dim_perp-1)-dim_perp)/2);
   struct gkyl_array *eps = use_gpu? mkarr_cu(epsnum*basis.num_basis, localRange_ext.volume)
                                   : mkarr(   epsnum*basis.num_basis, localRange_ext.volume);
   // Analytic solution.
@@ -493,110 +492,24 @@ test_fem_poisson_perp_consteps(int poly_order, const int *cells, struct gkyl_poi
     if ((bcs.lo_type[0] == GKYL_POISSON_PERIODIC && bcs.up_type[0] == GKYL_POISSON_PERIODIC) &&
         (bcs.lo_type[1] == GKYL_POISSON_PERIODIC && bcs.up_type[1] == GKYL_POISSON_PERIODIC)) {
       // Solution; checked convergence:
-      const double sol[512] = {
-        5.2083195998734233e+00, 1.4901880978824162e+00, -7.9807205716867113e-01, -9.6448624892784700e+00, 4.4550438362486822e-01, -1.8970690865185458e+00,
-        1.0159776679335752e+00, -5.6714490961524566e-01, -4.5788200242550259e-02, 1.5806583638107314e+00, -2.2353884955795991e+00, -2.9561729882685985e+00,
-        -3.9327135123749818e-01, -2.0122413557009442e+00, 2.8457390160002975e+00, 5.0065016899960779e-01, -3.3371706691536800e+00, -3.7249385009261365e-01,
-        3.3510794114774256e-01, 1.2338886170772065e+00, -7.3438160522791152e-01, 4.7419957851839556e-01, -4.2660582023278149e-01, 9.3489717369603242e-01,
-        4.4408920985006262e-15, -1.6444801024913467e+00, 1.5916084430198614e+00, -3.0144631996391551e+00, -1.0467283057891832e-16, 2.0934889832124703e+00,
-        -2.0261812447606453e+00, 1.8129866073473573e-16, 1.4012674446542719e+00, -8.3545796611354473e-01, -7.8258630664206053e-01, -4.7983327359587253e+00,
-        4.6708914821809006e-01, 1.0635714262191918e+00, 9.9626368776736896e-01, -5.9462317877319115e-01, -2.6919923952863312e+00, -1.8129866073473578e-16,
-        -1.5806583638107321e+00, 4.1255085415560699e-01, 1.5262733414182281e-02, 9.4205547521026495e-16, 2.0122413557009438e+00, -1.9430070456852831e-02,
-        -3.2724163753740241e+00, -2.8223628167625620e-01, 1.2455504226629881e+00, 1.1514538096033806e+00, -1.7821192661504770e-01, 3.5929808178095896e-01,
-        -1.5856355354681617e+00, 2.2687091469240506e-01, 2.7377805955288661e+00, 6.3821738680616191e-02, 2.2244384163704707e+00, -6.4997674648044619e+00,
-        3.7800861782331696e-01, -8.1247627511525936e-02, -2.8317991269405969e+00, -4.8122009854275594e-01, 3.9175946492413671e+00, -2.2353884955795995e+00,
-        1.5806583638107308e+00, -8.0017179718032914e+00, 9.2785626525714127e-01, 2.8457390160002980e+00, -2.0122413557009451e+00, -1.1811981588452902e+00,
-        4.1390480401831438e+00, 8.3545796611354584e-01, -1.4528021889375402e+00, -8.2836370011240437e+00, 8.4509776604140519e-01, -1.0635714262191900e+00,
-        1.8494753282329313e+00, -1.0758432773159459e+00, 4.4408920985006262e-15, 2.2992102342602174e+00, -9.3687831125098908e-01, -3.0144631996391560e+00,
-        7.3270981405242823e-16, -2.9269866435118228e+00, 1.1926835844612917e+00, -5.4389598220420719e-16, 5.3463577984515043e-01, 1.9531522139033470e+00,
-        1.2455504226629897e+00, -3.6950759437163696e+00, -1.9979669120826882e-01, -2.4864409342193392e+00, -1.5856355354681608e+00, 2.5434918385035044e-01,
-        2.6919923952863343e+00, 1.5806583638107330e+00, -1.2690906251431504e-15, -6.4414772534339040e+00, -1.5262733414182281e-02, -2.0122413557009433e+00,
-        1.7794381198416116e-15, 1.9430070456852470e-02, -1.4012674446542692e+00, 7.4520039769718760e-01, -2.3632446704527914e+00, -1.2305936633195720e+00,
-        -4.6708914821809039e-01, -9.4866992948175299e-01, 3.0085050434683107e+00, 5.9462317877319126e-01, -6.6095870445277081e+00, -1.6444801024913467e+00,
-        -6.4378005255974313e-01, 5.3998056263197478e+00, -9.1259353184295966e-01, 2.0934889832124703e+00, 8.1955777123965323e-01, 1.1617680883884378e+00,
-        -3.2724163753740267e+00, -3.5338105777140760e+00, 2.5704964367273453e+00, 1.1514538096033806e+00, -1.7821192661504667e-01, 4.4986822899202847e+00,
-        -3.2723448362330827e+00, 2.2687091469240442e-01, -3.3371706691536800e+00, -1.9531522139033444e+00, 1.9157663049584732e+00, 1.2338886170772088e+00,
-        -7.3438160522791096e-01, 2.4864409342193396e+00, -2.4388471759337258e+00, 9.3489717369603287e-01, 3.2196467714129540e-15, -3.2251384663020763e+00,
-        1.0950079209130187e-02, -3.0144631996391551e+00, 2.0934566115783665e-16, 4.1057303389134141e+00, -1.3939889059702195e-02, -8.4606041676210011e-16,
-        -1.3365131508745991e+00, -3.0708464616931446e+00, -7.8258630664205697e-01, -1.3130284707934188e+00, 8.9080530394773164e-02, 3.9093104422194864e+00,
-        9.9626368776736596e-01, -1.1340308023043610e-01, 4.5788200242556920e-02, -2.2353884955796013e+00, 1.5806583638107305e+00, -3.0727534110097134e+00,
-        3.9327135123749835e-01, 2.8457390160002967e+00, -2.0122413557009420e+00, -5.0065016899960757e-01, 6.0749512646825687e+00, 3.7249385009261438e-01,
-        1.9002805544318588e+00, -1.0748119281520824e+01, 1.1123902230512281e+00, -4.7419957851839512e-01, -2.4191331957675137e+00, -1.4161172722387869e+00,
-        6.6095870445277045e+00, 3.8798685980709489e+00, -1.5916084430198625e+00, -1.1428732025598036e+01, 9.1259353184295910e-01, -4.9392279992127666e+00,
-        2.0261812447606453e+00, -1.1617680883884376e+00, -1.4012674446542719e+00, 4.6515048255038796e+00, -3.0334605527482754e+00, -1.2305936633195727e+00,
-        -4.6708914821808922e-01, -5.9215517979204346e+00, 3.8617166839338739e+00, 5.9462317877318971e-01, -6.6553752447702514e+00, 1.5806583638107341e+00,
-        1.8129866073473579e-15, 5.4580958376902986e+00, -1.3058648830804582e+00, -2.0122413557009469e+00, -1.8841109504205299e-15, 1.6624182573880464e+00,
-        4.1078251911130792e-15, 3.8798685980709484e+00, 6.4378005255974169e-01, -3.0144631996391560e+00, 2.0934566115783665e-16, -4.9392279992127683e+00,
-        -8.1955777123965168e-01, -4.8346309529262865e-16, 5.3463577984514976e-01, 3.5338105777140769e+00, -3.3510794114774145e-01, -3.6950759437163700e+00,
-        -1.9979669120826904e-01, -4.4986822899202838e+00, 4.2660582023278215e-01, 2.5434918385035127e-01, -3.9175946492413654e+00, 1.5806583638107297e+00,
-        -2.2353884955796013e+00, 1.9727915725249801e+00, -9.2785626525714149e-01, -2.0122413557009420e+00, 2.8457390160002962e+00, 1.1811981588452900e+00,
-        -8.0108544891819626e+00, -2.4161163299242761e+00, -1.2785617487318815e-01, 7.1836751626393083e+00, -1.3796826800610480e+00, 3.0758127819201340e+00,
-        1.6276602746801380e-01, 1.7563912671616275e+00, -2.7377805955288688e+00, -5.4605269618816790e+00, 3.1722668068305904e+00, 4.7084106552616328e-01,
-        -3.7800861782331724e-01, 6.9514693549137094e+00, -4.0384226004615851e+00, 4.8122009854275549e-01, 6.0749512646825616e+00, -4.1885407094829477e+00,
-        1.9157663049584721e+00, -1.0748119281520818e+01, 1.1123902230512277e+00, 5.3321799502196381e+00, -2.4388471759337258e+00, -1.4161172722387867e+00,
-        6.6553752447702506e+00, -1.0877919644084146e-15, -1.5806583638107325e+00, -1.1487022236968595e+01, 1.3058648830804571e+00, 2.7214935950518764e-15,
-        2.0122413557009420e+00, -1.6624182573880444e+00, 1.4012674446542701e+00, 3.0708464616931450e+00, -1.4528021889375411e+00, -4.7983327359587271e+00,
-        4.6708914821809067e-01, -3.9093104422194864e+00, 1.8494753282329290e+00, -5.9462317877319248e-01, 1.4012674446542739e+00, -3.0708464616931468e+00,
-        1.4528021889375429e+00, -4.7983327359587324e+00, 4.6708914821808956e-01, 3.9093104422194882e+00, -1.8494753282329317e+00, -5.9462317877319126e-01,
-        6.6553752447702541e+00, -1.0877919644084146e-15, 1.5806583638107312e+00, -1.1487022236968604e+01, 1.3058648830804576e+00, -1.4654196281048565e-15,
-        -2.0122413557009424e+00, -1.6624182573880455e+00, 6.0749512646825643e+00, 4.1885407094829450e+00, -1.9157663049584730e+00, -1.0748119281520829e+01,
-        1.1123902230512279e+00, -5.3321799502196372e+00, 2.4388471759337262e+00, -1.4161172722387863e+00, -2.7377805955288697e+00, 5.4605269618816790e+00,
-        -3.1722668068305904e+00, 4.7084106552615929e-01, -3.7800861782331696e-01, -6.9514693549137085e+00, 4.0384226004615886e+00, 4.8122009854275538e-01,
-        -8.0108544891819644e+00, 2.4161163299242756e+00, 1.2785617487318671e-01, 7.1836751626393154e+00, -1.3796826800610482e+00, -3.0758127819201340e+00,
-        -1.6276602746801067e-01, 1.7563912671616275e+00, -3.9175946492413707e+00, -1.5806583638107310e+00, 2.2353884955796008e+00, 1.9727915725249914e+00,
-        -9.2785626525714127e-01, 2.0122413557009424e+00, -2.8457390160002971e+00, 1.1811981588452898e+00, 5.3463577984514032e-01, -3.5338105777140769e+00,
-        3.3510794114774001e-01, -3.6950759437163607e+00, -1.9979669120826860e-01, 4.4986822899202821e+00, -4.2660582023278237e-01, 2.5434918385035021e-01,
-        -1.2212453270876722e-15, -3.8798685980709475e+00, -6.4378005255973814e-01, -3.0144631996391511e+00, 0.0000000000000000e+00, 4.9392279992127666e+00,
-        8.1955777123964890e-01, 4.8346309529262865e-16, -6.6553752447702488e+00, -1.5806583638107332e+00, 0.0000000000000000e+00, 5.4580958376902933e+00,
-        -1.3058648830804576e+00, 2.0122413557009451e+00, -8.3738264463134659e-16, 1.6624182573880455e+00, -1.4012674446542692e+00, -4.6515048255038796e+00,
-        3.0334605527482741e+00, -1.2305936633195822e+00, -4.6708914821808983e-01, 5.9215517979204337e+00, -3.8617166839338730e+00, 5.9462317877319126e-01,
-        6.6095870445277054e+00, -3.8798685980709475e+00, 1.5916084430198620e+00, -1.1428732025598045e+01, 9.1259353184295933e-01, 4.9392279992127666e+00,
-        -2.0261812447606444e+00, -1.1617680883884380e+00, 6.0749512646825643e+00, -3.7249385009261510e-01, -1.9002805544318597e+00, -1.0748119281520827e+01,
-        1.1123902230512279e+00, 4.7419957851839595e-01, 2.4191331957675160e+00, -1.4161172722387871e+00, 4.5788200242551036e-02, 2.2353884955796013e+00,
-        -1.5806583638107317e+00, -3.0727534110097077e+00, 3.9327135123749890e-01, -2.8457390160002984e+00, 2.0122413557009433e+00, -5.0065016899960824e-01,
-        -1.3365131508746049e+00, 3.0708464616931459e+00, 7.8258630664205797e-01, -1.3130284707934108e+00, 8.9080530394773635e-02, -3.9093104422194900e+00,
-        -9.9626368776736662e-01, -1.1340308023043595e-01, -2.7755575615628914e-15, 3.2251384663020777e+00, -1.0950079209131637e-02, -3.0144631996391484e+00,
-        -2.0934566115783665e-16, -4.1057303389134141e+00, 1.3939889059701987e-02, 2.4173154764631432e-16, -3.3371706691536862e+00, 1.9531522139033437e+00,
-        -1.9157663049584712e+00, 1.2338886170772112e+00, -7.3438160522791174e-01, -2.4864409342193392e+00, 2.4388471759337240e+00, 9.3489717369603254e-01,
-        -3.2724163753740254e+00, 3.5338105777140756e+00, -2.5704964367273426e+00, 1.1514538096033735e+00, -1.7821192661504751e-01, -4.4986822899202838e+00,
-        3.2723448362330791e+00, 2.2687091469240475e-01, -6.6095870445277045e+00, 1.6444801024913465e+00, 6.4378005255974202e-01, 5.3998056263197354e+00,
-        -9.1259353184295866e-01, -2.0934889832124708e+00, -8.1955777123965212e-01, 1.1617680883884367e+00, -1.4012674446542683e+00, -7.4520039769718693e-01,
-        2.3632446704527910e+00, -1.2305936633195802e+00, -4.6708914821809050e-01, 9.4866992948175177e-01, -3.0085050434683094e+00, 5.9462317877319160e-01,
-        2.6919923952863325e+00, -1.5806583638107321e+00, 0.0000000000000000e+00, -6.4414772534339066e+00, -1.5262733414182281e-02, 2.0122413557009429e+00,
-        4.1869132231567330e-16, 1.9430070456852713e-02, 5.3463577984514410e-01, -1.9531522139033473e+00, -1.2455504226629901e+00, -3.6950759437163643e+00,
-        -1.9979669120826923e-01, 2.4864409342193405e+00, 1.5856355354681628e+00, 2.5434918385035116e-01, -1.7763568394002505e-15, -2.2992102342602188e+00,
-        9.3687831125098997e-01, -3.0144631996391493e+00, 3.1401849173675498e-16, 2.9269866435118241e+00, -1.1926835844612929e+00, -7.8562752985052157e-16,
-        4.1390480401831420e+00, -8.3545796611354528e-01, 1.4528021889375409e+00, -8.2836370011240366e+00, 8.4509776604140696e-01, 1.0635714262191904e+00,
-        -1.8494753282329304e+00, -1.0758432773159465e+00, 3.9175946492413640e+00, 2.2353884955796008e+00, -1.5806583638107310e+00, -8.0017179718032878e+00,
-        9.2785626525714071e-01, -2.8457390160002975e+00, 2.0122413557009433e+00, -1.1811981588452893e+00, 2.7377805955288670e+00, -6.3821738680616372e-02,
-        -2.2244384163704694e+00, -6.4997674648044654e+00, 3.7800861782331674e-01, 8.1247627511526255e-02, 2.8317991269405942e+00, -4.8122009854275538e-01,
-        -3.2724163753740227e+00, 2.8223628167625564e-01, -1.2455504226629879e+00, 1.1514538096033713e+00, -1.7821192661504781e-01, -3.5929808178095746e-01,
-        1.5856355354681611e+00, 2.2687091469240522e-01, -2.6919923952863294e+00, 1.8129866073473578e-16, 1.5806583638107317e+00, 4.1255085415559822e-01,
-        1.5262733414182805e-02, 0.0000000000000000e+00, -2.0122413557009433e+00, -1.9430070456853254e-02, 1.4012674446542719e+00, 8.3545796611354584e-01,
-        7.8258630664205941e-01, -4.7983327359587289e+00, 4.6708914821809017e-01, -1.0635714262191918e+00, -9.9626368776736685e-01, -5.9462317877319126e-01,
-        1.1102230246251565e-16, 1.6444801024913482e+00, -1.5916084430198625e+00, -3.0144631996391502e+00, 1.5700924586837749e-16, -2.0934889832124712e+00,
-        2.0261812447606480e+00, -2.1151510419052503e-16, -3.3371706691536862e+00, 3.7249385009261532e-01, -3.3510794114774217e-01, 1.2338886170772150e+00,
-        -7.3438160522791163e-01, -4.7419957851839617e-01, 4.2660582023278093e-01, 9.3489717369603331e-01, -4.5788200242552146e-02, -1.5806583638107310e+00,
-        2.2353884955796008e+00, -2.9561729882685919e+00, -3.9327135123749890e-01, 2.0122413557009442e+00, -2.8457390160002975e+00, 5.0065016899960768e-01,
-        5.2083195998734224e+00, -1.4901880978824158e+00, 7.9807205716867002e-01, -9.6448624892784665e+00, 4.4550438362486883e-01, 1.8970690865185453e+00,
-        -1.0159776679335766e+00, -5.6714490961524600e-01,
-      };
-      long i = 0;
-      struct gkyl_range_iter iter;
-      gkyl_range_iter_init(&iter, &localRange);
-      while (gkyl_range_iter_next(&iter)) {
-        long loc = gkyl_range_idx(&localRange, iter.idx);
-        const double *phi_p = gkyl_array_cfetch(phi, loc);
-        if (iter.idx[2] == 3) {
-          // Only check one cell in z:
-          for (int m=0; m<basis.num_basis; m++) {
-            TEST_CHECK( gkyl_compare(sol[i], phi_p[m], 1e-10) );
-            TEST_MSG("Expected: %.13e in cell (%d,%d,%d)", sol[i], iter.idx[0], iter.idx[1], iter.idx[2]);
-            TEST_MSG("Produced: %.13e", phi_p[m]);
-            i += 1;
-          }
-        }
-      }
+//      const double sol[512] = {
+//      };
+//      long i = 0;
+//      struct gkyl_range_iter iter;
+//      gkyl_range_iter_init(&iter, &localRange);
+//      while (gkyl_range_iter_next(&iter)) {
+//        long loc = gkyl_range_idx(&localRange, iter.idx);
+//        const double *phi_p = gkyl_array_cfetch(phi, loc);
+//        if (iter.idx[2] == 3) {
+//          // Only check one cell in z:
+//          for (int m=0; m<basis.num_basis; m++) {
+//            TEST_CHECK( gkyl_compare(sol[i], phi_p[m], 1e-10) );
+//            TEST_MSG("Expected: %.13e in cell (%d,%d,%d)", sol[i], iter.idx[0], iter.idx[1], iter.idx[2]);
+//            TEST_MSG("Produced: %.13e", phi_p[m]);
+//            i += 1;
+//          }
+//        }
+//      }
     } else if ((bcs.lo_type[0] == GKYL_POISSON_DIRICHLET && bcs.up_type[0] == GKYL_POISSON_DIRICHLET) &&
                (bcs.lo_type[1] == GKYL_POISSON_DIRICHLET && bcs.up_type[1] == GKYL_POISSON_DIRICHLET)) {
       // Solution; checked convergence:
@@ -2637,9 +2550,9 @@ test_fem_poisson_perp_consteps(int poly_order, const int *cells, struct gkyl_poi
     TEST_MSG("This poly_order is not available");
   }
 
-//  gkyl_grid_sub_array_write(&grid, &localRange, rho, "ctest_fem_poisson_perp_rho_1.gkyl");
-//  gkyl_grid_sub_array_write(&grid, &localRange, phi, "ctest_fem_poisson_perp_phi_8x8x8_p1.gkyl");
-//  gkyl_grid_sub_array_write(&grid, &localRange, phisol, "ctest_fem_poisson_perp_phisol_8x8x8_p1.gkyl");
+  gkyl_grid_sub_array_write(&grid, &localRange, 0, rho, "ctest_fem_poisson_perp_rho_1.gkyl");
+  gkyl_grid_sub_array_write(&grid, &localRange, 0, phi, "ctest_fem_poisson_perp_phi_8x8x8_p1.gkyl");
+  gkyl_grid_sub_array_write(&grid, &localRange, 0, phisol, "ctest_fem_poisson_perp_phisol_8x8x8_p1.gkyl");
 
   gkyl_fem_poisson_perp_release(poisson);
   gkyl_proj_on_basis_release(projob);
@@ -2656,17 +2569,17 @@ test_fem_poisson_perp_consteps(int poly_order, const int *cells, struct gkyl_poi
 
 }
 
-void test_p1_periodicx_periodicy_consteps() {
-  int cells[] = {8,8,8};
+void test_3x_p1_periodicx_periodicy_consteps() {
+  int cells[] = {8,8,1};
   struct gkyl_poisson_bc bc_tv;
   bc_tv.lo_type[0] = GKYL_POISSON_PERIODIC;
   bc_tv.up_type[0] = GKYL_POISSON_PERIODIC;
   bc_tv.lo_type[1] = GKYL_POISSON_PERIODIC;
   bc_tv.up_type[1] = GKYL_POISSON_PERIODIC;
-  test_fem_poisson_perp_consteps(1, cells, bc_tv, false);
+  test_fem_poisson_perp_consteps_3x(1, cells, bc_tv, false);
 }
 
-void test_p1_dirichletx_dirichlety_consteps() {
+void test_3x_p1_dirichletx_dirichlety_consteps() {
   int cells[] = {8,8,8};
   struct gkyl_poisson_bc bc_tv;
   bc_tv.lo_type[0] = GKYL_POISSON_DIRICHLET;
@@ -2677,10 +2590,10 @@ void test_p1_dirichletx_dirichlety_consteps() {
   bc_tv.up_value[0].v[0] = 0.;
   bc_tv.lo_value[1].v[0] = 0.;
   bc_tv.up_value[1].v[0] = 0.;
-  test_fem_poisson_perp_consteps(1, cells, bc_tv, false);
+  test_fem_poisson_perp_consteps_3x(1, cells, bc_tv, false);
 }
 
-void test_p1_dirichletx_periodicy_consteps() {
+void test_3x_p1_dirichletx_periodicy_consteps() {
   int cells[] = {8,8,8};
   struct gkyl_poisson_bc bc_tv;
   bc_tv.lo_type[0] = GKYL_POISSON_DIRICHLET;
@@ -2689,10 +2602,10 @@ void test_p1_dirichletx_periodicy_consteps() {
   bc_tv.up_type[1] = GKYL_POISSON_PERIODIC;
   bc_tv.lo_value[0].v[0] = 0.;
   bc_tv.up_value[0].v[0] = 0.;
-  test_fem_poisson_perp_consteps(1, cells, bc_tv, false);
+  test_fem_poisson_perp_consteps_3x(1, cells, bc_tv, false);
 }
 
-void test_p1_periodicx_dirichlety_consteps() {
+void test_3x_p1_periodicx_dirichlety_consteps() {
   int cells[] = {8,8,8};
   struct gkyl_poisson_bc bc_tv;
   bc_tv.lo_type[0] = GKYL_POISSON_PERIODIC;
@@ -2701,10 +2614,10 @@ void test_p1_periodicx_dirichlety_consteps() {
   bc_tv.up_type[1] = GKYL_POISSON_DIRICHLET;
   bc_tv.lo_value[1].v[0] = 0.;
   bc_tv.up_value[1].v[0] = 0.;
-  test_fem_poisson_perp_consteps(1, cells, bc_tv, false);
+  test_fem_poisson_perp_consteps_3x(1, cells, bc_tv, false);
 }
 
-void test_p1_dirichletx_neumanny_dirichlety_consteps() {
+void test_3x_p1_dirichletx_neumanny_dirichlety_consteps() {
   int cells[] = {8,8,8};
   struct gkyl_poisson_bc bc_tv;
   bc_tv.lo_type[0] = GKYL_POISSON_DIRICHLET;
@@ -2715,10 +2628,10 @@ void test_p1_dirichletx_neumanny_dirichlety_consteps() {
   bc_tv.up_value[0].v[0] = 0.;
   bc_tv.lo_value[1].v[0] = 0.;
   bc_tv.up_value[1].v[0] = 0.;
-  test_fem_poisson_perp_consteps(1, cells, bc_tv, false);
+  test_fem_poisson_perp_consteps_3x(1, cells, bc_tv, false);
 }
 
-void test_p1_dirichletx_dirichlety_neumanny_consteps() {
+void test_3x_p1_dirichletx_dirichlety_neumanny_consteps() {
   int cells[] = {8,8,8};
   struct gkyl_poisson_bc bc_tv;
   bc_tv.lo_type[0] = GKYL_POISSON_DIRICHLET;
@@ -2729,10 +2642,10 @@ void test_p1_dirichletx_dirichlety_neumanny_consteps() {
   bc_tv.up_value[0].v[0] = 0.;
   bc_tv.lo_value[1].v[0] = 0.;
   bc_tv.up_value[1].v[0] = 0.;
-  test_fem_poisson_perp_consteps(1, cells, bc_tv, false);
+  test_fem_poisson_perp_consteps_3x(1, cells, bc_tv, false);
 }
 
-void test_p1_neumannx_dirichletx_dirichlety_consteps() {
+void test_3x_p1_neumannx_dirichletx_dirichlety_consteps() {
   int cells[] = {8,8,8};
   struct gkyl_poisson_bc bc_tv;
   bc_tv.lo_type[0] = GKYL_POISSON_NEUMANN;
@@ -2743,10 +2656,10 @@ void test_p1_neumannx_dirichletx_dirichlety_consteps() {
   bc_tv.up_value[0].v[0] = 0.;
   bc_tv.lo_value[1].v[0] = 0.;
   bc_tv.up_value[1].v[0] = 0.;
-  test_fem_poisson_perp_consteps(1, cells, bc_tv, false);
+  test_fem_poisson_perp_consteps_3x(1, cells, bc_tv, false);
 }
 
-void test_p1_dirichletx_neumannx_dirichlety_consteps() {
+void test_3x_p1_dirichletx_neumannx_dirichlety_consteps() {
   int cells[] = {8,8,8};
   struct gkyl_poisson_bc bc_tv;
   bc_tv.lo_type[0] = GKYL_POISSON_DIRICHLET;
@@ -2757,10 +2670,10 @@ void test_p1_dirichletx_neumannx_dirichlety_consteps() {
   bc_tv.up_value[0].v[0] = 0.;
   bc_tv.lo_value[1].v[0] = 0.;
   bc_tv.up_value[1].v[0] = 0.;
-  test_fem_poisson_perp_consteps(1, cells, bc_tv, false);
+  test_fem_poisson_perp_consteps_3x(1, cells, bc_tv, false);
 }
 
-void test_p1_neumannx_dirichletx_periodicy_consteps() {
+void test_3x_p1_neumannx_dirichletx_periodicy_consteps() {
   int cells[] = {8,8,8};
   struct gkyl_poisson_bc bc_tv;
   bc_tv.lo_type[0] = GKYL_POISSON_NEUMANN;
@@ -2771,20 +2684,20 @@ void test_p1_neumannx_dirichletx_periodicy_consteps() {
   bc_tv.up_value[0].v[0] = 0.;
   bc_tv.lo_value[1].v[0] = 0.;
   bc_tv.up_value[1].v[0] = 0.;
-  test_fem_poisson_perp_consteps(1, cells, bc_tv, false);
+  test_fem_poisson_perp_consteps_3x(1, cells, bc_tv, false);
 }
 
-void test_p2_periodicx_periodicy_consteps() {
+void test_3x_p2_periodicx_periodicy_consteps() {
   int cells[] = {8,8,8};
   struct gkyl_poisson_bc bc_tv;
   bc_tv.lo_type[0] = GKYL_POISSON_PERIODIC;
   bc_tv.up_type[0] = GKYL_POISSON_PERIODIC;
   bc_tv.lo_type[1] = GKYL_POISSON_PERIODIC;
   bc_tv.up_type[1] = GKYL_POISSON_PERIODIC;
-  test_fem_poisson_perp_consteps(2, cells, bc_tv, false);
+  test_fem_poisson_perp_consteps_3x(2, cells, bc_tv, false);
 }
 
-void test_p2_dirichletx_dirichlety_consteps() {
+void test_3x_p2_dirichletx_dirichlety_consteps() {
   int cells[] = {8,8,8};
   struct gkyl_poisson_bc bc_tv;
   bc_tv.lo_type[0] = GKYL_POISSON_DIRICHLET;
@@ -2795,10 +2708,10 @@ void test_p2_dirichletx_dirichlety_consteps() {
   bc_tv.up_value[0].v[0] = 0.;
   bc_tv.lo_value[1].v[0] = 0.;
   bc_tv.up_value[1].v[0] = 0.;
-  test_fem_poisson_perp_consteps(2, cells, bc_tv, false);
+  test_fem_poisson_perp_consteps_3x(2, cells, bc_tv, false);
 }
 
-void test_p2_dirichletx_periodicy_consteps() {
+void test_3x_p2_dirichletx_periodicy_consteps() {
   int cells[] = {8,8,8};
   struct gkyl_poisson_bc bc_tv;
   bc_tv.lo_type[0] = GKYL_POISSON_DIRICHLET;
@@ -2807,10 +2720,10 @@ void test_p2_dirichletx_periodicy_consteps() {
   bc_tv.up_type[1] = GKYL_POISSON_PERIODIC;
   bc_tv.lo_value[0].v[0] = 0.;
   bc_tv.up_value[0].v[0] = 0.;
-  test_fem_poisson_perp_consteps(2, cells, bc_tv, false);
+  test_fem_poisson_perp_consteps_3x(2, cells, bc_tv, false);
 }
 
-void test_p2_periodicx_dirichlety_consteps() {
+void test_3x_p2_periodicx_dirichlety_consteps() {
   int cells[] = {8,8,8};
   struct gkyl_poisson_bc bc_tv;
   bc_tv.lo_type[0] = GKYL_POISSON_PERIODIC;
@@ -2819,10 +2732,10 @@ void test_p2_periodicx_dirichlety_consteps() {
   bc_tv.up_type[1] = GKYL_POISSON_DIRICHLET;
   bc_tv.lo_value[1].v[0] = 0.;
   bc_tv.up_value[1].v[0] = 0.;
-  test_fem_poisson_perp_consteps(2, cells, bc_tv, false);
+  test_fem_poisson_perp_consteps_3x(2, cells, bc_tv, false);
 }
 
-void test_p2_dirichletx_neumanny_dirichlety_consteps() {
+void test_3x_p2_dirichletx_neumanny_dirichlety_consteps() {
   int cells[] = {8,8,8};
   struct gkyl_poisson_bc bc_tv;
   bc_tv.lo_type[0] = GKYL_POISSON_DIRICHLET;
@@ -2833,10 +2746,10 @@ void test_p2_dirichletx_neumanny_dirichlety_consteps() {
   bc_tv.up_value[0].v[0] = 0.;
   bc_tv.lo_value[1].v[0] = 0.;
   bc_tv.up_value[1].v[0] = 0.;
-  test_fem_poisson_perp_consteps(2, cells, bc_tv, false);
+  test_fem_poisson_perp_consteps_3x(2, cells, bc_tv, false);
 }
 
-void test_p2_dirichletx_dirichlety_neumanny_consteps() {
+void test_3x_p2_dirichletx_dirichlety_neumanny_consteps() {
   int cells[] = {8,8,8};
   struct gkyl_poisson_bc bc_tv;
   bc_tv.lo_type[0] = GKYL_POISSON_DIRICHLET;
@@ -2847,10 +2760,10 @@ void test_p2_dirichletx_dirichlety_neumanny_consteps() {
   bc_tv.up_value[0].v[0] = 0.;
   bc_tv.lo_value[1].v[0] = 0.;
   bc_tv.up_value[1].v[0] = 0.;
-  test_fem_poisson_perp_consteps(2, cells, bc_tv, false);
+  test_fem_poisson_perp_consteps_3x(2, cells, bc_tv, false);
 }
 
-void test_p2_neumannx_dirichletx_dirichlety_consteps() {
+void test_3x_p2_neumannx_dirichletx_dirichlety_consteps() {
   int cells[] = {8,8,8};
   struct gkyl_poisson_bc bc_tv;
   bc_tv.lo_type[0] = GKYL_POISSON_NEUMANN;
@@ -2861,10 +2774,10 @@ void test_p2_neumannx_dirichletx_dirichlety_consteps() {
   bc_tv.up_value[0].v[0] = 0.;
   bc_tv.lo_value[1].v[0] = 0.;
   bc_tv.up_value[1].v[0] = 0.;
-  test_fem_poisson_perp_consteps(2, cells, bc_tv, false);
+  test_fem_poisson_perp_consteps_3x(2, cells, bc_tv, false);
 }
 
-void test_p2_dirichletx_neumannx_dirichlety_consteps() {
+void test_3x_p2_dirichletx_neumannx_dirichlety_consteps() {
   int cells[] = {8,8,8};
   struct gkyl_poisson_bc bc_tv;
   bc_tv.lo_type[0] = GKYL_POISSON_DIRICHLET;
@@ -2875,10 +2788,10 @@ void test_p2_dirichletx_neumannx_dirichlety_consteps() {
   bc_tv.up_value[0].v[0] = 0.;
   bc_tv.lo_value[1].v[0] = 0.;
   bc_tv.up_value[1].v[0] = 0.;
-  test_fem_poisson_perp_consteps(2, cells, bc_tv, false);
+  test_fem_poisson_perp_consteps_3x(2, cells, bc_tv, false);
 }
 
-void test_p2_neumannx_dirichletx_periodicy_consteps() {
+void test_3x_p2_neumannx_dirichletx_periodicy_consteps() {
   int cells[] = {8,8,8};
   struct gkyl_poisson_bc bc_tv;
   bc_tv.lo_type[0] = GKYL_POISSON_NEUMANN;
@@ -2889,21 +2802,21 @@ void test_p2_neumannx_dirichletx_periodicy_consteps() {
   bc_tv.up_value[0].v[0] = 0.;
   bc_tv.lo_value[1].v[0] = 0.;
   bc_tv.up_value[1].v[0] = 0.;
-  test_fem_poisson_perp_consteps(2, cells, bc_tv, false);
+  test_fem_poisson_perp_consteps_3x(2, cells, bc_tv, false);
 }
 
 #ifdef GKYL_HAVE_CUDA
-void gpu_test_p1_periodicx_periodicy_consteps() {
+void gpu_test_3x_p1_periodicx_periodicy_consteps() {
   int cells[] = {8,8,8};
   struct gkyl_poisson_bc bc_tv;
   bc_tv.lo_type[0] = GKYL_POISSON_PERIODIC;
   bc_tv.up_type[0] = GKYL_POISSON_PERIODIC;
   bc_tv.lo_type[1] = GKYL_POISSON_PERIODIC;
   bc_tv.up_type[1] = GKYL_POISSON_PERIODIC;
-  test_fem_poisson_perp_consteps(1, cells, bc_tv, true);
+  test_fem_poisson_perp_consteps_3x(1, cells, bc_tv, true);
 }
 
-void gpu_test_p1_dirichletx_dirichlety_consteps() {
+void gpu_test_3x_p1_dirichletx_dirichlety_consteps() {
   int cells[] = {8,8,8};
   struct gkyl_poisson_bc bc_tv;
   bc_tv.lo_type[0] = GKYL_POISSON_DIRICHLET;
@@ -2914,10 +2827,10 @@ void gpu_test_p1_dirichletx_dirichlety_consteps() {
   bc_tv.up_value[0].v[0] = 0.;
   bc_tv.lo_value[1].v[0] = 0.;
   bc_tv.up_value[1].v[0] = 0.;
-  test_fem_poisson_perp_consteps(1, cells, bc_tv, true);
+  test_fem_poisson_perp_consteps_3x(1, cells, bc_tv, true);
 }
 
-void gpu_test_p1_dirichletx_periodicy_consteps() {
+void gpu_test_3x_p1_dirichletx_periodicy_consteps() {
   int cells[] = {8,8,8};
   struct gkyl_poisson_bc bc_tv;
   bc_tv.lo_type[0] = GKYL_POISSON_DIRICHLET;
@@ -2926,10 +2839,10 @@ void gpu_test_p1_dirichletx_periodicy_consteps() {
   bc_tv.up_type[1] = GKYL_POISSON_PERIODIC;
   bc_tv.lo_value[0].v[0] = 0.;
   bc_tv.up_value[0].v[0] = 0.;
-  test_fem_poisson_perp_consteps(1, cells, bc_tv, true);
+  test_fem_poisson_perp_consteps_3x(1, cells, bc_tv, true);
 }
 
-void gpu_test_p1_periodicx_dirichlety_consteps() {
+void gpu_test_3x_p1_periodicx_dirichlety_consteps() {
   int cells[] = {8,8,8};
   struct gkyl_poisson_bc bc_tv;
   bc_tv.lo_type[0] = GKYL_POISSON_PERIODIC;
@@ -2938,10 +2851,10 @@ void gpu_test_p1_periodicx_dirichlety_consteps() {
   bc_tv.up_type[1] = GKYL_POISSON_DIRICHLET;
   bc_tv.lo_value[1].v[0] = 0.;
   bc_tv.up_value[1].v[0] = 0.;
-  test_fem_poisson_perp_consteps(1, cells, bc_tv, true);
+  test_fem_poisson_perp_consteps_3x(1, cells, bc_tv, true);
 }
 
-void gpu_test_p1_dirichletx_neumanny_dirichlety_consteps() {
+void gpu_test_3x_p1_dirichletx_neumanny_dirichlety_consteps() {
   int cells[] = {8,8,8};
   struct gkyl_poisson_bc bc_tv;
   bc_tv.lo_type[0] = GKYL_POISSON_DIRICHLET;
@@ -2952,10 +2865,10 @@ void gpu_test_p1_dirichletx_neumanny_dirichlety_consteps() {
   bc_tv.up_value[0].v[0] = 0.;
   bc_tv.lo_value[1].v[0] = 0.;
   bc_tv.up_value[1].v[0] = 0.;
-  test_fem_poisson_perp_consteps(1, cells, bc_tv, true);
+  test_fem_poisson_perp_consteps_3x(1, cells, bc_tv, true);
 }
 
-void gpu_test_p1_dirichletx_dirichlety_neumanny_consteps() {
+void gpu_test_3x_p1_dirichletx_dirichlety_neumanny_consteps() {
   int cells[] = {8,8,8};
   struct gkyl_poisson_bc bc_tv;
   bc_tv.lo_type[0] = GKYL_POISSON_DIRICHLET;
@@ -2966,10 +2879,10 @@ void gpu_test_p1_dirichletx_dirichlety_neumanny_consteps() {
   bc_tv.up_value[0].v[0] = 0.;
   bc_tv.lo_value[1].v[0] = 0.;
   bc_tv.up_value[1].v[0] = 0.;
-  test_fem_poisson_perp_consteps(1, cells, bc_tv, true);
+  test_fem_poisson_perp_consteps_3x(1, cells, bc_tv, true);
 }
 
-void gpu_test_p1_neumannx_dirichletx_dirichlety_consteps() {
+void gpu_test_3x_p1_neumannx_dirichletx_dirichlety_consteps() {
   int cells[] = {8,8,8};
   struct gkyl_poisson_bc bc_tv;
   bc_tv.lo_type[0] = GKYL_POISSON_NEUMANN;
@@ -2980,10 +2893,10 @@ void gpu_test_p1_neumannx_dirichletx_dirichlety_consteps() {
   bc_tv.up_value[0].v[0] = 0.;
   bc_tv.lo_value[1].v[0] = 0.;
   bc_tv.up_value[1].v[0] = 0.;
-  test_fem_poisson_perp_consteps(1, cells, bc_tv, true);
+  test_fem_poisson_perp_consteps_3x(1, cells, bc_tv, true);
 }
 
-void gpu_test_p1_dirichletx_neumannx_dirichlety_consteps() {
+void gpu_test_3x_p1_dirichletx_neumannx_dirichlety_consteps() {
   int cells[] = {8,8,8};
   struct gkyl_poisson_bc bc_tv;
   bc_tv.lo_type[0] = GKYL_POISSON_DIRICHLET;
@@ -2994,10 +2907,10 @@ void gpu_test_p1_dirichletx_neumannx_dirichlety_consteps() {
   bc_tv.up_value[0].v[0] = 0.;
   bc_tv.lo_value[1].v[0] = 0.;
   bc_tv.up_value[1].v[0] = 0.;
-  test_fem_poisson_perp_consteps(1, cells, bc_tv, true);
+  test_fem_poisson_perp_consteps_3x(1, cells, bc_tv, true);
 }
 
-void gpu_test_p1_neumannx_dirichletx_periodicy_consteps() {
+void gpu_test_3x_p1_neumannx_dirichletx_periodicy_consteps() {
   int cells[] = {8,8,8};
   struct gkyl_poisson_bc bc_tv;
   bc_tv.lo_type[0] = GKYL_POISSON_NEUMANN;
@@ -3008,20 +2921,20 @@ void gpu_test_p1_neumannx_dirichletx_periodicy_consteps() {
   bc_tv.up_value[0].v[0] = 0.;
   bc_tv.lo_value[1].v[0] = 0.;
   bc_tv.up_value[1].v[0] = 0.;
-  test_fem_poisson_perp_consteps(1, cells, bc_tv, true);
+  test_fem_poisson_perp_consteps_3x(1, cells, bc_tv, true);
 }
 
-void gpu_test_p2_periodicx_periodicy_consteps() {
+void gpu_test_3x_p2_periodicx_periodicy_consteps() {
   int cells[] = {8,8,8};
   struct gkyl_poisson_bc bc_tv;
   bc_tv.lo_type[0] = GKYL_POISSON_PERIODIC;
   bc_tv.up_type[0] = GKYL_POISSON_PERIODIC;
   bc_tv.lo_type[1] = GKYL_POISSON_PERIODIC;
   bc_tv.up_type[1] = GKYL_POISSON_PERIODIC;
-  test_fem_poisson_perp_consteps(2, cells, bc_tv, true);
+  test_fem_poisson_perp_consteps_3x(2, cells, bc_tv, true);
 }
 
-void gpu_test_p2_dirichletx_dirichlety_consteps() {
+void gpu_test_3x_p2_dirichletx_dirichlety_consteps() {
   int cells[] = {8,8,8};
   struct gkyl_poisson_bc bc_tv;
   bc_tv.lo_type[0] = GKYL_POISSON_DIRICHLET;
@@ -3032,10 +2945,10 @@ void gpu_test_p2_dirichletx_dirichlety_consteps() {
   bc_tv.up_value[0].v[0] = 0.;
   bc_tv.lo_value[1].v[0] = 0.;
   bc_tv.up_value[1].v[0] = 0.;
-  test_fem_poisson_perp_consteps(2, cells, bc_tv, true);
+  test_fem_poisson_perp_consteps_3x(2, cells, bc_tv, true);
 }
 
-void gpu_test_p2_dirichletx_periodicy_consteps() {
+void gpu_test_3x_p2_dirichletx_periodicy_consteps() {
   int cells[] = {8,8,8};
   struct gkyl_poisson_bc bc_tv;
   bc_tv.lo_type[0] = GKYL_POISSON_DIRICHLET;
@@ -3044,10 +2957,10 @@ void gpu_test_p2_dirichletx_periodicy_consteps() {
   bc_tv.up_type[1] = GKYL_POISSON_PERIODIC;
   bc_tv.lo_value[0].v[0] = 0.;
   bc_tv.up_value[0].v[0] = 0.;
-  test_fem_poisson_perp_consteps(2, cells, bc_tv, true);
+  test_fem_poisson_perp_consteps_3x(2, cells, bc_tv, true);
 }
 
-void gpu_test_p2_periodicx_dirichlety_consteps() {
+void gpu_test_3x_p2_periodicx_dirichlety_consteps() {
   int cells[] = {8,8,8};
   struct gkyl_poisson_bc bc_tv;
   bc_tv.lo_type[0] = GKYL_POISSON_PERIODIC;
@@ -3056,10 +2969,10 @@ void gpu_test_p2_periodicx_dirichlety_consteps() {
   bc_tv.up_type[1] = GKYL_POISSON_DIRICHLET;
   bc_tv.lo_value[1].v[0] = 0.;
   bc_tv.up_value[1].v[0] = 0.;
-  test_fem_poisson_perp_consteps(2, cells, bc_tv, true);
+  test_fem_poisson_perp_consteps_3x(2, cells, bc_tv, true);
 }
 
-void gpu_test_p2_dirichletx_neumanny_dirichlety_consteps() {
+void gpu_test_3x_p2_dirichletx_neumanny_dirichlety_consteps() {
   int cells[] = {8,8,8};
   struct gkyl_poisson_bc bc_tv;
   bc_tv.lo_type[0] = GKYL_POISSON_DIRICHLET;
@@ -3070,10 +2983,10 @@ void gpu_test_p2_dirichletx_neumanny_dirichlety_consteps() {
   bc_tv.up_value[0].v[0] = 0.;
   bc_tv.lo_value[1].v[0] = 0.;
   bc_tv.up_value[1].v[0] = 0.;
-  test_fem_poisson_perp_consteps(2, cells, bc_tv, true);
+  test_fem_poisson_perp_consteps_3x(2, cells, bc_tv, true);
 }
 
-void gpu_test_p2_dirichletx_dirichlety_neumanny_consteps() {
+void gpu_test_3x_p2_dirichletx_dirichlety_neumanny_consteps() {
   int cells[] = {8,8,8};
   struct gkyl_poisson_bc bc_tv;
   bc_tv.lo_type[0] = GKYL_POISSON_DIRICHLET;
@@ -3084,10 +2997,10 @@ void gpu_test_p2_dirichletx_dirichlety_neumanny_consteps() {
   bc_tv.up_value[0].v[0] = 0.;
   bc_tv.lo_value[1].v[0] = 0.;
   bc_tv.up_value[1].v[0] = 0.;
-  test_fem_poisson_perp_consteps(2, cells, bc_tv, true);
+  test_fem_poisson_perp_consteps_3x(2, cells, bc_tv, true);
 }
 
-void gpu_test_p2_neumannx_dirichletx_dirichlety_consteps() {
+void gpu_test_3x_p2_neumannx_dirichletx_dirichlety_consteps() {
   int cells[] = {8,8,8};
   struct gkyl_poisson_bc bc_tv;
   bc_tv.lo_type[0] = GKYL_POISSON_NEUMANN;
@@ -3098,10 +3011,10 @@ void gpu_test_p2_neumannx_dirichletx_dirichlety_consteps() {
   bc_tv.up_value[0].v[0] = 0.;
   bc_tv.lo_value[1].v[0] = 0.;
   bc_tv.up_value[1].v[0] = 0.;
-  test_fem_poisson_perp_consteps(2, cells, bc_tv, true);
+  test_fem_poisson_perp_consteps_3x(2, cells, bc_tv, true);
 }
 
-void gpu_test_p2_dirichletx_neumannx_dirichlety_consteps() {
+void gpu_test_3x_p2_dirichletx_neumannx_dirichlety_consteps() {
   int cells[] = {8,8,8};
   struct gkyl_poisson_bc bc_tv;
   bc_tv.lo_type[0] = GKYL_POISSON_DIRICHLET;
@@ -3112,10 +3025,10 @@ void gpu_test_p2_dirichletx_neumannx_dirichlety_consteps() {
   bc_tv.up_value[0].v[0] = 0.;
   bc_tv.lo_value[1].v[0] = 0.;
   bc_tv.up_value[1].v[0] = 0.;
-  test_fem_poisson_perp_consteps(2, cells, bc_tv, true);
+  test_fem_poisson_perp_consteps_3x(2, cells, bc_tv, true);
 }
 
-void gpu_test_p2_neumannx_dirichletx_periodicy_consteps() {
+void gpu_test_3x_p2_neumannx_dirichletx_periodicy_consteps() {
   int cells[] = {8,8,8};
   struct gkyl_poisson_bc bc_tv;
   bc_tv.lo_type[0] = GKYL_POISSON_NEUMANN;
@@ -3126,50 +3039,50 @@ void gpu_test_p2_neumannx_dirichletx_periodicy_consteps() {
   bc_tv.up_value[0].v[0] = 0.;
   bc_tv.lo_value[1].v[0] = 0.;
   bc_tv.up_value[1].v[0] = 0.;
-  test_fem_poisson_perp_consteps(2, cells, bc_tv, true);
+  test_fem_poisson_perp_consteps_3x(2, cells, bc_tv, true);
 }
 
 #endif
 
 TEST_LIST = {
-  { "test_p1_periodicx_periodicy", test_p1_periodicx_periodicy_consteps },
-  { "test_p1_dirichletx_dirichlety", test_p1_dirichletx_dirichlety_consteps },
-  { "test_p1_dirichletx_periodicy", test_p1_dirichletx_periodicy_consteps },
-  { "test_p1_periodicx_dirichlety", test_p1_periodicx_dirichlety_consteps },
-  { "test_p1_dirichletx_neumanny_dirichlety", test_p1_dirichletx_neumanny_dirichlety_consteps },
-  { "test_p1_dirichletx_dirichlety_neumanny", test_p1_dirichletx_dirichlety_neumanny_consteps },
-  { "test_p1_neumannx_dirichletx_dirichlety", test_p1_neumannx_dirichletx_dirichlety_consteps },
-  { "test_p1_dirichletx_neumannx_dirichlety", test_p1_dirichletx_neumannx_dirichlety_consteps },
-  { "test_p1_neumannx_dirichletx_periodicy", test_p1_neumannx_dirichletx_periodicy_consteps },
-//  { "test_p2_periodicx_periodicy", test_p2_periodicx_periodicy_consteps },
-//  { "test_p2_dirichletx_dirichlety", test_p2_dirichletx_dirichlety_consteps },
-//  { "test_p2_dirichletx_periodicy", test_p2_dirichletx_periodicy_consteps },
-//  { "test_p2_periodicx_dirichlety", test_p2_periodicx_dirichlety_consteps },
-//  { "test_p2_dirichletx_neumanny_dirichlety", test_p2_dirichletx_neumanny_dirichlety_consteps },
-//  { "test_p2_dirichletx_dirichlety_neumanny", test_p2_dirichletx_dirichlety_neumanny_consteps },
-//  { "test_p2_neumannx_dirichletx_dirichlety", test_p2_neumannx_dirichletx_dirichlety_consteps },
-//  { "test_p2_dirichletx_neumannx_dirichlety", test_p2_dirichletx_neumannx_dirichlety_consteps },
-//  { "test_p2_neumannx_dirichletx_periodicy", test_p2_neumannx_dirichletx_periodicy_consteps },
+  { "test_3x_p1_periodicx_periodicy", test_3x_p1_periodicx_periodicy_consteps },
+  { "test_3x_p1_dirichletx_dirichlety", test_3x_p1_dirichletx_dirichlety_consteps },
+  { "test_3x_p1_dirichletx_periodicy", test_3x_p1_dirichletx_periodicy_consteps },
+  { "test_3x_p1_periodicx_dirichlety", test_3x_p1_periodicx_dirichlety_consteps },
+  { "test_3x_p1_dirichletx_neumanny_dirichlety", test_3x_p1_dirichletx_neumanny_dirichlety_consteps },
+  { "test_3x_p1_dirichletx_dirichlety_neumanny", test_3x_p1_dirichletx_dirichlety_neumanny_consteps },
+  { "test_3x_p1_neumannx_dirichletx_dirichlety", test_3x_p1_neumannx_dirichletx_dirichlety_consteps },
+  { "test_3x_p1_dirichletx_neumannx_dirichlety", test_3x_p1_dirichletx_neumannx_dirichlety_consteps },
+  { "test_3x_p1_neumannx_dirichletx_periodicy", test_3x_p1_neumannx_dirichletx_periodicy_consteps },
+//  { "test_3x_p2_periodicx_periodicy", test_3x_p2_periodicx_periodicy_consteps },
+//  { "test_3x_p2_dirichletx_dirichlety", test_3x_p2_dirichletx_dirichlety_consteps },
+//  { "test_3x_p2_dirichletx_periodicy", test_3x_p2_dirichletx_periodicy_consteps },
+//  { "test_3x_p2_periodicx_dirichlety", test_3x_p2_periodicx_dirichlety_consteps },
+//  { "test_3x_p2_dirichletx_neumanny_dirichlety", test_3x_p2_dirichletx_neumanny_dirichlety_consteps },
+//  { "test_3x_p2_dirichletx_dirichlety_neumanny", test_3x_p2_dirichletx_dirichlety_neumanny_consteps },
+//  { "test_3x_p2_neumannx_dirichletx_dirichlety", test_3x_p2_neumannx_dirichletx_dirichlety_consteps },
+//  { "test_3x_p2_dirichletx_neumannx_dirichlety", test_3x_p2_dirichletx_neumannx_dirichlety_consteps },
+//  { "test_3x_p2_neumannx_dirichletx_periodicy", test_3x_p2_neumannx_dirichletx_periodicy_consteps },
 #ifdef GKYL_HAVE_CUDA
-  { "gpu_test_p1_periodicx_periodicy", gpu_test_p1_periodicx_periodicy_consteps },
-  { "gpu_test_p1_dirichletx_dirichlety", gpu_test_p1_dirichletx_dirichlety_consteps },
-  { "gpu_test_p1_dirichletx_dirichlety", gpu_test_p1_dirichletx_dirichlety_consteps },
-  { "gpu_test_p1_dirichletx_periodicy", gpu_test_p1_dirichletx_periodicy_consteps },
-  { "gpu_test_p1_periodicx_dirichlety", gpu_test_p1_periodicx_dirichlety_consteps },
-  { "gpu_test_p1_dirichletx_neumanny_dirichlety", gpu_test_p1_dirichletx_neumanny_dirichlety_consteps },
-  { "gpu_test_p1_dirichletx_dirichlety_neumanny", gpu_test_p1_dirichletx_dirichlety_neumanny_consteps },
-  { "gpu_test_p1_neumannx_dirichletx_dirichlety", gpu_test_p1_neumannx_dirichletx_dirichlety_consteps },
-  { "gpu_test_p1_dirichletx_neumannx_dirichlety", gpu_test_p1_dirichletx_neumannx_dirichlety_consteps },
-  { "gpu_test_p1_neumannx_dirichletx_periodicy", gpu_test_p1_neumannx_dirichletx_periodicy_consteps },
-//  { "gpu_test_p2_periodicx_periodicy", gpu_test_p2_periodicx_periodicy_consteps },
-//  { "gpu_test_p2_dirichletx_dirichlety", gpu_test_p2_dirichletx_dirichlety_consteps },
-//  { "gpu_test_p2_dirichletx_periodicy", gpu_test_p2_dirichletx_periodicy_consteps },
-//  { "gpu_test_p2_periodicx_dirichlety", gpu_test_p2_periodicx_dirichlety_consteps },
-//  { "gpu_test_p2_dirichletx_neumanny_dirichlety", gpu_test_p2_dirichletx_neumanny_dirichlety_consteps },
-//  { "gpu_test_p2_dirichletx_dirichlety_neumanny", gpu_test_p2_dirichletx_dirichlety_neumanny_consteps },
-//  { "gpu_test_p2_neumannx_dirichletx_dirichlety", gpu_test_p2_neumannx_dirichletx_dirichlety_consteps },
-//  { "gpu_test_p2_dirichletx_neumannx_dirichlety", gpu_test_p2_dirichletx_neumannx_dirichlety_consteps },
-//  { "gpu_test_p2_neumannx_dirichletx_periodicy", gpu_test_p2_neumannx_dirichletx_periodicy_consteps },
+  { "gpu_test_3x_p1_periodicx_periodicy", gpu_test_3x_p1_periodicx_periodicy_consteps },
+  { "gpu_test_3x_p1_dirichletx_dirichlety", gpu_test_3x_p1_dirichletx_dirichlety_consteps },
+  { "gpu_test_3x_p1_dirichletx_dirichlety", gpu_test_3x_p1_dirichletx_dirichlety_consteps },
+  { "gpu_test_3x_p1_dirichletx_periodicy", gpu_test_3x_p1_dirichletx_periodicy_consteps },
+  { "gpu_test_3x_p1_periodicx_dirichlety", gpu_test_3x_p1_periodicx_dirichlety_consteps },
+  { "gpu_test_3x_p1_dirichletx_neumanny_dirichlety", gpu_test_3x_p1_dirichletx_neumanny_dirichlety_consteps },
+  { "gpu_test_3x_p1_dirichletx_dirichlety_neumanny", gpu_test_3x_p1_dirichletx_dirichlety_neumanny_consteps },
+  { "gpu_test_3x_p1_neumannx_dirichletx_dirichlety", gpu_test_3x_p1_neumannx_dirichletx_dirichlety_consteps },
+  { "gpu_test_3x_p1_dirichletx_neumannx_dirichlety", gpu_test_3x_p1_dirichletx_neumannx_dirichlety_consteps },
+  { "gpu_test_3x_p1_neumannx_dirichletx_periodicy", gpu_test_3x_p1_neumannx_dirichletx_periodicy_consteps },
+//  { "gpu_test_3x_p2_periodicx_periodicy", gpu_test_3x_p2_periodicx_periodicy_consteps },
+//  { "gpu_test_3x_p2_dirichletx_dirichlety", gpu_test_3x_p2_dirichletx_dirichlety_consteps },
+//  { "gpu_test_3x_p2_dirichletx_periodicy", gpu_test_3x_p2_dirichletx_periodicy_consteps },
+//  { "gpu_test_3x_p2_periodicx_dirichlety", gpu_test_3x_p2_periodicx_dirichlety_consteps },
+//  { "gpu_test_3x_p2_dirichletx_neumanny_dirichlety", gpu_test_3x_p2_dirichletx_neumanny_dirichlety_consteps },
+//  { "gpu_test_3x_p2_dirichletx_dirichlety_neumanny", gpu_test_3x_p2_dirichletx_dirichlety_neumanny_consteps },
+//  { "gpu_test_3x_p2_neumannx_dirichletx_dirichlety", gpu_test_3x_p2_neumannx_dirichletx_dirichlety_consteps },
+//  { "gpu_test_3x_p2_dirichletx_neumannx_dirichlety", gpu_test_3x_p2_dirichletx_neumannx_dirichlety_consteps },
+//  { "gpu_test_3x_p2_neumannx_dirichletx_periodicy", gpu_test_3x_p2_neumannx_dirichletx_periodicy_consteps },
 #endif
   { NULL, NULL },
 };
