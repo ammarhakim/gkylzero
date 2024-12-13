@@ -62,24 +62,25 @@ gkyl_position_map_new(struct gkyl_position_map_inp pmap_info, struct gkyl_rect_g
       gpm->map_x = gkyl_position_map_identity;
       gpm->map_x_ctx = NULL;
       if (pmap_info.map_x == 0)
-      { gpm->map_x_backup = gkyl_position_map_identity;
-        gpm->map_x_ctx_backup = NULL;
+      { gpm->constB_ctx->map_x_backup = gkyl_position_map_identity;
+        gpm->constB_ctx->map_x_ctx_backup = NULL;
       } else
-      { gpm->map_x_backup = pmap_info.map_x;
-        gpm->map_x_ctx_backup = pmap_info.ctx_x;
+      { gpm->constB_ctx->map_x_backup = pmap_info.map_x;
+        gpm->constB_ctx->map_x_ctx_backup = pmap_info.ctx_x;
       }
 
       gpm->map_y = gkyl_position_map_identity;
       gpm->map_y_ctx = NULL;
       if (pmap_info.map_y == 0)
-      { gpm->map_y_backup = gkyl_position_map_identity;
-        gpm->map_y_ctx_backup = NULL;
+      { gpm->constB_ctx->map_y_backup = gkyl_position_map_identity;
+        gpm->constB_ctx->map_y_ctx_backup = NULL;
       } else
-      { gpm->map_y_backup = pmap_info.map_y;
-        gpm->map_y_ctx_backup = pmap_info.ctx_y;
+      { gpm->constB_ctx->map_y_backup = pmap_info.map_y;
+        gpm->constB_ctx->map_y_ctx_backup = pmap_info.ctx_y;
       }
       gpm->map_z = gkyl_position_map_identity;
       gpm->map_z_ctx = gpm->constB_ctx;
+      gpm->constB_ctx->map_strength = pmap_info.map_strength;
   }
 
   gpm->grid = grid;
@@ -163,23 +164,21 @@ gkyl_position_map_free(const struct gkyl_ref_count *ref)
 void
 gkyl_position_map_optimize(struct gkyl_position_map* gpm)
 {
-  if (gpm->id == GKYL_PMAP_UNIFORM_B && gpm->bmag_global != 0)
+  if (gpm->id == GKYL_PMAP_UNIFORM_B && gpm->bmag_ctx->bmag != 0)
   {
-    gpm->map_x = gpm->map_x_backup;
-    gpm->map_x_ctx = gpm->map_x_ctx_backup;
-    gpm->map_y = gpm->map_y_backup;
-    gpm->map_y_ctx = gpm->map_y_ctx_backup;
-    gpm->map_z = gkyl_position_map_constB_z;
+    gpm->map_x     = gpm->constB_ctx->map_x_backup;
+    gpm->map_x_ctx = gpm->constB_ctx->map_x_ctx_backup;
+    gpm->map_y     = gpm->constB_ctx->map_y_backup;
+    gpm->map_y_ctx = gpm->constB_ctx->map_y_ctx_backup;
+    gpm->map_z     = gkyl_position_map_constB_z;
     gpm->map_z_ctx = gpm->constB_ctx;
 
     gpm->bmag_ctx->crange_global = &gpm->global;
     gpm->bmag_ctx->cbasis = &gpm->basis;
     gpm->bmag_ctx->cgrid = &gpm->grid;
-    gpm->bmag_ctx->bmag = gkyl_array_acquire(gpm->bmag_global);
 
     gpm->constB_ctx->psi = (gpm->constB_ctx->psi_min + gpm->constB_ctx->psi_max) / 2;
     gpm->constB_ctx->alpha = (gpm->constB_ctx->alpha_min + gpm->constB_ctx->alpha_max) / 2;
-    gpm->constB_ctx->map_strength = gpm->map_strength;
 
     calculate_mirror_throat_location(gpm->constB_ctx, gpm->bmag_ctx);
     calculate_optimal_mapping(gpm->constB_ctx, gpm->bmag_ctx);

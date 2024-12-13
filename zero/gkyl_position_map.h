@@ -28,20 +28,13 @@ struct gkyl_position_map_inp {
 
 struct gkyl_position_map {
   enum gkyl_position_map_id id;
-  bool is_identity; // =True if comp coords = phys coords.
 
   mc2nu_t map_x; // Map in the first direction (x, psi, r, etc.)
-  mc2nu_t map_x_backup; // Backup map in the first direction (x, psi, r, etc.)
   mc2nu_t map_y; // Map in the second direction (y, alpha, theta, etc.)
-  mc2nu_t map_y_backup; // Backup map in the second direction (y, alpha, theta, etc.)
   mc2nu_t map_z; // Map in the third direction (z, field line length, etc.)
   void *map_x_ctx;  // Context for map_x.
-  void *map_x_ctx_backup;  // Context for map_x.
   void *map_y_ctx;  // Context for map_y.
-  void *map_y_ctx_backup;  // Context for map_y.
   void *map_z_ctx;  // Context for map_z.
-
-  double map_strength; // Zero is uniform mapping, one is fully nonuniform mapping. In between values. Used for the constant B mapping
 
   double cdim; // Number of computational dimensions.
   struct gkyl_rect_grid grid; // Position space grid.
@@ -52,12 +45,13 @@ struct gkyl_position_map {
   struct gkyl_ref_count ref_count;
 
   // Stuff for constant B mapping
-  struct gkyl_array *bmag_global; // Global magnetic field array
   struct gkyl_bmag_ctx *bmag_ctx; // Context for magnetic field calculation
   struct gkyl_position_map_const_B_ctx *constB_ctx; // Context for constant B mapping
 };
 
 struct gkyl_position_map_const_B_ctx {
+  mc2nu_t map_x_backup, map_y_backup, map_z_backup;
+  void *map_x_ctx_backup, *map_y_ctx_backup, *map_z_ctx_backup;
   double psi, alpha;
   double theta_throat, Bmag_throat;
   double psi_min, psi_max;
