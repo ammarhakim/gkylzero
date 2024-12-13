@@ -28,6 +28,18 @@ gkyl_array_average_cu_dev_new(struct gkyl_array_average *up)
   struct gkyl_array_average *up_cu = (struct gkyl_array_average*) gkyl_cu_malloc(sizeof(struct gkyl_array_average));
   gkyl_cu_memcpy(up_cu, up, sizeof(struct gkyl_array_average), GKYL_CU_MEMCPY_H2D);
 
+  // Should we assign manually these variables or the gkyl_cu_memcpy is enough?
+  // up_cu->local = up->local;
+  // up_cu->local_avg = up->local_avg;
+  // for (int d = 0; d < up->ndim; d++)
+  //   up_cu->isdim_sub[d] = up->isdim_sub[d];
+  // up_cu->basis = up->basis;
+  // up_cu->isweighted = up->isweighted;
+
+  // // allocate space for the weight
+  // gkyl_array_cu_dev_new(GKYL_DOUBLE, up->weight->ncomp, up->weight->size);
+  // gkyl_array_copy(up_cu->weight, up->weight);
+
   // Set the kernel.
   gkyl_array_average_set_ker_cu<<<1,1>>>(up_cu);
 
@@ -50,21 +62,29 @@ gkyl_array_average_advance_cu_ker(const struct gkyl_array_average *up,
     // get the linear idx in the local range
     long lidx = gkyl_range_idx(&up->local, idx);
 
-    // get avg-space linear index.
-    for (unsigned int k = 0; k < up->local_avg.ndim; k++)
-      idx_avg[k] = idx[k];
+    // build the idx_avg array with the subdim coordinates of the idx vector
+    int cnter = 0;
+    for (int i = 0; i < up->basis.ndim; i++){
+      if (up->isdim_sub[i]) {
+        idx_avg[i] = idx[cnter];
+        cnter ++;
+      }
+    }
+
     long lidx_avg = gkyl_range_idx(&up->local_avg, idx_avg);
 
     // fetch the addresses where the weight and function are
     const double *fin_i = (const double*) gkyl_array_cfetch(fin, lidx);
     const double *win_i = up->isweighted? (const double*) gkyl_array_cfetch(up->weight, lidx) : 
         (const double*) gkyl_array_cfetch(up->weight, 0);
-
     // fetch the address where the avg is returned
     double *avg_i = (double*) gkyl_array_fetch(avgout, lidx_avg);
     
-    // add (atomicAdd) the contribution of the local data to the avg
+    // This line is creating a "CUDA error: an illegal memory access was encountered"
     up->kernel(up->subvol, win_i, fin_i, avg_i);
+    // Even if we replace it by this line, the same error will rise
+    // printf("win_i[%d] = %g\n", 0, win_i[0]);
+    // It looks like the array are not well allocated. The win_i[0] should exist 
   }
 }
 
@@ -73,18 +93,10 @@ void gkyl_array_average_advance_cu(const struct gkyl_array_average *up,
 {
 
   int nblocks = up->local.nblocks, nthreads = up->local.nthreads;
-  // int nblocks_avg = up->local_avg.nblocks, nthreads_avg = up->local_avg.nthreads;
 
   gkyl_array_clear_range(avgout, 0.0, &up->local_avg);
 
-  gkyl_array_average_advance_cu_ker<<<nblocks, nthreads>>>(up->on_dev,fin,avgout);
-
-//   gkyl_cu_memset(out, 0, up->num_comp*sizeof(double));
-//   const int nthreads = GKYL_DEFAULT_NUM_THREADS;
-//   int nblocks = gkyl_int_div_up(range->volume, nthreads);
-//   array_integrate_blockRedAtomic_cub<nthreads><<<nblocks, nthreads>>>(up->on_dev, fin->on_dev, *range, out);
-  // device synchronize required because out may be host pinned memory
-  cudaDeviceSynchronize();
+  gkyl_array_average_advance_cu_ker<<<nblocks, nthreads>>>(up->on_dev, fin, avgout);
 
   if (up->isweighted){
     gkyl_dg_div_op_range(up->div_mem, up->basis_avg,
