@@ -27,15 +27,10 @@ gkyl_array_average_cu_dev_new(struct gkyl_array_average *up)
   struct gkyl_array *weight_ho;
   if (up->isweighted) {
     weight_ho = gkyl_array_acquire(up->weight);
-    // struct gkyl_array *weight_dev = weight_ho->on_dev;
-    // gkyl_array_release(up->weight);
-    // up->weight = weight_dev;
   }
   else {
     weight_ho = gkyl_array_cu_dev_new(GKYL_DOUBLE, up->weight->ncomp, up->weight->size);
     gkyl_array_copy(weight_ho, up->weight);
-    // gkyl_array_release(up->weight);
-    // up->weight = weight_ho->on_dev;
   }
   gkyl_array_release(up->weight);
   up->weight = weight_ho->on_dev;
@@ -48,12 +43,6 @@ gkyl_array_average_cu_dev_new(struct gkyl_array_average *up)
   gkyl_array_average_set_ker_cu<<<1,1>>>(up_cu);
 
   up->weight = weight_ho;
-  gkyl_array_release(weight_ho);
-
-  up->on_dev = up_cu;
-
-  // Set the kernel.
-  gkyl_array_average_set_ker_cu<<<1,1>>>(up_cu);
 
   up->on_dev = up_cu;
 
@@ -64,7 +53,8 @@ __global__ void
 gkyl_array_average_advance_cu_ker(const struct gkyl_array_average *up, 
   const struct gkyl_array *fin, struct gkyl_array *avgout)
 {
-  int idx[GKYL_MAX_CDIM], idx_avg[GKYL_MAX_CDIM];
+  int idx[GKYL_MAX_DIM] = {0}; 
+  int idx_avg[GKYL_MAX_DIM] = {0};
 
   for(unsigned long tid = threadIdx.x + blockIdx.x*blockDim.x;
       tid < up->local.volume; tid += blockDim.x*gridDim.x) {
@@ -76,11 +66,15 @@ gkyl_array_average_advance_cu_ker(const struct gkyl_array_average *up,
 
     // build the idx_avg array with the subdim coordinates of the idx vector
     int cnter = 0;
-    for (int i = 0; i < up->basis.ndim; i++){
-      if (up->isdim_sub[i]) {
-        idx_avg[cnter] = idx[i];
-        cnter ++;
+    if (up->num_dim_remain > 0){
+      for (int i = 0; i < up->basis.ndim; i++){
+        if (up->dim_remains[i]) {
+          idx_avg[cnter] = idx[i];
+          cnter ++;
+        }
       }
+    } else {
+      idx_avg[0] = up->local_avg.lower[0];
     }
 
     long lidx_avg = gkyl_range_idx(&up->local_avg, idx_avg);
@@ -92,7 +86,6 @@ gkyl_array_average_advance_cu_ker(const struct gkyl_array_average *up,
     // fetch the address where the avg is returned
     double *avg_i = (double*) gkyl_array_fetch(avgout, lidx_avg);
     
-    // This line is creating a "CUDA error: an illegal memory access was encountered"
     up->kernel(up->subvol, win_i, fin_i, avg_i);
   }
 }
@@ -107,12 +100,7 @@ void gkyl_array_average_advance_cu(const struct gkyl_array_average *up,
 
   gkyl_array_average_advance_cu_ker<<<nblocks, nthreads>>>(up->on_dev, fin->on_dev, avgout->on_dev);
 
-  if (up->isweighted){
-    gkyl_dg_div_op_range(up->div_mem, up->basis_avg,
-      0, avgout, 0, avgout, 0, up->weight_avg, &up->local_avg);
-  } else{
-    // divide by the volume of the averaging domain
-    gkyl_array_scale(avgout,up->vol_avg_inv);
-  }
+  if (up->isweighted)
+    gkyl_dg_div_op_range(up->div_mem, up->basis_avg, 0, avgout, 0, avgout, 0, up->weight_avg, &up->local_avg);
 
 }

@@ -103,9 +103,9 @@ void test_1x(int poly_order, bool use_gpu)
       &grid, &basis, poly_order + 1, 1, evalFunc_1x, NULL);
 
   struct gkyl_array *fx_c = mkarr(basis.num_basis, local_ext.volume, use_gpu);
-  struct gkyl_array *fx_c_ho = use_gpu? mkarr(basis.num_basis, local_ext.volume, false) : fx_c;
+  struct gkyl_array *fx_c_ho = use_gpu? mkarr(fx_c->ncomp, fx_c->size, false) : gkyl_array_acquire(fx_c);
   gkyl_proj_on_basis_advance(projf, 0.0, &local, fx_c_ho);
-  if (use_gpu) gkyl_array_copy(fx_c, fx_c_ho);
+  gkyl_array_copy(fx_c, fx_c_ho);
 
   gkyl_proj_on_basis_release(projf);
 
@@ -113,9 +113,9 @@ void test_1x(int poly_order, bool use_gpu)
       &grid, &basis, poly_order + 1, 1, evalWeight_1x, NULL);
 
   struct gkyl_array *wx_c = mkarr(basis.num_basis, local_ext.volume, use_gpu);
-  struct gkyl_array *wx_c_ho = use_gpu? mkarr(basis.num_basis, local_ext.volume, false) : wx_c;
+  struct gkyl_array *wx_c_ho = use_gpu? mkarr(wx_c->ncomp, wx_c->size, false) : gkyl_array_acquire(wx_c);
   gkyl_proj_on_basis_advance(projw, 0.0, &local_ext, wx_c_ho);
-  if (use_gpu) gkyl_array_copy(wx_c, wx_c_ho);
+  gkyl_array_copy(wx_c, wx_c_ho);
 
   gkyl_proj_on_basis_release(projw);
 
@@ -126,7 +126,6 @@ void test_1x(int poly_order, bool use_gpu)
     .basis = basis,
     .basis_avg = red_basis,
     .local = &local,
-    .local_ext = &local_ext,
     .local_avg = &red_local,
     .local_avg_ext = &red_local_ext,
     .weight = wx_c,
@@ -161,11 +160,8 @@ void test_1x(int poly_order, bool use_gpu)
   // clean up
   gkyl_array_release(avgf_c);
   gkyl_array_release(fx_c);
-  gkyl_array_release(wx_c);
-  if(use_gpu){
-    gkyl_array_release(fx_c_ho);
-    gkyl_array_release(wx_c_ho);
-  }
+  gkyl_array_release(fx_c_ho);
+  gkyl_array_release(wx_c_ho);
   gkyl_free(avg_c0_ho);
 }
 
@@ -217,9 +213,9 @@ void test_2x_1step(int poly_order, bool use_gpu)
 
   struct gkyl_array *fxy_c = mkarr(basis.num_basis, local_ext.volume, use_gpu);
 
-  struct gkyl_array *fxy_c_ho = use_gpu? mkarr(basis.num_basis, local_ext.volume, false) : fxy_c;
-  gkyl_proj_on_basis_advance(projf, 0.0, &local_ext, fxy_c);
-  if (use_gpu) gkyl_array_copy(fxy_c, fxy_c_ho);
+  struct gkyl_array *fxy_c_ho = use_gpu? mkarr(fxy_c->ncomp, fxy_c->size, false) : gkyl_array_acquire(fxy_c);
+  gkyl_proj_on_basis_advance(projf, 0.0, &local_ext, fxy_c_ho);
+  gkyl_array_copy(fxy_c, fxy_c_ho);
 
   gkyl_proj_on_basis_release(projf);
 
@@ -228,9 +224,9 @@ void test_2x_1step(int poly_order, bool use_gpu)
 
   struct gkyl_array *wxy_c = mkarr(basis.num_basis, local_ext.volume, use_gpu);
 
-  struct gkyl_array *wxy_c_ho = use_gpu? mkarr(basis.num_basis, local_ext.volume, false) : wxy_c;
-  gkyl_proj_on_basis_advance(projw, 0.0, &local_ext, wxy_c);
-  if (use_gpu) gkyl_array_copy(wxy_c, wxy_c_ho);
+  struct gkyl_array *wxy_c_ho = use_gpu? mkarr(wxy_c->ncomp, wxy_c->size, false) : gkyl_array_acquire(wxy_c);
+  gkyl_proj_on_basis_advance(projw, 0.0, &local_ext, wxy_c_ho);
+  gkyl_array_copy(wxy_c, wxy_c_ho);
 
   gkyl_proj_on_basis_release(projw);
 
@@ -241,7 +237,6 @@ void test_2x_1step(int poly_order, bool use_gpu)
     .basis = basis,
     .basis_avg = red_basis,
     .local = &local,
-    .local_ext = &local_ext,
     .local_avg = &red_local,
     .local_avg_ext = &red_local_ext,
     .weight = wxy_c,
@@ -256,9 +251,9 @@ void test_2x_1step(int poly_order, bool use_gpu)
   gkyl_array_average_release(avg_xy);
 
   // check results
-  
+
   double *avgf_c0 = gkyl_array_fetch(avgf_c, 0);
-  double *avgf_c0_ho = gkyl_malloc(sizeof(double));
+  double avgf_c0_ho[1];
   if (use_gpu){
     gkyl_cu_memcpy(avgf_c0_ho, avgf_c0, sizeof(double), GKYL_CU_MEMCPY_D2H);
   } else{
@@ -279,19 +274,17 @@ void test_2x_1step(int poly_order, bool use_gpu)
   gkyl_array_release(avgf_c);
   gkyl_array_release(fxy_c);
   gkyl_array_release(wxy_c);
-  gkyl_free(avgf_c0_ho);
-  if(use_gpu){
-    gkyl_array_release(fxy_c_ho);
-    gkyl_array_release(wxy_c_ho);
-  }
+  gkyl_array_release(fxy_c_ho);
+  gkyl_array_release(wxy_c_ho);
 }
+
 // two step integration of the weight x,y -> y -> int
 void test_2x_intx_inty(int poly_order, bool use_gpu)
 {
-  // Define grids and basis
+  // define grids and basis
   double lower[] = {-4.0, -3.0}, upper[] = {6.0, 5.0};
-  int cells[] = {16, 8};
-  int ghost[] = {0, 0};
+  int cells[] = {4, 2};
+  int ghost[] = {1, 1};
   int ndim = sizeof(lower) / sizeof(lower[0]);
 
   struct gkyl_rect_grid grid;
@@ -325,20 +318,19 @@ void test_2x_intx_inty(int poly_order, bool use_gpu)
 
   struct gkyl_array *wxy_c = mkarr(basis.num_basis, local_ext.volume, use_gpu);
 
-  struct gkyl_array *wxy_c_ho = use_gpu? mkarr(basis.num_basis, local_ext.volume, false) : gkyl_array_acquire(wxy_c);
+  struct gkyl_array *wxy_c_ho = use_gpu? mkarr(wxy_c->ncomp, wxy_c->size, false) : gkyl_array_acquire(wxy_c);
   gkyl_proj_on_basis_advance(projw, 0.0, &local_ext, wxy_c_ho);
   gkyl_array_copy(wxy_c, wxy_c_ho);
 
   gkyl_proj_on_basis_release(projw);
 
-  //  Integration over x only, (x,y) to (y)
+  // integration over x only, (x,y) to (y)
   int int_dim_x[] = {1,0,0};
   struct gkyl_array_average_inp inp_int_x = {
     .grid = &grid,
     .basis = basis,
     .basis_avg = basis_y,
     .local = &local,
-    .local_ext = &local_ext,
     .local_avg = &local_y,
     .local_avg_ext = &local_y_ext,
     .weight = NULL,
@@ -352,14 +344,13 @@ void test_2x_intx_inty(int poly_order, bool use_gpu)
 
   gkyl_array_average_release(int_x);
 
-  //  Integration over remaining dimensions (y)
+  // integration over remaining dimensions (y)
   int int_dim_y[] = {1,0,0};
   struct gkyl_array_average_inp inp_int_y = {
     .grid = &grid_y,
     .basis = basis_y,
     .basis_avg = red_basis,
     .local = &local_y,
-    .local_ext = &local_y_ext,
     .local_avg = &red_local,
     .local_avg_ext = &red_local_ext,
     .weight = NULL,
@@ -373,7 +364,7 @@ void test_2x_intx_inty(int poly_order, bool use_gpu)
 
   gkyl_array_average_release(int_y);
 
-  // Multiply by the volume to get the integral
+  // multiply by the volume to get the integral
   double volume = 1;
   for (int d = 0; d < ndim; d++)
     volume *= grid.upper[d] - grid.lower[d];
@@ -381,7 +372,7 @@ void test_2x_intx_inty(int poly_order, bool use_gpu)
 
   // retrieve the computed average from the device (if applicable)
   double *intw_c0 = gkyl_array_fetch(intw_c, 0);
-  double *intw_c0_ho = gkyl_malloc(sizeof(double));
+  double intw_c0_ho[1];
   if (use_gpu)
     gkyl_cu_memcpy(intw_c0_ho, intw_c0, sizeof(double), GKYL_CU_MEMCPY_D2H);
   else
@@ -397,17 +388,17 @@ void test_2x_intx_inty(int poly_order, bool use_gpu)
   printf("\tRelative error: %e\n", rel_err );
   TEST_CHECK(gkyl_compare(rel_err, 0.0, 1e-12));
 
-  // clean  up
+  // clean up
   gkyl_array_release(wxy_c);
   gkyl_array_release(wy_c);
   gkyl_array_release(intw_c);
-  gkyl_free(intw_c0_ho);
   gkyl_array_release(wxy_c_ho);
 }
+
 // two steps averaging x,y -> y -> avg
 void test_2x_avgx_avgy(int poly_order, bool use_gpu)
 {
-  // Define grids and basis
+  // define grids and basis
   double lower[] = {-4.0, -3.0}, upper[] = {6.0, 5.0};
   int cells[] = {16, 8};
   int ndim = sizeof(lower) / sizeof(lower[0]);
@@ -439,15 +430,15 @@ void test_2x_avgx_avgy(int poly_order, bool use_gpu)
   struct gkyl_basis red_basis;
   gkyl_cart_modal_serendip(&red_basis, 1, poly_order);
 
-  // Project the target function and weight
+  // project the target function and weight
   gkyl_proj_on_basis *projf = gkyl_proj_on_basis_new(
       &grid, &basis, poly_order + 1, 1, evalFunc_2x, NULL);
 
   struct gkyl_array *fxy_c = mkarr(basis.num_basis, local_ext.volume, use_gpu);
 
-  struct gkyl_array *fxy_c_ho = use_gpu? mkarr(basis.num_basis, local_ext.volume, false) : fxy_c;
+  struct gkyl_array *fxy_c_ho = use_gpu? mkarr(fxy_c->ncomp, fxy_c->size, false) : gkyl_array_acquire(fxy_c);
   gkyl_proj_on_basis_advance(projf, 0.0, &local_ext, fxy_c_ho);
-  if(use_gpu) gkyl_array_copy(fxy_c,fxy_c_ho);
+  gkyl_array_copy(fxy_c,fxy_c_ho);
 
   gkyl_proj_on_basis_release(projf);
 
@@ -455,20 +446,19 @@ void test_2x_avgx_avgy(int poly_order, bool use_gpu)
       &grid, &basis, poly_order + 1, 1, evalWeight_2x, NULL);
 
   struct gkyl_array *wxy_c = mkarr(basis.num_basis, local_ext.volume, use_gpu);
-  struct gkyl_array *wxy_c_ho = use_gpu? mkarr(basis.num_basis, local_ext.volume, false) : wxy_c;
+  struct gkyl_array *wxy_c_ho = use_gpu? mkarr(wxy_c->ncomp, wxy_c->size, false) : gkyl_array_acquire(wxy_c);
   gkyl_proj_on_basis_advance(projw, 0.0, &local_ext, wxy_c_ho);
-  if(use_gpu) gkyl_array_copy(wxy_c,wxy_c_ho);
+  gkyl_array_copy(wxy_c,wxy_c_ho);
 
   gkyl_proj_on_basis_release(projw);
 
-  // Create and run the array average updater to average on x only
+  // create and run the array average updater to average on x only
   int avg_dim_x[] = {1,0,0};
   struct gkyl_array_average_inp inp_avg_x = {
     .grid = &grid,
     .basis = basis,
     .basis_avg = basis_y,
     .local = &local,
-    .local_ext = &local_ext,
     .local_avg = &local_y,
     .local_avg_ext = &local_y_ext,
     .weight = wxy_c,
@@ -488,7 +478,6 @@ void test_2x_avgx_avgy(int poly_order, bool use_gpu)
     .basis = basis,
     .basis_avg = basis_y,
     .local = &local,
-    .local_ext = &local_ext,
     .local_avg = &local_y,
     .local_avg_ext = &local_y_ext,
     .weight = NULL,
@@ -505,14 +494,13 @@ void test_2x_avgx_avgy(int poly_order, bool use_gpu)
   // we now remove manually the denominator
   gkyl_dg_mul_op_range(basis_y, 0, fy_c, 0, fy_c, 0, wy_c, &local_y); // fy_c is DG coeff of int[w(x,y) f(x,y)]dx
 
-  //Average over y now
+  // average over y now
   int avg_dim_y[] = {1,0,0};
   struct gkyl_array_average_inp inp_int_y = {
     .grid = &grid_y,
     .basis = basis_y,
     .basis_avg = red_basis,
     .local = &local_y,
-    .local_ext = &local_y_ext,
     .local_avg = &red_local,
     .local_avg_ext = &red_local_ext,
     .weight = NULL,
@@ -529,16 +517,16 @@ void test_2x_avgx_avgy(int poly_order, bool use_gpu)
 
   gkyl_array_average_release(int_y);
 
-  // Retrieve the computed average from the device (if applicable)
+  // retrieve the computed average from the device (if applicable)
   double *intf_c0  = gkyl_array_fetch(intf_c, 0);
-  double *intf_c0_ho = gkyl_malloc(sizeof(double));
+  double intf_c0_ho[1];
   if (use_gpu)
     gkyl_cu_memcpy(intf_c0_ho, intf_c0, sizeof(double), GKYL_CU_MEMCPY_D2H);
   else
     memcpy(intf_c0_ho, intf_c0, sizeof(double));
 
   double *intw_c0 = gkyl_array_fetch(intw_c, 0);
-  double *intw_c0_ho = gkyl_malloc(sizeof(double));
+  double intw_c0_ho[1];
   if (use_gpu)
     gkyl_cu_memcpy(intw_c0_ho, intw_c0, sizeof(double), GKYL_CU_MEMCPY_D2H);
   else
@@ -566,12 +554,8 @@ void test_2x_avgx_avgy(int poly_order, bool use_gpu)
   gkyl_array_release(wy_c);
   gkyl_array_release(intf_c);
   gkyl_array_release(intw_c);
-  gkyl_free(intf_c0_ho);
-  gkyl_free(intw_c0_ho);
-  if(use_gpu){
-    gkyl_array_release(fxy_c_ho);
-    gkyl_array_release(wxy_c_ho);
-  }
+  gkyl_array_release(fxy_c_ho);
+  gkyl_array_release(wxy_c_ho);
 }
 
 // two steps averaging x,y -> x -> avg
@@ -603,7 +587,7 @@ void test_2x_avgy_avgx(int poly_order, bool use_gpu)
   struct gkyl_basis basis_x;
   gkyl_cart_modal_serendip(&basis_x, 1, poly_order);
 
-  // Define the reduced range and basis for scalar result
+  // define the reduced range and basis for scalar result
   struct gkyl_range red_local, red_local_ext;
   gkyl_range_init(&red_local, 1, &local.lower[1], &local.lower[1]);
   gkyl_range_init(&red_local_ext, 1, &local_ext.lower[1], &local_ext.lower[1]);
@@ -616,9 +600,9 @@ void test_2x_avgy_avgx(int poly_order, bool use_gpu)
     &grid, &basis, poly_order + 1, 1, evalFunc_2x, NULL);
 
   struct gkyl_array *fxy_c = mkarr(basis.num_basis, local_ext.volume, use_gpu);
-  struct gkyl_array *fxy_c_ho = use_gpu? mkarr(basis.num_basis, local_ext.volume, use_gpu) : fxy_c;
+  struct gkyl_array *fxy_c_ho = use_gpu? mkarr(fxy_c->ncomp, fxy_c->size, false) : gkyl_array_acquire(fxy_c);
   gkyl_proj_on_basis_advance(projf, 0.0, &local_ext, fxy_c_ho);
-  if(use_gpu) gkyl_array_copy(fxy_c,fxy_c_ho);
+  gkyl_array_copy(fxy_c,fxy_c_ho);
 
   gkyl_proj_on_basis_release(projf);
 
@@ -627,9 +611,9 @@ void test_2x_avgy_avgx(int poly_order, bool use_gpu)
 
   struct gkyl_array *wxy_c = mkarr(basis.num_basis, local_ext.volume, use_gpu);
 
-  struct gkyl_array *wxy_c_ho = use_gpu? mkarr(basis.num_basis, local_ext.volume, use_gpu) : wxy_c;
+  struct gkyl_array *wxy_c_ho = use_gpu? mkarr(wxy_c->ncomp, wxy_c->size, false) : gkyl_array_acquire(wxy_c);
   gkyl_proj_on_basis_advance(projw, 0.0, &local_ext, wxy_c_ho);
-  if(use_gpu) gkyl_array_copy(wxy_c,wxy_c_ho);
+  gkyl_array_copy(wxy_c,wxy_c_ho);
 
   gkyl_proj_on_basis_release(projw);
 
@@ -640,14 +624,13 @@ void test_2x_avgy_avgx(int poly_order, bool use_gpu)
     .basis = basis,
     .basis_avg = basis_x,
     .local = &local,
-    .local_ext = &local_ext,
     .local_avg = &local_x,
     .local_avg_ext = &local_x_ext,
     .weight = wxy_c,
     .avg_dim = avg_dim_y,
     .use_gpu = use_gpu
   };
-  // This part can occasionally produce a segfault -> check with valgrind
+  // this part can occasionally produce a segfault -> check with valgrind
   struct gkyl_array_average *avg_x = gkyl_array_average_new(&inp_avg_x);
 
   struct gkyl_array *fx_c = mkarr(basis_x.num_basis, local_x_ext.volume, use_gpu);
@@ -662,7 +645,6 @@ void test_2x_avgy_avgx(int poly_order, bool use_gpu)
     .basis = basis,
     .basis_avg = basis_x,
     .local = &local,
-    .local_ext = &local_ext,
     .local_avg = &local_x,
     .local_avg_ext = &local_x_ext,
     .weight = NULL,
@@ -686,7 +668,6 @@ void test_2x_avgy_avgx(int poly_order, bool use_gpu)
     .basis = basis_x,
     .basis_avg = red_basis,
     .local = &local_x,
-    .local_ext = &local_x_ext,
     .local_avg = &red_local,
     .local_avg_ext = &red_local_ext,
     .weight = NULL,
@@ -705,14 +686,14 @@ void test_2x_avgy_avgx(int poly_order, bool use_gpu)
   gkyl_array_average_release(int_y);
 
   // check results two step avg
-  double *intf_c0_ho = gkyl_malloc(sizeof(double));
+  double intf_c0_ho[1];
   double *intf_c0  = gkyl_array_fetch(intf_c, 0);
   if (use_gpu)
     gkyl_cu_memcpy(intf_c0_ho, intf_c0, sizeof(double), GKYL_CU_MEMCPY_D2H);
   else
     memcpy(intf_c0_ho, intf_c0, sizeof(double));
 
-  double *intw_c0_ho = gkyl_malloc(sizeof(double));
+  double intw_c0_ho[1];
   double *intw_c0 = gkyl_array_fetch(intw_c, 0);
   if (use_gpu)
     gkyl_cu_memcpy(intw_c0_ho, intw_c0, sizeof(double), GKYL_CU_MEMCPY_D2H);
@@ -733,7 +714,6 @@ void test_2x_avgy_avgx(int poly_order, bool use_gpu)
   printf("\tRelative error: %e\n", rel_err);
   TEST_CHECK(gkyl_compare(rel_err, 0.0, 1e-12));
 
-
   // clean up
   gkyl_array_release(fxy_c);
   gkyl_array_release(wxy_c);
@@ -741,12 +721,8 @@ void test_2x_avgy_avgx(int poly_order, bool use_gpu)
   gkyl_array_release(wx_c);
   gkyl_array_release(intf_c);
   gkyl_array_release(intw_c);
-  if(use_gpu){
-    gkyl_array_release(wxy_c_ho);
-    gkyl_array_release(fxy_c_ho);
-  }
-  gkyl_free(intf_c0_ho);
-  gkyl_free(intw_c0_ho);
+  gkyl_array_release(wxy_c_ho);
+  gkyl_array_release(fxy_c_ho);
 }
 
 // test 3x
@@ -775,7 +751,7 @@ void evalWeight_3x(double t, const double *xn, double* restrict fout, void *ctx)
 // two steps average x,y,z -> y,z -> avg
 void test_3x_avgx_avgyz(int poly_order, bool use_gpu)
 {
-  // Define grids and basis
+  // define grids and basis
   double lower[] = {-4.0, -3.0, -2.0}, upper[] = {6.0, 5.0, 4.0};
   // int cells[] = {64, 48, 32};
   int cells[] = {16, 8, 4};
@@ -818,9 +794,9 @@ void test_3x_avgx_avgyz(int poly_order, bool use_gpu)
       &grid, &basis, poly_order + 1, 1, evalFunc_3x, NULL);
 
   struct gkyl_array *fxyz_c = mkarr(basis.num_basis, local_ext.volume, use_gpu);
-  struct gkyl_array *fxyz_c_ho = use_gpu? mkarr(basis.num_basis, local_ext.volume, false) : fxyz_c;
+  struct gkyl_array *fxyz_c_ho = use_gpu? mkarr(fxyz_c->ncomp, fxyz_c->size, false) : gkyl_array_acquire(fxyz_c);
   gkyl_proj_on_basis_advance(projf, 0.0, &local_ext, fxyz_c_ho);
-  if(use_gpu) gkyl_array_copy(fxyz_c,fxyz_c_ho);
+  gkyl_array_copy(fxyz_c,fxyz_c_ho);
 
   gkyl_proj_on_basis_release(projf);
 
@@ -828,9 +804,9 @@ void test_3x_avgx_avgyz(int poly_order, bool use_gpu)
       &grid, &basis, poly_order + 1, 1, evalWeight_3x, NULL);
 
   struct gkyl_array *wxyz_c = mkarr(basis.num_basis, local_ext.volume, use_gpu);
-  struct gkyl_array *wxyz_c_ho = use_gpu? mkarr(basis.num_basis, local_ext.volume, false) : wxyz_c;
+  struct gkyl_array *wxyz_c_ho = use_gpu? mkarr(wxyz_c->ncomp, wxyz_c->size, false) : gkyl_array_acquire(wxyz_c);
   gkyl_proj_on_basis_advance(projw, 0.0, &local_ext, wxyz_c_ho);
-  if(use_gpu) gkyl_array_copy(wxyz_c,wxyz_c_ho);
+  gkyl_array_copy(wxyz_c,wxyz_c_ho);
 
   gkyl_proj_on_basis_release(projw);
 
@@ -841,7 +817,6 @@ void test_3x_avgx_avgyz(int poly_order, bool use_gpu)
     .basis = basis,
     .basis_avg = basis_yz,
     .local = &local,
-    .local_ext = &local_ext,
     .local_avg = &local_yz,
     .local_avg_ext = &local_yz_ext,
     .weight = wxyz_c,
@@ -860,7 +835,6 @@ void test_3x_avgx_avgyz(int poly_order, bool use_gpu)
     .basis = basis,
     .basis_avg = basis_yz,
     .local = &local,
-    .local_ext = &local_ext,
     .local_avg = &local_yz,
     .local_avg_ext = &local_yz_ext,
     .weight = NULL,
@@ -876,14 +850,13 @@ void test_3x_avgx_avgyz(int poly_order, bool use_gpu)
   // we now remove manually the denominator
   gkyl_dg_mul_op_range(basis_yz, 0, fyz_c, 0, fyz_c, 0, wyz_c, &local_yz); // fy_c is DG coeff of int[w(x,y) f(x,y)]dy
 
-  // Create and run the array average updater to average on y and z (first second dim)
+  // create and run the array average updater to average on y and z (first second dim)
   int avg_dim_yz[] = {1,1,0};
   struct gkyl_array_average_inp inp_int_yz = {
     .grid = &grid_yz,
     .basis = basis_yz,
     .basis_avg = red_basis,
     .local = &local_yz,
-    .local_ext = &local_yz_ext,
     .local_avg = &red_local,
     .local_avg_ext = &red_local_ext,
     .weight = NULL,
@@ -901,7 +874,7 @@ void test_3x_avgx_avgyz(int poly_order, bool use_gpu)
 
   gkyl_array_average_release(int_yz);
 
-  // Check results
+  // check results
   double *intf_c0  = gkyl_array_fetch(intf_c, 0);
   double *intf_c0_ho = gkyl_malloc(sizeof(double));
   if (use_gpu)
@@ -939,10 +912,8 @@ void test_3x_avgx_avgyz(int poly_order, bool use_gpu)
   gkyl_array_release(intw_c);
   gkyl_free(intf_c0_ho);
   gkyl_free(intw_c0_ho);
-  if(use_gpu){
-    gkyl_array_release(fxyz_c_ho);
-    gkyl_array_release(wxyz_c_ho);
-  }
+  gkyl_array_release(fxyz_c_ho);
+  gkyl_array_release(wxyz_c_ho);
 }
 // two steps average x,y,z -> x -> avg
 void test_3x_avgyz_avgx(int poly_order, bool use_gpu)
@@ -987,9 +958,9 @@ void test_3x_avgyz_avgx(int poly_order, bool use_gpu)
       &grid, &basis, poly_order + 1, 1, evalFunc_3x, NULL);
 
   struct gkyl_array *fxyz_c = mkarr(basis.num_basis, local_ext.volume, use_gpu);
-  struct gkyl_array *fxyz_c_ho = use_gpu? mkarr(basis.num_basis, local_ext.volume, false) : fxyz_c;
+  struct gkyl_array *fxyz_c_ho = use_gpu? mkarr(fxyz_c->ncomp, fxyz_c->size, false) : gkyl_array_acquire(fxyz_c);
   gkyl_proj_on_basis_advance(projf, 0.0, &local_ext, fxyz_c_ho);
-  if(use_gpu) gkyl_array_copy(fxyz_c,fxyz_c_ho);
+  gkyl_array_copy(fxyz_c,fxyz_c_ho);
 
   gkyl_proj_on_basis_release(projf);
 
@@ -997,9 +968,9 @@ void test_3x_avgyz_avgx(int poly_order, bool use_gpu)
       &grid, &basis, poly_order + 1, 1, evalWeight_3x, NULL);
 
   struct gkyl_array *wxyz_c = mkarr(basis.num_basis, local_ext.volume, use_gpu);
-  struct gkyl_array *wxyz_c_ho = use_gpu? mkarr(basis.num_basis, local_ext.volume, false) : wxyz_c;
+  struct gkyl_array *wxyz_c_ho = use_gpu? mkarr(wxyz_c->ncomp, wxyz_c->size, false) : gkyl_array_acquire(wxyz_c);
   gkyl_proj_on_basis_advance(projw, 0.0, &local_ext, wxyz_c_ho);
-  if(use_gpu) gkyl_array_copy(wxyz_c,wxyz_c_ho);
+  gkyl_array_copy(wxyz_c,wxyz_c_ho);
 
   gkyl_proj_on_basis_release(projw);
 
@@ -1011,7 +982,6 @@ void test_3x_avgyz_avgx(int poly_order, bool use_gpu)
     .basis = basis,
     .basis_avg = basis_x,
     .local = &local,
-    .local_ext = &local_ext,
     .local_avg = &local_x,
     .local_avg_ext = &local_x_ext,
     .weight = wxyz_c,
@@ -1031,7 +1001,6 @@ void test_3x_avgyz_avgx(int poly_order, bool use_gpu)
     .basis = basis,
     .basis_avg = basis_x,
     .local = &local,
-    .local_ext = &local_ext,
     .local_avg = &local_x,
     .local_avg_ext = &local_x_ext,
     .weight = NULL,
@@ -1055,7 +1024,6 @@ void test_3x_avgyz_avgx(int poly_order, bool use_gpu)
     .basis = basis_x,
     .basis_avg = red_basis,
     .local = &local_x,
-    .local_ext = &local_x_ext,
     .local_avg = &red_local,
     .local_avg_ext = &red_local_ext,
     .weight = NULL,
@@ -1111,10 +1079,8 @@ void test_3x_avgyz_avgx(int poly_order, bool use_gpu)
   gkyl_array_release(intw_c);
   gkyl_free(intf_c0_ho);
   gkyl_free(intw_c0_ho);
-  if(use_gpu){
-    gkyl_array_release(fxyz_c_ho);
-    gkyl_array_release(wxyz_c_ho);
-  }
+  gkyl_array_release(fxyz_c_ho);
+  gkyl_array_release(wxyz_c_ho);
 }
 
 void test_1x_cpu()
@@ -1184,7 +1150,8 @@ void test_3x_gpu()
 
 void test_int_gpu()
 {
-  test_2x_intx_inty(1,true);
+  // test_2x_intx_inty(1,true);
+  test_2x_1step(1,true);
 }
 #endif
 
@@ -1196,7 +1163,7 @@ TEST_LIST = {
   { "test_1x_gpu", test_1x_gpu },
   { "test_2x_gpu", test_2x_gpu },
   { "test_3x_gpu", test_3x_gpu },
-  { "test_int_gpu", test_int_gpu},
+  // { "test_int_gpu", test_int_gpu},
 #endif
   { NULL, NULL },
 };

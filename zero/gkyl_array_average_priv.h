@@ -1,6 +1,6 @@
 #pragma once
 
-// Private header for array_average updater, not for direct use by user.
+// private header for array_average updater, not for direct use by user.
 
 #include <gkyl_util.h>
 #include <math.h>
@@ -9,16 +9,16 @@
 #include <gkyl_dg_bin_ops.h>
 #include <assert.h>
 
-// Function pointer type for array_average kernels.
+// function pointer type for array_average kernels.
 typedef void (*array_average_t)( const double subvol, const double *win, const double *fin, double* GKYL_RESTRICT out);
 
-// For use in kernel tables.
+// for use in kernel tables.
 typedef struct { array_average_t kernels[2]; } array_average_kern_list;
 typedef struct { array_average_kern_list list[7]; } dim_array_average_kern_list;
 
 GKYL_CU_D
 static const dim_array_average_kern_list gkyl_array_average_ker_list[] = {
-  { // Kernel list for 1x integration
+  { // kernel list for 1x integration
     .list = 
       {
         {gkyl_array_average_1x_ser_p1_avgx, gkyl_array_average_1x_ser_p2_avgx},
@@ -30,7 +30,7 @@ static const dim_array_average_kern_list gkyl_array_average_ker_list[] = {
         {NULL, NULL},
       }
   },
-  { // Kernel list for 2x integration
+  { // kernel list for 2x integration
     .list = 
       {
         {gkyl_array_average_2x_ser_p1_avgx, gkyl_array_average_2x_ser_p2_avgy},
@@ -42,7 +42,7 @@ static const dim_array_average_kern_list gkyl_array_average_ker_list[] = {
         {NULL, NULL},
       }
   },
-  { // Kernel list for 3x integration
+  { // kernel list for 3x integration
     .list = 
       {
         {gkyl_array_average_3x_ser_p1_avgx, gkyl_array_average_3x_ser_p2_avgx},
@@ -56,7 +56,7 @@ static const dim_array_average_kern_list gkyl_array_average_ker_list[] = {
   }
 };
 
-// Primary struct in this updater.
+// primary struct in this updater.
 struct gkyl_array_average {
   // dimensionality of the full array
   int ndim;
@@ -64,7 +64,6 @@ struct gkyl_array_average {
   struct gkyl_basis basis_avg;
   // the updater stores the ranges of the input and output
   struct gkyl_range local;
-  struct gkyl_range local_ext;
   struct gkyl_range local_avg;
 
   // if we use gpu or not
@@ -72,11 +71,13 @@ struct gkyl_array_average {
 
   // array that indicates if the dimension is also a reduced dim
   // (i.e. if the dimension remains)
-  int isdim_sub[GKYL_MAX_CDIM];
+  int dim_remains[GKYL_MAX_CDIM];
   // array that indicates if the dimension is averaged
   int avg_dim[GKYL_MAX_CDIM];
   // number of averaged dimensions
-  int navg_dim;
+  int num_avg_dim;
+  // number of remaining dimensions
+  int num_dim_remain;
 
   // array that maps the sub dimensions to the full one
   // examples:
@@ -92,6 +93,7 @@ struct gkyl_array_average {
 
   // Pointer to itself on device.
   struct gkyl_array_average *on_dev;
+  uint32_t flags;
 
   // weighted average
   bool isweighted;
@@ -102,6 +104,7 @@ struct gkyl_array_average {
 
   // memory for the weak division at the end of averaging
   gkyl_dg_bin_op_mem *div_mem;
+
 };
 
 GKYL_CU_D static
