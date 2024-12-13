@@ -110,12 +110,15 @@ test_2x_option(bool use_gpu)
   gkyl_rect_grid_init(&vGrid, vdim, vLower, vUpper, vCells);
 
   // basis functions
-  struct gkyl_basis basis, confBasis;
+  struct gkyl_basis basis, confBasis, surf_vpar_basis, surf_mu_basis;
   if (poly_order > 1) {
     gkyl_cart_modal_serendip(&basis, ndim, poly_order);
+    gkyl_cart_modal_serendip(&surf_mu_basis, ndim-1, poly_order);
   } else if (poly_order == 1) {
     /* Force hybrid basis (p=2 in vpar). */
     gkyl_cart_modal_gkhybrid(&basis, cdim, vdim);
+    // constant mu surface
+    gkyl_cart_modal_gkhybrid(&surf_mu_basis, cdim, poly_order);
   }
   gkyl_cart_modal_serendip(&confBasis, cdim, poly_order);
 
@@ -224,8 +227,7 @@ test_2x_option(bool use_gpu)
   int num_mom = 4;
 
   struct gkyl_array *marr = mkarr(use_gpu, num_mom, confLocal_ext.volume);
-  struct gkyl_array *marr_host = use_gpu? mkarr(false, marr->ncomp, marr->size)
-                                        : gkyl_array_acquire(marr);
+  struct gkyl_array *marr_host = marr;
   if (use_gpu)
     marr_host = mkarr(false, num_mom, local_ext.volume);  
 
@@ -262,7 +264,6 @@ test_2x_option(bool use_gpu)
   gkyl_array_release(prim_moms);
 
   gkyl_array_release(marr);
-  gkyl_array_release(marr_host);
 
   gkyl_proj_on_basis_release(proj_m0);
   gkyl_proj_on_basis_release(proj_udrift);

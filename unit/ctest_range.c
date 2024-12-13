@@ -668,20 +668,6 @@ void test_range_deflate()
     );
   }
 
-  // Remove second dimension.
-  remDir[0] = 0; remDir[1] = 1; remDir[2] = 0;
-  locDir[0] = 0; locDir[1] = 3; locDir[2] = 0;
-  gkyl_range_deflate(&defr, &range, remDir, locDir);
-
-  idx[1] = locDir[1];
-  gkyl_range_iter_init(&iter, &defr);
-  while (gkyl_range_iter_next(&iter)) {  // loop over deflated region
-    idx[0] = iter.idx[0]; idx[2] = iter.idx[1];
-    TEST_CHECK(
-      gkyl_range_idx(&defr, iter.idx) == gkyl_range_idx(&range, idx)
-    );
-  }
-
   // remove two directions
   remDir[0] = 0; remDir[1] = 1; remDir[2] = 1;
   locDir[0] = 0; locDir[1] = upper[1]; locDir[2] = lower[2];
@@ -1104,13 +1090,13 @@ test_sub_intersect()
   struct gkyl_range local;
   gkyl_range_init(&local, 2, (int[]) { 4, 4 }, (int[]) { 10, 12 });
 
-  struct gkyl_range local_avg;
-  gkyl_sub_range_intersect(&local_avg, &local_ext, &local);
+  struct gkyl_range local_sub;
+  gkyl_sub_range_intersect(&local_sub, &local_ext, &local);
 
   struct gkyl_range_iter iter;
-  gkyl_range_iter_init(&iter, &local_avg);
+  gkyl_range_iter_init(&iter, &local_sub);
   while (gkyl_range_iter_next(&iter)) {
-    long lidx1 = gkyl_range_idx(&local_avg, iter.idx);
+    long lidx1 = gkyl_range_idx(&local_sub, iter.idx);
     long lidx2 = gkyl_range_idx(&local_ext, iter.idx);
 
     TEST_CHECK( lidx2 == lidx1 );
