@@ -313,12 +313,8 @@ void test_2x_intx_inty(int poly_order, bool use_gpu)
   gkyl_create_grid_ranges(&grid, ghost, &local_ext, &local);
 
   struct gkyl_range local_y, local_y_ext;
-  int remove_dir [GKYL_MAX_CDIM] = {0}; 
-  remove_dir[0] = 1;
-  int tmp_idx[GKYL_MAX_CDIM] = {0}; 
-  tmp_idx[0] = local.lower[0];
-  gkyl_range_deflate(&local_y_ext, &local_ext, remove_dir, tmp_idx);
-  gkyl_range_deflate(&local_y, &local, remove_dir, tmp_idx);
+  int ghost_y[] = {ghost[1]};
+  gkyl_create_grid_ranges(&grid_y, ghost_y, &local_y_ext, &local_y);
 
   struct gkyl_range red_local, red_local_ext;
   gkyl_range_init(&red_local, 1, &local.lower[0], &local.lower[0]);
@@ -329,9 +325,9 @@ void test_2x_intx_inty(int poly_order, bool use_gpu)
 
   struct gkyl_array *wxy_c = mkarr(basis.num_basis, local_ext.volume, use_gpu);
 
-  struct gkyl_array *wxy_c_ho = use_gpu? mkarr(basis.num_basis, local_ext.volume, false) : wxy_c;
+  struct gkyl_array *wxy_c_ho = use_gpu? mkarr(basis.num_basis, local_ext.volume, false) : gkyl_array_acquire(wxy_c);
   gkyl_proj_on_basis_advance(projw, 0.0, &local_ext, wxy_c_ho);
-  if (use_gpu) gkyl_array_copy(wxy_c, wxy_c_ho);
+  gkyl_array_copy(wxy_c, wxy_c_ho);
 
   gkyl_proj_on_basis_release(projw);
 
@@ -373,7 +369,6 @@ void test_2x_intx_inty(int poly_order, bool use_gpu)
   struct gkyl_array_average *int_y = gkyl_array_average_new(&inp_int_y);
 
   struct gkyl_array *intw_c = mkarr(red_basis.num_basis, red_local.volume, use_gpu);
-
   gkyl_array_average_advance(int_y, wy_c, intw_c);
 
   gkyl_array_average_release(int_y);
@@ -407,7 +402,7 @@ void test_2x_intx_inty(int poly_order, bool use_gpu)
   gkyl_array_release(wy_c);
   gkyl_array_release(intw_c);
   gkyl_free(intw_c0_ho);
-  if(use_gpu) gkyl_array_release(wxy_c_ho);
+  gkyl_array_release(wxy_c_ho);
 }
 // two steps averaging x,y -> y -> avg
 void test_2x_avgx_avgy(int poly_order, bool use_gpu)
@@ -420,22 +415,22 @@ void test_2x_avgx_avgy(int poly_order, bool use_gpu)
   struct gkyl_rect_grid grid;
   gkyl_rect_grid_init(&grid, ndim, lower, upper, cells);
 
+  struct gkyl_rect_grid grid_y;
+  gkyl_rect_grid_init(&grid_y, 1, &lower[1], &upper[1], &cells[1]);
+
   struct gkyl_basis basis;
   gkyl_cart_modal_serendip(&basis, ndim, poly_order);
+
+  struct gkyl_basis basis_y;
+  gkyl_cart_modal_serendip(&basis_y, 1, poly_order);
 
   int ghost[] = {0, 0};
   struct gkyl_range local, local_ext;
   gkyl_create_grid_ranges(&grid, ghost, &local_ext, &local);
 
   struct gkyl_range local_y, local_y_ext;
-  gkyl_range_init(&local_y, 1, &local.lower[1], &local.upper[1]);
-  gkyl_range_init(&local_y_ext, 1, &local_ext.lower[1], &local_ext.upper[1]);
-
-  struct gkyl_basis basis_y;
-  gkyl_cart_modal_serendip(&basis_y, 1, poly_order);
-
-  struct gkyl_rect_grid grid_y;
-  gkyl_rect_grid_init(&grid_y, 1, &lower[1], &upper[1], &cells[1]);
+  int ghost_y[] = {ghost[1]};
+  gkyl_create_grid_ranges(&grid_y, ghost_y, &local_y_ext, &local_y);
 
   struct gkyl_range red_local, red_local_ext;
   gkyl_range_init(&red_local, 1, &local.lower[0], &local.lower[0]);
@@ -590,6 +585,9 @@ void test_2x_avgy_avgx(int poly_order, bool use_gpu)
   struct gkyl_rect_grid grid;
   gkyl_rect_grid_init(&grid, ndim, lower, upper, cells);
 
+  struct gkyl_rect_grid grid_x;
+  gkyl_rect_grid_init(&grid_x, 1, &lower[0], &upper[0], &cells[0]);
+
   struct gkyl_basis basis;
   gkyl_cart_modal_serendip(&basis, ndim, poly_order);
 
@@ -599,14 +597,11 @@ void test_2x_avgy_avgx(int poly_order, bool use_gpu)
 
   // reduced grid and basis for two stage reduction
   struct gkyl_range local_x, local_x_ext;
-  gkyl_range_init(&local_x, 1, &local.lower[0], &local.upper[0]);
-  gkyl_range_init(&local_x_ext, 1, &local_ext.lower[0], &local_ext.upper[0]);
+  int ghost_x[] = {ghost[0]};
+  gkyl_create_grid_ranges(&grid_x, ghost_x, &local_x_ext, &local_x);
 
   struct gkyl_basis basis_x;
   gkyl_cart_modal_serendip(&basis_x, 1, poly_order);
-
-  struct gkyl_rect_grid grid_x;
-  gkyl_rect_grid_init(&grid_x, 1, &lower[0], &upper[0], &cells[0]);
 
   // Define the reduced range and basis for scalar result
   struct gkyl_range red_local, red_local_ext;
@@ -804,7 +799,8 @@ void test_3x_avgx_avgyz(int poly_order, bool use_gpu)
   gkyl_rect_grid_init(&grid_yz, 2, yz_grid_lower, yz_grid_upper, yz_grid_cells);
 
   struct gkyl_range local_yz, local_yz_ext;
-  gkyl_create_grid_ranges(&grid_yz, ghost, &local_yz_ext, &local_yz);
+  int ghost_yz[] = {ghost[1], ghost[2]};
+  gkyl_create_grid_ranges(&grid_yz, ghost_yz, &local_yz_ext, &local_yz);
 
   struct gkyl_basis basis_yz;
   gkyl_cart_modal_serendip(&basis_yz, 2, poly_order);
@@ -972,7 +968,8 @@ void test_3x_avgyz_avgx(int poly_order, bool use_gpu)
 
   // define the reduced range and basis for averaging along x only
   struct gkyl_range local_x, local_x_ext;
-  gkyl_create_grid_ranges(&grid_x, ghost, &local_x_ext, &local_x);
+  int ghost_x[] = {ghost[0]};
+  gkyl_create_grid_ranges(&grid_x, ghost_x, &local_x_ext, &local_x);
 
   struct gkyl_basis basis_x;
   gkyl_cart_modal_serendip(&basis_x, 1, poly_order);
