@@ -258,7 +258,6 @@ nccl_n2_allgather_1d_host()
 
   struct gkyl_array *arr_local_ho = gkyl_array_new(GKYL_DOUBLE, 1, local_ext.volume);
   struct gkyl_array *arr_global_ho = gkyl_array_new(GKYL_DOUBLE, 1, global.volume);
-  gkyl_array_clear(arr_global, 0.0);
 
   gkyl_array_clear(arr_local_ho, 200005.0);
   struct gkyl_range_iter iter;
@@ -319,7 +318,6 @@ nccl_n4_allgather_2d_host()
 
   struct gkyl_array *arr_local_ho = gkyl_array_new(GKYL_DOUBLE, 1, local_ext.volume);
   struct gkyl_array *arr_global_ho = gkyl_array_new(GKYL_DOUBLE, 1, global.volume);
-  gkyl_array_clear(arr_global, 0.0);
 
   gkyl_array_clear(arr_local_ho, 200005.0);
   struct gkyl_range_iter iter;
@@ -330,7 +328,7 @@ nccl_n4_allgather_2d_host()
     f[0] = iter.idx[0] + iter.idx[1]*(rank+1.0) + 10.0*rank;
   } 
 
-  gkyl_comm_array_allgather_host(comm, &local, &global, arr_local, arr_global);
+  gkyl_comm_array_allgather_host(comm, &local, &global, arr_local_ho, arr_global_ho);
 
   struct gkyl_range_iter iter_global;
   gkyl_range_iter_init(&iter_global, &global);
