@@ -1,5 +1,6 @@
 #include <gkyl_fem_poisson_perp.h>
 #include <gkyl_fem_poisson_perp_priv.h>
+#include <gkyl_array_average.h>
 
 struct gkyl_fem_poisson_perp*
 gkyl_fem_poisson_perp_new(const struct gkyl_range *solve_range, const struct gkyl_rect_grid *grid,
@@ -78,26 +79,36 @@ gkyl_fem_poisson_perp_new(const struct gkyl_range *solve_range, const struct gky
   for (int d=0; d<up->ndim_perp; d++) up->isdirperiodic[d] = bcs->lo_type[d] == GKYL_POISSON_PERIODIC;
   up->isdomperiodic = true;
   for (int d=0; d<up->ndim_perp; d++) up->isdomperiodic = up->isdomperiodic && up->isdirperiodic[d];
-//  assert(up->isdomperiodic == false);  // MF 2023/06/29: there's an error in
-                                       // the periodic domain case I have not
-                                       // solved.
 
   if (up->isdomperiodic) {
-#ifdef GKYL_HAVE_CUDA
-    if (up->use_gpu) {
-      up->rhs_cellavg = gkyl_array_cu_dev_new(GKYL_DOUBLE, 1, epsilon->size);
-      up->rhs_avg_cu = (double*) gkyl_cu_malloc(sizeof(double));
-    } else {
-      up->rhs_cellavg = gkyl_array_new(GKYL_DOUBLE, 1, epsilon->size);
-    }
-#else
-    up->rhs_cellavg = gkyl_array_new(GKYL_DOUBLE, 1, epsilon->size);
-#endif
-    up->rhs_avg = (double*) gkyl_malloc(sizeof(double));
-    gkyl_array_clear(up->rhs_cellavg, 0.0);
-    // Factor accounting for normalization when subtracting a constant from a
-    // DG field and the 1/N to properly compute the volume averaged RHS.
-    up->mavgfac = -pow(sqrt(2.),up->ndim)/up->perp_range2d.volume;
+    // Create operator to compute the perpendicular average of the rhs.
+    struct gkyl_basis perpavg_basis;
+    if (basis.b_type == GKYL_BASIS_MODAL_SERENDIPITY)
+      gkyl_cart_modal_serendip(&perpavg_basis, 1, basis.poly_order);
+    else if (basis.b_type == GKYL_BASIS_MODAL_TENSOR)
+      gkyl_cart_modal_tensor(&perpavg_basis, 1, basis.poly_order);
+
+    struct gkyl_range perpavg_local_ext;
+    gkyl_range_extend(&perpavg_local_ext, &up->par_range1d, &((int){1}), &((int){1})); // Assume 1 ghost cell.
+    gkyl_sub_range_init(&up->perpavg_local, &perpavg_local_ext, &((int){up->par_range1d.lower[0]}), &((int){up->par_range1d.upper[0]}));
+
+    int avg_dim[GKYL_MAX_CDIM] = {1,1,1};
+    avg_dim[up->pardir] = 0;
+
+    struct gkyl_array_average_inp avg_inp = {
+      .grid = grid,
+      .basis = basis,
+      .local = solve_range,
+      .basis_avg = perpavg_basis,
+      .local_avg = &up->perpavg_local,
+      .local_avg_ext = &perpavg_local_ext,
+      .weight = NULL,
+      .avg_dim = avg_dim,
+      .use_gpu = use_gpu,
+    };
+    up->perpavg_op = gkyl_array_average_new(&avg_inp);
+    up->perpavg_rhs = use_gpu? gkyl_array_cu_dev_new(GKYL_DOUBLE, perpavg_basis.num_basis, perpavg_local_ext.volume)
+                             : gkyl_array_new(GKYL_DOUBLE, perpavg_basis.num_basis, perpavg_local_ext.volume);
   }
 
   // Pack BC values into a single array for easier use in kernels.
@@ -236,25 +247,19 @@ gkyl_fem_poisson_perp_set_rhs(gkyl_fem_poisson_perp *up, struct gkyl_array *rhsi
 
   if (up->isdomperiodic && !(up->ishelmholtz)) {
     // Subtract the volume averaged RHS from the RHS.
-    gkyl_array_clear(up->rhs_cellavg, 0.0);
+    gkyl_array_average_advance(up->perpavg_op, rhsin, up->perpavg_rhs);
+    struct gkyl_range_iter iter;
+    gkyl_range_iter_init(&iter, up->solve_range);
+    while (gkyl_range_iter_next(&iter)) {
+      long linidx = gkyl_range_idx(up->solve_range, iter.idx);
+      double *rhsin_p = gkyl_array_fetch(rhsin, linidx);
 
-    gkyl_dg_calc_average_range(up->basis, 0, up->rhs_cellavg, 0, rhsin, *up->solve_range);
+      int idx_par[] = {iter.idx[up->pardir]};
+      long linidx_par = gkyl_range_idx(&up->perpavg_local, idx_par);
+      double *avg_p = gkyl_array_fetch(up->perpavg_rhs, linidx_par);
 
-    gkyl_range_iter_init(&up->par_iter1d, &up->par_range1d);
-    while (gkyl_range_iter_next(&up->par_iter1d)) {
-      long paridx = gkyl_range_idx(&up->par_range1d, up->par_iter1d.idx);
-
-#ifdef GKYL_HAVE_CUDA
-      if (up->use_gpu) {
-        gkyl_array_reduce_range(up->rhs_avg_cu, up->rhs_cellavg, GKYL_SUM, &(up->perp_range[paridx]));
-        gkyl_cu_memcpy(up->rhs_avg, up->rhs_avg_cu, sizeof(double), GKYL_CU_MEMCPY_D2H);
-      } else {
-        gkyl_array_reduce_range(up->rhs_avg, up->rhs_cellavg, GKYL_SUM, &(up->perp_range[paridx]));
-      }
-#else
-      gkyl_array_reduce_range(up->rhs_avg, up->rhs_cellavg, GKYL_SUM, &(up->perp_range[paridx]));
-#endif
-      gkyl_array_shiftc_range(rhsin, up->mavgfac*up->rhs_avg[0], 0, &(up->perp_range[paridx]));
+      rhsin_p[0] += -pow(sqrt(2.0),up->ndim_perp)*avg_p[0];
+      rhsin_p[up->ndim] += -pow(sqrt(2.0),up->ndim_perp)*avg_p[1];
     }
   }
 
@@ -352,15 +357,14 @@ gkyl_fem_poisson_perp_solve(gkyl_fem_poisson_perp *up, struct gkyl_array *phiout
 void gkyl_fem_poisson_perp_release(struct gkyl_fem_poisson_perp *up)
 {
   if (up->isdomperiodic) {
-    gkyl_array_release(up->rhs_cellavg);
-    gkyl_free(up->rhs_avg);
+    gkyl_array_average_release(up->perpavg_op);
+    gkyl_array_release(up->perpavg_rhs);
   }
 
 #ifdef GKYL_HAVE_CUDA
   if (up->use_gpu) {
     gkyl_cu_free(up->kernels_cu);
     gkyl_cu_free(up->dx_cu);
-    if (up->isdomperiodic) gkyl_cu_free(up->rhs_avg_cu);
     gkyl_cu_free(up->bcvals_cu);
     gkyl_culinsolver_prob_release(up->prob_cu);
   } else {

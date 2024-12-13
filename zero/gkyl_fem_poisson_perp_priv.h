@@ -363,9 +363,9 @@ struct gkyl_fem_poisson_perp {
   bool ishelmholtz; // If solving Helmholtz equation (kSq is not zero/NULL).
 
   bool isdomperiodic; // =true if all directions are periodic.
-  struct gkyl_array *rhs_cellavg;
-  double *rhs_avg, mavgfac;
-  double *rhs_avg_cu;
+  struct gkyl_range perpavg_local;
+  struct gkyl_array_average *perpavg_op;
+  struct gkyl_array *perpavg_rhs;
 
   double bcvals[PERP_DIM_MAX*2*3]; // BC values, bc[0]*phi+bc[1]*d(phi)/dx=phi[3] at each boundary.
   double *bcvals_cu; // BC values, bc[0]*phi+bc[1]*d(phi)/dx=phi[3] at each boundary.
