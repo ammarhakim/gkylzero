@@ -57,8 +57,3 @@ void gkyl_array_average_advance(const struct gkyl_array_average *up,
  * @param up array_average updater.
  */
 void gkyl_array_average_release(struct gkyl_array_average *up);
-
-#ifdef GKYL_HAVE_CUDA
-void gkyl_array_average_advance_cu(const struct gkyl_array_average *up, 
-  const struct gkyl_array *fin, struct gkyl_array *avgout);
-#endif
