@@ -326,7 +326,7 @@ vlasov_species_lw_new(lua_State *L)
   enum gkyl_source_id source_id = GKYL_NO_SOURCE;
 
   double source_length = 1.0;
-  char source_species[128];
+  char source_species[128] = { '\0' };
 
   int num_sources = 0;
   enum gkyl_projection_id source_proj_id[GKYL_MAX_PROJ];
