@@ -53,6 +53,8 @@ cfl_frac = 1.0 -- CFL coefficient.
 
 t_end = 250.0 -- Final simulation time.
 num_frames = 1 -- Number of output frames.
+field_energy_writes = 1 -- Number of times to output field energy.
+integrated_mom_writes = 1 -- Number of times to output integrated moments.
 dt_failure_tol = 1.0e-4 -- Minimum allowable fraction of initial time-step.
 num_failures_max = 20 -- Maximum allowable number of consecutive small time-steps.
 
@@ -60,6 +62,8 @@ momentApp = Moments.App.new {
 
   tEnd = t_end,
   nFrame = num_frames,
+  fieldEnergyWrites = field_energy_writes,
+  integratedMomentWrites = integrated_mom_writes,
   dtFailureTol = dt_failure_tol,
   numFailuresMax = num_failures_max,
   lower = { 0.0, 0.0 },
