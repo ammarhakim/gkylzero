@@ -7,6 +7,7 @@
 #include <gkyl_calc_bmag.h>
 #include <gkyl_calc_derived_geo.h>
 #include <gkyl_calc_metric.h>
+#include <gkyl_comm.h>
 #include <gkyl_eval_on_nodes.h>
 #include <gkyl_gk_geometry.h>
 #include <gkyl_gk_geometry_mapc2p.h>
@@ -169,37 +170,6 @@ void gk_geometry_mapc2p_advance(struct gk_geometry* up, struct gkyl_range *nrang
 }
 
 struct gk_geometry*
-gkyl_gk_geometry_mc2p_new(struct gkyl_gk_geometry_inp *geometry_inp)
-{
-  struct gk_geometry* gk_geom_3d;
-  struct gk_geometry* gk_geom;
-  // First construct the uniform 3d geometry
-  gk_geom_3d = gk_geometry_mapc2p_init(geometry_inp);
-  // The conversion array computational to field aligned is still computed
-  // in uniform geometry, so we need to deflate it
-  if (geometry_inp->position_map->id == GKYL_PMAP_UNIFORM_B) {
-    // Must deflate the 3Duniform geometry in order for the allgather to work
-    if(geometry_inp->grid.ndim < 3)
-      gk_geom = gkyl_gk_geometry_deflate(gk_geom_3d, geometry_inp);
-    else
-      gk_geom = gkyl_gk_geometry_acquire(gk_geom_3d);
-
-    geometry_inp->position_map->bmag_ctx->bmag = gkyl_array_new(GKYL_DOUBLE,\
-       geometry_inp->basis.num_basis, geometry_inp->global_ext.volume);
-    gkyl_comm_array_allgather_host(geometry_inp->comm, &geometry_inp->local, \
-    &geometry_inp->global, gk_geom->bmag, geometry_inp->position_map->bmag_ctx->bmag);
-
-    gkyl_gk_geometry_release(gk_geom_3d); // release temporary 3d geometry
-    gkyl_gk_geometry_release(gk_geom); // release 3d geometry
-
-    // Construct the non-uniform grid
-    gk_geom_3d = gk_geometry_mapc2p_init(geometry_inp);
-    gkyl_array_release(geometry_inp->position_map->bmag_ctx->bmag);
-  }
-  return gk_geom_3d;
-}
-
-struct gk_geometry*
 gk_geometry_mapc2p_init(struct gkyl_gk_geometry_inp *geometry_inp)
 {
 
@@ -274,3 +244,33 @@ gk_geometry_mapc2p_init(struct gkyl_gk_geometry_inp *geometry_inp)
   return up;
 }
 
+struct gk_geometry*
+gkyl_gk_geometry_mapc2p_new(struct gkyl_gk_geometry_inp *geometry_inp)
+{
+  struct gk_geometry* gk_geom_3d;
+  struct gk_geometry* gk_geom;
+  // First construct the uniform 3d geometry
+  gk_geom_3d = gk_geometry_mapc2p_init(geometry_inp);
+  // The conversion array computational to field aligned is still computed
+  // in uniform geometry, so we need to deflate it
+  if (geometry_inp->position_map->id == GKYL_PMAP_UNIFORM_B) {
+    // Must deflate the 3Duniform geometry in order for the allgather to work
+    if(geometry_inp->grid.ndim < 3)
+      gk_geom = gkyl_gk_geometry_deflate(gk_geom_3d, geometry_inp);
+    else
+      gk_geom = gkyl_gk_geometry_acquire(gk_geom_3d);
+
+    geometry_inp->position_map->bmag_ctx->bmag = gkyl_array_new(GKYL_DOUBLE,\
+       geometry_inp->basis.num_basis, geometry_inp->global_ext.volume);
+    gkyl_comm_array_allgather_host(geometry_inp->comm, &geometry_inp->local, \
+    &geometry_inp->global, gk_geom->bmag, geometry_inp->position_map->bmag_ctx->bmag);
+
+    gkyl_gk_geometry_release(gk_geom_3d); // release temporary 3d geometry
+    gkyl_gk_geometry_release(gk_geom); // release 3d geometry
+
+    // Construct the non-uniform grid
+    gk_geom_3d = gk_geometry_mapc2p_init(geometry_inp);
+    gkyl_array_release(geometry_inp->position_map->bmag_ctx->bmag);
+  }
+  return gk_geom_3d;
+}
