@@ -52,7 +52,7 @@ double poly_test_func_1x(double x, double a, double *c)
   return pow(x,2)/2.-a*pow(x,4)/12.+c[0]*x+c[1];
 }
 
-void evalFunc_consteps_periodicx_periodicy_sol_2x(double t, const double *xn, double* restrict fout, void *ctx)
+void evalFunc_consteps_periodicx_sol_2x(double t, const double *xn, double* restrict fout, void *ctx)
 {
   double x = xn[0], z = xn[1];
   // These values have to match those in the test below.
@@ -71,7 +71,7 @@ void evalFunc_consteps_periodicx_periodicy_sol_2x(double t, const double *xn, do
   fout[0] *= (1.+kz*z);
 //  fout[0] *= (1.+kz*z+0.5*pow(z,2));
 }
-void evalFunc_consteps_periodicx_periodicy_2x(double t, const double *xn, double* restrict fout, void *ctx)
+void evalFunc_consteps_periodicx_2x(double t, const double *xn, double* restrict fout, void *ctx)
 {
   double x = xn[0], z = xn[1];
   // These values have to match those in the test below.
@@ -188,9 +188,9 @@ test_fem_poisson_perp_consteps_2x(int poly_order, const int *cells, struct gkyl_
   gkyl_proj_on_basis *projob, *projob_sol;
   if (bcs.lo_type[0]==GKYL_POISSON_PERIODIC && bcs.up_type[0]==GKYL_POISSON_PERIODIC) {
     projob = gkyl_proj_on_basis_new(&grid, &basis,
-      poly_order+1, 1, evalFunc_consteps_periodicx_periodicy_2x, NULL);
+      poly_order+1, 1, evalFunc_consteps_periodicx_2x, NULL);
     projob_sol = gkyl_proj_on_basis_new(&grid, &basis,
-      2*(poly_order+1), 1, evalFunc_consteps_periodicx_periodicy_sol_2x, NULL);
+      2*(poly_order+1), 1, evalFunc_consteps_periodicx_sol_2x, NULL);
   } else if (bcs.lo_type[0]==GKYL_POISSON_DIRICHLET && bcs.up_type[0]==GKYL_POISSON_DIRICHLET) {
     projob = gkyl_proj_on_basis_new(&grid, &basis,
       poly_order+1, 1, evalFunc_consteps_dirichletx_2x, NULL);
@@ -3184,9 +3184,9 @@ test_fem_poisson_perp_consteps_3x(int poly_order, const int *cells, struct gkyl_
     TEST_MSG("This poly_order is not available");
   }
 
-  gkyl_grid_sub_array_write(&grid, &localRange, 0, rho_ho, "ctest_fem_poisson_perp_3x_rho_1.gkyl");
-  gkyl_grid_sub_array_write(&grid, &localRange, 0, phi_ho, "ctest_fem_poisson_perp_3x_phi_8x8x8_p1.gkyl");
-  gkyl_grid_sub_array_write(&grid, &localRange, 0, phisol_ho, "ctest_fem_poisson_perp_3x_phisol_8x8x8_p1.gkyl");
+//  gkyl_grid_sub_array_write(&grid, &localRange, 0, rho_ho, "ctest_fem_poisson_perp_3x_rho_1.gkyl");
+//  gkyl_grid_sub_array_write(&grid, &localRange, 0, phi_ho, "ctest_fem_poisson_perp_3x_phi_8x8x8_p1.gkyl");
+//  gkyl_grid_sub_array_write(&grid, &localRange, 0, phisol_ho, "ctest_fem_poisson_perp_3x_phisol_8x8x8_p1.gkyl");
 
   gkyl_fem_poisson_perp_release(poisson);
   gkyl_proj_on_basis_release(projob);
