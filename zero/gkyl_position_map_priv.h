@@ -45,3 +45,6 @@ void calculate_optimal_mapping(struct gkyl_position_map_const_B_ctx *constB_ctx,
  * @param ctx Context object.
 */
 void gkyl_position_map_constB_z(double t, const double *xn, double *fout, void *ctx);
+
+void
+find_B_field_extrema(struct gkyl_position_map *gpm);

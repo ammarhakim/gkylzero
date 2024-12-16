@@ -11,7 +11,8 @@ typedef void (*mc2nu_t)(double t, const double *GKYL_RESTRICT xn, double *GKYL_R
 
 enum gkyl_position_map_id {
   GKYL_PMAP_FUNC = 0, // Function projection. User specified. Default
-  GKYL_PMAP_UNIFORM_B, // Makes a uniform dB in each cell
+  GKYL_PMAP_UNIFORM_B_POLYNOMIAL, // Makes a uniform dB in each cell
+  GKYL_PMAP_UNIFORM_B_NUMERIC, // Makes a uniform dB in each cell, but calculates the dB numerically
 };
 
 struct gkyl_position_map_inp {
@@ -59,6 +60,9 @@ struct gkyl_position_map_const_B_ctx {
   double theta_min, theta_max;
   double map_strength;
   int map_order_center, map_order_expander;
+  int num_maxima, num_minima;
+  int N_theta_boundaries;
+  double theta_maxima[16], theta_minima[16];
 };
 
 

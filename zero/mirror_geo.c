@@ -213,6 +213,8 @@ void gkyl_mirror_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, dou
   position_map->constB_ctx->psi_min = psi_lo;
   position_map->constB_ctx->theta_max = theta_up;
   position_map->constB_ctx->theta_min = theta_lo;
+  position_map->constB_ctx->N_theta_boundaries = nrange->upper[TH_IDX] - nrange->lower[TH_IDX] + 1;
+  printf("N_theta = %d\n", position_map->constB_ctx->N_theta_boundaries);
   gkyl_position_map_optimize(position_map);
 
   int cidx[3] = { 0 };
