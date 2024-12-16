@@ -50,7 +50,7 @@ struct gkyl_deflated_fem_poisson* gkyl_deflated_fem_poisson_new(struct gkyl_rect
  * @param field DG field to set as RHS source (charge density rho).
  * @param phi DG field solution to poison problem (phi).
  */
-void gkyl_deflated_fem_poisson_advance(struct gkyl_deflated_fem_poisson* up, struct gkyl_array *field, struct gkyl_array* phi);
+void gkyl_deflated_fem_poisson_advance(struct gkyl_deflated_fem_poisson* up, struct gkyl_array *field, struct gkyl_array* phi, double target_corner_bias);
 
 /**
  * Delete updater.

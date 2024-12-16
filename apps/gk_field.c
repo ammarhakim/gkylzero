@@ -32,7 +32,7 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
     int dim_fs_avg[] = {0,1,1};
     struct gkyl_array_average_inp input_fs_avg = {
       .grid = &app->grid,
-      .basis = app->basis,
+      .basis = app->confBasis,
       .basis_avg = f->confBasis_x,
       .local = &app->local,
       .local_avg = &f->local_x,
@@ -519,28 +519,39 @@ gk_field_rhs(gkyl_gyrokinetic_app *app, struct gk_field *field)
         gkyl_fem_parproj_set_rhs(field->fem_parproj, field->rho_c_global_dg, field->rho_c_global_dg);
         gkyl_fem_parproj_solve(field->fem_parproj, field->rho_c_global_smooth);
       }
-      gkyl_deflated_fem_poisson_advance(field->deflated_fem_poisson, field->rho_c_global_smooth, field->phi_smooth);
+
+      // Set the target corner Poisson BC
+      double target_corner_bias = 0;
+      if (field->gkfield_id == GKYL_GK_FIELD_ES_IWL && app->cdim == 3) {      
+        // We update the flux surface average of phi as well
+        gkyl_array_average_advance(field->up_fs_avg, field->phi_smooth, field->phi_fs_avg);
+
+        struct gkyl_range_iter iter;  
+        // printf("This is flux-surf averaged phi:\n");
+        gkyl_range_iter_init(&iter, &field->local_x);
+        // Index of the cell that abuts the xLCFS from below.
+        int idxLCFS_m = (field->info.xLCFS-1e-8 - app->grid.lower[0])/app->grid.dx[0]+1;
+
+        while (gkyl_range_iter_next(&iter)) {
+          long lidx_avg = gkyl_range_idx(&field->local_x, iter.idx);
+          if(iter.idx[0] == idxLCFS_m){
+            const double *avg_i = gkyl_array_cfetch(field->phi_fs_avg, lidx_avg);
+            target_corner_bias = avg_i[0];
+          // printf("phi_fs_avg[%ld] = %g\n",lidx_avg,sum);
+          }
+        }
+        // printf("sum(phi_fs_avg) = %g\n",sum);
+      }
+      gkyl_deflated_fem_poisson_advance(field->deflated_fem_poisson, field->rho_c_global_smooth, field->phi_smooth, target_corner_bias);
 
       /*
       * If we are in a 3x simulation with IWL we apply TS BC to the upper and lower edges
       * so that we can enforce that the surface value of the global skin cells are matching the
       * twist-and-shift BC exactly. (this should enforce periodicity of y-avg phi)
       */
-      if (field->gkfield_id == GKYL_GK_FIELD_ES_IWL && app->cdim == 3) {      
+      if (field->gkfield_id == GKYL_GK_FIELD_ES_IWL && app->cdim == 3)   
         gk_field_apply_bc(app, field, field->phi_smooth);
 
-        // We update the flux surface average of phi as well
-        gkyl_array_average_advance(field->up_fs_avg, field->phi_smooth, field->phi_fs_avg);
-
-        // struct gkyl_range_iter iter;  
-        // printf("This is flux-surf averaged phi:\n");
-        // gkyl_range_iter_init(&iter, &field->local_x);
-        // while (gkyl_range_iter_next(&iter)) {
-        //   long lidx_avg = gkyl_range_idx(&field->local_x, iter.idx);
-        //   const double *avg_i = gkyl_array_cfetch(field->phi_fs_avg, lidx_avg);
-        //   printf("phi_fs_avg[%ld] = %g\n",lidx_avg,avg_i);
-        // }
-      }
     }
   }
   app->stat.field_rhs_tm += gkyl_time_diff_now_sec(wst);

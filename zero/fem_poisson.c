@@ -254,7 +254,7 @@ up->xLCFS  = bcs->xLCFS;
 }
 
 void
-gkyl_fem_poisson_set_rhs(gkyl_fem_poisson* up, struct gkyl_array *rhsin)
+gkyl_fem_poisson_set_rhs(gkyl_fem_poisson* up, struct gkyl_array *rhsin, double target_corner_bias)
 {
 
   if (up->isdomperiodic && !(up->ishelmholtz)) {
@@ -316,7 +316,7 @@ gkyl_fem_poisson_set_rhs(gkyl_fem_poisson* up, struct gkyl_array *rhsin)
       int ix = i / up->grid.cells[1]; // get node x-index
       int iy = i % up->grid.cells[1]; // get node y-index
       if(i == idxLCFS_m){
-        brhs_p[i] = 0; //up->target_corner_bias;
+        brhs_p[i] = 0;
       }
     }
   }

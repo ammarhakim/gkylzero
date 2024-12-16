@@ -123,20 +123,16 @@ gkyl_deflated_fem_poisson_new(struct gkyl_rect_grid grid,
 }
 
 void 
-gkyl_deflated_fem_poisson_advance(struct gkyl_deflated_fem_poisson *up, struct gkyl_array *field, struct gkyl_array* phi)
+gkyl_deflated_fem_poisson_advance(struct gkyl_deflated_fem_poisson *up, struct gkyl_array *field, struct gkyl_array* phi, double target_corner_bias)
 {
   int ctr = 0;
   int local_range_ctr = up->local.lower[up->cdim-1];
   for (int zidx = up->global_sub_range.lower[up->cdim-1]; zidx <= up->global_sub_range.upper[up->cdim-1]; zidx++) {
-    // We compute the flux surface average of phi to set up the target corner BC
-    // We do it before deflation to keep DG precision in integration
-
-    //
     // Deflate rho indexing global sub-range to fetch correct place in z
     gkyl_deflate_zsurf_advance(up->deflator_lo, zidx, 
       &up->global_sub_range, &up->deflated_local, field, up->d_fem_data[ctr].deflated_field, 1);
     // Do the poisson solve 
-    gkyl_fem_poisson_set_rhs(up->d_fem_data[ctr].fem_poisson, up->d_fem_data[ctr].deflated_field);
+    gkyl_fem_poisson_set_rhs(up->d_fem_data[ctr].fem_poisson, up->d_fem_data[ctr].deflated_field, target_corner_bias);
     gkyl_fem_poisson_solve(up->d_fem_data[ctr].fem_poisson, up->d_fem_data[ctr].deflated_phi);
     // Modal to Nodal in 1d -> Store the result in the 2d nodal field
     gkyl_nodal_ops_m2n_deflated(up->n2m_deflated, up->deflated_basis_on_dev, 
@@ -149,7 +145,7 @@ gkyl_deflated_fem_poisson_advance(struct gkyl_deflated_fem_poisson *up, struct g
       gkyl_deflate_zsurf_advance(up->deflator_up, zidx, 
         &up->global_sub_range, &up->deflated_local, field, up->d_fem_data[ctr].deflated_field, 1);
       // Do the poisson solve 
-      gkyl_fem_poisson_set_rhs(up->d_fem_data[ctr].fem_poisson, up->d_fem_data[ctr].deflated_field);
+      gkyl_fem_poisson_set_rhs(up->d_fem_data[ctr].fem_poisson, up->d_fem_data[ctr].deflated_field, target_corner_bias);
       gkyl_fem_poisson_solve(up->d_fem_data[ctr].fem_poisson, up->d_fem_data[ctr].deflated_phi);
       // Modal to Nodal in 1d -> Store the result in the 2d nodal field
       gkyl_nodal_ops_m2n_deflated(up->n2m_deflated, up->deflated_basis_on_dev, 
