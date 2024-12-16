@@ -15,6 +15,7 @@
 #include <gkyl_app_priv.h>
 #include <gkyl_array.h>
 #include <gkyl_array_integrate.h>
+#include <gkyl_array_average.h>
 #include <gkyl_array_ops.h>
 #include <gkyl_array_reduce.h>
 #include <gkyl_array_rio.h>
@@ -732,6 +733,15 @@ struct gk_field {
   struct gkyl_skin_surf_from_ghost *ssfg_lo, *ssfg_up;
   // communicator object for config-space
   struct gkyl_comm *comm;   
+
+  // Updater for flux surface average
+  struct gkyl_array_average *up_fs_avg;
+  // 1D array for result of flux surface average
+  struct gkyl_array *phi_fs_avg;
+  // reduced basis and ranges
+  struct gkyl_basis confBasis_x;
+  struct gkyl_rect_grid grid_x;
+  struct gkyl_range local_x, local_x_ext;
 };
 
 // gyrokinetic object: used as opaque pointer in user code

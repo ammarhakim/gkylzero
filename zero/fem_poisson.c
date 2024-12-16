@@ -192,6 +192,8 @@ gkyl_fem_poisson_new(const struct gkyl_range *solve_range, const struct gkyl_rec
     keri = idx_to_inloup_ker(up->ndim, up->num_cells, up->solve_iter.idx);
     up->kernels->lhsker[keri](eps_p, kSq_p, up->dx, up->bcvals, up->globalidx, tri[0]);
   }
+
+// Target corner treatment (remplacement of a matrix line by 0 ... 0 1 0 ... 0)
 // We added the z_edge to know if we are on a z plane that has a target corner phi=0 BC.
 up->is_z_edge = bcs->is_z_edge;
 up->xLCFS  = bcs->xLCFS;
@@ -303,6 +305,7 @@ gkyl_fem_poisson_set_rhs(gkyl_fem_poisson* up, struct gkyl_array *rhsin)
     up->kernels->srcker[keri](eps_p, up->dx, rhsin_p, up->bcvals, up->globalidx, brhs_p);
   }
 
+  // Application of the BC at the target corner
   // If we are located at the edge of the z domain (This is temporary and should be generalized)
   if(up->is_z_edge){
     double xLCFS = up->xLCFS;
@@ -313,7 +316,7 @@ gkyl_fem_poisson_set_rhs(gkyl_fem_poisson* up, struct gkyl_array *rhsin)
       int ix = i / up->grid.cells[1]; // get node x-index
       int iy = i % up->grid.cells[1]; // get node y-index
       if(i == idxLCFS_m){
-        brhs_p[i] = 0.0;
+        brhs_p[i] = 0; //up->target_corner_bias;
       }
     }
   }

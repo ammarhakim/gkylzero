@@ -4,6 +4,7 @@
 #include <gkyl_dg_eqn.h>
 #include <gkyl_util.h>
 #include <gkyl_gyrokinetic_priv.h>
+#include <gkyl_array_average.h>
 
 #include <assert.h>
 #include <float.h>
@@ -16,11 +17,33 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
   struct gk_field *f = gkyl_malloc(sizeof(struct gk_field));
 
   f->info = gk->field;
+  f->gkfield_id = f->info.gkfield_id ? f->info.gkfield_id : GKYL_GK_FIELD_ES;
+
   // We add the position of the lcfs in the poisson BC structure
   // to pass it to the deflated FEM solver
   f->info.poisson_bcs.xLCFS = f->info.xLCFS;
 
-  f->gkfield_id = f->info.gkfield_id ? f->info.gkfield_id : GKYL_GK_FIELD_ES;
+  // Add a updater to compute the flux surface average
+  if (app->cdim == 3 && f->gkfield_id == GKYL_GK_FIELD_ES_IWL) {
+    gkyl_rect_grid_init(&f->grid_x, 1, &app->grid.lower[0], &app->grid.upper[0], &app->grid.cells[0]);
+    gkyl_cart_modal_serendip(&f->confBasis_x, 1, app->poly_order);
+    int ghost_x[] = {1};
+    gkyl_create_grid_ranges(&f->grid_x, ghost_x, &f->local_x_ext, &f->local_x);
+    int dim_fs_avg[] = {0,1,1};
+    struct gkyl_array_average_inp input_fs_avg = {
+      .grid = &app->grid,
+      .basis = app->basis,
+      .basis_avg = f->confBasis_x,
+      .local = &app->local,
+      .local_avg = &f->local_x,
+      .local_avg_ext = &f->local_x_ext,
+      .weight = app->gk_geom->jacobgeo,
+      .avg_dim = dim_fs_avg,
+      .use_gpu = app->use_gpu
+    };
+    f->up_fs_avg = gkyl_array_average_new(&input_fs_avg);
+    f->phi_fs_avg = mkarr(app->use_gpu, f->confBasis_x.num_basis, f->local_x_ext.volume);
+  }
 
   // allocate arrays for charge density
   f->rho_c = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
@@ -505,6 +528,18 @@ gk_field_rhs(gkyl_gyrokinetic_app *app, struct gk_field *field)
       */
       if (field->gkfield_id == GKYL_GK_FIELD_ES_IWL && app->cdim == 3) {      
         gk_field_apply_bc(app, field, field->phi_smooth);
+
+        // We update the flux surface average of phi as well
+        gkyl_array_average_advance(field->up_fs_avg, field->phi_smooth, field->phi_fs_avg);
+
+        // struct gkyl_range_iter iter;  
+        // printf("This is flux-surf averaged phi:\n");
+        // gkyl_range_iter_init(&iter, &field->local_x);
+        // while (gkyl_range_iter_next(&iter)) {
+        //   long lidx_avg = gkyl_range_idx(&field->local_x, iter.idx);
+        //   const double *avg_i = gkyl_array_cfetch(field->phi_fs_avg, lidx_avg);
+        //   printf("phi_fs_avg[%ld] = %g\n",lidx_avg,avg_i);
+        // }
       }
     }
   }
@@ -622,6 +657,8 @@ gk_field_release(const gkyl_gyrokinetic_app* app, struct gk_field *f)
     gkyl_array_release(f->bc_buffer);
     gkyl_bc_basic_release(f->bc_reflect_lo);
     gkyl_bc_basic_release(f->bc_reflect_up);
+    gkyl_array_average_release(f->up_fs_avg);
+    gkyl_array_release(f->phi_fs_avg);
   }
 
   gkyl_dynvec_release(f->integ_energy);

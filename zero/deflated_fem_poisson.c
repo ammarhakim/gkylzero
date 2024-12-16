@@ -2,6 +2,7 @@
 
 #include <gkyl_deflated_fem_poisson.h>
 #include <gkyl_deflated_fem_poisson_priv.h>
+#include <gkyl_array_average.h>
 
 struct gkyl_deflated_fem_poisson* 
 gkyl_deflated_fem_poisson_new(struct gkyl_rect_grid grid, 
@@ -104,6 +105,7 @@ gkyl_deflated_fem_poisson_new(struct gkyl_rect_grid grid,
     else 
       gkyl_deflate_zsurf_advance(up->deflator_lo, zidx, &up->local, &up->deflated_local, epsilon, up->d_fem_data[ctr].deflated_epsilon, 2*up->deflated_grid.ndim-1);
     
+    /// Here is the implementation of the target corner BC
     //---- check if we are at an extremal global index of z to apply target corner BC
     // get the global index of the z plane
     int global_zidx = zidx + up->global_sub_range.lower[up->cdim-1]; 
@@ -126,6 +128,10 @@ gkyl_deflated_fem_poisson_advance(struct gkyl_deflated_fem_poisson *up, struct g
   int ctr = 0;
   int local_range_ctr = up->local.lower[up->cdim-1];
   for (int zidx = up->global_sub_range.lower[up->cdim-1]; zidx <= up->global_sub_range.upper[up->cdim-1]; zidx++) {
+    // We compute the flux surface average of phi to set up the target corner BC
+    // We do it before deflation to keep DG precision in integration
+
+    //
     // Deflate rho indexing global sub-range to fetch correct place in z
     gkyl_deflate_zsurf_advance(up->deflator_lo, zidx, 
       &up->global_sub_range, &up->deflated_local, field, up->d_fem_data[ctr].deflated_field, 1);
