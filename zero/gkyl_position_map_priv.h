@@ -17,8 +17,23 @@ mkarr(bool on_gpu, long nc, long size)
  */
 void gkyl_position_map_free(const struct gkyl_ref_count *ref);
 
+
+/**
+ * In a geometry with two symmetric magnetic field peaks, calculate the location
+ * of highest mangetic field along the field line
+ * 
+ * @param constB_ctx Context object from the position_map
+ * @param bmag_ctx Context from calc_bmag
+ */
 void calculate_mirror_throat_location(struct gkyl_position_map_const_B_ctx *constB_ctx, struct gkyl_bmag_ctx *bmag_ctx);
 
+/**
+ * In a geometry with two symmetric magnetic field peaks, calculate
+ * the mapping that makes dB/dtheta constant along the field line
+ * 
+ * @param constB_ctx Context object from the position_map
+ * @param bmag_ctx Context from calc_bmag
+ */
 void calculate_optimal_mapping(struct gkyl_position_map_const_B_ctx *constB_ctx, struct gkyl_bmag_ctx *bmag_ctx);
 
 /**

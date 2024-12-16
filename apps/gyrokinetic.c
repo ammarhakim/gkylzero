@@ -2555,7 +2555,7 @@ gkyl_gyrokinetic_app_read_geometry(gkyl_gyrokinetic_app* app)
   struct gkyl_array* arr_ho9 = mkarr(false, 9*app->confBasis.num_basis, app->local_ext.volume);
 
   gyrokinetic_app_geometry_read_and_copy(app, app->gk_geom->mc2p        , arr_ho3, "mapc2p");
-  gyrokinetic_app_geometry_read_and_copy(app, app->gk_geom->mc2nu_pos        , arr_ho3, "mc2nu_pos");
+  gyrokinetic_app_geometry_read_and_copy(app, app->gk_geom->mc2nu_pos   , arr_ho3, "mc2nu_pos");
   gyrokinetic_app_geometry_read_and_copy(app, app->gk_geom->bmag        , arr_ho1, "bmag");
   gyrokinetic_app_geometry_read_and_copy(app, app->gk_geom->g_ij        , arr_ho6, "g_ij");
   gyrokinetic_app_geometry_read_and_copy(app, app->gk_geom->dxdz        , arr_ho9, "dxdz");

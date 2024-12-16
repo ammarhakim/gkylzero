@@ -123,5 +123,12 @@ void gkyl_position_map_release(const struct gkyl_position_map *gpm);
  */
 void gkyl_position_map_optimize(struct gkyl_position_map* gpm);
 
-
+/**
+ * Maps xn (1x) to fout (1x) using the constant B mapping
+ * 
+ * @param t Time
+ * @param xn Coordinate input
+ * @param fout coordinate output
+ * @param ctx context object of type gkyl_position_map_const_B_ctx
+ */
 void gkyl_position_map_constB_z(double t, const double *xn, double *fout, void *ctx);
