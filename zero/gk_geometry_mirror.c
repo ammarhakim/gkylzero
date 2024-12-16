@@ -24,7 +24,7 @@ gkyl_gk_geometry_mirror_new(struct gkyl_gk_geometry_inp *geometry_inp)
   struct gk_geometry* gk_geom_3d;
   struct gk_geometry* gk_geom;
   // First construct the uniform 3d geometry
-  gk_geom_3d = gkyl_gk_geometry_mirror_init(geometry_inp);
+  gk_geom_3d = gk_geometry_mirror_init(geometry_inp);
   // The conversion array computational to field aligned is still computed
   // in uniform geometry, so we need to deflate it
   if (geometry_inp->position_map->id == GKYL_PMAP_UNIFORM_B) {
@@ -43,14 +43,14 @@ gkyl_gk_geometry_mirror_new(struct gkyl_gk_geometry_inp *geometry_inp)
     gkyl_gk_geometry_release(gk_geom); // release 3d geometry
 
     // Construct the non-uniform grid
-    gk_geom_3d = gkyl_gk_geometry_mirror_init(geometry_inp);
+    gk_geom_3d = gk_geometry_mirror_init(geometry_inp);
     gkyl_array_release(geometry_inp->position_map->bmag_ctx->bmag);
   }
   return gk_geom_3d;
 }
 
 struct gk_geometry*
-gkyl_gk_geometry_mirror_init(struct gkyl_gk_geometry_inp *geometry_inp)
+gk_geometry_mirror_init(struct gkyl_gk_geometry_inp *geometry_inp)
 {
 
   struct gk_geometry *up = gkyl_malloc(sizeof(struct gk_geometry));
