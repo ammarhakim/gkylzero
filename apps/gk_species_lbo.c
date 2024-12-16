@@ -84,10 +84,16 @@ gk_species_lbo_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s, stru
     lbo->nu_prim_moms_host = mkarr(false, 2*app->confBasis.num_basis, app->local_ext.volume);    
   }
 
-  // allocate moments needed for LBO update
+  // Allocate moments needed for LBO update.
   gk_species_moment_init(app, s, &lbo->moms, "ThreeMoments");
 
-  // edge of velocity space corrections to momentum and energy 
+  lbo->dg_div_mem = 0; // Memory for weak division.
+  if (app->use_gpu)
+    lbo->dg_div_mem = gkyl_dg_bin_op_mem_cu_dev_new(app->local.volume, app->confBasis.num_basis);
+  else
+    lbo->dg_div_mem = gkyl_dg_bin_op_mem_new(app->local.volume, app->confBasis.num_basis);
+
+  // Edge of velocity space corrections to momentum and energy 
   lbo->bcorr_calc = gkyl_mom_calc_bcorr_lbo_gyrokinetic_new(&s->grid, 
     &app->confBasis, &app->basis, s->info.mass, s->vel_map, app->use_gpu);
   
@@ -112,12 +118,6 @@ gk_species_lbo_cross_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s
     &app->confBasis, &app->basis, &app->local, app->use_gpu);
   
   lbo->cross_nu_prim_moms = mkarr(app->use_gpu, 2*app->confBasis.num_basis, app->local_ext.volume);
-
-  lbo->greene_factor_mem = 0;
-  if (app->use_gpu)
-    lbo->greene_factor_mem = gkyl_dg_bin_op_mem_cu_dev_new(app->local.volume, app->confBasis.num_basis);
-  else
-    lbo->greene_factor_mem = gkyl_dg_bin_op_mem_new(app->local.volume, app->confBasis.num_basis);
 
   // set pointers to species we cross-collide with
   for (int i=0; i<lbo->num_cross_collisions; ++i) {
@@ -181,9 +181,12 @@ gk_species_lbo_moms(gkyl_gyrokinetic_app *app, const struct gk_species *species,
 {
   struct timespec wst = gkyl_wall_clock();
 
-  // compute needed moments
+  // Compute needed moments.
   gk_species_moment_calc(&lbo->moms, species->local, app->local, fin);
-  gkyl_array_set_range(lbo->m0, 1.0, lbo->moms.marr, &app->local);
+
+  gkyl_dg_div_op_range(lbo->dg_div_mem, app->confBasis, 0, lbo->m0,
+    0, lbo->moms.marr, 0, app->gk_geom->jacobgeo, &app->local);  
+
   gkyl_array_set_offset_range(lbo->m2self, 1.0, lbo->moms.marr, 2*app->confBasis.num_basis, &app->local);
   
   if (app->use_gpu) {
@@ -242,7 +245,7 @@ gk_species_lbo_cross_moms(gkyl_gyrokinetic_app *app, const struct gk_species *sp
     gkyl_array_set(lbo->greene_den[i], 1.0, lbo->self_mnu_m0[i]);
     gkyl_array_accumulate(lbo->greene_den[i], 1.0, lbo->other_mnu_m0[i]);
 
-    gkyl_dg_div_op_range(lbo->greene_factor_mem, app->confBasis, 0, lbo->greene_factor[i], 0,
+    gkyl_dg_div_op_range(lbo->dg_div_mem, app->confBasis, 0, lbo->greene_factor[i], 0,
       lbo->greene_num[i], 0, lbo->greene_den[i], &app->local);
     gkyl_array_scale(lbo->greene_factor[i], 2*lbo->betaGreenep1);
 
@@ -314,6 +317,7 @@ gk_species_lbo_release(const struct gkyl_gyrokinetic_app *app, const struct gk_l
   }
 
   gk_species_moment_release(app, &lbo->moms);
+  gkyl_dg_bin_op_mem_release(lbo->dg_div_mem);
 
   gkyl_mom_calc_bcorr_release(lbo->bcorr_calc);
   gkyl_prim_lbo_calc_release(lbo->coll_pcalc);
@@ -325,7 +329,6 @@ gk_species_lbo_release(const struct gkyl_gyrokinetic_app *app, const struct gk_l
   }
 
   if (lbo->num_cross_collisions) {
-    gkyl_dg_bin_op_mem_release(lbo->greene_factor_mem);
     gkyl_array_release(lbo->cross_nu_prim_moms);
     for (int i=0; i<lbo->num_cross_collisions; ++i) {
       gkyl_array_release(lbo->cross_prim_moms[i]);
