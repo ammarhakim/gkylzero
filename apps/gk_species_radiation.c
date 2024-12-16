@@ -150,9 +150,8 @@ gk_species_radiation_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s
     gkyl_array_release(vtsq_min_host);
     // Allocate emissivity.
     rad->emissivity[i] = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
-    rad->emissivity_host[i] = rad->emissivity[i];
-    if (app->use_gpu) 
-      rad->emissivity_host[i] = mkarr(false, app->confBasis.num_basis, app->local_ext.volume);
+    rad->emissivity_host[i] = app->use_gpu? mkarr(false, rad->emissivity[i]->ncomp, rad->emissivity[i]->size)
+	                                  : gkyl_array_acquire(rad->emissivity[i]);
   }
 
   gkyl_radiation_read_release_fit_params(rad_data);
@@ -168,15 +167,17 @@ gk_species_radiation_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s
   rad->vtsq = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
   rad->m0 = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
   
-  rad->nvnu_surf_host = rad->nvnu_surf;
-  rad->nvnu_host = rad->nvnu;
-  rad->nvsqnu_surf_host = rad->nvsqnu_surf;
-  rad->nvsqnu_host = rad->nvsqnu;
   if (app->use_gpu) {
-    rad->nvnu_surf_host = mkarr(false, surf_vpar_basis.num_basis, s->local_ext.volume);
-    rad->nvnu_host = mkarr(false, app->basis.num_basis, s->local_ext.volume);
-    rad->nvsqnu_surf_host = mkarr(false, surf_mu_basis.num_basis, s->local_ext.volume);
-    rad->nvsqnu_host = mkarr(false, app->basis.num_basis, s->local_ext.volume);
+    rad->nvnu_surf_host   = mkarr(false, rad->nvnu_surf  ->ncomp, rad->nvnu_surf  ->size); 
+    rad->nvnu_host        = mkarr(false, rad->nvnu       ->ncomp, rad->nvnu       ->size); 
+    rad->nvsqnu_surf_host = mkarr(false, rad->nvsqnu_surf->ncomp, rad->nvsqnu_surf->size); 
+    rad->nvsqnu_host      = mkarr(false, rad->nvsqnu     ->ncomp, rad->nvsqnu     ->size); 
+  }
+  else {
+    rad->nvnu_surf_host   = gkyl_array_acquire(rad->nvnu_surf);
+    rad->nvnu_host        = gkyl_array_acquire(rad->nvnu);
+    rad->nvsqnu_surf_host = gkyl_array_acquire(rad->nvsqnu_surf);
+    rad->nvsqnu_host      = gkyl_array_acquire(rad->nvsqnu);
   }
 
   // Allocate data and updaters for integrated moments.
@@ -322,8 +323,7 @@ gk_species_radiation_release(const struct gkyl_gyrokinetic_app *app, const struc
 {
   for (int i=0; i<rad->num_cross_collisions; ++i) {
     gkyl_array_release(rad->emissivity[i]);
-    if (app->use_gpu)
-      gkyl_array_release(rad->emissivity_host[i]);
+    gkyl_array_release(rad->emissivity_host[i]);
     gkyl_array_release(rad->rad_fit_ne[i]);
     gkyl_array_release(rad->vtsq_min_per_species[i]);
     gk_species_moment_release(app, &rad->moms[i]);
@@ -355,11 +355,9 @@ gk_species_radiation_release(const struct gkyl_gyrokinetic_app *app, const struc
   gkyl_array_release(rad->vtsq);
   gkyl_array_release(rad->m0);
   gkyl_free(rad->vtsq_min_per_species);
-  if (app->use_gpu) {
-    gkyl_array_release(rad->nvnu_surf_host);
-    gkyl_array_release(rad->nvnu_host);
-    gkyl_array_release(rad->nvsqnu_surf_host);
-    gkyl_array_release(rad->nvsqnu_host);    
-  }
+  gkyl_array_release(rad->nvnu_surf_host);
+  gkyl_array_release(rad->nvnu_host);
+  gkyl_array_release(rad->nvsqnu_surf_host);
+  gkyl_array_release(rad->nvsqnu_host);    
   gkyl_dg_updater_rad_gyrokinetic_release(rad->drag_slvr);
  }
