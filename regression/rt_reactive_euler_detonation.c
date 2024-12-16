@@ -41,8 +41,8 @@ struct reactive_detonation_ctx
 
   double t_end; // Final simulation time.
   int num_frames; // Number of output frames.
-  int field_energy_writes; // Number of times to output field energy.
-  int integrated_mom_writes; // Number of times to output integrated moments.
+  int field_energy_calcs; // Number of times to calculate field energy.
+  int integrated_mom_calcs; // Number of times to calculate integrated moments.
   double dt_failure_tol; // Minimum allowable fraction of initial time-step.
   int num_failures_max; // Maximum allowable number of consecutive small time-steps.
 };
@@ -72,8 +72,8 @@ create_ctx(void)
 
   double t_end = 0.5; // Final simulation time.
   int num_frames = 1; // Number of output frames.
-  int field_energy_writes = 1; // Number of times to output field energy.
-  int integrated_mom_writes = 1; // Number of times to output integrated moments.
+  int field_energy_calcs = 1; // Number of times to calculate field energy.
+  int integrated_mom_calcs = 1; // Number of times to calculate integrated moments.
   double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.
   int num_failures_max = 20; // Maximum allowable number of consecutive small time-steps.
 
@@ -94,8 +94,8 @@ create_ctx(void)
     .cfl_frac = cfl_frac,
     .t_end = t_end,
     .num_frames = num_frames,
-    .field_energy_writes = field_energy_writes,
-    .integrated_mom_writes = integrated_mom_writes,
+    .field_energy_calcs = field_energy_calcs,
+    .integrated_mom_calcs = integrated_mom_calcs,
     .dt_failure_tol = dt_failure_tol,
     .num_failures_max = num_failures_max,
   };
@@ -161,24 +161,24 @@ write_data(struct gkyl_tm_trigger* iot, gkyl_moment_app* app, double t_curr, boo
     }
 
     gkyl_moment_app_write(app, t_curr, frame);
+    gkyl_moment_app_write_field_energy(app);
+    gkyl_moment_app_write_integrated_mom(app);
   }
 }
 
 void
-write_field_energy(struct gkyl_tm_trigger* fet, gkyl_moment_app* app, double t_curr)
+calc_field_energy(struct gkyl_tm_trigger* fet, gkyl_moment_app* app, double t_curr)
 {
   if (gkyl_tm_trigger_check_and_bump(fet, t_curr)) {
     gkyl_moment_app_calc_field_energy(app, t_curr);
-    gkyl_moment_app_write_field_energy(app);
   }
 }
 
 void
-write_integrated_mom(struct gkyl_tm_trigger* imt, gkyl_moment_app* app, double t_curr)
+calc_integrated_mom(struct gkyl_tm_trigger* imt, gkyl_moment_app* app, double t_curr)
 {
   if (gkyl_tm_trigger_check_and_bump(imt, t_curr)) {
     gkyl_moment_app_calc_integrated_mom(app, t_curr);
-    gkyl_moment_app_write_integrated_mom(app);
   }
 }
 
@@ -343,16 +343,16 @@ main(int argc, char **argv)
   write_data(&io_trig, app, t_curr, false);
 
   // Create trigger for field energy.
-  int field_energy_writes = ctx.field_energy_writes;
-  struct gkyl_tm_trigger fe_trig = { .dt = t_end / field_energy_writes, .tcurr = t_curr, .curr = frame_curr };
+  int field_energy_calcs = ctx.field_energy_calcs;
+  struct gkyl_tm_trigger fe_trig = { .dt = t_end / field_energy_calcs, .tcurr = t_curr, .curr = frame_curr };
 
-  write_field_energy(&fe_trig, app, t_curr);
+  calc_field_energy(&fe_trig, app, t_curr);
 
   // Create trigger for integrated moments.
-  int integrated_mom_writes = ctx.integrated_mom_writes;
-  struct gkyl_tm_trigger im_trig = { .dt = t_end / integrated_mom_writes, .tcurr = t_curr, .curr = frame_curr };
+  int integrated_mom_calcs = ctx.integrated_mom_calcs;
+  struct gkyl_tm_trigger im_trig = { .dt = t_end / integrated_mom_calcs, .tcurr = t_curr, .curr = frame_curr };
 
-  write_integrated_mom(&im_trig, app, t_curr);
+  calc_integrated_mom(&im_trig, app, t_curr);
 
   // Compute initial guess of maximum stable time-step.
   double dt = t_end - t_curr;
@@ -376,8 +376,8 @@ main(int argc, char **argv)
     dt = status.dt_suggested;
 
     write_data(&io_trig, app, t_curr, false);
-    write_field_energy(&fe_trig, app, t_curr);
-    write_integrated_mom(&im_trig, app, t_curr);
+    calc_field_energy(&fe_trig, app, t_curr);
+    calc_integrated_mom(&im_trig, app, t_curr);
 
     if (dt_init < 0.0) {
       dt_init = status.dt_actual;
@@ -402,8 +402,8 @@ main(int argc, char **argv)
   }
 
   write_data(&io_trig, app, t_curr, false);
-  write_field_energy(&fe_trig, app, t_curr);
-  write_integrated_mom(&im_trig, app, t_curr);
+  calc_field_energy(&fe_trig, app, t_curr);
+  calc_integrated_mom(&im_trig, app, t_curr);
   gkyl_moment_app_stat_write(app);
 
   struct gkyl_moment_stat stat = gkyl_moment_app_stat(app);
