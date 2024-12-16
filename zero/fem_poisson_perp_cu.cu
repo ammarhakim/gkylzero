@@ -11,15 +11,18 @@ extern "C" {
 // Doing function pointer stuff in here avoids troublesome
 // cudaMemcpyFromSymbol.
 __global__ static void
-fem_poisson_perp_set_cu_l2gker_ptrs(struct gkyl_fem_poisson_perp_kernels* kers, enum gkyl_basis_type b_type,
+fem_poisson_perp_set_cu_l2gker_ptrs(struct gkyl_fem_poisson_perp_kernels* kers, int ndim, enum gkyl_basis_type b_type,
   int poly_order, const int *bckey)
 {
+  int ndim_perp = ndim-1;
 
   // Set l2g kernels.
+  const local2global_kern_bcx_list_2x *local2global_2x_kernels;
   const local2global_kern_bcx_list_3x *local2global_3x_kernels;
 
   switch (b_type) {
     case GKYL_BASIS_MODAL_SERENDIPITY:
+      local2global_2x_kernels = ser_loc2glob_list_2x;
       local2global_3x_kernels = ser_loc2glob_list_3x;
       break;
     default:
@@ -27,21 +30,25 @@ fem_poisson_perp_set_cu_l2gker_ptrs(struct gkyl_fem_poisson_perp_kernels* kers, 
       break;
   }
 
-  for (int k=0; k<GKYL_IPOW(2,PERP_DIM); k++)
-    kers->l2g[k] = CK(local2global_3x_kernels, poly_order, k, bckey[0], bckey[1]);
+  for (int k=0; k<GKYL_IPOW(2,ndim_perp); k++)
+    kers->l2g[k] = ndim == 2? CK2x(local2global_2x_kernels, poly_order, k, bckey[0])
+                            : CK3x(local2global_3x_kernels, poly_order, k, bckey[0], bckey[1]);
 }
 
 // CUDA kernel to set device pointers to RHS src and solution kernels.
 __global__ static void
 fem_poisson_perp_set_cu_ker_ptrs(struct gkyl_fem_poisson_perp_kernels* kers, enum gkyl_basis_type b_type,
-  int dim, int poly_order, const int *bckey)
+  int ndim, int poly_order, const int *bckey)
 {
+  int ndim_perp = ndim-1;
 
   // Set RHS stencil kernels.
+  const srcstencil_kern_bcx_list_2x *srcstencil_2x_kernels;
   const srcstencil_kern_bcx_list_3x *srcstencil_3x_kernels;
 
   switch (b_type) {
     case GKYL_BASIS_MODAL_SERENDIPITY:
+        srcstencil_2x_kernels = ser_srcstencil_list_2x;
         srcstencil_3x_kernels = ser_srcstencil_list_3x;
       break;
 //    case GKYL_BASIS_MODAL_TENSOR:
@@ -50,8 +57,9 @@ fem_poisson_perp_set_cu_ker_ptrs(struct gkyl_fem_poisson_perp_kernels* kers, enu
       assert(false);
   }
 
-  for (int k=0; k<GKYL_IPOW(3,PERP_DIM); k++)
-    kers->srcker[k] = CK(srcstencil_3x_kernels, poly_order, k, bckey[0], bckey[1]);
+  for (int k=0; k<GKYL_IPOW(3,ndim_perp); k++)
+    kers->srcker[k] = ndim == 2? CK2x(srcstencil_2x_kernels, poly_order, k, bckey[0])
+                               : CK3x(srcstencil_3x_kernels, poly_order, k, bckey[0], bckey[1]);
 
   // Set the get solution stencil kernel.
   const solstencil_kern_list *solstencil_kernels;
@@ -66,7 +74,7 @@ fem_poisson_perp_set_cu_ker_ptrs(struct gkyl_fem_poisson_perp_kernels* kers, enu
       assert(false);
   }
 
-  kers->solker = solstencil_kernels[dim].kernels[poly_order];
+  kers->solker = solstencil_kernels[ndim].kernels[poly_order];
 }
 
 void
@@ -74,17 +82,18 @@ fem_poisson_perp_choose_kernels_cu(const struct gkyl_basis* basis, const struct 
   const bool *isdirperiodic, struct gkyl_fem_poisson_perp_kernels *kers)
 {
 
-  int dim = basis->ndim;
   int poly_order = basis->poly_order;
+  int ndim = basis->ndim;
+  int ndim_perp = ndim-1;
 
   int bckey[GKYL_MAX_CDIM] = {-1,-1,-1};
-  for (int d=0; d<PERP_DIM; d++) bckey[d] = isdirperiodic[d] ? 0 : 1;
+  for (int d=0; d<ndim_perp; d++) bckey[d] = isdirperiodic[d] ? 0 : 1;
   int *bckey_d = (int *) gkyl_cu_malloc(GKYL_MAX_CDIM*sizeof(int));
   gkyl_cu_memcpy(bckey_d, bckey, GKYL_MAX_CDIM*sizeof(int), GKYL_CU_MEMCPY_H2D);
 
-  fem_poisson_perp_set_cu_l2gker_ptrs<<<1,1>>>(kers, basis->b_type, poly_order, bckey_d);
+  fem_poisson_perp_set_cu_l2gker_ptrs<<<1,1>>>(kers, ndim, basis->b_type, poly_order, bckey_d);
 
-  for (int d=0; d<PERP_DIM; d++) {
+  for (int d=0; d<ndim_perp; d++) {
          if (bcs->lo_type[d]==GKYL_POISSON_PERIODIC  && bcs->up_type[d]==GKYL_POISSON_PERIODIC ) { bckey[d] = 0; }
     else if (bcs->lo_type[d]==GKYL_POISSON_DIRICHLET && bcs->up_type[d]==GKYL_POISSON_DIRICHLET) { bckey[d] = 1; }
     else if (bcs->lo_type[d]==GKYL_POISSON_DIRICHLET && bcs->up_type[d]==GKYL_POISSON_NEUMANN  ) { bckey[d] = 2; }
@@ -93,9 +102,45 @@ fem_poisson_perp_choose_kernels_cu(const struct gkyl_basis* basis, const struct 
   };
   gkyl_cu_memcpy(bckey_d, bckey, GKYL_MAX_CDIM*sizeof(int), GKYL_CU_MEMCPY_H2D);
 
-  fem_poisson_perp_set_cu_ker_ptrs<<<1,1>>>(kers, basis->b_type, dim, poly_order, bckey_d);
+  fem_poisson_perp_set_cu_ker_ptrs<<<1,1>>>(kers, basis->b_type, ndim, poly_order, bckey_d);
 
   gkyl_cu_free(bckey_d);
+}
+
+__global__ void
+gkyl_fem_poisson_perp_subtract_perpavg_kernel(int pardir, const struct gkyl_range range,
+  const struct gkyl_range perpavg_range, struct gkyl_array *perpavg, struct gkyl_array *fin)
+{
+  int idx[GKYL_MAX_CDIM];
+
+  int ndim = range.ndim;
+  int ndim_perp = ndim-1;
+
+  for (unsigned long linc1 = threadIdx.x + blockIdx.x*blockDim.x;
+       linc1 < range.volume; linc1 += gridDim.x*blockDim.x)
+  {
+    // inverse index from linc1 to idx
+    // must use gkyl_sub_range_inv_idx so that linc1=0 maps to idx={1,1,...}
+    // since update_range is a subrange
+    gkyl_sub_range_inv_idx(&range, linc1, idx);
+
+    long linidx = gkyl_range_idx(&range, idx);
+    double *fin_p = (double *)gkyl_array_fetch(fin, linidx);
+
+    int idx_par[] = {idx[pardir]};
+    long linidx_par = gkyl_range_idx(&perpavg_range, idx_par);
+    double *avg_p = (double *)gkyl_array_fetch(perpavg, linidx_par);
+
+    fin_p[0] += -pow(sqrt(2.0),ndim_perp)*avg_p[0];
+    fin_p[ndim] += -pow(sqrt(2.0),ndim_perp)*avg_p[1];
+  }
+}
+
+void
+gkyl_fem_poisson_perp_subtract_perpavg_cu(gkyl_fem_poisson_perp *up, struct gkyl_array *perpavg, struct gkyl_array *fin)
+{
+  gkyl_fem_poisson_perp_subtract_perpavg_kernel<<<fin->nblocks, fin->nthreads>>>(up->pardir,
+    *up->solve_range, up->perpavg_local, perpavg->on_dev, fin->on_dev);
 }
 
 __global__ void
@@ -105,7 +150,11 @@ gkyl_fem_poisson_perp_set_rhs_kernel(struct gkyl_array *epsilon, const double *d
 {
   int idx[GKYL_MAX_CDIM];  int idx0[GKYL_MAX_CDIM];  int num_cells[GKYL_MAX_CDIM];
   long globalidx[32];
-  for (int d=0; d<PERP_DIM; d++) num_cells[d] = range.upper[d]-range.lower[d]+1;
+
+  int ndim = range.ndim;
+  int ndim_perp = ndim-1;
+
+  for (int d=0; d<ndim; d++) num_cells[d] = range.upper[d]-range.lower[d]+1;
 
   for (unsigned long linc1 = threadIdx.x + blockIdx.x*blockDim.x;
        linc1 < range.volume; linc1 += gridDim.x*blockDim.x)
@@ -122,14 +171,14 @@ gkyl_fem_poisson_perp_set_rhs_kernel(struct gkyl_array *epsilon, const double *d
     const double *local_d = (const double*) gkyl_array_cfetch(rhs_local, start);
     const double *epsilon_d = (const double*) gkyl_array_cfetch(epsilon, start);
 
-    int keri = idx_to_inup_ker(PERP_DIM, num_cells, idx);
-    for (size_t d=0; d<range.ndim; d++) idx0[d] = idx[d]-1;
+    int keri = idx_to_inup_ker(ndim_perp, num_cells, idx);
+    for (size_t d=0; d<ndim; d++) idx0[d] = idx[d]-1;
     kers->l2g[keri](num_cells, idx0, globalidx);
 
     // Apply the RHS source stencil. It's mostly the mass matrix times a
     // modal-to-nodal operator times the source, modified by BCs in skin cells.
-    keri = idx_to_inloup_ker(PERP_DIM, num_cells, idx);
-    int idx1d[] = {idx[range.ndim-1]};
+    keri = idx_to_inloup_ker(ndim_perp, num_cells, idx);
+    int idx1d[] = {idx[ndim-1]};
     long paridx = gkyl_range_idx(&par_range1d, idx1d);
     long parProbOff = paridx*numnodes_global;
     kers->srcker[keri](epsilon_d, dx, local_d, bcvals, parProbOff, globalidx, rhs_global);
@@ -142,7 +191,8 @@ gkyl_fem_poisson_perp_set_rhs_cu(gkyl_fem_poisson_perp *up, struct gkyl_array *r
   gkyl_culinsolver_clear_rhs(up->prob_cu, 0);
   double *rhs_cu = gkyl_culinsolver_get_rhs_ptr(up->prob_cu, 0);
 
-  gkyl_fem_poisson_perp_set_rhs_kernel<<<rhsin->nblocks, rhsin->nthreads>>>(up->epsilon->on_dev, up->dx_cu, rhs_cu, rhsin->on_dev, *up->solve_range, up->par_range1d, up->bcvals_cu, up->kernels_cu, up->numnodes_global);
+  gkyl_fem_poisson_perp_set_rhs_kernel<<<rhsin->nblocks, rhsin->nthreads>>>(up->epsilon->on_dev, up->dx_cu,
+    rhs_cu, rhsin->on_dev, *up->solve_range, up->par_range1d, up->bcvals_cu, up->kernels_cu, up->numnodes_global);
 }
 
 __global__ void
@@ -151,7 +201,11 @@ gkyl_fem_poisson_perp_get_sol_kernel(struct gkyl_array *x_local, const double *x
 {
   int idx[GKYL_MAX_CDIM];  int idx0[GKYL_MAX_CDIM];  int num_cells[GKYL_MAX_CDIM];
   long globalidx[32];
-  for (int d=0; d<GKYL_MAX_CDIM; d++) num_cells[d] = range.upper[d]-range.lower[d]+1;
+
+  int ndim = range.ndim;
+  int ndim_perp = ndim-1;
+
+  for (int d=0; d<ndim; d++) num_cells[d] = range.upper[d]-range.lower[d]+1;
 
   for (unsigned long linc1 = threadIdx.x + blockIdx.x*blockDim.x;
        linc1 < range.volume; linc1 += gridDim.x*blockDim.x)
@@ -167,13 +221,13 @@ gkyl_fem_poisson_perp_get_sol_kernel(struct gkyl_array *x_local, const double *x
 
     double *local_d = (double*) gkyl_array_cfetch(x_local, start);
 
-    int keri = idx_to_inup_ker(PERP_DIM, num_cells, idx);
-    for (size_t d=0; d<range.ndim; d++) idx0[d] = idx[d]-1;
+    int keri = idx_to_inup_ker(ndim_perp, num_cells, idx);
+    for (size_t d=0; d<ndim; d++) idx0[d] = idx[d]-1;
     kers->l2g[keri](num_cells, idx0, globalidx);
 
     // Apply the RHS source stencil. It's mostly the mass matrix times a
     // modal-to-nodal operator times the source, modified by BCs in skin cells.
-    int idx1d[] = {idx[range.ndim-1]};
+    int idx1d[] = {idx[ndim-1]};
     long paridx = gkyl_range_idx(&par_range1d, idx1d);
     long parProbOff = paridx*numnodes_global;
     kers->solker(x_global, parProbOff, globalidx, local_d);
@@ -186,5 +240,6 @@ gkyl_fem_poisson_perp_solve_cu(struct gkyl_fem_poisson_perp *up, struct gkyl_arr
   gkyl_culinsolver_solve(up->prob_cu);
   double *x_cu = gkyl_culinsolver_get_sol_ptr(up->prob_cu, 0);
 
-  gkyl_fem_poisson_perp_get_sol_kernel<<<phiout->nblocks, phiout->nthreads>>>(phiout->on_dev, x_cu, *up->solve_range, up->par_range1d, up->kernels_cu, up->numnodes_global);
+  gkyl_fem_poisson_perp_get_sol_kernel<<<phiout->nblocks, phiout->nthreads>>>(phiout->on_dev, x_cu,
+    *up->solve_range, up->par_range1d, up->kernels_cu, up->numnodes_global);
 }

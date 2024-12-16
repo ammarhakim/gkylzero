@@ -248,19 +248,27 @@ gkyl_fem_poisson_perp_set_rhs(gkyl_fem_poisson_perp *up, struct gkyl_array *rhsi
   if (up->isdomperiodic && !(up->ishelmholtz)) {
     // Subtract the volume averaged RHS from the RHS.
     gkyl_array_average_advance(up->perpavg_op, rhsin, up->perpavg_rhs);
-    struct gkyl_range_iter iter;
-    gkyl_range_iter_init(&iter, up->solve_range);
-    while (gkyl_range_iter_next(&iter)) {
-      long linidx = gkyl_range_idx(up->solve_range, iter.idx);
-      double *rhsin_p = gkyl_array_fetch(rhsin, linidx);
 
-      int idx_par[] = {iter.idx[up->pardir]};
-      long linidx_par = gkyl_range_idx(&up->perpavg_local, idx_par);
-      double *avg_p = gkyl_array_fetch(up->perpavg_rhs, linidx_par);
+    if (!up->use_gpu) {
+      struct gkyl_range_iter iter;
+      gkyl_range_iter_init(&iter, up->solve_range);
+      while (gkyl_range_iter_next(&iter)) {
+        long linidx = gkyl_range_idx(up->solve_range, iter.idx);
+        double *rhsin_p = gkyl_array_fetch(rhsin, linidx);
 
-      rhsin_p[0] += -pow(sqrt(2.0),up->ndim_perp)*avg_p[0];
-      rhsin_p[up->ndim] += -pow(sqrt(2.0),up->ndim_perp)*avg_p[1];
+        int idx_par[] = {iter.idx[up->pardir]};
+        long linidx_par = gkyl_range_idx(&up->perpavg_local, idx_par);
+        double *avg_p = gkyl_array_fetch(up->perpavg_rhs, linidx_par);
+
+        rhsin_p[0] += -pow(sqrt(2.0),up->ndim_perp)*avg_p[0];
+        rhsin_p[up->ndim] += -pow(sqrt(2.0),up->ndim_perp)*avg_p[1];
+      }
     }
+#ifdef GKYL_HAVE_CUDA
+    if (up->use_gpu) {
+      gkyl_fem_poisson_perp_subtract_perpavg_cu(up, up->perpavg_rhs, rhsin);
+    }
+#endif
   }
 
 

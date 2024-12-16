@@ -639,6 +639,15 @@ fem_poisson_perp_choose_sol_kernels(const struct gkyl_basis* basis)
 
 #ifdef GKYL_HAVE_CUDA
 /**
+ * Subtract the perpendicular average of a field from that field.
+ *
+ * @param up FEM poisson updater to run.
+ * @param perpavg DG field to subtract the perpavg from.
+ * @param fin DG field to subtract the perpavg from.
+ */
+void gkyl_fem_poisson_perp_subtract_perpavg_cu(gkyl_fem_poisson_perp* up, struct gkyl_array *perpavg, struct gkyl_array *fin);
+
+/**
  * Assign the right-side vector on the device.
  *
  * @param up FEM poisson updater to run.
