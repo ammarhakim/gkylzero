@@ -37,6 +37,8 @@ cfl_frac = 1.0 -- CFL coefficient.
 
 t_end = 4.0 -- Final simulation time.
 num_frames = 1 -- Number of output frames.
+integrated_mom_calcs = 1 -- Number of times to calculate integrated moments.
+integrated_L2_f_calcs = 1 -- Number of times to calculate L2 norm of distribution function.
 dt_failure_tol = 1.0e-4 -- Minimum allowable fraction of initial time-step.
 num_failures_max = 20 -- Maximum allowable number of consecutive small time-steps.
 
@@ -44,6 +46,8 @@ vlasovApp = Vlasov.App.new {
 
   tEnd = t_end,
   nFrame = num_frames,
+  integratedL2fCalcs = integrated_L2_f_calcs,
+  integratedMomentCalcs = integrated_mom_calcs,
   dtFailureTol = dt_failure_tol,
   numFailuresMax = num_failures_max,
   lower = { 0.0 },

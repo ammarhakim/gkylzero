@@ -48,6 +48,8 @@ struct bgk_relax_ctx
 
   double t_end; // Final simulation time.
   int num_frames; // Number of output frames.
+  int integrated_mom_calcs; // Number of times to calculate integrated moments.
+  int integrated_L2_f_calcs; // Number of times to calculate integrated L2 norm of distribution function.
   double dt_failure_tol; // Minimum allowable fraction of initial time-step.
   int num_failures_max; // Maximum allowable number of consecutive small time-steps.
 };
@@ -82,6 +84,8 @@ create_ctx(void)
 
   double t_end = 500.0; // Final simulation time.
   int num_frames = 1; // Number of output frames.
+  int integrated_mom_calcs = 1; // Number of times to calculate integrated moments.
+  int integrated_L2_f_calcs = 1; // Number of times to calculate integrated L2 norm of distribution function.
   double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.
   int num_failures_max = 20; // Maximum allowable number of consecutive small time-steps.
   
@@ -105,6 +109,8 @@ create_ctx(void)
     .cfl_frac = cfl_frac,
     .t_end = t_end,
     .num_frames = num_frames,
+    .integrated_mom_calcs = integrated_mom_calcs,
+    .integrated_L2_f_calcs = integrated_L2_f_calcs,
     .dt_failure_tol = dt_failure_tol,
     .num_failures_max = num_failures_max,
   };
@@ -180,10 +186,28 @@ write_data(struct gkyl_tm_trigger* iot, gkyl_vlasov_app* app, double t_curr, boo
       frame = iot->curr;
     }
 
-    gkyl_vlasov_app_write(app, t_curr, iot->curr - 1);
+    gkyl_vlasov_app_write(app, t_curr, frame);
+    gkyl_vlasov_app_write_integrated_mom(app);
+    gkyl_vlasov_app_write_integrated_L2_f(app);
 
     gkyl_vlasov_app_calc_mom(app);
-    gkyl_vlasov_app_write_mom(app, t_curr, iot->curr - 1);
+    gkyl_vlasov_app_write_mom(app, t_curr, frame);
+  }
+}
+
+void
+calc_integrated_mom(struct gkyl_tm_trigger* imt, gkyl_vlasov_app* app, double t_curr)
+{
+  if (gkyl_tm_trigger_check_and_bump(imt, t_curr)) {
+    gkyl_vlasov_app_calc_integrated_mom(app, t_curr);
+  }
+}
+
+void
+calc_integrated_L2_f(struct gkyl_tm_trigger* l2t, gkyl_vlasov_app* app, double t_curr)
+{
+  if (gkyl_tm_trigger_check_and_bump(l2t, t_curr)) {
+    gkyl_vlasov_app_calc_integrated_L2_f(app, t_curr);
   }
 }
 
@@ -394,6 +418,18 @@ main(int argc, char **argv)
 
   write_data(&io_trig, app, t_curr, false);
 
+  // Create trigger for integrated moments.
+  int integrated_mom_calcs = ctx.integrated_mom_calcs;
+  struct gkyl_tm_trigger im_trig = { .dt = t_end / integrated_mom_calcs, .tcurr = t_curr, .curr = frame_curr };
+
+  calc_integrated_mom(&im_trig, app, t_curr);
+
+  // Create trigger for integrated L2 norm of the distribution function.
+  int integrated_L2_f_calcs = ctx.integrated_L2_f_calcs;
+  struct gkyl_tm_trigger l2f_trig = { .dt = t_end / integrated_L2_f_calcs, .tcurr = t_curr, .curr = frame_curr };
+
+  calc_integrated_L2_f(&l2f_trig, app, t_curr);
+
   // Compute initial guess of maximum stable time-step.
   double dt = t_end - t_curr;
 
@@ -416,6 +452,8 @@ main(int argc, char **argv)
     dt = status.dt_suggested;
 
     write_data(&io_trig, app, t_curr, false);
+    calc_integrated_mom(&im_trig, app, t_curr);
+    calc_integrated_L2_f(&l2f_trig, app, t_curr);
 
     if (dt_init < 0.0) {
       dt_init = status.dt_actual;
@@ -440,6 +478,8 @@ main(int argc, char **argv)
   }
 
   write_data(&io_trig, app, t_curr, false);
+  calc_integrated_mom(&im_trig, app, t_curr);
+  calc_integrated_L2_f(&l2f_trig, app, t_curr);
   gkyl_vlasov_app_stat_write(app);
 
   struct gkyl_vlasov_stat stat = gkyl_vlasov_app_stat(app);
