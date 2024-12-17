@@ -105,7 +105,9 @@ choose_rad_gyrokinetic_nI_nu_kern(int cdim, int vdim, int poly_order)
  * @param target The value to find the closest index to
  * @return The index of the array with the value closest to target
  */
-static inline int gkyl_find_nearest_idx(const struct gkyl_array* arr, double target){
+GKYL_CU_D
+static inline int gkyl_dg_rad_gyrokinetic_find_nearest_idx(const struct gkyl_array* arr, double target)
+{
   int left = 0;
   int right = arr->size - 1;
   double *data = (double*)arr->data;

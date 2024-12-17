@@ -3,7 +3,6 @@
 #include <gkyl_const.h>
 
 #include <gkyl_dg_calc_gk_rad_vars.h>
-#include <gkyl_dg_calc_gk_rad_vars_priv.h>
 
 void 
 gk_species_radiation_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s, struct gk_rad_drag *rad)

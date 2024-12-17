@@ -106,19 +106,8 @@ gkyl_dg_calc_gk_rad_vars_nI_nu_advance_cu_kernel(struct gkyl_dg_calc_gk_rad_vars
     double ne_cell_avg = ne[0]/pow(2.0, cdim/2.0);
     
     // Find nearest index
-    int left = 0;
-    int right = n_elc_rad->size - 1;
-    double *data = (double*)n_elc_rad->data;
-    while (left < right) {
-      if (fabs(data[left] - ne_cell_avg)
-	  <= fabs(data[right] - ne_cell_avg)) {
-	right--;
-      }
-      else {
-	left++;
-      }
-    }
-    int ne_idx = left;
+    int ne_idx = gkyl_dg_rad_gyrokinetic_find_nearest_idx(n_elc_rad, ne_cell_avg);
+
     const double* vtsq_min_d = (const double*) gkyl_array_cfetch(vtsq_min_normalized, ne_idx);
     if ( vtsq_d[0] > vtsq_min_d[0] ) {            
       const double* vnu_surf_d = (const double*) gkyl_array_cfetch(vnu_surf[ne_idx].arr, loc_phase);
