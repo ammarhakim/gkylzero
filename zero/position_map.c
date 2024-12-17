@@ -29,6 +29,7 @@ gkyl_position_map_new(struct gkyl_position_map_inp pmap_info, struct gkyl_rect_g
   gpm->id = pmap_info.id;
 
   gpm->bmag_ctx = gkyl_malloc(sizeof(struct gkyl_bmag_ctx));
+  gpm->bmag_ctx->bmag = 0;
   gpm->constB_ctx = gkyl_malloc(sizeof(struct gkyl_position_map_const_B_ctx));
 
   switch (pmap_info.id)

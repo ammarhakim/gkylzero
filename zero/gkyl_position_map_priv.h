@@ -366,7 +366,6 @@ position_map_numeric_optimization_function(double theta, void *ctx)
   return result;
 }
 
-
 void
 position_map_constB_z_numeric(double t, const double *xn, double *fout, void *ctx)
 {
@@ -441,5 +440,5 @@ position_map_constB_z_numeric(double t, const double *xn, double *fout, void *ct
   struct gkyl_qr_res res = gkyl_ridders(position_map_numeric_optimization_function, &ridders_ctx,
     interval_lower, interval_upper, interval_lower_eval, interval_upper_eval, 10, 1e-6);
   double Theta = res.res;
-  fout[0] = Theta*gpm->constB_ctx->map_strength + theta*(1-gpm->constB_ctx->map_strength);
+  fout[0] = Theta*gpm->constB_ctx->map_strength + theta*(1-gpm->constB_ctx->map_strength);  
 }
