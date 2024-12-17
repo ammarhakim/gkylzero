@@ -602,10 +602,12 @@ gkyl_vlasov_app_calc_integrated_L2_f(gkyl_vlasov_app* app, double tm)
 void
 gkyl_vlasov_app_calc_field_energy(gkyl_vlasov_app* app, double tm)
 {
-  struct timespec wst = gkyl_wall_clock();
-  app->field_energy_calc(app, tm, app->field);
-  app->stat.diag_tm += gkyl_time_diff_now_sec(wst);
-  app->stat.ndiag += 1;
+  if (app->has_field) {
+    struct timespec wst = gkyl_wall_clock();
+    app->field_energy_calc(app, tm, app->field);
+    app->stat.diag_tm += gkyl_time_diff_now_sec(wst);
+    app->stat.ndiag += 1;
+  }
 }
 
 void
@@ -948,27 +950,29 @@ gkyl_vlasov_app_write_integrated_L2_f(gkyl_vlasov_app* app)
 void
 gkyl_vlasov_app_write_field_energy(gkyl_vlasov_app* app)
 {
-  // write out diagnostic moments
-  const char *fmt = "%s-field-energy.gkyl";
-  int sz = gkyl_calc_strlen(fmt, app->name);
-  char fileNm[sz+1]; // ensures no buffer overflow
-  snprintf(fileNm, sizeof fileNm, fmt, app->name);
+  if (app->has_field) {
+    // write out diagnostic moments
+    const char *fmt = "%s-field-energy.gkyl";
+    int sz = gkyl_calc_strlen(fmt, app->name);
+    char fileNm[sz+1]; // ensures no buffer overflow
+    snprintf(fileNm, sizeof fileNm, fmt, app->name);
 
-  int rank;
-  gkyl_comm_get_rank(app->comm, &rank);
+    int rank;
+    gkyl_comm_get_rank(app->comm, &rank);
 
-  if (rank == 0) {
-    if (app->field->is_first_energy_write_call) {
-      // write to a new file (this ensure previous output is removed)
-      gkyl_dynvec_write(app->field->integ_energy, fileNm);
-      app->field->is_first_energy_write_call = false;
+    if (rank == 0) {
+      if (app->field->is_first_energy_write_call) {
+        // write to a new file (this ensure previous output is removed)
+        gkyl_dynvec_write(app->field->integ_energy, fileNm);
+        app->field->is_first_energy_write_call = false;
+      }
+      else {
+        // append to existing file
+        gkyl_dynvec_awrite(app->field->integ_energy, fileNm);
+      }
     }
-    else {
-      // append to existing file
-      gkyl_dynvec_awrite(app->field->integ_energy, fileNm);
-    }
+    gkyl_dynvec_clear(app->field->integ_energy);
   }
-  gkyl_dynvec_clear(app->field->integ_energy);
 }
 
 void

@@ -61,6 +61,7 @@ struct toroidal_sodshock_ctx
 
   double t_end; // Final simulation time.
   int num_frames; // Number of output frames.
+  int field_energy_calcs; // Number of times to calculate field energy.
   int integrated_mom_calcs; // Number of times to calculate integrated moments.
   int integrated_L2_f_calcs; // Number of times to calculate integrated L2 norm of distribution function.
   double dt_failure_tol; // Minimum allowable fraction of initial time-step.
@@ -113,6 +114,7 @@ create_ctx(void)
 
   double t_end = 0.1; // Final simulation time.
   int num_frames = 1; // Number of output frames.
+  int field_energy_calcs = 1; // Number of times to calculate field energy.
   int integrated_mom_calcs = 1; // Number of times to calculate integrated moments.
   int integrated_L2_f_calcs = 1; // Number of times to calculate integrated L2 norm of distribution function.
   double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.
@@ -153,6 +155,7 @@ create_ctx(void)
     .cfl_frac = cfl_frac,
     .t_end = t_end,
     .num_frames = num_frames,
+    .field_energy_calcs = field_energy_calcs,
     .integrated_mom_calcs = integrated_mom_calcs,
     .integrated_L2_f_calcs = integrated_L2_f_calcs,
     .dt_failure_tol = dt_failure_tol,
@@ -327,11 +330,20 @@ write_data(struct gkyl_tm_trigger* iot, gkyl_vlasov_app* app, double t_curr, boo
     }
 
     gkyl_vlasov_app_write(app, t_curr, frame);
+    gkyl_vlasov_app_write_field_energy(app);
     gkyl_vlasov_app_write_integrated_mom(app);
     gkyl_vlasov_app_write_integrated_L2_f(app);
 
     gkyl_vlasov_app_calc_mom(app);
     gkyl_vlasov_app_write_mom(app, t_curr, frame);
+  }
+}
+
+void
+calc_field_energy(struct gkyl_tm_trigger* fet, gkyl_vlasov_app* app, double t_curr)
+{
+  if (gkyl_tm_trigger_check_and_bump(fet, t_curr)) {
+    gkyl_vlasov_app_calc_field_energy(app, t_curr);
   }
 }
 
@@ -562,6 +574,12 @@ main(int argc, char **argv)
 
   write_data(&io_trig, app, t_curr, false);
 
+  // Create trigger for field energy.
+  int field_energy_calcs = ctx.field_energy_calcs;
+  struct gkyl_tm_trigger fe_trig = { .dt = t_end / field_energy_calcs, .tcurr = t_curr, .curr = frame_curr };
+
+  calc_field_energy(&fe_trig, app, t_curr);
+
   // Create trigger for integrated moments.
   int integrated_mom_calcs = ctx.integrated_mom_calcs;
   struct gkyl_tm_trigger im_trig = { .dt = t_end / integrated_mom_calcs, .tcurr = t_curr, .curr = frame_curr };
@@ -596,6 +614,7 @@ main(int argc, char **argv)
     dt = status.dt_suggested;
 
     write_data(&io_trig, app, t_curr, false);
+    calc_field_energy(&fe_trig, app, t_curr);
     calc_integrated_mom(&im_trig, app, t_curr);
     calc_integrated_L2_f(&l2f_trig, app, t_curr);
 
@@ -622,6 +641,7 @@ main(int argc, char **argv)
   }
 
   write_data(&io_trig, app, t_curr, false);
+  calc_field_energy(&fe_trig, app, t_curr);
   calc_integrated_mom(&im_trig, app, t_curr);
   calc_integrated_L2_f(&l2f_trig, app, t_curr);
   gkyl_vlasov_app_stat_write(app);
