@@ -131,22 +131,6 @@ struct gkyl_array* gkyl_array_copy_async(struct gkyl_array* dest,
 struct gkyl_array* gkyl_array_clone(const struct gkyl_array* arr);
 
 
-static inline int gkyl_find_nearest_idx(const struct gkyl_array* arr, double target){
-  int left = 0;
-  int right = arr->size - 1;
-  double *data = (double*)arr->data;
-  while (left < right) {
-    if (fabs(data[left] - target)
-	<= fabs(data[right] - target)) {
-      right--;
-    }
-    else {
-      left++;
-    }
-  }
-  return left;
-}
-
 /**
  * Fetches a pointer to the element stored at the index 'loc'.
  *

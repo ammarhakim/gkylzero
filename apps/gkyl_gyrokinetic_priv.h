@@ -220,7 +220,6 @@ struct gk_rad_drag {
   double *red_integ_diag, *red_integ_diag_global; // for reduction of integrated moments
   gkyl_dynvec integ_diag; // integrated moments reduced across grid
   bool is_first_integ_write_call; // flag for integrated moments dynvec written first time
-  struct gkyl_array *integrated_moms_rhs;
 };
 
 // forward declare species struct

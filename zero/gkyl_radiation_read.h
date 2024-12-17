@@ -98,3 +98,25 @@ int gkyl_radiation_read_get_fit_lz(const struct all_radiation_states rad_data,
  * @param rad data: Struct containing radiation fit data
  */
 void gkyl_radiation_read_release_fit_params(struct all_radiation_states *rad_data);
+
+/**
+ * Find the nearest index in an array to given value (assumes 1 component in array)
+ * @param arr A sorted array
+ * @param target The value to find the closest index to
+ * @return The index of the array with the value closest to target
+ */
+static inline int gkyl_radiation_read_find_nearest_idx(const struct gkyl_array* arr, double target){
+  int left = 0;
+  int right = arr->size - 1;
+  double *data = (double*)arr->data;
+  while (left < right) {
+    if (fabs(data[left] - target)
+	<= fabs(data[right] - target)) {
+      right--;
+    }
+    else {
+      left++;
+    }
+  }
+  return left;
+}

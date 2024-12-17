@@ -193,8 +193,6 @@ gk_species_radiation_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s
   // allocate dynamic-vector to store all-reduced integrated moments 
   rad->integ_diag = gkyl_dynvec_new(GKYL_DOUBLE, vdim+2);
   rad->is_first_integ_write_call = true;
-  // Allocate rhs arry to be used for calculation of integrated moments
-  rad->integrated_moms_rhs = mkarr(app->use_gpu, app->basis.num_basis, s->local_ext.volume);
 
   // Arrays for emissivity
   rad->emissivity_rhs = mkarr(app->use_gpu, app->basis.num_basis, s->local_ext.volume);
@@ -249,10 +247,10 @@ void
 gk_species_radiation_integrated_moms(gkyl_gyrokinetic_app *app, struct gk_species *species,
   struct gk_rad_drag *rad, const struct gkyl_array *fin[], const struct gkyl_array *fin_neut[])
 {
-  gkyl_array_clear(rad->integrated_moms_rhs, 0.0);
+  gkyl_array_clear(rad->emissivity_rhs, 0.0);
   gkyl_dg_updater_rad_gyrokinetic_advance(rad->drag_slvr, &species->local,
-    species->f, species->cflrate, rad->integrated_moms_rhs);
-  gk_species_moment_calc(&rad->integ_moms, species->local, app->local, rad->integrated_moms_rhs);
+    species->f, species->cflrate, rad->emissivity_rhs);
+  gk_species_moment_calc(&rad->integ_moms, species->local, app->local, rad->emissivity_rhs);
 }
 
 // computes emissivity
@@ -343,7 +341,6 @@ gk_species_radiation_release(const struct gkyl_gyrokinetic_app *app, const struc
   gkyl_dg_calc_gk_rad_vars_drag_release(rad->vsqnu, rad->num_cross_collisions, app->use_gpu);
   gkyl_dg_calc_gk_rad_vars_drag_release(rad->vsqnu_surf, rad->num_cross_collisions, app->use_gpu);
   gkyl_dynvec_release(rad->integ_diag);
-  gkyl_array_release(rad->integrated_moms_rhs);
   gk_species_moment_release(app, &rad->m2);
   gk_species_moment_release(app, &rad->prim_moms);
   gkyl_array_release(rad->emissivity_denominator);

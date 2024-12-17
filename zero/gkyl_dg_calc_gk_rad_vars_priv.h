@@ -99,6 +99,28 @@ choose_rad_gyrokinetic_nI_nu_kern(int cdim, int vdim, int poly_order)
   return ser_rad_gyrokinetic_nI_nu_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
 }
 
+/**
+ * Find the nearest index in an array to given value (assumes 1 component in array)
+ * @param arr A sorted array
+ * @param target The value to find the closest index to
+ * @return The index of the array with the value closest to target
+ */
+static inline int gkyl_find_nearest_idx(const struct gkyl_array* arr, double target){
+  int left = 0;
+  int right = arr->size - 1;
+  double *data = (double*)arr->data;
+  while (left < right) {
+    if (fabs(data[left] - target)
+	<= fabs(data[right] - target)) {
+      right--;
+    }
+    else {
+      left++;
+    }
+  }
+  return left;
+}
+
 #ifdef GKYL_HAVE_CUDA
 /**
  * Create new updater to compute gyrokinetic variables on
