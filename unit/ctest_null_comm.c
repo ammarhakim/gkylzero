@@ -79,9 +79,41 @@ test_1d()
     }
   }
 
-  ///////// Test gkyl_comm_array_allgather //////////////
+  gkyl_rect_decomp_release(decomp);
+  gkyl_comm_release(comm);
+  gkyl_array_release(arr);
+}
 
+void
+test_allgather_1d()
+{
+  struct gkyl_range range;
+  gkyl_range_init(&range, 1, (int[]) { 1 }, (int[]) { 100 });
+
+  int cuts[] = { 1 };
+  struct gkyl_rect_decomp *decomp =
+    gkyl_rect_decomp_new_from_cuts(range.ndim, cuts, &range);
+
+  struct gkyl_comm *comm = gkyl_null_comm_inew( &(struct gkyl_null_comm_inp) {
+      .decomp = decomp
+    }
+  );
+
+  int rank, sz;
+  gkyl_comm_get_rank(comm, &rank);
+  gkyl_comm_get_size(comm, &sz);
+
+  int nghost[] = { 1 };
+  struct gkyl_range local, local_ext;
+  gkyl_create_ranges(&decomp->ranges[rank], nghost, &local_ext, &local);
+
+  struct gkyl_array *arr = gkyl_array_new(GKYL_DOUBLE, range.ndim, local_ext.volume);
   gkyl_array_clear(arr, 200005);
+
+  struct gkyl_range_iter iter;
+
+  // Test gkyl_comm_array_allgather
+  
   struct gkyl_array *arr_recv = gkyl_array_new(GKYL_DOUBLE, range.ndim, local_ext.volume);
   gkyl_comm_array_allgather(comm, &local, &local, arr, arr_recv);
 
@@ -95,7 +127,7 @@ test_1d()
     }
   }
 
-  ///////// Test gkyl_comm_array_allgather_host //////////////
+  // Test gkyl_comm_array_allgather_host
 
   gkyl_array_clear(arr_recv, 0);
   gkyl_comm_array_allgather_host(comm, &local, &local, arr, arr_recv);
@@ -109,7 +141,42 @@ test_1d()
     }
   }
 
-  ///////// Test gkyl_comm_array_bcast //////////////
+  gkyl_rect_decomp_release(decomp);
+  gkyl_comm_release(comm);
+  gkyl_array_release(arr);
+  gkyl_array_release(arr_recv);
+}
+
+void
+test_bcast_1d()
+{
+  struct gkyl_range range;
+  gkyl_range_init(&range, 1, (int[]) { 1 }, (int[]) { 100 });
+
+  int cuts[] = { 1 };
+  struct gkyl_rect_decomp *decomp =
+    gkyl_rect_decomp_new_from_cuts(range.ndim, cuts, &range);
+
+  struct gkyl_comm *comm = gkyl_null_comm_inew( &(struct gkyl_null_comm_inp) {
+      .decomp = decomp
+    }
+  );
+
+  int rank, sz;
+  gkyl_comm_get_rank(comm, &rank);
+  gkyl_comm_get_size(comm, &sz);
+
+  int nghost[] = { 1 };
+  struct gkyl_range local, local_ext;
+  gkyl_create_ranges(&decomp->ranges[rank], nghost, &local_ext, &local);
+
+  struct gkyl_array *arr = gkyl_array_new(GKYL_DOUBLE, range.ndim, local_ext.volume);
+  struct gkyl_array *arr_recv = gkyl_array_new(GKYL_DOUBLE, range.ndim, local_ext.volume);
+
+  gkyl_array_clear(arr, 200005);
+
+  struct gkyl_range_iter iter;
+  // Test gkyl_comm_array_bcast 
   int bcast_rank = 0;
   gkyl_array_clear(arr_recv, 0);
   gkyl_comm_array_bcast(comm, arr, arr_recv, bcast_rank);
@@ -123,7 +190,7 @@ test_1d()
     }
   }
 
-  ///////// Test gkyl_comm_array_bcast_host //////////////
+  // Test gkyl_comm_array_bcast_host 
 
   gkyl_array_clear(arr_recv, 0);
   gkyl_comm_array_bcast_host(comm, arr, arr_recv, bcast_rank);
@@ -214,38 +281,45 @@ test_2d()
     }
   }
 
+  gkyl_rect_decomp_release(decomp);
+  gkyl_comm_release(comm);
+  gkyl_array_release(arr);
+}
 
-  ///////// Test gkyl_comm_array_allgather //////////////
+void
+test_bcast_2d(){
+  struct gkyl_range range;
+  gkyl_range_init(&range, 2, (int[]) { 1, 1 }, (int[]) { 4, 4 });
 
-  gkyl_array_clear(arr, 200005);
+  int cuts[] = { 1, 1 };
+  struct gkyl_rect_decomp *decomp =
+    gkyl_rect_decomp_new_from_cuts(range.ndim, cuts, &range);
+
+  struct gkyl_comm *comm = gkyl_null_comm_inew( &(struct gkyl_null_comm_inp) {
+      .decomp = decomp
+    }
+  );
+
+  int rank;
+  gkyl_comm_get_rank(comm, &rank);
+
+  int nghost[] = { 1, 1 };
+  struct gkyl_range local, local_ext;
+  gkyl_create_ranges(&decomp->ranges[rank], nghost, &local_ext, &local);
+
+  struct gkyl_range local_x[2], local_ext_x[2];
+  gkyl_create_ranges(&decomp->ranges[rank], (int[]) { nghost[0], 0 },
+    &local_ext_x[0], &local_x[0]);
+  
+  gkyl_create_ranges(&decomp->ranges[rank], (int[]) { 0, nghost[1] },
+    &local_ext_x[1], &local_x[1]);
+
+  struct gkyl_array *arr = gkyl_array_new(GKYL_DOUBLE, range.ndim, local_ext.volume);
   struct gkyl_array *arr_recv = gkyl_array_new(GKYL_DOUBLE, range.ndim, local_ext.volume);
-  gkyl_comm_array_allgather(comm, &local, &local, arr, arr_recv);
+  gkyl_array_clear(arr, 200005);
 
-  for (int d=0; d<local.ndim; ++d) {
-    gkyl_range_iter_init(&iter, &local_ext);
-    while (gkyl_range_iter_next(&iter)) {
-      long lidx = gkyl_range_idx(&local_ext, iter.idx);
-      const double *arr_c = gkyl_array_cfetch(arr, lidx);
-      const double *arr_recv_c = gkyl_array_cfetch(arr_recv, lidx);
-      TEST_CHECK( arr_c[d] == arr_recv_c[d] );
-    }
-  }
-
-  ///////// Test gkyl_comm_array_allgather_host //////////////
-
-  gkyl_array_clear(arr_recv, 0);
-  gkyl_comm_array_allgather_host(comm, &local, &local, arr, arr_recv);
-  for (int d=0; d<local.ndim; ++d) {
-    gkyl_range_iter_init(&iter, &local_ext);
-    while (gkyl_range_iter_next(&iter)) {
-      long lidx = gkyl_range_idx(&local_ext, iter.idx);
-      const double *arr_c = gkyl_array_cfetch(arr, lidx);
-      const double *arr_recv_c = gkyl_array_cfetch(arr_recv, lidx);
-      TEST_CHECK( arr_c[d] == arr_recv_c[d] );
-    }
-  }
-
-  ///////// Test gkyl_comm_array_bcast //////////////
+  struct gkyl_range_iter iter;
+  // Test gkyl_comm_array_bcast 
   int bcast_rank = 0;
   gkyl_array_clear(arr_recv, 0);
   gkyl_comm_array_bcast(comm, arr, arr_recv, bcast_rank);
@@ -259,10 +333,79 @@ test_2d()
     }
   }
 
-  ///////// Test gkyl_comm_array_bcast_host //////////////
+  // Test gkyl_comm_array_bcast_host 
 
   gkyl_array_clear(arr_recv, 0);
   gkyl_comm_array_bcast_host(comm, arr, arr_recv, bcast_rank);
+  for (int d=0; d<local.ndim; ++d) {
+    gkyl_range_iter_init(&iter, &local_ext);
+    while (gkyl_range_iter_next(&iter)) {
+      long lidx = gkyl_range_idx(&local_ext, iter.idx);
+      const double *arr_c = gkyl_array_cfetch(arr, lidx);
+      const double *arr_recv_c = gkyl_array_cfetch(arr_recv, lidx);
+      TEST_CHECK( arr_c[d] == arr_recv_c[d] );
+    }
+  }
+
+  gkyl_rect_decomp_release(decomp);
+  gkyl_comm_release(comm);
+  gkyl_array_release(arr);
+  gkyl_array_release(arr_recv);
+}
+
+void
+test_allgather_2d(){
+
+    struct gkyl_range range;
+  gkyl_range_init(&range, 2, (int[]) { 1, 1 }, (int[]) { 4, 4 });
+
+  int cuts[] = { 1, 1 };
+  struct gkyl_rect_decomp *decomp =
+    gkyl_rect_decomp_new_from_cuts(range.ndim, cuts, &range);
+
+  struct gkyl_comm *comm = gkyl_null_comm_inew( &(struct gkyl_null_comm_inp) {
+      .decomp = decomp
+    }
+  );
+
+  int rank;
+  gkyl_comm_get_rank(comm, &rank);
+
+  int nghost[] = { 1, 1 };
+  struct gkyl_range local, local_ext;
+  gkyl_create_ranges(&decomp->ranges[rank], nghost, &local_ext, &local);
+
+  struct gkyl_range local_x[2], local_ext_x[2];
+  gkyl_create_ranges(&decomp->ranges[rank], (int[]) { nghost[0], 0 },
+    &local_ext_x[0], &local_x[0]);
+  
+  gkyl_create_ranges(&decomp->ranges[rank], (int[]) { 0, nghost[1] },
+    &local_ext_x[1], &local_x[1]);
+
+  struct gkyl_array *arr = gkyl_array_new(GKYL_DOUBLE, range.ndim, local_ext.volume);
+  struct gkyl_array *arr_recv = gkyl_array_new(GKYL_DOUBLE, range.ndim, local_ext.volume);
+  gkyl_array_clear(arr, 200005);
+
+  struct gkyl_range_iter iter;
+
+  // Test gkyl_comm_array_allgather
+
+  gkyl_comm_array_allgather(comm, &local, &local, arr, arr_recv);
+
+  for (int d=0; d<local.ndim; ++d) {
+    gkyl_range_iter_init(&iter, &local_ext);
+    while (gkyl_range_iter_next(&iter)) {
+      long lidx = gkyl_range_idx(&local_ext, iter.idx);
+      const double *arr_c = gkyl_array_cfetch(arr, lidx);
+      const double *arr_recv_c = gkyl_array_cfetch(arr_recv, lidx);
+      TEST_CHECK( arr_c[d] == arr_recv_c[d] );
+    }
+  }
+
+  // Test gkyl_comm_array_allgather_host 
+
+  gkyl_array_clear(arr_recv, 0);
+  gkyl_comm_array_allgather_host(comm, &local, &local, arr, arr_recv);
   for (int d=0; d<local.ndim; ++d) {
     gkyl_range_iter_init(&iter, &local_ext);
     while (gkyl_range_iter_next(&iter)) {
@@ -402,7 +545,11 @@ test_io_p1_p4(void)
 
 TEST_LIST = {
   { "test_1d", test_1d },
+  { "test_allgather_1d", test_allgather_1d },
+  { "test_bcast_1d", test_bcast_1d },
   { "test_2d", test_2d },
+  { "test_allgather_2d", test_allgather_2d },
+  { "test_bcast_2d", test_bcast_2d },
   { "test_io_2d", test_io_2d },
   { "test_io_p1_p4", test_io_p1_p4 },
   { NULL, NULL },
