@@ -532,25 +532,26 @@ gk_field_rhs(gkyl_gyrokinetic_app *app, struct gk_field *field)
         // Index of the cell that abuts the xLCFS from below.
         int idxLCFS_m = (field->info.xLCFS-1e-8 - app->grid.lower[0])/app->grid.dx[0]+1;
 
-        // allocate temporary host buffer to hold one value from the device
-        double host_avg_value;
-
+        // Get the avg value on host
         while (gkyl_range_iter_next(&iter)) {
           long lidx_avg = gkyl_range_idx(&field->local_x, iter.idx);
           if (iter.idx[0] == idxLCFS_m) {
             const double *avg_value = gkyl_array_cfetch(field->phi_fs_avg, lidx_avg);
-            if (app->use_gpu){
-              gkyl_cu_memcpy(&host_avg_value, avg_value, sizeof(double), GKYL_CU_MEMCPY_D2H);
-            } else {
-              memcpy(&host_avg_value, avg_value, sizeof(double));
-            }
-            // target_corner_bias = host_avg_value;
+            if (app->use_gpu)
+              gkyl_cu_memcpy(field->phi_fs_LCFS, avg_value, sizeof(double), GKYL_CU_MEMCPY_D2H);
+            else
+              memcpy(field->phi_fs_LCFS, avg_value, sizeof(double));
             // Optional: Print for debugging
             // printf("phi_fs_avg[%ld] = %g\n", lidx_avg, host_avg_value);
           }
         }
       }
-      gkyl_deflated_fem_poisson_advance(field->deflated_fem_poisson, field->rho_c_global_smooth, field->phi_smooth, target_corner_bias);
+      // Multiply by sqrt(2)/2 to get the average value of the cell from the 0th DG coeffitient
+      field->phi_fs_LCFS[0] = sqrt(2.0)/2.0 * field->phi_fs_LCFS[0];
+      // To put phi = 0V at the target corner
+      // field->target_corner_bias = 0;
+      // printf("target corner b ias = %g\n", field->target_corner_bias[0]);
+      gkyl_deflated_fem_poisson_advance(field->deflated_fem_poisson, field->rho_c_global_smooth, field->phi_smooth, field->phi_fs_LCFS[0]);
 
       /*
       * If we are in a 3x simulation with IWL we apply TS BC to the upper and lower edges
