@@ -194,7 +194,7 @@ gkyl_position_map_optimize(struct gkyl_position_map* gpm)
     gpm->map_x_ctx = gpm->constB_ctx->map_x_ctx_backup;
     gpm->map_y     = gpm->constB_ctx->map_y_backup;
     gpm->map_y_ctx = gpm->constB_ctx->map_y_ctx_backup;
-    gpm->map_z     = gkyl_position_map_constB_z;
+    gpm->map_z     = gkyl_position_map_constB_z_polynomial;
     gpm->map_z_ctx = gpm->constB_ctx;
 
     gpm->bmag_ctx->crange_global = &gpm->global;
@@ -204,8 +204,8 @@ gkyl_position_map_optimize(struct gkyl_position_map* gpm)
     gpm->constB_ctx->psi = (gpm->constB_ctx->psi_min + gpm->constB_ctx->psi_max) / 2;
     gpm->constB_ctx->alpha = (gpm->constB_ctx->alpha_min + gpm->constB_ctx->alpha_max) / 2;
 
-    calculate_mirror_throat_location(gpm->constB_ctx, gpm->bmag_ctx);
-    calculate_optimal_mapping(gpm->constB_ctx, gpm->bmag_ctx);
+    calculate_mirror_throat_location_polynomial(gpm->constB_ctx, gpm->bmag_ctx);
+    calculate_optimal_mapping_polynomial(gpm->constB_ctx, gpm->bmag_ctx);
   }
   else if (gpm->id == GKYL_PMAP_UNIFORM_B_NUMERIC && gpm->bmag_ctx->bmag != 0)
   {
@@ -214,8 +214,8 @@ gkyl_position_map_optimize(struct gkyl_position_map* gpm)
     gpm->map_x_ctx = gpm->constB_ctx->map_x_ctx_backup;
     gpm->map_y     = gpm->constB_ctx->map_y_backup;
     gpm->map_y_ctx = gpm->constB_ctx->map_y_ctx_backup;
-    gpm->map_z     = gkyl_position_map_constB_z;
-    gpm->map_z_ctx = gpm->constB_ctx;
+    gpm->map_z     = gkyl_position_map_constB_z_numeric;
+    gpm->map_z_ctx = gpm;
 
     gpm->bmag_ctx->crange_global = &gpm->global;
     gpm->bmag_ctx->cbasis = &gpm->basis;
@@ -229,7 +229,7 @@ gkyl_position_map_optimize(struct gkyl_position_map* gpm)
 }
 
 void
-calculate_mirror_throat_location(struct gkyl_position_map_const_B_ctx *constB_ctx, struct gkyl_bmag_ctx *bmag_ctx)
+calculate_mirror_throat_location_polynomial(struct gkyl_position_map_const_B_ctx *constB_ctx, struct gkyl_bmag_ctx *bmag_ctx)
 {
   // Assumes symmetry along theta centered at 0 and two local maxima in Bmag that are symmetric
 
@@ -273,7 +273,7 @@ calculate_mirror_throat_location(struct gkyl_position_map_const_B_ctx *constB_ct
 }
 
 void
-calculate_optimal_mapping(struct gkyl_position_map_const_B_ctx *constB_ctx, struct gkyl_bmag_ctx *bmag_ctx)
+calculate_optimal_mapping_polynomial(struct gkyl_position_map_const_B_ctx *constB_ctx, struct gkyl_bmag_ctx *bmag_ctx)
 {
   // Could be refined further by doing midpoint root finding, like the mirror throat finding does
   // Expander region
@@ -305,8 +305,8 @@ calculate_optimal_mapping(struct gkyl_position_map_const_B_ctx *constB_ctx, stru
       double alpha = constB_ctx->alpha;
 
       double left_theta[1], right_theta[1];
-      gkyl_position_map_constB_z(0.0, &left_xi, left_theta, constB_ctx);
-      gkyl_position_map_constB_z(0.0, &right_xi, right_theta, constB_ctx);
+      gkyl_position_map_constB_z_polynomial(0.0, &left_xi, left_theta, constB_ctx);
+      gkyl_position_map_constB_z_polynomial(0.0, &right_xi, right_theta, constB_ctx);
 
       xp[Z_IDX] = left_theta[0];
       gkyl_calc_bmag_global(0.0, xp, fout, bmag_ctx);
@@ -354,8 +354,8 @@ calculate_optimal_mapping(struct gkyl_position_map_const_B_ctx *constB_ctx, stru
       double right_xi = scan_left + (iz + 1) * scan_dxi;
 
       double left_theta[1], right_theta[1];
-      gkyl_position_map_constB_z(0.0, &left_xi, left_theta, constB_ctx);
-      gkyl_position_map_constB_z(0.0, &right_xi, right_theta, constB_ctx);
+      gkyl_position_map_constB_z_polynomial(0.0, &left_xi, left_theta, constB_ctx);
+      gkyl_position_map_constB_z_polynomial(0.0, &right_xi, right_theta, constB_ctx);
 
       xp[Z_IDX] = left_theta[0];
       gkyl_calc_bmag_global(0.0, xp, fout, bmag_ctx);
@@ -392,7 +392,7 @@ calculate_optimal_mapping(struct gkyl_position_map_const_B_ctx *constB_ctx, stru
 }
 
 void
-gkyl_position_map_constB_z(double t, const double *xn, double *fout, void *ctx)
+gkyl_position_map_constB_z_polynomial(double t, const double *xn, double *fout, void *ctx)
 {
   // Converts our uniform coordinate along field line length to a non-uniform coordinate
   // according to the polynomial mapping of arbitrary order.
@@ -475,55 +475,177 @@ find_B_field_extrema(struct gkyl_position_map *gpm)
   double xp[3];
   xp[X_IDX] = psi;
   xp[Y_IDX] = alpha;
-  int npts = 2*constB_ctx->N_theta_boundaries;
+  int npts = 2 * constB_ctx->N_theta_boundaries;
   double theta_lo = constB_ctx->theta_min;
   double theta_hi = constB_ctx->theta_max;
   double theta_dxi = (theta_hi - theta_lo) / npts;
   double bmag_vals[npts];
   double dbmag_vals[npts];
 
+  int extrema = 0;
+  double *theta_extrema = gpm->constB_ctx->theta_extrema;
+  double *bmag_extrema = gpm->constB_ctx->bmag_extrema;
 
-  int maxima = 0;
-  int minima = 0;
-  double theta_maxima[npts];
-  double theta_minima[npts];
-
-  for (int i = 0; i < npts; i++){
+  for (int i = 0; i <= npts; i++){
     double theta = theta_lo + i * theta_dxi;
     xp[Z_IDX] = theta;
     gkyl_calc_bmag_global(0.0, xp, &bmag_vals[i], bmag_ctx);
     dbmag_vals[i] = calc_bmag_global_derivative(theta, gpm);
-    printf("theta = %g, Bmag = %g, dBmag = %g\n", theta, bmag_vals[i], dbmag_vals[i]);
+    // printf("theta = %g, Bmag = %g, dBmag = %g\n", theta, bmag_vals[i], dbmag_vals[i]);
+    if (i == 0 || i == npts)
+    {
+      theta_extrema[extrema] = theta;
+      bmag_extrema[extrema] = bmag_vals[i];
+      extrema++;
+    }
+
+    // Minima
     if (dbmag_vals[i] > 0 && dbmag_vals[i-1] < 0){
       if (bmag_vals[i] < bmag_vals[i-1])
       {
-        theta_minima[minima] = theta;
-        minima++;
+        theta_extrema[extrema] = theta;
+        bmag_extrema[extrema] = bmag_vals[i];
+        extrema++;
       }
       else
       {
-        theta_minima[minima] = theta - theta_dxi;
-        minima++;
+        theta_extrema[extrema] = theta - theta_dxi;
+        bmag_extrema[extrema] = bmag_vals[i-1];
+        extrema++;
       }
     }
+
+    // Maxima
     if (dbmag_vals[i] < 0 && dbmag_vals[i-1] > 0){
       if (bmag_vals[i] > bmag_vals[i-1])
       {
-        theta_maxima[maxima] = theta;
-        maxima++;
+        theta_extrema[extrema] = theta;
+        bmag_extrema[extrema] = bmag_vals[i];
+        extrema++;
       }
       else
       {
-        theta_maxima[maxima] = theta - theta_dxi;
-        maxima++;
+        theta_extrema[extrema] = theta - theta_dxi;
+        bmag_extrema[extrema] = bmag_vals[i-1];
+        extrema++;
       }
     }
   }
-  printf("Maxima = %d, Minima = %d\n", maxima, minima);
-  for (int i = 0; i < maxima; i++){
-    printf("Maxima at theta = %g\n", theta_maxima[i]);
+  printf("Number of extrema = %d\n", extrema);
+  for (int i = 0; i < extrema; i++)
+  {
+    printf("Extrema %d at theta = %.8f\n", i, theta_extrema[i]);
   }
-  for (int i = 0; i < minima; i++){
-    printf("Minima at theta = %g\n", theta_minima[i]);
+  gpm->constB_ctx->num_extrema = extrema;
+}
+
+struct opt_Theta_ctx
+{
+  struct gkyl_position_map *gpm;
+  struct gkyl_bmag_ctx *bmag_ctx;
+  double dB_target;
+  double dB_global_lower;
+  double B_lower_region;
+};
+
+double
+position_map_numeric_optimization_function(double theta, void *ctx)
+{
+  struct opt_Theta_ctx *ridders_ctx = ctx;
+  struct gkyl_position_map *gpm = ridders_ctx->gpm;
+  struct gkyl_bmag_ctx *bmag_ctx = ridders_ctx->bmag_ctx;
+
+  double psi = gpm->constB_ctx->psi;
+  double alpha = gpm->constB_ctx->alpha;
+  double xp[3];
+  xp[0] = psi;
+  xp[1] = alpha;
+  xp[2] = theta;
+  double Bmag;
+  gkyl_calc_bmag_global(0.0, xp, &Bmag, bmag_ctx);
+
+  double dB_target = ridders_ctx->dB_target;
+  double dB_global_lower = ridders_ctx->dB_global_lower;
+  double B_lower_region = ridders_ctx->B_lower_region;
+
+  double result = fabs(Bmag - B_lower_region) + dB_global_lower - dB_target;
+  printf("theta = %g, Bmag = %g, result = %g\n", theta, Bmag, result);
+
+  return result;
+}
+
+void
+gkyl_position_map_constB_z_numeric(double t, const double *xn, double *fout, void *ctx)
+{
+
+  struct gkyl_position_map *gpm = ctx;
+  int num_boundaries = gpm->constB_ctx->N_theta_boundaries;
+  double *theta_extrema = gpm->constB_ctx->theta_extrema;
+  int num_extrema = gpm->constB_ctx->num_extrema;
+  double theta_hi = gpm->constB_ctx->theta_max;
+  double theta_lo = gpm->constB_ctx->theta_min;
+  double theta_range = theta_hi - theta_lo;
+  double theta_dxi = theta_range / num_boundaries;
+  double theta = xn[0];
+  int it = (theta - theta_lo) / theta_dxi;
+  printf("theta = %g, it = %d\n", theta, it);
+
+  if (it ==0 || it == num_boundaries-1)
+  {
+    fout[0] = theta;
+    return;
   }
+
+  // Determine which region theta is in
+  // Regions start at 0 and count up to num_extrema-1
+  int region = 0;
+  for (int i = 1; i <= num_extrema-2; i++)
+  {
+    if (theta >= theta_extrema[i])
+    {
+      region = i;
+    }
+    else
+    {
+      break;
+    }
+  }
+
+  double B_tot; // Total change in magnetic field
+  for (int i = 0; i <= num_extrema-1; i++)
+  {
+    B_tot += fabs(gpm->constB_ctx->bmag_extrema[i+1] - gpm->constB_ctx->bmag_extrema[i]);
+  }
+  double dB_cell = B_tot / (num_boundaries-1);
+  double dB_target = dB_cell * it;
+
+  double dB_global_lower = 0.0;
+  for (int i = 0; i < region; i++)
+  {
+    dB_global_lower += fabs(gpm->constB_ctx->bmag_extrema[i+1] - gpm->constB_ctx->bmag_extrema[i]);
+  }
+  double B_lower_region = gpm->constB_ctx->bmag_extrema[region];
+
+  struct opt_Theta_ctx ridders_ctx = {
+    .gpm = gpm,
+    .bmag_ctx = gpm->bmag_ctx,
+    .dB_target = dB_target,
+    .dB_global_lower = dB_global_lower,
+    .B_lower_region = B_lower_region,
+  };
+
+  double interval_lower = theta_extrema[region];
+  double interval_upper = theta_extrema[region+1];
+  double interval_lower_eval = position_map_numeric_optimization_function(interval_lower, &ridders_ctx);
+  double interval_upper_eval = position_map_numeric_optimization_function(interval_upper, &ridders_ctx);
+
+  if (interval_lower_eval * interval_upper_eval > 0)
+  {
+    fout[0] = theta;
+    return;
+  }
+
+  struct gkyl_qr_res res = gkyl_ridders(position_map_numeric_optimization_function, &ridders_ctx,
+    interval_lower, interval_upper, interval_lower_eval, interval_upper_eval, 10, 1e-6);
+  fout[0] = res.res;
 }

@@ -25,7 +25,7 @@ void gkyl_position_map_free(const struct gkyl_ref_count *ref);
  * @param constB_ctx Context object from the position_map
  * @param bmag_ctx Context from calc_bmag
  */
-void calculate_mirror_throat_location(struct gkyl_position_map_const_B_ctx *constB_ctx, struct gkyl_bmag_ctx *bmag_ctx);
+void calculate_mirror_throat_location_polynomial(struct gkyl_position_map_const_B_ctx *constB_ctx, struct gkyl_bmag_ctx *bmag_ctx);
 
 /**
  * In a geometry with two symmetric magnetic field peaks, calculate
@@ -34,7 +34,7 @@ void calculate_mirror_throat_location(struct gkyl_position_map_const_B_ctx *cons
  * @param constB_ctx Context object from the position_map
  * @param bmag_ctx Context from calc_bmag
  */
-void calculate_optimal_mapping(struct gkyl_position_map_const_B_ctx *constB_ctx, struct gkyl_bmag_ctx *bmag_ctx);
+void calculate_optimal_mapping_polynomial(struct gkyl_position_map_const_B_ctx *constB_ctx, struct gkyl_bmag_ctx *bmag_ctx);
 
 /**
  * Mapping for a constant magnetic field change over each cell
@@ -44,7 +44,7 @@ void calculate_optimal_mapping(struct gkyl_position_map_const_B_ctx *constB_ctx,
  * @param fout Physical coordinates.
  * @param ctx Context object.
 */
-void gkyl_position_map_constB_z(double t, const double *xn, double *fout, void *ctx);
+void gkyl_position_map_constB_z_polynomial(double t, const double *xn, double *fout, void *ctx);
 
 void
 find_B_field_extrema(struct gkyl_position_map *gpm);

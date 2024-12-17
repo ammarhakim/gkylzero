@@ -60,9 +60,11 @@ struct gkyl_position_map_const_B_ctx {
   double theta_min, theta_max;
   double map_strength;
   int map_order_center, map_order_expander;
-  int num_maxima, num_minima;
+
   int N_theta_boundaries;
-  double theta_maxima[16], theta_minima[16];
+  int num_extrema;
+  double theta_extrema[16];
+  double bmag_extrema[16];
 };
 
 
@@ -135,4 +137,11 @@ void gkyl_position_map_optimize(struct gkyl_position_map* gpm);
  * @param fout coordinate output
  * @param ctx context object of type gkyl_position_map_const_B_ctx
  */
-void gkyl_position_map_constB_z(double t, const double *xn, double *fout, void *ctx);
+void gkyl_position_map_constB_z_polynomial(double t, const double *xn, double *fout, void *ctx);
+
+
+
+void find_B_field_extrema(struct gkyl_position_map *gpm);
+
+
+void gkyl_position_map_constB_z_numeric(double t, const double *xn, double *fout, void *ctx);
