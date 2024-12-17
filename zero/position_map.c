@@ -209,7 +209,6 @@ gkyl_position_map_optimize(struct gkyl_position_map* gpm)
   }
   else if (gpm->id == GKYL_PMAP_UNIFORM_B_NUMERIC && gpm->bmag_ctx->bmag != 0)
   {
-    printf("Optimizing position map for constant B mapping\n");
     gpm->map_x     = gpm->constB_ctx->map_x_backup;
     gpm->map_x_ctx = gpm->constB_ctx->map_x_ctx_backup;
     gpm->map_y     = gpm->constB_ctx->map_y_backup;
@@ -491,7 +490,6 @@ find_B_field_extrema(struct gkyl_position_map *gpm)
     xp[Z_IDX] = theta;
     gkyl_calc_bmag_global(0.0, xp, &bmag_vals[i], bmag_ctx);
     dbmag_vals[i] = calc_bmag_global_derivative(theta, gpm);
-    // printf("theta = %g, Bmag = %g, dBmag = %g\n", theta, bmag_vals[i], dbmag_vals[i]);
     if (i == 0 || i == npts)
     {
       theta_extrema[extrema] = theta;
@@ -569,7 +567,6 @@ position_map_numeric_optimization_function(double theta, void *ctx)
   double B_lower_region = ridders_ctx->B_lower_region;
 
   double result = fabs(Bmag - B_lower_region) + dB_global_lower - dB_target;
-  printf("theta = %g, Bmag = %g, result = %g\n", theta, Bmag, result);
 
   return result;
 }
@@ -588,7 +585,6 @@ gkyl_position_map_constB_z_numeric(double t, const double *xn, double *fout, voi
   double theta_dxi = theta_range / num_boundaries;
   double theta = xn[0];
   int it = (theta - theta_lo) / theta_dxi;
-  printf("theta = %g, it = %d\n", theta, it);
 
   if (it ==0 || it == num_boundaries-1)
   {

@@ -140,7 +140,7 @@ gkyl_gk_geometry_tok_new(struct gkyl_gk_geometry_inp *geometry_inp)
     geometry_inp->position_map->bmag_ctx->bmag = gkyl_array_new(GKYL_DOUBLE,\
        geometry_inp->basis.num_basis, geometry_inp->global_ext.volume);
     gkyl_comm_array_allgather_host(geometry_inp->comm, &geometry_inp->local, \
-    &geometry_inp->global, gk_geom->bmag, geometry_inp->position_map->bmag_ctx->bmag);
+    &geometry_inp->global, gk_geom->bmag, (struct gkyl_array*) geometry_inp->position_map->bmag_ctx->bmag);
 
     gkyl_gk_geometry_release(gk_geom_3d); // release temporary 3d geometry
     gkyl_gk_geometry_release(gk_geom); // release 3d geometry
