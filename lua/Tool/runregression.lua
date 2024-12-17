@@ -12,7 +12,6 @@ local uuid = require "Lib.UUID"
 if GKYL_HAVE_SQLITE3 == false then
    -- can't run without SQLITE3
    print("Sorry, runregression needs Sqlite3. This executable was built without it.")
-   print("Rebuild with Sqlite3 enabled. See ./waf configure --help")
    return 1
 end
 
@@ -513,8 +512,8 @@ local function compareFiles(f1, f2)
    end
 
    -- read arrays
-   local g1, a1 = ZeroArrayRio.arrayNewFromFile(f1)
-   local g2, a2 = ZeroArrayRio.arrayNewFromFile(f2)
+   local g1, a1 = ZeroArrayRio.ArrayNewFromFile(f1)
+   local g2, a2 = ZeroArrayRio.ArrayNewFromFile(f2)
 
    if not g1 then return false end
    if not g2 then return false end
