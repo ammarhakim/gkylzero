@@ -684,6 +684,7 @@ struct gkyl_fem_poisson {
   // Information that will change the Poisson solver according to the z-plane
   bool is_z_edge; // to check if we are on a z edge to apply the phi=0 target corner BC
   double xLCFS; // Position of the LCFS
+  int idxLCFS_m; // idx of the LCFS node
   double target_corner_bias; // value of the potential at the target corner 
 };
 
@@ -876,7 +877,7 @@ fem_poisson_choose_sol_kernels(const struct gkyl_basis* basis)
  * @param up FEM poisson updater to run.
  * @param rhsin DG field to set as RHS source.
  */
-void gkyl_fem_poisson_set_rhs_cu(gkyl_fem_poisson* up, struct gkyl_array *rhsin);
+void gkyl_fem_poisson_set_rhs_cu(gkyl_fem_poisson* up, struct gkyl_array *rhsin, double target_corner_bias);
 
 /**
  * Solve the linear problem on the device.

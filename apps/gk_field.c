@@ -523,7 +523,7 @@ gk_field_rhs(gkyl_gyrokinetic_app *app, struct gk_field *field)
       // Set the target corner Poisson BC
       double target_corner_bias = 0;
       if (field->gkfield_id == GKYL_GK_FIELD_ES_IWL && app->cdim == 3) {      
-        // We update the flux surface average of phi as well
+      //   // We update the flux surface average of phi as well
         gkyl_array_average_advance(field->up_fs_avg, field->phi_smooth, field->phi_fs_avg);
 
         struct gkyl_range_iter iter;  
@@ -532,15 +532,23 @@ gk_field_rhs(gkyl_gyrokinetic_app *app, struct gk_field *field)
         // Index of the cell that abuts the xLCFS from below.
         int idxLCFS_m = (field->info.xLCFS-1e-8 - app->grid.lower[0])/app->grid.dx[0]+1;
 
+        // allocate temporary host buffer to hold one value from the device
+        double host_avg_value;
+
         while (gkyl_range_iter_next(&iter)) {
           long lidx_avg = gkyl_range_idx(&field->local_x, iter.idx);
-          if(iter.idx[0] == idxLCFS_m){
-            const double *avg_i = gkyl_array_cfetch(field->phi_fs_avg, lidx_avg);
-            target_corner_bias = avg_i[0];
-          // printf("phi_fs_avg[%ld] = %g\n",lidx_avg,sum);
+          if (iter.idx[0] == idxLCFS_m) {
+            const double *avg_value = gkyl_array_cfetch(field->phi_fs_avg, lidx_avg);
+            if (app->use_gpu){
+              gkyl_cu_memcpy(&host_avg_value, avg_value, sizeof(double), GKYL_CU_MEMCPY_D2H);
+            } else {
+              memcpy(&host_avg_value, avg_value, sizeof(double));
+            }
+            // target_corner_bias = host_avg_value;
+            // Optional: Print for debugging
+            // printf("phi_fs_avg[%ld] = %g\n", lidx_avg, host_avg_value);
           }
         }
-        // printf("sum(phi_fs_avg) = %g\n",sum);
       }
       gkyl_deflated_fem_poisson_advance(field->deflated_fem_poisson, field->rho_c_global_smooth, field->phi_smooth, target_corner_bias);
 

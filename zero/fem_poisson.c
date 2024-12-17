@@ -193,13 +193,12 @@ gkyl_fem_poisson_new(const struct gkyl_range *solve_range, const struct gkyl_rec
     up->kernels->lhsker[keri](eps_p, kSq_p, up->dx, up->bcvals, up->globalidx, tri[0]);
   }
 
-// Target corner treatment (remplacement of a matrix line by 0 ... 0 1 0 ... 0)
-// We added the z_edge to know if we are on a z plane that has a target corner phi=0 BC.
-up->is_z_edge = bcs->is_z_edge;
-up->xLCFS  = bcs->xLCFS;
+  // Target corner treatment (remplacement of a matrix line by 0 ... 0 1 0 ... 0)
+  // We added the z_edge to know if we are on a z plane that has a target corner phi=0 BC.
+  up->is_z_edge = bcs->is_z_edge;
+  up->xLCFS  = bcs->xLCFS;
+  up->idxLCFS_m = (up->xLCFS-1e-8 - up->grid.lower[0])/up->grid.dx[0]+1;
   if(bcs->is_z_edge){
-    double xLCFS = bcs->xLCFS;
-    int idxLCFS_m = (xLCFS-1e-8 - grid->lower[0])/grid->dx[0]+1;
     gkyl_mat_triples_iter *iter = gkyl_mat_triples_iter_new(tri[0]);
     for (size_t i=0; i<gkyl_mat_triples_size(tri[0]); ++i) {
       gkyl_mat_triples_iter_next(iter); // bump iterator.
@@ -209,7 +208,7 @@ up->xLCFS  = bcs->xLCFS;
       int ix = k / grid->cells[1]; // get node x-index
       int iy = k % grid->cells[1]; // get node y-index
       // Detect if we are currently at an equation row for the LCFS
-      if(ix == idxLCFS_m){
+      if(ix == up->idxLCFS_m){
         // Set up 1 at the diag element
         if(idx[0] == idx[1]) {
           gkyl_mat_triples_insert(tri[0], idx[0],idx[1], 1.0);
@@ -279,7 +278,26 @@ gkyl_fem_poisson_set_rhs(gkyl_fem_poisson* up, struct gkyl_array *rhsin, double 
   if (up->use_gpu) {
     assert(gkyl_array_is_cu_dev(rhsin));
 
-    gkyl_fem_poisson_set_rhs_cu(up, rhsin);
+    gkyl_fem_poisson_set_rhs_cu(up, rhsin, target_corner_bias);
+
+    // if (up->is_z_edge){
+    //   // Write down the RHS set by the device (debugging purpose)
+    //   // Allocate memory on the host
+    //   double *rhs_ho = (double*) malloc(up->numnodes_global * sizeof(double));
+    //   // Get the pointer to the RHS vector on the device
+    //   double *rhs_cu = gkyl_culinsolver_get_rhs_ptr(up->prob_cu, 0);
+    //   // Copy the RHS data from device to host
+    //   cudaMemcpy(rhs_ho, rhs_cu, up->numnodes_global * sizeof(double), cudaMemcpyDeviceToHost);
+    //   // Write the RHS vector elements into a file
+    //   FILE *file = fopen("b_gpu.txt", "w");
+    //   gkyl_range_iter_init(&up->solve_iter, up->solve_range);
+    //   for (size_t i = 0; i < up->numnodes_global; ++i) {
+    //       fprintf(file, "b(%zu) = %g\n", i, rhs_ho[i]);
+    //   }
+    //   fclose(file);
+    //   // Free the allocated host memory
+    //   free(rhs_ho);
+    // }
     return;
   }
 #endif
@@ -308,27 +326,25 @@ gkyl_fem_poisson_set_rhs(gkyl_fem_poisson* up, struct gkyl_array *rhsin, double 
   // Application of the BC at the target corner
   // If we are located at the edge of the z domain (This is temporary and should be generalized)
   if(up->is_z_edge){
-    double xLCFS = up->xLCFS;
-    int idxLCFS_m = (xLCFS-1e-8 - up->grid.lower[0])/up->grid.dx[0]+1;
     // apply new BC on the RHS vector
     gkyl_range_iter_init(&up->solve_iter, up->solve_range);
     for (size_t i=0; i<up->numnodes_global; ++i) {
       int ix = i / up->grid.cells[1]; // get node x-index
       int iy = i % up->grid.cells[1]; // get node y-index
-      if(i == idxLCFS_m){
-        brhs_p[i] = 0;
+      if(ix == up->idxLCFS_m){
+        brhs_p[i] = target_corner_bias;
       }
     }
   }
-
-  // Write the rhs vector elements in a file
-  // FILE *file = fopen("b.txt", "w");
-  // gkyl_range_iter_init(&up->solve_iter, up->solve_range);
-  // for (size_t i=0; i<up->numnodes_global; ++i) {
-  //   fprintf(file,"b(%zu) = %g\n",i,brhs_p[i]);
+  // if(up->is_z_edge){
+  //   // Write the rhs vector elements in a file
+  //   FILE *file = fopen("b_cpu.txt", "w");
+  //   gkyl_range_iter_init(&up->solve_iter, up->solve_range);
+  //   for (size_t i=0; i<up->numnodes_global; ++i) {
+  //     fprintf(file,"b(%zu) = %g\n",i,brhs_p[i]);
+  //   }
+  //   fclose(file); 
   // }
-  // fclose(file); 
-
   gkyl_superlu_brhs_from_array(up->prob, brhs_p);
 
 }
