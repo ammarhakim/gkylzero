@@ -482,8 +482,8 @@ find_B_field_extrema(struct gkyl_position_map *gpm)
   double dbmag_vals[npts];
 
   int extrema = 0;
-  double *theta_extrema = gpm->constB_ctx->theta_extrema;
-  double *bmag_extrema = gpm->constB_ctx->bmag_extrema;
+  double theta_extrema[16];
+  double bmag_extrema[16];
 
   for (int i = 0; i <= npts; i++){
     double theta = theta_lo + i * theta_dxi;
@@ -529,12 +529,12 @@ find_B_field_extrema(struct gkyl_position_map *gpm)
       }
     }
   }
-  printf("Number of extrema = %d\n", extrema);
+  gpm->constB_ctx->num_extrema = extrema;
   for (int i = 0; i < extrema; i++)
   {
-    printf("Extrema %d at theta = %.8f\n", i, theta_extrema[i]);
+    gpm->constB_ctx->theta_extrema[i] = theta_extrema[i];
+    gpm->constB_ctx->bmag_extrema[i] = bmag_extrema[i];
   }
-  gpm->constB_ctx->num_extrema = extrema;
 }
 
 struct opt_Theta_ctx
@@ -607,6 +607,7 @@ gkyl_position_map_constB_z_numeric(double t, const double *xn, double *fout, voi
     }
   }
 
+
   double B_tot; // Total change in magnetic field
   for (int i = 0; i <= num_extrema-1; i++)
   {
@@ -643,5 +644,6 @@ gkyl_position_map_constB_z_numeric(double t, const double *xn, double *fout, voi
 
   struct gkyl_qr_res res = gkyl_ridders(position_map_numeric_optimization_function, &ridders_ctx,
     interval_lower, interval_upper, interval_lower_eval, interval_upper_eval, 10, 1e-6);
-  fout[0] = res.res;
+  double Theta = res.res;
+  fout[0] = Theta*gpm->constB_ctx->map_strength + theta*(1-gpm->constB_ctx->map_strength);
 }
