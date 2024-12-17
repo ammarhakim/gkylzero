@@ -64,6 +64,11 @@
 # define GKYL_MAX_CHARGE_STATE 18
 #endif
 
+// Maximum number of supported densities for radiation
+#ifndef GKYL_MAX_RAD_DENSITIES
+# define GKYL_MAX_RAD_DENSITIES 26
+#endif
+
 // Maximum number of supported projection objects
 #ifndef GKYL_MAX_PROJ
 # define GKYL_MAX_PROJ 4

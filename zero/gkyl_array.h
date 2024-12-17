@@ -7,6 +7,7 @@
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
+#include <math.h>
 
 /**
  * Array object. This is an untype, undimensioned, reference counted
@@ -129,6 +130,7 @@ struct gkyl_array* gkyl_array_copy_async(struct gkyl_array* dest,
  */
 struct gkyl_array* gkyl_array_clone(const struct gkyl_array* arr);
 
+
 /**
  * Fetches a pointer to the element stored at the index 'loc'.
  *
@@ -136,6 +138,7 @@ struct gkyl_array* gkyl_array_clone(const struct gkyl_array* arr);
  * @param loc Element to fetch
  * @return Element at location 'loc'
  */
+
 GKYL_CU_DH
 static inline void*
 gkyl_array_fetch(struct gkyl_array* arr, long loc)
