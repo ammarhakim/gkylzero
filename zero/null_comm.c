@@ -351,6 +351,7 @@ gkyl_null_comm_inew(const struct gkyl_null_comm_inp *inp)
   comm->priv_comm.allreduce = allreduce;
   comm->priv_comm.allreduce_host = allreduce_host;
   comm->priv_comm.gkyl_array_allgather = array_allgather;
+  comm->priv_comm.gkyl_array_allgather_host = array_allgather;
   comm->priv_comm.gkyl_array_bcast = array_bcast;
   comm->priv_comm.gkyl_array_bcast_host = array_bcast;
   comm->priv_comm.gkyl_array_sync = array_sync;
