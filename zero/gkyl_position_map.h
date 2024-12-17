@@ -137,11 +137,4 @@ void gkyl_position_map_optimize(struct gkyl_position_map* gpm);
  * @param fout coordinate output
  * @param ctx context object of type gkyl_position_map_const_B_ctx
  */
-void gkyl_position_map_constB_z_polynomial(double t, const double *xn, double *fout, void *ctx);
-
-
-
-void find_B_field_extrema(struct gkyl_position_map *gpm);
-
-
-void gkyl_position_map_constB_z_numeric(double t, const double *xn, double *fout, void *ctx);
+void position_map_constB_z_polynomial(double t, const double *xn, double *fout, void *ctx);
