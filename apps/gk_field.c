@@ -415,7 +415,7 @@ gk_field_add_TSBC_and_SSFG_updaters(struct gkyl_gyrokinetic_app *app, struct gk_
 
   // Finally we need a config space communicator to sync the inner cell data and
   // avoid applying TS BC inside the domain
-  f->comm = gkyl_comm_extend_comm(app->comm, &f->local);
+  f->comm_conf = gkyl_comm_extend_comm(app->comm, &f->local);
 }
 
 void
@@ -523,35 +523,47 @@ gk_field_rhs(gkyl_gyrokinetic_app *app, struct gk_field *field)
       // Set the target corner Poisson BC
       double target_corner_bias = 0;
       if (field->gkfield_id == GKYL_GK_FIELD_ES_IWL && app->cdim == 3) {      
-      //   // We update the flux surface average of phi as well
+        // We update the flux surface average of phi as well
         gkyl_array_average_advance(field->up_fs_avg, field->phi_smooth, field->phi_fs_avg);
-
+        // get the flux-surface averaged value at the LCFS interface
+        // (for now we take the average of the cell right to the LCFS)
         struct gkyl_range_iter iter;  
-        // printf("This is flux-surf averaged phi:\n");
         gkyl_range_iter_init(&iter, &field->local_x);
         // Index of the cell that abuts the xLCFS from below.
         int idxLCFS_m = (field->info.xLCFS-1e-8 - app->grid.lower[0])/app->grid.dx[0]+1;
-
         // Get the avg value on host
         while (gkyl_range_iter_next(&iter)) {
           long lidx_avg = gkyl_range_idx(&field->local_x, iter.idx);
           if (iter.idx[0] == idxLCFS_m) {
             const double *avg_value = gkyl_array_cfetch(field->phi_fs_avg, lidx_avg);
             if (app->use_gpu)
-              gkyl_cu_memcpy(field->phi_fs_LCFS, avg_value, sizeof(double), GKYL_CU_MEMCPY_D2H);
+              gkyl_cu_memcpy(&field->phi_fs_LCFS, avg_value, sizeof(double), GKYL_CU_MEMCPY_D2H);
             else
-              memcpy(field->phi_fs_LCFS, avg_value, sizeof(double));
+              memcpy(&field->phi_fs_LCFS, avg_value, sizeof(double));
             // Optional: Print for debugging
-            // printf("phi_fs_avg[%ld] = %g\n", lidx_avg, host_avg_value);
+
+            // Multiply by sqrt(2)/2 to get the average value of the cell from the 0th DG coeffitient
+            field->phi_fs_LCFS = sqrt(2.0)/2.0 * field->phi_fs_LCFS;
           }
         }
+        // Reduce the avg over all MPI processes
+        int err_check = gkyl_comm_allreduce_host(app->comm, GKYL_DOUBLE, GKYL_SUM, 1, &field->phi_fs_LCFS, &field->phi_fs_LCFS_global);
+        assert(err_check == false);
+        int nproc;
+        err_check = gkyl_comm_get_size(app->comm, &nproc);
+        assert(err_check == false);
+        field->phi_fs_LCFS_global /= nproc;
+
+        // printf("phi_fs_LCFS = %g, phi_fs_LCFS_global = %g\n", field->phi_fs_LCFS, field->phi_fs_LCFS_global);
+
+        // Set the target corner bias as the flux surface average of phi at LCFS
+        target_corner_bias = field->phi_fs_LCFS;
+        // target_corner_bias = field->phi_fs_LCFS_global;
       }
-      // Multiply by sqrt(2)/2 to get the average value of the cell from the 0th DG coeffitient
-      field->phi_fs_LCFS[0] = sqrt(2.0)/2.0 * field->phi_fs_LCFS[0];
       // To put phi = 0V at the target corner
       // field->target_corner_bias = 0;
       // printf("target corner b ias = %g\n", field->target_corner_bias[0]);
-      gkyl_deflated_fem_poisson_advance(field->deflated_fem_poisson, field->rho_c_global_smooth, field->phi_smooth, field->phi_fs_LCFS[0]);
+      gkyl_deflated_fem_poisson_advance(field->deflated_fem_poisson, field->rho_c_global_smooth, field->phi_smooth, target_corner_bias);
 
       /*
       * If we are in a 3x simulation with IWL we apply TS BC to the upper and lower edges
@@ -585,7 +597,7 @@ gk_field_apply_bc(const gkyl_gyrokinetic_app *app, const struct gk_field *field,
   // finout is now | T_LU(f_up) | ----- | f_lo |
 
   //3. Synchronize the array between the MPI processes
-  gkyl_comm_array_sync(field->comm, &field->local, &field->local_ext, finout);
+  gkyl_comm_array_sync(field->comm_conf, &field->local, &field->local_ext, finout);
 /* Note:
   * Here the TS BC has been applied blindly i.e. regardless if the process is at the 
   * border of the domain. Technically, only the processes with the global skin cells 
@@ -672,7 +684,7 @@ gk_field_release(const gkyl_gyrokinetic_app* app, struct gk_field *f)
     gkyl_bc_twistshift_release(f->bc_T_LU_lo);
     gkyl_skin_surf_from_ghost_release(f->ssfg_up);
     gkyl_skin_surf_from_ghost_release(f->ssfg_lo);
-    gkyl_comm_release(f->comm);
+    gkyl_comm_release(f->comm_conf);
     gkyl_array_release(f->aux_array);
     gkyl_array_release(f->bc_buffer);
     gkyl_bc_basic_release(f->bc_reflect_lo);

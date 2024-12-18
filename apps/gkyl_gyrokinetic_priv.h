@@ -732,14 +732,15 @@ struct gk_field {
   // Updater for skin surf ghost copy
   struct gkyl_skin_surf_from_ghost *ssfg_lo, *ssfg_up;
   // communicator object for config-space
-  struct gkyl_comm *comm;   
+  struct gkyl_comm *comm_conf;   
 
   // Updater for flux surface average
   struct gkyl_array_average *up_fs_avg;
   // 1D array for result of flux surface average
   struct gkyl_array *phi_fs_avg;
   // Time dependent BC at the target corner (for clopen sim)
-  double phi_fs_LCFS[1];
+  double phi_fs_LCFS;
+  double phi_fs_LCFS_global;
   // reduced basis and ranges
   struct gkyl_basis confBasis_x;
   struct gkyl_rect_grid grid_x;
