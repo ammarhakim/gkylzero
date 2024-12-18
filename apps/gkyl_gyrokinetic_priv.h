@@ -47,7 +47,7 @@
 #include <gkyl_eval_on_nodes.h>
 #include <gkyl_fem_parproj.h>
 #include <gkyl_fem_poisson_bctype.h>
-#include <gkyl_deflated_fem_poisson.h>
+#include <gkyl_fem_poisson_perp.h>
 #include <gkyl_gk_geometry.h>
 #include <gkyl_gk_geometry_mapc2p.h>
 #include <gkyl_gk_geometry_tok.h>
@@ -692,8 +692,8 @@ struct gk_field {
   struct gkyl_fem_parproj *fem_parproj_sol;
   struct gkyl_fem_parproj *fem_parproj_core;
 
-  struct gkyl_deflated_fem_poisson *deflated_fem_poisson; // poisson solver which solves on lines in x or planes in xy
-                                                          // - nabla . (epsilon * nabla phi) - kSq * phi = rho
+  struct gkyl_fem_poisson_perp *fem_poisson; // poisson solver which solves 
+                                             // - nabla . (epsilon * nabla phi) - kSq * phi = rho
 
   struct gkyl_array_integrate *calc_em_energy;
   double *em_energy_red, *em_energy_red_global; // memory for use in GPU reduction of EM energy

@@ -8,6 +8,7 @@
 #include <gkyl_dflt.h>
 #include <gkyl_dynvec.h>
 #include <gkyl_null_comm.h>
+#include <gkyl_nodal_ops.h>
 
 #include <gkyl_gyrokinetic_priv.h>
 #include <gkyl_app_priv.h>

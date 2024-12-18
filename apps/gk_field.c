@@ -83,6 +83,7 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
       struct gk_species *s = &app->species[i];
       polarization_weight += s->info.polarization_density*s->info.mass/(polarization_bmag*polarization_bmag);
     }
+    printf("polarization_weight = %e\n",polarization_weight);
     if (app->cdim == 1) {
       // Need to set weight to kperpsq*polarizationWeight for use in potential smoothing.
       f->weight = mkarr(false, app->confBasis.num_basis, app->global_ext.volume); // fem_parproj expects weight on host
@@ -116,7 +117,7 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
     }
     else if (app->cdim > 1) {
       // set whatever epsilon we need
-      // initialize a the weight to be used by deflated_fem_poisson
+      // initialize a the weight to be used by fem_poisson_perp.
       f->epsilon = mkarr(app->use_gpu, (2*(app->cdim-1)-1)*app->confBasis.num_basis, app->local_ext.volume);
       gkyl_array_set_offset(f->epsilon, polarization_weight, app->gk_geom->gxxj, 0*app->confBasis.num_basis);
       if (app->cdim > 2) {
@@ -125,8 +126,11 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
       }
       // deflated Poisson solve is performed on range assuming decomposition is *only* in z right now
       // need sub range of global range corresponding to where we are in z to properly index global charge density
-      f->deflated_fem_poisson = gkyl_deflated_fem_poisson_new(app->grid, app->basis_on_dev.confBasis, app->confBasis,
-        app->local, f->global_sub_range, f->epsilon, f->info.poisson_bcs, app->use_gpu);
+  gkyl_array_clear(f->epsilon, 0.0);
+  gkyl_array_shiftc(f->epsilon, pow(sqrt(2.0),app->cdim), 0);
+  gkyl_grid_sub_array_write(&app->grid, &app->local, 0, f->epsilon, "gk_ion_sound_2x2v_p1-eps.gkyl");
+      f->fem_poisson = gkyl_fem_poisson_perp_new(&app->local, &app->grid, app->confBasis,
+        &f->info.poisson_bcs, f->epsilon, NULL, app->use_gpu);
     }
   }
 
@@ -337,8 +341,14 @@ gk_field_rhs(gkyl_gyrokinetic_app *app, struct gk_field *field)
       else {
         gkyl_fem_parproj_set_rhs(field->fem_parproj, field->rho_c_global_dg, field->rho_c_global_dg);
         gkyl_fem_parproj_solve(field->fem_parproj, field->rho_c_global_smooth);
+//        gkyl_array_copy(field->rho_c_global_smooth, field->rho_c_global_dg);
       }
-      gkyl_deflated_fem_poisson_advance(field->deflated_fem_poisson, field->rho_c_global_smooth, field->phi_smooth);
+//  gkyl_grid_sub_array_write(&app->grid, &app->local, 0, field->rho_c_global_smooth, "gk_ion_sound_2x2v_p1-rho.gkyl");
+      gkyl_fem_poisson_perp_set_rhs(field->fem_poisson, field->rho_c_global_smooth);
+      gkyl_fem_poisson_perp_solve(field->fem_poisson, field->phi_smooth);
+      gkyl_fem_parproj_set_rhs(field->fem_parproj, field->phi_smooth, field->phi_smooth);
+      gkyl_fem_parproj_solve(field->fem_parproj, field->phi_smooth);
+//  gkyl_grid_sub_array_write(&app->grid, &app->local, 0, field->phi_smooth, "gk_ion_sound_2x2v_p1-phi.gkyl");
     }
   }
   app->stat.field_rhs_tm += gkyl_time_diff_now_sec(wst);
@@ -395,7 +405,7 @@ gk_field_release(const gkyl_gyrokinetic_app* app, struct gk_field *f)
     }
     else if (app->cdim > 1) {
       gkyl_array_release(f->epsilon);
-      gkyl_deflated_fem_poisson_release(f->deflated_fem_poisson);
+      gkyl_fem_poisson_perp_release(f->fem_poisson);
     }
   }
 

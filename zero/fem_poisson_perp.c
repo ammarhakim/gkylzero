@@ -135,6 +135,7 @@ gkyl_fem_poisson_perp_new(const struct gkyl_range *solve_range, const struct gky
   // Compute the number of local and global nodes.
   up->numnodes_local = up->num_basis;
   up->numnodes_global = gkyl_fem_poisson_perp_global_num_nodes(up->ndim, up->poly_order, basis.b_type, up->num_cells, up->isdirperiodic);
+//  up->numnodes_global = 1+gkyl_fem_poisson_perp_global_num_nodes(up->ndim, up->poly_order, basis.b_type, up->num_cells, up->isdirperiodic);
 
   for (int d=0; d<up->ndim; d++) up->dx[d] = up->grid.dx[d];  // Cell lengths.
 #ifdef GKYL_HAVE_CUDA
@@ -222,6 +223,46 @@ gkyl_fem_poisson_perp_new(const struct gkyl_range *solve_range, const struct gky
       up->kernels->lhsker[keri](eps_p, kSq_p, up->dx, up->bcvals, up->globalidx, tri[paridx]);
     }
   }
+
+//  // Augment the matrix to make it regular (i.e. not singular).
+//  // Need to add 1 to up->numnodes_global where it is first assigned.
+//  gkyl_range_iter_init(&up->par_iter1d, &up->par_range1d);
+//  while (gkyl_range_iter_next(&up->par_iter1d)) {
+//    long paridx = gkyl_range_idx(&up->par_range1d, up->par_iter1d.idx);
+//    for (int i=0; i<up->numnodes_global-1; i++) {
+//      gkyl_mat_triples_insert(tri[paridx], i, up->numnodes_global-1, 1.0);
+//      gkyl_mat_triples_insert(tri[paridx], up->numnodes_global-1, i, 1.0);
+//    }
+//  }
+
+  // Set Dirichlet BC for node on the left.
+  gkyl_range_iter_init(&up->par_iter1d, &up->par_range1d);
+  while (gkyl_range_iter_next(&up->par_iter1d)) {
+    long paridx = gkyl_range_idx(&up->par_range1d, up->par_iter1d.idx);
+
+    for (int i=0; i<up->numnodes_global; i++) {
+      gkyl_mat_triples_insert(tri[paridx], 0, i, 0.0);
+    }
+    gkyl_mat_triples_insert(tri[paridx], 0, 0, 1.0);
+    for (int i=0; i<up->numnodes_global; i++) {
+      gkyl_mat_triples_insert(tri[paridx], 1, i, 0.0);
+    }
+    gkyl_mat_triples_insert(tri[paridx], 1, 1, 1.0);
+  }
+
+// // Write the matrix elements in a file
+//   gkyl_mat_triples_iter *iter2 = gkyl_mat_triples_iter_new(tri[0]);
+//     FILE *file = fopen("A.txt", "w");
+//     for (size_t i=0; i<gkyl_mat_triples_size(tri[0]); ++i) {
+//       gkyl_mat_triples_iter_next(iter2); // bump iterator.
+//       struct gkyl_mtriple mt = gkyl_mat_triples_iter_at(iter2);
+//       size_t idx[2] = { mt.row, mt.col };
+//    
+//       fprintf(file,"a(%zu,%zu) = %g\n",idx[0],idx[1],mt.val);
+//     }
+//   gkyl_mat_triples_iter_release(iter2);
+//   fclose(file); 
+
 #ifdef GKYL_HAVE_CUDA
   if (up->use_gpu)
     gkyl_culinsolver_amat_from_triples(up->prob_cu, tri);
@@ -230,6 +271,8 @@ gkyl_fem_poisson_perp_new(const struct gkyl_range *solve_range, const struct gky
 #else
   gkyl_superlu_amat_from_triples(up->prob, tri);
 #endif
+
+//  gkyl_superlu_print_amat(up->prob);
 
   for (size_t i=0; i<up->par_range.volume; i++)
     gkyl_mat_triples_release(tri[i]);
@@ -245,31 +288,31 @@ void
 gkyl_fem_poisson_perp_set_rhs(gkyl_fem_poisson_perp *up, struct gkyl_array *rhsin)
 {
 
-  if (up->isdomperiodic && !(up->ishelmholtz)) {
-    // Subtract the volume averaged RHS from the RHS.
-    gkyl_array_average_advance(up->perpavg_op, rhsin, up->perpavg_rhs);
-
-    if (!up->use_gpu) {
-      struct gkyl_range_iter iter;
-      gkyl_range_iter_init(&iter, up->solve_range);
-      while (gkyl_range_iter_next(&iter)) {
-        long linidx = gkyl_range_idx(up->solve_range, iter.idx);
-        double *rhsin_p = gkyl_array_fetch(rhsin, linidx);
-
-        int idx_par[] = {iter.idx[up->pardir]};
-        long linidx_par = gkyl_range_idx(&up->perpavg_local, idx_par);
-        double *avg_p = gkyl_array_fetch(up->perpavg_rhs, linidx_par);
-
-        rhsin_p[0] += -pow(sqrt(2.0),up->ndim_perp)*avg_p[0];
-        rhsin_p[up->ndim] += -pow(sqrt(2.0),up->ndim_perp)*avg_p[1];
-      }
-    }
-#ifdef GKYL_HAVE_CUDA
-    if (up->use_gpu) {
-      gkyl_fem_poisson_perp_subtract_perpavg_cu(up, up->perpavg_rhs, rhsin);
-    }
-#endif
-  }
+//  if (up->isdomperiodic && !(up->ishelmholtz)) {
+//    // Subtract the volume averaged RHS from the RHS.
+//    gkyl_array_average_advance(up->perpavg_op, rhsin, up->perpavg_rhs);
+//
+//    if (!up->use_gpu) {
+//      struct gkyl_range_iter iter;
+//      gkyl_range_iter_init(&iter, up->solve_range);
+//      while (gkyl_range_iter_next(&iter)) {
+//        long linidx = gkyl_range_idx(up->solve_range, iter.idx);
+//        double *rhsin_p = gkyl_array_fetch(rhsin, linidx);
+//
+//        int idx_par[] = {iter.idx[up->pardir]};
+//        long linidx_par = gkyl_range_idx(&up->perpavg_local, idx_par);
+//        double *avg_p = gkyl_array_fetch(up->perpavg_rhs, linidx_par);
+//
+//        rhsin_p[0] += -pow(sqrt(2.0),up->ndim_perp)*avg_p[0];
+//        rhsin_p[up->ndim] += -pow(sqrt(2.0),up->ndim_perp)*avg_p[1];
+//      }
+//    }
+//#ifdef GKYL_HAVE_CUDA
+//    if (up->use_gpu) {
+//      gkyl_fem_poisson_perp_subtract_perpavg_cu(up, up->perpavg_rhs, rhsin);
+//    }
+//#endif
+//  }
 
 
 #ifdef GKYL_HAVE_CUDA
