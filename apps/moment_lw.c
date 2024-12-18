@@ -1756,9 +1756,9 @@ mom_app_run(lua_State *L)
 
   struct timespec tm_ic0 = gkyl_wall_clock();
   // Initialize simulation.
-  write_data(&io_trig, app, t_curr, false);
   calc_field_energy(&fe_trig, app, t_curr);
   calc_integrated_mom(&im_trig, app, t_curr);
+  write_data(&io_trig, app, t_curr, false);
   
   gkyl_moment_app_cout(app, stdout, "Initialization completed in %g sec\n\n", gkyl_time_diff_now_sec(tm_ic0));
 
@@ -1789,9 +1789,9 @@ mom_app_run(lua_State *L)
     t_curr += status.dt_actual;
     dt = status.dt_suggested;
 
-    write_data(&io_trig, app, t_curr, false);
     calc_field_energy(&fe_trig, app, t_curr);
     calc_integrated_mom(&im_trig, app, t_curr);
+    write_data(&io_trig, app, t_curr, false);
 
     if (dt_init < 0.0) {
       dt_init = status.dt_actual;
@@ -1819,9 +1819,9 @@ mom_app_run(lua_State *L)
     step += 1;
   }
 
-  write_data(&io_trig, app, t_curr, false);
   calc_field_energy(&fe_trig, app, t_curr);
   calc_integrated_mom(&im_trig, app, t_curr);
+  write_data(&io_trig, app, t_curr, false);
   gkyl_moment_app_stat_write(app);
 
   struct gkyl_moment_stat stat = gkyl_moment_app_stat(app);

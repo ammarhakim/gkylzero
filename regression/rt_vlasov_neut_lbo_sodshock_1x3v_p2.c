@@ -425,12 +425,6 @@ main(int argc, char **argv)
     gkyl_vlasov_app_apply_ic(app, t_curr);
   }
 
-  // Create trigger for IO.
-  int num_frames = ctx.num_frames;
-  struct gkyl_tm_trigger io_trig = { .dt = t_end / num_frames, .tcurr = t_curr, .curr = frame_curr };
-
-  write_data(&io_trig, app, t_curr, false);
-
   // Create trigger for field energy.
   int field_energy_calcs = ctx.field_energy_calcs;
   struct gkyl_tm_trigger fe_trig = { .dt = t_end / field_energy_calcs, .tcurr = t_curr, .curr = frame_curr };
@@ -448,6 +442,12 @@ main(int argc, char **argv)
   struct gkyl_tm_trigger l2f_trig = { .dt = t_end / integrated_L2_f_calcs, .tcurr = t_curr, .curr = frame_curr };
 
   calc_integrated_L2_f(&l2f_trig, app, t_curr);
+
+  // Create trigger for IO.
+  int num_frames = ctx.num_frames;
+  struct gkyl_tm_trigger io_trig = { .dt = t_end / num_frames, .tcurr = t_curr, .curr = frame_curr };
+
+  write_data(&io_trig, app, t_curr, false);
 
   // Compute initial guess of maximum stable time-step.
   double dt = t_end - t_curr;
@@ -470,10 +470,10 @@ main(int argc, char **argv)
     t_curr += status.dt_actual;
     dt = status.dt_suggested;
 
-    write_data(&io_trig, app, t_curr, false);
     calc_field_energy(&fe_trig, app, t_curr);
     calc_integrated_mom(&im_trig, app, t_curr);
     calc_integrated_L2_f(&l2f_trig, app, t_curr);
+    write_data(&io_trig, app, t_curr, false);
 
     if (dt_init < 0.0) {
       dt_init = status.dt_actual;
@@ -497,10 +497,10 @@ main(int argc, char **argv)
     step += 1;
   }
 
-  write_data(&io_trig, app, t_curr, false);
   calc_field_energy(&fe_trig, app, t_curr);
   calc_integrated_mom(&im_trig, app, t_curr);
   calc_integrated_L2_f(&l2f_trig, app, t_curr);
+  write_data(&io_trig, app, t_curr, false);
   gkyl_vlasov_app_stat_write(app);
 
   struct gkyl_vlasov_stat stat = gkyl_vlasov_app_stat(app);
