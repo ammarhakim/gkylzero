@@ -80,8 +80,8 @@ create_ctx(void)
 
   double t_end = 0.12; // Final simulation time.
   int num_frames = 1; // Number of output frames.
-  int field_energy_calcs = 1; // Number of times to calculate field energy.
-  int integrated_mom_calcs = 1; // Number of times to calculate integrated moments.
+  int field_energy_calcs = INT_MAX; // Number of times to calculate field energy.
+  int integrated_mom_calcs = INT_MAX; // Number of times to calculate integrated moments.
   double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.
   int num_failures_max = 20; // Maximum allowable number of consecutive small time-steps.
 

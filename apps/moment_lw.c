@@ -913,8 +913,8 @@ mom_app_new(lua_State *L)
   app_lw->t_start = glua_tbl_get_number(L, "tStart", 0.0);
   app_lw->t_end = glua_tbl_get_number(L, "tEnd", 1.0);
   app_lw->num_frames = glua_tbl_get_integer(L, "nFrame", 1);
-  app_lw->field_energy_calcs = glua_tbl_get_integer(L, "fieldEnergyCalcs", 1);
-  app_lw->integrated_mom_calcs = glua_tbl_get_integer(L, "integratedMomentCalcs", 1);
+  app_lw->field_energy_calcs = glua_tbl_get_integer(L, "fieldEnergyCalcs", INT_MAX);
+  app_lw->integrated_mom_calcs = glua_tbl_get_integer(L, "integratedMomentCalcs", INT_MAX);
   app_lw->dt_failure_tol = glua_tbl_get_number(L, "dtFailureTol", 1.0e-4);
   app_lw->num_failures_max = glua_tbl_get_integer(L, "numFailuresMax", 20);
 
