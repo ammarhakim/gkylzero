@@ -374,6 +374,9 @@ struct pkpm_app_lw {
   
   double t_start, t_end; // Start and end times of simulation.
   int num_frames; // Number of data frames to write.
+  int field_energy_calcs; // Number of times to calculate field energy.
+  int integrated_mom_calcs; // Number of times to calculate integrated moments.
+  int integrated_L2_f_calcs; // Number of times to calculate integrated L2 norm of distribution function.
   double dt_failure_tol; // Minimum allowable fraction of initial time-step.
   int num_failures_max; // Maximum allowable number of consecutive small time-steps.
 };
@@ -449,6 +452,9 @@ pkpm_app_new(lua_State *L)
   app_lw->t_start = glua_tbl_get_number(L, "tStart", 0.0);
   app_lw->t_end = glua_tbl_get_number(L, "tEnd", 1.0);
   app_lw->num_frames = glua_tbl_get_integer(L, "nFrame", 1);
+  app_lw->field_energy_calcs = glua_tbl_get_integer(L, "fieldEnergyCalcs", INT_MAX);
+  app_lw->integrated_L2_f_calcs = glua_tbl_get_integer(L, "integratedL2fCalcs", INT_MAX);
+  app_lw->integrated_mom_calcs = glua_tbl_get_integer(L, "integratedMomentCalcs", INT_MAX);
   app_lw->dt_failure_tol = glua_tbl_get_number(L, "dtFailureTol", 1.0e-4);
   app_lw->num_failures_max = glua_tbl_get_integer(L, "numFailuresMax", 20);
 
@@ -875,21 +881,43 @@ pkpm_app_stat_write(lua_State *L)
 static void
 write_data(struct gkyl_tm_trigger* iot, gkyl_pkpm_app* app, double t_curr, bool force_write)
 {
-  gkyl_pkpm_app_calc_field_energy(app, t_curr);
-  gkyl_pkpm_app_calc_integrated_L2_f(app, t_curr);
-  gkyl_pkpm_app_calc_integrated_mom(app, t_curr);
-
   if (gkyl_tm_trigger_check_and_bump(iot, t_curr)) {
     int frame = iot->curr - 1;
     if (force_write) {
       frame = iot->curr;
     }
 
-    gkyl_pkpm_app_write(app, t_curr, iot->curr - 1);
-
+    gkyl_pkpm_app_write(app, t_curr, frame);
     gkyl_pkpm_app_write_field_energy(app);
-    gkyl_pkpm_app_write_integrated_L2_f(app);
     gkyl_pkpm_app_write_integrated_mom(app);
+    gkyl_pkpm_app_write_integrated_L2_f(app);
+  }
+}
+
+// Calculate and append field energy to dynvector.
+static void
+calc_field_energy(struct gkyl_tm_trigger* fet, gkyl_pkpm_app* app, double t_curr)
+{
+  if (gkyl_tm_trigger_check_and_bump(fet, t_curr)) {
+    gkyl_pkpm_app_calc_field_energy(app, t_curr);
+  }
+}
+
+// Calculate and append integrated moments to dynvector.
+static void
+calc_integrated_mom(struct gkyl_tm_trigger* imt, gkyl_pkpm_app* app, double t_curr)
+{
+  if (gkyl_tm_trigger_check_and_bump(imt, t_curr)) {
+    gkyl_pkpm_app_calc_integrated_mom(app, t_curr);
+  }
+}
+
+// Calculate and append integrated L2 norm of distribution function to dynvector.
+static void
+calc_integrated_L2_f(struct gkyl_tm_trigger* l2t, gkyl_pkpm_app* app, double t_curr)
+{
+  if (gkyl_tm_trigger_check_and_bump(l2t, t_curr)) {
+    gkyl_pkpm_app_calc_integrated_L2_f(app, t_curr);
   }
 }
 
@@ -1067,8 +1095,14 @@ pkpm_app_run(lua_State *L)
   }
 
   int num_frames = app_lw->num_frames;
+  int field_energy_calcs = app_lw->field_energy_calcs;
+  int integrated_mom_calcs = app_lw->integrated_mom_calcs;
+  int integrated_L2_f_calcs = app_lw->integrated_L2_f_calcs;
   // Triggers for IO and logging.
   struct gkyl_tm_trigger io_trig = { .dt = (t_end - t_curr) / num_frames, .tcurr = t_curr, .curr = frame_curr };
+  struct gkyl_tm_trigger fe_trig = { .dt = (t_end - t_curr) / field_energy_calcs, .tcurr = t_curr, .curr = frame_curr };
+  struct gkyl_tm_trigger im_trig = { .dt = (t_end - t_curr) / integrated_mom_calcs, .tcurr = t_curr, .curr = frame_curr };
+  struct gkyl_tm_trigger l2f_trig = { .dt = (t_end - t_curr) / integrated_L2_f_calcs, .tcurr = t_curr, .curr = frame_curr };
 
   struct step_message_trigs m_trig = {
     .log_count = 0,
@@ -1079,9 +1113,11 @@ pkpm_app_run(lua_State *L)
   };
 
   struct timespec tm_ic0 = gkyl_wall_clock();
-  gkyl_pkpm_app_calc_integrated_mom(app, t_curr);
-  gkyl_pkpm_app_calc_field_energy(app, t_curr);
+  // Initialize simulation.
   write_data(&io_trig, app, t_curr, false);
+  calc_field_energy(&fe_trig, app, t_curr);
+  calc_integrated_mom(&im_trig, app, t_curr);
+  calc_integrated_L2_f(&l2f_trig, app, t_curr);
 
   gkyl_pkpm_app_cout(app, stdout, "Initialization completed in %g sec\n\n", gkyl_time_diff_now_sec(tm_ic0));
   
@@ -1113,6 +1149,9 @@ pkpm_app_run(lua_State *L)
     dt = status.dt_suggested;
 
     write_data(&io_trig, app, t_curr, false);
+    calc_field_energy(&fe_trig, app, t_curr);
+    calc_integrated_mom(&im_trig, app, t_curr);
+    calc_integrated_L2_f(&l2f_trig, app, t_curr);
 
     if (dt_init < 0.0) {
       dt_init = status.dt_actual;
@@ -1141,6 +1180,9 @@ pkpm_app_run(lua_State *L)
   }
 
   write_data(&io_trig, app, t_curr, false);
+  calc_field_energy(&fe_trig, app, t_curr);
+  calc_integrated_mom(&im_trig, app, t_curr);
+  calc_integrated_L2_f(&l2f_trig, app, t_curr);
   gkyl_pkpm_app_stat_write(app);
 
   struct gkyl_pkpm_stat stat = gkyl_pkpm_app_stat(app);

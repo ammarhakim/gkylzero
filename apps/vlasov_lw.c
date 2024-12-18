@@ -1845,7 +1845,6 @@ vm_app_run(lua_State *L)
   calc_integrated_L2_f(&l2f_trig, app, t_curr);
   gkyl_vlasov_app_stat_write(app);
 
-
   struct gkyl_vlasov_stat stat = gkyl_vlasov_app_stat(app);
 
   gkyl_vlasov_app_cout(app, stdout, "\n");
