@@ -246,7 +246,6 @@ gkyl_vlasov_app_new(struct gkyl_vm *vm)
     }
   }
 
-
   // Set the appropriate update function for taking a single time step
   // If we have implicit fluid-EM coupling or implicit BGK collisions, 
   // we perform a first-order operator split and treat those terms implicitly.
@@ -914,7 +913,6 @@ comm_reduce_app_stat(const gkyl_vlasov_app* app,
   for (int s=0; s<app->num_species; ++s) {
     global->niter_self_bgk_corr[s] = l_red_bgk_corr[s];
   }
-
 
   enum {
     TOTAL_TM, RK3_TM, FL_EM_TM, 

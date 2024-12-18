@@ -77,6 +77,21 @@ info_det_h(double t, const double* xn, double* fout, void* ctx)
   fout[0] = pow(R, 2)*sin(q[0]);
 }
 
+void 
+info_hamil(double t, const double* xn, double* fout, void* ctx)
+{
+  // Canonical coordinates:
+  double w0 = xn[2], w1 = xn[3];
+  const double w[2] = {w0, w1};
+  struct kh_2d_ctx *app = (struct kh_2d_ctx *)ctx;
+  double *h_inv = malloc(3 * sizeof(double));
+  info_h_ij_inv(t, xn, h_inv, ctx); 
+  fout[0] = 0.5 * h_inv[0] * w[0] * w[0] + 
+            0.5 * (2.0* h_inv[1] * w[1] * w[0]) + 
+            0.5 * h_inv[2] * w[1] * w[1];
+  free(h_inv);
+}
+
 
 void 
 test_2x2v(int poly_order)
@@ -138,16 +153,19 @@ test_2x2v(int poly_order)
   gkyl_proj_on_basis *proj_m2 = gkyl_proj_on_basis_new(&confGrid, &confBasis,
     poly_order + 1, 1, eval_M2, NULL);
 
-  // Allocate arrays for specified metric inverse and metric determinant
-  struct gkyl_array *h_ij_inv, *det_h;
+  // Allocate arrays for specified metric inverse, hamiltonian and metric determinant
+  struct gkyl_array *h_ij_inv, *det_h, *hamil;
   h_ij_inv = mkarr(confBasis.num_basis*cdim*(cdim+1)/2, local_ext.volume);
   det_h = mkarr(confBasis.num_basis, local_ext.volume);
+  hamil = mkarr(basis.num_basis, local_ext.volume);
 
   // Evaluate specified inverse metric function and det. at nodes to insure continuity
   struct gkyl_eval_on_nodes* h_ij_inv_proj = gkyl_eval_on_nodes_new(&confGrid, &confBasis, cdim*(cdim+1)/2, info_h_ij_inv, 0);
   struct gkyl_eval_on_nodes* det_h_proj = gkyl_eval_on_nodes_new(&confGrid, &confBasis, 1, info_det_h, 0);
+  struct gkyl_eval_on_nodes* hamil_proj = gkyl_eval_on_nodes_new(&grid, &basis, 1, info_hamil, 0);
   gkyl_eval_on_nodes_advance(h_ij_inv_proj, 0.0, &confLocal, h_ij_inv);
   gkyl_eval_on_nodes_advance(det_h_proj, 0.0, &confLocal, det_h);
+  gkyl_eval_on_nodes_advance(hamil_proj, 0.0, &local, hamil);
 
   // create a copy for the correct intial value
   gkyl_proj_on_basis_advance(proj_m0, 0.0, &confLocal, m0_corr);
@@ -175,8 +193,10 @@ test_2x2v(int poly_order)
     .conf_range =  &confLocal,
     .conf_range_ext = &confLocal_ext,
     .vel_range = &velLocal,
+    .phase_range = &local,
     .h_ij_inv = h_ij_inv,
     .det_h = det_h,
+    .hamil = hamil,
     .model_id = GKYL_MODEL_CANONICAL_PB,
     .use_gpu = false,
   };  
@@ -194,8 +214,10 @@ test_2x2v(int poly_order)
     .conf_range =  &confLocal,
     .conf_range_ext = &confLocal_ext,
     .vel_range = &velLocal,
+    .phase_range = &local,
     .h_ij_inv = h_ij_inv,
     .det_h = det_h,
+    .hamil = hamil,
     .model_id = GKYL_MODEL_CANONICAL_PB,
     .use_gpu = false,
     .max_iter = 100,
@@ -217,8 +239,10 @@ test_2x2v(int poly_order)
     .conf_range =  &confLocal,
     .conf_range_ext = &confLocal_ext,
     .vel_range = &velLocal,
+    .phase_range = &local,
     .h_ij_inv = h_ij_inv,
     .det_h = det_h,
+    .hamil = hamil,
     .model_id = GKYL_MODEL_CANONICAL_PB,
     .use_gpu = false,
   };
@@ -233,21 +257,21 @@ test_2x2v(int poly_order)
   sprintf(fname, "ctest_can_pb_eq_2x2v_p%d.gkyl", poly_order);
   gkyl_grid_sub_array_write(&grid, &local, distf, fname);
 
-  // // Write the output (moments)
-  // sprintf(fname, "ctest_can_pb_eq_2x2v_p%d_n_corr.gkyl", poly_order);
-  // gkyl_grid_sub_array_write(&confGrid,&confLocal,m0_corr,fname);
-  // sprintf(fname, "ctest_can_pb_eq_2x2v_p%d_vb_corr.gkyl", poly_order);
-  // gkyl_grid_sub_array_write(&confGrid,&confLocal,m1i_corr,fname);
-  // sprintf(fname, "ctest_can_pb_eq_2x2v_p%d_T_corr.gkyl", poly_order);
-  // gkyl_grid_sub_array_write(&confGrid,&confLocal,m2_corr,fname);
+  // Write the output (moments)
+  sprintf(fname, "ctest_can_pb_eq_2x2v_p%d_n_corr.gkyl", poly_order);
+  gkyl_grid_sub_array_write(&confGrid,&confLocal,m0_corr,fname);
+  sprintf(fname, "ctest_can_pb_eq_2x2v_p%d_vb_corr.gkyl", poly_order);
+  gkyl_grid_sub_array_write(&confGrid,&confLocal,m1i_corr,fname);
+  sprintf(fname, "ctest_can_pb_eq_2x2v_p%d_T_corr.gkyl", poly_order);
+  gkyl_grid_sub_array_write(&confGrid,&confLocal,m2_corr,fname);
 
-  // // Write the output (moments)
-  // sprintf(fname, "ctest_can_pb_eq_2x2v_p%d_n.gkyl", poly_order);
-  // gkyl_grid_sub_array_write(&confGrid,&confLocal,m0,fname);
-  // sprintf(fname, "ctest_can_pb_eq_2x2v_p%d_vb.gkyl", poly_order);
-  // gkyl_grid_sub_array_write(&confGrid,&confLocal,m1i,fname);
-  // sprintf(fname, "ctest_can_pb_eq_2x2v_p%d_T.gkyl", poly_order);
-  // gkyl_grid_sub_array_write(&confGrid,&confLocal,m2,fname);
+  // Write the output (moments)
+  sprintf(fname, "ctest_can_pb_eq_2x2v_p%d_n.gkyl", poly_order);
+  gkyl_grid_sub_array_write(&confGrid,&confLocal,m0,fname);
+  sprintf(fname, "ctest_can_pb_eq_2x2v_p%d_vb.gkyl", poly_order);
+  gkyl_grid_sub_array_write(&confGrid,&confLocal,m1i,fname);
+  sprintf(fname, "ctest_can_pb_eq_2x2v_p%d_T.gkyl", poly_order);
+  gkyl_grid_sub_array_write(&confGrid,&confLocal,m2,fname);
 
   // // Write the h^{ij}, det(h_ij)
   // sprintf(fname, "ctest_can_pb_eq_2x2v_p%d_h_ij_inv.gkyl", poly_order);
@@ -257,26 +281,25 @@ test_2x2v(int poly_order)
 
   // values to compare  at index (1, 17) [remember, lower-left index is (1,1)]
   // values to compare  at index (1, 17) [remember, lower-left index is (1,1)]
-  double p2_vals[] = {7.4389783023265099e-02, 1.7499522696968448e-04, -4.2253321330719359e-19, 
-    1.7197294780095105e-02, 3.2822459503714825e-02, 2.5019571528486421e-18, 4.0454999945222635e-05, 
-    -1.4125092864553862e-19, 1.0658244792175303e-05, 1.2473860074977937e-18, 7.5878365087018252e-03, 
-    -2.2391870772442790e-07, -2.9476470181933414e-17, 7.5085044225038134e-04, 4.7554188865154331e-03, 
-    6.8211378278042107e-20, 3.6488980398970576e-19, 2.4639190426544169e-06, 2.1187655380656761e-19, 
-    -1.0822008203450965e-18, 2.2436585915908228e-19, -5.1766346251881247e-08, -5.7607055675577576e-18, 
-    1.7662957597715743e-06, 1.2741938646251673e-19, -1.2308148750860714e-07, -7.3700404590506013e-18, 
-    3.3129224516213740e-04, -1.3065999155266542e-05, 1.5220440662220617e-19, 1.0993490916697980e-03, 
-    5.6930059089810877e-20, 6.5660342100681117e-19, 1.1924007741276491e-18, 1.1562481358434618e-19, 
-    1.1807705433814598e-19, -7.7501645322254508e-19, -2.8454232897884123e-08, -3.0955134127490682e-18, 
-    1.0757333751268221e-07, 3.1980914272308032e-19, -2.3836099228861867e-19, -3.0205789415989519e-06, 
-    -1.0961395618448674e-19, -5.9124212021315998e-19, -1.1278486261518147e-19, -2.0462557199015695e-19, 
-    2.4387684529816235e-19 };
+  double p2_vals[] = {7.4389850382885869e-02, 
+    1.7499523106830894e-04, 1.5797193287562857e-18, 1.7197299330990002e-02, 3.2822469652251059e-02, 7.1640226390315765e-19, 
+    4.0454985336477513e-05, 1.8109962911920394e-19, 1.0658201861053137e-05, 7.4011675774887111e-19, 7.5878339920293749e-03, 
+    -2.5404298006264553e-07, 2.3915416445890031e-17, 7.5084945015374180e-04, 4.7554160603323851e-03, 4.7184472730001985e-19, 
+    9.9204174754811634e-19, 2.4639081702893795e-06, 3.2693596992279127e-19, -1.7718898416073664e-18, -1.2156752913073157e-18, 
+    -5.3801581323207593e-08, -3.2047605423841384e-18, 1.7662934411577241e-06, -4.0166251049742576e-19, -1.2761995911444401e-07, 
+    -7.7955869448023314e-19, 3.3129160987707728e-04, -1.3066003997216217e-05, 2.2786556959643055e-19, 1.0993477337838838e-03, 
+    1.9750559706615913e-19, 1.0176729926491923e-19, 1.5669674282918913e-18, -4.1022604496542723e-19, -6.8835514570039712e-19, 
+    -2.4728872085587222e-19, -2.7328711527332273e-08, -3.8874604493127212e-18, 1.0757276043285125e-07, -1.9970557759226246e-19, 
+    2.6625559608551905e-19, -3.0205788995005763e-06, 4.4632777074465367e-19, 2.7641647155021863e-19, -5.7121561420343132e-19, 
+    2.4195088798858272e-19, -1.8724482664444952e-19 };
 
   const double *fv = gkyl_array_cfetch(distf, gkyl_range_idx(&local_ext, (int[4]){1, 1, 8, 8}));
 
+  int counter;
   if (poly_order == 2) {
     for (int i = 0; i < basis.num_basis; ++i) {
       TEST_CHECK(gkyl_compare_double(p2_vals[i], fv[i], 1e-10));
-      // printf("p2_vals = %1.16e fv = %1.16e\n", p2_vals[i], fv[i]);
+      //printf("p2_vals = %1.16e fv = %1.16e\n", p2_vals[i], fv[i]);
     }
   }
 
@@ -292,12 +315,14 @@ test_2x2v(int poly_order)
   gkyl_array_release(distf);
   gkyl_array_release(h_ij_inv);
   gkyl_array_release(det_h);
+  gkyl_array_release(hamil);
   gkyl_vlasov_lte_moments_release(lte_moms);
   gkyl_vlasov_lte_proj_on_basis_release(proj_lte);
   gkyl_proj_on_basis_release(proj_m0);
   gkyl_proj_on_basis_release(proj_m1i);
   gkyl_proj_on_basis_release(proj_m2);
   gkyl_eval_on_nodes_release(h_ij_inv_proj);
+  gkyl_eval_on_nodes_release(hamil_proj);
   gkyl_eval_on_nodes_release(det_h_proj);
 }
 

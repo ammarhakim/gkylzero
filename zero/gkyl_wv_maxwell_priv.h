@@ -31,7 +31,7 @@ void gkyl_wv_maxwell_free(const struct gkyl_ref_count *ref);
  * @param q Conserved variables
  * @return Maximum absolute speed for given q
  */
-GKYL_CU_D
+GKYL_CU_DH
 static inline double
 gkyl_maxwell_max_abs_speed(double c, double e_fact, double b_fact, const double q[8])
 {
@@ -47,7 +47,7 @@ gkyl_maxwell_max_abs_speed(double c, double e_fact, double b_fact, const double 
  * @param Conserved variables
  * @param flux On output, the flux in direction 'dir'
  */
-GKYL_CU_D
+GKYL_CU_DH
 static inline void
 gkyl_maxwell_flux(double c, double e_fact, double b_fact, const double q[8], double flux[8])
 {
@@ -63,7 +63,7 @@ gkyl_maxwell_flux(double c, double e_fact, double b_fact, const double q[8], dou
   flux[7] = b_fact*c2*q[3]; // b_fact*c^2*Bx
 }
 
-GKYL_CU_D
+GKYL_CU_DH
 static inline void
 cons_to_riem(const struct gkyl_wv_eqn *eqn,
   const double *qstate, const double *qin, double *wout)
@@ -73,7 +73,7 @@ cons_to_riem(const struct gkyl_wv_eqn *eqn,
     wout[i] = qin[i];
 }
 
-GKYL_CU_D
+GKYL_CU_DH
 static inline void
 riem_to_cons(const struct gkyl_wv_eqn *eqn,
   const double *qstate, const double *win, double *qout)
@@ -83,7 +83,7 @@ riem_to_cons(const struct gkyl_wv_eqn *eqn,
     qout[i] = win[i];
 }
 
-GKYL_CU_D
+GKYL_CU_DH
 static void
 maxwell_wall(const struct gkyl_wv_eqn* eqn, double t, int nc, const double *skin, double * GKYL_RESTRICT ghost, void *ctx)
 {
@@ -102,7 +102,7 @@ maxwell_wall(const struct gkyl_wv_eqn* eqn, double t, int nc, const double *skin
   ghost[7] = skin[7];
 }
 
-GKYL_CU_D
+GKYL_CU_DH
 static inline void
 rot_to_local(const struct gkyl_wv_eqn* eqn, const double* tau1, const double* tau2, const double* norm,
   const double* GKYL_RESTRICT qglobal, double* GKYL_RESTRICT qlocal)
@@ -120,7 +120,7 @@ rot_to_local(const struct gkyl_wv_eqn* eqn, const double* tau1, const double* ta
   qlocal[7] = qglobal[7];
 }
 
-GKYL_CU_D
+GKYL_CU_DH
 static inline void
 rot_to_global(const struct gkyl_wv_eqn* eqn, const double* tau1, const double* tau2, const double* norm,
   const double* GKYL_RESTRICT qlocal, double* GKYL_RESTRICT qglobal)
@@ -139,7 +139,7 @@ rot_to_global(const struct gkyl_wv_eqn* eqn, const double* tau1, const double* t
 }
 
 // Waves and speeds using Roe averaging
-GKYL_CU_D
+GKYL_CU_DH
 static double
 wave(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
   const double *delta, const double *ql, const double *qr, 
@@ -208,7 +208,7 @@ wave(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
   return c;
 }
 
-GKYL_CU_D
+GKYL_CU_DH
 static void
 qfluct(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
   const double *ql, const double *qr, const double *waves, const double *s,
@@ -257,7 +257,7 @@ qfluct(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
   /* amdq[7] = ((qr[3]-ql[3])/2-(qr[7]-ql[7])/(2*c))*c2*b_fact; */
 }
 
-GKYL_CU_D
+GKYL_CU_DH
 static double
 flux_jump(const struct gkyl_wv_eqn *eqn, const double *ql, const double *qr, double *flux_jump)
 {
@@ -275,14 +275,14 @@ flux_jump(const struct gkyl_wv_eqn *eqn, const double *ql, const double *qr, dou
   return c;
 }
 
-GKYL_CU_D
+GKYL_CU_DH
 static bool
 check_inv(const struct gkyl_wv_eqn *eqn, const double *q)
 {
   return true; // no negative states in Maxwell
 }
 
-GKYL_CU_D
+GKYL_CU_DH
 static double
 max_speed(const struct gkyl_wv_eqn *eqn, const double *q)
 {
@@ -290,7 +290,7 @@ max_speed(const struct gkyl_wv_eqn *eqn, const double *q)
   return maxwell->c;
 }
 
-GKYL_CU_D
+GKYL_CU_DH
 static inline void
 maxwell_cons_to_diag(const struct gkyl_wv_eqn *eqn,
   const double *qin, double *diag)

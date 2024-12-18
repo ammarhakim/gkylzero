@@ -161,8 +161,16 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
 
     // Need to figure out size of alpha_surf and sgn_alpha_surf by finding size of surface basis set 
     struct gkyl_basis surf_basis, surf_quad_basis;
-    gkyl_cart_modal_serendip(&surf_basis, pdim-1, app->poly_order);
-    gkyl_cart_modal_tensor(&surf_quad_basis, pdim-1, app->poly_order);
+    if (app->basis.b_type == GKYL_BASIS_MODAL_HYBRID) {
+      // NOTE: If we are hybrid, allocate more memory than we need to avoid surface basis are different
+      // sizes in each direction.
+      gkyl_cart_modal_serendip(&surf_basis, pdim-1, 2);
+      gkyl_cart_modal_tensor(&surf_quad_basis, pdim-1, 2);
+    } 
+    else {
+      gkyl_cart_modal_serendip(&surf_basis, pdim-1, app->poly_order);
+      gkyl_cart_modal_tensor(&surf_quad_basis, pdim-1, app->poly_order);
+    }
 
     // always 2*cdim
     int alpha_surf_sz = (2*cdim)*surf_basis.num_basis; 
@@ -545,6 +553,7 @@ vm_species_apply_bc(gkyl_vlasov_app *app, const struct vm_species *species, stru
 
   app->stat.species_bc_tm += gkyl_time_diff_now_sec(wst);
 }
+
 
 void
 vm_species_calc_L2(gkyl_vlasov_app *app, double tm, const struct vm_species *species)

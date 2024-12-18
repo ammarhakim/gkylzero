@@ -617,4 +617,7 @@ implicit_source_coupling_update(const gkyl_moment_em_coupling* mom_em, double t_
   if (mom_em->has_reactive_sources) {
     explicit_reactive_source_update(mom_em, t_curr, dt, fluid_s);
   }
+  if (mom_em->has_einstein_medium_sources) {
+    explicit_medium_source_update(mom_em, t_curr, dt, fluid_s);
+  }
 }
