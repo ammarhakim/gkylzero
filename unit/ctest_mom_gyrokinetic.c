@@ -56,7 +56,8 @@ void
 test_mom_gyrokinetic()
 {
   double mass = 1.0;
-  int poly_order = 2;
+  double charge = 1.0;
+  int poly_order = 1;
   double lower[] = {-M_PI, -2.0, 0.0}, upper[] = {M_PI, 2.0, 2.0};
   int cells[] = {4, 2, 2};
   const int vdim = 2;
@@ -132,16 +133,16 @@ test_mom_gyrokinetic()
   struct gkyl_velocity_map *gvm = gkyl_velocity_map_new(c2p_in, grid, velGrid,
     local, local_ext, velLocal, velLocal_ext, false);
 
-  struct gkyl_mom_type *m2 = gkyl_mom_gyrokinetic_new(&confBasis, &basis, &confLocal, mass, gvm, gk_geom, "M2", false);
+  struct gkyl_mom_type *m2 = gkyl_mom_gyrokinetic_new(&confBasis, &basis, &confLocal, mass, charge, gvm, gk_geom, NULL, "M2", false);
 
   TEST_CHECK( m2->cdim == 1 );
   TEST_CHECK( m2->pdim == 3 );
-  TEST_CHECK( m2->poly_order == 2 );
+  TEST_CHECK( m2->poly_order == 1 );
   TEST_CHECK( m2->num_config == confBasis.num_basis );
   TEST_CHECK( m2->num_phase == basis.num_basis );
   TEST_CHECK( m2->num_mom == 1 );
 
-  struct gkyl_mom_type *m3par = gkyl_mom_gyrokinetic_new(&confBasis, &basis, &confLocal, mass, gvm, gk_geom, "M3par", false);
+  struct gkyl_mom_type *m3par = gkyl_mom_gyrokinetic_new(&confBasis, &basis, &confLocal, mass, charge, gvm, gk_geom, NULL, "M3par", false);
   TEST_CHECK( m3par->num_mom == 1 );
 
   gkyl_gk_geometry_release(gk_geom);  
@@ -175,7 +176,8 @@ void distf_2x2v(double t, const double *xn, double* restrict fout, void *ctx)
 void
 test_1x1v(int polyOrder, bool use_gpu)
 {
-  double mass = 1.;
+  double mass = 1.0;
+  double charge = 1.0;
   int poly_order = 1;
   double lower[] = {-M_PI, -2.0}, upper[] = {M_PI, 2.0};
   int cells[] = {4, 2};
@@ -269,9 +271,9 @@ test_1x1v(int polyOrder, bool use_gpu)
   struct gkyl_velocity_map *gvm = gkyl_velocity_map_new(c2p_in, grid, velGrid,
     local, local_ext, velLocal, velLocal_ext, false);
 
-  struct gkyl_mom_type *M0_t = gkyl_mom_gyrokinetic_new(&confBasis, &basis, &confLocal, mass, gvm, gk_geom, "M0", use_gpu);
-  struct gkyl_mom_type *M1_t = gkyl_mom_gyrokinetic_new(&confBasis, &basis, &confLocal, mass, gvm, gk_geom, "M1", use_gpu);
-  struct gkyl_mom_type *M2_t = gkyl_mom_gyrokinetic_new(&confBasis, &basis, &confLocal, mass, gvm, gk_geom, "M2", use_gpu);
+  struct gkyl_mom_type *M0_t = gkyl_mom_gyrokinetic_new(&confBasis, &basis, &confLocal, mass, charge, gvm, gk_geom, NULL, "M0", use_gpu);
+  struct gkyl_mom_type *M1_t = gkyl_mom_gyrokinetic_new(&confBasis, &basis, &confLocal, mass, charge, gvm, gk_geom, NULL, "M1", use_gpu);
+  struct gkyl_mom_type *M2_t = gkyl_mom_gyrokinetic_new(&confBasis, &basis, &confLocal, mass, charge, gvm, gk_geom, NULL, "M2", use_gpu);
   gkyl_mom_calc *m0calc = gkyl_mom_calc_new(&grid, M0_t, use_gpu);
   gkyl_mom_calc *m1calc = gkyl_mom_calc_new(&grid, M1_t, use_gpu);
   gkyl_mom_calc *m2calc = gkyl_mom_calc_new(&grid, M2_t, use_gpu);
@@ -413,7 +415,8 @@ test_1x1v(int polyOrder, bool use_gpu)
 void
 test_1x2v(int poly_order, bool use_gpu)
 {
-  double mass = 1.;
+  double mass = 1.0;
+  double charge = 1.0;
   double lower[] = {-M_PI, -2.0, 0.0}, upper[] = {M_PI, 2.0, 2.0};
   int cells[] = {4, 2, 2};
   const int vdim = 2;
@@ -506,9 +509,9 @@ test_1x2v(int poly_order, bool use_gpu)
   struct gkyl_velocity_map *gvm = gkyl_velocity_map_new(c2p_in, grid, velGrid,
     local, local_ext, velLocal, velLocal_ext, false);
 
-  struct gkyl_mom_type *M0_t = gkyl_mom_gyrokinetic_new(&confBasis, &basis, &confLocal, mass, gvm, gk_geom, "M0", use_gpu);
-  struct gkyl_mom_type *M1_t = gkyl_mom_gyrokinetic_new(&confBasis, &basis, &confLocal, mass, gvm, gk_geom, "M1", use_gpu);
-  struct gkyl_mom_type *M2_t = gkyl_mom_gyrokinetic_new(&confBasis, &basis, &confLocal, mass, gvm, gk_geom, "M2", use_gpu);
+  struct gkyl_mom_type *M0_t = gkyl_mom_gyrokinetic_new(&confBasis, &basis, &confLocal, mass, charge, gvm, gk_geom, NULL, "M0", use_gpu);
+  struct gkyl_mom_type *M1_t = gkyl_mom_gyrokinetic_new(&confBasis, &basis, &confLocal, mass, charge, gvm, gk_geom, NULL, "M1", use_gpu);
+  struct gkyl_mom_type *M2_t = gkyl_mom_gyrokinetic_new(&confBasis, &basis, &confLocal, mass, charge, gvm, gk_geom, NULL, "M2", use_gpu);
   gkyl_mom_calc *m0calc = gkyl_mom_calc_new(&grid, M0_t, use_gpu);
   gkyl_mom_calc *m1calc = gkyl_mom_calc_new(&grid, M1_t, use_gpu);
   gkyl_mom_calc *m2calc = gkyl_mom_calc_new(&grid, M2_t, use_gpu);
@@ -633,6 +636,7 @@ void
 test_2x2v(int poly_order, bool use_gpu)
 {
   double mass = 1.;
+  double charge = 1.0;
   double lower[] = {-M_PI, -M_PI, -2.0, 0.0}, upper[] = {M_PI, M_PI, 2.0, 2.0};
   int cells[] = {4, 4, 2, 2};
   const int vdim = 2;
@@ -724,9 +728,9 @@ test_2x2v(int poly_order, bool use_gpu)
   struct gkyl_velocity_map *gvm = gkyl_velocity_map_new(c2p_in, grid, velGrid,
     local, local_ext, velLocal, velLocal_ext, false);
 
-  struct gkyl_mom_type *M0_t = gkyl_mom_gyrokinetic_new(&confBasis, &basis, &confLocal, mass, gvm, gk_geom, "M0", use_gpu);
-  struct gkyl_mom_type *M1_t = gkyl_mom_gyrokinetic_new(&confBasis, &basis, &confLocal, mass, gvm, gk_geom, "M1", use_gpu);
-  struct gkyl_mom_type *M2_t = gkyl_mom_gyrokinetic_new(&confBasis, &basis, &confLocal, mass, gvm, gk_geom, "M2", use_gpu);
+  struct gkyl_mom_type *M0_t = gkyl_mom_gyrokinetic_new(&confBasis, &basis, &confLocal, mass, charge, gvm, gk_geom, NULL, "M0", use_gpu);
+  struct gkyl_mom_type *M1_t = gkyl_mom_gyrokinetic_new(&confBasis, &basis, &confLocal, mass, charge, gvm, gk_geom, NULL, "M1", use_gpu);
+  struct gkyl_mom_type *M2_t = gkyl_mom_gyrokinetic_new(&confBasis, &basis, &confLocal, mass, charge, gvm, gk_geom, NULL, "M2", use_gpu);
   gkyl_mom_calc *m0calc = gkyl_mom_calc_new(&grid, M0_t, use_gpu);
   gkyl_mom_calc *m1calc = gkyl_mom_calc_new(&grid, M1_t, use_gpu);
   gkyl_mom_calc *m2calc = gkyl_mom_calc_new(&grid, M2_t, use_gpu);

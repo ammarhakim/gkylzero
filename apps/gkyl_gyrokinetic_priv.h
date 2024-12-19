@@ -108,6 +108,7 @@ static const char *const valid_moment_names[] = {
   "FourMoments",
   "MaxwellianMoments", // internal flag for whether we are computing (n, u_par, T/m)
   "BiMaxwellianMoments", // internal flag for whether we are computing (n, u_par, T_par/m, T_perp/m)
+  "HamiltonianMoment", // Compute the H moment of f.
   "Integrated", // this is an internal flag, not for passing to moment type
 };
 

@@ -149,9 +149,33 @@ GKYL_CU_DH void gyrokinetic_M0_step1_2x2v_ser_p1(const double *dxv, const double
 } 
 GKYL_CU_DH void gyrokinetic_M0_step2_2x2v_ser_p1(const double *dxv, const double *vmap, double m_, const double *bmag, const double *f, double* GKYL_RESTRICT out) 
 { 
-  const double volFact = 2.0*M_PI/m_*dxv[3]/2; 
+  const double volFact = 3.141592653589793*dxv[3]/m_; 
   out[0] += 2.8284271247461907*f[0]*volFact; 
   out[1] += 2.8284271247461907*f[1]*volFact; 
   out[2] += 2.8284271247461907*f[2]*volFact; 
   out[3] += 2.8284271247461907*f[4]*volFact; 
+} 
+GKYL_CU_DH void gyrokinetic_hamiltonian_moment_2x2v_ser_p1(const double *dxv, const double *vmap, double m_, double q_, const double *bmag, const double *phi, const double *f, double* GKYL_RESTRICT out) 
+{ 
+  const double volFact = 1.5707963267948966*dxv[2]*dxv[3]/m_; 
+  const double vmap0R2 = pow(vmap[0],2);
+  const double vmap1R2 = pow(vmap[1],2);
+
+  out[0] += (0.4472135954999579*vmap1R2*f[16]*m_+vmap[0]*vmap[1]*f[3]*m_+0.5*f[0]*vmap1R2*m_+0.5*f[0]*vmap0R2*m_)*volFact; 
+  out[1] += (0.44721359549995804*vmap1R2*f[17]*m_+vmap[0]*vmap[1]*f[6]*m_+0.5*f[1]*vmap1R2*m_+0.5*vmap0R2*f[1]*m_)*volFact; 
+  out[2] += (0.44721359549995804*vmap1R2*f[18]*m_+vmap[0]*vmap[1]*f[7]*m_+0.5*vmap1R2*f[2]*m_+0.5*vmap0R2*f[2]*m_)*volFact; 
+  out[3] += (0.4472135954999579*vmap1R2*f[20]*m_+vmap[0]*vmap[1]*f[11]*m_+0.5*vmap1R2*f[5]*m_+0.5*vmap0R2*f[5]*m_)*volFact; 
+  double tmp[4]; 
+  tmp[0] = 1.4142135623730951*vmap[3]*f[4]+1.4142135623730951*f[0]*vmap[2]; 
+  tmp[1] = 1.4142135623730951*vmap[3]*f[8]+1.4142135623730951*f[1]*vmap[2]; 
+  tmp[2] = 1.4142135623730951*vmap[3]*f[9]+1.4142135623730951*f[2]*vmap[2]; 
+  tmp[3] = 1.4142135623730951*vmap[3]*f[12]+1.4142135623730951*vmap[2]*f[5]; 
+  out[0] += (0.5*bmag[3]*tmp[3]+0.5*bmag[2]*tmp[2]+0.5*bmag[1]*tmp[1]+0.5*bmag[0]*tmp[0])*volFact; 
+  out[1] += (0.5*bmag[2]*tmp[3]+0.5*tmp[2]*bmag[3]+0.5*bmag[0]*tmp[1]+0.5*tmp[0]*bmag[1])*volFact; 
+  out[2] += (0.5*bmag[1]*tmp[3]+0.5*tmp[1]*bmag[3]+0.5*bmag[0]*tmp[2]+0.5*tmp[0]*bmag[2])*volFact; 
+  out[3] += (0.5*bmag[0]*tmp[3]+0.5*tmp[0]*bmag[3]+0.5*bmag[1]*tmp[2]+0.5*tmp[1]*bmag[2])*volFact; 
+  out[0] += (phi[3]*f[5]*q_+f[2]*phi[2]*q_+f[1]*phi[1]*q_+f[0]*phi[0]*q_)*volFact; 
+  out[1] += (phi[2]*f[5]*q_+f[2]*phi[3]*q_+f[0]*phi[1]*q_+phi[0]*f[1]*q_)*volFact; 
+  out[2] += (phi[1]*f[5]*q_+f[1]*phi[3]*q_+f[0]*phi[2]*q_+phi[0]*f[2]*q_)*volFact; 
+  out[3] += (phi[0]*f[5]*q_+f[0]*phi[3]*q_+f[1]*phi[2]*q_+phi[1]*f[2]*q_)*volFact; 
 } 
