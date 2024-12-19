@@ -1,4 +1,5 @@
 #include <gkyl_array.h>
+#include <gkyl_calc_bmag.h>
 
 struct opt_Theta_ctx
 {
@@ -73,126 +74,6 @@ calculate_mirror_throat_location_polynomial(struct gkyl_position_map_const_B_ctx
 }
 
 void
-calculate_optimal_mapping_polynomial(struct gkyl_position_map_const_B_ctx *constB_ctx, struct gkyl_bmag_ctx *bmag_ctx)
-{
-  // Could be refined further by doing midpoint root finding, like the mirror throat finding does
-  // Expander region
-  enum { X_IDX, Y_IDX, Z_IDX }; // arrangement of cartesian coordinates
-  double psi = constB_ctx->psi;
-  double alpha = constB_ctx->alpha;
-  double *xp = malloc(3*sizeof(double));
-  double *fout = malloc(3*sizeof(double));
-  xp[X_IDX] = psi;
-  xp[Y_IDX] = alpha;
-  constB_ctx->map_order_center = 1;
-  double scan_cells = 50;
-  double scan_left = constB_ctx->theta_throat;
-  double scan_right = constB_ctx->theta_max;
-  double scan_dxi = (scan_right - scan_left) / scan_cells;
-  int expander_order = 1;
-  double max_dB_dCell_prior = 99999999.99;
-  double max_dB_dCell;
-  double max_dB_dCell_order1 = 0.0;
-  while (1)
-  {
-    max_dB_dCell = 0.0;
-    constB_ctx->map_order_expander = expander_order;
-    for (int iz = 0; iz < scan_cells; iz++)
-    {
-      double left_xi = scan_left + iz * scan_dxi;
-      double right_xi = scan_left + (iz + 1) * scan_dxi;
-      double psi = constB_ctx->psi;
-      double alpha = constB_ctx->alpha;
-
-      double left_theta[1], right_theta[1];
-      position_map_constB_z_polynomial(0.0, &left_xi, left_theta, constB_ctx);
-      position_map_constB_z_polynomial(0.0, &right_xi, right_theta, constB_ctx);
-
-      xp[Z_IDX] = left_theta[0];
-      gkyl_calc_bmag_global(0.0, xp, fout, bmag_ctx);
-      double Bmag_left = fout[0];
-      xp[Z_IDX] = right_theta[0];
-      gkyl_calc_bmag_global(0.0, xp, fout, bmag_ctx);
-      double Bmag_right = fout[0];
-      double dB_dCell = (Bmag_right - Bmag_left);
-      if (fabs(dB_dCell) > max_dB_dCell)
-      {
-        max_dB_dCell = fabs(dB_dCell);
-      }
-    }
-    double improvement = max_dB_dCell_prior - max_dB_dCell;
-    if (improvement > 1e-3)
-    {
-      expander_order++;
-      max_dB_dCell_prior = max_dB_dCell;
-    }
-    else if (improvement < 0)
-    {
-      expander_order--;
-      constB_ctx->map_order_expander = expander_order;
-      break;
-    }
-    else
-    {
-      break;
-    }
-  }
-  double max_dB_dCell_expander = max_dB_dCell;
-  //Center region
-  scan_left = 0.0;
-  scan_right = constB_ctx->theta_throat;
-  scan_dxi = (scan_right - scan_left) / scan_cells;
-  int center_order = 1;
-  max_dB_dCell_prior = 99999999.99;
-  while (1)
-  {
-    max_dB_dCell = 0.0;
-    constB_ctx->map_order_center = center_order;
-    for (int iz = 0; iz < scan_cells; iz++)
-    {
-      double left_xi = scan_left + iz * scan_dxi;
-      double right_xi = scan_left + (iz + 1) * scan_dxi;
-
-      double left_theta[1], right_theta[1];
-      position_map_constB_z_polynomial(0.0, &left_xi, left_theta, constB_ctx);
-      position_map_constB_z_polynomial(0.0, &right_xi, right_theta, constB_ctx);
-
-      xp[Z_IDX] = left_theta[0];
-      gkyl_calc_bmag_global(0.0, xp, fout, bmag_ctx);
-      double Bmag_left = fout[0];
-      xp[Z_IDX] = right_theta[0];
-      gkyl_calc_bmag_global(0.0, xp, fout, bmag_ctx);
-      double Bmag_right = fout[0];
-
-      double dB_dCell = (Bmag_right - Bmag_left);
-      if (fabs(dB_dCell) > max_dB_dCell)
-      {
-        max_dB_dCell = fabs(dB_dCell);
-      }
-    }
-    double improvement = max_dB_dCell_prior - max_dB_dCell;
-    if (improvement > 1e-3 & max_dB_dCell > max_dB_dCell_expander)
-    {
-      center_order++;
-      max_dB_dCell_prior = max_dB_dCell;
-    }
-    else if (improvement < 0)
-    {
-      center_order--;
-      constB_ctx->map_order_center = center_order;
-      break;
-    }
-    else
-    {
-      break;
-    }
-  }
-  free(xp);
-  free(fout);
-}
-
-
-void
 position_map_constB_z_polynomial(double t, const double *xn, double *fout, void *ctx)
 {
   // Converts our uniform coordinate along field line length to a non-uniform coordinate
@@ -243,8 +124,128 @@ position_map_constB_z_polynomial(double t, const double *xn, double *fout, void 
   fout[0] = nonuniform_coordinate;
 }
 
+void
+calculate_optimal_mapping_polynomial(struct gkyl_position_map_const_B_ctx *constB_ctx, struct gkyl_bmag_ctx *bmag_ctx)
+{
+  // Could be refined further by doing midpoint root finding, like the mirror throat finding does
+  // Expander region
+  enum { X_IDX, Y_IDX, Z_IDX }; // arrangement of cartesian coordinates
+  double psi = constB_ctx->psi;
+  double alpha = constB_ctx->alpha;
+  double *xp = malloc(3*sizeof(double));
+  double *fout = malloc(3*sizeof(double));
+  xp[X_IDX] = psi;
+  xp[Y_IDX] = alpha;
+  constB_ctx->map_order_center = 1;
+  double scan_cells = 10;
+  double scan_left = constB_ctx->theta_throat;
+  double scan_right = constB_ctx->theta_max;
+  double scan_dxi = (scan_right - scan_left) / scan_cells;
+  int expander_order = 1;
+  double max_dB_dCell_prior = 99999999.99;
+  double max_dB_dCell;
+  double max_dB_dCell_order1 = 0.0;
+  while (1)
+  {
+    max_dB_dCell = 0.0;
+    constB_ctx->map_order_expander = expander_order;
+    for (int iz = 0; iz < scan_cells; iz++)
+    {
+      double left_xi = scan_left + iz * scan_dxi;
+      double right_xi = scan_left + (iz + 1) * scan_dxi;
+      double psi = constB_ctx->psi;
+      double alpha = constB_ctx->alpha;
 
-// Utility functions for numeric B mapping
+      double left_theta[1], right_theta[1];
+      position_map_constB_z_polynomial(0.0, &left_xi, left_theta, constB_ctx);
+      position_map_constB_z_polynomial(0.0, &right_xi, right_theta, constB_ctx);
+
+      xp[Z_IDX] = left_theta[0];
+      gkyl_calc_bmag_global(0.0, xp, fout, bmag_ctx);
+      double Bmag_left = fout[0];
+      xp[Z_IDX] = right_theta[0];
+      gkyl_calc_bmag_global(0.0, xp, fout, bmag_ctx);
+      double Bmag_right = fout[0];
+      double dB_dCell = (Bmag_right - Bmag_left);
+      if (fabs(dB_dCell) > max_dB_dCell)
+      {
+        max_dB_dCell = fabs(dB_dCell);
+      }
+    }
+    double improvement = max_dB_dCell_prior - max_dB_dCell;
+    if (improvement > 1e-3)
+    {
+      expander_order++;
+      max_dB_dCell_prior = max_dB_dCell;
+    }
+    else if (improvement < 0)
+    {
+      expander_order--;
+      constB_ctx->map_order_expander = expander_order;
+      break;
+    }
+    else
+    {
+      break;
+    }
+
+  }
+  double max_dB_dCell_expander = max_dB_dCell;
+  //Center region
+  scan_left = 0.0;
+  scan_right = constB_ctx->theta_throat;
+  scan_dxi = (scan_right - scan_left) / scan_cells;
+  int center_order = 1;
+  max_dB_dCell_prior = 99999999.99;
+  while (1)
+  {
+    max_dB_dCell = 0.0;
+    constB_ctx->map_order_center = center_order;
+    for (int iz = 0; iz < scan_cells; iz++)
+    {
+      double left_xi = scan_left + iz * scan_dxi;
+      double right_xi = scan_left + (iz + 1) * scan_dxi;
+
+      double left_theta[1], right_theta[1];
+      position_map_constB_z_polynomial(0.0, &left_xi, left_theta, constB_ctx);
+      position_map_constB_z_polynomial(0.0, &right_xi, right_theta, constB_ctx);
+
+      xp[Z_IDX] = left_theta[0];
+      gkyl_calc_bmag_global(0.0, xp, fout, bmag_ctx);
+      double Bmag_left = fout[0];
+      xp[Z_IDX] = right_theta[0];
+      gkyl_calc_bmag_global(0.0, xp, fout, bmag_ctx);
+      double Bmag_right = fout[0];
+
+      double dB_dCell = (Bmag_right - Bmag_left);
+      if (fabs(dB_dCell) > max_dB_dCell)
+      {
+        max_dB_dCell = fabs(dB_dCell);
+      }
+    }
+    double improvement = max_dB_dCell_prior - max_dB_dCell;
+    if (improvement > 1e-3)
+    {
+      center_order++;
+      max_dB_dCell_prior = max_dB_dCell;
+    }
+    else if (improvement < 0)
+    {
+      center_order--;
+      constB_ctx->map_order_center = center_order;
+      break;
+    }
+    else
+    {
+      break;
+    }
+  }
+  free(xp);
+  free(fout);
+}
+
+
+// Utility functions for numeric root finding B mapping
 
 
 double

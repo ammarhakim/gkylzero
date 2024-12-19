@@ -132,8 +132,8 @@ gkyl_position_map_set(struct gkyl_position_map* gpm, struct gkyl_array* mc2nu)
   gpm->mc2nu = gkyl_array_acquire(mc2nu);
 }
 
-// How do I unit test this function?
-void gkyl_position_map_eval_mc2nu(const struct gkyl_position_map* gpm, const double *x_comp, double *x_fa)
+void 
+gkyl_position_map_eval_mc2nu(const struct gkyl_position_map* gpm, const double *x_comp, double *x_fa)
 {
   int cidx[GKYL_MAX_CDIM];
   for(int i = 0; i < gpm->grid.ndim; i++){
@@ -159,7 +159,6 @@ void gkyl_position_map_eval_mc2nu(const struct gkyl_position_map* gpm, const dou
   x_fa[gpm->grid.ndim-1] = xyz_fa[2];
 }
 
-
 struct gkyl_position_map*
 gkyl_position_map_acquire(const struct gkyl_position_map* gpm)
 {
@@ -178,6 +177,7 @@ gkyl_position_map_free(const struct gkyl_ref_count *ref)
 {
   struct gkyl_position_map *gpm = container_of(ref, struct gkyl_position_map, ref_count);
   gkyl_array_release(gpm->mc2nu);
+  gkyl_array_release(gpm->bmag_ctx->bmag);
   gkyl_free(gpm->bmag_ctx);
   gkyl_free(gpm->constB_ctx);
   gkyl_free(gpm);
