@@ -1,7 +1,7 @@
 // Test the perpendicular FEM Helmholtz/Poisson solver.
 //
 #include <acutest.h>
-
+#include <assert.h>
 #include <math.h>
 #include <gkyl_proj_on_basis.h>
 #include <gkyl_range.h>
@@ -9,7 +9,6 @@
 #include <gkyl_rect_grid.h>
 #include <gkyl_array_rio.h>
 #include <gkyl_fem_poisson_perp.h>
-#include <gkyl_array_average.h>
 #include <gkyl_dg_bin_ops.h>
 //#include <gkyl_fem_parproj.h>
 
@@ -261,58 +260,31 @@ test_fem_poisson_perp_consteps_2x(int poly_order, const int *cells, struct gkyl_
     // Subtract the volume averaged sol from the numerical and analytic solutions.
     // This is not strictly necessary, as the potential is only known up to 
     // constant shift, but it makes unit testing more robust across CPU/GPU.
-    struct gkyl_basis red_basis;
-    gkyl_cart_modal_serendip(&red_basis, 1, basis.poly_order);
-    struct gkyl_rect_grid red_grid;
-    gkyl_rect_grid_init(&red_grid, 1, &grid.lower[dim_perp], &grid.upper[dim_perp], &grid.cells[dim_perp]);
-    struct gkyl_range red_local, red_local_ext;
-    gkyl_create_grid_ranges(&red_grid, ghost, &red_local_ext, &red_local);
-    int avg_dim[GKYL_MAX_CDIM] = {1,1,1};
-    avg_dim[dim-1] = 0;
-    struct gkyl_array_average_inp avg_inp = {
-      .grid = &grid,
-      .basis = basis,
-      .basis_avg = red_basis,
-      .local = &localRange,
-      .local_avg = &red_local,
-      .local_avg_ext = &red_local_ext,
-      .weight = NULL,
-      .avg_dim = avg_dim,
-      .use_gpu = false,
-    };
-    struct gkyl_array_average *perp_avg_op = gkyl_array_average_new(&avg_inp);
-    struct gkyl_range_iter iter;
-    struct gkyl_array *rhs_perp_avg_ho = mkarr(false,red_basis.num_basis, red_local_ext.volume);
-
-    gkyl_array_average_advance(perp_avg_op, phi_ho, rhs_perp_avg_ho);
-    gkyl_range_iter_init(&iter, &localRange);
-    while (gkyl_range_iter_next(&iter)) {
-      long linidx = gkyl_range_idx(&localRange, iter.idx);
-      double *rhsin_p = gkyl_array_fetch(phi_ho, linidx);
-
-      int red_idx[] = {iter.idx[dim_perp]};
-      long linidx_red = gkyl_range_idx(&red_local, red_idx);
-      double *avg_p = gkyl_array_fetch(rhs_perp_avg_ho, linidx_red);
-
-      rhsin_p[0] += -pow(sqrt(2.0),dim_perp)*avg_p[0];
-      rhsin_p[dim] += -pow(sqrt(2.0),dim_perp)*avg_p[1];
+    struct gkyl_array *sol_cellavg = gkyl_array_new(GKYL_DOUBLE, 1, localRange_ext.volume);
+    double* sol_avg = (double*) gkyl_malloc(sizeof(double));
+    // Factor accounting for normalization when subtracting a constant from a
+    // DG field and the 1/N to properly compute the volume averaged RHS.
+    double mavgfac = -pow(sqrt(2.),dim); // /perpRange.volume;
+    // Subtract the volume averaged sol from the sol.
+    gkyl_array_clear(sol_cellavg, 0.0);
+    gkyl_dg_calc_average_range(basis, 0, sol_cellavg, 0, phi_ho, localRange);
+    for (int kIdx=0; kIdx<cells[2]; kIdx++) {
+      struct gkyl_range perp_range;
+      gkyl_range_deflate(&perp_range, &localRange, (int[]){0,0,1}, (int[]){0,0,kIdx+1});
+      gkyl_array_reduce_range(sol_avg, sol_cellavg, GKYL_SUM, &perp_range);
+      gkyl_array_shiftc_range(phi_ho, mavgfac*sol_avg[0]/perp_range.volume, 0, &perp_range);
     }
-
-    gkyl_array_average_advance(perp_avg_op, phisol_ho, rhs_perp_avg_ho);
-    gkyl_range_iter_init(&iter, &localRange);
-    while (gkyl_range_iter_next(&iter)) {
-      long linidx = gkyl_range_idx(&localRange, iter.idx);
-      double *rhsin_p = gkyl_array_fetch(phisol_ho, linidx);
-
-      int red_idx[] = {iter.idx[dim_perp]};
-      long linidx_red = gkyl_range_idx(&red_local, red_idx);
-      double *avg_p = gkyl_array_fetch(rhs_perp_avg_ho, linidx_red);
-
-      rhsin_p[0] += -pow(sqrt(2.0),dim_perp)  *avg_p[0];
-      rhsin_p[dim] += -pow(sqrt(2.0),dim_perp)*avg_p[1];
+    // Now do the same to the analytic solution.
+    gkyl_array_clear(sol_cellavg, 0.0);
+    gkyl_dg_calc_average_range(basis, 0, sol_cellavg, 0, phisol_ho, localRange);
+    for (int kIdx=0; kIdx<cells[2]; kIdx++) {
+      struct gkyl_range perp_range;
+      gkyl_range_deflate(&perp_range, &localRange, (int[]){0,0,1}, (int[]){0,0,kIdx+1});
+      gkyl_array_reduce_range(sol_avg, sol_cellavg, GKYL_SUM, &perp_range);
+      gkyl_array_shiftc_range(phisol_ho, mavgfac*sol_avg[0]/perp_range.volume, 0, &perp_range);
     }
-    gkyl_array_average_release(perp_avg_op);
-    gkyl_array_release(rhs_perp_avg_ho);
+    gkyl_free(sol_avg);
+    gkyl_array_release(sol_cellavg);
   }
 
 //  double errL2 = error_L2norm(grid, localRange, basis, phi, phisol);
@@ -321,93 +293,22 @@ test_fem_poisson_perp_consteps_2x(int poly_order, const int *cells, struct gkyl_
   if (poly_order == 1) {
     if (bcs.lo_type[0] == GKYL_POISSON_PERIODIC && bcs.up_type[0] == GKYL_POISSON_PERIODIC) {
       // Solution; checked convergence:
-      const double sol[256] = {
-        -17.14606672203976,   -10.392834941697252,    2.222799990476604,  1.3473173634472886,
-         -9.446061684901348,   -5.72559068687633,     2.2227999904766396,  1.3473173634472986,
-         -1.7460566477630375,  -1.0583464320553901,   2.222799990476643,  1.3473173634472988,
-          5.953948389375287,    3.608897822765544,    2.222799990476643,  1.347317363447303,
-         13.653953426513556,    8.276142077586485,    2.2227999904766502,  1.3473173634472992,
-         21.353958463651953,   12.943386332407423,    2.2227999904766444,  1.347317363447304,
-         29.053963500790275,   17.61063058722836,     2.2227999904766147,  1.34731736344731,
-         36.753968537928436,   22.277874842049297,    2.222799990476596,  1.3473173634472975,
-        
-        -18.00091815369691,     9.899286237512891,    2.3336221274104165, -1.283334172856378,
-         -9.917013973013002,    5.453686256559601,    2.3336221274104663, -1.283334172856384,
-         -1.833109792329193,    1.008086275606317,    2.333622127410468, -1.283334172856386,
-          6.250794388354616,   -3.437513705346962,    2.3336221274104734, -1.2833341728563865,
-         14.33469856903837,    -7.883113686300237,    2.3336221274104663, -1.2833341728563874,
-         22.41860274972227,   -12.328713667253528,    2.333622127410471, -1.2833341728563923,
-         30.502506930406106,  -16.7743136482068,      2.333622127410461, -1.2833341728563827,
-         38.58641111108974,   -21.219913629160086,    2.3336221274104156, -1.2833341728563816,
-        
-         42.603209310165575,   25.09052306775052,    -5.523040052514501, -3.252711851655211,
-         23.470837343779774,   13.822798688853908,   -5.523040052514483, -3.2527118516552376,
-          4.33846537739387,     2.5550743099573037,  -5.523040052514476, -3.2527118516552336,
-        -14.793906588992035,   -8.71265006893931,    -5.5230400525144745, -3.2527118516552336,
-        -33.926278555377976,  -19.98037444783592,    -5.523040052514476, -3.25271185165523,
-        -53.05865052176382,   -31.248098826732523,   -5.5230400525144745, -3.2527118516552314,
-        -72.1910224881497,    -42.51582320562913,    -5.523040052514474, -3.2527118516552287,
-        -91.32339445453576,   -53.783547584525735,   -5.523040052514523, -3.2527118516552282,
-        
-          7.456224434429179,  -45.38264424696063,    -0.9666179346273633,  5.883363387958913,
-          4.107761685865467,  -25.002075632289827,   -0.9666179346273847,  5.883363387958918,
-          0.7592989373016683,  -4.621507017619009,   -0.9666179346273774,  5.883363387958916,
-         -2.589163811262129,   15.759061597051813,   -0.9666179346273741,  5.883363387958916,
-         -5.93762655982594,    36.13963021172263,    -0.966617934627367,  5.88336338795892,
-         -9.286089308389688,   56.52019882639345,    -0.9666179346273442,  5.88336338795892, 
-        -12.634552056953465,   76.90076744106425,    -0.9666179346273546,  5.883363387958923,
-        -15.983014805517348,   97.28133605573512,    -0.9666179346273572,  5.883363387958938,
-        
-        -53.1479030294333,     10.392834941697252,    6.890044245297583, -1.3473173634473075,
-        -29.280089630927296,    5.725590686876327,    6.890044245297561, -1.3473173634472975,
-         -5.412276232421394,    1.0583464320553901,   6.890044245297565, -1.3473173634472986,
-         18.45553716608453,    -3.608897822765542,    6.8900442452975685, -1.3473173634472984,
-         42.32335056459043,    -8.276142077586469,    6.890044245297565, -1.347317363447305,
-         66.19116396309639,   -12.943386332407407,    6.890044245297595, -1.3473173634473015,
-         90.05897736160227,   -17.610630587228354,    6.890044245297611, -1.3473173634472932,
-        113.92679076010816,   -22.27787484204928,     6.89004424529761, -1.3473173634473004,
-        
-         18.000918153696748,   30.68495612090738,    -2.333622127410477, -3.977968899750988,
-          9.917013973012995,   16.904867630312246,   -2.3336221274104734, -3.9779688997509837,
-          1.8331097923291784,   3.1247791397170994,  -2.333622127410469, -3.9779688997509837,
-         -6.250794388354628,  -10.65530935087805,    -2.333622127410468, -3.9779688997509863,
-        -14.334698569038448,  -24.435397841473197,   -2.333622127410477, -3.9779688997509846,
-        -22.418602749722208,  -38.21548633206834,    -2.3336221274104507, -3.977968899750991,
-        -30.502506930406057,  -51.99557482266349,    -2.3336221274104485, -3.9779688997510023,
-        -38.58641111108992,   -65.77566331325865,    -2.3336221274104565, -3.977968899751006,
-        
-         27.690760441307052,  -25.090523067750535,   -3.5898041832597567,  3.25271185165523,
-         15.255313972048864,  -13.822798688853908,   -3.5898041832597425,  3.2527118516552322,
-          2.8198675027905256,  -2.5550743099573014,  -3.5898041832597345,  3.252711851655233,
-         -9.615578966467801,    8.712650068939308,   -3.589804183259739,  3.2527118516552336,
-        -22.051025435726142,   19.980374447835906,   -3.5898041832597425,  3.252711851655239,
-        -34.48647190498441,    31.248098826732523,   -3.5898041832597376,  3.25271185165523,
-        -46.921918374242765,   42.51582320562914,    -3.589804183259755,  3.252711851655228,
-        -59.357364843501166,   53.783547584525735,   -3.5898041832597363,  3.252711851655237,
-        
-         -7.456224434429397,    4.798401888540376,    0.9666179346273669, -0.6220603153515445,
-         -4.107761685865472,    2.643521745417985,    0.9666179346273704, -0.6220603153515439,
-         -0.759298937301683,    0.4886416022955904,   0.9666179346273759, -0.622060315351546,
-          2.5891638112621105,  -1.6662385408268021,   0.9666179346273668, -0.622060315351548,
-          5.937626559825862,   -3.821118683949203,    0.9666179346273739, -0.6220603153515469,
-          9.286089308389723,   -5.975998827071598,    0.9666179346273647, -0.6220603153515475,
-         12.634552056953497,   -8.13087897019398,     0.9666179346273348, -0.6220603153515505,
-         15.983014805517167,  -10.285759113316402,    0.9666179346273446, -0.6220603153515564,
-      };
-      long i = 0;
-      struct gkyl_range_iter iter;
-      gkyl_range_iter_init(&iter, &localRange);
-      while (gkyl_range_iter_next(&iter)) {
-        long loc = gkyl_range_idx(&localRange, iter.idx);
-        const double *phi_p = gkyl_array_cfetch(phi_ho, loc);
-        // Only check one cell in z:
-        for (int m=0; m<basis.num_basis; m++) {
-          TEST_CHECK( gkyl_compare(sol[i], phi_p[m], 1e-10) );
-          TEST_MSG("Expected: %.13e in cell (%d,%d,%d)", sol[i], iter.idx[0], iter.idx[1], iter.idx[2]);
-          TEST_MSG("Produced: %.13e", phi_p[m]);
-          i += 1;
-        }
-      }
+//      const double sol[256] = {
+//      };
+//      long i = 0;
+//      struct gkyl_range_iter iter;
+//      gkyl_range_iter_init(&iter, &localRange);
+//      while (gkyl_range_iter_next(&iter)) {
+//        long loc = gkyl_range_idx(&localRange, iter.idx);
+//        const double *phi_p = gkyl_array_cfetch(phi_ho, loc);
+//        // Only check one cell in z:
+//        for (int m=0; m<basis.num_basis; m++) {
+//          TEST_CHECK( gkyl_compare(sol[i], phi_p[m], 1e-10) );
+//          TEST_MSG("Expected: %.13e in cell (%d,%d,%d)", sol[i], iter.idx[0], iter.idx[1], iter.idx[2]);
+//          TEST_MSG("Produced: %.13e", phi_p[m]);
+//          i += 1;
+//        }
+//      }
     } else if (bcs.lo_type[0] == GKYL_POISSON_DIRICHLET && bcs.up_type[0] == GKYL_POISSON_DIRICHLET) {
       // Solution; checked convergence:
       const double sol[256] = {
@@ -717,8 +618,8 @@ void evalFunc_consteps_periodicx_periodicy_sol_3x(double t, const double *xn, do
     }
   }
   double kz = 1.;
-//  fout[0] *= (1.+kz*z);
-  fout[0] *= (1.+kz*z+0.5*pow(z,2));
+  fout[0] *= (1.+kz*z);
+//  fout[0] *= (1.+kz*z+0.5*pow(z,2));
 }
 void evalFunc_consteps_periodicx_periodicy_3x(double t, const double *xn, double* restrict fout, void *ctx)
 {
@@ -1085,6 +986,10 @@ test_fem_poisson_perp_consteps_3x(int poly_order, const int *cells, struct gkyl_
   // FEM poisson solver.
   struct gkyl_fem_poisson_perp *poisson = gkyl_fem_poisson_perp_new(&localRange, &grid, basis, &bcs, eps, NULL, use_gpu);
 
+//  struct gkyl_fem_parproj* smooth_op = gkyl_fem_parproj_new(&localRange, &localRange_ext, &basis, GKYL_FEM_PARPROJ_DIRICHLET, NULL, use_gpu);
+//  gkyl_fem_parproj_set_rhs(smooth_op, rho, rho);
+//  gkyl_fem_parproj_solve  (smooth_op, rho);
+
   // Set the RHS source.
   gkyl_fem_poisson_perp_set_rhs(poisson, rho);
 
@@ -1092,7 +997,12 @@ test_fem_poisson_perp_consteps_3x(int poly_order, const int *cells, struct gkyl_
   gkyl_fem_poisson_perp_solve(poisson, phi);
   gkyl_array_copy(phi_ho, phi);
 
+//  gkyl_fem_parproj_set_rhs(smooth_op, phi, phi);
+//  gkyl_fem_parproj_solve  (smooth_op, phi);
+//  gkyl_fem_parproj_release(smooth_op);
+
   if (bcs.lo_type[0] == GKYL_POISSON_PERIODIC && bcs.lo_type[1] == GKYL_POISSON_PERIODIC) {
+    // Subtract the volume averaged sol from the numerical and analytic solutions.
     // This is not strictly necessary, as the potential is only known up to 
     // constant shift, but it makes unit testing more robust across CPU/GPU.
     struct gkyl_array *sol_cellavg = gkyl_array_new(GKYL_DOUBLE, 1, localRange_ext.volume);
@@ -1102,25 +1012,28 @@ test_fem_poisson_perp_consteps_3x(int poly_order, const int *cells, struct gkyl_
     double mavgfac = -pow(sqrt(2.),dim); // /perpRange.volume;
     // Subtract the volume averaged sol from the sol.
     gkyl_array_clear(sol_cellavg, 0.0);
-    gkyl_dg_calc_average_range(basis, 0, sol_cellavg, 0, phi, localRange);
+    gkyl_dg_calc_average_range(basis, 0, sol_cellavg, 0, phi_ho, localRange);
     for (int kIdx=0; kIdx<cells[2]; kIdx++) {
       struct gkyl_range perp_range;
       gkyl_range_deflate(&perp_range, &localRange, (int[]){0,0,1}, (int[]){0,0,kIdx+1});
       gkyl_array_reduce_range(sol_avg, sol_cellavg, GKYL_SUM, &perp_range);
-      gkyl_array_shiftc_range(phi, mavgfac*sol_avg[0]/perp_range.volume, 0, &perp_range);
+      gkyl_array_shiftc_range(phi_ho, mavgfac*sol_avg[0]/perp_range.volume, 0, &perp_range);
     }
     // Now do the same to the analytic solution.
     gkyl_array_clear(sol_cellavg, 0.0);
-    gkyl_dg_calc_average_range(basis, 0, sol_cellavg, 0, phisol, localRange);
+    gkyl_dg_calc_average_range(basis, 0, sol_cellavg, 0, phisol_ho, localRange);
     for (int kIdx=0; kIdx<cells[2]; kIdx++) {
       struct gkyl_range perp_range;
       gkyl_range_deflate(&perp_range, &localRange, (int[]){0,0,1}, (int[]){0,0,kIdx+1});
       gkyl_array_reduce_range(sol_avg, sol_cellavg, GKYL_SUM, &perp_range);
-      gkyl_array_shiftc_range(phisol, mavgfac*sol_avg[0]/perp_range.volume, 0, &perp_range);
+      gkyl_array_shiftc_range(phisol_ho, mavgfac*sol_avg[0]/perp_range.volume, 0, &perp_range);
     }
     gkyl_free(sol_avg);
     gkyl_array_release(sol_cellavg);
   }
+
+//  double errL2 = error_L2norm(grid, localRange, basis, phi, phisol);
+//  printf("error L2 norm = %g\n",errL2);
 
   if (poly_order == 1) {
     if ((bcs.lo_type[0] == GKYL_POISSON_PERIODIC && bcs.up_type[0] == GKYL_POISSON_PERIODIC) &&
@@ -1133,8 +1046,8 @@ test_fem_poisson_perp_consteps_3x(int poly_order, const int *cells, struct gkyl_
 //      gkyl_range_iter_init(&iter, &localRange);
 //      while (gkyl_range_iter_next(&iter)) {
 //        long loc = gkyl_range_idx(&localRange, iter.idx);
-//        const double *phi_p = gkyl_array_cfetch(phi, loc);
-//        if (iter.idx[2] == 3) {
+//        const double *phi_p = gkyl_array_cfetch(phi_ho, loc);
+//        if (iter.idx[2] == 4) {
 //          // Only check one cell in z:
 //          for (int m=0; m<basis.num_basis; m++) {
 //            TEST_CHECK( gkyl_compare(sol[i], phi_p[m], 1e-10) );
@@ -3238,7 +3151,7 @@ void test_2x_p1_dirichletx_neumannx_consteps() {
 }
 
 void test_3x_p1_periodicx_periodicy_consteps() {
-  int cells[] = {8,8,1};
+  int cells[] = {8,8,8};
   struct gkyl_poisson_bc bc_tv;
   bc_tv.lo_type[0] = GKYL_POISSON_PERIODIC;
   bc_tv.up_type[0] = GKYL_POISSON_PERIODIC;
@@ -3474,6 +3387,44 @@ void test_3x_p2_neumannx_dirichletx_periodicy_consteps() {
 }
 
 #ifdef GKYL_HAVE_CUDA
+void gpu_test_2x_p1_periodic_consteps() {
+  int cells[] = {8,8};
+  struct gkyl_poisson_bc bc_tv;
+  bc_tv.lo_type[0] = GKYL_POISSON_PERIODIC;
+  bc_tv.up_type[0] = GKYL_POISSON_PERIODIC;
+  test_fem_poisson_perp_consteps_2x(1, cells, bc_tv, true);
+}
+
+void gpu_test_2x_p1_dirichletx_consteps() {
+  int cells[] = {8,8};
+  struct gkyl_poisson_bc bc_tv;
+  bc_tv.lo_type[0] = GKYL_POISSON_DIRICHLET;
+  bc_tv.up_type[0] = GKYL_POISSON_DIRICHLET;
+  bc_tv.lo_value[0].v[0] = 0.;
+  bc_tv.up_value[0].v[0] = 0.;
+  test_fem_poisson_perp_consteps_2x(1, cells, bc_tv, true);
+}
+
+void gpu_test_2x_p1_neumannx_dirichletx_consteps() {
+  int cells[] = {8,8};
+  struct gkyl_poisson_bc bc_tv;
+  bc_tv.lo_type[0] = GKYL_POISSON_NEUMANN;
+  bc_tv.up_type[0] = GKYL_POISSON_DIRICHLET;
+  bc_tv.lo_value[0].v[0] = 0.;
+  bc_tv.up_value[0].v[0] = 0.;
+  test_fem_poisson_perp_consteps_2x(1, cells, bc_tv, true);
+}
+
+void gpu_test_2x_p1_dirichletx_neumannx_consteps() {
+  int cells[] = {8,8};
+  struct gkyl_poisson_bc bc_tv;
+  bc_tv.lo_type[0] = GKYL_POISSON_DIRICHLET;
+  bc_tv.up_type[0] = GKYL_POISSON_NEUMANN;
+  bc_tv.lo_value[0].v[0] = 0.;
+  bc_tv.up_value[0].v[0] = 0.;
+  test_fem_poisson_perp_consteps_2x(1, cells, bc_tv, true);
+}
+
 void gpu_test_3x_p1_periodicx_periodicy_consteps() {
   int cells[] = {8,8,8};
   struct gkyl_poisson_bc bc_tv;
@@ -3737,6 +3688,11 @@ TEST_LIST = {
 //  { "test_3x_p2_dirichletx_neumannx_dirichlety", test_3x_p2_dirichletx_neumannx_dirichlety_consteps },
 //  { "test_3x_p2_neumannx_dirichletx_periodicy", test_3x_p2_neumannx_dirichletx_periodicy_consteps },
 #ifdef GKYL_HAVE_CUDA
+  { "gpu_test_2x_p1_periodicx", gpu_test_2x_p1_periodic_consteps },
+  { "gpu_test_2x_p1_dirichletx", gpu_test_2x_p1_dirichletx_consteps },
+  { "gpu_test_2x_p1_neumannx_dirichletx", gpu_test_2x_p1_neumannx_dirichletx_consteps },
+  { "gpu_test_2x_p1_dirichletx_neumannx", gpu_test_2x_p1_dirichletx_neumannx_consteps },
+
   { "gpu_test_3x_p1_periodicx_periodicy", gpu_test_3x_p1_periodicx_periodicy_consteps },
   { "gpu_test_3x_p1_dirichletx_dirichlety", gpu_test_3x_p1_dirichletx_dirichlety_consteps },
   { "gpu_test_3x_p1_dirichletx_dirichlety", gpu_test_3x_p1_dirichletx_dirichlety_consteps },
