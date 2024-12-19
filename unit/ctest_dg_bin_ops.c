@@ -1063,10 +1063,10 @@ test_inv_2d(int poly_order, bool use_gpu)
     long loc = gkyl_range_idx(&local, iter.idx);
 
     const double *iden_c = gkyl_array_cfetch(iden, loc);
-    printf("idx=%d,%d | iden_c = %g,%g,%g,%g\n",iter.idx[0],iter.idx[1],iden_c[0],iden_c[1],iden_c[2],iden_c[3]);
-//    for (int k=0; k<basis.num_basis; ++k) {
-//      TEST_CHECK( gkyl_compare(A_inv_expected[k], A_inv[k], 1e-12) );
-//    }
+    TEST_CHECK( gkyl_compare(pow(sqrt(2.0),ndim), iden_c[0], 1e-12) );
+    for (int k=1; k<basis.num_basis; ++k) {
+      TEST_CHECK( gkyl_compare(0.0, iden_c[k], 1e-12) );
+    }
   }
   gkyl_array_release(iden);
 
