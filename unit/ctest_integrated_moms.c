@@ -241,8 +241,6 @@ test_2x_option(bool use_gpu)
   gkyl_dg_updater_moment_gyrokinetic_advance(mcalc, &local, &confLocal, f, marr);
   gkyl_array_reduce_range(red_integ_diag_global, marr, GKYL_SUM, &confLocal);
 
-
-
   if (use_gpu)
     gkyl_cu_memcpy(avals_global, red_integ_diag_global, sizeof(double[2+vdim]), GKYL_CU_MEMCPY_D2H);
   else
