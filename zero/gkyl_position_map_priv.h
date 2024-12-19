@@ -300,6 +300,7 @@ find_B_field_extrema(struct gkyl_position_map *gpm)
       theta_extrema[extrema] = theta;
       bmag_extrema[extrema] = bmag_vals[i];
       extrema++;
+      continue;
     }
 
     // Minima

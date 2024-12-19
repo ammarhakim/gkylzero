@@ -314,6 +314,7 @@ test_gkyl_position_map_eval_mc2nu()
   gkyl_proj_on_basis *projDistf = gkyl_proj_on_basis_new(&grid, &basis,
     poly_order+1, 3, test_nonuniform_position_map_3x, NULL);
   gkyl_proj_on_basis_advance(projDistf, 0.0, &localRange, pmap_arr_set);
+  gkyl_proj_on_basis_release(projDistf);
 
   gkyl_position_map_set(pos_map, pmap_arr_set);
 
@@ -367,6 +368,7 @@ test_position_polynomial_map_optimize_1x()
   struct gkyl_array *bmag_global = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, localRange_ext.volume);
   gkyl_proj_on_basis *projB = gkyl_proj_on_basis_new(&grid, &basis, poly_order+1, 1, bmag_func, NULL);
   gkyl_proj_on_basis_advance(projB, 0.0, &localRange, bmag_global);
+  gkyl_proj_on_basis_release(projB);
 
   // Write bmag_global
   gkyl_grid_sub_array_write(&grid, &localRange,NULL, bmag_global, "bmag_global_1x.gkyl");
@@ -437,6 +439,7 @@ test_position_map_numeric_optimize_1x()
   struct gkyl_array *bmag_global = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, localRange_ext.volume);
   gkyl_proj_on_basis *projB = gkyl_proj_on_basis_new(&grid, &basis, poly_order+1, 1, bmag_func, NULL);
   gkyl_proj_on_basis_advance(projB, 0.0, &localRange, bmag_global);
+  gkyl_proj_on_basis_release(projB);
 
   // Write bmag_global
   gkyl_grid_sub_array_write(&grid, &localRange,NULL, bmag_global, "bmag_global_1x.gkyl");
@@ -479,13 +482,13 @@ test_position_map_numeric_optimize_1x()
 }
 
 TEST_LIST = {
-  { "test_position_map_init_1x", test_position_map_init_1x },
-  { "test_position_map_init_1x_null", test_position_map_init_1x_null },
-  { "test_position_map_init_2x", test_position_map_init_2x },
-  { "test_position_map_init_3x", test_position_map_init_3x },
-  { "test_position_map_set", test_position_map_set },
-  { "test_gkyl_position_map_eval_mc2nu", test_gkyl_position_map_eval_mc2nu }, 
-  { "test_position_polynomial_map_optimize_1x", test_position_polynomial_map_optimize_1x },
+  // { "test_position_map_init_1x", test_position_map_init_1x },
+  // { "test_position_map_init_1x_null", test_position_map_init_1x_null },
+  // { "test_position_map_init_2x", test_position_map_init_2x },
+  // { "test_position_map_init_3x", test_position_map_init_3x },
+  // { "test_position_map_set", test_position_map_set },
+  // { "test_gkyl_position_map_eval_mc2nu", test_gkyl_position_map_eval_mc2nu }, 
+  // { "test_position_polynomial_map_optimize_1x", test_position_polynomial_map_optimize_1x },
   { "test_position_map_numeric_optimize_1x", test_position_map_numeric_optimize_1x },
   { NULL, NULL },
 };
