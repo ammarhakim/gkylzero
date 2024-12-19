@@ -78,6 +78,20 @@ int gkyl_comm_array_allgather(struct gkyl_comm *comm,
   const struct gkyl_array *array_local, struct gkyl_array *array_global);
 
 /**
+ * Gather all local data on host into a global array on each process.
+ *
+ * @param comm Communicator
+ * @param local Local range for array
+ * @param global Global range for array
+ * @param array_local Local array
+ * @param array_global Global array
+ * @return error code: 0 for success
+ */
+int gkyl_comm_array_allgather_host(struct gkyl_comm *comm, 
+  const struct gkyl_range *local, const struct gkyl_range *global,
+  const struct gkyl_array *array_local, struct gkyl_array *array_global);
+
+/**
  * Broadcast an array to other processes.
  *
  * @param comm Communicator.
