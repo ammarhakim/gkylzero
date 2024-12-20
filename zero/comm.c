@@ -54,6 +54,15 @@ gkyl_comm_array_allgather(struct gkyl_comm *pcomm,
 }
 
 int
+gkyl_comm_array_allgather_host(struct gkyl_comm *pcomm, 
+  const struct gkyl_range *local, const struct gkyl_range *global,
+  const struct gkyl_array *array_local, struct gkyl_array *array_global)
+{
+  struct gkyl_comm_priv *comm = container_of(pcomm, struct gkyl_comm_priv, pub_comm);  
+  return comm->gkyl_array_allgather_host(pcomm, local, global, array_local, array_global);
+}
+
+int
 gkyl_comm_array_bcast(struct gkyl_comm *pcomm, 
   const struct gkyl_array *array_send, struct gkyl_array *array_recv, int root)
 {

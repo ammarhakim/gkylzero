@@ -15,16 +15,13 @@ extern "C" {
 __global__ static void
 gkyl_rad_gyrokinetic_drag_set_auxfields_cu_kernel(const struct gkyl_dg_eqn *eqn, 
   const struct gkyl_array* nvnu_surf, const struct gkyl_array* nvnu, 
-  const struct gkyl_array* nvsqnu_surf, const struct gkyl_array* nvsqnu, const struct gkyl_array* vtsq,
-  const struct gkyl_array* vtsq_min_normalized)
+  const struct gkyl_array* nvsqnu_surf, const struct gkyl_array* nvsqnu)
 {
   struct dg_rad_gyrokinetic_drag *grad = container_of(eqn, struct dg_rad_gyrokinetic_drag, eqn);
   grad->auxfields.nvnu_surf = nvnu_surf;
   grad->auxfields.nvnu = nvnu;
   grad->auxfields.nvsqnu_surf = nvsqnu_surf;
   grad->auxfields.nvsqnu = nvsqnu;
-  grad->auxfields.vtsq = vtsq;
-  grad->auxfields.vtsq_min_normalized = vtsq_min_normalized;
 }
 
 // Host-side wrapper for set_auxfields_cu_kernel
@@ -33,7 +30,7 @@ gkyl_rad_gyrokinetic_drag_set_auxfields_cu(const struct gkyl_dg_eqn *eqn, struct
 {
   gkyl_rad_gyrokinetic_drag_set_auxfields_cu_kernel<<<1,1>>>(eqn, 
     auxin.nvnu_surf->on_dev, auxin.nvnu->on_dev, 
-    auxin.nvsqnu_surf->on_dev, auxin.nvsqnu->on_dev, auxin.vtsq->on_dev, auxin.vtsq_min_normalized->on_dev);
+    auxin.nvsqnu_surf->on_dev, auxin.nvsqnu->on_dev);
 }
 
 // CUDA kernel to set device pointers to range object and rad_gyrokinetic_drag kernel function
@@ -46,7 +43,6 @@ dg_rad_gyrokinetic_drag_set_cu_dev_ptrs(struct dg_rad_gyrokinetic_drag *grad, en
   grad->auxfields.nvnu = 0; 
   grad->auxfields.nvsqnu_surf = 0; 
   grad->auxfields.nvsqnu = 0;
-  grad->auxfields.vtsq = 0; 
 
   grad->eqn.surf_term = surf;
   grad->eqn.boundary_surf_term = boundary_surf;

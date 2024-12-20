@@ -774,6 +774,7 @@ mpi_comm_new(const struct gkyl_mpi_comm_inp *inp,
   mpi->priv_comm.gkyl_array_write = array_write;
   mpi->priv_comm.gkyl_array_read = array_read;
   mpi->priv_comm.gkyl_array_allgather = array_allgather;
+  mpi->priv_comm.gkyl_array_allgather_host = array_allgather;
   
   mpi->priv_comm.get_rank = get_rank;
   mpi->priv_comm.get_size = get_size;
