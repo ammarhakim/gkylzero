@@ -177,7 +177,6 @@ gkyl_position_map_free(const struct gkyl_ref_count *ref)
 {
   struct gkyl_position_map *gpm = container_of(ref, struct gkyl_position_map, ref_count);
   gkyl_array_release(gpm->mc2nu);
-  gkyl_array_release(gpm->bmag_ctx->bmag);
   gkyl_free(gpm->bmag_ctx);
   gkyl_free(gpm->constB_ctx);
   gkyl_free(gpm);
