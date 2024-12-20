@@ -1,24 +1,20 @@
-print(GKYL_OUT_PREFIX)
-
--- Sod-type shock tube test, using higher-order (Roe) fluxes, for the 5-moment (Euler) equations.
+-- Sod-type shock tube test, using higher-order (Roe) fluxes, for the isothermal Euler equations.
 -- Input parameters match the initial conditions in Section 2.6.2, with the contact discontinuity placed at x = 0.75 rather than x = 0.5, from the thesis:
 -- A. Hakim (2006), "High Resolution Wave Propagation Schemes for Two-Fluid Plasma Simulations",
 -- PhD Thesis, University of Washington.
 -- https://www.aa.washington.edu/sites/aa/files/research/cpdlab/docs/PhDthesis_hakim.pdf
 
 local Moments = G0.Moments
-local Euler = G0.Moments.Eq.Euler
+local IsoEuler = G0.Moments.Eq.IsoEuler
 
 -- Physical constants (using normalized code units).
-gas_gamma = 1.4 -- Adiabatic index.
+cs = 1.0 -- Fluid sound speed.
 
 rhol = 3.0 -- Left fluid mass density.
-ul = 0.0 -- Left fluid velocity.
-pl = 3.0 -- Left fluid pressure.
+ul = 0.5 -- Left fluid velocity.
 
 rhor = 1.0 -- Right fluid mass density.
 ur = 0.0 -- Right fluid velocity.
-pr = 1.0 -- Right fluid pressure.
 
 -- Simulation parameters.
 Nx = 512 -- Cell count (x-direction).
@@ -40,8 +36,8 @@ momentApp = Moments.App.new {
   integratedMomentCalcs = integrated_mom_calcs,
   dtFailureTol = dt_failure_tol,
   numFailuresMax = num_failures_max,
-  lower = { 0.25 },
-  upper = { 0.25 + Lx },
+  lower = { 0.0 },
+  upper = { Lx },
   cells = { Nx },
   cflFrac = cfl_frac,
     
@@ -50,7 +46,7 @@ momentApp = Moments.App.new {
   
   -- Fluid.
   fluid = Moments.Species.new {
-    equation = Euler.new { gasGamma = gas_gamma },
+    equation = IsoEuler.new { vThermal = cs },
     
     -- Initial conditions function.
     init = function (t, xn)
@@ -58,24 +54,20 @@ momentApp = Moments.App.new {
 
       local rho = 0.0
       local u = 0.0
-      local p = 0.0
 
-      if x < 0.75 then
+      if x < 0.5 then
         rho = rhol -- Fluid mass density (left).
         u = ul -- Fluid velocity (left).
-        p = pl -- Fluid pressure (left).
       else
         rho = rhor -- Fluid mass density (right).
         u = ur -- Fluid velocity (right).
-        p = pr -- Fluid pressure (right).
       end
   
       local mom_x = rho * u -- Fluid momentum density (x-direction).
       local mom_y = 0.0 -- Fluid momentum density (y-direction).
       local mom_z = 0.0 -- Fluid momentum density (z-direction).
-      local Etot = (p / (gas_gamma - 1.0)) + (0.5 * rho * u * u) -- Fluid total energy density.
-      
-      return rho, mom_x, mom_y, mom_z, Etot
+
+      return rho, mom_x, mom_y, mom_z
     end,
   
     evolve = true, -- Evolve species?
