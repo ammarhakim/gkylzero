@@ -57,6 +57,7 @@ ifeq ($(CC), nvcc)
               CUDA_LIBS =
        endif
        CUDA_LIBS += -lcublas -lcusparse -lcusolver
+       SQL_CFLAGS = --forward-unknown-to-host-compiler -fPIC
 endif
 
 # Directory for storing shared data, like ADAS reaction rates and radiation fits
@@ -122,7 +123,11 @@ ifeq (${USE_LUA}, 1)
 	USING_LUA = yes
 	LUA_INC_DIR = ${CONF_LUA_INC_DIR}
 	LUA_LIB_DIR = ${CONF_LUA_LIB_DIR}
+ifdef USING_NVCC
+	LUA_RPATH = -Xlinker "-rpath,${CONF_LUA_LIB_DIR}"
+else
 	LUA_RPATH = -Wl,-rpath,${CONF_LUA_LIB_DIR}
+endif
 	LUA_LIBS = -l${CONF_LUA_LIB}
 	CFLAGS += -DGKYL_HAVE_LUA
 endif
@@ -207,7 +212,12 @@ EXEC_RPATH =
 
 # Rpath for use in gkyl exectuable
 G0_LIB_DIR = ${INSTALL_PREFIX}/gkylzero/lib
-G0_RPATH = -Wl,-rpath,${G0_LIB_DIR}
+ifdef USING_NVCC
+	G0_RPATH = -Xlinker "-rpath,${G0_LIB_DIR}"
+else
+	G0_RPATH = -Wl,-rpath,${G0_LIB_DIR}
+endif
+
 
 # Build commands for C source
 $(BUILD_DIR)/%.c.o: %.c
