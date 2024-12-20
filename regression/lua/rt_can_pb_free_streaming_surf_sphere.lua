@@ -116,7 +116,7 @@ vlasovApp = Vlasov.App.new {
           return metric_det * n -- Total number density.
         end,
         temperatureInit = function (t, xn)
-          return T0 -- Total temperature.
+          return T0 -- Isotropic temperature.
         end,
         driftVelocityInit = function (t, xn)
           return V_theta_drift, V_phi_drift -- Total drift velocity.

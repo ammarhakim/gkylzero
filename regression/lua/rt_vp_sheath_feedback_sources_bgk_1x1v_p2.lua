@@ -88,7 +88,7 @@ vlasovApp = Vlasov.App.new {
           return n0 -- Electron total number density.
         end,
         temperatureInit = function (t, xn)
-          return Te -- Electron total temperature.
+          return Te -- Electron isotropic temperature.
         end,
         driftVelocityInit = function (t, xn)
           return Vx_drift_elc -- Electron drift velocity.
@@ -120,7 +120,7 @@ vlasovApp = Vlasov.App.new {
             return n
           end,
           temperatureInit = function (t, xn)
-            return Te -- Electron source total temperature.
+            return Te -- Electron source isotropic temperature.
           end,
           driftVelocityInit = function (t, xn)
             return Vx_drift_elc -- Electron source drift velocity.
@@ -176,7 +176,7 @@ vlasovApp = Vlasov.App.new {
           return n0 -- Ion total number density.
         end,
         temperatureInit = function (t, xn)
-          return Ti -- Ion total temperature.
+          return Ti -- Ion isotropic temperature.
         end,
         driftVelocityInit = function (t, xn)
           return Vx_drift_ion -- Ion drift velocity.
@@ -208,7 +208,7 @@ vlasovApp = Vlasov.App.new {
             return n
           end,
           temperatureInit = function (t, xn)
-            return Ti -- Ion source total temperature.
+            return Ti -- Ion source isotropic temperature.
           end,
           driftVelocityInit = function (t, xn)
             return Vx_drift_ion -- Ion source drift velocity.

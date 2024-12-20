@@ -81,10 +81,10 @@ pkpmApp = PKPM.App.new {
       
       if math.abs(x) < 0.5 then
         F0 = (nl / math.sqrt(2.0 * pi * Tl * Tl)) * (math.exp(-(vx * vx) / (2.0 * Tl * Tl))) -- Distribution function (F0, left).
-        T = Tl -- Total temperature (left).
+        T = Tl -- Isotropic temperature (left).
       else
         F0 = (nr / math.sqrt(2.0 * pi * Tr * Tr)) * (math.exp(-(vx * vx) / (2.0 * Tr * Tr))) -- Distribution function (F0, right).
-        T = Tr -- Total temperature (right).
+        T = Tr -- Isotropic temperature (right).
       end
 
       local G = (T * T) * F0 -- Distribution function (G).

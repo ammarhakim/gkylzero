@@ -146,9 +146,9 @@ vlasovApp = Vlasov.App.new {
 
           local T = 0.0
           if r < midplane then
-            T = Tl -- Total temperature (left/inner).
+            T = Tl -- Isotropic temperature (left/inner).
           else
-            T = Tr -- Total temperature (right/outer).
+            T = Tr -- Isotropic temperature (right/outer).
           end
 
           return T

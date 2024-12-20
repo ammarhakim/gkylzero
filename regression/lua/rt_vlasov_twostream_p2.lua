@@ -85,7 +85,7 @@ vlasovApp = Vlasov.App.new {
           return n
         end,
         temperatureInit = function (t, xn)
-          return T -- Total temperature.
+          return T -- Isotropic temperature.
         end,
         driftVelocityInit = function (t, xn)
           return Vx_drift -- Total left-going drift velocity.
@@ -103,7 +103,7 @@ vlasovApp = Vlasov.App.new {
           return n
         end,
         temperatureInit = function (t, xn)
-          return T -- Total temperature.
+          return T -- Isotropic temperature.
         end,
         driftVelocityInit = function (t, xn)
           return -Vx_drift -- Total right-going drift velocity.

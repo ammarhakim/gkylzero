@@ -111,9 +111,9 @@ gyrokineticApp = Gyrokinetic.App.new {
         local T = 0.0
 
         if math.abs(z) < 0.5 then
-          T = Tl -- Total temperature (left).
+          T = Tl -- Isotropic temperature (left).
         else
-          T = Tr -- Total temperature (right).
+          T = Tr -- Isotropic temperature (right).
         end
 
         return T

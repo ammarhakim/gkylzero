@@ -165,13 +165,13 @@ evalTempInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fou
   double T = 0.0;
 
   if (x < 0.5) {
-    T = Tl; // Total temperature (left).
+    T = Tl; // Isotropic temperature (left).
   }
   else {
-    T = Tr; // Total temperature (right).
+    T = Tr; // Isotropic temperature (right).
   }
 
-  // Set total temperature.
+  // Set isotropic temperature.
   fout[0] = T;
 }
 

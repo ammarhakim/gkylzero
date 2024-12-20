@@ -130,11 +130,11 @@ evalDistInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fou
 
   if (fabs(vx) < 1.0) {
     F0 = 0.5 * n0; // Distribution function (F0, low velocity).
-    T = 0.5 * T0; // Total temperature (low velocity).
+    T = 0.5 * T0; // Isotropic temperature (low velocity).
   }
   else {
     F0 = 0.0; // Distribution function (F0, high velocity).
-    T = 0.0; // Total temperature (high velocity).
+    T = 0.0; // Isotropic temperature (high velocity).
   }
 
   double G = (T0 * T0) * F0; // Distribution function (G).

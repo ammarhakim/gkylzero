@@ -165,9 +165,9 @@ gyrokineticApp = Gyrokinetic.App.new {
         local T = 0.0
 
         if x < xmu_src + 3.0 * xsigma_src then
-          T = (5.0 / 4.0) * Te -- Electron total temperature (left).
+          T = (5.0 / 4.0) * Te -- Electron isotropic temperature (left).
         else
-          T = 0.5 * Te -- Electron total temperature (right).
+          T = 0.5 * Te -- Electron isotropic temperature (right).
         end
 
         return T
@@ -205,12 +205,12 @@ gyrokineticApp = Gyrokinetic.App.new {
             local T = 0.0
 
             if x < xmu_src + 3.0 * xsigma_src then
-              T = T_src -- Electron source total temperature (left).
+              T = T_src -- Electron source isotropic temperature (left).
             else
-              T = (3.0 / 8.0) * T_src -- Electron source total temperature (right).
+              T = (3.0 / 8.0) * T_src -- Electron source isotropic temperature (right).
             end
 
-            return T -- Electron source total temperature.
+            return T -- Electron source isotropic temperature.
           end,
           parallelVelocityInit = function (t, xn)
             return 0.0 -- Electron source parallel velocity.
@@ -296,9 +296,9 @@ gyrokineticApp = Gyrokinetic.App.new {
         local T = 0.0
 
         if x < xmu_src + 3.0 * xsigma_src then
-          T = (5.0 / 4.0) * Ti -- Ion total temperature (left).
+          T = (5.0 / 4.0) * Ti -- Ion isotropic temperature (left).
         else
-          T = 0.5 * Ti -- Ion total temperature (right).
+          T = 0.5 * Ti -- Ion isotropic temperature (right).
         end
 
         return T
@@ -336,12 +336,12 @@ gyrokineticApp = Gyrokinetic.App.new {
             local T = 0.0
 
             if x < xmu_src + 3.0 * xsigma_src then
-              T = T_src -- Ion source total temperature (left).
+              T = T_src -- Ion source isotropic temperature (left).
             else
-              T = (3.0 / 8.0) * T_src -- Ion source total temperature (right).
+              T = (3.0 / 8.0) * T_src -- Ion source isotropic temperature (right).
             end
 
-            return T -- Ion source total temperature.
+            return T -- Ion source isotropic temperature.
           end,
           parallelVelocityInit = function (t, xn)
             return 0.0 -- Ion source parallel velocity.

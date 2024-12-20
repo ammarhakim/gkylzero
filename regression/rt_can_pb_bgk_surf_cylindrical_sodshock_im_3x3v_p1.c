@@ -202,13 +202,13 @@ evalTempInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fou
   double T = 0.0;
 
   if (r < midplane) {
-    T = Tl; // Total temperature (left/inner).
+    T = Tl; // Isotropic temperature (left/inner).
   }
   else {
-    T = Tr; // Total temperature (right/outer).
+    T = Tr; // Isotropic temperature (right/outer).
   }
 
-  // Set total temperature.
+  // Set isotropic temperature.
   fout[0] = T;
 }
 

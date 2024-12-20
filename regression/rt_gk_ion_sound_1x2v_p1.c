@@ -172,7 +172,7 @@ evalElcTempInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT 
 
   double Te = app->Te;
 
-  // Set electron total temperature.
+  // Set electron isotropic temperature.
   fout[0] = Te;
 }
 
@@ -206,7 +206,7 @@ evalIonTempInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT 
 
   double Ti = app->Ti;
 
-  // Set ion total temperature.
+  // Set ion isotropic temperature.
   fout[0] = Ti;
 }
 
@@ -453,7 +453,7 @@ main(int argc, char **argv)
 
     .geometry = {
       .geometry_id = GKYL_MAPC2P,
-      .world = { 0.0, 0.0, 0.0 },
+      .world = { 0.0, 0.0 },
 
       .mapc2p = mapc2p,
       .c2p_ctx = &ctx,

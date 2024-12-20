@@ -108,7 +108,7 @@ gyrokineticApp = Gyrokinetic.App.new {
         return n
       end,
       temperatureInit = function (t, xn)
-        return Ti -- Ion total temperature.
+        return Ti -- Ion isotropic temperature.
       end,
       parallelVelocityInit = function (t, xn)
         return 0.0 -- Ion parallel velocity.

@@ -135,7 +135,7 @@ evalDistInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fou
   double T0 = app->T0;
 
   double F0 = (n0 / sqrt(2.0 * pi * T0 * T0)) * (exp(-(vx * vx) / (2.0 * T0 * T0))); // Distribution function (F0).
-  double T = T0; // Total temperature.
+  double T = T0; // Isotropic temperature.
 
   double G = (T * T) * F0; // Distribution function (G).
 

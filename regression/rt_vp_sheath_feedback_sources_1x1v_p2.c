@@ -156,7 +156,7 @@ evalElcTempInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT 
 
   double Te = app->Te;
 
-  // Set electron total temperature..
+  // Set electron isotropic temperature..
   fout[0] = Te;
 }
 
@@ -199,7 +199,7 @@ evalElcSourceTempInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RES
 
   double Te = app->Te;
 
-  // Set electron source total temperature..
+  // Set electron source isotropic temperature..
   fout[0] = Te;
 }
 
@@ -232,7 +232,7 @@ evalIonTempInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT 
 
   double Ti = app->Ti;
 
-  // Set ion total temperature..
+  // Set ion isotropic temperature..
   fout[0] = Ti;
 }
 
@@ -275,7 +275,7 @@ evalIonSourceTempInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RES
 
   double Ti = app->Ti;
 
-  // Set ion source total temperature.
+  // Set ion source isotropic temperature.
   fout[0] = Ti;
 }
 

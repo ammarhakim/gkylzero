@@ -260,13 +260,13 @@ evalElcTempInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT 
   double T = 0.0;
 
   if (x < xmu_src + 3.0 * xsigma_src) {
-    T = (5.0 / 4.0) * Te; // Electron total temperature (left).
+    T = (5.0 / 4.0) * Te; // Electron isotropic temperature (left).
   }
   else {
-    T = 0.5 * Te; // Electron total temperature (right).
+    T = 0.5 * Te; // Electron isotropic temperature (right).
   }
 
-  // Set electron total temperature.
+  // Set electron isotropic temperature.
   fout[0] = T;
 }
 
@@ -317,13 +317,13 @@ evalElcSourceTempInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RES
   double T = 0.0;
 
   if (x < xmu_src + 3.0 * xsigma_src) {
-    T = T_src; // Electron source total temperature (left).
+    T = T_src; // Electron source isotropic temperature (left).
   }
   else {
-    T = (3.0 / 8.0) * T_src; // Electron source total temperature (right).
+    T = (3.0 / 8.0) * T_src; // Electron source isotropic temperature (right).
   }
 
-  // Set electron source total temperature.
+  // Set electron source isotropic temperature.
   fout[0] = T;
 }
 
@@ -389,13 +389,13 @@ evalIonTempInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT 
   double T = 0.0;
 
   if (x < xmu_src + 3.0 * xsigma_src) {
-    T = (5.0 / 4.0) * Ti; // Ion total temperature (left).
+    T = (5.0 / 4.0) * Ti; // Ion isotropic temperature (left).
   }
   else {
-    T = 0.5 * Ti; // Ion total temperature (right).
+    T = 0.5 * Ti; // Ion isotropic temperature (right).
   }
 
-  // Set ion total temperature.
+  // Set ion isotropic temperature.
   fout[0] = T;
 }
 
@@ -446,13 +446,13 @@ evalIonSourceTempInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RES
   double T = 0.0;
 
   if (x < xmu_src + 3.0 * xsigma_src) {
-    T = T_src; // Ion source total temperature (left).
+    T = T_src; // Ion source isotropic temperature (left).
   }
   else {
-    T = (3.0 / 8.0) * T_src; // Ion source total temperature (right).
+    T = (3.0 / 8.0) * T_src; // Ion source isotropic temperature (right).
   }
 
-  // Set ion source total temperature.
+  // Set ion source isotropic temperature.
   fout[0] = T;
 }
 
@@ -785,7 +785,7 @@ main(int argc, char **argv)
 
     .geometry = {
       .geometry_id = GKYL_MAPC2P,
-      .world = { 0.0, 0.0, 0.0 },
+      .world = { 0.0 },
 
       .mapc2p = mapc2p,
       .c2p_ctx = &ctx,

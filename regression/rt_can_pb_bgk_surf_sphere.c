@@ -154,7 +154,7 @@ evalTempInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fou
 
   double T0 = app->T0;
 
-  // Set total temperature.
+  // Set isotropic temperature.
   fout[0] = T0;
 }
 

@@ -147,11 +147,11 @@ evalDistInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fou
 
   if (fabs(x) < 0.5) {
     F0 = (nl / sqrt(2.0 * pi * Tl * Tl)) * (exp(-(vx * vx) / (2.0 * Tl * Tl))); // Distribution function (F0, left).
-    T = Tl; // Total temperature (left).
+    T = Tl; // Isotropic temperature (left).
   }
   else {
     F0 = (nr / sqrt(2.0 * pi * Tr * Tr)) * (exp(-(vx * vx) / (2.0 * Tr * Tr))); // Distribution function (F0, right).
-    T = Tr; // Total temperature (right).
+    T = Tr; // Isotropic temperature (right).
   }
 
   double G = (T * T) * F0; // Distribution function (G).

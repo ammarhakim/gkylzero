@@ -95,9 +95,9 @@ vlasovApp = Vlasov.App.new {
 
           local T = 0.0
           if x < 0.5 then
-            T = Tl -- Total temperature (left).
+            T = Tl -- Isotropic temperature (left).
           else
-            T = Tr -- Total temperature (right).
+            T = Tr -- Isotropic temperature (right).
           end
 
           return T

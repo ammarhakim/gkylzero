@@ -136,9 +136,9 @@ vlasovApp = Vlasov.App.new {
 
           local T = 0.0
           if math.abs(theta - midplane) < theta_loc then
-            T = Tl -- Total temperature (left/inner).
+            T = Tl -- Isotropic temperature (left/inner).
           else
-            T = Tr -- Total temperature (right/outer).
+            T = Tr -- Isotropic temperature (right/outer).
           end
 
           return T

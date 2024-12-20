@@ -75,7 +75,7 @@ pkpmApp = PKPM.App.new {
       local vx = xn[2]
 
       local F0 = (n0 / math.sqrt(2.0 * pi * T0 * T0)) * (math.exp(-(vx * vx) / (2.0 * T0 * T0))) -- Distribution function (F0).
-      local T = T0 -- Total temperature.
+      local T = T0 -- Isotropic temperature.
 
       local G = (T * T) * F0 -- Distribution function (G).
       
