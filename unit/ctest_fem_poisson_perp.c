@@ -261,7 +261,7 @@ test_fem_poisson_perp_consteps_2x(int poly_order, const int *cells, struct gkyl_
     // This is not strictly necessary, as the potential is only known up to 
     // constant shift, but it makes unit testing more robust across CPU/GPU.
     struct gkyl_array *sol_cellavg = gkyl_array_new(GKYL_DOUBLE, 1, localRange_ext.volume);
-    double* sol_avg = (double*) gkyl_malloc(sizeof(double));
+    double sol_avg[1];
     // Factor accounting for normalization when subtracting a constant from a
     // DG field and the 1/N to properly compute the volume averaged RHS.
     double mavgfac = -pow(sqrt(2.),dim); // /perpRange.volume;
@@ -283,7 +283,6 @@ test_fem_poisson_perp_consteps_2x(int poly_order, const int *cells, struct gkyl_
       gkyl_array_reduce_range(sol_avg, sol_cellavg, GKYL_SUM, &perp_range);
       gkyl_array_shiftc_range(phisol_ho, mavgfac*sol_avg[0]/perp_range.volume, 0, &perp_range);
     }
-    gkyl_free(sol_avg);
     gkyl_array_release(sol_cellavg);
   }
 
@@ -1006,7 +1005,7 @@ test_fem_poisson_perp_consteps_3x(int poly_order, const int *cells, struct gkyl_
     // This is not strictly necessary, as the potential is only known up to 
     // constant shift, but it makes unit testing more robust across CPU/GPU.
     struct gkyl_array *sol_cellavg = gkyl_array_new(GKYL_DOUBLE, 1, localRange_ext.volume);
-    double* sol_avg = (double*) gkyl_malloc(sizeof(double));
+    double sol_avg[1];
     // Factor accounting for normalization when subtracting a constant from a
     // DG field and the 1/N to properly compute the volume averaged RHS.
     double mavgfac = -pow(sqrt(2.),dim); // /perpRange.volume;
@@ -1028,7 +1027,6 @@ test_fem_poisson_perp_consteps_3x(int poly_order, const int *cells, struct gkyl_
       gkyl_array_reduce_range(sol_avg, sol_cellavg, GKYL_SUM, &perp_range);
       gkyl_array_shiftc_range(phisol_ho, mavgfac*sol_avg[0]/perp_range.volume, 0, &perp_range);
     }
-    gkyl_free(sol_avg);
     gkyl_array_release(sol_cellavg);
   }
 
