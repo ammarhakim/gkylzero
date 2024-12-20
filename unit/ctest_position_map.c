@@ -481,6 +481,71 @@ test_position_map_numeric_optimize_1x()
   gkyl_array_release(bmag_global);
 }
 
+
+void
+test_position_map_numeric_calculate_1x()
+{
+  int cells[] = {64};
+  int poly_order = 1;
+  double lower[] = {-M_PI+1e-2}, upper[] = {M_PI-1e-2};
+  int dim = sizeof(lower)/sizeof(lower[0]);
+  // Grids.
+  struct gkyl_rect_grid grid;
+  gkyl_rect_grid_init(&grid, dim, lower, upper, cells);
+  // Ranges
+  int ghost[] = { 1, 1 };
+  struct gkyl_range localRange, localRange_ext; // local, local-ext ranges.
+  gkyl_create_grid_ranges(&grid, ghost, &localRange_ext, &localRange);
+  
+  // Basis functions.
+  struct gkyl_basis basis;
+  gkyl_cart_modal_serendip(&basis, dim, poly_order);
+  struct gkyl_position_map_inp pos_map_inp = {
+    .id = GKYL_PMAP_UNIFORM_B_NUMERIC,
+    .map_strength = 1.0,
+  };
+
+  struct gkyl_position_map *pos_map = gkyl_position_map_new(pos_map_inp,\
+    grid, localRange, localRange_ext, localRange, localRange_ext, basis);
+
+  // Project bmag_func onto bmag_global
+  struct gkyl_array *bmag_global = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, localRange_ext.volume);
+  gkyl_proj_on_basis *projB = gkyl_proj_on_basis_new(&grid, &basis, poly_order+1, 1, bmag_func, NULL);
+  gkyl_proj_on_basis_advance(projB, 0.0, &localRange, bmag_global);
+  gkyl_proj_on_basis_release(projB);
+
+  // Write bmag_global
+  gkyl_grid_sub_array_write(&grid, &localRange,NULL, bmag_global, "bmag_global_1x.gkyl");
+
+  pos_map->bmag_ctx->crange_global = &localRange;
+  pos_map->bmag_ctx->cbasis = &basis;
+  pos_map->bmag_ctx->cgrid = &grid;
+  pos_map->bmag_ctx->bmag = gkyl_array_acquire(bmag_global);
+
+  pos_map->constB_ctx->psi = 0.5;
+  pos_map->constB_ctx->psi_min = 0.4;
+  pos_map->constB_ctx->psi_max = 0.6;
+  pos_map->constB_ctx->alpha = 0.0;
+  pos_map->constB_ctx->alpha_min = -0.1;
+  pos_map->constB_ctx->alpha_max = 0.1;
+  pos_map->constB_ctx->theta_max = upper[0];
+  pos_map->constB_ctx->theta_min = lower[0];
+  pos_map->constB_ctx->map_x_backup = test_identity_position_map;
+  pos_map->constB_ctx->map_x_ctx_backup = NULL;
+  pos_map->constB_ctx->map_y_backup = test_identity_position_map;
+  pos_map->constB_ctx->map_y_ctx_backup = NULL;
+  pos_map->constB_ctx->N_theta_boundaries = cells[0]+1;
+
+  gkyl_position_map_optimize(pos_map);
+
+  double theta_map = 1.0;
+  pos_map->map_z(0.0, &theta_map, &theta_map, pos_map->map_z_ctx);
+  TEST_ASSERT( gkyl_compare(theta_map, 1.489408, 1e-5) );
+
+  gkyl_position_map_release(pos_map);
+  gkyl_array_release(bmag_global);
+}
+
 TEST_LIST = {
   { "test_position_map_init_1x", test_position_map_init_1x },
   { "test_position_map_init_1x_null", test_position_map_init_1x_null },
@@ -490,5 +555,6 @@ TEST_LIST = {
   { "test_gkyl_position_map_eval_mc2nu", test_gkyl_position_map_eval_mc2nu }, 
   { "test_position_polynomial_map_optimize_1x", test_position_polynomial_map_optimize_1x },
   { "test_position_map_numeric_optimize_1x", test_position_map_numeric_optimize_1x },
+  { "test_position_map_numeric_calculate_1x", test_position_map_numeric_calculate_1x },
   { NULL, NULL },
 };

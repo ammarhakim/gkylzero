@@ -65,6 +65,7 @@ struct gkyl_position_map_const_B_ctx {
   int num_extrema;
   double theta_extrema[16];
   double bmag_extrema[16];
+  double dB_cell;
 };
 
 

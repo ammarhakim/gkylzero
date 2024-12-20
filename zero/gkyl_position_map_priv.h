@@ -341,6 +341,16 @@ find_B_field_extrema(struct gkyl_position_map *gpm)
     gpm->constB_ctx->theta_extrema[i] = theta_extrema[i];
     gpm->constB_ctx->bmag_extrema[i] = bmag_extrema[i];
   }
+
+  double B_total_change = 0.0; // Total change in magnetic field
+  for (int i = 1; i < extrema; i++)
+  {
+    B_total_change += fabs(bmag_extrema[i] - bmag_extrema[i-1]);
+  }
+  int num_boundaries = gpm->constB_ctx->N_theta_boundaries;
+  double dB_cell = B_total_change / (num_boundaries-1);
+
+  gpm->constB_ctx->dB_cell = dB_cell;
 }
 
 double
@@ -364,7 +374,6 @@ position_map_numeric_optimization_function(double theta, void *ctx)
   double B_lower_region = ridders_ctx->B_lower_region;
 
   double result = fabs(Bmag - B_lower_region) + dB_global_lower - dB_target;
-
   return result;
 }
 
@@ -381,6 +390,7 @@ position_map_constB_z_numeric(double t, const double *xn, double *fout, void *ct
   double theta_range = theta_hi - theta_lo;
   double theta_dxi = theta_range / num_boundaries;
   double theta = xn[0];
+  double dB_cell = gpm->constB_ctx->dB_cell;
   int it = (theta - theta_lo) / theta_dxi;
 
   if (it ==0 || it == num_boundaries-1)
@@ -403,16 +413,7 @@ position_map_constB_z_numeric(double t, const double *xn, double *fout, void *ct
       break;
     }
   }
-
-
-  double B_tot; // Total change in magnetic field
-  for (int i = 0; i <= num_extrema-1; i++)
-  {
-    B_tot += fabs(gpm->constB_ctx->bmag_extrema[i+1] - gpm->constB_ctx->bmag_extrema[i]);
-  }
-  double dB_cell = B_tot / (num_boundaries-1);
   double dB_target = dB_cell * it;
-
   double dB_global_lower = 0.0;
   for (int i = 0; i < region; i++)
   {
