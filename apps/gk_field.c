@@ -43,6 +43,19 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
     };
     f->up_fs_avg = gkyl_array_average_new(&input_fs_avg);
     f->fs_avg = mkarr(app->use_gpu, f->confBasis_x.num_basis, f->local_x_ext.volume);
+    // gkyl_comm_allreduce
+    // // Do a MPI sum reduction of the weight to have correct average when multi MPI proc
+    // struct gkyl_array *Intw, *Intw_global;
+    // // Get a pointer to the averaged weights
+    // Intw = gkyl_array_average_acquire_weight_avg(f->up_fs_avg);
+    // // Get the averaging volume
+    // double avg_volume = gkyl_array_average_get_avg_volume(f->up_fs_avg);
+    // // Multiply the averaged weights by the averaging volume
+    // gkyl_array_scale_range(Intw, avg_volume, *f->local_x);
+    // gkyl_array_accumulate()
+
+    // gkyl_array_release(Intw);
+
   }
   // allocate an array to store the temperature (used in target corner bias)
   f->temp_elc = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
@@ -538,7 +551,7 @@ gk_field_calc_target_corner_bias(gkyl_gyrokinetic_app *app, struct gk_field *fie
   // printf("fs_LCFS = %g, fs_LCFS_global = %g\n", field->fs_LCFS, field->fs_LCFS_global);
 
   // Zero version
-  // field->target_corner_bias = 0;
+  field->target_corner_bias = 0;
 
   // fs avg phi version
   // field->target_corner_bias = field->fs_LCFS_global;
@@ -552,8 +565,8 @@ gk_field_calc_target_corner_bias(gkyl_gyrokinetic_app *app, struct gk_field *fie
   // double Te0 = 100*qe;//100 eV
   // double lambda = sqrt(log(qi*mi/(qe*me) / (2.*M_PI*(1. + Ti0/Te0))));
   // We hard encode it for now
-  double lambda = 2.2325777683556205;
-  field->target_corner_bias = lambda * field->fs_LCFS_global / 1.602176634e-19; // this is lambda Te / e
+  // double lambda = 2.2325777683556205;
+  // field->target_corner_bias = lambda * field->fs_LCFS_global / 1.602176634e-19; // this is lambda Te / e
 
   // printf("target_corner_bias = %g\n", field->target_corner_bias);
 }
