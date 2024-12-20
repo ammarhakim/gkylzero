@@ -461,6 +461,11 @@ calc_field(gkyl_gyrokinetic_app* app, double tcurr, const struct gkyl_array *fin
     if (app->field->phi_wall_lo_evolve || app->field->phi_wall_up_evolve)
       gk_field_calc_phi_wall(app, app->field, tcurr);
 
+    // Compute the bias to apply at the target corner.
+    // This is only required in 3x2v clopen simulations.
+    if (app->field->gkfield_id == GKYL_GK_FIELD_ES_IWL && app->cdim == 3)
+      gk_field_calc_target_corner_bias(app, app->field, fin);
+
     // Solve the field equation.
     gk_field_rhs(app, app->field);
   }

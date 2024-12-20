@@ -362,6 +362,8 @@ gk_species_init(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *app, st
 
   // allocate data for density (for use in charge density accumulation and weak division for upar)
   gk_species_moment_init(app, gks, &gks->m0, "M0");
+  // allocate data for the maxwellian moments (used in the target corner BC in Poisson to get Te)
+  gk_species_moment_init(app, gks, &gks->maxwellian_moments, "MaxwellianMoments");
   // allocate data for integrated moments
   gk_species_moment_init(app, gks, &gks->integ_moms, "Integrated");
 

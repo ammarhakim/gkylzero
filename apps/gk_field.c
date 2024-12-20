@@ -42,8 +42,10 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
       .use_gpu = app->use_gpu
     };
     f->up_fs_avg = gkyl_array_average_new(&input_fs_avg);
-    f->phi_fs_avg = mkarr(app->use_gpu, f->confBasis_x.num_basis, f->local_x_ext.volume);
+    f->fs_avg = mkarr(app->use_gpu, f->confBasis_x.num_basis, f->local_x_ext.volume);
   }
+  // allocate an array to store the temperature (used in target corner bias)
+  f->temp_elc = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
 
   // allocate arrays for charge density
   f->rho_c = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
@@ -481,6 +483,81 @@ gk_field_calc_ambi_pot_sheath_vals(gkyl_gyrokinetic_app *app, struct gk_field *f
   } 
 }
 
+void 
+gk_field_calc_target_corner_bias(gkyl_gyrokinetic_app *app, struct gk_field *field, const struct gkyl_array *fin[]){
+
+  // -- This is the method for setting phi_TC = phi_fs(xLCFS)
+  // We update the flux surface average of phi as well
+  // gkyl_array_average_advance(field->up_fs_avg, field->phi_smooth, field->fs_avg);
+
+  // -- This is the method for setting phi_TC = lambda Te_fs(xLCFS)/e
+  // find the electrons
+  struct gk_species *s_elc, *s_ion;
+  int elc_idx = 0;
+  int ion_idx = 0;
+  for (int i=0; i<app->num_species; ++i){
+    if (strcmp("elc", app->species[i].info.name) == 0){
+      s_elc = &app->species[i];
+      elc_idx = i;
+    }
+    if (strcmp("ion", app->species[i].info.name) == 0){
+      s_ion = &app->species[i];
+      ion_idx = i;
+    }
+  }
+  gk_species_moment_calc(&s_elc->maxwellian_moments, s_elc->local, app->local, fin[elc_idx]);
+  gkyl_array_set_offset(field->temp_elc, s_elc->info.mass, s_elc->maxwellian_moments.marr, 2*app->confBasis.num_basis);
+  gkyl_array_average_advance(field->up_fs_avg, field->temp_elc, field->fs_avg);
+
+  // get the flux-surface averaged temp at the LCFS interface
+  // (for now we take the average of the cell right to the LCFS)
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, &field->local_x);
+  // Index of the cell that abuts the xLCFS from below.
+  int idxLCFS_m = (field->info.xLCFS-1e-8 - app->grid.lower[0])/app->grid.dx[0]+1;
+  // Get the avg value on host
+  while (gkyl_range_iter_next(&iter)) {
+    long lidx_avg = gkyl_range_idx(&field->local_x, iter.idx);
+    if (iter.idx[0] == idxLCFS_m) {
+      const double *avg_value = gkyl_array_cfetch(field->fs_avg, lidx_avg);
+      if (app->use_gpu)
+        gkyl_cu_memcpy(&field->fs_avg_LCFS, avg_value, sizeof(double), GKYL_CU_MEMCPY_D2H);
+      else
+        memcpy(&field->fs_avg_LCFS, avg_value, sizeof(double));
+      // Multiply by sqrt(2)/2 to get the average value of the cell from the 0th DG coeffitient
+      field->fs_avg_LCFS = sqrt(2.0)/2.0 * field->fs_avg_LCFS;
+    }
+  }
+  // Reduce the avg over all MPI processes
+  int err_check = gkyl_comm_allreduce_host(app->comm, GKYL_DOUBLE, GKYL_SUM, 1, &field->fs_avg_LCFS, &field->fs_LCFS_global);
+  assert(err_check == false);
+  int nproc;
+  err_check = gkyl_comm_get_size(app->comm, &nproc);
+  assert(err_check == false);
+  field->fs_LCFS_global /= nproc;
+  // printf("fs_LCFS = %g, fs_LCFS_global = %g\n", field->fs_LCFS, field->fs_LCFS_global);
+
+  // Zero version
+  // field->target_corner_bias = 0;
+
+  // fs avg phi version
+  // field->target_corner_bias = field->fs_LCFS_global;
+
+  // For the temperature method we compute now lambda Te/e
+  // double me = s_elc->info.mass;
+  // double qe = s_elc->info.charge;
+  // double mi = s_ion->info.mass;
+  // double qi = s_ion->info.charge;
+  // double Ti0 = 100*qe;//100 eV (this is hard encoded)
+  // double Te0 = 100*qe;//100 eV
+  // double lambda = sqrt(log(qi*mi/(qe*me) / (2.*M_PI*(1. + Ti0/Te0))));
+  // We hard encode it for now
+  double lambda = 2.2325777683556205;
+  field->target_corner_bias = lambda * field->fs_LCFS_global / 1.602176634e-19; // this is lambda Te / e
+
+  // printf("target_corner_bias = %g\n", field->target_corner_bias);
+}
+
 // Compute the electrostatic potential
 void
 gk_field_rhs(gkyl_gyrokinetic_app *app, struct gk_field *field)
@@ -520,50 +597,8 @@ gk_field_rhs(gkyl_gyrokinetic_app *app, struct gk_field *field)
         gkyl_fem_parproj_solve(field->fem_parproj, field->rho_c_global_smooth);
       }
 
-      // Set the target corner Poisson BC
-      double target_corner_bias = 0;
-      if (field->gkfield_id == GKYL_GK_FIELD_ES_IWL && app->cdim == 3) {      
-        // We update the flux surface average of phi as well
-        gkyl_array_average_advance(field->up_fs_avg, field->phi_smooth, field->phi_fs_avg);
-        // get the flux-surface averaged value at the LCFS interface
-        // (for now we take the average of the cell right to the LCFS)
-        struct gkyl_range_iter iter;  
-        gkyl_range_iter_init(&iter, &field->local_x);
-        // Index of the cell that abuts the xLCFS from below.
-        int idxLCFS_m = (field->info.xLCFS-1e-8 - app->grid.lower[0])/app->grid.dx[0]+1;
-        // Get the avg value on host
-        while (gkyl_range_iter_next(&iter)) {
-          long lidx_avg = gkyl_range_idx(&field->local_x, iter.idx);
-          if (iter.idx[0] == idxLCFS_m) {
-            const double *avg_value = gkyl_array_cfetch(field->phi_fs_avg, lidx_avg);
-            if (app->use_gpu)
-              gkyl_cu_memcpy(&field->phi_fs_LCFS, avg_value, sizeof(double), GKYL_CU_MEMCPY_D2H);
-            else
-              memcpy(&field->phi_fs_LCFS, avg_value, sizeof(double));
-            // Optional: Print for debugging
-
-            // Multiply by sqrt(2)/2 to get the average value of the cell from the 0th DG coeffitient
-            field->phi_fs_LCFS = sqrt(2.0)/2.0 * field->phi_fs_LCFS;
-          }
-        }
-        // Reduce the avg over all MPI processes
-        int err_check = gkyl_comm_allreduce_host(app->comm, GKYL_DOUBLE, GKYL_SUM, 1, &field->phi_fs_LCFS, &field->phi_fs_LCFS_global);
-        assert(err_check == false);
-        int nproc;
-        err_check = gkyl_comm_get_size(app->comm, &nproc);
-        assert(err_check == false);
-        field->phi_fs_LCFS_global /= nproc;
-
-        // printf("phi_fs_LCFS = %g, phi_fs_LCFS_global = %g\n", field->phi_fs_LCFS, field->phi_fs_LCFS_global);
-
-        // Set the target corner bias as the flux surface average of phi at LCFS
-        target_corner_bias = field->phi_fs_LCFS;
-        // target_corner_bias = field->phi_fs_LCFS_global;
-      }
-      // To put phi = 0V at the target corner
-      // field->target_corner_bias = 0;
       // printf("target corner b ias = %g\n", field->target_corner_bias[0]);
-      gkyl_deflated_fem_poisson_advance(field->deflated_fem_poisson, field->rho_c_global_smooth, field->phi_smooth, target_corner_bias);
+      gkyl_deflated_fem_poisson_advance(field->deflated_fem_poisson, field->rho_c_global_smooth, field->phi_smooth, field->target_corner_bias);
 
       /*
       * If we are in a 3x simulation with IWL we apply TS BC to the upper and lower edges
@@ -690,7 +725,8 @@ gk_field_release(const gkyl_gyrokinetic_app* app, struct gk_field *f)
     gkyl_bc_basic_release(f->bc_reflect_lo);
     gkyl_bc_basic_release(f->bc_reflect_up);
     gkyl_array_average_release(f->up_fs_avg);
-    gkyl_array_release(f->phi_fs_avg);
+    gkyl_array_release(f->fs_avg);
+    gkyl_array_release(f->temp_elc)
   }
 
   gkyl_dynvec_release(f->integ_energy);

@@ -495,6 +495,7 @@ struct gk_species {
   struct gkyl_dg_calc_gyrokinetic_vars *calc_gk_vars;
 
   struct gk_species_moment m0; // for computing charge density
+  struct gk_species_moment maxwellian_moments; // for computing the temperature
   struct gk_species_moment integ_moms; // integrated moments
   struct gk_species_moment *moms; // diagnostic moments
   double *red_integ_diag, *red_integ_diag_global; // for reduction of integrated moments
@@ -737,10 +738,14 @@ struct gk_field {
   // Updater for flux surface average
   struct gkyl_array_average *up_fs_avg;
   // 1D array for result of flux surface average
-  struct gkyl_array *phi_fs_avg;
+  struct gkyl_array *fs_avg;
+  // to store the electron temperature (used in target corner bias)
+  struct gkyl_array *temp_elc;
+  // Bias applied to the target corner
+  double target_corner_bias;
   // Time dependent BC at the target corner (for clopen sim)
-  double phi_fs_LCFS;
-  double phi_fs_LCFS_global;
+  double fs_avg_LCFS;
+  double fs_LCFS_global;
   // reduced basis and ranges
   struct gkyl_basis confBasis_x;
   struct gkyl_rect_grid grid_x;
@@ -1636,6 +1641,17 @@ void gk_field_accumulate_rho_c(gkyl_gyrokinetic_app *app, struct gk_field *field
  * @param field Pointer to field
  */
 void gk_field_calc_ambi_pot_sheath_vals(gkyl_gyrokinetic_app *app, struct gk_field *field);
+
+/**
+ * Compute the potential to apply at the target corner
+ *
+ * @param app gyrokinetic app object
+ * @param field Pointer to field
+ * @param fin[] Input distribution function (num_species size)
+ */
+void gk_field_calc_target_corner_bias(gkyl_gyrokinetic_app *app, struct gk_field *field, 
+  const struct gkyl_array *fin[]);
+
 
 /**
  * Compute EM field 
