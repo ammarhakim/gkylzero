@@ -18,6 +18,9 @@
 #include <gkyl_wv_reactive_euler.h>
 #include <gkyl_wv_sr_euler.h>
 #include <gkyl_wv_ten_moment.h>
+#include <gkyl_gr_minkowski.h>
+#include <gkyl_wv_gr_maxwell.h>
+#include <gkyl_wv_gr_maxwell_tetrad.h>
 #include <gkyl_zero_lw.h>
 
 #include <lua.h>
@@ -39,7 +42,8 @@
 enum moment_magic_ids {
   MOMENT_SPECIES_DEFAULT = 100, // Fluid species.
   MOMENT_FIELD_DEFAULT, // Maxwell equations.
-  MOMENT_EQN_DEFAULT // Equation object.
+  MOMENT_EQN_DEFAULT, // Equation object.
+  MOMENT_SPACETIME_DEFAULT, // Spacetime object.
 };
 
 // Edge-splitting -> enum map.
@@ -86,6 +90,20 @@ static const struct gkyl_str_int_pair iso_euler_mixture_rp_type[] = {
   { 0, 0 }
 };
 
+// General relativistic Maxwell Riemann problem -> enum map.
+static const struct gkyl_str_int_pair gr_maxwell_rp_type[] = {
+  { "roe", WV_GR_MAXWELL_RP_ROE },
+  { "lax", WV_GR_MAXWELL_RP_LAX },
+  { 0, 0 }
+};
+
+// General relativistic Maxwell Riemann problem in the tetrad basis -> enum map.
+static const struct gkyl_str_int_pair gr_maxwell_tetrad_rp_type[] = {
+  { "roe", WV_GR_MAXWELL_TETRAD_RP_ROE },
+  { "lax", WV_GR_MAXWELL_TETRAD_RP_LAX },
+  { 0, 0 }
+};
+
 // Metatable name for equation object input struct.
 #define MOMENT_WAVE_EQN_METATABLE_NM "GkeyllZero.App.Moments.Eq"
 
@@ -116,6 +134,7 @@ wv_eqn_get(lua_State *L)
 {
   struct wv_eqn_lw **l_wv_lw = luaL_checkudata(L, -1, MOMENT_WAVE_EQN_METATABLE_NM);
   struct wv_eqn_lw *wv_lw = *l_wv_lw;
+
   return wv_lw->eqn;
 }
 
@@ -189,8 +208,8 @@ eqn_iso_euler_lw_new(lua_State *L)
 
 // Equation constructor.
 static struct luaL_Reg eqn_iso_euler_ctor[] = {
-  {"new", eqn_iso_euler_lw_new},
-  {0, 0}
+  { "new", eqn_iso_euler_lw_new },
+  { 0, 0 }
 };
 
 /* ************************************ */
@@ -486,6 +505,98 @@ static const luaL_Reg eqn_iso_euler_mixture_ctor[] = {
   { 0, 0 }
 };
 
+/* ************************************** */
+/* General Relativistic Maxwell Equations */
+/* ************************************** */
+
+// GRMaxwell.new { lightSpeed = 1.0, elcErrorSpeedFactor = 0.0, mgnErrorSpeedFactor = 0.0, rpType = "roe" }
+// where rpType is one of "roe" or "lax."
+static int
+eqn_gr_maxwell_lw_new(lua_State *L)
+{
+  struct wv_eqn_lw *gr_maxwell_lw = gkyl_malloc(sizeof(*gr_maxwell_lw));
+
+  double light_speed = glua_tbl_get_number(L, "lightSpeed", 1.0);
+  double e_fact = glua_tbl_get_number(L, "elcErrorSpeedFactor", 0.0);
+  double b_fact = glua_tbl_get_number(L, "mgnErrorSpeedFactor", 0.0);
+
+  const char *rp_str = glua_tbl_get_string(L, "rpType", "lax");
+  enum gkyl_wv_gr_maxwell_rp rp_type = gkyl_search_str_int_pair_by_str(gr_maxwell_rp_type, rp_str, WV_GR_MAXWELL_RP_LAX);
+
+  gr_maxwell_lw->magic = MOMENT_EQN_DEFAULT;
+  gr_maxwell_lw->eqn = gkyl_wv_gr_maxwell_inew( &(struct gkyl_wv_gr_maxwell_inp) {
+      .light_speed = light_speed,
+      .e_fact = e_fact,
+      .b_fact = b_fact,
+      .spacetime = 0,
+      .rp_type = rp_type,
+      .use_gpu = false,
+    }
+  );
+
+  // Create Lua userdata.
+  struct wv_eqn_lw **l_gr_maxwell_lw = lua_newuserdata(L, sizeof(struct wv_eqn_lw*));
+  *l_gr_maxwell_lw = gr_maxwell_lw;
+
+  // Set metatable.
+  luaL_getmetatable(L, MOMENT_WAVE_EQN_METATABLE_NM);
+  lua_setmetatable(L, -2);
+
+  return 1;
+}
+
+// Equation constructor.
+static struct luaL_Reg eqn_gr_maxwell_ctor[] = {
+  { "new", eqn_gr_maxwell_lw_new },
+  { 0, 0 }
+};
+
+/* ********************************************************** */
+/* General Relativistic Maxwell Equations in the Tetrad Basis */
+/* ********************************************************** */
+
+// GRMaxwellTetrad.new { lightSpeed = 1.0, elcErrorSpeedFactor = 0.0, mgnErrorSpeedFactor = 0.0, rpType = "roe" }
+// where rpType is one of "roe" or "lax."
+static int
+eqn_gr_maxwell_tetrad_lw_new(lua_State *L)
+{
+  struct wv_eqn_lw *gr_maxwell_tetrad_lw = gkyl_malloc(sizeof(*gr_maxwell_tetrad_lw));
+
+  double light_speed = glua_tbl_get_number(L, "lightSpeed", 1.0);
+  double e_fact = glua_tbl_get_number(L, "elcErrorSpeedFactor", 0.0);
+  double b_fact = glua_tbl_get_number(L, "mgnErrorSpeedFactor", 0.0);
+
+  const char *rp_str = glua_tbl_get_string(L, "rpType", "lax");
+  enum gkyl_wv_gr_maxwell_tetrad_rp rp_type = gkyl_search_str_int_pair_by_str(gr_maxwell_tetrad_rp_type, rp_str, WV_GR_MAXWELL_TETRAD_RP_LAX);
+
+  gr_maxwell_tetrad_lw->magic = MOMENT_EQN_DEFAULT;
+  gr_maxwell_tetrad_lw->eqn = gkyl_wv_gr_maxwell_tetrad_inew( &(struct gkyl_wv_gr_maxwell_tetrad_inp) {
+      .light_speed = light_speed,
+      .e_fact = e_fact,
+      .b_fact = b_fact,
+      .spacetime = 0,
+      .rp_type = rp_type,
+      .use_gpu = false,
+    }
+  );
+
+  // Create Lua userdata.
+  struct wv_eqn_lw **l_gr_maxwell_tetrad_lw = lua_newuserdata(L, sizeof(struct wv_eqn_lw*));
+  *l_gr_maxwell_tetrad_lw = gr_maxwell_tetrad_lw;
+
+  // Set metatable.
+  luaL_getmetatable(L, MOMENT_WAVE_EQN_METATABLE_NM);
+  lua_setmetatable(L, -2);
+
+  return 1;
+}
+
+// Equation constructor.
+static struct luaL_Reg eqn_gr_maxwell_tetrad_ctor[] = {
+  { "new", eqn_gr_maxwell_tetrad_lw_new },
+  { 0, 0 }
+};
+
 // Register and load all wave equation objects.
 static void
 eqn_openlibs(lua_State *L)
@@ -505,6 +616,212 @@ eqn_openlibs(lua_State *L)
   luaL_register(L, "G0.Moments.Eq.ReactiveEuler", eqn_reactive_euler_ctor);
   luaL_register(L, "G0.Moments.Eq.EulerMixture", eqn_euler_mixture_ctor);
   luaL_register(L, "G0.Moments.Eq.IsoEulerMixture", eqn_iso_euler_mixture_ctor);
+  luaL_register(L, "G0.Moments.Eq.GRMaxwell", eqn_gr_maxwell_ctor);
+  luaL_register(L, "G0.Moments.Eq.GRMaxwellTetrad", eqn_gr_maxwell_tetrad_ctor);
+}
+
+// Metatable name for spacetime object input struct.
+#define MOMENT_SPACETIME_METATABLE_NM "GkeyllZero.App.Moments.Spacetime"
+
+// Methods for manipulating gkyl_gr_spacetime objects.
+
+// Lua userdata object for constructing spacetime objects.
+struct gr_spacetime_lw {
+  int magic; // This must be the first element in the struct.
+  struct gkyl_gr_spacetime *spacetime; // Spacetime object.
+};
+
+// Clean up memory allocated for spacetime object.
+static int
+gr_spacetime_lw_gc(lua_State *L)
+{
+  struct gr_spacetime_lw **l_gr_lw = GKYL_CHECK_UDATA(L, MOMENT_SPACETIME_METATABLE_NM);
+  struct gr_spacetime_lw *gr_lw = *l_gr_lw;
+
+  gkyl_gr_spacetime_release(gr_lw->spacetime);
+  gkyl_free(*l_gr_lw);
+
+  return 0;
+}
+
+// Acquire spacetime object.
+static struct gkyl_gr_spacetime*
+gr_spacetime_get(lua_State *L)
+{
+  struct gr_spacetime_lw **l_gr_lw = luaL_checkudata(L, -1, MOMENT_SPACETIME_METATABLE_NM);
+  struct gr_spacetime_lw *gr_lw = *l_gr_lw;
+
+  return gr_lw->spacetime;
+}
+
+/* ******************* */
+/* Minkowski Spacetime */
+/* ******************* */
+
+static int
+spacetime_minkowski_lw_new(lua_State *L)
+{
+  struct gr_spacetime_lw *minkowski_lw = gkyl_malloc(sizeof(*minkowski_lw));
+
+  minkowski_lw->magic = MOMENT_SPACETIME_DEFAULT;
+  minkowski_lw->spacetime = gkyl_gr_minkowski_inew( &(struct gkyl_gr_minkowski_inp) {
+      .use_gpu = false
+    }
+  );
+
+  // Create Lua userdata.
+  struct gr_spacetime_lw **l_minkowski_lw = lua_newuserdata(L, sizeof(struct gr_spacetime_lw*));
+  *l_minkowski_lw = minkowski_lw;
+
+  // Set metatable.
+  luaL_getmetatable(L, MOMENT_SPACETIME_METATABLE_NM);
+  lua_setmetatable(L, -2);
+
+  return 1;
+}
+
+static int
+spacetime_minkowski_lw_spatial_metric_tensor(lua_State *L)
+{
+  struct gkyl_gr_spacetime *spacetime = gkyl_gr_minkowski_inew( &(struct gkyl_gr_minkowski_inp) {
+      .use_gpu = false
+    }
+  );
+
+  double t = luaL_checknumber(L, 1);
+  double x = luaL_checknumber(L, 2);
+  double y = luaL_checknumber(L, 3);
+  double z = luaL_checknumber(L, 4);
+
+  double **spatial_metric = gkyl_malloc(sizeof(double*[3]));
+  for (int i = 0; i < 3; i++) {
+    spatial_metric[i] = gkyl_malloc(sizeof(double[3]));
+  }
+
+  spacetime->spatial_metric_tensor_func(spacetime, t, x, y, z, &spatial_metric);
+
+  lua_createtable(L, 3, 0);
+
+  for (int i = 0; i < 3; i++) {
+    lua_pushinteger(L, i + 1);
+
+    lua_createtable(L, 3, 0);
+    for (int j = 0; j < 3; j++) {
+      lua_pushinteger(L, j + 1);
+      lua_pushnumber(L, spatial_metric[i][j]);
+      lua_rawset(L, -3);
+    }
+
+    lua_rawset(L, -3);
+  }
+
+  for (int i = 0; i < 3; i++) {
+    gkyl_free(spatial_metric[i]);
+  }
+  gkyl_free(spatial_metric);
+
+  gkyl_gr_spacetime_release(spacetime);
+
+  return 1;
+}
+
+static int
+spacetime_minkowski_lw_lapse_function(lua_State *L)
+{
+  struct gkyl_gr_spacetime *spacetime = gkyl_gr_minkowski_inew( &(struct gkyl_gr_minkowski_inp) {
+      .use_gpu = false
+    }
+  );
+
+  double t = luaL_checknumber(L, 1);
+  double x = luaL_checknumber(L, 2);
+  double y = luaL_checknumber(L, 3);
+  double z = luaL_checknumber(L, 4);
+
+  double lapse;
+  spacetime->lapse_function_func(spacetime, t, x, y, z, &lapse);
+
+  lua_pushnumber(L, lapse);
+
+  gkyl_gr_spacetime_release(spacetime);
+
+  return 1;
+}
+
+static int
+spacetime_minkowski_lw_shift_vector(lua_State *L)
+{
+  struct gkyl_gr_spacetime *spacetime = gkyl_gr_minkowski_inew( &(struct gkyl_gr_minkowski_inp) {
+      .use_gpu = false
+    }
+  );
+
+  double t = luaL_checknumber(L, 1);
+  double x = luaL_checknumber(L, 2);
+  double y = luaL_checknumber(L, 3);
+  double z = luaL_checknumber(L, 4);
+
+  double *shift = gkyl_malloc(sizeof(double[3]));
+  spacetime->shift_vector_func(spacetime, t, x, y, z, &shift);
+
+  lua_createtable(L, 3, 0);
+
+  for (int i = 0; i < 3; i++) {
+    lua_pushinteger(L, i + 1);
+    lua_pushnumber(L, shift[i]);
+    lua_rawset(L, -3);
+  }
+
+  gkyl_free(shift);
+  gkyl_gr_spacetime_release(spacetime);
+
+  return 1;
+}
+
+static int
+spacetime_minkowski_lw_excision_region(lua_State *L)
+{
+  struct gkyl_gr_spacetime *spacetime = gkyl_gr_minkowski_inew( &(struct gkyl_gr_minkowski_inp) {
+      .use_gpu = false
+    }
+  );
+
+  double t = luaL_checknumber(L, 1);
+  double x = luaL_checknumber(L, 2);
+  double y = luaL_checknumber(L, 3);
+  double z = luaL_checknumber(L, 4);
+
+  bool in_excision_region;
+  spacetime->excision_region_func(spacetime, t, x, y, z, &in_excision_region);
+
+  lua_pushboolean(L, in_excision_region);
+
+  gkyl_gr_spacetime_release(spacetime);
+
+  return 1;
+}
+
+// Spacetime constructor.
+static struct luaL_Reg spacetime_minkowski_ctor[] = {
+  { "new", spacetime_minkowski_lw_new },
+  { "spatialMetricTensor", spacetime_minkowski_lw_spatial_metric_tensor },
+  { "lapseFunction", spacetime_minkowski_lw_lapse_function },
+  { "shiftVector", spacetime_minkowski_lw_shift_vector },
+  { "excisionRegion", spacetime_minkowski_lw_excision_region },
+  { 0, 0 }
+};
+
+// Register and load all GR spacetime objects.
+static void
+spacetime_openlibs(lua_State *L)
+{
+  luaL_newmetatable(L, MOMENT_SPACETIME_METATABLE_NM);
+
+  lua_pushstring(L, "__gc");
+  lua_pushcfunction(L, gr_spacetime_lw_gc);
+  lua_settable(L, -3);
+
+  luaL_register(L, "G0.Moments.Spacetime.Minkowski", spacetime_minkowski_ctor);
 }
 
 /* *************** */
@@ -1967,6 +2284,7 @@ void
 gkyl_moment_lw_openlibs(lua_State *L)
 {
   eqn_openlibs(L);
+  spacetime_openlibs(L);
   app_openlibs(L);
 }
 
