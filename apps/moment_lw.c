@@ -727,6 +727,29 @@ spacetime_minkowski_lw_spatial_metric_tensor(lua_State *L)
 }
 
 static int
+spacetime_minkowski_lw_spatial_metric_det(lua_State *L)
+{
+  struct gkyl_gr_spacetime *spacetime = gkyl_gr_minkowski_inew( &(struct gkyl_gr_minkowski_inp) {
+      .use_gpu = false
+    }
+  );
+
+  double t = luaL_checknumber(L, 1);
+  double x = luaL_checknumber(L, 2);
+  double y = luaL_checknumber(L, 3);
+  double z = luaL_checknumber(L, 4);
+
+  double spatial_metric_det;
+  spacetime->spatial_metric_det_func(spacetime, t, x, y, z, &spatial_metric_det);
+
+  lua_pushnumber(L, spatial_metric_det);
+
+  gkyl_gr_spacetime_release(spacetime);
+
+  return 1;
+}
+
+static int
 spacetime_minkowski_lw_lapse_function(lua_State *L)
 {
   struct gkyl_gr_spacetime *spacetime = gkyl_gr_minkowski_inew( &(struct gkyl_gr_minkowski_inp) {
@@ -806,6 +829,7 @@ spacetime_minkowski_lw_excision_region(lua_State *L)
 static struct luaL_Reg spacetime_minkowski_ctor[] = {
   { "new", spacetime_minkowski_lw_new },
   { "spatialMetricTensor", spacetime_minkowski_lw_spatial_metric_tensor },
+  { "spatialMetricDeterminant", spacetime_minkowski_lw_spatial_metric_det },
   { "lapseFunction", spacetime_minkowski_lw_lapse_function },
   { "shiftVector", spacetime_minkowski_lw_shift_vector },
   { "excisionRegion", spacetime_minkowski_lw_excision_region },
@@ -899,6 +923,40 @@ spacetime_blackhole_lw_spatial_metric_tensor(lua_State *L)
     gkyl_free(spatial_metric[i]);
   }
   gkyl_free(spatial_metric);
+
+  gkyl_gr_spacetime_release(spacetime);
+
+  return 1;
+}
+
+static int
+spacetime_blackhole_lw_spatial_metric_det(lua_State *L)
+{
+  double mass = luaL_checknumber(L, 1);
+  double spin = luaL_checknumber(L, 2);
+  double pos_x = luaL_checknumber(L, 3);
+  double pos_y = luaL_checknumber(L, 4);
+  double pos_z = luaL_checknumber(L, 5);
+
+  struct gkyl_gr_spacetime *spacetime = gkyl_gr_blackhole_inew( &(struct gkyl_gr_blackhole_inp) {
+      .mass = mass,
+      .spin = spin,
+      .pos_x = pos_x,
+      .pos_y = pos_y,
+      .pos_z = pos_z,
+      .use_gpu = false
+    }
+  );
+
+  double t = luaL_checknumber(L, 6);
+  double x = luaL_checknumber(L, 7);
+  double y = luaL_checknumber(L, 8);
+  double z = luaL_checknumber(L, 9);
+
+  double spatial_metric_det;
+  spacetime->spatial_metric_det_func(spacetime, t, x, y, z, &spatial_metric_det);
+
+  lua_pushnumber(L, spatial_metric_det);
 
   gkyl_gr_spacetime_release(spacetime);
 
@@ -1018,6 +1076,7 @@ spacetime_blackhole_lw_excision_region(lua_State *L)
 static struct luaL_Reg spacetime_blackhole_ctor[] = {
   { "new", spacetime_blackhole_lw_new },
   { "spatialMetricTensor", spacetime_blackhole_lw_spatial_metric_tensor },
+  { "spatialMetricDeterminant", spacetime_blackhole_lw_spatial_metric_det },
   { "lapseFunction", spacetime_blackhole_lw_lapse_function },
   { "shiftVector", spacetime_blackhole_lw_shift_vector },
   { "excisionRegion", spacetime_blackhole_lw_excision_region },
@@ -2293,8 +2352,8 @@ mom_app_run(lua_State *L)
   
   gkyl_moment_app_cout(app, stdout, "Initialization completed in %g sec\n\n", gkyl_time_diff_now_sec(tm_ic0));
 
-  // Compute estimate of maximum stable time-step.
-  double dt = gkyl_moment_app_max_dt(app);
+  // Compute initial guess of maximum stable time-step.
+  double dt = t_end - t_curr;
 
   // Initialize small time-step check.
   double dt_init = -1.0, dt_failure_tol = app_lw->dt_failure_tol;

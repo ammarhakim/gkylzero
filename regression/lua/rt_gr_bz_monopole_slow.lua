@@ -1,13 +1,16 @@
--- 2D Wald magnetosphere problem for a non-static (Kerr) black hole, for the general relativistic Maxwell equations in the tetrad basis.
--- Input parameters describe a uniform magnetic field surrounding a rotating black hole.
--- Based on the analytical solution for force-free electrodynamics presented in the article:
--- R. M. Wald (1974), "Black hole in a uniform magnetic field",
--- Physical Review D, Volume 10 (6): 1680.
--- https://journals.aps.org/prd/abstract/10.1103/PhysRevD.10.1680
+-- 2D Blandford-Znajek magnetosphere problem for a slowly-rotating (Kerr) black hole, for the general relativistic Maxwell equations.
+-- Input parameters describe a (purely radial) monopole magnetic field surrounding a slowly-rotating black hole.
+-- Based on the perturbative analytical solution for force-free electrodynamics presented in the article:
+-- R. D. Blandford and R. L. Znajek (1977), "Electromagnetic extraction of energy from Kerr black holes",
+-- Monthly Notices of the Royal Astronomical Society, Volume 179 (3): 433-456.
+-- https://academic.oup.com/mnras/article/179/3/433/962905
 
 local Moments = G0.Moments
-local GRMaxwellTetrad = G0.Moments.Eq.GRMaxwellTetrad
+local GRMaxwell = G0.Moments.Eq.GRMaxwell
 local BlackHole = G0.Moments.Spacetime.BlackHole
+
+-- Mathematical constants (dimensionless).
+pi = math.pi
 
 -- Physical constants (using normalized code units).
 light_speed = 1.0 -- Speed of light.
@@ -18,7 +21,7 @@ B0 = 1.0 -- Reference magnetic field strength.
 
 -- Spacetime parameters (using geometric units).
 mass = 1.0 -- Mass of the black hole.
-spin = -0.9 -- Spin of the black hole.
+spin = -0.1 -- Spin of the black hole.
 
 pos_x = 0.0 -- Position of the black hole (x-direction).
 pos_y = 0.0 -- Position of the black hole (y-direction).
@@ -32,7 +35,6 @@ Ly = 10.0 -- Domain size (y-direction).
 cfl_frac = 0.95 -- CFL coefficient.
 
 t_end = 50.0 -- Final simulation time.
-num_frames = 1 -- Number of output frames.
 field_energy_calcs = GKYL_MAX_INT -- Number of times to calculate field energy.
 integrated_mom_calcs = GKYL_MAX_INT -- Number of times to calculate integrated moments.
 dt_failure_tol = 1.0e-4 -- Minimum allowable fraction of initial time-step.
@@ -56,7 +58,7 @@ momentApp = Moments.App.new {
 
   -- Field.
   field = Moments.Species.new {
-    equation = GRMaxwellTetrad.new {
+    equation = GRMaxwell.new {
       lightSpeed = light_speed,
       elcErrorSpeedFactor = e_fact,
       mgnErrorSpeedFactor = b_fact
@@ -66,18 +68,31 @@ momentApp = Moments.App.new {
     init = function (t, xn)
       local x, y = xn[1], xn[2]
 
-      local Dx = 0.0 -- Total electric field (x-direction).
-      local Dy = 0.0 -- Total electric field (y-direction).
-      local Dz = 0.0 -- Total electric field (z-direction).
-
-      local Bx = 0.125 * x * B0 -- Total magnetic field (x-direction).
-      local By = 0.0 -- Total magnetic field (y-direction).
-      local Bz = 0.0 -- Total magnetic field (z-direction).
+      local r = math.sqrt((x * x) + (y * y))
+      local phi = 0.5 * pi
+    
+      local theta = 0.0;
+      if math.abs(y) < math.pow(10.0, -6.0) then
+        theta = 0.5 * pi;
+      else
+        theta = math.atan(x / y);
+      end
 
       local lapse = BlackHole.lapseFunction(mass, spin, pos_x, pos_y, pos_z, 0.0, x, y, 0.0)
       local shift = BlackHole.shiftVector(mass, spin, pos_x, pos_y, pos_z, 0.0, x, y, 0.0)
       local spatial_metric = BlackHole.spatialMetricTensor(mass, spin, pos_x, pos_y, pos_z, 0.0, x, y, 0.0)
+      local spatial_det = BlackHole.spatialMetricDeterminant(mass, spin, pos_x, pos_y, pos_z, 0.0, x, y, 0.0)
       local in_excision_region = BlackHole.excisionRegion(mass, spin, pos_x, pos_y, pos_z, 0.0, x, y, 0.0)
+
+      local B_r = B0 * math.sin(theta) / math.sqrt(spatial_det)
+
+      local Dx = 0.0 -- Total electric field (x-direction).
+      local Dy = 0.0 -- Total electric field (y-direction).
+      local Dz = 0.0 -- Total electric field (z-direction).
+
+      local Bx = math.sin(theta) * math.sin(phi) * B_r -- Total magnetic field (x-direction).
+      local By = math.sin(theta) * math.cos(phi) * B_r -- Total magnetic field (y-direction).
+      local Bz = math.cos(theta) * B_r -- Total magnetic field (z-direction).
 
       local excision = 0.0
       if in_excision_region then

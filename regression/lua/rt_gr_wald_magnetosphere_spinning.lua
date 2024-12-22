@@ -94,8 +94,13 @@ momentApp = Moments.App.new {
         excision = 1.0
       end
     
-      return Dx, Dy, Dz, Bx, By, Bz, 0.0, 0.0, lapse, shift[1], shift[2], shift[3], spatial_metric[1][1], spatial_metric[1][2], spatial_metric[1][3],
-        spatial_metric[2][1], spatial_metric[2][2], spatial_metric[2][3], spatial_metric[3][1], spatial_metric[3][2], spatial_metric[3][3], excision
+      return Dx, Dy, Dz, Bx, By, Bz, 0.0, 0.0,
+        lapse,
+        shift[1], shift[2], shift[3],
+        spatial_metric[1][1], spatial_metric[1][2], spatial_metric[1][3],
+        spatial_metric[2][1], spatial_metric[2][2], spatial_metric[2][3],
+        spatial_metric[3][1], spatial_metric[3][2], spatial_metric[3][3],
+        excision
     end,
 
     evolve = true, -- Evolve species?

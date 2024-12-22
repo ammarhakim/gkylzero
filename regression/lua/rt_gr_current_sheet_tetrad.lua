@@ -80,13 +80,26 @@ momentApp = Moments.App.new {
 
       local excision = 0.0
       if in_excision_region then
+        Dx, Dy, Dz, Bx, By, Bz, lapse = 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
+        for i = 1, 3 do
+          shift[i] = 0.0
+          for j = 1, 3 do
+            spatial_metric[i][j] = 0.0
+          end  
+        end
+
         excision = -1.0
       else
         excision = 1.0
       end
     
-      return Dx, Dy, Dz, Bx, By, Bz, 0.0, 0.0, lapse, shift[1], shift[2], shift[3], spatial_metric[1][1], spatial_metric[1][2], spatial_metric[1][3],
-        spatial_metric[2][1], spatial_metric[2][2], spatial_metric[2][3], spatial_metric[3][1], spatial_metric[3][2], spatial_metric[3][3], excision
+      return Dx, Dy, Dz, Bx, By, Bz, 0.0, 0.0,
+        lapse,
+        shift[1], shift[2], shift[3],
+        spatial_metric[1][1], spatial_metric[1][2], spatial_metric[1][3],
+        spatial_metric[2][1], spatial_metric[2][2], spatial_metric[2][3],
+        spatial_metric[3][1], spatial_metric[3][2], spatial_metric[3][3],
+        excision
     end,
 
     evolve = true, -- Evolve species?
