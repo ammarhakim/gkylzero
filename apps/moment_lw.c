@@ -19,6 +19,7 @@
 #include <gkyl_wv_sr_euler.h>
 #include <gkyl_wv_ten_moment.h>
 #include <gkyl_gr_minkowski.h>
+#include <gkyl_gr_blackhole.h>
 #include <gkyl_wv_gr_maxwell.h>
 #include <gkyl_wv_gr_maxwell_tetrad.h>
 #include <gkyl_zero_lw.h>
@@ -811,6 +812,218 @@ static struct luaL_Reg spacetime_minkowski_ctor[] = {
   { 0, 0 }
 };
 
+/* ******************** */
+/* Black Hole Spacetime */
+/* ******************** */
+
+static int
+spacetime_blackhole_lw_new(lua_State *L)
+{
+  struct gr_spacetime_lw *blackhole_lw = gkyl_malloc(sizeof(*blackhole_lw));
+
+  double mass = luaL_checknumber(L, 1);
+  double spin = luaL_checknumber(L, 2);
+  double pos_x = luaL_checknumber(L, 3);
+  double pos_y = luaL_checknumber(L, 4);
+  double pos_z = luaL_checknumber(L, 5);
+
+  blackhole_lw->magic = MOMENT_SPACETIME_DEFAULT;
+  blackhole_lw->spacetime = gkyl_gr_blackhole_inew( &(struct gkyl_gr_blackhole_inp) {
+      .mass = mass,
+      .spin = spin,
+      .pos_x = pos_x,
+      .pos_y = pos_y,
+      .pos_z = pos_z,
+      .use_gpu = false
+    }
+  );
+
+  // Create Lua userdata.
+  struct gr_spacetime_lw **l_blackhole_lw = lua_newuserdata(L, sizeof(struct gr_spacetime_lw*));
+  *l_blackhole_lw = blackhole_lw;
+
+  // Set metatable.
+  luaL_getmetatable(L, MOMENT_SPACETIME_METATABLE_NM);
+  lua_setmetatable(L, -2);
+
+  return 1;
+}
+
+static int
+spacetime_blackhole_lw_spatial_metric_tensor(lua_State *L)
+{
+  double mass = luaL_checknumber(L, 1);
+  double spin = luaL_checknumber(L, 2);
+  double pos_x = luaL_checknumber(L, 3);
+  double pos_y = luaL_checknumber(L, 4);
+  double pos_z = luaL_checknumber(L, 5);
+
+  struct gkyl_gr_spacetime *spacetime = gkyl_gr_blackhole_inew( &(struct gkyl_gr_blackhole_inp) {
+      .mass = mass,
+      .spin = spin,
+      .pos_x = pos_x,
+      .pos_y = pos_y,
+      .pos_z = pos_z,
+      .use_gpu = false
+    }
+  );
+
+  double t = luaL_checknumber(L, 6);
+  double x = luaL_checknumber(L, 7);
+  double y = luaL_checknumber(L, 8);
+  double z = luaL_checknumber(L, 9);
+
+  double **spatial_metric = gkyl_malloc(sizeof(double*[3]));
+  for (int i = 0; i < 3; i++) {
+    spatial_metric[i] = gkyl_malloc(sizeof(double[3]));
+  }
+
+  spacetime->spatial_metric_tensor_func(spacetime, t, x, y, z, &spatial_metric);
+
+  lua_createtable(L, 3, 0);
+
+  for (int i = 0; i < 3; i++) {
+    lua_pushinteger(L, i + 1);
+
+    lua_createtable(L, 3, 0);
+    for (int j = 0; j < 3; j++) {
+      lua_pushinteger(L, j + 1);
+      lua_pushnumber(L, spatial_metric[i][j]);
+      lua_rawset(L, -3);
+    }
+
+    lua_rawset(L, -3);
+  }
+
+  for (int i = 0; i < 3; i++) {
+    gkyl_free(spatial_metric[i]);
+  }
+  gkyl_free(spatial_metric);
+
+  gkyl_gr_spacetime_release(spacetime);
+
+  return 1;
+}
+
+static int
+spacetime_blackhole_lw_lapse_function(lua_State *L)
+{
+  double mass = luaL_checknumber(L, 1);
+  double spin = luaL_checknumber(L, 2);
+  double pos_x = luaL_checknumber(L, 3);
+  double pos_y = luaL_checknumber(L, 4);
+  double pos_z = luaL_checknumber(L, 5);
+
+  struct gkyl_gr_spacetime *spacetime = gkyl_gr_blackhole_inew( &(struct gkyl_gr_blackhole_inp) {
+      .mass = mass,
+      .spin = spin,
+      .pos_x = pos_x,
+      .pos_y = pos_y,
+      .pos_z = pos_z,
+      .use_gpu = false
+    }
+  );
+
+  double t = luaL_checknumber(L, 6);
+  double x = luaL_checknumber(L, 7);
+  double y = luaL_checknumber(L, 8);
+  double z = luaL_checknumber(L, 9);
+
+  double lapse;
+  spacetime->lapse_function_func(spacetime, t, x, y, z, &lapse);
+
+  lua_pushnumber(L, lapse);
+
+  gkyl_gr_spacetime_release(spacetime);
+
+  return 1;
+}
+
+static int
+spacetime_blackhole_lw_shift_vector(lua_State *L)
+{
+  double mass = luaL_checknumber(L, 1);
+  double spin = luaL_checknumber(L, 2);
+  double pos_x = luaL_checknumber(L, 3);
+  double pos_y = luaL_checknumber(L, 4);
+  double pos_z = luaL_checknumber(L, 5);
+
+  struct gkyl_gr_spacetime *spacetime = gkyl_gr_blackhole_inew( &(struct gkyl_gr_blackhole_inp) {
+      .mass = mass,
+      .spin = spin,
+      .pos_x = pos_x,
+      .pos_y = pos_y,
+      .pos_z = pos_z,
+      .use_gpu = false
+    }
+  );
+
+  double t = luaL_checknumber(L, 6);
+  double x = luaL_checknumber(L, 7);
+  double y = luaL_checknumber(L, 8);
+  double z = luaL_checknumber(L, 9);
+
+  double *shift = gkyl_malloc(sizeof(double[3]));
+  spacetime->shift_vector_func(spacetime, t, x, y, z, &shift);
+
+  lua_createtable(L, 3, 0);
+
+  for (int i = 0; i < 3; i++) {
+    lua_pushinteger(L, i + 1);
+    lua_pushnumber(L, shift[i]);
+    lua_rawset(L, -3);
+  }
+
+  gkyl_free(shift);
+  gkyl_gr_spacetime_release(spacetime);
+
+  return 1;
+}
+
+static int
+spacetime_blackhole_lw_excision_region(lua_State *L)
+{
+  double mass = luaL_checknumber(L, 1);
+  double spin = luaL_checknumber(L, 2);
+  double pos_x = luaL_checknumber(L, 3);
+  double pos_y = luaL_checknumber(L, 4);
+  double pos_z = luaL_checknumber(L, 5);
+
+  struct gkyl_gr_spacetime *spacetime = gkyl_gr_blackhole_inew( &(struct gkyl_gr_blackhole_inp) {
+      .mass = mass,
+      .spin = spin,
+      .pos_x = pos_x,
+      .pos_y = pos_y,
+      .pos_z = pos_z,
+      .use_gpu = false
+    }
+  );
+
+  double t = luaL_checknumber(L, 6);
+  double x = luaL_checknumber(L, 7);
+  double y = luaL_checknumber(L, 8);
+  double z = luaL_checknumber(L, 9);
+
+  bool in_excision_region;
+  spacetime->excision_region_func(spacetime, t, x, y, z, &in_excision_region);
+
+  lua_pushboolean(L, in_excision_region);
+
+  gkyl_gr_spacetime_release(spacetime);
+
+  return 1;
+}
+
+// Spacetime constructor.
+static struct luaL_Reg spacetime_blackhole_ctor[] = {
+  { "new", spacetime_blackhole_lw_new },
+  { "spatialMetricTensor", spacetime_blackhole_lw_spatial_metric_tensor },
+  { "lapseFunction", spacetime_blackhole_lw_lapse_function },
+  { "shiftVector", spacetime_blackhole_lw_shift_vector },
+  { "excisionRegion", spacetime_blackhole_lw_excision_region },
+  { 0, 0 }
+};
+
 // Register and load all GR spacetime objects.
 static void
 spacetime_openlibs(lua_State *L)
@@ -822,6 +1035,7 @@ spacetime_openlibs(lua_State *L)
   lua_settable(L, -3);
 
   luaL_register(L, "G0.Moments.Spacetime.Minkowski", spacetime_minkowski_ctor);
+  luaL_register(L, "G0.Moments.Spacetime.BlackHole", spacetime_blackhole_ctor);
 }
 
 /* *************** */
