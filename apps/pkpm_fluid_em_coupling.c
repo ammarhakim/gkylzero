@@ -36,7 +36,6 @@ pkpm_fluid_em_coupling_update(struct gkyl_pkpm_app *app, struct pkpm_fluid_em_co
   struct gkyl_array *fluids[GKYL_MAX_SPECIES];
   const struct gkyl_array *app_accels[GKYL_MAX_SPECIES];
   const struct gkyl_array *vlasov_pkpm_moms[GKYL_MAX_SPECIES];
-  const struct gkyl_array *pkpm_u[GKYL_MAX_SPECIES];
 
   for (int i=0; i<num_species; ++i) {
     struct pkpm_species *s = &app->species[i];
@@ -50,7 +49,6 @@ pkpm_fluid_em_coupling_update(struct gkyl_pkpm_app *app, struct pkpm_fluid_em_co
 
     fluids[i] = s->fluid;
     vlasov_pkpm_moms[i] = s->pkpm_moms.marr;
-    pkpm_u[i] = s->pkpm_u;
   }
 
   // Compute applied acceleration, external EM fields, and applied currents if present.
@@ -71,7 +69,7 @@ pkpm_fluid_em_coupling_update(struct gkyl_pkpm_app *app, struct pkpm_fluid_em_co
 
   gkyl_dg_calc_pkpm_em_coupling_advance(pkpm_em->slvr, dt, 
     app_accels, app->field->ext_em, app->field->app_current, 
-    vlasov_pkpm_moms, pkpm_u, fluids, app->field->em);
+    vlasov_pkpm_moms, fluids, app->field->em);
 
   for (int i=0; i<num_species; ++i) {
     struct pkpm_species *s = &app->species[i];

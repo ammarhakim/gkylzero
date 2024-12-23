@@ -18,12 +18,12 @@ gkyl_dg_calc_pkpm_em_coupling_set_one_fluid_cu_kernel(gkyl_dg_calc_pkpm_em_coupl
   struct gkyl_nmat *As, struct gkyl_nmat *xs, struct gkyl_range conf_range, double dt, 
   const struct gkyl_array* app_accel, 
   const struct gkyl_array* ext_em, const struct gkyl_array* app_current, 
-  const struct gkyl_array* vlasov_pkpm_moms, const struct gkyl_array* pkpm_u, 
-  struct gkyl_array* em)
+  const struct gkyl_array* vlasov_pkpm_moms, 
+  struct gkyl_array* euler_pkpm, struct gkyl_array* em)
 {
   const double *app_accels[GKYL_MAX_SPECIES]; 
   const double *pkpm_moms[GKYL_MAX_SPECIES];
-  const double *pkpm_flows[GKYL_MAX_SPECIES];
+  double *fluids[GKYL_MAX_SPECIES];
   int idx[GKYL_MAX_DIM];
 
   for (unsigned long linc1 = threadIdx.x + blockIdx.x*blockDim.x;
@@ -41,7 +41,7 @@ gkyl_dg_calc_pkpm_em_coupling_set_one_fluid_cu_kernel(gkyl_dg_calc_pkpm_em_coupl
 
     app_accels[0] = (const double*) gkyl_array_cfetch(app_accel, loc);
     pkpm_moms[0] = (const double*) gkyl_array_cfetch(vlasov_pkpm_moms, loc);
-    pkpm_flows[0] = (const double*) gkyl_array_cfetch(pkpm_u, loc);
+    fluids[0] = (double*) gkyl_array_fetch(euler_pkpm, loc);
 
     const double *ext_em_d = (const double*) gkyl_array_cfetch(ext_em, loc);
     const double *app_current_d = (const double*) gkyl_array_cfetch(app_current, loc);
@@ -50,18 +50,15 @@ gkyl_dg_calc_pkpm_em_coupling_set_one_fluid_cu_kernel(gkyl_dg_calc_pkpm_em_coupl
     up->pkpm_em_coupling_set(linc1, 
       up->num_species, up->qbym, up->epsilon0, up->pkpm_field_static, dt, 
       As, xs, 
-      app_accels, ext_em_d, app_current_d, pkpm_moms, pkpm_flows, em_d);
+      app_accels, ext_em_d, app_current_d, pkpm_moms, fluids, em_d);
   }
 }
 
 __global__ static void
 gkyl_dg_calc_pkpm_em_coupling_copy_one_fluid_cu_kernel(gkyl_dg_calc_pkpm_em_coupling* up, 
   struct gkyl_nmat *xs, struct gkyl_range conf_range,
-  const struct gkyl_array* vlasov_pkpm_moms, const struct gkyl_array* pkpm_u,   
   struct gkyl_array* euler_pkpm, struct gkyl_array* em)
 {
-  const double *pkpm_moms[GKYL_MAX_SPECIES];
-  const double *pkpm_flows[GKYL_MAX_SPECIES];  
   double *fluids[GKYL_MAX_SPECIES];  
   int idx[GKYL_MAX_DIM];
 
@@ -78,13 +75,11 @@ gkyl_dg_calc_pkpm_em_coupling_copy_one_fluid_cu_kernel(gkyl_dg_calc_pkpm_em_coup
     // linc will have jumps in it to jump over ghost cells
     long loc = gkyl_range_idx(&conf_range, idx);
 
-    pkpm_moms[0] = (const double*) gkyl_array_cfetch(vlasov_pkpm_moms, loc);
-    pkpm_flows[0] = (const double*) gkyl_array_cfetch(pkpm_u, loc);
     fluids[0] = (double*) gkyl_array_fetch(euler_pkpm, loc);
     double *em_d = (double*) gkyl_array_fetch(em, loc);
 
     up->pkpm_em_coupling_copy(linc1, up->num_species, up->qbym, up->epsilon0, 
-      xs, pkpm_moms, pkpm_flows, fluids, em_d);
+      xs, fluids, em_d);
   }
 }
 
@@ -94,12 +89,12 @@ gkyl_dg_calc_pkpm_em_coupling_set_two_fluids_cu_kernel(gkyl_dg_calc_pkpm_em_coup
   const struct gkyl_array* app_accel_1, const struct gkyl_array* app_accel_2, 
   const struct gkyl_array* ext_em, const struct gkyl_array* app_current, 
   const struct gkyl_array* vlasov_pkpm_moms_1, const struct gkyl_array* vlasov_pkpm_moms_2, 
-  const struct gkyl_array* pkpm_u_1, const struct gkyl_array* pkpm_u_2, 
+  struct gkyl_array* euler_pkpm_1, struct gkyl_array* euler_pkpm_2, 
   struct gkyl_array* em)
 {
   const double *app_accels[GKYL_MAX_SPECIES];  
   const double *pkpm_moms[GKYL_MAX_SPECIES];
-  const double *pkpm_flows[GKYL_MAX_SPECIES];
+  double *fluids[GKYL_MAX_SPECIES];  
   int idx[GKYL_MAX_DIM];
 
   for (unsigned long linc1 = threadIdx.x + blockIdx.x*blockDim.x;
@@ -119,8 +114,8 @@ gkyl_dg_calc_pkpm_em_coupling_set_two_fluids_cu_kernel(gkyl_dg_calc_pkpm_em_coup
     app_accels[1] = (const double*) gkyl_array_cfetch(app_accel_2, loc);
     pkpm_moms[0] = (const double*) gkyl_array_cfetch(vlasov_pkpm_moms_1, loc);
     pkpm_moms[1] = (const double*) gkyl_array_cfetch(vlasov_pkpm_moms_2, loc);
-    pkpm_flows[0] = (const double*) gkyl_array_cfetch(pkpm_u_1, loc);
-    pkpm_flows[1] = (const double*) gkyl_array_cfetch(pkpm_u_2, loc);
+    fluids[0] = (const double*) gkyl_array_cfetch(euler_pkpm_1, loc);
+    fluids[1] = (const double*) gkyl_array_cfetch(euler_pkpm_2, loc);
 
     const double *ext_em_d = (const double*) gkyl_array_cfetch(ext_em, loc);
     const double *app_current_d = (const double*) gkyl_array_cfetch(app_current, loc);
@@ -129,19 +124,15 @@ gkyl_dg_calc_pkpm_em_coupling_set_two_fluids_cu_kernel(gkyl_dg_calc_pkpm_em_coup
     up->pkpm_em_coupling_set(linc1, 
       up->num_species, up->qbym, up->epsilon0, up->pkpm_field_static, dt, 
       As, xs, 
-      app_accels, ext_em_d, app_current_d, pkpm_moms, pkpm_flows, em_d);
+      app_accels, ext_em_d, app_current_d, pkpm_moms, fluids, em_d);
   }
 }
 
 __global__ static void
 gkyl_dg_calc_pkpm_em_coupling_copy_two_fluids_cu_kernel(gkyl_dg_calc_pkpm_em_coupling* up, 
-  struct gkyl_nmat *xs, struct gkyl_range conf_range,
-  const struct gkyl_array* vlasov_pkpm_moms_1, const struct gkyl_array* vlasov_pkpm_moms_2, 
-  const struct gkyl_array* pkpm_u_1, const struct gkyl_array* pkpm_u_2,   
+  struct gkyl_nmat *xs, struct gkyl_range conf_range, 
   struct gkyl_array* euler_pkpm_1, struct gkyl_array* euler_pkpm_2, struct gkyl_array* em)
 {
-  const double *pkpm_moms[GKYL_MAX_SPECIES];
-  const double *pkpm_flows[GKYL_MAX_SPECIES];  
   double *fluids[GKYL_MAX_SPECIES];  
   int idx[GKYL_MAX_DIM];
 
@@ -158,16 +149,12 @@ gkyl_dg_calc_pkpm_em_coupling_copy_two_fluids_cu_kernel(gkyl_dg_calc_pkpm_em_cou
     // linc will have jumps in it to jump over ghost cells
     long loc = gkyl_range_idx(&conf_range, idx);
 
-    pkpm_moms[0] = (const double*) gkyl_array_cfetch(vlasov_pkpm_moms_1, loc);
-    pkpm_moms[1] = (const double*) gkyl_array_cfetch(vlasov_pkpm_moms_2, loc);
-    pkpm_flows[0] = (const double*) gkyl_array_cfetch(pkpm_u_1, loc);
-    pkpm_flows[1] = (const double*) gkyl_array_cfetch(pkpm_u_2, loc);
     fluids[0] = (double*) gkyl_array_fetch(euler_pkpm_1, loc);
     fluids[1] = (double*) gkyl_array_fetch(euler_pkpm_2, loc);
     double *em_d = (double*) gkyl_array_fetch(em, loc);
 
     up->pkpm_em_coupling_copy(linc1, up->num_species, up->qbym, up->epsilon0, 
-      xs, pkpm_moms, pkpm_flows, fluids, em_d);
+      xs, fluids, em_d);
   }
 }
 
@@ -186,16 +173,15 @@ void gkyl_dg_calc_pkpm_em_coupling_advance_cu(struct gkyl_dg_calc_pkpm_em_coupli
     gkyl_dg_calc_pkpm_em_coupling_set_one_fluid_cu_kernel<<<conf_range.nblocks, conf_range.nthreads>>>(up->on_dev, 
       up->As->on_dev, up->xs->on_dev, conf_range, dt, 
       app_accel[0]->on_dev, ext_em->on_dev, app_current->on_dev, 
-      vlasov_pkpm_moms[0]->on_dev, pkpm_u[0]->on_dev, 
-      em->on_dev);
+      vlasov_pkpm_moms[0]->on_dev, 
+      euler_pkpm[0]->on_dev, em->on_dev);
   }
   else if (num_species == 2) {
     gkyl_dg_calc_pkpm_em_coupling_set_two_fluids_cu_kernel<<<conf_range.nblocks, conf_range.nthreads>>>(up->on_dev, 
       up->As->on_dev, up->xs->on_dev, conf_range, dt, 
       app_accel[0]->on_dev, app_accel[1]->on_dev, ext_em->on_dev, app_current->on_dev, 
       vlasov_pkpm_moms[0]->on_dev, vlasov_pkpm_moms[1]->on_dev, 
-      pkpm_u[0]->on_dev, pkpm_u[1]->on_dev, 
-      em->on_dev);
+      euler_pkpm[0]->on_dev, euler_pkpm[1]->on_dev, em->on_dev);
   }
 
   bool status = gkyl_nmat_linsolve_lu_pa(up->mem, up->As, up->xs);
@@ -204,14 +190,12 @@ void gkyl_dg_calc_pkpm_em_coupling_advance_cu(struct gkyl_dg_calc_pkpm_em_coupli
   if (num_species == 1) {
     gkyl_dg_calc_pkpm_em_coupling_copy_one_fluid_cu_kernel<<<conf_range.nblocks, conf_range.nthreads>>>(up->on_dev,
       up->xs->on_dev, conf_range, 
-      vlasov_pkpm_moms[0]->on_dev, pkpm_u[0]->on_dev, 
       euler_pkpm[0]->on_dev, em->on_dev);
   }
   else if (num_species == 2) {
     gkyl_dg_calc_pkpm_em_coupling_copy_two_fluids_cu_kernel<<<conf_range.nblocks, conf_range.nthreads>>>(up->on_dev,
       up->xs->on_dev, conf_range, 
-      vlasov_pkpm_moms[0]->on_dev, vlasov_pkpm_moms[1]->on_dev, 
-      pkpm_u[0]->on_dev, pkpm_u[1]->on_dev,       
+      vlasov_pkpm_moms[0]->on_dev, vlasov_pkpm_moms[1]->on_dev,     
       euler_pkpm[0]->on_dev, euler_pkpm[1]->on_dev, em->on_dev);
   }
 }
