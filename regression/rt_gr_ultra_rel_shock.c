@@ -162,7 +162,7 @@ evalGREulerInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT 
 
   double *vel = gkyl_malloc(sizeof(double[3]));
   double v_sq = 0.0;
-  vel[0] = u; vel[1] = 0.0; vel[2] = 0.0;
+  vel[0] = u; vel[1] = v; vel[2] = 0.0;
 
   for (int i = 0; i < 3; i++) {
     for (int j = 0; j < 3; j++) {

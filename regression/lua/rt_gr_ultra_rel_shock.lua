@@ -78,7 +78,7 @@ momentApp = Moments.App.new {
       local extrinsic_curvature = Minkowski.extrinsicCurvatureTensor(0.0, x, 0.0, 0.0, 1.0, 1.0, 1.0)
       local in_excision_region = Minkowski.excisionRegion(0.0, x, 0.0, 0.0)
 
-      local vel = { u, 0.0, 0.0 }
+      local vel = { u, v, 0.0 }
       local v_sq = 0.0
 
       for i = 1, 3 do

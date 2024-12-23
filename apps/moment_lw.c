@@ -1191,6 +1191,65 @@ spacetime_blackhole_lw_shift_vector(lua_State *L)
 }
 
 static int
+spacetime_blackhole_lw_extrinsic_curvature_tensor(lua_State *L)
+{
+  double mass = luaL_checknumber(L, 1);
+  double spin = luaL_checknumber(L, 2);
+  double pos_x = luaL_checknumber(L, 3);
+  double pos_y = luaL_checknumber(L, 4);
+  double pos_z = luaL_checknumber(L, 5);
+
+  struct gkyl_gr_spacetime *spacetime = gkyl_gr_blackhole_inew( &(struct gkyl_gr_blackhole_inp) {
+      .mass = mass,
+      .spin = spin,
+      .pos_x = pos_x,
+      .pos_y = pos_y,
+      .pos_z = pos_z,
+      .use_gpu = false
+    }
+  );
+
+  double t = luaL_checknumber(L, 6);
+  double x = luaL_checknumber(L, 7);
+  double y = luaL_checknumber(L, 8);
+  double z = luaL_checknumber(L, 9);
+  double dx = luaL_checknumber(L, 10);
+  double dy = luaL_checknumber(L, 11);
+  double dz = luaL_checknumber(L, 12);
+
+  double **extrinsic_curvature = gkyl_malloc(sizeof(double*[3]));
+  for (int i = 0; i < 3; i++) {
+    extrinsic_curvature[i] = gkyl_malloc(sizeof(double[3]));
+  }
+
+  spacetime->extrinsic_curvature_tensor_func(spacetime, t, x, y, z, dx, dy, dz, &extrinsic_curvature);
+
+  lua_createtable(L, 3, 0);
+
+  for (int i = 0; i < 3; i++) {
+    lua_pushinteger(L, i + 1);
+
+    lua_createtable(L, 3, 0);
+    for (int j = 0; j < 3; j++) {
+      lua_pushinteger(L, j + 1);
+      lua_pushnumber(L, extrinsic_curvature[i][j]);
+      lua_rawset(L, -3);
+    }
+
+    lua_rawset(L, -3);
+  }
+
+  for (int i = 0; i < 3; i++) {
+    gkyl_free(extrinsic_curvature[i]);
+  }
+  gkyl_free(extrinsic_curvature);
+
+  gkyl_gr_spacetime_release(spacetime);
+
+  return 1;
+}
+
+static int
 spacetime_blackhole_lw_excision_region(lua_State *L)
 {
   double mass = luaL_checknumber(L, 1);
@@ -1231,6 +1290,7 @@ static struct luaL_Reg spacetime_blackhole_ctor[] = {
   { "spatialMetricDeterminant", spacetime_blackhole_lw_spatial_metric_det },
   { "lapseFunction", spacetime_blackhole_lw_lapse_function },
   { "shiftVector", spacetime_blackhole_lw_shift_vector },
+  { "extrinsicCurvatureTensor", spacetime_blackhole_lw_extrinsic_curvature_tensor },
   { "excisionRegion", spacetime_blackhole_lw_excision_region },
   { 0, 0 }
 };

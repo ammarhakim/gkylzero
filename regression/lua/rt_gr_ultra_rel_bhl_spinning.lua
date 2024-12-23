@@ -1,35 +1,47 @@
--- Non-zero tangential velocity Riemann problem for the general relativistic Euler equations in the tetrad basis, assuming an ultra-relativistic equation of state.
--- Input parameters taken from the initial conditions in Figure 3 (Riemann problem 1), from the article:
--- P. Mach and M. Piętka (2010), "Exact solution of the hydrodynamical Riemann problem with nonzero tangential velocities and the ultrarelativistic equation of state",
--- Physical Review E, Volume 81 (4): 046313.
--- https://arxiv.org/abs/0905.0349
+-- 2D Bondi-Hoyle-Lyttleton ultra-relativistic accretion problem onto a non-static (Kerr) black hole, for the general relativistic Euler equations,
+-- assuming a stiff equation of state.
+-- Input parameters describe wind accretion of an ultra-relativistic gas onto a spinning black hole.
+-- Based on the analytical solution for stiff relativistic fluids presented in the article:
+-- L. I. Petrich, S. L. Shapiro and S. A. Teukolsky (1988), "Accretion onto a moving black hole: An exact solution",
+-- Physical Review Letters, Volume 60 (18): 1781-1784.
+-- https://journals.aps.org/prl/abstract/10.1103/PhysRevLett.60.1781
 
 local Moments = G0.Moments
-local GRUltraRelEulerTetrad = G0.Moments.Eq.GRUltraRelEulerTetrad
-local Minkowski = G0.Moments.Spacetime.Minkowski
+local GRUltraRelEuler = G0.Moments.Eq.GRUltraRelEuler
+local BlackHole = G0.Moments.Spacetime.BlackHole
 
 -- Physical constants (using normalized code units).
-gas_gamma = 4.0 / 3.0 -- Adiabatic index.
+gas_gamma = 2.0 -- Adiabatic index.
 
-rhol = 1.0 -- Left fluid mass density.
-ul = 0.5 -- Left fluid normal velocity.
-vl = 1.0 / 3.0 -- Left fluid tangential velocity.
+rhol = 10.0 -- Left fluid mass density.
+ul = 0.3 -- Left fluid velocity.
 
-rhor = 20.0 -- Right fluid mass density.
-ur = 0.5 -- Right fluid normal velocity.
-vr = 0.5 -- Right fluid tangential velocity.
+rhor = 10.0 -- Right fluid mass density.
+ur = 0.0 -- Right fluid velocity.
+
+-- Spacetime parameters (using geometric units).
+mass = 0.3 -- Mass of the black hole.
+spin = -0.6 -- Spin of the black hole.
+
+pos_x = 2.5 -- Position of the black hole (x-direction).
+pos_y = 2.5 -- Position of the black hole (y-direction).
+pos_z = 0.0 -- Position of the black hole (z-direction).
 
 -- Simulation parameters.
-Nx = 4096 -- Cell count (x-direction).
-Lx = 2.0 -- Domain size (x-direction).
+Nx = 256 -- Cell count (x-direction).
+Ny = 256 -- Cell count (y-direction).
+Lx = 5.0 -- Domain size (x-direction).
+Ly = 5.0 -- Domain size (y-direction).
 cfl_frac = 0.95 -- CFL coefficient.
 
-t_end = 1.0 -- Final simulation time.
+t_end = 15.0 -- Final simulation time.
 num_frames = 1 -- Number of output frames.
 field_energy_calcs = GKYL_MAX_INT -- Number of times to calculate field energy.
 integrated_mom_calcs = GKYL_MAX_INT -- Number of times to calculate integrated moments.
 dt_failure_tol = 1.0e-4 -- Minimum allowable fraction of initial time-step.
 num_failures_max = 20 -- Maximum allowable number of consecutive small time-steps.
+
+x_loc = 1.0 -- Shock location (x-direction).
 
 momentApp = Moments.App.new {
   
@@ -39,9 +51,9 @@ momentApp = Moments.App.new {
   integratedMomentCalcs = integrated_mom_calcs,
   dtFailureTol = dt_failure_tol,
   numFailuresMax = num_failures_max,
-  lower = { -0.5 * Lx },
-  upper = { 0.5 * Lx },
-  cells = { Nx },
+  lower = { 0.0, 0.0 },
+  upper = { Lx, Ly },
+  cells = { Nx, Ny },
   cflFrac = cfl_frac,
   
   -- Boundary conditions for configuration space.
@@ -49,36 +61,34 @@ momentApp = Moments.App.new {
 
   -- Fluid.
   fluid = Moments.Species.new {
-    equation = GRUltraRelEulerTetrad.new {
+    equation = GRUltraRelEuler.new {
       gasGamma = gas_gamma
     },
   
     -- Initial conditions function.
     init = function (t, xn)
-      local x = xn[1]
+      local x, y = xn[1], xn[2]
       
       local rho = 0.0
       local u = 0.0
-      local v = 0.0
 
-      if x < 0.0 then
+      if x < x_loc then
         rho = rhol -- Fluid mass density (left).
-        u = ul -- Fluid normal velocity (left).
-        v = vl -- Fluid tangential velocity (left).
+        u = ul -- Fluid velocity (left).
       else
         rho = rhor -- Fluid mass density (right).
-        u = ur -- Fluid normal velocity (right).
-        v = vr -- Fluid tangential velocity (right).
+        u = ur -- Fluid velocity (right).
       end
 
-      local lapse = Minkowski.lapseFunction(0.0, x, 0.0, 0.0)
-      local shift = Minkowski.shiftVector(0.0, x, 0.0, 0.0)
-      local spatial_metric = Minkowski.spatialMetricTensor(0.0, x, 0.0, 0.0)
-      local spatial_det = Minkowski.spatialMetricDeterminant(0.0, x, 0.0, 0.0)
-      local extrinsic_curvature = Minkowski.extrinsicCurvatureTensor(0.0, x, 0.0, 0.0, 1.0, 1.0, 1.0)
-      local in_excision_region = Minkowski.excisionRegion(0.0, x, 0.0, 0.0)
+      local lapse = BlackHole.lapseFunction(mass, spin, pos_x, pos_y, pos_z, 0.0, x, y, 0.0)
+      local shift = BlackHole.shiftVector(mass, spin, pos_x, pos_y, pos_z, 0.0, x, y, 0.0)
+      local spatial_metric = BlackHole.spatialMetricTensor(mass, spin, pos_x, pos_y, pos_z, 0.0, x, y, 0.0)
+      local spatial_det = BlackHole.spatialMetricDeterminant(mass, spin, pos_x, pos_y, pos_z, 0.0, x, y, 0.0)
+      local extrinsic_curvature = BlackHole.extrinsicCurvatureTensor(mass, spin, pos_x, pos_y, pos_z, 0.0, x, y, 0.0,
+        math.pow(10.0, -8.0), math.pow(10.0, -8.0), math.pow(10.0, -8.0))
+      local in_excision_region = BlackHole.excisionRegion(mass, spin, pos_x, pos_y, pos_z, 0.0, x, y, 0.0)
 
-      local vel = { u, v, 0.0 }
+      local vel = { u, 0.0, 0.0 }
       local v_sq = 0.0
 
       for i = 1, 3 do
@@ -96,7 +106,7 @@ momentApp = Moments.App.new {
 
       local Etot = math.sqrt(spatial_det) * (((rho + p) * (W * W)) - p) -- Fluid total energy density.
       local mom_x = math.sqrt(spatial_det) * (rho + p) * (W * W) * u -- Fluid momentum density (x-direction).
-      local mom_y = math.sqrt(spatial_det) * (rho + p) * (W * W) * v -- Fluid momentum density (y-direction).
+      local mom_y = 0.0 -- Fluid momentum density (y-direction).
       local mom_z = 0.0 -- Fluid momentum density (z-direction).
 
       local excision = 0.0
@@ -128,7 +138,8 @@ momentApp = Moments.App.new {
     end,
 
     evolve = true, -- Evolve species?
-    bcx = { G0.SpeciesBc.bcCopy, G0.SpeciesBc.bcCopy } -- Copy boundary conditions (x-direction).
+    bcx = { G0.SpeciesBc.bcCopy, G0.SpeciesBc.bcCopy }, -- Copy boundary conditions (x-direction).
+    bcy = { G0.SpeciesBc.bcCopy, G0.SpeciesBc.bcCopy } -- Copy boundary conditions (y-direction).
   }
 }
 
