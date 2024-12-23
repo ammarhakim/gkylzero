@@ -496,6 +496,31 @@ install: all $(ZERO_SH_INSTALL_LIB) ${BUILD_DIR}/gkyl-install ## Install library
 # gkyl executable
 	cp -f ${BUILD_DIR}/gkyl-install ${INSTALL_PREFIX}/gkylzero/bin/gkyl
 # Copy Lua code from various directories
+ifeq ($(UNAME), Darwin)
+	${MKDIR_P} ${INSTALL_PREFIX}/gkylzero/bin/lua/xsys
+	find lua/xsys -name '*.lua' | xargs -I {} rsync -R {} ${INSTALL_PREFIX}/gkylzero/bin
+#
+	${MKDIR_P} ${INSTALL_PREFIX}/gkylzero/bin/lua/sci
+	find lua/sci -name '*.lua' | xargs -I {} rsync -R {} ${INSTALL_PREFIX}/gkylzero/bin
+#
+	${MKDIR_P} ${INSTALL_PREFIX}/gkylzero/bin/lua/sqlite3
+	find lua/sqlite3 -name '*.lua' | xargs -I {} rsync -R {} ${INSTALL_PREFIX}/gkylzero/bin
+#
+	${MKDIR_P} ${INSTALL_PREFIX}/gkylzero/bin/lua/Tool
+	find lua/Tool -name '*.lua' | xargs -I {} rsync -R {} ${INSTALL_PREFIX}/gkylzero/bin
+#
+	${MKDIR_P} ${INSTALL_PREFIX}/gkylzero/bin/lua/Lib
+	find lua/Lib -name '*.lua' | xargs -I {} rsync -R {} ${INSTALL_PREFIX}/gkylzero/bin
+#
+	${MKDIR_P} ${INSTALL_PREFIX}/gkylzero/bin/lua/Grid
+	find lua/Grid -name '*.lua' | xargs -I {} rsync -R {} ${INSTALL_PREFIX}/gkylzero/bin
+#
+	${MKDIR_P} ${INSTALL_PREFIX}/gkylzero/bin/lua/DataStruct
+	find lua/DataStruct -name '*.lua' | xargs -I {} rsync -R {} ${INSTALL_PREFIX}/gkylzero/bin
+#
+	${MKDIR_P} ${INSTALL_PREFIX}/gkylzero/bin/lua/Comm
+	find lua/Comm -name '*.lua' | xargs -I {} rsync -R {} ${INSTALL_PREFIX}/gkylzero/bin
+else
 	${MKDIR_P} ${INSTALL_PREFIX}/gkylzero/bin/lua/xsys
 	find lua/xsys -name '*.lua' | xargs cp --parents -f -t ${INSTALL_PREFIX}/gkylzero/bin
 #
@@ -519,7 +544,7 @@ install: all $(ZERO_SH_INSTALL_LIB) ${BUILD_DIR}/gkyl-install ## Install library
 #
 	${MKDIR_P} ${INSTALL_PREFIX}/gkylzero/bin/lua/Comm
 	find lua/Comm -name '*.lua' | xargs cp --parents -f -t ${INSTALL_PREFIX}/gkylzero/bin
-
+endif
 
 .PHONY: clean
 clean: ## Clean build output
