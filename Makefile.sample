@@ -3,9 +3,6 @@
 # Sample Makefile to use installed gkylzero library: copy and modify
 # for your needs
 
-# Obtain the git commit ID.
-GIT_COMMIT_HASH := "$(shell git describe --dirty=+ --always --tags)"
-
 ARCH_FLAGS ?= -march=native
 CUDA_ARCH ?= 70
 # Warning flags: -Wall -Wno-unused-variable -Wno-unused-function -Wno-missing-braces
