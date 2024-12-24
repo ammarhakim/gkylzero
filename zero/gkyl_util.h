@@ -447,4 +447,42 @@ int64_t gkyl_file_size(const char *fname);
  */
 char* gkyl_load_file(const char *fname, int64_t *sz);
 
+/**
+ * Structure to store msgpack data
+ */
+struct gkyl_msgpack_data {
+  size_t mp_size; // size of data in bytes
+  char *mp_data; // data pointer (pointer to bytes. NOT a NULL terminated string!)
+};
+
+// Msgpack element type
+enum gkyl_msgpack_elem_type { GKYL_MP_INT, GKYL_MP_DOUBLE, GKYL_MP_STRING };
+
+// Entry type into msgpack map
+struct gkyl_msgpack_map_elem {
+  char *key; // name of element
+  enum gkyl_msgpack_elem_type elem_type; // type of element
+  union {
+    int ival;
+    double dval;
+    char *cval; // null terminated string managed by called
+  };
+};
+
+/**
+ * Create a new msgpack data from list of map elements.
+ *
+ * @param nvals Number of values in the elist array
+ * @param elist List of elements to insert into map
+ * @return New msgpack_data object. Free using the release method
+ */
+struct gkyl_msgpack_data* gkyl_msgpack_create(int nvals, const struct gkyl_msgpack_map_elem *elist);
+
+/**
+ * Release data created by the gkyl_msgpack_create method.
+ *
+ * @param mdata Data object to free
+ */
+void gkyl_msgpack_data_release(struct gkyl_msgpack_data *mdata);
+
 EXTERN_C_END
