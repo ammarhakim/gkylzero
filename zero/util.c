@@ -225,11 +225,11 @@ struct gkyl_msgpack_data *
 gkyl_msgpack_create(int nvals, const struct gkyl_msgpack_map_elem *elist)
 {
   struct gkyl_msgpack_data *mdata = gkyl_malloc(sizeof *mdata);
-  mdata->mp_size = 0;
-  mdata->mp_data = 0;
+  mdata->meta_sz = 0;
+  mdata->meta = 0;
 
   mpack_writer_t writer;
-  mpack_writer_init_growable(&writer, &mdata->mp_data, &mdata->mp_size);
+  mpack_writer_init_growable(&writer, &mdata->meta, &mdata->meta_sz);
 
   mpack_build_map(&writer);  
   for (int i=0; i<nvals; ++i) {
@@ -255,7 +255,7 @@ gkyl_msgpack_create(int nvals, const struct gkyl_msgpack_map_elem *elist)
   int status = mpack_writer_destroy(&writer);
 
   if (status != mpack_ok) {
-    MPACK_FREE(mdata->mp_data); // we need to use free here as mpack does its own malloc
+    MPACK_FREE(mdata->meta); // we need to use free here as mpack does its own malloc
     gkyl_free(mdata);
     mdata = 0;
   }
@@ -267,8 +267,8 @@ void
 gkyl_msgpack_data_release(struct gkyl_msgpack_data *mdata)
 {
   if (!mdata) return;
-  if (mdata->mp_size > 0)
-    MPACK_FREE(mdata->mp_data);
+  if (mdata->meta_sz > 0)
+    MPACK_FREE(mdata->meta);
   gkyl_free(mdata);
 }
 

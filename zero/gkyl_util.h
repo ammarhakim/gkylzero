@@ -451,8 +451,8 @@ char* gkyl_load_file(const char *fname, int64_t *sz);
  * Structure to store msgpack data
  */
 struct gkyl_msgpack_data {
-  size_t mp_size; // size of data in bytes
-  char *mp_data; // data pointer (pointer to bytes. NOT a NULL terminated string!)
+  size_t meta_sz; // size of data in bytes
+  char *meta; // data pointer (pointer to bytes. NOT a NULL terminated string!)
 };
 
 // Msgpack element type
@@ -463,9 +463,10 @@ struct gkyl_msgpack_map_elem {
   char *key; // name of element
   enum gkyl_msgpack_elem_type elem_type; // type of element
   union {
+    // depending on elem_type one of following should be set    
     int ival;
     double dval;
-    char *cval; // null terminated string managed by called
+    char *cval; // null terminated string managed by caller
   };
 };
 

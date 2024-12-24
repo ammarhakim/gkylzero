@@ -14,10 +14,10 @@
 #include <mpack.h>
 
 // returned gkyl_array_meta must be freed using pkpm_array_meta_release
-static struct gkyl_array_meta*
+static struct gkyl_msgpack_data*
 pkpm_array_meta_new(struct pkpm_output_meta meta)
 {
-  struct gkyl_array_meta *mt = gkyl_malloc(sizeof(*mt));
+  struct gkyl_msgpack_data *mt = gkyl_malloc(sizeof(*mt));
 
   mt->meta_sz = 0;
   mpack_writer_t writer;
@@ -52,7 +52,7 @@ pkpm_array_meta_new(struct pkpm_output_meta meta)
 }
 
 static void
-pkpm_array_meta_release(struct gkyl_array_meta *mt)
+pkpm_array_meta_release(struct gkyl_msgpack_data *mt)
 {
   if (!mt) return;
   MPACK_FREE(mt->meta);
@@ -60,7 +60,7 @@ pkpm_array_meta_release(struct gkyl_array_meta *mt)
 }
 
 static struct pkpm_output_meta
-pkpm_meta_from_mpack(struct gkyl_array_meta *mt)
+pkpm_meta_from_mpack(struct gkyl_msgpack_data *mt)
 {
   struct pkpm_output_meta meta = { .frame = 0, .stime = 0.0 };
 
@@ -418,7 +418,7 @@ gkyl_pkpm_app_write(gkyl_pkpm_app* app, double tm, int frame)
 void
 gkyl_pkpm_app_write_field(gkyl_pkpm_app* app, double tm, int frame)
 {
-  struct gkyl_array_meta *mt = pkpm_array_meta_new( (struct pkpm_output_meta) {
+  struct gkyl_msgpack_data *mt = pkpm_array_meta_new( (struct pkpm_output_meta) {
       .frame = frame,
       .stime = tm,
       .poly_order = app->poly_order,
@@ -474,7 +474,7 @@ gkyl_pkpm_app_write_field(gkyl_pkpm_app* app, double tm, int frame)
 void
 gkyl_pkpm_app_write_species(gkyl_pkpm_app* app, int sidx, double tm, int frame)
 {
-  struct gkyl_array_meta *mt = pkpm_array_meta_new( (struct pkpm_output_meta) {
+  struct gkyl_msgpack_data *mt = pkpm_array_meta_new( (struct pkpm_output_meta) {
       .frame = frame,
       .stime = tm,
       .poly_order = app->poly_order,
@@ -502,7 +502,7 @@ gkyl_pkpm_app_write_species(gkyl_pkpm_app* app, int sidx, double tm, int frame)
 void
 gkyl_pkpm_app_write_mom(gkyl_pkpm_app* app, int sidx, double tm, int frame)
 {
-  struct gkyl_array_meta *mt = pkpm_array_meta_new( (struct pkpm_output_meta) {
+  struct gkyl_msgpack_data *mt = pkpm_array_meta_new( (struct pkpm_output_meta) {
       .frame = frame,
       .stime = tm,
       .poly_order = app->poly_order,
@@ -887,7 +887,7 @@ header_from_file(gkyl_pkpm_app *app, const char *fname)
     }
 
     struct pkpm_output_meta meta =
-      pkpm_meta_from_mpack( &(struct gkyl_array_meta) {
+      pkpm_meta_from_mpack( &(struct gkyl_msgpack_data) {
           .meta = hdr.meta,
           .meta_sz = hdr.meta_size
         }
