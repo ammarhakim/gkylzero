@@ -27,15 +27,23 @@ gkyl_dg_calc_pkpm_em_coupling_new(const struct gkyl_basis* cbasis,
   int poly_order = cbasis->poly_order;
   enum gkyl_basis_type b_type = cbasis->b_type;
   up->mem_range = *mem_range;
+  up->num_basis = nc; 
 
   up->pkpm_em_coupling_set = choose_pkpm_em_coupling_set_kern(b_type, cdim, poly_order);
   up->pkpm_em_coupling_copy = choose_pkpm_em_coupling_copy_kern(b_type, cdim, poly_order);
+  up->pkpm_em_coupling_nodal_set = choose_pkpm_em_coupling_nodal_set_kern(b_type, cdim, poly_order);
+  up->pkpm_em_coupling_nodal_copy = choose_pkpm_em_coupling_nodal_copy_kern(b_type, cdim, poly_order);
 
   // Linear system size is nc*(3*num_species + 3)
   up->num_species = num_species;
   up->As = gkyl_nmat_new(mem_range->volume, nc*(3*up->num_species + 3), nc*(3*up->num_species + 3));
   up->xs = gkyl_nmat_new(mem_range->volume, nc*(3*up->num_species + 3), 1);
   up->mem = gkyl_nmat_linsolve_lu_new(up->As->num, up->As->nr);
+
+  // Linear system size for the nodal solve is (3*num_species + 3) (and there are nc more of them)
+  up->As_nodal = gkyl_nmat_new(nc*mem_range->volume, (3*up->num_species + 3), (3*up->num_species + 3));
+  up->xs_nodal = gkyl_nmat_new(nc*mem_range->volume, (3*up->num_species + 3), 1);
+  up->mem_nodal = gkyl_nmat_linsolve_lu_new(up->As_nodal->num, up->As_nodal->nr);
 
   // Boolean for whether or not self-consistent EM fields are static
   up->pkpm_field_static = pkpm_field_static;
@@ -117,12 +125,80 @@ gkyl_dg_calc_pkpm_em_coupling_advance(struct gkyl_dg_calc_pkpm_em_coupling *up, 
 }
 
 void 
+gkyl_dg_calc_pkpm_em_coupling_nodal_advance(struct gkyl_dg_calc_pkpm_em_coupling *up, double dt, 
+  const struct gkyl_array* app_accel[GKYL_MAX_SPECIES], 
+  const struct gkyl_array* ext_em, const struct gkyl_array* app_current, 
+  const struct gkyl_array* vlasov_pkpm_moms[GKYL_MAX_SPECIES], 
+  struct gkyl_array* euler_pkpm[GKYL_MAX_SPECIES], struct gkyl_array* em)
+{
+#ifdef GKYL_HAVE_CUDA
+  if (gkyl_array_is_cu_dev(em)) {
+    return gkyl_dg_calc_pkpm_em_coupling_nodal_advance_cu(up, 
+      dt, app_accel, ext_em, app_current, vlasov_pkpm_moms, pkpm_u, 
+      euler_pkpm, em);
+  }
+#endif
+  int nc = up->num_basis;
+  int num_species = up->num_species;
+  double *fluids[GKYL_MAX_SPECIES];
+  const double *app_accels[GKYL_MAX_SPECIES];
+  const double *pkpm_moms[GKYL_MAX_SPECIES];
+
+  // First loop over mem_range for solving linear systems to compute primitive moments
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, &up->mem_range);
+  long count = 0;
+  while (gkyl_range_iter_next(&iter)) {
+    long loc = gkyl_range_idx(&up->mem_range, iter.idx);
+
+    for (int n=0; n<num_species; ++n) {
+      app_accels[n] = gkyl_array_cfetch(app_accel[n], loc);
+      pkpm_moms[n] = gkyl_array_cfetch(vlasov_pkpm_moms[n], loc);
+      fluids[n] = gkyl_array_fetch(euler_pkpm[n], loc);
+    }
+    const double *ext_em_d = gkyl_array_cfetch(ext_em, loc);
+    const double *app_current_d = gkyl_array_cfetch(app_current, loc);
+    double *em_d = gkyl_array_fetch(em, loc);
+
+    up->pkpm_em_coupling_nodal_set(count, 
+      up->num_species, up->qbym, up->epsilon0, up->pkpm_field_static, dt, 
+      up->As_nodal, up->xs_nodal, 
+      app_accels, ext_em_d, app_current_d, pkpm_moms, fluids, em_d);
+
+    count += nc;
+  }
+
+  bool status = gkyl_nmat_linsolve_lu_pa(up->mem_nodal, up->As_nodal, up->xs_nodal);
+  assert(status);
+
+  gkyl_range_iter_init(&iter, &up->mem_range);
+  count = 0;
+  while (gkyl_range_iter_next(&iter)) {
+    long loc = gkyl_range_idx(&up->mem_range, iter.idx);
+
+    for (int n=0; n<num_species; ++n) {
+      fluids[n] = gkyl_array_fetch(euler_pkpm[n], loc);
+    }
+    double *em_d = gkyl_array_fetch(em, loc);
+
+    up->pkpm_em_coupling_nodal_copy(count, up->num_species, up->qbym, up->epsilon0, 
+      up->xs_nodal, fluids, em_d);
+
+    count += nc;
+  }
+}
+
+void 
 gkyl_dg_calc_pkpm_em_coupling_release(gkyl_dg_calc_pkpm_em_coupling *up)
 {
   gkyl_nmat_release(up->As);
   gkyl_nmat_release(up->xs);
   gkyl_nmat_linsolve_lu_release(up->mem);
-  
+
+  gkyl_nmat_release(up->As_nodal);
+  gkyl_nmat_release(up->xs_nodal);
+  gkyl_nmat_linsolve_lu_release(up->mem_nodal);
+
   if (GKYL_IS_CU_ALLOC(up->flags)) 
     gkyl_cu_free(up->on_dev);
 

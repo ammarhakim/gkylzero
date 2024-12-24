@@ -67,9 +67,18 @@ pkpm_fluid_em_coupling_update(struct gkyl_pkpm_app *app, struct pkpm_fluid_em_co
     app_accels[i] = s->app_accel; 
   }
 
-  gkyl_dg_calc_pkpm_em_coupling_advance(pkpm_em->slvr, dt, 
-    app_accels, app->field->ext_em, app->field->app_current, 
-    vlasov_pkpm_moms, fluids, app->field->em);
+  // If p=1, the more robust nodal solve has no aliasing errors, 
+  // so we utilize the nodal solve automatically 
+  if (app->poly_order == 1) {
+    gkyl_dg_calc_pkpm_em_coupling_nodal_advance(pkpm_em->slvr, dt, 
+      app_accels, app->field->ext_em, app->field->app_current, 
+      vlasov_pkpm_moms, fluids, app->field->em);
+  }
+  else {
+    gkyl_dg_calc_pkpm_em_coupling_advance(pkpm_em->slvr, dt, 
+      app_accels, app->field->ext_em, app->field->app_current, 
+      vlasov_pkpm_moms, fluids, app->field->em);
+  }
 
   for (int i=0; i<num_species; ++i) {
     struct pkpm_species *s = &app->species[i];

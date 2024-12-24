@@ -64,14 +64,41 @@ void gkyl_dg_calc_pkpm_em_coupling_advance(struct gkyl_dg_calc_pkpm_em_coupling 
   struct gkyl_array* euler_pkpm[GKYL_MAX_SPECIES], struct gkyl_array* em);
 
 /**
- * Delete pointer to updater to compute fluid variables.
+ * Compute the updated fluid momentum and electric field implicitly from time-centered source solve *at nodes*.
+ * This solve utilizes the de-coupling of each node in the Gauss-Legendre nodal basis to change the implicit 
+ * source solve from a single solve for num_basis*(num_species*3 + 3) number of components, to num_basis solves
+ * for (num_species*3 + 3) number of components. After performing the time-centered update at each node, the
+ * solver converts the solution back to the modal basis. 
+ * 
+ * Note though that this nodal solve incurs aliasing errors for p>1 because there are terms in the implicit source
+ * solve which require the integration of 3*p order polynomials (such as the u x B force). The Gauss-Legendre nodal
+ * basis can only be used to integrate (2*(p+1) - 1) order polynomials, so 3 for p=1 (but only 5 for p=2 and 7 for p=3).
+ *
+ * @param up                            Updater for computing fluid-EM coupling in the PKPM system.
+ * @param app_accel[num_species]        Input array of applied accelerations (external forces) on each species 
+ * @param ext_em                        Input array of external electromagnetic fields
+ * @param app_current                   Input array of applied currents
+ * @param vlasov_pkpm_moms[num_species] Input array of velocity moments of PKPM kinetic equation at the old time step t^n
+ * @param euler_pkpm[num_species]       Input and output array of fluid momentum in PKPM update
+ * @param em                            Input and output array of EM fields
+ *                                      (update is done in place with electric field modified to new time)
+ * 
+ */
+void gkyl_dg_calc_pkpm_em_coupling_nodal_advance(struct gkyl_dg_calc_pkpm_em_coupling *up, double dt, 
+  const struct gkyl_array* app_accel[GKYL_MAX_SPECIES], 
+  const struct gkyl_array* ext_em, const struct gkyl_array* app_current, 
+  const struct gkyl_array* vlasov_pkpm_moms[GKYL_MAX_SPECIES], 
+  struct gkyl_array* euler_pkpm[GKYL_MAX_SPECIES], struct gkyl_array* em);
+
+/**
+ * Delete pointer to updater to compute pkpm-EM implicit coupling.
  *
  * @param up Updater to delete.
  */
 void gkyl_dg_calc_pkpm_em_coupling_release(struct gkyl_dg_calc_pkpm_em_coupling *up);
 
 /**
- * Host-side wrappers for fluid vars operations on device
+ * Host-side wrappers for computing pkpm-EM implicit coupling on device
  */
 
 void gkyl_dg_calc_pkpm_em_coupling_advance_cu(struct gkyl_dg_calc_pkpm_em_coupling *up, double dt, 
@@ -79,3 +106,9 @@ void gkyl_dg_calc_pkpm_em_coupling_advance_cu(struct gkyl_dg_calc_pkpm_em_coupli
   const struct gkyl_array* ext_em, const struct gkyl_array* app_current, 
   const struct gkyl_array* vlasov_pkpm_moms[GKYL_MAX_SPECIES], 
   struct gkyl_array* euler_pkpm[GKYL_MAX_SPECIES], struct gkyl_array* em);
+
+void gkyl_dg_calc_pkpm_em_coupling_nodal_advance_cu(struct gkyl_dg_calc_pkpm_em_coupling *up, double dt, 
+  const struct gkyl_array* app_accel[GKYL_MAX_SPECIES], 
+  const struct gkyl_array* ext_em, const struct gkyl_array* app_current, 
+  const struct gkyl_array* vlasov_pkpm_moms[GKYL_MAX_SPECIES], 
+  struct gkyl_array* euler_pkpm[GKYL_MAX_SPECIES], struct gkyl_array* em);  
