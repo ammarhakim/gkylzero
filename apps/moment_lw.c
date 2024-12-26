@@ -24,6 +24,7 @@
 #include <gkyl_wv_gr_maxwell_tetrad.h>
 #include <gkyl_wv_gr_ultra_rel_euler.h>
 #include <gkyl_wv_gr_ultra_rel_euler_tetrad.h>
+#include <gkyl_wv_gr_euler.h>
 #include <gkyl_zero_lw.h>
 
 #include <lua.h>
@@ -118,6 +119,13 @@ static const struct gkyl_str_int_pair gr_ultra_rel_euler_rp_type[] = {
 static const struct gkyl_str_int_pair gr_ultra_rel_euler_tetrad_rp_type[] = {
   { "roe", WV_GR_ULTRA_REL_EULER_TETRAD_RP_ROE },
   { "lax", WV_GR_ULTRA_REL_EULER_TETRAD_RP_LAX },
+  { 0, 0 }
+};
+
+// General relativistic Euler Riemann problem (general equation of state) -> enum map.
+static const struct gkyl_str_int_pair gr_euler_rp_type[] = {
+  { "roe", WV_GR_EULER_RP_ROE },
+  { "lax", WV_GR_EULER_RP_LAX },
   { 0, 0 }
 };
 
@@ -618,14 +626,14 @@ static struct luaL_Reg eqn_gr_maxwell_tetrad_ctor[] = {
 /* General Relativistic Euler Equations (Ultra-Relativistic Equation of State) */
 /* *************************************************************************** */
 
-// GRUltraRelativisticEuler.new { gasGamma = 5.0 / 3.0, rpType = "roe" }
+// GRUltraRelativisticEuler.new { gasGamma = 4.0 / 3.0, rpType = "roe" }
 // where rpType is one of "roe" or "lax."
 static int
 eqn_gr_ultra_rel_euler_lw_new(lua_State *L)
 {
   struct wv_eqn_lw *gr_ultra_rel_euler_lw = gkyl_malloc(sizeof(*gr_ultra_rel_euler_lw));
 
-  double gas_gamma = glua_tbl_get_number(L, "gasGamma", 5.0 / 3.0);
+  double gas_gamma = glua_tbl_get_number(L, "gasGamma", 4.0 / 3.0);
 
   const char *rp_str = glua_tbl_get_string(L, "rpType", "lax");
   enum gkyl_wv_gr_ultra_rel_euler_rp rp_type = gkyl_search_str_int_pair_by_str(gr_ultra_rel_euler_rp_type, rp_str, WV_GR_ULTRA_REL_EULER_RP_LAX);
@@ -660,14 +668,14 @@ static struct luaL_Reg eqn_gr_ultra_rel_euler_ctor[] = {
 /* General Relativistic Euler Equations in the Tetrad Basis (Ultra-Relativistic Equation of State) */
 /* *********************************************************************************************** */
 
-// GRUltraRelativisticEulerTetrad.new { gasGamma = 5.0 / 3.0, rpType = "roe" }
+// GRUltraRelativisticEulerTetrad.new { gasGamma = 4.0 / 3.0, rpType = "roe" }
 // where rpType is one of "roe" or "lax."
 static int
 eqn_gr_ultra_rel_euler_tetrad_lw_new(lua_State *L)
 {
   struct wv_eqn_lw *gr_ultra_rel_euler_tetrad_lw = gkyl_malloc(sizeof(*gr_ultra_rel_euler_tetrad_lw));
 
-  double gas_gamma = glua_tbl_get_number(L, "gasGamma", 5.0 / 3.0);
+  double gas_gamma = glua_tbl_get_number(L, "gasGamma", 4.0 / 3.0);
 
   const char *rp_str = glua_tbl_get_string(L, "rpType", "lax");
   enum gkyl_wv_gr_ultra_rel_euler_tetrad_rp rp_type = gkyl_search_str_int_pair_by_str(gr_ultra_rel_euler_tetrad_rp_type, rp_str, WV_GR_ULTRA_REL_EULER_TETRAD_RP_LAX);
@@ -698,6 +706,48 @@ static struct luaL_Reg eqn_gr_ultra_rel_euler_tetrad_ctor[] = {
   { 0, 0 }
 };
 
+/* **************************************************************** */
+/* General Relativistic Euler Equations (General Equation of State) */
+/* **************************************************************** */
+
+// GREuler.new { gasGamma = 5.0 / 3.0, rpType = "roe" }
+// where rpType is one of "roe" or "lax."
+static int
+eqn_gr_euler_lw_new(lua_State *L)
+{
+  struct wv_eqn_lw *gr_euler_lw = gkyl_malloc(sizeof(*gr_euler_lw));
+
+  double gas_gamma = glua_tbl_get_number(L, "gasGamma", 5.0 / 3.0);
+
+  const char *rp_str = glua_tbl_get_string(L, "rpType", "lax");
+  enum gkyl_wv_gr_euler_rp rp_type = gkyl_search_str_int_pair_by_str(gr_euler_rp_type, rp_str, WV_GR_EULER_RP_LAX);
+
+  gr_euler_lw->magic = MOMENT_EQN_DEFAULT;
+  gr_euler_lw->eqn = gkyl_wv_gr_euler_inew( &(struct gkyl_wv_gr_euler_inp) {
+      .gas_gamma = gas_gamma,
+      .spacetime = 0,
+      .rp_type = rp_type,
+      .use_gpu = false,
+    }
+  );
+
+  // Create Lua userdata.
+  struct wv_eqn_lw **l_gr_euler_lw = lua_newuserdata(L, sizeof(struct wv_eqn_lw*));
+  *l_gr_euler_lw = gr_euler_lw;
+
+  // Set metatable.
+  luaL_getmetatable(L, MOMENT_WAVE_EQN_METATABLE_NM);
+  lua_setmetatable(L, -2);
+
+  return 1;
+}
+
+// Equation constructor.
+static struct luaL_Reg eqn_gr_euler_ctor[] = {
+  { "new", eqn_gr_euler_lw_new },
+  { 0, 0 }
+};
+
 // Register and load all wave equation objects.
 static void
 eqn_openlibs(lua_State *L)
@@ -721,6 +771,7 @@ eqn_openlibs(lua_State *L)
   luaL_register(L, "G0.Moments.Eq.GRMaxwellTetrad", eqn_gr_maxwell_tetrad_ctor);
   luaL_register(L, "G0.Moments.Eq.GRUltraRelEuler", eqn_gr_ultra_rel_euler_ctor);
   luaL_register(L, "G0.Moments.Eq.GRUltraRelEulerTetrad", eqn_gr_ultra_rel_euler_tetrad_ctor);
+  luaL_register(L, "G0.Moments.Eq.GREuler", eqn_gr_euler_ctor);
 }
 
 // Metatable name for spacetime object input struct.
