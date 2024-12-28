@@ -35,6 +35,11 @@ GKYL_CU_DH void euler_pkpm_em_coupling_nodal_set_1x_ser_p1(int count,
   const double *app_accel[GKYL_MAX_SPECIES], const double *ext_em, const double *app_current, 
   const double *vlasov_pkpm_moms[GKYL_MAX_SPECIES], 
   double* GKYL_RESTRICT euler_pkpm[GKYL_MAX_SPECIES], double* GKYL_RESTRICT em); 
+GKYL_CU_DH void euler_pkpm_em_coupling_nodal_solve_1x_ser_p1(int num_species, 
+  double qbym[GKYL_MAX_SPECIES], double epsilon0, bool pkpm_field_static, double dt, 
+  const double *app_accel[GKYL_MAX_SPECIES], const double *ext_em, const double *app_current, 
+  const double *vlasov_pkpm_moms[GKYL_MAX_SPECIES], 
+  double* GKYL_RESTRICT euler_pkpm[GKYL_MAX_SPECIES], double* GKYL_RESTRICT em); 
 GKYL_CU_DH void euler_pkpm_em_coupling_nodal_copy_1x_ser_p1(int count, 
   int num_species, double qbym[GKYL_MAX_SPECIES], double epsilon0, 
   struct gkyl_nmat *x, double* GKYL_RESTRICT euler_pkpm[GKYL_MAX_SPECIES], double* GKYL_RESTRICT em); 
@@ -206,6 +211,11 @@ GKYL_CU_DH void euler_pkpm_em_coupling_copy_2x_ser_p1(int count,
 GKYL_CU_DH void euler_pkpm_em_coupling_nodal_set_2x_ser_p1(int count, 
   int num_species, double qbym[GKYL_MAX_SPECIES], double epsilon0, bool pkpm_field_static, double dt, 
   struct gkyl_nmat *A_n, struct gkyl_nmat *rhs_n, 
+  const double *app_accel[GKYL_MAX_SPECIES], const double *ext_em, const double *app_current, 
+  const double *vlasov_pkpm_moms[GKYL_MAX_SPECIES], 
+  double* GKYL_RESTRICT euler_pkpm[GKYL_MAX_SPECIES], double* GKYL_RESTRICT em); 
+GKYL_CU_DH void euler_pkpm_em_coupling_nodal_solve_2x_ser_p1(int num_species, 
+  double qbym[GKYL_MAX_SPECIES], double epsilon0, bool pkpm_field_static, double dt, 
   const double *app_accel[GKYL_MAX_SPECIES], const double *ext_em, const double *app_current, 
   const double *vlasov_pkpm_moms[GKYL_MAX_SPECIES], 
   double* GKYL_RESTRICT euler_pkpm[GKYL_MAX_SPECIES], double* GKYL_RESTRICT em); 
@@ -452,6 +462,11 @@ GKYL_CU_DH void euler_pkpm_em_coupling_copy_3x_ser_p1(int count,
 GKYL_CU_DH void euler_pkpm_em_coupling_nodal_set_3x_ser_p1(int count, 
   int num_species, double qbym[GKYL_MAX_SPECIES], double epsilon0, bool pkpm_field_static, double dt, 
   struct gkyl_nmat *A_n, struct gkyl_nmat *rhs_n, 
+  const double *app_accel[GKYL_MAX_SPECIES], const double *ext_em, const double *app_current, 
+  const double *vlasov_pkpm_moms[GKYL_MAX_SPECIES], 
+  double* GKYL_RESTRICT euler_pkpm[GKYL_MAX_SPECIES], double* GKYL_RESTRICT em); 
+GKYL_CU_DH void euler_pkpm_em_coupling_nodal_solve_3x_ser_p1(int num_species, 
+  double qbym[GKYL_MAX_SPECIES], double epsilon0, bool pkpm_field_static, double dt, 
   const double *app_accel[GKYL_MAX_SPECIES], const double *ext_em, const double *app_current, 
   const double *vlasov_pkpm_moms[GKYL_MAX_SPECIES], 
   double* GKYL_RESTRICT euler_pkpm[GKYL_MAX_SPECIES], double* GKYL_RESTRICT em); 
@@ -879,5 +894,112 @@ quad_nodal_to_modal_3d_ser_p1(const double* fquad, double* fmodal) {
   fmodal[6] = 0.3535533905932737*fquad[7]-0.3535533905932737*fquad[6]-0.3535533905932737*fquad[5]+0.3535533905932737*fquad[4]+0.3535533905932737*fquad[3]-0.3535533905932737*fquad[2]-0.3535533905932737*fquad[1]+0.3535533905932737*fquad[0]; 
   fmodal[7] = 0.3535533905932737*fquad[7]-0.3535533905932737*fquad[6]-0.3535533905932737*fquad[5]+0.3535533905932737*fquad[4]-0.3535533905932737*fquad[3]+0.3535533905932737*fquad[2]+0.3535533905932737*fquad[1]-0.3535533905932737*fquad[0]; 
 } 
+
+GKYL_CU_DH 
+static void
+implicit_nodal_pkpm_em_source_update(int nfluids, double dt, double q_over_m[GKYL_MAX_SPECIES], double epsilon0, 
+  double rho_s[GKYL_MAX_SPECIES], double fluid_s[GKYL_MAX_SPECIES][3],
+  double app_accel_s[GKYL_MAX_SPECIES][3], 
+  double E[3], double ext_E[3], double tot_B[3], double app_current[3])
+{
+  double Bx = tot_B[0];
+  double By = tot_B[1];
+  double Bz = tot_B[2];
+  double B_mag = sqrt((Bx * Bx) + (By * By) + (Bz * Bz));
+  
+  double bx = 0.0, by = 0.0, bz = 0.0;
+  if (B_mag > 0.0) {
+    bx = Bx / B_mag;
+    by = By / B_mag;
+    bz = Bz / B_mag;
+  }
+
+  double wc_dt[GKYL_MAX_SPECIES];
+  double wp_dt_sq[GKYL_MAX_SPECIES];
+  double J_old[GKYL_MAX_SPECIES][3];
+  double J[GKYL_MAX_SPECIES][3];
+
+  double w0_sq = 0.0;
+  double gam_sq = 0.0;
+  double delta = 0.0;
+  double Kx = 0.0, Ky = 0.0, Kz = 0.0;
+
+  for (int i = 0; i < nfluids; i++) {
+    const double *app_accel = app_accel_s[i];
+
+    double rho = rho_s[i];
+    double mom_x = fluid_s[i][0], mom_y = fluid_s[i][1], mom_z = fluid_s[i][2];
+
+    J_old[i][0] = mom_x * q_over_m[i];
+    J_old[i][1] = mom_y * q_over_m[i];
+    J_old[i][2] = mom_z * q_over_m[i];
+
+    J[i][0] = J_old[i][0] + (0.5 * dt * q_over_m[i] * rho * ((q_over_m[i] * ext_E[0]) + app_accel[0]));
+    J[i][1] = J_old[i][1] + (0.5 * dt * q_over_m[i] * rho * ((q_over_m[i] * ext_E[1]) + app_accel[1]));
+    J[i][2] = J_old[i][2] + (0.5 * dt * q_over_m[i] * rho * ((q_over_m[i] * ext_E[2]) + app_accel[2]));
+
+    wc_dt[i] = q_over_m[i] * B_mag * dt;
+    wp_dt_sq[i] = (rho * (q_over_m[i] * q_over_m[i]) * (dt * dt)) / epsilon0;
+
+    double denom = 1.0 + ((wc_dt[i] * wc_dt[i]) / 4.0);
+    w0_sq += wp_dt_sq[i] / denom;
+    gam_sq += (wp_dt_sq[i] * (wc_dt[i] * wc_dt[i])) / denom;
+    delta += (wp_dt_sq[i] * wc_dt[i]) / denom;
+
+    Kx -= (dt / denom) * (J[i][0] + (((wc_dt[i] * wc_dt[i]) / 4.0) * bx * ((bx * J[i][0]) + (by * J[i][1]) + (bz * J[i][2]))) -
+      ((wc_dt[i] / 2.0) * ((by * J[i][2]) - (bz * J[i][1]))));
+    Ky -= (dt / denom) * (J[i][1] + (((wc_dt[i] * wc_dt[i]) / 4.0) * by * ((bx * J[i][0]) + (by * J[i][1]) + (bz * J[i][2]))) -
+      ((wc_dt[i] / 2.0) * ((bz * J[i][0]) - (bx * J[i][2]))));
+    Kz -= (dt / denom) * (J[i][2] + (((wc_dt[i] * wc_dt[i]) / 4.0) * bz * ((bx * J[i][0]) + (by * J[i][1]) + (bz * J[i][2]))) -
+      ((wc_dt[i] / 2.0) * ((bx * J[i][1]) - (by * J[i][0]))));
+  }
+
+  double Delta_sq = (delta * delta) / (1.0 + (w0_sq / 4.0));
+
+  double Fx_old = E[0] * epsilon0;
+  double Fy_old = E[1] * epsilon0;
+  double Fz_old = E[2] * epsilon0;
+
+  double Fx = Fx_old - (0.5 * dt * app_current[0]);
+  double Fy = Fy_old - (0.5 * dt * app_current[1]);
+  double Fz = Fz_old - (0.5 * dt * app_current[2]);
+
+  double Fx_K = Fx + (0.5 * Kx);
+  double Fy_K = Fy + (0.5 * Ky);
+  double Fz_K = Fz + (0.5 * Kz);
+
+  double Fx_bar = (1.0 / (1.0 + (w0_sq / 4.0) + (Delta_sq / 64.0))) * (Fx_K + ((((Delta_sq / 64.0) - (gam_sq / 16.0)) /
+    (1.0 + (w0_sq / 4.0) + (gam_sq / 16.0))) * bx * ((bx * Fx_K) + (by * Fy_K) + (bz * Fz_K))) + (((delta / 8.0) /
+    (1.0 + (w0_sq / 4.0))) * ((by * Fz_K) - (bz * Fy_K))));
+  double Fy_bar = (1.0 / (1.0 + (w0_sq / 4.0) + (Delta_sq / 64.0))) * (Fy_K + ((((Delta_sq / 64.0) - (gam_sq / 16.0)) /
+    (1.0 + (w0_sq / 4.0) + (gam_sq / 16.0))) * by * ((bx * Fx_K) + (by * Fy_K) + (bz * Fz_K))) + (((delta / 8.0) /
+    (1.0 + (w0_sq / 4.0))) * ((bz * Fx_K) - (bx * Fz_K))));
+  double Fz_bar = (1.0 / (1.0 + (w0_sq / 4.0) + (Delta_sq / 64.0))) * (Fz_K + ((((Delta_sq / 64.0) - (gam_sq / 16.0)) /
+    (1.0 + (w0_sq / 4.0) + (gam_sq / 16.0))) * bz * ((bx * Fx_K) + (by * Fy_K) + (bz * Fz_K))) + (((delta / 8.0) /
+    (1.0 + (w0_sq / 4.0))) * ((bx * Fy_K) - (by * Fx_K))));
+  
+  E[0] = ((2.0 * Fx_bar) - Fx_old) / epsilon0;
+  E[1] = ((2.0 * Fy_bar) - Fy_old) / epsilon0;
+  E[2] = ((2.0 * Fz_bar) - Fz_old) / epsilon0;
+
+  for (int i = 0; i < nfluids; i++) {
+    double *f = fluid_s[i];
+
+    double Jx_star = J[i][0] + (Fx_bar * ((wp_dt_sq[i] / dt) / 2.0));
+    double Jy_star = J[i][1] + (Fy_bar * ((wp_dt_sq[i] / dt) / 2.0));
+    double Jz_star = J[i][2] + (Fz_bar * ((wp_dt_sq[i] / dt) / 2.0));
+
+    double Jx_new = ((2.0 * (Jx_star + (((wc_dt[i] * wc_dt[i]) / 4.0) * bx * ((bx * Jx_star) + (by * Jy_star) + (bz * Jz_star))) -
+      ((wc_dt[i] / 2.0) * ((by * Jz_star) - (bz * Jy_star))))) / (1.0 + ((wc_dt[i] * wc_dt[i]) / 4.0))) - J_old[i][0];
+    double Jy_new = ((2.0 * (Jy_star + (((wc_dt[i] * wc_dt[i]) / 4.0) * by * ((bx * Jx_star) + (by * Jy_star) + (bz * Jz_star))) -
+      ((wc_dt[i] / 2.0) * ((bz * Jx_star) - (bx * Jz_star))))) / (1.0 + ((wc_dt[i] * wc_dt[i]) / 4.0))) - J_old[i][1];
+    double Jz_new = ((2.0 * (Jz_star + (((wc_dt[i] * wc_dt[i]) / 4.0) * bz * ((bx * Jx_star) + (by * Jy_star) + (bz * Jz_star))) -
+      ((wc_dt[i] / 2.0) * ((bx * Jy_star) - (by * Jx_star))))) / (1.0 + ((wc_dt[i] * wc_dt[i]) / 4.0))) - J_old[i][2];
+    
+    f[0] = Jx_new / q_over_m[i];
+    f[1] = Jy_new / q_over_m[i];
+    f[2] = Jz_new / q_over_m[i];
+  }
+}
 
 EXTERN_C_END 

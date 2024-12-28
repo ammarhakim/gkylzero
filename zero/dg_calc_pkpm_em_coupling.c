@@ -32,6 +32,7 @@ gkyl_dg_calc_pkpm_em_coupling_new(const struct gkyl_basis* cbasis,
   up->pkpm_em_coupling_set = choose_pkpm_em_coupling_set_kern(b_type, cdim, poly_order);
   up->pkpm_em_coupling_copy = choose_pkpm_em_coupling_copy_kern(b_type, cdim, poly_order);
   up->pkpm_em_coupling_nodal_set = choose_pkpm_em_coupling_nodal_set_kern(b_type, cdim, poly_order);
+  up->pkpm_em_coupling_nodal_solve = choose_pkpm_em_coupling_nodal_solve_kern(b_type, cdim, poly_order);
   up->pkpm_em_coupling_nodal_copy = choose_pkpm_em_coupling_nodal_copy_kern(b_type, cdim, poly_order);
 
   // Linear system size is nc*(3*num_species + 3)
@@ -147,7 +148,6 @@ gkyl_dg_calc_pkpm_em_coupling_nodal_advance(struct gkyl_dg_calc_pkpm_em_coupling
   // First loop over mem_range for solving linear systems to compute primitive moments
   struct gkyl_range_iter iter;
   gkyl_range_iter_init(&iter, &up->mem_range);
-  long count = 0;
   while (gkyl_range_iter_next(&iter)) {
     long loc = gkyl_range_idx(&up->mem_range, iter.idx);
 
@@ -160,31 +160,9 @@ gkyl_dg_calc_pkpm_em_coupling_nodal_advance(struct gkyl_dg_calc_pkpm_em_coupling
     const double *app_current_d = gkyl_array_cfetch(app_current, loc);
     double *em_d = gkyl_array_fetch(em, loc);
 
-    up->pkpm_em_coupling_nodal_set(count, 
-      up->num_species, up->qbym, up->epsilon0, up->pkpm_field_static, dt, 
-      up->As_nodal, up->xs_nodal, 
+    up->pkpm_em_coupling_nodal_solve(up->num_species, 
+      up->qbym, up->epsilon0, up->pkpm_field_static, dt, 
       app_accels, ext_em_d, app_current_d, pkpm_moms, fluids, em_d);
-
-    count += nc;
-  }
-
-  bool status = gkyl_nmat_linsolve_lu_pa(up->mem_nodal, up->As_nodal, up->xs_nodal);
-  assert(status);
-
-  gkyl_range_iter_init(&iter, &up->mem_range);
-  count = 0;
-  while (gkyl_range_iter_next(&iter)) {
-    long loc = gkyl_range_idx(&up->mem_range, iter.idx);
-
-    for (int n=0; n<num_species; ++n) {
-      fluids[n] = gkyl_array_fetch(euler_pkpm[n], loc);
-    }
-    double *em_d = gkyl_array_fetch(em, loc);
-
-    up->pkpm_em_coupling_nodal_copy(count, up->num_species, up->qbym, up->epsilon0, 
-      up->xs_nodal, fluids, em_d);
-
-    count += nc;
   }
 }
 

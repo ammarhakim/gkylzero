@@ -18,6 +18,12 @@ typedef void (*pkpm_em_coupling_set_t)(int count,
   const double *vlasov_pkpm_moms[GKYL_MAX_SPECIES], 
   double* GKYL_RESTRICT euler_pkpm[GKYL_MAX_SPECIES], double* GKYL_RESTRICT em);
 
+typedef void (*pkpm_em_coupling_solve_t)(int num_species, 
+  double qbym[GKYL_MAX_SPECIES], double epsilon0, bool pkpm_field_static, double dt, 
+  const double *app_accel[GKYL_MAX_SPECIES], const double *ext_em, const double *app_current, 
+  const double *vlasov_pkpm_moms[GKYL_MAX_SPECIES], 
+  double* GKYL_RESTRICT euler_pkpm[GKYL_MAX_SPECIES], double* GKYL_RESTRICT em);
+
 typedef void (*pkpm_em_coupling_copy_t)(int count, 
   int num_species, double qbym[GKYL_MAX_SPECIES], double epsilon0, 
   struct gkyl_nmat *x, double* GKYL_RESTRICT euler_pkpm[GKYL_MAX_SPECIES], double* GKYL_RESTRICT em);
@@ -25,8 +31,7 @@ typedef void (*pkpm_em_coupling_copy_t)(int count,
 // for use in kernel tables
 typedef struct { pkpm_em_coupling_set_t kernels[4]; } gkyl_dg_pkpm_em_coupling_set_kern_list;
 typedef struct { pkpm_em_coupling_copy_t kernels[4]; } gkyl_dg_pkpm_em_coupling_copy_kern_list;
-typedef struct { pkpm_em_coupling_set_t kernels[4]; } gkyl_dg_pkpm_em_coupling_nodal_set_kern_list;
-typedef struct { pkpm_em_coupling_copy_t kernels[4]; } gkyl_dg_pkpm_em_coupling_nodal_copy_kern_list;
+typedef struct { pkpm_em_coupling_solve_t kernels[4]; } gkyl_dg_pkpm_em_coupling_solve_kern_list;
 
 struct gkyl_dg_calc_pkpm_em_coupling {
   struct gkyl_range mem_range; // Configuration space range for linear solve
@@ -40,6 +45,7 @@ struct gkyl_dg_calc_pkpm_em_coupling {
   pkpm_em_coupling_set_t pkpm_em_coupling_set;  // kernel for setting matrices for linear solve
   pkpm_em_coupling_copy_t pkpm_em_coupling_copy; // kernel for copying solution to output
   pkpm_em_coupling_set_t pkpm_em_coupling_nodal_set;  // kernel for setting matrices for nodal linear solve
+  pkpm_em_coupling_solve_t pkpm_em_coupling_nodal_solve;  // kernel for setting matrices for nodal linear solve
   pkpm_em_coupling_copy_t pkpm_em_coupling_nodal_copy; // kernel for converting nodal solution to modal output
 
   bool pkpm_field_static; // bool to determine if we are updating the self-consistent EM fields (dE/dt)
@@ -91,6 +97,12 @@ static const gkyl_dg_pkpm_em_coupling_set_kern_list ser_pkpm_em_coupling_nodal_s
   { NULL, euler_pkpm_em_coupling_nodal_set_2x_ser_p1, NULL, NULL }, // 1
   { NULL, euler_pkpm_em_coupling_nodal_set_3x_ser_p1, NULL, NULL }, // 2
 };
+GKYL_CU_D
+static const gkyl_dg_pkpm_em_coupling_solve_kern_list ser_pkpm_em_coupling_nodal_solve_kernels[] = {
+  { NULL, euler_pkpm_em_coupling_nodal_solve_1x_ser_p1, NULL, NULL }, // 0
+  { NULL, euler_pkpm_em_coupling_nodal_solve_2x_ser_p1, NULL, NULL }, // 1
+  { NULL, euler_pkpm_em_coupling_nodal_solve_3x_ser_p1, NULL, NULL }, // 2
+};
 // Copy solution for *nodal* implicit source solve for fluid-em coupling in the PKPM system. (Serendipity kernels)
 GKYL_CU_D
 static const gkyl_dg_pkpm_em_coupling_copy_kern_list ser_pkpm_em_coupling_nodal_copy_kernels[] = {
@@ -140,6 +152,19 @@ choose_pkpm_em_coupling_nodal_set_kern(enum gkyl_basis_type b_type, int cdim, in
   switch (b_type) {
     case GKYL_BASIS_MODAL_SERENDIPITY:
       return ser_pkpm_em_coupling_nodal_set_kernels[cdim-1].kernels[poly_order];
+      break;
+    default:
+      assert(false);
+      break;  
+  }
+}
+GKYL_CU_D
+static pkpm_em_coupling_solve_t
+choose_pkpm_em_coupling_nodal_solve_kern(enum gkyl_basis_type b_type, int cdim, int poly_order)
+{
+  switch (b_type) {
+    case GKYL_BASIS_MODAL_SERENDIPITY:
+      return ser_pkpm_em_coupling_nodal_solve_kernels[cdim-1].kernels[poly_order];
       break;
     default:
       assert(false);
