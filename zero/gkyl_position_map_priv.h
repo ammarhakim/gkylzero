@@ -351,6 +351,7 @@ find_B_field_extrema(struct gkyl_position_map *gpm)
   double dB_cell = B_total_change / (num_boundaries-1);
 
   gpm->constB_ctx->dB_cell = dB_cell;
+
 }
 
 double

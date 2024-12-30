@@ -38,6 +38,10 @@ void gk_geometry_mapc2p_advance(struct gk_geometry* up, struct gkyl_range *nrang
     phi_lo = up->grid.lower[PH_IDX] + (up->local.lower[PH_IDX] - up->global.lower[PH_IDX])*up->grid.dx[PH_IDX],
     alpha_lo = up->grid.lower[AL_IDX] + (up->local.lower[AL_IDX] - up->global.lower[AL_IDX])*up->grid.dx[AL_IDX];
 
+  double theta_up = up->grid.upper[TH_IDX],
+    phi_up = up->grid.upper[PH_IDX],
+    alpha_up = up->grid.upper[AL_IDX];
+
   double dx_fact = up->basis.poly_order == 1 ? 1 : 0.5;
   dtheta *= dx_fact; dpsi *= dx_fact; dalpha *= dx_fact;
 
@@ -49,6 +53,15 @@ void gk_geometry_mapc2p_advance(struct gk_geometry* up, struct gkyl_range *nrang
   dzc[1] = delta_alpha;
   dzc[2] = delta_theta;
   int modifiers[5] = {0, -1, 1, -2, 2};
+
+  position_map->constB_ctx->alpha_max = alpha_up;
+  position_map->constB_ctx->alpha_min = alpha_lo;
+  position_map->constB_ctx->psi_max = phi_up;
+  position_map->constB_ctx->psi_min = phi_lo;
+  position_map->constB_ctx->theta_max = theta_up;
+  position_map->constB_ctx->theta_min = theta_lo;
+  position_map->constB_ctx->N_theta_boundaries = nrange->upper[TH_IDX] - nrange->lower[TH_IDX] + 1;
+  gkyl_position_map_optimize(position_map);
                                 
   int cidx[3] = { 0 };
   for(int ia=nrange->lower[AL_IDX]; ia<=nrange->upper[AL_IDX]; ++ia){
@@ -253,7 +266,8 @@ gkyl_gk_geometry_mapc2p_new(struct gkyl_gk_geometry_inp *geometry_inp)
   gk_geom_3d = gk_geometry_mapc2p_init(geometry_inp);
   // The conversion array computational to field aligned is still computed
   // in uniform geometry, so we need to deflate it
-  if (geometry_inp->position_map->id == GKYL_PMAP_UNIFORM_B_POLYNOMIAL) {
+  if (geometry_inp->position_map->id == GKYL_PMAP_UNIFORM_B_POLYNOMIAL || \
+      geometry_inp->position_map->id == GKYL_PMAP_UNIFORM_B_NUMERIC) {
     // Must deflate the 3Duniform geometry in order for the allgather to work
     if(geometry_inp->grid.ndim < 3)
       gk_geom = gkyl_gk_geometry_deflate(gk_geom_3d, geometry_inp);

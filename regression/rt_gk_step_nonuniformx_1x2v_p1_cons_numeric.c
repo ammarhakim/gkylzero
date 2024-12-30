@@ -614,7 +614,7 @@ main(int argc, char **argv)
   
   // GK app.
   struct gkyl_gk app_inp = {
-    .name = "gk_step_nonuniformx_1x2v_p1_cons",
+    .name = "gk_step_nonuniformx_1x2v_p1_cons_numeric",
 
     .cdim = ctx.cdim, .vdim = ctx.vdim,
     .lower = { -0.5 * ctx.Lz},
@@ -630,9 +630,8 @@ main(int argc, char **argv)
       .efit_info = inp,
       .tok_grid_info = ginp,
       .position_map_info = {
-        .id = GKYL_PMAP_FUNC,
-        .map_z = nonuniform_position_map_z,
-        .ctx_z = &ctx,
+        .id = GKYL_PMAP_UNIFORM_B_NUMERIC,
+        .map_strength = 0.9999,
       },
     },
 

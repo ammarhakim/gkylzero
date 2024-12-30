@@ -767,7 +767,7 @@ int main(int argc, char **argv)
 
   // GK app
   struct gkyl_gk app_inp = {
-    .name = "gk_wham_nonuniformx_1x2v_p1",
+    .name = "gk_wham_nonuniformx_1x2v_p1_numeric",
 
     .cdim = ctx.cdim, .vdim = ctx.vdim,
     .lower = {ctx.z_min},
@@ -783,7 +783,7 @@ int main(int argc, char **argv)
       .mirror_grid_info = grid_inp,
       .position_map_info = {
         .id = GKYL_PMAP_UNIFORM_B_NUMERIC,
-        .map_strength = 0.9,
+        .map_strength = 0.9999,
       },
     },
 

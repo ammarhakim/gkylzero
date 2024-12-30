@@ -115,7 +115,7 @@ gkyl_position_map_new(struct gkyl_position_map_inp pmap_info, struct gkyl_rect_g
   gpm->global_ext = global_ext;
   gpm->basis = basis;
   gpm->cdim = grid.ndim; 
-  gpm->mc2nu = mkarr(false, gpm->cdim*gpm->basis.num_basis, gpm->local_ext.volume);
+  gpm->mc2nu = mkarr(false, 3*gpm->basis.num_basis, gpm->local_ext.volume);
   gpm->flags = 0;
   GKYL_CLEAR_CU_ALLOC(gpm->flags);
   gpm->ref_count = gkyl_ref_count_init(gkyl_position_map_free);
@@ -127,9 +127,7 @@ gkyl_position_map_new(struct gkyl_position_map_inp pmap_info, struct gkyl_rect_g
 void
 gkyl_position_map_set(struct gkyl_position_map* gpm, struct gkyl_array* mc2nu)
 {
-  // Should be a copy, but there are issues I will look into later
-  gkyl_array_release(gpm->mc2nu);
-  gpm->mc2nu = gkyl_array_acquire(mc2nu);
+  gkyl_array_copy(gpm->mc2nu, mc2nu);
 }
 
 void 

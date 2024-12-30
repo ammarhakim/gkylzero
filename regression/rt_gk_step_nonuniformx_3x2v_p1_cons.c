@@ -680,6 +680,7 @@ main(int argc, char **argv)
       .efit_info = inp,
       .tok_grid_info = ginp,
       .position_map_info = {
+        .id = GKYL_PMAP_FUNC,
         .map_z = nonuniform_position_map_z,
         .ctx_z = &ctx,
       },

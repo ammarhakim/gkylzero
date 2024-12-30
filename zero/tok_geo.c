@@ -441,6 +441,7 @@ void gkyl_tok_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, double
   position_map->constB_ctx->psi_min = psi_lo;
   position_map->constB_ctx->theta_max = theta_up;
   position_map->constB_ctx->theta_min = theta_lo;
+  position_map->constB_ctx->N_theta_boundaries = nrange->upper[TH_IDX] - nrange->lower[TH_IDX] + 1;
   gkyl_position_map_optimize(position_map);
 
   int cidx[3] = { 0 };
