@@ -283,6 +283,8 @@ struct pkpm_field {
   struct gkyl_array *max_b; // max(|b_i|) penalization (for use in pkpm model)
   struct gkyl_dg_calc_em_vars *calc_bvar; // Updater to compute magnetic field unit vector and tensor
 
+  struct gkyl_array *current_no_J; // Current density without Jacobian factor from field-line following coordinates.
+
   bool limit_em; // boolean for whether or not we are limiting EM fields
   struct gkyl_dg_calc_em_vars *calc_em_vars; // Updater to limit EM fields 
 
@@ -345,6 +347,13 @@ struct gkyl_pkpm_app {
 
   struct gkyl_wave_geom *geom; // geometry needed for species and field solvers (*only* p=1 right now JJ: 05/03/24)
   
+  bool has_jacobgeo_flf; // flag to indicate if we are using a field-line-following coordinate system.
+  struct gkyl_array *jacobgeo_flf; // Jacobian factor for field-line-following coordinates (1/B)
+  struct gkyl_array *jacobgeo_flf_host; // host-side array for initial projection and IO
+  struct gkyl_array *minus_dBdz_over_B; // -1/B dB/dz (specified div(b) in field-line-following coordinates)
+  struct gkyl_array *minus_dBdz_over_B_host; // host-side array for initial projection and IO
+  struct gkyl_dg_bin_op_mem *jacobian_factor_mem; // memory needed in dividing out Jacobian 
+
   // pointers to basis on device (these point to host structs if not
   // on GPU)
   struct {

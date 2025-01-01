@@ -108,9 +108,13 @@ struct gkyl_dg_calc_pkpm_vars {
   pkpm_source_t pkpm_source; // kernel for computing pkpm source update
   pkpm_io_t pkpm_io; // kernel for constructing I/O arrays for pkpm diagnostics
 
-  pkpm_accel_t pkpm_accel[3]; // kernel for computing pkpm acceleration and Lax variables
-  pkpm_penalization_t pkpm_penalization[3]; // kernel for computing pkpm acceleration and Lax variables
+  pkpm_accel_t pkpm_accel[3]; // kernel for computing pkpm acceleration variables
+  pkpm_penalization_t pkpm_penalization[3]; // kernel for computing pkpm penalization and Lax variables
   pkpm_limiter_t pkpm_limiter[3]; // kernel for limiting slopes of fluid variables
+
+  bool use_flf_funcs; // boolean for if we are utilizing field-line-following PKPM functions
+  pkpm_source_t pkpm_flf_source; // kernel for computing pkpm source update in field-line-following coordinates
+  pkpm_accel_t pkpm_flf_accel[3]; // kernel for computing pkpm acceleration variables in field-line-following coordinates
 
   uint32_t flags;
   struct gkyl_dg_calc_pkpm_vars *on_dev; // pointer to itself or device data
@@ -416,6 +420,40 @@ static const gkyl_dg_pkpm_limiter_kern_list ten_pkpm_limiter_z_kernels[] = {
   { NULL, euler_pkpm_limiter_z_3x_ser_p1, NULL, NULL }, // 2
 };
 
+// PKPM explicit source solve in field-line-following coordinates (Serendipity kernels)
+GKYL_CU_D
+static const gkyl_dg_pkpm_source_kern_list ser_pkpm_flf_source_kernels[] = {
+  { NULL, euler_pkpm_flf_source_1x_ser_p1, euler_pkpm_flf_source_1x_ser_p2 }, // 0
+  { NULL, NULL, NULL }, // 1
+  { NULL, NULL, NULL }, // 2
+};
+
+// PKPM explicit source solve in field-line-following coordinates (Tensor kernels)
+GKYL_CU_D
+static const gkyl_dg_pkpm_source_kern_list ten_pkpm_flf_source_kernels[] = {
+  { NULL, euler_pkpm_flf_source_1x_ser_p1, euler_pkpm_flf_source_1x_ser_p2 }, // 0
+  { NULL, NULL, NULL }, // 1
+  { NULL, NULL, NULL }, // 2
+};
+
+// PKPM acceleration variables in field-line following coordinates
+// e.g., bb:grad(u) = du_parallel/dz, (in the first dimension) (Serendipity kernels)
+GKYL_CU_D
+static const gkyl_dg_pkpm_accel_kern_list ser_pkpm_flf_accel_x_kernels[] = {
+  { NULL, pkpm_vars_flf_accel_x_1x_ser_p1, pkpm_vars_flf_accel_x_1x_ser_p2 }, // 0
+  { NULL, NULL, NULL }, // 1
+  { NULL, NULL, NULL }, // 2
+};
+
+// PKPM acceleration variables in field-line following coordinates
+// e.g., bb:grad(u) = du_parallel/dz, (in the first dimension) (Tensor kernels)
+GKYL_CU_D
+static const gkyl_dg_pkpm_accel_kern_list ten_pkpm_flf_accel_x_kernels[] = {
+  { NULL, pkpm_vars_flf_accel_x_1x_ser_p1, pkpm_vars_flf_accel_x_1x_ser_p2 }, // 0
+  { NULL, NULL, NULL }, // 1
+  { NULL, NULL, NULL }, // 2
+};
+
 GKYL_CU_D
 static pkpm_set_t
 choose_pkpm_set_kern(enum gkyl_basis_type b_type, int cdim, int poly_order)
@@ -653,6 +691,46 @@ choose_pkpm_limiter_kern(int dir, enum gkyl_basis_type b_type, int cdim, int pol
         return ten_pkpm_limiter_y_kernels[cdim-1].kernels[poly_order];
       else if (dir == 2)
         return ten_pkpm_limiter_z_kernels[cdim-1].kernels[poly_order];
+      else
+        return NULL;
+      break;
+    default:
+      assert(false);
+      break;  
+  }
+}
+
+GKYL_CU_D
+static pkpm_source_t
+choose_pkpm_flf_source_kern(enum gkyl_basis_type b_type, int cdim, int poly_order)
+{
+  switch (b_type) {
+    case GKYL_BASIS_MODAL_SERENDIPITY:
+      return ser_pkpm_flf_source_kernels[cdim-1].kernels[poly_order];
+      break;
+    case GKYL_BASIS_MODAL_TENSOR:
+      return ten_pkpm_flf_source_kernels[cdim-1].kernels[poly_order];
+      break;
+    default:
+      assert(false);
+      break;  
+  }
+}
+
+GKYL_CU_D
+static pkpm_accel_t
+choose_pkpm_flf_accel_kern(int dir, enum gkyl_basis_type b_type, int cdim, int poly_order)
+{
+  switch (b_type) {
+    case GKYL_BASIS_MODAL_SERENDIPITY:
+      if (dir == 0)
+        return ser_pkpm_flf_accel_x_kernels[cdim-1].kernels[poly_order];
+      else
+        return NULL;
+      break;
+    case GKYL_BASIS_MODAL_TENSOR:
+      if (dir == 0)
+        return ten_pkpm_flf_accel_x_kernels[cdim-1].kernels[poly_order];
       else
         return NULL;
       break;

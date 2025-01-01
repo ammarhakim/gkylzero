@@ -239,6 +239,40 @@ gkyl_pkpm_app_new(struct gkyl_pkpm *pkpm)
   app->geom = gkyl_wave_geom_new(&app->grid, &app->local_ext,
     app->mapc2p, app->c2p_ctx, app->use_gpu);
 
+  app->has_jacobgeo_flf = pkpm->jacobgeo_flf ? true : false;
+  // create PKPM field-line-following coordinate objects if they are specified
+  if (app->has_jacobgeo_flf) {
+    app->jacobgeo_flf = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
+    app->minus_dBdz_over_B = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
+    if (app->use_gpu) {
+      app->jacobian_factor_mem = gkyl_dg_bin_op_mem_cu_dev_new(app->local.volume, app->confBasis.num_basis);
+      app->jacobgeo_flf_host = mkarr(false, app->confBasis.num_basis, app->local_ext.volume);
+      app->minus_dBdz_over_B_host = mkarr(false, app->confBasis.num_basis, app->local_ext.volume);      
+    }
+    else {
+      app->jacobian_factor_mem = gkyl_dg_bin_op_mem_new(app->local.volume, app->confBasis.num_basis);
+      app->jacobgeo_flf_host = gkyl_array_acquire(app->jacobgeo_flf);
+      app->minus_dBdz_over_B_host = gkyl_array_acquire(app->minus_dBdz_over_B);  
+    }
+
+    // Project Jacobian for field-line-following coordinates and corresponding -1/B dB/dz
+    gkyl_eval_on_nodes *ev_jacobgeo_flf = gkyl_eval_on_nodes_new(&app->grid, &app->confBasis, cdim, 
+      pkpm->jacobgeo_flf, pkpm->jacobgeo_flf_ctx);
+    gkyl_eval_on_nodes_advance(ev_jacobgeo_flf, 0.0, &app->local, app->jacobgeo_flf_host);  
+
+    gkyl_eval_on_nodes *ev_minus_dBdz_over_B = gkyl_eval_on_nodes_new(&app->grid, &app->confBasis, cdim, 
+      pkpm->minus_dBdz_over_B, pkpm->minus_dBdz_over_B_ctx);
+    gkyl_eval_on_nodes_advance(ev_minus_dBdz_over_B, 0.0, &app->local, app->minus_dBdz_over_B_host); 
+
+    if (app->use_gpu) {
+      gkyl_array_copy(app->jacobgeo_flf, app->jacobgeo_flf_host);
+      gkyl_array_copy(app->minus_dBdz_over_B, app->minus_dBdz_over_B_host);
+    }
+
+    gkyl_eval_on_nodes_release(ev_jacobgeo_flf);
+    gkyl_eval_on_nodes_release(ev_minus_dBdz_over_B);
+  }
+
   // PKPM system *always* has a field to define the local magnetic field direction
   app->field = pkpm_field_new(pkpm, app);
 
@@ -272,6 +306,10 @@ gkyl_pkpm_app_new(struct gkyl_pkpm *pkpm)
     app->update_func = pkpm_update_explicit_ssp_rk3;
   }
   else {
+    // Cannot utilize implicit source solve with field-line-following coordinates yet. 
+    if (app->has_jacobgeo_flf) {
+      assert(false);
+    }
     // By default: we perform a first-order operator split 
     // to implicitly treat the momentum-EM field coupling. 
     app->pkpm_em = pkpm_fluid_em_coupling_init(app);
@@ -468,6 +506,28 @@ gkyl_pkpm_app_write_field(gkyl_pkpm_app* app, double tm, int frame)
     }
   }  
 
+  // Write out the field-line-following coordinate Jacobian and -1/B dB/dz with 
+  // the rest of the field quantities if frame = 0
+  if (app->has_jacobgeo_flf) {
+    if (frame == 0) {
+      const char *fmt_jacobgeo_flf = "%s-jacobgeo_flf_%d.gkyl";
+      int sz_jacobgeo_flf = gkyl_calc_strlen(fmt_jacobgeo_flf, app->name, frame);
+      char fileNm_jacobgeo_flf[sz_jacobgeo_flf+1]; // ensures no buffer overflow
+      snprintf(fileNm_jacobgeo_flf, sizeof fileNm_jacobgeo_flf, fmt_jacobgeo_flf, app->name, frame);
+
+      gkyl_comm_array_write(app->comm, &app->grid, &app->local, 
+        mt, app->jacobgeo_flf_host, fileNm_jacobgeo_flf); 
+
+      const char *fmt_minus_dBdz_over_B = "%s-minus_dBdz_over_B_%d.gkyl";
+      int sz_minus_dBdz_over_B = gkyl_calc_strlen(fmt_minus_dBdz_over_B, app->name, frame);
+      char fileNm_minus_dBdz_over_B[sz_minus_dBdz_over_B+1]; // ensures no buffer overflow
+      snprintf(fileNm_minus_dBdz_over_B, sizeof fileNm_minus_dBdz_over_B, fmt_minus_dBdz_over_B, app->name, frame);
+
+      gkyl_comm_array_write(app->comm, &app->grid, &app->local, 
+        mt, app->minus_dBdz_over_B_host, fileNm_minus_dBdz_over_B);  
+    }
+  }
+
   pkpm_array_meta_release(mt);    
 }
 
@@ -537,6 +597,19 @@ gkyl_pkpm_app_write_mom(gkyl_pkpm_app* app, int sidx, double tm, int frame)
     s->pkpm_moms.marr, s->fluid, 
     s->pkpm_p_ij, s->pkpm_prim, 
     s->pkpm_accel, s->fluid_io, s->pkpm_vars_io);
+
+  // Divide out the Jacobian from the 8 moments and 10 fluid variables 
+  // if we are using a field-line-following coordinate system. 
+  if (app->has_jacobgeo_flf) {
+    for (int i=0; i<8; ++i) {
+      gkyl_dg_div_op_range(app->jacobian_factor_mem, app->confBasis, i, s->pkpm_moms_diag.marr, i,
+        s->pkpm_moms_diag.marr, 0, app->jacobgeo_flf, &app->local);       
+    }
+    for (int i=0; i<10; ++i) {
+      gkyl_dg_div_op_range(app->jacobian_factor_mem, app->confBasis, i, s->fluid_io, i,
+        s->fluid_io, 0, app->jacobgeo_flf, &app->local);        
+    }
+  }
 
   // copy data from device to host before writing it out
   if (app->use_gpu) {
@@ -1042,6 +1115,15 @@ gkyl_pkpm_app_cout(const gkyl_pkpm_app* app, FILE *fp, const char *fmt, ...)
 void
 gkyl_pkpm_app_release(gkyl_pkpm_app* app)
 {
+  // Release field-line-following coordinate arrays
+  if (app->has_jacobgeo_flf) {
+    gkyl_array_release(app->jacobgeo_flf); 
+    gkyl_array_release(app->jacobgeo_flf_host); 
+    gkyl_array_release(app->minus_dBdz_over_B); 
+    gkyl_array_release(app->minus_dBdz_over_B_host); 
+    gkyl_dg_bin_op_mem_release(app->jacobian_factor_mem);
+  }
+
   for (int i=0; i<app->num_species; ++i) {
     pkpm_species_release(app, &app->species[i]);
   }

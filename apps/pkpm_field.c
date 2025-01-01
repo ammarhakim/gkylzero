@@ -119,6 +119,13 @@ pkpm_field_new(struct gkyl_pkpm *pkpm, struct gkyl_pkpm_app *app)
   // Surface expansion of max b penalization for streaming in PKPM system max(|b_i_l|, |b_i_r|)
   f->max_b = mkarr(app->use_gpu, 2*cdim*Nbasis_surf, app->local_ext.volume);
 
+  // Allocate current density array without Jacobian factor 
+  // for use in field-line-following coordinate simulations. 
+  // Only works in 1D for now. 
+  if (app->has_jacobgeo_flf) {
+    f->current_no_J = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
+  }
+
   // Check if limiter_fac is specified for adjusting how much diffusion is applied through slope limiter
   // If not specified, set to 0.0 and updater sets default behavior (1/sqrt(3); see gkyl_dg_calc_em_vars.h)
   double limiter_fac = f->info.limiter_fac == 0 ? 0.0 : f->info.limiter_fac;
@@ -267,6 +274,13 @@ pkpm_field_calc_bvar(gkyl_pkpm_app *app, struct pkpm_field *field,
     field->bvar_surf, field->bvar, 
     field->max_b, field->div_b); 
 
+  // If we are using a field-line following coordinate system, overwrite the value of div(b)
+  // with the prescribed -1/B*dB/dz for the field-line following coordinates
+  // Only works in 1D right now
+  if (app->has_jacobgeo_flf) {
+    gkyl_array_set(field->div_b, 1.0, app->minus_dBdz_over_B);
+  }
+
   app->stat.field_em_vars_tm += gkyl_time_diff_now_sec(tm);
 }
 
@@ -296,7 +310,16 @@ pkpm_field_explicit_accumulate_current(gkyl_pkpm_app *app, struct pkpm_field *fi
       struct pkpm_species *s = &app->species[i];
       // Need to divide out the mass in pkpm model since we evolve momentum
       double qbymeps = s->info.charge/(s->info.mass*field->info.epsilon0); 
-      gkyl_array_accumulate_range(emout, -qbymeps, fluidin[i], &app->local);   
+      // If we are using a field-line following coordinate system, divide out the Jacobian
+      // before accumulating the current; Only works in 1D right now
+      if (app->has_jacobgeo_flf) {
+        gkyl_dg_div_op_range(app->jacobian_factor_mem, app->confBasis, 0, field->current_no_J, 0,
+          fluidin[i], 0, app->jacobgeo_flf, &app->local);        
+        gkyl_array_accumulate_range(emout, -qbymeps, field->current_no_J, &app->local);         
+      }
+      else {
+        gkyl_array_accumulate_range(emout, -qbymeps, fluidin[i], &app->local); 
+      }
     } 
     // Accumulate applied current to electric field terms
     if (field->has_app_current) {
@@ -435,6 +458,10 @@ pkpm_field_release(const gkyl_pkpm_app* app, struct pkpm_field *f)
   gkyl_array_release(f->max_b);
   gkyl_dg_calc_em_vars_release(f->calc_bvar);
   gkyl_dg_calc_em_vars_release(f->calc_em_vars);
+
+  if (app->has_jacobgeo_flf) {
+    gkyl_array_release(f->current_no_J);
+  }
 
   gkyl_array_release(f->ext_em);
   if (f->has_ext_em) {

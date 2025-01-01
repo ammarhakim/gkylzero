@@ -116,6 +116,14 @@ struct gkyl_pkpm {
   // coordinates.
   void (*mapc2p)(double t, const double *xc, double *xp, void *ctx);
 
+  void *jacobgeo_flf_ctx; // context for field-line-following coordinates Jacobian 
+  // pointer to field-line-following coordinates Jacobian function
+  void (*jacobgeo_flf)(double t, const double *xc, double *xp, void *ctx);
+
+  void *minus_dBdz_over_B_ctx; // context for -1/B dB/dz (specified div(b) in field-line-following coordinates)
+  // pointer to -1/B dB/dz function
+  void (*minus_dBdz_over_B)(double t, const double *xc, double *xp, void *ctx);
+
   double cfl_frac; // CFL fraction to use (default 1.0)
 
   int num_periodic_dir; // number of periodic directions

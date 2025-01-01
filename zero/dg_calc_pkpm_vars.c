@@ -14,11 +14,13 @@
 gkyl_dg_calc_pkpm_vars*
 gkyl_dg_calc_pkpm_vars_new(const struct gkyl_rect_grid *conf_grid, 
   const struct gkyl_basis *cbasis, const struct gkyl_range *mem_range, 
-  const struct gkyl_wv_eqn *wv_eqn, const struct gkyl_wave_geom *geom, double limiter_fac, bool use_gpu)
+  const struct gkyl_wv_eqn *wv_eqn, const struct gkyl_wave_geom *geom, 
+  double limiter_fac, bool use_flf_funcs, bool use_gpu)
 {
 #ifdef GKYL_HAVE_CUDA
   if(use_gpu) {
-    return gkyl_dg_calc_pkpm_vars_cu_dev_new(conf_grid, cbasis, mem_range, wv_eqn, geom, limiter_fac);
+    return gkyl_dg_calc_pkpm_vars_cu_dev_new(conf_grid, cbasis, mem_range, wv_eqn, geom, 
+      limiter_fac, use_flf_funcs);
   } 
 #endif     
   gkyl_dg_calc_pkpm_vars *up = gkyl_malloc(sizeof(gkyl_dg_calc_pkpm_vars));
@@ -67,6 +69,15 @@ gkyl_dg_calc_pkpm_vars_new(const struct gkyl_rect_grid *conf_grid,
     up->pkpm_accel[d] = choose_pkpm_accel_kern(d, b_type, cdim, poly_order);
     up->pkpm_penalization[d] = choose_pkpm_penalization_kern(d, b_type, cdim, poly_order);
     up->pkpm_limiter[d] = choose_pkpm_limiter_kern(d, b_type, cdim, poly_order);
+  }
+
+  // Set specific field-line-following coordinate functions
+  up->use_flf_funcs = use_flf_funcs; 
+  if (up->use_flf_funcs) {
+    up->pkpm_flf_source = choose_pkpm_flf_source_kern(b_type, cdim, poly_order);
+    for (int d=0; d<cdim; ++d) {
+      up->pkpm_flf_accel[d] = choose_pkpm_flf_accel_kern(d, b_type, cdim, poly_order);
+    }
   }
 
   // There are Ncomp*range->volume linear systems to be solved 
@@ -257,10 +268,18 @@ void gkyl_dg_calc_pkpm_vars_accel(struct gkyl_dg_calc_pkpm_vars *up, const struc
       const double *prim_surf_l = gkyl_array_cfetch(prim_surf, linl);
       const double *prim_surf_r = gkyl_array_cfetch(prim_surf, linr);
 
-      up->pkpm_accel[dir](up->conf_grid.dx, 
-        prim_surf_l, prim_surf_c, prim_surf_r, 
-        prim_d, bvar_d, nu_d,
-        pkpm_accel_d);
+      if (up->use_flf_funcs) {
+        up->pkpm_flf_accel[dir](up->conf_grid.dx, 
+          prim_surf_l, prim_surf_c, prim_surf_r, 
+          prim_d, div_b_d, nu_d,
+          pkpm_accel_d);
+      }
+      else {
+        up->pkpm_accel[dir](up->conf_grid.dx, 
+          prim_surf_l, prim_surf_c, prim_surf_r, 
+          prim_d, bvar_d, nu_d,
+          pkpm_accel_d);        
+      }
     }
   }
 }
@@ -376,13 +395,13 @@ void gkyl_dg_calc_pkpm_integrated_vars(struct gkyl_dg_calc_pkpm_vars *up,
 
 void gkyl_dg_calc_pkpm_vars_source(struct gkyl_dg_calc_pkpm_vars *up, 
   const struct gkyl_range *conf_range, const struct gkyl_array* qmem, 
-  const struct gkyl_array* vlasov_pkpm_moms, const struct gkyl_array* euler_pkpm,
-  struct gkyl_array* rhs)
+  const struct gkyl_array* vlasov_pkpm_moms, const struct gkyl_array* div_b, 
+  const struct gkyl_array* euler_pkpm, struct gkyl_array* rhs)
 {
 #ifdef GKYL_HAVE_CUDA
   if (gkyl_array_is_cu_dev(rhs)) {
     return gkyl_dg_calc_pkpm_vars_source_cu(up, conf_range, 
-      qmem, vlasov_pkpm_moms, euler_pkpm, rhs);
+      qmem, vlasov_pkpm_moms, div_b, euler_pkpm, rhs);
   }
 #endif
 
@@ -394,9 +413,15 @@ void gkyl_dg_calc_pkpm_vars_source(struct gkyl_dg_calc_pkpm_vars *up,
     const double *qmem_d = gkyl_array_cfetch(qmem, loc);
     const double *vlasov_pkpm_moms_d = gkyl_array_cfetch(vlasov_pkpm_moms, loc);
     const double *euler_pkpm_d = gkyl_array_cfetch(euler_pkpm, loc);
+    const double *div_b_d = gkyl_array_cfetch(div_b, loc);
 
     double *rhs_d = gkyl_array_fetch(rhs, loc);
-    up->pkpm_source(qmem_d, vlasov_pkpm_moms_d, euler_pkpm_d, rhs_d);
+    if (up->use_flf_funcs) {
+      up->pkpm_flf_source(qmem_d, vlasov_pkpm_moms_d, div_b_d, rhs_d);
+    }
+    else {
+      up->pkpm_source(qmem_d, vlasov_pkpm_moms_d, euler_pkpm_d, rhs_d);
+    }
   }
 }
 

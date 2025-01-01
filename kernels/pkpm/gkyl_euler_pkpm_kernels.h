@@ -44,10 +44,15 @@ GKYL_CU_DH void euler_pkpm_em_coupling_nodal_copy_1x_ser_p1(int count,
   int num_species, double qbym[GKYL_MAX_SPECIES], double epsilon0, 
   struct gkyl_nmat *x, double* GKYL_RESTRICT euler_pkpm[GKYL_MAX_SPECIES], double* GKYL_RESTRICT em); 
 GKYL_CU_DH void euler_pkpm_source_1x_ser_p1(const double *qmem, const double *vlasov_pkpm_moms, const double *euler_pkpm, double* GKYL_RESTRICT out); 
+GKYL_CU_DH void euler_pkpm_flf_source_1x_ser_p1(const double *qmem, const double *vlasov_pkpm_moms, const double *div_b, double* GKYL_RESTRICT out); 
 GKYL_CU_DH double euler_pkpm_vol_1x_ser_p1(const double *w, const double *dxv, const double *prim, const double *p_ij, const double *euler_pkpm, double* GKYL_RESTRICT out); 
 GKYL_CU_DH void pkpm_vars_accel_x_1x_ser_p1(const double *dxv, 
     const double *prim_surf_l, const double *prim_surf_c, const double *prim_surf_r, 
     const double *prim_c, const double *bvar_c, const double *nu_c, 
+    double* GKYL_RESTRICT pkpm_accel); 
+GKYL_CU_DH void pkpm_vars_flf_accel_x_1x_ser_p1(const double *dxv, 
+    const double *prim_surf_l, const double *prim_surf_c, const double *prim_surf_r, 
+    const double *prim_c, const double *div_b, const double *nu_c, 
     double* GKYL_RESTRICT pkpm_accel); 
 GKYL_CU_DH void pkpm_vars_penalization_x_1x_ser_p1(double tol, bool force_lax, 
     const struct gkyl_wv_eqn *wv_eqn, const struct gkyl_wave_cell_geom *geom, 
@@ -102,10 +107,15 @@ GKYL_CU_DH void euler_pkpm_em_coupling_nodal_copy_1x_ser_p2(int count,
   int num_species, double qbym[GKYL_MAX_SPECIES], double epsilon0, 
   struct gkyl_nmat *x, double* GKYL_RESTRICT euler_pkpm[GKYL_MAX_SPECIES], double* GKYL_RESTRICT em); 
 GKYL_CU_DH void euler_pkpm_source_1x_ser_p2(const double *qmem, const double *vlasov_pkpm_moms, const double *euler_pkpm, double* GKYL_RESTRICT out); 
+GKYL_CU_DH void euler_pkpm_flf_source_1x_ser_p2(const double *qmem, const double *vlasov_pkpm_moms, const double *div_b, double* GKYL_RESTRICT out); 
 GKYL_CU_DH double euler_pkpm_vol_1x_ser_p2(const double *w, const double *dxv, const double *prim, const double *p_ij, const double *euler_pkpm, double* GKYL_RESTRICT out); 
 GKYL_CU_DH void pkpm_vars_accel_x_1x_ser_p2(const double *dxv, 
     const double *prim_surf_l, const double *prim_surf_c, const double *prim_surf_r, 
     const double *prim_c, const double *bvar_c, const double *nu_c, 
+    double* GKYL_RESTRICT pkpm_accel); 
+GKYL_CU_DH void pkpm_vars_flf_accel_x_1x_ser_p2(const double *dxv, 
+    const double *prim_surf_l, const double *prim_surf_c, const double *prim_surf_r, 
+    const double *prim_c, const double *div_b, const double *nu_c, 
     double* GKYL_RESTRICT pkpm_accel); 
 GKYL_CU_DH void pkpm_vars_penalization_x_1x_ser_p2(double tol, bool force_lax, 
     const struct gkyl_wv_eqn *wv_eqn, const struct gkyl_wave_cell_geom *geom, 

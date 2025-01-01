@@ -164,10 +164,13 @@ pkpm_species_init(struct gkyl_pkpm *pkpm, struct gkyl_pkpm_app *app, struct pkpm
   // pressure, primitive variables, and acceleration variables
   // also stores kernels for computing source terms, integrated variables
   // Two instances, one over extended range and one over local range for ease of handling boundary conditions
+  // Note: if we are utilizing a field-line following coordinate system, acceleration variables are adjusted
+  // due to how they simplify (bb : grad(u) = du_parallel/dz; p_perp_source = -u_parallel div(b) - 2*nu)
+  // and source terms in u_parallel momentum equation also simplify (q/m Jrho E_parallel + J p_perp div(b))
   s->calc_pkpm_vars_ext = gkyl_dg_calc_pkpm_vars_new(&app->grid, &app->confBasis, &app->local_ext, 
-    s->equation, app->geom, limiter_fac, app->use_gpu);
+    s->equation, app->geom, limiter_fac, app->has_jacobgeo_flf, app->use_gpu);
   s->calc_pkpm_vars = gkyl_dg_calc_pkpm_vars_new(&app->grid, &app->confBasis, &app->local, 
-    s->equation, app->geom, limiter_fac, app->use_gpu); 
+    s->equation, app->geom, limiter_fac, app->has_jacobgeo_flf, app->use_gpu); 
   // updater for computing pkpm distribution function variables
   // div(p_par b_hat) for self-consistent total pressure force and distribution function sources for
   // Laguerre couplings and vperp characteristics 
@@ -567,7 +570,7 @@ pkpm_species_rhs(gkyl_pkpm_app *app, struct pkpm_species *species,
     }
 
     gkyl_dg_calc_pkpm_vars_source(species->calc_pkpm_vars, &app->local, 
-      species->qmem, species->pkpm_moms.marr, fluidin, rhs_fluid);        
+      species->qmem, species->pkpm_moms.marr, app->field->div_b, fluidin, rhs_fluid); 
   }
 
   app->stat.nspecies_omega_cfl +=1;

@@ -42,13 +42,15 @@ typedef struct gkyl_dg_calc_pkpm_vars gkyl_dg_calc_pkpm_vars;
  *                    integral(psi_1 [cell_avg(f_{i+1}) - cell_avg(f_{i})]*x) = sqrt(2^cdim)/sqrt(3)*[cell_avg(f_{i+1}) - cell_avg(f_{i})]
  *                    where psi_1 is the x cell slope basis in our orthonormal expansion psi_1 = sqrt(3)/sqrt(2^cdim)*x
  *                    This factor can be made smaller (larger) to increase (decrease) the diffusion from the slope limiter
+ * @param use_flf_funcs bool to determine if we are utilizing the specific PKPM functions for field-line-following coordinates.
  * @param use_gpu bool to determine if on GPU
  * @return New updater pointer.
  */
 struct gkyl_dg_calc_pkpm_vars* 
 gkyl_dg_calc_pkpm_vars_new(const struct gkyl_rect_grid *conf_grid, 
   const struct gkyl_basis* cbasis, const struct gkyl_range *mem_range, 
-  const struct gkyl_wv_eqn *wv_eqn, const struct gkyl_wave_geom *geom, double limiter_fac, bool use_gpu);
+  const struct gkyl_wv_eqn *wv_eqn, const struct gkyl_wave_geom *geom, 
+  double limiter_fac, bool use_flf_funcs, bool use_gpu);
 
 /**
  * Create new updater to compute pkpm variables on
@@ -57,7 +59,8 @@ gkyl_dg_calc_pkpm_vars_new(const struct gkyl_rect_grid *conf_grid,
 struct gkyl_dg_calc_pkpm_vars* 
 gkyl_dg_calc_pkpm_vars_cu_dev_new(const struct gkyl_rect_grid *conf_grid, 
   const struct gkyl_basis* cbasis, const struct gkyl_range *mem_range, 
-  const struct gkyl_wv_eqn *wv_eqn, const struct gkyl_wave_geom *geom, double limiter_fac);
+  const struct gkyl_wv_eqn *wv_eqn, const struct gkyl_wave_geom *geom, 
+  double limiter_fac, bool use_flf_funcs);
 
 /**
  * Compute all of the pkpm primitive moments.
@@ -175,19 +178,21 @@ void gkyl_dg_calc_pkpm_integrated_vars(struct gkyl_dg_calc_pkpm_vars *up,
   struct gkyl_array* pkpm_int_vars);
 
 /**
- * Compute pkpm model source terms.
+ * Compute pkpm model source terms with an explicit time-stepper.
+ * Returns incremented rhs for use in a forward Euler method. 
  *
  * @param up Updater for computing pkpm variables 
  * @param conf_range Configuration space range
  * @param qmem Input array of q/m*EM fields
  * @param vlasov_pkpm_moms Input array of pkpm kinetic moments [rho, p_parallel, p_perp]
+ * @param div_b Input array of div(b); utilized by field-line-following coordinate sources
  * @param euler_pkpm Input array of pkpm fluid variables [rho ux, rho uy, rho uz]
  * @param rhs Output increment to fluid variables
  */
 void gkyl_dg_calc_pkpm_vars_source(struct gkyl_dg_calc_pkpm_vars *up, 
   const struct gkyl_range *conf_range, const struct gkyl_array* qmem, 
-  const struct gkyl_array* vlasov_pkpm_moms, const struct gkyl_array* euler_pkpm,
-  struct gkyl_array* rhs);
+  const struct gkyl_array* vlasov_pkpm_moms, const struct gkyl_array* div_b, 
+  const struct gkyl_array* euler_pkpm, struct gkyl_array* rhs);
 
 /**
  * Construct PKPM variables for I/O. Computes the conserved fluid variables 
