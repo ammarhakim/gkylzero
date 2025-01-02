@@ -612,6 +612,7 @@ gk_field_rhs(gkyl_gyrokinetic_app *app, struct gk_field *field)
       }
 
       // printf("target corner b ias = %g\n", field->target_corner_bias[0]);
+      gk_field_calc_target_corner_bias(app, field, NULL);
       gkyl_deflated_fem_poisson_advance(field->deflated_fem_poisson, field->rho_c_global_smooth, field->phi_smooth, field->target_corner_bias);
 
       /*
