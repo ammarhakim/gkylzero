@@ -203,6 +203,9 @@ struct gkyl_gyrokinetic_species {
 
   int num_diag_moments; // number of diagnostic moments
   char diag_moments[24][24]; // list of diagnostic moments
+  bool boundary_flux_diagnostics; // Outputs moments of the boundary fluxes
+                                  // through non-periodic boundaries.
+  bool fdot_diagnostics; // Outputs moments of fdot=(f_new - f_old)/dt.
 
   // Collisions to include.
   struct gkyl_gyrokinetic_collisions collisions;
@@ -802,6 +805,24 @@ void gkyl_gyrokinetic_app_write(gkyl_gyrokinetic_app* app, double tm, int frame)
  * @param app App object.
  */
 void gkyl_gyrokinetic_app_stat_write(gkyl_gyrokinetic_app* app);
+
+/**
+ * Record the time step (in private dynvector).
+ *
+ * @param app App object.
+ * @param tm Time stamp.
+ * @param dt Time step to record (e.g. provided by app's status object).
+ */
+void
+gkyl_gyrokinetic_app_save_dt(gkyl_gyrokinetic_app* app, double tm, double dt);
+
+/**
+ * Write the time step over time.
+ *
+ * @param app App object.
+ */
+void
+gkyl_gyrokinetic_app_write_dt(gkyl_gyrokinetic_app* app);
 
 /**
  * Read geometry file.

@@ -333,11 +333,13 @@ bmag_func(double t, const double* GKYL_RESTRICT zc, double* GKYL_RESTRICT fout, 
 }
 
 void
-calc_integrated_diagnostics(struct gkyl_tm_trigger* iot, gkyl_gyrokinetic_app* app, double t_curr, bool force_calc)
+calc_integrated_diagnostics(struct gkyl_tm_trigger* iot, gkyl_gyrokinetic_app* app, double t_curr, double dt, bool force_calc)
 {
   if (gkyl_tm_trigger_check_and_bump(iot, t_curr) || force_calc) {
     gkyl_gyrokinetic_app_calc_field_energy(app, t_curr);
     gkyl_gyrokinetic_app_calc_integrated_mom(app, t_curr);
+    if ( !(dt < 0.0) )
+      gkyl_gyrokinetic_app_save_dt(app, t_curr, dt);
   }
 }
 
@@ -350,11 +352,11 @@ write_data(struct gkyl_tm_trigger* iot, gkyl_gyrokinetic_app* app, double t_curr
 
     gkyl_gyrokinetic_app_write(app, t_curr, frame);
 
-    gkyl_gyrokinetic_app_calc_field_energy(app, t_curr);
     gkyl_gyrokinetic_app_write_field_energy(app);
 
-    gkyl_gyrokinetic_app_calc_integrated_mom(app, t_curr);
     gkyl_gyrokinetic_app_write_integrated_mom(app);
+
+    gkyl_gyrokinetic_app_write_dt(app);
   }
 }
 
@@ -404,13 +406,13 @@ main(int argc, char **argv)
       .ctx_temp = &ctx,
     },
 
-    .collisions =  {
-      .collision_id = GKYL_LBO_COLLISIONS,
-      .self_nu = evalNuElcInit,
-      .ctx = &ctx,
-      .num_cross_collisions = 1,
-      .collide_with = { "ion" },
-    },
+//    .collisions =  {
+//      .collision_id = GKYL_LBO_COLLISIONS,
+//      .self_nu = evalNuElcInit,
+//      .ctx = &ctx,
+//      .num_cross_collisions = 1,
+//      .collide_with = { "ion" },
+//    },
 
     .source = {
       .source_id = GKYL_PROJ_SOURCE,
@@ -431,8 +433,10 @@ main(int argc, char **argv)
       .upper = { .type = GKYL_SPECIES_GK_SHEATH, },
     },
 
-    .num_diag_moments = 5,
-    .diag_moments = { "M0", "M1", "M2", "M2par", "M2perp" },
+    .num_diag_moments = 6,
+    .diag_moments = { "M0", "M1", "M2", "M2par", "M2perp", "MaxwellianMoments" },
+    .boundary_flux_diagnostics = true,
+    .fdot_diagnostics = true,
   };
 
   // Ion species.
@@ -454,13 +458,13 @@ main(int argc, char **argv)
       .ctx_temp = &ctx,      
     },
 
-    .collisions =  {
-      .collision_id = GKYL_LBO_COLLISIONS,
-      .self_nu = evalNuIonInit,
-      .ctx = &ctx,
-      .num_cross_collisions = 1,
-      .collide_with = { "elc" },
-    },
+//    .collisions =  {
+//      .collision_id = GKYL_LBO_COLLISIONS,
+//      .self_nu = evalNuIonInit,
+//      .ctx = &ctx,
+//      .num_cross_collisions = 1,
+//      .collide_with = { "elc" },
+//    },
 
     .source = {
       .source_id = GKYL_PROJ_SOURCE,
@@ -481,8 +485,10 @@ main(int argc, char **argv)
       .upper = { .type = GKYL_SPECIES_GK_SHEATH, },
     },
     
-    .num_diag_moments = 5,
-    .diag_moments = { "M0", "M1", "M2", "M2par", "M2perp" },
+    .num_diag_moments = 6,
+    .diag_moments = { "M0", "M1", "M2", "M2par", "M2perp", "MaxwellianMoments" },
+    .boundary_flux_diagnostics = true,
+    .fdot_diagnostics = true,
   };
 
   // Field.
@@ -501,6 +507,7 @@ main(int argc, char **argv)
     .cells = { cells_x[0] },
     .poly_order = 1,
     .basis_type = app_args.basis_type,
+    .cfl_frac = .5,
 
     .geometry = {
       .geometry_id = GKYL_MAPC2P,
@@ -558,7 +565,7 @@ main(int argc, char **argv)
     .tcurr = t_curr, .curr = frame_curr };
 
   // Write out ICs (if restart, it overwrites the restart frame).
-  calc_integrated_diagnostics(&trig_calc_intdiag, app, t_curr, false);
+  calc_integrated_diagnostics(&trig_calc_intdiag, app, t_curr, -1.0, false);
   write_data(&trig_write, app, t_curr, false);
 
   // Compute initial guess of maximum stable time-step.
@@ -582,7 +589,7 @@ main(int argc, char **argv)
     t_curr += status.dt_actual;
     dt = status.dt_suggested;
 
-    calc_integrated_diagnostics(&trig_calc_intdiag, app, t_curr, t_curr > t_end);
+    calc_integrated_diagnostics(&trig_calc_intdiag, app, t_curr, status.dt_actual, t_curr > t_end);
     write_data(&trig_write, app, t_curr, t_curr > t_end);
 
     if (dt_init < 0.0) {
@@ -597,7 +604,7 @@ main(int argc, char **argv)
       if (num_failures >= num_failures_max) {
         gkyl_gyrokinetic_app_cout(app, stdout, "ERROR: Time-step was below %g*dt_init ", dt_failure_tol);
         gkyl_gyrokinetic_app_cout(app, stdout, "%d consecutive times. Aborting simulation ....\n", num_failures_max);
-        calc_integrated_diagnostics(&trig_calc_intdiag, app, t_curr, true);
+        calc_integrated_diagnostics(&trig_calc_intdiag, app, t_curr, status.dt_actual, true);
         write_data(&trig_write, app, t_curr, true);
         break;
       }

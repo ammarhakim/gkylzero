@@ -382,6 +382,12 @@ gk_species_init(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *app, st
   gks->integ_diag = gkyl_dynvec_new(GKYL_DOUBLE, vdim+2);
   gks->is_first_integ_write_call = true;
 
+  // Allocate dynamic-vector to store Delta f integrated moments.
+  if (gks->info.fdot_diagnostics) {
+    gks->fdot_integ_diag = gkyl_dynvec_new(GKYL_DOUBLE, vdim+2);
+  }
+  gks->is_first_fdot_integ_write_call = true;
+
   // initialize projection routine for initial conditions
   if (gks->info.init_from_file.type == 0)
     gk_species_projection_init(app, gks, gks->info.projection, &gks->proj_init);
@@ -614,7 +620,13 @@ gk_species_init(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *app, st
   // Initialize boundary fluxes for diagnostics and, if present,
   // ambipolar potential solve (do after skin ghost ranges are created). 
   gks->bflux = (struct gk_boundary_fluxes) { };
-  gk_species_bflux_init(app, gks, &gks->bflux); 
+  if (app->update_field && app->field->gkfield_id == GKYL_GK_FIELD_BOLTZMANN)
+    gk_species_bflux_init(app, gks, &gks->bflux, false); 
+
+  gks->bflux_diag = (struct gk_boundary_fluxes) { };
+  if (gks->info.boundary_flux_diagnostics) {
+    gk_species_bflux_init(app, gks, &gks->bflux_diag, true);
+  }
 
   if (app->enforce_positivity) {
     // Positivity enforcing by shifting f (ps=positivity shift).
@@ -903,7 +915,8 @@ gk_species_release(const gkyl_gyrokinetic_app* app, const struct gk_species *s)
   if (s->rad.radiation_id == GKYL_GK_RADIATION) 
     gk_species_radiation_release(app, &s->rad);
 
-  gk_species_bflux_release(app, &s->bflux);
+  if (app->update_field && app->field->gkfield_id == GKYL_GK_FIELD_BOLTZMANN)
+    gk_species_bflux_release(app, &s->bflux);
 
   if (s->has_diffusion) {
     gkyl_array_release(s->diffD);
@@ -952,4 +965,15 @@ gk_species_release(const gkyl_gyrokinetic_app* app, const struct gk_species *s)
     gk_species_moment_release(app, &s->ps_moms);
     gkyl_dynvec_release(s->ps_integ_diag);
   }
+
+  if (s->info.boundary_flux_diagnostics) {
+    // Free boundary flux diagnostics memory.
+    gk_species_bflux_release(app, &s->bflux_diag);
+  }
+
+  if (s->info.fdot_diagnostics) {
+    // Free df/dt diagnostics memory.
+    gkyl_dynvec_release(s->fdot_integ_diag);
+  }
+
 }

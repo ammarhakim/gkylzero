@@ -320,6 +320,12 @@ struct gk_bgk_collisions {
 struct gk_boundary_fluxes {
   struct gk_species_moment gammai[2*GKYL_MAX_CDIM]; // integrated moments
   gkyl_boundary_flux *flux_slvr[2*GKYL_MAX_CDIM]; // boundary flux solver
+  // Objects used for boundary flux diagnostics.
+  bool is_diagnostic; // Whether the object is use for diagnostics.
+  struct gkyl_array **f, **f1, **fnew; // Boundary flux through each boundary (one for each RK stage).
+  struct gk_species_moment integ_moms; // Integrated moments calculator.
+  gkyl_dynvec intmom[2*GKYL_MAX_CDIM]; // Integrated moments of the boundary fluxes.
+  bool is_first_intmom_write_call; // Flag 1st writing of blux_intmom.
 };
 
 struct gk_react {
@@ -500,8 +506,10 @@ struct gk_species {
   struct gk_species_moment integ_moms; // integrated moments
   struct gk_species_moment *moms; // diagnostic moments
   double *red_integ_diag, *red_integ_diag_global; // for reduction of integrated moments
-  gkyl_dynvec integ_diag; // integrated moments reduced across grid
+  gkyl_dynvec integ_diag; // Integrated moments reduced across grid
   bool is_first_integ_write_call; // flag for integrated moments dynvec written first time
+  gkyl_dynvec fdot_integ_diag; // Integrated moments of Delta f=f_new - f_old..
+  bool is_first_fdot_integ_write_call; // flag for integrated moments dynvec written first time
 
   gkyl_dg_updater_gyrokinetic *slvr; // Gyrokinetic solver 
   struct gkyl_dg_eqn *eqn_gyrokinetic; // Gyrokinetic equation object
@@ -539,8 +547,11 @@ struct gk_species {
 
   struct gk_source src; // applied source
 
-  // boundary fluxes
+  // Boundary fluxes.
   struct gk_boundary_fluxes bflux;
+
+  // Boundary flux diagnostics.
+  struct gk_boundary_fluxes bflux_diag;
 
   // collisions
   struct {
@@ -590,6 +601,7 @@ struct gk_neut_species {
   struct gkyl_velocity_map *vel_map; // Velocity mapping objects.
 
   struct gkyl_array *f, *f1, *fnew; // arrays for updates
+
   struct gkyl_array *cflrate; // CFL rate in each cell
   struct gkyl_array *bc_buffer; // buffer for BCs (used by bc_basic)
   struct gkyl_array *bc_buffer_lo_fixed, *bc_buffer_up_fixed; // fixed buffers for time independent BCs 
@@ -778,6 +790,9 @@ struct gkyl_gyrokinetic_app {
   struct gk_neut_species *neut_species; // data for each species
 
   struct gkyl_gyrokinetic_stat stat; // statistics
+
+  gkyl_dynvec dts; // Record time step over time.
+  bool is_first_dt_write_call; // flag for integrated moments dynvec written first time
 };
 
 /** gkyl_gyrokinetic_app private API */
@@ -1181,12 +1196,13 @@ void gk_species_react_release(const struct gkyl_gyrokinetic_app *app, const stru
 /**
  * Initialize species boundary flux object.
  *
- * @param app Gyrokinetic app object
- * @param s Species object 
- * @param bflux Species boundary flux object
+ * @param app Gyrokinetic app object.
+ * @param s Species object. 
+ * @param bflux Species boundary flux object.
+ * @param is_diagnostic Wether this object is used for diagnotics.
  */
 void gk_species_bflux_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s,
-  struct gk_boundary_fluxes *bflux);
+  struct gk_boundary_fluxes *bflux, bool is_diagnostic);
 
 /**
  * Compute boundary flux 
@@ -1202,6 +1218,87 @@ void gk_species_bflux_init(struct gkyl_gyrokinetic_app *app, struct gk_species *
  */
 void gk_species_bflux_rhs(gkyl_gyrokinetic_app *app, const struct gk_species *species,
   struct gk_boundary_fluxes *bflux, const struct gkyl_array *fin, struct gkyl_array *rhs);
+
+/**
+ * Compute boundary fluxes for diagnostics.
+ *
+ * @param app Gyrokinetic app object
+ * @param species Pointer to species
+ * @param bflux Species boundary flux object
+ * @param fin Input distribution function
+ * @param bflux_out Array of boundary fluxes through every boundary.
+ */
+void gk_species_bflux_rhs_diag(gkyl_gyrokinetic_app *app, const struct gk_species *species,
+  struct gk_boundary_fluxes *bflux, const struct gkyl_array *fin, struct gkyl_array **bflux_out);
+
+/**
+ * Clear the boundary fluxes at each boundary.
+ *
+ * @param app Gyrokinetic app object.
+ * @param species Pointer to species.
+ * @param bflux Species boundary flux object.
+ * @param bflux_in Array of boundary fluxes to clear.
+ * @param val Value to set array to.
+ */
+void
+gk_species_bflux_clear(gkyl_gyrokinetic_app *app, struct gk_boundary_fluxes *bflux,
+  struct gkyl_array **bflux_in, double val);
+
+/**
+ * Scale the boundary fluxes at each boundary.
+ *
+ * @param app Gyrokinetic app object.
+ * @param species Pointer to species.
+ * @param bflux Species boundary flux object.
+ * @param bflux_in Array of boundary fluxes to clear.
+ * @param val Value to scale the fluxes by.
+ */
+void
+gk_species_bflux_scale(gkyl_gyrokinetic_app *app, struct gk_boundary_fluxes *bflux,
+  struct gkyl_array **bflux_in, double val);
+
+/**
+ * Step the diagnotic boundary fluxes forward once.
+ *
+ * @param app Gyrokinetic app object.
+ * @param species Pointer to species.
+ * @param bflux Species boundary flux object.
+ * @param bflux_out Array of output boundary fluxes.
+ * @param dt Time step.
+ * @param bflux_in Array of input boundary fluxes.
+ */
+void
+gk_species_bflux_forward_euler(gkyl_gyrokinetic_app *app, struct gk_boundary_fluxes *bflux,
+  struct gkyl_array **bflux_out, double dt, const struct gkyl_array **bflux_in);
+
+/**
+ * Combine the diagnotic boundary fluxes for multi-stage RK stepper.
+ *
+ * @param app Gyrokinetic app object.
+ * @param species Pointer to species.
+ * @param bflux Species boundary flux object.
+ * @param bflux_out Array of output boundary fluxes.
+ * @param fac1 Factor to multiply bflux_in1 by.
+ * @param bflux_in1 Array of input boundary fluxes.
+ * @param fac2 Factor to multiply bflux_in2 by.
+ * @param bflux_in2 Array of input boundary fluxes.
+ */
+void
+gk_species_bflux_combine(gkyl_gyrokinetic_app *app, struct gk_species *gks, struct gk_boundary_fluxes *bflux,
+  struct gkyl_array **bflux_fout, double fac1, struct gkyl_array **bflux_in1, double fac2, struct gkyl_array **bflux_in2);
+
+/**
+ * Copy diagnotic boundary fluxes.
+ *
+ * @param app Gyrokinetic app object.
+ * @param species Pointer to species.
+ * @param bflux Species boundary flux object.
+ * @param bflux_out Array of output boundary fluxes.
+ * @param bflux_in Array of input boundary fluxes.
+ */
+void
+gk_species_bflux_copy(gkyl_gyrokinetic_app *app, struct gk_species *gks, struct gk_boundary_fluxes *bflux,
+  struct gkyl_array **bflux_fout, struct gkyl_array **bflux_in);
 
 /**
  * Release species boundary flux object.
@@ -1680,13 +1777,14 @@ void gyrokinetic_calc_field_and_apply_bc(gkyl_gyrokinetic_app* app, double tcurr
  * @param tcurr Current simulation time.
  * @param dt Suggested time step.
  * @param fin Input array of charged-species distribution functions.
- * @param fin_neut Input array of neutral-species distribution functions.
  * @param fout Output array of charged-species distribution functions.
+ * @param bflux_out Output array of charged-species boundary fluxes.
+ * @param fin_neut Input array of neutral-species distribution functions.
  * @param fout_neut Output array of neutral-species distribution functions.
  * @param st Time stepping status object.
  */
 void gyrokinetic_rhs(gkyl_gyrokinetic_app* app, double tcurr, double dt,
-  const struct gkyl_array *fin[], struct gkyl_array *fout[], 
+  const struct gkyl_array *fin[], struct gkyl_array *fout[], struct gkyl_array **bflux_out[], 
   const struct gkyl_array *fin_neut[], struct gkyl_array *fout_neut[], 
   struct gkyl_update_status *st); 
 

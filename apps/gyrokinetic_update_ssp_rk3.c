@@ -3,6 +3,7 @@
 static void
 gyrokinetic_forward_euler(gkyl_gyrokinetic_app* app, double tcurr, double dt,
   const struct gkyl_array *fin[], struct gkyl_array *fout[], 
+  const struct gkyl_array **bflux_in[], struct gkyl_array **bflux_out[], 
   const struct gkyl_array *fin_neut[], struct gkyl_array *fout_neut[], 
   struct gkyl_update_status *st)
 {
@@ -14,12 +15,15 @@ gyrokinetic_forward_euler(gkyl_gyrokinetic_app* app, double tcurr, double dt,
   app->stat.nfeuler += 1;
 
   // Compute the time rate of change of the distributions, df/dt.
-  gyrokinetic_rhs(app, tcurr, dt, fin, fout, fin_neut, fout_neut, st);
+  gyrokinetic_rhs(app, tcurr, dt, fin, fout, bflux_out, fin_neut, fout_neut, st);
 
   // Complete update of distribution functions.
   double dta = st->dt_actual;
   for (int i=0; i<app->num_species; ++i) {
     gkyl_array_accumulate(gkyl_array_scale(fout[i], dta), 1.0, fin[i]);
+    if (app->species[i].info.boundary_flux_diagnostics) {
+      gk_species_bflux_forward_euler(app, &app->species[i].bflux_diag, bflux_out[i], dta, bflux_in[i]);
+    }
   }
   for (int i=0; i<app->num_neut_species; ++i) {
     if (!app->neut_species[i].info.is_static) {
@@ -37,8 +41,11 @@ gyrokinetic_update_ssp_rk3(gkyl_gyrokinetic_app* app, double dt0)
   // from the actual time-step.
   const struct gkyl_array *fin[app->num_species];
   struct gkyl_array *fout[app->num_species];
+  const struct gkyl_array **bflux_in[app->num_species];
+  struct gkyl_array **bflux_out[app->num_species];
   const struct gkyl_array *fin_neut[app->num_neut_species];
   struct gkyl_array *fout_neut[app->num_neut_species];
+
   struct gkyl_update_status st = { .success = true };
 
   // time-stepper state
@@ -51,6 +58,12 @@ gyrokinetic_update_ssp_rk3(gkyl_gyrokinetic_app* app, double dt0)
         for (int i=0; i<app->num_species; ++i) {
           fin[i] = app->species[i].f;
           fout[i] = app->species[i].f1;
+          if (app->species[i].info.boundary_flux_diagnostics) {
+            gk_species_bflux_clear(app, &app->species[i].bflux_diag, app->species[i].bflux_diag.f, 0.0);
+            gk_species_bflux_clear(app, &app->species[i].bflux_diag, app->species[i].bflux_diag.f1, 0.0);
+            bflux_in[i] = (const struct gkyl_array **)app->species[i].bflux_diag.f;
+            bflux_out[i] = app->species[i].bflux_diag.f1;
+          }
         }
         for (int i=0; i<app->num_neut_species; ++i) {
           fin_neut[i] = app->neut_species[i].f;
@@ -59,7 +72,7 @@ gyrokinetic_update_ssp_rk3(gkyl_gyrokinetic_app* app, double dt0)
           }
         }
 
-        gyrokinetic_forward_euler(app, tcurr, dt, fin, fout, fin_neut, fout_neut, &st);
+        gyrokinetic_forward_euler(app, tcurr, dt, fin, fout, bflux_in, bflux_out, fin_neut, fout_neut, &st);
         // Compute the fields and apply BCs.
         gyrokinetic_calc_field_and_apply_bc(app, tcurr, fout, fout_neut);
 
@@ -71,6 +84,10 @@ gyrokinetic_update_ssp_rk3(gkyl_gyrokinetic_app* app, double dt0)
         for (int i=0; i<app->num_species; ++i) {
           fin[i] = app->species[i].f1;
           fout[i] = app->species[i].fnew;
+          if (app->species[i].info.boundary_flux_diagnostics) {
+            bflux_in[i] = (const struct gkyl_array **)app->species[i].bflux_diag.f1;
+            bflux_out[i] = app->species[i].bflux_diag.fnew;
+          }
         }
         for (int i=0; i<app->num_neut_species; ++i) {
           if (!app->neut_species[i].info.is_static) {
@@ -82,7 +99,7 @@ gyrokinetic_update_ssp_rk3(gkyl_gyrokinetic_app* app, double dt0)
           }
         }
 
-        gyrokinetic_forward_euler(app, tcurr+dt, dt, fin, fout, fin_neut, fout_neut, &st);
+        gyrokinetic_forward_euler(app, tcurr+dt, dt, fin, fout, bflux_in, bflux_out, fin_neut, fout_neut, &st);
 
         if (st.dt_actual < dt) {
 
@@ -105,8 +122,12 @@ gyrokinetic_update_ssp_rk3(gkyl_gyrokinetic_app* app, double dt0)
         } 
         else {
           for (int i=0; i<app->num_species; ++i) {
-            array_combine(app->species[i].f1,
-              3.0/4.0, app->species[i].f, 1.0/4.0, app->species[i].fnew, &app->species[i].local_ext);
+            struct gk_species *gk_s = &app->species[i];
+            array_combine(gk_s->f1, 3.0/4.0, gk_s->f, 1.0/4.0, gk_s->fnew, &gk_s->local_ext);
+            if (gk_s->info.boundary_flux_diagnostics) {
+              gk_species_bflux_combine(app, gk_s, &gk_s->bflux_diag, gk_s->bflux_diag.f1,
+                3.0/4.0, gk_s->bflux_diag.f, 1.0/4.0, gk_s->bflux_diag.fnew);
+            }
           }
           for (int i=0; i<app->num_neut_species; ++i) {
             if (!app->neut_species[i].info.is_static) {
@@ -132,6 +153,10 @@ gyrokinetic_update_ssp_rk3(gkyl_gyrokinetic_app* app, double dt0)
         for (int i=0; i<app->num_species; ++i) {
           fin[i] = app->species[i].f1;
           fout[i] = app->species[i].fnew;
+          if (app->species[i].info.boundary_flux_diagnostics) {
+            bflux_in[i] = (const struct gkyl_array **)app->species[i].bflux_diag.f1;
+            bflux_out[i] = app->species[i].bflux_diag.fnew;
+          }
         }
         for (int i=0; i<app->num_neut_species; ++i) {
           if (!app->neut_species[i].info.is_static) {
@@ -143,7 +168,7 @@ gyrokinetic_update_ssp_rk3(gkyl_gyrokinetic_app* app, double dt0)
           }          
         }
 
-        gyrokinetic_forward_euler(app, tcurr+dt/2, dt, fin, fout, fin_neut, fout_neut, &st);
+        gyrokinetic_forward_euler(app, tcurr+dt/2, dt, fin, fout, bflux_in, bflux_out, fin_neut, fout_neut, &st);
 
         if (st.dt_actual < dt) {
           // Recalculate the field.
@@ -166,9 +191,21 @@ gyrokinetic_update_ssp_rk3(gkyl_gyrokinetic_app* app, double dt0)
         }
         else {
           for (int i=0; i<app->num_species; ++i) {
-            array_combine(app->species[i].f1,
-              1.0/3.0, app->species[i].f, 2.0/3.0, app->species[i].fnew, &app->species[i].local_ext);
-            gkyl_array_copy_range(app->species[i].f, app->species[i].f1, &app->species[i].local_ext);
+            struct gk_species *gk_s = &app->species[i];
+            array_combine(gk_s->f1,
+              1.0/3.0, gk_s->f, 2.0/3.0, gk_s->fnew, &gk_s->local_ext);
+            if (gk_s->info.fdot_diagnostics) {
+              array_combine(gk_s->fnew, 1.0/dt, gk_s->f1, -1.0/dt, gk_s->f, &gk_s->local_ext);
+            }
+            gkyl_array_copy_range(gk_s->f, gk_s->f1, &gk_s->local_ext);
+
+            if (gk_s->info.boundary_flux_diagnostics) {
+              gk_species_bflux_combine(app, &app->species[i], &gk_s->bflux_diag, gk_s->bflux_diag.f1,
+                1.0/3.0, gk_s->bflux_diag.f, 2.0/3.0, gk_s->bflux_diag.fnew);
+              gk_species_bflux_copy(app, &app->species[i], &gk_s->bflux_diag,
+                  gk_s->bflux_diag.f, gk_s->bflux_diag.f1);
+              gk_species_bflux_scale(app, &gk_s->bflux_diag, gk_s->bflux_diag.f, 1.0/dt);
+            }
           }
           for (int i=0; i<app->num_neut_species; ++i) {
             if (!app->neut_species[i].info.is_static) {

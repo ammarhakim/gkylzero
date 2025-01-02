@@ -35,7 +35,7 @@ gk_species_moment_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s,
   }
   else {
     sm->mcalc = gkyl_dg_updater_moment_gyrokinetic_new(&s->grid, &app->confBasis, 
-      &app->basis, &app->local, s->info.mass, s->info.charge, s->vel_map, app->gk_geom,
+      &app->basis, &app->local_ext, s->info.mass, s->info.charge, s->vel_map, app->gk_geom,
       app->field->phi_smooth, nm, sm->is_integrated, app->use_gpu);    
 
     sm->num_mom = gkyl_dg_updater_moment_gyrokinetic_num_mom(sm->mcalc);
