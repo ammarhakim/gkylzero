@@ -111,6 +111,21 @@ gkyl_array_average_new(const struct gkyl_array_average_inp *inp)
   return up;
 }
 
+struct gkyl_array*
+gkyl_array_average_acquire_weight_avg(const struct gkyl_array_average *up){
+  return gkyl_array_acquire(up->weight_avg);
+}
+
+double
+gkyl_array_average_get_avg_volume(const struct gkyl_array_average *up){
+  return 1.0/up->vol_avg_inv;
+}
+
+// void
+// gkyl_array_average_set_denominator(struct gkyl_array_average *up, struct gkyl_array* denom){
+
+// }
+
 void gkyl_array_average_advance(const struct gkyl_array_average *up, 
   const struct gkyl_array * fin, struct gkyl_array *avgout)
 {

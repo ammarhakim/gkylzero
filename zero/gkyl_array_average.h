@@ -41,6 +41,32 @@ struct gkyl_array_average_inp {
  */
 struct gkyl_array_average*
 gkyl_array_average_new(const struct gkyl_array_average_inp *inp);
+
+/**
+ * Get the gkyl_array containing the DG representation of the denominator
+ * int(weights). This is mainly used to perform a MPI SUM reduction.
+ * @param up pointer to an existing gkyl_array_average updater
+ */
+struct gkyl_array*
+gkyl_array_average_acquire_weight_avg(const struct gkyl_array_average *up);
+
+/**
+ * Get the volume of the averaging space
+ * @param up pointer to an existing gkyl_array_average updater
+ */
+double
+gkyl_array_average_get_avg_volume(const struct gkyl_array_average *up);
+
+// /**
+//  * Set the gkyl_array containing the DG representation of the denominator
+//  * int(weights) to the given updater. 
+//  * This is mainly used to perform a MPI SUM reduction.
+//  * @param up pointer to an existing gkyl_array_average updater
+//  * @param denom pointer to the new denominator to set
+//  */
+// void
+// gkyl_array_average_set_denominator(struct gkyl_array_average *up, struct gkyl_array* denom);
+
 /**
  * Compute the array average. Note: the weight is linked to the updater.
  *
@@ -53,7 +79,6 @@ void gkyl_array_average_advance(const struct gkyl_array_average *up,
 
 /**
  * Release memory associated with this updater.
- *
  * @param up array_average updater.
  */
 void gkyl_array_average_release(struct gkyl_array_average *up);
