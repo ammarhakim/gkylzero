@@ -1615,7 +1615,7 @@ moment_field_lw_new(lua_State *L)
   mom_field.epsilon0 = glua_tbl_get_number(L, "epsilon0", 1.0);
   mom_field.mu0 = glua_tbl_get_number(L, "mu0", 1.0);
   mom_field.elc_error_speed_fact = glua_tbl_get_number(L, "elcErrorSpeedFactor", 0.0);
-  mom_field.mag_error_speed_fact = glua_tbl_get_number(L, "mgnErrorSpeedFactor", 1.0);
+  mom_field.mag_error_speed_fact = glua_tbl_get_number(L, "mgnErrorSpeedFactor", 0.0);
 
   mom_field.limiter = glua_tbl_get_integer(L, "limiter", GKYL_MONOTONIZED_CENTERED);
   
