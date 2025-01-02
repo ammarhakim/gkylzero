@@ -312,6 +312,7 @@ main(int argc, char **argv)
     .cells = { NR, NTHETA },
 
     .mapc2p = mapc2p,
+    .c2p_ctx = &ctx,
 
     .num_periodic_dir = 1,
     .periodic_dirs = { 1 },
