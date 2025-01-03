@@ -8,6 +8,7 @@
 #include <gkyl_vlasov.h>
 #include <gkyl_vlasov_lw.h>
 #include <gkyl_vlasov_priv.h>
+#include <gkyl_wv_euler.h>
 #include <gkyl_zero_lw.h>
 
 #include <lua.h>
@@ -27,7 +28,95 @@
 enum vlasov_magic_ids {
   VLASOV_SPECIES_DEFAULT = 100, // Non-relativistic kinetic species.
   VLASOV_FIELD_DEFAULT, // Maxwell equations.
+  VLASOV_FLUID_SPECIES_DEFAULT, // Fluid species.
+  VLASOV_EQN_DEFAULT, // Equation object.
 };
+
+// Metatable name for equation object input struct.
+#define VLASOV_WAVE_EQN_METATABLE_NM "GkeyllZero.App.Vlasov.Eq"
+
+// Methods for manipulating gkyl_wv_eqn objects.
+
+// Lua userdata object for constructing wave equation objects.
+struct wv_eqn_lw {
+  int magic; // This must be the first element in the struct.
+  struct gkyl_wv_eqn *eqn; // Equation object.
+};
+
+// Clean up memory allocated for equation object.
+static int
+wv_eqn_lw_gc(lua_State *L)
+{
+  struct wv_eqn_lw **l_wv_lw = GKYL_CHECK_UDATA(L, VLASOV_WAVE_EQN_METATABLE_NM);
+  struct wv_eqn_lw *wv_lw = *l_wv_lw;
+
+  gkyl_wv_eqn_release(wv_lw->eqn);
+  gkyl_free(*l_wv_lw);
+  
+  return 0;
+}
+
+// Acquire equation object.
+static struct gkyl_wv_eqn*
+wv_eqn_get(lua_State *L)
+{
+  struct wv_eqn_lw **l_wv_lw = luaL_checkudata(L, -1, VLASOV_WAVE_EQN_METATABLE_NM);
+  struct wv_eqn_lw *wv_lw = *l_wv_lw;
+
+  return wv_lw->eqn;
+}
+
+/* *************** */
+/* Euler Equations */
+/* *************** */
+
+// Euler.new { gasGamma = 1.4, rpType = G0.EulerRP.Roe }
+// where rpType is one of G0.EulerRP.Roe, G0.EulerRP.Lax, G0.EulerRP.HLL or G0.EulerRP.HLLC.
+static int
+eqn_euler_lw_new(lua_State *L)
+{
+  struct wv_eqn_lw *euler_lw = gkyl_malloc(sizeof(*euler_lw));
+
+  double gas_gamma = glua_tbl_get_number(L, "gasGamma", 1.4);
+  enum gkyl_wv_euler_rp rp_type = glua_tbl_get_integer(L, "rpType", WV_EULER_RP_ROE);
+
+  euler_lw->magic = VLASOV_EQN_DEFAULT;
+  euler_lw->eqn = gkyl_wv_euler_inew( &(struct gkyl_wv_euler_inp) {
+      .gas_gamma = gas_gamma,
+      .rp_type = rp_type,
+      .use_gpu = false
+    }
+  );
+
+  // Create Lua userdata.
+  struct wv_eqn_lw **l_euler_lw = lua_newuserdata(L, sizeof(struct wv_eqn_lw*));
+  *l_euler_lw = euler_lw; // Point userdata to the equation object.
+  
+  // Set metatable.
+  luaL_getmetatable(L, VLASOV_WAVE_EQN_METATABLE_NM);
+  lua_setmetatable(L, -2);
+  
+  return 1;
+}
+
+// Equation constructor.
+static struct luaL_Reg eqn_euler_ctor[] = {
+  { "new", eqn_euler_lw_new },
+  { 0, 0 }
+};
+
+// Register and load all wave equation objects.
+static void
+eqn_openlibs(lua_State *L)
+{
+  luaL_newmetatable(L, VLASOV_WAVE_EQN_METATABLE_NM);
+
+  lua_pushstring(L, "__gc");
+  lua_pushcfunction(L, wv_eqn_lw_gc);
+  lua_settable(L, -3);
+
+  luaL_register(L, "G0.Vlasov.Eq.Euler", eqn_euler_ctor);
+}
 
 /* *************** */
 /* Species methods */
@@ -552,6 +641,111 @@ static struct luaL_Reg vm_species_ctor[] = {
   { 0, 0 }
 };
 
+/* ********************* */
+/* Fluid Species methods */
+/* ********************* */
+
+// Metatable name for fluid species input struct.
+#define VLASOV_FLUID_SPECIES_METATABLE_NM "GkeyllZero.App.Vlasov.FluidSpecies"
+
+// Lua userdata object for constructing fluid species input.
+struct vlasov_fluid_species_lw {
+  int magic; // This must be first element in the struct.
+  
+  struct gkyl_vlasov_fluid_species vlasov_fluid_species; // Input struct to construct fluid species.
+  struct lua_func_ctx init_ctx; // Lua registry reference to initialization function.
+};
+
+static int
+vlasov_fluid_species_lw_new(lua_State *L)
+{
+  int vdim  = 0;
+  struct gkyl_vlasov_fluid_species vm_fluid_species = { };
+
+  vm_fluid_species.charge = glua_tbl_get_number(L, "charge", 0.0);
+  vm_fluid_species.mass = glua_tbl_get_number(L, "mass", 1.0);
+
+  bool has_eqn = false;
+  with_lua_tbl_key(L, "equation") {
+    vm_fluid_species.equation = wv_eqn_get(L);
+    has_eqn = true;
+  }
+
+  if (has_eqn) {
+    // We need to store a reference to equation object in a global
+    // table as otherwise it gets garbage-collected while the
+    // simulation is being set up.
+    lua_getfield(L, -1, "equation");
+    int eq_ref = luaL_ref(L, LUA_REGISTRYINDEX);
+    
+    lua_getglobal(L, "__vlasov_ref_table");
+    int eqtbl_len = glua_objlen(L);
+    lua_pushinteger(L, eqtbl_len+1);    
+    lua_rawgeti(L, LUA_REGISTRYINDEX, eq_ref);
+    lua_rawset(L, -3);
+
+    lua_pop(L, 1);
+  }
+  else {
+    return luaL_error(L, "Fluid species \"equation\" not specfied or incorrect type!");
+  }
+
+  int init_ref = LUA_NOREF;
+  if (glua_tbl_get_func(L, "init")) {
+    init_ref = luaL_ref(L, LUA_REGISTRYINDEX);
+  }
+  else {
+    return luaL_error(L, "Fluid species must have an \"init\" function for initial conditions!");
+  }
+
+  with_lua_tbl_tbl(L, "bcx") {
+    int nbc = glua_objlen(L);
+
+    for (int i = 0; i < (nbc > 2 ? 2 : nbc); i++) {
+      vm_fluid_species.bcx[i] = glua_tbl_iget_integer(L, i + 1, 0);
+    }
+  }
+
+  with_lua_tbl_tbl(L, "bcy") {
+    int nbc = glua_objlen(L);
+
+    for (int i = 0; i < (nbc > 2 ? 2 : nbc); i++) {
+      vm_fluid_species.bcy[i] = glua_tbl_iget_integer(L, i + 1, 0);
+    }
+  }
+
+  with_lua_tbl_tbl(L, "bcz") {
+    int nbc = glua_objlen(L);
+
+    for (int i = 0; i < (nbc > 2 ? 2 : nbc); i++) {
+      vm_fluid_species.bcz[i] = glua_tbl_iget_integer(L, i + 1, 0);
+    }
+  }
+
+  struct vlasov_fluid_species_lw *vmfs_lw = lua_newuserdata(L, sizeof(*vmfs_lw));
+  vmfs_lw->magic = VLASOV_FLUID_SPECIES_DEFAULT;
+  vmfs_lw->vlasov_fluid_species = vm_fluid_species;
+
+  vmfs_lw->init_ctx = (struct lua_func_ctx) {
+    .func_ref = init_ref,
+    .ndim = 0, // This will be set later.
+    .nret = vm_fluid_species.equation->num_equations,
+    .L = L,
+  };
+  
+  // Set metatable.
+  luaL_getmetatable(L, VLASOV_FLUID_SPECIES_METATABLE_NM);
+  lua_setmetatable(L, -2);
+  
+  return 1;
+}
+
+// Species constructor.
+static struct luaL_Reg vm_fluid_species_ctor[] = {
+  { "new", vlasov_fluid_species_lw_new },
+  { 0, 0 }
+};
+
 /* ************* */
 /* Field methods */
 /* ************* */
@@ -811,6 +1005,8 @@ struct vlasov_app_lw {
   int source_max_iter[GKYL_MAX_SPECIES][GKYL_MAX_PROJ]; // Maximum number of iterations for moment fixes in projections in source.
   bool source_use_last_converged[GKYL_MAX_SPECIES][GKYL_MAX_PROJ]; // Use last iteration value in projection regardless of convergence in source?
 
+  struct lua_func_ctx fluid_species_init_ctx[GKYL_MAX_SPECIES]; // Function context for fluid species initial conditions.
+
   struct lua_func_ctx field_func_ctx; // Function context for field.
   struct lua_func_ctx external_potential_func_ctx; // Function context for external potential.
   struct lua_func_ctx external_field_func_ctx; // Function context for external field.
@@ -905,13 +1101,54 @@ get_species_inp(lua_State *L, int cdim, struct vlasov_species_lw *species[GKYL_M
   return curr;
 }
 
-// comparison method to sort species array by species name
+// Comparison method to sort species array by species name.
 static int
 species_compare_func(const void *a, const void *b)
 {
   const struct vlasov_species_lw *const *spa = a;
   const struct vlasov_species_lw *const *spb = b;
   return strcmp((*spa)->vm_species.name, (*spb)->vm_species.name);
+}
+
+// Gets all fluid species objects from the App table, which must on top of
+// the stack. The number of fluid species is returned and the appropriate
+// pointers set in the fluid species pointer array.
+static int
+get_fluid_species_inp(lua_State *L, int cdim, struct vlasov_fluid_species_lw *fluid_species[GKYL_MAX_SPECIES])
+{
+  enum { TKEY = -2, TVAL = -1 };
+  
+  int curr = 0;
+  lua_pushnil(L); // Initial key is nil.
+  while (lua_next(L, TKEY) != 0) {
+    // Key at TKEY and value at TVAL.
+    if (lua_type(L, TVAL) == LUA_TUSERDATA) {
+      struct vlasov_fluid_species_lw *vmfs = lua_touserdata(L, TVAL);
+
+      if (vmfs->magic == VLASOV_FLUID_SPECIES_DEFAULT) {
+        
+        vmfs->init_ctx.ndim = cdim;
+        
+        if (lua_type(L,TKEY) == LUA_TSTRING) {
+          const char *key = lua_tolstring(L, TKEY, 0);
+          strcpy(vmfs->vlasov_fluid_species.name, key);
+        }
+        fluid_species[curr++] = vmfs;
+      }
+    }
+    lua_pop(L, 1);
+  }
+
+  return curr;
+}
+
+// Comparison method to sort fluid species array by fluid species name.
+static int
+fluid_species_compare_func(const void *a, const void *b)
+{
+  const struct vlasov_fluid_species_lw *const *spa = a;
+  const struct vlasov_fluid_species_lw *const *spb = b;
+  return strcmp((*spa)->vlasov_fluid_species.name, (*spb)->vlasov_fluid_species.name);
 }
 
 // Create top-level App object.
@@ -1003,9 +1240,9 @@ vm_app_new(lua_State *L)
   // Set all species input.
   vm.num_species = get_species_inp(L, cdim, species);
 
-  // need to sort the species[] array by name of the species before
+  // Need to sort the species[] array by name of the species before
   // proceeding as there is no way to ensure that all cores loop over
-  // Lua tables in the same order
+  // Lua tables in the same order.
   qsort(species, vm.num_species, sizeof(struct vlasov_species_lw *), species_compare_func);  
   
   for (int s = 0; s < vm.num_species; s++) {
@@ -1189,6 +1426,24 @@ vm_app_new(lua_State *L)
       vm.species[s].source.projection[i].max_iter = app_lw->source_max_iter[s][i];
       vm.species[s].source.projection[i].use_last_converged = app_lw->source_use_last_converged[s][i];
     }
+  }
+
+  struct vlasov_fluid_species_lw *fluid_species[GKYL_MAX_SPECIES];
+
+  // Set all fluid species input.
+  vm.num_fluid_species = get_fluid_species_inp(L, cdim, fluid_species);
+
+  // Need to sort the fluid_species[] array by name of the fluid species before
+  // proceeding as there is no way to ensure that all cores loop over
+  // Lua tables in the same order.
+  qsort(fluid_species, vm.num_fluid_species, sizeof(struct vlasov_fluid_species_lw *), fluid_species_compare_func);
+  
+  for (int s = 0; s < vm.num_fluid_species; s++) {
+    vm.fluid_species[s] = fluid_species[s]->vlasov_fluid_species;
+    
+    app_lw->fluid_species_init_ctx[s] = fluid_species[s]->init_ctx;
+    vm.fluid_species[s].init = gkyl_lw_eval_cb;
+    vm.fluid_species[s].ctx = &app_lw->fluid_species_init_ctx[s];
   }
 
   // Set field input.
@@ -1938,10 +2193,25 @@ app_openlibs(lua_State *L)
   }
   while (0);
 
+  // Register Fluid Species input struct.
+  do {
+    luaL_newmetatable(L, VLASOV_FLUID_SPECIES_METATABLE_NM);
+    luaL_register(L, "G0.Vlasov.FluidSpecies", vm_fluid_species_ctor);
+  }
+  while (0);
+
   // Register Field input struct.
   do {
     luaL_newmetatable(L, VLASOV_FIELD_METATABLE_NM);
     luaL_register(L, "G0.Vlasov.Field", vm_field_ctor);
+  }
+  while (0);
+
+  // Add globals and other parameters.
+  do {
+    // Table to store references so the objects do not get garbage-collected.
+    lua_newtable(L);
+    lua_setglobal(L, "__vlasov_ref_table");
   }
   while (0);
 }
@@ -1949,6 +2219,7 @@ app_openlibs(lua_State *L)
 void
 gkyl_vlasov_lw_openlibs(lua_State *L)
 {
+  eqn_openlibs(L);
   app_openlibs(L);
 }
 
