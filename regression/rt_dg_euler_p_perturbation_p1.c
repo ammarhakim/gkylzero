@@ -265,29 +265,29 @@ main(int argc, char **argv)
 
   // Vlasov-Maxwell app.
   struct gkyl_vm app_inp = {
-   .name = "dg_euler_p_perturbation_p1",
+    .name = "dg_euler_p_perturbation_p1",
 
-   .cdim = 1, .vdim = 0,
-   .lower = { 0.0 },
-   .upper = { ctx.Lx },
-   .cells = { NX },
+    .cdim = 1, .vdim = 0,
+    .lower = { 0.0 },
+    .upper = { ctx.Lx },
+    .cells = { NX },
 
-   .poly_order = ctx.poly_order,
-   .basis_type = app_args.basis_type,
-   .cfl_frac = ctx.cfl_frac,
+    .poly_order = ctx.poly_order,
+    .basis_type = app_args.basis_type,
+    .cfl_frac = ctx.cfl_frac,
 
-   .num_periodic_dir = 1,
-   .periodic_dirs = { 0 },
+    .num_periodic_dir = 1,
+    .periodic_dirs = { 0 },
 
-   .num_species = 0,
-   .species = { },
+    .num_species = 0,
+    .species = { },
 
-   .num_fluid_species = 1,
-   .fluid_species = { fluid },
+    .num_fluid_species = 1,
+    .fluid_species = { fluid },
 
-   .skip_field = true,
+    .skip_field = true,
 
-   .parallelism = {
+    .parallelism = {
       .use_gpu = app_args.use_gpu,
       .cuts = { app_args.cuts[0] },
       .comm = comm,
