@@ -1025,18 +1025,19 @@ gkyl_gyrokinetic_app_calc_species_integrated_mom(gkyl_gyrokinetic_app* app, int 
   struct gk_species *gk_s = &app->species[sidx];
 
   int vdim = app->vdim;
-  double avals_global[2+vdim];
+  int num_mom = gk_s->integ_moms.num_mom;
+  double avals_global[num_mom];
 
   gk_species_moment_calc(&gk_s->integ_moms, gk_s->local, app->local, gk_s->f); 
   // Reduce (sum) over whole domain, append to diagnostics.
   gkyl_array_reduce_range(gk_s->red_integ_diag, gk_s->integ_moms.marr, GKYL_SUM, &app->local);
-  gkyl_comm_allreduce(app->comm, GKYL_DOUBLE, GKYL_SUM, 2+vdim, 
+  gkyl_comm_allreduce(app->comm, GKYL_DOUBLE, GKYL_SUM, num_mom, 
     gk_s->red_integ_diag, gk_s->red_integ_diag_global);
   if (app->use_gpu) {
-    gkyl_cu_memcpy(avals_global, gk_s->red_integ_diag_global, sizeof(double[2+vdim]), GKYL_CU_MEMCPY_D2H);
+    gkyl_cu_memcpy(avals_global, gk_s->red_integ_diag_global, sizeof(double[num_mom]), GKYL_CU_MEMCPY_D2H);
   }
   else {
-    memcpy(avals_global, gk_s->red_integ_diag_global, sizeof(double[2+vdim]));
+    memcpy(avals_global, gk_s->red_integ_diag_global, sizeof(double[num_mom]));
   }
   gkyl_dynvec_append(gk_s->integ_diag, tm, avals_global);
 
@@ -1044,13 +1045,13 @@ gkyl_gyrokinetic_app_calc_species_integrated_mom(gkyl_gyrokinetic_app* app, int 
     gk_species_moment_calc(&gk_s->integ_moms, gk_s->local, app->local, gk_s->fnew); 
     // Reduce (sum) over whole domain, append to diagnostics.
     gkyl_array_reduce_range(gk_s->red_integ_diag, gk_s->integ_moms.marr, GKYL_SUM, &app->local);
-    gkyl_comm_allreduce(app->comm, GKYL_DOUBLE, GKYL_SUM, 2+vdim, 
+    gkyl_comm_allreduce(app->comm, GKYL_DOUBLE, GKYL_SUM, num_mom, 
       gk_s->red_integ_diag, gk_s->red_integ_diag_global);
     if (app->use_gpu) {
-      gkyl_cu_memcpy(avals_global, gk_s->red_integ_diag_global, sizeof(double[2+vdim]), GKYL_CU_MEMCPY_D2H);
+      gkyl_cu_memcpy(avals_global, gk_s->red_integ_diag_global, sizeof(double[num_mom]), GKYL_CU_MEMCPY_D2H);
     }
     else {
-      memcpy(avals_global, gk_s->red_integ_diag_global, sizeof(double[2+vdim]));
+      memcpy(avals_global, gk_s->red_integ_diag_global, sizeof(double[num_mom]));
     }
     gkyl_dynvec_append(gk_s->fdot_integ_diag, tm, avals_global);
   }
@@ -1060,13 +1061,13 @@ gkyl_gyrokinetic_app_calc_species_integrated_mom(gkyl_gyrokinetic_app* app, int 
     gk_species_moment_calc(&gk_s->integ_moms, gk_s->local, app->local, gk_s->fnew); 
     // Reduce (sum) over whole domain, append to diagnostics.
     gkyl_array_reduce_range(gk_s->red_integ_diag, gk_s->integ_moms.marr, GKYL_SUM, &app->local);
-    gkyl_comm_allreduce(app->comm, GKYL_DOUBLE, GKYL_SUM, 2+vdim, 
+    gkyl_comm_allreduce(app->comm, GKYL_DOUBLE, GKYL_SUM, num_mom, 
       gk_s->red_integ_diag, gk_s->red_integ_diag_global);
     if (app->use_gpu) {
-      gkyl_cu_memcpy(avals_global, gk_s->red_integ_diag_global, sizeof(double[2+vdim]), GKYL_CU_MEMCPY_D2H);
+      gkyl_cu_memcpy(avals_global, gk_s->red_integ_diag_global, sizeof(double[num_mom]), GKYL_CU_MEMCPY_D2H);
     }
     else {
-      memcpy(avals_global, gk_s->red_integ_diag_global, sizeof(double[2+vdim]));
+      memcpy(avals_global, gk_s->red_integ_diag_global, sizeof(double[num_mom]));
     }
     gkyl_dynvec_append(gk_s->ps_integ_diag, tm, avals_global);
   }
@@ -1084,18 +1085,19 @@ gkyl_gyrokinetic_app_calc_neut_species_integrated_mom(gkyl_gyrokinetic_app* app,
     struct timespec wst = gkyl_wall_clock();
 
     int vdim = app->vdim+1; // Neutrals are always 3V
-    double avals_global[2+vdim];
+    int num_mom = gk_ns->integ_moms.num_mom;
+    double avals_global[num_mom];
 
     gk_neut_species_moment_calc(&gk_ns->integ_moms, gk_ns->local, app->local, gk_ns->f); 
     // reduce to compute sum over whole domain, append to diagnostics
     gkyl_array_reduce_range(gk_ns->red_integ_diag, gk_ns->integ_moms.marr, GKYL_SUM, &app->local);
-    gkyl_comm_allreduce(app->comm, GKYL_DOUBLE, GKYL_SUM, 2+vdim, 
+    gkyl_comm_allreduce(app->comm, GKYL_DOUBLE, GKYL_SUM, num_mom, 
       gk_ns->red_integ_diag, gk_ns->red_integ_diag_global);
     if (app->use_gpu) {
-      gkyl_cu_memcpy(avals_global, gk_ns->red_integ_diag_global, sizeof(double[2+vdim]), GKYL_CU_MEMCPY_D2H);
+      gkyl_cu_memcpy(avals_global, gk_ns->red_integ_diag_global, sizeof(double[num_mom]), GKYL_CU_MEMCPY_D2H);
     }
     else {
-      memcpy(avals_global, gk_ns->red_integ_diag_global, sizeof(double[2+vdim]));
+      memcpy(avals_global, gk_ns->red_integ_diag_global, sizeof(double[num_mom]));
     }
     gkyl_dynvec_append(gk_ns->integ_diag, tm, avals_global);
     app->stat.diag_tm += gkyl_time_diff_now_sec(wst);
@@ -1112,7 +1114,8 @@ gkyl_gyrokinetic_app_calc_species_boundary_flux_integrated_mom(gkyl_gyrokinetic_
 
   if (gk_s->info.boundary_flux_diagnostics) {
     int vdim = app->vdim;
-    double avals_global[2+vdim];
+    int num_mom = gk_s->bflux_diag.integ_moms.num_mom; 
+    double avals_global[num_mom];
   
     for (int d=0; d<app->cdim; ++d) {
       for (int e=0; e<2; ++e) {
@@ -1123,20 +1126,20 @@ gkyl_gyrokinetic_app_calc_species_boundary_flux_integrated_mom(gkyl_gyrokinetic_
         gkyl_array_reduce_range(gk_s->red_integ_diag, gk_s->bflux_diag.integ_moms.marr, GKYL_SUM,
           e==0? &app->lower_ghost[d] : &app->upper_ghost[d]); 
         //// Not ready in for parallel sims.
-        //gkyl_comm_allreduce(app->comm, GKYL_DOUBLE, GKYL_SUM, 2+vdim, 
+        //gkyl_comm_allreduce(app->comm, GKYL_DOUBLE, GKYL_SUM, num_mom, 
         //  gk_s->red_integ_diag, gk_s->red_integ_diag_global);
         //if (app->use_gpu) {
-        //  gkyl_cu_memcpy(avals_global, gk_s->red_integ_diag_global, sizeof(double[2+vdim]), GKYL_CU_MEMCPY_D2H);
+        //  gkyl_cu_memcpy(avals_global, gk_s->red_integ_diag_global, sizeof(double[num_mom]), GKYL_CU_MEMCPY_D2H);
         //}
         //else {
-        //  memcpy(avals_global, gk_s->red_integ_diag_global, sizeof(double[2+vdim]));
+        //  memcpy(avals_global, gk_s->red_integ_diag_global, sizeof(double[num_mom]));
         //}
         //gkyl_dynvec_append(gk_s->integ_diag, tm, avals_global);
         if (app->use_gpu) {
-          gkyl_cu_memcpy(avals_global, gk_s->red_integ_diag, sizeof(double[2+vdim]), GKYL_CU_MEMCPY_D2H);
+          gkyl_cu_memcpy(avals_global, gk_s->red_integ_diag, sizeof(double[num_mom]), GKYL_CU_MEMCPY_D2H);
         }
         else {
-          memcpy(avals_global, gk_s->red_integ_diag, sizeof(double[2+vdim]));
+          memcpy(avals_global, gk_s->red_integ_diag, sizeof(double[num_mom]));
         }
         gkyl_dynvec_append(gk_s->bflux_diag.intmom[2*d+e], tm, avals_global);
       }
@@ -1485,18 +1488,19 @@ gkyl_gyrokinetic_app_calc_species_source_integrated_mom(gkyl_gyrokinetic_app* ap
     struct timespec wst = gkyl_wall_clock();
 
     int vdim = app->vdim;
-    double avals_global[2+vdim];
+    int num_mom = gk_s->src.integ_moms.num_mom;
+    double avals_global[num_mom];
 
     gk_species_moment_calc(&gk_s->src.integ_moms, gk_s->local, app->local, gk_s->src.source); 
     // reduce to compute sum over whole domain, append to diagnostics
     gkyl_array_reduce_range(gk_s->src.red_integ_diag, gk_s->src.integ_moms.marr, GKYL_SUM, &app->local);
-    gkyl_comm_allreduce(app->comm, GKYL_DOUBLE, GKYL_SUM, 2+vdim, 
+    gkyl_comm_allreduce(app->comm, GKYL_DOUBLE, GKYL_SUM, num_mom, 
       gk_s->src.red_integ_diag, gk_s->src.red_integ_diag_global);
     if (app->use_gpu) {
-      gkyl_cu_memcpy(avals_global, gk_s->src.red_integ_diag_global, sizeof(double[2+vdim]), GKYL_CU_MEMCPY_D2H);
+      gkyl_cu_memcpy(avals_global, gk_s->src.red_integ_diag_global, sizeof(double[num_mom]), GKYL_CU_MEMCPY_D2H);
     }
     else {
-      memcpy(avals_global, gk_s->src.red_integ_diag_global, sizeof(double[2+vdim]));
+      memcpy(avals_global, gk_s->src.red_integ_diag_global, sizeof(double[num_mom]));
     }
     gkyl_dynvec_append(gk_s->src.integ_diag, tm, avals_global);
     app->stat.diag_tm += gkyl_time_diff_now_sec(wst);
@@ -1513,18 +1517,19 @@ gkyl_gyrokinetic_app_calc_neut_species_source_integrated_mom(gkyl_gyrokinetic_ap
     struct timespec wst = gkyl_wall_clock();
 
     int vdim = app->vdim+1; // Neutrals are always 3V
-    double avals_global[2+vdim];
+    int num_mom = gk_ns->src.integ_moms.num_mom;
+    double avals_global[num_mom];
 
     gk_neut_species_moment_calc(&gk_ns->src.integ_moms, gk_ns->local, app->local, gk_ns->src.source); 
     // reduce to compute sum over whole domain, append to diagnostics
     gkyl_array_reduce_range(gk_ns->src.red_integ_diag, gk_ns->src.integ_moms.marr, GKYL_SUM, &app->local);
-    gkyl_comm_allreduce(app->comm, GKYL_DOUBLE, GKYL_SUM, 2+vdim, 
+    gkyl_comm_allreduce(app->comm, GKYL_DOUBLE, GKYL_SUM, num_mom, 
       gk_ns->src.red_integ_diag, gk_ns->src.red_integ_diag_global);
     if (app->use_gpu) {
-      gkyl_cu_memcpy(avals_global, gk_ns->src.red_integ_diag_global, sizeof(double[2+vdim]), GKYL_CU_MEMCPY_D2H);
+      gkyl_cu_memcpy(avals_global, gk_ns->src.red_integ_diag_global, sizeof(double[num_mom]), GKYL_CU_MEMCPY_D2H);
     }
     else {
-      memcpy(avals_global, gk_ns->src.red_integ_diag_global, sizeof(double[2+vdim]));
+      memcpy(avals_global, gk_ns->src.red_integ_diag_global, sizeof(double[num_mom]));
     }
     gkyl_dynvec_append(gk_ns->src.integ_diag, tm, avals_global);
     app->stat.diag_tm += gkyl_time_diff_now_sec(wst);
@@ -1843,7 +1848,7 @@ gkyl_gyrokinetic_app_calc_species_rad_integrated_mom(gkyl_gyrokinetic_app *app, 
     struct timespec wst = gkyl_wall_clock();
 
     int vdim = app->vdim;
-    double avals_global[2+vdim];
+    int num_mom = gk_s->rad.integ_moms.num_mom;
 
     // Compute radiation drag coefficients
     const struct gkyl_array *fin_neut[app->num_neut_species];
@@ -1856,14 +1861,15 @@ gkyl_gyrokinetic_app_calc_species_rad_integrated_mom(gkyl_gyrokinetic_app *app, 
     gk_species_radiation_integrated_moms(app, gk_s, &gk_s->rad, fin, fin_neut);
   
     // reduce to compute sum over whole domain, append to diagnostics
+    double avals_global[num_mom];
     gkyl_array_reduce_range(gk_s->rad.red_integ_diag, gk_s->rad.integ_moms.marr, GKYL_SUM, &app->local);
-    gkyl_comm_allreduce(app->comm, GKYL_DOUBLE, GKYL_SUM, 2+vdim, 
+    gkyl_comm_allreduce(app->comm, GKYL_DOUBLE, GKYL_SUM, num_mom, 
       gk_s->rad.red_integ_diag, gk_s->rad.red_integ_diag_global);
     if (app->use_gpu) {
-      gkyl_cu_memcpy(avals_global, gk_s->rad.red_integ_diag_global, sizeof(double[2+vdim]), GKYL_CU_MEMCPY_D2H);
+      gkyl_cu_memcpy(avals_global, gk_s->rad.red_integ_diag_global, sizeof(double[num_mom]), GKYL_CU_MEMCPY_D2H);
     }
     else {
-      memcpy(avals_global, gk_s->rad.red_integ_diag_global, sizeof(double[2+vdim]));
+      memcpy(avals_global, gk_s->rad.red_integ_diag_global, sizeof(double[num_mom]));
     }
     gkyl_dynvec_append(gk_s->rad.integ_diag, tm, avals_global);
 

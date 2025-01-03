@@ -65,8 +65,8 @@ gk_neut_species_react_cross_init(struct gkyl_gyrokinetic_app *app, struct gk_neu
     // Compute a minimum representable temperature based on the smallest dv in the grid.
     react->ion_vtsq_min[i] = gk_species_react_get_vtsq_min(app, gk_find_species(app, react->react_type[i].ion_nm));
 
-    gk_species_moment_init(app, &app->species[react->elc_idx[i]], &react->moms_elc[i], "ThreeMoments");
-    gk_species_moment_init(app, &app->species[react->ion_idx[i]], &react->moms_ion[i], "ThreeMoments");
+    gk_species_moment_init(app, &app->species[react->elc_idx[i]], &react->moms_elc[i], "ThreeMoments", false);
+    gk_species_moment_init(app, &app->species[react->ion_idx[i]], &react->moms_ion[i], "ThreeMoments", false);
 
     if (gk_find_neut_species(app, react->react_type[i].donor_nm)) {
       react->donor_idx[i] = gk_find_neut_species_idx(app, react->react_type[i].donor_nm);

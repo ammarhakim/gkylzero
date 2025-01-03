@@ -8,8 +8,7 @@ gk_species_source_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s,
   src->source_id = s->info.source.source_id;
 
   if (src->source_id) {
-    int vdim = app->vdim;
-    // we need to ensure source has same shape as distribution function
+    // Allocate source array.
     src->source = mkarr(app->use_gpu, app->basis.num_basis, s->local_ext.volume);
     src->source_host = src->source;
     if (app->use_gpu) {
@@ -27,21 +26,23 @@ gk_species_source_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s,
     src->num_diag_moments = s->info.num_diag_moments;
     s->src.moms = gkyl_malloc(sizeof(struct gk_species_moment[src->num_diag_moments]));
     for (int m=0; m<src->num_diag_moments; ++m) {
-      gk_species_moment_init(app, s, &s->src.moms[m], s->info.diag_moments[m]);
+      gk_species_moment_init(app, s, &s->src.moms[m], s->info.diag_moments[m], false);
     }
 
     // Allocate data and updaters for integrated moments.
-    gk_species_moment_init(app, s, &s->src.integ_moms, "Integrated");
+    gk_species_moment_init(app, s, &s->src.integ_moms,
+      s->info.integrated_hamiltonian_moments? "HamiltonianMoments" : "FourMoments", true);
+    int num_mom = s->src.integ_moms.num_mom;
     if (app->use_gpu) {
-      s->src.red_integ_diag = gkyl_cu_malloc(sizeof(double[vdim+2]));
-      s->src.red_integ_diag_global = gkyl_cu_malloc(sizeof(double[vdim+2]));
+      s->src.red_integ_diag = gkyl_cu_malloc(sizeof(double[num_mom]));
+      s->src.red_integ_diag_global = gkyl_cu_malloc(sizeof(double[num_mom]));
     } 
     else {
-      s->src.red_integ_diag = gkyl_malloc(sizeof(double[vdim+2]));
-      s->src.red_integ_diag_global = gkyl_malloc(sizeof(double[vdim+2]));
+      s->src.red_integ_diag = gkyl_malloc(sizeof(double[num_mom]));
+      s->src.red_integ_diag_global = gkyl_malloc(sizeof(double[num_mom]));
     }
     // allocate dynamic-vector to store all-reduced integrated moments 
-    s->src.integ_diag = gkyl_dynvec_new(GKYL_DOUBLE, vdim+2);
+    s->src.integ_diag = gkyl_dynvec_new(GKYL_DOUBLE, num_mom);
     s->src.is_first_integ_write_call = true;
   }
 }

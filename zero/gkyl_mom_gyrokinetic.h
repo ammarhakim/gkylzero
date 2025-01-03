@@ -9,7 +9,8 @@
 
 /**
  * Create new gyrokinetic moment type object. Valid 'mom' strings are "M0",
- * "M1", "M2", "M2par", "M2perp", "M3par", "M3perp", "ThreeMoments"
+ * "M1", "M2", "M2par", "M2perp", "M3par", "M3perp", "ThreeMoments",
+ * "FourMoments", "HamiltonianMoments".
  *
  * @param cbasis Configuration-space basis-functions.
  * @param pbasis Phase-space basis-functions.
@@ -29,8 +30,8 @@ gkyl_mom_gyrokinetic_new(const struct gkyl_basis* cbasis,
   const struct gk_geometry *gk_geom, struct gkyl_array *phi, const char *mom, bool use_gpu);
 
 /**
- * Create new integrated gyrokinetic moment type object. Lab-frame
- * integrated moments (M0, M1 (M1par), M2par, and M2perp (for vdim>1)) are computed.
+ * Create new integrated gyrokinetic moment type object.
+ * Valid 'mom' strings are "ThreeMoments", "FourMoments", "HamiltonianMoments".
  *
  * @param cbasis Configuration-space basis-functions.
  * @param pbasis Phase-space basis-functions.
@@ -38,10 +39,12 @@ gkyl_mom_gyrokinetic_new(const struct gkyl_basis* cbasis,
  * @param mass Mass of species.
  * @param vel_map Velocity space mapping object.
  * @param gk_geom Geometry object.
+ * @param phi Electrostatic potential (for Hamiltonian moment).
+ * @param mom Name of moment to compute.
  * @param use_gpu bool to determine if on GPU.
  */
 struct gkyl_mom_type* 
 gkyl_int_mom_gyrokinetic_new(const struct gkyl_basis* cbasis, 
   const struct gkyl_basis* pbasis, const struct gkyl_range* conf_range, 
-  double mass, const struct gkyl_velocity_map* vel_map,
-  const struct gk_geometry *gk_geom, bool use_gpu);
+  double mass, double charge, const struct gkyl_velocity_map* vel_map,
+  const struct gk_geometry *gk_geom, struct gkyl_array *phi, const char *mom, bool use_gpu);

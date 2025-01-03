@@ -13,7 +13,7 @@ gk_species_bflux_init(struct gkyl_gyrokinetic_app *app, struct gk_species *gk_s,
         skin_r, ghost_r, gk_s->eqn_gyrokinetic, is_diagnostic, app->use_gpu);
 
       // Initialize moment solver.
-      gk_species_moment_init(app, gk_s, &bflux->gammai[2*d+e], "M0");
+      gk_species_moment_init(app, gk_s, &bflux->gammai[2*d+e], "M0", false);
     }
   }
 
@@ -31,7 +31,8 @@ gk_species_bflux_init(struct gkyl_gyrokinetic_app *app, struct gk_species *gk_s,
       }
     }
 
-    gk_species_moment_init(app, gk_s, &bflux->integ_moms, "Integrated");
+    gk_species_moment_init(app, gk_s, &bflux->integ_moms,
+      gk_s->info.integrated_hamiltonian_moments? "HamiltonianMoments" : "FourMoments", true);
     for (int d=0; d<app->cdim; ++d) {
       for (int e=0; e<2; ++e)
         bflux->intmom[2*d+e] = gkyl_dynvec_new(GKYL_DOUBLE, bflux->integ_moms.num_mom);

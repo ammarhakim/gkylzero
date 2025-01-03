@@ -69,7 +69,7 @@ gk_species_bgk_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s, stru
   bgk->vtsq = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
 
   // allocate moments needed for BGK collisions update
-  gk_species_moment_init(app, s, &bgk->moms, "MaxwellianMoments");
+  gk_species_moment_init(app, s, &bgk->moms, "MaxwellianMoments", false);
 
   // Maxwellian correction updater
   bgk->correct_all_moms = false;

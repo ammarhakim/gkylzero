@@ -360,31 +360,32 @@ gk_species_init(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *app, st
   // Acquire equation object.
   gks->eqn_gyrokinetic = gkyl_dg_updater_gyrokinetic_acquire_eqn(gks->slvr);
 
-  // allocate data for density (for use in charge density accumulation and weak division for upar)
-  gk_species_moment_init(app, gks, &gks->m0, "M0");
-  // allocate data for integrated moments
-  gk_species_moment_init(app, gks, &gks->integ_moms, "Integrated");
+  // Allocate data for density (for charge density or upar calculation).
+  gk_species_moment_init(app, gks, &gks->m0, "M0", false);
 
-  // allocate data for diagnostic moments
+  // Allocate data for diagnostic moments.
   int ndm = gks->info.num_diag_moments;
   gks->moms = gkyl_malloc(sizeof(struct gk_species_moment[ndm]));
   for (int m=0; m<ndm; ++m)
-    gk_species_moment_init(app, gks, &gks->moms[m], gks->info.diag_moments[m]);
+    gk_species_moment_init(app, gks, &gks->moms[m], gks->info.diag_moments[m], false);
 
+  // Allocate data for integrated moments.
+  gk_species_moment_init(app, gks, &gks->integ_moms,
+    gks->info.integrated_hamiltonian_moments? "HamiltonianMoments" : "FourMoments", true);
   if (app->use_gpu) {
-    gks->red_integ_diag = gkyl_cu_malloc(sizeof(double[vdim+2]));
-    gks->red_integ_diag_global = gkyl_cu_malloc(sizeof(double[vdim+2]));
+    gks->red_integ_diag = gkyl_cu_malloc(sizeof(double[gks->integ_moms.num_mom]));
+    gks->red_integ_diag_global = gkyl_cu_malloc(sizeof(double[gks->integ_moms.num_mom]));
   } else {
-    gks->red_integ_diag = gkyl_malloc(sizeof(double[vdim+2]));
-    gks->red_integ_diag_global = gkyl_malloc(sizeof(double[vdim+2]));
+    gks->red_integ_diag = gkyl_malloc(sizeof(double[gks->integ_moms.num_mom]));
+    gks->red_integ_diag_global = gkyl_malloc(sizeof(double[gks->integ_moms.num_mom]));
   }
   // allocate dynamic-vector to store all-reduced integrated moments 
-  gks->integ_diag = gkyl_dynvec_new(GKYL_DOUBLE, vdim+2);
+  gks->integ_diag = gkyl_dynvec_new(GKYL_DOUBLE, gks->integ_moms.num_mom);
   gks->is_first_integ_write_call = true;
 
   // Allocate dynamic-vector to store Delta f integrated moments.
   if (gks->info.fdot_diagnostics) {
-    gks->fdot_integ_diag = gkyl_dynvec_new(GKYL_DOUBLE, vdim+2);
+    gks->fdot_integ_diag = gkyl_dynvec_new(GKYL_DOUBLE, gks->integ_moms.num_mom);
   }
   gks->is_first_fdot_integ_write_call = true;
 
@@ -646,7 +647,7 @@ gk_species_init(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *app, st
       gks->grid, gks->info.mass, app->gk_geom, gks->vel_map, &app->local_ext, app->use_gpu);
 
     // Allocate data for diagnostic moments
-    gk_species_moment_init(app, gks, &gks->ps_moms, "FourMoments");
+    gk_species_moment_init(app, gks, &gks->ps_moms, "FourMoments", false);
 
     gks->ps_integ_diag = gkyl_dynvec_new(GKYL_DOUBLE, gks->ps_moms.num_mom);
     gks->is_first_ps_integ_write_call = true;

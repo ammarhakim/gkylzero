@@ -5,12 +5,14 @@ GKYL_CU_DH void gyrokinetic_M0_1x2v_ser_p1(const double *dxv, const double *vmap
   out[0] += 2.0*f[0]*volFact; 
   out[1] += 2.0*f[1]*volFact; 
 } 
+
 GKYL_CU_DH void gyrokinetic_M1_1x2v_ser_p1(const double *dxv, const double *vmap, double m_, const double *bmag, const double *f, double* GKYL_RESTRICT out) 
 { 
   const double volFact = 1.5707963267948966*dxv[1]*dxv[2]/m_; 
   out[0] += (1.4142135623730951*vmap[1]*f[2]+1.4142135623730951*f[0]*vmap[0])*volFact; 
   out[1] += (1.4142135623730951*vmap[1]*f[4]+1.4142135623730951*vmap[0]*f[1])*volFact; 
 } 
+
 GKYL_CU_DH void gyrokinetic_M2_1x2v_ser_p1(const double *dxv, const double *vmap, double m_, const double *bmag, const double *f, double* GKYL_RESTRICT out) 
 { 
   const double volFact = 1.5707963267948966*dxv[1]*dxv[2]/m_; 
@@ -25,6 +27,7 @@ GKYL_CU_DH void gyrokinetic_M2_1x2v_ser_p1(const double *dxv, const double *vmap
   out[0] += (2.0*(0.7071067811865475*bmag[1]*tmp[1]+0.7071067811865475*bmag[0]*tmp[0])*volFact)/m_; 
   out[1] += (2.0*(0.7071067811865475*bmag[0]*tmp[1]+0.7071067811865475*tmp[0]*bmag[1])*volFact)/m_; 
 } 
+
 GKYL_CU_DH void gyrokinetic_M2_par_1x2v_ser_p1(const double *dxv, const double *vmap, double m_, const double *bmag, const double *f, double* GKYL_RESTRICT out) 
 { 
   const double volFact = 1.5707963267948966*dxv[1]*dxv[2]/m_; 
@@ -34,6 +37,7 @@ GKYL_CU_DH void gyrokinetic_M2_par_1x2v_ser_p1(const double *dxv, const double *
   out[0] += (0.8944271909999159*vmap1R2*f[8]+2.0*vmap[0]*vmap[1]*f[2]+f[0]*vmap1R2+f[0]*vmap0R2)*volFact; 
   out[1] += (0.8944271909999161*vmap1R2*f[9]+2.0*vmap[0]*vmap[1]*f[4]+f[1]*vmap1R2+vmap0R2*f[1])*volFact; 
 } 
+
 GKYL_CU_DH void gyrokinetic_M2_perp_1x2v_ser_p1(const double *dxv, const double *vmap, double m_, const double *bmag, const double *f, double* GKYL_RESTRICT out) 
 { 
   const double volFact = 1.5707963267948966*dxv[1]*dxv[2]/m_; 
@@ -43,6 +47,7 @@ GKYL_CU_DH void gyrokinetic_M2_perp_1x2v_ser_p1(const double *dxv, const double 
   out[0] += (2.0*(0.7071067811865475*bmag[1]*tmp[1]+0.7071067811865475*bmag[0]*tmp[0])*volFact)/m_; 
   out[1] += (2.0*(0.7071067811865475*bmag[0]*tmp[1]+0.7071067811865475*tmp[0]*bmag[1])*volFact)/m_; 
 } 
+
 GKYL_CU_DH void gyrokinetic_M3_par_1x2v_ser_p1(const double *dxv, const double *vmap, double m_, const double *bmag, const double *f, double* GKYL_RESTRICT out) 
 { 
   const double volFact = 1.5707963267948966*dxv[1]*dxv[2]/m_; 
@@ -54,6 +59,7 @@ GKYL_CU_DH void gyrokinetic_M3_par_1x2v_ser_p1(const double *dxv, const double *
   out[0] += (1.8973665961010278*vmap[0]*vmap1R2*f[8]+1.2727922061357855*vmap1R3*f[2]+2.1213203435596424*vmap0R2*vmap[1]*f[2]+2.1213203435596424*f[0]*vmap[0]*vmap1R2+0.7071067811865475*f[0]*vmap0R3)*volFact; 
   out[1] += (1.897366596101028*vmap[0]*vmap1R2*f[9]+1.2727922061357855*vmap1R3*f[4]+2.1213203435596424*vmap0R2*vmap[1]*f[4]+2.1213203435596424*vmap[0]*f[1]*vmap1R2+0.7071067811865475*vmap0R3*f[1])*volFact; 
 } 
+
 GKYL_CU_DH void gyrokinetic_M3_perp_1x2v_ser_p1(const double *dxv, const double *vmap, double m_, const double *bmag, const double *f, double* GKYL_RESTRICT out) 
 { 
   const double volFact = 1.5707963267948966*dxv[1]*dxv[2]/m_; 
@@ -61,6 +67,7 @@ GKYL_CU_DH void gyrokinetic_M3_perp_1x2v_ser_p1(const double *dxv, const double 
   out[0] += ((1.4142135623730951*bmag[1]*vmap[1]*vmap[3]*f[7]+1.4142135623730951*bmag[0]*vmap[1]*vmap[3]*f[6]+1.4142135623730951*vmap[0]*bmag[1]*vmap[3]*f[5]+1.4142135623730951*bmag[1]*vmap[1]*vmap[2]*f[4]+1.4142135623730951*bmag[0]*vmap[0]*f[3]*vmap[3]+1.4142135623730951*bmag[0]*vmap[1]*f[2]*vmap[2]+1.4142135623730951*vmap[0]*bmag[1]*f[1]*vmap[2]+1.4142135623730951*bmag[0]*f[0]*vmap[0]*vmap[2])*volFact)/m_; 
   out[1] += ((1.4142135623730951*bmag[0]*vmap[1]*vmap[3]*f[7]+1.4142135623730951*bmag[1]*vmap[1]*vmap[3]*f[6]+1.4142135623730951*bmag[0]*vmap[0]*vmap[3]*f[5]+1.4142135623730951*bmag[0]*vmap[1]*vmap[2]*f[4]+1.4142135623730951*vmap[0]*bmag[1]*f[3]*vmap[3]+1.4142135623730951*bmag[1]*vmap[1]*f[2]*vmap[2]+1.4142135623730951*bmag[0]*vmap[0]*f[1]*vmap[2]+1.4142135623730951*f[0]*vmap[0]*bmag[1]*vmap[2])*volFact)/m_; 
 } 
+
 GKYL_CU_DH void gyrokinetic_three_moments_1x2v_ser_p1(const double *dxv, const double *vmap, double m_, const double *bmag, const double *f, double* GKYL_RESTRICT out) 
 { 
   const double volFact = 1.5707963267948966*dxv[1]*dxv[2]/m_; 
@@ -105,25 +112,28 @@ GKYL_CU_DH void gyrokinetic_M0_step1_1x2v_ser_p1(const double *dxv, const double
   out[2] += 1.4142135623730951*f[3]*volFact; 
   out[3] += 1.4142135623730951*f[5]*volFact; 
 } 
+
 GKYL_CU_DH void gyrokinetic_M0_step2_1x2v_ser_p1(const double *dxv, const double *vmap, double m_, const double *bmag, const double *f, double* GKYL_RESTRICT out) 
 { 
   const double volFact = 3.141592653589793*dxv[2]/m_; 
   out[0] += 2.8284271247461907*f[0]*volFact; 
   out[1] += 2.8284271247461907*f[1]*volFact; 
 } 
-GKYL_CU_DH void gyrokinetic_hamiltonian_moment_1x2v_ser_p1(const double *dxv, const double *vmap, double m_, double q_, const double *bmag, const double *phi, const double *f, double* GKYL_RESTRICT out) 
+
+GKYL_CU_DH void gyrokinetic_hamiltonian_moments_1x2v_ser_p1(const double *dxv, const double *vmap, double m_, double q_, const double *bmag, const double *phi, const double *f, double* GKYL_RESTRICT out) 
 { 
   const double volFact = 1.5707963267948966*dxv[1]*dxv[2]/m_; 
-  const double vmap0R2 = pow(vmap[0],2);
-  const double vmap1R2 = pow(vmap[1],2);
-
-  out[0] += (0.4472135954999579*vmap1R2*f[8]*m_+vmap[0]*vmap[1]*f[2]*m_+0.5*f[0]*vmap1R2*m_+0.5*f[0]*vmap0R2*m_)*volFact; 
-  out[1] += (0.44721359549995804*vmap1R2*f[9]*m_+vmap[0]*vmap[1]*f[4]*m_+0.5*f[1]*vmap1R2*m_+0.5*vmap0R2*f[1]*m_)*volFact; 
   double tmp[2]; 
   tmp[0] = 1.4142135623730951*f[3]*vmap[3]+1.4142135623730951*f[0]*vmap[2]; 
   tmp[1] = 1.4142135623730951*vmap[3]*f[5]+1.4142135623730951*f[1]*vmap[2]; 
-  out[0] += (0.7071067811865475*bmag[1]*tmp[1]+0.7071067811865475*bmag[0]*tmp[0])*volFact; 
-  out[1] += (0.7071067811865475*bmag[0]*tmp[1]+0.7071067811865475*tmp[0]*bmag[1])*volFact; 
-  out[0] += (1.4142135623730951*f[1]*phi[1]*q_+1.4142135623730951*f[0]*phi[0]*q_)*volFact; 
-  out[1] += (1.4142135623730951*f[0]*phi[1]*q_+1.4142135623730951*phi[0]*f[1]*q_)*volFact; 
+  const double vmap0R2 = pow(vmap[0],2);
+  const double vmap1R2 = pow(vmap[1],2);
+
+  out[0] += 2.0*f[0]*volFact; 
+  out[1] += 2.0*f[1]*volFact; 
+  out[2] += (1.4142135623730951*vmap[1]*f[2]+1.4142135623730951*f[0]*vmap[0])*m_*volFact; 
+  out[3] += (1.4142135623730951*vmap[1]*f[4]+1.4142135623730951*vmap[0]*f[1])*m_*volFact; 
+  out[4] += (2.8284271247461907*f[1]*phi[1]+2.8284271247461907*f[0]*phi[0])*q_*volFact+(0.4472135954999579*vmap1R2*f[8]+vmap[0]*vmap[1]*f[2]+0.5*f[0]*vmap1R2+0.5*f[0]*vmap0R2)*m_*volFact+(0.7071067811865475*bmag[1]*tmp[1]+0.7071067811865475*bmag[0]*tmp[0])*volFact; 
+  out[5] += (2.8284271247461907*f[0]*phi[1]+2.8284271247461907*phi[0]*f[1])*q_*volFact+(0.44721359549995804*vmap1R2*f[9]+vmap[0]*vmap[1]*f[4]+0.5*f[1]*vmap1R2+0.5*vmap0R2*f[1])*m_*volFact+(0.7071067811865475*bmag[0]*tmp[1]+0.7071067811865475*tmp[0]*bmag[1])*volFact; 
 } 
+

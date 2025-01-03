@@ -180,14 +180,14 @@ gk_neut_species_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app, struc
     gk_neut_species_moment_init(app, s, &s->moms[m], s->info.diag_moments[m]);
 
   if (app->use_gpu) {
-    s->red_integ_diag = gkyl_cu_malloc(sizeof(double[vdim+2]));
-    s->red_integ_diag_global = gkyl_cu_malloc(sizeof(double[vdim+2]));
+    s->red_integ_diag = gkyl_cu_malloc(sizeof(double[s->integ_moms.num_mom]));
+    s->red_integ_diag_global = gkyl_cu_malloc(sizeof(double[s->integ_moms.num_mom]));
   } else {
-    s->red_integ_diag = gkyl_malloc(sizeof(double[vdim+2]));
-    s->red_integ_diag_global = gkyl_malloc(sizeof(double[vdim+2]));
+    s->red_integ_diag = gkyl_malloc(sizeof(double[s->integ_moms.num_mom]));
+    s->red_integ_diag_global = gkyl_malloc(sizeof(double[s->integ_moms.num_mom]));
   }
   // allocate dynamic-vector to store all-reduced integrated moments 
-  s->integ_diag = gkyl_dynvec_new(GKYL_DOUBLE, vdim+2);
+  s->integ_diag = gkyl_dynvec_new(GKYL_DOUBLE, s->integ_moms.num_mom);
   s->is_first_integ_write_call = true;
 
   // initialize projection routine for initial conditions
