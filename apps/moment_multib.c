@@ -44,10 +44,10 @@ calc_tot_and_max_cuts(const struct gkyl_block_geom *block_geom, int tot_max[2])
 }
 
 // construct the mpack meta-data for multi-block data files
-static struct gkyl_array_meta *
+static struct gkyl_msgpack_data *
 moment_multib_meta(struct moment_multib_output_meta meta)
 {
-  struct gkyl_array_meta *mt = gkyl_malloc(sizeof *mt);
+  struct gkyl_msgpack_data *mt = gkyl_malloc(sizeof *mt);
 
   mt->meta_sz = 0;
   mpack_writer_t writer;
@@ -89,7 +89,7 @@ moment_multib_data_write(const char *fname, struct moment_multib_output_meta met
   FILE *fp = 0;
   int err;
   with_file (fp, fname, "w") {
-    struct gkyl_array_meta *amet = moment_multib_meta(meta);
+    struct gkyl_msgpack_data *amet = moment_multib_meta(meta);
     if (amet) {
       status = gkyl_header_meta_write_fp( &(struct gkyl_array_header_info) {
           .file_type = gkyl_file_type_int[GKYL_MULTI_BLOCK_DATA_FILE],

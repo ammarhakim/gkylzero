@@ -15,10 +15,10 @@
 #include <mpack.h>
 
 // returned gkyl_array_meta must be freed using vlasov_array_meta_release
-static struct gkyl_array_meta*
+static struct gkyl_msgpack_data*
 vlasov_array_meta_new(struct vlasov_output_meta meta)
 {
-  struct gkyl_array_meta *mt = gkyl_malloc(sizeof(*mt));
+  struct gkyl_msgpack_data *mt = gkyl_malloc(sizeof(*mt));
 
   mt->meta_sz = 0;
   mpack_writer_t writer;
@@ -53,7 +53,7 @@ vlasov_array_meta_new(struct vlasov_output_meta meta)
 }
 
 static void
-vlasov_array_meta_release(struct gkyl_array_meta *mt)
+vlasov_array_meta_release(struct gkyl_msgpack_data *mt)
 {
   if (!mt) return;
   MPACK_FREE(mt->meta);
@@ -61,7 +61,7 @@ vlasov_array_meta_release(struct gkyl_array_meta *mt)
 }
 
 static struct vlasov_output_meta
-vlasov_meta_from_mpack(struct gkyl_array_meta *mt)
+vlasov_meta_from_mpack(struct gkyl_msgpack_data *mt)
 {
   struct vlasov_output_meta meta = { .frame = 0, .stime = 0.0 };
 
@@ -637,7 +637,7 @@ gkyl_vlasov_app_write(gkyl_vlasov_app* app, double tm, int frame)
 void
 gkyl_vlasov_app_write_field(gkyl_vlasov_app* app, double tm, int frame)
 {
-  struct gkyl_array_meta *mt = vlasov_array_meta_new( (struct vlasov_output_meta) {
+  struct gkyl_msgpack_data *mt = vlasov_array_meta_new( (struct vlasov_output_meta) {
       .frame = frame,
       .stime = tm,
       .poly_order = app->poly_order,
@@ -698,7 +698,7 @@ gkyl_vlasov_app_write_field(gkyl_vlasov_app* app, double tm, int frame)
 void
 gkyl_vlasov_app_write_species(gkyl_vlasov_app* app, int sidx, double tm, int frame)
 {
-  struct gkyl_array_meta *mt = vlasov_array_meta_new( (struct vlasov_output_meta) {
+  struct gkyl_msgpack_data *mt = vlasov_array_meta_new( (struct vlasov_output_meta) {
       .frame = frame,
       .stime = tm,
       .poly_order = app->poly_order,
@@ -748,7 +748,7 @@ gkyl_vlasov_app_write_species(gkyl_vlasov_app* app, int sidx, double tm, int fra
 void
 gkyl_vlasov_app_write_species_lte(gkyl_vlasov_app* app, int sidx, double tm, int frame)
 {
-  struct gkyl_array_meta *mt = vlasov_array_meta_new( (struct vlasov_output_meta) {
+  struct gkyl_msgpack_data *mt = vlasov_array_meta_new( (struct vlasov_output_meta) {
       .frame = frame,
       .stime = tm,
       .poly_order = app->poly_order,
@@ -789,7 +789,7 @@ gkyl_vlasov_app_write_species_lte(gkyl_vlasov_app* app, int sidx, double tm, int
 void
 gkyl_vlasov_app_write_fluid_species(gkyl_vlasov_app* app, int sidx, double tm, int frame)
 {
-  struct gkyl_array_meta *mt = vlasov_array_meta_new( (struct vlasov_output_meta) {
+  struct gkyl_msgpack_data *mt = vlasov_array_meta_new( (struct vlasov_output_meta) {
       .frame = frame,
       .stime = tm,
       .poly_order = app->poly_order,
@@ -817,7 +817,7 @@ gkyl_vlasov_app_write_fluid_species(gkyl_vlasov_app* app, int sidx, double tm, i
 void
 gkyl_vlasov_app_write_mom(gkyl_vlasov_app* app, double tm, int frame)
 {
-  struct gkyl_array_meta *mt = vlasov_array_meta_new( (struct vlasov_output_meta) {
+  struct gkyl_msgpack_data *mt = vlasov_array_meta_new( (struct vlasov_output_meta) {
       .frame = frame,
       .stime = tm,
       .poly_order = app->poly_order,
@@ -1310,7 +1310,7 @@ header_from_file(gkyl_vlasov_app *app, const char *fname)
     }
 
     struct vlasov_output_meta meta =
-      vlasov_meta_from_mpack( &(struct gkyl_array_meta) {
+      vlasov_meta_from_mpack( &(struct gkyl_msgpack_data) {
           .meta = hdr.meta,
           .meta_sz = hdr.meta_size
         }

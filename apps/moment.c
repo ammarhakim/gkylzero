@@ -7,10 +7,10 @@
 
 static inline int int_max(int a, int b) { return a > b ? a : b; }
 
-struct gkyl_array_meta*
+struct gkyl_msgpack_data*
 moment_array_meta_new(struct moment_output_meta meta)
 {
-  struct gkyl_array_meta *mt = gkyl_malloc(sizeof(*mt));
+  struct gkyl_msgpack_data *mt = gkyl_malloc(sizeof(*mt));
 
   mt->meta_sz = 0;
   mpack_writer_t writer;
@@ -39,7 +39,7 @@ moment_array_meta_new(struct moment_output_meta meta)
 }
 
 void
-moment_array_meta_release(struct gkyl_array_meta *mt)
+moment_array_meta_release(struct gkyl_msgpack_data *mt)
 {
   if (!mt) return;
   MPACK_FREE(mt->meta);
@@ -47,7 +47,7 @@ moment_array_meta_release(struct gkyl_array_meta *mt)
 }
 
 struct moment_output_meta
-moment_meta_from_mpack(struct gkyl_array_meta *mt)
+moment_meta_from_mpack(struct gkyl_msgpack_data *mt)
 {
   struct moment_output_meta meta = { .frame = 0, .stime = 0.0 };
 
@@ -316,7 +316,7 @@ gkyl_moment_app_write_field(const gkyl_moment_app* app, double tm, int frame)
 {
   if (app->has_field != 1) return;
 
-  struct gkyl_array_meta *mt = moment_array_meta_new( (struct moment_output_meta) {
+  struct gkyl_msgpack_data *mt = moment_array_meta_new( (struct moment_output_meta) {
       .frame = frame,
       .stime= tm
     }
@@ -388,7 +388,7 @@ gkyl_moment_app_write_integrated_mom(gkyl_moment_app *app)
 void
 gkyl_moment_app_write_species(const gkyl_moment_app* app, int sidx, double tm, int frame)
 {
-  struct gkyl_array_meta *mt = moment_array_meta_new( (struct moment_output_meta) {
+  struct gkyl_msgpack_data *mt = moment_array_meta_new( (struct moment_output_meta) {
       .frame = frame,
       .stime = tm
     }
@@ -710,7 +710,7 @@ header_from_file(gkyl_moment_app *app, const char *fname)
     }
 
     struct moment_output_meta meta =
-      moment_meta_from_mpack( &(struct gkyl_array_meta) {
+      moment_meta_from_mpack( &(struct gkyl_msgpack_data) {
           .meta = hdr.meta,
           .meta_sz = hdr.meta_size
         }
