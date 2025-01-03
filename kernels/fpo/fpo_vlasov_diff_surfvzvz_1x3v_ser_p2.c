@@ -273,5 +273,5 @@ GKYL_CU_DH double fpo_vlasov_diff_surfvzvz_1x3v_ser_p2(const double* dxv, const 
 
   double cflFreq = fmax(fabs(D_surf_C[0]), fabs(D_surf_R[0])); 
 
-  return 2.25*dv1_sq*cflFreq; 
+  return 3.181980515339464*dv1_sq*cflFreq; 
 } 

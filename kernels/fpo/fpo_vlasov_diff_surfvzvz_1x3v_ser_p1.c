@@ -26,8 +26,8 @@ GKYL_CU_DH double fpo_vlasov_diff_surfvzvz_1x3v_ser_p1(const double* dxv, const 
   const double* fR = f_stencil[2]; 
 
   const double* DC = &diff_coeff_C[320]; 
-  const double* D_surf_C = &diff_coeff_surf_stencil[1][64]; 
-  const double* D_surf_R = &diff_coeff_surf_stencil[2][64]; 
+  const double* D_surf_C = &diff_coeff_surf_stencil[1][128]; 
+  const double* D_surf_R = &diff_coeff_surf_stencil[2][128]; 
 
   f_rec_lo[0] = 0.408248290463863*fL[4]-0.408248290463863*fC[4]+0.3535533905932737*fL[0]+0.3535533905932737*fC[0]; 
   f_rec_lo[1] = 0.408248290463863*fL[8]-0.408248290463863*fC[8]+0.3535533905932737*fL[1]+0.3535533905932737*fC[1]; 
@@ -165,5 +165,5 @@ GKYL_CU_DH double fpo_vlasov_diff_surfvzvz_1x3v_ser_p1(const double* dxv, const 
 
   double cflFreq = fmax(fabs(D_surf_C[0]), fabs(D_surf_R[0])); 
 
-  return 1.0*dv1_sq*cflFreq; 
+  return 1.414213562373095*dv1_sq*cflFreq; 
 } 
