@@ -447,6 +447,9 @@ gkyl_vlasov_app_apply_ic(gkyl_vlasov_app* app, double t0)
   for (int i=0; i<app->num_species; ++i)
     gkyl_vlasov_app_apply_ic_species(app, i, t0);
 
+  for (int i=0; i<app->num_fluid_species; ++i)
+    gkyl_vlasov_app_apply_ic_fluid_species(app, i, t0);
+
   if (app->has_field) 
     gkyl_vlasov_app_apply_ic_field(app, t0);
 
