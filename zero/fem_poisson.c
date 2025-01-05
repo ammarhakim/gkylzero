@@ -205,8 +205,7 @@ gkyl_fem_poisson_new(const struct gkyl_range *solve_range, const struct gkyl_rec
       struct gkyl_mtriple mt = gkyl_mat_triples_iter_at(iter);
       size_t idx[2] = { mt.row, mt.col };
       int k  = idx[0]; // k-th equation row (k = iy + Ny*ix) for periodic y
-      int ix = k / grid->cells[1]; // get node x-index
-      int iy = k % grid->cells[1]; // get node y-index
+      int ix = grid->ndim == 3? k / grid->cells[1] : k; // get node x-index
       // Detect if we are currently at an equation row for the LCFS
       if(ix == up->idxLCFS_m){
         // Set up 1 at the diag element
@@ -221,18 +220,18 @@ gkyl_fem_poisson_new(const struct gkyl_range *solve_range, const struct gkyl_rec
     }
     gkyl_mat_triples_iter_release(iter);
   }
-// // Write the matrix elements in a file
-//   gkyl_mat_triples_iter *iter2 = gkyl_mat_triples_iter_new(tri[0]);
-//     FILE *file = fopen("A.txt", "w");
-//     for (size_t i=0; i<gkyl_mat_triples_size(tri[0]); ++i) {
-//       gkyl_mat_triples_iter_next(iter2); // bump iterator.
-//       struct gkyl_mtriple mt = gkyl_mat_triples_iter_at(iter2);
-//       size_t idx[2] = { mt.row, mt.col };
+// Write the matrix elements in a file
+  gkyl_mat_triples_iter *iter2 = gkyl_mat_triples_iter_new(tri[0]);
+    FILE *file = fopen("A.txt", "w");
+    for (size_t i=0; i<gkyl_mat_triples_size(tri[0]); ++i) {
+      gkyl_mat_triples_iter_next(iter2); // bump iterator.
+      struct gkyl_mtriple mt = gkyl_mat_triples_iter_at(iter2);
+      size_t idx[2] = { mt.row, mt.col };
       
-//       fprintf(file,"a(%zu,%zu) = %g\n",idx[0],idx[1],mt.val);
-//     }
-//   gkyl_mat_triples_iter_release(iter2);
-//   fclose(file); 
+      fprintf(file,"a(%zu,%zu) = %g\n",idx[0],idx[1],mt.val);
+    }
+  gkyl_mat_triples_iter_release(iter2);
+  fclose(file); 
 
 #ifdef GKYL_HAVE_CUDA
   if (up->use_gpu) {

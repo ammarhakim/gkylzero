@@ -285,18 +285,20 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
       gkyl_array_copy(f->phi_wall_up, f->phi_wall_up_host);
   }
 
-  // If we are in a 3x simulation and IWL, we add TS BC and SSFG updaters
-  if(app->cdim ==3){
-    if (f->gkfield_id == GKYL_GK_FIELD_ES_IWL) {
-      gk_field_add_TSBC_and_SSFG_updaters(app,f);
-    }
+  if (f->gkfield_id == GKYL_GK_FIELD_ES_IWL) {
+    // skin surface from ghost to impose phi periodicity at |z|=pi
+    if(app->cdim ==3) // There is an issue with ssfg updaters for 2x sim...
+      gk_field_add_SSFG_updaters(app,f);
+    // twist-and-shift boundary condition for phi
+    if(app->cdim ==3)
+      gk_field_add_TSBC_updaters(app,f);
   }
   
   return f;
 }
 
 void
-gk_field_add_TSBC_and_SSFG_updaters(struct gkyl_gyrokinetic_app *app, struct gk_field *f)
+gk_field_add_TSBC_updaters(struct gkyl_gyrokinetic_app *app, struct gk_field *f)
 {
   // We take the first species to copy the function for the TS BC
   struct gk_species *gks = &app->species[0];
@@ -401,11 +403,18 @@ gk_field_add_TSBC_and_SSFG_updaters(struct gkyl_gyrokinetic_app *app, struct gk_
   f->bc_T_UL_lo = gkyl_bc_twistshift_new(&T_UL_lo);
   f->bc_T_LU_up = gkyl_bc_twistshift_new(&T_LU_up);
 
-  //------------ Skin surface from ghost updater
-  // The par_ext ranges have only extension of ghosts in the parallel direciton, 
-  // hence their ghost array is not {1,1,1} but
-  int ghost_par[] = {0, 0, 1};
+}
+
+void
+gk_field_add_SSFG_updaters(struct gkyl_gyrokinetic_app *app, struct gk_field *f)
+{
+  // define the parallel direction index (handle 2x and 3x cases)
+  int zdir = app->cdim == 3? 2 : 1;
+  // The par_ext ranges have only extension of ghosts in the parallel direction
+  int ghost_par[GKYL_MAX_CDIM] = {0, 0, 0};
+  ghost_par[zdir] = 1;
   // create lower and upper skin and ghost ranges for the z BC in the core region
+  // BUG: 2x sim does not go through the following line...
   gkyl_skin_ghost_ranges( &f->lower_skin_core, &f->lower_ghost_core, zdir, 
                           GKYL_LOWER_EDGE, &f->local_par_ext_core, ghost_par);
   gkyl_skin_ghost_ranges( &f->upper_skin_core, &f->upper_ghost_core, zdir, 
@@ -619,9 +628,12 @@ gk_field_rhs(gkyl_gyrokinetic_app *app, struct gk_field *field)
       * If we are in a 3x simulation with IWL we apply TS BC to the upper and lower edges
       * so that we can enforce that the surface value of the global skin cells are matching the
       * twist-and-shift BC exactly. (this should enforce periodicity of y-avg phi)
+      * For 2x simulations, we only apply periodicity
       */
-      if (field->gkfield_id == GKYL_GK_FIELD_ES_IWL && app->cdim == 3)   
-        gk_field_apply_bc(app, field, field->phi_smooth);
+      if (field->gkfield_id == GKYL_GK_FIELD_ES_IWL){
+        if(app->cdim ==3)
+          gk_field_apply_bc(app, field, field->phi_smooth);
+      }   
 
     }
   }
@@ -633,22 +645,20 @@ gk_field_apply_bc(const gkyl_gyrokinetic_app *app, const struct gk_field *field,
 {
   //1. Apply the periodicity to fill the ghost cells
   int num_periodic_dir = 1; // we need only periodicity in z
-  int periodic_dirs[] = {2}; // z direction
+  int zdir = app->cdim == 3? 2 : 1; // z direction
+  int periodic_dirs[] = {zdir};
   gkyl_comm_array_per_sync(app->comm, &app->local, &app->local_ext,
     num_periodic_dir, periodic_dirs, finout); 
   // finout ghost cells: | f_up | ----- | f_lo |
 
-  //=== We now perform the phase 1a, i.e. 
-  // f_L = T_LU(f_up)
-  // f_U = f_up
-
-  //2. call the TS BC updater to update the z ghosts with TS
-  gkyl_bc_twistshift_advance(field->bc_T_LU_lo, finout, finout);
+  //2. call the TS BC updater to update the z ghosts with TS (only for 3x)
+  if(app->cdim == 3)
+    gkyl_bc_twistshift_advance(field->bc_T_LU_lo, finout, finout);
   // finout is now | T_LU(f_up) | ----- | f_lo |
 
   //3. Synchronize the array between the MPI processes
   gkyl_comm_array_sync(field->comm_conf, &field->local, &field->local_ext, finout);
-/* Note:
+ /* Note:
   * Here the TS BC has been applied blindly i.e. regardless if the process is at the 
   * border of the domain. Technically, only the processes with the global skin cells 
   * should apply it. We resolve this with an array sync so that the ghost
@@ -660,8 +670,10 @@ gk_field_apply_bc(const gkyl_gyrokinetic_app *app, const struct gk_field *field,
   //4. Copy the ghost surface value to the skin surface value (SSFG)
   gkyl_skin_surf_from_ghost_advance(field->ssfg_lo, finout);
   // finout is now | T_LU(f_up) | \---- | f_lo |
-  // "\" denote that the skin cell has been adapted to the edge (only the lower)
-  // The upper skin cell remains unchanged
+  /* Note:
+   * "\" denotes that the skin cell has been adapted to the edge (only the lower).
+   * The upper skin cell remains unchanged.
+   */
 }
 
 void
