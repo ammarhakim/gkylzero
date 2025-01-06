@@ -286,26 +286,21 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
   }
 
   if (f->gkfield_id == GKYL_GK_FIELD_ES_IWL) {
-    // skin surface from ghost to impose phi periodicity at |z|=pi
-    if(app->cdim ==3) // There is an issue with ssfg updaters for 2x sim...
-      gk_field_add_SSFG_updaters(app,f);
-    // twist-and-shift boundary condition for phi
-    if(app->cdim ==3)
-      gk_field_add_TSBC_updaters(app,f);
+    // twist-and-shift boundary condition for phi and skin surface from ghost to impose phi periodicity at |z|=pi
+    gk_field_add_TSBC_and_SSFG_updaters(app,f);
   }
-  
   return f;
 }
 
 void
-gk_field_add_TSBC_updaters(struct gkyl_gyrokinetic_app *app, struct gk_field *f)
+gk_field_add_TSBC_and_SSFG_updaters(struct gkyl_gyrokinetic_app *app, struct gk_field *f)
 {
   // We take the first species to copy the function for the TS BC
   struct gk_species *gks = &app->species[0];
   // Get the z BC info from the first species in our app
   const struct gkyl_gyrokinetic_bcs *bcz = &gks->info.bcz;
-  // we consider only dir=2 (z-BC)
-  int zdir = 2; 
+  // define the parallel direction index (handle 2x and 3x cases)
+  int zdir = app->cdim == 3? 2 : 1;
 
   // Create local and local_ext from app local range with ghosts
   int ghost[] = {1, 1, 1};
@@ -328,93 +323,88 @@ gk_field_add_TSBC_updaters(struct gkyl_gyrokinetic_app *app, struct gk_field *f)
   upper_bcdir_ext[zdir] = f->local_ext.upper[zdir];
   gkyl_sub_range_init(&f->local_par_ext_core, &f->local_ext, lower_bcdir_ext, upper_bcdir_ext);
 
-  //TS BC updater for up to low TS for the lower edge
-  //this sets ghost_L = T_LU(ghost_L)
-  struct gkyl_bc_twistshift_inp T_LU_lo = {
-    .bc_dir = zdir,
-    .shift_dir = 1, // y shift.
-    .shear_dir = 0, // shift varies with x.
-    .edge = GKYL_LOWER_EDGE,
-    .cdim = app->cdim,
-    .bcdir_ext_update_r = f->local_par_ext_core,
-    .num_ghost = ghost, // one ghost per config direction
-    .basis = app->confBasis,
-    .grid = app->grid,
-    .shift_func = bcz->lower.aux_profile,
-    .shift_func_ctx = bcz->lower.aux_ctx,
-    .use_gpu = app->use_gpu,
-  };
+  // TSBC updaters
+  if (app->cdim == 3){
+    //TS BC updater for up to low TS for the lower edge
+    //this sets ghost_L = T_LU(ghost_L)
+    struct gkyl_bc_twistshift_inp T_LU_lo = {
+      .bc_dir = zdir,
+      .shift_dir = 1, // y shift.
+      .shear_dir = 0, // shift varies with x.
+      .edge = GKYL_LOWER_EDGE,
+      .cdim = app->cdim,
+      .bcdir_ext_update_r = f->local_par_ext_core,
+      .num_ghost = ghost, // one ghost per config direction
+      .basis = app->confBasis,
+      .grid = app->grid,
+      .shift_func = bcz->lower.aux_profile,
+      .shift_func_ctx = bcz->lower.aux_ctx,
+      .use_gpu = app->use_gpu,
+    };
 
-  //TS BC updater for up to low TS for the lower edge
-  //this sets ghost_L = T_UL(ghost_L)
-  struct gkyl_bc_twistshift_inp T_UL_lo = {
-    .bc_dir = zdir,
-    .shift_dir = 1, // y shift.
-    .shear_dir = 0, // shift varies with x.
-    .edge = GKYL_LOWER_EDGE,
-    .cdim = app->cdim,
-    .bcdir_ext_update_r = f->local_par_ext_core,
-    .num_ghost = ghost,
-    .basis = app->confBasis,
-    .grid = app->grid,
-    .shift_func = bcz->upper.aux_profile,
-    .shift_func_ctx = bcz->upper.aux_ctx,
-    .use_gpu = app->use_gpu,
-  };
+    //TS BC updater for up to low TS for the lower edge
+    //this sets ghost_L = T_UL(ghost_L)
+    struct gkyl_bc_twistshift_inp T_UL_lo = {
+      .bc_dir = zdir,
+      .shift_dir = 1, // y shift.
+      .shear_dir = 0, // shift varies with x.
+      .edge = GKYL_LOWER_EDGE,
+      .cdim = app->cdim,
+      .bcdir_ext_update_r = f->local_par_ext_core,
+      .num_ghost = ghost,
+      .basis = app->confBasis,
+      .grid = app->grid,
+      .shift_func = bcz->upper.aux_profile,
+      .shift_func_ctx = bcz->upper.aux_ctx,
+      .use_gpu = app->use_gpu,
+    };
 
-  //TS BC updater for low to up TS for the upper edge
-  //this sets ghost_U = T_UL(ghost_U)
-  struct gkyl_bc_twistshift_inp T_UL_up = {
-    .bc_dir = zdir,
-    .shift_dir = 1, // y shift.
-    .shear_dir = 0, // shift varies with x.
-    .edge = GKYL_UPPER_EDGE,
-    .cdim = app->cdim,
-    .bcdir_ext_update_r = f->local_par_ext_core,
-    .num_ghost = ghost,
-    .basis = app->confBasis,
-    .grid = app->grid,
-    .shift_func = bcz->upper.aux_profile,
-    .shift_func_ctx = bcz->upper.aux_ctx,
-    .use_gpu = app->use_gpu,
-  };
+    //TS BC updater for low to up TS for the upper edge
+    //this sets ghost_U = T_UL(ghost_U)
+    struct gkyl_bc_twistshift_inp T_UL_up = {
+      .bc_dir = zdir,
+      .shift_dir = 1, // y shift.
+      .shear_dir = 0, // shift varies with x.
+      .edge = GKYL_UPPER_EDGE,
+      .cdim = app->cdim,
+      .bcdir_ext_update_r = f->local_par_ext_core,
+      .num_ghost = ghost,
+      .basis = app->confBasis,
+      .grid = app->grid,
+      .shift_func = bcz->upper.aux_profile,
+      .shift_func_ctx = bcz->upper.aux_ctx,
+      .use_gpu = app->use_gpu,
+    };
 
-  //TS BC updater for up to low TS for the lower edge
-  //this sets ghost_U = T_LU(ghost_U)
-  struct gkyl_bc_twistshift_inp T_LU_up = {
-    .bc_dir = zdir,
-    .shift_dir = 1, // y shift.
-    .shear_dir = 0, // shift varies with x.
-    .edge = GKYL_UPPER_EDGE,
-    .cdim = app->cdim,
-    .bcdir_ext_update_r = f->local_par_ext_core,
-    .num_ghost = ghost,
-    .basis = app->confBasis,
-    .grid = app->grid,
-    .shift_func = bcz->lower.aux_profile,
-    .shift_func_ctx = bcz->lower.aux_ctx,
-    .use_gpu = app->use_gpu,
-  };
+    //TS BC updater for up to low TS for the lower edge
+    //this sets ghost_U = T_LU(ghost_U)
+    struct gkyl_bc_twistshift_inp T_LU_up = {
+      .bc_dir = zdir,
+      .shift_dir = 1, // y shift.
+      .shear_dir = 0, // shift varies with x.
+      .edge = GKYL_UPPER_EDGE,
+      .cdim = app->cdim,
+      .bcdir_ext_update_r = f->local_par_ext_core,
+      .num_ghost = ghost,
+      .basis = app->confBasis,
+      .grid = app->grid,
+      .shift_func = bcz->lower.aux_profile,
+      .shift_func_ctx = bcz->lower.aux_ctx,
+      .use_gpu = app->use_gpu,
+    };
 
-  // Add the forward TS updater to f
-  f->bc_T_LU_lo = gkyl_bc_twistshift_new(&T_LU_lo);
-  f->bc_T_UL_up = gkyl_bc_twistshift_new(&T_UL_up);
-  // Add the backward TS updater to f
-  f->bc_T_UL_lo = gkyl_bc_twistshift_new(&T_UL_lo);
-  f->bc_T_LU_up = gkyl_bc_twistshift_new(&T_LU_up);
+    // Add the forward TS updater to f
+    f->bc_T_LU_lo = gkyl_bc_twistshift_new(&T_LU_lo);
+    f->bc_T_UL_up = gkyl_bc_twistshift_new(&T_UL_up);
+    // Add the backward TS updater to f
+    f->bc_T_UL_lo = gkyl_bc_twistshift_new(&T_UL_lo);
+    f->bc_T_LU_up = gkyl_bc_twistshift_new(&T_LU_up);
+  }
 
-}
-
-void
-gk_field_add_SSFG_updaters(struct gkyl_gyrokinetic_app *app, struct gk_field *f)
-{
-  // define the parallel direction index (handle 2x and 3x cases)
-  int zdir = app->cdim == 3? 2 : 1;
-  // The par_ext ranges have only extension of ghosts in the parallel direction
+  // SSFG updaters
   int ghost_par[GKYL_MAX_CDIM] = {0, 0, 0};
   ghost_par[zdir] = 1;
   // create lower and upper skin and ghost ranges for the z BC in the core region
-  // BUG: 2x sim does not go through the following line...
   gkyl_skin_ghost_ranges( &f->lower_skin_core, &f->lower_ghost_core, zdir, 
                           GKYL_LOWER_EDGE, &f->local_par_ext_core, ghost_par);
   gkyl_skin_ghost_ranges( &f->upper_skin_core, &f->upper_ghost_core, zdir, 
@@ -631,8 +621,7 @@ gk_field_rhs(gkyl_gyrokinetic_app *app, struct gk_field *field)
       * For 2x simulations, we only apply periodicity
       */
       if (field->gkfield_id == GKYL_GK_FIELD_ES_IWL){
-        if(app->cdim ==3)
-          gk_field_apply_bc(app, field, field->phi_smooth);
+        gk_field_apply_bc(app, field, field->phi_smooth);
       }   
 
     }
