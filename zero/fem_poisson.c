@@ -220,18 +220,18 @@ gkyl_fem_poisson_new(const struct gkyl_range *solve_range, const struct gkyl_rec
     }
     gkyl_mat_triples_iter_release(iter);
   }
-// Write the matrix elements in a file
-  gkyl_mat_triples_iter *iter2 = gkyl_mat_triples_iter_new(tri[0]);
-    FILE *file = fopen("A.txt", "w");
-    for (size_t i=0; i<gkyl_mat_triples_size(tri[0]); ++i) {
-      gkyl_mat_triples_iter_next(iter2); // bump iterator.
-      struct gkyl_mtriple mt = gkyl_mat_triples_iter_at(iter2);
-      size_t idx[2] = { mt.row, mt.col };
+// // If we want to write the matrix elements in a file
+//   gkyl_mat_triples_iter *iter2 = gkyl_mat_triples_iter_new(tri[0]);
+//     FILE *file = fopen("A.txt", "w");
+//     for (size_t i=0; i<gkyl_mat_triples_size(tri[0]); ++i) {
+//       gkyl_mat_triples_iter_next(iter2); // bump iterator.
+//       struct gkyl_mtriple mt = gkyl_mat_triples_iter_at(iter2);
+//       size_t idx[2] = { mt.row, mt.col };
       
-      fprintf(file,"a(%zu,%zu) = %g\n",idx[0],idx[1],mt.val);
-    }
-  gkyl_mat_triples_iter_release(iter2);
-  fclose(file); 
+//       fprintf(file,"a(%zu,%zu) = %g\n",idx[0],idx[1],mt.val);
+//     }
+//   gkyl_mat_triples_iter_release(iter2);
+//   fclose(file); 
 
 #ifdef GKYL_HAVE_CUDA
   if (up->use_gpu) {
@@ -328,15 +328,14 @@ gkyl_fem_poisson_set_rhs(gkyl_fem_poisson* up, struct gkyl_array *rhsin, double 
     // apply new BC on the RHS vector
     gkyl_range_iter_init(&up->solve_iter, up->solve_range);
     for (size_t i=0; i<up->numnodes_global; ++i) {
-      int ix = i / up->grid.cells[1]; // get node x-index
-      int iy = i % up->grid.cells[1]; // get node y-index
+      int ix = up->grid.ndim == 3? i / up->grid.cells[1] : i; // get node x-index
       if(ix == up->idxLCFS_m){
         brhs_p[i] = target_corner_bias;
       }
     }
   }
   // if(up->is_z_edge){
-  //   // Write the rhs vector elements in a file
+  //   // If we want to write the rhs vector elements in a file
   //   FILE *file = fopen("b_cpu.txt", "w");
   //   gkyl_range_iter_init(&up->solve_iter, up->solve_range);
   //   for (size_t i=0; i<up->numnodes_global; ++i) {
