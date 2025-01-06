@@ -768,6 +768,10 @@ struct vlasov_field_lw {
   bool has_external_field_func; // Is there an external field initialization function?
   struct lua_func_ctx external_field_func_ref; // Lua registry reference to external field initialization function.
   bool evolve_external_field; // Is the external field evolved?
+
+  bool has_applied_current_func; // Is there an applied current initialization function?
+  struct lua_func_ctx applied_current_func_ref; // Lua registry reference to applied current initialization function.
+  bool evolve_applied_current; // Is the applied current evolved?
 };
 
 static int
@@ -782,6 +786,7 @@ vlasov_field_lw_new(lua_State *L)
   vm_field.mu0 = glua_tbl_get_number(L, "mu0", 1.0);
   vm_field.elcErrorSpeedFactor = glua_tbl_get_number(L, "elcErrorSpeedFactor", 0.0);
   vm_field.mgnErrorSpeedFactor = glua_tbl_get_number(L, "mgnErrorSpeedFactor", 0.0);
+  vm_field.limit_em = glua_tbl_get_bool(L, "limitField", false);
 
   vm_field.is_static = glua_tbl_get_bool(L, "isStatic", false);
 
@@ -880,6 +885,17 @@ vlasov_field_lw_new(lua_State *L)
     evolve_external_field = glua_tbl_get_bool(L, "evolveExternalField", false);
   }
 
+  bool has_applied_current_func = false;
+  int applied_current_func_ref = LUA_NOREF;
+  bool evolve_applied_current = false;
+
+  if (glua_tbl_get_func(L, "appliedCurrent")) {
+    applied_current_func_ref = luaL_ref(L, LUA_REGISTRYINDEX);
+    has_applied_current_func = true;
+
+    evolve_applied_current = glua_tbl_get_bool(L, "evolveAppliedCurrent", false);
+  }
+
   struct vlasov_field_lw *vmf_lw = lua_newuserdata(L, sizeof(*vmf_lw));
 
   vmf_lw->magic = VLASOV_FIELD_DEFAULT;
@@ -909,6 +925,15 @@ vlasov_field_lw_new(lua_State *L)
     .nret = 6,
     .L = L,
   };
+
+  vmf_lw->has_applied_current_func = has_applied_current_func;
+  vmf_lw->applied_current_func_ref = (struct lua_func_ctx) {
+    .func_ref = applied_current_func_ref,
+    .ndim = 0, // This will be set later.
+    .nret = 3,
+    .L = L,
+  };
+  vmf_lw->evolve_applied_current = evolve_applied_current;
   
   // Set metatable.
   luaL_getmetatable(L, VLASOV_FIELD_METATABLE_NM);
@@ -1010,6 +1035,7 @@ struct vlasov_app_lw {
   struct lua_func_ctx field_func_ctx; // Function context for field.
   struct lua_func_ctx external_potential_func_ctx; // Function context for external potential.
   struct lua_func_ctx external_field_func_ctx; // Function context for external field.
+  struct lua_func_ctx applied_current_func_ctx; // Function context for applied current.
   
   double t_start, t_end; // Start and end times of simulation.
   int num_frames; // Number of data frames to write.
@@ -1482,6 +1508,16 @@ vm_app_new(lua_State *L)
           vm.field.ext_em_ctx = &app_lw->external_field_func_ctx;
 
           vm.field.ext_em_evolve = vmf->evolve_external_field;
+        }
+
+        if (vmf->has_applied_current_func) {
+          vmf->applied_current_func_ref.ndim = cdim;
+
+          app_lw->applied_current_func_ctx = vmf->applied_current_func_ref;
+          vm.field.app_current = gkyl_lw_eval_cb;
+          vm.field.app_current_ctx = &app_lw->applied_current_func_ctx;
+
+          vm.field.app_current_evolve = vmf->evolve_applied_current;
         }
       }
     }
