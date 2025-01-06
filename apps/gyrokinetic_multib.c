@@ -317,25 +317,49 @@ singleb_app_new_solver(const struct gkyl_gyrokinetic_multib *mbinp, int bid,
         if (sp->bcs[i].dir == 0) {
           if (e == 0) {
             species_inp.bcx.lower.type = bc_type;
+            species_inp.bcx.lower.aux_profile = sp->bcs[i].aux_profile;
+            species_inp.bcx.lower.aux_ctx = sp->bcs[i].aux_ctx;
+            species_inp.bcx.lower.aux_parameter = sp->bcs[i].aux_parameter;
+            species_inp.bcx.lower.projection = sp->bcs[i].projection;
           }
           else {
             species_inp.bcx.upper.type = bc_type;
+            species_inp.bcx.upper.aux_profile = sp->bcs[i].aux_profile;
+            species_inp.bcx.upper.aux_ctx = sp->bcs[i].aux_ctx;
+            species_inp.bcx.upper.aux_parameter = sp->bcs[i].aux_parameter;
+            species_inp.bcx.upper.projection = sp->bcs[i].projection;
           }
         }
         else if (sp->bcs[i].dir == 1) {
           if (e == 0) {
             species_inp.bcy.lower.type = bc_type;
+            species_inp.bcy.lower.aux_profile = sp->bcs[i].aux_profile;
+            species_inp.bcy.lower.aux_ctx = sp->bcs[i].aux_ctx;
+            species_inp.bcy.lower.aux_parameter = sp->bcs[i].aux_parameter;
+            species_inp.bcy.lower.projection = sp->bcs[i].projection;
           }
           else {
             species_inp.bcy.upper.type = bc_type;
+            species_inp.bcy.upper.aux_profile = sp->bcs[i].aux_profile;
+            species_inp.bcy.upper.aux_ctx = sp->bcs[i].aux_ctx;
+            species_inp.bcy.upper.aux_parameter = sp->bcs[i].aux_parameter;
+            species_inp.bcy.upper.projection = sp->bcs[i].projection;
           }
         }
         else {
           if (e == 0) {
             species_inp.bcz.lower.type = bc_type;
+            species_inp.bcz.lower.aux_profile = sp->bcs[i].aux_profile;
+            species_inp.bcz.lower.aux_ctx = sp->bcs[i].aux_ctx;
+            species_inp.bcz.lower.aux_parameter = sp->bcs[i].aux_parameter;
+            species_inp.bcz.lower.projection = sp->bcs[i].projection;
           }
           else {
             species_inp.bcz.upper.type = bc_type;
+            species_inp.bcz.upper.aux_profile = sp->bcs[i].aux_profile;
+            species_inp.bcz.upper.aux_ctx = sp->bcs[i].aux_ctx;
+            species_inp.bcz.upper.aux_parameter = sp->bcs[i].aux_parameter;
+            species_inp.bcz.upper.projection = sp->bcs[i].projection;
           }
         }
       }
@@ -403,25 +427,49 @@ singleb_app_new_solver(const struct gkyl_gyrokinetic_multib *mbinp, int bid,
         if (nsp->bcs[i].dir == 0) {
           if (e == 0) {
             neut_species_inp.bcx.lower.type = bc_type;
+            neut_species_inp.bcx.lower.aux_profile = nsp->bcs[i].aux_profile;
+            neut_species_inp.bcx.lower.aux_ctx = nsp->bcs[i].aux_ctx;
+            neut_species_inp.bcx.lower.aux_parameter = nsp->bcs[i].aux_parameter;
+            neut_species_inp.bcx.lower.projection = nsp->bcs[i].projection;
           }
           else {
             neut_species_inp.bcx.upper.type = bc_type;
+            neut_species_inp.bcx.upper.aux_profile = nsp->bcs[i].aux_profile;
+            neut_species_inp.bcx.upper.aux_ctx = nsp->bcs[i].aux_ctx;
+            neut_species_inp.bcx.upper.aux_parameter = nsp->bcs[i].aux_parameter;
+            neut_species_inp.bcx.upper.projection = nsp->bcs[i].projection;
           }
         }
         else if (nsp->bcs[i].dir == 1) {
           if (e == 0) {
             neut_species_inp.bcy.lower.type = bc_type;
+            neut_species_inp.bcy.lower.aux_profile = nsp->bcs[i].aux_profile;
+            neut_species_inp.bcy.lower.aux_ctx = nsp->bcs[i].aux_ctx;
+            neut_species_inp.bcy.lower.aux_parameter = nsp->bcs[i].aux_parameter;
+            neut_species_inp.bcy.lower.projection = nsp->bcs[i].projection;
           }
           else {
             neut_species_inp.bcy.upper.type = bc_type;
+            neut_species_inp.bcy.upper.aux_profile = nsp->bcs[i].aux_profile;
+            neut_species_inp.bcy.upper.aux_ctx = nsp->bcs[i].aux_ctx;
+            neut_species_inp.bcy.upper.aux_parameter = nsp->bcs[i].aux_parameter;
+            neut_species_inp.bcy.upper.projection = nsp->bcs[i].projection;
           }
         }
         else {
           if (e == 0) {
             neut_species_inp.bcz.lower.type = bc_type;
+            neut_species_inp.bcz.lower.aux_profile = nsp->bcs[i].aux_profile;
+            neut_species_inp.bcz.lower.aux_ctx = nsp->bcs[i].aux_ctx;
+            neut_species_inp.bcz.lower.aux_parameter = nsp->bcs[i].aux_parameter;
+            neut_species_inp.bcz.lower.projection = nsp->bcs[i].projection;
           }
           else {
             neut_species_inp.bcz.upper.type = bc_type;
+            neut_species_inp.bcz.upper.aux_profile = nsp->bcs[i].aux_profile;
+            neut_species_inp.bcz.upper.aux_ctx = nsp->bcs[i].aux_ctx;
+            neut_species_inp.bcz.upper.aux_parameter = nsp->bcs[i].aux_parameter;
+            neut_species_inp.bcz.upper.projection = nsp->bcs[i].projection;
           }
         }
       }
