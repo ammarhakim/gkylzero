@@ -1906,13 +1906,13 @@ mom_app_new(lua_State *L)
 
   with_lua_tbl_tbl(L, "lower") {
     for (int d = 0; d < cdim; d++) {
-      mom.lower[d] = glua_tbl_iget_number(L, d + 1, 0.0);
+      mom.lower[d] = glua_tbl_iget_number(L, d + 1, 0);
     }
   }
 
   with_lua_tbl_tbl(L, "upper") {
     for (int d = 0; d < cdim; d++) {
-      mom.upper[d] = glua_tbl_iget_number(L, d + 1, 0.0);
+      mom.upper[d] = glua_tbl_iget_number(L, d + 1, 0);
     }
   }
 
@@ -1983,19 +1983,6 @@ mom_app_new(lua_State *L)
       app_lw->species_nT_source_func_ctx[s] = species[s]->nT_source_func_ctx;
       mom.species[s].nT_source_func = gkyl_lw_eval_cb;
       mom.species[s].nT_source_ctx = &app_lw->species_nT_source_func_ctx[s];
-    }
-  }
-
-  mom.has_collision = glua_tbl_get_bool(L, "hasCollision", false);
-  with_lua_tbl_tbl(L, "nuBase") {
-    for (int s = 0; s < mom.num_species; s++) {
-      if (glua_tbl_iget_tbl(L, s + 1)) {
-        for (int s2 = 0; s2 < mom.num_species; s2++) {
-          mom.nu_base[s][s2] = glua_tbl_iget_number(L, s2 + 1, 0.0);
-        }
-
-        lua_pop(L, 1);
-      }
     }
   }
 

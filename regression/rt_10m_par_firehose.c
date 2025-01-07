@@ -73,8 +73,6 @@ struct par_firehose_ctx
 
   double t_end; // Final simulation time.
   int num_frames; // Number of output frames.
-  int field_energy_calcs; // Number of times to calculate field energy.
-  int integrated_mom_calcs; // Number of times to calculate integrated moments.
   double dt_failure_tol; // Minimum allowable fraction of initial time-step.
   int num_failures_max; // Maximum allowable number of consecutive small time-steps.
 };
@@ -130,8 +128,6 @@ create_ctx(void)
 
   double t_end = 10.0 / omega_ci; // Final simulation time.
   int num_frames = 1; // Number of output frames.
-  int field_energy_calcs = INT_MAX; // Number of times to calculate field energy.
-  int integrated_mom_calcs = INT_MAX; // Number of times to calculate integrated moments.
   double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.
   int num_failures_max = 20; // Maximum allowable number of consecutive small time-steps.
   
@@ -171,8 +167,6 @@ create_ctx(void)
     .cfl_frac = cfl_frac,
     .t_end = t_end,
     .num_frames = num_frames,
-    .field_energy_calcs = field_energy_calcs,
-    .integrated_mom_calcs = integrated_mom_calcs,
     .dt_failure_tol = dt_failure_tol,
     .num_failures_max = num_failures_max,
   };
@@ -193,24 +187,23 @@ evalElcInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout
   double Te = app->Te;
 
   double rhoe = mass_elc * n0; // Electron mass density.
-  double mome_x = 0.0; // Electron momentum density (x-direction).
-  double mome_y = 0.0; // Electron momentum density (y-direction).
-  double mome_z = 0.0; // Electron momentum density (z-direction).
-
-  double pre_xx = n0 * Te + mome_x * mome_x / rhoe; // Electron pressure tensor (xx-component).
-  double pre_xy = mome_x * mome_y / rhoe; // Electron pressure tensor (xy-component).
-  double pre_xz = mome_x * mome_z / rhoe; // Electron pressure tensor (xz-component).
-  double pre_yy = n0 * Te + mome_y * mome_y / rhoe; // Electron pressure tensor (yy-component).
-  double pre_yz = mome_y * mome_y / rhoe; // Electron pressure tensor (yz-component).
-  double pre_zz = n0 * Te + mome_z * mome_z / rhoe; // Electron pressure tensor (zz-component).
+  double momxe = 0.0; // Electron momentum density (x-direction).
+  double momye = 0.0; // Electron momentum density (y-direction).
+  double momze = 0.0; // Electron momentum density (z-direction).
+  double pxxe = n0 * Te + momxe * momxe / rhoe; // Electron pressure tensor (x-x component).
+  double pxye = momxe * momye / rhoe; // Electron pressure tensor (x-y/y-x component).
+  double pxze = momxe * momze / rhoe; // Electron pressure tensor (x-z/z-x component).
+  double pyye = n0 * Te + momye * momye / rhoe; // Electron pressure tensor (y-y component).
+  double pyze = momye * momye / rhoe; // Electron pressure tensor (y-z/z-y component).
+  double pzze = n0 * Te + momze * momze / rhoe; // Electron pressure tensor (z-z component).
 
   // Set electron mass density.
   fout[0] = rhoe;
   // Set electron momentum density.
-  fout[1] = mome_x; fout[2] = mome_y; fout[3] = mome_z;
+  fout[1] = momxe; fout[2] = momye; fout[3] = momze;
   // Set electron pressure tensor.
-  fout[4] = pre_xx; fout[5] = pre_xy; fout[6] = pre_xz;
-  fout[7] = pre_yy; fout[8] = pre_yz; fout[9] = pre_zz;
+  fout[4] = pxxe; fout[5] = pxye; fout[6] = pxze;  
+  fout[7] = pyye; fout[8] = pyze; fout[9] = pzze;
 }
 
 void
@@ -227,24 +220,23 @@ evalIonInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout
   double Ti_perp = app->Ti_perp;
 
   double rhoi = mass_ion * n0; // Ion mass density.
-  double momi_x = 0.0; // Ion momentum density (x-direction).
-  double momi_y = 0.0; // Ion momentum density (y-direction).
-  double momi_z = 0.0; // Ion momentum density (z-direction).
-
-  double pri_xx = n0 * Ti_par + momi_x * momi_x / rhoi; // Ion pressure tensor (xx-component).
-  double pri_xy = momi_x * momi_y / rhoi; // Ion pressure tensor (xy-component).
-  double pri_xz = momi_x * momi_z / rhoi; // Ion pressure tensor (xz-component).
-  double pri_yy = n0 * Ti_perp + momi_y * momi_y / rhoi; // Ion pressure tensor (yy-component).
-  double pri_yz = momi_y * momi_y / rhoi; // Ion pressure tensor (yz-component).
-  double pri_zz = n0 * Ti_perp + momi_z * momi_z / rhoi; // Ion pressure tensor (zz-component).
+  double momxi = 0.0; // Ion momentum density (x-direction).
+  double momyi = 0.0; // Ion momentum density (y-direction).
+  double momzi = 0.0; // Ion momentum density (z-direction).
+  double pxxi = n0 * Ti_par + momxi * momxi / rhoi; // Ion pressure tensor (x-x component).
+  double pxyi = momxi * momyi / rhoi; // Ion pressure tensor (x-y/y-x component).
+  double pxzi = momxi * momzi / rhoi; // Ion pressure tensor (x-z/z-x component).
+  double pyyi = n0 * Ti_perp + momyi * momyi / rhoi; // Ion pressure tensor (y-y component).
+  double pyzi = momyi * momyi / rhoi; // Ion pressure tensor (y-z/z-y component).
+  double pzzi = n0 * Ti_perp + momzi * momzi / rhoi; // Ion pressure tensor (z-z component).
 
   // Set ion mass density.
   fout[0] = rhoi;
   // Set ion momentum density.
-  fout[1] = momi_x; fout[2] = momi_y; fout[3] = momi_z;
+  fout[1] = momxi; fout[2] = momyi; fout[3] = momzi;
   // Set ion pressure tensor.
-  fout[4] = pri_xx; fout[5] = pri_xy; fout[6] = pri_xz;
-  fout[7] = pri_yy; fout[8] = pri_yz; fout[9] = pri_zz;
+  fout[4] = pxxi; fout[5] = pxyi; fout[6] = pxzi;  
+  fout[7] = pyyi; fout[8] = pyzi; fout[9] = pzzi;    
 }
 
 void
@@ -263,10 +255,6 @@ evalFieldInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fo
 
   double Lx = app->Lx;
 
-  double Ex = 0.0; // Total electric field (x-direction).
-  double Ey = 0.0; // Total electric field (y-direction).
-  double Ez = 0.0; // Total electric field (z-direction).
-
   double Bx = B0; // Total magnetic field (x-direction).
   double By = 0.0;
   double Bz = 0.0;
@@ -283,7 +271,7 @@ evalFieldInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fo
   }
 
   // Set electric field.
-  fout[0] = Ex; fout[1] = Ey; fout[2] = Ez;
+  fout[0] = 0.0; fout[1] = 0.0; fout[2] = 0.0;
   // Set magnetic field.
   fout[3] = Bx; fout[4] = By; fout[5] = Bz;
   // Set correction potentials.
@@ -300,24 +288,6 @@ write_data(struct gkyl_tm_trigger* iot, gkyl_moment_app* app, double t_curr, boo
     }
 
     gkyl_moment_app_write(app, t_curr, frame);
-    gkyl_moment_app_write_field_energy(app);
-    gkyl_moment_app_write_integrated_mom(app);
-  }
-}
-
-void
-calc_field_energy(struct gkyl_tm_trigger* fet, gkyl_moment_app* app, double t_curr)
-{
-  if (gkyl_tm_trigger_check_and_bump(fet, t_curr)) {
-    gkyl_moment_app_calc_field_energy(app, t_curr);
-  }
-}
-
-void
-calc_integrated_mom(struct gkyl_tm_trigger* imt, gkyl_moment_app* app, double t_curr)
-{
-  if (gkyl_tm_trigger_check_and_bump(imt, t_curr)) {
-    gkyl_moment_app_calc_integrated_mom(app, t_curr);
   }
 }
 
@@ -450,7 +420,7 @@ main(int argc, char **argv)
 
     .num_periodic_dir = 1,
     .periodic_dirs = { 0 },
-    .cfl_frac = ctx.cfl_frac,
+    .cfl_frac = 1.0,
 
     .num_species = 2,
     .species = { elc, ion },
@@ -470,46 +440,16 @@ main(int argc, char **argv)
   // Initial and final simulation times.
   double t_curr = 0.0, t_end = ctx.t_end;
 
-  // Initialize simulation.
-  int frame_curr = 0;
-  if (app_args.is_restart) {
-    struct gkyl_app_restart_status status = gkyl_moment_app_read_from_frame(app, app_args.restart_frame);
-
-    if (status.io_status != GKYL_ARRAY_RIO_SUCCESS) {
-      gkyl_moment_app_cout(app, stderr, "*** Failed to read restart file! (%s)\n", gkyl_array_rio_status_msg(status.io_status));
-      goto freeresources;
-    }
-
-    frame_curr = status.frame;
-    t_curr = status.stime;
-
-    gkyl_moment_app_cout(app, stdout, "Restarting from frame %d", frame_curr);
-    gkyl_moment_app_cout(app, stdout, " at time = %g\n", t_curr);
-  }
-  else {
-    gkyl_moment_app_apply_ic(app, t_curr);
-  }
-
-  // Create trigger for field energy.
-  int field_energy_calcs = ctx.field_energy_calcs;
-  struct gkyl_tm_trigger fe_trig = { .dt = t_end / field_energy_calcs, .tcurr = t_curr, .curr = frame_curr };
-
-  calc_field_energy(&fe_trig, app, t_curr);
-
-  // Create trigger for integrated moments.
-  int integrated_mom_calcs = ctx.integrated_mom_calcs;
-  struct gkyl_tm_trigger im_trig = { .dt = t_end / integrated_mom_calcs, .tcurr = t_curr, .curr = frame_curr };
-
-  calc_integrated_mom(&im_trig, app, t_curr);
-
   // Create trigger for IO.
   int num_frames = ctx.num_frames;
-  struct gkyl_tm_trigger io_trig = { .dt = t_end / num_frames, .tcurr = t_curr, .curr = frame_curr };
+  struct gkyl_tm_trigger io_trig = { .dt = t_end / num_frames };
 
+  // Initialize simulation.
+  gkyl_moment_app_apply_ic(app, t_curr);
   write_data(&io_trig, app, t_curr, false);
 
-  // Compute initial guess of maximum stable time-step.
-  double dt = t_end - t_curr;
+  // Compute estimate of maximum stable time-step.
+  double dt = gkyl_moment_app_max_dt(app);
 
   // Initialize small time-step check.
   double dt_init = -1.0, dt_failure_tol = ctx.dt_failure_tol;
@@ -529,8 +469,6 @@ main(int argc, char **argv)
     t_curr += status.dt_actual;
     dt = status.dt_suggested;
 
-    calc_field_energy(&fe_trig, app, t_curr);
-    calc_integrated_mom(&im_trig, app, t_curr);
     write_data(&io_trig, app, t_curr, false);
 
     if (dt_init < 0.0) {
@@ -555,8 +493,6 @@ main(int argc, char **argv)
     step += 1;
   }
 
-  calc_field_energy(&fe_trig, app, t_curr);
-  calc_integrated_mom(&im_trig, app, t_curr);
   write_data(&io_trig, app, t_curr, false);
   gkyl_moment_app_stat_write(app);
 
@@ -570,7 +506,6 @@ main(int argc, char **argv)
   gkyl_moment_app_cout(app, stdout, "Source updates took %g secs\n", stat.sources_tm);
   gkyl_moment_app_cout(app, stdout, "Total updates took %g secs\n", stat.total_tm);
 
-freeresources:
   // Free resources after simulation completion.
   gkyl_wv_eqn_release(elc_ten_moment);
   gkyl_wv_eqn_release(ion_ten_moment);
