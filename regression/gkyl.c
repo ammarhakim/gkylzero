@@ -342,12 +342,18 @@ main(int argc, char **argv)
   gkyl_gyrokinetic_lw_openlibs(L);
   lua_gc(L, LUA_GCRESTART, -1);
 
+#ifdef GKYL_HAVE_MPI
+  struct {
+    MPI_Comm comm;
+  } lw_mpi_comm_world = { .comm = MPI_COMM_WORLD };
+#endif
+  
   if (app_args->use_mpi) {
     lua_pushboolean(L, true);
     lua_setglobal(L, "GKYL_HAVE_MPI");
- 
-#ifdef GKYL_HAVE_MPI 
-    lua_pushlightuserdata(L, MPI_COMM_WORLD);
+
+#ifdef GKYL_HAVE_MPI
+    lua_pushlightuserdata(L, &lw_mpi_comm_world);
 #else
     lua_pushlightuserdata(L, false);
 #endif
