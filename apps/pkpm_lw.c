@@ -619,7 +619,9 @@ pkpm_app_new(lua_State *L)
   with_lua_global(L, "GKYL_MPI_COMM") {
     if (lua_islightuserdata(L, -1)) {
       has_mpi = true;
-      MPI_Comm mpi_comm = lua_touserdata(L, -1);
+      struct { MPI_Comm comm;} *lw_mpi_comm_world
+        = lua_touserdata(L, -1);
+      MPI_Comm mpi_comm = lw_mpi_comm_world->comm;      
       comm = gkyl_mpi_comm_new( &(struct gkyl_mpi_comm_inp) {
           .mpi_comm = mpi_comm,
         }
