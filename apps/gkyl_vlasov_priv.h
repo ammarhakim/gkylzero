@@ -861,7 +861,7 @@ void vm_species_emission_apply_bc(struct gkyl_vlasov_app *app, const struct vm_e
  * @param frame Current frame
  */
 void vm_species_emission_write(struct gkyl_vlasov_app *app, struct vm_species *s,
-  struct vm_emitting_wall *emit, struct gkyl_array_meta *mt, int frame);
+  struct vm_emitting_wall *emit, struct gkyl_msgpack_data *mt, int frame);
 
 /**
  * Release species emission object.

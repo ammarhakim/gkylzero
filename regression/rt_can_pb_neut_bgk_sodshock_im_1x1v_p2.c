@@ -28,12 +28,13 @@ struct sodshock_ctx
 
   double nl; // Left number density.
   double Tl; // Left temperature.
+  double Vx_drift_l; // Left drift velocity (x-direction).
 
   double nr; // Right number density.
   double Tr; // Right temperature.
+  double Vx_drift_r; // Right drift velocity (x-direction).
 
   double vt; // Thermal velocity.
-  double Vx_drift; // Drift velocity (x-direction).
   double nu; // Collision frequency.
 
   // Simulation parameters.
@@ -46,6 +47,9 @@ struct sodshock_ctx
 
   double t_end; // Final simulation time.
   int num_frames; // Number of output frames.
+  int field_energy_calcs; // Number of times to calculate field energy.
+  int integrated_mom_calcs; // Number of times to calculate integrated moments.
+  int integrated_L2_f_calcs; // Number of times to calculate integrated L2 norm of distribution function.
   double dt_failure_tol; // Minimum allowable fraction of initial time-step.
   int num_failures_max; // Maximum allowable number of consecutive small time-steps.
 };
@@ -59,12 +63,13 @@ create_ctx(void)
 
   double nl = 1.0; // Left number density.
   double Tl = 1.0; // Left temperature.
+  double Vx_drift_l = 0.0; // Left drift velocity (x-direction).
 
   double nr = 0.125; // Right number density.
   double Tr = sqrt(0.1 / 0.125); // Right temperature.
+  double Vx_drift_r = 0.0; // Right drift velocity (x-direction).
 
   double vt = 1.0; // Thermal velocity.
-  double Vx_drift = 0.0; // Drift velocity (x-direction).
   double nu = 15000.0; // Collision frequency.
 
   // Simulation parameters.
@@ -77,6 +82,9 @@ create_ctx(void)
 
   double t_end = 0.1; // Final simulation time.
   int num_frames = 1; // Number of output frames.
+  int field_energy_calcs = INT_MAX; // Number of times to calculate field energy.
+  int integrated_mom_calcs = INT_MAX; // Number of times to calculate integrated moments.
+  int integrated_L2_f_calcs = INT_MAX; // Number of times to calculate integrated L2 norm of distribution function.
   double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.
   int num_failures_max = 20; // Maximum allowable number of consecutive small time-steps. 
 
@@ -85,10 +93,11 @@ create_ctx(void)
     .charge = charge,
     .nl = nl,
     .Tl = Tl,
+    .Vx_drift_l = Vx_drift_l,
     .nr = nr,
     .Tr = Tr,
+    .Vx_drift_r = Vx_drift_r,
     .vt = vt,
-    .Vx_drift = Vx_drift,
     .nu = nu,
     .Nx = Nx,
     .Nvx = Nvx,
@@ -98,31 +107,14 @@ create_ctx(void)
     .cfl_frac = cfl_frac,
     .t_end = t_end,
     .num_frames = num_frames,
+    .field_energy_calcs = field_energy_calcs,
+    .integrated_mom_calcs = integrated_mom_calcs,
+    .integrated_L2_f_calcs = integrated_L2_f_calcs,
     .dt_failure_tol = dt_failure_tol,
     .num_failures_max = num_failures_max,
   };
 
   return ctx;
-}
-
-void
-h_ij_inv(double t, const double* xn, double* fout, void* ctx)
-{
-  fout[0] = 1;
-}
-
-void
-det_h(double t, const double* xn, double* fout, void* ctx)
-{
-  fout[0] = 1;
-}
-
-
-void
-hamil(double t, const double* xn, double* fout, void* ctx)
-{
-  double x = xn[0], v = xn[1];
-  fout[0] = 0.5*v*v;
 }
 
 void
@@ -137,14 +129,16 @@ evalDensityInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT 
   double n = 0.0;
 
   if (x < 0.5) {
-    n = nl;
+    n = nl; // Total number density (left).
   }
   else {
-    n = nr;
+    n = nr; // Total number density (right).
   }
+  
+  double metric_det = 1.0;
 
-  // Set distribution function.
-  fout[0] = n;
+  // Set total number density.
+  fout[0] = metric_det * n;
 }
 
 void
@@ -159,13 +153,13 @@ evalTempInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fou
   double T = 0.0;
 
   if (x < 0.5) {
-    T = Tl;
+    T = Tl; // Isotropic temperature (left).
   }
   else {
-    T = Tr;
+    T = Tr; // Isotropic temperature (right).
   }
 
-  // Set temperature.
+  // Set isotropic temperature.
   fout[0] = T;
 }
 
@@ -173,10 +167,21 @@ void
 evalVDriftInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
 {
   struct sodshock_ctx *app = ctx;
+  double x = xn[0];
 
-  double Vx_drift = app->Vx_drift;
+  double Vx_drift_l = app->Vx_drift_l;
+  double Vx_drift_r = app->Vx_drift_r;
 
-  // Set drift velocity.
+  double Vx_drift = 0.0;
+
+  if (x < 0.5) {
+    Vx_drift = Vx_drift_l; // Total drift velocity (left).
+  }
+  else {
+    Vx_drift = Vx_drift_r; // Total drift velocity (right).
+  }
+
+  // Set total drift velocity.
   fout[0] = Vx_drift;
 }
 
@@ -192,6 +197,36 @@ evalNu(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, voi
 }
 
 void
+evalHamiltonian(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
+{
+  double p_x_dot = xn[1];
+
+  double inv_metric_x_x = 1.0;
+  double hamiltonian = (0.5 * inv_metric_x_x * p_x_dot * p_x_dot); // Canonical Hamiltonian.
+  
+  // Set canonical Hamiltonian.
+  fout[0] = hamiltonian;
+}
+
+void
+evalInvMetric(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
+{
+  double inv_metric_x_x = 1.0; // Inverse metric tensor (x-x component).
+  
+  // Set inverse metric tensor.
+  fout[0] = inv_metric_x_x;
+}
+
+void
+evalMetricDet(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
+{
+  double metric_det = 1.0; // Metric tensor determinant.
+  
+  // Set metric tensor determinant.
+  fout[0] = metric_det;
+}
+
+void
 write_data(struct gkyl_tm_trigger* iot, gkyl_vlasov_app* app, double t_curr, bool force_write)
 {
   if (gkyl_tm_trigger_check_and_bump(iot, t_curr)) {
@@ -200,11 +235,37 @@ write_data(struct gkyl_tm_trigger* iot, gkyl_vlasov_app* app, double t_curr, boo
       frame = iot->curr;
     }
 
-    gkyl_vlasov_app_write(app, t_curr, iot->curr - 1);
+    gkyl_vlasov_app_write(app, t_curr, frame);
+    gkyl_vlasov_app_write_field_energy(app);
+    gkyl_vlasov_app_write_integrated_mom(app);
+    gkyl_vlasov_app_write_integrated_L2_f(app);
 
     gkyl_vlasov_app_calc_mom(app);
-    gkyl_vlasov_app_write_mom(app, t_curr, iot->curr - 1);
-    gkyl_vlasov_app_write_integrated_mom(app);
+    gkyl_vlasov_app_write_mom(app, t_curr, frame);
+  }
+}
+
+void
+calc_field_energy(struct gkyl_tm_trigger* fet, gkyl_vlasov_app* app, double t_curr)
+{
+  if (gkyl_tm_trigger_check_and_bump(fet, t_curr)) {
+    gkyl_vlasov_app_calc_field_energy(app, t_curr);
+  }
+}
+
+void
+calc_integrated_mom(struct gkyl_tm_trigger* imt, gkyl_vlasov_app* app, double t_curr)
+{
+  if (gkyl_tm_trigger_check_and_bump(imt, t_curr)) {
+    gkyl_vlasov_app_calc_integrated_mom(app, t_curr);
+  }
+}
+
+void
+calc_integrated_L2_f(struct gkyl_tm_trigger* l2t, gkyl_vlasov_app* app, double t_curr)
+{
+  if (gkyl_tm_trigger_check_and_bump(l2t, t_curr)) {
+    gkyl_vlasov_app_calc_integrated_L2_f(app, t_curr);
   }
 }
 
@@ -236,13 +297,9 @@ main(int argc, char **argv)
   }
 #endif  
 
-  // Create global range.
   int ccells[] = { NX };
   int cdim = sizeof(ccells) / sizeof(ccells[0]);
-  struct gkyl_range cglobal_r;
-  gkyl_create_global_range(cdim, ccells, &cglobal_r);
 
-  // Create decomposition.
   int cuts[cdim];
 #ifdef GKYL_HAVE_MPI  
   for (int d = 0; d < cdim; d++) {
@@ -259,8 +316,6 @@ main(int argc, char **argv)
   }
 #endif  
     
-  struct gkyl_rect_decomp *decomp = gkyl_rect_decomp_new_from_cuts(cdim, cuts, &cglobal_r);
-
   // Construct communicator for use in app.
   struct gkyl_comm *comm;
 #ifdef GKYL_HAVE_MPI
@@ -268,7 +323,6 @@ main(int argc, char **argv)
 #ifdef GKYL_HAVE_NCCL
     comm = gkyl_nccl_comm_new( &(struct gkyl_nccl_comm_inp) {
         .mpi_comm = MPI_COMM_WORLD,
-        .decomp = decomp
       }
     );
 #else
@@ -279,20 +333,17 @@ main(int argc, char **argv)
   else if (app_args.use_mpi) {
     comm = gkyl_mpi_comm_new( &(struct gkyl_mpi_comm_inp) {
         .mpi_comm = MPI_COMM_WORLD,
-        .decomp = decomp
       }
     );
   }
   else {
     comm = gkyl_null_comm_inew( &(struct gkyl_null_comm_inp) {
-        .decomp = decomp,
         .use_gpu = app_args.use_gpu
       }
     );
   }
 #else
   comm = gkyl_null_comm_inew( &(struct gkyl_null_comm_inp) {
-      .decomp = decomp,
       .use_gpu = app_args.use_gpu
     }
   );
@@ -323,11 +374,12 @@ main(int argc, char **argv)
     .lower = { -ctx.vx_max },
     .upper = { ctx.vx_max }, 
     .cells = { NVX },
-    .hamil = hamil,
-    .h_ij_inv = h_ij_inv,
-    .det_h = det_h,
+
+    .hamil = evalHamiltonian,
     .hamil_ctx = &ctx,
+    .h_ij_inv = evalInvMetric,
     .h_ij_inv_ctx = &ctx,
+    .det_h = evalMetricDet,
     .det_h_ctx = &ctx,
     .output_f_lte = true,
 
@@ -341,13 +393,19 @@ main(int argc, char **argv)
       .V_drift = evalVDriftInit,
       .ctx_V_drift = &ctx,
       .correct_all_moms = true,
+      .iter_eps = 0.0,
+      .max_iter = 0,
+      .use_last_converged = false,
     },
     .collisions =  {
       .collision_id = GKYL_BGK_COLLISIONS,
-      .has_implicit_coll_scheme = true,
       .self_nu = evalNu,
       .ctx = &ctx,
+      .has_implicit_coll_scheme = true,
       .correct_all_moms = true,
+      .iter_eps = 0.0,
+      .max_iter = 0,
+      .use_last_converged = false,
     },
     
     .num_diag_moments = 4,
@@ -388,12 +446,48 @@ main(int argc, char **argv)
   // Initial and final simulation times.
   double t_curr = 0.0, t_end = ctx.t_end;
 
+  // Initialize simulation.
+  int frame_curr = 0;
+  if (app_args.is_restart) {
+    struct gkyl_app_restart_status status = gkyl_vlasov_app_read_from_frame(app, app_args.restart_frame);
+
+    if (status.io_status != GKYL_ARRAY_RIO_SUCCESS) {
+      gkyl_vlasov_app_cout(app, stderr, "*** Failed to read restart file! (%s)\n", gkyl_array_rio_status_msg(status.io_status));
+      goto freeresources;
+    }
+
+    frame_curr = status.frame;
+    t_curr = status.stime;
+
+    gkyl_vlasov_app_cout(app, stdout, "Restarting from frame %d", frame_curr);
+    gkyl_vlasov_app_cout(app, stdout, " at time = %g\n", t_curr);
+  }
+  else {
+    gkyl_vlasov_app_apply_ic(app, t_curr);
+  }
+
+  // Create trigger for field energy.
+  int field_energy_calcs = ctx.field_energy_calcs;
+  struct gkyl_tm_trigger fe_trig = { .dt = t_end / field_energy_calcs, .tcurr = t_curr, .curr = frame_curr };
+
+  calc_field_energy(&fe_trig, app, t_curr);
+
+  // Create trigger for integrated moments.
+  int integrated_mom_calcs = ctx.integrated_mom_calcs;
+  struct gkyl_tm_trigger im_trig = { .dt = t_end / integrated_mom_calcs, .tcurr = t_curr, .curr = frame_curr };
+
+  calc_integrated_mom(&im_trig, app, t_curr);
+
+  // Create trigger for integrated L2 norm of the distribution function.
+  int integrated_L2_f_calcs = ctx.integrated_L2_f_calcs;
+  struct gkyl_tm_trigger l2f_trig = { .dt = t_end / integrated_L2_f_calcs, .tcurr = t_curr, .curr = frame_curr };
+
+  calc_integrated_L2_f(&l2f_trig, app, t_curr);
+
   // Create trigger for IO.
   int num_frames = ctx.num_frames;
-  struct gkyl_tm_trigger io_trig = { .dt = t_end / num_frames };
+  struct gkyl_tm_trigger io_trig = { .dt = t_end / num_frames, .tcurr = t_curr, .curr = frame_curr };
 
-  // Initialize simulation.
-  gkyl_vlasov_app_apply_ic(app, t_curr);
   write_data(&io_trig, app, t_curr, false);
 
   // Compute initial guess of maximum stable time-step.
@@ -408,7 +502,6 @@ main(int argc, char **argv)
     gkyl_vlasov_app_cout(app, stdout, "Taking time-step %ld at t = %g ...", step, t_curr);
     struct gkyl_update_status status = gkyl_vlasov_update(app, dt);
     gkyl_vlasov_app_cout(app, stdout, " dt = %g\n", status.dt_actual);
-    gkyl_vlasov_app_calc_integrated_mom(app, t_curr);
     
     if (!status.success) {
       gkyl_vlasov_app_cout(app, stdout, "** Update method failed! Aborting simulation ....\n");
@@ -418,6 +511,9 @@ main(int argc, char **argv)
     t_curr += status.dt_actual;
     dt = status.dt_suggested;
 
+    calc_field_energy(&fe_trig, app, t_curr);
+    calc_integrated_mom(&im_trig, app, t_curr);
+    calc_integrated_L2_f(&l2f_trig, app, t_curr);
     write_data(&io_trig, app, t_curr, false);
 
     if (dt_init < 0.0) {
@@ -442,6 +538,9 @@ main(int argc, char **argv)
     step += 1;
   }
 
+  calc_field_energy(&fe_trig, app, t_curr);
+  calc_integrated_mom(&im_trig, app, t_curr);
+  calc_integrated_L2_f(&l2f_trig, app, t_curr);
   write_data(&io_trig, app, t_curr, false);
   gkyl_vlasov_app_stat_write(app);
 
@@ -465,8 +564,8 @@ main(int argc, char **argv)
   gkyl_vlasov_app_cout(app, stdout, "Number of write calls %ld\n", stat.nio);
   gkyl_vlasov_app_cout(app, stdout, "IO time took %g secs \n", stat.io_tm);
 
+freeresources:
   // Free resources after simulation completion.
-  gkyl_rect_decomp_release(decomp);
   gkyl_comm_release(comm);
   gkyl_vlasov_app_release(app);
 

@@ -11,57 +11,55 @@
 #include <gkyl_wave_prop.h>
 #include <gkyl_wv_coldfluid.h>
 #include <gkyl_wv_euler.h>
+#include <gkyl_wv_euler_mixture.h>
 #include <gkyl_wv_iso_euler.h>
+#include <gkyl_wv_iso_euler_mixture.h>
 #include <gkyl_wv_mhd.h>
+#include <gkyl_wv_reactive_euler.h>
 #include <gkyl_wv_sr_euler.h>
 #include <gkyl_wv_ten_moment.h>
+#include <gkyl_gr_minkowski.h>
+#include <gkyl_gr_blackhole.h>
+#include <gkyl_wv_gr_maxwell.h>
+#include <gkyl_wv_gr_maxwell_tetrad.h>
+#include <gkyl_wv_gr_ultra_rel_euler.h>
+#include <gkyl_wv_gr_ultra_rel_euler_tetrad.h>
+#include <gkyl_wv_gr_euler.h>
+#include <gkyl_wv_gr_euler_tetrad.h>
+#include <gkyl_wv_gr_medium.h>
+#include <gkyl_zero_lw.h>
 
 #include <lua.h>
 #include <lualib.h>
 #include <lauxlib.h>
 
+#include <limits.h>
+#include <stdio.h>
 #include <string.h>
+
+#include <stc/coption.h>
 
 #ifdef GKYL_HAVE_MPI
 #include <mpi.h>
 #include <gkyl_mpi_comm.h>
 #endif
 
-// Magic IDs for use in distinguishing various species and field types
+// Magic IDs for use in distinguishing various species and field types.
 enum moment_magic_ids {
-  MOMENT_SPECIES_DEFAULT = 100,
-  MOMENT_FIELD_DEFAULT, // Maxwell equations
-  MOMENT_EQN_DEFAULT
+  MOMENT_SPECIES_DEFAULT = 100, // Fluid species.
+  MOMENT_FIELD_DEFAULT, // Maxwell equations.
+  MOMENT_EQN_DEFAULT, // Equation object.
+  MOMENT_SPACETIME_DEFAULT, // Spacetime object.
 };
 
-// wave limiter -> enum map
-static const struct gkyl_str_int_pair wave_limiter[] = {
-  { "no-limiter", GKYL_NO_LIMITER },
-  { "min-mod", GKYL_MIN_MOD },
-  { "superbee", GKYL_SUPERBEE },
-  { "van-leer", GKYL_VAN_LEER },
-  { "beam-warming", GKYL_BEAM_WARMING },
-  { "zero", GKYL_ZERO },
-  { 0, 0 }
-};
-
-// edge-splitting -> enum map
+// Edge-splitting -> enum map.
 static const struct gkyl_str_int_pair wave_split_type[] = {
   { "qwave", GKYL_WAVE_QWAVE },
   { "fwave", GKYL_WAVE_FWAVE },
   { 0, 0 }
 };
 
-// Euler RP -> enum map
-static const struct gkyl_str_int_pair euler_rp_type[] = {
-  { "roe", WV_EULER_RP_ROE },
-  { "hllc", WV_EULER_RP_HLLC },
-  { "lax", WV_EULER_RP_LAX },
-  { "hll", WV_EULER_RP_HLL },
-  { 0, 0 }
-};
-
-// Ideal MHD RP -> enum map
+// Ideal MHD Riemann problem -> enum map.
 static const struct gkyl_str_int_pair mhd_rp_type[] = {
   { "roe", WV_MHD_RP_ROE },
   { "hlld", WV_MHD_RP_HLLD },
@@ -69,7 +67,7 @@ static const struct gkyl_str_int_pair mhd_rp_type[] = {
   { 0, 0 }
 };
 
-// Ideal divB correction -> enum map
+// Ideal divB correction -> enum map.
 static const struct gkyl_str_int_pair mhd_divb_type[] = {
   { "none", GKYL_MHD_DIVB_NONE },
   { "glm",  GKYL_MHD_DIVB_GLM },
@@ -77,17 +75,87 @@ static const struct gkyl_str_int_pair mhd_divb_type[] = {
   { 0, 0 }
 };
 
-#define MOMENT_WAVE_EQN_METATABLE_NM "GkeyllZero.App.Moments.Eq"
-
-/** For manipulating gkyl_wv_eqn objects */
-
-// Lua userdata object for constructing wave equation objs
-struct wv_eqn_lw {
-  int magic; // must be first
-  struct gkyl_wv_eqn *eqn;
+// Reactive Euler Riemann problem -> enum map.
+static const struct gkyl_str_int_pair reactive_euler_rp_type[] = {
+  { "roe", WV_REACTIVE_EULER_RP_ROE },
+  { "lax", WV_REACTIVE_EULER_RP_LAX },
+  { 0, 0 }
 };
 
-// Clean up memory allocated for equation
+// Euler mixture Riemann problem -> enum map.
+static const struct gkyl_str_int_pair euler_mixture_rp_type[] = {
+  { "roe", WV_EULER_MIXTURE_RP_ROE },
+  { "lax", WV_EULER_MIXTURE_RP_LAX },
+  { 0, 0 }
+};
+
+// Isothermal Euler mixture Riemann problem -> enum map.
+static const struct gkyl_str_int_pair iso_euler_mixture_rp_type[] = {
+  { "roe", WV_ISO_EULER_MIXTURE_RP_ROE },
+  { "lax", WV_ISO_EULER_MIXTURE_RP_LAX },
+  { 0, 0 }
+};
+
+// General relativistic Maxwell Riemann problem -> enum map.
+static const struct gkyl_str_int_pair gr_maxwell_rp_type[] = {
+  { "roe", WV_GR_MAXWELL_RP_ROE },
+  { "lax", WV_GR_MAXWELL_RP_LAX },
+  { 0, 0 }
+};
+
+// General relativistic Maxwell Riemann problem in the tetrad basis -> enum map.
+static const struct gkyl_str_int_pair gr_maxwell_tetrad_rp_type[] = {
+  { "roe", WV_GR_MAXWELL_TETRAD_RP_ROE },
+  { "lax", WV_GR_MAXWELL_TETRAD_RP_LAX },
+  { 0, 0 }
+};
+
+// General relativistic Euler Riemann problem (ultra-relativistic equation of state) -> enum map.
+static const struct gkyl_str_int_pair gr_ultra_rel_euler_rp_type[] = {
+  { "roe", WV_GR_ULTRA_REL_EULER_RP_ROE },
+  { "lax", WV_GR_ULTRA_REL_EULER_RP_LAX },
+  { 0, 0 }
+};
+
+// General relativistic Euler Riemann problem in the tetrad basis (ultra-relativistic equation of state) -> enum map.
+static const struct gkyl_str_int_pair gr_ultra_rel_euler_tetrad_rp_type[] = {
+  { "roe", WV_GR_ULTRA_REL_EULER_TETRAD_RP_ROE },
+  { "lax", WV_GR_ULTRA_REL_EULER_TETRAD_RP_LAX },
+  { 0, 0 }
+};
+
+// General relativistic Euler Riemann problem (general equation of state) -> enum map.
+static const struct gkyl_str_int_pair gr_euler_rp_type[] = {
+  { "roe", WV_GR_EULER_RP_ROE },
+  { "lax", WV_GR_EULER_RP_LAX },
+  { 0, 0 }
+};
+
+// General relativistic Euler Riemann problem in the tetrad basis (general equation of state) -> enum map.
+static const struct gkyl_str_int_pair gr_euler_tetrad_rp_type[] = {
+  { "roe", WV_GR_EULER_TETRAD_RP_ROE },
+  { "lax", WV_GR_EULER_TETRAD_RP_LAX },
+  { 0, 0 }
+};
+
+// Coupled fluid-Einstein Riemann problem (plane-polarized Gowdy spacetimes) -> enum map.
+static const struct gkyl_str_int_pair gr_medium_rp_type[] = {
+  { "lax", WV_GR_MEDIUM_RP_LAX },
+  { 0, 0 }
+};
+
+// Metatable name for equation object input struct.
+#define MOMENT_WAVE_EQN_METATABLE_NM "GkeyllZero.App.Moments.Eq"
+
+// Methods for manipulating gkyl_wv_eqn objects.
+
+// Lua userdata object for constructing wave equation objects.
+struct wv_eqn_lw {
+  int magic; // This must be the first element in the struct.
+  struct gkyl_wv_eqn *eqn; // Equation object.
+};
+
+// Clean up memory allocated for equation object.
 static int
 wv_eqn_lw_gc(lua_State *L)
 {
@@ -100,28 +168,29 @@ wv_eqn_lw_gc(lua_State *L)
   return 0;
 }
 
+// Acquire equation object.
 static struct gkyl_wv_eqn*
 wv_eqn_get(lua_State *L)
 {
   struct wv_eqn_lw **l_wv_lw = luaL_checkudata(L, -1, MOMENT_WAVE_EQN_METATABLE_NM);
   struct wv_eqn_lw *wv_lw = *l_wv_lw;
+
   return wv_lw->eqn;
 }
 
-/* ****************/
-/* Euler Equation */
-/* ****************/
+/* *************** */
+/* Euler Equations */
+/* *************** */
 
-// Euler.new { gasgamma = 1.4, rpType = "roe" }
-// rpType is one of "roe", "hllc", "lax", "hll"
+// Euler.new { gasGamma = 1.4, rpType = G0.EulerRP.Roe }
+// where rpType is one of G0.EulerRP.Roe, G0.EulerRP.Lax, G0.EulerRP.HLL or G0.EulerRP.HLLC.
 static int
 eqn_euler_lw_new(lua_State *L)
 {
   struct wv_eqn_lw *euler_lw = gkyl_malloc(sizeof(*euler_lw));
 
   double gas_gamma = glua_tbl_get_number(L, "gasGamma", 1.4);
-  const char *rp_str = glua_tbl_get_string(L, "rpType", "roe");
-  enum gkyl_wv_euler_rp rp_type = gkyl_search_str_int_pair_by_str(euler_rp_type, rp_str, WV_EULER_RP_ROE);
+  enum gkyl_wv_euler_rp rp_type = glua_tbl_get_integer(L, "rpType", WV_EULER_RP_ROE);
 
   euler_lw->magic = MOMENT_EQN_DEFAULT;
   euler_lw->eqn = gkyl_wv_euler_inew( &(struct gkyl_wv_euler_inp) {
@@ -131,26 +200,26 @@ eqn_euler_lw_new(lua_State *L)
     }
   );
 
-  // create Lua userdata ...
+  // Create Lua userdata.
   struct wv_eqn_lw **l_euler_lw = lua_newuserdata(L, sizeof(struct wv_eqn_lw*));
-  *l_euler_lw = euler_lw; // ... point it to proper object
+  *l_euler_lw = euler_lw; // Point userdata to the equation object.
   
-  // set metatable
+  // Set metatable.
   luaL_getmetatable(L, MOMENT_WAVE_EQN_METATABLE_NM);
   lua_setmetatable(L, -2);
   
   return 1;
 }
 
-// Equation constructor
+// Equation constructor.
 static struct luaL_Reg eqn_euler_ctor[] = {
-  {"new", eqn_euler_lw_new},
-  {0, 0}
+  { "new", eqn_euler_lw_new },
+  { 0, 0 }
 };
 
-/* ***************************/
-/* Isothermal Euler Equation */
-/* ***************************/
+/* ************************** */
+/* Isothermal Euler Equations */
+/* ************************** */
 
 // IsoEuler.new { vThermal = 1.0 }
 static int
@@ -159,32 +228,33 @@ eqn_iso_euler_lw_new(lua_State *L)
   struct wv_eqn_lw *iso_euler_lw = gkyl_malloc(sizeof(*iso_euler_lw));
 
   double vt = glua_tbl_get_number(L, "vThermal", -1.0);
-  if (vt < 0)
+  if (vt < 0) {
     return luaL_error(L, "Thermal velocity \"vThermal\" not specified properly!");
+  }
   
   iso_euler_lw->magic = MOMENT_EQN_DEFAULT;
   iso_euler_lw->eqn = gkyl_wv_iso_euler_new(vt);
 
-  // create Lua userdata ...
+  // Create Lua userdata.
   struct wv_eqn_lw **l_iso_euler_lw = lua_newuserdata(L, sizeof(struct wv_eqn_lw*));
-  *l_iso_euler_lw = iso_euler_lw; // ... point it to proper object
+  *l_iso_euler_lw = iso_euler_lw; // Point userdata to the equation object.
   
-  // set metatable
+  // Set metatable.
   luaL_getmetatable(L, MOMENT_WAVE_EQN_METATABLE_NM);
   lua_setmetatable(L, -2);
   
   return 1;
 }
 
-// Equation constructor
+// Equation constructor.
 static struct luaL_Reg eqn_iso_euler_ctor[] = {
-  {"new", eqn_iso_euler_lw_new},
-  {0, 0}
+  { "new", eqn_iso_euler_lw_new },
+  { 0, 0 }
 };
 
-/* *******************************/
-/* Special-Relativistic Equation */
-/* *******************************/
+/* ************************************ */
+/* Special Relativistic Euler Equations */
+/* ************************************ */
 
 // SrEuler.new { gasgamma = 1.4 }
 static int
@@ -192,33 +262,33 @@ eqn_sr_euler_lw_new(lua_State *L)
 {
   struct wv_eqn_lw *sr_euler_lw = gkyl_malloc(sizeof(*sr_euler_lw));
 
-  double gas_gamma = glua_tbl_get_number(L, "gasGamma", 5.0/3.0);
+  double gas_gamma = glua_tbl_get_number(L, "gasGamma", 5.0 / 3.0);
 
   sr_euler_lw->magic = MOMENT_EQN_DEFAULT;
   sr_euler_lw->eqn = gkyl_wv_sr_euler_new(gas_gamma);
 
-  // create Lua userdata ...
+  // Create Lua userdata.
   struct wv_eqn_lw **l_sr_euler_lw = lua_newuserdata(L, sizeof(struct wv_eqn_lw*));
-  *l_sr_euler_lw = sr_euler_lw; // ... point it to proper object
+  *l_sr_euler_lw = sr_euler_lw; // Point userdata to the equation object.
   
-  // set metatable
+  // Set metatable.
   luaL_getmetatable(L, MOMENT_WAVE_EQN_METATABLE_NM);
   lua_setmetatable(L, -2);
   
   return 1;
 }
 
-// Equation constructor
+// Equation constructor.
 static struct luaL_Reg eqn_sr_euler_ctor[] = {
-  {"new", eqn_sr_euler_lw_new},
-  {0, 0}
+  { "new", eqn_sr_euler_lw_new },
+  { 0, 0 }
 };
 
-/* *******************************/
-/* Cold-fluid Equation */
-/* *******************************/
+/* ******************** */
+/* Cold Fluid Equations */
+/* ******************** */
 
-// ColFluid.new {  }
+// ColdFluid.new {  }
 static int
 eqn_coldfluid_lw_new(lua_State *L)
 {
@@ -227,59 +297,59 @@ eqn_coldfluid_lw_new(lua_State *L)
   coldfluid_lw->magic = MOMENT_EQN_DEFAULT;
   coldfluid_lw->eqn = gkyl_wv_coldfluid_new();
 
-  // create Lua userdata ...
+  // Create Lua userdata.
   struct wv_eqn_lw **l_coldfluid_lw = lua_newuserdata(L, sizeof(struct wv_eqn_lw*));
-  *l_coldfluid_lw = coldfluid_lw; // ... point it to proper object
+  *l_coldfluid_lw = coldfluid_lw; // Point userdata to the equation object.
   
-  // set metatable
+  // Set metatable.
   luaL_getmetatable(L, MOMENT_WAVE_EQN_METATABLE_NM);
   lua_setmetatable(L, -2);
   
   return 1;
 }
 
-// Equation constructor
+// Equation constructor.
 static struct luaL_Reg eqn_coldfluid_ctor[] = {
-  {"new", eqn_coldfluid_lw_new},
-  {0, 0}
+  { "new", eqn_coldfluid_lw_new },
+  { 0, 0 }
 };
 
-/* ********************/
-/* Tenmoment Equation */
-/* ********************/
+/* ******************** */
+/* Ten-moment Equations */
+/* ******************** */
 
-// Tenmoment.new { k0 = 1, has_grad_closure = false }
+// TenMoment.new { k0 = 1, hasGradClosure = false }
 static int
 eqn_tenmoment_lw_new(lua_State *L)
 {
   struct wv_eqn_lw *tenm_lw = gkyl_malloc(sizeof(*tenm_lw));
 
   double k0 = glua_tbl_get_number(L, "k0", 1.0);
-  bool has_grad_closure = glua_tbl_get_bool(L, "has_grad_closure", false);
+  bool has_grad_closure = glua_tbl_get_bool(L, "hasGradClosure", false);
 
   tenm_lw->magic = MOMENT_EQN_DEFAULT;
   tenm_lw->eqn = gkyl_wv_ten_moment_new(k0, has_grad_closure, false);
 
-  // create Lua userdata ...
+  // Create Lua userdata.
   struct wv_eqn_lw **l_tenm_lw = lua_newuserdata(L, sizeof(struct wv_eqn_lw*));
-  *l_tenm_lw = tenm_lw; // ... point it to proper object
+  *l_tenm_lw = tenm_lw; // Point userdata to the equation object.
   
-  // set metatable
+  // Set metatable
   luaL_getmetatable(L, MOMENT_WAVE_EQN_METATABLE_NM);
   lua_setmetatable(L, -2);
   
   return 1;
 }
 
-// Equation constructor
+// Equation constructor.
 static struct luaL_Reg eqn_tenmoment_ctor[] = {
-  {"new", eqn_tenmoment_lw_new},
-  {0, 0}
+  { "new", eqn_tenmoment_lw_new },
+  { 0, 0 }
 };
 
-/* ****************/
-/* Mhd Equation */
-/* ****************/
+/* ************* */
+/* MHD Equations */
+/* ************* */
 
 // Mhd.new { gasgamma = 1.4, rpType = "roe", divB = "glm", glmCh = 0.0, glmAlpha = 0.0 }
 // rpType is one of "roe", "hlld", "lax"
@@ -311,24 +381,473 @@ eqn_mhd_lw_new(lua_State *L)
     }
   );
 
-  // create Lua userdata ...
+  // Create Lua userdata.
   struct wv_eqn_lw **l_mhd_lw = lua_newuserdata(L, sizeof(struct wv_eqn_lw*));
-  *l_mhd_lw = mhd_lw; // ... point it to proper object
+  *l_mhd_lw = mhd_lw; // Point userdata to the equation object.
   
-  // set metatable
+  // Set metatable.
   luaL_getmetatable(L, MOMENT_WAVE_EQN_METATABLE_NM);
   lua_setmetatable(L, -2);
   
   return 1;
 }
 
-// Equation constructor
+// Equation constructor.
 static struct luaL_Reg eqn_mhd_ctor[] = {
-  {"new", eqn_mhd_lw_new},
-  {0, 0}
+  { "new", eqn_mhd_lw_new },
+  { 0, 0 }
 };
 
-// Register and load all wave equation objects
+/* ************************ */
+/* Reactive Euler Equations */
+/* ************************ */
+
+// ReactiveEuler.new { gasGamma = 1.4, specificHeatCapacity = 2.5, energyOfFormation = 1.0, ignitionTemperature = 0.25, reactionRate = 250.0, rpType = "roe" }
+// where rpType is one of "roe" or "lax".
+static int
+eqn_reactive_euler_lw_new(lua_State *L)
+{
+  struct wv_eqn_lw *reactive_euler_lw = gkyl_malloc(sizeof(*reactive_euler_lw));
+
+  double gas_gamma = glua_tbl_get_number(L, "gasGamma", 1.4);
+  double specific_heat_capacity = glua_tbl_get_number(L, "specificHeatCapacity", 2.5);
+  double energy_of_formation = glua_tbl_get_number(L, "energyOfFormation", 1.0);
+  double ignition_temperature = glua_tbl_get_number(L, "ignitionTemperature", 0.25);
+  double reaction_rate = glua_tbl_get_number(L, "reactionRate", 250.0);
+
+  const char *rp_str = glua_tbl_get_string(L, "rpType", "lax");
+  enum gkyl_wv_reactive_euler_rp rp_type = gkyl_search_str_int_pair_by_str(reactive_euler_rp_type, rp_str, WV_REACTIVE_EULER_RP_LAX);
+
+  reactive_euler_lw->magic = MOMENT_EQN_DEFAULT;
+  reactive_euler_lw->eqn = gkyl_wv_reactive_euler_inew( &(struct gkyl_wv_reactive_euler_inp) {
+      .gas_gamma = gas_gamma,
+      .specific_heat_capacity = specific_heat_capacity,
+      .energy_of_formation = energy_of_formation,
+      .ignition_temperature = ignition_temperature,
+      .reaction_rate = reaction_rate,
+      .rp_type = rp_type,
+      .use_gpu = false
+    }
+  );
+
+  // Create Lua userdata.
+  struct wv_eqn_lw **l_reactive_euler_lw = lua_newuserdata(L, sizeof(struct wv_eqn_lw*));
+  *l_reactive_euler_lw = reactive_euler_lw; // Point userdata to the equation object.
+  
+  // Set metatable.
+  luaL_getmetatable(L, MOMENT_WAVE_EQN_METATABLE_NM);
+  lua_setmetatable(L, -2);
+  
+  return 1;
+}
+
+// Equation constructor.
+static struct luaL_Reg eqn_reactive_euler_ctor[] = {
+  { "new", eqn_reactive_euler_lw_new },
+  { 0, 0 }
+};
+
+/* *********************** */
+/* Euler Mixture Equations */
+/* *********************** */
+
+// EulerMixture.new { numComponents = 2, gasGamma = {1.4, 1.4}, rpType = "roe" }
+// where rpType is one of "roe" or "lax".
+static int
+eqn_euler_mixture_lw_new(lua_State *L)
+{
+  struct wv_eqn_lw *euler_mixture_lw = gkyl_malloc(sizeof(*euler_mixture_lw));
+
+  int num_components = glua_tbl_get_integer(L, "numComponents", 2);
+
+  double *gas_gamma_s = gkyl_malloc(sizeof(double[num_components]));
+  with_lua_tbl_tbl(L, "gasGamma") {
+    for (int i = 0; i < num_components; i++) {
+      gas_gamma_s[i] = glua_tbl_iget_number(L, i + 1, 1.4);
+    }
+  }
+  
+  const char *rp_str = glua_tbl_get_string(L, "rpType", "lax");
+  enum gkyl_wv_euler_mixture_rp rp_type = gkyl_search_str_int_pair_by_str(euler_mixture_rp_type, rp_str, WV_EULER_MIXTURE_RP_LAX);
+
+  euler_mixture_lw->magic = MOMENT_EQN_DEFAULT;
+  euler_mixture_lw->eqn = gkyl_wv_euler_mixture_inew( & (struct gkyl_wv_euler_mixture_inp) {
+      .num_species = num_components,
+      .gas_gamma_s = gas_gamma_s,
+      .rp_type = rp_type,
+      .use_gpu = false
+    }
+  );
+
+  // Create Lua userdata.
+  struct wv_eqn_lw **l_euler_mixture_lw = lua_newuserdata(L, sizeof(struct wv_eqn_lw*));
+  *l_euler_mixture_lw = euler_mixture_lw; // Point userdata to the equation object.
+
+  // Set metatable.
+  luaL_getmetatable(L, MOMENT_WAVE_EQN_METATABLE_NM);
+  lua_setmetatable(L, -2);
+
+  return 1;
+}
+
+// Equation constructor.
+static const luaL_Reg eqn_euler_mixture_ctor[] = {
+  { "new", eqn_euler_mixture_lw_new },
+  { 0, 0 }
+};
+
+/* ********************************** */
+/* Isothermal Euler Mixture Equations */
+/* ********************************** */
+
+// IsoEulerMixture.new { numComponents = 2, vThermal = {1.0, 1.0}, rpType = "roe" }
+// where rpType is one of "roe" or "lax".
+static int
+eqn_iso_euler_mixture_lw_new(lua_State *L)
+{
+  struct wv_eqn_lw *iso_euler_mixture_lw = gkyl_malloc(sizeof(*iso_euler_mixture_lw));
+
+  int num_components = glua_tbl_get_integer(L, "numComponents", 2);
+
+  double *vt_s = gkyl_malloc(sizeof(double[num_components]));
+  with_lua_tbl_tbl(L, "vThermal") {
+    for (int i = 0; i < num_components; i++) {
+      vt_s[i] = glua_tbl_iget_number(L, i + 1, 1.0);
+    }
+  }
+  
+  const char *rp_str = glua_tbl_get_string(L, "rpType", "lax");
+  enum gkyl_wv_iso_euler_mixture_rp rp_type = gkyl_search_str_int_pair_by_str(iso_euler_mixture_rp_type, rp_str, WV_ISO_EULER_MIXTURE_RP_LAX);
+
+  iso_euler_mixture_lw->magic = MOMENT_EQN_DEFAULT;
+  iso_euler_mixture_lw->eqn = gkyl_wv_iso_euler_mixture_inew( & (struct gkyl_wv_iso_euler_mixture_inp) {
+      .num_species = num_components,
+      .vt_s = vt_s,
+      .rp_type = rp_type,
+      .use_gpu = false
+    }
+  );
+
+  // Create Lua userdata.
+  struct wv_eqn_lw **l_iso_euler_mixture_lw = lua_newuserdata(L, sizeof(struct wv_eqn_lw*));
+  *l_iso_euler_mixture_lw = iso_euler_mixture_lw; // Point userdata to the equation object.
+
+  // Set metatable.
+  luaL_getmetatable(L, MOMENT_WAVE_EQN_METATABLE_NM);
+  lua_setmetatable(L, -2);
+
+  return 1;
+}
+
+// Equation constructor.
+static const luaL_Reg eqn_iso_euler_mixture_ctor[] = {
+  { "new", eqn_iso_euler_mixture_lw_new },
+  { 0, 0 }
+};
+
+/* ************************************** */
+/* General Relativistic Maxwell Equations */
+/* ************************************** */
+
+// GRMaxwell.new { lightSpeed = 1.0, elcErrorSpeedFactor = 0.0, mgnErrorSpeedFactor = 0.0, rpType = "roe" }
+// where rpType is one of "roe" or "lax".
+static int
+eqn_gr_maxwell_lw_new(lua_State *L)
+{
+  struct wv_eqn_lw *gr_maxwell_lw = gkyl_malloc(sizeof(*gr_maxwell_lw));
+
+  double light_speed = glua_tbl_get_number(L, "lightSpeed", 1.0);
+  double e_fact = glua_tbl_get_number(L, "elcErrorSpeedFactor", 0.0);
+  double b_fact = glua_tbl_get_number(L, "mgnErrorSpeedFactor", 0.0);
+
+  const char *rp_str = glua_tbl_get_string(L, "rpType", "lax");
+  enum gkyl_wv_gr_maxwell_rp rp_type = gkyl_search_str_int_pair_by_str(gr_maxwell_rp_type, rp_str, WV_GR_MAXWELL_RP_LAX);
+
+  gr_maxwell_lw->magic = MOMENT_EQN_DEFAULT;
+  gr_maxwell_lw->eqn = gkyl_wv_gr_maxwell_inew( &(struct gkyl_wv_gr_maxwell_inp) {
+      .light_speed = light_speed,
+      .e_fact = e_fact,
+      .b_fact = b_fact,
+      .spacetime = 0,
+      .rp_type = rp_type,
+      .use_gpu = false,
+    }
+  );
+
+  // Create Lua userdata.
+  struct wv_eqn_lw **l_gr_maxwell_lw = lua_newuserdata(L, sizeof(struct wv_eqn_lw*));
+  *l_gr_maxwell_lw = gr_maxwell_lw;
+
+  // Set metatable.
+  luaL_getmetatable(L, MOMENT_WAVE_EQN_METATABLE_NM);
+  lua_setmetatable(L, -2);
+
+  return 1;
+}
+
+// Equation constructor.
+static struct luaL_Reg eqn_gr_maxwell_ctor[] = {
+  { "new", eqn_gr_maxwell_lw_new },
+  { 0, 0 }
+};
+
+/* ********************************************************** */
+/* General Relativistic Maxwell Equations in the Tetrad Basis */
+/* ********************************************************** */
+
+// GRMaxwellTetrad.new { lightSpeed = 1.0, elcErrorSpeedFactor = 0.0, mgnErrorSpeedFactor = 0.0, rpType = "roe" }
+// where rpType is one of "roe" or "lax".
+static int
+eqn_gr_maxwell_tetrad_lw_new(lua_State *L)
+{
+  struct wv_eqn_lw *gr_maxwell_tetrad_lw = gkyl_malloc(sizeof(*gr_maxwell_tetrad_lw));
+
+  double light_speed = glua_tbl_get_number(L, "lightSpeed", 1.0);
+  double e_fact = glua_tbl_get_number(L, "elcErrorSpeedFactor", 0.0);
+  double b_fact = glua_tbl_get_number(L, "mgnErrorSpeedFactor", 0.0);
+
+  const char *rp_str = glua_tbl_get_string(L, "rpType", "lax");
+  enum gkyl_wv_gr_maxwell_tetrad_rp rp_type = gkyl_search_str_int_pair_by_str(gr_maxwell_tetrad_rp_type, rp_str, WV_GR_MAXWELL_TETRAD_RP_LAX);
+
+  gr_maxwell_tetrad_lw->magic = MOMENT_EQN_DEFAULT;
+  gr_maxwell_tetrad_lw->eqn = gkyl_wv_gr_maxwell_tetrad_inew( &(struct gkyl_wv_gr_maxwell_tetrad_inp) {
+      .light_speed = light_speed,
+      .e_fact = e_fact,
+      .b_fact = b_fact,
+      .spacetime = 0,
+      .rp_type = rp_type,
+      .use_gpu = false,
+    }
+  );
+
+  // Create Lua userdata.
+  struct wv_eqn_lw **l_gr_maxwell_tetrad_lw = lua_newuserdata(L, sizeof(struct wv_eqn_lw*));
+  *l_gr_maxwell_tetrad_lw = gr_maxwell_tetrad_lw;
+
+  // Set metatable.
+  luaL_getmetatable(L, MOMENT_WAVE_EQN_METATABLE_NM);
+  lua_setmetatable(L, -2);
+
+  return 1;
+}
+
+// Equation constructor.
+static struct luaL_Reg eqn_gr_maxwell_tetrad_ctor[] = {
+  { "new", eqn_gr_maxwell_tetrad_lw_new },
+  { 0, 0 }
+};
+
+/* *************************************************************************** */
+/* General Relativistic Euler Equations (Ultra-Relativistic Equation of State) */
+/* *************************************************************************** */
+
+// GRUltraRelativisticEuler.new { gasGamma = 4.0 / 3.0, rpType = "roe" }
+// where rpType is one of "roe" or "lax".
+static int
+eqn_gr_ultra_rel_euler_lw_new(lua_State *L)
+{
+  struct wv_eqn_lw *gr_ultra_rel_euler_lw = gkyl_malloc(sizeof(*gr_ultra_rel_euler_lw));
+
+  double gas_gamma = glua_tbl_get_number(L, "gasGamma", 4.0 / 3.0);
+
+  const char *rp_str = glua_tbl_get_string(L, "rpType", "lax");
+  enum gkyl_wv_gr_ultra_rel_euler_rp rp_type = gkyl_search_str_int_pair_by_str(gr_ultra_rel_euler_rp_type, rp_str, WV_GR_ULTRA_REL_EULER_RP_LAX);
+
+  gr_ultra_rel_euler_lw->magic = MOMENT_EQN_DEFAULT;
+  gr_ultra_rel_euler_lw->eqn = gkyl_wv_gr_ultra_rel_euler_inew( &(struct gkyl_wv_gr_ultra_rel_euler_inp) {
+      .gas_gamma = gas_gamma,
+      .spacetime = 0,
+      .rp_type = rp_type,
+      .use_gpu = false,
+    }
+  );
+
+  // Create Lua userdata.
+  struct wv_eqn_lw **l_gr_ultra_rel_euler_lw = lua_newuserdata(L, sizeof(struct wv_eqn_lw*));
+  *l_gr_ultra_rel_euler_lw = gr_ultra_rel_euler_lw;
+
+  // Set metatable.
+  luaL_getmetatable(L, MOMENT_WAVE_EQN_METATABLE_NM);
+  lua_setmetatable(L, -2);
+
+  return 1;
+}
+
+// Equation constructor.
+static struct luaL_Reg eqn_gr_ultra_rel_euler_ctor[] = {
+  { "new", eqn_gr_ultra_rel_euler_lw_new },
+  { 0, 0 }
+};
+
+/* *********************************************************************************************** */
+/* General Relativistic Euler Equations in the Tetrad Basis (Ultra-Relativistic Equation of State) */
+/* *********************************************************************************************** */
+
+// GRUltraRelativisticEulerTetrad.new { gasGamma = 4.0 / 3.0, rpType = "roe" }
+// where rpType is one of "roe" or "lax".
+static int
+eqn_gr_ultra_rel_euler_tetrad_lw_new(lua_State *L)
+{
+  struct wv_eqn_lw *gr_ultra_rel_euler_tetrad_lw = gkyl_malloc(sizeof(*gr_ultra_rel_euler_tetrad_lw));
+
+  double gas_gamma = glua_tbl_get_number(L, "gasGamma", 4.0 / 3.0);
+
+  const char *rp_str = glua_tbl_get_string(L, "rpType", "lax");
+  enum gkyl_wv_gr_ultra_rel_euler_tetrad_rp rp_type = gkyl_search_str_int_pair_by_str(gr_ultra_rel_euler_tetrad_rp_type, rp_str, WV_GR_ULTRA_REL_EULER_TETRAD_RP_LAX);
+
+  gr_ultra_rel_euler_tetrad_lw->magic = MOMENT_EQN_DEFAULT;
+  gr_ultra_rel_euler_tetrad_lw->eqn = gkyl_wv_gr_ultra_rel_euler_tetrad_inew( &(struct gkyl_wv_gr_ultra_rel_euler_tetrad_inp) {
+      .gas_gamma = gas_gamma,
+      .spacetime = 0,
+      .rp_type = rp_type,
+      .use_gpu = false,
+    }
+  );
+
+  // Create Lua userdata.
+  struct wv_eqn_lw **l_gr_ultra_rel_euler_tetrad_lw = lua_newuserdata(L, sizeof(struct wv_eqn_lw*));
+  *l_gr_ultra_rel_euler_tetrad_lw = gr_ultra_rel_euler_tetrad_lw;
+
+  // Set metatable.
+  luaL_getmetatable(L, MOMENT_WAVE_EQN_METATABLE_NM);
+  lua_setmetatable(L, -2);
+
+  return 1;
+}
+
+// Equation constructor.
+static struct luaL_Reg eqn_gr_ultra_rel_euler_tetrad_ctor[] = {
+  { "new", eqn_gr_ultra_rel_euler_tetrad_lw_new },
+  { 0, 0 }
+};
+
+/* **************************************************************** */
+/* General Relativistic Euler Equations (General Equation of State) */
+/* **************************************************************** */
+
+// GREuler.new { gasGamma = 5.0 / 3.0, rpType = "roe" }
+// where rpType is one of "roe" or "lax".
+static int
+eqn_gr_euler_lw_new(lua_State *L)
+{
+  struct wv_eqn_lw *gr_euler_lw = gkyl_malloc(sizeof(*gr_euler_lw));
+
+  double gas_gamma = glua_tbl_get_number(L, "gasGamma", 5.0 / 3.0);
+
+  const char *rp_str = glua_tbl_get_string(L, "rpType", "lax");
+  enum gkyl_wv_gr_euler_rp rp_type = gkyl_search_str_int_pair_by_str(gr_euler_rp_type, rp_str, WV_GR_EULER_RP_LAX);
+
+  gr_euler_lw->magic = MOMENT_EQN_DEFAULT;
+  gr_euler_lw->eqn = gkyl_wv_gr_euler_inew( &(struct gkyl_wv_gr_euler_inp) {
+      .gas_gamma = gas_gamma,
+      .spacetime = 0,
+      .rp_type = rp_type,
+      .use_gpu = false,
+    }
+  );
+
+  // Create Lua userdata.
+  struct wv_eqn_lw **l_gr_euler_lw = lua_newuserdata(L, sizeof(struct wv_eqn_lw*));
+  *l_gr_euler_lw = gr_euler_lw;
+
+  // Set metatable.
+  luaL_getmetatable(L, MOMENT_WAVE_EQN_METATABLE_NM);
+  lua_setmetatable(L, -2);
+
+  return 1;
+}
+
+// Equation constructor.
+static struct luaL_Reg eqn_gr_euler_ctor[] = {
+  { "new", eqn_gr_euler_lw_new },
+  { 0, 0 }
+};
+
+/* ************************************************************************************ */
+/* General Relativistic Euler Equations in the Tetrad Basis (General Equation of State) */
+/* ************************************************************************************ */
+
+// GREulerTetrad.new { gasGamma = 5.0 / 3.0, rpType = "roe" }
+// where rpType is one of "roe" or "lax".
+static int
+eqn_gr_euler_tetrad_lw_new(lua_State *L)
+{
+  struct wv_eqn_lw *gr_euler_tetrad_lw = gkyl_malloc(sizeof(*gr_euler_tetrad_lw));
+
+  double gas_gamma = glua_tbl_get_number(L, "gasGamma", 5.0 / 3.0);
+
+  const char *rp_str = glua_tbl_get_string(L, "rpType", "lax");
+  enum gkyl_wv_gr_euler_tetrad_rp rp_type = gkyl_search_str_int_pair_by_str(gr_euler_tetrad_rp_type, rp_str, WV_GR_EULER_TETRAD_RP_LAX);
+
+  gr_euler_tetrad_lw->magic = MOMENT_EQN_DEFAULT;
+  gr_euler_tetrad_lw->eqn = gkyl_wv_gr_euler_tetrad_inew( &(struct gkyl_wv_gr_euler_tetrad_inp) {
+      .gas_gamma = gas_gamma,
+      .spacetime = 0,
+      .rp_type = rp_type,
+      .use_gpu = false,
+    }
+  );
+
+  // Create Lua userdata.
+  struct wv_eqn_lw **l_gr_euler_tetrad_lw = lua_newuserdata(L, sizeof(struct wv_eqn_lw*));
+  *l_gr_euler_tetrad_lw = gr_euler_tetrad_lw;
+
+  // Set metatable.
+  luaL_getmetatable(L, MOMENT_WAVE_EQN_METATABLE_NM);
+  lua_setmetatable(L, -2);
+
+  return 1;
+}
+
+// Equation constructor.
+static struct luaL_Reg eqn_gr_euler_tetrad_ctor[] = {
+  { "new", eqn_gr_euler_tetrad_lw_new },
+  { 0, 0 }
+};
+
+/* ******************************************************************* */
+/* Coupled Fluid-Einstein Equations (Plane-Polarized Gowdy Spacetimes) */
+/* ******************************************************************* */
+
+// GRMedium.new { gasGamma = 4.0 / 3.0, kappa = 8.0 * pi, rpType = "lax" }.
+static int
+eqn_gr_medium_lw_new(lua_State *L)
+{
+  struct wv_eqn_lw *gr_medium_lw = gkyl_malloc(sizeof(*gr_medium_lw));
+
+  double gas_gamma = glua_tbl_get_number(L, "gasGamma", 4.0 / 3.0);
+  double kappa = glua_tbl_get_number(L, "kappa", 8.0 * M_PI);
+
+  const char *rp_str = glua_tbl_get_string(L, "rpType", "lax");
+  enum gkyl_wv_gr_medium_rp rp_type = gkyl_search_str_int_pair_by_str(gr_medium_rp_type, rp_str, WV_GR_MEDIUM_RP_LAX);
+
+  gr_medium_lw->magic = MOMENT_EQN_DEFAULT;
+  gr_medium_lw->eqn = gkyl_wv_gr_medium_inew( &(struct gkyl_wv_gr_medium_inp) {
+      .gas_gamma = gas_gamma,
+      .kappa = kappa,
+      .rp_type = rp_type,
+      .use_gpu = false,
+    }
+  );
+
+  // Create Lua userdata.
+  struct wv_eqn_lw **l_gr_medium_lw = lua_newuserdata(L, sizeof(struct wv_eqn_lw*));
+  *l_gr_medium_lw = gr_medium_lw;
+
+  // Set metatable.
+  luaL_getmetatable(L, MOMENT_WAVE_EQN_METATABLE_NM);
+  lua_setmetatable(L, -2);
+
+  return 1;
+}
+
+// Equation constructor.
+static struct luaL_Reg eqn_gr_medium_ctor[] = {
+  { "new", eqn_gr_medium_lw_new },
+  { 0, 0 }
+};
+
+// Register and load all wave equation objects.
 static void
 eqn_openlibs(lua_State *L)
 {
@@ -344,29 +863,625 @@ eqn_openlibs(lua_State *L)
   luaL_register(L, "G0.Moments.Eq.ColdFluid", eqn_coldfluid_ctor);
   luaL_register(L, "G0.Moments.Eq.TenMoment", eqn_tenmoment_ctor); 
   luaL_register(L, "G0.Moments.Eq.Mhd", eqn_mhd_ctor);
+  luaL_register(L, "G0.Moments.Eq.ReactiveEuler", eqn_reactive_euler_ctor);
+  luaL_register(L, "G0.Moments.Eq.EulerMixture", eqn_euler_mixture_ctor);
+  luaL_register(L, "G0.Moments.Eq.IsoEulerMixture", eqn_iso_euler_mixture_ctor);
+  luaL_register(L, "G0.Moments.Eq.GRMaxwell", eqn_gr_maxwell_ctor);
+  luaL_register(L, "G0.Moments.Eq.GRMaxwellTetrad", eqn_gr_maxwell_tetrad_ctor);
+  luaL_register(L, "G0.Moments.Eq.GRUltraRelEuler", eqn_gr_ultra_rel_euler_ctor);
+  luaL_register(L, "G0.Moments.Eq.GRUltraRelEulerTetrad", eqn_gr_ultra_rel_euler_tetrad_ctor);
+  luaL_register(L, "G0.Moments.Eq.GREuler", eqn_gr_euler_ctor);
+  luaL_register(L, "G0.Moments.Eq.GREulerTetrad", eqn_gr_euler_tetrad_ctor);
+  luaL_register(L, "G0.Moments.Eq.GRMedium", eqn_gr_medium_ctor);
 }
 
-/* *****************/
-/* Species methods */
-/* *****************/
+// Metatable name for spacetime object input struct.
+#define MOMENT_SPACETIME_METATABLE_NM "GkeyllZero.App.Moments.Spacetime"
 
-// Metatable name for species input struct
+// Methods for manipulating gkyl_gr_spacetime objects.
+
+// Lua userdata object for constructing spacetime objects.
+struct gr_spacetime_lw {
+  int magic; // This must be the first element in the struct.
+  struct gkyl_gr_spacetime *spacetime; // Spacetime object.
+};
+
+// Clean up memory allocated for spacetime object.
+static int
+gr_spacetime_lw_gc(lua_State *L)
+{
+  struct gr_spacetime_lw **l_gr_lw = GKYL_CHECK_UDATA(L, MOMENT_SPACETIME_METATABLE_NM);
+  struct gr_spacetime_lw *gr_lw = *l_gr_lw;
+
+  gkyl_gr_spacetime_release(gr_lw->spacetime);
+  gkyl_free(*l_gr_lw);
+
+  return 0;
+}
+
+// Acquire spacetime object.
+static struct gkyl_gr_spacetime*
+gr_spacetime_get(lua_State *L)
+{
+  struct gr_spacetime_lw **l_gr_lw = luaL_checkudata(L, -1, MOMENT_SPACETIME_METATABLE_NM);
+  struct gr_spacetime_lw *gr_lw = *l_gr_lw;
+
+  return gr_lw->spacetime;
+}
+
+/* ******************* */
+/* Minkowski Spacetime */
+/* ******************* */
+
+static int
+spacetime_minkowski_lw_new(lua_State *L)
+{
+  struct gr_spacetime_lw *minkowski_lw = gkyl_malloc(sizeof(*minkowski_lw));
+
+  minkowski_lw->magic = MOMENT_SPACETIME_DEFAULT;
+  minkowski_lw->spacetime = gkyl_gr_minkowski_inew( &(struct gkyl_gr_minkowski_inp) {
+      .use_gpu = false
+    }
+  );
+
+  // Create Lua userdata.
+  struct gr_spacetime_lw **l_minkowski_lw = lua_newuserdata(L, sizeof(struct gr_spacetime_lw*));
+  *l_minkowski_lw = minkowski_lw;
+
+  // Set metatable.
+  luaL_getmetatable(L, MOMENT_SPACETIME_METATABLE_NM);
+  lua_setmetatable(L, -2);
+
+  return 1;
+}
+
+static int
+spacetime_minkowski_lw_spatial_metric_tensor(lua_State *L)
+{
+  struct gkyl_gr_spacetime *spacetime = gkyl_gr_minkowski_inew( &(struct gkyl_gr_minkowski_inp) {
+      .use_gpu = false
+    }
+  );
+
+  double t = luaL_checknumber(L, 1);
+  double x = luaL_checknumber(L, 2);
+  double y = luaL_checknumber(L, 3);
+  double z = luaL_checknumber(L, 4);
+
+  double **spatial_metric = gkyl_malloc(sizeof(double*[3]));
+  for (int i = 0; i < 3; i++) {
+    spatial_metric[i] = gkyl_malloc(sizeof(double[3]));
+  }
+
+  spacetime->spatial_metric_tensor_func(spacetime, t, x, y, z, &spatial_metric);
+
+  lua_createtable(L, 3, 0);
+
+  for (int i = 0; i < 3; i++) {
+    lua_pushinteger(L, i + 1);
+
+    lua_createtable(L, 3, 0);
+    for (int j = 0; j < 3; j++) {
+      lua_pushinteger(L, j + 1);
+      lua_pushnumber(L, spatial_metric[i][j]);
+      lua_rawset(L, -3);
+    }
+
+    lua_rawset(L, -3);
+  }
+
+  for (int i = 0; i < 3; i++) {
+    gkyl_free(spatial_metric[i]);
+  }
+  gkyl_free(spatial_metric);
+
+  gkyl_gr_spacetime_release(spacetime);
+
+  return 1;
+}
+
+static int
+spacetime_minkowski_lw_spatial_metric_det(lua_State *L)
+{
+  struct gkyl_gr_spacetime *spacetime = gkyl_gr_minkowski_inew( &(struct gkyl_gr_minkowski_inp) {
+      .use_gpu = false
+    }
+  );
+
+  double t = luaL_checknumber(L, 1);
+  double x = luaL_checknumber(L, 2);
+  double y = luaL_checknumber(L, 3);
+  double z = luaL_checknumber(L, 4);
+
+  double spatial_metric_det;
+  spacetime->spatial_metric_det_func(spacetime, t, x, y, z, &spatial_metric_det);
+
+  lua_pushnumber(L, spatial_metric_det);
+
+  gkyl_gr_spacetime_release(spacetime);
+
+  return 1;
+}
+
+static int
+spacetime_minkowski_lw_lapse_function(lua_State *L)
+{
+  struct gkyl_gr_spacetime *spacetime = gkyl_gr_minkowski_inew( &(struct gkyl_gr_minkowski_inp) {
+      .use_gpu = false
+    }
+  );
+
+  double t = luaL_checknumber(L, 1);
+  double x = luaL_checknumber(L, 2);
+  double y = luaL_checknumber(L, 3);
+  double z = luaL_checknumber(L, 4);
+
+  double lapse;
+  spacetime->lapse_function_func(spacetime, t, x, y, z, &lapse);
+
+  lua_pushnumber(L, lapse);
+
+  gkyl_gr_spacetime_release(spacetime);
+
+  return 1;
+}
+
+static int
+spacetime_minkowski_lw_shift_vector(lua_State *L)
+{
+  struct gkyl_gr_spacetime *spacetime = gkyl_gr_minkowski_inew( &(struct gkyl_gr_minkowski_inp) {
+      .use_gpu = false
+    }
+  );
+
+  double t = luaL_checknumber(L, 1);
+  double x = luaL_checknumber(L, 2);
+  double y = luaL_checknumber(L, 3);
+  double z = luaL_checknumber(L, 4);
+
+  double *shift = gkyl_malloc(sizeof(double[3]));
+  spacetime->shift_vector_func(spacetime, t, x, y, z, &shift);
+
+  lua_createtable(L, 3, 0);
+
+  for (int i = 0; i < 3; i++) {
+    lua_pushinteger(L, i + 1);
+    lua_pushnumber(L, shift[i]);
+    lua_rawset(L, -3);
+  }
+
+  gkyl_free(shift);
+  gkyl_gr_spacetime_release(spacetime);
+
+  return 1;
+}
+
+static int
+spacetime_minkowski_lw_extrinsic_curvature_tensor(lua_State *L)
+{
+  struct gkyl_gr_spacetime *spacetime = gkyl_gr_minkowski_inew( &(struct gkyl_gr_minkowski_inp) {
+      .use_gpu = false
+    }
+  );
+
+  double t = luaL_checknumber(L, 1);
+  double x = luaL_checknumber(L, 2);
+  double y = luaL_checknumber(L, 3);
+  double z = luaL_checknumber(L, 4);
+
+  double dx = luaL_checknumber(L, 5);
+  double dy = luaL_checknumber(L, 6);
+  double dz = luaL_checknumber(L, 7);
+
+  double **extrinsic_curvature = gkyl_malloc(sizeof(double*[3]));
+  for (int i = 0; i < 3; i++) {
+    extrinsic_curvature[i] = gkyl_malloc(sizeof(double[3]));
+  }
+
+  spacetime->extrinsic_curvature_tensor_func(spacetime, t, x, y, z, dx, dy, dz, &extrinsic_curvature);
+
+  lua_createtable(L, 3, 0);
+
+  for (int i = 0; i < 3; i++) {
+    lua_pushinteger(L, i + 1);
+
+    lua_createtable(L, 3, 0);
+    for (int j = 0; j < 3; j++) {
+      lua_pushinteger(L, j + 1);
+      lua_pushnumber(L, extrinsic_curvature[i][j]);
+      lua_rawset(L, -3);
+    }
+
+    lua_rawset(L, -3);
+  }
+
+  for (int i = 0; i < 3; i++) {
+    gkyl_free(extrinsic_curvature[i]);
+  }
+  gkyl_free(extrinsic_curvature);
+
+  gkyl_gr_spacetime_release(spacetime);
+
+  return 1;
+}
+
+static int
+spacetime_minkowski_lw_excision_region(lua_State *L)
+{
+  struct gkyl_gr_spacetime *spacetime = gkyl_gr_minkowski_inew( &(struct gkyl_gr_minkowski_inp) {
+      .use_gpu = false
+    }
+  );
+
+  double t = luaL_checknumber(L, 1);
+  double x = luaL_checknumber(L, 2);
+  double y = luaL_checknumber(L, 3);
+  double z = luaL_checknumber(L, 4);
+
+  bool in_excision_region;
+  spacetime->excision_region_func(spacetime, t, x, y, z, &in_excision_region);
+
+  lua_pushboolean(L, in_excision_region);
+
+  gkyl_gr_spacetime_release(spacetime);
+
+  return 1;
+}
+
+// Spacetime constructor.
+static struct luaL_Reg spacetime_minkowski_ctor[] = {
+  { "new", spacetime_minkowski_lw_new },
+  { "spatialMetricTensor", spacetime_minkowski_lw_spatial_metric_tensor },
+  { "spatialMetricDeterminant", spacetime_minkowski_lw_spatial_metric_det },
+  { "lapseFunction", spacetime_minkowski_lw_lapse_function },
+  { "shiftVector", spacetime_minkowski_lw_shift_vector },
+  { "extrinsicCurvatureTensor", spacetime_minkowski_lw_extrinsic_curvature_tensor },
+  { "excisionRegion", spacetime_minkowski_lw_excision_region },
+  { 0, 0 }
+};
+
+/* ******************** */
+/* Black Hole Spacetime */
+/* ******************** */
+
+static int
+spacetime_blackhole_lw_new(lua_State *L)
+{
+  struct gr_spacetime_lw *blackhole_lw = gkyl_malloc(sizeof(*blackhole_lw));
+
+  double mass = luaL_checknumber(L, 1);
+  double spin = luaL_checknumber(L, 2);
+  double pos_x = luaL_checknumber(L, 3);
+  double pos_y = luaL_checknumber(L, 4);
+  double pos_z = luaL_checknumber(L, 5);
+
+  blackhole_lw->magic = MOMENT_SPACETIME_DEFAULT;
+  blackhole_lw->spacetime = gkyl_gr_blackhole_inew( &(struct gkyl_gr_blackhole_inp) {
+      .mass = mass,
+      .spin = spin,
+      .pos_x = pos_x,
+      .pos_y = pos_y,
+      .pos_z = pos_z,
+      .use_gpu = false
+    }
+  );
+
+  // Create Lua userdata.
+  struct gr_spacetime_lw **l_blackhole_lw = lua_newuserdata(L, sizeof(struct gr_spacetime_lw*));
+  *l_blackhole_lw = blackhole_lw;
+
+  // Set metatable.
+  luaL_getmetatable(L, MOMENT_SPACETIME_METATABLE_NM);
+  lua_setmetatable(L, -2);
+
+  return 1;
+}
+
+static int
+spacetime_blackhole_lw_spatial_metric_tensor(lua_State *L)
+{
+  double mass = luaL_checknumber(L, 1);
+  double spin = luaL_checknumber(L, 2);
+  double pos_x = luaL_checknumber(L, 3);
+  double pos_y = luaL_checknumber(L, 4);
+  double pos_z = luaL_checknumber(L, 5);
+
+  struct gkyl_gr_spacetime *spacetime = gkyl_gr_blackhole_inew( &(struct gkyl_gr_blackhole_inp) {
+      .mass = mass,
+      .spin = spin,
+      .pos_x = pos_x,
+      .pos_y = pos_y,
+      .pos_z = pos_z,
+      .use_gpu = false
+    }
+  );
+
+  double t = luaL_checknumber(L, 6);
+  double x = luaL_checknumber(L, 7);
+  double y = luaL_checknumber(L, 8);
+  double z = luaL_checknumber(L, 9);
+
+  double **spatial_metric = gkyl_malloc(sizeof(double*[3]));
+  for (int i = 0; i < 3; i++) {
+    spatial_metric[i] = gkyl_malloc(sizeof(double[3]));
+  }
+
+  spacetime->spatial_metric_tensor_func(spacetime, t, x, y, z, &spatial_metric);
+
+  lua_createtable(L, 3, 0);
+
+  for (int i = 0; i < 3; i++) {
+    lua_pushinteger(L, i + 1);
+
+    lua_createtable(L, 3, 0);
+    for (int j = 0; j < 3; j++) {
+      lua_pushinteger(L, j + 1);
+      lua_pushnumber(L, spatial_metric[i][j]);
+      lua_rawset(L, -3);
+    }
+
+    lua_rawset(L, -3);
+  }
+
+  for (int i = 0; i < 3; i++) {
+    gkyl_free(spatial_metric[i]);
+  }
+  gkyl_free(spatial_metric);
+
+  gkyl_gr_spacetime_release(spacetime);
+
+  return 1;
+}
+
+static int
+spacetime_blackhole_lw_spatial_metric_det(lua_State *L)
+{
+  double mass = luaL_checknumber(L, 1);
+  double spin = luaL_checknumber(L, 2);
+  double pos_x = luaL_checknumber(L, 3);
+  double pos_y = luaL_checknumber(L, 4);
+  double pos_z = luaL_checknumber(L, 5);
+
+  struct gkyl_gr_spacetime *spacetime = gkyl_gr_blackhole_inew( &(struct gkyl_gr_blackhole_inp) {
+      .mass = mass,
+      .spin = spin,
+      .pos_x = pos_x,
+      .pos_y = pos_y,
+      .pos_z = pos_z,
+      .use_gpu = false
+    }
+  );
+
+  double t = luaL_checknumber(L, 6);
+  double x = luaL_checknumber(L, 7);
+  double y = luaL_checknumber(L, 8);
+  double z = luaL_checknumber(L, 9);
+
+  double spatial_metric_det;
+  spacetime->spatial_metric_det_func(spacetime, t, x, y, z, &spatial_metric_det);
+
+  lua_pushnumber(L, spatial_metric_det);
+
+  gkyl_gr_spacetime_release(spacetime);
+
+  return 1;
+}
+
+static int
+spacetime_blackhole_lw_lapse_function(lua_State *L)
+{
+  double mass = luaL_checknumber(L, 1);
+  double spin = luaL_checknumber(L, 2);
+  double pos_x = luaL_checknumber(L, 3);
+  double pos_y = luaL_checknumber(L, 4);
+  double pos_z = luaL_checknumber(L, 5);
+
+  struct gkyl_gr_spacetime *spacetime = gkyl_gr_blackhole_inew( &(struct gkyl_gr_blackhole_inp) {
+      .mass = mass,
+      .spin = spin,
+      .pos_x = pos_x,
+      .pos_y = pos_y,
+      .pos_z = pos_z,
+      .use_gpu = false
+    }
+  );
+
+  double t = luaL_checknumber(L, 6);
+  double x = luaL_checknumber(L, 7);
+  double y = luaL_checknumber(L, 8);
+  double z = luaL_checknumber(L, 9);
+
+  double lapse;
+  spacetime->lapse_function_func(spacetime, t, x, y, z, &lapse);
+
+  lua_pushnumber(L, lapse);
+
+  gkyl_gr_spacetime_release(spacetime);
+
+  return 1;
+}
+
+static int
+spacetime_blackhole_lw_shift_vector(lua_State *L)
+{
+  double mass = luaL_checknumber(L, 1);
+  double spin = luaL_checknumber(L, 2);
+  double pos_x = luaL_checknumber(L, 3);
+  double pos_y = luaL_checknumber(L, 4);
+  double pos_z = luaL_checknumber(L, 5);
+
+  struct gkyl_gr_spacetime *spacetime = gkyl_gr_blackhole_inew( &(struct gkyl_gr_blackhole_inp) {
+      .mass = mass,
+      .spin = spin,
+      .pos_x = pos_x,
+      .pos_y = pos_y,
+      .pos_z = pos_z,
+      .use_gpu = false
+    }
+  );
+
+  double t = luaL_checknumber(L, 6);
+  double x = luaL_checknumber(L, 7);
+  double y = luaL_checknumber(L, 8);
+  double z = luaL_checknumber(L, 9);
+
+  double *shift = gkyl_malloc(sizeof(double[3]));
+  spacetime->shift_vector_func(spacetime, t, x, y, z, &shift);
+
+  lua_createtable(L, 3, 0);
+
+  for (int i = 0; i < 3; i++) {
+    lua_pushinteger(L, i + 1);
+    lua_pushnumber(L, shift[i]);
+    lua_rawset(L, -3);
+  }
+
+  gkyl_free(shift);
+  gkyl_gr_spacetime_release(spacetime);
+
+  return 1;
+}
+
+static int
+spacetime_blackhole_lw_extrinsic_curvature_tensor(lua_State *L)
+{
+  double mass = luaL_checknumber(L, 1);
+  double spin = luaL_checknumber(L, 2);
+  double pos_x = luaL_checknumber(L, 3);
+  double pos_y = luaL_checknumber(L, 4);
+  double pos_z = luaL_checknumber(L, 5);
+
+  struct gkyl_gr_spacetime *spacetime = gkyl_gr_blackhole_inew( &(struct gkyl_gr_blackhole_inp) {
+      .mass = mass,
+      .spin = spin,
+      .pos_x = pos_x,
+      .pos_y = pos_y,
+      .pos_z = pos_z,
+      .use_gpu = false
+    }
+  );
+
+  double t = luaL_checknumber(L, 6);
+  double x = luaL_checknumber(L, 7);
+  double y = luaL_checknumber(L, 8);
+  double z = luaL_checknumber(L, 9);
+  double dx = luaL_checknumber(L, 10);
+  double dy = luaL_checknumber(L, 11);
+  double dz = luaL_checknumber(L, 12);
+
+  double **extrinsic_curvature = gkyl_malloc(sizeof(double*[3]));
+  for (int i = 0; i < 3; i++) {
+    extrinsic_curvature[i] = gkyl_malloc(sizeof(double[3]));
+  }
+
+  spacetime->extrinsic_curvature_tensor_func(spacetime, t, x, y, z, dx, dy, dz, &extrinsic_curvature);
+
+  lua_createtable(L, 3, 0);
+
+  for (int i = 0; i < 3; i++) {
+    lua_pushinteger(L, i + 1);
+
+    lua_createtable(L, 3, 0);
+    for (int j = 0; j < 3; j++) {
+      lua_pushinteger(L, j + 1);
+      lua_pushnumber(L, extrinsic_curvature[i][j]);
+      lua_rawset(L, -3);
+    }
+
+    lua_rawset(L, -3);
+  }
+
+  for (int i = 0; i < 3; i++) {
+    gkyl_free(extrinsic_curvature[i]);
+  }
+  gkyl_free(extrinsic_curvature);
+
+  gkyl_gr_spacetime_release(spacetime);
+
+  return 1;
+}
+
+static int
+spacetime_blackhole_lw_excision_region(lua_State *L)
+{
+  double mass = luaL_checknumber(L, 1);
+  double spin = luaL_checknumber(L, 2);
+  double pos_x = luaL_checknumber(L, 3);
+  double pos_y = luaL_checknumber(L, 4);
+  double pos_z = luaL_checknumber(L, 5);
+
+  struct gkyl_gr_spacetime *spacetime = gkyl_gr_blackhole_inew( &(struct gkyl_gr_blackhole_inp) {
+      .mass = mass,
+      .spin = spin,
+      .pos_x = pos_x,
+      .pos_y = pos_y,
+      .pos_z = pos_z,
+      .use_gpu = false
+    }
+  );
+
+  double t = luaL_checknumber(L, 6);
+  double x = luaL_checknumber(L, 7);
+  double y = luaL_checknumber(L, 8);
+  double z = luaL_checknumber(L, 9);
+
+  bool in_excision_region;
+  spacetime->excision_region_func(spacetime, t, x, y, z, &in_excision_region);
+
+  lua_pushboolean(L, in_excision_region);
+
+  gkyl_gr_spacetime_release(spacetime);
+
+  return 1;
+}
+
+// Spacetime constructor.
+static struct luaL_Reg spacetime_blackhole_ctor[] = {
+  { "new", spacetime_blackhole_lw_new },
+  { "spatialMetricTensor", spacetime_blackhole_lw_spatial_metric_tensor },
+  { "spatialMetricDeterminant", spacetime_blackhole_lw_spatial_metric_det },
+  { "lapseFunction", spacetime_blackhole_lw_lapse_function },
+  { "shiftVector", spacetime_blackhole_lw_shift_vector },
+  { "extrinsicCurvatureTensor", spacetime_blackhole_lw_extrinsic_curvature_tensor },
+  { "excisionRegion", spacetime_blackhole_lw_excision_region },
+  { 0, 0 }
+};
+
+// Register and load all GR spacetime objects.
+static void
+spacetime_openlibs(lua_State *L)
+{
+  luaL_newmetatable(L, MOMENT_SPACETIME_METATABLE_NM);
+
+  lua_pushstring(L, "__gc");
+  lua_pushcfunction(L, gr_spacetime_lw_gc);
+  lua_settable(L, -3);
+
+  luaL_register(L, "G0.Moments.Spacetime.Minkowski", spacetime_minkowski_ctor);
+  luaL_register(L, "G0.Moments.Spacetime.BlackHole", spacetime_blackhole_ctor);
+}
+
+/* *************** */
+/* Species methods */
+/* *************** */
+
+// Metatable name for species input struct.
 #define MOMENT_SPECIES_METATABLE_NM "GkeyllZero.App.Moments.Species"
 
-// Lua userdata object for constructing species input
+// Lua userdata object for constructing species input.
 struct moment_species_lw {
-  int magic; // this must be first element in the struct
+  int magic; // This must be first element in the struct.
   
-  struct gkyl_moment_species mom_species; // input struct to construct species
-  bool evolve; // is this species evolved?
+  struct gkyl_moment_species mom_species; // Input struct to construct species.
+  bool evolve; // Is this species evolved?
 
-  struct lua_func_ctx init_ctx; // Lua registery reference to initilization function
+  struct lua_func_ctx init_ctx; // Lua registry reference to initialization function.
 
-  bool has_app_accel; // do we have applied acceleration?
-  struct lua_func_ctx app_accel_func_ctx; // Lua registery reference to applied acceleration
+  bool has_app_accel; // Is there an applied acceleration function?
+  struct lua_func_ctx app_accel_func_ctx; // Lua registry reference to applied acceleration function.
 
-  bool has_nT_source; // do we have applied acceleration?
-  struct lua_func_ctx nT_source_func_ctx; // Lua registery reference to nT sources
+  bool has_nT_source; // Is there a temperature source function?
+  struct lua_func_ctx nT_source_func_ctx; // Lua registry reference to temperature source function.
 };
 
 static int
@@ -385,9 +1500,9 @@ moment_species_lw_new(lua_State *L)
   }
 
   if (has_eqn) {
-    // we need to store a reference to equation object in a global
+    // We need to store a reference to equation object in a global
     // table as otherwise it gets garbage-collected while the
-    // simulation is being setup
+    // simulation is being set up.
     lua_getfield(L, -1, "equation");
     int eq_ref = luaL_ref(L, LUA_REGISTRYINDEX);
     
@@ -403,8 +1518,7 @@ moment_species_lw_new(lua_State *L)
     return luaL_error(L, "Species \"equation\" not specfied or incorrect type!");
   }
 
-  const char *lim_str = glua_tbl_get_string(L, "limiter", "monotonized-centered");
-  mom_species.limiter = gkyl_search_str_int_pair_by_str(wave_limiter, lim_str, GKYL_MONOTONIZED_CENTERED);
+  mom_species.limiter = glua_tbl_get_integer(L, "limiter", GKYL_MONOTONIZED_CENTERED);
 
   const char *split_str = glua_tbl_get_string(L, "splitType", "qwave");
   mom_species.split_type = gkyl_search_str_int_pair_by_str(wave_split_type, split_str, GKYL_WAVE_QWAVE);
@@ -413,27 +1527,35 @@ moment_species_lw_new(lua_State *L)
   mom_species.force_low_order_flux = glua_tbl_get_bool(L, "forceLowOrderFlux", false);
 
   int init_ref = LUA_NOREF;
-  if (glua_tbl_get_func(L, "init"))
+  if (glua_tbl_get_func(L, "init")) {
     init_ref = luaL_ref(L, LUA_REGISTRYINDEX);
-  else
+  }
+  else {
     return luaL_error(L, "Species must have an \"init\" function for initial conditions!");
+  }
 
   with_lua_tbl_tbl(L, "bcx") {
     int nbc = glua_objlen(L);
-    for (int i=0; i < (nbc>2 ? 2 : nbc); ++i)
-      mom_species.bcx[i] = glua_tbl_iget_integer(L, i+1, 0);
+
+    for (int i = 0; i < (nbc > 2 ? 2 : nbc); i++) {
+      mom_species.bcx[i] = glua_tbl_iget_integer(L, i + 1, 0);
+    }
   }
 
   with_lua_tbl_tbl(L, "bcy") {
     int nbc = glua_objlen(L);
-    for (int i=0; i < (nbc>2 ? 2 : nbc); ++i)
-      mom_species.bcy[i] = glua_tbl_iget_integer(L, i+1, 0);
+
+    for (int i = 0; i < (nbc > 2 ? 2 : nbc); i++) {
+      mom_species.bcy[i] = glua_tbl_iget_integer(L, i + 1, 0);
+    }
   }
 
   with_lua_tbl_tbl(L, "bcz") {
     int nbc = glua_objlen(L);
-    for (int i=0; i < (nbc>2 ? 2 : nbc); ++i)
-      mom_species.bcz[i] = glua_tbl_iget_integer(L, i+1, 0);
+
+    for (int i = 0; i < (nbc > 2 ? 2 : nbc); i++) {
+      mom_species.bcz[i] = glua_tbl_iget_integer(L, i + 1, 0);
+    }
   }
 
   bool has_app_accel = false;
@@ -452,6 +1574,30 @@ moment_species_lw_new(lua_State *L)
   }
   mom_species.nT_source_set_only_once = glua_tbl_get_bool(L, "nTSourceSetOnlyOnce", false);
 
+  mom_species.has_reactivity = glua_tbl_get_bool(L, "hasReactivity", false);
+  if (mom_species.has_reactivity) {
+    mom_species.reactivity_gas_gamma = glua_tbl_get_number(L, "reactivityGasGamma", 1.4);
+    mom_species.reactivity_specific_heat_capacity = glua_tbl_get_number(L, "reactivitySpecificHeatCapacity", 2.5);
+    mom_species.reactivity_energy_of_formation = glua_tbl_get_number(L, "reactivityEnergyOfFormation", 1.0);
+    mom_species.reactivity_ignition_temperature = glua_tbl_get_number(L, "reactivityIgnitionTemperature", 0.25);
+    mom_species.reactivity_reaction_rate = glua_tbl_get_number(L, "reactivityReactionRate", 250.0);
+  }
+
+  mom_species.has_volume_sources = glua_tbl_get_bool(L, "hasVolumeSources", false);
+  if (mom_species.has_volume_sources) {
+    mom_species.volume_gas_gamma = glua_tbl_get_number(L, "volumeGasGamma", 5.0 / 3.0);
+    mom_species.volume_U0 = glua_tbl_get_number(L, "volumeU0", 1.0);
+    mom_species.volume_R0 = glua_tbl_get_number(L, "volumeR0", 1.0);
+  }
+
+  mom_species.has_einstein_medium = glua_tbl_get_bool(L, "hasEinsteinMedium", false);
+  if (mom_species.has_einstein_medium) {
+    mom_species.medium_gas_gamma = glua_tbl_get_number(L, "mediumGasGamma", 4.0 / 3.0);
+    mom_species.medium_kappa = glua_tbl_get_number(L, "mediumKappa", 8.0 * M_PI);
+  }
+
+  mom_species.type_brag = glua_tbl_get_integer(L, "braginskiiType", 0);
+
   struct moment_species_lw *moms_lw = lua_newuserdata(L, sizeof(*moms_lw));
   moms_lw->magic = MOMENT_SPECIES_DEFAULT;
   moms_lw->evolve = evolve;
@@ -459,7 +1605,7 @@ moment_species_lw_new(lua_State *L)
 
   moms_lw->init_ctx = (struct lua_func_ctx) {
     .func_ref = init_ref,
-    .ndim = 0, // this will be set later
+    .ndim = 0, // This will be set later.
     .nret = mom_species.equation->num_equations,
     .L = L,
   };
@@ -467,7 +1613,7 @@ moment_species_lw_new(lua_State *L)
   moms_lw->has_app_accel = has_app_accel;
   moms_lw->app_accel_func_ctx = (struct lua_func_ctx) {
     .func_ref = app_accel_ref,
-    .ndim = 0, // this will be set later
+    .ndim = 0, // This will be set later.
     .nret = GKYL_MOM_APP_NUM_APPLIED_ACCELERATION,
     .L = L,
   };
@@ -475,45 +1621,45 @@ moment_species_lw_new(lua_State *L)
   moms_lw->has_nT_source = has_nT_source;
   moms_lw->nT_source_func_ctx = (struct lua_func_ctx) {
     .func_ref = nT_source_ref,
-    .ndim = 0, // this will be set later
+    .ndim = 0, // This will be set later.
     .nret = GKYL_MOM_APP_NUM_NT_SOURCE,
     .L = L,
   };    
   
-  // set metatable
+  // Set metatable.
   luaL_getmetatable(L, MOMENT_SPECIES_METATABLE_NM);
   lua_setmetatable(L, -2);
   
   return 1;
 }
 
-// Species constructor
+// Species constructor.
 static struct luaL_Reg mom_species_ctor[] = {
-  {"new", moment_species_lw_new},
-  {0, 0}
+  { "new", moment_species_lw_new },
+  { 0, 0 }
 };
 
-/* *****************/
+/* ************* */
 /* Field methods */
-/* *****************/
+/* ************* */
 
-// Metatable name for field input struct
+// Metatable name for field input struct.
 #define MOMENT_FIELD_METATABLE_NM "GkeyllZero.App.Moments.Field"
 
-// Lua userdata object for constructing field input
+// Lua userdata object for constructing field input.
 struct moment_field_lw {
-  int magic; // this must be first element in the struct
+  int magic; // This must be first element in the struct.
 
-  bool evolve; // is this field evolved?  
-  struct gkyl_moment_field mom_field; // input struct to construct field
+  bool evolve; // Is this field evolved?  
+  struct gkyl_moment_field mom_field; // Input struct to construct field.
   
-  struct lua_func_ctx init_ctx; // Lua registery reference to initilization function
+  struct lua_func_ctx init_ctx; // Lua registry reference to initialization function.
 
-  bool has_app_current; // true if applied current 
-  struct lua_func_ctx app_current_ctx; // Lua registery reference to applied current
+  bool has_app_current; // Is there an applied current function?
+  struct lua_func_ctx app_current_ctx; // Lua registry reference to applied current function.
 
-  bool has_ext_em; // is there an external EM function?
-  struct lua_func_ctx ext_em_ctx; // Lua registery reference to applied current
+  bool has_ext_em; // Is there an external field function?
+  struct lua_func_ctx ext_em_ctx; // Lua registry reference to external EM function.
 };
 
 static int
@@ -525,36 +1671,43 @@ moment_field_lw_new(lua_State *L)
   mom_field.epsilon0 = glua_tbl_get_number(L, "epsilon0", 1.0);
   mom_field.mu0 = glua_tbl_get_number(L, "mu0", 1.0);
   mom_field.elc_error_speed_fact = glua_tbl_get_number(L, "elcErrorSpeedFactor", 0.0);
-  mom_field.mag_error_speed_fact = glua_tbl_get_number(L, "mgnErrorSpeedFactor", 1.0);
+  mom_field.mag_error_speed_fact = glua_tbl_get_number(L, "mgnErrorSpeedFactor", 0.0);
 
-  const char *lim_str = glua_tbl_get_string(L, "limiter", "monotonized-centered");  
-  mom_field.limiter = gkyl_search_str_int_pair_by_str(wave_limiter, lim_str, GKYL_MONOTONIZED_CENTERED);
+  mom_field.limiter = glua_tbl_get_integer(L, "limiter", GKYL_MONOTONIZED_CENTERED);
   
   bool evolve = glua_tbl_get_integer(L, "evolve", true);
 
   int init_ref = LUA_NOREF;
-  if (glua_tbl_get_func(L, "init"))
+  if (glua_tbl_get_func(L, "init")) {
     init_ref = luaL_ref(L, LUA_REGISTRYINDEX);
-  else
+  }
+  else {
     return luaL_error(L, "Field must have an \"init\" function for initial conditions!");
+  }
   
   with_lua_tbl_tbl(L, "bcx") {
     int nbc = glua_objlen(L);
-    for (int i=0; i < (nbc>2 ? 2 : nbc); ++i)
-      mom_field.bcx[i] = glua_tbl_iget_integer(L, i+1, 0);
+
+    for (int i = 0; i < (nbc > 2 ? 2 : nbc); i++) {
+      mom_field.bcx[i] = glua_tbl_iget_integer(L, i + 1, 0);
+    }
   }
 
   with_lua_tbl_tbl(L, "bcy") {
     int nbc = glua_objlen(L);
-    for (int i=0; i < (nbc>2 ? 2 : nbc); ++i)
-      mom_field.bcy[i] = glua_tbl_iget_integer(L, i+1, 0);
+
+    for (int i = 0; i < (nbc > 2 ? 2 : nbc); i++) {
+      mom_field.bcy[i] = glua_tbl_iget_integer(L, i + 1, 0);
+    }
   }
 
   with_lua_tbl_tbl(L, "bcz") {
     int nbc = glua_objlen(L);
-    for (int i=0; i < (nbc>2 ? 2 : nbc); ++i)
-      mom_field.bcz[i] = glua_tbl_iget_integer(L, i+1, 0);
-  }  
+
+    for (int i = 0; i < (nbc > 2 ? 2 : nbc); i++) {
+      mom_field.bcz[i] = glua_tbl_iget_integer(L, i + 1, 0);
+    }
+  }
 
   bool has_app_current = false;
   int app_current_ref = LUA_NOREF;
@@ -583,7 +1736,7 @@ moment_field_lw_new(lua_State *L)
 
   momf_lw->init_ctx = (struct lua_func_ctx) {
     .func_ref = init_ref,
-    .ndim = 0, // this will be set later
+    .ndim = 0, // This will be set later.
     .nret = 6,
     .L = L,
   };  
@@ -591,7 +1744,7 @@ moment_field_lw_new(lua_State *L)
   momf_lw->has_app_current = has_app_current;
   momf_lw->app_current_ctx = (struct lua_func_ctx) {
     .func_ref = app_current_ref,
-    .ndim = 0, // this will be set later
+    .ndim = 0, // This will be set later.
     .nret = GKYL_MOM_APP_NUM_APPLIED_CURRENT,
     .L = L,
   };
@@ -599,56 +1752,63 @@ moment_field_lw_new(lua_State *L)
   momf_lw->has_ext_em = has_ext_em;
   momf_lw->ext_em_ctx = (struct lua_func_ctx) {
     .func_ref = ext_em_ref,
-    .ndim = 0, // this will be set later
+    .ndim = 0, // This will be set later.
     .nret = GKYL_MOM_APP_NUM_EXT_EM,
     .L = L,
   };  
   
-  // set metatable
+  // Set metatable.
   luaL_getmetatable(L, MOMENT_FIELD_METATABLE_NM);
   lua_setmetatable(L, -2);
   
   return 1;
 }
 
-// Species constructor
+// Species constructor.
 static struct luaL_Reg mom_field_ctor[] = {
-  { "new",  moment_field_lw_new },
+  { "new", moment_field_lw_new },
   { 0, 0 }
 };
 
-/* *************/
+/* *********** */
 /* App methods */
-/* *************/
+/* *********** */
 
-// Metatable name for top-level Moment App
+// Metatable name for top-level Moment App.
 #define MOMENT_APP_METATABLE_NM "GkeyllZero.App.Moment"
 
-// Lua userdata object for holding Moment app and run parameters
+// Lua userdata object for holding Moment app and simulation parameters.
 struct moment_app_lw {
-  gkyl_moment_app *app; // Moment app object
+  gkyl_moment_app *app; // Moment app object.
   
-  struct lua_func_ctx mapc2p_ctx;
+  struct lua_func_ctx mapc2p_ctx; // Function context for mapc2p.
 
-  struct lua_func_ctx species_init_ctx[GKYL_MAX_SPECIES];
-  struct lua_func_ctx species_app_accel_func_ctx[GKYL_MAX_SPECIES];
-  struct lua_func_ctx species_nT_source_func_ctx[GKYL_MAX_SPECIES];
+  struct lua_func_ctx species_init_ctx[GKYL_MAX_SPECIES]; // Function context for species initial conditions.
+  struct lua_func_ctx species_app_accel_func_ctx[GKYL_MAX_SPECIES]; // Function context for applied acceleration.
+  struct lua_func_ctx species_nT_source_func_ctx[GKYL_MAX_SPECIES]; // Function context for temperature sources.
 
-  struct lua_func_ctx field_init_ctx; // function context for field IC
-  struct lua_func_ctx field_app_current_ctx; // function context for applied current
-  struct lua_func_ctx field_ext_em_ctx; // function context for external EM field
+  struct lua_func_ctx field_init_ctx; // Function context for field initial conditions.
+  struct lua_func_ctx field_app_current_ctx; // Function context for applied current.
+  struct lua_func_ctx field_ext_em_ctx; // Function context for external EM field.
   
-  double tstart, tend; // start and end times of simulation
-  int nframe; // number of data frames to write
+  double t_start, t_end; // Start and end times of simulation.
+  int num_frames; // Number of data frames to write.
+  int field_energy_calcs; // Number of times to calculate field energy.
+  int integrated_mom_calcs; // Number of times to calculate integrated moments.
+  double dt_failure_tol; // Minimum allowable fraction of initial time-step.
+  int num_failures_max; // Maximum allowable number of consecutive small time-steps.
 };
 
-// find index of species in table given its name
+// Find index of species in table given its name.
 static int
 app_find_species(const gkyl_moment_app *app, const char *nm)
 {
-  for (int i=0; i<app->num_species; ++i)
-    if (strcmp(app->species[i].name, nm) == 0)
+  for (int i = 0; i < app->num_species; i++) {
+    if (strcmp(app->species[i].name, nm) == 0) {
       return i;
+    }
+  }
+  
   return -1;
 }
 
@@ -661,9 +1821,9 @@ get_species_inp(lua_State *L, int cdim, struct moment_species_lw *species[GKYL_M
   enum { TKEY = -2, TVAL = -1};
   
   int curr = 0;
-  lua_pushnil(L); // initial key is nil
+  lua_pushnil(L); // Initial key is nil.
   while (lua_next(L, TKEY) != 0) {
-    // key at TKEY and value at TVAL
+    // Key at TKEY and value at TVAL.
     if (lua_type(L, TVAL) == LUA_TUSERDATA) {
       struct moment_species_lw *vms = lua_touserdata(L, TVAL);
       if (vms->magic == MOMENT_SPECIES_DEFAULT) {
@@ -684,69 +1844,98 @@ get_species_inp(lua_State *L, int cdim, struct moment_species_lw *species[GKYL_M
   return curr;
 }
 
-// Create top-level App object
+// comparison method to sort species array by species name
+static int
+species_compare_func(const void *a, const void *b)
+{
+  const struct moment_species_lw *const *spa = a;
+  const struct moment_species_lw *const *spb = b;
+  return strcmp((*spa)->mom_species.name, (*spb)->mom_species.name);
+}
+
+// Create top-level App object.
 static int
 mom_app_new(lua_State *L)
 {
   struct moment_app_lw *app_lw = gkyl_malloc(sizeof(*app_lw));
 
   // The output prefix to use is stored in the global
-  // GKYL_OUT_PREFIX. If this is not found then "g0-vlasov" is used.
-  const char *sim_name = "g0-vlasov";
+  // GKYL_OUT_PREFIX. If this is not found then "g0-moment" is used.
+  const char *sim_name = "g0-moment";
   with_lua_global(L, "GKYL_OUT_PREFIX") {
-    if (lua_isstring(L, -1))
+    if (lua_isstring(L, -1)) {
       sim_name = lua_tostring(L, -1);
+    }
   }
   
-  // initialize app using table inputs (table is on top of stack)
+  // Initialize app using table inputs (table is on top of stack).
 
-  app_lw->tstart = glua_tbl_get_number(L, "tStart", 0.0);
-  app_lw->tend = glua_tbl_get_number(L, "tEnd", 1.0);
-  app_lw->nframe = glua_tbl_get_integer(L, "nFrame", 1);
+  app_lw->t_start = glua_tbl_get_number(L, "tStart", 0.0);
+  app_lw->t_end = glua_tbl_get_number(L, "tEnd", 1.0);
+  app_lw->num_frames = glua_tbl_get_integer(L, "nFrame", 1);
+  app_lw->field_energy_calcs = glua_tbl_get_integer(L, "fieldEnergyCalcs", INT_MAX);
+  app_lw->integrated_mom_calcs = glua_tbl_get_integer(L, "integratedMomentCalcs", INT_MAX);
+  app_lw->dt_failure_tol = glua_tbl_get_number(L, "dtFailureTol", 1.0e-4);
+  app_lw->num_failures_max = glua_tbl_get_integer(L, "numFailuresMax", 20);
 
-  struct gkyl_moment mom = { }; // input table for app
+  struct gkyl_moment mom = { }; // Input table for app.
 
   strcpy(mom.name, sim_name);
   
   int cdim = 0;
   with_lua_tbl_tbl(L, "cells") {
     mom.ndim = cdim = glua_objlen(L);
-    for (int d=0; d<cdim; ++d)
-      mom.cells[d] = glua_tbl_iget_integer(L, d+1, 0);
+
+    for (int d = 0; d < cdim; d++) {
+      mom.cells[d] = glua_tbl_iget_integer(L, d + 1, 0);
+    }
   }
 
   int cuts[GKYL_MAX_DIM];
-  for (int d=0; d<cdim; ++d) cuts[d] = 1;
+  for (int d = 0; d < cdim; d++) {
+    cuts[d] = 1;
+  }
   
   with_lua_tbl_tbl(L, "decompCuts") {
     int ncuts = glua_objlen(L);
-    for (int d=0; d<ncuts; ++d)
-      cuts[d] = glua_tbl_iget_integer(L, d+1, 0);
+
+    for (int d = 0; d < ncuts; d++) {
+      cuts[d] = glua_tbl_iget_integer(L, d + 1, 0);
+    }
   }  
 
   with_lua_tbl_tbl(L, "lower") {
-    for (int d=0; d<cdim; ++d)
-      mom.lower[d] = glua_tbl_iget_number(L, d+1, 0);
+    for (int d = 0; d < cdim; d++) {
+      mom.lower[d] = glua_tbl_iget_number(L, d + 1, 0);
+    }
   }
 
   with_lua_tbl_tbl(L, "upper") {
-    for (int d=0; d<cdim; ++d)
-      mom.upper[d] = glua_tbl_iget_number(L, d+1, 0);
+    for (int d = 0; d < cdim; d++) {
+      mom.upper[d] = glua_tbl_iget_number(L, d + 1, 0);
+    }
   }
 
   mom.cfl_frac = glua_tbl_get_number(L, "cflFrac", 0.95);
+
+  mom.scheme_type = glua_tbl_get_integer(L, "schemeType", 0);
 
   mom.num_periodic_dir = 0;
   if (glua_tbl_has_key(L, "periodicDirs")) {
     with_lua_tbl_tbl(L, "periodicDirs") {
       mom.num_periodic_dir = glua_objlen(L);
-      for (int d=0; d<mom.num_periodic_dir; ++d)
-        // indexes are off by 1 between Lua and C
-        mom.periodic_dirs[d] = glua_tbl_iget_integer(L, d+1, 0)-1;
+
+      for (int d = 0; d < mom.num_periodic_dir; d++) {
+        // Indices are off by 1 between Lua and C.
+        mom.periodic_dirs[d] = glua_tbl_iget_integer(L, d + 1, 0) - 1;
+      }
     }
   }
 
-  // mapc2p
+  mom.has_braginskii = glua_tbl_get_bool(L, "hasBraginskii", false);
+  mom.coll_fac = glua_tbl_get_number(L, "collisionFactor", 0.0);
+
+  // mapc2p function.
   mom.c2p_ctx = 0;
   mom.mapc2p = 0;
   bool has_mapc2p = false;
@@ -768,9 +1957,16 @@ mom_app_new(lua_State *L)
   }
 
   struct moment_species_lw *species[GKYL_MAX_SPECIES];
-  // set all species input
+
+  // Set all species input.
   mom.num_species = get_species_inp(L, cdim, species);
-  for (int s=0; s<mom.num_species; ++s) {
+
+  // need to sort the species[] array by name of the species before
+  // proceeding as there is no way to ensure that all cores loop over
+  // Lua tables in the same order
+  qsort(species, mom.num_species, sizeof(struct moment_species_lw *), species_compare_func);
+  
+  for (int s = 0; s < mom.num_species; s++) {
     mom.species[s] = species[s]->mom_species;
     
     app_lw->species_init_ctx[s] = species[s]->init_ctx;
@@ -790,12 +1986,12 @@ mom_app_new(lua_State *L)
     }
   }
 
-  // set field input
+  // Set field input.
   with_lua_tbl_key(L, "field") {
     if (lua_type(L, -1) == LUA_TUSERDATA) {
       struct moment_field_lw *momf = lua_touserdata(L, -1);
+      
       if (momf->magic == MOMENT_FIELD_DEFAULT) {
-
         momf->init_ctx.ndim = cdim;
         
         mom.field = momf->mom_field;
@@ -805,7 +2001,6 @@ mom_app_new(lua_State *L)
         mom.field.ctx = &app_lw->field_init_ctx;
 
         if (momf->has_app_current) {
-
           momf->app_current_ctx.ndim = cdim;
 
           app_lw->field_app_current_ctx = momf->app_current_ctx;
@@ -814,7 +2009,6 @@ mom_app_new(lua_State *L)
         }
 
         if (momf->has_ext_em) {
-
           momf->ext_em_ctx.ndim = cdim;
 
           app_lw->field_ext_em_ctx = momf->ext_em_ctx;
@@ -825,12 +2019,13 @@ mom_app_new(lua_State *L)
     }
   }
 
-  // create parallelism
+  // Create parallelism.
   struct gkyl_comm *comm = 0;
   bool has_mpi = false;
 
-  for (int d=0; d<cdim; ++d)
+  for (int d = 0; d < cdim; d++) {
     mom.parallelism.cuts[d] = cuts[d]; 
+  }
 
 #ifdef GKYL_HAVE_MPI
   with_lua_global(L, "GKYL_MPI_COMM") {
@@ -848,8 +2043,8 @@ mom_app_new(lua_State *L)
 #endif
 
   if (!has_mpi) {
-    // if there is no proper MPI_Comm specifed, the assume we are a
-    // serial sim
+    // If there is no proper MPI_Comm specifed, then assume we are a
+    // serial sim.
     comm = gkyl_null_comm_inew( &(struct gkyl_null_comm_inp) {
         .sync_corners = true
       }
@@ -866,26 +2061,27 @@ mom_app_new(lua_State *L)
   int tot_cuts = 1; for (int d=0; d<cdim; ++d) tot_cuts *= cuts[d];
 
   if (tot_cuts != comm_sz) {
-    printf("tot_cuts = %d (%d)\n", tot_cuts, comm_sz);
+    if (0 == rank)
+      fprintf(stderr, "tot_cuts = %d (%d)\n", tot_cuts, comm_sz);
     luaL_error(L, "Number of ranks and cuts do not match!");
   }
   
-  app_lw->app = gkyl_moment_app_new(&mom); // create the Moment app
+  app_lw->app = gkyl_moment_app_new(&mom); // Create the Moment app.
 
   gkyl_comm_release(comm);
   
-  // create Lua userdata ...
+  // Create Lua userdata.
   struct moment_app_lw **l_app_lw = lua_newuserdata(L, sizeof(struct moment_app_lw*));
-  *l_app_lw = app_lw; // ... point it to the Lua app pointer
+  *l_app_lw = app_lw; // Point it to the Lua app pointer.
 
-  // set metatable
+  // Set metatable.
   luaL_getmetatable(L, MOMENT_APP_METATABLE_NM);
   lua_setmetatable(L, -2);
   
   return 1;
 }
 
-// Return number of species () -> int
+// Return number of species () -> int.
 static int
 mom_app_num_species(lua_State *L)
 {
@@ -897,20 +2093,20 @@ mom_app_num_species(lua_State *L)
   return 1;
 }
 
-// Return number of species (int) -> string
+// Return number of species (int) -> string.
 static int
 mom_app_species_name(lua_State *L)
 {
   struct moment_app_lw **l_app_lw = GKYL_CHECK_UDATA(L, MOMENT_APP_METATABLE_NM);
   struct moment_app_lw *app_lw = *l_app_lw;
 
-  int idx = luaL_checkinteger(L, 2)-1;
+  int idx = luaL_checkinteger(L, 2) - 1;
   lua_pushstring(L, app_lw->app->species[idx].name);
 
   return 1;
 }
 
-// Compute maximum time-step () -> double
+// Compute maximum time-step () -> double.
 static int
 mom_app_max_dt(lua_State *L)
 {
@@ -923,7 +2119,7 @@ mom_app_max_dt(lua_State *L)
   return 1;
 }
 
-// Apply initial conditions. (time) -> bool
+// Apply initial conditions. (time) -> bool.
 static int
 mom_app_apply_ic(lua_State *L)
 {
@@ -932,14 +2128,14 @@ mom_app_apply_ic(lua_State *L)
   struct moment_app_lw **l_app_lw = GKYL_CHECK_UDATA(L, MOMENT_APP_METATABLE_NM);
   struct moment_app_lw *app_lw = *l_app_lw;
 
-  double t0 = luaL_optnumber(L, 2, app_lw->tstart);
+  double t0 = luaL_optnumber(L, 2, app_lw->t_start);
   gkyl_moment_app_apply_ic(app_lw->app, t0);
 
   lua_pushboolean(L, status);  
   return 1;
 }
 
-// Apply initial conditions to field. (time) -> bool
+// Apply initial conditions to field. (time) -> bool.
 static int
 mom_app_apply_ic_field(lua_State *L)
 {
@@ -948,14 +2144,14 @@ mom_app_apply_ic_field(lua_State *L)
   struct moment_app_lw **l_app_lw = GKYL_CHECK_UDATA(L, MOMENT_APP_METATABLE_NM);
   struct moment_app_lw *app_lw = *l_app_lw;
 
-  double t0 = luaL_optnumber(L, 2, app_lw->tstart);
+  double t0 = luaL_optnumber(L, 2, app_lw->t_start);
   gkyl_moment_app_apply_ic_field(app_lw->app, t0);
 
   lua_pushboolean(L, status);  
   return 1;
 }
 
-// Apply initial conditions to species. (name, time) -> bool
+// Apply initial conditions to species. (name, time) -> bool.
 static int
 mom_app_apply_ic_species(lua_State *L)
 {
@@ -966,18 +2162,18 @@ mom_app_apply_ic_species(lua_State *L)
 
   const char *sp_name = luaL_checkstring(L, 2);
   int sidx = app_find_species(app_lw->app, sp_name);
-  if (sidx < 0)
+  if (sidx < 0) {
     return luaL_error(L, "Incorrect species name '%s' in apply_ic_species!", sp_name);
+  }
   
-  double t0 = luaL_optnumber(L, 3, app_lw->tstart);
+  double t0 = luaL_optnumber(L, 3, app_lw->t_start);
   gkyl_moment_app_apply_ic_species(app_lw->app, sidx, t0);
 
   lua_pushboolean(L, status);  
   return 1;
 }
 
-// The status table for reads has the following structure
-//
+// The status table for reads has the following structure:
 // {
 //   io_status = true or false.
 //   io_status_str = "success", "bad-version", "fopen-failed", "fread-failed", "data-mismatch"
@@ -994,7 +2190,7 @@ static const struct gkyl_str_int_pair rio_status[] = {
   { 0, 0 }
 };
 
-// pushes table with status on stack. Table is left on stack
+// Pushes table with status on stack. Table is left on stack.
 static void
 push_restart_status_table(lua_State *L, struct gkyl_app_restart_status status)
 {
@@ -1017,7 +2213,7 @@ push_restart_status_table(lua_State *L, struct gkyl_app_restart_status status)
   lua_rawset(L, -3);  
 }
 
-// Read field from file. (file-name) -> status table. See above
+// Read field from file. (file-name) -> status table. See above.
 static int
 mom_app_from_file_field(lua_State *L)
 {
@@ -1025,15 +2221,14 @@ mom_app_from_file_field(lua_State *L)
   struct moment_app_lw *app_lw = *l_app_lw;
 
   const char *fname = luaL_checkstring(L, 2);
-  struct gkyl_app_restart_status status =
-    gkyl_moment_app_from_file_field(app_lw->app, fname);
+  struct gkyl_app_restart_status status = gkyl_moment_app_from_file_field(app_lw->app, fname);
 
   push_restart_status_table(L, status);
   
   return 1;
 }
 
-// Read field from file. (file-name, species-name) -> status table. See above
+// Read field from file. (file-name, species-name) -> status table. See above.
 static int
 mom_app_from_file_species(lua_State *L)
 {
@@ -1044,18 +2239,18 @@ mom_app_from_file_species(lua_State *L)
   const char *sp_name = luaL_checkstring(L, 3);
 
   int sidx = app_find_species(app_lw->app, sp_name);
-  if (sidx < 0)
+  if (sidx < 0) {
     return luaL_error(L, "Incorrect species name '%s' in from_file_species!", sp_name);
+  }
   
-  struct gkyl_app_restart_status status =
-    gkyl_moment_app_from_file_species(app_lw->app, sidx, fname);
+  struct gkyl_app_restart_status status = gkyl_moment_app_from_file_species(app_lw->app, sidx, fname);
 
   push_restart_status_table(L, status);
   
   return 1;
 }
 
-// Read field from file. (frame) -> status table. See above
+// Read field from file. (frame) -> status table. See above.
 static int
 mom_app_from_frame_field(lua_State *L)
 {
@@ -1063,15 +2258,14 @@ mom_app_from_frame_field(lua_State *L)
   struct moment_app_lw *app_lw = *l_app_lw;
 
   int frame = luaL_checkinteger(L, 2);
-  struct gkyl_app_restart_status status =
-    gkyl_moment_app_from_frame_field(app_lw->app, frame);
+  struct gkyl_app_restart_status status = gkyl_moment_app_from_frame_field(app_lw->app, frame);
 
   push_restart_status_table(L, status);
   
   return 1;
 }
 
-// Read field from file. (frame, species-name) -> status table. See above
+// Read field from file. (frame, species-name) -> status table. See above.
 static int
 mom_app_from_frame_species(lua_State *L)
 {
@@ -1082,18 +2276,18 @@ mom_app_from_frame_species(lua_State *L)
   const char *sp_name = luaL_checkstring(L, 3);
 
   int sidx = app_find_species(app_lw->app, sp_name);
-  if (sidx < 0)
+  if (sidx < 0) {
     return luaL_error(L, "Incorrect species name '%s' in from_frame_species!", sp_name);
+  }
   
-  struct gkyl_app_restart_status status =
-    gkyl_moment_app_from_frame_species(app_lw->app, sidx, frame);
+  struct gkyl_app_restart_status status = gkyl_moment_app_from_frame_species(app_lw->app, sidx, frame);
 
   push_restart_status_table(L, status);
   
   return 1;
 }
 
-// Compute integrated moments. (tm) -> bool
+// Compute integrated moments. (tm) -> bool.
 static int
 mom_app_calc_integrated_mom(lua_State *L)
 {
@@ -1109,7 +2303,7 @@ mom_app_calc_integrated_mom(lua_State *L)
   return 1;
 }
 
-// get number of field-energy diagnostics stored () -> int
+// get number of field-energy diagnostics stored () -> int.
 static int
 mom_app_field_energy_ndiag(lua_State *L)
 {
@@ -1120,7 +2314,7 @@ mom_app_field_energy_ndiag(lua_State *L)
   return 1;
 }
 
-// Return the field energy as a table () -> table
+// Return the field energy as a table () -> table.
 static int
 mom_app_get_field_energy(lua_State *L)
 {
@@ -1133,8 +2327,8 @@ mom_app_get_field_energy(lua_State *L)
 
   lua_createtable(L, nvals, 0);
 
-  for (int i=0; i<nvals; ++i) {
-    lua_pushinteger(L, i+1);
+  for (int i = 0; i < nvals; i++) {
+    lua_pushinteger(L, i + 1);
     lua_pushnumber(L, vals[i]);
     lua_rawset(L, -3);
   }  
@@ -1143,7 +2337,7 @@ mom_app_get_field_energy(lua_State *L)
 }
 
 // Compute integrated field energy (L2 norm of each field
-// component). (tm) -> bool
+// component). (tm) -> bool.
 static int
 mom_app_calc_field_energy(lua_State *L)
 {
@@ -1159,7 +2353,7 @@ mom_app_calc_field_energy(lua_State *L)
   return 1;
 }
 
-// Write solution (field and species) to file (time, frame) -> bool
+// Write solution (field and species) to file (time, frame) -> bool.
 static int
 mom_app_write(lua_State *L)
 {
@@ -1176,7 +2370,7 @@ mom_app_write(lua_State *L)
   return 1;
 }
 
-// Write field to file (time, frame) -> bool
+// Write field to file (time, frame) -> bool.
 static int
 mom_app_write_field(lua_State *L)
 {
@@ -1193,7 +2387,7 @@ mom_app_write_field(lua_State *L)
   return 1;
 }
 
-// Write species solution to file (name, time, frame) -> bool
+// Write species solution to file (name, time, frame) -> bool.
 static int
 mom_app_write_species(lua_State *L)
 {
@@ -1204,8 +2398,9 @@ mom_app_write_species(lua_State *L)
 
   const char *sp_name = luaL_checkstring(L, 2);
   int sidx = app_find_species(app_lw->app, sp_name);
-  if (sidx < 0)
+  if (sidx < 0) {
     return luaL_error(L, "Incorrect species name '%s' in write_species!", sp_name);
+  }
 
   double tm = luaL_checknumber(L, 3);
   int frame = luaL_checkinteger(L, 4);
@@ -1215,7 +2410,7 @@ mom_app_write_species(lua_State *L)
   return 1;
 }
 
-// Write integrated moments to file () -> bool
+// Write integrated moments to file () -> bool.
 static int
 mom_app_write_integrated_mom(lua_State *L)
 {
@@ -1230,7 +2425,7 @@ mom_app_write_integrated_mom(lua_State *L)
   return 1;
 }
 
-// Write integrated field energy to file () -> bool
+// Write integrated field energy to file () -> bool.
 static int
 mom_app_write_field_energy(lua_State *L)
 {
@@ -1245,7 +2440,7 @@ mom_app_write_field_energy(lua_State *L)
   return 1;
 }
 
-// Write simulation statistics to JSON. () -> bool
+// Write simulation statistics to JSON. () -> bool.
 static int
 mom_app_stat_write(lua_State *L)
 {
@@ -1260,18 +2455,41 @@ mom_app_stat_write(lua_State *L)
   return 1;  
 }
 
-// Write data from simulation to file
+// Write data from simulation to file.
 static void
-write_data(struct gkyl_tm_trigger *iot, gkyl_moment_app *app, double tcurr)
+write_data(struct gkyl_tm_trigger* iot, gkyl_moment_app* app, double t_curr, bool force_write)
 {
-  if (gkyl_tm_trigger_check_and_bump(iot, tcurr)) {
-    gkyl_moment_app_write(app, tcurr, iot->curr-1);
-    gkyl_moment_app_write_integrated_mom(app);
+  if (gkyl_tm_trigger_check_and_bump(iot, t_curr)) {
+    int frame = iot->curr - 1;
+    if (force_write) {
+      frame = iot->curr;
+    }
+
+    gkyl_moment_app_write(app, t_curr, frame);
     gkyl_moment_app_write_field_energy(app);
+    gkyl_moment_app_write_integrated_mom(app);
   }
 }
 
-// Update status table is as follows
+// Calculate and append field energy to dynvector.
+static void
+calc_field_energy(struct gkyl_tm_trigger* fet, gkyl_moment_app* app, double t_curr)
+{
+  if (gkyl_tm_trigger_check_and_bump(fet, t_curr)) {
+    gkyl_moment_app_calc_field_energy(app, t_curr);
+  }
+}
+
+// Calculate and append integrated moments to dynvector.
+static void
+calc_integrated_mom(struct gkyl_tm_trigger* imt, gkyl_moment_app* app, double t_curr)
+{
+  if (gkyl_tm_trigger_check_and_bump(imt, t_curr)) {
+    gkyl_moment_app_calc_integrated_mom(app, t_curr);
+  }
+}
+
+// Update status table has the following structure:
 // {
 //    success = true or false
 //    dt_actual = actual time-step taken
@@ -1279,7 +2497,7 @@ write_data(struct gkyl_tm_trigger *iot, gkyl_moment_app *app, double tcurr)
 // }
 
 // Update the solution by a suggested time-step. (dt) -> update status
-// table. See above. For details see the C API doc for this function
+// table. See above. For details see the C API doc for this function.
 static int
 mom_app_update(lua_State *L)
 {
@@ -1289,7 +2507,7 @@ mom_app_update(lua_State *L)
   double dt = luaL_checknumber(L, 2);
   struct gkyl_update_status status = gkyl_moment_update(app_lw->app, dt);
 
-  // return status table on stack
+  // Return status table on stack.
   lua_newtable(L);
   lua_pushstring(L, "success");
   lua_pushboolean(L, status.success);
@@ -1306,62 +2524,284 @@ mom_app_update(lua_State *L)
   return 1;
 }
 
-// Run simulation. (num_steps) -> bool. num_steps is optional
+// Step message context.
+struct step_message_trigs {
+  int log_count; // Number of times logging called.
+  int tenth, p1c; 
+  struct gkyl_tm_trigger log_trig; // 10% trigger.
+  struct gkyl_tm_trigger log_trig_1p; // 1% trigger.
+};
+
+// Write log message to console.
+static void
+write_step_message(const struct gkyl_moment_app *app, struct step_message_trigs *trigs, int step, double t_curr, double dt_next)
+{
+  if (gkyl_tm_trigger_check_and_bump(&trigs->log_trig, t_curr)) {
+    if (trigs->log_count > 0) {
+      gkyl_moment_app_cout(app, stdout, " Step %6d at time %#11.8g.  Time-step  %.6e.  Completed %g%s\n", step, t_curr, dt_next, trigs->tenth * 10.0, "%");
+    }
+    else {
+      trigs->log_count += 1;
+    }
+    
+    trigs->tenth += 1;
+  }
+  if (gkyl_tm_trigger_check_and_bump(&trigs->log_trig_1p, t_curr)) {
+    gkyl_moment_app_cout(app, stdout, "%d", trigs->p1c);
+    trigs->p1c = (trigs->p1c+1) % 10;
+  }
+}
+
+static void
+show_help(const struct gkyl_moment_app *app)
+{
+  gkyl_moment_app_cout(app, stdout, "Moment script takes the following arguments:\n");
+  gkyl_moment_app_cout(app, stdout, " -h   Print this help message and exit\n");
+  gkyl_moment_app_cout(app, stdout, " -V   Show verbose output\n");
+  gkyl_moment_app_cout(app, stdout, " -rN  Restart simulation from frame N\n");
+  gkyl_moment_app_cout(app, stdout, " -sN  Only run N steps of simulation\n");
+
+  gkyl_moment_app_cout(app, stdout, "\n");
+}
+
+static struct gkyl_tool_args *
+tool_args_from_argv(int optind, int argc, char *const*argv)
+{
+  struct gkyl_tool_args *targs = gkyl_malloc(sizeof *targs);
+  
+  targs->argc = argc-optind;
+  targs->argv = 0;
+
+  if (targs->argc > 0) {
+    targs->argv = gkyl_malloc(targs->argc*sizeof(char *));
+      for (int i = optind, j = 0; i < argc; ++i, ++j) {
+        targs->argv[j] = gkyl_malloc(strlen(argv[i])+1);
+        strcpy(targs->argv[j], argv[i]);
+      }
+  }
+
+  return targs;
+}
+
+// CLI parser for main script
+struct script_cli {
+  bool help; // show help
+  bool step_mode; // run for fixed number of steps? (for valgrind/cuda-memcheck)
+  int num_steps; // number of steps
+  bool use_verbose; // Should we use verbose output?
+  bool is_restart; // Is this a restarted simulation?
+  int restart_frame; // Which frame to restart simulation from.  
+  
+  struct gkyl_tool_args *rest;
+};
+
+static struct script_cli
+mom_parse_script_cli(struct gkyl_tool_args *acv)
+{
+  struct script_cli cli = {
+    .help =- false,
+    .step_mode = false,
+    .num_steps = INT_MAX,
+    .use_verbose = false,
+    .is_restart = false,
+    .restart_frame = 0,
+  };
+  
+  coption_long longopts[] = {
+    {0}
+  };
+  const char* shortopts = "+hVs:r:";
+
+  coption opt = coption_init();
+  int c;
+  while ((c = coption_get(&opt, acv->argc, acv->argv, shortopts, longopts)) != -1) {
+    switch (c) {
+      case 'h':
+        cli.help = true;
+        break;
+        
+      case 'V':
+        cli.use_verbose = true;
+        break;
+
+      case 's':
+        cli.num_steps = atoi(opt.arg);
+        break;
+      
+      case 'r':
+        cli.is_restart = true;
+        cli.restart_frame = atoi(opt.arg);
+        break;        
+        
+      case '?':
+        break;
+    }
+  }
+
+  cli.rest = tool_args_from_argv(opt.ind, acv->argc, acv->argv);
+  
+  return cli;
+}
+    
+
+// Run simulation. (num_steps) -> bool. num_steps is optional.
 static int
 mom_app_run(lua_State *L)
 {
   bool ret_status = true;
 
+  // Create app object.
   struct moment_app_lw **l_app_lw = GKYL_CHECK_UDATA(L, MOMENT_APP_METATABLE_NM);
   struct moment_app_lw *app_lw = *l_app_lw;
   struct gkyl_moment_app *app = app_lw->app;
 
-  double tcurr = app_lw->tstart;
-  double tend = app_lw->tend;
-  double dt = tend-tcurr;
-  long num_steps = luaL_optinteger(L, 2, INT_MAX);
+  // Parse command lines arguments passed to input file.
+  struct gkyl_tool_args *args = gkyl_tool_args_new(L);
 
-  int nframe = app_lw->nframe;
+  struct script_cli script_cli = mom_parse_script_cli(args);
+  if (script_cli.help) {
+    show_help(app);
+    gkyl_tool_args_release(script_cli.rest);
+    gkyl_tool_args_release(args);
+    goto freeresources;
+  }
 
-  // create trigger for IO
-  struct gkyl_tm_trigger io_trig = { .dt = tend/nframe };
+  gkyl_tool_args_release(script_cli.rest);
+  gkyl_tool_args_release(args);
 
-  // initialize simulation
-  gkyl_moment_app_apply_ic(app, tcurr);
-  gkyl_moment_app_calc_integrated_mom(app, tcurr);
-  gkyl_moment_app_calc_field_energy(app, tcurr);
+  // Initial and final simulation times.
+  double t_curr = app_lw->t_start, t_end = app_lw->t_end;
+  long num_steps = script_cli.num_steps;
+
+  gkyl_moment_app_cout(app, stdout, "Initializing Moments Simulation ...\n");
+
+  // Initialize simulation.
+  bool is_restart = script_cli.is_restart;
+  int restart_frame = script_cli.restart_frame;
+
+  int frame_curr = 0;
+  if (is_restart) {
+    struct gkyl_app_restart_status status = gkyl_moment_app_read_from_frame(app, restart_frame);
+
+    if (status.io_status != GKYL_ARRAY_RIO_SUCCESS) {
+      gkyl_moment_app_cout(app, stderr, "*** Failed to read restart file! (%s)\n", gkyl_array_rio_status_msg(status.io_status));
+      goto freeresources;
+    }
+
+    frame_curr = status.frame;
+    t_curr = status.stime;
+
+    gkyl_moment_app_cout(app, stdout, "Restarting from frame %d", frame_curr);
+    gkyl_moment_app_cout(app, stdout, " at time = %g\n", t_curr);
+  }
+  else {
+    gkyl_moment_app_apply_ic(app, t_curr);
+  }
+
+  int num_frames = app_lw->num_frames;
+  int field_energy_calcs = app_lw->field_energy_calcs;
+  int integrated_mom_calcs = app_lw->integrated_mom_calcs;
+  // Triggers for IO and logging.
+  struct gkyl_tm_trigger io_trig = { .dt = (t_end - t_curr) / num_frames, .tcurr = t_curr, .curr = frame_curr };
+  struct gkyl_tm_trigger fe_trig = { .dt = (t_end - t_curr) / field_energy_calcs, .tcurr = t_curr, .curr = frame_curr };
+  struct gkyl_tm_trigger im_trig = { .dt = (t_end - t_curr) / integrated_mom_calcs, .tcurr = t_curr, .curr = frame_curr };
+
+  struct step_message_trigs m_trig = {
+    .log_count = 0,
+    .tenth = t_curr > 0.0 ? 0.0 : (int) floor(t_curr / t_end * 10.0),
+    .p1c = t_curr > 0.0 ? 0.0 : (int) floor(t_curr / t_end * 100.0) % 10,
+    .log_trig = { .dt = (t_end - t_curr) / 10.0 },
+    .log_trig_1p = { .dt = (t_end - t_curr) / 100.0 },
+  };
+
+  struct timespec tm_ic0 = gkyl_wall_clock();
+  // Initialize simulation.
+  calc_field_energy(&fe_trig, app, t_curr);
+  calc_integrated_mom(&im_trig, app, t_curr);
+  write_data(&io_trig, app, t_curr, false);
   
-  write_data(&io_trig, app, tcurr);
+  gkyl_moment_app_cout(app, stdout, "Initialization completed in %g sec\n\n", gkyl_time_diff_now_sec(tm_ic0));
+
+  // Compute initial guess of maximum stable time-step.
+  double dt = t_end - t_curr;
+
+  // Initialize small time-step check.
+  double dt_init = -1.0, dt_failure_tol = app_lw->dt_failure_tol;
+  int num_failures = 0, num_failures_max = app_lw->num_failures_max;
+
+  bool use_verbose = script_cli.use_verbose;
 
   long step = 1;
-  while ((tcurr < tend) && (step <= num_steps)) {
-    gkyl_moment_app_cout(app, stdout, "Taking time-step at t = %g ...", tcurr);
+  while ((t_curr < t_end) && (step <= num_steps)) {
+    if (use_verbose) {
+      gkyl_moment_app_cout(app, stdout, "Taking time-step %ld at t = %g ...", step, t_curr);
+    }
     struct gkyl_update_status status = gkyl_moment_update(app, dt);
-    gkyl_moment_app_cout(app, stdout, " dt = %g\n", status.dt_actual);
-
+    if (use_verbose) {
+      gkyl_moment_app_cout(app, stdout, " dt = %g\n", status.dt_actual);
+    }
+    
     if (!status.success) {
-      ret_status = false;
       gkyl_moment_app_cout(app, stdout, "** Update method failed! Aborting simulation ....\n");
       break;
     }
-    tcurr += status.dt_actual;
+
+    t_curr += status.dt_actual;
     dt = status.dt_suggested;
 
-    gkyl_moment_app_calc_integrated_mom(app, tcurr);
-    gkyl_moment_app_calc_field_energy(app, tcurr);
-    
-    write_data(&io_trig, app, tcurr);
+    calc_field_energy(&fe_trig, app, t_curr);
+    calc_integrated_mom(&im_trig, app, t_curr);
+    write_data(&io_trig, app, t_curr, false);
+
+    if (dt_init < 0.0) {
+      dt_init = status.dt_actual;
+    }
+    else if (status.dt_actual < dt_failure_tol * dt_init) {
+      num_failures += 1;
+
+      gkyl_moment_app_cout(app, stdout, "WARNING: Time-step dt = %g", status.dt_actual);
+      gkyl_moment_app_cout(app, stdout, " is below %g*dt_init ...", dt_failure_tol);
+      gkyl_moment_app_cout(app, stdout, " num_failures = %d\n", num_failures);
+      if (num_failures >= num_failures_max) {
+        gkyl_moment_app_cout(app, stdout, "ERROR: Time-step was below %g*dt_init ", dt_failure_tol);
+        gkyl_moment_app_cout(app, stdout, "%d consecutive times. Aborting simulation ....\n", num_failures_max);
+        break;
+      }
+    }
+    else {
+      num_failures = 0;
+    }
+
+    if (!use_verbose) {
+      write_step_message(app, &m_trig, step, t_curr, status.dt_suggested);
+    }
 
     step += 1;
   }
 
+  calc_field_energy(&fe_trig, app, t_curr);
+  calc_integrated_mom(&im_trig, app, t_curr);
+  write_data(&io_trig, app, t_curr, false);
   gkyl_moment_app_stat_write(app);
+
+  struct gkyl_moment_stat stat = gkyl_moment_app_stat(app);
+
+  gkyl_moment_app_cout(app, stdout, "\n\n");
+  gkyl_moment_app_cout(app, stdout, "Number of update calls %ld\n", stat.nup);
+  gkyl_moment_app_cout(app, stdout, "Number of failed time-steps %ld\n", stat.nfail);
+  gkyl_moment_app_cout(app, stdout, "Species updates took %g secs\n", stat.species_tm);
+  gkyl_moment_app_cout(app, stdout, "Field updates took %g secs\n", stat.field_tm);
+  gkyl_moment_app_cout(app, stdout, "Source updates took %g secs\n", stat.sources_tm);
+  gkyl_moment_app_cout(app, stdout, "Total updates took %g secs\n", stat.total_tm);
+  gkyl_moment_app_cout(app, stdout, "See log file for full statistics\n");
+
+freeresources:
 
   lua_pushboolean(L, ret_status);
   return 1;
 }
 
-// Return ghost cell as table of 2 elements
+// Return ghost cell as table of 2 elements.
 static int
 mom_app_nghost(lua_State *L)
 {
@@ -1374,8 +2814,8 @@ mom_app_nghost(lua_State *L)
   
   lua_createtable(L, 3, 0);
 
-  for (int i=0; i<3; ++i) {
-    lua_pushinteger(L, i+1);
+  for (int i = 0; i < 3; i++) {
+    lua_pushinteger(L, i + 1);
     lua_pushinteger(L, nghost[i]);
     lua_rawset(L, -3);
   }
@@ -1383,7 +2823,7 @@ mom_app_nghost(lua_State *L)
   return 1;
 }
 
-// Clean up memory allocated for simulation
+// Clean up memory allocated for simulation.
 static int
 mom_app_gc(lua_State *L)
 {
@@ -1396,7 +2836,7 @@ mom_app_gc(lua_State *L)
   return 0;
 }
 
-// App constructor
+// App constructor.
 static struct luaL_Reg mom_app_ctor[] = {
   { "new",  mom_app_new },
   { 0, 0 }
@@ -1432,7 +2872,7 @@ static struct luaL_Reg mom_app_funcs[] = {
   { "update", mom_app_update },
   { "run", mom_app_run },
 
-  // some low-level functions typically not used by ordinary users
+  // Some low-level functions, typically not used by ordinary users.
   { "nghost", mom_app_nghost },
   { "field_energy_ndiag", mom_app_field_energy_ndiag },
   { "get_field_energy", mom_app_get_field_energy },
@@ -1443,7 +2883,7 @@ static struct luaL_Reg mom_app_funcs[] = {
 static void
 app_openlibs(lua_State *L)
 {
-  // Register top-level App
+  // Register top-level App.
   do {
     luaL_newmetatable(L, MOMENT_APP_METATABLE_NM);
 
@@ -1457,33 +2897,37 @@ app_openlibs(lua_State *L)
     
     luaL_register(L, "G0.Moments.App", mom_app_ctor);
     
-  } while (0);
+  }
+  while (0);
 
-  // Register Species input struct
+  // Register Species input struct.
   do {
     luaL_newmetatable(L, MOMENT_SPECIES_METATABLE_NM);
     luaL_register(L, "G0.Moments.Species", mom_species_ctor);
-  } while (0);
+  }
+  while (0);
 
-  // Register Field input struct
+  // Register Field input struct.
   do {
     luaL_newmetatable(L, MOMENT_FIELD_METATABLE_NM);
     luaL_register(L, "G0.Moments.Field", mom_field_ctor);
-  } while (0);
+  }
+  while (0);
 
-  // add globals and other parameters
+  // Add globals and other parameters.
   do {
-    // table to store references so the objects do not get garbage
-    // collected
+    // Table to store references so the objects do not get garbage-collected.
     lua_newtable(L);
     lua_setglobal(L, "__moment_ref_table");
-  } while (0);
+  }
+  while (0);
 }
 
 void
 gkyl_moment_lw_openlibs(lua_State *L)
 {
   eqn_openlibs(L);
+  spacetime_openlibs(L);
   app_openlibs(L);
 }
 

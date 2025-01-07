@@ -274,6 +274,15 @@ struct gkyl_app_restart_status gkyl_moment_app_from_frame_species(gkyl_moment_ap
   int sidx, int frame);
 
 /**
+ * Initialize the Moment app from a specific frame.
+ *
+ * @param app App object.
+ * @param frame Frame to read.
+ */
+struct gkyl_app_restart_status
+gkyl_moment_app_read_from_frame(gkyl_moment_app *app, int frame);
+
+/**
  * Write output to console: this is mainly for diagnostic messages the
  * driver code wants to write to console. It accounts for parallel
  * output by not messing up the console with messages from each rank.
