@@ -792,7 +792,7 @@ struct gkyl_gyrokinetic_app {
  * @param meta Gyrokinetic metadata object.
  * @return Array metadata object.
  */
-struct gkyl_array_meta*
+struct gkyl_msgpack_data*
 gk_array_meta_new(struct gyrokinetic_output_meta meta);
 
 /**
@@ -801,7 +801,7 @@ gk_array_meta_new(struct gyrokinetic_output_meta meta);
  * @param mt Array metadata object.
  */
 void
-gk_array_meta_release(struct gkyl_array_meta *mt);
+gk_array_meta_release(struct gkyl_msgpack_data *mt);
 
 /**
  * Return the metadata for outputing gyrokinetic data.
@@ -810,7 +810,7 @@ gk_array_meta_release(struct gkyl_array_meta *mt);
  * @return A gyrokinetic metadata object.
  */
 struct gyrokinetic_output_meta
-gk_meta_from_mpack(struct gkyl_array_meta *mt);
+gk_meta_from_mpack(struct gkyl_msgpack_data *mt);
 
 /**
  * Allocate a new gyrokinetic app and initialize its conf-space grid and
