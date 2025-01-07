@@ -7,35 +7,26 @@
 #include <gkyl_comm.h>
 #include <gkyl_comm_io.h>
 
-typedef void (*mc2nu_t)(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx);
-
 enum gkyl_position_map_id {
   GKYL_PMAP_FUNC = 0, // Function projection. User specified. Default
   GKYL_PMAP_UNIFORM_B_POLYNOMIAL, // Makes a uniform dB in each cell
   GKYL_PMAP_UNIFORM_B_NUMERIC, // Makes a uniform dB in each cell, but calculates the dB numerically
 };
 
+struct map_pos {
+  void *ctx; // Context for position mapping.
+  void (*func)(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx); // Position mapping function
+};
+
 struct gkyl_position_map_inp {
   enum gkyl_position_map_id id;
-  mc2nu_t map_x; // Map in the first direction (x, psi, r, etc.)
-  mc2nu_t map_y; // Map in the second direction (y, alpha, theta, etc.)
-  mc2nu_t map_z; // Map in the third direction (z, field line length, etc.)
-  void *ctx_x;  // Context for map_x.
-  void *ctx_y;  // Context for map_y.
-  void *ctx_z;  // Context for map_z.
-
+  struct map_pos maps[3]; // Position mapping functions in each position direction.
   double map_strength; // Zero is uniform mapping, one is fully nonuniform mapping. In between values. Used for the mirror geometry
 };
 
 struct gkyl_position_map {
   enum gkyl_position_map_id id;
-
-  mc2nu_t map_x; // Map in the first direction (x, psi, r, etc.)
-  mc2nu_t map_y; // Map in the second direction (y, alpha, theta, etc.)
-  mc2nu_t map_z; // Map in the third direction (z, field line length, etc.)
-  void *map_x_ctx;  // Context for map_x.
-  void *map_y_ctx;  // Context for map_y.
-  void *map_z_ctx;  // Context for map_z.
+  struct map_pos maps[3]; // Position mapping in each position direction.
 
   double cdim; // Number of computational dimensions.
   struct gkyl_rect_grid grid; // Position space grid.
@@ -51,8 +42,7 @@ struct gkyl_position_map {
 };
 
 struct gkyl_position_map_const_B_ctx {
-  mc2nu_t map_x_backup, map_y_backup, map_z_backup;
-  void *map_x_ctx_backup, *map_y_ctx_backup, *map_z_ctx_backup;
+  struct map_pos maps_backup[3]; // Backup of position mapping functions
   double psi, alpha;
   double theta_throat, Bmag_throat;
   double psi_min, psi_max;

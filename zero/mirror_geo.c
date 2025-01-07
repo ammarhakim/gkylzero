@@ -288,10 +288,10 @@ void gkyl_mirror_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, dou
               }
               arcL_curr = arcL_lo + it*darcL + modifiers[it_delta]*delta_theta*(arcL/2/M_PI);
               double theta_curr = arcL_curr*(2*M_PI/arcL) - M_PI ; 
-              
-              position_map->map_x(0.0, &psi_curr,   &psi_curr,   position_map->map_x_ctx);
-              position_map->map_y(0.0, &alpha_curr, &alpha_curr, position_map->map_y_ctx);
-              position_map->map_z(0.0, &theta_curr, &theta_curr, position_map->map_z_ctx);
+
+              position_map->maps[0].func(0.0, &psi_curr,   &psi_curr,   position_map->maps[0].ctx);
+              position_map->maps[0].func(0.0, &alpha_curr, &alpha_curr, position_map->maps[1].ctx);
+              position_map->maps[0].func(0.0, &theta_curr, &theta_curr, position_map->maps[2].ctx);
               arcL_curr = (theta_curr + M_PI) / (2*M_PI/arc_ctx.arcL_tot);
 
               mirror_set_ridders(inp, &arc_ctx, psi_curr, arcL, arcL_curr, zmin, zmax, &rclose, &ridders_min, &ridders_max);

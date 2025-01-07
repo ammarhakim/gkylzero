@@ -32,79 +32,57 @@ gkyl_position_map_new(struct gkyl_position_map_inp pmap_info, struct gkyl_rect_g
   gpm->bmag_ctx->bmag = 0;
   gpm->constB_ctx = gkyl_malloc(sizeof(struct gkyl_position_map_const_B_ctx));
 
+  gpm->maps[0].func = gkyl_position_map_identity;
+  gpm->maps[0].ctx = NULL;
+  gpm->maps[1].func = gkyl_position_map_identity;
+  gpm->maps[1].ctx = NULL;
+  gpm->maps[2].func = gkyl_position_map_identity;
+  gpm->maps[2].ctx = NULL;
+  gpm->constB_ctx->maps_backup[0].func = gkyl_position_map_identity;
+  gpm->constB_ctx->maps_backup[0].ctx = NULL;
+  gpm->constB_ctx->maps_backup[1].func = gkyl_position_map_identity;
+  gpm->constB_ctx->maps_backup[1].ctx = NULL;
+  gpm->constB_ctx->maps_backup[2].func = gkyl_position_map_identity;
+  gpm->constB_ctx->maps_backup[2].ctx = NULL;
+
   switch (pmap_info.id)
   {
     case GKYL_PMAP_FUNC:
-      if (pmap_info.map_x == 0)
-      { gpm->map_x = gkyl_position_map_identity;
-        gpm->map_x_ctx = NULL;
-      } else
-      { gpm->map_x = pmap_info.map_x;
-        gpm->map_x_ctx = pmap_info.ctx_x;
+      if (pmap_info.maps[0].func != 0)
+      { gpm->maps[0].func = pmap_info.maps[0].func;
+        gpm->maps[0].ctx  = pmap_info.maps[0].ctx;
       }
 
-      if (pmap_info.map_y == 0)
-      { gpm->map_y = gkyl_position_map_identity;
-        gpm->map_y_ctx = NULL;
-      } else
-      { gpm->map_y = pmap_info.map_y;
-        gpm->map_y_ctx = pmap_info.ctx_y;
+      if (pmap_info.maps[1].func != 0)
+      { gpm->maps[1].func = pmap_info.maps[1].func;
+        gpm->maps[1].ctx  = pmap_info.maps[1].ctx ;
       }
 
-      if (pmap_info.map_z == 0)
-      { gpm->map_z = gkyl_position_map_identity;
-        gpm->map_z_ctx = NULL;
-      } else
-      { gpm->map_z = pmap_info.map_z;
-        gpm->map_z_ctx = pmap_info.ctx_z;
+      if (pmap_info.maps[2].func != 0)
+      { gpm->maps[2].func = pmap_info.maps[2].func;
+        gpm->maps[2].ctx  = pmap_info.maps[2].ctx ;
       }
 
     case GKYL_PMAP_UNIFORM_B_POLYNOMIAL:
-      gpm->map_x = gkyl_position_map_identity;
-      gpm->map_x_ctx = NULL;
-      if (pmap_info.map_x == 0)
-      { gpm->constB_ctx->map_x_backup = gkyl_position_map_identity;
-        gpm->constB_ctx->map_x_ctx_backup = NULL;
-      } else
-      { gpm->constB_ctx->map_x_backup = pmap_info.map_x;
-        gpm->constB_ctx->map_x_ctx_backup = pmap_info.ctx_x;
+      if (pmap_info.maps[0].func != 0)
+      { gpm->constB_ctx->maps_backup[0].func = pmap_info.maps[0].func;
+        gpm->constB_ctx->maps_backup[0].ctx  = pmap_info.maps[0].ctx;
       }
-
-      gpm->map_y = gkyl_position_map_identity;
-      gpm->map_y_ctx = NULL;
-      if (pmap_info.map_y == 0)
-      { gpm->constB_ctx->map_y_backup = gkyl_position_map_identity;
-        gpm->constB_ctx->map_y_ctx_backup = NULL;
-      } else
-      { gpm->constB_ctx->map_y_backup = pmap_info.map_y;
-        gpm->constB_ctx->map_y_ctx_backup = pmap_info.ctx_y;
+      if (pmap_info.maps[1].func != 0)
+      { gpm->constB_ctx->maps_backup[1].func = pmap_info.maps[1].func;
+        gpm->constB_ctx->maps_backup[1].ctx  = pmap_info.maps[1].ctx ;
       }
-      gpm->map_z = gkyl_position_map_identity;
-      gpm->map_z_ctx = gpm->constB_ctx;
       gpm->constB_ctx->map_strength = pmap_info.map_strength;
 
     case GKYL_PMAP_UNIFORM_B_NUMERIC:
-      gpm->map_x = gkyl_position_map_identity;
-      gpm->map_x_ctx = NULL;
-      if (pmap_info.map_x == 0)
-      { gpm->constB_ctx->map_x_backup = gkyl_position_map_identity;
-        gpm->constB_ctx->map_x_ctx_backup = NULL;
-      } else
-      { gpm->constB_ctx->map_x_backup = pmap_info.map_x;
-        gpm->constB_ctx->map_x_ctx_backup = pmap_info.ctx_x;
+      if (pmap_info.maps[0].func != 0)
+      { gpm->constB_ctx->maps_backup[0].func = pmap_info.maps[0].func;
+        gpm->constB_ctx->maps_backup[0].ctx  = pmap_info.maps[0].ctx;
       }
-
-      gpm->map_y = gkyl_position_map_identity;
-      gpm->map_y_ctx = NULL;
-      if (pmap_info.map_y == 0)
-      { gpm->constB_ctx->map_y_backup = gkyl_position_map_identity;
-        gpm->constB_ctx->map_y_ctx_backup = NULL;
-      } else
-      { gpm->constB_ctx->map_y_backup = pmap_info.map_y;
-        gpm->constB_ctx->map_y_ctx_backup = pmap_info.ctx_y;
+      if (pmap_info.maps[1].func != 0)
+      { gpm->constB_ctx->maps_backup[1].func = pmap_info.maps[1].func;
+        gpm->constB_ctx->maps_backup[1].ctx  = pmap_info.maps[1].ctx ;
       }
-      gpm->map_z = gkyl_position_map_identity;
-      gpm->map_z_ctx = gpm->constB_ctx;
       gpm->constB_ctx->map_strength = pmap_info.map_strength;
   }
 
@@ -185,38 +163,38 @@ gkyl_position_map_optimize(struct gkyl_position_map* gpm)
 {
   if (gpm->id == GKYL_PMAP_UNIFORM_B_POLYNOMIAL && gpm->bmag_ctx->bmag != 0)
   {
-    gpm->map_x     = gpm->constB_ctx->map_x_backup;
-    gpm->map_x_ctx = gpm->constB_ctx->map_x_ctx_backup;
-    gpm->map_y     = gpm->constB_ctx->map_y_backup;
-    gpm->map_y_ctx = gpm->constB_ctx->map_y_ctx_backup;
-    gpm->map_z     = position_map_constB_z_polynomial;
-    gpm->map_z_ctx = gpm->constB_ctx;
+    gpm->maps[0].func = gpm->constB_ctx->maps_backup[0].func;
+    gpm->maps[0].ctx  = gpm->constB_ctx->maps_backup[0].ctx;
+    gpm->maps[1].func = gpm->constB_ctx->maps_backup[1].func;
+    gpm->maps[1].ctx  = gpm->constB_ctx->maps_backup[1].ctx;
+    gpm->maps[2].func = position_map_constB_z_polynomial;
+    gpm->maps[2].ctx  = gpm->constB_ctx;
 
     gpm->bmag_ctx->crange_global = &gpm->global;
     gpm->bmag_ctx->cbasis = &gpm->basis;
     gpm->bmag_ctx->cgrid = &gpm->grid;
 
-    gpm->constB_ctx->psi = (gpm->constB_ctx->psi_min + gpm->constB_ctx->psi_max) / 2;
-    gpm->constB_ctx->alpha = (gpm->constB_ctx->alpha_min + gpm->constB_ctx->alpha_max) / 2;
+    gpm->constB_ctx->psi    = (gpm->constB_ctx->psi_min + gpm->constB_ctx->psi_max) / 2;
+    gpm->constB_ctx->alpha  = (gpm->constB_ctx->alpha_min + gpm->constB_ctx->alpha_max) / 2;
 
     calculate_mirror_throat_location_polynomial(gpm->constB_ctx, gpm->bmag_ctx);
     calculate_optimal_mapping_polynomial(gpm->constB_ctx, gpm->bmag_ctx);
   }
   else if (gpm->id == GKYL_PMAP_UNIFORM_B_NUMERIC && gpm->bmag_ctx->bmag != 0)
   {
-    gpm->map_x     = gpm->constB_ctx->map_x_backup;
-    gpm->map_x_ctx = gpm->constB_ctx->map_x_ctx_backup;
-    gpm->map_y     = gpm->constB_ctx->map_y_backup;
-    gpm->map_y_ctx = gpm->constB_ctx->map_y_ctx_backup;
-    gpm->map_z     = position_map_constB_z_numeric;
-    gpm->map_z_ctx = gpm;
+    gpm->maps[0].func = gpm->constB_ctx->maps_backup[0].func;
+    gpm->maps[0].ctx  = gpm->constB_ctx->maps_backup[0].ctx;
+    gpm->maps[1].func = gpm->constB_ctx->maps_backup[1].func;
+    gpm->maps[1].ctx  = gpm->constB_ctx->maps_backup[1].ctx;
+    gpm->maps[2].func = position_map_constB_z_numeric;
+    gpm->maps[2].ctx  = gpm;
 
     gpm->bmag_ctx->crange_global = &gpm->global;
-    gpm->bmag_ctx->cbasis = &gpm->basis;
-    gpm->bmag_ctx->cgrid = &gpm->grid;
+    gpm->bmag_ctx->cbasis        = &gpm->basis;
+    gpm->bmag_ctx->cgrid         = &gpm->grid;
 
-    gpm->constB_ctx->psi = (gpm->constB_ctx->psi_min + gpm->constB_ctx->psi_max) / 2;
-    gpm->constB_ctx->alpha = (gpm->constB_ctx->alpha_min + gpm->constB_ctx->alpha_max) / 2;
+    gpm->constB_ctx->psi    = (gpm->constB_ctx->psi_min + gpm->constB_ctx->psi_max) / 2;
+    gpm->constB_ctx->alpha  = (gpm->constB_ctx->alpha_min + gpm->constB_ctx->alpha_max) / 2;
 
     find_B_field_extrema(gpm);
   }

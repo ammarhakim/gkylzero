@@ -631,8 +631,8 @@ main(int argc, char **argv)
       .tok_grid_info = ginp,
       .position_map_info = {
         .id = GKYL_PMAP_FUNC,
-        .map_z = nonuniform_position_map_z,
-        .ctx_z = &ctx,
+        .maps[2].func = nonuniform_position_map_z,
+        .maps[2].ctx = &ctx,
       },
     },
 
