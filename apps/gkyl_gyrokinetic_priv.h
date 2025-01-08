@@ -22,6 +22,7 @@
 #include <gkyl_bc_sheath_gyrokinetic.h>
 #include <gkyl_bc_twistshift.h>
 #include <gkyl_bgk_collisions.h>
+#include <gkyl_boundary_flux.h>
 #include <gkyl_dg_advection.h>
 #include <gkyl_dg_bin_ops.h>
 #include <gkyl_dg_calc_gk_rad_vars.h>
@@ -47,7 +48,6 @@
 #include <gkyl_fem_parproj.h>
 #include <gkyl_fem_poisson_bctype.h>
 #include <gkyl_deflated_fem_poisson.h>
-#include <gkyl_ghost_surf_calc.h>
 #include <gkyl_gk_geometry.h>
 #include <gkyl_gk_geometry_mapc2p.h>
 #include <gkyl_gk_geometry_tok.h>
@@ -261,7 +261,8 @@ struct gk_lbo_collisions {
   
   struct gkyl_array *self_nu, *self_nu_prim_moms; // LBO self-primitive moments
 
-  struct gk_species_moment moms; // moments needed in LBO (single array includes Zeroth, First, and Second moment)
+  struct gk_species_moment moms; // Moments needed in LBO (M0, M1, M2).
+  gkyl_dg_bin_op_mem *dg_div_mem; // Memory needed for weak division.
 
   struct gkyl_array *m0;
   struct gkyl_array *vtsq;
@@ -269,7 +270,6 @@ struct gk_lbo_collisions {
   struct gkyl_array *self_mnu_m0[GKYL_MAX_SPECIES], *self_mnu[GKYL_MAX_SPECIES];
   struct gkyl_array *other_mnu_m0[GKYL_MAX_SPECIES], *other_mnu[GKYL_MAX_SPECIES];
   struct gkyl_array *greene_num[GKYL_MAX_SPECIES], *greene_den[GKYL_MAX_SPECIES];
-  gkyl_dg_bin_op_mem *greene_factor_mem; // memory needed in computing Greene factor
   struct gkyl_array *greene_factor[GKYL_MAX_SPECIES];
 
   int num_cross_collisions; // number of species we cross-collide with
@@ -320,7 +320,7 @@ struct gk_bgk_collisions {
   struct gkyl_array *nu_init; // Array for initial collisionality when using Spitzer updater
   struct gkyl_spitzer_coll_freq* spitzer_calc; // Updater for Spitzer collisionality if computing Spitzer value
 
-  struct gk_species_moment moms; // moments needed in BGK (single array includes Zeroth, First, and Second moment)
+  struct gk_species_moment moms; // Moments needed in BGK (M0, M1, M2).
   struct gkyl_array *m0;
   struct gkyl_array *vtsq;
   
@@ -347,7 +347,7 @@ struct gk_bgk_collisions {
 
 struct gk_boundary_fluxes {
   struct gk_species_moment gammai[2*GKYL_MAX_CDIM]; // integrated moments
-  gkyl_ghost_surf_calc *flux_slvr; // boundary flux solver
+  gkyl_boundary_flux *flux_slvr[2*GKYL_MAX_CDIM]; // boundary flux solver
 };
 
 struct gk_react {
@@ -543,6 +543,11 @@ struct gk_species {
   struct gkyl_range lower_ghost[GKYL_MAX_DIM];
   struct gkyl_range upper_skin[GKYL_MAX_DIM];
   struct gkyl_range upper_ghost[GKYL_MAX_DIM];
+  // Global skin/ghost ranges, valid (i.e. volume>0) in ranks abutting boundaries.
+  struct gkyl_range global_lower_skin[GKYL_MAX_DIM];
+  struct gkyl_range global_lower_ghost[GKYL_MAX_DIM];
+  struct gkyl_range global_upper_skin[GKYL_MAX_DIM];
+  struct gkyl_range global_upper_ghost[GKYL_MAX_DIM];
   // GK_IWL sims need SOL ghost and skin ranges.
   struct gkyl_range lower_skin_par_sol, lower_ghost_par_sol;
   struct gkyl_range upper_skin_par_sol, upper_ghost_par_sol;
@@ -589,9 +594,6 @@ struct gk_species {
   bool is_first_ps_integ_write_call; // Flag first time writing ps_integ_diag.
 
   double *omega_cfl;
-
-  // vtsq_min
-  double vtsq_min; 
 };
 
 // neutral species data
@@ -655,6 +657,11 @@ struct gk_neut_species {
   struct gkyl_range lower_ghost[GKYL_MAX_DIM];
   struct gkyl_range upper_skin[GKYL_MAX_DIM];
   struct gkyl_range upper_ghost[GKYL_MAX_DIM];
+  // Global skin/ghost ranges, valid (i.e. volume>0) in ranks abutting boundaries.
+  struct gkyl_range global_lower_skin[GKYL_MAX_DIM];
+  struct gkyl_range global_lower_ghost[GKYL_MAX_DIM];
+  struct gkyl_range global_upper_skin[GKYL_MAX_DIM];
+  struct gkyl_range global_upper_ghost[GKYL_MAX_DIM];
 
   struct gk_proj proj_init; // projector for initial conditions
 
@@ -670,9 +677,6 @@ struct gk_neut_species {
   }; 
 
   struct gk_react react_neut; // reaction object
-
-  // vtsq_min
-  double vtsq_min; 
 
   double *omega_cfl;
 };
@@ -756,6 +760,7 @@ struct gkyl_gyrokinetic_app {
   int poly_order; // polynomial order
   double tcurr; // current time
   double cfl; // CFL number
+  double bmag_ref; // Reference magnetic field
 
   bool use_gpu; // should we use GPU (if present)
 
@@ -772,6 +777,11 @@ struct gkyl_gyrokinetic_app {
   struct gkyl_range lower_ghost[GKYL_MAX_DIM];
   struct gkyl_range upper_skin[GKYL_MAX_DIM];
   struct gkyl_range upper_ghost[GKYL_MAX_DIM];
+  // Global skin/ghost ranges, valid (i.e. volume>0) in ranks abutting boundaries.
+  struct gkyl_range global_lower_skin[GKYL_MAX_DIM];
+  struct gkyl_range global_lower_ghost[GKYL_MAX_DIM];
+  struct gkyl_range global_upper_skin[GKYL_MAX_DIM];
+  struct gkyl_range global_upper_ghost[GKYL_MAX_DIM];
 
   struct gkyl_basis basis, neut_basis; // phase-space and phase-space basis for neutrals
   struct gkyl_basis confBasis; // conf-space basis
@@ -836,6 +846,27 @@ gk_array_meta_release(struct gkyl_array_meta *mt);
  */
 struct gyrokinetic_output_meta
 gk_meta_from_mpack(struct gkyl_array_meta *mt);
+
+/**
+ * Allocate a new gyrokinetic app and initialize its conf-space grid and
+ * geometry. This method needs to be complemented by
+ * gkyl_gyrokinetic_app_new_solver below.
+ *
+ * @param gk Gyrokinetic input struct.
+ * @return A gyrokinetic app object.
+ */
+gkyl_gyrokinetic_app*
+gkyl_gyrokinetic_app_new_geom(struct gkyl_gk *gk);
+
+/**
+ * Initialize the rest of the gyrokinetic app solver, after having called
+ * the gkyl_gyrokinetic_app_new_geom method.
+ *
+ * @param gk Gyrokinetic input struct.
+ * @param app Gyrokinetic app.
+ */
+void
+gkyl_gyrokinetic_app_new_solver(struct gkyl_gk *gk, gkyl_gyrokinetic_app *app);
 
 /**
  * Find species with given name.
@@ -1840,7 +1871,7 @@ void gk_field_calc_energy(gkyl_gyrokinetic_app *app, double tm, const struct gk_
  */
 void gk_field_release(const gkyl_gyrokinetic_app* app, struct gk_field *f);
 
-/** Time stepping PI */
+/** Time stepping API */
 
 /**
  * Compute the gyrokinetic fields.

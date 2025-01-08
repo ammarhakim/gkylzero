@@ -77,11 +77,7 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
     }
   } else {
 
-    struct gkyl_array* bmag_mid_host = app->use_gpu? mkarr(false, 1, 1) : gkyl_array_acquire(app->gk_geom->bmag_mid);
-    gkyl_array_copy(bmag_mid_host, app->gk_geom->bmag_mid);
-    double *bmag_mid_ptr = gkyl_array_fetch(bmag_mid_host, 0);
-    double polarization_bmag = f->info.polarization_bmag ? f->info.polarization_bmag : bmag_mid_ptr[0];
-    gkyl_array_release(bmag_mid_host);
+    double polarization_bmag = f->info.polarization_bmag ? f->info.polarization_bmag : app->bmag_ref;
     // Linearized polarization density
     for (int i=0; i<app->num_species; ++i) {
       struct gk_species *s = &app->species[i];

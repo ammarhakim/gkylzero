@@ -17,7 +17,6 @@ gkyl_calc_derived_geo_new(const struct gkyl_basis *cbasis, const struct gkyl_rec
   up->grid = grid;
   up->use_gpu = use_gpu;
   up->kernel = derived_geo_choose_kernel(up->cdim, cbasis->b_type, up->poly_order);
-  up->adjustment_kernel = adjust_bmag_choose_kernel(up->cdim, cbasis->b_type, up->poly_order);
   return up;
 }
 
