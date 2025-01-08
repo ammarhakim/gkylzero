@@ -37,7 +37,7 @@ typedef int (*gkyl_array_per_sync_t)(struct gkyl_comm *comm,
 typedef int (*gkyl_array_write_t)(struct gkyl_comm *comm,
   const struct gkyl_rect_grid *grid,
   const struct gkyl_range *range,
-  const struct gkyl_array_meta *meta,                                
+  const struct gkyl_msgpack_data *meta,                                
   const struct gkyl_array *arr, const char *fname);
 
 // Read array from specified file
