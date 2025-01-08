@@ -248,13 +248,9 @@ GKYL_CU_DH void gkyl_array_integrate_op_eps_gradperp_sq_2x_ser_p1(double *dxSq, 
   dfdx0Sq[0] = (6.0*(fIn[3]*fIn[3])+6.0*(fIn[1]*fIn[1]))/dxSq[0]; 
   dfdx0Sq[2] = (12.0*fIn[1]*fIn[3])/dxSq[0]; 
 
-  double dfdx1Sq[4] = {0.};
-  dfdx1Sq[0] = (6.0*(fIn[3]*fIn[3])+6.0*(fIn[2]*fIn[2]))/dxSq[1]; 
-  dfdx1Sq[1] = (12.0*fIn[2]*fIn[3])/dxSq[1]; 
-
   const double volFac = vol;
 
-  out[0] += (dfdx0Sq[2]*weight[2]+dfdx1Sq[1]*weight[1]+(dfdx1Sq[0]+dfdx0Sq[0])*weight[0])*volFac;
+  out[0] += (dfdx0Sq[2]*weight[2]+dfdx0Sq[0]*weight[0])*volFac;
 }
 
 GKYL_CU_DH void gkyl_array_integrate_op_eps_gradperp_sq_2x_ser_p2(double *dxSq, double vol, int num_comp, int num_basis, const double *weight, const double *fIn, double *out) 
@@ -270,19 +266,9 @@ GKYL_CU_DH void gkyl_array_integrate_op_eps_gradperp_sq_2x_ser_p2(double *dxSq, 
   dfdx0Sq[6] = (53.665631459994955*fIn[4]*fIn[6])/dxSq[0]; 
   dfdx0Sq[7] = (26.832815729997478*fIn[4]*fIn[7]+24.0*fIn[3]*fIn[6])/dxSq[0]; 
 
-  double dfdx1Sq[8] = {0.};
-  dfdx1Sq[0] = (30.0*(fIn[7]*fIn[7])+6.0*(fIn[6]*fIn[6])+30.0*(fIn[5]*fIn[5])+6.0*(fIn[3]*fIn[3])+6.0*(fIn[2]*fIn[2]))/dxSq[1]; 
-  dfdx1Sq[1] = (0.2*(300.00000000000006*fIn[5]*fIn[7]+53.66563145999495*fIn[3]*fIn[6]+60.0*fIn[2]*fIn[3]))/dxSq[1]; 
-  dfdx1Sq[2] = (26.832815729997474*fIn[3]*fIn[7]+26.832815729997478*fIn[2]*fIn[5])/dxSq[1]; 
-  dfdx1Sq[3] = ((24.0*fIn[6]+26.832815729997474*fIn[2])*fIn[7]+26.832815729997478*fIn[3]*fIn[5])/dxSq[1]; 
-  dfdx1Sq[4] = (0.02857142857142857*(939.1485505499119*(fIn[7]*fIn[7])+134.1640786499874*(fIn[6]*fIn[6])+420.00000000000006*fIn[2]*fIn[6]+187.82971010998233*(fIn[3]*fIn[3])))/dxSq[1]; 
-  dfdx1Sq[5] = (26.832815729997478*(fIn[7]*fIn[7])+26.832815729997478*(fIn[5]*fIn[5]))/dxSq[1]; 
-  dfdx1Sq[6] = (24.0*fIn[3]*fIn[7]+26.832815729997478*fIn[5]*fIn[6])/dxSq[1]; 
-  dfdx1Sq[7] = (53.665631459994955*fIn[5]*fIn[7])/dxSq[1]; 
-
   const double volFac = vol;
 
-  out[0] += ((dfdx1Sq[7]+dfdx0Sq[7])*weight[7]+(dfdx1Sq[6]+dfdx0Sq[6])*weight[6]+(dfdx1Sq[5]+dfdx0Sq[5])*weight[5]+(dfdx1Sq[4]+dfdx0Sq[4])*weight[4]+(dfdx1Sq[3]+dfdx0Sq[3])*weight[3]+(dfdx1Sq[2]+dfdx0Sq[2])*weight[2]+(dfdx1Sq[1]+dfdx0Sq[1])*weight[1]+(dfdx1Sq[0]+dfdx0Sq[0])*weight[0])*volFac;
+  out[0] += (dfdx0Sq[7]*weight[7]+dfdx0Sq[6]*weight[6]+dfdx0Sq[5]*weight[5]+dfdx0Sq[4]*weight[4]+dfdx0Sq[3]*weight[3]+dfdx0Sq[2]*weight[2]+dfdx0Sq[1]*weight[1]+dfdx0Sq[0]*weight[0])*volFac;
 }
 
 GKYL_CU_DH void gkyl_array_integrate_op_eps_gradperp_sq_3x_ser_p1(double *dxSq, double vol, int num_comp, int num_basis, const double *weight, const double *fIn, double *out) 
