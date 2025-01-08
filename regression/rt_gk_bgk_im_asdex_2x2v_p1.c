@@ -63,7 +63,8 @@ eval_density(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fo
   double x = xn[0], z = xn[1];
   double floor = 0.01;
 
-  fout[0] = fmax(exp(-128.48398224*x+62.52416972), floor); // The coefficients from fitting the data points on Fig. 7 Carralero 2017 Nuclear Fusion.
+  //fout[0] = fmax(exp(-128.48398224*x+62.52416972), floor); // The coefficients from fitting the data points on Fig. 7 Carralero 2017 Nuclear Fusion.
+  fout[0] = fmax(exp(-269.89663849*x+85.77849169), floor); // High density case.
 }
 
 void
@@ -101,16 +102,15 @@ eval_density_source(double t, const double * GKYL_RESTRICT xn, double* GKYL_REST
   double x = xn[0], z = xn[1];
   double lambda_source = app->lambda_source;
   double x_source = app->x_source;
-  double z_source = 0.0;
   double Lz = app->Lz;
-  double source_floor = 1e-10;
+  double z_source = -Lz/4.0;
+  double S0 = 24.08e22;
+  double source_floor = 0.01*S0;
 
-  if (x < x_source + 3*lambda_source)
-    source_floor = 1e-2;
-  if (fabs(z) < Lz/4)
-    fout[0] = 6.0e21*fmax(exp(-(x-x_source)*(x-x_source)/((2*lambda_source)*(2*lambda_source))), source_floor);
+  if (fabs(z-z_source)<Lz/8.0)
+    fout[0] = fmax(S0*exp(-(x-x_source)*(x-x_source)/(2*lambda_source*lambda_source)), source_floor);
   else
-    fout[0] = 6.0e21*1e-40;
+    fout[0] = source_floor;
 }
 
 void
@@ -127,8 +127,9 @@ eval_temp_elc_source(double t, const double * GKYL_RESTRICT xn, double* GKYL_RES
   double lambda_source = app->lambda_source;
   double x_source = app->x_source;
   double Lz = app->Lz;
+  double z_source = -Lz/4.0;
   double eV = GKYL_ELEMENTARY_CHARGE;
-  if ((x < x_source + 3*lambda_source) && (fabs(z) < Lz/4))
+  if ((x < x_source + 3*lambda_source) && (fabs(z-z_source)<Lz/8.0))
     fout[0] = 40.0*eV;
   else
     fout[0] = 1.920292202211762*eV;
@@ -142,8 +143,9 @@ eval_temp_ion_source(double t, const double * GKYL_RESTRICT xn, double* GKYL_RES
   double lambda_source = app->lambda_source;
   double x_source = app->x_source;
   double Lz = app->Lz;
+  double z_source = -Lz/4.0;
   double eV = GKYL_ELEMENTARY_CHARGE;
-  if ((x < x_source + 3*lambda_source) && (fabs(z) < Lz/4))
+  if ((x < x_source + 3*lambda_source) && (fabs(z-z_source)<Lz/8.0))
     fout[0] = 72.0*eV;
   else
     fout[0] = 3.4565259639811785*eV;
@@ -217,7 +219,7 @@ create_ctx(void)
   double Te = 40.0*eV;
   double Ti = 72.0*eV;
   double B0 = 2.57; // Magnetic field magnitude in Tesla
-  double n0 = 6.0e18; // Particle density in 1/m^3
+  double n0 = 2.0e19; // Particle density in 1/m^3
 
   // Derived parameters.
   double vtIon = sqrt(Ti/mi);
@@ -240,8 +242,8 @@ create_ctx(void)
   double Lz = (M_PI-1.0e-14)*2;
 
   // Source parameters.
-  double x_source = 0.160;   // changed from 0.16167
-  double lambda_source = 0.0004;   // Changed from 0.00034, characteristic length scale of n and T
+  double x_source = 0.1534;   
+  double lambda_source = 0.0011;  
 
   // Physical velocity space limits
   double vpar_max_elc = 6.0*vtElc;
@@ -569,7 +571,7 @@ main(int argc, char **argv)
     .cells = { cells_x[0], cells_x[1] },
     .poly_order = 1,
     .basis_type = app_args.basis_type,
-    .cfl_frac = 0.03,
+    .cfl_frac = 0.05,
 
     .enforce_positivity = true,
 
