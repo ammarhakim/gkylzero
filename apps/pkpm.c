@@ -14,10 +14,10 @@
 #include <mpack.h>
 
 // returned gkyl_array_meta must be freed using pkpm_array_meta_release
-static struct gkyl_array_meta*
+static struct gkyl_msgpack_data*
 pkpm_array_meta_new(struct pkpm_output_meta meta)
 {
-  struct gkyl_array_meta *mt = gkyl_malloc(sizeof(*mt));
+  struct gkyl_msgpack_data *mt = gkyl_malloc(sizeof(*mt));
 
   mt->meta_sz = 0;
   mpack_writer_t writer;
@@ -52,7 +52,7 @@ pkpm_array_meta_new(struct pkpm_output_meta meta)
 }
 
 static void
-pkpm_array_meta_release(struct gkyl_array_meta *mt)
+pkpm_array_meta_release(struct gkyl_msgpack_data *mt)
 {
   if (!mt) return;
   MPACK_FREE(mt->meta);
@@ -60,7 +60,7 @@ pkpm_array_meta_release(struct gkyl_array_meta *mt)
 }
 
 static struct pkpm_output_meta
-pkpm_meta_from_mpack(struct gkyl_array_meta *mt)
+pkpm_meta_from_mpack(struct gkyl_msgpack_data *mt)
 {
   struct pkpm_output_meta meta = { .frame = 0, .stime = 0.0 };
 
@@ -418,7 +418,7 @@ gkyl_pkpm_app_write(gkyl_pkpm_app* app, double tm, int frame)
 void
 gkyl_pkpm_app_write_field(gkyl_pkpm_app* app, double tm, int frame)
 {
-  struct gkyl_array_meta *mt = pkpm_array_meta_new( (struct pkpm_output_meta) {
+  struct gkyl_msgpack_data *mt = pkpm_array_meta_new( (struct pkpm_output_meta) {
       .frame = frame,
       .stime = tm,
       .poly_order = app->poly_order,
@@ -474,7 +474,7 @@ gkyl_pkpm_app_write_field(gkyl_pkpm_app* app, double tm, int frame)
 void
 gkyl_pkpm_app_write_species(gkyl_pkpm_app* app, int sidx, double tm, int frame)
 {
-  struct gkyl_array_meta *mt = pkpm_array_meta_new( (struct pkpm_output_meta) {
+  struct gkyl_msgpack_data *mt = pkpm_array_meta_new( (struct pkpm_output_meta) {
       .frame = frame,
       .stime = tm,
       .poly_order = app->poly_order,
@@ -502,7 +502,7 @@ gkyl_pkpm_app_write_species(gkyl_pkpm_app* app, int sidx, double tm, int frame)
 void
 gkyl_pkpm_app_write_mom(gkyl_pkpm_app* app, int sidx, double tm, int frame)
 {
-  struct gkyl_array_meta *mt = pkpm_array_meta_new( (struct pkpm_output_meta) {
+  struct gkyl_msgpack_data *mt = pkpm_array_meta_new( (struct pkpm_output_meta) {
       .frame = frame,
       .stime = tm,
       .poly_order = app->poly_order,
@@ -887,7 +887,7 @@ header_from_file(gkyl_pkpm_app *app, const char *fname)
     }
 
     struct pkpm_output_meta meta =
-      pkpm_meta_from_mpack( &(struct gkyl_array_meta) {
+      pkpm_meta_from_mpack( &(struct gkyl_msgpack_data) {
           .meta = hdr.meta,
           .meta_sz = hdr.meta_size
         }
@@ -917,7 +917,14 @@ gkyl_pkpm_app_from_file_field(gkyl_pkpm_app *app, const char *fname)
       pkpm_field_apply_bc(app, app->field, app->field->em);
     }
   }
-  
+
+  // Compute external EM field and applied current if present
+  // Computation necessary in case external EM field or applied current
+  // are time-independent and not computed in the time-stepping loop
+  // since they are not read-in as part of restarts. 
+  pkpm_field_calc_ext_em(app, app->field, rstat.stime);
+  pkpm_field_calc_app_current(app, app->field, rstat.stime);
+
   return rstat;
 }
 
@@ -954,13 +961,12 @@ gkyl_pkpm_app_from_file_fluid_species(gkyl_pkpm_app *app, int sidx,
   if (rstat.io_status == GKYL_ARRAY_RIO_SUCCESS) {
     // Read in the full 10 component fluid array
     rstat.io_status =
-      gkyl_comm_array_read(s->comm, &s->grid, &s->local, s->fluid_io_host, fname);
+      gkyl_comm_array_read(app->comm, &app->grid, &app->local, s->fluid_io_host, fname);
     if (app->use_gpu) {
       gkyl_array_copy(s->fluid_io, s->fluid_io_host);
     }
-    // Copy the relevant components of 10 component fluid array
-    gkyl_array_set_offset_range(s->fluid_io, 1.0, s->fluid, 
-      app->confBasis.num_basis, &app->local);
+    // Copy the relevant components of 10 component fluid array (components 1-4)
+    gkyl_array_set_offset(s->fluid, 1.0, s->fluid_io, app->confBasis.num_basis);
     if (GKYL_ARRAY_RIO_SUCCESS == rstat.io_status) {
       pkpm_fluid_species_apply_bc(app, s, s->fluid);
     }
@@ -989,7 +995,7 @@ gkyl_pkpm_app_from_frame_species(gkyl_pkpm_app *app, int sidx, int frame)
   struct gkyl_app_restart_status rstat = gkyl_pkpm_app_from_file_species(app, sidx, fileNm.str);
 
   cstr fileNm_fluid = cstr_from_fmt("%s-%s_pkpm_fluid_%d.gkyl", app->name, s->info.name, frame);
-  struct gkyl_app_restart_status rstat_fluid = gkyl_pkpm_app_from_file_species(app, sidx, fileNm_fluid.str);
+  struct gkyl_app_restart_status rstat_fluid = gkyl_pkpm_app_from_file_fluid_species(app, sidx, fileNm_fluid.str);
 
   app->species[sidx].is_first_integ_write_call = false; // append to existing diagnostic
   app->species[sidx].is_first_integ_L2_write_call = false; // append to existing diagnostic
@@ -1018,8 +1024,10 @@ v_pkpm_app_cout(const gkyl_pkpm_app* app, FILE *fp, const char *fmt, va_list arg
 {
   int rank, r = 0;
   gkyl_comm_get_rank(app->comm, &rank);
-  if ((rank == 0) && fp)
+  if ((rank == 0) && fp) {
     vfprintf(fp, fmt, argp);
+    fflush(fp);
+  }
 }
 
 void

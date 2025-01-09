@@ -16,6 +16,14 @@
 #endif
 #endif
 
+// allocate array (filled with zeros)
+static struct gkyl_array*
+mkarr(long nc, long size, bool use_gpu)
+{
+  struct gkyl_array *a = use_gpu? gkyl_array_cu_dev_new(GKYL_DOUBLE, nc, size)
+                                : gkyl_array_new(GKYL_DOUBLE, nc, size);
+  return a;
+}
 
 struct gkyl_comm*
 comm_new(bool use_mpi, bool use_gpu, FILE *iostream)

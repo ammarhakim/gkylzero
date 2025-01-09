@@ -183,11 +183,12 @@ struct gk_rad_drag {
   bool is_neut_species[2*GKYL_MAX_SPECIES]; // Flag of whether neutral or gk species
   
   // drag coefficients in vparallel and mu for each species being collided with
-  struct gkyl_array *vnu_surf[2*GKYL_MAX_SPECIES]; 
-  struct gkyl_array *vnu[2*GKYL_MAX_SPECIES]; 
-  struct gkyl_array *vsqnu_surf[2*GKYL_MAX_SPECIES]; 
-  struct gkyl_array *vsqnu[2*GKYL_MAX_SPECIES]; 
-  struct gkyl_dg_calc_gk_rad_vars *calc_gk_rad_vars[2*GKYL_MAX_SPECIES]; 
+  struct gkyl_gk_rad_drag *vnu_surf;
+  struct gkyl_gk_rad_drag *vnu;
+  struct gkyl_gk_rad_drag *vsqnu_surf;
+  struct gkyl_gk_rad_drag *vsqnu;
+  struct gkyl_dg_calc_gk_rad_vars *calc_gk_rad_vars;
+  struct gkyl_array *rad_fit_ne[2*GKYL_MAX_SPECIES];
 
   struct gk_species_moment moms[2*GKYL_MAX_SPECIES]; // moments needed in radiation update (need number density)
 
@@ -202,9 +203,10 @@ struct gk_rad_drag {
   struct gkyl_array *nvsqnu_surf; // total mu radiation drag surface expansion including density scaling
   struct gkyl_array *nvsqnu; // total mu radiation drag volume expansion including density scaling
 
-  struct gkyl_array *vtsq_min_normalized; // Smallest vtsq that radiation is calculated (one for each fit), divided by configuration space normalization
+  struct gkyl_array **vtsq_min_per_species;  // Smallest vtsq that radiation is calculated (one for each fit), divided by configuration space normalization
   struct gk_species_moment prim_moms;
   struct gkyl_array *vtsq;
+  struct gkyl_array *m0;
 
   // host-side copies for I/O
   struct gkyl_array *nvnu_surf_host; 
@@ -218,7 +220,6 @@ struct gk_rad_drag {
   double *red_integ_diag, *red_integ_diag_global; // for reduction of integrated moments
   gkyl_dynvec integ_diag; // integrated moments reduced across grid
   bool is_first_integ_write_call; // flag for integrated moments dynvec written first time
-  struct gkyl_array *integrated_moms_rhs;
 };
 
 // forward declare species struct
@@ -502,6 +503,11 @@ struct gk_species {
   gkyl_dynvec integ_diag; // integrated moments reduced across grid
   bool is_first_integ_write_call; // flag for integrated moments dynvec written first time
 
+  struct gkyl_array_integrate* integ_wfsq_op; // Operator to integrate w*f^2.
+  double *L2norm_local, *L2norm_global; // L2norm in local MPI process and across the communicator.
+  gkyl_dynvec L2norm; // L2 norm.
+  bool is_first_L2norm_write_call; // flag for L2norm dynvec written first time
+
   gkyl_dg_updater_gyrokinetic *slvr; // Gyrokinetic solver 
   struct gkyl_dg_eqn *eqn_gyrokinetic; // Gyrokinetic equation object
   
@@ -762,6 +768,7 @@ struct gkyl_gyrokinetic_app {
   } basis_on_dev;
 
   struct gk_geometry *gk_geom;
+  struct gkyl_array *jacobtot_inv_weak; // 1/(J.B) computed via weak mul and div.
 
   bool update_field; // are we updating the field?
   struct gk_field *field; // pointer to field object
@@ -788,7 +795,7 @@ struct gkyl_gyrokinetic_app {
  * @param meta Gyrokinetic metadata object.
  * @return Array metadata object.
  */
-struct gkyl_array_meta*
+struct gkyl_msgpack_data*
 gk_array_meta_new(struct gyrokinetic_output_meta meta);
 
 /**
@@ -797,7 +804,7 @@ gk_array_meta_new(struct gyrokinetic_output_meta meta);
  * @param mt Array metadata object.
  */
 void
-gk_array_meta_release(struct gkyl_array_meta *mt);
+gk_array_meta_release(struct gkyl_msgpack_data *mt);
 
 /**
  * Return the metadata for outputing gyrokinetic data.
@@ -806,7 +813,7 @@ gk_array_meta_release(struct gkyl_array_meta *mt);
  * @return A gyrokinetic metadata object.
  */
 struct gyrokinetic_output_meta
-gk_meta_from_mpack(struct gkyl_array_meta *mt);
+gk_meta_from_mpack(struct gkyl_msgpack_data *mt);
 
 /**
  * Allocate a new gyrokinetic app and initialize its conf-space grid and

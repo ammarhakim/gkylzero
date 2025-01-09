@@ -78,7 +78,7 @@ gk_species_file_import_init(struct gkyl_gyrokinetic_app *app, struct gk_species 
     }
 
     struct gyrokinetic_output_meta meta =
-      gk_meta_from_mpack( &(struct gkyl_array_meta) {
+      gk_meta_from_mpack( &(struct gkyl_msgpack_data) {
           .meta = hdr.meta,
           .meta_sz = hdr.meta_size
         }
@@ -362,8 +362,6 @@ gk_species_init(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *app, st
 
   // allocate data for density (for use in charge density accumulation and weak division for upar)
   gk_species_moment_init(app, gks, &gks->m0, "M0");
-  // allocate data for integrated moments
-  gk_species_moment_init(app, gks, &gks->integ_moms, "Integrated");
 
   // allocate data for diagnostic moments
   int ndm = gks->info.num_diag_moments;
@@ -371,6 +369,8 @@ gk_species_init(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *app, st
   for (int m=0; m<ndm; ++m)
     gk_species_moment_init(app, gks, &gks->moms[m], gks->info.diag_moments[m]);
 
+  // allocate data for integrated moments
+  gk_species_moment_init(app, gks, &gks->integ_moms, "Integrated");
   if (app->use_gpu) {
     gks->red_integ_diag = gkyl_cu_malloc(sizeof(double[vdim+2]));
     gks->red_integ_diag_global = gkyl_cu_malloc(sizeof(double[vdim+2]));
@@ -381,6 +381,18 @@ gk_species_init(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *app, st
   // allocate dynamic-vector to store all-reduced integrated moments 
   gks->integ_diag = gkyl_dynvec_new(GKYL_DOUBLE, vdim+2);
   gks->is_first_integ_write_call = true;
+
+  // Objects for L2 norm diagnostic.
+  gks->integ_wfsq_op = gkyl_array_integrate_new(&gks->grid, &app->basis, 1, GKYL_ARRAY_INTEGRATE_OP_SQ_WEIGHTED, app->use_gpu);
+  if (app->use_gpu) {
+    gks->L2norm_local = gkyl_cu_malloc(sizeof(double));
+    gks->L2norm_global = gkyl_cu_malloc(sizeof(double));
+  } else {
+    gks->L2norm_local = gkyl_malloc(sizeof(double));
+    gks->L2norm_global = gkyl_malloc(sizeof(double));
+  }
+  gks->L2norm = gkyl_dynvec_new(GKYL_DOUBLE, 1); // L2 norm.
+  gks->is_first_L2norm_write_call = true;
 
   // initialize projection routine for initial conditions
   if (gks->info.init_from_file.type == 0)
@@ -885,8 +897,18 @@ gk_species_release(const gkyl_gyrokinetic_app* app, const struct gk_species *s)
   for (int i=0; i<s->info.num_diag_moments; ++i)
     gk_species_moment_release(app, &s->moms[i]);
   gkyl_free(s->moms);
+
+  // Release integrated moment memory.
   gk_species_moment_release(app, &s->integ_moms); 
   gkyl_dynvec_release(s->integ_diag);
+  if (app->use_gpu) {
+    gkyl_cu_free(s->red_integ_diag);
+    gkyl_cu_free(s->red_integ_diag_global);
+  }
+  else {
+    gkyl_free(s->red_integ_diag);
+    gkyl_free(s->red_integ_diag_global);
+  }
 
   gk_species_source_release(app, &s->src);
 
@@ -935,13 +957,21 @@ gk_species_release(const gkyl_gyrokinetic_app* app, const struct gk_species *s)
   
   if (app->use_gpu) {
     gkyl_cu_free(s->omega_cfl);
-    gkyl_cu_free(s->red_integ_diag);
-    gkyl_cu_free(s->red_integ_diag_global);
   }
   else {
     gkyl_free(s->omega_cfl);
-    gkyl_free(s->red_integ_diag);
-    gkyl_free(s->red_integ_diag_global);
+  }
+
+  // Release L2 norm memory.
+  gkyl_array_integrate_release(s->integ_wfsq_op);
+  gkyl_dynvec_release(s->L2norm);
+  if (app->use_gpu) {
+    gkyl_cu_free(s->L2norm_local);
+    gkyl_cu_free(s->L2norm_global);
+  }
+  else {
+    gkyl_free(s->L2norm_local);
+    gkyl_free(s->L2norm_global);
   }
 
   if (app->enforce_positivity) {

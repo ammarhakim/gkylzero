@@ -37,7 +37,7 @@ typedef int (*gkyl_array_per_sync_t)(struct gkyl_comm *comm,
 typedef int (*gkyl_array_write_t)(struct gkyl_comm *comm,
   const struct gkyl_rect_grid *grid,
   const struct gkyl_range *range,
-  const struct gkyl_array_meta *meta,                                
+  const struct gkyl_msgpack_data *meta,                                
   const struct gkyl_array *arr, const char *fname);
 
 // Read array from specified file
@@ -83,10 +83,10 @@ struct gkyl_comm_priv {
   get_size_t get_size; // get number of ranks.
   barrier_t barrier; // barrier.
   allreduce_t allreduce; // all reduce function
-  allreduce_t allreduce_host; // ?? all reduce using the host (MPI) communicator
+  allreduce_t allreduce_host; // all reduce using the host (MPI) communicator
   
   extend_comm_t extend_comm; // extend communcator
-  split_comm_t split_comm;   // ?? split communicator.
+  split_comm_t split_comm;   // split communicator.
   create_comm_from_ranks_t  create_comm_from_ranks; // communictor from ranks
 
   comm_group_call_start_t comm_group_call_start; // start a group call
@@ -95,9 +95,10 @@ struct gkyl_comm_priv {
   // FOLLOWING NEED A DECOMP 
 
   gkyl_array_allgather_t gkyl_array_allgather; // gather local arrays to global array
+  gkyl_array_allgather_t gkyl_array_allgather_host; // gather local arrays to global array on host
 
   gkyl_array_bcast_t gkyl_array_bcast; // broadcast array to other processes
-  gkyl_array_bcast_t gkyl_array_bcast_host; // ?? broadcast host side array to other processes
+  gkyl_array_bcast_t gkyl_array_bcast_host; // broadcast host side array to other processes
 
   gkyl_array_sync_t gkyl_array_sync; // sync array
   gkyl_array_per_sync_t gkyl_array_per_sync; // sync array in periodic dirs
