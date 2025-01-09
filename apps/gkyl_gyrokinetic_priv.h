@@ -48,6 +48,7 @@
 #include <gkyl_fem_parproj.h>
 #include <gkyl_fem_poisson_bctype.h>
 #include <gkyl_deflated_fem_poisson.h>
+#include <gkyl_fem_poisson_perp.h>
 #include <gkyl_gk_geometry.h>
 #include <gkyl_gk_geometry_mapc2p.h>
 #include <gkyl_gk_geometry_tok.h>
@@ -324,7 +325,9 @@ struct gk_boundary_fluxes {
   // Objects used for boundary flux diagnostics.
   bool is_diagnostic; // Whether the object is use for diagnostics.
   struct gkyl_array **f, **f1, **fnew; // Boundary flux through each boundary (one for each RK stage).
-  struct gk_species_moment integ_moms; // Integrated moments calculator.
+  struct gk_species_moment moms_op; // Moments calculator.
+  struct gkyl_array_integrate *integ_op; // Operator that integrates over volume.
+  double *int_moms_local, *int_moms_global; // Integrated moments in this time step.
   gkyl_dynvec intmom[2*GKYL_MAX_CDIM]; // Integrated moments of the boundary fluxes.
   bool is_first_intmom_write_call; // Flag 1st writing of blux_intmom.
 };
@@ -509,6 +512,8 @@ struct gk_species {
   double *red_integ_diag, *red_integ_diag_global; // for reduction of integrated moments
   gkyl_dynvec integ_diag; // Integrated moments reduced across grid
   bool is_first_integ_write_call; // flag for integrated moments dynvec written first time
+
+  struct gkyl_array *fdot_mom_old, *fdot_mom_new; // Moments of f_old and f_new.
   gkyl_dynvec fdot_integ_diag; // Integrated moments of Delta f=f_new - f_old..
   bool is_first_fdot_integ_write_call; // flag for integrated moments dynvec written first time
 
@@ -711,14 +716,18 @@ struct gk_field {
   struct gkyl_fem_parproj *fem_parproj_sol;
   struct gkyl_fem_parproj *fem_parproj_core;
 
-  struct gkyl_deflated_fem_poisson *deflated_fem_poisson; // poisson solver which solves on lines in x or planes in xy
-                                                          // - nabla . (epsilon * nabla phi) - kSq * phi = rho
+  struct gkyl_deflated_fem_poisson *deflated_fem_poisson; // poisson solver which solves
+  struct gkyl_fem_poisson_perp *fem_poisson; // poisson solver which solves
+                                             // - nabla . (epsilon * nabla phi) - kSq * phi = rho
 
   struct gkyl_array_integrate *calc_em_energy;
   double *em_energy_red, *em_energy_red_global; // memory for use in GPU reduction of EM energy
   gkyl_dynvec integ_energy; // integrated energy components
-
   bool is_first_energy_write_call; // flag for energy dynvec written first time
+
+  double *em_energy_red_old, *em_energy_red_new; // memory for use in GPU reduction of old EM energy.
+  gkyl_dynvec integ_energy_dot; // d/dt of integrated energy components.
+  bool is_first_energy_dot_write_call; // flag for d(energy)/dt dynvec written first time
 
   bool has_phi_wall_lo; // flag to indicate there is biased wall potential on lower wall
   bool phi_wall_lo_evolve; // flag to indicate biased wall potential on lower wall is time dependent
@@ -798,6 +807,9 @@ struct gkyl_gyrokinetic_app {
 
   struct gkyl_gyrokinetic_stat stat; // statistics
 
+  bool fdot_diagnostics; // Whether to output df/dt diagnostics.
+  struct gkyl_bc_basic *bc_op[2*GKYL_MAX_CDIM]; // Applies BCs to bmag and phi.
+  struct gkyl_array *bc_buffer; // Buffer used by bc_op;
   gkyl_dynvec dts; // Record time step over time.
   bool is_first_dt_write_call; // flag for integrated moments dynvec written first time
 };
@@ -1222,7 +1234,6 @@ void gk_species_bflux_init(struct gkyl_gyrokinetic_app *app, struct gk_species *
  * @param species Pointer to species
  * @param bflux Species boundary flux object
  * @param fin Input distribution function
- * @param rhs On output, the boundary fluxes stored in the ghost cells of rhs
  */
 void gk_species_bflux_rhs(gkyl_gyrokinetic_app *app, const struct gk_species *species,
   struct gk_boundary_fluxes *bflux, const struct gkyl_array *fin, struct gkyl_array *rhs);
@@ -1234,10 +1245,12 @@ void gk_species_bflux_rhs(gkyl_gyrokinetic_app *app, const struct gk_species *sp
  * @param species Pointer to species
  * @param bflux Species boundary flux object
  * @param fin Input distribution function
- * @param bflux_out Array of boundary fluxes through every boundary.
+ * @param rhs On output, the boundary fluxes stored in the ghost cells of rhs
+ * @param bflux_out Array of moments of boundary fluxes through every boundary.
  */
 void gk_species_bflux_rhs_diag(gkyl_gyrokinetic_app *app, const struct gk_species *species,
-  struct gk_boundary_fluxes *bflux, const struct gkyl_array *fin, struct gkyl_array **bflux_out);
+  struct gk_boundary_fluxes *bflux, const struct gkyl_array *fin, struct gkyl_array *rhs,
+  struct gkyl_array **bflux_moms);
 
 /**
  * Clear the boundary fluxes at each boundary.
@@ -1290,10 +1303,11 @@ gk_species_bflux_forward_euler(gkyl_gyrokinetic_app *app, struct gk_boundary_flu
  * @param bflux_in1 Array of input boundary fluxes.
  * @param fac2 Factor to multiply bflux_in2 by.
  * @param bflux_in2 Array of input boundary fluxes.
+ * @param range Range to perform operation in.
  */
 void
-gk_species_bflux_combine(gkyl_gyrokinetic_app *app, struct gk_species *gks, struct gk_boundary_fluxes *bflux,
-  struct gkyl_array **bflux_fout, double fac1, struct gkyl_array **bflux_in1, double fac2, struct gkyl_array **bflux_in2);
+gk_species_bflux_combine_range(gkyl_gyrokinetic_app *app, struct gk_species *gks, struct gk_boundary_fluxes *bflux,
+  struct gkyl_array **fout, double fac1, struct gkyl_array **fin1, double fac2, struct gkyl_array **fin2, struct gkyl_range *range);
 
 /**
  * Copy diagnotic boundary fluxes.
@@ -1303,10 +1317,11 @@ gk_species_bflux_combine(gkyl_gyrokinetic_app *app, struct gk_species *gks, stru
  * @param bflux Species boundary flux object.
  * @param bflux_out Array of output boundary fluxes.
  * @param bflux_in Array of input boundary fluxes.
+ * @param range Range to perform operation in.
  */
 void
-gk_species_bflux_copy(gkyl_gyrokinetic_app *app, struct gk_species *gks, struct gk_boundary_fluxes *bflux,
-  struct gkyl_array **bflux_fout, struct gkyl_array **bflux_in);
+gk_species_bflux_copy_range(gkyl_gyrokinetic_app *app, struct gk_species *gks, struct gk_boundary_fluxes *bflux,
+  struct gkyl_array **bflux_fout, struct gkyl_array **bflux_in, struct gkyl_range *range);
 
 /**
  * Release species boundary flux object.

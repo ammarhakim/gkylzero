@@ -385,10 +385,12 @@ gk_species_init(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *app, st
   gks->is_first_integ_write_call = true;
 
   // Allocate dynamic-vector to store Delta f integrated moments.
-  if (gks->info.fdot_diagnostics) {
+  if (app->fdot_diagnostics) {
+    gks->fdot_mom_old = mkarr(app->use_gpu, gks->integ_moms.marr->ncomp, gks->integ_moms.marr->size);
+    gks->fdot_mom_new = mkarr(app->use_gpu, gks->integ_moms.marr->ncomp, gks->integ_moms.marr->size);
     gks->fdot_integ_diag = gkyl_dynvec_new(GKYL_DOUBLE, gks->integ_moms.num_mom);
+    gks->is_first_fdot_integ_write_call = true;
   }
-  gks->is_first_fdot_integ_write_call = true;
 
   // Objects for L2 norm diagnostic.
   gks->integ_wfsq_op = gkyl_array_integrate_new(&gks->grid, &app->basis, 1, GKYL_ARRAY_INTEGRATE_OP_SQ_WEIGHTED, app->use_gpu);
@@ -1003,8 +1005,10 @@ gk_species_release(const gkyl_gyrokinetic_app* app, const struct gk_species *s)
     gk_species_bflux_release(app, &s->bflux_diag);
   }
 
-  if (s->info.fdot_diagnostics) {
+  if (app->fdot_diagnostics) {
     // Free df/dt diagnostics memory.
+    gkyl_array_release(s->fdot_mom_old);
+    gkyl_array_release(s->fdot_mom_new);
     gkyl_dynvec_release(s->fdot_integ_diag);
   }
 

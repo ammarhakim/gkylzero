@@ -206,7 +206,6 @@ struct gkyl_gyrokinetic_species {
                                        // moments for integrated moments.
   bool boundary_flux_diagnostics; // Outputs moments of the boundary fluxes
                                   // through non-periodic boundaries.
-  bool fdot_diagnostics; // Outputs moments of fdot=(f_new - f_old)/dt.
 
   // Collisions to include.
   struct gkyl_gyrokinetic_collisions collisions;
@@ -300,6 +299,7 @@ struct gkyl_gk {
   double cfl_frac; // CFL fraction to use (default 1.0)
 
   bool enforce_positivity; // Positivity enforcement via shift in f.
+  bool fdot_diagnostics; // Outputs moments of fdot=(f_new - f_old)/dt.
 
   int num_periodic_dir; // number of periodic directions
   int periodic_dirs[3]; // list of periodic directions

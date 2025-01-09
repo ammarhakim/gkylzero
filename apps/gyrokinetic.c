@@ -8,6 +8,7 @@
 #include <gkyl_dflt.h>
 #include <gkyl_dynvec.h>
 #include <gkyl_null_comm.h>
+#include <gkyl_nodal_ops.h>
 
 #include <gkyl_gyrokinetic_priv.h>
 #include <gkyl_app_priv.h>
@@ -375,12 +376,34 @@ gkyl_gyrokinetic_app_new_geom(struct gkyl_gk *gk)
   gkyl_dg_inv_op_range(app->confBasis, 0, app->jacobtot_inv_weak, 0, tmp, &app->local); 
   gkyl_array_release(tmp);
 
+  // Fill the global ghost cells of bmag using bmag evaluated at the boundary.
+  long buff_sz = 0;
+  for (int dir=0; dir<app->cdim; dir++) {
+    for (int e=0; e<2; e++) {
+      app->bc_op[2*dir+e] = gkyl_bc_basic_new(dir, e==0? GKYL_LOWER_EDGE : GKYL_UPPER_EDGE, GKYL_BC_CONF_BOUNDARY_VALUE,
+        &app->confBasis, e==0? &app->global_lower_skin[dir] : &app->global_upper_skin[dir],
+        e==0? &app->global_lower_ghost[dir] : &app->global_upper_ghost[dir], 1, app->cdim, app->use_gpu);
+
+    }
+    long vol = GKYL_MAX2(app->global_lower_skin[dir].volume, app->global_upper_skin[dir].volume);
+    buff_sz = buff_sz > vol ? buff_sz : vol;
+  }
+  app->bc_buffer = mkarr(app->use_gpu, app->confBasis.num_basis, buff_sz);
+
+  for (int dir=0; dir<app->cdim; dir++) {
+    for (int e=0; e<2; e++) {
+      gkyl_bc_basic_advance(app->bc_op[2*dir+e], app->bc_buffer, app->gk_geom->bmag);
+    }
+  }
+
   return app;
 }
 
 void
 gkyl_gyrokinetic_app_new_solver(struct gkyl_gk *gk, gkyl_gyrokinetic_app *app)
 {
+  app->fdot_diagnostics = gk->fdot_diagnostics;
+
   int ns = app->num_species = gk->num_species;
   int neuts = app->num_neut_species = gk->num_neut_species;
 
@@ -825,8 +848,35 @@ gkyl_gyrokinetic_app_write_field_energy(gkyl_gyrokinetic_app* app)
       app->stat.nio += 1;
     }
     gkyl_dynvec_clear(app->field->integ_energy);
-    app->stat.diag_tm += gkyl_time_diff_now_sec(wst);
-    app->stat.ndiag += 1;
+
+    if (app->fdot_diagnostics) {
+      struct timespec wst = gkyl_wall_clock();
+      // write out diagnostic moments
+      const char *fmt = "%s-field_energy_dot.gkyl";
+      int sz = gkyl_calc_strlen(fmt, app->name);
+      char fileNm[sz+1]; // ensures no buffer overflow
+      snprintf(fileNm, sizeof fileNm, fmt, app->name);
+
+      int rank;
+      gkyl_comm_get_rank(app->comm, &rank);
+
+      if (rank == 0) {
+        struct timespec wtm = gkyl_wall_clock();
+        if (app->field->is_first_energy_dot_write_call) {
+          // write to a new file (this ensure previous output is removed)
+          gkyl_dynvec_write(app->field->integ_energy_dot, fileNm);
+          app->field->is_first_energy_dot_write_call = false;
+        }
+        else {
+          // append to existing file
+          gkyl_dynvec_awrite(app->field->integ_energy_dot, fileNm);
+        }
+        app->stat.io_tm += gkyl_time_diff_now_sec(wtm);
+        app->stat.nio += 1;
+      }
+      gkyl_dynvec_clear(app->field->integ_energy_dot);
+    }
+
   }
 }
 
@@ -1048,10 +1098,9 @@ gkyl_gyrokinetic_app_calc_species_integrated_mom(gkyl_gyrokinetic_app* app, int 
   }
   gkyl_dynvec_append(gk_s->integ_diag, tm, avals_global);
 
-  if (gk_s->info.fdot_diagnostics) {
-    gk_species_moment_calc(&gk_s->integ_moms, gk_s->local, app->local, gk_s->fnew); 
+  if (app->fdot_diagnostics) {
     // Reduce (sum) over whole domain, append to diagnostics.
-    gkyl_array_reduce_range(gk_s->red_integ_diag, gk_s->integ_moms.marr, GKYL_SUM, &app->local);
+    gkyl_array_reduce_range(gk_s->red_integ_diag, gk_s->fdot_mom_new, GKYL_SUM, &app->local);
     gkyl_comm_allreduce(app->comm, GKYL_DOUBLE, GKYL_SUM, num_mom, 
       gk_s->red_integ_diag, gk_s->red_integ_diag_global);
     if (app->use_gpu) {
@@ -1121,34 +1170,24 @@ gkyl_gyrokinetic_app_calc_species_boundary_flux_integrated_mom(gkyl_gyrokinetic_
 
   if (gk_s->info.boundary_flux_diagnostics) {
     int vdim = app->vdim;
-    int num_mom = gk_s->bflux_diag.integ_moms.num_mom; 
+    int num_mom = gk_s->bflux_diag.moms_op.num_mom; 
     double avals_global[num_mom];
   
     for (int d=0; d<app->cdim; ++d) {
       for (int e=0; e<2; ++e) {
-        gk_species_moment_calc(&gk_s->bflux_diag.integ_moms, 
-          e==0? gk_s->lower_ghost[d] : gk_s->upper_ghost[d], 
-          e==0? app->lower_ghost[d] : app->upper_ghost[d], gk_s->bflux_diag.f[2*d+e]); 
-        // Reduce (sum) over whole domain, append to diagnostics.
-        gkyl_array_reduce_range(gk_s->red_integ_diag, gk_s->bflux_diag.integ_moms.marr, GKYL_SUM,
-          e==0? &app->lower_ghost[d] : &app->upper_ghost[d]); 
-        //// Not ready in for parallel sims.
-        //gkyl_comm_allreduce(app->comm, GKYL_DOUBLE, GKYL_SUM, num_mom, 
-        //  gk_s->red_integ_diag, gk_s->red_integ_diag_global);
-        //if (app->use_gpu) {
-        //  gkyl_cu_memcpy(avals_global, gk_s->red_integ_diag_global, sizeof(double[num_mom]), GKYL_CU_MEMCPY_D2H);
-        //}
-        //else {
-        //  memcpy(avals_global, gk_s->red_integ_diag_global, sizeof(double[num_mom]));
-        //}
-        //gkyl_dynvec_append(gk_s->integ_diag, tm, avals_global);
+        gkyl_array_integrate_advance(gk_s->bflux_diag.integ_op, gk_s->bflux_diag.f[2*d+e], 1., 0,
+          e==0? &app->lower_ghost[d] : &app->upper_ghost[d], 0, gk_s->bflux_diag.int_moms_local);
+
+        gkyl_comm_allreduce(app->comm, GKYL_DOUBLE, GKYL_SUM, num_mom, 
+          gk_s->bflux_diag.int_moms_local, gk_s->bflux_diag.int_moms_global);
         if (app->use_gpu) {
-          gkyl_cu_memcpy(avals_global, gk_s->red_integ_diag, sizeof(double[num_mom]), GKYL_CU_MEMCPY_D2H);
+          gkyl_cu_memcpy(avals_global, gk_s->bflux_diag.int_moms_global, sizeof(double[num_mom]), GKYL_CU_MEMCPY_D2H);
         }
         else {
-          memcpy(avals_global, gk_s->red_integ_diag, sizeof(double[num_mom]));
+          memcpy(avals_global, gk_s->bflux_diag.int_moms_global, sizeof(double[num_mom]));
         }
         gkyl_dynvec_append(gk_s->bflux_diag.intmom[2*d+e], tm, avals_global);
+
       }
     } 
 
@@ -1211,7 +1250,7 @@ gkyl_gyrokinetic_app_write_species_integrated_mom(gkyl_gyrokinetic_app *app, int
   }
   gkyl_dynvec_clear(gks->integ_diag);
 
-  if (gks->info.fdot_diagnostics) {
+  if (app->fdot_diagnostics) {
     if (rank == 0) {
       // Write integrated diagnostic moments.
       const char *fmt = "%s-%s_fdot_%s.gkyl";
@@ -2443,7 +2482,7 @@ gyrokinetic_rhs(gkyl_gyrokinetic_app* app, double tcurr, double dt,
       gk_species_bflux_rhs(app, s, &s->bflux, fin[i], fout[i]);
 
     if (s->info.boundary_flux_diagnostics)
-      gk_species_bflux_rhs_diag(app, s, &s->bflux_diag, fin[i], bflux_out[i]);
+      gk_species_bflux_rhs_diag(app, s, &s->bflux_diag, fin[i], fout[i], bflux_out[i]);
   }
 
   // Compute RHS of neutrals.
@@ -2892,6 +2931,7 @@ gkyl_gyrokinetic_app_from_frame_field(gkyl_gyrokinetic_app *app, int frame)
   cstr fileNm = cstr_from_fmt("%s-%s_%d.gkyl", app->name, "field", frame);
   struct gkyl_app_restart_status rstat = gkyl_gyrokinetic_app_from_file_field(app, fileNm.str);
   app->field->is_first_energy_write_call = false; // Append to existing diagnostic.
+  app->field->is_first_energy_dot_write_call = false; // Append to existing diagnostic.
   cstr_drop(&fileNm);
   
   return rstat;
@@ -2910,7 +2950,7 @@ gkyl_gyrokinetic_app_from_frame_species(gkyl_gyrokinetic_app *app, int sidx, int
   app->is_first_dt_write_call = false;
   gk_s->is_first_integ_write_call = false;
   gk_s->is_first_L2norm_write_call = false;
-  if (gk_s->info.fdot_diagnostics)
+  if (app->fdot_diagnostics)
     gk_s->is_first_fdot_integ_write_call = false;
   if (app->enforce_positivity)
     gk_s->is_first_ps_integ_write_call = false;
@@ -2987,6 +3027,7 @@ gkyl_gyrokinetic_app_read_from_frame(gkyl_gyrokinetic_app *app, int frame)
   }
 
   app->field->is_first_energy_write_call = false; // Append to existing diagnostic.
+  app->field->is_first_energy_dot_write_call = false; // Append to existing diagnostic.
 
   return rstat;
 }
@@ -3041,6 +3082,12 @@ gkyl_gyrokinetic_app_release(gkyl_gyrokinetic_app* app)
     gkyl_cu_free(app->basis_on_dev.confBasis);
   }
 
+  gkyl_array_release(app->bc_buffer);
+  for (int dir=0; dir<app->cdim; dir++) {
+    for (int e=0; e<2; e++) {
+      gkyl_bc_basic_release(app->bc_op[2*dir+e]);
+    }
+  }
   gkyl_dynvec_release(app->dts);
 
   gkyl_free(app);

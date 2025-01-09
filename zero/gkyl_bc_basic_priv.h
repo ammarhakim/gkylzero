@@ -6,6 +6,7 @@
 #include <gkyl_alloc.h>
 #include <gkyl_array_ops.h>
 #include <assert.h>
+#include <math.h>
 
 // Primary struct in this updater.
 struct gkyl_bc_basic {
@@ -37,6 +38,7 @@ struct gkyl_array_copy_func* gkyl_bc_basic_create_arr_copy_func_cu(int dir, int 
 // context for use in BCs
 struct dg_bc_ctx {
   int dir; // direction for BCs.
+  enum gkyl_edge_loc edge; // lower/upper edge boundary.
   int cdim; // config-space dimensions.
   int ncomp; // number of components within a cell.
   const struct gkyl_basis *basis; // basis function.
@@ -69,6 +71,108 @@ species_reflect_bc(size_t nc, double *out, const double *inp, void *ctx)
 
   mc->basis->flip_odd_sign(dir, inp, out);
   mc->basis->flip_odd_sign(dir+cdim, out, out);
+}
+
+GKYL_CU_D
+static void
+conf_boundary_value_bc(size_t nc, double *out, const double *inp, void *ctx)
+{
+  struct dg_bc_ctx *mc = (struct dg_bc_ctx*) ctx;
+  int dir = mc->dir;
+  int cdim = mc->cdim;
+  enum gkyl_edge_loc edge = mc->edge;
+
+  if (cdim == 1) {
+    if (edge == GKYL_LOWER_EDGE) {
+      out[0] = inp[0]-sqrt(3.0)*inp[1];
+    }
+    else {
+      out[0] = inp[0]+sqrt(3.0)*inp[1];
+    }
+    out[1] = 0.0;
+  }
+  else if (cdim == 2) {
+    if (dir == 0) {
+      if (edge == GKYL_LOWER_EDGE) {
+        out[0] = inp[0]-sqrt(3.0)*inp[1];
+        out[2] = inp[2]-sqrt(3.0)*inp[3];
+      }
+      else {
+        out[0] = inp[0]+sqrt(3.0)*inp[1];
+        out[2] = inp[2]+sqrt(3.0)*inp[3];
+      }
+      out[1] = 0.0;
+      out[3] = 0.0;
+    }
+    else if (dir == 1) {
+      if (edge == GKYL_LOWER_EDGE) {
+        out[0] = inp[0]-sqrt(3.0)*inp[2];
+        out[1] = inp[1]-sqrt(3.0)*inp[3];
+      }
+      else {
+        out[0] = inp[0]+sqrt(3.0)*inp[2];
+        out[1] = inp[1]+sqrt(3.0)*inp[3];
+      }
+      out[2] = 0.0;
+      out[3] = 0.0;
+    }
+  }
+  else if (cdim == 3) {
+    if (dir == 0) {
+      if (edge == GKYL_LOWER_EDGE) {
+        out[0] = inp[0]-sqrt(3.0)*inp[1];
+        out[2] = inp[2]-sqrt(3.0)*inp[4];
+        out[3] = inp[3]-sqrt(3.0)*inp[5];
+        out[6] = inp[6]-sqrt(3.0)*inp[7];
+      }
+      else {
+        out[0] = inp[0]+sqrt(3.0)*inp[1];
+        out[2] = inp[2]+sqrt(3.0)*inp[4];
+        out[3] = inp[3]+sqrt(3.0)*inp[5];
+        out[6] = inp[6]+sqrt(3.0)*inp[7];
+      }
+      out[1] = 0.0;
+      out[4] = 0.0;
+      out[5] = 0.0;
+      out[7] = 0.0;
+    }
+    else if (dir == 1) {
+      if (edge == GKYL_LOWER_EDGE) {
+        out[0] = inp[0]-sqrt(3.0)*inp[2];
+        out[1] = inp[1]-sqrt(3.0)*inp[4];
+        out[3] = inp[3]-sqrt(3.0)*inp[6];
+        out[5] = inp[5]-sqrt(3.0)*inp[7];
+      }
+      else {
+        out[0] = inp[0]+sqrt(3.0)*inp[2];
+        out[1] = inp[1]+sqrt(3.0)*inp[4];
+        out[3] = inp[3]+sqrt(3.0)*inp[6];
+        out[5] = inp[5]+sqrt(3.0)*inp[7];
+      }
+      out[2] = 0.0;
+      out[4] = 0.0;
+      out[6] = 0.0;
+      out[7] = 0.0;
+    }
+    else if (dir == 2) {
+      if (edge == GKYL_LOWER_EDGE) {
+        out[0] = inp[0]-sqrt(3.0)*inp[3];
+        out[1] = inp[1]-sqrt(3.0)*inp[5];
+        out[2] = inp[2]-sqrt(3.0)*inp[6];
+        out[4] = inp[4]-sqrt(3.0)*inp[7];
+      }
+      else {
+        out[0] = inp[0]+sqrt(3.0)*inp[3];
+        out[1] = inp[1]+sqrt(3.0)*inp[5];
+        out[2] = inp[2]+sqrt(3.0)*inp[6];
+        out[4] = inp[4]+sqrt(3.0)*inp[7];
+      }
+      out[3] = 0.0;
+      out[5] = 0.0;
+      out[6] = 0.0;
+      out[7] = 0.0;
+    }
+  }
 }
 
 enum { M_EX, M_EY, M_EZ, M_BX, M_BY, M_BZ }; // components of EM field
