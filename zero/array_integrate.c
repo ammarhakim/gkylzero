@@ -44,7 +44,8 @@ void gkyl_array_integrate_advance(gkyl_array_integrate *up, const struct gkyl_ar
   }
 #endif
 
-  int widx[GKYL_MAX_DIM] = {-1};
+  int widx[GKYL_MAX_DIM];
+  for (int d=0; d<weight_range->ndim; d++) widx[d] = -1;
 
   for (int k=0; k<up->num_comp; k++) out[k] = 0;
 
