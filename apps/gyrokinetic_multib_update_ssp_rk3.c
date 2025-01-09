@@ -75,9 +75,7 @@ gyrokinetic_multib_update_ssp_rk3(struct gkyl_gyrokinetic_multib_app* app, doubl
           }
           for (int i=0; i<app->num_neut_species; ++i) {
             fin_neut[li_neut+i] = sbapp->neut_species[i].f;
-            if (!sbapp->neut_species[i].info.is_static) {
-              fout_neut[li_neut+i] = sbapp->neut_species[i].f1;
-            }
+	    fout_neut[li_neut+i] = sbapp->neut_species[i].f1;
           }
         }
 
@@ -99,13 +97,8 @@ gyrokinetic_multib_update_ssp_rk3(struct gkyl_gyrokinetic_multib_app* app, doubl
             fout[li_charged+i] = sbapp->species[i].fnew;
           }
           for (int i=0; i<app->num_neut_species; ++i) {
-            if (!sbapp->neut_species[i].info.is_static) {
-              fin_neut[li_neut+i] = sbapp->neut_species[i].f1;
-              fout_neut[li_neut+i] = sbapp->neut_species[i].fnew;
-            }
-            else {
-              fin_neut[i] = sbapp->neut_species[i].f;
-            }
+	    fin_neut[li_neut+i] = sbapp->neut_species[i].f1;
+	    fout_neut[li_neut+i] = sbapp->neut_species[i].fnew;
           }
         }
 
@@ -177,13 +170,8 @@ gyrokinetic_multib_update_ssp_rk3(struct gkyl_gyrokinetic_multib_app* app, doubl
             fout[li_charged+i] = sbapp->species[i].fnew;
           }
           for (int i=0; i<app->num_neut_species; ++i) {
-            if (!sbapp->neut_species[i].info.is_static) {
-              fin_neut[li_neut+i] = sbapp->neut_species[i].f1;
-              fout_neut[li_neut+i] = sbapp->neut_species[i].fnew;
-            }
-            else {
-              fin_neut[li_neut+i] = sbapp->neut_species[i].f;
-            }          
+	    fin_neut[li_neut+i] = sbapp->neut_species[i].f1;
+	    fout_neut[li_neut+i] = sbapp->neut_species[i].fnew;
           }
         }
 
