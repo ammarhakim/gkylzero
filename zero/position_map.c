@@ -34,9 +34,9 @@ gkyl_position_map_new(struct gkyl_position_map_inp pmap_info, struct gkyl_rect_g
 
   for (int i = 0; i < 3; i++){
     gpm->maps[i] = gkyl_position_map_identity;
-    gpm->ctxs[i] = NULL;
+    gpm->ctxs[i] = 0;
     gpm->constB_ctx->maps_backup[i] = gkyl_position_map_identity;
-    gpm->constB_ctx->ctxs_backup[i] = NULL;
+    gpm->constB_ctx->ctxs_backup[i] = 0;
   }
 
   switch (pmap_info.id)

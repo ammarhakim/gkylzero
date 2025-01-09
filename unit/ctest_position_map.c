@@ -172,7 +172,7 @@ test_position_map_init_2x()
 
   struct gkyl_position_map_inp pos_map_inp = {
     .maps = {test_nonuniform_position_map, test_nonuniform_position_map, test_nonuniform_position_map},
-    .ctxs = {NULL, NULL, NULL},
+    .ctxs = {0, 0, 0},
   };
 
   struct gkyl_position_map *pos_map = gkyl_position_map_new(pos_map_inp, \
@@ -210,7 +210,7 @@ test_position_map_init_3x()
 
   struct gkyl_position_map_inp pos_map_inp = {
     .maps = {test_nonuniform_position_map, test_nonuniform_position_map, test_nonuniform_position_map},
-    .ctxs = {NULL, NULL, NULL},
+    .ctxs = {0, 0, 0},
   };
 
   struct gkyl_position_map *pos_map = gkyl_position_map_new(pos_map_inp, \
@@ -248,7 +248,7 @@ test_position_map_set()
   
   struct gkyl_position_map_inp pos_map_inp = {
     .maps = {test_nonuniform_position_map, test_nonuniform_position_map, test_nonuniform_position_map},
-    .ctxs = {NULL, NULL, NULL},
+    .ctxs = {0, 0, 0},
   };
 
   struct gkyl_position_map *pos_map = gkyl_position_map_new(pos_map_inp, \
@@ -290,7 +290,7 @@ test_gkyl_position_map_eval_mc2nu()
   
   struct gkyl_position_map_inp pos_map_inp = {
     .maps = {test_nonuniform_position_map, test_nonuniform_position_map, test_nonuniform_position_map},
-    .ctxs = {NULL, NULL, NULL},
+    .ctxs = {0, 0, 0},
   };
 
   struct gkyl_position_map *pos_map = gkyl_position_map_new(pos_map_inp, \
@@ -300,7 +300,7 @@ test_gkyl_position_map_eval_mc2nu()
     3*pos_map->basis.num_basis, pos_map->local_ext.volume);
 
   gkyl_proj_on_basis *projDistf = gkyl_proj_on_basis_new(&grid, &basis,
-    poly_order+1, 3, test_nonuniform_position_map_3x, NULL);
+    poly_order+1, 3, test_nonuniform_position_map_3x, 0);
   gkyl_proj_on_basis_advance(projDistf, 0.0, &localRange, pmap_arr_set);
   gkyl_proj_on_basis_release(projDistf);
 
@@ -313,9 +313,9 @@ test_gkyl_position_map_eval_mc2nu()
         double x_fa[3];
         gkyl_position_map_eval_mc2nu(pos_map, x, x_fa);
         double x_analytic[3];
-        test_nonuniform_position_map(0.0, &x[0], &x_analytic[0], NULL);
-        test_nonuniform_position_map(0.0, &x[1], &x_analytic[1], NULL);
-        test_nonuniform_position_map(0.0, &x[2], &x_analytic[2], NULL);
+        test_nonuniform_position_map(0.0, &x[0], &x_analytic[0], 0);
+        test_nonuniform_position_map(0.0, &x[1], &x_analytic[1], 0);
+        test_nonuniform_position_map(0.0, &x[2], &x_analytic[2], 0);
         for (int d=0; d<3; ++d)
           TEST_CHECK( gkyl_compare(x_fa[d], x_analytic[d], 1e-12) );
       }
@@ -355,12 +355,12 @@ test_position_polynomial_map_optimize_1x()
 
   // Project bmag_func onto bmag_global
   struct gkyl_array *bmag_global = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, localRange_ext.volume);
-  gkyl_proj_on_basis *projB = gkyl_proj_on_basis_new(&grid, &basis, poly_order+1, 1, bmag_func, NULL);
+  gkyl_proj_on_basis *projB = gkyl_proj_on_basis_new(&grid, &basis, poly_order+1, 1, bmag_func, 0);
   gkyl_proj_on_basis_advance(projB, 0.0, &localRange, bmag_global);
   gkyl_proj_on_basis_release(projB);
 
   // Write bmag_global
-  gkyl_grid_sub_array_write(&grid, &localRange,NULL, bmag_global, "bmag_global_1x.gkyl");
+  gkyl_grid_sub_array_write(&grid, &localRange,0, bmag_global, "bmag_global_1x.gkyl");
 
   pos_map->bmag_ctx->crange_global = &localRange;
   pos_map->bmag_ctx->cbasis = &basis;
@@ -376,9 +376,9 @@ test_position_polynomial_map_optimize_1x()
   pos_map->constB_ctx->theta_max = upper[0];
   pos_map->constB_ctx->theta_min = lower[0];
   pos_map->constB_ctx->maps_backup[0] = test_identity_position_map;
-  pos_map->constB_ctx->ctxs_backup[0]  = NULL;
+  pos_map->constB_ctx->ctxs_backup[0]  = 0;
   pos_map->constB_ctx->maps_backup[1] = test_identity_position_map;
-  pos_map->constB_ctx->ctxs_backup[1]  = NULL;
+  pos_map->constB_ctx->ctxs_backup[1]  = 0;
 
   pos_map->constB_ctx->N_theta_boundaries = cells[0]+1;
 
@@ -427,12 +427,12 @@ test_position_map_numeric_optimize_1x()
 
   // Project bmag_func onto bmag_global
   struct gkyl_array *bmag_global = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, localRange_ext.volume);
-  gkyl_proj_on_basis *projB = gkyl_proj_on_basis_new(&grid, &basis, poly_order+1, 1, bmag_func, NULL);
+  gkyl_proj_on_basis *projB = gkyl_proj_on_basis_new(&grid, &basis, poly_order+1, 1, bmag_func, 0);
   gkyl_proj_on_basis_advance(projB, 0.0, &localRange, bmag_global);
   gkyl_proj_on_basis_release(projB);
 
   // Write bmag_global
-  gkyl_grid_sub_array_write(&grid, &localRange,NULL, bmag_global, "bmag_global_1x.gkyl");
+  gkyl_grid_sub_array_write(&grid, &localRange,0, bmag_global, "bmag_global_1x.gkyl");
 
   pos_map->bmag_ctx->crange_global = &localRange;
   pos_map->bmag_ctx->cbasis = &basis;
@@ -448,9 +448,9 @@ test_position_map_numeric_optimize_1x()
   pos_map->constB_ctx->theta_max = upper[0];
   pos_map->constB_ctx->theta_min = lower[0];
   pos_map->constB_ctx->maps_backup[0] = test_identity_position_map;
-  pos_map->constB_ctx->ctxs_backup[0]  = NULL;
+  pos_map->constB_ctx->ctxs_backup[0]  = 0;
   pos_map->constB_ctx->maps_backup[1] = test_identity_position_map;
-  pos_map->constB_ctx->ctxs_backup[1]  = NULL;
+  pos_map->constB_ctx->ctxs_backup[1]  = 0;
   pos_map->constB_ctx->N_theta_boundaries = cells[0]+1;
 
   gkyl_position_map_optimize(pos_map);
@@ -501,12 +501,12 @@ test_position_map_numeric_calculate_1x()
 
   // Project bmag_func onto bmag_global
   struct gkyl_array *bmag_global = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, localRange_ext.volume);
-  gkyl_proj_on_basis *projB = gkyl_proj_on_basis_new(&grid, &basis, poly_order+1, 1, bmag_func, NULL);
+  gkyl_proj_on_basis *projB = gkyl_proj_on_basis_new(&grid, &basis, poly_order+1, 1, bmag_func, 0);
   gkyl_proj_on_basis_advance(projB, 0.0, &localRange, bmag_global);
   gkyl_proj_on_basis_release(projB);
 
   // Write bmag_global
-  gkyl_grid_sub_array_write(&grid, &localRange,NULL, bmag_global, "bmag_global_1x.gkyl");
+  gkyl_grid_sub_array_write(&grid, &localRange,0, bmag_global, "bmag_global_1x.gkyl");
 
   pos_map->bmag_ctx->crange_global = &localRange;
   pos_map->bmag_ctx->cbasis = &basis;
@@ -522,9 +522,9 @@ test_position_map_numeric_calculate_1x()
   pos_map->constB_ctx->theta_max = upper[0];
   pos_map->constB_ctx->theta_min = lower[0];
   pos_map->constB_ctx->maps_backup[0] = test_identity_position_map;
-  pos_map->constB_ctx->ctxs_backup[0]  = NULL;
+  pos_map->constB_ctx->ctxs_backup[0]  = 0;
   pos_map->constB_ctx->maps_backup[1] = test_identity_position_map;
-  pos_map->constB_ctx->ctxs_backup[1]  = NULL;
+  pos_map->constB_ctx->ctxs_backup[1]  = 0;
   pos_map->constB_ctx->N_theta_boundaries = cells[0]+1;
 
   gkyl_position_map_optimize(pos_map);
