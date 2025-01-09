@@ -407,8 +407,12 @@ gkyl_gyrokinetic_app_new_solver(struct gkyl_gk *gk, gkyl_gyrokinetic_app *app)
     gk_species_init(gk, app, &app->species[i]);
 
   // initialize each neutral species
-  for (int i=0; i<neuts; ++i) 
-    gk_neut_species_init(gk, app, &app->neut_species[i]);
+  for (int i=0; i<neuts; ++i) { 
+    if (app->neut_species[i].info.is_static)
+      gk_neut_species_static_init(gk, app, &app->neut_species[i]);
+    else
+      gk_neut_species_init(gk, app, &app->neut_species[i]);
+  }
 
   // initialize each species cross-collisions terms: this has to be done here
   // as need pointers to colliding species' collision objects
@@ -2235,7 +2239,7 @@ gyrokinetic_rhs(gkyl_gyrokinetic_app* app, double tcurr, double dt,
 
   // Compute RHS of neutrals.
   for (int i=0; i<app->num_neut_species; ++i) {
-    double dt1 = gk_neut_species_rhs(app, &app->neut_species[i], fin_neut[i], fout_neut[i]);
+    double dt1 =  app->neut_species[i].rhs_func(app, &app->neut_species[i], fin_neut[i], fout_neut[i]);
     dtmin = fmin(dtmin, dt1);
   }
 

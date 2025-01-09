@@ -54,9 +54,7 @@ gyrokinetic_update_ssp_rk3(gkyl_gyrokinetic_app* app, double dt0)
         }
         for (int i=0; i<app->num_neut_species; ++i) {
           fin_neut[i] = app->neut_species[i].f;
-          if (!app->neut_species[i].info.is_static) {
-            fout_neut[i] = app->neut_species[i].f1;
-          }
+	  fout_neut[i] = app->neut_species[i].f1;
         }
 
         gyrokinetic_forward_euler(app, tcurr, dt, fin, fout, fin_neut, fout_neut, &st);
@@ -73,13 +71,8 @@ gyrokinetic_update_ssp_rk3(gkyl_gyrokinetic_app* app, double dt0)
           fout[i] = app->species[i].fnew;
         }
         for (int i=0; i<app->num_neut_species; ++i) {
-          if (!app->neut_species[i].info.is_static) {
-            fin_neut[i] = app->neut_species[i].f1;
-            fout_neut[i] = app->neut_species[i].fnew;
-          }
-          else {
-            fin_neut[i] = app->neut_species[i].f;
-          }
+	  fin_neut[i] = app->neut_species[i].f1;
+	  fout_neut[i] = app->neut_species[i].fnew;
         }
 
         gyrokinetic_forward_euler(app, tcurr+dt, dt, fin, fout, fin_neut, fout_neut, &st);
@@ -134,13 +127,8 @@ gyrokinetic_update_ssp_rk3(gkyl_gyrokinetic_app* app, double dt0)
           fout[i] = app->species[i].fnew;
         }
         for (int i=0; i<app->num_neut_species; ++i) {
-          if (!app->neut_species[i].info.is_static) {
-            fin_neut[i] = app->neut_species[i].f1;
-            fout_neut[i] = app->neut_species[i].fnew;
-          }
-          else {
-            fin_neut[i] = app->neut_species[i].f;
-          }          
+	  fin_neut[i] = app->neut_species[i].f1;
+	  fout_neut[i] = app->neut_species[i].fnew;
         }
 
         gyrokinetic_forward_euler(app, tcurr+dt/2, dt, fin, fout, fin_neut, fout_neut, &st);

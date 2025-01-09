@@ -646,6 +646,10 @@ struct gk_neut_species {
   struct gk_react react_neut; // reaction object
 
   double *omega_cfl;
+
+  // pointer to rhs functions
+  double (*rhs_func)(gkyl_gyrokinetic_app *app, struct gk_neut_species *species,
+    const struct gkyl_array *fin, struct gkyl_array *rhs);
 };
 
 // field data
@@ -1540,6 +1544,15 @@ void gk_neut_species_source_release(const struct gkyl_gyrokinetic_app *app, cons
 void gk_neut_species_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app, struct gk_neut_species *s);
 
 /**
+ * Initialize Static Neutral species.
+ *
+ * @param gk Input gk data
+ * @param app gyrokinetic app object
+ * @param s On output, initialized neutral species object
+ */
+void gk_neut_species_static_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app, struct gk_neut_species *s);
+
+/**
  * Compute neutral species initial conditions.
  *
  * @param app gyrokinetic app object
@@ -1558,6 +1571,18 @@ void gk_neut_species_apply_ic(gkyl_gyrokinetic_app *app, struct gk_neut_species 
  * @return Maximum stable time-step
  */
 double gk_neut_species_rhs(gkyl_gyrokinetic_app *app, struct gk_neut_species *species,
+  const struct gkyl_array *fin, struct gkyl_array *rhs);
+
+/**
+ * Compute RHS from static neutral species distribution function
+ *
+ * @param app gyrokinetic app object
+ * @param species Pointer to neutral species
+ * @param fin Input distribution function
+ * @param rhs On output, the RHS from the neutral species object (df/dt)
+ * @return Maximum stable time-step
+ */
+double gk_neut_species_static_rhs(gkyl_gyrokinetic_app *app, struct gk_neut_species *species,
   const struct gkyl_array *fin, struct gkyl_array *rhs);
 
 /**
