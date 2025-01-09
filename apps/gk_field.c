@@ -348,7 +348,7 @@ void
 gk_field_calc_energy(gkyl_gyrokinetic_app *app, double tm, const struct gk_field *field)
 {
   gkyl_array_integrate_advance(field->calc_em_energy, field->phi_smooth, 
-    app->grid.cellVolume, field->es_energy_fac, &app->local, field->em_energy_red);
+    app->grid.cellVolume, field->es_energy_fac, &app->local, &app->local, field->em_energy_red);
 
   gkyl_comm_allreduce(app->comm, GKYL_DOUBLE, GKYL_SUM, 1, field->em_energy_red, field->em_energy_red_global);
 

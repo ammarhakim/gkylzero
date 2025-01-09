@@ -15,10 +15,10 @@
 #include <mpack.h>
 
 // returned gkyl_array_meta must be freed using vlasov_array_meta_release
-static struct gkyl_array_meta*
+static struct gkyl_msgpack_data*
 vlasov_array_meta_new(struct vlasov_output_meta meta)
 {
-  struct gkyl_array_meta *mt = gkyl_malloc(sizeof(*mt));
+  struct gkyl_msgpack_data *mt = gkyl_malloc(sizeof(*mt));
 
   mt->meta_sz = 0;
   mpack_writer_t writer;
@@ -53,7 +53,7 @@ vlasov_array_meta_new(struct vlasov_output_meta meta)
 }
 
 static void
-vlasov_array_meta_release(struct gkyl_array_meta *mt)
+vlasov_array_meta_release(struct gkyl_msgpack_data *mt)
 {
   if (!mt) return;
   MPACK_FREE(mt->meta);
@@ -61,7 +61,7 @@ vlasov_array_meta_release(struct gkyl_array_meta *mt)
 }
 
 static struct vlasov_output_meta
-vlasov_meta_from_mpack(struct gkyl_array_meta *mt)
+vlasov_meta_from_mpack(struct gkyl_msgpack_data *mt)
 {
   struct vlasov_output_meta meta = { .frame = 0, .stime = 0.0 };
 
@@ -447,6 +447,9 @@ gkyl_vlasov_app_apply_ic(gkyl_vlasov_app* app, double t0)
   for (int i=0; i<app->num_species; ++i)
     gkyl_vlasov_app_apply_ic_species(app, i, t0);
 
+  for (int i=0; i<app->num_fluid_species; ++i)
+    gkyl_vlasov_app_apply_ic_fluid_species(app, i, t0);
+
   if (app->has_field) 
     gkyl_vlasov_app_apply_ic_field(app, t0);
 
@@ -602,10 +605,12 @@ gkyl_vlasov_app_calc_integrated_L2_f(gkyl_vlasov_app* app, double tm)
 void
 gkyl_vlasov_app_calc_field_energy(gkyl_vlasov_app* app, double tm)
 {
-  struct timespec wst = gkyl_wall_clock();
-  app->field_energy_calc(app, tm, app->field);
-  app->stat.diag_tm += gkyl_time_diff_now_sec(wst);
-  app->stat.ndiag += 1;
+  if (app->has_field) {
+    struct timespec wst = gkyl_wall_clock();
+    app->field_energy_calc(app, tm, app->field);
+    app->stat.diag_tm += gkyl_time_diff_now_sec(wst);
+    app->stat.ndiag += 1;
+  }
 }
 
 void
@@ -632,7 +637,7 @@ gkyl_vlasov_app_write(gkyl_vlasov_app* app, double tm, int frame)
 void
 gkyl_vlasov_app_write_field(gkyl_vlasov_app* app, double tm, int frame)
 {
-  struct gkyl_array_meta *mt = vlasov_array_meta_new( (struct vlasov_output_meta) {
+  struct gkyl_msgpack_data *mt = vlasov_array_meta_new( (struct vlasov_output_meta) {
       .frame = frame,
       .stime = tm,
       .poly_order = app->poly_order,
@@ -693,7 +698,7 @@ gkyl_vlasov_app_write_field(gkyl_vlasov_app* app, double tm, int frame)
 void
 gkyl_vlasov_app_write_species(gkyl_vlasov_app* app, int sidx, double tm, int frame)
 {
-  struct gkyl_array_meta *mt = vlasov_array_meta_new( (struct vlasov_output_meta) {
+  struct gkyl_msgpack_data *mt = vlasov_array_meta_new( (struct vlasov_output_meta) {
       .frame = frame,
       .stime = tm,
       .poly_order = app->poly_order,
@@ -743,7 +748,7 @@ gkyl_vlasov_app_write_species(gkyl_vlasov_app* app, int sidx, double tm, int fra
 void
 gkyl_vlasov_app_write_species_lte(gkyl_vlasov_app* app, int sidx, double tm, int frame)
 {
-  struct gkyl_array_meta *mt = vlasov_array_meta_new( (struct vlasov_output_meta) {
+  struct gkyl_msgpack_data *mt = vlasov_array_meta_new( (struct vlasov_output_meta) {
       .frame = frame,
       .stime = tm,
       .poly_order = app->poly_order,
@@ -784,7 +789,7 @@ gkyl_vlasov_app_write_species_lte(gkyl_vlasov_app* app, int sidx, double tm, int
 void
 gkyl_vlasov_app_write_fluid_species(gkyl_vlasov_app* app, int sidx, double tm, int frame)
 {
-  struct gkyl_array_meta *mt = vlasov_array_meta_new( (struct vlasov_output_meta) {
+  struct gkyl_msgpack_data *mt = vlasov_array_meta_new( (struct vlasov_output_meta) {
       .frame = frame,
       .stime = tm,
       .poly_order = app->poly_order,
@@ -812,7 +817,7 @@ gkyl_vlasov_app_write_fluid_species(gkyl_vlasov_app* app, int sidx, double tm, i
 void
 gkyl_vlasov_app_write_mom(gkyl_vlasov_app* app, double tm, int frame)
 {
-  struct gkyl_array_meta *mt = vlasov_array_meta_new( (struct vlasov_output_meta) {
+  struct gkyl_msgpack_data *mt = vlasov_array_meta_new( (struct vlasov_output_meta) {
       .frame = frame,
       .stime = tm,
       .poly_order = app->poly_order,
@@ -948,27 +953,29 @@ gkyl_vlasov_app_write_integrated_L2_f(gkyl_vlasov_app* app)
 void
 gkyl_vlasov_app_write_field_energy(gkyl_vlasov_app* app)
 {
-  // write out diagnostic moments
-  const char *fmt = "%s-field-energy.gkyl";
-  int sz = gkyl_calc_strlen(fmt, app->name);
-  char fileNm[sz+1]; // ensures no buffer overflow
-  snprintf(fileNm, sizeof fileNm, fmt, app->name);
+  if (app->has_field) {
+    // write out diagnostic moments
+    const char *fmt = "%s-field-energy.gkyl";
+    int sz = gkyl_calc_strlen(fmt, app->name);
+    char fileNm[sz+1]; // ensures no buffer overflow
+    snprintf(fileNm, sizeof fileNm, fmt, app->name);
 
-  int rank;
-  gkyl_comm_get_rank(app->comm, &rank);
+    int rank;
+    gkyl_comm_get_rank(app->comm, &rank);
 
-  if (rank == 0) {
-    if (app->field->is_first_energy_write_call) {
-      // write to a new file (this ensure previous output is removed)
-      gkyl_dynvec_write(app->field->integ_energy, fileNm);
-      app->field->is_first_energy_write_call = false;
+    if (rank == 0) {
+      if (app->field->is_first_energy_write_call) {
+        // write to a new file (this ensure previous output is removed)
+        gkyl_dynvec_write(app->field->integ_energy, fileNm);
+        app->field->is_first_energy_write_call = false;
+      }
+      else {
+        // append to existing file
+        gkyl_dynvec_awrite(app->field->integ_energy, fileNm);
+      }
     }
-    else {
-      // append to existing file
-      gkyl_dynvec_awrite(app->field->integ_energy, fileNm);
-    }
+    gkyl_dynvec_clear(app->field->integ_energy);
   }
-  gkyl_dynvec_clear(app->field->integ_energy);
 }
 
 void
@@ -1303,7 +1310,7 @@ header_from_file(gkyl_vlasov_app *app, const char *fname)
     }
 
     struct vlasov_output_meta meta =
-      vlasov_meta_from_mpack( &(struct gkyl_array_meta) {
+      vlasov_meta_from_mpack( &(struct gkyl_msgpack_data) {
           .meta = hdr.meta,
           .meta_sz = hdr.meta_size
         }
@@ -1435,12 +1442,14 @@ gkyl_vlasov_app_read_from_frame(gkyl_vlasov_app *app, int frame)
 {
   struct gkyl_app_restart_status rstat;
   
-  rstat = gkyl_vlasov_app_from_frame_field(app, frame);
+  if (app->has_field) {
+    rstat = gkyl_vlasov_app_from_frame_field(app, frame);
+  }
 
-  for (int i=0; i<app->num_species; i++) {
+  for (int i = 0; i < app->num_species; i++) {
     rstat = gkyl_vlasov_app_from_frame_species(app, i, frame);
   }
-  for (int i=0; i<app->num_fluid_species; i++) {
+  for (int i = 0; i < app->num_fluid_species; i++) {
     rstat = gkyl_vlasov_app_from_frame_fluid_species(app, i, frame);
   }
 
@@ -1470,8 +1479,10 @@ v_vlasov_app_cout(const gkyl_vlasov_app* app, FILE *fp, const char *fmt, va_list
 {
   int rank, r = 0;
   gkyl_comm_get_rank(app->comm, &rank);
-  if ((rank == 0) && fp)
+  if ((rank == 0) && fp) {
     vfprintf(fp, fmt, argp);
+    fflush(fp);
+  }
 }
 
 void

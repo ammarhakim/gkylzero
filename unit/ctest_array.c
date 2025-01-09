@@ -5,6 +5,7 @@
 #include <gkyl_array.h>
 #include <gkyl_array_ops.h>
 #include <gkyl_array_rio.h>
+#include <gkyl_array_rio_format_desc.h>
 #include <gkyl_array_rio_priv.h>
 #include <gkyl_elem_type_priv.h>
 #include <gkyl_range.h>
@@ -1106,6 +1107,9 @@ test_grid_sub_array_read_1()
     TEST_CHECK( 0 == hdr.meta_size );
     TEST_CHECK( 1 == hdr.nrange );
   }
+
+  int file_type = gkyl_get_gkyl_file_type("ctest_grid_sub_array_1.gkyl");
+  TEST_CHECK( 1 == file_type );
   
   // read back the grid and the array
   int err =

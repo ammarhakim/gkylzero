@@ -43,6 +43,7 @@ moment_species_init(const struct gkyl_moment *mom, const struct gkyl_moment_spec
     sp->use_explicit_friction = false;
   }
 
+  sp->has_volume_sources = false;
   if (mom_sp->has_volume_sources) {
     sp->has_volume_sources = true;
 
@@ -51,6 +52,7 @@ moment_species_init(const struct gkyl_moment *mom, const struct gkyl_moment_spec
     sp->volume_R0 = mom_sp->volume_R0;
   }
 
+  sp->has_reactivity = false;
   if (mom_sp->has_reactivity) {
     sp->has_reactivity = true;
 
@@ -61,6 +63,7 @@ moment_species_init(const struct gkyl_moment *mom, const struct gkyl_moment_spec
     sp->reactivity_reaction_rate = mom_sp->reactivity_reaction_rate;
   }
 
+  sp->has_einstein_medium = false;
   if (mom_sp->has_einstein_medium) {
     sp->has_einstein_medium = true;
 
