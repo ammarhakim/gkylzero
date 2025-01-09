@@ -607,8 +607,8 @@ main(int argc, char **argv)
       .bmag_ctx = &ctx,
       .position_map_info = {
         .id = GKYL_PMAP_FUNC,
-        .maps[2].func = nonuniform_position_map_z,
-        .maps[2].ctx = &ctx,
+        .maps[2] = nonuniform_position_map_z,
+        .ctxs[2] = &ctx,
       },
     },
 

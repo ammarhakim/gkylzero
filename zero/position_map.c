@@ -32,56 +32,40 @@ gkyl_position_map_new(struct gkyl_position_map_inp pmap_info, struct gkyl_rect_g
   gpm->bmag_ctx->bmag = 0;
   gpm->constB_ctx = gkyl_malloc(sizeof(struct gkyl_position_map_const_B_ctx));
 
-  gpm->maps[0].func = gkyl_position_map_identity;
-  gpm->maps[0].ctx = NULL;
-  gpm->maps[1].func = gkyl_position_map_identity;
-  gpm->maps[1].ctx = NULL;
-  gpm->maps[2].func = gkyl_position_map_identity;
-  gpm->maps[2].ctx = NULL;
-  gpm->constB_ctx->maps_backup[0].func = gkyl_position_map_identity;
-  gpm->constB_ctx->maps_backup[0].ctx = NULL;
-  gpm->constB_ctx->maps_backup[1].func = gkyl_position_map_identity;
-  gpm->constB_ctx->maps_backup[1].ctx = NULL;
-  gpm->constB_ctx->maps_backup[2].func = gkyl_position_map_identity;
-  gpm->constB_ctx->maps_backup[2].ctx = NULL;
+  for (int i = 0; i < 3; i++){
+    gpm->maps[i] = gkyl_position_map_identity;
+    gpm->ctxs[i] = NULL;
+    gpm->constB_ctx->maps_backup[i] = gkyl_position_map_identity;
+    gpm->constB_ctx->ctxs_backup[i] = NULL;
+  }
 
   switch (pmap_info.id)
   {
     case GKYL_PMAP_FUNC:
-      if (pmap_info.maps[0].func != 0)
-      { gpm->maps[0].func = pmap_info.maps[0].func;
-        gpm->maps[0].ctx  = pmap_info.maps[0].ctx;
-      }
-
-      if (pmap_info.maps[1].func != 0)
-      { gpm->maps[1].func = pmap_info.maps[1].func;
-        gpm->maps[1].ctx  = pmap_info.maps[1].ctx ;
-      }
-
-      if (pmap_info.maps[2].func != 0)
-      { gpm->maps[2].func = pmap_info.maps[2].func;
-        gpm->maps[2].ctx  = pmap_info.maps[2].ctx ;
+      for (int i = 0; i < 3; i++){
+        if (pmap_info.maps[i] != 0)
+        { gpm->maps[i] = pmap_info.maps[i];
+          gpm->ctxs[i] = pmap_info.ctxs[i];
+        }
       }
 
     case GKYL_PMAP_UNIFORM_B_POLYNOMIAL:
-      if (pmap_info.maps[0].func != 0)
-      { gpm->constB_ctx->maps_backup[0].func = pmap_info.maps[0].func;
-        gpm->constB_ctx->maps_backup[0].ctx  = pmap_info.maps[0].ctx;
-      }
-      if (pmap_info.maps[1].func != 0)
-      { gpm->constB_ctx->maps_backup[1].func = pmap_info.maps[1].func;
-        gpm->constB_ctx->maps_backup[1].ctx  = pmap_info.maps[1].ctx ;
+
+      for (int i = 0; i < 2; i++){
+        if (pmap_info.maps[i] != 0)
+        { gpm->constB_ctx->maps_backup[i] = pmap_info.maps[i];
+          gpm->constB_ctx->ctxs_backup[i] = pmap_info.ctxs[i];
+        }
       }
       gpm->constB_ctx->map_strength = pmap_info.map_strength;
 
     case GKYL_PMAP_UNIFORM_B_NUMERIC:
-      if (pmap_info.maps[0].func != 0)
-      { gpm->constB_ctx->maps_backup[0].func = pmap_info.maps[0].func;
-        gpm->constB_ctx->maps_backup[0].ctx  = pmap_info.maps[0].ctx;
-      }
-      if (pmap_info.maps[1].func != 0)
-      { gpm->constB_ctx->maps_backup[1].func = pmap_info.maps[1].func;
-        gpm->constB_ctx->maps_backup[1].ctx  = pmap_info.maps[1].ctx ;
+
+      for (int i = 0; i < 2; i++){
+        if (pmap_info.maps[i] != 0)
+        { gpm->constB_ctx->maps_backup[i] = pmap_info.maps[i];
+          gpm->constB_ctx->ctxs_backup[i] = pmap_info.ctxs[i];
+        }
       }
       gpm->constB_ctx->map_strength = pmap_info.map_strength;
   }
@@ -163,12 +147,12 @@ gkyl_position_map_optimize(struct gkyl_position_map* gpm)
 {
   if (gpm->id == GKYL_PMAP_UNIFORM_B_POLYNOMIAL && gpm->bmag_ctx->bmag != 0)
   {
-    gpm->maps[0].func = gpm->constB_ctx->maps_backup[0].func;
-    gpm->maps[0].ctx  = gpm->constB_ctx->maps_backup[0].ctx;
-    gpm->maps[1].func = gpm->constB_ctx->maps_backup[1].func;
-    gpm->maps[1].ctx  = gpm->constB_ctx->maps_backup[1].ctx;
-    gpm->maps[2].func = position_map_constB_z_polynomial;
-    gpm->maps[2].ctx  = gpm->constB_ctx;
+    gpm->maps[0] = gpm->constB_ctx->maps_backup[0];
+    gpm->ctxs[0] = gpm->constB_ctx->ctxs_backup[0];
+    gpm->maps[1] = gpm->constB_ctx->maps_backup[1];
+    gpm->ctxs[1] = gpm->constB_ctx->ctxs_backup[1];
+    gpm->maps[2] = position_map_constB_z_polynomial;
+    gpm->ctxs[2] = gpm->constB_ctx;
 
     gpm->bmag_ctx->crange_global = &gpm->global;
     gpm->bmag_ctx->cbasis = &gpm->basis;
@@ -182,12 +166,12 @@ gkyl_position_map_optimize(struct gkyl_position_map* gpm)
   }
   else if (gpm->id == GKYL_PMAP_UNIFORM_B_NUMERIC && gpm->bmag_ctx->bmag != 0)
   {
-    gpm->maps[0].func = gpm->constB_ctx->maps_backup[0].func;
-    gpm->maps[0].ctx  = gpm->constB_ctx->maps_backup[0].ctx;
-    gpm->maps[1].func = gpm->constB_ctx->maps_backup[1].func;
-    gpm->maps[1].ctx  = gpm->constB_ctx->maps_backup[1].ctx;
-    gpm->maps[2].func = position_map_constB_z_numeric;
-    gpm->maps[2].ctx  = gpm;
+    gpm->maps[0] = gpm->constB_ctx->maps_backup[0];
+    gpm->ctxs[0] = gpm->constB_ctx->ctxs_backup[0];
+    gpm->maps[1] = gpm->constB_ctx->maps_backup[1];
+    gpm->ctxs[1] = gpm->constB_ctx->ctxs_backup[1];
+    gpm->maps[2] = position_map_constB_z_numeric;
+    gpm->ctxs[2] = gpm;
 
     gpm->bmag_ctx->crange_global = &gpm->global;
     gpm->bmag_ctx->cbasis        = &gpm->basis;

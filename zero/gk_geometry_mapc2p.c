@@ -120,9 +120,9 @@ void gk_geometry_mapc2p_advance(struct gk_geometry* up, struct gkyl_range *nrang
               }
               double theta_curr = theta_lo + it*dtheta + modifiers[it_delta]*delta_theta;
 
-              position_map->maps[0].func(0.0, &psi_curr,   &psi_curr,   position_map->maps[0].ctx);
-              position_map->maps[0].func(0.0, &alpha_curr, &alpha_curr, position_map->maps[1].ctx);
-              position_map->maps[0].func(0.0, &theta_curr, &theta_curr, position_map->maps[2].ctx);
+              position_map->maps[0](0.0, &psi_curr,   &psi_curr,   position_map->ctxs[0]);
+              position_map->maps[1](0.0, &alpha_curr, &alpha_curr, position_map->ctxs[1]);
+              position_map->maps[2](0.0, &theta_curr, &theta_curr, position_map->ctxs[2]);
 
               cidx[TH_IDX] = it;
               int lidx = 0;
