@@ -390,9 +390,9 @@ void gkyl_tok_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, double
   dtheta *= dx_fact; dpsi *= dx_fact; dalpha *= dx_fact;
 
   // used for finite differences 
-  double delta_alpha = dalpha*1e-4;
-  double delta_psi = dpsi*1e-4;
-  double delta_theta = dtheta*1e-4;
+  double delta_alpha = dalpha*1e-2;
+  double delta_psi = dpsi*1e-2;
+  double delta_theta = dtheta*1e-2;
   dzc[0] = delta_psi;
   dzc[1] = delta_alpha;
   dzc[2] = delta_theta;
@@ -509,14 +509,14 @@ void gkyl_tok_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, double
           double dr_curr = choose_closest(rclose, R, dR, nr);
 
           if (psi_curr==geo->psisep && it_delta==0 && ip_delta==0) {
-              if (z_curr == geo->efit->Zxpt[0]) {
-                nr = 1;
-                r_curr = geo->efit->Rxpt[0];
-              }
-              if (z_curr == geo->efit->Zxpt[1]) {
-                nr = 1;
-                r_curr = geo->efit->Rxpt[1];
-              }
+            if (z_curr == geo->efit->Zxpt[0]) {
+              nr = 1;
+              r_curr = geo->efit->Rxpt[0];
+            }
+            if (z_curr == geo->efit->Zxpt[1]) {
+              nr = 1;
+              r_curr = geo->efit->Rxpt[1];
+            }
           }
 
           // For all blocks on the inner edge with z boundaries we will need to match the entire outer edge

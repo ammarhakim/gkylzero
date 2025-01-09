@@ -177,9 +177,9 @@ void gkyl_mirror_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, dou
   dtheta *= dx_fact; dpsi *= dx_fact; dalpha *= dx_fact;
 
   // used for finite differences 
-  double delta_alpha = dalpha*1e-4;
-  double delta_psi = dpsi*1e-6;
-  double delta_theta = dtheta*1e-4;
+  double delta_alpha = dalpha*1e-2;
+  double delta_psi = dpsi*1e-2;
+  double delta_theta = dtheta*1e-2;
   dzc[0] = delta_psi;
   dzc[1] = delta_alpha;
   dzc[2] = delta_theta;
