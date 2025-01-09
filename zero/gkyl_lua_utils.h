@@ -121,6 +121,7 @@ const char *glua_tbl_iget_string(lua_State *L, long key, const char *def);
  * @return true if table exists, false otherwise
  */
 bool glua_tbl_get_tbl(lua_State *L, const char *key);
+bool glua_tbl_iget_tbl(lua_State *L, long key);
 
 /**
  * Fetches function named @a key from table on top of stack and pushes

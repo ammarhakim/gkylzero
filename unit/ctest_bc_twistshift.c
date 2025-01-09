@@ -24,10 +24,10 @@ struct test_bc_twistshift_output_meta {
 };
 
 // returned gkyl_array_meta must be freed using gyrokinetic_array_meta_release
-static struct gkyl_array_meta*
+static struct gkyl_msgpack_data*
 test_bc_twistshift_array_meta_new(struct test_bc_twistshift_output_meta meta)
 {
-  struct gkyl_array_meta *mt = gkyl_malloc(sizeof(*mt));
+  struct gkyl_msgpack_data *mt = gkyl_malloc(sizeof(*mt));
 
   mt->meta_sz = 0;
   mpack_writer_t writer;
@@ -56,7 +56,7 @@ test_bc_twistshift_array_meta_new(struct test_bc_twistshift_output_meta meta)
 }
 
 static void
-test_bc_twistshift_array_meta_release(struct gkyl_array_meta *mt)
+test_bc_twistshift_array_meta_release(struct gkyl_msgpack_data *mt)
 {
   if (!mt) return;
   MPACK_FREE(mt->meta);
@@ -294,7 +294,7 @@ test_bc_twistshift_3x_fig6_wcells(const int *cells, enum gkyl_edge_loc edge,
   );
   gkyl_proj_on_basis_advance(projDistf, 0.0, &local, distf_ho);
   gkyl_array_copy(distf, distf_ho);
-  struct gkyl_array_meta *mt = test_bc_twistshift_array_meta_new( (struct test_bc_twistshift_output_meta) {
+  struct gkyl_msgpack_data *mt = test_bc_twistshift_array_meta_new( (struct test_bc_twistshift_output_meta) {
       .poly_order = poly_order,
       .basis_type = basis.id
     }
@@ -551,7 +551,7 @@ test_bc_twistshift_3x2v_fig6_wcells(const int *cells, enum gkyl_edge_loc edge,
   );
   gkyl_proj_on_basis_advance(projDistf, 0.0, &local, distf_ho);
   gkyl_array_copy(distf, distf_ho);
-  struct gkyl_array_meta *mt = test_bc_twistshift_array_meta_new( (struct test_bc_twistshift_output_meta) {
+  struct gkyl_msgpack_data *mt = test_bc_twistshift_array_meta_new( (struct test_bc_twistshift_output_meta) {
       .poly_order = poly_order,
       .basis_type = basis.id
     }
@@ -948,7 +948,7 @@ test_bc_twistshift_3x_fig11_wcells(const int *cells, enum gkyl_edge_loc edge,
   );
   gkyl_proj_on_basis_advance(projDistf, 0.0, &local, distf_ho);
   gkyl_array_copy(distf, distf_ho);
-  struct gkyl_array_meta *mt = test_bc_twistshift_array_meta_new( (struct test_bc_twistshift_output_meta) {
+  struct gkyl_msgpack_data *mt = test_bc_twistshift_array_meta_new( (struct test_bc_twistshift_output_meta) {
       .poly_order = poly_order,
       .basis_type = basis.id
     }
@@ -1282,7 +1282,7 @@ test_bc_twistshift_3x2v_fig11_wcells(const int *cells, enum gkyl_edge_loc edge,
   );
   gkyl_proj_on_basis_advance(projDistf, 0.0, &local, distf_ho);
   gkyl_array_copy(distf, distf_ho);
-  struct gkyl_array_meta *mt = test_bc_twistshift_array_meta_new( (struct test_bc_twistshift_output_meta) {
+  struct gkyl_msgpack_data *mt = test_bc_twistshift_array_meta_new( (struct test_bc_twistshift_output_meta) {
       .poly_order = poly_order,
       .basis_type = basis.id
     }
