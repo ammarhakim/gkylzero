@@ -17,20 +17,26 @@ gkyl_array_integrate_set_ker_cu(struct gkyl_array_integrate *up, enum gkyl_array
 
   if (op == GKYL_ARRAY_INTEGRATE_OP_NONE) {
     up->kernel = gkyl_array_integrate_none_ker_list_ser[ndim-1].kernels[poly_order-1];
-  } else if (op == GKYL_ARRAY_INTEGRATE_OP_ABS) {
+  }
+  else if (op == GKYL_ARRAY_INTEGRATE_OP_ABS) {
     up->kernel = gkyl_array_integrate_abs_ker_list_ser[ndim-1].kernels[poly_order-1];
-  } else if (op == GKYL_ARRAY_INTEGRATE_OP_SQ) {
+  }
+  else if (op == GKYL_ARRAY_INTEGRATE_OP_SQ) {
     up->kernel = gkyl_array_integrate_sq_ker_list_ser[ndim-1].kernels[poly_order-1];
-  } else if (op == GKYL_ARRAY_INTEGRATE_OP_SQ_WEIGHTED) {
+  }
+  else if (op == GKYL_ARRAY_INTEGRATE_OP_SQ_WEIGHTED) {
     if (basis.b_type == GKYL_BASIS_MODAL_SERENDIPITY)
       up->kernel = gkyl_array_integrate_sq_weighted_ker_list_ser[ndim-1].kernels[poly_order-1];
     else if (basis.b_type == GKYL_BASIS_MODAL_GKHYBRID)
       up->kernel = gkyl_array_integrate_sq_weighted_ker_list_gkhyb[ndim-1].kernels[poly_order-1];
-  } else if (op == GKYL_ARRAY_INTEGRATE_OP_GRAD_SQ) {
+  }
+  else if (op == GKYL_ARRAY_INTEGRATE_OP_GRAD_SQ) {
     up->kernel = gkyl_array_integrate_gradsq_ker_list[ndim-1].kernels[poly_order-1];
-  } else if (op == GKYL_ARRAY_INTEGRATE_OP_GRADPERP_SQ) {
+  }
+  else if (op == GKYL_ARRAY_INTEGRATE_OP_GRADPERP_SQ) {
     up->kernel = gkyl_array_integrate_gradperpsq_ker_list[ndim-1].kernels[poly_order-1];
-  } else if (op == GKYL_ARRAY_INTEGRATE_OP_EPS_GRADPERP_SQ) {
+  }
+  else if (op == GKYL_ARRAY_INTEGRATE_OP_EPS_GRADPERP_SQ) {
     up->kernel = gkyl_array_integrate_epsgradperpsq_ker_list[ndim-1].kernels[poly_order-1];
   } else {
     assert(false);
