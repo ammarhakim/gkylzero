@@ -214,8 +214,8 @@ test_1x(int poly_order, const bool isperiodic, bool use_gpu)
   if (use_gpu) gkyl_array_copy(rho_cu, rho);
 
   // parallel FEM projection method.
-  struct gkyl_fem_parproj *parproj = gkyl_fem_parproj_new(&localRange, &localRange_ext,
-    &basis, isperiodic? GKYL_FEM_PARPROJ_PERIODIC : GKYL_FEM_PARPROJ_NONE, NULL, use_gpu);
+  struct gkyl_fem_parproj *parproj = gkyl_fem_parproj_new(&localRange, &basis,
+    isperiodic? GKYL_FEM_PARPROJ_PERIODIC : GKYL_FEM_PARPROJ_NONE, 0, 0, use_gpu);
 
   // Set the RHS source.
   if (use_gpu)
@@ -249,6 +249,8 @@ test_1x(int poly_order, const bool isperiodic, bool use_gpu)
       const double *phi_p;
       phi_p = gkyl_array_cfetch(phi, 1);
       TEST_CHECK( gkyl_compare(sol[0], phi_p[0], 1e-14) );
+      TEST_MSG("Expected: %.13e in cell (%d)", sol[0], 1);
+      TEST_MSG("Produced: %.13e", phi_p[0]);
       TEST_CHECK( gkyl_compare(sol[1], phi_p[1], 1e-14) );
       phi_p = gkyl_array_cfetch(phi, 2);
       TEST_CHECK( gkyl_compare(sol[2], phi_p[0], 1e-14) );
@@ -398,8 +400,8 @@ test_2x(int poly_order, const bool isperiodic, bool use_gpu)
   if (use_gpu) gkyl_array_copy(rho_cu, rho);
 
   // parallel FEM projection method.
-  struct gkyl_fem_parproj *parproj = gkyl_fem_parproj_new(&localRange, &localRange_ext,
-    &basis, isperiodic? GKYL_FEM_PARPROJ_PERIODIC : GKYL_FEM_PARPROJ_NONE, NULL, use_gpu);
+  struct gkyl_fem_parproj *parproj = gkyl_fem_parproj_new(&localRange, &basis,
+    isperiodic? GKYL_FEM_PARPROJ_PERIODIC : GKYL_FEM_PARPROJ_NONE, 0, 0, use_gpu);
 
   // Set the RHS source.
   if (use_gpu)
@@ -765,8 +767,8 @@ test_2x_dirichlet(int poly_order, bool use_gpu){
 
   // Smooth it
   struct gkyl_array *weight = 0;
-  struct gkyl_fem_parproj *parproj = gkyl_fem_parproj_new(&local, &local_ext, &basis,
-    GKYL_FEM_PARPROJ_DIRICHLET, weight, use_gpu);
+  struct gkyl_fem_parproj *parproj = gkyl_fem_parproj_new(&local, &basis,
+    GKYL_FEM_PARPROJ_DIRICHLET, weight, 0, use_gpu);
   gkyl_fem_parproj_set_rhs(parproj, field_discont, field_discont);
   gkyl_fem_parproj_solve(parproj, field);
 
@@ -782,8 +784,6 @@ test_2x_dirichlet(int poly_order, bool use_gpu){
   gkyl_array_release(field_discont_ho);
   gkyl_fem_parproj_release(parproj);
 }
-
-
 
 void
 test_3x(const int poly_order, const bool isperiodic, bool use_gpu)
@@ -828,8 +828,8 @@ test_3x(const int poly_order, const bool isperiodic, bool use_gpu)
   if (use_gpu) gkyl_array_copy(rho_cu, rho);
 
   // parallel FEM projection method.
-  struct gkyl_fem_parproj *parproj = gkyl_fem_parproj_new(&localRange, &localRange_ext,
-    &basis, isperiodic? GKYL_FEM_PARPROJ_PERIODIC : GKYL_FEM_PARPROJ_NONE, NULL, use_gpu);
+  struct gkyl_fem_parproj *parproj = gkyl_fem_parproj_new(&localRange, &basis,
+    isperiodic? GKYL_FEM_PARPROJ_PERIODIC : GKYL_FEM_PARPROJ_NONE, 0, 0, use_gpu);
 
   // Set the RHS source.
   if (use_gpu)

@@ -148,14 +148,14 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
     gkyl_range_shorten_from_below(&f->global_ext_sol, &app->global_ext, 0, app->grid.cells[0]-idxLCFS_m+1);
     gkyl_range_shorten_from_above(&f->global_core, &app->global, 0, idxLCFS_m+1);
     gkyl_range_shorten_from_above(&f->global_ext_core, &app->global_ext, 0, idxLCFS_m+1);
-    f->fem_parproj_core = gkyl_fem_parproj_new(&f->global_core, &f->global_ext_core, 
-      &app->confBasis, fem_parproj_bc_core, f->weight, app->use_gpu);
-    f->fem_parproj_sol = gkyl_fem_parproj_new(&f->global_sol, &f->global_ext_sol, 
-      &app->confBasis, fem_parproj_bc_sol, f->weight, app->use_gpu);
+    f->fem_parproj_core = gkyl_fem_parproj_new(&f->global_core, &app->confBasis,
+      fem_parproj_bc_core, f->weight, 0, app->use_gpu);
+    f->fem_parproj_sol = gkyl_fem_parproj_new(&f->global_sol, &app->confBasis,
+      fem_parproj_bc_sol, f->weight, 0, app->use_gpu);
   } 
   else {
-    f->fem_parproj = gkyl_fem_parproj_new(&app->global, &app->global_ext, 
-      &app->confBasis, f->info.fem_parbc, f->weight, app->use_gpu);
+    f->fem_parproj = gkyl_fem_parproj_new(&app->global, &app->confBasis,
+      f->info.fem_parbc, f->weight, 0, app->use_gpu);
   }
 
   f->phi_host = f->phi_smooth;  
