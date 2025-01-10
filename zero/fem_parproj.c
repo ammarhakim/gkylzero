@@ -34,10 +34,10 @@ gkyl_fem_parproj_new(const struct gkyl_range *solve_range,
     up->weight_rhs = gkyl_array_acquire(weight_right);
   }
 
-  up->globalidx = gkyl_malloc(sizeof(long[up->num_basis]));
-
   bool has_weight_lhs = false;
   if (weight_left) has_weight_lhs = true;
+
+  up->globalidx = gkyl_malloc(sizeof(long[up->num_basis]));
 
   // Range of parallel cells, as a sub-range of up->solve_range.
   struct gkyl_range par_range;
@@ -92,7 +92,6 @@ gkyl_fem_parproj_new(const struct gkyl_range *solve_range,
   //     column matrix.
   struct gkyl_range prob_range;
   int nrhs;
-  up->single_prob = true;
   if (up->ndim == 1) {
     nrhs = 1;
     gkyl_range_init(&prob_range, 1, &((int){1}), &((int){1}));
@@ -101,7 +100,6 @@ gkyl_fem_parproj_new(const struct gkyl_range *solve_range,
     if (has_weight_lhs) {
       nrhs = 1;
       gkyl_range_init(&prob_range, up->perp_range2d.ndim, up->perp_range2d.lower, up->perp_range2d.upper);
-      up->single_prob = false;
     }
     else {
       nrhs = perp_range.volume;
@@ -136,10 +134,13 @@ gkyl_fem_parproj_new(const struct gkyl_range *solve_range,
     while (gkyl_range_iter_next(&up->par_iter1d)) {
       long paridx = gkyl_range_idx(&up->par_range1d, up->par_iter1d.idx);
 
-      for (size_t d=0; d<up->pardir; d++) idx1[d] = up->perp_iter2d.idx[d];
-      idx1[up->pardir] = up->par_iter1d.idx[0];
-      long linidx = gkyl_range_idx(up->solve_range, idx1);
-      const double *wgt_p = has_weight_lhs? gkyl_array_cfetch(weight_left, linidx) : NULL;
+      const double *wgt_p = NULL;
+      if (has_weight_lhs) {
+        for (size_t d=0; d<up->pardir; d++) idx1[d] = up->perp_iter2d.idx[d];
+        idx1[up->pardir] = up->par_iter1d.idx[0];
+        long linidx = gkyl_range_idx(up->solve_range, idx1);
+        wgt_p = gkyl_array_cfetch(weight_left, linidx);
+      }
 
       int keri = up->par_iter1d.idx[0] == up->parnum_cells? 1 : 0;
       up->kernels->l2g[keri](up->parnum_cells, paridx, up->globalidx);
@@ -200,13 +201,7 @@ gkyl_fem_parproj_set_rhs(struct gkyl_fem_parproj* up, const struct gkyl_array *r
       const double *phibc_p = up->isdirichlet? gkyl_array_cfetch(phibc, linidx) : NULL;
       const double *rhsin_p = gkyl_array_cfetch(rhsin, linidx);
 
-      long perpProbOff = 0;
-      if (up->single_prob) {
-        int idx2d[] = {up->perp_range2d.lower[0], up->perp_range2d.lower[0]};
-        for (size_t d=0; d<up->pardir; d++) idx2d[d] = idx1[d];
-        long perpidx2d = gkyl_range_idx(&up->perp_range2d, idx2d);
-        perpProbOff = perpidx2d*up->numnodes_global;
-      }
+      long perpProbOff = perpidx*up->numnodes_global;
 
       int keri = up->par_iter1d.idx[0] == up->parnum_cells? 1 : 0;
       up->kernels->l2g[keri](up->parnum_cells, paridx, up->globalidx);
@@ -247,13 +242,7 @@ gkyl_fem_parproj_solve(struct gkyl_fem_parproj* up, struct gkyl_array *phiout) {
 
       double *phiout_p = gkyl_array_fetch(phiout, linidx);
 
-      long perpProbOff = 0;
-      if (up->single_prob) {
-        int idx2d[] = {up->perp_range2d.lower[0], up->perp_range2d.lower[0]};
-        for (size_t d=0; d<up->pardir; d++) idx2d[d] = idx1[d];
-        long perpidx2d = gkyl_range_idx(&up->perp_range2d, idx2d);
-        perpProbOff = perpidx2d*up->numnodes_global;
-      }
+      long perpProbOff = perpidx*up->numnodes_global;
 
       int keri = up->par_iter1d.idx[0] == up->parnum_cells? 1 : 0;
       up->kernels->l2g[keri](up->parnum_cells, paridx, up->globalidx);

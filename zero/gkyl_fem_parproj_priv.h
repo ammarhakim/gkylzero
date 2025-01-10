@@ -370,7 +370,6 @@ struct gkyl_fem_parproj {
   bool isdirichlet; // =true if parallel direction has periodic BCs.
   bool has_weight_rhs; // Whether there's a weight on the RHS.
   struct gkyl_array *weight_rhs; // The RHS weight.
-  bool single_prob; // Whether there is a single linear problem.
 
   const struct gkyl_range *solve_range;
   struct gkyl_range perp_range2d; // 2D range of perpendicular cells.
