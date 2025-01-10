@@ -218,12 +218,12 @@ void gkyl_tok_geo_mapc2p(const struct gkyl_tok_geo *geo, const struct gkyl_tok_g
  *  and nodes epsilon away to be used for FD
  * @param mc2p_nodal output nodal mapc2p field R,Z,phi)
  * @param mc2p On output, the DG representation of mapc2p ((R,Z,phi)
- * @param dphidtheta_nodal output nodal field containing dphi/dtheta = s(psi)/R|grad(psi|
+ * @param ddtheta_nodal output nodal field containing dphi/dtheta = s(psi)/R|grad(psi)|, dR/dtheta and dZ/dtheta
  * @param position_map position map object
  */
 void gkyl_tok_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, double dzc[3], 
   struct gkyl_tok_geo* geo, struct gkyl_tok_geo_grid_inp *inp, struct gkyl_array *mc2p_nodal_fd,
-  struct gkyl_array *mc2p_nodal, struct gkyl_array *mc2p, struct gkyl_array *dphidtheta_nodal,
+  struct gkyl_array *mc2p_nodal, struct gkyl_array *mc2p, struct gkyl_array *ddtheta_nodal,
   struct gkyl_array *mc2nu_nodal, struct gkyl_array *mc2nu_pos,
   struct gkyl_position_map *position_map);
 
