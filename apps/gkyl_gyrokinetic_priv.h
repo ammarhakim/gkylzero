@@ -385,8 +385,8 @@ struct gk_react {
 // Context for c2p function passed to proj_on_basis.
 struct gk_proj_on_basis_c2p_func_ctx {
   int cdim, vdim;
-  struct gkyl_velocity_map *vel_map;
   struct gkyl_position_map *pos_map;
+  struct gkyl_velocity_map *vel_map;
 };
 
 struct gk_proj {
@@ -771,6 +771,7 @@ struct gkyl_gyrokinetic_app {
 
   struct gk_geometry *gk_geom;
   struct gkyl_array *jacobtot_inv_weak; // 1/(J.B) computed via weak mul and div.
+  
   struct gkyl_position_map *position_map; // Position mapping object.
 
   bool update_field; // are we updating the field?

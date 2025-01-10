@@ -359,9 +359,6 @@ test_position_polynomial_map_optimize_1x()
   gkyl_proj_on_basis_advance(projB, 0.0, &localRange, bmag_global);
   gkyl_proj_on_basis_release(projB);
 
-  // Write bmag_global
-  gkyl_grid_sub_array_write(&grid, &localRange,0, bmag_global, "bmag_global_1x.gkyl");
-
   pos_map->bmag_ctx->crange_global = &localRange;
   pos_map->bmag_ctx->cbasis = &basis;
   pos_map->bmag_ctx->cgrid = &grid;
@@ -430,9 +427,6 @@ test_position_map_numeric_optimize_1x()
   gkyl_proj_on_basis *projB = gkyl_proj_on_basis_new(&grid, &basis, poly_order+1, 1, bmag_func, 0);
   gkyl_proj_on_basis_advance(projB, 0.0, &localRange, bmag_global);
   gkyl_proj_on_basis_release(projB);
-
-  // Write bmag_global
-  gkyl_grid_sub_array_write(&grid, &localRange,0, bmag_global, "bmag_global_1x.gkyl");
 
   pos_map->bmag_ctx->crange_global = &localRange;
   pos_map->bmag_ctx->cbasis = &basis;
@@ -504,9 +498,6 @@ test_position_map_numeric_calculate_1x()
   gkyl_proj_on_basis *projB = gkyl_proj_on_basis_new(&grid, &basis, poly_order+1, 1, bmag_func, 0);
   gkyl_proj_on_basis_advance(projB, 0.0, &localRange, bmag_global);
   gkyl_proj_on_basis_release(projB);
-
-  // Write bmag_global
-  gkyl_grid_sub_array_write(&grid, &localRange,0, bmag_global, "bmag_global_1x.gkyl");
 
   pos_map->bmag_ctx->crange_global = &localRange;
   pos_map->bmag_ctx->cbasis = &basis;
