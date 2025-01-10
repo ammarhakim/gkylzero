@@ -29,7 +29,9 @@ gkyl_position_map_new(struct gkyl_position_map_inp pmap_info, struct gkyl_rect_g
   gpm->id = pmap_info.id;
 
   gpm->bmag_ctx = gkyl_malloc(sizeof(struct gkyl_bmag_ctx));
-  gpm->bmag_ctx->bmag = 0;
+  gpm->bmag_ctx->bmag = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, global_ext.volume);
+  gpm->to_optimize = false;
+
   gpm->constB_ctx = gkyl_malloc(sizeof(struct gkyl_position_map_const_B_ctx));
 
   for (int i = 0; i < 3; i++){
@@ -119,33 +121,10 @@ gkyl_position_map_eval_mc2nu(const struct gkyl_position_map* gpm, const double *
   x_fa[gpm->grid.ndim-1] = xyz_fa[2];
 }
 
-struct gkyl_position_map*
-gkyl_position_map_acquire(const struct gkyl_position_map* gpm)
-{
-  gkyl_ref_count_inc(&gpm->ref_count);
-  return (struct gkyl_position_map*) gpm;
-}
-
-void
-gkyl_position_map_release(const struct gkyl_position_map *gpm)
-{
-  gkyl_ref_count_dec(&gpm->ref_count);
-}
-
-void
-gkyl_position_map_free(const struct gkyl_ref_count *ref)
-{
-  struct gkyl_position_map *gpm = container_of(ref, struct gkyl_position_map, ref_count);
-  gkyl_array_release(gpm->mc2nu);
-  gkyl_free(gpm->bmag_ctx);
-  gkyl_free(gpm->constB_ctx);
-  gkyl_free(gpm);
-}
-
 void
 gkyl_position_map_optimize(struct gkyl_position_map* gpm)
 {
-  if (gpm->id == GKYL_PMAP_UNIFORM_B_POLYNOMIAL && gpm->bmag_ctx->bmag != 0)
+  if (gpm->id == GKYL_PMAP_UNIFORM_B_POLYNOMIAL && gpm->to_optimize == true)
   {
     gpm->maps[0] = gpm->constB_ctx->maps_backup[0];
     gpm->ctxs[0] = gpm->constB_ctx->ctxs_backup[0];
@@ -164,7 +143,7 @@ gkyl_position_map_optimize(struct gkyl_position_map* gpm)
     calculate_mirror_throat_location_polynomial(gpm->constB_ctx, gpm->bmag_ctx);
     calculate_optimal_mapping_polynomial(gpm->constB_ctx, gpm->bmag_ctx);
   }
-  else if (gpm->id == GKYL_PMAP_UNIFORM_B_NUMERIC && gpm->bmag_ctx->bmag != 0)
+  else if (gpm->id == GKYL_PMAP_UNIFORM_B_NUMERIC && gpm->to_optimize == true)
   {
     gpm->maps[0] = gpm->constB_ctx->maps_backup[0];
     gpm->ctxs[0] = gpm->constB_ctx->ctxs_backup[0];
@@ -184,3 +163,26 @@ gkyl_position_map_optimize(struct gkyl_position_map* gpm)
   }
 }
 
+struct gkyl_position_map*
+gkyl_position_map_acquire(const struct gkyl_position_map* gpm)
+{
+  gkyl_ref_count_inc(&gpm->ref_count);
+  return (struct gkyl_position_map*) gpm;
+}
+
+void
+gkyl_position_map_release(const struct gkyl_position_map *gpm)
+{
+  gkyl_ref_count_dec(&gpm->ref_count);
+}
+
+void
+gkyl_position_map_free(const struct gkyl_ref_count *ref)
+{
+  struct gkyl_position_map *gpm = container_of(ref, struct gkyl_position_map, ref_count);
+  gkyl_array_release(gpm->mc2nu);
+  gkyl_array_release(gpm->bmag_ctx->bmag);
+  gkyl_free(gpm->bmag_ctx);
+  gkyl_free(gpm->constB_ctx);
+  gkyl_free(gpm);
+}

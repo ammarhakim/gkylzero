@@ -34,6 +34,7 @@ struct gkyl_position_map {
   struct gkyl_array *mc2nu; // Position mapping in each position direction.
   uint32_t flags;
   struct gkyl_ref_count ref_count;
+  bool to_optimize; // Whether to optimize the position map for constant B mapping.
 
   // Stuff for constant B mapping
   struct gkyl_bmag_ctx *bmag_ctx; // Context for magnetic field calculation

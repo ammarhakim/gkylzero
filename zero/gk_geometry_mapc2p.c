@@ -274,8 +274,7 @@ gkyl_gk_geometry_mapc2p_new(struct gkyl_gk_geometry_inp *geometry_inp)
     else
       gk_geom = gkyl_gk_geometry_acquire(gk_geom_3d);
 
-    geometry_inp->position_map->bmag_ctx->bmag = gkyl_array_new(GKYL_DOUBLE,\
-       geometry_inp->basis.num_basis, geometry_inp->global_ext.volume);
+    geometry_inp->position_map->to_optimize = true;
     gkyl_comm_array_allgather_host(geometry_inp->comm, &geometry_inp->local, \
     &geometry_inp->global, gk_geom->bmag, (struct gkyl_array*) geometry_inp->position_map->bmag_ctx->bmag);
 
@@ -284,7 +283,6 @@ gkyl_gk_geometry_mapc2p_new(struct gkyl_gk_geometry_inp *geometry_inp)
 
     // Construct the non-uniform grid
     gk_geom_3d = gk_geometry_mapc2p_init(geometry_inp);
-    gkyl_array_release(geometry_inp->position_map->bmag_ctx->bmag);
   }
   return gk_geom_3d;
 }
