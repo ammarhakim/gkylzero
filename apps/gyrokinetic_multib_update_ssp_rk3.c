@@ -35,7 +35,9 @@ gyrokinetic_multib_forward_euler(struct gkyl_gyrokinetic_multib_app* app, double
     int li_charged = b * app->num_species;
     int li_neut = b * app->num_neut_species;
     for (int i=0; i<app->num_species; ++i) {
-      gkyl_array_accumulate(gkyl_array_scale(fout[li_charged+i], dta), 1.0, fin[li_charged+i]);
+      if (!app->singleb_apps[b]->species[i].info.is_static) {
+	gkyl_array_accumulate(gkyl_array_scale(fout[li_charged+i], dta), 1.0, fin[li_charged+i]);
+      }
     }
     for (int i=0; i<app->num_neut_species; ++i) {
       if (!app->singleb_apps[b]->neut_species[i].info.is_static) {
@@ -131,9 +133,11 @@ gyrokinetic_multib_update_ssp_rk3(struct gkyl_gyrokinetic_multib_app* app, doubl
           for (int b=0; b<app->num_local_blocks; ++b) {
             struct gkyl_gyrokinetic_app *sbapp = app->singleb_apps[b];
             for (int i=0; i<app->num_species; ++i) {
-              array_combine(sbapp->species[i].f1,
-                3.0/4.0, sbapp->species[i].f, 1.0/4.0, sbapp->species[i].fnew, &sbapp->species[i].local_ext);
-            }
+	      if (!sbapp->species[i].info.is_static) {
+                array_combine(sbapp->species[i].f1,
+                  3.0/4.0, sbapp->species[i].f, 1.0/4.0, sbapp->species[i].fnew, &sbapp->species[i].local_ext);
+	      }
+	    }
             for (int i=0; i<app->num_neut_species; ++i) {
               if (!sbapp->neut_species[i].info.is_static) {
                 array_combine(sbapp->neut_species[i].f1,
@@ -204,10 +208,12 @@ gyrokinetic_multib_update_ssp_rk3(struct gkyl_gyrokinetic_multib_app* app, doubl
           for (int b=0; b<app->num_local_blocks; ++b) {
             struct gkyl_gyrokinetic_app *sbapp = app->singleb_apps[b];
             for (int i=0; i<app->num_species; ++i) {
-              array_combine(sbapp->species[i].f1,
-                1.0/3.0, sbapp->species[i].f, 2.0/3.0, sbapp->species[i].fnew, &sbapp->species[i].local_ext);
-              gkyl_array_copy_range(sbapp->species[i].f, sbapp->species[i].f1, &sbapp->species[i].local_ext);
-            }
+	      if (!sbapp->species[i].info.is_static) {
+		array_combine(sbapp->species[i].f1,
+                  1.0/3.0, sbapp->species[i].f, 2.0/3.0, sbapp->species[i].fnew, &sbapp->species[i].local_ext);
+		gkyl_array_copy_range(sbapp->species[i].f, sbapp->species[i].f1, &sbapp->species[i].local_ext);
+	      }
+	    }
             for (int i=0; i<app->num_neut_species; ++i) {
               if (!sbapp->neut_species[i].info.is_static) {
                 array_combine(sbapp->neut_species[i].f1,

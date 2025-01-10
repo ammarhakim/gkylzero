@@ -569,6 +569,10 @@ struct gk_species {
   gkyl_dynvec ps_integ_diag; // Integrated moments of the positivity shift.
   bool is_first_ps_integ_write_call; // Flag first time writing ps_integ_diag.
 
+  // pointer to rhs functions
+  double (*rhs_func)(gkyl_gyrokinetic_app *app, struct gk_species *species,
+    const struct gkyl_array *fin, struct gkyl_array *rhs);
+
   double *omega_cfl;
 };
 
@@ -1302,6 +1306,15 @@ void gk_species_source_release(const struct gkyl_gyrokinetic_app *app, const str
 void gk_species_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app, struct gk_species *s);
 
 /**
+ * Initialize static species.
+ *
+ * @param gk Input gk data
+ * @param app gyrokinetic app object
+ * @param s On output, initialized species object
+ */
+void gk_species_static_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app, struct gk_species *s);
+
+/**
  * Compute species initial conditions.
  *
  * @param app gyrokinetic app object
@@ -1330,6 +1343,18 @@ void gk_species_apply_ic_cross(gkyl_gyrokinetic_app *app, struct gk_species *spe
  * @return Maximum stable time-step
  */
 double gk_species_rhs(gkyl_gyrokinetic_app *app, struct gk_species *species,
+  const struct gkyl_array *fin, struct gkyl_array *rhs);
+
+/**
+ * Compute RHS from static species distribution function
+ *
+ * @param app gyrokinetic app object
+ * @param species Pointer to species
+ * @param fin Input distribution function
+ * @param rhs On output, the RHS from the species object
+ * @return Maximum stable time-step
+ */
+double gk_species_static_rhs(gkyl_gyrokinetic_app *app, struct gk_species *species,
   const struct gkyl_array *fin, struct gkyl_array *rhs);
 
 /**
