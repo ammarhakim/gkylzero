@@ -3,7 +3,6 @@
 #include <gkyl_gk_geometry.h>
 /**
  * Create a new geometry object using mirror input (efit)
- * Wrapper for gkyl_gk_geometry_mirror_advance, neccisary for the non-uniform grids
  *
  * @param geometry_inp geometry input struct containing grid, range, and other geo info
  */

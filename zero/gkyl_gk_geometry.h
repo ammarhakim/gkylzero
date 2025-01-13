@@ -27,7 +27,7 @@ struct gk_geometry {
   // GK Equation and Poisson Equation and to apply certain BC's
   // The first 20 are defined on the configuration space domain. The last is a single element.
   struct gkyl_array* mc2p; // 3 components. Cartesian X,Y, and Z
-  struct gkyl_array* mc2nu_pos; // 3 components. Computational to field aligned mapping
+  struct gkyl_array* mc2nu_pos; // 3 components. Uniform computational space to non-uniform computational space mapping
   struct gkyl_array* bmag; // 1 component. B Magnitude of magnetic field
   struct gkyl_array* g_ij; // 6 components. 
                            // Metric coefficients g_{ij} Stored in order g_11, g12, g_13, g_22, g_23, g_33

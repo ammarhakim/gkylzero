@@ -9,17 +9,18 @@
 // Object type
 typedef struct gkyl_calc_bmag gkyl_calc_bmag;
 
+// Context object for computing bmag
 struct gkyl_bmag_ctx{
-   const struct gkyl_rect_grid* grid;
-   const struct gkyl_rect_grid* cgrid;
-   const struct gkyl_range* range;
-   const struct gkyl_range* crange;
-   const struct gkyl_range* crange_global;
-   const struct gkyl_basis* basis;
-   const struct gkyl_basis* cbasis;
-   const struct gkyl_array* bmagdg;
-   const struct gkyl_array* bmag;
-   const struct gkyl_array* mapc2p;
+   const struct gkyl_rect_grid* grid; // Physical RZ grid
+   const struct gkyl_rect_grid* cgrid; // Computational grid
+   const struct gkyl_range* range; // Physical RZ range
+   const struct gkyl_range* crange; // Computational range
+   const struct gkyl_range* crange_global; // Global computational range
+   const struct gkyl_basis* basis; // Physical RZ basis
+   const struct gkyl_basis* cbasis; // Computational basis 
+   const struct gkyl_array* bmagdg; // DG representation of bmag in physical RZ coordinates
+   const struct gkyl_array* bmag; // DG representation of bmag in computational coordinates
+   const struct gkyl_array* mapc2p; // DG representation of mapc2p
 };
 
 /**
