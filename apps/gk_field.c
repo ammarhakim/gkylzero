@@ -78,7 +78,6 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
   } else {
 
     double polarization_bmag = f->info.polarization_bmag ? f->info.polarization_bmag : app->bmag_ref;
-    printf("polarization_bmag = %g\n",polarization_bmag);
     // Linearized polarization density
     for (int i=0; i<app->num_species; ++i) {
       struct gk_species *s = &app->species[i];
@@ -185,7 +184,6 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
       1, GKYL_ARRAY_INTEGRATE_OP_SQ, app->use_gpu);
   }
   else {
-    printf("polarization_weight = %g\n",polarization_weight);
     gkyl_array_shiftc(f->es_energy_fac, sqrt(pow(2,app->cdim)), 0); // Sets es_energy_fac=1.
     gkyl_array_scale(f->es_energy_fac, 0.5*polarization_weight);
 
