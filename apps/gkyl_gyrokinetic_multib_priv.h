@@ -81,6 +81,9 @@ struct gk_multib_field {
   struct gkyl_array **phi_local;
   struct gkyl_array **phi_multibz_dg;
   struct gkyl_array **phi_multibz_smooth;
+  // jacobian connected along z
+  struct gkyl_array **jacobgeo_local;
+  struct gkyl_array **jacobgeo_multibz;
 
   struct gkyl_fem_parproj **fem_parproj; // FEM smoothers for projecting DG functions onto continuous FEM basis
                                         // weight*phi_{fem} = phi_{dg} 

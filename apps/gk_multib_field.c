@@ -75,6 +75,9 @@ gk_multib_field_new(const struct gkyl_gyrokinetic_multib *mbinp, struct gkyl_gyr
   mbf->phi_local = gkyl_malloc(mbf->num_local_blocks* sizeof(struct gkyl_array*));
   mbf->phi_multibz_dg = gkyl_malloc(mbf->num_local_blocks* sizeof(struct gkyl_array*));
   mbf->phi_multibz_smooth = gkyl_malloc(mbf->num_local_blocks* sizeof(struct gkyl_array*));
+  // Allocate local and global arrays for jacobian
+  mbf->jacobgeo_multibz = gkyl_malloc(mbf->num_local_blocks* sizeof(struct gkyl_array*));
+  mbf->jacobgeo_local = gkyl_malloc(mbf->num_local_blocks* sizeof(struct gkyl_array*));
 
   for (int bI=0; bI<mbf->num_local_blocks; ++bI) {
     struct gkyl_gyrokinetic_app *sbapp = mbapp->singleb_apps[bI];
@@ -83,6 +86,9 @@ gk_multib_field_new(const struct gkyl_gyrokinetic_multib *mbinp, struct gkyl_gyr
         sbapp->confBasis.num_basis, mbf->multibz_ranges_ext[bI]->volume);
     mbf->phi_multibz_smooth[bI] = mkarr(mbapp->use_gpu, 
         sbapp->confBasis.num_basis, mbf->multibz_ranges_ext[bI]->volume);
+    mbf->jacobgeo_multibz[bI] = mkarr(mbapp->use_gpu, 
+        sbapp->confBasis.num_basis, mbf->multibz_ranges_ext[bI]->volume);
+    mbf->jacobgeo_local[bI] = gkyl_array_acquire(sbapp->gk_geom->jacobgeo);
   }
 
   // Construct the comm_conns for the allgather
@@ -126,13 +132,20 @@ gk_multib_field_new(const struct gkyl_gyrokinetic_multib *mbinp, struct gkyl_gyr
     gkyl_multib_comm_conn_sort(mbf->mbcc_allgatherz_recv[bI]);
   }
 
+
+  // allgather the jacobian across blocks along the magnetic field.
+  int stat = gkyl_multib_comm_conn_array_transfer(mbapp->comm, mbf->num_local_blocks, 
+    mbapp->local_blocks, mbf->mbcc_allgatherz_send, mbf->mbcc_allgatherz_recv, mbf->jacobgeo_local, mbf->jacobgeo_multibz);
+
   mbf->fem_parproj = gkyl_malloc(mbf->num_local_blocks* sizeof(struct gkyl_fem_parproj*));
   // Make the parrallel smoother
   for (int bI=0; bI<mbf->num_local_blocks; ++bI) {
     int bid = local_blocks[bI];
     struct gkyl_gyrokinetic_app *sbapp = mbapp->singleb_apps[bI];
     mbf->fem_parproj[bI] = gkyl_fem_parproj_new(mbf->multibz_ranges[bI], &sbapp->confBasis, 
-      mbf->info.blocks[bid].fem_parbc, 0, 0, mbapp->use_gpu);
+      mbf->info.blocks[bid].fem_parbc, mbf->jacobgeo_multibz[bI], mbf->jacobgeo_multibz[bI], mbapp->use_gpu);
+    //mbf->fem_parproj[bI] = gkyl_fem_parproj_new(mbf->multibz_ranges[bI], &sbapp->confBasis, 
+    //  mbf->info.blocks[bid].fem_parbc, 0, 0, mbapp->use_gpu);
   }
 
   // Last initialization step should be to set intersects for copying local info back out after smoothing
