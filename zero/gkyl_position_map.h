@@ -8,9 +8,9 @@
 #include <gkyl_comm_io.h>
 
 enum gkyl_position_map_id {
-  GKYL_PMAP_FUNC = 0, // Function projection. User specified. Default
-  GKYL_PMAP_UNIFORM_B_POLYNOMIAL, // Makes a uniform dB in each cell
-  GKYL_PMAP_UNIFORM_B_NUMERIC, // Makes a uniform dB in each cell, but calculates the dB numerically
+  GKYL_PMAP_USER_INPUT = 0, // Function projection. User specified. Default
+  GKYL_PMAP_CONSTANT_DB_POLYNOMIAL, // Makes a uniform dB in each cell. Polynomial approximation, assuming 2 local maxima in Bmag
+  GKYL_PMAP_CONSTANT_DB_NUMERIC, // Makes a uniform dB in each cell, but calculates the dB numerically
 };
 
 typedef void (*mc2nu_t)(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx);
@@ -19,7 +19,9 @@ struct gkyl_position_map_inp {
   enum gkyl_position_map_id id;
   mc2nu_t maps[3]; // Position mapping in each position direction.
   void *ctxs[3]; // Context for each position mapping function.
-  double map_strength; // Zero is uniform mapping, one is fully nonuniform mapping. In between values. Used for the mirror geometry
+  double map_strength; // Zero is uniform mapping, one is fully nonuniform mapping. How strong the nonuniformity is
+  // Call map_strength = s, xc computational coordinate, and xnu the nonuniform coordinate
+  // xnu' = xnu * s + xc * (1-s)
 };
 
 struct gkyl_position_map {
@@ -45,28 +47,32 @@ struct gkyl_position_map_const_B_ctx {
   mc2nu_t maps_backup[3]; // Backup of the position mapping functions.
   void *ctxs_backup[3]; // Backup of the context for each position mapping function.
   
-  double psi, alpha;
-  double theta_throat, Bmag_throat;
-  double psi_min, psi_max;
-  double alpha_min, alpha_max;
-  double theta_min, theta_max;
-  double map_strength;
-  int map_order_center, map_order_expander;
+  double psi, alpha; // The psi and alpha values for the middle flux surface to identify the 1D line we are optimizing 
+  double psi_min, psi_max; // The max and min psi values for the simulation
+  double alpha_min, alpha_max; // The max and min alpha values for the simulation
+  double theta_min, theta_max; // The max and min theta values for the simulation
+  double map_strength; // Zero is uniform mapping, one is fully nonuniform mapping. How strong the nonuniformity is
 
-  int N_theta_boundaries;
-  int num_extrema;
-  double theta_extrema[16];
-  double bmag_extrema[16];
-  double dB_cell;
+  // Polynomial-based mapping
+  double theta_throat, Bmag_throat; // The theta and Bmag values at the throat of the magnetic field
+  int map_order_center, map_order_expander; // The polynomial order of the center and expander maps
+
+  // Constant B mapping
+  int N_theta_boundaries; // Number of times dB/dz changes sign
+  int num_extrema; // Number of extrema in the magnetic field
+  double theta_extrema[16]; // The theta values of the extrema
+  double bmag_extrema[16]; // The Bmag values of the extrema
+  double dB_cell; // The change in Bmag per cell
 };
 
 
 /**
- * Create a new position map object, containing the things needed
- * to use a (univariate) position map (e.g. to use nonununiform position
- * grids).
+ * Create a new position map object. A position map is a function that maps 
+ * uniform computational coordinates to non-uniform coordinates in the 
+ * same coordinate space as computational coordinates. (e.g. uniform field
+ * aligned -> non-uniform field aligned).
  *
- * @param mapc2p_in Comp. to phys. mapping input object (see definition above).
+ * @param pmap_info Comp. to phys. mapping input object (see definition above).
  * @param grid Position space grid.
  * @param local Local position range.
  * @param local_ext Local extended position range.
@@ -74,12 +80,12 @@ struct gkyl_position_map_const_B_ctx {
  * @param use_gpu Whether to create a device copy of this new object.
  * @return New position map object.
  */
-struct gkyl_position_map* gkyl_position_map_new(struct gkyl_position_map_inp mapc2p_in,
+struct gkyl_position_map* gkyl_position_map_new(struct gkyl_position_map_inp pmap_info,
   struct gkyl_rect_grid grid, struct gkyl_range local, struct gkyl_range local_ext, 
   struct gkyl_range global, struct gkyl_range global_ext, struct gkyl_basis basis);
 
 /**
- * Set the position map object.
+ * Set the position map object. Copy the non-uniform map array to the position map object.
  * 
  * @param gpm Position map object.
  * @param mc2nu Position map array.
@@ -93,19 +99,27 @@ void gkyl_position_map_set(struct gkyl_position_map* gpm, struct gkyl_array* mc2
  * NOTE: done on the host.
  *
  * @param gpm Gkyl position map object.
- * @param zc Computational position coordinates.
- * @param vp Resulting physical position coordinates.
+ * @param xc Computational position coordinates.
+ * @param xnu Resulting non-uniform position coordinates.
  */
 void
-gkyl_position_map_eval_mc2nu(const struct gkyl_position_map* gpm, const double *zc, double *vp);
+gkyl_position_map_eval_mc2nu(const struct gkyl_position_map* gpm, const double *xc, double *xnu);
 
 /**
  * Create a new pointer to the position map object.
  * Release it with gkyl_position_map_release.
  *
- * @param New pointer to the position map object.
+ * @param gpm Position map object.
  */
 struct gkyl_position_map* gkyl_position_map_acquire(const struct gkyl_position_map* gpm);
+
+/**
+ * Optimize the position map object for constant B mapping.
+ * 
+ * @param gpm Position map object.
+ */
+void gkyl_position_map_optimize(struct gkyl_position_map* gpm);
+
 
 /**
  * Release pointer to (and eventually memory associated with)
@@ -114,10 +128,3 @@ struct gkyl_position_map* gkyl_position_map_acquire(const struct gkyl_position_m
  * @param Position map object.
  */
 void gkyl_position_map_release(const struct gkyl_position_map *gpm);
-
-/**
- * Optimize the position map object for constant B mapping.
- * 
- * @param gpm Position map object.
- */
-void gkyl_position_map_optimize(struct gkyl_position_map* gpm);

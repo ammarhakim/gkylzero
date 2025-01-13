@@ -91,7 +91,7 @@ test_position_map_init_1x()
   struct gkyl_position_map *pos_map = gkyl_position_map_new(pos_map_inp,
     grid, localRange, localRange_ext, localRange, localRange_ext, basis);
 
-  TEST_ASSERT(pos_map->bmag_ctx->bmag == 0);
+  TEST_ASSERT(pos_map->to_optimize == 0);
   TEST_ASSERT(pos_map->grid.ndim == 1);
   TEST_ASSERT(pos_map->local.ndim == 1);
   TEST_ASSERT(pos_map->local_ext.ndim == 1);
@@ -127,7 +127,7 @@ test_position_map_init_1x_null()
   struct gkyl_position_map *pos_map = gkyl_position_map_new(pos_map_inp, \
     grid, localRange, localRange_ext, localRange, localRange_ext, basis);
 
-  TEST_ASSERT(pos_map->id == GKYL_PMAP_FUNC);
+  TEST_ASSERT(pos_map->id == GKYL_PMAP_USER_INPUT);
   for (double i = 0; i < 1; i = i+0.1){
     double x[1] = {i};
     double y[1];
@@ -140,7 +140,7 @@ test_position_map_init_1x_null()
     pos_map->maps[2](0.0, x, y, pos_map->ctxs[2]);
     TEST_ASSERT(y[0] == x[0]);
   }
-  TEST_ASSERT(pos_map->bmag_ctx->bmag == 0);
+  TEST_ASSERT(pos_map->to_optimize == 0);
   TEST_ASSERT(pos_map->grid.ndim == 1);
   TEST_ASSERT(pos_map->local.ndim == 1);
   TEST_ASSERT(pos_map->local_ext.ndim == 1);
@@ -178,7 +178,7 @@ test_position_map_init_2x()
   struct gkyl_position_map *pos_map = gkyl_position_map_new(pos_map_inp, \
     grid, localRange, localRange_ext, localRange, localRange_ext, basis);
 
-  TEST_ASSERT(pos_map->bmag_ctx->bmag == 0);
+  TEST_ASSERT(pos_map->to_optimize == 0);
   TEST_ASSERT(pos_map->grid.ndim == 2);
   TEST_ASSERT(pos_map->local.ndim == 2);
   TEST_ASSERT(pos_map->local_ext.ndim == 2);
@@ -216,7 +216,7 @@ test_position_map_init_3x()
   struct gkyl_position_map *pos_map = gkyl_position_map_new(pos_map_inp, \
     grid, localRange, localRange_ext, localRange, localRange_ext, basis);
 
-  TEST_ASSERT(pos_map->bmag_ctx->bmag == 0);
+  TEST_ASSERT(pos_map->to_optimize == 0);
   TEST_ASSERT(pos_map->grid.ndim == 3);
   TEST_ASSERT(pos_map->local.ndim == 3);
   TEST_ASSERT(pos_map->local_ext.ndim == 3);
@@ -346,7 +346,7 @@ test_position_polynomial_map_optimize_1x()
   gkyl_cart_modal_serendip(&basis, dim, poly_order);
 
   struct gkyl_position_map_inp pos_map_inp = {
-    .id = GKYL_PMAP_UNIFORM_B_POLYNOMIAL,
+    .id = GKYL_PMAP_CONSTANT_DB_POLYNOMIAL,
     .map_strength = 1.0,
   };
 
@@ -378,10 +378,11 @@ test_position_polynomial_map_optimize_1x()
   pos_map->constB_ctx->ctxs_backup[1]  = 0;
 
   pos_map->constB_ctx->N_theta_boundaries = cells[0]+1;
+  pos_map->to_optimize = true;
 
   gkyl_position_map_optimize(pos_map);
 
-  TEST_ASSERT(pos_map->bmag_ctx->bmag != 0);
+  TEST_ASSERT(pos_map->to_optimize == true);
   TEST_ASSERT( gkyl_compare(pos_map->constB_ctx->theta_throat, 1.565796, 1e-6) );
   TEST_ASSERT( gkyl_compare(pos_map->constB_ctx->Bmag_throat, 1.093613, 1e-6) );
   TEST_ASSERT( gkyl_compare(pos_map->constB_ctx->psi, 0.5, 1e-6) );
@@ -415,7 +416,7 @@ test_position_map_numeric_optimize_1x()
   gkyl_cart_modal_serendip(&basis, dim, poly_order);
 
   struct gkyl_position_map_inp pos_map_inp = {
-    .id = GKYL_PMAP_UNIFORM_B_NUMERIC,
+    .id = GKYL_PMAP_CONSTANT_DB_NUMERIC,
     .map_strength = 1.0,
   };
 
@@ -446,6 +447,7 @@ test_position_map_numeric_optimize_1x()
   pos_map->constB_ctx->maps_backup[1] = test_identity_position_map;
   pos_map->constB_ctx->ctxs_backup[1]  = 0;
   pos_map->constB_ctx->N_theta_boundaries = cells[0]+1;
+  pos_map->to_optimize = true;
 
   gkyl_position_map_optimize(pos_map);
 
@@ -459,7 +461,7 @@ test_position_map_numeric_optimize_1x()
   TEST_ASSERT( gkyl_compare(pos_map->constB_ctx->bmag_extrema[1], 0.957785094052, 1e-10) );
   TEST_ASSERT( gkyl_compare(pos_map->constB_ctx->bmag_extrema[2], 0.008057373351, 1e-10) );
   TEST_ASSERT( gkyl_compare(pos_map->constB_ctx->bmag_extrema[3], 0.957785094052, 1e-10) );
-  TEST_ASSERT( gkyl_compare(pos_map->constB_ctx->bmag_extrema[4], 0.0045314338639986, 1e-10) );
+  TEST_ASSERT( gkyl_compare(pos_map->constB_ctx->bmag_extrema[4], 0.0045371509810682, 1e-10) );
 
   gkyl_position_map_release(pos_map);
   gkyl_array_release(bmag_global);
@@ -486,7 +488,7 @@ test_position_map_numeric_calculate_1x()
   gkyl_cart_modal_serendip(&basis, dim, poly_order);
 
   struct gkyl_position_map_inp pos_map_inp = {
-    .id = GKYL_PMAP_UNIFORM_B_NUMERIC,
+    .id = GKYL_PMAP_CONSTANT_DB_NUMERIC,
     .map_strength = 1.0,
   };
 
@@ -517,6 +519,7 @@ test_position_map_numeric_calculate_1x()
   pos_map->constB_ctx->maps_backup[1] = test_identity_position_map;
   pos_map->constB_ctx->ctxs_backup[1]  = 0;
   pos_map->constB_ctx->N_theta_boundaries = cells[0]+1;
+  pos_map->to_optimize = true;
 
   gkyl_position_map_optimize(pos_map);
 

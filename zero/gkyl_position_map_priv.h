@@ -1,23 +1,15 @@
 #include <gkyl_array.h>
 #include <gkyl_calc_bmag.h>
 
+// Context for numeric root finding B mapping
 struct opt_Theta_ctx
 {
   struct gkyl_position_map *gpm;
   struct gkyl_bmag_ctx *bmag_ctx;
-  double dB_target;
-  double dB_global_lower;
-  double B_lower_region;
+  double dB_target; // How much B should change in 1 cell
+  double dB_global_lower; // How much dB came before this region
+  double B_lower_region; // The B value at the lower end of the region
 };
-
-// Allocate double array (filled with zeros).
-static struct gkyl_array*
-mkarr(bool on_gpu, long nc, long size)
-{
-  struct gkyl_array* a;
-  a = gkyl_array_new(GKYL_DOUBLE, nc, size);
-  return a;
-}
 
 /**
  * Function that actually frees memory associated with this
@@ -29,24 +21,33 @@ void gkyl_position_map_free(const struct gkyl_ref_count *ref);
 
 // Utility functions for polynomial based B mapping
 
+/**
+ * Calculates the location of the throat of the mirror in the theta direction
+ * and the value of Bmag at that location.
+ * 
+ * @param constB_ctx Context for the constant B mapping
+ * @param bmag_ctx Context for the magnetic field calculation
+ */
 void
 calculate_mirror_throat_location_polynomial(struct gkyl_position_map_const_B_ctx *constB_ctx, struct gkyl_bmag_ctx *bmag_ctx)
 {
-  // Assumes symmetry along theta centered at 0 and two local maxima in Bmag that are symmetric
+  // Parameters to use for the midpoint rule root finding algorithm to find the throat of the mirror
+  int itterations = 10;
+  int points_per_level = 20;
 
+  // Assumes symmetry along theta, centered at 0, and two local maxima in Bmag that are symmetric
   enum { X_IDX, Y_IDX, Z_IDX }; // arrangement of cartesian coordinates
   double psi = constB_ctx->psi;
   double alpha = constB_ctx->alpha;
-  double *xp = malloc(3*sizeof(double));
+  double xp[3];
   xp[X_IDX] = psi;
   xp[Y_IDX] = alpha;
-  int itterations = 10;
+
   double interval_left = 0.0;
   double interval_right = constB_ctx->theta_max;
-  int points_per_level = 20;
   double maximum_Bmag = 0.0;
   double maximum_Bmag_location = 0.0;
-  double *fout = malloc(3*sizeof(double));
+  double fout[3];
   for (int j = 0; j < itterations; j++)
   {
     double dz = (interval_right - interval_left) / points_per_level;
@@ -69,19 +70,24 @@ calculate_mirror_throat_location_polynomial(struct gkyl_position_map_const_B_ctx
   }
   constB_ctx->theta_throat = maximum_Bmag_location;
   constB_ctx->Bmag_throat = maximum_Bmag;
-  free(xp);
-  free(fout);
 }
 
+/**
+ * Converts our uniform coordinate along field line length to a non-uniform coordinate
+ * according to the polynomial mapping of arbitrary order.
+ * Notation: We switch from theta to z here. Both are the third computational coordinate.
+ * 
+ * @param t Time
+ * @param xn Uniform coordinate
+ * @param fout Non-uniform coordinate
+ * @param ctx position_map_constB_ctx context for the constant B mapping
+ */
 void
 position_map_constB_z_polynomial(double t, const double *xn, double *fout, void *ctx)
 {
-  // Converts our uniform coordinate along field line length to a non-uniform coordinate
-  // according to the polynomial mapping of arbitrary order.
-  // Notation: I switch from theta to z here. Both are computational coordinate.
   struct gkyl_position_map_const_B_ctx *app = ctx;
-  int n_ex = app->map_order_expander;//app->mapping_order_expander;
-  int n_ct = app->map_order_center;//app->mapping_order_center;
+  int n_ex = app->map_order_expander;
+  int n_ct = app->map_order_center;
   double z_min = app->theta_min;
   double z_max = app->theta_max;
   double z_m = app->theta_throat;
@@ -124,16 +130,23 @@ position_map_constB_z_polynomial(double t, const double *xn, double *fout, void 
   fout[0] = nonuniform_coordinate;
 }
 
+/**
+ * Calculates the optimal orders for the polynomail mapping of the B field.
+ * The optimal orders are the orders that minimize the maximum dB/dTheta in that region.
+ * 
+ * @param constB_ctx Context for the constant B mapping
+ * @param bmag_ctx Context for the magnetic field calculation
+ */
 void
 calculate_optimal_mapping_polynomial(struct gkyl_position_map_const_B_ctx *constB_ctx, struct gkyl_bmag_ctx *bmag_ctx)
 {
-  // Could be refined further by doing midpoint root finding, like the mirror throat finding does
+  // Could be refined further by doing midpoint root finding for maximum dB/dz
   // Expander region
   enum { X_IDX, Y_IDX, Z_IDX }; // arrangement of cartesian coordinates
   double psi = constB_ctx->psi;
   double alpha = constB_ctx->alpha;
-  double *xp = malloc(3*sizeof(double));
-  double *fout = malloc(3*sizeof(double));
+  double xp[3];
+  double fout[3];
   xp[X_IDX] = psi;
   xp[Y_IDX] = alpha;
   constB_ctx->map_order_center = 1;
@@ -240,33 +253,44 @@ calculate_optimal_mapping_polynomial(struct gkyl_position_map_const_B_ctx *const
       break;
     }
   }
-  free(xp);
-  free(fout);
 }
 
 
 // Utility functions for numeric root finding B mapping
 
-
+/**
+ * Calculates dB/dTheta numerically at a given xn value. Calculates
+ * the derivative to the left of the point.
+ * 
+ * @param theta The theta value to calculate the derivative at
+ * @param ctx The context for the position map
+ */
 double
-calc_bmag_global_derivative(double xn, void *ctx)
+calc_bmag_global_derivative(double theta, void *ctx)
 {
   struct gkyl_position_map *gpm = ctx;
   struct gkyl_bmag_ctx *bmag_ctx = gpm->bmag_ctx;
-  double h = 1e-6;
+  double dtheta_cell = (gpm->constB_ctx->theta_max - gpm->constB_ctx->theta_min)/gpm->constB_ctx->N_theta_boundaries;
+  double h = 1e-2 * dtheta_cell;
   double xh[3];
   double fout[3];
   xh[0] = gpm->constB_ctx->psi;
   xh[1] = gpm->constB_ctx->alpha;
-  xh[2] = xn - h;
+  xh[2] = theta - h;
   gkyl_calc_bmag_global(0.0, xh, fout, bmag_ctx);
   double Bmag_plus = fout[0];
-  xh[2] = xn - 2*h;
+  xh[2] = theta - 2*h;
   gkyl_calc_bmag_global(0.0, xh, fout, bmag_ctx);
   double Bmag_minus = fout[0];
   return (Bmag_plus - Bmag_minus) / (h);
 }
 
+/**
+ * Finds the local min and max of the B field along the field line
+ * specified by the input psi and alpha values.
+ * 
+ * @param gpm The position map object
+ */
 void
 find_B_field_extrema(struct gkyl_position_map *gpm)
 {
@@ -354,6 +378,13 @@ find_B_field_extrema(struct gkyl_position_map *gpm)
 
 }
 
+/**
+ * Function used for root finding to determine the optimal theta value
+ * for the numeric constant dB mapping.
+ * 
+ * @param theta The theta value to evaluate
+ * @param ctx The context for the root finder. Type opt_Theta_ctx
+ */
 double
 position_map_numeric_optimization_function(double theta, void *ctx)
 {
@@ -378,6 +409,15 @@ position_map_numeric_optimization_function(double theta, void *ctx)
   return result;
 }
 
+/**
+ * Maps the uniform computational coordinate to a non-uniform coordinate
+ * according to the numeric constant B mapping.
+ * 
+ * @param t Time
+ * @param xn Uniform coordinate
+ * @param fout Non-uniform coordinate
+ * @param ctx The context for the position map
+ */
 void
 position_map_constB_z_numeric(double t, const double *xn, double *fout, void *ctx)
 {

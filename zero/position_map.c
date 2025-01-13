@@ -43,7 +43,7 @@ gkyl_position_map_new(struct gkyl_position_map_inp pmap_info, struct gkyl_rect_g
 
   switch (pmap_info.id)
   {
-    case GKYL_PMAP_FUNC:
+    case GKYL_PMAP_USER_INPUT:
       for (int i = 0; i < 3; i++){
         if (pmap_info.maps[i] != 0)
         { gpm->maps[i] = pmap_info.maps[i];
@@ -51,7 +51,7 @@ gkyl_position_map_new(struct gkyl_position_map_inp pmap_info, struct gkyl_rect_g
         }
       }
 
-    case GKYL_PMAP_UNIFORM_B_POLYNOMIAL:
+    case GKYL_PMAP_CONSTANT_DB_POLYNOMIAL:
 
       for (int i = 0; i < 2; i++){
         if (pmap_info.maps[i] != 0)
@@ -61,7 +61,7 @@ gkyl_position_map_new(struct gkyl_position_map_inp pmap_info, struct gkyl_rect_g
       }
       gpm->constB_ctx->map_strength = pmap_info.map_strength;
 
-    case GKYL_PMAP_UNIFORM_B_NUMERIC:
+    case GKYL_PMAP_CONSTANT_DB_NUMERIC:
 
       for (int i = 0; i < 2; i++){
         if (pmap_info.maps[i] != 0)
@@ -79,7 +79,7 @@ gkyl_position_map_new(struct gkyl_position_map_inp pmap_info, struct gkyl_rect_g
   gpm->global_ext = global_ext;
   gpm->basis = basis;
   gpm->cdim = grid.ndim; 
-  gpm->mc2nu = mkarr(false, 3*gpm->basis.num_basis, gpm->local_ext.volume);
+  gpm->mc2nu = gkyl_array_new(GKYL_DOUBLE, 3*gpm->basis.num_basis, gpm->local_ext.volume);
   gpm->flags = 0;
   GKYL_CLEAR_CU_ALLOC(gpm->flags);
   gpm->ref_count = gkyl_ref_count_init(gkyl_position_map_free);
@@ -124,7 +124,7 @@ gkyl_position_map_eval_mc2nu(const struct gkyl_position_map* gpm, const double *
 void
 gkyl_position_map_optimize(struct gkyl_position_map* gpm)
 {
-  if (gpm->id == GKYL_PMAP_UNIFORM_B_POLYNOMIAL && gpm->to_optimize == true)
+  if (gpm->id == GKYL_PMAP_CONSTANT_DB_POLYNOMIAL && gpm->to_optimize == true)
   {
     gpm->maps[0] = gpm->constB_ctx->maps_backup[0];
     gpm->ctxs[0] = gpm->constB_ctx->ctxs_backup[0];
@@ -143,7 +143,7 @@ gkyl_position_map_optimize(struct gkyl_position_map* gpm)
     calculate_mirror_throat_location_polynomial(gpm->constB_ctx, gpm->bmag_ctx);
     calculate_optimal_mapping_polynomial(gpm->constB_ctx, gpm->bmag_ctx);
   }
-  else if (gpm->id == GKYL_PMAP_UNIFORM_B_NUMERIC && gpm->to_optimize == true)
+  else if (gpm->id == GKYL_PMAP_CONSTANT_DB_NUMERIC && gpm->to_optimize == true)
   {
     gpm->maps[0] = gpm->constB_ctx->maps_backup[0];
     gpm->ctxs[0] = gpm->constB_ctx->ctxs_backup[0];

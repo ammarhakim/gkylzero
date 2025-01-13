@@ -266,8 +266,8 @@ gkyl_gk_geometry_mapc2p_new(struct gkyl_gk_geometry_inp *geometry_inp)
   gk_geom_3d = gk_geometry_mapc2p_init(geometry_inp);
   // The conversion array computational to field aligned is still computed
   // in uniform geometry, so we need to deflate it
-  if (geometry_inp->position_map->id == GKYL_PMAP_UNIFORM_B_POLYNOMIAL || \
-      geometry_inp->position_map->id == GKYL_PMAP_UNIFORM_B_NUMERIC) {
+  if (geometry_inp->position_map->id == GKYL_PMAP_CONSTANT_DB_POLYNOMIAL || \
+      geometry_inp->position_map->id == GKYL_PMAP_CONSTANT_DB_NUMERIC) {
     // Must deflate the 3Duniform geometry in order for the allgather to work
     if(geometry_inp->grid.ndim < 3)
       gk_geom = gkyl_gk_geometry_deflate(gk_geom_3d, geometry_inp);
