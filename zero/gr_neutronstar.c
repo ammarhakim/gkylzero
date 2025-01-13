@@ -201,6 +201,148 @@ neutronstar_gamma_function(const struct gkyl_gr_spacetime* spacetime, const doub
     (((mass * mass) * (rho * rho)) / (2.0 * pow((rho * rho) + (z_cylindrical * z_cylindrical), 2.0)));
 }
 
+double**
+neutronstar_spatial_transformation_tensor(const struct gkyl_gr_spacetime* spacetime, const double x, const double y, const double z)
+{
+  const struct gr_neutronstar *neutronstar = container_of(spacetime, struct gr_neutronstar, spacetime);
+
+  double pos_x = neutronstar->pos_x;
+  double pos_y = neutronstar->pos_y;
+  double pos_z = neutronstar->pos_z;
+
+  double rho = sqrt(((x - pos_x) * (x - pos_x)) + ((y - pos_y) * (y - pos_y)));
+
+  double **spatial_transformation_tensor = gkyl_malloc(sizeof(double*[3]));
+  for (int i = 0; i < 3; i++) {
+    spatial_transformation_tensor[i] = gkyl_malloc(sizeof(double[3]));
+  }
+
+  spatial_transformation_tensor[0][0] = (x - pos_x) / rho;
+  spatial_transformation_tensor[0][1] = (y - pos_y) / rho;
+  spatial_transformation_tensor[0][2] = 0.0;
+
+  spatial_transformation_tensor[1][0] = -(y - pos_y) / (rho * rho);
+  spatial_transformation_tensor[1][1] = (x - pos_x) / (rho * rho);
+  spatial_transformation_tensor[1][2] = 0.0;
+
+  spatial_transformation_tensor[2][0] = 0.0;
+  spatial_transformation_tensor[2][1] = 0.0;
+  spatial_transformation_tensor[2][2] = 1.0;
+
+  return spatial_transformation_tensor;
+}
+
+double**
+neutronstar_spacetime_transformation_tensor(const struct gkyl_gr_spacetime* spacetime, const double x, const double y, const double z)
+{
+  const struct gr_neutronstar *neutronstar = container_of(spacetime, struct gr_neutronstar, spacetime);
+
+  double pos_x = neutronstar->pos_x;
+  double pos_y = neutronstar->pos_y;
+  double pos_z = neutronstar->pos_z;
+
+  double rho = sqrt(((x - pos_x) * (x - pos_x)) + ((y - pos_y) * (y - pos_y)));
+
+  double **spacetime_transformation_tensor = gkyl_malloc(sizeof(double*[4]));
+  for (int i = 0; i < 4; i++) {
+    spacetime_transformation_tensor[i] = gkyl_malloc(sizeof(double[4]));
+  }
+
+  spacetime_transformation_tensor[0][0] = 1.0;
+  spacetime_transformation_tensor[0][1] = 0.0;
+  spacetime_transformation_tensor[0][2] = 0.0;
+  spacetime_transformation_tensor[0][3] = 0.0;
+  
+  spacetime_transformation_tensor[1][0] = 0.0;
+  spacetime_transformation_tensor[1][1] = (x - pos_x) / rho;
+  spacetime_transformation_tensor[1][2] = (y - pos_y) / rho;
+  spacetime_transformation_tensor[1][3] = 0.0;
+
+  spacetime_transformation_tensor[2][0] = 0.0;
+  spacetime_transformation_tensor[2][1] = -(y - pos_y) / (rho * rho);
+  spacetime_transformation_tensor[2][2] = (x - pos_x) / (rho * rho);
+  spacetime_transformation_tensor[2][3] = 0.0;
+
+  spacetime_transformation_tensor[3][0] = 0.0;
+  spacetime_transformation_tensor[3][1] = 0.0;
+  spacetime_transformation_tensor[3][2] = 0.0;
+  spacetime_transformation_tensor[3][3] = 1.0;
+
+  return spacetime_transformation_tensor;
+}
+
+double**
+neutronstar_spatial_inv_transformation_tensor(const struct gkyl_gr_spacetime* spacetime, const double x, const double y, const double z)
+{
+  const struct gr_neutronstar *neutronstar = container_of(spacetime, struct gr_neutronstar, spacetime);
+
+  double pos_x = neutronstar->pos_x;
+  double pos_y = neutronstar->pos_y;
+  double pos_z = neutronstar->pos_z;
+
+  double rho = sqrt(((x - pos_x) * (x - pos_x)) + ((y - pos_y) * (y - pos_y)));
+  double theta = atan((y - pos_y) / (x - pos_x));
+
+  double **spatial_inv_transformation_tensor = gkyl_malloc(sizeof(double*[3]));
+  for (int i = 0; i < 3; i++) {
+    spatial_inv_transformation_tensor[i] = gkyl_malloc(sizeof(double[3]));
+  }
+
+  spatial_inv_transformation_tensor[0][0] = cos(theta);
+  spatial_inv_transformation_tensor[0][1] = -rho * sin(theta);
+  spatial_inv_transformation_tensor[0][2] = 0.0;
+
+  spatial_inv_transformation_tensor[1][0] = sin(theta);
+  spatial_inv_transformation_tensor[1][1] = rho * cos(theta);
+  spatial_inv_transformation_tensor[1][2] = 0.0;
+
+  spatial_inv_transformation_tensor[2][0] = 0.0;
+  spatial_inv_transformation_tensor[2][1] = 0.0;
+  spatial_inv_transformation_tensor[2][2] = 1.0;
+
+  return spatial_inv_transformation_tensor;
+}
+
+double**
+neutronstar_spacetime_inv_transformation_tensor(const struct gkyl_gr_spacetime* spacetime, const double x, const double y, const double z)
+{
+  const struct gr_neutronstar *neutronstar = container_of(spacetime, struct gr_neutronstar, spacetime);
+
+  double pos_x = neutronstar->pos_x;
+  double pos_y = neutronstar->pos_y;
+  double pos_z = neutronstar->pos_z;
+
+  double rho = sqrt(((x - pos_x) * (x - pos_x)) + ((y - pos_y) * (y - pos_y)));
+  double theta = atan((y - pos_y) / (x - pos_x));
+
+  double **spacetime_inv_transformation_tensor = gkyl_malloc(sizeof(double*[4]));
+  for (int i = 0; i < 4; i++) {
+    spacetime_inv_transformation_tensor[i] = gkyl_malloc(sizeof(double[4]));
+  }
+
+  spacetime_inv_transformation_tensor[0][0] = 1.0;
+  spacetime_inv_transformation_tensor[0][1] = 0.0;
+  spacetime_inv_transformation_tensor[0][2] = 0.0;
+  spacetime_inv_transformation_tensor[0][3] = 0.0;
+  
+  spacetime_inv_transformation_tensor[1][0] = 0.0;
+  spacetime_inv_transformation_tensor[1][1] = cos(theta);
+  spacetime_inv_transformation_tensor[1][2] = -rho * sin(theta);
+  spacetime_inv_transformation_tensor[1][3] = 0.0;
+
+  spacetime_inv_transformation_tensor[2][0] = 0.0;
+  spacetime_inv_transformation_tensor[2][1] = sin(theta);
+  spacetime_inv_transformation_tensor[2][2] = rho * cos(theta);
+  spacetime_inv_transformation_tensor[2][3] = 0.0;
+
+  spacetime_inv_transformation_tensor[3][0] = 0.0;
+  spacetime_inv_transformation_tensor[3][1] = 0.0;
+  spacetime_inv_transformation_tensor[3][2] = 0.0;
+  spacetime_inv_transformation_tensor[3][3] = 1.0;
+
+  return spacetime_inv_transformation_tensor;
+}
+
 static void
 neutronstar_spatial_metric_tensor(const struct gkyl_gr_spacetime* spacetime, const double t, const double x, const double y, const double z,
   double*** spatial_metric_tensor)
@@ -212,10 +354,15 @@ neutronstar_spatial_metric_tensor(const struct gkyl_gr_spacetime* spacetime, con
   double pos_z = neutronstar->pos_z;
 
   double rho = sqrt(((x - pos_x) * (x - pos_x)) + ((y - pos_y) * (y - pos_y)));
-  double z_cylindrical = z - pos_z;
+
+  double **spatial_metric_tensor_cylindrical = gkyl_malloc(sizeof(double*[3]));
+  for (int i = 0; i < 3; i++) {
+    spatial_metric_tensor_cylindrical[i] = gkyl_malloc(sizeof(double[3]));
+  }
 
   for (int i = 0; i < 3; i++) {
     for (int j = 0; j < 3; j++) {
+      spatial_metric_tensor_cylindrical[i][j] = 0.0;
       (*spatial_metric_tensor)[i][j] = 0.0;
     }
   }
@@ -224,9 +371,28 @@ neutronstar_spatial_metric_tensor(const struct gkyl_gr_spacetime* spacetime, con
   double omega_function = neutronstar_omega_function(spacetime, x, y, z);
   double gamma_function = neutronstar_gamma_function(spacetime, x, y, z);
 
-  (*spatial_metric_tensor)[0][0] = exp(2.0 * gamma_function) / f_function;
-  (*spatial_metric_tensor)[1][1] = ((rho * rho) / f_function) - (f_function * (omega_function * omega_function));
-  (*spatial_metric_tensor)[2][2] = exp(2.0 * gamma_function) / f_function;
+  spatial_metric_tensor_cylindrical[0][0] = exp(2.0 * gamma_function) / f_function;
+  spatial_metric_tensor_cylindrical[1][1] = ((rho * rho) / f_function) - (f_function * (omega_function * omega_function));
+  spatial_metric_tensor_cylindrical[2][2] = exp(2.0 * gamma_function) / f_function;
+
+  double **spatial_transformation_tensor = neutronstar_spatial_transformation_tensor(spacetime, x, y, z);
+
+  for (int i = 0; i < 3; i++) {
+    for (int j = 0; j < 3; j++) {
+      for (int k = 0; k < 3; k++) {
+        for (int l = 0; l < 3; l++) {
+          (*spatial_metric_tensor)[i][j] += spatial_transformation_tensor[k][i] * spatial_transformation_tensor[l][j] * spatial_metric_tensor_cylindrical[k][l];
+        }
+      }
+    }
+  }
+
+  for (int i = 0; i < 3; i++) {
+    gkyl_free(spatial_metric_tensor_cylindrical[i]);
+    gkyl_free(spatial_transformation_tensor[i]);
+  }
+  gkyl_free(spatial_metric_tensor_cylindrical);
+  gkyl_free(spatial_transformation_tensor);
 }
 
 static void
@@ -240,10 +406,15 @@ neutronstar_spacetime_metric_tensor(const struct gkyl_gr_spacetime* spacetime, c
   double pos_z = neutronstar->pos_z;
 
   double rho = sqrt(((x - pos_x) * (x - pos_x)) + ((y - pos_y) * (y - pos_y)));
-  double z_cylindrical = z - pos_z;
+
+  double **spacetime_metric_tensor_cylindrical = gkyl_malloc(sizeof(double*[4]));
+  for (int i = 0; i < 4; i++) {
+    spacetime_metric_tensor_cylindrical[i] = gkyl_malloc(sizeof(double[4]));
+  }
 
   for (int i = 0; i < 4; i++) {
     for (int j = 0; j < 4; j++) {
+      spacetime_metric_tensor_cylindrical[i][j] = 0.0;
       (*spacetime_metric_tensor)[i][j] = 0.0;
     }
   }
@@ -252,13 +423,32 @@ neutronstar_spacetime_metric_tensor(const struct gkyl_gr_spacetime* spacetime, c
   double omega_function = neutronstar_omega_function(spacetime, x, y, z);
   double gamma_function = neutronstar_gamma_function(spacetime, x, y, z);
 
-  (*spacetime_metric_tensor)[0][0] = -f_function;
-  (*spacetime_metric_tensor)[1][1] = exp(2.0 * gamma_function) / f_function;
-  (*spacetime_metric_tensor)[2][2] = ((rho * rho) / f_function) - (f_function * (omega_function * omega_function));
-  (*spacetime_metric_tensor)[3][3] = exp(2.0 * gamma_function) / f_function;
+  spacetime_metric_tensor_cylindrical[0][0] = -f_function;
+  spacetime_metric_tensor_cylindrical[1][1] = exp(2.0 * gamma_function) / f_function;
+  spacetime_metric_tensor_cylindrical[2][2] = ((rho * rho) / f_function) - (f_function * (omega_function * omega_function));
+  spacetime_metric_tensor_cylindrical[3][3] = exp(2.0 * gamma_function) / f_function;
 
-  (*spacetime_metric_tensor)[0][2] = f_function * omega_function;
-  (*spacetime_metric_tensor)[2][0] = f_function * omega_function;
+  spacetime_metric_tensor_cylindrical[0][2] = f_function * omega_function;
+  spacetime_metric_tensor_cylindrical[2][0] = f_function * omega_function;
+
+  double **spacetime_transformation_tensor = neutronstar_spacetime_transformation_tensor(spacetime, x, y, z);
+
+  for (int i = 0; i < 4; i++) {
+    for (int j = 0; j < 4; j++) {
+      for (int k = 0; k < 4; k++) {
+        for (int l = 0; l < 4; l++) {
+          (*spacetime_metric_tensor)[i][j] += spacetime_transformation_tensor[k][i] * spacetime_transformation_tensor[l][j] * spacetime_metric_tensor_cylindrical[k][l];
+        }
+      }
+    }
+  }
+
+  for (int i = 0; i < 4; i++) {
+    gkyl_free(spacetime_metric_tensor_cylindrical[i]);
+    gkyl_free(spacetime_transformation_tensor[i]);
+  }
+  gkyl_free(spacetime_metric_tensor_cylindrical);
+  gkyl_free(spacetime_transformation_tensor);
 }
 
 static void
@@ -272,10 +462,15 @@ neutronstar_spatial_inv_metric_tensor(const struct gkyl_gr_spacetime* spacetime,
   double pos_z = neutronstar->pos_z;
 
   double rho = sqrt(((x - pos_x) * (x - pos_x)) + ((y - pos_y) * (y - pos_y)));
-  double z_cylindrical = z - pos_z;
+
+  double **spatial_inv_metric_tensor_cylindrical = gkyl_malloc(sizeof(double*[3]));
+  for (int i = 0; i < 3; i++) {
+    spatial_inv_metric_tensor_cylindrical[i] = gkyl_malloc(sizeof(double[3]));
+  }
 
   for (int i = 0; i < 3; i++) {
     for (int j = 0; j < 3; j++) {
+      spatial_inv_metric_tensor_cylindrical[i][j] = 0.0;
       (*spatial_inv_metric_tensor)[i][j] = 0.0;
     }
   }
@@ -284,9 +479,28 @@ neutronstar_spatial_inv_metric_tensor(const struct gkyl_gr_spacetime* spacetime,
   double omega_function = neutronstar_omega_function(spacetime, x, y, z);
   double gamma_function = neutronstar_gamma_function(spacetime, x, y, z);
   
-  (*spatial_inv_metric_tensor)[0][0] = exp(-2.0 * gamma_function) * f_function;
-  (*spatial_inv_metric_tensor)[1][1] = f_function / ((rho * rho) - ((f_function * f_function) * (omega_function * omega_function)));
-  (*spatial_inv_metric_tensor)[2][2] = exp(-2.0 * gamma_function) * f_function;
+  spatial_inv_metric_tensor_cylindrical[0][0] = exp(-2.0 * gamma_function) * f_function;
+  spatial_inv_metric_tensor_cylindrical[1][1] = f_function / ((rho * rho) - ((f_function * f_function) * (omega_function * omega_function)));
+  spatial_inv_metric_tensor_cylindrical[2][2] = exp(-2.0 * gamma_function) * f_function;
+
+  double **spatial_inv_transformation_tensor = neutronstar_spatial_inv_transformation_tensor(spacetime, x, y, z);
+
+  for (int i = 0; i < 3; i++) {
+    for (int j = 0; j < 3; j++) {
+      for (int k = 0; k < 3; k++) {
+        for (int l = 0; l < 3; l++) {
+          (*spatial_inv_metric_tensor)[i][j] += spatial_inv_transformation_tensor[i][k] * spatial_inv_transformation_tensor[j][l] * spatial_inv_metric_tensor_cylindrical[k][l];
+        }
+      }
+    }
+  }
+
+  for (int i = 0; i < 3; i++) {
+    gkyl_free(spatial_inv_metric_tensor_cylindrical[i]);
+    gkyl_free(spatial_inv_transformation_tensor[i]);
+  }
+  gkyl_free(spatial_inv_metric_tensor_cylindrical);
+  gkyl_free(spatial_inv_transformation_tensor);
 }
 
 static void
@@ -300,10 +514,15 @@ neutronstar_spacetime_inv_metric_tensor(const struct gkyl_gr_spacetime* spacetim
   double pos_z = neutronstar->pos_z;
 
   double rho = sqrt(((x - pos_x) * (x - pos_x)) + ((y - pos_y) * (y - pos_y)));
-  double z_cylindrical = z - pos_z;
+
+  double **spacetime_inv_metric_tensor_cylindrical = gkyl_malloc(sizeof(double*[4]));
+  for (int i = 0; i < 4; i++) {
+    spacetime_inv_metric_tensor_cylindrical[i] = gkyl_malloc(sizeof(double[4]));
+  }
 
   for (int i = 0; i < 4; i++) {
     for (int j = 0; j < 4; j++) {
+      spacetime_inv_metric_tensor_cylindrical[i][j] = 0.0;
       (*spacetime_inv_metric_tensor)[i][j] = 0.0;
     }
   }
@@ -312,13 +531,32 @@ neutronstar_spacetime_inv_metric_tensor(const struct gkyl_gr_spacetime* spacetim
   double omega_function = neutronstar_omega_function(spacetime, x, y, z);
   double gamma_function = neutronstar_gamma_function(spacetime, x, y, z);
 
-  (*spacetime_inv_metric_tensor)[0][0] = -(1.0 / f_function) + ((f_function * (omega_function * omega_function)) / (rho * rho));
-  (*spacetime_inv_metric_tensor)[1][1] = exp(-2.0 * gamma_function) * f_function;
-  (*spacetime_inv_metric_tensor)[2][2] = f_function / (rho * rho);
-  (*spacetime_inv_metric_tensor)[3][3] = exp(-2.0 * gamma_function) * f_function;
+  spacetime_inv_metric_tensor_cylindrical[0][0] = -(1.0 / f_function) + ((f_function * (omega_function * omega_function)) / (rho * rho));
+  spacetime_inv_metric_tensor_cylindrical[1][1] = exp(-2.0 * gamma_function) * f_function;
+  spacetime_inv_metric_tensor_cylindrical[2][2] = f_function / (rho * rho);
+  spacetime_inv_metric_tensor_cylindrical[3][3] = exp(-2.0 * gamma_function) * f_function;
 
-  (*spacetime_inv_metric_tensor)[0][2] = (f_function * omega_function) / (rho * rho);
-  (*spacetime_inv_metric_tensor)[2][0] = (f_function * omega_function) / (rho * rho);
+  spacetime_inv_metric_tensor_cylindrical[0][2] = (f_function * omega_function) / (rho * rho);
+  spacetime_inv_metric_tensor_cylindrical[2][0] = (f_function * omega_function) / (rho * rho);
+
+  double **spacetime_inv_transformation_tensor = neutronstar_spacetime_inv_transformation_tensor(spacetime, x, y, z);
+
+  for (int i = 0; i < 4; i++) {
+    for (int j = 0; j < 4; j++) {
+      for (int k = 0; k < 4; k++) {
+        for (int l = 0; l < 4; l++) {
+          (*spacetime_inv_metric_tensor)[i][j] += spacetime_inv_transformation_tensor[i][k] * spacetime_inv_transformation_tensor[j][l] * spacetime_inv_metric_tensor_cylindrical[k][l];
+        }
+      }
+    }
+  }
+
+  for (int i = 0; i < 4; i++) {
+    gkyl_free(spacetime_inv_metric_tensor_cylindrical[i]);
+    gkyl_free(spacetime_inv_transformation_tensor[i]);
+  }
+  gkyl_free(spacetime_inv_metric_tensor_cylindrical);
+  gkyl_free(spacetime_inv_transformation_tensor);
 }
 
 static void
@@ -355,6 +593,20 @@ neutronstar_spacetime_metric_det(const struct gkyl_gr_spacetime* spacetime, cons
 }
 
 static void
+neutronstar_spatial_metric_tensor_der(const struct gkyl_gr_spacetime* spacetime, const double t, const double x, const double y, const double z,
+   const double dx, const double dy, const double dz, double**** spatial_metric_tensor_der)
+{
+  gkyl_gr_spatial_metric_tensor_diff(spacetime, t, x, y, z, dx, dy, dz, spatial_metric_tensor_der);
+}
+
+static void
+neutronstar_spacetime_metric_tensor_der(const struct gkyl_gr_spacetime* spacetime, const double t, const double x, const double y, const double z,
+  const double dt, const double dx, const double dy, const double dz, double**** spacetime_metric_tensor_der)
+{
+  gkyl_gr_spacetime_metric_tensor_diff(spacetime, t, x, y, z, dt, dx, dy, dz, spacetime_metric_tensor_der);
+}
+
+static void
 neutronstar_lapse_function(const struct gkyl_gr_spacetime* spacetime, const double t, const double x, const double y, const double z,
   double* lapse_function)
 {
@@ -382,12 +634,31 @@ neutronstar_shift_vector(const struct gkyl_gr_spacetime* spacetime, const double
 
   double rho = sqrt(((x - pos_x) * (x - pos_x)) + ((y - pos_y) * (y - pos_y)));
 
+  double *shift_vector_cylindrical = gkyl_malloc(sizeof(double[3]));
+  for (int i = 0; i < 3; i++) {
+    (*shift_vector)[i] = 0.0;
+  }
+
   double f_function = neutronstar_f_function(spacetime, x, y, z);
   double omega_function = neutronstar_omega_function(spacetime, x, y, z);
 
-  (*shift_vector)[0] = 0.0;
-  (*shift_vector)[1] = - ((f_function * f_function) * omega_function) / (-(rho * rho) + ((f_function * f_function) * (omega_function * omega_function)));
-  (*shift_vector)[2] = 0.0;
+  shift_vector_cylindrical[0] = 0.0;
+  shift_vector_cylindrical[1] = - ((f_function * f_function) * omega_function) / (-(rho * rho) + ((f_function * f_function) * (omega_function * omega_function)));
+  shift_vector_cylindrical[2] = 0.0;
+
+  double **spatial_inv_transformation_tensor = neutronstar_spatial_inv_transformation_tensor(spacetime, x, y, z);
+
+  for (int i = 0; i < 3; i++) {
+    for (int j = 0; j < 3; j++) {
+      (*shift_vector)[i] += spatial_inv_transformation_tensor[i][j] * shift_vector_cylindrical[j];
+    }
+  }
+
+  for (int i = 0; i < 3; i++) {
+    gkyl_free(spatial_inv_transformation_tensor[i]);
+  }
+  gkyl_free(shift_vector_cylindrical);
+  gkyl_free(spatial_inv_transformation_tensor);
 }
 
 void

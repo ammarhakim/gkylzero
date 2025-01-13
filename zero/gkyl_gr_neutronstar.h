@@ -142,6 +142,54 @@ double
 neutronstar_gamma_function(const struct gkyl_gr_spacetime* spacetime, const double x, const double y, const double z);
 
 /**
+* Compute the spatial transformation tensor from Weyl-Lewis-Papapetrou cylindrical coordinates to Kerr-Schild Cartesian coordinates, at a given point in a neutron star spacetime.
+*
+* @param spacetime Base spacetime object.
+* @param x Spatial coordinate (x-direction).
+* @param y Spatial coordinate (y-direction).
+* @param z Spatial coordinate (z-direction).
+* @return The rank-2 (spatial) transformation tensor from Weyl-Lewis-Papapetrou to Kerr-Schild coordinates.
+*/
+double**
+neutronstar_spatial_transformation_tensor(const struct gkyl_gr_spacetime* spacetime, const double x, const double y, const double z);
+
+/**
+* Compute the spacetime transformation tensor from Weyl-Lewis-Papapetrou cylindrical coordinates to Kerr-Schild Cartesian coordinates, at a given point in a neutron star spacetime.
+*
+* @param spacetime Base spacetime object.
+* @param x Spatial coordinate (x-direction).
+* @param y Spatial coordinate (y-direction).
+* @param z Spatial coordinate (z-direction).
+* @return The rank-2 (spacetime) transformation tensor from Weyl-Lewis-Papapetrou to Kerr-Schild coordinates.
+*/
+double**
+neutronstar_spacetime_transformation_tensor(const struct gkyl_gr_spacetime* spacetime, const double x, const double y, const double z);
+
+/**
+* Compute the (inverse) spatial transformation tensor from Kerr-Schild Cartesian coordinates to Weyl-Lewis-Papapetrou cylindrical coordinates, at a given point in a neutron star spacetime.
+*
+* @param spacetime Base spacetime object.
+* @param x Spatial coordinate (x-direction).
+* @param y Spatial coordinate (y-direction).
+* @param z Spatial coordinate (z-direction).
+* @return The rank-2 (spatial, inverse) transformation tensor from Kerr-Schild to Weyl-Lewis-Papapetrou coordinates.
+*/
+double**
+neutronstar_spatial_inv_transformation_tensor(const struct gkyl_gr_spacetime* spacetime, const double x, const double y, const double z);
+
+/**
+* Compute the (inverse) spacetime transformation tensor from Kerr-Schild Cartesian coordinates to Weyl-Lewis-Papapetrou cylindrical coordinates, at a given point in a neutron star spacetime.
+*
+* @param spacetime Base spacetime object.
+* @param x Spatial coordinate (x-direction).
+* @param y Spatial coordinate (y-direction).
+* @param z Spatial coordinate (z-direction).
+* @return The rank-2 (spacetime, inverse) transformation tensor from Kerr-Schild to Weyl-Lewis-Papapetrou coordinates.
+*/
+double**
+neutronstar_spacetime_inv_transformation_tensor(const struct gkyl_gr_spacetime* spacetime, const double x, const double y, const double z);
+
+/**
 * Compute the rank-2 spatial metric tensor at a given point in a neutron star spacetime.
 *
 * @param spacetime Base spacetime object.
@@ -230,6 +278,43 @@ GKYL_CU_D
 static void
 neutronstar_spacetime_metric_det(const struct gkyl_gr_spacetime* spacetime, const double t, const double x, const double y, const double z,
   double* spacetime_metric_det);
+
+/**
+* Compute the rank-3 (spatial) partial derivative of the spatial metric tensor at a given point in a neutron star spacetime.
+*
+* @param spacetime Base spacetime object.
+* @param t Time coordinate.
+* @param x Spatial coordinate (x-direction).
+* @param y Spatial coordinate (y-direction).
+* @param z Spatial coordinate (z-direction).
+* @param dx Spatial coordinate spacing (x-direction).
+* @param dy Spatial coordinate spacing (y-direction).
+* @param dz Spatial coordinate spacing (z-direction).
+* @param spatial_metric_tensor_der Rank-3 partial derivative of the spatial metric tensor (output).
+*/
+GKYL_CU_D
+static void
+neutronstar_spatial_metric_tensor_der(const struct gkyl_gr_spacetime* spacetime, const double t, const double x, const double y, const double z,
+  const double dx, const double dy, const double dz, double**** spatial_metric_tensor_der);
+
+/**
+* Compute the rank-3 (spacetime) partial derivative of the spacetime metric tensor at a given point in a neutron star spacetime.
+*
+* @param spacetime Base spacetime object.
+* @param t Time coordinate.
+* @param x Spatial coordinate (x-direction).
+* @param y Spatial coordinate (y-direction).
+* @param z Spatial coordinate (z-direction).
+* @param dt Time coordinate spacing.
+* @param dx Spatial coordinate spacing (x-direction).
+* @param dy Spatial coordinate spacing (y-direction).
+* @param dz Spatial coordinate spacing (z-direction).
+* @param spacetime_metric_tensor_der Rank-3 partial derivative of the spacetime metric tensor (output).
+*/
+GKYL_CU_D
+static void
+neutronstar_spacetime_metric_tensor_der(const struct gkyl_gr_spacetime* spacetime, const double t, const double x, const double y, const double z,
+  const double dt, const double dx, const double dy, const double dz, double**** spacetime_metric_tensor_der);
 
 /**
 * Compute the (scalar) lapse function at a given point in a neutron star spacetime.
