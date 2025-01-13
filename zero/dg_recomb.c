@@ -6,12 +6,7 @@
 #include <gkyl_alloc.h>
 #include <gkyl_alloc_flags_priv.h>
 #include <gkyl_array.h>
-#include <gkyl_dg_prim_vars_vlasov.h>
-#include <gkyl_dg_prim_vars_gyrokinetic.h>
-#include <gkyl_dg_prim_vars_transform.h>
-#include <gkyl_dg_prim_vars_type.h>
 #include <gkyl_array_ops.h>
-#include <gkyl_proj_maxwellian_on_basis.h>
 #include <gkyl_dg_bin_ops.h>
 #include <gkyl_dg_recomb.h>
 #include <gkyl_dg_recomb_priv.h>
@@ -31,8 +26,6 @@ gkyl_dg_recomb_new(struct gkyl_dg_recomb_inp *inp, bool use_gpu)
   up->conf_rng_ext = inp->conf_rng_ext;
   up->phase_rng = inp->phase_rng;
   up->grid = inp->grid;
-  up->mass_self = inp->mass_self;
-  up->type_self = inp->type_self;
   
   int cdim = up->cbasis->ndim;
   int pdim = up->pbasis->ndim;

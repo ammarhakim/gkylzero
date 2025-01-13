@@ -32,7 +32,6 @@ gkyl_dg_iz_new(struct gkyl_dg_iz_inp *inp, bool use_gpu)
   up->conf_rng = inp->conf_rng;
   up->conf_rng_ext = inp->conf_rng_ext;
   up->phase_rng = inp->phase_rng;
-  up->mass_ion = inp->mass_ion;
   up->type_self = inp->type_self;
 
   int charge_state = inp->charge_state;

@@ -5,8 +5,8 @@
 #include <gkyl_dg_bin_ops.h>
 #include <gkyl_gk_geometry.h>
 #include <gkyl_gk_geometry_mapc2p.h>
-#include <gkyl_gyrokinetic_maxwellian_correct.h>
-#include <gkyl_gyrokinetic_maxwellian_moments.h>
+#include <gkyl_gk_maxwellian_correct.h>
+#include <gkyl_gk_maxwellian_moments.h>
 #include <gkyl_proj_maxwellian_on_basis.h>
 #include <gkyl_proj_on_basis.h>
 #include <gkyl_velocity_map.h>
@@ -226,7 +226,7 @@ void test_1x1v(int poly_order, bool use_gpu)
   // sprintf(moms_ic, "ctest_correct_maxwellian_moms_%dx%dv_p%d.gkyl", cdim, vdim, poly_order);
   // gkyl_grid_sub_array_write(&confGrid, &confLocal, 0, moms_in, moms_ic);
   // Create a Maxwellian with corrected moments
-  struct gkyl_gyrokinetic_maxwellian_correct_inp inp = {
+  struct gkyl_gk_maxwellian_correct_inp inp = {
     .phase_grid = &grid,
     .conf_basis = &confBasis,
     .phase_basis = &basis,
@@ -240,15 +240,12 @@ void test_1x1v(int poly_order, bool use_gpu)
     .divide_jacobgeo = true, 
     .use_gpu = use_gpu
   };
-  gkyl_gyrokinetic_maxwellian_correct *corr_max = gkyl_gyrokinetic_maxwellian_correct_inew(&inp);
-  // First correct the density
-  gkyl_gyrokinetic_maxwellian_correct_density_moment(corr_max, 
+  gkyl_gk_maxwellian_correct *corr_max = gkyl_gk_maxwellian_correct_inew(&inp);
+  // Correct all the moments
+  struct gkyl_gk_maxwellian_correct_status status_corr;
+  status_corr = gkyl_gk_maxwellian_correct_all_moments(corr_max, 
     fM, moms_in, &local, &confLocal);
-  // Now correct all the moments
-  struct gkyl_gyrokinetic_maxwellian_correct_status status_corr;
-  status_corr = gkyl_gyrokinetic_maxwellian_correct_all_moments(corr_max, 
-    fM, moms_in, &local, &confLocal);
-  gkyl_gyrokinetic_maxwellian_correct_release(corr_max);
+  gkyl_gk_maxwellian_correct_release(corr_max);
   if (use_gpu) {
     gkyl_array_copy(fM_ho, fM);
   } else {
@@ -256,7 +253,7 @@ void test_1x1v(int poly_order, bool use_gpu)
   }
 
   // Compute the moments of our corrected distribution function
-  struct gkyl_gyrokinetic_maxwellian_moments_inp inp_mom = {
+  struct gkyl_gk_maxwellian_moments_inp inp_mom = {
     .phase_grid = &grid,
     .conf_basis = &confBasis,
     .phase_basis = &basis,
@@ -268,12 +265,12 @@ void test_1x1v(int poly_order, bool use_gpu)
     .mass = mass, 
     .use_gpu = use_gpu,
   };
-  gkyl_gyrokinetic_maxwellian_moments *max_moms = gkyl_gyrokinetic_maxwellian_moments_inew( &inp_mom );
+  gkyl_gk_maxwellian_moments *max_moms = gkyl_gk_maxwellian_moments_inew( &inp_mom );
   // (2) calculate the moments and copy from host to device
   struct gkyl_array *moms_corr = mkarr(use_gpu, 3*confBasis.num_basis, confLocal_ext.volume);
   struct gkyl_array *moms_corr_ho;
-  gkyl_gyrokinetic_maxwellian_moments_advance(max_moms, &local, &confLocal, fM, moms_corr);
-  gkyl_gyrokinetic_maxwellian_moments_release(max_moms);
+  gkyl_gk_maxwellian_moments_advance(max_moms, &local, &confLocal, fM, moms_corr);
+  gkyl_gk_maxwellian_moments_release(max_moms);
   if (use_gpu) { 
     moms_corr_ho = mkarr(3*confBasis.num_basis, confLocal_ext.volume, false);
     gkyl_array_copy(moms_corr_ho, moms_corr); 
@@ -467,7 +464,7 @@ void test_1x2v(int poly_order, bool use_gpu)
   // sprintf(moms_ic, "ctest_correct_maxwellian_moms_%dx%dv_p%d.gkyl", cdim, vdim, poly_order);
   // gkyl_grid_sub_array_write(&confGrid, &confLocal, 0, moms_in, moms_ic);
   // Create a Maxwellian with corrected moments
-  struct gkyl_gyrokinetic_maxwellian_correct_inp inp = {
+  struct gkyl_gk_maxwellian_correct_inp inp = {
     .phase_grid = &grid,
     .conf_basis = &confBasis,
     .phase_basis = &basis,
@@ -481,11 +478,11 @@ void test_1x2v(int poly_order, bool use_gpu)
     .eps = err_max, 
     .use_gpu = use_gpu
   };
-  gkyl_gyrokinetic_maxwellian_correct *corr_max = gkyl_gyrokinetic_maxwellian_correct_inew(&inp);
-  struct gkyl_gyrokinetic_maxwellian_correct_status status_corr;
-  status_corr = gkyl_gyrokinetic_maxwellian_correct_all_moments(corr_max, 
+  gkyl_gk_maxwellian_correct *corr_max = gkyl_gk_maxwellian_correct_inew(&inp);
+  struct gkyl_gk_maxwellian_correct_status status_corr;
+  status_corr = gkyl_gk_maxwellian_correct_all_moments(corr_max, 
     fM, moms_in, &local, &confLocal);
-  gkyl_gyrokinetic_maxwellian_correct_release(corr_max);
+  gkyl_gk_maxwellian_correct_release(corr_max);
   if (use_gpu) {
     gkyl_array_copy(fM_ho, fM);
   } else {
@@ -493,7 +490,7 @@ void test_1x2v(int poly_order, bool use_gpu)
   }
   
   // Compute the moments of our corrected distribution function
-  struct gkyl_gyrokinetic_maxwellian_moments_inp inp_mom = {
+  struct gkyl_gk_maxwellian_moments_inp inp_mom = {
     .phase_grid = &grid,
     .conf_basis = &confBasis,
     .phase_basis = &basis,
@@ -505,12 +502,12 @@ void test_1x2v(int poly_order, bool use_gpu)
     .mass = mass, 
     .use_gpu = use_gpu,
   };
-  gkyl_gyrokinetic_maxwellian_moments *max_moms = gkyl_gyrokinetic_maxwellian_moments_inew( &inp_mom );
+  gkyl_gk_maxwellian_moments *max_moms = gkyl_gk_maxwellian_moments_inew( &inp_mom );
   // (2) calculate the moments and copy from host to device
   struct gkyl_array *moms_corr = mkarr(use_gpu, 3*confBasis.num_basis, confLocal_ext.volume);
   struct gkyl_array *moms_corr_ho;
-  gkyl_gyrokinetic_maxwellian_moments_advance(max_moms, &local, &confLocal, fM, moms_corr);
-  gkyl_gyrokinetic_maxwellian_moments_release(max_moms);
+  gkyl_gk_maxwellian_moments_advance(max_moms, &local, &confLocal, fM, moms_corr);
+  gkyl_gk_maxwellian_moments_release(max_moms);
   if (use_gpu) { 
     moms_corr_ho = mkarr(3*confBasis.num_basis, confLocal_ext.volume, false);
     gkyl_array_copy(moms_corr_ho, moms_corr); 
@@ -704,7 +701,7 @@ void test_2x2v(int poly_order, bool use_gpu)
   // sprintf(moms_ic, "ctest_correct_maxwellian_moms_%dx%dv_p%d.gkyl", cdim, vdim, poly_order);
   // gkyl_grid_sub_array_write(&confGrid, &confLocal, moms_in, moms_ic);
   // Create a Maxwellian with corrected moments
-  struct gkyl_gyrokinetic_maxwellian_correct_inp inp = {
+  struct gkyl_gk_maxwellian_correct_inp inp = {
     .phase_grid = &grid,
     .conf_basis = &confBasis,
     .phase_basis = &basis,
@@ -718,11 +715,11 @@ void test_2x2v(int poly_order, bool use_gpu)
     .eps = err_max, 
     .use_gpu = use_gpu
   };
-  gkyl_gyrokinetic_maxwellian_correct *corr_max = gkyl_gyrokinetic_maxwellian_correct_inew(&inp);
-  struct gkyl_gyrokinetic_maxwellian_correct_status status_corr;
-  status_corr = gkyl_gyrokinetic_maxwellian_correct_all_moments(corr_max, 
+  gkyl_gk_maxwellian_correct *corr_max = gkyl_gk_maxwellian_correct_inew(&inp);
+  struct gkyl_gk_maxwellian_correct_status status_corr;
+  status_corr = gkyl_gk_maxwellian_correct_all_moments(corr_max, 
     fM, moms_in, &local, &confLocal);
-  gkyl_gyrokinetic_maxwellian_correct_release(corr_max);
+  gkyl_gk_maxwellian_correct_release(corr_max);
   if (use_gpu) {
     gkyl_array_copy(fM_ho, fM);
   } else {
@@ -730,7 +727,7 @@ void test_2x2v(int poly_order, bool use_gpu)
   }
   
   // Compute the moments of our corrected distribution function
-  struct gkyl_gyrokinetic_maxwellian_moments_inp inp_mom = {
+  struct gkyl_gk_maxwellian_moments_inp inp_mom = {
     .phase_grid = &grid,
     .conf_basis = &confBasis,
     .phase_basis = &basis,
@@ -742,12 +739,12 @@ void test_2x2v(int poly_order, bool use_gpu)
     .mass = mass, 
     .use_gpu = use_gpu,
   };
-  gkyl_gyrokinetic_maxwellian_moments *max_moms = gkyl_gyrokinetic_maxwellian_moments_inew( &inp_mom );
+  gkyl_gk_maxwellian_moments *max_moms = gkyl_gk_maxwellian_moments_inew( &inp_mom );
   // (2) calculate the moments and copy from host to device
   struct gkyl_array *moms_corr = mkarr(use_gpu, 3*confBasis.num_basis, confLocal_ext.volume);
   struct gkyl_array *moms_corr_ho;
-  gkyl_gyrokinetic_maxwellian_moments_advance(max_moms, &local, &confLocal, fM, moms_corr);
-  gkyl_gyrokinetic_maxwellian_moments_release(max_moms);
+  gkyl_gk_maxwellian_moments_advance(max_moms, &local, &confLocal, fM, moms_corr);
+  gkyl_gk_maxwellian_moments_release(max_moms);
   if (use_gpu) { 
     moms_corr_ho = mkarr(3*confBasis.num_basis, confLocal_ext.volume, false);
     gkyl_array_copy(moms_corr_ho, moms_corr); 
