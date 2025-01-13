@@ -833,7 +833,7 @@ int main(int argc, char **argv)
       .efit_info = efit_inp,
       .mirror_grid_info = grid_inp,
       .position_map_info = {
-        .id = GKYL_PMAP_UNIFORM_B_POLYNOMIAL,
+        .id = GKYL_PMAP_CONSTANT_DB_POLYNOMIAL,
         .map_strength = 0.9,
       },
     },

@@ -160,6 +160,7 @@ gkyl_position_map_optimize(struct gkyl_position_map* gpm)
     gpm->constB_ctx->alpha  = (gpm->constB_ctx->alpha_min + gpm->constB_ctx->alpha_max) / 2;
 
     find_B_field_extrema(gpm);
+    refine_B_field_extrema(gpm);
   }
 }
 

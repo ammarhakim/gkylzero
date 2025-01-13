@@ -630,7 +630,7 @@ main(int argc, char **argv)
       .efit_info = inp,
       .tok_grid_info = ginp,
       .position_map_info = {
-        .id = GKYL_PMAP_UNIFORM_B_NUMERIC,
+        .id = GKYL_PMAP_CONSTANT_DB_NUMERIC,
         .map_strength = 0.9999,
       },
     },

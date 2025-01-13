@@ -365,17 +365,100 @@ find_B_field_extrema(struct gkyl_position_map *gpm)
     gpm->constB_ctx->theta_extrema[i] = theta_extrema[i];
     gpm->constB_ctx->bmag_extrema[i] = bmag_extrema[i];
   }
+}
 
-  double B_total_change = 0.0; // Total change in magnetic field
-  for (int i = 1; i < extrema; i++)
+/**
+ * Refines the extrema found in the B field along the field line
+ * specified by the input psi and alpha values.
+ * 
+ * @param gpm The position map object
+ */
+void
+refine_B_field_extrema(struct gkyl_position_map *gpm)
+{
+  int num_points_per_level = 10; // Number of points to evaluate per level for midpoint rule
+  int num_iterations = 10; // Number of iterations to refine the extrema with midpoint rule
+
+  struct gkyl_position_map_const_B_ctx *constB_ctx = gpm->constB_ctx;
+  struct gkyl_bmag_ctx *bmag_ctx = gpm->bmag_ctx;
+  enum { X_IDX, Y_IDX, Z_IDX }; // arrangement of cartesian coordinates
+  double psi = constB_ctx->psi;
+  double alpha = constB_ctx->alpha;
+  double xp[3];
+  xp[X_IDX] = psi;
+  xp[Y_IDX] = alpha;
+  int npts = 2 * constB_ctx->N_theta_boundaries;
+  double theta_lo = constB_ctx->theta_min;
+  double theta_hi = constB_ctx->theta_max;
+  double theta_dxi = (theta_hi - theta_lo) / npts;
+
+  for (int i = 1; i < gpm->constB_ctx->num_extrema - 1; i++)
   {
-    B_total_change += fabs(bmag_extrema[i] - bmag_extrema[i-1]);
+    double theta = gpm->constB_ctx->theta_extrema[i];
+    xp[Z_IDX] = theta;
+    double bmag_cent, bmag_left, bmag_right;
+    gkyl_calc_bmag_global(0.0, xp, &bmag_cent, bmag_ctx);
+    xp[Z_IDX] = theta - theta_dxi;
+    gkyl_calc_bmag_global(0.0, xp, &bmag_left, bmag_ctx);
+    xp[Z_IDX] = theta + theta_dxi;
+    gkyl_calc_bmag_global(0.0, xp, &bmag_right, bmag_ctx);
+
+    double interval_left = theta - theta_dxi;
+    double interval_right = theta + theta_dxi;
+    double extrema_Bmag;
+    double extrema_Bmag_location;
+    double bmag_out;
+    bool is_maximum;
+    if (bmag_cent > bmag_left && bmag_cent > bmag_right)
+    { is_maximum = true; } // Local maxima
+    else if (bmag_cent < bmag_left && bmag_cent < bmag_right)
+    { is_maximum = false; } // Local minima
+    else
+    { printf("Error: Extrema is not an extrema. Position_map optimization failed\n");
+      break;
+    }
+
+    // Midpoint rule refinement
+    for (int j = 0; j < num_iterations; j++)
+    {
+      double dz = (interval_right - interval_left) / num_points_per_level;
+
+      if (is_maximum)
+      { extrema_Bmag = 0.0; }
+      else
+      { extrema_Bmag = 99999999.99; }
+
+      extrema_Bmag_location = 0.0;
+      for (int k = 0; k <= num_points_per_level; k++)
+      {
+        double z = interval_left + k * dz;
+        xp[Z_IDX] = z;
+        gkyl_calc_bmag_global(0.0, xp, &bmag_out, bmag_ctx);
+        if (is_maximum && bmag_out > extrema_Bmag)
+        {
+          extrema_Bmag = bmag_out;
+          extrema_Bmag_location = z;
+        }
+        else if (!is_maximum && bmag_out < extrema_Bmag)
+        {
+          extrema_Bmag = bmag_out;
+          extrema_Bmag_location = z;
+        }
+      }
+      interval_left = extrema_Bmag_location - dz;
+      interval_right = extrema_Bmag_location + dz;
+    }
+    gpm->constB_ctx->theta_extrema[i] = extrema_Bmag_location;
+    gpm->constB_ctx->bmag_extrema[i] = extrema_Bmag;
   }
-  int num_boundaries = gpm->constB_ctx->N_theta_boundaries;
-  double dB_cell = B_total_change / (num_boundaries-1);
 
-  gpm->constB_ctx->dB_cell = dB_cell;
-
+  // Find the change in B over each cell
+  double B_total_change = 0.0; // Total change in magnetic field
+  for (int i = 1; i < gpm->constB_ctx->num_extrema; i++)
+  {
+    B_total_change += fabs(gpm->constB_ctx->bmag_extrema[i] - gpm->constB_ctx->bmag_extrema[i-1]);
+  }
+  gpm->constB_ctx->dB_cell = B_total_change / (gpm->constB_ctx->N_theta_boundaries-1);
 }
 
 /**
@@ -434,7 +517,7 @@ position_map_constB_z_numeric(double t, const double *xn, double *fout, void *ct
   double dB_cell = gpm->constB_ctx->dB_cell;
   int it = (theta - theta_lo) / theta_dxi;
 
-  if (it ==0 || it == num_boundaries-1)
+  if (it == 0 || it == num_boundaries-1)
   {
     fout[0] = theta;
     return;
@@ -454,31 +537,59 @@ position_map_constB_z_numeric(double t, const double *xn, double *fout, void *ct
       break;
     }
   }
-  double dB_target = dB_cell * it;
-  double dB_global_lower = 0.0;
-  for (int i = 0; i < region; i++)
-  {
-    dB_global_lower += fabs(gpm->constB_ctx->bmag_extrema[i+1] - gpm->constB_ctx->bmag_extrema[i]);
-  }
-  double B_lower_region = gpm->constB_ctx->bmag_extrema[region];
 
+  double dB_target, dB_global_lower, B_lower_region;
+  double interval_lower, interval_upper, interval_lower_eval, interval_upper_eval;
   struct opt_Theta_ctx ridders_ctx = {
     .gpm = gpm,
     .bmag_ctx = gpm->bmag_ctx,
-    .dB_target = dB_target,
-    .dB_global_lower = dB_global_lower,
-    .B_lower_region = B_lower_region,
   };
 
-  double interval_lower = theta_extrema[region];
-  double interval_upper = theta_extrema[region+1];
-  double interval_lower_eval = position_map_numeric_optimization_function(interval_lower, &ridders_ctx);
-  double interval_upper_eval = position_map_numeric_optimization_function(interval_upper, &ridders_ctx);
-
-  if (interval_lower_eval * interval_upper_eval > 0)
+  bool outside_region = true;
+  while (outside_region)
   {
-    fout[0] = theta;
-    return;
+    dB_target = dB_cell * it;
+    dB_global_lower = 0.0;
+    for (int i = 0; i < region; i++)
+    {
+      dB_global_lower += fabs(gpm->constB_ctx->bmag_extrema[i+1] - gpm->constB_ctx->bmag_extrema[i]);
+    }
+    B_lower_region = gpm->constB_ctx->bmag_extrema[region];
+
+    ridders_ctx.dB_target = dB_target;
+    ridders_ctx.dB_global_lower = dB_global_lower;
+    ridders_ctx.B_lower_region = B_lower_region;
+
+    interval_lower = theta_extrema[region];
+    interval_upper = theta_extrema[region+1];
+    interval_lower_eval = position_map_numeric_optimization_function(interval_lower, &ridders_ctx);
+    interval_upper_eval = position_map_numeric_optimization_function(interval_upper, &ridders_ctx);
+
+    if (interval_lower_eval * interval_upper_eval < 0)
+    {
+      outside_region = false;
+    }
+    else
+    {
+      if (interval_lower_eval > 0.0 && interval_upper_eval > 0.0)
+      {
+        region--;
+        if (region < 0)
+        {
+          fout[0] = theta;
+          return;
+        }
+      }
+      else if (interval_lower_eval < 0.0 && interval_upper_eval < 0.0)
+      {
+        region++;
+        if (region > num_extrema-2)
+        {
+          fout[0] = theta;
+          return;
+        }
+      }
+    }
   }
 
   struct gkyl_qr_res res = gkyl_ridders(position_map_numeric_optimization_function, &ridders_ctx,
