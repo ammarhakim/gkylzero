@@ -3,6 +3,7 @@
 #include <gkyl_util.h>
 #include <gkyl_gr_minkowski.h>
 #include <gkyl_gr_blackhole.h>
+#include <gkyl_gr_neutronstar.h>
 
 void
 test_gr_minkowski()
@@ -1021,9 +1022,133 @@ test_gr_kerr()
   gkyl_gr_spacetime_release(spacetime);
 }
 
+void
+test_gr_neutronstar_static()
+{
+  double mass = 0.1;
+  double spin = 0.0;
+  double spin_dimensionless = spin / (mass * mass);
+
+  double alpha = 5.0;
+  double beta = pow(-0.36 + (1.48 * pow(sqrt(alpha), 0.65)), 3.0);
+  double gamma = pow(-4.749 + (0.27613 * pow(sqrt(alpha), 1.5146)) + (5.5168 * pow(sqrt(alpha), 0.22229)), 4.0);
+
+  double mass_quadrupole = -alpha * (spin_dimensionless * spin_dimensionless) * (mass * mass * mass);
+  double spin_octupole = -beta * (spin_dimensionless * spin_dimensionless * spin_dimensionless) * (mass * mass * mass * mass);
+  double mass_hexadecapole = -gamma * (spin_dimensionless * spin_dimensionless * spin_dimensionless * spin_dimensionless) * (mass * mass * mass * mass * mass);
+
+  struct gkyl_gr_spacetime *spacetime = gkyl_gr_neutronstar_new(false, mass, spin, mass_quadrupole, spin_octupole, mass_hexadecapole, 0.0, 0.0, 0.0);
+
+  for (int x_ind = -10; x_ind < 11; x_ind++) {
+    for (int y_ind = -10; y_ind < 11; y_ind++) {
+      double x = 0.1 * x_ind;
+      double y = 0.1 * y_ind;
+
+      if (sqrt((x * x) + (y * y)) > 0.2) {
+        double **spatial_metric = gkyl_malloc(sizeof(double*[3]));
+        double **inv_spatial_metric = gkyl_malloc(sizeof(double*[3]));
+        double **spatial_metric_prod = gkyl_malloc(sizeof(double*[3]));
+
+        for (int i = 0; i < 3; i++) {
+          spatial_metric[i] = gkyl_malloc(sizeof(double[3]));
+          inv_spatial_metric[i] = gkyl_malloc(sizeof(double[3]));
+          spatial_metric_prod[i] = gkyl_malloc(sizeof(double[3]));
+
+          for (int j = 0; j < 3; j++) {
+            spatial_metric_prod[i][j] = 0.0;
+          }
+        }
+
+        double **spacetime_metric = gkyl_malloc(sizeof(double*[4]));
+        double **inv_spacetime_metric = gkyl_malloc(sizeof(double*[4]));
+        double **spacetime_metric_prod = gkyl_malloc(sizeof(double*[4]));
+
+        for (int i = 0; i < 4; i++) {
+          spacetime_metric[i] = gkyl_malloc(sizeof(double[4]));
+          inv_spacetime_metric[i] = gkyl_malloc(sizeof(double[4]));
+          spacetime_metric_prod[i] = gkyl_malloc(sizeof(double[4]));
+
+          for (int j = 0; j < 4; j++) {
+            spacetime_metric_prod[i][j] = 0.0;
+          }
+        }
+
+        spacetime->spatial_metric_tensor_func(spacetime, 0.0, x, y, 0.0, &spatial_metric);
+        spacetime->spacetime_metric_tensor_func(spacetime, 0.0, x, y, 0.0, &spacetime_metric);
+
+        spacetime->spatial_inv_metric_tensor_func(spacetime, 0.0, x, y, 0.0, &inv_spatial_metric);
+        spacetime->spacetime_inv_metric_tensor_func(spacetime, 0.0, x, y, 0.0, &inv_spacetime_metric);
+
+        for (int i = 0; i < 3; i++) {
+          for (int j = 0; j < 3; j++) {
+            for (int k = 0; k < 3; k++) {
+              spatial_metric_prod[i][j] += spatial_metric[i][k] * inv_spatial_metric[k][j];
+            }
+
+            if (i == j) {
+              TEST_CHECK( gkyl_compare(spatial_metric_prod[i][j], 1.0, 1e-10) );
+            }
+            else {
+              TEST_CHECK( gkyl_compare(spatial_metric_prod[i][j], 0.0, 1e-10) );
+            }
+          }
+        }
+
+        for (int i = 0; i < 4; i++) {
+          for (int j = 0; j < 4; j++) {
+            for (int k = 0; k < 4; k++) {
+              spacetime_metric_prod[i][j] += spacetime_metric[i][k] * inv_spacetime_metric[k][j];
+            }
+
+            if (i == j) {
+              TEST_CHECK( gkyl_compare(spacetime_metric_prod[i][j], 1.0, 1e-10) );
+            }
+            else {
+              TEST_CHECK( gkyl_compare(spacetime_metric_prod[i][j], 0.0, 1e-10) );
+            }
+          }
+        }
+
+        double spatial_metric_det;
+        double spacetime_metric_det;
+        double lapse_function;
+
+        spacetime->spatial_metric_det_func(spacetime, 0.0, x, y, 0.0, &spatial_metric_det);
+        spacetime->spacetime_metric_det_func(spacetime, 0.0, x, y, 0.0, &spacetime_metric_det);
+        spacetime->lapse_function_func(spacetime, 0.0, x, y, 0.0, &lapse_function);
+
+        TEST_CHECK( gkyl_compare(sqrt(-spacetime_metric_det), lapse_function * sqrt(spatial_metric_det), 1e-10) );
+
+        for (int i = 0; i < 3; i++) {
+          gkyl_free(spatial_metric[i]);
+          gkyl_free(inv_spatial_metric[i]);
+          gkyl_free(spatial_metric_prod[i]);
+        }
+        gkyl_free(spatial_metric);
+        gkyl_free(inv_spatial_metric);
+        gkyl_free(spatial_metric_prod);
+
+        for (int i = 0; i < 4; i++) {
+          gkyl_free(spacetime_metric[i]);
+          gkyl_free(inv_spacetime_metric[i]);
+          gkyl_free(spacetime_metric_prod[i]);
+        }
+        gkyl_free(spacetime_metric);
+        gkyl_free(inv_spacetime_metric);
+        gkyl_free(spacetime_metric_prod);
+      }
+      else {
+      }
+    }
+  }
+
+  gkyl_gr_spacetime_release(spacetime);
+}
+
 TEST_LIST = {
   { "gr_minkowski", test_gr_minkowski },
   { "gr_schwarzschild", test_gr_schwarzschild },
   { "gr_kerr", test_gr_kerr },
+  { "gr_neutronstar_static", test_gr_neutronstar_static },
   { NULL, NULL },
 };
