@@ -21,12 +21,14 @@ neutronstar_A_scalar(const struct gkyl_gr_spacetime* spacetime, const double x, 
   double pos_y = neutronstar->pos_y;
   double pos_z = neutronstar->pos_z;
 
+  double ang_mom = spin * mass;
+
   double rho = sqrt(((x - pos_x) * (x - pos_x)) + ((y - pos_y) * (y - pos_y)));
   double z_cylindrical = z - pos_z;
 
-  return (8.0 * (rho * rho) * (z_cylindrical * z_cylindrical) * ((24.0 * (spin * spin) * mass) + (17.0 * (mass * mass) * mass_quadrupole) + (21.0 * mass_hexadecapole))) +
-    ((rho * rho * rho * rho) * ((-10.0 * (spin * spin) * mass) + (7.0 * (mass * mass * mass * mass * mass)) + (32.0 * mass_quadrupole * (mass * mass)) - (21.0 * mass_hexadecapole))) +
-    (8.0 * (z_cylindrical * z_cylindrical * z_cylindrical * z_cylindrical) * ((20.0 * (spin * spin) * mass) - (7.0 * (mass * mass * mass * mass * mass)) -
+  return (8.0 * (rho * rho) * (z_cylindrical * z_cylindrical) * ((24.0 * (ang_mom * ang_mom) * mass) + (17.0 * (mass * mass) * mass_quadrupole) + (21.0 * mass_hexadecapole))) +
+    ((rho * rho * rho * rho) * ((-10.0 * (ang_mom * ang_mom) * mass) + (7.0 * (mass * mass * mass * mass * mass)) + (32.0 * mass_quadrupole * (mass * mass)) - (21.0 * mass_hexadecapole))) +
+    (8.0 * (z_cylindrical * z_cylindrical * z_cylindrical * z_cylindrical) * ((20.0 * (ang_mom * ang_mom) * mass) - (7.0 * (mass * mass * mass * mass * mass)) -
       (22.0 * mass_quadrupole * (mass * mass)) - (7.0 * mass_hexadecapole)));
 }
 
@@ -46,14 +48,16 @@ neutronstar_B_scalar(const struct gkyl_gr_spacetime* spacetime, const double x, 
   double pos_y = neutronstar->pos_y;
   double pos_z = neutronstar->pos_z;
 
+  double ang_mom = spin * mass;
+
   double rho = sqrt(((x - pos_x) * (x - pos_x)) + ((y - pos_y) * (y - pos_y)));
   double z_cylindrical = z - pos_z;
 
-  return ((rho * rho * rho * rho) * ((10.0 * (spin * spin) * (mass * mass)) + (10.0 * mass_quadrupole * (mass * mass * mass)) + (21.0 * mass_hexadecapole * mass) +
+  return ((rho * rho * rho * rho) * ((10.0 * (ang_mom * ang_mom) * (mass * mass)) + (10.0 * mass_quadrupole * (mass * mass * mass)) + (21.0 * mass_hexadecapole * mass) +
       (7.0 * (mass_quadrupole * mass_quadrupole)))) +
-    (4.0 * (z_cylindrical * z_cylindrical * z_cylindrical * z_cylindrical) * ((-40.0 * (spin * spin) * (mass * mass)) - (14.0 * spin * (spin_octupole * spin_octupole)) +
+    (4.0 * (z_cylindrical * z_cylindrical * z_cylindrical * z_cylindrical) * ((-40.0 * (ang_mom * ang_mom) * (mass * mass)) - (14.0 * ang_mom * (spin_octupole * spin_octupole)) +
       (7.0 * (mass * mass * mass * mass * mass * mass)) + (30.0 * mass_quadrupole * (mass * mass * mass)) + (14.0 * mass_hexadecapole * mass) + (7.0 * (mass_quadrupole * mass_quadrupole)))) -
-    (4.0 * (rho * rho) * (z_cylindrical * z_cylindrical) * ((27.0 * (spin * spin) * (mass * mass)) - (21.0 * spin * spin_octupole) + (7.0 * (mass * mass * mass * mass * mass * mass)) +
+    (4.0 * (rho * rho) * (z_cylindrical * z_cylindrical) * ((27.0 * (ang_mom * ang_mom) * (mass * mass)) - (21.0 * ang_mom * spin_octupole) + (7.0 * (mass * mass * mass * mass * mass * mass)) +
       (48.0 * mass_quadrupole * (mass * mass * mass)) + (42.0 * mass_hexadecapole * mass) + (7.0 * (mass_quadrupole * mass_quadrupole))));
 }
 
@@ -72,11 +76,13 @@ neutronstar_H_scalar(const struct gkyl_gr_spacetime* spacetime, const double x, 
   double pos_y = neutronstar->pos_y;
   double pos_z = neutronstar->pos_z;
 
+  double ang_mom = spin * mass;
+
   double rho = sqrt(((x - pos_x) * (x - pos_x)) + ((y - pos_y) * (y - pos_y)));
   double z_cylindrical = z - pos_z;
 
-  return (4.0 * (rho * rho) * (z_cylindrical * z_cylindrical) * ((spin * (mass_quadrupole - (2.0 * (mass * mass * mass)))) - (3.0 * mass * spin_octupole))) +
-    ((rho * rho * rho * rho) * ((spin * mass_quadrupole) + (3.0 * mass * spin_octupole)));
+  return (4.0 * (rho * rho) * (z_cylindrical * z_cylindrical) * ((ang_mom * (mass_quadrupole - (2.0 * (mass * mass * mass)))) - (3.0 * mass * spin_octupole))) +
+    ((rho * rho * rho * rho) * ((ang_mom * mass_quadrupole) + (3.0 * mass * spin_octupole)));
 }
 
 double
@@ -94,12 +100,14 @@ neutronstar_G_scalar(const struct gkyl_gr_spacetime* spacetime, const double x, 
   double pos_y = neutronstar->pos_y;
   double pos_z = neutronstar->pos_z;
 
+  double ang_mom = spin * mass;
+
   double rho = sqrt(((x - pos_x) * (x - pos_x)) + ((y - pos_y) * (y - pos_y)));
   double z_cylindrical = z - pos_z;
 
-  return (rho * rho) * ((spin * spin * spin) * (- ((rho * rho * rho * rho) + (8.0 * (z_cylindrical * z_cylindrical * z_cylindrical * z_cylindrical)) -
+  return (rho * rho) * ((ang_mom * ang_mom * ang_mom) * (- ((rho * rho * rho * rho) + (8.0 * (z_cylindrical * z_cylindrical * z_cylindrical * z_cylindrical)) -
       (12.0 * (rho * rho) * (z_cylindrical * z_cylindrical)))) +
-    (spin * mass) * ((((mass * mass * mass) + (2.0 * mass_quadrupole)) * (rho * rho * rho * rho)) - (8.0 * ((3.0 * (mass * mass * mass)) + (2.0 * mass_quadrupole)) *
+    (ang_mom * mass) * ((((mass * mass * mass) + (2.0 * mass_quadrupole)) * (rho * rho * rho * rho)) - (8.0 * ((3.0 * (mass * mass * mass)) + (2.0 * mass_quadrupole)) *
       (z_cylindrical * z_cylindrical * z_cylindrical * z_cylindrical)) +
     (4.0 * (((mass * mass * mass) + (10.0 * mass_quadrupole)) * ((rho * rho) * (z_cylindrical * z_cylindrical))))) +
     ((mass * mass) * spin_octupole) * ((3.0 * (rho * rho * rho * rho)) - (40.0 * (z_cylindrical * z_cylindrical * z_cylindrical * z_cylindrical)) +
@@ -120,10 +128,12 @@ neutronstar_F_scalar(const struct gkyl_gr_spacetime* spacetime, const double x, 
   double pos_y = neutronstar->pos_y;
   double pos_z = neutronstar->pos_z;
 
+  double ang_mom = spin * mass;
+
   double rho = sqrt(((x - pos_x) * (x - pos_x)) + ((y - pos_y) * (y - pos_y)));
   double z_cylindrical = z - pos_z;
 
-  return ((rho * rho * rho * rho) * (spin_octupole - (spin * (mass * mass)))) - ((4.0 * (spin * spin) * (z_cylindrical * z_cylindrical)) * ((spin * (mass * mass)) + spin_octupole));
+  return ((rho * rho * rho * rho) * (spin_octupole - (ang_mom * (mass * mass)))) - ((4.0 * (ang_mom * ang_mom) * (z_cylindrical * z_cylindrical)) * ((ang_mom * (mass * mass)) + spin_octupole));
 }
 
 double
@@ -140,6 +150,8 @@ neutronstar_f_function(const struct gkyl_gr_spacetime* spacetime, const double x
   double pos_y = neutronstar->pos_y;
   double pos_z = neutronstar->pos_z;
 
+  double ang_mom = spin * mass;
+
   double rho = sqrt(((x - pos_x) * (x - pos_x)) + ((y - pos_y) * (y - pos_y)));
   double z_cylindrical = z - pos_z;
 
@@ -149,7 +161,7 @@ neutronstar_f_function(const struct gkyl_gr_spacetime* spacetime, const double x
   return 1.0 - ((2.0 * mass) / sqrt((rho * rho) + (z_cylindrical * z_cylindrical))) + ((2.0 * (mass * mass)) / ((rho * rho) + (z_cylindrical * z_cylindrical))) +
     (((mass_quadrupole - (mass * mass * mass)) * (rho * rho)) - (2.0 * ((mass * mass * mass) + mass_quadrupole) * (z_cylindrical * z_cylindrical))) /
       pow((rho * rho) + (z_cylindrical * z_cylindrical), 5.0 / 2.0) +
-    ((2.0 * (z_cylindrical * z_cylindrical) * (-(spin * spin) + (mass * mass * mass * mass) + (2.0 * mass_quadrupole * mass))) - (2.0 * mass * mass_quadrupole * (rho * rho))) /
+    ((2.0 * (z_cylindrical * z_cylindrical) * (-(ang_mom * ang_mom) + (mass * mass * mass * mass) + (2.0 * mass_quadrupole * mass))) - (2.0 * mass * mass_quadrupole * (rho * rho))) /
       pow((rho * rho) + (z_cylindrical * z_cylindrical), 3.0) +
     (A_scalar / (28.0 * pow((rho * rho) + (z_cylindrical * z_cylindrical), 9.0 / 2.0))) + (B_scalar / (14.0 * pow((rho * rho) + (z_cylindrical * z_cylindrical), 5.0)));
 }
@@ -166,6 +178,8 @@ neutronstar_omega_function(const struct gkyl_gr_spacetime* spacetime, const doub
   double pos_y = neutronstar->pos_y;
   double pos_z = neutronstar->pos_z;
 
+  double ang_mom = spin * mass;
+
   double rho = sqrt(((x - pos_x) * (x - pos_x)) + ((y - pos_y) * (y - pos_y)));
   double z_cylindrical = z - pos_z;
 
@@ -173,7 +187,7 @@ neutronstar_omega_function(const struct gkyl_gr_spacetime* spacetime, const doub
   double G_scalar = neutronstar_G_scalar(spacetime, x, y, z);
   double F_scalar = neutronstar_F_scalar(spacetime, x, y, z);
 
-  return (-(2.0 * spin * (rho * rho)) / pow((rho * rho) + (z_cylindrical * z_cylindrical), 3.0 / 2.0)) - ((2.0 * spin * mass * (rho * rho)) /
+  return (-(2.0 * ang_mom * (rho * rho)) / pow((rho * rho) + (z_cylindrical * z_cylindrical), 3.0 / 2.0)) - ((2.0 * ang_mom * mass * (rho * rho)) /
       pow((rho * rho) + (z_cylindrical * z_cylindrical), 2.0)) +
     (F_scalar / pow((rho * rho) + (z_cylindrical * z_cylindrical), 7.0 / 2.0)) + (H_scalar / (2.0 * pow((rho * rho) + (z_cylindrical * z_cylindrical), 4.0))) +
     (G_scalar / (4.0 * pow((rho * rho) + (z_cylindrical * z_cylindrical), 11.0 / 2.0)));
@@ -193,10 +207,12 @@ neutronstar_gamma_function(const struct gkyl_gr_spacetime* spacetime, const doub
   double pos_y = neutronstar->pos_y;
   double pos_z = neutronstar->pos_z;
 
+  double ang_mom = spin * mass;
+
   double rho = sqrt(((x - pos_x) * (x - pos_x)) + ((y - pos_y) * (y - pos_y)));
   double z_cylindrical = z - pos_z;
 
-  return (((rho * rho) * (((spin * spin) * ((rho * rho) - (8.0 * (z_cylindrical * z_cylindrical)))) + (mass * ((mass * mass * mass) +
+  return (((rho * rho) * (((ang_mom * ang_mom) * ((rho * rho) - (8.0 * (z_cylindrical * z_cylindrical)))) + (mass * ((mass * mass * mass) +
     (3.0 * mass_quadrupole)) * ((rho * rho) - (4.0 * (z_cylindrical * z_cylindrical)))))) / (4.0 * pow((rho * rho) + (z_cylindrical * z_cylindrical), 4.0))) -
     (((mass * mass) * (rho * rho)) / (2.0 * pow((rho * rho) + (z_cylindrical * z_cylindrical), 2.0)));
 }
@@ -778,7 +794,7 @@ neutronstar_extrinsic_curvature_tensor(const struct gkyl_gr_spacetime* spacetime
   neutronstar_lapse_function(spacetime, t, x, y, z, &lapse_function);
   neutronstar_shift_vector(spacetime, t, x, y, z, &shift_vector);
   neutronstar_spatial_metric_tensor(spacetime, t, x, y, z, &spatial_metric);
-  neutronstar_shift_vector_der(spacetime, t, x, y, z, dx, dy, dz, &shift_vector_cov_der);
+  neutronstar_shift_vector_der(spacetime, t, x, y, z, dx, dy, dz, &shift_vector_der);
   neutronstar_spatial_christoffel(spacetime, t, x, y, z, dx, dy, dz, &spatial_christoffel);
 
   for (int i = 0; i < 3; i++) {
@@ -837,11 +853,9 @@ neutronstar_excision_region(const struct gkyl_gr_spacetime* spacetime, const dou
   double pos_y = neutronstar->pos_y;
   double pos_z = neutronstar->pos_z;
 
-  double spin_dimensionless = spin / mass;
-
   double r = sqrt(((x - pos_x) * (x - pos_x)) + ((y - pos_y) * (y - pos_y)) + ((z - pos_z) * (z - pos_z)));
 
-  if (r <= (mass * (1.0 + sqrt(1.0 + (spin_dimensionless * spin_dimensionless))))) {
+  if (r <= (mass * (1.0 + sqrt(1.0 + (8.0 * spin * spin))))) {
     *in_excision_region = true;
   }
   else {
