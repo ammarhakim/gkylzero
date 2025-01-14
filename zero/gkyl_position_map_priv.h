@@ -426,7 +426,7 @@ refine_B_field_extrema(struct gkyl_position_map *gpm)
       if (is_maximum)
       { extrema_Bmag = 0.0; }
       else
-      { extrema_Bmag = 99999999.99; }
+      { extrema_Bmag = 99999999999999999.; }
 
       extrema_Bmag_location = 0.0;
       for (int k = 0; k <= num_points_per_level; k++)
@@ -525,6 +525,8 @@ position_map_constB_z_numeric(double t, const double *xn, double *fout, void *ct
 
   // Determine which region theta is in
   // Regions start at 0 and count up to num_extrema-1
+  // Not accurate because the theta_extrema are not Theta_extrema
+  // We use itteration to further refine this, but it's a good initial guess
   int region = 0;
   for (int i = 1; i <= num_extrema-2; i++)
   {
@@ -545,7 +547,7 @@ position_map_constB_z_numeric(double t, const double *xn, double *fout, void *ct
     .bmag_ctx = gpm->bmag_ctx,
   };
 
-  bool outside_region = true;
+  bool outside_region = true; // Asuume that we identified the region incorrectly
   while (outside_region)
   {
     dB_target = dB_cell * it;
@@ -567,24 +569,25 @@ position_map_constB_z_numeric(double t, const double *xn, double *fout, void *ct
 
     if (interval_lower_eval * interval_upper_eval < 0)
     {
+      // If the interval changes sign, then there is a zero in between. We can find the root and are in the correct region
       outside_region = false;
     }
-    else
+    else // It means we are in the wrong region
     {
       if (interval_lower_eval > 0.0 && interval_upper_eval > 0.0)
-      {
+      { // If the bounds on the interval are both positive, we should move down a region to make it pass through zero
         region--;
         if (region < 0)
-        {
+        { // If we can't move down any regions and leave the simulation domain, we are likely on the lower limit of the domain and should just return the input theta
           fout[0] = theta;
           return;
         }
       }
       else if (interval_lower_eval < 0.0 && interval_upper_eval < 0.0)
-      {
+      { // If the bounds on the interval are both negative, we should move up a region to make it pass through zero
         region++;
         if (region > num_extrema-2)
-        {
+        { // If we can't move up any regions and leave the simulation domain, we are likely on the upper limit of the domain and should just return the input theta
           fout[0] = theta;
           return;
         }
