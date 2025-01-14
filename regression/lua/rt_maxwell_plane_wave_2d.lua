@@ -18,7 +18,7 @@ k_yn = k_wave_y / k_norm -- Normalized wave number (y-direction).
 
 -- Simulation parameters.
 Nx = 128 -- Cell count (x-direction).
-Ny=  128 -- Cell count (y-direction).
+Ny = 128 -- Cell count (y-direction).
 Lx = 1.0 -- Domain size (x-direction).
 Ly = 1.0 -- Domain size (y-direction).
 cfl_frac = 1.0 -- CFL coefficient.

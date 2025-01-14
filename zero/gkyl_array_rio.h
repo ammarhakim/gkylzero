@@ -5,6 +5,7 @@
 #include <gkyl_array.h>
 #include <gkyl_range.h>
 #include <gkyl_rect_grid.h>
+#include <gkyl_util.h>
 
 // Read status flags
 enum gkyl_array_rio_status {
@@ -23,12 +24,6 @@ enum gkyl_array_rio_status {
  * @return string corresponding to flag
  */
 const char* gkyl_array_rio_status_msg(enum gkyl_array_rio_status status);
-
-// Structure to pass meta-data to write methods
-struct gkyl_array_meta {
-  size_t meta_sz; // size in bytes of meta-data
-  char *meta; // meta-data encoded in mpack format
-};
 
 // Array header data to write: this is for low-level control and is
 // typically not something most users would ever encounter
@@ -76,7 +71,7 @@ void gkyl_array_header_info_release(struct gkyl_array_header_info *info);
  * @return Status flag
  */
 enum gkyl_array_rio_status gkyl_grid_sub_array_write(const struct gkyl_rect_grid *grid,
-  const struct gkyl_range *range, const struct gkyl_array_meta *meta,
+  const struct gkyl_range *range, const struct gkyl_msgpack_data *meta,
   const struct gkyl_array *arr, const char *fname);
 
 /**

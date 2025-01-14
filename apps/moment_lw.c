@@ -24,11 +24,15 @@
 #include <gkyl_wv_gr_maxwell_tetrad.h>
 #include <gkyl_wv_gr_ultra_rel_euler.h>
 #include <gkyl_wv_gr_ultra_rel_euler_tetrad.h>
+#include <gkyl_wv_gr_euler.h>
+#include <gkyl_wv_gr_euler_tetrad.h>
+#include <gkyl_wv_gr_medium.h>
 #include <gkyl_zero_lw.h>
 
 #include <lua.h>
 #include <lualib.h>
 #include <lauxlib.h>
+#include <limits.h>
 
 #include <limits.h>
 #include <stdio.h>
@@ -118,6 +122,26 @@ static const struct gkyl_str_int_pair gr_ultra_rel_euler_rp_type[] = {
 static const struct gkyl_str_int_pair gr_ultra_rel_euler_tetrad_rp_type[] = {
   { "roe", WV_GR_ULTRA_REL_EULER_TETRAD_RP_ROE },
   { "lax", WV_GR_ULTRA_REL_EULER_TETRAD_RP_LAX },
+  { 0, 0 }
+};
+
+// General relativistic Euler Riemann problem (general equation of state) -> enum map.
+static const struct gkyl_str_int_pair gr_euler_rp_type[] = {
+  { "roe", WV_GR_EULER_RP_ROE },
+  { "lax", WV_GR_EULER_RP_LAX },
+  { 0, 0 }
+};
+
+// General relativistic Euler Riemann problem in the tetrad basis (general equation of state) -> enum map.
+static const struct gkyl_str_int_pair gr_euler_tetrad_rp_type[] = {
+  { "roe", WV_GR_EULER_TETRAD_RP_ROE },
+  { "lax", WV_GR_EULER_TETRAD_RP_LAX },
+  { 0, 0 }
+};
+
+// Coupled fluid-Einstein Riemann problem (plane-polarized Gowdy spacetimes) -> enum map.
+static const struct gkyl_str_int_pair gr_medium_rp_type[] = {
+  { "lax", WV_GR_MEDIUM_RP_LAX },
   { 0, 0 }
 };
 
@@ -527,7 +551,7 @@ static const luaL_Reg eqn_iso_euler_mixture_ctor[] = {
 /* ************************************** */
 
 // GRMaxwell.new { lightSpeed = 1.0, elcErrorSpeedFactor = 0.0, mgnErrorSpeedFactor = 0.0, rpType = "roe" }
-// where rpType is one of "roe" or "lax."
+// where rpType is one of "roe" or "lax".
 static int
 eqn_gr_maxwell_lw_new(lua_State *L)
 {
@@ -573,7 +597,7 @@ static struct luaL_Reg eqn_gr_maxwell_ctor[] = {
 /* ********************************************************** */
 
 // GRMaxwellTetrad.new { lightSpeed = 1.0, elcErrorSpeedFactor = 0.0, mgnErrorSpeedFactor = 0.0, rpType = "roe" }
-// where rpType is one of "roe" or "lax."
+// where rpType is one of "roe" or "lax".
 static int
 eqn_gr_maxwell_tetrad_lw_new(lua_State *L)
 {
@@ -618,14 +642,14 @@ static struct luaL_Reg eqn_gr_maxwell_tetrad_ctor[] = {
 /* General Relativistic Euler Equations (Ultra-Relativistic Equation of State) */
 /* *************************************************************************** */
 
-// GRUltraRelativisticEuler.new { gasGamma = 5.0 / 3.0, rpType = "roe" }
-// where rpType is one of "roe" or "lax."
+// GRUltraRelativisticEuler.new { gasGamma = 4.0 / 3.0, rpType = "roe" }
+// where rpType is one of "roe" or "lax".
 static int
 eqn_gr_ultra_rel_euler_lw_new(lua_State *L)
 {
   struct wv_eqn_lw *gr_ultra_rel_euler_lw = gkyl_malloc(sizeof(*gr_ultra_rel_euler_lw));
 
-  double gas_gamma = glua_tbl_get_number(L, "gasGamma", 5.0 / 3.0);
+  double gas_gamma = glua_tbl_get_number(L, "gasGamma", 4.0 / 3.0);
 
   const char *rp_str = glua_tbl_get_string(L, "rpType", "lax");
   enum gkyl_wv_gr_ultra_rel_euler_rp rp_type = gkyl_search_str_int_pair_by_str(gr_ultra_rel_euler_rp_type, rp_str, WV_GR_ULTRA_REL_EULER_RP_LAX);
@@ -660,14 +684,14 @@ static struct luaL_Reg eqn_gr_ultra_rel_euler_ctor[] = {
 /* General Relativistic Euler Equations in the Tetrad Basis (Ultra-Relativistic Equation of State) */
 /* *********************************************************************************************** */
 
-// GRUltraRelativisticEulerTetrad.new { gasGamma = 5.0 / 3.0, rpType = "roe" }
-// where rpType is one of "roe" or "lax."
+// GRUltraRelativisticEulerTetrad.new { gasGamma = 4.0 / 3.0, rpType = "roe" }
+// where rpType is one of "roe" or "lax".
 static int
 eqn_gr_ultra_rel_euler_tetrad_lw_new(lua_State *L)
 {
   struct wv_eqn_lw *gr_ultra_rel_euler_tetrad_lw = gkyl_malloc(sizeof(*gr_ultra_rel_euler_tetrad_lw));
 
-  double gas_gamma = glua_tbl_get_number(L, "gasGamma", 5.0 / 3.0);
+  double gas_gamma = glua_tbl_get_number(L, "gasGamma", 4.0 / 3.0);
 
   const char *rp_str = glua_tbl_get_string(L, "rpType", "lax");
   enum gkyl_wv_gr_ultra_rel_euler_tetrad_rp rp_type = gkyl_search_str_int_pair_by_str(gr_ultra_rel_euler_tetrad_rp_type, rp_str, WV_GR_ULTRA_REL_EULER_TETRAD_RP_LAX);
@@ -698,6 +722,132 @@ static struct luaL_Reg eqn_gr_ultra_rel_euler_tetrad_ctor[] = {
   { 0, 0 }
 };
 
+/* **************************************************************** */
+/* General Relativistic Euler Equations (General Equation of State) */
+/* **************************************************************** */
+
+// GREuler.new { gasGamma = 5.0 / 3.0, rpType = "roe" }
+// where rpType is one of "roe" or "lax".
+static int
+eqn_gr_euler_lw_new(lua_State *L)
+{
+  struct wv_eqn_lw *gr_euler_lw = gkyl_malloc(sizeof(*gr_euler_lw));
+
+  double gas_gamma = glua_tbl_get_number(L, "gasGamma", 5.0 / 3.0);
+
+  const char *rp_str = glua_tbl_get_string(L, "rpType", "lax");
+  enum gkyl_wv_gr_euler_rp rp_type = gkyl_search_str_int_pair_by_str(gr_euler_rp_type, rp_str, WV_GR_EULER_RP_LAX);
+
+  gr_euler_lw->magic = MOMENT_EQN_DEFAULT;
+  gr_euler_lw->eqn = gkyl_wv_gr_euler_inew( &(struct gkyl_wv_gr_euler_inp) {
+      .gas_gamma = gas_gamma,
+      .spacetime = 0,
+      .rp_type = rp_type,
+      .use_gpu = false,
+    }
+  );
+
+  // Create Lua userdata.
+  struct wv_eqn_lw **l_gr_euler_lw = lua_newuserdata(L, sizeof(struct wv_eqn_lw*));
+  *l_gr_euler_lw = gr_euler_lw;
+
+  // Set metatable.
+  luaL_getmetatable(L, MOMENT_WAVE_EQN_METATABLE_NM);
+  lua_setmetatable(L, -2);
+
+  return 1;
+}
+
+// Equation constructor.
+static struct luaL_Reg eqn_gr_euler_ctor[] = {
+  { "new", eqn_gr_euler_lw_new },
+  { 0, 0 }
+};
+
+/* ************************************************************************************ */
+/* General Relativistic Euler Equations in the Tetrad Basis (General Equation of State) */
+/* ************************************************************************************ */
+
+// GREulerTetrad.new { gasGamma = 5.0 / 3.0, rpType = "roe" }
+// where rpType is one of "roe" or "lax".
+static int
+eqn_gr_euler_tetrad_lw_new(lua_State *L)
+{
+  struct wv_eqn_lw *gr_euler_tetrad_lw = gkyl_malloc(sizeof(*gr_euler_tetrad_lw));
+
+  double gas_gamma = glua_tbl_get_number(L, "gasGamma", 5.0 / 3.0);
+
+  const char *rp_str = glua_tbl_get_string(L, "rpType", "lax");
+  enum gkyl_wv_gr_euler_tetrad_rp rp_type = gkyl_search_str_int_pair_by_str(gr_euler_tetrad_rp_type, rp_str, WV_GR_EULER_TETRAD_RP_LAX);
+
+  gr_euler_tetrad_lw->magic = MOMENT_EQN_DEFAULT;
+  gr_euler_tetrad_lw->eqn = gkyl_wv_gr_euler_tetrad_inew( &(struct gkyl_wv_gr_euler_tetrad_inp) {
+      .gas_gamma = gas_gamma,
+      .spacetime = 0,
+      .rp_type = rp_type,
+      .use_gpu = false,
+    }
+  );
+
+  // Create Lua userdata.
+  struct wv_eqn_lw **l_gr_euler_tetrad_lw = lua_newuserdata(L, sizeof(struct wv_eqn_lw*));
+  *l_gr_euler_tetrad_lw = gr_euler_tetrad_lw;
+
+  // Set metatable.
+  luaL_getmetatable(L, MOMENT_WAVE_EQN_METATABLE_NM);
+  lua_setmetatable(L, -2);
+
+  return 1;
+}
+
+// Equation constructor.
+static struct luaL_Reg eqn_gr_euler_tetrad_ctor[] = {
+  { "new", eqn_gr_euler_tetrad_lw_new },
+  { 0, 0 }
+};
+
+/* ******************************************************************* */
+/* Coupled Fluid-Einstein Equations (Plane-Polarized Gowdy Spacetimes) */
+/* ******************************************************************* */
+
+// GRMedium.new { gasGamma = 4.0 / 3.0, kappa = 8.0 * pi, rpType = "lax" }.
+static int
+eqn_gr_medium_lw_new(lua_State *L)
+{
+  struct wv_eqn_lw *gr_medium_lw = gkyl_malloc(sizeof(*gr_medium_lw));
+
+  double gas_gamma = glua_tbl_get_number(L, "gasGamma", 4.0 / 3.0);
+  double kappa = glua_tbl_get_number(L, "kappa", 8.0 * M_PI);
+
+  const char *rp_str = glua_tbl_get_string(L, "rpType", "lax");
+  enum gkyl_wv_gr_medium_rp rp_type = gkyl_search_str_int_pair_by_str(gr_medium_rp_type, rp_str, WV_GR_MEDIUM_RP_LAX);
+
+  gr_medium_lw->magic = MOMENT_EQN_DEFAULT;
+  gr_medium_lw->eqn = gkyl_wv_gr_medium_inew( &(struct gkyl_wv_gr_medium_inp) {
+      .gas_gamma = gas_gamma,
+      .kappa = kappa,
+      .rp_type = rp_type,
+      .use_gpu = false,
+    }
+  );
+
+  // Create Lua userdata.
+  struct wv_eqn_lw **l_gr_medium_lw = lua_newuserdata(L, sizeof(struct wv_eqn_lw*));
+  *l_gr_medium_lw = gr_medium_lw;
+
+  // Set metatable.
+  luaL_getmetatable(L, MOMENT_WAVE_EQN_METATABLE_NM);
+  lua_setmetatable(L, -2);
+
+  return 1;
+}
+
+// Equation constructor.
+static struct luaL_Reg eqn_gr_medium_ctor[] = {
+  { "new", eqn_gr_medium_lw_new },
+  { 0, 0 }
+};
+
 // Register and load all wave equation objects.
 static void
 eqn_openlibs(lua_State *L)
@@ -721,6 +871,9 @@ eqn_openlibs(lua_State *L)
   luaL_register(L, "G0.Moments.Eq.GRMaxwellTetrad", eqn_gr_maxwell_tetrad_ctor);
   luaL_register(L, "G0.Moments.Eq.GRUltraRelEuler", eqn_gr_ultra_rel_euler_ctor);
   luaL_register(L, "G0.Moments.Eq.GRUltraRelEulerTetrad", eqn_gr_ultra_rel_euler_tetrad_ctor);
+  luaL_register(L, "G0.Moments.Eq.GREuler", eqn_gr_euler_ctor);
+  luaL_register(L, "G0.Moments.Eq.GREulerTetrad", eqn_gr_euler_tetrad_ctor);
+  luaL_register(L, "G0.Moments.Eq.GRMedium", eqn_gr_medium_ctor);
 }
 
 // Metatable name for spacetime object input struct.
@@ -1438,6 +1591,12 @@ moment_species_lw_new(lua_State *L)
     mom_species.volume_R0 = glua_tbl_get_number(L, "volumeR0", 1.0);
   }
 
+  mom_species.has_einstein_medium = glua_tbl_get_bool(L, "hasEinsteinMedium", false);
+  if (mom_species.has_einstein_medium) {
+    mom_species.medium_gas_gamma = glua_tbl_get_number(L, "mediumGasGamma", 4.0 / 3.0);
+    mom_species.medium_kappa = glua_tbl_get_number(L, "mediumKappa", 8.0 * M_PI);
+  }
+
   mom_species.type_brag = glua_tbl_get_integer(L, "braginskiiType", 0);
 
   struct moment_species_lw *moms_lw = lua_newuserdata(L, sizeof(*moms_lw));
@@ -1513,7 +1672,7 @@ moment_field_lw_new(lua_State *L)
   mom_field.epsilon0 = glua_tbl_get_number(L, "epsilon0", 1.0);
   mom_field.mu0 = glua_tbl_get_number(L, "mu0", 1.0);
   mom_field.elc_error_speed_fact = glua_tbl_get_number(L, "elcErrorSpeedFactor", 0.0);
-  mom_field.mag_error_speed_fact = glua_tbl_get_number(L, "mgnErrorSpeedFactor", 1.0);
+  mom_field.mag_error_speed_fact = glua_tbl_get_number(L, "mgnErrorSpeedFactor", 0.0);
 
   mom_field.limiter = glua_tbl_get_integer(L, "limiter", GKYL_MONOTONIZED_CENTERED);
   

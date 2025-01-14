@@ -232,7 +232,7 @@ gkyl_array_header_info_release(struct gkyl_array_header_info *info)
 
 enum gkyl_array_rio_status
 gkyl_grid_sub_array_write(const struct gkyl_rect_grid *grid, const struct gkyl_range *range,
-  const struct gkyl_array_meta *meta,
+  const struct gkyl_msgpack_data *meta,
   const struct gkyl_array *arr, const char *fname)
 {
   enum gkyl_array_rio_status status = GKYL_ARRAY_RIO_FOPEN_FAILED;

@@ -503,6 +503,11 @@ struct gk_species {
   gkyl_dynvec integ_diag; // integrated moments reduced across grid
   bool is_first_integ_write_call; // flag for integrated moments dynvec written first time
 
+  struct gkyl_array_integrate* integ_wfsq_op; // Operator to integrate w*f^2.
+  double *L2norm_local, *L2norm_global; // L2norm in local MPI process and across the communicator.
+  gkyl_dynvec L2norm; // L2 norm.
+  bool is_first_L2norm_write_call; // flag for L2norm dynvec written first time
+
   gkyl_dg_updater_gyrokinetic *slvr; // Gyrokinetic solver 
   struct gkyl_dg_eqn *eqn_gyrokinetic; // Gyrokinetic equation object
   
@@ -763,6 +768,7 @@ struct gkyl_gyrokinetic_app {
   } basis_on_dev;
 
   struct gk_geometry *gk_geom;
+  struct gkyl_array *jacobtot_inv_weak; // 1/(J.B) computed via weak mul and div.
 
   bool update_field; // are we updating the field?
   struct gk_field *field; // pointer to field object
@@ -789,7 +795,7 @@ struct gkyl_gyrokinetic_app {
  * @param meta Gyrokinetic metadata object.
  * @return Array metadata object.
  */
-struct gkyl_array_meta*
+struct gkyl_msgpack_data*
 gk_array_meta_new(struct gyrokinetic_output_meta meta);
 
 /**
@@ -798,7 +804,7 @@ gk_array_meta_new(struct gyrokinetic_output_meta meta);
  * @param mt Array metadata object.
  */
 void
-gk_array_meta_release(struct gkyl_array_meta *mt);
+gk_array_meta_release(struct gkyl_msgpack_data *mt);
 
 /**
  * Return the metadata for outputing gyrokinetic data.
@@ -807,7 +813,7 @@ gk_array_meta_release(struct gkyl_array_meta *mt);
  * @return A gyrokinetic metadata object.
  */
 struct gyrokinetic_output_meta
-gk_meta_from_mpack(struct gkyl_array_meta *mt);
+gk_meta_from_mpack(struct gkyl_msgpack_data *mt);
 
 /**
  * Allocate a new gyrokinetic app and initialize its conf-space grid and
