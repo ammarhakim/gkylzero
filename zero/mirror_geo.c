@@ -3,20 +3,20 @@
 #include <gkyl_array_rio.h>
 #include <assert.h>
 #include <gkyl_basis.h>
+#include <gkyl_calc_bmag.h>
+#include <gkyl_efit.h>
+#include <gkyl_gk_geometry.h>
 #include <gkyl_dg_basis_ops.h>
 #include <gkyl_math.h>
+#include <gkyl_mirror_geo_priv.h>
+#include <gkyl_nodal_ops.h>
+#include <gkyl_position_map.h>
 #include <gkyl_range.h>
 #include <gkyl_rect_grid.h>
-#include <gkyl_nodal_ops.h>
-#include <gkyl_gk_geometry.h>
-#include <gkyl_efit.h>
-#include <gkyl_mirror_geo_priv.h>
+#include <gkyl_util.h>
 
 #include <math.h>
 #include <string.h>
-
-
-
 
 double
 mirror_plate_psi_func(double s, void *ctx){
@@ -58,8 +58,6 @@ mirror_plate_psi_func(double s, void *ctx){
     return psi - gc->psi_curr;
   }
 }
-
-
 
 // Function to pass to root-finder to find Z location for given arc-length
 static inline double
@@ -157,8 +155,10 @@ gkyl_mirror_geo_R_psiZ(const struct gkyl_mirror_geo *geo, double psi, double Z, 
 }
 
 void gkyl_mirror_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, double dzc[3], 
-  struct gkyl_mirror_geo *geo, struct gkyl_mirror_geo_grid_inp *inp, 
-  struct gkyl_array *mc2p_nodal_fd, struct gkyl_array *mc2p_nodal, struct gkyl_array *mc2p, struct gkyl_array *ddtheta_nodal)
+  struct gkyl_mirror_geo *geo, struct gkyl_mirror_geo_grid_inp *inp,
+  struct gkyl_array *mc2p_nodal_fd, struct gkyl_array *mc2p_nodal, struct gkyl_array *mc2p, struct gkyl_array *ddtheta_nodal,
+  struct gkyl_array *mc2nu_pos_nodal, struct gkyl_array *mc2nu_pos,
+  struct gkyl_position_map *position_map)
 {
 
 
@@ -172,6 +172,10 @@ void gkyl_mirror_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, dou
   double theta_lo = up->grid.lower[TH_IDX] + (up->local.lower[TH_IDX] - up->global.lower[TH_IDX])*up->grid.dx[TH_IDX],
     psi_lo = up->grid.lower[PSI_IDX] + (up->local.lower[PSI_IDX] - up->global.lower[PSI_IDX])*up->grid.dx[PSI_IDX],
     alpha_lo = up->grid.lower[AL_IDX] + (up->local.lower[AL_IDX] - up->global.lower[AL_IDX])*up->grid.dx[AL_IDX];
+
+  double theta_up = inp->cgrid.upper[TH_IDX],
+    psi_up = inp->cgrid.upper[PSI_IDX],
+    alpha_up = inp->cgrid.upper[AL_IDX];
 
   double dx_fact = up->basis.poly_order == 1 ? 1 : 0.5;
   dtheta *= dx_fact; dpsi *= dx_fact; dalpha *= dx_fact;
@@ -197,11 +201,20 @@ void gkyl_mirror_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, dou
   struct arc_length_ctx arc_ctx = {
     .geo = geo,
     .arc_memo = arc_memo,
-    .zmaxis = geo->zmaxis
+    .zmaxis = geo->zmaxis,
   };
   struct plate_ctx pctx = {
     .geo = geo
   };
+
+  position_map->constB_ctx->alpha_max = alpha_up;
+  position_map->constB_ctx->alpha_min = alpha_lo;
+  position_map->constB_ctx->psi_max = psi_up;
+  position_map->constB_ctx->psi_min = psi_lo;
+  position_map->constB_ctx->theta_max = theta_up;
+  position_map->constB_ctx->theta_min = theta_lo;
+  position_map->constB_ctx->N_theta_boundaries = nrange->upper[TH_IDX] - nrange->lower[TH_IDX] + 1;
+  gkyl_position_map_optimize(position_map);
 
   int cidx[3] = { 0 };
   for(int ia=nrange->lower[AL_IDX]; ia<=nrange->upper[AL_IDX]; ++ia){
@@ -248,6 +261,11 @@ void gkyl_mirror_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, dou
           arcL_curr = arcL_lo + it*darcL + modifiers[it_delta]*delta_theta*(arcL/2/M_PI);
           double theta_curr = arcL_curr*(2*M_PI/arcL) - M_PI ; 
 
+          position_map->maps[0](0.0, &psi_curr,   &psi_curr,   position_map->ctxs[0]);
+          position_map->maps[1](0.0, &alpha_curr, &alpha_curr, position_map->ctxs[1]);
+          position_map->maps[2](0.0, &theta_curr, &theta_curr, position_map->ctxs[2]);
+          arcL_curr = (theta_curr + M_PI) / (2*M_PI/arc_ctx.arcL_tot);
+
           mirror_set_ridders(inp, &arc_ctx, psi_curr, arcL, arcL_curr, zmin, zmax, &rclose, &ridders_min, &ridders_max);
 
           struct gkyl_qr_res res = gkyl_ridders(arc_length_func, &arc_ctx,
@@ -282,6 +300,7 @@ void gkyl_mirror_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, dou
           double phi_curr = alpha_curr;
           double *mc2p_fd_n = gkyl_array_fetch(mc2p_nodal_fd, gkyl_range_idx(nrange, cidx));
           double *mc2p_n = gkyl_array_fetch(mc2p_nodal, gkyl_range_idx(nrange, cidx));
+          double *mc2nu_n = gkyl_array_fetch(mc2nu_pos_nodal, gkyl_range_idx(nrange, cidx));
           double *ddtheta_n = gkyl_array_fetch(ddtheta_nodal, gkyl_range_idx(nrange, cidx));
 
           mc2p_fd_n[lidx+X_IDX] = r_curr;
@@ -292,6 +311,9 @@ void gkyl_mirror_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, dou
             mc2p_n[X_IDX] = r_curr;
             mc2p_n[Y_IDX] = z_curr;
             mc2p_n[Z_IDX] = phi_curr;
+            mc2nu_n[X_IDX] = psi_curr;
+            mc2nu_n[Y_IDX] = -alpha_curr;
+            mc2nu_n[Z_IDX] = theta_curr;
             ddtheta_n[0] = 0.0;
             ddtheta_n[1] = sin(atan(dr_curr))*arc_ctx.arcL_tot/2.0/M_PI;
             ddtheta_n[2] = cos(atan(dr_curr))*arc_ctx.arcL_tot/2.0/M_PI;
@@ -303,6 +325,7 @@ void gkyl_mirror_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, dou
 
   struct gkyl_nodal_ops *n2m =  gkyl_nodal_ops_new(&inp->cbasis, &inp->cgrid, false);
   gkyl_nodal_ops_n2m(n2m, &inp->cbasis, &inp->cgrid, nrange, &up->local, 3, mc2p_nodal, mc2p);
+  gkyl_nodal_ops_n2m(n2m, &inp->cbasis, &inp->cgrid, nrange, &up->local, 3, mc2nu_pos_nodal, mc2nu_pos);
   gkyl_nodal_ops_release(n2m);
 
   gkyl_free(arc_memo);
