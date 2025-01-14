@@ -518,9 +518,9 @@ create_ctx(void)
   double vpar_max_ion = 20 * vti;
   double mu_max_ion = mi * pow(3. * vti, 2.) / (2. * B_p);
   int Nx = 4;
-  int Nz = 32;
+  int Nz = 64;
   int Nvpar = 32; // Number of cells in the paralell velocity direction 96
-  int Nmu = 48;  // Number of cells in the mu direction 192
+  int Nmu = 32;  // Number of cells in the mu direction 192
   int poly_order = 1;
 
   double t_end = 1.5e-10;
@@ -864,7 +864,7 @@ int main(int argc, char **argv)
       .mirror_grid_info = grid_inp,
       .position_map_info = {
         .id = GKYL_PMAP_CONSTANT_DB_NUMERIC,
-        .map_strength = 0.99,
+        .map_strength = 0.99999999,
       },
     },
 

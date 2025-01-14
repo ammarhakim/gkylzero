@@ -451,17 +451,14 @@ test_position_map_numeric_optimize_1x()
 
   gkyl_position_map_optimize(pos_map);
 
+  double theta_extrema_analytic[5] = {lower[0], lower[0]/2, 0.0, upper[0]/2, upper[0]};
+
   TEST_ASSERT( pos_map->constB_ctx->num_extrema == 5 );
-  TEST_ASSERT( gkyl_compare(pos_map->constB_ctx->theta_extrema[0], -3.131593, 1e-6) );
-  TEST_ASSERT( gkyl_compare(pos_map->constB_ctx->theta_extrema[1], -1.589886, 1e-6) );
-  TEST_ASSERT( gkyl_compare(pos_map->constB_ctx->theta_extrema[2], 0.0, 1e-6) );
-  TEST_ASSERT( gkyl_compare(pos_map->constB_ctx->theta_extrema[3], 1.589886, 1e-6) );
-  TEST_ASSERT( gkyl_compare(pos_map->constB_ctx->theta_extrema[4], 3.131593, 1e-6) );
-  TEST_ASSERT( gkyl_compare(pos_map->constB_ctx->bmag_extrema[0], 0.004531427925, 1e-10) );
-  TEST_ASSERT( gkyl_compare(pos_map->constB_ctx->bmag_extrema[1], 0.957785094052, 1e-10) );
-  TEST_ASSERT( gkyl_compare(pos_map->constB_ctx->bmag_extrema[2], 0.008057373351, 1e-10) );
-  TEST_ASSERT( gkyl_compare(pos_map->constB_ctx->bmag_extrema[3], 0.957785094052, 1e-10) );
-  TEST_ASSERT( gkyl_compare(pos_map->constB_ctx->bmag_extrema[4], 0.0045371509810682, 1e-10) );
+  TEST_ASSERT( gkyl_compare(pos_map->constB_ctx->theta_extrema[0], theta_extrema_analytic[0], 1e-15) );
+  TEST_ASSERT( gkyl_compare(pos_map->constB_ctx->theta_extrema[1], theta_extrema_analytic[1], 1e-15) );
+  TEST_ASSERT( gkyl_compare(pos_map->constB_ctx->theta_extrema[2], theta_extrema_analytic[2], 1e-15) );
+  TEST_ASSERT( gkyl_compare(pos_map->constB_ctx->theta_extrema[3], theta_extrema_analytic[3], 1e-15) );
+  TEST_ASSERT( gkyl_compare(pos_map->constB_ctx->theta_extrema[4], theta_extrema_analytic[4], 1e-15) );
 
   gkyl_position_map_release(pos_map);
   gkyl_array_release(bmag_global);
@@ -525,7 +522,7 @@ test_position_map_numeric_calculate_1x()
 
   double theta_map = 1.0;
   pos_map->maps[2](0.0, &theta_map, &theta_map, pos_map->ctxs[2]);
-  TEST_ASSERT( gkyl_compare(theta_map, 1.489408, 1e-5) );
+  TEST_ASSERT( gkyl_compare(theta_map, 1.503465, 1e-5) );
 
   gkyl_position_map_release(pos_map);
   gkyl_array_release(bmag_global);

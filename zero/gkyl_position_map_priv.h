@@ -17,7 +17,7 @@ struct opt_Theta_ctx
  *
  * @param ref Reference counter for this object.
  */
-void gkyl_position_map_free(const struct gkyl_ref_count *ref);
+static void gkyl_position_map_free(const struct gkyl_ref_count *ref);
 
 // Utility functions for polynomial based B mapping
 
@@ -28,7 +28,7 @@ void gkyl_position_map_free(const struct gkyl_ref_count *ref);
  * @param constB_ctx Context for the constant B mapping
  * @param bmag_ctx Context for the magnetic field calculation
  */
-void
+static void
 calculate_mirror_throat_location_polynomial(struct gkyl_position_map_const_B_ctx *constB_ctx, struct gkyl_bmag_ctx *bmag_ctx)
 {
   // Parameters to use for the midpoint rule root finding algorithm to find the throat of the mirror
@@ -82,7 +82,7 @@ calculate_mirror_throat_location_polynomial(struct gkyl_position_map_const_B_ctx
  * @param fout Non-uniform coordinate
  * @param ctx position_map_constB_ctx context for the constant B mapping
  */
-void
+static void
 position_map_constB_z_polynomial(double t, const double *xn, double *fout, void *ctx)
 {
   struct gkyl_position_map_const_B_ctx *app = ctx;
@@ -137,7 +137,7 @@ position_map_constB_z_polynomial(double t, const double *xn, double *fout, void 
  * @param constB_ctx Context for the constant B mapping
  * @param bmag_ctx Context for the magnetic field calculation
  */
-void
+static void
 calculate_optimal_mapping_polynomial(struct gkyl_position_map_const_B_ctx *constB_ctx, struct gkyl_bmag_ctx *bmag_ctx)
 {
   // Could be refined further by doing midpoint root finding for maximum dB/dz
@@ -265,7 +265,7 @@ calculate_optimal_mapping_polynomial(struct gkyl_position_map_const_B_ctx *const
  * @param theta The theta value to calculate the derivative at
  * @param ctx The context for the position map
  */
-double
+static double
 calc_bmag_global_derivative(double theta, void *ctx)
 {
   struct gkyl_position_map *gpm = ctx;
@@ -291,7 +291,7 @@ calc_bmag_global_derivative(double theta, void *ctx)
  * 
  * @param gpm The position map object
  */
-void
+static void
 find_B_field_extrema(struct gkyl_position_map *gpm)
 {
   // Assumes we are P1 in z, which means maxima and minima can only be in the center or edge of cells
@@ -373,11 +373,11 @@ find_B_field_extrema(struct gkyl_position_map *gpm)
  * 
  * @param gpm The position map object
  */
-void
+static void
 refine_B_field_extrema(struct gkyl_position_map *gpm)
 {
   int num_points_per_level = 10; // Number of points to evaluate per level for midpoint rule
-  int num_iterations = 10; // Number of iterations to refine the extrema with midpoint rule
+  int num_iterations = 22; // Number of iterations to refine the extrema with midpoint rule
 
   struct gkyl_position_map_const_B_ctx *constB_ctx = gpm->constB_ctx;
   struct gkyl_bmag_ctx *bmag_ctx = gpm->bmag_ctx;
@@ -468,7 +468,7 @@ refine_B_field_extrema(struct gkyl_position_map *gpm)
  * @param theta The theta value to evaluate
  * @param ctx The context for the root finder. Type opt_Theta_ctx
  */
-double
+static double
 position_map_numeric_optimization_function(double theta, void *ctx)
 {
   struct opt_Theta_ctx *ridders_ctx = ctx;
@@ -501,7 +501,7 @@ position_map_numeric_optimization_function(double theta, void *ctx)
  * @param fout Non-uniform coordinate
  * @param ctx The context for the position map
  */
-void
+static void
 position_map_constB_z_numeric(double t, const double *xn, double *fout, void *ctx)
 {
 
