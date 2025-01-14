@@ -567,27 +567,26 @@ position_map_constB_z_numeric(double t, const double *xn, double *fout, void *ct
     interval_lower_eval = position_map_numeric_optimization_function(interval_lower, &ridders_ctx);
     interval_upper_eval = position_map_numeric_optimization_function(interval_upper, &ridders_ctx);
 
-    if (interval_lower_eval * interval_upper_eval < 0)
-    {
+    if (interval_lower_eval * interval_upper_eval < 0) {
       // If the interval changes sign, then there is a zero in between. We can find the root and are in the correct region
       outside_region = false;
     }
-    else // It means we are in the wrong region
-    {
-      if (interval_lower_eval > 0.0 && interval_upper_eval > 0.0)
-      { // If the bounds on the interval are both positive, we should move down a region to make it pass through zero
+    else {
+      // It means we are in the wrong region
+      if (interval_lower_eval > 0.0 && interval_upper_eval > 0.0) {
+        // If the bounds on the interval are both positive, we should move down a region to make it pass through zero
         region--;
-        if (region < 0)
-        { // If we can't move down any regions and leave the simulation domain, we are likely on the lower limit of the domain and should just return the input theta
+        if (region < 0) {
+          // If we can't move down any regions and leave the simulation domain, we are likely on the lower limit of the domain and should just return the input theta
           fout[0] = theta;
           return;
         }
       }
-      else if (interval_lower_eval < 0.0 && interval_upper_eval < 0.0)
-      { // If the bounds on the interval are both negative, we should move up a region to make it pass through zero
+      else if (interval_lower_eval < 0.0 && interval_upper_eval < 0.0) {
+        // If the bounds on the interval are both negative, we should move up a region to make it pass through zero
         region++;
-        if (region > num_extrema-2)
-        { // If we can't move up any regions and leave the simulation domain, we are likely on the upper limit of the domain and should just return the input theta
+        if (region > num_extrema-2) {
+          // If we can't move up any regions and leave the simulation domain, we are likely on the upper limit of the domain and should just return the input theta
           fout[0] = theta;
           return;
         }
