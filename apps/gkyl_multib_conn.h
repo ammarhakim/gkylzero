@@ -1,5 +1,4 @@
 #include <gkyl_gyrokinetic_multib.h>
-#include <gkyl_gyrokinetic_multib_priv.h>
 #include <gkyl_multib_comm_conn.h>
 
 

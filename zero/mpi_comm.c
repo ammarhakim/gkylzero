@@ -472,7 +472,7 @@ static void
 sub_array_decomp_write(struct mpi_comm *comm,
   const struct gkyl_rect_decomp *decomp,
   const struct gkyl_range *range,
-  const struct gkyl_array_meta *meta,
+  const struct gkyl_msgpack_data *meta,
   const struct gkyl_array *arr, MPI_File fp)
 {
 #define _F(loc) gkyl_array_cfetch(arr, loc)
@@ -538,7 +538,7 @@ grid_sub_array_decomp_write_fp(struct mpi_comm *comm,
   const struct gkyl_rect_grid *grid,
   const struct gkyl_rect_decomp *decomp,
   const struct gkyl_range *range,
-  const struct gkyl_array_meta *meta,
+  const struct gkyl_msgpack_data *meta,
   const struct gkyl_array *arr, MPI_File fp)
 {
   char *buff; size_t buff_sz;
@@ -569,7 +569,7 @@ grid_sub_array_decomp_write_fp(struct mpi_comm *comm,
   }
   free(buff);
 
-  struct gkyl_array_meta zero_meta = (struct gkyl_array_meta) {
+  struct gkyl_msgpack_data zero_meta = (struct gkyl_msgpack_data) {
     .meta_sz = 0,
     .meta = 0
   };
@@ -584,7 +584,7 @@ grid_sub_array_decomp_write_fp(struct mpi_comm *comm,
 static int array_write(struct gkyl_comm *comm,
   const struct gkyl_rect_grid *grid,
   const struct gkyl_range *range,
-  const struct gkyl_array_meta *meta,
+  const struct gkyl_msgpack_data *meta,
   const struct gkyl_array *arr, const char *fname)
 {
   struct mpi_comm *mpi = container_of(comm, struct mpi_comm, priv_comm.pub_comm);
@@ -774,6 +774,7 @@ mpi_comm_new(const struct gkyl_mpi_comm_inp *inp,
   mpi->priv_comm.gkyl_array_write = array_write;
   mpi->priv_comm.gkyl_array_read = array_read;
   mpi->priv_comm.gkyl_array_allgather = array_allgather;
+  mpi->priv_comm.gkyl_array_allgather_host = array_allgather;
   
   mpi->priv_comm.get_rank = get_rank;
   mpi->priv_comm.get_size = get_size;

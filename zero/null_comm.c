@@ -240,7 +240,7 @@ barrier(struct gkyl_comm *comm)
 static int array_write(struct gkyl_comm *comm,
   const struct gkyl_rect_grid *grid,
   const struct gkyl_range *range,
-  const struct gkyl_array_meta *meta,
+  const struct gkyl_msgpack_data *meta,
   const struct gkyl_array *arr, const char *fname)
 {
   return gkyl_grid_sub_array_write(grid, range, meta, arr, fname);
@@ -351,6 +351,7 @@ gkyl_null_comm_inew(const struct gkyl_null_comm_inp *inp)
   comm->priv_comm.allreduce = allreduce;
   comm->priv_comm.allreduce_host = allreduce_host;
   comm->priv_comm.gkyl_array_allgather = array_allgather;
+  comm->priv_comm.gkyl_array_allgather_host = array_allgather;
   comm->priv_comm.gkyl_array_bcast = array_bcast;
   comm->priv_comm.gkyl_array_bcast_host = array_bcast;
   comm->priv_comm.gkyl_array_sync = array_sync;

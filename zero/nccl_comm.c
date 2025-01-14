@@ -291,6 +291,15 @@ array_allgather(struct gkyl_comm *comm,
 }
 
 static int
+array_allgather_host(struct gkyl_comm *comm,
+  const struct gkyl_range *local, const struct gkyl_range *global, 
+  const struct gkyl_array *array_local, struct gkyl_array *array_global)
+{
+  struct nccl_comm *nccl = container_of(comm, struct nccl_comm, priv_comm.pub_comm);
+  return gkyl_comm_array_allgather_host(nccl->mpi_comm, local, global, array_local, array_global);
+}
+
+static int
 array_bcast(struct gkyl_comm *comm, const struct gkyl_array *asend,
   struct gkyl_array *arecv, int root)
 {
@@ -702,7 +711,7 @@ nccl_comm_new(const struct gkyl_nccl_comm_inp *inp,
   
   nccl->local_range_offset = gkyl_rect_decomp_calc_offset(nccl->decomp, nccl->rank);
 
-  nccl->priv_comm.gkyl_array_allgather = array_allgather;
+  
   nccl->priv_comm.gkyl_array_sync = array_sync;
   nccl->priv_comm.gkyl_array_per_sync = array_per_sync;
   nccl->priv_comm.gkyl_array_write = array_write;
@@ -721,6 +730,8 @@ nccl_comm_new(const struct gkyl_nccl_comm_inp *inp,
 //  nccl->priv_comm.comm_state_new = comm_state_new;
 //  nccl->priv_comm.comm_state_release = comm_state_release;
 //  nccl->priv_comm.comm_state_wait = comm_state_wait;
+  nccl->priv_comm.gkyl_array_allgather = array_allgather;
+  nccl->priv_comm.gkyl_array_allgather_host = array_allgather_host;
   nccl->priv_comm.gkyl_array_bcast = array_bcast;
   nccl->priv_comm.gkyl_array_bcast_host = array_bcast_host;
   nccl->priv_comm.comm_group_call_start = group_call_start;

@@ -512,7 +512,7 @@ max_speed(const struct gkyl_wv_eqn* eqn, const double* q)
 static inline void
 gr_maxwell_tetrad_cons_to_diag(const struct gkyl_wv_eqn* eqn, const double* qin, double* diag)
 {
-  for (int i = 0; i < 22; i++) {
+  for (int i = 0; i < 8; i++) {
     diag[i] = qin[i];
   }
 }
@@ -561,7 +561,7 @@ gkyl_wv_gr_maxwell_tetrad_inew(const struct gkyl_wv_gr_maxwell_tetrad_inp* inp)
 
   gr_maxwell_tetrad->eqn.type = GKYL_EQN_GR_MAXWELL_TETRAD;
   gr_maxwell_tetrad->eqn.num_equations = 22;
-  gr_maxwell_tetrad->eqn.num_diag = 22;
+  gr_maxwell_tetrad->eqn.num_diag = 8;
 
   gr_maxwell_tetrad->light_speed = inp->light_speed;
   gr_maxwell_tetrad->e_fact = inp->e_fact;
