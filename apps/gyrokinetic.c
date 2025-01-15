@@ -706,6 +706,7 @@ gkyl_gyrokinetic_app_write_geometry(gkyl_gyrokinetic_app* app)
   gyrokinetic_app_geometry_copy_and_write(app, app->gk_geom->gyyj        , arr_ho1, "gyyj", mt);
   gyrokinetic_app_geometry_copy_and_write(app, app->gk_geom->gxzj        , arr_ho1, "gxzj", mt);
   gyrokinetic_app_geometry_copy_and_write(app, app->gk_geom->eps2        , arr_ho1, "eps2", mt);
+  gyrokinetic_app_geometry_copy_and_write(app, app->gk_geom->qprofile        , arr_ho1, "qprofile", mt);
   app->stat.io_tm += gkyl_time_diff_now_sec(wtm);
   app->stat.nio += 22;
 
@@ -2654,6 +2655,7 @@ gkyl_gyrokinetic_app_read_geometry(gkyl_gyrokinetic_app* app)
   gyrokinetic_app_geometry_read_and_copy(app, app->gk_geom->gyyj        , arr_ho1, "gyyj");
   gyrokinetic_app_geometry_read_and_copy(app, app->gk_geom->gxzj        , arr_ho1, "gxzj");
   gyrokinetic_app_geometry_read_and_copy(app, app->gk_geom->eps2        , arr_ho1, "eps2");
+  gyrokinetic_app_geometry_read_and_copy(app, app->gk_geom->qprofile        , arr_ho1, "qprofile");
 
   gkyl_array_release(arr_ho1);
   gkyl_array_release(arr_ho3);

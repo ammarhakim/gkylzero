@@ -54,6 +54,7 @@ gkyl_gk_geometry_new(struct gk_geometry* geo_host, struct gkyl_gk_geometry_inp *
   up->gyyj= gkyl_array_new(GKYL_DOUBLE, up->basis.num_basis, up->local_ext.volume);
   up->gxzj= gkyl_array_new(GKYL_DOUBLE, up->basis.num_basis, up->local_ext.volume);
   up->eps2= gkyl_array_new(GKYL_DOUBLE, up->basis.num_basis, up->local_ext.volume);
+  up->qprofile= gkyl_array_new(GKYL_DOUBLE, up->basis.num_basis, up->local_ext.volume);
 
   up->flags = 0;
   GKYL_CLEAR_CU_ALLOC(up->flags);
@@ -299,6 +300,7 @@ gkyl_gk_geometry_deflate(const struct gk_geometry* up_3d, struct gkyl_gk_geometr
   gkyl_deflate_geo_advance(deflator, &up_3d->local, &up->local, up_3d->gyyj, up->gyyj, 1);
   gkyl_deflate_geo_advance(deflator, &up_3d->local, &up->local, up_3d->gxzj, up->gxzj, 1);
   gkyl_deflate_geo_advance(deflator, &up_3d->local, &up->local, up_3d->eps2, up->eps2, 1);
+  gkyl_deflate_geo_advance(deflator, &up_3d->local, &up->local, up_3d->qprofile, up->qprofile, 1);
   // Done deflating
   gkyl_deflate_geo_release(deflator);
 
