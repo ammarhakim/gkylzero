@@ -337,6 +337,7 @@ gkyl_gk_geometry_free(const struct gkyl_ref_count *ref)
   gkyl_array_release(up->gyyj);
   gkyl_array_release(up->gxzj);
   gkyl_array_release(up->eps2);
+  gkyl_array_release(up->qprofile);
   if (gkyl_gk_geometry_is_cu_dev(up)) 
     gkyl_cu_free(up->on_dev); 
 
