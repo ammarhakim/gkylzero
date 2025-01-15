@@ -64,6 +64,7 @@
 #include <gkyl_mom_calc_bcorr.h>
 #include <gkyl_mom_gyrokinetic.h>
 #include <gkyl_null_pool.h>
+#include <gkyl_position_map.h>
 #include <gkyl_prim_lbo_calc.h>
 #include <gkyl_prim_lbo_cross_calc.h>
 #include <gkyl_prim_lbo_gyrokinetic.h>
@@ -384,16 +385,17 @@ struct gk_react {
 // Context for c2p function passed to proj_on_basis.
 struct gk_proj_on_basis_c2p_func_ctx {
   int cdim, vdim;
+  struct gkyl_position_map *pos_map;
   struct gkyl_velocity_map *vel_map;
 };
 
 struct gk_proj {
   enum gkyl_projection_id proj_id; // type of projection
+  struct gk_proj_on_basis_c2p_func_ctx proj_on_basis_c2p_ctx; // c2p function context.
   // organization of the different projection objects and the required data and solvers
   union {
     // function projection
     struct {
-      struct gk_proj_on_basis_c2p_func_ctx proj_on_basis_c2p_ctx; // c2p function context.
       struct gkyl_proj_on_basis *proj_func; // projection operator for specified function
       struct gkyl_array *proj_host; // array for projection on host-side if running on GPUs
     };
@@ -769,6 +771,8 @@ struct gkyl_gyrokinetic_app {
 
   struct gk_geometry *gk_geom;
   struct gkyl_array *jacobtot_inv_weak; // 1/(J.B) computed via weak mul and div.
+  
+  struct gkyl_position_map *position_map; // Position mapping object.
 
   bool update_field; // are we updating the field?
   struct gk_field *field; // pointer to field object

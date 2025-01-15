@@ -612,4 +612,3 @@ void mirror_find_endpoints(struct gkyl_mirror_geo_grid_inp* inp, struct gkyl_mir
  * Used to set arc_ctx attributes before using ridders to find z
 */
 void mirror_set_ridders(struct gkyl_mirror_geo_grid_inp* inp, struct arc_length_ctx* arc_ctx, double psi_curr, double arcL, double arcL_curr, double zmin, double zmax, double* rclose, double *ridders_min, double* ridders_max);
-
