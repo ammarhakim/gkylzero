@@ -53,6 +53,7 @@ gk_geometry_tok_init(struct gkyl_gk_geometry_inp *geometry_inp)
 
   struct gkyl_array* ddtheta_nodal = gkyl_array_new(GKYL_DOUBLE, 3, nrange.volume);
   struct gkyl_array* bmag_nodal = gkyl_array_new(GKYL_DOUBLE, 1, nrange.volume);
+  struct gkyl_array* qprofile_nodal = gkyl_array_new(GKYL_DOUBLE, 1, nrange.volume);
 
   // bmag, metrics and derived geo quantities
   up->bmag = gkyl_array_new(GKYL_DOUBLE, up->basis.num_basis, up->local_ext.volume);
@@ -76,6 +77,7 @@ gk_geometry_tok_init(struct gkyl_gk_geometry_inp *geometry_inp)
   up->gyyj= gkyl_array_new(GKYL_DOUBLE, up->basis.num_basis, up->local_ext.volume);
   up->gxzj= gkyl_array_new(GKYL_DOUBLE, up->basis.num_basis, up->local_ext.volume);
   up->eps2= gkyl_array_new(GKYL_DOUBLE, up->basis.num_basis, up->local_ext.volume);
+  up->qprofile = gkyl_array_new(GKYL_DOUBLE, up->basis.num_basis, up->local_ext.volume);
 
   const struct gkyl_efit_inp inp = geometry_inp->efit_info;
   struct gkyl_tok_geo_grid_inp ginp = geometry_inp->tok_grid_info;
@@ -84,7 +86,7 @@ gk_geometry_tok_init(struct gkyl_gk_geometry_inp *geometry_inp)
   struct gkyl_tok_geo *geo = gkyl_tok_geo_new(&inp, &ginp);
   // calculate mapc2p and mapc2prz
   gkyl_tok_geo_calc(up, &nrange, dzc, geo, &ginp, mc2p_nodal_fd, mc2p_nodal, up->mc2p, 
-    ddtheta_nodal, map_mc2nu_nodal, up->mc2nu_pos, geometry_inp->position_map);
+    ddtheta_nodal, qprofile_nodal, map_mc2nu_nodal, up->mc2nu_pos, geometry_inp->position_map);
   // calculate bmag
   gkyl_calc_bmag *bcalculator = gkyl_calc_bmag_new(&up->basis, &geo->rzbasis, &up->grid, &geo->rzgrid, false);
   gkyl_calc_bmag_advance(bcalculator, &up->local, &up->local_ext, &up->global, &geo->rzlocal, &geo->rzlocal_ext, geo->efit->bmagzr, up->bmag, up->mc2p);
@@ -93,6 +95,8 @@ gk_geometry_tok_init(struct gkyl_gk_geometry_inp *geometry_inp)
   // Convert bmag to nodal so we can use it to calculate dphidtheta
   struct gkyl_nodal_ops *n2m = gkyl_nodal_ops_new(&up->basis, &up->grid, false);
   gkyl_nodal_ops_m2n(n2m, &up->basis, &up->grid, &nrange, &up->local, 1, bmag_nodal, up->bmag);
+  // Convert qprofile to modal so we can write it later
+  gkyl_nodal_ops_n2m(n2m, &up->basis, &up->grid, &nrange, &up->local, 1, qprofile_nodal, up->qprofile);
   gkyl_nodal_ops_release(n2m);
 
   // Now calculate the metrics
@@ -117,6 +121,7 @@ gk_geometry_tok_init(struct gkyl_gk_geometry_inp *geometry_inp)
   gkyl_array_release(mc2p_nodal);
   gkyl_array_release(ddtheta_nodal);
   gkyl_array_release(bmag_nodal);
+  gkyl_array_release(qprofile_nodal);
 
   return up;
 }

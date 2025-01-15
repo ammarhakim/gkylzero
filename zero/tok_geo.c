@@ -240,6 +240,58 @@ phi_func(double alpha_curr, double Z, void *ctx)
   return alpha_curr + ival + phi_ref;
 }
 
+// Function to calculate the flux surface  averaged q profile 
+double
+q_func(void *ctx)
+{
+  struct arc_length_ctx *actx = ctx;
+  double *arc_memo = actx->arc_memo;
+  double psi = actx->psi, rclose = actx->rclose, zmin = actx->zmin, arcL = actx->arcL, zmax = actx->zmax;
+  double rleft =  actx->rleft, rright = actx->rright;
+
+  // Calculate q(psi) = -F(psi)/2pi * integral_zmin^zmax 1/Rgrad(psi)
+
+  double ival = 0;
+  double phi_ref = 0.0;
+  if (actx->ftype==GKYL_CORE){ 
+    double ival1 = integrate_phi_along_psi_contour_memo(actx->geo, psi, actx->zmin, actx->zmax, rright, false, false, arc_memo);
+    double ival2 = -integrate_phi_along_psi_contour_memo(actx->geo, psi, actx->zmin, actx->zmax, rleft, false, false, arc_memo);
+    ival = ival1 + ival2;
+  }
+
+  if (actx->ftype==GKYL_SOL_SN_LO){ 
+    double ival1 = integrate_phi_along_psi_contour_memo(actx->geo, psi, actx->zmin_right, actx->zmax, rright, false, false, arc_memo);
+    double ival2 = -integrate_phi_along_psi_contour_memo(actx->geo, psi, actx->zmin_left, actx->zmax, rleft, false, false, arc_memo);
+    ival = ival1 + ival2;
+  }
+
+  if (actx->ftype==GKYL_SOL_DN_OUT){ 
+    ival = integrate_phi_along_psi_contour_memo(actx->geo, psi, actx->zmin, actx->zmax, rclose, false, false, arc_memo);
+  }
+  // Now multiply by fpol/2pi
+  double R[4] = {0};
+  double dR[4] = {0};
+  double psi_fpol = psi;
+  if ( (psi_fpol < actx->geo->fgrid.lower[0]) || (psi_fpol > actx->geo->fgrid.upper[0]) ) // F = F(psi_sep) in the SOL.
+    psi_fpol = actx->geo->sibry;
+  int idx = fmin(actx->geo->frange.lower[0] + (int) floor((psi_fpol - actx->geo->fgrid.lower[0])/actx->geo->fgrid.dx[0]), actx->geo->frange.upper[0]);
+  long loc = gkyl_range_idx(&actx->geo->frange, &idx);
+  const double *coeffs = gkyl_array_cfetch(actx->geo->fpoldg,loc);
+  double fxc;
+  gkyl_rect_grid_cell_center(&actx->geo->fgrid, &idx, &fxc);
+  double fx = (psi_fpol-fxc)/(actx->geo->fgrid.dx[0]*0.5);
+  double fpol = actx->geo->fbasis.eval_expand(&fx, coeffs);
+  double q = -ival*fpol/M_PI;
+
+  // AS 1/15/25 The 3 lines below are
+  // a useful check to compare against q from efit
+  //coeffs = gkyl_array_cfetch(actx->geo->qdg,loc);
+  //double q_efit = actx->geo->fbasis.eval_expand(&fx, coeffs);
+  // printf("psi_curr = %g, my q = %g, efit q = %g\n", psi_fpol, q, q_efit);
+  
+  return q;
+}
+
 static double
 dphidtheta_func(double Z, void *ctx)
 {
@@ -363,7 +415,7 @@ gkyl_tok_geo_R_psiZ(const struct gkyl_tok_geo *geo, double psi, double Z, int nm
 
 void gkyl_tok_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, double dzc[3], struct gkyl_tok_geo *geo, 
   struct gkyl_tok_geo_grid_inp *inp, struct gkyl_array *mc2p_nodal_fd, struct gkyl_array *mc2p_nodal, 
-  struct gkyl_array *mc2p, struct gkyl_array *ddtheta_nodal,
+  struct gkyl_array *mc2p, struct gkyl_array *ddtheta_nodal, struct gkyl_array *qprofile_nodal,
   struct gkyl_array *mc2nu_nodal, struct gkyl_array *mc2nu_pos,
   struct gkyl_position_map *position_map)
 {
@@ -482,6 +534,13 @@ void gkyl_tok_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, double
           if(inp->ftype==GKYL_CORE_L) 
             printf("In left core block, bottom xpt at z = %1.16f, top at z = %1.16f\n", arc_ctx.zmin, arc_ctx.zmax);
         }
+
+        // Calculate the q profile
+        // qhat = - F(psi) * s(psi) / (R * grad(psi))
+        // q = integral_0^2pi qhat dtheta
+        //   = F(psi)*s(psi) * integral 1/(R*grad(psi)) dl
+        //   = 1/s(psi) * integral (dphidtheta) ; dphidtheta = F(psi)/(R*grad(psi))
+        double qprofile = q_func(&arc_ctx);
 
         darcL = arc_ctx.arcL_tot/(up->basis.poly_order*inp->cgrid.cells[TH_IDX]) * (inp->cgrid.upper[TH_IDX] - inp->cgrid.lower[TH_IDX])/2/M_PI;
         // at the beginning of each theta loop we need to reset things
@@ -626,6 +685,7 @@ void gkyl_tok_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, double
           double *mc2p_n = gkyl_array_fetch(mc2p_nodal, gkyl_range_idx(nrange, cidx));
           double *mc2nu_n = gkyl_array_fetch(mc2nu_nodal, gkyl_range_idx(nrange, cidx));
           double *ddtheta_n = gkyl_array_fetch(ddtheta_nodal, gkyl_range_idx(nrange, cidx));
+          double *qprofile_n= gkyl_array_fetch(qprofile_nodal, gkyl_range_idx(nrange, cidx));
 
           mc2p_fd_n[lidx+X_IDX] = r_curr;
           mc2p_fd_n[lidx+Y_IDX] = z_curr;
@@ -641,6 +701,7 @@ void gkyl_tok_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, double
             ddtheta_n[0] = dphidtheta_func(z_curr, &arc_ctx);
             ddtheta_n[1] = sin(atan(dr_curr))*arc_ctx.arcL_tot/2.0/M_PI;
             ddtheta_n[2] = cos(atan(dr_curr))*arc_ctx.arcL_tot/2.0/M_PI;
+            qprofile_n[0] = qprofile;
           }
         }
       }
