@@ -265,9 +265,14 @@ q_func(void *ctx)
     ival = ival1 + ival2;
   }
 
-  if (actx->ftype==GKYL_SOL_DN_OUT){ 
+  if (actx->ftype==GKYL_SOL_DN_OUT || actx->ftype==GKYL_SOL_DN_OUT_MID || actx->ftype==GKYL_SOL_DN_OUT_LO || actx->ftype==GKYL_SOL_DN_OUT_UP){ 
     ival = integrate_phi_along_psi_contour_memo(actx->geo, psi, actx->zmin, actx->zmax, rclose, false, false, arc_memo);
   }
+
+  if (actx->ftype==GKYL_SOL_DN_IN || actx->ftype==GKYL_SOL_DN_IN_MID || actx->ftype==GKYL_SOL_DN_IN_LO || actx->ftype==GKYL_SOL_DN_IN_UP){ 
+    ival = -integrate_phi_along_psi_contour_memo(actx->geo, psi, actx->zmin, actx->zmax, rclose, false, false, arc_memo);
+  }
+
   // Now multiply by fpol/2pi
   double R[4] = {0};
   double dR[4] = {0};
