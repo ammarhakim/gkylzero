@@ -151,6 +151,8 @@ gkyl_gyrokinetic_app_new_geom(struct gkyl_gk *gk)
   int neuts = app->num_neut_species = gk->num_neut_species;
 
   double cfl_frac = gk->cfl_frac == 0 ? 1.0 : gk->cfl_frac;
+  double cfl_frac_omegaH = gk->cfl_frac_omegaH == 0 ? 1.0 : gk->cfl_frac_omegaH;
+  app->cfl_omegaH = cfl_frac_omegaH;
   app->cfl = cfl_frac;
 
 #ifdef GKYL_HAVE_CUDA

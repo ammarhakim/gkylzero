@@ -725,8 +725,7 @@ gk_species_omegaH_dt(gkyl_gyrokinetic_app *app, struct gk_species *gks, const st
   //                 min(sqrt(k_x^2*eps_xx+k_x*k_y*eps_xy+k_y^2*eps_yy+)).
   // and k_x,k_y,k_par are wavenumbers in computational space, and eps_ij is
   // the polarization weight in our field equation.
-  double omegaH_CFL = 0.95;
-
+ 
   // Obtain the maximum density (use cell center density).
   gk_species_moment_calc(&gks->m0, gks->local, app->local, fin);
   gkyl_array_set_offset_range(gks->m0_cc, 1.0/pow(sqrt(2.0),app->cdim), gks->m0.marr, 0, &app->local);
@@ -740,7 +739,7 @@ gk_species_omegaH_dt(gkyl_gyrokinetic_app *app, struct gk_species *gks, const st
 
   double omegaH = fabs(gks->info.charge)*sqrt(GKYL_MAX2(0.0,m0_max[0])/gks->info.mass)*app->omegaH_gf;
 
-  return omegaH_CFL/omegaH;
+  return omegaH > 1e-20? app->cfl_omegaH/omegaH : DBL_MAX;
 }
 
 // Compute the RHS for species update, returning maximum stable
