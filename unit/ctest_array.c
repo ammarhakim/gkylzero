@@ -982,7 +982,7 @@ void test_reduce()
 void test_reduce_dg()
 {
   int poly_order = 1;
-  int ncomp = 1;
+  int ncomp = 3;
   double lower[] = {-M_PI}, upper[] = {M_PI};
   int cells[] = {20};
 
@@ -1025,47 +1025,58 @@ void test_reduce_dg()
   }
 
   // Polulate arr with a function evaluated at nodes (transformed to modal).
-  double arr_max[ncomp], arr_min[ncomp];
+  double arr_max[ncomp], arr_min[ncomp], arr_sum[ncomp];
   for (size_t i=0; i<ncomp; ++i) {
     arr_max[i] = -1e20;
     arr_min[i] = 1e20;
+    arr_sum[i] = 0.0;
   }
 
   for (size_t i=0; i<arr->size; ++i) {
+
+    double *arr_c = gkyl_array_fetch(arr, i);
+
     int idx[ndim];
     gkyl_range_inv_idx(&local_ext, i, idx);
 
     double xc[ndim];
     gkyl_rect_grid_cell_center(&grid, idx, xc);
 
-    double arr_nodal[num_nodes];
-    for (size_t k=0; k<num_nodes; k++) {
-      const double *nod = gkyl_array_cfetch(nodes, k);
-      double x[ndim];
-      for (int d=0; d<ndim; d++) x[d] = xc[d] + 0.5*grid.dx[0]*nod[d];
-
-      arr_nodal[k] = 1;
-      for (int d=0; d<ndim; d++) arr_nodal[k] *= sin(((d+1)*2.0*M_PI/(upper[d]-lower[d]))*x[d]);
-
-      arr_max[0] = GKYL_MAX2(arr_max[0], arr_nodal[k]);
-      arr_min[0] = GKYL_MIN2(arr_min[0], arr_nodal[k]);
-    }
-
-    double *arr_c = gkyl_array_fetch(arr, i);
-    for (size_t k=0; k<basis.num_basis; k++) {
-      basis.quad_nodal_to_modal(arr_nodal, arr_c, k);
+    for (int ci=0; ci<ncomp; ci++) {
+      double arr_nodal[num_nodes];
+      for (size_t k=0; k<num_nodes; k++) {
+        const double *nod = gkyl_array_cfetch(nodes, k);
+        double x[ndim];
+        for (int d=0; d<ndim; d++) x[d] = xc[d] + 0.5*grid.dx[0]*nod[d];
+  
+        arr_nodal[k] = (ci+1);
+        for (int d=0; d<ndim; d++) arr_nodal[k] *= sin(((d+1)*2.0*M_PI/(upper[d]-lower[d]))*x[d]);
+  
+        arr_max[ci] = GKYL_MAX2(arr_max[ci], arr_nodal[k]);
+        arr_min[ci] = GKYL_MIN2(arr_min[ci], arr_nodal[k]);
+        arr_sum[ci] += arr_nodal[k];
+      }
+  
+      for (size_t k=0; k<basis.num_basis; k++) {
+        basis.quad_nodal_to_modal(arr_nodal, &arr_c[ci*basis.num_basis], k);
+      }
     }
   }
   
-  double amin[ncomp], amax[ncomp];
-  gkyl_array_reducec_dg(amin, arr, 0, GKYL_MIN, &basis);
-  gkyl_array_reducec_dg(amax, arr, 0, GKYL_MAX, &basis);
+  double amin[ncomp], amax[ncomp], asum[ncomp];
+  for (int ci=0; ci<ncomp; ci++) {
+    gkyl_array_reducec_dg(&amin[ci], arr, ci, GKYL_MIN, &basis);
+    gkyl_array_reducec_dg(&amax[ci], arr, ci, GKYL_MAX, &basis);
+    gkyl_array_reducec_dg(&asum[ci], arr, ci, GKYL_SUM, &basis);
+  }
 
-  for (size_t c=0; c<ncomp; ++c) {
+  for (int c=0; c<ncomp; ++c) {
     TEST_CHECK( gkyl_compare(amin[c], arr_min[c], 1e-14) );
-    TEST_MSG( "MIN: Expected: %g | Got: %g\n", arr_min[c], amin[c] );
+    TEST_MSG( "%d MIN: Expected: %g | Got: %g\n", c, arr_min[c], amin[c] );
     TEST_CHECK( gkyl_compare(amax[c], arr_max[c], 1e-14) );
-    TEST_MSG( "MAX: Expected: %g | Got: %g\n", arr_max[c], amax[c] );
+    TEST_MSG( "%d MAX: Expected: %g | Got: %g\n", c, arr_max[c], amax[c] );
+    TEST_CHECK( gkyl_compare(asum[c], arr_sum[c], 1e-14) );
+    TEST_MSG( "%d MAX: Expected: %g | Got: %g\n", c, arr_sum[c], asum[c] );
   }
 
   gkyl_array_release(arr);
