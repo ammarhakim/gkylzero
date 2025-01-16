@@ -72,6 +72,7 @@
 #include <gkyl_proj_bimaxwellian_on_basis.h>
 #include <gkyl_proj_maxwellian_on_basis.h>
 #include <gkyl_proj_on_basis.h>
+#include <gkyl_proj_powsqrt_on_basis.h>
 #include <gkyl_range.h>
 #include <gkyl_radiation_read.h>
 #include <gkyl_rect_decomp.h>
@@ -576,7 +577,10 @@ struct gk_species {
   gkyl_dynvec ps_integ_diag; // Integrated moments of the positivity shift.
   bool is_first_ps_integ_write_call; // Flag first time writing ps_integ_diag.
 
-  double *omega_cfl;
+  double *omega_cfl; // Maximum Omega_CFL in this MPI process.
+
+  struct gkyl_array *m0_cc; // Cell center density.
+  double *m0_max; // Maximum number density in this MPI process.
 };
 
 // neutral species data
@@ -771,6 +775,7 @@ struct gkyl_gyrokinetic_app {
 
   struct gk_geometry *gk_geom;
   struct gkyl_array *jacobtot_inv_weak; // 1/(J.B) computed via weak mul and div.
+  double omegaH_gf; // Geometry and field model dependent part of omega_H.
   
   struct gkyl_position_map *position_map; // Position mapping object.
 
