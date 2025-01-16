@@ -11,6 +11,7 @@
 #include <gkyl_range.h>
 #include <gkyl_rect_decomp.h>
 #include <gkyl_rect_grid.h>
+#include <gkyl_gauss_quad_data.h>
 #include <gkyl_util.h>
 
 void test_array_0()
@@ -976,6 +977,99 @@ void test_reduce()
   }
 
   gkyl_array_release(arr);
+}
+
+void test_reduce_dg()
+{
+  int poly_order = 1;
+  int ncomp = 1;
+  double lower[] = {-M_PI}, upper[] = {M_PI};
+  int cells[] = {20};
+
+  int ndim = sizeof(lower)/sizeof(lower[0]);
+
+  struct gkyl_basis basis;
+  gkyl_cart_modal_serendip(&basis, ndim, poly_order);
+
+  struct gkyl_rect_grid grid;
+  gkyl_rect_grid_init(&grid, ndim, lower, upper, cells);
+
+  int ghost[ndim];
+  for (int d=0; d<ndim; d++) ghost[d] = 1;
+  struct gkyl_range local, local_ext;
+  gkyl_create_grid_ranges(&grid, ghost, &local_ext, &local);
+
+  struct gkyl_array *arr = gkyl_array_new(GKYL_DOUBLE, ncomp*basis.num_basis, local_ext.volume);
+
+  // Load 1D Gauss-Legendre nodes.
+  int num_quad = poly_order+1;
+  double ordinates1[num_quad];
+  memcpy(ordinates1, gkyl_gauss_ordinates[num_quad], sizeof(double[num_quad]));
+
+  // Create range to loop over nodes.
+  int qshape[GKYL_MAX_DIM];
+  for (int i=0; i<ndim; ++i) qshape[i] = num_quad;
+  struct gkyl_range qrange;
+  gkyl_range_init_from_shape(&qrange, ndim, qshape);
+
+  // Create nodes array.
+  int num_nodes = qrange.volume;
+  struct gkyl_array *nodes = gkyl_array_new(GKYL_DOUBLE, ndim, num_nodes);
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, &qrange);
+  while (gkyl_range_iter_next(&iter)) {
+    long linc = gkyl_range_idx(&qrange, iter.idx);
+    double *nod = gkyl_array_fetch(nodes, linc);
+    for (int i=0; i<ndim; ++i)
+      nod[i] = ordinates1[iter.idx[i]-qrange.lower[i]];
+  }
+
+  // Polulate arr with a function evaluated at nodes (transformed to modal).
+  double arr_max[ncomp], arr_min[ncomp];
+  for (size_t i=0; i<ncomp; ++i) {
+    arr_max[i] = -1e20;
+    arr_min[i] = 1e20;
+  }
+
+  for (size_t i=0; i<arr->size; ++i) {
+    int idx[ndim];
+    gkyl_range_inv_idx(&local_ext, i, idx);
+
+    double xc[ndim];
+    gkyl_rect_grid_cell_center(&grid, idx, xc);
+
+    double arr_nodal[num_nodes];
+    for (size_t k=0; k<num_nodes; k++) {
+      const double *nod = gkyl_array_cfetch(nodes, k);
+      double x[ndim];
+      for (int d=0; d<ndim; d++) x[d] = xc[d] + 0.5*grid.dx[0]*nod[d];
+
+      arr_nodal[k] = 1;
+      for (int d=0; d<ndim; d++) arr_nodal[k] *= sin(((d+1)*2.0*M_PI/(upper[d]-lower[d]))*x[d]);
+
+      arr_max[0] = GKYL_MAX2(arr_max[0], arr_nodal[k]);
+      arr_min[0] = GKYL_MIN2(arr_min[0], arr_nodal[k]);
+    }
+
+    double *arr_c = gkyl_array_fetch(arr, i);
+    for (size_t k=0; k<basis.num_basis; k++) {
+      basis.quad_nodal_to_modal(arr_nodal, arr_c, k);
+    }
+  }
+  
+  double amin[ncomp], amax[ncomp];
+  gkyl_array_reducec_dg(amin, arr, 0, GKYL_MIN, &basis);
+  gkyl_array_reducec_dg(amax, arr, 0, GKYL_MAX, &basis);
+
+  for (size_t c=0; c<ncomp; ++c) {
+    TEST_CHECK( gkyl_compare(amin[c], arr_min[c], 1e-14) );
+    TEST_MSG( "MIN: Expected: %g | Got: %g\n", arr_min[c], amin[c] );
+    TEST_CHECK( gkyl_compare(amax[c], arr_max[c], 1e-14) );
+    TEST_MSG( "MAX: Expected: %g | Got: %g\n", arr_max[c], amax[c] );
+  }
+
+  gkyl_array_release(arr);
+  gkyl_array_release(nodes);
 }
 
 void test_reduce_range()
@@ -2544,6 +2638,7 @@ TEST_LIST = {
   { "array_copy_split", test_array_copy_split },
   { "non_numeric", test_non_numeric },
   { "reduce", test_reduce },
+  { "reduce_dg", test_reduce_dg },
   { "reduce_range", test_reduce_range },
   { "sum_reduce_range", test_sum_reduce_range },
   { "grid_sub_array_read_1", test_grid_sub_array_read_1 },
