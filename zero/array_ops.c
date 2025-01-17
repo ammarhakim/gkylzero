@@ -581,14 +581,14 @@ gkyl_array_reducec_dg_range(double *out, const struct gkyl_array *arr, int comp,
   if (gkyl_array_is_cu_dev(arr)) {
     switch (op) {
       case GKYL_MAX:
-//        gkyl_array_reducec_dg_range_max_cu(out, arr, comp, basis, range);
+        gkyl_array_reducec_dg_range_max_cu(out, arr, comp, basis, range);
         break;
-//      case GKYL_MIN:
-//        gkyl_array_reducec_dg_range_min_cu(out, arr, comp, basis, range);
-//        break;
-//      case GKYL_SUM:
-//        gkyl_array_reducec_dg_range_sum_cu(out, arr, comp, basis, range);
-//        break;
+      case GKYL_MIN:
+        gkyl_array_reducec_dg_range_min_cu(out, arr, comp, basis, range);
+        break;
+      case GKYL_SUM:
+        gkyl_array_reducec_dg_range_sum_cu(out, arr, comp, basis, range);
+        break;
     }
     return;
   }
