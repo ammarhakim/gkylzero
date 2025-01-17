@@ -130,7 +130,6 @@ gkyl_gk_geometry_mirror_new(struct gkyl_gk_geometry_inp *geometry_inp)
   struct gk_geometry* gk_geom_3d;
   struct gk_geometry* gk_geom;
 
-
   if (geometry_inp->position_map == 0){
     geometry_inp->position_map = gkyl_position_map_new((struct gkyl_position_map_inp) {}, \
       geometry_inp->grid, geometry_inp->local, geometry_inp->local_ext, geometry_inp->local, \
@@ -141,11 +140,10 @@ gkyl_gk_geometry_mirror_new(struct gkyl_gk_geometry_inp *geometry_inp)
   else {
     // First construct the uniform 3d geometry
     gk_geom_3d = gk_geometry_mirror_init(geometry_inp);
-    // The conversion array computational to field aligned is still computed
-    // in uniform geometry, so we need to deflate it
     if (geometry_inp->position_map->id == GKYL_PMAP_CONSTANT_DB_POLYNOMIAL || \
         geometry_inp->position_map->id == GKYL_PMAP_CONSTANT_DB_NUMERIC) {
-      // Must deflate the 3Duniform geometry in order for the allgather to work
+      // The array mc2nu is computed using the uniform geometry, so we need to deflate it
+      // Must deflate the 3D uniform geometry in order for the allgather to work
       if(geometry_inp->grid.ndim < 3)
         gk_geom = gkyl_gk_geometry_deflate(gk_geom_3d, geometry_inp);
       else
