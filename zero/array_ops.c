@@ -256,7 +256,7 @@ gkyl_array_reducec_dg(double *out, const struct gkyl_array *arr, int comp,
       for (size_t i=0; i<arr->size; ++i) {
         const double *d = gkyl_array_cfetch(arr, i);
         double arr_nodal[num_nodes];
-        for (long k=0; k<num_nodes; ++k) {
+        for (int k=0; k<num_nodes; ++k) {
           basis->modal_to_quad_nodal(&d[comp*basis->num_basis], arr_nodal, k);
           out[0] = fmin(out[0], arr_nodal[k]);
         }
@@ -268,7 +268,7 @@ gkyl_array_reducec_dg(double *out, const struct gkyl_array *arr, int comp,
       for (size_t i=0; i<arr->size; ++i) {
         const double *d = gkyl_array_cfetch(arr, i);
         double arr_nodal[num_nodes];
-        for (long k=0; k<num_nodes; ++k) {
+        for (int k=0; k<num_nodes; ++k) {
           basis->modal_to_quad_nodal(&d[comp*basis->num_basis], arr_nodal, k);
           out[0] = fmax(out[0], arr_nodal[k]);
         }
@@ -280,7 +280,7 @@ gkyl_array_reducec_dg(double *out, const struct gkyl_array *arr, int comp,
       for (size_t i=0; i<arr->size; ++i) {
         const double *d = gkyl_array_cfetch(arr, i);
         double arr_nodal[num_nodes];
-        for (long k=0; k<num_nodes; ++k) {
+        for (int k=0; k<num_nodes; ++k) {
           basis->modal_to_quad_nodal(&d[comp*basis->num_basis], arr_nodal, k);
           out[0] += arr_nodal[k];
         }
@@ -581,14 +581,14 @@ gkyl_array_reducec_dg_range(double *out, const struct gkyl_array *arr, int comp,
   if (gkyl_array_is_cu_dev(arr)) {
     switch (op) {
       case GKYL_MAX:
-        gkyl_array_reducec_dg_range_max_cu(out, arr, comp, basis, range);
+//        gkyl_array_reducec_dg_range_max_cu(out, arr, comp, basis, range);
         break;
-      case GKYL_MIN:
-        gkyl_array_reducec_dg_range_min_cu(out, arr, comp, basis, range);
-        break;
-      case GKYL_SUM:
-        gkyl_array_reducec_dg_range_sum_cu(out, arr, comp, basis, range);
-        break;
+//      case GKYL_MIN:
+//        gkyl_array_reducec_dg_range_min_cu(out, arr, comp, basis, range);
+//        break;
+//      case GKYL_SUM:
+//        gkyl_array_reducec_dg_range_sum_cu(out, arr, comp, basis, range);
+//        break;
     }
     return;
   }
@@ -608,7 +608,7 @@ gkyl_array_reducec_dg_range(double *out, const struct gkyl_array *arr, int comp,
         long start = gkyl_range_idx(range, iter.idx);
         const double *d = gkyl_array_cfetch(arr, start);
         double arr_nodal[num_nodes];
-        for (long k=0; k<num_nodes; ++k) {
+        for (int k=0; k<num_nodes; ++k) {
           basis->modal_to_quad_nodal(&d[comp*basis->num_basis], arr_nodal, k);
           out[0] = fmin(out[0], arr_nodal[k]);
         }
@@ -621,7 +621,7 @@ gkyl_array_reducec_dg_range(double *out, const struct gkyl_array *arr, int comp,
         long start = gkyl_range_idx(range, iter.idx);
         const double *d = gkyl_array_cfetch(arr, start);
         double arr_nodal[num_nodes];
-        for (long k=0; k<num_nodes; ++k) {
+        for (int k=0; k<num_nodes; ++k) {
           basis->modal_to_quad_nodal(&d[comp*basis->num_basis], arr_nodal, k);
           out[0] = fmax(out[0], arr_nodal[k]);
         }
@@ -634,7 +634,7 @@ gkyl_array_reducec_dg_range(double *out, const struct gkyl_array *arr, int comp,
         long start = gkyl_range_idx(range, iter.idx);
         const double *d = gkyl_array_cfetch(arr, start);
         double arr_nodal[num_nodes];
-        for (long k=0; k<num_nodes; ++k) {
+        for (int k=0; k<num_nodes; ++k) {
           basis->modal_to_quad_nodal(&d[comp*basis->num_basis], arr_nodal, k);
           out[0] += arr_nodal[k];
         }

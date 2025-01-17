@@ -7,6 +7,7 @@ extern "C" {
 #include <gkyl_alloc.h>
 #include <gkyl_util.h>
 #include <gkyl_array_reduce.h>
+#include <gkyl_basis.h>
 }
 
 // CUDA does not natively support atomics for MAX and MIN on doubles (addition/sum is fine).
@@ -286,3 +287,139 @@ gkyl_array_reduce_range_sum_cu(double *out_d, const struct gkyl_array* inp, cons
   // device synchronize required because out_d may be host pinned memory
   cudaDeviceSynchronize();
 }
+
+template <unsigned int BLOCKSIZE> 
+__global__ void
+dg_arrayMax_blockRedAtomic_cub(const struct gkyl_array* inp, double* out, int comp, const struct gkyl_basis *basis)
+{
+  unsigned long linc = blockIdx.x*blockDim.x + threadIdx.x;
+
+  // Specialize BlockReduce for type double.
+  typedef cub::BlockReduce<double, BLOCKSIZE> BlockReduceT;
+
+  // Allocate temporary storage in shared memory.
+  __shared__ typename BlockReduceT::TempStorage temp;
+
+  long nCells = inp->size;
+  size_t nComp = inp->ncomp;
+  int num_nodes = pow(basis->poly_order+1,basis->ndim);
+  const int num_nodes_max = 27; // MF 2025/01/15: hard coded to p=2 3x for now.
+
+  const double *inp_d = (const double*) inp->data;
+
+  out[0] = -DBL_MAX;
+  double f = -DBL_MAX;
+  if (linc < nCells) {
+    double arr_nodal[num_nodes_max];
+    for (int k=0; k<num_nodes; ++k) {
+      basis->modal_to_quad_nodal(&inp_d[linc*nComp+comp*basis->num_basis], arr_nodal, k);
+      f = fmax(f, arr_nodal[k]);
+    }
+  }
+  double bResult = 0;
+  bResult = BlockReduceT(temp).Reduce(f, cub::Max());
+  if (threadIdx.x < BLOCKSIZE) {
+    atomicMax_double(&out[0], bResult);
+  }
+}
+
+void
+gkyl_array_reducec_dg_max_cu(double *out_d, const struct gkyl_array* inp, int comp, const struct gkyl_basis *basis)
+{
+  const int nthreads = GKYL_DEFAULT_NUM_THREADS;  
+  int nblocks = gkyl_int_div_up(inp->size, nthreads);
+  dg_arrayMax_blockRedAtomic_cub<nthreads><<<nblocks, nthreads>>>(inp->on_dev, out_d, comp, basis);
+  // device synchronize required because out_d may be host pinned memory
+  cudaDeviceSynchronize();
+}
+
+template <unsigned int BLOCKSIZE> 
+__global__ void
+dg_arrayMin_blockRedAtomic_cub(const struct gkyl_array* inp, double* out, int comp, const struct gkyl_basis *basis)
+{
+  unsigned long linc = blockIdx.x*blockDim.x + threadIdx.x;
+
+  // Specialize BlockReduce for type double.
+  typedef cub::BlockReduce<double, BLOCKSIZE> BlockReduceT;
+
+  // Allocate temporary storage in shared memory.
+  __shared__ typename BlockReduceT::TempStorage temp;
+
+  long nCells = inp->size;
+  size_t nComp = inp->ncomp;
+  int num_nodes = pow(basis->poly_order+1,basis->ndim);
+  const int num_nodes_max = 27; // MF 2025/01/15: hard coded to p=2 3x for now.
+
+  const double *inp_d = (const double*) inp->data;
+
+  out[0] = DBL_MAX;
+  double f = DBL_MAX;
+  if (linc < nCells) {
+    double arr_nodal[num_nodes_max];
+    for (int k=0; k<num_nodes; ++k) {
+      basis->modal_to_quad_nodal(&inp_d[linc*nComp+comp*basis->num_basis], arr_nodal, k);
+      f = fmin(f, arr_nodal[k]);
+    }
+  }
+  double bResult = 0;
+  bResult = BlockReduceT(temp).Reduce(f, cub::Min());
+  if (threadIdx.x < BLOCKSIZE) {
+    atomicMin_double(&out[0], bResult);
+  }
+}
+
+void
+gkyl_array_reducec_dg_min_cu(double *out_d, const struct gkyl_array* inp, int comp, const struct gkyl_basis *basis)
+{
+  const int nthreads = GKYL_DEFAULT_NUM_THREADS;  
+  int nblocks = gkyl_int_div_up(inp->size, nthreads);
+  dg_arrayMin_blockRedAtomic_cub<nthreads><<<nblocks, nthreads>>>(inp->on_dev, out_d, comp, basis);
+  // device synchronize required because out_d may be host pinned memory
+  cudaDeviceSynchronize();
+}
+
+template <unsigned int BLOCKSIZE> 
+__global__ void
+dg_arraySum_blockRedAtomic_cub(const struct gkyl_array* inp, double* out, int comp, const struct gkyl_basis *basis)
+{
+  unsigned long linc = blockIdx.x*blockDim.x + threadIdx.x;
+
+  // Specialize BlockReduce for type double.
+  typedef cub::BlockReduce<double, BLOCKSIZE> BlockReduceT;
+
+  // Allocate temporary storage in shared memory.
+  __shared__ typename BlockReduceT::TempStorage temp;
+
+  long nCells = inp->size;
+  size_t nComp = inp->ncomp;
+  int num_nodes = pow(basis->poly_order+1,basis->ndim);
+  const int num_nodes_max = 27; // MF 2025/01/15: hard coded to p=2 3x for now.
+
+  const double *inp_d = (const double*) inp->data;
+
+  out[0] = 0.0;
+  double f = 0;
+  if (linc < nCells) {
+    double arr_nodal[num_nodes_max];
+    for (int k=0; k<num_nodes; ++k) {
+      basis->modal_to_quad_nodal(&inp_d[linc*nComp+comp*basis->num_basis], arr_nodal, k);
+      f += arr_nodal[k];
+    }
+  }
+  double bResult = 0;
+  bResult = BlockReduceT(temp).Reduce(f, cub::Sum());
+  if (threadIdx.x == 0) {
+    atomicAdd(&out[0], bResult);
+  }
+}
+
+void
+gkyl_array_reducec_dg_sum_cu(double *out_d, const struct gkyl_array* inp, int comp, const struct gkyl_basis *basis)
+{
+  const int nthreads = GKYL_DEFAULT_NUM_THREADS;  
+  int nblocks = gkyl_int_div_up(inp->size, nthreads);
+  dg_arraySum_blockRedAtomic_cub<nthreads><<<nblocks, nthreads>>>(inp->on_dev, out_d, comp, basis);
+  // device synchronize required because out_d may be host pinned memory
+  cudaDeviceSynchronize();
+}
+
