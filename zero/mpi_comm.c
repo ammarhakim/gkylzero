@@ -8,17 +8,11 @@
 #include <gkyl_comm_priv.h>
 #include <gkyl_elem_type_priv.h>
 #include <gkyl_mpi_comm.h>
+#include <gkyl_mpi_comm_priv.h>
 
 #include <assert.h>
 #include <errno.h>
 #include <string.h>
-
-// Maximum number of recv neighbors: not sure hard-coding this is a
-// good idea.
-#define MAX_RECV_NEIGH 128
-
-#define MPI_BASE_TAG 4242
-#define MPI_BASE_PER_TAG 5252
 
 // Mapping of Gkeyll type to MPI_Datatype
 static MPI_Datatype g2_mpi_datatype[] = {
@@ -35,13 +29,6 @@ static MPI_Op g2_mpi_op[] = {
   [GKYL_SUM] = MPI_SUM
 };
 
-// Receive data
-struct comm_buff_stat {
-  struct gkyl_range range;
-  MPI_Request status;
-  gkyl_mem_buff buff;
-};
-
 struct gkyl_comm_state {
   MPI_Request req;
   MPI_Status stat;
@@ -54,35 +41,6 @@ struct extra_mpi_comm_inp {
 // Internal method to create a new MPI communicator
 static struct gkyl_comm* mpi_comm_new(
   const struct gkyl_mpi_comm_inp *inp, const struct extra_mpi_comm_inp *extra_inp);
-
-// Private struct wrapping MPI-specific code
-struct mpi_comm {
-  struct gkyl_comm_priv priv_comm; // base communicator
-
-  bool is_mcomm_allocated; // is the mcomm allocated?
-  MPI_Comm mcomm; // MPI communicator to use
-  struct gkyl_rect_decomp *decomp; // pre-computed decomposition
-  long local_range_offset; // offset of the local region
-
-  bool sync_corners; // should we sync corners?
-
-  struct gkyl_rect_decomp_neigh *neigh; // neighbors of local region
-  struct gkyl_rect_decomp_neigh *per_neigh[GKYL_MAX_DIM]; // periodic neighbors
-
-  struct gkyl_range dir_edge; // for use in computing tags
-  int is_on_edge[2][GKYL_MAX_DIM]; // flags to indicate if local range is on edge
-  bool touches_any_edge; // true if this range touches any edge
-
-  int nrecv; // number of elements in rinfo array
-  struct comm_buff_stat recv[MAX_RECV_NEIGH]; // info for recv data
-
-  int nsend; // number of elements in sinfo array
-  struct comm_buff_stat send[MAX_RECV_NEIGH]; // info for send data
-
-  // buffers for for allgather
-  struct comm_buff_stat allgather_buff_local; 
-  struct comm_buff_stat allgather_buff_global; 
-};
 
 static void
 comm_free(const struct gkyl_ref_count *ref)
@@ -514,7 +472,7 @@ static void
 sub_array_decomp_write(struct mpi_comm *comm,
   const struct gkyl_rect_decomp *decomp,
   const struct gkyl_range *range,
-  const struct gkyl_array_meta *meta,
+  const struct gkyl_msgpack_data *meta,
   const struct gkyl_array *arr, MPI_File fp)
 {
 #define _F(loc) gkyl_array_cfetch(arr, loc)
@@ -580,7 +538,7 @@ grid_sub_array_decomp_write_fp(struct mpi_comm *comm,
   const struct gkyl_rect_grid *grid,
   const struct gkyl_rect_decomp *decomp,
   const struct gkyl_range *range,
-  const struct gkyl_array_meta *meta,
+  const struct gkyl_msgpack_data *meta,
   const struct gkyl_array *arr, MPI_File fp)
 {
   char *buff; size_t buff_sz;
@@ -611,7 +569,7 @@ grid_sub_array_decomp_write_fp(struct mpi_comm *comm,
   }
   free(buff);
 
-  struct gkyl_array_meta zero_meta = (struct gkyl_array_meta) {
+  struct gkyl_msgpack_data zero_meta = (struct gkyl_msgpack_data) {
     .meta_sz = 0,
     .meta = 0
   };
@@ -626,7 +584,7 @@ grid_sub_array_decomp_write_fp(struct mpi_comm *comm,
 static int array_write(struct gkyl_comm *comm,
   const struct gkyl_rect_grid *grid,
   const struct gkyl_range *range,
-  const struct gkyl_array_meta *meta,
+  const struct gkyl_msgpack_data *meta,
   const struct gkyl_array *arr, const char *fname)
 {
   struct mpi_comm *mpi = container_of(comm, struct mpi_comm, priv_comm.pub_comm);
@@ -816,6 +774,7 @@ mpi_comm_new(const struct gkyl_mpi_comm_inp *inp,
   mpi->priv_comm.gkyl_array_write = array_write;
   mpi->priv_comm.gkyl_array_read = array_read;
   mpi->priv_comm.gkyl_array_allgather = array_allgather;
+  mpi->priv_comm.gkyl_array_allgather_host = array_allgather;
   
   mpi->priv_comm.get_rank = get_rank;
   mpi->priv_comm.get_size = get_size;

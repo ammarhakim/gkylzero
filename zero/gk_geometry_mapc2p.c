@@ -4,8 +4,10 @@
 #include <gkyl_array_ops.h>
 #include <gkyl_array_rio.h>
 #include <gkyl_basis.h>
+#include <gkyl_calc_bmag.h>
 #include <gkyl_calc_derived_geo.h>
 #include <gkyl_calc_metric.h>
+#include <gkyl_comm.h>
 #include <gkyl_eval_on_nodes.h>
 #include <gkyl_gk_geometry.h>
 #include <gkyl_gk_geometry_mapc2p.h>
@@ -13,10 +15,11 @@
 #include <gkyl_nodal_ops.h>
 
 static
-void gkyl_gk_geometry_mapc2p_advance(struct gk_geometry* up, struct gkyl_range *nrange, double dzc[3], 
+void gk_geometry_mapc2p_advance(struct gk_geometry* up, struct gkyl_range *nrange, double dzc[3], 
   evalf_t mapc2p_func, void* mapc2p_ctx, evalf_t bmag_func, void *bmag_ctx, 
-  struct gkyl_array *mc2p_nodal_fd, struct gkyl_array *mc2p_nodal, struct gkyl_array *mc2p)
- 
+  struct gkyl_array *mc2p_nodal_fd, struct gkyl_array *mc2p_nodal, struct gkyl_array *mc2p,
+  struct gkyl_array* mc2nu_nodal, struct gkyl_array* mc2nu_pos,
+  struct gkyl_position_map *position_map)
 {
   // First just do bmag
   struct gkyl_eval_on_nodes *eval_bmag = gkyl_eval_on_nodes_new(&up->grid, &up->basis, 1, bmag_func, bmag_ctx);
@@ -35,6 +38,10 @@ void gkyl_gk_geometry_mapc2p_advance(struct gk_geometry* up, struct gkyl_range *
     phi_lo = up->grid.lower[PH_IDX] + (up->local.lower[PH_IDX] - up->global.lower[PH_IDX])*up->grid.dx[PH_IDX],
     alpha_lo = up->grid.lower[AL_IDX] + (up->local.lower[AL_IDX] - up->global.lower[AL_IDX])*up->grid.dx[AL_IDX];
 
+  double theta_up = up->grid.upper[TH_IDX],
+    phi_up = up->grid.upper[PH_IDX],
+    alpha_up = up->grid.upper[AL_IDX];
+
   double dx_fact = up->basis.poly_order == 1 ? 1 : 0.5;
   dtheta *= dx_fact; dpsi *= dx_fact; dalpha *= dx_fact;
 
@@ -46,6 +53,15 @@ void gkyl_gk_geometry_mapc2p_advance(struct gk_geometry* up, struct gkyl_range *
   dzc[1] = delta_alpha;
   dzc[2] = delta_theta;
   int modifiers[5] = {0, -1, 1, -2, 2};
+
+  position_map->constB_ctx->alpha_max = alpha_up;
+  position_map->constB_ctx->alpha_min = alpha_lo;
+  position_map->constB_ctx->psi_max = phi_up;
+  position_map->constB_ctx->psi_min = phi_lo;
+  position_map->constB_ctx->theta_max = theta_up;
+  position_map->constB_ctx->theta_min = theta_lo;
+  position_map->constB_ctx->N_theta_boundaries = nrange->upper[TH_IDX] - nrange->lower[TH_IDX] + 1;
+  gkyl_position_map_optimize(position_map);
                                 
   int cidx[3] = { 0 };
   for(int ia=nrange->lower[AL_IDX]; ia<=nrange->upper[AL_IDX]; ++ia){
@@ -103,6 +119,11 @@ void gkyl_gk_geometry_mapc2p_advance(struct gk_geometry* up, struct gkyl_range *
                   continue; //dont do two away
               }
               double theta_curr = theta_lo + it*dtheta + modifiers[it_delta]*delta_theta;
+
+              position_map->maps[0](0.0, &psi_curr,   &psi_curr,   position_map->ctxs[0]);
+              position_map->maps[1](0.0, &alpha_curr, &alpha_curr, position_map->ctxs[1]);
+              position_map->maps[2](0.0, &theta_curr, &theta_curr, position_map->ctxs[2]);
+
               cidx[TH_IDX] = it;
               int lidx = 0;
               if (ip_delta != 0)
@@ -128,6 +149,13 @@ void gkyl_gk_geometry_mapc2p_advance(struct gk_geometry* up, struct gkyl_range *
                 mc2p_n[Y_IDX] = XYZ[Y_IDX];
                 mc2p_n[Z_IDX] = XYZ[Z_IDX];
               }
+
+              double *mc2nu_n = gkyl_array_fetch(mc2nu_nodal, gkyl_range_idx(nrange, cidx));
+              if(ip_delta==0 && ia_delta==0 && it_delta==0) {
+                mc2nu_n[X_IDX] = psi_curr;
+                mc2nu_n[Y_IDX] = alpha_curr;
+                mc2nu_n[Z_IDX] = theta_curr;
+              }
             }
           }
         }
@@ -137,11 +165,12 @@ void gkyl_gk_geometry_mapc2p_advance(struct gk_geometry* up, struct gkyl_range *
 
   struct gkyl_nodal_ops *n2m = gkyl_nodal_ops_new(&up->basis, &up->grid, false);
   gkyl_nodal_ops_n2m(n2m, &up->basis, &up->grid, nrange, &up->local, 3, mc2p_nodal, mc2p);
+  gkyl_nodal_ops_n2m(n2m, &up->basis, &up->grid, nrange, &up->local, 3, mc2nu_nodal, mc2nu_pos);
   gkyl_nodal_ops_release(n2m);
 
   // now calculate the metrics
   struct gkyl_calc_metric* mcalc = gkyl_calc_metric_new(&up->basis, &up->grid, &up->global, &up->global_ext, &up->local, &up->local_ext, false);
-  gkyl_calc_metric_advance(mcalc, nrange, mc2p_nodal_fd, dzc, up->g_ij, up->dxdz, up->dzdx, up->normals, &up->local);
+  gkyl_calc_metric_advance(mcalc, nrange, mc2p_nodal_fd, dzc, up->g_ij, up->dxdz, up->dzdx, up->dualmag, up->normals, &up->local);
   
   // calculate the derived geometric quantities
   struct gkyl_calc_derived_geo *jcalculator = gkyl_calc_derived_geo_new(&up->basis, &up->grid, false);
@@ -153,9 +182,8 @@ void gkyl_gk_geometry_mapc2p_advance(struct gk_geometry* up, struct gkyl_range *
   gkyl_calc_metric_release(mcalc);
 }
 
-
 struct gk_geometry*
-gkyl_gk_geometry_mapc2p_new(struct gkyl_gk_geometry_inp *geometry_inp)
+gk_geometry_mapc2p_init(struct gkyl_gk_geometry_inp *geometry_inp)
 {
 
   struct gk_geometry *up = gkyl_malloc(sizeof(struct gk_geometry));
@@ -186,11 +214,15 @@ gkyl_gk_geometry_mapc2p_new(struct gkyl_gk_geometry_inp *geometry_inp)
   struct gkyl_array* mc2p_nodal = gkyl_array_new(GKYL_DOUBLE, up->grid.ndim, nrange.volume);
   up->mc2p = gkyl_array_new(GKYL_DOUBLE, up->grid.ndim*up->basis.num_basis, up->local_ext.volume);
 
+  struct gkyl_array* mc2nu_nodal = gkyl_array_new(GKYL_DOUBLE, up->grid.ndim, nrange.volume);
+  up->mc2nu_pos = gkyl_array_new(GKYL_DOUBLE, up->grid.ndim*up->basis.num_basis, up->local_ext.volume);
+
   // bmag, metrics and derived geo quantities
   up->bmag = gkyl_array_new(GKYL_DOUBLE, up->basis.num_basis, up->local_ext.volume);
   up->g_ij = gkyl_array_new(GKYL_DOUBLE, 6*up->basis.num_basis, up->local_ext.volume);
   up->dxdz = gkyl_array_new(GKYL_DOUBLE, 9*up->basis.num_basis, up->local_ext.volume);
   up->dzdx = gkyl_array_new(GKYL_DOUBLE, 9*up->basis.num_basis, up->local_ext.volume);
+  up->dualmag = gkyl_array_new(GKYL_DOUBLE, 3*up->basis.num_basis, up->local_ext.volume);
   up->normals = gkyl_array_new(GKYL_DOUBLE, 9*up->basis.num_basis, up->local_ext.volume);
   up->jacobgeo = gkyl_array_new(GKYL_DOUBLE, up->basis.num_basis, up->local_ext.volume);
   up->jacobgeo_inv = gkyl_array_new(GKYL_DOUBLE, up->basis.num_basis, up->local_ext.volume);
@@ -207,15 +239,17 @@ gkyl_gk_geometry_mapc2p_new(struct gkyl_gk_geometry_inp *geometry_inp)
   up->gyyj= gkyl_array_new(GKYL_DOUBLE, up->basis.num_basis, up->local_ext.volume);
   up->gxzj= gkyl_array_new(GKYL_DOUBLE, up->basis.num_basis, up->local_ext.volume);
   up->eps2= gkyl_array_new(GKYL_DOUBLE, up->basis.num_basis, up->local_ext.volume);
-  up->bmag_mid = gkyl_array_new(GKYL_DOUBLE, 1, 1);
 
-  gkyl_gk_geometry_mapc2p_advance(up, &nrange, dzc, geometry_inp->mapc2p, geometry_inp->c2p_ctx,
-    geometry_inp->bmag_func, geometry_inp->bmag_ctx, mc2p_nodal_fd, mc2p_nodal, up->mc2p);
+  gk_geometry_mapc2p_advance(up, &nrange, dzc, geometry_inp->mapc2p, geometry_inp->c2p_ctx,
+    geometry_inp->bmag_func, geometry_inp->bmag_ctx, mc2p_nodal_fd, mc2p_nodal, up->mc2p,
+    mc2nu_nodal, up->mc2nu_pos, geometry_inp->position_map);
 
   up->flags = 0;
   GKYL_CLEAR_CU_ALLOC(up->flags);
   up->ref_count = gkyl_ref_count_init(gkyl_gk_geometry_free);
   up->on_dev = up; // CPU eqn obj points to itself
+
+  gkyl_array_release(mc2nu_nodal);
                    
   gkyl_array_release(mc2p_nodal_fd);
   gkyl_array_release(mc2p_nodal);
@@ -223,3 +257,32 @@ gkyl_gk_geometry_mapc2p_new(struct gkyl_gk_geometry_inp *geometry_inp)
   return up;
 }
 
+struct gk_geometry*
+gkyl_gk_geometry_mapc2p_new(struct gkyl_gk_geometry_inp *geometry_inp)
+{
+  struct gk_geometry* gk_geom_3d;
+  struct gk_geometry* gk_geom;
+  // First construct the uniform 3d geometry
+  gk_geom_3d = gk_geometry_mapc2p_init(geometry_inp);
+  // The conversion array computational to field aligned is still computed
+  // in uniform geometry, so we need to deflate it
+  if (geometry_inp->position_map->id == GKYL_PMAP_CONSTANT_DB_POLYNOMIAL || \
+      geometry_inp->position_map->id == GKYL_PMAP_CONSTANT_DB_NUMERIC) {
+    // Must deflate the 3Duniform geometry in order for the allgather to work
+    if(geometry_inp->grid.ndim < 3)
+      gk_geom = gkyl_gk_geometry_deflate(gk_geom_3d, geometry_inp);
+    else
+      gk_geom = gkyl_gk_geometry_acquire(gk_geom_3d);
+
+    geometry_inp->position_map->to_optimize = true;
+    gkyl_comm_array_allgather_host(geometry_inp->comm, &geometry_inp->local, \
+    &geometry_inp->global, gk_geom->bmag, (struct gkyl_array*) geometry_inp->position_map->bmag_ctx->bmag);
+
+    gkyl_gk_geometry_release(gk_geom_3d); // release temporary 3d geometry
+    gkyl_gk_geometry_release(gk_geom); // release 3d geometry
+
+    // Construct the non-uniform grid
+    gk_geom_3d = gk_geometry_mapc2p_init(geometry_inp);
+  }
+  return gk_geom_3d;
+}

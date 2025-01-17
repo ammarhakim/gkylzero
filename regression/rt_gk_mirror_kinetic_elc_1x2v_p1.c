@@ -736,7 +736,6 @@ int main(int argc, char **argv)
     .upper = {ctx.vpar_max_elc, ctx.mu_max_elc},
     .cells = { cells_v[0], cells_v[1] },
     .polarization_density = ctx.n0,
-
     .projection = {
       .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM, 
       .ctx_density = &ctx,

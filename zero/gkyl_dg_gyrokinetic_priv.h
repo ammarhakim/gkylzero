@@ -29,6 +29,13 @@ typedef double (*gyrokinetic_boundary_surf_t)(const double *w, const double *dxv
   const int *const_sgn_alpha_edge, const int *const_sgn_alpha_skin, 
   const int edge, const double *fedge, const double *fskin, double* GKYL_RESTRICT out);
 
+typedef double (*gyrokinetic_boundary_flux_t)(const double *w, const double *dxv,
+  const double *vmap_prime_edge, const double *vmap_prime_skin,
+  const double *alpha_surf_edge, const double *alpha_surf_skin, 
+  const double *sgn_alpha_surf_edge, const double *sgn_alpha_surf_skin, 
+  const int *const_sgn_alpha_edge, const int *const_sgn_alpha_skin, const double *dualmag_edge,
+  const int edge, const double *fedge, const double *fskin, double* GKYL_RESTRICT out);
+
 // The cv_index[cd].vdim[vd] is used to index the various list of
 // kernels below.
 static struct { int vdim[3]; } cv_index[] = {
@@ -43,6 +50,7 @@ typedef struct { vol_termf_t kernels[3]; } gkyl_dg_gyrokinetic_vol_kern_list;
 typedef struct { gyrokinetic_step2_vol_t kernels[3]; } gkyl_dg_gyrokinetic_step2_vol_kern_list;
 typedef struct { gyrokinetic_surf_t kernels[3]; } gkyl_dg_gyrokinetic_surf_kern_list;
 typedef struct { gyrokinetic_boundary_surf_t kernels[3]; } gkyl_dg_gyrokinetic_boundary_surf_kern_list;
+typedef struct { gyrokinetic_boundary_flux_t kernels[3]; } gkyl_dg_gyrokinetic_boundary_flux_kern_list;
 
 struct dg_gyrokinetic {
   struct gkyl_dg_eqn eqn; // Base object.
@@ -51,6 +59,7 @@ struct dg_gyrokinetic {
   gyrokinetic_step2_vol_t step2_vol; // Volume kernel.
   gyrokinetic_surf_t surf[4]; // Surface terms.
   gyrokinetic_boundary_surf_t boundary_surf[4]; // Surface terms for velocity boundary.
+  gyrokinetic_boundary_flux_t boundary_flux[3]; // Surface terms for boundary fluxes.
   struct gkyl_range conf_range; // Configuration space range.
   struct gkyl_range phase_range; // Phase space range.
   double charge, mass;
@@ -366,6 +375,42 @@ static const gkyl_dg_gyrokinetic_boundary_surf_kern_list ser_boundary_surf_vpar_
   { NULL, gyrokinetic_boundary_surfvpar_3x2v_ser_p1, NULL }, // 3
 };
 
+// Conf-space advection boundary flux kernel list: x-direction
+GKYL_CU_D
+static const gkyl_dg_gyrokinetic_boundary_flux_kern_list ser_boundary_flux_x_kernels[] = {
+  // 1x kernels
+  { NULL, gyrokinetic_boundary_fluxx_1x1v_ser_p1, NULL }, // 0
+  { NULL, gyrokinetic_boundary_fluxx_1x2v_ser_p1, NULL }, // 1
+  // 2x kernels
+  { NULL, gyrokinetic_boundary_fluxx_2x2v_ser_p1, NULL }, // 2
+  // 3x kernels
+  { NULL, gyrokinetic_boundary_fluxx_3x2v_ser_p1, NULL }, // 3
+};
+
+// Conf-space advection boundary flux kernel list: y-direction
+GKYL_CU_D
+static const gkyl_dg_gyrokinetic_boundary_flux_kern_list ser_boundary_flux_y_kernels[] = {
+  // 1x kernels
+  { NULL, NULL, NULL }, // 0
+  { NULL, NULL, NULL }, // 1
+  // 2x kernels
+  { NULL, gyrokinetic_boundary_fluxy_2x2v_ser_p1, NULL }, // 2
+  // 3x kernels
+  { NULL, gyrokinetic_boundary_fluxy_3x2v_ser_p1, NULL }, // 3
+};
+
+// Conf-space advection boundary flux kernel list: z-direction
+GKYL_CU_D
+static const gkyl_dg_gyrokinetic_boundary_flux_kern_list ser_boundary_flux_z_kernels[] = {
+  // 1x kernels
+  { NULL, NULL, NULL }, // 0
+  { NULL, NULL, NULL }, // 1
+  // 2x kernels
+  { NULL, NULL, NULL }, // 2
+  // 3x kernels
+  { NULL, gyrokinetic_boundary_fluxz_3x2v_ser_p1, NULL }, // 3
+};
+
 //
 // Serendipity surface kernels general geometry, no toroidal field (by=0)
 //
@@ -463,6 +508,42 @@ static const gkyl_dg_gyrokinetic_boundary_surf_kern_list ser_no_by_boundary_surf
   { NULL, gyrokinetic_no_by_boundary_surfvpar_2x2v_ser_p1, NULL }, // 2
   // 3x kernels
   { NULL, gyrokinetic_no_by_boundary_surfvpar_3x2v_ser_p1, NULL }, // 3
+};
+
+// Conf-space advection boundary flux kernel list: x-direction
+GKYL_CU_D
+static const gkyl_dg_gyrokinetic_boundary_flux_kern_list ser_no_by_boundary_flux_x_kernels[] = {
+  // 1x kernels
+  { NULL, gyrokinetic_boundary_fluxx_1x1v_ser_p1, NULL }, // 0
+  { NULL, gyrokinetic_boundary_fluxx_1x2v_ser_p1, NULL }, // 1
+  // 2x kernels
+  { NULL, gyrokinetic_no_by_boundary_fluxx_2x2v_ser_p1, NULL }, // 2
+  // 3x kernels
+  { NULL, gyrokinetic_no_by_boundary_fluxx_3x2v_ser_p1, NULL }, // 3
+};
+
+// Conf-space advection boundary flux kernel list: y-direction
+GKYL_CU_D
+static const gkyl_dg_gyrokinetic_boundary_flux_kern_list ser_no_by_boundary_flux_y_kernels[] = {
+  // 1x kernels
+  { NULL, NULL, NULL }, // 0
+  { NULL, NULL, NULL }, // 1
+  // 2x kernels
+  { NULL, gyrokinetic_no_by_boundary_fluxy_2x2v_ser_p1, NULL }, // 2
+  // 3x kernels
+  { NULL, gyrokinetic_no_by_boundary_fluxy_3x2v_ser_p1, NULL }, // 3
+};
+
+// Conf-space advection boundary flux kernel list: z-direction
+GKYL_CU_D
+static const gkyl_dg_gyrokinetic_boundary_flux_kern_list ser_no_by_boundary_flux_z_kernels[] = {
+  // 1x kernels
+  { NULL, NULL, NULL }, // 0
+  { NULL, NULL, NULL }, // 1
+  // 2x kernels
+  { NULL, NULL, NULL }, // 2
+  // 3x kernels
+  { NULL, gyrokinetic_no_by_boundary_fluxz_3x2v_ser_p1, NULL }, // 3
 };
 
 // "Choose Kernel" based on cdim, vdim and polyorder
@@ -566,6 +647,47 @@ boundary_surf(const struct gkyl_dg_eqn *eqn,
       (const double*) gkyl_array_cfetch(gyrokinetic->auxfields.sgn_alpha_surf, pidxSkin), 
       (const int*) gkyl_array_cfetch(gyrokinetic->auxfields.const_sgn_alpha, pidxEdge), 
       (const int*) gkyl_array_cfetch(gyrokinetic->auxfields.const_sgn_alpha, pidxSkin), 
+      edge, qInEdge, qInSkin, qRhsOut);
+  }
+  return 0.;
+}
+
+GKYL_CU_D
+static double
+boundary_flux(const struct gkyl_dg_eqn *eqn,
+  int dir,
+  const double* xcEdge, const double* xcSkin,
+  const double* dxEdge, const double* dxSkin,
+  const int* idxEdge, const int* idxSkin, const int edge,
+  const double* qInEdge, const double* qInSkin, double* GKYL_RESTRICT qRhsOut)
+{
+  struct dg_gyrokinetic *gyrokinetic = container_of(eqn, struct dg_gyrokinetic, eqn);
+
+  // Only in x,y,z directions.
+  if (dir < gyrokinetic->cdim) {
+    long cidxEdge = gkyl_range_idx(&gyrokinetic->conf_range, idxEdge);
+
+    int vel_idxEdge[2], vel_idxSkin[2];
+    for (int d=gyrokinetic->cdim; d<gyrokinetic->pdim; d++) {
+      vel_idxEdge[d-gyrokinetic->cdim] = idxEdge[d];
+      vel_idxSkin[d-gyrokinetic->cdim] = idxSkin[d];
+    }
+    long vidxEdge = gkyl_range_idx(&gyrokinetic->vel_map->local_vel, vel_idxEdge);
+    long vidxSkin = gkyl_range_idx(&gyrokinetic->vel_map->local_vel, vel_idxSkin);
+
+    // Each cell owns the *lower* edge surface alpha
+    long pidxEdge = gkyl_range_idx(&gyrokinetic->phase_range, idxEdge);
+    long pidxSkin = gkyl_range_idx(&gyrokinetic->phase_range, idxSkin);
+    return gyrokinetic->boundary_flux[dir](xcSkin, dxSkin, 
+      (const double*) gkyl_array_cfetch(gyrokinetic->vel_map->vmap_prime, vidxEdge),
+      (const double*) gkyl_array_cfetch(gyrokinetic->vel_map->vmap_prime, vidxSkin),
+      (const double*) gkyl_array_cfetch(gyrokinetic->auxfields.alpha_surf, pidxEdge), 
+      (const double*) gkyl_array_cfetch(gyrokinetic->auxfields.alpha_surf, pidxSkin), 
+      (const double*) gkyl_array_cfetch(gyrokinetic->auxfields.sgn_alpha_surf, pidxEdge), 
+      (const double*) gkyl_array_cfetch(gyrokinetic->auxfields.sgn_alpha_surf, pidxSkin), 
+      (const int*) gkyl_array_cfetch(gyrokinetic->auxfields.const_sgn_alpha, pidxEdge), 
+      (const int*) gkyl_array_cfetch(gyrokinetic->auxfields.const_sgn_alpha, pidxSkin), 
+      (const double*) gkyl_array_cfetch(gyrokinetic->gk_geom->dualmag, cidxEdge),
       edge, qInEdge, qInSkin, qRhsOut);
   }
   return 0.;

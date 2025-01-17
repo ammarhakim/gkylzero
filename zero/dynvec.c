@@ -55,6 +55,9 @@ gkyl_dynvec_new(enum gkyl_elem_type type, size_t ncomp)
   return dv;
 }
 
+int gkyl_dynvec_elem_type(gkyl_dynvec vec) { return vec->type; }
+int gkyl_dynvec_ncomp(gkyl_dynvec vec) { return vec->ncomp; }
+
 void
 gkyl_dynvec_reserve_more(gkyl_dynvec dv, size_t rsize)
 {
@@ -213,7 +216,7 @@ gkyl_dynvec_awrite(const gkyl_dynvec vec, const char *fname)
 
 // ncomp returned in 'ncomp'
 static bool
-gkyl_dynvec_read_ncomp_1(FILE *fp, int *ncomp)
+gkyl_dynvec_read_ncomp_1(FILE *fp, struct gkyl_dynvec_etype_ncomp *enc)
 {
   size_t frr;
   // Version 1 header
@@ -244,25 +247,30 @@ gkyl_dynvec_read_ncomp_1(FILE *fp, int *ncomp)
   uint64_t real_code = 0;
   if (1 != fread(&real_code, sizeof(uint64_t), 1, fp))
     return false;
+  enc->type = gkyl_array_code_to_data_type[real_code];
 
   uint64_t esznc;
   if (1 != fread(&esznc, sizeof(uint64_t), 1, fp))
     return false;
 
   int real_type = gkyl_array_code_to_data_type[real_code];
-  *ncomp = esznc/gkyl_elem_type_size[real_type];
-
+  enc->ncomp = esznc/gkyl_elem_type_size[real_type];
+  
   return true;
 }
 
-int
+
+struct gkyl_dynvec_etype_ncomp
 gkyl_dynvec_read_ncomp(const char *fname)
 {
-  int ncomp = 0;
+  struct gkyl_dynvec_etype_ncomp enc = {
+    .type = GKYL_DOUBLE,
+    .ncomp = 0
+  };
   FILE *fp = 0;
   with_file(fp, fname, "r")
-    gkyl_dynvec_read_ncomp_1(fp, &ncomp);
-  return ncomp;
+    gkyl_dynvec_read_ncomp_1(fp, &enc);
+  return enc;
 }
 
 static bool
