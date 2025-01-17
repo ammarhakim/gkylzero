@@ -418,29 +418,27 @@ gkyl_gyrokinetic_app_omegaH_init(gkyl_gyrokinetic_app *app)
   gkyl_proj_powsqrt_on_basis_advance(proj_sqrt, &app->local, -1.0, perpfac, perpfac_inv);
   gkyl_proj_powsqrt_on_basis_release(proj_sqrt);
 
-  // Compute max(parfac*perpfac_inv). Use the max of cell center value.
+  // Compute max(parfac*perpfac_inv) (using cell centers).
   struct gkyl_array *omegaH_gf_grid = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
-  struct gkyl_array *omegaH_gf_grid_cc = mkarr(app->use_gpu, 1, app->local_ext.volume);
   gkyl_dg_mul_op_range(app->confBasis, 0, omegaH_gf_grid, 0, parfac, 0, perpfac_inv, &app->local); 
-  gkyl_array_accumulate_offset_range(omegaH_gf_grid_cc, 1.0/pow(sqrt(2.0),app->cdim), omegaH_gf_grid, 0, &app->local);
   double *omegaH_gf_red;
   if (app->use_gpu)
-    omegaH_gf_red = gkyl_cu_malloc(sizeof(double));
+    omegaH_gf_red = gkyl_cu_malloc(app->confBasis.num_basis*sizeof(double));
   else 
-    omegaH_gf_red = gkyl_malloc(sizeof(double));
+    omegaH_gf_red = gkyl_malloc(app->confBasis.num_basis*sizeof(double));
 
-  gkyl_array_reduce_range(omegaH_gf_red, omegaH_gf_grid_cc, GKYL_MAX, &app->local);
+  gkyl_array_reduce_range(omegaH_gf_red, omegaH_gf_grid, GKYL_MAX, &app->local);
 
   if (app->use_gpu)
     gkyl_cu_memcpy(&app->omegaH_gf, omegaH_gf_red, sizeof(double), GKYL_CU_MEMCPY_D2H);
   else
     app->omegaH_gf = omegaH_gf_red[0];
+  app->omegaH_gf *= 1.0/pow(sqrt(2.0),app->cdim);
 
   if (app->use_gpu)
     gkyl_cu_free(omegaH_gf_red);
   else 
     gkyl_free(omegaH_gf_red);
-  gkyl_array_release(omegaH_gf_grid_cc);
   gkyl_array_release(omegaH_gf_grid);
   gkyl_array_release(perpfac_inv);
   gkyl_array_release(perpfac);

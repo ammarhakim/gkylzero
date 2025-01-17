@@ -579,7 +579,6 @@ struct gk_species {
 
   double *omega_cfl; // Maximum Omega_CFL in this MPI process.
 
-  struct gkyl_array *m0_cc; // Cell center density.
   double *m0_max; // Maximum number density in this MPI process.
 };
 

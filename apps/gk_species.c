@@ -262,14 +262,12 @@ gk_species_init(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *app, st
 
   if (app->use_gpu) {
     gks->omega_cfl = gkyl_cu_malloc(sizeof(double));
-    gks->m0_max = gkyl_cu_malloc(sizeof(double));
+    gks->m0_max = gkyl_cu_malloc(app->confBasis.num_basis*sizeof(double));
   }
   else {
     gks->omega_cfl = gkyl_malloc(sizeof(double));
-    gks->m0_max = gkyl_malloc(sizeof(double));
+    gks->m0_max = gkyl_malloc(app->confBasis.num_basis*sizeof(double));
   }
-
-  gks->m0_cc = mkarr(app->use_gpu, 1, app->local_ext.volume); // Cell center M0.
 
   // Need to figure out size of alpha_surf and sgn_alpha_surf by finding size of surface basis set 
   struct gkyl_basis surf_basis, surf_quad_basis;
@@ -726,16 +724,16 @@ gk_species_omegaH_dt(gkyl_gyrokinetic_app *app, struct gk_species *gks, const st
   // and k_x,k_y,k_par are wavenumbers in computational space, and eps_ij is
   // the polarization weight in our field equation.
  
-  // Obtain the maximum density (use cell center density).
+  // Obtain the maximum density (using cell centers).
   gk_species_moment_calc(&gks->m0, gks->local, app->local, fin);
-  gkyl_array_set_offset_range(gks->m0_cc, 1.0/pow(sqrt(2.0),app->cdim), gks->m0.marr, 0, &app->local);
-  gkyl_array_reduce_range(gks->m0_max, gks->m0_cc, GKYL_MAX, &app->local);
+  gkyl_array_reduce_range(gks->m0_max, gks->m0.marr, GKYL_MAX, &app->local);
 
   double m0_max[1];
   if (app->use_gpu)
     gkyl_cu_memcpy(m0_max, gks->m0_max, sizeof(double), GKYL_CU_MEMCPY_D2H);
   else
     m0_max[0] = gks->m0_max[0];
+  m0_max[0] *= 1.0/pow(sqrt(2.0),app->cdim);
 
   double omegaH = fabs(gks->info.charge)*sqrt(GKYL_MAX2(0.0,m0_max[0])/gks->info.mass)*app->omegaH_gf;
 
@@ -1005,7 +1003,6 @@ gk_species_release(const gkyl_gyrokinetic_app* app, const struct gk_species *s)
     gkyl_free(s->omega_cfl);
     gkyl_free(s->m0_max);
   }
-  gkyl_array_release(s->m0_cc);
 
   // Release L2 norm memory.
   gkyl_array_integrate_release(s->integ_wfsq_op);
