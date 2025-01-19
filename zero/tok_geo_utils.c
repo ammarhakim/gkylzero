@@ -187,6 +187,75 @@ void set_lower_plate(struct gkyl_tok_geo *geo, struct arc_length_ctx* arc_ctx, s
       arc_ctx->zmin = rzplate[1];
 }
 
+void 
+tok_geo_set_extent(struct gkyl_tok_geo_grid_inp* inp, struct gkyl_tok_geo *geo, double *theta_lo, double *theta_up)
+{
+  geo->rleft = inp->rleft;
+  geo->rright = inp->rright;
+
+  geo->inexact_roots = inp->inexact_roots;
+
+  geo->rmax = inp->rmax;
+  geo->rmin = inp->rmin;
+  int nzcells;
+  if(geo->use_cubics)
+    nzcells = geo->rzgrid_cubic.cells[1];
+  else
+    nzcells = geo->rzgrid.cells[1];
+  double *arc_memo = gkyl_malloc(sizeof(double[nzcells]));
+  double *arc_memo_left = gkyl_malloc(sizeof(double[nzcells]));
+  double *arc_memo_right = gkyl_malloc(sizeof(double[nzcells]));
+
+  struct arc_length_ctx arc_ctx = {
+    .geo = geo,
+    .arc_memo = arc_memo,
+    .arc_memo_right = arc_memo_right,
+    .arc_memo_left = arc_memo_left,
+    .ftype = inp->ftype,
+    .zmaxis = geo->zmaxis
+  };
+  struct plate_ctx pctx = {
+    .geo = geo
+  };
+
+  if (inp->ftype == GKYL_SOL_DN_OUT || inp->ftype == GKYL_SOL_DN_OUT_LO || inp->ftype == GKYL_SOL_DN_OUT_MID || inp->ftype == GKYL_SOL_DN_OUT_UP) {
+    // Immediately set rclose
+    arc_ctx.rclose = inp->rright;
+    // Set zmin and zmax either fixed or with plate
+    if (geo->plate_spec){
+      set_upper_plate(geo, &arc_ctx, &pctx, geo->psisep);
+      set_lower_plate(geo, &arc_ctx, &pctx, geo->psisep);
+    }
+    else{
+      arc_ctx.zmin = inp->zmin;
+      arc_ctx.zmax = inp->zmax;
+    }
+    double zxpt_up = geo->use_cubics ? geo->efit->Zxpt_cubic[1] : geo->efit->Zxpt[1];
+    double zxpt_lo = geo->use_cubics ? geo->efit->Zxpt_cubic[0] : geo->efit->Zxpt[0];
+    // Set the arc length
+    double arcL_tot = integrate_psi_contour_memo(geo, geo->psisep, arc_ctx.zmin, arc_ctx.zmax, arc_ctx.rclose, false, false, arc_memo);
+    double arcL_lo = integrate_psi_contour_memo(geo, geo->psisep, arc_ctx.zmin, zxpt_lo, arc_ctx.rclose, false, false, arc_memo);
+    double arcL_mid = integrate_psi_contour_memo(geo, geo->psisep, zxpt_lo, zxpt_up, arc_ctx.rclose, false, false, arc_memo);
+    double arcL_up = integrate_psi_contour_memo(geo, geo->psisep, zxpt_up, arc_ctx.zmax, arc_ctx.rclose, false, false, arc_memo);
+    if (inp->ftype == GKYL_SOL_DN_OUT) {
+      *theta_lo = -M_PI;
+      *theta_up = M_PI;
+    }
+    if (inp->ftype == GKYL_SOL_DN_OUT_LO) {
+      *theta_lo = -M_PI+1e-14;
+      *theta_up = -M_PI+1e-14 + arcL_lo/arcL_tot*2.0*M_PI;
+    }
+    if (inp->ftype == GKYL_SOL_DN_OUT_MID) {
+      *theta_lo = -M_PI+1e-14 + arcL_lo/arcL_tot*2.0*M_PI;
+      *theta_up = M_PI-1e-14 - arcL_up/arcL_tot*2.0*M_PI;
+    }
+    if (inp->ftype == GKYL_SOL_DN_OUT_UP) {
+      *theta_lo = M_PI-1e-14 - arcL_up/arcL_tot*2.0*M_PI;
+      *theta_up = M_PI-1e-14;
+    }
+  }
+}
+
 void
 tok_find_endpoints(struct gkyl_tok_geo_grid_inp* inp, struct gkyl_tok_geo *geo, struct arc_length_ctx* arc_ctx, struct plate_ctx* pctx, double psi_curr, double alpha_curr, double* arc_memo, double* arc_memo_left, double* arc_memo_right){
   enum { PH_IDX, AL_IDX, TH_IDX }; // arrangement of computational coordinates
@@ -347,7 +416,7 @@ tok_find_endpoints(struct gkyl_tok_geo_grid_inp* inp, struct gkyl_tok_geo *geo, 
       true, true, arc_memo);
   }
 
-  else if(inp->ftype==GKYL_SOL_DN_OUT){
+  else if(inp->ftype==GKYL_SOL_DN_OUT || inp->ftype==GKYL_SOL_DN_OUT_LO || inp->ftype==GKYL_SOL_DN_OUT_MID || inp->ftype==GKYL_SOL_DN_OUT_UP){
     // Immediately set rclose
     arc_ctx->rclose = inp->rright;
     // Set zmin and zmax either fixed or with plate
@@ -357,52 +426,6 @@ tok_find_endpoints(struct gkyl_tok_geo_grid_inp* inp, struct gkyl_tok_geo *geo, 
     }
     else{
       arc_ctx->zmin = inp->zmin;
-      arc_ctx->zmax = inp->zmax;
-    }
-    // Set the arc length
-    arc_ctx->arcL_tot = integrate_psi_contour_memo(geo, psi_curr, arc_ctx->zmin, arc_ctx->zmax, arc_ctx->rclose, true, true, arc_memo);
-  }
-
-  else if(inp->ftype==GKYL_SOL_DN_OUT_LO){
-    // Immediately set rclose
-    arc_ctx->rclose = inp->rright;
-    // Set zmax to be the lower x-point
-    double zxpt_lo = geo->use_cubics ? geo->efit->Zxpt_cubic[0] : geo->efit->Zxpt[0];
-    arc_ctx->zmax = zxpt_lo;
-    // Set zmin either fixed or with plate
-    if (geo->plate_spec){
-      set_lower_plate(geo, arc_ctx, pctx, arc_ctx->psi);
-    }
-    else{
-      arc_ctx->zmin = inp->zmin;
-    }
-    // Set the arc length
-    arc_ctx->arcL_tot = integrate_psi_contour_memo(geo, psi_curr, arc_ctx->zmin, arc_ctx->zmax, arc_ctx->rclose, true, true, arc_memo);
-  }
-
-  else if(inp->ftype==GKYL_SOL_DN_OUT_MID){
-    // Immediately set rclose
-    arc_ctx->rclose = inp->rright;
-    // Set zmin and zmax to be the x-points
-    double zxpt_up = geo->use_cubics ? geo->efit->Zxpt_cubic[1] : geo->efit->Zxpt[1];
-    double zxpt_lo = geo->use_cubics ? geo->efit->Zxpt_cubic[0] : geo->efit->Zxpt[0];
-    arc_ctx->zmax = zxpt_up;
-    arc_ctx->zmin = zxpt_lo;
-    // Set the arc length
-    arc_ctx->arcL_tot = integrate_psi_contour_memo(geo, psi_curr, arc_ctx->zmin, arc_ctx->zmax, arc_ctx->rclose, true, true, arc_memo);
-  }
-
-  else if(inp->ftype==GKYL_SOL_DN_OUT_UP){
-    // Immediately set rclose
-    arc_ctx->rclose = inp->rright;
-    // Set zmin to be the upper x-point
-    double zxpt_up = geo->use_cubics ? geo->efit->Zxpt_cubic[1] : geo->efit->Zxpt[1];
-    arc_ctx->zmin = zxpt_up;
-    // Set zmax either fixed or with plate
-    if (geo->plate_spec){
-      set_upper_plate(geo, arc_ctx, pctx, arc_ctx->psi);
-    }
-    else{
       arc_ctx->zmax = inp->zmax;
     }
     // Set the arc length

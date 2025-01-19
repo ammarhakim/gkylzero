@@ -682,6 +682,11 @@ double tok_plate_psi_func(double s, void *ctx);
 */
 void tok_find_endpoints(struct gkyl_tok_geo_grid_inp* inp, struct gkyl_tok_geo *geo, struct arc_length_ctx* arc_ctx, struct plate_ctx* pctx, double psi_curr, double alpha_curr, double* arc_memo, double* arc_memo_left, double* arc_memo_right);
 
+/*
+ * Used to set theta extents when using a global normalization factor
+ * */
+void tok_geo_set_extent(struct gkyl_tok_geo_grid_inp* inp, struct gkyl_tok_geo *geo, double *theta_lo, double *theta_up);
+
 
 /*
  * Used to set arc_ctx attributes before using ridders to find z
