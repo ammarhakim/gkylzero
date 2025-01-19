@@ -201,10 +201,8 @@ singleb_app_new_geom(const struct gkyl_gyrokinetic_multib *mbinp, int bid,
   }
 
   // Set z dir grid extents based on tokamak global normalization
-  if(bgi->geometry.geometry_id == GKYL_TOKAMAK) {
+  if(bgi->geometry.geometry_id == GKYL_TOKAMAK)
     gkyl_gk_geometry_tok_set_grid_extents(bgi->geometry.efit_info, bgi->geometry.tok_grid_info, &app_inp.lower[cdim-1], &app_inp.upper[cdim-1]);
-    gkyl_block_geom_reset_block_extents(mbapp->block_geom, bid, app_inp.lower, app_inp.upper);
-  }
 
   app_inp.geometry = bgi->geometry;
   int vdim = app_inp.vdim = mbinp->vdim;
