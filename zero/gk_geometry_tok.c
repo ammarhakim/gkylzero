@@ -150,3 +150,10 @@ gkyl_gk_geometry_tok_new(struct gkyl_gk_geometry_inp *geometry_inp)
   }
   return gk_geom_3d;
 }
+
+
+void
+gkyl_gk_geometry_tok_set_grid_extents(struct gkyl_efit_inp efit_info, struct gkyl_tok_geo_grid_inp grid_info, double *theta_lo, double *theta_up) {
+  struct gkyl_tok_geo *geo = gkyl_tok_geo_new(&efit_info, &grid_info);
+  gkyl_tok_geo_set_extent(&grid_info, geo, theta_lo, theta_up);
+}
