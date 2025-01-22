@@ -118,15 +118,15 @@ gk_multib_field_new(const struct gkyl_gyrokinetic_multib *mbinp, struct gkyl_gyr
       if (rank_list[i] == my_rank) brank = i;
 
     mbf->mbcc_allgatherz_send[bI] = gkyl_multib_comm_conn_new_send_from_connections(bid, brank, 
-        nghost, nconnected[bid], block_list[bid], dir, mbapp->decomp);
+      nghost, nconnected[bid], block_list[bid], dir, mbapp->decomp);
     mbf->mbcc_allgatherz_recv[bI] = gkyl_multib_comm_conn_new_recv_from_connections(bid, brank,
-        nghost, nconnected[bid], block_list[bid], dir, mbapp->decomp);
+      nghost, nconnected[bid], block_list[bid], dir, mbapp->decomp);
 
     for (int ns=0; ns<mbf->mbcc_allgatherz_send[bI]->num_comm_conn; ++ns) {
       // need to get the actual rank that owns this cut
       int rank_idx = mbf->mbcc_allgatherz_send[bI]->comm_conn[ns].rank;
       gkyl_rrobin_decomp_getranks(mbapp->round_robin, 
-          mbf->mbcc_allgatherz_send[bI]->comm_conn[ns].block_id, rank_list);
+        mbf->mbcc_allgatherz_send[bI]->comm_conn[ns].block_id, rank_list);
       mbf->mbcc_allgatherz_send[bI]->comm_conn[ns].rank = rank_list[rank_idx];
       // Make range the local range (a subrange of local_ext)
       mbf->mbcc_allgatherz_send[bI]->comm_conn[ns].range = mbapp->singleb_apps[bI]->local;
@@ -135,12 +135,12 @@ gk_multib_field_new(const struct gkyl_gyrokinetic_multib *mbinp, struct gkyl_gyr
       // need to get the actual rank that owns this cut
       int rank_idx = mbf->mbcc_allgatherz_recv[bI]->comm_conn[nr].rank;
       gkyl_rrobin_decomp_getranks(mbapp->round_robin, 
-          mbf->mbcc_allgatherz_recv[bI]->comm_conn[nr].block_id, rank_list);
+        mbf->mbcc_allgatherz_recv[bI]->comm_conn[nr].block_id, rank_list);
       mbf->mbcc_allgatherz_recv[bI]->comm_conn[nr].rank = rank_list[rank_idx];
       // Make range a subrange
       gkyl_sub_range_init(&mbf->mbcc_allgatherz_recv[bI]->comm_conn[nr].range,
-          mbf->multibz_ranges_ext[bI], mbf->mbcc_allgatherz_recv[bI]->comm_conn[nr].range.lower,
-          mbf->mbcc_allgatherz_recv[bI]->comm_conn[nr].range.upper);
+        mbf->multibz_ranges_ext[bI], mbf->mbcc_allgatherz_recv[bI]->comm_conn[nr].range.lower,
+        mbf->mbcc_allgatherz_recv[bI]->comm_conn[nr].range.upper);
     }
 
     // Sort connections according to rank and block ID (needed by NCCL).
@@ -272,6 +272,7 @@ gk_multib_field_release(struct gk_multib_field *mbf)
     gkyl_array_release(mbf->weight_multibz[bI]);
     gkyl_multib_comm_conn_release(mbf->mbcc_allgatherz_send[bI]);
     gkyl_multib_comm_conn_release(mbf->mbcc_allgatherz_recv[bI]);
+    gkyl_fem_parproj_release(mbf->fem_parproj[bI]);
   }
 
   gkyl_free(mbf->multibz_ranges);
@@ -287,6 +288,7 @@ gk_multib_field_release(struct gk_multib_field *mbf)
   gkyl_free(mbf->weight_multibz);
   gkyl_free(mbf->mbcc_allgatherz_send);
   gkyl_free(mbf->mbcc_allgatherz_recv);
+  gkyl_free(mbf->fem_parproj);
 
   gkyl_free(mbf);
 }
