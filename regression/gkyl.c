@@ -301,10 +301,15 @@ show_banner(FILE *fp)
     fprintf(fp, "%s\n", s);
     fprintf(fp, "Gkyl built with Git changset %s\n", STRINGIFY(GKYL_GIT_CHANGESET));
     fprintf(fp, "Gkyl build on %s\n", STRINGIFY(GKYL_BUILD_DATE));
-#ifdef GKYL_HAVE_NCCL
+#ifdef GKYL_HAVE_CUDA
     fprintf(fp, "Built with CUDA\n");
 #else
     fprintf(fp, "Built without CUDA\n");
+#endif
+#ifdef GKYL_HAVE_NCCL
+    fprintf(fp, "Built with NCCL\n");
+#else
+    fprintf(fp, "Built without NCCL\n");
 #endif
 #ifdef GKYL_HAVE_MPI
     fprintf(fp, "Built with MPI\n\n");

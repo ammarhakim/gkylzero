@@ -21,6 +21,9 @@
 #ifdef GKYL_HAVE_MPI
 #include <mpi.h>
 #include <gkyl_mpi_comm.h>
+#ifdef GKYL_HAVE_NCCL
+#include <gkyl_nccl_comm.h>
+#endif
 #endif
 
 // Magic IDs for use in distinguishing various species and field types.
@@ -422,13 +425,117 @@ get_species_inp(lua_State *L, int cdim, struct pkpm_species_lw *species[GKYL_MAX
   return curr;
 }
 
-// comparison method to sort species array by species name
+// Comparison method to sort species array by species name.
 static int
 species_compare_func(const void *a, const void *b)
 {
   const struct pkpm_species_lw *const *spa = a;
   const struct pkpm_species_lw *const *spb = b;
   return strcmp((*spa)->pkpm_species.name, (*spb)->pkpm_species.name);
+}
+
+static struct gkyl_tool_args *
+tool_args_from_argv(int optind, int argc, char *const*argv)
+{
+  struct gkyl_tool_args *targs = gkyl_malloc(sizeof *targs);
+  
+  targs->argc = argc-optind;
+  targs->argv = 0;
+
+  if (targs->argc > 0) {
+    targs->argv = gkyl_malloc(targs->argc*sizeof(char *));
+      for (int i = optind, j = 0; i < argc; ++i, ++j) {
+        targs->argv[j] = gkyl_malloc(strlen(argv[i])+1);
+        strcpy(targs->argv[j], argv[i]);
+      }
+  }
+
+  return targs;
+}
+
+// CLI parser for main script.
+struct script_cli {
+  bool help; // Show help.
+  bool step_mode; // Run for fixed number of steps? (for valgrind/cuda-memcheck)
+  int num_steps; // Number of steps.
+  bool use_mpi; // Should we use MPI?
+  bool use_gpu; // Should this be run on GPU?
+  bool trace_mem; // Should we trace memory allocation/deallocation?
+  bool use_verbose; // Should we use verbose output?
+  bool is_restart; // Is this a restarted simulation?
+  int restart_frame; // Which frame to restart simulation from.  
+  
+  struct gkyl_tool_args *rest;
+};
+
+static struct script_cli
+pkpm_parse_script_cli(struct gkyl_tool_args *acv)
+{
+  struct script_cli cli = {
+    .help =- false,
+    .step_mode = false,
+    .num_steps = INT_MAX,
+    .use_mpi = false,
+    .use_gpu = false,
+    .trace_mem = false,
+    .use_verbose = false,
+    .is_restart = false,
+    .restart_frame = 0,
+  };
+
+#ifdef GKYL_HAVE_MPI
+  cli.use_mpi = true;
+#endif
+#ifdef GKYL_HAVE_CUDA
+  cli.use_gpu = true;
+#endif
+  
+  coption_long longopts[] = {
+    { 0 }
+  };
+  const char* shortopts = "+hVs:SGmr:";
+
+  coption opt = coption_init();
+  int c;
+  while ((c = coption_get(&opt, acv->argc, acv->argv, shortopts, longopts)) != -1) {
+    switch (c) {
+      case 'h':
+        cli.help = true;
+        break;
+
+      case 's':
+        cli.num_steps = atoi(opt.arg);
+        break;
+      
+      case 'S':
+        cli.use_mpi = false;
+        break;
+      
+      case 'G':
+        cli.use_gpu = false;
+        break;
+      
+      case 'm':
+        cli.trace_mem = true;
+        break;
+      
+      case 'V':
+        cli.use_verbose = true;
+        break;
+      
+      case 'r':
+        cli.is_restart = true;
+        cli.restart_frame = atoi(opt.arg);
+        break;        
+        
+      case '?':
+        break;
+    }
+  }
+
+  cli.rest = tool_args_from_argv(opt.ind, acv->argc, acv->argv);
+  
+  return cli;
 }
 
 // Create top-level App object.
@@ -609,34 +716,67 @@ pkpm_app_new(lua_State *L)
 
   // Create parallelism.
   struct gkyl_comm *comm = 0;
-  bool has_mpi = false;
 
   for (int d = 0; d < cdim; d++) {
     pkpm.parallelism.cuts[d] = cuts[d]; 
   }
 
-#ifdef GKYL_HAVE_MPI
-  with_lua_global(L, "GKYL_MPI_COMM") {
-    if (lua_islightuserdata(L, -1)) {
-      has_mpi = true;
-      struct { MPI_Comm comm;} *lw_mpi_comm_world
-        = lua_touserdata(L, -1);
-      MPI_Comm mpi_comm = lw_mpi_comm_world->comm;      
-      comm = gkyl_mpi_comm_new( &(struct gkyl_mpi_comm_inp) {
-          .mpi_comm = mpi_comm,
-        }
-      );
+  struct gkyl_tool_args *args = gkyl_tool_args_new(L);
+  struct script_cli script_cli = pkpm_parse_script_cli(args);
 
+#ifdef GKYL_HAVE_MPI
+  if (script_cli.use_gpu && script_cli.use_mpi) {
+#ifdef GKYL_HAVE_NCCL
+    with_lua_global(L, "GKYL_MPI_COMM") {
+      if (lua_islightuserdata(L, -1)) {
+        struct { MPI_Comm comm; } *lw_mpi_comm_world = lua_touserdata(L, -1);
+        MPI_Comm mpi_comm = lw_mpi_comm_world->comm;
+
+        int nrank = 1; // Number of processors in simulation.
+        MPI_Comm_size(mpi_comm, &nrank);
+
+        comm = gkyl_nccl_comm_new( &(struct gkyl_nccl_comm_inp) {
+            .mpi_comm = mpi_comm,
+          }
+        );
+      }
+    }
+#else
+    printf("Using CUDA and MPI together requires NCCL.\n");
+    assert(0 == 1);
+#endif
+  }
+  else if (script_cli.use_mpi) {
+    with_lua_global(L, "GKYL_MPI_COMM") {
+      if (lua_islightuserdata(L, -1)) {
+        struct { MPI_Comm comm; } *lw_mpi_comm_world = lua_touserdata(L, -1);
+        MPI_Comm mpi_comm = lw_mpi_comm_world->comm;
+
+        int nrank = 1; // Number of processors in simulation.
+        MPI_Comm_size(mpi_comm, &nrank);
+
+        comm = gkyl_mpi_comm_new( &(struct gkyl_mpi_comm_inp) {
+            .mpi_comm = mpi_comm,
+          }
+        );
+      }
     }
   }
+  else {
+    comm = gkyl_null_comm_inew( &(struct gkyl_null_comm_inp) {
+        .use_gpu = script_cli.use_gpu,
+      }
+    );
+  }
+#else
+  comm = gkyl_null_comm_inew( &(struct gkyl_null_comm_inp) {
+      .use_gpu = script_cli.use_gpu,
+    }
+  );
 #endif
 
-  if (!has_mpi) {
-    // If there is no proper MPI_Comm specifed, the assume we are a
-    // serial sim.
-    comm = gkyl_null_comm_inew( &(struct gkyl_null_comm_inp) {} );
-  }
   pkpm.parallelism.comm = comm;
+  pkpm.parallelism.use_gpu = script_cli.use_gpu;
 
   int rank;
   gkyl_comm_get_rank(comm, &rank);
@@ -956,90 +1096,14 @@ show_help(const struct gkyl_pkpm_app *app)
 {
   gkyl_pkpm_app_cout(app, stdout, "PKPM script takes the following arguments:\n");
   gkyl_pkpm_app_cout(app, stdout, " -h   Print this help message and exit\n");
+  gkyl_pkpm_app_cout(app, stdout, " -sN  Only run N steps of simulation\n");
+  gkyl_pkpm_app_cout(app, stdout, " -S   Do not initialize MPI\n");
+  gkyl_pkpm_app_cout(app, stdout, " -G   Do not initialize CUDA\n");
+  gkyl_pkpm_app_cout(app, stdout, " -m   Run memory tracer\n");
   gkyl_pkpm_app_cout(app, stdout, " -V   Show verbose output\n");
   gkyl_pkpm_app_cout(app, stdout, " -rN  Restart simulation from frame N\n");
-  gkyl_pkpm_app_cout(app, stdout, " -sN  Only run N steps of simulation\n");
 
   gkyl_pkpm_app_cout(app, stdout, "\n");
-}
-
-static struct gkyl_tool_args *
-tool_args_from_argv(int optind, int argc, char *const*argv)
-{
-  struct gkyl_tool_args *targs = gkyl_malloc(sizeof *targs);
-  
-  targs->argc = argc-optind;
-  targs->argv = 0;
-
-  if (targs->argc > 0) {
-    targs->argv = gkyl_malloc(targs->argc*sizeof(char *));
-      for (int i = optind, j = 0; i < argc; ++i, ++j) {
-        targs->argv[j] = gkyl_malloc(strlen(argv[i])+1);
-        strcpy(targs->argv[j], argv[i]);
-      }
-  }
-
-  return targs;
-}
-
-// CLI parser for main script
-struct script_cli {
-  bool help; // show help
-  bool step_mode; // run for fixed number of steps? (for valgrind/cuda-memcheck)
-  int num_steps; // number of steps
-  bool use_verbose; // Should we use verbose output?
-  bool is_restart; // Is this a restarted simulation?
-  int restart_frame; // Which frame to restart simulation from.  
-  
-  struct gkyl_tool_args *rest;
-};
-
-static struct script_cli
-pkpm_parse_script_cli(struct gkyl_tool_args *acv)
-{
-  struct script_cli cli = {
-    .help =- false,
-    .step_mode = false,
-    .num_steps = INT_MAX,
-    .use_verbose = false,
-    .is_restart = false,
-    .restart_frame = 0,
-  };
-  
-  coption_long longopts[] = {
-    {0}
-  };
-  const char* shortopts = "+hVs:r:";
-
-  coption opt = coption_init();
-  int c;
-  while ((c = coption_get(&opt, acv->argc, acv->argv, shortopts, longopts)) != -1) {
-    switch (c) {
-      case 'h':
-        cli.help = true;
-        break;
-        
-      case 'V':
-        cli.use_verbose = true;
-        break;
-
-      case 's':
-        cli.num_steps = atoi(opt.arg);
-        break;
-      
-      case 'r':
-        cli.is_restart = true;
-        cli.restart_frame = atoi(opt.arg);
-        break;        
-        
-      case '?':
-        break;
-    }
-  }
-
-  cli.rest = tool_args_from_argv(opt.ind, acv->argc, acv->argv);
-  
-  return cli;
 }
 
 // Run simulation. (num_steps) -> bool. num_steps is optional.
@@ -1072,6 +1136,11 @@ pkpm_app_run(lua_State *L)
   long num_steps = script_cli.num_steps;
 
   gkyl_pkpm_app_cout(app, stdout, "Initializing PKPM Simulation ...\n");
+
+  if (script_cli.trace_mem) {
+    gkyl_cu_dev_mem_debug_set(true);
+    gkyl_mem_debug_set(true);
+  }
 
   // Initialize simulation.
   bool is_restart = script_cli.is_restart;
