@@ -12,11 +12,11 @@
 #include <assert.h>
 #include <time.h>
 
-// initialize species object
+// initialize species grid and arrays
 void
 gk_neut_species_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app, struct gk_neut_species *s)
 {
-    int cdim = app->cdim, vdim = app->vdim+1; // neutral species are 3v
+  int cdim = app->cdim, vdim = app->vdim+1; // neutral species are 3v
   int pdim = cdim+vdim;
 
   int cells[GKYL_MAX_DIM], ghost[GKYL_MAX_DIM];
@@ -65,7 +65,6 @@ gk_neut_species_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app, struc
   assert(s->info.mapc2p.mapping == 0); // mapped v-space not implemented for neutrals yet.
   s->vel_map = gkyl_velocity_map_new(s->info.mapc2p, s->grid, s->grid_vel,
     s->local, s->local_ext, s->local_vel, s->local_ext_vel, app->use_gpu);
-  
   // allocate distribution function array for initialization and I/O
   s->f = mkarr(app->use_gpu, app->neut_basis.num_basis, s->local_ext.volume);
 
@@ -78,6 +77,62 @@ gk_neut_species_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app, struc
   else 
     s->omega_cfl = gkyl_malloc(sizeof(double));
 
+  // Create skin/ghost ranges fir applying BCs. Only used for dynamic neutrals but included here to avoid
+  // code duplication since the "ghost" array is needed.
+  for (int dir=0; dir<cdim; ++dir) {
+    // Create local lower skin and ghost ranges for distribution function
+    gkyl_skin_ghost_ranges(&s->lower_skin[dir], &s->lower_ghost[dir], dir, GKYL_LOWER_EDGE, &s->local_ext, ghost);
+    // Create local upper skin and ghost ranges for distribution function
+    gkyl_skin_ghost_ranges(&s->upper_skin[dir], &s->upper_ghost[dir], dir, GKYL_UPPER_EDGE, &s->local_ext, ghost);
+  }
+
+  // Global skin and ghost ranges, only valid (i.e. volume>0) in ranges
+  // abutting boundaries.
+  for (int dir=0; dir<cdim; ++dir) {
+    gkyl_skin_ghost_ranges(&s->global_lower_skin[dir], &s->global_lower_ghost[dir],
+      dir, GKYL_LOWER_EDGE, &s->global_ext, ghost); 
+    gkyl_sub_range_intersect(&s->global_lower_skin[dir], &s->local_ext, &s->global_lower_skin[dir]);
+    gkyl_sub_range_intersect(&s->global_lower_ghost[dir], &s->local_ext, &s->global_lower_ghost[dir]);
+    gkyl_skin_ghost_ranges(&s->global_upper_skin[dir], &s->global_upper_ghost[dir],
+      dir, GKYL_UPPER_EDGE, &s->local_ext, ghost);
+    gkyl_sub_range_intersect(&s->global_upper_skin[dir], &s->local_ext, &s->global_upper_skin[dir]);
+    gkyl_sub_range_intersect(&s->global_upper_ghost[dir], &s->local_ext, &s->global_upper_ghost[dir]);
+  }
+
+  // allocate data for density 
+  gk_neut_species_moment_init(app, s, &s->m0, "M0");
+  // allocate data for integrated moments
+  gk_neut_species_moment_init(app, s, &s->integ_moms, "Integrated");
+
+  // allocate data for diagnostic moments
+  int ndm = s->info.num_diag_moments;
+  s->moms = gkyl_malloc(sizeof(struct gk_species_moment[ndm]));
+  for (int m=0; m<ndm; ++m)
+    gk_neut_species_moment_init(app, s, &s->moms[m], s->info.diag_moments[m]);
+
+  if (app->use_gpu) {
+    s->red_integ_diag = gkyl_cu_malloc(sizeof(double[vdim+2]));
+    s->red_integ_diag_global = gkyl_cu_malloc(sizeof(double[vdim+2]));
+  } else {
+    s->red_integ_diag = gkyl_malloc(sizeof(double[vdim+2]));
+    s->red_integ_diag_global = gkyl_malloc(sizeof(double[vdim+2]));
+  }
+  // allocate dynamic-vector to store all-reduced integrated moments 
+  s->integ_diag = gkyl_dynvec_new(GKYL_DOUBLE, vdim+2);
+  s->is_first_integ_write_call = true;
+
+  // initialize projection routine for initial conditions
+  gk_neut_species_projection_init(app, s, s->info.projection, &s->proj_init);
+}
+
+// initialize species object
+void
+gk_neut_species_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app, struct gk_neut_species *s)
+{
+  int cdim = app->cdim, vdim = app->vdim+1; // neutral species are 3v
+  int pdim = cdim+vdim;
+  gk_neut_species_init(gk, app, s);
+  
   // allocate additional distribution function arrays for time stepping
   s->f1 = mkarr(app->use_gpu, app->neut_basis.num_basis, s->local_ext.volume);
   s->fnew = mkarr(app->use_gpu, app->neut_basis.num_basis, s->local_ext.volume);
@@ -164,57 +219,13 @@ gk_neut_species_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app, struc
     gk_neut_species_react_init(app, s, s->info.react_neut, &s->react_neut);
   }
 
-  // allocate date for density 
-  gk_neut_species_moment_init(app, s, &s->m0, "M0");
-  // allocate data for integrated moments
-  gk_neut_species_moment_init(app, s, &s->integ_moms, "Integrated");
-
-  // allocate data for diagnostic moments
-  int ndm = s->info.num_diag_moments;
-  s->moms = gkyl_malloc(sizeof(struct gk_species_moment[ndm]));
-  for (int m=0; m<ndm; ++m)
-    gk_neut_species_moment_init(app, s, &s->moms[m], s->info.diag_moments[m]);
-
-  if (app->use_gpu) {
-    s->red_integ_diag = gkyl_cu_malloc(sizeof(double[vdim+2]));
-    s->red_integ_diag_global = gkyl_cu_malloc(sizeof(double[vdim+2]));
-  } else {
-    s->red_integ_diag = gkyl_malloc(sizeof(double[vdim+2]));
-    s->red_integ_diag_global = gkyl_malloc(sizeof(double[vdim+2]));
-  }
-  // allocate dynamic-vector to store all-reduced integrated moments 
-  s->integ_diag = gkyl_dynvec_new(GKYL_DOUBLE, vdim+2);
-  s->is_first_integ_write_call = true;
-
-  // initialize projection routine for initial conditions
-  gk_neut_species_projection_init(app, s, s->info.projection, &s->proj_init);
-
   // set species source id
   s->src = (struct gk_source) { };
 
-  // set rhs function
-  s->rhs_func = gk_neut_species_rhs;
-
-  // Create skin/ghost ranges fir applying BCs.
-  for (int dir=0; dir<cdim; ++dir) {
-    // Create local lower skin and ghost ranges for distribution function
-    gkyl_skin_ghost_ranges(&s->lower_skin[dir], &s->lower_ghost[dir], dir, GKYL_LOWER_EDGE, &s->local_ext, ghost);
-    // Create local upper skin and ghost ranges for distribution function
-    gkyl_skin_ghost_ranges(&s->upper_skin[dir], &s->upper_ghost[dir], dir, GKYL_UPPER_EDGE, &s->local_ext, ghost);
-  }
-
-  // Global skin and ghost ranges, only valid (i.e. volume>0) in ranges
-  // abutting boundaries.
-  for (int dir=0; dir<cdim; ++dir) {
-    gkyl_skin_ghost_ranges(&s->global_lower_skin[dir], &s->global_lower_ghost[dir],
-      dir, GKYL_LOWER_EDGE, &s->global_ext, ghost); 
-    gkyl_sub_range_intersect(&s->global_lower_skin[dir], &s->local_ext, &s->global_lower_skin[dir]);
-    gkyl_sub_range_intersect(&s->global_lower_ghost[dir], &s->local_ext, &s->global_lower_ghost[dir]);
-    gkyl_skin_ghost_ranges(&s->global_upper_skin[dir], &s->global_upper_ghost[dir],
-      dir, GKYL_UPPER_EDGE, &s->local_ext, ghost);
-    gkyl_sub_range_intersect(&s->global_upper_skin[dir], &s->local_ext, &s->global_upper_skin[dir]);
-    gkyl_sub_range_intersect(&s->global_upper_ghost[dir], &s->local_ext, &s->global_upper_ghost[dir]);
-  }
+  // Set cfl and bc function pointers
+  s->cfl_func = gk_neut_species_omega_cfl;
+  s->bc_func = gk_neut_species_bc_func;
+  s->release_func = gk_neut_species_release_func;
 
   // Allocate buffer needed for BCs.
   long buff_sz = 0;
@@ -288,102 +299,18 @@ gk_neut_species_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app, struc
 }
 
 void
-gk_neut_species_static_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app, struct gk_neut_species *s)
+gk_neut_species_static_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app, struct gk_neut_species *s)
 {
-  int cdim = app->cdim, vdim = app->vdim+1; // neutral species are 3v
-  int pdim = cdim+vdim;
+  gk_neut_species_init(gk, app, s);
 
-  int cells[GKYL_MAX_DIM], ghost[GKYL_MAX_DIM];
-  double lower[GKYL_MAX_DIM], upper[GKYL_MAX_DIM];
-
-  int cells_vel[GKYL_MAX_DIM], ghost_vel[GKYL_MAX_DIM];
-  double lower_vel[GKYL_MAX_DIM], upper_vel[GKYL_MAX_DIM];
-
-  for (int d=0; d<cdim; ++d) {
-    cells[d] = gk->cells[d];
-    lower[d] = gk->lower[d];
-    upper[d] = gk->upper[d];
-    ghost[d] = 1;
-  }
-  for (int d=0; d<vdim; ++d) {
-    // full phase space grid
-    cells[cdim+d] = s->info.cells[d];
-    lower[cdim+d] = s->info.lower[d];
-    upper[cdim+d] = s->info.upper[d];
-    ghost[cdim+d] = 0; // no ghost-cells in velocity space
-
-    // only velocity space
-    cells_vel[d] = s->info.cells[d];
-    lower_vel[d] = s->info.lower[d];
-    upper_vel[d] = s->info.upper[d];
-    ghost_vel[d] = 0; // no ghost-cells in velocity space
-  }
-  // full phase space grid
-  gkyl_rect_grid_init(&s->grid, pdim, lower, upper, cells);
-  gkyl_create_grid_ranges(&s->grid, ghost, &s->global_ext, &s->global);
-  
-  // velocity space grid
-  gkyl_rect_grid_init(&s->grid_vel, vdim, lower_vel, upper_vel, cells_vel);
-  gkyl_create_grid_ranges(&s->grid_vel, ghost_vel, &s->local_ext_vel, &s->local_vel);
-
-  // phase-space communicator
-  s->comm = gkyl_comm_extend_comm(app->comm, &s->local_vel);
-
-  // create local and local_ext from app local range
-  struct gkyl_range local;
-  // local = conf-local X local_vel
-  gkyl_range_ten_prod(&local, &app->local, &s->local_vel);
-  gkyl_create_ranges(&local, ghost, &s->local_ext, &s->local);
-
-  // Velocity space mapping.
-  assert(s->info.mapc2p.mapping == 0); // mapped v-space not implemented for neutrals yet.
-  s->vel_map = gkyl_velocity_map_new(s->info.mapc2p, s->grid, s->grid_vel,
-    s->local, s->local_ext, s->local_vel, s->local_ext_vel, app->use_gpu);
-  // allocate distribution function array for initialization and I/O
-  s->f = mkarr(app->use_gpu, app->neut_basis.num_basis, s->local_ext.volume);
-
-  s->f_host = s->f;
-  if (app->use_gpu)
-    s->f_host = mkarr(false, app->neut_basis.num_basis, s->local_ext.volume);
-
-  if (app->use_gpu)
-    s->omega_cfl = gkyl_cu_malloc(sizeof(double));
-  else 
-    s->omega_cfl = gkyl_malloc(sizeof(double));
-
+  // set pointers for RK methods
   s->f1 = s->f;
   s->fnew = s->f;
 
-  s->model_id = GKYL_MODEL_GEN_GEO;
-  s->react_neut = (struct gk_react) { };
-
-  // allocate data for density 
-  gk_neut_species_moment_init(app, s, &s->m0, "M0");
-  // allocate data for integrated moments
-  gk_neut_species_moment_init(app, s, &s->integ_moms, "Integrated");
-
-  // allocate data for diagnostic moments
-  int ndm = s->info.num_diag_moments;
-  s->moms = gkyl_malloc(sizeof(struct gk_species_moment[ndm]));
-  for (int m=0; m<ndm; ++m)
-    gk_neut_species_moment_init(app, s, &s->moms[m], s->info.diag_moments[m]);
-
-  if (app->use_gpu) {
-    s->red_integ_diag = gkyl_cu_malloc(sizeof(double[vdim+2]));
-    s->red_integ_diag_global = gkyl_cu_malloc(sizeof(double[vdim+2]));
-  } else {
-    s->red_integ_diag = gkyl_malloc(sizeof(double[vdim+2]));
-    s->red_integ_diag_global = gkyl_malloc(sizeof(double[vdim+2]));
-  }
-  // allocate dynamic-vector to store all-reduced integrated moments 
-  s->integ_diag = gkyl_dynvec_new(GKYL_DOUBLE, vdim+2);
-  s->is_first_integ_write_call = true;
-
-  // initialize projection routine for initial conditions
-  gk_neut_species_projection_init(app, s, s->info.projection, &s->proj_init);
-
   // Set rhs function
-  s->rhs_func = gk_neut_species_static_rhs;
+  s->cfl_func = gk_neut_species_static_omega_cfl;
+  s->bc_func = gk_neut_species_static_bc_func;
+  s->release_func = gk_neut_species_static_release_func;
 }
 
 void
@@ -401,8 +328,16 @@ double
 gk_neut_species_rhs(gkyl_gyrokinetic_app *app, struct gk_neut_species *species,
   const struct gkyl_array *fin, struct gkyl_array *rhs)
 {
-  double omega_cfl = 1/DBL_MAX;
+  double omega_cfl = species->cfl_func(app, species, fin, rhs);
+  return app->cfl/omega_cfl;
+}
 
+// Compute the RHS for species update, returning maximum stable
+// time-step.
+double
+gk_neut_species_omega_cfl(gkyl_gyrokinetic_app *app, struct gk_neut_species *species,
+  const struct gkyl_array *fin, struct gkyl_array *rhs)
+{
   gkyl_array_clear(species->cflrate, 0.0);
   gkyl_array_clear(rhs, 0.0);
   
@@ -421,24 +356,29 @@ gk_neut_species_rhs(gkyl_gyrokinetic_app *app, struct gk_neut_species *species,
     gkyl_cu_memcpy(omega_cfl_ho, species->omega_cfl, sizeof(double), GKYL_CU_MEMCPY_D2H);
   else
     omega_cfl_ho[0] = species->omega_cfl[0];
-  omega_cfl = omega_cfl_ho[0];
+  double omega_cfl = omega_cfl_ho[0];
   
   app->stat.species_omega_cfl_tm += gkyl_time_diff_now_sec(tm);
-  return app->cfl/omega_cfl;
+  return omega_cfl;
 }
 
 double
-gk_neut_species_static_rhs(gkyl_gyrokinetic_app *app, struct gk_neut_species *species,
+gk_neut_species_static_omega_cfl(gkyl_gyrokinetic_app *app, struct gk_neut_species *species,
   const struct gkyl_array *fin, struct gkyl_array *rhs)
 {
-  double omega_cfl = 1/DBL_MAX;
-  return app->cfl/omega_cfl;
+  return 1/DBL_MAX;
 }
 
 // Determine which directions are periodic and which directions are not periodic,
 // and then apply boundary conditions for distribution function
 void
 gk_neut_species_apply_bc(gkyl_gyrokinetic_app *app, const struct gk_neut_species *species, struct gkyl_array *f)
+{
+  species->bc_func(app, species, f);
+}
+
+void
+gk_neut_species_bc_func(gkyl_gyrokinetic_app *app, const struct gk_neut_species *species, struct gkyl_array *f)
 {
   struct timespec wst = gkyl_wall_clock();
   
@@ -493,6 +433,12 @@ gk_neut_species_apply_bc(gkyl_gyrokinetic_app *app, const struct gk_neut_species
 }
 
 void
+gk_neut_species_static_bc_func(gkyl_gyrokinetic_app *app, const struct gk_neut_species *species, struct gkyl_array *f)
+{
+  // empty function
+}
+
+void
 gk_neut_species_tm(gkyl_gyrokinetic_app *app)
 {
   app->stat.species_rhs_tm = 0.0;
@@ -509,33 +455,13 @@ gk_neut_species_release(const gkyl_gyrokinetic_app* app, const struct gk_neut_sp
 {
   // release various arrays
   gkyl_array_release(s->f);
-  gkyl_array_release(s->bc_buffer);
-  gkyl_array_release(s->bc_buffer_lo_fixed);
-  gkyl_array_release(s->bc_buffer_up_fixed);
-
   gk_neut_species_projection_release(app, &s->proj_init);
-  
   gkyl_comm_release(s->comm);
 
   if (app->use_gpu)
     gkyl_array_release(s->f_host);
 
   gkyl_velocity_map_release(s->vel_map);
-
-  if (!s->info.is_static) {
-    gkyl_array_release(s->f1);
-    gkyl_array_release(s->fnew);
-    gkyl_array_release(s->cflrate);
-
-    gkyl_array_release(s->alpha_surf);
-    gkyl_array_release(s->sgn_alpha_surf);
-    gkyl_array_release(s->const_sgn_alpha);
-    gkyl_array_release(s->cot_vec);
-
-    // release equation object and solver
-    gkyl_dg_eqn_release(s->eqn_vlasov);
-    gkyl_dg_updater_vlasov_release(s->slvr);
-  }
 
   // release moment data
   gk_neut_species_moment_release(app, &s->m0);
@@ -544,6 +470,41 @@ gk_neut_species_release(const gkyl_gyrokinetic_app* app, const struct gk_neut_sp
   gkyl_free(s->moms);
   gk_neut_species_moment_release(app, &s->integ_moms); 
   gkyl_dynvec_release(s->integ_diag);
+  
+  if (app->use_gpu) {
+    gkyl_cu_free(s->omega_cfl);
+    gkyl_cu_free(s->red_integ_diag);
+    gkyl_cu_free(s->red_integ_diag_global);
+  }
+  else {
+    gkyl_free(s->omega_cfl);
+    gkyl_free(s->red_integ_diag);
+    gkyl_free(s->red_integ_diag_global);
+  }
+  s->release_func(app, s);
+}
+
+// release resources for dynamic species
+void
+gk_neut_species_release_func(const gkyl_gyrokinetic_app* app, const struct gk_neut_species *s)
+{
+  // release various arrays
+  gkyl_array_release(s->bc_buffer);
+  gkyl_array_release(s->bc_buffer_lo_fixed);
+  gkyl_array_release(s->bc_buffer_up_fixed);
+
+  gkyl_array_release(s->f1);
+  gkyl_array_release(s->fnew);
+  gkyl_array_release(s->cflrate);
+  
+  gkyl_array_release(s->alpha_surf);
+  gkyl_array_release(s->sgn_alpha_surf);
+  gkyl_array_release(s->const_sgn_alpha);
+  gkyl_array_release(s->cot_vec);
+  
+  // release equation object and solver
+  gkyl_dg_eqn_release(s->eqn_vlasov);
+  gkyl_dg_updater_vlasov_release(s->slvr);
 
   gk_neut_species_source_release(app, &s->src);
 
@@ -562,15 +523,11 @@ gk_neut_species_release(const gkyl_gyrokinetic_app* app, const struct gk_neut_sp
     else 
       gkyl_bc_basic_release(s->bc_up[d]);
   }
-  
-  if (app->use_gpu) {
-    gkyl_cu_free(s->omega_cfl);
-    gkyl_cu_free(s->red_integ_diag);
-    gkyl_cu_free(s->red_integ_diag_global);
-  }
-  else {
-    gkyl_free(s->omega_cfl);
-    gkyl_free(s->red_integ_diag);
-    gkyl_free(s->red_integ_diag_global);
-  }
+}
+
+// release resources for species
+void
+gk_neut_species_static_release_func(const gkyl_gyrokinetic_app* app, const struct gk_neut_species *s)
+{
+  // do nothing
 }

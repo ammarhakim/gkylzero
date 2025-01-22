@@ -409,9 +409,9 @@ gkyl_gyrokinetic_app_new_solver(struct gkyl_gk *gk, gkyl_gyrokinetic_app *app)
   // initialize each neutral species
   for (int i=0; i<neuts; ++i) { 
     if (app->neut_species[i].info.is_static)
-      gk_neut_species_static_init(gk, app, &app->neut_species[i]);
+      gk_neut_species_static_new(gk, app, &app->neut_species[i]);
     else
-      gk_neut_species_init(gk, app, &app->neut_species[i]);
+      gk_neut_species_new(gk, app, &app->neut_species[i]);
   }
 
   // initialize each species cross-collisions terms: this has to be done here
@@ -523,9 +523,7 @@ gyrokinetic_calc_field_and_apply_bc(gkyl_gyrokinetic_app* app, double tcurr,
     }
   }
   for (int i=0; i<app->num_neut_species; ++i) {
-    if (!app->neut_species[i].info.is_static) {
-      gk_neut_species_apply_bc(app, &app->neut_species[i], distf_neut[i]);
-    }
+    gk_neut_species_apply_bc(app, &app->neut_species[i], distf_neut[i]);
   }
 
 }
@@ -2247,7 +2245,7 @@ gyrokinetic_rhs(gkyl_gyrokinetic_app* app, double tcurr, double dt,
 
   // Compute RHS of neutrals.
   for (int i=0; i<app->num_neut_species; ++i) {
-    double dt1 = app->neut_species[i].rhs_func(app, &app->neut_species[i], fin_neut[i], fout_neut[i]);
+    double dt1 = gk_neut_species_rhs(app, &app->neut_species[i], fin_neut[i], fout_neut[i]);
     dtmin = fmin(dtmin, dt1);
   }
 
@@ -2720,7 +2718,7 @@ gkyl_gyrokinetic_app_read_from_frame(gkyl_gyrokinetic_app *app, int frame)
     if (app->species[i].info.is_static) {
       gk_frame = 0;
     }
-    rstat = gkyl_gyrokinetic_app_from_frame_species(app, i, frame);
+    rstat = gkyl_gyrokinetic_app_from_frame_species(app, i, gk_frame);
   }
   
   if (rstat.io_status == GKYL_ARRAY_RIO_SUCCESS) {
