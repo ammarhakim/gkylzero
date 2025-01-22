@@ -724,20 +724,24 @@ gk_species_omegaH_dt(gkyl_gyrokinetic_app *app, struct gk_species *gks, const st
   // and k_x,k_y,k_par are wavenumbers in computational space, and eps_ij is
   // the polarization weight in our field equation.
  
-  // Obtain the maximum density (using cell centers).
-  gk_species_moment_calc(&gks->m0, gks->local, app->local, fin);
-  gkyl_array_reduce_range(gks->m0_max, gks->m0.marr, GKYL_MAX, &app->local);
-
-  double m0_max[1];
-  if (app->use_gpu)
-    gkyl_cu_memcpy(m0_max, gks->m0_max, sizeof(double), GKYL_CU_MEMCPY_D2H);
+  if (!(app->field->gkfield_id == GKYL_GK_FIELD_BOLTZMANN || app->field->gkfield_id == GKYL_GK_FIELD_ADIABATIC)) {
+    // Obtain the maximum density (using cell centers).
+    gk_species_moment_calc(&gks->m0, gks->local, app->local, fin);
+    gkyl_array_reduce_range(gks->m0_max, gks->m0.marr, GKYL_MAX, &app->local);
+  
+    double m0_max[1];
+    if (app->use_gpu)
+      gkyl_cu_memcpy(m0_max, gks->m0_max, sizeof(double), GKYL_CU_MEMCPY_D2H);
+    else
+      m0_max[0] = gks->m0_max[0];
+    m0_max[0] *= 1.0/pow(sqrt(2.0),app->cdim);
+  
+    double omegaH = fabs(gks->info.charge)*sqrt(GKYL_MAX2(0.0,m0_max[0])/gks->info.mass)*app->omegaH_gf;
+  
+    return omegaH > 1e-20? app->cfl_omegaH/omegaH : DBL_MAX;
+  }
   else
-    m0_max[0] = gks->m0_max[0];
-  m0_max[0] *= 1.0/pow(sqrt(2.0),app->cdim);
-
-  double omegaH = fabs(gks->info.charge)*sqrt(GKYL_MAX2(0.0,m0_max[0])/gks->info.mass)*app->omegaH_gf;
-
-  return omegaH > 1e-20? app->cfl_omegaH/omegaH : DBL_MAX;
+    return DBL_MAX;
 }
 
 // Compute the RHS for species update, returning maximum stable

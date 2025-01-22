@@ -692,10 +692,9 @@ struct gk_field {
     };
   };
 
-  struct gkyl_array *weight;
   double es_energy_fac_1d; 
   struct gkyl_array *es_energy_fac; 
-  struct gkyl_array *epsilon; 
+  struct gkyl_array *epsilon; // Polarization weight including geometric factors (and kperp^2 for cdim=1).
   struct gkyl_array *kSq; 
 
   struct gkyl_fem_parproj *fem_parproj; // FEM smoother for projecting DG functions onto continuous FEM basis
