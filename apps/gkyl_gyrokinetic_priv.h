@@ -652,7 +652,7 @@ struct gk_neut_species {
   double *omega_cfl;
 
   // pointer to rhs functions
-  double (*cfl_func)(gkyl_gyrokinetic_app *app, struct gk_neut_species *species,
+  double (*rhs_func)(gkyl_gyrokinetic_app *app, struct gk_neut_species *species,
     const struct gkyl_array *fin, struct gkyl_array *rhs);
   void (*bc_func)(gkyl_gyrokinetic_app *app, const struct gk_neut_species *species,
     struct gkyl_array *f);
@@ -1581,13 +1581,13 @@ void gk_neut_species_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app, s
 void gk_neut_species_static_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app, struct gk_neut_species *s);
 
 /**
- * Initialize Neutral species objects.
+ * Initialize common neutral species objects.
  *
  * @param gk Input gk data
  * @param app gyrokinetic app object
  * @param s On output, initialized neutral species object
  */
-void gk_neut_species_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app, struct gk_neut_species *s);
+void gk_neut_species_common_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app, struct gk_neut_species *s);
 
 
 /**
@@ -1657,22 +1657,13 @@ double gk_neut_species_static_rhs(gkyl_gyrokinetic_app *app, struct gk_neut_spec
 void gk_neut_species_apply_bc(gkyl_gyrokinetic_app *app, const struct gk_neut_species *species, struct gkyl_array *f);
 
 /**
- * Contains bc functions
+ * Empty bc method for static neutral species
  *
  * @param app gyrokinetic app object
  * @param species Pointer to neutral species
  * @param f Field to apply BCs
  */
-void gk_neut_species_bc_func(gkyl_gyrokinetic_app *app, const struct gk_neut_species *species, struct gkyl_array *f);
-
-/**
- * Empty function for static neutrals pointer.
- *
- * @param app gyrokinetic app object
- * @param species Pointer to neutral species
- * @param f Field to apply BCs
- */
-void gk_neut_species_static_bc_func(gkyl_gyrokinetic_app *app, const struct gk_neut_species *species, struct gkyl_array *f);
+void gk_neut_species_static_apply_bc(gkyl_gyrokinetic_app *app, const struct gk_neut_species *species, struct gkyl_array *f);
 
 /**
  * Fill stat object in app with collisionless timers for neutral species.
@@ -1690,20 +1681,12 @@ void gk_neut_species_tm(gkyl_gyrokinetic_app *app);
 void gk_neut_species_release(const gkyl_gyrokinetic_app* app, const struct gk_neut_species *s);
 
 /**
- * Delete additional resources used in neutral species.
+ * Delete common resources used in neutral species.
  *
  * @param app gyrokinetic app object
  * @param species Neutral species object to delete
  */
-void gk_neut_species_release_func(const gkyl_gyrokinetic_app* app, const struct gk_neut_species *s);
-
-/**
- * Empty function for static neutrals pointer.
- *
- * @param app gyrokinetic app object
- * @param species Neutral species object to delete
- */
-void gk_neut_species_static_release_func(const gkyl_gyrokinetic_app* app, const struct gk_neut_species *s);
+void gk_neut_species_common_free(const gkyl_gyrokinetic_app* app, const struct gk_neut_species *s);
 
 /** gk_field API */
 

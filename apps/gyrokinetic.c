@@ -523,7 +523,8 @@ gyrokinetic_calc_field_and_apply_bc(gkyl_gyrokinetic_app* app, double tcurr,
     }
   }
   for (int i=0; i<app->num_neut_species; ++i) {
-    gk_neut_species_apply_bc(app, &app->neut_species[i], distf_neut[i]);
+    struct gk_neut_species *s = &app->neut_species[i];
+    s->bc_func(app, s, distf_neut[i]);
   }
 
 }
@@ -2234,7 +2235,7 @@ gyrokinetic_rhs(gkyl_gyrokinetic_app* app, double tcurr, double dt,
   // Compute RHS of Gyrokinetic equation.
   for (int i=0; i<app->num_species; ++i) {
     struct gk_species *s = &app->species[i];
-    double dt1 = app->species[i].rhs_func(app, s, fin[i], fout[i]);
+    double dt1 = gk_species_rhs(app, s, fin[i], fout[i]);
     dtmin = fmin(dtmin, dt1);
 
     // Compute and store (in the ghost cell of of out) the boundary fluxes.
@@ -2245,7 +2246,8 @@ gyrokinetic_rhs(gkyl_gyrokinetic_app* app, double tcurr, double dt,
 
   // Compute RHS of neutrals.
   for (int i=0; i<app->num_neut_species; ++i) {
-    double dt1 = gk_neut_species_rhs(app, &app->neut_species[i], fin_neut[i], fout_neut[i]);
+    struct gk_neut_species *s = &app->neut_species[i];
+    double dt1 = s->rhs_func(app, s, fin_neut[i], fout_neut[i]);
     dtmin = fmin(dtmin, dt1);
   }
 
@@ -2789,8 +2791,10 @@ gkyl_gyrokinetic_app_release(gkyl_gyrokinetic_app* app)
   if (app->num_species > 0)
     gkyl_free(app->species);
 
-  for (int i=0; i<app->num_neut_species; ++i)
-    gk_neut_species_release(app, &app->neut_species[i]);
+  for (int i=0; i<app->num_neut_species; ++i) {
+    struct gk_neut_species *s = &app->neut_species[i]; 
+    s->release_func(app, s);
+  }
   if (app->num_neut_species > 0)
     gkyl_free(app->neut_species);
 
