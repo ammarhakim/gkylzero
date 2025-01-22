@@ -4,12 +4,16 @@
 void 
 gk_species_bflux_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s, struct gk_boundary_fluxes *bflux)
 { 
-  // Allocate solver.
-  bflux->flux_slvr = gkyl_ghost_surf_calc_new(&s->grid, s->eqn_gyrokinetic, app->cdim, app->use_gpu);
+  for (int d=0; d<app->cdim; ++d) {
+    for (int e=0; e<2; ++e) {
+      // Allocate solver.
+      struct gkyl_range *skin_r = e==0? &s->lower_skin[d] : &s->upper_skin[d];
+      struct gkyl_range *ghost_r = e==0? &s->lower_ghost[d] : &s->upper_ghost[d];
+      bflux->flux_slvr[2*d+e] = gkyl_boundary_flux_new(d, e, &s->grid, skin_r, ghost_r, s->eqn_gyrokinetic, app->use_gpu);
 
-  // Initialize moment solver.
-  for (int i=0; i<2*app->cdim; ++i) {
-    gk_species_moment_init(app, s, &bflux->gammai[i], "M0");
+      // Initialize moment solver.
+      gk_species_moment_init(app, s, &bflux->gammai[2*d+e], "M0");
+    }
   }
 }
 
@@ -20,31 +24,31 @@ gk_species_bflux_rhs(gkyl_gyrokinetic_app *app, const struct gk_species *species
   struct gkyl_array *rhs)
 {
   // Zero ghost cells before calculation to ensure there's no residual data.
-  for (int j=0; j<app->cdim; ++j) {
-    gkyl_array_clear_range(rhs, 0.0, &species->lower_ghost[j]);
-    gkyl_array_clear_range(rhs, 0.0, &species->upper_ghost[j]);
+  for (int d=0; d<app->cdim; ++d) {
+    gkyl_array_clear_range(rhs, 0.0, &species->lower_ghost[d]);
+    gkyl_array_clear_range(rhs, 0.0, &species->upper_ghost[d]);
   }
-  // Ghost cells of the rhs array are filled with the bflux
-  // This is overwritten by the boundary conditions and is not being stored,
-  // it is only currently used to calculate moments for other applications.
-  if (app->use_gpu) {
-    gkyl_ghost_surf_calc_advance_cu(bflux->flux_slvr, &species->local_ext, fin, rhs);
-  } else {
-    gkyl_ghost_surf_calc_advance(bflux->flux_slvr, &species->local_ext, fin, rhs);
-  }
-
   // Only calculating density for use in ambipotential solve.
-  for (int j=0; j<app->cdim; ++j) {
-    gk_species_moment_calc(&bflux->gammai[2*j], species->lower_ghost[j], app->lower_ghost[j], rhs);
-    gk_species_moment_calc(&bflux->gammai[2*j+1], species->upper_ghost[j], app->upper_ghost[j], rhs);
+  for (int d=0; d<app->cdim; ++d) {
+    for (int e=0; e<2; ++e) {
+      // Ghost cells of the rhs array are filled with the bflux
+      // This is overwritten by the boundary conditions and is not being stored,
+      // it is only currently used to calculate moments for other applications.
+      gkyl_boundary_flux_advance(bflux->flux_slvr[2*d+e], fin, rhs);
+    }
+
+    gk_species_moment_calc(&bflux->gammai[2*d+0], species->lower_ghost[d], app->lower_ghost[d], rhs);
+    gk_species_moment_calc(&bflux->gammai[2*d+1], species->upper_ghost[d], app->upper_ghost[d], rhs);
   }
 }
 
 void
 gk_species_bflux_release(const struct gkyl_gyrokinetic_app *app, const struct gk_boundary_fluxes *bflux)
 {
-  gkyl_ghost_surf_calc_release(bflux->flux_slvr);
-  for (int i=0; i<2*app->cdim; ++i) {
-    gk_species_moment_release(app, &bflux->gammai[i]);
+  for (int d=0; d<app->cdim; ++d) {
+    for (int e=0; e<2; ++e) {
+      gkyl_boundary_flux_release(bflux->flux_slvr[2*d+e]);
+      gk_species_moment_release(app, &bflux->gammai[2*d+e]);
+    }
   }
 }

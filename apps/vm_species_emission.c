@@ -127,7 +127,7 @@ vm_species_emission_apply_bc(struct gkyl_vlasov_app *app, const struct vm_emitti
 // It expects a single rank to own the whole emit range.
 void
 vm_species_emission_write(struct gkyl_vlasov_app *app, struct vm_species *s,
-  struct vm_emitting_wall *emit, struct gkyl_array_meta *mt, int frame)
+  struct vm_emitting_wall *emit, struct gkyl_msgpack_data *mt, int frame)
 {
   const char *fmt = (emit->edge == GKYL_LOWER_EDGE) ? "%s-%s_bc_lo_%d.gkyl" : "%s-%s_bc_up_%d.gkyl";
   int sz = gkyl_calc_strlen(fmt, app->name, s->info.name, frame);

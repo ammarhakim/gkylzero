@@ -124,11 +124,7 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
     }
   } else {
 
-    struct gkyl_array* bmag_mid_host = app->use_gpu? mkarr(false, 1, 1) : gkyl_array_acquire(app->gk_geom->bmag_mid);
-    gkyl_array_copy(bmag_mid_host, app->gk_geom->bmag_mid);
-    double *bmag_mid_ptr = gkyl_array_fetch(bmag_mid_host, 0);
-    double polarization_bmag = f->info.polarization_bmag ? f->info.polarization_bmag : bmag_mid_ptr[0];
-    gkyl_array_release(bmag_mid_host);
+    double polarization_bmag = f->info.polarization_bmag ? f->info.polarization_bmag : app->bmag_ref;
     // Linearized polarization density
     for (int i=0; i<app->num_species; ++i) {
       struct gk_species *s = &app->species[i];
@@ -199,14 +195,14 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
     gkyl_range_shorten_from_below(&f->global_ext_sol, &app->global_ext, 0, app->grid.cells[0]-idxLCFS_m+1);
     gkyl_range_shorten_from_above(&f->global_core, &app->global, 0, idxLCFS_m+1);
     gkyl_range_shorten_from_above(&f->global_ext_core, &app->global_ext, 0, idxLCFS_m+1);
-    f->fem_parproj_core = gkyl_fem_parproj_new(&f->global_core, &f->global_ext_core, 
-      &app->confBasis, fem_parproj_bc_core, f->weight, app->use_gpu);
-    f->fem_parproj_sol = gkyl_fem_parproj_new(&f->global_sol, &f->global_ext_sol, 
-      &app->confBasis, fem_parproj_bc_sol, f->weight, app->use_gpu);
+    f->fem_parproj_core = gkyl_fem_parproj_new(&f->global_core, &app->confBasis,
+      fem_parproj_bc_core, f->weight, 0, app->use_gpu);
+    f->fem_parproj_sol = gkyl_fem_parproj_new(&f->global_sol, &app->confBasis,
+      fem_parproj_bc_sol, f->weight, 0, app->use_gpu);
   } 
   else {
-    f->fem_parproj = gkyl_fem_parproj_new(&app->global, &app->global_ext, 
-      &app->confBasis, f->info.fem_parbc, f->weight, app->use_gpu);
+    f->fem_parproj = gkyl_fem_parproj_new(&app->global, &app->confBasis,
+      f->info.fem_parbc, f->weight, 0, app->use_gpu);
   }
 
   f->phi_host = f->phi_smooth;  
@@ -669,7 +665,7 @@ void
 gk_field_calc_energy(gkyl_gyrokinetic_app *app, double tm, const struct gk_field *field)
 {
   gkyl_array_integrate_advance(field->calc_em_energy, field->phi_smooth, 
-    app->grid.cellVolume, field->es_energy_fac, &app->local, field->em_energy_red);
+    app->grid.cellVolume, field->es_energy_fac, &app->local, &app->local, field->em_energy_red);
 
   gkyl_comm_allreduce(app->comm, GKYL_DOUBLE, GKYL_SUM, 1, field->em_energy_red, field->em_energy_red_global);
 

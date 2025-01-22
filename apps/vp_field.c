@@ -179,7 +179,7 @@ void
 vp_field_calc_energy(gkyl_vlasov_app *app, double tm, const struct vm_field *field)
 {
   gkyl_array_integrate_advance(field->calc_es_energy, field->phi,
-    app->grid.cellVolume, field->es_energy_fac, &app->local, field->es_energy_red);
+    app->grid.cellVolume, field->es_energy_fac, &app->local, &app->local, field->es_energy_red);
 
   gkyl_comm_allreduce(app->comm, GKYL_DOUBLE, GKYL_SUM, 1, field->es_energy_red, field->es_energy_red_global);
 

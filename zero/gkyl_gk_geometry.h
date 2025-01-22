@@ -9,6 +9,7 @@
 #include <gkyl_eqn_type.h>
 #include <gkyl_tok_geo.h>
 #include <gkyl_mirror_geo.h>
+#include <gkyl_position_map.h>
 
 
 typedef struct gk_geometry gk_geometry;
@@ -26,6 +27,7 @@ struct gk_geometry {
   // GK Equation and Poisson Equation and to apply certain BC's
   // The first 20 are defined on the configuration space domain. The last is a single element.
   struct gkyl_array* mc2p; // 3 components. Cartesian X,Y, and Z
+  struct gkyl_array* mc2nu_pos; // 3 components. Uniform computational space to non-uniform computational space mapping
   struct gkyl_array* bmag; // 1 component. B Magnitude of magnetic field
   struct gkyl_array* g_ij; // 6 components. 
                            // Metric coefficients g_{ij} Stored in order g_11, g12, g_13, g_22, g_23, g_33
@@ -33,6 +35,8 @@ struct gk_geometry {
                            // Cartesian components of tangent Vectors stored in order e_1, e_2, e_3
   struct gkyl_array* dzdx; // 9 components.
                            // Cartesian components of dual vectors stroed in order e^1, e^2, e^3
+  struct gkyl_array* dualmag; // 3 components
+                              // norms of the dual vectors : sqrt(e^i.e^i)
   struct gkyl_array* normals; // 9 components
                               // Cartesian components of normal vectors in order n^1,, n^2, n^3
   struct gkyl_array* jacobgeo; // 1 component. Configuration space jacobian J
@@ -50,7 +54,6 @@ struct gk_geometry {
   struct gkyl_array* gyyj; // 1 component. g^{yy} * J. For poisson solve.
   struct gkyl_array* gxzj; // 1 component. g^{xz} * J. For poisson solve if z derivatives are kept.
   struct gkyl_array* eps2; // 1 component. eps2 = Jg^33 - J/g_33. For poisson if z derivatives are kept.
-  struct gkyl_array* bmag_mid; // 1 component. B at center of domain.
 
   uint32_t flags;
   struct gkyl_ref_count ref_count;  
@@ -75,6 +78,8 @@ struct gkyl_gk_geometry_inp {
   struct gkyl_efit_inp efit_info; // context with RZ data such as efit file for a tokamak or mirror
   struct gkyl_tok_geo_grid_inp tok_grid_info; // context for tokamak geometry with computational domain info
   struct gkyl_mirror_geo_grid_inp mirror_grid_info; // context for mirror geometry with computational domain info
+  struct gkyl_position_map *position_map; // position map object
+  struct gkyl_comm *comm; // communicator object
 
   double world[3]; // extra computational coordinates for cases with reduced dimensionality
 
@@ -141,12 +146,13 @@ gkyl_gk_geometry_augment_grid(struct gkyl_rect_grid grid, struct gkyl_gk_geometr
 void 
 gkyl_gk_geometry_augment_local(const struct gkyl_range *inrange, const int *nghost, struct gkyl_range *ext_range, struct gkyl_range *range);
 
-
 /**
- * Evaluate and set bmag at the center of the domain
+ * Reduce bmag to get min or max value.
+ * Only to be used during initialization because it allocates memory
+ *  @param up gk_geometry object
+ *  @param op operation to perform (GKYL_MAX or GKYL_MIN)
  */
-void gkyl_gk_geometry_bmag_mid(struct gk_geometry* up);
-
+double gkyl_gk_geometry_reduce_bmag(struct gk_geometry* up, enum gkyl_array_op op);
 
 /**
  * Init nodal range from modal range
@@ -185,8 +191,6 @@ struct gk_geometry* gkyl_gk_geometry_deflate(const struct gk_geometry* up_3d, st
  * @return Pointer to acquired geometry
  */
 struct gk_geometry* gkyl_gk_geometry_acquire(const struct gk_geometry* up);
-
-
 
 void gkyl_gk_geometry_free(const struct gkyl_ref_count *ref);
 
