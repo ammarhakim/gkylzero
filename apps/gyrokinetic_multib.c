@@ -535,6 +535,7 @@ singleb_app_new_solver(const struct gkyl_gyrokinetic_multib *mbinp, int bid,
   }
 
   field_inp.polarization_bmag = fld_pb->polarization_bmag ? fld_pb->polarization_bmag : mbapp->bmag_ref;
+  field_inp.kperpSq = fld_pb->kperpSq;
 
   field_inp.phi_wall_lo_ctx = fld_pb->phi_wall_lo_ctx; 
   field_inp.phi_wall_lo = fld_pb->phi_wall_lo; 

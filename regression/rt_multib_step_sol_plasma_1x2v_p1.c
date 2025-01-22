@@ -200,6 +200,7 @@ struct gk_step_ctx {
   double T_source; // Source electron temperature
   double cx;
   double cz;
+  double k_perp; // Perpendicular wavenumber (for Poisson solver).
   // Simulation parameters
   int Nz; // Cell count (configuration space: z-direction).
   int Nvpar; // Cell count (velocity space: parallel velocity direction).
@@ -238,6 +239,14 @@ create_ctx(void)
   // Derived parameters.
   double vtIon = sqrt(Ti/mi);
   double vtElc = sqrt(Te/me);
+
+
+  double k_perp_rho_s = 0.3; // Product of perpendicular wavenumber and ion-sound gyroradius.
+  double c_s = sqrt(Te / mi); // Sound speed.
+  double omega_ci = fabs(qi* B0 / mi); // Ion cyclotron frequency.
+  double rho_s = c_s / omega_ci; // Ion-sound gyroradius.
+
+  double k_perp = k_perp_rho_s / rho_s; // Perpendicular wavenumber (for Poisson solver).
 
   // Source parameters.
   double nsource = 3.9e23; // peak source rate in particles/m^3/s 
@@ -289,6 +298,7 @@ create_ctx(void)
     .nuFrac = nuFrac,
     .B0 = B0, 
     .n0 = n0, 
+    .k_perp = k_perp,
     .T_source = T_source, 
     .nsource = nsource,
     .cx = cx,
@@ -499,7 +509,7 @@ struct gkyl_comm *comm = 0;
 
     .collisions =  {
       .collision_id = GKYL_LBO_COLLISIONS,
-      .normNu = true,
+      .normNu = false,
       .nuFrac = ctx.nuFrac,
       .n_ref = ctx.n0, // Density used to calculate coulomb logarithm
       .T_ref = ctx.Te, // Temperature used to calculate coulomb logarithm
@@ -570,7 +580,7 @@ struct gkyl_comm *comm = 0;
 
     .collisions =  {
       .collision_id = GKYL_LBO_COLLISIONS,
-      .normNu = true,
+      .normNu = false,
       .nuFrac = ctx.nuFrac,
       .n_ref = ctx.n0, // Density used to calculate coulomb logarithm
       .T_ref = ctx.Ti, // Temperature used to calculate coulomb logarithm
@@ -592,6 +602,7 @@ struct gkyl_comm *comm = 0;
   field_blocks[0] = (struct gkyl_gyrokinetic_multib_field_pb) {
     .fem_parbc = GKYL_FEM_PARPROJ_NONE,
     .polarization_bmag = 2.51,
+    .kperpSq = ctx.k_perp*ctx.k_perp,
   };
 
   struct gkyl_block_physical_bcs field_phys_bcs[] = {
@@ -623,6 +634,7 @@ struct gkyl_comm *comm = 0;
     .species = { elc, ion},
 
     .field = field,
+    //.skip_field = true,
 
     .comm = comm
   };
