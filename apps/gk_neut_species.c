@@ -72,11 +72,6 @@ gk_neut_species_common_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app
   if (app->use_gpu)
     s->f_host = mkarr(false, app->neut_basis.num_basis, s->local_ext.volume);
 
-  if (app->use_gpu)
-    s->omega_cfl = gkyl_cu_malloc(sizeof(double));
-  else 
-    s->omega_cfl = gkyl_malloc(sizeof(double));
-
   // Create skin/ghost ranges fir applying BCs. Only used for dynamic neutrals but included here to avoid
   // code duplication since the "ghost" array is needed.
   for (int dir=0; dir<cdim; ++dir) {
@@ -139,6 +134,11 @@ gk_neut_species_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app, struct
   
   // Allocate cflrate (scalar array).
   s->cflrate = mkarr(app->use_gpu, 1, s->local_ext.volume);
+
+  if (app->use_gpu)
+    s->omega_cfl = gkyl_cu_malloc(sizeof(double));
+  else 
+    s->omega_cfl = gkyl_malloc(sizeof(double));
   
   // Need to figure out size of alpha_surf and sgn_alpha_surf by finding size of surface basis set 
   struct gkyl_basis surf_basis, surf_quad_basis;
@@ -293,9 +293,9 @@ gk_neut_species_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app, struct
   }
 
   // Set function pointers
-  s->rhs_func = gk_neut_species_rhs;
-  s->bc_func = gk_neut_species_apply_bc;
-  s->release_func = gk_neut_species_release;
+  s->rhs_func = gk_neut_species_dynamic_rhs;
+  s->bc_func = gk_neut_species_dynamic_apply_bc;
+  s->release_func = gk_neut_species_dynamic_release;
 }
 
 void
@@ -310,7 +310,7 @@ gk_neut_species_static_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app,
   // Set function pointers
   s->rhs_func = gk_neut_species_static_rhs;
   s->bc_func = gk_neut_species_static_apply_bc;
-  s->release_func = gk_neut_species_common_free;
+  s->release_func = gk_neut_species_static_release;
 }
 
 void
@@ -326,6 +326,13 @@ gk_neut_species_apply_ic(gkyl_gyrokinetic_app *app, struct gk_neut_species *spec
 // time-step.
 double
 gk_neut_species_rhs(gkyl_gyrokinetic_app *app, struct gk_neut_species *species,
+  const struct gkyl_array *fin, struct gkyl_array *rhs) {
+
+  return species->rhs_func(app, species, fin, rhs);
+}
+
+double
+gk_neut_species_dynamic_rhs(gkyl_gyrokinetic_app *app, struct gk_neut_species *species,
   const struct gkyl_array *fin, struct gkyl_array *rhs)
 { 
   gkyl_array_clear(species->cflrate, 0.0);
@@ -364,6 +371,12 @@ gk_neut_species_static_rhs(gkyl_gyrokinetic_app *app, struct gk_neut_species *sp
 // and then apply boundary conditions for distribution function
 void
 gk_neut_species_apply_bc(gkyl_gyrokinetic_app *app, const struct gk_neut_species *species, struct gkyl_array *f)
+{
+  species->bc_func(app, species, f);
+}
+
+void
+gk_neut_species_dynamic_apply_bc(gkyl_gyrokinetic_app *app, const struct gk_neut_species *species, struct gkyl_array *f)
 {
   struct timespec wst = gkyl_wall_clock();
   
@@ -436,7 +449,7 @@ gk_neut_species_tm(gkyl_gyrokinetic_app *app)
 
 // release common resources for species
 void
-gk_neut_species_common_free(const gkyl_gyrokinetic_app* app, const struct gk_neut_species *s)
+gk_neut_species_release(const gkyl_gyrokinetic_app* app, const struct gk_neut_species *s)
 {
   // release various arrays
   gkyl_array_release(s->f);
@@ -466,14 +479,14 @@ gk_neut_species_common_free(const gkyl_gyrokinetic_app* app, const struct gk_neu
     gkyl_free(s->red_integ_diag);
     gkyl_free(s->red_integ_diag_global);
   }
+
+  s->release_func(app, s);
 }
 
 // release all resources for dynamic species
 void
-gk_neut_species_release(const gkyl_gyrokinetic_app* app, const struct gk_neut_species *s)
+gk_neut_species_dynamic_release(const gkyl_gyrokinetic_app* app, const struct gk_neut_species *s)
 {
-  gk_neut_species_common_free(app, s);
-  
   // release various arrays
   gkyl_array_release(s->bc_buffer);
   gkyl_array_release(s->bc_buffer_lo_fixed);
@@ -487,6 +500,11 @@ gk_neut_species_release(const gkyl_gyrokinetic_app* app, const struct gk_neut_sp
   gkyl_array_release(s->sgn_alpha_surf);
   gkyl_array_release(s->const_sgn_alpha);
   gkyl_array_release(s->cot_vec);
+
+  if (app->use_gpu)
+    gkyl_cu_free(s->omega_cfl);
+  else 
+    gkyl_free(s->omega_cfl);
   
   // release equation object and solver
   gkyl_dg_eqn_release(s->eqn_vlasov);
@@ -509,4 +527,11 @@ gk_neut_species_release(const gkyl_gyrokinetic_app* app, const struct gk_neut_sp
     else 
       gkyl_bc_basic_release(s->bc_up[d]);
   }
+}
+
+// empty function for static species
+void
+gk_neut_species_static_release(const gkyl_gyrokinetic_app* app, const struct gk_neut_species *s)
+{
+  
 }

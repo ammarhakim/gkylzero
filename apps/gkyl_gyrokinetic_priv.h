@@ -1600,7 +1600,7 @@ void gk_neut_species_common_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app
 void gk_neut_species_apply_ic(gkyl_gyrokinetic_app *app, struct gk_neut_species *species, double t0);
 
 /**
- * Compute RHS from neutral species distribution function
+ * Parent function to call rhs function pointer
  *
  * @param app gyrokinetic app object
  * @param species Pointer to neutral species
@@ -1612,7 +1612,7 @@ double gk_neut_species_rhs(gkyl_gyrokinetic_app *app, struct gk_neut_species *sp
   const struct gkyl_array *fin, struct gkyl_array *rhs);
 
 /**
- * Compute omega_cfl
+ * Compute RHS from neutral species distribution function
  *
  * @param app gyrokinetic app object
  * @param species Pointer to neutral species
@@ -1620,23 +1620,11 @@ double gk_neut_species_rhs(gkyl_gyrokinetic_app *app, struct gk_neut_species *sp
  * @param rhs On output, the RHS from the neutral species object (df/dt)
  * @return Maximum stable time-step
  */
-double gk_neut_species_omega_cfl(gkyl_gyrokinetic_app *app, struct gk_neut_species *species,
+double gk_neut_species_dynamic_rhs(gkyl_gyrokinetic_app *app, struct gk_neut_species *species,
   const struct gkyl_array *fin, struct gkyl_array *rhs);
 
 /**
- * Pass constant for omega_cfl when neutral species is static
- *
- * @param app gyrokinetic app object
- * @param species Pointer to neutral species
- * @param fin Input distribution function
- * @param rhs On output, the RHS from the neutral species object (df/dt)
- * @return Maximum stable time-step
- */
-double gk_neut_species_static_omega_cfl(gkyl_gyrokinetic_app *app, struct gk_neut_species *species,
-  const struct gkyl_array *fin, struct gkyl_array *rhs);
-
-/**
- * Compute RHS from static neutral species distribution function
+ * Pass constant for max dt when neutral species is static
  *
  * @param app gyrokinetic app object
  * @param species Pointer to neutral species
@@ -1648,13 +1636,22 @@ double gk_neut_species_static_rhs(gkyl_gyrokinetic_app *app, struct gk_neut_spec
   const struct gkyl_array *fin, struct gkyl_array *rhs);
 
 /**
- * Apply BCs to neutral species distribution function
+ * Parent function to choose bc pointer function
  *
  * @param app gyrokinetic app object
  * @param species Pointer to neutral species
  * @param f Field to apply BCs
  */
 void gk_neut_species_apply_bc(gkyl_gyrokinetic_app *app, const struct gk_neut_species *species, struct gkyl_array *f);
+
+/**
+ * Apply BCs to neutral species distribution function
+ *
+ * @param app gyrokinetic app object
+ * @param species Pointer to neutral species
+ * @param f Field to apply BCs
+ */
+void gk_neut_species_dynamic_apply_bc(gkyl_gyrokinetic_app *app, const struct gk_neut_species *species, struct gkyl_array *f);
 
 /**
  * Empty bc method for static neutral species
@@ -1673,7 +1670,7 @@ void gk_neut_species_static_apply_bc(gkyl_gyrokinetic_app *app, const struct gk_
 void gk_neut_species_tm(gkyl_gyrokinetic_app *app);
 
 /**
- * Delete resources used in neutral species.
+ * Delete common resources used in neutral species.
  *
  * @param app gyrokinetic app object
  * @param species Neutral species object to delete
@@ -1681,12 +1678,20 @@ void gk_neut_species_tm(gkyl_gyrokinetic_app *app);
 void gk_neut_species_release(const gkyl_gyrokinetic_app* app, const struct gk_neut_species *s);
 
 /**
- * Delete common resources used in neutral species.
+ * Delete resources used in dynamic neutral species.
  *
  * @param app gyrokinetic app object
  * @param species Neutral species object to delete
  */
-void gk_neut_species_common_free(const gkyl_gyrokinetic_app* app, const struct gk_neut_species *s);
+void gk_neut_species_dynamic_release(const gkyl_gyrokinetic_app* app, const struct gk_neut_species *s);
+
+/**
+ * Empty method for static neutral species.
+ *
+ * @param app gyrokinetic app object
+ * @param species Neutral species object to delete
+ */
+void gk_neut_species_static_release(const gkyl_gyrokinetic_app* app, const struct gk_neut_species *s);
 
 /** gk_field API */
 
