@@ -44,6 +44,7 @@ enum gkyl_species_bc_type {
   GKYL_SPECIES_SKIP, // Do not apply any BCs to field
   GKYL_SPECIES_REFLECT, // perfect reflector
   GKYL_SPECIES_ABSORB, // Absorbing BCs
+  GKYL_SPECIES_LINE_TIED, // Line-tied BCs (zero tangential flow, zero-gradient normal flow)
   GKYL_SPECIES_NO_SLIP, // no-slip boundary conditions
   GKYL_SPECIES_WEDGE, // specialized "wedge" BCs for RZ-theta
   GKYL_SPECIES_FUNC, // Function boundary conditions

@@ -57,22 +57,32 @@ gkyl_bc_basic_create_arr_copy_func(int dir, int cdim, enum gkyl_bc_basic_type bc
       fout->func = pkpm_species_reflect_bc;
       break;    
 
-    // PKPM Reflecting wall for momentum
+    // PKPM Reflecting wall for momentum (zero normal momentum)
     case GKYL_BC_PKPM_MOM_REFLECT:
       fout->func = pkpm_mom_reflect_bc;
       break;    
 
-    // PKPM No-slip wall for momentum
+    // PKPM Line-tied for momentum (zero tangential momentum)
+    case GKYL_BC_PKPM_MOM_LINE_TIED:
+      fout->func = pkpm_mom_line_tied_bc;
+      break;  
+
+    // PKPM No-slip wall for momentum (all momentum components zero)
     case GKYL_BC_PKPM_MOM_NO_SLIP:
       fout->func = pkpm_mom_no_slip_bc;
       break;   
 
-    // Euler Reflecting wall 
+    // Euler Reflecting wall (zero normal momentum)
     case GKYL_BC_EULER_REFLECT:
       fout->func = euler_reflect_bc;
       break;    
 
-    // Euler No-slip wall 
+    // Euler Line-tied for momentum (zero tangential momentum)
+    case GKYL_BC_EULER_LINE_TIED:
+      fout->func = euler_line_tied_bc;
+      break;   
+
+    // Euler No-slip wall (all momentum components zero)
     case GKYL_BC_EULER_NO_SLIP:
       fout->func = euler_no_slip_bc;
       break;  
@@ -133,8 +143,10 @@ gkyl_bc_basic_advance(const struct gkyl_bc_basic *up, struct gkyl_array *buff_ar
     case GKYL_BC_MAXWELL_SYM:
     case GKYL_BC_MAXWELL_RESERVOIR:
     case GKYL_BC_PKPM_MOM_REFLECT:
+    case GKYL_BC_PKPM_MOM_LINE_TIED:
     case GKYL_BC_PKPM_MOM_NO_SLIP:
     case GKYL_BC_EULER_REFLECT:
+    case GKYL_BC_EULER_LINE_TIED:
     case GKYL_BC_EULER_NO_SLIP:
       gkyl_array_copy_to_buffer_fn(buff_arr->data, f_arr,
                                    up->skin_r, up->array_copy_func->on_dev);

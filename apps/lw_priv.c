@@ -14,6 +14,7 @@ static const struct gkyl_str_int_pair species_bcs[] = {
   { "bcWall", GKYL_SPECIES_REFLECT },
   { "bcReflect", GKYL_SPECIES_REFLECT },
   { "bcAbsorb", GKYL_SPECIES_ABSORB },
+  { "bcLineTied", GKYL_SPECIES_LINE_TIED },
   { "bcNoSlip", GKYL_SPECIES_NO_SLIP },
   { "bcWedge", GKYL_SPECIES_WEDGE },
   { "bcFunc", GKYL_SPECIES_FUNC },

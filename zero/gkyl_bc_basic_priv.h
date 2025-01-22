@@ -179,10 +179,33 @@ pkpm_mom_reflect_bc(size_t nc, double *out, const double *inp, void *ctx)
   // reflect normal component (zero normal) and zero gradient in other components
   for (int i=0; i<3; ++i) {
     int loc = nbasis*i;
-    if (i == dir)
+    if (i == dir) {
       mc->basis->flip_even_sign(dir, &inp[loc], &out[loc]);
-    else
+    }
+    else {
       mc->basis->flip_odd_sign(dir, &inp[loc], &out[loc]);
+    }
+  }
+}
+
+// Line-tied wall BCs for PKPM momentum
+GKYL_CU_D
+static void
+pkpm_mom_line_tied_bc(size_t nc, double *out, const double *inp, void *ctx)
+{
+  struct dg_bc_ctx *mc = (struct dg_bc_ctx*) ctx;
+  int dir = mc->dir;
+  int nbasis = mc->basis->num_basis;
+
+  // reflect tangential components (zero tangent) and zero gradient in normal
+  for (int i=0; i<3; ++i) {
+    int loc = nbasis*i;
+    if (i == dir) {
+      mc->basis->flip_odd_sign(dir, &inp[loc], &out[loc]);
+    }
+    else {
+      mc->basis->flip_even_sign(dir, &inp[loc], &out[loc]);
+    }
   }
 }
 
@@ -246,6 +269,35 @@ euler_reflect_bc(size_t nc, double *out, const double *inp, void *ctx)
     }
     else {
       mc->basis->flip_odd_sign(dir, &inp[loc], &out[loc]);
+    }
+  }
+}
+
+// Line-tied wall BCs for Euler equations
+GKYL_CU_D
+static void
+euler_line_tied_bc(size_t nc, double *out, const double *inp, void *ctx)
+{
+  struct dg_bc_ctx *mc = (struct dg_bc_ctx*) ctx;
+  int dir = mc->dir;
+  int nbasis = mc->basis->num_basis;
+
+  // Copy BCs for density and energy
+  for (int c=0; c<nbasis; ++c) {
+    out[c] = inp[c];
+  }
+  for (int c=4*nbasis; c<5*nbasis; ++c) {
+    out[c] = inp[c];
+  }
+
+  // reflect tangential components (zero tangent) and zero gradient in normal
+  for (int i=1; i<4; ++i) {
+    int loc = nbasis*i;
+    if (i == dir) {
+      mc->basis->flip_odd_sign(dir, &inp[loc], &out[loc]);
+    }
+    else {
+      mc->basis->flip_even_sign(dir, &inp[loc], &out[loc]);
     }
   }
 }

@@ -339,6 +339,12 @@ pkpm_species_init(struct gkyl_pkpm *pkpm, struct gkyl_pkpm_app *app, struct pkpm
       bctype_dist = GKYL_BC_PKPM_SPECIES_REFLECT;
       bctype_fluid = GKYL_BC_PKPM_MOM_REFLECT;
     }
+    else if (s->lower_bc[d] == GKYL_SPECIES_LINE_TIED) {
+      // Distribution functions are copied into ghost cells and 
+      // momentum has zero tangential components and zero-gradient normal component
+      bctype_dist = GKYL_BC_COPY;
+      bctype_fluid = GKYL_BC_PKPM_MOM_LINE_TIED;
+    }
     else if (s->lower_bc[d] == GKYL_SPECIES_FIXED_FUNC) {
       bctype_dist = GKYL_BC_FIXED_FUNC;
       bctype_fluid = GKYL_BC_FIXED_FUNC;
@@ -364,6 +370,12 @@ pkpm_species_init(struct gkyl_pkpm *pkpm, struct gkyl_pkpm_app *app, struct pkpm
     else if (s->upper_bc[d] == GKYL_SPECIES_REFLECT) {
       bctype_dist = GKYL_BC_PKPM_SPECIES_REFLECT;
       bctype_fluid = GKYL_BC_PKPM_MOM_REFLECT;
+    }
+    else if (s->upper_bc[d] == GKYL_SPECIES_LINE_TIED) {
+      // Distribution functions are copied into ghost cells and 
+      // momentum has zero tangential components and zero-gradient normal component
+      bctype_dist = GKYL_BC_COPY;
+      bctype_fluid = GKYL_BC_PKPM_MOM_LINE_TIED;
     }
     else if (s->upper_bc[d] == GKYL_SPECIES_FIXED_FUNC) {
       bctype_dist = GKYL_BC_FIXED_FUNC;
