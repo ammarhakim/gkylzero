@@ -268,10 +268,8 @@ gk_multib_field_release(struct gk_multib_field *mbf)
     gkyl_array_release(mbf->rho_c_local[bI]);
     gkyl_array_release(mbf->rho_c_multibz_dg[bI]);
     gkyl_array_release(mbf->rho_c_multibz_smooth[bI]);
-    gkyl_array_release(mbf->lhs_weight_local[bI]);
-    gkyl_array_release(mbf->lhs_weight_multibz[bI]);
-    gkyl_array_release(mbf->rhs_weight_local[bI]);
-    gkyl_array_release(mbf->rhs_weight_multibz[bI]);
+    gkyl_array_release(mbf->weight_local[bI]);
+    gkyl_array_release(mbf->weight_multibz[bI]);
     gkyl_multib_comm_conn_release(mbf->mbcc_allgatherz_send[bI]);
     gkyl_multib_comm_conn_release(mbf->mbcc_allgatherz_recv[bI]);
     gkyl_fem_parproj_release(mbf->fem_parproj[bI]);
@@ -287,10 +285,8 @@ gk_multib_field_release(struct gk_multib_field *mbf)
   gkyl_free(mbf->rho_c_local);
   gkyl_free(mbf->rho_c_multibz_dg);
   gkyl_free(mbf->rho_c_multibz_smooth);
-  gkyl_free(mbf->lhs_weight_local);
-  gkyl_free(mbf->lhs_weight_multibz);
-  gkyl_free(mbf->rhs_weight_local);
-  gkyl_free(mbf->rhs_weight_multibz);
+  gkyl_free(mbf->weight_local);
+  gkyl_free(mbf->weight_multibz);
   gkyl_free(mbf->mbcc_allgatherz_send);
   gkyl_free(mbf->mbcc_allgatherz_recv);
   gkyl_free(mbf->fem_parproj);
