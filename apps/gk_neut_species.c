@@ -470,12 +470,10 @@ gk_neut_species_release(const gkyl_gyrokinetic_app* app, const struct gk_neut_sp
   gkyl_dynvec_release(s->integ_diag);
   
   if (app->use_gpu) {
-    gkyl_cu_free(s->omega_cfl);
     gkyl_cu_free(s->red_integ_diag);
     gkyl_cu_free(s->red_integ_diag_global);
   }
   else {
-    gkyl_free(s->omega_cfl);
     gkyl_free(s->red_integ_diag);
     gkyl_free(s->red_integ_diag_global);
   }
