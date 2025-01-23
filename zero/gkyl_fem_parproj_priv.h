@@ -399,7 +399,8 @@ struct gkyl_fem_parproj {
 #define CK(lst,dim,bc,poly_order,loc) lst[dim-1].list[bc].list[poly_order-1].kernels[loc]
 
 void
-fem_parproj_choose_kernels_cu(const struct gkyl_basis* basis, bool isperiodic, bool isdirichlet, struct gkyl_fem_parproj_kernels *kers);
+fem_parproj_choose_kernels_cu(const struct gkyl_basis* basis, bool isweighted,
+  bool isperiodic, bool isdirichlet, struct gkyl_fem_parproj_kernels *kers);
 
 GKYL_CU_D
 static void

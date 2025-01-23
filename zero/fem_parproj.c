@@ -35,7 +35,13 @@ gkyl_fem_parproj_new(const struct gkyl_range *solve_range,
   }
 
   bool has_weight_lhs = false;
-  if (weight_left) has_weight_lhs = true;
+  struct gkyl_array *weight_left_ho;
+  if (weight_left) {
+    has_weight_lhs = true;
+    weight_left_ho = use_gpu? gkyl_array_new(GKYL_DOUBLE, weight_left->ncomp, weight_left->size)
+                            : gkyl_array_acquire(weight_left);
+    gkyl_array_copy(weight_left_ho, weight_left);
+  }
 
   up->globalidx = gkyl_malloc(sizeof(long[up->num_basis]));
 
@@ -80,7 +86,7 @@ gkyl_fem_parproj_new(const struct gkyl_range *solve_range,
 
 #ifdef GKYL_HAVE_CUDA
   if (up->use_gpu)
-    fem_parproj_choose_kernels_cu(basis, up->isperiodic, up->isdirichlet, up->kernels_cu);
+    fem_parproj_choose_kernels_cu(basis, up->has_weight_rhs, up->isperiodic, up->isdirichlet, up->kernels_cu);
 #endif
 
   // We support two cases:
@@ -139,7 +145,7 @@ gkyl_fem_parproj_new(const struct gkyl_range *solve_range,
         for (size_t d=0; d<up->pardir; d++) idx1[d] = up->perp_iter2d.idx[d];
         idx1[up->pardir] = up->par_iter1d.idx[0];
         long linidx = gkyl_range_idx(up->solve_range, idx1);
-        wgt_p = gkyl_array_cfetch(weight_left, linidx);
+        wgt_p = gkyl_array_cfetch(weight_left_ho, linidx);
       }
 
       int keri = up->par_iter1d.idx[0] == up->parnum_cells? 1 : 0;
@@ -162,6 +168,9 @@ gkyl_fem_parproj_new(const struct gkyl_range *solve_range,
   for (size_t i=0; i<prob_range.volume; i++)
     gkyl_mat_triples_release(tri[i]);
   gkyl_free(tri);
+
+  if (weight_left)
+    gkyl_array_release(weight_left_ho);
 
   return up;
 }

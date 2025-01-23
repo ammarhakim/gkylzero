@@ -1262,19 +1262,17 @@ void gpu_test_1x_p1_nonperiodic() {test_1x(1, false, true, false);}
 void gpu_test_1x_p1_periodic() {test_1x(1, true, true, false);}
 void gpu_test_1x_p1_nonperiodic_ghost() {test_1x(1, false, true, true);}
 
-void gpu_test_1x_p2_nonperiodic() {test_1x(2, false, true, false);}
-void gpu_test_1x_p2_periodic() {test_1x(2, true, true, false);}
-void gpu_test_1x_p2_nonperiodic_ghost() {test_1x(2, false, true, true);}
+void gpu_test_1x_p2_nonperiodic() {test_1x(2, false, true);}
+void gpu_test_1x_p2_periodic() {test_1x(2, true, true);}
+
+void gpu_test_3x_p1_nonperiodic() {test_3x(1, false, true);}
+void gpu_test_3x_p1_periodic() {test_3x(1, true, true);}
+
+void gpu_test_3x_p2_nonperiodic() {test_3x(2, false, true);}
+void gpu_test_3x_p2_periodic() {test_3x(2, true, true);}
 
 void gpu_test_2x_p1_dirichlet() {test_2x_dirichlet(1, true);}
-
-void gpu_test_3x_p1_nonperiodic() {test_3x(1, false, true, false);}
-void gpu_test_3x_p1_periodic() {test_3x(1, true, true, false);}
-void gpu_test_3x_p1_nonperiodic_ghost() {test_3x(1, false, true, true);}
-
-void gpu_test_3x_p2_nonperiodic() {test_3x(2, false, true, false);}
-void gpu_test_3x_p2_periodic() {test_3x(2, true, true, false);}
-void gpu_test_3x_p2_nonperiodic_ghost() {test_3x(2, false, true, true);}
+void gpu_test_2x_p1_weighted() {test_2x_weighted(1, false, true);}
 #endif
 
 
@@ -1310,7 +1308,8 @@ TEST_LIST = {
   { "gpu_test_3x_p1_nonperiodic_ghost", gpu_test_3x_p1_nonperiodic_ghost },
   { "gpu_test_3x_p2_nonperiodic", gpu_test_3x_p2_nonperiodic },
   { "gpu_test_3x_p2_periodic", gpu_test_3x_p2_periodic },
-  { "gpu_test_3x_p2_nonperiodic_ghost", gpu_test_3x_p2_nonperiodic_ghost },
+  { "gpu_test_2x_p1_dirichlet", gpu_test_2x_p1_dirichlet},
+  { "gpu_test_2x_p1_weighted", gpu_test_2x_p1_weighted},
 #endif
   { NULL, NULL },
 };
