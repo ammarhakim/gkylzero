@@ -403,8 +403,12 @@ gkyl_gyrokinetic_app_new_solver(struct gkyl_gk *gk, gkyl_gyrokinetic_app *app)
   }
 
   // initialize each species
-  for (int i=0; i<ns; ++i) 
-    gk_species_init(gk, app, &app->species[i]);
+  for (int i=0; i<ns; ++i)
+    if (app->species[i].info.is_static) {
+      gk_species_static_init(gk, app, &app->species[i]);
+    }
+    else
+      gk_species_init(gk, app, &app->species[i]);
 
   // initialize each neutral species
   for (int i=0; i<neuts; ++i) { 
@@ -2234,7 +2238,7 @@ gyrokinetic_rhs(gkyl_gyrokinetic_app* app, double tcurr, double dt,
   // Compute RHS of Gyrokinetic equation.
   for (int i=0; i<app->num_species; ++i) {
     struct gk_species *s = &app->species[i];
-    double dt1 = gk_species_rhs(app, s, fin[i], fout[i]);
+    double dt1 = s->rhs_func(app, s, fin[i], fout[i]);
     dtmin = fmin(dtmin, dt1);
 
     // Compute and store (in the ghost cell of of out) the boundary fluxes.

@@ -491,7 +491,6 @@ main(int argc, char **argv)
       .temp = evalTempD0Init,      
     },
 
-    //.bcx = { GKYL_SPECIES_ABSORB, GKYL_SPECIES_ABSORB},
     .react_neut = {
       .num_react = 3,
       .react_type = {
@@ -547,7 +546,7 @@ main(int argc, char **argv)
 
   // GK app.
   struct gkyl_gk app_inp = {
-    .name = "gk_sheath_3x2v_p1_cons",
+    .name = "gk_static_3x2v_p1",
 
     .cdim = ctx.cdim, .vdim = ctx.vdim,
     .lower = {-0.5*ctx.Lx, -0.5*ctx.Ly, -0.5 * ctx.Lz},
