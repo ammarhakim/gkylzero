@@ -470,14 +470,14 @@ struct gkyl_update_status moment_update_ssp_rk3(gkyl_moment_app *app,
  * @param meta Meta-data for output.
  * @return New meta object to pass to write method.
  */
-struct gkyl_array_meta* moment_array_meta_new(struct moment_output_meta meta);
+struct gkyl_msgpack_data* moment_array_meta_new(struct moment_output_meta meta);
 
 /**
  * Release meta struct
  *
  * @param mt Meta object to free
  */
-void moment_array_meta_release(struct gkyl_array_meta *mt);
+void moment_array_meta_release(struct gkyl_msgpack_data *mt);
 
 /**
  * Read meta-data from mpack formated binary input
@@ -485,4 +485,4 @@ void moment_array_meta_release(struct gkyl_array_meta *mt);
  * @param mt Mpack encoded meta-data
  * @return Meta-data for simulation
  */
-struct moment_output_meta moment_meta_from_mpack(struct gkyl_array_meta *mt);
+struct moment_output_meta moment_meta_from_mpack(struct gkyl_msgpack_data *mt);

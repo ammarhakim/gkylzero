@@ -8,7 +8,20 @@
 
 // Object type
 typedef struct gkyl_calc_bmag gkyl_calc_bmag;
-typedef struct bmag_ctx bmag_ctx;
+
+// Context object for computing bmag
+struct gkyl_bmag_ctx{
+   const struct gkyl_rect_grid* grid; // Physical RZ grid
+   const struct gkyl_rect_grid* cgrid; // Computational grid
+   const struct gkyl_range* range; // Physical RZ range
+   const struct gkyl_range* crange; // Computational range
+   const struct gkyl_range* crange_global; // Global computational range
+   const struct gkyl_basis* basis; // Physical RZ basis
+   const struct gkyl_basis* cbasis; // Computational basis 
+   const struct gkyl_array* bmagdg; // DG representation of bmag in physical RZ coordinates
+   const struct gkyl_array* bmag; // DG representation of bmag in computational coordinates
+   const struct gkyl_array* mapc2p; // DG representation of mapc2p
+};
 
 /**
  * Create new updater to compute the bmag on the compuational grid 
@@ -23,6 +36,16 @@ typedef struct bmag_ctx bmag_ctx;
 gkyl_calc_bmag* 
 gkyl_calc_bmag_new(const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis,
   const struct gkyl_rect_grid *cgrid, const struct gkyl_rect_grid *pgrid, bool use_gpu);
+
+/**
+ * Computes the magnitude of the magnetic field using a global field aligned representation.
+ * 
+ * @param t Time at which to compute the magnetic field.
+ * @param xn Coordinates at which to compute the magnetic field.
+ * @param fout Output array.
+ * @param ctx Context object. Of type bmag_ctx
+*/
+void gkyl_calc_bmag_global(double t, const double *xn, double *fout, void *ctx);
 
 
 /**

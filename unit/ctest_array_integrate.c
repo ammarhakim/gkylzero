@@ -77,7 +77,7 @@ void test_1x_nc1_op(enum gkyl_array_integrate_op integ_op, int poly_order, bool 
 
   double *fint = use_gpu? gkyl_cu_malloc(nc*sizeof(double)) : gkyl_malloc(nc*sizeof(double));
   struct gkyl_array *weight = mkarr(nc*basis.num_basis, local_ext.volume, use_gpu);
-  gkyl_array_integrate_advance(integ_up, distf, 1., weight, &local, fint);
+  gkyl_array_integrate_advance(integ_up, distf, 1., weight, &local, &local, fint);
 
   gkyl_array_integrate_release(integ_up);
 
@@ -159,7 +159,7 @@ void test_1x_nc3_op(enum gkyl_array_integrate_op integ_op, int poly_order, bool 
 
   double *fint = use_gpu? gkyl_cu_malloc(nc*sizeof(double)) : gkyl_malloc(nc*sizeof(double));
   struct gkyl_array *weight = mkarr(nc*basis.num_basis, local_ext.volume, use_gpu);
-  gkyl_array_integrate_advance(integ_up, distf, 1., weight, &local, fint);
+  gkyl_array_integrate_advance(integ_up, distf, 1., weight, &local, &local, fint);
 
   gkyl_array_integrate_release(integ_up);
 
@@ -239,7 +239,7 @@ void test_2x_nc1_op(enum gkyl_array_integrate_op integ_op, int poly_order, bool 
 
   double *fint = use_gpu? gkyl_cu_malloc(nc*sizeof(double)) : gkyl_malloc(nc*sizeof(double));
   struct gkyl_array *weight = mkarr(nc*basis.num_basis, local_ext.volume, use_gpu);
-  gkyl_array_integrate_advance(integ_up, distf, 1., weight, &local, fint);
+  gkyl_array_integrate_advance(integ_up, distf, 1., weight, &local, &local, fint);
 
   gkyl_array_integrate_release(integ_up);
 
@@ -322,7 +322,7 @@ void test_2x_nc3_op(enum gkyl_array_integrate_op integ_op, int poly_order, bool 
 
   double *fint = use_gpu? gkyl_cu_malloc(nc*sizeof(double)) : gkyl_malloc(nc*sizeof(double));
   struct gkyl_array *weight = mkarr(nc*basis.num_basis, local_ext.volume, use_gpu);
-  gkyl_array_integrate_advance(integ_up, distf, 1., weight, &local, fint);
+  gkyl_array_integrate_advance(integ_up, distf, 1., weight, &local, &local, fint);
 
   gkyl_array_integrate_release(integ_up);
 
@@ -388,7 +388,7 @@ void test_1x_op_gradsq(int poly_order, bool use_gpu)
 
   double *fint = use_gpu? gkyl_cu_malloc(nc*sizeof(double)) : gkyl_malloc(nc*sizeof(double));
   struct gkyl_array *weight = mkarr(nc*basis.num_basis, local_ext.volume, use_gpu);
-  gkyl_array_integrate_advance(integ_up, distf, 1., weight, &local, fint);
+  gkyl_array_integrate_advance(integ_up, distf, 1., weight, &local, &local, fint);
 
   gkyl_array_integrate_release(integ_up);
 
@@ -460,7 +460,7 @@ void test_2x_op_gradsq(int poly_order, bool use_gpu)
 
   double *fint = use_gpu? gkyl_cu_malloc(nc*sizeof(double)) : gkyl_malloc(nc*sizeof(double));
   struct gkyl_array *weight = mkarr(nc*basis.num_basis, local_ext.volume, use_gpu);
-  gkyl_array_integrate_advance(integ_up, distf, 1., weight, &local, fint);
+  gkyl_array_integrate_advance(integ_up, distf, 1., weight, &local, &local, fint);
 
   gkyl_array_integrate_release(integ_up);
 

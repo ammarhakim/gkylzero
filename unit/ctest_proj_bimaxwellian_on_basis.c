@@ -1,5 +1,5 @@
-#include "gkyl_array.h"
-#include "gkyl_util.h"
+#include <gkyl_array.h>
+#include <gkyl_util.h>
 #include <acutest.h>
 
 #include <gkyl_array_rio.h>
