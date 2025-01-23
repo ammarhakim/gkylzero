@@ -191,8 +191,7 @@ gkyl_fem_poisson_apply_target_bias_kernel(double *rhs_global, struct gkyl_range 
     // modify the RHS for x=LCFS corresponding lines
     // we overwrite the left nodes (globalidx[0]) of the cells to the right of the LCFS
     // i.e. cells with x coordinate (idx[0]) equal to idxLCFS_m+1
-    if (is_z_edge)
-      if (idx[0] == idxLCFS_m+1) 
+    if (is_z_edge && idx[0] == idxLCFS_m+1) 
         atomicExch((unsigned long long int*) &rhs_global[globalidx[0]],__double_as_longlong(target_corner_bias));
   }
 }
@@ -239,7 +238,7 @@ gkyl_fem_poisson_set_rhs_cu(gkyl_fem_poisson *up, struct gkyl_array *rhsin, doub
     rhs_cu, rhsin->on_dev, *up->solve_range, up->bcvals_cu, up->kernels_cu); 
 
   gkyl_fem_poisson_apply_target_bias_kernel<<<rhsin->nblocks, rhsin->nthreads>>>(rhs_cu, *up->solve_range, 
-    up->is_z_edge, up->idxLCFS_m, target_corner_bias, up->kernels_cu);
+   up->is_z_edge, up->idxLCFS_m, target_corner_bias, up->kernels_cu);
 }	
 
 void
