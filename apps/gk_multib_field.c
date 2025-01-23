@@ -97,8 +97,9 @@ gk_multib_field_new(const struct gkyl_gyrokinetic_multib *mbinp, struct gkyl_gyr
         sbapp->confBasis.num_basis, mbf->multibz_ranges_ext[bI]->volume);
 
     if (ndim == 1) {
-      mbf->weight_local[bI] = gkyl_array_acquire(sbapp->field->weight);
-      mbf->weight_multibz[bI] = mkarr(mbapp->use_gpu, 
+      mbf->weight_local[bI] = mkarr(false, sbapp->confBasis.num_basis, sbapp->local_ext.volume);
+      gkyl_array_copy_range_to_range(mbf->weight_local[bI], sbapp->field->weight, &sbapp->local, &sbapp->field->global_sub_range);
+      mbf->weight_multibz[bI] = mkarr(false, 
         sbapp->confBasis.num_basis, mbf->multibz_ranges_ext[bI]->volume);
     }
     else {
