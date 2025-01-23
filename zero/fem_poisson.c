@@ -205,7 +205,7 @@ gkyl_fem_poisson_new(const struct gkyl_range *solve_range, const struct gkyl_rec
       struct gkyl_mtriple mt = gkyl_mat_triples_iter_at(iter);
       size_t idx[2] = { mt.row, mt.col };
       int k  = idx[0]; // k-th equation row (k = iy + Ny*ix) for periodic y
-      int ix = grid->ndim == 3? k / grid->cells[1] : k; // get node x-index
+      int ix = grid->ndim == 2? k / grid->cells[1] : k; // get node x-index
       // Detect if we are currently at an equation row for the LCFS
       if(ix == up->idxLCFS_m){
         // Set up 1 at the diag element
@@ -328,7 +328,7 @@ gkyl_fem_poisson_set_rhs(gkyl_fem_poisson* up, struct gkyl_array *rhsin, double 
     // apply new BC on the RHS vector
     gkyl_range_iter_init(&up->solve_iter, up->solve_range);
     for (size_t i=0; i<up->numnodes_global; ++i) {
-      int ix = up->grid.ndim == 3? i / up->grid.cells[1] : i; // get node x-index
+      int ix = up->grid.ndim == 2? i / up->grid.cells[1] : i; // get node x-index
       if(ix == up->idxLCFS_m){
         brhs_p[i] = target_corner_bias;
       }
