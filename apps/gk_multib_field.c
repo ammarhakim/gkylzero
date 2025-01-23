@@ -159,8 +159,9 @@ gk_multib_field_new(const struct gkyl_gyrokinetic_multib *mbinp, struct gkyl_gyr
   for (int bI=0; bI<mbf->num_local_blocks; ++bI) {
     int bid = local_blocks[bI];
     struct gkyl_gyrokinetic_app *sbapp = mbapp->singleb_apps[bI];
+    enum gkyl_fem_parproj_bc_type fem_parbc = mbf->info.duplicate_across_blocks? mbf->info.blocks[0].fem_parbc : mbf->info.blocks[bid].fem_parbc;
     mbf->fem_parproj[bI] = gkyl_fem_parproj_new(mbf->multibz_ranges[bI], mbf->multibz_ranges_ext[bI],
-        &sbapp->confBasis, mbf->info.blocks[bid].fem_parbc, mbf->weight_multibz[bI], mbapp->use_gpu);
+        &sbapp->confBasis, fem_parbc, mbf->weight_multibz[bI], mbapp->use_gpu);
   }
   
   // Set intersects for copying local rho back out after smoothing
