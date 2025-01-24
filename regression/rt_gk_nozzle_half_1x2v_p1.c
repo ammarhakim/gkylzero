@@ -18,11 +18,13 @@ struct gk_nozzle_ctx
 {
   int cdim, vdim; // Dimensionality.
   // Plasma parameters
-  double mi;
-  double qi;
+  double me, mi;
+  double qe, qi;
   double n_init;
+  double Te_init;
   double Ti_init;
   double nu_ion;
+  double B_p;
   // Thermal speeds.
   double vti;
   // Gyrofrequencies and gyroradii.
@@ -108,8 +110,10 @@ create_ctx(void)
   // Universal constant parameters.
   double eps0 = GKYL_EPSILON0;
   double eV = GKYL_ELEMENTARY_CHARGE;
-  double mi = GKYL_PROTON_MASS; // ion mass
-  double qi = eV;  // ion charge
+  double me = GKYL_ELECTRON_MASS; // Electron mass.
+  double mi = GKYL_PROTON_MASS; // Ion mass.
+  double qe = -eV;  // Electron charge.
+  double qi = eV;  // Ion charge.
 
   double z_min =  0.0;
   double z_max =  3.0;
@@ -118,7 +122,8 @@ create_ctx(void)
 
   // Plasma parameters
   double n_init = 3e19;
-  double Ti_init = 10000 * eV;
+  double Te_init = 1e3 * eV;
+  double Ti_init = 10e3 * eV;
   double vti = sqrt(Ti_init / mi);
   printf("vti = %g\n", vti);
 
@@ -150,15 +155,19 @@ create_ctx(void)
   struct gk_nozzle_ctx ctx = {
     .cdim = cdim,
     .vdim = vdim,
+    .me = me,
     .mi = mi,
+    .qe = qe,
     .qi = qi,
     .nu_ion = nu_ion,
+    .B_p = B_p,
     .z_min = z_min,
     .z_max = z_max,
     .psi_eval = psi_eval,
     .vpar_max_ion = vpar_max_ion,
     .mu_max_ion = mu_max_ion,
     .n_init = n_init,
+    .Te_init = Te_init,
     .Ti_init = Ti_init,
     .Nz = Nz,
     .Nvpar = Nvpar,
@@ -276,6 +285,19 @@ int main(int argc, char **argv)
     .zmax =  1.0,  // Z of upper boundary 
   };
 
+  struct gkyl_gyrokinetic_field field = {
+    .gkfield_id = GKYL_GK_FIELD_BOLTZMANN,
+
+    .electron_mass = ctx.me,
+    .electron_charge = ctx.qe,
+    .electron_temp = ctx.Te_init,
+    .polarization_bmag = ctx.B_p, // Issue here. B0 from soloviev, so not sure what to do. Ours is not constant
+    .fem_parbc = GKYL_FEM_PARPROJ_NONE,
+
+    .zero_init_field = true, // Don't compute the field at t=0.
+    .is_static = true, // Don't update the field in time.
+  };
+
   // GK app
   struct gkyl_gk app_inp = {
     .name = "gk_nozzle_half_1x2v_p1",
@@ -285,18 +307,24 @@ int main(int argc, char **argv)
     .cells = { cells_x[0] },
     .poly_order = ctx.poly_order,
     .basis_type = app_args.basis_type,
+
     // .enforce_positivity = true,
-    .skip_field = true,
+
     .geometry = {
       .geometry_id = GKYL_MIRROR,
       .world = {ctx.psi_eval, 0.0},
       .efit_info = efit_inp,
       .mirror_grid_info = grid_inp,
     },
+
+    .field = field,
+
     .num_periodic_dir = 0,
     .periodic_dirs = {},
+
     .num_species = 1,
     .species = {ion},
+
     .parallelism = {
       .use_gpu = app_args.use_gpu,
       .cuts = { app_args.cuts[0] },

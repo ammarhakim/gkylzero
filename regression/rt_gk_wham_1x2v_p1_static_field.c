@@ -865,7 +865,7 @@ int main(int argc, char **argv)
     .polarization_bmag = ctx.B_p, 
     .fem_parbc = GKYL_FEM_PARPROJ_NONE,
     .kperpSq = pow(ctx.kperp, 2.),
-    .is_static = true,
+    .is_static = true, // Don't update the field in time.
   };
 
   struct gkyl_efit_inp efit_inp = {
@@ -883,7 +883,7 @@ int main(int argc, char **argv)
 
   // GK app
   struct gkyl_gk app_inp = {
-    .name = "gk_wham_1x2v_p1",
+    .name = "gk_wham_1x2v_p1_static_field",
 
     .cdim = ctx.cdim, .vdim = ctx.vdim,
     .lower = {ctx.z_min},

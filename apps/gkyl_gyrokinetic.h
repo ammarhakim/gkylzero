@@ -257,6 +257,9 @@ struct gkyl_gyrokinetic_neut_species {
 // Parameter for gk field.
 struct gkyl_gyrokinetic_field {
   enum gkyl_gkfield_id gkfield_id;
+  bool is_static; // =true field does not change in time.
+  bool zero_init_field; // =true doesn't compute the initial field.
+
   double polarization_bmag; 
   double kperpSq; // kperp^2 parameter for 1D field equations
   double xLCFS; // radial location of the LCFS.
@@ -266,8 +269,6 @@ struct gkyl_gyrokinetic_field {
 
   enum gkyl_fem_parproj_bc_type fem_parbc;
   struct gkyl_poisson_bc poisson_bcs;
-
-  bool is_static; // Set to true if field does not change in time.
 
   // Initial potential used to compute the total polarization density.
   void (*polarization_potential)(double t, const double *xn, double *out, void *ctx);
@@ -309,7 +310,6 @@ struct gkyl_gk {
   int num_neut_species; // number of species
   struct gkyl_gyrokinetic_neut_species neut_species[GKYL_MAX_SPECIES]; // species objects
   
-  bool skip_field; // Skip field update -> phi = 0 for all time
   struct gkyl_gyrokinetic_field field; // field object
 
   struct gkyl_app_parallelism_inp parallelism; // Parallelism-related inputs.

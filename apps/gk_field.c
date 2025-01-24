@@ -19,7 +19,10 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
 
   f->gkfield_id = f->info.gkfield_id ? f->info.gkfield_id : GKYL_GK_FIELD_ES;
 
-  f->is_static = false;
+  f->calc_init_field = !f->info.zero_init_field;
+  f->update_field = !f->info.is_static;
+  // The combination update_field=true, calc_init_field=false is not allowed.
+  assert(!(f->update_field && (!f->calc_init_field)));
 
   // allocate arrays for charge density
   f->rho_c = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
