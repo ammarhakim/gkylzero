@@ -572,6 +572,9 @@ struct gk_species {
   // pointer to rhs functions
   double (*rhs_func)(gkyl_gyrokinetic_app *app, struct gk_species *species,
     const struct gkyl_array *fin, struct gkyl_array *rhs);
+  void (*bc_func)(gkyl_gyrokinetic_app *app, const struct gk_species *species,
+    struct gkyl_array *f);
+  void (*release_func)(const gkyl_gyrokinetic_app* app, const struct gk_species *s);
 
   double *omega_cfl;
 };
@@ -1349,6 +1352,30 @@ double gk_species_rhs(gkyl_gyrokinetic_app *app, struct gk_species *species,
   const struct gkyl_array *fin, struct gkyl_array *rhs);
 
 /**
+ * Compute RHS from species distribution function
+ *
+ * @param app gyrokinetic app object
+ * @param species Pointer to species
+ * @param fin Input distribution function
+ * @param rhs On output, the RHS from the species object
+ * @return Maximum stable time-step
+ */
+double gk_species_rhs(gkyl_gyrokinetic_app *app, struct gk_species *species,
+  const struct gkyl_array *fin, struct gkyl_array *rhs);
+
+/**
+ * Compute RHS from species distribution function
+ *
+ * @param app gyrokinetic app object
+ * @param species Pointer to species
+ * @param fin Input distribution function
+ * @param rhs On output, the RHS from the species object
+ * @return Maximum stable time-step
+ */
+double gk_species_dynamic_rhs(gkyl_gyrokinetic_app *app, struct gk_species *species,
+  const struct gkyl_array *fin, struct gkyl_array *rhs);
+
+/**
  * Compute RHS from static species distribution function
  *
  * @param app gyrokinetic app object
@@ -1368,6 +1395,24 @@ double gk_species_static_rhs(gkyl_gyrokinetic_app *app, struct gk_species *speci
  * @param f Field to apply BCs
  */
 void gk_species_apply_bc(gkyl_gyrokinetic_app *app, const struct gk_species *species, struct gkyl_array *f);
+
+/**
+ * Apply BCs to species distribution function.
+ *
+ * @param app gyrokinetic app object
+ * @param species Pointer to species
+ * @param f Field to apply BCs
+ */
+void gk_species_dynamic_apply_bc(gkyl_gyrokinetic_app *app, const struct gk_species *species, struct gkyl_array *f);
+
+/**
+ * Apply BCs to species distribution function.
+ *
+ * @param app gyrokinetic app object
+ * @param species Pointer to species
+ * @param f Field to apply BCs
+ */
+void gk_species_static_apply_bc(gkyl_gyrokinetic_app *app, const struct gk_species *species, struct gkyl_array *f);
 
 /**
  * Fill stat object in app with collision timers.
@@ -1390,6 +1435,22 @@ void gk_species_tm(gkyl_gyrokinetic_app *app);
  * @param species Species object to delete
  */
 void gk_species_release(const gkyl_gyrokinetic_app* app, const struct gk_species *s);
+
+/**
+ * Delete resources used in species.
+ *
+ * @param app gyrokinetic app object
+ * @param species Species object to delete
+ */
+void gk_species_dynamic_release(const gkyl_gyrokinetic_app* app, const struct gk_species *s);
+
+/**
+ * Delete resources used in species.
+ *
+ * @param app gyrokinetic app object
+ * @param species Species object to delete
+ */
+void gk_species_static_release(const gkyl_gyrokinetic_app* app, const struct gk_species *s);
 
 /** gk_neut_species_moment API */
 

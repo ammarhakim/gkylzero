@@ -390,9 +390,6 @@ gk_species_init(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *app, st
 
   // set species source id
   gks->src = (struct gk_source) { };
-
-  // Set rhs function
-  gks->rhs_func = gk_species_rhs;
   
   // Determine collision type and initialize it.
   gks->lbo = (struct gk_lbo_collisions) { };
@@ -642,6 +639,11 @@ gk_species_init(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *app, st
     gks->ps_integ_diag = gkyl_dynvec_new(GKYL_DOUBLE, gks->ps_moms.num_mom);
     gks->is_first_ps_integ_write_call = true;
   }
+
+  // set function pointers
+  gks->rhs_func = gk_species_dynamic_rhs;
+  gks->bc_func = gk_species_dynamic_apply_bc;
+  gks->release_func = gk_species_dynamic_release;
 }
 
 // initialize static species object
@@ -802,9 +804,6 @@ gk_species_static_init(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *
   // set species source id
   gks->src = (struct gk_source) { };
 
-  // set rhs function
-  gks->rhs_func = gk_species_static_rhs;
-
   // Create skin/ghost ranges for applying BCs.
   for (int dir=0; dir<cdim; ++dir) {
     // Create local lower skin and ghost ranges for distribution function
@@ -828,7 +827,12 @@ gk_species_static_init(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *
 
   // Initialize boundary fluxes for diagnostics and/or neut recycle bcs 
   gks->bflux = (struct gk_boundary_fluxes) { };
-  gk_species_bflux_init(app, gks, &gks->bflux); 
+  gk_species_bflux_init(app, gks, &gks->bflux);
+
+  // set function pointers
+  gks->rhs_func = gk_species_static_rhs;
+  gks->bc_func = gk_species_static_apply_bc;
+  gks->release_func = gk_species_static_release;
 }
 
 void
@@ -895,6 +899,13 @@ double
 gk_species_rhs(gkyl_gyrokinetic_app *app, struct gk_species *species,
   const struct gkyl_array *fin, struct gkyl_array *rhs)
 {
+  return species->rhs_func(app, species, fin, rhs);
+}
+  
+double
+gk_species_dynamic_rhs(gkyl_gyrokinetic_app *app, struct gk_species *species,
+  const struct gkyl_array *fin, struct gkyl_array *rhs)
+{
   gkyl_array_set(species->phi, 1.0, app->field->phi_smooth);
 
   gkyl_array_clear(species->cflrate, 0.0);
@@ -949,17 +960,19 @@ double
 gk_species_static_rhs(gkyl_gyrokinetic_app *app, struct gk_species *species,
   const struct gkyl_array *fin, struct gkyl_array *rhs)
 {
-  gkyl_array_set(species->phi, 1.0, app->field->phi_smooth);
-
-  double omega_cfl_ho[1];
-  omega_cfl_ho[0] = 1/DBL_MAX;
- 
-  return app->cfl/omega_cfl_ho[0];
+  double omega_cfl = 1/DBL_MAX;
+  return app->cfl/omega_cfl;
 }
 
 // Apply boundary conditions to the distribution function.
 void
 gk_species_apply_bc(gkyl_gyrokinetic_app *app, const struct gk_species *species, struct gkyl_array *f)
+{
+  species->bc_func(app, species, f);
+}
+
+void
+gk_species_dynamic_apply_bc(gkyl_gyrokinetic_app *app, const struct gk_species *species, struct gkyl_array *f)
 {
   struct timespec wst = gkyl_wall_clock();
   
@@ -1028,6 +1041,12 @@ gk_species_apply_bc(gkyl_gyrokinetic_app *app, const struct gk_species *species,
 }
 
 void
+gk_species_static_apply_bc(gkyl_gyrokinetic_app *app, const struct gk_species *species, struct gkyl_array *f)
+{
+  // do nothing
+}
+
+void
 gk_species_coll_tm(gkyl_gyrokinetic_app *app)
 {
   for (int i=0; i<app->num_species; ++i) {
@@ -1052,6 +1071,16 @@ gk_species_tm(gkyl_gyrokinetic_app *app)
 }
 
 // release resources for species
+void
+gk_species_static_release(const gkyl_gyrokinetic_app* app, const struct gk_species *s)
+{
+}
+
+void
+gk_species_dynamic_release(const gkyl_gyrokinetic_app* app, const struct gk_species *s)
+{
+}
+
 void
 gk_species_release(const gkyl_gyrokinetic_app* app, const struct gk_species *s)
 {

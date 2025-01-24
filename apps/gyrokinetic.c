@@ -2238,7 +2238,7 @@ gyrokinetic_rhs(gkyl_gyrokinetic_app* app, double tcurr, double dt,
   // Compute RHS of Gyrokinetic equation.
   for (int i=0; i<app->num_species; ++i) {
     struct gk_species *s = &app->species[i];
-    double dt1 = s->rhs_func(app, s, fin[i], fout[i]);
+    double dt1 = gk_species_rhs(app, s, fin[i], fout[i]);
     dtmin = fmin(dtmin, dt1);
 
     // Compute and store (in the ghost cell of of out) the boundary fluxes.
