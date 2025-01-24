@@ -85,7 +85,7 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
     }
     if (app->cdim == 1) {
       // Need to set weight to kperpsq*polarizationWeight for use in potential smoothing.
-      f->weight = mkarr(false, app->confBasis.num_basis, app->global_ext.volume); // fem_parproj expects weight on host
+      f->weight = mkarr(app->use_gpu, app->confBasis.num_basis, app->global_ext.volume);
  
       // Gather jacobgeo for smoothing in z.
       struct gkyl_array *jacobgeo_global = mkarr(app->use_gpu, app->confBasis.num_basis, app->global_ext.volume);
@@ -103,7 +103,7 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
         double q_s = f->info.electron_charge;
         double T_s = f->info.electron_temp;
         double quasineut_contr = q_s*n_s0*q_s/T_s;
-        struct gkyl_array *weight_adiab = mkarr(false, app->confBasis.num_basis, app->global_ext.volume); // fem_parproj expects weight on host
+        struct gkyl_array *weight_adiab = mkarr(app->use_gpu, app->confBasis.num_basis, app->global_ext.volume);
         gkyl_array_copy(weight_adiab, jacobgeo_global);
         gkyl_array_scale(weight_adiab, quasineut_contr);
         gkyl_array_accumulate(f->weight, 1., weight_adiab);
