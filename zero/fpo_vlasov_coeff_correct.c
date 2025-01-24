@@ -1,20 +1,20 @@
 #include <assert.h>
 #include <gkyl_alloc.h>
 #include <gkyl_alloc_flags_priv.h>
-#include <gkyl_fpo_vlasov_coeffs_correct.h>
-#include <gkyl_fpo_vlasov_coeffs_correct_priv.h>
+#include <gkyl_fpo_vlasov_coeff_correct.h>
+#include <gkyl_fpo_vlasov_coeff_correct_priv.h>
 
-gkyl_fpo_coeffs_correct*
-gkyl_fpo_coeffs_correct_new(const struct gkyl_rect_grid *grid,
+gkyl_fpo_coeff_correct*
+gkyl_fpo_coeff_correct_new(const struct gkyl_rect_grid *grid,
   const struct gkyl_basis *conf_basis, const struct gkyl_range *conf_range, bool use_gpu)
 {
 #ifdef GKYL_HAVE_CUDA
   if (use_gpu) {
-    return gkyl_fpo_coeffs_correct_cu_dev_new(grid, conf_basis, conf_range);
+    return gkyl_fpo_coeff_correct_cu_dev_new(grid, conf_basis, conf_range);
   }
 #endif
 
-  struct gkyl_fpo_coeffs_correct *up = gkyl_malloc(sizeof(struct gkyl_fpo_coeffs_correct)); 
+  struct gkyl_fpo_coeff_correct *up = gkyl_malloc(sizeof(struct gkyl_fpo_coeff_correct)); 
 
   int cdim = conf_basis->ndim;
   int poly_order = conf_basis->poly_order;
@@ -32,13 +32,13 @@ gkyl_fpo_coeffs_correct_new(const struct gkyl_rect_grid *grid,
   up->mem = 0;
 
   // Kernels for setting linear system matrices
-  const gkyl_fpo_coeffs_correct_mat_set_kern_list *mat_set_kern_list;
-  const gkyl_fpo_coeffs_correct_accum_kern_list *accum_kern_list;
+  const gkyl_fpo_coeff_correct_mat_set_kern_list *mat_set_kern_list;
+  const gkyl_fpo_coeff_correct_accum_kern_list *accum_kern_list;
 
   switch (conf_basis->b_type) {
     case GKYL_BASIS_MODAL_SERENDIPITY:
-      mat_set_kern_list = ser_fpo_coeffs_correct_mat_set_kernels;
-      accum_kern_list = ser_fpo_coeffs_correct_accum_kernels;
+      mat_set_kern_list = ser_fpo_coeff_correct_mat_set_kernels;
+      accum_kern_list = ser_fpo_coeff_correct_accum_kernels;
       break;
 
     default:
@@ -54,7 +54,7 @@ gkyl_fpo_coeffs_correct_new(const struct gkyl_rect_grid *grid,
   return up;
 }
 
-void gkyl_fpo_coeffs_correct_advance(gkyl_fpo_coeffs_correct *up,
+void gkyl_fpo_coeff_correct_advance(gkyl_fpo_coeff_correct *up,
   const struct gkyl_range *conf_range, const struct gkyl_range *phase_range,
   const struct gkyl_array *fpo_moms, const struct gkyl_array *boundary_corrections,
   const struct gkyl_array *moms, struct gkyl_array *drag_diff_coeff_corrs,
@@ -63,7 +63,7 @@ void gkyl_fpo_coeffs_correct_advance(gkyl_fpo_coeffs_correct *up,
 {
 #ifdef GKYL_HAVE_CUDA
   if (use_gpu) {
-    return gkyl_fpo_coeffs_correct_advance_cu(up, conf_range, phase_range, 
+    return gkyl_fpo_coeff_correct_advance_cu(up, conf_range, phase_range, 
       fpo_moms, boundary_corrections, moms, drag_diff_coeff_corrs, 
       drag_coeff, drag_coeff_surf, diff_coeff, diff_coeff_surf);
   }
@@ -145,7 +145,7 @@ void gkyl_fpo_coeffs_correct_advance(gkyl_fpo_coeffs_correct *up,
   }
 }
 
-void gkyl_fpo_vlasov_coeffs_correct_release(gkyl_fpo_coeffs_correct *up)
+void gkyl_fpo_vlasov_coeff_correct_release(gkyl_fpo_coeff_correct *up)
 {
   if (up->As)
     gkyl_nmat_release(up->As);

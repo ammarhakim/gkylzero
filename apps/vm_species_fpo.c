@@ -100,7 +100,7 @@ vm_species_fpo_init(struct gkyl_vlasov_app *app, struct vm_species *s, struct vm
     &app->confBasis, &app->basis, &s->local, v_bounds, fpo->diff_coeff, app->use_gpu);
 
   // updater object for drag and diffusion coefficient correction
-  fpo->coeffs_correct_calc = gkyl_fpo_coeffs_correct_new(&s->grid, &app->confBasis, &app->local, app->use_gpu);
+  fpo->coeff_correct_calc = gkyl_fpo_coeff_correct_new(&s->grid, &app->confBasis, &app->local, app->use_gpu);
 
   // initialize FPO updater
   fpo->coll_slvr = gkyl_dg_updater_fpo_vlasov_new(&s->grid, &app->basis, &s->local, app->use_gpu);
@@ -151,7 +151,7 @@ vm_species_fpo_drag_diff_coeffs(gkyl_vlasov_app *app, const struct vm_species *s
   }
 
   // solve linear system for corrections and accumulate onto drag/diff coefficients
-  gkyl_fpo_coeffs_correct_advance(fpo->coeffs_correct_calc,
+  gkyl_fpo_coeff_correct_advance(fpo->coeff_correct_calc,
     &app->local, &s->local, fpo->fpo_moms, fpo->boundary_corrections,
     fpo->moms.marr, fpo->drag_diff_coeff_corrs,
     fpo->drag_coeff, fpo->drag_coeff_surf,
@@ -221,7 +221,7 @@ vm_species_fpo_release(const struct gkyl_vlasov_app *app, const struct vm_fpo_co
   gkyl_mom_calc_release(fpo->fpo_mom_calc);
   gkyl_mom_calc_bcorr_release(fpo->bcorr_calc);
 
-  gkyl_fpo_vlasov_coeffs_correct_release(fpo->coeffs_correct_calc);
+  gkyl_fpo_vlasov_coeff_correct_release(fpo->coeff_correct_calc);
   gkyl_fpo_vlasov_coeff_recovery_release(fpo->coeff_recovery);
 
   gkyl_dg_updater_fpo_vlasov_release(fpo->coll_slvr);

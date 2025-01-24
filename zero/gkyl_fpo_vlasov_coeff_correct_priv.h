@@ -25,7 +25,7 @@ typedef void (*fpo_correct_accum_t)(const double *drag_diff_coeff_corrs, double 
   double *drag_coeff_surf, double *diff_coeff, double *diff_coeff_surf);
 
 // Object type
-struct gkyl_fpo_coeffs_correct {
+struct gkyl_fpo_coeff_correct {
   int num_conf_basis;
 
   const struct gkyl_rect_grid *grid;
@@ -40,15 +40,15 @@ struct gkyl_fpo_coeffs_correct {
 
   uint32_t flags;
 
-  struct gkyl_fpo_coeffs_correct *on_dev; // Pointer to device copy of struct
+  struct gkyl_fpo_coeff_correct *on_dev; // Pointer to device copy of struct
 };
 
 // For use in kernel tables
-typedef struct { fpo_correct_mat_set_t kernels[3]; } gkyl_fpo_coeffs_correct_mat_set_kern_list;
-typedef struct { fpo_correct_accum_t kernels[3]; } gkyl_fpo_coeffs_correct_accum_kern_list;
+typedef struct { fpo_correct_mat_set_t kernels[3]; } gkyl_fpo_coeff_correct_mat_set_kern_list;
+typedef struct { fpo_correct_accum_t kernels[3]; } gkyl_fpo_coeff_correct_accum_kern_list;
 
 GKYL_CU_D
-static const gkyl_fpo_coeffs_correct_mat_set_kern_list ser_fpo_coeffs_correct_mat_set_kernels[] = {
+static const gkyl_fpo_coeff_correct_mat_set_kern_list ser_fpo_coeff_correct_mat_set_kernels[] = {
   {NULL, NULL, NULL },
   { NULL, mom_fpo_vlasov_coeff_correct_mat_1x3v_ser_p1, mom_fpo_vlasov_coeff_correct_mat_1x3v_ser_p2 },
   { NULL, mom_fpo_vlasov_coeff_correct_mat_2x3v_ser_p1, mom_fpo_vlasov_coeff_correct_mat_2x3v_ser_p2 },
@@ -56,7 +56,7 @@ static const gkyl_fpo_coeffs_correct_mat_set_kern_list ser_fpo_coeffs_correct_ma
 };
 
 GKYL_CU_D
-static const gkyl_fpo_coeffs_correct_accum_kern_list ser_fpo_coeffs_correct_accum_kernels[] = 
+static const gkyl_fpo_coeff_correct_accum_kern_list ser_fpo_coeff_correct_accum_kernels[] = 
 {
   { NULL, NULL, NULL },
   { NULL, mom_fpo_vlasov_coeff_correct_accum_1x3v_ser_p1, mom_fpo_vlasov_coeff_correct_accum_1x3v_ser_p2 },

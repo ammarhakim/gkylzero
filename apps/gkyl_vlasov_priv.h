@@ -44,7 +44,7 @@
 #include <gkyl_dynvec.h>
 #include <gkyl_elem_type.h>
 #include <gkyl_eqn_type.h>
-#include <gkyl_fpo_vlasov_coeffs_correct.h>
+#include <gkyl_fpo_vlasov_coeff_correct.h>
 #include <gkyl_fpo_vlasov_coeff_recovery.h>
 #include <gkyl_fpo_proj_maxwellian_pots_on_basis.h>
 #include <gkyl_eval_on_nodes.h>
@@ -246,7 +246,7 @@ struct vm_fpo_collisions {
 
   struct gkyl_mom_calc *fpo_mom_calc; // FPO volume corrections calculator 
   struct gkyl_mom_calc_bcorr *bcorr_calc; // FPO boundary corrections calculator
-  gkyl_fpo_coeffs_correct *coeffs_correct_calc; // FPO drag and diffusion coeff correction calculator
+  gkyl_fpo_coeff_correct *coeff_correct_calc; // FPO drag and diffusion coeff correction calculator
   
   gkyl_dg_updater_collisions *coll_slvr; // collision solver
   long offsets[36]; // Array of relative offsets for 3- and 6-cell stencils. Will probably be moved to hyper_dg

@@ -2,12 +2,12 @@ extern "C" {
 #include <assert.h>
 #include <gkyl_alloc.h>
 #include <gkyl_alloc_flags_priv.h>
-#include <gkyl_fpo_vlasov_coeffs_correct.h>
-#include <gkyl_fpo_vlasov_coeffs_correct_priv.h>
+#include <gkyl_fpo_vlasov_coeff_correct.h>
+#include <gkyl_fpo_vlasov_coeff_correct_priv.h>
 }
 
 __global__ static void
-gkyl_fpo_coeffs_correct_set_mat_cu_ker(gkyl_fpo_coeffs_correct *up,
+gkyl_fpo_coeff_correct_set_mat_cu_ker(gkyl_fpo_coeff_correct *up,
   struct gkyl_nmat *As, struct gkyl_nmat *xs, struct gkyl_range conf_range,
   const struct gkyl_array *fpo_moms, const struct gkyl_array *boundary_corrections,
   const struct gkyl_array *moms)
@@ -35,7 +35,7 @@ gkyl_fpo_coeffs_correct_set_mat_cu_ker(gkyl_fpo_coeffs_correct *up,
 }
 
 __global__ static void
-gkyl_fpo_coeffs_correct_copy_sol_cu_ker(gkyl_fpo_coeffs_correct *up,
+gkyl_fpo_coeff_correct_copy_sol_cu_ker(gkyl_fpo_coeff_correct *up,
   struct gkyl_range conf_range, struct gkyl_nmat *xs, struct gkyl_array *drag_diff_coeff_corrs)
 {
   int nc = up->num_conf_basis;
@@ -59,7 +59,7 @@ gkyl_fpo_coeffs_correct_copy_sol_cu_ker(gkyl_fpo_coeffs_correct *up,
 }
 
 __global__ static void
-gkyl_fpo_coeffs_correct_accum_cu_ker(gkyl_fpo_coeffs_correct *up,
+gkyl_fpo_coeff_correct_accum_cu_ker(gkyl_fpo_coeff_correct *up,
   struct gkyl_nmat *xs, struct gkyl_range conf_range, struct gkyl_range phase_range,
   const struct gkyl_array *drag_diff_coeff_corrs, struct gkyl_array *drag_coeff,
   struct gkyl_array *drag_coeff_surf, struct gkyl_array *diff_coeff, struct gkyl_array *diff_coeff_surf)
@@ -88,16 +88,16 @@ gkyl_fpo_coeffs_correct_accum_cu_ker(gkyl_fpo_coeffs_correct *up,
 
 
 __global__ static void
-gkyl_fpo_coeffs_correct_set_cu_dev_ptrs(gkyl_fpo_coeffs_correct *up, gkyl_basis_type b_type, int cdim, int poly_order) 
+gkyl_fpo_coeff_correct_set_cu_dev_ptrs(gkyl_fpo_coeff_correct *up, gkyl_basis_type b_type, int cdim, int poly_order) 
 {
   // Kernels for setting linear system matrices
-  const gkyl_fpo_coeffs_correct_mat_set_kern_list *mat_set_kern_list;
-  const gkyl_fpo_coeffs_correct_accum_kern_list *accum_kern_list;
+  const gkyl_fpo_coeff_correct_mat_set_kern_list *mat_set_kern_list;
+  const gkyl_fpo_coeff_correct_accum_kern_list *accum_kern_list;
 
   switch (b_type) {
     case GKYL_BASIS_MODAL_SERENDIPITY:
-      mat_set_kern_list = ser_fpo_coeffs_correct_mat_set_kernels;
-      accum_kern_list = ser_fpo_coeffs_correct_accum_kernels;
+      mat_set_kern_list = ser_fpo_coeff_correct_mat_set_kernels;
+      accum_kern_list = ser_fpo_coeff_correct_accum_kernels;
       break;
 
     default:
@@ -109,11 +109,11 @@ gkyl_fpo_coeffs_correct_set_cu_dev_ptrs(gkyl_fpo_coeffs_correct *up, gkyl_basis_
   up->accum_kernel = accum_kern_list[cdim].kernels[poly_order];
 }
 
-gkyl_fpo_coeffs_correct*
-gkyl_fpo_coeffs_correct_cu_dev_new(const struct gkyl_rect_grid *grid, 
+gkyl_fpo_coeff_correct*
+gkyl_fpo_coeff_correct_cu_dev_new(const struct gkyl_rect_grid *grid, 
   const struct gkyl_basis *conf_basis, const struct gkyl_range *conf_range)
 {
-  struct gkyl_fpo_coeffs_correct *up = (struct gkyl_fpo_coeffs_correct *)gkyl_malloc(sizeof(struct gkyl_fpo_coeffs_correct)); 
+  struct gkyl_fpo_coeff_correct *up = (struct gkyl_fpo_coeff_correct *)gkyl_malloc(sizeof(struct gkyl_fpo_coeff_correct)); 
 
   int cdim = conf_basis->ndim;
   int poly_order = conf_basis->poly_order;
@@ -129,11 +129,11 @@ gkyl_fpo_coeffs_correct_cu_dev_new(const struct gkyl_rect_grid *grid,
   up->xs = 0;
   up->mem = 0;
 
-  struct gkyl_fpo_coeffs_correct *up_cu = (struct gkyl_fpo_coeffs_correct *)
-    gkyl_cu_malloc(sizeof(struct gkyl_fpo_coeffs_correct)); 
-  gkyl_cu_memcpy(up_cu, up, sizeof(struct gkyl_fpo_coeffs_correct), GKYL_CU_MEMCPY_H2D);
+  struct gkyl_fpo_coeff_correct *up_cu = (struct gkyl_fpo_coeff_correct *)
+    gkyl_cu_malloc(sizeof(struct gkyl_fpo_coeff_correct)); 
+  gkyl_cu_memcpy(up_cu, up, sizeof(struct gkyl_fpo_coeff_correct), GKYL_CU_MEMCPY_H2D);
 
-  gkyl_fpo_coeffs_correct_set_cu_dev_ptrs<<<1,1>>>(up_cu, conf_basis->b_type, cdim, poly_order);
+  gkyl_fpo_coeff_correct_set_cu_dev_ptrs<<<1,1>>>(up_cu, conf_basis->b_type, cdim, poly_order);
 
   up->flags = 0;
   GKYL_SET_CU_ALLOC(up->flags);
@@ -144,7 +144,7 @@ gkyl_fpo_coeffs_correct_cu_dev_new(const struct gkyl_rect_grid *grid,
   return up;
 }
 
-void gkyl_fpo_coeffs_correct_advance_cu(gkyl_fpo_coeffs_correct *up,
+void gkyl_fpo_coeff_correct_advance_cu(gkyl_fpo_coeff_correct *up,
   const struct gkyl_range *conf_range, const struct gkyl_range *phase_range,
   const struct gkyl_array *fpo_moms, const struct gkyl_array *boundary_corrections,
   const struct gkyl_array *moms, struct gkyl_array *drag_diff_coeff_corrs,
@@ -165,7 +165,7 @@ void gkyl_fpo_coeffs_correct_advance_cu(gkyl_fpo_coeffs_correct *up,
   }
 
   // Set matrices
-  gkyl_fpo_coeffs_correct_set_mat_cu_ker<<<conf_range->nblocks, conf_range->nthreads>>>(
+  gkyl_fpo_coeff_correct_set_mat_cu_ker<<<conf_range->nblocks, conf_range->nthreads>>>(
     up->on_dev, up->As->on_dev, up->xs->on_dev, *conf_range,
     fpo_moms->on_dev, boundary_corrections->on_dev, moms->on_dev);
 
@@ -174,11 +174,11 @@ void gkyl_fpo_coeffs_correct_advance_cu(gkyl_fpo_coeffs_correct *up,
   assert(status);
 
   // Copy corrections from matrix solve memory
-  gkyl_fpo_coeffs_correct_copy_sol_cu_ker<<<conf_range->nblocks, conf_range->nthreads>>>(
+  gkyl_fpo_coeff_correct_copy_sol_cu_ker<<<conf_range->nblocks, conf_range->nthreads>>>(
     up->on_dev, *conf_range, up->xs->on_dev, drag_diff_coeff_corrs->on_dev);
 
   // Accumulate corrections onto drag/diffusion coefficients
-  gkyl_fpo_coeffs_correct_accum_cu_ker<<<phase_range->nblocks, phase_range->nthreads>>>(
+  gkyl_fpo_coeff_correct_accum_cu_ker<<<phase_range->nblocks, phase_range->nthreads>>>(
     up->on_dev, up->xs->on_dev, *conf_range, *phase_range, drag_diff_coeff_corrs->on_dev,
     drag_coeff->on_dev, drag_coeff_surf->on_dev, diff_coeff->on_dev, diff_coeff_surf->on_dev);
 }
