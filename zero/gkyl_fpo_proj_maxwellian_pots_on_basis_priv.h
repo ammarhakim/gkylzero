@@ -19,7 +19,6 @@ struct gkyl_proj_maxwellian_pots_on_basis {
   
   bool use_gpu;
 
-  struct gkyl_basis phase_basis;
   struct gkyl_basis conf_basis;
   struct gkyl_basis surf_basis;
 
@@ -56,11 +55,8 @@ struct gkyl_proj_maxwellian_pots_on_basis {
   struct gkyl_array *fpo_h_at_surf_ords;
   struct gkyl_array *fpo_g_at_surf_ords;
   struct gkyl_array *fpo_dhdv_at_surf_ords;
+  struct gkyl_array *fpo_dgdv_at_surf_ords;
   struct gkyl_array *fpo_d2gdv2_at_surf_ords;
-   
-  struct gkyl_array *surf_nodes;
-  struct gkyl_array *conf_nodes;
-  struct gkyl_array *fpo_dgdv_at_surf_nodes;
 
   struct gkyl_array *prim_moms_conf_quad; // Array of primitive moments evaluated at conf space quadrature nodes 
   struct gkyl_array *prim_moms_conf_nodes; // Array of primitive moments evaluated at conf space nodes 

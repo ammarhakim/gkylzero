@@ -75,3 +75,9 @@ gkyl_proj_maxwellian_pots_deriv_on_basis_advance(const gkyl_proj_maxwellian_pots
  *@param up Updater to delete.
 */
 void gkyl_proj_maxwellian_pots_on_basis_release(gkyl_proj_maxwellian_pots_on_basis *up);
+
+struct gkyl_proj_maxwellian_pots_on_basis*
+gkyl_proj_maxwellian_pots_on_basis_cu_ho_new(const struct gkyl_rect_grid *grid,
+  const struct gkyl_range *conf_range, const struct gkyl_range *phase_range,
+  const struct gkyl_basis *conf_basis, const struct gkyl_basis *phase_basis,
+  int num_quad);

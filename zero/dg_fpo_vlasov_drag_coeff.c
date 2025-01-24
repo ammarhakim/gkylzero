@@ -38,8 +38,6 @@ void gkyl_calc_fpo_drag_coeff_recovery(const struct gkyl_fpo_vlasov_coeff_recove
   int vdim = coeff_recovery->vdim;
   int cdim = coeff_recovery->cdim;
 
-  int poly_order = pbasis.poly_order;  
-
   // Indices in each direction
   int idxl[GKYL_MAX_DIM], idxc[GKYL_MAX_DIM], idxr[GKYL_MAX_DIM], conf_idxc[GKYL_MAX_DIM];
  

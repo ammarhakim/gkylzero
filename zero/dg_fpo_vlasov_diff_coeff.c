@@ -40,8 +40,6 @@ void gkyl_calc_fpo_diff_coeff_recovery(const struct gkyl_fpo_vlasov_coeff_recove
   int pdim = coeff_recovery->pdim; 
   int vdim = pdim - cdim;
 
-  int poly_order = pbasis.poly_order;
-
   int idxl[GKYL_MAX_DIM], idxc[GKYL_MAX_DIM], conf_idxc[GKYL_MAX_DIM];
 
   struct gkyl_range_iter iter;

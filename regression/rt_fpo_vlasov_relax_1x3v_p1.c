@@ -4,12 +4,23 @@
 
 #include <gkyl_alloc.h>
 #include <gkyl_vlasov.h>
+
+#include <gkyl_null_comm.h>
+
+#ifdef GKYL_HAVE_MPI
+#include <mpi.h>
+#include <gkyl_mpi_comm.h>
+#ifdef GKYL_HAVE_NCCL
+#include <gkyl_nccl_comm.h>
+#endif
+#endif
+
 #include <rt_arg_parse.h>
 
-struct free_stream_ctx {
+struct fpo_ctx {
   double charge; // charge
   double mass; // mass
-  double vt; // thermal velocity
+  double vth; // thermal velocity
   double Lx; // size of the box
   double gamma; // collision frequency factor in FPO
   double t_end; // end time of simulation
@@ -29,10 +40,10 @@ bump_maxwellian(double n, double vx, double vy, double vz, double ux, double uy,
 void
 evalDistFuncSquare(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
 {
-  struct free_stream_ctx *app = ctx;
+  struct fpo_ctx *app = ctx;
   double x = xn[0], vx = xn[1], vy = xn[2], vz = xn[3];
-  double square_fac = 4.0*app->vt;
-  if(vx>-square_fac && vx<square_fac && vy>-square_fac && vy<square_fac && vz>-square_fac && vz<square_fac) {
+  double width = 1.0; // corresponds to a final vth of 2/3
+  if(vx>-width && vx<width && vy>-width && vy<width && vz>-width && vz<width) {
     fout[0] = 0.5;
   } else {
     fout[0] = 0.0;
@@ -42,30 +53,40 @@ evalDistFuncSquare(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTR
 void
 evalDistFuncBump(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
 {
-  struct free_stream_ctx *app = ctx;
+  struct fpo_ctx *app = ctx;
   double x = xn[0], vx = xn[1], vy = xn[2], vz = xn[3];
-  fout[0] = bump_maxwellian(1.0, vx, vy, vz, 0.0, 0.0, 0.0, app->vt, 
-    sqrt(0.1), 4*sqrt(0.25/3), 0.0, 0.0, 0.12, 3.0*app->vt);
+  fout[0] = bump_maxwellian(1.0, vx, vy, vz, 0.0, 0.0, 0.0, app->vth, 
+    sqrt(0.15), 4.0*app->vth, 0.0, 0.0, 0.14, 3.0*app->vth);
 }
 
 void
 evalGamma(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
 {
-  struct free_stream_ctx *app = ctx;  
+  struct fpo_ctx *app = ctx;  
   fout[0] = app->gamma;
 }
 
-struct free_stream_ctx
+struct fpo_ctx
 create_ctx(void)
 {
-  struct free_stream_ctx ctx = {
+  double n0 = 1.0;
+  double vth = 1.0;
+  double gamma = 1.0;
+
+  // Characteristic collision frequency: sqrt(2)*n_b*gamma/(3*sqrt(pi)*vth_a^3) 
+  double nu = sqrt(2.0)*n0*gamma/(3.0*sqrt(M_PI)*pow(vth, 3.0));
+  double end_time = 0.1;
+
+  printf("End time: %f\n", end_time);
+
+  struct fpo_ctx ctx = {
     .mass = 1.0,
     .charge = 0.0,
-    .vt = 1.0,
+    .vth = vth,
     .Lx = 1.0,
     .gamma = 1.0, 
-    .t_end = 1.0, 
-    .num_frame = 1, 
+    .t_end = end_time, 
+    .num_frame = 10, 
   };
   return ctx;
 }
@@ -84,20 +105,113 @@ main(int argc, char **argv)
 {
   struct gkyl_app_args app_args = parse_app_args(argc, argv);
 
+#ifdef GKYL_HAVE_MPI
+  if (app_args.use_mpi) {
+    MPI_Init(&argc, &argv);
+  }
+#endif
+
   if (app_args.trace_mem) {
     gkyl_cu_dev_mem_debug_set(true);
     gkyl_mem_debug_set(true);
   }
-  struct free_stream_ctx ctx = create_ctx(); // context for init functions
 
-  int NX = APP_ARGS_CHOOSE(app_args.xcells[0], 2);
-  int NV = APP_ARGS_CHOOSE(app_args.vcells[0], 16); 
+  struct fpo_ctx ctx = create_ctx(); // context for init functions
+
+  int NX = APP_ARGS_CHOOSE(app_args.xcells[0], 1);
+  int NV = APP_ARGS_CHOOSE(app_args.vcells[0], 8); 
+
+  int nrank = 1; // Number of processors in simulation.
+#ifdef GKYL_HAVE_MPI
+  if (app_args.use_mpi) {
+    MPI_Comm_size(MPI_COMM_WORLD, &nrank);
+  }
+#endif  
+
+  // Create global range.
+  int ccells[] = { NX };
+  int cdim = sizeof(ccells) / sizeof(ccells[0]);
+  struct gkyl_range cglobal_r;
+  gkyl_create_global_range(cdim, ccells, &cglobal_r);
+
+  // Create decomposition.
+  int cuts[cdim];
+#ifdef GKYL_HAVE_MPI  
+  for (int d = 0; d < cdim; d++) {
+    if (app_args.use_mpi) {
+      cuts[d] = app_args.cuts[d];
+    }
+    else {
+      cuts[d] = 1;
+    }
+  }
+#else
+  for (int d = 0; d < cdim; d++) {
+    cuts[d] = 1;
+  }
+#endif  
+    
+  struct gkyl_rect_decomp *decomp = gkyl_rect_decomp_new_from_cuts(cdim, cuts, &cglobal_r);
+
+  // Construct communicator for use in app.
+  struct gkyl_comm *comm;
+#ifdef GKYL_HAVE_MPI
+  if (app_args.use_gpu && app_args.use_mpi) {
+#ifdef GKYL_HAVE_NCCL
+    comm = gkyl_nccl_comm_new( &(struct gkyl_nccl_comm_inp) {
+        .mpi_comm = MPI_COMM_WORLD,
+        .decomp = decomp
+      }
+    );
+#else
+    printf(" Using -g and -M together requires NCCL.\n");
+    assert(0 == 1);
+#endif
+  }
+  else if (app_args.use_mpi) {
+    comm = gkyl_mpi_comm_new( &(struct gkyl_mpi_comm_inp) {
+        .mpi_comm = MPI_COMM_WORLD,
+        .decomp = decomp
+      }
+    );
+  }
+  else {
+    comm = gkyl_null_comm_inew( &(struct gkyl_null_comm_inp) {
+        .decomp = decomp,
+        .use_gpu = app_args.use_gpu
+      }
+    );
+  }
+#else
+  comm = gkyl_null_comm_inew( &(struct gkyl_null_comm_inp) {
+      .decomp = decomp,
+      .use_gpu = app_args.use_gpu
+    }
+  );
+#endif
+
+  int my_rank;
+  gkyl_comm_get_rank(comm, &my_rank);
+  int comm_size;
+  gkyl_comm_get_size(comm, &comm_size);
+
+  int ncuts = 1;
+  for (int d = 0; d < cdim; d++) {
+    ncuts *= cuts[d];
+  }
+
+  if (ncuts != comm_size) {
+    if (my_rank == 0) {
+      fprintf(stderr, "*** Number of ranks, %d, does not match total cuts, %d!\n", comm_size, ncuts);
+    }
+    goto mpifinalize;
+  }
 
   struct gkyl_vlasov_species square = {
     .name = "square",
     .charge = ctx.charge, .mass = ctx.mass,
-    .lower = { -8.0*ctx.vt, -8.0*ctx.vt, -8.0*ctx.vt },
-    .upper = { 8.0*ctx.vt, 8.0*ctx.vt, 8.0*ctx.vt }, 
+    .lower = { -4.0*ctx.vth, -4.0*ctx.vth, -4.0*ctx.vth },
+    .upper = { 4.0*ctx.vth, 4.0*ctx.vth, 4.0*ctx.vth }, 
     .cells = { NV, NV, NV },
 
     .num_init = 1,
@@ -113,15 +227,15 @@ main(int argc, char **argv)
       .self_nu = evalGamma,
     },
     
-    .num_diag_moments = 3,
-    .diag_moments = { "M0", "M1i", "M2" },
+    .num_diag_moments = 1,
+    .diag_moments = { "FiveMoments" },
   };
 
   struct gkyl_vlasov_species bump = {
     .name = "bump",
     .charge = ctx.charge, .mass = ctx.mass,
-    .lower = { -5.0*ctx.vt, -5.0*ctx.vt, -5.0*ctx.vt },
-    .upper = { 5.0*ctx.vt, 5.0*ctx.vt, 5.0*ctx.vt }, 
+    .lower = { -5.0*ctx.vth, -5.0*ctx.vth, -5.0*ctx.vth },
+    .upper = { 5.0*ctx.vth, 5.0*ctx.vth, 5.0*ctx.vth }, 
     .cells = { NV, NV, NV },
 
     .num_init = 1,
@@ -137,8 +251,8 @@ main(int argc, char **argv)
       .self_nu = evalGamma,
     },
     
-    .num_diag_moments = 3,
-    .diag_moments = { "M0", "M1i", "M2" },
+    .num_diag_moments = 1,
+    .diag_moments = { "FiveMoments" },
   };
 
   // VM app
@@ -160,6 +274,12 @@ main(int argc, char **argv)
     .skip_field = true,
 
     .use_gpu = app_args.use_gpu,
+
+    .has_low_inp = true,
+    .low_inp = {
+      .local_range = decomp->ranges[my_rank],
+      .comm = comm
+    }
   };
 
   // create app object
@@ -197,6 +317,7 @@ main(int argc, char **argv)
   }
 
   gkyl_vlasov_app_stat_write(app);
+  gkyl_comm_release(comm);
   gkyl_vlasov_app_write_integrated_mom(app);
 
   // fetch simulation statistics
@@ -219,5 +340,12 @@ main(int argc, char **argv)
   printf("Species collisions took %g secs\n", stat.species_coll_tm);
   printf("Updates took %g secs\n", stat.total_tm);
   
+mpifinalize:
+#ifdef GKYL_HAVE_MPI
+  if (app_args.use_mpi) {
+    MPI_Finalize();
+  }
+#endif
+
   return 0;
 }

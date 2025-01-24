@@ -77,7 +77,7 @@ gkyl_fpo_vlasov_coeff_recovery_new(const struct gkyl_rect_grid *grid,
 
     for (int d2=0; d2<vdim; ++d2) {
       if (d1 != d2) {
-        // 9-cell stncil pointers
+        // 9-cell stencil pointers
         for (int idx=0; idx<9; ++idx) {
           up->diff_coeff_cross_recovery_stencil[d1][d2][idx] = 
             choose_ser_fpo_diff_coeff_cross_recovery_kern(d1, d2, cdim, poly_order, idx);

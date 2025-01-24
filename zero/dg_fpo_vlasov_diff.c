@@ -74,6 +74,21 @@ gkyl_dg_fpo_vlasov_diff_new(const struct gkyl_basis* pbasis, const struct gkyl_r
 
   switch (pbasis->b_type) {
     case GKYL_BASIS_MODAL_SERENDIPITY:
+      assert(poly_order == 2);
+      vol_kernels = ser_vol_kernels;
+      surf_vxvx_kernel_list = ser_surf_vxvx_kernels;
+      surf_vxvy_kernel_list = ser_surf_vxvy_kernels;
+      surf_vxvz_kernel_list = ser_surf_vxvz_kernels;
+      surf_vyvx_kernel_list = ser_surf_vyvx_kernels;
+      surf_vyvy_kernel_list = ser_surf_vyvy_kernels;
+      surf_vyvz_kernel_list = ser_surf_vyvz_kernels;
+      surf_vzvx_kernel_list = ser_surf_vzvx_kernels;
+      surf_vzvy_kernel_list = ser_surf_vzvy_kernels;
+      surf_vzvz_kernel_list = ser_surf_vzvz_kernels;
+      break;
+
+    case GKYL_BASIS_MODAL_HYBRID:
+      assert(poly_order == 1);
       vol_kernels = ser_vol_kernels;
       surf_vxvx_kernel_list = ser_surf_vxvx_kernels;
       surf_vxvy_kernel_list = ser_surf_vxvy_kernels;

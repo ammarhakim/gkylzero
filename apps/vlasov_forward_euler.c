@@ -45,7 +45,7 @@ vlasov_forward_euler(gkyl_vlasov_app* app, double tcurr, double dt,
     }
     else if (app->species[i].collision_id == GKYL_FPO_COLLISIONS) {
       vm_species_fpo_drag_diff_coeffs(app, &app->species[i], 
-        &app->species[i].fpo, fin[i]);    
+        &app->species[i].fpo, fin[i]);
     }
   }
 

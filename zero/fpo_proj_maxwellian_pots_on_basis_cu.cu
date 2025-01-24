@@ -427,3 +427,194 @@ gkyl_proj_maxwellian_pots_on_basis_advance_cu(const gkyl_proj_maxwellian_pots_on
     up->surf_basis_dev, up->fpo_dgdv_at_surf_nodes->on_dev, fpo_dgdv_surf->on_dev);
 }
 
+struct gkyl_proj_maxwellian_pots_on_basis*
+gkyl_proj_maxwellian_pots_on_basis_cu_ho_new(const struct gkyl_rect_grid *grid,
+  const struct gkyl_range *conf_range, const struct gkyl_range *phase_range,
+  const struct gkyl_basis *conf_basis, const struct gkyl_basis *phase_basis, int num_quad)
+{
+  gkyl_proj_maxwellian_pots_on_basis *up = gkyl_malloc(sizeof(gkyl_proj_maxwellian_pots_on_basis));
+  up->grid = *grid;
+  up->cdim = conf_basis->ndim;
+  up->pdim = phase_basis->ndim;
+  int vdim = up->pdim-up->cdim;
+  up->num_quad = num_quad;
+
+  up->conf_basis = *conf_basis;
+
+  up->use_gpu = use_gpu;
+
+  if (phase_basis->poly_order == 1) {
+    gkyl_cart_modal_hybrid(&up->surf_basis, up->cdim, vdim-1);
+  } else {
+    gkyl_cart_modal_serendip(&up->surf_basis, up->pdim-1, phase_basis->poly_order);
+  }
+  printf("Conf: %d \t phase: %d\t surf: %d\n", conf_basis->num_basis, phase_basis->num_basis, up->surf_basis.num_basis);
+  up->num_conf_basis = conf_basis->num_basis;
+  up->num_phase_basis = phase_basis->num_basis;
+  up->num_surf_basis = up->surf_basis.num_basis;
+ 
+  // Quadrature points for phase space expansion
+  up->tot_quad = init_quad_values(up->cdim, phase_basis, num_quad,
+    &up->ordinates, &up->weights, &up->basis_at_ords, false);
+
+  // Initialize quadrature for surface expansion
+  up->tot_surf_quad = init_quad_values(up->cdim, &up->surf_basis, num_quad,
+    &up->surf_ordinates, &up->surf_weights, &up->surf_basis_at_ords, false);
+
+  // Hybrid basis support: uses p=2 in velocity space
+  int num_quad_v = num_quad;
+  bool is_vdim_p2[] = {false, false, false};  // 3 is the max vdim.
+  if (phase_basis->b_type == GKYL_BASIS_MODAL_HYBRID) {
+    num_quad_v = num_quad+1;
+    // Maxwellian potentials are always 3V
+    is_vdim_p2[0] = true, is_vdim_p2[1] = true, is_vdim_p2[2] = true;
+  }
+
+  up->phase_qrange = get_qrange(up->cdim, up->pdim, num_quad, num_quad_v, is_vdim_p2);
+  up->surf_qrange = get_qrange(up->cdim, up->pdim-1, num_quad, num_quad_v, is_vdim_p2);
+
+  // Nodes for nodal surface expansions
+  struct gkyl_array *surf_nodes_ho = gkyl_array_new(GKYL_DOUBLE, grid->ndim-1, up->surf_basis.num_basis);
+  up->surf_basis.node_list(gkyl_array_fetch(surf_nodes_ho, 0));
+
+  // Evaluate conf basis at nodes
+  struct gkyl_array *conf_nodes_ho = gkyl_array_new(GKYL_DOUBLE,
+    up->cdim, up->surf_basis.num_basis);
+  up->conf_basis.node_list((double *)gkyl_array_fetch(conf_nodes_ho, 0));
+
+  struct gkyl_array *conf_basis_at_nodes_ho = gkyl_array_new(GKYL_DOUBLE,
+    up->num_conf_basis, up->num_conf_basis);
+  for (int k=0; k<up->num_conf_basis; ++k) {
+    up->conf_basis.eval((double *)gkyl_array_fetch(conf_nodes_ho,k),
+      (double *)gkyl_array_fetch(conf_basis_at_nodes_ho,k));
+  }
+  up->conf_basis_at_nodes = gkyl_array_cu_dev_new(GKYL_DOUBLE,
+    up->num_conf_basis, up->num_conf_basis);
+  gkyl_array_copy(up->conf_basis_at_nodes, conf_basis_at_nodes_ho);
+  gkyl_array_release(conf_basis_at_nodes_ho);
+  gkyl_array_release(conf_nodes_ho);
+
+  up->surf_nodes = gkyl_array_cu_dev_new(GKYL_DOUBLE, grid->ndim-1, up->surf_basis.num_basis);
+  gkyl_array_copy(up->surf_nodes, surf_nodes_ho);
+  gkyl_array_release(surf_nodes_ho);
+
+  // Allocate the memory for computing the specific phase and surface nodal to modal calculations
+  struct gkyl_mat_mm_array_mem *phase_quad_nodal_to_modal_mem_ho;
+  phase_quad_nodal_to_modal_mem_ho = gkyl_mat_mm_array_mem_new(up->num_phase_basis, up->tot_quad, 1.0, 0.0,
+    GKYL_NO_TRANS, GKYL_NO_TRANS, false);
+
+  struct gkyl_mat_mm_array_mem *surf_quad_nodal_to_modal_mem_ho;
+  surf_quad_nodal_to_modal_mem_ho = gkyl_mat_mm_array_mem_new(vdim*up->num_surf_basis, vdim*up->tot_surf_quad, 1.0, 0.0,
+    GKYL_NO_TRANS, GKYL_NO_TRANS, false);
+
+  // Compute the matrix A for the phase and surface nodal to modal memory
+  const double *phase_w = (const double*) up->weights->data;
+  const double *phaseb_o = (const double*) up->basis_at_ords->data;
+  for (int n=0; n<up->tot_quad; ++n){
+    for (int k=0; k<up->num_phase_basis; ++k){
+      gkyl_mat_set(phase_quad_nodal_to_modal_mem_ho->A, k, n, phase_w[n]*phaseb_o[k+up->num_phase_basis*n]);
+    }
+  }
+
+  // Block matrix for vdim component quad nodal to modal matrix multiplication
+  const double *surf_w = (const double*) up->surf_weights->data;
+  const double *surfb_o = (const double*) up->surf_basis_at_ords->data;
+  for (int n=0; n<vdim*up->tot_surf_quad; ++n){
+    for (int k=0; k<vdim*up->num_surf_basis; ++k){
+      bool block = !((n-n%up->tot_surf_quad)/up->tot_surf_quad - (k-k%up->num_surf_basis)/up->num_surf_basis);
+      if (block) {
+        gkyl_mat_set(surf_quad_nodal_to_modal_mem_ho->A, k, n,
+          surf_w[n%up->tot_surf_quad]*surfb_o[(k%up->num_surf_basis)+up->num_surf_basis*(n%up->tot_surf_quad)]);
+      }
+    }
+  }
+
+  // Copy matrix memory to device
+  up->phase_quad_nodal_to_modal_mem = gkyl_mat_mm_array_mem_new(up->num_phase_basis, up->tot_quad, 1.0, 0.0,
+    GKYL_NO_TRANS, GKYL_NO_TRANS, up->use_gpu);
+  gkyl_mat_copy(up->phase_quad_nodal_to_modal_mem->A, phase_quad_nodal_to_modal_mem_ho->A);
+  gkyl_mat_mm_array_mem_release(phase_quad_nodal_to_modal_mem_ho);
+
+  up->surf_quad_nodal_to_modal_mem = gkyl_mat_mm_array_mem_new(vdim*up->num_surf_basis, vdim*up->tot_surf_quad, 1.0, 0.0,
+    GKYL_NO_TRANS, GKYL_NO_TRANS, up->use_gpu);
+  gkyl_mat_copy(up->surf_quad_nodal_to_modal_mem->A, surf_quad_nodal_to_modal_mem_ho->A);
+  gkyl_mat_mm_array_mem_release(surf_quad_nodal_to_modal_mem_ho);
+
+  // Initialize quadrature data on device
+  // Quadrature points for configuration space expansion
+  up->tot_conf_quad = init_quad_values(up->cdim, &up->conf_basis, num_quad,
+    &up->conf_ordinates, &up->conf_weights, &up->conf_basis_at_ords, up->use_gpu);
+
+  // Quadrature points for phase space expansion
+  up->tot_quad = init_quad_values(up->cdim, phase_basis, num_quad,
+    &up->ordinates, &up->weights, &up->basis_at_ords, up->use_gpu);
+
+  // Initialize quadrature for surface expansion
+  up->tot_surf_quad = init_quad_values(up->cdim, &up->surf_basis, num_quad,
+    &up->surf_ordinates, &up->surf_weights, &up->surf_basis_at_ords, up->use_gpu);
+
+  // Allocate arrays to store quantities at quadrature points
+  up->prim_moms_conf_quad = gkyl_array_cu_dev_new(GKYL_DOUBLE,
+    (vdim+2)*up->tot_conf_quad, conf_range->volume);
+  up->pot_phase_quad = gkyl_array_cu_dev_new(GKYL_DOUBLE,
+    up->tot_quad, phase_range->volume);
+
+  // Primitive moments evaluated at nodes
+  up->prim_moms_conf_nodes = gkyl_array_cu_dev_new(GKYL_DOUBLE,
+    (vdim+2)*up->num_conf_basis, conf_range->volume);
+
+  // H and G surface quadrature
+  up->pot_surf_quad = gkyl_array_cu_dev_new(GKYL_DOUBLE,
+    vdim*up->tot_surf_quad, phase_range->volume);
+  // dH/dv and d2G/dv2 surface quadrature
+  up->pot_deriv_surf_quad = gkyl_array_cu_dev_new(GKYL_DOUBLE,
+    vdim*up->tot_surf_quad, phase_range->volume);
+  // Nodal evaluation of dG/dv at surfaces in transverse directions
+  up->fpo_dgdv_at_surf_nodes = gkyl_array_cu_dev_new(GKYL_DOUBLE,
+    2*vdim*up->num_surf_basis, phase_range->volume);
+
+  // Arrays to store computed potentials for copying
+  up->sol_pot_surf_modal = gkyl_array_cu_dev_new(GKYL_DOUBLE,
+    vdim*up->num_surf_basis, phase_range->volume);
+
+  // Mappings between phase and configuration space quadrature points
+  int p2c_qidx_ho[up->phase_qrange.volume];
+  int surf2c_qidx_ho[up->surf_qrange.volume];
+  up->p2c_qidx = (int *) gkyl_cu_malloc(sizeof(int)*up->phase_qrange.volume);
+  up->surf2c_qidx = (int *) gkyl_cu_malloc(sizeof(int)*up->surf_qrange.volume);
+
+  struct gkyl_range conf_qrange = get_qrange(up->cdim, up->cdim, num_quad, num_quad_v, is_vdim_p2);
+
+  int pidx[GKYL_MAX_DIM];
+  for (int n=0; n<up->tot_quad; ++n) {
+    gkyl_range_inv_idx(&up->phase_qrange, n, pidx);
+    int cqidx = gkyl_range_idx(&conf_qrange, pidx);
+    p2c_qidx_ho[n] = cqidx;
+  }
+  gkyl_cu_memcpy(up->p2c_qidx, p2c_qidx_ho, sizeof(int)*up->phase_qrange.volume, GKYL_CU_MEMCPY_H2D);
+
+  for (int n=0; n<up->tot_surf_quad; ++n) {
+    gkyl_range_inv_idx(&up->surf_qrange, n, pidx);
+    int cqidx = gkyl_range_idx(&conf_qrange, pidx);
+    surf2c_qidx_ho[n] = cqidx;
+  }
+  gkyl_cu_memcpy(up->surf2c_qidx, surf2c_qidx_ho, sizeof(int)*up->surf_qrange.volume, GKYL_CU_MEMCPY_H2D);
+
+  // Mapping between phase and configuration space nodes
+  int surf2c_nidx_ho[up->num_conf_basis];
+  up->surf2c_nidx = (int *) gkyl_cu_malloc(sizeof(int)*up->num_surf_basis);
+
+  struct gkyl_range surf_nrange = get_nrange(up->pdim-1, up->num_surf_basis);
+  struct gkyl_range conf_nrange = get_nrange(up->cdim, up->num_conf_basis);
+  for(int k=0; k<up->num_surf_basis; ++k) {
+    gkyl_range_inv_idx(&surf_nrange, k, pidx);
+    int cnidx = gkyl_range_idx(&conf_nrange, pidx);
+    surf2c_nidx_ho[k] = cnidx;
+  }
+  gkyl_cu_memcpy(up->surf2c_nidx, surf2c_nidx_ho, sizeof(int)*up->num_surf_basis, GKYL_CU_MEMCPY_H2D);
+
+  up->surf_basis_dev = gkyl_cart_modal_serendip_cu_dev_new(up->pdim-1, phase_basis->poly_order);
+
+  return up;
+}
+

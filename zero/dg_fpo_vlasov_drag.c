@@ -19,7 +19,7 @@ gkyl_fpo_vlasov_drag_free(const struct gkyl_ref_count* ref)
 
   if (GKYL_IS_CU_ALLOC(fpo_vlasov_drag->eqn.flags))
     gkyl_cu_free(fpo_vlasov_drag->eqn.on_dev);
-  
+ 
   gkyl_free(fpo_vlasov_drag);
 }
 
@@ -69,10 +69,10 @@ gkyl_dg_fpo_vlasov_drag_new(const struct gkyl_basis* pbasis, const struct gkyl_r
   const gkyl_dg_fpo_vlasov_drag_boundary_surf_kern_list *boundary_surf_vx_kernel_list;
   const gkyl_dg_fpo_vlasov_drag_boundary_surf_kern_list *boundary_surf_vy_kernel_list;
   const gkyl_dg_fpo_vlasov_drag_boundary_surf_kern_list *boundary_surf_vz_kernel_list;
-
-  
+ 
   switch (pbasis->b_type) {
     case GKYL_BASIS_MODAL_SERENDIPITY:
+      assert(poly_order == 2);
       vol_kernels = ser_vol_kernels;
       surf_vx_kernel_list = ser_surf_vx_kernels;
       surf_vy_kernel_list = ser_surf_vy_kernels;
@@ -80,13 +80,23 @@ gkyl_dg_fpo_vlasov_drag_new(const struct gkyl_basis* pbasis, const struct gkyl_r
       boundary_surf_vx_kernel_list = ser_boundary_surf_vx_kernels;
       boundary_surf_vy_kernel_list = ser_boundary_surf_vy_kernels;
       boundary_surf_vz_kernel_list = ser_boundary_surf_vz_kernels;
-      
+      break;
+
+    case GKYL_BASIS_MODAL_HYBRID:
+      assert(poly_order == 1);
+      vol_kernels = ser_vol_kernels;
+      surf_vx_kernel_list = ser_surf_vx_kernels;
+      surf_vy_kernel_list = ser_surf_vy_kernels;
+      surf_vz_kernel_list = ser_surf_vz_kernels;
+      boundary_surf_vx_kernel_list = ser_boundary_surf_vx_kernels;
+      boundary_surf_vy_kernel_list = ser_boundary_surf_vy_kernels;
+      boundary_surf_vz_kernel_list = ser_boundary_surf_vz_kernels;
       break;
 
     default:
       assert(false);
-      break;    
-  }  
+      break;
+  }
 
   fpo_vlasov_drag->eqn.vol_term = CK(vol_kernels, cdim, poly_order);
   fpo_vlasov_drag->surf[0] = CK(surf_vx_kernel_list, cdim, poly_order);
@@ -110,7 +120,7 @@ gkyl_dg_fpo_vlasov_drag_new(const struct gkyl_basis* pbasis, const struct gkyl_r
   GKYL_CLEAR_CU_ALLOC(fpo_vlasov_drag->eqn.flags);
   fpo_vlasov_drag->eqn.ref_count = gkyl_ref_count_init(gkyl_fpo_vlasov_drag_free);
   fpo_vlasov_drag->eqn.on_dev = &fpo_vlasov_drag->eqn;
-  
+ 
   return &fpo_vlasov_drag->eqn;
 }
 
@@ -124,3 +134,4 @@ gkyl_dg_fpo_vlasov_drag_cu_dev_new(const struct gkyl_basis* pbasis, const struct
 }
 
 #endif
+

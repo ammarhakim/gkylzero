@@ -37,7 +37,6 @@ set_phase_idx(enum gkyl_vel_edge edge, const struct gkyl_range *phase_range, int
   for (int i=vel_idx+1; i<pdim; ++i) fidx[i] = idx[i-1];
 }
 
-
 GKYL_CU_DH
 static void
 kernel_mom_bcorr_fpo_vlasov_1x3v_ser_p1(const struct gkyl_mom_type *momt, const double *xc, const double *dx,
@@ -52,6 +51,12 @@ kernel_mom_bcorr_fpo_vlasov_1x3v_ser_p1(const struct gkyl_mom_type *momt, const 
   int cdim = mom_fpo_vlasov->momt.cdim;
   int pdim = mom_fpo_vlasov->momt.pdim;
 
+  // TODO: Check if the CPU and GPU routines for bcorr_advance can be fixed so this hack isnt necessary
+  // The hack in question arises because for e.g. a vx surface:
+  // CPU code inputs xc = (x, vy, vz), idx = (idx_x, idx_vy, idx_vz)
+  // GPU code inputs xc = (x, vx, vy, vz), idx = (idx_x, idx_vx, idx_vy, idx_vz)
+  //
+  // FPO seems to be the only routine that actually uses these, so it previously didn't matter
   if (!mom_fpo_vlasov->use_gpu) {
    set_phase_idx(edge, &mom_fpo_vlasov->phase_range,
      cdim, pdim, idx, fidx);
@@ -67,7 +72,7 @@ kernel_mom_bcorr_fpo_vlasov_1x3v_ser_p1(const struct gkyl_mom_type *momt, const 
 
   long linc = gkyl_range_idx(&mom_fpo_vlasov->phase_range, fidx);
 
-  return mom_bcorr_fpo_vlasov_1x3v_ser_p1(w, idx, edge, mom_fpo_vlasov->vBoundary, dx, 
+  return mom_bcorr_fpo_vlasov_1x3v_ser_p1(w, fidx, edge, mom_fpo_vlasov->vBoundary, dx,
     (const double*) gkyl_array_cfetch(mom_fpo_vlasov->auxfields.D, linc), 
     f, out);
 }

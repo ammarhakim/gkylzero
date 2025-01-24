@@ -15,11 +15,11 @@ GKYL_CU_DH void mom_fpo_vlasov_coeff_correct_accum_1x3v_ser_p1(const double *dra
  
   // Index into surface expansions. 
   double *ax_surf = &drag_coeff_surf[0]; 
-  double *ay_surf = &drag_coeff_surf[8]; 
-  double *az_surf = &drag_coeff_surf[16]; 
+  double *ay_surf = &drag_coeff_surf[16]; 
+  double *az_surf = &drag_coeff_surf[32]; 
   double *Dxx_surf = &diff_coeff_surf[0]; 
-  double *Dyy_surf = &diff_coeff_surf[64]; 
-  double *Dzz_surf = &diff_coeff_surf[128]; 
+  double *Dyy_surf = &diff_coeff_surf[128]; 
+  double *Dzz_surf = &diff_coeff_surf[256]; 
  
   // Index into correction array. 
   const double* ax_corr = &drag_diff_coeff_corrs[0]; 
