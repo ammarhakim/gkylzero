@@ -522,9 +522,7 @@ gyrokinetic_calc_field_and_apply_bc(gkyl_gyrokinetic_app* app, double tcurr,
 
   // Apply boundary conditions.
   for (int i=0; i<app->num_species; ++i) {
-    if (!app->species[i].info.is_static) {
-      gk_species_apply_bc(app, &app->species[i], distf[i]);
-    }
+    gk_species_apply_bc(app, &app->species[i], distf[i]);
   }
   for (int i=0; i<app->num_neut_species; ++i) {
     gk_neut_species_apply_bc(app, &app->neut_species[i], distf_neut[i]);
