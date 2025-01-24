@@ -1,5 +1,7 @@
 # Feature Request
 
+_Italicized text may be removed for final submission_
+
 ## Summary
 
 Overview: _What problem does this feature address? Clearly describe the problem or limitation that this feature would solve._
@@ -14,6 +16,10 @@ Scope: _Indicate the scope of the feature (e.g., minor enhancement, major overha
 User Stories/Use Cases:
 
 Example: _Provide examples of how the end-user would use this feature._
+
+```
+Example code snips can improve clarity to the reviewer
+```
 
 ## Benifits
 
@@ -31,7 +37,7 @@ _List any alternative solutions and why they were not chosen._
 
 _Include any relevant diagrams, mockups, screenshots, or resources (if applicable)._
 
-## Checklist (x)
+## Checklist _(x (yes), blank (no))_
 
 - [ ] This feature has not already been implemented or requested.
 - [ ] I have reviewed related issues and discussions to avoid duplication.

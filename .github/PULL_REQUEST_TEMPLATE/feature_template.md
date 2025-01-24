@@ -1,29 +1,35 @@
 # Feature
 
+_Italicized text may be removed for final submission_
+
 ## Summary
 
-_Explain the feature and why it is being added._
+Purpose: _Explain the feature and why it is being added._
 
-_Link to the related issue or feature request_
+Issue link: _Link to the related issue or feature request_
 
 ## Implementation Details
 
-_List the key changes made to the codebase to implement the feature._
+Key changes: _List the key changes made to the codebase to implement the feature._
 
 _Describe any new components, classes, or modules introduced._
 
-_If any, mention any new configuration changes, libraries, or dependencies added._
+Dependencies: _If any, mention any new configuration changes, libraries, or dependencies added._
 
 ## Example Use
 
 _Provide some example code of how a user may utilize this new feature in an input file._
+
+```
+example code
+```
 
 ## Community Standards
 
 - [ ] Documentation has been updated.
 - [ ] My code follows the project's coding guidelines.
 
-## Testing (x (yes), blank (no), ? (not applicable)):
+## Testing: _(x (yes), blank (no))_
 
 - [ ] I added a regression test to test this feature.
 - [ ] I added a unit test to test this feature.

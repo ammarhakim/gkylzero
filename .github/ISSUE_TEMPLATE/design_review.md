@@ -1,5 +1,7 @@
 # Design Review
 
+_Italicized text may be removed for final submission_
+
 ## Overview
 
 Description: _Provide a brief overview of the feature or change. Explain its purpose, scope, and intended outcome._
@@ -16,16 +18,19 @@ Interaction with Existing Code: _Explain how this change will integrate with the
 
 Prototyping Efforts (if applicable): _Provide a link to your prototyping branch. Briefly summarize your findings from prototyping, including any adjustments made to the design._
 
-Sample Code: _Include example input file fragments, unit tests, regression tests, or mock APIs to will help reviewers understand how the proposed feature will be used and tested._
+Sample Code:
+``` 
+Include example input file fragments, unit tests, regression tests, or mock APIs to will help reviewers understand how the proposed feature will be used and tested.
+```
 
-## Design Review Checklist
+## Design Review Checklist _(x (yes), blank (no))_
 
 Approval Criteria: 
 
-- Is the design coherent and consistent with Gkeyll's existing architecture?
-- Does the design align with user-facing API standards?
-- Do functionalities overlap with existing features?
-- Are the algorithms robust and appropriate for the intended purpose?
+- [ ] Is the design coherent and consistent with Gkeyll's existing architecture?
+- [ ] Does the design align with user-facing API standards?
+- [ ] Do functionalities overlap with existing features?
+- [ ] Are the algorithms robust and appropriate for the intended purpose?
 
 ## Additional Notes
 
@@ -35,8 +40,8 @@ Feedback Integration Plan: _Outline how you will address feedback received durin
 
 ## Links
 
-Prototyping Branch: 
+Prototyping Branch: _Link to prototyping branch_
 
-Relevant Documentation: 
+Relevant Documentation: _Links to LaTeX files or working notes_
 
 Additional Resources: 

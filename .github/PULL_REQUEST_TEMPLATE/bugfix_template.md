@@ -1,25 +1,25 @@
 # Bug fix
 
+_Italicized text may be removed for final submission_
+
 ## Summary
 
-_Describe the bug in a sentence or two._
+Description: _Describe the bug in a sentence or two. What was the root cause?_
 
-_Link the the appropriate issue._
-
-_What was the root cause?_
+Issue link: _A link to the issue._
 
 ## Solution
 
 _Explain how the bug was fixed. Highlight the changes made to the code and why they address the issue._
 
-_List the components, files, or modules impacted by the fix._
+Impacted files: _List the components, files, or modules impacted by the fix._
 
 ## Community Standards
 
 - [ ] Documentation has been updated.
 - [ ] My code follows the project's coding guidelines.
 
-## Testing (x (yes), blank (no), ? (not applicable)):
+## Testing: _(x (yes), blank (no))_
 
 - [ ] I added a regression test to test for this bug.
 - [ ] I added a unit test to test this bug.

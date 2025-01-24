@@ -1,5 +1,7 @@
 # Bug Report
 
+_Italicized text may be removed for final submission_
+
 ## Summary:
 
 _A brief description of the issue._
@@ -8,8 +10,8 @@ _A brief description of the issue._
 
 _Provide a clear, step-by-step guide to reproduce the issue._
 
-1. Step 1.
-2. Step 2.
+1. _Step 1._
+2. _Step 2._
 
 ## Expected Behavior:
 
@@ -24,6 +26,8 @@ _Describe what happened, including error messages or incorrect output._
 _Provide details of the environment where the issue occurred_
 
 - System / Cluster Name: 
+- Branch name: 
+- GPU or CPU build: 
 - Operating System:
 - Loaded modules:
 - Code version: (e.g. commit hash):
@@ -32,9 +36,11 @@ _Provide details of the environment where the issue occurred_
 
 _Any other details or comments that might help us diagnose the issue._
 
-- Did the issue occur after a recent update or change?
-- Are there specific parameters or inputs that seem to trigger the bug?
-- Screenshots, logs, or output files (if applicable):
+_Did the issue occur after a recent update or change?_
+
+_Are there specific parameters or inputs that seem to trigger the bug?_
+
+_Screenshots, logs, or output files (if applicable)_
 
 ## Suggested Fix (Optional):
 
