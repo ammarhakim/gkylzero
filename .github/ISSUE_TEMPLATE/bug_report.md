@@ -17,11 +17,11 @@ _Describe what you expected to happen._
 
 ## Actual Behavior:
 
-_Describe what actually happened, including error messages or incorrect output._
+_Describe what happened, including error messages or incorrect output._
 
 ## Environment:
 
-_Provide details of the environment where the issue occured_
+_Provide details of the environment where the issue occurred_
 
 - System / Cluster Name: 
 - Operating System:

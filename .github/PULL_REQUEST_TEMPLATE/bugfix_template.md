@@ -10,7 +10,7 @@ _What was the root cause?_
 
 ## Solution
 
-_Explain how the bug is fixed. Highlight the changes made to the code and why they address the issue._
+_Explain how the bug was fixed. Highlight the changes made to the code and why they address the issue._
 
 _List the components, files, or modules impacted by the fix._
 
@@ -21,11 +21,11 @@ _List the components, files, or modules impacted by the fix._
 
 ## Testing (x (yes), blank (no), ? (not applicable)):
 
-- [ ] Added a regression test to test for this bug.
-- [ ] Added a unit test to test this bug.
+- [ ] I added a regression test to test for this bug.
+- [ ] I added a unit test to test this bug.
 - [ ] Ran `make check` and unit tests all pass.
-- [ ] Ran the code through Valgrind and it is Valgrind clean.
-- [ ] Ran a few regression tests to make sure there are no obvious errors.
+- [ ] I ran the code through Valgrind, and it is clean.
+- [ ] I ran a few regression tests to ensure no apparent errors.
 - [ ] Tested and works on CPU.
 - [ ] Tested and works on multi-CPU.
 - [ ] Tested and works on GPU.

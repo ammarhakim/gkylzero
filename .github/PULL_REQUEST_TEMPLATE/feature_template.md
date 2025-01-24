@@ -25,14 +25,15 @@ _Provide some example code of how a user may utilize this new feature in an inpu
 
 ## Testing (x (yes), blank (no), ? (not applicable)):
 
+- [ ] I added a regression test to test this feature.
+- [ ] I added a unit test to test this feature.
 - [ ] Ran `make check` and unit tests all pass.
-- [ ] Added a regression test to test this feature.
-- [ ] Added a unit test to test this feature.
-- [ ] Ran the code through Valgrind and it is valgrind clean.
-- [ ] Feature is tested and works on CPU.
-- [ ] Feature is tested and works on multi-CPU.
-- [ ] Feature is tested and works on GPU.
-- [ ] Feature is tested and works on multi-GPU.
+- [ ] I ran the code through Valgrind, and it is clean.
+- [ ] I ran a few regression tests to ensure no apparent errors.
+- [ ] Tested and works on CPU.
+- [ ] Tested and works on multi-CPU.
+- [ ] Tested and works on GPU.
+- [ ] Tested and works on multi-GPU.
 
 ## Additional Notes
 
