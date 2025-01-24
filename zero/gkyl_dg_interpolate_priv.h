@@ -104,7 +104,7 @@ dg_interp_choose_gk_interp_kernel(struct gkyl_basis pbasis, int dir)
 
 static int dg_interp_prime_factors(int n, int *pfs, int pfs_size)
 {
-  // Find the prime factos of number `n`, and put them into `pfs`. We assume
+  // Find the prime factors of number `n`, and put them into `pfs`. We assume
   // there are fewer than `pfs_size` prime factors.
   int pf_count = 0;
   int c = 2;

@@ -11,7 +11,7 @@
 typedef struct gkyl_dg_interpolate gkyl_dg_interpolate;
 
 /**
- * Create a new upater to interpolate a field from a donor grid to a target
+ * Create a new updater to interpolate a field from a donor grid to a target
  * grid with the same extents but different resolution.
  *
  * @param cdim Configuration-space dimensions.

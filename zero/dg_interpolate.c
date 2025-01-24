@@ -123,11 +123,11 @@ gkyl_dg_interpolate_new(int cdim, const struct gkyl_basis *pbasis,
     intStencilSize = 1+ceil(1*(1/up->dxRat-floor(1/up->dxRat)));
   }
 
-  // This updater will loop through the donor grid. At each cell it will give
+  // This updater will loop through the donor grid. At each donor cell it will give
   // the interpolation kernel the target grid cells, one at a time, and the
   // kernel will add the corresponding contributions to the target field DG
   // coefficients in that each target grid cell.
-  // There are 3 stencils or regions. For example, in 2D the regions are
+  // There are 3 stencils or regions (recall we do 1D interpolation at time):
   //   .-----.-----.-----.
   //   |     |     |     |
   //   |  1  |  0  |  2  |
