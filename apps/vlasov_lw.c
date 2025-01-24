@@ -1971,7 +1971,7 @@ vm_app_stat_write(lua_State *L)
 static void
 write_data(struct gkyl_tm_trigger* iot, gkyl_vlasov_app* app, double t_curr, bool force_write)
 {
-  if (gkyl_tm_trigger_check_and_bump(iot, t_curr)) {
+  if (gkyl_tm_trigger_check_and_bump(iot, t_curr) || force_write) {
     int frame = iot->curr - 1;
     if (force_write) {
       frame = iot->curr;
@@ -1989,27 +1989,27 @@ write_data(struct gkyl_tm_trigger* iot, gkyl_vlasov_app* app, double t_curr, boo
 
 // Calculate and append field energy to dynvector.
 static void
-calc_field_energy(struct gkyl_tm_trigger* fet, gkyl_vlasov_app* app, double t_curr)
+calc_field_energy(struct gkyl_tm_trigger* fet, gkyl_vlasov_app* app, double t_curr, bool force_calc)
 {
-  if (gkyl_tm_trigger_check_and_bump(fet, t_curr)) {
+  if (gkyl_tm_trigger_check_and_bump(fet, t_curr) || force_calc) {
     gkyl_vlasov_app_calc_field_energy(app, t_curr);
   }
 }
 
 // Calculate and append integrated moments to dynvector.
 static void
-calc_integrated_mom(struct gkyl_tm_trigger* imt, gkyl_vlasov_app* app, double t_curr)
+calc_integrated_mom(struct gkyl_tm_trigger* imt, gkyl_vlasov_app* app, double t_curr, bool force_calc)
 {
-  if (gkyl_tm_trigger_check_and_bump(imt, t_curr)) {
+  if (gkyl_tm_trigger_check_and_bump(imt, t_curr) || force_calc) {
     gkyl_vlasov_app_calc_integrated_mom(app, t_curr);
   }
 }
 
 // Calculate and append integrated L2 norm of distribution function to dynvector.
 static void
-calc_integrated_L2_f(struct gkyl_tm_trigger* l2t, gkyl_vlasov_app* app, double t_curr)
+calc_integrated_L2_f(struct gkyl_tm_trigger* l2t, gkyl_vlasov_app* app, double t_curr, bool force_calc)
 {
-  if (gkyl_tm_trigger_check_and_bump(l2t, t_curr)) {
+  if (gkyl_tm_trigger_check_and_bump(l2t, t_curr) || force_calc) {
     gkyl_vlasov_app_calc_integrated_L2_f(app, t_curr);
   }
 }
@@ -2136,9 +2136,9 @@ vm_app_run(lua_State *L)
 
   struct timespec tm_ic0 = gkyl_wall_clock();
   // Initialize simulation.
-  calc_field_energy(&fe_trig, app, t_curr);
-  calc_integrated_mom(&im_trig, app, t_curr);
-  calc_integrated_L2_f(&l2f_trig, app, t_curr);
+  calc_field_energy(&fe_trig, app, t_curr, false);
+  calc_integrated_mom(&im_trig, app, t_curr, false);
+  calc_integrated_L2_f(&l2f_trig, app, t_curr, false);
   write_data(&io_trig, app, t_curr, false);
 
   gkyl_vlasov_app_cout(app, stdout, "Initialization completed in %g sec\n\n", gkyl_time_diff_now_sec(tm_ic0));
@@ -2170,9 +2170,9 @@ vm_app_run(lua_State *L)
     t_curr += status.dt_actual;
     dt = status.dt_suggested;
 
-    calc_field_energy(&fe_trig, app, t_curr);
-    calc_integrated_mom(&im_trig, app, t_curr);
-    calc_integrated_L2_f(&l2f_trig, app, t_curr);
+    calc_field_energy(&fe_trig, app, t_curr, false);
+    calc_integrated_mom(&im_trig, app, t_curr, false);
+    calc_integrated_L2_f(&l2f_trig, app, t_curr, false);
     write_data(&io_trig, app, t_curr, false);
 
     if (dt_init < 0.0) {
@@ -2187,6 +2187,12 @@ vm_app_run(lua_State *L)
       if (num_failures >= num_failures_max) {
         gkyl_vlasov_app_cout(app, stdout, "ERROR: Time-step was below %g*dt_init ", dt_failure_tol);
         gkyl_vlasov_app_cout(app, stdout, "%d consecutive times. Aborting simulation ....\n", num_failures_max);
+
+        calc_field_energy(&fe_trig, app, t_curr, true);
+        calc_integrated_mom(&im_trig, app, t_curr, true);
+        calc_integrated_L2_f(&l2f_trig, app, t_curr, true);
+        write_data(&io_trig, app, t_curr, true);
+
         break;
       }
     }
@@ -2201,9 +2207,9 @@ vm_app_run(lua_State *L)
     step += 1;
   }
 
-  calc_field_energy(&fe_trig, app, t_curr);
-  calc_integrated_mom(&im_trig, app, t_curr);
-  calc_integrated_L2_f(&l2f_trig, app, t_curr);
+  calc_field_energy(&fe_trig, app, t_curr, false);
+  calc_integrated_mom(&im_trig, app, t_curr, false);
+  calc_integrated_L2_f(&l2f_trig, app, t_curr, false);
   write_data(&io_trig, app, t_curr, false);
   gkyl_vlasov_app_stat_write(app);
 
