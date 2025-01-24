@@ -362,8 +362,8 @@ struct gkyl_fem_parproj_kernels {
 struct gkyl_fem_parproj {
   int ndim; // grid's number of dimensions.
   int num_basis; // number of basis functions.
-  enum gkyl_basis_type basis_type;
-  int poly_order;
+  enum gkyl_basis_type basis_type; // Type of DG basis.
+  int poly_order; // Polynomial order of basis function.
   int pardir; // parallel (z) direction.
   int parnum_cells; // number of cells in parallel (z) direction.
   bool isperiodic; // =true if parallel direction is periodic.
@@ -371,28 +371,25 @@ struct gkyl_fem_parproj {
   bool has_weight_rhs; // Whether there's a weight on the RHS.
   struct gkyl_array *weight_rhs; // The RHS weight.
 
-  const struct gkyl_range *solve_range;
+  const struct gkyl_range *solve_range; // Range to perform the projection in.
   struct gkyl_range perp_range2d; // 2D range of perpendicular cells.
   struct gkyl_range par_range1d; // 1D range of parallel cells.
-  struct gkyl_range_iter perp_iter2d;
-  struct gkyl_range_iter par_iter1d;
+  struct gkyl_range_iter perp_iter2d; // 2D iterator.
+  struct gkyl_range_iter par_iter1d; // 1D iterator.
 
-  int numnodes_local;
-  long numnodes_global;
+  long numnodes_global; // Total number of nodes in linear problem.
+  long *globalidx; // Global indices (in linear problem) of each node within a cell.
 
-  struct gkyl_array *brhs;
-
-  struct gkyl_superlu_prob* prob;
+  struct gkyl_superlu_prob* prob; // A SuperLU linear problem.
+  struct gkyl_array *brhs; // RHS vector/matrix of linear problem (flat).
+  struct gkyl_fem_parproj_kernels *kernels;
 #ifdef GKYL_HAVE_CUDA
-  struct gkyl_culinsolver_prob* prob_cu;
-  struct gkyl_array *brhs_cu;
+  struct gkyl_culinsolver_prob* prob_cu; // A CUDA linear problem.
+  struct gkyl_array *brhs_cu; // Device RHS vector/matrix of linear problem (flat).
+  struct gkyl_fem_parproj_kernels *kernels_cu;
 #endif
 
-  long *globalidx;
-
-  struct gkyl_fem_parproj_kernels *kernels;
-  struct gkyl_fem_parproj_kernels *kernels_cu;
-  bool use_gpu;  
+  bool use_gpu; // Whether to run on the GPU.
 };
 
 // "Choose Kernel" based on polyorder, stencil location and BCs.

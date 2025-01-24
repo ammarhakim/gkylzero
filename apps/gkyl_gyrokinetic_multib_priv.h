@@ -74,8 +74,9 @@ struct gk_multib_field {
   struct gkyl_multib_comm_conn **mbcc_allgatherz_recv; // comm object for allgather receives
   struct gkyl_range **multibz_ranges; // ranges for allgather along z
   struct gkyl_range **multibz_ranges_ext; // extended ranges for smoothing along z
+  struct gkyl_range **multibz_ranges_indi; // Individual ranges forming multibz_ranges.
   struct gkyl_range **block_subrangesz; // ranges for copying smooth phi density
-                                       // back to single block apps
+                                        // back to single block apps
 
   // arrays for connected-along-z phi and smoothed (in z) phi
   struct gkyl_array **phi_local;
@@ -83,7 +84,7 @@ struct gk_multib_field {
   struct gkyl_array **phi_multibz_smooth;
 
   struct gkyl_fem_parproj **fem_parproj; // FEM smoothers for projecting DG functions onto continuous FEM basis
-                                        // weight*phi_{fem} = phi_{dg} 
+                                         // weight*phi_{fem} = phi_{dg} 
 };
 
 /** Time stepping API */
