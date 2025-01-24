@@ -38,10 +38,6 @@ void gk_geometry_mapc2p_advance(struct gk_geometry* up, struct gkyl_range *nrang
     phi_lo = up->grid.lower[PH_IDX] + (up->local.lower[PH_IDX] - up->global.lower[PH_IDX])*up->grid.dx[PH_IDX],
     alpha_lo = up->grid.lower[AL_IDX] + (up->local.lower[AL_IDX] - up->global.lower[AL_IDX])*up->grid.dx[AL_IDX];
 
-  double theta_up = up->grid.upper[TH_IDX],
-    phi_up = up->grid.upper[PH_IDX],
-    alpha_up = up->grid.upper[AL_IDX];
-
   double dx_fact = up->basis.poly_order == 1 ? 1 : 0.5;
   dtheta *= dx_fact; dpsi *= dx_fact; dalpha *= dx_fact;
 
@@ -54,13 +50,13 @@ void gk_geometry_mapc2p_advance(struct gk_geometry* up, struct gkyl_range *nrang
   dzc[2] = delta_theta;
   int modifiers[5] = {0, -1, 1, -2, 2};
 
-  position_map->constB_ctx->alpha_max = alpha_up;
-  position_map->constB_ctx->alpha_min = alpha_lo;
-  position_map->constB_ctx->psi_max = phi_up;
-  position_map->constB_ctx->psi_min = phi_lo;
-  position_map->constB_ctx->theta_max = theta_up;
-  position_map->constB_ctx->theta_min = theta_lo;
-  position_map->constB_ctx->N_theta_boundaries = nrange->upper[TH_IDX] - nrange->lower[TH_IDX] + 1;
+  position_map->constB_ctx->psi_max   = up->grid.upper[PH_IDX];
+  position_map->constB_ctx->psi_min   = up->grid.lower[PH_IDX];
+  position_map->constB_ctx->alpha_max = up->grid.upper[AL_IDX];
+  position_map->constB_ctx->alpha_min = up->grid.lower[AL_IDX];
+  position_map->constB_ctx->theta_max = up->grid.upper[TH_IDX];
+  position_map->constB_ctx->theta_min = up->grid.lower[TH_IDX];
+  position_map->constB_ctx->N_theta_boundaries = up->global.upper[TH_IDX] - up->global.lower[TH_IDX];
   gkyl_position_map_optimize(position_map);
                                 
   int cidx[3] = { 0 };
@@ -262,27 +258,37 @@ gkyl_gk_geometry_mapc2p_new(struct gkyl_gk_geometry_inp *geometry_inp)
 {
   struct gk_geometry* gk_geom_3d;
   struct gk_geometry* gk_geom;
-  // First construct the uniform 3d geometry
-  gk_geom_3d = gk_geometry_mapc2p_init(geometry_inp);
-  // The conversion array computational to field aligned is still computed
-  // in uniform geometry, so we need to deflate it
-  if (geometry_inp->position_map->id == GKYL_PMAP_CONSTANT_DB_POLYNOMIAL || \
-      geometry_inp->position_map->id == GKYL_PMAP_CONSTANT_DB_NUMERIC) {
-    // Must deflate the 3Duniform geometry in order for the allgather to work
-    if(geometry_inp->grid.ndim < 3)
-      gk_geom = gkyl_gk_geometry_deflate(gk_geom_3d, geometry_inp);
-    else
-      gk_geom = gkyl_gk_geometry_acquire(gk_geom_3d);
 
-    geometry_inp->position_map->to_optimize = true;
-    gkyl_comm_array_allgather_host(geometry_inp->comm, &geometry_inp->local, \
-    &geometry_inp->global, gk_geom->bmag, (struct gkyl_array*) geometry_inp->position_map->bmag_ctx->bmag);
 
-    gkyl_gk_geometry_release(gk_geom_3d); // release temporary 3d geometry
-    gkyl_gk_geometry_release(gk_geom); // release 3d geometry
-
-    // Construct the non-uniform grid
+  if (geometry_inp->position_map == 0){
+    geometry_inp->position_map = gkyl_position_map_new((struct gkyl_position_map_inp) {}, \
+      geometry_inp->grid, geometry_inp->local, geometry_inp->local_ext, geometry_inp->local, \
+      geometry_inp->local_ext, geometry_inp->basis);
     gk_geom_3d = gk_geometry_mapc2p_init(geometry_inp);
+    gkyl_position_map_release(geometry_inp->position_map);
+  }
+  else {
+    // First construct the uniform 3d geometry
+    gk_geom_3d = gk_geometry_mapc2p_init(geometry_inp);
+    if (geometry_inp->position_map->id == GKYL_PMAP_CONSTANT_DB_POLYNOMIAL || \
+        geometry_inp->position_map->id == GKYL_PMAP_CONSTANT_DB_NUMERIC) {
+      // The array mc2nu is computed using the uniform geometry, so we need to deflate it
+      // Must deflate the 3D uniform geometry in order for the allgather to work
+      if(geometry_inp->grid.ndim < 3)
+        gk_geom = gkyl_gk_geometry_deflate(gk_geom_3d, geometry_inp);
+      else
+        gk_geom = gkyl_gk_geometry_acquire(gk_geom_3d);
+
+      geometry_inp->position_map->to_optimize = true;
+      gkyl_comm_array_allgather_host(geometry_inp->comm, &geometry_inp->local, \
+      &geometry_inp->global, gk_geom->bmag, (struct gkyl_array*) geometry_inp->position_map->bmag_ctx->bmag);
+
+      gkyl_gk_geometry_release(gk_geom_3d); // release temporary 3d geometry
+      gkyl_gk_geometry_release(gk_geom); // release 3d geometry
+
+      // Construct the non-uniform grid
+      gk_geom_3d = gk_geometry_mapc2p_init(geometry_inp);
+    }
   }
   return gk_geom_3d;
 }

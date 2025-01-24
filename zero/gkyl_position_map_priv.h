@@ -314,18 +314,16 @@ find_B_field_extrema(struct gkyl_position_map *gpm)
   double theta_extrema[16];
   double bmag_extrema[16];
 
+  theta_extrema[0] = theta_lo;
+  xp[Z_IDX] = theta_lo;
+  gkyl_calc_bmag_global(0.0, xp, &bmag_extrema[0], bmag_ctx);
+  extrema++;
+
   for (int i = 0; i <= npts; i++){
     double theta = theta_lo + i * theta_dxi;
     xp[Z_IDX] = theta;
     gkyl_calc_bmag_global(0.0, xp, &bmag_vals[i], bmag_ctx);
     dbmag_vals[i] = calc_bmag_global_derivative(theta, gpm);
-    if (i == 0 || i == npts)
-    {
-      theta_extrema[extrema] = theta;
-      bmag_extrema[extrema] = bmag_vals[i];
-      extrema++;
-      continue;
-    }
 
     // Minima
     if (dbmag_vals[i] > 0 && dbmag_vals[i-1] < 0){
@@ -359,6 +357,12 @@ find_B_field_extrema(struct gkyl_position_map *gpm)
       }
     }
   }
+
+  theta_extrema[extrema] = theta_hi;
+  xp[Z_IDX] = theta_hi;
+  gkyl_calc_bmag_global(0.0, xp, &bmag_extrema[extrema], bmag_ctx);
+  extrema++;
+
   gpm->constB_ctx->num_extrema = extrema;
   for (int i = 0; i < extrema; i++)
   {

@@ -84,7 +84,7 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
     }
     if (app->cdim == 1) {
       // Need to set weight to kperpsq*polarizationWeight for use in potential smoothing.
-      f->epsilon = mkarr(false, app->confBasis.num_basis, app->global_ext.volume); // fem_parproj expects it on host.
+      f->epsilon = mkarr(app->use_gpu, app->confBasis.num_basis, app->global_ext.volume); // fem_parproj expects it on host.
  
       // Gather jacobgeo for smoothing in z.
       struct gkyl_array *jacobgeo_global = mkarr(app->use_gpu, app->confBasis.num_basis, app->global_ext.volume);
@@ -102,7 +102,8 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
         double q_s = f->info.electron_charge;
         double T_s = f->info.electron_temp;
         double quasineut_contr = q_s*n_s0*q_s/T_s;
-        struct gkyl_array *epsilon_adiab = mkarr(false, app->confBasis.num_basis, app->global_ext.volume); // fem_parproj expects epsilon on host
+        
+        struct gkyl_array *epsilon_adiab = mkarr(app->use_gpu, app->confBasis.num_basis, app->global_ext.volume); // fem_parproj expects epsilon on host
         gkyl_array_copy(epsilon_adiab, jacobgeo_global);
         gkyl_array_scale(epsilon_adiab, quasineut_contr);
         gkyl_array_accumulate(f->epsilon, 1., epsilon_adiab);
@@ -147,14 +148,15 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
     gkyl_range_shorten_from_below(&f->global_ext_sol, &app->global_ext, 0, app->grid.cells[0]-idxLCFS_m+1);
     gkyl_range_shorten_from_above(&f->global_core, &app->global, 0, idxLCFS_m+1);
     gkyl_range_shorten_from_above(&f->global_ext_core, &app->global_ext, 0, idxLCFS_m+1);
-    f->fem_parproj_core = gkyl_fem_parproj_new(&f->global_core, &f->global_ext_core, 
-      &app->confBasis, fem_parproj_bc_core, 0, app->use_gpu);
-    f->fem_parproj_sol = gkyl_fem_parproj_new(&f->global_sol, &f->global_ext_sol, 
-      &app->confBasis, fem_parproj_bc_sol, 0, app->use_gpu);
+
+    f->fem_parproj_core = gkyl_fem_parproj_new(&f->global_core, &app->confBasis,
+      fem_parproj_bc_core, 0, 0, app->use_gpu);
+    f->fem_parproj_sol = gkyl_fem_parproj_new(&f->global_sol, &app->confBasis,
+      fem_parproj_bc_sol, 0, 0, app->use_gpu);
   } 
   else {
-    f->fem_parproj = gkyl_fem_parproj_new(&app->global, &app->global_ext, 
-      &app->confBasis, f->info.fem_parbc, app->cdim == 1? f->epsilon : 0, app->use_gpu);
+    f->fem_parproj = gkyl_fem_parproj_new(&app->global, &app->confBasis,
+      f->info.fem_parbc, app->cdim == 1? f->epsilon : 0, 0, app->use_gpu);
   }
 
   f->phi_host = f->phi_smooth;  
