@@ -405,10 +405,10 @@ gkyl_gyrokinetic_app_new_solver(struct gkyl_gk *gk, gkyl_gyrokinetic_app *app)
   // initialize each species
   for (int i=0; i<ns; ++i)
     if (app->species[i].info.is_static) {
-      gk_species_static_init(gk, app, &app->species[i]);
+      gk_species_static_new(gk, app, &app->species[i]);
     }
     else
-      gk_species_init(gk, app, &app->species[i]);
+      gk_species_new(gk, app, &app->species[i]);
 
   // initialize each neutral species
   for (int i=0; i<neuts; ++i) { 

@@ -1309,16 +1309,25 @@ void gk_species_source_release(const struct gkyl_gyrokinetic_app *app, const str
  * @param app gyrokinetic app object
  * @param s On output, initialized species object
  */
-void gk_species_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app, struct gk_species *s);
+void gk_species_common_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app, struct gk_species *s);
 
 /**
- * Initialize static species.
+ * Initialize species.
  *
  * @param gk Input gk data
  * @param app gyrokinetic app object
  * @param s On output, initialized species object
  */
-void gk_species_static_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app, struct gk_species *s);
+void gk_species_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app, struct gk_species *s);
+
+/**
+ * Initialize species.
+ *
+ * @param gk Input gk data
+ * @param app gyrokinetic app object
+ * @param s On output, initialized species object
+ */
+void gk_species_static_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app, struct gk_species *s);
 
 /**
  * Compute species initial conditions.
