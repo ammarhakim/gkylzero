@@ -254,11 +254,6 @@ gk_species_common_init(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *
   if (app->use_gpu)
     gks->f_host = mkarr(false, app->basis.num_basis, gks->local_ext.volume);
 
-  if (app->use_gpu)
-    gks->omega_cfl = gkyl_cu_malloc(sizeof(double));
-  else 
-    gks->omega_cfl = gkyl_malloc(sizeof(double));
-
   // Need to figure out size of alpha_surf and sgn_alpha_surf by finding size of surface basis set 
   struct gkyl_basis surf_basis, surf_quad_basis;
   if (app->poly_order > 1) {
@@ -728,6 +723,7 @@ void
 gk_species_static_new(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *app, struct gk_species *gks)
 {
   gk_species_common_init(gk_app_inp, app, gks);
+  
   // Allocate distribution function arrays.
   gks->f1 = gks->f;
   gks->fnew = gks->f;
@@ -975,26 +971,10 @@ gk_species_tm(gkyl_gyrokinetic_app *app)
 
 // release resources for species
 void
-gk_species_static_release(const gkyl_gyrokinetic_app* app, const struct gk_species *s)
-{
-}
-
-void
-gk_species_dynamic_release(const gkyl_gyrokinetic_app* app, const struct gk_species *s)
-{
-}
-
-void
 gk_species_release(const gkyl_gyrokinetic_app* app, const struct gk_species *s)
 {
   // release various arrays and species objects
   gkyl_array_release(s->f);
-  gkyl_array_release(s->f1);
-  gkyl_array_release(s->fnew);
-  gkyl_array_release(s->cflrate);
-  gkyl_array_release(s->bc_buffer);
-  gkyl_array_release(s->bc_buffer_lo_fixed);
-  gkyl_array_release(s->bc_buffer_up_fixed);
 
   if (s->info.init_from_file.type == 0)
     gk_species_projection_release(app, &s->proj_init);
@@ -1029,6 +1009,38 @@ gk_species_release(const gkyl_gyrokinetic_app* app, const struct gk_species *s)
 
   gk_species_source_release(app, &s->src);
 
+  gk_species_bflux_release(app, &s->bflux);
+
+  if (app->use_gpu) {
+    gkyl_cu_free(s->red_integ_diag);
+    gkyl_cu_free(s->red_integ_diag_global);
+  }
+  else {
+    gkyl_free(s->red_integ_diag);
+    gkyl_free(s->red_integ_diag_global);
+  }
+
+  if (app->enforce_positivity) {
+    gkyl_array_release(s->ps_delta_m0);
+    gkyl_array_release(s->ps_delta_m0s_tot);
+    gkyl_array_release(s->ps_delta_m0r_tot);
+    gkyl_positivity_shift_gyrokinetic_release(s->pos_shift_op);
+    gk_species_moment_release(app, &s->ps_moms);
+    gkyl_dynvec_release(s->ps_integ_diag);
+  }
+}
+
+void
+gk_species_dynamic_release(const gkyl_gyrokinetic_app* app, const struct gk_species *s)
+{
+    // release various arrays and species objects
+  gkyl_array_release(s->f1);
+  gkyl_array_release(s->fnew);
+  gkyl_array_release(s->cflrate);
+  gkyl_array_release(s->bc_buffer);
+  gkyl_array_release(s->bc_buffer_lo_fixed);
+  gkyl_array_release(s->bc_buffer_up_fixed);
+
   if (s->lbo.collision_id == GKYL_LBO_COLLISIONS)
     gk_species_lbo_release(app, &s->lbo);
   if (s->bgk.collision_id == GKYL_BGK_COLLISIONS)
@@ -1041,8 +1053,6 @@ gk_species_release(const gkyl_gyrokinetic_app* app, const struct gk_species *s)
 
   if (s->rad.radiation_id == GKYL_GK_RADIATION) 
     gk_species_radiation_release(app, &s->rad);
-
-  gk_species_bflux_release(app, &s->bflux);
 
   if (s->has_diffusion) {
     gkyl_array_release(s->diffD);
@@ -1074,13 +1084,9 @@ gk_species_release(const gkyl_gyrokinetic_app* app, const struct gk_species *s)
   
   if (app->use_gpu) {
     gkyl_cu_free(s->omega_cfl);
-    gkyl_cu_free(s->red_integ_diag);
-    gkyl_cu_free(s->red_integ_diag_global);
   }
   else {
     gkyl_free(s->omega_cfl);
-    gkyl_free(s->red_integ_diag);
-    gkyl_free(s->red_integ_diag_global);
   }
 
   if (app->enforce_positivity) {
@@ -1091,4 +1097,9 @@ gk_species_release(const gkyl_gyrokinetic_app* app, const struct gk_species *s)
     gk_species_moment_release(app, &s->ps_moms);
     gkyl_dynvec_release(s->ps_integ_diag);
   }
+}
+
+void
+gk_species_static_release(const gkyl_gyrokinetic_app* app, const struct gk_species *s)
+{
 }
