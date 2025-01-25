@@ -386,10 +386,14 @@ gk_species_new(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *app, str
   // Allocate cflrate (scalar array).
   gks->cflrate = mkarr(app->use_gpu, 1, gks->local_ext.volume);
 
-  if (app->use_gpu)
+  if (app->use_gpu) {
     gks->omega_cfl = gkyl_cu_malloc(sizeof(double));
-  else 
+    gks->m0_max = gkyl_cu_malloc(app->confBasis.num_basis*sizeof(double));
+  }
+  else {
     gks->omega_cfl = gkyl_malloc(sizeof(double));
+    gks->m0_max = gkyl_malloc(app->confBasis.num_basis*sizeof(double));
+  }
 
   // by default, we do not have zero-flux boundary conditions in any direction
   bool is_zero_flux[2*GKYL_MAX_DIM] = {false};
@@ -777,6 +781,40 @@ gk_species_apply_ic_cross(gkyl_gyrokinetic_app *app, struct gk_species *gks_self
 
 }
 
+static double
+gk_species_omegaH_dt(gkyl_gyrokinetic_app *app, struct gk_species *gks, const struct gkyl_array *fin)
+{
+  // Compute the time step under which the omega_H mode is stable, dt_omegaH =
+  // omegaH_CFL/omega_H.
+  // Each species computes its own omega_H as:
+  //   omega_H = q_e*sqrt(jacobgeo*n_{s0}/m_s) * omegaH_gf
+  // where
+  //   - n_{s0} is either a reference, average or max density.
+  //   - omegaH_gf = (cmag/(jacobgeo*B^_\parallel))*kpar_max / 
+  //                 min(sqrt(k_x^2*eps_xx+k_x*k_y*eps_xy+k_y^2*eps_yy+)).
+  // and k_x,k_y,k_par are wavenumbers in computational space, and eps_ij is
+  // the polarization weight in our field equation.
+ 
+  if (!(app->field->gkfield_id == GKYL_GK_FIELD_BOLTZMANN || app->field->gkfield_id == GKYL_GK_FIELD_ADIABATIC)) {
+    // Obtain the maximum density (using cell centers).
+    gk_species_moment_calc(&gks->m0, gks->local, app->local, fin);
+    gkyl_array_reduce_range(gks->m0_max, gks->m0.marr, GKYL_MAX, &app->local);
+  
+    double m0_max[1];
+    if (app->use_gpu)
+      gkyl_cu_memcpy(m0_max, gks->m0_max, sizeof(double), GKYL_CU_MEMCPY_D2H);
+    else
+      m0_max[0] = gks->m0_max[0];
+    m0_max[0] *= 1.0/pow(sqrt(2.0),app->cdim);
+  
+    double omegaH = fabs(gks->info.charge)*sqrt(GKYL_MAX2(0.0,m0_max[0])/gks->info.mass)*app->omegaH_gf;
+  
+    return omegaH > 1e-20? app->cfl_omegaH/omegaH : DBL_MAX;
+  }
+  else
+    return DBL_MAX;
+}
+
 // Compute the RHS for species update, returning maximum stable
 // time-step.
 double
@@ -836,8 +874,14 @@ gk_species_dynamic_rhs(gkyl_gyrokinetic_app *app, struct gk_species *species,
     omega_cfl_ho[0] = species->omega_cfl[0];
 
   app->stat.species_omega_cfl_tm += gkyl_time_diff_now_sec(tm);
+
+  double dt_out = app->cfl/omega_cfl_ho[0];
   
-  return app->cfl/omega_cfl_ho[0];
+  // Enforce the omega_H constraint on dt.
+  double dt_omegaH = gk_species_omegaH_dt(app, species, fin);
+  dt_out = fmin(dt_out, dt_omegaH);
+
+  return dt_out;
 }
 
 double
@@ -1071,9 +1115,11 @@ gk_species_dynamic_release(const gkyl_gyrokinetic_app* app, const struct gk_spec
   
   if (app->use_gpu) {
     gkyl_cu_free(s->omega_cfl);
+    gkyl_cu_free(s->m0_max);
   }
   else {
     gkyl_free(s->omega_cfl);
+    gkyl_free(s->m0_max);
   }
 
   // Release L2 norm memory.
